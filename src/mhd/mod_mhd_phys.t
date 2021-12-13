@@ -4380,7 +4380,7 @@ contains
     double precision :: jce(ixI^S,7-2*ndim:3)
 
     ! current on cell centers
-    double precision :: jcc(ixI^S,7-2*ndim:3)
+    double precision :: jcc(ixI^S,7-2*ndir:3)
     ! location at cell faces
     double precision :: xs(ixGs^T,1:ndim)
     ! resistivity
@@ -4416,7 +4416,8 @@ contains
       jce(ixI^S,:)=jce(ixI^S,:)*mhd_eta
     else
       ixA^L=ixO^L^LADD1;
-      call get_current(wCT,ixI^L,ixO^L,idirmin,jcc)
+      jcc=0.d0
+      call get_current(wCT,ixI^L,ixA^L,idirmin,jcc)
       call usr_special_resistivity(wCT,ixI^L,ixA^L,idirmin,x,jcc,eta)
       ! calcuate eta on cell edges
       do idir=7-2*ndim,3

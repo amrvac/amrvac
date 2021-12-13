@@ -21,6 +21,7 @@ contains
     usr_special_convert     => usrspecial_convert
     usr_special_resistivity => special_eta
     usr_var_for_errest      => p_for_errest
+    usr_init_vector_potential=>initvecpot_usr
 
     call mhd_activate()
     parb=20.d0/3.d0
@@ -41,7 +42,7 @@ contains
     double precision, intent(in) :: x(ixI^S,1:ndim)
     double precision, intent(inout) :: w(ixI^S,1:nw)
     double precision :: Bf(ixI^S,1:ndir)
-    double precision :: htra, wtra, rpho, parb
+    double precision :: htra, wtra, rpho
     logical, save:: first=.true.
 
     if (first) then
@@ -58,6 +59,10 @@ contains
     w(ixO^S,mom(:))=zero
     if(B0field) then
       w(ixO^S,mag(:))=zero
+    else if(stagger_grid) then
+      call b_from_vector_potential(ixGs^LL,ixI^L,ixO^L,block%ws,x)
+      call mhd_face_to_center(ixO^L,block)
+      w(ixO^S,mag(3))=Busr/dcosh(parb*x(ixO^S,1))
     else
       call specialset_B0(ixI^L,ixO^L,x,Bf)
       w(ixO^S,mag(1:ndir))=Bf(ixO^S,1:ndir)
@@ -71,8 +76,8 @@ contains
     integer, intent(in) :: ixO^L, iB, ixI^L
     double precision, intent(in) :: qt, x(ixI^S,1:ndim)
     double precision, intent(inout) :: w(ixI^S,1:nw)
-    double precision :: pth(ixI^S)
-    integer :: ix^D, ixA^L
+    double precision :: pth(ixI^S),Qp(ixI^S)
+    integer :: ix^D, ixA^L, ixOs^L, idir
 
     if(mhd_glm) w(ixO^S,psi_)=0.d0
     select case(iB)
@@ -88,15 +93,42 @@ contains
         w(ix1^%1ixO^S,mom(3))=w(ixOmax1+1^%1ixO^S,mom(3))/w(ixOmax1+1^%1ixO^S,rho_)
         w(ix1^%1ixO^S,rho_)=w(ixOmax1+1^%1ixO^S,rho_)
         w(ix1^%1ixO^S,p_)=pth(ixOmax1+1^%1ixO^S)
-      enddo
-      do ix1=ixOmax1,ixOmin1,-1
-        w(ix1,ixOmin2:ixOmax2,mag(:))=(1.0d0/3.0d0)* &
-                   (-w(ix1+2,ixOmin2:ixOmax2,mag(:)) &
-              +4.0d0*w(ix1+1,ixOmin2:ixOmax2,mag(:)))
-      !  w(ix1,ixOmin2:ixOmax2,mom(:))=(1.0d0/3.0d0)* &
-      !             (-w(ix1+2,ixOmin2:ixOmax2,mom(:)) &
-      !        +4.0d0*w(ix1+1,ixOmin2:ixOmax2,mom(:)))
-      enddo
+      end do
+      if(stagger_grid) then
+        do idir=1,nws
+          if(idir==1) cycle
+          ixOsmax^D=ixOmax^D;
+          ixOsmin^D=ixOmin^D-kr(^D,idir);
+          do ix1=ixOsmax1,ixOsmin1,-1
+             block%ws(ix1^%1ixOs^S,idir) = third*&
+                    (-block%ws(ix1+2^%1ixOs^S,idir)&
+                +4.d0*block%ws(ix1+1^%1ixOs^S,idir))
+             !block%ws(ix1^%1ixOs^S,idir) = 1.d0/3.d0*&
+             !       ( block%ws(ix1+3^%1ixOs^S,idir)&
+             !   -5.d0*block%ws(ix1+2^%1ixOs^S,idir)&
+             !   +7.d0*block%ws(ix1+1^%1ixOs^S,idir))
+          end do
+        end do
+        ixOs^L=ixO^L-kr(1,^D);
+        block%ws(ixOs^S,1)=zero
+        do ix1=ixOsmax1,ixOsmin1,-1
+          call get_divb(w,ixI^L,ixO^L,Qp)
+          block%ws(ix1^%1ixOs^S,1)=Qp(ix1+1^%1ixO^S)*block%dvolume(ix1+1^%1ixO^S)&
+            /block%surfaceC(ix1^%1ixOs^S,1)
+        end do
+        do ix1=ixOmax1,ixOmin1,-1
+          w(ix1^%1ixO^S,mag(3))=third* &
+                     (-w(ix1+2,ixOmin2:ixOmax2,mag(3)) &
+                +4.0d0*w(ix1+1,ixOmin2:ixOmax2,mag(3)))
+        end do
+        call mhd_face_to_center(ixO^L,block)
+      else
+        do ix1=ixOmax1,ixOmin1,-1
+          w(ix1^%1ixO^S,mag(:))=third* &
+                     (-w(ix1+2,ixOmin2:ixOmax2,mag(:)) &
+                +4.0d0*w(ix1+1,ixOmin2:ixOmax2,mag(:)))
+        end do
+      end if
       call mhd_to_conserved(ixI^L,ixO^L,w,x)
     case(2)
       ixA^L=ixO^L;
@@ -111,14 +143,41 @@ contains
         w(ix1^%1ixO^S,rho_)=w(ixOmin1-1^%1ixO^S,rho_)
         w(ix1^%1ixO^S,p_)=pth(ixOmin1-1^%1ixO^S)
       enddo
-      do ix1=ixOmin1,ixOmax1
-        w(ix1,ixOmin2:ixOmax2,mag(:))=(1.0d0/3.0d0)* &
-                   (-w(ix1-2,ixOmin2:ixOmax2,mag(:)) &
-              +4.0d0*w(ix1-1,ixOmin2:ixOmax2,mag(:)))
-        !w(ix1,ixOmin2:ixOmax2,mom(:))=(1.0d0/3.0d0)* &
-        !           (-w(ix1-2,ixOmin2:ixOmax2,mom(:)) &
-        !      +4.0d0*w(ix1-1,ixOmin2:ixOmax2,mom(:)))
-      enddo
+      if(stagger_grid) then
+        do idir=1,nws
+          if(idir==1) cycle
+          ixOsmax^D=ixOmax^D;
+          ixOsmin^D=ixOmin^D-kr(^D,idir);
+          do ix1=ixOsmin1,ixOsmax1
+             block%ws(ix1^%1ixOs^S,idir) = 1.d0/3.d0*&
+                    (-block%ws(ix1-2^%1ixOs^S,idir)&
+                +4.d0*block%ws(ix1-1^%1ixOs^S,idir))
+             !block%ws(ix1^%1ixOs^S,idir) = 1.d0/3.d0*&
+             !       ( block%ws(ix1-3^%1ixOs^S,idir)&
+             !   -5.d0*block%ws(ix1-2^%1ixOs^S,idir)&
+             !   +7.d0*block%ws(ix1-1^%1ixOs^S,idir))
+          end do
+        end do
+        ixOs^L=ixO^L;
+        block%ws(ixOs^S,1)=zero
+        do ix1=ixOsmin1,ixOsmax1
+          call get_divb(w,ixI^L,ixO^L,Qp)
+          block%ws(ix1^%1ixOs^S,1)=-Qp(ix1^%1ixO^S)*block%dvolume(ix1^%1ixO^S)&
+            /block%surfaceC(ix1^%1ixOs^S,1)
+        end do
+        call mhd_face_to_center(ixO^L,block)
+        do ix1=ixOmin1,ixOmax1
+          w(ix1^%1ixO^S,mag(3))=third* &
+                     (-w(ix1-2^%1ixO^S,mag(3)) &
+                +4.0d0*w(ix1-1^%1ixO^S,mag(3)))
+        end do
+      else
+        do ix1=ixOmin1,ixOmax1
+          w(ix1^%1ixO^S,mag(:))=third* &
+                     (-w(ix1-2^%1ixO^S,mag(:)) &
+                +4.0d0*w(ix1-1^%1ixO^S,mag(:)))
+        end do
+      end if
       call mhd_to_conserved(ixI^L,ixO^L,w,x)
     case(3)
       ixA^L=ixO^L;
@@ -127,13 +186,35 @@ contains
       do ix2=ixOmin2,ixOmax2
         w(ix2^%2ixO^S,rho_)=w(ixOmax2+1^%2ixO^S,rho_)
         w(ix2^%2ixO^S,mom(1))=w(ixOmax2+1^%2ixO^S,mom(1))/w(ixOmax2+1^%2ixO^S,rho_)
-        w(ix2^%2ixO^S,mag(2))=w(ixOmax2+1^%2ixO^S,mag(2))
-        w(ix2^%2ixO^S,mag(3))=w(ixOmax2+1^%2ixO^S,mag(3))
         w(ix2^%2ixO^S,p_)=pth(ixOmax2+1^%2ixO^S)
         if(mhd_glm) w(ix2^%2ixO^S,psi_)=w(ixOmax2+1^%2ixO^S,psi_)
       enddo
       w(ixO^S,mom(2:3))=zero
-      w(ixO^S,mag(1))=zero
+      if(stagger_grid) then
+        do idir=1,nws
+          if(idir==2) cycle
+          ixOsmax^D=ixOmax^D;
+          ixOsmin^D=ixOmin^D-kr(^D,idir);
+          block%ws(ix2^%2ixOs^S,idir)=0.d0
+        end do
+        ixOs^L=ixO^L-kr(2,^D);
+        block%ws(ixOs^S,2)=zero
+        do ix2=ixOsmax2,ixOsmin2,-1
+          call get_divb(w,ixI^L,ixO^L,Qp)
+          block%ws(ix2^%2ixOs^S,2)=Qp(ix2+1^%2ixO^S)*block%dvolume(ix2+1^%2ixO^S)&
+            /block%surfaceC(ix2^%2ixOs^S,2)
+        end do
+        call mhd_face_to_center(ixO^L,block)
+        do ix2=ixOmin2,ixOmax2
+          w(ix2^%2ixO^S,mag(3))=w(ixOmax2+1^%2ixO^S,mag(3))
+        end do
+      else
+        do ix2=ixOmin2,ixOmax2
+          w(ix2^%2ixO^S,mag(2))=w(ixOmax2+1^%2ixO^S,mag(2))
+          w(ix2^%2ixO^S,mag(3))=w(ixOmax2+1^%2ixO^S,mag(3))
+        end do
+        w(ixO^S,mag(1))=zero
+      end if
       call mhd_to_conserved(ixI^L,ixO^L,w,x)
     case(4)
       ixA^L=ixO^L;
@@ -146,11 +227,41 @@ contains
         w(ix2^%2ixO^S,mom(3))=w(ixOmin2-1^%2ixO^S,mom(3))/w(ixOmin2-1^%2ixO^S,rho_)
         w(ix2^%2ixO^S,p_)=pth(ixOmin2-1^%2ixO^S)
       enddo
-      do ix2=ixOmin2,ixOmax2
-        w(ixOmin1:ixOmax1,ix2,mag(:))=(1.0d0/3.0d0)* &
-                    (-w(ixOmin1:ixOmax1,ix2-2,mag(:))&
-               +4.0d0*w(ixOmin1:ixOmax1,ix2-1,mag(:)))
-      enddo
+      if(stagger_grid) then
+        do idir=1,nws
+          if(idir==2) cycle
+          ixOsmax^D=ixOmax^D;
+          ixOsmin^D=ixOmin^D-kr(^D,idir);
+          do ix2=ixOsmin2,ixOsmax2
+             block%ws(ix2^%2ixOs^S,idir) = third*&
+                    (-block%ws(ix2-2^%2ixOs^S,idir)&
+                +4.d0*block%ws(ix2-1^%2ixOs^S,idir))
+             !block%ws(ix2^%2ixOs^S,idir) = 1.d0/3.d0*&
+             !       ( block%ws(ix2-3^%2ixOs^S,idir)&
+             !   -5.d0*block%ws(ix2-2^%2ixOs^S,idir)&
+             !   +7.d0*block%ws(ix2-1^%2ixOs^S,idir))
+          end do
+        end do
+        ixOs^L=ixO^L;
+        block%ws(ixOs^S,2)=zero
+        do ix2=ixOsmin2,ixOsmax2
+          call get_divb(w,ixI^L,ixO^L,Qp)
+          block%ws(ix2^%2ixOs^S,2)=-Qp(ix2^%2ixO^S)*block%dvolume(ix2^%2ixO^S)&
+            /block%surfaceC(ix2^%2ixOs^S,2)
+        end do
+        call mhd_face_to_center(ixO^L,block)
+        do ix2=ixOmin2,ixOmax2
+          w(ix2^%2ixO^S,mag(3))=third* &
+                      (-w(ix2-2^%2ixO^S,mag(3))&
+                 +4.0d0*w(ix2-1^%2ixO^S,mag(3)))
+        end do
+      else
+        do ix2=ixOmin2,ixOmax2
+          w(ix2^%2ixO^S,mag(:))=third* &
+                      (-w(ix2-2^%2ixO^S,mag(:))&
+                 +4.0d0*w(ix2-1^%2ixO^S,mag(:)))
+        end do
+      end if
       call mhd_to_conserved(ixI^L,ixO^L,w,x)
     case default
       call mpistop("Special boundary is not defined for this region")
@@ -193,9 +304,9 @@ contains
     B2(ixO^S)=sum((Btotal(ixO^S,:))**2,dim=ndim+1)
     ! output Alfven wave speed B/sqrt(rho)
     w(ixO^S,nw+2)=dsqrt(B2(ixO^S)/w(ixO^S,rho_))
-    ! output divB1
-    call divvector(Btotal,ixI^L,ixO^L,divb)
-    w(ixO^S,nw+3)=0.5d0*divb(ixO^S)/dsqrt(B2(ixO^S))/(^D&1.0d0/dxlevel(^D)+)
+    ! output divB
+    call get_divb(w,ixI^L,ixO^L,divb)
+    w(ixO^S,nw+3)=divb(ixO^S)
     ! output the plasma beta p*2/B**2
     w(ixO^S,nw+4)=pth(ixO^S)*two/B2(ixO^S)
     ! output current
@@ -226,6 +337,23 @@ contains
     wB0(ixO^S,3)=Busr/dcosh(parb*x(ixO^S,1))
 
   end subroutine specialset_B0
+
+  subroutine initvecpot_usr(ixI^L, ixC^L, xC, A, idir)
+    ! initialize the vectorpotential on the edges
+    ! used by b_from_vectorpotential()
+    integer, intent(in)                :: ixI^L, ixC^L,idir
+    double precision, intent(in)       :: xC(ixI^S,1:ndim)
+    double precision, intent(out)      :: A(ixI^S)
+
+    if(idir==1) then
+      A(ixC^S) =-Busr/dcosh(parb*xC(ixC^S,1))*xC(ixC^S,2)
+    else if(idir==3) then
+      A(ixC^S) = Busr/parb*log(dcosh(parb*xC(ixC^S,1)))
+    else
+      A(ixC^S)=0.d0
+    end if
+
+  end subroutine initvecpot_usr
 
   subroutine specialset_J0(ixI^L,ixO^L,x,wJ0)
   ! Here add a time-independent background current density 
@@ -275,7 +403,7 @@ contains
       endwhere
     end if 
 
-    end subroutine special_eta
+  end subroutine special_eta
 
   subroutine usrspecial_convert(qunitconvert)
     integer, intent(in) :: qunitconvert

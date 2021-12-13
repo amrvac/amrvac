@@ -11,7 +11,7 @@
         itsave(1,1)=0
         itsave(1,2)=0
         dtsave_log=0.01d0
-        dtsave_dat=0.01d0
+        dtsave_dat=0.1d0
  /
 
  &stoplist
@@ -19,11 +19,12 @@
  /
 
  &methodlist
-        time_stepper='twostep'
+        time_stepper='threestep'
         flux_scheme=20*'hll'
-        limiter= 20*'vanleer'
+        limiter= 20*'cada3'
         small_pressure=1.0d-14
         small_density=1.0d-14
+        fix_small_values=.true.
  /
 
  &boundlist
@@ -61,13 +62,9 @@
         mhd_energy=.true.
         typedivbfix='lindepowel'
         boundary_divbfix(3)=.false.
-        B0field=.true.
-        B0field_forcefree=.true.
         Busr=50.d0
         He_abundance=0.d0
         mhd_eta=-0.1d0
  /
-
- &tc_list
-        tc_dtpar=0.2d0
- /
+        B0field=.true.
+        B0field_forcefree=.true.
