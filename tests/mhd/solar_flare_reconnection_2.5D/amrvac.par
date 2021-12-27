@@ -1,6 +1,6 @@
 !setup.pl -d=2
  &filelist
-        base_filename='solar_flare_2da'
+        base_filename='solar_flare_2dc'
         convert_type='vtuBCCmpi'
         autoconvert=.true.
         nwauxio=8
@@ -20,8 +20,8 @@
 
  &methodlist
         time_stepper='threestep'
-        flux_scheme=20*'hll'
-        limiter= 20*'cada3'
+        flux_scheme=20*'hlld'
+        limiter= 20*'weno5'
         small_pressure=1.0d-14
         small_density=1.0d-14
         fix_small_values=.true.
@@ -31,7 +31,7 @@
         typeboundary_min1=8*'cont'
         typeboundary_max1=8*'cont'
         typeboundary_min2=8*'special'
-        typeboundary_max2=8*'cont'
+        typeboundary_max2=8*'special'
  /
 
  &meshlist
@@ -60,11 +60,11 @@
         mhd_radiative_cooling=.false.
         mhd_gravity=.false.
         mhd_energy=.true.
-        typedivbfix='lindepowel'
-        boundary_divbfix(3)=.false.
+        typedivbfix='glm'
         Busr=50.d0
         He_abundance=0.d0
         mhd_eta=-0.1d0
  /
         B0field=.true.
         B0field_forcefree=.true.
+        boundary_divbfix(3)=.false.

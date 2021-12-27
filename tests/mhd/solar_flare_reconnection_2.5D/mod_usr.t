@@ -68,6 +68,7 @@ contains
       w(ixO^S,mag(1:ndir))=Bf(ixO^S,1:ndir)
     end if
     if(mhd_glm) w(ixO^S,psi_)=0.d0
+    if(mhd_solve_eaux) w(ixO^S,paux_)=w(ixO^S,p_)
     call mhd_to_conserved(ixI^L,ixO^L,w,x)
   end subroutine initonegrid_usr
 
@@ -129,6 +130,7 @@ contains
                 +4.0d0*w(ix1+1,ixOmin2:ixOmax2,mag(:)))
         end do
       end if
+      if(mhd_solve_eaux) w(ixO^S,paux_)=w(ixO^S,p_)
       call mhd_to_conserved(ixI^L,ixO^L,w,x)
     case(2)
       ixA^L=ixO^L;
@@ -178,6 +180,7 @@ contains
                 +4.0d0*w(ix1-1^%1ixO^S,mag(:)))
         end do
       end if
+      if(mhd_solve_eaux) w(ixO^S,paux_)=w(ixO^S,p_)
       call mhd_to_conserved(ixI^L,ixO^L,w,x)
     case(3)
       ixA^L=ixO^L;
@@ -186,6 +189,8 @@ contains
       do ix2=ixOmin2,ixOmax2
         w(ix2^%2ixO^S,rho_)=w(ixOmax2+1^%2ixO^S,rho_)
         w(ix2^%2ixO^S,mom(1))=w(ixOmax2+1^%2ixO^S,mom(1))/w(ixOmax2+1^%2ixO^S,rho_)
+        !w(ix2^%2ixO^S,mom(2))=w(ixOmax2+1^%2ixO^S,mom(2))/w(ixOmax2+1^%2ixO^S,rho_)
+        !w(ix2^%2ixO^S,mom(3))=w(ixOmax2+1^%2ixO^S,mom(3))/w(ixOmax2+1^%2ixO^S,rho_)
         w(ix2^%2ixO^S,p_)=pth(ixOmax2+1^%2ixO^S)
         if(mhd_glm) w(ix2^%2ixO^S,psi_)=w(ixOmax2+1^%2ixO^S,psi_)
       enddo
@@ -195,7 +200,12 @@ contains
           if(idir==2) cycle
           ixOsmax^D=ixOmax^D;
           ixOsmin^D=ixOmin^D-kr(^D,idir);
-          block%ws(ix2^%2ixOs^S,idir)=0.d0
+          !block%ws(ix2^%2ixOs^S,idir)=0.d0
+          do ix2=ixOsmax2,ixOsmin2,-1
+             block%ws(ix2^%2ixOs^S,idir) = third*&
+                    (-block%ws(ix2+2^%2ixOs^S,idir)&
+                +4.d0*block%ws(ix2+1^%2ixOs^S,idir))
+          end do
         end do
         ixOs^L=ixO^L-kr(2,^D);
         block%ws(ixOs^S,2)=zero
@@ -215,6 +225,7 @@ contains
         end do
         w(ixO^S,mag(1))=zero
       end if
+      if(mhd_solve_eaux) w(ixO^S,paux_)=w(ixO^S,p_)
       call mhd_to_conserved(ixI^L,ixO^L,w,x)
     case(4)
       ixA^L=ixO^L;
@@ -262,6 +273,7 @@ contains
                  +4.0d0*w(ix2-1^%2ixO^S,mag(:)))
         end do
       end if
+      if(mhd_solve_eaux) w(ixO^S,paux_)=w(ixO^S,p_)
       call mhd_to_conserved(ixI^L,ixO^L,w,x)
     case default
       call mpistop("Special boundary is not defined for this region")
@@ -376,7 +388,7 @@ contains
     double precision :: rad(ixI^S),heta,reta,eta1,eta2,etam,vc,tar
     double precision :: jc,jabs(ixI^S)
  
-    heta = 6.
+    heta = 6.d0
     reta = 0.8d0 * 0.3d0
     eta1 = 0.002d0
     tar= 0.4d0

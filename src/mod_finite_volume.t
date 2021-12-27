@@ -442,6 +442,8 @@ contains
 
       f1R=0.d0
       f1L=0.d0
+      f2R=0.d0
+      f2L=0.d0
       ip1=idims
       ip3=3
       vRC(ixC^S,:)=wRp(ixC^S,mom(:))
@@ -454,8 +456,12 @@ contains
         BL(ixC^S,:)=wLC(ixC^S,mag(:))
       end if
       ! HLL estimation of normal magnetic field at cell interfaces
-      Bx(ixC^S)=(sR(ixC^S)*BR(ixC^S,ip1)-sL(ixC^S)*BL(ixC^S,ip1)-&
-                 fLC(ixC^S,mag(ip1))-fRC(ixC^S,mag(ip1)))/(sR(ixC^S)-sL(ixC^S))
+      if(stagger_grid) then
+        Bx(ixC^S)=block%ws(ixC^S,ip1)
+      else
+        Bx(ixC^S)=(sR(ixC^S)*BR(ixC^S,ip1)-sL(ixC^S)*BL(ixC^S,ip1)-&
+                   fLC(ixC^S,mag(ip1))-fRC(ixC^S,mag(ip1)))/(sR(ixC^S)-sL(ixC^S))
+      end if
       ptR(ixC^S)=wRp(ixC^S,p_)+0.5d0*sum(BR(ixC^S,:)**2,dim=ndim+1)
       ptL(ixC^S)=wLp(ixC^S,p_)+0.5d0*sum(BL(ixC^S,:)**2,dim=ndim+1)
       suR(ixC^S)=(sR(ixC^S)-vRC(ixC^S,ip1))*wRC(ixC^S,rho_)
@@ -604,6 +610,7 @@ contains
       ! get fluxes of intermedate states
       do iw=1,nwflux
         if (flux_type(idims, iw) == flux_tvdlf) then
+          if(stagger_grid) cycle
           ! tvldf flux for normal B
           f1L(ixC^S,iw)=-tvdlfeps*half*max(sR(ixC^S), dabs(sL(ixC^S))) * &
                  (wRC(ixC^S,iw)-wLC(ixC^S,iw))
