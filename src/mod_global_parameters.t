@@ -676,7 +676,7 @@ module mod_global_parameters
   character(len=std_len) :: filename_euv
   !> output EUV image
   logical :: image_euv=.false.
-  ! wavelength for output
+  !> wavelength for output
   integer :: wavelength
   !> resolution of the EUV image
   character(len=std_len) :: resolution_euv='instrument'
@@ -692,6 +692,20 @@ module mod_global_parameters
   integer :: LOS_theta,LOS_phi
   !> rotation of image
   integer :: image_rotate=0
+  !> Base file name for synthetic EUV spectrum output
+  character(len=std_len) :: filename_spectrum
+  !> output EUV spectral profile
+  logical :: spectrum_euv=.false.
+  !> wave length for spectrum
+  integer :: spectrum_wl
+  !> spectral window
+  double precision :: spectrum_window_min,spectrum_window_max
+  !> location of the slit
+  double precision :: location_slit=0.d0
+  !> direction of the slit
+  integer :: direction_slit
+  !> resolution of the spectrum
+  character(len=std_len) :: resolution_spectrum='instrument'
 
   !> Block pointer for using one block and its previous state
   type(state), pointer :: block

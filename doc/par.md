@@ -1085,25 +1085,58 @@ This function is compatible with all finite volume and finite difference schemes
 HLL, HLLC, and HLLD, in which the Riemann flux of the auxiliary internal energy is evaluted
 as the HLL flux in all intermediate states of the Riemann fan. 
 
-## Synthetic EUV emission {#par_euvlist}
+## Synthetic EUV emission {#par_emissionlist}
 
-User can synthesize SDO/AIA and RHESSI/SXR images using 3D .dat files inside amrvac. These can be finished easily by adding some parameters into .par file. The EUV/SXR images will be output to .vtu files when`image_euv`/`image_sxr` is`true`. The wavelength of an EUV image is defined with `wavelength`. The bottom/upper cutoff energy of SXR image is defined with `emin_sxr`/`emax_sxr` (in keV). Two types of  resolution are supported: data resolution and instrument resolution. In data resolution, the size of the image pixel is the same as  the size of the finest cell. In instrument resolution, the size of a pixel is the same as that in relevant observation data (by SDO or RHESSI).
+User can synthesize EUV images, EUV spectra, SXR images using 3D .dat files inside amrvac. 
+These can be finished easily by adding some parameters into .par file. 
+The images/spectra will be output to .vtu files when`image_euv`/`image_sxr`/`spectrum_euv` is`true`. 
+Two types of resolution are supported: data resolution and instrument resolution. 
+In data resolution, the size of the image pixel is the same as the size of the finest cell. 
+In instrument resolution, the size of a pixel is the same as that in relevant observation data (such as SDO and RHESSI). 
+The point spread function (PSF, instrument effect) has been included for `instrument` resolution.
+The resolution or EUV image/SXR image/EUV spectra is controlled by the parameter `resolution_euv`/`resolution_sxr`/`resolution_spectrum`.
 
-The line of sight (LOS) can be controlled with `LOS_theta` and `LOS_phi`, where the LOS parallels to the vector [cos(LOS_theta)*sin(LOS_phi), sin(LOS_theta)*sin(LOS_phi),cos(LOS_phi)]. The units of `LOS_theta` and `LOS_phi` are degree. For resolution type `data`, only combinations `LOS_theta=0, LOS_phi=90`, `LOS_theta=90, LOS_phi=90` and `LOS_phi=0` are supported, otherwise the boundaries of image pixels can not match the cell boundaries of the cell boundaries of the simulation data. `LOS_theta` and `LOS_phi` can be any integer for `instrument` resolution. The point spread function (PSF, instrument effect) has been included for `instrument` resolution. User can rotate the image with `image_rotate` (in degree). By default, the y direction of the image is located in a plane given by the LOS and the z direction of the simulation data.
+The line of sight (LOS) can be controlled with `LOS_theta` and `LOS_phi`, where the LOS parallels to the vector [cos(LOS_theta)*sin(LOS_phi), sin(LOS_theta)*sin(LOS_phi),cos(LOS_phi)]. 
+The units of `LOS_theta` and `LOS_phi` are degree. 
+For resolution type `data`, only combinations `LOS_theta=0, LOS_phi=90`, `LOS_theta=90, LOS_phi=90` and `LOS_phi=0` are supported, otherwise the boundaries of image pixels can not match the cell boundaries of the cell boundaries of the simulation data. 
+`LOS_theta` and `LOS_phi` can be any integer for `instrument` resolution. 
+User can rotate the image with `image_rotate` (in degree) in `instrument` resolution (for both EUV image and SXR image. 
+By default, the y direction of the image is located in a plane given by the LOS and the z direction of the simulation data.
+
+The wavelength of an EUV image is defined with `wavelength`. The bottom/upper cutoff energy of SXR image is defined with `emin_sxr`/`emax_sxr` (in keV). 
+
+The wavelength of the EUV spectra is defined with `spectrum_wl`. 
+When `spectrum_euv` is`true`, spectra at a slit in the corresponding image will be given. 
+The output is a 2D image, where x-axis is wavelength and y-axis is space (physics distance at the slit). 
+Under the `instrument` resolution type, the slit is parallel to the y axis of corresponding EUV image (controlled by `LOS_theta`, `LOS_phi` and `image_rotate``).
+The location of the slit `location_slit` is the x value of the image (in arcsec).
+For the `data` resolution, the direction of the slit is controlled by `direction_slit`.
+The location of the slit `location_slit` is the coordinate value at the third direction (perpendicular to LOS and slit).
+For example, the LOS along x direction and the slit along y direction, then `location_slit` should be z of the slit.
+The domain in wavelength is controlled by `spectrum_window_min` and `spectrum_window_max`.
+
 
 Only MHD module and Cartesian coordinate system are supported currently.
 
     &emissionlist
       filename_euv= CHARACTER
       image_euv= F | T
-      wavelength= 94 | 131 | 171 | 193 | 211 | 304 | 335
+      wavelength= 94 | 131 | 171 | 193 | 211 | 304 | 335 | 1354 | 263 | 264 | 192 | 255
       resolution_euv= 'instrument' | 'data'
       filename_sxr= CHARACTER
       image_sxr= F | T
-      emin_sxr= integer
-      emax_sxr= integer
+      emin_sxr= INTEGER
+      emax_sxr= INTEGER
       resolution_sxr= 'instrument' | 'data'
-      LOS_theta= integer
-      LOS_phi= integer
-      image_rotate= integer
+      LOS_theta= INTEGER
+      LOS_phi= INTEGER
+      image_rotate= INTEGER
+      filename_spectrum= CHARACTER
+      spectrum_euv= F | T
+      spectrum_wl= 1354 | 263 | 264| 192 | 255
+      resolution_sxr= 'instrument' | 'data'
+      spectrum_window_min= DOUBLE
+      spectrum_window_max= DOUBLE
+      location_slit= DOUBLE
+      direction_slit= INTEGER
     /

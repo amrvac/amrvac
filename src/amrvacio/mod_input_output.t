@@ -274,7 +274,9 @@ contains
 
     namelist /emissionlist/ filename_euv,image_euv,wavelength,resolution_euv,&
           filename_sxr,image_sxr,emin_sxr,emax_sxr,resolution_sxr,&
-          LOS_theta,LOS_phi,image_rotate
+          LOS_theta,LOS_phi,image_rotate,spectrum_euv,spectrum_wl,location_slit,&
+          direction_slit,filename_spectrum,resolution_spectrum,&
+          spectrum_window_min,spectrum_window_max
 
     ! default maximum number of grid blocks in a processor
     max_blocks=4000
