@@ -47,7 +47,7 @@ end select
 
 
 ! output synthetic euv emission
-if (ndim==3) then
+if (ndim==3 .and. slab) then
   if (image_euv) call get_EUV_image(unitconvert)
   if (spectrum_euv) call get_EUV_spectrum(unitconvert)
   if (image_sxr) call get_SXR_image(unitconvert)

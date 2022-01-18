@@ -504,6 +504,7 @@ module mod_thermal_emission
       ! calculate the local emission intensity of given EUV line (optically thin)
       ! wavelength is the wave length of the emission line
       ! unit [DN cm^-1 s^-1 pixel^-1]
+      ! ingrate flux along line of sight: DN s^-1 pixel^-1
       use mod_global_parameters
 
       integer, intent(in) :: wl
@@ -599,8 +600,13 @@ module mod_thermal_emission
       end select
       call phys_get_pthermal(w,x,ixI^L,ixO^L,pth)
       Te(ixO^S)=pth(ixO^S)/w(ixO^S,iw_rho)*unit_temperature
-      Ne(ixO^S)=w(ixO^S,iw_rho)*unit_numberdensity
-      flux(ixO^S)=Ne(ixO^S)**2
+      if (SI_unit) then
+        Ne(ixO^S)=w(ixO^S,iw_rho)*unit_numberdensity/1.d6 ! m^-3 -> cm-3
+        flux(ixO^S)=Ne(ixO^S)**2
+      else
+        Ne(ixO^S)=w(ixO^S,iw_rho)*unit_numberdensity
+        flux(ixO^S)=Ne(ixO^S)**2
+      endif
 
       select case(wl)
       case(94,131,171,193,211,304,335,1354)
@@ -651,6 +657,9 @@ module mod_thermal_emission
 
     subroutine get_SXR(ixI^L,ixO^L,w,x,flux,El,Eu)
       !synthesize thermal SXR from El keV to Eu keV
+      !flux (cgs): photons cm^-5 s^-1
+      !flux (SI): photons m^-3 cm^-2 s^-1
+      !integration of the flux is the SXR flux observed at 1AU [photons cm^-2 s^-1]
       use mod_global_parameters
 
       integer, intent(in)           :: ixI^L,ixO^L
@@ -666,17 +675,22 @@ module mod_thermal_emission
       double precision :: Ne(ixI^S),gff(ixI^S),fi(ixI^S)
       double precision :: EM(ixI^S)
 
-      I0=1.07d-42    ! photon flux index at 1AU [cm^-2 s^-1 keV^-1]
+      I0=1.07d-42    ! photon flux index for observed at 1AU [photon cm s^-1 keV^-1]
       kb=const_kb
       keV=1.0d3*const_ev
       dE=0.1
       numE=floor((Eu-El)/dE)
       call phys_get_pthermal(w,x,ixI^L,ixO^L,pth)
       Te(ixO^S)=pth(ixO^S)/w(ixO^S,iw_rho)*unit_temperature
-      Ne(ixO^S)=w(ixO^S,iw_rho)*unit_numberdensity
+      if (SI_unit) then
+        Ne(ixO^S)=w(ixO^S,iw_rho)*unit_numberdensity/1.d6 ! m^-3 -> cm-3
+        EM(ixO^S)=(Ne(ixO^S))**2*1.d6 ! cm^-3 m^-3
+      else
+        Ne(ixO^S)=w(ixO^S,iw_rho)*unit_numberdensity
+        EM(ixO^S)=(Ne(ixO^S))**2
+      endif
       kbT(ixO^S)=kb*Te(ixO^S)/keV
       flux(ixO^S)=0.0d0
-      EM(ixO^S)=(Ne(ixO^S))**2
       do iE=0,numE-1
         Ei=dE*iE+El*1.d0
         gff(ixO^S)=1.d0
@@ -693,7 +707,7 @@ module mod_thermal_emission
     end subroutine get_SXR
 
     subroutine get_GOES_SXR_flux(xbox^L,eflux)
-      !get GOES SXR 1-8A flux observed at 1AU from given box [w/m^2]
+      !get GOES SXR 1-8A flux observing at 1AU from given box [w/m^2]
       use mod_global_parameters
 
       double precision, intent(in) :: xbox^L
@@ -746,7 +760,7 @@ module mod_thermal_emission
         {if (xbmax^D>xboxmax^D) ixbmax^D=ixOmax^D-ceiling((xbmax^D-xboxmax^D)/dxlevel(^D))\}
         {if (xbmin^D<xboxmin^D) ixbmin^D=ceiling((xboxmin^D-xbmin^D)/dxlevel(^D))+ixOmin^D\}
 
-        I0=1.07d-38 ! photon flux index at 1AU [m^-2 s^-1 keV^-1]
+        I0=1.07d-38 ! photon flux index for observed at 1AU [photon cm^3 m^-2 s^-1 keV^-1]
         kb=const_kb
         keV=1.0d3*const_ev
         erg_SI=1.d-7
@@ -757,9 +771,14 @@ module mod_thermal_emission
         numE=floor((Eu-El)/dE)
         call phys_get_pthermal(w,x,ixI^L,ixb^L,pth)
         Te(ixb^S)=pth(ixb^S)/w(ixb^S,iw_rho)*unit_temperature
-        Ne(ixb^S)=w(ixb^S,iw_rho)*unit_numberdensity
+        if (SI_unit) then
+          Ne(ixO^S)=w(ixO^S,iw_rho)*unit_numberdensity/1.d6 ! m^-3 -> cm-3
+          EM(ixb^S)=(I0*(Ne(ixb^S))**2)*dV(ixb^S)*(unit_length*1.d2)**3 ! cm^-3
+        else
+          Ne(ixO^S)=w(ixO^S,iw_rho)*unit_numberdensity
+          EM(ixb^S)=(I0*(Ne(ixb^S))**2)*dV(ixb^S)*unit_length**3
+        endif
         kbT(ixb^S)=kb*Te(ixb^S)/keV
-        EM(ixb^S)=(I0*(Ne(ixb^S))**2)*dV(ixb^S)*unit_length**3
         eflux_grid=0.0d0
 
         do iE=0,numE-1
@@ -817,7 +836,11 @@ module mod_thermal_emission
       if (resolution_spectrum=='data') then
         if (mype==0) print *, 'Unit of wavelength: Angstrom (0.1 nm) '
         if (mype==0) write(*,'(a,f8.1,a)') ' Unit of length: ',unit_length/1.d8,' Mm'
-        if (mype==0) write(*,'(a,f8.1,a)') ' Location of slit: ',location_slit*unit_length/1.d8,' Mm'
+        if (SI_unit) then
+          if (mype==0) write(*,'(a,f8.1,a)') ' Location of slit: ',location_slit*unit_length/1.d6,' Mm'
+        else
+          if (mype==0) write(*,'(a,f8.1,a)') ' Location of slit: ',location_slit*unit_length/1.d8,' Mm'
+        endif
         if (mype==0) write(*,'(a,f8.1,a)') ' Width of slit: ',wslit*725.0,' km'
         call get_spectrum_data_resol(qunit,datatype)
       else if (resolution_spectrum=='instrument') then
@@ -880,7 +903,11 @@ module mod_thermal_emission
       xScent=(xSmin+xSmax)/2.d0
 
       ! tables for storing spectra data
-      arcsec=7.25d7/unit_length
+      if (SI_unit) then
+        arcsec=7.25d5/unit_length
+      else
+        arcsec=7.25d7/unit_length
+      endif
       call get_line_info(spectrum_wl,ion,mass,logTe,lineCent,spaceRsl,wlRsl,sigma_PSF,wslit)
       dxSg=spaceRsl*arcsec
       numXS=ceiling((xSmax-xScent)/dxSg)
@@ -957,7 +984,6 @@ module mod_thermal_emission
 
       deallocate(wL,xS,dwL,dxS,spectra,spectra_rc,wI)
 
-
     end subroutine get_spectrum_inst_resol
 
     subroutine integrate_spectra_inst_resol(igrid,wL,dwLg,xS,dxSg,spectra,numWL,numXS)
@@ -969,21 +995,23 @@ module mod_thermal_emission
 
       integer :: ixO^L,ixI^L,ix^D,ixOnew,j
       double precision, allocatable :: flux(:^D&),v(:^D&),pth(:^D&),Te(:^D&)
-      double precision :: wlc,wlwd,res,fluxloc,dst_slit,xslit,arcsec
+      double precision :: wlc,wlwd,res,dst_slit,xslit,arcsec
       double precision :: vloc(1:3),xloc(1:3),dxloc(1:3),xIloc(1:2),dxIloc(1:2)
-      integer :: nSubP,iwLsub,ixSsub,nSubC^D,iSubC^D
-      integer :: iwL,ixS,ixSmin,ixSmax,iwLmin,iwLmax,nwL
-      double precision :: dxSsub,dwLsub,slit_width,dxSubC^D,xCent1,xCent2
-      double precision :: xSsub,wLsub
+      integer :: nSubC^D,iSubC^D,iwL,ixS,ixSmin,ixSmax,iwLmin,iwLmax,nwL
+      double precision :: slit_width,dxSubC^D,xCent1,xCent2,xerf^L,fluxSubC
       double precision :: xSubC(1:3)
 
       integer :: mass
       double precision :: logTe,lineCent
       character (30) :: ion
       double precision :: spaceRsl,wlRsl,sigma_PSF,wslit
-      double precision :: sigma_wl,sigma_xs,sigma_TH,temp1,temp2,temp3,factor
+      double precision :: sigma_wl,sigma_xs,factor
 
-      arcsec=7.25d7/unit_length
+      if (SI_unit) then
+        arcsec=7.25d5/unit_length
+      else
+        arcsec=7.25d7/unit_length
+      endif
       xslit=location_slit*arcsec
 
       call get_line_info(spectrum_wl,ion,mass,logTe,lineCent,spaceRsl,wlRsl,sigma_PSF,wslit)
@@ -1006,9 +1034,6 @@ module mod_thermal_emission
       {enddo\}
 
 
-      nSubP=4
-      dxSsub=dxSg/nSubP
-      dwLsub=dwLg/nSubP
       slit_width=wslit*arcsec
       sigma_wl=sigma_PSF*dwLg
       sigma_xs=sigma_PSF*dxSg
@@ -1023,21 +1048,24 @@ module mod_thermal_emission
             xIloc(1)<=xslit+half*(slit_width+dxIloc(1))) then
           ^D&nSubC^D=1;
           ^D&nSubC^D=max(nSubC^D,ceiling(ps(igrid)%dx(ix^DD,^D)*abs(vec_xI1(^D))/(slit_width/16.d0)));
-          ^D&nSubC^D=max(nSubC^D,ceiling(ps(igrid)%dx(ix^DD,^D)*abs(vec_xI2(^D))/dxSsub));
+          ^D&nSubC^D=max(nSubC^D,ceiling(ps(igrid)%dx(ix^DD,^D)*abs(vec_xI2(^D))/(dxSg/4.d0)));
           ^D&dxSubC^D=ps(igrid)%dx(ix^DD,^D)/nSubC^D;
           ! local line center and line width
-          wlc=lineCent*(1.d0+v(ix^D)*unit_velocity/const_c)
+          if (SI_unit) then
+            fluxSubC=flux(ix^D)*dxSubC1*dxSubC2*dxSubC3*unit_length*1.d2/dxSg/dxSg  ! DN s^-1
+            wlc=lineCent*(1.d0+v(ix^D)*unit_velocity*1.d2/const_c)
+          else
+            fluxSubC=flux(ix^D)*dxSubC1*dxSubC2*dxSubC3*unit_length/dxSg/dxSg  ! DN s^-1
+            wlc=lineCent*(1.d0+v(ix^D)*unit_velocity/const_c)
+          endif
           wlwd=sqrt(kb_cgs*Te(ix^D)*unit_temperature/(mass*mp_cgs))
           wlwd=wlwd*lineCent/const_c
-          sigma_TH=wlwd/dwLg
           ! dividing a cell to several parts to get more accurate integrating values
           {do iSubC^D=1,nSubC^D\}
             ^D&xSubC(^D)=xloc(^D)-half*dxloc(^D)+(iSubC^D-half)*dxSubC^D;
             call dot_product_loc(xSubC,vec_xI1,xCent1)
             dst_slit=abs(xCent1-xslit)  ! space distance to slit center
             if (dst_slit<=half*slit_width) then
-              fluxloc=flux(ix^D)*dxSubC1*dxSubC2*dxSubC3*unit_length/dxSg/dxSg  ! DN s^-1
-              !if (xSubC(3)<0.5d0) fluxloc=zero ! test_test
               call dot_product_loc(xSubC,vec_xI2,xCent2)  ! get sub cell center
               ixS=floor((xCent2-(xS(1)-half*dxSg))/dxSg)+1
               ixSmin=max(1,ixS-3)
@@ -1049,19 +1077,12 @@ module mod_thermal_emission
               ! calculate the contribution to nearby pixels
               do iwL=iwLmin,iwLmax
                 do ixS=ixSmin,ixSmax
-                  ! dividing a pixel to several parts to get more accurate integrating values
-                  do iwLsub=1,nSubP
-                    do ixSsub=1,nSubP
-                      wLsub=wL(iwL)-half*dwLg+(iwLsub-half)*dwLsub  ! sub pixel center
-                      xSsub=xS(ixS)-half*dxSg+(ixSsub-half)*dxSsub  ! sub pixel center
-                      temp1=(xSsub-xCent2)**2/(2.d0*sigma_xs**2)
-                      temp2=(wLsub-wlc)**2/(sigma_wl**2+wlwd**2)/2.d0
-                      temp3=1.d0/(2.d0*dpi*sigma_PSF*sqrt(sigma_PSF**2+sigma_TH**2))
-                      factor=temp3*exp(-temp1-temp2)*(dwLsub/dwLg)*(dxSsub/dxSg)
-                      spectra(iwL,ixS)=spectra(iwL,ixS)+fluxloc*factor
-                    enddo
-                  enddo
-                  ! sub pixel
+                  xerfmin1=(wL(iwL)-half*dwLg-wlc)/sqrt(2.d0*(sigma_wl**2+wlwd**2))
+                  xerfmax1=(wL(iwL)+half*dwLg-wlc)/sqrt(2.d0*(sigma_wl**2+wlwd**2))
+                  xerfmin2=(xS(ixS)-half*dxSg-xCent2)/(sqrt(2.d0)*sigma_xs)
+                  xerfmax2=(xS(ixS)+half*dxSg-xCent2)/(sqrt(2.d0)*sigma_xs)
+                  factor=(erfc(xerfmin1)-erfc(xerfmax1))*(erfc(xerfmin2)-erfc(xerfmax2))/4.d0
+                  spectra(iwL,ixS)=spectra(iwL,ixS)+fluxSubC*factor
                 enddo
               enddo
               ! nearby pixels
@@ -1324,7 +1345,11 @@ module mod_thermal_emission
       rft=2**(refine_max_level-levelg)
 
       {do ix^D=ixOmin^D,ixOmax^D\}
-        wlc=lineCent*(1.d0+v(ix^D)*unit_velocity/const_c)
+        if (SI_unit) then
+          wlc=lineCent*(1.d0+v(ix^D)*unit_velocity*1.d2/const_c)
+        else
+          wlc=lineCent*(1.d0+v(ix^D)*unit_velocity/const_c)
+        endif
         wlwd=sqrt(kb_cgs*Te(ix^D)*unit_temperature/(mass*mp_cgs))
         wlwd=wlwd*lineCent/const_c
 
@@ -1348,6 +1373,7 @@ module mod_thermal_emission
         case default
           dL=ps(igrid)%dx(ix^D,3)*unit_length
         end select
+        if (SI_unit) dL=dL*1.d2
 
         do iwL=1,numWL
           flux_pix=flux(ix^D)*wlRsl*dL*exp(-(wL(iwL)-wlc)**2/(2*wlwd**2))/(sqrt(2*dpi)*wlwd)
@@ -1382,7 +1408,11 @@ module mod_thermal_emission
 
       if (image_euv) then
         if (resolution_euv=='data') then
-          if (mype==0) write(*,'(a,f8.1,a)') ' Unit of length: ',unit_length/1.d8,' Mm'
+          if (SI_unit) then
+            if (mype==0) write(*,'(a,f8.1,a)') ' Unit of length: ',unit_length/1.d6,' Mm'
+          else
+            if (mype==0) write(*,'(a,f8.1,a)') ' Unit of length: ',unit_length/1.d8,' Mm'
+          endif
           if (LOS_theta==0 .and. LOS_phi==90) then
             call get_image_data_resol(qunit,datatype)
           else if (LOS_theta==90 .and. LOS_phi==90) then
@@ -1420,8 +1450,11 @@ module mod_thermal_emission
 
       if (image_sxr) then
         if (resolution_sxr=='data') then
-          !if (mype==0) print *, 'Unit of length: ',unit_length, ' cm'
-          if (mype==0) write(*,'(a,f8.1,a)') ' Unit of length: ',unit_length/1.d5,' km'
+          if (SI_unit) then
+            if (mype==0) write(*,'(a,f8.1,a)') ' Unit of length: ',unit_length/1.d3,' km'
+          else
+            if (mype==0) write(*,'(a,f8.1,a)') ' Unit of length: ',unit_length/1.d5,' km'
+          endif
           if (LOS_theta==0 .and. LOS_phi==90) then
             call get_image_data_resol(qunit,datatype)
           else if (LOS_theta==90 .and. LOS_phi==90) then
@@ -1501,8 +1534,11 @@ module mod_thermal_emission
       xIcent2=(xImin2+xImax2)/2.d0
 
       ! tables for image
-      unitv=unit_velocity/1.0e5 ! km/s
-      arcsec=7.25d7/unit_length
+      if (SI_unit) then
+        arcsec=7.25d5/unit_length
+      else
+        arcsec=7.25d7/unit_length
+      endif
       if (datatype=='image_euv') then
         call get_line_info(wavelength,ion,mass,logTe,lineCent,spaceRsl,wlRsl,sigma_PSF,wslit)
         dxI=spaceRsl*arcsec  ! intrument resolution of image
@@ -1530,6 +1566,11 @@ module mod_thermal_emission
 
       ! calculate emission
       if (datatype=='image_euv') then
+        if (SI_unit) then
+          unitv=unit_velocity/1.0e3 ! km/s
+        else
+          unitv=unit_velocity/1.0e5 ! km/s
+        endif
         numWI=2
         allocate(wI(numXI1,numXI2,numWI))
         allocate(EUV(numXI1,numXI2),EUVs(numXI1,numXI2))
@@ -1612,10 +1653,9 @@ module mod_thermal_emission
       double precision :: xb^L,xd^D
       double precision, allocatable :: flux(:^D&)
       double precision :: vloc(1:3),res
-      integer :: ixP^L,ixP^D,ixIF^D
-      integer :: nSubP,iSubP1,iSubP2,nSubC^D,iSubC^D
-      double precision :: xSubP1,xSubP2,dxSubP,SXRsub
-      double precision :: xSubC(1:3),dxSubC^D,xCent1,xCent2,r2
+      integer :: ixP^L,ixP^D,nSubC^D,iSubC^D
+      double precision :: xSubP1,xSubP2,dxSubP,xerf^L,fluxsubC
+      double precision :: xSubC(1:3),dxSubC^D,xCent1,xCent2
 
       double precision :: sigma_PSF,RHESSI_rsl,sigma0,factor
       double precision :: arcsec,pixel
@@ -1632,21 +1672,24 @@ module mod_thermal_emission
       call get_SXR(ixI^L,ixO^L,ps(igrid)%w,ps(igrid)%x,flux,emin_sxr,emax_sxr)
 
       ! integrate emission
-      arcsec=7.25d7/unit_length
+      if (SI_unit) then
+        arcsec=7.25d5/unit_length
+      else
+        arcsec=7.25d7/unit_length
+      endif
       RHESSI_rsl=2.3d0      
       sigma_PSF=1.d0
       pixel=RHESSI_rsl*arcsec
       sigma0=sigma_PSF*pixel
-      nSubP=4   ! dividing one pixel to nSubP*nSubP parts in calculation
-      dxSubP=dxI/nSubP
       {do ix^D=ixOmin^D,ixOmax^D\}
         ^D&nSubC^D=1;
-        ^D&nSubC^D=max(nSubC^D,ceiling(ps(igrid)%dx(ix^DD,^D)*abs(vec_xI1(^D))/dxSubP));
-        ^D&nSubC^D=max(nSubC^D,ceiling(ps(igrid)%dx(ix^DD,^D)*abs(vec_xI2(^D))/dxSubP));
+        ^D&nSubC^D=max(nSubC^D,ceiling(ps(igrid)%dx(ix^DD,^D)*abs(vec_xI1(^D))/(dxI/4.d0)));
+        ^D&nSubC^D=max(nSubC^D,ceiling(ps(igrid)%dx(ix^DD,^D)*abs(vec_xI2(^D))/(dxI/4.d0)));
         ^D&dxSubC^D=ps(igrid)%dx(ix^DD,^D)/nSubC^D;
         ! dividing a cell to several parts to get more accurate integrating values
         {do iSubC^D=1,nSubC^D\}
           ^D&xSubC(^D)=ps(igrid)%x(ix^DD,^D)-half*ps(igrid)%dx(ix^DD,^D)+(iSubC^D-half)*dxSubC^D;
+          fluxSubC=flux(ix^D)*dxSubC1*dxSubC2*dxSubC3*unit_length**3
           ! mapping the 3D coordinate to location at the image
           call dot_product_loc(xSubC,vec_xI1,xCent1)
           call dot_product_loc(xSubC,vec_xI2,xCent2)
@@ -1658,19 +1701,12 @@ module mod_thermal_emission
           ixPmax2=min(ixP2+3,numXI2)
           do ixP1=ixPmin1,ixPmax1
             do ixP2=ixPmin2,ixPmax2
-              ! dividing a pixel to several parts to get more accurate integrating values
-              do iSubP1=1,nSubP
-                do iSubP2=1,nSubP
-                  xSubP1=xI1(ixP1)-half*dxI+(iSubP1-half)*dxSubP
-                  xSubP2=xI2(ixP2)-half*dxI+(iSubP2-half)*dxSubP
-                  r2=(xCent1-xSubP1)**2+(xCent2-xSubP2)**2
-                  factor=dxSubC1*dxSubC2*dxSubC3*unit_length**3
-                  factor=factor*exp(-r2/(2*sigma0**2))/6.25
-                  factor=factor*dxSubP*dxSubP/dxI/dxI
-                  SXRsub=flux(ix^D)*factor
-                  SXR(ixP1,ixP2)=SXR(ixP1,ixP2)+SXRsub
-                enddo !iSubP2
-              enddo !iSubP1
+              xerfmin1=((xI1(ixP1)-half*dxI)-xCent1)/(sqrt(2.d0)*sigma0)
+              xerfmax1=((xI1(ixP1)+half*dxI)-xCent1)/(sqrt(2.d0)*sigma0)
+              xerfmin2=((xI2(ixP2)-half*dxI)-xCent2)/(sqrt(2.d0)*sigma0)
+              xerfmax2=((xI2(ixP2)+half*dxI)-xCent2)/(sqrt(2.d0)*sigma0)
+              factor=(erfc(xerfmin1)-erfc(xerfmax1))*(erfc(xerfmin2)-erfc(xerfmax2))/4.d0
+              SXR(ixP1,ixP2)=SXR(ixP1,ixP2)+fluxSubC*factor
             enddo !ixP2
           enddo !ixP1
         {enddo\} !iSubC
@@ -1689,10 +1725,9 @@ module mod_thermal_emission
       double precision :: xb^L,xd^D
       double precision, allocatable :: flux(:^D&),v(:^D&)
       double precision :: vloc(1:3),res
-      integer :: ixP^L,ixP^D,ixIF^D
-      integer :: nSubP,iSubP1,iSubP2,nSubC^D,iSubC^D
-      double precision :: xSubP1,xSubP2,dxSubP,EUVsub,Dplsub
-      double precision :: xSubC(1:3),dxSubC^D,xCent1,xCent2,r2
+      integer :: ixP^L,ixP^D,nSubC^D,iSubC^D
+      double precision :: xSubP1,xSubP2,dxSubP,xerf^L,fluxsubC
+      double precision :: xSubC(1:3),dxSubC^D,xCent1,xCent2
 
       integer :: mass
       double precision :: logTe
@@ -1700,7 +1735,6 @@ module mod_thermal_emission
       double precision :: lineCent
       double precision :: sigma_PSF,spaceRsl,wlRsl,sigma0,factor,wslit
       double precision :: unitv,arcsec,pixel
-
 
       ^D&ixOmin^D=ixmlo^D\
       ^D&ixOmax^D=ixmhi^D\
@@ -1722,22 +1756,30 @@ module mod_thermal_emission
 
       ! integrate emission
       call get_line_info(wavelength,ion,mass,logTe,lineCent,spaceRsl,wlRsl,sigma_PSF,wslit)
-      arcsec=7.25d7/unit_length
+      if (SI_unit) then
+        arcsec=7.25d5/unit_length
+      else
+        arcsec=7.25d7/unit_length
+      endif
       pixel=spaceRsl*arcsec
       sigma0=sigma_PSF*pixel
-      nSubP=2   ! dividing one pixel to nSubP*nSubP parts in calculation
-      dxSubP=dxI/nSubP
       {do ix^D=ixOmin^D,ixOmax^D\}
         ^D&nSubC^D=1;
-        ^D&nSubC^D=max(nSubC^D,ceiling(ps(igrid)%dx(ix^DD,^D)*abs(vec_xI1(^D))/dxSubP));
-        ^D&nSubC^D=max(nSubC^D,ceiling(ps(igrid)%dx(ix^DD,^D)*abs(vec_xI2(^D))/dxSubP));
+        ^D&nSubC^D=max(nSubC^D,ceiling(ps(igrid)%dx(ix^DD,^D)*abs(vec_xI1(^D))/(dxI/2.d0)));
+        ^D&nSubC^D=max(nSubC^D,ceiling(ps(igrid)%dx(ix^DD,^D)*abs(vec_xI2(^D))/(dxI/2.d0)));
         ^D&dxSubC^D=ps(igrid)%dx(ix^DD,^D)/nSubC^D;
+        if (SI_unit) then
+          fluxSubC=flux(ix^D)*dxSubC1*dxSubC2*dxSubC3*unit_length*1.d2/dxI/dxI  ! DN s^-1
+        else
+          fluxSubC=flux(ix^D)*dxSubC1*dxSubC2*dxSubC3*unit_length/dxI/dxI  ! DN s^-1
+        endif
         ! dividing a cell to several parts to get more accurate integrating values
         {do iSubC^D=1,nSubC^D\}
           ^D&xSubC(^D)=ps(igrid)%x(ix^DD,^D)-half*ps(igrid)%dx(ix^DD,^D)+(iSubC^D-half)*dxSubC^D;
           ! mapping the 3D coordinate to location at the image
           call dot_product_loc(xSubC,vec_xI1,xCent1)
           call dot_product_loc(xSubC,vec_xI2,xCent2)
+          ! distribution at nearby pixels
           ixP1=floor((xCent1-(xI1(1)-half*dxI))/dxI)+1
           ixP2=floor((xCent2-(xI2(1)-half*dxI))/dxI)+1
           ixPmin1=max(1,ixP1-3)
@@ -1746,22 +1788,13 @@ module mod_thermal_emission
           ixPmax2=min(ixP2+3,numXI2)
           do ixP1=ixPmin1,ixPmax1
             do ixP2=ixPmin2,ixPmax2
-              ! dividing a pixel to several parts to get more accurate integrating values
-              do iSubP1=1,nSubP
-                do iSubP2=1,nSubP
-                  xSubP1=xI1(ixP1)-half*dxI+(iSubP1-half)*dxSubP
-                  xSubP2=xI2(ixP2)-half*dxI+(iSubP2-half)*dxSubP
-                  r2=(xCent1-xSubP1)**2+(xCent2-xSubP2)**2
-                  factor=dxSubC1*dxSubC2*dxSubC3*unit_length/dxI/dxI  ! DN s^-1
-                  factor=factor*exp(-r2/(2*sigma0**2))/(2*dpi)/sigma_PSF**2
-                  factor=factor*dxSubP*dxSubP/dxI/dxI
-                  EUVsub=flux(ix^D)*factor
-                  Dplsub=flux(ix^D)*v(ix^D)*factor
-                  !if (xSubC(3)<=0.5d0) EUVsub=zero  ! test_test
-                  EUV(ixP1,ixP2)=EUV(ixP1,ixP2)+EUVsub
-                  Dpl(ixP1,ixP2)=Dpl(ixP1,ixP2)+Dplsub
-                enddo !iSubP2
-              enddo !iSubP1
+              xerfmin1=((xI1(ixP1)-half*dxI)-xCent1)/(sqrt(2.d0)*sigma0) 
+              xerfmax1=((xI1(ixP1)+half*dxI)-xCent1)/(sqrt(2.d0)*sigma0)
+              xerfmin2=((xI2(ixP2)-half*dxI)-xCent2)/(sqrt(2.d0)*sigma0)
+              xerfmax2=((xI2(ixP2)+half*dxI)-xCent2)/(sqrt(2.d0)*sigma0)
+              factor=(erfc(xerfmin1)-erfc(xerfmax1))*(erfc(xerfmin2)-erfc(xerfmax2))/4.d0
+              EUV(ixP1,ixP2)=EUV(ixP1,ixP2)+fluxSubC*factor
+              Dpl(ixP1,ixP2)=Dpl(ixP1,ixP2)+fluxSubC*factor*v(ix^D)
             enddo !ixP2
           enddo !ixP1
         {enddo\} !iSubC
@@ -1953,7 +1986,11 @@ module mod_thermal_emission
 
       ! integrate EUV flux and get cell average flux for image
       if (datatype=='image_euv') then
-        unitv=unit_velocity/1.0e5 ! km/s
+        if (SI_unit) then
+          unitv=unit_velocity/1.0e3 ! km/s
+        else
+          unitv=unit_velocity/1.0e5 ! km/s
+        endif
         numWI=2
         allocate(wI(nXIF1,nXIF2,numWI))
         allocate(EUVs(nXIF1,nXIF2),EUV(nXIF1,nXIF2))
@@ -1990,7 +2027,11 @@ module mod_thermal_emission
 
       ! integrate EUV flux and get cell average flux for image
       if (datatype=='image_sxr') then
-        arcsec=7.25d7
+        if (SI_unit) then
+          arcsec=7.25d5
+        else
+          arcsec=7.25d7
+        endif
         RHESSI_rsl=2.3d0
         numWI=1
         allocate(wI(nXIF1,nXIF2,numWI))
@@ -2035,7 +2076,7 @@ module mod_thermal_emission
       double precision, allocatable :: EUVg(:,:),Fvg(:,:),xg1(:),xg2(:),dxg1(:),dxg2(:)
       integer :: levelg,nXg1,nXg2,iXgmin1,iXgmax1,iXgmin2,iXgmax2,rft,iXg^D
       double precision :: EUVt,Fvt,xc^L,xg^L,r2
-      integer :: ixP^L,ixP^D,ixIF^D
+      integer :: ixP^L,ixP^D
       integer :: direction_LOS
 
       if (LOS_theta==0 .and. LOS_phi==90) then
@@ -2138,6 +2179,10 @@ module mod_thermal_emission
           enddo
         enddo
       end select
+      if (SI_unit) then
+        EUVg=EUVg*1.d2
+        Fvg=Fvg*1.d2
+      endif
 
       ! mapping grid data to global table 
       ! index ranges in local table
@@ -2204,7 +2249,7 @@ module mod_thermal_emission
       double precision, allocatable :: SXRg(:,:),xg1(:),xg2(:),dxg1(:),dxg2(:)
       integer :: levelg,nXg1,nXg2,iXgmin1,iXgmax1,iXgmin2,iXgmax2,rft,iXg^D
       double precision :: SXRt,xc^L,xg^L,r2
-      integer :: ixP^L,ixP^D,ixIF^D
+      integer :: ixP^L,ixP^D
       integer :: direction_LOS
 
       if (LOS_theta==0 .and. LOS_phi==90) then
