@@ -142,8 +142,8 @@ contains
     ! left and right constructed status in primitive form, needed for better performance
     double precision, dimension(ixI^S,1:nw) :: wLp, wRp
     double precision, dimension(ixI^S,1:nwflux) :: fLC, fRC
-    double precision, dimension(ixI^S)      :: cmaxC
-    double precision, dimension(ixI^S)      :: cminC
+    double precision, dimension(ixI^S)      :: cmaxC, cminC
+    double precision, dimension(ixI^S)      :: Hspeed
     double precision, dimension(ixO^S)      :: inv_volume
     double precision, dimension(1:ndim)     :: dxinv, dxdim
     integer, dimension(ixI^S)               :: patchf
@@ -208,12 +208,15 @@ contains
        call phys_get_flux(wLC,wLp,x,ixI^L,ixC^L,idims,fLC)
        call phys_get_flux(wRC,wRp,x,ixI^L,ixC^L,idims,fRC)
 
+       if(H_correction) then
+         call phys_get_H_speed(wprim,x,ixI^L,ixO^L,idims,Hspeed)
+       end if
        ! estimating bounds for the minimum and maximum signal velocities
        if(method==fs_tvdlf.or.method==fs_tvdmu) then
-         call phys_get_cbounds(wLC,wRC,wLp,wRp,x,ixI^L,ixC^L,idims,cmaxC)
+         call phys_get_cbounds(wLC,wRC,wLp,wRp,x,ixI^L,ixC^L,idims,Hspeed,cmaxC)
          if(stagger_grid) call phys_get_ct_velocity(vcts,wLp,wRp,ixI^L,ixC^L,idims,cmaxC)
        else
-         call phys_get_cbounds(wLC,wRC,wLp,wRp,x,ixI^L,ixC^L,idims,cmaxC,cminC)
+         call phys_get_cbounds(wLC,wRC,wLp,wRp,x,ixI^L,ixC^L,idims,Hspeed,cmaxC,cminC)
          if(stagger_grid) call phys_get_ct_velocity(vcts,wLp,wRp,ixI^L,ixC^L,idims,cmaxC,cminC)
        end if
 

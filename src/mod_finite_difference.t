@@ -30,8 +30,8 @@ contains
     double precision, dimension(ixI^S,1:nw) :: wLC, wRC
     ! left and right constructed status in primitive form, needed for better performance
     double precision, dimension(ixI^S,1:nw) :: wLp, wRp
-    double precision, dimension(ixI^S)      :: cmaxC
-    double precision, dimension(ixI^S)      :: cminC
+    double precision, dimension(ixI^S)      :: cmaxC, cminC
+    double precision, dimension(ixI^S)      :: Hspeed
     double precision, dimension(1:ndim)     :: dxinv, dxdim
     logical :: transport
     integer :: idims, iw, ixC^L, ix^L, hxO^L, kxC^L, kxR^L
@@ -89,7 +89,10 @@ contains
        if(stagger_grid) then
          ! apply limited reconstruction for left and right status at cell interfaces
          call reconstruct_LR(ixI^L,ixC^L,ixC^L,idims,wprim,wLC,wRC,wLp,wRp,x,dxdim(idims))
-         call phys_get_cbounds(wLC,wRC,wLp,wRp,x,ixI^L,ixC^L,idims,cmaxC,cminC)
+         if(H_correction) then
+           call phys_get_H_speed(wprim,x,ixI^L,ixO^L,idims,Hspeed)
+         end if
+         call phys_get_cbounds(wLC,wRC,wLp,wRp,x,ixI^L,ixC^L,idims,Hspeed,cmaxC,cminC)
          call phys_get_ct_velocity(vcts,wLp,wRp,ixI^L,ixC^L,idims,cmaxC,cminC)
        end if
 
@@ -299,8 +302,8 @@ contains
     ! left and right constructed status in primitive form, needed for better performance
     double precision, dimension(ixI^S,1:nw) :: wLp, wRp
     double precision, dimension(ixI^S)      :: vLC, phi, cmaxLC, cmaxRC
-    double precision, dimension(ixI^S)      :: cmaxC
-    double precision, dimension(ixI^S)      :: cminC
+    double precision, dimension(ixI^S)      :: cmaxC, cminC
+    double precision, dimension(ixI^S)      :: Hspeed
 
     double precision :: dxinv(1:ndim), dxdim(1:ndim)
     integer :: idims, iw, ix^L, hxO^L, ixC^L, jxC^L, hxC^L, kxC^L, kkxC^L, kkxR^L
@@ -352,7 +355,10 @@ contains
        call reconstruct_LR(ixI^L,ixC^L,ixC^L,idims,wprim,wLC,wRC,wLp,wRp,x,dxdim(idims))
 
        if(stagger_grid) then
-         call phys_get_cbounds(wLC,wRC,wLp,wRp,x,ixI^L,ixC^L,idims,cmaxC,cminC)
+         if(H_correction) then
+           call phys_get_H_speed(wprim,x,ixI^L,ixO^L,idims,Hspeed)
+         end if
+         call phys_get_cbounds(wLC,wRC,wLp,wRp,x,ixI^L,ixC^L,idims,Hspeed,cmaxC,cminC)
          call phys_get_ct_velocity(vcts,wLp,wRp,ixI^L,ixC^L,idims,cmaxC,cminC)
        end if
 

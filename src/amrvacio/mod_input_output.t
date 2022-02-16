@@ -247,7 +247,7 @@ contains
          source_split_usr,typesourcesplit,&
          dimsplit,typedimsplit,flux_scheme,&
          limiter,gradient_limiter,cada3_radius,&
-         loglimit,typeboundspeed, &
+         loglimit,typeboundspeed, H_correction,&
          typetvd,typeentropy,entropycoef,typeaverage, &
          typegrad,typediv,typecurl,&
          nxdiffusehllc, flathllc, tvdlfeps,&

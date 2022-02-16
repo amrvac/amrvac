@@ -493,6 +493,9 @@ module mod_global_parameters
   !> If true, wall time is up, modify snapshotnext for later overwrite
   logical :: pass_wall_time
 
+  !> If true, do H-correction to fix the carbuncle problem at grid-aligned shocks
+  logical :: H_correction=.false.
+
   !> Number of time steps taken
   integer :: it
 

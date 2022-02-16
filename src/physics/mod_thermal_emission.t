@@ -646,7 +646,6 @@ module mod_thermal_emission
             enddo
             flux(ix^D)=flux(ix^D)*GT
             if(flux(ix^D)<smalldouble) flux(ix^D)=0.d0
-            !if (x(ix^D,3)<0.5d0) flux(ix^D)=zero  !test_test
           else
             flux(ix^D)=zero
           endif
@@ -751,7 +750,7 @@ module mod_thermal_emission
       double precision :: gff,fi,erg_SI
 
       ! check whether the grid is inside given box
-      inbox=zero
+      inbox=0
       {if (xbmin^D<xboxmax^D .and. xbmax^D>xboxmin^D) inbox=inbox+1\}
 
       if (inbox==ndim) then
@@ -1108,8 +1107,6 @@ module mod_thermal_emission
 
       integer :: iigrid,igrid,j,dir_loc
       double precision :: xbmin(1:ndim),xbmax(1:ndim)
-
-      call init_vectors()
 
       dwLg=1.d-3
       numWL=4*int((spectrum_window_max-spectrum_window_min)/(4.d0*dwLg))
@@ -1549,11 +1546,11 @@ module mod_thermal_emission
         RHESSI_rsl=2.3d0
         dxI=RHESSI_rsl*arcsec
       endif
-      numXI1=4*ceiling((xImax1-xIcent1)/dxI/4.d0)
+      numXI1=2*ceiling((xImax1-xIcent1)/dxI/2.d0)
       xImin1=xIcent1-numXI1*dxI
       xImax1=xIcent1+numXI1*dxI
       numXI1=numXI1*2
-      numXI2=4*ceiling((xImax2-xIcent2)/dxI/4.d0)
+      numXI2=2*ceiling((xImax2-xIcent2)/dxI/2.d0)
       xImin2=xIcent2-numXI2*dxI
       xImax2=xIcent2+numXI2*dxI
       numXI2=numXI2*2
@@ -1595,7 +1592,7 @@ module mod_thermal_emission
           do ix2=1,numXI2
             if (EUV(ix1,ix2)<smalldouble) EUV(ix1,ix2)=zero
             if(EUV(ix1,ix2)/=0) then
-              Dpl(ix1,ix2)=(Dpl(ix1,ix2)/EUV(ix1,ix2))*unitv
+              Dpl(ix1,ix2)=-(Dpl(ix1,ix2)/EUV(ix1,ix2))*unitv
             else
               Dpl(ix1,ix2)=0.d0
             endif
@@ -1796,7 +1793,6 @@ module mod_thermal_emission
               xerfmin2=((xI2(ixP2)-half*dxI)-xCent2)/(sqrt(2.d0)*sigma0)
               xerfmax2=((xI2(ixP2)+half*dxI)-xCent2)/(sqrt(2.d0)*sigma0)
               factor=(erfc(xerfmin1)-erfc(xerfmax1))*(erfc(xerfmin2)-erfc(xerfmax2))/4.d0
-              !if (xSubC(3)<0.5d0) factor=zero   ! test_test
               EUV(ixP1,ixP2)=EUV(ixP1,ixP2)+fluxSubC*factor
               Dpl(ixP1,ixP2)=Dpl(ixP1,ixP2)+fluxSubC*factor*v(ix^D)
             enddo !ixP2
@@ -1831,8 +1827,6 @@ module mod_thermal_emission
       double precision :: unitv,arcsec,RHESSI_rsl
       integer :: strtype^D,nstrb^D,nbb^D,nuni^D,nstr^D,bnx^D
       double precision :: qs^D,dxfirst^D,dxmid^D,lenstr^D
-
-      call init_vectors()
 
       numX1=domain_nx1*2**(refine_max_level-1)
       numX2=domain_nx2*2**(refine_max_level-1)
@@ -2017,7 +2011,7 @@ module mod_thermal_emission
           do ix2=1,nXIF2
             if (EUV(ix1,ix2)<smalldouble) EUV(ix1,ix2)=zero
             if(EUV(ix1,ix2)/=0) then
-              Dpl(ix1,ix2)=(Dpl(ix1,ix2)/EUV(ix1,ix2))*unitv
+              Dpl(ix1,ix2)=-(Dpl(ix1,ix2)/EUV(ix1,ix2))*unitv
             else
               Dpl(ix1,ix2)=0.d0
             endif
@@ -2107,7 +2101,7 @@ module mod_thermal_emission
       dxb3(ixO^S)=ps(igrid)%dx(ixO^S,3)
       ! get local EUV flux and velocity
       call get_EUV(wavelength,ixI^L,ixO^L,ps(igrid)%w,ps(igrid)%x,flux)
-      v(ixO^S)=-ps(igrid)%w(ixO^S,iw_mom(direction_LOS))/ps(igrid)%w(ixO^S,iw_rho)
+      v(ixO^S)=ps(igrid)%w(ixO^S,iw_mom(direction_LOS))/ps(igrid)%w(ixO^S,iw_rho)
 
       ! grid parameters
       levelg=ps(igrid)%level
@@ -2702,8 +2696,6 @@ module mod_thermal_emission
         if (abs(vec_xI1(j))<smalldouble) vec_xI1(j)=zero
         if (abs(vec_xI2(j))<smalldouble) vec_xI2(j)=zero
       enddo
-
-      if (mype==0) write(*,'(a,f5.2,f6.2,f6.2,a)') ' LOS vector: [',vec_LOS(1),vec_LOS(2),vec_LOS(3),']'
 
     end subroutine init_vectors
   }

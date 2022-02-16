@@ -637,7 +637,7 @@ contains
   end subroutine hd_get_tcutoff
 
   !> Calculate cmax_idim = csound + abs(v_idim) within ixO^L
-  subroutine hd_get_cbounds(wLC, wRC, wLp, wRp, x, ixI^L, ixO^L, idim, cmax, cmin)
+  subroutine hd_get_cbounds(wLC, wRC, wLp, wRp, x, ixI^L, ixO^L, idim,Hspeed,cmax, cmin)
     use mod_global_parameters
     use mod_dust, only: dust_get_cmax
 
@@ -647,11 +647,13 @@ contains
     ! primitive left and right status
     double precision, intent(in)    :: wLp(ixI^S, nw), wRp(ixI^S, nw)
     double precision, intent(in)    :: x(ixI^S, 1:ndim)
+    double precision, intent(in)    :: Hspeed(ixI^S)
     double precision, intent(inout) :: cmax(ixI^S)
     double precision, intent(inout), optional :: cmin(ixI^S)
 
     double precision :: wmean(ixI^S,nw)
     double precision, dimension(ixI^S) :: umean, dmean, csoundL, csoundR, tmp1,tmp2,tmp3
+    integer :: ix^D
 
     if (boundspeedEinfeldt) then
       ! This implements formula (10.52) from "Riemann Solvers and Numerical
@@ -678,6 +680,12 @@ contains
       if(present(cmin)) then
         cmin(ixO^S)=umean(ixO^S)-dmean(ixO^S)
         cmax(ixO^S)=umean(ixO^S)+dmean(ixO^S)
+        if(H_correction) then
+          {do ix^DB=ixOmin^DB,ixOmax^DB\}
+            cmin(ix^D)=sign(one,cmin(ix^D))*max(abs(cmin(ix^D)),Hspeed(ix^D))
+            cmax(ix^D)=sign(one,cmax(ix^D))*max(abs(cmax(ix^D)),Hspeed(ix^D))
+          {end do\}
+        end if
       else
         cmax(ixO^S)=dabs(umean(ixO^S))+dmean(ixO^S)
       end if
@@ -697,6 +705,12 @@ contains
       if(present(cmin)) then
         cmax(ixO^S)=max(tmp1(ixO^S)+csoundR(ixO^S),zero)
         cmin(ixO^S)=min(tmp1(ixO^S)-csoundR(ixO^S),zero)
+        if(H_correction) then
+          {do ix^DB=ixOmin^DB,ixOmax^DB\}
+            cmin(ix^D)=sign(one,cmin(ix^D))*max(abs(cmin(ix^D)),Hspeed(ix^D))
+            cmax(ix^D)=sign(one,cmax(ix^D))*max(abs(cmax(ix^D)),Hspeed(ix^D))
+          {end do\}
+        end if
       else
         cmax(ixO^S)=dabs(tmp1(ixO^S))+csoundR(ixO^S)
       end if

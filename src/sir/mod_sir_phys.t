@@ -219,12 +219,13 @@ contains
     cmax(ixO^S) = 0.0d0
   end subroutine sir_get_cmax
 
-  subroutine sir_get_cbounds(wLC, wRC, wLp, wRp, x, ixI^L, ixO^L, idim, cmax, cmin)
+  subroutine sir_get_cbounds(wLC, wRC, wLp, wRp, x, ixI^L, ixO^L, idim,Hspeed, cmax, cmin)
     use mod_global_parameters
     integer, intent(in)             :: ixI^L, ixO^L, idim
     double precision, intent(in)    :: wLC(ixI^S, nw), wRC(ixI^S,nw)
     double precision, intent(in)    :: wLp(ixI^S, nw), wRp(ixI^S,nw)
     double precision, intent(in)    :: x(ixI^S, 1:^ND)
+    double precision, intent(in)    :: Hspeed(ixI^S)
     double precision, intent(inout) :: cmax(ixI^S)
     double precision, intent(inout), optional :: cmin(ixI^S)
 
