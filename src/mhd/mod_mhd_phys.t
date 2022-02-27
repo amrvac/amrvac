@@ -707,18 +707,37 @@ contains
       miu0=4.d0*dpi ! G^2 cm^2 dyne^-1
       c_lightspeed=const_c
     end if
-    if(unit_velocity==0) then
+    if(unit_numberdensity/=1.d0) then
       unit_density=(1.d0+4.d0*He_abundance)*mp*unit_numberdensity
+    end if
+    if(unit_density/=1.d0) then
+      unit_numberdensity=unit_density/((1.d0+4.d0*He_abundance)*mp)
+    end if
+    if(unit_temperature/=1.d0) then
       unit_pressure=(2.d0+3.d0*He_abundance)*unit_numberdensity*kB*unit_temperature
       unit_velocity=sqrt(unit_pressure/unit_density)
       unit_magneticfield=sqrt(miu0*unit_pressure)
-      unit_time=unit_length/unit_velocity
-    else
-      unit_density=(1.d0+4.d0*He_abundance)*mp*unit_numberdensity
+    end if
+    if(unit_velocity/=1.d0) then
       unit_pressure=unit_density*unit_velocity**2
       unit_temperature=unit_pressure/((2.d0+3.d0*He_abundance)*unit_numberdensity*kB)
       unit_magneticfield=sqrt(miu0*unit_pressure)
+    end if
+    if(unit_pressure/=1.d0) then
+      unit_temperature=unit_pressure/((2.d0+3.d0*He_abundance)*unit_numberdensity*kB)
+      unit_velocity=sqrt(unit_pressure/unit_density)
+      unit_magneticfield=sqrt(miu0*unit_pressure)
+    end if
+    if(unit_magneticfield/=1.d0) then
+      unit_pressure=unit_magneticfield**2/miu0
+      unit_temperature=unit_pressure/((2.d0+3.d0*He_abundance)*unit_numberdensity*kB)
+      unit_velocity=sqrt(unit_pressure/unit_density)
+    end if
+    if(unit_length/=1.d0) then 
       unit_time=unit_length/unit_velocity
+    end if
+    if(unit_time/=1.d0) then
+      unit_length=unit_time*unit_velocity
     end if
     ! Additional units needed for the particles
     c_norm=c_lightspeed/unit_velocity

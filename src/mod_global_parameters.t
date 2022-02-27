@@ -316,7 +316,7 @@ module mod_global_parameters
   double precision :: unit_density=1.d0
 
   !> Physical scaling factor for velocity
-  double precision :: unit_velocity=0.d0
+  double precision :: unit_velocity=1.d0
 
   !> Physical scaling factor for temperature
   double precision :: unit_temperature=1.d0

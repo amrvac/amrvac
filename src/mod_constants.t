@@ -53,6 +53,7 @@ module mod_constants
   double precision, PARAMETER :: const_MSun  = 1.98892d33      ! g                 ; Solar mass
   double precision, PARAMETER :: const_kB    = 1.3806488d-16   ! erg K^-1          ; Boltzmann constant
   double precision, PARAMETER :: const_h     = 6.6260755d-27   ! erg s             ; Planck constant
+  double precision, parameter :: const_pc    = 3.08567758128d18! cm                ; 1 parsec
   ! Conversion factors:
   double precision, PARAMETER :: const_eV    = 1.6021772d-12   ! erg/eV            ; Electron volt
   double precision, PARAMETER :: const_Tera  = 1.d12           ! -                 ; Tera
