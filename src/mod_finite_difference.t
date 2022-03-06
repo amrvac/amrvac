@@ -74,7 +74,7 @@ contains
 
        call phys_get_flux(wCT,wprim,x,ixG^LL,ix^L,idims,fCT)
 
-       do iw=1,nwflux
+       do iw=iwstart,nwflux
           ! Lax-Friedrich splitting:
           fp(ix^S,iw) = half * (fCT(ix^S,iw) + tvdlfeps * cmax_global * wCT(ix^S,iw))
           fm(ix^S,iw) = half * (fCT(ix^S,iw) - tvdlfeps * cmax_global * wCT(ix^S,iw))
@@ -84,7 +84,7 @@ contains
        call reconstructL(ixI^L,ixC^L,idims,fp,fpL)
        call reconstructR(ixI^L,ixC^L,idims,fm,fmR)
 
-       fC(ixC^S,1:nwflux,idims) = fpL(ixC^S,1:nwflux) + fmR(ixC^S,1:nwflux)
+       fC(ixC^S,iwstart:nwflux,idims) = fpL(ixC^S,iwstart:nwflux) + fmR(ixC^S,iwstart:nwflux)
 
        if(stagger_grid) then
          ! apply limited reconstruction for left and right status at cell interfaces
@@ -168,14 +168,14 @@ contains
 
        kxCmin^D=ixImin^D; kxCmax^D=ixImax^D-kr(idims,^D);
 
-       wLC(kxC^S,1:nwflux) = w(kxC^S,1:nwflux)
+       wLC(kxC^S,iwstart:nwflux) = w(kxC^S,iwstart:nwflux)
 
        jxR^L=iL^L+kr(idims,^D);
 
        ixCmax^D=jxRmax^D; ixCmin^D=iLmin^D-kr(idims,^D);
        jxC^L=ixC^L+kr(idims,^D);
 
-       do iw=1,nwflux
+       do iw=iwstart,nwflux
           dwC(ixC^S)=w(jxC^S,iw)-w(ixC^S,iw)
 
            if(need_global_a2max) then 
@@ -239,13 +239,13 @@ contains
        kxCmin^D=ixImin^D; kxCmax^D=ixImax^D-kr(idims,^D);
        kxR^L=kxC^L+kr(idims,^D);
 
-       wRC(kxC^S,1:nwflux)=w(kxR^S,1:nwflux)
+       wRC(kxC^S,iwstart:nwflux)=w(kxR^S,iwstart:nwflux)
 
        jxR^L=iL^L+kr(idims,^D);
        ixCmax^D=jxRmax^D; ixCmin^D=iLmin^D-kr(idims,^D);
        jxC^L=ixC^L+kr(idims,^D);
 
-       do iw=1,nwflux
+       do iw=iwstart,nwflux
           dwC(ixC^S)=w(jxC^S,iw)-w(ixC^S,iw)
 
            if(need_global_a2max) then
