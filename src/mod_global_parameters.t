@@ -155,6 +155,9 @@ module mod_global_parameters
   !> Number of output methods
   integer, parameter :: nfile = 5
 
+  !> index number of the latest existing data file
+  integer :: index_latest_data
+
   !> Names of the output methods
   character(len=40), parameter  :: output_names(nfile) = &
        ['log      ', 'normal   ', 'slice    ', 'collapsed', 'analysis ']

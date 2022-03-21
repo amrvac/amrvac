@@ -13,6 +13,7 @@ program amrvac
   use mod_fix_conserve
   use mod_advance, only: process
   use mod_multigrid_coupling
+  use mod_physics
 
   double precision :: time0, time_in
   logical,save     :: part_file_exists=.false.
@@ -95,6 +96,11 @@ program amrvac
         if (associated(usr_process_grid) .or. &
              associated(usr_process_global)) then
            call process(it,global_time)
+        end if
+
+        if(associated(phys_special_advance)) then
+          ! e.g. calculate MF velocity from magnetic field
+          call phys_special_advance(global_time,ps)
         end if
 
         call generate_plotfile

@@ -594,30 +594,34 @@ contains
     if(restart_from_file_arg /= undefined) &
       restart_from_file=restart_from_file_arg
 
-    if (resume_previous_run) then
-      ! Root process will search snapshot
-      if (mype == 0) then
-         do i = -1, 9998
-            ! Check if the next snapshot is missing
-            if (.not. snapshot_exists(i+1)) exit
-         end do
+    ! Root process will search snapshot
+    if (mype == 0) then
+      if(restart_from_file == undefined) then
+        do index_latest_data = -1, 9998
+           ! Check if the next snapshot is missing
+           if (.not. snapshot_exists(index_latest_data+1)) exit
+        end do
 
-         if (i == -1) then
-            ! If initial data is missing (e.g. moved due to lack of space),
-            ! search file with highest index
-            do i = 9999, 0, -1
-               if (snapshot_exists(i)) exit
-            end do
-         end if
+        if (index_latest_data == -1) then
+           ! If initial data is missing (e.g. moved due to lack of space),
+           ! search file with highest index
+           do index_latest_data = 9999, 0, -1
+              if (snapshot_exists(index_latest_data)) exit
+           end do
+        end if
+      else
+        ! get index of the given data restarted from
+        index_latest_data=get_snapshot_index(trim(restart_from_file))
       end if
-      call MPI_BCAST(i, 1, MPI_INTEGER, 0, icomm, ierrmpi)
+    end if
+    call MPI_BCAST(index_latest_data, 1, MPI_INTEGER, 0, icomm, ierrmpi)
 
-      if (i == -1) then
+    if (resume_previous_run) then
+      if (index_latest_data == -1) then
         if(mype==0) write(*,*) "No snapshots found to resume from, start a new run..."
       else
-      !call mpistop("No snapshots found to resume from")
         ! Set file name to restart from
-        write(restart_from_file, "(a,i4.4,a)") trim(base_filename), i, ".dat"
+        write(restart_from_file, "(a,i4.4,a)") trim(base_filename),index_latest_data, ".dat"
       end if
     end if
 

@@ -54,6 +54,7 @@ amrvac.o: mod_initialize.mod
 amrvac.o: mod_input_output.mod
 amrvac.o: mod_multigrid_coupling.mod
 amrvac.o: mod_particles.mod
+amrvac.o: mod_physics.mod
 amrvac.o: mod_timing.mod
 amrvac.o: mod_usr.mod
 boundary_conditions.o: mod_bc_data.mod
@@ -276,9 +277,6 @@ mod_thermal_emission.o: mod_physics.mod
 mod_trac.o: mod_mhd.mod
 mod_trac.o: mod_particle_base.mod
 mod_trac.o: mod_point_searching.mod
-mod_trac_new.o: mod_mhd.mod
-mod_trac_new.o: mod_particle_base.mod
-mod_trac_new.o: mod_point_searching.mod
 mod_trace_Bfield.o: mod_mhd.mod
 mod_trace_Bfield.o: mod_particle_base.mod
 mod_trace_Vfield.o: mod_particle_base.mod
