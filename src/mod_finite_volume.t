@@ -282,13 +282,13 @@ contains
        ! For the MUSCL scheme apply the characteristic based limiter
        if (method==fs_tvdmu) &
             call tvdlimit2(method,qdt,ixI^L,ixC^L,ixO^L,idims,wLC,wRC,wnew,x,fC,dx^D)
-
-    end do ! Next idims
-
     ! check and optionally correct unphysical values
     if(fix_small_values) then
        call phys_handle_small_values(.false.,wnew,x,ixI^L,ixO^L,'multi-D finite_volume')
     endif
+
+    end do ! Next idims
+
 
     if (.not.slab.and.idimsmin==1) &
          call phys_add_source_geom(qdt,ixI^L,ixO^L,wCT,wnew,x)
@@ -447,6 +447,10 @@ contains
       f1L=0.d0
       f2R=0.d0
       f2L=0.d0
+      w1L=0.d0
+      w1R=0.d0
+      w2L=0.d0
+      w2R=0.d0
       ip1=idims
       ip3=3
       vRC(ixC^S,:)=wRp(ixC^S,mom(:))
@@ -458,12 +462,12 @@ contains
         BR(ixC^S,:)=wRC(ixC^S,mag(:))
         BL(ixC^S,:)=wLC(ixC^S,mag(:))
       end if
-      ! HLL estimation of normal magnetic field at cell interfaces
       if(stagger_grid) then
         Bx(ixC^S)=block%ws(ixC^S,ip1)
       else
-        Bx(ixC^S)=(sR(ixC^S)*BR(ixC^S,ip1)-sL(ixC^S)*BL(ixC^S,ip1)-&
-                   fLC(ixC^S,mag(ip1))-fRC(ixC^S,mag(ip1)))/(sR(ixC^S)-sL(ixC^S))
+        ! HLL estimation of normal magnetic field at cell interfaces
+        ! Li, Shenghai, 2005 JCP, 203, 344, equation (33)
+        Bx(ixC^S)=(sR(ixC^S)*BR(ixC^S,ip1)-sL(ixC^S)*BL(ixC^S,ip1))/(sR(ixC^S)-sL(ixC^S))
       end if
       ptR(ixC^S)=wRp(ixC^S,p_)+0.5d0*sum(BR(ixC^S,:)**2,dim=ndim+1)
       ptL(ixC^S)=wLp(ixC^S,p_)+0.5d0*sum(BL(ixC^S,:)**2,dim=ndim+1)
@@ -492,13 +496,17 @@ contains
       ip2=mod(ip1+1,ndir)
       if(ip2==0) ip2=ndir
       r1R(ixC^S)=suR(ixC^S)*(sR(ixC^S)-sm(ixC^S))-Bx(ixC^S)**2
-      where(r1R(ixC^S)/=0.d0)
+      where(abs(r1R(ixC^S))>smalldouble)
         r1R(ixC^S)=1.d0/r1R(ixC^S)
-      endwhere
+      else where
+        r1R(ixC^S)=0.d0
+      end where
       r1L(ixC^S)=suL(ixC^S)*(sL(ixC^S)-sm(ixC^S))-Bx(ixC^S)**2
-      where(r1L(ixC^S)/=0.d0)
+      where(abs(r1L(ixC^S))>smalldouble)
         r1L(ixC^S)=1.d0/r1L(ixC^S)
-      endwhere
+      else where
+        r1R(ixC^S)=0.d0
+      end where
       ! Miyoshi equation (44)
       w1R(ixC^S,mom(ip2))=vRC(ixC^S,ip2)-Bx(ixC^S)*BR(ixC^S,ip2)*&
         (sm(ixC^S)-vRC(ixC^S,ip1))*r1R(ixC^S)
@@ -531,11 +539,8 @@ contains
       if(mhd_energy) then
         ! Guo equation (25) equivalent to Miyoshi equation (41)
         w1R(ixC^S,p_)=suR(ixC^S)*(sm(ixC^S)-vRC(ixC^S,ip1))+ptR(ixC^S)
-        w1L(ixC^S,p_)=suL(ixC^S)*(sm(ixC^S)-vLC(ixC^S,ip1))+ptL(ixC^S)
-        !if(mhd_solve_eaux) then
-        !  w1R(ixC^S,eaux_)=(w1R(ixC^S,p_)-half*sum(w1R(ixC^S,mag(:))**2,dim=ndim+1))/(mhd_gamma-one)
-        !  w1L(ixC^S,eaux_)=(w1L(ixC^S,p_)-half*sum(w1L(ixC^S,mag(:))**2,dim=ndim+1))/(mhd_gamma-one)
-        !end if
+        !w1L(ixC^S,p_)=suL(ixC^S)*(sm(ixC^S)-vLC(ixC^S,ip1))+ptL(ixC^S)
+        w1L(ixC^S,p_)=w1R(ixC^S,p_)
         if(B0field) then
           ! Guo equation (32)
           w1R(ixC^S,p_)=w1R(ixC^S,p_)+sum(block%B0(ixC^S,:,ip1)*(wRC(ixC^S,mag(:))-w1R(ixC^S,mag(:))),dim=ndim+1)
@@ -594,12 +599,6 @@ contains
           sum(w2R(ixC^S,mom(:))*w2R(ixC^S,mag(:)),dim=ndim+1))*signBx(ixC^S)
         w2L(ixC^S,e_)=w1L(ixC^S,e_)-r1L(ixC^S)*(sum(w1L(ixC^S,mom(:))*w1L(ixC^S,mag(:)),dim=ndim+1)-&
           sum(w2L(ixC^S,mom(:))*w2L(ixC^S,mag(:)),dim=ndim+1))*signBx(ixC^S)
-        !if(mhd_solve_eaux) then
-        !  w2R(ixC^S,eaux_)=w2R(ixC^S,e_)-half*(sum(w2R(ixC^S,mag(:))**2,dim=ndim+1)+&
-        !     sum(w2R(ixC^S,mom(:))**2,dim=ndim+1)*w2R(ixC^S,rho_))
-        !  w2L(ixC^S,eaux_)=w2L(ixC^S,e_)-half*(sum(w2L(ixC^S,mag(:))**2,dim=ndim+1)+&
-        !     sum(w2L(ixC^S,mom(:))**2,dim=ndim+1)*w2L(ixC^S,rho_))
-        !end if
       end if
 
       ! convert velocity to momentum
@@ -612,15 +611,7 @@ contains
 
       ! get fluxes of intermedate states
       do iw=1,nwflux
-        if (flux_type(idims, iw) == flux_tvdlf) then
-          if(stagger_grid) cycle
-          ! tvldf flux for normal B
-          f1L(ixC^S,iw)=-tvdlfeps*half*max(sR(ixC^S), dabs(sL(ixC^S))) * &
-                 (wRC(ixC^S,iw)-wLC(ixC^S,iw))
-          f1R(ixC^S,iw)=f1L(ixC^S,iw)
-          f2L(ixC^S,iw)=f1L(ixC^S,iw)
-          f2R(ixC^S,iw)=f1L(ixC^S,iw)
-        else if(flux_type(idims, iw) == flux_special) then
+        if(flux_type(idims, iw) == flux_special) then
           ! known flux (fLC=fRC) for normal B and psi_ in GLM method
           f1L(ixC^S,iw)=fLC(ixC^S,iw)
           f1R(ixC^S,iw)=f1L(ixC^S,iw)
@@ -634,6 +625,7 @@ contains
           f2L(ixC^S,iw)=f1L(ixC^S,iw)
           f2R(ixC^S,iw)=f1L(ixC^S,iw)
         else
+          ! construct hlld flux
           f1L(ixC^S,iw)=fLC(ixC^S,iw)+sL(ixC^S)*(w1L(ixC^S,iw)-wLC(ixC^S,iw))
           f1R(ixC^S,iw)=fRC(ixC^S,iw)+sR(ixC^S)*(w1R(ixC^S,iw)-wRC(ixC^S,iw))
           f2L(ixC^S,iw)=f1L(ixC^S,iw)+s1L(ixC^S)*(w2L(ixC^S,iw)-w1L(ixC^S,iw))
