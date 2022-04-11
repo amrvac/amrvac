@@ -133,11 +133,6 @@ subroutine alloc_node(igrid)
     end select
   end if
 
-  if(stagger_grid) then
-    ps(igrid)%ws=0.d0
-    psc(igrid)%ws=0.d0
-  end if
-
   ! block pointer to current block
   block=>ps(igrid)
 
@@ -586,6 +581,11 @@ subroutine alloc_state(igrid, s, ixG^L, ixGext^L, alloc_x)
   {^D& ixGsmin^D = ixGmin^D-1; ixGsmax^D = ixGmax^D|;}
   if(stagger_grid) then
     allocate(s%ws(ixGs^S,1:nws))
+    s%ws=0.d0
+    if(record_electric_field) then
+      allocate(s%we(ixGs^S,1:nws))
+      s%we=0.d0
+    end if
     s%ixGs^L=ixGs^L;
   end if
   if(alloc_x) then

@@ -29,6 +29,9 @@ module mod_mf_phys
   !> MHD fourth order
   logical, public, protected              :: mf_4th_order = .false.
 
+  !> set to true if need to record electric field on cell edges
+  logical, public, protected              :: mf_record_electric_field = .false.
+
   !> Indices of the momentum density
   integer, allocatable, public, protected :: mom(:)
 
@@ -124,7 +127,7 @@ contains
 
     namelist /mf_list/ mf_nu, mf_vmax, mf_decay_scale, &
       mf_eta, mf_eta_hyper, mf_glm_alpha, mf_particles,&
-      particles_eta,&
+      particles_eta, mf_record_electric_field,&
       mf_4th_order, typedivbfix, source_split_divb, divbdiff,&
       typedivbdiff, type_ct, compactres, divbwave, He_abundance, SI_unit, B0field,&
       B0field_forcefree, Bdip, Bquad, Boct, Busr, clean_initial_divb, &
@@ -281,6 +284,9 @@ contains
     if(type_divb==divb_glm) then
       phys_modify_wLR => mf_modify_wLR
     end if
+
+    ! pass to global variable to record electric field
+    record_electric_field=mf_record_electric_field
 
     ! Initialize particles module
     if(mf_particles) then
@@ -2106,6 +2112,8 @@ contains
             ! add current component of electric field at cell edges E=-vxB+eta J
             if(mf_eta/=zero) fE(ixC^S,idir)=fE(ixC^S,idir)+jce(ixC^S,idir)
 
+            if(record_electric_field) s%we(ixC^S,idir)=fE(ixC^S,idir)
+            ! times time step and edge length 
             fE(ixC^S,idir)=qdt*s%dsC(ixC^S,idir)*fE(ixC^S,idir)
 
             if (.not.slab) then
@@ -2270,6 +2278,7 @@ contains
             ! add current component of electric field at cell edges E=-vxB+eta J
             if(mf_eta/=zero) fE(ixC^S,idir)=fE(ixC^S,idir)+jce(ixC^S,idir)
 
+            if(record_electric_field) s%we(ixC^S,idir)=fE(ixC^S,idir)
             ! times time step and edge length 
             fE(ixC^S,idir)=fE(ixC^S,idir)*qdt*s%dsC(ixC^S,idir)
             if (.not.slab) then
@@ -2419,6 +2428,8 @@ contains
       ! add current component of electric field at cell edges E=-vxB+eta J
       if(mf_eta/=zero) fE(ixC^S,idir)=fE(ixC^S,idir)+jce(ixC^S,idir)
 
+      if(record_electric_field) s%we(ixC^S,idir)=fE(ixC^S,idir)
+      ! times time step and edge length 
       fE(ixC^S,idir)=qdt*s%dsC(ixC^S,idir)*fE(ixC^S,idir)
 
       if (.not.slab) then

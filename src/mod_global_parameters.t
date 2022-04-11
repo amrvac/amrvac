@@ -417,6 +417,8 @@ module mod_global_parameters
   logical :: reset_grid
   !> True for using stagger grid
   logical :: stagger_grid=.false.
+  !> True for record electric field
+  logical :: record_electric_field=.false.
 
   !> Number of cells as buffer zone
   !> \todo is it necessary?
