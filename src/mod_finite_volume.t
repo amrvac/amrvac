@@ -505,7 +505,7 @@ contains
       where(abs(r1L(ixC^S))>smalldouble)
         r1L(ixC^S)=1.d0/r1L(ixC^S)
       else where
-        r1R(ixC^S)=0.d0
+        r1L(ixC^S)=0.d0
       end where
       ! Miyoshi equation (44)
       w1R(ixC^S,mom(ip2))=vRC(ixC^S,ip2)-Bx(ixC^S)*BR(ixC^S,ip2)*&
