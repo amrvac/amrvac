@@ -2342,8 +2342,8 @@ contains
 
     double precision                   :: vtilL(ixI^S,2)
     double precision                   :: vtilR(ixI^S,2)
-    double precision                   :: btilL(s%ixGs^S,ndim)
-    double precision                   :: btilR(s%ixGs^S,ndim)
+    double precision                   :: btilL(ixI^S,ndim)
+    double precision                   :: btilR(ixI^S,ndim)
     double precision                   :: cp(ixI^S,2)
     double precision                   :: cm(ixI^S,2)
     double precision                   :: circ(ixI^S,1:ndim)
