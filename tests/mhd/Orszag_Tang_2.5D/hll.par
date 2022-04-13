@@ -14,7 +14,7 @@
  /
 
  &stoplist
-        time_max      = 0.5
+        time_max      = 1.0
  /
 
  &methodlist
@@ -24,18 +24,16 @@
  /
 
  &boundlist
-        typeboundary_min1  = 6*'periodic'
-        typeboundary_min2  = 6*'periodic'
-        typeboundary_max1  = 6*'periodic'
-        typeboundary_max2  = 6*'periodic'
+        typeboundary_min1  = 8*'periodic'
+        typeboundary_min2  = 8*'periodic'
+        typeboundary_max1  = 8*'periodic'
+        typeboundary_max2  = 8*'periodic'
  /
 
  &meshlist
         refine_criterion = 3
-        refine_max_level = 2
-    	refine_threshold = 20*0.4d0
-        w_refine_weight(1)=0.5d0
-        w_refine_weight(4)=0.5d0
+        refine_max_level = 3
+    	refine_threshold = 20*0.2d0
         domain_nx1    = 64
         domain_nx2    = 64
         xprobmin1     = 0.0d0
@@ -45,9 +43,11 @@
  /
 
  &paramlist
-        courantpar    = 1.0d0
+        courantpar    = 0.8d0
  /
 
  &mhd_list
         typedivbfix   = 'linde'
  /
+        typedivbfix   = 'janhunen'
+        divbdiff =0.5d0

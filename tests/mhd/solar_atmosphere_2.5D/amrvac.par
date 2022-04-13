@@ -77,9 +77,9 @@
 
  &mhd_list
         mhd_thermal_conduction=.true.
-        mhd_radiative_cooling=.false.
-        mhd_gravity=.false.
-        typedivbfix='none'
+        mhd_radiative_cooling=.true.
+        mhd_gravity=.true.
+        typedivbfix='linde'
         Busr=20.d0
         B0field=.false.
         boundary_divbfix(3)=.false.
@@ -95,7 +95,4 @@
         coolcurve='JCcorona'
         coolmethod='exact'
         Tfix=.false.
- /
- &sts_list
-        sourcetype_sts=2
  /

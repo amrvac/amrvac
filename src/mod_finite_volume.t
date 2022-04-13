@@ -343,24 +343,20 @@ contains
       integer :: ix^D
 
       do iw=iwstart,nwflux
-        if(flux_type(idims, iw) == flux_tvdlf) then
-          if(stagger_grid) cycle
-          fC(ixC^S,iw,idims) = -tvdlfeps*half*max(cmaxC(ixC^S),dabs(cminC(ixC^S))) * &
-               (wRC(ixC^S,iw)-wLC(ixC^S,iw))
-        else
-         {do ix^DB=ixCmin^DB,ixCmax^DB\} 
-           if(cminC(ix^D) >= zero) then
-             fC(ix^D,iw,idims)=fLC(ix^D,iw)
-           else if(cmaxC(ix^D) <= zero) then
-             fC(ix^D,iw,idims)=fRC(ix^D,iw)
-           else
-             ! Add hll dissipation to the flux
-             fC(ix^D,iw,idims)=(cmaxC(ix^D)*fLC(ix^D, iw)-cminC(ix^D)*fRC(ix^D,iw)&
-                   +cminC(ix^D)*cmaxC(ix^D)*(wRC(ix^D,iw)-wLC(ix^D,iw)))&
-                   /(cmaxC(ix^D)-cminC(ix^D))
-           end if
-         {end do\}
-        end if
+        ! CT MHD does not need normal B flux
+        if(stagger_grid .and. flux_type(idims, iw) == flux_tvdlf) cycle
+       {do ix^DB=ixCmin^DB,ixCmax^DB\}
+         if(cminC(ix^D) >= zero) then
+           fC(ix^D,iw,idims)=fLC(ix^D,iw)
+         else if(cmaxC(ix^D) <= zero) then
+           fC(ix^D,iw,idims)=fRC(ix^D,iw)
+         else
+           ! Add hll dissipation to the flux
+           fC(ix^D,iw,idims)=(cmaxC(ix^D)*fLC(ix^D, iw)-cminC(ix^D)*fRC(ix^D,iw)&
+                 +cminC(ix^D)*cmaxC(ix^D)*(wRC(ix^D,iw)-wLC(ix^D,iw)))&
+                 /(cmaxC(ix^D)-cminC(ix^D))
+         end if
+       {end do\}
       end do
 
     end subroutine get_Riemann_flux_hll
