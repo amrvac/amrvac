@@ -2690,7 +2690,7 @@ contains
         call MPI_FILE_OPEN(MPI_COMM_SELF,filename,amode,MPI_INFO_NULL,fhmf,ierrmpi)
         logmfopened=.true.
         filehead="  it,  time,  <CW sin theta>,  <Current>,  <Lorenz force>,  <f_i>"
-        if (restart_from_file == undefined) then
+        if (it == 0) then
           call MPI_FILE_WRITE(fhmf,filehead,len_trim(filehead), &
                               MPI_CHARACTER,istatus,ierrmpi)
           call MPI_FILE_WRITE(fhmf,achar(10),1,MPI_CHARACTER,istatus,ierrmpi)
