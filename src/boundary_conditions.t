@@ -90,29 +90,17 @@ subroutine bc_phys(iside,idims,time,qdt,s,ixG^L,ixB^L)
             ! Consider only normal direction
             if (idir/=^D) cycle
             ixOs^L=ixO^L;
-            hxO^L=ixO^L-nghostcells*kr(^DD,^D);
-            ! Calculate divergence and partial divergence
-            call get_divb(s%w,ixG^L,hxO^L,Q)
             select case(typeboundary(iw_mag(idir),iB))
             case("symm")
-              ws(ixOs^S,idir)=zero
-              do ix^D=0,nghostcells-1
-                call get_divb(s%w,ixG^L,ixO^L,Qp)
-                ws(ixOsmin^D+ix^D^D%ixOs^S,idir)=&
-                  (Q(hxOmax^D-ix^D^D%hxO^S)*s%dvolume(hxOmax^D-ix^D^D%hxO^S)&
-                 -Qp(ixOmin^D+ix^D^D%ixO^S)*s%dvolume(ixOmin^D+ix^D^D%ixO^S))&
-                  /s%surfaceC(ixOsmin^D+ix^D^D%ixOs^S,^D)
-              end do
+              ! (a)symmetric normal B ensures symmetric divB
+              ws(ixOs^S,idir)= ws(ixOsmin^D-2:ixOsmin^D-nghostcells-1:-1^D%ixOs^S,idir)
             case("asymm")
-              ws(ixOs^S,idir)=zero
-              do ix^D=0,nghostcells-1
-                call get_divb(s%w,ixG^L,ixO^L,Qp)
-                ws(ixOsmin^D+ix^D^D%ixOs^S,idir)=&
-                 (-Q(hxOmax^D-ix^D^D%hxO^S)*s%dvolume(hxOmax^D-ix^D^D%hxO^S)&
-                 -Qp(ixOmin^D+ix^D^D%ixO^S)*s%dvolume(ixOmin^D+ix^D^D%ixO^S))&
-                  /s%surfaceC(ixOsmin^D+ix^D^D%ixOs^S,^D)
-              end do
+              ! (a)symmetric normal B ensures symmetric divB
+              ws(ixOs^S,idir)=-ws(ixOsmin^D-2:ixOsmin^D-nghostcells-1:-1^D%ixOs^S,idir)
             case("cont")
+              hxO^L=ixO^L-nghostcells*kr(^DD,^D);
+              ! Calculate divergence and partial divergence
+              call get_divb(s%w,ixG^L,hxO^L,Q)
               ws(ixOs^S,idir)=zero
               do ix^D=0,nghostcells-1
                 call get_divb(s%w,ixG^L,ixO^L,Qp)
@@ -197,29 +185,17 @@ subroutine bc_phys(iside,idims,time,qdt,s,ixG^L,ixB^L)
             ! Consider only normal direction
             if (idir/=^D) cycle
             ixOs^L=ixO^L-kr(^DD,^D);
-            jxO^L=ixO^L+nghostcells*kr(^DD,^D);
-            ! Calculate divergence and partial divergence
-            call get_divb(s%w,ixG^L,jxO^L,Q)
             select case(typeboundary(iw_mag(idir),iB))
             case("symm")
-              ws(ixOs^S,idir)=zero
-              do ix^D=0,nghostcells-1
-                call get_divb(s%w,ixG^L,ixO^L,Qp)
-                ws(ixOsmax^D-ix^D^D%ixOs^S,idir)=&
-                 -(Q(jxOmin^D+ix^D^D%jxO^S)*s%dvolume(jxOmin^D+ix^D^D%jxO^S)&
-                 -Qp(ixOmax^D-ix^D^D%ixO^S)*s%dvolume(ixOmax^D-ix^D^D%ixO^S))&
-                  /s%surfaceC(ixOsmax^D-ix^D^D%ixOs^S,^D)
-              end do
+              ! (a)symmetric normal B ensures symmetric divB
+              ws(ixOs^S,idir)= ws(ixOsmax^D+nghostcells+1:ixOsmax^D+2:-1^D%ixOs^S,idir)
             case("asymm")
-              ws(ixOs^S,idir)=zero
-              do ix^D=0,nghostcells-1
-                call get_divb(s%w,ixG^L,ixO^L,Qp)
-                ws(ixOsmax^D-ix^D^D%ixOs^S,idir)=&
-                 -(-Q(jxOmin^D+ix^D^D%jxO^S)*s%dvolume(jxOmin^D+ix^D^D%jxO^S)&
-                 -Qp(ixOmax^D-ix^D^D%ixO^S)*s%dvolume(ixOmax^D-ix^D^D%ixO^S))&
-                  /s%surfaceC(ixOsmax^D-ix^D^D%ixOs^S,^D)
-              end do
+              ! (a)symmetric normal B ensures symmetric divB
+              ws(ixOs^S,idir)=-ws(ixOsmax^D+nghostcells+1:ixOsmax^D+2:-1^D%ixOs^S,idir)
             case("cont")
+              jxO^L=ixO^L+nghostcells*kr(^DD,^D);
+              ! Calculate divergence and partial divergence
+              call get_divb(s%w,ixG^L,jxO^L,Q)
               ws(ixOs^S,idir)=zero
               do ix^D=0,nghostcells-1
                 call get_divb(s%w,ixG^L,ixO^L,Qp)
