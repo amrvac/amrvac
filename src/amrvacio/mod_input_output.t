@@ -258,7 +258,7 @@ contains
          trace_small_values, angmomfix, small_values_fix_iw, &
          schmid_rad^D
 
-    namelist /boundlist/ nghostcells,typeboundary,ghost_copy,&
+    namelist /boundlist/ nghostcells,ghost_copy,&
          internalboundary, typeboundary_^L, save_physical_boundary
 
     namelist /meshlist/ refine_max_level,nbufferx^D,refine_threshold,&
@@ -303,8 +303,8 @@ contains
     typeboundary_max^D = undefined
     }
 
-    allocate(typeboundary(nwflux+nwaux, 2 * ndim))
-    typeboundary(:, :) = undefined
+    allocate(typeboundary(nwflux+nwaux,2*ndim))
+    typeboundary=0
 
     ! not save physical boundary in dat files by default
     save_physical_boundary = .false.
@@ -1208,13 +1208,60 @@ contains
 
     ! Copy boundary conditions to typeboundary, which is used internally
     {
-    if (any(typeboundary_min^D /= undefined)) then
-      typeboundary(1:nwfluxbc, 2*^D-1) = typeboundary_min^D(1:nwfluxbc)
-    end if
-
-    if (any(typeboundary_max^D /= undefined)) then
-      typeboundary(1:nwfluxbc, 2*^D) = typeboundary_max^D(1:nwfluxbc)
-    end if
+    do iw=1,nwfluxbc
+      select case(typeboundary_min^D(iw))
+      case("special")
+        typeboundary(iw,2*^D-1)=bc_special
+      case("cont")
+        typeboundary(iw,2*^D-1)=bc_cont
+      case("symm")
+        typeboundary(iw,2*^D-1)=bc_symm
+      case("asymm")
+        typeboundary(iw,2*^D-1)=bc_asymm
+      case("periodic")
+        typeboundary(iw,2*^D-1)=bc_periodic
+      case("aperiodic")
+        typeboundary(iw,2*^D-1)=bc_aperiodic
+      case("noinflow")
+        typeboundary(iw,2*^D-1)=bc_noinflow
+      case("pole")
+        typeboundary(iw,2*^D-1)=12
+      case("bc_data")
+        typeboundary(iw,2*^D-1)=bc_data
+      case("character")
+        typeboundary(iw,2*^D-1)=bc_character
+      case default
+         write (unitterm,*) "Undefined boundarytype found in read_par_files", &
+           typeboundary_min^D(iw),"for variable iw=",iw," and side iB=",2*^D-1
+      end select
+    end do
+    do iw=1,nwfluxbc
+      select case(typeboundary_max^D(iw))
+      case("special")
+        typeboundary(iw,2*^D)=bc_special
+      case("cont")
+        typeboundary(iw,2*^D)=bc_cont
+      case("symm")
+        typeboundary(iw,2*^D)=bc_symm
+      case("asymm")
+        typeboundary(iw,2*^D)=bc_asymm
+      case("periodic")
+        typeboundary(iw,2*^D)=bc_periodic
+      case("aperiodic")
+        typeboundary(iw,2*^D)=bc_aperiodic
+      case("noinflow")
+        typeboundary(iw,2*^D)=bc_noinflow
+      case("pole")
+        typeboundary(iw,2*^D)=12
+      case("bc_data")
+        typeboundary(iw,2*^D)=bc_data
+      case("bc_character")
+        typeboundary(iw,2*^D)=bc_character
+      case default
+         write (unitterm,*) "Undefined boundarytype found in read_par_files", &
+           typeboundary_max^D(iw),"for variable iw=",iw," and side iB=",2*^D
+      end select
+    end do
     }
 
     ! psi, tracers take the same boundary type as the first variable
@@ -1230,20 +1277,20 @@ contains
       end do
     end if
 
-    if (any(typeboundary == undefined)) then
+    if (any(typeboundary == 0)) then
       call mpistop("Not all boundary conditions have been defined")
     end if
 
     do idim=1,ndim
-       periodB(idim)=(any(typeboundary(:,2*idim-1:2*idim)=='periodic'))
-       aperiodB(idim)=(any(typeboundary(:,2*idim-1:2*idim)=='aperiodic'))
+       periodB(idim)=(any(typeboundary(:,2*idim-1:2*idim)==bc_periodic))
+       aperiodB(idim)=(any(typeboundary(:,2*idim-1:2*idim)==bc_aperiodic))
        if (periodB(idim).or.aperiodB(idim)) then
           do iw=1,nwflux
              if (typeboundary(iw,2*idim-1) .ne. typeboundary(iw,2*idim)) &
                   call mpistop("Wrong counterpart in periodic boundary")
 
-             if (typeboundary(iw,2*idim-1) /= 'periodic' .and. &
-                  typeboundary(iw,2*idim-1) /= 'aperiodic') then
+             if (typeboundary(iw,2*idim-1) /= bc_periodic .and. &
+                  typeboundary(iw,2*idim-1) /= bc_aperiodic) then
                call mpistop("Each dimension should either have all "//&
                     "or no variables periodic, some can be aperiodic")
              end if
@@ -1252,43 +1299,43 @@ contains
     end do
     {^NOONED
     do idim=1,ndim
-      if(any(typeboundary(:,2*idim-1)=='pole')) then
-        if(any(typeboundary(:,2*idim-1)/='pole')) typeboundary(:,2*idim-1)='pole'
+      if(any(typeboundary(:,2*idim-1)==12)) then
+        if(any(typeboundary(:,2*idim-1)/=12)) typeboundary(:,2*idim-1)=12
         if(phys_energy) then
           windex=2
         else
           windex=1
         end if
-        typeboundary(:,2*idim-1)='symm'
+        typeboundary(:,2*idim-1)=bc_symm
         if(physics_type/='rho') then
-        select case(coordinate)
-        case(cylindrical)
-          typeboundary(phi_+1,2*idim-1)='asymm'
-          if(physics_type=='mhd') typeboundary(ndir+windex+phi_,2*idim-1)='asymm'
-        case(spherical)
-          typeboundary(3:ndir+1,2*idim-1)='asymm'
-          if(physics_type=='mhd') typeboundary(ndir+windex+2:ndir+windex+ndir,2*idim-1)='asymm'
-        case default
-          call mpistop('Pole is in cylindrical, polar, spherical coordinates!')
-        end select
+          select case(coordinate)
+          case(cylindrical)
+            typeboundary(phi_+1,2*idim-1)=bc_asymm
+            if(physics_type=='mhd') typeboundary(ndir+windex+phi_,2*idim-1)=bc_asymm
+          case(spherical)
+            typeboundary(3:ndir+1,2*idim-1)=bc_asymm
+            if(physics_type=='mhd') typeboundary(ndir+windex+2:ndir+windex+ndir,2*idim-1)=bc_asymm
+          case default
+            call mpistop('Pole is in cylindrical, polar, spherical coordinates!')
+          end select
         end if
       end if
-      if(any(typeboundary(:,2*idim)=='pole')) then
-        if(any(typeboundary(:,2*idim)/='pole')) typeboundary(:,2*idim)='pole'
+      if(any(typeboundary(:,2*idim)==12)) then
+        if(any(typeboundary(:,2*idim)/=12)) typeboundary(:,2*idim)=12
         if(phys_energy) then
           windex=2
         else
           windex=1
         end if
-        typeboundary(:,2*idim)='symm'
+        typeboundary(:,2*idim)=bc_symm
         if(physics_type/='rho') then
         select case(coordinate)
         case(cylindrical)
-          typeboundary(phi_+1,2*idim)='asymm'
-          if(physics_type=='mhd') typeboundary(ndir+windex+phi_,2*idim)='asymm'
+          typeboundary(phi_+1,2*idim)=bc_asymm
+          if(physics_type=='mhd') typeboundary(ndir+windex+phi_,2*idim)=bc_asymm
         case(spherical)
-          typeboundary(3:ndir+1,2*idim)='asymm'
-          if(physics_type=='mhd') typeboundary(ndir+windex+2:ndir+windex+ndir,2*idim)='asymm'
+          typeboundary(3:ndir+1,2*idim)=bc_asymm
+          if(physics_type=='mhd') typeboundary(ndir+windex+2:ndir+windex+ndir,2*idim)=bc_asymm
         case default
           call mpistop('Pole is in cylindrical, polar, spherical coordinates!')
         end select

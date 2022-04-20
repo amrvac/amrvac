@@ -672,7 +672,18 @@ module mod_global_parameters
 
   !> Array indicating the type of boundary condition per variable and per
   !> physical boundary
-  character(len=std_len), allocatable :: typeboundary(:, :)
+  integer, allocatable :: typeboundary(:, :)
+  !> boundary condition types
+  integer, parameter :: bc_special=1
+  integer, parameter :: bc_cont=2
+  integer, parameter :: bc_symm=3
+  integer, parameter :: bc_asymm=4
+  integer, parameter :: bc_periodic=5
+  integer, parameter :: bc_pole=6
+  integer, parameter :: bc_aperiodic=7
+  integer, parameter :: bc_noinflow=8
+  integer, parameter :: bc_data=9
+  integer, parameter :: bc_character=10
 
   !> whether copy values instead of interpolation in ghost cells of finer blocks
   logical :: ghost_copy=.false.

@@ -227,21 +227,21 @@ contains
           ! Set boundary conditions for the multigrid solver
           do n = 1, 2*ndim
              select case (typeboundary(iw, n))
-             case ('symm')
+             case (bc_symm)
                 ! d/dx u = 0
                 rd_mg_bc(i, n)%bc_type = mg_bc_neumann
                 rd_mg_bc(i, n)%bc_value = 0.0_dp
-             case ('asymm')
+             case (bc_asymm)
                 ! u = 0
                 rd_mg_bc(i, n)%bc_type = mg_bc_dirichlet
                 rd_mg_bc(i, n)%bc_value = 0.0_dp
-             case ('cont')
+             case (bc_cont)
                 ! d/dx u = 0
                 rd_mg_bc(i, n)%bc_type = mg_bc_neumann
                 rd_mg_bc(i, n)%bc_value = 0.0_dp
-             case ('periodic')
+             case (bc_periodic)
                 ! Nothing to do here
-             case ('special')
+             case (bc_special)
                 if (.not. associated(rd_mg_bc(i, n)%boundary_cond)) then
                    write(*, "(A,I0,A,I0,A)") "typeboundary(", iw, ",", n, &
                         ") is 'special', but the corresponding method " // &
@@ -249,8 +249,7 @@ contains
                    call mpistop("rd_mg_bc(i, n)%boundary_cond not set")
                 end if
              case default
-                print *, "divb_multigrid warning: unknown b.c.: ", &
-                     trim(typeboundary(iw, n))
+                write(*,*) "rd_check_params warning: unknown boundary type"
                 rd_mg_bc(i, n)%bc_type = mg_bc_dirichlet
                 rd_mg_bc(i, n)%bc_value = 0.0_dp
              end select

@@ -27,6 +27,7 @@ contains
     usr_add_aux_names   => specialvarnames_output 
     usr_init_vector_potential=>initvecpot_usr
     usr_set_wLR         => boundary_wLR
+    !usr_refine_threshold=> specialthreshold
     !usr_set_electric_field => boundary_electric_field
 
     call mhd_activate()
@@ -632,5 +633,33 @@ contains
     wB0(ixO^S,3)=-B0*dcos(kx*x(ixO^S,1))*dexp(-ly*x(ixO^S,2))*dsin(theta)
 
   end subroutine specialset_B0
+
+  subroutine specialthreshold(wlocal,xlocal,tolerance,qt,level)
+    !PURPOSE: use different tolerance in special regions for AMR to
+    !reduce/increase resolution there where nothing/something interesting happens.
+    use mod_global_parameters
+
+    double precision, intent(in) :: wlocal(1:nw),xlocal(1:ndim),qt
+    double precision, intent(inout) :: tolerance
+    integer, intent(in) :: level
+
+    double precision :: bczone^D,addtol,tol_add
+
+    tol_add=0.d0
+    !amplitude of additional tolerance
+    addtol=0.6d0
+    ! thickness of near-boundary region
+    bczone1=0.8d0
+    bczone2=2.d0
+    ! linear changing of additional tolerance
+    if(xlocal(1)-xprobmin1 < bczone1 .or. xprobmax1-xlocal(1) < bczone1) then
+      tol_add=(1.d0-min(xlocal(1)-xprobmin1,xprobmax1-xlocal(1))/bczone1)*addtol
+    endif
+    if(xprobmax2-xlocal(2) < bczone2) then
+      tol_add=(1.d0-(xprobmax2-xlocal(2))/bczone2)*addtol
+    endif
+    tolerance=tolerance+tol_add
+
+  end subroutine specialthreshold
 
 end module mod_usr

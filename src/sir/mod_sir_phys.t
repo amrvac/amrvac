@@ -167,23 +167,22 @@ contains
        ! Set boundary conditions for the multigrid solver
        do n = 1, 2*ndim
           select case (typeboundary(su_, n))
-          case ('symm')
+          case (bc_symm)
              ! d/dx s = 0
              mg%bc(n, mg_iphi)%bc_type = mg_bc_neumann
              mg%bc(n, mg_iphi)%bc_value = 0.0_dp
-          case ('asymm')
+          case (bc_asymm)
              ! s = 0
              mg%bc(n, mg_iphi)%bc_type = mg_bc_dirichlet
              mg%bc(n, mg_iphi)%bc_value = 0.0_dp
-          case ('cont')
+          case (bc_cont)
              ! d/dx s = 0
              mg%bc(n, mg_iphi)%bc_type = mg_bc_neumann
              mg%bc(n, mg_iphi)%bc_value = 0.0_dp
-          case ('periodic')
+          case (bc_periodic)
              ! Nothing to do here
           case default
-             print *, "divb_multigrid warning: unknown b.c.: ", &
-                  trim(typeboundary(su_, n))
+             write(*,*) "sir_check_params warning: unknown boundary type"
              mg%bc(n, mg_iphi)%bc_type = mg_bc_dirichlet
              mg%bc(n, mg_iphi)%bc_value = 0.0_dp
           end select

@@ -28,15 +28,19 @@ subroutine bc_phys(iside,idims,time,qdt,s,ixG^L,ixB^L)
         ! cont/symm/asymm types
         do iw=1,nwflux+nwaux
            select case (typeboundary(iw,iB))
-           case ("symm")
-              w(ixO^S,iw) = w(ixOmin^D-1:ixOmin^D-nghostcells:-1^D%ixO^S,iw)
-           case ("asymm")
-              w(ixO^S,iw) =-w(ixOmin^D-1:ixOmin^D-nghostcells:-1^D%ixO^S,iw)
-           case ("cont")
+           case (bc_special)
+              ! skip it here, do AFTER all normal type boundaries are set
+           case (bc_cont)
               do ix^D=ixOmin^D,ixOmax^D
                  w(ix^D^D%ixO^S,iw) = w(ixOmin^D-1^D%ixO^S,iw)
               end do
-           case("noinflow")
+           case (bc_symm)
+              w(ixO^S,iw) = w(ixOmin^D-1:ixOmin^D-nghostcells:-1^D%ixO^S,iw)
+           case (bc_asymm)
+              w(ixO^S,iw) =-w(ixOmin^D-1:ixOmin^D-nghostcells:-1^D%ixO^S,iw)
+           case (bc_periodic)
+              ! skip it here, periodic bc info should come from neighbors
+           case(bc_noinflow)
               if (iw==1+^D)then
                 do ix^D=ixOmin^D,ixOmax^D
                     w(ix^D^D%ixO^S,iw) = max(w(ixOmin^D-1^D%ixO^S,iw),zero)
@@ -46,17 +50,15 @@ subroutine bc_phys(iside,idims,time,qdt,s,ixG^L,ixB^L)
                     w(ix^D^D%ixO^S,iw) = w(ixOmin^D-1^D%ixO^S,iw)
                 end do
               end if
-           case ("special", "bc_data")
-              ! skip it here, do AFTER all normal type boundaries are set
-           case ("character")
-              ! skip it here, do AFTER all normal type boundaries are set
-           case ("aperiodic")
+           case (bc_aperiodic)
               !this just multiplies the variables with (-), they have been set from neighbors just like periodic.
               w(ixO^S,iw) = - w(ixO^S,iw)
-           case ("periodic")
-  !            call mpistop("periodic bc info should come from neighbors")
+           case (bc_data)
+              ! skip it here, do AFTER all normal type boundaries are set
+           case (bc_character)
+              ! skip it here, do AFTER all normal type boundaries are set
            case default
-              write (unitterm,*) "Undefined boundarytype ",typeboundary(iw,iB), &
+              write (unitterm,*) "Undefined boundarytype found in bc_phys", &
                  "for variable iw=",iw," and side iB=",iB
            end select
         end do
@@ -67,19 +69,19 @@ subroutine bc_phys(iside,idims,time,qdt,s,ixG^L,ixB^L)
             ixOsmax^DD=ixOmax^DD;
             ixOsmin^DD=ixOmin^DD-kr(^DD,idir);
             select case(typeboundary(iw_mag(idir),iB))
-            case ("symm")
-              ws(ixOs^S,idir) = ws(ixOsmin^D-1:ixOsmin^D-nghostcells:-1^D%ixOs^S,idir)
-            case ("asymm")
-              ws(ixOs^S,idir) =-ws(ixOsmin^D-1:ixOsmin^D-nghostcells:-1^D%ixOs^S,idir)
-            case ("cont")
+            case (bc_special)
+               ! skip it here, do AFTER all normal type boundaries are set
+            case (bc_cont)
               do ix^D=ixOsmin^D,ixOsmax^D
                  ws(ix^D^D%ixOs^S,idir) = ws(ixOsmin^D-1^D%ixOs^S,idir)
               end do
-            case ("periodic")
-            case ("special")
-               ! skip it here, do AFTER all normal type boundaries are set
+            case (bc_symm)
+              ws(ixOs^S,idir) = ws(ixOsmin^D-1:ixOsmin^D-nghostcells:-1^D%ixOs^S,idir)
+            case (bc_asymm)
+              ws(ixOs^S,idir) =-ws(ixOsmin^D-1:ixOsmin^D-nghostcells:-1^D%ixOs^S,idir)
+            case (bc_periodic)
             case default
-              write (unitterm,*) "Undefined boundarytype ",typeboundary(iw,iB), &
+              write (unitterm,*) "Undefined boundarytype found in bc_phys", &
                  "for variable iw=",iw," and side iB=",iB
             end select
           end do
@@ -91,13 +93,7 @@ subroutine bc_phys(iside,idims,time,qdt,s,ixG^L,ixB^L)
             if (idir/=^D) cycle
             ixOs^L=ixO^L;
             select case(typeboundary(iw_mag(idir),iB))
-            case("symm")
-              ! (a)symmetric normal B ensures symmetric divB
-              ws(ixOs^S,idir)= ws(ixOsmin^D-2:ixOsmin^D-nghostcells-1:-1^D%ixOs^S,idir)
-            case("asymm")
-              ! (a)symmetric normal B ensures symmetric divB
-              ws(ixOs^S,idir)=-ws(ixOsmin^D-2:ixOsmin^D-nghostcells-1:-1^D%ixOs^S,idir)
-            case("cont")
+            case(bc_cont)
               hxO^L=ixO^L-nghostcells*kr(^DD,^D);
               ! Calculate divergence and partial divergence
               call get_divb(s%w,ixG^L,hxO^L,Q)
@@ -109,7 +105,13 @@ subroutine bc_phys(iside,idims,time,qdt,s,ixG^L,ixB^L)
                  -Qp(ixOmin^D+ix^D^D%ixO^S)*s%dvolume(ixOmin^D+ix^D^D%ixO^S))&
                   /s%surfaceC(ixOsmin^D+ix^D^D%ixOs^S,^D)
               end do
-            case("periodic")
+            case(bc_symm)
+              ! (a)symmetric normal B ensures symmetric divB
+              ws(ixOs^S,idir)= ws(ixOsmin^D-2:ixOsmin^D-nghostcells-1:-1^D%ixOs^S,idir)
+            case(bc_asymm)
+              ! (a)symmetric normal B ensures symmetric divB
+              ws(ixOs^S,idir)=-ws(ixOsmin^D-2:ixOsmin^D-nghostcells-1:-1^D%ixOs^S,idir)
+            case(bc_periodic)
             end select
           end do
           ! Fill cell averages
@@ -123,15 +125,19 @@ subroutine bc_phys(iside,idims,time,qdt,s,ixG^L,ixB^L)
         ! cont/symm/asymm types
         do iw=1,nwflux+nwaux
            select case (typeboundary(iw,iB))
-           case ("symm")
-              w(ixO^S,iw) = w(ixOmax^D+nghostcells:ixOmax^D+1:-1^D%ixO^S,iw)
-           case ("asymm")
-              w(ixO^S,iw) =-w(ixOmax^D+nghostcells:ixOmax^D+1:-1^D%ixO^S,iw)
-           case ("cont")
+           case (bc_special)
+              ! skip it here, do AFTER all normal type boundaries are set
+           case (bc_cont)
               do ix^D=ixOmin^D,ixOmax^D
                  w(ix^D^D%ixO^S,iw) = w(ixOmax^D+1^D%ixO^S,iw)
               end do
-           case("noinflow")
+           case (bc_symm)
+              w(ixO^S,iw) = w(ixOmax^D+nghostcells:ixOmax^D+1:-1^D%ixO^S,iw)
+           case (bc_asymm)
+              w(ixO^S,iw) =-w(ixOmax^D+nghostcells:ixOmax^D+1:-1^D%ixO^S,iw)
+           case (bc_periodic)
+              ! skip it here, periodic bc info should come from neighbors
+           case(bc_noinflow)
               if (iw==1+^D)then
                  do ix^D=ixOmin^D,ixOmax^D
                    w(ix^D^D%ixO^S,iw) = min(w(ixOmax^D+1^D%ixO^S,iw),zero)
@@ -141,17 +147,15 @@ subroutine bc_phys(iside,idims,time,qdt,s,ixG^L,ixB^L)
                    w(ix^D^D%ixO^S,iw) = w(ixOmax^D+1^D%ixO^S,iw)
                  end do
               end if
-           case ("special", "bc_data")
-              ! skip it here, do AFTER all normal type boundaries are set
-           case ("character")
-              ! skip it here, do AFTER all normal type boundaries are set
-           case ("aperiodic")
+           case (bc_aperiodic)
               !this just multiplies the variables with (-), they have been set from neighbors just like periodic.
               w(ixO^S,iw) = - w(ixO^S,iw)
-           case ("periodic")
-  !            call mpistop("periodic bc info should come from neighbors")
+           case (bc_data)
+              ! skip it here, do AFTER all normal type boundaries are set
+           case (bc_character)
+              ! skip it here, do AFTER all normal type boundaries are set
            case default
-              write (unitterm,*) "Undefined boundarytype ",typeboundary(iw,iB), &
+              write (unitterm,*) "Undefined boundarytype found in bc_phys", &
                  "for variable iw=",iw," and side iB=",iB
            end select
         end do
@@ -162,19 +166,19 @@ subroutine bc_phys(iside,idims,time,qdt,s,ixG^L,ixB^L)
             ixOsmax^DD=ixOmax^DD;
             ixOsmin^DD=ixOmin^DD-kr(^DD,idir);
             select case(typeboundary(iw_mag(idir),iB))
-            case ("symm")
-              ws(ixOs^S,idir) = ws(ixOsmax^D+nghostcells:ixOsmax^D+1:-1^D%ixOs^S,idir)
-            case ("asymm")
-              ws(ixOs^S,idir) =-ws(ixOsmax^D+nghostcells:ixOsmax^D+1:-1^D%ixOs^S,idir)
-            case ("cont")
+            case (bc_special)
+              ! skip it here, periodic bc info should come from neighbors
+            case (bc_cont)
               do ix^D=ixOsmin^D,ixOsmax^D
                  ws(ix^D^D%ixOs^S,idir) = ws(ixOsmax^D+1^D%ixOs^S,idir)
               end do
-            case ("periodic")
-            case ("special")
-               ! skip it here, do AFTER all normal type boundaries are set
+            case (bc_symm)
+              ws(ixOs^S,idir) = ws(ixOsmax^D+nghostcells:ixOsmax^D+1:-1^D%ixOs^S,idir)
+            case (bc_asymm)
+              ws(ixOs^S,idir) =-ws(ixOsmax^D+nghostcells:ixOsmax^D+1:-1^D%ixOs^S,idir)
+            case (bc_periodic)
             case default
-              write (unitterm,*) "Undefined boundarytype ",typeboundary(iw,iB), &
+              write (unitterm,*) "Undefined boundarytype in bc_phys", &
                  "for variable iw=",iw," and side iB=",iB
             end select
           end do
@@ -186,13 +190,7 @@ subroutine bc_phys(iside,idims,time,qdt,s,ixG^L,ixB^L)
             if (idir/=^D) cycle
             ixOs^L=ixO^L-kr(^DD,^D);
             select case(typeboundary(iw_mag(idir),iB))
-            case("symm")
-              ! (a)symmetric normal B ensures symmetric divB
-              ws(ixOs^S,idir)= ws(ixOsmax^D+nghostcells+1:ixOsmax^D+2:-1^D%ixOs^S,idir)
-            case("asymm")
-              ! (a)symmetric normal B ensures symmetric divB
-              ws(ixOs^S,idir)=-ws(ixOsmax^D+nghostcells+1:ixOsmax^D+2:-1^D%ixOs^S,idir)
-            case("cont")
+            case(bc_cont)
               jxO^L=ixO^L+nghostcells*kr(^DD,^D);
               ! Calculate divergence and partial divergence
               call get_divb(s%w,ixG^L,jxO^L,Q)
@@ -204,7 +202,13 @@ subroutine bc_phys(iside,idims,time,qdt,s,ixG^L,ixB^L)
                  -Qp(ixOmax^D-ix^D^D%ixO^S)*s%dvolume(ixOmax^D-ix^D^D%ixO^S))&
                   /s%surfaceC(ixOsmax^D-ix^D^D%ixOs^S,^D)
               end do
-            case("periodic")
+            case(bc_symm)
+              ! (a)symmetric normal B ensures symmetric divB
+              ws(ixOs^S,idir)= ws(ixOsmax^D+nghostcells+1:ixOsmax^D+2:-1^D%ixOs^S,idir)
+            case(bc_asymm)
+              ! (a)symmetric normal B ensures symmetric divB
+              ws(ixOs^S,idir)=-ws(ixOsmax^D+nghostcells+1:ixOsmax^D+2:-1^D%ixOs^S,idir)
+            case(bc_periodic)
             end select
           end do
           ! Fill cell averages
@@ -214,19 +218,19 @@ subroutine bc_phys(iside,idims,time,qdt,s,ixG^L,ixB^L)
   end select
 
   ! do user defined special boundary conditions
-  if (any(typeboundary(1:nwflux+nwaux,iB)=="special")) then
+  if (any(typeboundary(1:nwflux+nwaux,iB)==bc_special)) then
      if (.not. associated(usr_special_bc)) &
           call mpistop("usr_special_bc not defined")
      call usr_special_bc(time,ixG^L,ixO^L,iB,w,x)
   end if
 
   ! fill boundary conditions from external data vtk files
-  if (any(typeboundary(1:nwflux+nwaux,iB)=="bc_data")) then
+  if (any(typeboundary(1:nwflux+nwaux,iB)==bc_data)) then
      call bc_data_set(time,ixG^L,ixO^L,iB,w,x)
   end if
 
   {#IFDEF EVOLVINGBOUNDARY
-  if (any(typeboundary(1:nwflux,iB)=="character")) then
+  if (any(typeboundary(1:nwflux,iB)==bc_character)) then
     ixM^L=ixM^LL;
     if(ixGmax1==ixGhi1) then
       nghostcellsi=nghostcells

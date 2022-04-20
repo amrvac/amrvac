@@ -1513,7 +1513,7 @@ contains
           if (neighbor_type(i^D,igrid)/=1) cycle
           iB=(idims-1)*2+iside
           if(.not.boundary_divbfix(iB)) cycle
-          if(any(typeboundary(:,iB)=="special")) then
+          if(any(typeboundary(:,iB)==bc_special)) then
             ! MF nonlinear force-free B field extrapolation and data driven
             ! require normal B of the first ghost cell layer to be untouched by
             ! fixdivB=0 process, set boundary_divbfix_skip(iB)=1 in par file
@@ -1926,26 +1926,25 @@ contains
     do n = 1, 2*ndim
        idim = (n+1)/2
        select case (typeboundary(mag(idim), n))
-       case ('symm')
+       case (bc_symm)
           ! d/dx B = 0, take phi = 0
           mg%bc(n, mg_iphi)%bc_type = mg_bc_dirichlet
           mg%bc(n, mg_iphi)%bc_value = 0.0_dp
-       case ('asymm')
+       case (bc_asymm)
           ! B = 0, so grad(phi) = 0
           mg%bc(n, mg_iphi)%bc_type = mg_bc_neumann
           mg%bc(n, mg_iphi)%bc_value = 0.0_dp
-       case ('cont')
+       case (bc_cont)
           mg%bc(n, mg_iphi)%bc_type = mg_bc_dirichlet
           mg%bc(n, mg_iphi)%bc_value = 0.0_dp
-       case ('special')
+       case (bc_special)
           ! Assume Dirichlet boundary conditions, derivative zero
           mg%bc(n, mg_iphi)%bc_type = mg_bc_neumann
           mg%bc(n, mg_iphi)%bc_value = 0.0_dp
-       case ('periodic')
+       case (bc_periodic)
           ! Nothing to do here
        case default
-          print *, "divb_multigrid warning: unknown b.c.: ", &
-               trim(typeboundary(mag(idim), n))
+          write(*,*) "mf_clean_divb_multigrid warning: unknown boundary type"
           mg%bc(n, mg_iphi)%bc_type = mg_bc_dirichlet
           mg%bc(n, mg_iphi)%bc_value = 0.0_dp
        end select

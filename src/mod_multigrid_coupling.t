@@ -65,20 +65,19 @@ contains
 
     do n = 1, mg_num_neighbors
        select case (typeboundary(iw, n))
-       case ('symm')
+       case (bc_symm)
           mg%bc(n, mg_iphi)%bc_type = mg_bc_neumann
           mg%bc(n, mg_iphi)%bc_value = 0.0_dp
-       case ('asymm')
+       case (bc_asymm)
           mg%bc(n, mg_iphi)%bc_type = mg_bc_dirichlet
           mg%bc(n, mg_iphi)%bc_value = 0.0_dp
-       case ('cont')
+       case (bc_cont)
           mg%bc(n, mg_iphi)%bc_type = mg_bc_continuous
           mg%bc(n, mg_iphi)%bc_value = 0.0_dp ! Not needed
-       case ('periodic')
+       case (bc_periodic)
           ! Nothing to do here
        case default
-          print *, "Not a standard: ", trim(typeboundary(iw, n))
-          error stop "You have to set a user-defined boundary method"
+          write(*,*) "mg_copy_boundary_conditions: unknown boundary type"
        end select
     end do
   end subroutine mg_copy_boundary_conditions

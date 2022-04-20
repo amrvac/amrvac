@@ -1,6 +1,7 @@
 !> Module to set boundary conditions from user data
 module mod_bc_data
   use mod_lookup_table
+  use mod_global_parameters, only: std_len
 
   implicit none
   private
@@ -26,6 +27,9 @@ module mod_bc_data
   !> Integer array for indexing lookup tables per variable per direction
   integer, public, protected, allocatable :: bc_data_ix(:, :)
 
+  !> data file name
+  character(len=std_len), public, protected :: boundary_data_file_name
+
   public :: bc_data_init
   public :: bc_data_set
   public :: bc_data_get_2d
@@ -37,9 +41,10 @@ contains
     use mod_global_parameters
 
     integer                :: i, iw, ib, n_files, n_bc
-    character(len=std_len) :: bc_name, fname
     double precision       :: xmax(3)
     type(bc_data_t)        :: bc
+
+    call bc_read_params(par_files)
 
     allocate(bc_data_ix(nwfluxbc, 2*ndim))
 
@@ -48,17 +53,11 @@ contains
 
     do ib = 1, 2 * ndim
        do iw = 1, nwfluxbc
-          bc_name = typeboundary(iw, ib)
-          if (bc_name(1:4) == "vtk:") then
-
+          if (typeboundary(iw, ib)==bc_data) then
              n_bc               = n_bc + 1
-             fname              = bc_name(5:)
              bc_data_ix(iw, ib) = n_bc
 
-             ! Other routines don't have to parse the full name
-             typeboundary(iw, ib)   = "bc_data"
-
-             call read_vtk_structured_points(trim(fname), bc)
+             call read_vtk_structured_points(trim(boundary_data_file_name), bc)
              xmax = bc%origin + (bc%n_points-1) * bc%dx
 
              if (n_bc == 1) then
@@ -95,6 +94,22 @@ contains
     end do
 
   end subroutine bc_data_init
+
+  !> Read this module"s parameters from a file
+  subroutine bc_read_params(files)
+    use mod_global_parameters
+    character(len=*), intent(in) :: files(:)
+    integer                      :: n
+
+    namelist /bd_list/ boundary_data_file_name
+
+    do n = 1, size(files)
+       open(unitpar, file=trim(files(n)), status="old")
+       read(unitpar, bd_list, end=111)
+111    close(unitpar)
+    end do
+ 
+  end subroutine bc_read_params
 
   elemental function bc_data_get_3d(n_bc, x1, x2, qt) result(val)
     integer, intent(in)          :: n_bc
