@@ -672,11 +672,12 @@ contains
   ! Note that cmax and cmin are assumed to be initialized
   subroutine dust_get_cmax(w, x, ixI^L, ixO^L, idim, cmax, cmin)
     use mod_global_parameters
+    use mod_variables
 
     integer, intent(in)                       :: ixI^L, ixO^L, idim
     double precision, intent(in)              :: w(ixI^S, 1:nw), x(ixI^S, 1:ndim)
-    double precision, intent(inout)           :: cmax(ixI^S)
-    double precision, intent(inout), optional :: cmin(ixI^S)
+    double precision, intent(inout)           :: cmax(ixI^S,1:number_species)
+    double precision, intent(inout), optional :: cmin(ixI^S,1:number_species)
     double precision                          :: vdust(ixO^S)
     integer                                   :: n
 
@@ -684,10 +685,10 @@ contains
       vdust(ixO^S) = get_vdust(w, ixI^L, ixO^L, idim, n)
 
       if (present(cmin)) then
-        cmin(ixO^S) = min(cmin(ixO^S), vdust(ixO^S))
-        cmax(ixO^S) = max(cmax(ixO^S), vdust(ixO^S))
+        cmin(ixO^S,1) = min(cmin(ixO^S,1), vdust(ixO^S))
+        cmax(ixO^S,1) = max(cmax(ixO^S,1), vdust(ixO^S))
       else
-        cmax(ixO^S) = max(cmax(ixO^S), abs(vdust(ixO^S)))
+        cmax(ixO^S,1) = max(cmax(ixO^S,1), abs(vdust(ixO^S)))
       end if
     end do
   end subroutine dust_get_cmax

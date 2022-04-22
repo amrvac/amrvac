@@ -45,6 +45,7 @@ the data structures for the block-tree AMR.
 * [Pressure less fluids (dust)](dust.md) Getting started with the dust module.
 * [Test particles in (M)HD](particle.md) Description of test particle tracing routines.
 * [Reaction-diffusion equations](reaction_diffusion.md) Getting started with the reaction-diffusion module.
+* [Two-fluid equations](twofluid.md) Getting started with the two-fluid module.
 * [Adding a new physics module](addmodule.md) Description of how to add your own physics module.
 
 # Source Code {#source_code}

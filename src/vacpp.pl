@@ -118,9 +118,9 @@ sub processfile {
 sub contline {
     my ($line, $partial_line) = @_;
 
-    if ($line =~ /^ *!\$OMP/ || $line =~ /^ *print *\*.*& *$/ ||
+    if ($line =~ /^ *!\$OMP/ || $line =~ /^#/ || $line =~ /^ *print *\*.*& *$/ ||
         $line =~ /\/\/ *& *$/) {
-        # Don't break OpenMP, print and //&
+        # Don't break OpenMP, std preprocessor directives (lines starting with '#'), print and //&
         $line = $partial_line.$line;
         $partial_line = "";
     } elsif ($line =~ /[^A-Z]& *$/) {
@@ -392,9 +392,9 @@ sub format90 {
    # If line is not too long return
    return($line) if length($line)<=$maxlen;
 
-   if ($line =~ /^ *!\$OMP/ || $line =~ /^ *print *\*.*& *$/ ||
+   if ($line =~ /^ *!\$OMP/ || $line =~ /^#/ || $line =~ /^ *print *\*.*& *$/ ||
         $line =~ /\/\/ *& *$/ || $line =~ /error stop/) {
-       # Don't break lines with OpenMP, print, //&, error stop
+       # Don't break lines with OpenMP,std preprocessor directives (lines starting with '#'), print, //&, error stop
        return ($line);
    }
 

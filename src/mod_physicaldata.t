@@ -25,6 +25,8 @@ module mod_physicaldata
      double precision, dimension(:^D&,:,:), pointer :: B0=>Null()
      !> Time-independent electric current density at cell center
      double precision, dimension(:^D&,:), pointer :: J0=>Null()
+     !> Time-independent equi vars (B0 is not into this array)
+     double precision, dimension(:^D&,:,:), pointer :: equi_vars=>Null()
      !> Cell-center positions
      double precision, dimension(:^D&,:), pointer :: x=>Null()
      !> Cell sizes in coordinate units

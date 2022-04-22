@@ -365,6 +365,28 @@ module mod_thermal_emission
                 8.17917486d-32, 5.28280497d-32, 3.42357159d-32, 0.00000000d+00, &
                 0.00000000d+00, 0.00000000d+00, 0.00000000d+00, 0.00000000d+00 /
 
+  abstract interface
+    subroutine get_subr1(w,x,ixI^L,ixO^L,res)
+      use mod_global_parameters
+      integer, intent(in)          :: ixI^L, ixO^L
+      double precision, intent(in) :: w(ixI^S,nw)
+      double precision, intent(in) :: x(ixI^S,1:ndim)
+      double precision, intent(out):: res(ixI^S)
+    end subroutine get_subr1
+
+  end interface
+
+  type te_fluid
+
+    procedure (get_subr1), pointer, nopass :: get_rho => null()
+    procedure (get_subr1), pointer, nopass :: get_pthermal => null()
+
+    ! factor in eq of state p = Rfactor * rho * T
+    ! used for getting temperature
+    double precision :: Rfactor = 1d0
+
+  end type te_fluid
+
 
   contains
 
@@ -500,7 +522,7 @@ module mod_thermal_emission
       end select
     end subroutine get_line_info
     
-    subroutine get_EUV(wl,ixI^L,ixO^L,w,x,flux)
+    subroutine get_EUV(wl,ixI^L,ixO^L,w,x,fl,flux)
       ! calculate the local emission intensity of given EUV line (optically thin)
       ! wavelength is the wave length of the emission line
       ! unit [DN cm^-1 s^-1 pixel^-1]
@@ -511,6 +533,7 @@ module mod_thermal_emission
       integer, intent(in) :: ixI^L, ixO^L
       double precision, intent(in) :: x(ixI^S,1:ndim)
       double precision, intent(in) :: w(ixI^S,1:nw)
+      type(te_fluid), intent(in) :: fl
       double precision, intent(out) :: flux(ixI^S)
 
       integer :: n_table
@@ -598,13 +621,14 @@ module mod_thermal_emission
         allocate(f_table(1))
         call mpistop("Unknown wavelength")
       end select
-      call phys_get_pthermal(w,x,ixI^L,ixO^L,pth)
-      Te(ixO^S)=pth(ixO^S)/w(ixO^S,iw_rho)*unit_temperature
+      call fl%get_pthermal(w,x,ixI^L,ixO^L,pth)
+      call fl%get_rho(w,x,ixI^L,ixO^L,Ne)
+      Te(ixO^S)=pth(ixO^S)/(Ne(ixO^S)*fl%Rfactor)*unit_temperature
       if (SI_unit) then
-        Ne(ixO^S)=w(ixO^S,iw_rho)*unit_numberdensity/1.d6 ! m^-3 -> cm-3
+        Ne(ixO^S)=Ne(ixO^S)*unit_numberdensity/1.d6 ! m^-3 -> cm-3
         flux(ixO^S)=Ne(ixO^S)**2
       else
-        Ne(ixO^S)=w(ixO^S,iw_rho)*unit_numberdensity
+        Ne(ixO^S)=Ne(ixO^S)*unit_numberdensity
         flux(ixO^S)=Ne(ixO^S)**2
       endif
 
@@ -655,7 +679,7 @@ module mod_thermal_emission
       deallocate(t_table,f_table)
     end subroutine get_EUV
 
-    subroutine get_SXR(ixI^L,ixO^L,w,x,flux,El,Eu)
+    subroutine get_SXR(ixI^L,ixO^L,w,x,fl,flux,El,Eu)
       !synthesize thermal SXR from El keV to Eu keV
       !flux (cgs): photons cm^-5 s^-1
       !flux (SI): photons m^-3 cm^-2 s^-1
@@ -666,6 +690,7 @@ module mod_thermal_emission
       integer, intent(in)           :: El,Eu
       double precision, intent(in)  :: x(ixI^S,1:ndim)
       double precision, intent(in)  :: w(ixI^S,nw)
+      type(te_fluid), intent(in) :: fl
       double precision, intent(out) :: flux(ixI^S)
 
       integer :: ix^D,ixO^D
@@ -680,13 +705,15 @@ module mod_thermal_emission
       keV=1.0d3*const_ev
       dE=0.1
       numE=floor((Eu-El)/dE)
-      call phys_get_pthermal(w,x,ixI^L,ixO^L,pth)
-      Te(ixO^S)=pth(ixO^S)/w(ixO^S,iw_rho)*unit_temperature
+      call fl%get_pthermal(w,x,ixI^L,ixO^L,pth)
+      call fl%get_rho(w,x,ixI^L,ixO^L,Ne)
+
+      Te(ixO^S)=pth(ixO^S)/(Ne(ixO^S)*fl%Rfactor)*unit_temperature
       if (SI_unit) then
-        Ne(ixO^S)=w(ixO^S,iw_rho)*unit_numberdensity/1.d6 ! m^-3 -> cm-3
+        Ne(ixO^S)=Ne(ixO^S)*unit_numberdensity/1.d6 ! m^-3 -> cm-3
         EM(ixO^S)=(Ne(ixO^S))**2*1.d6 ! cm^-3 m^-3
       else
-        Ne(ixO^S)=w(ixO^S,iw_rho)*unit_numberdensity
+        Ne(ixO^S)=Ne(ixO^S)*unit_numberdensity
         EM(ixO^S)=(Ne(ixO^S))**2
       endif
       kbT(ixO^S)=kb*Te(ixO^S)/keV
@@ -706,11 +733,12 @@ module mod_thermal_emission
       flux(ixO^S)=flux(ixO^S)*I0
     end subroutine get_SXR
 
-    subroutine get_GOES_SXR_flux(xbox^L,eflux)
+    subroutine get_GOES_SXR_flux(xbox^L,fl,eflux)
       !get GOES SXR 1-8A flux observing at 1AU from given box [w/m^2]
       use mod_global_parameters
 
       double precision, intent(in) :: xbox^L
+      type(te_fluid), intent(in) :: fl
       double precision, intent(out) :: eflux
 
       double precision :: dxb^D,xb^L
@@ -727,19 +755,20 @@ module mod_thermal_emission
         ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
         ^D&xbmin^D=rnode(rpxmin^D_,igrid);
         ^D&xbmax^D=rnode(rpxmax^D_,igrid);
-        call get_GOES_flux_grid(ixI^L,ixO^L,ps(igrid)%w,ps(igrid)%x,ps(igrid)%dvolume(ixI^S),xbox^L,xb^L,eflux_grid)
+        call get_GOES_flux_grid(ixI^L,ixO^L,ps(igrid)%w,ps(igrid)%x,ps(igrid)%dvolume(ixI^S),xbox^L,xb^L,fl,eflux_grid)
         eflux_pe=eflux_pe+eflux_grid
       enddo
       call MPI_ALLREDUCE(eflux_pe,eflux,1,MPI_DOUBLE_PRECISION,MPI_SUM,icomm,ierrmpi)
     end subroutine get_GOES_SXR_flux
 
-    subroutine get_GOES_flux_grid(ixI^L,ixO^L,w,x,dV,xbox^L,xb^L,eflux_grid)
+    subroutine get_GOES_flux_grid(ixI^L,ixO^L,w,x,dV,xbox^L,xb^L,fl,eflux_grid)
       use mod_global_parameters
 
       integer, intent(in)           :: ixI^L,ixO^L
       double precision, intent(in)  :: x(ixI^S,1:ndim),dV(ixI^S)
       double precision, intent(in)  :: w(ixI^S,nw)
       double precision, intent(in)  :: xbox^L,xb^L
+      type(te_fluid), intent(in) :: fl
       double precision, intent(out) :: eflux_grid
 
       integer :: ix^D,ixO^D,ixb^L
@@ -769,13 +798,14 @@ module mod_thermal_emission
         Eu=const_h*const_c/(1.d0*A_cgs)/keV ! 1 A
         dE=0.1  ! keV
         numE=floor((Eu-El)/dE)
-        call phys_get_pthermal(w,x,ixI^L,ixb^L,pth)
-        Te(ixb^S)=pth(ixb^S)/w(ixb^S,iw_rho)*unit_temperature
+        call fl%get_pthermal(w,x,ixI^L,ixb^L,pth)
+        call fl%get_rho(w,x,ixI^L,ixb^L,Ne)
+        Te(ixb^S)=pth(ixb^S)/(Ne(ixb^S)*fl%Rfactor)*unit_temperature
         if (SI_unit) then
-          Ne(ixO^S)=w(ixO^S,iw_rho)*unit_numberdensity/1.d6 ! m^-3 -> cm-3
+          Ne(ixO^S)=Ne(ixO^S)*unit_numberdensity/1.d6 ! m^-3 -> cm-3
           EM(ixb^S)=(I0*(Ne(ixb^S))**2)*dV(ixb^S)*(unit_length*1.d2)**3 ! cm^-3
         else
-          Ne(ixO^S)=w(ixO^S,iw_rho)*unit_numberdensity
+          Ne(ixO^S)=Ne(ixO^S)*unit_numberdensity
           EM(ixb^S)=(I0*(Ne(ixb^S))**2)*dV(ixb^S)*unit_length**3
         endif
         kbT(ixb^S)=kb*Te(ixb^S)/keV
@@ -799,10 +829,11 @@ module mod_thermal_emission
     end subroutine get_GOES_flux_grid
 
   {^IFTHREED
-    subroutine get_EUV_spectrum(qunit)
+    subroutine get_EUV_spectrum(qunit,fl)
       use mod_global_parameters
 
       integer, intent(in) :: qunit
+      type(te_fluid), intent(in) :: fl
       character(20) :: datatype
 
       integer :: mass
@@ -842,13 +873,13 @@ module mod_thermal_emission
           if (mype==0) write(*,'(a,f8.1,a)') ' Location of slit: ',location_slit*unit_length/1.d8,' Mm'
         endif
         if (mype==0) write(*,'(a,f8.1,a)') ' Width of slit: ',wslit*725.0,' km'
-        call get_spectrum_data_resol(qunit,datatype)
+        call get_spectrum_data_resol(qunit,datatype,fl)
       else if (resolution_spectrum=='instrument') then
         if (mype==0) print *, 'Unit of wavelength: Angstrom (0.1 nm) '
         if (mype==0) print *, 'Unit of length: arcsec (~725 km)'
         if (mype==0) write(*,'(a,f8.1,a)') ' Location of slit: ',location_slit,' arcsec'
         if (mype==0) write(*,'(a,f8.1,a)') ' Width of slit: ',wslit,' arcsec'
-        call get_spectrum_inst_resol(qunit,datatype)
+        call get_spectrum_inst_resol(qunit,datatype,fl)
       else
         call MPISTOP('Wrong resolution for resolution_spectrum!')
       endif
@@ -857,10 +888,11 @@ module mod_thermal_emission
 
     end subroutine get_EUV_spectrum
 
-    subroutine get_spectrum_inst_resol(qunit,datatype)
+    subroutine get_spectrum_inst_resol(qunit,datatype,fl)
 
       integer, intent(in) :: qunit
       character(20), intent(in) :: datatype
+      type(te_fluid), intent(in) :: fl
 
       integer :: numWL,numXS,iwL,ixS,numWI,ix^D
       double precision :: dwLg,dxSg,xSmin,xSmax,xScent,wLmin,wLmax
@@ -960,7 +992,7 @@ module mod_thermal_emission
         xslit=location_slit*arcsec
         !if (location_slit>=xLmin-dxSg .and. location_slit<=xLmax+dxSg) then
         if (xslit>=xLmin-wslit*arcsec .and. xslit<=xLmax+wslit*arcsec) then
-          call integrate_spectra_inst_resol(igrid,wL,dwLg,xS,dxSg,spectra,numWL,numXS)
+          call integrate_spectra_inst_resol(igrid,wL,dwLg,xS,dxSg,spectra,numWL,numXS,fl)
         endif
       enddo
 
@@ -986,15 +1018,16 @@ module mod_thermal_emission
 
     end subroutine get_spectrum_inst_resol
 
-    subroutine integrate_spectra_inst_resol(igrid,wL,dwLg,xS,dxSg,spectra,numWL,numXS)
+    subroutine integrate_spectra_inst_resol(igrid,wL,dwLg,xS,dxSg,spectra,numWL,numXS,fl)
 
       integer, intent(in) :: igrid,numWL,numXS
       double precision, intent(in) :: wL(numWL),xS(numXS)
       double precision, intent(in) :: dwLg,dxSg
       double precision, intent(inout) :: spectra(numWL,numXS)
+      type(te_fluid), intent(in) :: fl
 
       integer :: ixO^L,ixI^L,ix^D,ixOnew,j
-      double precision, allocatable :: flux(:^D&),v(:^D&),pth(:^D&),Te(:^D&)
+      double precision, allocatable :: flux(:^D&),v(:^D&),pth(:^D&),Te(:^D&),rho(:^D&)
       double precision :: wlc,wlwd,res,dst_slit,xslit,arcsec
       double precision :: vloc(1:3),xloc(1:3),dxloc(1:3),xIloc(1:2),dxIloc(1:2)
       integer :: nSubC^D,iSubC^D,iwL,ixS,ixSmin,ixSmax,iwLmin,iwLmax,nwL
@@ -1020,19 +1053,21 @@ module mod_thermal_emission
       ^D&ixOmax^D=ixmhi^D\
       ^D&ixImin^D=ixglo^D\
       ^D&ixImax^D=ixghi^D\
-      allocate(flux(ixI^S),v(ixI^S),pth(ixI^S),Te(ixI^S))
+      allocate(flux(ixI^S),v(ixI^S),pth(ixI^S),Te(ixI^S),rho(ixI^S))
       ! get local EUV flux and velocity
-      call get_EUV(spectrum_wl,ixI^L,ixO^L,ps(igrid)%w,ps(igrid)%x,flux)
-      call phys_get_pthermal(ps(igrid)%w,ps(igrid)%x,ixI^L,ixO^L,pth)
-      Te(ixO^S)=pth(ixO^S)/ps(igrid)%w(ixO^S,iw_rho)
+      call get_EUV(spectrum_wl,ixI^L,ixO^L,ps(igrid)%w,ps(igrid)%x,fl,flux)
+      call fl%get_pthermal(ps(igrid)%w,ps(igrid)%x,ixI^L,ixO^L,pth)
+      call fl%get_rho(ps(igrid)%w,ps(igrid)%x,ixI^L,ixO^L,rho)
+      Te(ixO^S)=pth(ixO^S)/(fl%Rfactor*rho(ixO^S))
       {do ix^D=ixOmin^D,ixOmax^D\}
         do j=1,3
-          vloc(j)=ps(igrid)%w(ix^D,iw_mom(j))/ps(igrid)%w(ix^D,iw_rho)
+          vloc(j)=ps(igrid)%w(ix^D,iw_mom(j))/rho(ix^D)
         enddo
         call dot_product_loc(vloc,vec_LOS,res)
         v(ix^D)=res
       {enddo\}
 
+      deallocate(rho)
 
       slit_width=wslit*arcsec
       sigma_wl=sigma_PSF*dwLg
@@ -1091,12 +1126,14 @@ module mod_thermal_emission
         endif
       {enddo\}
 
+      deallocate(flux,v,pth,Te)
     end subroutine integrate_spectra_inst_resol
 
-    subroutine get_spectrum_data_resol(qunit,datatype)
+    subroutine get_spectrum_data_resol(qunit,datatype,fl)
 
       integer, intent(in) :: qunit
       character(20), intent(in) :: datatype
+      type(te_fluid), intent(in) :: fl
 
       integer :: numWL,numXS,iwL,ixS,numWI,numS
       double precision :: dwLg,xSmin,xSmax,wLmin,wLmax
@@ -1245,7 +1282,7 @@ module mod_thermal_emission
         ^D&xbmin(^D)=rnode(rpxmin^D_,igrid);
         ^D&xbmax(^D)=rnode(rpxmax^D_,igrid);
         if (location_slit>=xbmin(dir_loc) .and. location_slit<xbmax(dir_loc)) then
-          call integrate_spectra_data_resol(igrid,wL,dwL,spectra,numWL,numXS,dir_loc)
+          call integrate_spectra_data_resol(igrid,wL,dwL,spectra,numWL,numXS,dir_loc,fl)
         endif
       enddo
 
@@ -1269,16 +1306,17 @@ module mod_thermal_emission
 
     end subroutine get_spectrum_data_resol
 
-    subroutine integrate_spectra_data_resol(igrid,wL,dwL,spectra,numWL,numXS,dir_loc)
+    subroutine integrate_spectra_data_resol(igrid,wL,dwL,spectra,numWL,numXS,dir_loc,fl)
       use mod_constants
 
       integer, intent(in) :: igrid,numWL,numXS,dir_loc
+      type(te_fluid), intent(in) :: fl
       double precision, intent(in) :: wL(numWL),dwL(numWL)
       double precision, intent(inout) :: spectra(numWL,numXS)
 
       integer :: direction_LOS
       integer :: ixO^L,ixI^L,ix^D,ixOnew
-      double precision, allocatable :: flux(:^D&),v(:^D&),pth(:^D&),Te(:^D&)
+      double precision, allocatable :: flux(:^D&),v(:^D&),pth(:^D&),Te(:^D&),rho(:^D&)
       double precision :: wlc,wlwd
 
       integer :: mass
@@ -1303,7 +1341,7 @@ module mod_thermal_emission
       ^D&ixOmax^D=ixmhi^D\
       ^D&ixImin^D=ixglo^D\
       ^D&ixImax^D=ixghi^D\
-      allocate(flux(ixI^S),v(ixI^S),pth(ixI^S),Te(ixI^S))
+      allocate(flux(ixI^S),v(ixI^S),pth(ixI^S),Te(ixI^S),rho(ixI^S))
 
       ^D&ix^D=ixOmin^D;
       if (dir_loc==1) then
@@ -1335,10 +1373,11 @@ module mod_thermal_emission
         ixOmax3=ixOnew
       endif
 
-      call get_EUV(spectrum_wl,ixI^L,ixO^L,ps(igrid)%w,ps(igrid)%x,flux)
-      v(ixO^S)=-ps(igrid)%w(ixO^S,iw_mom(direction_LOS))/ps(igrid)%w(ixO^S,iw_rho)
-      call phys_get_pthermal(ps(igrid)%w,ps(igrid)%x,ixI^L,ixO^L,pth)
-      Te(ixO^S)=pth(ixO^S)/ps(igrid)%w(ixO^S,iw_rho)
+      call get_EUV(spectrum_wl,ixI^L,ixO^L,ps(igrid)%w,ps(igrid)%x,fl,flux)
+      call fl%get_rho(ps(igrid)%w,ps(igrid)%x,ixI^L,ixO^L,rho)
+      v(ixO^S)=-ps(igrid)%w(ixO^S,iw_mom(direction_LOS))/rho(ixO^S)
+      call fl%get_pthermal(ps(igrid)%w,ps(igrid)%x,ixI^L,ixO^L,pth)
+      Te(ixO^S)=pth(ixO^S)/(fl%Rfactor*rho(ixO^S))
 
       ! grid parameters
       levelg=ps(igrid)%level
@@ -1383,14 +1422,15 @@ module mod_thermal_emission
 
       {enddo\}
 
-      deallocate(flux,v,pth,Te)
+      deallocate(flux,v,pth,Te,rho)
 
     end subroutine integrate_spectra_data_resol
 
-    subroutine get_EUV_image(qunit)
+    subroutine get_EUV_image(qunit,fl)
       use mod_global_parameters
 
       integer, intent(in) :: qunit
+      type(te_fluid), intent(in) :: fl
       character(20) :: datatype
 
       integer :: mass
@@ -1414,17 +1454,17 @@ module mod_thermal_emission
             if (mype==0) write(*,'(a,f8.1,a)') ' Unit of length: ',unit_length/1.d8,' Mm'
           endif
           if (LOS_theta==0 .and. LOS_phi==90) then
-            call get_image_data_resol(qunit,datatype)
+            call get_image_data_resol(qunit,datatype,fl)
           else if (LOS_theta==90 .and. LOS_phi==90) then
-            call get_image_data_resol(qunit,datatype)
+            call get_image_data_resol(qunit,datatype,fl)
           else if (LOS_phi==0) then
-            call get_image_data_resol(qunit,datatype)
+            call get_image_data_resol(qunit,datatype,fl)
           else
             call MPISTOP('ERROR: Wrong LOS for synthesizing emission!')
           endif
         else if (resolution_euv=='instrument') then
           if (mype==0) print *, 'Unit of length: arcsec (~725 km)'
-          call get_image_inst_resol(qunit,datatype)
+          call get_image_inst_resol(qunit,datatype,fl)
         else
           call MPISTOP('ERROR: Wrong resolution type')
         endif
@@ -1434,10 +1474,11 @@ module mod_thermal_emission
       
     end subroutine get_EUV_image
 
-    subroutine get_SXR_image(qunit)
+    subroutine get_SXR_image(qunit,fl)
       use mod_global_parameters
 
       integer, intent(in) :: qunit
+      type(te_fluid), intent(in) :: fl
       character(20) :: datatype
 
       if (mype==0) print *, '###################################################'
@@ -1456,17 +1497,17 @@ module mod_thermal_emission
             if (mype==0) write(*,'(a,f8.1,a)') ' Unit of length: ',unit_length/1.d5,' km'
           endif
           if (LOS_theta==0 .and. LOS_phi==90) then
-            call get_image_data_resol(qunit,datatype)
+            call get_image_data_resol(qunit,datatype,fl)
           else if (LOS_theta==90 .and. LOS_phi==90) then
-            call get_image_data_resol(qunit,datatype)
+            call get_image_data_resol(qunit,datatype,fl)
           else if (LOS_phi==0) then
-            call get_image_data_resol(qunit,datatype)
+            call get_image_data_resol(qunit,datatype,fl)
           else
             call MPISTOP('ERROR: Wrong LOS for synthesizing emission!')
           endif
         else if (resolution_sxr=='instrument') then
           if (mype==0) print *, 'Unit of length: arcsec (~725 km)'
-          call get_image_inst_resol(qunit,datatype)
+          call get_image_inst_resol(qunit,datatype,fl)
         else
           call MPISTOP('ERROR: Wrong resolution type')
         endif
@@ -1476,13 +1517,14 @@ module mod_thermal_emission
 
     end subroutine get_SXR_image
 
-    subroutine get_image_inst_resol(qunit,datatype)
+    subroutine get_image_inst_resol(qunit,datatype,fl)
       ! integrate emission flux along line of sight (LOS) 
       ! in a 3D simulation box and get a 2D EUV image
       use mod_global_parameters
       use mod_constants
 
       integer, intent(in) :: qunit
+      type(te_fluid), intent(in) :: fl
       character(20), intent(in) :: datatype
 
       integer :: ix^D,numXI1,numXI2,numWI
@@ -1581,7 +1623,7 @@ module mod_thermal_emission
         Dpl=zero
         Dpls=zero
         do iigrid=1,igridstail; igrid=igrids(iigrid);
-          call integrate_EUV_inst_resol(igrid,numXI1,numXI2,xI1,xI2,dxI,EUVs,Dpls)
+          call integrate_EUV_inst_resol(igrid,numXI1,numXI2,xI1,xI2,dxI,fl,EUVs,Dpls)
         enddo
         numSI=numXI1*numXI2
         call MPI_ALLREDUCE(EUVs,EUV,numSI,MPI_DOUBLE_PRECISION, &
@@ -1618,7 +1660,7 @@ module mod_thermal_emission
         SXR=zero
         SXRs=zero
         do iigrid=1,igridstail; igrid=igrids(iigrid);
-          call integrate_SXR_inst_resol(igrid,numXI1,numXI2,xI1,xI2,dxI,SXRs)
+          call integrate_SXR_inst_resol(igrid,numXI1,numXI2,xI1,xI2,dxI,fl,SXRs)
         enddo
         numSI=numXI1*numXI2
         call MPI_ALLREDUCE(SXRs,SXR,numSI,MPI_DOUBLE_PRECISION, &
@@ -1643,10 +1685,11 @@ module mod_thermal_emission
 
     end subroutine get_image_inst_resol
 
-    subroutine integrate_SXR_inst_resol(igrid,numXI1,numXI2,xI1,xI2,dxI,SXR)
+    subroutine integrate_SXR_inst_resol(igrid,numXI1,numXI2,xI1,xI2,dxI,fl,SXR)
       integer, intent(in) :: igrid,numXI1,numXI2
       double precision, intent(in) :: xI1(numXI1),xI2(numXI2)
       double precision, intent(in) :: dxI
+      type(te_fluid), intent(in) :: fl
       double precision, intent(out) :: SXR(numXI1,numXI2)
 
       integer :: ixO^L,ixO^D,ixI^L,ix^D,i,j
@@ -1669,7 +1712,7 @@ module mod_thermal_emission
 
       allocate(flux(ixI^S))
       ! get local SXR flux
-      call get_SXR(ixI^L,ixO^L,ps(igrid)%w,ps(igrid)%x,flux,emin_sxr,emax_sxr)
+      call get_SXR(ixI^L,ixO^L,ps(igrid)%w,ps(igrid)%x,fl,flux,emin_sxr,emax_sxr)
 
       ! integrate emission
       if (SI_unit) then
@@ -1715,15 +1758,16 @@ module mod_thermal_emission
       deallocate(flux)
     end subroutine integrate_SXR_inst_resol
 
-    subroutine integrate_EUV_inst_resol(igrid,numXI1,numXI2,xI1,xI2,dxI,EUV,Dpl)
+    subroutine integrate_EUV_inst_resol(igrid,numXI1,numXI2,xI1,xI2,dxI,fl,EUV,Dpl)
       integer, intent(in) :: igrid,numXI1,numXI2
       double precision, intent(in) :: xI1(numXI1),xI2(numXI2)
       double precision, intent(in) :: dxI
+      type(te_fluid), intent(in) :: fl
       double precision, intent(out) :: EUV(numXI1,numXI2),Dpl(numXI1,numXI2)
 
       integer :: ixO^L,ixO^D,ixI^L,ix^D,i,j
       double precision :: xb^L,xd^D
-      double precision, allocatable :: flux(:^D&),v(:^D&)
+      double precision, allocatable :: flux(:^D&),v(:^D&),rho(:^D&)
       double precision :: vloc(1:3),res
       integer :: ixP^L,ixP^D,nSubC^D,iSubC^D
       double precision :: xSubP1,xSubP2,dxSubP,xerf^L,fluxsubC
@@ -1743,16 +1787,18 @@ module mod_thermal_emission
       ^D&xbmin^D=rnode(rpxmin^D_,igrid)\
       ^D&xbmax^D=rnode(rpxmax^D_,igrid)\
 
-      allocate(flux(ixI^S),v(ixI^S))
+      allocate(flux(ixI^S),v(ixI^S),rho(ixI^S))
       ! get local EUV flux and velocity
-      call get_EUV(wavelength,ixI^L,ixO^L,ps(igrid)%w,ps(igrid)%x,flux)
+      call get_EUV(wavelength,ixI^L,ixO^L,ps(igrid)%w,ps(igrid)%x,fl,flux)
+      call fl%get_rho(ps(igrid)%w,ps(igrid)%x,ixI^L,ixO^L,rho)
       {do ix^D=ixOmin^D,ixOmax^D\}
         do j=1,3
-          vloc(j)=ps(igrid)%w(ix^D,iw_mom(j))/ps(igrid)%w(ix^D,iw_rho)
+          vloc(j)=ps(igrid)%w(ix^D,iw_mom(j))/rho(ix^D)
         enddo
         call dot_product_loc(vloc,vec_LOS,res)
         v(ix^D)=res
       {enddo\}
+      deallocate(rho)
 
       ! integrate emission
       call get_line_info(wavelength,ion,mass,logTe,lineCent,spaceRsl,wlRsl,sigma_PSF,wslit)
@@ -1803,7 +1849,7 @@ module mod_thermal_emission
       deallocate(flux,v)
     end subroutine integrate_EUV_inst_resol
 
-    subroutine get_image_data_resol(qunit,datatype)
+    subroutine get_image_data_resol(qunit,datatype,fl)
       ! integrate emission flux along line of sight (LOS) 
       ! in a 3D simulation box and get a 2D EUV image
       use mod_global_parameters
@@ -1811,6 +1857,7 @@ module mod_thermal_emission
 
       integer, intent(in) :: qunit
       character(20), intent(in) :: datatype
+      type(te_fluid), intent(in) :: fl
 
       double precision :: dx^D
       integer :: numX^D,ix^D
@@ -2000,7 +2047,7 @@ module mod_thermal_emission
         Dpl=0.d0
         Dpls=0.d0 
         do iigrid=1,igridstail; igrid=igrids(iigrid);
-          call integrate_EUV_data_resol(igrid,nXIF1,nXIF2,xIF1,xIF2,dxIF1,dxIF2,EUVs,Dpls)
+          call integrate_EUV_data_resol(igrid,nXIF1,nXIF2,xIF1,xIF2,dxIF1,dxIF2,fl,EUVs,Dpls)
         enddo
         numSI=nXIF1*nXIF2
         call MPI_ALLREDUCE(EUVs,EUV,numSI,MPI_DOUBLE_PRECISION, &
@@ -2039,7 +2086,7 @@ module mod_thermal_emission
         SXRs=0.0d0
         SXR=0.0d0
         do iigrid=1,igridstail; igrid=igrids(iigrid);
-          call integrate_SXR_data_resol(igrid,nXIF1,nXIF2,xIF1,xIF2,dxIF1,dxIF2,SXRs)
+          call integrate_SXR_data_resol(igrid,nXIF1,nXIF2,xIF1,xIF2,dxIF1,dxIF2,fl,SXRs)
         enddo
         numSI=nXIF1*nXIF2
         call MPI_ALLREDUCE(SXRs,SXR,numSI,MPI_DOUBLE_PRECISION, &
@@ -2061,17 +2108,18 @@ module mod_thermal_emission
 
     end subroutine get_image_data_resol
 
-    subroutine integrate_EUV_data_resol(igrid,nXIF1,nXIF2,xIF1,xIF2,dxIF1,dxIF2,EUV,Dpl)
+    subroutine integrate_EUV_data_resol(igrid,nXIF1,nXIF2,xIF1,xIF2,dxIF1,dxIF2,fl,EUV,Dpl)
       use mod_global_parameters
 
       integer, intent(in) :: igrid,nXIF1,nXIF2
       double precision, intent(in) :: xIF1(nXIF1),xIF2(nXIF2)
       double precision, intent(in) :: dxIF1(nXIF1),dxIF2(nXIF2)
+      type(te_fluid), intent(in) :: fl
       double precision, intent(out) :: EUV(nXIF1,nXIF2),Dpl(nXIF1,nXIF2)
 
       integer :: ixO^L,ixO^D,ixI^L,ix^D,i,j
       double precision :: xb^L,xd^D
-      double precision, allocatable :: flux(:^D&),v(:^D&)
+      double precision, allocatable :: flux(:^D&),v(:^D&),rho(:^D&)
       double precision, allocatable :: dxb1(:^D&),dxb2(:^D&),dxb3(:^D&)
       double precision, allocatable :: EUVg(:,:),Fvg(:,:),xg1(:),xg2(:),dxg1(:),dxg2(:)
       integer :: levelg,nXg1,nXg2,iXgmin1,iXgmax1,iXgmin2,iXgmax2,rft,iXg^D
@@ -2094,14 +2142,16 @@ module mod_thermal_emission
       ^D&xbmin^D=rnode(rpxmin^D_,igrid)\
       ^D&xbmax^D=rnode(rpxmax^D_,igrid)\
 
-      allocate(flux(ixI^S),v(ixI^S))
+      allocate(flux(ixI^S),v(ixI^S),rho(ixI^S))
       allocate(dxb1(ixI^S),dxb2(ixI^S),dxb3(ixI^S))
       dxb1(ixO^S)=ps(igrid)%dx(ixO^S,1)
       dxb2(ixO^S)=ps(igrid)%dx(ixO^S,2)
       dxb3(ixO^S)=ps(igrid)%dx(ixO^S,3)
       ! get local EUV flux and velocity
-      call get_EUV(wavelength,ixI^L,ixO^L,ps(igrid)%w,ps(igrid)%x,flux)
-      v(ixO^S)=ps(igrid)%w(ixO^S,iw_mom(direction_LOS))/ps(igrid)%w(ixO^S,iw_rho)
+      call get_EUV(wavelength,ixI^L,ixO^L,ps(igrid)%w,ps(igrid)%x,fl,flux)
+      call fl%get_rho(ps(igrid)%w,ps(igrid)%x,ixI^L,ixO^L,rho)
+      v(ixO^S)=ps(igrid)%w(ixO^S,iw_mom(direction_LOS))/rho(ixO^S)
+      deallocate(rho)
 
       ! grid parameters
       levelg=ps(igrid)%level
@@ -2234,12 +2284,13 @@ module mod_thermal_emission
 
     end subroutine integrate_EUV_data_resol
 
-    subroutine integrate_SXR_data_resol(igrid,nXIF1,nXIF2,xIF1,xIF2,dxIF1,dxIF2,SXR)
+    subroutine integrate_SXR_data_resol(igrid,nXIF1,nXIF2,xIF1,xIF2,dxIF1,dxIF2,fl,SXR)
       use mod_global_parameters
 
       integer, intent(in) :: igrid,nXIF1,nXIF2
       double precision, intent(in) :: xIF1(nXIF1),xIF2(nXIF2)
       double precision, intent(in) :: dxIF1(nXIF1),dxIF2(nXIF2)
+      type(te_fluid), intent(in) :: fl
       double precision, intent(out) :: SXR(nXIF1,nXIF2)
 
       integer :: ixO^L,ixO^D,ixI^L,ix^D,i,j
@@ -2273,7 +2324,7 @@ module mod_thermal_emission
       dxb2(ixO^S)=ps(igrid)%dx(ixO^S,2)
       dxb3(ixO^S)=ps(igrid)%dx(ixO^S,3)
       ! get local SXR flux
-      call get_SXR(ixI^L,ixO^L,ps(igrid)%w,ps(igrid)%x,flux,emin_sxr,emax_sxr)
+      call get_SXR(ixI^L,ixO^L,ps(igrid)%w,ps(igrid)%x,fl,flux,emin_sxr,emax_sxr)
 
       ! grid parameters
       levelg=ps(igrid)%level

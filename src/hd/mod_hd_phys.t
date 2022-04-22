@@ -1,5 +1,8 @@
 !> Hydrodynamics physics module
 module mod_hd_phys
+  use mod_thermal_conduction, only: tc_fluid
+  use mod_radiative_cooling, only: rc_fluid
+  use mod_thermal_emission, only: te_fluid
   implicit none
   private
 
@@ -8,9 +11,12 @@ module mod_hd_phys
 
   !> Whether thermal conduction is added
   logical, public, protected              :: hd_thermal_conduction = .false.
+  type(tc_fluid), allocatable :: tc_fl
+  type(te_fluid), allocatable :: te_fl_hd
 
   !> Whether radiative cooling is added
   logical, public, protected              :: hd_radiative_cooling = .false.
+  type(rc_fluid), allocatable :: rc_fl
 
   !> Whether dust is added
   logical, public, protected              :: hd_dust = .false.
@@ -187,6 +193,8 @@ contains
     use mod_particles, only: particles_init
     use mod_rotating_frame, only:rotating_frame_init
     use mod_physics
+    use mod_supertimestepping, only: sts_init, add_sts_method,&
+            set_conversion_methods_to_head, set_error_handling_to_head
 
     integer :: itr, idir
 
@@ -195,6 +203,7 @@ contains
     physics_type = "hd"
     phys_energy  = hd_energy
     phys_total_energy  = hd_energy
+    phys_gamma = hd_gamma
 
     phys_trac=hd_trac
     if(phys_trac) then
@@ -295,16 +304,42 @@ contains
       if (.not. hd_energy) &
            call mpistop("thermal conduction needs hd_energy=T")
       phys_req_diagonal = .true.
-      call tc_init_hd_for_total_energy(hd_gamma, (/rho_, e_/),hd_get_temperature_from_etot, hd_get_temperature_from_eint)
+
+      call sts_init()
+      call tc_init_params(hd_gamma)
+
+      allocate(tc_fl)
+      call tc_get_hd_params(tc_fl,tc_params_read_hd)
+      tc_fl%get_temperature_from_conserved => hd_get_temperature_from_etot
+      call add_sts_method(hd_get_tc_dt_hd,hd_sts_set_source_tc_hd,e_,1,e_,1,.false.)
+      call set_conversion_methods_to_head(hd_e_to_ei, hd_ei_to_e)
+      call set_error_handling_to_head(hd_tc_handle_small_e)
+      tc_fl%get_temperature_from_eint => hd_get_temperature_from_eint
+      tc_fl%get_rho => hd_get_rho
+      tc_fl%e_ = e_
     end if
 
     ! Initialize radiative cooling module
     if (hd_radiative_cooling) then
       if (.not. hd_energy) &
            call mpistop("radiative cooling needs hd_energy=T")
-      call radiative_cooling_init(hd_gamma,He_abundance)
+      call radiative_cooling_init_params(hd_gamma,He_abundance)
+      allocate(rc_fl)
+      call radiative_cooling_init(rc_fl,rc_params_read)
+      rc_fl%get_rho => hd_get_rho
+      rc_fl%get_pthermal => hd_get_pthermal
+      rc_fl%e_ = e_
+      rc_fl%Tcoff_ = Tcoff_
     end if
-
+{^IFTHREED
+    if (image_euv .or. spectrum_euv .or. image_sxr) then
+      allocate(te_fl_hd)
+      te_fl_hd%get_rho=> hd_get_rho
+      te_fl_hd%get_pthermal=> hd_get_pthermal
+      te_fl_hd%Rfactor = 1d0
+      phys_te_images => hd_te_images 
+    endif
+}
     ! Initialize viscosity module
     if (hd_viscosity) call viscosity_init(phys_wider_stencil,phys_req_diagonal)
 
@@ -333,6 +368,159 @@ contains
     iw_vector(1) = mom(1) - 1
 
   end subroutine hd_phys_init
+
+{^IFTHREED
+  subroutine hd_te_images()
+    use mod_global_parameters
+    use mod_thermal_emission
+    if (image_euv) call get_EUV_image(unitconvert,te_fl_hd)
+    if (spectrum_euv) call get_EUV_spectrum(unitconvert,te_fl_hd)
+    if (image_sxr) call get_SXR_image(unitconvert,te_fl_hd)
+
+  end subroutine hd_te_images
+}
+!!start th cond
+  ! wrappers for STS functions in thermal_conductivity module
+  ! which take as argument the tc_fluid (defined in the physics module)
+  subroutine  hd_sts_set_source_tc_hd(ixI^L,ixO^L,w,x,wres,fix_conserve_at_step,my_dt,igrid,nflux)
+    use mod_global_parameters
+    use mod_fix_conserve
+    use mod_thermal_conduction, only: sts_set_source_tc_hd
+    integer, intent(in) :: ixI^L, ixO^L, igrid, nflux
+    double precision, intent(in) ::  x(ixI^S,1:ndim)
+    double precision, intent(inout) ::  wres(ixI^S,1:nw), w(ixI^S,1:nw)
+    double precision, intent(in) :: my_dt
+    logical, intent(in) :: fix_conserve_at_step
+    call sts_set_source_tc_hd(ixI^L,ixO^L,w,x,wres,fix_conserve_at_step,my_dt,igrid,nflux,tc_fl)
+  end subroutine hd_sts_set_source_tc_hd
+
+
+  function hd_get_tc_dt_hd(w,ixI^L,ixO^L,dx^D,x) result(dtnew)
+    !Check diffusion time limit dt < dx_i**2/((gamma-1)*tc_k_para_i/rho)
+    !where                      tc_k_para_i=tc_k_para*B_i**2/B**2
+    !and                        T=p/rho
+    use mod_global_parameters
+    use mod_thermal_conduction, only: get_tc_dt_hd
+ 
+    integer, intent(in) :: ixI^L, ixO^L
+    double precision, intent(in) :: dx^D, x(ixI^S,1:ndim)
+    double precision, intent(in) :: w(ixI^S,1:nw)
+    double precision :: dtnew
+
+    dtnew=get_tc_dt_hd(w,ixI^L,ixO^L,dx^D,x,tc_fl) 
+  end function hd_get_tc_dt_hd
+
+  
+  subroutine hd_tc_handle_small_e(w, x, ixI^L, ixO^L, step)
+    ! move this in a different  routine as in mhd if needed in more places
+    use mod_global_parameters
+    use mod_small_values
+
+    integer, intent(in)             :: ixI^L,ixO^L
+    double precision, intent(inout) :: w(ixI^S,1:nw)
+    double precision, intent(in)    :: x(ixI^S,1:ndim)
+    integer, intent(in)    :: step
+
+    integer :: idir
+    logical :: flag(ixI^S,1:nw)
+    character(len=140) :: error_msg
+
+    flag=.false.
+    where(w(ixO^S,e_)<small_e) flag(ixO^S,e_)=.true.
+    if(any(flag(ixO^S,e_))) then
+      select case (small_values_method)
+      case ("replace")
+        where(flag(ixO^S,e_)) w(ixO^S,e_)=small_e
+      case ("average")
+        call small_values_average(ixI^L, ixO^L, w, x, flag, e_)
+      case default
+        ! small values error shows primitive variables
+        w(ixO^S,e_)=w(ixO^S,e_)*(hd_gamma - 1.0d0)
+        do idir = 1, ndir
+           w(ixO^S, iw_mom(idir)) = w(ixO^S, iw_mom(idir))/w(ixO^S,rho_)
+        end do
+        write(error_msg,"(a,i3)") "Thermal conduction step ", step
+        call small_values_error(w, x, ixI^L, ixO^L, flag, error_msg)
+      end select
+    end if
+  end subroutine hd_tc_handle_small_e
+
+    ! fill in tc_fluid fields from namelist
+    subroutine tc_params_read_hd(fl)
+      use mod_global_parameters, only: unitpar,par_files
+      use mod_global_parameters, only: unitpar
+      type(tc_fluid), intent(inout) :: fl
+      integer                      :: n
+      logical :: tc_saturate=.false.
+      double precision :: tc_k_para=0d0
+
+      namelist /tc_list/ tc_saturate, tc_k_para
+
+      do n = 1, size(par_files)
+         open(unitpar, file=trim(par_files(n)), status="old")
+         read(unitpar, tc_list, end=111)
+111      close(unitpar)
+      end do
+      fl%tc_saturate = tc_saturate
+      fl%tc_k_para = tc_k_para
+
+    end subroutine tc_params_read_hd
+
+  subroutine hd_get_rho(w,x,ixI^L,ixO^L,rho)
+    use mod_global_parameters
+    integer, intent(in)           :: ixI^L, ixO^L
+    double precision, intent(in)  :: w(ixI^S,1:nw),x(ixI^S,1:ndim)
+    double precision, intent(out) :: rho(ixI^S)
+
+    rho(ixO^S) = w(ixO^S,rho_) 
+
+  end subroutine hd_get_rho
+
+!!end th cond
+!!rad cool
+    subroutine rc_params_read(fl)
+      use mod_global_parameters, only: unitpar,par_files
+      use mod_constants, only: bigdouble
+      use mod_basic_types, only: std_len
+      type(rc_fluid), intent(inout) :: fl
+      integer                      :: n
+      ! list parameters
+      integer :: ncool = 4000
+      double precision :: cfrac=0.1d0
+    
+      !> Name of cooling curve
+      character(len=std_len)  :: coolcurve='JCcorona'
+    
+      !> Name of cooling method
+      character(len=std_len)  :: coolmethod='exact'
+    
+      !> Fixed temperature not lower than tlow
+      logical    :: Tfix=.false.
+    
+      !> Lower limit of temperature
+      double precision   :: tlow=bigdouble
+    
+      !> Add cooling source in a split way (.true.) or un-split way (.false.)
+      logical    :: rc_split=.false.
+
+
+      namelist /rc_list/ coolcurve, coolmethod, ncool, cfrac, tlow, Tfix, rc_split
+  
+      do n = 1, size(par_files)
+        open(unitpar, file=trim(par_files(n)), status="old")
+        read(unitpar, rc_list, end=111)
+111     close(unitpar)
+      end do
+
+      fl%ncool=ncool
+      fl%coolcurve=coolcurve
+      fl%coolmethod=coolmethod
+      fl%tlow=tlow
+      fl%Tfix=Tfix
+      fl%rc_split=rc_split
+      fl%cfrac=cfrac
+    end subroutine rc_params_read
+!! end rad cool
 
   subroutine hd_check_params
     use mod_global_parameters
@@ -649,6 +837,7 @@ contains
   subroutine hd_get_cbounds(wLC, wRC, wLp, wRp, x, ixI^L, ixO^L, idim,Hspeed,cmax, cmin)
     use mod_global_parameters
     use mod_dust, only: dust_get_cmax
+    use mod_variables
 
     integer, intent(in)             :: ixI^L, ixO^L, idim
     ! conservative left and right status
@@ -656,9 +845,9 @@ contains
     ! primitive left and right status
     double precision, intent(in)    :: wLp(ixI^S, nw), wRp(ixI^S, nw)
     double precision, intent(in)    :: x(ixI^S, 1:ndim)
+    double precision, intent(inout) :: cmax(ixI^S,1:number_species)
+    double precision, intent(inout), optional :: cmin(ixI^S,1:number_species)
     double precision, intent(in)    :: Hspeed(ixI^S)
-    double precision, intent(inout) :: cmax(ixI^S)
-    double precision, intent(inout), optional :: cmin(ixI^S)
 
     double precision :: wmean(ixI^S,nw)
     double precision, dimension(ixI^S) :: umean, dmean, csoundL, csoundR, tmp1,tmp2,tmp3
@@ -687,16 +876,16 @@ contains
 
       dmean(ixO^S)=dsqrt(dmean(ixO^S))
       if(present(cmin)) then
-        cmin(ixO^S)=umean(ixO^S)-dmean(ixO^S)
-        cmax(ixO^S)=umean(ixO^S)+dmean(ixO^S)
+        cmin(ixO^S,1)=umean(ixO^S)-dmean(ixO^S)
+        cmax(ixO^S,1)=umean(ixO^S)+dmean(ixO^S)
         if(H_correction) then
           {do ix^DB=ixOmin^DB,ixOmax^DB\}
-            cmin(ix^D)=sign(one,cmin(ix^D))*max(abs(cmin(ix^D)),Hspeed(ix^D))
-            cmax(ix^D)=sign(one,cmax(ix^D))*max(abs(cmax(ix^D)),Hspeed(ix^D))
+            cmin(ix^D,1)=sign(one,cmin(ix^D,1))*max(abs(cmin(ix^D,1)),Hspeed(ix^D))
+            cmax(ix^D,1)=sign(one,cmax(ix^D,1))*max(abs(cmax(ix^D,1)),Hspeed(ix^D))
           {end do\}
         end if
       else
-        cmax(ixO^S)=dabs(umean(ixO^S))+dmean(ixO^S)
+        cmax(ixO^S,1)=dabs(umean(ixO^S))+dmean(ixO^S)
       end if
 
       if (hd_dust) then
@@ -712,16 +901,16 @@ contains
       csoundR(ixO^S) = dsqrt(csoundR(ixO^S))
 
       if(present(cmin)) then
-        cmax(ixO^S)=max(tmp1(ixO^S)+csoundR(ixO^S),zero)
-        cmin(ixO^S)=min(tmp1(ixO^S)-csoundR(ixO^S),zero)
+        cmax(ixO^S,1)=max(tmp1(ixO^S)+csoundR(ixO^S),zero)
+        cmin(ixO^S,1)=min(tmp1(ixO^S)-csoundR(ixO^S),zero)
         if(H_correction) then
           {do ix^DB=ixOmin^DB,ixOmax^DB\}
-            cmin(ix^D)=sign(one,cmin(ix^D))*max(abs(cmin(ix^D)),Hspeed(ix^D))
-            cmax(ix^D)=sign(one,cmax(ix^D))*max(abs(cmax(ix^D)),Hspeed(ix^D))
+            cmin(ix^D,1)=sign(one,cmin(ix^D,1))*max(abs(cmin(ix^D,1)),Hspeed(ix^D))
+            cmax(ix^D,1)=sign(one,cmax(ix^D,1))*max(abs(cmax(ix^D,1)),Hspeed(ix^D))
           {end do\}
         end if
       else
-        cmax(ixO^S)=dabs(tmp1(ixO^S))+csoundR(ixO^S)
+        cmax(ixO^S,1)=dabs(tmp1(ixO^S))+csoundR(ixO^S)
       end if
 
       if (hd_dust) then
@@ -1107,7 +1296,7 @@ contains
 
     if(hd_radiative_cooling) then
       call radiative_cooling_add_source(qdt,ixI^L,ixO^L,wCT,w,x,&
-           qsourcesplit,active)
+           qsourcesplit,active, rc_fl)
     end if
 
     if(hd_viscosity) then
@@ -1153,7 +1342,7 @@ contains
     end if
 
     if(hd_radiative_cooling) then
-      call cooling_get_dt(w,ixI^L,ixO^L,dtnew,dx^D,x)
+      call cooling_get_dt(w,ixI^L,ixO^L,dtnew,dx^D,x,rc_fl)
     end if
 
     if(hd_viscosity) then

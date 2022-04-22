@@ -31,9 +31,23 @@ clean:
 include $(AMRVAC_DIR)/arch/$(ARCH).defs
 include $(AMRVAC_DIR)/arch/rules.make
 
-%.log: $(LOG_CMP) amrvac force
+# copy amrvac.h (in order to use the std preprocessor in the main code files, e.g. twofl); create the file if it does not exist
+hdr:
+ifeq ("$(wildcard amrvac.h)","")
+	touch amrvac.h
+endif
+	@mkdir -p $(AMRVAC_DIR)/lib/1d_$(ARCH)	# Prevent error message
+	rsync -c amrvac.h $(AMRVAC_DIR)/lib/1d_$(ARCH)/amrvac.h
+	@mkdir -p $(AMRVAC_DIR)/lib/2d_$(ARCH)	# Prevent error message
+	rsync -c amrvac.h $(AMRVAC_DIR)/lib/2d_$(ARCH)/amrvac.h
+	@mkdir -p $(AMRVAC_DIR)/lib/3d_$(ARCH)	# Prevent error message
+	rsync -c amrvac.h $(AMRVAC_DIR)/lib/3d_$(ARCH)/amrvac.h
+
+%.log: $(LOG_CMP) hdr  amrvac force
 	@$(RM) $@		# Remove log to prevent pass when aborted
-	@mpirun -np $(NUM_PROCS) ./amrvac -i $(filter %.par,$^) > run.log
+# for Intel same machine
+# @mpirun -genv I_MPI_FABRICS shm  -np $(NUM_PROCS) ./amrvac -i $(filter %.par,$^) > run.log
+	@mpirun   -np $(NUM_PROCS) ./amrvac -i $(filter %.par,$^) > run.log
 	@if $(LOG_CMP) 1.0e-5 1.0e-8 $@ correct_output/$@ ; \
 	then echo "PASSED $@" ; \
 	else echo "** FAILED ** $@" ; \

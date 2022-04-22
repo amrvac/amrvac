@@ -42,8 +42,8 @@ contains
        end if
     end do
     ! copy the modified Morton numbers to the blocks in the domain
-    allocate(iglevel1_sfc(ng^D(1)))
-    allocate(sfc_iglevel1(ndim,nglev1))
+    if(.not. allocated(iglevel1_sfc)) allocate(iglevel1_sfc(ng^D(1)))
+    if(.not. allocated(sfc_iglevel1)) allocate(sfc_iglevel1(ndim,nglev1))
     do isq=1,total_number
       if(in_domain(isq)) then
         iglevel1_sfc(seq_ig^D(isq))=seq_sfc(isq)

@@ -27,6 +27,13 @@ module mod_input_output
   character(len=*), parameter :: fmt_r2 = 'es10.2' ! Two digits
   character(len=*), parameter :: fmt_i  = 'i8'     ! Integer format
 
+  ! public methods
+  public :: count_ix
+  public :: create_output_file
+  public :: snapshot_write_header, snapshot_write_header1
+  public :: block_shape_io
+  
+
 contains
 
   !> Read the command line arguments passed to amrvac
@@ -118,7 +125,7 @@ contains
            !if(mype==0)print *,'resume specified: resume_previous_run=T'
          case("-convert")
            convert=.true.
-           !if(mype==0)print *,'convert specified: convert=T'
+           if(mype==0)print *,'convert specified: convert=T'
          case("--help","-help")
            help=.true.
            EXIT
@@ -292,8 +299,10 @@ contains
     ! default resolution of level-1 mesh (full domain)
     {domain_nx^D = 32\}
 
-    ! default number of ghost-cell layers at each boundary of a block
-    nghostcells = 2
+    !! default number of ghost-cell layers at each boundary of a block
+    ! this is now done when the variable is defined in mod_global_parameters
+    ! the physics modules might set this variable in their init subroutine called earlier
+    !nghostcells = 2
 
     ! Allocate boundary conditions arrays in new and old style
     {
@@ -730,8 +739,8 @@ contains
                'Warning: setting dimsplit=T for tvd, as used for level=',level
           dimsplit=.true.
        endif
-       if(flux_scheme(level)=='hlld'.and.physics_type/='mhd') &
-          call mpistop("Cannot use hlld flux if not using MHD physics!")
+       if(flux_scheme(level)=='hlld'.and.physics_type/='mhd' .and. physics_type/='twofl_one') &
+          call mpistop("Cannot use hlld flux if not using MHD or 2FL only charges physics!")
 
        if(flux_scheme(level)=='hllc'.and.physics_type=='mf') &
           call mpistop("Cannot use hllc flux if using magnetofriction physics!")
@@ -987,6 +996,8 @@ contains
           t_integrator=rk4
        case ("jameson")
           t_integrator=jameson
+       case ("IMEX_RK4")
+          t_integrator=IMEX_RK4
        case default
           write(unitterm,*) "time_integrator=",time_integrator,"time_stepper=",time_stepper
           call mpistop("unkown fourstep time_integrator in read_par_files")
@@ -1345,55 +1356,55 @@ contains
     }
 
     if(any(limiter(1:nlevelshi)=='mp5')) then
-      nghostcells=3
+      nghostcells=max(nghostcells,3)
     end if
 
     if(any(limiter(1:nlevelshi)=='weno5')) then
-      nghostcells=3
+      nghostcells=max(nghostcells,3)
     end if
 
     if(any(limiter(1:nlevelshi)=='weno5nm')) then
-      nghostcells=3
+      nghostcells=max(nghostcells,3)
     end if
 
     if(any(limiter(1:nlevelshi)=='wenoz5')) then
-      nghostcells=3
+      nghostcells=max(nghostcells,3)
     end if
 
     if(any(limiter(1:nlevelshi)=='wenoz5nm')) then
-      nghostcells=3
+      nghostcells=max(nghostcells,3)
     end if
 
     if(any(limiter(1:nlevelshi)=='wenozp5')) then
-      nghostcells=3
+      nghostcells=max(nghostcells,3)
     end if
 
     if(any(limiter(1:nlevelshi)=='wenozp5nm')) then
-      nghostcells=3
+      nghostcells=max(nghostcells,3)
     end if
 
     if(any(limiter(1:nlevelshi)=='teno5ad')) then
-      nghostcells=3
+      nghostcells=max(nghostcells,3)
     end if
 
     if(any(limiter(1:nlevelshi)=='weno5cu6')) then
-      nghostcells=3
+      nghostcells=max(nghostcells,3)
     end if
 
     if(any(limiter(1:nlevelshi)=='ppm')) then
-      nghostcells=4
+      nghostcells=max(nghostcells,4)
     end if
 
     if(any(limiter(1:nlevelshi)=='weno7')) then
-      nghostcells=4
+      nghostcells=max(nghostcells,4)
     end if
 
     if(any(limiter(1:nlevelshi)=='mpweno7')) then
-      nghostcells=4
+      nghostcells=max(nghostcells,4)
     end if
 
     if(any(limiter(1:nlevelshi)=='exeno7')) then
-      nghostcells=4
+      nghostcells=max(nghostcells,4)
     end if
 
     ! If a wider stencil is used, extend the number of ghost cells
@@ -1771,11 +1782,12 @@ contains
     read(filename(i:i+3), '(I4)') get_snapshot_index
   end function get_snapshot_index
 
-  !> Write header for a snapshot
+
+  !> Write header for a snapshot, generalize cons_wnames and nw
   !>
   !> If you edit the header, don't forget to update: snapshot_write_header(),
   !> snapshot_read_header(), doc/fileformat.md, tools/python/dat_reader.py
-  subroutine snapshot_write_header(fh, offset_tree, offset_block)
+  subroutine snapshot_write_header1(fh, offset_tree, offset_block, dataset_names, nw_vars)
     use mod_forest
     use mod_physics
     use mod_global_parameters
@@ -1783,13 +1795,17 @@ contains
     integer, intent(in)                       :: fh           !< File handle
     integer(kind=MPI_OFFSET_KIND), intent(in) :: offset_tree  !< Offset of tree info
     integer(kind=MPI_OFFSET_KIND), intent(in) :: offset_block !< Offset of block data
+    character(len=*), intent(in) :: dataset_names(:)
+    integer, intent(in) :: nw_vars
     integer, dimension(MPI_STATUS_SIZE)       :: st
     integer                                   :: iw, er
+
+    character(len=name_len) :: dname
 
     call MPI_FILE_WRITE(fh, version_number, 1, MPI_INTEGER, st, er)
     call MPI_FILE_WRITE(fh, int(offset_tree), 1, MPI_INTEGER, st, er)
     call MPI_FILE_WRITE(fh, int(offset_block), 1, MPI_INTEGER, st, er)
-    call MPI_FILE_WRITE(fh, nw, 1, MPI_INTEGER, st, er)
+    call MPI_FILE_WRITE(fh, nw_vars, 1, MPI_INTEGER, st, er)
     call MPI_FILE_WRITE(fh, ndir, 1, MPI_INTEGER, st, er)
     call MPI_FILE_WRITE(fh, ndim, 1, MPI_INTEGER, st, er)
     call MPI_FILE_WRITE(fh, levmax, 1, MPI_INTEGER, st, er)
@@ -1819,8 +1835,11 @@ contains
     ! Write stagger grid mark
     call MPI_FILE_WRITE(fh, stagger_grid, 1, MPI_LOGICAL, st, er)
 
-    do iw = 1, nw
-      call MPI_FILE_WRITE(fh, cons_wnames(iw), name_len, MPI_CHARACTER, st, er)
+    do iw = 1, nw_vars
+      ! using directly trim(adjustl((dataset_names(iw)))) in MPI_FILE_WRITE call 
+      ! does not work, there will be trailing characters
+      dname = trim(adjustl((dataset_names(iw))))
+      call MPI_FILE_WRITE(fh, dname, name_len, MPI_CHARACTER, st, er)
     end do
 
     ! Physics related information
@@ -1842,6 +1861,21 @@ contains
     call MPI_FILE_WRITE(fh, slicenext, 1, MPI_INTEGER, st, er)
     call MPI_FILE_WRITE(fh, collapsenext, 1, MPI_INTEGER, st, er)
 
+  end subroutine snapshot_write_header1
+
+  !> Write header for a snapshot
+  !>
+  !> If you edit the header, don't forget to update: snapshot_write_header(),
+  !> snapshot_read_header(), doc/fileformat.md, tools/python/dat_reader.py
+  subroutine snapshot_write_header(fh, offset_tree, offset_block)
+    use mod_forest
+    use mod_physics
+    use mod_global_parameters
+    use mod_slice, only: slicenext
+    integer, intent(in)                       :: fh           !< File handle
+    integer(kind=MPI_OFFSET_KIND), intent(in) :: offset_tree  !< Offset of tree info
+    integer(kind=MPI_OFFSET_KIND), intent(in) :: offset_block !< Offset of block data
+    call snapshot_write_header1(fh, offset_tree, offset_block, cons_wnames, nw)
   end subroutine snapshot_write_header
 
   !> Read header for a snapshot

@@ -61,6 +61,8 @@ module mod_usr_methods
 
   ! Set time-independent magnetic field for B0 splitting
   procedure(set_B0), pointer          :: usr_set_B0           => null()
+  ! Set time-independent variables for equilibrium splitting, except for B0
+  procedure(set_equi_vars), pointer   :: usr_set_equi_vars           => null()
   ! Set time-independent current density for B0 splitting
   procedure(set_J0), pointer          :: usr_set_J0           => null()
   procedure(special_resistivity), pointer :: usr_special_resistivity => null()
@@ -316,6 +318,14 @@ module mod_usr_methods
       double precision, intent(in)    :: x(ixI^S,1:ndim)
       double precision, intent(inout) :: wJ0(ixI^S,7-2*ndir:ndir)
     end subroutine set_J0
+
+    !> Here one can add a steady (time-independent) equi vars
+    subroutine set_equi_vars(ixI^L,ixO^L,x,w0)
+      use mod_global_parameters
+      integer, intent(in)             :: ixI^L,ixO^L
+      double precision, intent(in)    :: x(ixI^S,1:ndim)
+      double precision, intent(inout) :: w0(ixI^S,1:number_equi_vars)
+    end subroutine set_equi_vars
 
     !> adjust w when restart from dat file with different w variables
     subroutine transform_w(ixI^L,ixO^L,nw_in,w_in,x,w_out)

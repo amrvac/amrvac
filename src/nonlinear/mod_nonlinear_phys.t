@@ -154,26 +154,26 @@ contains
 
   subroutine nonlinear_get_cbounds(wLC, wRC, wLp, wRp, x, ixI^L, ixO^L, idim,Hspeed, cmax, cmin)
     use mod_global_parameters
+    use mod_variables
     integer, intent(in)             :: ixI^L, ixO^L, idim
     double precision, intent(in)    :: wLC(ixI^S, nw), wRC(ixI^S,nw)
     double precision, intent(in)    :: wLp(ixI^S, nw), wRp(ixI^S,nw)
     double precision, intent(in)    :: x(ixI^S, 1:^ND)
+    double precision, intent(inout) :: cmax(ixI^S,1:number_species)
+    double precision, intent(inout), optional :: cmin(ixI^S,1:number_species)
     double precision, intent(in)    :: Hspeed(ixI^S)
-    double precision, intent(inout) :: cmax(ixI^S)
-    double precision, intent(inout), optional :: cmin(ixI^S)
-
     double precision :: wmean(ixI^S,nw)
 
     ! since get_v depends on w, the first argument should be some average over the
     ! left and right state
     wmean(ixO^S,1:nwflux)=0.5d0*(wLC(ixO^S,1:nwflux)+wRC(ixO^S,1:nwflux))
-    call nonlinear_get_v(wmean, x, ixI^L, ixO^L, idim, cmax)
+    call nonlinear_get_v(wmean, x, ixI^L, ixO^L, idim, cmax(ixI^S,1))
 
     if (present(cmin)) then
-       cmin(ixO^S) = min(cmax(ixO^S), zero)
-       cmax(ixO^S) = max(cmax(ixO^S), zero)
+       cmin(ixO^S,1) = min(cmax(ixO^S,1), zero)
+       cmax(ixO^S,1) = max(cmax(ixO^S,1), zero)
     else
-       cmax(ixO^S) = maxval(abs(cmax(ixO^S)))
+       cmax(ixO^S,1) = maxval(abs(cmax(ixO^S,1)))
     end if
 
   end subroutine nonlinear_get_cbounds

@@ -1,6 +1,13 @@
 !> Magneto-hydrodynamics module
 module mod_mhd_phys
+
+#include "amrvac.h"
+
   use mod_global_parameters, only: std_len
+  use mod_thermal_conduction, only: tc_fluid
+  use mod_radiative_cooling, only: rc_fluid
+  use mod_thermal_emission, only: te_fluid
+
   implicit none
   private
 
@@ -9,6 +16,8 @@ module mod_mhd_phys
 
   !> Whether thermal conduction is used
   logical, public, protected              :: mhd_thermal_conduction = .false.
+  type(tc_fluid), public, allocatable :: tc_fl
+  type(te_fluid), allocatable,target :: te_fl_mhd
 
   !> type of TC used: 1: adapted module (mhd implementation), 2: adapted module (hd implementation)
   integer, parameter, private             :: MHD_TC =1
@@ -17,6 +26,7 @@ module mod_mhd_phys
 
   !> Whether radiative cooling is added
   logical, public, protected              :: mhd_radiative_cooling = .false.
+  type(rc_fluid), public, allocatable :: rc_fl
 
   !> Whether viscosity is added
   logical, public, protected              :: mhd_viscosity = .false.
@@ -305,7 +315,9 @@ contains
     use mod_particles, only: particles_init, particles_eta, particles_etah
     use mod_magnetofriction, only: magnetofriction_init
     use mod_physics
-    use mod_supertimestepping, only: sts_init, add_sts_method
+    use mod_supertimestepping, only: sts_init, add_sts_method,&
+            set_conversion_methods_to_head, set_error_handling_to_head
+
 
     {^NOONED
     use mod_multigrid_coupling
@@ -349,6 +361,8 @@ contains
     phys_solve_eaux=mhd_solve_eaux
     phys_trac=mhd_trac
     phys_trac_type=mhd_trac_type
+
+    phys_gamma = mhd_gamma
 
     if(mhd_energy.and..not.mhd_internal_e) then
       total_energy=.true.
@@ -578,36 +592,59 @@ contains
     ! initialize thermal conduction module
     if (mhd_thermal_conduction) then
       phys_req_diagonal = .true.
+
+      call sts_init()
+      call tc_init_params(mhd_gamma)
+
+      allocate(tc_fl)
       if(use_mhd_tc .eq. MHD_TC) then
-
-        if(mhd_internal_e) then
-          call tc_init_mhd_for_internal_energy(mhd_gamma,[rho_,e_,mag(1)],mhd_get_temperature_from_eint)
+        call tc_get_mhd_params(tc_fl,tc_params_read_mhd)
+        if(phys_internal_e) then
+          tc_fl%get_temperature_from_conserved => mhd_get_temperature_from_eint
+          call add_sts_method(mhd_get_tc_dt_mhd,mhd_sts_set_source_tc_mhd,e_,1,e_,1,.false.)
         else
-          if(mhd_solve_eaux) then
-            call tc_init_mhd_for_total_energy(mhd_gamma,[rho_,e_,mag(1),eaux_],mhd_get_temperature_from_etot, mhd_get_temperature_from_eint)
-          else
-            call tc_init_mhd_for_total_energy(mhd_gamma,[rho_,e_,mag(1)],mhd_get_temperature_from_etot, mhd_get_temperature_from_eint)
-          endif
+          tc_fl%get_temperature_from_conserved => mhd_get_temperature_from_etot
+          call add_sts_method(mhd_get_tc_dt_mhd,mhd_sts_set_source_tc_mhd,e_,1,e_,1,.false.)
+          call set_conversion_methods_to_head(mhd_e_to_ei, mhd_ei_to_e)
         endif
-
       else if(use_mhd_tc .eq. HD_TC) then
-        if(mhd_internal_e) then
-          call tc_init_hd_for_internal_energy(mhd_gamma,[rho_,e_],mhd_get_temperature_from_eint)
+        call tc_get_hd_params(tc_fl,tc_params_read_hd)
+        if(phys_internal_e) then
+          tc_fl%get_temperature_from_conserved => mhd_get_temperature_from_eint
+          call add_sts_method(mhd_get_tc_dt_hd,mhd_sts_set_source_tc_hd,e_,1,e_,1,.false.)
         else
-          if(mhd_solve_eaux) then
-            call tc_init_hd_for_total_energy(mhd_gamma,[rho_,e_,eaux_],mhd_get_temperature_from_etot, mhd_get_temperature_from_eint)
-          else
-            call tc_init_hd_for_total_energy(mhd_gamma,[rho_,e_],mhd_get_temperature_from_etot, mhd_get_temperature_from_eint)
-          endif
+          tc_fl%get_temperature_from_conserved => mhd_get_temperature_from_etot
+          call add_sts_method(mhd_get_tc_dt_hd,mhd_sts_set_source_tc_hd,e_,1,e_,1,.false.)
+          call set_conversion_methods_to_head(mhd_e_to_ei, mhd_ei_to_e)
         endif
       endif
+      call set_error_handling_to_head(mhd_tc_handle_small_e)
+      tc_fl%get_temperature_from_eint => mhd_get_temperature_from_eint
+      tc_fl%get_rho => mhd_get_rho
+      tc_fl%e_ = e_
+      tc_fl%Tcoff_ = Tcoff_
     end if
 
     ! Initialize radiative cooling module
     if (mhd_radiative_cooling) then
-      call radiative_cooling_init(mhd_gamma,He_abundance)
+      call radiative_cooling_init_params(mhd_gamma,He_abundance)
+      allocate(rc_fl)
+      call radiative_cooling_init(rc_fl,rc_params_read)
+      rc_fl%get_rho => mhd_get_rho
+      rc_fl%get_pthermal => mhd_get_pthermal
+      rc_fl%e_ = e_
+      rc_fl%eaux_ = eaux_
+      rc_fl%Tcoff_ = Tcoff_
     end if
-
+{^IFTHREED
+    if (image_euv .or. spectrum_euv .or. image_sxr) then
+      allocate(te_fl_mhd)
+      te_fl_mhd%get_rho=> mhd_get_rho
+      te_fl_mhd%get_pthermal=> mhd_get_pthermal
+      te_fl_mhd%Rfactor = 1d0
+      phys_te_images => mhd_te_images
+    endif
+}
     ! Initialize viscosity module
     if (mhd_viscosity) call viscosity_init(phys_wider_stencil,phys_req_diagonal)
 
@@ -669,6 +706,194 @@ contains
     end if
 
   end subroutine mhd_phys_init
+
+{^IFTHREED
+  subroutine mhd_te_images()
+    use mod_global_parameters
+    use mod_thermal_emission
+    if (image_euv) call get_EUV_image(unitconvert,te_fl_mhd)
+    if (spectrum_euv) call get_EUV_spectrum(unitconvert,te_fl_mhd)
+    if (image_sxr) call get_SXR_image(unitconvert,te_fl_mhd)
+
+  end subroutine mhd_te_images
+}
+
+!!start th cond
+  ! wrappers for STS functions in thermal_conductivity module
+  ! which take as argument the tc_fluid (defined in the physics module)
+  subroutine  mhd_sts_set_source_tc_mhd(ixI^L,ixO^L,w,x,wres,fix_conserve_at_step,my_dt,igrid,nflux)
+    use mod_global_parameters
+    use mod_fix_conserve
+    use mod_thermal_conduction, only: sts_set_source_tc_mhd
+    integer, intent(in) :: ixI^L, ixO^L, igrid, nflux
+    double precision, intent(in) ::  x(ixI^S,1:ndim)
+    double precision, intent(inout) ::  wres(ixI^S,1:nw), w(ixI^S,1:nw)
+    double precision, intent(in) :: my_dt
+    logical, intent(in) :: fix_conserve_at_step
+    call sts_set_source_tc_mhd(ixI^L,ixO^L,w,x,wres,fix_conserve_at_step,my_dt,igrid,nflux,tc_fl)
+  end subroutine mhd_sts_set_source_tc_mhd
+
+  subroutine  mhd_sts_set_source_tc_hd(ixI^L,ixO^L,w,x,wres,fix_conserve_at_step,my_dt,igrid,nflux)
+    use mod_global_parameters
+    use mod_fix_conserve
+    use mod_thermal_conduction, only: sts_set_source_tc_hd
+    integer, intent(in) :: ixI^L, ixO^L, igrid, nflux
+    double precision, intent(in) ::  x(ixI^S,1:ndim)
+    double precision, intent(inout) ::  wres(ixI^S,1:nw), w(ixI^S,1:nw)
+    double precision, intent(in) :: my_dt
+    logical, intent(in) :: fix_conserve_at_step
+    call sts_set_source_tc_hd(ixI^L,ixO^L,w,x,wres,fix_conserve_at_step,my_dt,igrid,nflux,tc_fl)
+  end subroutine mhd_sts_set_source_tc_hd
+
+
+  function mhd_get_tc_dt_mhd(w,ixI^L,ixO^L,dx^D,x) result(dtnew)
+    !Check diffusion time limit dt < dx_i**2/((gamma-1)*tc_k_para_i/rho)
+    !where                      tc_k_para_i=tc_k_para*B_i**2/B**2
+    !and                        T=p/rho
+    use mod_global_parameters
+    use mod_thermal_conduction, only: get_tc_dt_mhd
+ 
+    integer, intent(in) :: ixI^L, ixO^L
+    double precision, intent(in) :: dx^D, x(ixI^S,1:ndim)
+    double precision, intent(in) :: w(ixI^S,1:nw)
+    double precision :: dtnew
+
+    dtnew=get_tc_dt_mhd(w,ixI^L,ixO^L,dx^D,x,tc_fl) 
+  end function mhd_get_tc_dt_mhd
+
+  function mhd_get_tc_dt_hd(w,ixI^L,ixO^L,dx^D,x) result(dtnew)
+    !Check diffusion time limit dt < dx_i**2/((gamma-1)*tc_k_para_i/rho)
+    !where                      tc_k_para_i=tc_k_para*B_i**2/B**2
+    !and                        T=p/rho
+    use mod_global_parameters
+    use mod_thermal_conduction, only: get_tc_dt_hd
+ 
+    integer, intent(in) :: ixI^L, ixO^L
+    double precision, intent(in) :: dx^D, x(ixI^S,1:ndim)
+    double precision, intent(in) :: w(ixI^S,1:nw)
+    double precision :: dtnew
+
+    dtnew=get_tc_dt_hd(w,ixI^L,ixO^L,dx^D,x,tc_fl) 
+  end function mhd_get_tc_dt_hd
+
+
+  subroutine mhd_tc_handle_small_e(w, x, ixI^L, ixO^L, step)
+    use mod_global_parameters
+
+    integer, intent(in)             :: ixI^L,ixO^L
+    double precision, intent(inout) :: w(ixI^S,1:nw)
+    double precision, intent(in)    :: x(ixI^S,1:ndim)
+    integer, intent(in)    :: step
+    character(len=140) :: error_msg
+
+    write(error_msg,"(a,i3)") "Thermal conduction step ", step
+    call mhd_handle_small_ei(w,x,ixI^L,ixO^L,e_,error_msg)
+  end subroutine mhd_tc_handle_small_e
+
+    ! fill in tc_fluid fields from namelist
+    subroutine tc_params_read_mhd(fl)
+      use mod_global_parameters, only: unitpar,par_files
+      type(tc_fluid), intent(inout) :: fl
+
+      integer                      :: n
+
+      ! list parameters
+      logical :: tc_perpendicular=.true.
+      logical :: tc_saturate=.false.
+      double precision :: tc_k_para=0d0
+      double precision :: tc_k_perp=0d0
+      character(len=std_len)  :: tc_slope_limiter="MC"
+ 
+      namelist /tc_list/ tc_perpendicular, tc_saturate, tc_slope_limiter, tc_k_para, tc_k_perp
+
+      do n = 1, size(par_files)
+        open(unitpar, file=trim(par_files(n)), status="old")
+        read(unitpar, tc_list, end=111)
+111     close(unitpar)
+      end do
+
+      fl%tc_perpendicular = tc_perpendicular
+      fl%tc_saturate = tc_saturate
+      fl%tc_k_para = tc_k_para
+      fl%tc_k_perp = tc_k_perp
+      fl%tc_slope_limiter = tc_slope_limiter
+    end subroutine tc_params_read_mhd
+
+    subroutine tc_params_read_hd(fl)
+      use mod_global_parameters, only: unitpar,par_files
+      use mod_global_parameters, only: unitpar
+      type(tc_fluid), intent(inout) :: fl
+      integer                      :: n
+      logical :: tc_saturate=.false.
+      double precision :: tc_k_para=0d0
+
+      namelist /tc_list/ tc_saturate, tc_k_para
+
+      do n = 1, size(par_files)
+         open(unitpar, file=trim(par_files(n)), status="old")
+         read(unitpar, tc_list, end=111)
+111      close(unitpar)
+      end do
+      fl%tc_saturate = tc_saturate
+      fl%tc_k_para = tc_k_para
+
+    end subroutine tc_params_read_hd
+
+  subroutine mhd_get_rho(w,x,ixI^L,ixO^L,rho)
+    use mod_global_parameters
+    integer, intent(in)           :: ixI^L, ixO^L
+    double precision, intent(in)  :: w(ixI^S,1:nw),x(ixI^S,1:ndim)
+    double precision, intent(out) :: rho(ixI^S)
+
+    rho(ixO^S) = w(ixO^S,rho_) 
+
+  end subroutine mhd_get_rho
+!!end th cond
+
+!!rad cool
+    subroutine rc_params_read(fl)
+      use mod_global_parameters, only: unitpar,par_files
+      use mod_constants, only: bigdouble
+      type(rc_fluid), intent(inout) :: fl
+      integer                      :: n
+      ! list parameters
+      integer :: ncool = 4000
+      double precision :: cfrac=0.1d0
+    
+      !> Name of cooling curve
+      character(len=std_len)  :: coolcurve='JCcorona'
+    
+      !> Name of cooling method
+      character(len=std_len)  :: coolmethod='exact'
+    
+      !> Fixed temperature not lower than tlow
+      logical    :: Tfix=.false.
+    
+      !> Lower limit of temperature
+      double precision   :: tlow=bigdouble
+    
+      !> Add cooling source in a split way (.true.) or un-split way (.false.)
+      logical    :: rc_split=.false.
+
+
+      namelist /rc_list/ coolcurve, coolmethod, ncool, cfrac, tlow, Tfix, rc_split
+  
+      do n = 1, size(par_files)
+        open(unitpar, file=trim(par_files(n)), status="old")
+        read(unitpar, rc_list, end=111)
+111     close(unitpar)
+      end do
+
+      fl%ncool=ncool
+      fl%coolcurve=coolcurve
+      fl%coolmethod=coolmethod
+      fl%tlow=tlow
+      fl%Tfix=Tfix
+      fl%rc_split=rc_split
+      fl%cfrac=cfrac
+
+    end subroutine rc_params_read
+!! end rad cool
 
   subroutine mhd_check_params
     use mod_global_parameters
@@ -1323,14 +1548,15 @@ contains
   !> Estimating bounds for the minimum and maximum signal velocities
   subroutine mhd_get_cbounds(wLC,wRC,wLp,wRp,x,ixI^L,ixO^L,idim,Hspeed,cmax,cmin)
     use mod_global_parameters
+    use mod_variables
 
     integer, intent(in)             :: ixI^L, ixO^L, idim
     double precision, intent(in)    :: wLC(ixI^S, nw), wRC(ixI^S, nw)
     double precision, intent(in)    :: wLp(ixI^S, nw), wRp(ixI^S, nw)
     double precision, intent(in)    :: x(ixI^S,1:ndim)
+    double precision, intent(inout) :: cmax(ixI^S,1:number_species)
+    double precision, intent(inout), optional :: cmin(ixI^S,1:number_species)
     double precision, intent(in)    :: Hspeed(ixI^S)
-    double precision, intent(inout) :: cmax(ixI^S)
-    double precision, intent(inout), optional :: cmin(ixI^S)
 
     double precision :: wmean(ixI^S,nw)
     double precision, dimension(ixI^S) :: umean, dmean, csoundL, csoundR, tmp1,tmp2,tmp3
@@ -1350,32 +1576,32 @@ contains
        (wRp(ixO^S,mom(idim))-wLp(ixO^S,mom(idim)))**2
       dmean(ixO^S)=sqrt(dmean(ixO^S))
       if(present(cmin)) then
-        cmin(ixO^S)=umean(ixO^S)-dmean(ixO^S)
-        cmax(ixO^S)=umean(ixO^S)+dmean(ixO^S)
+        cmin(ixO^S,1)=umean(ixO^S)-dmean(ixO^S)
+        cmax(ixO^S,1)=umean(ixO^S)+dmean(ixO^S)
         if(H_correction) then
           {do ix^DB=ixOmin^DB,ixOmax^DB\}
-            cmin(ix^D)=sign(one,cmin(ix^D))*max(abs(cmin(ix^D)),Hspeed(ix^D))
-            cmax(ix^D)=sign(one,cmax(ix^D))*max(abs(cmax(ix^D)),Hspeed(ix^D))
+            cmin(ix^D,1)=sign(one,cmin(ix^D,1))*max(abs(cmin(ix^D,1)),Hspeed(ix^D))
+            cmax(ix^D,1)=sign(one,cmax(ix^D,1))*max(abs(cmax(ix^D,1)),Hspeed(ix^D))
           {end do\}
         end if
       else
-        cmax(ixO^S)=abs(umean(ixO^S))+dmean(ixO^S)
+        cmax(ixO^S,1)=abs(umean(ixO^S))+dmean(ixO^S)
       end if
     else
       wmean(ixO^S,1:nwflux)=0.5d0*(wLC(ixO^S,1:nwflux)+wRC(ixO^S,1:nwflux))
       tmp1(ixO^S)=wmean(ixO^S,mom(idim))/wmean(ixO^S,rho_)
       call mhd_get_csound(wmean,x,ixI^L,ixO^L,idim,csoundR)
       if(present(cmin)) then
-        cmax(ixO^S)=max(tmp1(ixO^S)+csoundR(ixO^S),zero)
-        cmin(ixO^S)=min(tmp1(ixO^S)-csoundR(ixO^S),zero)
+        cmax(ixO^S,1)=max(tmp1(ixO^S)+csoundR(ixO^S),zero)
+        cmin(ixO^S,1)=min(tmp1(ixO^S)-csoundR(ixO^S),zero)
         if(H_correction) then
           {do ix^DB=ixOmin^DB,ixOmax^DB\}
-            cmin(ix^D)=sign(one,cmin(ix^D))*max(abs(cmin(ix^D)),Hspeed(ix^D))
-            cmax(ix^D)=sign(one,cmax(ix^D))*max(abs(cmax(ix^D)),Hspeed(ix^D))
+            cmin(ix^D,1)=sign(one,cmin(ix^D,1))*max(abs(cmin(ix^D,1)),Hspeed(ix^D))
+            cmax(ix^D,1)=sign(one,cmax(ix^D,1))*max(abs(cmax(ix^D,1)),Hspeed(ix^D))
           {end do\}
         end if
       else
-        cmax(ixO^S)=abs(tmp1(ixO^S))+csoundR(ixO^S)
+        cmax(ixO^S,1)=abs(tmp1(ixO^S))+csoundR(ixO^S)
       end if
     end if
 
@@ -1658,7 +1884,8 @@ contains
     double precision, intent(in) :: x(ixI^S,1:ndim)
     double precision,intent(out) :: f(ixI^S,nwflux)
 
-    double precision             :: pgas(ixO^S), ptotal(ixO^S),tmp(ixI^S)
+    double precision             :: pgas(ixO^S), ptotal(ixO^S)
+    double precision             :: tmp(ixI^S)
     double precision             :: vHall(ixI^S,1:ndir)
     integer                      :: idirmin, iw, idir, jdir, kdir
     double precision, allocatable, dimension(:^D&,:) :: Jambi, btot
@@ -1669,9 +1896,9 @@ contains
     if (mhd_Hall) then
       call mhd_getv_Hall(w,x,ixI^L,ixO^L,vHall)
     end if
-
+#if !defined(USE_SPLIT_B0) || USE_SPLIT_B0==1
     if(B0field) tmp(ixO^S)=sum(block%B0(ixO^S,:,idim)*w(ixO^S,mag(:)),dim=ndim+1)
-
+#endif
     if(mhd_energy) then
       pgas=w(ixO^S,p_)
     else
@@ -1704,15 +1931,19 @@ contains
       do idir=1,ndir
         if(idim==idir) then
           f(ixO^S,mom(idir))=ptotal(ixO^S)-w(ixO^S,mag(idim))*w(ixO^S,mag(idir))
+#if !defined(USE_SPLIT_B0) || USE_SPLIT_B0==1
           if(B0field) f(ixO^S,mom(idir))=f(ixO^S,mom(idir))+tmp(ixO^S)
+#endif
         else
           f(ixO^S,mom(idir))= -w(ixO^S,mag(idir))*w(ixO^S,mag(idim))
         end if
+#if !defined(USE_SPLIT_B0) || USE_SPLIT_B0==1
         if (B0field) then
           f(ixO^S,mom(idir))=f(ixO^S,mom(idir))&
                -w(ixO^S,mag(idir))*block%B0(ixO^S,idim,idim)&
                -w(ixO^S,mag(idim))*block%B0(ixO^S,idir,idim)
         end if
+#endif
         f(ixO^S,mom(idir))=f(ixO^S,mom(idir))+w(ixO^S,mom(idim))*wC(ixO^S,mom(idir))
       end do
     end if
@@ -1730,11 +1961,13 @@ contains
            -w(ixO^S,mag(idim))*sum(w(ixO^S,mag(:))*w(ixO^S,mom(:)),dim=ndim+1)
         if(mhd_solve_eaux) f(ixO^S,eaux_)=w(ixO^S,mom(idim))*wC(ixO^S,eaux_)
 
+#if !defined(USE_SPLIT_B0) || USE_SPLIT_B0==1
         if (B0field) then
            f(ixO^S,e_) = f(ixO^S,e_) &
               + w(ixO^S,mom(idim)) * tmp(ixO^S) &
               - sum(w(ixO^S,mom(:))*w(ixO^S,mag(:)),dim=ndim+1) * block%B0(ixO^S,idim,idim)
         end if
+#endif
 
         if (mhd_Hall) then
         ! f_i[e]= f_i[e] + vHall_i*(b_k*b_k) - b_i*(vHall_k*b_k)
@@ -1742,11 +1975,13 @@ contains
               f(ixO^S,e_) = f(ixO^S,e_) + vHall(ixO^S,idim) * &
                  sum(w(ixO^S, mag(:))**2,dim=ndim+1) &
                  - w(ixO^S,mag(idim)) * sum(vHall(ixO^S,:)*w(ixO^S,mag(:)),dim=ndim+1)
+#if !defined(USE_SPLIT_B0) || USE_SPLIT_B0==1
               if (B0field) then
                  f(ixO^S,e_) = f(ixO^S,e_) &
                     + vHall(ixO^S,idim) * tmp(ixO^S) &
                     - sum(vHall(ixO^S,:)*w(ixO^S,mag(:)),dim=ndim+1) * block%B0(ixO^S,idim,idim)
               end if
+#endif
            end if
         end if
       end if
@@ -1765,24 +2000,30 @@ contains
       else
         f(ixO^S,mag(idir))=w(ixO^S,mom(idim))*w(ixO^S,mag(idir))-w(ixO^S,mag(idim))*w(ixO^S,mom(idir))
 
+#if !defined(USE_SPLIT_B0) || USE_SPLIT_B0==1
         if (B0field) then
           f(ixO^S,mag(idir))=f(ixO^S,mag(idir))&
                 +w(ixO^S,mom(idim))*block%B0(ixO^S,idir,idim)&
                 -w(ixO^S,mom(idir))*block%B0(ixO^S,idim,idim)
         end if
+#endif
 
         if (mhd_Hall) then
           ! f_i[b_k] = f_i[b_k] + vHall_i*b_k - vHall_k*b_i
           if (mhd_etah>zero) then
+#if !defined(USE_SPLIT_B0) || USE_SPLIT_B0==1
             if (B0field) then
               f(ixO^S,mag(idir)) = f(ixO^S,mag(idir)) &
                    - vHall(ixO^S,idir)*(w(ixO^S,mag(idim))+block%B0(ixO^S,idim,idim)) &
                    + vHall(ixO^S,idim)*(w(ixO^S,mag(idir))+block%B0(ixO^S,idir,idim))
             else
+#endif
               f(ixO^S,mag(idir)) = f(ixO^S,mag(idir)) &
                    - vHall(ixO^S,idir)*w(ixO^S,mag(idim)) &
                    + vHall(ixO^S,idim)*w(ixO^S,mag(idir))
+#if !defined(USE_SPLIT_B0) || USE_SPLIT_B0==1
             end if
+#endif
           end if
         end if
 
@@ -1802,13 +2043,17 @@ contains
       allocate(Jambi(ixI^S,1:3))
       call mhd_get_Jambi(w,x,ixI^L,ixO^L,Jambi)
       allocate(btot(ixO^S,1:3))
+#if !defined(USE_SPLIT_B0) || USE_SPLIT_B0==1
       if(B0field) then
         do idir=1,3
           btot(ixO^S, idir) = w(ixO^S,mag(idir)) + block%B0(ixO^S,idir,idim)
         enddo
       else
+#endif
         btot(ixO^S,1:3) = w(ixO^S,mag(1:3))
+#if !defined(USE_SPLIT_B0) || USE_SPLIT_B0==1
       endif
+#endif
       allocate(tmp2(ixO^S),tmp3(ixO^S))
       !tmp2 = Btot^2
       tmp2(ixO^S) = sum(btot(ixO^S,1:3)**2,dim=ndim+1)
@@ -1818,24 +2063,32 @@ contains
       select case(idim)
         case(1)
           tmp(ixO^S)=w(ixO^S,mag(3)) *Jambi(ixO^S,2) - w(ixO^S,mag(2)) * Jambi(ixO^S,3)
+#if !defined(USE_SPLIT_B0) || USE_SPLIT_B0==1
           if(B0field) tmp4(ixO^S) = w(ixO^S,mag(2)) * btot(ixO^S,3) - w(ixO^S,mag(3)) * btot(ixO^S,2)
+#endif
           f(ixO^S,mag(2))= f(ixO^S,mag(2)) - tmp2(ixO^S) * Jambi(ixO^S,3) + tmp3(ixO^S) * btot(ixO^S,3)
           f(ixO^S,mag(3))= f(ixO^S,mag(3)) + tmp2(ixO^S) * Jambi(ixO^S,2) - tmp3(ixO^S) * btot(ixO^S,2)
         case(2)
           tmp(ixO^S)=w(ixO^S,mag(1)) *Jambi(ixO^S,3) - w(ixO^S,mag(3)) * Jambi(ixO^S,1)
+#if !defined(USE_SPLIT_B0) || USE_SPLIT_B0==1
           if(B0field) tmp4(ixO^S) = w(ixO^S,mag(3)) * btot(ixO^S,1) - w(ixO^S,mag(1)) * btot(ixO^S,3)
+#endif
           f(ixO^S,mag(1))= f(ixO^S,mag(1)) + tmp2(ixO^S) * Jambi(ixO^S,3) - tmp3(ixO^S) * btot(ixO^S,3)
           f(ixO^S,mag(3))= f(ixO^S,mag(3)) - tmp2(ixO^S) * Jambi(ixO^S,1) + tmp3(ixO^S) * btot(ixO^S,1)
         case(3)
           tmp(ixO^S)=w(ixO^S,mag(2)) *Jambi(ixO^S,1) - w(ixO^S,mag(1)) * Jambi(ixO^S,2)
+#if !defined(USE_SPLIT_B0) || USE_SPLIT_B0==1
           if(B0field) tmp4(ixO^S) = w(ixO^S,mag(1)) * btot(ixO^S,2) - w(ixO^S,mag(2)) * btot(ixO^S,1)
+#endif
           f(ixO^S,mag(1))= f(ixO^S,mag(1)) - tmp2(ixO^S) * Jambi(ixO^S,2) + tmp3(ixO^S) * btot(ixO^S,2)
           f(ixO^S,mag(2))= f(ixO^S,mag(2)) + tmp2(ixO^S) * Jambi(ixO^S,1) - tmp3(ixO^S) * btot(ixO^S,1)
       endselect
 
       if(mhd_energy .and. .not. mhd_internal_e) then
         f(ixO^S,e_) = f(ixO^S,e_) + tmp2(ixO^S) *  tmp(ixO^S)
+#if !defined(USE_SPLIT_B0) || USE_SPLIT_B0==1
         if(B0field) f(ixO^S,e_) = f(ixO^S,e_) +  tmp3(ixO^S) *  tmp4(ixO^S)
+#endif
       endif
 
       deallocate(Jambi,btot,tmp2,tmp3)
@@ -1881,13 +2134,18 @@ contains
     call get_current(w,ixI^L,ixO^L,idirmin,current)
     !!!here we know that current has nonzero values only for components in the range idirmin, 3
  
+#if !defined(USE_SPLIT_B0) || USE_SPLIT_B0==1
     if(B0field) then
       do idir=1,3
         btot(ixO^S, idir) = w(ixO^S,mag(idir)) + block%B0(ixO^S,idir,b0i)
       enddo
     else
+#endif
       btot(ixO^S,1:3) = w(ixO^S,mag(1:3))
+#if !defined(USE_SPLIT_B0) || USE_SPLIT_B0==1
     endif
+#endif
+
     tmp(ixO^S) = sum(current(ixO^S,idirmin:3)*btot(ixO^S,idirmin:3),dim=ndim+1) !J.B
     b2(ixO^S) = sum(btot(ixO^S,1:3)**2,dim=ndim+1) !B^2
     do idir=1,idirmin-1
@@ -2191,12 +2449,13 @@ contains
         call internal_energy_add_source(qdt,ixI^L,ixO^L,wCT,w,x,eaux_)
       endif
 
+#if !defined(USE_SPLIT_B0) || USE_SPLIT_B0==1
       ! Source for B0 splitting
       if (B0field) then
         active = .true.
         call add_source_B0split(qdt,ixI^L,ixO^L,wCT,w,x)
       end if
-
+#endif
       ! Sources for resistivity in eqs. for e, B1, B2 and B3
       if (abs(mhd_eta)>smalldouble)then
         active = .true.
@@ -2286,8 +2545,12 @@ contains
     }
 
     if(mhd_radiative_cooling) then
+      if(it==7) print*, it," BEFOREADD ", minval(w(ixO^S,e_)), maxval(w(ixO^S,e_)),&
+                        minloc(w(ixO^S,e_))
       call radiative_cooling_add_source(qdt,ixI^L,ixO^L,wCT,&
-           w,x,qsourcesplit,active)
+           w,x,qsourcesplit,active, rc_fl)
+      if(it==7) print*, it," AFTERADD ", minval(w(ixO^S,e_)), maxval(w(ixO^S,e_)),&
+                        minloc(w(ixO^S,e_))
     end if
 
     if(mhd_viscosity) then
@@ -3016,9 +3279,10 @@ contains
 
     call curlvector(bvec,ixI^L,ixO^L,current,idirmin,idirmin0,ndir)
 
+#if !defined(USE_SPLIT_B0) || USE_SPLIT_B0==1
     if(B0field) current(ixO^S,idirmin0:3)=current(ixO^S,idirmin0:3)+&
         block%J0(ixO^S,idirmin0:3)
-
+#endif
   end subroutine get_current
 
   !> If resistivity is not zero, check diffusion time limit for dt
@@ -3068,7 +3332,7 @@ contains
     end if
 
     if(mhd_radiative_cooling) then
-      call cooling_get_dt(w,ixI^L,ixO^L,dtnew,dx^D,x)
+      call cooling_get_dt(w,ixI^L,ixO^L,dtnew,dx^D,x,rc_fl)
     end if
 
     if(mhd_viscosity) then
@@ -3235,11 +3499,15 @@ contains
     double precision, intent(in)  :: w(ixI^S, nw)
     double precision              :: mge(ixO^S)
 
+#if !defined(USE_SPLIT_B0) || USE_SPLIT_B0==1
     if (B0field) then
       mge = sum((w(ixO^S, mag(:))+block%B0(ixO^S,:,b0i))**2, dim=ndim+1)
     else
+#endif
       mge = sum(w(ixO^S, mag(:))**2, dim=ndim+1)
+#if !defined(USE_SPLIT_B0) || USE_SPLIT_B0==1
     end if
+#endif
   end function mhd_mag_en_all
 
   !> Compute full magnetic field by direction
@@ -3249,11 +3517,15 @@ contains
     double precision, intent(in)  :: w(ixI^S, nw)
     double precision              :: mgf(ixO^S)
 
+#if !defined(USE_SPLIT_B0) || USE_SPLIT_B0==1
     if (B0field) then
       mgf = w(ixO^S, mag(idir))+block%B0(ixO^S,idir,b0i)
     else
+#endif
       mgf = w(ixO^S, mag(idir))
+#if !defined(USE_SPLIT_B0) || USE_SPLIT_B0==1
     end if
+#endif
   end function mhd_mag_i_all
 
   !> Compute evolving magnetic energy
@@ -3347,6 +3619,7 @@ contains
 
     if (.not. B0field) then
        bmag(ixO^S)=sqrt(sum(w(ixO^S,mag(:))**2, dim=ndim+1))
+    else
        bmag(ixO^S)=sqrt(sum((w(ixO^S,mag(:)) + block%B0(ixO^S,1:ndir,b0i))**2))
     end if
 

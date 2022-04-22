@@ -536,6 +536,60 @@ contains
           call advect1(flux_method,half, idim^LIM,global_time+dt/3.0d0,ps2,global_time,ps1)
           call advect1(flux_method,1.0d0, idim^LIM,global_time+half*dt,ps1,global_time,ps)
 
+       case (IMEX_RK4)
+          ! step 1
+          call global_implicit_update(1d0/4d0,dt,global_time,ps1,ps)
+          !$OMP PARALLEL DO PRIVATE(igrid)
+          do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
+             ps2(igrid)%w=ps1(igrid)%w 
+             if(stagger_grid) then
+               ps2(igrid)%ws=ps1(igrid)%ws
+             endif
+          end do
+          !$OMP END PARALLEL DO
+
+          call advect1(flux_method,1d0/4d0, idim^LIM,global_time + dt/4d0,ps,global_time,ps2)
+          ! step 2
+          call global_implicit_update(1d0/12d0,dt,global_time + dt/4d0,ps3,ps2)
+          !$OMP PARALLEL DO PRIVATE(igrid)
+          do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
+             ps(igrid)%w=ps1(igrid)%w + ps3(igrid)%w -ps2(igrid)%w
+             ps1(igrid)%w=ps(igrid)%w 
+             if(stagger_grid) then
+               ps(igrid)%ws=ps1(igrid)%ws + ps3(igrid)%ws -ps2(igrid)%ws
+               ps1(igrid)%ws=ps(igrid)%ws 
+             endif
+          end do
+          !$OMP END PARALLEL DO
+
+          call advect1(flux_method,1d0/3d0, idim^LIM,global_time + dt/3d0,ps2,global_time,ps)
+          ! step 3
+          call global_implicit_update(1d0/6d0,dt,global_time + dt/3d0,ps3,ps)
+          !$OMP PARALLEL DO PRIVATE(igrid)
+          do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
+             ps2(igrid)%w=ps1(igrid)%w + ps3(igrid)%w - ps(igrid)%w
+             ps1(igrid)%w=ps2(igrid)%w 
+             if(stagger_grid) then
+               ps2(igrid)%ws=ps1(igrid)%ws + ps3(igrid)%ws - ps(igrid)%ws
+               ps1(igrid)%ws=ps2(igrid)%ws 
+             endif
+          end do
+          !$OMP END PARALLEL DO
+          call advect1(flux_method,1d0/2d0, idim^LIM,global_time + dt/2d0,ps,global_time,ps2)
+
+          ! step 4
+          call global_implicit_update(1d0/2d0,dt,global_time + dt/2d0,ps3,ps2)
+          !$OMP PARALLEL DO PRIVATE(igrid)
+          do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
+             ps(igrid)%w=ps3(igrid)%w - ps2(igrid)%w + ps1(igrid)%w
+             if(stagger_grid) then
+               ps(igrid)%ws=ps3(igrid)%ws - ps2(igrid)%ws + ps1(igrid)%ws
+             endif
+          end do
+          !$OMP END PARALLEL DO
+          call advect1(flux_method,1d0, idim^LIM,global_time + dt,ps2,global_time,ps)
+
+
        case default
           call mpistop("unkown fourstep time_integrator in advect")
        end select
@@ -544,6 +598,7 @@ contains
        select case (t_integrator)
        case (ssprk5)
           ! SSPRK(5,4) by Ruuth and Spiteri
+          !bcexch = .false.
           call advect1(flux_method,rk_beta11, idim^LIM,global_time,ps,global_time,ps1)
           !$OMP PARALLEL DO PRIVATE(igrid)
           do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
@@ -582,6 +637,7 @@ contains
              endif
           end do
           !$OMP END PARALLEL DO
+          !bcexch = .true.
           call advect1(flux_method,rk_beta55, idim^LIM,global_time+rk_c5*dt,ps2,global_time+(1.0d0-rk_beta55)*dt,ps)
 
        case default

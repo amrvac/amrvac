@@ -7,8 +7,13 @@ module mod_physics
   use mod_physics_roe
   use mod_physics_ppm
 
+
+
   implicit none
   public
+
+
+  double precision :: phys_gamma=5.0/3
 
   !> String describing the physics type of the simulation
   character(len=name_len) :: physics_type = ""
@@ -90,6 +95,10 @@ module mod_physics
   procedure(sub_implicit_update), pointer :: phys_implicit_update        => null()
   procedure(sub_evaluate_implicit),pointer:: phys_evaluate_implicit      => null()
   procedure(sub_clean_divb), pointer      :: phys_clean_divb             => null()
+  ! set the equilibrium variables
+  procedure(sub_set_equi_vars), pointer   :: phys_set_equi_vars          => null()
+  ! subroutine with no parameters which creates EUV images
+  procedure(sub_check_params), pointer    :: phys_te_images           => null()
 
   abstract interface
 
@@ -140,6 +149,7 @@ module mod_physics
        double precision, intent(out) :: tco_local, Tmax_local
      end subroutine sub_get_tcutoff
 
+    !> TODO this is not called anywhere
      subroutine sub_get_v_idim(w,x,ixI^L,ixO^L,idim,v)
        use mod_global_parameters
 
@@ -159,13 +169,14 @@ module mod_physics
 
      subroutine sub_get_cbounds(wLC, wRC, wLp, wRp, x, ixI^L, ixO^L, idim, Hspeed, cmax, cmin)
        use mod_global_parameters
+       use mod_variables
        integer, intent(in)             :: ixI^L, ixO^L, idim
        double precision, intent(in)    :: wLC(ixI^S, nw), wRC(ixI^S, nw)
        double precision, intent(in)    :: wLp(ixI^S, nw), wRp(ixI^S, nw)
        double precision, intent(in)    :: x(ixI^S, 1:^ND)
+       double precision, intent(inout) :: cmax(ixI^S,1:number_species)
+       double precision, intent(inout), optional :: cmin(ixI^S,1:number_species)
        double precision, intent(in)    :: Hspeed(ixI^S)
-       double precision, intent(inout) :: cmax(ixI^S)
-       double precision, intent(inout), optional :: cmin(ixI^S)
      end subroutine sub_get_cbounds
 
      subroutine sub_get_flux(wC, w, x, ixI^L, ixO^L, idim, f)
@@ -217,6 +228,12 @@ module mod_physics
        double precision, intent(in) :: qt     !< Current time
        logical, intent(inout)       :: active !< Output if the source is active
      end subroutine sub_clean_divb
+
+     !> set equilibrium variables other than b0 (e.g. p0 and rho0)  
+     subroutine sub_set_equi_vars(igrid)
+       integer, intent(in) :: igrid
+     end subroutine sub_set_equi_vars
+
 
      !> Add special advance in each advect step
      subroutine sub_special_advance(qt, psa)
@@ -331,6 +348,7 @@ module mod_physics
      end subroutine sub_implicit_update
 
    end interface
+
 
 contains
 
@@ -599,5 +617,7 @@ contains
     !$OMP END PARALLEL DO
 
   end subroutine dummy_implicit_update
+
+
 
 end module mod_physics

@@ -46,22 +46,40 @@ module mod_variables
   ! Global indices of variables that are often used
 
   !> Index of the (gas) density
-  integer, protected :: iw_rho = -1
+  integer :: iw_rho = -1
 
   !> Indices of the momentum density
-  integer, allocatable, protected :: iw_mom(:)
+  integer, allocatable :: iw_mom(:)
 
   !> Index of the energy density
-  integer, protected :: iw_e = -1
+  integer :: iw_e = -1
 
   !> Index of the internal energy density
-  integer, protected :: iw_eaux = -1
+  integer  :: iw_eaux = -1
 
   !> Indices of the magnetic field components
   integer, allocatable, protected :: iw_mag(:)
 
   !> Index of the cutoff temperature for the TRAC method
-  integer, protected :: iw_tcoff = -1
+  integer :: iw_tcoff = -1
+
+  !> number of species: each species has different characterictic speeds and should
+  !> be used accordingly in mod_finite_volume and mod_finite_difference
+  integer :: number_species = 1
+
+  !> index of the var
+  !> whose velocity appears in the induction eq.
+  integer :: index_v_mag = 1
+
+  !> the indices in 1:nwflux array are assumed consecutive for each species
+  !> this array should be of size number_species - 1 and contain the last index in the array of 
+  !> the first number_species - 1, the last index for the last one is nwflux
+  integer, allocatable :: stop_indices(:)
+
+  ! indices of equi for the species index_v_mag
+  ! these are needed for hlld solver, TODO: consider moving in a separate file
+  integer :: iw_equi_rho = -1
+  integer :: iw_equi_p = -1
 
 contains
 
