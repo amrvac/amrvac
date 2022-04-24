@@ -570,54 +570,18 @@ contains
       w(ixO^S,nw+6+idir)=curlvec(ixO^S,idir)
     end do
 
-    !! temperature gradient at cell centers
-    !do idir=1,ndim
-    !  call gradient(Te,ixI^L,ixO^L,idir,tmp2)
-    !  gradT(ixO^S,idir)=tmp2(ixO^S)
-    !end do
-    !! |B|
-    !tmp2(ixO^S)=dsqrt(B2(ixO^S))
-    !where(tmp2(ixO^S)/=0.d0)
-    !  tmp2(ixO^S)=1.d0/tmp2(ixO^S)
-    !elsewhere
-    !  tmp2(ixO^S)=bigdouble
-    !end where
-    !! b unit vector: magnetic field direction vector
-    !do idir=1,ndim
-    !  bunitvec(ixO^S,idir)=Btotal(ixO^S,idir)*tmp2(ixO^S)
-    !end do
-    !! temperature length scale inversed
-    !tmp2(ixO^S)=abs(sum(gradT(ixO^S,1:ndim)*bunitvec(ixO^S,1:ndim),dim=ndim+1))/Te(ixO^S)
-    !! fraction of cells size to temperature length scale
-    !tmp2(ixO^S)=minval(dxlevel)*tmp2(ixO^S)
-    !w(ixO^S,nw+10)=tmp2(ixO^S)
+    if(nw_extra>0) w(ixO^S,nw+10)=block%wextra(ixO^S,iw_tcoff)
 
-    !lrlt=.false.
-    !where(tmp2(ixO^S) > 0.5d0)
-    !  lrlt(ixO^S)=.true.
-    !end where
-    !w(ixO^S,nw+11)=1.d-9
-    !where(lrlt(ixO^S))
-    !  w(ixO^S,nw+11)=Te(ixO^S)
-    !end where
-    !w(ixO^S,nw+12)=0.d0
-    !if(any(lrlt(ixO^S))) then
-    !  w(ixO^S,nw+12)=maxval(Te(ixO^S), mask=lrlt(ixO^S))
-    !end if
-
-    !where(w(ixO^S,nw+12)>0.5d0)
-    !  w(ixO^S,nw+12)=0.5d0
-    !else where(w(ixO^S,nw+12)<0.02d0)
-    !  w(ixO^S,nw+12)=0.02d0
-    !end where
-  
   end subroutine specialvar_output
 
   subroutine specialvarnames_output(varnames)
   ! newly added variables need to be concatenated with the w_names/primnames string
     character(len=*) :: varnames
-    !varnames='Te Alfv divB beta bQ rad j1 j2 j3 trac ttrac tcutoff'
-    varnames='Te Alfv divB beta bQ rad j1 j2 j3'
+    if(nw_extra>0) then
+      varnames='Te Alfv divB beta bQ rad j1 j2 j3 Tcutoff'
+    else
+      varnames='Te Alfv divB beta bQ rad j1 j2 j3'
+    end if
 
   end subroutine specialvarnames_output
 

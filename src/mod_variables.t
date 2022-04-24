@@ -10,11 +10,14 @@ module mod_variables
   !> Number of flux variables which need user to specify boundary type
   integer           :: nwfluxbc = 0
 
-  !> Number of auxiliary variables
+  !> Number of auxiliary variables in w
   integer           :: nwaux = 0
 
-  !> Number of extra variables
+  !> Number of extra variables in w
   integer           :: nwextra = 0
+
+  !> Number of extra variables in wextra seperated from w
+  integer           :: nw_extra = 0
 
   !> Total number of variables
   integer           :: nw = 0
@@ -109,7 +112,7 @@ contains
     end if
   end function var_set_fluxvar
 
-  !> Set extra variable, which is not advected and has no boundary conditions.
+  !> Set extra variable in w, which is not advected and has no boundary conditions.
   !> This has to be done after defining flux variables and auxiliary variables.
   function var_set_extravar(name_cons, name_prim, ix) result(iw)
     character(len=*), intent(in)  :: name_cons, name_prim
@@ -128,6 +131,16 @@ contains
       write(prim_wnames(iw),"(A,I0)") name_prim, ix
     end if
   end function var_set_extravar
+
+  !> Set extra variable in wextra, which is not advected and has no boundary conditions and not output in dat.
+  !> This has to be done after defining flux variables and auxiliary variables.
+  function var_set_wextra() result(iw)
+    integer :: iw
+
+    nw_extra = nw_extra + 1
+    iw      = nw_extra
+
+  end function var_set_wextra
 
   !> Set auxiliary variable, which is not advected but has boundary conditions.
   !> This has to be done after defining flux variables.
@@ -226,17 +239,5 @@ contains
     cons_wnames(nwflux) = 'eaux'
     prim_wnames(nwflux) = 'paux'
   end function var_set_internal_energy
-
-  !> Set Tcoff variable for TRAC method
-  function var_set_tcoff() result(iw)
-    integer :: iw
-
-    nwextra = nwextra + 1
-    nw      = nw + 1
-    iw      = nw
-    iw_tcoff = nw
-    cons_wnames(iw) = 'Tcoff'
-    prim_wnames(iw) = 'Tcoff'
-  end function var_set_tcoff
 
 end module mod_variables

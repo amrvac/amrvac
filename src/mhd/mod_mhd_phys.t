@@ -468,9 +468,10 @@ contains
     ! set cutoff temperature when using the TRAC method, as well as an auxiliary weight
     Tweight_ = -1
     if(mhd_trac) then
-      Tcoff_ = var_set_tcoff()
+      Tcoff_ = var_set_wextra()
+      iw_Tcoff=Tcoff_
       if(mhd_trac_type .ge. 3) then
-        Tweight_ = var_set_extravar('Tweight', 'Tweight')
+        Tweight_ = var_set_wextra()
       endif
     else
       Tcoff_ = -1
@@ -1342,7 +1343,7 @@ contains
     double precision, dimension(ixI^S,1:ndir) :: bunitvec
     double precision, dimension(ixI^S,1:ndim) :: gradT
     double precision :: Bdir(ndim)
-    double precision :: ltr(ixI^S),ltrc,ltrp,altr(ixI^S)
+    double precision :: ltrc,ltrp,altr(ixI^S)
     integer :: idims,jxO^L,hxO^L,ixA^D,ixB^D
     integer :: jxP^L,hxP^L,ixP^L
     logical :: lrlt(ixI^S)
@@ -1361,7 +1362,7 @@ contains
     select case(mhd_trac_type)
     case(0)
       !> test case, fixed cutoff temperature
-      w(ixI^S,Tcoff_)=2.5d5/unit_temperature
+      block%wextra(ixI^S,Tcoff_)=2.5d5/unit_temperature
     case(1)
       hxO^L=ixO^L-1;
       jxO^L=ixO^L+1;
@@ -1376,16 +1377,16 @@ contains
     case(2)
       !> iijima et al. 2021, LTRAC method
       ltrc=1.5d0
-      ltrp=2.5d0
+      ltrp=4.d0
       ixP^L=ixO^L^LADD1;
       hxO^L=ixO^L-1;
       jxO^L=ixO^L+1;
       hxP^L=ixP^L-1;
       jxP^L=ixP^L+1;
       lts(ixP^S)=0.5d0*abs(Te(jxP^S)-Te(hxP^S))/Te(ixP^S)
-      ltr(ixP^S)=max(one, (exp(lts(ixP^S))/ltrc)**ltrp)
-      w(ixO^S,Tcoff_)=Te(ixO^S)*&
-        (0.25*(ltr(jxO^S)+two*ltr(ixO^S)+ltr(hxO^S)))**0.4d0
+      lts(ixP^S)=max(one, (exp(lts(ixP^S))/ltrc)**ltrp)
+      lts(ixO^S)=0.25d0*(lts(jxO^S)+two*lts(ixO^S)+lts(hxO^S))
+      block%wextra(ixO^S,Tcoff_)=Te(ixO^S)*lts(ixO^S)**0.4d0
     case default
       call mpistop("mhd_trac_type not allowed for 1D simulation")
     end select
@@ -1394,7 +1395,7 @@ contains
     select case(mhd_trac_type)
     case(0)
       !> test case, fixed cutoff temperature
-      w(ixI^S,Tcoff_)=2.5d5/unit_temperature
+      block%wextra(ixI^S,Tcoff_)=2.5d5/unit_temperature
     case(1,4,6)
       ! temperature gradient at cell centers
       do idims=1,ndim
@@ -1450,7 +1451,7 @@ contains
     case(2)
       !> iijima et al. 2021, LTRAC method
       ltrc=1.5d0
-      ltrp=2.5d0
+      ltrp=4.d0
       ixP^L=ixO^L^LADD1;
       ! temperature gradient at cell centers
       do idims=1,ndim
@@ -1481,16 +1482,18 @@ contains
       else
         lts(ixP^S)=minval(block%ds(ixP^S,:),dim=ndim+1)*lts(ixP^S)
       end if
-      ltr(ixP^S)=max(one, (exp(lts(ixP^S))/ltrc)**ltrp)
+      lts(ixP^S)=max(one, (exp(lts(ixP^S))/ltrc)**ltrp)
   
-      altr(ixI^S)=zero  
+      altr=zero
       do idims=1,ndim 
         hxO^L=ixO^L-kr(idims,^D);
         jxO^L=ixO^L+kr(idims,^D);
-        altr(ixO^S)=altr(ixO^S) &
-          +0.25*(ltr(hxO^S)+two*ltr(ixO^S)+ltr(jxO^S))*bunitvec(ixO^S,idims)**2
-        w(ixO^S,Tcoff_)=Te(ixO^S)*altr(ixO^S)**(0.4*ltrp)
+        altr(ixO^S)=altr(ixO^S)+0.25d0*(lts(hxO^S)+two*lts(ixO^S)+lts(jxO^S))*bunitvec(ixO^S,idims)**2
       end do
+      block%wextra(ixO^S,Tcoff_)=Te(ixO^S)*altr(ixO^S)**0.4d0
+      ! need one ghost layer for thermal conductivity
+      {block%wextra(ixOmin^D-1^D%ixP^S,Tcoff_)=block%wextra(ixOmin^D^D%ixP^S,Tcoff_) \}
+      {block%wextra(ixOmax^D+1^D%ixP^S,Tcoff_)=block%wextra(ixOmax^D^D%ixP^S,Tcoff_) \}
     case(3,5)
       !> do nothing here
     case default

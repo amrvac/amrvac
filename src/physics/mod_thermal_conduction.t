@@ -65,7 +65,9 @@ module mod_thermal_conduction
     procedure(get_var_subr), pointer,nopass :: get_temperature_from_conserved => null()
     procedure(get_var_subr), pointer,nopass :: get_temperature_equi => null()
      !> Indices of the variables
-    integer :: e_=-1,Tcoff_=-1
+    integer :: e_=-1
+    !> Index of cut off temperature for TRAC
+    integer :: Tcoff_
     ! if has_equi = .true. get_temperature_equi and get_rho_equi have to be set
     logical :: has_equi=.false.
   
@@ -396,8 +398,8 @@ contains
       ! conductivity at cell center
       if(phys_trac) then
         minq(ix^S)=Te(ix^S)
-        where(minq(ix^S) < w(ix^S,fl%Tcoff_))
-          minq(ix^S)=w(ix^S,fl%Tcoff_)
+        where(minq(ix^S) < block%wextra(ix^S,fl%Tcoff_))
+          minq(ix^S)=block%wextra(ix^S,fl%Tcoff_)
         end where
         minq(ix^S)=fl%tc_k_para*sqrt(minq(ix^S)**5)
       else
@@ -807,8 +809,8 @@ contains
     end do
     ! transition region adaptive conduction
     if(phys_trac) then
-      where(ke(ixI^S) < w(ixI^S,fl%Tcoff_))
-        ke(ixI^S)=w(ixI^S,fl%Tcoff_)
+      where(ke(ixI^S) < block%wextra(ixI^S,fl%Tcoff_))
+        ke(ixI^S)=block%wextra(ixI^S,fl%Tcoff_)
       end where
     end if
     ! cell corner conduction flux

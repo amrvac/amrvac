@@ -21,6 +21,8 @@ module mod_physicaldata
      double precision, dimension(:^D&,:), allocatable :: we
      !> Variables, cell corner values
      double precision, dimension(:^D&,:), allocatable :: wc
+     !> extra variables do not need ghost cell and equation flux
+     double precision, dimension(:^D&,:), pointer :: wextra=>Null()
      !> Time-independent magnetic field at cell center and cell interface
      double precision, dimension(:^D&,:,:), pointer :: B0=>Null()
      !> Time-independent electric current density at cell center

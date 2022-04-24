@@ -88,7 +88,7 @@ subroutine alloc_node(igrid)
     ! allocate arrays for solution and space
     call alloc_state(igrid, ps(igrid), ixG^LL, ixGext^L, .true.)
     ! allocate arrays for one level coarser solution
-    call alloc_state(igrid, psc(igrid), ixCoG^L, ixCoG^L, .true.)
+    call alloc_state_coarse(igrid, psc(igrid), ixCoG^L, ixCoG^L)
     if(.not.convert) then
       ! allocate arrays for old solution
       call alloc_state(igrid, pso(igrid), ixG^LL, ixGext^L, .false.)
@@ -568,12 +568,11 @@ subroutine alloc_node(igrid)
 end subroutine alloc_node
 
 !> allocate memory to physical state of igrid node
-subroutine alloc_state(igrid, s, ixG^L, ixGext^L, alloc_x)
+subroutine alloc_state(igrid, s, ixG^L, ixGext^L, alloc_once_for_ps)
   use mod_global_parameters
-  use mod_geometry
   type(state) :: s
   integer, intent(in) :: igrid, ixG^L, ixGext^L
-  logical, intent(in) :: alloc_x
+  logical, intent(in) :: alloc_once_for_ps
   integer             :: ixGs^L
 
   allocate(s%w(ixG^S,1:nw))
@@ -590,7 +589,9 @@ subroutine alloc_state(igrid, s, ixG^L, ixGext^L, alloc_x)
     end if
     s%ixGs^L=ixGs^L;
   end if
-  if(alloc_x) then
+  if(alloc_once_for_ps) then
+    ! allocate extra variables for ps state
+    if(nw_extra>0) allocate(s%wextra(ixG^S,1:nw_extra))
     ! allocate coordinates
     allocate(s%x(ixG^S,1:ndim))
     allocate(s%dx(ixGext^S,1:ndim), &
@@ -616,7 +617,8 @@ subroutine alloc_state(igrid, s, ixG^L, ixGext^L, alloc_x)
       allocate(s%special_values(ndim+2))
     end if
   else
-    ! use spatial info on ps states to save memory
+    ! share common info from ps states to save memory
+    if(nw_extra>0) s%wextra=>ps(igrid)%wextra
     s%x=>ps(igrid)%x
     s%dx=>ps(igrid)%dx
     s%ds=>ps(igrid)%ds
@@ -636,6 +638,34 @@ subroutine alloc_state(igrid, s, ixG^L, ixGext^L, alloc_x)
   end if
 end subroutine alloc_state
 
+!> allocate memory to one-level coarser physical state of igrid node
+subroutine alloc_state_coarse(igrid, s, ixG^L, ixGext^L)
+  use mod_global_parameters
+  type(state) :: s
+  integer, intent(in) :: igrid, ixG^L, ixGext^L
+  integer             :: ixGs^L
+
+  allocate(s%w(ixG^S,1:nw))
+  s%igrid=igrid
+  s%w=0.d0
+  s%ixG^L=ixG^L;
+  {^D& ixGsmin^D = ixGmin^D-1; ixGsmax^D = ixGmax^D|;}
+  if(stagger_grid) then
+    allocate(s%ws(ixGs^S,1:nws))
+    s%ws=0.d0
+    s%ixGs^L=ixGs^L;
+  end if
+  ! allocate coordinates
+  allocate(s%x(ixG^S,1:ndim))
+  allocate(s%dx(ixGext^S,1:ndim), &
+             s%ds(ixGext^S,1:ndim),s%dsC(ixGext^S,1:3))
+  allocate(s%dvolume(ixGext^S))
+  allocate(s%surfaceC(ixGs^S,1:ndim), &
+           s%surface(ixG^S,1:ndim))
+  ! allocate physical boundary flag
+  allocate(s%is_physical_boundary(2*ndim))
+end subroutine alloc_state_coarse
+
 subroutine dealloc_state(igrid, s,dealloc_x)
   use mod_global_parameters
   integer, intent(in) :: igrid
@@ -647,11 +677,13 @@ subroutine dealloc_state(igrid, s,dealloc_x)
     deallocate(s%ws)
   end if
   if(dealloc_x) then
+    if(nw_extra>0) deallocate(s%wextra)
     ! deallocate coordinates
     deallocate(s%x)
-    deallocate(s%dx,s%ds)
+    deallocate(s%dx,s%ds,s%dsC)
     deallocate(s%dvolume)
     deallocate(s%surfaceC,s%surface)
+    deallocate(s%is_physical_boundary)
     if(B0field) then
       deallocate(s%B0)
       deallocate(s%J0)
@@ -660,17 +692,35 @@ subroutine dealloc_state(igrid, s,dealloc_x)
       deallocate(s%equi_vars)
     end if
   else
-    nullify(s%x,s%dx,s%ds,s%dvolume,s%surfaceC,s%surface)
+    nullify(s%x,s%dx,s%ds,s%dsC,s%dvolume,s%surfaceC,s%surface)
+    nullify(s%is_physical_boundary)
     if(B0field) nullify(s%B0,s%J0)
     if(number_equi_vars > 0) then
       nullify(s%equi_vars)
     end if
+    if(nw_extra>0) nullify(s%wextra)
   end if
 end subroutine dealloc_state
 
+subroutine dealloc_state_coarse(igrid, s)
+  use mod_global_parameters
+  integer, intent(in) :: igrid
+  type(state) :: s
+
+  deallocate(s%w)
+  if(stagger_grid) then
+    deallocate(s%ws)
+  end if
+  ! deallocate coordinates
+  deallocate(s%x)
+  deallocate(s%dx,s%ds,s%dsC)
+  deallocate(s%dvolume)
+  deallocate(s%surfaceC,s%surface)
+  deallocate(s%is_physical_boundary)
+end subroutine dealloc_state_coarse
+
 subroutine dealloc_node(igrid)
   use mod_global_parameters
-  use mod_geometry
 
   integer, intent(in) :: igrid
 
@@ -679,7 +729,7 @@ subroutine dealloc_node(igrid)
   end if
 
   call dealloc_state(igrid, ps(igrid),.true.)
-  call dealloc_state(igrid, psc(igrid),.true.)
+  call dealloc_state_coarse(igrid, psc(igrid))
   call dealloc_state(igrid, ps1(igrid),.false.)
   call dealloc_state(igrid, pso(igrid),.false.)
   ! deallocate temporary solution space

@@ -656,10 +656,10 @@ contains
     ! set cutoff temperature when using the TRAC method, as well as an auxiliary weight
     Tweight_c_ = -1
     if(twofl_trac) then
-      Tcoff_c_ = var_set_fluxvar('Tcoff_c', 'TCoff_c', need_bc=.false.)
+      Tcoff_c_ = var_set_wextra()
       iw_tcoff = Tcoff_c_
-      if(twofl_trac_type .ge. 2) then
-        Tweight_c_ = var_set_extravar('Tweight_c', 'Tweight_c')
+      if(twofl_trac_type > 2) then
+        Tweight_c_ = var_set_wextra()
       endif
     else
       Tcoff_c_ = -1
@@ -697,9 +697,9 @@ contains
 
     Tweight_n_ = -1
     if(twofl_trac) then
-      Tcoff_n_ = var_set_fluxvar('Tcoff_n', 'TCoff_n', need_bc=.false.)
-      if(twofl_trac_type .ge. 2) then
-        Tweight_n_ = var_set_extravar('Tweight_n', 'Tweight_n')
+      Tcoff_n_ = var_set_wextra()
+      if(twofl_trac_type > 2) then
+        Tweight_n_ = var_set_wextra()
       endif
     else
       Tcoff_n_ = -1

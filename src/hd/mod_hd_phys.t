@@ -248,7 +248,8 @@ contains
     end if
 
     if(hd_trac) then
-      Tcoff_ = var_set_tcoff()
+      Tcoff_ = var_set_wextra()
+      iw_tcoff=Tcoff_
     else
       Tcoff_ = -1
     end if
