@@ -800,7 +800,7 @@ module mod_radiative_cooling
       e_     = nwx          ! energy density
       eaux_  = iw_eaux
 
-      Tcoff_ = nwflux+1
+      if(phys_trac) Tcoff_=iw_tcoff
       
       ! Checks if coolcurve is a piecewise power law (PPL)
       PPL_curves = [Character(len=65) :: 'Hildner','FM', 'Rosner', 'Klimchuk','SPEX_DM_rough','SPEX_DM_fine']
@@ -1540,7 +1540,7 @@ module mod_radiative_cooling
          plocal   = ptherm(ix^D)
          rholocal = wCT(ix^D,rho_)
          if(phys_trac) then
-           ttofflocal=w(ix^D,Tcoff_)
+           ttofflocal=block%wextra(ix^D,Tcoff_)
          end if
          emin     = rholocal*tlow/(rc_gamma-1.d0)
          Lmax            = max(zero,pnew(ix^D)/(rc_gamma-1.d0)-emin)/qdt
@@ -1617,7 +1617,7 @@ module mod_radiative_cooling
       
          rholocal = wCT(ix^D,rho_)
          if(phys_trac) then
-           ttofflocal=w(ix^D,Tcoff_)
+           ttofflocal=block%wextra(ix^D,Tcoff_)
          end if
          emin     = rholocal*tlow/(rc_gamma-1.d0)
          Lmax            = max(zero,(pnew(ix^D)/(rc_gamma-1.d0))-emin)/qdt
@@ -1722,7 +1722,7 @@ module mod_radiative_cooling
          plocal   = ptherm(ix^D)
          rholocal = wCT(ix^D,rho_)
          if(phys_trac) then
-           ttofflocal=w(ix^D,Tcoff_)
+           ttofflocal=block%wextra(ix^D,Tcoff_)
          end if
          emin     = rholocal*tlow/(rc_gamma-1.d0)
          Lmax            = max(zero,pnew(ix^D)/(rc_gamma-1.d0)-emin)/qdt
@@ -1801,7 +1801,7 @@ module mod_radiative_cooling
          elocal   = plocal/(rc_gamma-1.d0)
          rholocal = wCT(ix^D,rho_)
          if(phys_trac) then
-           ttofflocal=w(ix^D,Tcoff_)
+           ttofflocal=block%wextra(ix^D,Tcoff_)
          end if
          emin     = rholocal*tlow/(rc_gamma-1.d0)
          Lmax            = max(zero,pnew(ix^D)/(rc_gamma-1.d0)-emin)/qdt
@@ -1883,7 +1883,7 @@ module mod_radiative_cooling
          plocal   = ptherm(ix^D)
          rholocal = wCT(ix^D,rho_)
          if(phys_trac) then
-           ttofflocal=w(ix^D,Tcoff_)
+           ttofflocal=block%wextra(ix^D,Tcoff_)
          end if
          emin     = w(ix^D,rho_)*tlow*invgam
          Lmax     = max(zero,(pnew(ix^D)*invgam-emin)/qdt)

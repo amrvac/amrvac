@@ -130,24 +130,18 @@ contains
   end subroutine init_trac_block
 
   subroutine init_trac_Tcoff()
-    integer :: ixO^L,igrid,iigrid
-    double precision :: Tmax_grid,Tmax_pe
+    integer :: igrid,iigrid
     !----------------- init Tmax and Tcoff -------------------!
-    ^D&ixOmin^D=ixmlo^D\
-    ^D&ixOmax^D=ixmhi^D\
     do iigrid=1,igridstail; igrid=igrids(iigrid);
-      ps(igrid)%w(ixO^S,Tcoff_)=0.d0
-      ps(igrid)%w(ixO^S,Tweight_)=0.d0
+      ps(igrid)%wextra(ixG^T,Tcoff_)=0.d0
+      ps(igrid)%wextra(ixG^T,Tweight_)=0.d0
     end do
   end subroutine init_trac_Tcoff
 
   subroutine TRAC_simple(tco_global,trac_alfa,T_peak)
     double precision, intent(in) :: tco_global, trac_alfa,T_peak
     integer :: iigrid, igrid
-    integer :: ixO^L,trac_tcoff
 
-    ixO^L=ixM^LL;
-    trac_tcoff=iw_tcoff
     do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
       {^IFONED
       ps(igrid)%special_values(1)=tco_global
@@ -160,7 +154,7 @@ contains
       else if(ps(igrid)%special_values(1) .gt. 0.2d0*T_peak) then
         ps(igrid)%special_values(1)=0.2d0*T_peak
       end if
-      ps(igrid)%w(ixO^S,trac_tcoff)=ps(igrid)%special_values(1)
+      ps(igrid)%wextra(ixG^T,iw_tcoff)=ps(igrid)%special_values(1)
       !> special values(2) to save old tcutoff
       ps(igrid)%special_values(2)=ps(igrid)%special_values(1)
     end do
@@ -174,10 +168,10 @@ contains
     ixO^L=ixM^LL;
     trac_tcoff=iw_tcoff
     do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
-      where(ps(igrid)%w(ixO^S,trac_tcoff) .lt. T_bott)
-        ps(igrid)%w(ixO^S,trac_tcoff)=T_bott
-      else where(ps(igrid)%w(ixO^S,trac_tcoff) .gt. 0.2d0*T_peak)
-        ps(igrid)%w(ixO^S,trac_tcoff)=0.2d0*T_peak
+      where(ps(igrid)%wextra(ixO^S,trac_tcoff) .lt. T_bott)
+        ps(igrid)%wextra(ixO^S,trac_tcoff)=T_bott
+      else where(ps(igrid)%wextra(ixO^S,trac_tcoff) .gt. 0.2d0*T_peak)
+        ps(igrid)%wextra(ixO^S,trac_tcoff)=0.2d0*T_peak
       end where
     end do
   end subroutine LTRAC
@@ -244,8 +238,8 @@ contains
     xcmin^D=nghostcells+1\
     xcmax^D=block_nx^D+nghostcells\
     do iigrid=1,igridstail; igrid=igrids(iigrid);
-      ps(igrid)%w(:^D&,Tweight_)=zero
-      ps(igrid)%w(:^D&,Tcoff_)=zero
+      ps(igrid)%wextra(:^D&,Tweight_)=zero
+      ps(igrid)%wextra(:^D&,Tcoff_)=zero
       ^D&xbmin^D=rnode(rpxmin^D_,igrid)-xTmin(^D)\
       ^D&xbmax^D=rnode(rpxmax^D_,igrid)-xTmin(^D)\
       xdmin^D=nint(xbmin^D/dxT^D)+1\
@@ -471,8 +465,8 @@ contains
                 else
                   weight=(1/ds)**weightIndex
                 endif
-                ps(igrid)%w(ixc^D,Tweight_)=ps(igrid)%w(ixc^D,Tweight_)+weight
-                ps(igrid)%w(ixc^D,Tcoff_)=ps(igrid)%w(ixc^D,Tcoff_)+weight*Tcoff_line(i)
+                ps(igrid)%wextra(ixc^D,Tweight_)=ps(igrid)%wextra(ixc^D,Tweight_)+weight
+                ps(igrid)%wextra(ixc^D,Tcoff_)=ps(igrid)%wextra(ixc^D,Tcoff_)+weight*Tcoff_line(i)
               {enddo\}
             else
               call mpistop("we need to check here 366Line in mod_trac.t")
@@ -483,10 +477,10 @@ contains
     end do
     ! finish interpolation
     do iigrid=1,igridstail; igrid=igrids(iigrid);
-      where (ps(igrid)%w(ixO^S,Tweight_)>0.d0)
-        ps(igrid)%w(ixO^S,Tcoff_)=ps(igrid)%w(ixO^S,Tcoff_)/ps(igrid)%w(ixO^S,Tweight_)
+      where (ps(igrid)%wextra(ixO^S,Tweight_)>0.d0)
+        ps(igrid)%wextra(ixO^S,Tcoff_)=ps(igrid)%wextra(ixO^S,Tcoff_)/ps(igrid)%wextra(ixO^S,Tweight_)
       elsewhere
-        ps(igrid)%w(ixO^S,Tcoff_)=0.2d0*Tmax
+        ps(igrid)%wextra(ixO^S,Tcoff_)=0.2d0*Tmax
       endwhere
     enddo
   end subroutine block_interp_grid
@@ -567,18 +561,18 @@ contains
             else
               weight=(1/ds)**weightIndex
             endif
-            ps(igrid)%w(ixc^D,Tweight_)=ps(igrid)%w(ixc^D,Tweight_)+weight
-            ps(igrid)%w(ixc^D,Tcoff_)=ps(igrid)%w(ixc^D,Tcoff_)+weight*Tlcoff(ix1)
+            ps(igrid)%wextra(ixc^D,Tweight_)=ps(igrid)%wextra(ixc^D,Tweight_)+weight
+            ps(igrid)%wextra(ixc^D,Tcoff_)=ps(igrid)%wextra(ixc^D,Tcoff_)+weight*Tlcoff(ix1)
           {enddo\}
         endif
       enddo
     enddo
     ! finish interpolation
     do iigrid=1,igridstail; igrid=igrids(iigrid);
-      where(ps(igrid)%w(ixO^S,Tweight_)>0.d0)
-        ps(igrid)%w(ixO^S,Tcoff_)=ps(igrid)%w(ixO^S,Tcoff_)/ps(igrid)%w(ixO^S,Tweight_)
+      where(ps(igrid)%wextra(ixO^S,Tweight_)>0.d0)
+        ps(igrid)%wextra(ixO^S,Tcoff_)=ps(igrid)%wextra(ixO^S,Tcoff_)/ps(igrid)%wextra(ixO^S,Tweight_)
       elsewhere
-        ps(igrid)%w(ixO^S,Tcoff_)=0.d0
+        ps(igrid)%wextra(ixO^S,Tcoff_)=0.d0
       endwhere
     enddo
   end subroutine interp_Tcoff
