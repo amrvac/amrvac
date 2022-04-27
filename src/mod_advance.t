@@ -727,7 +727,7 @@ contains
     if (fix_conserve_global .and. fix_conserve_at_step) then
       call recvflux(idim^LIM)
       call sendflux(idim^LIM)
-      call fix_conserve(psb,idim^LIM,iwstart,nwgc)
+      call fix_conserve(psb,idim^LIM,iwstart,nwflux)
       if(stagger_grid) then
         call fix_edges(psb,idim^LIM)
         ! fill the cell-center values from the updated staggered variables
