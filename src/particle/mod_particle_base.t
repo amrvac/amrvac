@@ -190,7 +190,7 @@ contains
                               downsample_particles, dtsave_particles, tmax_particles, &
                               num_particles, ndefpayload, nusrpayload, &
                               losses, const_dt_particles, particles_cfl, dtheta, &
-                              relativistic, integrator_type_particles
+                              relativistic, integrator_type_particles, particles_eta, particles_etah
 
     do n = 1, size(files)
       open(unitpar, file=trim(files(n)), status="old")
