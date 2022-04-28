@@ -10,7 +10,7 @@ module mod_ghostcells_update
   ! A switch of update physical boundary or not
   logical, public :: bcphys=.true.
   ! A switch of update non-physical boundary or not
-  logical, public :: bcexch=.true.
+  !logical, public :: bcexch=.true.
   integer :: ixM^L, ixCoG^L, ixCoM^L
 
   ! The number of interleaving sending buffers for ghost cells
@@ -489,7 +489,7 @@ contains
       end if
     end do
     !$OMP END PARALLEL DO
-    if(bcexch) then
+    !if(bcexch) then
       ! default : no singular axis
       ipole=0
       irecv_c=0
@@ -647,7 +647,7 @@ contains
       do ipwbuf=1,npwbuf
          if (isend_buf(ipwbuf)/=0) deallocate(pwbuf(ipwbuf)%w)
       end do
-    endif
+    !endif !bcexch
     ! fill physical boundary ghost cells after internal ghost-cell values exchange
     if(bcphys.and.stagger_grid) then
       !$OMP PARALLEL DO SCHEDULE(dynamic) PRIVATE(igrid)

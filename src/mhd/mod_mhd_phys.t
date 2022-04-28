@@ -540,13 +540,14 @@ contains
     phys_add_source          => mhd_add_source
     phys_to_conserved        => mhd_to_conserved
     phys_to_primitive        => mhd_to_primitive
-    if(mhd_solve_eaux) then
-      phys_ei_to_e             => mhd_ei_to_e_aux
-      phys_e_to_ei             => mhd_e_to_ei_aux
-    else
-      phys_ei_to_e             => mhd_ei_to_e
-      phys_e_to_ei             => mhd_e_to_ei
-    end if
+! TODO remove, not used anymore
+!    if(mhd_solve_eaux) then
+!      phys_ei_to_e             => mhd_ei_to_e_aux
+!      phys_e_to_ei             => mhd_e_to_ei_aux
+!    else
+!      phys_ei_to_e             => mhd_ei_to_e
+!      phys_e_to_ei             => mhd_e_to_ei
+!    end if
     phys_check_params        => mhd_check_params
     phys_check_w             => mhd_check_w
     phys_get_pthermal        => mhd_get_pthermal
@@ -600,22 +601,18 @@ contains
       allocate(tc_fl)
       if(use_mhd_tc .eq. MHD_TC) then
         call tc_get_mhd_params(tc_fl,tc_params_read_mhd)
-        if(phys_internal_e) then
-          tc_fl%get_temperature_from_conserved => mhd_get_temperature_from_eint
-          call add_sts_method(mhd_get_tc_dt_mhd,mhd_sts_set_source_tc_mhd,e_,1,e_,1,.false.)
-        else
-          tc_fl%get_temperature_from_conserved => mhd_get_temperature_from_etot
-          call add_sts_method(mhd_get_tc_dt_mhd,mhd_sts_set_source_tc_mhd,e_,1,e_,1,.false.)
-          call set_conversion_methods_to_head(mhd_e_to_ei, mhd_ei_to_e)
-        endif
+        call add_sts_method(mhd_get_tc_dt_mhd,mhd_sts_set_source_tc_mhd,e_,1,e_,1,.false.)
       else if(use_mhd_tc .eq. HD_TC) then
         call tc_get_hd_params(tc_fl,tc_params_read_hd)
-        if(phys_internal_e) then
-          tc_fl%get_temperature_from_conserved => mhd_get_temperature_from_eint
-          call add_sts_method(mhd_get_tc_dt_hd,mhd_sts_set_source_tc_hd,e_,1,e_,1,.false.)
-        else
-          tc_fl%get_temperature_from_conserved => mhd_get_temperature_from_etot
-          call add_sts_method(mhd_get_tc_dt_hd,mhd_sts_set_source_tc_hd,e_,1,e_,1,.false.)
+        call add_sts_method(mhd_get_tc_dt_hd,mhd_sts_set_source_tc_hd,e_,1,e_,1,.false.)
+      endif
+      if(phys_internal_e) then
+        tc_fl%get_temperature_from_conserved => mhd_get_temperature_from_eint
+      else
+        tc_fl%get_temperature_from_conserved => mhd_get_temperature_from_etot
+        if(mhd_solve_eaux) then
+          call set_conversion_methods_to_head(mhd_e_to_ei_aux, mhd_ei_to_e_aux)
+        else  
           call set_conversion_methods_to_head(mhd_e_to_ei, mhd_ei_to_e)
         endif
       endif

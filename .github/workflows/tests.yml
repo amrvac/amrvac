@@ -2,9 +2,9 @@ name: tests
 
 on:
   push:
-    branches: [ master ]
+    branches: [ master,amrvac3.0 ]
   pull_request:
-    branches: [ master ]
+    branches: [ master,amrvac3.0 ]
 
 env:
   CC: /usr/bin/gcc-9

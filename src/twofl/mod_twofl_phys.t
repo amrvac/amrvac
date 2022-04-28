@@ -910,20 +910,13 @@ contains
       endif
       if(use_twofl_tc_c .eq. MHD_TC) then
         call tc_get_mhd_params(tc_fl_c,tc_c_params_read_mhd)
-        if(phys_internal_e) then
-          call add_sts_method(twofl_get_tc_dt_mhd_c,twofl_sts_set_source_tc_c_mhd,e_c_,1,e_c_,1,.false.)
-        else
-          call add_sts_method(twofl_get_tc_dt_mhd_c,twofl_sts_set_source_tc_c_mhd,e_c_,1,e_c_,1,.false.)
-          call set_conversion_methods_to_head(twofl_e_to_ei_c, twofl_ei_to_e_c)
-        endif
+        call add_sts_method(twofl_get_tc_dt_mhd_c,twofl_sts_set_source_tc_c_mhd,e_c_,1,e_c_,1,.false.)
       else if(use_twofl_tc_c .eq. HD_TC) then
         call tc_get_hd_params(tc_fl_c,tc_c_params_read_hd)
-        if(phys_internal_e) then
-          call add_sts_method(twofl_get_tc_dt_hd_c,twofl_sts_set_source_tc_c_hd,e_c_,1,e_c_,1,.false.)
-        else
-          call add_sts_method(twofl_get_tc_dt_hd_c,twofl_sts_set_source_tc_c_hd,e_c_,1,e_c_,1,.false.)
-          call set_conversion_methods_to_head(twofl_e_to_ei_c, twofl_ei_to_e_c)
-        endif
+        call add_sts_method(twofl_get_tc_dt_hd_c,twofl_sts_set_source_tc_c_hd,e_c_,1,e_c_,1,.false.)
+      endif
+      if(.not. phys_internal_e) then
+        call set_conversion_methods_to_head(twofl_e_to_ei_c, twofl_ei_to_e_c)
       endif
       call set_error_handling_to_head(twofl_tc_handle_small_e_c)
       tc_fl_c%get_rho => get_rhoc_tot

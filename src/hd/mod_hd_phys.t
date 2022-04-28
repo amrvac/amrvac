@@ -265,8 +265,8 @@ contains
     phys_add_source          => hd_add_source
     phys_to_conserved        => hd_to_conserved
     phys_to_primitive        => hd_to_primitive
-    phys_ei_to_e             => hd_ei_to_e
-    phys_e_to_ei             => hd_e_to_ei
+    !phys_ei_to_e             => hd_ei_to_e
+    !phys_e_to_ei             => hd_e_to_ei
     phys_check_params        => hd_check_params
     phys_check_w             => hd_check_w
     phys_get_pthermal        => hd_get_pthermal
