@@ -73,6 +73,7 @@ module mod_usr_methods
   procedure(check_particle), pointer    :: usr_check_particle    => null()
   procedure(particle_fields), pointer   :: usr_particle_fields   => null()
   procedure(particle_analytic), pointer :: usr_particle_analytic => null()
+  procedure(particle_position), pointer :: usr_particle_position => null()
 
   ! Called after the mesh has been adjuste
   procedure(after_refine), pointer      :: usr_after_refine => null()
@@ -410,6 +411,14 @@ module mod_usr_methods
       double precision, intent(in)  :: tloc
       double precision, intent(out) :: vec(ndir)
     end subroutine particle_analytic
+
+    !> User-defined particle movement
+    subroutine particle_position(x, n, tloc, tlocnew)
+      use mod_global_parameters
+      integer, intent(in)             :: n
+      double precision, intent(inout) :: x(3)
+      double precision, intent(in)    :: tloc, tlocnew
+    end subroutine particle_position
 
     subroutine after_refine(n_coarsen, n_refine)
       integer, intent(in) :: n_coarsen

@@ -1,0 +1,66 @@
+!=====================================================
+! Project : Advection test: a VAC log
+!
+!=====================================================
+
+ &filelist
+        base_filename='output/vaclogo'
+    	convert_type='vtuBCCmpi'
+        autoconvert=T
+        typefilelog='special'
+ /
+
+ &savelist
+        itsave(1,1)=0
+        itsave(1,2)=0
+        ditsave_log=10
+        dtsave_dat=0.01d0
+ /
+
+ &stoplist
+        time_max=1.0d0
+ /
+
+ &methodlist
+        time_stepper=  'fivestep'
+        flux_scheme =    20*'fd'
+        limiter= 20*'mp5'
+ /
+
+ &boundlist
+        typeboundary_min1='periodic'
+        typeboundary_max1='periodic'
+        typeboundary_min2='periodic'
+        typeboundary_max2='periodic'
+ /
+
+ &meshlist
+        refine_max_level=3
+        refine_threshold=20*0.1d0
+        block_nx1=10
+        block_nx2=10
+        domain_nx1=50
+        domain_nx2=50
+        xprobmin1=0.0d0
+        xprobmax1=1.0d0
+        xprobmin2=0.0d0
+        xprobmax2=1.0d0
+ /
+
+ &paramlist
+       courantpar=0.8d0
+       typecourant='minimum'
+ /
+
+ &rho_list
+        rho_v = 1.0,1.0
+        rho_particles = .true.
+ /
+ 
+ &particles_list
+        physics_type_particles='sample'
+        num_particles=3
+        dtsave_particles = 0.01d0
+        write_ensemble = t
+        write_individual = f
+ /

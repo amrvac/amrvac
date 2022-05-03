@@ -33,7 +33,8 @@ contains
   subroutine sample_create_particles()
     ! initialise the particles (=fixed interpolation points)
     use mod_global_parameters
-    use mod_usr_methods, only: usr_create_particles, usr_update_payload, usr_check_particle
+    use mod_usr_methods, only: usr_create_particles, usr_update_payload, &
+                               usr_check_particle, usr_particle_position
 
     integer          :: n, idir, igrid, ipe_particle, nparticles_local
     double precision :: x(3, num_particles)
@@ -141,7 +142,7 @@ contains
   subroutine sample_integrate_particles(end_time)
     ! this interpolates the HD/MHD quantities at the particle positions
     use mod_global_parameters
-    use mod_usr_methods, only: usr_create_particles, usr_update_payload
+    use mod_usr_methods, only: usr_create_particles, usr_update_payload, usr_particle_position
     double precision, intent(in) :: end_time
 
     double precision, dimension(1:ndir) :: v, x
@@ -162,6 +163,11 @@ contains
       tloc                    = particle(ipart)%self%time
       x(1:ndir)               = particle(ipart)%self%x(1:ndir)
       tlocnew                 = tloc+dt_p
+
+      ! Position update (if defined)
+      ! TODO: this may create problems with interpolation out of boundaries
+      if (associated(usr_particle_position)) call usr_particle_position(x,ipart,tloc,tlocnew)
+      particle(ipart)%self%x(1:ndir) = x
 
       ! Time update
       particle(ipart)%self%time = tlocnew

@@ -235,9 +235,6 @@ contains
     allocate(mag(ndir))
     mag(:) = var_set_bfield(ndir)
 
-    ! set number of variables which need update ghostcells
-    nwgc=ndir
-
     ! start with magnetic field and skip velocity when update ghostcells
     iwstart=mag(1)
 
@@ -246,6 +243,9 @@ contains
     else
       psi_ = -1
     end if
+
+    ! set number of variables which need update ghostcells
+    nwgc=nwflux-ndir
 
     ! determine number of stagger variables
     if(stagger_grid) nws=ndim
