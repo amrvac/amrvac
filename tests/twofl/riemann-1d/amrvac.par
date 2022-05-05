@@ -1,0 +1,63 @@
+ &filelist
+        autoconvert   = T
+        base_filename = 'shock'
+        convert_type = "user"
+        typefilelog='regression_test'
+ /
+
+ &savelist
+        !dtsave_dat     = 500
+        dtsave_dat     = 100
+ /
+
+ &stoplist
+        !time_max      = 2500.0
+        time_max      = 200.0
+ /
+
+ &methodlist
+
+        time_stepper = 'threestep'
+        time_integrator = 'IMEX_ARS3'
+
+        flux_scheme     = 20*'hll'
+        limiter  = 20*'woodward'
+        small_values_method = 'ignore'
+
+ /
+
+ &boundlist
+        !rho_c, vx_c, vy_c, e_c, bx, by, rho_n, vx_n, vy_n, e_n
+        typeboundary_min1  = 'symm','asymm','symm','symm','symm','asymm','symm','asymm','symm','symm'
+        typeboundary_max1  = 10*'symm'
+
+
+ /
+
+ &meshlist
+        refine_criterion = 3
+        refine_max_level = 8
+    	  refine_threshold = 20*0.5d0
+        w_refine_weight(11)=1.0d0
+        domain_nx1    = 2048
+        block_nx1    = 64
+        xprobmin1     = 0d0
+        xprobmax1     = 4d3
+ /
+
+ &paramlist
+        !dtdiffpar    = 1d-2
+        courantpar    = 0.8d0
+ /
+
+ &twofl_list
+        typedivbfix   =  'linde'
+        !typedivbfix   =  'none'
+        twofl_eq_energy = 2
+        twofl_alpha_coll = 1d0
+        twofl_coll_inc_te = .true.
+        twofl_implicit_coll_terms=.true.
+        !dtcollpar=5d3
+ /
+
+

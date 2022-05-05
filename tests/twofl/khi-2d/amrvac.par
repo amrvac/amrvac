@@ -1,0 +1,73 @@
+ &filelist
+        autoconvert   = T
+        base_filename = 'khi'
+        convert_type = "user"
+        typefilelog='regression_test'
+ /
+
+ &savelist
+        !dtsave_dat     = 1.0
+        dtsave_dat     = 5d-3 
+ /
+
+ &stoplist
+        !time_max      = 46.0
+        time_max      = 1d-2
+ /
+
+ &methodlist
+
+        time_stepper = 'threestep'
+        time_integrator = 'IMEX_ARS3'
+
+        flux_scheme     = 20*'hll'
+        limiter  = 20*'cada3'
+        small_values_method = 'ignore'
+
+ /
+
+ &boundlist
+        typeboundary_min1  = 10*'periodic'
+        typeboundary_max1  = 10*'periodic'
+        typeboundary_min2  = 'symm','symm','asymm','symm','symm','symm','symm','symm','asymm','symm'
+        typeboundary_max2  = 'symm','symm','asymm','symm','symm','symm','symm','symm','asymm','symm'
+
+
+ /
+
+ &meshlist
+        refine_criterion = 3
+        refine_max_level = 4
+    	  refine_threshold = 20*0.8d0
+        w_refine_weight(11)=1.0d0
+        domain_nx1    = 2048
+        domain_nx2    = 1024
+        block_nx1    = 64
+        block_nx2    = 32
+        xprobmin1     = -1.5d0
+        xprobmax1     = 1.5d0
+        xprobmin2     = -0.75d0
+        xprobmax2     = 0.75d0
+ /
+
+ &paramlist
+        !dtdiffpar    = 1d-2
+        courantpar    = 0.8d0
+ /
+
+ &twofl_list
+        typedivbfix   =  'linde'
+        twofl_eq_energy = 2
+        !twofl_alpha_coll = 0d0
+        twofl_alpha_coll = 3d2
+        twofl_coll_inc_te = .true.
+        !twofl_coll_inc_te = .false.
+        twofl_implicit_coll_terms=.true.
+        !dtcollpar=5d3
+ /
+
+&usr_list
+   H_ion_fr  =  1.5d-2
+/
+
+

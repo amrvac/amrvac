@@ -19,14 +19,14 @@ hd/blast_wave_cylindrical_2D hd/blast_wave_cylindrical_3D hd/blast_wave_polar_3D
 MHD_DIRS := mhd/Riemann_1.75D mhd/rotor_2D mhd/wake_2.5D mhd/shock_cloud_2D	\
 mhd/Kelvin_Helmholtz_2D mhd/Orszag_Tang_2D mhd/blast_wave_Cartesian_2D		\
 mhd/blast_wave_polar_2D mhd/blast_wave_spherical_3D mhd/ripple_2.5D		\
-mhd/solar_atmosphere_2.5D  mhd/blast_wave_Cartesian_3D \
+mhd/solar_atmosphere_2.5D  mhd/solar_atmosphere_3D  mhd/blast_wave_Cartesian_3D \
 mhd/radiative_cooling_3D mhd/blast_wave_polar_stretched_2D			\
 mhd/tilt_instability_2D mhd/doubleGEM_2.5D mhd/Longcope_Strauss_2D		\
 mhd/blast_wave_cylindrical_3D mhd/blast_wave_spherical_stretched_3D		\
 mhd/convection_2D mhd/Kelvin_Helmholtz_3D mhd/ring_thermal_conduction_2D	\
 mhd/ring_thermal_conduction_3D mhd/solar_flare_reconnection_2.5D                \
 mhd/lfff_extrapolation_3D mhd/tilt_instability_3D mhd/Low_flux_rope_3D          \
-mhd/field_loop_2.5D mhd/Orszag_Tang_2.5D mhd/Ambipolar1DWave mhd/Ambipolar1DWave-B0split
+mhd/field_loop_2.5D mhd/solar_wind_2.5D mhd/Orszag_Tang_2.5D mhd/Ambipolar1DWave mhd/Ambipolar1DWave-B0split
 
 MG_DIRS := multigrid/convergence_2d multigrid/convergence_3d	\
 multigrid/field_loop_2d multigrid/implicit_diffusion
@@ -35,20 +35,23 @@ RD_DIRS := rd/schnakenberg_2d rd/test_suite_2d
 
 MF_DIRS := mf/Mackay_bipole_Cartesian_3D
 
-TEST_DIRS := $(RHO_DIRS) $(HD_DIRS) $(MHD_DIRS) $(MG_DIRS) $(RD_DIRS) $(MF_DIRS)
+TWOFL_DIRS := twofl/wave-alfven-1d-unif  twofl/khi-2d twofl/riemann-1d
+
+TEST_DIRS := $(RHO_DIRS) $(HD_DIRS) $(MHD_DIRS) $(MG_DIRS) $(RD_DIRS) $(MF_DIRS) $(TWOFL_DIRS)
 
 # Directories with altered names (useful for cleaning)
 CLEAN_TEST := $(TEST_DIRS:%=clean-%)
 
-.PHONY: all rho hd mhd mg rd mf clean $(TEST_DIRS) $(CLEAN_TEST)
+.PHONY: all rho hd mhd mg rd mf twofl clean $(TEST_DIRS) $(CLEAN_TEST)
 
-all: rho hd mhd mg rd mf
+all: rho hd mhd mg rd mf twofl
 rho: $(RHO_DIRS)
 hd: $(HD_DIRS)
 mhd: $(MHD_DIRS)
 mg: $(MG_DIRS)
 rd: $(RD_DIRS)
 mf: $(MF_DIRS)
+twofl: $(TWOFL_DIRS)
 
 $(TEST_DIRS):
 	@$(MAKE) -C $@ -f test.make

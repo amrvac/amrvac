@@ -1,0 +1,70 @@
+ &filelist
+        autoconvert   = T
+        base_filename = 'implicit-coupled'
+        convert_type = "dat_generic_mpi"
+        typefilelog='regression_test'
+ /
+
+ &savelist
+        dtsave_dat     = 0.5
+ /
+
+ &stoplist
+        time_max      = 5.0
+ /
+
+ &methodlist
+
+        time_stepper = 'threestep'
+        time_integrator = 'IMEX_ARS3'
+        flux_scheme     = 20*'hll'
+        limiter  = 20*'cada3'
+
+        small_values_method = 'ignore'
+
+ /
+
+ &boundlist
+        typeboundary_min1  = 13*'periodic'
+        typeboundary_max1  = 13*'periodic'
+
+ /
+
+ &meshlist
+        refine_criterion = 3
+        refine_max_level = 1
+    	  refine_threshold = 20*0.4d0
+        domain_nx1    = 1024
+        block_nx1    = 16
+        xprobmin1     = 0.5d0
+        xprobmax1     = 2.1d0
+ /
+
+ &paramlist
+        courantpar    = 0.8d0
+ /
+
+ &twofl_list
+        typedivbfix   =  'none'
+        twofl_eq_energy = 2
+        has_equi_pe_n0 = .true.
+        has_equi_pe_c0 = .true.
+        has_equi_rho_n0 = .true.
+        has_equi_rho_c0 = .true.
+        B0field=.true.
+        B0field_forcefree=.true.
+        SI_unit       =  .true.
+
+        twofl_dump_full_vars = .true.
+        twofl_cbounds_species=.true.
+        twofl_alpha_coll = 1d4
+        twofl_coll_inc_te = .false.
+        twofl_implicit_coll_terms=.true.
+ /
+
+
+ &usr_list
+        nn= 5
+        ampl=1d-3
+
+/
