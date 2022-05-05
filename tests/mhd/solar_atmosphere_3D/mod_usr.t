@@ -97,7 +97,6 @@ contains
     Fc=2.d5/unit_pressure/unit_velocity  ! constant thermal conduction flux
     ! Spitzer thermal conductivity with cgs units
     k_para=8.d-7*unit_temperature**3.5d0/unit_length/unit_density/unit_velocity**3 
-    print*, "KPARA", k_para
     !! set T distribution with height
     do j=1,jmax
        ya(j)=(dble(j)-0.5d0)*dr-gzone

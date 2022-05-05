@@ -12,14 +12,12 @@
         itsave(1,1)=0
         itsave(1,2)=0
         dtsave_log=0.05d0
-        !dtsave_dat=1.d0
-        ditsave_dat=1
+        dtsave_dat=1.d0
  /
         dtsave_custom=0.05d0
 
  &stoplist
-        !time_max=10.0d0
-        it_max=10
+        time_max=10.0d0
  /
 
  &methodlist
@@ -78,7 +76,7 @@
         mhd_energy=.true.
         mhd_gravity=.true.
         typedivbfix='ct'
-        mhd_thermal_conduction=.false.
+        mhd_thermal_conduction=.true.
         mhd_radiative_cooling=.true.
         mhd_solve_eaux=.true.
         mhd_trac=.true.
@@ -88,11 +86,3 @@
         B0field=.true.
         B0field_forcefree=.true.
         mhd_adiab=0.d0
-
-
-
- &tc_list
-  tc_perpendicular=.false.
-  tc_k_para = 0.21633973559351147
- /
-~  
