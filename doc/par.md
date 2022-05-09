@@ -335,7 +335,7 @@ without changing time, set `reset_it=T`.
     typetvd= 'roe' | 'yee' | 'harten' | 'sweby'
     typeaverage='default' | 'roe' | 'arithmetic'
 
-    typeboundspeed= 'Einfeldt' | 'cmaxmean'
+    typeboundspeed= 'Einfeldt' | 'cmaxmean' | 'cmaxleftright'
     tvdlfeps = DOUBLE
 
     flathllc= F | T
@@ -444,7 +444,7 @@ array.
 ### Different TVD variants {#par_tvdvariants}
 
 Both `tvd` and `tvdlf` have a few variants, these can be set in the
-strings `typetvd` and `typeboundspeed`, with defaults 'roe' and 'cmaxmean',
+strings `typetvd` and `typeboundspeed`, with defaults 'roe' and 'Einfeldt',
 respectively. The default `typetvd='roe'` is the fastest of the four upwind
 types. For the TVDLF, the 'cmaxmean' merely means whether the maximal physical
 propagation speed is determined as the maximum speed for the mean state based
