@@ -65,10 +65,16 @@ contains
     phys_req_diagonal = .false.
     use_particles = rho_particles
 
+    allocate(start_indices(number_species),stop_indices(number_species))
+    ! set the index of the first flux variable for species 1
+    start_indices(1)=1
     rho_ = var_set_rho()
 
     ! set number of variables which need update ghostcells
     nwgc=nwflux
+
+    ! set the index of the last flux variable for species 1
+    stop_indices(1)=nwflux
 
     ! Check whether custom flux types have been defined
     if (.not. allocated(flux_type)) then

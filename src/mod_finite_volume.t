@@ -150,7 +150,7 @@ contains
     double precision, dimension(ixO^S)      :: inv_volume
     double precision, dimension(1:ndim)     :: dxinv, dxdim
     integer, dimension(ixI^S)               :: patchf
-    integer :: idims, iw, ix^L, hxO^L, ixC^L, ixCR^L, kxC^L, kxR^L
+    integer :: idims, iw, ix^L, hxO^L, ixC^L, ixCR^L, kxC^L, kxR^L, ii
     type(ct_velocity) :: vcts
 
     associate(wCT=>sCT%w, wnew=>snew%w, wold=>sold%w)
@@ -227,13 +227,25 @@ contains
        ! use approximate Riemann solver to get flux at interfaces
        select case(method)
        case(fs_hll)
-         call get_Riemann_flux_hll()
+         do ii=1,number_species
+           call get_Riemann_flux_hll(start_indices(ii),stop_indices(ii))
+         end do
        case(fs_hllc,fs_hllcd)
-         call get_Riemann_flux_hllc()
+         do ii=1,number_species
+           call get_Riemann_flux_hllc(start_indices(ii),stop_indices(ii))
+         end do
        case(fs_hlld)
-         call get_Riemann_flux_hlld()
+         do ii=1,number_species
+           if(ii==index_v_mag) then
+             call get_Riemann_flux_hlld(start_indices(ii),stop_indices(ii))
+           else
+             call get_Riemann_flux_hll(start_indices(ii),stop_indices(ii))
+           endif   
+         end do
        case(fs_tvdlf)
-         call get_Riemann_flux_tvdlf()
+         do ii=1,number_species
+           call get_Riemann_flux_tvdlf(start_indices(ii),stop_indices(ii))
+         end do
        case(fs_tvdmu)
          call get_Riemann_flux_tvdmu()
        case default
@@ -323,19 +335,8 @@ contains
       end do
     end subroutine get_Riemann_flux_tvdmu
 
-    subroutine get_Riemann_flux_tvdlf()
-      integer :: ii
-      if(one_fluid) then
-        call get_Riemann_flux_tvdlf_species(1,iwstart,nwflux)
-      else
-        do ii=1,number_species
-          call get_Riemann_flux_tvdlf_species(ii,start_indices(ii),stop_indices(ii))
-        end do
-      end if
-    end subroutine get_Riemann_flux_tvdlf
-
-    subroutine get_Riemann_flux_tvdlf_species(ii,iws,iwe)
-      integer, intent(in) :: ii,iws,iwe
+    subroutine get_Riemann_flux_tvdlf(iws,iwe)
+      integer, intent(in) :: iws,iwe
       double precision :: fac(ixC^S)
 
       fac(ixC^S) = -0.5d0*tvdlfeps*cmaxC(ixC^S,ii)
@@ -350,21 +351,10 @@ contains
          fC(ixC^S,iw,idims)=fLC(ixC^S, iw)
       end do ! Next iw
 
-    end subroutine get_Riemann_flux_tvdlf_species
+    end subroutine get_Riemann_flux_tvdlf
 
-    subroutine get_Riemann_flux_hll()
-      integer :: ii
-      if(one_fluid) then
-        call get_Riemann_flux_hll_species(1,iwstart,nwflux)      
-      else
-        do ii=1,number_species
-          call get_Riemann_flux_hll_species(ii,start_indices(ii),stop_indices(ii))
-        end do
-      end if
-    end subroutine get_Riemann_flux_hll
- 
-    subroutine get_Riemann_flux_hll_species(ii,iws,iwe)
-      integer, intent(in) :: ii,iws,iwe
+    subroutine get_Riemann_flux_hll(iws,iwe)
+      integer, intent(in) :: iws,iwe
       integer :: ix^D
 
       do iw=iws,iwe
@@ -384,22 +374,10 @@ contains
        {end do\}
       end do
 
-    end subroutine get_Riemann_flux_hll_species
+    end subroutine get_Riemann_flux_hll
 
-    subroutine get_Riemann_flux_hllc()
-      integer :: ii
-      if(one_fluid) then
-        call get_Riemann_flux_hllc_species(number_species,iwstart,nwflux)
-      else
-        do ii=1,number_species
-          call get_Riemann_flux_hllc_species(ii,start_indices(ii),stop_indices(ii))
-        end do
-      end if
-    end subroutine get_Riemann_flux_hllc
-
-    subroutine get_Riemann_flux_hllc_species(ii, iws, iwe)
-      implicit none
-      integer, intent(in) :: ii, iws, iwe  
+    subroutine get_Riemann_flux_hllc(iws,iwe)
+      integer, intent(in) :: iws, iwe  
       double precision, dimension(ixI^S,1:nwflux)     :: whll, Fhll, fCD
       double precision, dimension(ixI^S)              :: lambdaCD
 
@@ -470,26 +448,11 @@ contains
          fC(ixC^S,iw,idims)=fLC(ixC^S,iw)
 
       end do ! Next iw
-    end subroutine get_Riemann_flux_hllc_species
-
-    subroutine get_Riemann_flux_hlld()
-      integer :: ii
-      if(one_fluid) then
-        call get_Riemann_flux_hlld_species(1,iwstart,nwflux)   
-      else
-        do ii=1,number_species
-          if(ii==index_v_mag) then
-            call get_Riemann_flux_hlld_species(ii,start_indices(ii),stop_indices(ii))
-          else
-            call get_Riemann_flux_hllc_species(ii,start_indices(ii),stop_indices(ii))
-          endif   
-        end do
-      end if
-    end subroutine get_Riemann_flux_hlld
+    end subroutine get_Riemann_flux_hllc
 
     !> HLLD Riemann flux from Miyoshi 2005 JCP, 208, 315 and Guo 2016 JCP, 327, 543
-    subroutine get_Riemann_flux_hlld_species(ii,iws,iwe)
-      integer, intent(in) :: ii, iws, iwe  
+    subroutine get_Riemann_flux_hlld(iws,iwe)
+      integer, intent(in) :: iws, iwe
       double precision, dimension(ixI^S,1:nwflux) :: w1R,w1L,f1R,f1L,f2R,f2L
       double precision, dimension(ixI^S,1:nwflux) :: w2R,w2L
       double precision, dimension(ixI^S) :: sm,s1R,s1L,suR,suL,Bx
@@ -747,7 +710,7 @@ contains
      {end do\}
 
       end associate
-    end subroutine get_Riemann_flux_hlld_species
+    end subroutine get_Riemann_flux_hlld
 
     !> HLLD Riemann flux from Miyoshi 2005 JCP, 208, 315 and Guo 2016 JCP, 327, 543
     !> https://arxiv.org/pdf/2108.04991.pdf

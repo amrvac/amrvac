@@ -1,8 +1,7 @@
 SETUP_FLAGS := -d=1
 SCHEME_DIR := ../../schemes
 
-SCHEMES := 2step_tvdlf_mm 3step_hll_cada \
-4step_hll_mc rk4_tvdlf_cada ssprk54_fd_mp5 ssprk54_hll_mp5
+SCHEMES := 3step_tvdlf_mm 3step_hll_cada 3step_hlld_cada 3step_fd_mp5
 
 TESTS := $(SCHEMES:%=twofl_shock_1d_%.log)
 
