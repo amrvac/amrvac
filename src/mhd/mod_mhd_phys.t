@@ -423,6 +423,9 @@ contains
       call mpistop('Unknown divB fix')
     end select
 
+    allocate(start_indices(number_species),stop_indices(number_species))
+    ! set the index of the first flux variable for species 1
+    start_indices(1)=1
     ! Determine flux variables
     rho_ = var_set_rho()
 
@@ -465,6 +468,12 @@ contains
       tracer(itr) = var_set_fluxvar("trc", "trp", itr, need_bc=.false.)
     end do
 
+    ! set number of variables which need update ghostcells
+    nwgc=nwflux
+
+    ! set the index of the last flux variable for species 1
+    stop_indices(1)=nwflux
+
     ! set cutoff temperature when using the TRAC method, as well as an auxiliary weight
     Tweight_ = -1
     if(mhd_trac) then
@@ -476,9 +485,6 @@ contains
     else
       Tcoff_ = -1
     end if
-
-    ! set number of variables which need update ghostcells
-    nwgc=nwflux
 
     ! determine number of stagger variables
     if(stagger_grid) nws=ndim

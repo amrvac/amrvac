@@ -232,6 +232,10 @@ contains
     end if
     use_particles = hd_particles
 
+    allocate(start_indices(number_species),stop_indices(number_species))
+
+    ! set the index of the first flux variable for species 1
+    start_indices(1)=1
     ! Determine flux variables
     rho_ = var_set_rho()
 
@@ -245,13 +249,6 @@ contains
     else
        e_ = -1
        p_ = -1
-    end if
-
-    if(hd_trac) then
-      Tcoff_ = var_set_wextra()
-      iw_tcoff=Tcoff_
-    else
-      Tcoff_ = -1
     end if
 
     phys_get_dt              => hd_get_dt
@@ -299,6 +296,16 @@ contains
 
     ! set number of variables which need update ghostcells
     nwgc=nwflux
+
+    ! set the index of the last flux variable for species 1
+    stop_indices(1)=nwflux
+
+    if(hd_trac) then
+      Tcoff_ = var_set_wextra()
+      iw_tcoff=Tcoff_
+    else
+      Tcoff_ = -1
+    end if
 
     ! initialize thermal conduction module
     if (hd_thermal_conduction) then

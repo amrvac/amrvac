@@ -12,8 +12,8 @@
  /
 
  &methodlist
-
         time_stepper = 'threestep'
+        time_integrator = 'IMEX_ARS3'
         flux_scheme  = 20*'hll'
         limiter  = 20*'woodward'
         small_values_method = 'ignore'

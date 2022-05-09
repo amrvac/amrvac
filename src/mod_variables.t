@@ -66,9 +66,6 @@ module mod_variables
   !> Index of the cutoff temperature for the TRAC method
   integer :: iw_tcoff = -1
 
-  !> if is one fluid or not (two or more fluids)
-  logical :: one_fluid =.true.
-
   !> number of species: each species has different characterictic speeds and should
   !> be used accordingly in mod_finite_volume and mod_finite_difference
   integer :: number_species = 1

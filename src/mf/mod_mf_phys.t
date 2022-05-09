@@ -237,6 +237,9 @@ contains
 
     ! start with magnetic field and skip velocity when update ghostcells
     iwstart=mag(1)
+    allocate(start_indices(number_species),stop_indices(number_species))
+    ! set the index of the first flux variable for species 1
+    start_indices(1)=mag(1)
 
     if (mf_glm) then
       psi_ = var_set_fluxvar('psi', 'psi', need_bc=.false.)
@@ -246,6 +249,9 @@ contains
 
     ! set number of variables which need update ghostcells
     nwgc=nwflux-ndir
+
+    ! set the index of the last flux variable for species 1
+    stop_indices(1)=nwflux
 
     ! determine number of stagger variables
     if(stagger_grid) nws=ndim

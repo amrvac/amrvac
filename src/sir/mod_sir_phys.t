@@ -112,6 +112,9 @@ contains
     phys_req_diagonal = .false.
     use_particles = sir_particles
 
+    allocate(start_indices(number_species),stop_indices(number_species))
+    ! set the index of the first flux variable for species 1
+    start_indices(1)=1
     ! Treat all variables as a density
     su_ = var_set_fluxvar("s", "s")
     in_ = var_set_fluxvar("i", "i")
@@ -119,6 +122,9 @@ contains
 
     ! set number of variables which need update ghostcells
     nwgc=nwflux
+
+    ! set the index of the last flux variable for species 1
+    stop_indices(1)=nwflux
 
     ! Disable flux conservation near AMR boundaries, since we have no fluxes
     fix_conserve_global = .false.

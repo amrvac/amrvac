@@ -1,0 +1,14 @@
+ &filelist
+        base_filename  = '_3step_fd_mp5'
+ /
+
+ &methodlist
+        time_stepper=  'threestep'
+        flux_scheme =    20*'fd'
+        limiter=  20*'mp5'
+        typeboundspeed  = 'cmaxmean'
+ /
+
+ &paramlist
+        courantpar = 0.9
+ /
