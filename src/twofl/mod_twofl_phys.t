@@ -670,7 +670,6 @@ contains
 
 #if !defined(ONE_FLUID) || ONE_FLUID==0
 
-    one_fluid=.false.
     ! TODO so far number_species is only used to treat them differently
     ! in the solvers (different cbounds)
     if (twofl_cbounds_species) then
