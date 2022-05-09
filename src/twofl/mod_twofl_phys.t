@@ -2443,7 +2443,8 @@ function convert_vars_splitting(ixI^L,ixO^L, w, x, nwc) result(wnew)
     double precision, dimension(ixI^S) :: umean, dmean, csoundL, csoundR, tmp1,tmp2,tmp3
     integer :: ix^D
 
-    if (boundspeedEinfeldt) then
+    select case (boundspeed) 
+    case (1)
       ! This implements formula (10.52) from "Riemann Solvers and Numerical
       ! Methods for Fluid Dynamics" by Toro.
       call get_rhoc_tot(wLP,x,ixI^L,ixO^L,rhoc)
@@ -2496,7 +2497,7 @@ function convert_vars_splitting(ixI^L,ixO^L, w, x, nwc) result(wnew)
       else
         cmax(ixO^S,1)=abs(umean(ixO^S))+dmean(ixO^S)
       end if
-    else
+    case (2)
     ! typeboundspeed=='cmaxmean'
       wmean(ixO^S,1:nwflux)=0.5d0*(wLC(ixO^S,1:nwflux)+wRC(ixO^S,1:nwflux))
 #if !defined(ONE_FLUID) || ONE_FLUID==0
@@ -2529,7 +2530,28 @@ function convert_vars_splitting(ixI^L,ixO^L, w, x, nwc) result(wnew)
 #endif
 
       end if
-    end if
+    case (3)
+      ! Miyoshi 2005 JCP 208, 315 equation (67)
+      call twofl_get_csound(wLp,x,ixI^L,ixO^L,idim,csoundL)
+      call twofl_get_csound(wRp,x,ixI^L,ixO^L,idim,csoundR)
+      csoundL(ixO^S)=max(csoundL(ixO^S),csoundR(ixO^S))
+      if(present(cmin)) then
+        cmin(ixO^S,1)=min(0.5*(wLp(ixO^S,mom_c(idim))+ wRp(ixO^S,mom_n(idim))),&
+            0.5*(wRp(ixO^S,mom_c(idim))+ wRp(ixO^S,mom_n(idim))))-csoundL(ixO^S)
+        cmax(ixO^S,1)=max(0.5*(wLp(ixO^S,mom_c(idim))+ wRp(ixO^S,mom_n(idim))),&
+            0.5*(wRp(ixO^S,mom_c(idim))+ wRp(ixO^S,mom_n(idim))))+csoundL(ixO^S)
+        if(H_correction) then
+          {do ix^DB=ixOmin^DB,ixOmax^DB\}
+            cmin(ix^D,1)=sign(one,cmin(ix^D,1))*max(abs(cmin(ix^D,1)),Hspeed(ix^D))
+            cmax(ix^D,1)=sign(one,cmax(ix^D,1))*max(abs(cmax(ix^D,1)),Hspeed(ix^D))
+          {end do\}
+        end if
+      else
+        cmax(ixO^S,1)=max(0.5*(wLp(ixO^S,mom_c(idim))+ wRp(ixO^S,mom_n(idim))),&
+          0.5*(wRp(ixO^S,mom_c(idim))+ wRp(ixO^S,mom_n(idim))))+csoundL(ixO^S)
+      end if
+    end select
+
 
   end subroutine twofl_get_cbounds_one
 
@@ -2553,7 +2575,8 @@ function convert_vars_splitting(ixI^L,ixO^L, w, x, nwc) result(wnew)
     double precision, dimension(ixI^S) :: umean, dmean, csoundL, csoundR, tmp1,tmp2,tmp3
     integer :: ix^D
 
-    if (boundspeedEinfeldt) then
+    select case (boundspeed) 
+    case (1)
       ! This implements formula (10.52) from "Riemann Solvers and Numerical
       ! Methods for Fluid Dynamics" by Toro.
       ! charges
@@ -2619,7 +2642,7 @@ function convert_vars_splitting(ixI^L,ixO^L, w, x, nwc) result(wnew)
       end if
 #endif
 
-    else
+    case (2)
     ! typeboundspeed=='cmaxmean'
       wmean(ixO^S,1:nwflux)=0.5d0*(wLC(ixO^S,1:nwflux)+wRC(ixO^S,1:nwflux))
      ! charges 
@@ -2658,7 +2681,42 @@ function convert_vars_splitting(ixI^L,ixO^L, w, x, nwc) result(wnew)
         cmax(ixO^S,2)= abs(tmp1(ixO^S))+csoundR(ixO^S)
       end if
 #endif
-    end if
+    case (3)
+      ! Miyoshi 2005 JCP 208, 315 equation (67)
+      call twofl_get_csound_c_idim(wLp,x,ixI^L,ixO^L,idim,csoundL)
+      call twofl_get_csound_c_idim(wRp,x,ixI^L,ixO^L,idim,csoundR)
+      csoundL(ixO^S)=max(csoundL(ixO^S),csoundR(ixO^S))
+      if(present(cmin)) then
+        cmin(ixO^S,1)=min(wLp(ixO^S,mom_c(idim)),wRp(ixO^S,mom_c(idim)))-csoundL(ixO^S)
+        cmax(ixO^S,1)=max(wLp(ixO^S,mom_c(idim)),wRp(ixO^S,mom_c(idim)))+csoundL(ixO^S)
+        if(H_correction) then
+          {do ix^DB=ixOmin^DB,ixOmax^DB\}
+            cmin(ix^D,1)=sign(one,cmin(ix^D,1))*max(abs(cmin(ix^D,1)),Hspeed(ix^D))
+            cmax(ix^D,1)=sign(one,cmax(ix^D,1))*max(abs(cmax(ix^D,1)),Hspeed(ix^D))
+          {end do\}
+        end if
+      else
+        cmax(ixO^S,1)=max(wLp(ixO^S,mom_c(idim)),wRp(ixO^S,mom_c(idim)))+csoundL(ixO^S)
+      end if
+#if !defined(ONE_FLUID) || ONE_FLUID==0
+      call twofl_get_csound_n(wLp,x,ixI^L,ixO^L,csoundL)
+      call twofl_get_csound_n(wRp,x,ixI^L,ixO^L,csoundR)
+      csoundL(ixO^S)=max(csoundL(ixO^S),csoundR(ixO^S))
+      if(present(cmin)) then
+        cmin(ixO^S,2)=min(wLp(ixO^S,mom_n(idim)),wRp(ixO^S,mom_n(idim)))-csoundL(ixO^S)
+        cmax(ixO^S,2)=max(wLp(ixO^S,mom_n(idim)),wRp(ixO^S,mom_n(idim)))+csoundL(ixO^S)
+        if(H_correction) then
+          {do ix^DB=ixOmin^DB,ixOmax^DB\}
+            cmin(ix^D,2)=sign(one,cmin(ix^D,2))*max(abs(cmin(ix^D,1)),Hspeed(ix^D))
+            cmax(ix^D,2)=sign(one,cmax(ix^D,2))*max(abs(cmax(ix^D,1)),Hspeed(ix^D))
+          {end do\}
+        end if
+      else
+        cmax(ixO^S,2)=max(wLp(ixO^S,mom_n(idim)),wRp(ixO^S,mom_n(idim)))+csoundL(ixO^S)
+      end if
+
+#endif
+    end select
 
   end subroutine twofl_get_cbounds_species
 

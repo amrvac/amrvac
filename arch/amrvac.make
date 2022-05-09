@@ -69,3 +69,4 @@ amrvac: mod_usr.o amrvac.o
 
 amrvac.o mod_usr.o: $(LIB_AMRVAC)
 amrvac.o: mod_usr.o
+mod_usr.o: mod_usr.f amrvac.h
