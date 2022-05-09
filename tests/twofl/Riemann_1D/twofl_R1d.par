@@ -1,46 +1,37 @@
  &filelist
-        autoconvert   = T
-        base_filename = 'shock'
-        convert_type = "user"
+        base_filename = 'twofl_shock_1d'
         typefilelog='regression_test'
  /
 
  &savelist
-        !dtsave_dat     = 500
-        dtsave_dat     = 100
+        dtsave_log     = 1.d-1
  /
 
  &stoplist
-        !time_max      = 2500.0
-        time_max      = 200.0
+        time_max      = 1.d0
  /
 
  &methodlist
 
         time_stepper = 'threestep'
-        time_integrator = 'IMEX_ARS3'
-
-        flux_scheme     = 20*'hll'
+        flux_scheme  = 20*'hll'
         limiter  = 20*'woodward'
         small_values_method = 'ignore'
-
  /
 
  &boundlist
         !rho_c, vx_c, vy_c, e_c, bx, by, rho_n, vx_n, vy_n, e_n
         typeboundary_min1  = 'symm','asymm','symm','symm','symm','asymm','symm','asymm','symm','symm'
         typeboundary_max1  = 10*'symm'
-
-
  /
 
  &meshlist
         refine_criterion = 3
         refine_max_level = 8
-    	  refine_threshold = 20*0.5d0
+        refine_threshold = 20*0.5d0
         w_refine_weight(11)=1.0d0
-        domain_nx1    = 2048
-        block_nx1    = 64
+        domain_nx1    = 1024
+        block_nx1    = 16
         xprobmin1     = 0d0
         xprobmax1     = 4d3
  /

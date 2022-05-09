@@ -1,12 +1,8 @@
 module mod_usr
   use mod_twofl
-
   implicit none
 
 contains
-
-
-
   !> Read this module's parameters from a file
   subroutine usr_params_read(files)
     character(len=*), intent(in) :: files(:)
@@ -16,15 +12,9 @@ contains
     call usr_params_read(par_files)
     usr_init_one_grid => initonegrid_usr
     usr_var_for_errest => special_errest
-    usr_special_convert => usrspecial_convert
     call set_coordinate_system("Cartesian_1.5D")
     call twofl_activate()
   end subroutine usr_init
-  
-  subroutine usrspecial_convert(qunitconvert)
-    integer, intent(in) :: qunitconvert
-    character(len=20):: userconvert_type
-  end subroutine usrspecial_convert
 
   !refine taking into account only vertical velocity decoupling
   subroutine special_errest(ixI^L,ixO^L,iflag,w,x,var)
@@ -49,7 +39,6 @@ contains
     double precision,parameter :: He_ion_fr  =  0d0
     double precision,parameter :: He_ion_fr2  =  0d0
 
-
     double precision :: petot0 
     double precision :: B0
     double precision :: beta 
@@ -73,17 +62,7 @@ contains
     w(ixO^S,e_c_) = petot0/(pe_nc_fr + 1d0)
     w(ixO^S,e_n_) = pe_nc_fr * w(ixO^S,e_c_)
 
-
     call twofl_to_conserved(ixI^L,ixO^L,w,x)
-
-
   end subroutine initonegrid_usr
-
-
-
-
-
-
-
 
 end module mod_usr
