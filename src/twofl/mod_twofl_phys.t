@@ -611,8 +611,9 @@ contains
       call mpistop("Unknown twofl_boris_method (none, reduced_force, simplification)")
     end select
 
+    allocate(start_indices(2))
+    start_indices(1)=1
     !allocate charges first and the same order as in mhd module
-    
     rho_c_ = var_set_fluxvar("rho_c", "rho_c")
     !set variables from mod_variables to point to charges vars
     iw_rho = rho_c_
@@ -669,12 +670,14 @@ contains
 
 #if !defined(ONE_FLUID) || ONE_FLUID==0
 
+    one_fluid=.false.
     ! TODO so far number_species is only used to treat them differently
     ! in the solvers (different cbounds)
     if (twofl_cbounds_species) then
       number_species = 2
-      allocate(stop_indices(1))
-      stop_indices(1) = nwflux  
+      allocate(stop_indices(2))
+      stop_indices(1)=nwflux
+      start_indices(2)=nwflux+1
     endif
 
     ! Determine flux variables
@@ -705,6 +708,8 @@ contains
       Tcoff_n_ = -1
     end if
 
+    stop_indices(2)=nwflux
+
 #else
   ! set here the MHD indices
   rho_=rho_c_
@@ -717,7 +722,6 @@ contains
   eaux_=eaux_c_ 
 
 #endif
-
 
     ! set indices of equi vars and update number_equi_vars
     number_equi_vars = 0

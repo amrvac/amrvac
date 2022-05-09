@@ -66,6 +66,9 @@ module mod_variables
   !> Index of the cutoff temperature for the TRAC method
   integer :: iw_tcoff = -1
 
+  !> if is one fluid or not (two or more fluids)
+  logical :: one_fluid =.true.
+
   !> number of species: each species has different characterictic speeds and should
   !> be used accordingly in mod_finite_volume and mod_finite_difference
   integer :: number_species = 1
@@ -75,8 +78,12 @@ module mod_variables
   integer :: index_v_mag = 1
 
   !> the indices in 1:nwflux array are assumed consecutive for each species
-  !> this array should be of size number_species - 1 and contain the last index in the array of 
-  !> the first number_species - 1, the last index for the last one is nwflux
+  !> this array should be of size number_species and contain the first index in the array of 
+  !> the number_species
+  integer, allocatable :: start_indices(:)
+  !> the indices in 1:nwflux array are assumed consecutive for each species
+  !> this array should be of size number_species and contain the last index in the array of 
+  !> the first number_species, the last index for the last one is nwflux
   integer, allocatable :: stop_indices(:)
 
   ! indices of equi for the species index_v_mag

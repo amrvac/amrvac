@@ -316,7 +316,6 @@ contains
   contains
 
     subroutine get_Riemann_flux_tvdmu()
-
       do iw=iwstart,nwflux
          ! To save memory we use fLC to store (F_L+F_R)/2=half*(fLC+fRC)
          fLC(ixC^S, iw)=half*(fLC(ixC^S, iw)+fRC(ixC^S, iw))
@@ -324,55 +323,47 @@ contains
       end do
     end subroutine get_Riemann_flux_tvdmu
 
-
-
     subroutine get_Riemann_flux_tvdlf()
-      integer :: ii,iws,iwe
-      iws = iwstart
-      do ii=1,number_species-1
-        iwe=stop_indices(ii)
-        call get_Riemann_flux_tvdlf_species(ii,iws,iwe)      
-        iws=iwe+1
-      end do
-      call get_Riemann_flux_tvdlf_species(number_species,iws,nwflux)      
+      integer :: ii
+      if(one_fluid) then
+        call get_Riemann_flux_tvdlf_species(1,iwstart,nwflux)
+      else
+        do ii=1,number_species
+          call get_Riemann_flux_tvdlf_species(ii,start_indices(ii),stop_indices(ii))
+        end do
+      end if
     end subroutine get_Riemann_flux_tvdlf
-
 
     subroutine get_Riemann_flux_tvdlf_species(ii,iws,iwe)
       integer, intent(in) :: ii,iws,iwe
       double precision :: fac(ixC^S)
 
       fac(ixC^S) = -0.5d0*tvdlfeps*cmaxC(ixC^S,ii)
-
       ! Calculate fLC=f(uL_j+1/2) and fRC=f(uR_j+1/2) for each iw
       do iw=iws,iwe
-
          ! To save memory we use fLC to store (F_L+F_R)/2=half*(fLC+fRC)
          fLC(ixC^S, iw)=0.5d0*(fLC(ixC^S, iw)+fRC(ixC^S, iw))
-
          ! Add TVDLF dissipation to the flux
          if (flux_type(idims, iw) /= flux_no_dissipation) then
             fLC(ixC^S, iw)=fLC(ixC^S, iw) + fac(ixC^S)*(wRC(ixC^S,iw)-wLC(ixC^S,iw))
          end if
-
          fC(ixC^S,iw,idims)=fLC(ixC^S, iw)
       end do ! Next iw
 
     end subroutine get_Riemann_flux_tvdlf_species
 
     subroutine get_Riemann_flux_hll()
-      integer :: ii,iws,iwe
-      iws = iwstart
-      do ii=1,number_species-1
-        iwe=stop_indices(ii)
-        call get_Riemann_flux_hll_species(ii,iws,iwe)      
-        iws=iwe+1
-      end do
-      call get_Riemann_flux_hll_species(number_species,iws,nwflux)      
+      integer :: ii
+      if(one_fluid) then
+        call get_Riemann_flux_hll_species(1,iwstart,nwflux)      
+      else
+        do ii=1,number_species
+          call get_Riemann_flux_hll_species(ii,start_indices(ii),stop_indices(ii))
+        end do
+      end if
     end subroutine get_Riemann_flux_hll
  
-
-   subroutine get_Riemann_flux_hll_species(ii,iws,iwe)
+    subroutine get_Riemann_flux_hll_species(ii,iws,iwe)
       integer, intent(in) :: ii,iws,iwe
       integer :: ix^D
 
@@ -396,21 +387,17 @@ contains
     end subroutine get_Riemann_flux_hll_species
 
     subroutine get_Riemann_flux_hllc()
-      integer :: ii,iws,iwe
-      iws = iwstart
-      do ii=1,number_species-1
-        iwe=stop_indices(ii)
-        call get_Riemann_flux_hllc_species(ii,iws,iwe)      
-        iws=iwe+1
-      end do
-      call get_Riemann_flux_hllc_species(number_species,iws,nwflux)      
+      integer :: ii
+      if(one_fluid) then
+        call get_Riemann_flux_hllc_species(number_species,iwstart,nwflux)
+      else
+        do ii=1,number_species
+          call get_Riemann_flux_hllc_species(ii,start_indices(ii),stop_indices(ii))
+        end do
+      end if
     end subroutine get_Riemann_flux_hllc
 
     subroutine get_Riemann_flux_hllc_species(ii, iws, iwe)
-      !modify to use mod_variables instead of specific mod_mhd_phys 
-      !use mod_mhd_phys
-      use mod_variables
-      use mod_physics
       implicit none
       integer, intent(in) :: ii, iws, iwe  
       double precision, dimension(ixI^S,1:nwflux)     :: whll, Fhll, fCD
@@ -422,7 +409,6 @@ contains
       if (allocated(iw_mom)) mom(:) = iw_mom(:)
       e_ = iw_e 
       eaux_ = iw_eaux
-
 
       if(associated(phys_hllc_init_species)) then
        call phys_hllc_init_species(ii, rho_, mom(:), e_, eaux_)
@@ -459,7 +445,7 @@ contains
              +cminC(ixC^S,ii)*cmaxC(ixC^S,ii)*(wRC(ixC^S,iw)-wLC(ixC^S,iw)))/(cmaxC(ixC^S,ii)-cminC(ixC^S,ii))
       end if
 
-      do iw=iwstart,nwflux
+      do iw=iws,iwe
          if (flux_type(idims, iw) == flux_tvdlf) then
             fLC(ixC^S,iw)=-tvdlfeps*half*max(cmaxC(ixC^S,ii),abs(cminC(ixC^S,ii))) * &
                  (wRC(ixC^S,iw) - wLC(ixC^S,iw))
@@ -487,33 +473,23 @@ contains
     end subroutine get_Riemann_flux_hllc_species
 
     subroutine get_Riemann_flux_hlld()
-      integer :: ii,iws,iwe
-      iws = iwstart
-      do ii=1,number_species-1
-        iwe=stop_indices(ii)
-        if(ii==index_v_mag) then
-          !call get_Riemann_flux_hlld_mag2()
-          call get_Riemann_flux_hlld_mag()
-        else
-          call get_Riemann_flux_hllc_species(ii,iws,iwe)   
-        endif   
-        iws=iwe+1
-      end do
-      if(number_species==index_v_mag) then
-        !call get_Riemann_flux_hlld_mag2()
-        call get_Riemann_flux_hlld_mag()
+      integer :: ii
+      if(one_fluid) then
+        call get_Riemann_flux_hlld_species(1,iwstart,nwflux)   
       else
-        call get_Riemann_flux_hllc_species(number_species,iws,nwflux)      
-      endif
+        do ii=1,number_species
+          if(ii==index_v_mag) then
+            call get_Riemann_flux_hlld_species(ii,start_indices(ii),stop_indices(ii))
+          else
+            call get_Riemann_flux_hllc_species(ii,start_indices(ii),stop_indices(ii))
+          endif   
+        end do
+      end if
     end subroutine get_Riemann_flux_hlld
 
-
     !> HLLD Riemann flux from Miyoshi 2005 JCP, 208, 315 and Guo 2016 JCP, 327, 543
-    subroutine get_Riemann_flux_hlld_mag()
-      !use mod_mhd_phys
-      use mod_variables
-      use mod_physics
-      implicit none
+    subroutine get_Riemann_flux_hlld_species(ii,iws,iwe)
+      integer, intent(in) :: ii, iws, iwe  
       double precision, dimension(ixI^S,1:nwflux) :: w1R,w1L,f1R,f1L,f2R,f2L
       double precision, dimension(ixI^S,1:nwflux) :: w2R,w2L
       double precision, dimension(ixI^S) :: sm,s1R,s1L,suR,suL,Bx
@@ -523,8 +499,9 @@ contains
       ! magnetic field from the right and the left reconstruction
       double precision, dimension(ixI^S,ndir) :: BR, BL
       integer :: ip1,ip2,ip3,idir,ix^D
-
       integer  :: rho_, p_, e_, eaux_, mom(1:ndir), mag(1:ndir)
+
+      associate (sR=>cmaxC,sL=>cminC)
 
       rho_ = iw_rho
       mom(:) = iw_mom(:)
@@ -533,7 +510,6 @@ contains
       eaux_ = iw_eaux 
 
       p_ = e_
-      associate (sR=>cmaxC,sL=>cminC)
 
       f1R=0.d0
       f1L=0.d0
@@ -559,7 +535,7 @@ contains
       else
         ! HLL estimation of normal magnetic field at cell interfaces
         ! Li, Shenghai, 2005 JCP, 203, 344, equation (33)
-        Bx(ixC^S)=(sR(ixC^S,index_v_mag)*BR(ixC^S,ip1)-sL(ixC^S,index_v_mag)*BL(ixC^S,ip1))/(sR(ixC^S,index_v_mag)-sL(ixC^S,index_v_mag))
+        Bx(ixC^S)=(sR(ixC^S,ii)*BR(ixC^S,ip1)-sL(ixC^S,ii)*BL(ixC^S,ip1))/(sR(ixC^S,ii)-sL(ixC^S,ii))
       end if
       ptR(ixC^S)=wRp(ixC^S,p_)+0.5d0*sum(BR(ixC^S,:)**2,dim=ndim+1)
       ptL(ixC^S)=wLp(ixC^S,p_)+0.5d0*sum(BL(ixC^S,:)**2,dim=ndim+1)
@@ -568,13 +544,13 @@ contains
       else
         suR(ixC^S) = wRC(ixC^S,rho_)
       endif
-      suR(ixC^S)=(sR(ixC^S,index_v_mag)-vRC(ixC^S,ip1))*suR(ixC^S)
+      suR(ixC^S)=(sR(ixC^S,ii)-vRC(ixC^S,ip1))*suR(ixC^S)
       if(iw_equi_rho>0) then
         suL(ixC^S) = wLC(ixC^S,rho_)+ block%equi_vars(ixC^S,iw_equi_rho,ip1)
       else
         suL(ixC^S) = wLC(ixC^S,rho_)
       endif
-      suL(ixC^S)=(sL(ixC^S,index_v_mag)-vLC(ixC^S,ip1))*suL(ixC^S)
+      suL(ixC^S)=(sL(ixC^S,ii)-vLC(ixC^S,ip1))*suL(ixC^S)
       ! Miyoshi equation (38) and Guo euqation (20)
       sm(ixC^S)=(suR(ixC^S)*vRC(ixC^S,ip1)-suL(ixC^S)*vLC(ixC^S,ip1)-&
                  ptR(ixC^S)+ptL(ixC^S))/(suR(ixC^S)-suL(ixC^S))
@@ -592,18 +568,18 @@ contains
       end if
 
       ! Miyoshi equation (43) and Guo equation (27)
-      w1R(ixC^S,rho_)=suR(ixC^S)/(sR(ixC^S,index_v_mag)-sm(ixC^S))
-      w1L(ixC^S,rho_)=suL(ixC^S)/(sL(ixC^S,index_v_mag)-sm(ixC^S))
+      w1R(ixC^S,rho_)=suR(ixC^S)/(sR(ixC^S,ii)-sm(ixC^S))
+      w1L(ixC^S,rho_)=suL(ixC^S)/(sL(ixC^S,ii)-sm(ixC^S))
 
       ip2=mod(ip1+1,ndir)
       if(ip2==0) ip2=ndir
-      r1R(ixC^S)=suR(ixC^S)*(sR(ixC^S,index_v_mag)-sm(ixC^S))-Bx(ixC^S)**2
+      r1R(ixC^S)=suR(ixC^S)*(sR(ixC^S,ii)-sm(ixC^S))-Bx(ixC^S)**2
       where(abs(r1R(ixC^S))>smalldouble)
         r1R(ixC^S)=1.d0/r1R(ixC^S)
       else where
         r1R(ixC^S)=0.d0
       end where
-      r1L(ixC^S)=suL(ixC^S)*(sL(ixC^S,index_v_mag)-sm(ixC^S))-Bx(ixC^S)**2
+      r1L(ixC^S)=suL(ixC^S)*(sL(ixC^S,ii)-sm(ixC^S))-Bx(ixC^S)**2
       where(abs(r1L(ixC^S))>smalldouble)
         r1L(ixC^S)=1.d0/r1L(ixC^S)
       else where
@@ -615,8 +591,8 @@ contains
       w1L(ixC^S,mom(ip2))=vLC(ixC^S,ip2)-Bx(ixC^S)*BL(ixC^S,ip2)*&
         (sm(ixC^S)-vLC(ixC^S,ip1))*r1L(ixC^S)
       ! partial solution for later usage
-      w1R(ixC^S,mag(ip2))=(suR(ixC^S)*(sR(ixC^S,index_v_mag)-vRC(ixC^S,ip1))-Bx(ixC^S)**2)*r1R(ixC^S)
-      w1L(ixC^S,mag(ip2))=(suL(ixC^S)*(sL(ixC^S,index_v_mag)-vLC(ixC^S,ip1))-Bx(ixC^S)**2)*r1L(ixC^S)
+      w1R(ixC^S,mag(ip2))=(suR(ixC^S)*(sR(ixC^S,ii)-vRC(ixC^S,ip1))-Bx(ixC^S)**2)*r1R(ixC^S)
+      w1L(ixC^S,mag(ip2))=(suL(ixC^S)*(sL(ixC^S,ii)-vLC(ixC^S,ip1))-Bx(ixC^S)**2)*r1L(ixC^S)
       if(ndir==3) then
         ip3=mod(ip1+2,ndir)
         if(ip3==0) ip3=ndir
@@ -649,30 +625,30 @@ contains
           w1L(ixC^S,p_)=w1L(ixC^S,p_)+sum(block%B0(ixC^S,:,ip1)*(wLC(ixC^S,mag(:))-w1L(ixC^S,mag(:))),dim=ndim+1)
         end if
         ! Miyoshi equation (48) and main part of Guo euqation (31)
-        w1R(ixC^S,e_)=((sR(ixC^S,index_v_mag)-vRC(ixC^S,ip1))*wRC(ixC^S,e_)-ptR(ixC^S)*vRC(ixC^S,ip1)+&
+        w1R(ixC^S,e_)=((sR(ixC^S,ii)-vRC(ixC^S,ip1))*wRC(ixC^S,e_)-ptR(ixC^S)*vRC(ixC^S,ip1)+&
           w1R(ixC^S,p_)*sm(ixC^S)+Bx(ixC^S)*(sum(vRC(ixC^S,:)*wRC(ixC^S,mag(:)),dim=ndim+1)-&
-          sum(w1R(ixC^S,mom(:))*w1R(ixC^S,mag(:)),dim=ndim+1)))/(sR(ixC^S,index_v_mag)-sm(ixC^S))
-        w1L(ixC^S,e_)=((sL(ixC^S,index_v_mag)-vLC(ixC^S,ip1))*wLC(ixC^S,e_)-ptL(ixC^S)*vLC(ixC^S,ip1)+&
+          sum(w1R(ixC^S,mom(:))*w1R(ixC^S,mag(:)),dim=ndim+1)))/(sR(ixC^S,ii)-sm(ixC^S))
+        w1L(ixC^S,e_)=((sL(ixC^S,ii)-vLC(ixC^S,ip1))*wLC(ixC^S,e_)-ptL(ixC^S)*vLC(ixC^S,ip1)+&
           w1L(ixC^S,p_)*sm(ixC^S)+Bx(ixC^S)*(sum(vLC(ixC^S,:)*wLC(ixC^S,mag(:)),dim=ndim+1)-&
-          sum(w1L(ixC^S,mom(:))*w1L(ixC^S,mag(:)),dim=ndim+1)))/(sL(ixC^S,index_v_mag)-sm(ixC^S))
+          sum(w1L(ixC^S,mom(:))*w1L(ixC^S,mag(:)),dim=ndim+1)))/(sL(ixC^S,ii)-sm(ixC^S))
         if(B0field) then
           ! Guo equation (31)
           w1R(ixC^S,e_)=w1R(ixC^S,e_)+(sum(w1R(ixC^S,mag(:))*block%B0(ixC^S,:,ip1),dim=ndim+1)*sm(ixC^S)-&
-               sum(wRC(ixC^S,mag(:))*block%B0(ixC^S,:,ip1),dim=ndim+1)*vRC(ixC^S,ip1))/(sR(ixC^S,index_v_mag)-sm(ixC^S))
+               sum(wRC(ixC^S,mag(:))*block%B0(ixC^S,:,ip1),dim=ndim+1)*vRC(ixC^S,ip1))/(sR(ixC^S,ii)-sm(ixC^S))
           w1L(ixC^S,e_)=w1L(ixC^S,e_)+(sum(w1L(ixC^S,mag(:))*block%B0(ixC^S,:,ip1),dim=ndim+1)*sm(ixC^S)-&
-               sum(wLC(ixC^S,mag(:))*block%B0(ixC^S,:,ip1),dim=ndim+1)*vLC(ixC^S,ip1))/(sL(ixC^S,index_v_mag)-sm(ixC^S))
+               sum(wLC(ixC^S,mag(:))*block%B0(ixC^S,:,ip1),dim=ndim+1)*vLC(ixC^S,ip1))/(sL(ixC^S,ii)-sm(ixC^S))
         end if
         if(iw_equi_p>0) then
 #if !defined(E_RM_W0) || E_RM_W0 == 1
           w1R(ixC^S,e_)= w1R(ixC^S,e_) + 1d0/(phys_gamma - 1) * block%equi_vars(ixC^S,iw_equi_p,ip1) * &
-             (sm(ixC^S)-vRC(ixC^S,ip1))/(sR(ixC^S,index_v_mag)-sm(ixC^S))
+             (sm(ixC^S)-vRC(ixC^S,ip1))/(sR(ixC^S,ii)-sm(ixC^S))
           w1L(ixC^S,e_)= w1L(ixC^S,e_) + 1d0/(phys_gamma - 1) * block%equi_vars(ixC^S,iw_equi_p,ip1) * &
-             (sm(ixC^S)-vLC(ixC^S,ip1))/(sL(ixC^S,index_v_mag)-sm(ixC^S))
+             (sm(ixC^S)-vLC(ixC^S,ip1))/(sL(ixC^S,ii)-sm(ixC^S))
 #else
           w1R(ixC^S,e_)= w1R(ixC^S,e_) + phys_gamma /(phys_gamma - 1) * block%equi_vars(ixC^S,iw_equi_p,ip1) * &
-             (sm(ixC^S)-vRC(ixC^S,ip1))/(sR(ixC^S,index_v_mag)-sm(ixC^S))
+             (sm(ixC^S)-vRC(ixC^S,ip1))/(sR(ixC^S,ii)-sm(ixC^S))
           w1L(ixC^S,e_)= w1L(ixC^S,e_) + phys_gamma /(phys_gamma - 1) * block%equi_vars(ixC^S,iw_equi_p,ip1) * &
-             (sm(ixC^S)-vLC(ixC^S,ip1))/(sL(ixC^S,index_v_mag)-sm(ixC^S))
+             (sm(ixC^S)-vLC(ixC^S,ip1))/(sL(ixC^S,ii)-sm(ixC^S))
 #endif
         endif
       end if
@@ -730,7 +706,7 @@ contains
         w2L(ixC^S,rho_) = w2L(ixC^S,rho_) - block%equi_vars(ixC^S,iw_equi_rho,ip1)
       endif
       ! get fluxes of intermedate states
-      do iw=1,nwflux
+      do iw=iws,iwe
         if(flux_type(idims, iw) == flux_special) then
           ! known flux (fLC=fRC) for normal B and psi_ in GLM method
           f1L(ixC^S,iw)=fLC(ixC^S,iw)
@@ -739,15 +715,15 @@ contains
           f2R(ixC^S,iw)=f1L(ixC^S,iw)
         else if(flux_type(idims, iw) == flux_hll) then
           ! using hll flux for eaux and tracers
-          f1L(ixC^S,iw)=(sR(ixC^S,index_v_mag)*fLC(ixC^S, iw)-sL(ixC^S,index_v_mag)*fRC(ixC^S, iw) &
-                    +sR(ixC^S,index_v_mag)*sL(ixC^S,index_v_mag)*(wRC(ixC^S,iw)-wLC(ixC^S,iw)))/(sR(ixC^S,index_v_mag)-sL(ixC^S,index_v_mag))
+          f1L(ixC^S,iw)=(sR(ixC^S,ii)*fLC(ixC^S, iw)-sL(ixC^S,ii)*fRC(ixC^S, iw) &
+                    +sR(ixC^S,ii)*sL(ixC^S,ii)*(wRC(ixC^S,iw)-wLC(ixC^S,iw)))/(sR(ixC^S,ii)-sL(ixC^S,ii))
           f1R(ixC^S,iw)=f1L(ixC^S,iw)
           f2L(ixC^S,iw)=f1L(ixC^S,iw)
           f2R(ixC^S,iw)=f1L(ixC^S,iw)
         else
           ! construct hlld flux
-          f1L(ixC^S,iw)=fLC(ixC^S,iw)+sL(ixC^S,index_v_mag)*(w1L(ixC^S,iw)-wLC(ixC^S,iw))
-          f1R(ixC^S,iw)=fRC(ixC^S,iw)+sR(ixC^S,index_v_mag)*(w1R(ixC^S,iw)-wRC(ixC^S,iw))
+          f1L(ixC^S,iw)=fLC(ixC^S,iw)+sL(ixC^S,ii)*(w1L(ixC^S,iw)-wLC(ixC^S,iw))
+          f1R(ixC^S,iw)=fRC(ixC^S,iw)+sR(ixC^S,ii)*(w1R(ixC^S,iw)-wRC(ixC^S,iw))
           f2L(ixC^S,iw)=f1L(ixC^S,iw)+s1L(ixC^S)*(w2L(ixC^S,iw)-w1L(ixC^S,iw))
           f2R(ixC^S,iw)=f1R(ixC^S,iw)+s1R(ixC^S)*(w2R(ixC^S,iw)-w1R(ixC^S,iw))
         end if
@@ -755,23 +731,23 @@ contains
 
       ! Miyoshi equation (66) and Guo equation (46)
      {do ix^DB=ixCmin^DB,ixCmax^DB\}
-        if(sL(ix^D,index_v_mag)>0.d0) then
-          fC(ix^D,1:nwflux,ip1)=fLC(ix^D,1:nwflux)
+        if(sL(ix^D,ii)>0.d0) then
+          fC(ix^D,iws:iwe,ip1)=fLC(ix^D,iws:iwe)
         else if(s1L(ix^D)>=0.d0) then
-          fC(ix^D,1:nwflux,ip1)=f1L(ix^D,1:nwflux)
+          fC(ix^D,iws:iwe,ip1)=f1L(ix^D,iws:iwe)
         else if(sm(ix^D)>=0.d0) then
-          fC(ix^D,1:nwflux,ip1)=f2L(ix^D,1:nwflux)
+          fC(ix^D,iws:iwe,ip1)=f2L(ix^D,iws:iwe)
         else if(s1R(ix^D)>=0.d0) then
-          fC(ix^D,1:nwflux,ip1)=f2R(ix^D,1:nwflux)
-        else if(sR(ix^D,index_v_mag)>=0.d0) then
-          fC(ix^D,1:nwflux,ip1)=f1R(ix^D,1:nwflux)
-        else if(sR(ix^D,index_v_mag)<0.d0) then
-          fC(ix^D,1:nwflux,ip1)=fRC(ix^D,1:nwflux)
+          fC(ix^D,iws:iwe,ip1)=f2R(ix^D,iws:iwe)
+        else if(sR(ix^D,ii)>=0.d0) then
+          fC(ix^D,iws:iwe,ip1)=f1R(ix^D,iws:iwe)
+        else if(sR(ix^D,ii)<0.d0) then
+          fC(ix^D,iws:iwe,ip1)=fRC(ix^D,iws:iwe)
         end if
      {end do\}
 
       end associate
-    end subroutine get_Riemann_flux_hlld_mag
+    end subroutine get_Riemann_flux_hlld_species
 
     !> HLLD Riemann flux from Miyoshi 2005 JCP, 208, 315 and Guo 2016 JCP, 327, 543
     !> https://arxiv.org/pdf/2108.04991.pdf
@@ -1048,12 +1024,6 @@ contains
           sum(w2R(ixC^S,mom(:))*w2R(ixC^S,mag(:)),dim=ndim+1))*signBx(ixC^S)
         w2L(ixC^S,e_)=w1L(ixC^S,e_)-r1L(ixC^S)*(sum(w1L(ixC^S,mom(:))*w1L(ixC^S,mag(:)),dim=ndim+1)-&
           sum(w2L(ixC^S,mom(:))*w2L(ixC^S,mag(:)),dim=ndim+1))*signBx(ixC^S)
-        !if(mhd_solve_eaux) then
-        !  w2R(ixC^S,eaux_)=w2R(ixC^S,e_)-half*(sum(w2R(ixC^S,mag(:))**2,dim=ndim+1)+&
-        !     sum(w2R(ixC^S,mom(:))**2,dim=ndim+1)*w2R(ixC^S,rho_))
-        !  w2L(ixC^S,eaux_)=w2L(ixC^S,e_)-half*(sum(w2L(ixC^S,mag(:))**2,dim=ndim+1)+&
-        !     sum(w2L(ixC^S,mom(:))**2,dim=ndim+1)*w2L(ixC^S,rho_))
-        !end if
       end if
 
       ! convert velocity to momentum
@@ -1109,58 +1079,59 @@ contains
       end associate
     end subroutine get_Riemann_flux_hlld_mag2
 
-  !> Calculate fast magnetosonic wave speed
-  subroutine get_hlld2_modif_c(w,x,ixI^L,ixO^L,csound)
-    use mod_global_parameters
+    !> Calculate fast magnetosonic wave speed
+    subroutine get_hlld2_modif_c(w,x,ixI^L,ixO^L,csound)
+      use mod_global_parameters
 
-    integer, intent(in)          :: ixI^L, ixO^L
-    double precision, intent(in) :: w(ixI^S, nw), x(ixI^S,1:ndim)
-    double precision, intent(out):: csound(ixI^S)
-    double precision :: cfast2(ixI^S), AvMinCs2(ixI^S), b2(ixI^S), kmax
-    double precision :: inv_rho(ixO^S), gamma_A2(ixO^S)
-    integer  :: rho_, p_, e_, eaux_, mom(1:ndir), mag(1:ndir)
+      integer, intent(in)          :: ixI^L, ixO^L
+      double precision, intent(in) :: w(ixI^S, nw), x(ixI^S,1:ndim)
+      double precision, intent(out):: csound(ixI^S)
+      double precision :: cfast2(ixI^S), AvMinCs2(ixI^S), b2(ixI^S), kmax
+      double precision :: inv_rho(ixO^S), gamma_A2(ixO^S)
+      integer  :: rho_, p_, e_, eaux_, mom(1:ndir), mag(1:ndir)
 
-      rho_ = iw_rho
-      mom(:) = iw_mom(:)
-      mag(:) = iw_mag(:) 
-      p_ = iw_e
-      e_ = iw_e 
-      eaux_ = iw_eaux 
+        rho_ = iw_rho
+        mom(:) = iw_mom(:)
+        mag(:) = iw_mag(:) 
+        p_ = iw_e
+        e_ = iw_e 
+        eaux_ = iw_eaux 
 
-    inv_rho=1.d0/w(ixO^S,rho_)
+      inv_rho=1.d0/w(ixO^S,rho_)
 
-    ! store |B|^2 in v
+      ! store |B|^2 in v
 
-    if (B0field) then
-      b2(ixO^S) = sum((w(ixO^S, mag(:))+block%B0(ixO^S,:,b0i))**2, dim=ndim+1)
-    else
-      b2(ixO^S) = sum(w(ixO^S, mag(:))**2, dim=ndim+1)
-    end if
-
-
-    if (B0field) then
-      AvMinCs2= w(ixO^S, mag(idims))+block%B0(ixO^S,idims,b0i)
-    else
-      AvMinCs2= w(ixO^S, mag(idims))
-    end if
+      if (B0field) then
+        b2(ixO^S) = sum((w(ixO^S, mag(:))+block%B0(ixO^S,:,b0i))**2, dim=ndim+1)
+      else
+        b2(ixO^S) = sum(w(ixO^S, mag(:))**2, dim=ndim+1)
+      end if
 
 
-    csound(ixO^S) = sum(w(ixO^S, mom(:))**2, dim=ndim+1)
+      if (B0field) then
+        AvMinCs2= w(ixO^S, mag(idims))+block%B0(ixO^S,idims,b0i)
+      else
+        AvMinCs2= w(ixO^S, mag(idims))
+      end if
 
-    cfast2(ixO^S)   = b2(ixO^S) * inv_rho+csound(ixO^S)
-    AvMinCs2(ixO^S) = cfast2(ixO^S)**2-4.0d0*csound(ixO^S) &
-         * AvMinCs2(ixO^S)**2 &
-         * inv_rho 
 
-    where(AvMinCs2(ixO^S)<zero)
-       AvMinCs2(ixO^S)=zero
-    end where
+      csound(ixO^S) = sum(w(ixO^S, mom(:))**2, dim=ndim+1)
 
-    AvMinCs2(ixO^S)=sqrt(AvMinCs2(ixO^S))
+      cfast2(ixO^S)   = b2(ixO^S) * inv_rho+csound(ixO^S)
+      AvMinCs2(ixO^S) = cfast2(ixO^S)**2-4.0d0*csound(ixO^S) &
+           * AvMinCs2(ixO^S)**2 &
+           * inv_rho 
 
-   csound(ixO^S) = sqrt(half*(cfast2(ixO^S)+AvMinCs2(ixO^S)))
+      where(AvMinCs2(ixO^S)<zero)
+         AvMinCs2(ixO^S)=zero
+      end where
 
-  end subroutine get_hlld2_modif_c
+      AvMinCs2(ixO^S)=sqrt(AvMinCs2(ixO^S))
+
+     csound(ixO^S) = sqrt(half*(cfast2(ixO^S)+AvMinCs2(ixO^S)))
+
+    end subroutine get_hlld2_modif_c
+
   end subroutine finite_volume
 
   !> Determine the upwinded wLC(ixL) and wRC(ixR) from w.
