@@ -35,7 +35,7 @@ RD_DIRS := rd/schnakenberg_2d rd/test_suite_2d
 
 MF_DIRS := mf/Mackay_bipole_Cartesian_3D
 
-TWOFL_DIRS := twofl/wave-alfven-1d-unif  twofl/khi-2d twofl/riemann-1d
+TWOFL_DIRS := twofl/Alfven_wave_1D twofl/Riemann_1D
 
 TEST_DIRS := $(RHO_DIRS) $(HD_DIRS) $(MHD_DIRS) $(MG_DIRS) $(RD_DIRS) $(MF_DIRS) $(TWOFL_DIRS)
 
