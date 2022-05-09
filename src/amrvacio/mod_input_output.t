@@ -1571,13 +1571,16 @@ contains
       call mpistop("Reset w_refine_weight so the sum is 1.d0")
     end if
 
-    if(typeboundspeed=='cmaxmean') then
-      boundspeedEinfeldt=.false.
-    else if(typeboundspeed=='Einfeldt') then
-      boundspeedEinfeldt=.true.
-    else
-      call mpistop("set typeboundspeed='Einfieldt' or 'cmaxmean'")
-    end if
+    select case (typeboundspeed)
+    case('Einfeldt')
+      boundspeed=1
+    case('cmaxmean')
+      boundspeed=2
+    case('cmaxleftright')
+      boundspeed=3
+    case default
+      call mpistop("set typeboundspeed='Einfieldt' or 'cmaxmean' or 'cmaxleftright'")
+    end select
 
     if (mype==0) write(unitterm, '(A30)', advance='no') 'Refine estimation: '
 

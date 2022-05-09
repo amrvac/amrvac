@@ -854,7 +854,8 @@ contains
     double precision, dimension(ixI^S) :: umean, dmean, csoundL, csoundR, tmp1,tmp2,tmp3
     integer :: ix^D
 
-    if (boundspeedEinfeldt) then
+    select case(boundspeed)
+    case (1)
       ! This implements formula (10.52) from "Riemann Solvers and Numerical
       ! Methods for Fluid Dynamics" by Toro.
 
@@ -894,8 +895,7 @@ contains
         call dust_get_cmax(wmean, x, ixI^L, ixO^L, idim, cmax, cmin)
       end if
 
-    else
-
+    case (2)
       wmean(ixO^S,1:nwflux)=0.5d0*(wLC(ixO^S,1:nwflux)+wRC(ixO^S,1:nwflux))
       tmp1(ixO^S)=wmean(ixO^S,mom(idim))/wmean(ixO^S,rho_)
       call hd_get_csound2(wmean,x,ixI^L,ixO^L,csoundR)
@@ -917,7 +917,33 @@ contains
       if (hd_dust) then
         call dust_get_cmax(wmean, x, ixI^L, ixO^L, idim, cmax, cmin)
       end if
-    end if
+    case (3)
+      ! Miyoshi 2005 JCP 208, 315 equation (67)
+      if(hd_energy) then
+        csoundL(ixO^S)=hd_gamma*wLp(ixO^S,p_)/wLp(ixO^S,rho_)
+        csoundR(ixO^S)=hd_gamma*wRp(ixO^S,p_)/wRp(ixO^S,rho_)
+      else
+        call hd_get_csound2(wLC,x,ixI^L,ixO^L,csoundL)
+        call hd_get_csound2(wRC,x,ixI^L,ixO^L,csoundR)
+      end if
+      csoundL(ixO^S)=max(dsqrt(csoundL(ixO^S)),dsqrt(csoundR(ixO^S)))
+      if(present(cmin)) then
+        cmin(ixO^S)=min(wLp(ixO^S,mom(idim)),wRp(ixO^S,mom(idim)))-csoundL(ixO^S)
+        cmax(ixO^S)=max(wLp(ixO^S,mom(idim)),wRp(ixO^S,mom(idim)))+csoundL(ixO^S)
+        if(H_correction) then
+          {do ix^DB=ixOmin^DB,ixOmax^DB\}
+            cmin(ix^D)=sign(one,cmin(ix^D))*max(abs(cmin(ix^D)),Hspeed(ix^D))
+            cmax(ix^D)=sign(one,cmax(ix^D))*max(abs(cmax(ix^D)),Hspeed(ix^D))
+          {end do\}
+        end if
+      else
+        cmax(ixO^S)=max(wLp(ixO^S,mom(idim)),wRp(ixO^S,mom(idim)))+csoundL(ixO^S)
+      end if
+      if (hd_dust) then
+        wmean(ixO^S,1:nwflux)=0.5d0*(wLC(ixO^S,1:nwflux)+wRC(ixO^S,1:nwflux))
+        call dust_get_cmax(wmean, x, ixI^L, ixO^L, idim, cmax, cmin)
+      end if
+    end select
 
   end subroutine hd_get_cbounds
 
