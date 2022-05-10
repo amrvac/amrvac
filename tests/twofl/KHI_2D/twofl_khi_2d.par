@@ -1,14 +1,14 @@
  &filelist
         base_filename = 'twofl_khi_2d'
- /
         typefilelog='regression_test'
+ /
 
  &savelist
         dtsave_log     = 5d-3 
  /
 
  &stoplist
-        time_max      = 1d-2
+        time_max      = 1d-1
  /
 
  &methodlist
@@ -28,11 +28,11 @@
 
  &meshlist
         refine_criterion = 3
-        refine_max_level = 4
+        refine_max_level = 3
     	refine_threshold = 20*0.5d0
         w_refine_weight(11)=1.0d0
-        domain_nx1    = 256
-        domain_nx2    = 128
+        domain_nx1    = 128
+        domain_nx2    = 64
         block_nx1    = 16
         block_nx2    = 16
         xprobmin1     = -1.5d0
