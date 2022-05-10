@@ -482,6 +482,9 @@ contains
     physics_type = "twofl_one"
 #else
     physics_type = "twofl"
+    if (twofl_cbounds_species) then
+      number_species = 2
+    endif
 #endif
     phys_energy=.true.
   !> Solve total energy equation or not
@@ -611,7 +614,8 @@ contains
       call mpistop("Unknown twofl_boris_method (none, reduced_force, simplification)")
     end select
 
-    allocate(start_indices(2))
+    allocate(start_indices(number_species))
+    allocate(stop_indices(number_species))
     start_indices(1)=1
     !allocate charges first and the same order as in mhd module
     rho_c_ = var_set_fluxvar("rho_c", "rho_c")
@@ -673,8 +677,6 @@ contains
     ! TODO so far number_species is only used to treat them differently
     ! in the solvers (different cbounds)
     if (twofl_cbounds_species) then
-      number_species = 2
-      allocate(stop_indices(2))
       stop_indices(1)=nwflux
       start_indices(2)=nwflux+1
     endif
@@ -707,7 +709,6 @@ contains
       Tcoff_n_ = -1
     end if
 
-    stop_indices(2)=nwflux
 
 #else
   ! set here the MHD indices
@@ -719,8 +720,8 @@ contains
   Tcoff_=Tcoff_c_
   Tweight_ = Tweight_c_
   eaux_=eaux_c_ 
-
 #endif
+    stop_indices(number_species)=nwflux
 
     ! set indices of equi vars and update number_equi_vars
     number_equi_vars = 0
@@ -2536,10 +2537,16 @@ function convert_vars_splitting(ixI^L,ixO^L, w, x, nwc) result(wnew)
       call twofl_get_csound(wRp,x,ixI^L,ixO^L,idim,csoundR)
       csoundL(ixO^S)=max(csoundL(ixO^S),csoundR(ixO^S))
       if(present(cmin)) then
+#if !defined(ONE_FLUID) || ONE_FLUID==0
         cmin(ixO^S,1)=min(0.5*(wLp(ixO^S,mom_c(idim))+ wRp(ixO^S,mom_n(idim))),&
             0.5*(wRp(ixO^S,mom_c(idim))+ wRp(ixO^S,mom_n(idim))))-csoundL(ixO^S)
         cmax(ixO^S,1)=max(0.5*(wLp(ixO^S,mom_c(idim))+ wRp(ixO^S,mom_n(idim))),&
             0.5*(wRp(ixO^S,mom_c(idim))+ wRp(ixO^S,mom_n(idim))))+csoundL(ixO^S)
+#else
+        cmin(ixO^S,1)=min(wLp(ixO^S,mom_c(idim)),wRp(ixO^S,mom_c(idim)))-csoundL(ixO^S)
+        cmax(ixO^S,1)=max(wLp(ixO^S,mom_c(idim)),wRp(ixO^S,mom_c(idim)))+csoundL(ixO^S)
+
+#endif
         if(H_correction) then
           {do ix^DB=ixOmin^DB,ixOmax^DB\}
             cmin(ix^D,1)=sign(one,cmin(ix^D,1))*max(abs(cmin(ix^D,1)),Hspeed(ix^D))
@@ -2547,8 +2554,12 @@ function convert_vars_splitting(ixI^L,ixO^L, w, x, nwc) result(wnew)
           {end do\}
         end if
       else
+#if !defined(ONE_FLUID) || ONE_FLUID==0
         cmax(ixO^S,1)=max(0.5*(wLp(ixO^S,mom_c(idim))+ wRp(ixO^S,mom_n(idim))),&
           0.5*(wRp(ixO^S,mom_c(idim))+ wRp(ixO^S,mom_n(idim))))+csoundL(ixO^S)
+#else
+        cmax(ixO^S,1)=max(wLp(ixO^S,mom_c(idim)),wRp(ixO^S,mom_c(idim)))+csoundL(ixO^S)
+#endif
       end if
     end select
 
