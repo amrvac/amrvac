@@ -1215,13 +1215,15 @@ contains
     if (write_ensemble) then
       send_n_particles_for_output = 0
 
-      do iipart=1,nparticles_on_mype,downsample_particles
+      do iipart=1,nparticles_on_mype
         ipart=particles_on_mype(iipart);
 
         ! have to send particle to rank zero for output
-        send_n_particles_for_output = send_n_particles_for_output + 1
-        send_particles(send_n_particles_for_output) = particle(ipart)%self
-        send_payload(1:npayload,send_n_particles_for_output) = particle(ipart)%payload(1:npayload)
+        if (mod(particle(ipart)%self%index,downsample_particles) .eq. 0) then
+          send_n_particles_for_output = send_n_particles_for_output + 1
+          send_particles(send_n_particles_for_output) = particle(ipart)%self
+          send_payload(1:npayload,send_n_particles_for_output) = particle(ipart)%payload(1:npayload)
+        end if
       end do
 
       call output_ensemble(send_n_particles_for_output,send_particles, &
