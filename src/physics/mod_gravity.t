@@ -62,8 +62,16 @@ contains
         w(ixO^S,iw_mom(idim)) = w(ixO^S,iw_mom(idim)) &
               + qdt * gravity_field(ixO^S,idim) * wCT(ixO^S,iw_rho)
         if(energy) then
-          w(ixO^S,iw_e)=w(ixO^S,iw_e) &
+          if(iw_equi_rho>0) then
+            w(ixO^S,iw_e)=w(ixO^S,iw_e) &
+              + qdt * gravity_field(ixO^S,idim) *&
+               wCT(ixO^S,iw_mom(idim))/(wCT(ixO^S,iw_rho)+block%equi_vars(ixO^S,iw_equi_rho,0))*&
+              wCT(ixO^S,iw_rho)
+
+          else
+            w(ixO^S,iw_e)=w(ixO^S,iw_e) &
               + qdt * gravity_field(ixO^S,idim) * wCT(ixO^S,iw_mom(idim))
+          endif
         end if
       end do
     end if

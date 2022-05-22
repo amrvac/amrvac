@@ -54,7 +54,6 @@
         twofl_cbounds_species=.true.
         twofl_alpha_coll = 1d-1
         twofl_coll_inc_te = .false.
-        twofl_implicit_coll_terms=.false.
  /
 
  &usr_list

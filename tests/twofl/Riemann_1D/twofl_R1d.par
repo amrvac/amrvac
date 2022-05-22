@@ -47,7 +47,6 @@
         twofl_eq_energy = 2
         twofl_alpha_coll = 1d0
         twofl_coll_inc_te = .true.
-        twofl_implicit_coll_terms=.true.
         !dtcollpar=5d3
  /
 

@@ -17,6 +17,7 @@ contains
 
   subroutine usr_init()
 
+    use mod_physics, only: phys_req_diagonal
     unit_length=1.0d18        ! in cm or 10^13 km (1/3 pc)
     unit_numberdensity= 1.0d3 ! number density per cubic cm
     unit_velocity= 1.0d6      ! in cm/s, or 10km/s
@@ -32,6 +33,7 @@ contains
 
     call set_coordinate_system("Cartesian_2D")
     call hd_activate()
+    phys_req_diagonal = .true.
   end subroutine usr_init
 
   subroutine initglobaldata_usr

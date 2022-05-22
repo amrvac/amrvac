@@ -53,7 +53,6 @@
         twofl_alpha_coll = 3d2
         twofl_coll_inc_te = .true.
         !twofl_coll_inc_te = .false.
-        twofl_implicit_coll_terms=.true.
         !dtcollpar=5d3
  /
 

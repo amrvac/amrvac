@@ -1033,7 +1033,7 @@ contains
          rk_alfa33=1.0d0-rk_alfa31
          rk_alfa44=1.0d0-rk_alfa41
        endif
-       use_imex_scheme=.false.
+       use_imex_scheme=(t_integrator==IMEX_RK4)
     case ("fivestep")
        t_stepper=fivestep
        nstep=5
