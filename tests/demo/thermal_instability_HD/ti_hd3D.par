@@ -1,0 +1,93 @@
+ &filelist
+        base_filename='output/ti_hd3D'
+        autoconvert   = .true.
+        saveprim      = .true.
+        nwauxio       = 3
+ /
+
+ &savelist
+        itsave(1,1)   = 0
+        itsave(1,2)   = 0
+        itsave(1,3)   = 0
+        itsave(1,4)   = 0
+        dtsave_log      = 0.01d0
+        dtsave_dat      = 0.5d0
+        dtsave_collapsed=0.05d0
+        dtsave_slice    =0.05d0
+        collapse(1)=T
+        collapse(2)=T
+        collapse(3)=T
+        collapseLevel=5
+        nslices=3
+        slicedir(1)=1
+        slicecoord(1)=0.5d0
+        slicedir(2)=2
+        slicecoord(2)=0.5d0
+        slicedir(3)=3
+        slicecoord(3)=0.5d0
+ /
+
+ &stoplist
+        time_max      = 7.0d0
+ /
+
+ &methodlist
+        time_stepper   = 'fivestep'
+        flux_scheme    = 20*'hllc'
+        limiter        = 20*'wenozp5'
+        check_small_values=.false.
+        fix_small_values=.true.
+        small_values_method='average'
+        small_pressure=1.0d-14
+        small_density=1.0d-12
+ /
+
+ &boundlist
+        typeboundary_min1=5*'periodic'
+        typeboundary_max1=5*'periodic'
+        typeboundary_min2=5*'periodic'
+        typeboundary_max2=5*'periodic'
+        typeboundary_min3=5*'periodic'
+        typeboundary_max3=5*'periodic'
+ /
+
+ &meshlist
+        max_blocks=10000
+        refine_criterion=3
+        refine_max_level=5
+        domain_nx1 = 64
+        domain_nx2 = 64
+        domain_nx3 = 64
+        block_nx1 = 8
+        block_nx2 = 8
+        block_nx3 = 8
+        xprobmin1  = 0.0d0
+        xprobmax1  = 1.0d0
+        xprobmin2  = 0.0d0
+        xprobmax2  = 1.0d0
+        xprobmin3  = 0.0d0
+        xprobmax3  = 1.0d0
+ /
+
+ &paramlist
+        typecourant='maxsum'
+        courantpar=0.4d0
+        slowsteps=50
+ /
+
+ &hd_list
+       hd_radiative_cooling=.true.
+       hd_force_diagonal=.true.
+ /
+
+&rc_list
+    ncool=4000
+    coolcurve='SPEX_DM'
+    coolmethod='exact'
+/
+
+&usr_list
+    scale=0.1d0
+    grhomax=100.0d0
+    radius=0.15d0
+/
