@@ -7,6 +7,7 @@ module mod_mhd_phys
   use mod_thermal_conduction, only: tc_fluid
   use mod_radiative_cooling, only: rc_fluid
   use mod_thermal_emission, only: te_fluid
+  use mod_physics
 
   implicit none
   private
@@ -338,7 +339,6 @@ contains
     use mod_gravity, only: gravity_init
     use mod_particles, only: particles_init, particles_eta, particles_etah
     use mod_magnetofriction, only: magnetofriction_init
-    use mod_physics
     use mod_supertimestepping, only: sts_init, add_sts_method,&
             set_conversion_methods_to_head, set_error_handling_to_head
     {^NOONED
@@ -573,8 +573,16 @@ contains
     phys_get_a2max           => mhd_get_a2max
     phys_get_tcutoff         => mhd_get_tcutoff
     phys_get_H_speed         => mhd_get_H_speed
-    phys_get_cbounds         => mhd_get_cbounds
-    phys_get_flux            => mhd_get_flux
+    if(has_equi_rho0) then
+      phys_get_cbounds         => mhd_get_cbounds_split_rho
+    else
+      phys_get_cbounds         => mhd_get_cbounds
+    end if
+    if(B0field.or.has_equi_rho0.or.has_equi_pe0) then
+      phys_get_flux            => mhd_get_flux_split
+    else
+      phys_get_flux            => mhd_get_flux
+    end if
     phys_get_v_idim          => mhd_get_v_idim
     phys_add_source_geom     => mhd_add_source_geom
     phys_add_source          => mhd_add_source
@@ -1764,7 +1772,7 @@ contains
 
   end subroutine mhd_get_H_speed
 
-  !> Estimating bounds for the minimum and maximum signal velocities
+  !> Estimating bounds for the minimum and maximum signal velocities without split
   subroutine mhd_get_cbounds(wLC,wRC,wLp,wRp,x,ixI^L,ixO^L,idim,Hspeed,cmax,cmin)
     use mod_global_parameters
     use mod_variables
@@ -1780,16 +1788,13 @@ contains
     double precision :: wmean(ixI^S,nw)
     double precision, dimension(ixI^S) :: umean, dmean, csoundL, csoundR, tmp1,tmp2,tmp3
     integer :: ix^D
-    double precision :: rho(ixI^S)
 
     select case (boundspeed) 
     case (1)
       ! This implements formula (10.52) from "Riemann Solvers and Numerical
       ! Methods for Fluid Dynamics" by Toro.
-      call mhd_get_rho(wLp,x,ixI^L,ixO^L,rho)
-      tmp1(ixO^S)=sqrt(rho(ixO^S))
-      call mhd_get_rho(wRp,x,ixI^L,ixO^L,rho)
-      tmp2(ixO^S)=sqrt(rho(ixO^S))
+      tmp1(ixO^S)=sqrt(wLp(ixO^S,rho_))
+      tmp2(ixO^S)=sqrt(wRp(ixO^S,rho_))
       tmp3(ixO^S)=1.d0/(tmp1(ixO^S)+tmp2(ixO^S))
       umean(ixO^S)=(wLp(ixO^S,mom(idim))*tmp1(ixO^S)+wRp(ixO^S,mom(idim))*tmp2(ixO^S))*tmp3(ixO^S)
       call mhd_get_csound_prim(wLp,x,ixI^L,ixO^L,idim,csoundL)
@@ -1812,8 +1817,7 @@ contains
       end if
     case (2)
       wmean(ixO^S,1:nwflux)=0.5d0*(wLC(ixO^S,1:nwflux)+wRC(ixO^S,1:nwflux))
-      call mhd_get_rho(wmean,x,ixI^L,ixO^L,rho)
-      tmp1(ixO^S)=wmean(ixO^S,mom(idim))/rho(ixO^S)
+      tmp1(ixO^S)=wmean(ixO^S,mom(idim))/wmean(ixO^S,rho_)
       call mhd_get_csound(wmean,x,ixI^L,ixO^L,idim,csoundR)
       if(present(cmin)) then
         cmax(ixO^S,1)=max(tmp1(ixO^S)+csoundR(ixO^S),zero)
@@ -1847,6 +1851,87 @@ contains
     end select
 
   end subroutine mhd_get_cbounds
+
+  !> Estimating bounds for the minimum and maximum signal velocities with rho split
+  subroutine mhd_get_cbounds_split_rho(wLC,wRC,wLp,wRp,x,ixI^L,ixO^L,idim,Hspeed,cmax,cmin)
+    use mod_global_parameters
+    use mod_variables
+
+    integer, intent(in)             :: ixI^L, ixO^L, idim
+    double precision, intent(in)    :: wLC(ixI^S, nw), wRC(ixI^S, nw)
+    double precision, intent(in)    :: wLp(ixI^S, nw), wRp(ixI^S, nw)
+    double precision, intent(in)    :: x(ixI^S,1:ndim)
+    double precision, intent(inout) :: cmax(ixI^S,1:number_species)
+    double precision, intent(inout), optional :: cmin(ixI^S,1:number_species)
+    double precision, intent(in)    :: Hspeed(ixI^S)
+
+    double precision :: wmean(ixI^S,nw)
+    double precision, dimension(ixI^S) :: umean, dmean, csoundL, csoundR, tmp1,tmp2,tmp3
+    integer :: ix^D
+    double precision :: rho(ixI^S)
+
+    select case (boundspeed) 
+    case (1)
+      ! This implements formula (10.52) from "Riemann Solvers and Numerical
+      ! Methods for Fluid Dynamics" by Toro.
+      tmp1(ixO^S)=sqrt(wLp(ixO^S,rho_)+block%equi_vars(ixO^S,equi_rho0_,b0i))
+      tmp2(ixO^S)=sqrt(wRp(ixO^S,rho_)+block%equi_vars(ixO^S,equi_rho0_,b0i))
+      tmp3(ixO^S)=1.d0/(tmp1(ixO^S)+tmp2(ixO^S))
+      umean(ixO^S)=(wLp(ixO^S,mom(idim))*tmp1(ixO^S)+wRp(ixO^S,mom(idim))*tmp2(ixO^S))*tmp3(ixO^S)
+      call mhd_get_csound_prim(wLp,x,ixI^L,ixO^L,idim,csoundL)
+      call mhd_get_csound_prim(wRp,x,ixI^L,ixO^L,idim,csoundR)
+      dmean(ixO^S)=(tmp1(ixO^S)*csoundL(ixO^S)**2+tmp2(ixO^S)*csoundR(ixO^S)**2)*tmp3(ixO^S)+&
+       0.5d0*tmp1(ixO^S)*tmp2(ixO^S)*tmp3(ixO^S)**2*&
+       (wRp(ixO^S,mom(idim))-wLp(ixO^S,mom(idim)))**2
+      dmean(ixO^S)=sqrt(dmean(ixO^S))
+      if(present(cmin)) then
+        cmin(ixO^S,1)=umean(ixO^S)-dmean(ixO^S)
+        cmax(ixO^S,1)=umean(ixO^S)+dmean(ixO^S)
+        if(H_correction) then
+          {do ix^DB=ixOmin^DB,ixOmax^DB\}
+            cmin(ix^D,1)=sign(one,cmin(ix^D,1))*max(abs(cmin(ix^D,1)),Hspeed(ix^D))
+            cmax(ix^D,1)=sign(one,cmax(ix^D,1))*max(abs(cmax(ix^D,1)),Hspeed(ix^D))
+          {end do\}
+        end if
+      else
+        cmax(ixO^S,1)=abs(umean(ixO^S))+dmean(ixO^S)
+      end if
+    case (2)
+      wmean(ixO^S,1:nwflux)=0.5d0*(wLC(ixO^S,1:nwflux)+wRC(ixO^S,1:nwflux))
+      tmp1(ixO^S)=wmean(ixO^S,mom(idim))/(wmean(ixO^S,rho_)+block%equi_vars(ixO^S,equi_rho0_,b0i))
+      call mhd_get_csound(wmean,x,ixI^L,ixO^L,idim,csoundR)
+      if(present(cmin)) then
+        cmax(ixO^S,1)=max(tmp1(ixO^S)+csoundR(ixO^S),zero)
+        cmin(ixO^S,1)=min(tmp1(ixO^S)-csoundR(ixO^S),zero)
+        if(H_correction) then
+          {do ix^DB=ixOmin^DB,ixOmax^DB\}
+            cmin(ix^D,1)=sign(one,cmin(ix^D,1))*max(abs(cmin(ix^D,1)),Hspeed(ix^D))
+            cmax(ix^D,1)=sign(one,cmax(ix^D,1))*max(abs(cmax(ix^D,1)),Hspeed(ix^D))
+          {end do\}
+        end if
+      else
+        cmax(ixO^S,1)=abs(tmp1(ixO^S))+csoundR(ixO^S)
+      end if
+    case (3)
+      ! Miyoshi 2005 JCP 208, 315 equation (67)
+      call mhd_get_csound_prim(wLp,x,ixI^L,ixO^L,idim,csoundL)
+      call mhd_get_csound_prim(wRp,x,ixI^L,ixO^L,idim,csoundR)
+      csoundL(ixO^S)=max(csoundL(ixO^S),csoundR(ixO^S))
+      if(present(cmin)) then
+        cmin(ixO^S,1)=min(wLp(ixO^S,mom(idim)),wRp(ixO^S,mom(idim)))-csoundL(ixO^S)
+        cmax(ixO^S,1)=max(wLp(ixO^S,mom(idim)),wRp(ixO^S,mom(idim)))+csoundL(ixO^S)
+        if(H_correction) then
+          {do ix^DB=ixOmin^DB,ixOmax^DB\}
+            cmin(ix^D,1)=sign(one,cmin(ix^D,1))*max(abs(cmin(ix^D,1)),Hspeed(ix^D))
+            cmax(ix^D,1)=sign(one,cmax(ix^D,1))*max(abs(cmax(ix^D,1)),Hspeed(ix^D))
+          {end do\}
+        end if
+      else
+        cmax(ixO^S,1)=max(wLp(ixO^S,mom(idim)),wRp(ixO^S,mom(idim)))+csoundL(ixO^S)
+      end if
+    end select
+
+  end subroutine mhd_get_cbounds_split_rho
 
   !> prepare velocities for ct methods
   subroutine mhd_get_ct_velocity(vcts,wLp,wRp,ixI^L,ixO^L,idim,cmax,cmin)
@@ -2181,8 +2266,157 @@ contains
 
   end subroutine mhd_get_p_total
 
-  !> Calculate fluxes within ixO^L.
+  !> Calculate fluxes within ixO^L without any splitting
   subroutine mhd_get_flux(wC,w,x,ixI^L,ixO^L,idim,f)
+    use mod_global_parameters
+    use mod_geometry
+
+    integer, intent(in)          :: ixI^L, ixO^L, idim
+    ! conservative w
+    double precision, intent(in) :: wC(ixI^S,nw)
+    ! primitive w
+    double precision, intent(in) :: w(ixI^S,nw)
+    double precision, intent(in) :: x(ixI^S,1:ndim)
+    double precision,intent(out) :: f(ixI^S,nwflux)
+
+    double precision             :: pgas(ixO^S), ptotal(ixO^S)
+    double precision             :: tmp(ixI^S)
+    double precision             :: vHall(ixI^S,1:ndir)
+    integer                      :: idirmin, iw, idir, jdir, kdir
+    double precision, allocatable, dimension(:^D&,:) :: Jambi, btot
+    double precision, allocatable, dimension(:^D&) :: tmp2, tmp3
+
+    ! Get flux of density
+    f(ixO^S,rho_)=w(ixO^S,mom(idim))*w(ixO^S,rho_)
+    ! pgas is time dependent only
+    if(mhd_energy) then
+      pgas=w(ixO^S,p_)
+    else
+      pgas(ixO^S)=mhd_adiab*w(ixO^S,rho_)**mhd_gamma
+    end if
+
+    if (mhd_Hall) then
+      call mhd_getv_Hall(w,x,ixI^L,ixO^L,vHall)
+    end if
+
+    ptotal = pgas + 0.5d0*sum(w(ixO^S, mag(:))**2, dim=ndim+1)
+
+    ! Get flux of tracer
+    do iw=1,mhd_n_tracer
+      f(ixO^S,tracer(iw))=w(ixO^S,mom(idim))*w(ixO^S,tracer(iw))
+    end do
+
+    ! Get flux of momentum
+    ! f_i[m_k]=v_i*m_k-b_k*b_i [+ptotal if i==k]
+    if (mhd_boris_type == boris_reduced_force) then
+      do idir=1,ndir
+        if(idim==idir) then
+          f(ixO^S,mom(idir)) = pgas(ixO^S)
+        else
+          f(ixO^S,mom(idir)) = 0.0d0
+        end if
+        f(ixO^S,mom(idir))=f(ixO^S,mom(idir))+w(ixO^S,mom(idim))*wC(ixO^S,mom(idir))
+      end do
+    else
+      ! Normal case (no Boris approximation)
+      do idir=1,ndir
+        if(idim==idir) then
+          f(ixO^S,mom(idir))=ptotal(ixO^S)-w(ixO^S,mag(idim))*w(ixO^S,mag(idir))
+        else
+          f(ixO^S,mom(idir))=-w(ixO^S,mag(idir))*w(ixO^S,mag(idim))
+        end if
+        f(ixO^S,mom(idir))=f(ixO^S,mom(idir))+w(ixO^S,mom(idim))*wC(ixO^S,mom(idir))
+      end do
+    end if
+
+    ! Get flux of energy
+    ! f_i[e]=v_i*e+v_i*ptotal-b_i*(b_k*v_k)
+    if(mhd_energy) then
+      if (mhd_internal_e) then
+         f(ixO^S,e_)=w(ixO^S,mom(idim))*w(ixO^S,p_)
+         if (mhd_Hall) then
+            call mpistop("solve internal energy not implemented for Hall MHD")
+         endif
+      else
+        f(ixO^S,e_)=w(ixO^S,mom(idim))*(wC(ixO^S,e_)+ptotal(ixO^S))&
+           -w(ixO^S,mag(idim))*sum(w(ixO^S,mag(:))*w(ixO^S,mom(:)),dim=ndim+1)
+        if(mhd_solve_eaux) f(ixO^S,eaux_)=w(ixO^S,mom(idim))*wC(ixO^S,eaux_)
+        if(mhd_Hall) then
+        ! f_i[e]= f_i[e] + vHall_i*(b_k*b_k) - b_i*(vHall_k*b_k)
+          f(ixO^S,e_) = f(ixO^S,e_) + vHall(ixO^S,idim) * &
+             sum(w(ixO^S, mag(:))**2,dim=ndim+1) &
+             - w(ixO^S,mag(idim)) * sum(vHall(ixO^S,:)*w(ixO^S,mag(:)),dim=ndim+1)
+        end if
+      end if
+    end if
+
+    ! compute flux of magnetic field
+    ! f_i[b_k]=v_i*b_k-v_k*b_i
+    do idir=1,ndir
+      if (idim==idir) then
+        ! f_i[b_i] should be exactly 0, so we do not use the transport flux
+        if (mhd_glm) then
+           f(ixO^S,mag(idir))=w(ixO^S,psi_)
+        else
+           f(ixO^S,mag(idir))=zero
+        end if
+      else
+        f(ixO^S,mag(idir))=w(ixO^S,mom(idim))*w(ixO^S,mag(idir))-w(ixO^S,mag(idim))*w(ixO^S,mom(idir))
+        if (mhd_Hall) then
+          ! f_i[b_k] = f_i[b_k] + vHall_i*b_k - vHall_k*b_i
+          f(ixO^S,mag(idir)) = f(ixO^S,mag(idir)) &
+               - vHall(ixO^S,idir)*w(ixO^S,mag(idim)) &
+               + vHall(ixO^S,idim)*w(ixO^S,mag(idir))
+        end if
+      end if
+    end do
+
+    if (mhd_glm) then
+      !f_i[psi]=Ch^2*b_{i} Eq. 24e and Eq. 38c Dedner et al 2002 JCP, 175, 645
+      f(ixO^S,psi_)  = cmax_global**2*w(ixO^S,mag(idim))
+    end if
+
+    ! Contributions of ambipolar term in explicit scheme
+    if(mhd_ambipolar_exp.and. .not.stagger_grid) then
+      ! ambipolar electric field
+      ! E_ambi=-eta_ambi*JxBxB=-JaxBxB=B^2*Ja-(Ja dot B)*B
+      !Ja=eta_ambi*J=J * mhd_eta_ambi/rho**2
+      allocate(Jambi(ixI^S,1:3))
+      call mhd_get_Jambi(w,x,ixI^L,ixO^L,Jambi)
+      allocate(btot(ixO^S,1:3))
+      btot(ixO^S,1:3) = w(ixO^S,mag(1:3))
+      allocate(tmp2(ixO^S),tmp3(ixO^S))
+      !tmp2 = Btot^2
+      tmp2(ixO^S) = sum(btot(ixO^S,1:3)**2,dim=ndim+1)
+      !tmp3 = J_ambi dot Btot
+      tmp3(ixO^S) = sum(Jambi(ixO^S,:)*btot(ixO^S,:),dim=ndim+1)
+
+      select case(idim)
+        case(1)
+          tmp(ixO^S)=w(ixO^S,mag(3)) *Jambi(ixO^S,2) - w(ixO^S,mag(2)) * Jambi(ixO^S,3)
+          f(ixO^S,mag(2))= f(ixO^S,mag(2)) - tmp2(ixO^S) * Jambi(ixO^S,3) + tmp3(ixO^S) * btot(ixO^S,3)
+          f(ixO^S,mag(3))= f(ixO^S,mag(3)) + tmp2(ixO^S) * Jambi(ixO^S,2) - tmp3(ixO^S) * btot(ixO^S,2)
+        case(2)
+          tmp(ixO^S)=w(ixO^S,mag(1)) *Jambi(ixO^S,3) - w(ixO^S,mag(3)) * Jambi(ixO^S,1)
+          f(ixO^S,mag(1))= f(ixO^S,mag(1)) + tmp2(ixO^S) * Jambi(ixO^S,3) - tmp3(ixO^S) * btot(ixO^S,3)
+          f(ixO^S,mag(3))= f(ixO^S,mag(3)) - tmp2(ixO^S) * Jambi(ixO^S,1) + tmp3(ixO^S) * btot(ixO^S,1)
+        case(3)
+          tmp(ixO^S)=w(ixO^S,mag(2)) *Jambi(ixO^S,1) - w(ixO^S,mag(1)) * Jambi(ixO^S,2)
+          f(ixO^S,mag(1))= f(ixO^S,mag(1)) - tmp2(ixO^S) * Jambi(ixO^S,2) + tmp3(ixO^S) * btot(ixO^S,2)
+          f(ixO^S,mag(2))= f(ixO^S,mag(2)) + tmp2(ixO^S) * Jambi(ixO^S,1) - tmp3(ixO^S) * btot(ixO^S,1)
+      endselect
+
+      if(mhd_energy .and. .not. mhd_internal_e) then
+        f(ixO^S,e_) = f(ixO^S,e_) + tmp2(ixO^S) *  tmp(ixO^S)
+      endif
+
+      deallocate(Jambi,btot,tmp2,tmp3)
+    endif
+
+  end subroutine mhd_get_flux
+
+  !> Calculate fluxes within ixO^L with possible splitting
+  subroutine mhd_get_flux_split(wC,w,x,ixI^L,ixO^L,idim,f)
     use mod_global_parameters
     use mod_geometry
 
@@ -2219,9 +2453,8 @@ contains
     if (mhd_Hall) then
       call mhd_getv_Hall(w,x,ixI^L,ixO^L,vHall)
     end if
-#if !defined(USE_SPLIT_B0) || USE_SPLIT_B0==1
+
     if(B0field) tmp(ixO^S)=sum(block%B0(ixO^S,:,idim)*w(ixO^S,mag(:)),dim=ndim+1)
-#endif
 
     ptotal = pgas + 0.5d0*sum(w(ixO^S, mag(:))**2, dim=ndim+1)
 
@@ -2246,19 +2479,15 @@ contains
       do idir=1,ndir
         if(idim==idir) then
           f(ixO^S,mom(idir))=ptotal(ixO^S)-w(ixO^S,mag(idim))*w(ixO^S,mag(idir))
-#if !defined(USE_SPLIT_B0) || USE_SPLIT_B0==1
           if(B0field) f(ixO^S,mom(idir))=f(ixO^S,mom(idir))+tmp(ixO^S)
-#endif
         else
           f(ixO^S,mom(idir))= -w(ixO^S,mag(idir))*w(ixO^S,mag(idim))
         end if
-#if !defined(USE_SPLIT_B0) || USE_SPLIT_B0==1
         if (B0field) then
           f(ixO^S,mom(idir))=f(ixO^S,mom(idir))&
                -w(ixO^S,mag(idir))*block%B0(ixO^S,idim,idim)&
                -w(ixO^S,mag(idim))*block%B0(ixO^S,idir,idim)
         end if
-#endif
         f(ixO^S,mom(idir))=f(ixO^S,mom(idir))+w(ixO^S,mom(idim))*wC(ixO^S,mom(idir))
       end do
     end if
@@ -2276,13 +2505,11 @@ contains
            -w(ixO^S,mag(idim))*sum(w(ixO^S,mag(:))*w(ixO^S,mom(:)),dim=ndim+1)
         if(mhd_solve_eaux) f(ixO^S,eaux_)=w(ixO^S,mom(idim))*wC(ixO^S,eaux_)
 
-#if !defined(USE_SPLIT_B0) || USE_SPLIT_B0==1
         if (B0field) then
            f(ixO^S,e_) = f(ixO^S,e_) &
               + w(ixO^S,mom(idim)) * tmp(ixO^S) &
               - sum(w(ixO^S,mom(:))*w(ixO^S,mag(:)),dim=ndim+1) * block%B0(ixO^S,idim,idim)
         end if
-#endif
 
         if (mhd_Hall) then
         ! f_i[e]= f_i[e] + vHall_i*(b_k*b_k) - b_i*(vHall_k*b_k)
@@ -2290,13 +2517,11 @@ contains
               f(ixO^S,e_) = f(ixO^S,e_) + vHall(ixO^S,idim) * &
                  sum(w(ixO^S, mag(:))**2,dim=ndim+1) &
                  - w(ixO^S,mag(idim)) * sum(vHall(ixO^S,:)*w(ixO^S,mag(:)),dim=ndim+1)
-#if !defined(USE_SPLIT_B0) || USE_SPLIT_B0==1
               if (B0field) then
                  f(ixO^S,e_) = f(ixO^S,e_) &
                     + vHall(ixO^S,idim) * tmp(ixO^S) &
                     - sum(vHall(ixO^S,:)*w(ixO^S,mag(:)),dim=ndim+1) * block%B0(ixO^S,idim,idim)
               end if
-#endif
            end if
         end if
       end if
@@ -2319,30 +2544,24 @@ contains
       else
         f(ixO^S,mag(idir))=w(ixO^S,mom(idim))*w(ixO^S,mag(idir))-w(ixO^S,mag(idim))*w(ixO^S,mom(idir))
 
-#if !defined(USE_SPLIT_B0) || USE_SPLIT_B0==1
         if (B0field) then
           f(ixO^S,mag(idir))=f(ixO^S,mag(idir))&
                 +w(ixO^S,mom(idim))*block%B0(ixO^S,idir,idim)&
                 -w(ixO^S,mom(idir))*block%B0(ixO^S,idim,idim)
         end if
-#endif
 
         if (mhd_Hall) then
           ! f_i[b_k] = f_i[b_k] + vHall_i*b_k - vHall_k*b_i
           if (mhd_etah>zero) then
-#if !defined(USE_SPLIT_B0) || USE_SPLIT_B0==1
             if (B0field) then
               f(ixO^S,mag(idir)) = f(ixO^S,mag(idir)) &
                    - vHall(ixO^S,idir)*(w(ixO^S,mag(idim))+block%B0(ixO^S,idim,idim)) &
                    + vHall(ixO^S,idim)*(w(ixO^S,mag(idir))+block%B0(ixO^S,idir,idim))
             else
-#endif
               f(ixO^S,mag(idir)) = f(ixO^S,mag(idir)) &
                    - vHall(ixO^S,idir)*w(ixO^S,mag(idim)) &
                    + vHall(ixO^S,idim)*w(ixO^S,mag(idir))
-#if !defined(USE_SPLIT_B0) || USE_SPLIT_B0==1
             end if
-#endif
           end if
         end if
 
@@ -2362,17 +2581,13 @@ contains
       allocate(Jambi(ixI^S,1:3))
       call mhd_get_Jambi(w,x,ixI^L,ixO^L,Jambi)
       allocate(btot(ixO^S,1:3))
-#if !defined(USE_SPLIT_B0) || USE_SPLIT_B0==1
       if(B0field) then
         do idir=1,3
           btot(ixO^S, idir) = w(ixO^S,mag(idir)) + block%B0(ixO^S,idir,idim)
         enddo
       else
-#endif
         btot(ixO^S,1:3) = w(ixO^S,mag(1:3))
-#if !defined(USE_SPLIT_B0) || USE_SPLIT_B0==1
       endif
-#endif
       allocate(tmp2(ixO^S),tmp3(ixO^S))
       !tmp2 = Btot^2
       tmp2(ixO^S) = sum(btot(ixO^S,1:3)**2,dim=ndim+1)
@@ -2382,38 +2597,30 @@ contains
       select case(idim)
         case(1)
           tmp(ixO^S)=w(ixO^S,mag(3)) *Jambi(ixO^S,2) - w(ixO^S,mag(2)) * Jambi(ixO^S,3)
-#if !defined(USE_SPLIT_B0) || USE_SPLIT_B0==1
           if(B0field) tmp4(ixO^S) = w(ixO^S,mag(2)) * btot(ixO^S,3) - w(ixO^S,mag(3)) * btot(ixO^S,2)
-#endif
           f(ixO^S,mag(2))= f(ixO^S,mag(2)) - tmp2(ixO^S) * Jambi(ixO^S,3) + tmp3(ixO^S) * btot(ixO^S,3)
           f(ixO^S,mag(3))= f(ixO^S,mag(3)) + tmp2(ixO^S) * Jambi(ixO^S,2) - tmp3(ixO^S) * btot(ixO^S,2)
         case(2)
           tmp(ixO^S)=w(ixO^S,mag(1)) *Jambi(ixO^S,3) - w(ixO^S,mag(3)) * Jambi(ixO^S,1)
-#if !defined(USE_SPLIT_B0) || USE_SPLIT_B0==1
           if(B0field) tmp4(ixO^S) = w(ixO^S,mag(3)) * btot(ixO^S,1) - w(ixO^S,mag(1)) * btot(ixO^S,3)
-#endif
           f(ixO^S,mag(1))= f(ixO^S,mag(1)) + tmp2(ixO^S) * Jambi(ixO^S,3) - tmp3(ixO^S) * btot(ixO^S,3)
           f(ixO^S,mag(3))= f(ixO^S,mag(3)) - tmp2(ixO^S) * Jambi(ixO^S,1) + tmp3(ixO^S) * btot(ixO^S,1)
         case(3)
           tmp(ixO^S)=w(ixO^S,mag(2)) *Jambi(ixO^S,1) - w(ixO^S,mag(1)) * Jambi(ixO^S,2)
-#if !defined(USE_SPLIT_B0) || USE_SPLIT_B0==1
           if(B0field) tmp4(ixO^S) = w(ixO^S,mag(1)) * btot(ixO^S,2) - w(ixO^S,mag(2)) * btot(ixO^S,1)
-#endif
           f(ixO^S,mag(1))= f(ixO^S,mag(1)) - tmp2(ixO^S) * Jambi(ixO^S,2) + tmp3(ixO^S) * btot(ixO^S,2)
           f(ixO^S,mag(2))= f(ixO^S,mag(2)) + tmp2(ixO^S) * Jambi(ixO^S,1) - tmp3(ixO^S) * btot(ixO^S,1)
       endselect
 
       if(mhd_energy .and. .not. mhd_internal_e) then
         f(ixO^S,e_) = f(ixO^S,e_) + tmp2(ixO^S) *  tmp(ixO^S)
-#if !defined(USE_SPLIT_B0) || USE_SPLIT_B0==1
         if(B0field) f(ixO^S,e_) = f(ixO^S,e_) +  tmp3(ixO^S) *  tmp4(ixO^S)
-#endif
       endif
 
       deallocate(Jambi,btot,tmp2,tmp3)
     endif
 
-  end subroutine mhd_get_flux
+  end subroutine mhd_get_flux_split
 
   !> Source terms J.E in internal energy. 
   !> For the ambipolar term E = ambiCoef * JxBxB=ambiCoef * B^2(-J_perpB) 
@@ -2776,13 +2983,12 @@ contains
         endif
       endif
 
-#if !defined(USE_SPLIT_B0) || USE_SPLIT_B0==1
       ! Source for B0 splitting
       if (B0field) then
         active = .true.
         call add_source_B0split(qdt,ixI^L,ixO^L,wCT,w,x)
       end if
-#endif
+
       ! Sources for resistivity in eqs. for e, B1, B2 and B3
       if (abs(mhd_eta)>smalldouble)then
         active = .true.
@@ -2872,12 +3078,8 @@ contains
     }
 
     if(mhd_radiative_cooling) then
-      if(it==7) print*, it," BEFOREADD ", minval(w(ixO^S,e_)), maxval(w(ixO^S,e_)),&
-                        minloc(w(ixO^S,e_))
       call radiative_cooling_add_source(qdt,ixI^L,ixO^L,wCT,&
            w,x,qsourcesplit,active, rc_fl)
-      if(it==7) print*, it," AFTERADD ", minval(w(ixO^S,e_)), maxval(w(ixO^S,e_)),&
-                        minloc(w(ixO^S,e_))
     end if
 
     if(mhd_viscosity) then
