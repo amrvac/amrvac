@@ -16,7 +16,8 @@ module mod_mhd_phys
 
   !> Whether thermal conduction is used
   logical, public, protected              :: mhd_thermal_conduction = .false.
-  type(tc_fluid), public, allocatable :: tc_fl
+  !> type of fluid for thermal conduction
+  type(tc_fluid), public, allocatable     :: tc_fl
   type(te_fluid), allocatable,target :: te_fl_mhd
 
   !> type of TC used: 1: adapted module (mhd implementation), 2: adapted module (hd implementation)
@@ -26,7 +27,8 @@ module mod_mhd_phys
 
   !> Whether radiative cooling is added
   logical, public, protected              :: mhd_radiative_cooling = .false.
-  type(rc_fluid), public, allocatable :: rc_fl
+  !> type of fluid for radiative cooling
+  type(rc_fluid), public, allocatable     :: rc_fl
 
   !> Whether viscosity is added
   logical, public, protected              :: mhd_viscosity = .false.
@@ -62,7 +64,7 @@ module mod_mhd_phys
   integer, public, protected              :: mhd_trac_type=1
 
   !> Height of the mask used in the TRAC method
-  double precision, public, protected              :: mhd_trac_mask = 0.d0
+  double precision, public, protected     :: mhd_trac_mask = 0.d0
 
   !> Distance between two adjacent traced magnetic field lines (in finest cell size)   
   integer, public, protected              :: mhd_trac_finegrid=4
@@ -94,8 +96,10 @@ module mod_mhd_phys
 
   !> MHD fourth order
   logical, public, protected              :: mhd_4th_order = .false.
-  !> equi vars flags
+
+  !> whether split off equilibrium density
   logical, public :: has_equi_rho0 = .false.  
+  !> whether split off equilibrium thermal pressure
   logical, public :: has_equi_pe0 = .false.  
   logical, public :: mhd_equi_thermal = .false.  
 
@@ -105,7 +109,6 @@ module mod_mhd_phys
 
   !> whether dump full variables (when splitting is used) in a separate dat file
   logical, public, protected              :: mhd_dump_full_vars = .false.
-
 
   !> Number of tracer species
   integer, public, protected              :: mhd_n_tracer = 0
@@ -229,7 +232,6 @@ module mod_mhd_phys
   integer, parameter :: divb_lindeglm      = 7
   integer, parameter :: divb_ct            = 8
 
-
   ! Public methods
   public :: mhd_phys_init
   public :: mhd_kin_en
@@ -251,7 +253,6 @@ module mod_mhd_phys
   public :: mhd_clean_divb_multigrid
   }
 
-
   !define the subroutine interface for the ambipolar mask
   abstract interface
 
@@ -265,8 +266,8 @@ module mod_mhd_phys
 
   end interface
 
-   procedure (mask_subroutine), pointer :: usr_mask_ambipolar => null()
-   public :: usr_mask_ambipolar 
+  procedure (mask_subroutine), pointer :: usr_mask_ambipolar => null()
+  public :: usr_mask_ambipolar 
 
 contains
 
@@ -340,8 +341,6 @@ contains
     use mod_physics
     use mod_supertimestepping, only: sts_init, add_sts_method,&
             set_conversion_methods_to_head, set_error_handling_to_head
-
-
     {^NOONED
     use mod_multigrid_coupling
     }
@@ -395,10 +394,10 @@ contains
     phys_total_energy=total_energy
 
     {^IFONED
-      if(mhd_trac .and. mhd_trac_type .gt. 2) then
-        mhd_trac_type=1
-        if(mype==0) write(*,*) 'WARNING: reset mhd_trac_type=1 for 1D simulation'
-      end if
+    if(mhd_trac .and. mhd_trac_type .gt. 2) then
+      mhd_trac_type=1
+      if(mype==0) write(*,*) 'WARNING: reset mhd_trac_type=1 for 1D simulation'
+    end if
     }
     if(mhd_trac .and. mhd_trac_type .le. 4) then
       mhd_trac_mask=bigdouble
@@ -813,7 +812,6 @@ contains
     call sts_set_source_tc_hd(ixI^L,ixO^L,w,x,wres,fix_conserve_at_step,my_dt,igrid,nflux,tc_fl)
   end subroutine mhd_sts_set_source_tc_hd
 
-
   function mhd_get_tc_dt_mhd(w,ixI^L,ixO^L,dx^D,x) result(dtnew)
     !Check diffusion time limit dt < dx_i**2/((gamma-1)*tc_k_para_i/rho)
     !where                      tc_k_para_i=tc_k_para*B_i**2/B**2
@@ -843,7 +841,6 @@ contains
 
     dtnew=get_tc_dt_hd(w,ixI^L,ixO^L,dx^D,x,tc_fl) 
   end function mhd_get_tc_dt_hd
-
 
   subroutine mhd_tc_handle_small_e(w, x, ixI^L, ixO^L, step)
     use mod_global_parameters
@@ -957,7 +954,6 @@ contains
   !> sets the equilibrium variables
   subroutine set_equi_vars_grid_faces(igrid,x,ixI^L,ixO^L)
     use mod_global_parameters
-    use mod_global_parameters
     use mod_usr_methods
     integer, intent(in) :: igrid, ixI^L, ixO^L
     double precision, intent(in) :: x(ixI^S,1:ndim)
@@ -972,8 +968,7 @@ contains
       ! for all non-cartesian and stretched cartesian coordinates
       delx(ixI^S,1:ndim)=ps(igrid)%dx(ixI^S,1:ndim)
     endif
-  
-  
+
     do idims=1,ndim
       hxO^L=ixO^L-kr(idims,^D);
       if(stagger_grid) then
@@ -1000,7 +995,6 @@ contains
 
   end subroutine set_equi_vars_grid_faces
 
-
   !> sets the equilibrium variables
   subroutine set_equi_vars_grid(igrid)
     use mod_global_parameters
@@ -1013,43 +1007,41 @@ contains
 
     !values at the interfaces
     call set_equi_vars_grid_faces(igrid,ps(igrid)%x,ixG^LL,ixM^LL)
-  
  
- end subroutine set_equi_vars_grid
- 
+  end subroutine set_equi_vars_grid
 
-! w, wnew conserved
-function convert_vars_splitting(ixI^L,ixO^L, w, x, nwc) result(wnew)
-  use mod_global_parameters
-  integer, intent(in)             :: ixI^L,ixO^L, nwc
-  double precision, intent(in)    :: w(ixI^S, 1:nw)
-  double precision, intent(in)    :: x(ixI^S,1:ndim) 
-  double precision   :: wnew(ixO^S, 1:nwc)
-  double precision   :: rho(ixI^S)
+  ! w, wnew conserved, add splitted variables back to wnew
+  function convert_vars_splitting(ixI^L,ixO^L, w, x, nwc) result(wnew)
+    use mod_global_parameters
+    integer, intent(in)             :: ixI^L,ixO^L, nwc
+    double precision, intent(in)    :: w(ixI^S, 1:nw)
+    double precision, intent(in)    :: x(ixI^S,1:ndim)
+    double precision   :: wnew(ixO^S, 1:nwc)
+    double precision   :: rho(ixI^S)
 
-  call  mhd_get_rho(w,x,ixI^L,ixO^L,rho(ixI^S))
-  wnew(ixO^S,rho_) = rho(ixO^S)
-  wnew(ixO^S,mom(:)) =  w(ixO^S,mom(:))
+    call  mhd_get_rho(w,x,ixI^L,ixO^L,rho(ixI^S))
+    wnew(ixO^S,rho_) = rho(ixO^S)
+    wnew(ixO^S,mom(:)) =  w(ixO^S,mom(:))
 
-  if (B0field) then
-    ! add background magnetic field B0 to B
-    wnew(ixO^S,mag(:))=w(ixO^S,mag(:))+block%B0(ixO^S,:,0)
-  else 
-    wnew(ixO^S,mag(:))=w(ixO^S,mag(:))
-  end if
+    if (B0field) then
+      ! add background magnetic field B0 to B
+      wnew(ixO^S,mag(:))=w(ixO^S,mag(:))+block%B0(ixO^S,:,0)
+    else
+      wnew(ixO^S,mag(:))=w(ixO^S,mag(:))
+    end if
 
-  if(mhd_energy) then
-    wnew(ixO^S,e_) = w(ixO^S,e_)
-    if(has_equi_pe0) then
-      wnew(ixO^S,e_) = wnew(ixO^S,e_) + block%equi_vars(ixO^S,equi_pe0_,0)* inv_gamma_1  
-    endif
-    if(B0field .and. .not. mhd_internal_e) then
-        wnew(ixO^S,e_)=wnew(ixO^S,e_)+0.5d0*sum(block%B0(ixO^S,:,0)**2,dim=ndim+1) &
-            + sum(w(ixO^S,mag(:))*block%B0(ixO^S,:,0),dim=ndim+1)
-    endif
-  endif
+    if(mhd_energy) then
+      wnew(ixO^S,e_) = w(ixO^S,e_)
+      if(has_equi_pe0) then
+        wnew(ixO^S,e_) = wnew(ixO^S,e_) + block%equi_vars(ixO^S,equi_pe0_,0)* inv_gamma_1
+      end if
+      if(B0field .and. .not. mhd_internal_e) then
+          wnew(ixO^S,e_)=wnew(ixO^S,e_)+0.5d0*sum(block%B0(ixO^S,:,0)**2,dim=ndim+1) &
+              + sum(w(ixO^S,mag(:))*block%B0(ixO^S,:,0),dim=ndim+1)
+      end if
+    end if
 
- end function convert_vars_splitting
+  end function convert_vars_splitting
 
   subroutine mhd_check_params
     use mod_global_parameters
@@ -2111,10 +2103,9 @@ function convert_vars_splitting(ixI^L,ixO^L, w, x, nwc) result(wnew)
     double precision, intent(in) :: w(ixI^S, 1:nw)
     double precision, intent(in) :: x(ixI^S, 1:ndim)
     double precision, intent(out):: res(ixI^S)
-      res(ixO^S) = (gamma_1 * w(ixO^S, e_) + block%equi_vars(ixO^S,equi_pe0_,b0i)) /&
+    res(ixO^S) = (gamma_1 * w(ixO^S, e_) + block%equi_vars(ixO^S,equi_pe0_,b0i)) /&
                 (w(ixO^S,rho_) +block%equi_vars(ixO^S,equi_rho0_,b0i))
   end subroutine mhd_get_temperature_from_eint_with_equi
-
 
   subroutine mhd_get_temperature_equi(w,x, ixI^L, ixO^L, res)
     use mod_global_parameters
@@ -2122,7 +2113,7 @@ function convert_vars_splitting(ixI^L,ixO^L, w, x, nwc) result(wnew)
     double precision, intent(in) :: w(ixI^S, 1:nw)
     double precision, intent(in) :: x(ixI^S, 1:ndim)
     double precision, intent(out):: res(ixI^S)
-      res(ixO^S)= block%equi_vars(ixO^S,equi_pe0_,b0i)/block%equi_vars(ixO^S,equi_rho0_,b0i)
+    res(ixO^S)= block%equi_vars(ixO^S,equi_pe0_,b0i)/block%equi_vars(ixO^S,equi_rho0_,b0i)
   end subroutine mhd_get_temperature_equi
 
   subroutine mhd_get_rho_equi(w, x, ixI^L, ixO^L, res)
@@ -2131,7 +2122,7 @@ function convert_vars_splitting(ixI^L,ixO^L, w, x, nwc) result(wnew)
     double precision, intent(in) :: w(ixI^S, 1:nw)
     double precision, intent(in) :: x(ixI^S, 1:ndim)
     double precision, intent(out):: res(ixI^S)
-      res(ixO^S) = block%equi_vars(ixO^S,equi_rho0_,b0i)
+    res(ixO^S) = block%equi_vars(ixO^S,equi_rho0_,b0i)
   end subroutine mhd_get_rho_equi
 
   subroutine mhd_get_pe_equi(w,x, ixI^L, ixO^L, res)
@@ -2140,7 +2131,7 @@ function convert_vars_splitting(ixI^L,ixO^L, w, x, nwc) result(wnew)
     double precision, intent(in) :: w(ixI^S, 1:nw)
     double precision, intent(in) :: x(ixI^S, 1:ndim)
     double precision, intent(out):: res(ixI^S)
-      res(ixO^S) = block%equi_vars(ixO^S,equi_pe0_,b0i)
+    res(ixO^S) = block%equi_vars(ixO^S,equi_pe0_,b0i)
   end subroutine mhd_get_pe_equi
 
   subroutine mhd_get_temperature_from_etot_with_equi(w, x, ixI^L, ixO^L, res)
@@ -2233,7 +2224,6 @@ function convert_vars_splitting(ixI^L,ixO^L, w, x, nwc) result(wnew)
 #endif
 
     ptotal = pgas + 0.5d0*sum(w(ixO^S, mag(:))**2, dim=ndim+1)
-
 
     ! Get flux of tracer
     do iw=1,mhd_n_tracer
