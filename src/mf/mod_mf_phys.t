@@ -80,9 +80,6 @@ module mod_mf_phys
   !> To skip * layer of ghost cells during divB=0 fix for boundary
   integer, public, protected :: boundary_divbfix_skip(2*^ND)=0
 
-  !> B0 field is force-free
-  logical, public, protected :: B0field_forcefree=.true.
-
   !> clean divb in the initial condition
   logical, public, protected :: clean_initial_divb=.false.
 
@@ -129,8 +126,8 @@ contains
       mf_eta, mf_eta_hyper, mf_glm_alpha, mf_particles,&
       particles_eta, mf_record_electric_field,&
       mf_4th_order, typedivbfix, source_split_divb, divbdiff,&
-      typedivbdiff, type_ct, compactres, divbwave, He_abundance, SI_unit, B0field,&
-      B0field_forcefree, Bdip, Bquad, Boct, Busr, clean_initial_divb, &
+      typedivbdiff, type_ct, compactres, divbwave, He_abundance, SI_unit, &
+      Bdip, Bquad, Boct, Busr, clean_initial_divb, &
       boundary_divbfix, boundary_divbfix_skip, mf_divb_4thorder
 
     do n = 1, size(files)
@@ -311,7 +308,6 @@ contains
       phys_get_ct_velocity => mf_get_ct_velocity
       phys_update_faces => mf_update_faces
       phys_face_to_center => mf_face_to_center
-      phys_modify_wLR => mf_modify_wLR
     else if(ndim>1) then
       phys_boundary_adjust => mf_boundary_adjust
     end if
@@ -569,13 +565,6 @@ contains
         end if
       else
         f(ixO^S,mag(idir))=w(ixO^S,mom(idim))*w(ixO^S,mag(idir))-w(ixO^S,mag(idim))*w(ixO^S,mom(idir))
-
-        if (B0field) then
-          f(ixO^S,mag(idir))=f(ixO^S,mag(idir))&
-                +w(ixO^S,mom(idim))*block%B0(ixO^S,idir,idim)&
-                -w(ixO^S,mom(idir))*block%B0(ixO^S,idim,idim)
-        end if
-
       end if
     end do
 
@@ -650,12 +639,6 @@ contains
     logical, intent(inout)            :: active
 
     if (.not. qsourcesplit) then
-
-      ! Source for B0 splitting
-      if (B0field) then
-        active = .true.
-        call add_source_B0split(qdt,ixI^L,ixO^L,wCT,w,x)
-      end if
 
       ! Sources for resistivity in eqs. for e, B1, B2 and B3
       if (abs(mf_eta)>smalldouble)then
@@ -775,11 +758,7 @@ contains
     ! calculate Lorentz force
     do idir=1,ndir; do jdir=1,ndir; do kdir=idirmin,3
        if(lvc(idir,jdir,kdir)/=0)then
-          if(B0field) then
-            tmp(ixO^S)=current(ixO^S,jdir)*(w(ixO^S,mag(kdir))+block%b0(ixO^S,kdir,0))
-          else
-            tmp(ixO^S)=current(ixO^S,jdir)*w(ixO^S,mag(kdir))
-          endif
+          tmp(ixO^S)=current(ixO^S,jdir)*w(ixO^S,mag(kdir))
           if(lvc(idir,jdir,kdir)==1)then
              w(ixO^S,mom(idir))=w(ixO^S,mom(idir))+tmp(ixO^S)
           else
@@ -788,11 +767,7 @@ contains
        endif
     enddo; enddo; enddo
 
-    if(B0field) then
-      tmp(ixO^S)=sum((w(ixO^S,mag(:))+block%b0(ixO^S,:,0))**2,dim=ndim+1)
-    else
-      tmp(ixO^S)=sum(w(ixO^S,mag(:))**2,dim=ndim+1)
-    endif
+    tmp(ixO^S)=sum(w(ixO^S,mag(:))**2,dim=ndim+1)
     ! frictional coefficient
     where(tmp(ixO^S)/=0.d0)
       tmp(ixO^S)=1.d0/(tmp(ixO^S)*mf_nu)
@@ -821,36 +796,6 @@ contains
     end do
 
   end subroutine frictional_velocity
-
-  !> Source terms after split off time-independent magnetic field
-  subroutine add_source_B0split(qdt,ixI^L,ixO^L,wCT,w,x)
-    use mod_global_parameters
-
-    integer, intent(in) :: ixI^L, ixO^L
-    double precision, intent(in) :: qdt, wCT(ixI^S,1:nw), x(ixI^S,1:ndim)
-    double precision, intent(inout) :: w(ixI^S,1:nw)
-
-    double precision :: a(ixI^S,3), b(ixI^S,3), axb(ixI^S,3)
-    integer :: idir
-
-    a=0.d0
-    b=0.d0
-    ! for force-free field J0xB0 =0
-    if(.not.B0field_forcefree) then
-      ! store B0 magnetic field in b
-      b(ixO^S,1:ndir)=block%B0(ixO^S,1:ndir,0)
-
-      ! store J0 current in a
-      do idir=7-2*ndir,3
-        a(ixO^S,idir)=block%J0(ixO^S,idir)
-      end do
-      call cross_product(ixI^L,ixO^L,a,b,axb)
-      axb(ixO^S,:)=axb(ixO^S,:)*qdt
-      ! add J0xB0 source term in momentum equations
-      w(ixO^S,mom(1:ndir))=w(ixO^S,mom(1:ndir))+axb(ixO^S,1:ndir)
-    end if
-
-  end subroutine add_source_B0split
 
   !> Add resistive source to w within ixO Uses 3 point stencil (1 neighbour) in
   !> each direction, non-conservative. If the fourthorder precompiler flag is
@@ -899,11 +844,7 @@ contains
        end do
     end if
 
-    if(B0field) then
-      Bf(ixI^S,1:ndir)=wCT(ixI^S,mag(1:ndir))+block%B0(ixI^S,1:ndir,0)
-    else
-      Bf(ixI^S,1:ndir)=wCT(ixI^S,mag(1:ndir))
-    end if
+    Bf(ixI^S,1:ndir)=wCT(ixI^S,mag(1:ndir))
 
     do idir=1,ndir
        ! Put B_idir into tmp2 and eta*Laplace B_idir into tmp
@@ -1300,9 +1241,6 @@ contains
       call curlvector(bvec,ixI^L,ixO^L,current,idirmin,idirmin0,ndir)
     end if
 
-    if(B0field) current(ixO^S,idirmin0:3)=current(ixO^S,idirmin0:3)+&
-        block%J0(ixO^S,idirmin0:3)
-
   end subroutine get_current
 
   !> If resistivity is not zero, check diffusion time limit for dt
@@ -1392,10 +1330,6 @@ contains
        if(.not.stagger_grid) then
          tmp(ixO^S)=wCT(ixO^S,mom(1))*wCT(ixO^S,mag(2)) &
               -wCT(ixO^S,mom(2))*wCT(ixO^S,mag(1))
-         if(B0field) then
-           tmp(ixO^S)=tmp(ixO^S)+(wCT(ixO^S,mom(1))*block%B0(ixO^S,2,0) &
-                -wCT(ixO^S,mom(2))*block%B0(ixO^S,1,0))
-         end if
          if(mf_glm) then
            tmp(ixO^S)=tmp(ixO^S) &
                 + dcos(x(ixO^S,2))/dsin(x(ixO^S,2))*wCT(ixO^S,psi_)
@@ -1412,13 +1346,6 @@ contains
                 -(wCT(ixO^S,mom(3))*wCT(ixO^S,mag(2)) &
                 -wCT(ixO^S,mom(2))*wCT(ixO^S,mag(3)))*dcos(x(ixO^S,2)) &
                 /dsin(x(ixO^S,2)) }
-           if (B0field) then
-              tmp(ixO^S)=tmp(ixO^S)+(wCT(ixO^S,mom(1))*block%B0(ixO^S,3,0) &
-                   -wCT(ixO^S,mom(3))*block%B0(ixO^S,1,0)){^NOONED &
-                   -(wCT(ixO^S,mom(3))*block%B0(ixO^S,2,0) &
-                   -wCT(ixO^S,mom(2))*block%B0(ixO^S,3,0))*dcos(x(ixO^S,2)) &
-                   /dsin(x(ixO^S,2)) }
-           end if
            w(ixO^S,mag(3))=w(ixO^S,mag(3))+qdt*tmp(ixO^S)/x(ixO^S,1)
          end if
        end if
@@ -1433,11 +1360,7 @@ contains
     double precision, intent(in)  :: w(ixI^S, nw)
     double precision              :: mge(ixO^S)
 
-    if (B0field) then
-      mge = sum((w(ixO^S, mag(:))+block%B0(ixO^S,:,b0i))**2, dim=ndim+1)
-    else
-      mge = sum(w(ixO^S, mag(:))**2, dim=ndim+1)
-    end if
+    mge = sum(w(ixO^S, mag(:))**2, dim=ndim+1)
   end function mf_mag_en_all
 
   !> Compute full magnetic field by direction
@@ -1447,11 +1370,7 @@ contains
     double precision, intent(in)  :: w(ixI^S, nw)
     double precision              :: mgf(ixO^S)
 
-    if (B0field) then
-      mgf = w(ixO^S, mag(idir))+block%B0(ixO^S,idir,b0i)
-    else
-      mgf = w(ixO^S, mag(idir))
-    end if
+    mgf = w(ixO^S, mag(idir))
   end function mf_mag_i_all
 
   !> Compute evolving magnetic energy
@@ -1474,31 +1393,22 @@ contains
     type(state)                     :: s
     double precision                :: dB(ixI^S), dPsi(ixI^S)
 
-    if(stagger_grid) then
-      wLC(ixO^S,mag(idir))=s%ws(ixO^S,idir)
-      wRC(ixO^S,mag(idir))=s%ws(ixO^S,idir)
-      wLp(ixO^S,mag(idir))=s%ws(ixO^S,idir)
-      wRp(ixO^S,mag(idir))=s%ws(ixO^S,idir)
-    else
-      ! Solve the Riemann problem for the linear 2x2 system for normal
-      ! B-field and GLM_Psi according to Dedner 2002:
-      ! This implements eq. (42) in Dedner et al. 2002 JcP 175
-      ! Gives the Riemann solution on the interface
-      ! for the normal B component and Psi in the GLM-MHD system.
-      ! 23/04/2013 Oliver Porth
-      dB(ixO^S)   = wRp(ixO^S,mag(idir)) - wLp(ixO^S,mag(idir))
-      dPsi(ixO^S) = wRp(ixO^S,psi_) - wLp(ixO^S,psi_)
+    ! Solve the Riemann problem for the linear 2x2 system for normal
+    ! B-field and GLM_Psi according to Dedner 2002:
+    ! This implements eq. (42) in Dedner et al. 2002 JcP 175
+    ! Gives the Riemann solution on the interface
+    ! for the normal B component and Psi in the GLM-MHD system.
+    ! 23/04/2013 Oliver Porth
+    dB(ixO^S)   = wRp(ixO^S,mag(idir)) - wLp(ixO^S,mag(idir))
+    dPsi(ixO^S) = wRp(ixO^S,psi_) - wLp(ixO^S,psi_)
 
-      wLp(ixO^S,mag(idir))   = 0.5d0 * (wRp(ixO^S,mag(idir)) + wLp(ixO^S,mag(idir))) &
-           - 0.5d0/cmax_global * dPsi(ixO^S)
-      wLp(ixO^S,psi_)       = 0.5d0 * (wRp(ixO^S,psi_) + wLp(ixO^S,psi_)) &
-           - 0.5d0*cmax_global * dB(ixO^S)
+    wLp(ixO^S,mag(idir))   = 0.5d0 * (wRp(ixO^S,mag(idir)) + wLp(ixO^S,mag(idir))) &
+         - 0.5d0/cmax_global * dPsi(ixO^S)
+    wLp(ixO^S,psi_)       = 0.5d0 * (wRp(ixO^S,psi_) + wLp(ixO^S,psi_)) &
+         - 0.5d0*cmax_global * dB(ixO^S)
 
-      wRp(ixO^S,mag(idir)) = wLp(ixO^S,mag(idir))
-      wRp(ixO^S,psi_) = wLp(ixO^S,psi_)
-    end if
-
-    if(associated(usr_set_wLR)) call usr_set_wLR(ixI^L,ixO^L,qt,wLC,wRC,wLp,wRp,s,idir)
+    wRp(ixO^S,mag(idir)) = wLp(ixO^S,mag(idir))
+    wRp(ixO^S,psi_) = wLp(ixO^S,psi_)
 
   end subroutine mf_modify_wLR
 
@@ -2770,11 +2680,7 @@ contains
     select case(iw)
      case(1)
       ! Sum(|JxB|/|B|*dvolume)
-      if(B0field) then
-        bvec(ixI^S,:)=w(ixI^S,mag(:))+block%b0(ixI^S,mag(:),0)
-      else
-        bvec(ixI^S,:)=w(ixI^S,mag(:))
-      endif
+      bvec(ixI^S,:)=w(ixI^S,mag(:))
       call get_current(w,ixI^L,ixO^L,idirmin,current)
       ! calculate Lorentz force
       qvec(ixO^S,1:ndir)=zero
@@ -2809,11 +2715,7 @@ contains
       {end do\}
      case(4)
       ! Sum(|JxB|*dvolume)
-      if(B0field) then
-        bvec(ixI^S,:)=w(ixI^S,mag(:))+block%b0(ixI^S,mag(:),0)
-      else
-        bvec(ixI^S,:)=w(ixI^S,mag(:))
-      endif
+      bvec(ixI^S,:)=w(ixI^S,mag(:))
       call get_current(w,ixI^L,ixO^L,idirmin,current)
       ! calculate Lorentz force
       qvec(ixO^S,1:ndir)=zero
