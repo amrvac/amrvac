@@ -233,7 +233,24 @@ module mod_mhd_phys
   integer, parameter :: divb_lindeglm      = 7
   integer, parameter :: divb_ct            = 8
 
+  !define the subroutine interface for the ambipolar mask
+  abstract interface
+
+    subroutine mask_subroutine(ixI^L,ixO^L,w,x,res)
+      use mod_global_parameters
+      integer, intent(in) :: ixI^L, ixO^L
+      double precision, intent(in) :: x(ixI^S,1:ndim)
+      double precision, intent(in) :: w(ixI^S,1:nw)
+      double precision, intent(inout) :: res(ixI^S)
+    end subroutine mask_subroutine
+
+  end interface
+
+  procedure (mask_subroutine), pointer :: usr_mask_ambipolar => null()
+  procedure(sub_convert), pointer      :: mhd_to_primitive  => null()
+  procedure(sub_convert), pointer      :: mhd_to_conserved  => null()
   ! Public methods
+  public :: usr_mask_ambipolar
   public :: mhd_phys_init
   public :: mhd_kin_en
   public :: mhd_get_pthermal
@@ -253,22 +270,6 @@ module mod_mhd_phys
   {^NOONED
   public :: mhd_clean_divb_multigrid
   }
-
-  !define the subroutine interface for the ambipolar mask
-  abstract interface
-
-    subroutine mask_subroutine(ixI^L,ixO^L,w,x,res)
-       use mod_global_parameters
-      integer, intent(in) :: ixI^L, ixO^L
-      double precision, intent(in) :: x(ixI^S,1:ndim)
-      double precision, intent(in) :: w(ixI^S,1:nw)
-      double precision, intent(inout) :: res(ixI^S)
-    end subroutine mask_subroutine
-
-  end interface
-
-  procedure (mask_subroutine), pointer :: usr_mask_ambipolar => null()
-  public :: usr_mask_ambipolar 
 
 contains
 
@@ -578,6 +579,22 @@ contains
     else
       phys_get_cbounds         => mhd_get_cbounds
     end if
+    if(has_equi_rho0) then
+      phys_to_primitive        => mhd_to_primitive_split_rho
+      mhd_to_primitive         => mhd_to_primitive_split_rho
+      phys_to_conserved        => mhd_to_conserved_split_rho
+      mhd_to_conserved         => mhd_to_conserved_split_rho
+    else if(mhd_internal_e) then
+      phys_to_primitive        => mhd_to_primitive_inte
+      mhd_to_primitive         => mhd_to_primitive_inte
+      phys_to_conserved        => mhd_to_conserved_inte
+      mhd_to_conserved         => mhd_to_conserved_inte
+    else
+      phys_to_primitive        => mhd_to_primitive_origin
+      mhd_to_primitive         => mhd_to_primitive_origin
+      phys_to_conserved        => mhd_to_conserved_origin
+      mhd_to_conserved         => mhd_to_conserved_origin
+    end if
     if(B0field.or.has_equi_rho0.or.has_equi_pe0) then
       phys_get_flux            => mhd_get_flux_split
     else
@@ -590,8 +607,6 @@ contains
       phys_add_source_geom     => mhd_add_source_geom
     end if
     phys_add_source          => mhd_add_source
-    phys_to_conserved        => mhd_to_conserved
-    phys_to_primitive        => mhd_to_primitive
 ! TODO remove, not used anymore
 !    if(mhd_solve_eaux) then
 !      phys_ei_to_e             => mhd_ei_to_e_aux
@@ -1188,7 +1203,56 @@ contains
   end subroutine mhd_check_w
 
   !> Transform primitive variables into conservative ones
-  subroutine mhd_to_conserved(ixI^L,ixO^L,w,x)
+  subroutine mhd_to_conserved_origin(ixI^L,ixO^L,w,x)
+    use mod_global_parameters
+    integer, intent(in)             :: ixI^L, ixO^L
+    double precision, intent(inout) :: w(ixI^S, nw)
+    double precision, intent(in)    :: x(ixI^S, 1:ndim)
+    integer                         :: idir, itr
+
+    !if (fix_small_values) then
+    !  call mhd_handle_small_values(.true., w, x, ixI^L, ixO^L, 'mhd_to_conserved')
+    !end if
+
+    ! Calculate total energy from pressure, kinetic and magnetic energy
+    if(mhd_energy) then
+      w(ixO^S,e_)=w(ixO^S,p_)*inv_gamma_1&
+                 +half*sum(w(ixO^S,mom(:))**2,dim=ndim+1)*w(ixO^S,rho_)&
+                 +mhd_mag_en(w, ixI^L, ixO^L)
+      if(mhd_solve_eaux) w(ixO^S,eaux_)=w(ixO^S,paux_)*inv_gamma_1
+    end if
+
+    ! Convert velocity to momentum
+    do idir = 1, ndir
+       w(ixO^S, mom(idir)) = w(ixO^S,rho_) * w(ixO^S, mom(idir))
+    end do
+  end subroutine mhd_to_conserved_origin
+
+  !> Transform primitive variables into conservative ones
+  subroutine mhd_to_conserved_inte(ixI^L,ixO^L,w,x)
+    use mod_global_parameters
+    integer, intent(in)             :: ixI^L, ixO^L
+    double precision, intent(inout) :: w(ixI^S, nw)
+    double precision, intent(in)    :: x(ixI^S, 1:ndim)
+    integer                         :: idir, itr
+
+    !if (fix_small_values) then
+    !  call mhd_handle_small_values(.true., w, x, ixI^L, ixO^L, 'mhd_to_conserved')
+    !end if
+
+    ! Calculate total energy from pressure, kinetic and magnetic energy
+    if(mhd_energy) then
+      w(ixO^S,e_)=w(ixO^S,p_)*inv_gamma_1
+    end if
+
+    ! Convert velocity to momentum
+    do idir = 1, ndir
+       w(ixO^S, mom(idir)) = w(ixO^S,rho_) * w(ixO^S, mom(idir))
+    end do
+  end subroutine mhd_to_conserved_inte
+
+  !> Transform primitive variables into conservative ones
+  subroutine mhd_to_conserved_split_rho(ixI^L,ixO^L,w,x)
     use mod_global_parameters
     integer, intent(in)             :: ixI^L, ixO^L
     double precision, intent(inout) :: w(ixI^S, nw)
@@ -1200,7 +1264,7 @@ contains
     !  call mhd_handle_small_values(.true., w, x, ixI^L, ixO^L, 'mhd_to_conserved')
     !end if
 
-    call mhd_get_rho(w,x,ixI^L,ixO^L,rho)
+    rho(ixO^S) = w(ixO^S,rho_) + block%equi_vars(ixO^S,equi_rho0_,b0i)
     ! Calculate total energy from pressure, kinetic and magnetic energy
     if(mhd_energy) then
       if(mhd_internal_e) then
@@ -1217,10 +1281,10 @@ contains
     do idir = 1, ndir
        w(ixO^S, mom(idir)) = rho(ixO^S) * w(ixO^S, mom(idir))
     end do
-  end subroutine mhd_to_conserved
+  end subroutine mhd_to_conserved_split_rho
 
   !> Transform conservative variables into primitive ones
-  subroutine mhd_to_primitive(ixI^L,ixO^L,w,x)
+  subroutine mhd_to_primitive_origin(ixI^L,ixO^L,w,x)
     use mod_global_parameters
     integer, intent(in)             :: ixI^L, ixO^L
     double precision, intent(inout) :: w(ixI^S, nw)
@@ -1232,11 +1296,64 @@ contains
       call mhd_handle_small_values(.false., w, x, ixI^L, ixO^L, 'mhd_to_primitive')
     end if
 
-    if(has_equi_rho0) then
-      inv_rho(ixO^S) = 1d0/(w(ixO^S,rho_) + block%equi_vars(ixO^S,equi_rho0_,b0i))
-    else  
-      inv_rho(ixO^S) = 1d0/w(ixO^S,rho_) 
-    endif
+    inv_rho(ixO^S) = 1d0/w(ixO^S,rho_) 
+
+    ! Calculate pressure = (gamma-1) * (e-ek-eb)
+    if(mhd_energy) then
+      w(ixO^S,p_)=gamma_1*(w(ixO^S,e_)&
+                  -mhd_kin_en(w,ixI^L,ixO^L,inv_rho)&
+                  -mhd_mag_en(w,ixI^L,ixO^L))
+      if(mhd_solve_eaux) w(ixO^S,paux_)=w(ixO^S,eaux_)*gamma_1
+    end if
+    
+    ! Convert momentum to velocity
+    do idir = 1, ndir
+       w(ixO^S, mom(idir)) = w(ixO^S, mom(idir))*inv_rho
+    end do
+
+  end subroutine mhd_to_primitive_origin
+
+  !> Transform conservative variables into primitive ones
+  subroutine mhd_to_primitive_inte(ixI^L,ixO^L,w,x)
+    use mod_global_parameters
+    integer, intent(in)             :: ixI^L, ixO^L
+    double precision, intent(inout) :: w(ixI^S, nw)
+    double precision, intent(in)    :: x(ixI^S, 1:ndim)
+    double precision                :: inv_rho(ixO^S)
+    integer                         :: itr, idir
+
+    if (fix_small_values) then
+      call mhd_handle_small_values(.false., w, x, ixI^L, ixO^L, 'mhd_to_primitive')
+    end if
+
+    inv_rho(ixO^S) = 1d0/w(ixO^S,rho_) 
+
+    ! Calculate pressure = (gamma-1) * (e-ek-eb)
+    if(mhd_energy) then
+      w(ixO^S,p_)=w(ixO^S,e_)*gamma_1
+    end if
+    
+    ! Convert momentum to velocity
+    do idir = 1, ndir
+       w(ixO^S, mom(idir)) = w(ixO^S, mom(idir))*inv_rho
+    end do
+
+  end subroutine mhd_to_primitive_inte
+
+  !> Transform conservative variables into primitive ones
+  subroutine mhd_to_primitive_split_rho(ixI^L,ixO^L,w,x)
+    use mod_global_parameters
+    integer, intent(in)             :: ixI^L, ixO^L
+    double precision, intent(inout) :: w(ixI^S, nw)
+    double precision, intent(in)    :: x(ixI^S, 1:ndim)
+    double precision                :: inv_rho(ixO^S)
+    integer                         :: itr, idir
+
+    if (fix_small_values) then
+      call mhd_handle_small_values(.false., w, x, ixI^L, ixO^L, 'mhd_to_primitive')
+    end if
+
+    inv_rho(ixO^S) = 1d0/(w(ixO^S,rho_) + block%equi_vars(ixO^S,equi_rho0_,b0i))
 
     ! Calculate pressure = (gamma-1) * (e-ek-eb)
     if(mhd_energy) then
@@ -1255,7 +1372,7 @@ contains
        w(ixO^S, mom(idir)) = w(ixO^S, mom(idir))*inv_rho
     end do
 
-  end subroutine mhd_to_primitive
+  end subroutine mhd_to_primitive_split_rho
 
   !> Transform internal energy to total energy
   subroutine mhd_ei_to_e(ixI^L,ixO^L,w,x)
