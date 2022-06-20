@@ -152,7 +152,6 @@ contains
       fl%tc_constant=.true.
     end if
 
-    print*, "*****************K_PARA ", fl%tc_k_para, fl%tc_k_perp, fl%tc_perpendicular
     contains 
 
     !> Read tc module parameters from par file: MHD case

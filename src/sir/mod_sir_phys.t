@@ -301,7 +301,7 @@ contains
   end subroutine sir_get_flux
 
   ! w[iw]= w[iw]+qdt*S[wCT, qtC, x] where S is the source based on wCT within ixO
-  subroutine sir_add_source(qdt,ixI^L,ixO^L,wCT,w,x,qsourcesplit,active)
+  subroutine sir_add_source(qdt,ixI^L,ixO^L,wCT,w,x,qsourcesplit,active,wCTprim)
     use mod_global_parameters
     integer, intent(in)             :: ixI^L, ixO^L
     double precision, intent(in)    :: qdt
@@ -311,6 +311,7 @@ contains
     double precision                :: siterm(ixO^S)
     logical, intent(in)             :: qsourcesplit
     logical, intent(inout)          :: active
+    double precision, intent(in), optional :: wCTprim(ixI^S, 1:nw)
 
     if (qsourcesplit .eqv. sir_source_split) then
        if (.not.use_imex_scheme) then

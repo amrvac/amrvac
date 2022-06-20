@@ -233,7 +233,7 @@ contains
 
   end subroutine nonlinear_add_source_geom
 
-  subroutine nonlinear_add_source(qdt,ixI^L,ixO^L,wCT,w,x,qsourcesplit,active)
+  subroutine nonlinear_add_source(qdt,ixI^L,ixO^L,wCT,w,x,qsourcesplit,active,wCTprim)
     use mod_global_parameters
     use mod_kdv, only: kdv_add_source
 
@@ -243,6 +243,7 @@ contains
     double precision, intent(inout) :: w(ixI^S, 1:nw)
     logical, intent(in)             :: qsourcesplit
     logical, intent(inout)          :: active
+    double precision, intent(in), optional :: wCTprim(ixI^S, 1:nw)
 
     if(kdv_source_term) then
       call kdv_add_source(qdt,ixI^L,ixO^L,wCT,w,x,qsourcesplit,active)

@@ -117,7 +117,7 @@ contains
 
   !> Add source within ixO for iws: w=w+qdt*S[wCT]
   subroutine addsource2(qdt,ixI^L,ixO^L,iw^LIM,qtC,wCT,qt,&
-       w,x,qsourcesplit,src_active)
+       w,x,qsourcesplit,src_active,wCTprim)
     use mod_global_parameters
     use mod_physics, only: phys_add_source
     use mod_usr_methods, only: usr_source
@@ -129,13 +129,15 @@ contains
     double precision, intent(inout)  :: w(ixI^S,1:nw)
     logical, intent(in)              :: qsourcesplit
     logical, intent(inout), optional :: src_active
+    double precision, intent(in), optional :: wCTprim(ixI^S,1:nw)
+
     logical                          :: tmp_active
 
     tmp_active = .false.
 
     ! physics defined sources, typically explicitly added,
     ! along with geometrical source additions
-    call phys_add_source(qdt,ixI^L,ixO^L,wCT,w,x,qsourcesplit,tmp_active)
+    call phys_add_source(qdt,ixI^L,ixO^L,wCT,w,x,qsourcesplit,tmp_active,wCTprim)
 
     ! user defined sources, typically explicitly added
     if ((qsourcesplit .eqv. source_split_usr) .and. associated(usr_source)) then

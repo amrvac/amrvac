@@ -3,19 +3,13 @@ module mod_twofl_phys
 
 #include "amrvac.h"
 
-
-  use mod_physics  
+  use mod_physics
   use mod_global_parameters, only: std_len
   use mod_thermal_conduction, only: tc_fluid
   use mod_radiative_cooling, only: rc_fluid
   use mod_thermal_emission, only: te_fluid
   implicit none
   private
-
-
-
-
-
   !! E_c = E_kin + E_mag + E_int
   !! E_n = E_kin + E_int
   integer, public, parameter              :: EQ_ENERGY_TOT=2
@@ -47,7 +41,6 @@ module mod_twofl_phys
   integer, parameter, private             :: MHD_TC =1
   integer, parameter, private             :: HD_TC =2
   integer, protected                      :: use_twofl_tc_c = MHD_TC
-
 
   !> Whether radiative cooling is added
   logical, public, protected              :: twofl_radiative_cooling_c = .false.
@@ -4152,7 +4145,7 @@ function convert_vars_splitting(ixI^L,ixO^L, w, x, nwc) result(wnew)
 #endif
 
   !> w[iws]=w[iws]+qdt*S[iws,wCT] where S is the source based on wCT within ixO
-  subroutine twofl_add_source(qdt,ixI^L,ixO^L,wCT,w,x,qsourcesplit,active)
+  subroutine twofl_add_source(qdt,ixI^L,ixO^L,wCT,w,x,qsourcesplit,active,wCTprim)
     use mod_global_parameters
     use mod_radiative_cooling, only: radiative_cooling_add_source
     use mod_viscosity, only: viscosity_add_source
@@ -4164,6 +4157,7 @@ function convert_vars_splitting(ixI^L,ixO^L, w, x, nwc) result(wnew)
     double precision, intent(inout) :: w(ixI^S,1:nw)
     logical, intent(in)             :: qsourcesplit
     logical, intent(inout)            :: active
+    double precision, intent(in), optional :: wCTprim(ixI^S,1:nw)
 
     if (.not. qsourcesplit) then
       ! Source for solving internal energy

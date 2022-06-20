@@ -33,7 +33,7 @@ contains
     double precision, dimension(ixI^S)      :: cmaxC, cminC
     double precision, dimension(ixI^S)      :: Hspeed
     double precision, dimension(1:ndim)     :: dxinv, dxdim
-    logical :: transport
+    logical :: transport, active
     integer :: idims, iw, ixC^L, ix^L, hxO^L, kxC^L, kxR^L
     type(ct_velocity) :: vcts
 
@@ -126,7 +126,7 @@ contains
     endif
 
     call addsource2(qdt*dble(idimsmax-idimsmin+1)/dble(ndim), &
-         ixI^L,ixO^L,1,nw,qtC,wCT,qt,wnew,x,.false.)
+         ixI^L,ixO^L,1,nw,qtC,wCT,qt,wnew,x,.false.,active,wprim)
 
     if(phys_solve_eaux.and.levmin==levmax) then
       ! synchronize internal energy for uniform grid
@@ -311,7 +311,7 @@ contains
     double precision :: dxinv(1:ndim), dxdim(1:ndim)
     integer :: idims, iw, ix^L, hxO^L, ixC^L, jxC^L, hxC^L, kxC^L, kkxC^L, kkxR^L
     type(ct_velocity) :: vcts
-    logical :: transport, new_cmax, patchw(ixI^S)
+    logical :: transport, new_cmax, patchw(ixI^S), active
 
     associate(wCT=>sCT%w,w=>s%w)
     ! two extra layers are needed in each direction for which fluxes are added.
@@ -418,7 +418,7 @@ contains
     endif
 
     call addsource2(qdt*dble(idimsmax-idimsmin+1)/dble(ndim), &
-         ixI^L,ixO^L,1,nw,qtC,wCT,qt,w,x,.false.)
+         ixI^L,ixO^L,1,nw,qtC,wCT,qt,w,x,.false.,active,wprim)
 
     if(phys_solve_eaux.and.levmin==levmax) then
       ! synchronize internal energy for uniform grid

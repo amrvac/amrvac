@@ -32,6 +32,7 @@ contains
     double precision :: fLC(ixI^S, nwflux), fRC(ixI^S, nwflux)
     double precision :: dxinv(1:ndim),dxdim(1:ndim)
     integer :: idims, iw, ix^L, hxO^L
+    logical :: active
 
     associate(wCT=>sCT%w,wnew=>snew%w)
     ! Expand limits in each idims direction in which fluxes are added
@@ -91,6 +92,9 @@ contains
     end do ! next idims
     b0i=0
 
+    call addsource2(qdt*dble(idimsmax-idimsmin+1)/dble(ndim), &
+         ixI^L,ixO^L,1,nw,qtC,wCT,qt,wnew,x,.false.,active,wprim)
+
     do iw = 1, nwflux
       if (associated(phys_iw_methods(iw)%inv_capacity)) then
         ! Copy state before adding source terms
@@ -99,9 +103,6 @@ contains
     end do
 
     if (.not.slab.and.idimsmin==1) call phys_add_source_geom(qdt,ixI^L,ixO^L,wCT,wnew,x)
-
-    call addsource2(qdt*dble(idimsmax-idimsmin+1)/dble(ndim), &
-         ixI^L,ixO^L,1,nw,qtC,wCT,qt,wnew,x,.false.)
 
     ! If there are capacity functions, now correct the added source terms
     do iw = 1, nwflux
@@ -151,6 +152,7 @@ contains
     double precision, dimension(1:ndim)     :: dxinv, dxdim
     integer, dimension(ixI^S)               :: patchf
     integer :: idims, iw, ix^L, hxO^L, ixC^L, ixCR^L, kxC^L, kxR^L, ii
+    logical :: active
     type(ct_velocity) :: vcts
 
     associate(wCT=>sCT%w, wnew=>snew%w, wold=>sold%w)
@@ -313,7 +315,7 @@ contains
     endif
  
     call addsource2(qdt*dble(idimsmax-idimsmin+1)/dble(ndim), &
-         ixI^L,ixO^L,1,nw,qtC,wCT,qt,wnew,x,.false.)
+         ixI^L,ixO^L,1,nw,qtC,wCT,qt,wnew,x,.false.,active,wprim)
 
     if(phys_solve_eaux.and.levmin==levmax) then
       ! synchronize internal energy for uniform grid
