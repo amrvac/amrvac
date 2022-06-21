@@ -71,6 +71,7 @@ module mod_mhd_phys
   !> Whether internal energy is solved instead of total energy
   logical, public, protected              :: mhd_internal_e = .false.
 
+  !TODO this does not work with the splitting: check mhd_check_w_hde and mhd_handle_small_values_hde
   !> Whether hydrodynamic energy is solved instead of total energy
   logical, public, protected              :: mhd_hydrodynamic_e = .false.
 
@@ -81,6 +82,7 @@ module mod_mhd_phys
   !> taking values within [0, 1]
   double precision, public                :: mhd_glm_alpha = 0.5d0
 
+  !TODO this does not work with the splitting: check mhd_check_w_semirelati and mhd_handle_small_values_semirelati
   !> Whether semirelativistic MHD equations (Gombosi 2002 JCP) are solved 
   logical, public, protected              :: mhd_semirelativistic = .false.
 
@@ -1968,33 +1970,36 @@ contains
 
         if(mhd_energy) then
           if(primitive) then
-            where(flag(ixO^S,e_)) w(ixO^S,p_) = small_pressure
            if(has_equi_pe0) then 
-            tmp2(ixO^S) = small_e - &
+            tmp2(ixO^S) = small_pressure - &
               block%equi_vars(ixO^S,equi_pe0_,0)
            else
             tmp2(ixO^S) = small_pressure
            endif  
-          else if(mhd_internal_e) then
-           if(has_equi_pe0) then 
-            tmp2(ixO^S) = small_e - &
-                block%equi_vars(ixO^S,equi_pe0_,0)*inv_gamma_1 
-           else
-            tmp2(ixO^S) = small_e
-           endif  
-            where(flag(ixO^S,e_))
-              w(ixO^S,e_)=tmp2(ixO^S)
-            end where
+           where(flag(ixO^S,e_)) w(ixO^S,p_) = tmp2(ixO^S)
           else
-            where(flag(ixO^S,e_))
-              w(ixO^S,e_) = tmp2(ixO^S)+&
+            ! conserved
+            if(has_equi_pe0) then 
+              tmp2(ixO^S) = small_e - &
+                block%equi_vars(ixO^S,equi_pe0_,0)*inv_gamma_1 
+            else
+              tmp2(ixO^S) = small_e
+            endif  
+            if(mhd_internal_e) then
+              where(flag(ixO^S,e_))
+                w(ixO^S,e_)=tmp2(ixO^S)
+              end where
+            else
+              where(flag(ixO^S,e_))
+                w(ixO^S,e_) = tmp2(ixO^S)+&
                    mhd_kin_en(w,ixI^L,ixO^L)+&
                    mhd_mag_en(w,ixI^L,ixO^L)
-            end where
-            if(mhd_solve_eaux) then
-              where(flag(ixO^S,e_))
-                w(ixO^S,eaux_)=tmp2(ixO^S)
               end where
+              if(mhd_solve_eaux) then
+                where(flag(ixO^S,e_))
+                  w(ixO^S,eaux_)=tmp2(ixO^S)
+                end where
+              end if
             end if
           end if
         end if

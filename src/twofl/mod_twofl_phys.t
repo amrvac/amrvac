@@ -1980,51 +1980,56 @@ function convert_vars_splitting(ixI^L,ixO^L, w, x, nwc) result(wnew)
               block%equi_vars(ixO^S,equi_pe_c0_,0)
            else
             tmp2(ixO^S) = small_pressure
-           endif  
-          else if(phys_internal_e) then
-#if !defined(ONE_FLUID) || ONE_FLUID==0
-           if(has_equi_pe_n0) then 
-            tmp1(ixO^S) = small_e - &
-              block%equi_vars(ixO^S,equi_pe_n0_,0)*inv_gamma_1 
-           else
-            tmp1(ixO^S) = small_e
-           endif  
-            where(flag(ixO^S,e_n_))
-              w(ixO^S,e_n_)=tmp1(ixO^S)
-            end where
-#endif
-           if(has_equi_pe_c0) then 
-            tmp2(ixO^S) = small_e - &
-                block%equi_vars(ixO^S,equi_pe_c0_,0)*inv_gamma_1 
-           else
-            tmp2(ixO^S) = small_e
-           endif  
-            where(flag(ixO^S,e_c_))
-              w(ixO^S,e_c_)=tmp2(ixO^S)
-            end where
+           endif
           else
+            ! conserved  
 #if !defined(ONE_FLUID) || ONE_FLUID==0
-            where(flag(ixO^S,e_n_))
-              w(ixO^S,e_n_) = tmp1(ixO^S)+&
-                 twofl_kin_en_n(w,ixI^L,ixO^L)
-            end where
+            if(has_equi_pe_n0) then 
+              tmp1(ixO^S) = small_e - &
+              block%equi_vars(ixO^S,equi_pe_n0_,0)*inv_gamma_1 
+            else
+              tmp1(ixO^S) = small_e
+            endif  
 #endif
-            if(phys_total_energy) then
+            if(has_equi_pe_c0) then 
+              tmp2(ixO^S) = small_e - &
+                block%equi_vars(ixO^S,equi_pe_c0_,0)*inv_gamma_1 
+            else
+              tmp2(ixO^S) = small_e
+            endif  
+            if(phys_internal_e) then
+#if !defined(ONE_FLUID) || ONE_FLUID==0
+              where(flag(ixO^S,e_n_))
+                w(ixO^S,e_n_)=tmp1(ixO^S)
+              end where
+#endif
               where(flag(ixO^S,e_c_))
-                w(ixO^S,e_c_) = tmp2(ixO^S)+&
-                   twofl_kin_en_c(w,ixI^L,ixO^L)+&
-                   twofl_mag_en(w,ixI^L,ixO^L)
+                w(ixO^S,e_c_)=tmp2(ixO^S)
               end where
             else
-              where(flag(ixO^S,e_c_))
-                w(ixO^S,e_c_) = tmp2(ixO^S)+&
+#if !defined(ONE_FLUID) || ONE_FLUID==0
+              where(flag(ixO^S,e_n_))
+                w(ixO^S,e_n_) = tmp1(ixO^S)+&
+                 twofl_kin_en_n(w,ixI^L,ixO^L)
+              end where
+#endif
+              if(phys_total_energy) then
+                where(flag(ixO^S,e_c_))
+                  w(ixO^S,e_c_) = tmp2(ixO^S)+&
+                   twofl_kin_en_c(w,ixI^L,ixO^L)+&
+                   twofl_mag_en(w,ixI^L,ixO^L)
+                end where
+              else
+                where(flag(ixO^S,e_c_))
+                  w(ixO^S,e_c_) = tmp2(ixO^S)+&
                    twofl_kin_en_c(w,ixI^L,ixO^L)
-              end where
-            endif
-            if(phys_solve_eaux) then
-              where(flag(ixO^S,e_c_))
-                w(ixO^S,eaux_c_)=tmp2(ixO^S)
-              end where
+                end where
+              endif
+              if(phys_solve_eaux) then
+                where(flag(ixO^S,e_c_))
+                  w(ixO^S,eaux_c_)=tmp2(ixO^S)
+                end where
+              end if
             end if
           end if
         end if
