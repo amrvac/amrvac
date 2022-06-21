@@ -21,11 +21,6 @@ module mod_mhd_phys
   type(tc_fluid), public, allocatable     :: tc_fl
   type(te_fluid), allocatable,target :: te_fl_mhd
 
-  !> type of TC used: 1: adapted module (mhd implementation), 2: adapted module (hd implementation)
-  integer, parameter, private             :: MHD_TC =1
-  integer, parameter, private             :: HD_TC =2
-  integer, protected                      :: use_mhd_tc = MHD_TC
-
   !> Whether radiative cooling is added
   logical, public, protected              :: mhd_radiative_cooling = .false.
   !> type of fluid for radiative cooling
@@ -294,7 +289,7 @@ contains
 
     namelist /mhd_list/ mhd_energy, mhd_n_tracer, mhd_gamma, mhd_adiab,&
       mhd_eta, mhd_eta_hyper, mhd_etah, mhd_eta_ambi, mhd_glm_alpha, mhd_magnetofriction,&
-      mhd_thermal_conduction, use_mhd_tc, mhd_radiative_cooling, mhd_Hall, mhd_ambipolar, mhd_ambipolar_sts, mhd_gravity,&
+      mhd_thermal_conduction, mhd_radiative_cooling, mhd_Hall, mhd_ambipolar, mhd_ambipolar_sts, mhd_gravity,&
       mhd_viscosity, mhd_4th_order, typedivbfix, source_split_divb, divbdiff,&
       typedivbdiff, type_ct, compactres, divbwave, He_abundance, &
       H_ion_fr, He_ion_fr, He_ion_fr2,&
@@ -705,13 +700,8 @@ contains
       call tc_init_params(mhd_gamma)
 
       allocate(tc_fl)
-      if(use_mhd_tc .eq. MHD_TC) then
-        call tc_get_mhd_params(tc_fl,tc_params_read_mhd)
-        call add_sts_method(mhd_get_tc_dt_mhd,mhd_sts_set_source_tc_mhd,e_,1,e_,1,.false.)
-      else if(use_mhd_tc .eq. HD_TC) then
-        call tc_get_hd_params(tc_fl,tc_params_read_hd)
-        call add_sts_method(mhd_get_tc_dt_hd,mhd_sts_set_source_tc_hd,e_,1,e_,1,.false.)
-      end if
+      call tc_get_mhd_params(tc_fl,tc_params_read_mhd)
+      call add_sts_method(mhd_get_tc_dt_mhd,mhd_sts_set_source_tc_mhd,e_,1,e_,1,.false.)
       if(phys_internal_e) then
         if(has_equi_pe0 .and. has_equi_rho0) then
           tc_fl%get_temperature_from_conserved => mhd_get_temperature_from_eint_with_equi
@@ -865,18 +855,6 @@ contains
     call sts_set_source_tc_mhd(ixI^L,ixO^L,w,x,wres,fix_conserve_at_step,my_dt,igrid,nflux,tc_fl)
   end subroutine mhd_sts_set_source_tc_mhd
 
-  subroutine  mhd_sts_set_source_tc_hd(ixI^L,ixO^L,w,x,wres,fix_conserve_at_step,my_dt,igrid,nflux)
-    use mod_global_parameters
-    use mod_fix_conserve
-    use mod_thermal_conduction, only: sts_set_source_tc_hd
-    integer, intent(in) :: ixI^L, ixO^L, igrid, nflux
-    double precision, intent(in) ::  x(ixI^S,1:ndim)
-    double precision, intent(inout) ::  wres(ixI^S,1:nw), w(ixI^S,1:nw)
-    double precision, intent(in) :: my_dt
-    logical, intent(in) :: fix_conserve_at_step
-    call sts_set_source_tc_hd(ixI^L,ixO^L,w,x,wres,fix_conserve_at_step,my_dt,igrid,nflux,tc_fl)
-  end subroutine mhd_sts_set_source_tc_hd
-
   function mhd_get_tc_dt_mhd(w,ixI^L,ixO^L,dx^D,x) result(dtnew)
     !Check diffusion time limit dt < dx_i**2/((gamma-1)*tc_k_para_i/rho)
     !where                      tc_k_para_i=tc_k_para*B_i**2/B**2
@@ -892,21 +870,6 @@ contains
     dtnew=get_tc_dt_mhd(w,ixI^L,ixO^L,dx^D,x,tc_fl) 
   end function mhd_get_tc_dt_mhd
 
-  function mhd_get_tc_dt_hd(w,ixI^L,ixO^L,dx^D,x) result(dtnew)
-    !Check diffusion time limit dt < dx_i**2/((gamma-1)*tc_k_para_i/rho)
-    !where                      tc_k_para_i=tc_k_para*B_i**2/B**2
-    !and                        T=p/rho
-    use mod_global_parameters
-    use mod_thermal_conduction, only: get_tc_dt_hd
- 
-    integer, intent(in) :: ixI^L, ixO^L
-    double precision, intent(in) :: dx^D, x(ixI^S,1:ndim)
-    double precision, intent(in) :: w(ixI^S,1:nw)
-    double precision :: dtnew
-
-    dtnew=get_tc_dt_hd(w,ixI^L,ixO^L,dx^D,x,tc_fl) 
-  end function mhd_get_tc_dt_hd
-
   subroutine mhd_tc_handle_small_e(w, x, ixI^L, ixO^L, step)
     use mod_global_parameters
 
@@ -920,100 +883,79 @@ contains
     call mhd_handle_small_ei(w,x,ixI^L,ixO^L,e_,error_msg)
   end subroutine mhd_tc_handle_small_e
 
-    ! fill in tc_fluid fields from namelist
-    subroutine tc_params_read_mhd(fl)
-      use mod_global_parameters, only: unitpar,par_files
-      type(tc_fluid), intent(inout) :: fl
+  ! fill in tc_fluid fields from namelist
+  subroutine tc_params_read_mhd(fl)
+    use mod_global_parameters, only: unitpar,par_files
+    type(tc_fluid), intent(inout) :: fl
 
-      integer                      :: n
+    integer                      :: n
 
-      ! list parameters
-      logical :: tc_perpendicular=.true.
-      logical :: tc_saturate=.false.
-      double precision :: tc_k_para=0d0
-      double precision :: tc_k_perp=0d0
-      character(len=std_len)  :: tc_slope_limiter="MC"
- 
-      namelist /tc_list/ tc_perpendicular, tc_saturate, tc_slope_limiter, tc_k_para, tc_k_perp
+    ! list parameters
+    logical :: tc_perpendicular=.true.
+    logical :: tc_saturate=.false.
+    double precision :: tc_k_para=0d0
+    double precision :: tc_k_perp=0d0
+    character(len=std_len)  :: tc_slope_limiter="MC"
 
-      do n = 1, size(par_files)
-        open(unitpar, file=trim(par_files(n)), status="old")
-        read(unitpar, tc_list, end=111)
+    namelist /tc_list/ tc_perpendicular, tc_saturate, tc_slope_limiter, tc_k_para, tc_k_perp
+
+    do n = 1, size(par_files)
+      open(unitpar, file=trim(par_files(n)), status="old")
+      read(unitpar, tc_list, end=111)
 111     close(unitpar)
-      end do
+    end do
 
-      fl%tc_perpendicular = tc_perpendicular
-      fl%tc_saturate = tc_saturate
-      fl%tc_k_para = tc_k_para
-      fl%tc_k_perp = tc_k_perp
-      fl%tc_slope_limiter = tc_slope_limiter
-    end subroutine tc_params_read_mhd
-
-    subroutine tc_params_read_hd(fl)
-      use mod_global_parameters, only: unitpar,par_files
-      use mod_global_parameters, only: unitpar
-      type(tc_fluid), intent(inout) :: fl
-      integer                      :: n
-      logical :: tc_saturate=.false.
-      double precision :: tc_k_para=0d0
-
-      namelist /tc_list/ tc_saturate, tc_k_para
-
-      do n = 1, size(par_files)
-         open(unitpar, file=trim(par_files(n)), status="old")
-         read(unitpar, tc_list, end=111)
-111      close(unitpar)
-      end do
-      fl%tc_saturate = tc_saturate
-      fl%tc_k_para = tc_k_para
-
-    end subroutine tc_params_read_hd
-
+    fl%tc_perpendicular = tc_perpendicular
+    fl%tc_saturate = tc_saturate
+    fl%tc_k_para = tc_k_para
+    fl%tc_k_perp = tc_k_perp
+    fl%tc_slope_limiter = tc_slope_limiter
+  end subroutine tc_params_read_mhd
 !!end th cond
 
 !!rad cool
-    subroutine rc_params_read(fl)
-      use mod_global_parameters, only: unitpar,par_files
-      use mod_constants, only: bigdouble
-      type(rc_fluid), intent(inout) :: fl
-      integer                      :: n
-      ! list parameters
-      integer :: ncool = 4000
-      double precision :: cfrac=0.1d0
-    
-      !> Name of cooling curve
-      character(len=std_len)  :: coolcurve='JCcorona'
-    
-      !> Name of cooling method
-      character(len=std_len)  :: coolmethod='exact'
-    
-      !> Fixed temperature not lower than tlow
-      logical    :: Tfix=.false.
-    
-      !> Lower limit of temperature
-      double precision   :: tlow=bigdouble
-    
-      !> Add cooling source in a split way (.true.) or un-split way (.false.)
-      logical    :: rc_split=.false.
-
-
-      namelist /rc_list/ coolcurve, coolmethod, ncool, cfrac, tlow, Tfix, rc_split
+  subroutine rc_params_read(fl)
+    use mod_global_parameters, only: unitpar,par_files
+    use mod_constants, only: bigdouble
+    type(rc_fluid), intent(inout) :: fl
+    integer                      :: n
+    ! list parameters
+    integer :: ncool = 4000
+    double precision :: cfrac=0.1d0
   
-      do n = 1, size(par_files)
-        open(unitpar, file=trim(par_files(n)), status="old")
-        read(unitpar, rc_list, end=111)
+    !> Name of cooling curve
+    character(len=std_len)  :: coolcurve='JCcorona'
+  
+    !> Name of cooling method
+    character(len=std_len)  :: coolmethod='exact'
+  
+    !> Fixed temperature not lower than tlow
+    logical    :: Tfix=.false.
+  
+    !> Lower limit of temperature
+    double precision   :: tlow=bigdouble
+  
+    !> Add cooling source in a split way (.true.) or un-split way (.false.)
+    logical    :: rc_split=.false.
+
+
+    namelist /rc_list/ coolcurve, coolmethod, ncool, cfrac, tlow, Tfix, rc_split
+
+    do n = 1, size(par_files)
+      open(unitpar, file=trim(par_files(n)), status="old")
+      read(unitpar, rc_list, end=111)
 111     close(unitpar)
-      end do
+    end do
 
-      fl%ncool=ncool
-      fl%coolcurve=coolcurve
-      fl%coolmethod=coolmethod
-      fl%tlow=tlow
-      fl%Tfix=Tfix
-      fl%rc_split=rc_split
-      fl%cfrac=cfrac
+    fl%ncool=ncool
+    fl%coolcurve=coolcurve
+    fl%coolmethod=coolmethod
+    fl%tlow=tlow
+    fl%Tfix=Tfix
+    fl%rc_split=rc_split
+    fl%cfrac=cfrac
 
-    end subroutine rc_params_read
+  end subroutine rc_params_read
 !! end rad cool
 
   !> sets the equilibrium variables
