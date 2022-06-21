@@ -3,7 +3,7 @@ module mod_mhd_phys
 
 #include "amrvac.h"
 
-  use mod_global_parameters, only: std_len
+  use mod_global_parameters, only: std_len, const_c
   use mod_thermal_conduction, only: tc_fluid
   use mod_radiative_cooling, only: rc_fluid
   use mod_thermal_emission, only: te_fluid
@@ -83,20 +83,14 @@ module mod_mhd_phys
   !> taking values within [0, 1]
   double precision, public                :: mhd_glm_alpha = 0.5d0
 
-  !> Whether semirelativistic equations (Gombosi 2002 JCP) are solved 
+  !> Whether semirelativistic MHD equations (Gombosi 2002 JCP) are solved 
   logical, public, protected              :: mhd_semirelativistic = .false.
 
-  !> Use Boris approximation
-  character(len=20) :: mhd_boris_method = "none"
+  !> Whether boris simplified semirelativistic MHD equations (Gombosi 2002 JCP) are solved 
+  logical, public, protected              :: mhd_boris_simplification = .false.
 
-  integer, parameter :: boris_none           = 0
-  integer, parameter :: boris_reduced_force  = 1
-  integer, parameter :: boris_simplification = 2
-  integer            :: mhd_boris_type       = boris_none
-
-  !> Speed of light for Boris' approximation. If negative, test changes to the
-  !> momentum equation with gamma_A = 1, in physical unit
-  double precision                        :: mhd_boris_c = 0.0d0
+  !> Reduced speed of light for semirelativistic MHD
+  double precision                        :: mhd_reduced_c = const_c
 
   !> MHD fourth order
   logical, public, protected              :: mhd_4th_order = .false.
@@ -250,6 +244,14 @@ module mod_mhd_phys
       double precision, intent(inout) :: res(ixI^S)
     end subroutine mask_subroutine
 
+    function fun_kin_en(w, ixI^L, ixO^L, inv_rho) result(ke)
+      use mod_global_parameters, only: nw, ndim,block
+      integer, intent(in)           :: ixI^L, ixO^L
+      double precision, intent(in)  :: w(ixI^S, nw)
+      double precision              :: ke(ixO^S)
+      double precision, intent(in), optional :: inv_rho(ixO^S)
+    end function fun_kin_en
+
   end interface
 
   procedure(mask_subroutine), pointer  :: usr_mask_ambipolar => null()
@@ -257,6 +259,8 @@ module mod_mhd_phys
   procedure(sub_convert), pointer      :: mhd_to_conserved  => null()
   procedure(sub_small_values), pointer :: mhd_handle_small_values => null()
   procedure(sub_get_pthermal), pointer :: mhd_get_pthermal  => null()
+  procedure(sub_get_v), pointer        :: mhd_get_v         => null()
+  procedure(fun_kin_en), pointer       :: mhd_kin_en        => null()
   ! Public methods
   public :: usr_mask_ambipolar
   public :: mhd_phys_init
@@ -298,7 +302,7 @@ contains
       B0field_forcefree, Bdip, Bquad, Boct, Busr, mhd_particles,&
       particles_eta, particles_etah,has_equi_rho0, has_equi_pe0,mhd_equi_thermal,&
       boundary_divbfix, boundary_divbfix_skip, mhd_divb_4thorder, mhd_semirelativistic,&
-      mhd_boris_method, mhd_boris_c, clean_initial_divb, mhd_solve_eaux, mhd_internal_e, &
+      mhd_boris_simplification, mhd_reduced_c, clean_initial_divb, mhd_solve_eaux, mhd_internal_e, &
       mhd_trac, mhd_trac_type, mhd_trac_mask, mhd_trac_finegrid
 
     do n = 1, size(files)
@@ -366,6 +370,11 @@ contains
     if(mhd_semirelativistic.and.mhd_internal_e) then
       mhd_internal_e=.false.
       if(mype==0) write(*,*) 'WARNING: set mhd_internal_e=F when mhd_semirelativistic=T'
+    end if
+
+    if(mhd_semirelativistic.and.mhd_boris_simplification) then
+      mhd_boris_simplification=.false.
+      if(mype==0) write(*,*) 'WARNING: set mhd_boris_simplification=F when mhd_semirelativistic=T'
     end if
 
     if(.not. mhd_energy) then
@@ -568,20 +577,6 @@ contains
       end if
     end if
 
-    select case (mhd_boris_method)
-    case ("none")
-      mhd_boris_type = boris_none
-    case ("reduced_force")
-      mhd_boris_type = boris_reduced_force
-    case ("simplification")
-      mhd_boris_type = boris_simplification
-      do idir = 1, ndir
-        phys_iw_methods(mom(idir))%inv_capacity => mhd_gamma2_alfven
-      end do
-    case default
-      call mpistop("Unknown mhd_boris_method (none, reduced_force, simplification)")
-    end select
-
     phys_get_dt              => mhd_get_dt
     if(mhd_semirelativistic) then
       phys_get_cmax            => mhd_get_cmax_semirelati
@@ -626,7 +621,15 @@ contains
     else
       phys_get_flux            => mhd_get_flux
     end if
-    phys_get_v_idim          => mhd_get_v_idim
+    if(mhd_boris_simplification) then
+      phys_get_v                 => mhd_get_v_boris
+      mhd_get_v                  => mhd_get_v_boris
+      mhd_kin_en                 => mhd_kin_en_boris
+    else
+      phys_get_v                 => mhd_get_v_origin
+      mhd_get_v                  => mhd_get_v_origin
+      mhd_kin_en                 => mhd_kin_en_origin
+    end if
     if(B0field.or.has_equi_rho0) then
       phys_add_source_geom     => mhd_add_source_geom_split
     else
@@ -679,9 +682,9 @@ contains
     ! derive units from basic units
     call mhd_physical_units()
 
-    if(mhd_semirelativistic) then
+    if(mhd_semirelativistic.or.mhd_boris_simplification) then
       inv_squared_c0=(unit_velocity/const_c)**2
-      inv_squared_c=(unit_velocity/mhd_boris_c)**2
+      inv_squared_c=(unit_velocity/mhd_reduced_c)**2
     end if
 
     if(.not. mhd_energy .and. mhd_thermal_conduction) then
@@ -1123,10 +1126,6 @@ contains
        small_e = small_pressure * inv_gamma_1
     end if
 
-    if (mhd_boris_type > 0 .and. abs(mhd_boris_c) <= 0.0d0) then
-      call mpistop("You have not specified mhd_boris_c")
-    end if
-
     if (number_equi_vars > 0 .and. .not. associated(usr_set_equi_vars)) then
       call mpistop("usr_set_equi_vars has to be implemented in the user file")
     endif
@@ -1302,6 +1301,8 @@ contains
     integer, intent(in)             :: ixI^L, ixO^L
     double precision, intent(inout) :: w(ixI^S, nw)
     double precision, intent(in)    :: x(ixI^S, 1:ndim)
+
+    double precision :: inv_gamma2(ixO^S)
     integer                         :: idir
 
     !if (fix_small_values) then
@@ -1316,10 +1317,18 @@ contains
       if(mhd_solve_eaux) w(ixO^S,eaux_)=w(ixO^S,paux_)*inv_gamma_1
     end if
 
-    ! Convert velocity to momentum
-    do idir = 1, ndir
-       w(ixO^S, mom(idir)) = w(ixO^S,rho_) * w(ixO^S, mom(idir))
-    end do
+    if(mhd_boris_simplification) then
+      inv_gamma2=1.d0+sum(w(ixO^S,mag(:))**2,dim=ndim+1)/w(ixO^S,rho_)*inv_squared_c
+      ! Convert velocity to momentum
+      do idir = 1, ndir
+        w(ixO^S, mom(idir)) = inv_gamma2*w(ixO^S,rho_)*w(ixO^S, mom(idir))
+      end do
+    else
+      ! Convert velocity to momentum
+      do idir = 1, ndir
+        w(ixO^S, mom(idir)) = w(ixO^S,rho_)*w(ixO^S, mom(idir))
+      end do
+    end if
   end subroutine mhd_to_conserved_origin
 
   !> Transform primitive variables into conservative ones
@@ -1328,6 +1337,8 @@ contains
     integer, intent(in)             :: ixI^L, ixO^L
     double precision, intent(inout) :: w(ixI^S, nw)
     double precision, intent(in)    :: x(ixI^S, 1:ndim)
+
+    double precision :: inv_gamma2(ixO^S)
     integer                         :: idir
 
     !if (fix_small_values) then
@@ -1339,10 +1350,18 @@ contains
       w(ixO^S,e_)=w(ixO^S,p_)*inv_gamma_1
     end if
 
-    ! Convert velocity to momentum
-    do idir = 1, ndir
-       w(ixO^S, mom(idir)) = w(ixO^S,rho_) * w(ixO^S, mom(idir))
-    end do
+    if(mhd_boris_simplification) then
+      inv_gamma2=1.d0+sum(w(ixO^S,mag(:))**2,dim=ndim+1)/w(ixO^S,rho_)*inv_squared_c
+      ! Convert velocity to momentum
+      do idir = 1, ndir
+        w(ixO^S, mom(idir)) = inv_gamma2*w(ixO^S,rho_)*w(ixO^S, mom(idir))
+      end do
+    else
+      ! Convert velocity to momentum
+      do idir = 1, ndir
+        w(ixO^S, mom(idir)) = w(ixO^S,rho_)*w(ixO^S, mom(idir))
+      end do
+    end if
   end subroutine mhd_to_conserved_inte
 
   !> Transform primitive variables into conservative ones
@@ -1447,11 +1466,12 @@ contains
     integer, intent(in)             :: ixI^L, ixO^L
     double precision, intent(inout) :: w(ixI^S, nw)
     double precision, intent(in)    :: x(ixI^S, 1:ndim)
-    double precision                :: inv_rho(ixO^S)
+
+    double precision                :: inv_rho(ixO^S), gamma2(ixO^S)
     integer                         :: idir
 
     if (fix_small_values) then
-      call mhd_handle_small_values(.false., w, x, ixI^L, ixO^L, 'mhd_to_primitive')
+      call mhd_handle_small_values(.false., w, x, ixI^L, ixO^L, 'mhd_to_primitive_origin')
     end if
 
     inv_rho(ixO^S) = 1d0/w(ixO^S,rho_) 
@@ -1463,11 +1483,19 @@ contains
                   -mhd_mag_en(w,ixI^L,ixO^L))
       if(mhd_solve_eaux) w(ixO^S,paux_)=w(ixO^S,eaux_)*gamma_1
     end if
-    
-    ! Convert momentum to velocity
-    do idir = 1, ndir
-       w(ixO^S, mom(idir)) = w(ixO^S, mom(idir))*inv_rho
-    end do
+
+    if(mhd_boris_simplification) then
+      gamma2=1.d0/(1.d0+sum(w(ixO^S,mag(:))**2,dim=ndim+1)*inv_rho*inv_squared_c)
+      ! Convert momentum to velocity
+      do idir = 1, ndir
+         w(ixO^S, mom(idir)) = w(ixO^S, mom(idir))*inv_rho*gamma2
+      end do
+    else
+      ! Convert momentum to velocity
+      do idir = 1, ndir
+         w(ixO^S, mom(idir)) = w(ixO^S, mom(idir))*inv_rho
+      end do
+    end if
 
   end subroutine mhd_to_primitive_origin
 
@@ -1477,11 +1505,13 @@ contains
     integer, intent(in)             :: ixI^L, ixO^L
     double precision, intent(inout) :: w(ixI^S, nw)
     double precision, intent(in)    :: x(ixI^S, 1:ndim)
-    double precision                :: inv_rho(ixO^S)
+
+    double precision                :: inv_rho(ixO^S), gamma2(ixO^S)
     integer                         :: idir
 
+
     if (fix_small_values) then
-      call mhd_handle_small_values(.false., w, x, ixI^L, ixO^L, 'mhd_to_primitive')
+      call mhd_handle_small_values(.false., w, x, ixI^L, ixO^L, 'mhd_to_primitive_inte')
     end if
 
     inv_rho(ixO^S) = 1d0/w(ixO^S,rho_) 
@@ -1490,11 +1520,19 @@ contains
     if(mhd_energy) then
       w(ixO^S,p_)=w(ixO^S,e_)*gamma_1
     end if
-    
-    ! Convert momentum to velocity
-    do idir = 1, ndir
-       w(ixO^S, mom(idir)) = w(ixO^S, mom(idir))*inv_rho
-    end do
+
+    if(mhd_boris_simplification) then
+      gamma2=1.d0/(1.d0+sum(w(ixO^S,mag(:))**2,dim=ndim+1)*inv_rho*inv_squared_c)
+      ! Convert momentum to velocity
+      do idir = 1, ndir
+         w(ixO^S, mom(idir)) = w(ixO^S, mom(idir))*inv_rho*gamma2
+      end do
+    else
+      ! Convert momentum to velocity
+      do idir = 1, ndir
+         w(ixO^S, mom(idir)) = w(ixO^S, mom(idir))*inv_rho
+      end do
+    end if
 
   end subroutine mhd_to_primitive_inte
 
@@ -1508,7 +1546,7 @@ contains
     integer                         :: idir
 
     if (fix_small_values) then
-      call mhd_handle_small_values(.false., w, x, ixI^L, ixO^L, 'mhd_to_primitive')
+      call mhd_handle_small_values(.false., w, x, ixI^L, ixO^L, 'mhd_to_primitive_split_rho')
     end if
 
     inv_rho(ixO^S) = 1d0/(w(ixO^S,rho_) + block%equi_vars(ixO^S,equi_rho0_,b0i))
@@ -1950,21 +1988,47 @@ contains
   end subroutine rhos_to_e
 
   !> Calculate v vector
-  subroutine mhd_get_v(w,x,ixI^L,ixO^L,v)
+  subroutine mhd_get_v_origin(w,x,ixI^L,ixO^L,v)
     use mod_global_parameters
 
     integer, intent(in)           :: ixI^L, ixO^L
     double precision, intent(in)  :: w(ixI^S,nw), x(ixI^S,1:ndim)
     double precision, intent(out) :: v(ixI^S,ndir)
-    double precision              :: rho(ixI^S)
 
+    double precision :: rho(ixI^S)
     integer :: idir
+
     call mhd_get_rho(w,x,ixI^L,ixO^L,rho)
-    do idir=1,ndir
-      v(ixO^S,idir) = w(ixO^S, mom(idir)) / rho(ixO^S)
+
+    rho(ixO^S)=1.d0/rho(ixO^S)
+    ! Convert momentum to velocity
+    do idir = 1, ndir
+       v(ixO^S, idir) = w(ixO^S, mom(idir))*rho(ixO^S)
     end do
 
-  end subroutine mhd_get_v
+  end subroutine mhd_get_v_origin
+
+  !> Calculate v vector
+  subroutine mhd_get_v_boris(w,x,ixI^L,ixO^L,v)
+    use mod_global_parameters
+
+    integer, intent(in)           :: ixI^L, ixO^L
+    double precision, intent(in)  :: w(ixI^S,nw), x(ixI^S,1:ndim)
+    double precision, intent(out) :: v(ixI^S,ndir)
+
+    double precision              :: rho(ixI^S), gamma2(ixO^S)
+    integer :: idir
+
+    call mhd_get_rho(w,x,ixI^L,ixO^L,rho)
+
+    rho(ixO^S)=1.d0/rho(ixO^S)
+    gamma2=1.d0/(1.d0+sum(w(ixO^S,mag(:))**2,dim=ndim+1)*rho(ixO^S)*inv_squared_c)
+    ! Convert momentum to velocity
+    do idir = 1, ndir
+       v(ixO^S, idir) = w(ixO^S, mom(idir))*rho(ixO^S)*gamma2
+    end do
+
+  end subroutine mhd_get_v_boris
 
   !> Calculate v component
   subroutine mhd_get_v_idim(w,x,ixI^L,ixO^L,idim,v)
@@ -1973,11 +2037,17 @@ contains
     integer, intent(in)           :: ixI^L, ixO^L, idim
     double precision, intent(in)  :: w(ixI^S,nw), x(ixI^S,1:ndim)
     double precision, intent(out) :: v(ixI^S)
+
     double precision              :: rho(ixI^S)
 
     call mhd_get_rho(w,x,ixI^L,ixO^L,rho)
 
-    v(ixO^S) = w(ixO^S, mom(idim)) / rho(ixO^S)
+    if(mhd_boris_simplification) then
+      v(ixO^S) = w(ixO^S, mom(idim)) / rho(ixO^S) &
+       /(1.d0+sum(w(ixO^S,mag(:))**2,dim=ndim+1)/rho(ixO^S)*inv_squared_c)
+    else
+      v(ixO^S) = w(ixO^S, mom(idim)) / rho(ixO^S)
+    end if
 
   end subroutine mhd_get_v_idim
 
@@ -2533,7 +2603,7 @@ contains
     double precision, intent(in) :: w(ixI^S, nw), x(ixI^S,1:ndim)
     double precision, intent(out):: csound(ixI^S)
     double precision :: cfast2(ixI^S), AvMinCs2(ixI^S), b2(ixI^S), kmax
-    double precision :: inv_rho(ixO^S), gamma2(ixO^S)
+    double precision :: inv_rho(ixO^S)
 
     if(has_equi_rho0) then
       inv_rho(ixO^S) = 1d0/(w(ixO^S,rho_) + block%equi_vars(ixO^S,equi_rho0_,b0i))
@@ -2541,21 +2611,14 @@ contains
       inv_rho(ixO^S) = 1d0/w(ixO^S,rho_) 
     endif
 
-    if (mhd_boris_type == boris_reduced_force) then
-      call mhd_gamma2_alfven(ixI^L, ixO^L, w, gamma2)
-    else
-      gamma2 = 1.0d0
-    end if
-
     call mhd_get_csound2(w,x,ixI^L,ixO^L,csound)
 
     ! store |B|^2 in v
-    b2(ixO^S) = mhd_mag_en_all(w,ixI^L,ixO^L) * gamma2
+    b2(ixO^S) = mhd_mag_en_all(w,ixI^L,ixO^L)
 
     cfast2(ixO^S)   = b2(ixO^S) * inv_rho+csound(ixO^S)
     AvMinCs2(ixO^S) = cfast2(ixO^S)**2-4.0d0*csound(ixO^S) &
-         * mhd_mag_i_all(w,ixI^L,ixO^L,idim)**2 &
-         * inv_rho * gamma2
+         * mhd_mag_i_all(w,ixI^L,ixO^L,idim)**2 * inv_rho
 
     where(AvMinCs2(ixO^S)<zero)
        AvMinCs2(ixO^S)=zero
@@ -2565,7 +2628,8 @@ contains
 
     if (.not. MHD_Hall) then
        csound(ixO^S) = sqrt(half*(cfast2(ixO^S)+AvMinCs2(ixO^S)))
-       if (mhd_boris_type == boris_simplification) then
+       if (mhd_boris_simplification) then
+          ! equation (88)
           csound(ixO^S) = mhd_gamma_alfven(w, ixI^L,ixO^L) * csound(ixO^S)
        end if
     else
@@ -2587,7 +2651,7 @@ contains
     double precision, intent(in) :: w(ixI^S, nw), x(ixI^S,1:ndim)
     double precision, intent(out):: csound(ixI^S)
     double precision :: cfast2(ixI^S), AvMinCs2(ixI^S), b2(ixI^S), kmax
-    double precision :: inv_rho(ixO^S), gamma_A2(ixO^S)
+    double precision :: inv_rho(ixO^S)
     double precision :: tmp(ixI^S)
 
     call mhd_get_rho(w,x,ixI^L,ixO^L,tmp)
@@ -2605,18 +2669,11 @@ contains
       csound(ixO^S)=mhd_gamma*mhd_adiab*tmp(ixO^S)**gamma_1
     end if
 
-    if (mhd_boris_type == boris_reduced_force) then
-      call mhd_gamma2_alfven(ixI^L, ixO^L, w, gamma_A2)
-    else
-      gamma_A2 = 1.0d0
-    end if
-
     ! store |B|^2 in v
-    b2(ixO^S)        = mhd_mag_en_all(w,ixI^L,ixO^L) * gamma_A2
+    b2(ixO^S)        = mhd_mag_en_all(w,ixI^L,ixO^L)
     cfast2(ixO^S)   = b2(ixO^S) * inv_rho+csound(ixO^S)
     AvMinCs2(ixO^S) = cfast2(ixO^S)**2-4.0d0*csound(ixO^S) &
-         * mhd_mag_i_all(w,ixI^L,ixO^L,idim)**2 &
-         * inv_rho * gamma_A2
+         * mhd_mag_i_all(w,ixI^L,ixO^L,idim)**2 * inv_rho
 
     where(AvMinCs2(ixO^S)<zero)
        AvMinCs2(ixO^S)=zero
@@ -2626,7 +2683,8 @@ contains
 
     if (.not. MHD_Hall) then
        csound(ixO^S) = sqrt(half*(cfast2(ixO^S)+AvMinCs2(ixO^S)))
-       if (mhd_boris_type == boris_simplification) then
+       if (mhd_boris_simplification) then
+          ! equation (88)
           csound(ixO^S) = mhd_gamma_alfven(w, ixI^L,ixO^L) * csound(ixO^S)
        end if
     else
@@ -2932,26 +2990,14 @@ contains
 
     ! Get flux of momentum
     ! f_i[m_k]=v_i*m_k-b_k*b_i [+ptotal if i==k]
-    if (mhd_boris_type == boris_reduced_force) then
-      do idir=1,ndir
-        if(idim==idir) then
-          f(ixO^S,mom(idir)) = pgas(ixO^S)
-        else
-          f(ixO^S,mom(idir)) = 0.0d0
-        end if
-        f(ixO^S,mom(idir))=f(ixO^S,mom(idir))+w(ixO^S,mom(idim))*wC(ixO^S,mom(idir))
-      end do
-    else
-      ! Normal case (no Boris approximation)
-      do idir=1,ndir
-        if(idim==idir) then
-          f(ixO^S,mom(idir))=ptotal(ixO^S)-w(ixO^S,mag(idim))*w(ixO^S,mag(idir))
-        else
-          f(ixO^S,mom(idir))=-w(ixO^S,mag(idir))*w(ixO^S,mag(idim))
-        end if
-        f(ixO^S,mom(idir))=f(ixO^S,mom(idir))+w(ixO^S,mom(idim))*wC(ixO^S,mom(idir))
-      end do
-    end if
+    do idir=1,ndir
+      if(idim==idir) then
+        f(ixO^S,mom(idir))=ptotal(ixO^S)-w(ixO^S,mag(idim))*w(ixO^S,mag(idir))
+      else
+        f(ixO^S,mom(idir))=-w(ixO^S,mag(idir))*w(ixO^S,mag(idim))
+      end if
+      f(ixO^S,mom(idir))=f(ixO^S,mom(idir))+w(ixO^S,mom(idim))*wC(ixO^S,mom(idir))
+    end do
 
     ! Get flux of energy
     ! f_i[e]=v_i*e+v_i*ptotal-b_i*(b_k*v_k)
@@ -3089,32 +3135,20 @@ contains
 
     ! Get flux of momentum
     ! f_i[m_k]=v_i*m_k-b_k*b_i [+ptotal if i==k]
-    if (mhd_boris_type == boris_reduced_force) then
-      do idir=1,ndir
-        if(idim==idir) then
-          f(ixO^S,mom(idir)) = pgas(ixO^S)
-        else
-          f(ixO^S,mom(idir)) = 0.0d0
-        end if
-        f(ixO^S,mom(idir))=f(ixO^S,mom(idir))+w(ixO^S,mom(idim))*wC(ixO^S,mom(idir))
-      end do
-    else
-      ! Normal case (no Boris approximation)
-      do idir=1,ndir
-        if(idim==idir) then
-          f(ixO^S,mom(idir))=ptotal(ixO^S)-w(ixO^S,mag(idim))*w(ixO^S,mag(idir))
-          if(B0field) f(ixO^S,mom(idir))=f(ixO^S,mom(idir))+tmp(ixO^S)
-        else
-          f(ixO^S,mom(idir))= -w(ixO^S,mag(idir))*w(ixO^S,mag(idim))
-        end if
-        if (B0field) then
-          f(ixO^S,mom(idir))=f(ixO^S,mom(idir))&
-               -w(ixO^S,mag(idir))*block%B0(ixO^S,idim,idim)&
-               -w(ixO^S,mag(idim))*block%B0(ixO^S,idir,idim)
-        end if
-        f(ixO^S,mom(idir))=f(ixO^S,mom(idir))+w(ixO^S,mom(idim))*wC(ixO^S,mom(idir))
-      end do
-    end if
+    do idir=1,ndir
+      if(idim==idir) then
+        f(ixO^S,mom(idir))=ptotal(ixO^S)-w(ixO^S,mag(idim))*w(ixO^S,mag(idir))
+        if(B0field) f(ixO^S,mom(idir))=f(ixO^S,mom(idir))+tmp(ixO^S)
+      else
+        f(ixO^S,mom(idir))= -w(ixO^S,mag(idir))*w(ixO^S,mag(idim))
+      end if
+      if (B0field) then
+        f(ixO^S,mom(idir))=f(ixO^S,mom(idir))&
+             -w(ixO^S,mag(idir))*block%B0(ixO^S,idim,idim)&
+             -w(ixO^S,mag(idim))*block%B0(ixO^S,idir,idim)
+      end if
+      f(ixO^S,mom(idir))=f(ixO^S,mom(idir))+w(ixO^S,mom(idim))*wC(ixO^S,mom(idir))
+    end do
 
     ! Get flux of energy
     ! f_i[e]=v_i*e+v_i*ptotal-b_i*(b_k*v_k)
@@ -3808,11 +3842,6 @@ contains
            w,x,total_energy,qsourcesplit,active)
     end if
 
-    if (mhd_boris_type == boris_reduced_force) then
-      call boris_add_source(qdt,ixI^L,ixO^L,wCT,&
-           w,x,qsourcesplit,active)
-    end if
-
   end subroutine mhd_add_source
 
   subroutine add_pe0_divv(qdt,ixI^L,ixO^L,wCT,w,x)
@@ -3841,36 +3870,8 @@ contains
 
   end subroutine add_pe0_divv
 
-  subroutine boris_add_source(qdt,ixI^L,ixO^L,wCT,w,x,&
-       qsourcesplit,active)
-    use mod_global_parameters
-
-    integer, intent(in)             :: ixI^L, ixO^L
-    double precision, intent(in)    :: qdt, x(ixI^S,1:ndim)
-    double precision, intent(in)    :: wCT(ixI^S,1:nw)
-    double precision, intent(inout) :: w(ixI^S,1:nw)
-    logical, intent(in) :: qsourcesplit
-    logical, intent(inout) :: active
-
-    double precision :: JxB(ixI^S,3)
-    double precision :: gamma_A2(ixO^S)
-    integer          :: idir
-
-    ! Boris source term is always unsplit
-    if (qsourcesplit) return
-
-    call get_lorentz(ixI^L,ixO^L,w,JxB)
-    call mhd_gamma2_alfven(ixI^L, ixO^L, wCT, gamma_A2)
-
-    do idir = 1, ndir
-      w(ixO^S,mom(idir)) = w(ixO^S,mom(idir)) + &
-           qdt * gamma_A2 * JxB(ixO^S, idir)
-    end do
-
-  end subroutine boris_add_source
-
   !> Compute the Lorentz force (JxB)
-  subroutine get_lorentz(ixI^L,ixO^L,w,JxB)
+  subroutine get_Lorentz_force(ixI^L,ixO^L,w,JxB)
     use mod_global_parameters
     integer, intent(in)             :: ixI^L, ixO^L
     double precision, intent(in)    :: w(ixI^S,1:nw)
@@ -3894,9 +3895,9 @@ contains
     end do
 
     call cross_product(ixI^L,ixO^L,a,b,JxB)
-  end subroutine get_lorentz
+  end subroutine get_Lorentz_force
 
-  !> Compute 1/(1+v_A^2/c^2) for Boris' approximation, where v_A is the Alfven
+  !> Compute 1/(1+v_A^2/c^2) for semirelativistic MHD, where v_A is the Alfven
   !> velocity
   subroutine mhd_gamma2_alfven(ixI^L, ixO^L, w, gamma_A2)
     use mod_global_parameters
@@ -3911,16 +3912,11 @@ contains
     else  
       rho(ixO^S) = w(ixO^S,rho_) 
     endif
-    if (mhd_boris_c < 0.0d0) then
-      ! Good for testing the non-conservative momentum treatment
-      gamma_A2 = 1.0d0
-    else
-      ! Compute the inverse of 1 + B^2/(rho * c^2)
-      gamma_A2 = 1.0d0/(1.0d0+mhd_mag_en_all(w, ixI^L, ixO^L)/rho(ixO^S)*inv_squared_c)
-    end if
+    ! Compute the inverse of 1 + B^2/(rho * c^2)
+    gamma_A2 = 1.0d0/(1.0d0+mhd_mag_en_all(w, ixI^L, ixO^L)/rho(ixO^S)*inv_squared_c)
   end subroutine mhd_gamma2_alfven
 
-  !> Compute 1/sqrt(1+v_A^2/c^2) for Boris simplification, where v_A is the
+  !> Compute 1/sqrt(1+v_A^2/c^2) for semirelativisitic MHD, where v_A is the
   !> Alfven velocity
   function mhd_gamma_alfven(w, ixI^L, ixO^L) result(gamma_A)
     use mod_global_parameters
@@ -4055,9 +4051,7 @@ contains
       ! store full magnetic field B0+B1 in b
       if(.not.B0field_forcefree) b(ixO^S,:)=b(ixO^S,:)+block%B0(ixO^S,:,0)
       ! store velocity in a
-      do idir=1,ndir
-        call mhd_get_v_idim(wCT,x,ixI^L,ixO^L,idir,a(ixI^S,idir))
-      end do
+      call mhd_get_v(wCT,x,ixI^L,ixO^L,a(ixI^S,1:ndir))
       call cross_product(ixI^L,ixO^L,a,b,axb)
       axb(ixO^S,:)=axb(ixO^S,:)*qdt
       ! add -(vxB) dot J0 source term in energy equation
@@ -4441,16 +4435,16 @@ contains
     integer, intent(in)             :: ixI^L, ixO^L
     double precision, intent(in)    :: qdt,   wCT(ixI^S,1:nw), x(ixI^S,1:ndim)
     double precision, intent(inout) :: w(ixI^S,1:nw)
-    double precision                :: divb(ixI^S),vel(ixI^S)
+    double precision                :: divb(ixI^S),vel(ixI^S,1:ndir)
     integer                         :: idir
 
     ! We calculate now div B
     call get_divb(wCT,ixI^L,ixO^L,divb, mhd_divb_4thorder)
 
+    call mhd_get_v(wCT,x,ixI^L,ixO^L,vel)
     ! b = b - qdt v * div b
     do idir=1,ndir
-      call mhd_get_v_idim(wCT,x,ixI^L,ixO^L,idir,vel)
-      w(ixO^S,mag(idir))=w(ixO^S,mag(idir))-qdt*vel(ixO^S)*divb(ixO^S)
+      w(ixO^S,mag(idir))=w(ixO^S,mag(idir))-qdt*vel(ixO^S,idir)*divb(ixO^S)
     end do
 
     if (fix_small_values) call mhd_handle_small_values(.false.,w,x,ixI^L,ixO^L,'add_source_janhunen')
@@ -4985,7 +4979,7 @@ contains
   end function mhd_mag_en
 
   !> compute kinetic energy
-  function mhd_kin_en(w, ixI^L, ixO^L, inv_rho) result(ke)
+  function mhd_kin_en_origin(w, ixI^L, ixO^L, inv_rho) result(ke)
     use mod_global_parameters, only: nw, ndim,block
     integer, intent(in)           :: ixI^L, ixO^L
     double precision, intent(in)  :: w(ixI^S, nw)
@@ -4993,7 +4987,7 @@ contains
     double precision, intent(in), optional :: inv_rho(ixO^S)
 
     if (present(inv_rho)) then
-       ke = 0.5d0 * sum(w(ixO^S, mom(:))**2, dim=ndim+1) * inv_rho
+      ke = 0.5d0 * sum(w(ixO^S, mom(:))**2, dim=ndim+1) * inv_rho
     else
       if(has_equi_rho0) then
         ke(ixO^S) = 0.5d0 * sum(w(ixO^S, mom(:))**2, dim=ndim+1) / (w(ixO^S, rho_) + block%equi_vars(ixO^S,equi_rho0_,0))
@@ -5001,7 +4995,24 @@ contains
         ke(ixO^S) = 0.5d0 * sum(w(ixO^S, mom(:))**2, dim=ndim+1) / w(ixO^S, rho_)
       endif
     end if
-  end function mhd_kin_en
+  end function mhd_kin_en_origin
+
+  !> compute kinetic energy
+  function mhd_kin_en_boris(w, ixI^L, ixO^L, inv_rho) result(ke)
+    use mod_global_parameters
+    integer, intent(in)           :: ixI^L, ixO^L
+    double precision, intent(in)  :: w(ixI^S, nw)
+    double precision              :: ke(ixO^S)
+    double precision, intent(in), optional :: inv_rho(ixO^S)
+
+    if (present(inv_rho)) then
+      ke=1.d0/(1.d0+sum(w(ixO^S,mag(:))**2,dim=ndim+1)*inv_rho*inv_squared_c)
+      ke=0.5d0*sum((w(ixO^S, mom(:)))**2,dim=ndim+1)*ke**2*inv_rho
+    else
+      ke=1.d0/(1.d0+sum(w(ixO^S,mag(:))**2,dim=ndim+1)/w(ixO^S,rho_)*inv_squared_c)
+      ke=0.5d0*sum(w(ixO^S, mom(:))**2,dim=ndim+1)*ke**2/w(ixO^S, rho_)
+    end if
+  end function mhd_kin_en_boris
 
   subroutine mhd_getv_Hall(w,x,ixI^L,ixO^L,vHall)
     use mod_global_parameters

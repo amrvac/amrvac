@@ -174,7 +174,7 @@ contains
 
   subroutine find_points_interp(igrid,ip_in,ip_out,xf,wpV,numP,dL,forward)
     use mod_global_parameters
-    use mod_physics, only: phys_get_v_idim
+    use mod_physics, only: phys_get_v
 
     integer :: igrid,ip_in,ip_out,numP
     double precision :: xf(numP,ndim),wpV(numP,nw)
@@ -183,7 +183,7 @@ contains
 
     double precision :: dxb^D,xb^L
     integer          :: ip,inblock,ixI^L,j
-    double precision :: Vg(ixG^T,ndir),vidim(ixG^T)
+    double precision :: Vg(ixG^T,ndir)
     double precision :: xfnow(ndim),wpVnow(nw)
     double precision :: xs1(ndim),xs2(ndim),K1(ndim),K2(ndim)
 
@@ -195,10 +195,7 @@ contains
     ^D&xbmax^D=rnode(rpxmax^D_,igrid)\
 
     ! get flow field
-    do j=1,ndir
-        call phys_get_v_idim(ps(igrid)%w,ps(igrid)%x,ixI^L,ixI^L,j,vidim)
-        Vg(ixI^S,j)=vidim(ixI^S)
-    enddo
+    call phys_get_v(ps(igrid)%w,ps(igrid)%x,ixI^L,ixI^L,Vg)
 
     ! main loop
     MAINLOOP: do ip=ip_in,numP-1

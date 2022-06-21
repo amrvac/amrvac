@@ -53,22 +53,9 @@ module mod_physics
   !> Indicates the flux should be treated with hll
   integer, parameter   :: flux_hll        = 4
 
-  !> Type for special methods defined per variable
-  type iw_methods
-    integer :: test
-    !> If this is set, use the routine as a capacity function when adding fluxes
-    procedure(sub_get_var), pointer, nopass :: inv_capacity => null()
-  end type iw_methods
-
-  !> Special methods defined per variable
-  type(iw_methods) :: phys_iw_methods(max_nw)
-
   procedure(sub_check_params), pointer    :: phys_check_params           => null()
   procedure(sub_convert), pointer         :: phys_to_conserved           => null()
   procedure(sub_convert), pointer         :: phys_to_primitive           => null()
-  ! TODO remove, not used anymore 
-  !procedure(sub_convert), pointer         :: phys_ei_to_e                => null()
-  !procedure(sub_convert), pointer         :: phys_e_to_ei                => null()
   procedure(sub_modify_wLR), pointer      :: phys_modify_wLR             => null()
   procedure(sub_get_cmax), pointer        :: phys_get_cmax               => null()
   procedure(sub_get_a2max), pointer       :: phys_get_a2max              => null()
@@ -77,7 +64,7 @@ module mod_physics
   procedure(sub_get_cbounds), pointer     :: phys_get_cbounds            => null()
   procedure(sub_get_flux), pointer        :: phys_get_flux               => null()
   procedure(sub_energy_synchro), pointer  :: phys_energy_synchro         => null()
-  procedure(sub_get_v_idim), pointer      :: phys_get_v_idim             => null()
+  procedure(sub_get_v), pointer           :: phys_get_v                  => null()
   procedure(sub_get_dt), pointer          :: phys_get_dt                 => null()
   procedure(sub_add_source_geom), pointer :: phys_add_source_geom        => null()
   procedure(sub_add_source), pointer      :: phys_add_source             => null()
@@ -150,15 +137,14 @@ module mod_physics
        double precision, intent(out) :: tco_local, Tmax_local
      end subroutine sub_get_tcutoff
 
-    !> TODO this is not called anywhere
-     subroutine sub_get_v_idim(w,x,ixI^L,ixO^L,idim,v)
+     subroutine sub_get_v(w,x,ixI^L,ixO^L,v)
        use mod_global_parameters
 
-       integer, intent(in)           :: ixI^L, ixO^L, idim
+       integer, intent(in)           :: ixI^L, ixO^L
        double precision, intent(in)  :: w(ixI^S,nw), x(ixI^S,1:^ND)
-       double precision, intent(out) :: v(ixI^S)
+       double precision, intent(out) :: v(ixI^S,1:ndir)
 
-     end subroutine sub_get_v_idim
+     end subroutine sub_get_v
 
      subroutine sub_get_H_speed(wprim,x,ixI^L,ixO^L,idim,Hspeed)
        use mod_global_parameters

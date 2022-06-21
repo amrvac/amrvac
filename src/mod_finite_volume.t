@@ -68,22 +68,10 @@ contains
       ! Advect w(iw)
       do iw=1,nwflux
         if (slab_uniform) then
-          if (associated(phys_iw_methods(iw)%inv_capacity)) then
-            call phys_iw_methods(iw)%inv_capacity(ixI^L, ixO^L, wnew, inv_volume)
-            wnew(ixO^S,iw)=wnew(ixO^S,iw)+dxinv(idims) * inv_volume * &
-                 (fLC(ixO^S, iw)-fRC(hxO^S, iw))
-           else
-             wnew(ixO^S,iw)=wnew(ixO^S,iw)+dxinv(idims)* &
-                  (fLC(ixO^S, iw)-fRC(hxO^S, iw))
-           end if
+          wnew(ixO^S,iw)=wnew(ixO^S,iw)+dxinv(idims)* &
+               (fLC(ixO^S, iw)-fRC(hxO^S, iw))
         else
-          if (associated(phys_iw_methods(iw)%inv_capacity)) then
-            call phys_iw_methods(iw)%inv_capacity(ixI^L, ixO^L, wnew, inv_volume)
-          else
-            inv_volume = 1.0d0
-          end if
-          inv_volume = inv_volume/block%dvolume(ixO^S)
-
+          inv_volume = 1.d0/block%dvolume(ixO^S)
           wnew(ixO^S,iw)=wnew(ixO^S,iw) - qdt * inv_volume &
                *(block%surfaceC(ixO^S,idims)*fLC(ixO^S, iw) &
                -block%surfaceC(hxO^S,idims)*fRC(hxO^S, iw))
@@ -92,26 +80,10 @@ contains
     end do ! next idims
     b0i=0
 
-    call addsource2(qdt*dble(idimsmax-idimsmin+1)/dble(ndim), &
-         ixI^L,ixO^L,1,nw,qtC,wCT,qt,wnew,x,.false.,active,wprim)
-
-    do iw = 1, nwflux
-      if (associated(phys_iw_methods(iw)%inv_capacity)) then
-        ! Copy state before adding source terms
-        wprim(ixO^S, iw) = wnew(ixO^S, iw)
-      end if
-    end do
-
     if (.not.slab.and.idimsmin==1) call phys_add_source_geom(qdt,ixI^L,ixO^L,wCT,wnew,x)
 
-    ! If there are capacity functions, now correct the added source terms
-    do iw = 1, nwflux
-      if (associated(phys_iw_methods(iw)%inv_capacity)) then
-        call phys_iw_methods(iw)%inv_capacity(ixI^L, ixO^L, wnew, inv_volume)
-        wnew(ixO^S, iw) = wprim(ixO^S, iw) + inv_volume * &
-             (wnew(ixO^S, iw) - wprim(ixO^S, iw))
-      end if
-    end do
+    call addsource2(qdt*dble(idimsmax-idimsmin+1)/dble(ndim), &
+         ixI^L,ixO^L,1,nw,qtC,wCT,qt,wnew,x,.false.,active,wprim)
 
     ! check and optionally correct unphysical values
     if(fix_small_values) then
@@ -264,37 +236,24 @@ contains
 
        ! Multiply the fluxes by -dt/dx since Flux fixing expects this
        if (slab_uniform) then
-          fC(ixI^S,1:nwflux,idims)=dxinv(idims)*fC(ixI^S,1:nwflux,idims)
+         fC(ixI^S,1:nwflux,idims)=dxinv(idims)*fC(ixI^S,1:nwflux,idims)
 
-          do iw = iwstart, nwflux
-            if (associated(phys_iw_methods(iw)%inv_capacity)) then
-              call phys_iw_methods(iw)%inv_capacity(ixI^L, ixO^L, wnew, inv_volume)
-              wnew(ixO^S,iw)=wnew(ixO^S,iw) + inv_volume * &
-                   (fC(ixO^S,iw,idims)-fC(hxO^S,iw,idims))
-            else
-              wnew(ixO^S,iw)=wnew(ixO^S,iw) &
-                   + (fC(ixO^S,iw,idims)-fC(hxO^S,iw,idims))
-            end if
-          end do
+         wnew(ixO^S,iwstart:nwflux)=wnew(ixO^S,iwstart:nwflux)+&
+           (fC(ixO^S,iwstart:nwflux,idims)-fC(hxO^S,iwstart:nwflux,idims))
        else
-          if (.not. angmomfix) then ! default case
-            if (associated(phys_iw_methods(iw)%inv_capacity)) then
-              call phys_iw_methods(iw)%inv_capacity(ixI^L, ixO^L, wnew, inv_volume)
-            else
-              inv_volume = 1.0d0
-            end if
-            inv_volume = inv_volume/block%dvolume(ixO^S)
+         if (.not. angmomfix) then ! default case
+           inv_volume = 1.d0/block%dvolume(ixO^S)
 
-            do iw=iwstart,nwflux
-              fC(ixI^S,iw,idims)=-qdt*fC(ixI^S,iw,idims)*block%surfaceC(ixI^S,idims)
-              wnew(ixO^S,iw)=wnew(ixO^S,iw) + (fC(ixO^S,iw,idims)-fC(hxO^S,iw,idims)) * &
-                  inv_volume
-            enddo
-          else
-            ! If angular momentum conserving way to solve the equations,
-            ! some fluxes additions need to be treated specifically
-            call phys_angmomfix(fC,x,wnew,ixI^L,ixO^L,idims)
-          endif
+           do iw=iwstart,nwflux
+             fC(ixI^S,iw,idims)=-qdt*fC(ixI^S,iw,idims)*block%surfaceC(ixI^S,idims)
+             wnew(ixO^S,iw)=wnew(ixO^S,iw) + (fC(ixO^S,iw,idims)-fC(hxO^S,iw,idims)) * &
+                 inv_volume
+           end do
+         else
+           ! If angular momentum conserving way to solve the equations,
+           ! some fluxes additions need to be treated specifically
+           call phys_angmomfix(fC,x,wnew,ixI^L,ixO^L,idims)
+         end if
        end if
 
        ! For the MUSCL scheme apply the characteristic based limiter

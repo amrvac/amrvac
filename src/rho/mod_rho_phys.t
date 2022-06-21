@@ -87,7 +87,6 @@ contains
     phys_get_cmax        => rho_get_cmax
     phys_get_cbounds     => rho_get_cbounds
     phys_get_flux        => rho_get_flux
-    phys_get_v_idim      => rho_get_v_idim
     phys_add_source_geom => rho_add_source_geom
     phys_to_conserved    => rho_to_conserved
     phys_to_primitive    => rho_to_primitive

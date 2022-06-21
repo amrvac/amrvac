@@ -952,6 +952,8 @@ sharp discontinuities. It is normally inactive with a default value -1.
      mhd_4th_order= F | T
      mhd_internal_e= F | T
      mhd_solve_eaux= F | T
+     mhd_semirelativistic= F | T
+     mhd_boris_simplification= F | T
      mhd_trac= F | T
      mhd_trac_type= INTEGER from 1 to 5
      mhd_trac_mask= bigdouble

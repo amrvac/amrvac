@@ -49,5 +49,5 @@
         He_abundance  =  0d0
         mhd_gamma=2.d0
         mhd_semirelativistic=.true.
-        mhd_boris_c = 0.9d0
+        mhd_reduced_c = 0.9d0
  /

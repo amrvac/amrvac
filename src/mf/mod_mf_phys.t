@@ -274,7 +274,7 @@ contains
     phys_get_cmax            => mf_get_cmax
     phys_get_cbounds         => mf_get_cbounds
     phys_get_flux            => mf_get_flux
-    phys_get_v_idim          => mf_get_v_idim
+    phys_get_v               => mf_get_v
     phys_add_source_geom     => mf_add_source_geom
     phys_add_source          => mf_add_source
     phys_to_conserved        => mf_to_conserved
