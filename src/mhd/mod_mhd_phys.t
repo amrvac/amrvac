@@ -71,6 +71,9 @@ module mod_mhd_phys
   !> Whether internal energy is solved instead of total energy
   logical, public, protected              :: mhd_internal_e = .false.
 
+  !> Whether hydrodynamic energy is solved instead of total energy
+  logical, public, protected              :: mhd_hydrodynamic_e = .false.
+
   !> Whether divB cleaning sources are added splitting from fluid solver
   logical, public, protected              :: source_split_divb = .false.
 
@@ -292,13 +295,12 @@ contains
       mhd_thermal_conduction, mhd_radiative_cooling, mhd_Hall, mhd_ambipolar, mhd_ambipolar_sts, mhd_gravity,&
       mhd_viscosity, mhd_4th_order, typedivbfix, source_split_divb, divbdiff,&
       typedivbdiff, type_ct, compactres, divbwave, He_abundance, &
-      H_ion_fr, He_ion_fr, He_ion_fr2,&
-      SI_unit, B0field ,mhd_dump_full_vars,&
+      H_ion_fr, He_ion_fr, He_ion_fr2, SI_unit, B0field ,mhd_dump_full_vars,&
       B0field_forcefree, Bdip, Bquad, Boct, Busr, mhd_particles,&
       particles_eta, particles_etah,has_equi_rho0, has_equi_pe0,mhd_equi_thermal,&
       boundary_divbfix, boundary_divbfix_skip, mhd_divb_4thorder, mhd_semirelativistic,&
       mhd_boris_simplification, mhd_reduced_c, clean_initial_divb, mhd_solve_eaux, mhd_internal_e, &
-      mhd_trac, mhd_trac_type, mhd_trac_mask, mhd_trac_finegrid
+      mhd_hydrodynamic_e, mhd_trac, mhd_trac_type, mhd_trac_mask, mhd_trac_finegrid
 
     do n = 1, size(files)
        open(unitpar, file=trim(files(n)), status="old")
@@ -357,19 +359,30 @@ contains
 
     call mhd_read_params(par_files)
 
-    if(mhd_internal_e.and.mhd_solve_eaux) then
-      mhd_solve_eaux=.false.
-      if(mype==0) write(*,*) 'WARNING: set mhd_solve_eaux=F when mhd_internal_e=T'
+    if(mhd_internal_e) then
+      if(mhd_solve_eaux) then
+        mhd_solve_eaux=.false.
+        if(mype==0) write(*,*) 'WARNING: set mhd_solve_eaux=F when mhd_internal_e=T'
+      end if
+      if(mhd_hydrodynamic_e) then
+        mhd_hydrodynamic_e=.false.
+        if(mype==0) write(*,*) 'WARNING: set mhd_hydrodynamic_e=F when mhd_internal_e=T'
+      end if
     end if
 
-    if(mhd_semirelativistic.and.mhd_internal_e) then
-      mhd_internal_e=.false.
-      if(mype==0) write(*,*) 'WARNING: set mhd_internal_e=F when mhd_semirelativistic=T'
-    end if
-
-    if(mhd_semirelativistic.and.mhd_boris_simplification) then
-      mhd_boris_simplification=.false.
-      if(mype==0) write(*,*) 'WARNING: set mhd_boris_simplification=F when mhd_semirelativistic=T'
+    if(mhd_semirelativistic) then
+      if(mhd_internal_e) then
+        mhd_internal_e=.false.
+        if(mype==0) write(*,*) 'WARNING: set mhd_internal_e=F when mhd_semirelativistic=T'
+      end if
+      if(mhd_hydrodynamic_e) then
+        mhd_hydrodynamic_e=.false.
+        if(mype==0) write(*,*) 'WARNING: set mhd_hydrodynamic_e=F when mhd_semirelativistic=T'
+      end if
+      if(mhd_boris_simplification) then
+        mhd_boris_simplification=.false.
+        if(mype==0) write(*,*) 'WARNING: set mhd_boris_simplification=F when mhd_semirelativistic=T'
+      end if
     end if
 
     if(.not. mhd_energy) then
@@ -380,6 +393,10 @@ contains
       if(mhd_solve_eaux) then
         mhd_solve_eaux=.false.
         if(mype==0) write(*,*) 'WARNING: set mhd_solve_eaux=F when mhd_energy=F'
+      end if
+      if(mhd_hydrodynamic_e) then
+        mhd_hydrodynamic_e=.false.
+        if(mype==0) write(*,*) 'WARNING: set mhd_hydrodynamic_e=F when mhd_energy=F'
       end if
       if(mhd_thermal_conduction) then
         mhd_thermal_conduction=.false.
@@ -404,7 +421,7 @@ contains
 
     phys_gamma = mhd_gamma
 
-    if(mhd_energy.and..not.mhd_internal_e) then
+    if(mhd_energy.and..not.mhd_internal_e.and..not.mhd_hydrodynamic_e) then
       total_energy=.true.
     else
       total_energy=.false.
@@ -603,6 +620,11 @@ contains
       mhd_to_primitive         => mhd_to_primitive_semirelati
       phys_to_conserved        => mhd_to_conserved_semirelati
       mhd_to_conserved         => mhd_to_conserved_semirelati
+    else if(mhd_hydrodynamic_e) then
+      phys_to_primitive        => mhd_to_primitive_hde
+      mhd_to_primitive         => mhd_to_primitive_hde
+      phys_to_conserved        => mhd_to_conserved_hde
+      mhd_to_conserved         => mhd_to_conserved_hde
     else
       phys_to_primitive        => mhd_to_primitive_origin
       mhd_to_primitive         => mhd_to_primitive_origin
@@ -613,6 +635,8 @@ contains
       phys_get_flux            => mhd_get_flux_split
     else if(mhd_semirelativistic) then
       phys_get_flux            => mhd_get_flux_semirelati
+    else if(mhd_hydrodynamic_e) then
+      phys_get_flux            => mhd_get_flux_hde
     else
       phys_get_flux            => mhd_get_flux
     end if
@@ -640,10 +664,16 @@ contains
       phys_check_w             => mhd_check_w_semirelati
       phys_get_pthermal        => mhd_get_pthermal_semirelati
       mhd_get_pthermal         => mhd_get_pthermal_semirelati
+    else if(mhd_hydrodynamic_e) then
+      phys_handle_small_values => mhd_handle_small_values_hde
+      mhd_handle_small_values  => mhd_handle_small_values_hde
+      phys_check_w             => mhd_check_w_hde
+      phys_get_pthermal        => mhd_get_pthermal_hde
+      mhd_get_pthermal         => mhd_get_pthermal_hde
     else
       phys_handle_small_values => mhd_handle_small_values_origin
       mhd_handle_small_values  => mhd_handle_small_values_origin
-      phys_check_w             => mhd_check_w
+      phys_check_w             => mhd_check_w_origin
       phys_get_pthermal        => mhd_get_pthermal_origin
       mhd_get_pthermal         => mhd_get_pthermal_origin
     end if
@@ -719,6 +749,8 @@ contains
         call set_conversion_methods_to_head(mhd_e_to_ei_aux, mhd_ei_to_e_aux)
       else if(mhd_semirelativistic) then
         call set_conversion_methods_to_head(mhd_e_to_ei_semirelati, mhd_ei_to_e_semirelati)
+      else if(mhd_hydrodynamic_e) then
+        call set_conversion_methods_to_head(mhd_e_to_ei_hde, mhd_ei_to_e_hde)
       else
         call set_conversion_methods_to_head(mhd_e_to_ei, mhd_ei_to_e)
       end if
@@ -1193,7 +1225,7 @@ contains
 
   end subroutine mhd_check_w_semirelati
 
-  subroutine mhd_check_w(primitive,ixI^L,ixO^L,w,flag)
+  subroutine mhd_check_w_origin(primitive,ixI^L,ixO^L,w,flag)
     use mod_global_parameters
 
     logical, intent(in) :: primitive
@@ -1235,7 +1267,30 @@ contains
       end if
     end if
 
-  end subroutine mhd_check_w
+  end subroutine mhd_check_w_origin
+
+  subroutine mhd_check_w_hde(primitive,ixI^L,ixO^L,w,flag)
+    use mod_global_parameters
+
+    logical, intent(in) :: primitive
+    integer, intent(in) :: ixI^L, ixO^L
+    double precision, intent(in) :: w(ixI^S,nw)
+    double precision :: tmp(ixI^S)
+    logical, intent(inout) :: flag(ixI^S,1:nw)
+
+    flag=.false.
+    where(w(ixO^S,rho_) < small_density) flag(ixO^S,rho_) = .true.
+
+    if(mhd_energy) then
+      if(primitive) then
+        where(w(ixO^S,e_) < small_pressure) flag(ixO^S,e_) = .true.
+      else
+        tmp(ixO^S)=w(ixO^S,e_)-mhd_kin_en(w,ixI^L,ixO^L)
+        where(tmp(ixO^S) < small_e) flag(ixO^S,e_) = .true.
+      end if
+    end if
+
+  end subroutine mhd_check_w_hde
 
   !> Transform primitive variables into conservative ones
   subroutine mhd_to_conserved_origin(ixI^L,ixO^L,w,x)
@@ -1272,6 +1327,31 @@ contains
       end do
     end if
   end subroutine mhd_to_conserved_origin
+
+  !> Transform primitive variables into conservative ones
+  subroutine mhd_to_conserved_hde(ixI^L,ixO^L,w,x)
+    use mod_global_parameters
+    integer, intent(in)             :: ixI^L, ixO^L
+    double precision, intent(inout) :: w(ixI^S, nw)
+    double precision, intent(in)    :: x(ixI^S, 1:ndim)
+
+    integer                         :: idir
+
+    !if (fix_small_values) then
+    !  call mhd_handle_small_values(.true., w, x, ixI^L, ixO^L, 'mhd_to_conserved')
+    !end if
+
+    ! Calculate total energy from pressure, kinetic and magnetic energy
+    if(mhd_energy) then
+      w(ixO^S,e_)=w(ixO^S,p_)*inv_gamma_1&
+                 +half*sum(w(ixO^S,mom(:))**2,dim=ndim+1)*w(ixO^S,rho_)
+    end if
+
+    ! Convert velocity to momentum
+    do idir = 1, ndir
+      w(ixO^S, mom(idir)) = w(ixO^S,rho_)*w(ixO^S, mom(idir))
+    end do
+  end subroutine mhd_to_conserved_hde
 
   !> Transform primitive variables into conservative ones
   subroutine mhd_to_conserved_inte(ixI^L,ixO^L,w,x)
@@ -1442,6 +1522,34 @@ contains
   end subroutine mhd_to_primitive_origin
 
   !> Transform conservative variables into primitive ones
+  subroutine mhd_to_primitive_hde(ixI^L,ixO^L,w,x)
+    use mod_global_parameters
+    integer, intent(in)             :: ixI^L, ixO^L
+    double precision, intent(inout) :: w(ixI^S, nw)
+    double precision, intent(in)    :: x(ixI^S, 1:ndim)
+
+    double precision                :: inv_rho(ixO^S)
+    integer                         :: idir
+
+    if (fix_small_values) then
+      call mhd_handle_small_values(.false., w, x, ixI^L, ixO^L, 'mhd_to_primitive_hde')
+    end if
+
+    inv_rho(ixO^S) = 1d0/w(ixO^S,rho_) 
+
+    ! Calculate pressure = (gamma-1) * (e-ek)
+    if(mhd_energy) then
+      w(ixO^S,p_)=gamma_1*(w(ixO^S,e_)-mhd_kin_en(w,ixI^L,ixO^L,inv_rho))
+    end if
+
+    ! Convert momentum to velocity
+    do idir = 1, ndir
+       w(ixO^S, mom(idir)) = w(ixO^S, mom(idir))*inv_rho
+    end do
+
+  end subroutine mhd_to_primitive_hde
+
+  !> Transform conservative variables into primitive ones
   subroutine mhd_to_primitive_inte(ixI^L,ixO^L,w,x)
     use mod_global_parameters
     integer, intent(in)             :: ixI^L, ixO^L
@@ -1585,6 +1693,18 @@ contains
 
   end subroutine mhd_ei_to_e
 
+  !> Transform internal energy to hydrodynamic energy
+  subroutine mhd_ei_to_e_hde(ixI^L,ixO^L,w,x)
+    use mod_global_parameters
+    integer, intent(in)             :: ixI^L, ixO^L
+    double precision, intent(inout) :: w(ixI^S, nw)
+    double precision, intent(in)    :: x(ixI^S, 1:ndim)
+
+    ! Calculate hydrodynamic energy from internal and kinetic
+    w(ixO^S,e_)=w(ixO^S,e_)+mhd_kin_en(w,ixI^L,ixO^L)
+
+  end subroutine mhd_ei_to_e_hde
+
   !> Transform internal energy to total energy and velocity to momentum
   subroutine mhd_ei_to_e_semirelati(ixI^L,ixO^L,w,x)
     use mod_global_parameters
@@ -1616,6 +1736,22 @@ contains
     end if
 
   end subroutine mhd_e_to_ei
+
+  !> Transform hydrodynamic energy to internal energy
+  subroutine mhd_e_to_ei_hde(ixI^L,ixO^L,w,x)
+    use mod_global_parameters
+    integer, intent(in)             :: ixI^L, ixO^L
+    double precision, intent(inout) :: w(ixI^S, nw)
+    double precision, intent(in)    :: x(ixI^S, 1:ndim)
+
+    ! Calculate ei = e - ek
+    w(ixO^S,e_)=w(ixO^S,e_)-mhd_kin_en(w,ixI^L,ixO^L)
+
+    if(fix_small_values) then
+      call mhd_handle_small_ei(w,x,ixI^L,ixO^L,e_,'mhd_e_to_ei_hde')
+    end if
+
+  end subroutine mhd_e_to_ei_hde
 
   !> Transform total energy to internal energy and momentum to velocity
   subroutine mhd_e_to_ei_semirelati(ixI^L,ixO^L,w,x)
@@ -1813,7 +1949,7 @@ contains
 
     if(small_values_method == "ignore") return
 
-    call mhd_check_w(primitive, ixI^L, ixO^L, w, flag)
+    call phys_check_w(primitive, ixI^L, ixO^L, w, flag)
 
     if(any(flag)) then
       select case (small_values_method)
@@ -1893,41 +2029,57 @@ contains
     end if
   end subroutine mhd_handle_small_values_origin
 
-  !> Convert energy to entropy
-  subroutine e_to_rhos(ixI^L,ixO^L,w,x)
+  subroutine mhd_handle_small_values_hde(primitive, w, x, ixI^L, ixO^L, subname)
     use mod_global_parameters
-    integer, intent(in)             :: ixI^L, ixO^L
-    double precision,intent(inout)  :: w(ixI^S,nw)
+    use mod_small_values
+    logical, intent(in)             :: primitive
+    integer, intent(in)             :: ixI^L,ixO^L
+    double precision, intent(inout) :: w(ixI^S,1:nw)
     double precision, intent(in)    :: x(ixI^S,1:ndim)
+    character(len=*), intent(in)    :: subname
 
-    if(mhd_energy) then
-      if(.not.mhd_internal_e) &
-      w(ixO^S, e_)=w(ixO^S, e_)-mhd_kin_en(w, ixI^L, ixO^L) &
-                   -mhd_mag_en(w, ixI^L, ixO^L)
-      w(ixO^S, e_)=gamma_1*w(ixO^S, rho_)**(1.0d0 - mhd_gamma)&
-                  *w(ixO^S, e_)    
-    else
-      call mpistop("e_to_rhos can not be used without energy equation!")
+    integer :: idir
+    logical :: flag(ixI^S,1:nw)
+    double precision :: tmp2(ixI^S)
+
+    if(small_values_method == "ignore") return
+
+    call phys_check_w(primitive, ixI^L, ixO^L, w, flag)
+
+    if(any(flag)) then
+      select case (small_values_method)
+      case ("replace")
+        where(flag(ixO^S,rho_)) w(ixO^S,rho_) = small_density
+        do idir = 1, ndir
+          if(small_values_fix_iw(mom(idir))) then
+            where(flag(ixO^S,rho_)) w(ixO^S, mom(idir)) = 0.0d0
+          end if
+        end do
+
+        if(mhd_energy) then
+          where(flag(ixO^S,e_))
+            w(ixO^S,e_) = small_e+mhd_kin_en(w,ixI^L,ixO^L)
+          end where
+        end if
+      case ("average")
+        call small_values_average(ixI^L, ixO^L, w, x, flag)
+      case default
+        if(.not.primitive) then
+          !convert w to primitive
+          ! Calculate pressure = (gamma-1) * (e-ek)
+          if(mhd_energy) then
+            w(ixO^S,p_)=gamma_1*(w(ixO^S,e_)-mhd_kin_en(w,ixI^L,ixO^L))
+          end if
+          ! Convert momentum to velocity
+          do idir = 1, ndir
+             w(ixO^S, mom(idir)) = w(ixO^S, mom(idir))/w(ixO^S,rho_)
+          end do
+        end if
+        call small_values_error(w, x, ixI^L, ixO^L, flag, subname)
+      end select
     end if
-  end subroutine e_to_rhos
 
-  !> Convert entropy to energy
-  subroutine rhos_to_e(ixI^L,ixO^L,w,x)
-    use mod_global_parameters
-    integer, intent(in) :: ixI^L, ixO^L
-    double precision :: w(ixI^S,nw)
-    double precision, intent(in)    :: x(ixI^S,1:ndim)
-
-    if(mhd_energy) then
-       w(ixO^S, e_)=w(ixO^S, rho_)**gamma_1 * w(ixO^S, e_) &
-            * inv_gamma_1
-       if(.not.mhd_internal_e) &
-       w(ixO^S, e_)=w(ixO^S, e_)+mhd_kin_en(w, ixI^L, ixO^L) + &
-            mhd_mag_en(w, ixI^L, ixO^L)
-    else
-       call mpistop("rhos_to_e can not be used without energy equation!")
-    end if
-  end subroutine rhos_to_e
+  end subroutine mhd_handle_small_values_hde
 
   !> Calculate v vector
   subroutine mhd_get_v_origin(w,x,ixI^L,ixO^L,v)
@@ -2764,7 +2916,7 @@ contains
       {do ix^DB= ixO^LIM^DB\}
          if(pth(ix^D)<small_pressure) then
            write(*,*) "Error: small value of gas pressure",pth(ix^D),&
-                " encountered when call mhd_get_pthermal"
+                " encountered when call mhd_get_pthermal_semirelati"
            write(*,*) "Iteration: ", it, " Time: ", global_time
            write(*,*) "Location: ", x(ix^D,:)
            write(*,*) "Cell number: ", ix^D
@@ -2780,6 +2932,52 @@ contains
     end if
 
   end subroutine mhd_get_pthermal_semirelati
+
+  !> Calculate thermal pressure=(gamma-1)*(e-0.5*m**2/rho-b**2/2) within ixO^L
+  subroutine mhd_get_pthermal_hde(w,x,ixI^L,ixO^L,pth)
+    use mod_global_parameters
+    use mod_small_values, only: trace_small_values
+
+    integer, intent(in)          :: ixI^L, ixO^L
+    double precision, intent(in) :: w(ixI^S,nw)
+    double precision, intent(in) :: x(ixI^S,1:ndim)
+    double precision, intent(out):: pth(ixI^S)
+    integer                      :: iw, ix^D
+
+    if(mhd_energy) then
+      pth(ixO^S)=gamma_1*(w(ixO^S,e_)-mhd_kin_en(w,ixI^L,ixO^L))
+    else
+      pth(ixO^S)=mhd_adiab*w(ixO^S,rho_)**mhd_gamma
+    end if
+
+    if (fix_small_values) then
+      {do ix^DB= ixO^LIM^DB\}
+         if(pth(ix^D)<small_pressure) then
+            pth(ix^D)=small_pressure
+         end if
+      {enddo^D&\}
+    end if
+
+    if (check_small_values) then
+      {do ix^DB= ixO^LIM^DB\}
+         if(pth(ix^D)<small_pressure) then
+           write(*,*) "Error: small value of gas pressure",pth(ix^D),&
+                " encountered when call mhd_get_pthermal_hde"
+           write(*,*) "Iteration: ", it, " Time: ", global_time
+           write(*,*) "Location: ", x(ix^D,:)
+           write(*,*) "Cell number: ", ix^D
+           do iw=1,nw
+             write(*,*) trim(cons_wnames(iw)),": ",w(ix^D,iw)
+           end do
+           ! use erroneous arithmetic operation to crash the run
+           if(trace_small_values) write(*,*) sqrt(pth(ix^D)-bigdouble)
+           write(*,*) "Saving status at the previous time step"
+           crash=.true.
+         end if
+      {enddo^D&\}
+    end if
+
+  end subroutine mhd_get_pthermal_hde
 
   !> Calculate temperature=p/rho when in e_ the internal energy is stored
   subroutine mhd_get_temperature_from_eint(w, x, ixI^L, ixO^L, res)
@@ -3026,6 +3224,117 @@ contains
     endif
 
   end subroutine mhd_get_flux
+
+  !> Calculate fluxes within ixO^L without any splitting
+  subroutine mhd_get_flux_hde(wC,w,x,ixI^L,ixO^L,idim,f)
+    use mod_global_parameters
+    use mod_geometry
+
+    integer, intent(in)          :: ixI^L, ixO^L, idim
+    ! conservative w
+    double precision, intent(in) :: wC(ixI^S,nw)
+    ! primitive w
+    double precision, intent(in) :: w(ixI^S,nw)
+    double precision, intent(in) :: x(ixI^S,1:ndim)
+    double precision,intent(out) :: f(ixI^S,nwflux)
+
+    double precision             :: pgas(ixO^S), ptotal(ixO^S)
+    double precision             :: tmp(ixI^S)
+    integer                      :: idirmin, iw, idir, jdir, kdir
+    double precision, allocatable, dimension(:^D&,:) :: Jambi, btot
+    double precision, allocatable, dimension(:^D&) :: tmp2, tmp3
+
+    ! Get flux of density
+    f(ixO^S,rho_)=w(ixO^S,mom(idim))*w(ixO^S,rho_)
+    ! pgas is time dependent only
+    if(mhd_energy) then
+      pgas=w(ixO^S,p_)
+    else
+      pgas(ixO^S)=mhd_adiab*w(ixO^S,rho_)**mhd_gamma
+    end if
+
+    ptotal = pgas + 0.5d0*sum(w(ixO^S, mag(:))**2, dim=ndim+1)
+
+    ! Get flux of tracer
+    do iw=1,mhd_n_tracer
+      f(ixO^S,tracer(iw))=w(ixO^S,mom(idim))*w(ixO^S,tracer(iw))
+    end do
+
+    ! Get flux of momentum
+    ! f_i[m_k]=v_i*m_k-b_k*b_i [+ptotal if i==k]
+    do idir=1,ndir
+      if(idim==idir) then
+        f(ixO^S,mom(idir))=ptotal(ixO^S)-w(ixO^S,mag(idim))*w(ixO^S,mag(idir))
+      else
+        f(ixO^S,mom(idir))=-w(ixO^S,mag(idir))*w(ixO^S,mag(idim))
+      end if
+      f(ixO^S,mom(idir))=f(ixO^S,mom(idir))+w(ixO^S,mom(idim))*wC(ixO^S,mom(idir))
+    end do
+
+    ! Get flux of energy
+    ! f_i[e]=v_i*e+v_i*ptotal-b_i*(b_k*v_k)
+    if(mhd_energy) then
+      f(ixO^S,e_)=w(ixO^S,mom(idim))*(wC(ixO^S,e_)+pgas(ixO^S))
+    end if
+
+    ! compute flux of magnetic field
+    ! f_i[b_k]=v_i*b_k-v_k*b_i
+    do idir=1,ndir
+      if (idim==idir) then
+        ! f_i[b_i] should be exactly 0, so we do not use the transport flux
+        if (mhd_glm) then
+           f(ixO^S,mag(idir))=w(ixO^S,psi_)
+        else
+           f(ixO^S,mag(idir))=zero
+        end if
+      else
+        f(ixO^S,mag(idir))=w(ixO^S,mom(idim))*w(ixO^S,mag(idir))-w(ixO^S,mag(idim))*w(ixO^S,mom(idir))
+      end if
+    end do
+
+    if (mhd_glm) then
+      !f_i[psi]=Ch^2*b_{i} Eq. 24e and Eq. 38c Dedner et al 2002 JCP, 175, 645
+      f(ixO^S,psi_)  = cmax_global**2*w(ixO^S,mag(idim))
+    end if
+
+    ! Contributions of ambipolar term in explicit scheme
+    if(mhd_ambipolar_exp.and. .not.stagger_grid) then
+      ! ambipolar electric field
+      ! E_ambi=-eta_ambi*JxBxB=-JaxBxB=B^2*Ja-(Ja dot B)*B
+      !Ja=eta_ambi*J=J * mhd_eta_ambi/rho**2
+      allocate(Jambi(ixI^S,1:3))
+      call mhd_get_Jambi(w,x,ixI^L,ixO^L,Jambi)
+      allocate(btot(ixO^S,1:3))
+      btot(ixO^S,1:3) = w(ixO^S,mag(1:3))
+      allocate(tmp2(ixO^S),tmp3(ixO^S))
+      !tmp2 = Btot^2
+      tmp2(ixO^S) = sum(btot(ixO^S,1:3)**2,dim=ndim+1)
+      !tmp3 = J_ambi dot Btot
+      tmp3(ixO^S) = sum(Jambi(ixO^S,:)*btot(ixO^S,:),dim=ndim+1)
+
+      select case(idim)
+        case(1)
+          tmp(ixO^S)=w(ixO^S,mag(3)) *Jambi(ixO^S,2) - w(ixO^S,mag(2)) * Jambi(ixO^S,3)
+          f(ixO^S,mag(2))= f(ixO^S,mag(2)) - tmp2(ixO^S) * Jambi(ixO^S,3) + tmp3(ixO^S) * btot(ixO^S,3)
+          f(ixO^S,mag(3))= f(ixO^S,mag(3)) + tmp2(ixO^S) * Jambi(ixO^S,2) - tmp3(ixO^S) * btot(ixO^S,2)
+        case(2)
+          tmp(ixO^S)=w(ixO^S,mag(1)) *Jambi(ixO^S,3) - w(ixO^S,mag(3)) * Jambi(ixO^S,1)
+          f(ixO^S,mag(1))= f(ixO^S,mag(1)) + tmp2(ixO^S) * Jambi(ixO^S,3) - tmp3(ixO^S) * btot(ixO^S,3)
+          f(ixO^S,mag(3))= f(ixO^S,mag(3)) - tmp2(ixO^S) * Jambi(ixO^S,1) + tmp3(ixO^S) * btot(ixO^S,1)
+        case(3)
+          tmp(ixO^S)=w(ixO^S,mag(2)) *Jambi(ixO^S,1) - w(ixO^S,mag(1)) * Jambi(ixO^S,2)
+          f(ixO^S,mag(1))= f(ixO^S,mag(1)) - tmp2(ixO^S) * Jambi(ixO^S,2) + tmp3(ixO^S) * btot(ixO^S,2)
+          f(ixO^S,mag(2))= f(ixO^S,mag(2)) + tmp2(ixO^S) * Jambi(ixO^S,1) - tmp3(ixO^S) * btot(ixO^S,1)
+      endselect
+
+      if(mhd_energy .and. .not. mhd_internal_e) then
+        f(ixO^S,e_) = f(ixO^S,e_) + tmp2(ixO^S) *  tmp(ixO^S)
+      endif
+
+      deallocate(Jambi,btot,tmp2,tmp3)
+    endif
+
+  end subroutine mhd_get_flux_hde
 
   !> Calculate fluxes within ixO^L with possible splitting
   subroutine mhd_get_flux_split(wC,w,x,ixI^L,ixO^L,idim,f)
@@ -3691,6 +4000,11 @@ contains
         active = .true.
         call add_source_semirelativistic(qdt,ixI^L,ixO^L,wCT,w,x,wCTprim)
       end if
+      ! add sources for hydrodynamic energy version of MHD
+      if (mhd_hydrodynamic_e) then
+        active = .true.
+        call add_source_hydrodynamic_e(qdt,ixI^L,ixO^L,wCT,w,x,wCTprim)
+      end if
     end if
 
       {^NOONED
@@ -4042,6 +4356,40 @@ contains
     end do
 
   end subroutine add_source_semirelativistic
+
+  !> Source terms for hydrodynamic energy version of MHD
+  subroutine add_source_hydrodynamic_e(qdt,ixI^L,ixO^L,wCT,w,x,wCTprim)
+    use mod_global_parameters
+    use mod_geometry
+
+    integer, intent(in) :: ixI^L, ixO^L
+    double precision, intent(in) :: qdt, wCT(ixI^S,1:nw), x(ixI^S,1:ndim)
+    double precision, intent(inout) :: w(ixI^S,1:nw)
+    double precision, intent(in), optional :: wCTprim(ixI^S,1:nw)
+
+    double precision :: B(ixI^S,3), J(ixI^S,3), JxB(ixI^S,3)
+    integer :: idir, idirmin
+    double precision :: current(ixI^S,7-2*ndir:3)
+
+    B=0.0d0
+    do idir = 1, ndir
+      B(ixO^S, idir) = wCT(ixO^S,mag(idir))
+    end do
+
+    call get_current(wCT,ixI^L,ixO^L,idirmin,current)
+
+    J=0.0d0
+    do idir=7-2*ndir,3
+      J(ixO^S,idir)=current(ixO^S,idir)
+    end do
+
+    ! get Lorentz force JxB
+    call cross_product(ixI^L,ixO^L,J,B,JxB)
+
+    ! add work of Lorentz force
+    w(ixO^S,e_)=w(ixO^S,e_)+qdt*sum(wCTprim(ixO^S,mom(1:ndir))*JxB(ixO^S,1:ndir),dim=ndim+1)
+
+  end subroutine add_source_hydrodynamic_e
 
   !> Add resistive source to w within ixO Uses 3 point stencil (1 neighbour) in
   !> each direction, non-conservative. If the fourthorder precompiler flag is
