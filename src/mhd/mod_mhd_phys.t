@@ -215,6 +215,9 @@ module mod_mhd_phys
   !> Whether an total energy equation is used
   logical :: total_energy = .true.
 
+  !> Whether unsplit semirelativistic MHD is solved
+  logical :: unsplit_semirelativistic=.false.
+
   !> gamma minus one and its inverse
   double precision :: gamma_1, inv_gamma_1
 
@@ -373,13 +376,14 @@ contains
     end if
 
     if(mhd_semirelativistic) then
+      unsplit_semirelativistic=.true.
       if(mhd_internal_e) then
         mhd_internal_e=.false.
         if(mype==0) write(*,*) 'WARNING: set mhd_internal_e=F when mhd_semirelativistic=T'
       end if
       if(mhd_hydrodynamic_e) then
-        mhd_hydrodynamic_e=.false.
-        if(mype==0) write(*,*) 'WARNING: set mhd_hydrodynamic_e=F when mhd_semirelativistic=T'
+        ! use split semirelativistic MHD
+        unsplit_semirelativistic=.false.
       end if
       if(mhd_boris_simplification) then
         mhd_boris_simplification=.false.
@@ -617,7 +621,7 @@ contains
       mhd_to_primitive         => mhd_to_primitive_inte
       phys_to_conserved        => mhd_to_conserved_inte
       mhd_to_conserved         => mhd_to_conserved_inte
-    else if(mhd_semirelativistic) then
+    else if(unsplit_semirelativistic) then
       phys_to_primitive        => mhd_to_primitive_semirelati
       mhd_to_primitive         => mhd_to_primitive_semirelati
       phys_to_conserved        => mhd_to_conserved_semirelati
@@ -635,7 +639,7 @@ contains
     end if
     if(B0field.or.has_equi_rho0.or.has_equi_pe0) then
       phys_get_flux            => mhd_get_flux_split
-    else if(mhd_semirelativistic) then
+    else if(unsplit_semirelativistic) then
       phys_get_flux            => mhd_get_flux_semirelati
     else if(mhd_hydrodynamic_e) then
       phys_get_flux            => mhd_get_flux_hde
@@ -660,7 +664,7 @@ contains
     phys_check_params        => mhd_check_params
     phys_write_info          => mhd_write_info
     phys_angmomfix           => mhd_angmomfix
-    if(mhd_semirelativistic) then
+    if(unsplit_semirelativistic) then
       phys_handle_small_values => mhd_handle_small_values_semirelati
       mhd_handle_small_values  => mhd_handle_small_values_semirelati
       phys_check_w             => mhd_check_w_semirelati
@@ -749,7 +753,7 @@ contains
       end if
       if(mhd_solve_eaux) then
         call set_conversion_methods_to_head(mhd_e_to_ei_aux, mhd_ei_to_e_aux)
-      else if(mhd_semirelativistic) then
+      else if(unsplit_semirelativistic) then
         call set_conversion_methods_to_head(mhd_e_to_ei_semirelati, mhd_ei_to_e_semirelati)
       else if(mhd_hydrodynamic_e) then
         call set_conversion_methods_to_head(mhd_e_to_ei_hde, mhd_ei_to_e_hde)
@@ -4001,7 +4005,7 @@ contains
         call add_source_hyperres(qdt,ixI^L,ixO^L,wCT,w,x)
       end if
       ! add sources for semirelativistic MHD
-      if (mhd_semirelativistic) then
+      if (unsplit_semirelativistic) then
         active = .true.
         call add_source_semirelativistic(qdt,ixI^L,ixO^L,wCT,w,x,wCTprim)
       end if
@@ -4366,6 +4370,7 @@ contains
   subroutine add_source_hydrodynamic_e(qdt,ixI^L,ixO^L,wCT,w,x,wCTprim)
     use mod_global_parameters
     use mod_geometry
+    use mod_usr_methods, only: usr_gravity
 
     integer, intent(in) :: ixI^L, ixO^L
     double precision, intent(in) :: qdt, wCT(ixI^S,1:nw), x(ixI^S,1:ndim)
@@ -4373,8 +4378,10 @@ contains
     double precision, intent(in), optional :: wCTprim(ixI^S,1:nw)
 
     double precision :: B(ixI^S,3), J(ixI^S,3), JxB(ixI^S,3)
-    integer :: idir, idirmin
+    integer :: idir, idirmin, idims
     double precision :: current(ixI^S,7-2*ndir:3)
+    double precision :: bu(ixO^S,1:ndir), tmp(ixO^S), b2(ixO^S)
+    double precision :: gravity_field(ixI^S,1:ndir)
 
     B=0.0d0
     do idir = 1, ndir
@@ -4391,8 +4398,70 @@ contains
     ! get Lorentz force JxB
     call cross_product(ixI^L,ixO^L,J,B,JxB)
 
-    ! add work of Lorentz force
-    w(ixO^S,e_)=w(ixO^S,e_)+qdt*sum(wCTprim(ixO^S,mom(1:ndir))*JxB(ixO^S,1:ndir),dim=ndim+1)
+    if(mhd_semirelativistic) then
+      ! (v . nabla) v
+      do idir=1,ndir
+        do idims=1,ndim
+          call gradient(wCTprim(ixI^S,mom(idir)),ixI^L,ixO^L,idims,J(ixI^S,idims))
+        end do
+        B(ixO^S,idir)=sum(wCTprim(ixO^S,mom(1:ndir))*J(ixO^S,1:ndir),dim=ndim+1)
+      end do
+      ! nabla p
+      do idir=1,ndir
+        call gradient(wCTprim(ixI^S,p_),ixI^L,ixO^L,idir,J(ixI^S,idir))
+      end do
+
+      if(mhd_gravity) then
+        if (.not. associated(usr_gravity)) then
+          write(*,*) "mod_usr.t: please point usr_gravity to a subroutine"
+          write(*,*) "like the phys_gravity in mod_usr_methods.t"
+          call mpistop("add_source_hydrodynamic_e: usr_gravity not defined")
+        else
+          gravity_field=0.d0
+          call usr_gravity(ixI^L,ixO^L,wCT,x,gravity_field(ixI^S,1:ndim))
+        end if
+        do idir=1,ndir
+          B(ixO^S,idir)=wCT(ixO^S,rho_)*(B(ixO^S,idir)-gravity_field(ixO^S,idir))+J(ixO^S,idir)-JxB(ixO^S,idir)
+        end do
+      else
+        do idir=1,ndir
+          B(ixO^S,idir)=wCT(ixO^S,rho_)*B(ixO^S,idir)+J(ixO^S,idir)-JxB(ixO^S,idir)
+        end do
+      end if
+
+      b2(ixO^S)=sum(wCT(ixO^S,mag(:))**2,dim=ndim+1)
+      tmp(ixO^S)=sqrt(b2(ixO^S))
+      where(tmp(ixO^S)>smalldouble)
+        tmp(ixO^S)=1.d0/tmp(ixO^S)
+      else where
+        tmp(ixO^S)=0.d0
+      end where
+      ! unit vector of magnetic field
+      do idir=1,ndir
+        bu(ixO^S,idir)=wCT(ixO^S,mag(idir))*tmp(ixO^S)
+      end do
+
+      ! Va^2/c^2
+      b2(ixO^S)=b2(ixO^S)/w(ixO^S,rho_)*inv_squared_c
+      ! Va^2/c^2 / (1+Va^2/c^2)
+      b2(ixO^S)=b2(ixO^S)/(1.d0+b2(ixO^S))
+      ! bu . F
+      tmp(ixO^S)=sum(bu(ixO^S,1:ndir)*B(ixO^S,1:ndir),dim=ndim+1)
+      ! Rempel 2017 ApJ 834, 10 equation (54)
+      do idir=1,ndir
+        J(ixO^S,idir)=b2(ixO^S)*(B(ixO^S,idir)-bu(ixO^S,idir)*tmp(ixO^S))
+      end do
+      ! Rempel 2017 ApJ 834, 10 equation (29) add SR force at momentum equation
+      do idir=1,ndir
+        w(ixO^S,mom(idir))=w(ixO^S,mom(idir))+qdt*J(ixO^S,idir)
+      end do
+      ! Rempel 2017 ApJ 834, 10 equation (30) add work of Lorentz force and SR force
+      w(ixO^S,e_)=w(ixO^S,e_)+qdt*sum(wCTprim(ixO^S,mom(1:ndir))*&
+              (JxB(ixO^S,1:ndir)+J(ixO^S,1:ndir)),dim=ndim+1)
+    else
+      ! add work of Lorentz force
+      w(ixO^S,e_)=w(ixO^S,e_)+qdt*sum(wCTprim(ixO^S,mom(1:ndir))*JxB(ixO^S,1:ndir),dim=ndim+1)
+    end if
 
   end subroutine add_source_hydrodynamic_e
 
