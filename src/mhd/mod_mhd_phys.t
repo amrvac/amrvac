@@ -744,6 +744,8 @@ contains
         else
           tc_fl%get_temperature_from_conserved => mhd_get_temperature_from_eint
         end if
+      else if(mhd_hydrodynamic_e) then
+        tc_fl%get_temperature_from_conserved => mhd_get_temperature_from_hde
       else
         if(has_equi_pe0 .and. has_equi_rho0) then
           tc_fl%get_temperature_from_conserved => mhd_get_temperature_from_etot_with_equi
@@ -2187,7 +2189,7 @@ contains
     gamma2 = 1.0d0/(1.d0+Alfven_speed2*inv_squared_c)
 
     wprim=w
-    call mhd_to_primitive_semirelati(ixI^L,ixO^L,wprim,x)
+    call mhd_to_primitive(ixI^L,ixO^L,wprim,x)
     cmax(ixO^S)=1.d0-gamma2*wprim(ixO^S,mom(idim))**2*inv_squared_c
     ! equation (69)
     Alfven_speed2=Alfven_speed2*cmax(ixO^S)
@@ -3012,6 +3014,17 @@ contains
            - mhd_kin_en(w,ixI^L,ixO^L)&
            - mhd_mag_en(w,ixI^L,ixO^L)))/w(ixO^S,rho_)
   end subroutine mhd_get_temperature_from_etot
+
+  !> Calculate temperature from hydrodynamic energy
+  subroutine mhd_get_temperature_from_hde(w, x, ixI^L, ixO^L, res)
+    use mod_global_parameters
+    integer, intent(in)          :: ixI^L, ixO^L
+    double precision, intent(in) :: w(ixI^S, 1:nw)
+    double precision, intent(in) :: x(ixI^S, 1:ndim)
+    double precision, intent(out):: res(ixI^S)
+    res(ixO^S)=gamma_1*(w(ixO^S,e_)&
+           - mhd_kin_en(w,ixI^L,ixO^L))/w(ixO^S,rho_)
+  end subroutine mhd_get_temperature_from_hde
 
   subroutine mhd_get_temperature_from_eint_with_equi(w, x, ixI^L, ixO^L, res)
     use mod_global_parameters

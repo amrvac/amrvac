@@ -409,7 +409,7 @@ limiter (minmod for all levels), but one can also use
 The `gradient_limiter` is the selection of a limiter to be used in computing
 gradients (or divergence of vector) when the typegrad=limited (or
 typediv=limited) is selected. It is thus only used in the gradientS
-(divvectorS) subroutines in geometry.t (and has effect for the MHD modules).
+(divvectorS) subroutines in geometry.t and has effect for the magnetohydrodynamics (MHD) modules.
 
 When having a gravitational stratification, one might benefit from performing linear
 reconstruction on the primitive variables log10(rho) and/or log10(p). This can
@@ -951,9 +951,11 @@ sharp discontinuities. It is normally inactive with a default value -1.
      mhd_particles= F | T
      mhd_4th_order= F | T
      mhd_internal_e= F | T
+     mhd_hydrodynamic_e= F | T
      mhd_solve_eaux= F | T
      mhd_semirelativistic= F | T
      mhd_boris_simplification= F | T
+     mhd_reduced_c = 3.d10
      mhd_trac= F | T
      mhd_trac_type= INTEGER from 1 to 5
      mhd_trac_mask= bigdouble
@@ -1062,12 +1064,12 @@ Note that when setting `mhd_trac_type >=3`, the direction of your gravity should
 Unlike Johnston's TRAC method, this TRAC method has the advantage that all the calculation is done locally within the block.
 Thus, it could be used in either 1D (M)HD or multi-D MHD simulations, and is much faster than other multi-D methods.
 
-### Solve internal energy to avoid negative pressure{#par_AIE}
+### Solve internal or hydrodynamic energy to avoid negative pressure{#par_AIE}
 
 In extremely low beta plasma, internal energy or gas pressure easily goes to
 negative values when solving total energy equation, because numerical error of magnetic
  energy is comparable to the internal energy due to its extremely small fraction in the 
-total energy. We have two methods to avoid this problem. In the first method, we solve 
+total energy. We have three methods to avoid this problem. In the first method, we solve 
 internal energy equation instead of total energy equation by setting `mhd_internal_e=T`.
 In the second method, we solve both the total energy equation and an auxiliary internal energy equation 
  and synchronize the internal energy with the result from total energy equation. In each step of 
@@ -1086,6 +1088,28 @@ for the auxiliary internal energy in mod_usr.t if special boundary is used.
 This function is compatible with all finite volume and finite difference schemes we have, including
 HLL, HLLC, and HLLD, in which the Riemann flux of the auxiliary internal energy is evaluted
 as the HLL flux in all intermediate states of the Riemann fan. 
+In the third method, We solve hydrodynamic energy, i.e., internal and kinetic energy, instead of
+total energy with an additional source term of Lorentz force work, by setting `mhd_hydrodynamic_e=T`,
+which has better conservation than solving internal energy.
+
+### Solve semirelativistic MHD to tackle extreme Alfven speed{#par_semirelati}
+
+The Alfven speed in nonrelativistic MHD, defined as B/sqrt(mu rho), can be extremely large, even unphysically larger
+than speed of light in strong magnetic field and low density regions. Semirelativistic MHD equations
+(Gombosi et al. 2002 JCP 177, 176) as the nonrelativistic hydrodynamic limit of the relativistic MHD 
+equations solve the problem and have the same steady-state solution as nonrelativistic MHD. 
+By artificially lowering the speed of light, one can reduce the wave speeds allowing larger time steps 
+thus faster solution in explicit numerical schemes. Set `mhd_semirelativistic=T` and `mhd_reduced_c` 
+equals to a value smaller than light speed with physical unit to solve semirelativistic MHD. If setting
+`mhd_hydrodynamic_e=T`, the approximate split semirelativistic MHD equations (Rempel 2017 ApJ 834, 10)
+are solved with hydrodynamic energy instead of total energy. `mhd_semirelativistic=T` contradicts with 
+`mhd_internal_e=T`, since internal energy equation has not been derived from semirelativistic MHD 
+equations. Boris simplification of semirelativistic MHD equations can be solved by 
+setting `mhd_boris_simplification=T` and `mhd_semirelativistic=F` to get faster but less accurate solutions.
+`mhd_boris_simplification=T` is empirically working with `mhd_internal_e=T` or `mhd_hydrodynamic_e=T`.
+Since semirelativistic MHD waves are very complicated, only approximate fast magnetosonic wave speed
+is implemented to use HLL or tvdlf scheme, schemes (such as HLLC and HLLD) depending on more wave speeds 
+are not yet fully compatible with semirelativistic MHD.
 
 ## Synthetic EUV emission {#par_emissionlist}
 
