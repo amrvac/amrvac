@@ -4214,7 +4214,8 @@ contains
     double precision, intent(in)    :: qdt
     double precision, intent(in)    :: wCT(ixI^S,1:nw), x(ixI^S,1:ndim)
     double precision, intent(inout) :: w(ixI^S,1:nw)
-    double precision                :: pth(ixI^S),v(ixI^S,1:ndir),divv(ixI^S)
+
+    double precision                :: v(ixI^S,1:ndir),divv(ixI^S)
 
     call mhd_get_v(wCT,x,ixI^L,ixI^L,v)
     if(slab_uniform) then
@@ -4226,8 +4227,7 @@ contains
     else
      call divvector(v,ixI^L,ixO^L,divv)
     end if
-    call mhd_get_pthermal(wCT,x,ixI^L,ixO^L,pth)
-    w(ixO^S,ie)=w(ixO^S,ie)-qdt*pth(ixO^S)*divv(ixO^S)
+    w(ixO^S,ie)=w(ixO^S,ie)-qdt*wCT(ixO^S,ie)*gamma_1*divv(ixO^S)
     if(mhd_ambipolar)then
        call add_source_ambipolar_internal_energy(qdt,ixI^L,ixO^L,wCT,w,x,ie)
     end if
