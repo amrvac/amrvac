@@ -163,7 +163,7 @@ subroutine prolong_2nd(sCo,ixCo^L,sFi,dxCo^D,xComin^D,dxFi^D,xFimin^D,igridCo,ig
     call prolong_2nd_stg(sCo,sFi,ixCo^L,ixM^LL,dxCo^D,xComin^D,dxFi^D,xFimin^D,.false.,fine_^L)
   end if
 
-  if(fix_small_values) call phys_handle_small_values(.true.,wFi,sFi%x,ixG^LL,ixM^LL,'prolong_2nd')
+  if(fix_small_values) call phys_handle_small_values(prolongprimitive,wFi,sFi%x,ixG^LL,ixM^LL,'prolong_2nd')
   if(prolongprimitive) call phys_to_conserved(ixG^LL,ixM^LL,wFi,sFi%x)
   end associate
 

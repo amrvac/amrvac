@@ -1500,10 +1500,6 @@ contains
     double precision                :: inv_rho(ixO^S), gamma2(ixO^S)
     integer                         :: idir
 
-    if (fix_small_values) then
-      call mhd_handle_small_values(.false., w, x, ixI^L, ixO^L, 'mhd_to_primitive_origin')
-    end if
-
     inv_rho(ixO^S) = 1d0/w(ixO^S,rho_) 
 
     ! Calculate pressure = (gamma-1) * (e-ek-eb)
@@ -1527,6 +1523,10 @@ contains
       end do
     end if
 
+    if (fix_small_values) then
+      call mhd_handle_small_values(.true., w, x, ixI^L, ixO^L, 'mhd_to_primitive_origin')
+    end if
+
   end subroutine mhd_to_primitive_origin
 
   !> Transform conservative variables into primitive ones
@@ -1538,10 +1538,6 @@ contains
 
     double precision                :: inv_rho(ixO^S)
     integer                         :: idir
-
-    if (fix_small_values) then
-      call mhd_handle_small_values(.false., w, x, ixI^L, ixO^L, 'mhd_to_primitive_hde')
-    end if
 
     inv_rho(ixO^S) = 1d0/w(ixO^S,rho_) 
 
@@ -1555,6 +1551,10 @@ contains
        w(ixO^S, mom(idir)) = w(ixO^S, mom(idir))*inv_rho
     end do
 
+    if (fix_small_values) then
+      call mhd_handle_small_values(.true., w, x, ixI^L, ixO^L, 'mhd_to_primitive_hde')
+    end if
+
   end subroutine mhd_to_primitive_hde
 
   !> Transform conservative variables into primitive ones
@@ -1566,11 +1566,6 @@ contains
 
     double precision                :: inv_rho(ixO^S), gamma2(ixO^S)
     integer                         :: idir
-
-
-    if (fix_small_values) then
-      call mhd_handle_small_values(.false., w, x, ixI^L, ixO^L, 'mhd_to_primitive_inte')
-    end if
 
     inv_rho(ixO^S) = 1d0/w(ixO^S,rho_) 
 
@@ -1592,6 +1587,10 @@ contains
       end do
     end if
 
+    if (fix_small_values) then
+      call mhd_handle_small_values(.true., w, x, ixI^L, ixO^L, 'mhd_to_primitive_inte')
+    end if
+
   end subroutine mhd_to_primitive_inte
 
   !> Transform conservative variables into primitive ones
@@ -1602,10 +1601,6 @@ contains
     double precision, intent(in)    :: x(ixI^S, 1:ndim)
     double precision                :: inv_rho(ixO^S)
     integer                         :: idir
-
-    if (fix_small_values) then
-      call mhd_handle_small_values(.false., w, x, ixI^L, ixO^L, 'mhd_to_primitive_split_rho')
-    end if
 
     inv_rho(ixO^S) = 1d0/(w(ixO^S,rho_) + block%equi_vars(ixO^S,equi_rho0_,b0i))
 
@@ -1626,6 +1621,10 @@ contains
        w(ixO^S, mom(idir)) = w(ixO^S, mom(idir))*inv_rho
     end do
 
+    if (fix_small_values) then
+      call mhd_handle_small_values(.true., w, x, ixI^L, ixO^L, 'mhd_to_primitive_split_rho')
+    end if
+
   end subroutine mhd_to_primitive_split_rho
 
   !> Transform conservative variables into primitive ones
@@ -1638,10 +1637,6 @@ contains
     double precision                :: inv_rho(ixO^S)
     double precision :: b(ixO^S,1:ndir), tmp(ixO^S), b2(ixO^S), gamma2(ixO^S)
     integer                         :: idir, jdir, kdir
-
-    if (fix_small_values) then
-      call mhd_handle_small_values_semirelati(.false., w, x, ixI^L, ixO^L, 'mhd_to_primitive_semirelati')
-    end if
 
     inv_rho(ixO^S) = 1d0/w(ixO^S,rho_)
 
@@ -1681,6 +1676,10 @@ contains
                  -half*(sum(w(ixO^S,mom(:))**2,dim=ndim+1)*w(ixO^S,rho_)&
                  +sum(w(ixO^S,mag(:))**2,dim=ndim+1)&
                  +sum(b(ixO^S,:)**2,dim=ndim+1)*inv_squared_c))
+    end if
+
+    if (fix_small_values) then
+      call mhd_handle_small_values_semirelati(.true., w, x, ixI^L, ixO^L, 'mhd_to_primitive_semirelati')
     end if
 
   end subroutine mhd_to_primitive_semirelati

@@ -281,10 +281,10 @@ contains
       call phys_energy_synchro(ixI^L,ixO^L,wnew,x)
     endif
 
-    ! check and optionally correct unphysical values
-    if(fix_small_values) then
-       call phys_handle_small_values(.false.,wnew,x,ixI^L,ixO^L,'exit finite_volume')
-    endif
+    !! check and optionally correct unphysical values
+    !if(fix_small_values) then
+    !   call phys_handle_small_values(.false.,wnew,x,ixI^L,ixO^L,'exit finite_volume')
+    !endif
   end associate
   contains
 
