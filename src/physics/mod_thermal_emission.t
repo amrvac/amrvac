@@ -2436,7 +2436,6 @@ module mod_thermal_emission
       deallocate(flux,dxb1,dxb2,dxb3,SXRg,xg1,xg2,dxg1,dxg2)
 
     end subroutine integrate_SXR_data_resol
-  }
 
     subroutine output_data(qunit,xO1,xO2,dxO1,dxO2,wO,nXO1,nXO2,nWO,datatype)
       ! change the format of data and write data
@@ -2538,6 +2537,7 @@ module mod_thermal_emission
       end select
 
     end subroutine output_data
+  }
 
     subroutine write_image_vtiCC(qunit,xO1,xO2,dxO1,dxO2,wO,nXO1,nXO2,nWO,nC1,nC2)
       ! write image data to vti
