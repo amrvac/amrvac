@@ -936,13 +936,11 @@ contains
       end if
     end if
 {^IFTHREED
-    if (image_euv .or. spectrum_euv .or. image_sxr) then
-      allocate(te_fl_c)
-      te_fl_c%get_rho=> get_rhoc_tot
-      te_fl_c%get_pthermal=> twofl_get_pthermal_c
-      te_fl_c%Rfactor = Rc
-      phys_te_images => twofl_te_images
-    endif
+    allocate(te_fl_c)
+    te_fl_c%get_rho=> get_rhoc_tot
+    te_fl_c%get_pthermal=> twofl_get_pthermal_c
+    te_fl_c%Rfactor = Rc
+    phys_te_images => twofl_te_images
 }
 
 
@@ -1011,10 +1009,17 @@ contains
   subroutine twofl_te_images()
     use mod_global_parameters
     use mod_thermal_emission
-    if (image_euv) call get_EUV_image(unitconvert,te_fl_c)
-    if (spectrum_euv) call get_EUV_spectrum(unitconvert,te_fl_c)
-    if (image_sxr) call get_SXR_image(unitconvert,te_fl_c)
 
+    select case(convert_type)
+      case('EIvtiCCmpi','EIvtuCCmpi')
+        call get_EUV_image(unitconvert,te_fl_c)
+      case('ESvtiCCmpi','ESvtuCCmpi')
+        call get_EUV_spectrum(unitconvert,te_fl_c)
+      case('SIvtiCCmpi','SIvtuCCmpi')
+        call get_SXR_image(unitconvert,te_fl_c)
+      case default
+        call mpistop("Error in synthesize emission: Unknown convert_type")
+      end select
   end subroutine twofl_te_images
 }  
 

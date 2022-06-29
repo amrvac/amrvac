@@ -36,6 +36,11 @@ select case(convert_type)
    call onegrid(unitconvert)
   case('oneblock','oneblockB')
    call oneblock(unitconvert)
+  case('EIvtiCCmpi','ESvtiCCmpi','SIvtiCCmpi','EIvtuCCmpi','ESvtuCCmpi','SIvtuCCmpi')
+    ! output synthetic euv emission
+    if (ndim==3 .and. slab .and. associated(phys_te_images)) then
+      call phys_te_images()
+    endif
   case('dat_generic_mpi')
     ! it is the responsability of the physcics module to pouplate the array of 
     ! conversion methods by calling  
@@ -51,11 +56,6 @@ select case(convert_type)
 end select
 
 
-! output synthetic euv emission
-if (ndim==3 .and. slab .and. associated(phys_te_images)) then
-  call phys_te_images()
-
-endif
 
 end subroutine generate_plotfile
 !=============================================================================

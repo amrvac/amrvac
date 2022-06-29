@@ -339,13 +339,11 @@ contains
       rc_fl%Tcoff_ = Tcoff_
     end if
 {^IFTHREED
-    if (image_euv .or. spectrum_euv .or. image_sxr) then
-      allocate(te_fl_hd)
-      te_fl_hd%get_rho=> hd_get_rho
-      te_fl_hd%get_pthermal=> hd_get_pthermal
-      te_fl_hd%Rfactor = 1d0
-      phys_te_images => hd_te_images 
-    endif
+    allocate(te_fl_hd)
+    te_fl_hd%get_rho=> hd_get_rho
+    te_fl_hd%get_pthermal=> hd_get_pthermal
+    te_fl_hd%Rfactor = 1d0
+    phys_te_images => hd_te_images 
 }
     ! Initialize viscosity module
     if (hd_viscosity) call viscosity_init(phys_wider_stencil,phys_req_diagonal)
@@ -380,10 +378,16 @@ contains
   subroutine hd_te_images()
     use mod_global_parameters
     use mod_thermal_emission
-    if (image_euv) call get_EUV_image(unitconvert,te_fl_hd)
-    if (spectrum_euv) call get_EUV_spectrum(unitconvert,te_fl_hd)
-    if (image_sxr) call get_SXR_image(unitconvert,te_fl_hd)
-
+    select case(convert_type)
+      case('EIvtiCCmpi','EIvtuCCmpi')
+        call get_EUV_image(unitconvert,te_fl_hd)
+      case('ESvtiCCmpi','ESvtuCCmpi')
+        call get_EUV_spectrum(unitconvert,te_fl_hd)
+      case('SIvtiCCmpi','SIvtuCCmpi')
+        call get_SXR_image(unitconvert,te_fl_hd)
+      case default
+        call mpistop("Error in synthesize emission: Unknown convert_type")
+      end select
   end subroutine hd_te_images
 }
 !!start th cond

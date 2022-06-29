@@ -696,16 +696,12 @@ module mod_global_parameters
 
   !> Base file name for synthetic EUV emission output
   character(len=std_len) :: filename_euv
-  !> output EUV image
-  logical :: image_euv=.false.
   !> wavelength for output
   integer :: wavelength
   !> resolution of the EUV image
   character(len=std_len) :: resolution_euv='instrument'
   !> Base file name for synthetic SXR emission output
   character(len=std_len) :: filename_sxr
-  !> output SXR image
-  logical :: image_sxr=.false.
   ! minimum and maximum energy of SXR (keV)
   integer :: emin_sxr,emax_sxr
   !> resolution of the SXR image
@@ -716,8 +712,6 @@ module mod_global_parameters
   integer :: image_rotate=0
   !> Base file name for synthetic EUV spectrum output
   character(len=std_len) :: filename_spectrum
-  !> output EUV spectral profile
-  logical :: spectrum_euv=.false.
   !> wave length for spectrum
   integer :: spectrum_wl
   !> spectral window
