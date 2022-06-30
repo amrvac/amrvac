@@ -34,7 +34,7 @@ multigrid/field_loop_2d multigrid/implicit_diffusion
 
 RD_DIRS := rd/schnakenberg_2d rd/test_suite_2d
 
-ARD_DIRS := ard/schnakenberg_2d ard/ext_brusselator_2d
+ARD_DIRS := ard/schnakenberg_2d 
 
 MF_DIRS := mf/Mackay_bipole_Cartesian_3D
 
