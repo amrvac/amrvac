@@ -2450,6 +2450,7 @@ module mod_thermal_emission
       integer :: nPiece,nP1,nP2,nC1,nC2,nWC
       integer :: piece_nmax1,piece_nmax2,ix1,ix2,j,ipc,ixc1,ixc2
       double precision, allocatable :: xC(:,:,:,:),wC(:,:,:,:),dxC(:,:,:,:)
+      character(20) :: resolution_type
 
       ! how many cells in each grid
       if (datatype=='image_euv' .and. resolution_euv=='data') then
@@ -2531,7 +2532,14 @@ module mod_thermal_emission
           call write_image_vtuCC(qunit,xC,wC,dxC,nPiece,nC1,nC2,nWC,datatype)
           deallocate(xC,dxC,wC)
         case('EIvtiCCmpi','ESvtiCCmpi','SIvtiCCmpi')
-          call write_image_vtiCC(qunit,xO1,xO2,dxO1,dxO2,wO,nXO1,nXO2,nWO,nC1,nC2)
+          if (convert_type=='EIvtiCCmpi') resolution_type=resolution_euv
+          if (convert_type=='ESvtiCCmpi') resolution_type=resolution_spectrum
+          if (convert_type=='SIvtiCCmpi') resolution_type=resolution_sxr
+          if (sum(stretch_type(:))>0 .and. resolution_type=='data') then
+            call mpistop("Error in synthesize emission: vti is not supported for data resolution")
+          else
+            call write_image_vtiCC(qunit,xO1,xO2,dxO1,dxO2,wO,nXO1,nXO2,nWO,nC1,nC2)
+          endif
         case default
           call mpistop("Error in synthesize emission: Unknown convert_type")
       end select
@@ -2562,6 +2570,7 @@ module mod_thermal_emission
       character (30) :: ion
       double precision :: line_center
       double precision :: spatial_rsl,spectral_rsl,sigma_PSF,wslit
+
 
       origin(1)=xO1(1)-0.5d0*dxO1(1)
       origin(2)=xO2(1)-0.5d0*dxO2(1)
