@@ -1,0 +1,16 @@
+!=====================================================
+! 256 no AMR
+!=====================================================
+
+ &filelist
+        base_filename = '256_'
+ /
+
+ &meshlist
+        refine_max_level=1
+        refine_threshold=20*0.1d0
+        block_nx1=16
+        block_nx2=16
+        domain_nx1=256
+        domain_nx2=256
+ /

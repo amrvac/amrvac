@@ -1,0 +1,52 @@
+!=====================================================
+! Advection-diffusion.
+!=====================================================
+
+&filelist
+    base_filename = 'output/adv_diff_'
+    convert_type='vtuBCCmpi'
+    autoconvert=T
+/
+
+&savelist
+    tsave(1,2) = 0.0d0
+    dtsave_log = 2.5d0
+    dtsave_dat = 2.5d0
+/
+
+&stoplist
+    time_max = 1.0d2
+/
+
+&methodlist
+    flux_scheme     = 20*'tvdlf'
+    time_stepper    = 'onestep'
+    time_integrator = 'IMEX_Euler'
+/
+
+&boundlist
+    typeboundary_min1 = 'periodic'
+    typeboundary_max1 = 'periodic'
+/
+
+&meshlist
+    refine_max_level = 2
+
+    domain_nx1 = 128
+    block_nx1  = 16
+
+    xprobmin1 = 0.0d0
+    xprobmax1 = 64.0d0
+/
+
+&paramlist
+    slowsteps = 100
+    dtdiffpar = 100.0d0
+/
+
+&ard_list
+    equation_name = "no_reac"
+    adv_pow = 1
+    D1   = 1.0d0
+    A1   = 2.0d0
+/

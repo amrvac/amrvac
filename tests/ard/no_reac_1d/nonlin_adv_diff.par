@@ -1,0 +1,58 @@
+!=====================================================
+! Nonlinear advection-diffusion.
+!=====================================================
+
+&filelist
+    base_filename = 'output/nonlin_adv_diff_'
+    convert_type='vtuBCCmpi'
+    autoconvert=T
+/
+
+&savelist
+    itsave(1,1) = 0
+    itsave(1,2) = 0
+    ditsave_log = 1
+    dtsave_dat = 2.0d-2
+/
+
+&stoplist
+    time_max = 2.0d0
+/
+
+&methodlist
+    flux_scheme     = 20*'tvdlf'
+    time_stepper    = 'onestep'
+    time_integrator = 'IMEX_Euler'
+    !limiter         = 20*'weno7'
+/
+
+&boundlist
+    typeboundary_min1 = 'periodic'
+    typeboundary_max1 = 'periodic'
+/
+
+&meshlist
+    refine_max_level = 1
+    refine_threshold = 20*0.1d0
+
+    domain_nx1 = 1024
+    block_nx1  = 16
+
+    xprobmin1 = -4.0d0
+    xprobmax1 = 4.0d0
+
+    iprob = 4
+/
+
+&paramlist
+    courantpar=0.4d0
+    !slowsteps = 100
+    !dtdiffpar = 100.0d0
+/
+
+&ard_list
+    equation_name = "no_reac"
+    adv_pow = 2
+    D1   = 1.0d-1
+    A1   = 2.0d0
+/

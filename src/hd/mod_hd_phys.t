@@ -11,12 +11,12 @@ module mod_hd_phys
 
   !> Whether thermal conduction is added
   logical, public, protected              :: hd_thermal_conduction = .false.
-  type(tc_fluid), allocatable :: tc_fl
+  type(tc_fluid), allocatable, public :: tc_fl
   type(te_fluid), allocatable :: te_fl_hd
 
   !> Whether radiative cooling is added
   logical, public, protected              :: hd_radiative_cooling = .false.
-  type(rc_fluid), allocatable :: rc_fl
+  type(rc_fluid), allocatable, public :: rc_fl
 
   !> Whether dust is added
   logical, public, protected              :: hd_dust = .false.

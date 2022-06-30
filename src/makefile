@@ -81,6 +81,11 @@ mod_advance.o: mod_source.mod
 mod_advance.o: mod_tvd.mod
 mod_amr_fct.o: mod_physics.mod
 mod_amrvac.o: mod_geometry.mod
+mod_ard.o: mod_amrvac.mod
+mod_ard.o: mod_ard_phys.mod
+mod_ard_phys.o: mod_multigrid_coupling.mod
+mod_ard_phys.o: mod_particles.mod
+mod_ard_phys.o: mod_physics.mod
 mod_bc_data.o: mod_lookup_table.mod
 mod_bremsstrahlung.o: mod_physics.mod
 mod_calculate_xw.o: mod_geometry.mod

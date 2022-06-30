@@ -90,7 +90,7 @@ module mod_rd_phys
   logical :: rd_source_split = .false.
 
   !> Boundary condition information for the multigrid method
-  type(mg_bc_t), public :: rd_mg_bc(2, mg_num_neighbors)
+  type(mg_bc_t), public :: rd_mg_bc(3, mg_num_neighbors)
 
   ! Public methods
   public :: rd_phys_init
@@ -535,7 +535,8 @@ contains
     integer :: iigrid, igrid, level
     integer :: ixO^L
 
-    ixO^L=ixG^LL^LSUB1;
+    !ixO^L=ixG^LL^LSUB1;
+    ixO^L=ixM^LL;
     !$OMP PARALLEL DO PRIVATE(igrid)
     do iigrid=1,igridstail; igrid=igrids(iigrid);
        ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
