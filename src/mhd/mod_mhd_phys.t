@@ -19,7 +19,7 @@ module mod_mhd_phys
   logical, public, protected              :: mhd_thermal_conduction = .false.
   !> type of fluid for thermal conduction
   type(tc_fluid), public, allocatable     :: tc_fl
-  type(te_fluid), allocatable,target :: te_fl_mhd
+  type(te_fluid), public, allocatable     :: te_fl_mhd
 
   !> Whether radiative cooling is added
   logical, public, protected              :: mhd_radiative_cooling = .false.
@@ -798,11 +798,11 @@ contains
         rc_fl%has_equi = .false.
       end if
     end if
-{^IFTHREED
     allocate(te_fl_mhd)
     te_fl_mhd%get_rho=> mhd_get_rho
     te_fl_mhd%get_pthermal=> mhd_get_pthermal
     te_fl_mhd%Rfactor = 1d0
+{^IFTHREED
     phys_te_images => mhd_te_images
 }
     ! Initialize viscosity module

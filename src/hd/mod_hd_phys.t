@@ -12,7 +12,7 @@ module mod_hd_phys
   !> Whether thermal conduction is added
   logical, public, protected              :: hd_thermal_conduction = .false.
   type(tc_fluid), allocatable, public :: tc_fl
-  type(te_fluid), allocatable :: te_fl_hd
+  type(te_fluid), allocatable, public :: te_fl_hd
 
   !> Whether radiative cooling is added
   logical, public, protected              :: hd_radiative_cooling = .false.
@@ -338,11 +338,11 @@ contains
       rc_fl%e_ = e_
       rc_fl%Tcoff_ = Tcoff_
     end if
-{^IFTHREED
     allocate(te_fl_hd)
     te_fl_hd%get_rho=> hd_get_rho
     te_fl_hd%get_pthermal=> hd_get_pthermal
     te_fl_hd%Rfactor = 1d0
+{^IFTHREED
     phys_te_images => hd_te_images 
 }
     ! Initialize viscosity module

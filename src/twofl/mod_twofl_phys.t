@@ -58,8 +58,8 @@ module mod_twofl_phys
   !> Whether Hall-MHD is used
   logical, public, protected              :: twofl_Hall = .false.
 
-  type(tc_fluid), allocatable :: tc_fl_c
-  type(te_fluid), allocatable :: te_fl_c
+  type(tc_fluid), public, allocatable :: tc_fl_c
+  type(te_fluid), public, allocatable :: te_fl_c
 
 #if defined(ONE_FLUID) && ONE_FLUID==1
   !> Whether Ambipolar term is used
@@ -935,11 +935,11 @@ contains
         end if
       end if
     end if
-{^IFTHREED
     allocate(te_fl_c)
     te_fl_c%get_rho=> get_rhoc_tot
     te_fl_c%get_pthermal=> twofl_get_pthermal_c
     te_fl_c%Rfactor = Rc
+{^IFTHREED
     phys_te_images => twofl_te_images
 }
 
