@@ -89,7 +89,7 @@ slicenext | integer | 0 | Start index for writing slices
 firstprocess | logical | F | If true, call `initonegrid_usr` upon restarting
 reset_grid | logical | F | If true, rebuild the AMR grid upon restarting
 convert | logical | F | If true and filenameini and snapshotini are given, convert snapshots to other file formats
-convert_type | string | vtuBCCmpi | Which format to use when converting, options are: tecplot, tecplotCC, vtu, vtuCC, vtuB, vtuBCC, tecplotmpi, tecplotCCmpi, vtuBmpi, vtuBCCmpi, vtumpi,  vtuCCmpi, pvtumpi, pvtuCCmpi, tecline, teclinempi, onegrid
+convert_type | string | vtuBCCmpi | Which format to use when converting, options are: tecplot, tecplotCC, vtu, vtuCC, vtuB, vtuBCC, tecplotmpi, tecplotCCmpi, vtuBmpi, vtuBCCmpi, vtumpi,  vtuCCmpi, pvtumpi, pvtuCCmpi, tecline, teclinempi, onegrid, EIvtiCCmpi, ESvtiCCmpi, SIvtiCCmpi, EIvtuCCmpi, ESvtuCCmpi, SIvtuCCmpi
 slice_type | string | vtu | Which format to use when slicing, options are: csv, dat, vtu, vtuCC
 collapse_type | string | vti | Which format to use when slicing, options are: csv, vti
 autoconvert | logical | F | If true, already convert to output format during the run
@@ -225,6 +225,14 @@ _level_io_min_ limits the minimum level for output by refining levels below
 level_io_min until level_io_min is reached. Correspondingly, _level_io_max_
 limits the maximum level of the output file. This can be useful to visualize
 large datasets.
+
+The convert types `EIvtiCCmpi`, `ESvtiCCmpi`, `SIvtiCCmpi`, `EIvtuCCmpi`, 
+`ESvtuCCmpi` and `SIvtuCCmpi` are added for synthesize EUV images, EUV spectra
+and SXR images, where EI represents EUV image, ES represents EUV spectra and
+SI represents SXR image. The cooresponding parameters , e.g. line of sight direction, 
+for synthesizing emissions should be provided in the @ref par_emissionlist when the 
+convert types are activited. 
+
 
 ## Savelist {#par_savelist}
 
@@ -1114,43 +1122,48 @@ are not yet fully compatible with semirelativistic MHD.
 ## Synthetic EUV emission {#par_emissionlist}
 
 User can synthesize EUV images, EUV spectra, SXR images using 3D .dat files inside amrvac. 
-These can be finished easily by adding some parameters into .par file. 
-The images/spectra will be output to .vtu files when`image_euv`/`image_sxr`/`spectrum_euv` is`true`. 
-Two types of resolution are supported: data resolution and instrument resolution. 
-In data resolution, the size of the image pixel is the same as the size of the finest cell. 
-In instrument resolution, the size of a pixel is the same as that in relevant observation data (such as SDO and RHESSI). 
-The point spread function (PSF, instrument effect) has been included for `instrument` resolution.
-The resolution or EUV image/SXR image/EUV spectra is controlled by the parameter `resolution_euv`/`resolution_sxr`/`resolution_spectrum`.
+These can be finished easily by adding some parameters into .par file. The images/spectra will 
+be output to .vtu/.vti files when the convert_type in @ref par_filelist is set to  `EIvtiCCmpi`, 
+`ESvtiCCmpi`,  `SIvtiCCmpi` ... etc. Two types of resolution are supported: data resolution and 
+instrument resolution. In data resolution, the size of the image pixel is the same as the size of the 
+finest cell. In instrument resolution, the size of a pixel is the same as that in relevant observation 
+data (such as SDO and RHESSI). The point spread function (PSF, instrument effect) has been 
+included for `instrument` resolution. The resolution or EUV image/SXR image/EUV spectra is 
+controlled by the parameter `resolution_euv`/`resolution_sxr`/`resolution_spectrum`.
 
-The line of sight (LOS) can be controlled with `LOS_theta` and `LOS_phi`, where the LOS parallels to the vector [cos(LOS_theta)*sin(LOS_phi), sin(LOS_theta)*sin(LOS_phi),cos(LOS_phi)]. 
-The units of `LOS_theta` and `LOS_phi` are degree. 
-For resolution type `data`, only combinations `LOS_theta=0, LOS_phi=90`, `LOS_theta=90, LOS_phi=90` and `LOS_phi=0` are supported, otherwise the boundaries of image pixels can not match the cell boundaries of the cell boundaries of the simulation data. 
-`LOS_theta` and `LOS_phi` can be any integer for `instrument` resolution. 
-User can rotate the image with `image_rotate` (in degree) in `instrument` resolution (for both EUV image and SXR image. 
-By default, the y direction of the image is located in a plane given by the LOS and the z direction of the simulation data.
+The line of sight (LOS) is controlled with `LOS_theta` and `LOS_phi`, where the LOS is anti-parallel 
+to the vector [cos(LOS_theta)*sin(LOS_phi), sin(LOS_theta)*sin(LOS_phi),cos(LOS_phi)] (see the 
+following figure). The units of `LOS_theta` and `LOS_phi` are degree. For resolution type `data`, 
+only combinations `LOS_theta=0, LOS_phi=90`, `LOS_theta=90, LOS_phi=90` and `LOS_phi=0` 
+are supported, otherwise the boundaries of image pixels can not match the cell boundaries of the 
+cell boundaries of the simulation data. `LOS_theta` and `LOS_phi` can be any integer for 
+`instrument` resolution. User can rotate the image with `image_rotate` (in degree) in 
+`instrument` resolution (for both EUV image and SXR image. By default, the y direction 
+of the image is located in a plane given by the LOS and the z direction of the simulation data. 
 
-The wavelength of an EUV image is defined with `wavelength`. The bottom/upper cutoff energy of SXR image is defined with `emin_sxr`/`emax_sxr` (in keV). 
+![](figmovdir/LOS_emission.png)
 
-The wavelength of the EUV spectra is defined with `spectrum_wl`. 
-When `spectrum_euv` is`true`, spectra at a slit in the corresponding image will be given. 
-The output is a 2D image, where x-axis is wavelength and y-axis is space (physics distance at the slit). 
-Under the `instrument` resolution type, the slit is parallel to the y axis of corresponding EUV image (controlled by `LOS_theta`, `LOS_phi` and `image_rotate``).
-The location of the slit `location_slit` is the x value of the image (in arcsec).
-For the `data` resolution, the direction of the slit is controlled by `direction_slit`.
-The location of the slit `location_slit` is the coordinate value at the third direction (perpendicular to LOS and slit).
-For example, the LOS along x direction and the slit along y direction, then `location_slit` should be z of the slit.
-The domain in wavelength is controlled by `spectrum_window_min` and `spectrum_window_max`.
+The wavelength of an EUV image is defined with `wavelength`. The bottom/upper cutoff energy 
+of SXR image is defined with `emin_sxr`/`emax_sxr` (in keV). 
+
+The wavelength of the EUV spectra is defined with `spectrum_wl`. When `spectrum_euv` is`true`, 
+spectra at a slit in the corresponding image will be given. The output is a 2D image, where x-axis is 
+wavelength and y-axis is space (physics distance at the slit). Under the `instrument` resolution type, 
+the slit is parallel to the y axis of corresponding EUV image (controlled by `LOS_theta`, `LOS_phi` and 
+`image_rotate`). The location of the slit `location_slit` is the x value of the image (in arcsec).
+For the `data` resolution, the direction of the slit is controlled by `direction_slit`. The location of 
+the slit `location_slit` is the coordinate value at the third direction (perpendicular to LOS and slit).
+For example, the LOS along x direction and the slit along y direction, then `location_slit` should 
+be z of the slit. The domain in wavelength is controlled by `spectrum_window_min` and `spectrum_window_max`.
 
 
-Only MHD module and Cartesian coordinate system are supported currently.
+Only Cartesian coordinate system are supported currently.
 
     &emissionlist
       filename_euv= CHARACTER
-      image_euv= F | T
       wavelength= 94 | 131 | 171 | 193 | 211 | 304 | 335 | 1354 | 263 | 264 | 192 | 255
       resolution_euv= 'instrument' | 'data'
       filename_sxr= CHARACTER
-      image_sxr= F | T
       emin_sxr= INTEGER
       emax_sxr= INTEGER
       resolution_sxr= 'instrument' | 'data'
@@ -1158,7 +1171,6 @@ Only MHD module and Cartesian coordinate system are supported currently.
       LOS_phi= INTEGER
       image_rotate= INTEGER
       filename_spectrum= CHARACTER
-      spectrum_euv= F | T
       spectrum_wl= 1354 | 263 | 264| 192 | 255
       resolution_sxr= 'instrument' | 'data'
       spectrum_window_min= DOUBLE
