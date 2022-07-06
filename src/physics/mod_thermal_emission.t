@@ -877,7 +877,8 @@ module mod_thermal_emission
       else if (resolution_spectrum=='instrument') then
         if (mype==0) print *, 'Unit of wavelength: Angstrom (0.1 nm) '
         if (mype==0) print *, 'Unit of length: arcsec (~725 km)'
-        if (mype==0) write(*,'(a,f8.1,a)') ' Location of slit: ',location_slit,' arcsec'
+        if (mype==0) print *, 'Direction of the slit: parallel to xI2 vector'
+        if (mype==0) write(*,'(a,f8.1,a)') ' Location of slit: xI1 = ',location_slit,' arcsec'
         if (mype==0) write(*,'(a,f8.1,a)') ' Width of slit: ',wslit,' arcsec'
         call get_spectrum_inst_resol(qunit,datatype,fl)
       else
@@ -1240,22 +1241,22 @@ module mod_thermal_emission
       end select
 
 
-      if (LOS_theta==0 .and. LOS_phi==90 .and. direction_slit==2) then
+      if (LOS_phi==0 .and. LOS_theta==90 .and. direction_slit==2) then
       ! LOS->x slit->y
         dir_loc=3
-      else if (LOS_theta==0 .and. LOS_phi==90 .and. direction_slit==3) then
+      else if (LOS_phi==0 .and. LOS_theta==90 .and. direction_slit==3) then
       ! LOS->x slit->z
         dir_loc=2
-      else if (LOS_theta==90 .and. LOS_phi==90 .and. direction_slit==1) then
+      else if (LOS_phi==90 .and. LOS_theta==90 .and. direction_slit==1) then
       ! LOS->y slit->x
         dir_loc=3
-      else if (LOS_theta==90 .and. LOS_phi==90 .and. direction_slit==3) then
+      else if (LOS_phi==90 .and. LOS_theta==90 .and. direction_slit==3) then
       ! LOS->y slit->z
         dir_loc=1
-      else if (LOS_phi==0 .and. direction_slit==1) then
+      else if (LOS_theta==0 .and. direction_slit==1) then
       ! LOS->z slit->x
         dir_loc=2
-      else if (LOS_phi==0 .and. direction_slit==2) then
+      else if (LOS_theta==0 .and. direction_slit==2) then
       ! LOS->z slit->y
         dir_loc=1
       else
@@ -1329,9 +1330,9 @@ module mod_thermal_emission
 
       call get_line_info(spectrum_wl,ion,mass,logTe,lineCent,spaceRsl,wlRsl,sigma_PSF,wslit)      
 
-      if (LOS_theta==0 .and. LOS_phi==90) then
+      if (LOS_phi==0 .and. LOS_theta==90) then
         direction_LOS=1
-      else if (LOS_theta==90 .and. LOS_phi==90) then
+      else if (LOS_phi==90 .and. LOS_theta==90) then
         direction_LOS=2
       else
         direction_LOS=3
@@ -1452,11 +1453,11 @@ module mod_thermal_emission
         else
           if (mype==0) write(*,'(a,f8.1,a)') ' Unit of length: ',unit_length/1.d8,' Mm'
         endif
-        if (LOS_theta==0 .and. LOS_phi==90) then
+        if (LOS_phi==0 .and. LOS_theta==90) then
           call get_image_data_resol(qunit,datatype,fl)
-        else if (LOS_theta==90 .and. LOS_phi==90) then
+        else if (LOS_phi==90 .and. LOS_theta==90) then
           call get_image_data_resol(qunit,datatype,fl)
-        else if (LOS_phi==0) then
+        else if (LOS_theta==0) then
           call get_image_data_resol(qunit,datatype,fl)
         else
           call MPISTOP('ERROR: Wrong LOS for synthesizing emission!')
@@ -1493,11 +1494,11 @@ module mod_thermal_emission
         else
           if (mype==0) write(*,'(a,f8.1,a)') ' Unit of length: ',unit_length/1.d5,' km'
         endif
-        if (LOS_theta==0 .and. LOS_phi==90) then
+        if (LOS_phi==0 .and. LOS_theta==90) then
           call get_image_data_resol(qunit,datatype,fl)
-        else if (LOS_theta==90 .and. LOS_phi==90) then
+        else if (LOS_phi==90 .and. LOS_theta==90) then
           call get_image_data_resol(qunit,datatype,fl)
-        else if (LOS_phi==0) then
+        else if (LOS_theta==0) then
           call get_image_data_resol(qunit,datatype,fl)
         else
           call MPISTOP('ERROR: Wrong LOS for synthesizing emission!')
@@ -1876,7 +1877,7 @@ module mod_thermal_emission
       numX3=domain_nx3*2**(refine_max_level-1)
 
       ! parameters for creating table
-      if (LOS_theta==0 .and. LOS_phi==90) then
+      if (LOS_phi==0 .and. LOS_theta==90) then
         nXIF1=domain_nx2*2**(refine_max_level-1)
         nXIF2=domain_nx3*2**(refine_max_level-1)
         xIFmin1=xprobmin2
@@ -1893,7 +1894,7 @@ module mod_thermal_emission
         nstrb2=nstretchedblocks_baselevel(3)
         qs1=qstretch_baselevel(2)
         qs2=qstretch_baselevel(3)
-      else if (LOS_theta==90 .and. LOS_phi==90) then
+      else if (LOS_phi==90 .and. LOS_theta==90) then
         nXIF1=domain_nx3*2**(refine_max_level-1)
         nXIF2=domain_nx1*2**(refine_max_level-1)
         xIFmin1=xprobmin3
@@ -2123,9 +2124,9 @@ module mod_thermal_emission
       integer :: ixP^L,ixP^D
       integer :: direction_LOS
 
-      if (LOS_theta==0 .and. LOS_phi==90) then
+      if (LOS_phi==0 .and. LOS_theta==90) then
         direction_LOS=1
-      else if (LOS_theta==90 .and. LOS_phi==90) then
+      else if (LOS_phi==90 .and. LOS_theta==90) then
         direction_LOS=2
       else
         direction_LOS=3
@@ -2299,9 +2300,9 @@ module mod_thermal_emission
       integer :: ixP^L,ixP^D
       integer :: direction_LOS
 
-      if (LOS_theta==0 .and. LOS_phi==90) then
+      if (LOS_phi==0 .and. LOS_theta==90) then
         direction_LOS=1
-      else if (LOS_theta==90 .and. LOS_phi==90) then
+      else if (LOS_phi==90 .and. LOS_theta==90) then
         direction_LOS=2
       else
         direction_LOS=3
@@ -2450,14 +2451,14 @@ module mod_thermal_emission
       integer :: nPiece,nP1,nP2,nC1,nC2,nWC
       integer :: piece_nmax1,piece_nmax2,ix1,ix2,j,ipc,ixc1,ixc2
       double precision, allocatable :: xC(:,:,:,:),wC(:,:,:,:),dxC(:,:,:,:)
-      character(20) :: resolution_type
+      character(len=std_len) :: resolution_type
 
       ! how many cells in each grid
       if (datatype=='image_euv' .and. resolution_euv=='data') then
-        if (LOS_theta==0 .and. LOS_phi==90) then
+        if (LOS_phi==0 .and. LOS_theta==90) then
           piece_nmax1=block_nx2
           piece_nmax2=block_nx3
-        else if (LOS_theta==90 .and. LOS_phi==90) then
+        else if (LOS_phi==90 .and. LOS_theta==90) then
           piece_nmax1=block_nx3
           piece_nmax2=block_nx1
         else
@@ -2465,10 +2466,10 @@ module mod_thermal_emission
           piece_nmax2=block_nx2
         endif
       else if (datatype=='image_sxr' .and. resolution_sxr=='data') then
-        if (LOS_theta==0 .and. LOS_phi==90) then
+        if (LOS_phi==0 .and. LOS_theta==90) then
           piece_nmax1=block_nx2
           piece_nmax2=block_nx3
-        else if (LOS_theta==90 .and. LOS_phi==90) then
+        else if (LOS_phi==90 .and. LOS_theta==90) then
           piece_nmax1=block_nx3
           piece_nmax2=block_nx1
         else
@@ -2770,17 +2771,17 @@ module mod_thermal_emission
           do ix2=1,nP2
             do ix1=1,nP1 
               if (datatype=='image_euv' .and. resolution_euv=='data') then
-                if (LOS_theta==0 .and. LOS_phi==90) then
+                if (LOS_phi==0 .and. LOS_theta==90) then
                   write(qunit,'(3(1pe14.6))') 0.d0,xP(ixP,ix1,ix2,1),xP(ixP,ix1,ix2,2)
-                else if (LOS_theta==90 .and. LOS_phi==90) then
+                else if (LOS_phi==90 .and. LOS_theta==90) then
                   write(qunit,'(3(1pe14.6))') xP(ixP,ix1,ix2,2),0.d0,xP(ixP,ix1,ix2,1)
                 else
                   write(qunit,'(3(1pe14.6))') xP(ixP,ix1,ix2,1),xP(ixP,ix1,ix2,2),0.d0
                 endif
               else if (datatype=='image_sxr' .and. resolution_sxr=='data') then
-                if (LOS_theta==0 .and. LOS_phi==90) then
+                if (LOS_phi==0 .and. LOS_theta==90) then
                   write(qunit,'(3(1pe14.6))') 0.d0,xP(ixP,ix1,ix2,1),xP(ixP,ix1,ix2,2)
-                else if (LOS_theta==90 .and. LOS_phi==90) then
+                else if (LOS_phi==90 .and. LOS_theta==90) then
                   write(qunit,'(3(1pe14.6))') xP(ixP,ix1,ix2,2),0.d0,xP(ixP,ix1,ix2,1)
                 else
                   write(qunit,'(3(1pe14.6))') xP(ixP,ix1,ix2,1),xP(ixP,ix1,ix2,2),0.d0
@@ -2853,15 +2854,15 @@ module mod_thermal_emission
       double precision :: vec_z(1:3),vec_temp1(1:3),vec_temp2(1:3)
 
       ! vectors for image coordinate
-      vec_LOS(1)=-cos(dpi*LOS_theta/180.d0)*sin(dpi*LOS_phi/180.d0)
-      vec_LOS(2)=-sin(dpi*LOS_theta/180.d0)*sin(dpi*LOS_phi/180.d0)
-      vec_LOS(3)=-cos(dpi*LOS_phi/180.d0)
+      vec_LOS(1)=-cos(dpi*LOS_phi/180.d0)*sin(dpi*LOS_theta/180.d0)
+      vec_LOS(2)=-sin(dpi*LOS_phi/180.d0)*sin(dpi*LOS_theta/180.d0)
+      vec_LOS(3)=-cos(dpi*LOS_theta/180.d0)
       do j=1,3
         if (abs(vec_LOS(j))<=smalldouble) vec_LOS(j)=zero
       enddo
       vec_z(:)=zero
       vec_z(3)=1.d0
-      if (LOS_phi==zero) then
+      if (LOS_theta==zero) then
         vec_xI1=zero
         vec_xI2=zero
         vec_xI1(1)=1.d0

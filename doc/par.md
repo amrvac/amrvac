@@ -1132,7 +1132,7 @@ included for `instrument` resolution. The resolution or EUV image/SXR image/EUV 
 controlled by the parameter `resolution_euv`/`resolution_sxr`/`resolution_spectrum`.
 
 The line of sight (LOS) is controlled with `LOS_theta` and `LOS_phi`, where the LOS is anti-parallel 
-to the vector [cos(LOS_theta)*sin(LOS_phi), sin(LOS_theta)*sin(LOS_phi),cos(LOS_phi)] (see the 
+to the vector [cos(LOS_phi)*sin(LOS_theta), sin(LOS_phi)*sin(LOS_theta),cos(LOS_theta)] (see the 
 following figure). The units of `LOS_theta` and `LOS_phi` are degree. For resolution type `data`, 
 only combinations `LOS_theta=0, LOS_phi=90`, `LOS_theta=90, LOS_phi=90` and `LOS_phi=0` 
 are supported, otherwise the boundaries of image pixels can not match the cell boundaries of the 
