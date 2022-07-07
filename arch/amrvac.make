@@ -22,8 +22,9 @@ LIBS := amrvac
 
 .PHONY: all clean allclean force hdr
 
-all: hdr amrvac
-amrvac: hdr
+
+
+all: | hdr amrvac
 
 # copy amrvac.h (in order to use the std preprocessor in the main code files, e.g. twofl); create the file if it does not exist
 hdr:
@@ -32,6 +33,7 @@ ifeq ("$(wildcard amrvac.h)","")
 endif
 	@mkdir -p $(LIB_DIR)	# Prevent error message
 	rsync -c amrvac.h $(LIB_DIR)/amrvac.h
+
 
 # Include architecture and compilation rules
 include $(AMRVAC_DIR)/arch/$(ARCH).defs
