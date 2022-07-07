@@ -47,7 +47,6 @@ contains
   end subroutine usr_init
 
   subroutine initglobaldata_usr
-    use mod_thermal_conduction, only: tc_k_para, tc_perpendicular
     character(len=20) :: printsettingformat
 
     printsettingformat='(1x,A50,ES15.7,A7)'
@@ -58,7 +57,7 @@ contains
       write(*,*) "HD thermal instability setup:"
       write(*,printsettingformat) "density contrast ",scale," input"
       write(*,printsettingformat) "   within radius ",radius," input"
-      if(hd_thermal_conduction) write(*,*) 'USING THERMAL CONDUCTION with conduction coefficient',tc_k_para
+      if(hd_thermal_conduction) write(*,*) 'USING THERMAL CONDUCTION with conduction coefficient',tc_fl%tc_k_para
       if(hd_radiative_cooling) write(*,*) 'USING COOLING'
     endif
 
@@ -109,7 +108,7 @@ contains
        winit_nopert(ixI^S,mom(1))=0.0d0
        winit_nopert(ixI^S,mom(2))=0.0d0
        winit_nopert(ixI^S,e_)=(1.0d0/hd_gamma)/(hd_gamma-1.0d0)
-       call getvar_cooling_exact(qdt,ixI^L,ixO^L,winit_nopert,winit_nopert,x,bQgrid)
+       call getvar_cooling_exact(qdt,ixI^L,ixO^L,winit_nopert,winit_nopert,x,bQgrid,rc_fl)
        w(ixO^S,e_)=w(ixO^S,e_)+qdt*bQgrid(ixO^S)
     endif
 
@@ -156,7 +155,7 @@ contains
     kk1=1.0d0
     w(ixO^S,nw+2)=dexp(-kk*(gradrho(ixO^S)-kk0*grhomax)/(kk1*grhomax-kk0*grhomax))
     if(hd_radiative_cooling) then
-       call getvar_cooling(ixI^L,ixO^L,wlocal,x,tmp)
+       call getvar_cooling(ixI^L,ixO^L,wlocal,x,tmp,rc_fl)
        !if(mype==0)then
        !print *,'in output:EXPLICIT'
        !print *,maxval(tmp(ixO^S))

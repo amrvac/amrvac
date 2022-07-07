@@ -293,7 +293,7 @@ contains
     double precision, intent(in)    :: x(ixI^S, 1:^ND)
     double precision, intent(inout) :: cmax(ixI^S,1:number_species)
     double precision, intent(inout), optional :: cmin(ixI^S,1:number_species)
-    double precision, intent(in)    :: Hspeed(ixI^S)
+    double precision, intent(in)    :: Hspeed(ixI^S,1:number_species)
 
     ! If get_v depends on w, the first argument should be some average over the
     ! left and right state

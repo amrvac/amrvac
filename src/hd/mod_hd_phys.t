@@ -858,7 +858,7 @@ contains
     double precision, intent(in)    :: x(ixI^S, 1:ndim)
     double precision, intent(inout) :: cmax(ixI^S,1:number_species)
     double precision, intent(inout), optional :: cmin(ixI^S,1:number_species)
-    double precision, intent(in)    :: Hspeed(ixI^S)
+    double precision, intent(in)    :: Hspeed(ixI^S,1:number_species)
 
     double precision :: wmean(ixI^S,nw)
     double precision, dimension(ixI^S) :: umean, dmean, csoundL, csoundR, tmp1,tmp2,tmp3
@@ -892,8 +892,8 @@ contains
         cmax(ixO^S,1)=umean(ixO^S)+dmean(ixO^S)
         if(H_correction) then
           {do ix^DB=ixOmin^DB,ixOmax^DB\}
-            cmin(ix^D,1)=sign(one,cmin(ix^D,1))*max(abs(cmin(ix^D,1)),Hspeed(ix^D))
-            cmax(ix^D,1)=sign(one,cmax(ix^D,1))*max(abs(cmax(ix^D,1)),Hspeed(ix^D))
+            cmin(ix^D,1)=sign(one,cmin(ix^D,1))*max(abs(cmin(ix^D,1)),Hspeed(ix^D,1))
+            cmax(ix^D,1)=sign(one,cmax(ix^D,1))*max(abs(cmax(ix^D,1)),Hspeed(ix^D,1))
           {end do\}
         end if
       else
@@ -916,8 +916,8 @@ contains
         cmin(ixO^S,1)=min(tmp1(ixO^S)-csoundR(ixO^S),zero)
         if(H_correction) then
           {do ix^DB=ixOmin^DB,ixOmax^DB\}
-            cmin(ix^D,1)=sign(one,cmin(ix^D,1))*max(abs(cmin(ix^D,1)),Hspeed(ix^D))
-            cmax(ix^D,1)=sign(one,cmax(ix^D,1))*max(abs(cmax(ix^D,1)),Hspeed(ix^D))
+            cmin(ix^D,1)=sign(one,cmin(ix^D,1))*max(abs(cmin(ix^D,1)),Hspeed(ix^D,1))
+            cmax(ix^D,1)=sign(one,cmax(ix^D,1))*max(abs(cmax(ix^D,1)),Hspeed(ix^D,1))
           {end do\}
         end if
       else
@@ -942,8 +942,8 @@ contains
         cmax(ixO^S,1)=max(wLp(ixO^S,mom(idim)),wRp(ixO^S,mom(idim)))+csoundL(ixO^S)
         if(H_correction) then
           {do ix^DB=ixOmin^DB,ixOmax^DB\}
-            cmin(ix^D,1)=sign(one,cmin(ix^D,1))*max(abs(cmin(ix^D,1)),Hspeed(ix^D))
-            cmax(ix^D,1)=sign(one,cmax(ix^D,1))*max(abs(cmax(ix^D,1)),Hspeed(ix^D))
+            cmin(ix^D,1)=sign(one,cmin(ix^D,1))*max(abs(cmin(ix^D,1)),Hspeed(ix^D,1))
+            cmax(ix^D,1)=sign(one,cmax(ix^D,1))*max(abs(cmax(ix^D,1)),Hspeed(ix^D,1))
           {end do\}
         end if
       else

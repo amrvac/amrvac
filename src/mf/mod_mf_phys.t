@@ -454,7 +454,7 @@ contains
     double precision, intent(in)    :: x(ixI^S,1:ndim)
     double precision, intent(inout) :: cmax(ixI^S,1:number_species)
     double precision, intent(inout), optional :: cmin(ixI^S,1:number_species)
-    double precision, intent(in)    :: Hspeed(ixI^S)
+    double precision, intent(in)    :: Hspeed(ixI^S,1:number_species)
 
     double precision, dimension(ixI^S) :: tmp1
 

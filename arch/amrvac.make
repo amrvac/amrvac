@@ -23,6 +23,7 @@ LIBS := amrvac
 .PHONY: all clean allclean force hdr
 
 all: hdr amrvac
+amrvac: hdr
 
 # copy amrvac.h (in order to use the std preprocessor in the main code files, e.g. twofl); create the file if it does not exist
 hdr:

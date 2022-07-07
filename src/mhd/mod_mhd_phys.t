@@ -202,6 +202,14 @@ module mod_mhd_phys
   !> Ratio of number He2+ / number He+ + He2+
   !> He_ion_fr2 = (He2+ + He+)/(He2+ + He+ + He)
   double precision, public, protected  :: He_ion_fr2=1d0
+  ! used for eq of state when it is not defined by units,
+  ! the units do not contain terms related to ionization fraction
+  ! and it is p = RR * rho * T 
+  double precision, public, protected  :: RR=1d0 
+  ! remove the below flag  and assume default value = .false.
+  ! when eq state properly implemented everywhere
+  ! and not anymore through units
+  logical, public, protected :: eq_state_units = .true.
 
   !> To control divB=0 fix for boundary
   logical, public, protected :: boundary_divbfix(2*^ND)=.true.
@@ -300,7 +308,7 @@ contains
       mhd_thermal_conduction, mhd_radiative_cooling, mhd_Hall, mhd_ambipolar, mhd_ambipolar_sts, mhd_gravity,&
       mhd_viscosity, mhd_4th_order, typedivbfix, source_split_divb, divbdiff,&
       typedivbdiff, type_ct, compactres, divbwave, He_abundance, &
-      H_ion_fr, He_ion_fr, He_ion_fr2, SI_unit, B0field ,mhd_dump_full_vars,&
+      H_ion_fr, He_ion_fr, He_ion_fr2, eq_state_units, SI_unit, B0field ,mhd_dump_full_vars,&
       B0field_forcefree, Bdip, Bquad, Boct, Busr, mhd_particles,&
       particles_eta, particles_etah,has_equi_rho0, has_equi_pe0,mhd_equi_thermal,&
       boundary_divbfix, boundary_divbfix_skip, mhd_divb_4thorder, mhd_semirelativistic,&
@@ -1142,8 +1150,15 @@ contains
       miu0=4.d0*dpi ! G^2 cm^2 dyne^-1
       c_lightspeed=const_c
     end if
-    a = 1d0 + 4d0 * He_abundance
-    b = 1d0 + H_ion_fr + He_abundance*(He_ion_fr*(He_ion_fr2 + 1d0)+1d0)
+    if(eq_state_units) then
+      a = 1d0 + 4d0 * He_abundance
+      b = 1d0 + H_ion_fr + He_abundance*(He_ion_fr*(He_ion_fr2 + 1d0)+1d0)
+      RR = 1d0
+    else
+      a = 1d0
+      b = 1d0
+      RR = (1d0 + H_ion_fr + He_abundance*(He_ion_fr*(He_ion_fr2 + 1d0)+1d0))/(1d0 + 4d0 * He_abundance)   
+    endif
     if(unit_numberdensity/=1.d0) then
       unit_density=a*mp*unit_numberdensity
     else if(unit_density/=1.d0) then
@@ -2426,7 +2441,7 @@ contains
     integer, intent(in)             :: ixI^L, ixO^L, idim
     double precision, intent(in)    :: wprim(ixI^S, nw)
     double precision, intent(in)    :: x(ixI^S,1:ndim)
-    double precision, intent(out)   :: Hspeed(ixI^S)
+    double precision, intent(out)   :: Hspeed(ixI^S,1:number_species)
 
     double precision :: csound(ixI^S,ndim),tmp(ixI^S)
     integer :: jxC^L, ixC^L, ixA^L, id, ix^D
@@ -2441,26 +2456,26 @@ contains
     ixCmin^D=ixOmin^D+kr(idim,^D)-1;
     jxCmax^D=ixCmax^D+kr(idim,^D);
     jxCmin^D=ixCmin^D+kr(idim,^D);
-    Hspeed(ixC^S)=0.5d0*abs(wprim(jxC^S,mom(idim))+csound(jxC^S,idim)-wprim(ixC^S,mom(idim))+csound(ixC^S,idim))
+    Hspeed(ixC^S,1)=0.5d0*abs(wprim(jxC^S,mom(idim))+csound(jxC^S,idim)-wprim(ixC^S,mom(idim))+csound(ixC^S,idim))
 
     do id=1,ndim
       if(id==idim) cycle
       ixAmax^D=ixCmax^D+kr(id,^D);
       ixAmin^D=ixCmin^D+kr(id,^D);
-      Hspeed(ixC^S)=max(Hspeed(ixC^S),0.5d0*abs(wprim(ixA^S,mom(id))+csound(ixA^S,id)-wprim(ixC^S,mom(id))+csound(ixC^S,id)))
+      Hspeed(ixC^S,1)=max(Hspeed(ixC^S,1),0.5d0*abs(wprim(ixA^S,mom(id))+csound(ixA^S,id)-wprim(ixC^S,mom(id))+csound(ixC^S,id)))
       ixAmax^D=ixCmax^D-kr(id,^D);
       ixAmin^D=ixCmin^D-kr(id,^D);
-      Hspeed(ixC^S)=max(Hspeed(ixC^S),0.5d0*abs(wprim(ixC^S,mom(id))+csound(ixC^S,id)-wprim(ixA^S,mom(id))+csound(ixA^S,id)))
+      Hspeed(ixC^S,1)=max(Hspeed(ixC^S,1),0.5d0*abs(wprim(ixC^S,mom(id))+csound(ixC^S,id)-wprim(ixA^S,mom(id))+csound(ixA^S,id)))
     end do
 
     do id=1,ndim
       if(id==idim) cycle
       ixAmax^D=jxCmax^D+kr(id,^D);
       ixAmin^D=jxCmin^D+kr(id,^D);
-      Hspeed(ixC^S)=max(Hspeed(ixC^S),0.5d0*abs(wprim(ixA^S,mom(id))+csound(ixA^S,id)-wprim(jxC^S,mom(id))+csound(jxC^S,id)))
+      Hspeed(ixC^S,1)=max(Hspeed(ixC^S,1),0.5d0*abs(wprim(ixA^S,mom(id))+csound(ixA^S,id)-wprim(jxC^S,mom(id))+csound(jxC^S,id)))
       ixAmax^D=jxCmax^D-kr(id,^D);
       ixAmin^D=jxCmin^D-kr(id,^D);
-      Hspeed(ixC^S)=max(Hspeed(ixC^S),0.5d0*abs(wprim(jxC^S,mom(id))+csound(jxC^S,id)-wprim(ixA^S,mom(id))+csound(ixA^S,id)))
+      Hspeed(ixC^S,1)=max(Hspeed(ixC^S,1),0.5d0*abs(wprim(jxC^S,mom(id))+csound(jxC^S,id)-wprim(ixA^S,mom(id))+csound(ixA^S,id)))
     end do
 
   end subroutine mhd_get_H_speed
@@ -2475,7 +2490,7 @@ contains
     double precision, intent(in)    :: x(ixI^S,1:ndim)
     double precision, intent(inout) :: cmax(ixI^S,1:number_species)
     double precision, intent(inout), optional :: cmin(ixI^S,1:number_species)
-    double precision, intent(in)    :: Hspeed(ixI^S)
+    double precision, intent(in)    :: Hspeed(ixI^S,1:number_species)
 
     double precision :: wmean(ixI^S,nw)
     double precision, dimension(ixI^S) :: umean, dmean, csoundL, csoundR, tmp1,tmp2,tmp3
@@ -2500,8 +2515,8 @@ contains
         cmax(ixO^S,1)=umean(ixO^S)+dmean(ixO^S)
         if(H_correction) then
           {do ix^DB=ixOmin^DB,ixOmax^DB\}
-            cmin(ix^D,1)=sign(one,cmin(ix^D,1))*max(abs(cmin(ix^D,1)),Hspeed(ix^D))
-            cmax(ix^D,1)=sign(one,cmax(ix^D,1))*max(abs(cmax(ix^D,1)),Hspeed(ix^D))
+            cmin(ix^D,1)=sign(one,cmin(ix^D,1))*max(abs(cmin(ix^D,1)),Hspeed(ix^D,1))
+            cmax(ix^D,1)=sign(one,cmax(ix^D,1))*max(abs(cmax(ix^D,1)),Hspeed(ix^D,1))
           {end do\}
         end if
       else
@@ -2516,8 +2531,8 @@ contains
         cmin(ixO^S,1)=min(tmp1(ixO^S)-csoundR(ixO^S),zero)
         if(H_correction) then
           {do ix^DB=ixOmin^DB,ixOmax^DB\}
-            cmin(ix^D,1)=sign(one,cmin(ix^D,1))*max(abs(cmin(ix^D,1)),Hspeed(ix^D))
-            cmax(ix^D,1)=sign(one,cmax(ix^D,1))*max(abs(cmax(ix^D,1)),Hspeed(ix^D))
+            cmin(ix^D,1)=sign(one,cmin(ix^D,1))*max(abs(cmin(ix^D,1)),Hspeed(ix^D,1))
+            cmax(ix^D,1)=sign(one,cmax(ix^D,1))*max(abs(cmax(ix^D,1)),Hspeed(ix^D,1))
           {end do\}
         end if
       else
@@ -2533,8 +2548,8 @@ contains
         cmax(ixO^S,1)=max(wLp(ixO^S,mom(idim)),wRp(ixO^S,mom(idim)))+csoundL(ixO^S)
         if(H_correction) then
           {do ix^DB=ixOmin^DB,ixOmax^DB\}
-            cmin(ix^D,1)=sign(one,cmin(ix^D,1))*max(abs(cmin(ix^D,1)),Hspeed(ix^D))
-            cmax(ix^D,1)=sign(one,cmax(ix^D,1))*max(abs(cmax(ix^D,1)),Hspeed(ix^D))
+            cmin(ix^D,1)=sign(one,cmin(ix^D,1))*max(abs(cmin(ix^D,1)),Hspeed(ix^D,1))
+            cmax(ix^D,1)=sign(one,cmax(ix^D,1))*max(abs(cmax(ix^D,1)),Hspeed(ix^D,1))
           {end do\}
         end if
       else
@@ -2554,7 +2569,7 @@ contains
     double precision, intent(in)    :: x(ixI^S,1:ndim)
     double precision, intent(inout) :: cmax(ixI^S,1:number_species)
     double precision, intent(inout), optional :: cmin(ixI^S,1:number_species)
-    double precision, intent(in)    :: Hspeed(ixI^S)
+    double precision, intent(in)    :: Hspeed(ixI^S,1:number_species)
 
     double precision, dimension(ixO^S) :: csoundL, csoundR, gamma2L, gamma2R
 
@@ -2581,7 +2596,7 @@ contains
     double precision, intent(in)    :: x(ixI^S,1:ndim)
     double precision, intent(inout) :: cmax(ixI^S,1:number_species)
     double precision, intent(inout), optional :: cmin(ixI^S,1:number_species)
-    double precision, intent(in)    :: Hspeed(ixI^S)
+    double precision, intent(in)    :: Hspeed(ixI^S,1:number_species)
 
     double precision :: wmean(ixI^S,nw)
     double precision, dimension(ixI^S) :: umean, dmean, csoundL, csoundR, tmp1,tmp2,tmp3
@@ -2607,8 +2622,8 @@ contains
         cmax(ixO^S,1)=umean(ixO^S)+dmean(ixO^S)
         if(H_correction) then
           {do ix^DB=ixOmin^DB,ixOmax^DB\}
-            cmin(ix^D,1)=sign(one,cmin(ix^D,1))*max(abs(cmin(ix^D,1)),Hspeed(ix^D))
-            cmax(ix^D,1)=sign(one,cmax(ix^D,1))*max(abs(cmax(ix^D,1)),Hspeed(ix^D))
+            cmin(ix^D,1)=sign(one,cmin(ix^D,1))*max(abs(cmin(ix^D,1)),Hspeed(ix^D,1))
+            cmax(ix^D,1)=sign(one,cmax(ix^D,1))*max(abs(cmax(ix^D,1)),Hspeed(ix^D,1))
           {end do\}
         end if
       else
@@ -2623,8 +2638,8 @@ contains
         cmin(ixO^S,1)=min(tmp1(ixO^S)-csoundR(ixO^S),zero)
         if(H_correction) then
           {do ix^DB=ixOmin^DB,ixOmax^DB\}
-            cmin(ix^D,1)=sign(one,cmin(ix^D,1))*max(abs(cmin(ix^D,1)),Hspeed(ix^D))
-            cmax(ix^D,1)=sign(one,cmax(ix^D,1))*max(abs(cmax(ix^D,1)),Hspeed(ix^D))
+            cmin(ix^D,1)=sign(one,cmin(ix^D,1))*max(abs(cmin(ix^D,1)),Hspeed(ix^D,1))
+            cmax(ix^D,1)=sign(one,cmax(ix^D,1))*max(abs(cmax(ix^D,1)),Hspeed(ix^D,1))
           {end do\}
         end if
       else
@@ -2640,8 +2655,8 @@ contains
         cmax(ixO^S,1)=max(wLp(ixO^S,mom(idim)),wRp(ixO^S,mom(idim)))+csoundL(ixO^S)
         if(H_correction) then
           {do ix^DB=ixOmin^DB,ixOmax^DB\}
-            cmin(ix^D,1)=sign(one,cmin(ix^D,1))*max(abs(cmin(ix^D,1)),Hspeed(ix^D))
-            cmax(ix^D,1)=sign(one,cmax(ix^D,1))*max(abs(cmax(ix^D,1)),Hspeed(ix^D))
+            cmin(ix^D,1)=sign(one,cmin(ix^D,1))*max(abs(cmin(ix^D,1)),Hspeed(ix^D,1))
+            cmax(ix^D,1)=sign(one,cmax(ix^D,1))*max(abs(cmax(ix^D,1)),Hspeed(ix^D,1))
           {end do\}
         end if
       else

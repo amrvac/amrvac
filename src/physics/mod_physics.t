@@ -151,7 +151,7 @@ module mod_physics
        integer, intent(in)             :: ixI^L, ixO^L, idim
        double precision, intent(in)    :: wprim(ixI^S, nw)
        double precision, intent(in)    :: x(ixI^S,1:ndim)
-       double precision, intent(out)   :: Hspeed(ixI^S)
+       double precision, intent(out)   :: Hspeed(ixI^S,1:number_species)
      end subroutine sub_get_H_speed
 
      subroutine sub_get_cbounds(wLC, wRC, wLp, wRp, x, ixI^L, ixO^L, idim, Hspeed, cmax, cmin)
@@ -163,7 +163,7 @@ module mod_physics
        double precision, intent(in)    :: x(ixI^S, 1:^ND)
        double precision, intent(inout) :: cmax(ixI^S,1:number_species)
        double precision, intent(inout), optional :: cmin(ixI^S,1:number_species)
-       double precision, intent(in)    :: Hspeed(ixI^S)
+       double precision, intent(in)    :: Hspeed(ixI^S,1:number_species)
      end subroutine sub_get_cbounds
 
      subroutine sub_get_flux(wC, w, x, ixI^L, ixO^L, idim, f)
@@ -448,7 +448,7 @@ contains
     integer, intent(in)             :: ixI^L, ixO^L, idim
     double precision, intent(in)    :: wprim(ixI^S, nw)
     double precision, intent(in)    :: x(ixI^S,1:ndim)
-    double precision, intent(out)   :: Hspeed(ixI^S)
+    double precision, intent(out)   :: Hspeed(ixI^S,1:number_species)
   end subroutine dummy_get_H_speed
 
   subroutine dummy_get_a2max(w, x, ixI^L, ixO^L, a2max)
