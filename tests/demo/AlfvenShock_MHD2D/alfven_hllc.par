@@ -30,8 +30,9 @@
         limiter= 20*'koren'
         fix_small_values=T
         check_small_values=F
-        small_values_method='replace'
-        small_pressure=1.0d-14
+        small_values_method='average'
+        small_values_daverage=4
+        small_pressure=1.0d-3
  /
 
  &boundlist
@@ -67,7 +68,7 @@
  /
 
  &mhd_list
-      typedivbfix='multigrid'
+        typedivbfix='glm'
  /
 
  &usr_list

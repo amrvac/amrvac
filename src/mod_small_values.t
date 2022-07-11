@@ -78,8 +78,8 @@ contains
           ! verify in cube with border width small_values_daverage the presence of
           ! cells where all went ok
           do i = 1, max(small_values_daverage, 1)
-            {kxOmin^D= max(ix^D-i, ixOmin^D);
-            kxOmax^D= min(ix^D+i, ixOmax^D);\}
+            {kxOmin^D= max(ix^D-i, ixImin^D);
+            kxOmax^D= min(ix^D+i, ixImax^D);\}
             ! in case cells are fine within smaller cube than 
             ! the userset small_values_daverage: use that smaller cube
             if(any(w_flag(kxO^S,iw) .eqv. .false.)) exit
@@ -100,8 +100,11 @@ contains
             write(*,*) "at location:", x(ix^D, 1:ndim)
             write(*,*) "at index:", ix^D
             write(*,*) "w numer:", iw
-            write(*,*) "Saving status at the previous time step"
-            crash=.true.
+            !write(*,*) "Saving status at the previous time step"
+            !crash=.true.
+            write(*,*) "replace with small values"
+            if(iw==iw_e) w(ix^D, iw)=small_pressure
+            if(iw==iw_rho) w(ix^D, iw)=small_density
           end if
         end if
      {enddo^D&\}

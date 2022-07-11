@@ -307,8 +307,8 @@ contains
     endwhere
   
     if(stagger_grid)then
-       call b_from_vector_potential(ps(saveigrid)%ixGs^L,ixG^L,ix^L,ps(saveigrid)%ws,x)
-       call mhd_face_to_center(ix^L,ps(saveigrid))
+       call b_from_vector_potential(block%ixGs^L,ixG^L,ix^L,block%ws,x)
+       call mhd_face_to_center(ix^L,block)
     else
        where(x(ix^S,1)<xshock)
            w(ix^S,mag(1))=Bxa
