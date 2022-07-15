@@ -262,7 +262,6 @@ contains
 
     end do ! Next idims
 
-
     if (.not.slab.and.idimsmin==1) &
          call phys_add_source_geom(qdt,ixI^L,ixO^L,wCT,wnew,x)
 
@@ -271,7 +270,7 @@ contains
     ! check and optionally correct unphysical values
     if(fix_small_values) then
        call phys_handle_small_values(.false.,wnew,x,ixI^L,ixO^L,'multi-D finite_volume')
-    endif
+    end if
  
     call addsource2(qdt*dble(idimsmax-idimsmin+1)/dble(ndim), &
          ixI^L,ixO^L,1,nw,qtC,wCT,qt,wnew,x,.false.,active,wprim)
@@ -279,12 +278,8 @@ contains
     if(phys_solve_eaux.and.levmin==levmax) then
       ! synchronize internal energy for uniform grid
       call phys_energy_synchro(ixI^L,ixO^L,wnew,x)
-    endif
+    end if
 
-    !! check and optionally correct unphysical values
-    !if(fix_small_values) then
-    !   call phys_handle_small_values(.false.,wnew,x,ixI^L,ixO^L,'exit finite_volume')
-    !endif
   end associate
   contains
 

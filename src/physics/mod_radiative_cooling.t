@@ -2018,26 +2018,26 @@ module mod_radiative_cooling
     !  Cooling routine using exact integration method from Townsend 2009
     !
       use mod_global_parameters
-      
+
       integer, intent(in)             :: ixI^L, ixO^L
       double precision, intent(in)    :: qdt, x(ixI^S,1:ndim), wCT(ixI^S,1:nw)
       double precision, intent(inout) :: w(ixI^S,1:nw)
       type(rc_fluid), intent(in) :: fl
-      
+
       double precision :: Y1, Y2
       double precision :: L1,Tlocal1, ptherm(ixI^S), Tlocal2, pnew(ixI^S)
       double precision :: rho(ixI^S), rhonew(ixI^S)
       double precision :: plocal, rholocal, invgam, ttofflocal
       double precision :: emin, Lmax, fact
       double precision :: de, emax
-      
+
       integer :: ix^D
       integer :: icool
 
-      call fl%get_pthermal(wCT,x,ixI^L,ixO^L,ptherm)  
-      call fl%get_pthermal(w,x,ixI^L,ixO^L,pnew )  
-      call fl%get_rho(wCT,x,ixI^L,ixO^L,rho)  
-      call fl%get_rho(w,x,ixI^L,ixO^L,rhonew )  
+      call fl%get_pthermal(wCT,x,ixI^L,ixO^L,ptherm)
+      call fl%get_pthermal(w,x,ixI^L,ixO^L,pnew)
+      call fl%get_rho(wCT,x,ixI^L,ixO^L,rho)
+      call fl%get_rho(w,x,ixI^L,ixO^L,rhonew)
 
       ttofflocal=zero
       fact = fl%lref*qdt/fl%tref
@@ -2049,12 +2049,12 @@ module mod_radiative_cooling
          if(phys_trac) then
            ttofflocal=block%wextra(ix^D,fl%Tcoff_)
          end if
-         emin     = rhonew(ix^D)*fl%tlow*fl%Rfactor*invgam
-         Lmax     = max(zero,(pnew(ix^D)*invgam-emin)/qdt)
-         emax     = max(zero, pnew(ix^D)*invgam-emin)
+         emin = rhonew(ix^D)*fl%tlow*fl%Rfactor*invgam
+         Lmax = max(zero,(pnew(ix^D)*invgam-emin)/qdt)
+         emax = max(zero, pnew(ix^D)*invgam-emin)
 
          !  Tlocal = P/rho
-         Tlocal1   = max(plocal/(rholocal*fl%Rfactor),smalldouble)
+         Tlocal1 = max(plocal/(rholocal*fl%Rfactor),smalldouble)
          !
          !  Determine explicit cooling
          !
@@ -2066,30 +2066,27 @@ module mod_radiative_cooling
             L1 = zero
          else if( Tlocal1>=fl%tcoolmax )then
             call calc_l_extended(Tlocal1, L1,fl)
-            L1         = L1*(rholocal**2)
+            L1 = L1*(rholocal**2)
             if(phys_trac .and. Tlocal1 .lt. ttofflocal) then
               L1=L1*sqrt((Tlocal1/ttofflocal)**5)
             end if
-            L1         = min(L1,Lmax)
+            L1 = min(L1,Lmax)
             w(ix^D,fl%e_) = w(ix^D,fl%e_)-L1*qdt
             if(phys_solve_eaux) w(ix^D,fl%eaux_)=w(ix^D,fl%eaux_)-L1*qdt
-         else  
+         else
             call findL(Tlocal1,L1,fl)
             call findY(Tlocal1,Y1,fl)
-            Y2         = Y1 + fact * rholocal / invgam
+            Y2 = Y1 + fact * rholocal * (rc_gamma-1.d0)
             call findT(Tlocal2,Y2,fl)
             if(Tlocal2<=fl%tcoolmin) then
               de = emax
             else
               de = (Tlocal1-Tlocal2)*invgam*rholocal
-            endif
+            end if
             if(phys_trac .and. Tlocal1 .lt. ttofflocal) then
               de=de*sqrt((Tlocal1/ttofflocal)**5)
             end if
-            de          = min(de,emax)   
-!            print*, "it: ", it , " coords ", ix^D," EXACT ", de, &
-!              " VARS ", rholocal, Tlocal1, Tlocal2,&
-!              " VARS2 ",Y1,Y2, L1, plocal, pnew(ix^D)
+            de = min(de,emax)
             w(ix^D,fl%e_)  = w(ix^D,fl%e_)-de
             if(phys_solve_eaux) w(ix^D,fl%eaux_)=w(ix^D,fl%eaux_)-de              
          endif

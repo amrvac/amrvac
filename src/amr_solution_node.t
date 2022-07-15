@@ -655,6 +655,9 @@ subroutine alloc_state_coarse(igrid, s, ixG^L, ixGext^L)
     s%ws=0.d0
     s%ixGs^L=ixGs^L;
   end if
+  if(B0field) then
+    allocate(s%B0(ixG^S,1:ndir,0:ndim))
+  end if
   ! allocate coordinates
   allocate(s%x(ixG^S,1:ndim))
   allocate(s%dx(ixGext^S,1:ndim), &

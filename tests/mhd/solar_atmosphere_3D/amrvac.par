@@ -80,6 +80,7 @@
         mhd_radiative_cooling=.true.
         mhd_solve_eaux=.true.
         mhd_trac=.true.
+        Busr=30.d0
  /
         typedivbfix='glm'
         typedivbfix='linde'

@@ -1383,6 +1383,7 @@ contains
           ! must be done in a specific order.
           ! First the first neighbours, which have 2 indices=0 in 3D
           ! or one index=0 in 2D
+          block=>psb(igrid)
           do idims=1,ndim
             i^D=0;
             select case(idims)
@@ -1520,25 +1521,28 @@ contains
         end if
 
         if(prolongprimitive) then
-           ! following line again assumes equidistant grid, but 
-           ! just computes indices, so also ok for stretched case
-           ! reason for +1-1 and +1+1: the coarse representation has 
-           ! also nghostcells at each side. During
-           ! prolongation, we need cells to left and right, hence -1/+1
-           ixComin^D=int((xFimin^D+(dble(ixFimin^D)-half)*dxFi^D-xComin^D)*invdxCo^D)+1-1;
-           ixComax^D=int((xFimin^D+(dble(ixFimax^D)-half)*dxFi^D-xComin^D)*invdxCo^D)+1+1;
-           call phys_to_primitive(ixCoG^L,ixCo^L,&
-             psc(igrid)%w,psc(igrid)%x)
-        endif
-
-        if(ghost_copy) then
-           call interpolation_copy(igrid,ixFi^L,dxFi^D,xFimin^D,dxCo^D,invdxCo^D,xComin^D)
-        else
-           call interpolation_linear(igrid,ixFi^L,dxFi^D,xFimin^D,dxCo^D,invdxCo^D,xComin^D)
+          ! following line again assumes equidistant grid, but 
+          ! just computes indices, so also ok for stretched case
+          ! reason for +1-1 and +1+1: the coarse representation has 
+          ! also nghostcells at each side. During
+          ! prolongation, we need cells to left and right, hence -1/+1
+          block=>psc(igrid)
+          ixComin^D=int((xFimin^D+(dble(ixFimin^D)-half)*dxFi^D-xComin^D)*invdxCo^D)+1-1;
+          ixComax^D=int((xFimin^D+(dble(ixFimax^D)-half)*dxFi^D-xComin^D)*invdxCo^D)+1+1;
+          call phys_to_primitive(ixCoG^L,ixCo^L,&
+            psc(igrid)%w,psc(igrid)%x)
         end if
 
-        if(prolongprimitive) call phys_to_conserved(ixCoG^L,ixCo^L,&
-             psc(igrid)%w,psc(igrid)%x)
+        if(ghost_copy) then
+          call interpolation_copy(igrid,ixFi^L,dxFi^D,xFimin^D,dxCo^D,invdxCo^D,xComin^D)
+        else
+          call interpolation_linear(igrid,ixFi^L,dxFi^D,xFimin^D,dxCo^D,invdxCo^D,xComin^D)
+        end if
+
+        if(prolongprimitive) then
+          block=>psc(igrid)
+          call phys_to_conserved(ixCoG^L,ixCo^L,psc(igrid)%w,psc(igrid)%x)
+        end if
 
       end subroutine bc_prolong
 
@@ -1610,12 +1614,12 @@ contains
            ! cell-centered coordinates of fine grid point
            ! here we temporarily use an equidistant grid
            xFi^DB=xFimin^DB+(dble(ixFi^DB)-half)*dxFi^DB
-        
+
            ! indices of coarse cell which contains the fine cell
            ! since we computed lower left corner earlier 
            ! in equidistant fashion: also ok for stretched case
            ixCo^DB=int((xFi^DB-xComin^DB)*invdxCo^DB)+1
-        
+
            ! cell-centered coordinates of coarse grid point
            ! here we temporarily use an equidistant grid
            xCo^DB=xComin^DB+(dble(ixCo^DB)-half)*dxCo^DB \}
@@ -1679,16 +1683,16 @@ contains
              !      *two*(one-block%dvolume(ixFi^DD) &
              !      /sum(block%dvolume(ix^D:ix^D+1^D%ixFi^DD))) \}
            end if
-        
+
            do idims=1,ndim
               hxCo^D=ixCo^D-kr(^D,idims)\
               jxCo^D=ixCo^D+kr(^D,idims)\
-        
+
               do iw=nwmin,nwmax
                  slopeL=psc(igrid)%w(ixCo^D,iw)-psc(igrid)%w(hxCo^D,iw)
                  slopeR=psc(igrid)%w(jxCo^D,iw)-psc(igrid)%w(ixCo^D,iw)
                  slopeC=half*(slopeR+slopeL)
-        
+
                  ! get limited slope
                  signR=sign(one,slopeR)
                  signC=sign(one,slopeC)
@@ -1714,15 +1718,18 @@ contains
                  !end select
               end do
            end do
-        
+
            ! Interpolate from coarse cell using limited slopes
            psb(igrid)%w(ixFi^D,nwmin:nwmax)=psc(igrid)%w(ixCo^D,nwmin:nwmax)+&
              {(slope(nwmin:nwmax,^D)*eta^D)+}
-        
+
         {end do\}
-        
-        if(prolongprimitive) call phys_to_conserved(ixG^LL,ixFi^L,psb(igrid)%w,psb(igrid)%x)
-      
+
+        if(prolongprimitive) then
+          block=>psb(igrid)
+          call phys_to_conserved(ixG^LL,ixFi^L,psb(igrid)%w,psb(igrid)%x)
+        end if
+
       end subroutine interpolation_linear
 
       subroutine interpolation_copy(igrid, ixFi^L,dxFi^D,xFimin^D, &

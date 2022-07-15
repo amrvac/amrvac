@@ -68,7 +68,8 @@ contains
     usr_grav=-2.74d4*unit_length/unit_velocity**2  ! solar gravity
     SRadius=6.955d10/unit_length                   ! Solar radius
 
-    q_para=7.d19/(unit_magneticfield*unit_length**2) ! strength and sign of magnetic charges
+    !q_para=7.d19/(unit_magneticfield*unit_length**2) ! strength and sign of magnetic charges
+    q_para=Busr*2.10025d18/(unit_magneticfield*unit_length**2) ! strength and sign of magnetic charges
     d_para=1.d9/unit_length ! depth of magnetic charges
     L_para=1.5d9/unit_length ! half distance between magnetic charges
 
@@ -770,7 +771,11 @@ contains
     integer                            :: ix^D,idirmin,idims,idir,jdir,kdir
 
     ! Btotal & B^2
-    Btotal(ixI^S,1:ndir)=w(ixI^S,mag(1:ndir))
+    if(B0field) then
+      Btotal(ixI^S,1:ndir)=w(ixI^S,mag(1:ndir))+block%B0(ixI^S,1:ndir,b0i)
+    else
+      Btotal(ixI^S,1:ndir)=w(ixI^S,mag(1:ndir))
+    end if
     B2(ixO^S)=sum((Btotal(ixO^S,:))**2,dim=ndim+1)
     ! output Alfven wave speed B/sqrt(rho)
     w(ixO^S,nw+1)=dsqrt(B2(ixO^S)/w(ixO^S,rho_))
@@ -779,7 +784,11 @@ contains
     w(ixO^S,nw+2)=divb(ixO^S)
     ! output the plasma beta p*2/B**2
     call mhd_get_pthermal(w,x,ixI^L,ixO^L,tmp)
-    w(ixO^S,nw+3)=2.d0*tmp(ixO^S)/B2(ixO^S)
+    where(B2(ixO^S)/=0.d0)
+      w(ixO^S,nw+3)=2.d0*tmp(ixO^S)/B2(ixO^S)
+    else where
+      w(ixO^S,nw+3)=0.d0
+    end where
     ! store current
     call curlvector(Btotal,ixI^L,ixO^L,curlvec,idirmin,1,ndir)
     do idir=1,ndir
