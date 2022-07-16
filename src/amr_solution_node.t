@@ -640,7 +640,8 @@ end subroutine alloc_state
 
 !> allocate memory to one-level coarser physical state of igrid node
 subroutine alloc_state_coarse(igrid, s, ixG^L, ixGext^L)
-  use mod_global_parameters
+  use mod_global_parameters 
+  use mod_mhd_phys, only: mhd_semirelativistic
   type(state) :: s
   integer, intent(in) :: igrid, ixG^L, ixGext^L
   integer             :: ixGs^L
@@ -655,7 +656,7 @@ subroutine alloc_state_coarse(igrid, s, ixG^L, ixGext^L)
     s%ws=0.d0
     s%ixGs^L=ixGs^L;
   end if
-  if(B0field) then
+  if(B0field.and.mhd_semirelativistic) then
     allocate(s%B0(ixG^S,1:ndir,0:ndim))
   end if
   ! allocate coordinates

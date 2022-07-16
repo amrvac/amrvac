@@ -1,5 +1,6 @@
 subroutine set_B0_grid(igrid)
   use mod_global_parameters
+  use mod_mhd_phys, only: mhd_semirelativistic
 
   integer, intent(in) :: igrid
 
@@ -9,7 +10,7 @@ subroutine set_B0_grid(igrid)
   ixCoGmax^D=(ixGhi^D-2*nghostcells)/2+2*nghostcells;
 
   call set_B0_cell(ps(igrid)%B0(ixG^T,:,0),ps(igrid)%x,ixG^LL,ixG^LL)
-  call set_B0_cell(psc(igrid)%B0(ixCoG^S,:,0),psc(igrid)%x,ixCoG^L,ixCoG^L)
+  if(mhd_semirelativistic) call set_B0_cell(psc(igrid)%B0(ixCoG^S,:,0),psc(igrid)%x,ixCoG^L,ixCoG^L)
   call set_J0_cell(igrid,ps(igrid)%J0,ixG^LL,ixM^LL^LADD1)
   call set_B0_face(igrid,ps(igrid)%x,ixG^LL,ixM^LL)
 
