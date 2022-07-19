@@ -1484,11 +1484,11 @@ contains
            call small_values_average(ixI^L, ixO^L, w, x, flag, rho_)
            if(hd_energy) then
              ! do averaging of pressure
-             w(ixO^S,p_)=(hd_gamma-1.d0)*(w(ixO^S,e_) &
-              -0.5d0*sum(w(ixO^S, mom(:))**2, dim=ndim+1)/w(ixO^S,rho_))
+             w(ixI^S,p_)=(hd_gamma-1.d0)*(w(ixI^S,e_) &
+              -0.5d0*sum(w(ixI^S, mom(:))**2, dim=ndim+1)/w(ixI^S,rho_))
              call small_values_average(ixI^L, ixO^L, w, x, flag, p_)
-             w(ixO^S,e_)=w(ixO^S,p_)/(hd_gamma-1.d0) &
-               +0.5d0*sum(w(ixO^S, mom(:))**2, dim=ndim+1)/w(ixO^S,rho_)
+             w(ixI^S,e_)=w(ixI^S,p_)/(hd_gamma-1.d0) &
+               +0.5d0*sum(w(ixI^S, mom(:))**2, dim=ndim+1)/w(ixI^S,rho_)
            end if
            if(hd_dust)then
               do n=1,dust_n_species
