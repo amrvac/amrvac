@@ -23,8 +23,8 @@ subroutine refine_grids(child_igrid,child_ipe,igrid,ipe,active)
      {end do\}
   end if
 
-  ! remove solution space of igrid
-  !call dealloc_node(igrid)
+  ! remove solution space of igrid to save memory when converting data
+  if(convert) call dealloc_node(igrid)
 end subroutine refine_grids
 
 !> prolong one block

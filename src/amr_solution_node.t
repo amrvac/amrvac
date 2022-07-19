@@ -708,12 +708,16 @@ end subroutine dealloc_state
 
 subroutine dealloc_state_coarse(igrid, s)
   use mod_global_parameters
+  use mod_mhd_phys, only: mhd_semirelativistic
   integer, intent(in) :: igrid
   type(state) :: s
 
   deallocate(s%w)
   if(stagger_grid) then
     deallocate(s%ws)
+  end if
+  if(B0field.and.mhd_semirelativistic) then
+    deallocate(s%B0)
   end if
   ! deallocate coordinates
   deallocate(s%x)
@@ -734,19 +738,21 @@ subroutine dealloc_node(igrid)
 
   call dealloc_state(igrid, ps(igrid),.true.)
   call dealloc_state_coarse(igrid, psc(igrid))
-  call dealloc_state(igrid, ps1(igrid),.false.)
-  call dealloc_state(igrid, pso(igrid),.false.)
-  ! deallocate temporary solution space
-  select case (t_integrator)
-  case(ssprk3,ssprk4,jameson,IMEX_Midpoint,IMEX_Trapezoidal,IMEX_222)
-    call dealloc_state(igrid, ps2(igrid),.false.)
-  case(RK3_BT,rk4,ssprk5,IMEX_CB3a)
-    call dealloc_state(igrid, ps2(igrid),.false.)
-    call dealloc_state(igrid, ps3(igrid),.false.)
-  case(IMEX_ARS3,IMEX_232)
-    call dealloc_state(igrid, ps2(igrid),.false.)
-    call dealloc_state(igrid, ps3(igrid),.false.)
-    call dealloc_state(igrid, ps4(igrid),.false.)
-  end select
+  if(.not.convert) then
+    call dealloc_state(igrid, ps1(igrid),.false.)
+    call dealloc_state(igrid, pso(igrid),.false.)
+    ! deallocate temporary solution space
+    select case (t_integrator)
+    case(ssprk3,ssprk4,jameson,IMEX_Midpoint,IMEX_Trapezoidal,IMEX_222)
+      call dealloc_state(igrid, ps2(igrid),.false.)
+    case(RK3_BT,rk4,ssprk5,IMEX_CB3a)
+      call dealloc_state(igrid, ps2(igrid),.false.)
+      call dealloc_state(igrid, ps3(igrid),.false.)
+    case(IMEX_ARS3,IMEX_232)
+      call dealloc_state(igrid, ps2(igrid),.false.)
+      call dealloc_state(igrid, ps3(igrid),.false.)
+      call dealloc_state(igrid, ps4(igrid),.false.)
+    end select
+  end if
 
 end subroutine dealloc_node
