@@ -6879,8 +6879,8 @@ contains
        call calc_mult_factor(ixI^L, ixO^L, dtfactor * qdt, tmp2, tmp3) 
 
       if(.not. twofl_equi_ionrec) then
-       tmp(ixO^S) = dtfactor * dt *(-gamma_ion(ixO^S) * rhon(ixO^S) + &
-                                        gamma_rec(ixO^S) * rhoc(ixO^S))/tmp3(ixO^S)
+       tmp(ixO^S) = (-gamma_ion(ixO^S) * rhon(ixO^S) + &
+                                        gamma_rec(ixO^S) * rhoc(ixO^S))
       else
        ! equilibrium density does not evolve through ion/rec 
        tmp(ixO^S) = (-gamma_ion(ixO^S) * w(ixO^S,rho_n_) + &

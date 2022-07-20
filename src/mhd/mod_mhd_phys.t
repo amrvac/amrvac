@@ -2058,7 +2058,37 @@ contains
           end if
         end if
       case ("average")
-        call small_values_average(ixI^L, ixO^L, w, x, flag)
+        if(primitive)then
+          call small_values_average(ixI^L, ixO^L, w, x, flag)
+        else
+          ! do averaging of density
+          call small_values_average(ixI^L, ixO^L, w, x, flag, rho_)
+          if(mhd_energy) then
+             ! do averaging of pressure
+            if(mhd_internal_e) then
+              w(ixI^S,p_)=w(ixI^S,e_)*gamma_1
+            else
+              w(ixI^S,p_)=gamma_1*(w(ixI^S,e_)&
+                          -mhd_kin_en(w,ixI^L,ixI^L)&
+                          -mhd_mag_en(w,ixI^L,ixI^L))
+            end if
+            call small_values_average(ixI^L, ixO^L, w, x, flag, p_)
+             ! convert back
+            if(mhd_internal_e) then
+              w(ixI^S,p_)=w(ixI^S,e_)*gamma_1
+            else
+              w(ixI^S,p_)=inv_gamma_1*w(ixI^S,p_)&
+                          +mhd_kin_en(w,ixI^L,ixI^L)&
+                          +mhd_mag_en(w,ixI^L,ixI^L)
+            end if
+            ! eaux
+            if(mhd_solve_eaux) then
+              !w(ixI^S,paux_)=w(ixI^S,eaux_)*gamma_1
+              call small_values_average(ixI^L, ixO^L, w, x, flag, paux_)
+              !w(ixI^S,eaux_)=w(ixI^S,paux_)*inv_gamma_1
+            end if
+          end if
+        endif
       case default
         if(.not.primitive) then
           !convert w to primitive
