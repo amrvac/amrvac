@@ -3181,7 +3181,7 @@ contains
     double precision, intent(in) :: x(ixI^S,1:ndim)
     double precision,intent(out) :: f(ixI^S,nwflux)
 
-    double precision             :: pgas(ixO^S), ptotal(ixO^S)
+    double precision             :: ptotal(ixO^S)
     double precision             :: tmp(ixI^S)
     double precision             :: vHall(ixI^S,1:ndir)
     integer                      :: idirmin, iw, idir, jdir, kdir
@@ -3190,18 +3190,16 @@ contains
 
     ! Get flux of density
     f(ixO^S,rho_)=w(ixO^S,mom(idim))*w(ixO^S,rho_)
-    ! pgas is time dependent only
+
     if(mhd_energy) then
-      pgas=w(ixO^S,p_)
+      ptotal=w(ixO^S,p_)+0.5d0*sum(w(ixO^S,mag(:))**2,dim=ndim+1)
     else
-      pgas(ixO^S)=mhd_adiab*w(ixO^S,rho_)**mhd_gamma
+      ptotal=mhd_adiab*w(ixO^S,rho_)**mhd_gamma+0.5d0*sum(w(ixO^S,mag(:))**2,dim=ndim+1)
     end if
 
     if (mhd_Hall) then
       call mhd_getv_Hall(w,x,ixI^L,ixO^L,vHall)
     end if
-
-    ptotal = pgas + 0.5d0*sum(w(ixO^S, mag(:))**2, dim=ndim+1)
 
     ! Get flux of tracer
     do iw=1,mhd_n_tracer
@@ -3212,11 +3210,12 @@ contains
     ! f_i[m_k]=v_i*m_k-b_k*b_i [+ptotal if i==k]
     do idir=1,ndir
       if(idim==idir) then
-        f(ixO^S,mom(idir))=ptotal(ixO^S)-w(ixO^S,mag(idim))*w(ixO^S,mag(idir))
+        f(ixO^S,mom(idir))=wC(ixO^S,mom(idir))*w(ixO^S,mom(idim))+ptotal(ixO^S)-&
+                            w(ixO^S,mag(idir))*w(ixO^S,mag(idim))
       else
-        f(ixO^S,mom(idir))=-w(ixO^S,mag(idir))*w(ixO^S,mag(idim))
+        f(ixO^S,mom(idir))=wC(ixO^S,mom(idir))*w(ixO^S,mom(idim))-&
+                            w(ixO^S,mag(idir))*w(ixO^S,mag(idim))
       end if
-      f(ixO^S,mom(idir))=f(ixO^S,mom(idir))+w(ixO^S,mom(idim))*wC(ixO^S,mom(idir))
     end do
 
     ! Get flux of energy
@@ -3344,15 +3343,15 @@ contains
     ! f_i[m_k]=v_i*m_k-b_k*b_i [+ptotal if i==k]
     do idir=1,ndir
       if(idim==idir) then
-        f(ixO^S,mom(idir))=ptotal(ixO^S)-w(ixO^S,mag(idim))*w(ixO^S,mag(idir))
+        f(ixO^S,mom(idir))=wC(ixO^S,mom(idir))*w(ixO^S,mom(idim))+ptotal(ixO^S)-&
+                            w(ixO^S,mag(idir))*w(ixO^S,mag(idim))
       else
-        f(ixO^S,mom(idir))=-w(ixO^S,mag(idir))*w(ixO^S,mag(idim))
+        f(ixO^S,mom(idir))=wC(ixO^S,mom(idir))*w(ixO^S,mom(idim))-&
+                            w(ixO^S,mag(idir))*w(ixO^S,mag(idim))
       end if
-      f(ixO^S,mom(idir))=f(ixO^S,mom(idir))+w(ixO^S,mom(idim))*wC(ixO^S,mom(idir))
     end do
 
     ! Get flux of energy
-    ! f_i[e]=v_i*e+v_i*ptotal-b_i*(b_k*v_k)
     if(mhd_energy) then
       f(ixO^S,e_)=w(ixO^S,mom(idim))*(wC(ixO^S,e_)+pgas(ixO^S))
     end if
@@ -3429,7 +3428,7 @@ contains
     double precision, intent(in) :: x(ixI^S,1:ndim)
     double precision,intent(out) :: f(ixI^S,nwflux)
 
-    double precision             :: pgas(ixO^S), ptotal(ixO^S)
+    double precision             :: pgas(ixO^S), ptotal(ixO^S), B(ixO^S,1:ndir)
     double precision             :: tmp(ixI^S)
     double precision             :: vHall(ixI^S,1:ndir)
     integer                      :: idirmin, iw, idir, jdir, kdir
@@ -3455,7 +3454,12 @@ contains
       call mhd_getv_Hall(w,x,ixI^L,ixO^L,vHall)
     end if
 
-    if(B0field) tmp(ixO^S)=sum(block%B0(ixO^S,:,idim)*w(ixO^S,mag(:)),dim=ndim+1)
+    if(B0field) then
+      B(ixO^S,1:ndir)=w(ixO^S,mag(1:ndir))+block%B0(ixO^S,1:ndir,idim)
+      pgas=pgas+sum(w(ixO^S,mag(:))*block%B0(ixO^S,:,idim),dim=ndim+1)
+    else
+      B(ixO^S,1:ndir)=w(ixO^S,mag(1:ndir))
+    end if
 
     ptotal = pgas + 0.5d0*sum(w(ixO^S, mag(:))**2, dim=ndim+1)
 
@@ -3466,20 +3470,29 @@ contains
 
     ! Get flux of momentum
     ! f_i[m_k]=v_i*m_k-b_k*b_i [+ptotal if i==k]
-    do idir=1,ndir
-      if(idim==idir) then
-        f(ixO^S,mom(idir))=ptotal(ixO^S)-w(ixO^S,mag(idim))*w(ixO^S,mag(idir))
-        if(B0field) f(ixO^S,mom(idir))=f(ixO^S,mom(idir))+tmp(ixO^S)
-      else
-        f(ixO^S,mom(idir))= -w(ixO^S,mag(idir))*w(ixO^S,mag(idim))
-      end if
-      if (B0field) then
-        f(ixO^S,mom(idir))=f(ixO^S,mom(idir))&
-             -w(ixO^S,mag(idir))*block%B0(ixO^S,idim,idim)&
-             -w(ixO^S,mag(idim))*block%B0(ixO^S,idir,idim)
-      end if
-      f(ixO^S,mom(idir))=f(ixO^S,mom(idir))+w(ixO^S,mom(idim))*wC(ixO^S,mom(idir))
-    end do
+    if(B0field) then
+      do idir=1,ndir
+        if(idim==idir) then
+          f(ixO^S,mom(idir))=wC(ixO^S,mom(idir))*w(ixO^S,mom(idim))+ptotal(ixO^S)-&
+                              w(ixO^S,mag(idir))*B(ixO^S,idim)-&
+                       block%B0(ixO^S,idir,idim)*w(ixO^S,mag(idim))
+        else
+          f(ixO^S,mom(idir))=wC(ixO^S,mom(idir))*w(ixO^S,mom(idim))-&
+                              w(ixO^S,mag(idir))*B(ixO^S,idim)-&
+                       block%B0(ixO^S,idir,idim)*w(ixO^S,mag(idim))
+        end if
+      end do
+    else
+      do idir=1,ndir
+        if(idim==idir) then
+          f(ixO^S,mom(idir))=wC(ixO^S,mom(idir))*w(ixO^S,mom(idim))+ptotal(ixO^S)-&
+                              w(ixO^S,mag(idir))*B(ixO^S,idim)
+        else
+          f(ixO^S,mom(idir))=wC(ixO^S,mom(idir))*w(ixO^S,mom(idim))-&
+                              w(ixO^S,mag(idir))*B(ixO^S,idim)
+        end if
+      end do
+    end if
 
     ! Get flux of energy
     ! f_i[e]=v_i*e+v_i*ptotal-b_i*(b_k*v_k)
@@ -3491,26 +3504,15 @@ contains
          endif
       else
         f(ixO^S,e_)=w(ixO^S,mom(idim))*(wC(ixO^S,e_)+ptotal(ixO^S))&
-           -w(ixO^S,mag(idim))*sum(w(ixO^S,mag(:))*w(ixO^S,mom(:)),dim=ndim+1)
+           -B(ixO^S,idim)*sum(w(ixO^S,mag(:))*w(ixO^S,mom(:)),dim=ndim+1)
         if(mhd_solve_eaux) f(ixO^S,eaux_)=w(ixO^S,mom(idim))*wC(ixO^S,eaux_)
-
-        if (B0field) then
-           f(ixO^S,e_) = f(ixO^S,e_) &
-              + w(ixO^S,mom(idim)) * tmp(ixO^S) &
-              - sum(w(ixO^S,mom(:))*w(ixO^S,mag(:)),dim=ndim+1) * block%B0(ixO^S,idim,idim)
-        end if
 
         if (mhd_Hall) then
         ! f_i[e]= f_i[e] + vHall_i*(b_k*b_k) - b_i*(vHall_k*b_k)
            if (mhd_etah>zero) then
               f(ixO^S,e_) = f(ixO^S,e_) + vHall(ixO^S,idim) * &
-                 sum(w(ixO^S, mag(:))**2,dim=ndim+1) &
-                 - w(ixO^S,mag(idim)) * sum(vHall(ixO^S,:)*w(ixO^S,mag(:)),dim=ndim+1)
-              if (B0field) then
-                 f(ixO^S,e_) = f(ixO^S,e_) &
-                    + vHall(ixO^S,idim) * tmp(ixO^S) &
-                    - sum(vHall(ixO^S,:)*w(ixO^S,mag(:)),dim=ndim+1) * block%B0(ixO^S,idim,idim)
-              end if
+                 sum(w(ixO^S, mag(:))*B(ixO^S,:),dim=ndim+1) &
+                 - B(ixO^S,idim) * sum(vHall(ixO^S,:)*w(ixO^S,mag(:)),dim=ndim+1)
            end if
         end if
       end if
@@ -3531,26 +3533,14 @@ contains
            f(ixO^S,mag(idir))=zero
         end if
       else
-        f(ixO^S,mag(idir))=w(ixO^S,mom(idim))*w(ixO^S,mag(idir))-w(ixO^S,mag(idim))*w(ixO^S,mom(idir))
-
-        if (B0field) then
-          f(ixO^S,mag(idir))=f(ixO^S,mag(idir))&
-                +w(ixO^S,mom(idim))*block%B0(ixO^S,idir,idim)&
-                -w(ixO^S,mom(idir))*block%B0(ixO^S,idim,idim)
-        end if
+        f(ixO^S,mag(idir))=w(ixO^S,mom(idim))*B(ixO^S,idir)-B(ixO^S,idim)*w(ixO^S,mom(idir))
 
         if (mhd_Hall) then
           ! f_i[b_k] = f_i[b_k] + vHall_i*b_k - vHall_k*b_i
           if (mhd_etah>zero) then
-            if (B0field) then
-              f(ixO^S,mag(idir)) = f(ixO^S,mag(idir)) &
-                   - vHall(ixO^S,idir)*(w(ixO^S,mag(idim))+block%B0(ixO^S,idim,idim)) &
-                   + vHall(ixO^S,idim)*(w(ixO^S,mag(idir))+block%B0(ixO^S,idir,idim))
-            else
-              f(ixO^S,mag(idir)) = f(ixO^S,mag(idir)) &
-                   - vHall(ixO^S,idir)*w(ixO^S,mag(idim)) &
-                   + vHall(ixO^S,idim)*w(ixO^S,mag(idir))
-            end if
+            f(ixO^S,mag(idir)) = f(ixO^S,mag(idir)) &
+                 - vHall(ixO^S,idir)*B(ixO^S,idim) &
+                 + vHall(ixO^S,idim)*B(ixO^S,idir)
           end if
         end if
 
@@ -3662,15 +3652,29 @@ contains
              sum(E(ixO^S,:)**2,dim=ndim+1)*inv_squared_c)
 
     ! Get flux of momentum
-    do idir=1,ndir
-      f(ixO^S,mom(idir))=-w(ixO^S,mag(idir))*B(ixO^S,idim)-E(ixO^S,idir)*E(ixO^S,idim)*inv_squared_c
-      if(B0field) then
-        f(ixO^S,mom(idir))=f(ixO^S,mom(idir))&
-             -block%B0(ixO^S,idir,idim)*w(ixO^S,mag(idim))
-      end if
-      f(ixO^S,mom(idir))=f(ixO^S,mom(idir))+w(ixO^S,mom(idim))*w(ixO^S,mom(idir))*w(ixO^S,rho_)
-      if(idim==idir) f(ixO^S,mom(idir))=f(ixO^S,mom(idir))+pgas
-    end do
+    if(B0field) then
+      do idir=1,ndir
+        if(idim==idir) then
+          f(ixO^S,mom(idir))=w(ixO^S,rho_)*w(ixO^S,mom(idir))*w(ixO^S,mom(idim))+pgas&
+           -w(ixO^S,mag(idir))*B(ixO^S,idim)-E(ixO^S,idir)*E(ixO^S,idim)*inv_squared_c&
+           -block%B0(ixO^S,idir,idim)*w(ixO^S,mag(idim))
+        else
+          f(ixO^S,mom(idir))=w(ixO^S,rho_)*w(ixO^S,mom(idir))*w(ixO^S,mom(idim))&
+           -w(ixO^S,mag(idir))*B(ixO^S,idim)-E(ixO^S,idir)*E(ixO^S,idim)*inv_squared_c&
+           -block%B0(ixO^S,idir,idim)*w(ixO^S,mag(idim))
+        end if
+      end do
+    else
+      do idir=1,ndir
+        if(idim==idir) then
+          f(ixO^S,mom(idir))=w(ixO^S,rho_)*w(ixO^S,mom(idir))*w(ixO^S,mom(idim))+pgas&
+           -w(ixO^S,mag(idir))*B(ixO^S,idim)-E(ixO^S,idir)*E(ixO^S,idim)*inv_squared_c
+        else
+          f(ixO^S,mom(idir))=w(ixO^S,rho_)*w(ixO^S,mom(idir))*w(ixO^S,mom(idim))&
+           -w(ixO^S,mag(idir))*B(ixO^S,idim)-E(ixO^S,idir)*E(ixO^S,idim)*inv_squared_c
+        end if
+      end do
+    end if
 
     ! Get flux of energy
     if(mhd_energy) then
