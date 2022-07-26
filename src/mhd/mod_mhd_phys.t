@@ -1888,24 +1888,69 @@ contains
     double precision, intent(in)    :: x(ixI^S,1:ndim)
     character(len=*), intent(in)    :: subname
 
+    double precision :: pressure(ixI^S), inv_rho(ixI^S), b2(ixI^S), tmp(ixI^S), gamma2(ixI^S)
+    double precision :: b(ixI^S,1:ndir), v(ixI^S,1:ndir), Ba(ixI^S,1:ndir)
     integer :: idir, jdir, kdir, ix^D
     logical :: flag(ixI^S,1:nw)
-    double precision :: b(ixO^S,1:ndir), inv_rho(ixO^S), b2(ixO^S), tmp(ixO^S), gamma2(ixO^S)
-    double precision :: Ba(ixO^S,1:ndir)
 
     if(small_values_method == "ignore") return
 
-    call mhd_check_w_semirelati(primitive, ixI^L, ixO^L, w, flag)
+    !call mhd_check_w_semirelati(primitive, ixI^L, ixO^L, w, flag)
+
+    flag=.false.
+    where(w(ixO^S,rho_) < small_density) flag(ixO^S,rho_) = .true.
+
+    if(mhd_energy) then
+      if(primitive) then
+        where(w(ixO^S,p_) < small_pressure) flag(ixO^S,e_) = .true.
+      else
+        if(B0field) then
+          Ba(ixI^S,1:ndir)=w(ixI^S,mag(1:ndir))+block%B0(ixI^S,1:ndir,b0i)
+        else
+          Ba(ixI^S,1:ndir)=w(ixI^S,mag(1:ndir))
+        end if
+        inv_rho(ixI^S) = 1d0/w(ixI^S,rho_)
+        b2(ixI^S)=sum(Ba(ixI^S,:)**2,dim=ndim+1)
+        tmp(ixI^S)=sqrt(b2(ixI^S))
+        where(tmp(ixI^S)>smalldouble)
+          tmp(ixI^S)=1.d0/tmp(ixI^S)
+        else where
+          tmp(ixI^S)=0.d0
+        end where
+        do idir=1,ndir
+          b(ixI^S,idir)=Ba(ixI^S,idir)*tmp(ixI^S)
+        end do
+        tmp(ixI^S)=sum(b(ixI^S,:)*w(ixI^S,mom(:)),dim=ndim+1)
+        ! Va^2/c^2
+        b2(ixI^S)=b2(ixI^S)*inv_rho(ixI^S)*inv_squared_c
+        ! equation (15)
+        gamma2(ixI^S)=1.d0/(1.d0+b2(ixI^S))
+        ! Convert momentum to velocity
+        do idir = 1, ndir
+           v(ixI^S,idir) = gamma2*(w(ixI^S, mom(idir))+b2*b(ixI^S,idir)*tmp(ixI^S))*inv_rho(ixI^S)
+        end do
+        ! E=Bxv
+        b=0.d0
+        do idir=1,ndir; do jdir=1,ndir; do kdir=1,ndir
+          if(lvc(idir,jdir,kdir)==1)then
+            b(ixI^S,idir)=b(ixI^S,idir)+Ba(ixI^S,jdir)*v(ixI^S,kdir)
+          else if(lvc(idir,jdir,kdir)==-1)then
+            b(ixI^S,idir)=b(ixI^S,idir)-Ba(ixI^S,jdir)*v(ixI^S,kdir)
+          end if
+        end do; end do; end do
+        ! Calculate pressure p = (gamma-1) e-eK-eB-eE
+        pressure(ixI^S)=gamma_1*(w(ixI^S,e_)&
+                   -half*(sum(v(ixI^S,:)**2,dim=ndim+1)*w(ixI^S,rho_)&
+                   +sum(w(ixI^S,mag(:))**2,dim=ndim+1)&
+                   +sum(b(ixI^S,:)**2,dim=ndim+1)*inv_squared_c))
+        where(pressure(ixI^S) < small_pressure) flag(ixO^S,p_) = .true.
+      end if
+    end if
 
     if(any(flag)) then
       select case (small_values_method)
       case ("replace")
         where(flag(ixO^S,rho_)) w(ixO^S,rho_) = small_density
-        do idir = 1, ndir
-          if(small_values_fix_iw(mom(idir))) then
-            where(flag(ixO^S,rho_)) w(ixO^S, mom(idir)) = 0.0d0
-          end if
-        end do
 
         if(mhd_energy) then
           if(primitive) then
@@ -1913,78 +1958,28 @@ contains
           else
             {do ix^DB=ixOmin^DB,ixOmax^DB\}
               if(flag(ix^D,e_)) then
-                if(B0field) then
-                  Ba(ix^D,:)=w(ix^D,mag(:))+block%B0(ix^D,:,b0i)
-                else
-                  Ba(ix^D,:)=w(ix^D,mag(:))
-                end if
-                ! E=Bxv
-                b(ix^D,:)=0.d0
-                do idir=1,ndir; do jdir=1,ndir; do kdir=1,ndir
-                  if(lvc(idir,jdir,kdir)==1)then
-                    b(ix^D,idir)=b(ix^D,idir)+Ba(ix^D,jdir)*w(ix^D,mom(kdir))
-                  else if(lvc(idir,jdir,kdir)==-1)then
-                    b(ix^D,idir)=b(ix^D,idir)-Ba(ix^D,jdir)*w(ix^D,mom(kdir))
-                  end if
-                end do; end do; end do
-                ! equation (9)
-                w(ix^D,e_)=small_e+half*(sum(w(ix^D,mom(:))**2)*w(ix^D,rho_)&
-                           +sum(w(ix^D,mag(:))**2)&
-                           +sum(b(ix^D,:)**2)*inv_squared_c)
+                w(ix^D,e_)=small_pressure*inv_gamma_1+half*(sum(v(ix^D,:)**2)*w(ix^D,rho_)&
+                           +sum(w(ix^D,mag(:))**2)+sum(b(ix^D,:)**2)*inv_squared_c)
               end if
             {end do\}
           end if
         end if
       case ("average")
-        call small_values_average(ixI^L, ixO^L, w, x, flag)
-      case default
-        if(.not.primitive) then
-          !convert w to primitive
-          if(B0field) then
-            Ba(ixO^S,:)=w(ixO^S,mag(:))+block%B0(ixO^S,:,b0i)
+        ! do averaging of density
+        call small_values_average(ixI^L, ixO^L, w, x, flag, rho_)
+        if(mhd_energy) then
+          if(primitive) then
+            call small_values_average(ixI^L, ixO^L, w, x, flag, p_)
           else
-            Ba(ixO^S,:)=w(ixO^S,mag(:))
-          end if
-          inv_rho(ixO^S) = 1d0/w(ixO^S,rho_)
-
-          b2(ixO^S)=sum(Ba(ixO^S,:)**2,dim=ndim+1)
-          tmp(ixO^S)=sqrt(b2(ixO^S))
-          where(tmp(ixO^S)>smalldouble)
-            tmp(ixO^S)=1.d0/tmp(ixO^S)
-          else where
-            tmp(ixO^S)=0.d0
-          end where
-          do idir=1,ndir
-            b(ixO^S,idir)=Ba(ixO^S,idir)*tmp(ixO^S)
-          end do
-          tmp(ixO^S)=sum(b(ixO^S,:)*w(ixO^S,mom(:)),dim=ndim+1)
-
-          ! Va^2/c^2
-          b2(ixO^S)=b2(ixO^S)*inv_rho(ixO^S)*inv_squared_c
-          ! equation (15)
-          gamma2(ixO^S)=1.d0/(1.d0+b2(ixO^S))
-          ! Convert momentum to velocity
-          do idir = 1, ndir
-             w(ixO^S, mom(idir)) = gamma2*(w(ixO^S, mom(idir))+b2*b(ixO^S,idir)*tmp)*inv_rho
-          end do
-
-          if(mhd_energy) then
-            ! E=Bxv
-            b=0.d0
-            do idir=1,ndir; do jdir=1,ndir; do kdir=1,ndir
-              if(lvc(idir,jdir,kdir)==1)then
-                b(ixO^S,idir)=b(ixO^S,idir)+Ba(ixO^S,jdir)*w(ixO^S,mom(kdir))
-              else if(lvc(idir,jdir,kdir)==-1)then
-                b(ixO^S,idir)=b(ixO^S,idir)-Ba(ixO^S,jdir)*w(ixO^S,mom(kdir))
-              end if
-            end do; end do; end do
-            ! Calculate pressure = (gamma-1) * (e-eK-eB-eE)
-            w(ixO^S,p_)=gamma_1*(w(ixO^S,e_)&
-                       -half*(sum(w(ixO^S,mom(:))**2,dim=ndim+1)*w(ixO^S,rho_)&
-                       +sum(w(ixO^S,mag(:))**2,dim=ndim+1)&
-                       +sum(b(ixO^S,:)**2,dim=ndim+1)*inv_squared_c))
+            w(ixI^S,e_)=pressure(ixI^S)
+            call small_values_average(ixI^L, ixO^L, w, x, flag, p_)
+            w(ixI^S,e_)=w(ixI^S,p_)*inv_gamma_1&
+                       +half*(sum(v(ixI^S,:)**2,dim=ndim+1)*w(ixI^S,rho_)&
+                       +sum(w(ixI^S,mag(:))**2,dim=ndim+1)&
+                       +sum(b(ixI^S,:)**2,dim=ndim+1)*inv_squared_c)
           end if
         end if
+      case default
         call small_values_error(w, x, ixI^L, ixO^L, flag, subname)
       end select
     end if
@@ -2059,7 +2054,10 @@ contains
         end if
       case ("average")
         if(primitive)then
-          call small_values_average(ixI^L, ixO^L, w, x, flag)
+          call small_values_average(ixI^L, ixO^L, w, x, flag, rho_)
+          if(mhd_energy) then
+            call small_values_average(ixI^L, ixO^L, w, x, flag, p_)
+          end if
         else
           ! do averaging of density
           call small_values_average(ixI^L, ixO^L, w, x, flag, rho_)
@@ -2151,7 +2149,19 @@ contains
           end where
         end if
       case ("average")
-        call small_values_average(ixI^L, ixO^L, w, x, flag)
+        ! do averaging of density
+        call small_values_average(ixI^L, ixO^L, w, x, flag, rho_)
+        if(mhd_energy) then
+          if(primitive) then
+            call small_values_average(ixI^L, ixO^L, w, x, flag, p_)
+          else
+            ! do averaging of pressure
+            w(ixI^S,p_)=gamma_1*(w(ixI^S,e_)-mhd_kin_en(w,ixI^L,ixI^L))
+            call small_values_average(ixI^L, ixO^L, w, x, flag, p_)
+            ! convert back
+            w(ixI^S,p_)=inv_gamma_1*w(ixI^S,p_)+mhd_kin_en(w,ixI^L,ixI^L)
+          end if
+        end if
       case default
         if(.not.primitive) then
           !convert w to primitive
