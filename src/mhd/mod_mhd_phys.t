@@ -50,8 +50,11 @@ module mod_mhd_phys
   !> Whether magnetofriction is added
   logical, public, protected              :: mhd_magnetofriction = .false.
 
-  !> Whether GLM-MHD is used
+  !> Whether GLM-MHD is used to control div B
   logical, public, protected              :: mhd_glm = .false.
+
+  !> Whether extended GLM-MHD is used with additional sources
+  logical, public, protected              :: mhd_glm_extended = .true.
 
   !> Whether TRAC method is used
   logical, public, protected              :: mhd_trac = .false.
@@ -304,7 +307,7 @@ contains
     integer                      :: n
 
     namelist /mhd_list/ mhd_energy, mhd_n_tracer, mhd_gamma, mhd_adiab,&
-      mhd_eta, mhd_eta_hyper, mhd_etah, mhd_eta_ambi, mhd_glm_alpha, mhd_magnetofriction,&
+      mhd_eta, mhd_eta_hyper, mhd_etah, mhd_eta_ambi, mhd_glm_alpha, mhd_glm_extended, mhd_magnetofriction,&
       mhd_thermal_conduction, mhd_radiative_cooling, mhd_Hall, mhd_ambipolar, mhd_ambipolar_sts, mhd_gravity,&
       mhd_viscosity, mhd_4th_order, typedivbfix, source_split_divb, divbdiff,&
       typedivbdiff, type_ct, compactres, divbwave, He_abundance, &
@@ -4831,7 +4834,7 @@ contains
   subroutine add_source_glm(qdt,ixI^L,ixO^L,wCT,w,x)
     ! Add divB related sources to w within ixO
     ! corresponding to Dedner JCP 2002, 175, 645 _equation 24_
-    ! giving the EGLM-MHD scheme
+    ! giving the EGLM-MHD scheme or GLM-MHD scheme
     use mod_global_parameters
     use mod_geometry
 
@@ -4842,8 +4845,6 @@ contains
     integer          :: idim,idir
     double precision :: gradPsi(ixI^S)
 
-    ! We calculate now div B
-    call get_divb(wCT,ixI^L,ixO^L,divb, mhd_divb_4thorder)
 
     ! dPsi/dt =  - Ch^2/Cp^2 Psi
     if (mhd_glm_alpha < zero) then
@@ -4858,24 +4859,29 @@ contains
       end if
     end if
 
-    ! gradient of Psi
-    do idim=1,ndim
-       select case(typegrad)
-       case("central")
-          call gradient(wCT(ixI^S,psi_),ixI^L,ixO^L,idim,gradPsi)
-       case("limited")
-          call gradientS(wCT(ixI^S,psi_),ixI^L,ixO^L,idim,gradPsi)
-       end select
-       if (total_energy) then
-       ! e  = e  -qdt (b . grad(Psi))
-         w(ixO^S,e_) = w(ixO^S,e_)-qdt*wCT(ixO^S,mag(idim))*gradPsi(ixO^S)
-       end if
-    end do
+    if(mhd_glm_extended) then
+      ! gradient of Psi
+      if(total_energy) then
+        do idim=1,ndim
+          select case(typegrad)
+          case("central")
+            call gradient(wCT(ixI^S,psi_),ixI^L,ixO^L,idim,gradPsi)
+          case("limited")
+            call gradientS(wCT(ixI^S,psi_),ixI^L,ixO^L,idim,gradPsi)
+          end select
+          ! e  = e  -qdt (b . grad(Psi))
+          w(ixO^S,e_) = w(ixO^S,e_)-qdt*wCT(ixO^S,mag(idim))*gradPsi(ixO^S)
+        end do
+      end if
 
-    ! m = m - qdt b div b
-    do idir=1,ndir
-      w(ixO^S,mom(idir))=w(ixO^S,mom(idir))-qdt*mhd_mag_i_all(w,ixI^L,ixO^L,idir)*divb(ixO^S)
-    end do
+      ! We calculate now div B
+      call get_divb(wCT,ixI^L,ixO^L,divb, mhd_divb_4thorder)
+
+      ! m = m - qdt b div b
+      do idir=1,ndir
+        w(ixO^S,mom(idir))=w(ixO^S,mom(idir))-qdt*mhd_mag_i_all(w,ixI^L,ixO^L,idir)*divb(ixO^S)
+      end do
+    end if
 
     if (fix_small_values) call mhd_handle_small_values(.false.,w,x,ixI^L,ixO^L,'add_source_glm')
 

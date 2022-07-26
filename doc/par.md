@@ -949,7 +949,8 @@ sharp discontinuities. It is normally inactive with a default value -1.
      mhd_eta= DOUBLE
      mhd_eta_hyper= DOUBLE
      mhd_etah= DOUBLE 
-     mhd_glm_alpha= DOUBLE
+     mhd_glm_alpha= 0.5d0 between 0 and 1
+     mhd_glm_extended= T | F
      mhd_magnetofriction= F | T
      mhd_thermal_conduction= F | T
      mhd_radiative_cooling= F | T
@@ -972,7 +973,7 @@ sharp discontinuities. It is normally inactive with a default value -1.
      type_ct='uct_contact'|'uct_hll'|'average'
      source_split_divb= F | T
      boundary_divbfix= 2*ndim logicals, all false by default
-     divbdiff= DOUBLE between 0 and 2
+     divbdiff= 0.8d0 between 0 and 2
      typedivbdiff= 'all' | 'ind'
      divbwave= T | F
      B0field= F | T
@@ -1022,6 +1023,10 @@ GLM-MHD mixed hyperbolic and parabolic dampening of the divB error using an
 additional scalar variable `Psi`.  The algorithm of 'glm' is described by
 Dedner et al. as _Equation (24)_ in 
 _Journal of Computational Physics 175, 645-673 (2002) doi:10.1006/jcph.2001.6961_. 
+The default one with parameter **mhd_glm_extended=.true.** is the extended GLM-MHD with
+divb related sources terms in momemtum and energy equation. The GLM-MHD method without the
+sources terms is used when `mhd_glm_extended=.false.`. The parameter `mhd_glm_alpha` ranging
+from 0 to 1.0 is the ratio of the diffusive to advective time scales for divb cleaning.
 You can choose 'lindejanhunen', 'lindepowel', or 'lindeglm' to use combined divb cleaning.
 
 Projection scheme using multigrid Poisson solver by Teunissen and Keppens in 
