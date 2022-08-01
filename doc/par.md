@@ -1174,9 +1174,9 @@ Only Cartesian coordinate system are supported currently.
       filename_euv= CHARACTER
       wavelength= 94 | 131 | 171 | 193 | 211 | 304 | 335 | 1354 | 263 | 264 | 192 | 255
       resolution_euv= 'instrument' | 'data'
-      LOS_theta= INTEGER
-      LOS_phi= INTEGER
-      image_rotate= INTEGER
+      LOS_theta= DOUBLE
+      LOS_phi= DOUBLE
+      image_rotate= DOUBLE
       x_origin(1:3)= DOUBLE
       big_image=LOGICAL
       filename_sxr= CHARACTER
