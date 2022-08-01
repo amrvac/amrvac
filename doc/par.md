@@ -1161,6 +1161,12 @@ the slit `location_slit` is the coordinate value at the third direction (perpend
 For example, the LOS along x direction and the slit along y direction, then `location_slit` should 
 be z of the slit. The domain in wavelength is controlled by `spectrum_window_min` and `spectrum_window_max`.
 
+The mapping between simulation box coordinate and synthesized image coordinate is not only controlled by LOS, 
+but also controlled by the parameter `x_origin`. The simulation box point given by `x_origin` will always located
+at (X=0,Y=0) of the synthesized image. The parameter `big_image` is added for making movie that the LOS is 
+changing. When `big_image=T`, then the synthesized EUV/SXR image will have a fixed big domain. The domain will
+not change when changing the LOS, and the whole simulation box will always be convered inside the domain. The 
+parameter `x_origin` is also added for making such kind of movie.
 
 Only Cartesian coordinate system are supported currently.
 
@@ -1168,13 +1174,15 @@ Only Cartesian coordinate system are supported currently.
       filename_euv= CHARACTER
       wavelength= 94 | 131 | 171 | 193 | 211 | 304 | 335 | 1354 | 263 | 264 | 192 | 255
       resolution_euv= 'instrument' | 'data'
+      LOS_theta= INTEGER
+      LOS_phi= INTEGER
+      image_rotate= INTEGER
+      x_origin(1:3)= DOUBLE
+      big_image=LOGICAL
       filename_sxr= CHARACTER
       emin_sxr= INTEGER
       emax_sxr= INTEGER
       resolution_sxr= 'instrument' | 'data'
-      LOS_theta= INTEGER
-      LOS_phi= INTEGER
-      image_rotate= INTEGER
       filename_spectrum= CHARACTER
       spectrum_wl= 1354 | 263 | 264| 192 | 255
       resolution_sxr= 'instrument' | 'data'

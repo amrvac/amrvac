@@ -281,9 +281,9 @@ contains
 
     namelist /emissionlist/ filename_euv,wavelength,resolution_euv,&
           filename_sxr,emin_sxr,emax_sxr,resolution_sxr,&
-          LOS_theta,LOS_phi,image_rotate,spectrum_wl,location_slit,&
-          direction_slit,filename_spectrum,resolution_spectrum,&
-          spectrum_window_min,spectrum_window_max
+          LOS_theta,LOS_phi,image_rotate,x_origin,big_image,spectrum_wl,&
+          location_slit,direction_slit,filename_spectrum,&
+          resolution_spectrum,spectrum_window_min,spectrum_window_max
 
     ! default maximum number of grid blocks in a processor
     max_blocks=4000
@@ -483,6 +483,17 @@ contains
     rk3_switch      = 3
     ! default IMEX threestep is IMEX_ARK(232)
     imex_switch     = 1
+
+    ! Defaults for synthesing emission
+    LOS_theta = 0.d0
+    LOS_phi = 0.d0
+    image_rotate = 0.d0
+    x_origin = 0.d0
+    big_image = .false.
+    location_slit = 0.d0
+    resolution_euv = 'instrument'
+    resolution_sxr = 'instrument'
+    resolution_spectrum = 'instrument'
 
     allocate(flux_scheme(nlevelshi),typepred1(nlevelshi),flux_method(nlevelshi))
     allocate(limiter(nlevelshi),gradient_limiter(nlevelshi))

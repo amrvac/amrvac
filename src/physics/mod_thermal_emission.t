@@ -900,7 +900,7 @@ module mod_thermal_emission
       double precision, allocatable :: wL(:),xS(:),dwL(:),dxS(:)
       double precision, allocatable :: wI(:,:,:),spectra(:,:),spectra_rc(:,:)
       double precision :: vec_cor(1:3),xI_cor(1:2)
-      double precision :: res
+      double precision :: res,r_loc,r_max
 
       integer :: mass
       character (30) :: ion
@@ -921,18 +921,33 @@ module mod_thermal_emission
           do ix3=1,2
             if (ix3==1) vec_cor(3)=xprobmin3
             if (ix3==2) vec_cor(3)=xprobmax3
-            call dot_product_loc(vec_cor,vec_xI2,res)
-            xI_cor(2)=res
-            if (ix1==1 .and. ix2==1 .and. ix3==1) then
-              xSmin=xI_cor(2)
-              xSmax=xI_cor(2)
+            if (big_image) then
+              r_loc=(vec_cor(1)-x_origin(1))**2
+              r_loc=r_loc+(vec_cor(2)-x_origin(2))**2
+              r_loc=r_loc+(vec_cor(3)-x_origin(3))**2
+              r_loc=sqrt(r_loc)
+              if (ix1==1 .and. ix2==1 .and. ix3==1) then
+                r_max=r_loc
+              else
+                r_max=max(r_max,r_loc)
+              endif
             else
-              xSmin=min(xSmin,xI_cor(2))
-              xSmax=max(xSmax,xI_cor(2))
+              call get_cor_image(vec_cor,xI_cor)
+              if (ix1==1 .and. ix2==1 .and. ix3==1) then
+                xSmin=xI_cor(2)
+                xSmax=xI_cor(2)
+              else
+                xSmin=min(xSmin,xI_cor(2))
+                xSmax=max(xSmax,xI_cor(2))
+              endif
             endif
           enddo
         enddo
       enddo
+      if (big_image) then
+        xSmin=-r_max
+        xSmax=r_max
+      endif
       xScent=(xSmin+xSmax)/2.d0
 
       ! tables for storing spectra data
@@ -963,7 +978,6 @@ module mod_thermal_emission
         dxS(ixS)=dxSg
       enddo
 
-
       ! find slit and do integration
       spectra=zero
       do iigrid=1,igridstail; igrid=igrids(iigrid);
@@ -976,8 +990,7 @@ module mod_thermal_emission
             do ix3=1,2
               if (ix3==1) vec_cor(3)=rnode(rpxmin3_,igrid)
               if (ix3==2) vec_cor(3)=rnode(rpxmax3_,igrid)
-              call dot_product_loc(vec_cor,vec_xI1,res)
-              xI_cor(1)=res
+              call get_cor_image(vec_cor,xI_cor)
               if (ix1==1 .and. ix2==1 .and. ix3==1) then
                 xLmin=xI_cor(1)
                 xLmax=xI_cor(1)
@@ -989,9 +1002,7 @@ module mod_thermal_emission
           enddo
         enddo
 
-
         xslit=location_slit*arcsec
-        !if (location_slit>=xLmin-dxSg .and. location_slit<=xLmax+dxSg) then
         if (xslit>=xLmin-wslit*arcsec .and. xslit<=xLmax+wslit*arcsec) then
           call integrate_spectra_inst_resol(igrid,wL,dwLg,xS,dxSg,spectra,numWL,numXS,fl)
         endif
@@ -1032,8 +1043,8 @@ module mod_thermal_emission
       double precision :: wlc,wlwd,res,dst_slit,xslit,arcsec
       double precision :: vloc(1:3),xloc(1:3),dxloc(1:3),xIloc(1:2),dxIloc(1:2)
       integer :: nSubC^D,iSubC^D,iwL,ixS,ixSmin,ixSmax,iwLmin,iwLmax,nwL
-      double precision :: slit_width,dxSubC^D,xCent1,xCent2,xerf^L,fluxSubC
-      double precision :: xSubC(1:3)
+      double precision :: slit_width,dxSubC^D,xerf^L,fluxSubC
+      double precision :: xSubC(1:3),xCent(1:2)
 
       integer :: mass
       double precision :: logTe,lineCent
@@ -1076,8 +1087,7 @@ module mod_thermal_emission
       {do ix^D=ixOmin^D,ixOmax^D\}
         xloc(1:3)=ps(igrid)%x(ix^D,1:3)
         dxloc(1:3)=ps(igrid)%dx(ix^D,1:3)
-        call dot_product_loc(xloc,vec_xI1,res)
-        xIloc(1)=res
+        call get_cor_image(xloc,xIloc)
         call dot_product_loc(dxloc,vec_xI1,res)
         dxIloc(1)=abs(res)
         if (xIloc(1)>=xslit-half*(slit_width+dxIloc(1)) .and. & 
@@ -1099,11 +1109,10 @@ module mod_thermal_emission
           ! dividing a cell to several parts to get more accurate integrating values
           {do iSubC^D=1,nSubC^D\}
             ^D&xSubC(^D)=xloc(^D)-half*dxloc(^D)+(iSubC^D-half)*dxSubC^D;
-            call dot_product_loc(xSubC,vec_xI1,xCent1)
-            dst_slit=abs(xCent1-xslit)  ! space distance to slit center
+            call get_cor_image(xSubC,xCent)
+            dst_slit=abs(xCent(1)-xslit)  ! space distance to slit center
             if (dst_slit<=half*slit_width) then
-              call dot_product_loc(xSubC,vec_xI2,xCent2)  ! get sub cell center
-              ixS=floor((xCent2-(xS(1)-half*dxSg))/dxSg)+1
+              ixS=floor((xCent(2)-(xS(1)-half*dxSg))/dxSg)+1
               ixSmin=max(1,ixS-3)
               ixSmax=min(ixS+3,numXS)
               iwL=floor((wlc-(wL(1)-half*dwLg))/dwLg)+1
@@ -1115,8 +1124,8 @@ module mod_thermal_emission
                 do ixS=ixSmin,ixSmax
                   xerfmin1=(wL(iwL)-half*dwLg-wlc)/sqrt(2.d0*(sigma_wl**2+wlwd**2))
                   xerfmax1=(wL(iwL)+half*dwLg-wlc)/sqrt(2.d0*(sigma_wl**2+wlwd**2))
-                  xerfmin2=(xS(ixS)-half*dxSg-xCent2)/(sqrt(2.d0)*sigma_xs)
-                  xerfmax2=(xS(ixS)+half*dxSg-xCent2)/(sqrt(2.d0)*sigma_xs)
+                  xerfmin2=(xS(ixS)-half*dxSg-xCent(2))/(sqrt(2.d0)*sigma_xs)
+                  xerfmax2=(xS(ixS)+half*dxSg-xCent(2))/(sqrt(2.d0)*sigma_xs)
                   factor=(erfc(xerfmin1)-erfc(xerfmax1))*(erfc(xerfmin2)-erfc(xerfmax2))/4.d0
                   spectra(iwL,ixS)=spectra(iwL,ixS)+fluxSubC*factor
                 enddo
@@ -1444,6 +1453,9 @@ module mod_thermal_emission
       if (mype==0) write(*,'(a,f8.3,a)') ' Wavelength: ',lineCent,' Angstrom'
       if (mype==0) print *, 'Unit of EUV flux: DN s^-1 pixel^-1'
       if (mype==0) write(*,'(a,f5.1,a,f5.1,a)') ' Pixel: ',spaceRsl*725.0,' km x ',spaceRsl*725.0, ' km'
+      if (mype==0) write(*,'(a,f6.3,f8.3,f8.3,a)') ' Mapping: [',x_origin(1),x_origin(2),x_origin(3), &
+                                                   '] of the simulation box is located at [X=0,Y=0] of the image'
+      if (mype==0) print *, 'Negative Doppler velocity indicates blueshift'
 
       datatype='image_euv'
 
@@ -1485,6 +1497,8 @@ module mod_thermal_emission
       if (mype==0) write(*,'(a,i2,a,i2,a)') ' Passband: ',emin_sxr,' - ',emax_sxr,' keV'
       if (mype==0) print *, 'Unit of SXR flux: photons cm^-2 s^-1 pixel^-1'
       if (mype==0) write(*,'(a,f6.1,a,f6.1,a)') ' Pixel: ',2.3*725.0,' km x ',2.3*725.0, ' km'
+      if (mype==0) write(*,'(a,f6.3,f8.3,f8.3,a)') ' Mapping: [',x_origin(1),x_origin(2),x_origin(3), &
+                                                   '] of the simulation box is located at [X=0,Y=0] of the image'
 
       datatype='image_sxr'
 
@@ -1531,7 +1545,7 @@ module mod_thermal_emission
       double precision, allocatable :: SXRs(:,:),SXR(:,:)
       double precision :: vec_temp1(1:3),vec_temp2(1:3)
       double precision :: vec_z(1:3),vec_cor(1:3),xI_cor(1:2)
-      double precision :: res,LOS_psi
+      double precision :: res,LOS_psi,r_max,r_loc
 
       integer :: mass
       character (30) :: ion
@@ -1551,24 +1565,39 @@ module mod_thermal_emission
           do ix3=1,2
             if (ix3==1) vec_cor(3)=xprobmin3
             if (ix3==2) vec_cor(3)=xprobmax3
-            call dot_product_loc(vec_cor,vec_xI1,res)
-            xI_cor(1)=res
-            call dot_product_loc(vec_cor,vec_xI2,res)
-            xI_cor(2)=res
-            if (ix1==1 .and. ix2==1 .and. ix3==1) then
-              xImin1=xI_cor(1)
-              xImax1=xI_cor(1)
-              xImin2=xI_cor(2)
-              xImax2=xI_cor(2)
+            if (big_image) then
+              r_loc=(vec_cor(1)-x_origin(1))**2
+              r_loc=r_loc+(vec_cor(2)-x_origin(2))**2
+              r_loc=r_loc+(vec_cor(3)-x_origin(3))**2
+              r_loc=sqrt(r_loc)
+              if (ix1==1 .and. ix2==1 .and. ix3==1) then
+                r_max=r_loc
+              else
+                r_max=max(r_max,r_loc)
+              endif
             else
-              xImin1=min(xImin1,xI_cor(1))
-              xImax1=max(xImax1,xI_cor(1))
-              xImin2=min(xImin2,xI_cor(2))
-              xImax2=max(xImax2,xI_cor(2))
+              call get_cor_image(vec_cor,xI_cor)
+              if (ix1==1 .and. ix2==1 .and. ix3==1) then
+                xImin1=xI_cor(1)
+                xImax1=xI_cor(1)
+                xImin2=xI_cor(2)
+                xImax2=xI_cor(2)
+              else
+                xImin1=min(xImin1,xI_cor(1))
+                xImax1=max(xImax1,xI_cor(1))
+                xImin2=min(xImin2,xI_cor(2))
+                xImax2=max(xImax2,xI_cor(2))
+              endif
             endif
           enddo
         enddo
       enddo
+      if (big_image) then
+        xImin1=-r_max
+        xImin2=-r_max
+        xImax1=r_max
+        xImax2=r_max
+      endif
       xIcent1=(xImin1+xImax1)/2.d0
       xIcent2=(xImin2+xImax2)/2.d0
 
@@ -1631,7 +1660,7 @@ module mod_thermal_emission
           do ix2=1,numXI2
             if (EUV(ix1,ix2)<smalldouble) EUV(ix1,ix2)=zero
             if(EUV(ix1,ix2)/=0) then
-              Dpl(ix1,ix2)=-(Dpl(ix1,ix2)/EUV(ix1,ix2))*unitv
+              Dpl(ix1,ix2)=(Dpl(ix1,ix2)/EUV(ix1,ix2))*unitv
             else
               Dpl(ix1,ix2)=0.d0
             endif
@@ -1695,7 +1724,7 @@ module mod_thermal_emission
       double precision :: vloc(1:3),res
       integer :: ixP^L,ixP^D,nSubC^D,iSubC^D
       double precision :: xSubP1,xSubP2,dxSubP,xerf^L,fluxsubC
-      double precision :: xSubC(1:3),dxSubC^D,xCent1,xCent2
+      double precision :: xSubC(1:3),dxSubC^D,xCent(1:2)
 
       double precision :: sigma_PSF,RHESSI_rsl,sigma0,factor
       double precision :: arcsec,pixel
@@ -1731,20 +1760,19 @@ module mod_thermal_emission
           ^D&xSubC(^D)=ps(igrid)%x(ix^DD,^D)-half*ps(igrid)%dx(ix^DD,^D)+(iSubC^D-half)*dxSubC^D;
           fluxSubC=flux(ix^D)*dxSubC1*dxSubC2*dxSubC3*unit_length**3
           ! mapping the 3D coordinate to location at the image
-          call dot_product_loc(xSubC,vec_xI1,xCent1)
-          call dot_product_loc(xSubC,vec_xI2,xCent2)
-          ixP1=floor((xCent1-(xI1(1)-half*dxI))/dxI)+1
-          ixP2=floor((xCent2-(xI2(1)-half*dxI))/dxI)+1
+          call get_cor_image(xSubC,xCent)
+          ixP1=floor((xCent(1)-(xI1(1)-half*dxI))/dxI)+1
+          ixP2=floor((xCent(2)-(xI2(1)-half*dxI))/dxI)+1
           ixPmin1=max(1,ixP1-3)
           ixPmax1=min(ixP1+3,numXI1)
           ixPmin2=max(1,ixP2-3)
           ixPmax2=min(ixP2+3,numXI2)
           do ixP1=ixPmin1,ixPmax1
             do ixP2=ixPmin2,ixPmax2
-              xerfmin1=((xI1(ixP1)-half*dxI)-xCent1)/(sqrt(2.d0)*sigma0)
-              xerfmax1=((xI1(ixP1)+half*dxI)-xCent1)/(sqrt(2.d0)*sigma0)
-              xerfmin2=((xI2(ixP2)-half*dxI)-xCent2)/(sqrt(2.d0)*sigma0)
-              xerfmax2=((xI2(ixP2)+half*dxI)-xCent2)/(sqrt(2.d0)*sigma0)
+              xerfmin1=((xI1(ixP1)-half*dxI)-xCent(1))/(sqrt(2.d0)*sigma0)
+              xerfmax1=((xI1(ixP1)+half*dxI)-xCent(1))/(sqrt(2.d0)*sigma0)
+              xerfmin2=((xI2(ixP2)-half*dxI)-xCent(2))/(sqrt(2.d0)*sigma0)
+              xerfmax2=((xI2(ixP2)+half*dxI)-xCent(2))/(sqrt(2.d0)*sigma0)
               factor=(erfc(xerfmin1)-erfc(xerfmax1))*(erfc(xerfmin2)-erfc(xerfmax2))/4.d0
               SXR(ixP1,ixP2)=SXR(ixP1,ixP2)+fluxSubC*factor
             enddo !ixP2
@@ -1768,7 +1796,7 @@ module mod_thermal_emission
       double precision :: vloc(1:3),res
       integer :: ixP^L,ixP^D,nSubC^D,iSubC^D
       double precision :: xSubP1,xSubP2,dxSubP,xerf^L,fluxsubC
-      double precision :: xSubC(1:3),dxSubC^D,xCent1,xCent2
+      double precision :: xSubC(1:3),dxSubC^D,xCent(1:2)
 
       integer :: mass
       double precision :: logTe
@@ -1820,21 +1848,20 @@ module mod_thermal_emission
         {do iSubC^D=1,nSubC^D\}
           ^D&xSubC(^D)=ps(igrid)%x(ix^DD,^D)-half*ps(igrid)%dx(ix^DD,^D)+(iSubC^D-half)*dxSubC^D;
           ! mapping the 3D coordinate to location at the image
-          call dot_product_loc(xSubC,vec_xI1,xCent1)
-          call dot_product_loc(xSubC,vec_xI2,xCent2)
+          call get_cor_image(xSubC,xCent)
           ! distribution at nearby pixels
-          ixP1=floor((xCent1-(xI1(1)-half*dxI))/dxI)+1
-          ixP2=floor((xCent2-(xI2(1)-half*dxI))/dxI)+1
+          ixP1=floor((xCent(1)-(xI1(1)-half*dxI))/dxI)+1
+          ixP2=floor((xCent(2)-(xI2(1)-half*dxI))/dxI)+1
           ixPmin1=max(1,ixP1-3)
           ixPmax1=min(ixP1+3,numXI1)
           ixPmin2=max(1,ixP2-3)
           ixPmax2=min(ixP2+3,numXI2)
           do ixP1=ixPmin1,ixPmax1
             do ixP2=ixPmin2,ixPmax2
-              xerfmin1=((xI1(ixP1)-half*dxI)-xCent1)/(sqrt(2.d0)*sigma0) 
-              xerfmax1=((xI1(ixP1)+half*dxI)-xCent1)/(sqrt(2.d0)*sigma0)
-              xerfmin2=((xI2(ixP2)-half*dxI)-xCent2)/(sqrt(2.d0)*sigma0)
-              xerfmax2=((xI2(ixP2)+half*dxI)-xCent2)/(sqrt(2.d0)*sigma0)
+              xerfmin1=((xI1(ixP1)-half*dxI)-xCent(1))/(sqrt(2.d0)*sigma0) 
+              xerfmax1=((xI1(ixP1)+half*dxI)-xCent(1))/(sqrt(2.d0)*sigma0)
+              xerfmin2=((xI2(ixP2)-half*dxI)-xCent(2))/(sqrt(2.d0)*sigma0)
+              xerfmax2=((xI2(ixP2)+half*dxI)-xCent(2))/(sqrt(2.d0)*sigma0)
               factor=(erfc(xerfmin1)-erfc(xerfmax1))*(erfc(xerfmin2)-erfc(xerfmax2))/4.d0
               EUV(ixP1,ixP2)=EUV(ixP1,ixP2)+fluxSubC*factor
               Dpl(ixP1,ixP2)=Dpl(ixP1,ixP2)+fluxSubC*factor*v(ix^D)
@@ -1894,6 +1921,9 @@ module mod_thermal_emission
         nstrb2=nstretchedblocks_baselevel(3)
         qs1=qstretch_baselevel(2)
         qs2=qstretch_baselevel(3)
+        if (mype==0) write(*,'(a)') ' LOS vector: [-1.00  0.00  0.00]'
+        if (mype==0) write(*,'(a)') ' xI1 vector: [ 0.00  1.00  0.00]'
+        if (mype==0) write(*,'(a)') ' xI2 vector: [ 0.00  0.00  1.00]'
       else if (LOS_phi==90 .and. LOS_theta==90) then
         nXIF1=domain_nx3*2**(refine_max_level-1)
         nXIF2=domain_nx1*2**(refine_max_level-1)
@@ -1911,6 +1941,9 @@ module mod_thermal_emission
         nstrb2=nstretchedblocks_baselevel(1)
         qs1=qstretch_baselevel(3)
         qs2=qstretch_baselevel(1)
+        if (mype==0) write(*,'(a)') ' LOS vector: [ 0.00 -1.00  0.00]'
+        if (mype==0) write(*,'(a)') ' xI1 vector: [-1.00  0.00  0.00]'
+        if (mype==0) write(*,'(a)') ' xI2 vector: [ 0.00  0.00  1.00]'
       else
         nXIF1=domain_nx1*2**(refine_max_level-1)
         nXIF2=domain_nx2*2**(refine_max_level-1)
@@ -1928,6 +1961,9 @@ module mod_thermal_emission
         nstrb2=nstretchedblocks_baselevel(2)
         qs1=qstretch_baselevel(1)
         qs2=qstretch_baselevel(2)
+        if (mype==0) write(*,'(a)') ' LOS vector: [ 0.00  0.00 -1.00]'
+        if (mype==0) write(*,'(a)') ' xI1 vector: [ 1.00  0.00  0.00]'
+        if (mype==0) write(*,'(a)') ' xI2 vector: [ 0.00  1.00  0.00]'
       endif
       allocate(xIF1(nXIF1),xIF2(nXIF2),dxIF1(nXIF1),dxIF2(nXIF2))
 
@@ -2055,7 +2091,7 @@ module mod_thermal_emission
           do ix2=1,nXIF2
             if (EUV(ix1,ix2)<smalldouble) EUV(ix1,ix2)=zero
             if(EUV(ix1,ix2)/=0) then
-              Dpl(ix1,ix2)=-(Dpl(ix1,ix2)/EUV(ix1,ix2))*unitv
+              Dpl(ix1,ix2)=(Dpl(ix1,ix2)/EUV(ix1,ix2))*unitv
             else
               Dpl(ix1,ix2)=0.d0
             endif
@@ -2147,7 +2183,7 @@ module mod_thermal_emission
       ! get local EUV flux and velocity
       call get_EUV(wavelength,ixI^L,ixO^L,ps(igrid)%w,ps(igrid)%x,fl,flux)
       call fl%get_rho(ps(igrid)%w,ps(igrid)%x,ixI^L,ixO^L,rho)
-      v(ixO^S)=ps(igrid)%w(ixO^S,iw_mom(direction_LOS))/rho(ixO^S)
+      v(ixO^S)=-ps(igrid)%w(ixO^S,iw_mom(direction_LOS))/rho(ixO^S)
       deallocate(rho)
 
       ! grid parameters
@@ -2445,13 +2481,22 @@ module mod_thermal_emission
       integer, intent(in) :: qunit,nXO1,nXO2,nWO
       double precision, intent(in) :: dxO1(nxO1),dxO2(nxO2)
       double precision, intent(in) :: xO1(nXO1),xO2(nxO2)
-      double precision, intent(in) :: wO(nXO1,nXO2,nWO)
+      double precision, intent(inout) :: wO(nXO1,nXO2,nWO)
       character(20), intent(in) :: datatype
 
       integer :: nPiece,nP1,nP2,nC1,nC2,nWC
       integer :: piece_nmax1,piece_nmax2,ix1,ix2,j,ipc,ixc1,ixc2
       double precision, allocatable :: xC(:,:,:,:),wC(:,:,:,:),dxC(:,:,:,:)
       character(len=std_len) :: resolution_type
+
+      ! clean small values
+      do ix1=1,nxO1
+        do ix2=1,nxO2
+          do j=1,nWO
+            if (abs(wO(ix1,ix2,j))<smalldouble) wO(ix1,ix2,j)=zero
+          enddo
+        enddo
+      enddo
 
       ! how many cells in each grid
       if (datatype=='image_euv' .and. resolution_euv=='data') then
@@ -2887,5 +2932,18 @@ module mod_thermal_emission
       if (mype==0) write(*,'(a,f5.2,f6.2,f6.2,a)') ' xI2 vector: [',vec_xI2(1),vec_xI2(2),vec_xI2(3),']'
 
     end subroutine init_vectors
+
+    subroutine get_cor_image(x_3D,x_image)
+      double precision :: x_3D(1:3),x_image(1:2)
+      double precision :: res,res_origin
+
+      call dot_product_loc(x_3D,vec_xI1,res)
+      call dot_product_loc(x_origin,vec_xI1,res_origin)
+      x_image(1)=res-res_origin
+      call dot_product_loc(x_3D,vec_xI2,res)
+      call dot_product_loc(x_origin,vec_xI2,res_origin)
+      x_image(2)=res-res_origin
+
+    end subroutine get_cor_image
 
 end module mod_thermal_emission

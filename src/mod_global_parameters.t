@@ -699,17 +699,21 @@ module mod_global_parameters
   !> wavelength for output
   integer :: wavelength
   !> resolution of the EUV image
-  character(len=std_len) :: resolution_euv='instrument'
+  character(len=std_len) :: resolution_euv
   !> Base file name for synthetic SXR emission output
   character(len=std_len) :: filename_sxr
   ! minimum and maximum energy of SXR (keV)
   integer :: emin_sxr,emax_sxr
   !> resolution of the SXR image
-  character(len=std_len) :: resolution_sxr='instrument'
+  character(len=std_len) :: resolution_sxr
   !> direction of the line of sight (LOS)
-  integer :: LOS_theta,LOS_phi
+  double precision :: LOS_theta,LOS_phi
   !> rotation of image
-  integer :: image_rotate=0
+  double precision :: image_rotate
+  !> where the is the origin (X=0,Y=0) of image
+  double precision :: x_origin(1:3)
+  !> big image
+  logical :: big_image
   !> Base file name for synthetic EUV spectrum output
   character(len=std_len) :: filename_spectrum
   !> wave length for spectrum
@@ -717,11 +721,11 @@ module mod_global_parameters
   !> spectral window
   double precision :: spectrum_window_min,spectrum_window_max
   !> location of the slit
-  double precision :: location_slit=0.d0
+  double precision :: location_slit
   !> direction of the slit
   integer :: direction_slit
   !> resolution of the spectrum
-  character(len=std_len) :: resolution_spectrum='instrument'
+  character(len=std_len) :: resolution_spectrum
 
   !> Block pointer for using one block and its previous state
   type(state), pointer :: block
