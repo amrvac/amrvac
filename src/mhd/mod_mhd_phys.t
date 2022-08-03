@@ -93,7 +93,7 @@ module mod_mhd_phys
   logical, public, protected              :: mhd_boris_simplification = .false.
 
   !> Reduced speed of light for semirelativistic MHD
-  double precision                        :: mhd_reduced_c = const_c
+  double precision, public, protected     :: mhd_reduced_c = const_c
 
   !> MHD fourth order
   logical, public, protected              :: mhd_4th_order = .false.
