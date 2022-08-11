@@ -1946,7 +1946,7 @@ contains
                    -half*(sum(v(ixI^S,:)**2,dim=ndim+1)*w(ixI^S,rho_)&
                    +sum(w(ixI^S,mag(:))**2,dim=ndim+1)&
                    +sum(b(ixI^S,:)**2,dim=ndim+1)*inv_squared_c))
-        where(pressure(ixI^S) < small_pressure) flag(ixO^S,p_) = .true.
+        where(pressure(ixO^S) < small_pressure) flag(ixO^S,p_) = .true.
       end if
     end if
 
