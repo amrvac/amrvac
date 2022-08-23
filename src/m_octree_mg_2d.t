@@ -44,6 +44,9 @@ module m_octree_mg_2d
   !> Indicates a variable-coefficient Helmholtz equation
   integer, parameter, public :: mg_vhelmholtz = 4
 
+  !> Indicates a anisotropic-coefficient Helmholtz equation
+  integer, parameter, public :: mg_ahelmholtz = 5
+
   !> Cartesian coordinate system
   integer, parameter, public :: mg_cartesian   = 1
   !> Cylindrical coordinate system
@@ -73,6 +76,11 @@ module m_octree_mg_2d
 
   !> Index of the variable coefficient (at cell centers)
   integer, parameter, public :: mg_iveps = 5
+
+  !> Indexes of anisotropic variable coefficients
+  integer, parameter, public :: mg_iveps1 = 5
+  integer, parameter, public :: mg_iveps2 = 6
+  integer, parameter, public :: mg_iveps3 = 7
 
   !> Minimum allowed grid level
   integer, parameter, public :: mg_lvl_lo = -20
@@ -361,6 +369,7 @@ module m_octree_mg_2d
 
   public :: diffusion_solve
   public :: diffusion_solve_vcoeff
+  public :: diffusion_solve_acoeff
 
   !! File ../src/m_laplacian.f90
 
@@ -471,6 +480,18 @@ module m_octree_mg_2d
    interface mrgrnk
       module procedure I_mrgrnk
    end interface mrgrnk
+
+  !! File ../src/m_ahelmholtz.f90
+
+!> Module which contains multigrid procedures for a Helmholtz operator of the
+!> form: div(D grad(phi)) - lambda*phi = f, where D has a smooth spatial
+!> variation and a component in each spatial direction
+
+  !> The lambda used for the Helmholtz equation (should be >= 0)
+  real(dp), public, protected :: ahelmholtz_lambda = 0.0_dp
+
+  public :: ahelmholtz_set_methods
+  public :: ahelmholtz_set_lambda
 contains
 
   !! File ../src/m_data_structures.f90
@@ -785,6 +806,56 @@ contains
        error stop "diffusion_solve: no convergence"
     end if
   end subroutine diffusion_solve_vcoeff
+
+  !> Solve a diffusion equation implicitly, assuming anisotropic diffusion
+  !> coefficient which has been stored in mg_iveps1, mg_iveps2, mg_iveps3
+  !> (also on coarse grids). The
+  !> solution at time t should be stored in mg_iphi, which is on output replaced
+  !> by the solution at time t+dt.
+  subroutine diffusion_solve_acoeff(mg, dt, order, max_res)
+
+    type(mg_t), intent(inout) :: mg
+    real(dp), intent(in)      :: dt
+    integer, intent(in)       :: order
+    real(dp), intent(in)      :: max_res
+    integer, parameter        :: max_its = 100
+    integer                   :: n
+    real(dp)                  :: res
+
+    mg%operator_type = mg_ahelmholtz
+    call mg_set_methods(mg)
+
+    select case (order)
+    case (1)
+       call ahelmholtz_set_lambda(1/dt)
+       call set_rhs(mg, -1/dt, 0.0_dp)
+    case (2)
+       call ahelmholtz_set_lambda(0.0d0)
+       call mg_apply_op(mg, mg_irhs)
+       call ahelmholtz_set_lambda(2/dt)
+       call set_rhs(mg, -2/dt, -1.0_dp)
+    case default
+       error stop "diffusion_solve: order should be 1 or 2"
+    end select
+
+    ! Start with an FMG cycle
+    call mg_fas_fmg(mg, .true., max_res=res)
+
+    ! Add V-cycles if necessary
+    do n = 1, max_its
+      print*, n, res
+       if (res <= max_res) exit
+       call mg_fas_vcycle(mg, max_res=res)
+    end do
+
+    if (n == max_its + 1) then
+       if (mg%my_rank == 0) then
+          print *, "Did you specify boundary conditions correctly?"
+          print *, "Or is the variation in diffusion too large?"
+       end if
+       error stop "diffusion_solve: no convergence"
+    end if
+  end subroutine diffusion_solve_acoeff
 
   subroutine set_rhs(mg, f1, f2)
     type(mg_t), intent(inout) :: mg
@@ -1154,6 +1225,10 @@ contains
          error stop "box_size should be even"
     if (any(modulo(domain_size, box_size) /= 0)) &
          error stop "box_size does not divide domain_size"
+
+    if (all(periodic)) then
+       mg%subtract_mean = .true.
+    end if
 
     nx                       = domain_size
     mg%box_size              = box_size
@@ -2888,6 +2963,8 @@ contains
        call helmholtz_set_methods(mg)
     case (mg_vhelmholtz)
        call vhelmholtz_set_methods(mg)
+    case (mg_ahelmholtz)
+       call ahelmholtz_set_methods(mg)
     case default
        error stop "mg_set_methods: unknown operator"
     end select
@@ -3667,5 +3744,134 @@ contains
       Return
       !
    End Subroutine I_mrgrnk
+
+  !! File ../src/m_ahelmholtz.f90
+
+  subroutine ahelmholtz_set_methods(mg)
+    type(mg_t), intent(inout) :: mg
+
+    if (mg%n_extra_vars == 0 .and. mg%is_allocated) then
+       error stop "ahelmholtz_set_methods: mg%n_extra_vars == 0"
+    else
+      mg%n_extra_vars = max(2, mg%n_extra_vars)
+    end if
+
+    ! Use Neumann zero boundary conditions for the variable coefficient, since
+    ! it is needed in ghost cells.
+    mg%bc(:, mg_iveps1)%bc_type = mg_bc_neumann
+    mg%bc(:, mg_iveps1)%bc_value = 0.0_dp
+
+    mg%bc(:, mg_iveps2)%bc_type = mg_bc_neumann
+    mg%bc(:, mg_iveps2)%bc_value = 0.0_dp
+
+
+    select case (mg%geometry_type)
+    case (mg_cartesian)
+       mg%box_op => box_ahelmh
+
+       select case (mg%smoother_type)
+       case (mg_smoother_gs, mg_smoother_gsrb)
+          mg%box_smoother => box_gs_ahelmh
+       case default
+          error stop "ahelmholtz_set_methods: unsupported smoother type"
+       end select
+    case default
+       error stop "ahelmholtz_set_methods: unsupported geometry"
+    end select
+
+  end subroutine ahelmholtz_set_methods
+
+  subroutine ahelmholtz_set_lambda(lambda)
+    real(dp), intent(in) :: lambda
+
+    if (lambda < 0) &
+         error stop "ahelmholtz_set_lambda: lambda < 0 not allowed"
+
+    ahelmholtz_lambda = lambda
+  end subroutine ahelmholtz_set_lambda
+
+  !> Perform Gauss-Seidel relaxation on box for a Helmholtz operator
+  subroutine box_gs_ahelmh(mg, id, nc, redblack_cntr)
+    type(mg_t), intent(inout) :: mg
+    integer, intent(in)       :: id
+    integer, intent(in)       :: nc
+    integer, intent(in)       :: redblack_cntr !< Iteration counter
+    integer                   :: i, j, i0, di
+    logical                   :: redblack
+    real(dp)                  :: idr2(2*2), u(2*2)
+    real(dp)                  :: a0(2*2), a(2*2), c(2*2)
+
+    ! Duplicate 1/dr^2 array to multiply neighbor values
+    idr2(1:2*2:2) = 1/mg%dr(:, mg%boxes(id)%lvl)**2
+    idr2(2:2*2:2) = idr2(1:2*2:2)
+    i0  = 1
+
+    redblack = (mg%smoother_type == mg_smoother_gsrb)
+    if (redblack) then
+       di = 2
+    else
+       di = 1
+    end if
+
+    ! The parity of redblack_cntr determines which cells we use. If
+    ! redblack_cntr is even, we use the even cells and vice versa.
+    associate (cc => mg%boxes(id)%cc, n => mg_iphi, &
+         i_eps1 => mg_iveps1, &
+         i_eps2 => mg_iveps2)
+
+      do j = 1, nc
+         if (redblack) &
+              i0 = 2 - iand(ieor(redblack_cntr, j), 1)
+
+         do i = i0, nc, di
+            a0(1:2)     = cc(i, j, i_eps1)
+            a0(3:4)     = cc(i, j, i_eps2)
+            u(1:2) = cc(i-1:i+1:2, j, n)
+            a(1:2) = cc(i-1:i+1:2, j, i_eps1)
+            u(3:4) = cc(i, j-1:j+1:2, n)
+            a(3:4) = cc(i, j-1:j+1:2, i_eps2)
+            c(:)   = 2 * a0(:) * a(:) / (a0(:) + a(:)) * idr2
+
+            cc(i, j, n) = &
+                 (sum(c(:) * u(:)) - cc(i, j, mg_irhs)) / &
+                 (sum(c(:)) + ahelmholtz_lambda)
+         end do
+      end do
+    end associate
+  end subroutine box_gs_ahelmh
+
+  !> Perform Helmholtz operator on a box
+  subroutine box_ahelmh(mg, id, nc, i_out)
+    type(mg_t), intent(inout) :: mg
+    integer, intent(in)       :: id
+    integer, intent(in)       :: nc
+    integer, intent(in)       :: i_out !< Index of variable to store Helmholtz in
+    integer                   :: i, j
+    real(dp)                  :: idr2(2*2), a0(2*2), u0, u(2*2), a(2*2)
+
+    ! Duplicate 1/dr^2 array to multiply neighbor values
+    idr2(1:2*2:2) = 1/mg%dr(:, mg%boxes(id)%lvl)**2
+    idr2(2:2*2:2) = idr2(1:2*2:2)
+
+    associate (cc => mg%boxes(id)%cc, n => mg_iphi, &
+         i_eps1 => mg_iveps1, &
+         i_eps2 => mg_iveps2)
+      do j = 1, nc
+         do i = 1, nc
+            a0(1:2)     = cc(i, j, i_eps1)
+            a0(3:4)     = cc(i, j, i_eps2)
+            a(1:2) = cc(i-1:i+1:2, j, i_eps1)
+            a(3:4) = cc(i, j-1:j+1:2, i_eps2)
+            u0     = cc(i, j, n)
+            u(1:2) = cc(i-1:i+1:2, j, n)
+            u(3:4) = cc(i, j-1:j+1:2, n)
+
+            cc(i, j, i_out) = sum(2 * idr2 * &
+                 a0(:)*a(:)/(a0(:) + a(:)) * (u(:) - u0)) - &
+                 ahelmholtz_lambda * u0
+         end do
+      end do
+    end associate
+  end subroutine box_ahelmh
 
 end module m_octree_mg_2d

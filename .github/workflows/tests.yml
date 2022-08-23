@@ -58,7 +58,31 @@ jobs:
         run: |
           cd tests
           bash test_runner.sh hd
-          
+
+    rhd:
+      runs-on: ubuntu-latest
+      steps:
+        - uses: actions/checkout@v2
+        - name: install dependencies
+          run: |
+            sudo apt-get update
+            sudo apt-get install openmpi-bin libopenmpi-dev
+            gfortran-9 --version
+            mpirun --version
+        - name: check code dependencies
+          run: |
+            cd src
+            sh update_dependencies.sh --verbose || exit 1
+        - name: compile
+          run: |
+            cd lib
+            make clean
+            make -j 2 || exit 1
+        - name: run tests
+          run: |
+            cd tests
+            bash test_runner.sh rhd
+
   mhd:
     runs-on: ubuntu-latest
     steps:

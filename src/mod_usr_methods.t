@@ -13,6 +13,8 @@ module mod_usr_methods
 
   ! Boundary condition related
   procedure(special_bc), pointer      :: usr_special_bc       => null()
+  procedure(special_mg_bc), pointer   :: usr_special_mg_bc    => null()
+
   procedure(internal_bc), pointer     :: usr_internal_bc      => null()
 
   ! Output related
@@ -75,6 +77,13 @@ module mod_usr_methods
   procedure(particle_analytic), pointer :: usr_particle_analytic => null()
   procedure(particle_position), pointer :: usr_particle_position => null()
 
+  ! Radiation quantity related
+  procedure(special_opacity), pointer   :: usr_special_opacity => null()
+  procedure(special_aniso_opacity), pointer   :: usr_special_aniso_opacity => null()
+  procedure(special_opacity_qdot), pointer   :: usr_special_opacity_qdot => null()
+  procedure(special_fluxlimiter), pointer   :: usr_special_fluxlimiter => null()
+  procedure(special_diffcoef), pointer   :: usr_special_diffcoef => null()
+
   ! Called after the mesh has been adjuste
   procedure(after_refine), pointer      :: usr_after_refine => null()
 
@@ -118,6 +127,13 @@ module mod_usr_methods
        double precision, intent(in)    :: qt, x(ixI^S,1:ndim)
        double precision, intent(inout) :: w(ixI^S,1:nw)
      end subroutine special_bc
+
+     !> Special boundary type for radiation hydrodynamics module, only used to
+     !> set the boundary conditions for the radiation energy.
+     subroutine special_mg_bc(iB)
+       use mod_global_parameters
+       integer, intent(in)             :: iB
+     end subroutine special_mg_bc
 
     !> internal boundary, user defined
     !> This subroutine can be used to artificially overwrite ALL conservative
@@ -275,6 +291,48 @@ module mod_usr_methods
       double precision             :: current(ixI^S,7-2*ndir:3), eta(ixI^S)
     end subroutine special_resistivity
 
+
+    !> Set user defined opacity for use in diffusion coeff, heating and cooling, and radiation force
+    subroutine special_opacity(ixI^L,ixO^L,w,x,kappa)
+      use mod_global_parameters
+      integer, intent(in)          :: ixI^L, ixO^L
+      double precision, intent(in) :: w(ixI^S,1:nw), x(ixI^S,1:ndim)
+      double precision, intent(out):: kappa(ixO^S)
+    end subroutine special_opacity
+
+    !> Set user defined, anisotropic opacity for use in diffusion coeff, heating and cooling, and radiation force
+    subroutine special_aniso_opacity(ixI^L,ixO^L,w,x,kappa,idir)
+      use mod_global_parameters
+      integer, intent(in)          :: ixI^L, ixO^L, idir
+      double precision, intent(in) :: w(ixI^S,1:nw), x(ixI^S,1:ndim)
+      double precision, intent(out):: kappa(ixO^S)
+    end subroutine special_aniso_opacity
+
+    !> Set user defined opacity for use in diffusion coeff, heating and cooling, and radiation force. Overwrites special_opacity
+    subroutine special_opacity_qdot(ixI^L,ixO^L,w,x,kappa)
+      use mod_global_parameters
+      integer, intent(in)          :: ixI^L, ixO^L
+      double precision, intent(in) :: w(ixI^S,1:nw), x(ixI^S,1:ndim)
+      double precision, intent(out):: kappa(ixO^S)
+    end subroutine special_opacity_qdot
+
+    !> Set user defined FLD flux limiter, lambda
+    subroutine special_fluxlimiter(ixI^L,ixO^L,w,x,fld_lambda,fld_R)
+      use mod_global_parameters
+      integer, intent(in)          :: ixI^L, ixO^L
+      double precision, intent(in) :: w(ixI^S,1:nw), x(ixI^S,1:ndim)
+      double precision, intent(out):: fld_lambda(ixI^S),fld_R(ixI^S)
+    end subroutine special_fluxlimiter
+
+    !> Set user defined FLD diffusion coefficient
+    subroutine special_diffcoef(w, wCT, x, ixI^L, ixO^L)
+      use mod_global_parameters
+      integer, intent(in)          :: ixI^L, ixO^L
+      double precision, intent(inout) :: w(ixI^S, 1:nw)
+      double precision, intent(in) :: wCT(ixI^S, 1:nw)
+      double precision, intent(in) :: x(ixI^S, 1:ndim)
+    end subroutine special_diffcoef
+
     !> Enforce additional refinement or coarsening
     !> One can use the coordinate info in x and/or time qt=t_n and w(t_n) values w.
     !> you must set consistent values for integers refine/coarsen:
@@ -384,7 +442,7 @@ module mod_usr_methods
       double precision, intent(out) :: m(n_particles)
       logical, intent(out)          :: follow(n_particles)
     end subroutine create_particles
-    
+
     !> Check arbitrary particle conditions or modifications
     subroutine check_particle(igrid,x,v,q,m,follow,check)
       use mod_global_parameters
