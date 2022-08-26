@@ -2674,7 +2674,7 @@ contains
     logical, intent(in) :: patchwi(ixI^S)
 
     double precision, dimension(ixI^S,1:ndir) :: bvec,qvec,current
-    double precision :: integral_grid_mf,tmp(ixI^S),dsurface(ixO^S)
+    double precision :: integral_grid_mf,tmp(ixI^S),dsurface(ixO^S),bm2
     integer :: ix^D,idirmin,idir,jdir,kdir,idims,hxO^L
 
     integral_grid_mf=0.d0
@@ -2697,8 +2697,12 @@ contains
       enddo; enddo; enddo
 
       {do ix^DB=ixOmin^DB,ixOmax^DB\}
-         if(patchwi(ix^D)) integral_grid_mf=integral_grid_mf+sqrt(sum(qvec(ix^D,:)**2)/&
-                           sum(bvec(ix^D,:)**2))*block%dvolume(ix^D)
+         if(patchwi(ix^D)) then
+           bm2=sum(bvec(ix^D,:)**2)
+           if(bm2/=0.d0) bm2=1.d0/bm2
+           integral_grid_mf=integral_grid_mf+sqrt(sum(qvec(ix^D,:)**2)*&
+                           bm2)*block%dvolume(ix^D)
+         end if
       {end do\}
      case(2)
       ! Sum(|J|*dvolume)
