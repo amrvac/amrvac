@@ -229,6 +229,9 @@ module mod_mhd_phys
   !> Whether unsplit semirelativistic MHD is solved
   logical :: unsplit_semirelativistic=.false.
 
+  !> Whether gravity work is included in energy equation
+  logical :: gravity_energy
+
   !> gamma minus one and its inverse
   double precision :: gamma_1, inv_gamma_1
 
@@ -444,6 +447,15 @@ contains
       total_energy=.false.
     end if
     phys_total_energy=total_energy
+    if(mhd_energy) then
+      if(mhd_internal_e) then
+        gravity_energy=.false.
+      else
+        gravity_energy=.true.
+      end if
+    else
+      gravity_energy=.false.
+    end if
 
     {^IFONED
     if(mhd_trac .and. mhd_trac_type .gt. 2) then
@@ -4229,7 +4241,7 @@ contains
 
     if(mhd_gravity) then
       call gravity_add_source(qdt,ixI^L,ixO^L,wCT,&
-           w,x,total_energy,qsourcesplit,active)
+           w,x,gravity_energy,qsourcesplit,active)
     end if
 
   end subroutine mhd_add_source
