@@ -50,9 +50,6 @@ contains
     use mod_global_parameters
     use mod_fld
 
-    double precision :: k1,k2, my_gamma
-    integer :: i
-
     call params_read(par_files)
 
     p1 = const_kB*T1*rho1/(const_mp*fld_mu)
@@ -120,6 +117,7 @@ contains
     print*, 'momentum', rho1*v1*v1 + p1 + Er1/3, ' | ', rho2*v2*v2 + p2 + Er2/3
     print*, 'gas energy', p1*v1 + eg1*v1, ' | ', p2*v2 + eg2*v2
     print*, 'radiation energy', Er1*v1, ' | ', Er2*v2
+    print*, 'total energy', (p1+eg1+Er1)*v1, ' | ', (p2+eg2+Er2)*v2
 
   end subroutine initglobaldata_usr
 

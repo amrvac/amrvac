@@ -114,7 +114,7 @@ contains
     case (twostep)
        select case (t_integrator)
        case (Predictor_Corrector)
-          ! PC or explicit midpoint 
+          ! PC or explicit midpoint
           ! predictor step
           fix_conserve_at_step = .false.
           call advect1(typepred1,half,idim^LIM,global_time,ps,global_time,ps1)
@@ -194,7 +194,7 @@ contains
 
        case (IMEX_222)
           ! One-parameter family of schemes (parameter is imex222_lambda) from
-          ! Pareschi&Russo 2005, which is L-stable (for default lambda) and 
+          ! Pareschi&Russo 2005, which is L-stable (for default lambda) and
           ! asymptotically SSP.
           ! See doi.org/10.1007/s10915-004-4636-4 (table II)
           ! See doi.org/10.1016/j.apnum.2016.10.018 for interesting values of lambda
@@ -430,7 +430,7 @@ contains
           ! Third order IMEX scheme with low-storage implementation (4 registers).
           ! From Cavaglieri&Bewley 2015, see doi.org/10.1016/j.jcp.2015.01.031
           ! (scheme called "IMEXRKCB3a" there). Uses 3 explicit and 2 implicit stages.
-          ! Parameters are in imex_bj, imex_cj (same for implicit/explicit), 
+          ! Parameters are in imex_bj, imex_cj (same for implicit/explicit),
           ! imex_aij (implicit tableau) and imex_haij (explicit tableau).
           call advect1(flux_method, imex_ha21, idim^LIM, global_time, ps, global_time, ps1)
           call global_implicit_update(imex_a22, dt, global_time+imex_c2*dt, ps2, ps1)
@@ -541,7 +541,7 @@ contains
           call global_implicit_update(1d0/4d0,dt,global_time,ps1,ps)
           !$OMP PARALLEL DO PRIVATE(igrid)
           do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
-             ps2(igrid)%w=ps1(igrid)%w 
+             ps2(igrid)%w=ps1(igrid)%w
              if(stagger_grid) then
                ps2(igrid)%ws=ps1(igrid)%ws
              endif
@@ -554,10 +554,10 @@ contains
           !$OMP PARALLEL DO PRIVATE(igrid)
           do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
              ps(igrid)%w=ps1(igrid)%w + ps3(igrid)%w -ps2(igrid)%w
-             ps1(igrid)%w=ps(igrid)%w 
+             ps1(igrid)%w=ps(igrid)%w
              if(stagger_grid) then
                ps(igrid)%ws=ps1(igrid)%ws + ps3(igrid)%ws -ps2(igrid)%ws
-               ps1(igrid)%ws=ps(igrid)%ws 
+               ps1(igrid)%ws=ps(igrid)%ws
              endif
           end do
           !$OMP END PARALLEL DO
@@ -568,10 +568,10 @@ contains
           !$OMP PARALLEL DO PRIVATE(igrid)
           do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
              ps2(igrid)%w=ps1(igrid)%w + ps3(igrid)%w - ps(igrid)%w
-             ps1(igrid)%w=ps2(igrid)%w 
+             ps1(igrid)%w=ps2(igrid)%w
              if(stagger_grid) then
                ps2(igrid)%ws=ps1(igrid)%ws + ps3(igrid)%ws - ps(igrid)%ws
-               ps1(igrid)%ws=ps2(igrid)%ws 
+               ps1(igrid)%ws=ps2(igrid)%ws
              endif
           end do
           !$OMP END PARALLEL DO
@@ -661,11 +661,11 @@ contains
     double precision, intent(in) :: qdt      !< overall time step dt
     double precision, intent(in) :: qtC      !< Both states psa and psb at this time level
     double precision, intent(in) :: dtfactor !< Advance psa=psb+dtfactor*qdt*F_im(psa)
-   
+
     if (associated(phys_implicit_update)) then
        call phys_implicit_update(dtfactor,qdt,qtC,psa,psb)
     end if
-    
+
     ! enforce boundary conditions for psa
     call getbc(qtC,0.d0,psa,iwstart,nwgc,phys_req_diagonal)
 
@@ -833,7 +833,7 @@ contains
 
   !> process is a user entry in time loop, before output and advance
   !>         allows to modify solution, add extra variables, etc.
-  !> Warning: CFL dt already determined (and is not recomputed)! 
+  !> Warning: CFL dt already determined (and is not recomputed)!
   subroutine process(iit,qt)
     use mod_usr_methods, only: usr_process_grid, usr_process_global
     use mod_global_parameters

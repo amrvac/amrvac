@@ -29,12 +29,6 @@ module mod_fld
     !> Number for splitting the diffusion module
     double precision, public :: diff_crit
 
-    !> Index for testvariable
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    !!! DELETE WHEN DONE
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    integer, public :: i_test
-
     !> Use constant Opacity?
     character(len=8) :: fld_opacity_law = 'const'
     character(len=6) :: fld_opal_table = 'Y09800' !>'xxxxxx'
@@ -50,9 +44,6 @@ module mod_fld
 
     !> Which method to find the root for the energy interaction polynomial
     character(len=8) :: fld_interaction_method = 'Halley'
-
-    !> Set Diffusion coefficient to unity
-    logical :: fld_diff_testcase = .false.
 
     !> Take running average for Diffusion coefficient
     logical :: diff_coef_filter = .false.
@@ -102,7 +93,7 @@ module mod_fld
     integer                      :: n
 
     namelist /fld_list/ fld_kappa0, fld_Eint_split, fld_Radforce_split, &
-    fld_bisect_tol, fld_diff_testcase, fld_diff_tol,&
+    fld_bisect_tol, fld_diff_tol,&
     fld_opacity_law, fld_fluxlimiter, fld_diff_scheme, fld_interaction_method, &
     diff_coef_filter, size_D_filter, flux_lim_filter, size_L_filter, &
     lineforce_opacities, diffcrash_resume, fld_opal_table
@@ -112,6 +103,7 @@ module mod_fld
        read(unitpar, fld_list, end=111)
        111    close(unitpar)
     end do
+
   end subroutine fld_params_read
 
   !> Initialising FLD-module:
@@ -121,14 +113,14 @@ module mod_fld
   !> Add extra variables to w-array, flux, kappa, eddington Tensor
   !> Lambda and R
   !> ...
-  subroutine fld_init(He_abundance, rhd_radiation_diffusion, fld_gamma)
+  subroutine fld_init(He_abundance, rhd_radiation_diffusion, rhd_gamma)
     use mod_global_parameters
     use mod_variables
     use mod_physics
     use mod_opal_opacity, only: init_opal
     use mod_multigrid_coupling
 
-    double precision, intent(in) :: He_abundance, fld_gamma
+    double precision, intent(in) :: He_abundance, rhd_gamma
     logical, intent(in) :: rhd_radiation_diffusion
     double precision :: sigma_thomson
     integer :: idir,jdir
@@ -151,12 +143,6 @@ module mod_fld
       enddo
     endif
 
-    !> Introduce test variable globally
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    !!! DELETE WHEN DONE
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    i_test = var_set_extravar('test','test')
-
     if (rhd_radiation_diffusion) then
       if (fld_diff_scheme .eq. 'mg') then
 
@@ -177,7 +163,7 @@ module mod_fld
     fld_mu = (1.+4*He_abundance)/(2.+3.*He_abundance)
 
     !> set rhd_gamma
-    ! fld_gamma = phys_gamma
+    fld_gamma = rhd_gamma
 
     !> Read in opacity table if necesary
     if (fld_opacity_law .eq. 'opal') call init_opal(He_abundance,fld_opal_table)
@@ -730,39 +716,6 @@ module mod_fld
   !!!!!!!!!!!!!!!!!!! Multigrid diffusion
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-  ! !> Calling all subroutines to perform the multigrid method
-  ! !> Communicates rad_e and diff_coeff to multigrid library
-  ! subroutine Diffuse_E_rad_mg(dtfactor,qdt,qtC,psa,psb)
-  !   use mod_global_parameters
-  !   use mod_forest
-  !   use mod_ghostcells_update
-  !   use mod_multigrid_coupling
-  !
-  !   type(state), target :: psa(max_blocks)
-  !   type(state), target :: psb(max_blocks)
-  !   double precision, intent(in) :: qdt
-  !   double precision, intent(in) :: qtC
-  !   double precision, intent(in) :: dtfactor
-  !   double precision             :: max_res
-  !
-  !   integer                        :: iw_to,iw_from
-  !   integer                        :: iigrid, igrid, id
-  !   integer                        :: nc, lvl
-  !   type(tree_node), pointer       :: pnode
-  !   real(dp)                       :: fac
-  !
-  !   max_res = fld_diff_tol !1d-7/qdt
-  !
-  !   !> This one is probably not necessary
-  !   call set_mg_diffcoef()
-  !   call mg_copy_to_tree(iw_r_e, mg_iphi, .false., .false.,1.d0)
-  !   call diffusion_solve_vcoeff(mg, qdt, 2, max_res)
-  !   call mg_copy_from_tree(mg_iphi, iw_r_e)
-  !
-  !   call getbc(qtC,0.d0,psa,1,nwflux+nwaux)
-  !
-  ! end subroutine Diffuse_E_rad_mg
-
   !> Calling all subroutines to perform the multigrid method
   !> Communicates rad_e and diff_coeff to multigrid library
   subroutine Diffuse_E_rad_mg(dtfactor,qdt,qtC,psa,psb)
@@ -772,7 +725,7 @@ module mod_fld
     use mod_multigrid_coupling
     use mod_physics, only: phys_set_mg_bounds, phys_req_diagonal
 
-    type(state), target :: psa(max_blocks)
+    type(state), target :: psa(max_blocks) !< Advance psa=psb+dtfactor*qdt*F_im(psa)
     type(state), target :: psb(max_blocks)
     double precision, intent(in) :: qdt
     double precision, intent(in) :: qtC
@@ -810,7 +763,7 @@ module mod_fld
 
     if (.not. mg%is_allocated) call mpistop("multigrid tree not allocated yet")
 
-!    lambda = 1.d0/(dtfactor * qdt)
+!   lambda = 1.d0/(dtfactor * qdt)
     lambda = 1.d0/(dtfactor * dt_diff)
     call vhelmholtz_set_lambda(lambda)
 
@@ -838,7 +791,7 @@ module mod_fld
 
     call mg_fas_fmg(mg, .true., max_res=res)
     do n = 1, max_its
-      ! print*, n, res
+      print*, n, res
       if (res < max_residual) exit
        call mg_fas_vcycle(mg, max_res=res)
     end do
@@ -957,25 +910,19 @@ module mod_fld
     double precision :: max_D(ixI^S), grad_r_e(ixI^S), rad_e(ixI^S)
     integer :: idir,i,j, ix^D
 
-    if (fld_diff_testcase) then
 
-      w(ixO^S,i_diff_mg) = 1.d0
+    call fld_get_opacity(wCT, x, ixI^L, ixO^L, kappa)
+    call fld_get_fluxlimiter(wCT, x, ixI^L, ixO^L, lambda, fld_R)
 
-    else
+    !> calculate diffusion coefficient
+    w(ixO^S,i_diff_mg) = (const_c/unit_velocity)*lambda(ixO^S)/(kappa(ixO^S)*wCT(ixO^S,iw_rho))
 
-      call fld_get_opacity(wCT, x, ixI^L, ixO^L, kappa)
-      call fld_get_fluxlimiter(wCT, x, ixI^L, ixO^L, lambda, fld_R)
+    where (w(ixO^S,i_diff_mg) .lt. 0.d0) &
+      w(ixO^S,i_diff_mg) = smalldouble
 
-      !> calculate diffusion coefficient
-      w(ixO^S,i_diff_mg) = (const_c/unit_velocity)*lambda(ixO^S)/(kappa(ixO^S)*wCT(ixO^S,iw_rho))
-
-      where (w(ixO^S,i_diff_mg) .lt. 0.d0) &
-        w(ixO^S,i_diff_mg) = smalldouble
-
-      if (diff_coef_filter) then
-        !call mpistop('Hold your bloody horses, not implemented yet ')
-        call fld_smooth_diffcoef(w, ixI^L, ixO^L)
-      endif
+    if (diff_coef_filter) then
+      !call mpistop('Hold your bloody horses, not implemented yet ')
+      call fld_smooth_diffcoef(w, ixI^L, ixO^L)
     endif
 
     if (associated(usr_special_diffcoef)) &
@@ -1076,11 +1023,6 @@ module mod_fld
 
     integer :: i,j,idir,ix^D
 
-    ! if (fld_interaction_method .eq. 'Instant') then
-    !   call Instant_qdot(w, w, ixI^L, ixO^L)
-    !   return
-    ! endif
-
     !> e_gas is the INTERNAL ENERGY without KINETIC ENERGY
     ! if (.not. block%e_is_internal) then
       e_gas(ixO^S) = wCT(ixO^S,iw_e) - half*sum(wCT(ixO^S, iw_mom(:))**2, dim=ndim+1)/wCT(ixO^S, iw_rho)
@@ -1117,8 +1059,6 @@ module mod_fld
       c0(ixO^S) = ((one + a2(ixO^S))*e_gas(ixO^S) + a2(ixO^S)*E_rad(ixO^S))/a1(ixO^S)
       c1(ixO^S) = (one + a2(ixO^S))/a1(ixO^S)
     endif
-
-    ! w(ixO^S,i_test) = a2(ixO^S)
 
     !> Loop over every cell for rootfinding method
     {do ix^D=ixOmin^D,ixOmax^D\ }

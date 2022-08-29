@@ -14,10 +14,7 @@ module mod_usr
   double precision :: T0, a0, p0, Er0
 
   double precision :: wvl, omega, wavenumber, tau_c, tau_a
-  double precision :: Bo, energy_ratio, L_damp, r_Bo, ca
-
-  double precision :: L_0, L_thin, L_thick, L_3
-
+  double precision :: Bo, energy_ratio, r_Bo, ca
   double precision :: A_rho, A_v, A_p, A_e, A_Er
 
 contains
@@ -160,7 +157,6 @@ contains
     ! Set initial values for w
     w(ixI^S, rho_) = rho0
     w(ixI^S, mom(:)) = 0.d0
-    w(ixI^S, mom(1)) = 0.d0
     w(ixI^S, e_) = eg0
 
     press(ixI^S) = p0

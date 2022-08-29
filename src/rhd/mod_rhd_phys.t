@@ -316,8 +316,8 @@ contains
     phys_add_source          => rhd_add_source
     phys_to_conserved        => rhd_to_conserved
     phys_to_primitive        => rhd_to_primitive
-    !phys_ei_to_e             => rhd_ei_to_e
-    !phys_e_to_ei             => rhd_e_to_ei
+    ! phys_ei_to_e             => rhd_ei_to_e
+    ! phys_e_to_ei             => rhd_e_to_ei
     phys_check_params        => rhd_check_params
     phys_check_w             => rhd_check_w
     phys_get_pthermal        => rhd_get_pthermal

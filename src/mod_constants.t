@@ -57,7 +57,7 @@ module mod_constants
 
   double precision, PARAMETER :: const_sigma = 5.670367d-5      !erg cm^-2 K^-4 s^-1; Stefan-Boltzman constant
   double precision, PARAMETER :: const_G     = 6.67191d-8      !cm^3 g^-1 s^-2     ; Cavendish gravitational constant
-  double precision, PARAMETER :: const_rad_a    = 7.5657e-15   !erg cm^-3 K^-4
+  double precision, PARAMETER :: const_rad_a = 7.5657e-15   !erg cm^-3 K^-4
   ! Conversion factors:
   double precision, PARAMETER :: const_eV    = 1.6021772d-12   ! erg/eV            ; Electron volt
   double precision, PARAMETER :: const_Tera  = 1.d12           ! -                 ; Tera
