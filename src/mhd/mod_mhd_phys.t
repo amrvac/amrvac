@@ -893,7 +893,7 @@ contains
   end subroutine mhd_phys_init
 
 {^IFTHREED
-  subroutine mhd_te_images()
+  subroutine mhd_te_images
     use mod_global_parameters
     use mod_thermal_emission
 

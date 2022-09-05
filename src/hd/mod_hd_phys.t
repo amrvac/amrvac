@@ -375,7 +375,7 @@ contains
   end subroutine hd_phys_init
 
 {^IFTHREED
-  subroutine hd_te_images()
+  subroutine hd_te_images
     use mod_global_parameters
     use mod_thermal_emission
     select case(convert_type)
