@@ -1,0 +1,10 @@
+ &filelist
+ base_filename  = '_IMEX_SP_tvdlf_ko'
+ /
+
+ &methodlist
+        time_stepper = 'onestep'
+        time_integrator = 'IMEX_SP'
+        flux_scheme     = 20*'tvdlf'
+        limiter         = 20*'koren'
+ /

@@ -57,6 +57,9 @@ module mod_variables
   !> Index of the energy density
   integer :: iw_e = -1
 
+  !> Index of the radiation energy density
+  integer :: iw_r_e = -1
+
   !> Index of the internal energy density
   integer  :: iw_eaux = -1
 
@@ -75,11 +78,11 @@ module mod_variables
   integer :: index_v_mag = 1
 
   !> the indices in 1:nwflux array are assumed consecutive for each species
-  !> this array should be of size number_species and contain the first index in the array of 
+  !> this array should be of size number_species and contain the first index in the array of
   !> the number_species
   integer, allocatable :: start_indices(:)
   !> the indices in 1:nwflux array are assumed consecutive for each species
-  !> this array should be of size number_species and contain the last index in the array of 
+  !> this array should be of size number_species and contain the last index in the array of
   !> the first number_species, the last index for the last one is nwflux
   integer, allocatable :: stop_indices(:)
 
@@ -211,6 +214,18 @@ contains
     cons_wnames(nwflux) = 'e'
     prim_wnames(nwflux) = 'p'
   end function var_set_energy
+
+  function var_set_radiation_energy() result(iw)
+    integer :: iw
+
+    nwflux              = nwflux + 1
+    nwfluxbc            = nwfluxbc + 1
+    nw                  = nw + 1
+    iw_r_e              = nwflux
+    iw                  = nwflux
+    cons_wnames(nwflux) = 'r_e'
+    prim_wnames(nwflux) = 'r_e'
+  end function var_set_radiation_energy
 
   !> Set magnetic field variables
   function var_set_bfield(ndir) result(iw)

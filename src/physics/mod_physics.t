@@ -54,6 +54,7 @@ module mod_physics
   integer, parameter   :: flux_hll        = 4
 
   procedure(sub_check_params), pointer    :: phys_check_params           => null()
+  procedure(sub_set_mg_bounds), pointer   :: phys_set_mg_bounds          => null()
   procedure(sub_convert), pointer         :: phys_to_conserved           => null()
   procedure(sub_convert), pointer         :: phys_to_primitive           => null()
   procedure(sub_modify_wLR), pointer      :: phys_modify_wLR             => null()
@@ -73,6 +74,8 @@ module mod_physics
   procedure(sub_get_aux), pointer         :: phys_get_aux                => null()
   procedure(sub_check_w), pointer         :: phys_check_w                => null()
   procedure(sub_get_pthermal), pointer    :: phys_get_pthermal           => null()
+  procedure(sub_get_tgas), pointer        :: phys_get_tgas               => null()
+  procedure(sub_get_trad), pointer        :: phys_get_trad               => null()
   procedure(sub_boundary_adjust), pointer :: phys_boundary_adjust        => null()
   procedure(sub_write_info), pointer      :: phys_write_info             => null()
   procedure(sub_angmomfix), pointer       :: phys_angmomfix              => null()
@@ -92,6 +95,11 @@ module mod_physics
 
      subroutine sub_check_params
      end subroutine sub_check_params
+
+     subroutine sub_set_mg_bounds
+       use mod_global_parameters
+       use mod_usr_methods
+     end subroutine sub_set_mg_bounds
 
      subroutine sub_boundary_adjust(igrid,psb)
        use mod_global_parameters
@@ -217,7 +225,7 @@ module mod_physics
        logical, intent(inout)       :: active !< Output if the source is active
      end subroutine sub_clean_divb
 
-     !> set equilibrium variables other than b0 (e.g. p0 and rho0)  
+     !> set equilibrium variables other than b0 (e.g. p0 and rho0)
      subroutine sub_set_equi_vars(igrid)
        integer, intent(in) :: igrid
      end subroutine sub_set_equi_vars
@@ -262,6 +270,22 @@ module mod_physics
        double precision, intent(in) :: x(ixI^S,1:ndim)
        double precision, intent(out):: pth(ixI^S)
      end subroutine sub_get_pthermal
+
+     subroutine sub_get_tgas(w,x,ixI^L,ixO^L,tgas)
+       use mod_global_parameters
+       integer, intent(in)          :: ixI^L, ixO^L
+       double precision, intent(in) :: w(ixI^S,nw)
+       double precision, intent(in) :: x(ixI^S,1:ndim)
+       double precision, intent(out):: tgas(ixI^S)
+     end subroutine sub_get_tgas
+
+     subroutine sub_get_trad(w,x,ixI^L,ixO^L,trad)
+       use mod_global_parameters
+       integer, intent(in)          :: ixI^L, ixO^L
+       double precision, intent(in) :: w(ixI^S,nw)
+       double precision, intent(in) :: x(ixI^S,1:ndim)
+       double precision, intent(out):: trad(ixI^S)
+     end subroutine sub_get_trad
 
      subroutine sub_write_info(file_handle)
        integer, intent(in) :: file_handle
@@ -322,17 +346,17 @@ module mod_physics
 
      subroutine sub_evaluate_implicit(qtC,psa)
        use mod_global_parameters
-       type(state), target :: psa(max_blocks)   
-       double precision, intent(in) :: qtC      
+       type(state), target :: psa(max_blocks)
+       double precision, intent(in) :: qtC
      end subroutine sub_evaluate_implicit
 
      subroutine sub_implicit_update(dtfactor,qdt,qtC,psa,psb)
        use mod_global_parameters
-       type(state), target :: psa(max_blocks)   
-       type(state), target :: psb(max_blocks)   
+       type(state), target :: psa(max_blocks)
+       type(state), target :: psb(max_blocks)
        double precision, intent(in) :: qdt
-       double precision, intent(in) :: qtC      
-       double precision, intent(in) :: dtfactor 
+       double precision, intent(in) :: qtC
+       double precision, intent(in) :: dtfactor
      end subroutine sub_implicit_update
 
    end interface
@@ -571,11 +595,11 @@ contains
     integer, intent(in)                :: ixO^L
     type(state)                        :: s
   end subroutine dummy_face_to_center
-  
+
   subroutine dummy_evaluate_implicit(qtC,psa)
     use mod_global_parameters
-    type(state), target :: psa(max_blocks)   
-    double precision, intent(in) :: qtC      
+    type(state), target :: psa(max_blocks)
+    double precision, intent(in) :: qtC
     integer :: iigrid, igrid
 
     ! Just copy in nul state
@@ -590,11 +614,11 @@ contains
 
   subroutine dummy_implicit_update(dtfactor,qdt,qtC,psa,psb)
     use mod_global_parameters
-    type(state), target :: psa(max_blocks)   
-    type(state), target :: psb(max_blocks)   
-    double precision, intent(in) :: qdt      
-    double precision, intent(in) :: qtC      
-    double precision, intent(in) :: dtfactor 
+    type(state), target :: psa(max_blocks)
+    type(state), target :: psb(max_blocks)
+    double precision, intent(in) :: qdt
+    double precision, intent(in) :: qtC
+    double precision, intent(in) :: dtfactor
     integer :: iigrid, igrid
 
     ! Just copy in psb state when using the scheme without implicit part
