@@ -302,7 +302,7 @@ contains
     character(len=name_len)   :: wnamei(1:nw+nwauxio),xandwnamei(1:ndim+nw+nwauxio)
     character(len=1024) :: outfilehead
 
-    integer::  space_position,iw
+    integer::  space_position,iw,ind
     character(len=name_len)::  wname
     character(len=std_len):: aux_variable_names
     character(len=std_len)::  scanstring
@@ -392,11 +392,20 @@ contains
     if(first.and.mype==0)then
       print*,'-------------------------------------------------------------------------------'
       write(unitterm,*)'Saving visual data. Coordinate directions and variable names are:'
+      ind=0
       do iw=1,ndim
-        print *,iw,xandwnamei(iw)
+        ind=ind+1
+        print *,ind,xandwnamei(iw)
       enddo
-      do iw=ndim+1,ndim+nw+nwauxio
-        print *,iw,wnamei(iw-ndim),xandwnamei(iw)
+      do iw=1+ndim,nw+ndim
+        if(w_write(iw-ndim)) then
+          ind=ind+1
+          write(*,*) ind,wnamei(iw-ndim)
+        end if
+      end do
+      do iw=ndim+nw+1,ndim+nw+nwauxio
+        ind=ind+1
+        print *,ind,wnamei(iw-ndim)
       enddo
       write(unitterm,*)'time =', global_time
       print*,'-------------------------------------------------------------------------------'
