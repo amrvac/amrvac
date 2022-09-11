@@ -4702,7 +4702,7 @@ contains
 
        ! Add sources related to eta*laplB-grad(eta) x J to B and e
        w(ixO^S,mag(idir))=w(ixO^S,mag(idir))+qdt*tmp(ixO^S)
-       if (mhd_energy) then
+       if(total_energy) then
           w(ixO^S,e_)=w(ixO^S,e_)+qdt*tmp(ixO^S)*Bf(ixO^S,idir)
        end if
     end do ! idir
@@ -4771,11 +4771,16 @@ contains
     end if
 
     if(mhd_energy) then
-      ! de/dt= +div(B x Jeta) = eta J^2 - B dot curl(eta J)
-      ! de1/dt= eta J^2 - B1 dot curl(eta J)
-      tmp(ixO^S)=eta(ixO^S)*sum(current(ixO^S,:)**2,dim=ndim+1)
-      w(ixO^S,e_)=w(ixO^S,e_)+qdt*(tmp(ixO^S)-&
-        sum(wCT(ixO^S,mag(1:ndir))*curlj(ixO^S,1:ndir),dim=ndim+1))
+      tmp(ixO^S)=qdt*eta(ixO^S)*sum(current(ixO^S,:)**2,dim=ndim+1)
+      if(total_energy) then
+        ! de/dt= +div(B x Jeta) = eta J^2 - B dot curl(eta J)
+        ! de1/dt= eta J^2 - B1 dot curl(eta J)
+        w(ixO^S,e_)=w(ixO^S,e_)+tmp(ixO^S)-&
+        qdt*sum(wCT(ixO^S,mag(1:ndir))*curlj(ixO^S,1:ndir),dim=ndim+1)
+      else
+        ! add eta*J**2 source term in the internal energy equation
+        w(ixO^S,e_)=w(ixO^S,e_)+tmp(ixO^S)
+      end if
       if(mhd_solve_eaux) then
         ! add eta*J**2 source term in the internal energy equation
         w(ixO^S,eaux_)=w(ixO^S,eaux_)+tmp(ixO^S)
@@ -4826,7 +4831,7 @@ contains
       w(ixO^S,mag(idir)) = w(ixO^S,mag(idir))-tmpvec2(ixO^S,idir)*qdt
     end do
 
-    if (mhd_energy) then
+    if(total_energy) then
       ! de/dt= +div(B x Ehyper)
       ixA^L=ixO^L^LADD1;
       tmpvec2(ixA^S,1:ndir)=zero
