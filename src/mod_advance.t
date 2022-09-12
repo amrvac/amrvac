@@ -548,7 +548,7 @@ contains
           end do
           !$OMP END PARALLEL DO
 
-          call advect1(flux_method,1d0/4d0, idim^LIM,global_time + dt/4d0,ps,global_time,ps2)
+          call advect1(flux_method,1d0/4d0, idim^LIM,global_time,ps,global_time,ps2)
           ! step 2
           call global_implicit_update(1d0/12d0,dt,global_time + dt/4d0,ps3,ps2)
           !$OMP PARALLEL DO PRIVATE(igrid)
@@ -562,7 +562,7 @@ contains
           end do
           !$OMP END PARALLEL DO
 
-          call advect1(flux_method,1d0/3d0, idim^LIM,global_time + dt/3d0,ps2,global_time,ps)
+          call advect1(flux_method,1d0/3d0, idim^LIM,global_time + dt/4d0,ps2,global_time,ps)
           ! step 3
           call global_implicit_update(1d0/6d0,dt,global_time + dt/3d0,ps3,ps)
           !$OMP PARALLEL DO PRIVATE(igrid)
@@ -575,7 +575,7 @@ contains
              endif
           end do
           !$OMP END PARALLEL DO
-          call advect1(flux_method,1d0/2d0, idim^LIM,global_time + dt/2d0,ps,global_time,ps2)
+          call advect1(flux_method,1d0/2d0, idim^LIM,global_time + dt/3d0,ps,global_time,ps2)
 
           ! step 4
           call global_implicit_update(1d0/2d0,dt,global_time + dt/2d0,ps3,ps2)
@@ -587,7 +587,7 @@ contains
              endif
           end do
           !$OMP END PARALLEL DO
-          call advect1(flux_method,1d0, idim^LIM,global_time + dt,ps2,global_time,ps)
+          call advect1(flux_method,1d0, idim^LIM,global_time + dt/2d0,ps2,global_time,ps)
 
 
        case default
