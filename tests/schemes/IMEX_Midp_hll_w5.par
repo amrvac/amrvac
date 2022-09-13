@@ -1,0 +1,10 @@
+ &filelist
+ base_filename  = '_IMEX_Midp_hll_w5'
+ /
+
+ &methodlist
+        time_stepper = 'twostep'
+        time_integrator = 'IMEX_Midpoint'
+        flux_scheme     = 20*'hll'
+        limiter         = 20*'weno5'
+ /

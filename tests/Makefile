@@ -29,27 +29,30 @@ mhd/lfff_extrapolation_3D mhd/tilt_instability_3D mhd/Low_flux_rope_3D          
 mhd/field_loop_2.5D mhd/solar_wind_2.5D mhd/Orszag_Tang_2.5D mhd/Ambipolar1DWave \
 mhd/Ambipolar1DWave-B0split mhd/semirelativisitic_Alfven_wave_1.75D
 
+RHD_DIRS := rhd/RHD_wave_1D rhd/RHD_shock_1D
+
 MG_DIRS := multigrid/convergence_2d multigrid/convergence_3d	\
-multigrid/field_loop_2d multigrid/implicit_diffusion
+multigrid/field_loop_2d multigrid/implicit_diffusion #Anisotropic diffusion???
 
 RD_DIRS := rd/schnakenberg_2d rd/test_suite_2d
 
-ARD_DIRS := ard/schnakenberg_2d 
+ARD_DIRS := ard/schnakenberg_2d
 
 MF_DIRS := mf/Mackay_bipole_Cartesian_3D
 
 TWOFL_DIRS := twofl/Alfven_wave_1D twofl/Riemann_1D twofl/KHI_2D
 
-TEST_DIRS := $(RHO_DIRS) $(HD_DIRS) $(MHD_DIRS) $(MG_DIRS) $(RD_DIRS) $(ARD_DIRS)  $(MF_DIRS) $(TWOFL_DIRS)
+TEST_DIRS := $(RHO_DIRS) $(HD_DIRS) $(RHD_DIRS) $(MHD_DIRS) $(MG_DIRS) $(RD_DIRS) $(ARD_DIRS)  $(MF_DIRS) $(TWOFL_DIRS)
 
 # Directories with altered names (useful for cleaning)
 CLEAN_TEST := $(TEST_DIRS:%=clean-%)
 
 .PHONY: all rho hd mhd mg rd mf twofl clean $(TEST_DIRS) $(CLEAN_TEST)
 
-all: rho hd mhd mg rd ard mf twofl
+all: rho hd rhd mhd mg rd ard mf twofl
 rho: $(RHO_DIRS)
 hd: $(HD_DIRS)
+rhd: $(RHD_DIRS)
 mhd: $(MHD_DIRS)
 mg: $(MG_DIRS)
 rd: $(RD_DIRS)

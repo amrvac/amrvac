@@ -1,0 +1,10 @@
+ &filelist
+ base_filename  = '_IMEX_SP_hll_w5'
+ /
+
+ &methodlist
+        time_stepper = 'onestep'
+        time_integrator = 'IMEX_SP'
+        flux_scheme     = 20*'hll'
+        limiter         = 20*'weno5'
+ /

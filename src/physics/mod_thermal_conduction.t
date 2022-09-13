@@ -3,7 +3,7 @@
 !> In order to use it set use_mhd_tc=1 (for the mhd impl) or 2 (for the hd impl) in mhd_list  (for the mhd module both hd and mhd impl can be used)
 !> or use_new_hd_tc in hd_list parameters to true
 !> (for the hd module, hd implementation has to be used)
-!> The TC is set by calling one 
+!> The TC is set by calling one
 !> tc_init_hd_for_total_energy and tc_init_mhd_for_total_energy might
 !> The second argument: ixArray has to be [rho_,e_,mag(1)] for mhd (Be aware that the other components of the mag field are assumed consecutive) and [rho_,e_] for hd
 !> additionally when internal energy equation is solved, an additional element of this array is eaux_: the index of the internal energy variable.
@@ -11,12 +11,12 @@
 !> 10.07.2011 developed by Chun Xia and Rony Keppens
 !> 01.09.2012 moved to modules folder by Oliver Porth
 !> 13.10.2013 optimized further by Chun Xia
-!> 12.03.2014 implemented RKL2 super timestepping scheme to reduce iterations 
+!> 12.03.2014 implemented RKL2 super timestepping scheme to reduce iterations
 !> and improve stability and accuracy up to second order in time by Chun Xia.
 !> 23.08.2014 implemented saturation and perpendicular TC by Chun Xia
 !> 12.01.2017 modulized by Chun Xia
-!> 
-!> PURPOSE: 
+!>
+!> PURPOSE:
 !> IN MHD ADD THE HEAT CONDUCTION SOURCE TO THE ENERGY EQUATION
 !> S=DIV(KAPPA_i,j . GRAD_j T)
 !> where KAPPA_i,j = tc_k_para b_i b_j + tc_k_perp (I - b_i b_j)
@@ -24,7 +24,7 @@
 !> IN HD ADD THE HEAT CONDUCTION SOURCE TO THE ENERGY EQUATION
 !> S=DIV(tc_k_para . GRAD T)
 !> USAGE:
-!> 1. in mod_usr.t -> subroutine usr_init(), add 
+!> 1. in mod_usr.t -> subroutine usr_init(), add
 !>        unit_length=your length unit
 !>        unit_numberdensity=your number density unit
 !>        unit_velocity=your velocity unit
@@ -33,7 +33,7 @@
 !> 2. to switch on thermal conduction in the (m)hd_list of amrvac.par add:
 !>    (m)hd_thermal_conduction=.true.
 !> 3. in the tc_list of amrvac.par :
-!>    tc_perpendicular=.true.  ! (default .false.) turn on thermal conduction perpendicular to magnetic field 
+!>    tc_perpendicular=.true.  ! (default .false.) turn on thermal conduction perpendicular to magnetic field
 !>    tc_saturate=.false.  ! (default .true. ) turn off thermal conduction saturate effect
 !>    tc_slope_limiter='MC' ! choose limiter for slope-limited anisotropic thermal conduction in MHD
 
@@ -70,21 +70,21 @@ module mod_thermal_conduction
     integer :: Tcoff_
     ! if has_equi = .true. get_temperature_equi and get_rho_equi have to be set
     logical :: has_equi=.false.
-  
+
     ! the following are read from param file or set in tc_read_hd_params or tc_read_mhd_params
     !> Coefficient of thermal conductivity (parallel to magnetic field)
     double precision :: tc_k_para
-  
+
     !> Coefficient of thermal conductivity perpendicular to magnetic field
     double precision :: tc_k_perp
-  
-    !> Name of slope limiter for transverse component of thermal flux 
+
+    !> Name of slope limiter for transverse component of thermal flux
     character(len=std_len)  :: tc_slope_limiter
     !> Logical switch for test constant conductivity
     logical :: tc_constant=.false.
     !> Calculate thermal conduction perpendicular to magnetic field (.true.) or not (.false.)
     logical :: tc_perpendicular=.false.
-  
+
     !> Consider thermal conduction saturation effect (.true.) or not (.false.)
     logical :: tc_saturate=.true.
     ! END the following are read from param file or set in tc_read_hd_params or tc_read_mhd_params
@@ -115,14 +115,14 @@ contains
 
     use mod_global_parameters
 
-    interface 
+    interface
     subroutine read_mhd_params(fl)
       use mod_global_parameters, only: unitpar,par_files
       import tc_fluid
       type(tc_fluid), intent(inout) :: fl
 
     end subroutine read_mhd_params
-    end interface  
+    end interface
 
     type(tc_fluid), intent(inout) :: fl
 
@@ -133,16 +133,16 @@ contains
     fl%tc_k_perp=0.d0
 
     call read_mhd_params(fl)
-  
+
     if(fl%tc_k_para==0.d0 .and. fl%tc_k_perp==0.d0) then
       if(SI_unit) then
         ! Spitzer thermal conductivity with SI units
-        fl%tc_k_para=8.d-12*unit_temperature**3.5d0/unit_length/unit_density/unit_velocity**3 
+        fl%tc_k_para=8.d-12*unit_temperature**3.5d0/unit_length/unit_density/unit_velocity**3
         ! thermal conductivity perpendicular to magnetic field
         fl%tc_k_perp=4.d-30*unit_numberdensity**2/unit_magneticfield**2/unit_temperature**3*fl%tc_k_para
       else
         ! Spitzer thermal conductivity with cgs units
-        fl%tc_k_para=8.d-7*unit_temperature**3.5d0/unit_length/unit_density/unit_velocity**3 
+        fl%tc_k_para=8.d-7*unit_temperature**3.5d0/unit_length/unit_density/unit_velocity**3
         ! thermal conductivity perpendicular to magnetic field
         fl%tc_k_perp=4.d-10*unit_numberdensity**2/unit_magneticfield**2/unit_temperature**3*fl%tc_k_para
       end if
@@ -152,7 +152,7 @@ contains
       fl%tc_constant=.true.
     end if
 
-    contains 
+    contains
 
     !> Read tc module parameters from par file: MHD case
 
@@ -162,12 +162,12 @@ contains
   subroutine tc_get_hd_params(fl,read_hd_params)
     use mod_global_parameters
 
-    interface 
+    interface
       subroutine read_hd_params(fl)
         use mod_global_parameters, only: unitpar,par_files
         import tc_fluid
         type(tc_fluid), intent(inout) :: fl
-  
+
       end subroutine read_hd_params
     end interface
     type(tc_fluid), intent(inout) :: fl
@@ -178,15 +178,14 @@ contains
     if(fl%tc_k_para==0.d0 ) then
       if(SI_unit) then
         ! Spitzer thermal conductivity with SI units
-        fl%tc_k_para=8.d-12*unit_temperature**3.5d0/unit_length/unit_density/unit_velocity**3 
+        fl%tc_k_para=8.d-12*unit_temperature**3.5d0/unit_length/unit_density/unit_velocity**3
       else
         ! Spitzer thermal conductivity with cgs units
-        fl%tc_k_para=8.d-7*unit_temperature**3.5d0/unit_length/unit_density/unit_velocity**3 
+        fl%tc_k_para=8.d-7*unit_temperature**3.5d0/unit_length/unit_density/unit_velocity**3
       end if
       if(mype .eq. 0) print*, "Spitzer HD par: ",fl%tc_k_para
     end if
   end subroutine tc_get_hd_params
-
 
   !> Get the explicut timestep for the TC (mhd implementation)
   function get_tc_dt_mhd(w,ixI^L,ixO^L,dx^D,x,fl) result(dtnew)
@@ -194,13 +193,13 @@ contains
     !where                      tc_k_para_i=tc_k_para*B_i**2/B**2
     !and                        T=p/rho
     use mod_global_parameters
- 
+
     type(tc_fluid), intent(in)  ::  fl
     integer, intent(in) :: ixI^L, ixO^L
     double precision, intent(in) :: dx^D, x(ixI^S,1:ndim)
     double precision, intent(in) :: w(ixI^S,1:nw)
     double precision :: dtnew
-    
+
     double precision :: dxinv(1:ndim),mf(ixI^S,1:ndir)
     double precision :: tmp2(ixI^S),tmp(ixI^S),Te(ixI^S),B2(ixI^S)
     double precision :: dtdiff_tcond,maxtmp2
@@ -251,7 +250,7 @@ contains
       dtnew=min(dtnew,dtdiff_tcond)
     end do
     dtnew=dtnew/dble(ndim)
-  
+
   end  function get_tc_dt_mhd
 
   !> anisotropic thermal conduction with slope limited symmetric scheme
@@ -271,7 +270,7 @@ contains
     double precision :: rho(ixI^S),Te(ixI^S)
     double precision :: qvec(ixI^S,1:ndim)
     double precision, allocatable, dimension(:^D&,:) :: qvec_equi
- 
+
     double precision, allocatable, dimension(:^D&,:,:) :: fluxall
     double precision :: alpha,dxinv(ndim)
     integer :: idims,idir,ix^D,ix^L,ixC^L,ixA^L,ixB^L
@@ -340,7 +339,7 @@ contains
 
     !! qd store the heat conduction energy changing rate
     double precision :: qd(ixI^S)
- 
+
     double precision, dimension(ixI^S,1:ndir) :: mf,Bc,Bcf
     double precision, dimension(ixI^S,1:ndim) :: gradT
     double precision, dimension(ixI^S) :: ka,kaf,ke,kef,qdd,qe,Binv,minq,maxq,Bnorm
@@ -460,8 +459,8 @@ contains
         ixAmax^D=ixOmax^D; ixAmin^D=ixBmin^D;
         {do ix^DB=0,1 \}
            if({ ix^D==0 .and. ^D==idims | .or.}) then
-             ixBmin^D=ixAmin^D-ix^D; 
-             ixBmax^D=ixAmax^D-ix^D; 
+             ixBmin^D=ixAmin^D-ix^D;
+             ixBmax^D=ixAmax^D-ix^D;
              qvec(ixA^S,idims)=qvec(ixA^S,idims)+gradT(ixB^S,idims)
            end if
         {end do\}
@@ -542,7 +541,7 @@ contains
                qd(ixB^S)=maxq(ixA^S)
              end where
              qvec(ixA^S,idims)=qvec(ixA^S,idims)+Bc(ixB^S,idims)**2*qd(ixB^S)
-             if(fl%tc_perpendicular) qe(ixA^S)=qe(ixA^S)+qd(ixB^S) 
+             if(fl%tc_perpendicular) qe(ixA^S)=qe(ixA^S)+qd(ixB^S)
            end if
         {end do\}
         qvec(ixA^S,idims)=kaf(ixA^S)*qvec(ixA^S,idims)*0.5d0**(ndim-1)
@@ -775,7 +774,7 @@ contains
     type(tc_fluid), intent(in)    :: fl
     double precision, intent(in) :: Te(ixI^S),rho(ixI^S)
     double precision, intent(out) :: qvec(ixI^S,1:ndim)
-    
+
 
     double precision :: gradT(ixI^S,1:ndim),ke(ixI^S),qd(ixI^S)
 
@@ -828,7 +827,7 @@ contains
         ixBmax^D=ixCmax^D+ix^D;
         ke(ixC^S)=ke(ixC^S)+qd(ixB^S)
       {end do\}
-      ! cell corner saturation flux 
+      ! cell corner saturation flux
       ke(ixC^S)=0.5d0**ndim*ke(ixC^S)
       ! magnitude of cell corner conduction flux
       qd(ixC^S)=norm2(gradT(ixC^S,:),dim=ndim+1)
@@ -850,8 +849,8 @@ contains
       ixAmax^D=ixOmax^D; ixAmin^D=ixBmin^D;
       {do ix^DB=0,1 \}
          if({ ix^D==0 .and. ^D==idims | .or.}) then
-           ixBmin^D=ixAmin^D-ix^D; 
-           ixBmax^D=ixAmax^D-ix^D; 
+           ixBmin^D=ixAmin^D-ix^D;
+           ixBmax^D=ixAmax^D-ix^D;
            qvec(ixA^S,idims)=qvec(ixA^S,idims)+gradT(ixB^S,idims)
          end if
       {end do\}
