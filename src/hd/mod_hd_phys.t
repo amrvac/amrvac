@@ -266,6 +266,7 @@ contains
     phys_check_params        => hd_check_params
     phys_check_w             => hd_check_w
     phys_get_pthermal        => hd_get_pthermal
+    phys_get_v               => hd_get_v
     phys_write_info          => hd_write_info
     phys_handle_small_values => hd_handle_small_values
     phys_angmomfix           => hd_angmomfix
@@ -737,13 +738,29 @@ contains
   end subroutine rhos_to_e
 
   !> Calculate v_i = m_i / rho within ixO^L
-  subroutine hd_get_v(w, x, ixI^L, ixO^L, idim, v)
+  subroutine hd_get_v_idim(w, x, ixI^L, ixO^L, idim, v)
     use mod_global_parameters
     integer, intent(in)           :: ixI^L, ixO^L, idim
     double precision, intent(in)  :: w(ixI^S, nw), x(ixI^S, 1:ndim)
     double precision, intent(out) :: v(ixI^S)
 
     v(ixO^S) = w(ixO^S, mom(idim)) / w(ixO^S, rho_)
+  end subroutine hd_get_v_idim
+
+  !> Calculate velocity vector v_i = m_i / rho within ixO^L
+  subroutine hd_get_v(w,x,ixI^L,ixO^L,v)
+    use mod_global_parameters
+
+    integer, intent(in)           :: ixI^L, ixO^L
+    double precision, intent(in)  :: w(ixI^S,nw), x(ixI^S,1:^ND)
+    double precision, intent(out) :: v(ixI^S,1:ndir)
+
+    integer :: idir
+
+    do idir=1,ndir
+      v(ixO^S,idir) = w(ixO^S, mom(idir)) / w(ixO^S, rho_)
+    end do
+
   end subroutine hd_get_v
 
   !> Calculate cmax_idim = csound + abs(v_idim) within ixO^L
@@ -757,7 +774,7 @@ contains
     double precision                          :: csound(ixI^S)
     double precision                          :: v(ixI^S)
 
-    call hd_get_v(w, x, ixI^L, ixO^L, idim, v)
+    call hd_get_v_idim(w, x, ixI^L, ixO^L, idim, v)
     call hd_get_csound2(w,x,ixI^L,ixO^L,csound)
     csound(ixO^S) = dsqrt(csound(ixO^S))
 
@@ -1087,7 +1104,7 @@ contains
     integer                         :: idir, itr
 
     call hd_get_pthermal(w, x, ixI^L, ixO^L, pth)
-    call hd_get_v(w, x, ixI^L, ixO^L, idim, v)
+    call hd_get_v_idim(w, x, ixI^L, ixO^L, idim, v)
 
     f(ixO^S, rho_) = v(ixO^S) * w(ixO^S, rho_)
 
