@@ -330,12 +330,9 @@ mod_thermal_conduction.o: mod_fix_conserve.mod
 mod_thermal_conduction.o: mod_geometry.mod
 mod_thermal_emission.o: mod_physics.mod
 mod_trac.o: mod_mhd.mod
-mod_trac.o: mod_particle_base.mod
-mod_trac.o: mod_point_searching.mod
-mod_trace_Bfield.o: mod_mhd.mod
-mod_trace_Bfield.o: mod_particle_base.mod
-mod_trace_Vfield.o: mod_particle_base.mod
-mod_trace_Vfield.o: mod_physics.mod
+mod_trac.o: mod_trace_field.mod
+mod_trace_field.o: mod_particle_base.mod
+mod_trace_field.o: mod_physics.mod
 mod_tvd.o: mod_limiter.mod
 mod_tvd.o: mod_physics_roe.mod
 mod_twofl.o: mod_amrvac.mod

@@ -101,6 +101,10 @@ module mod_usr_methods
   ! primitive shape evaluated in the boundaries \int_(x_i-dx_i/2)^(x_i+dx_i/2) A(s) ds
   procedure(set_surface), pointer  :: usr_set_surface          => null()
 
+  ! for tracing field. allow user to specify variables and field
+  procedure(set_field_w), pointer :: usr_set_field_w => null()
+  procedure(set_field), pointer :: usr_set_field => null()
+
   abstract interface
 
     subroutine p_no_args()
@@ -554,6 +558,38 @@ module mod_usr_methods
 
     end subroutine set_surface
 
+    subroutine set_field_w(igrid,ip,xf,wP,wL,numP,nwP,nwL,dL,forward,ftype,tcondi)
+      use mod_global_parameters
+      !use mod_point_searching
+
+      integer, intent(in)                 :: igrid,ip,numP,nwP,nwL
+      double precision, intent(in)        :: xf(numP,ndim)
+      double precision, intent(inout)     :: wP(numP,nwP),wL(1+nwL)
+      double precision, intent(in)        :: dL
+      logical, intent(in)                 :: forward
+      character(len=std_len), intent(in)  :: ftype,tcondi
+
+      !double precision :: xpp(1:ndim),wpp(1:nw)
+      !xpp(1:ndim)=xf(ip,1:ndim)
+      !call get_point_in_grid(igrid,xpp,wpp,'conserved',ixI^L,ixO^L,x,w)
+      !wP(ip,1)=wpp(1)
+
+    end subroutine set_field_w
+
+    subroutine set_field(xfn,igrid,field,ftype)
+      use mod_global_parameters
+
+      integer,intent(in)                  :: igrid
+      double precision, intent(in)        :: xfn(ndim)
+      double precision, intent(inout)     :: field(ndim)
+      character(len=std_len), intent(in)  :: ftype
+
+      !if (ftype='xdir') then
+      !  field(:)=zero
+      !  field(1)=1.d0
+      !endif
+
+    end subroutine set_field
 
   end interface
 
