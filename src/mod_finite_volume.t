@@ -16,13 +16,13 @@ contains
   !> input available on ixI^L=ixG^L asks for output on ixO^L=ixG^L^LSUBnghostcells
   !> one entry: (predictor): wCT -- w_n        wnew -- w_n   qdt=dt/2
   !> on exit :  (predictor): wCT -- w_n        wnew -- w_n+1/2
-  subroutine hancock(qdt,ixI^L,ixO^L,idims^LIM,qtC,sCT,qt,snew,dx^D,x)
+  subroutine hancock(qdt,ixI^L,ixO^L,idims^LIM,qtC,sCT,qt,snew,dxs,x)
     use mod_physics
     use mod_global_parameters
     use mod_source, only: addsource2
 
     integer, intent(in) :: ixI^L, ixO^L, idims^LIM
-    double precision, intent(in) :: qdt, qtC, qt, dx^D, x(ixI^S,1:ndim)
+    double precision, intent(in) :: qdt, qtC, qt, dxs(ndim), x(ixI^S,1:ndim)
     type(state) :: sCT, snew
 
     double precision, dimension(ixI^S,1:nw) :: wprim, wLC, wRC
@@ -30,7 +30,7 @@ contains
     double precision, dimension(ixI^S,1:nw) :: wLp, wRp
     double precision, dimension(ixO^S)      :: inv_volume
     double precision :: fLC(ixI^S, nwflux), fRC(ixI^S, nwflux)
-    double precision :: dxinv(1:ndim),dxdim(1:ndim)
+    double precision :: dxinv(1:ndim)
     integer :: idims, iw, ix^L, hxO^L
     logical :: active
 
@@ -46,8 +46,8 @@ contains
     wprim=wCT
     call phys_to_primitive(ixI^L,ixI^L,wprim,x)
 
-    ^D&dxinv(^D)=-qdt/dx^D;
-    ^D&dxdim(^D)=dx^D;
+    dxinv=-qdt/dxs
+    if(.not.slab_uniform) inv_volume = 1.d0/block%dvolume(ixO^S)
     do idims= idims^LIM
       b0i=idims
       ! Calculate w_j+g_j/2 and w_j-g_j/2
@@ -59,24 +59,25 @@ contains
       wLp(ixO^S,1:nwflux)=wprim(ixO^S,1:nwflux)
 
       ! apply limited reconstruction for left and right status at cell interfaces
-      call reconstruct_LR(ixI^L,ixO^L,hxO^L,idims,wprim,wLC,wRC,wLp,wRp,x,dxdim(idims))
+      call reconstruct_LR(ixI^L,ixO^L,hxO^L,idims,wprim,wLC,wRC,wLp,wRp,x,dxs(idims))
 
       ! Calculate the fLC and fRC fluxes
       call phys_get_flux(wRC,wRp,x,ixI^L,hxO^L,idims,fRC)
       call phys_get_flux(wLC,wLp,x,ixI^L,ixO^L,idims,fLC)
 
       ! Advect w(iw)
-      do iw=1,nwflux
-        if (slab_uniform) then
-          wnew(ixO^S,iw)=wnew(ixO^S,iw)+dxinv(idims)* &
-               (fLC(ixO^S, iw)-fRC(hxO^S, iw))
-        else
-          inv_volume = 1.d0/block%dvolume(ixO^S)
+      if (slab_uniform) then
+        do iw=1,nwflux
+            wnew(ixO^S,iw)=wnew(ixO^S,iw)+dxinv(idims)* &
+                 (fLC(ixO^S, iw)-fRC(hxO^S, iw))
+        end do
+      else
+        do iw=1,nwflux
           wnew(ixO^S,iw)=wnew(ixO^S,iw) - qdt * inv_volume &
                *(block%surfaceC(ixO^S,idims)*fLC(ixO^S, iw) &
                -block%surfaceC(hxO^S,idims)*fRC(hxO^S, iw))
-        end if
-      end do
+        end do
+      end if
     end do ! next idims
     b0i=0
 
@@ -94,7 +95,7 @@ contains
 
   !> finite volume method
   subroutine finite_volume(method,qdt,ixI^L,ixO^L,idims^LIM, &
-       qtC,sCT,qt,snew,sold,fC,fE,dx^D,x)
+       qtC,sCT,qt,snew,sold,fC,fE,dxs,x)
     use mod_physics
     use mod_variables
     use mod_global_parameters
@@ -103,7 +104,7 @@ contains
     use mod_usr_methods
 
     integer, intent(in)                                   :: method
-    double precision, intent(in)                          :: qdt, qtC, qt, dx^D
+    double precision, intent(in)                          :: qdt, qtC, qt, dxs(ndim)
     integer, intent(in)                                   :: ixI^L, ixO^L, idims^LIM
     double precision, dimension(ixI^S,1:ndim), intent(in) :: x
     type(state)                                           :: sCT, snew, sold
@@ -121,7 +122,7 @@ contains
     double precision, dimension(ixI^S,1:number_species)      :: cminC
     double precision, dimension(ixI^S)      :: Hspeed
     double precision, dimension(ixO^S)      :: inv_volume
-    double precision, dimension(1:ndim)     :: dxinv, dxdim
+    double precision, dimension(1:ndim)     :: dxinv
     integer, dimension(ixI^S)               :: patchf
     integer :: idims, iw, ix^L, hxO^L, ixC^L, ixCR^L, kxC^L, kxR^L, ii
     logical :: active
@@ -145,8 +146,6 @@ contains
     wprim=wCT
     call phys_to_primitive(ixI^L,ixI^L,wprim,x)
 
-    ^D&dxinv(^D)=-qdt/dx^D;
-    ^D&dxdim(^D)=dx^D;
     do idims= idims^LIM
        ! use interface value of w0 at idims
        b0i=idims
@@ -157,8 +156,9 @@ contains
        kxR^L=kxC^L+kr(idims,^D);
 
        if(stagger_grid) then
-          ! ct needs all transverse cells
-          ixCmax^D=ixOmax^D+nghostcells-nghostcells*kr(idims,^D); ixCmin^D=hxOmin^D-nghostcells+nghostcells*kr(idims,^D);
+         ! ct needs all transverse cells
+         ixCmax^D=ixOmax^D+nghostcells-nghostcells*kr(idims,^D);
+         ixCmin^D=hxOmin^D-nghostcells+nghostcells*kr(idims,^D);
        else
          ! ixC is centered index in the idims direction from ixOmin-1/2 to ixOmax+1/2
          ixCmax^D=ixOmax^D; ixCmin^D=hxOmin^D;
@@ -176,7 +176,7 @@ contains
        {ixCRmax^D = min(ixCmax^D + phys_wider_stencil,ixGhi^D)\}
 
        ! apply limited reconstruction for left and right status at cell interfaces
-       call reconstruct_LR(ixI^L,ixCR^L,ixCR^L,idims,wprim,wLC,wRC,wLp,wRp,x,dxdim(idims))
+       call reconstruct_LR(ixI^L,ixCR^L,ixCR^L,idims,wprim,wLC,wRC,wLp,wRp,x,dxs(idims))
 
        ! special modification of left and right status before flux evaluation
        call phys_modify_wLR(ixI^L,ixCR^L,qt,wLC,wRC,wLp,wRp,sCT,idims)
@@ -231,19 +231,28 @@ contains
 
     if(stagger_grid) call phys_update_faces(ixI^L,ixO^L,qt,qdt,wprim,fC,fE,sCT,snew,vcts)
 
-    do idims= idims^LIM
-       hxO^L=ixO^L-kr(idims,^D);
+    if(slab_uniform) then
+      dxinv=-qdt/dxs
+      do idims= idims^LIM
+        hxO^L=ixO^L-kr(idims,^D);
 
-       ! Multiply the fluxes by -dt/dx since Flux fixing expects this
-       if (slab_uniform) then
-         fC(ixI^S,1:nwflux,idims)=dxinv(idims)*fC(ixI^S,1:nwflux,idims)
+        ! Multiply the fluxes by -dt/dx since Flux fixing expects this
+        fC(ixI^S,1:nwflux,idims)=dxinv(idims)*fC(ixI^S,1:nwflux,idims)
 
-         wnew(ixO^S,iwstart:nwflux)=wnew(ixO^S,iwstart:nwflux)+&
-           (fC(ixO^S,iwstart:nwflux,idims)-fC(hxO^S,iwstart:nwflux,idims))
-       else
-         if (.not. angmomfix) then ! default case
-           inv_volume = 1.d0/block%dvolume(ixO^S)
+        wnew(ixO^S,iwstart:nwflux)=wnew(ixO^S,iwstart:nwflux)+&
+            (fC(ixO^S,iwstart:nwflux,idims)-fC(hxO^S,iwstart:nwflux,idims))
 
+        ! For the MUSCL scheme apply the characteristic based limiter
+        if(method==fs_tvdmu) &
+           call tvdlimit2(method,qdt,ixI^L,ixC^L,ixO^L,idims,wLC,wRC,wnew,x,fC,dxs)
+
+      end do ! Next idims
+    else
+      inv_volume = 1.d0/block%dvolume(ixO^S)
+      do idims= idims^LIM
+         hxO^L=ixO^L-kr(idims,^D);
+
+         if(.not. angmomfix) then ! default case
            do iw=iwstart,nwflux
              fC(ixI^S,iw,idims)=-qdt*fC(ixI^S,iw,idims)*block%surfaceC(ixI^S,idims)
              wnew(ixO^S,iw)=wnew(ixO^S,iw) + (fC(ixO^S,iw,idims)-fC(hxO^S,iw,idims)) * &
@@ -254,13 +263,13 @@ contains
            ! some fluxes additions need to be treated specifically
            call phys_angmomfix(fC,x,wnew,ixI^L,ixO^L,idims)
          end if
-       end if
 
-       ! For the MUSCL scheme apply the characteristic based limiter
-       if (method==fs_tvdmu) &
-            call tvdlimit2(method,qdt,ixI^L,ixC^L,ixO^L,idims,wLC,wRC,wnew,x,fC,dx^D)
+         ! For the MUSCL scheme apply the characteristic based limiter
+         if (method==fs_tvdmu) &
+              call tvdlimit2(method,qdt,ixI^L,ixC^L,ixO^L,idims,wLC,wRC,wnew,x,fC,dxs)
 
-    end do ! Next idims
+      end do ! Next idims
+    end if
 
     if (.not.slab.and.idimsmin==1) &
          call phys_add_source_geom(qdt,ixI^L,ixO^L,wCT,wnew,x)
