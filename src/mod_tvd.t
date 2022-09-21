@@ -10,11 +10,11 @@ module mod_tvd
 
 contains
 
-  subroutine tvdlimit(method,qdt,ixI^L,ixO^L,idim^LIM,s,qt,snew,fC,dx^D,x)
+  subroutine tvdlimit(method,qdt,ixI^L,ixO^L,idim^LIM,s,qt,snew,fC,dxs,x)
     use mod_global_parameters
 
     integer, intent(in) :: method
-    double precision, intent(in) :: qdt, qt, dx^D
+    double precision, intent(in) :: qdt, qt, dxs(ndim)
     integer, intent(in) :: ixI^L, ixO^L, idim^LIM
     double precision, dimension(ixI^S,nw) :: w, wnew
     type(state) :: s, snew
@@ -30,12 +30,12 @@ contains
        wL(ixIC^S,1:nw)=w(ixIC^S,1:nw)
        jxIC^L=ixIC^L+kr(idims,^D);
        wR(ixIC^S,1:nw)=w(jxIC^S,1:nw)
-       call tvdlimit2(method,qdt,ixI^L,ixIC^L,ixO^L,idims,wL,wR,wnew,x,fC,dx^D)
+       call tvdlimit2(method,qdt,ixI^L,ixIC^L,ixO^L,idims,wL,wR,wnew,x,fC,dxs)
     end do
     end associate
   end subroutine tvdlimit
 
-  subroutine tvdlimit2(method,qdt,ixI^L,ixIC^L,ixO^L,idims,wL,wR,wnew,x,fC,dx^D)
+  subroutine tvdlimit2(method,qdt,ixI^L,ixIC^L,ixO^L,idims,wL,wR,wnew,x,fC,dxs)
 
     ! Limit the flow variables in wnew according to typetvd. 
     ! wroeC is based on wL and wR.
@@ -46,7 +46,7 @@ contains
     use mod_physics_roe
 
     integer, intent(in) :: method
-    double precision, intent(in) :: qdt, dx^D
+    double precision, intent(in) :: qdt, dxs(ndim)
     integer, intent(in) :: ixI^L, ixIC^L, ixO^L, idims
     double precision, dimension(ixG^T,nw) :: wL, wR
     double precision, intent(in) :: x(ixI^S,1:ndim)
@@ -68,7 +68,7 @@ contains
 
     call phys_average(wL,wR,x,ixIC^L,idims,wroeC,workroe)
 
-    ^D&dxinv(^D)=qdt/dx^D;
+    dxinv=qdt/dxs
 
     ! A loop on characteristic variables to calculate the dissipative flux phiC.
     do il=1,nwflux
