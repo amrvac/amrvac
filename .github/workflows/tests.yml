@@ -8,6 +8,62 @@ on:
 
 
 jobs:
+  COMPILE:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest]
+        compiler: [gfortran-8, gfortran-9, gfortran-10, gfortran-11]
+        include:
+          - os: macos-11
+            compiler: gfortran-11
+            gcc_name: gcc@11
+          - os: macos-12
+            compiler: gfortran-11
+            gcc_name: gcc@11
+
+    env:
+      FC: ${{ matrix.compiler }}
+      AMRVAC_DIR: ${GITHUB_WORKSPACE}
+
+    runs-on: ${{ matrix.os }}
+
+    name: compile / ${{ matrix.os }} / ${{ matrix.compiler }}
+
+    steps:
+      - uses: actions/checkout@v2
+      - name: install dependencies
+        run: |
+          if [[ "${{ matrix.os }}" == "ubuntu-latest" ]]; then
+            sudo apt-get update
+            sudo apt-get install ${{ matrix.compiler }}
+            sudo apt-get install openmpi-bin libopenmpi-dev
+          else
+            brew install ${{ matrix.gcc_name }}
+            brew install open-mpi
+            ln -s /usr/local/bin/${{ matrix.compiler }} /usr/local/bin/gfortran
+          fi
+      - name: check compiler versions
+        run: |
+          whereis ${FC}
+          ${FC} --version
+          gfortran --version
+          mpirun --version
+          mpif90 --version
+      - name: check code dependencies
+        run: |
+          cd src
+          bash update_dependencies.sh --verbose || exit 1
+      - name: compile 1D
+        run: |
+          cd lib
+          make 1d ARCH=debug -j 4 || exit 1
+      - name: run 1D rho test
+        run: |
+          cd tests
+          bash test_runner.sh rho/auto_1d
+
+
   GNU:
     strategy:
       fail-fast: false
@@ -23,6 +79,7 @@ jobs:
       AMRVAC_DIR: ${GITHUB_WORKSPACE}
 
     runs-on: ${{ matrix.os }}
+    needs: COMPILE
 
     name: ${{ matrix.suite }}
 
