@@ -457,13 +457,12 @@ module mod_global_parameters
   !> The Courant (CFL) number used for the simulation
   double precision :: courantpar
 
-  !> How to compute the CFL-limited time step.
-  !>
-  !> Options are 'maxsum': max(sum(c/dx)); 'summax': sum(max(c/dx)) and
-  !> 'minimum: max(c/dx), where the summations loop over the grid dimensions and
-  !> c is the velocity. The default 'maxsum' is the conventiontal way of
-  !> computing CFL-limited time steps.
-  character(len=std_len) :: typecourant
+  !> How to compute the CFL-limited time step
+  integer :: type_courant=1
+  !> integer switchers for type courant
+  integer, parameter :: type_maxsum=1
+  integer, parameter :: type_summax=2
+  integer, parameter :: type_minimum=3
 
   !> If dtpar is positive, it sets the timestep dt, otherwise courantpar is used
   !> to limit the time step based on the Courant condition.

@@ -20,23 +20,10 @@ contains
 
     allocate(i_mom(1:ndir))
 
-
-#if defined(ONE_FLUID) && ONE_FLUID==1
-      phys_diffuse_hllcd => twofl_diffuse_hllcd_c
-      phys_get_lCD => twofl_get_lCD_c
-      phys_get_wCD => twofl_get_wCD_c
-
-      i_rho = rho_c_
-      i_mom(1:ndir) = mom_c(1:ndir)
-      i_e = e_c_
-      i_eaux=eaux_c_
-
-#else
     phys_hllc_init_species => twofl_hllc_init_species
-#endif
+
   end subroutine twofl_hllc_init
 
-#if !defined(ONE_FLUID) || ONE_FLUID==0
   subroutine twofl_hllc_init_species(ii, rho_, mom, e_, eaux_)
     use mod_global_parameters
     integer, intent(in)                                    :: ii
@@ -279,7 +266,6 @@ contains
     {end do\}
 
   end subroutine twofl_get_wCD_n
-#endif
 
   subroutine twofl_diffuse_hllcd_c(ixI^L,ixO^L,idim,wLC,wRC,fLC,fRC,patchf)
   ! when method is hllcd or hllcd1 then: 
@@ -506,7 +492,5 @@ contains
     end do
 
   end subroutine twofl_get_wCD_c
-
-
 
 end module mod_twofl_hllc

@@ -229,6 +229,9 @@ module mod_mhd_phys
   !> Whether unsplit semirelativistic MHD is solved
   logical :: unsplit_semirelativistic=.false.
 
+  !> Whether gravity work is included in energy equation
+  logical :: gravity_energy
+
   !> gamma minus one and its inverse
   double precision :: gamma_1, inv_gamma_1
 
@@ -444,6 +447,15 @@ contains
       total_energy=.false.
     end if
     phys_total_energy=total_energy
+    if(mhd_energy) then
+      if(mhd_internal_e) then
+        gravity_energy=.false.
+      else
+        gravity_energy=.true.
+      end if
+    else
+      gravity_energy=.false.
+    end if
 
     {^IFONED
     if(mhd_trac .and. mhd_trac_type .gt. 2) then
@@ -881,7 +893,7 @@ contains
   end subroutine mhd_phys_init
 
 {^IFTHREED
-  subroutine mhd_te_images()
+  subroutine mhd_te_images
     use mod_global_parameters
     use mod_thermal_emission
 
@@ -4229,7 +4241,7 @@ contains
 
     if(mhd_gravity) then
       call gravity_add_source(qdt,ixI^L,ixO^L,wCT,&
-           w,x,total_energy,qsourcesplit,active)
+           w,x,gravity_energy,qsourcesplit,active)
     end if
 
   end subroutine mhd_add_source
@@ -4690,7 +4702,7 @@ contains
 
        ! Add sources related to eta*laplB-grad(eta) x J to B and e
        w(ixO^S,mag(idir))=w(ixO^S,mag(idir))+qdt*tmp(ixO^S)
-       if (mhd_energy) then
+       if(total_energy) then
           w(ixO^S,e_)=w(ixO^S,e_)+qdt*tmp(ixO^S)*Bf(ixO^S,idir)
        end if
     end do ! idir
@@ -4759,11 +4771,16 @@ contains
     end if
 
     if(mhd_energy) then
-      ! de/dt= +div(B x Jeta) = eta J^2 - B dot curl(eta J)
-      ! de1/dt= eta J^2 - B1 dot curl(eta J)
-      tmp(ixO^S)=eta(ixO^S)*sum(current(ixO^S,:)**2,dim=ndim+1)
-      w(ixO^S,e_)=w(ixO^S,e_)+qdt*(tmp(ixO^S)-&
-        sum(wCT(ixO^S,mag(1:ndir))*curlj(ixO^S,1:ndir),dim=ndim+1))
+      tmp(ixO^S)=qdt*eta(ixO^S)*sum(current(ixO^S,:)**2,dim=ndim+1)
+      if(total_energy) then
+        ! de/dt= +div(B x Jeta) = eta J^2 - B dot curl(eta J)
+        ! de1/dt= eta J^2 - B1 dot curl(eta J)
+        w(ixO^S,e_)=w(ixO^S,e_)+tmp(ixO^S)-&
+        qdt*sum(wCT(ixO^S,mag(1:ndir))*curlj(ixO^S,1:ndir),dim=ndim+1)
+      else
+        ! add eta*J**2 source term in the internal energy equation
+        w(ixO^S,e_)=w(ixO^S,e_)+tmp(ixO^S)
+      end if
       if(mhd_solve_eaux) then
         ! add eta*J**2 source term in the internal energy equation
         w(ixO^S,eaux_)=w(ixO^S,eaux_)+tmp(ixO^S)
@@ -4814,7 +4831,7 @@ contains
       w(ixO^S,mag(idir)) = w(ixO^S,mag(idir))-tmpvec2(ixO^S,idir)*qdt
     end do
 
-    if (mhd_energy) then
+    if(total_energy) then
       ! de/dt= +div(B x Ehyper)
       ixA^L=ixO^L^LADD1;
       tmpvec2(ixA^S,1:ndir)=zero

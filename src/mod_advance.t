@@ -548,7 +548,7 @@ contains
           end do
           !$OMP END PARALLEL DO
 
-          call advect1(flux_method,1d0/4d0, idim^LIM,global_time + dt/4d0,ps,global_time,ps2)
+          call advect1(flux_method,1d0/4d0, idim^LIM,global_time,ps,global_time,ps2)
           ! step 2
           call global_implicit_update(1d0/12d0,dt,global_time + dt/4d0,ps3,ps2)
           !$OMP PARALLEL DO PRIVATE(igrid)
@@ -562,7 +562,7 @@ contains
           end do
           !$OMP END PARALLEL DO
 
-          call advect1(flux_method,1d0/3d0, idim^LIM,global_time + dt/3d0,ps2,global_time,ps)
+          call advect1(flux_method,1d0/3d0, idim^LIM,global_time + dt/4d0,ps2,global_time,ps)
           ! step 3
           call global_implicit_update(1d0/6d0,dt,global_time + dt/3d0,ps3,ps)
           !$OMP PARALLEL DO PRIVATE(igrid)
@@ -575,7 +575,7 @@ contains
              endif
           end do
           !$OMP END PARALLEL DO
-          call advect1(flux_method,1d0/2d0, idim^LIM,global_time + dt/2d0,ps,global_time,ps2)
+          call advect1(flux_method,1d0/2d0, idim^LIM,global_time + dt/3d0,ps,global_time,ps2)
 
           ! step 4
           call global_implicit_update(1d0/2d0,dt,global_time + dt/2d0,ps3,ps2)
@@ -587,7 +587,7 @@ contains
              endif
           end do
           !$OMP END PARALLEL DO
-          call advect1(flux_method,1d0, idim^LIM,global_time + dt,ps2,global_time,ps)
+          call advect1(flux_method,1d0, idim^LIM,global_time + dt/2d0,ps2,global_time,ps)
 
 
        case default
@@ -748,7 +748,6 @@ contains
     end if
 
     ! For all grids: fill ghost cells
-    qdt = dtfactor*dt
     call getbc(qt+qdt,qdt,psb,iwstart,nwgc,phys_req_diagonal)
 
   end subroutine advect1
@@ -763,17 +762,13 @@ contains
     double precision, intent(in) :: qdt, qtC, qt
     type(state), target          :: sCT, s, sold
 
-    double precision :: dx^D
     ! cell face flux
     double precision :: fC(ixI^S,1:nwflux,1:ndim)
     ! cell edge flux
     double precision :: fE(ixI^S,7-2*ndim:3)
 
-    dx^D=rnode(rpdx^D_,igrid);
-
-    call advect1_grid(method,qdt,ixI^L,idim^LIM,qtC,sCT,qt,s,sold,fC,fE,dx^D, &
-         ps(igrid)%x)
-
+    call advect1_grid(method,qdt,ixI^L,idim^LIM,qtC,sCT,qt,s,sold,fC,fE,&
+         rnode(rpdx1_:rnodehi,igrid),ps(igrid)%x)
 
     ! opedit: Obviously, flux is stored only for active grids.
     ! but we know in fix_conserve wether there is a passive neighbor
@@ -789,7 +784,7 @@ contains
   end subroutine process1_grid
 
   !> Advance a single grid over one partial time step
-  subroutine advect1_grid(method,qdt,ixI^L,idim^LIM,qtC,sCT,qt,s,sold,fC,fE,dx^D,x)
+  subroutine advect1_grid(method,qdt,ixI^L,idim^LIM,qtC,sCT,qt,s,sold,fC,fE,dxs,x)
 
     !  integrate one grid by one partial step
     use mod_finite_volume
@@ -800,7 +795,7 @@ contains
 
     integer, intent(in) :: method
     integer, intent(in) :: ixI^L, idim^LIM
-    double precision, intent(in) :: qdt, qtC, qt, dx^D, x(ixI^S,1:ndim)
+    double precision, intent(in) :: qdt, qtC, qt, dxs(ndim), x(ixI^S,1:ndim)
     type(state), target          :: sCT, s, sold
     double precision :: fC(ixI^S,1:nwflux,1:ndim)
     double precision :: fE(ixI^S,7-2*ndim:3)
@@ -810,16 +805,16 @@ contains
     ixO^L=ixI^L^LSUBnghostcells;
     select case (method)
     case (fs_hll,fs_hllc,fs_hllcd,fs_hlld,fs_tvdlf,fs_tvdmu)
-       call finite_volume(method,qdt,ixI^L,ixO^L,idim^LIM,qtC,sCT,qt,s,sold,fC,fE,dx^D,x)
+       call finite_volume(method,qdt,ixI^L,ixO^L,idim^LIM,qtC,sCT,qt,s,sold,fC,fE,dxs,x)
     case (fs_cd,fs_cd4)
-       call centdiff(method,qdt,ixI^L,ixO^L,idim^LIM,qtC,sCT,qt,s,fC,fE,dx^D,x)
+       call centdiff(method,qdt,ixI^L,ixO^L,idim^LIM,qtC,sCT,qt,s,fC,fE,dxs,x)
     case (fs_hancock)
-       call hancock(qdt,ixI^L,ixO^L,idim^LIM,qtC,sCT,qt,s,dx^D,x)
+       call hancock(qdt,ixI^L,ixO^L,idim^LIM,qtC,sCT,qt,s,dxs,x)
     case (fs_fd)
-       call fd(qdt,ixI^L,ixO^L,idim^LIM,qtC,sCT,qt,s,fC,fE,dx^D,x)
+       call fd(qdt,ixI^L,ixO^L,idim^LIM,qtC,sCT,qt,s,fC,fE,dxs,x)
     case (fs_tvd)
-       call centdiff(fs_cd,qdt,ixI^L,ixO^L,idim^LIM,qtC,sCT,qt,s,fC,fE,dx^D,x)
-       call tvdlimit(method,qdt,ixI^L,ixO^L,idim^LIM,sCT,qt+qdt,s,fC,dx^D,x)
+       call centdiff(fs_cd,qdt,ixI^L,ixO^L,idim^LIM,qtC,sCT,qt,s,fC,fE,dxs,x)
+       call tvdlimit(method,qdt,ixI^L,ixO^L,idim^LIM,sCT,qt+qdt,s,fC,dxs,x)
     case (fs_source)
        call addsource2(qdt*dble(idimmax-idimmin+1)/dble(ndim),&
             ixI^L,ixO^L,1,nw,qtC,sCT%w,qt,s%w,x,.false.)

@@ -667,15 +667,7 @@ contains
       end do
       !$OMP END PARALLEL DO
     end if
-    
-    if (nwaux>0) then
-      !$OMP PARALLEL DO SCHEDULE(dynamic) PRIVATE(igrid)
-      do iigrid=1,igridstail; igrid=igrids(iigrid);
-        call fix_auxiliary(igrid)
-      end do
-      !$OMP END PARALLEL DO
-    end if
-    
+
     time_bc=time_bc+(MPI_WTIME()-time_bcin)
     
     contains
@@ -1839,22 +1831,6 @@ contains
         end select
       
       end subroutine pole_buffer
-
-      subroutine fix_auxiliary(igrid)
-        use mod_physics, only: phys_get_aux
-        integer, intent(in) :: igrid
-
-        integer :: ix^L,iib^D
-
-        block=>psb(igrid)
-        ^D&iib^D=idphyb(^D,igrid);
-        {do i^DB=-1,1\}
-           if (skip_direction([ i^D ])) cycle
-           ix^L=ixR_srl_^L(iib^D,i^D);
-           call phys_get_aux(.true.,psb(igrid)%w,psb(igrid)%x,ixG^LL,ix^L,"bc")
-        {end do\}
-
-      end subroutine fix_auxiliary
 
   end subroutine getbc
 

@@ -71,7 +71,6 @@ module mod_physics
   procedure(sub_add_source), pointer      :: phys_add_source             => null()
   procedure(sub_global_source), pointer   :: phys_global_source_after    => null()
   procedure(sub_special_advance), pointer :: phys_special_advance        => null()
-  procedure(sub_get_aux), pointer         :: phys_get_aux                => null()
   procedure(sub_check_w), pointer         :: phys_check_w                => null()
   procedure(sub_get_pthermal), pointer    :: phys_get_pthermal           => null()
   procedure(sub_get_tgas), pointer        :: phys_get_tgas               => null()
@@ -246,15 +245,6 @@ module mod_physics
        double precision, intent(inout) :: dtnew
      end subroutine sub_get_dt
 
-     subroutine sub_get_aux(clipping,w,x,ixI^L,ixO^L,subname)
-       use mod_global_parameters
-       integer, intent(in)             :: ixI^L, ixO^L
-       double precision, intent(in)    :: x(ixI^S,1:ndim)
-       double precision, intent(inout) :: w(ixI^S,nw)
-       logical, intent(in)             :: clipping
-       character(len=*)                :: subname
-     end subroutine sub_get_aux
-
      subroutine sub_check_w(primitive, ixI^L, ixO^L, w, w_flag)
        use mod_global_parameters
        logical, intent(in)          :: primitive
@@ -414,9 +404,6 @@ contains
     if (.not. associated(phys_add_source)) &
          phys_add_source => dummy_add_source
 
-    if (.not. associated(phys_get_aux)) &
-         phys_get_aux => dummy_get_aux
-
     if (.not. associated(phys_check_w)) &
          phys_check_w => dummy_check_w
 
@@ -502,15 +489,6 @@ contains
     double precision, intent(in), optional :: wCTprim(ixI^S,1:nw)
     ! Don't have to set active, since it starts as .false.
   end subroutine dummy_add_source
-
-  subroutine dummy_get_aux(clipping,w,x,ixI^L,ixO^L,subname)
-    use mod_global_parameters
-    integer, intent(in)             :: ixI^L, ixO^L
-    double precision, intent(in)    :: x(ixI^S,1:ndim)
-    double precision, intent(inout) :: w(ixI^S,nw)
-    logical, intent(in)             :: clipping
-    character(len=*)                :: subname
-  end subroutine dummy_get_aux
 
   subroutine dummy_check_w(primitive, ixI^L, ixO^L, w, w_flag)
     use mod_global_parameters

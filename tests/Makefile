@@ -29,7 +29,7 @@ mhd/lfff_extrapolation_3D mhd/tilt_instability_3D mhd/Low_flux_rope_3D          
 mhd/field_loop_2.5D mhd/solar_wind_2.5D mhd/Orszag_Tang_2.5D mhd/Ambipolar1DWave \
 mhd/Ambipolar1DWave-B0split mhd/semirelativisitic_Alfven_wave_1.75D
 
-RHD_DIRS := rhd/RHD_wave_1D rhd/RHD_shock_1D
+RHD_DIRS := rhd/RHD_wave_1D
 
 MG_DIRS := multigrid/convergence_2d multigrid/convergence_3d	\
 multigrid/field_loop_2d multigrid/implicit_diffusion #Anisotropic diffusion???
