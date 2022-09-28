@@ -217,6 +217,12 @@ contains
     character(len=std_len) :: typecurl
     !> Limiter used for prolongation to refined grids and ghost cells
     character(len=std_len) :: typeprolonglimit
+    !> How to compute the CFL-limited time step.
+    !> Options are 'maxsum': max(sum(c/dx)); 'summax': sum(max(c/dx)) and
+    !> 'minimum: max(c/dx), where the summations loop over the grid dimensions and
+    !> c is the velocity. The default 'maxsum' is the conventiontal way of
+    !> computing CFL-limited time steps.
+    character(len=std_len) :: typecourant
 
     double precision, dimension(nsavehi) :: tsave_log, tsave_dat, tsave_slice, &
          tsave_collapsed, tsave_custom
@@ -713,6 +719,18 @@ contains
 
     if(it_max==biginteger .and. time_max==bigdouble.and.mype==0) write(uniterr,*) &
          'Warning in read_par_files: it_max or time_max not given!'
+
+    select case (typecourant)
+    case ('maxsum')
+      type_courant=type_maxsum
+    case ('summax')
+      type_courant=type_summax
+    case ('minimum')
+      type_courant=type_minimum
+    case default
+       write(unitterm,*)'Unknown typecourant=',typecourant
+       call mpistop("Error from read_par_files: no such typecourant!")
+    end select
 
     do level=1,nlevelshi
        select case (flux_scheme(level))
@@ -2201,16 +2219,6 @@ contains
     do Morton_no=Morton_start(mype), Morton_stop(mype)
       igrid  = sfc_to_igrid(Morton_no)
       itag   = Morton_no
-
-      if (nwaux>0) then
-        ! extra layer around mesh only for later averaging in convert
-        ! set dxlevel value for use in gradient subroutine,
-        ! which might be used in getaux
-        block=>ps(igrid)
-        ^D&dxlevel(^D)=rnode(rpdx^D_, igrid);
-        call phys_get_aux(.true., ps(igrid)%w, ps(igrid)%x, ixG^LL, &
-             ixM^LL^LADD1, "write_snapshot")
-      endif
 
       call block_shape_io(igrid, n_ghost, ixO^L, n_values)
       if(stagger_grid) then

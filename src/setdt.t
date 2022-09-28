@@ -30,10 +30,6 @@ subroutine setdt()
       ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
       block=>ps(igrid)
 
-      if (nwaux>0) then
-        call phys_get_aux(.true.,ps(igrid)%w,ps(igrid)%x,ixG^LL,ixM^LL,'setdt')
-      end if
-
       call getdt_courant(ps(igrid)%w,ixG^LL,ixM^LL,qdtnew,dx^D,ps(igrid)%x,&
            cmax_mype,a2max_mype)
       dtnew=min(dtnew,qdtnew)
@@ -186,7 +182,7 @@ subroutine setdt()
 
       integer :: idims
       double precision :: courantmax, dxinv(1:ndim), courantmaxtot, courantmaxtots
-      double precision :: cmax(ixI^S), cmaxtot(ixI^S), tmp(ixI^S)
+      double precision :: cmax(ixI^S), cmaxtot(ixO^S)
       double precision :: a2max(ndim),tco_local,Tmax_local
 
       dtnew=bigdouble
@@ -194,46 +190,97 @@ subroutine setdt()
       courantmaxtot=zero
       courantmaxtots=zero
 
-      ^D&dxinv(^D)=one/dx^D;
-      cmaxtot(ixO^S)=zero
 
       if(need_global_a2max) then
         call phys_get_a2max(w,x,ixI^L,ixO^L,a2max)
+        do idims=1,ndim
+          a2max_mype(idims) = max(a2max_mype(idims),a2max(idims))
+        end do
       end if
       if(phys_trac) then
         call phys_get_tcutoff(ixI^L,ixO^L,w,x,tco_local,Tmax_local)
         {^IFONED tco_mype=max(tco_mype,tco_local) }
         Tmax_mype=max(Tmax_mype,Tmax_local)
       end if
-      do idims=1,ndim
-        call phys_get_cmax(w,x,ixI^L,ixO^L,idims,cmax)
-        if(need_global_cmax) cmax_mype = max(cmax_mype,maxval(cmax(ixO^S)))
-        if(need_global_a2max) a2max_mype(idims) = max(a2max_mype(idims),a2max(idims))
-        if(slab_uniform) then
-          cmaxtot(ixO^S)=cmaxtot(ixO^S)+cmax(ixO^S)*dxinv(idims)
-          courantmax=max(courantmax,maxval(cmax(ixO^S)*dxinv(idims)))
-        else
-          tmp(ixO^S)=cmax(ixO^S)/block%ds(ixO^S,idims)
-          cmaxtot(ixO^S)=cmaxtot(ixO^S)+tmp(ixO^S)
-          courantmax=max(courantmax,maxval(tmp(ixO^S)))
-        end if
-        courantmaxtot=courantmaxtot+courantmax
-      end do
 
-      select case (typecourant)
-      case ('minimum')
-         ! courantmax='max(c/dx)'
-         if (courantmax>smalldouble)     dtnew=min(dtnew,courantpar/courantmax)
-      case ('summax')
-         ! courantmaxtot='summed max(c/dx)'
-         if (courantmaxtot>smalldouble)  dtnew=min(dtnew,courantpar/courantmaxtot)
-      case ('maxsum')
-         ! courantmaxtots='max(summed c/dx)'
-         courantmaxtots=max(courantmaxtots,maxval(cmaxtot(ixO^S)))
-         if (courantmaxtots>smalldouble) dtnew=min(dtnew,courantpar/courantmaxtots)
-      case default
-         write(unitterm,*)'Unknown typecourant=',typecourant
-         call mpistop("Error from getdt_courant: no such typecourant!")
+      !if(slab_uniform) then
+      !  ^D&dxinv(^D)=one/dx^D;
+      !  do idims=1,ndim
+      !    call phys_get_cmax(w,x,ixI^L,ixO^L,idims,cmax)
+      !    if(need_global_cmax) cmax_mype = max(cmax_mype,maxval(cmax(ixO^S)))
+      !    if(need_global_a2max) a2max_mype(idims) = max(a2max_mype(idims),a2max(idims))
+      !    cmaxtot(ixO^S)=cmaxtot(ixO^S)+cmax(ixO^S)*dxinv(idims)
+      !    courantmax=max(courantmax,maxval(cmax(ixO^S)*dxinv(idims)))
+      !    courantmaxtot=courantmaxtot+courantmax
+      !  end do
+      !else
+      !  do idims=1,ndim
+      !    call phys_get_cmax(w,x,ixI^L,ixO^L,idims,cmax)
+      !    if(need_global_cmax) cmax_mype = max(cmax_mype,maxval(cmax(ixO^S)))
+      !    if(need_global_a2max) a2max_mype(idims) = max(a2max_mype(idims),a2max(idims))
+      !    tmp(ixO^S)=cmax(ixO^S)/block%ds(ixO^S,idims)
+      !    cmaxtot(ixO^S)=cmaxtot(ixO^S)+tmp(ixO^S)
+      !    courantmax=max(courantmax,maxval(tmp(ixO^S)))
+      !    courantmaxtot=courantmaxtot+courantmax
+      !  end do
+      !end if
+
+      select case (type_courant)
+      case (type_maxsum)
+        cmaxtot(ixO^S)=zero
+        if(slab_uniform) then
+          ^D&dxinv(^D)=one/dx^D;
+          do idims=1,ndim
+            call phys_get_cmax(w,x,ixI^L,ixO^L,idims,cmax)
+            if(need_global_cmax) cmax_mype = max(cmax_mype,maxval(cmax(ixO^S)))
+            cmaxtot(ixO^S)=cmaxtot(ixO^S)+cmax(ixO^S)*dxinv(idims)
+          end do
+        else
+          do idims=1,ndim
+            call phys_get_cmax(w,x,ixI^L,ixO^L,idims,cmax)
+            if(need_global_cmax) cmax_mype = max(cmax_mype,maxval(cmax(ixO^S)))
+            cmaxtot(ixO^S)=cmaxtot(ixO^S)+cmax(ixO^S)/block%ds(ixO^S,idims)
+          end do
+        end if
+        ! courantmaxtots='max(summed c/dx)'
+        courantmaxtots=max(courantmaxtots,maxval(cmaxtot(ixO^S)))
+        if (courantmaxtots>smalldouble) dtnew=min(dtnew,courantpar/courantmaxtots)
+      case (type_summax)
+        if(slab_uniform) then
+          ^D&dxinv(^D)=one/dx^D;
+          do idims=1,ndim
+            call phys_get_cmax(w,x,ixI^L,ixO^L,idims,cmax)
+            if(need_global_cmax) cmax_mype = max(cmax_mype,maxval(cmax(ixO^S)))
+            courantmax=max(courantmax,maxval(cmax(ixO^S)*dxinv(idims)))
+            courantmaxtot=courantmaxtot+courantmax
+          end do
+        else
+          do idims=1,ndim
+            call phys_get_cmax(w,x,ixI^L,ixO^L,idims,cmax)
+            if(need_global_cmax) cmax_mype = max(cmax_mype,maxval(cmax(ixO^S)))
+            courantmax=max(courantmax,maxval(cmax(ixO^S)/block%ds(ixO^S,idims)))
+            courantmaxtot=courantmaxtot+courantmax
+          end do
+        end if
+        ! courantmaxtot='summed max(c/dx)'
+        if (courantmaxtot>smalldouble)  dtnew=min(dtnew,courantpar/courantmaxtot)
+      case (type_minimum)
+        if(slab_uniform) then
+          ^D&dxinv(^D)=one/dx^D;
+          do idims=1,ndim
+            call phys_get_cmax(w,x,ixI^L,ixO^L,idims,cmax)
+            if(need_global_cmax) cmax_mype = max(cmax_mype,maxval(cmax(ixO^S)))
+            courantmax=max(courantmax,maxval(cmax(ixO^S)*dxinv(idims)))
+          end do
+        else
+          do idims=1,ndim
+            call phys_get_cmax(w,x,ixI^L,ixO^L,idims,cmax)
+            if(need_global_cmax) cmax_mype = max(cmax_mype,maxval(cmax(ixO^S)))
+            courantmax=max(courantmax,maxval(cmax(ixO^S)/block%ds(ixO^S,idims)))
+          end do
+        end if
+        ! courantmax='max(c/dx)'
+        if (courantmax>smalldouble)     dtnew=min(dtnew,courantpar/courantmax)
       end select
 
     end subroutine getdt_courant
