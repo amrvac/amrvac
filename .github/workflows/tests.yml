@@ -2,101 +2,45 @@ name: tests
 
 on:
   push:
-    branches: [ master,amrvac3.0 ]
+    branches: [ master, amrvac3.0 ]
   pull_request:
-    branches: [ master,amrvac3.0 ]
+    branches: [ master, amrvac3.0 ]
 
-env:
-  CC: /usr/bin/gcc-9
-  FC: /usr/bin/gfortran-9
-  AMRVAC_DIR: ${GITHUB_WORKSPACE}
 
 jobs:
-  rho:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-      - name: install dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install openmpi-bin libopenmpi-dev
-          gfortran-9 --version
-          mpirun --version
-      - name: check code dependencies
-        run: |
-          cd src
-          sh update_dependencies.sh --verbose || exit 1
-      - name: compile
-        run: |
-          cd lib
-          make clean
-          make -j 2 || exit 1
-      - name: run tests
-        run: |
-          cd tests
-          bash test_runner.sh rho
-  hd:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-      - name: install dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install openmpi-bin libopenmpi-dev
-          gfortran-9 --version
-          mpirun --version
-      - name: check code dependencies
-        run: |
-          cd src
-          sh update_dependencies.sh --verbose || exit 1
-      - name: compile
-        run: |
-          cd lib
-          make clean
-          make -j 2 || exit 1
-      - name: run tests
-        run: |
-          cd tests
-          bash test_runner.sh hd
+  GNU:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest]
+        FC_compiler: [gfortran-9]
+        CC_compiler: [gcc-9]
+        suite: [rho, hd, rhd, mhd, rd, ard, mg, twofl]
 
-  rhd:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-      - name: install dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install openmpi-bin libopenmpi-dev
-          gfortran-9 --version
-          mpirun --version
-      - name: check code dependencies
-        run: |
-          cd src
-          sh update_dependencies.sh --verbose || exit 1
-      - name: compile
-        run: |
-          cd lib
-          make clean
-          make -j 2 || exit 1
-      - name: run tests
-        run: |
-          cd tests
-          bash test_runner.sh rhd
+    env:
+      CC: ${{ matrix.CC_compiler }}
+      FC: ${{ matrix.FC_compiler }}
+      AMRVAC_DIR: ${GITHUB_WORKSPACE}
 
-  mhd:
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
+
+    name: ${{ matrix.suite }}
+
     steps:
       - uses: actions/checkout@v2
       - name: install dependencies
         run: |
           sudo apt-get update
           sudo apt-get install openmpi-bin libopenmpi-dev
-          gfortran-9 --version
+      - name: check compiler versions
+        run: |
+          ${FC} --version
+          ${CC} --version
           mpirun --version
       - name: check code dependencies
         run: |
           cd src
-          sh update_dependencies.sh --verbose || exit 1
+          bash update_dependencies.sh --verbose || exit 1
       - name: compile
         run: |
           cd lib
@@ -105,96 +49,4 @@ jobs:
       - name: run tests
         run: |
           cd tests
-          bash test_runner.sh mhd
-  rd:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-      - name: install dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install openmpi-bin libopenmpi-dev
-          gfortran-9 --version
-          mpirun --version
-      - name: check code dependencies
-        run: |
-          cd src
-          sh update_dependencies.sh --verbose || exit 1
-      - name: compile
-        run: |
-          cd lib
-          make clean
-          make -j 2 || exit 1
-      - name: run tests
-        run: |
-          cd tests
-          bash test_runner.sh rd
-  ard:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-      - name: install dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install openmpi-bin libopenmpi-dev
-          gfortran-9 --version
-          mpirun --version
-      - name: check code dependencies
-        run: |
-          cd src
-          sh update_dependencies.sh --verbose || exit 1
-      - name: compile
-        run: |
-          cd lib
-          make clean
-          make -j 2 || exit 1
-      - name: run tests
-        run: |
-          cd tests
-          bash test_runner.sh ard
-  mg:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-      - name: install dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install openmpi-bin libopenmpi-dev
-          gfortran-9 --version
-          mpirun --version
-      - name: check code dependencies
-        run: |
-          cd src
-          sh update_dependencies.sh --verbose || exit 1
-      - name: compile
-        run: |
-          cd lib
-          make clean
-          make -j 2 || exit 1
-      - name: run tests
-        run: |
-          cd tests
-          bash test_runner.sh mg
-  twofl:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-      - name: install dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install openmpi-bin libopenmpi-dev
-          gfortran-9 --version
-          mpirun --version
-      - name: check code dependencies
-        run: |
-          cd src
-          sh update_dependencies.sh --verbose || exit 1
-      - name: compile
-        run: |
-          cd lib
-          make clean
-          make -j 2 || exit 1
-      - name: run tests
-        run: |
-          cd tests
-          bash test_runner.sh twofl
+          bash test_runner.sh ${{ matrix.suite }}
