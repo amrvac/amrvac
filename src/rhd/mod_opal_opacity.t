@@ -48,7 +48,6 @@ subroutine init_opal(He_abundance,tablename)
   fileplace = TRIM(AMRVAC_DIR)//"/src/rhd/Opacity_tables/"
 
 
-
   ! character(len=std_len) :: DIR_tmp
   ! character(len=std_len) :: FILE_tmp
   !

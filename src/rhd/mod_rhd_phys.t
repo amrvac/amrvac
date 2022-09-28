@@ -325,6 +325,8 @@ contains
     phys_handle_small_values => rhd_handle_small_values
     phys_angmomfix           => rhd_angmomfix
     phys_set_mg_bounds       => rhd_set_mg_bounds
+    phys_get_trad            => rhd_get_trad
+    phys_get_tgas            => rhd_get_tgas
 
     ! Whether diagonal ghost cells are required for the physics
     phys_req_diagonal = .false.

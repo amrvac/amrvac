@@ -162,28 +162,6 @@ contains
       w(ixI^S,r_e) = Er2
     end where
 
-
-!    rho(ixI^S) = rho1 + (1+erf(10*x(ixI^S,1)))*half*(rho2-rho1)
-!    Temp(ixI^S) = (T1**4 + (1+erf(50*x(ixI^S,1)))*half*(T2**4-T1**4))**0.25
-!    vel(ixI^S) = rho1*v1/rho(ixI^S) !v1 + (1+erf(10*x(ixI^S,1)))*half*(v2-v1)
-
-!    press(ixI^S) = const_kB*(Temp(ixI^S)*unit_temperature)*rho(ixI^S)*unit_density/(const_mp*fld_mu*unit_pressure)
-
-!    w(ixI^S,rho_) = rho(ixI^S)
-!    w(ixI^S,mom(1)) = rho(ixI^S)*vel(ixI^S)
-!    w(ixI^S,e_) = press(ixI^S)/(rhd_gamma -1) + half*rho(ixI^S)*vel(ixI^S)*vel(ixI^S)
-!    w(ixI^S,r_e) = const_rad_a*(Temp(ixI^S)*unit_temperature)**4/unit_pressure
-
-!    w(ixI^S,rho_) = rho1 + (1+erf(100*x(ixI^S,1)))*half*(rho2-rho1)
-!    w(ixI^S,mom(1)) = rho1*v1 + (1+erf(100*x(ixI^S,1)))*half*(rho2*v2-rho1*v1)
-!    w(ixI^S,e_) = eg1 + (1+erf(100*x(ixI^S,1)))*half*(eg2-eg1)
-!    w(ixI^S,r_e) = Er1 + (1+erf(100*x(ixI^S,1)))*half*(Er2-Er1)
-
-!    call fld_get_opacity(w, x, ixI^L, ixO^L, kappa)
-!    call fld_get_fluxlimiter(w, x, ixI^L, ixO^L, lambda, fld_R)
-
-    w(ixO^S,i_diff_mg) = (const_c/unit_velocity)/(3*kappa(ixO^S)*w(ixO^S,rho_))
-
   end subroutine initial_conditions
 
 
@@ -208,13 +186,6 @@ contains
       w(ixB^S,r_e) = Er1
 
     case(2)
-      !do ii = ixBmin1,ixBmax1
-      !  w(ii,:) = w(ixBmin1-1,:)
-      !enddo
-!      w(ixB^S,rho_) = rho2
-!      w(ixB^S,mom(:)) = 0.d0
-!      w(ixB^S,mom(1)) = rho2*v2
-!      w(ixB^S,e_) = eg2
       w(ixB^S,r_e) = Er2
 
     case default
