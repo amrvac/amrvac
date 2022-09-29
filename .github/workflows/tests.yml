@@ -107,3 +107,52 @@ jobs:
         run: |
           cd tests
           bash test_runner.sh ${{ matrix.suite }}
+
+  INTEL:
+    runs-on: ubuntu-latest
+    name: compile / Intel
+
+    env:
+      FC: ifort
+      CC: icc
+      AMRVAC_DIR: ${GITHUB_WORKSPACE}
+
+    steps:
+      - uses: actions/checkout@v2
+      - name: setup for Intel oneAPI
+        # see https://www.intel.com/content/www/us/en/develop/documentation/installation-guide-for-intel-oneapi-toolkits-linux
+        run: |
+          wget https://apt.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS.PUB
+          sudo apt-key add GPG-PUB-KEY-INTEL-SW-PRODUCTS.PUB
+          rm GPG-PUB-KEY-INTEL-SW-PRODUCTS.PUB
+          sudo add-apt-repository "deb https://apt.repos.intel.com/oneapi all main"
+      - name: install Intel oneAPI
+        run: |
+          sudo apt-get install intel-oneapi-compiler-fortran
+          sudo apt-get install intel-oneapi-compiler-dpcpp-cpp-and-cpp-classic
+          sudo apt-get install intel-oneapi-mpi
+          sudo apt-get install intel-oneapi-mpi-devel
+          source /opt/intel/oneapi/setvars.sh
+          printenv >> $GITHUB_ENV
+      - name: check compiler versions
+        run: |
+          ${FC} --version
+          ${CC} --version
+          mpirun --version
+          mpiifort --version
+      - name: check code dependencies
+        run: |
+          cd src
+          bash update_dependencies.sh --verbose || exit 1
+      - name: compile 1D
+        run: |
+          cd lib
+          make 1d -j 4 ARCH=inteldebug
+      - name: compile 2D
+        run: |
+          cd lib
+          make 2d -j 4 ARCH=inteldebug
+      - name: compile 3D
+        run: |
+          cd lib
+          make 3d -j 4 ARCH=inteldebug
