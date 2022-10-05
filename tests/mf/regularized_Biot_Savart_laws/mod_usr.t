@@ -1,5 +1,6 @@
 module mod_usr
   use mod_mf
+  use mod_rbsl
   implicit none
   double precision :: q_para,d_para,L_para
   double precision :: a0, I_cur, F_flx
@@ -156,7 +157,7 @@ contains
     else
       call bipolar_field(ixI^L,ixO^L,x,A,Bfr)
       w(ixO^S,mag(:))=Bfr(ixO^S,:)
-      call RBSL_flux_rope(ixI^L,ixI^L,np,a0,F_flx,.false.,x,x_axis,A,Bfr)
+      call rbsl(ixI^L,ixI^L,np,a0,F_flx,.false.,x,x_axis,A,Bfr)
       w(ixO^S,mag(:))=w(ixO^S,mag(:))+Bfr(ixO^S,:)
     end if
     w(ixO^S,mom(:))=0.d0
@@ -174,7 +175,7 @@ contains
     ! vector potential
     double precision :: Avec1(ixI^S,1:ndim), Avec2(ixI^S,1:ndim)
 
-    call RBSL_flux_rope(ixI^L,ixC^L,np,a0,F_flx,.false.,xC,x_axis,Avec1)
+    call rbsl(ixI^L,ixC^L,np,a0,F_flx,.false.,xC,x_axis,Avec1)
     call bipolar_field(ixI^L,ixC^L,xC,Avec2)
 
     if (idir==3) then
@@ -220,119 +221,6 @@ contains
     end if
 
   end subroutine bipolar_field
-
-subroutine RBSL_flux_rope(ixI^L,ixO^L,np,a,F_flx,positive_helicity,x,x_axis,Atotal,Bfr)
-
-    integer, intent(in)             :: ixI^L,ixO^L,np
-    double precision, intent(in)    :: x(ixI^S,1:ndim)
-    ! coordinates of flux rope axis (integral path)
-    double precision, intent(in)    :: x_axis(np,1:ndim)
-    ! cross-sectional radius of flux rope
-    double precision, intent(in)    :: a
-    ! net magnetic flux along flux rope axis
-    double precision, intent(in)    :: F_flx
-    ! is positive helicity
-    logical, intent(in) :: positive_helicity
-    ! vector potential
-    double precision, intent(out)   :: Atotal(ixI^S,1:ndim)
-    ! magnetic field
-    double precision, optional, intent(out)   :: Bfr(ixI^S,1:ndir)
-
-    ! net current along flux rope axis for azimuthal magnetic field
-    double precision   :: I_cur
-    ! vector potential for azimuthal magnetic field
-    double precision   :: AIx(ixI^S,1:ndim)
-    ! vector potential for axial magnetic field
-    double precision   :: AFx(ixI^S,1:ndim)
-    integer :: ix^D, ixp, idirmin, nnp
-    double precision :: r_mag, KIr, KFr, dl, re_pi, sqrt1r, f52r,fsqrt6
-    double precision :: Rpl(1:ndim), r_vec(1:ndim), Rcr(1:ndim)
-    double precision, allocatable :: xs(:), ys(:), zs(:),xs1(:),ys1(:),zs1(:), axis_coord(:,:)
-
-    allocate(xs(2*np), ys(2*np), zs(2*np))
-    allocate(xs1(2*np), ys1(2*np), zs1(2*np))
-    allocate(axis_coord(np,3))
-
-    do ixp = 1, np
-      axis_coord(ixp,1) = x_axis(ixp,1) 
-      axis_coord(ixp,2) = x_axis(ixp,2) 
-      axis_coord(ixp,3) = x_axis(ixp,3) 
-    end do
-    xs(1:np) = axis_coord(:,1)
-    ys(1:np) = axis_coord(:,2)
-    zs(1:np) = axis_coord(:,3)
-    do ixp=1,np
-      xs(np+ixp) = axis_coord(np-ixp+1,1)
-      ys(np+ixp) = axis_coord(np-ixp+1,2)
-      zs(np+ixp) = -1.0d0*axis_coord(np-ixp+1,3)
-    end do
-
-    ! to flip the axis curve, thus the path starts from the positive polarity
-    do ixp=1,np
-       xs1(ixp) = xs(np-ixp+1)
-       ys1(ixp) = ys(np-ixp+1)
-       zs1(ixp) = zs(np-ixp+1)
-       xs1(np+ixp) = xs(2*np-ixp+1)
-       ys1(np+ixp) = ys(2*np-ixp+1)
-       zs1(np+ixp) = zs(2*np-ixp+1)
-    end do
-    xs = xs1
-    ys = ys1
-    zs = zs1
-    nnp = 2*np
-
-   !> For positive helicity MFR, I_cur > 0; For negative helicity MFR, I_cur < 0
-    I_cur = 1.0*F_flx*5.0d0*sqrt(2.0d0)/3.0d0/a0
-
-    re_pi=1.d0/dpi
-    AIx = 0.d0
-    AFx = 0.d0
-   {do ix^DB=ixOmin^DB,ixOmax^DB\}
-    do ixp=1,nnp
-      ! position vector from source point to field point
-      r_vec(1) = (x(ix^D,1) - xs(ixp))/a0
-      r_vec(2) = (x(ix^D,2) - ys(ixp))/a0
-      r_vec(3) = (x(ix^D,3) - zs(ixp))/a0
-      r_mag = sqrt(r_vec(1)**2 + r_vec(2)**2 + r_vec(3)**2)
-      ! calculate tangential vector of the axis
-      if (ixp == 1) then
-        Rpl(1) = 0.5d0*(xs(ixp+1) - xs(nnp))
-        Rpl(2) = 0.5d0*(ys(ixp+1) - ys(nnp))
-        Rpl(3) = 0.5d0*(zs(ixp+1) - zs(nnp))
-      else if (ixp == nnp) then
-        Rpl(1) = 0.5d0*(xs(1) - xs(ixp-1))
-        Rpl(2) = 0.5d0*(ys(1) -ys(ixp-1))
-        Rpl(3) = 0.5d0*(zs(1) - zs(ixp-1))
-      else
-        Rpl(1) = 0.5d0*(xs(ixp+1) - xs(ixp-1))
-        Rpl(2) = 0.5d0*(ys(ixp+1) - ys(ixp-1))
-        Rpl(3) = 0.5d0*(zs(ixp+1) - zs(ixp-1))
-      end if
-      !dl = sqrt(Rpl(1)**2 + Rpl(2)**2 + Rpl(3)**2)
-      ! Rpl X r_vec
-      Rcr(1) = Rpl(2)*r_vec(3) - Rpl(3)*r_vec(2)
-      Rcr(2) = Rpl(3)*r_vec(1) - Rpl(1)*r_vec(3)
-      Rcr(3) = Rpl(1)*r_vec(2) - Rpl(2)*r_vec(1)
-      if (r_mag <= 1.d0) then
-        KIr = 2.d0*re_pi*(asin(r_mag)/r_mag + (5.d0-2.d0*r_mag**2)/3.d0*sqrt(1-r_mag**2))
-        KFr = 2.d0*re_pi/r_mag**2*(asin(r_mag)/r_mag-sqrt(1-r_mag**2)) + &
-              2.d0*re_pi*sqrt(1.d0-r_mag**2) + (5.d0-2.d0*(r_mag**2))*0.5d0/sqrt(6.d0)*(1.d0 - &
-              2.d0*re_pi*asin((1.d0+2.d0*r_mag**2)/(5.d0-2.d0*r_mag**2)))
-        AIx(ix^D,:) = AIx(ix^D,:) + I_cur*0.25d0*re_pi*KIr*Rpl(:)/a0
-        AFx(ix^D,:) = AFx(ix^D,:) + F_flx*0.25d0*re_pi*KFr*Rcr(:)/a0**2
-      else
-        KIr = 1.d0/r_mag
-        KFr = KIr**3
-        AIx(ix^D,:) = AIx(ix^D,:) + I_cur*0.25d0*re_pi*KIr*Rpl(:)/a0
-        AFx(ix^D,:) = AFx(ix^D,:) + F_flx*0.25d0*re_pi*KFr*Rcr(:)/a0**2
-      endif
-    end do
-   {end do\}
-    Atotal=AIx+AFx
-    if(present(Bfr)) call curlvector(Atotal,ixI^L,ixM^LL,Bfr,idirmin,1,ndir)
-
-  end subroutine RBSL_flux_rope
-
 
   ! allow user to change inductive electric field, especially for boundary driven applications
   subroutine driven_electric_field(ixI^L,ixO^L,qt,qdt,fE,s)

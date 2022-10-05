@@ -265,6 +265,7 @@ mod_point_searching.o: mod_particle_base.mod
 mod_point_searching.o: mod_physics.mod
 mod_ppm.o: mod_physics.mod
 mod_radiative_cooling.o: mod_physics.mod
+mod_rbsl.o: mod_geometry.mod
 mod_rd.o: mod_amrvac.mod
 mod_rd.o: mod_rd_phys.mod
 mod_rd_phys.o: mod_multigrid_coupling.mod
