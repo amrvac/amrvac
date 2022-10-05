@@ -36,10 +36,6 @@ contains
     ! Drive the wave using an internal boundary
     usr_internal_bc => Initialize_Wave
 
-    ! Output routines
-    ! usr_aux_output    => specialvar_output
-    ! usr_add_aux_names => specialvarnames_output
-
     ! Active the physics module
     call rhd_activate()
 
@@ -57,9 +53,7 @@ contains
     ca = dsqrt(rhd_gamma*p0/rho0)
     a0 = dsqrt(p0/rho0)
 
-
     T0 = const_mp*fld_mu/const_kB*(p0/rho0)
-    ! Er0 = const_rad_a*T0**4
 
     wvl = tau_wave/(rho0*fld_kappa0)
     omega = 2.d0*dpi*a0/wvl
@@ -165,11 +159,6 @@ contains
 
     w(ixI^S, r_e) = const_rad_a*(temp(ixI^S)*unit_temperature)**4.d0/unit_pressure
 
-    call fld_get_opacity(w, x, ixI^L, ixO^L, kappa)
-    call fld_get_fluxlimiter(w, x, ixI^L, ixO^L, lambda, fld_R)
-
-    w(ixO^S,i_diff_mg) = (const_c/unit_velocity)*lambda(ixO^S)/(kappa(ixO^S)*w(ixO^S,rho_))
-
   end subroutine initial_conditions
 
 
@@ -199,34 +188,4 @@ contains
 
   end subroutine Initialize_Wave
 
-
-  ! subroutine specialvar_output(ixI^L,ixO^L,w,x,normconv)
-  !   ! this subroutine can be used in convert, to add auxiliary variables to the
-  !   ! converted output file, for further analysis using tecplot, paraview, ....
-  !   ! these auxiliary values need to be stored in the nw+1:nw+nwauxio slots
-  !   !
-  !   ! the array normconv can be filled in the (nw+1:nw+nwauxio) range with
-  !   ! corresponding normalization values (default value 1)
-  !   use mod_global_parameters
-  !   use mod_fld
-  !
-  !   integer, intent(in)                :: ixI^L,ixO^L
-  !   double precision, intent(in)       :: x(ixI^S,1:ndim)
-  !   double precision                   :: w(ixI^S,nw+nwauxio)
-  !   double precision                   :: normconv(0:nw+nwauxio)
-  !
-  !   w(ixO^S,nw+1) = 1.d0/A_rho*(w(ixO^S,rho_)/rho0 - 1.d0)
-  !   w(ixO^S,nw+2) = 1.d0/A_e*((w(ixO^S,e_)-half*w(ixO^S,mom(1))**2/w(ixO^S,rho_))/eg0 - 1.d0)
-  !   w(ixO^S,nw+3) = 1.d0/A_er*(w(ixO^S,r_e)/Er0 - 1.d0)
-  !   w(ixO^S,nw+4) = 1.d0/A_v*w(ixO^S,mom(1))/w(ixO^S,rho_)
-  !
-  ! end subroutine specialvar_output
-  !
-  ! subroutine specialvarnames_output(varnames)
-  !   ! newly added variables need to be concatenated with the w_names/primnames string
-  !   use mod_global_parameters
-  !   character(len=*) :: varnames
-  !
-  !   varnames = 'delta_rho delta_eg delta_Er v1'
-  ! end subroutine specialvarnames_output
 end module mod_usr

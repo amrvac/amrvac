@@ -325,6 +325,8 @@ contains
     phys_handle_small_values => rhd_handle_small_values
     phys_angmomfix           => rhd_angmomfix
     phys_set_mg_bounds       => rhd_set_mg_bounds
+    phys_get_trad            => rhd_get_trad
+    phys_get_tgas            => rhd_get_tgas
 
     ! Whether diagonal ghost cells are required for the physics
     phys_req_diagonal = .false.
@@ -1119,8 +1121,8 @@ contains
     integer                      :: iw, ix^D
 
     if (rhd_energy) then
-       pth(ixO^S) = (rhd_gamma - 1.0d0) * (w(ixO^S, e_) - &
-            rhd_kin_en(w, ixI^L, ixO^L))
+       pth(ixI^S) = (rhd_gamma - 1.d0) * (w(ixI^S, e_) - &
+            0.5d0 * sum(w(ixI^S, mom(:))**2, dim=ndim+1) / w(ixI^S, rho_))
     else
        if (.not. associated(usr_set_pthermal)) then
          select case (rhd_pressure)
@@ -1129,7 +1131,7 @@ contains
            /unit_temperature*w(ixI^S, rho_)
           case ('adiabatic')
            pth(ixI^S) = rhd_adiab * w(ixI^S, rho_)**rhd_gamma
-          case ('Tcond')
+          case ('Tcond') !> Thermal conduction?!
            pth(ixI^S) = (rhd_gamma-1.d0)*w(ixI^S,r_e)
           case default
            call mpistop('rhd_pressure unknown, use Trad or adiabatic')
@@ -1279,8 +1281,6 @@ contains
     double precision, intent(in) :: x(ixI^S, 1:ndim)
     double precision             :: pth(ixI^S)
     double precision, intent(out):: tgas(ixI^S)
-
-    double precision :: mu
 
     call rhd_get_pthermal(w, x, ixI^L, ixO^L, pth)
     tgas(ixI^S) = pth(ixI^S)/w(ixI^S,rho_)

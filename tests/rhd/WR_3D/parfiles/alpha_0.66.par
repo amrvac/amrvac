@@ -1,0 +1,36 @@
+&filelist
+  base_filename='alpha_0.66_'
+  autoconvert      = T
+  convert_type = 'vtuBCCmpi'
+  saveprim         = F
+/
+
+&methodlist
+ small_density = 5.d-7
+/
+
+&boundlist
+  internalboundary = T
+/
+
+&meshlist
+!   refine_max_level = 4
+/
+
+&paramlist
+  courantpar = 0.5d0
+   !dtpar = 2.d-5
+/
+
+&wind_list
+   cak_Q = 2.30d3
+   cak_a = 0.66d0
+   cak_base = 0.66d0
+   cak_x0 = 0.4d0
+   cak_x1 = 0.65d0
+   !it_start_cak = 10
+   rho_bound = 5.d-8 !3.d-7 !5.d-8 !3.d-7
+   fixed_lum = .false.
+   Cak_in_D = .true.
+   read_cak_table = .false.
+ /
