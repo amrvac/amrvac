@@ -1,0 +1,16 @@
+&filelist
+  base_filename='G35_'
+  autoconvert      = T
+  convert_type = 'vtuBCCmpi'
+  saveprim         = F
+/
+
+  &wind_list
+   rho_bound = 5.d-8 
+   Gamma_e_bound = 0.35d0 !0.40d0
+   kappa_e = 0.2d0
+   R_star = 1.d0
+   M_star = 10.d0
+   v_inf = 1.d8
+ /
+

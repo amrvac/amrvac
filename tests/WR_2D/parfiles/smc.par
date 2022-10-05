@@ -1,0 +1,8 @@
+&filelist
+  base_filename='smc_'
+/
+
+ &fld_list
+  fld_opal_table = 'Y09960'
+ /
+
