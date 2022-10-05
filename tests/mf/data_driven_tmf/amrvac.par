@@ -1,0 +1,85 @@
+!setup.pl -d=3
+ &filelist
+        restart_from_file='potential/data/lfff0000.dat'
+        base_filename='data/driven'
+        saveprim=.true.
+        convert_type='vtuBCCmpi'
+        autoconvert=.true.
+        nwauxio=4
+ /
+        firstprocess=.true.
+        firstprocess=.true.
+
+ &savelist
+        itsave(1,1)=0
+        itsave(1,2)=0
+        dtsave_log=0.2d0
+        dtsave_dat=3.493525d0
+        dtsave_custom=0.5d0
+ /
+        dtsave_custom=0.05d0
+        3.4935252d0
+
+ &stoplist
+        time_max=153.0d0 
+ /
+        wall_time_max=23.1d0
+
+ &methodlist
+        time_stepper='threestep'
+        flux_scheme=20*'hll'
+        limiter= 20*'cada3'
+ /
+
+ &boundlist
+        typeboundary_min1=6*'special'
+        typeboundary_max1=6*'special'
+        typeboundary_min2=6*'special'
+        typeboundary_max2=6*'special'
+        typeboundary_min3=6*'special'
+        typeboundary_max3=6*'special'
+ /
+
+ &meshlist
+        refine_criterion=3
+        refine_max_level=1
+        w_refine_weight(4)=0.3d0
+        w_refine_weight(5)=0.3d0
+        w_refine_weight(6)=0.4d0
+        refine_threshold=20*0.2d0
+        block_nx1=10
+        block_nx2=10
+        block_nx3=10
+        domain_nx1=340
+        domain_nx2=220
+        domain_nx3=220
+        xprobmin1=-12.524954d0
+        xprobmax1=12.524954d0
+        xprobmin2=-8.1043818d0
+        xprobmax2=8.1043818d0
+        xprobmin3=0.100000d0
+        xprobmax3=16.308764d0
+        ditregrid=3
+ /
+
+ &paramlist
+        typecourant='maxsum'
+        courantpar=0.8d0
+ /
+
+ &mf_list
+        typedivbfix = 'linde'
+        mf_decay_scale(1)=0.02d0
+        mf_decay_scale(2)=0.02d0
+        mf_decay_scale(3)=0.02d0
+        mf_decay_scale(4)=0.02d0
+        mf_decay_scale(5)=0.005d0
+        mf_decay_scale(6)=0.05d0
+        mf_eta=-1.0d-3
+        boundary_divbfix_skip(5)=1
+ /
+        mf_eta=1.72d-4
+        divbdiff=1.0d-3
+        boundary_divbfix_skip(5)=1
+        mf_eta=5.0d-4
+        divbdiff=1.0d-2
