@@ -1,0 +1,23 @@
+&testlist
+        teststr=''
+/
+
+&filelist
+  base_filename='midpoint_'
+  autoconvert      = T
+  convert_type = 'vtuBCCmpi'
+  saveprim         = F
+/
+
+ &methodlist
+   time_stepper = 'twostep'
+   time_integrator = 'IMEX_Midpoint'
+   flux_scheme     = 20*'hll'
+   limiter         = 20*'minmod'
+   source_split_usr = .false.
+   typesourcesplit = 'sfs'
+   check_small_values = .true.
+   small_values_method = 'replace'
+   small_pressure = 1.d-16 !1.d-7
+   small_density = 1.d-8 !1.d-8
+/

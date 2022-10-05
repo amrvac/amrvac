@@ -1,0 +1,11 @@
+&filelist
+  base_filename='O1_'
+  autoconvert      = T
+  convert_type = 'vtuBCCmpi'
+  saveprim         = F
+/
+
+  &wind_list
+  Omega = 0.1d0 
+/
+

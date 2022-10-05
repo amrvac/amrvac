@@ -1,0 +1,11 @@
+&filelist
+  base_filename='rb28_'
+  autoconvert      = T
+  convert_type = 'vtuBCCmpi'
+  saveprim         = F
+/
+
+  &wind_list
+   rho_bound = 2.5d-8 
+ /
+

@@ -29,9 +29,6 @@ contains
     ! A routine for initial conditions is always required
     usr_init_one_grid => initial_conditions
 
-    ! Keep the radiative energy constant with internal bound
-    usr_internal_bc => constant_r_e
-
     ! Write out energy levels and temperature
     usr_write_analysis => output_energy
 
@@ -117,45 +114,10 @@ end subroutine usr_params_read
 
   end subroutine initial_conditions
 
-!==========================================================================================
-
-  ! Extra routines can be placed here
-  ! ...
-
-!==========================================================================================
-
-!> internal boundary, user defined
-  !
-  !> This subroutine can be used to artificially overwrite ALL conservative
-  !> variables in a user-selected region of the mesh, and thereby act as
-  !> an internal boundary region. It is called just before external (ghost cell)
-  !> boundary regions will be set by the BC selection. Here, you could e.g.
-  !> want to introduce an extra variable (nwextra, to be distinguished from nwaux)
-  !> which can be used to identify the internal boundary region location.
-  !> Its effect should always be local as it acts on the mesh.
-
-  subroutine constant_r_e(level,qt,ixI^L,ixO^L,w,x)
-    use mod_global_parameters
-    integer, intent(in)             :: ixI^L,ixO^L,level
-    double precision, intent(in)    :: qt
-    double precision, intent(inout) :: w(ixI^S,1:nw)
-    double precision, intent(in)    :: x(ixI^S,1:ndim)
-
-
-    !w(ixI^S,r_e) = 1d12
-
-    ! if (it .eq. 0) open(1,file='Halley1_1.d2')
-    ! write(1,*) global_time*unit_time, e_eq*unit_pressure, w(3,3,r_e)*unit_pressure, w(3,3,e_)*unit_pressure
-    ! if (global_time .ge. time_max - dt) close(1)
-
-    ! print*, global_time*unit_time, w(3,3,r_e)*unit_pressure, w(3,3,e_)*unit_pressure
-
-  end subroutine constant_r_e
 
   subroutine output_energy()
     use mod_constants
-    ! use mod_global_parameters
-
+    
     double precision :: tmp_g, tmp_r, e_max, Er_max, rho_e_max
     double precision :: Tgas, Trad, tmp_T
     integer          :: iigrid, igrid, ierrmpi
@@ -172,8 +134,6 @@ end subroutine usr_params_read
 
     Tgas = tmp_T*(rhd_gamma - 1)*mp_cgs*fld_mu/kb_cgs*unit_temperature
     Trad = (tmp_r/const_rad_a)**0.25d0*unit_temperature
-
-    ! print*, mype, global_time*unit_time, tmp_g*unit_pressure, tmp_r*unit_pressure, Tgas, Trad
 
     if (mype==0) then
       if (it .eq. 1) open(1,file = 'Instant1_1.d2',status = 'new')

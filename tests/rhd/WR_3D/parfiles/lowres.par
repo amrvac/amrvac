@@ -1,0 +1,23 @@
+&testlist
+        teststr=''
+/
+
+&filelist
+  base_filename='lowres_'
+/
+
+ &meshlist
+   domain_nx1         = 64
+   domain_nx2         = 16
+   domain_nx3         = 16
+   block_nx1          = 8
+   block_nx2          = 8
+   block_nx3          = 8
+   xprobmin1      = 1.d0
+   xprobmax1       = 6.d0
+   xprobmin2      = -0.5d0
+   xprobmax2       = 0.5d0
+   xprobmin3      = -0.5d0
+   xprobmax3       = 0.5d0
+/
+
