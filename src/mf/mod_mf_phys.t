@@ -1230,16 +1230,14 @@ contains
     integer :: idir, idirmin0
 
     ! For ndir=2 only 3rd component of J can exist, ndir=1 is impossible for MHD
-    double precision :: current(ixI^S,7-2*ndir:3),bvec(ixI^S,1:ndir)
+    double precision :: current(ixI^S,7-2*ndir:3)
 
     idirmin0 = 7-2*ndir
 
-    bvec(ixI^S,1:ndir)=w(ixI^S,mag(1:ndir))
-
     if(present(fourthorder)) then
-      call curlvector(bvec,ixI^L,ixO^L,current,idirmin,idirmin0,ndir,fourthorder)
+      call curlvector(w(ixI^S,mag(1:ndir)),ixI^L,ixO^L,current,idirmin,idirmin0,ndir,fourthorder)
     else
-      call curlvector(bvec,ixI^L,ixO^L,current,idirmin,idirmin0,ndir)
+      call curlvector(w(ixI^S,mag(1:ndir)),ixI^L,ixO^L,current,idirmin,idirmin0,ndir)
     end if
 
   end subroutine get_current

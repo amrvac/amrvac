@@ -1,9 +1,10 @@
-!> To get a RBSL magnetic flux rope (Titov 2018 ApJL 852, L21)
+!> To get a RBSL magnetic flux rope in 3D (Titov 2018 ApJL 852, L21)
 module mod_rbsl
   implicit none
 
 contains
 
+{^IFTHREED
   subroutine rbsl(ixI^L,ixO^L,np,a,F_flx,positive_helicity,x,x_axis,Atotal,Bfr)
     use mod_global_parameters
     use mod_geometry
@@ -83,5 +84,6 @@ contains
     if(present(Bfr)) call curlvector(Atotal,ixI^L,ixO^L,Bfr,idirmin,1,ndir)
 
   end subroutine rbsl
+}
 
 end module mod_rbsl
