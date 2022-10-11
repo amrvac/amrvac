@@ -33,6 +33,9 @@ module mod_hd_phys
   !> Whether rotating frame is activated
   logical, public, protected              :: hd_rotating_frame = .false.
 
+  !> Whether CAK radiation line force is activated
+  logical, public, protected              :: hd_cak_force = .false.
+
   !> Number of tracer species
   integer, public, protected              :: hd_n_tracer = 0
 
@@ -94,7 +97,7 @@ contains
     namelist /hd_list/ hd_energy, hd_n_tracer, hd_gamma, hd_adiab, &
     hd_dust, hd_thermal_conduction, hd_radiative_cooling, hd_viscosity, &
     hd_gravity, He_abundance, SI_unit, hd_particles, hd_rotating_frame, hd_trac, &
-    hd_force_diagonal, hd_trac_type
+    hd_force_diagonal, hd_trac_type, hd_cak_force
 
     do n = 1, size(files)
        open(unitpar, file=trim(files(n)), status="old")
@@ -192,6 +195,7 @@ contains
     use mod_gravity, only: gravity_init
     use mod_particles, only: particles_init
     use mod_rotating_frame, only:rotating_frame_init
+    use mod_cak_force, only: cak_init
     use mod_physics
     use mod_supertimestepping, only: sts_init, add_sts_method,&
             set_conversion_methods_to_head, set_error_handling_to_head
@@ -208,7 +212,7 @@ contains
     phys_trac=hd_trac
     if(phys_trac) then
       if(ndim .eq. 1) then
-        if(hd_trac_type .gt. 2) then 
+        if(hd_trac_type .gt. 2) then
           hd_trac_type=1
           if(mype==0) write(*,*) 'WARNING: set hd_trac_type=1'
         end if
@@ -344,7 +348,7 @@ contains
     te_fl_hd%get_pthermal=> hd_get_pthermal
     te_fl_hd%Rfactor = 1d0
 {^IFTHREED
-    phys_te_images => hd_te_images 
+    phys_te_images => hd_te_images
 }
     ! Initialize viscosity module
     if (hd_viscosity) call viscosity_init(phys_wider_stencil,phys_req_diagonal)
@@ -354,6 +358,9 @@ contains
 
     ! Initialize rotating_frame module
     if (hd_rotating_frame) call rotating_frame_init()
+
+    ! Initialize CAK radiation force module
+    if (hd_cak_force) call cak_init(hd_gamma)
 
     ! Initialize particles module
     if (hd_particles) then
@@ -419,7 +426,7 @@ contains
     double precision, intent(in) :: w(ixI^S,1:nw)
     double precision :: dtnew
 
-    dtnew=get_tc_dt_hd(w,ixI^L,ixO^L,dx^D,x,tc_fl) 
+    dtnew=get_tc_dt_hd(w,ixI^L,ixO^L,dx^D,x,tc_fl)
   end function hd_get_tc_dt_hd
 
   
@@ -484,7 +491,7 @@ contains
     double precision, intent(in)  :: w(ixI^S,1:nw),x(ixI^S,1:ndim)
     double precision, intent(out) :: rho(ixI^S)
 
-    rho(ixO^S) = w(ixO^S,rho_) 
+    rho(ixO^S) = w(ixO^S,rho_)
 
   end subroutine hd_get_rho
 
@@ -578,7 +585,7 @@ contains
       unit_temperature=unit_pressure/((2.d0+3.d0*He_abundance)*unit_numberdensity*kB)
       unit_velocity=sqrt(unit_pressure/unit_density)
     end if
-    if(unit_length/=1.d0) then 
+    if(unit_length/=1.d0) then
       unit_time=unit_length/unit_velocity
     else if(unit_time/=1.d0) then
       unit_length=unit_time*unit_velocity
@@ -1174,7 +1181,7 @@ contains
     f(ixO^S, mom(idim)) = f(ixO^S, mom(idim)) + pth(ixO^S)
 
     if(hd_energy) then
-      ! Energy flux is v_i*(e + p) 
+      ! Energy flux is v_i*(e + p)
       f(ixO^S, e_) = w(ixO^S,mom(idim)) * (wC(ixO^S, e_) + w(ixO^S,p_))
     end if
 
@@ -1333,6 +1340,7 @@ contains
     use mod_viscosity, only: viscosity_add_source
     use mod_usr_methods, only: usr_gravity
     use mod_gravity, only: gravity_add_source, grav_split
+    use mod_cak_force, only: cak_add_source
 
     integer, intent(in)             :: ixI^L, ixO^L
     double precision, intent(in)    :: qdt
@@ -1376,6 +1384,10 @@ contains
       end if
     end if
 
+    if (hd_cak_force) then
+      call cak_add_source(qdt,ixI^L,ixO^L,wCT,w,x,hd_energy,qsourcesplit,active)
+    end if
+
   end subroutine hd_add_source
 
   subroutine hd_get_dt(w, ixI^L, ixO^L, dtnew, dx^D, x)
@@ -1384,6 +1396,7 @@ contains
     use mod_radiative_cooling, only: cooling_get_dt
     use mod_viscosity, only: viscosity_get_dt
     use mod_gravity, only: gravity_get_dt
+    use mod_cak_force, only: cak_get_dt
 
     integer, intent(in)             :: ixI^L, ixO^L
     double precision, intent(in)    :: dx^D, x(ixI^S, 1:^ND)
@@ -1406,6 +1419,10 @@ contains
 
     if(hd_gravity) then
       call gravity_get_dt(w,ixI^L,ixO^L,dtnew,dx^D,x)
+   end if
+
+   if (hd_cak_force) then
+     call cak_get_dt(w,ixI^L,ixO^L,dtnew,dx^D,x)
    end if
 
   end subroutine hd_get_dt
@@ -1435,7 +1452,7 @@ contains
   end function hd_inv_rho
 
   subroutine hd_handle_small_values(primitive, w, x, ixI^L, ixO^L, subname)
-    ! handles hydro (density,pressure,velocity) bootstrapping 
+    ! handles hydro (density,pressure,velocity) bootstrapping
     ! any negative dust density is flagged as well (and throws an error)
     ! small_values_method=replace also for dust
     use mod_global_parameters

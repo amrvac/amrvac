@@ -1,0 +1,82 @@
+!===============================================
+! Project : 2D CAK wind with vector force
+!
+! Aim     : study effect of (vector) line force
+!           in fast rotating OB-stars
+!
+! Config  : setup.pl -d=2
+!===============================================
+
+&filelist
+  base_filename = 'test/cak'
+  saveprim      = .true.
+  autoconvert   = .true.
+  convert_type  = 'vtuBCCmpi'
+/
+
+&savelist
+  itsave(1,1)  = 0
+  itsave(1,2)  = 0
+  ditsave_log  = 1000
+  dtsave_dat   = 1.0d-2
+/
+
+&stoplist
+  dtmin    = 1.0d-20
+  time_max = 0.5d0
+/
+
+&methodlist
+  time_stepper = 'twostep'
+  flux_scheme  = 'tvdlf'
+  limiter      = 'vanleer'
+/
+
+&boundlist
+  ! rho, mom1, mom2, mom3
+  typeboundary_min1 = 4*'special'
+  typeboundary_max1 = 4*'cont'
+  typeboundary_min2 = 'symm','symm','asymm','asymm'
+  typeboundary_max2 = 'symm','symm','asymm','asymm'
+/
+
+&meshlist
+  domain_nx1         = 200
+  domain_nx2         = 120
+  block_nx1          = 50
+  block_nx2          = 30
+  xprobmin1          = 1.0d0
+  xprobmax1          = 10.0d0
+  xprobmin2          = 0.0d0
+  xprobmax2          = 0.5d0
+  stretch_dim(1)     = 'uni'
+  qstretch_baselevel = 1.022
+/
+
+&paramlist
+  courantpar = 0.3d0 
+/
+
+&hd_list
+  hd_gravity = .true.
+  hd_energy  = .false.
+  hd_gamma   = 1.0d0
+  hd_cak_force = .true.
+/
+
+&cak_list
+  cak_alpha    = 0.65d0
+  gayley_qbar  = 2000.0d0
+  cak_vector_force = .true.
+  nthetaray  = 6
+  nphiray    = 6
+/
+
+&star_list
+  mstar    = 50.0d0
+  rstar    = 20.0d0
+  twind    = 4.0d4
+  rhobound = 2.0d-11
+  beta     = 0.5d0
+  Wrot     = 0.5d0
+/
