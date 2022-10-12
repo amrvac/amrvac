@@ -1,29 +1,19 @@
-!===============================================
-! Project : 2.5D CAK wind with vector force
-!
-! Aim     : study effect of (vector) line force
-!           in fast rotating OB-stars
-!
-! Config  : setup.pl -d=2
-!===============================================
+! regression test is only over half the meridional plane
 
 &filelist
-  base_filename = 'test/cak'
+  typefilelog   = 'regression_test'
+  base_filename = 'cak2.5d'
   saveprim      = .true.
   autoconvert   = .true.
   convert_type  = 'vtuBCCmpi'
 /
 
 &savelist
-  itsave(1,1)  = 0
-  itsave(1,2)  = 0
-  ditsave_log  = 1000
-  dtsave_dat   = 1.0d-2
+  dtsave_log  = 1d-2
 /
 
 &stoplist
-  dtmin    = 1.0d-12
-  time_max = 0.5d0
+  time_max = 0.3d0
 /
 
 &methodlist
@@ -37,18 +27,18 @@
   typeboundary_min1 = 4*'special'
   typeboundary_max1 = 4*'cont'
   typeboundary_min2 = 'symm','symm','asymm','asymm'
-  typeboundary_max2 = 'symm','symm','asymm','asymm'
+  typeboundary_max2 = 'symm','symm','asymm','symm'
 /
 
 &meshlist
   domain_nx1         = 200
-  domain_nx2         = 120
+  domain_nx2         = 60
   block_nx1          = 50
   block_nx2          = 30
   xprobmin1          = 1.0d0
   xprobmax1          = 10.0d0
   xprobmin2          = 0.0d0
-  xprobmax2          = 0.5d0
+  xprobmax2          = 0.25d0
   stretch_dim(1)     = 'uni'
   qstretch_baselevel = 1.022
 /
@@ -65,11 +55,11 @@
 /
 
 &cak_list
-  cak_alpha    = 0.65d0
-  gayley_qbar  = 2000.0d0
+  cak_alpha   = 0.65d0
+  gayley_qbar = 2000.0d0
   cak_vector_force = .true.
-  nthetaray  = 6
-  nphiray    = 6
+  nthetaray = 6
+  nphiray   = 6
 /
 
 &star_list

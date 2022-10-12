@@ -38,7 +38,7 @@ With this formula all components of the force can be computed: $\mathbf{g}_\math
 Finally, note that contrary to the RHD physics module of MPI-AMRVAC, the radiation force prescription presented here is a **reduced** dynamical picture. Indeed, we do not solve for the detailed radiation-energy exchange that is done via the flux-limited diffusion in the RHD module. This is justified since for the typical stellar conditions where the CAK force prescription applies (OB-star atmospheres), such detailed radiation-energy exchanges between the radiation field and gas are rather minor and instead the radiation dynamically couples to the gas only without considering the radiation energy budget.
 
 # Practical use
-In order to add the CAK force to a line-driven stellar wind simulation, the user has to adjust the .par file as indicated in this section. An example test problem of this module is also provided of an 1-D CAK wind in the HD test problems folder.
+In order to add the CAK force to a line-driven stellar wind simulation, the user has to adjust the .par file as indicated in this section. A 1D and 2.5D example test problem of this module is also provided in the HD tests folder.
 
 ## Activating the module
 Depending whether the setup is in (M)HD, the the force needs to be activated in the physics-dependent namelist. This means that for a (M)HD simulation one adds in the `&(m)hd_list` the following:
@@ -61,7 +61,8 @@ cak_1d_opt | integer | 1 | Switch that allows to select different CAK 1-D force 
 cak_vector_force | logical | F | If true, activate the CAK line force with components computed in all coordinate directions (radial, polar, azimuthal). Hence, computes $g_{\mathrm{line},r}$, $g_{\mathrm{line},\theta}$, and $g_{\mathrm{line},\phi}$. 
 nthetaray | integer | 6 | If `cak_vector_force=T`, amount of radiation ray points used to describe the radiation angle $\varTheta$.
 nphiray | integer | 6 | If `cak_vector_force=T`, amount of radiation ray points used to describe the radiation angle $\varPhi$.
-fix_vector_force_1d | logical | F | If true, the CAK vector line force will only have a non-zero radial component.  
+fix_vector_force_1d | logical | F | If true, the CAK vector line force will only have a non-zero radial component.
+cak_split |  logical | F | To add the source term in a split or unsplit (default) fashion.
 
 # Numerics and implementation
 

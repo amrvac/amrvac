@@ -105,7 +105,7 @@ contains
     cak_alpha   = 0.65d0
     gayley_qbar = 2000.0d0
     gayley_q0   = 2000.0d0
-    cak_1d_opt  = 1
+    cak_1d_opt  = fdisc
     nthetaray   = 6
     nphiray     = 6
 
@@ -443,32 +443,30 @@ contains
     real(8), intent(inout) :: dtnew
     
     ! Local variables
-    real(8) :: tdumr(ixO^S), tdumt(ixO^S), ge(ixO^S)
-    real(8) :: dt_cakr, dt_cakt, dt_cakp
+    real(8) :: ge(ixO^S), max_gr, dt_cak
 
     call get_gelectron(ixI^L,ixO^L,w,x,ge)
 
-    dt_cakr = bigdouble
-    dt_cakt = bigdouble
-    dt_cakp = bigdouble
+    dtnew = bigdouble
 
     ! Get dt from line force that is saved in the w-array in nwextra slot
-    tdumr(ixO^S) = sqrt( block%dx(ixO^S,1) / abs(ge(ixO^S) + w(ixO^S,gcak1_)) )
-    dt_cakr      = courantpar * minval(tdumr(ixO^S))
-    
+    max_gr = max( maxval(abs(ge(ixO^S) + w(ixO^S,gcak1_))), epsilon(1.0d0) )
+    dt_cak = minval( sqrt(block%dx(ixO^S,1)/max_gr) )
+    dtnew  = min(dtnew, courantpar*dt_cak)
+
     {^NOONED
     if (cak_vector_force) then
-      tdumt(ixO^S) = sqrt( block%dx(ixO^S,1) * block%dx(ixO^S,2) / abs(w(ixO^S,gcak2_)) )
-      dt_cakt      = courantpar * minval(tdumt(ixO^S))
+      max_gr = max( maxval(abs(w(ixO^S,gcak2_))), epsilon(1.0d0) )
+      dt_cak = minval( sqrt(block%dx(ixO^S,1) * block%dx(ixO^S,2)/max_gr) )
+      dtnew  = min(dtnew, courantpar*dt_cak)
 
       {^IFTHREED
-      tdumt(ixO^S) = sqrt( block%dx(ixO^S,1) * sin(block%dx(ixO^S,3)) / abs(w(ixO^S,gcak3_)) )
-      dt_cakt      = courantpar * minval(tdumt(ixO^S))
+      max_gr = max( maxval(abs(w(ixO^S,gcak3_))), epsilon(1.0d0) )
+      dt_cak = minval( sqrt(block%dx(ixO^S,1) * sin(block%dx(ixO^S,3))/max_gr) )
+      dtnew  = min(dtnew, courantpar*dt_cak)
       }
     endif
     }
-
-    dtnew = min(dtnew,dt_cakr,dt_cakt,dt_cakp)
 
   end subroutine cak_get_dt
 

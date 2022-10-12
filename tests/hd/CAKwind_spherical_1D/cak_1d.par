@@ -1,25 +1,13 @@
-!=================================================
-! Project : 1-D CAK wind
-!
-! Aim     : (mainly) serves to make a relaxed wind
-!           for input in other wind models
-!
-! Config  : setup.pl -d=1
-!=================================================
-
 &filelist
-  base_filename = 'test/cak'
+  base_filename = 'cak1d'
+  typefilelog   = 'regression_test'
 /
 
 &savelist
-  itsave(1,1)  = 0
-  itsave(1,2)  = 0
-  ditsave_log  = 1000
-  dtsave_dat   = 1.0d-1
+  dtsave_log = 1d-2
 /
 
 &stoplist
-  dtmin    = 1.0d-12
   time_max = 1.0d0
 /
 
@@ -55,12 +43,9 @@
 /
 
 &cak_list
-  cak_alpha    = 0.65d0
-  gayley_qbar  = 2000.0d0
-  gayley_q0    = 2000.0d0 
   cak_1d_force = .true.
-  cak_1d_opt   = 1
 /
+
 &star_list
   mstar    = 50.0d0
   rstar    = 20.0d0
