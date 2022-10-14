@@ -6332,7 +6332,7 @@ contains
       do idim2=1,ndim
         do idir=7-2*ndim,3 ! Direction of line integral
           ! Assemble indices
-          if(lvc(idim1,idim2,idir)/=0.d0) then
+          if(lvc(idim1,idim2,idir)/=0) then
             hxC^L=ixC^L-kr(idim2,^D);
             ! Add line integrals in direction idir
             circ(ixC^S,idim1)=circ(ixC^S,idim1)&
@@ -6505,7 +6505,7 @@ contains
       do idim2=1,ndim
         do idir=7-2*ndim,3 ! Direction of line integral
           ! Assemble indices
-          if(lvc(idim1,idim2,idir)/=0.d0) then
+          if(lvc(idim1,idim2,idir)/=0) then
             hxC^L=ixC^L-kr(idim2,^D);
             ! Add line integrals in direction idir
             circ(ixC^S,idim1)=circ(ixC^S,idim1)&
@@ -6663,7 +6663,7 @@ contains
       do idim2=1,ndim
         do idir=7-2*ndim,3 ! Direction of line integral
           ! Assemble indices
-          if(lvc(idim1,idim2,idir)/=0.d0) then
+          if(lvc(idim1,idim2,idir)/=0) then
             hxC^L=ixC^L-kr(idim2,^D);
             ! Add line integrals in direction idir
             circ(ixC^S,idim1)=circ(ixC^S,idim1)&

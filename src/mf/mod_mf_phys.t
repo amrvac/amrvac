@@ -2002,13 +2002,9 @@ contains
     ! Calculate contribution to FEM of each edge,
     ! that is, estimate value of line integral of
     ! electric field in the positive idir direction.
-    ixCmax^D=ixOmax^D;
-    ixCmin^D=ixOmin^D-1;
 
     ! if there is resistivity, get eta J
     if(mf_eta/=zero) call get_resistive_electric_field(ixI^L,ixO^L,sCT,s,jce)
-
-    fE=zero
 
     do idim1=1,ndim 
       iwdim1 = mag(idim1)
@@ -2017,6 +2013,8 @@ contains
         do idir=7-2*ndim,3! Direction of line integral
           ! Allow only even permutations
           if (lvc(idim1,idim2,idir)==1) then
+            ixCmax^D=ixOmax^D;
+            ixCmin^D=ixOmin^D+kr(idir,^D)-1;
             ! Assemble indices
             jxC^L=ixC^L+kr(idim1,^D);
             hxC^L=ixC^L+kr(idim2,^D);
@@ -2050,23 +2048,22 @@ contains
     ! Calculate circulation on each face
 
     do idim1=1,ndim ! Coordinate perpendicular to face 
+      ixCmax^D=ixOmax^D;
+      ixCmin^D=ixOmin^D-kr(idim1,^D);
       do idim2=1,ndim
         do idir=7-2*ndim,3 ! Direction of line integral
           ! Assemble indices
-          hxC^L=ixC^L-kr(idim2,^D);
-          ! Add line integrals in direction idir
-          circ(ixC^S,idim1)=circ(ixC^S,idim1)&
-                           +lvc(idim1,idim2,idir)&
-                           *(fE(ixC^S,idir)&
-                            -fE(hxC^S,idir))
+          if(lvc(idim1,idim2,idir)/=0) then
+            hxC^L=ixC^L-kr(idim2,^D);
+            ! Add line integrals in direction idir
+            circ(ixC^S,idim1)=circ(ixC^S,idim1)&
+                             +lvc(idim1,idim2,idir)&
+                             *(fE(ixC^S,idir)&
+                              -fE(hxC^S,idir))
+          end if
         end do
       end do
-    end do
-
-    ! Divide by the area of the face to get dB/dt
-    do idim1=1,ndim
-      ixCmax^D=ixOmax^D;
-      ixCmin^D=ixOmin^D-kr(idim1,^D);
+      ! Divide by the area of the face to get dB/dt
       where(s%surfaceC(ixC^S,idim1) > 1.0d-9*s%dvolume(ixC^S))
         circ(ixC^S,idim1)=circ(ixC^S,idim1)/s%surfaceC(ixC^S,idim1)
       elsewhere
@@ -2124,7 +2121,6 @@ contains
     ! Calculate contribution to FEM of each edge,
     ! that is, estimate value of line integral of
     ! electric field in the positive idir direction.
-    fE=zero
     ! evaluate electric field along cell edges according to equation (41)
     do idim1=1,ndim 
       iwdim1 = mag(idim1)
@@ -2219,17 +2215,17 @@ contains
       do idim2=1,ndim
         do idir=7-2*ndim,3 ! Direction of line integral
           ! Assemble indices
-          hxC^L=ixC^L-kr(idim2,^D);
-          ! Add line integrals in direction idir
-          circ(ixC^S,idim1)=circ(ixC^S,idim1)&
-                           +lvc(idim1,idim2,idir)&
-                           *(fE(ixC^S,idir)&
-                            -fE(hxC^S,idir))
+          if(lvc(idim1,idim2,idir)/=0) then
+            hxC^L=ixC^L-kr(idim2,^D);
+            ! Add line integrals in direction idir
+            circ(ixC^S,idim1)=circ(ixC^S,idim1)&
+                             +lvc(idim1,idim2,idir)&
+                             *(fE(ixC^S,idir)&
+                              -fE(hxC^S,idir))
+          end if
         end do
       end do
       ! Divide by the area of the face to get dB/dt
-      ixCmax^D=ixOmax^D;
-      ixCmin^D=ixOmin^D-kr(idim1,^D);
       where(s%surfaceC(ixC^S,idim1) > 1.0d-9*s%dvolume(ixC^S))
         circ(ixC^S,idim1)=circ(ixC^S,idim1)/s%surfaceC(ixC^S,idim1)
       elsewhere
@@ -2282,8 +2278,6 @@ contains
 
     ! if there is resistivity, get eta J
     if(mf_eta/=zero) call get_resistive_electric_field(ixI^L,ixO^L,sCT,s,jce)
-
-    fE=zero
 
     do idir=7-2*ndim,3
       ! Indices
@@ -2369,20 +2363,17 @@ contains
       do idim2=1,ndim
         do idir=7-2*ndim,3 ! Direction of line integral
           ! Assemble indices
-          hxC^L=ixC^L-kr(idim2,^D);
-          ! Add line integrals in direction idir
-          circ(ixC^S,idim1)=circ(ixC^S,idim1)&
-                           +lvc(idim1,idim2,idir)&
-                           *(fE(ixC^S,idir)&
-                            -fE(hxC^S,idir))
+          if(lvc(idim1,idim2,idir)/=0) then
+            hxC^L=ixC^L-kr(idim2,^D);
+            ! Add line integrals in direction idir
+            circ(ixC^S,idim1)=circ(ixC^S,idim1)&
+                             +lvc(idim1,idim2,idir)&
+                             *(fE(ixC^S,idir)&
+                              -fE(hxC^S,idir))
+          end if
         end do
       end do
-    end do
-
-    ! Divide by the area of the face to get dB/dt
-    do idim1=1,ndim
-      ixCmax^D=ixOmax^D;
-      ixCmin^D=ixOmin^D-kr(idim1,^D);
+      ! Divide by the area of the face to get dB/dt
       where(s%surfaceC(ixC^S,idim1) > 1.0d-9*s%dvolume(ixC^S))
         circ(ixC^S,idim1)=circ(ixC^S,idim1)/s%surfaceC(ixC^S,idim1)
       elsewhere
