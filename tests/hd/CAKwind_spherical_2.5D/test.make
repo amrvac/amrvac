@@ -1,7 +1,7 @@
 SETUP_FLAGS := -d=2
 SCHEME_DIR := ../../schemes
 
-SCHEMES := 2step_tvdlf_vl 3step_hll_ko
+SCHEMES := 3step_hll_ko 4step_hll_mc
 
 TESTS := $(SCHEMES:%=cak2.5d_%.log)
 
