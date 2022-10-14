@@ -223,8 +223,8 @@ contains
     write_snapshot            = .true.
     downsample_particles      = 1
     relativistic              = .true.
-    particles_eta             = 0.d0
-    particles_etah            = 0.d0
+    particles_eta             = -1.d0
+    particles_etah            = -1.d0
     t_next_output             = 0.0d0
     dtheta                    = 2.0d0*dpi / 60.0d0
     losses                    = .false.
@@ -238,6 +238,12 @@ contains
     integrator_type_particles = 'Boris'
 
     call particles_params_read(par_files)
+
+    ! If resistive MHD and particles_eta not given, set it to the MHD one:
+    if (physics_type == 'mhd') then
+      if (particles_eta < zero) particles_eta = mhd_eta
+      if (particles_etah < zero) particles_eta = mhd_etah
+    end if
 
     ! If sampling, ndefpayload = nw:
     if (physics_type_particles == 'sample') ndefpayload = nw
