@@ -94,6 +94,7 @@ mod_ard_phys.o: mod_particles.mod
 mod_ard_phys.o: mod_physics.mod
 mod_bc_data.o: mod_lookup_table.mod
 mod_bremsstrahlung.o: mod_physics.mod
+mod_cak_force.o: mod_physics.mod
 mod_calculate_xw.o: mod_geometry.mod
 mod_calculate_xw.o: mod_limiter.mod
 mod_calculate_xw.o: mod_physics.mod
@@ -140,6 +141,7 @@ mod_hd_hllc.o: mod_dust.mod
 mod_hd_hllc.o: mod_hd_phys.mod
 mod_hd_hllc.o: mod_physics_hllc.mod
 mod_hd_phys.o: mod_basic_types.mod
+mod_hd_phys.o: mod_cak_force.mod
 mod_hd_phys.o: mod_dust.mod
 mod_hd_phys.o: mod_fix_conserve.mod
 mod_hd_phys.o: mod_geometry.mod
@@ -206,6 +208,7 @@ mod_mhd.o: mod_mhd_ppm.mod
 mod_mhd.o: mod_mhd_roe.mod
 mod_mhd_hllc.o: mod_mhd_phys.mod
 mod_mhd_hllc.o: mod_physics_hllc.mod
+mod_mhd_phys.o: mod_cak_force.mod
 mod_mhd_phys.o: mod_constrained_transport.mod
 mod_mhd_phys.o: mod_convert.mod
 mod_mhd_phys.o: mod_fix_conserve.mod
