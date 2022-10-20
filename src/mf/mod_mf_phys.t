@@ -741,7 +741,7 @@ contains
 
     double precision :: xmin(ndim),xmax(ndim)
     double precision :: decay(ixO^S)
-    double precision :: current(ixI^S,7-2*ndir:3),tmp(ixI^S)
+    double precision :: current(ixI^S,7-2*ndir:3),tmp(ixO^S)
     integer :: ix^D, idirmin,idir,jdir,kdir
 
     call get_current(w,ixI^L,ixO^L,idirmin,current)
@@ -757,16 +757,15 @@ contains
 \}
     w(ixO^S,mom(:))=0.d0
     ! calculate Lorentz force
-    do idir=1,ndir; do jdir=1,ndir; do kdir=idirmin,3
-       if(lvc(idir,jdir,kdir)/=0)then
-          tmp(ixO^S)=current(ixO^S,jdir)*w(ixO^S,mag(kdir))
-          if(lvc(idir,jdir,kdir)==1)then
-             w(ixO^S,mom(idir))=w(ixO^S,mom(idir))+tmp(ixO^S)
-          else
-             w(ixO^S,mom(idir))=w(ixO^S,mom(idir))-tmp(ixO^S)
-          endif
-       endif
-    enddo; enddo; enddo
+    do idir=1,ndir; do jdir=idirmin,3; do kdir=1,ndir
+      if(lvc(idir,jdir,kdir)/=0) then
+        if(lvc(idir,jdir,kdir)==1) then
+          w(ixO^S,mom(idir))=w(ixO^S,mom(idir))+current(ixO^S,jdir)*w(ixO^S,mag(kdir))
+        else
+          w(ixO^S,mom(idir))=w(ixO^S,mom(idir))-current(ixO^S,jdir)*w(ixO^S,mag(kdir))
+        end if
+      end if
+    end do; end do; end do
 
     tmp(ixO^S)=sum(w(ixO^S,mag(:))**2,dim=ndim+1)
     ! frictional coefficient
@@ -2561,26 +2560,26 @@ contains
       sum_l_ipe   = sum_l_ipe+integral_grid_mf(ixG^LL,ixM^LL,ps(igrid)%w,&
         ps(igrid)%x,4,patchwi)
     end do
-    call MPI_ALLREDUCE(sum_jbb_ipe,sum_jbb,1,MPI_DOUBLE_PRECISION,&
-       MPI_SUM,icomm,ierrmpi)
-    call MPI_ALLREDUCE(sum_j_ipe,sum_j,1,MPI_DOUBLE_PRECISION,MPI_SUM,&
+    call MPI_REDUCE(sum_jbb_ipe,sum_jbb,1,MPI_DOUBLE_PRECISION,&
+       MPI_SUM,0,icomm,ierrmpi)
+    call MPI_REDUCE(sum_j_ipe,sum_j,1,MPI_DOUBLE_PRECISION,MPI_SUM,0,&
        icomm,ierrmpi)
-    call MPI_ALLREDUCE(f_i_ipe,f_i,1,MPI_DOUBLE_PRECISION,MPI_SUM,&
+    call MPI_REDUCE(f_i_ipe,f_i,1,MPI_DOUBLE_PRECISION,MPI_SUM,0,&
        icomm,ierrmpi)
-    call MPI_ALLREDUCE(sum_l_ipe,sum_l,1,MPI_DOUBLE_PRECISION,MPI_SUM,&
+    call MPI_REDUCE(sum_l_ipe,sum_l,1,MPI_DOUBLE_PRECISION,MPI_SUM,0,&
        icomm,ierrmpi)
-    call MPI_ALLREDUCE(volume_pe,volume,1,MPI_DOUBLE_PRECISION,MPI_SUM,&
+    call MPI_REDUCE(volume_pe,volume,1,MPI_DOUBLE_PRECISION,MPI_SUM,0,&
        icomm,ierrmpi)
-    ! current- and volume-weighted average of the sine of the angle
-    ! between the magnetic field B and the current density J
-    cw_sin_theta = sum_jbb/sum_j
-    ! volume-weighted average of the absolute value of the fractional
-    ! magnetic flux change
-    f_i = f_i/volume
-    sum_j=sum_j/volume
-    sum_l=sum_l/volume
 
     if(mype==0) then
+      ! current- and volume-weighted average of the sine of the angle
+      ! between the magnetic field B and the current density J
+      cw_sin_theta = sum_jbb/sum_j
+      ! volume-weighted average of the absolute value of the fractional
+      ! magnetic flux change
+      f_i = f_i/volume
+      sum_j=sum_j/volume
+      sum_l=sum_l/volume
       if(.not.logmfopened) then
         ! generate filename
         write(filename,"(a,a)") TRIM(base_filename), "_mf_metrics.csv"
@@ -2595,7 +2594,7 @@ contains
         amode=ior(amode,MPI_MODE_APPEND)
         call MPI_FILE_OPEN(MPI_COMM_SELF,filename,amode,MPI_INFO_NULL,fhmf,ierrmpi)
         logmfopened=.true.
-        filehead="  it,  time,  <CW sin theta>,  <Current>,  <Lorenz force>,  <f_i>"
+        filehead="  it,time,CW_sin_theta,current,Lorenz_force,f_i"
         if (it == 0) then
           call MPI_FILE_WRITE(fhmf,filehead,len_trim(filehead), &
                               MPI_CHARACTER,istatus,ierrmpi)
@@ -2662,28 +2661,28 @@ contains
     double precision                   :: w(ixI^S,nw+nwauxio)
     logical, intent(in) :: patchwi(ixI^S)
 
-    double precision, dimension(ixI^S,1:ndir) :: bvec,qvec,current
-    double precision :: integral_grid_mf,tmp(ixI^S),dsurface(ixO^S),bm2
-    integer :: ix^D,idirmin,idir,jdir,kdir,idims,hxO^L
+    double precision, dimension(ixI^S,7-2*ndir:3) :: current
+    double precision, dimension(ixI^S,1:ndir) :: bvec,qvec
+    double precision :: integral_grid_mf,tmp(ixI^S),bm2
+    integer :: ix^D,idirmin0,idirmin,idir,jdir,kdir
 
     integral_grid_mf=0.d0
     select case(iw)
      case(1)
       ! Sum(|JxB|/|B|*dvolume)
-      bvec(ixI^S,:)=w(ixI^S,mag(:))
+      bvec(ixO^S,:)=w(ixO^S,mag(:))
       call get_current(w,ixI^L,ixO^L,idirmin,current)
       ! calculate Lorentz force
       qvec(ixO^S,1:ndir)=zero
-      do idir=1,ndir; do jdir=1,ndir; do kdir=idirmin,3
+      do idir=1,ndir; do jdir=idirmin,3; do kdir=1,ndir
          if(lvc(idir,jdir,kdir)/=0)then
-            tmp(ixO^S)=current(ixO^S,jdir)*bvec(ixO^S,kdir)
-            if(lvc(idir,jdir,kdir)==1)then
-               qvec(ixO^S,idir)=qvec(ixO^S,idir)+tmp(ixO^S)
-            else
-               qvec(ixO^S,idir)=qvec(ixO^S,idir)-tmp(ixO^S)
-            endif
-         endif
-      enddo; enddo; enddo
+           if(lvc(idir,jdir,kdir)==1)then
+             qvec(ixO^S,idir)=qvec(ixO^S,idir)+current(ixO^S,jdir)*bvec(ixO^S,kdir)
+           else
+             qvec(ixO^S,idir)=qvec(ixO^S,idir)-current(ixO^S,jdir)*bvec(ixO^S,kdir)
+           end if
+         end if
+      end do; end do; end do
 
       {do ix^DB=ixOmin^DB,ixOmax^DB\}
          if(patchwi(ix^D)) then
@@ -2709,20 +2708,19 @@ contains
       {end do\}
      case(4)
       ! Sum(|JxB|*dvolume)
-      bvec(ixI^S,:)=w(ixI^S,mag(:))
+      bvec(ixO^S,:)=w(ixO^S,mag(:))
       call get_current(w,ixI^L,ixO^L,idirmin,current)
       ! calculate Lorentz force
       qvec(ixO^S,1:ndir)=zero
-      do idir=1,ndir; do jdir=1,ndir; do kdir=idirmin,3
+      do idir=1,ndir; do jdir=idirmin,3; do kdir=1,ndir
          if(lvc(idir,jdir,kdir)/=0)then
-            tmp(ixO^S)=current(ixO^S,jdir)*bvec(ixO^S,kdir)
-            if(lvc(idir,jdir,kdir)==1)then
-               qvec(ixO^S,idir)=qvec(ixO^S,idir)+tmp(ixO^S)
-            else
-               qvec(ixO^S,idir)=qvec(ixO^S,idir)-tmp(ixO^S)
-            endif
-         endif
-      enddo; enddo; enddo
+           if(lvc(idir,jdir,kdir)==1)then
+             qvec(ixO^S,idir)=qvec(ixO^S,idir)+current(ixO^S,jdir)*bvec(ixO^S,kdir)
+           else
+             qvec(ixO^S,idir)=qvec(ixO^S,idir)-current(ixO^S,jdir)*bvec(ixO^S,kdir)
+           end if
+         end if
+      end do; end do; end do
 
       {do ix^DB=ixOmin^DB,ixOmax^DB\}
          if(patchwi(ix^D)) integral_grid_mf=integral_grid_mf+&
