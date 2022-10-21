@@ -13,6 +13,7 @@ module mod_weno
   ! 2020.1.15 new WENO5 limiter WENO5NM for stretched grid.
   ! 2020.4.15 WENO5-CU6: hybrid sixth-order linear & WENO5
   ! 2021.6.12 generic treatment for fixing unphysical reconstructions
+  ! 2022.10.21 remove exENO7
    
   implicit none
   private
@@ -30,7 +31,6 @@ module mod_weno
   public :: TENO5ADlimiter
   public :: WENO5CU6limiter
   public :: WENO7limiter
-  public :: exENO7limiter
   public :: fix_limiter
   public :: fix_limiter1
   public :: fix_onelimiter
@@ -1267,164 +1267,6 @@ contains
     call fix_limiter(ixI^L,iL^L,wLCtmp,wRCtmp,wLC,wRC)
 
   end subroutine WENO7limiter
-
-  subroutine exENO7limiter(ixI^L,iL^L,idims,w,wLC,wRC)
-    use mod_global_parameters
-  
-    integer, intent(in)             :: ixI^L, iL^L, idims
-    double precision, intent(in)    :: w(ixI^S,1:nw)
-    double precision, intent(inout) :: wRC(ixI^S,1:nw),wLC(ixI^S,1:nw) 
-    !> local
-    integer                         :: i, iw
-    integer                         :: iLm^L, iLmm^L, iLmmm^L
-    integer                         :: iLp^L, iLpp^L, iLppp^L, iLpppp^L
-    integer                         :: iM^L, iMm^L, iMmm^L
-    integer                         :: iMp^L, iMpp^L, iMppp^L
-    integer                         :: id^L, idp^L, idpp^L, idm^L, ie^L, iem^L, iep^L, iepp^L
-    integer, dimension(ixI^S,1:nw)  :: delta_sum
-    integer, dimension(ixI^S,1:nw,3):: delta
-    double precision, dimension(2)            :: beta_coeff
-    double precision, dimension(3)            :: d_array
-    double precision, dimension(ixI^S,1:nw)   :: gamma_sum, flux
-    double precision, dimension(ixI^S,1:nw,3) :: beta, gamma_array, kai_array
-    double precision, parameter               :: exeno_ct = 1.d-1
-
-    double precision, dimension(ixI^S,1:nw)  :: wRCtmp, wLCtmp
-
-    iLm^L=iL^L-kr(idims,^D);
-    iLmm^L=iLm^L-kr(idims,^D);
-    iLmmm^L=iLmm^L-kr(idims,^D);
-    iLp^L=iL^L+kr(idims,^D);
-    iLpp^L=iLp^L+kr(idims,^D);
-    iLppp^L=iLpp^L+kr(idims,^D);
-    iLpppp^L=iLppp^L+kr(idims,^D);
-
-    iMmin^D=iLmin^D-kr(idims,^D);
-    iMmax^D=iLmax^D+kr(idims,^D);
-    iMm^L=iM^L-kr(idims,^D);
-    iMmm^L=iMm^L-kr(idims,^D);
-    iMp^L=iM^L+kr(idims,^D);
-    iMpp^L=iMp^L+kr(idims,^D);
-    iMppp^L=iMpp^L+kr(idims,^D);
-
-    beta_coeff(1:2) = (/ 1.0833333333333333d0, 0.25d0/)
-    d_array(1:3) = (/ 1.0d0/10.0d0, 3.0d0/5.0d0, 3.0d0/10.0d0 /)
-
-    !>> left side
-    beta(iM^S,1:nwflux,1) = beta_coeff(1) * (w(iMmm^S,1:nwflux) + w(iM^S,1:nwflux) - 2.0d0 * w(iMm^S,1:nwflux))**2 &
-         + beta_coeff(2) * (w(iMmm^S,1:nwflux) - 4.0d0 * w(iMm^S,1:nwflux) + 3.0d0 * w(iM^S,1:nwflux))**2
-    beta(iM^S,1:nwflux,2) = beta_coeff(1) * (w(iMm^S,1:nwflux) + w(iMp^S,1:nwflux) - 2.0d0 * w(iM^S,1:nwflux))**2 &
-         + beta_coeff(2) * (w(iMm^S,1:nwflux) - w(iMp^S,1:nwflux))**2
-    beta(iM^S,1:nwflux,3) = beta_coeff(1) * (w(iM^S,1:nwflux) + w(iMpp^S,1:nwflux) - 2.0d0 * w(iMp^S,1:nwflux))**2 &
-         + beta_coeff(2) * (3.0d0 * w(iM^S, 1:nwflux) - 4.0d0 * w(iMp^S,1:nwflux) + w(iMpp^S,1:nwflux))**2
-
-    gamma_sum(iM^S,1:nwflux) = 0.0d0 
-    do i = 1,3
-      gamma_array(iM^S,1:nwflux,i) = d_array(i) / (beta(iM^S,1:nwflux,i) + weno_eps_machine)**2
-      gamma_sum(iM^S,1:nwflux) = gamma_sum(iM^S,1:nwflux) + gamma_array(iM^S,1:nwflux,i)
-    end do
-    do i = 1,3
-      kai_array(iM^S,1:nwflux,i) = gamma_array(iM^S,1:nwflux,i) / gamma_sum(iM^S,1:nwflux)
-      where(kai_array(iM^S,1:nwflux,i) .lt. exeno_ct) 
-        delta(iM^S,1:nwflux,i) = 0
-      elsewhere
-        delta(iM^S,1:nwflux,i) = 1
-      endwhere
-    end do
-
-    delta_sum(iL^S,1:nwflux) = delta(iLm^S,1:nwflux,1) * 1 + delta(iLp^S,1:nwflux,3) * 2 + delta(iL^S,1:nwflux,1) * 4 &
-                             + delta(iL^S,1:nwflux,2)  * 8 + delta(iL^S,1:nwflux,3) * 16
-
-    !> f3
-    where(delta_sum(iL^S,1:nwflux) .eq. 31)
-      flux(iL^S,1:nwflux) = (- 3.d0 * w(iLmmm^S,1:nwflux) + 25.d0 * w(iLmm^S,1:nwflux) - 101.d0 * w(iLm^S,1:nwflux) + 319.d0 * w(iL^S,1:nwflux) &
-                             + 214.d0 * w(iLp^S,1:nwflux) - 38.d0 * w(iLpp^S,1:nwflux) + 4.d0 * w(iLppp^S,1:nwflux)) / 420.d0
-    !> f4
-    elsewhere(delta_sum(iL^S,1:nwflux) .eq. 30)
-      flux(iL^S,1:nwflux) = (w(iLmm^S,1:nwflux) - 8.d0 * w(iLm^S,1:nwflux) + 37.d0 * w(iL^S,1:nwflux) + 37.d0 * w(iLp^S,1:nwflux) &
-                             - 8.d0 * w(iLpp^S,1:nwflux) + w(iLppp^S,1:nwflux)) / 60.d0
-    !> f5
-    elsewhere(delta_sum(iL^S,1:nwflux) .eq. 29)
-      flux(iL^S,1:nwflux) = (- w(iLmmm^S,1:nwflux) + 7.d0 * w(iLmm^S,1:nwflux) - 23.d0 * w(iLm^S,1:nwflux) + 57.d0 * w(iL^S,1:nwflux) &
-                             + 22.d0 * w(iLp^S,1:nwflux) - 2.d0 * w(iLpp^S,1:nwflux)) / 60.d0
-    !> f6
-    elsewhere(delta_sum(iL^S,1:nwflux) .eq. 28)
-      flux(iL^S,1:nwflux) = (2.d0 * w(iLmm^S,1:nwflux) - 13.d0 * w(iLm^S,1:nwflux) + 47.d0 * w(iL^S,1:nwflux) + 27.d0 * w(iLp^S,1:nwflux) &
-                             - 3.d0 * w(iLpp^S,1:nwflux)) / 60.d0
-    !> f7
-    elsewhere(delta_sum(iL^S,1:nwflux) .ge. 24)
-      flux(iL^S,1:nwflux) = (- w(iLm^S,1:nwflux) + 7.d0 * w(iL^S,1:nwflux) + 7.d0 * w(iLp^S,1:nwflux) - w(iLpp^S,1:nwflux)) / 12.d0
-    !> f9
-    elsewhere(delta_sum(iL^S,1:nwflux) .ge. 16)
-      flux(iL^S,1:nwflux) = (2.d0 * w(iL^S,1:nwflux) + 5.d0 * w(iLp^S,1:nwflux) - w(iLpp^S,1:nwflux)) / 6.d0
-    !> f8
-    elsewhere(delta_sum(iL^S,1:nwflux) .ge. 12)
-      flux(iL^S,1:nwflux) = (w(iLmm^S,1:nwflux) - 5.d0 * w(iLm^S,1:nwflux) + 13.d0 * w(iL^S,1:nwflux) + 3.d0 * w(iLp^S,1:nwflux)) / 12.d0
-    !> f10
-    elsewhere(delta_sum(iL^S,1:nwflux) .ge. 8)
-      flux(iL^S,1:nwflux) = (- w(iLm^S,1:nwflux) + 5.d0 * w(iL^S,1:nwflux) + 2.d0 * w(iLp^S,1:nwflux)) / 6.d0
-    !> f11
-    elsewhere
-     flux(iL^S,1:nwflux) = (2.d0 * w(iLmm^S,1:nwflux) - 7.d0 * w(iLm^S,1:nwflux) + 11.d0 * w(iL^S,1:nwflux)) / 6.d0
-    endwhere
-
-    wLCtmp(iL^S,1:nwflux) = flux(iL^S,1:nwflux)
-
-    !> right side
-    beta(iM^S,1:nwflux,1) = beta_coeff(1) * (w(iMppp^S,1:nwflux) + w(iMp^S,1:nwflux) - 2.0d0 * w(iMpp^S,1:nwflux))**2 &
-         + beta_coeff(2) * (w(iMppp^S,1:nwflux) - 4.0d0 * w(iMpp^S,1:nwflux) + 3.0d0 * w(iMp^S,1:nwflux))**2
-    beta(iM^S,1:nwflux,2) = beta_coeff(1) * (w(iMpp^S,1:nwflux) + w(iM^S,1:nwflux) - 2.0d0 * w(iMp^S,1:nwflux))**2 &
-         + beta_coeff(2) * (w(iMpp^S,1:nwflux) - w(iM^S,1:nwflux))**2
-    beta(iM^S,1:nwflux,3) = beta_coeff(1) * (w(iMp^S,1:nwflux) + w(iMm^S,1:nwflux) - 2.0d0 * w(iM^S,1:nwflux))**2 &
-         + beta_coeff(2) * (3.0d0 * w(iMp^S, 1:nwflux) - 4.0d0 * w(iM^S,1:nwflux) + w(iMm^S,1:nwflux))**2
-
-    gamma_sum(iM^S,1:nwflux) = 0.0d0 
-    do i = 1,3
-      gamma_array(iM^S,1:nwflux,i) = d_array(i) / (beta(iM^S,1:nwflux,i) + weno_eps_machine)**2
-      gamma_sum(iM^S,1:nwflux) = gamma_sum(iM^S,1:nwflux) + gamma_array(iM^S,1:nwflux,i)
-    end do
-    do i = 1,3
-      kai_array(iM^S,1:nwflux,i) = gamma_array(iM^S,1:nwflux,i) / gamma_sum(iM^S,1:nwflux)
-      where(kai_array(iM^S,1:nwflux,i) .lt. exeno_ct) 
-        delta(iM^S,1:nwflux,i) = 0
-      elsewhere
-        delta(iM^S,1:nwflux,i) = 1
-      endwhere
-    end do
- 
-    delta_sum(iL^S,1:nwflux) = delta(iLp^S,1:nwflux,1) * 1 + delta(iLm^S,1:nwflux,3) * 2 + delta(iL^S,1:nwflux,1) * 4 &
-                             + delta(iL^S,1:nwflux,2)  * 8 + delta(iL^S,1:nwflux,3) * 16
-
-    where(delta_sum(iL^S,1:nwflux) .eq. 31)
-      flux(iL^S,1:nwflux) = (- 3.d0 * w(iLpppp^S,1:nwflux) + 25.d0 * w(iLppp^S,1:nwflux) - 101.d0 * w(iLpp^S,1:nwflux) &
-                             + 319.d0 * w(iLp^S,1:nwflux) + 214.d0 * w(iL^S,1:nwflux) - 38.d0 * w(iLm^S,1:nwflux) &
-                             + 4.d0 * w(iLmm^S,1:nwflux)) / 420.d0
-    elsewhere(delta_sum(iL^S,1:nwflux) .eq. 30)
-      flux(iL^S,1:nwflux) = (w(iLppp^S,1:nwflux) - 8.d0 * w(iLpp^S,1:nwflux) + 37.d0 * w(iLp^S,1:nwflux) + 37.d0 * w(iL^S,1:nwflux) &
-                             - 8.d0 * w(iLm^S,1:nwflux) + w(iLmm^S,1:nwflux)) / 60.d0
-    elsewhere(delta_sum(iL^S,1:nwflux) .eq. 29)
-      flux(iL^S,1:nwflux) = (- w(iLpppp^S,1:nwflux) + 7.d0 * w(iLppp^S,1:nwflux) - 23.d0 * w(iLpp^S,1:nwflux) + 57.d0 * w(iLp^S,1:nwflux) &
-                             + 22.d0 * w(iL^S,1:nwflux) - 2.d0 * w(iLm^S,1:nwflux)) / 60.d0
-    elsewhere(delta_sum(iL^S,1:nwflux) .eq. 28)
-      flux(iL^S,1:nwflux) = (2.d0 * w(iLppp^S,1:nwflux) - 13.d0 * w(iLpp^S,1:nwflux) + 47.d0 * w(iLp^S,1:nwflux) + 27.d0 * w(iL^S,1:nwflux) &
-                             - 3.d0 * w(iLm^S,1:nwflux)) / 60.d0
-    elsewhere(delta_sum(iL^S,1:nwflux) .ge. 24)
-      flux(iL^S,1:nwflux) = (- w(iLpp^S,1:nwflux) + 7.d0 * w(iLp^S,1:nwflux) + 7.d0 * w(iL^S,1:nwflux) - w(iLm^S,1:nwflux)) / 12.d0
-    elsewhere(delta_sum(iL^S,1:nwflux) .ge. 16)
-      flux(iL^S,1:nwflux) = (2.d0 * w(iLp^S,1:nwflux) + 5.d0 * w(iL^S,1:nwflux) - w(iLm^S,1:nwflux)) / 6.d0
-    elsewhere(delta_sum(iL^S,1:nwflux) .ge. 12)
-      flux(iL^S,1:nwflux) = (w(iLppp^S,1:nwflux) - 5.d0 * w(iLpp^S,1:nwflux) + 13.d0 * w(iLp^S,1:nwflux) + 3.d0 * w(iL^S,1:nwflux)) / 12.d0
-    elsewhere(delta_sum(iL^S,1:nwflux) .ge. 8)
-      flux(iL^S,1:nwflux) = (- w(iLpp^S,1:nwflux) + 5.d0 * w(iLp^S,1:nwflux) + 2.d0 * w(iL^S,1:nwflux)) / 6.d0
-    elsewhere
-     flux(iL^S,1:nwflux) = (2.d0 * w(iLppp^S,1:nwflux) - 7.d0 * w(iLpp^S,1:nwflux) + 11.d0 * w(iLp^S,1:nwflux)) / 6.d0
-    endwhere
-
-    wRCtmp(iL^S,1:nwflux) = flux(iL^S,1:nwflux)
-
-    call fix_limiter(ixI^L,iL^L,wLCtmp,wRCtmp,wLC,wRC)
-
-  end subroutine exENO7limiter
 
   subroutine minmod(ixI^L,ixO^L,a,b,minm)
 

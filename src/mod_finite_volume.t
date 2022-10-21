@@ -1114,8 +1114,6 @@ contains
        call WENO7limiter(ixI^L,ixL^L,idims,w,wLp,wRp,1)
     case (limiter_mpweno7)
        call WENO7limiter(ixI^L,ixL^L,idims,w,wLp,wRp,2)
-    case (limiter_exeno7)
-       call exENO7limiter(ixI^L,ixL^L,idims,w,wLp,wRp)
     case (limiter_venk)
        call venklimiter(ixI^L,ixL^L,idims,dxdim,w,wLp,wRp) 
        if(fix_small_values) then

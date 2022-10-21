@@ -1432,10 +1432,6 @@ contains
       nghostcells=max(nghostcells,4)
     end if
 
-    if(any(limiter(1:nlevelshi)=='exeno7')) then
-      nghostcells=max(nghostcells,4)
-    end if
-
     ! If a wider stencil is used, extend the number of ghost cells
     nghostcells = nghostcells + phys_wider_stencil
 
