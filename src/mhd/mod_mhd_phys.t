@@ -788,7 +788,7 @@ contains
         call set_conversion_methods_to_head(mhd_e_to_ei_semirelati, mhd_ei_to_e_semirelati)
       else if(mhd_hydrodynamic_e) then
         call set_conversion_methods_to_head(mhd_e_to_ei_hde, mhd_ei_to_e_hde)
-      else
+      else if(.not. mhd_internal_e) then
         call set_conversion_methods_to_head(mhd_e_to_ei, mhd_ei_to_e)
       end if
       if(has_equi_pe0 .and. has_equi_rho0) then
@@ -1554,6 +1554,11 @@ contains
     double precision                :: inv_rho(ixO^S), gamma2(ixO^S)
     integer                         :: idir
 
+    if (fix_small_values) then
+      ! fix small values preventing NaN numbers in the following converting
+      call mhd_handle_small_values(.false., w, x, ixI^L, ixO^L, 'mhd_to_primitive_origin')
+    end if
+
     inv_rho(ixO^S) = 1d0/w(ixO^S,rho_)
 
     ! Calculate pressure = (gamma-1) * (e-ek-eb)
@@ -1577,10 +1582,6 @@ contains
       end do
     end if
 
-    if (fix_small_values) then
-      call mhd_handle_small_values(.true., w, x, ixI^L, ixO^L, 'mhd_to_primitive_origin')
-    end if
-
   end subroutine mhd_to_primitive_origin
 
   !> Transform conservative variables into primitive ones
@@ -1592,6 +1593,11 @@ contains
 
     double precision                :: inv_rho(ixO^S)
     integer                         :: idir
+
+    if (fix_small_values) then
+      ! fix small values preventing NaN numbers in the following converting
+      call mhd_handle_small_values(.false., w, x, ixI^L, ixO^L, 'mhd_to_primitive_hde')
+    end if
 
     inv_rho(ixO^S) = 1d0/w(ixO^S,rho_)
 
@@ -1605,10 +1611,6 @@ contains
        w(ixO^S, mom(idir)) = w(ixO^S, mom(idir))*inv_rho
     end do
 
-    if (fix_small_values) then
-      call mhd_handle_small_values(.true., w, x, ixI^L, ixO^L, 'mhd_to_primitive_hde')
-    end if
-
   end subroutine mhd_to_primitive_hde
 
   !> Transform conservative variables into primitive ones
@@ -1620,6 +1622,11 @@ contains
 
     double precision                :: inv_rho(ixO^S), gamma2(ixO^S)
     integer                         :: idir
+
+    if (fix_small_values) then
+      ! fix small values preventing NaN numbers in the following converting
+      call mhd_handle_small_values(.false., w, x, ixI^L, ixO^L, 'mhd_to_primitive_inte')
+    end if
 
     inv_rho(ixO^S) = 1d0/w(ixO^S,rho_)
 
@@ -1641,10 +1648,6 @@ contains
       end do
     end if
 
-    if (fix_small_values) then
-      call mhd_handle_small_values(.true., w, x, ixI^L, ixO^L, 'mhd_to_primitive_inte')
-    end if
-
   end subroutine mhd_to_primitive_inte
 
   !> Transform conservative variables into primitive ones
@@ -1655,6 +1658,11 @@ contains
     double precision, intent(in)    :: x(ixI^S, 1:ndim)
     double precision                :: inv_rho(ixO^S)
     integer                         :: idir
+
+    if (fix_small_values) then
+      ! fix small values preventing NaN numbers in the following converting
+      call mhd_handle_small_values(.false., w, x, ixI^L, ixO^L, 'mhd_to_primitive_split_rho')
+    end if
 
     inv_rho(ixO^S) = 1d0/(w(ixO^S,rho_) + block%equi_vars(ixO^S,equi_rho0_,b0i))
 
@@ -1675,10 +1683,6 @@ contains
        w(ixO^S, mom(idir)) = w(ixO^S, mom(idir))*inv_rho
     end do
 
-    if (fix_small_values) then
-      call mhd_handle_small_values(.true., w, x, ixI^L, ixO^L, 'mhd_to_primitive_split_rho')
-    end if
-
   end subroutine mhd_to_primitive_split_rho
 
   !> Transform conservative variables into primitive ones
@@ -1691,6 +1695,11 @@ contains
     double precision                :: inv_rho(ixO^S)
     double precision :: b(ixO^S,1:ndir), Ba(ixO^S,1:ndir),tmp(ixO^S), b2(ixO^S), gamma2(ixO^S)
     integer                         :: idir, jdir, kdir
+
+    if (fix_small_values) then
+      ! fix small values preventing NaN numbers in the following converting
+      call mhd_handle_small_values_semirelati(.false., w, x, ixI^L, ixO^L, 'mhd_to_primitive_semirelati')
+    end if
 
     if(B0field) then
       Ba(ixO^S,1:ndir)=w(ixO^S,mag(1:ndir))+block%B0(ixO^S,1:ndir,b0i)
@@ -1738,10 +1747,6 @@ contains
                  +sum(b(ixO^S,:)**2,dim=ndim+1)*inv_squared_c))
     end if
 
-    if (fix_small_values) then
-      call mhd_handle_small_values_semirelati(.true., w, x, ixI^L, ixO^L, 'mhd_to_primitive_semirelati')
-    end if
-
   end subroutine mhd_to_primitive_semirelati
 
   !> Transform internal energy to total energy
@@ -1751,12 +1756,10 @@ contains
     double precision, intent(inout) :: w(ixI^S, nw)
     double precision, intent(in)    :: x(ixI^S, 1:ndim)
 
-    if(mhd_internal_e) return
- 
     ! Calculate total energy from internal, kinetic and magnetic energy
-    w(ixO^S,e_)=w(ixO^S,e_)&
-               +mhd_kin_en(w,ixI^L,ixO^L)&
-               +mhd_mag_en(w,ixI^L,ixO^L)
+    w(ixI^S,e_)=w(ixI^S,e_)&
+               +mhd_kin_en(w,ixI^L,ixI^L)&
+               +mhd_mag_en(w,ixI^L,ixI^L)
 
   end subroutine mhd_ei_to_e
 
@@ -1768,7 +1771,7 @@ contains
     double precision, intent(in)    :: x(ixI^S, 1:ndim)
 
     ! Calculate hydrodynamic energy from internal and kinetic
-    w(ixO^S,e_)=w(ixO^S,e_)+mhd_kin_en(w,ixI^L,ixO^L)
+    w(ixI^S,e_)=w(ixI^S,e_)+mhd_kin_en(w,ixI^L,ixI^L)
 
   end subroutine mhd_ei_to_e_hde
 
@@ -1779,8 +1782,8 @@ contains
     double precision, intent(inout) :: w(ixI^S, nw)
     double precision, intent(in)    :: x(ixI^S, 1:ndim)
 
-    w(ixO^S,p_)=w(ixO^S,e_)*gamma_1
-    call mhd_to_conserved_semirelati(ixI^L,ixO^L,w,x)
+    w(ixI^S,p_)=w(ixI^S,e_)*gamma_1
+    call mhd_to_conserved_semirelati(ixI^L,ixI^L,w,x)
 
   end subroutine mhd_ei_to_e_semirelati
 
@@ -1791,15 +1794,13 @@ contains
     double precision, intent(inout) :: w(ixI^S, nw)
     double precision, intent(in)    :: x(ixI^S, 1:ndim)
 
-    if(mhd_internal_e) return
-
     ! Calculate ei = e - ek - eb
-    w(ixO^S,e_)=w(ixO^S,e_)&
-                -mhd_kin_en(w,ixI^L,ixO^L)&
-                -mhd_mag_en(w,ixI^L,ixO^L)
+    w(ixI^S,e_)=w(ixI^S,e_)&
+                -mhd_kin_en(w,ixI^L,ixI^L)&
+                -mhd_mag_en(w,ixI^L,ixI^L)
 
     if(fix_small_values) then
-      call mhd_handle_small_ei(w,x,ixI^L,ixO^L,e_,'mhd_e_to_ei')
+      call mhd_handle_small_ei(w,x,ixI^L,ixI^L,e_,'mhd_e_to_ei')
     end if
 
   end subroutine mhd_e_to_ei
@@ -1812,10 +1813,10 @@ contains
     double precision, intent(in)    :: x(ixI^S, 1:ndim)
 
     ! Calculate ei = e - ek
-    w(ixO^S,e_)=w(ixO^S,e_)-mhd_kin_en(w,ixI^L,ixO^L)
+    w(ixI^S,e_)=w(ixI^S,e_)-mhd_kin_en(w,ixI^L,ixI^L)
 
     if(fix_small_values) then
-      call mhd_handle_small_ei(w,x,ixI^L,ixO^L,e_,'mhd_e_to_ei_hde')
+      call mhd_handle_small_ei(w,x,ixI^L,ixI^L,e_,'mhd_e_to_ei_hde')
     end if
 
   end subroutine mhd_e_to_ei_hde
@@ -1827,12 +1828,8 @@ contains
     double precision, intent(inout) :: w(ixI^S, nw)
     double precision, intent(in)    :: x(ixI^S, 1:ndim)
 
-    call mhd_to_primitive_semirelati(ixI^L,ixO^L,w,x)
-    w(ixO^S,e_)=w(ixO^S,p_)*inv_gamma_1
-
-    if(fix_small_values) then
-      call mhd_handle_small_ei(w,x,ixI^L,ixO^L,e_,'mhd_e_to_ei_semirelati')
-    end if
+    call mhd_to_primitive_semirelati(ixI^L,ixI^L,w,x)
+    w(ixI^S,e_)=w(ixI^S,p_)*inv_gamma_1
 
   end subroutine mhd_e_to_ei_semirelati
 
@@ -1843,11 +1840,11 @@ contains
     double precision, intent(inout) :: w(ixI^S, nw)
     double precision, intent(in)    :: x(ixI^S, 1:ndim)
  
-    w(ixO^S,eaux_)=w(ixO^S,e_)
+    w(ixI^S,eaux_)=w(ixI^S,e_)
     ! Calculate total energy from internal, kinetic and magnetic energy
-    w(ixO^S,e_)=w(ixO^S,e_)&
-               +mhd_kin_en(w,ixI^L,ixO^L)&
-               +mhd_mag_en(w,ixI^L,ixO^L)
+    w(ixI^S,e_)=w(ixI^S,e_)&
+               +mhd_kin_en(w,ixI^L,ixI^L)&
+               +mhd_mag_en(w,ixI^L,ixI^L)
 
   end subroutine mhd_ei_to_e_aux
 
@@ -1858,7 +1855,7 @@ contains
     double precision, intent(inout) :: w(ixI^S, nw)
     double precision, intent(in)    :: x(ixI^S, 1:ndim)
 
-    w(ixO^S,e_)=w(ixO^S,eaux_)
+    w(ixI^S,e_)=w(ixI^S,eaux_)
 
   end subroutine mhd_e_to_ei_aux
 
@@ -1916,8 +1913,6 @@ contains
     logical :: flag(ixI^S,1:nw)
 
     if(small_values_method == "ignore") return
-
-    !call mhd_check_w_semirelati(primitive, ixI^L, ixO^L, w, flag)
 
     flag=.false.
     where(w(ixO^S,rho_) < small_density) flag(ixO^S,rho_) = .true.
@@ -2095,9 +2090,9 @@ contains
             call small_values_average(ixI^L, ixO^L, w, x, flag, p_)
              ! convert back
             if(mhd_internal_e) then
-              w(ixI^S,p_)=w(ixI^S,e_)*gamma_1
+              w(ixI^S,e_)=w(ixI^S,p_)*gamma_1
             else
-              w(ixI^S,p_)=inv_gamma_1*w(ixI^S,p_)&
+              w(ixI^S,e_)=inv_gamma_1*w(ixI^S,p_)&
                           +mhd_kin_en(w,ixI^L,ixI^L)&
                           +mhd_mag_en(w,ixI^L,ixI^L)
             end if
