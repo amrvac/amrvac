@@ -17,11 +17,11 @@
 !>    mhd_magnetofriction=.true.
 !>   /
 !>   &mf_list
-!>    mf_it_max=60000 ! set the maximum iteration number
+!>    mf_it_max=60000  ! set the maximum iteration number
 !>    mf_ditsave=20000 ! set iteration interval for data output
-!>    mf_cc=0.3    ! stability coefficient controls numerical stability
-!>    mf_cy=0.2    ! frictional velocity coefficient
-!>    mf_cdivb=0.1 ! divb cleaning coefficient controls diffusion speed of divb
+!>    mf_cc=0.3     ! stability coefficient controls numerical stability
+!>    mf_cy=0.2     ! frictional velocity coefficient
+!>    mf_cdivb=0.01 ! divb cleaning coefficient controls diffusion speed of divb
 !>   /
 module mod_magnetofriction
   implicit none
@@ -31,7 +31,7 @@ module mod_magnetofriction
   !> frictional velocity coefficient
   double precision :: mf_cy, mf_cy_max
   !> divb cleaning coefficient controls diffusion speed of divb
-  double precision :: mf_cdivb
+  double precision :: mf_cdivb, mf_cdivb_max
   !> TVDLF dissipation coefficient controls the dissipation term
   double precision :: mf_tvdlfeps, mf_tvdlfeps_min
   !> time in magnetofriction process
@@ -52,6 +52,7 @@ module mod_magnetofriction
 
   integer :: mf_ditsave
   integer :: mf_it_max
+  integer :: mf_it
   logical :: mf_advance
   logical :: fix_conserve_at_step = .true.
 
@@ -62,7 +63,8 @@ contains
     character(len=*), intent(in) :: files(:)
     integer                      :: n
 
-    namelist /mf_list/ mf_ditsave, mf_it_max, mf_cc, mf_cy, mf_cy_max, mf_cdivb, mf_tvdlfeps_min
+    namelist /mf_list/ mf_ditsave, mf_it_max, mf_it, mf_cc, mf_cy, mf_cy_max, & 
+                       mf_cdivb, mf_cdivb_max, mf_tvdlfeps, mf_tvdlfeps_min
 
     do n = 1, size(files)
        open(unitpar, file=trim(files(n)), status="old")
@@ -83,16 +85,22 @@ contains
     allocate(mag(ndir))
     mag=iw_mag
 
+    mf_it=0          ! set the initial iteration number
     mf_it_max=60000  ! set the maximum iteration number
     mf_ditsave=20000 ! set iteration interval for data output
     mf_cc=0.3d0      ! stability coefficient controls numerical stability
     mf_cy=0.2d0      ! frictional velocity coefficient. The default value is mf_cy itself.
     mf_cy_max=mf_cy  ! maximum of the frictional velocity coefficient
-    mf_cdivb=0.1d0   ! divb cleaning coefficient controls diffusion speed of divb
+    mf_cdivb=0.01d0  ! divb cleaning coefficient controls diffusion speed of divb
+    mf_cdivb_max=mf_cdivb ! maximum of the divb cleaning coefficient
     mf_tvdlfeps=1.d0 ! coefficient to control the TVDLF dissipation
     mf_tvdlfeps_min = mf_tvdlfeps ! minimum of the TVDLF dissipation coefficient
 
     call mf_params_read(par_files)
+
+    if(mf_cy_max < mf_cy) mf_cy_max = mf_cy
+    if(mf_cdivb_max < mf_cdivb) mf_cdivb_max = mf_cdivb
+    if(mf_tvdlfeps_min > mf_tvdlfeps) mf_tvdlfeps_min = mf_tvdlfeps
 
     usr_before_main_loop => magnetofriction
 
@@ -125,7 +133,7 @@ contains
     tmpt=global_time
     tmpit=it
     tmf=global_time
-    i=it
+    i=mf_it
     if(snapshotini==0 .and. i==0) then
       call saveamrfile(1)
       call saveamrfile(2)
@@ -191,6 +199,10 @@ contains
       if(i<=60000) then
         mf_cy=1.0001d0*mf_cy
         mf_cy = min(mf_cy_max,mf_cy)
+      end if
+      if(i>=100000) then
+        mf_cdivb=1.0000018d0*mf_cdivb
+        mf_cdivb=min(mf_cdivb_max,mf_cdivb)
       end if
 
       i=i+1
