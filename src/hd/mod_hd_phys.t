@@ -590,6 +590,7 @@ contains
     else if(unit_time/=1.d0) then
       unit_length=unit_time*unit_velocity
     end if
+    unit_mass = unit_density * unit_length**3
 
   end subroutine hd_physical_units
 
