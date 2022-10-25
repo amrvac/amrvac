@@ -26,6 +26,8 @@ select case(convert_type)
    call unstructuredvtk_mpi(unitconvert)
   case('vtuB','vtuBCC','vtuBmpi','vtuBCCmpi')
    call unstructuredvtkB(unitconvert)
+  case('vtuB64','vtuBCC64','vtuBmpi64','vtuBCCmpi64')
+   call unstructuredvtkB64(unitconvert)
   {^IFTWOD
   case('vtuB23','vtuBCC23')
    call unstructuredvtkB23(unitconvert)
@@ -1243,6 +1245,420 @@ if (npe>1) then
 end if
 
 end subroutine unstructuredvtkB
+!====================================================================================
+subroutine unstructuredvtkB64(qunit)
+
+! output for vtu format to paraview, binary version output
+! not parallel, uses calc_grid to compute nwauxio variables
+! allows renormalizing using convert factors
+use mod_forest, only: Morton_start, Morton_stop, sfc_to_igrid
+use mod_global_parameters
+use mod_calculate_xw
+
+integer, intent(in) ::    qunit
+
+double precision ::  x_VTK(1:3)
+
+double precision, dimension(ixMlo^D-1:ixMhi^D,ndim) :: xC_TMP
+double precision, dimension(ixMlo^D:ixMhi^D,ndim)   :: xCC_TMP
+double precision, dimension(ixMlo^D-1:ixMhi^D,ndim) :: xC
+double precision, dimension(ixMlo^D:ixMhi^D,ndim)   :: xCC
+
+double precision, dimension(ixMlo^D-1:ixMhi^D,nw+nwauxio):: wC_TMP
+double precision, dimension(ixMlo^D:ixMhi^D,nw+nwauxio)  :: wCC_TMP
+double precision :: normconv(0:nw+nwauxio)
+
+integer, allocatable :: intstatus(:,:)
+integer :: itag,ipe,igrid,level,icel,ixC^L,ixCC^L,Morton_no,Morton_length
+integer :: nx^D,nxC^D,nc,np,VTK_type,ix^D,filenr
+integer*8 :: offset
+
+integer::  k,iw
+integer::  length,lengthcc,length_coords,length_conn,length_offsets
+character::  buf
+character(len=80)::  filename
+character(len=name_len) :: wnamei(1:nw+nwauxio),xandwnamei(1:ndim+nw+nwauxio)
+character(len=1024) :: outfilehead
+
+logical ::   fileopen,cell_corner=.false.
+logical, allocatable :: Morton_aim(:),Morton_aim_p(:)
+!-----------------------------------------------------------------------------
+
+normconv=one
+Morton_length=Morton_stop(npe-1)-Morton_start(0)+1
+allocate(Morton_aim(Morton_start(0):Morton_stop(npe-1)))
+allocate(Morton_aim_p(Morton_start(0):Morton_stop(npe-1)))
+Morton_aim=.false.
+Morton_aim_p=.false.
+do Morton_no=Morton_start(mype),Morton_stop(mype)
+  igrid=sfc_to_igrid(Morton_no)
+  level=node(plevel_,igrid)
+  ! we can clip parts of the grid away, select variables, levels etc.
+  if(writelevel(level)) then
+    ! only output a grid when fully within clipped region selected
+    ! by writespshift array
+    if(({rnode(rpxmin^D_,igrid)>=xprobmin^D+(xprobmax^D-xprobmin^D)&
+          *writespshift(^D,1)|.and.}).and.({rnode(rpxmax^D_,igrid)&
+         <=xprobmax^D-(xprobmax^D-xprobmin^D)*writespshift(^D,2)|.and.})) then
+      Morton_aim_p(Morton_no)=.true.
+    end if
+  end if
+end do
+call MPI_ALLREDUCE(Morton_aim_p,Morton_aim,Morton_length,MPI_LOGICAL,MPI_LOR,&
+                         icomm,ierrmpi)
+select case(convert_type)
+ case('vtuB64','vtuBmpi64')
+   cell_corner=.true.
+ case('vtuBCC64','vtuBCCmpi64')
+   cell_corner=.false.
+end select
+if (mype /= 0) then
+  do Morton_no=Morton_start(mype),Morton_stop(mype)
+    if(.not. Morton_aim(Morton_no)) cycle
+    igrid=sfc_to_igrid(Morton_no)
+    call calc_x(igrid,xC,xCC)
+    call calc_grid(qunit,igrid,xC,xCC,xC_TMP,xCC_TMP,wC_TMP,wCC_TMP,normconv,&
+                      ixC^L,ixCC^L,.true.)
+    itag=Morton_no
+    call MPI_SEND(xC_TMP,1,type_block_xc_io, 0,itag,icomm,ierrmpi)
+    if(cell_corner) then
+      call MPI_SEND(wC_TMP,1,type_block_wc_io, 0,itag,icomm,ierrmpi)
+    else
+      call MPI_SEND(wCC_TMP,1,type_block_wcc_io, 0,itag,icomm,ierrmpi)
+    end if
+  end do
+
+else
+  ! mype==0
+  offset=0
+  inquire(qunit,opened=fileopen)
+  if(.not.fileopen)then
+    ! generate filename 
+    filenr=snapshotini
+    if (autoconvert) filenr=snapshotnext
+    write(filename,'(a,i4.4,a)') TRIM(base_filename),filenr,".vtu"
+    ! Open the file for the header part
+    open(qunit,file=filename,status='replace')
+  end if
+  call getheadernames(wnamei,xandwnamei,outfilehead)
+  ! generate xml header
+  write(qunit,'(a)')'<?xml version="1.0"?>'
+  write(qunit,'(a)',advance='no') '<VTKFile type="UnstructuredGrid"'
+  write(qunit,'(a)')' version="0.1" byte_order="LittleEndian">'
+  write(qunit,'(a)')'<UnstructuredGrid>'
+  write(qunit,'(a)')'<FieldData>'
+  write(qunit,'(2a)')'<DataArray type="Float32" Name="TIME" ',&
+                     'NumberOfTuples="1" format="ascii">'
+  write(qunit,*) real(global_time*time_convert_factor)
+  write(qunit,'(a)')'</DataArray>'
+  write(qunit,'(a)')'</FieldData>'
+
+  ! number of cells, number of corner points, per grid.
+  nx^D=ixMhi^D-ixMlo^D+1;
+  nxC^D=nx^D+1;
+  nc={nx^D*}
+  np={nxC^D*}
+  length=np*size_double
+  lengthcc=nc*size_double
+  length_coords=3*length
+  length_conn=2**^ND*size_int*nc
+  length_offsets=nc*size_int
+
+  ! Note: using the w_write, writelevel, writespshift
+  do Morton_no=Morton_start(0),Morton_stop(0)
+    if(.not. Morton_aim(Morton_no)) cycle
+    if(cell_corner) then
+      ! we write out every grid as one VTK PIECE
+      write(qunit,'(a,i7,a,i7,a)') &
+         '<Piece NumberOfPoints="',np,'" NumberOfCells="',nc,'">'
+      write(qunit,'(a)')'<PointData>'
+      do iw=1,nw+nwauxio
+        if(iw<=nw) then 
+          if(.not.w_write(iw)) cycle
+        endif
+
+        write(qunit,'(a,a,a,i16,a)')&
+            '<DataArray type="Float64" Name="',TRIM(wnamei(iw)), &
+            '" format="appended" offset="',offset,'">'
+        write(qunit,'(a)')'</DataArray>'
+        offset=offset+length+size_int
+      end do
+      write(qunit,'(a)')'</PointData>'
+      write(qunit,'(a)')'<Points>'
+      write(qunit,'(a,i16,a)') &
+      '<DataArray type="Float64" NumberOfComponents="3" format="appended" offset="',offset,'"/>'
+      ! write cell corner coordinates in a backward dimensional loop, always 3D output
+      offset=offset+length_coords+size_int
+      write(qunit,'(a)')'</Points>'
+    else
+      ! we write out every grid as one VTK PIECE
+      write(qunit,'(a,i7,a,i7,a)') &
+         '<Piece NumberOfPoints="',np,'" NumberOfCells="',nc,'">'
+      write(qunit,'(a)')'<CellData>'
+      do iw=1,nw+nwauxio
+        if(iw<=nw) then 
+           if(.not.w_write(iw)) cycle
+        end if
+        write(qunit,'(a,a,a,i16,a)')&
+            '<DataArray type="Float64" Name="',TRIM(wnamei(iw)), &
+            '" format="appended" offset="',offset,'">'
+        write(qunit,'(a)')'</DataArray>'
+        offset=offset+lengthcc+size_int
+      end do
+      write(qunit,'(a)')'</CellData>'
+      write(qunit,'(a)')'<Points>'
+      write(qunit,'(a,i16,a)') &
+      '<DataArray type="Float64" NumberOfComponents="3" format="appended" offset="',offset,'"/>'
+      ! write cell corner coordinates in a backward dimensional loop, always 3D output
+      offset=offset+length_coords+size_int
+      write(qunit,'(a)')'</Points>'
+    end if
+    write(qunit,'(a)')'<Cells>'
+
+    ! connectivity part
+    write(qunit,'(a,i16,a)')&
+      '<DataArray type="Int32" Name="connectivity" format="appended" offset="',offset,'"/>'
+    offset=offset+length_conn+size_int    
+
+    ! offsets data array
+    write(qunit,'(a,i16,a)') &
+      '<DataArray type="Int32" Name="offsets" format="appended" offset="',offset,'"/>'
+    offset=offset+length_offsets+size_int    
+
+    ! VTK cell type data array
+    write(qunit,'(a,i16,a)') &
+      '<DataArray type="Int32" Name="types" format="appended" offset="',offset,'"/>' 
+    offset=offset+size_int+nc*size_int
+
+    write(qunit,'(a)')'</Cells>'
+
+    write(qunit,'(a)')'</Piece>'
+  end do
+  ! write metadata communicated from other processors
+  if(npe>1)then
+    do ipe=1, npe-1
+      do Morton_no=Morton_start(ipe),Morton_stop(ipe)
+        if(.not. Morton_aim(Morton_no)) cycle
+        if(cell_corner) then
+          ! we write out every grid as one VTK PIECE
+          write(qunit,'(a,i7,a,i7,a)') &
+             '<Piece NumberOfPoints="',np,'" NumberOfCells="',nc,'">'
+          write(qunit,'(a)')'<PointData>'
+          do iw=1,nw+nwauxio
+            if(iw<=nw) then 
+              if(.not.w_write(iw)) cycle
+            end if
+            write(qunit,'(a,a,a,i16,a)')&
+                '<DataArray type="Float64" Name="',TRIM(wnamei(iw)), &
+                '" format="appended" offset="',offset,'">'
+            write(qunit,'(a)')'</DataArray>'
+            offset=offset+length+size_int
+          end do
+          write(qunit,'(a)')'</PointData>'
+          write(qunit,'(a)')'<Points>'
+          write(qunit,'(a,i16,a)') &
+          '<DataArray type="Float64" NumberOfComponents="3" format="appended" offset="',offset,'"/>'
+          ! write cell corner coordinates in a backward dimensional loop, always 3D output
+          offset=offset+length_coords+size_int
+          write(qunit,'(a)')'</Points>'
+        else
+          ! we write out every grid as one VTK PIECE
+          write(qunit,'(a,i7,a,i7,a)') &
+             '<Piece NumberOfPoints="',np,'" NumberOfCells="',nc,'">'
+          write(qunit,'(a)')'<CellData>'
+          do iw=1,nw+nwauxio
+            if(iw<=nw) then 
+              if(.not.w_write(iw)) cycle
+            end if
+            write(qunit,'(a,a,a,i16,a)')&
+                '<DataArray type="Float64" Name="',TRIM(wnamei(iw)), &
+                '" format="appended" offset="',offset,'">'
+            write(qunit,'(a)')'</DataArray>'
+            offset=offset+lengthcc+size_int
+          end do
+          write(qunit,'(a)')'</CellData>'
+          write(qunit,'(a)')'<Points>'
+          write(qunit,'(a,i16,a)') &
+          '<DataArray type="Float64" NumberOfComponents="3" format="appended" offset="',offset,'"/>'
+          ! write cell corner coordinates in a backward dimensional loop, always 3D output
+          offset=offset+length_coords+size_int
+          write(qunit,'(a)')'</Points>'
+        end if
+        write(qunit,'(a)')'<Cells>'
+        ! connectivity part
+        write(qunit,'(a,i16,a)')&
+          '<DataArray type="Int32" Name="connectivity" format="appended" offset="',offset,'"/>'
+        offset=offset+length_conn+size_int    
+
+        ! offsets data array
+        write(qunit,'(a,i16,a)') &
+          '<DataArray type="Int32" Name="offsets" format="appended" offset="',offset,'"/>'
+        offset=offset+length_offsets+size_int    
+
+        ! VTK cell type data array
+        write(qunit,'(a,i16,a)') &
+          '<DataArray type="Int32" Name="types" format="appended" offset="',offset,'"/>' 
+        offset=offset+size_int+nc*size_int
+
+        write(qunit,'(a)')'</Cells>'
+
+        write(qunit,'(a)')'</Piece>'
+      end do
+    end do
+  end if
+
+  write(qunit,'(a)')'</UnstructuredGrid>'
+  write(qunit,'(a)')'<AppendedData encoding="raw">'
+  close(qunit)
+  open(qunit,file=filename,access='stream',form='unformatted',position='append')
+  buf='_'
+  write(qunit) TRIM(buf)
+
+  do Morton_no=Morton_start(0),Morton_stop(0)
+    if(.not. Morton_aim(Morton_no)) cycle
+    igrid=sfc_to_igrid(Morton_no)
+    call calc_x(igrid,xC,xCC)
+    call calc_grid(qunit,igrid,xC,xCC,xC_TMP,xCC_TMP,wC_TMP,wCC_TMP,normconv,&
+                   ixC^L,ixCC^L,.true.)
+    do iw=1,nw+nwauxio
+      if(iw<=nw) then 
+        if(.not.w_write(iw)) cycle
+      end if
+      if(cell_corner) then
+        write(qunit) length
+        write(qunit) {(|}wC_TMP(ix^D,iw)*normconv(iw),{ix^D=ixCmin^D,ixCmax^D)}
+      else
+        write(qunit) lengthcc
+        write(qunit) {(|}wCC_TMP(ix^D,iw)*normconv(iw),{ix^D=ixCCmin^D,ixCCmax^D)}
+      end if
+    end do
+
+    write(qunit) length_coords
+    {do ix^DB=ixCmin^DB,ixCmax^DB \}
+      x_VTK(1:3)=zero;
+      x_VTK(1:ndim)=xC_TMP(ix^D,1:ndim)*normconv(0);
+      do k=1,3
+        write(qunit) x_VTK(k)
+      end do
+    {end do \}
+
+    write(qunit) length_conn
+    {do ix^DB=1,nx^DB\}
+      {^IFONED write(qunit)ix1-1,ix1 \}
+      {^IFTWOD
+      write(qunit)(ix2-1)*nxC1+ix1-1, &
+      (ix2-1)*nxC1+ix1,ix2*nxC1+ix1-1,ix2*nxC1+ix1
+       \}
+      {^IFTHREED
+      write(qunit)&
+      (ix3-1)*nxC2*nxC1+(ix2-1)*nxC1+ix1-1, &
+      (ix3-1)*nxC2*nxC1+(ix2-1)*nxC1+ix1,&
+      (ix3-1)*nxC2*nxC1+    ix2*nxC1+ix1-1,&
+      (ix3-1)*nxC2*nxC1+    ix2*nxC1+ix1,&
+       ix3*nxC2*nxC1+(ix2-1)*nxC1+ix1-1,&
+       ix3*nxC2*nxC1+(ix2-1)*nxC1+ix1,&
+       ix3*nxC2*nxC1+    ix2*nxC1+ix1-1,&
+       ix3*nxC2*nxC1+    ix2*nxC1+ix1
+       \}
+    {end do\}
+
+    write(qunit) length_offsets
+    do icel=1,nc
+      write(qunit) icel*(2**^ND)
+    end do
+
+   {^IFONED VTK_type=3 \}
+   {^IFTWOD VTK_type=8 \}
+   {^IFTHREED VTK_type=11 \}
+    write(qunit) size_int*nc
+    do icel=1,nc
+      write(qunit) VTK_type
+    end do
+  end do
+  allocate(intstatus(MPI_STATUS_SIZE,1))
+  if(npe>1)then
+    ixCCmin^D=ixMlo^D; ixCCmax^D=ixMhi^D;
+    ixCmin^D=ixMlo^D-1; ixCmax^D=ixMhi^D;
+    do ipe=1, npe-1
+      do Morton_no=Morton_start(ipe),Morton_stop(ipe)
+        if(.not. Morton_aim(Morton_no)) cycle
+        itag=Morton_no
+        call MPI_RECV(xC_TMP,1,type_block_xc_io, ipe,itag,icomm,intstatus(:,1),ierrmpi)
+        if(cell_corner) then
+          call MPI_RECV(wC_TMP,1,type_block_wc_io, ipe,itag,icomm,intstatus(:,1),ierrmpi)
+        else
+          call MPI_RECV(wCC_TMP,1,type_block_wcc_io, ipe,itag,icomm,intstatus(:,1),ierrmpi)
+        end if
+        do iw=1,nw+nwauxio
+          if(iw<=nw) then 
+            if(.not.w_write(iw)) cycle
+          end if
+          if(cell_corner) then
+            write(qunit) length
+            write(qunit) {(|}wC_TMP(ix^D,iw)*normconv(iw),{ix^D=ixCmin^D,ixCmax^D)}
+          else
+            write(qunit) lengthcc
+            write(qunit) {(|}wCC_TMP(ix^D,iw)*normconv(iw),{ix^D=ixCCmin^D,ixCCmax^D)}
+          end if
+        end do
+
+        write(qunit) length_coords
+        {do ix^DB=ixCmin^DB,ixCmax^DB \}
+          x_VTK(1:3)=zero;
+          x_VTK(1:ndim)=xC_TMP(ix^D,1:ndim)*normconv(0);
+          do k=1,3
+           write(qunit) x_VTK(k)
+          end do
+        {end do \}
+
+        write(qunit) length_conn
+        {do ix^DB=1,nx^DB\}
+          {^IFONED write(qunit)ix1-1,ix1 \}
+          {^IFTWOD
+          write(qunit)(ix2-1)*nxC1+ix1-1, &
+          (ix2-1)*nxC1+ix1,ix2*nxC1+ix1-1,ix2*nxC1+ix1
+           \}
+          {^IFTHREED
+          write(qunit)&
+          (ix3-1)*nxC2*nxC1+(ix2-1)*nxC1+ix1-1, &
+          (ix3-1)*nxC2*nxC1+(ix2-1)*nxC1+ix1,&
+          (ix3-1)*nxC2*nxC1+    ix2*nxC1+ix1-1,&
+          (ix3-1)*nxC2*nxC1+    ix2*nxC1+ix1,&
+           ix3*nxC2*nxC1+(ix2-1)*nxC1+ix1-1,&
+           ix3*nxC2*nxC1+(ix2-1)*nxC1+ix1,&
+           ix3*nxC2*nxC1+    ix2*nxC1+ix1-1,&
+           ix3*nxC2*nxC1+    ix2*nxC1+ix1
+           \}
+        {end do\}
+
+        write(qunit) length_offsets
+        do icel=1,nc
+          write(qunit) icel*(2**^ND)
+        end do
+        {^IFONED VTK_type=3 \}
+        {^IFTWOD VTK_type=8 \}
+        {^IFTHREED VTK_type=11 \}
+        write(qunit) size_int*nc
+        do icel=1,nc
+          write(qunit) VTK_type
+        end do
+      end do
+    end do
+  end if
+  close(qunit)
+  open(qunit,file=filename,status='unknown',form='formatted',position='append')
+  write(qunit,'(a)')'</AppendedData>'
+  write(qunit,'(a)')'</VTKFile>'
+  close(qunit)
+  deallocate(intstatus)
+end if
+
+deallocate(Morton_aim,Morton_aim_p)
+if (npe>1) then
+  call MPI_BARRIER(icomm,ierrmpi)
+end if
+
+end subroutine unstructuredvtkB64
 !====================================================================================
 subroutine save_connvtk(qunit,igrid)
 

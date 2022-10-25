@@ -5056,7 +5056,6 @@ contains
 
   !> Calculate div B within ixO
   subroutine get_divb(w,ixI^L,ixO^L,divb, fourthorder)
-
     use mod_global_parameters
     use mod_geometry
 
@@ -5065,12 +5064,10 @@ contains
     double precision, intent(inout) :: divb(ixI^S)
     logical, intent(in), optional   :: fourthorder
 
-    double precision                   :: divb_corner(ixI^S), sign
-    double precision                   :: aux_vol(ixI^S)
-    integer                            :: ixC^L, idir, ic^D, ix^L
+    integer                            :: ixC^L, idir
 
     if(stagger_grid) then
-      divb=0.d0
+      divb(ixO^S)=0.d0
       do idir=1,ndim
         ixC^L=ixO^L-kr(idir,^D);
         divb(ixO^S)=divb(ixO^S)+block%ws(ixO^S,idir)*block%surfaceC(ixO^S,idir)-&

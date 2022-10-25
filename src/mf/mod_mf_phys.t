@@ -1149,7 +1149,6 @@ contains
 
   !> Calculate div B within ixO
   subroutine get_divb(w,ixI^L,ixO^L,divb, fourthorder)
-
     use mod_global_parameters
     use mod_geometry
 
@@ -1158,13 +1157,10 @@ contains
     double precision, intent(inout) :: divb(ixI^S)
     logical, intent(in), optional   :: fourthorder
 
-    double precision                   :: bvec(ixI^S,1:ndir)
-    double precision                   :: divb_corner(ixI^S), sign
-    double precision                   :: aux_vol(ixI^S)
-    integer                            :: ixC^L, idir, ic^D, ix^L
+    integer                            :: ixC^L, idir
 
     if(stagger_grid) then
-      divb=0.d0
+      divb(ixO^S)=0.d0
       do idir=1,ndim
         ixC^L=ixO^L-kr(idir,^D);
         divb(ixO^S)=divb(ixO^S)+block%ws(ixO^S,idir)*block%surfaceC(ixO^S,idir)-&
@@ -1172,12 +1168,11 @@ contains
       end do
       divb(ixO^S)=divb(ixO^S)/block%dvolume(ixO^S)
     else
-      bvec(ixI^S,:)=w(ixI^S,mag(:))
       select case(typediv)
       case("central")
-        call divvector(bvec,ixI^L,ixO^L,divb,fourthorder)
+        call divvector(w(ixI^S,mag(1:ndir)),ixI^L,ixO^L,divb,fourthorder)
       case("limited")
-        call divvectorS(bvec,ixI^L,ixO^L,divb)
+        call divvectorS(w(ixI^S,mag(1:ndir)),ixI^L,ixO^L,divb)
       end select
     end if
 
@@ -2028,11 +2023,6 @@ contains
             ! times time step and edge length 
             fE(ixC^S,idir)=qdt*s%dsC(ixC^S,idir)*fE(ixC^S,idir)
 
-            if (.not.slab) then
-              where(abs(x(ixC^S,r_)+half*dxlevel(r_))<1.0d-9)
-                fE(ixC^S,idir)=zero
-              end where
-            end if
           end if
         end do
       end do
@@ -2063,11 +2053,7 @@ contains
         end do
       end do
       ! Divide by the area of the face to get dB/dt
-      where(s%surfaceC(ixC^S,idim1) > 1.0d-9*s%dvolume(ixC^S))
-        circ(ixC^S,idim1)=circ(ixC^S,idim1)/s%surfaceC(ixC^S,idim1)
-      elsewhere
-        circ(ixC^S,idim1)=zero
-      end where
+      circ(ixC^S,idim1)=circ(ixC^S,idim1)/s%surfaceC(ixC^S,idim1)
       ! Time update
       bfaces(ixC^S,idim1)=bfaces(ixC^S,idim1)-circ(ixC^S,idim1)
     end do
