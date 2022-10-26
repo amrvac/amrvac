@@ -4,7 +4,7 @@
 
  &methodlist
         time_stepper=  'fourstep'
-        time_integrator=  'jameson'
+        time_integrator=  'ssprk4'
         flux_scheme =    20*'hllc'
         limiter=  20*'koren'
         typeboundspeed  = 'cmaxmean'
