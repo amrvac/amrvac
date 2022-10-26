@@ -12,8 +12,9 @@
   dtsave_log  = 1d-2
 /
 
-&stoplist
   time_max = 0.3d0
+&stoplist
+  time_max = 0.05d0
 /
 
 &methodlist
