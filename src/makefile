@@ -362,7 +362,6 @@ mod_twofl_ppm.o: mod_twofl_phys.mod
 mod_twofl_roe.o: mod_physics_roe.mod
 mod_twofl_roe.o: mod_tvd.mod
 mod_twofl_roe.o: mod_twofl_phys.mod
-mod_usr_template.o: mod_mhd.mod
 mod_variables.o: mod_basic_types.mod
 mod_viscosity.o: mod_geometry.mod
 mod_viscosity.o: mod_physics.mod

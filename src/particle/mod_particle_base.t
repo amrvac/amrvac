@@ -239,12 +239,6 @@ contains
 
     call particles_params_read(par_files)
 
-    ! If resistive MHD and particles_eta not given, set it to the MHD one:
-    if (physics_type == 'mhd') then
-      if (particles_eta < zero) particles_eta = mhd_eta
-      if (particles_etah < zero) particles_eta = mhd_etah
-    end if
-
     ! If sampling, ndefpayload = nw:
     if (physics_type_particles == 'sample') ndefpayload = nw
     ! Total number of payloads

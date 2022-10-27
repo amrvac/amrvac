@@ -845,6 +845,8 @@ contains
     ! Initialize particles module
     if(mhd_particles) then
       call particles_init()
+      if (particles_eta  < zero) particles_eta = mhd_eta
+      if (particles_etah < zero) particles_eta = mhd_etah
       phys_req_diagonal = .true.
       if(mype==0) then
          write(*,*) '*****Using particles:        with mhd_eta, mhd_etah :', mhd_eta, mhd_etah
