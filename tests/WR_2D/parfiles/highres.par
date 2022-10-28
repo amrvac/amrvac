@@ -3,10 +3,48 @@
 /
 
 &filelist
-  base_filename='hr_'
+  base_filename='output/WR_2D_'
   autoconvert      = T
   convert_type = 'vtuBCCmpi'
   saveprim         = F
+/
+
+ &savelist
+   itsave(1,1)     = 0
+   itsave(1,2)     = 0
+   !ditsave_dat     = 1
+   !ditsave_log     = 1
+   dtsave_dat     = 0.5d0 !1.d0
+   dtsave_log     = 0.5d0 !1.d0
+   itsave(1,5)     = 0
+   ditsave_custom  = 50
+/
+
+ &stoplist
+   time_max = 50.d0
+   dtmin = 1.0d-7
+   !it_max = 20
+/
+
+ &methodlist
+   time_stepper = 'onestep'
+   time_integrator = 'IMEX_Euler'
+   flux_scheme     = 20*'hll'
+   limiter         = 20*'minmod'
+   source_split_usr = .false.
+   typesourcesplit = 'sfs'
+   check_small_values = .true.
+   small_values_method = 'replace'
+   small_pressure = 1.d-16 !1.d-7
+   small_density = 1.d-8 !1.d-8
+/
+
+&boundlist
+  typeboundary_min1 = 5*'special'
+  typeboundary_max1 = 4*'noinflow','special'
+  typeboundary_min2 = 5*'periodic' !'symm','symm','asymm','symm','symm'
+  typeboundary_max2 = 5*'periodic' !'symm','symm','asymm','symm','symm'
+  internalboundary = T
 /
 
  &meshlist
@@ -27,3 +65,50 @@
    derefine_ratio     = 20*1.d0/2.d0
    ditregrid = 1
 /
+
+ &paramlist
+  courantpar       = 0.5d0
+  ! dtpar           = 5.d-5
+  ! slowsteps = 500
+ /
+
+ &rhd_list
+  He_abundance = 0.7d0
+  rhd_gravity = .true.
+  rhd_energy = .true.
+  rhd_gamma = 1.6667d0 !1.4d0
+  rhd_radiation_force = .true.
+  rhd_energy_interact = .true.
+  rhd_radiation_diffusion = .true.
+  rhd_radiation_advection = .true.
+  !ignore_radf_dt = .true.
+/
+
+ &fld_list
+  fld_Radforce_split = .false.
+  fld_opacity_law = 'special'
+  fld_fluxlimiter = 'Pomraning'
+  fld_interaction_method = 'Halley'
+  fld_diff_tol = 1.d-5 !1.d-5
+  fld_bisect_tol = 1.d-13! 1.d-12
+  fld_opal_table = 'Y09800'
+ /
+
+  &wind_list
+   cak_Q = 2.30d3
+   cak_a = 0.5d0
+   cak_base = 0.66d0
+   cak_x0 = 0.4d0
+   cak_x1 = 0.65d0
+   !it_start_cak = 10
+   rho_bound = 5.d-8 !3.d-7 !5.d-8 !3.d-7
+   T_bound = 3.2d5
+   Gamma_e_bound = 0.4d0 !0.40d0
+   kappa_e = 0.2d0
+   R_star = 1.d0
+   M_star = 10.d0
+   v_inf = 1.d8
+   Mdot = 1.d-5
+   fixed_lum = .false.
+   Cak_in_D = .true.
+ /
