@@ -2723,7 +2723,7 @@ contains
           line = trim(line) // " 'TimeToFinish [hrs]'"
 
           ! Only write header if not restarting
-          if (restart_from_file == undefined) then
+          if (restart_from_file == undefined .or. reset_time) then
             call MPI_FILE_WRITE(log_fh, trim(line) // new_line('a'), &
                  len_trim(line)+1, MPI_CHARACTER, istatus, ierrmpi)
           end if
