@@ -1632,7 +1632,7 @@ contains
 
     inv_rho(ixO^S) = 1d0/w(ixO^S,rho_)
 
-    ! Calculate pressure = (gamma-1) * (e-ek-eb)
+    ! Calculate pressure = (gamma-1) * e_internal
     if(mhd_energy) then
       w(ixO^S,p_)=w(ixO^S,e_)*gamma_1
     end if
@@ -2081,28 +2081,22 @@ contains
           ! do averaging of density
           call small_values_average(ixI^L, ixO^L, w, x, flag, rho_)
           if(mhd_energy) then
-             ! do averaging of pressure
-            if(mhd_internal_e) then
-              w(ixI^S,p_)=w(ixI^S,e_)*gamma_1
-            else
-              w(ixI^S,p_)=gamma_1*(w(ixI^S,e_)&
+             ! do averaging of internal energy
+            if(.not.mhd_internal_e) then
+              w(ixI^S,e_)=w(ixI^S,e_)&
                           -mhd_kin_en(w,ixI^L,ixI^L)&
-                          -mhd_mag_en(w,ixI^L,ixI^L))
+                          -mhd_mag_en(w,ixI^L,ixI^L)
             end if
-            call small_values_average(ixI^L, ixO^L, w, x, flag, p_)
+            call small_values_average(ixI^L, ixO^L, w, x, flag, e_)
              ! convert back
-            if(mhd_internal_e) then
-              w(ixI^S,e_)=w(ixI^S,p_)*gamma_1
-            else
-              w(ixI^S,e_)=inv_gamma_1*w(ixI^S,p_)&
+            if(.not.mhd_internal_e) then
+              w(ixI^S,e_)=w(ixI^S,e_)&
                           +mhd_kin_en(w,ixI^L,ixI^L)&
                           +mhd_mag_en(w,ixI^L,ixI^L)
             end if
             ! eaux
             if(mhd_solve_eaux) then
-              !w(ixI^S,paux_)=w(ixI^S,eaux_)*gamma_1
               call small_values_average(ixI^L, ixO^L, w, x, flag, paux_)
-              !w(ixI^S,eaux_)=w(ixI^S,paux_)*inv_gamma_1
             end if
           end if
         endif
@@ -2174,11 +2168,11 @@ contains
           if(primitive) then
             call small_values_average(ixI^L, ixO^L, w, x, flag, p_)
           else
-            ! do averaging of pressure
-            w(ixI^S,p_)=gamma_1*(w(ixI^S,e_)-mhd_kin_en(w,ixI^L,ixI^L))
-            call small_values_average(ixI^L, ixO^L, w, x, flag, p_)
+            ! do averaging of internal energy
+            w(ixI^S,e_)=w(ixI^S,e_)-mhd_kin_en(w,ixI^L,ixI^L)
+            call small_values_average(ixI^L, ixO^L, w, x, flag, e_)
             ! convert back
-            w(ixI^S,p_)=inv_gamma_1*w(ixI^S,p_)+mhd_kin_en(w,ixI^L,ixI^L)
+            w(ixI^S,e_)=w(ixI^S,e_)+mhd_kin_en(w,ixI^L,ixI^L)
           end if
         end if
       case default
@@ -2374,7 +2368,7 @@ contains
     ! reuse lts as rhoc
     call mhd_get_rho(w,x,ixI^L,ixI^L,lts)
     if(mhd_internal_e) then
-      tmp1(ixI^S)=w(ixI^S,e_)*(mhd_gamma-1.d0)
+      tmp1(ixI^S)=w(ixI^S,e_)*gamma_1
     else
       call phys_get_pthermal(w,x,ixI^L,ixI^L,tmp1)
     end if
@@ -3281,7 +3275,7 @@ contains
     ! f_i[e]=v_i*e+v_i*ptotal-b_i*(b_k*v_k)
     if(mhd_energy) then
       if (mhd_internal_e) then
-         f(ixO^S,e_)=w(ixO^S,mom(idim))*w(ixO^S,p_)
+         f(ixO^S,e_)=w(ixO^S,mom(idim))*wC(ixO^S,e_)
          if (mhd_Hall) then
             call mpistop("solve internal energy not implemented for Hall MHD")
          endif
@@ -3465,7 +3459,7 @@ contains
           f(ixO^S,mag(2))= f(ixO^S,mag(2)) + tmp2(ixO^S) * Jambi(ixO^S,1) - tmp3(ixO^S) * btot(ixO^S,1)
       endselect
 
-      if(mhd_energy .and. .not. mhd_internal_e) then
+      if(mhd_energy) then
         f(ixO^S,e_) = f(ixO^S,e_) + tmp2(ixO^S) *  tmp(ixO^S)
       endif
 
@@ -3557,7 +3551,7 @@ contains
     ! f_i[e]=v_i*e+v_i*ptotal-b_i*(b_k*v_k)
     if(mhd_energy) then
       if (mhd_internal_e) then
-         f(ixO^S,e_)=w(ixO^S,mom(idim))*w(ixO^S,p_)
+         f(ixO^S,e_)=w(ixO^S,mom(idim))*wC(ixO^S,e_)
          if (mhd_Hall) then
             call mpistop("solve internal energy not implemented for Hall MHD")
          endif
