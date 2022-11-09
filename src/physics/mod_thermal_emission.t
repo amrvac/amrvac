@@ -680,10 +680,10 @@ module mod_thermal_emission
     end subroutine get_EUV
 
     subroutine get_SXR(ixI^L,ixO^L,w,x,fl,flux,El,Eu)
-      !synthesize thermal SXR from El keV to Eu keV
-      !flux (cgs): photons cm^-5 s^-1
-      !flux (SI): photons m^-3 cm^-2 s^-1
-      !integration of the flux is the SXR flux observed at 1AU [photons cm^-2 s^-1]
+      !synthesize thermal SXR from El keV to Eu keV released by cm^-3/m^-3
+      ! volume of plasma in 1 s
+      !flux (cgs): photons cm^-3 s^-1
+      !flux (SI): photons m^-3 s^-1
       use mod_global_parameters
 
       integer, intent(in)           :: ixI^L,ixO^L
@@ -700,7 +700,7 @@ module mod_thermal_emission
       double precision :: Ne(ixI^S),gff(ixI^S),fi(ixI^S)
       double precision :: EM(ixI^S)
 
-      I0=1.07d-42    ! photon flux index for observed at 1AU [photon cm s^-1 keV^-1]
+      I0=3.01d-15   ! I0*4*pi*AU**2, I0 from Pinto (2015)
       kb=const_kb
       keV=1.0d3*const_ev
       dE=0.1
@@ -722,12 +722,13 @@ module mod_thermal_emission
         Ei=dE*iE+El*1.d0
         gff(ixO^S)=1.d0
         {do ix^DB=ixOmin^DB,ixOmax^DB\}
-          if(kbT(ix^D)<Ei) then
-            gff(ix^D)=(kbT(ix^D)/Ei)**0.4
+          if (kbT(ix^D)>0.01*Ei) then
+            if(kbT(ix^D)<Ei) gff(ix^D)=(kbT(ix^D)/Ei)**0.4
+            fi(ix^D)=(EM(ix^D)*gff(ix^D))*dexp(-Ei/(kbT(ix^D)))/(Ei*dsqrt(kbT(ix^D)))
+          else
+            fi(ix^D)=zero
           endif
         {enddo\}
-        fi(ixO^S)=(EM(ixO^S)*gff(ixO^S))* &
-                  exp(-Ei/(kbT(ixO^S)))/(Ei*sqrt(kbT(ixO^S)))
         flux(ixO^S)=flux(ixO^S)+fi(ixO^S)*dE
       enddo
       flux(ixO^S)=flux(ixO^S)*I0
@@ -814,13 +815,15 @@ module mod_thermal_emission
         do iE=0,numE-1
           Ei=dE*iE+El
           {do ix^DB=ixbmin^DB,ixbmax^DB\}
-            if(kbT(ix^D)<Ei) then
-              gff=(kbT(ix^D)/Ei)**0.4
-            else
-              gff=1.d0
+            if (kbT(ix^D)>1.d-2*Ei) then
+              if(kbT(ix^D)<Ei) then
+                gff=(kbT(ix^D)/Ei)**0.4
+              else
+                gff=1.d0
+              endif
+              fi=(EM(ix^D)*gff)*dexp(-Ei/(kbT(ix^D)))/(Ei*dsqrt(kbT(ix^D)))
+              eflux_grid=eflux_grid+fi*dE*Ei
             endif
-            fi=(EM(ix^D)*gff)*exp(-Ei/(kbT(ix^D)))/(Ei*sqrt(kbT(ix^D)))
-            eflux_grid=eflux_grid+fi*dE*Ei
           {enddo\}
         enddo
         eflux_grid=eflux_grid*keV*erg_SI
@@ -1727,7 +1730,7 @@ module mod_thermal_emission
       double precision :: xSubC(1:3),dxSubC^D,xCent(1:2)
 
       double precision :: sigma_PSF,RHESSI_rsl,sigma0,factor
-      double precision :: arcsec,pixel
+      double precision :: arcsec,pixel,area_1AU
 
       ^D&ixOmin^D=ixmlo^D\
       ^D&ixOmax^D=ixmhi^D\
@@ -1750,6 +1753,7 @@ module mod_thermal_emission
       sigma_PSF=1.d0
       pixel=RHESSI_rsl*arcsec
       sigma0=sigma_PSF*pixel
+      area_1AU=2.81d27
       {do ix^D=ixOmin^D,ixOmax^D\}
         ^D&nSubC^D=1;
         ^D&nSubC^D=max(nSubC^D,ceiling(ps(igrid)%dx(ix^DD,^D)*abs(vec_xI1(^D))/(dxI/4.d0)));
@@ -1758,7 +1762,7 @@ module mod_thermal_emission
         ! dividing a cell to several parts to get more accurate integrating values
         {do iSubC^D=1,nSubC^D\}
           ^D&xSubC(^D)=ps(igrid)%x(ix^DD,^D)-half*ps(igrid)%dx(ix^DD,^D)+(iSubC^D-half)*dxSubC^D;
-          fluxSubC=flux(ix^D)*dxSubC1*dxSubC2*dxSubC3*unit_length**3
+          fluxSubC=flux(ix^D)*dxSubC1*dxSubC2*dxSubC3*unit_length**3/area_1AU
           ! mapping the 3D coordinate to location at the image
           call get_cor_image(xSubC,xCent)
           ixP1=floor((xCent(1)-(xI1(1)-half*dxI))/dxI)+1
@@ -2332,7 +2336,7 @@ module mod_thermal_emission
       double precision, allocatable :: dxb1(:^D&),dxb2(:^D&),dxb3(:^D&)
       double precision, allocatable :: SXRg(:,:),xg1(:),xg2(:),dxg1(:),dxg2(:)
       integer :: levelg,nXg1,nXg2,iXgmin1,iXgmax1,iXgmin2,iXgmax2,rft,iXg^D
-      double precision :: SXRt,xc^L,xg^L,r2
+      double precision :: SXRt,xc^L,xg^L,r2,area_1AU
       integer :: ixP^L,ixP^D
       integer :: direction_LOS
 
@@ -2425,6 +2429,9 @@ module mod_thermal_emission
           enddo
         enddo
       end select
+
+      area_1AU=2.81d27
+      SXRg=SXRg/area_1AU
 
       ! mapping grid data to global table 
       ! index ranges in local table
@@ -2690,12 +2697,30 @@ module mod_thermal_emission
             do iw=1,nWO
               ! variable name
               if (convert_type=='EIvtiCCmpi') then
-                if (iw==1) write(vname,'(a,i4)') "AIA ",wavelength
-                if (iw==2) vname='Doppler velocity'
+                if (iw==1) then
+                  if (wavelength<100) then
+                    write(vname,'(a,i2)') "AIA",wavelength
+                  else if (wavelength<1000) then
+                    write(vname,'(a,i3)') "AIA",wavelength
+                  else
+                    write(vname,'(a,i4)') "IRIS",wavelength
+                  endif
+                endif
+                if (iw==2) vname='Doppler_velocity'
               else if (convert_type=='SIvtiCCmpi') then
-                write(vname,'(a,i2,a,i2,a)') "SXR ",emin_sxr,"-",emax_sxr," keV"
+                if (emin_sxr<10 .and. emax_sxr<10) then
+                  write(vname,'(a,i1,a,i1,a)') "SXR",emin_sxr,"-",emax_sxr,"keV"
+                else if (emin_sxr<10 .and. emax_sxr>=10) then
+                  write(vname,'(a,i1,a,i2,a)') "SXR",emin_sxr,"-",emax_sxr,"keV"
+                else
+                  write(vname,'(a,i2,a,i2,a)') "SXR",emin_sxr,"-",emax_sxr,"keV"
+                endif
               else if (convert_type=='ESvtiCCmpi') then
-                write(vname,'(a,i4)') "spectra ",spectrum_wl
+                if (spectrum_wl==1354) then
+                  write(vname,'(a,i4)') "SG",spectrum_wl
+                else
+                  write(vname,'(a,i3)') "EIS",spectrum_wl
+                endif
               endif
               write(qunit,'(a,a,a)')&
                 '<DataArray type="Float64" Name="',TRIM(vname),'" format="ascii">'
@@ -2798,12 +2823,30 @@ module mod_thermal_emission
           write(qunit,'(a)')'<CellData>'
           do j=1,nWC
             if (datatype=='image_euv') then
-              if (j==1) write(vname,'(a,i4)') "AIA ",wavelength
-              if (j==2) vname='Doppler velocity'
+              if (j==1) then
+                if (wavelength<100) then
+                  write(vname,'(a,i2)') "AIA",wavelength
+                else if (wavelength<1000) then
+                  write(vname,'(a,i3)') "AIA",wavelength
+                else
+                  write(vname,'(a,i4)') "IRIS",wavelength
+                endif
+              endif
+              if (j==2) vname='Doppler_velocity'
             else if (datatype=='image_sxr') then
-              write(vname,'(a,i2,a,i2,a)') "SXR ",emin_sxr,"-",emax_sxr," keV"
+              if (emin_sxr<10 .and. emax_sxr<10) then
+                write(vname,'(a,i1,a,i1,a)') "SXR",emin_sxr,"-",emax_sxr,"keV"
+              else if (emin_sxr<10 .and. emax_sxr>=10) then
+                write(vname,'(a,i1,a,i2,a)') "SXR",emin_sxr,"-",emax_sxr,"keV"
+              else
+                write(vname,'(a,i2,a,i2,a)') "SXR",emin_sxr,"-",emax_sxr,"keV"
+              endif
             else if (datatype=='spectrum_euv') then
-              write(vname,'(a,i4)') "spectra ",spectrum_wl
+              if (spectrum_wl==1354) then
+                write(vname,'(a,i4)') "SG",spectrum_wl
+              else
+                write(vname,'(a,i3)') "EIS",spectrum_wl
+              endif
             endif
             write(qunit,'(a,a,a)')&
               '<DataArray type="Float64" Name="',TRIM(vname),'" format="ascii">'

@@ -46,6 +46,7 @@ the data structures for the block-tree AMR.
 * [Test particles in (M)HD](particle.md) Description of test particle tracing routines.
 * [Reaction-diffusion equations](reaction_diffusion.md) Getting started with the reaction-diffusion module.
 * [Two-fluid equations](twofluid.md) Getting started with the two-fluid module.
+* [CAK radiation force](cakforce.md) Getting started with the CAK force for line-driven wind outflows.
 * [Adding a new physics module](addmodule.md) Description of how to add your own physics module.
 
 # Source Code {#source_code}

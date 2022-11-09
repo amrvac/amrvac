@@ -58,6 +58,12 @@ if (!$ENV{AMRVAC_DIR}) {
 # Copy makefile
 copy_file("makefile", "arch", "amrvac.make");
 
+unless (-e 'amrvac.h') {
+# create amrvac.h to use the std preprocessor
+open(my $fh, '>', 'amrvac.h') or die "amrvac.h is not created $!";
+close $fh;
+}
+
 if ($ndim) {
     replace_regexp_file("makefile", qr/NDIM\s*[:?]?=.*/, "NDIM := $ndim");
 }

@@ -663,8 +663,7 @@ contains
        case (bc_special)
           call usr_special_mg_bc(iB)
        case default
-          call mpistop("divE_multigrid warning: unknown b.c.: ", &
-          typeboundary(r_e, iB))
+          call mpistop("divE_multigrid warning: unknown b.c. ")
        end select
     end do
   end subroutine rhd_set_mg_bounds

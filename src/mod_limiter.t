@@ -38,7 +38,6 @@ module mod_limiter
   integer, parameter :: limiter_teno5ad = 23
   integer, parameter :: limiter_weno7 = 24
   integer, parameter :: limiter_mpweno7 = 25
-  integer, parameter :: limiter_exeno7 = 26
 
 contains
 
@@ -98,8 +97,6 @@ contains
        limiter_type = limiter_weno7
     case ('mpweno7')
        limiter_type = limiter_mpweno7
-    case ('exeno7')
-       limiter_type = limiter_exeno7
 
     case default
        limiter_type = -1

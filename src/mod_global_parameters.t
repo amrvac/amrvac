@@ -582,8 +582,6 @@ module mod_global_parameters
   integer, parameter :: IMEX_CB3a=16
 
   integer, parameter :: rk4=17
-  integer, parameter :: jameson=18
-  integer, parameter :: IMEX_RK4=19
 
   !> Type of slope limiter used for reconstructing variables on cell edges
   integer, allocatable :: type_limiter(:)

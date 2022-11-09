@@ -3163,7 +3163,7 @@ contains
     ! f_i[e]=v_i*e+v_i*ptotal-b_i*(b_k*v_k)
     if(phys_energy) then
       if (phys_internal_e) then
-         f(ixO^S,e_c_)=w(ixO^S,mom_c(idim))*w(ixO^S,e_c_)
+         f(ixO^S,e_c_)=w(ixO^S,mom_c(idim))*wC(ixO^S,e_c_)
          if (twofl_Hall) then
             call mpistop("solve internal energy not implemented for Hall MHD")
          endif

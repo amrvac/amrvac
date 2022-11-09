@@ -1023,10 +1023,6 @@ contains
           t_integrator=ssprk4
        case ("rk4")
           t_integrator=rk4
-       case ("jameson")
-          t_integrator=jameson
-       case ("IMEX_RK4")
-          t_integrator=IMEX_RK4
        case default
           write(unitterm,*) "time_integrator=",time_integrator,"time_stepper=",time_stepper
           call mpistop("unkown fourstep time_integrator in read_par_files")
@@ -1062,7 +1058,6 @@ contains
          rk_alfa33=1.0d0-rk_alfa31
          rk_alfa44=1.0d0-rk_alfa41
        endif
-       use_imex_scheme=(t_integrator==IMEX_RK4)
     case ("fivestep")
        t_stepper=fivestep
        nstep=5
@@ -1429,10 +1424,6 @@ contains
     end if
 
     if(any(limiter(1:nlevelshi)=='mpweno7')) then
-      nghostcells=max(nghostcells,4)
-    end if
-
-    if(any(limiter(1:nlevelshi)=='exeno7')) then
       nghostcells=max(nghostcells,4)
     end if
 
@@ -2732,7 +2723,7 @@ contains
           line = trim(line) // " 'TimeToFinish [hrs]'"
 
           ! Only write header if not restarting
-          if (restart_from_file == undefined) then
+          if (restart_from_file == undefined .or. reset_time) then
             call MPI_FILE_WRITE(log_fh, trim(line) // new_line('a'), &
                  len_trim(line)+1, MPI_CHARACTER, istatus, ierrmpi)
           end if

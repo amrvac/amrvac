@@ -97,9 +97,9 @@ subroutine alloc_node(igrid)
 
       ! allocate temporary solution space
       select case (t_integrator)
-      case(ssprk3,ssprk4,jameson,IMEX_Midpoint,IMEX_Trapezoidal,IMEX_222)
+      case(ssprk3,ssprk4,IMEX_Midpoint,IMEX_Trapezoidal,IMEX_222)
         call alloc_state(igrid, ps2(igrid), ixG^LL, ixGext^L, .false.)
-      case(RK3_BT,rk4,ssprk5,IMEX_CB3a,IMEX_RK4)
+      case(RK3_BT,rk4,ssprk5,IMEX_CB3a)
         call alloc_state(igrid, ps2(igrid), ixG^LL, ixGext^L, .false.)
         call alloc_state(igrid, ps3(igrid), ixG^LL, ixGext^L, .false.)
       case(IMEX_ARS3,IMEX_232)
@@ -122,7 +122,7 @@ subroutine alloc_node(igrid)
     pso(igrid)%level=level
     ps1(igrid)%level=level
     select case (t_integrator)
-    case(ssprk3,ssprk4,jameson,IMEX_Midpoint,IMEX_Trapezoidal,IMEX_222)
+    case(ssprk3,ssprk4,IMEX_Midpoint,IMEX_Trapezoidal,IMEX_222)
       ps2(igrid)%level=level
     case(RK3_BT,rk4,ssprk5,IMEX_CB3a)
       ps2(igrid)%level=level
@@ -743,7 +743,7 @@ subroutine dealloc_node(igrid)
     call dealloc_state(igrid, pso(igrid),.false.)
     ! deallocate temporary solution space
     select case (t_integrator)
-    case(ssprk3,ssprk4,jameson,IMEX_Midpoint,IMEX_Trapezoidal,IMEX_222)
+    case(ssprk3,ssprk4,IMEX_Midpoint,IMEX_Trapezoidal,IMEX_222)
       call dealloc_state(igrid, ps2(igrid),.false.)
     case(RK3_BT,rk4,ssprk5,IMEX_CB3a)
       call dealloc_state(igrid, ps2(igrid),.false.)

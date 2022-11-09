@@ -113,6 +113,7 @@ contains
   subroutine init_usr_bc
   ! prepare fixed bottom boundary condition at highest resolution
     double precision, allocatable :: tmp(:,:,:),bre(:,:,:)
+    double precision, allocatable :: tmp2(:,:,:)
     double precision, allocatable :: x1bc(:),x2bc(:)
     double precision :: spc,vmax,rhobb,coeffrho,vdr
     integer :: ix^D,ixpemin^D,ixpemax^D,ixB^L,file_handle,amode
@@ -196,6 +197,7 @@ contains
     Bbt=Bbc
     ! calculate velocity field of driving motions
     allocate(tmp(nxbc1,nxbc2,nxbc3))
+    allocate(tmp2(nxbc1,nxbc2,2))
     allocate(bre(nxbc1,nxbc2,nxbc3))
     allocate(x1bc(nxbc1))
     allocate(x2bc(nxbc2))
@@ -235,6 +237,8 @@ contains
     do ix2=1,nxbc2
       x2bc(ix2)=xprobmin2+(dble(ix2-ngl)-0.5d0)*dx(2,refine_max_level)
     enddo
+    tmp2(:,:,1)=vbc(:,:,nxbc3,1)
+    tmp2(:,:,2)=vbc(:,:,nxbc3,2)
     if(mype==0) then
       amode=ior(MPI_MODE_CREATE,MPI_MODE_WRONLY)
       write(bottomflow,'(a,i2.2,a)') 'vbottom',iprob,'.dat'
@@ -246,7 +250,7 @@ contains
                           MPI_DOUBLE_PRECISION,statuss,ierrmpi)
       call MPI_FILE_WRITE(file_handle,x2bc,nxbc2,&
                           MPI_DOUBLE_PRECISION,statuss,ierrmpi)
-      call MPI_FILE_WRITE(file_handle,vbc(:,:,nxbc3,1:2),nxbc1*nxbc2*2,&
+      call MPI_FILE_WRITE(file_handle,tmp2(:,:,1:2),nxbc1*nxbc2*2,&
                           MPI_DOUBLE_PRECISION,statuss,ierrmpi)
       call MPI_FILE_WRITE(file_handle,tmp(:,:,nxbc3),nxbc1*nxbc2,&
                           MPI_DOUBLE_PRECISION,statuss,ierrmpi)

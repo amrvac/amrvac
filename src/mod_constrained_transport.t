@@ -225,8 +225,6 @@ contains
        call WENO7limiter(ixI^L,ixC^L,idir,q,qL,qR,1)
     case (limiter_mpweno7)
        call WENO7limiter(ixI^L,ixC^L,idir,q,qL,qR,2)
-    case (limiter_exeno7)
-       call exENO7limiter(ixI^L,ixC^L,idir,q,qL,qR)
     case (limiter_venk)
        call venklimiter(ixI^L,ixC^L,idir,dxlevel(idir),q,qL,qR)
     case default

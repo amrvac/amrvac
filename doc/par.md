@@ -117,9 +117,9 @@ integer timestep counter `it`, the time `global_time`, the time step to be used 
 next time advance `dt`, the domain integrated value of each conserved variable
 (nw real numbers, which allows to check perfect conservation across the grid
 tree when the boundary conditions imply it), the percentage of the domain
-covered by each allowed grid level (`refine_max_level` real numbers between 0.0 and 1.0,
+covered by each allowed grid level (given by `refine_max_level` real numbers between 0.0 and 1.0,
 with 1.0 indicating 100% coverage: when all numbers are summed, we get
-1.0), and the number of grids per allowed grid level (hence, `refine_max_level` integers).
+1.0), and the number of grids per allowed grid level (hence, given by `refine_max_level` integers).
 The logfile is by default saved as an ASCII file.
 The order of saving snapshots, and regridding actions is fixed: regrid happens after the advance by one timestep,
 then regrid, then save the data. This has consequences for the optional
@@ -229,7 +229,7 @@ large datasets.
 The convert types `EIvtiCCmpi`, `ESvtiCCmpi`, `SIvtiCCmpi`, `EIvtuCCmpi`, 
 `ESvtuCCmpi` and `SIvtuCCmpi` are added for synthesize EUV images, EUV spectra
 and SXR images, where EI represents EUV image, ES represents EUV spectra and
-SI represents SXR image. The cooresponding parameters , e.g. line of sight direction, 
+SI represents SXR image. The corresponding parameters , e.g. line of sight direction, 
 for synthesizing emissions should be provided in the @ref par_emissionlist when the 
 convert types are activited. 
 

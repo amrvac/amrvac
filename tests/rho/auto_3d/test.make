@@ -1,4 +1,3 @@
-        limiter= 20*'mp52
 SETUP_FLAGS := -d=3
 SCHEME_DIR := ../../schemes
 

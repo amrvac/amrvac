@@ -94,6 +94,7 @@ mod_ard_phys.o: mod_particles.mod
 mod_ard_phys.o: mod_physics.mod
 mod_bc_data.o: mod_lookup_table.mod
 mod_bremsstrahlung.o: mod_physics.mod
+mod_cak_force.o: mod_physics.mod
 mod_calculate_xw.o: mod_geometry.mod
 mod_calculate_xw.o: mod_limiter.mod
 mod_calculate_xw.o: mod_physics.mod
@@ -140,6 +141,7 @@ mod_hd_hllc.o: mod_dust.mod
 mod_hd_hllc.o: mod_hd_phys.mod
 mod_hd_hllc.o: mod_physics_hllc.mod
 mod_hd_phys.o: mod_basic_types.mod
+mod_hd_phys.o: mod_cak_force.mod
 mod_hd_phys.o: mod_dust.mod
 mod_hd_phys.o: mod_fix_conserve.mod
 mod_hd_phys.o: mod_geometry.mod
@@ -206,6 +208,7 @@ mod_mhd.o: mod_mhd_ppm.mod
 mod_mhd.o: mod_mhd_roe.mod
 mod_mhd_hllc.o: mod_mhd_phys.mod
 mod_mhd_hllc.o: mod_physics_hllc.mod
+mod_mhd_phys.o: mod_cak_force.mod
 mod_mhd_phys.o: mod_constrained_transport.mod
 mod_mhd_phys.o: mod_convert.mod
 mod_mhd_phys.o: mod_fix_conserve.mod
@@ -265,6 +268,7 @@ mod_point_searching.o: mod_particle_base.mod
 mod_point_searching.o: mod_physics.mod
 mod_ppm.o: mod_physics.mod
 mod_radiative_cooling.o: mod_physics.mod
+mod_rbsl.o: mod_geometry.mod
 mod_rd.o: mod_amrvac.mod
 mod_rd.o: mod_rd_phys.mod
 mod_rd_phys.o: mod_multigrid_coupling.mod
@@ -310,11 +314,6 @@ mod_rho_phys.o: mod_physics.mod
 mod_rho_roe.o: mod_physics_roe.mod
 mod_rho_roe.o: mod_rho_phys.mod
 mod_rotating_frame.o: mod_geometry.mod
-mod_sir.o: mod_amrvac.mod
-mod_sir.o: mod_sir_phys.mod
-mod_sir_phys.o: mod_multigrid_coupling.mod
-mod_sir_phys.o: mod_particles.mod
-mod_sir_phys.o: mod_physics.mod
 mod_slice.o: mod_basic_types.mod
 mod_slice.o: mod_calculate_xw.mod
 mod_solar_atmosphere.o: mod_interpolation.mod
@@ -363,7 +362,6 @@ mod_twofl_ppm.o: mod_twofl_phys.mod
 mod_twofl_roe.o: mod_physics_roe.mod
 mod_twofl_roe.o: mod_tvd.mod
 mod_twofl_roe.o: mod_twofl_phys.mod
-mod_usr_template.o: mod_mhd.mod
 mod_variables.o: mod_basic_types.mod
 mod_viscosity.o: mod_geometry.mod
 mod_viscosity.o: mod_physics.mod
