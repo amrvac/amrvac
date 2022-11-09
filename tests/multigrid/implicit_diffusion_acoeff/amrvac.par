@@ -1,5 +1,5 @@
  &filelist
-        base_filename='output/test'
+        base_filename='output/test_r16'
     	convert_type='vtuBCCmpi'
         autoconvert=T
  /

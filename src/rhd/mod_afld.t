@@ -732,38 +732,6 @@ module mod_afld
   !!!!!!!!!!!!!!!!!!! Multigrid diffusion
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-  ! !> Calling all subroutines to perform the multigrid method
-  ! !> Communicates rad_e and diff_coeff to multigrid library
-  ! subroutine Diffuse_E_rad_mg(dtfactor,qdt,qtC,psa,psb)
-  !   use mod_global_parameters
-  !   use mod_forest
-  !   use mod_ghostcells_update
-  !   use mod_multigrid_coupling
-  !
-  !   type(state), target :: psa(max_blocks)
-  !   type(state), target :: psb(max_blocks)
-  !   double precision, intent(in) :: qdt
-  !   double precision, intent(in) :: qtC
-  !   double precision, intent(in) :: dtfactor
-  !   double precision             :: max_res
-  !
-  !   integer                        :: iw_to,iw_from
-  !   integer                        :: iigrid, igrid, id
-  !   integer                        :: nc, lvl
-  !   type(tree_node), pointer       :: pnode
-  !   real(dp)                       :: fac
-  !
-  !   max_res = fld_diff_tol !1d-7/qdt
-  !
-  !   !> This one is probably not necessary
-  !   call set_mg_diffcoef()
-  !   call mg_copy_to_tree(iw_r_e, mg_iphi, .false., .false.,1.d0)
-  !   call diffusion_solve_vcoeff(mg, qdt, 2, max_res)
-  !   call mg_copy_from_tree(mg_iphi, iw_r_e)
-  !
-  !   call getbc(qtC,0.d0,psa,1,nwflux+nwaux)
-  !
-  ! end subroutine Diffuse_E_rad_mg
 
   !> Calling all subroutines to perform the multigrid method
   !> Communicates rad_e and diff_coeff to multigrid library
@@ -823,7 +791,23 @@ module mod_afld
 
     !This is mg_copy_to_tree from psb state
     {^IFONED
-    call mg_copy_to_tree(i_diff_mg(1), mg_iveps, factor=facD, state_from=psb)
+    ! call mg_copy_to_tree(i_diff_mg(1), mg_iveps, factor=facD, state_from=psb)
+    !This is mg_copy_to_tree from psb state
+    !!!  replaces::  call mg_copy_to_tree(su_, mg_irhs, factor=-lambda)
+    iw_from=i_diff_mg(1)
+    iw_to=mg_iveps
+    fac=facD
+    do iigrid=1,igridstail; igrid=igrids(iigrid);
+       pnode => igrid_to_node(igrid, mype)%node
+       id    =  pnode%id
+       lvl   =  mg%boxes(id)%lvl
+       nc    =  mg%box_size_lvl(lvl)
+       ! Include one layer of ghost cells on grid leaves
+
+       mg%boxes(id)%cc(0:nc+1, iw_to) = fac * &
+            psb(igrid)%w(ixMlo1-1:ixMhi1+1, iw_from)
+
+    end do
 
     if (time_advance)then
       call mg_restrict(mg, mg_iveps)
@@ -832,8 +816,41 @@ module mod_afld
     }
 
     {^IFTWOD
-    call mg_copy_to_tree(i_diff_mg(1), mg_iveps1, factor=facD, state_from=psb)
-    call mg_copy_to_tree(i_diff_mg(2), mg_iveps2, factor=facD, state_from=psb)
+    ! call mg_copy_to_tree(i_diff_mg(1), mg_iveps1, factor=facD, state_from=psb)
+    !This is mg_copy_to_tree from psb state
+    !!!  replaces::  call mg_copy_to_tree(su_, mg_irhs, factor=-lambda)
+    iw_from=i_diff_mg
+    iw_to=mg_iveps(1)
+    fac=facD
+    do iigrid=1,igridstail; igrid=igrids(iigrid);
+       pnode => igrid_to_node(igrid, mype)%node
+       id    =  pnode%id
+       lvl   =  mg%boxes(id)%lvl
+       nc    =  mg%box_size_lvl(lvl)
+       ! Include one layer of ghost cells on grid leaves
+
+       mg%boxes(id)%cc(0:nc+1, 0:nc+1, iw_to) = fac * &
+            psb(igrid)%w(ixMlo1-1:ixMhi1+1, ixMlo2-1:ixMhi2+1, iw_from)
+
+    end do
+
+    ! call mg_copy_to_tree(i_diff_mg(2), mg_iveps2, factor=facD, state_from=psb)
+    !This is mg_copy_to_tree from psb state
+    !!!  replaces::  call mg_copy_to_tree(su_, mg_irhs, factor=-lambda)
+    iw_from=i_diff_mg
+    iw_to=mg_iveps(2)
+    fac=facD
+    do iigrid=1,igridstail; igrid=igrids(iigrid);
+       pnode => igrid_to_node(igrid, mype)%node
+       id    =  pnode%id
+       lvl   =  mg%boxes(id)%lvl
+       nc    =  mg%box_size_lvl(lvl)
+       ! Include one layer of ghost cells on grid leaves
+
+       mg%boxes(id)%cc(0:nc+1, 0:nc+1, iw_to) = fac * &
+            psb(igrid)%w(ixMlo1-1:ixMhi1+1, ixMlo2-1:ixMhi2+1, iw_from)
+
+    end do
 
     if (time_advance)then
       call mg_restrict(mg, mg_iveps1)
@@ -844,13 +861,134 @@ module mod_afld
     endif
     }
 
+    {^IFTHREED
+    ! call mg_copy_to_tree(i_diff_mg(1), mg_iveps1, factor=facD, state_from=psb)
+    !This is mg_copy_to_tree from psb state
+    !!!  replaces::  call mg_copy_to_tree(su_, mg_irhs, factor=-lambda)
+    iw_from=i_diff_mg
+    iw_to=mg_iveps(1)
+    fac=facD
+    do iigrid=1,igridstail; igrid=igrids(iigrid);
+       pnode => igrid_to_node(igrid, mype)%node
+       id    =  pnode%id
+       lvl   =  mg%boxes(id)%lvl
+       nc    =  mg%box_size_lvl(lvl)
+       ! Include one layer of ghost cells on grid leaves
+
+       mg%boxes(id)%cc(0:nc+1, 0:nc+1, 0:nc+1, iw_to) = fac * &
+            psb(igrid)%w(ixMlo1-1:ixMhi1+1, ixMlo2-1:ixMhi2+1, &
+            ixMlo3-1:ixMhi3+1, iw_from)
+
+    end do
+
+    ! call mg_copy_to_tree(i_diff_mg(2), mg_iveps2, factor=facD, state_from=psb)
+    !This is mg_copy_to_tree from psb state
+    !!!  replaces::  call mg_copy_to_tree(su_, mg_irhs, factor=-lambda)
+    iw_from=i_diff_mg
+    iw_to=mg_iveps(2)
+    fac=facD
+    do iigrid=1,igridstail; igrid=igrids(iigrid);
+       pnode => igrid_to_node(igrid, mype)%node
+       id    =  pnode%id
+       lvl   =  mg%boxes(id)%lvl
+       nc    =  mg%box_size_lvl(lvl)
+       ! Include one layer of ghost cells on grid leaves
+
+       mg%boxes(id)%cc(0:nc+1, 0:nc+1, 0:nc+1, iw_to) = fac * &
+            psb(igrid)%w(ixMlo1-1:ixMhi1+1, ixMlo2-1:ixMhi2+1, &
+            ixMlo3-1:ixMhi3+1, iw_from)
+
+    end do
+
+    ! call mg_copy_to_tree(i_diff_mg(3), mg_iveps2, factor=facD, state_from=psb)
+    !This is mg_copy_to_tree from psb state
+    !!!  replaces::  call mg_copy_to_tree(su_, mg_irhs, factor=-lambda)
+    iw_from=i_diff_mg
+    iw_to=mg_iveps(3)
+    fac=facD
+    do iigrid=1,igridstail; igrid=igrids(iigrid);
+       pnode => igrid_to_node(igrid, mype)%node
+       id    =  pnode%id
+       lvl   =  mg%boxes(id)%lvl
+       nc    =  mg%box_size_lvl(lvl)
+       ! Include one layer of ghost cells on grid leaves
+
+       mg%boxes(id)%cc(0:nc+1, 0:nc+1, 0:nc+1, iw_to) = fac * &
+            psb(igrid)%w(ixMlo1-1:ixMhi1+1, ixMlo2-1:ixMhi2+1, &
+            ixMlo3-1:ixMhi3+1, iw_from)
+
+    end do
+
+    if (time_advance)then
+      call mg_restrict(mg, mg_iveps1)
+      call mg_fill_ghost_cells(mg, mg_iveps1)
+
+      call mg_restrict(mg, mg_iveps2)
+      call mg_fill_ghost_cells(mg, mg_iveps2)
+
+      call mg_restrict(mg, mg_iveps3)
+      call mg_fill_ghost_cells(mg, mg_iveps3)
+    endif
+    }
+
 
     !This is mg_copy_to_tree from psb state
-    call mg_copy_to_tree(iw_r_e, mg_iphi, factor=fac, state_from=psb)
+    ! call mg_copy_to_tree(iw_r_e, mg_iphi, factor=fac, state_from=psb)
+    !This is mg_copy_to_tree from psb state
+    !!!  replaces::  call mg_copy_to_tree(su_, mg_irhs, factor=-lambda)
+    iw_from=iw_r_e
+    iw_to=mg_iphi
+    fac=-lambda
+    do iigrid=1,igridstail; igrid=igrids(iigrid);
+       pnode => igrid_to_node(igrid, mype)%node
+       id    =  pnode%id
+       lvl   =  mg%boxes(id)%lvl
+       nc    =  mg%box_size_lvl(lvl)
+       ! Include one layer of ghost cells on grid leaves
+       {^IFONED
+       mg%boxes(id)%cc(0:nc+1, iw_to) = fac * &
+            psb(igrid)%w(ixMlo1-1:ixMhi1+1, iw_from)
+       }
+       {^IFTWOD
+       mg%boxes(id)%cc(0:nc+1, 0:nc+1, iw_to) = fac * &
+            psb(igrid)%w(ixMlo1-1:ixMhi1+1, ixMlo2-1:ixMhi2+1, iw_from)
+       }
+       {^IFTHREED
+       mg%boxes(id)%cc(0:nc+1, 0:nc+1, 0:nc+1, iw_to) = fac * &
+            psb(igrid)%w(ixMlo1-1:ixMhi1+1, ixMlo2-1:ixMhi2+1, &
+            ixMlo3-1:ixMhi3+1, iw_from)
+       }
+    end do
+
 
     !>replace call set_rhs(mg, -1/dt, 0.0_dp)
-!    call mg_copy_to_tree(iw_r_e, mg_irhs, factor=-1/(dtfactor*qdt), state_from=psb)
-    call mg_copy_to_tree(iw_r_e, mg_irhs, factor=-1/(dtfactor*dt_diff), state_from=psb)
+    ! call mg_copy_to_tree(iw_r_e, mg_irhs, factor=-1/(dtfactor*dt_diff), state_from=psb)
+    !This is mg_copy_to_tree from psb state
+    !!!  replaces::  call mg_copy_to_tree(su_, mg_irhs, factor=-lambda)
+    iw_from=iw_r_e
+    iw_to=mg_irhs
+    fac=-1/(dtfactor*dt_diff)
+    do iigrid=1,igridstail; igrid=igrids(iigrid);
+       pnode => igrid_to_node(igrid, mype)%node
+       id    =  pnode%id
+       lvl   =  mg%boxes(id)%lvl
+       nc    =  mg%box_size_lvl(lvl)
+       ! Include one layer of ghost cells on grid leaves
+       {^IFONED
+       mg%boxes(id)%cc(0:nc+1, iw_to) = fac * &
+            psb(igrid)%w(ixMlo1-1:ixMhi1+1, iw_from)
+       }
+       {^IFTWOD
+       mg%boxes(id)%cc(0:nc+1, 0:nc+1, iw_to) = fac * &
+            psb(igrid)%w(ixMlo1-1:ixMhi1+1, ixMlo2-1:ixMhi2+1, iw_from)
+       }
+       {^IFTHREED
+       mg%boxes(id)%cc(0:nc+1, 0:nc+1, 0:nc+1, iw_to) = fac * &
+            psb(igrid)%w(ixMlo1-1:ixMhi1+1, ixMlo2-1:ixMhi2+1, &
+            ixMlo3-1:ixMhi3+1, iw_from)
+       }
+    end do
+
 
     call phys_set_mg_bounds()
 
@@ -893,7 +1031,31 @@ module mod_afld
 0887 dt_diff = 0.d0
 
     ! !This is mg_copy_from_tree_gc for psa state
-    call mg_copy_from_tree_gc(mg_iphi, iw_r_e, state_to=psa)
+    ! call mg_copy_from_tree_gc(mg_iphi, iw_r_e, state_to=psa)
+    !This is mg_copy_from_tree_gc for psa state
+    !!! replaces:: call mg_copy_from_tree_gc(mg_iphi, su_)
+    iw_from=mg_iphi
+    iw_to=iw_r_e
+    do iigrid=1,igridstail; igrid=igrids(iigrid);
+       pnode => igrid_to_node(igrid, mype)%node
+       id    =  pnode%id
+       lvl   =  mg%boxes(id)%lvl
+       nc    =  mg%box_size_lvl(lvl)
+       ! Include one layer of ghost cells on grid leaves
+       {^IFONED
+       psa(igrid)%w(ixMlo1-1:ixMhi1+1, iw_to) = &
+            mg%boxes(id)%cc(0:nc+1, iw_from)
+       }
+       {^IFTWOD
+       psa(igrid)%w(ixMlo1-1:ixMhi1+1, ixMlo2-1:ixMhi2+1, iw_to) = &
+            mg%boxes(id)%cc(0:nc+1, 0:nc+1, iw_from)
+       }
+       {^IFTHREED
+       psa(igrid)%w(ixMlo1-1:ixMhi1+1, ixMlo2-1:ixMhi2+1, &
+            ixMlo3-1:ixMhi3+1, iw_to) = &
+            mg%boxes(id)%cc(0:nc+1, 0:nc+1, 0:nc+1, iw_from)
+       }
+    end do
 
     ! enforce boundary conditions for psa
 0888 call getbc(qtC,0.d0,psa,1,nwflux+nwaux,phys_req_diagonal)

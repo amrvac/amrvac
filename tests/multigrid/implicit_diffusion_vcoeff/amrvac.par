@@ -1,18 +1,18 @@
  &filelist
-        base_filename='test'
-    	convert_type='vtuBCCmpi'
+        base_filename='test_'
+    	  convert_type='vtuBCCmpi'
         autoconvert=T
  /
 
  &savelist
         itsave(1,1)=0
         itsave(1,2)=0
-        dtsave_log=0.05d0
-        dtsave_dat=0.05d0
+        dtsave_log=0.1d0
+        dtsave_dat=0.1d0
  /
 
  &stoplist
-        time_max=1.0d0
+        time_max=2.0d0
  /
 
  &methodlist
@@ -52,4 +52,3 @@
  &rho_list
         rho_v = 0.0,0.0
  /
- 

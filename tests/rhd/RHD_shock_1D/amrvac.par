@@ -26,7 +26,7 @@
 
  &methodlist
    time_stepper = 'onestep'
-   time_integrator = 'IMEX_SP'
+   time_integrator = 'IMEX_Euler'
    flux_scheme     = 20*'hll'
    limiter         = 20*'minmod'
    source_split_usr = .false.
