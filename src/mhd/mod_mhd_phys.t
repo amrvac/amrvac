@@ -1185,16 +1185,13 @@ contains
       b = 1d0
       RR = (1d0 + H_ion_fr + He_abundance*(He_ion_fr*(He_ion_fr2 + 1d0)+1d0))/(1d0 + 4d0 * He_abundance)
     endif
-    if(unit_numberdensity/=1.d0) then
-      unit_density=a*mp*unit_numberdensity
-    else if(unit_density/=1.d0) then
+    if(unit_density/=1.d0) then
       unit_numberdensity=unit_density/(a*mp)
+    else
+      ! unit of numberdensity is independent by default
+      unit_density=a*mp*unit_numberdensity
     end if
-    if(unit_temperature/=1.d0) then
-      unit_pressure=b*unit_numberdensity*kB*unit_temperature
-      unit_velocity=sqrt(unit_pressure/unit_density)
-      unit_magneticfield=sqrt(miu0*unit_pressure)
-    else if(unit_velocity/=1.d0) then
+    if(unit_velocity/=1.d0) then
       unit_pressure=unit_density*unit_velocity**2
       unit_temperature=unit_pressure/(b*unit_numberdensity*kB)
       unit_magneticfield=sqrt(miu0*unit_pressure)
@@ -1206,11 +1203,17 @@ contains
       unit_pressure=unit_magneticfield**2/miu0
       unit_temperature=unit_pressure/(b*unit_numberdensity*kB)
       unit_velocity=sqrt(unit_pressure/unit_density)
+    else
+      ! unit of temperature is independent by default
+      unit_pressure=b*unit_numberdensity*kB*unit_temperature
+      unit_velocity=sqrt(unit_pressure/unit_density)
+      unit_magneticfield=sqrt(miu0*unit_pressure)
     end if
-    if(unit_length/=1.d0) then
-      unit_time=unit_length/unit_velocity
-    else if(unit_time/=1.d0) then
+    if(unit_time/=1.d0) then
       unit_length=unit_time*unit_velocity
+    else
+      ! unit of length is independent by default
+      unit_time=unit_length/unit_velocity
     end if
     ! Additional units needed for the particles
     c_norm=c_lightspeed/unit_velocity
