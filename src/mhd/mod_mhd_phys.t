@@ -742,11 +742,6 @@ contains
     ! derive units from basic units
     call mhd_physical_units()
 
-    if(mhd_semirelativistic.or.mhd_boris_simplification) then
-      inv_squared_c0=(unit_velocity/const_c)**2
-      inv_squared_c=(unit_velocity/mhd_reduced_c)**2
-    end if
-
     if(.not. mhd_energy .and. mhd_thermal_conduction) then
       call mpistop("thermal conduction needs mhd_energy=T")
     end if
@@ -1220,6 +1215,17 @@ contains
     unit_charge=unit_magneticfield*unit_length**2/unit_velocity/miu0
     if (.not. SI_unit) unit_charge = unit_charge*const_c
     unit_mass=unit_density*unit_length**3
+
+    if(mhd_semirelativistic.or.mhd_boris_simplification) then
+      if(mhd_reduced_c<1.d0) then
+        ! dimensionless speed
+        inv_squared_c0=1.d0
+        inv_squared_c=1.d0/mhd_reduced_c**2
+      else
+        inv_squared_c0=(unit_velocity/c_lightspeed)**2
+        inv_squared_c=(unit_velocity/mhd_reduced_c)**2
+      end if
+    end if
 
   end subroutine mhd_physical_units
 
