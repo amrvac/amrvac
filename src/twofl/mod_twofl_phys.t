@@ -3167,9 +3167,6 @@ contains
     if(phys_energy) then
       if (phys_internal_e) then
          f(ixO^S,e_c_)=w(ixO^S,mom_c(idim))*wC(ixO^S,e_c_)
-         if (twofl_Hall) then
-            call mpistop("solve internal energy not implemented for Hall MHD")
-         endif
       else if(twofl_eq_energy == EQ_ENERGY_KI) then
 
         f(ixO^S,e_c_)=w(ixO^S,mom_c(idim))*(wC(ixO^S,e_c_)+pgas(ixO^S))

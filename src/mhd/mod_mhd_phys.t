@@ -3285,9 +3285,6 @@ contains
     if(mhd_energy) then
       if (mhd_internal_e) then
          f(ixO^S,e_)=w(ixO^S,mom(idim))*wC(ixO^S,e_)
-         if (mhd_Hall) then
-            call mpistop("solve internal energy not implemented for Hall MHD")
-         endif
       else
         f(ixO^S,e_)=w(ixO^S,mom(idim))*(wC(ixO^S,e_)+ptotal(ixO^S))&
            -w(ixO^S,mag(idim))*sum(w(ixO^S,mag(:))*w(ixO^S,mom(:)),dim=ndim+1)
@@ -3561,9 +3558,6 @@ contains
     if(mhd_energy) then
       if (mhd_internal_e) then
          f(ixO^S,e_)=w(ixO^S,mom(idim))*wC(ixO^S,e_)
-         if (mhd_Hall) then
-            call mpistop("solve internal energy not implemented for Hall MHD")
-         endif
       else
         f(ixO^S,e_)=w(ixO^S,mom(idim))*(wC(ixO^S,e_)+ptotal(ixO^S))&
            -B(ixO^S,idim)*sum(w(ixO^S,mag(:))*w(ixO^S,mom(:)),dim=ndim+1)
