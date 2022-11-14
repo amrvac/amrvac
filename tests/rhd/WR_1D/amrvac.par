@@ -30,7 +30,7 @@
    time_stepper = 'onestep'
    time_integrator = 'IMEX_Euler'
    flux_scheme     = 20*'tvdlf'
-   limiter         = 20*'mp5'
+   limiter         = 20*'minmod'
    source_split_usr = .false.
    typesourcesplit = 'sfs'
    check_small_values = .false.
@@ -47,10 +47,9 @@
 /
 
  &meshlist
-   refine_max_level   = 3 !1
-   refine_criterion   = 3
-   domain_nx1         = 256
-   block_nx1          = 32
+   refine_max_level   = 1
+   domain_nx1         = 1024
+   block_nx1          = 128
    xprobmin1      = 1.d0
    xprobmax1       = 11.d0
    refine_threshold   = 20*0.5d0
@@ -80,6 +79,7 @@
   fld_fluxlimiter = 'Minerbo'
   fld_diff_tol = 1.d-5
   fld_bisect_tol = 1.d-13
+  diffcrash_resume = .true.
   /
 
  &wind_list

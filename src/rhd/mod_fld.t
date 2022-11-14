@@ -741,6 +741,7 @@ module mod_fld
     type(tree_node), pointer       :: pnode
     real(dp)                       :: fac, facD
 
+    ! print*, '1'
 
     !> Set diffusion timestep, add previous timestep if mg did not converge:
     if (it == 0) dt_diff = 0
@@ -773,97 +774,109 @@ module mod_fld
     fac = 1.d0
     facD = 1.d0
 
-    !This is mg_copy_to_tree from psb state
-    ! call mg_copy_to_tree(i_diff_mg, mg_iveps, factor=facD, state_from=psb)
-    !This is mg_copy_to_tree from psb state
-    !!!  replaces::  call mg_copy_to_tree(su_, mg_irhs, factor=-lambda)
-    iw_from=i_diff_mg
-    iw_to=mg_iveps
-    fac=facD
-    do iigrid=1,igridstail; igrid=igrids(iigrid);
-       pnode => igrid_to_node(igrid, mype)%node
-       id    =  pnode%id
-       lvl   =  mg%boxes(id)%lvl
-       nc    =  mg%box_size_lvl(lvl)
-       ! Include one layer of ghost cells on grid leaves
-       {^IFONED
-       mg%boxes(id)%cc(0:nc+1, iw_to) = fac * &
-            psb(igrid)%w(ixMlo1-1:ixMhi1+1, iw_from)
-       }
-       {^IFTWOD
-       mg%boxes(id)%cc(0:nc+1, 0:nc+1, iw_to) = fac * &
-            psb(igrid)%w(ixMlo1-1:ixMhi1+1, ixMlo2-1:ixMhi2+1, iw_from)
-       }
-       {^IFTHREED
-       mg%boxes(id)%cc(0:nc+1, 0:nc+1, 0:nc+1, iw_to) = fac * &
-            psb(igrid)%w(ixMlo1-1:ixMhi1+1, ixMlo2-1:ixMhi2+1, &
-            ixMlo3-1:ixMhi3+1, iw_from)
-       }
-    end do
+    ! print*, '2'
 
     !This is mg_copy_to_tree from psb state
-    ! call mg_copy_to_tree(iw_r_e, mg_iphi, factor=fac, state_from=psb)
+    call mg_copy_to_tree(i_diff_mg, mg_iveps, factor=facD, state_from=psb)
     !This is mg_copy_to_tree from psb state
     !!!  replaces::  call mg_copy_to_tree(su_, mg_irhs, factor=-lambda)
-    iw_from=iw_r_e
-    iw_to=mg_iphi
-    fac=fac
-    do iigrid=1,igridstail; igrid=igrids(iigrid);
-       pnode => igrid_to_node(igrid, mype)%node
-       id    =  pnode%id
-       lvl   =  mg%boxes(id)%lvl
-       nc    =  mg%box_size_lvl(lvl)
-       ! Include one layer of ghost cells on grid leaves
-       {^IFONED
-       mg%boxes(id)%cc(0:nc+1, iw_to) = fac * &
-            psb(igrid)%w(ixMlo1-1:ixMhi1+1, iw_from)
-       }
-       {^IFTWOD
-       mg%boxes(id)%cc(0:nc+1, 0:nc+1, iw_to) = fac * &
-            psb(igrid)%w(ixMlo1-1:ixMhi1+1, ixMlo2-1:ixMhi2+1, iw_from)
-       }
-       {^IFTHREED
-       mg%boxes(id)%cc(0:nc+1, 0:nc+1, 0:nc+1, iw_to) = fac * &
-            psb(igrid)%w(ixMlo1-1:ixMhi1+1, ixMlo2-1:ixMhi2+1, &
-            ixMlo3-1:ixMhi3+1, iw_from)
-       }
-    end do
+    ! iw_from=i_diff_mg
+    ! iw_to=mg_iveps
+    ! fac=facD
+    ! do iigrid=1,igridstail; igrid=igrids(iigrid);
+    !    pnode => igrid_to_node(igrid, mype)%node
+    !    id    =  pnode%id
+    !    lvl   =  mg%boxes(id)%lvl
+    !    nc    =  mg%box_size_lvl(lvl)
+    !    ! Include one layer of ghost cells on grid leaves
+    !    {^IFONED
+    !    mg%boxes(id)%cc(0:nc+1, iw_to) = fac * &
+    !         psb(igrid)%w(ixMlo1-1:ixMhi1+1, iw_from)
+    !    }
+    !    {^IFTWOD
+    !    mg%boxes(id)%cc(0:nc+1, 0:nc+1, iw_to) = fac * &
+    !         psb(igrid)%w(ixMlo1-1:ixMhi1+1, ixMlo2-1:ixMhi2+1, iw_from)
+    !    }
+    !    {^IFTHREED
+    !    mg%boxes(id)%cc(0:nc+1, 0:nc+1, 0:nc+1, iw_to) = fac * &
+    !         psb(igrid)%w(ixMlo1-1:ixMhi1+1, ixMlo2-1:ixMhi2+1, &
+    !         ixMlo3-1:ixMhi3+1, iw_from)
+    !    }
+    ! end do
+
+    ! print*, '3'
+
+    !This is mg_copy_to_tree from psb state
+    call mg_copy_to_tree(iw_r_e, mg_iphi, factor=fac, state_from=psb)
+    !This is mg_copy_to_tree from psb state
+    !!!  replaces::  call mg_copy_to_tree(su_, mg_irhs, factor=-lambda)
+    ! iw_from=iw_r_e
+    ! iw_to=mg_iphi
+    ! fac=fac
+    ! do iigrid=1,igridstail; igrid=igrids(iigrid);
+    !    pnode => igrid_to_node(igrid, mype)%node
+    !    id    =  pnode%id
+    !    lvl   =  mg%boxes(id)%lvl
+    !    nc    =  mg%box_size_lvl(lvl)
+    !    ! Include one layer of ghost cells on grid leaves
+    !    {^IFONED
+    !    mg%boxes(id)%cc(0:nc+1, iw_to) = fac * &
+    !         psb(igrid)%w(ixMlo1-1:ixMhi1+1, iw_from)
+    !    }
+    !    {^IFTWOD
+    !    mg%boxes(id)%cc(0:nc+1, 0:nc+1, iw_to) = fac * &
+    !         psb(igrid)%w(ixMlo1-1:ixMhi1+1, ixMlo2-1:ixMhi2+1, iw_from)
+    !    }
+    !    {^IFTHREED
+    !    mg%boxes(id)%cc(0:nc+1, 0:nc+1, 0:nc+1, iw_to) = fac * &
+    !         psb(igrid)%w(ixMlo1-1:ixMhi1+1, ixMlo2-1:ixMhi2+1, &
+    !         ixMlo3-1:ixMhi3+1, iw_from)
+    !    }
+    ! end do
+
+    ! print*, '4'
 
 
     !>replace call set_rhs(mg, -1/dt, 0.0_dp)
-    ! call mg_copy_to_tree(iw_r_e, mg_irhs, factor=-1/(dtfactor*dt_diff), state_from=psb)
+    call mg_copy_to_tree(iw_r_e, mg_irhs, factor=-1/(dtfactor*dt_diff), state_from=psb)
     !This is mg_copy_to_tree from psb state
     !!!  replaces::  call mg_copy_to_tree(su_, mg_irhs, factor=-lambda)
-    iw_from=iw_r_e
-    iw_to=mg_irhs
-    fac=-1/(dtfactor*dt_diff)
-    do iigrid=1,igridstail; igrid=igrids(iigrid);
-       pnode => igrid_to_node(igrid, mype)%node
-       id    =  pnode%id
-       lvl   =  mg%boxes(id)%lvl
-       nc    =  mg%box_size_lvl(lvl)
-       ! Include one layer of ghost cells on grid leaves
-       {^IFONED
-       mg%boxes(id)%cc(0:nc+1, iw_to) = fac * &
-            psb(igrid)%w(ixMlo1-1:ixMhi1+1, iw_from)
-       }
-       {^IFTWOD
-       mg%boxes(id)%cc(0:nc+1, 0:nc+1, iw_to) = fac * &
-            psb(igrid)%w(ixMlo1-1:ixMhi1+1, ixMlo2-1:ixMhi2+1, iw_from)
-       }
-       {^IFTHREED
-       mg%boxes(id)%cc(0:nc+1, 0:nc+1, 0:nc+1, iw_to) = fac * &
-            psb(igrid)%w(ixMlo1-1:ixMhi1+1, ixMlo2-1:ixMhi2+1, &
-            ixMlo3-1:ixMhi3+1, iw_from)
-       }
-    end do
+    ! iw_from=iw_r_e
+    ! iw_to=mg_irhs
+    ! fac=-1/(dtfactor*dt_diff)
+    ! do iigrid=1,igridstail; igrid=igrids(iigrid);
+    !    pnode => igrid_to_node(igrid, mype)%node
+    !    id    =  pnode%id
+    !    lvl   =  mg%boxes(id)%lvl
+    !    nc    =  mg%box_size_lvl(lvl)
+    !    ! Include one layer of ghost cells on grid leaves
+    !    {^IFONED
+    !    mg%boxes(id)%cc(0:nc+1, iw_to) = fac * &
+    !         psb(igrid)%w(ixMlo1-1:ixMhi1+1, iw_from)
+    !    }
+    !    {^IFTWOD
+    !    mg%boxes(id)%cc(0:nc+1, 0:nc+1, iw_to) = fac * &
+    !         psb(igrid)%w(ixMlo1-1:ixMhi1+1, ixMlo2-1:ixMhi2+1, iw_from)
+    !    }
+    !    {^IFTHREED
+    !    mg%boxes(id)%cc(0:nc+1, 0:nc+1, 0:nc+1, iw_to) = fac * &
+    !         psb(igrid)%w(ixMlo1-1:ixMhi1+1, ixMlo2-1:ixMhi2+1, &
+    !         ixMlo3-1:ixMhi3+1, iw_from)
+    !    }
+    ! end do
 
     ! call phys_set_mg_bounds()
+
+    ! print*, '5'
+
 
     if (time_advance)then
       call mg_restrict(mg, mg_iveps)
       call mg_fill_ghost_cells(mg, mg_iveps)
     endif
+
+    ! print*, '6'
+
 
     call mg_fas_fmg(mg, .true., max_res=res)
     do n = 1, max_its
@@ -871,6 +884,9 @@ module mod_fld
       if (res < max_residual) exit
       call mg_fas_vcycle(mg, max_res=res)
     end do
+
+    ! print*, '7'
+
 
     if (res .le. 0.d0) then
       if (diffcrash_resume) then
@@ -883,6 +899,9 @@ module mod_fld
         error stop "Diffusion residual to zero"
       endif
     endif
+
+    ! print*, '8'
+
 
     if (n == max_its + 1) then
       if (diffcrash_resume) then
@@ -899,36 +918,42 @@ module mod_fld
        error stop "diffusion_solve: no convergence"
     end if
 
+    ! print*, '9'
+
+
     !> Reset dt_diff when diffusion worked out
 !0887 dt_diff = 0.d0
     dt_diff = 0.d0
 
     ! !This is mg_copy_from_tree_gc for psa state
-    ! call mg_copy_from_tree_gc(mg_iphi, iw_r_e, state_to=psa)
+    call mg_copy_from_tree_gc(mg_iphi, iw_r_e, state_to=psa)
     !This is mg_copy_from_tree_gc for psa state
     !!! replaces:: call mg_copy_from_tree_gc(mg_iphi, su_)
-    iw_from=mg_iphi
-    iw_to=iw_r_e
-    do iigrid=1,igridstail; igrid=igrids(iigrid);
-       pnode => igrid_to_node(igrid, mype)%node
-       id    =  pnode%id
-       lvl   =  mg%boxes(id)%lvl
-       nc    =  mg%box_size_lvl(lvl)
-       ! Include one layer of ghost cells on grid leaves
-       {^IFONED
-       psa(igrid)%w(ixMlo1-1:ixMhi1+1, iw_to) = &
-            mg%boxes(id)%cc(0:nc+1, iw_from)
-       }
-       {^IFTWOD
-       psa(igrid)%w(ixMlo1-1:ixMhi1+1, ixMlo2-1:ixMhi2+1, iw_to) = &
-            mg%boxes(id)%cc(0:nc+1, 0:nc+1, iw_from)
-       }
-       {^IFTHREED
-       psa(igrid)%w(ixMlo1-1:ixMhi1+1, ixMlo2-1:ixMhi2+1, &
-            ixMlo3-1:ixMhi3+1, iw_to) = &
-            mg%boxes(id)%cc(0:nc+1, 0:nc+1, 0:nc+1, iw_from)
-       }
-    end do
+    ! iw_from=mg_iphi
+    ! iw_to=iw_r_e
+    ! do iigrid=1,igridstail; igrid=igrids(iigrid);
+    !    pnode => igrid_to_node(igrid, mype)%node
+    !    id    =  pnode%id
+    !    lvl   =  mg%boxes(id)%lvl
+    !    nc    =  mg%box_size_lvl(lvl)
+    !    ! Include one layer of ghost cells on grid leaves
+    !    {^IFONED
+    !    psa(igrid)%w(ixMlo1-1:ixMhi1+1, iw_to) = &
+    !         mg%boxes(id)%cc(0:nc+1, iw_from)
+    !    }
+    !    {^IFTWOD
+    !    psa(igrid)%w(ixMlo1-1:ixMhi1+1, ixMlo2-1:ixMhi2+1, iw_to) = &
+    !         mg%boxes(id)%cc(0:nc+1, 0:nc+1, iw_from)
+    !    }
+    !    {^IFTHREED
+    !    psa(igrid)%w(ixMlo1-1:ixMhi1+1, ixMlo2-1:ixMhi2+1, &
+    !         ixMlo3-1:ixMhi3+1, iw_to) = &
+    !         mg%boxes(id)%cc(0:nc+1, 0:nc+1, 0:nc+1, iw_from)
+    !    }
+    ! end do
+
+    ! print*, '10'
+
 
   end subroutine Diffuse_E_rad_mg
 
