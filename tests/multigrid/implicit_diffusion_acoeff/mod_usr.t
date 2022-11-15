@@ -10,7 +10,7 @@ module mod_usr
   real(dp), parameter :: sig1 = 1.0d-2
   real(dp), parameter :: sig2 = 1.0d-2
   real(dp), parameter :: diffusion_coeff1 = 1.d0
-  real(dp), parameter :: diffusion_coeff2 = 1.d0
+  real(dp), parameter :: diffusion_coeff2 = 16.d0
 
 contains
 
@@ -19,16 +19,21 @@ contains
     use mod_variables
     use mod_physics
 
+    integer :: i
+
     usr_init_one_grid => initial_conditions
 
     use_multigrid = .true.
-    phys_global_source => diffuse_density
+    phys_global_source_after => diffuse_density
     usr_process_grid => set_error
     mg_after_new_tree => set_epsilon
 
     mg%operator_type = mg_ahelmholtz
     mg%bc(:, mg_iphi)%bc_type = mg_bc_continuous
-    ! mg%bc(:, mg_iphi)%bc_value = 0.0d0
+
+    do i = 1, 2 * ndim
+      mg%bc(i, mg_iphi)%boundary_cond => multigrid_bc
+    end do
 
     call set_coordinate_system("Cartesian_2D")
     call rho_activate()
@@ -52,6 +57,37 @@ contains
     w(ix^S, i_eps2) = diffusion_coeff2
 
   end subroutine initial_conditions
+
+  !> To fill ghost cells near physical boundaries
+  subroutine multigrid_bc(box, nc, iv, nb, bc_type, bc)
+    use mod_bc_data
+    type(mg_box_t), intent(in)    :: box
+    integer, intent(in)           :: nc
+    integer, intent(in)           :: iv      !< Index of variable
+    integer, intent(in)           :: nb      !< Direction
+    integer, intent(out)          :: bc_type !< Type of b.c.
+
+    double precision, intent(out) :: bc(nc)
+    double precision              :: rr(nc, 2)
+    integer                       :: i, ixs(ndim-1), nb_dim, n_bc
+
+    ! Type of boundary condition
+    bc_type      = mg_bc_dirichlet
+    ! Index of boundary data (stored per variable, per direction)
+    n_bc         = bc_data_ix(rho_, nb)
+    ! In which dimension the boundary is
+    nb_dim       = mg_neighb_dim(nb)
+    ! A list of dimensions *other* than nb_dim
+    ixs          = [(i, i=1,ndim-1)]
+    ixs(nb_dim:) = ixs(nb_dim:) + 1
+
+    ! Get the coordinates at the cell faces at the boundary
+    call mg_get_face_coords(box, nb, nc, rr)
+
+    bc(:) = solution(rr(:,1),rr(:,2),global_time)
+
+  end subroutine multigrid_bc
+
 
   elemental function solution(x, y, t) result(sol)
     real(dp), intent(in) :: x, y, t
