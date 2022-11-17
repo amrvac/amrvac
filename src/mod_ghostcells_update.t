@@ -121,7 +121,7 @@ contains
 
   subroutine init_bc()
     use mod_global_parameters 
-    use mod_physics, only: phys_req_diagonal
+    use mod_physics, only: phys_req_diagonal, physics_type
 
     integer :: nghostcellsCo, interpolation_order
     integer :: nx^D, nxCo^D, ixG^L, i^D, ic^D, inc^D, idir
@@ -322,7 +322,8 @@ contains
            sizes_p_send_total(i^D)=sum(sizes_p_send_stg(:,i^D))
            sizes_p_recv_total(i^D)=sum(sizes_p_recv_stg(:,i^D))
       {end do\}
-    else
+    end if
+    if(.not.stagger_grid .or. physics_type=='mf') then
       ! extend index range to physical boundary
       {
       ixS_srl_min^D(-1,0)=1
