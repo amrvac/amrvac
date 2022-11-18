@@ -19,10 +19,10 @@ contains
 
     ixI^L=ixG^LL;
     ixO^L=ixM^LL;
-    ^D&xbmin^D=rnode(rpxmin^D_,igrid);
-    ^D&xbmax^D=rnode(rpxmax^D_,igrid);
+    ^D&xbmin^D=rnode(rpxmin^D_,igrid)-rnode(rpdx^D_,igrid);
+    ^D&xbmax^D=rnode(rpxmax^D_,igrid)+rnode(rpdx^D_,igrid);
     ingrid=0
-    {if (xp(^DB)>=xbmin^DB .and. xp(^DB)<xbmax^DB) ingrid=ingrid+1\}
+    {if (xp(^DB)>xbmin^DB .and. xp(^DB)<xbmax^DB) ingrid=ingrid+1\}
 
     if (ingrid==ndim) then
       ^D&dxb^D=rnode(rpdx^D_,igrid)\
@@ -41,7 +41,7 @@ contains
         case('conserved')
 
         case default
-          call mpistop("get_point_w: Unknown variable type!")
+          call mpistop("get_point_w_ingrid: Unknown variable type!")
       end select
 
       wp=0.d0
@@ -57,7 +57,7 @@ contains
         case('conserved')
 
         case default
-          call mpistop("get_point_w: Unknown variable type!")
+          call mpistop("get_point_w_ingrid: Unknown variable type!")
       end select
 
       if(physics_type=='mhd') then
@@ -75,6 +75,8 @@ contains
           enddo
         {enddo\}
       endif
+    else
+      call mpistop("get_point_w_ingrid: The point is not in given grid!")
     endif
 
   end subroutine get_point_w_ingrid

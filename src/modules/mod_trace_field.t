@@ -7,7 +7,30 @@ contains
 
   subroutine trace_field_multi(xfm,wPm,wLm,dL,numL,numP,nwP,nwL,forwardm,ftype,tcondi)
     ! trace multiple field lines
-    ! wLm(1:numL,1): valid points for the field line
+    ! xfm: locations of points at the field lines. User should provide xfm(1:numL,1,1:ndim)
+    !   as seed points, then field line wills be traced from the seed points. xfm(1:numL,1,:) 
+    !   are user given and other points are given by the subroutine as feedback.
+    ! numL: number of field lines user wants to trace. user given
+    ! numP: maximum number of points at the field line. User defined. Note that not every
+    !   point of numP is valid, as the tracing will stop when the field line leave the
+    !   simulation box. The number of valid point is given in wLm(1)
+    ! wPm: point variables, which have values at each point of xfm. The way to get wP is
+    !   user defined, with help of IO given by subroutine set_field_w in mod_usr_methods.
+    !   User can calculate the density/temperature at the point and then store the values
+    !   into wPm, or do something else.
+    ! nwP: number of point variables. user given
+    ! wLm: line variables, variables for the lines rather than for each point of the lines.
+    !   For example, wLm(1) stores the number of valid points at the field lines. The way to 
+    !   get wLm is also user defined with set_field_w, the same as wPm. User can calculate
+    !   the maximum density/temperature at the field lines and stores it in wLm
+    ! nwL: number of line variables. user given
+    ! dL: length step for field line tracing. user given
+    ! forwardm: true--trace field forward; false--trace field line backward. user given
+    ! ftype: type of field user wants to trace. User can trace velocity field by setting
+    !   ftype='Vfield' or trace magnetic field by setting ftype='Bfield'. It is possible 
+    !   to trace other fields, e.g. electric field, where user can define the field with
+    !   IO given by subroutine set_field in mod_usr_methods. user given
+    ! tcondi: user given
     use mod_particle_base
 
     integer, intent(in) :: numL,numP,nwP,nwL
@@ -149,7 +172,29 @@ contains
 
   subroutine trace_field_single(xf,wP,wL,dL,numP,nwP,nwL,forward,ftype,tcondi)
     ! trace a field line
-    ! wL(1): valid points for the field line
+    ! xf: locations of points at the field line. User should provide xf(1,1:ndim)
+    !   as seed point, then field line will be traced from the seed point. xf(1,:) is 
+    !   user given and xf(2:wL(1),:) are given by the subroutine as feedback.
+    ! numP: maximum number of points at the field line. User defined. Note that not every
+    !   point of numP is valid, as the tracing will stop when the field line leave the
+    !   simulation box. The number of valid point is given in wL(1)
+    ! wP: point variables, which have values at each point of xf. The way to get wP is
+    !   user defined, with help of IO given by subroutine set_field_w in mod_usr_methods.
+    !   User can calculate the density/temperature at the point and then store the values
+    !   into wP, or do something else.
+    ! nwP: number of point variables. user given
+    ! wL: line variables, variables for the line rather than for each point of the line.
+    !   For example, wL(1) stores the number of valid points at the field line. The way to 
+    !   get wL is also user defined with set_field_w, the same as wP. User can calculate
+    !   the maximum density/temperature at the field line and stores it in wL
+    ! nwL: number of line variables. user given
+    ! dL: length step for field line tracing. user given
+    ! forward: true--trace field forward; false--trace field line backward. user given
+    ! ftype: type of field user wants to trace. User can trace velocity field by setting
+    !   ftype='Vfield' or trace magnetic field by setting ftype='Bfield'. It is possible 
+    !   to trace other fields, e.g. electric field, where user can define the field with
+    !   IO given by subroutine set_field in mod_usr_methods. user given
+    ! tcondi: user given
     use mod_usr_methods
     use mod_particle_base
 

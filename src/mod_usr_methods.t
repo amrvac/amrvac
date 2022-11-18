@@ -570,9 +570,14 @@ module mod_usr_methods
       character(len=std_len), intent(in)  :: ftype,tcondi
 
       !double precision :: xpp(1:ndim),wpp(1:nw)
-      !xpp(1:ndim)=xf(ip,1:ndim)
-      !call get_point_in_grid(igrid,xpp,wpp,'conserved',ixI^L,ixO^L,x,w)
-      !wP(ip,1)=wpp(1)
+
+      !! nwP=2,nwL=0. get rho/T at line
+      !if (tcondi=='user') then
+      !  xpp(1:ndim)=xf(ip,1:ndim)
+      !  call get_point_w_ingrid(igrid,xpp,wpp,'primitive')
+      !  wP(ip,1)=wpp(rho_)
+      !  wP(ip,2)=wpp(p_)/wpp(rho_)
+      !endif
 
     end subroutine set_field_w
 
