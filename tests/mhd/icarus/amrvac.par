@@ -18,7 +18,7 @@
  &filelist
         autoconvert   = .true.
         saveprim      = .true.
-        base_filename ='cone_cme_multiple'
+        base_filename = 'Icarus_cone_2015June_5CMES'
         convert_type  = 'vtuBCCmpi'
         slice_type    = 'csv'
         nocartesian   = .true.
@@ -82,10 +82,10 @@
         nbufferx1=0
         nbufferx2=0
         nbufferx3=0
-        block_nx1=6
+        block_nx1=30
         block_nx2=8
         block_nx3=12
-        domain_nx1= 60
+        domain_nx1= 300
         domain_nx2= 32
         domain_nx3= 96
         xprobmin1=21.5
