@@ -82,7 +82,7 @@ contains
         !Read-in coronal model
         !Coronal model at boundary has 2 coordinates: colat and lon
         !Coronal model has data for 4 parameters: vr, n, T, Br
-        cme_parameter_file = "cme_cone_updated_mult.par"   !"cme_cone_model_old.par"
+        cme_parameter_file = "cme_input_parameters.dat"   !"cme_cone_model_old.par"
         boundary_file = "solar_wind_bc_used_in_paper.dat"
 
         ! 2015 event june corresponding satellite data
