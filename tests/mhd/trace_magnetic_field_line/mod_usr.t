@@ -29,6 +29,7 @@ contains
     usr_init_vector_potential=>initvecpot_usr
     usr_special_convert => usrspecial_convert
     usr_set_field_w     => special_field_w
+    usr_set_field       => special_userfield
 
     call mhd_activate()
   end subroutine usr_init
@@ -429,7 +430,9 @@ contains
     double precision :: xs^L,lengthL,dL
     double precision :: dsep,distance
     integer :: nx_lcell^D
+    double precision :: xseed(ndim)
 
+    !---------------- example trace magnetic field lines -----------------!
     xsmin1=-2.95d0
     xsmax1=2.95d0
     xsmin2=1.d-3
@@ -446,6 +449,18 @@ contains
     nwL=1
 
     call trace_Bfield_parallel(xs^L,dL,numP,nL,nwP,nwL)
+
+
+    !------------ example calculate DEM for LOS x=0 with self difine field ------------!
+    dL=(xprobmax2-xprobmin2)/(domain_nx2*2**(refine_max_level+1))
+    lengthL=xprobmax2-xprobmin2
+    numP=floor(lengthL/dL)+1
+    nwP=2
+    nwL=0
+    xseed(1)=0.d0
+    xseed(2)=dL
+
+    call get_differential_emission_measure(xseed,dL,numP,nwP,nwL)
 
   end subroutine usrspecial_convert
 
@@ -525,17 +540,97 @@ contains
     if (tcondi=='user1') then
       xpp(1:ndim)=xf(ip,1:ndim)
       call get_point_w_ingrid(igrid,xpp,wpp,'conserved')
-      wP(ip,1)=wpp(1)
+      wP(ip,1)=wpp(rho_)
       if (ip==1) then
         wL(2)=0.d0
       else
         wL(2)=wL(2)+dL
       endif
+    else if (tcondi=='user2') then
+      xpp(1:ndim)=xf(ip,1:ndim)
+      call get_point_w_ingrid(igrid,xpp,wpp,'primitive')
+      wP(ip,1)=wpp(rho_)
+      wP(ip,2)=wpp(p_)/wpp(rho_)
     else
       wP(ip,1)=0.d0
       wL(2)=0.d0
     endif
 
   end subroutine special_field_w
+
+  subroutine get_differential_emission_measure(xseed,dL,numP,nwP,nwL)
+    use mod_trace_field
+
+    integer :: numP,nwP,nwL
+    double precision :: dL
+    double precision :: xseed(ndim)
+
+    double precision :: xf(numP,ndim),wP(numP,nwP),wL(nwL+1)
+    integer :: nValid,j,numTe,iTe
+    logical :: forward
+    character(len=std_len) :: ftype,tcondi,fname
+    double precision :: Temin,Temax,dTelog,Telocal,EM
+    double precision, allocatable :: Telog(:),DEM(:)
+
+    ftype='ydir'
+    tcondi='user2'
+    forward=.true.
+    xf(1,:)=xseed(:)
+  
+    call trace_field_single(xf,wP,wL,dL,numP,nwP,nwL,forward,ftype,tcondi)
+    nValid=int(wL(1))
+
+    Temin=1.0d4
+    Temax=1.6d6
+    dTelog=0.1
+    numTe=floor((log10(Temax)-log10(Temin))/dTelog)
+    
+    allocate(Telog(numTe),DEM(numTe))
+
+    do iTe=1,numTe
+      Telog(iTe)=log10(Temin)+dTelog*(iTe-1)
+    enddo
+    DEM=zero
+
+    do j=1,nValid
+      Telocal=wP(j,2)*unit_temperature
+      iTe=floor((log10(Telocal)-log10(Temin))/dTelog)+1
+      if (iTe>=1 .and. iTe<=numTe) then
+        EM=(wP(j,1)*unit_numberdensity)**2
+        DEM(iTe)=DEM(iTe)+EM*dL*unit_length
+      endif
+    enddo
+
+    ! output field line
+    if (mype==0) then
+      write(fname, '(a,i4.4,a)') 'DEM_',snapshotini,'.txt'
+      open(1,file=fname)
+      write(1,*) ' numTe '
+      write(1,*) numTe
+      write(1,*) ' iL  Telog  DEM '
+      do iTe=1,numTe
+        write(1,*) iTe,Telog(iTe),DEM(iTe)
+      enddo
+      close(1)
+    endif
+
+    deallocate(Telog,DEM)
+
+  end subroutine get_differential_emission_measure
+
+  subroutine special_userfield(xfn,igrid,field,ftype)
+    use mod_global_parameters
+
+    integer,intent(in)                  :: igrid
+    double precision, intent(in)        :: xfn(ndim)
+    double precision, intent(inout)     :: field(ndim)
+    character(len=std_len), intent(in)  :: ftype
+
+    if (ftype=='ydir') then
+      field(:)=zero
+      field(2)=1.d0
+    endif
+
+  end subroutine special_userfield
 
 end module mod_usr
