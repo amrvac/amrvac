@@ -1,0 +1,36 @@
+name: docs
+
+on:
+  push:
+    branches: [ master ]
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Python 3.9
+      uses: actions/setup-python@v1
+      with:
+        python-version: 3.9
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        sudo apt-get install doxygen
+        sudo apt-get install graphviz
+
+    - name: Generate documentation
+      run: |
+        cd doc
+        doxygen Doxyfile
+
+    - name: Deploy website
+      uses: peaceiris/actions-gh-pages@v3
+      with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_branch: gh-pages
+          publish_dir: doc/html
+          enable_jekyll: false
+          full_commit_message: "deploy ${{ github.sha }}: ${{ github.event.head_commit.message }}"
