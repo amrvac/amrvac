@@ -1,4 +1,0 @@
-F90=scalasca -instrument mpif90
-FFLAGS = -c
-F90FLAGS = -xHOST -O3 -ipo -FR -implicitnone 
-LINK= $(F90)  $(F90FLAGS) 
