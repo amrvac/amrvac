@@ -2749,7 +2749,6 @@ contains
   !> In case the fine grid is on a different CPU, perform the prolongation and
   !> store the fine-grid values in the send buffer.
   !>
-  !> @todo Check whether it's faster to send coarse data and prolong afterwards
   subroutine prolong_set_buffer(mg, id, nc, iv, method)
     type(mg_t), intent(inout) :: mg
     integer, intent(in)       :: id

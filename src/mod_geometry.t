@@ -1133,7 +1133,6 @@ contains
               end if
               ! second order centered differencing
               tmp(ixO^S)=half*(tmp(jxO^S)-tmp(hxO^S))*invdx(jdir)
-              !> \todo allow for 4th order CD evaluation here as well
               if(lvc(idir,jdir,kdir)==1)then
                 curlvec(ixO^S,idir)=curlvec(ixO^S,idir)+tmp(ixO^S)
               else

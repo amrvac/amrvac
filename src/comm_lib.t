@@ -1,8 +1,4 @@
-!> \file
-!> @todo Convert this file to a module
-
 !> Initialize the MPI environment
-!> @todo Check for errors in return code
 subroutine comm_start
   use mod_global_parameters
 

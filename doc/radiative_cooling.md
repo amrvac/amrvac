@@ -6,10 +6,10 @@ The webpage describes how users can add radiative cooling to their setup in MPI-
 
 The implemented radiative cooling is optically thin and describes locally the energy loss by radiation. 
 The source is
-
-\f$  Q = -n_i n_e \Lambda(T)  \f$, 
-
-where \f$ n_i \f$ and \f$ n_e \f$ are the ion- and electronnumberdensities. 
+\f[  
+Q = -n_i n_e \Lambda(T)  
+\f] 
+where \f$ n_i \f$ and \f$ n_e \f$ are the ion- and electron number densities. 
 \f$ \Lambda(T) \f$ is the cooling funtion or curve and represents the efficiency.
 This cooling curve can be a tabulated set of points obtained by detailed calculations (see e.g. Colgan et. al. 2008). 
 These tables can be interpolated to high temperature resolution.

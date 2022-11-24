@@ -1,7 +1,6 @@
 !> This module contains definitions of global parameters and variables and some
 !> generic functions/subroutines used in AMRVAC.
 !>
-!> \todo Move the parameters to the relevant (physics) modules
 module mod_global_parameters
   use mod_physicaldata
   use mod_connectivity
@@ -16,8 +15,6 @@ module mod_global_parameters
   ! Parameters
   character(len=*), parameter :: undefined = 'undefined'
 
-  !> @todo Move mpi related variables to e.g. mod_comm
-
   !> The number of MPI tasks
   integer :: npe
 
@@ -28,7 +25,6 @@ module mod_global_parameters
   integer :: icomm
 
   !> A global MPI error return code
-  !> @todo Make local
   integer :: ierrmpi
 
   !> MPI file handle for logfile
@@ -171,7 +167,6 @@ module mod_global_parameters
   !> Save output of type N on times tsave(:, N)
   double precision :: tsave(nsavehi,nfile)
 
-  !> \todo Move tsavelast to amrvac.t
   double precision :: tsavelast(nfile)
 
   !> Repeatedly save output of type N when dtsave(N) simulation time has passed
@@ -180,16 +175,13 @@ module mod_global_parameters
   !> Save output of type N on iterations itsave(:, N)
   integer :: itsave(nsavehi,nfile)
 
-  !> \todo remove itsavelast?
   integer :: itsavelast(nfile)
 
   !> Repeatedly save output of type N when ditsave(N) time steps have passed
   integer :: ditsave(nfile)
 
-  !> \todo Move to amrvac.t
   integer :: isavet(nfile)
 
-  !> \todo Move to amrvac.t
   integer :: isaveit(nfile)
 
   !> Start of read out (not counting specified read outs)
@@ -199,7 +191,6 @@ module mod_global_parameters
   integer :: collapseLevel
 
   !> Number of saved files of each type
-  !> \todo Move to mod_input_output
   integer :: n_saves(1:nfile)
 
   !> whether or not to save an output file
@@ -430,7 +421,6 @@ module mod_global_parameters
   logical :: record_electric_field=.false.
 
   !> Number of cells as buffer zone
-  !> \todo is it necessary?
   integer :: nbufferx^D
 
   integer :: levmin

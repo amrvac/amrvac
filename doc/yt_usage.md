@@ -4,7 +4,7 @@
 
 # Introduction {#yt_introduction}
 
-The release of AMRVAC 2.2 included minor changes in the datfile format, in order to improve compatibility with [`yt`](https://yt-project.org),
+The datfile format is such that its is compatible with [`yt`](https://yt-project.org),
 an open-source Python package for analysing and visualising volumetric data.
 `yt` supports AMR meshes and can handle discrete or sampled data such as particles.
 It's query-based so that it can handle larger-than-RAM datasets and makes uses of [Cython](https://cython.org) for speed-up and C-interoperability.
@@ -16,7 +16,7 @@ we refer to [the YT Cookbook](https://yt-project.org/docs/dev/cookbook/index.htm
 The `yt` frontend for AMRVAC was developed by Clément Robert and Niels Claes (who are also the current maintainers).
 The actual pull request for the frontend, including it in the main `yt` repository, was accepted on the 13th of November, 2019.
 
-Because the frontend is still relatively new, we would greatly appreciate any feedback or issues that you encounter.
+We would greatly appreciate any feedback or issues that you encounter.
 The most efficient ways to get in touch with us are either
 - [reporting issues on github](https://github.com/yt-project/yt/issues)
 - [joining yt's Slackspace](https://yt-project.org/doc/help/index.html#go-on-slack-or-irc-to-ask-a-question) (join channels **help** and **amrvac**)
@@ -33,12 +33,6 @@ Required dependencies are `Numpy` and `Cython`.
     cd yt
     git checkout master
     pip install -e .
-
-## Latest news and updates for the AMRVAC frontend {#latest_news}
-- **2019-12-05**: Datasets can now be consistently renormalised to physical units using the `mod_usr.t` AMRVAC normalisations.
-- **2019-12-19**: Default derived field list is extended with kinetic energy density, sound speed, mach number and thermal pressure.
-- **2020-01-21**: Dust fields are now detected by the frontend; density, momentum and velocity fields are set up together with total dust density and dust to gas ratio.
-- **2020-06-23**: yt-4 was merged into master (don't forget to update!).
 
 ## Features currently in development/planned {#features_todo}
 - Support for staggered grids (_planned_)

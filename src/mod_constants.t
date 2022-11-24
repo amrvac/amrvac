@@ -1,5 +1,4 @@
 !> Module for physical and numeric constants
-!> Created: 01.09.2012 Oliver Porth (Physical constants)
 module mod_constants
 
   implicit none
@@ -14,7 +13,7 @@ module mod_constants
   !> A very large integer
   integer, parameter :: biginteger = 10000000
 
-  !> \todo Remove these
+  !> some frequently used numbers
   double precision, parameter :: zero    = 0.0d0
   double precision, parameter :: one     = 1.0d0
   double precision, parameter :: two     = 2.0d0

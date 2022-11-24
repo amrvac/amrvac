@@ -554,7 +554,6 @@ contains
 
     end subroutine put_slice_line
 
-    ! \todo change to data format version 3
     subroutine put_slice_dat
 
       integer, dimension(max_blocks) :: iorequest
