@@ -194,8 +194,7 @@ Numbers</h1>
 <p>The usage of <code>double precision</code> is deprecated. Instead use the kind-parameter <code>dp</code> to declare double precision numbers:</p>
 <div class="fragment"><div class="line"><span class="keywordtype">real</span>(dp) :: x         <span class="comment">! good</span></div>
 <div class="line"><span class="keywordtype">double precision</span> :: x ! deprecated</div>
-</div><!-- fragment --><p>In MPI-AMRVAC <code>dp</code> is defined in ... </p><dl class="todo"><dt><b><a class="el" href="todo.html#_todo000001">Todo:</a></b></dt><dd>Include a parameter <code>dp</code></dd></dl>
-<p>Write floating point constants using the <code>_dp</code> suffix: </p><div class="fragment"><div class="line">x = x * 1.1_dp <span class="comment">! good</span></div>
+</div><!-- fragment --><p>Write floating point constants using the <code>_dp</code> suffix: </p><div class="fragment"><div class="line">x = x * 1.1_dp <span class="comment">! good</span></div>
 <div class="line">x = x * 1.1    ! bad: single precision constant</div>
 </div><!-- fragment --><p>Integers are automatically converted to real numbers when they are mixed, without a loss of precision. However, be careful with expressions such as: </p><pre class="fragment">x = 0.5_dp * 5 / 6   ! Bad: is this (0.5_dp * 5)/6 or 0.5_dp * (5/6)?
 x = (0.5_dp * 5) / 6 ! Good

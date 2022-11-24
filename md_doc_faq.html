@@ -82,59 +82,6 @@ List of questions</h1>
 Is there a mailinglist?</h1>
 <p>Yes, we have a mailinglist that you can send questions to: <a href="#" onclick="location.href='mai'+'lto:'+'amr'+'va'+'cus'+'er'+'s@l'+'s.'+'kul'+'eu'+'ven'+'.b'+'e'; return false;">amrva<span style="display: none;">.nosp@m.</span>cuse<span style="display: none;">.nosp@m.</span>rs@ls<span style="display: none;">.nosp@m.</span>.kul<span style="display: none;">.nosp@m.</span>euven<span style="display: none;">.nosp@m.</span>.be</a></p>
 <p>You can join the mailing-list by <a href="https://ls.kuleuven.be/cgi-bin/wa?SUBED1=AMRVACUSERS&amp;A=1">subscribing</a>, so that you will be informed about important changes or (bug)fixes. You can also search the <a href="https://ls.kuleuven.be/cgi-bin/wa?A0=AMRVACUSERS">mailing list archive</a>.</p>
-<h1><a class="anchor" id="faq-new-version"></a>
-I am a user of old MPI-AMRVAC. How can I switch to MPI-AMRVAC 2.0?</h1>
-<p>MPI-AMRVAC 2.0 is quite different from its previous version. Names of many files, subroutines, and parameters are changed. Many subroutines and modules are reorganized. We suggest following these steps to modify your old application to run with MPI-AMRVAC 2.0.</p>
-<ol type="1">
-<li>rename <code>amrvacusr.t</code> to <code>mod_usr.t</code> and make it a fortran module <code>module mod_usr</code>. If you have some global variables declared in <code>amrvacusrpar.t</code>, declare them in <code>module mod_usr</code> and delete <code>amrvacusrpar.t</code>.</li>
-<li>use a tool <b>amrvac/tools/upgrade.pl</b> to automatically find the old names and replace them with new ones. Just execute <code>upgrade.pl</code> in your application folder which contains <code>mod_usr.t</code> and <code>amrvac.par</code> files.</li>
-<li>read <a class="el" href="md_doc_amrvacusr.html">instructions</a> for <code>mod_usr.t</code> and modify it accordingly. Pay attention to use <a class="el" href="namespacemod__hd.html" title="Module containing all hydrodynamics.">mod_hd</a> or <a class="el" href="namespacemod__mhd.html">mod_mhd</a> at the beginning and create subroutine usr_init, in which your old subroutines for initial condition, special boundary condition, special sources,..., need to be pointed to symbolic subroutine pointers collected in <em><a class="el" href="mod__usr__methods_8t.html">mod_usr_methods.t</a></em>, and coordinate system and main physics should be specified.</li>
-<li>If you use special boundary conditions, delete the useless argument 'iw' in <code>subroutine specialbound_usr</code>. Special physical sources such as gravity, radiative cooling, thermal conduction, viscosity are now added in a different way and coded in the folder amrvac/src/physics, please read their documents and change user special sources accordingly.</li>
-<li>Go through <a class="el" href="md_doc_getting_started.html">getting started</a> to learn the new way to compile and run your application. Note that the <code>definitions.h</code> file is not used anymore to turn on special functionalities and can be deleted.</li>
-</ol>
-<p>Here is an incomplete summary of changes in the <code>.par</code> files:</p>
-<table class="markdownTable">
-<tr class="markdownTableHead">
-<th class="markdownTableHeadNone">Old parameter </th><th class="markdownTableHeadNone">Changes in AMRVAC 2.0  </th></tr>
-<tr class="markdownTableRowOdd">
-<td class="markdownTableBodyNone">wnames </td><td class="markdownTableBodyNone">Variable names are now automatically defined by the physics modules, so you don't need to specify wnames  </td></tr>
-<tr class="markdownTableRowEven">
-<td class="markdownTableBodyNone">dixB </td><td class="markdownTableBodyNone">The number of ghost cells is now set automatically, you can override it with nghostcells  </td></tr>
-<tr class="markdownTableRowOdd">
-<td class="markdownTableBodyNone">fileheadout (etc.) </td><td class="markdownTableBodyNone"><code>base_filename</code> (in filelist) now defines the base filename for both output and log files  </td></tr>
-<tr class="markdownTableRowEven">
-<td class="markdownTableBodyNone"><code>typeaxial</code> </td><td class="markdownTableBodyNone">Define your geometry with a call to <code>set_coordinate_system</code> in your mod_usr.t file, see <a class="el" href="md_doc_axial.html">Using axial and translational symmetry</a>  </td></tr>
-<tr class="markdownTableRowOdd">
-<td class="markdownTableBodyNone">typeadvance </td><td class="markdownTableBodyNone"><code>time_integrator</code>  </td></tr>
-<tr class="markdownTableRowEven">
-<td class="markdownTableBodyNone">typefull1 </td><td class="markdownTableBodyNone"><code>flux_scheme</code>  </td></tr>
-<tr class="markdownTableRowOdd">
-<td class="markdownTableBodyNone">typelimiter1 </td><td class="markdownTableBodyNone">limiter  </td></tr>
-<tr class="markdownTableRowEven">
-<td class="markdownTableBodyNone">fix_small </td><td class="markdownTableBodyNone">check_small_values  </td></tr>
-<tr class="markdownTableRowOdd">
-<td class="markdownTableBodyNone">strictsmall, strictgetaux </td><td class="markdownTableBodyNone">Removed  </td></tr>
-<tr class="markdownTableRowEven">
-<td class="markdownTableBodyNone">typedivbfix </td><td class="markdownTableBodyNone">Has been moved to <code>mhd_list</code>, see <a class="el" href="md_doc_par.html">Setting parameters</a>  </td></tr>
-</table>
-<h1><a class="anchor" id="faq-varnames"></a>
-Variable names in AMRVAC 2.0</h1>
-<p>Here are some of the variable names that were changed. Note that e.g. <code>v1_</code> en <code>m1_</code> were also identical in older version of AMRVAC, as they refer to the same variable (but in primitive/conservative form).</p>
-<table class="markdownTable">
-<tr class="markdownTableHead">
-<th class="markdownTableHeadNone">Old name </th><th class="markdownTableHeadNone">New name  </th></tr>
-<tr class="markdownTableRowOdd">
-<td class="markdownTableBodyNone"><code>m1_</code> </td><td class="markdownTableBodyNone">mom(1)  </td></tr>
-<tr class="markdownTableRowEven">
-<td class="markdownTableBodyNone"><code>m2_</code> </td><td class="markdownTableBodyNone">mom(2)  </td></tr>
-<tr class="markdownTableRowOdd">
-<td class="markdownTableBodyNone"><code>v1_</code> </td><td class="markdownTableBodyNone">mom(1)  </td></tr>
-<tr class="markdownTableRowEven">
-<td class="markdownTableBodyNone"><code>b1_</code> </td><td class="markdownTableBodyNone">mag(1)  </td></tr>
-<tr class="markdownTableRowOdd">
-<td class="markdownTableBodyNone"><code>tr1_</code> </td><td class="markdownTableBodyNone">tracer(1)  </td></tr>
-</table>
-<p>The variables <code>e_</code> (or equivalently, <code>p_</code>) and <code>rho_</code> have the same name.</p>
 <h1><a class="anchor" id="faq-own-parameters"></a>
 Is there a way I can define my own parameters somewhere in mod_usr.t and configure them through &lt;tt&gt;amrvac.par&lt;/tt&gt; ?</h1>
 <p>Indeed, there is a quick and time-saving way to read your own parameters without having to give an explicit value in the usr file and recompile each time. Instead, add this in your usr file :</p>
@@ -203,7 +150,7 @@ Can the MHD module handle Hall-MHD?</h1>
 <li>&lsquo;On the influence of environmental parameters on mixing and reconnection caused by the Kelvin-Helmholtz instability at the magnetopause&rsquo;, M.H.J. Leroy &amp; R. Keppens, 2017, PoP 24, 012906 (15pp), <a href="http://dx.doi.org/10.1063/1.4974758">doi:10.1063/1.4974758</a></li>
 </ul>
 <p>The implementation details are given in the first reference (Porth et al.), and although it works properly on several tests and applications, we note that the time step constraint of our explicit implementation may become prohibitive for particular applications. We just limit the CFL according to \(\Delta t &lt; \Delta x/ c_w\), with time step and spatial step linked by the speed \(c_w\), but in that speed we set \(c_w= |v|+\max(c_{fast}, \eta_h B/\rho * k_{max})\) and \(k_{max}\) is the maximal wavenumber we can represent (i.e. linked to \(\Delta x\)). The dispersive nature of the Hall-MHD system may then make \(\Delta t\) going like \(\Delta x^2\), and this limits the current implementation.</p>
-<p>In the new version MPI-AMRVAC 2.0, the Hall effect is included when setting the following in the <code>mhd_list</code> namelist part</p>
+<p>In MPI-AMRVAC 3.0, the Hall effect is included when setting the following in the <code>mhd_list</code> namelist part</p>
 <div class="fragment"><div class="line">&amp;mhd_list</div>
 <div class="line">      mhd_hall=.true.</div>
 <div class="line">      mhd_etah=  .... (some positive number, quantifying the hall <span class="keywordtype">parameter</span>)</div>

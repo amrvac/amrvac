@@ -76,7 +76,7 @@ $(function() {
 </div><!--header-->
 <div class="contents">
 <div class="textblock"><h1>Introduction</h1>
-<p>This document briefly describes the AMR-related features in MPI-AMRVAC. The different options can be set in the <a href="#par_meshlist">meshlist</a> of the <b>amrvac.par</b> file. For a more extensive description, you can read the article 'Parallel, grid-adaptive approaches for relativistic hydro and magnetohydrodynamics', R. Keppens, Z. Meliani, A.J. van Marle, P. Delmont, A. Vlasis, &amp; B. van der Holst, 2011, JCP.* <a href="http://dx.doi.org/10.1016/j.jcp.2011.01.020">doi:10.1016/j.jcp.2011.01.020</a>.</p>
+<p>This document briefly describes the AMR-related features in MPI-AMRVAC. The different options can be set in the meshlist part (see <a class="el" href="md_doc_par.html">Setting parameters</a>) of the <b>amrvac.par</b> file. For a more extensive description, you can read the article 'Parallel, grid-adaptive approaches for relativistic hydro and magnetohydrodynamics', R. Keppens, Z. Meliani, A.J. van Marle, P. Delmont, A. Vlasis, &amp; B. van der Holst, 2011, JCP.* <a href="http://dx.doi.org/10.1016/j.jcp.2011.01.020">doi:10.1016/j.jcp.2011.01.020</a>.</p>
 <p>MPI-AMRVAC uses a standard block-based, octree AMR scheme, where we have blocks of user-controlled dimension (set by the block_nx1, block_nx2, block_nx3) in a hierarchically nested manner. To simplify the parallelization, we gave up flexibility to allow different sized refinement ratios between grid levels, fixing it to 2. Also, we now use the same time step for all levels. A generic skeleton code, generic enough to hold for any AMR code having similar restrictions, is shown below.</p>
 <div class="image">
 <img src="skeleton.gif" alt=""/>

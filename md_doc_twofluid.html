@@ -82,8 +82,7 @@ $(function() {
 <div class="image">
 <img src="twofl_eq_coll.png" alt=""/>
 </div>
-   <h1>Preprocessor directives variables defined in <b>amrvac.h</b></h1>
-<h1>Parameters set in <b>twofl_list</b></h1>
+   <h1>Parameters set in <b>twofl_list</b></h1>
 <div class="fragment"><div class="line">namelist /twofl_list/ twofl_eq_energy, twofl_gamma, twofl_adiab,&amp;</div>
 <div class="line">  twofl_eta, twofl_eta_hyper, twofl_etah, twofl_glm_alpha,&amp; </div>
 <div class="line">  twofl_thermal_conduction_c, use_twofl_tc_c, twofl_radiative_cooling_c, twofl_Hall, twofl_gravity,&amp;</div>
@@ -137,8 +136,7 @@ $(function() {
 <div class="line"> </div>
 <div class="line"> </div>
 <div class="line">end subroutine special_set_equi_vars</div>
-</div><!-- fragment --><h1>Hyperdiffusivity</h1>
-<h1>Convert</h1>
+</div><!-- fragment --><h1>Convert</h1>
 <p>The two fluid module uses the conversion to dat files. A new type of conversion has been defined "dat_generic_mpi" which has to be set in <b>filelist</b> in the parameter file: convert_type="dat_generic_mpi" and (convert or autoconvert). The code below is from twofl_check_params subroutine in <a class="el" href="mod__twofl__phys_8t.html">twofl/mod_twofl_phys.t</a>:</p>
 <div class="fragment"><div class="line">        if(twofl_dump_full_vars) then</div>
 <div class="line">          if(mype .eq. 0) print*, &quot; add conversion method: split -&gt; full &quot;</div>
@@ -160,99 +158,7 @@ $(function() {
 <div class="line"> call get_alpha_coll(ixI^L, ixO^L, w, x, wnew(ixI^S,1))</div>
 <div class="line"> call get_gamma_ion_rec(ixI^L, ixO^L, w, x, wnew(ixI^S,2), wnew(ixI^S,3))</div>
 <div class="line">end function dump_coll_terms</div>
-</div><!-- fragment --><p>In the user file mod_usr.t add_convert_method could be called in the usr_init subroutine.</p>
-<h2>Changes</h2>
-<ul>
-<li>src<ul>
-<li>vacpp.pl<ul>
-<li>Don't break OpenMP, <b>std preprocessor directives (lines starting with '#')</b>, print and //&amp;</li>
-</ul>
-</li>
-<li><a class="el" href="amr__solution__node_8t.html">amr_solution_node.t</a><ul>
-<li>equi_vars (<b>defined in</b> <a class="el" href="mod__physicaldata_8t.html">mod_physicaldata.t</a>) allocated for state</li>
-<li>states for imex rk4 (-&gt; changes in <a class="el" href="mod__advance_8t.html">mod_advance.t</a>)</li>
-</ul>
-</li>
-<li><a class="el" href="convert_8t.html">amrvacio/convert.t</a><ul>
-<li>convert_type dat_generic_mpi <br  />
-</li>
-<li>phys_te_images</li>
-</ul>
-</li>
-<li><a class="el" href="mod__input__output_8t.html">amrvacio/mod_input_output.t</a><ul>
-<li>changed nghostcells=3 for nghostcells=max(nghostcells,3) <br  />
- because the physics module might initialize directly nghostcells for ghost consuming operation which is not done additionally to the limiter</li>
-</ul>
-</li>
-<li><a class="el" href="mod__finite__difference_8t.html">mod_finite_difference.t</a> fd uses centered values in phys_get_flux -&gt; b0i has to be set to 0 and it was set to idim</li>
-<li><a class="el" href="mod__physics_8t.html">physics/mod_physics.t</a><ul>
-<li>added phys_gamma and subroutines phys_set_equi_vars (implemented in the twofl module) and temporarily? phys_te_images</li>
-<li>TODO remove phys_get_v_idim because it is not called anywhere <br  />
-</li>
-</ul>
-</li>
-<li>hd, mhd modules:<ul>
-<li>rad cooling; th cond; th em;</li>
-</ul>
-</li>
-<li>all physics modules (and mod_finite_{difference,volume} ):<ul>
-<li>cmax, cmin extra dimension for the specie number</li>
-</ul>
-</li>
-<li><a class="el" href="mod__finite__volume_8t.html">mod_finite_volume.t</a><ul>
-<li>changed get_Riemann_flux_hll for get_Riemann_flux_hll_species,...</li>
-</ul>
-</li>
-<li><a class="el" href="mod__variables_8t.html">mod_variables.t</a><ul>
-<li>added number_species, index_v_mag, iw_rho_equi used in HLLD solver -&gt; hlld solver (in <a class="el" href="mod__finite__volume_8t.html">mod_finite_volume.t</a>) to use splitting and for multiple species hlld is used for index_v_\mag species and hllc for others.</li>
-</ul>
-</li>
-<li>added phys_hllc_init_species in <a class="el" href="mod__physics__hllc_8t.html">physics/mod_physics_hllc.t</a> to use it for different species (sets the indices).</li>
-<li>MHD module: temporarily added explicit USE_SPLIT_B0=0 in h file to test speed up for non-split mag field</li>
-<li>temporarily added bcexch in <a class="el" href="mod__ghostcells__update_8t.html">mod_ghostcells_update.t</a> similarly to bcphys to test speedup on IMEX schemes</li>
-<li>TODO: delete RM_W0 from preproc directives, hllc and splitting</li>
-<li>TODO is it necessary? <div class="fragment"><div class="line">diff -r amrvac/src/mod_space_filling_curve.t amrvac-orig/src/mod_space_filling_curve.t</div>
-<div class="line">45,46c45,46</div>
-<div class="line">&lt;     if(.not. allocated(iglevel1_sfc)) allocate(iglevel1_sfc(ng^D(1)))</div>
-<div class="line">&lt;     if(.not. allocated(sfc_iglevel1)) allocate(sfc_iglevel1(ndim,nglev1))</div>
-<div class="line">---</div>
-<div class="line">&gt;     allocate(iglevel1_sfc(ng^D(1)))</div>
-<div class="line">&gt;     allocate(sfc_iglevel1(ndim,nglev1))</div>
-</div><!-- fragment --></li>
-</ul>
-</li>
-<li>arch<ul>
-<li>amrvac.make<ul>
-<li>Copy the header (amrvac.h is a user file) in the lib folder. <b>This changes should be done in the user makefile.</b> <div class="fragment"><div class="line">diff -r amrvac/arch/amrvac.make amrvac-orig/arch/amrvac.make</div>
-<div class="line">20a21</div>
-<div class="line">&gt; .PHONY: all clean allclean force</div>
-<div class="line">22,33c23</div>
-<div class="line">&lt; </div>
-<div class="line">&lt; .PHONY: all clean allclean force hdr</div>
-<div class="line">&lt; </div>
-<div class="line">&lt; all: hdr amrvac</div>
-<div class="line">&lt; </div>
-<div class="line">&lt; # copy amrvac.h (in order to use the std preprocessor in the main code files, e.g. twofl); create the file if it does not exist</div>
-<div class="line">&lt; hdr:</div>
-<div class="line">&lt; ifeq (&quot;$(wildcard amrvac.h)&quot;,&quot;&quot;)</div>
-<div class="line">&lt;   touch amrvac.h</div>
-<div class="line">&lt; endif</div>
-<div class="line">&lt;   @mkdir -p $(LIB_DIR)  # Prevent error message</div>
-<div class="line">&lt;   rsync -c amrvac.h $(LIB_DIR)/amrvac.h</div>
-<div class="line">---</div>
-<div class="line">&gt; all: amrvac</div>
-</div><!-- fragment --></li>
-</ul>
-</li>
-<li>rules.make<ul>
-<li>add the header for the compilation</li>
-</ul>
-</li>
-<li>{default,debug}.defs added flag for preprocessor. TODO: add flag for intel compiler. </li>
-</ul>
-</li>
-</ul>
-</div></div><!-- contents -->
+</div><!-- fragment --> </div></div><!-- contents -->
 </div><!-- PageDoc -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
