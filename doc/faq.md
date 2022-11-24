@@ -12,57 +12,6 @@ Yes, we have a mailinglist that you can send questions to: <mailto:amrvacusers@l
 
 You can join the mailing-list by [subscribing](https://ls.kuleuven.be/cgi-bin/wa?SUBED1=AMRVACUSERS&A=1), so that you will be informed about important changes or (bug)fixes. You can also search the [mailing list archive](https://ls.kuleuven.be/cgi-bin/wa?A0=AMRVACUSERS).
 
-# I am a user of old MPI-AMRVAC. How can I switch to MPI-AMRVAC 2.0? {#faq-new-version}
-
-MPI-AMRVAC 2.0 is quite different from its previous version. Names of many files, 
-subroutines, and parameters are changed. Many subroutines and modules are reorganized.
-We suggest following these steps to modify your old application to run with
-MPI-AMRVAC 2.0.
-
-1. rename `amrvacusr.t` to `mod_usr.t` and make it a fortran module `module mod_usr`. If you have some
-   global variables declared in `amrvacusrpar.t`, declare them in `module mod_usr` and delete `amrvacusrpar.t`.
-2. use a tool **amrvac/tools/upgrade.pl** to automatically find the old names and replace them with new ones.
-   Just execute `upgrade.pl` in your application folder which contains `mod_usr.t` and `amrvac.par` files.
-3. read [instructions](amrvacusr.md) for `mod_usr.t` and modify it accordingly. Pay attention to use mod_hd or mod_mhd at the beginning
-   and create subroutine usr_init, in which your old subroutines for initial condition, special boundary 
-   condition, special sources,..., need to be pointed to symbolic subroutine pointers collected in _mod_usr_methods.t_,
-   and coordinate system and main physics should be specified.
-4. If you use special boundary conditions, delete the useless argument 'iw' in `subroutine specialbound_usr`. 
-   Special physical sources such as gravity, radiative cooling, thermal conduction, 
-   viscosity are now added in a different way and coded in the folder amrvac/src/physics, 
-   please read their documents and change user special sources accordingly.
-5. Go through [getting started](getting_started.md) to learn the new way to compile and run your application. Note that the `definitions.h` file
-   is not used anymore to turn on special functionalities and can be deleted.
-
-Here is an incomplete summary of changes in the `.par` files:
-
-Old parameter | Changes in AMRVAC 2.0
----|---
-wnames | Variable names are now automatically defined by the physics modules, so you don't need to specify wnames
-dixB | The number of ghost cells is now set automatically, you can override it with nghostcells
-fileheadout (etc.) | `base_filename` (in filelist) now defines the base filename for both output and log files
-`typeaxial` | Define your geometry with a call to `set_coordinate_system` in your mod_usr.t file, see @ref axial.md
-typeadvance | `time_integrator`
-typefull1 | `flux_scheme`
-typelimiter1 | limiter
-fix_small | check_small_values
-strictsmall, strictgetaux | Removed
-typedivbfix | Has been moved to `mhd_list`, see @ref par.MD
-
-# Variable names in AMRVAC 2.0 {#faq-varnames}
-
-Here are some of the variable names that were changed. Note that e.g. `v1_` en `m1_` were also identical in older version of AMRVAC, as they refer to the same variable (but in primitive/conservative form).
-
-Old name | New name
----|---
-`m1_` | mom(1)
-`m2_` | mom(2)
-`v1_` | mom(1)
-`b1_` | mag(1)
-`tr1_` | tracer(1)
-
-The variables `e_` (or equivalently, `p_`) and `rho_` have the same name.
-
 # Is there a way I can define my own parameters somewhere in mod_usr.t and configure them through `amrvac.par` ? {#faq-own-parameters}
 
 Indeed, there is a quick and time-saving way to read your own parameters without having to give an explicit value in the usr file and recompile each time. Instead, add this in your usr file : 
@@ -146,7 +95,7 @@ or also in the Kelvin-Helmholtz related application paper
 
 The implementation details are given in the first reference (Porth et al.), and although it works properly on several tests and applications, we note that the time step constraint of our explicit implementation may become prohibitive for particular applications. We just limit the CFL according to \f$\Delta t < \Delta x/ c_w\f$, with time step and spatial step linked by the speed \f$c_w\f$, but in that speed we set \f$c_w= |v|+\max(c_{fast}, \eta_h B/\rho * k_{max})\f$ and \f$k_{max}\f$ is the maximal wavenumber we can represent (i.e. linked to \f$\Delta x\f$). The dispersive nature of the Hall-MHD system may then make \f$\Delta t\f$ going like \f$\Delta x^2\f$, and this limits the current implementation.
 
-In the new version MPI-AMRVAC 2.0, the Hall effect is included when setting the following in the `mhd_list` namelist part
+In MPI-AMRVAC 3.0, the Hall effect is included when setting the following in the `mhd_list` namelist part
 
 ```{fortran}
 &mhd_list

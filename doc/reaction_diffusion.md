@@ -2,7 +2,7 @@
 
 [TOC]
 
-This page describes the current (4/05/2021) functionality of the reaction-diffusion module.
+This page describes the current functionality of the reaction-diffusion module.
 The source code can be found in `src/rd/mod_rd_phys.t`.
 
 # Physics {#label-1}

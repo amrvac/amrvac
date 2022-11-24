@@ -2,9 +2,6 @@
 
 [TOC]
 
-\todo Fix source code rendering on this page (I have already submitted a Doxygen
-bug report). For now I've added a space between `\` and `}`.
-
 # Introduction {#source_intro}
 
 This document describes the structure and the syntax of the **src/FILENAME.t**

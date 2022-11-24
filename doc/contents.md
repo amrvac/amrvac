@@ -12,6 +12,7 @@ financial support.
 * [FAQ](faq.md) Frequently asked questions.
 * [**Tests**](test.html) An overview of documented test cases.
 * @ref contributing.md
+* [Documentation](documentation.md) How the documentation works.
 
 # General {#general}
 
@@ -45,6 +46,7 @@ the data structures for the block-tree AMR.
 * [Pressure less fluids (dust)](dust.md) Getting started with the dust module.
 * [Test particles in (M)HD](particle.md) Description of test particle tracing routines.
 * [Reaction-diffusion equations](reaction_diffusion.md) Getting started with the reaction-diffusion module.
+* [Advection-Reaction-diffusion equations](advection_reaction_diffusion.md) Using the advection-reaction-diffusion module.
 * [Two-fluid equations](twofluid.md) Getting started with the two-fluid module.
 * [CAK radiation force](cakforce.md) Getting started with the CAK force for line-driven wind outflows.
 * [Adding a new physics module](addmodule.md) Description of how to add your own physics module.
@@ -70,16 +72,4 @@ visualization.
 visualisation and analysis (e.g. column densities).
 * [Analysis routine](analysis.md) Using the run-time analysis routine.
 * [3D Printing](print3D.md) A note on how to generate 3D printed results.
-
-# Legacy Python tools {#io-python}
-> These tools are bundled within AMRVAC's main repo.
-> They are kept for backward compatibility but are now superseded
-> by yt ([see our documentation](yt_usage.md)).
-
-* [Setting up](python_setup.md) What's needed to start using the tools.
-* [Reading dat files](python_datfiles.md) How to read the native .dat files.
-* [Reading vtu files](python_vtkfiles.md) How to read vtk-type files.
-
-# Meetings and workshops {#meetings}
-
-* [Meetings](meetings.md) A list of past and upcoming meetings related to MPI-AMRVAC.
+* [Yt visualization](yt_usage.md) The recommended yt usage for visualization.

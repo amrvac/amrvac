@@ -4,9 +4,6 @@
 
 ![](figmovdir/twofl_eq_coll.png)
 
-##Preprocessor directives variables defined in **amrvac.h**
-
-
 ##Parameters set in **twofl\_list**
 
 ```
@@ -26,9 +23,6 @@
       clean_initial_divb,  &
       twofl_trac, twofl_trac_type, twofl_trac_mask,twofl_cbounds_species 
 ``` 
-
-
-
 
 # Splitting
 
@@ -81,10 +75,7 @@ and implement usr\_set\_equi\_vars in mod\_ust.t file
 ```
 
 
-# Hyperdiffusivity
 # Convert
-
-
 
 The two fluid module uses the conversion to dat files.  A new type of conversion has been defined "dat_generic_mpi"
 which has to be set in **filelist** in the parameter file:
@@ -119,85 +110,3 @@ The code below is from twofl\_check\_params subroutine in twofl/mod\_twofl\_phys
   end function dump_coll_terms
 
 ```
-
-In the user file mod\_usr.t add\_convert\_method  could be called in the usr\_init subroutine.
-
-##Changes
-
-* src 
-  - vacpp.pl 
-   * Don't break OpenMP, **std preprocessor directives (lines starting with '#')**, print and //&
-  - amr\_solution\_node.t
-    * equi\_vars (**defined in**  mod\_physicaldata.t) allocated for state
-    * states for imex rk4 (-> changes in mod\_advance.t)
-  - amrvacio/convert.t
-    * convert\_type dat\_generic\_mpi  
-    * phys\_te\_images
-  - amrvacio/mod\_input\_output.t
-    * changed nghostcells=3 for nghostcells=max(nghostcells,3)  
-    because the physics module might initialize directly nghostcells for ghost consuming operation
-    which is not done additionally to the limiter 
-  - mod\_finite\_difference.t
-     fd uses centered values in phys_get_flux -> b0i has to be set to 0
-     and it was set to idim 
-  - physics/mod\_physics.t
-    * added phys\_gamma and subroutines phys\_set\_equi\_vars  (implemented in the twofl module)
-      and temporarily? phys\_te\_images 
-    *  TODO remove phys\_get\_v\_idim  because it is not called anywhere  
-  - hd, mhd modules: 
-      * rad cooling; th cond; th em;
-  - all physics modules (and mod\_finite\_{difference,volume} ):
-      * cmax, cmin extra dimension for the specie number
-  - mod\_finite\_volume.t
-      * changed get_Riemann_flux_hll for  get_Riemann_flux_hll_species,...
-  - mod\_variables.t 
-      * added number\_species, index\_v\_mag, iw\_rho\_equi used in HLLD solver -> 
-       hlld solver (in mod\_finite\_volume.t)  to use splitting and for multiple species
-       hlld is used for index\_v_\mag species and hllc for others.
-  - added phys\_hllc\_init\_species in physics/mod\_physics\_hllc.t to use it for different species (sets the indices).
-  - MHD module: temporarily added explicit USE\_SPLIT\_B0=0  in h file to test speed up for non-split mag field
-  - temporarily added bcexch in mod\_ghostcells\_update.t similarly to bcphys to test speedup on IMEX schemes
-  - TODO: delete RM\_W0 from preproc directives, hllc and splitting 
-  - TODO is it necessary?
-```
-diff -r amrvac/src/mod_space_filling_curve.t amrvac-orig/src/mod_space_filling_curve.t
-45,46c45,46
-<     if(.not. allocated(iglevel1_sfc)) allocate(iglevel1_sfc(ng^D(1)))
-<     if(.not. allocated(sfc_iglevel1)) allocate(sfc_iglevel1(ndim,nglev1))
----
->     allocate(iglevel1_sfc(ng^D(1)))
->     allocate(sfc_iglevel1(ndim,nglev1))
-
-```
-* arch
-  - amrvac.make 
-   * Copy the header (amrvac.h is a user file) in the lib folder. 
-  **This changes should be done in the user makefile.**
-```
-diff -r amrvac/arch/amrvac.make amrvac-orig/arch/amrvac.make
-20a21
-> .PHONY: all clean allclean force
-22,33c23
-< 
-< .PHONY: all clean allclean force hdr
-< 
-< all: hdr amrvac
-< 
-< # copy amrvac.h (in order to use the std preprocessor in the main code files, e.g. twofl); create the file if it does not exist
-< hdr:
-< ifeq ("$(wildcard amrvac.h)","")
-<   touch amrvac.h
-< endif
-<   @mkdir -p $(LIB_DIR)  # Prevent error message
-<   rsync -c amrvac.h $(LIB_DIR)/amrvac.h
----
-> all: amrvac
-
-```
-  - rules.make
-    * add the header for the compilation
-  - {default,debug}.defs added flag for preprocessor. TODO: add flag for intel compiler.
-
-
-
-

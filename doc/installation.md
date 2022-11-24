@@ -35,7 +35,7 @@ You can then activate the setting by sourcing this file (or you can close and op
 
 # Update the code {#update_code}
 
-It is recommended to update the code weekly to benefit from new improvements and new features 
+It is recommended to update the code regularly to benefit from new improvements and new features 
 which are continuously developed. To update the code:
 
     cd ~/codes/amrvac

@@ -5,8 +5,8 @@
 # Generating the documentation {#doc-gen}
 
 The documentation of MPI-AMRVAC is generated using
-[Doxygen](http://doxygen.org/). Every night, documentation on http://amrvac.org
-is automatically updated (from the git master branch). You can also generate the
+[Doxygen](http://doxygen.org/). On every commit to the (owner-protected) master branch, documentation on http://amrvac.org
+is automatically updated. You can also generate 
 documentation locally if you have a recent version of Doxygen installed. The
 latest binaries can be downloaded
 [here](http://www.stack.nl/~dimitri/doxygen/download.html).

@@ -3,7 +3,7 @@
 ## Introduction
 
 This document briefly describes the AMR-related features in MPI-AMRVAC. The
-different options can be set in the [meshlist](#par_meshlist) of the
+different options can be set in the meshlist part (see @ref par.md) of the
 **amrvac.par** file. For a more extensive description, you can read the article
 'Parallel, grid-adaptive approaches for relativistic hydro and
 magnetohydrodynamics', R. Keppens, Z. Meliani, A.J. van Marle, P. Delmont, A.

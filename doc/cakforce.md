@@ -3,37 +3,39 @@
 An overview of how to activate and work with the CAK radiation force module. This module only works for spherical problems in 1-D, 2-D, and 3-D.
 
 # Physics
-Starting from the general 7-D radiation transport equation it can be demonstrated that under the assumption of isotropic emissitivities the net radiation acceleration resulting from the radiation force $\mathbf{f}_\mathrm{r}$ is
-$$
-\mathbf{g}_\mathrm{r}(\mathbf{r}) = \frac{\mathbf{f}_\mathrm{r}}{\rho(\mathbf{r})} = \frac{1}{\rho(\mathbf{r}) c} \oint_{4\pi} d{\varOmega} \int_{0}^{+\infty} d{\nu}\,k_\nu(\mathbf{r},\mathbf{\hat{n}})\,I_\nu(\mathbf{r},\mathbf{\hat{n}})\,\mathbf{\hat{n}}.
-$$
-where $I_\nu(\mathbf{r},\mathbf{\hat{n}})$ is the specific intensity in direction $\mathbf{\hat{n}}$ at a certain frequency at some spatial point $\mathbf{r}$, $k_\nu(\mathbf{r},\mathbf{\hat{n}})$ captures energy losses the radiation beam, and $\varOmega$ is the solid angle where the radiation beam is directed into. 
 
-This equation is further manipulated to arrive at an expression suitable to model stellar wind outflows from OB-stars following [Castor, Abbott, & Klein (1975)](https://ui.adsabs.harvard.edu/abs/1975ApJ...195..157C/abstract) (CAK). It should be noted that we do not follow the original CAK parametrisation ($\alpha$, $k$) for the ensemble of lines, but instead the conceptually advantageous Gayley (1995) parameterisation ($\alpha$, $\bar{Q}$, $Q_0$). For the conditions of OB-stars the net radiative acceleration may be written as
-$$
-\mathbf{g}_\mathrm{r} = g_\mathrm{cont} \mathbf{\hat{e}}_r + g_\mathrm{line}  \mathbf{\hat{e}}_r = g_\mathrm{e}\,\mathbf{\hat{e}}_r + f_\mathrm{d} g_\mathrm{line} \mathbf{\hat{e}}_r
-$$
-where $g_\mathrm{e} = \kappa_\mathrm{e}L_\star/(4\pi r^2 c)$ is the (continuum) radiation acceleration due to Thomson scattering on free electrons with opacity $\kappa_\mathrm{e}=0.34$ cm$^2$/g. The radiation line force expression can take several forms depending on the physics included (see below). The classical radially streaming CAK expression for the force coming from a point star obeys
-$$
+Starting from the general 7-D radiation transport equation it can be demonstrated that under the assumption of isotropic emissivities the net radiation acceleration resulting from the radiation force \f$ \mathbf{f}_\mathrm{r} \f$ is
+\f[
+\mathbf{g}_\mathrm{r}(\mathbf{r}) = \frac{\mathbf{f}_\mathrm{r}}{\rho(\mathbf{r})} = \frac{1}{\rho(\mathbf{r}) c} \oint_{4\pi} d{\Omega} \int_{0}^{+\infty} d{\nu}\,k_\nu(\mathbf{r},{\mathbf{n}})\,I_\nu(\mathbf{r},{\mathbf{n}})\,{\mathbf{n}}.
+\f]
+where \f$ I_\nu(\mathbf{r},\mathbf{{n}}) \f$ is the specific intensity in direction \f$ \mathbf{n} \f$ at a certain frequency at some spatial point \f$ \mathbf{r} \f$, \f$ k_\nu(\mathbf{r},\mathbf{n}) \f$ captures energy losses from the radiation beam, and \f$ \Omega \f$ is the solid angle where the radiation beam is directed into. 
+
+This equation is further manipulated to arrive at an expression suitable to model stellar wind outflows from OB-stars following [Castor, Abbott, & Klein (1975)](https://ui.adsabs.harvard.edu/abs/1975ApJ...195..157C/abstract) (CAK). 
+It should be noted that we do not follow the original CAK parametrisation (\f$ \alpha \f$, \f$ k \f$) for the ensemble of lines, but instead the conceptually advantageous Gayley (1995) parameterisation (\f$ \alpha, \bar{Q}, Q_0 \f$). For the conditions of OB-stars the net radiative acceleration may be written as
+\f[
+\mathbf{g}_\mathrm{r} = g_\mathrm{cont} \mathbf{e}_r + g_\mathrm{line}  \mathbf{e}_r = g_\mathrm{e}\,\mathbf{e}_r + f_\mathrm{d} g_\mathrm{line} \mathbf{e}_r
+\f]
+where \f$ g_\mathrm{e} = \kappa_\mathrm{e}L_\star/(4\pi r^2 c) \f$ is the (continuum) radiation acceleration due to Thomson scattering on free electrons with opacity \f$ \kappa_\mathrm{e}=0.34 \, \mathrm{cm}^2/g \f$. The radiation line force expression can take several forms depending on the physics included (see below). The classical radially streaming CAK expression for the force coming from a point star obeys
+\f[
 g_\mathrm{line} = \frac{\bar{Q}^{1-\alpha}}{(1-\alpha)} \frac{g_\mathrm{e}}{t_r^\alpha}
-$$
-with $t_r = \kappa_\mathrm{e} c \rho/(dv_r/dr)$ the Sobolev line-optical depth. To mimic a finite-sized star a radially-dependent pre-factor may be included
-$$
+\f]
+with \f$ t_r = \kappa_\mathrm{e} c \rho/(dv_r/dr) \f$ the Sobolev line-optical depth. To mimic a finite-sized star a radially-dependent pre-factor may be included
+\f[
 f_\mathrm{d} = \frac{(1+\sigma)^{1+\alpha} - (1+\sigma \mu_\star^2)^{1+\alpha}}{(1+\alpha)\sigma(1+\sigma)^\alpha (1-\mu_\star^2)}
-$$
-where $\sigma = d(\ln v_r)/d(\ln r) -1$ and $\mu_\star^2 = 1-(R_\star/r)^2$. For numerical stability, we use in practise a rewritten form of the above expression.
+\f]
+where \f$ \sigma = d(\ln v_r)/d(\ln r) -1 \f$ and \f$ \mu_\star^2 = 1-(R_\star/r)^2 \f$. For numerical stability, we use in practise a rewritten form of the above expression.
 
 Furthermore, an extension of the CAK line-force expression to a formulation valid for all optical depth ranges yields
-$$
+\f[
 g_\mathrm{line} = \bar{Q}g_\mathrm{e} \left[ \frac{(1+Q_0 t_r)^{1-\alpha} - 1}{(1-\alpha)Q_0 t_r} \right].
-$$
-Note that the original CAK expression is recovered in the optically thick limit $(t_r \gg 1)$ and when *assuming* $\bar{Q}=Q_0$. As explained below, both these line-force expressions can be employed when using the module.
+\f]
+Note that the original CAK expression is recovered in the optically thick limit \f$ (t_r \gg 1) \f$ and when *assuming* \f$ \bar{Q}=Q_0 \f$. As explained below, both these line-force expressions can be employed when using the module.
 
-If the original CAK point star assumption is relaxed, the full radiation force integral presented above has to be solved over all solid angles $\varOmega$. This *vector* force expression requires then numerical quadratures over the radiation polar $\varTheta$ and azimuthal angle $\varPhi$ (these are **not** the spherical polar and azimuthal coordinate angles!) associated with radiation rays emerging from the surface. Evidently, in this case no $f_\mathrm{d}$ factor is required and we solve for
-$$
-\mathbf{g}_\mathrm{line}(\mathbf{r}) = \frac{(\kappa_\mathrm{e} \bar{Q})^{1-\alpha}}{(1-\alpha)c^{\alpha+1}} \oint_\varOmega \,d\varOmega\, \mathbf{\hat{n}}\,I_\star(\mathbf{\hat{n}}) \left[ \mathbf{\hat{n}}\cdot \nabla(\mathbf{\hat{n}}\cdot \mathbf{v}) /\rho(\mathbf{r}) \right]^\alpha.
-$$
-With this formula all components of the force can be computed: $\mathbf{g}_\mathrm{line}(\mathbf{r})  = g_{\mathrm{line},r} \mathbf{\hat{e}}_r + g_{\mathrm{line},\theta} \mathbf{\hat{e}}_\theta + g_{\mathrm{line},\phi} \mathbf{\hat{e}}_\phi$. The reader unfamiliar with the physics or who wishes to understand the details better can consult the thesis of F. Driessen (KU Leuven 2022). Particularly, section 2.1 and 2.2 present an extensive description and derivation of the radiation line force after CAK. The implementation in MPI-AMRVAC follows closely the above equations.
+If the original CAK point star assumption is relaxed, the full radiation force integral presented above has to be solved over all solid angles \f$ \Omega \f$. This *vector* force expression requires then numerical quadratures over the radiation polar \f$ \Theta \f$ and azimuthal angle \f$ \Phi \f$ (these are **not** the spherical polar and azimuthal coordinate angles!) associated with radiation rays emerging from the surface. Evidently, in this case no \f$ f_\mathrm{d} \f$ factor is required and we solve for
+\f[
+\mathbf{g}_\mathrm{line}(\mathbf{r}) = \frac{(\kappa_\mathrm{e} \bar{Q})^{1-\alpha}}{(1-\alpha)c^{\alpha+1}} \oint_\Omega \,d\Omega\, \mathbf{n}\,I_\star(\mathbf{n}) \left[ \mathbf{n}\cdot \nabla(\mathbf{n}\cdot \mathbf{v}) /\rho(\mathbf{r}) \right]^\alpha.
+\f]
+With this formula all components of the force can be computed: \f$ \mathbf{g}_\mathrm{line}(\mathbf{r})  = g_{\mathrm{line},r} \mathbf{e}_r + g_{\mathrm{line},\theta} \mathbf{e}_\theta + g_{\mathrm{line},\phi} \mathbf{e}_\phi \f$. The reader unfamiliar with the physics or who wishes to understand the details better can consult the thesis of F. Driessen (KU Leuven 2022). Particularly, section 2.1 and 2.2 present an extensive description and derivation of the radiation line force after CAK. The implementation in MPI-AMRVAC follows closely the above equations.
 
 Finally, note that contrary to the RHD physics module of MPI-AMRVAC, the radiation force prescription presented here is a **reduced** dynamical picture. Indeed, we do not solve for the detailed radiation-energy exchange that is done via the flux-limited diffusion in the RHD module. This is justified since for the typical stellar conditions where the CAK force prescription applies (OB-star atmospheres), such detailed radiation-energy exchanges between the radiation field and gas are rather minor and instead the radiation dynamically couples to the gas only without considering the radiation energy budget.
 
