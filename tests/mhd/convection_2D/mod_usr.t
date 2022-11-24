@@ -1,7 +1,6 @@
 module mod_usr
   use mod_mhd
   use mod_viscosity, only: vc_mu
-  use mod_thermal_conduction, only: tc_k_para
   implicit none
   double precision :: usr_grav,bstr,temptop
 
@@ -102,14 +101,14 @@ contains
     
     mhd_eta=dsqrt(eta2)
     vc_mu=mhd_eta*sigma/zeta0
-    tc_k_para=(gamma/(gamma-one))*mhd_eta/zeta0
+    tc_fl%tc_k_para=(gamma/(gamma-one))*mhd_eta/zeta0
     bstr=dsqrt(qchand*vc_mu*mhd_eta)
     
     if (mype==0) then
       write(*,*)'dimensionless values for dissipative coefficients:'
       write(*,*)'resistivity          eta=',mhd_eta
       write(*,*)'viscosity             mu=',vc_mu
-      write(*,*)'thermal conduction tc_k_para=',tc_k_para
+      write(*,*)'thermal conduction tc_k_para=',tc_fl%tc_k_para
       write(*,*)'dimensionless magnetic field strength:',bstr
     endif
 

@@ -8,7 +8,7 @@
 !=====================================================
  
  &filelist
-        base_filename='kh_2d'
+        base_filename='output/kh_2d'
         convert_type='vtuBCCmpi'
         saveprim=.true.
         autoconvert=.true.
@@ -22,7 +22,7 @@
  /
  
  &stoplist
-        time_max=8.d0
+        time_max=3.d0
  /
  
  &methodlist

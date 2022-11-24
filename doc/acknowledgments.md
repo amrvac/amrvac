@@ -1,8 +1,8 @@
 # Acknowledgments
 
-This version of the MPI-AMRVAC software was initiated in the course of 2006-2007
-by [Bart van der Holst](http://clasp.engin.umich.edu/people/bartvand/FACULTY) in
-collaboration with [Rony Keppens](http://perswww.kuleuven.be/~u0016541) at
+This 3.0 version of the MPI-AMRVAC software was released in November 2022, with the aid of Beatrice Popescu Braileanu, Niels Claes and various core contributors (Chun Xia, Guo Yang, Yuhao Zhou, Wenzhi Ruan, Fabio Bacchini). 
+The team effort is managed by 
+[Rony Keppens](http://perswww.kuleuven.be/~u0016541) at
 the
 [Centre for mathematical Plasma-Astrophysics (CmPA)](https://wis.kuleuven.be/CmPA) at
 KU Leuven. The code has some heritage (in the solver part) to
@@ -13,29 +13,31 @@ initiated by Gabor Toth at the Astronomical Institute at Utrecht in November
 MPI-AMRVAC is developed by a growing number of people:
 
 * **Chun Xia** as a core developer
-* **Jannis Teunissen** as a core developer
+* **Beatrice Popescu Braileanu** as a core developer
+* **Yuhao Zhou** as a core developer
+* **Niels Claes** as a core developer
+* **Guo Yang** as a core developer
+* **Wenzhi Ruan** as a core developer
+* **Fabio Bacchini** as a core developer
 * **Rony Keppens** as a core developer
-* **Beatrice Popescu** 
-* **Yuhao Zhou** 
-* **Niels Claes** 
-* **Fabio Bacchini** 
-* **Wenzhi Ruan** 
-* **Joris Hermans** 
 * **Veronika Jercic** 
+* **Joris Hermans** 
+* **Nicolas Moens** 
+* **Florian Driessen** 
 * **YOUR NAME HERE? contact the team!**
 
 Past contributors to MPI-AMRVAC are:
 
-* **Zakaria Meliani** was a core developer (relativistic physics modules,
-  parallel I/O, postprocessing formats)
-* **Oliver Porth** was a core developer
+* **Zakaria Meliani** as core developer (relativistic physics modules,
+  parallel I/O, postprocessing formats) 
+* **Oliver Porth** as core developer, leading the MPI-AMRVAC 1.0 release
+* **Jannis Teunissen** realized a major restructuring to MPI-AMRVAC 2.2
 * **Bart Ripperda** (particle module)
 * **Allard Jan van Marle** (optically thin radiative loss treatments)
-* **Peter Delmont** (visualization capabilities)
-* A number of users at CmPA and abroad
+* **Ileyk El Mellah** (radial grid stretching)
+* **Clement Robert** (yt frontend)
 
-The work benefitted from funding by K.U.Leuven GOA/2009/009; FWO project
-G.0277.08; and FP7 project [SWIFF](http://swiff.eu).
+* A number of users at CmPA and abroad
 
 Funding of the ERC is acknowledged through ERC Advanced grant [PROMINENT](https://cordis.europa.eu/project/id/833251)
 
@@ -44,7 +46,6 @@ the software development:
 
     Gabor Toth                   For the original VAC software
     Hans Goedbloed               Scientific and Financial (project) support
-    Dries Kimpe                  valuable expertise on MPI parallelism, general computing support
     Peter Delmont                visualisation efforts and challenging tests
     Hubert Baty                  original and challenging applications
     Margreet Nool                early original AMRVAC coding efforts

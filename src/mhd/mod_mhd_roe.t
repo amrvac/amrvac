@@ -1,4 +1,4 @@
-!> Subroutines for Roe-type Riemann solver for HD
+!> Subroutines for Roe-type Riemann solver for MHD
 module mod_mhd_roe
   use mod_mhd_phys
   use mod_physics_roe

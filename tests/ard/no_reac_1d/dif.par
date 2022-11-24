@@ -1,0 +1,52 @@
+!=====================================================
+! Pure Diffusion.
+!=====================================================
+
+&filelist
+    base_filename = 'output/pure_diff_'
+    convert_type='vtuBCCmpi'
+    autoconvert=T
+/
+
+&savelist
+    tsave(1,2) = 0.0d0
+    dtsave_log = 1.0d-2
+    dtsave_dat = 1.0d-2
+/
+
+&stoplist
+    time_max = 1.0d0
+/
+
+&methodlist
+    flux_scheme     = 20*'tvdlf'
+    time_stepper    = 'onestep'
+    time_integrator = 'IMEX_Euler'
+/
+
+&boundlist
+    typeboundary_min1 = 'periodic'
+    typeboundary_max1 = 'periodic'
+/
+
+&meshlist
+    refine_max_level = 1
+
+    domain_nx1 = 1024
+    block_nx1  = 16
+
+    xprobmin1 = -5.0d0
+    xprobmax1 = 5.0d0
+    
+    iprob = 1
+/
+
+&paramlist
+    slowsteps = 100
+    dtdiffpar = 100.0d0
+/
+
+&ard_list
+    equation_name = "no_reac"
+    D1 = 1.0d0
+/

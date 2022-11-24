@@ -1,4 +1,0 @@
-F90=mpif90
-FFLAGS = -c
-F90FLAGS = -O3 -mcmodel medium -shared-intel -xHost -FR -implicitnone
-LINK= $(F90)  $(F90FLAGS)

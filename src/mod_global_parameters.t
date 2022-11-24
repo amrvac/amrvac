@@ -49,7 +49,7 @@ module mod_global_parameters
   integer :: type_block_wc_io,type_block_wcc_io
 
 
-  ! geometry and domain setups 
+  ! geometry and domain setups
 
   !> the mesh range (within a block with ghost cells)
   integer :: ixM^LL
@@ -98,7 +98,7 @@ module mod_global_parameters
   integer :: ixGshi^D
 
   !> Number of ghost cells surrounding a grid
-  integer :: nghostcells
+  integer :: nghostcells = 2
 
   integer, parameter :: stretch_none = 0 !< No stretching
   integer, parameter :: stretch_uni  = 1 !< Unidirectional stretching from a side
@@ -163,7 +163,7 @@ module mod_global_parameters
        ['log      ', 'normal   ', 'slice    ', 'collapsed', 'analysis ']
 
   !> User parameter file
-  character(len=std_len)   :: usr_filename 
+  character(len=std_len)   :: usr_filename
 
   !> If collapse(DIM) is true, generate output integrated over DIM
   logical :: collapse(ndim)
@@ -286,7 +286,7 @@ module mod_global_parameters
 
   !> Which format to use when converting
   !>
-  !> Options are: tecplot, tecplotCC, vtu, vtuCC, vtuB, vtuBCC, 
+  !> Options are: tecplot, tecplotCC, vtu, vtuCC, vtuB, vtuBCC,
   !> tecplotmpi, tecplotCCmpi, vtumpi, vtuCCmpi, vtuBmpi, vtuBCCmpi, pvtumpi, pvtuCCmpi,
   !> pvtuBmpi, pvtuBCCmpi, tecline, teclinempi, onegrid
   character(len=std_len) :: convert_type
@@ -342,6 +342,12 @@ module mod_global_parameters
   !> Normalised speed of light
   double precision :: c_norm=1.d0
 
+  !> Physical scaling factor for Opacity
+  double precision :: unit_opacity=1.d0
+
+  !> Physical scaling factor for radiation flux
+  double precision :: unit_radflux=1.d0
+
   !> error handling
   double precision :: small_temperature,small_pressure,small_density
 
@@ -358,6 +364,9 @@ module mod_global_parameters
   !> split magnetic field as background B0 field
   logical :: B0field=.false.
 
+  ! number of equilibrium set variables, besides the mag field
+  integer :: number_equi_vars = 0
+
   !> Use SI units (.true.) or use cgs units (.false.)
   logical :: SI_unit=.false.
 
@@ -369,7 +378,7 @@ module mod_global_parameters
   !> Enable to strictly conserve the angular momentum
   !> (works both in cylindrical and spherical coordinates)
   logical :: angmomfix=.false.
-  
+
   !> Use particles module or not
   logical :: use_particles=.false.
 
@@ -428,7 +437,7 @@ module mod_global_parameters
   integer :: levmax
   integer :: levmax_sub
 
-  ! Miscellaneous 
+  ! Miscellaneous
 
   !> problem switch allowing different setups in same usr_mod.t
   integer           :: iprob
@@ -439,7 +448,7 @@ module mod_global_parameters
   !> Levi-Civita tensor
   integer :: lvc(3,3,3)
 
-  ! Time integration aspects 
+  ! Time integration aspects
 
   double precision :: dt
 
@@ -448,13 +457,12 @@ module mod_global_parameters
   !> The Courant (CFL) number used for the simulation
   double precision :: courantpar
 
-  !> How to compute the CFL-limited time step.
-  !>
-  !> Options are 'maxsum': max(sum(c/dx)); 'summax': sum(max(c/dx)) and
-  !> 'minimum: max(c/dx), where the summations loop over the grid dimensions and
-  !> c is the velocity. The default 'maxsum' is the conventiontal way of
-  !> computing CFL-limited time steps.
-  character(len=std_len) :: typecourant
+  !> How to compute the CFL-limited time step
+  integer :: type_courant=1
+  !> integer switchers for type courant
+  integer, parameter :: type_maxsum=1
+  integer, parameter :: type_summax=2
+  integer, parameter :: type_minimum=3
 
   !> If dtpar is positive, it sets the timestep dt, otherwise courantpar is used
   !> to limit the time step based on the Courant condition.
@@ -574,7 +582,6 @@ module mod_global_parameters
   integer, parameter :: IMEX_CB3a=16
 
   integer, parameter :: rk4=17
-  integer, parameter :: jameson=18
 
   !> Type of slope limiter used for reconstructing variables on cell edges
   integer, allocatable :: type_limiter(:)
@@ -692,38 +699,36 @@ module mod_global_parameters
 
   !> Base file name for synthetic EUV emission output
   character(len=std_len) :: filename_euv
-  !> output EUV image
-  logical :: image_euv=.false.
   !> wavelength for output
   integer :: wavelength
   !> resolution of the EUV image
-  character(len=std_len) :: resolution_euv='instrument'
+  character(len=std_len) :: resolution_euv
   !> Base file name for synthetic SXR emission output
   character(len=std_len) :: filename_sxr
-  !> output SXR image
-  logical :: image_sxr=.false.
   ! minimum and maximum energy of SXR (keV)
   integer :: emin_sxr,emax_sxr
   !> resolution of the SXR image
-  character(len=std_len) :: resolution_sxr='instrument'
+  character(len=std_len) :: resolution_sxr
   !> direction of the line of sight (LOS)
-  integer :: LOS_theta,LOS_phi
+  double precision :: LOS_theta,LOS_phi
   !> rotation of image
-  integer :: image_rotate=0
+  double precision :: image_rotate
+  !> where the is the origin (X=0,Y=0) of image
+  double precision :: x_origin(1:3)
+  !> big image
+  logical :: big_image
   !> Base file name for synthetic EUV spectrum output
   character(len=std_len) :: filename_spectrum
-  !> output EUV spectral profile
-  logical :: spectrum_euv=.false.
   !> wave length for spectrum
   integer :: spectrum_wl
   !> spectral window
   double precision :: spectrum_window_min,spectrum_window_max
   !> location of the slit
-  double precision :: location_slit=0.d0
+  double precision :: location_slit
   !> direction of the slit
   integer :: direction_slit
   !> resolution of the spectrum
-  character(len=std_len) :: resolution_spectrum='instrument'
+  character(len=std_len) :: resolution_spectrum
 
   !> Block pointer for using one block and its previous state
   type(state), pointer :: block

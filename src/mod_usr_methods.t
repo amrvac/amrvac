@@ -13,6 +13,8 @@ module mod_usr_methods
 
   ! Boundary condition related
   procedure(special_bc), pointer      :: usr_special_bc       => null()
+  procedure(special_mg_bc), pointer   :: usr_special_mg_bc    => null()
+
   procedure(internal_bc), pointer     :: usr_internal_bc      => null()
 
   ! Output related
@@ -61,6 +63,8 @@ module mod_usr_methods
 
   ! Set time-independent magnetic field for B0 splitting
   procedure(set_B0), pointer          :: usr_set_B0           => null()
+  ! Set time-independent variables for equilibrium splitting, except for B0
+  procedure(set_equi_vars), pointer   :: usr_set_equi_vars           => null()
   ! Set time-independent current density for B0 splitting
   procedure(set_J0), pointer          :: usr_set_J0           => null()
   procedure(special_resistivity), pointer :: usr_special_resistivity => null()
@@ -72,6 +76,13 @@ module mod_usr_methods
   procedure(particle_fields), pointer   :: usr_particle_fields   => null()
   procedure(particle_analytic), pointer :: usr_particle_analytic => null()
   procedure(particle_position), pointer :: usr_particle_position => null()
+
+  ! Radiation quantity related
+  procedure(special_opacity), pointer   :: usr_special_opacity => null()
+  procedure(special_aniso_opacity), pointer   :: usr_special_aniso_opacity => null()
+  procedure(special_opacity_qdot), pointer   :: usr_special_opacity_qdot => null()
+  procedure(special_fluxlimiter), pointer   :: usr_special_fluxlimiter => null()
+  procedure(special_diffcoef), pointer   :: usr_special_diffcoef => null()
 
   ! Called after the mesh has been adjuste
   procedure(after_refine), pointer      :: usr_after_refine => null()
@@ -89,6 +100,10 @@ module mod_usr_methods
   ! area of a 1D prominence, along with the analytical derivative of that function and its
   ! primitive shape evaluated in the boundaries \int_(x_i-dx_i/2)^(x_i+dx_i/2) A(s) ds
   procedure(set_surface), pointer  :: usr_set_surface          => null()
+
+  ! for tracing field. allow user to specify variables and field
+  procedure(set_field_w), pointer :: usr_set_field_w => null()
+  procedure(set_field), pointer :: usr_set_field => null()
 
   abstract interface
 
@@ -116,6 +131,13 @@ module mod_usr_methods
        double precision, intent(in)    :: qt, x(ixI^S,1:ndim)
        double precision, intent(inout) :: w(ixI^S,1:nw)
      end subroutine special_bc
+
+     !> Special boundary type for radiation hydrodynamics module, only used to
+     !> set the boundary conditions for the radiation energy.
+     subroutine special_mg_bc(iB)
+       use mod_global_parameters
+       integer, intent(in)             :: iB
+     end subroutine special_mg_bc
 
     !> internal boundary, user defined
     !> This subroutine can be used to artificially overwrite ALL conservative
@@ -273,6 +295,48 @@ module mod_usr_methods
       double precision             :: current(ixI^S,7-2*ndir:3), eta(ixI^S)
     end subroutine special_resistivity
 
+
+    !> Set user defined opacity for use in diffusion coeff, heating and cooling, and radiation force
+    subroutine special_opacity(ixI^L,ixO^L,w,x,kappa)
+      use mod_global_parameters
+      integer, intent(in)          :: ixI^L, ixO^L
+      double precision, intent(in) :: w(ixI^S,1:nw), x(ixI^S,1:ndim)
+      double precision, intent(out):: kappa(ixO^S)
+    end subroutine special_opacity
+
+    !> Set user defined, anisotropic opacity for use in diffusion coeff, heating and cooling, and radiation force
+    subroutine special_aniso_opacity(ixI^L,ixO^L,w,x,kappa,idir)
+      use mod_global_parameters
+      integer, intent(in)          :: ixI^L, ixO^L, idir
+      double precision, intent(in) :: w(ixI^S,1:nw), x(ixI^S,1:ndim)
+      double precision, intent(out):: kappa(ixO^S)
+    end subroutine special_aniso_opacity
+
+    !> Set user defined opacity for use in diffusion coeff, heating and cooling, and radiation force. Overwrites special_opacity
+    subroutine special_opacity_qdot(ixI^L,ixO^L,w,x,kappa)
+      use mod_global_parameters
+      integer, intent(in)          :: ixI^L, ixO^L
+      double precision, intent(in) :: w(ixI^S,1:nw), x(ixI^S,1:ndim)
+      double precision, intent(out):: kappa(ixO^S)
+    end subroutine special_opacity_qdot
+
+    !> Set user defined FLD flux limiter, lambda
+    subroutine special_fluxlimiter(ixI^L,ixO^L,w,x,fld_lambda,fld_R)
+      use mod_global_parameters
+      integer, intent(in)          :: ixI^L, ixO^L
+      double precision, intent(in) :: w(ixI^S,1:nw), x(ixI^S,1:ndim)
+      double precision, intent(out):: fld_lambda(ixI^S),fld_R(ixI^S)
+    end subroutine special_fluxlimiter
+
+    !> Set user defined FLD diffusion coefficient
+    subroutine special_diffcoef(w, wCT, x, ixI^L, ixO^L)
+      use mod_global_parameters
+      integer, intent(in)          :: ixI^L, ixO^L
+      double precision, intent(inout) :: w(ixI^S, 1:nw)
+      double precision, intent(in) :: wCT(ixI^S, 1:nw)
+      double precision, intent(in) :: x(ixI^S, 1:ndim)
+    end subroutine special_diffcoef
+
     !> Enforce additional refinement or coarsening
     !> One can use the coordinate info in x and/or time qt=t_n and w(t_n) values w.
     !> you must set consistent values for integers refine/coarsen:
@@ -317,6 +381,14 @@ module mod_usr_methods
       double precision, intent(in)    :: x(ixI^S,1:ndim)
       double precision, intent(inout) :: wJ0(ixI^S,7-2*ndir:ndir)
     end subroutine set_J0
+
+    !> Here one can add a steady (time-independent) equi vars
+    subroutine set_equi_vars(ixI^L,ixO^L,x,w0)
+      use mod_global_parameters
+      integer, intent(in)             :: ixI^L,ixO^L
+      double precision, intent(in)    :: x(ixI^S,1:ndim)
+      double precision, intent(inout) :: w0(ixI^S,1:number_equi_vars)
+    end subroutine set_equi_vars
 
     !> adjust w when restart from dat file with different w variables
     subroutine transform_w(ixI^L,ixO^L,nw_in,w_in,x,w_out)
@@ -374,7 +446,7 @@ module mod_usr_methods
       double precision, intent(out) :: m(n_particles)
       logical, intent(out)          :: follow(n_particles)
     end subroutine create_particles
-    
+
     !> Check arbitrary particle conditions or modifications
     subroutine check_particle(igrid,x,v,q,m,follow,check)
       use mod_global_parameters
@@ -486,6 +558,43 @@ module mod_usr_methods
 
     end subroutine set_surface
 
+    subroutine set_field_w(igrid,ip,xf,wP,wL,numP,nwP,nwL,dL,forward,ftype,tcondi)
+      use mod_global_parameters
+      !use mod_point_searching
+
+      integer, intent(in)                 :: igrid,ip,numP,nwP,nwL
+      double precision, intent(in)        :: xf(numP,ndim)
+      double precision, intent(inout)     :: wP(numP,nwP),wL(1+nwL)
+      double precision, intent(in)        :: dL
+      logical, intent(in)                 :: forward
+      character(len=std_len), intent(in)  :: ftype,tcondi
+
+      !double precision :: xpp(1:ndim),wpp(1:nw)
+
+      !! nwP=2,nwL=0. get rho/T at line
+      !if (tcondi=='user') then
+      !  xpp(1:ndim)=xf(ip,1:ndim)
+      !  call get_point_w_ingrid(igrid,xpp,wpp,'primitive')
+      !  wP(ip,1)=wpp(rho_)
+      !  wP(ip,2)=wpp(p_)/wpp(rho_)
+      !endif
+
+    end subroutine set_field_w
+
+    subroutine set_field(xfn,igrid,field,ftype)
+      use mod_global_parameters
+
+      integer,intent(in)                  :: igrid
+      double precision, intent(in)        :: xfn(ndim)
+      double precision, intent(inout)     :: field(ndim)
+      character(len=std_len), intent(in)  :: ftype
+
+      !if (ftype='xdir') then
+      !  field(:)=zero
+      !  field(1)=1.d0
+      !endif
+
+    end subroutine set_field
 
   end interface
 

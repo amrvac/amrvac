@@ -1,0 +1,58 @@
+ &filelist
+        base_filename='output/maze_test_'
+    	convert_type='vtuBCCmpi'
+        autoconvert=T
+ /
+
+ &savelist
+        dtsave_log=0.5d3
+        dtsave_dat=0.5d3
+        itsave(1,2)=0
+ /
+
+ &stoplist
+        time_max=2d4
+ /
+
+ &methodlist
+        time_stepper = 'twostep'
+        time_integrator = 'IMEX_Midpoint'
+        flux_scheme = 20*'tvdlf'
+ /
+
+ &boundlist
+        typeboundary_min1=2*'periodic'
+        typeboundary_max1=2*'periodic'
+        typeboundary_min2=2*'periodic'
+        typeboundary_max2=2*'periodic'
+ /
+
+ &meshlist
+        refine_max_level=1
+        refine_threshold=20*0.1d0
+        block_nx1=16
+        block_nx2=16
+        domain_nx1=512
+        domain_nx2=512
+        xprobmin1=0.0d0
+        xprobmax1=2.5d0
+        xprobmin2=0.0d0
+        xprobmax2=2.5d0
+ /
+
+ &paramlist
+       courantpar=0.8d0
+       dtdiffpar=100.0d0
+ /
+       typecourant='minimum'
+       dtpar=0.25d0
+
+ &ard_list
+       equation_name = "gray-scott"
+       D1 = 2.0d-5
+       D2 = 1.0d-5
+       A1 = 2.0d-5 4.0d-6
+       A2 = 3.0d-5 1.0d-6
+       gs_F=0.029d0
+       gs_k=0.057d0
+ /

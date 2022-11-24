@@ -1,0 +1,49 @@
+ &filelist
+        base_filename = 'semirelati_Alfven_wave_1d'
+        typefilelog='regression_test'
+        autoconvert   = T
+        saveprim      = T
+        convert_type='vtuBCCmpi'
+ /
+
+ &savelist
+        dtsave_log=1.d-2
+ /
+
+ &stoplist
+        time_max      = 5.d-1
+ /
+
+ &methodlist
+        time_stepper = 'threestep'
+        flux_scheme     = 20*'hll'
+        limiter  = 20*'woodward'
+ /
+
+ &boundlist
+        typeboundary_min1  = 8*'cont'
+        typeboundary_max1  = 8*'cont'
+ /
+
+ &meshlist
+        refine_criterion = 3
+        refine_max_level = 1
+        refine_threshold = 20*0.4d0
+        block_nx1     = 16
+        domain_nx1    = 800
+        xprobmin1     = -400.d0
+        xprobmax1     = 400.d0
+ /
+
+ &paramlist
+        courantpar    = 0.8d0
+ /
+
+ &mhd_list
+        typedivbfix   =  'none'
+        SI_unit       =  .true.
+        He_abundance  =  0d0
+        mhd_gamma=2.d0
+        mhd_semirelativistic=.true.
+        mhd_reduced_c = 0.9d0
+ /

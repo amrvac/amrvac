@@ -90,7 +90,7 @@ module mod_rd_phys
   logical :: rd_source_split = .false.
 
   !> Boundary condition information for the multigrid method
-  type(mg_bc_t), public :: rd_mg_bc(2, mg_num_neighbors)
+  type(mg_bc_t), public :: rd_mg_bc(3, mg_num_neighbors)
 
   ! Public methods
   public :: rd_phys_init
@@ -169,6 +169,9 @@ contains
     phys_req_diagonal = .false.
     use_particles = rd_particles
 
+    allocate(start_indices(number_species),stop_indices(number_species))
+    ! set the index of the first flux variable for species 1
+    start_indices(1)=1
     ! Use the first variable as a density
     u_ = var_set_fluxvar("u", "u")
     if (number_of_species >= 2) then
@@ -180,6 +183,9 @@ contains
 
     ! set number of variables which need update ghostcells
     nwgc=nwflux
+
+    ! set the index of the last flux variable for species 1
+    stop_indices(1)=nwflux
 
     ! Disable flux conservation near AMR boundaries, since we have no fluxes
     fix_conserve_global = .false.
@@ -288,19 +294,20 @@ contains
 
   subroutine rd_get_cbounds(wLC, wRC, wLp, wRp, x, ixI^L, ixO^L, idim,Hspeed, cmax, cmin)
     use mod_global_parameters
+    use mod_variables
     integer, intent(in)             :: ixI^L, ixO^L, idim
     double precision, intent(in)    :: wLC(ixI^S, nw), wRC(ixI^S,nw)
     double precision, intent(in)    :: wLp(ixI^S, nw), wRp(ixI^S,nw)
     double precision, intent(in)    :: x(ixI^S, 1:^ND)
-    double precision, intent(in)    :: Hspeed(ixI^S)
-    double precision, intent(inout) :: cmax(ixI^S)
-    double precision, intent(inout), optional :: cmin(ixI^S)
+    double precision, intent(inout) :: cmax(ixI^S,1:number_species)
+    double precision, intent(inout), optional :: cmin(ixI^S,1:number_species)
+    double precision, intent(in)    :: Hspeed(ixI^S,1:number_species)
 
     if (present(cmin)) then
-       cmin(ixO^S) = 0.0d0
-       cmax(ixO^S) = 0.0d0
+       cmin(ixO^S,1) = 0.0d0
+       cmax(ixO^S,1) = 0.0d0
     else
-       cmax(ixO^S) = 0.0d0
+       cmax(ixO^S,1) = 0.0d0
     end if
 
   end subroutine rd_get_cbounds
@@ -374,7 +381,7 @@ contains
   end subroutine rd_get_flux
 
   ! w[iw]= w[iw]+qdt*S[wCT, qtC, x] where S is the source based on wCT within ixO
-  subroutine rd_add_source(qdt,ixI^L,ixO^L,wCT,w,x,qsourcesplit,active)
+  subroutine rd_add_source(qdt,ixI^L,ixO^L,wCT,w,x,qsourcesplit,active,wCTprim)
     use mod_global_parameters
     integer, intent(in)             :: ixI^L, ixO^L
     double precision, intent(in)    :: qdt
@@ -383,6 +390,7 @@ contains
     double precision                :: lpl_u(ixO^S), lpl_v(ixO^S), lpl_w(ixO^S)
     logical, intent(in)             :: qsourcesplit
     logical, intent(inout)          :: active
+    double precision, intent(in), optional :: wCTprim(ixI^S, 1:nw)
 
     ! here we add the reaction terms (always) and the diffusion if no imex is used
     if (qsourcesplit .eqv. rd_source_split) then
@@ -527,7 +535,8 @@ contains
     integer :: iigrid, igrid, level
     integer :: ixO^L
 
-    ixO^L=ixG^LL^LSUB1;
+    !ixO^L=ixG^LL^LSUB1;
+    ixO^L=ixM^LL;
     !$OMP PARALLEL DO PRIVATE(igrid)
     do iigrid=1,igridstail; igrid=igrids(iigrid);
        ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);

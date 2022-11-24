@@ -561,7 +561,7 @@ contains
     call getbQ(ens,ixI^L,ixO^L,global_time,wlocal,x)
     w(ixO^S,nw+5)=ens(ixO^S)
     ! store the cooling rate 
-    if(mhd_radiative_cooling)call getvar_cooling(ixI^L,ixO^L,wlocal,x,ens)
+    if(mhd_radiative_cooling)call getvar_cooling(ixI^L,ixO^L,wlocal,x,ens,rc_fl)
     w(ixO^S,nw+6)=ens(ixO^S)
 
     ! store current

@@ -27,66 +27,12 @@ contains
     usr_aux_output      => specialvar_output
     usr_add_aux_names   => specialvarnames_output 
     usr_init_vector_potential=>initvecpot_usr
-    usr_process_global  => special_global
+    usr_special_convert => usrspecial_convert
+    usr_set_field_w     => special_field_w
+    usr_set_field       => special_userfield
 
     call mhd_activate()
   end subroutine usr_init
-
-  subroutine special_global(iit,qt)
-    use mod_global_parameters
-    use mod_trace_Bfield
-    use mod_point_searching
-
-    integer, intent(in) :: iit
-    double precision, intent(in) :: qt
-
-    double precision :: xp(npmax,1:ndim),wp(npmax,1:nw+ndir)
-    double precision :: xf(1:ndim),wf(1:nw)
-    integer :: iL
-    double precision :: dL,dx1
-    logical :: forward,interp
-    logical :: wRT(nw+ndir)
-    integer :: numRT,refine_factor,ix1
-    
-    double precision :: t1,t2
-    character (30) :: fname,tempc
-    integer :: ipe,igrid,ixc^D
-
-
-    xp(1,2)=0.d0    
-    xp(1,1)=2.d0
-    wp=0.d0
-
-    refine_factor=2**(refine_max_level-1)
-    dL=(xprobmax2-xprobmin2)/(domain_nx2*refine_factor)
-    wRT=.TRUE.
-    interp=.TRUE.
-    forward=.TRUE.
-
-
-    t1=MPI_wtime()
-    call trace_Bfield(xp,wp,dL,npmax,numRT,forward,wRT)
-    t2=MPI_wtime()
-
-
-    if (mype==0) print *, 'tracing time: ',t2-t1, 's'
-
-
-    if (mype==0) then
-      write(fname, '(a)') 'Field_line.txt'
-      open(1,file=fname)
-      write(1,*) ' number of points '
-      write(1,*) numRT
-      write(1,*) 'i  x  y rho  Bx  By'
-      do ix1=1,numRT
-        write(1,'(i8, e15.7, e15.7, e15.7, e15.7, e15.7)') ix1,xp(ix1,1),xp(ix1,2),&
-                 wp(ix1,rho_),wp(ix1,mag(1)),wp(ix1,mag(2))
-      enddo
-      close(1)
-    endif
-
- 
-  end subroutine special_global
 
   subroutine initglobaldata_usr()
     heatunit=unit_pressure/unit_time          ! 3.697693390805347E-003 erg*cm^-3/s
@@ -445,7 +391,7 @@ contains
     call getbQ(ens,ixI^L,ixO^L,global_time,wlocal,x)
     w(ixO^S,nw+5)=ens(ixO^S)
     ! store the cooling rate 
-    if(mhd_radiative_cooling)call getvar_cooling(ixI^L,ixO^L,wlocal,x,ens)
+    if(mhd_radiative_cooling)call getvar_cooling(ixI^L,ixO^L,wlocal,x,ens,rc_fl)
     w(ixO^S,nw+6)=ens(ixO^S)
 
     ! store current
@@ -475,5 +421,216 @@ contains
     wB0(ixO^S,3)=-B0*dcos(kx*x(ixO^S,1))*dexp(-ly*x(ixO^S,2))*dsin(theta)
 
   end subroutine specialset_B0
+
+  subroutine usrspecial_convert(qunitconvert)
+
+    integer, intent(in) :: qunitconvert
+
+    integer :: numP,nwP,nwL,nL
+    double precision :: xs^L,lengthL,dL
+    double precision :: dsep,distance
+    integer :: nx_lcell^D
+    double precision :: xseed(ndim)
+
+    !---------------- example trace magnetic field lines -----------------!
+    xsmin1=-2.95d0
+    xsmax1=2.95d0
+    xsmin2=1.d-3
+    xsmax2=1.d-3
+
+    dL=(xprobmax1-xprobmin1)/(domain_nx1*2**(refine_max_level-1))
+    lengthL=10.d0
+    numP=floor(lengthL/dL)+1
+    dsep=0.1d0
+
+    distance=dsqrt((xsmax1-xsmin1)**2+(xsmax2-xsmin2)**2)
+    nL=floor(distance/dsep+0.5d0)+1
+    nwP=1
+    nwL=1
+
+    call trace_Bfield_parallel(xs^L,dL,numP,nL,nwP,nwL)
+
+
+    !------------ example calculate DEM for LOS x=0 with self difine field ------------!
+    dL=(xprobmax2-xprobmin2)/(domain_nx2*2**(refine_max_level+1))
+    lengthL=xprobmax2-xprobmin2
+    numP=floor(lengthL/dL)+1
+    nwP=2
+    nwL=0
+    xseed(1)=0.d0
+    xseed(2)=dL
+
+    call get_differential_emission_measure(xseed,dL,numP,nwP,nwL)
+
+  end subroutine usrspecial_convert
+
+  subroutine trace_Bfield_parallel(xs^L,dL,numP,nL,nwP,nwL)
+    use mod_point_searching
+    use mod_trace_field
+
+    integer :: numP,nL,nwP,nwL
+    double precision :: xs^L,dL
+
+    double precision :: dsep^D
+    double precision :: xpp(ndim),wpp(nw)
+    double precision :: xfm(nL,numP,ndim),wPm(nL,numP,nwP),wLm(nL,nwL+1)
+    integer :: nValid(nL)
+    integer :: iL,j
+    logical :: forwardm(nL)
+    character(len=std_len) :: ftype,tcondi,fname
+    
+    dsep1=(xsmax1-xsmin1)/(nL-1)
+    dsep2=(xsmax2-xsmin2)/(nL-1)
+    do iL=1,nL
+      xfm(iL,1,1)=xsmin1+(iL-1)*dsep1
+      xfm(iL,1,2)=xsmin2+(iL-1)*dsep2
+    enddo
+
+    ftype='Bfield'
+    tcondi='user1'
+    do iL=1,nL 
+      xpp(1:ndim)=xfm(iL,1,1:ndim)
+      call get_point_w(xpp,wpp,'conserved')
+      if (wpp(mag(2))>0.d0) then
+        forwardm(iL)=.true.
+      else
+        forwardm(iL)=.false.
+      endif
+    enddo
+
+    call trace_field_multi(xfm,wPm,wLm,dL,nL,numP,nwP,nwL,forwardm,ftype,tcondi)
+    nValid(:)=int(wLm(:,1))
+
+    ! output field line
+    if (mype==0) then
+      write(fname, '(a,i4.4,a)') 'Blines_',snapshotini,'.txt'
+      open(1,file=fname)
+      write(1,*) ' dL '
+      write(1,*) dL
+      write(1,*) ' nL '
+      write(1,*) nL
+      write(1,*) ' iL  nValid  length '
+      do iL=1,nL
+        write(1,*) iL,nValid(iL),wLm(iL,2)
+      enddo
+      write(1,*) ' iL  ip  x  y  rho '
+      do iL=1,nL
+        do j=1,nValid(iL)
+          write(1,'(i8, i8, e15.7, e15.7, e15.7)') iL,j,xfm(iL,j,1),xfm(iL,j,2),wPm(iL,j,1)
+        enddo
+      enddo
+      close(1)
+    endif
+
+  end subroutine trace_Bfield_parallel
+
+  subroutine special_field_w(igrid,ip,xf,wP,wL,numP,nwP,nwL,dL,forward,ftype,tcondi)
+    use mod_global_parameters
+    use mod_point_searching
+
+    integer, intent(in)                 :: igrid,ip,numP,nwP,nwL
+    double precision, intent(in)        :: xf(numP,ndim)
+    double precision, intent(inout)     :: wP(numP,nwP),wL(1+nwL)
+    double precision, intent(in)        :: dL
+    logical, intent(in)                 :: forward
+    character(len=std_len), intent(in)  :: ftype,tcondi
+
+    double precision :: xpp(1:ndim),wpp(1:nw)
+
+    if (tcondi=='user1') then
+      xpp(1:ndim)=xf(ip,1:ndim)
+      call get_point_w_ingrid(igrid,xpp,wpp,'conserved')
+      wP(ip,1)=wpp(rho_)
+      if (ip==1) then
+        wL(2)=0.d0
+      else
+        wL(2)=wL(2)+dL
+      endif
+    else if (tcondi=='user2') then
+      xpp(1:ndim)=xf(ip,1:ndim)
+      call get_point_w_ingrid(igrid,xpp,wpp,'primitive')
+      wP(ip,1)=wpp(rho_)
+      wP(ip,2)=wpp(p_)/wpp(rho_)
+    else
+      wP(ip,1)=0.d0
+      wL(2)=0.d0
+    endif
+
+  end subroutine special_field_w
+
+  subroutine get_differential_emission_measure(xseed,dL,numP,nwP,nwL)
+    use mod_trace_field
+
+    integer :: numP,nwP,nwL
+    double precision :: dL
+    double precision :: xseed(ndim)
+
+    double precision :: xf(numP,ndim),wP(numP,nwP),wL(nwL+1)
+    integer :: nValid,j,numTe,iTe
+    logical :: forward
+    character(len=std_len) :: ftype,tcondi,fname
+    double precision :: Temin,Temax,dTelog,Telocal,EM
+    double precision, allocatable :: Telog(:),DEM(:)
+
+    ftype='ydir'
+    tcondi='user2'
+    forward=.true.
+    xf(1,:)=xseed(:)
+  
+    call trace_field_single(xf,wP,wL,dL,numP,nwP,nwL,forward,ftype,tcondi)
+    nValid=int(wL(1))
+
+    Temin=1.0d4
+    Temax=1.6d6
+    dTelog=0.1
+    numTe=floor((log10(Temax)-log10(Temin))/dTelog)
+    
+    allocate(Telog(numTe),DEM(numTe))
+
+    do iTe=1,numTe
+      Telog(iTe)=log10(Temin)+dTelog*(iTe-1)
+    enddo
+    DEM=zero
+
+    do j=1,nValid
+      Telocal=wP(j,2)*unit_temperature
+      iTe=floor((log10(Telocal)-log10(Temin))/dTelog)+1
+      if (iTe>=1 .and. iTe<=numTe) then
+        EM=(wP(j,1)*unit_numberdensity)**2
+        DEM(iTe)=DEM(iTe)+EM*dL*unit_length
+      endif
+    enddo
+
+    ! output field line
+    if (mype==0) then
+      write(fname, '(a,i4.4,a)') 'DEM_',snapshotini,'.txt'
+      open(1,file=fname)
+      write(1,*) ' numTe '
+      write(1,*) numTe
+      write(1,*) ' iL  Telog  DEM '
+      do iTe=1,numTe
+        write(1,*) iTe,Telog(iTe),DEM(iTe)
+      enddo
+      close(1)
+    endif
+
+    deallocate(Telog,DEM)
+
+  end subroutine get_differential_emission_measure
+
+  subroutine special_userfield(xfn,igrid,field,ftype)
+    use mod_global_parameters
+
+    integer,intent(in)                  :: igrid
+    double precision, intent(in)        :: xfn(ndim)
+    double precision, intent(inout)     :: field(ndim)
+    character(len=std_len), intent(in)  :: ftype
+
+    if (ftype=='ydir') then
+      field(:)=zero
+      field(2)=1.d0
+    endif
+
+  end subroutine special_userfield
 
 end module mod_usr

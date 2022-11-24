@@ -13,6 +13,7 @@ program amrvac
   use mod_fix_conserve
   use mod_advance, only: process
   use mod_multigrid_coupling
+  use mod_convert, only: init_convert
   use mod_physics
 
   double precision :: time0, time_in
@@ -28,6 +29,8 @@ program amrvac
   ! read command line arguments first
   call read_arguments()
 
+  ! init_convert is called before usr_init as user might associate a convert method
+  call init_convert()
   ! the user_init routine should load a physics module
   call usr_init()
 
@@ -97,6 +100,8 @@ program amrvac
              associated(usr_process_global)) then
            call process(it,global_time)
         end if
+        !here requires -1 snapshot
+        if (autoconvert .or. snapshotnext>0) snapshotnext = snapshotnext - 1
 
         if(associated(phys_special_advance)) then
           ! e.g. calculate MF velocity from magnetic field

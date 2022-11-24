@@ -49,6 +49,7 @@ subroutine alloc_node(igrid)
   use mod_global_parameters
   use mod_geometry
   use mod_usr_methods, only: usr_set_surface
+  use mod_physics, only: phys_set_equi_vars
 
   integer, intent(in) :: igrid
 
@@ -96,7 +97,7 @@ subroutine alloc_node(igrid)
 
       ! allocate temporary solution space
       select case (t_integrator)
-      case(ssprk3,ssprk4,jameson,IMEX_Midpoint,IMEX_Trapezoidal,IMEX_222)
+      case(ssprk3,ssprk4,IMEX_Midpoint,IMEX_Trapezoidal,IMEX_222)
         call alloc_state(igrid, ps2(igrid), ixG^LL, ixGext^L, .false.)
       case(RK3_BT,rk4,ssprk5,IMEX_CB3a)
         call alloc_state(igrid, ps2(igrid), ixG^LL, ixGext^L, .false.)
@@ -121,7 +122,7 @@ subroutine alloc_node(igrid)
     pso(igrid)%level=level
     ps1(igrid)%level=level
     select case (t_integrator)
-    case(ssprk3,ssprk4,jameson,IMEX_Midpoint,IMEX_Trapezoidal,IMEX_222)
+    case(ssprk3,ssprk4,IMEX_Midpoint,IMEX_Trapezoidal,IMEX_222)
       ps2(igrid)%level=level
     case(RK3_BT,rk4,ssprk5,IMEX_CB3a)
       ps2(igrid)%level=level
@@ -530,6 +531,7 @@ subroutine alloc_node(igrid)
 
   ! initialize background non-evolving solution
   if (B0field) call set_B0_grid(igrid)
+  if (number_equi_vars>0) call phys_set_equi_vars(igrid)
 
   ! find the blocks on the boundaries
   ps(igrid)%is_physical_boundary=.false.
@@ -603,6 +605,10 @@ subroutine alloc_state(igrid, s, ixG^L, ixGext^L, alloc_once_for_ps)
       allocate(s%B0(ixG^S,1:ndir,0:ndim))
       allocate(s%J0(ixG^S,7-2*ndir:3))
     end if
+    if(number_equi_vars > 0) then
+      allocate(s%equi_vars(ixG^S,1:number_equi_vars,0:ndim))
+    endif
+
     ! allocate space for special values for each block state
     if(phys_trac) then
       ! special_values(1) Tcoff local
@@ -625,13 +631,17 @@ subroutine alloc_state(igrid, s, ixG^L, ixGext^L, alloc_once_for_ps)
       s%B0=>ps(igrid)%B0
       s%J0=>ps(igrid)%J0
     end if
+    if(number_equi_vars > 0) then
+      s%equi_vars=>ps(igrid)%equi_vars
+    endif
     if(phys_trac) s%special_values=>ps(igrid)%special_values
   end if
 end subroutine alloc_state
 
 !> allocate memory to one-level coarser physical state of igrid node
 subroutine alloc_state_coarse(igrid, s, ixG^L, ixGext^L)
-  use mod_global_parameters
+  use mod_global_parameters 
+  use mod_mhd_phys, only: mhd_semirelativistic
   type(state) :: s
   integer, intent(in) :: igrid, ixG^L, ixGext^L
   integer             :: ixGs^L
@@ -645,6 +655,9 @@ subroutine alloc_state_coarse(igrid, s, ixG^L, ixGext^L)
     allocate(s%ws(ixGs^S,1:nws))
     s%ws=0.d0
     s%ixGs^L=ixGs^L;
+  end if
+  if(B0field.and.mhd_semirelativistic) then
+    allocate(s%B0(ixG^S,1:ndir,0:ndim))
   end if
   ! allocate coordinates
   allocate(s%x(ixG^S,1:ndim))
@@ -679,22 +692,32 @@ subroutine dealloc_state(igrid, s,dealloc_x)
       deallocate(s%B0)
       deallocate(s%J0)
     end if
+    if(number_equi_vars > 0) then
+      deallocate(s%equi_vars)
+    end if
   else
     nullify(s%x,s%dx,s%ds,s%dsC,s%dvolume,s%surfaceC,s%surface)
     nullify(s%is_physical_boundary)
     if(B0field) nullify(s%B0,s%J0)
+    if(number_equi_vars > 0) then
+      nullify(s%equi_vars)
+    end if
     if(nw_extra>0) nullify(s%wextra)
   end if
 end subroutine dealloc_state
 
 subroutine dealloc_state_coarse(igrid, s)
   use mod_global_parameters
+  use mod_mhd_phys, only: mhd_semirelativistic
   integer, intent(in) :: igrid
   type(state) :: s
 
   deallocate(s%w)
   if(stagger_grid) then
     deallocate(s%ws)
+  end if
+  if(B0field.and.mhd_semirelativistic) then
+    deallocate(s%B0)
   end if
   ! deallocate coordinates
   deallocate(s%x)
@@ -715,19 +738,21 @@ subroutine dealloc_node(igrid)
 
   call dealloc_state(igrid, ps(igrid),.true.)
   call dealloc_state_coarse(igrid, psc(igrid))
-  call dealloc_state(igrid, ps1(igrid),.false.)
-  call dealloc_state(igrid, pso(igrid),.false.)
-  ! deallocate temporary solution space
-  select case (t_integrator)
-  case(ssprk3,ssprk4,jameson,IMEX_Midpoint,IMEX_Trapezoidal,IMEX_222)
-    call dealloc_state(igrid, ps2(igrid),.false.)
-  case(RK3_BT,rk4,ssprk5,IMEX_CB3a)
-    call dealloc_state(igrid, ps2(igrid),.false.)
-    call dealloc_state(igrid, ps3(igrid),.false.)
-  case(IMEX_ARS3,IMEX_232)
-    call dealloc_state(igrid, ps2(igrid),.false.)
-    call dealloc_state(igrid, ps3(igrid),.false.)
-    call dealloc_state(igrid, ps4(igrid),.false.)
-  end select
+  if(.not.convert) then
+    call dealloc_state(igrid, ps1(igrid),.false.)
+    call dealloc_state(igrid, pso(igrid),.false.)
+    ! deallocate temporary solution space
+    select case (t_integrator)
+    case(ssprk3,ssprk4,IMEX_Midpoint,IMEX_Trapezoidal,IMEX_222)
+      call dealloc_state(igrid, ps2(igrid),.false.)
+    case(RK3_BT,rk4,ssprk5,IMEX_CB3a)
+      call dealloc_state(igrid, ps2(igrid),.false.)
+      call dealloc_state(igrid, ps3(igrid),.false.)
+    case(IMEX_ARS3,IMEX_232)
+      call dealloc_state(igrid, ps2(igrid),.false.)
+      call dealloc_state(igrid, ps3(igrid),.false.)
+      call dealloc_state(igrid, ps4(igrid),.false.)
+    end select
+  end if
 
 end subroutine dealloc_node

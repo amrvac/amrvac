@@ -1,0 +1,15 @@
+To use OPAL opacities in these radiation hydro modules, create a file with the following header in this folder:
+TABLE # 92     $G&N'93 Solar$     X=0.9000 Y=0.1000 Z=0.0000 dXc=0.0000 dXo=0.0000
+
+                                                  log R
+
+logT  -8.0   -7.5   -7.0   -6.5   -6.0   -5.5   -5.0   -4.5   -4.0   -3.5   -3.0   -2.5   -2.0   -1.5   -1.0   -0.5    0.0    0.5    1.0
+
+3.75 -0.700 -0.870 -1.069 -1.281 -1.498 -1.711 -1.911 -2.078 -2.179 -2.182 -2.092 -1.936 -1.746 -1.539 -1.321 -1.097 -0.866 -0.629 -0.389
+3.80 -0.473 -0.519 -0.606 -0.735 -0.889 -1.056 -1.217 -1.346 -1.422 -1.419 -1.337 -1.203 -1.026 -0.839 -0.639 -0.431 -0.214  0.013  0.244
+3.85 -0.446 -0.445 -0.443 -0.445 -0.466 -0.514 -0.575 -0.630 -0.659 -0.639 -0.573 -0.462 -0.323 -0.164  0.008  0.197  0.391  0.602  0.820
+3.90 -0.444 -0.440 -0.426 -0.390 -0.319 -0.217 -0.112 -0.020  0.054  0.120  0.192  0.281  0.391  0.508  0.645  0.804  0.972  1.156  1.351
+......
+
+The file should count 70 lines with different logT values, as is standard for OPAL tables. Give the name of the file created in this folder to the
+'tablename' variable in the fld_opal_table.

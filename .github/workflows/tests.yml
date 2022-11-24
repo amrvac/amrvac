@@ -2,30 +2,102 @@ name: tests
 
 on:
   push:
-    branches: [ master ]
+    branches: [ master, amrvac3.1 ]
   pull_request:
-    branches: [ master ]
+    branches: [ master, amrvac3.1 ]
 
-env:
-  CC: /usr/bin/gcc-9
-  FC: /usr/bin/gfortran-9
-  AMRVAC_DIR: ${GITHUB_WORKSPACE}
 
 jobs:
-  rho:
-    runs-on: ubuntu-latest
+  COMPILE:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest]
+        compiler: [gfortran-8, gfortran-9, gfortran-10, gfortran-11]
+        include:
+          - os: macos-11
+            compiler: gfortran-11
+            gcc_name: gcc@11
+          - os: macos-12
+            compiler: gfortran-11
+            gcc_name: gcc@11
+
+    env:
+      FC: ${{ matrix.compiler }}
+      AMRVAC_DIR: ${GITHUB_WORKSPACE}
+
+    runs-on: ${{ matrix.os }}
+
+    name: compile / ${{ matrix.os }} / ${{ matrix.compiler }}
+
+    steps:
+      - uses: actions/checkout@v2
+      - name: install dependencies
+        run: |
+          if [[ "${{ matrix.os }}" == "ubuntu-latest" ]]; then
+            sudo apt-get update
+            sudo apt-get install ${{ matrix.compiler }}
+            sudo apt-get install openmpi-bin libopenmpi-dev
+          else
+            brew install ${{ matrix.gcc_name }}
+            brew install open-mpi
+            ln -s /usr/local/bin/${{ matrix.compiler }} /usr/local/bin/gfortran
+          fi
+      - name: check compiler versions
+        run: |
+          whereis ${FC}
+          ${FC} --version
+          gfortran --version
+          mpirun --version
+          mpif90 --version
+      - name: check code dependencies
+        run: |
+          cd src
+          bash update_dependencies.sh --verbose || exit 1
+      - name: compile 1D
+        run: |
+          cd lib
+          make 1d ARCH=debug -j 4 || exit 1
+      - name: run 1D rho test
+        run: |
+          cd tests
+          bash test_runner.sh rho/auto_1d
+
+
+  GNU:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest]
+        FC_compiler: [gfortran-9]
+        CC_compiler: [gcc-9]
+        suite: [rho, hd, rhd, mhd, rd, ard, mg, twofl]
+
+    env:
+      CC: ${{ matrix.CC_compiler }}
+      FC: ${{ matrix.FC_compiler }}
+      AMRVAC_DIR: ${GITHUB_WORKSPACE}
+
+    runs-on: ${{ matrix.os }}
+    needs: COMPILE
+
+    name: ${{ matrix.suite }}
+
     steps:
       - uses: actions/checkout@v2
       - name: install dependencies
         run: |
           sudo apt-get update
           sudo apt-get install openmpi-bin libopenmpi-dev
-          gfortran-9 --version
+      - name: check compiler versions
+        run: |
+          ${FC} --version
+          ${CC} --version
           mpirun --version
       - name: check code dependencies
         run: |
           cd src
-          sh update_dependencies.sh --verbose || exit 1
+          bash update_dependencies.sh --verbose || exit 1
       - name: compile
         run: |
           cd lib
@@ -34,97 +106,53 @@ jobs:
       - name: run tests
         run: |
           cd tests
-          bash test_runner.sh rho
-  hd:
+          bash test_runner.sh ${{ matrix.suite }}
+
+  INTEL:
     runs-on: ubuntu-latest
+    name: compile / Intel
+
+    env:
+      FC: ifort
+      CC: icc
+      AMRVAC_DIR: ${GITHUB_WORKSPACE}
+
     steps:
       - uses: actions/checkout@v2
-      - name: install dependencies
+      - name: setup for Intel oneAPI
+        # see https://www.intel.com/content/www/us/en/develop/documentation/installation-guide-for-intel-oneapi-toolkits-linux
         run: |
-          sudo apt-get update
-          sudo apt-get install openmpi-bin libopenmpi-dev
-          gfortran-9 --version
+          wget https://apt.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS.PUB
+          sudo apt-key add GPG-PUB-KEY-INTEL-SW-PRODUCTS.PUB
+          rm GPG-PUB-KEY-INTEL-SW-PRODUCTS.PUB
+          sudo add-apt-repository "deb https://apt.repos.intel.com/oneapi all main"
+      - name: install Intel oneAPI
+        run: |
+          sudo apt-get install intel-oneapi-compiler-fortran
+          sudo apt-get install intel-oneapi-compiler-dpcpp-cpp-and-cpp-classic
+          sudo apt-get install intel-oneapi-mpi
+          sudo apt-get install intel-oneapi-mpi-devel
+          source /opt/intel/oneapi/setvars.sh
+          printenv >> $GITHUB_ENV
+      - name: check compiler versions
+        run: |
+          ${FC} --version
+          ${CC} --version
           mpirun --version
+          mpiifort --version
       - name: check code dependencies
         run: |
           cd src
-          sh update_dependencies.sh --verbose || exit 1
-      - name: compile
+          bash update_dependencies.sh --verbose || exit 1
+      - name: compile 1D
         run: |
           cd lib
-          make clean
-          make -j 2 || exit 1
-      - name: run tests
-        run: |
-          cd tests
-          bash test_runner.sh hd
-          
-  mhd:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-      - name: install dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install openmpi-bin libopenmpi-dev
-          gfortran-9 --version
-          mpirun --version
-      - name: check code dependencies
-        run: |
-          cd src
-          sh update_dependencies.sh --verbose || exit 1
-      - name: compile
+          make 1d -j 4 ARCH=inteldebug
+      - name: compile 2D
         run: |
           cd lib
-          make clean
-          make -j 2 || exit 1
-      - name: run tests
-        run: |
-          cd tests
-          bash test_runner.sh mhd
-  rd:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-      - name: install dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install openmpi-bin libopenmpi-dev
-          gfortran-9 --version
-          mpirun --version
-      - name: check code dependencies
-        run: |
-          cd src
-          sh update_dependencies.sh --verbose || exit 1
-      - name: compile
+          make 2d -j 4 ARCH=inteldebug
+      - name: compile 3D
         run: |
           cd lib
-          make clean
-          make -j 2 || exit 1
-      - name: run tests
-        run: |
-          cd tests
-          bash test_runner.sh rd
-  mg:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-      - name: install dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install openmpi-bin libopenmpi-dev
-          gfortran-9 --version
-          mpirun --version
-      - name: check code dependencies
-        run: |
-          cd src
-          sh update_dependencies.sh --verbose || exit 1
-      - name: compile
-        run: |
-          cd lib
-          make clean
-          make -j 2 || exit 1
-      - name: run tests
-        run: |
-          cd tests
-          bash test_runner.sh mg
+          make 3d -j 4 ARCH=inteldebug

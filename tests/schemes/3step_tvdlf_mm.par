@@ -1,0 +1,14 @@
+ &filelist
+        base_filename  = '_3step_tvdlf_mm'
+ /
+
+ &methodlist
+        time_stepper  = 'threestep'
+        flux_scheme    = 20*'tvdlf'
+        limiter = 20*'minmod'
+        typeboundspeed  = 'cmaxmean'
+ /
+
+ &paramlist
+        courantpar = 0.9
+ /

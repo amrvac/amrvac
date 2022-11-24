@@ -6,6 +6,7 @@ module mod_physics_hllc
   procedure(sub_diffuse_hllcd), pointer   :: phys_diffuse_hllcd => null()
   procedure(sub_get_lCD), pointer         :: phys_get_lCD => null()
   procedure(sub_get_wCD), pointer         :: phys_get_wCD => null()
+  procedure(sub_hllc_init_species), pointer       :: phys_hllc_init_species => null()
 
   abstract interface
      subroutine sub_diffuse_hllcd(ixI^L,ixO^L,idims,wLC,wRC,fLC,fRC,patchf)
@@ -40,6 +41,12 @@ module mod_physics_hllc
        integer, dimension(ixI^S), intent(in)                   :: patchf
        double precision, dimension(ixI^S,1:nwflux),intent(out) :: f
      end subroutine sub_get_wCD
+
+     subroutine sub_hllc_init_species(ii, rho_, mom, e_, eaux_)
+       use mod_global_parameters
+       integer, intent(in)                                    :: ii
+       integer, intent(out)                                    :: rho_, mom(1:ndir),e_,eaux_
+     end subroutine sub_hllc_init_species
   end interface
 
 contains

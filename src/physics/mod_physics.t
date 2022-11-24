@@ -7,8 +7,13 @@ module mod_physics
   use mod_physics_roe
   use mod_physics_ppm
 
+
+
   implicit none
   public
+
+
+  double precision :: phys_gamma=5.0/3
 
   !> String describing the physics type of the simulation
   character(len=name_len) :: physics_type = ""
@@ -48,21 +53,10 @@ module mod_physics
   !> Indicates the flux should be treated with hll
   integer, parameter   :: flux_hll        = 4
 
-  !> Type for special methods defined per variable
-  type iw_methods
-    integer :: test
-    !> If this is set, use the routine as a capacity function when adding fluxes
-    procedure(sub_get_var), pointer, nopass :: inv_capacity => null()
-  end type iw_methods
-
-  !> Special methods defined per variable
-  type(iw_methods) :: phys_iw_methods(max_nw)
-
   procedure(sub_check_params), pointer    :: phys_check_params           => null()
+  procedure(sub_set_mg_bounds), pointer   :: phys_set_mg_bounds          => null()
   procedure(sub_convert), pointer         :: phys_to_conserved           => null()
   procedure(sub_convert), pointer         :: phys_to_primitive           => null()
-  procedure(sub_convert), pointer         :: phys_ei_to_e                => null()
-  procedure(sub_convert), pointer         :: phys_e_to_ei                => null()
   procedure(sub_modify_wLR), pointer      :: phys_modify_wLR             => null()
   procedure(sub_get_cmax), pointer        :: phys_get_cmax               => null()
   procedure(sub_get_a2max), pointer       :: phys_get_a2max              => null()
@@ -71,15 +65,16 @@ module mod_physics
   procedure(sub_get_cbounds), pointer     :: phys_get_cbounds            => null()
   procedure(sub_get_flux), pointer        :: phys_get_flux               => null()
   procedure(sub_energy_synchro), pointer  :: phys_energy_synchro         => null()
-  procedure(sub_get_v_idim), pointer      :: phys_get_v_idim             => null()
+  procedure(sub_get_v), pointer           :: phys_get_v                  => null()
   procedure(sub_get_dt), pointer          :: phys_get_dt                 => null()
   procedure(sub_add_source_geom), pointer :: phys_add_source_geom        => null()
   procedure(sub_add_source), pointer      :: phys_add_source             => null()
   procedure(sub_global_source), pointer   :: phys_global_source_after    => null()
   procedure(sub_special_advance), pointer :: phys_special_advance        => null()
-  procedure(sub_get_aux), pointer         :: phys_get_aux                => null()
   procedure(sub_check_w), pointer         :: phys_check_w                => null()
   procedure(sub_get_pthermal), pointer    :: phys_get_pthermal           => null()
+  procedure(sub_get_tgas), pointer        :: phys_get_tgas               => null()
+  procedure(sub_get_trad), pointer        :: phys_get_trad               => null()
   procedure(sub_boundary_adjust), pointer :: phys_boundary_adjust        => null()
   procedure(sub_write_info), pointer      :: phys_write_info             => null()
   procedure(sub_angmomfix), pointer       :: phys_angmomfix              => null()
@@ -90,11 +85,20 @@ module mod_physics
   procedure(sub_implicit_update), pointer :: phys_implicit_update        => null()
   procedure(sub_evaluate_implicit),pointer:: phys_evaluate_implicit      => null()
   procedure(sub_clean_divb), pointer      :: phys_clean_divb             => null()
+  ! set the equilibrium variables
+  procedure(sub_set_equi_vars), pointer   :: phys_set_equi_vars          => null()
+  ! subroutine with no parameters which creates EUV images
+  procedure(sub_check_params), pointer    :: phys_te_images           => null()
 
   abstract interface
 
      subroutine sub_check_params
      end subroutine sub_check_params
+
+     subroutine sub_set_mg_bounds
+       use mod_global_parameters
+       use mod_usr_methods
+     end subroutine sub_set_mg_bounds
 
      subroutine sub_boundary_adjust(igrid,psb)
        use mod_global_parameters
@@ -140,32 +144,33 @@ module mod_physics
        double precision, intent(out) :: tco_local, Tmax_local
      end subroutine sub_get_tcutoff
 
-     subroutine sub_get_v_idim(w,x,ixI^L,ixO^L,idim,v)
+     subroutine sub_get_v(w,x,ixI^L,ixO^L,v)
        use mod_global_parameters
 
-       integer, intent(in)           :: ixI^L, ixO^L, idim
+       integer, intent(in)           :: ixI^L, ixO^L
        double precision, intent(in)  :: w(ixI^S,nw), x(ixI^S,1:^ND)
-       double precision, intent(out) :: v(ixI^S)
+       double precision, intent(out) :: v(ixI^S,1:ndir)
 
-     end subroutine sub_get_v_idim
+     end subroutine sub_get_v
 
      subroutine sub_get_H_speed(wprim,x,ixI^L,ixO^L,idim,Hspeed)
        use mod_global_parameters
        integer, intent(in)             :: ixI^L, ixO^L, idim
        double precision, intent(in)    :: wprim(ixI^S, nw)
        double precision, intent(in)    :: x(ixI^S,1:ndim)
-       double precision, intent(out)   :: Hspeed(ixI^S)
+       double precision, intent(out)   :: Hspeed(ixI^S,1:number_species)
      end subroutine sub_get_H_speed
 
      subroutine sub_get_cbounds(wLC, wRC, wLp, wRp, x, ixI^L, ixO^L, idim, Hspeed, cmax, cmin)
        use mod_global_parameters
+       use mod_variables
        integer, intent(in)             :: ixI^L, ixO^L, idim
        double precision, intent(in)    :: wLC(ixI^S, nw), wRC(ixI^S, nw)
        double precision, intent(in)    :: wLp(ixI^S, nw), wRp(ixI^S, nw)
        double precision, intent(in)    :: x(ixI^S, 1:^ND)
-       double precision, intent(in)    :: Hspeed(ixI^S)
-       double precision, intent(inout) :: cmax(ixI^S)
-       double precision, intent(inout), optional :: cmin(ixI^S)
+       double precision, intent(inout) :: cmax(ixI^S,1:number_species)
+       double precision, intent(inout), optional :: cmin(ixI^S,1:number_species)
+       double precision, intent(in)    :: Hspeed(ixI^S,1:number_species)
      end subroutine sub_get_cbounds
 
      subroutine sub_get_flux(wC, w, x, ixI^L, ixO^L, idim, f)
@@ -192,7 +197,7 @@ module mod_physics
      end subroutine sub_add_source_geom
 
      subroutine sub_add_source(qdt, ixI^L, ixO^L, wCT, w, x, &
-          qsourcesplit, active)
+          qsourcesplit, active, wCTprim)
        use mod_global_parameters
        integer, intent(in)             :: ixI^L, ixO^L
        double precision, intent(in)    :: qdt
@@ -200,6 +205,7 @@ module mod_physics
        double precision, intent(inout) :: w(ixI^S, 1:nw)
        logical, intent(in)             :: qsourcesplit
        logical, intent(inout)          :: active !< Needs to be set to true when active
+       double precision, intent(in), optional :: wCTprim(ixI^S,1:nw)
      end subroutine sub_add_source
 
      !> Add global source terms on complete domain (potentially implicit)
@@ -218,6 +224,12 @@ module mod_physics
        logical, intent(inout)       :: active !< Output if the source is active
      end subroutine sub_clean_divb
 
+     !> set equilibrium variables other than b0 (e.g. p0 and rho0)
+     subroutine sub_set_equi_vars(igrid)
+       integer, intent(in) :: igrid
+     end subroutine sub_set_equi_vars
+
+
      !> Add special advance in each advect step
      subroutine sub_special_advance(qt, psa)
        use mod_global_parameters
@@ -232,15 +244,6 @@ module mod_physics
        double precision, intent(in)    :: w(ixI^S, 1:nw)
        double precision, intent(inout) :: dtnew
      end subroutine sub_get_dt
-
-     subroutine sub_get_aux(clipping,w,x,ixI^L,ixO^L,subname)
-       use mod_global_parameters
-       integer, intent(in)             :: ixI^L, ixO^L
-       double precision, intent(in)    :: x(ixI^S,1:ndim)
-       double precision, intent(inout) :: w(ixI^S,nw)
-       logical, intent(in)             :: clipping
-       character(len=*)                :: subname
-     end subroutine sub_get_aux
 
      subroutine sub_check_w(primitive, ixI^L, ixO^L, w, w_flag)
        use mod_global_parameters
@@ -257,6 +260,22 @@ module mod_physics
        double precision, intent(in) :: x(ixI^S,1:ndim)
        double precision, intent(out):: pth(ixI^S)
      end subroutine sub_get_pthermal
+
+     subroutine sub_get_tgas(w,x,ixI^L,ixO^L,tgas)
+       use mod_global_parameters
+       integer, intent(in)          :: ixI^L, ixO^L
+       double precision, intent(in) :: w(ixI^S,nw)
+       double precision, intent(in) :: x(ixI^S,1:ndim)
+       double precision, intent(out):: tgas(ixI^S)
+     end subroutine sub_get_tgas
+
+     subroutine sub_get_trad(w,x,ixI^L,ixO^L,trad)
+       use mod_global_parameters
+       integer, intent(in)          :: ixI^L, ixO^L
+       double precision, intent(in) :: w(ixI^S,nw)
+       double precision, intent(in) :: x(ixI^S,1:ndim)
+       double precision, intent(out):: trad(ixI^S)
+     end subroutine sub_get_trad
 
      subroutine sub_write_info(file_handle)
        integer, intent(in) :: file_handle
@@ -317,20 +336,21 @@ module mod_physics
 
      subroutine sub_evaluate_implicit(qtC,psa)
        use mod_global_parameters
-       type(state), target :: psa(max_blocks)   
-       double precision, intent(in) :: qtC      
+       type(state), target :: psa(max_blocks)
+       double precision, intent(in) :: qtC
      end subroutine sub_evaluate_implicit
 
      subroutine sub_implicit_update(dtfactor,qdt,qtC,psa,psb)
        use mod_global_parameters
-       type(state), target :: psa(max_blocks)   
-       type(state), target :: psb(max_blocks)   
+       type(state), target :: psa(max_blocks)
+       type(state), target :: psb(max_blocks)
        double precision, intent(in) :: qdt
-       double precision, intent(in) :: qtC      
-       double precision, intent(in) :: dtfactor 
+       double precision, intent(in) :: qtC
+       double precision, intent(in) :: dtfactor
      end subroutine sub_implicit_update
 
    end interface
+
 
 contains
 
@@ -383,9 +403,6 @@ contains
 
     if (.not. associated(phys_add_source)) &
          phys_add_source => dummy_add_source
-
-    if (.not. associated(phys_get_aux)) &
-         phys_get_aux => dummy_get_aux
 
     if (.not. associated(phys_check_w)) &
          phys_check_w => dummy_check_w
@@ -442,7 +459,7 @@ contains
     integer, intent(in)             :: ixI^L, ixO^L, idim
     double precision, intent(in)    :: wprim(ixI^S, nw)
     double precision, intent(in)    :: x(ixI^S,1:ndim)
-    double precision, intent(out)   :: Hspeed(ixI^S)
+    double precision, intent(out)   :: Hspeed(ixI^S,1:number_species)
   end subroutine dummy_get_H_speed
 
   subroutine dummy_get_a2max(w, x, ixI^L, ixO^L, a2max)
@@ -461,7 +478,7 @@ contains
   end subroutine dummy_add_source_geom
 
   subroutine dummy_add_source(qdt, ixI^L, ixO^L, wCT, w, x, &
-       qsourcesplit, active)
+       qsourcesplit, active, wCTprim)
     use mod_global_parameters
     integer, intent(in)             :: ixI^L, ixO^L
     double precision, intent(in)    :: qdt
@@ -469,17 +486,9 @@ contains
     double precision, intent(inout) :: w(ixI^S, 1:nw)
     logical, intent(in)             :: qsourcesplit
     logical, intent(inout)          :: active
+    double precision, intent(in), optional :: wCTprim(ixI^S,1:nw)
     ! Don't have to set active, since it starts as .false.
   end subroutine dummy_add_source
-
-  subroutine dummy_get_aux(clipping,w,x,ixI^L,ixO^L,subname)
-    use mod_global_parameters
-    integer, intent(in)             :: ixI^L, ixO^L
-    double precision, intent(in)    :: x(ixI^S,1:ndim)
-    double precision, intent(inout) :: w(ixI^S,nw)
-    logical, intent(in)             :: clipping
-    character(len=*)                :: subname
-  end subroutine dummy_get_aux
 
   subroutine dummy_check_w(primitive, ixI^L, ixO^L, w, w_flag)
     use mod_global_parameters
@@ -564,11 +573,11 @@ contains
     integer, intent(in)                :: ixO^L
     type(state)                        :: s
   end subroutine dummy_face_to_center
-  
+
   subroutine dummy_evaluate_implicit(qtC,psa)
     use mod_global_parameters
-    type(state), target :: psa(max_blocks)   
-    double precision, intent(in) :: qtC      
+    type(state), target :: psa(max_blocks)
+    double precision, intent(in) :: qtC
     integer :: iigrid, igrid
 
     ! Just copy in nul state
@@ -583,11 +592,11 @@ contains
 
   subroutine dummy_implicit_update(dtfactor,qdt,qtC,psa,psb)
     use mod_global_parameters
-    type(state), target :: psa(max_blocks)   
-    type(state), target :: psb(max_blocks)   
-    double precision, intent(in) :: qdt      
-    double precision, intent(in) :: qtC      
-    double precision, intent(in) :: dtfactor 
+    type(state), target :: psa(max_blocks)
+    type(state), target :: psb(max_blocks)
+    double precision, intent(in) :: qdt
+    double precision, intent(in) :: qtC
+    double precision, intent(in) :: dtfactor
     integer :: iigrid, igrid
 
     ! Just copy in psb state when using the scheme without implicit part
@@ -599,5 +608,7 @@ contains
     !$OMP END PARALLEL DO
 
   end subroutine dummy_implicit_update
+
+
 
 end module mod_physics

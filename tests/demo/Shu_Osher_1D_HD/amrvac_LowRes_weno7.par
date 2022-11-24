@@ -1,0 +1,38 @@
+ &filelist
+        base_filename='output/ShuO_1D_LR_weno7_'
+        autoconvert=.true.
+        saveprim=.true.
+ /
+
+ &savelist
+        itsave(1,1)=0
+        itsave(1,2)=0
+        ditsave_log=1000
+        dtsave_dat=0.1d0
+ /
+
+ &stoplist
+        time_max=1.8d0
+ /
+
+ &methodlist
+        time_stepper='threestep'
+        flux_scheme=20*'hll'
+        limiter= 20*'weno7'
+ /
+
+ &boundlist
+        typeboundary_min1=3*'cont'
+        typeboundary_max1=3*'cont'
+ /
+
+ &meshlist
+        refine_max_level=1
+        domain_nx1=256
+        xprobmin1=-4.5d0
+        xprobmax1=4.5d0
+ /
+
+ &paramlist
+        courantpar=0.95d0
+ /

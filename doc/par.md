@@ -89,7 +89,7 @@ slicenext | integer | 0 | Start index for writing slices
 firstprocess | logical | F | If true, call `initonegrid_usr` upon restarting
 reset_grid | logical | F | If true, rebuild the AMR grid upon restarting
 convert | logical | F | If true and filenameini and snapshotini are given, convert snapshots to other file formats
-convert_type | string | vtuBCCmpi | Which format to use when converting, options are: tecplot, tecplotCC, vtu, vtuCC, vtuB, vtuBCC, tecplotmpi, tecplotCCmpi, vtuBmpi, vtuBCCmpi, vtumpi,  vtuCCmpi, pvtumpi, pvtuCCmpi, tecline, teclinempi, onegrid
+convert_type | string | vtuBCCmpi | Which format to use when converting, options are: tecplot, tecplotCC, vtu, vtuCC, vtuB, vtuBCC, tecplotmpi, tecplotCCmpi, vtuBmpi, vtuBCCmpi, vtumpi,  vtuCCmpi, pvtumpi, pvtuCCmpi, tecline, teclinempi, onegrid, EIvtiCCmpi, ESvtiCCmpi, SIvtiCCmpi, EIvtuCCmpi, ESvtuCCmpi, SIvtuCCmpi
 slice_type | string | vtu | Which format to use when slicing, options are: csv, dat, vtu, vtuCC
 collapse_type | string | vti | Which format to use when slicing, options are: csv, vti
 autoconvert | logical | F | If true, already convert to output format during the run
@@ -117,9 +117,9 @@ integer timestep counter `it`, the time `global_time`, the time step to be used 
 next time advance `dt`, the domain integrated value of each conserved variable
 (nw real numbers, which allows to check perfect conservation across the grid
 tree when the boundary conditions imply it), the percentage of the domain
-covered by each allowed grid level (`refine_max_level` real numbers between 0.0 and 1.0,
+covered by each allowed grid level (given by `refine_max_level` real numbers between 0.0 and 1.0,
 with 1.0 indicating 100% coverage: when all numbers are summed, we get
-1.0), and the number of grids per allowed grid level (hence, `refine_max_level` integers).
+1.0), and the number of grids per allowed grid level (hence, given by `refine_max_level` integers).
 The logfile is by default saved as an ASCII file.
 The order of saving snapshots, and regridding actions is fixed: regrid happens after the advance by one timestep,
 then regrid, then save the data. This has consequences for the optional
@@ -225,6 +225,14 @@ _level_io_min_ limits the minimum level for output by refining levels below
 level_io_min until level_io_min is reached. Correspondingly, _level_io_max_
 limits the maximum level of the output file. This can be useful to visualize
 large datasets.
+
+The convert types `EIvtiCCmpi`, `ESvtiCCmpi`, `SIvtiCCmpi`, `EIvtuCCmpi`, 
+`ESvtuCCmpi` and `SIvtuCCmpi` are added for synthesize EUV images, EUV spectra
+and SXR images, where EI represents EUV image, ES represents EUV spectra and
+SI represents SXR image. The corresponding parameters , e.g. line of sight direction, 
+for synthesizing emissions should be provided in the @ref par_emissionlist when the 
+convert types are activited. 
+
 
 ## Savelist {#par_savelist}
 
@@ -409,7 +417,7 @@ limiter (minmod for all levels), but one can also use
 The `gradient_limiter` is the selection of a limiter to be used in computing
 gradients (or divergence of vector) when the typegrad=limited (or
 typediv=limited) is selected. It is thus only used in the gradientS
-(divvectorS) subroutines in geometry.t (and has effect for the MHD modules).
+(divvectorS) subroutines in geometry.t and has effect for the magnetohydrodynamics (MHD) modules.
 
 When having a gravitational stratification, one might benefit from performing linear
 reconstruction on the primitive variables log10(rho) and/or log10(p). This can
@@ -941,7 +949,8 @@ sharp discontinuities. It is normally inactive with a default value -1.
      mhd_eta= DOUBLE
      mhd_eta_hyper= DOUBLE
      mhd_etah= DOUBLE 
-     mhd_glm_alpha= DOUBLE
+     mhd_glm_alpha= 0.5d0 between 0 and 1
+     mhd_glm_extended= T | F
      mhd_magnetofriction= F | T
      mhd_thermal_conduction= F | T
      mhd_radiative_cooling= F | T
@@ -951,7 +960,11 @@ sharp discontinuities. It is normally inactive with a default value -1.
      mhd_particles= F | T
      mhd_4th_order= F | T
      mhd_internal_e= F | T
+     mhd_hydrodynamic_e= F | T
      mhd_solve_eaux= F | T
+     mhd_semirelativistic= F | T
+     mhd_boris_simplification= F | T
+     mhd_reduced_c = 3.d10
      mhd_trac= F | T
      mhd_trac_type= INTEGER from 1 to 5
      mhd_trac_mask= bigdouble
@@ -960,7 +973,7 @@ sharp discontinuities. It is normally inactive with a default value -1.
      type_ct='uct_contact'|'uct_hll'|'average'
      source_split_divb= F | T
      boundary_divbfix= 2*ndim logicals, all false by default
-     divbdiff= DOUBLE between 0 and 2
+     divbdiff= 0.8d0 between 0 and 2
      typedivbdiff= 'all' | 'ind'
      divbwave= T | F
      B0field= F | T
@@ -1010,6 +1023,10 @@ GLM-MHD mixed hyperbolic and parabolic dampening of the divB error using an
 additional scalar variable `Psi`.  The algorithm of 'glm' is described by
 Dedner et al. as _Equation (24)_ in 
 _Journal of Computational Physics 175, 645-673 (2002) doi:10.1006/jcph.2001.6961_. 
+The default one with parameter **mhd_glm_extended=.true.** is the extended GLM-MHD with
+divb related sources terms in momemtum and energy equation. The GLM-MHD method without the
+sources terms is used when `mhd_glm_extended=.false.`. The parameter `mhd_glm_alpha` ranging
+from 0 to 1.0 is the ratio of the diffusive to advective time scales for divb cleaning.
 You can choose 'lindejanhunen', 'lindepowel', or 'lindeglm' to use combined divb cleaning.
 
 Projection scheme using multigrid Poisson solver by Teunissen and Keppens in 
@@ -1060,12 +1077,12 @@ Note that when setting `mhd_trac_type >=3`, the direction of your gravity should
 Unlike Johnston's TRAC method, this TRAC method has the advantage that all the calculation is done locally within the block.
 Thus, it could be used in either 1D (M)HD or multi-D MHD simulations, and is much faster than other multi-D methods.
 
-### Solve internal energy to avoid negative pressure{#par_AIE}
+### Solve internal or hydrodynamic energy to avoid negative pressure{#par_AIE}
 
 In extremely low beta plasma, internal energy or gas pressure easily goes to
 negative values when solving total energy equation, because numerical error of magnetic
  energy is comparable to the internal energy due to its extremely small fraction in the 
-total energy. We have two methods to avoid this problem. In the first method, we solve 
+total energy. We have three methods to avoid this problem. In the first method, we solve 
 internal energy equation instead of total energy equation by setting `mhd_internal_e=T`.
 In the second method, we solve both the total energy equation and an auxiliary internal energy equation 
  and synchronize the internal energy with the result from total energy equation. In each step of 
@@ -1084,55 +1101,89 @@ for the auxiliary internal energy in mod_usr.t if special boundary is used.
 This function is compatible with all finite volume and finite difference schemes we have, including
 HLL, HLLC, and HLLD, in which the Riemann flux of the auxiliary internal energy is evaluted
 as the HLL flux in all intermediate states of the Riemann fan. 
+In the third method, We solve hydrodynamic energy, i.e., internal and kinetic energy, instead of
+total energy with an additional source term of Lorentz force work, by setting `mhd_hydrodynamic_e=T`,
+which has better conservation than solving internal energy.
+
+### Solve semirelativistic MHD to tackle extreme Alfven speed{#par_semirelati}
+
+The Alfven speed in nonrelativistic MHD, defined as B/sqrt(mu rho), can be extremely large, even unphysically larger
+than speed of light in strong magnetic field and low density regions. Semirelativistic MHD equations
+(Gombosi et al. 2002 JCP 177, 176) as the nonrelativistic hydrodynamic limit of the relativistic MHD 
+equations solve the problem and have the same steady-state solution as nonrelativistic MHD. 
+By artificially lowering the speed of light, one can reduce the wave speeds allowing larger time steps 
+thus faster solution in explicit numerical schemes. Set `mhd_semirelativistic=T` and `mhd_reduced_c` 
+equals to a value smaller than light speed with physical unit to solve semirelativistic MHD. If setting
+`mhd_hydrodynamic_e=T`, the approximate split semirelativistic MHD equations (Rempel 2017 ApJ 834, 10)
+are solved with hydrodynamic energy instead of total energy. `mhd_semirelativistic=T` contradicts with 
+`mhd_internal_e=T`, since internal energy equation has not been derived from semirelativistic MHD 
+equations. Boris simplification of semirelativistic MHD equations can be solved by 
+setting `mhd_boris_simplification=T` and `mhd_semirelativistic=F` to get faster but less accurate solutions.
+`mhd_boris_simplification=T` is empirically working with `mhd_internal_e=T` or `mhd_hydrodynamic_e=T`.
+Since semirelativistic MHD waves are very complicated, only approximate fast magnetosonic wave speed
+is implemented to use HLL or tvdlf scheme, schemes (such as HLLC and HLLD) depending on more wave speeds 
+are not yet fully compatible with semirelativistic MHD.
 
 ## Synthetic EUV emission {#par_emissionlist}
 
 User can synthesize EUV images, EUV spectra, SXR images using 3D .dat files inside amrvac. 
-These can be finished easily by adding some parameters into .par file. 
-The images/spectra will be output to .vtu files when`image_euv`/`image_sxr`/`spectrum_euv` is`true`. 
-Two types of resolution are supported: data resolution and instrument resolution. 
-In data resolution, the size of the image pixel is the same as the size of the finest cell. 
-In instrument resolution, the size of a pixel is the same as that in relevant observation data (such as SDO and RHESSI). 
-The point spread function (PSF, instrument effect) has been included for `instrument` resolution.
-The resolution or EUV image/SXR image/EUV spectra is controlled by the parameter `resolution_euv`/`resolution_sxr`/`resolution_spectrum`.
+These can be finished easily by adding some parameters into .par file. The images/spectra will 
+be output to .vtu/.vti files when the convert_type in @ref par_filelist is set to  `EIvtiCCmpi`, 
+`ESvtiCCmpi`,  `SIvtiCCmpi` ... etc. Two types of resolution are supported: data resolution and 
+instrument resolution. In data resolution, the size of the image pixel is the same as the size of the 
+finest cell. In instrument resolution, the size of a pixel is the same as that in relevant observation 
+data (such as SDO and RHESSI). The point spread function (PSF, instrument effect) has been 
+included for `instrument` resolution. The resolution or EUV image/SXR image/EUV spectra is 
+controlled by the parameter `resolution_euv`/`resolution_sxr`/`resolution_spectrum`.
 
-The line of sight (LOS) can be controlled with `LOS_theta` and `LOS_phi`, where the LOS parallels to the vector [cos(LOS_theta)*sin(LOS_phi), sin(LOS_theta)*sin(LOS_phi),cos(LOS_phi)]. 
-The units of `LOS_theta` and `LOS_phi` are degree. 
-For resolution type `data`, only combinations `LOS_theta=0, LOS_phi=90`, `LOS_theta=90, LOS_phi=90` and `LOS_phi=0` are supported, otherwise the boundaries of image pixels can not match the cell boundaries of the cell boundaries of the simulation data. 
-`LOS_theta` and `LOS_phi` can be any integer for `instrument` resolution. 
-User can rotate the image with `image_rotate` (in degree) in `instrument` resolution (for both EUV image and SXR image. 
-By default, the y direction of the image is located in a plane given by the LOS and the z direction of the simulation data.
+The line of sight (LOS) is controlled with `LOS_theta` and `LOS_phi`, where the LOS is anti-parallel 
+to the vector [cos(LOS_phi)*sin(LOS_theta), sin(LOS_phi)*sin(LOS_theta),cos(LOS_theta)] (see the 
+following figure). The units of `LOS_theta` and `LOS_phi` are degree. For resolution type `data`, 
+only combinations `LOS_theta=0, LOS_phi=90`, `LOS_theta=90, LOS_phi=90` and `LOS_phi=0` 
+are supported, otherwise the boundaries of image pixels can not match the cell boundaries of the 
+cell boundaries of the simulation data. `LOS_theta` and `LOS_phi` can be any integer for 
+`instrument` resolution. User can rotate the image with `image_rotate` (in degree) in 
+`instrument` resolution (for both EUV image and SXR image. By default, the y direction 
+of the image is located in a plane given by the LOS and the z direction of the simulation data. 
 
-The wavelength of an EUV image is defined with `wavelength`. The bottom/upper cutoff energy of SXR image is defined with `emin_sxr`/`emax_sxr` (in keV). 
+![](figmovdir/LOS_emission.png)
 
-The wavelength of the EUV spectra is defined with `spectrum_wl`. 
-When `spectrum_euv` is`true`, spectra at a slit in the corresponding image will be given. 
-The output is a 2D image, where x-axis is wavelength and y-axis is space (physics distance at the slit). 
-Under the `instrument` resolution type, the slit is parallel to the y axis of corresponding EUV image (controlled by `LOS_theta`, `LOS_phi` and `image_rotate``).
-The location of the slit `location_slit` is the x value of the image (in arcsec).
-For the `data` resolution, the direction of the slit is controlled by `direction_slit`.
-The location of the slit `location_slit` is the coordinate value at the third direction (perpendicular to LOS and slit).
-For example, the LOS along x direction and the slit along y direction, then `location_slit` should be z of the slit.
-The domain in wavelength is controlled by `spectrum_window_min` and `spectrum_window_max`.
+The wavelength of an EUV image is defined with `wavelength`. The bottom/upper cutoff energy 
+of SXR image is defined with `emin_sxr`/`emax_sxr` (in keV). 
 
+The wavelength of the EUV spectra is defined with `spectrum_wl`. When `spectrum_euv` is`true`, 
+spectra at a slit in the corresponding image will be given. The output is a 2D image, where x-axis is 
+wavelength and y-axis is space (physics distance at the slit). Under the `instrument` resolution type, 
+the slit is parallel to the y axis of corresponding EUV image (controlled by `LOS_theta`, `LOS_phi` and 
+`image_rotate`). The location of the slit `location_slit` is the x value of the image (in arcsec).
+For the `data` resolution, the direction of the slit is controlled by `direction_slit`. The location of 
+the slit `location_slit` is the coordinate value at the third direction (perpendicular to LOS and slit).
+For example, the LOS along x direction and the slit along y direction, then `location_slit` should 
+be z of the slit. The domain in wavelength is controlled by `spectrum_window_min` and `spectrum_window_max`.
 
-Only MHD module and Cartesian coordinate system are supported currently.
+The mapping between simulation box coordinate and synthesized image coordinate is not only controlled by LOS, 
+but also controlled by the parameter `x_origin`. The simulation box point given by `x_origin` will always located
+at (X=0,Y=0) of the synthesized image. The parameter `big_image` is added for making movie that the LOS is 
+changing. When `big_image=T`, then the synthesized EUV/SXR image will have a fixed big domain. The domain will
+not change when changing the LOS, and the whole simulation box will always be convered inside the domain. The 
+parameter `x_origin` is also added for making such kind of movie.
+
+Only Cartesian coordinate system are supported currently.
 
     &emissionlist
       filename_euv= CHARACTER
-      image_euv= F | T
       wavelength= 94 | 131 | 171 | 193 | 211 | 304 | 335 | 1354 | 263 | 264 | 192 | 255
       resolution_euv= 'instrument' | 'data'
+      LOS_theta= DOUBLE
+      LOS_phi= DOUBLE
+      image_rotate= DOUBLE
+      x_origin(1:3)= DOUBLE
+      big_image=LOGICAL
       filename_sxr= CHARACTER
-      image_sxr= F | T
       emin_sxr= INTEGER
       emax_sxr= INTEGER
       resolution_sxr= 'instrument' | 'data'
-      LOS_theta= INTEGER
-      LOS_phi= INTEGER
-      image_rotate= INTEGER
       filename_spectrum= CHARACTER
-      spectrum_euv= F | T
       spectrum_wl= 1354 | 263 | 264| 192 | 255
       resolution_sxr= 'instrument' | 'data'
       spectrum_window_min= DOUBLE
@@ -1140,3 +1191,44 @@ Only MHD module and Cartesian coordinate system are supported currently.
       location_slit= DOUBLE
       direction_slit= INTEGER
     /
+
+
+## Splitting of the hydrostatic equilibrium
+
+set 
+```
+
+        has_equi_pe0 = .true.
+        has_equi_rho0 = .true.
+
+```
+to true in ***mhd\_list***
+and implement usr\_set\_equi\_vars in mod\_ust.t file
+
+
+
+```
+  subroutine usr_init()
+
+  ...
+
+    usr_set_equi_vars => special_set_equi_vars
+  
+  ...
+  end subroutine usr_init
+
+
+  subroutine special_set_equi_vars(ixI^L,ixO^L,x,w0)
+    use mod_global_parameters
+    integer, intent(in)             :: ixI^L,ixO^L
+    double precision, intent(in)    :: x(ixI^S,1:ndim)
+    double precision, intent(inout) :: w0(ixI^S,1:number_equi_vars)
+
+
+    w0(ixO^S,equi_pe0_) = ...
+    w0(ixO^S,equi_rho0_) = ...
+
+  end subroutine special_set_equi_vars
+
+```
+

@@ -1,0 +1,67 @@
+!=====================================================
+! 3D Advection Reaction Diffusion
+!=====================================================
+
+ &filelist
+        base_filename='output/schnakenberg_imex_'
+    	convert_type='vtuBCCmpi'
+        autoconvert=T
+ /
+
+ &savelist
+        dtsave_log=0.1d0
+        dtsave_dat=0.1d0
+        itsave(1,2)=0
+ /
+
+ &stoplist
+        time_max=2.0d0
+ /
+
+ &methodlist
+        time_stepper = 'twostep'
+        time_integrator = 'IMEX_Trapezoidal'
+        flux_scheme = 20*'tvdlf'
+ /
+
+ &boundlist
+        typeboundary_min1=2*'periodic'
+        typeboundary_max1=2*'periodic'
+        typeboundary_min2=2*'periodic'
+        typeboundary_max2=2*'periodic'
+        typeboundary_min3=2*'periodic'
+        typeboundary_max3=2*'periodic'
+ /
+
+ &meshlist
+        refine_max_level=1
+        refine_threshold=20*0.1d0
+        block_nx1=16
+        block_nx2=16
+        block_nx3=16
+        domain_nx1=128
+        domain_nx2=128
+        domain_nx3=128
+        xprobmin1=0.0d0
+        xprobmax1=1.0d0
+        xprobmin2=0.0d0
+        xprobmax2=1.0d0
+        xprobmin3=0.0d0
+        xprobmax3=1.0d0
+ /
+
+       courantpar=0.8d0
+       typecourant='minimum'
+ &paramlist
+       dtpar=1.0d-3
+ /
+
+ &ard_list
+       D1 = 0.05d0
+       D2 = 1.0d0
+       equation_name = "schnakenberg"
+       adv_pow = 1
+       A1 = 1.0d-1 1.0d-1 1.0d-1
+       A2 = 1.0d-1 1.0d-1 1.0d-1
+       A3 = 1.0d-1 1.0d-1 1.0d-1
+ /

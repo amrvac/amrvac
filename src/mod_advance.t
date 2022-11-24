@@ -114,7 +114,7 @@ contains
     case (twostep)
        select case (t_integrator)
        case (Predictor_Corrector)
-          ! PC or explicit midpoint 
+          ! PC or explicit midpoint
           ! predictor step
           fix_conserve_at_step = .false.
           call advect1(typepred1,half,idim^LIM,global_time,ps,global_time,ps1)
@@ -194,7 +194,7 @@ contains
 
        case (IMEX_222)
           ! One-parameter family of schemes (parameter is imex222_lambda) from
-          ! Pareschi&Russo 2005, which is L-stable (for default lambda) and 
+          ! Pareschi&Russo 2005, which is L-stable (for default lambda) and
           ! asymptotically SSP.
           ! See doi.org/10.1007/s10915-004-4636-4 (table II)
           ! See doi.org/10.1016/j.apnum.2016.10.018 for interesting values of lambda
@@ -430,7 +430,7 @@ contains
           ! Third order IMEX scheme with low-storage implementation (4 registers).
           ! From Cavaglieri&Bewley 2015, see doi.org/10.1016/j.jcp.2015.01.031
           ! (scheme called "IMEXRKCB3a" there). Uses 3 explicit and 2 implicit stages.
-          ! Parameters are in imex_bj, imex_cj (same for implicit/explicit), 
+          ! Parameters are in imex_bj, imex_cj (same for implicit/explicit),
           ! imex_aij (implicit tableau) and imex_haij (explicit tableau).
           call advect1(flux_method, imex_ha21, idim^LIM, global_time, ps, global_time, ps1)
           call global_implicit_update(imex_a22, dt, global_time+imex_c2*dt, ps2, ps1)
@@ -518,24 +518,6 @@ contains
           !$OMP END PARALLEL DO
           call advect1(flux_method,1.0d0/6.0d0, idim^LIM,global_time+dt,ps3,global_time+dt*5.0d0/6.0d0,ps)
 
-       case (jameson)
-          !$OMP PARALLEL DO PRIVATE(igrid)
-          do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
-             ps2(igrid)%w=ps(igrid)%w
-             if(stagger_grid) ps2(igrid)%ws=ps(igrid)%ws
-          end do
-          !$OMP END PARALLEL DO
-          call advect1(flux_method,1.0d0/4.0d0, idim^LIM,global_time,ps,global_time,ps1)
-          call advect1(flux_method,1.0d0/3.0d0, idim^LIM,global_time+dt/4.0d0,ps1,global_time,ps2)
-          !$OMP PARALLEL DO PRIVATE(igrid)
-          do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
-             ps1(igrid)%w=ps(igrid)%w
-             if(stagger_grid) ps1(igrid)%ws=ps(igrid)%ws
-          end do
-          !$OMP END PARALLEL DO
-          call advect1(flux_method,half, idim^LIM,global_time+dt/3.0d0,ps2,global_time,ps1)
-          call advect1(flux_method,1.0d0, idim^LIM,global_time+half*dt,ps1,global_time,ps)
-
        case default
           call mpistop("unkown fourstep time_integrator in advect")
        end select
@@ -544,6 +526,7 @@ contains
        select case (t_integrator)
        case (ssprk5)
           ! SSPRK(5,4) by Ruuth and Spiteri
+          !bcexch = .false.
           call advect1(flux_method,rk_beta11, idim^LIM,global_time,ps,global_time,ps1)
           !$OMP PARALLEL DO PRIVATE(igrid)
           do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
@@ -582,6 +565,7 @@ contains
              endif
           end do
           !$OMP END PARALLEL DO
+          !bcexch = .true.
           call advect1(flux_method,rk_beta55, idim^LIM,global_time+rk_c5*dt,ps2,global_time+(1.0d0-rk_beta55)*dt,ps)
 
        case default
@@ -605,11 +589,19 @@ contains
     double precision, intent(in) :: qdt      !< overall time step dt
     double precision, intent(in) :: qtC      !< Both states psa and psb at this time level
     double precision, intent(in) :: dtfactor !< Advance psa=psb+dtfactor*qdt*F_im(psa)
-   
+
+    integer                        :: iigrid, igrid
+
+    !> First copy all variables from a to b, this is necessary to account for
+    ! quantities is w with no implicit sourceterm
+    do iigrid=1,igridstail; igrid=igrids(iigrid);
+       psa(igrid)%w = psb(igrid)%w
+    end do
+
     if (associated(phys_implicit_update)) then
        call phys_implicit_update(dtfactor,qdt,qtC,psa,psb)
     end if
-    
+
     ! enforce boundary conditions for psa
     call getbc(qtC,0.d0,psa,iwstart,nwgc,phys_req_diagonal)
 
@@ -692,7 +684,6 @@ contains
     end if
 
     ! For all grids: fill ghost cells
-    qdt = dtfactor*dt
     call getbc(qt+qdt,qdt,psb,iwstart,nwgc,phys_req_diagonal)
 
   end subroutine advect1
@@ -707,17 +698,13 @@ contains
     double precision, intent(in) :: qdt, qtC, qt
     type(state), target          :: sCT, s, sold
 
-    double precision :: dx^D
     ! cell face flux
     double precision :: fC(ixI^S,1:nwflux,1:ndim)
     ! cell edge flux
     double precision :: fE(ixI^S,7-2*ndim:3)
 
-    dx^D=rnode(rpdx^D_,igrid);
-
-    call advect1_grid(method,qdt,ixI^L,idim^LIM,qtC,sCT,qt,s,sold,fC,fE,dx^D, &
-         ps(igrid)%x)
-
+    call advect1_grid(method,qdt,ixI^L,idim^LIM,qtC,sCT,qt,s,sold,fC,fE,&
+         rnode(rpdx1_:rnodehi,igrid),ps(igrid)%x)
 
     ! opedit: Obviously, flux is stored only for active grids.
     ! but we know in fix_conserve wether there is a passive neighbor
@@ -733,7 +720,7 @@ contains
   end subroutine process1_grid
 
   !> Advance a single grid over one partial time step
-  subroutine advect1_grid(method,qdt,ixI^L,idim^LIM,qtC,sCT,qt,s,sold,fC,fE,dx^D,x)
+  subroutine advect1_grid(method,qdt,ixI^L,idim^LIM,qtC,sCT,qt,s,sold,fC,fE,dxs,x)
 
     !  integrate one grid by one partial step
     use mod_finite_volume
@@ -744,7 +731,7 @@ contains
 
     integer, intent(in) :: method
     integer, intent(in) :: ixI^L, idim^LIM
-    double precision, intent(in) :: qdt, qtC, qt, dx^D, x(ixI^S,1:ndim)
+    double precision, intent(in) :: qdt, qtC, qt, dxs(ndim), x(ixI^S,1:ndim)
     type(state), target          :: sCT, s, sold
     double precision :: fC(ixI^S,1:nwflux,1:ndim)
     double precision :: fE(ixI^S,7-2*ndim:3)
@@ -754,16 +741,16 @@ contains
     ixO^L=ixI^L^LSUBnghostcells;
     select case (method)
     case (fs_hll,fs_hllc,fs_hllcd,fs_hlld,fs_tvdlf,fs_tvdmu)
-       call finite_volume(method,qdt,ixI^L,ixO^L,idim^LIM,qtC,sCT,qt,s,sold,fC,fE,dx^D,x)
+       call finite_volume(method,qdt,ixI^L,ixO^L,idim^LIM,qtC,sCT,qt,s,sold,fC,fE,dxs,x)
     case (fs_cd,fs_cd4)
-       call centdiff(method,qdt,ixI^L,ixO^L,idim^LIM,qtC,sCT,qt,s,fC,fE,dx^D,x)
+       call centdiff(method,qdt,ixI^L,ixO^L,idim^LIM,qtC,sCT,qt,s,fC,fE,dxs,x)
     case (fs_hancock)
-       call hancock(qdt,ixI^L,ixO^L,idim^LIM,qtC,sCT,qt,s,dx^D,x)
+       call hancock(qdt,ixI^L,ixO^L,idim^LIM,qtC,sCT,qt,s,dxs,x)
     case (fs_fd)
-       call fd(qdt,ixI^L,ixO^L,idim^LIM,qtC,sCT,qt,s,fC,fE,dx^D,x)
+       call fd(qdt,ixI^L,ixO^L,idim^LIM,qtC,sCT,qt,s,fC,fE,dxs,x)
     case (fs_tvd)
-       call centdiff(fs_cd,qdt,ixI^L,ixO^L,idim^LIM,qtC,sCT,qt,s,fC,fE,dx^D,x)
-       call tvdlimit(method,qdt,ixI^L,ixO^L,idim^LIM,sCT,qt+qdt,s,fC,dx^D,x)
+       call centdiff(fs_cd,qdt,ixI^L,ixO^L,idim^LIM,qtC,sCT,qt,s,fC,fE,dxs,x)
+       call tvdlimit(method,qdt,ixI^L,ixO^L,idim^LIM,sCT,qt+qdt,s,fC,dxs,x)
     case (fs_source)
        call addsource2(qdt*dble(idimmax-idimmin+1)/dble(ndim),&
             ixI^L,ixO^L,1,nw,qtC,sCT%w,qt,s%w,x,.false.)
@@ -777,7 +764,7 @@ contains
 
   !> process is a user entry in time loop, before output and advance
   !>         allows to modify solution, add extra variables, etc.
-  !> Warning: CFL dt already determined (and is not recomputed)! 
+  !> Warning: CFL dt already determined (and is not recomputed)!
   subroutine process(iit,qt)
     use mod_usr_methods, only: usr_process_grid, usr_process_global
     use mod_global_parameters

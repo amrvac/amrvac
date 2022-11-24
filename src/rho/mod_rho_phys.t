@@ -65,10 +65,16 @@ contains
     phys_req_diagonal = .false.
     use_particles = rho_particles
 
+    allocate(start_indices(number_species),stop_indices(number_species))
+    ! set the index of the first flux variable for species 1
+    start_indices(1)=1
     rho_ = var_set_rho()
 
     ! set number of variables which need update ghostcells
     nwgc=nwflux
+
+    ! set the index of the last flux variable for species 1
+    stop_indices(1)=nwflux
 
     ! Check whether custom flux types have been defined
     if (.not. allocated(flux_type)) then
@@ -81,7 +87,6 @@ contains
     phys_get_cmax        => rho_get_cmax
     phys_get_cbounds     => rho_get_cbounds
     phys_get_flux        => rho_get_flux
-    phys_get_v_idim      => rho_get_v_idim
     phys_add_source_geom => rho_add_source_geom
     phys_to_conserved    => rho_to_conserved
     phys_to_primitive    => rho_to_primitive
@@ -281,23 +286,24 @@ contains
 
   subroutine rho_get_cbounds(wLC, wRC, wLp, wRp, x, ixI^L, ixO^L, idim,Hspeed, cmax, cmin)
     use mod_global_parameters
+    use mod_variables
     integer, intent(in)             :: ixI^L, ixO^L, idim
     double precision, intent(in)    :: wLC(ixI^S, nw), wRC(ixI^S,nw)
     double precision, intent(in)    :: wLp(ixI^S, nw), wRp(ixI^S,nw)
     double precision, intent(in)    :: x(ixI^S, 1:^ND)
-    double precision, intent(in)    :: Hspeed(ixI^S)
-    double precision, intent(inout) :: cmax(ixI^S)
-    double precision, intent(inout), optional :: cmin(ixI^S)
+    double precision, intent(inout) :: cmax(ixI^S,1:number_species)
+    double precision, intent(inout), optional :: cmin(ixI^S,1:number_species)
+    double precision, intent(in)    :: Hspeed(ixI^S,1:number_species)
 
     ! If get_v depends on w, the first argument should be some average over the
     ! left and right state
-    call rho_get_v(wLC, x, ixI^L, ixO^L, idim, cmax, .false.)
+    call rho_get_v(wLC, x, ixI^L, ixO^L, idim, cmax(ixI^S,1), .false.)
 
     if (present(cmin)) then
-       cmin(ixO^S) = min(cmax(ixO^S), zero)
-       cmax(ixO^S) = max(cmax(ixO^S), zero)
+       cmin(ixO^S,1) = min(cmax(ixO^S,1), zero)
+       cmax(ixO^S,1) = max(cmax(ixO^S,1), zero)
     else
-       cmax(ixO^S) = maxval(abs(cmax(ixO^S)))
+       cmax(ixO^S,1) = maxval(abs(cmax(ixO^S,1)))
     end if
 
   end subroutine rho_get_cbounds

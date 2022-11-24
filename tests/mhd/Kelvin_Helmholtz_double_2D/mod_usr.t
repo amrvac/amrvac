@@ -21,7 +21,7 @@ contains
     double precision, intent(inout) :: w(ixG^S,1:nw)
     
     double precision :: ranx(ixG^S), ranx1d(ixGmin1:ixGmax1)
-    double precision :: cs,machs,macha,qv,ff,Rjet,dv,sigma
+    double precision :: cs,machs,macha,qv,ff,Rjet,dv,sigma,kx
     integer, allocatable :: seed(:)
     integer :: ix2, seed_size
     logical,save :: first=.true.
@@ -40,16 +40,20 @@ contains
      Rjet=0.125d0
      dv=0.01d0
      sigma=0.2d0
-     if(first)then
-       write(*,*)'seeding random number generator, on mype==',mype
-       call random_seed(SIZE=seed_size)
-       allocate(seed(seed_size))
-       call random_seed(GET=seed(1:seed_size))
-     endif
-     call random_number(ranx1d(ixGmin1:ixGmax1))
-     do ix2=ixGmin2,ixGmax2
-        ranx(ixGmin1:ixGmax1,ix2)=ranx1d(ixGmin1:ixGmax1)-0.5d0
-     enddo
+     !! the following gives random initial condition, but can not be used for autotesting
+     !!if(first)then
+     !!  write(*,*)'seeding random number generator, on mype==',mype
+     !!  call random_seed(SIZE=seed_size)
+     !!  allocate(seed(seed_size))
+     !!  call random_seed(GET=seed(1:seed_size))
+     !!endif
+     !!call random_number(ranx1d(ixGmin1:ixGmax1))
+     !!do ix2=ixGmin2,ixGmax2
+     !!   ranx(ixGmin1:ixGmax1,ix2)=ranx1d(ixGmin1:ixGmax1)-0.5d0
+     !!enddo
+     !! deterministic perturbatio for autotesting
+     kx=2.0d0*dpi/(xprobmax1-xprobmin1)
+     ranx(ixG^S)=0.5d0*(dcos(kx*x(ixG^S,1))+dsin(kx*x(ixG^S,1)+0.3d0))
      if(first .and. mype==0)then
         write(*,*)'Doing 2D ideal MHD, Double Kelvin-Helmholtz problem'
         write(*,*)'cs, B0, Ma, Ms, V, Rj, F, dv, sigma:'

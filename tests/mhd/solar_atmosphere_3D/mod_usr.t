@@ -8,7 +8,7 @@ module mod_usr
   ! 1D solar atmosphere table for pressure, density, and height
   double precision :: pa(jmax),ra(jmax),ya(jmax)
   double precision :: usr_grav,SRadius,rhob,Tiso,dr,gzone,bQ0
-  double precision :: q_para,d_para,L_para
+  double precision :: q_para,d_para,L_para, charge1_x(3), charge2_x(3), charge1, charge2
 
 contains
 
@@ -69,9 +69,19 @@ contains
     SRadius=6.955d10/unit_length                   ! Solar radius
 
     !q_para=7.d19/(unit_magneticfield*unit_length**2) ! strength and sign of magnetic charges
-    q_para=7.d19/(unit_magneticfield*unit_length**2) ! strength and sign of magnetic charges
+    q_para=Busr*2.10025d18/(unit_magneticfield*unit_length**2) ! strength and sign of magnetic charges
     d_para=1.d9/unit_length ! depth of magnetic charges
     L_para=1.5d9/unit_length ! half distance between magnetic charges
+
+    charge1=-q_para
+    charge1_x(1)=-L_para
+    charge1_x(2)=0.d0
+    charge1_x(3)=-d_para
+
+    charge2=q_para
+    charge2_x(1)=L_para
+    charge2_x(2)=0.d0
+    charge2_x(3)=-d_para
 
     if(mhd_energy) call inithdstatic
 
@@ -230,26 +240,25 @@ contains
     ! magnetic field
     double precision, optional, intent(out)   :: Bbp(ixI^S,1:ndir)
 
-    double precision :: Aphi(ixO^S),tmp(ixO^S)
-
-    Aphi(ixO^S)= q_para*(L_para-x(ixO^S,1))/(sqrt(x(ixO^S,2)**2+(x(ixO^S,3)+d_para)**2)*&
-                     sqrt(x(ixO^S,2)**2+(x(ixO^S,3)+d_para)**2+(x(ixO^S,1)-L_para)**2))+&
-                 q_para*(L_para+x(ixO^S,1))/(sqrt(x(ixO^S,2)**2+(x(ixO^S,3)+d_para)**2)*&
-                     sqrt(x(ixO^S,2)**2+(x(ixO^S,3)+d_para)**2+(x(ixO^S,1)+L_para)**2))
+    double precision :: tmp(ixO^S),f1(ixO^S),f2(ixO^S)
 
     A(ixO^S,1)=0.d0
-    A(ixO^S,2)=-Aphi(ixO^S)*(x(ixO^S,3)+d_para)/sqrt(x(ixO^S,2)**2+(x(ixO^S,3)+d_para)**2)
-    A(ixO^S,3)=Aphi(ixO^S)*x(ixO^S,2)/sqrt(x(ixO^S,2)**2+(x(ixO^S,3)+d_para)**2)
+    f1(ixO^S)=(x(ixO^S,1)-charge1_x(1))/(sqrt((x(ixO^S,1)-charge1_x(1))**2+(x(ixO^S,2)-charge1_x(2))**2+&
+              (x(ixO^S,3)-charge1_x(3))**2)*((x(ixO^S,2)-charge1_x(2))**2+(x(ixO^S,3)-charge1_x(3))**2))
+    f2(ixO^S)=(x(ixO^S,1)-charge2_x(1))/(sqrt((x(ixO^S,1)-charge2_x(1))**2+(x(ixO^S,2)-charge2_x(2))**2+&
+              (x(ixO^S,3)-charge2_x(3))**2)*((x(ixO^S,2)-charge2_x(2))**2+(x(ixO^S,3)-charge2_x(3))**2))
+    A(ixO^S,2)=charge1*(x(ixO^S,3)-charge1_x(3))*f1(ixO^S)+charge2*(x(ixO^S,3)-charge2_x(3))*f2(ixO^S)
+    A(ixO^S,3)=-charge1*(x(ixO^S,2)-charge1_x(2))*f1(ixO^S)-charge2*(x(ixO^S,2)-charge2_x(2))*f2(ixO^S)
 
     if(present(Bbp)) then
-      tmp(ixO^S)=-sqrt(x(ixO^S,2)**2+(x(ixO^S,3)+d_para)**2+(x(ixO^S,1)+L_para)**2)**3
-      Bbp(ixO^S,1)=(x(ixO^S,1)+L_para)/tmp(ixO^S)
-      Bbp(ixO^S,2)=x(ixO^S,2)/tmp(ixO^S)
-      Bbp(ixO^S,3)=(x(ixO^S,3)+d_para)/tmp(ixO^S)
-      tmp(ixO^S)=sqrt(x(ixO^S,2)**2+(x(ixO^S,3)+d_para)**2+(x(ixO^S,1)-L_para)**2)**3
-      Bbp(ixO^S,1)=Bbp(ixO^S,1)+(x(ixO^S,1)-L_para)/tmp(ixO^S)
-      Bbp(ixO^S,2)=Bbp(ixO^S,2)+x(ixO^S,2)/tmp(ixO^S)
-      Bbp(ixO^S,3)=Bbp(ixO^S,3)+(x(ixO^S,3)+d_para)/tmp(ixO^S)
+      tmp(ixO^S)=-sqrt((x(ixO^S,1)-charge1_x(1))**2+(x(ixO^S,2)-charge1_x(2))**2+(x(ixO^S,3)-charge1_x(3))**2)**3
+      Bbp(ixO^S,1)=(x(ixO^S,1)-charge1_x(1))/tmp(ixO^S)
+      Bbp(ixO^S,2)=(x(ixO^S,2)-charge1_x(2))/tmp(ixO^S)
+      Bbp(ixO^S,3)=(x(ixO^S,3)-charge1_x(3))/tmp(ixO^S)
+      tmp(ixO^S)=sqrt((x(ixO^S,1)-charge2_x(1))**2+(x(ixO^S,2)-charge2_x(2))**2+(x(ixO^S,3)-charge2_x(3))**2)**3
+      Bbp(ixO^S,1)=Bbp(ixO^S,1)+(x(ixO^S,1)-charge2_x(1))/tmp(ixO^S)
+      Bbp(ixO^S,2)=Bbp(ixO^S,2)+(x(ixO^S,2)-charge2_x(2))/tmp(ixO^S)
+      Bbp(ixO^S,3)=Bbp(ixO^S,3)+(x(ixO^S,3)-charge2_x(3))/tmp(ixO^S)
       Bbp(ixO^S,:)=q_para*Bbp(ixO^S,:)
     end if
 
@@ -762,7 +771,11 @@ contains
     integer                            :: ix^D,idirmin,idims,idir,jdir,kdir
 
     ! Btotal & B^2
-    Btotal(ixI^S,1:ndir)=w(ixI^S,mag(1:ndir))
+    if(B0field) then
+      Btotal(ixI^S,1:ndir)=w(ixI^S,mag(1:ndir))+block%B0(ixI^S,1:ndir,b0i)
+    else
+      Btotal(ixI^S,1:ndir)=w(ixI^S,mag(1:ndir))
+    end if
     B2(ixO^S)=sum((Btotal(ixO^S,:))**2,dim=ndim+1)
     ! output Alfven wave speed B/sqrt(rho)
     w(ixO^S,nw+1)=dsqrt(B2(ixO^S)/w(ixO^S,rho_))
@@ -771,7 +784,11 @@ contains
     w(ixO^S,nw+2)=divb(ixO^S)
     ! output the plasma beta p*2/B**2
     call mhd_get_pthermal(w,x,ixI^L,ixO^L,tmp)
-    w(ixO^S,nw+3)=2.d0*tmp(ixO^S)/B2(ixO^S)
+    where(B2(ixO^S)/=0.d0)
+      w(ixO^S,nw+3)=2.d0*tmp(ixO^S)/B2(ixO^S)
+    else where
+      w(ixO^S,nw+3)=0.d0
+    end where
     ! store current
     call curlvector(Btotal,ixI^L,ixO^L,curlvec,idirmin,1,ndir)
     do idir=1,ndir

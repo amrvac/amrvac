@@ -363,13 +363,15 @@ contains
              call coarsen_grid(ps(igridFi),ixG^LL,ixM^LL,psc(igridFi), &
                                ixCoG^L,ixCoM^L)
 
-             itag=ipeFi*max_blocks+igridFi
+             !itag=ipeFi*max_blocks+igridFi
+             itag=ipeFi+igridFi
              isend=isend+1
              call MPI_ISEND(psc(igridFi)%w,1,type_coarse_block,ipe,itag, &
                             icomm,sendrequest(isend),ierrmpi)
              if(stagger_grid) then
                do idir=1,ndim
-                 itag_stg=(npe+ipeFi+1)*max_blocks+igridFi*(ndir-1+idir)
+                 !itag_stg=(npe+ipeFi+1)*max_blocks+igridFi*(ndir-1+idir)
+                 itag_stg=(npe+ipeFi+1)+igridFi*(ndir-1+idir)
                  call MPI_ISEND(psc(igridFi)%ws,1,type_coarse_block_stg(idir,ic^D),ipe,itag_stg, &
                               icomm,sendrequest_stg(isend),ierrmpi)
                end do
@@ -377,13 +379,15 @@ contains
           end if
        else
           if (ipe==mype) then
-             itag=ipeFi*max_blocks+igridFi
+             !itag=ipeFi*max_blocks+igridFi
+             itag=ipeFi+igridFi
              irecv=irecv+1
              call MPI_IRECV(ps(igrid)%w,1,type_sub_block(ic^D),ipeFi,itag, &
                             icomm,recvrequest(irecv),ierrmpi)
              if(stagger_grid) then
                do idir=1,ndim
-                 itag_stg=(npe+ipeFi+1)*max_blocks+igridFi*(ndir-1+idir)
+                 !itag_stg=(npe+ipeFi+1)*max_blocks+igridFi*(ndir-1+idir)
+                 itag_stg=(npe+ipeFi+1)+igridFi*(ndir-1+idir)
                  call MPI_IRECV(ps(igrid)%ws,1,type_sub_block_stg(idir,ic^D),ipeFi,itag_stg, &
                                 icomm,recvrequest_stg(irecv),ierrmpi)
                end do

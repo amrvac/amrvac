@@ -478,6 +478,8 @@ contains
         prolongprimitive=.false.
         coarsenprimitive=.false.
         do iigrid=1,igridstail; igrid=igrids(iigrid);
+          ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
+          block=>ps(igrid)
           call temp%sts_before_first_cycle(ixG^LL,ixG^LL,ps(igrid)%w,ps(igrid)%x)  
         end do 
       end if
@@ -565,6 +567,8 @@ contains
         if(associated(temp%sts_handle_errors)) then
           !$OMP PARALLEL DO PRIVATE(igrid)
           do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
+            ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
+            block=>ps(igrid)
             call temp%sts_handle_errors(ps(igrid)%w,ps(igrid)%x,ixG^LL,ixM^LL,j)
           end do
           !$OMP END PARALLEL DO
@@ -586,6 +590,8 @@ contains
 
       if(associated(temp%sts_after_last_cycle)) then 
         do iigrid=1,igridstail; igrid=igrids(iigrid);
+          ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
+          block=>ps(igrid)
           call temp%sts_after_last_cycle(ixG^LL,ixG^LL,ps(igrid)%w,ps(igrid)%x)
         end do 
         prolongprimitive  = prolong_flag
@@ -661,6 +667,8 @@ contains
         phys_total_energy=.false.
         !$OMP PARALLEL DO PRIVATE(igrid)
         do iigrid=1,igridstail; igrid=igrids(iigrid);
+          ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
+          block=>ps(igrid)
           call temp%sts_before_first_cycle(ixG^LL,ixG^LL,ps(igrid)%w,ps(igrid)%x)
           if(.not. allocated(ps2(igrid)%w)) allocate(ps2(igrid)%w(ixG^T,1:nw))
           if(.not. allocated(ps3(igrid)%w)) allocate(ps3(igrid)%w(ixG^T,1:nw))
@@ -784,6 +792,8 @@ contains
       if(associated(temp%sts_handle_errors)) then
         !$OMP PARALLEL DO PRIVATE(igrid)
         do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
+          ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
+          block=>ps(igrid)
           call temp%sts_handle_errors(ps1(igrid)%w,ps1(igrid)%x,ixG^LL,ixM^LL,1)
         end do
         !$OMP END PARALLEL DO
@@ -874,6 +884,8 @@ contains
         if(associated(temp%sts_handle_errors)) then
         !$OMP PARALLEL DO PRIVATE(igrid)
           do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
+            ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
+            block=>ps(igrid)
             call temp%sts_handle_errors(tmpPs2(igrid)%w,ps(igrid)%x,ixG^LL,ixM^LL,j)
           end do
         !$OMP END PARALLEL DO
@@ -896,6 +908,8 @@ contains
       if(associated(temp%sts_after_last_cycle)) then
         !$OMP PARALLEL DO PRIVATE(igrid)
         do iigrid=1,igridstail; igrid=igrids(iigrid);
+          ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
+          block=>ps(igrid)
           ps(igrid)%w(ixG^T,temp%startVar:temp%endVar)=tmpPs2(igrid)%w(ixG^T,temp%startVar:temp%endVar)
           call temp%sts_after_last_cycle(ixG^LL,ixG^LL,ps(igrid)%w,ps(igrid)%x)
         end do

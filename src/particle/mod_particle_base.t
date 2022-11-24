@@ -190,7 +190,7 @@ contains
                               downsample_particles, dtsave_particles, tmax_particles, &
                               num_particles, ndefpayload, nusrpayload, &
                               losses, const_dt_particles, particles_cfl, dtheta, &
-                              relativistic, integrator_type_particles
+                              relativistic, integrator_type_particles, particles_eta, particles_etah
 
     do n = 1, size(files)
       open(unitpar, file=trim(files(n)), status="old")
@@ -223,8 +223,8 @@ contains
     write_snapshot            = .true.
     downsample_particles      = 1
     relativistic              = .true.
-    particles_eta             = 0.d0
-    particles_etah            = 0.d0
+    particles_eta             = -1.d0
+    particles_etah            = -1.d0
     t_next_output             = 0.0d0
     dtheta                    = 2.0d0*dpi / 60.0d0
     losses                    = .false.

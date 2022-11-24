@@ -80,9 +80,6 @@ module mod_mf_phys
   !> To skip * layer of ghost cells during divB=0 fix for boundary
   integer, public, protected :: boundary_divbfix_skip(2*^ND)=0
 
-  !> B0 field is force-free
-  logical, public, protected :: B0field_forcefree=.true.
-
   !> clean divb in the initial condition
   logical, public, protected :: clean_initial_divb=.false.
 
@@ -129,8 +126,8 @@ contains
       mf_eta, mf_eta_hyper, mf_glm_alpha, mf_particles,&
       particles_eta, mf_record_electric_field,&
       mf_4th_order, typedivbfix, source_split_divb, divbdiff,&
-      typedivbdiff, type_ct, compactres, divbwave, He_abundance, SI_unit, B0field,&
-      B0field_forcefree, Bdip, Bquad, Boct, Busr, clean_initial_divb, &
+      typedivbdiff, type_ct, compactres, divbwave, He_abundance, SI_unit, &
+      Bdip, Bquad, Boct, Busr, clean_initial_divb, &
       boundary_divbfix, boundary_divbfix_skip, mf_divb_4thorder
 
     do n = 1, size(files)
@@ -237,6 +234,9 @@ contains
 
     ! start with magnetic field and skip velocity when update ghostcells
     iwstart=mag(1)
+    allocate(start_indices(number_species),stop_indices(number_species))
+    ! set the index of the first flux variable for species 1
+    start_indices(1)=mag(1)
 
     if (mf_glm) then
       psi_ = var_set_fluxvar('psi', 'psi', need_bc=.false.)
@@ -246,6 +246,9 @@ contains
 
     ! set number of variables which need update ghostcells
     nwgc=nwflux-ndir
+
+    ! set the index of the last flux variable for species 1
+    stop_indices(1)=nwflux
 
     ! determine number of stagger variables
     if(stagger_grid) nws=ndim
@@ -271,7 +274,7 @@ contains
     phys_get_cmax            => mf_get_cmax
     phys_get_cbounds         => mf_get_cbounds
     phys_get_flux            => mf_get_flux
-    phys_get_v_idim          => mf_get_v_idim
+    phys_get_v               => mf_get_v
     phys_add_source_geom     => mf_add_source_geom
     phys_add_source          => mf_add_source
     phys_to_conserved        => mf_to_conserved
@@ -305,7 +308,6 @@ contains
       phys_get_ct_velocity => mf_get_ct_velocity
       phys_update_faces => mf_update_faces
       phys_face_to_center => mf_face_to_center
-      phys_modify_wLR => mf_modify_wLR
     else if(ndim>1) then
       phys_boundary_adjust => mf_boundary_adjust
     end if
@@ -340,16 +342,13 @@ contains
       miu0=4.d0*dpi
       c_lightspeed=const_c
     end if
-    if(unit_numberdensity/=1.d0) then
-      unit_density=(1.d0+4.d0*He_abundance)*mp*unit_numberdensity
-    else if(unit_density/=1.d0) then
+    if(unit_density/=1.d0) then
       unit_numberdensity=unit_density/((1.d0+4.d0*He_abundance)*mp)
+    else
+      ! unit of numberdensity is independent by default
+      unit_density=(1.d0+4.d0*He_abundance)*mp*unit_numberdensity
     end if
-    if(unit_temperature/=1.d0) then
-      unit_pressure=(2.d0+3.d0*He_abundance)*unit_numberdensity*kB*unit_temperature
-      unit_velocity=sqrt(unit_pressure/unit_density)
-      unit_magneticfield=sqrt(miu0*unit_pressure)
-    else if(unit_velocity/=1.d0) then
+    if(unit_velocity/=1.d0) then
       unit_pressure=unit_density*unit_velocity**2
       unit_temperature=unit_pressure/((2.d0+3.d0*He_abundance)*unit_numberdensity*kB)
       unit_magneticfield=sqrt(miu0*unit_pressure)
@@ -361,11 +360,17 @@ contains
       unit_pressure=unit_magneticfield**2/miu0
       unit_temperature=unit_pressure/((2.d0+3.d0*He_abundance)*unit_numberdensity*kB)
       unit_velocity=sqrt(unit_pressure/unit_density)
+    else
+      ! unit of temperature is independent by default
+      unit_pressure=(2.d0+3.d0*He_abundance)*unit_numberdensity*kB*unit_temperature
+      unit_velocity=sqrt(unit_pressure/unit_density)
+      unit_magneticfield=sqrt(miu0*unit_pressure)
     end if
-    if(unit_length/=1.d0) then 
-      unit_time=unit_length/unit_velocity
-    else if(unit_time/=1.d0) then
+    if(unit_time/=1.d0) then
       unit_length=unit_time*unit_velocity
+    else
+      ! unit of length is independent by default
+      unit_time=unit_length/unit_velocity
     end if
     ! Additional units needed for the particles
     c_norm=c_lightspeed/unit_velocity
@@ -444,23 +449,24 @@ contains
   !> Estimating bounds for the minimum and maximum signal velocities
   subroutine mf_get_cbounds(wLC,wRC,wLp,wRp,x,ixI^L,ixO^L,idim,Hspeed,cmax,cmin)
     use mod_global_parameters
+    use mod_variables
 
     integer, intent(in)             :: ixI^L, ixO^L, idim
     double precision, intent(in)    :: wLC(ixI^S, nw), wRC(ixI^S, nw)
     double precision, intent(in)    :: wLp(ixI^S, nw), wRp(ixI^S, nw)
     double precision, intent(in)    :: x(ixI^S,1:ndim)
-    double precision, intent(in)    :: Hspeed(ixI^S)
-    double precision, intent(inout) :: cmax(ixI^S)
-    double precision, intent(inout), optional :: cmin(ixI^S)
+    double precision, intent(inout) :: cmax(ixI^S,1:number_species)
+    double precision, intent(inout), optional :: cmin(ixI^S,1:number_species)
+    double precision, intent(in)    :: Hspeed(ixI^S,1:number_species)
 
     double precision, dimension(ixI^S) :: tmp1
 
     tmp1(ixO^S)=0.5d0*(wLC(ixO^S,mom(idim))+wRC(ixO^S,mom(idim)))
     if(present(cmin)) then
-      cmax(ixO^S)=max(tmp1(ixO^S)+one,zero)
-      cmin(ixO^S)=min(tmp1(ixO^S)-one,zero)
+      cmax(ixO^S,1)=max(tmp1(ixO^S)+one,zero)
+      cmin(ixO^S,1)=min(tmp1(ixO^S)-one,zero)
     else
-      cmax(ixO^S)=abs(tmp1(ixO^S))+one
+      cmax(ixO^S,1)=abs(tmp1(ixO^S))+one
     end if
 
   end subroutine mf_get_cbounds
@@ -562,13 +568,6 @@ contains
         end if
       else
         f(ixO^S,mag(idir))=w(ixO^S,mom(idim))*w(ixO^S,mag(idir))-w(ixO^S,mag(idim))*w(ixO^S,mom(idir))
-
-        if (B0field) then
-          f(ixO^S,mag(idir))=f(ixO^S,mag(idir))&
-                +w(ixO^S,mom(idim))*block%B0(ixO^S,idir,idim)&
-                -w(ixO^S,mom(idir))*block%B0(ixO^S,idim,idim)
-        end if
-
       end if
     end do
 
@@ -632,7 +631,7 @@ contains
   end subroutine mf_velocity_update
 
   !> w[iws]=w[iws]+qdt*S[iws,wCT] where S is the source based on wCT within ixO
-  subroutine mf_add_source(qdt,ixI^L,ixO^L,wCT,w,x,qsourcesplit,active)
+  subroutine mf_add_source(qdt,ixI^L,ixO^L,wCT,w,x,qsourcesplit,active,wCTprim)
     use mod_global_parameters
 
     integer, intent(in)             :: ixI^L, ixO^L
@@ -641,14 +640,9 @@ contains
     double precision, intent(inout) :: w(ixI^S,1:nw)
     logical, intent(in)             :: qsourcesplit
     logical, intent(inout)            :: active
+    double precision, intent(in), optional :: wCTprim(ixI^S,1:nw)
 
     if (.not. qsourcesplit) then
-
-      ! Source for B0 splitting
-      if (B0field) then
-        active = .true.
-        call add_source_B0split(qdt,ixI^L,ixO^L,wCT,w,x)
-      end if
 
       ! Sources for resistivity in eqs. for e, B1, B2 and B3
       if (abs(mf_eta)>smalldouble)then
@@ -750,7 +744,7 @@ contains
 
     double precision :: xmin(ndim),xmax(ndim)
     double precision :: decay(ixO^S)
-    double precision :: current(ixI^S,7-2*ndir:3),tmp(ixI^S)
+    double precision :: current(ixI^S,7-2*ndir:3),tmp(ixO^S)
     integer :: ix^D, idirmin,idir,jdir,kdir
 
     call get_current(w,ixI^L,ixO^L,idirmin,current)
@@ -766,26 +760,17 @@ contains
 \}
     w(ixO^S,mom(:))=0.d0
     ! calculate Lorentz force
-    do idir=1,ndir; do jdir=1,ndir; do kdir=idirmin,3
-       if(lvc(idir,jdir,kdir)/=0)then
-          if(B0field) then
-            tmp(ixO^S)=current(ixO^S,jdir)*(w(ixO^S,mag(kdir))+block%b0(ixO^S,kdir,0))
-          else
-            tmp(ixO^S)=current(ixO^S,jdir)*w(ixO^S,mag(kdir))
-          endif
-          if(lvc(idir,jdir,kdir)==1)then
-             w(ixO^S,mom(idir))=w(ixO^S,mom(idir))+tmp(ixO^S)
-          else
-             w(ixO^S,mom(idir))=w(ixO^S,mom(idir))-tmp(ixO^S)
-          endif
-       endif
-    enddo; enddo; enddo
+    do idir=1,ndir; do jdir=idirmin,3; do kdir=1,ndir
+      if(lvc(idir,jdir,kdir)/=0) then
+        if(lvc(idir,jdir,kdir)==1) then
+          w(ixO^S,mom(idir))=w(ixO^S,mom(idir))+current(ixO^S,jdir)*w(ixO^S,mag(kdir))
+        else
+          w(ixO^S,mom(idir))=w(ixO^S,mom(idir))-current(ixO^S,jdir)*w(ixO^S,mag(kdir))
+        end if
+      end if
+    end do; end do; end do
 
-    if(B0field) then
-      tmp(ixO^S)=sum((w(ixO^S,mag(:))+block%b0(ixO^S,:,0))**2,dim=ndim+1)
-    else
-      tmp(ixO^S)=sum(w(ixO^S,mag(:))**2,dim=ndim+1)
-    endif
+    tmp(ixO^S)=sum(w(ixO^S,mag(:))**2,dim=ndim+1)
     ! frictional coefficient
     where(tmp(ixO^S)/=0.d0)
       tmp(ixO^S)=1.d0/(tmp(ixO^S)*mf_nu)
@@ -814,36 +799,6 @@ contains
     end do
 
   end subroutine frictional_velocity
-
-  !> Source terms after split off time-independent magnetic field
-  subroutine add_source_B0split(qdt,ixI^L,ixO^L,wCT,w,x)
-    use mod_global_parameters
-
-    integer, intent(in) :: ixI^L, ixO^L
-    double precision, intent(in) :: qdt, wCT(ixI^S,1:nw), x(ixI^S,1:ndim)
-    double precision, intent(inout) :: w(ixI^S,1:nw)
-
-    double precision :: a(ixI^S,3), b(ixI^S,3), axb(ixI^S,3)
-    integer :: idir
-
-    a=0.d0
-    b=0.d0
-    ! for force-free field J0xB0 =0
-    if(.not.B0field_forcefree) then
-      ! store B0 magnetic field in b
-      b(ixO^S,1:ndir)=block%B0(ixO^S,1:ndir,0)
-
-      ! store J0 current in a
-      do idir=7-2*ndir,3
-        a(ixO^S,idir)=block%J0(ixO^S,idir)
-      end do
-      call cross_product(ixI^L,ixO^L,a,b,axb)
-      axb(ixO^S,:)=axb(ixO^S,:)*qdt
-      ! add J0xB0 source term in momentum equations
-      w(ixO^S,mom(1:ndir))=w(ixO^S,mom(1:ndir))+axb(ixO^S,1:ndir)
-    end if
-
-  end subroutine add_source_B0split
 
   !> Add resistive source to w within ixO Uses 3 point stencil (1 neighbour) in
   !> each direction, non-conservative. If the fourthorder precompiler flag is
@@ -892,11 +847,7 @@ contains
        end do
     end if
 
-    if(B0field) then
-      Bf(ixI^S,1:ndir)=wCT(ixI^S,mag(1:ndir))+block%B0(ixI^S,1:ndir,0)
-    else
-      Bf(ixI^S,1:ndir)=wCT(ixI^S,mag(1:ndir))
-    end if
+    Bf(ixI^S,1:ndir)=wCT(ixI^S,mag(1:ndir))
 
     do idir=1,ndir
        ! Put B_idir into tmp2 and eta*Laplace B_idir into tmp
@@ -1201,7 +1152,6 @@ contains
 
   !> Calculate div B within ixO
   subroutine get_divb(w,ixI^L,ixO^L,divb, fourthorder)
-
     use mod_global_parameters
     use mod_geometry
 
@@ -1210,13 +1160,10 @@ contains
     double precision, intent(inout) :: divb(ixI^S)
     logical, intent(in), optional   :: fourthorder
 
-    double precision                   :: bvec(ixI^S,1:ndir)
-    double precision                   :: divb_corner(ixI^S), sign
-    double precision                   :: aux_vol(ixI^S)
-    integer                            :: ixC^L, idir, ic^D, ix^L
+    integer                            :: ixC^L, idir
 
     if(stagger_grid) then
-      divb=0.d0
+      divb(ixO^S)=0.d0
       do idir=1,ndim
         ixC^L=ixO^L-kr(idir,^D);
         divb(ixO^S)=divb(ixO^S)+block%ws(ixO^S,idir)*block%surfaceC(ixO^S,idir)-&
@@ -1224,12 +1171,11 @@ contains
       end do
       divb(ixO^S)=divb(ixO^S)/block%dvolume(ixO^S)
     else
-      bvec(ixI^S,:)=w(ixI^S,mag(:))
       select case(typediv)
       case("central")
-        call divvector(bvec,ixI^L,ixO^L,divb,fourthorder)
+        call divvector(w(ixI^S,mag(1:ndir)),ixI^L,ixO^L,divb,fourthorder)
       case("limited")
-        call divvectorS(bvec,ixI^L,ixO^L,divb)
+        call divvectorS(w(ixI^S,mag(1:ndir)),ixI^L,ixO^L,divb)
       end select
     end if
 
@@ -1281,20 +1227,15 @@ contains
     integer :: idir, idirmin0
 
     ! For ndir=2 only 3rd component of J can exist, ndir=1 is impossible for MHD
-    double precision :: current(ixI^S,7-2*ndir:3),bvec(ixI^S,1:ndir)
+    double precision :: current(ixI^S,7-2*ndir:3)
 
     idirmin0 = 7-2*ndir
 
-    bvec(ixI^S,1:ndir)=w(ixI^S,mag(1:ndir))
-
     if(present(fourthorder)) then
-      call curlvector(bvec,ixI^L,ixO^L,current,idirmin,idirmin0,ndir,fourthorder)
+      call curlvector(w(ixI^S,mag(1:ndir)),ixI^L,ixO^L,current,idirmin,idirmin0,ndir,fourthorder)
     else
-      call curlvector(bvec,ixI^L,ixO^L,current,idirmin,idirmin0,ndir)
+      call curlvector(w(ixI^S,mag(1:ndir)),ixI^L,ixO^L,current,idirmin,idirmin0,ndir)
     end if
-
-    if(B0field) current(ixO^S,idirmin0:3)=current(ixO^S,idirmin0:3)+&
-        block%J0(ixO^S,idirmin0:3)
 
   end subroutine get_current
 
@@ -1385,10 +1326,6 @@ contains
        if(.not.stagger_grid) then
          tmp(ixO^S)=wCT(ixO^S,mom(1))*wCT(ixO^S,mag(2)) &
               -wCT(ixO^S,mom(2))*wCT(ixO^S,mag(1))
-         if(B0field) then
-           tmp(ixO^S)=tmp(ixO^S)+(wCT(ixO^S,mom(1))*block%B0(ixO^S,2,0) &
-                -wCT(ixO^S,mom(2))*block%B0(ixO^S,1,0))
-         end if
          if(mf_glm) then
            tmp(ixO^S)=tmp(ixO^S) &
                 + dcos(x(ixO^S,2))/dsin(x(ixO^S,2))*wCT(ixO^S,psi_)
@@ -1405,13 +1342,6 @@ contains
                 -(wCT(ixO^S,mom(3))*wCT(ixO^S,mag(2)) &
                 -wCT(ixO^S,mom(2))*wCT(ixO^S,mag(3)))*dcos(x(ixO^S,2)) &
                 /dsin(x(ixO^S,2)) }
-           if (B0field) then
-              tmp(ixO^S)=tmp(ixO^S)+(wCT(ixO^S,mom(1))*block%B0(ixO^S,3,0) &
-                   -wCT(ixO^S,mom(3))*block%B0(ixO^S,1,0)){^NOONED &
-                   -(wCT(ixO^S,mom(3))*block%B0(ixO^S,2,0) &
-                   -wCT(ixO^S,mom(2))*block%B0(ixO^S,3,0))*dcos(x(ixO^S,2)) &
-                   /dsin(x(ixO^S,2)) }
-           end if
            w(ixO^S,mag(3))=w(ixO^S,mag(3))+qdt*tmp(ixO^S)/x(ixO^S,1)
          end if
        end if
@@ -1426,11 +1356,7 @@ contains
     double precision, intent(in)  :: w(ixI^S, nw)
     double precision              :: mge(ixO^S)
 
-    if (B0field) then
-      mge = sum((w(ixO^S, mag(:))+block%B0(ixO^S,:,b0i))**2, dim=ndim+1)
-    else
-      mge = sum(w(ixO^S, mag(:))**2, dim=ndim+1)
-    end if
+    mge = sum(w(ixO^S, mag(:))**2, dim=ndim+1)
   end function mf_mag_en_all
 
   !> Compute full magnetic field by direction
@@ -1440,11 +1366,7 @@ contains
     double precision, intent(in)  :: w(ixI^S, nw)
     double precision              :: mgf(ixO^S)
 
-    if (B0field) then
-      mgf = w(ixO^S, mag(idir))+block%B0(ixO^S,idir,b0i)
-    else
-      mgf = w(ixO^S, mag(idir))
-    end if
+    mgf = w(ixO^S, mag(idir))
   end function mf_mag_i_all
 
   !> Compute evolving magnetic energy
@@ -1467,31 +1389,22 @@ contains
     type(state)                     :: s
     double precision                :: dB(ixI^S), dPsi(ixI^S)
 
-    if(stagger_grid) then
-      wLC(ixO^S,mag(idir))=s%ws(ixO^S,idir)
-      wRC(ixO^S,mag(idir))=s%ws(ixO^S,idir)
-      wLp(ixO^S,mag(idir))=s%ws(ixO^S,idir)
-      wRp(ixO^S,mag(idir))=s%ws(ixO^S,idir)
-    else
-      ! Solve the Riemann problem for the linear 2x2 system for normal
-      ! B-field and GLM_Psi according to Dedner 2002:
-      ! This implements eq. (42) in Dedner et al. 2002 JcP 175
-      ! Gives the Riemann solution on the interface
-      ! for the normal B component and Psi in the GLM-MHD system.
-      ! 23/04/2013 Oliver Porth
-      dB(ixO^S)   = wRp(ixO^S,mag(idir)) - wLp(ixO^S,mag(idir))
-      dPsi(ixO^S) = wRp(ixO^S,psi_) - wLp(ixO^S,psi_)
+    ! Solve the Riemann problem for the linear 2x2 system for normal
+    ! B-field and GLM_Psi according to Dedner 2002:
+    ! This implements eq. (42) in Dedner et al. 2002 JcP 175
+    ! Gives the Riemann solution on the interface
+    ! for the normal B component and Psi in the GLM-MHD system.
+    ! 23/04/2013 Oliver Porth
+    dB(ixO^S)   = wRp(ixO^S,mag(idir)) - wLp(ixO^S,mag(idir))
+    dPsi(ixO^S) = wRp(ixO^S,psi_) - wLp(ixO^S,psi_)
 
-      wLp(ixO^S,mag(idir))   = 0.5d0 * (wRp(ixO^S,mag(idir)) + wLp(ixO^S,mag(idir))) &
-           - 0.5d0/cmax_global * dPsi(ixO^S)
-      wLp(ixO^S,psi_)       = 0.5d0 * (wRp(ixO^S,psi_) + wLp(ixO^S,psi_)) &
-           - 0.5d0*cmax_global * dB(ixO^S)
+    wLp(ixO^S,mag(idir))   = 0.5d0 * (wRp(ixO^S,mag(idir)) + wLp(ixO^S,mag(idir))) &
+         - 0.5d0/cmax_global * dPsi(ixO^S)
+    wLp(ixO^S,psi_)       = 0.5d0 * (wRp(ixO^S,psi_) + wLp(ixO^S,psi_)) &
+         - 0.5d0*cmax_global * dB(ixO^S)
 
-      wRp(ixO^S,mag(idir)) = wLp(ixO^S,mag(idir))
-      wRp(ixO^S,psi_) = wLp(ixO^S,psi_)
-    end if
-
-    if(associated(usr_set_wLR)) call usr_set_wLR(ixI^L,ixO^L,qt,wLC,wRC,wLp,wRp,s,idir)
+    wRp(ixO^S,mag(idir)) = wLp(ixO^S,mag(idir))
+    wRp(ixO^S,psi_) = wLp(ixO^S,psi_)
 
   end subroutine mf_modify_wLR
 
@@ -2086,13 +1999,9 @@ contains
     ! Calculate contribution to FEM of each edge,
     ! that is, estimate value of line integral of
     ! electric field in the positive idir direction.
-    ixCmax^D=ixOmax^D;
-    ixCmin^D=ixOmin^D-1;
 
     ! if there is resistivity, get eta J
     if(mf_eta/=zero) call get_resistive_electric_field(ixI^L,ixO^L,sCT,s,jce)
-
-    fE=zero
 
     do idim1=1,ndim 
       iwdim1 = mag(idim1)
@@ -2101,6 +2010,8 @@ contains
         do idir=7-2*ndim,3! Direction of line integral
           ! Allow only even permutations
           if (lvc(idim1,idim2,idir)==1) then
+            ixCmax^D=ixOmax^D;
+            ixCmin^D=ixOmin^D+kr(idir,^D)-1;
             ! Assemble indices
             jxC^L=ixC^L+kr(idim1,^D);
             hxC^L=ixC^L+kr(idim2,^D);
@@ -2115,11 +2026,6 @@ contains
             ! times time step and edge length 
             fE(ixC^S,idir)=qdt*s%dsC(ixC^S,idir)*fE(ixC^S,idir)
 
-            if (.not.slab) then
-              where(abs(x(ixC^S,r_)+half*dxlevel(r_))<1.0d-9)
-                fE(ixC^S,idir)=zero
-              end where
-            end if
           end if
         end do
       end do
@@ -2134,28 +2040,23 @@ contains
     ! Calculate circulation on each face
 
     do idim1=1,ndim ! Coordinate perpendicular to face 
+      ixCmax^D=ixOmax^D;
+      ixCmin^D=ixOmin^D-kr(idim1,^D);
       do idim2=1,ndim
         do idir=7-2*ndim,3 ! Direction of line integral
           ! Assemble indices
-          hxC^L=ixC^L-kr(idim2,^D);
-          ! Add line integrals in direction idir
-          circ(ixC^S,idim1)=circ(ixC^S,idim1)&
-                           +lvc(idim1,idim2,idir)&
-                           *(fE(ixC^S,idir)&
-                            -fE(hxC^S,idir))
+          if(lvc(idim1,idim2,idir)/=0) then
+            hxC^L=ixC^L-kr(idim2,^D);
+            ! Add line integrals in direction idir
+            circ(ixC^S,idim1)=circ(ixC^S,idim1)&
+                             +lvc(idim1,idim2,idir)&
+                             *(fE(ixC^S,idir)&
+                              -fE(hxC^S,idir))
+          end if
         end do
       end do
-    end do
-
-    ! Divide by the area of the face to get dB/dt
-    do idim1=1,ndim
-      ixCmax^D=ixOmax^D;
-      ixCmin^D=ixOmin^D-kr(idim1,^D);
-      where(s%surfaceC(ixC^S,idim1) > 1.0d-9*s%dvolume(ixC^S))
-        circ(ixC^S,idim1)=circ(ixC^S,idim1)/s%surfaceC(ixC^S,idim1)
-      elsewhere
-        circ(ixC^S,idim1)=zero
-      end where
+      ! Divide by the area of the face to get dB/dt
+      circ(ixC^S,idim1)=circ(ixC^S,idim1)/s%surfaceC(ixC^S,idim1)
       ! Time update
       bfaces(ixC^S,idim1)=bfaces(ixC^S,idim1)-circ(ixC^S,idim1)
     end do
@@ -2208,7 +2109,6 @@ contains
     ! Calculate contribution to FEM of each edge,
     ! that is, estimate value of line integral of
     ! electric field in the positive idir direction.
-    fE=zero
     ! evaluate electric field along cell edges according to equation (41)
     do idim1=1,ndim 
       iwdim1 = mag(idim1)
@@ -2303,17 +2203,17 @@ contains
       do idim2=1,ndim
         do idir=7-2*ndim,3 ! Direction of line integral
           ! Assemble indices
-          hxC^L=ixC^L-kr(idim2,^D);
-          ! Add line integrals in direction idir
-          circ(ixC^S,idim1)=circ(ixC^S,idim1)&
-                           +lvc(idim1,idim2,idir)&
-                           *(fE(ixC^S,idir)&
-                            -fE(hxC^S,idir))
+          if(lvc(idim1,idim2,idir)/=0) then
+            hxC^L=ixC^L-kr(idim2,^D);
+            ! Add line integrals in direction idir
+            circ(ixC^S,idim1)=circ(ixC^S,idim1)&
+                             +lvc(idim1,idim2,idir)&
+                             *(fE(ixC^S,idir)&
+                              -fE(hxC^S,idir))
+          end if
         end do
       end do
       ! Divide by the area of the face to get dB/dt
-      ixCmax^D=ixOmax^D;
-      ixCmin^D=ixOmin^D-kr(idim1,^D);
       where(s%surfaceC(ixC^S,idim1) > 1.0d-9*s%dvolume(ixC^S))
         circ(ixC^S,idim1)=circ(ixC^S,idim1)/s%surfaceC(ixC^S,idim1)
       elsewhere
@@ -2366,8 +2266,6 @@ contains
 
     ! if there is resistivity, get eta J
     if(mf_eta/=zero) call get_resistive_electric_field(ixI^L,ixO^L,sCT,s,jce)
-
-    fE=zero
 
     do idir=7-2*ndim,3
       ! Indices
@@ -2453,20 +2351,17 @@ contains
       do idim2=1,ndim
         do idir=7-2*ndim,3 ! Direction of line integral
           ! Assemble indices
-          hxC^L=ixC^L-kr(idim2,^D);
-          ! Add line integrals in direction idir
-          circ(ixC^S,idim1)=circ(ixC^S,idim1)&
-                           +lvc(idim1,idim2,idir)&
-                           *(fE(ixC^S,idir)&
-                            -fE(hxC^S,idir))
+          if(lvc(idim1,idim2,idir)/=0) then
+            hxC^L=ixC^L-kr(idim2,^D);
+            ! Add line integrals in direction idir
+            circ(ixC^S,idim1)=circ(ixC^S,idim1)&
+                             +lvc(idim1,idim2,idir)&
+                             *(fE(ixC^S,idir)&
+                              -fE(hxC^S,idir))
+          end if
         end do
       end do
-    end do
-
-    ! Divide by the area of the face to get dB/dt
-    do idim1=1,ndim
-      ixCmax^D=ixOmax^D;
-      ixCmin^D=ixOmin^D-kr(idim1,^D);
+      ! Divide by the area of the face to get dB/dt
       where(s%surfaceC(ixC^S,idim1) > 1.0d-9*s%dvolume(ixC^S))
         circ(ixC^S,idim1)=circ(ixC^S,idim1)/s%surfaceC(ixC^S,idim1)
       elsewhere
@@ -2654,26 +2549,26 @@ contains
       sum_l_ipe   = sum_l_ipe+integral_grid_mf(ixG^LL,ixM^LL,ps(igrid)%w,&
         ps(igrid)%x,4,patchwi)
     end do
-    call MPI_ALLREDUCE(sum_jbb_ipe,sum_jbb,1,MPI_DOUBLE_PRECISION,&
-       MPI_SUM,icomm,ierrmpi)
-    call MPI_ALLREDUCE(sum_j_ipe,sum_j,1,MPI_DOUBLE_PRECISION,MPI_SUM,&
+    call MPI_REDUCE(sum_jbb_ipe,sum_jbb,1,MPI_DOUBLE_PRECISION,&
+       MPI_SUM,0,icomm,ierrmpi)
+    call MPI_REDUCE(sum_j_ipe,sum_j,1,MPI_DOUBLE_PRECISION,MPI_SUM,0,&
        icomm,ierrmpi)
-    call MPI_ALLREDUCE(f_i_ipe,f_i,1,MPI_DOUBLE_PRECISION,MPI_SUM,&
+    call MPI_REDUCE(f_i_ipe,f_i,1,MPI_DOUBLE_PRECISION,MPI_SUM,0,&
        icomm,ierrmpi)
-    call MPI_ALLREDUCE(sum_l_ipe,sum_l,1,MPI_DOUBLE_PRECISION,MPI_SUM,&
+    call MPI_REDUCE(sum_l_ipe,sum_l,1,MPI_DOUBLE_PRECISION,MPI_SUM,0,&
        icomm,ierrmpi)
-    call MPI_ALLREDUCE(volume_pe,volume,1,MPI_DOUBLE_PRECISION,MPI_SUM,&
+    call MPI_REDUCE(volume_pe,volume,1,MPI_DOUBLE_PRECISION,MPI_SUM,0,&
        icomm,ierrmpi)
-    ! current- and volume-weighted average of the sine of the angle
-    ! between the magnetic field B and the current density J
-    cw_sin_theta = sum_jbb/sum_j
-    ! volume-weighted average of the absolute value of the fractional
-    ! magnetic flux change
-    f_i = f_i/volume
-    sum_j=sum_j/volume
-    sum_l=sum_l/volume
 
     if(mype==0) then
+      ! current- and volume-weighted average of the sine of the angle
+      ! between the magnetic field B and the current density J
+      cw_sin_theta = sum_jbb/sum_j
+      ! volume-weighted average of the absolute value of the fractional
+      ! magnetic flux change
+      f_i = f_i/volume
+      sum_j=sum_j/volume
+      sum_l=sum_l/volume
       if(.not.logmfopened) then
         ! generate filename
         write(filename,"(a,a)") TRIM(base_filename), "_mf_metrics.csv"
@@ -2688,7 +2583,7 @@ contains
         amode=ior(amode,MPI_MODE_APPEND)
         call MPI_FILE_OPEN(MPI_COMM_SELF,filename,amode,MPI_INFO_NULL,fhmf,ierrmpi)
         logmfopened=.true.
-        filehead="  it,  time,  <CW sin theta>,  <Current>,  <Lorenz force>,  <f_i>"
+        filehead="  it,time,CW_sin_theta,current,Lorenz_force,f_i"
         if (it == 0) then
           call MPI_FILE_WRITE(fhmf,filehead,len_trim(filehead), &
                               MPI_CHARACTER,istatus,ierrmpi)
@@ -2755,36 +2650,36 @@ contains
     double precision                   :: w(ixI^S,nw+nwauxio)
     logical, intent(in) :: patchwi(ixI^S)
 
-    double precision, dimension(ixI^S,1:ndir) :: bvec,qvec,current
-    double precision :: integral_grid_mf,tmp(ixI^S),dsurface(ixO^S)
-    integer :: ix^D,idirmin,idir,jdir,kdir,idims,hxO^L
+    double precision, dimension(ixI^S,7-2*ndir:3) :: current
+    double precision, dimension(ixI^S,1:ndir) :: bvec,qvec
+    double precision :: integral_grid_mf,tmp(ixI^S),bm2
+    integer :: ix^D,idirmin0,idirmin,idir,jdir,kdir
 
     integral_grid_mf=0.d0
     select case(iw)
      case(1)
       ! Sum(|JxB|/|B|*dvolume)
-      if(B0field) then
-        bvec(ixI^S,:)=w(ixI^S,mag(:))+block%b0(ixI^S,mag(:),0)
-      else
-        bvec(ixI^S,:)=w(ixI^S,mag(:))
-      endif
+      bvec(ixO^S,:)=w(ixO^S,mag(:))
       call get_current(w,ixI^L,ixO^L,idirmin,current)
       ! calculate Lorentz force
       qvec(ixO^S,1:ndir)=zero
-      do idir=1,ndir; do jdir=1,ndir; do kdir=idirmin,3
+      do idir=1,ndir; do jdir=idirmin,3; do kdir=1,ndir
          if(lvc(idir,jdir,kdir)/=0)then
-            tmp(ixO^S)=current(ixO^S,jdir)*bvec(ixO^S,kdir)
-            if(lvc(idir,jdir,kdir)==1)then
-               qvec(ixO^S,idir)=qvec(ixO^S,idir)+tmp(ixO^S)
-            else
-               qvec(ixO^S,idir)=qvec(ixO^S,idir)-tmp(ixO^S)
-            endif
-         endif
-      enddo; enddo; enddo
+           if(lvc(idir,jdir,kdir)==1)then
+             qvec(ixO^S,idir)=qvec(ixO^S,idir)+current(ixO^S,jdir)*bvec(ixO^S,kdir)
+           else
+             qvec(ixO^S,idir)=qvec(ixO^S,idir)-current(ixO^S,jdir)*bvec(ixO^S,kdir)
+           end if
+         end if
+      end do; end do; end do
 
       {do ix^DB=ixOmin^DB,ixOmax^DB\}
-         if(patchwi(ix^D)) integral_grid_mf=integral_grid_mf+sqrt(sum(qvec(ix^D,:)**2)/&
-                           sum(bvec(ix^D,:)**2))*block%dvolume(ix^D)
+         if(patchwi(ix^D)) then
+           bm2=sum(bvec(ix^D,:)**2)
+           if(bm2/=0.d0) bm2=1.d0/bm2
+           integral_grid_mf=integral_grid_mf+sqrt(sum(qvec(ix^D,:)**2)*&
+                           bm2)*block%dvolume(ix^D)
+         end if
       {end do\}
      case(2)
       ! Sum(|J|*dvolume)
@@ -2802,24 +2697,19 @@ contains
       {end do\}
      case(4)
       ! Sum(|JxB|*dvolume)
-      if(B0field) then
-        bvec(ixI^S,:)=w(ixI^S,mag(:))+block%b0(ixI^S,mag(:),0)
-      else
-        bvec(ixI^S,:)=w(ixI^S,mag(:))
-      endif
+      bvec(ixO^S,:)=w(ixO^S,mag(:))
       call get_current(w,ixI^L,ixO^L,idirmin,current)
       ! calculate Lorentz force
       qvec(ixO^S,1:ndir)=zero
-      do idir=1,ndir; do jdir=1,ndir; do kdir=idirmin,3
+      do idir=1,ndir; do jdir=idirmin,3; do kdir=1,ndir
          if(lvc(idir,jdir,kdir)/=0)then
-            tmp(ixO^S)=current(ixO^S,jdir)*bvec(ixO^S,kdir)
-            if(lvc(idir,jdir,kdir)==1)then
-               qvec(ixO^S,idir)=qvec(ixO^S,idir)+tmp(ixO^S)
-            else
-               qvec(ixO^S,idir)=qvec(ixO^S,idir)-tmp(ixO^S)
-            endif
-         endif
-      enddo; enddo; enddo
+           if(lvc(idir,jdir,kdir)==1)then
+             qvec(ixO^S,idir)=qvec(ixO^S,idir)+current(ixO^S,jdir)*bvec(ixO^S,kdir)
+           else
+             qvec(ixO^S,idir)=qvec(ixO^S,idir)-current(ixO^S,jdir)*bvec(ixO^S,kdir)
+           end if
+         end if
+      end do; end do; end do
 
       {do ix^DB=ixOmin^DB,ixOmax^DB\}
          if(patchwi(ix^D)) integral_grid_mf=integral_grid_mf+&

@@ -11,7 +11,7 @@
         base_filename='solar_atm_a'
         saveprim=.true.
         autoconvert=.true.
-        convert_type='vtuBCCmpi'
+        convert_type='usermpi'
         nwauxio=9
  /
         restart_from_file='solar_atm_a0001.dat'

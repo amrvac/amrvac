@@ -80,7 +80,8 @@ The default log-file may be altered, for which you need to code up
 a **usr_print_log** subroutine. For parallel execution,
 this invariably means the use of MPI constructs, so you should copy in the
 default version **printlog_default** from _src/amrvacio/mod_input_output.t_ 
-and then study it, and modify accordingly.
+and then study it, and modify accordingly. An example of this customization is 
+given in _tests/rho/custom_log_file_.
 
 A pointed **usr_aux_output** is extremely handy to compute variables from the
 actually computed conserved variables, that can then be visualized directly.

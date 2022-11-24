@@ -89,8 +89,8 @@ files, the script **aiconvert** is added. If you have a line
 `PATH="$AMRVAC_DIR:$AMRVAC_DIR/tools:./:$PATH"` in `~/.bash_profile` (or
 `~/.bashrc`), typing _aiconvert_ will tell you its intended usage.
 In the example case at hand, where we created 21 data files from running the
-advection problem. **This _aiconvert_ script needs the intended _base_filename_ 
-and the executable _amrvac_ exists in the same directory.** It will complain when the parfile
+advection problem, **this _aiconvert_ script needs the intended _base_filename_ 
+and the executable _amrvac_ to exist in the same directory.** It will complain when the parfile
 does not exist, and obviously requires the existence of all files between the
 start and stopindex (0 and 20 here). With paraview, you will then be able to
 immediately import all 21 _*.vtu_ files with the same base filename, and

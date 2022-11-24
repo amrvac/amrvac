@@ -365,6 +365,29 @@ module mod_thermal_emission
                 8.17917486d-32, 5.28280497d-32, 3.42357159d-32, 0.00000000d+00, &
                 0.00000000d+00, 0.00000000d+00, 0.00000000d+00, 0.00000000d+00 /
 
+  abstract interface
+    subroutine get_subr1(w,x,ixI^L,ixO^L,res)
+      use mod_global_parameters
+      integer, intent(in)          :: ixI^L, ixO^L
+      double precision, intent(in) :: w(ixI^S,nw)
+      double precision, intent(in) :: x(ixI^S,1:ndim)
+      double precision, intent(out):: res(ixI^S)
+    end subroutine get_subr1
+
+  end interface
+
+  type te_fluid
+
+    procedure (get_subr1), pointer, nopass :: get_rho => null()
+    procedure (get_subr1), pointer, nopass :: get_pthermal => null()
+    procedure (get_subr1), pointer, nopass :: get_var_Rfactor => null()
+
+    ! factor in eq of state p = Rfactor * rho * T
+    ! used for getting temperature
+    double precision :: Rfactor = 1d0
+
+  end type te_fluid
+
 
   contains
 
@@ -500,7 +523,7 @@ module mod_thermal_emission
       end select
     end subroutine get_line_info
     
-    subroutine get_EUV(wl,ixI^L,ixO^L,w,x,flux)
+    subroutine get_EUV(wl,ixI^L,ixO^L,w,x,fl,flux)
       ! calculate the local emission intensity of given EUV line (optically thin)
       ! wavelength is the wave length of the emission line
       ! unit [DN cm^-1 s^-1 pixel^-1]
@@ -511,6 +534,7 @@ module mod_thermal_emission
       integer, intent(in) :: ixI^L, ixO^L
       double precision, intent(in) :: x(ixI^S,1:ndim)
       double precision, intent(in) :: w(ixI^S,1:nw)
+      type(te_fluid), intent(in) :: fl
       double precision, intent(out) :: flux(ixI^S)
 
       integer :: n_table
@@ -598,13 +622,19 @@ module mod_thermal_emission
         allocate(f_table(1))
         call mpistop("Unknown wavelength")
       end select
-      call phys_get_pthermal(w,x,ixI^L,ixO^L,pth)
-      Te(ixO^S)=pth(ixO^S)/w(ixO^S,iw_rho)*unit_temperature
+      call fl%get_pthermal(w,x,ixI^L,ixO^L,pth)
+      call fl%get_rho(w,x,ixI^L,ixO^L,Ne)
+      if(associated(fl%get_var_Rfactor)) then
+        call fl%get_var_Rfactor(w,x,ixI^L,ixO^L,Te)
+        Te(ixO^S)=pth(ixO^S)/(Ne(ixO^S)*Te(ixO^S))*unit_temperature
+      else  
+        Te(ixO^S)=pth(ixO^S)/(Ne(ixO^S)*fl%Rfactor)*unit_temperature
+      endif
       if (SI_unit) then
-        Ne(ixO^S)=w(ixO^S,iw_rho)*unit_numberdensity/1.d6 ! m^-3 -> cm-3
+        Ne(ixO^S)=Ne(ixO^S)*unit_numberdensity/1.d6 ! m^-3 -> cm-3
         flux(ixO^S)=Ne(ixO^S)**2
       else
-        Ne(ixO^S)=w(ixO^S,iw_rho)*unit_numberdensity
+        Ne(ixO^S)=Ne(ixO^S)*unit_numberdensity
         flux(ixO^S)=Ne(ixO^S)**2
       endif
 
@@ -655,17 +685,18 @@ module mod_thermal_emission
       deallocate(t_table,f_table)
     end subroutine get_EUV
 
-    subroutine get_SXR(ixI^L,ixO^L,w,x,flux,El,Eu)
-      !synthesize thermal SXR from El keV to Eu keV
-      !flux (cgs): photons cm^-5 s^-1
-      !flux (SI): photons m^-3 cm^-2 s^-1
-      !integration of the flux is the SXR flux observed at 1AU [photons cm^-2 s^-1]
+    subroutine get_SXR(ixI^L,ixO^L,w,x,fl,flux,El,Eu)
+      !synthesize thermal SXR from El keV to Eu keV released by cm^-3/m^-3
+      ! volume of plasma in 1 s
+      !flux (cgs): photons cm^-3 s^-1
+      !flux (SI): photons m^-3 s^-1
       use mod_global_parameters
 
       integer, intent(in)           :: ixI^L,ixO^L
       integer, intent(in)           :: El,Eu
       double precision, intent(in)  :: x(ixI^S,1:ndim)
       double precision, intent(in)  :: w(ixI^S,nw)
+      type(te_fluid), intent(in) :: fl
       double precision, intent(out) :: flux(ixI^S)
 
       integer :: ix^D,ixO^D
@@ -675,18 +706,25 @@ module mod_thermal_emission
       double precision :: Ne(ixI^S),gff(ixI^S),fi(ixI^S)
       double precision :: EM(ixI^S)
 
-      I0=1.07d-42    ! photon flux index for observed at 1AU [photon cm s^-1 keV^-1]
+      I0=3.01d-15   ! I0*4*pi*AU**2, I0 from Pinto (2015)
       kb=const_kb
       keV=1.0d3*const_ev
       dE=0.1
       numE=floor((Eu-El)/dE)
-      call phys_get_pthermal(w,x,ixI^L,ixO^L,pth)
-      Te(ixO^S)=pth(ixO^S)/w(ixO^S,iw_rho)*unit_temperature
+      call fl%get_pthermal(w,x,ixI^L,ixO^L,pth)
+      call fl%get_rho(w,x,ixI^L,ixO^L,Ne)
+
+      if(associated(fl%get_var_Rfactor)) then
+        call fl%get_var_Rfactor(w,x,ixI^L,ixO^L,Te)
+        Te(ixO^S)=pth(ixO^S)/(Ne(ixO^S)*Te(ixO^S))*unit_temperature
+      else
+        Te(ixO^S)=pth(ixO^S)/(Ne(ixO^S)*fl%Rfactor)*unit_temperature
+      endif
       if (SI_unit) then
-        Ne(ixO^S)=w(ixO^S,iw_rho)*unit_numberdensity/1.d6 ! m^-3 -> cm-3
+        Ne(ixO^S)=Ne(ixO^S)*unit_numberdensity/1.d6 ! m^-3 -> cm-3
         EM(ixO^S)=(Ne(ixO^S))**2*1.d6 ! cm^-3 m^-3
       else
-        Ne(ixO^S)=w(ixO^S,iw_rho)*unit_numberdensity
+        Ne(ixO^S)=Ne(ixO^S)*unit_numberdensity
         EM(ixO^S)=(Ne(ixO^S))**2
       endif
       kbT(ixO^S)=kb*Te(ixO^S)/keV
@@ -695,22 +733,24 @@ module mod_thermal_emission
         Ei=dE*iE+El*1.d0
         gff(ixO^S)=1.d0
         {do ix^DB=ixOmin^DB,ixOmax^DB\}
-          if(kbT(ix^D)<Ei) then
-            gff(ix^D)=(kbT(ix^D)/Ei)**0.4
+          if (kbT(ix^D)>0.01*Ei) then
+            if(kbT(ix^D)<Ei) gff(ix^D)=(kbT(ix^D)/Ei)**0.4
+            fi(ix^D)=(EM(ix^D)*gff(ix^D))*dexp(-Ei/(kbT(ix^D)))/(Ei*dsqrt(kbT(ix^D)))
+          else
+            fi(ix^D)=zero
           endif
         {enddo\}
-        fi(ixO^S)=(EM(ixO^S)*gff(ixO^S))* &
-                  exp(-Ei/(kbT(ixO^S)))/(Ei*sqrt(kbT(ixO^S)))
         flux(ixO^S)=flux(ixO^S)+fi(ixO^S)*dE
       enddo
       flux(ixO^S)=flux(ixO^S)*I0
     end subroutine get_SXR
 
-    subroutine get_GOES_SXR_flux(xbox^L,eflux)
+    subroutine get_GOES_SXR_flux(xbox^L,fl,eflux)
       !get GOES SXR 1-8A flux observing at 1AU from given box [w/m^2]
       use mod_global_parameters
 
       double precision, intent(in) :: xbox^L
+      type(te_fluid), intent(in) :: fl
       double precision, intent(out) :: eflux
 
       double precision :: dxb^D,xb^L
@@ -727,19 +767,20 @@ module mod_thermal_emission
         ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
         ^D&xbmin^D=rnode(rpxmin^D_,igrid);
         ^D&xbmax^D=rnode(rpxmax^D_,igrid);
-        call get_GOES_flux_grid(ixI^L,ixO^L,ps(igrid)%w,ps(igrid)%x,ps(igrid)%dvolume(ixI^S),xbox^L,xb^L,eflux_grid)
+        call get_GOES_flux_grid(ixI^L,ixO^L,ps(igrid)%w,ps(igrid)%x,ps(igrid)%dvolume(ixI^S),xbox^L,xb^L,fl,eflux_grid)
         eflux_pe=eflux_pe+eflux_grid
       enddo
       call MPI_ALLREDUCE(eflux_pe,eflux,1,MPI_DOUBLE_PRECISION,MPI_SUM,icomm,ierrmpi)
     end subroutine get_GOES_SXR_flux
 
-    subroutine get_GOES_flux_grid(ixI^L,ixO^L,w,x,dV,xbox^L,xb^L,eflux_grid)
+    subroutine get_GOES_flux_grid(ixI^L,ixO^L,w,x,dV,xbox^L,xb^L,fl,eflux_grid)
       use mod_global_parameters
 
       integer, intent(in)           :: ixI^L,ixO^L
       double precision, intent(in)  :: x(ixI^S,1:ndim),dV(ixI^S)
       double precision, intent(in)  :: w(ixI^S,nw)
       double precision, intent(in)  :: xbox^L,xb^L
+      type(te_fluid), intent(in) :: fl
       double precision, intent(out) :: eflux_grid
 
       integer :: ix^D,ixO^D,ixb^L
@@ -769,13 +810,19 @@ module mod_thermal_emission
         Eu=const_h*const_c/(1.d0*A_cgs)/keV ! 1 A
         dE=0.1  ! keV
         numE=floor((Eu-El)/dE)
-        call phys_get_pthermal(w,x,ixI^L,ixb^L,pth)
-        Te(ixb^S)=pth(ixb^S)/w(ixb^S,iw_rho)*unit_temperature
+        call fl%get_pthermal(w,x,ixI^L,ixb^L,pth)
+        call fl%get_rho(w,x,ixI^L,ixb^L,Ne)
+        if(associated(fl%get_var_Rfactor)) then
+          call fl%get_var_Rfactor(w,x,ixI^L,ixb^L,Te)
+          Te(ixb^S)=pth(ixb^S)/(Ne(ixb^S)*Te(ixb^S))*unit_temperature
+        else
+          Te(ixb^S)=pth(ixb^S)/(Ne(ixb^S)*fl%Rfactor)*unit_temperature
+        endif
         if (SI_unit) then
-          Ne(ixO^S)=w(ixO^S,iw_rho)*unit_numberdensity/1.d6 ! m^-3 -> cm-3
+          Ne(ixO^S)=Ne(ixO^S)*unit_numberdensity/1.d6 ! m^-3 -> cm-3
           EM(ixb^S)=(I0*(Ne(ixb^S))**2)*dV(ixb^S)*(unit_length*1.d2)**3 ! cm^-3
         else
-          Ne(ixO^S)=w(ixO^S,iw_rho)*unit_numberdensity
+          Ne(ixO^S)=Ne(ixO^S)*unit_numberdensity
           EM(ixb^S)=(I0*(Ne(ixb^S))**2)*dV(ixb^S)*unit_length**3
         endif
         kbT(ixb^S)=kb*Te(ixb^S)/keV
@@ -784,13 +831,15 @@ module mod_thermal_emission
         do iE=0,numE-1
           Ei=dE*iE+El
           {do ix^DB=ixbmin^DB,ixbmax^DB\}
-            if(kbT(ix^D)<Ei) then
-              gff=(kbT(ix^D)/Ei)**0.4
-            else
-              gff=1.d0
+            if (kbT(ix^D)>1.d-2*Ei) then
+              if(kbT(ix^D)<Ei) then
+                gff=(kbT(ix^D)/Ei)**0.4
+              else
+                gff=1.d0
+              endif
+              fi=(EM(ix^D)*gff)*dexp(-Ei/(kbT(ix^D)))/(Ei*dsqrt(kbT(ix^D)))
+              eflux_grid=eflux_grid+fi*dE*Ei
             endif
-            fi=(EM(ix^D)*gff)*exp(-Ei/(kbT(ix^D)))/(Ei*sqrt(kbT(ix^D)))
-            eflux_grid=eflux_grid+fi*dE*Ei
           {enddo\}
         enddo
         eflux_grid=eflux_grid*keV*erg_SI
@@ -799,10 +848,11 @@ module mod_thermal_emission
     end subroutine get_GOES_flux_grid
 
   {^IFTHREED
-    subroutine get_EUV_spectrum(qunit)
+    subroutine get_EUV_spectrum(qunit,fl)
       use mod_global_parameters
 
       integer, intent(in) :: qunit
+      type(te_fluid), intent(in) :: fl
       character(20) :: datatype
 
       integer :: mass
@@ -842,13 +892,14 @@ module mod_thermal_emission
           if (mype==0) write(*,'(a,f8.1,a)') ' Location of slit: ',location_slit*unit_length/1.d8,' Mm'
         endif
         if (mype==0) write(*,'(a,f8.1,a)') ' Width of slit: ',wslit*725.0,' km'
-        call get_spectrum_data_resol(qunit,datatype)
+        call get_spectrum_data_resol(qunit,datatype,fl)
       else if (resolution_spectrum=='instrument') then
         if (mype==0) print *, 'Unit of wavelength: Angstrom (0.1 nm) '
         if (mype==0) print *, 'Unit of length: arcsec (~725 km)'
-        if (mype==0) write(*,'(a,f8.1,a)') ' Location of slit: ',location_slit,' arcsec'
+        if (mype==0) print *, 'Direction of the slit: parallel to xI2 vector'
+        if (mype==0) write(*,'(a,f8.1,a)') ' Location of slit: xI1 = ',location_slit,' arcsec'
         if (mype==0) write(*,'(a,f8.1,a)') ' Width of slit: ',wslit,' arcsec'
-        call get_spectrum_inst_resol(qunit,datatype)
+        call get_spectrum_inst_resol(qunit,datatype,fl)
       else
         call MPISTOP('Wrong resolution for resolution_spectrum!')
       endif
@@ -857,17 +908,18 @@ module mod_thermal_emission
 
     end subroutine get_EUV_spectrum
 
-    subroutine get_spectrum_inst_resol(qunit,datatype)
+    subroutine get_spectrum_inst_resol(qunit,datatype,fl)
 
       integer, intent(in) :: qunit
       character(20), intent(in) :: datatype
+      type(te_fluid), intent(in) :: fl
 
       integer :: numWL,numXS,iwL,ixS,numWI,ix^D
       double precision :: dwLg,dxSg,xSmin,xSmax,xScent,wLmin,wLmax
       double precision, allocatable :: wL(:),xS(:),dwL(:),dxS(:)
       double precision, allocatable :: wI(:,:,:),spectra(:,:),spectra_rc(:,:)
       double precision :: vec_cor(1:3),xI_cor(1:2)
-      double precision :: res
+      double precision :: res,r_loc,r_max
 
       integer :: mass
       character (30) :: ion
@@ -888,18 +940,33 @@ module mod_thermal_emission
           do ix3=1,2
             if (ix3==1) vec_cor(3)=xprobmin3
             if (ix3==2) vec_cor(3)=xprobmax3
-            call dot_product_loc(vec_cor,vec_xI2,res)
-            xI_cor(2)=res
-            if (ix1==1 .and. ix2==1 .and. ix3==1) then
-              xSmin=xI_cor(2)
-              xSmax=xI_cor(2)
+            if (big_image) then
+              r_loc=(vec_cor(1)-x_origin(1))**2
+              r_loc=r_loc+(vec_cor(2)-x_origin(2))**2
+              r_loc=r_loc+(vec_cor(3)-x_origin(3))**2
+              r_loc=sqrt(r_loc)
+              if (ix1==1 .and. ix2==1 .and. ix3==1) then
+                r_max=r_loc
+              else
+                r_max=max(r_max,r_loc)
+              endif
             else
-              xSmin=min(xSmin,xI_cor(2))
-              xSmax=max(xSmax,xI_cor(2))
+              call get_cor_image(vec_cor,xI_cor)
+              if (ix1==1 .and. ix2==1 .and. ix3==1) then
+                xSmin=xI_cor(2)
+                xSmax=xI_cor(2)
+              else
+                xSmin=min(xSmin,xI_cor(2))
+                xSmax=max(xSmax,xI_cor(2))
+              endif
             endif
           enddo
         enddo
       enddo
+      if (big_image) then
+        xSmin=-r_max
+        xSmax=r_max
+      endif
       xScent=(xSmin+xSmax)/2.d0
 
       ! tables for storing spectra data
@@ -930,7 +997,6 @@ module mod_thermal_emission
         dxS(ixS)=dxSg
       enddo
 
-
       ! find slit and do integration
       spectra=zero
       do iigrid=1,igridstail; igrid=igrids(iigrid);
@@ -943,8 +1009,7 @@ module mod_thermal_emission
             do ix3=1,2
               if (ix3==1) vec_cor(3)=rnode(rpxmin3_,igrid)
               if (ix3==2) vec_cor(3)=rnode(rpxmax3_,igrid)
-              call dot_product_loc(vec_cor,vec_xI1,res)
-              xI_cor(1)=res
+              call get_cor_image(vec_cor,xI_cor)
               if (ix1==1 .and. ix2==1 .and. ix3==1) then
                 xLmin=xI_cor(1)
                 xLmax=xI_cor(1)
@@ -956,11 +1021,9 @@ module mod_thermal_emission
           enddo
         enddo
 
-
         xslit=location_slit*arcsec
-        !if (location_slit>=xLmin-dxSg .and. location_slit<=xLmax+dxSg) then
         if (xslit>=xLmin-wslit*arcsec .and. xslit<=xLmax+wslit*arcsec) then
-          call integrate_spectra_inst_resol(igrid,wL,dwLg,xS,dxSg,spectra,numWL,numXS)
+          call integrate_spectra_inst_resol(igrid,wL,dwLg,xS,dxSg,spectra,numWL,numXS,fl)
         endif
       enddo
 
@@ -986,20 +1049,21 @@ module mod_thermal_emission
 
     end subroutine get_spectrum_inst_resol
 
-    subroutine integrate_spectra_inst_resol(igrid,wL,dwLg,xS,dxSg,spectra,numWL,numXS)
+    subroutine integrate_spectra_inst_resol(igrid,wL,dwLg,xS,dxSg,spectra,numWL,numXS,fl)
 
       integer, intent(in) :: igrid,numWL,numXS
       double precision, intent(in) :: wL(numWL),xS(numXS)
       double precision, intent(in) :: dwLg,dxSg
       double precision, intent(inout) :: spectra(numWL,numXS)
+      type(te_fluid), intent(in) :: fl
 
       integer :: ixO^L,ixI^L,ix^D,ixOnew,j
-      double precision, allocatable :: flux(:^D&),v(:^D&),pth(:^D&),Te(:^D&)
+      double precision, allocatable :: flux(:^D&),v(:^D&),pth(:^D&),Te(:^D&),rho(:^D&)
       double precision :: wlc,wlwd,res,dst_slit,xslit,arcsec
       double precision :: vloc(1:3),xloc(1:3),dxloc(1:3),xIloc(1:2),dxIloc(1:2)
       integer :: nSubC^D,iSubC^D,iwL,ixS,ixSmin,ixSmax,iwLmin,iwLmax,nwL
-      double precision :: slit_width,dxSubC^D,xCent1,xCent2,xerf^L,fluxSubC
-      double precision :: xSubC(1:3)
+      double precision :: slit_width,dxSubC^D,xerf^L,fluxSubC
+      double precision :: xSubC(1:3),xCent(1:2)
 
       integer :: mass
       double precision :: logTe,lineCent
@@ -1020,19 +1084,26 @@ module mod_thermal_emission
       ^D&ixOmax^D=ixmhi^D\
       ^D&ixImin^D=ixglo^D\
       ^D&ixImax^D=ixghi^D\
-      allocate(flux(ixI^S),v(ixI^S),pth(ixI^S),Te(ixI^S))
+      allocate(flux(ixI^S),v(ixI^S),pth(ixI^S),Te(ixI^S),rho(ixI^S))
       ! get local EUV flux and velocity
-      call get_EUV(spectrum_wl,ixI^L,ixO^L,ps(igrid)%w,ps(igrid)%x,flux)
-      call phys_get_pthermal(ps(igrid)%w,ps(igrid)%x,ixI^L,ixO^L,pth)
-      Te(ixO^S)=pth(ixO^S)/ps(igrid)%w(ixO^S,iw_rho)
+      call get_EUV(spectrum_wl,ixI^L,ixO^L,ps(igrid)%w,ps(igrid)%x,fl,flux)
+      call fl%get_pthermal(ps(igrid)%w,ps(igrid)%x,ixI^L,ixO^L,pth)
+      call fl%get_rho(ps(igrid)%w,ps(igrid)%x,ixI^L,ixO^L,rho)
+      if(associated(fl%get_var_Rfactor)) then
+        call fl%get_var_Rfactor(ps(igrid)%w,ps(igrid)%x,ixI^L,ixO^L,Te)
+        Te(ixO^S)=pth(ixO^S)/(Te(ixO^S)*rho(ixO^S))
+      else
+        Te(ixO^S)=pth(ixO^S)/(fl%Rfactor*rho(ixO^S))
+      endif
       {do ix^D=ixOmin^D,ixOmax^D\}
         do j=1,3
-          vloc(j)=ps(igrid)%w(ix^D,iw_mom(j))/ps(igrid)%w(ix^D,iw_rho)
+          vloc(j)=ps(igrid)%w(ix^D,iw_mom(j))/rho(ix^D)
         enddo
         call dot_product_loc(vloc,vec_LOS,res)
         v(ix^D)=res
       {enddo\}
 
+      deallocate(rho)
 
       slit_width=wslit*arcsec
       sigma_wl=sigma_PSF*dwLg
@@ -1040,8 +1111,7 @@ module mod_thermal_emission
       {do ix^D=ixOmin^D,ixOmax^D\}
         xloc(1:3)=ps(igrid)%x(ix^D,1:3)
         dxloc(1:3)=ps(igrid)%dx(ix^D,1:3)
-        call dot_product_loc(xloc,vec_xI1,res)
-        xIloc(1)=res
+        call get_cor_image(xloc,xIloc)
         call dot_product_loc(dxloc,vec_xI1,res)
         dxIloc(1)=abs(res)
         if (xIloc(1)>=xslit-half*(slit_width+dxIloc(1)) .and. & 
@@ -1063,11 +1133,10 @@ module mod_thermal_emission
           ! dividing a cell to several parts to get more accurate integrating values
           {do iSubC^D=1,nSubC^D\}
             ^D&xSubC(^D)=xloc(^D)-half*dxloc(^D)+(iSubC^D-half)*dxSubC^D;
-            call dot_product_loc(xSubC,vec_xI1,xCent1)
-            dst_slit=abs(xCent1-xslit)  ! space distance to slit center
+            call get_cor_image(xSubC,xCent)
+            dst_slit=abs(xCent(1)-xslit)  ! space distance to slit center
             if (dst_slit<=half*slit_width) then
-              call dot_product_loc(xSubC,vec_xI2,xCent2)  ! get sub cell center
-              ixS=floor((xCent2-(xS(1)-half*dxSg))/dxSg)+1
+              ixS=floor((xCent(2)-(xS(1)-half*dxSg))/dxSg)+1
               ixSmin=max(1,ixS-3)
               ixSmax=min(ixS+3,numXS)
               iwL=floor((wlc-(wL(1)-half*dwLg))/dwLg)+1
@@ -1079,8 +1148,8 @@ module mod_thermal_emission
                 do ixS=ixSmin,ixSmax
                   xerfmin1=(wL(iwL)-half*dwLg-wlc)/sqrt(2.d0*(sigma_wl**2+wlwd**2))
                   xerfmax1=(wL(iwL)+half*dwLg-wlc)/sqrt(2.d0*(sigma_wl**2+wlwd**2))
-                  xerfmin2=(xS(ixS)-half*dxSg-xCent2)/(sqrt(2.d0)*sigma_xs)
-                  xerfmax2=(xS(ixS)+half*dxSg-xCent2)/(sqrt(2.d0)*sigma_xs)
+                  xerfmin2=(xS(ixS)-half*dxSg-xCent(2))/(sqrt(2.d0)*sigma_xs)
+                  xerfmax2=(xS(ixS)+half*dxSg-xCent(2))/(sqrt(2.d0)*sigma_xs)
                   factor=(erfc(xerfmin1)-erfc(xerfmax1))*(erfc(xerfmin2)-erfc(xerfmax2))/4.d0
                   spectra(iwL,ixS)=spectra(iwL,ixS)+fluxSubC*factor
                 enddo
@@ -1091,12 +1160,14 @@ module mod_thermal_emission
         endif
       {enddo\}
 
+      deallocate(flux,v,pth,Te)
     end subroutine integrate_spectra_inst_resol
 
-    subroutine get_spectrum_data_resol(qunit,datatype)
+    subroutine get_spectrum_data_resol(qunit,datatype,fl)
 
       integer, intent(in) :: qunit
       character(20), intent(in) :: datatype
+      type(te_fluid), intent(in) :: fl
 
       integer :: numWL,numXS,iwL,ixS,numWI,numS
       double precision :: dwLg,xSmin,xSmax,wLmin,wLmax
@@ -1203,22 +1274,22 @@ module mod_thermal_emission
       end select
 
 
-      if (LOS_theta==0 .and. LOS_phi==90 .and. direction_slit==2) then
+      if (LOS_phi==0 .and. LOS_theta==90 .and. direction_slit==2) then
       ! LOS->x slit->y
         dir_loc=3
-      else if (LOS_theta==0 .and. LOS_phi==90 .and. direction_slit==3) then
+      else if (LOS_phi==0 .and. LOS_theta==90 .and. direction_slit==3) then
       ! LOS->x slit->z
         dir_loc=2
-      else if (LOS_theta==90 .and. LOS_phi==90 .and. direction_slit==1) then
+      else if (LOS_phi==90 .and. LOS_theta==90 .and. direction_slit==1) then
       ! LOS->y slit->x
         dir_loc=3
-      else if (LOS_theta==90 .and. LOS_phi==90 .and. direction_slit==3) then
+      else if (LOS_phi==90 .and. LOS_theta==90 .and. direction_slit==3) then
       ! LOS->y slit->z
         dir_loc=1
-      else if (LOS_phi==0 .and. direction_slit==1) then
+      else if (LOS_theta==0 .and. direction_slit==1) then
       ! LOS->z slit->x
         dir_loc=2
-      else if (LOS_phi==0 .and. direction_slit==2) then
+      else if (LOS_theta==0 .and. direction_slit==2) then
       ! LOS->z slit->y
         dir_loc=1
       else
@@ -1245,7 +1316,7 @@ module mod_thermal_emission
         ^D&xbmin(^D)=rnode(rpxmin^D_,igrid);
         ^D&xbmax(^D)=rnode(rpxmax^D_,igrid);
         if (location_slit>=xbmin(dir_loc) .and. location_slit<xbmax(dir_loc)) then
-          call integrate_spectra_data_resol(igrid,wL,dwL,spectra,numWL,numXS,dir_loc)
+          call integrate_spectra_data_resol(igrid,wL,dwL,spectra,numWL,numXS,dir_loc,fl)
         endif
       enddo
 
@@ -1269,16 +1340,17 @@ module mod_thermal_emission
 
     end subroutine get_spectrum_data_resol
 
-    subroutine integrate_spectra_data_resol(igrid,wL,dwL,spectra,numWL,numXS,dir_loc)
+    subroutine integrate_spectra_data_resol(igrid,wL,dwL,spectra,numWL,numXS,dir_loc,fl)
       use mod_constants
 
       integer, intent(in) :: igrid,numWL,numXS,dir_loc
+      type(te_fluid), intent(in) :: fl
       double precision, intent(in) :: wL(numWL),dwL(numWL)
       double precision, intent(inout) :: spectra(numWL,numXS)
 
       integer :: direction_LOS
       integer :: ixO^L,ixI^L,ix^D,ixOnew
-      double precision, allocatable :: flux(:^D&),v(:^D&),pth(:^D&),Te(:^D&)
+      double precision, allocatable :: flux(:^D&),v(:^D&),pth(:^D&),Te(:^D&),rho(:^D&)
       double precision :: wlc,wlwd
 
       integer :: mass
@@ -1291,9 +1363,9 @@ module mod_thermal_emission
 
       call get_line_info(spectrum_wl,ion,mass,logTe,lineCent,spaceRsl,wlRsl,sigma_PSF,wslit)      
 
-      if (LOS_theta==0 .and. LOS_phi==90) then
+      if (LOS_phi==0 .and. LOS_theta==90) then
         direction_LOS=1
-      else if (LOS_theta==90 .and. LOS_phi==90) then
+      else if (LOS_phi==90 .and. LOS_theta==90) then
         direction_LOS=2
       else
         direction_LOS=3
@@ -1303,7 +1375,7 @@ module mod_thermal_emission
       ^D&ixOmax^D=ixmhi^D\
       ^D&ixImin^D=ixglo^D\
       ^D&ixImax^D=ixghi^D\
-      allocate(flux(ixI^S),v(ixI^S),pth(ixI^S),Te(ixI^S))
+      allocate(flux(ixI^S),v(ixI^S),pth(ixI^S),Te(ixI^S),rho(ixI^S))
 
       ^D&ix^D=ixOmin^D;
       if (dir_loc==1) then
@@ -1335,10 +1407,16 @@ module mod_thermal_emission
         ixOmax3=ixOnew
       endif
 
-      call get_EUV(spectrum_wl,ixI^L,ixO^L,ps(igrid)%w,ps(igrid)%x,flux)
-      v(ixO^S)=-ps(igrid)%w(ixO^S,iw_mom(direction_LOS))/ps(igrid)%w(ixO^S,iw_rho)
-      call phys_get_pthermal(ps(igrid)%w,ps(igrid)%x,ixI^L,ixO^L,pth)
-      Te(ixO^S)=pth(ixO^S)/ps(igrid)%w(ixO^S,iw_rho)
+      call get_EUV(spectrum_wl,ixI^L,ixO^L,ps(igrid)%w,ps(igrid)%x,fl,flux)
+      call fl%get_rho(ps(igrid)%w,ps(igrid)%x,ixI^L,ixO^L,rho)
+      v(ixO^S)=-ps(igrid)%w(ixO^S,iw_mom(direction_LOS))/rho(ixO^S)
+      call fl%get_pthermal(ps(igrid)%w,ps(igrid)%x,ixI^L,ixO^L,pth)
+      if(associated(fl%get_var_Rfactor)) then
+        call fl%get_var_Rfactor(ps(igrid)%w,ps(igrid)%x,ixI^L,ixO^L,Te)
+        Te(ixO^S)=pth(ixO^S)/(Te(ixO^S)*rho(ixO^S))
+      else
+        Te(ixO^S)=pth(ixO^S)/(fl%Rfactor*rho(ixO^S))
+      endif
 
       ! grid parameters
       levelg=ps(igrid)%level
@@ -1383,14 +1461,15 @@ module mod_thermal_emission
 
       {enddo\}
 
-      deallocate(flux,v,pth,Te)
+      deallocate(flux,v,pth,Te,rho)
 
     end subroutine integrate_spectra_data_resol
 
-    subroutine get_EUV_image(qunit)
+    subroutine get_EUV_image(qunit,fl)
       use mod_global_parameters
 
       integer, intent(in) :: qunit
+      type(te_fluid), intent(in) :: fl
       character(20) :: datatype
 
       integer :: mass
@@ -1403,41 +1482,43 @@ module mod_thermal_emission
       if (mype==0) write(*,'(a,f8.3,a)') ' Wavelength: ',lineCent,' Angstrom'
       if (mype==0) print *, 'Unit of EUV flux: DN s^-1 pixel^-1'
       if (mype==0) write(*,'(a,f5.1,a,f5.1,a)') ' Pixel: ',spaceRsl*725.0,' km x ',spaceRsl*725.0, ' km'
+      if (mype==0) write(*,'(a,f6.3,f8.3,f8.3,a)') ' Mapping: [',x_origin(1),x_origin(2),x_origin(3), &
+                                                   '] of the simulation box is located at [X=0,Y=0] of the image'
+      if (mype==0) print *, 'Negative Doppler velocity indicates blueshift'
 
       datatype='image_euv'
 
-      if (image_euv) then
-        if (resolution_euv=='data') then
-          if (SI_unit) then
-            if (mype==0) write(*,'(a,f8.1,a)') ' Unit of length: ',unit_length/1.d6,' Mm'
-          else
-            if (mype==0) write(*,'(a,f8.1,a)') ' Unit of length: ',unit_length/1.d8,' Mm'
-          endif
-          if (LOS_theta==0 .and. LOS_phi==90) then
-            call get_image_data_resol(qunit,datatype)
-          else if (LOS_theta==90 .and. LOS_phi==90) then
-            call get_image_data_resol(qunit,datatype)
-          else if (LOS_phi==0) then
-            call get_image_data_resol(qunit,datatype)
-          else
-            call MPISTOP('ERROR: Wrong LOS for synthesizing emission!')
-          endif
-        else if (resolution_euv=='instrument') then
-          if (mype==0) print *, 'Unit of length: arcsec (~725 km)'
-          call get_image_inst_resol(qunit,datatype)
+      if (resolution_euv=='data') then
+        if (SI_unit) then
+          if (mype==0) write(*,'(a,f8.1,a)') ' Unit of length: ',unit_length/1.d6,' Mm'
         else
-          call MPISTOP('ERROR: Wrong resolution type')
+          if (mype==0) write(*,'(a,f8.1,a)') ' Unit of length: ',unit_length/1.d8,' Mm'
         endif
+        if (LOS_phi==0 .and. LOS_theta==90) then
+          call get_image_data_resol(qunit,datatype,fl)
+        else if (LOS_phi==90 .and. LOS_theta==90) then
+          call get_image_data_resol(qunit,datatype,fl)
+        else if (LOS_theta==0) then
+          call get_image_data_resol(qunit,datatype,fl)
+        else
+          call MPISTOP('ERROR: Wrong LOS for synthesizing emission!')
+        endif
+      else if (resolution_euv=='instrument') then
+        if (mype==0) print *, 'Unit of length: arcsec (~725 km)'
+        call get_image_inst_resol(qunit,datatype,fl)
+      else
+        call MPISTOP('ERROR: Wrong resolution type')
       endif
 
       if (mype==0) print *, '###################################################'
       
     end subroutine get_EUV_image
 
-    subroutine get_SXR_image(qunit)
+    subroutine get_SXR_image(qunit,fl)
       use mod_global_parameters
 
       integer, intent(in) :: qunit
+      type(te_fluid), intent(in) :: fl
       character(20) :: datatype
 
       if (mype==0) print *, '###################################################'
@@ -1445,44 +1526,45 @@ module mod_thermal_emission
       if (mype==0) write(*,'(a,i2,a,i2,a)') ' Passband: ',emin_sxr,' - ',emax_sxr,' keV'
       if (mype==0) print *, 'Unit of SXR flux: photons cm^-2 s^-1 pixel^-1'
       if (mype==0) write(*,'(a,f6.1,a,f6.1,a)') ' Pixel: ',2.3*725.0,' km x ',2.3*725.0, ' km'
+      if (mype==0) write(*,'(a,f6.3,f8.3,f8.3,a)') ' Mapping: [',x_origin(1),x_origin(2),x_origin(3), &
+                                                   '] of the simulation box is located at [X=0,Y=0] of the image'
 
       datatype='image_sxr'
 
-      if (image_sxr) then
-        if (resolution_sxr=='data') then
-          if (SI_unit) then
-            if (mype==0) write(*,'(a,f8.1,a)') ' Unit of length: ',unit_length/1.d3,' km'
-          else
-            if (mype==0) write(*,'(a,f8.1,a)') ' Unit of length: ',unit_length/1.d5,' km'
-          endif
-          if (LOS_theta==0 .and. LOS_phi==90) then
-            call get_image_data_resol(qunit,datatype)
-          else if (LOS_theta==90 .and. LOS_phi==90) then
-            call get_image_data_resol(qunit,datatype)
-          else if (LOS_phi==0) then
-            call get_image_data_resol(qunit,datatype)
-          else
-            call MPISTOP('ERROR: Wrong LOS for synthesizing emission!')
-          endif
-        else if (resolution_sxr=='instrument') then
-          if (mype==0) print *, 'Unit of length: arcsec (~725 km)'
-          call get_image_inst_resol(qunit,datatype)
+      if (resolution_sxr=='data') then
+        if (SI_unit) then
+          if (mype==0) write(*,'(a,f8.1,a)') ' Unit of length: ',unit_length/1.d3,' km'
         else
-          call MPISTOP('ERROR: Wrong resolution type')
+          if (mype==0) write(*,'(a,f8.1,a)') ' Unit of length: ',unit_length/1.d5,' km'
         endif
+        if (LOS_phi==0 .and. LOS_theta==90) then
+          call get_image_data_resol(qunit,datatype,fl)
+        else if (LOS_phi==90 .and. LOS_theta==90) then
+          call get_image_data_resol(qunit,datatype,fl)
+        else if (LOS_theta==0) then
+          call get_image_data_resol(qunit,datatype,fl)
+        else
+          call MPISTOP('ERROR: Wrong LOS for synthesizing emission!')
+        endif
+      else if (resolution_sxr=='instrument') then
+        if (mype==0) print *, 'Unit of length: arcsec (~725 km)'
+        call get_image_inst_resol(qunit,datatype,fl)
+      else
+        call MPISTOP('ERROR: Wrong resolution type')
       endif
 
       if (mype==0) print *, '###################################################'
 
     end subroutine get_SXR_image
 
-    subroutine get_image_inst_resol(qunit,datatype)
+    subroutine get_image_inst_resol(qunit,datatype,fl)
       ! integrate emission flux along line of sight (LOS) 
       ! in a 3D simulation box and get a 2D EUV image
       use mod_global_parameters
       use mod_constants
 
       integer, intent(in) :: qunit
+      type(te_fluid), intent(in) :: fl
       character(20), intent(in) :: datatype
 
       integer :: ix^D,numXI1,numXI2,numWI
@@ -1492,7 +1574,7 @@ module mod_thermal_emission
       double precision, allocatable :: SXRs(:,:),SXR(:,:)
       double precision :: vec_temp1(1:3),vec_temp2(1:3)
       double precision :: vec_z(1:3),vec_cor(1:3),xI_cor(1:2)
-      double precision :: res,LOS_psi
+      double precision :: res,LOS_psi,r_max,r_loc
 
       integer :: mass
       character (30) :: ion
@@ -1512,24 +1594,39 @@ module mod_thermal_emission
           do ix3=1,2
             if (ix3==1) vec_cor(3)=xprobmin3
             if (ix3==2) vec_cor(3)=xprobmax3
-            call dot_product_loc(vec_cor,vec_xI1,res)
-            xI_cor(1)=res
-            call dot_product_loc(vec_cor,vec_xI2,res)
-            xI_cor(2)=res
-            if (ix1==1 .and. ix2==1 .and. ix3==1) then
-              xImin1=xI_cor(1)
-              xImax1=xI_cor(1)
-              xImin2=xI_cor(2)
-              xImax2=xI_cor(2)
+            if (big_image) then
+              r_loc=(vec_cor(1)-x_origin(1))**2
+              r_loc=r_loc+(vec_cor(2)-x_origin(2))**2
+              r_loc=r_loc+(vec_cor(3)-x_origin(3))**2
+              r_loc=sqrt(r_loc)
+              if (ix1==1 .and. ix2==1 .and. ix3==1) then
+                r_max=r_loc
+              else
+                r_max=max(r_max,r_loc)
+              endif
             else
-              xImin1=min(xImin1,xI_cor(1))
-              xImax1=max(xImax1,xI_cor(1))
-              xImin2=min(xImin2,xI_cor(2))
-              xImax2=max(xImax2,xI_cor(2))
+              call get_cor_image(vec_cor,xI_cor)
+              if (ix1==1 .and. ix2==1 .and. ix3==1) then
+                xImin1=xI_cor(1)
+                xImax1=xI_cor(1)
+                xImin2=xI_cor(2)
+                xImax2=xI_cor(2)
+              else
+                xImin1=min(xImin1,xI_cor(1))
+                xImax1=max(xImax1,xI_cor(1))
+                xImin2=min(xImin2,xI_cor(2))
+                xImax2=max(xImax2,xI_cor(2))
+              endif
             endif
           enddo
         enddo
       enddo
+      if (big_image) then
+        xImin1=-r_max
+        xImin2=-r_max
+        xImax1=r_max
+        xImax2=r_max
+      endif
       xIcent1=(xImin1+xImax1)/2.d0
       xIcent2=(xImin2+xImax2)/2.d0
 
@@ -1581,7 +1678,7 @@ module mod_thermal_emission
         Dpl=zero
         Dpls=zero
         do iigrid=1,igridstail; igrid=igrids(iigrid);
-          call integrate_EUV_inst_resol(igrid,numXI1,numXI2,xI1,xI2,dxI,EUVs,Dpls)
+          call integrate_EUV_inst_resol(igrid,numXI1,numXI2,xI1,xI2,dxI,fl,EUVs,Dpls)
         enddo
         numSI=numXI1*numXI2
         call MPI_ALLREDUCE(EUVs,EUV,numSI,MPI_DOUBLE_PRECISION, &
@@ -1592,7 +1689,7 @@ module mod_thermal_emission
           do ix2=1,numXI2
             if (EUV(ix1,ix2)<smalldouble) EUV(ix1,ix2)=zero
             if(EUV(ix1,ix2)/=0) then
-              Dpl(ix1,ix2)=-(Dpl(ix1,ix2)/EUV(ix1,ix2))*unitv
+              Dpl(ix1,ix2)=(Dpl(ix1,ix2)/EUV(ix1,ix2))*unitv
             else
               Dpl(ix1,ix2)=0.d0
             endif
@@ -1618,7 +1715,7 @@ module mod_thermal_emission
         SXR=zero
         SXRs=zero
         do iigrid=1,igridstail; igrid=igrids(iigrid);
-          call integrate_SXR_inst_resol(igrid,numXI1,numXI2,xI1,xI2,dxI,SXRs)
+          call integrate_SXR_inst_resol(igrid,numXI1,numXI2,xI1,xI2,dxI,fl,SXRs)
         enddo
         numSI=numXI1*numXI2
         call MPI_ALLREDUCE(SXRs,SXR,numSI,MPI_DOUBLE_PRECISION, &
@@ -1643,10 +1740,11 @@ module mod_thermal_emission
 
     end subroutine get_image_inst_resol
 
-    subroutine integrate_SXR_inst_resol(igrid,numXI1,numXI2,xI1,xI2,dxI,SXR)
+    subroutine integrate_SXR_inst_resol(igrid,numXI1,numXI2,xI1,xI2,dxI,fl,SXR)
       integer, intent(in) :: igrid,numXI1,numXI2
       double precision, intent(in) :: xI1(numXI1),xI2(numXI2)
       double precision, intent(in) :: dxI
+      type(te_fluid), intent(in) :: fl
       double precision, intent(out) :: SXR(numXI1,numXI2)
 
       integer :: ixO^L,ixO^D,ixI^L,ix^D,i,j
@@ -1655,10 +1753,10 @@ module mod_thermal_emission
       double precision :: vloc(1:3),res
       integer :: ixP^L,ixP^D,nSubC^D,iSubC^D
       double precision :: xSubP1,xSubP2,dxSubP,xerf^L,fluxsubC
-      double precision :: xSubC(1:3),dxSubC^D,xCent1,xCent2
+      double precision :: xSubC(1:3),dxSubC^D,xCent(1:2)
 
       double precision :: sigma_PSF,RHESSI_rsl,sigma0,factor
-      double precision :: arcsec,pixel
+      double precision :: arcsec,pixel,area_1AU
 
       ^D&ixOmin^D=ixmlo^D\
       ^D&ixOmax^D=ixmhi^D\
@@ -1669,7 +1767,7 @@ module mod_thermal_emission
 
       allocate(flux(ixI^S))
       ! get local SXR flux
-      call get_SXR(ixI^L,ixO^L,ps(igrid)%w,ps(igrid)%x,flux,emin_sxr,emax_sxr)
+      call get_SXR(ixI^L,ixO^L,ps(igrid)%w,ps(igrid)%x,fl,flux,emin_sxr,emax_sxr)
 
       ! integrate emission
       if (SI_unit) then
@@ -1681,6 +1779,7 @@ module mod_thermal_emission
       sigma_PSF=1.d0
       pixel=RHESSI_rsl*arcsec
       sigma0=sigma_PSF*pixel
+      area_1AU=2.81d27
       {do ix^D=ixOmin^D,ixOmax^D\}
         ^D&nSubC^D=1;
         ^D&nSubC^D=max(nSubC^D,ceiling(ps(igrid)%dx(ix^DD,^D)*abs(vec_xI1(^D))/(dxI/4.d0)));
@@ -1689,22 +1788,21 @@ module mod_thermal_emission
         ! dividing a cell to several parts to get more accurate integrating values
         {do iSubC^D=1,nSubC^D\}
           ^D&xSubC(^D)=ps(igrid)%x(ix^DD,^D)-half*ps(igrid)%dx(ix^DD,^D)+(iSubC^D-half)*dxSubC^D;
-          fluxSubC=flux(ix^D)*dxSubC1*dxSubC2*dxSubC3*unit_length**3
+          fluxSubC=flux(ix^D)*dxSubC1*dxSubC2*dxSubC3*unit_length**3/area_1AU
           ! mapping the 3D coordinate to location at the image
-          call dot_product_loc(xSubC,vec_xI1,xCent1)
-          call dot_product_loc(xSubC,vec_xI2,xCent2)
-          ixP1=floor((xCent1-(xI1(1)-half*dxI))/dxI)+1
-          ixP2=floor((xCent2-(xI2(1)-half*dxI))/dxI)+1
+          call get_cor_image(xSubC,xCent)
+          ixP1=floor((xCent(1)-(xI1(1)-half*dxI))/dxI)+1
+          ixP2=floor((xCent(2)-(xI2(1)-half*dxI))/dxI)+1
           ixPmin1=max(1,ixP1-3)
           ixPmax1=min(ixP1+3,numXI1)
           ixPmin2=max(1,ixP2-3)
           ixPmax2=min(ixP2+3,numXI2)
           do ixP1=ixPmin1,ixPmax1
             do ixP2=ixPmin2,ixPmax2
-              xerfmin1=((xI1(ixP1)-half*dxI)-xCent1)/(sqrt(2.d0)*sigma0)
-              xerfmax1=((xI1(ixP1)+half*dxI)-xCent1)/(sqrt(2.d0)*sigma0)
-              xerfmin2=((xI2(ixP2)-half*dxI)-xCent2)/(sqrt(2.d0)*sigma0)
-              xerfmax2=((xI2(ixP2)+half*dxI)-xCent2)/(sqrt(2.d0)*sigma0)
+              xerfmin1=((xI1(ixP1)-half*dxI)-xCent(1))/(sqrt(2.d0)*sigma0)
+              xerfmax1=((xI1(ixP1)+half*dxI)-xCent(1))/(sqrt(2.d0)*sigma0)
+              xerfmin2=((xI2(ixP2)-half*dxI)-xCent(2))/(sqrt(2.d0)*sigma0)
+              xerfmax2=((xI2(ixP2)+half*dxI)-xCent(2))/(sqrt(2.d0)*sigma0)
               factor=(erfc(xerfmin1)-erfc(xerfmax1))*(erfc(xerfmin2)-erfc(xerfmax2))/4.d0
               SXR(ixP1,ixP2)=SXR(ixP1,ixP2)+fluxSubC*factor
             enddo !ixP2
@@ -1715,19 +1813,20 @@ module mod_thermal_emission
       deallocate(flux)
     end subroutine integrate_SXR_inst_resol
 
-    subroutine integrate_EUV_inst_resol(igrid,numXI1,numXI2,xI1,xI2,dxI,EUV,Dpl)
+    subroutine integrate_EUV_inst_resol(igrid,numXI1,numXI2,xI1,xI2,dxI,fl,EUV,Dpl)
       integer, intent(in) :: igrid,numXI1,numXI2
       double precision, intent(in) :: xI1(numXI1),xI2(numXI2)
       double precision, intent(in) :: dxI
+      type(te_fluid), intent(in) :: fl
       double precision, intent(out) :: EUV(numXI1,numXI2),Dpl(numXI1,numXI2)
 
       integer :: ixO^L,ixO^D,ixI^L,ix^D,i,j
       double precision :: xb^L,xd^D
-      double precision, allocatable :: flux(:^D&),v(:^D&)
+      double precision, allocatable :: flux(:^D&),v(:^D&),rho(:^D&)
       double precision :: vloc(1:3),res
       integer :: ixP^L,ixP^D,nSubC^D,iSubC^D
       double precision :: xSubP1,xSubP2,dxSubP,xerf^L,fluxsubC
-      double precision :: xSubC(1:3),dxSubC^D,xCent1,xCent2
+      double precision :: xSubC(1:3),dxSubC^D,xCent(1:2)
 
       integer :: mass
       double precision :: logTe
@@ -1743,16 +1842,18 @@ module mod_thermal_emission
       ^D&xbmin^D=rnode(rpxmin^D_,igrid)\
       ^D&xbmax^D=rnode(rpxmax^D_,igrid)\
 
-      allocate(flux(ixI^S),v(ixI^S))
+      allocate(flux(ixI^S),v(ixI^S),rho(ixI^S))
       ! get local EUV flux and velocity
-      call get_EUV(wavelength,ixI^L,ixO^L,ps(igrid)%w,ps(igrid)%x,flux)
+      call get_EUV(wavelength,ixI^L,ixO^L,ps(igrid)%w,ps(igrid)%x,fl,flux)
+      call fl%get_rho(ps(igrid)%w,ps(igrid)%x,ixI^L,ixO^L,rho)
       {do ix^D=ixOmin^D,ixOmax^D\}
         do j=1,3
-          vloc(j)=ps(igrid)%w(ix^D,iw_mom(j))/ps(igrid)%w(ix^D,iw_rho)
+          vloc(j)=ps(igrid)%w(ix^D,iw_mom(j))/rho(ix^D)
         enddo
         call dot_product_loc(vloc,vec_LOS,res)
         v(ix^D)=res
       {enddo\}
+      deallocate(rho)
 
       ! integrate emission
       call get_line_info(wavelength,ion,mass,logTe,lineCent,spaceRsl,wlRsl,sigma_PSF,wslit)
@@ -1777,21 +1878,20 @@ module mod_thermal_emission
         {do iSubC^D=1,nSubC^D\}
           ^D&xSubC(^D)=ps(igrid)%x(ix^DD,^D)-half*ps(igrid)%dx(ix^DD,^D)+(iSubC^D-half)*dxSubC^D;
           ! mapping the 3D coordinate to location at the image
-          call dot_product_loc(xSubC,vec_xI1,xCent1)
-          call dot_product_loc(xSubC,vec_xI2,xCent2)
+          call get_cor_image(xSubC,xCent)
           ! distribution at nearby pixels
-          ixP1=floor((xCent1-(xI1(1)-half*dxI))/dxI)+1
-          ixP2=floor((xCent2-(xI2(1)-half*dxI))/dxI)+1
+          ixP1=floor((xCent(1)-(xI1(1)-half*dxI))/dxI)+1
+          ixP2=floor((xCent(2)-(xI2(1)-half*dxI))/dxI)+1
           ixPmin1=max(1,ixP1-3)
           ixPmax1=min(ixP1+3,numXI1)
           ixPmin2=max(1,ixP2-3)
           ixPmax2=min(ixP2+3,numXI2)
           do ixP1=ixPmin1,ixPmax1
             do ixP2=ixPmin2,ixPmax2
-              xerfmin1=((xI1(ixP1)-half*dxI)-xCent1)/(sqrt(2.d0)*sigma0) 
-              xerfmax1=((xI1(ixP1)+half*dxI)-xCent1)/(sqrt(2.d0)*sigma0)
-              xerfmin2=((xI2(ixP2)-half*dxI)-xCent2)/(sqrt(2.d0)*sigma0)
-              xerfmax2=((xI2(ixP2)+half*dxI)-xCent2)/(sqrt(2.d0)*sigma0)
+              xerfmin1=((xI1(ixP1)-half*dxI)-xCent(1))/(sqrt(2.d0)*sigma0) 
+              xerfmax1=((xI1(ixP1)+half*dxI)-xCent(1))/(sqrt(2.d0)*sigma0)
+              xerfmin2=((xI2(ixP2)-half*dxI)-xCent(2))/(sqrt(2.d0)*sigma0)
+              xerfmax2=((xI2(ixP2)+half*dxI)-xCent(2))/(sqrt(2.d0)*sigma0)
               factor=(erfc(xerfmin1)-erfc(xerfmax1))*(erfc(xerfmin2)-erfc(xerfmax2))/4.d0
               EUV(ixP1,ixP2)=EUV(ixP1,ixP2)+fluxSubC*factor
               Dpl(ixP1,ixP2)=Dpl(ixP1,ixP2)+fluxSubC*factor*v(ix^D)
@@ -1803,7 +1903,7 @@ module mod_thermal_emission
       deallocate(flux,v)
     end subroutine integrate_EUV_inst_resol
 
-    subroutine get_image_data_resol(qunit,datatype)
+    subroutine get_image_data_resol(qunit,datatype,fl)
       ! integrate emission flux along line of sight (LOS) 
       ! in a 3D simulation box and get a 2D EUV image
       use mod_global_parameters
@@ -1811,6 +1911,7 @@ module mod_thermal_emission
 
       integer, intent(in) :: qunit
       character(20), intent(in) :: datatype
+      type(te_fluid), intent(in) :: fl
 
       double precision :: dx^D
       integer :: numX^D,ix^D
@@ -1833,7 +1934,7 @@ module mod_thermal_emission
       numX3=domain_nx3*2**(refine_max_level-1)
 
       ! parameters for creating table
-      if (LOS_theta==0 .and. LOS_phi==90) then
+      if (LOS_phi==0 .and. LOS_theta==90) then
         nXIF1=domain_nx2*2**(refine_max_level-1)
         nXIF2=domain_nx3*2**(refine_max_level-1)
         xIFmin1=xprobmin2
@@ -1850,7 +1951,10 @@ module mod_thermal_emission
         nstrb2=nstretchedblocks_baselevel(3)
         qs1=qstretch_baselevel(2)
         qs2=qstretch_baselevel(3)
-      else if (LOS_theta==90 .and. LOS_phi==90) then
+        if (mype==0) write(*,'(a)') ' LOS vector: [-1.00  0.00  0.00]'
+        if (mype==0) write(*,'(a)') ' xI1 vector: [ 0.00  1.00  0.00]'
+        if (mype==0) write(*,'(a)') ' xI2 vector: [ 0.00  0.00  1.00]'
+      else if (LOS_phi==90 .and. LOS_theta==90) then
         nXIF1=domain_nx3*2**(refine_max_level-1)
         nXIF2=domain_nx1*2**(refine_max_level-1)
         xIFmin1=xprobmin3
@@ -1867,6 +1971,9 @@ module mod_thermal_emission
         nstrb2=nstretchedblocks_baselevel(1)
         qs1=qstretch_baselevel(3)
         qs2=qstretch_baselevel(1)
+        if (mype==0) write(*,'(a)') ' LOS vector: [ 0.00 -1.00  0.00]'
+        if (mype==0) write(*,'(a)') ' xI1 vector: [-1.00  0.00  0.00]'
+        if (mype==0) write(*,'(a)') ' xI2 vector: [ 0.00  0.00  1.00]'
       else
         nXIF1=domain_nx1*2**(refine_max_level-1)
         nXIF2=domain_nx2*2**(refine_max_level-1)
@@ -1884,6 +1991,9 @@ module mod_thermal_emission
         nstrb2=nstretchedblocks_baselevel(2)
         qs1=qstretch_baselevel(1)
         qs2=qstretch_baselevel(2)
+        if (mype==0) write(*,'(a)') ' LOS vector: [ 0.00  0.00 -1.00]'
+        if (mype==0) write(*,'(a)') ' xI1 vector: [ 1.00  0.00  0.00]'
+        if (mype==0) write(*,'(a)') ' xI2 vector: [ 0.00  1.00  0.00]'
       endif
       allocate(xIF1(nXIF1),xIF2(nXIF2),dxIF1(nXIF1),dxIF2(nXIF2))
 
@@ -2000,7 +2110,7 @@ module mod_thermal_emission
         Dpl=0.d0
         Dpls=0.d0 
         do iigrid=1,igridstail; igrid=igrids(iigrid);
-          call integrate_EUV_data_resol(igrid,nXIF1,nXIF2,xIF1,xIF2,dxIF1,dxIF2,EUVs,Dpls)
+          call integrate_EUV_data_resol(igrid,nXIF1,nXIF2,xIF1,xIF2,dxIF1,dxIF2,fl,EUVs,Dpls)
         enddo
         numSI=nXIF1*nXIF2
         call MPI_ALLREDUCE(EUVs,EUV,numSI,MPI_DOUBLE_PRECISION, &
@@ -2011,7 +2121,7 @@ module mod_thermal_emission
           do ix2=1,nXIF2
             if (EUV(ix1,ix2)<smalldouble) EUV(ix1,ix2)=zero
             if(EUV(ix1,ix2)/=0) then
-              Dpl(ix1,ix2)=-(Dpl(ix1,ix2)/EUV(ix1,ix2))*unitv
+              Dpl(ix1,ix2)=(Dpl(ix1,ix2)/EUV(ix1,ix2))*unitv
             else
               Dpl(ix1,ix2)=0.d0
             endif
@@ -2039,7 +2149,7 @@ module mod_thermal_emission
         SXRs=0.0d0
         SXR=0.0d0
         do iigrid=1,igridstail; igrid=igrids(iigrid);
-          call integrate_SXR_data_resol(igrid,nXIF1,nXIF2,xIF1,xIF2,dxIF1,dxIF2,SXRs)
+          call integrate_SXR_data_resol(igrid,nXIF1,nXIF2,xIF1,xIF2,dxIF1,dxIF2,fl,SXRs)
         enddo
         numSI=nXIF1*nXIF2
         call MPI_ALLREDUCE(SXRs,SXR,numSI,MPI_DOUBLE_PRECISION, &
@@ -2061,17 +2171,18 @@ module mod_thermal_emission
 
     end subroutine get_image_data_resol
 
-    subroutine integrate_EUV_data_resol(igrid,nXIF1,nXIF2,xIF1,xIF2,dxIF1,dxIF2,EUV,Dpl)
+    subroutine integrate_EUV_data_resol(igrid,nXIF1,nXIF2,xIF1,xIF2,dxIF1,dxIF2,fl,EUV,Dpl)
       use mod_global_parameters
 
       integer, intent(in) :: igrid,nXIF1,nXIF2
       double precision, intent(in) :: xIF1(nXIF1),xIF2(nXIF2)
       double precision, intent(in) :: dxIF1(nXIF1),dxIF2(nXIF2)
+      type(te_fluid), intent(in) :: fl
       double precision, intent(out) :: EUV(nXIF1,nXIF2),Dpl(nXIF1,nXIF2)
 
       integer :: ixO^L,ixO^D,ixI^L,ix^D,i,j
       double precision :: xb^L,xd^D
-      double precision, allocatable :: flux(:^D&),v(:^D&)
+      double precision, allocatable :: flux(:^D&),v(:^D&),rho(:^D&)
       double precision, allocatable :: dxb1(:^D&),dxb2(:^D&),dxb3(:^D&)
       double precision, allocatable :: EUVg(:,:),Fvg(:,:),xg1(:),xg2(:),dxg1(:),dxg2(:)
       integer :: levelg,nXg1,nXg2,iXgmin1,iXgmax1,iXgmin2,iXgmax2,rft,iXg^D
@@ -2079,9 +2190,9 @@ module mod_thermal_emission
       integer :: ixP^L,ixP^D
       integer :: direction_LOS
 
-      if (LOS_theta==0 .and. LOS_phi==90) then
+      if (LOS_phi==0 .and. LOS_theta==90) then
         direction_LOS=1
-      else if (LOS_theta==90 .and. LOS_phi==90) then
+      else if (LOS_phi==90 .and. LOS_theta==90) then
         direction_LOS=2
       else
         direction_LOS=3
@@ -2094,14 +2205,16 @@ module mod_thermal_emission
       ^D&xbmin^D=rnode(rpxmin^D_,igrid)\
       ^D&xbmax^D=rnode(rpxmax^D_,igrid)\
 
-      allocate(flux(ixI^S),v(ixI^S))
+      allocate(flux(ixI^S),v(ixI^S),rho(ixI^S))
       allocate(dxb1(ixI^S),dxb2(ixI^S),dxb3(ixI^S))
       dxb1(ixO^S)=ps(igrid)%dx(ixO^S,1)
       dxb2(ixO^S)=ps(igrid)%dx(ixO^S,2)
       dxb3(ixO^S)=ps(igrid)%dx(ixO^S,3)
       ! get local EUV flux and velocity
-      call get_EUV(wavelength,ixI^L,ixO^L,ps(igrid)%w,ps(igrid)%x,flux)
-      v(ixO^S)=ps(igrid)%w(ixO^S,iw_mom(direction_LOS))/ps(igrid)%w(ixO^S,iw_rho)
+      call get_EUV(wavelength,ixI^L,ixO^L,ps(igrid)%w,ps(igrid)%x,fl,flux)
+      call fl%get_rho(ps(igrid)%w,ps(igrid)%x,ixI^L,ixO^L,rho)
+      v(ixO^S)=-ps(igrid)%w(ixO^S,iw_mom(direction_LOS))/rho(ixO^S)
+      deallocate(rho)
 
       ! grid parameters
       levelg=ps(igrid)%level
@@ -2234,12 +2347,13 @@ module mod_thermal_emission
 
     end subroutine integrate_EUV_data_resol
 
-    subroutine integrate_SXR_data_resol(igrid,nXIF1,nXIF2,xIF1,xIF2,dxIF1,dxIF2,SXR)
+    subroutine integrate_SXR_data_resol(igrid,nXIF1,nXIF2,xIF1,xIF2,dxIF1,dxIF2,fl,SXR)
       use mod_global_parameters
 
       integer, intent(in) :: igrid,nXIF1,nXIF2
       double precision, intent(in) :: xIF1(nXIF1),xIF2(nXIF2)
       double precision, intent(in) :: dxIF1(nXIF1),dxIF2(nXIF2)
+      type(te_fluid), intent(in) :: fl
       double precision, intent(out) :: SXR(nXIF1,nXIF2)
 
       integer :: ixO^L,ixO^D,ixI^L,ix^D,i,j
@@ -2248,13 +2362,13 @@ module mod_thermal_emission
       double precision, allocatable :: dxb1(:^D&),dxb2(:^D&),dxb3(:^D&)
       double precision, allocatable :: SXRg(:,:),xg1(:),xg2(:),dxg1(:),dxg2(:)
       integer :: levelg,nXg1,nXg2,iXgmin1,iXgmax1,iXgmin2,iXgmax2,rft,iXg^D
-      double precision :: SXRt,xc^L,xg^L,r2
+      double precision :: SXRt,xc^L,xg^L,r2,area_1AU
       integer :: ixP^L,ixP^D
       integer :: direction_LOS
 
-      if (LOS_theta==0 .and. LOS_phi==90) then
+      if (LOS_phi==0 .and. LOS_theta==90) then
         direction_LOS=1
-      else if (LOS_theta==90 .and. LOS_phi==90) then
+      else if (LOS_phi==90 .and. LOS_theta==90) then
         direction_LOS=2
       else
         direction_LOS=3
@@ -2273,7 +2387,7 @@ module mod_thermal_emission
       dxb2(ixO^S)=ps(igrid)%dx(ixO^S,2)
       dxb3(ixO^S)=ps(igrid)%dx(ixO^S,3)
       ! get local SXR flux
-      call get_SXR(ixI^L,ixO^L,ps(igrid)%w,ps(igrid)%x,flux,emin_sxr,emax_sxr)
+      call get_SXR(ixI^L,ixO^L,ps(igrid)%w,ps(igrid)%x,fl,flux,emin_sxr,emax_sxr)
 
       ! grid parameters
       levelg=ps(igrid)%level
@@ -2342,6 +2456,9 @@ module mod_thermal_emission
         enddo
       end select
 
+      area_1AU=2.81d27
+      SXRg=SXRg/area_1AU
+
       ! mapping grid data to global table 
       ! index ranges in local table
       select case(direction_LOS)
@@ -2397,19 +2514,29 @@ module mod_thermal_emission
       integer, intent(in) :: qunit,nXO1,nXO2,nWO
       double precision, intent(in) :: dxO1(nxO1),dxO2(nxO2)
       double precision, intent(in) :: xO1(nXO1),xO2(nxO2)
-      double precision, intent(in) :: wO(nXO1,nXO2,nWO)
+      double precision, intent(inout) :: wO(nXO1,nXO2,nWO)
       character(20), intent(in) :: datatype
 
       integer :: nPiece,nP1,nP2,nC1,nC2,nWC
       integer :: piece_nmax1,piece_nmax2,ix1,ix2,j,ipc,ixc1,ixc2
       double precision, allocatable :: xC(:,:,:,:),wC(:,:,:,:),dxC(:,:,:,:)
+      character(len=std_len) :: resolution_type
+
+      ! clean small values
+      do ix1=1,nxO1
+        do ix2=1,nxO2
+          do j=1,nWO
+            if (abs(wO(ix1,ix2,j))<smalldouble) wO(ix1,ix2,j)=zero
+          enddo
+        enddo
+      enddo
 
       ! how many cells in each grid
       if (datatype=='image_euv' .and. resolution_euv=='data') then
-        if (LOS_theta==0 .and. LOS_phi==90) then
+        if (LOS_phi==0 .and. LOS_theta==90) then
           piece_nmax1=block_nx2
           piece_nmax2=block_nx3
-        else if (LOS_theta==90 .and. LOS_phi==90) then
+        else if (LOS_phi==90 .and. LOS_theta==90) then
           piece_nmax1=block_nx3
           piece_nmax2=block_nx1
         else
@@ -2417,10 +2544,10 @@ module mod_thermal_emission
           piece_nmax2=block_nx2
         endif
       else if (datatype=='image_sxr' .and. resolution_sxr=='data') then
-        if (LOS_theta==0 .and. LOS_phi==90) then
+        if (LOS_phi==0 .and. LOS_theta==90) then
           piece_nmax1=block_nx2
           piece_nmax2=block_nx3
-        else if (LOS_theta==90 .and. LOS_phi==90) then
+        else if (LOS_phi==90 .and. LOS_theta==90) then
           piece_nmax1=block_nx3
           piece_nmax2=block_nx1
         else
@@ -2459,32 +2586,186 @@ module mod_thermal_emission
       nPiece=nP1*nP2
       nWC=nWO
 
-      ! put data into grids
-      allocate(xC(nPiece,nC1,nC2,2))
-      allocate(dxC(nPiece,nC1,nC2,2))
-      allocate(wC(nPiece,nC1,nC2,nWO))
-      do ipc=1,nPiece
-        do ixc1=1,nC1
-          do ixc2=1,nC2
-            ix1=mod(ipc-1,nP1)*nC1+ixc1
-            ix2=floor(1.0*(ipc-1)/nP1)*nC2+ixc2
-            xC(ipc,ixc1,ixc2,1)=xO1(ix1)
-            xC(ipc,ixc1,ixc2,2)=xO2(ix2)
-            dxC(ipc,ixc1,ixc2,1)=dxO1(ix1)
-            dxC(ipc,ixc1,ixc2,2)=dxO2(ix2)
-            do j=1,nWC
-              wC(ipc,ixc1,ixc2,j)=wO(ix1,ix2,j)
+      select case(convert_type)
+        case('EIvtuCCmpi','ESvtuCCmpi','SIvtuCCmpi')
+          ! put data into grids
+          allocate(xC(nPiece,nC1,nC2,2))
+          allocate(dxC(nPiece,nC1,nC2,2))
+          allocate(wC(nPiece,nC1,nC2,nWO))
+          do ipc=1,nPiece
+            do ixc1=1,nC1
+              do ixc2=1,nC2
+                ix1=mod(ipc-1,nP1)*nC1+ixc1
+                ix2=floor(1.0*(ipc-1)/nP1)*nC2+ixc2
+                xC(ipc,ixc1,ixc2,1)=xO1(ix1)
+                xC(ipc,ixc1,ixc2,2)=xO2(ix2)
+                dxC(ipc,ixc1,ixc2,1)=dxO1(ix1)
+                dxC(ipc,ixc1,ixc2,2)=dxO2(ix2)
+                do j=1,nWC
+                  wC(ipc,ixc1,ixc2,j)=wO(ix1,ix2,j)
+                enddo
+              enddo
             enddo
           enddo
-        enddo
-      enddo
+          ! write data into vtu file
+          call write_image_vtuCC(qunit,xC,wC,dxC,nPiece,nC1,nC2,nWC,datatype)
+          deallocate(xC,dxC,wC)
+        case('EIvtiCCmpi','ESvtiCCmpi','SIvtiCCmpi')
+          if (convert_type=='EIvtiCCmpi') resolution_type=resolution_euv
+          if (convert_type=='ESvtiCCmpi') resolution_type=resolution_spectrum
+          if (convert_type=='SIvtiCCmpi') resolution_type=resolution_sxr
+          if (sum(stretch_type(:))>0 .and. resolution_type=='data') then
+            call mpistop("Error in synthesize emission: vti is not supported for data resolution")
+          else
+            call write_image_vtiCC(qunit,xO1,xO2,dxO1,dxO2,wO,nXO1,nXO2,nWO,nC1,nC2)
+          endif
+        case default
+          call mpistop("Error in synthesize emission: Unknown convert_type")
+      end select
 
-      ! write data into vtu file
-      call write_image(qunit,xC,wC,dxC,nPiece,nC1,nC2,nWC,datatype)
-      deallocate(xC,wC)
     end subroutine output_data
+  }
 
-    subroutine write_image(qunit,xC,wC,dxC,nPiece,nC1,nC2,nWC,datatype)
+    subroutine write_image_vtiCC(qunit,xO1,xO2,dxO1,dxO2,wO,nXO1,nXO2,nWO,nC1,nC2)
+      ! write image data to vti
+      use mod_global_parameters
+
+      integer, intent(in) :: qunit,nXO1,nXO2,nWO,nC1,nC2
+      double precision, intent(in) :: xO1(nXO1),xO2(nxO2)
+      double precision, intent(in) :: dxO1(nxO1),dxO2(nxO2)
+      double precision, intent(in) :: wO(nXO1,nXO2,nWO)
+
+      double precision :: origin(1:3), spacing(1:3)
+      integer :: wholeExtent(1:6),extent(1:6)
+      integer :: nP1,nP2,iP1,iP2,iw
+      integer :: ixC1,ixC2,ixCmin1,ixCmax1,ixCmin2,ixCmax2
+
+      integer :: filenr
+      logical :: fileopen
+      character (70) :: subname,wname,vname,nameL,nameS
+      character (len=std_len) :: filename
+      integer :: mass
+      double precision :: logTe
+      character (30) :: ion
+      double precision :: line_center
+      double precision :: spatial_rsl,spectral_rsl,sigma_PSF,wslit
+
+
+      origin(1)=xO1(1)-0.5d0*dxO1(1)
+      origin(2)=xO2(1)-0.5d0*dxO2(1)
+      origin(3)=zero
+      spacing(1)=dxO1(1)
+      spacing(2)=dxO2(1)
+      spacing(3)=zero
+      wholeExtent=zero
+      wholeExtent(2)=nXO1
+      wholeExtent(4)=nXO2
+      nP1=nXO1/nC1
+      nP2=nXO2/nC2
+
+      ! get information of emission line
+      if (convert_type=='EIvtiCCmpi') then
+        call get_line_info(wavelength,ion,mass,logTe,line_center,spatial_rsl,spectral_rsl,sigma_PSF,wslit)
+      else if (convert_type=='ESvtiCCmpi') then
+        call get_line_info(spectrum_wl,ion,mass,logTe,line_center,spatial_rsl,spectral_rsl,sigma_PSF,wslit)
+      endif
+
+      if (mype==0) then
+        inquire(qunit,opened=fileopen)
+        if(.not.fileopen)then
+          ! generate filename 
+          filenr=snapshotini
+          if (autoconvert) filenr=snapshotnext
+          if (convert_type=='EIvtiCCmpi') then
+            write(filename,'(a,i4.4,a)') trim(filename_euv),filenr,".vti"
+          else if (convert_type=='SIvtiCCmpi') then
+            write(filename,'(a,i4.4,a)') trim(filename_sxr),filenr,".vti"
+          else if (convert_type=='ESvtiCCmpi') then
+            write(filename,'(a,i4.4,a)') trim(filename_spectrum),filenr,".vti"
+          endif
+          open(qunit,file=filename,status='unknown',form='formatted')
+        endif
+
+        ! generate xml header
+        write(qunit,'(a)')'<?xml version="1.0"?>'
+        write(qunit,'(a)',advance='no') '<VTKFile type="ImageData"'
+        write(qunit,'(a)')' version="0.1" byte_order="LittleEndian">'
+        write(qunit,'(a,3(1pe14.6),a,6(i10),a,3(1pe14.6),a)')'  <ImageData Origin="',&
+              origin,'" WholeExtent="',wholeExtent,'" Spacing="',spacing,'">'
+        ! file info        
+        write(qunit,'(a)')'<FieldData>'
+        write(qunit,'(2a)')'<DataArray type="Float32" Name="TIME" ',&
+                           'NumberOfTuples="1" format="ascii">'
+        write(qunit,*) real(global_time*time_convert_factor)
+        write(qunit,'(a)')'</DataArray>'
+        if (convert_type=='EIvtiCCmpi' .or. convert_type=='ESvtiCCmpi') then
+          write(qunit,'(2a)')'<DataArray type="Float32" Name="logT" ',&
+                             'NumberOfTuples="1" format="ascii">'
+          write(qunit,*) real(logTe)
+          write(qunit,'(a)')'</DataArray>'
+        endif
+        write(qunit,'(a)')'</FieldData>'
+        ! pixel/cell data
+        do iP1=1,nP1
+          do iP2=1,nP2
+            extent=zero
+            extent(1)=(iP1-1)*nC1
+            extent(2)=iP1*nC1
+            extent(3)=(iP2-1)*nC2
+            extent(4)=iP2*nC2
+            ixCmin1=extent(1)+1
+            ixCmax1=extent(2)
+            ixCmin2=extent(3)+1
+            ixCmax2=extent(4)
+            write(qunit,'(a,6(i10),a)') &
+                  '<Piece Extent="',extent,'">'
+            write(qunit,'(a)')'<CellData>'
+            do iw=1,nWO
+              ! variable name
+              if (convert_type=='EIvtiCCmpi') then
+                if (iw==1) then
+                  if (wavelength<100) then
+                    write(vname,'(a,i2)') "AIA",wavelength
+                  else if (wavelength<1000) then
+                    write(vname,'(a,i3)') "AIA",wavelength
+                  else
+                    write(vname,'(a,i4)') "IRIS",wavelength
+                  endif
+                endif
+                if (iw==2) vname='Doppler_velocity'
+              else if (convert_type=='SIvtiCCmpi') then
+                if (emin_sxr<10 .and. emax_sxr<10) then
+                  write(vname,'(a,i1,a,i1,a)') "SXR",emin_sxr,"-",emax_sxr,"keV"
+                else if (emin_sxr<10 .and. emax_sxr>=10) then
+                  write(vname,'(a,i1,a,i2,a)') "SXR",emin_sxr,"-",emax_sxr,"keV"
+                else
+                  write(vname,'(a,i2,a,i2,a)') "SXR",emin_sxr,"-",emax_sxr,"keV"
+                endif
+              else if (convert_type=='ESvtiCCmpi') then
+                if (spectrum_wl==1354) then
+                  write(vname,'(a,i4)') "SG",spectrum_wl
+                else
+                  write(vname,'(a,i3)') "EIS",spectrum_wl
+                endif
+              endif
+              write(qunit,'(a,a,a)')&
+                '<DataArray type="Float64" Name="',TRIM(vname),'" format="ascii">'
+              write(qunit,'(200(1pe14.6))') ((wO(ixC1,ixC2,iw),ixC1=ixCmin1,ixCmax1),ixC2=ixCmin2,ixCmax2)
+              write(qunit,'(a)')'</DataArray>'
+            enddo
+            write(qunit,'(a)')'</CellData>'
+            write(qunit,'(a)')'</Piece>'
+          enddo
+        enddo
+        ! end
+        write(qunit,'(a)')'</ImageData>'
+        write(qunit,'(a)')'</VTKFile>'
+        close(qunit)
+      endif
+
+    end subroutine write_image_vtiCC
+
+    subroutine write_image_vtuCC(qunit,xC,wC,dxC,nPiece,nC1,nC2,nWC,datatype)
       ! write image data to vtu
       use mod_global_parameters
 
@@ -2568,12 +2849,30 @@ module mod_thermal_emission
           write(qunit,'(a)')'<CellData>'
           do j=1,nWC
             if (datatype=='image_euv') then
-              if (j==1) write(vname,'(a,i4)') "AIA ",wavelength
-              if (j==2) vname='Doppler velocity'
+              if (j==1) then
+                if (wavelength<100) then
+                  write(vname,'(a,i2)') "AIA",wavelength
+                else if (wavelength<1000) then
+                  write(vname,'(a,i3)') "AIA",wavelength
+                else
+                  write(vname,'(a,i4)') "IRIS",wavelength
+                endif
+              endif
+              if (j==2) vname='Doppler_velocity'
             else if (datatype=='image_sxr') then
-              write(vname,'(a,i2,a,i2,a)') "SXR ",emin_sxr,"-",emax_sxr," keV"
+              if (emin_sxr<10 .and. emax_sxr<10) then
+                write(vname,'(a,i1,a,i1,a)') "SXR",emin_sxr,"-",emax_sxr,"keV"
+              else if (emin_sxr<10 .and. emax_sxr>=10) then
+                write(vname,'(a,i1,a,i2,a)') "SXR",emin_sxr,"-",emax_sxr,"keV"
+              else
+                write(vname,'(a,i2,a,i2,a)') "SXR",emin_sxr,"-",emax_sxr,"keV"
+              endif
             else if (datatype=='spectrum_euv') then
-              write(vname,'(a,i4)') "spectra ",spectrum_wl
+              if (spectrum_wl==1354) then
+                write(vname,'(a,i4)') "SG",spectrum_wl
+              else
+                write(vname,'(a,i3)') "EIS",spectrum_wl
+              endif
             endif
             write(qunit,'(a,a,a)')&
               '<DataArray type="Float64" Name="',TRIM(vname),'" format="ascii">'
@@ -2586,17 +2885,17 @@ module mod_thermal_emission
           do ix2=1,nP2
             do ix1=1,nP1 
               if (datatype=='image_euv' .and. resolution_euv=='data') then
-                if (LOS_theta==0 .and. LOS_phi==90) then
+                if (LOS_phi==0 .and. LOS_theta==90) then
                   write(qunit,'(3(1pe14.6))') 0.d0,xP(ixP,ix1,ix2,1),xP(ixP,ix1,ix2,2)
-                else if (LOS_theta==90 .and. LOS_phi==90) then
+                else if (LOS_phi==90 .and. LOS_theta==90) then
                   write(qunit,'(3(1pe14.6))') xP(ixP,ix1,ix2,2),0.d0,xP(ixP,ix1,ix2,1)
                 else
                   write(qunit,'(3(1pe14.6))') xP(ixP,ix1,ix2,1),xP(ixP,ix1,ix2,2),0.d0
                 endif
               else if (datatype=='image_sxr' .and. resolution_sxr=='data') then
-                if (LOS_theta==0 .and. LOS_phi==90) then
+                if (LOS_phi==0 .and. LOS_theta==90) then
                   write(qunit,'(3(1pe14.6))') 0.d0,xP(ixP,ix1,ix2,1),xP(ixP,ix1,ix2,2)
-                else if (LOS_theta==90 .and. LOS_phi==90) then
+                else if (LOS_phi==90 .and. LOS_theta==90) then
                   write(qunit,'(3(1pe14.6))') xP(ixP,ix1,ix2,2),0.d0,xP(ixP,ix1,ix2,1)
                 else
                   write(qunit,'(3(1pe14.6))') xP(ixP,ix1,ix2,1),xP(ixP,ix1,ix2,2),0.d0
@@ -2639,7 +2938,7 @@ module mod_thermal_emission
         write(qunit,'(a)')'</VTKFile>'
         close(qunit)
       endif
-    end subroutine write_image
+    end subroutine write_image_vtuCC
 
     subroutine dot_product_loc(vec_in1,vec_in2,res)
       double precision, intent(in) :: vec_in1(1:3),vec_in2(1:3)
@@ -2669,22 +2968,22 @@ module mod_thermal_emission
       double precision :: vec_z(1:3),vec_temp1(1:3),vec_temp2(1:3)
 
       ! vectors for image coordinate
-      vec_LOS(1)=-cos(dpi*LOS_theta/180.d0)*sin(dpi*LOS_phi/180.d0)
-      vec_LOS(2)=-sin(dpi*LOS_theta/180.d0)*sin(dpi*LOS_phi/180.d0)
-      vec_LOS(3)=-cos(dpi*LOS_phi/180.d0)
+      vec_LOS(1)=-cos(dpi*LOS_phi/180.d0)*sin(dpi*LOS_theta/180.d0)
+      vec_LOS(2)=-sin(dpi*LOS_phi/180.d0)*sin(dpi*LOS_theta/180.d0)
+      vec_LOS(3)=-cos(dpi*LOS_theta/180.d0)
       do j=1,3
         if (abs(vec_LOS(j))<=smalldouble) vec_LOS(j)=zero
       enddo
       vec_z(:)=zero
       vec_z(3)=1.d0
-      if (LOS_phi==zero) then
+      if (LOS_theta==zero) then
         vec_xI1=zero
         vec_xI2=zero
         vec_xI1(1)=1.d0
         vec_xI2(2)=1.d0
       else
-        call cross_product_loc(vec_z,vec_LOS,vec_xI1)
-        call cross_product_loc(vec_LOS,vec_xI1,vec_xI2)
+        call cross_product_loc(vec_LOS,vec_z,vec_xI1)
+        call cross_product_loc(vec_xI1,vec_LOS,vec_xI2)
       endif
       vec_temp1=vec_xI1/sqrt(vec_xI1(1)**2+vec_xI1(2)**2+vec_xI1(3)**2)
       vec_temp2=vec_xI2/sqrt(vec_xI2(1)**2+vec_xI2(2)**2+vec_xI2(3)**2)
@@ -2697,6 +2996,23 @@ module mod_thermal_emission
         if (abs(vec_xI2(j))<smalldouble) vec_xI2(j)=zero
       enddo
 
+      if (mype==0) write(*,'(a,f5.2,f6.2,f6.2,a)') ' LOS vector: [',vec_LOS(1),vec_LOS(2),vec_LOS(3),']'
+      if (mype==0) write(*,'(a,f5.2,f6.2,f6.2,a)') ' xI1 vector: [',vec_xI1(1),vec_xI1(2),vec_xI1(3),']'
+      if (mype==0) write(*,'(a,f5.2,f6.2,f6.2,a)') ' xI2 vector: [',vec_xI2(1),vec_xI2(2),vec_xI2(3),']'
+
     end subroutine init_vectors
-  }
+
+    subroutine get_cor_image(x_3D,x_image)
+      double precision :: x_3D(1:3),x_image(1:2)
+      double precision :: res,res_origin
+
+      call dot_product_loc(x_3D,vec_xI1,res)
+      call dot_product_loc(x_origin,vec_xI1,res_origin)
+      x_image(1)=res-res_origin
+      call dot_product_loc(x_3D,vec_xI2,res)
+      call dot_product_loc(x_origin,vec_xI2,res_origin)
+      x_image(2)=res-res_origin
+
+    end subroutine get_cor_image
+
 end module mod_thermal_emission

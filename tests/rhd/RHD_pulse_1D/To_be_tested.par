@@ -1,0 +1,83 @@
+&testlist
+        teststr=''
+/
+
+&filelist
+  base_filename='./output/test'
+  convert_type     = 'oneblock'
+  level_io         = 1
+  saveprim         = T
+/
+
+ &savelist
+   itsave(1,1)     = 0
+   itsave(1,2)     = 0
+   !ditsave_dat     = 500
+   !ditsave_log     = 1
+   dtsave_dat     = 1.d0
+   dtsave_log     = 1.d0
+/
+
+ &stoplist
+   time_max = 10.d0
+   dtmin = 1.0d-20
+   !it_max = 50000
+/
+
+ &methodlist
+   time_stepper = 'onestep'
+   time_integrator = 'IMEX_Euler'  !<<< PROBLEMS WITH SOME IMEX-SCHEMES
+   flux_scheme     = 20*'hll'
+   limiter         = 20*'minmod'
+   source_split_usr = .false.
+   typesourcesplit = 'sfs'
+   small_values_method = 'replace'
+   small_pressure = 1.d-8
+   small_density = 1.d-8
+/
+
+&boundlist
+  typeboundary_min1 = 4*'special'
+  typeboundary_max1 = 4*'special'
+  internalboundary = F
+/
+
+ &meshlist
+   refine_max_level   = 1
+   refine_criterion   = 3
+   domain_nx1         = 256
+   block_nx1          = 32
+   xprobmin1       = -24.d0
+   xprobmax1       = 24.d0
+   refine_threshold   = 20*0.5d0
+   derefine_ratio     = 20*1.d0/2.d0
+ /
+
+ &paramlist
+  courantpar       = 0.1d0
+  !dtpar           = 2.d-6
+ /
+
+ &rhd_list
+  He_abundance = 0.1d0
+  rhd_gravity = .false.
+  rhd_energy = .true.
+  rhd_gamma = 1.6667d0
+  rhd_radiation_formalism = 'fld'
+  radio_acoustic_filter = .false.
+  rhd_radiation_force = .true.
+  rhd_energy_interact = .true.
+  rhd_radiation_diffusion = .true.
+  rhd_radiation_advection = .true.
+ /
+
+ &fld_list
+  fld_Eint_split = .false.
+  fld_Radforce_split = .false.
+  fld_opacity_law = 'const'
+  fld_kappa0 = 100.d0
+  fld_diff_scheme = 'mg'
+  fld_interaction_method = 'Halley'
+  fld_fluxlimiter = 'Minerbo'
+  fld_diff_tol = 1.d-4
+  /

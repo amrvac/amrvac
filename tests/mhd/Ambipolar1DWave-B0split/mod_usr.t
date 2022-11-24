@@ -519,7 +519,7 @@ contains
     PP(ixO^S) =  pe0(ixO^S)* VV(ixO^S) * (k(ixO^S) * mhd_gamma + ic * temp3(ixO^S))/omega
 
     temp1(ixG^S)=bx0(ixG^S)
-    call gradient1(temp1 ,ixI^L,ixG^L,temp3)
+    call gradient1(temp1 ,ixG^L,ixO^L,temp3)
     temp3(ixO^S) =  temp3(ixO^S)/bx0(ixO^S)
     BB(ixO^S) =  bx0(ixO^S)* VV(ixO^S) * (k(ixO^S)  + ic * temp3(ixO^S))/omega
 

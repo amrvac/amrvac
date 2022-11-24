@@ -63,7 +63,7 @@ Old name | New name
 
 The variables `e_` (or equivalently, `p_`) and `rho_` have the same name.
 
-# Is there a way I can define my own paramaters somewhere in mod_usr.t and configure them through `amrvac.par` ? {#faq-own-parameters}
+# Is there a way I can define my own parameters somewhere in mod_usr.t and configure them through `amrvac.par` ? {#faq-own-parameters}
 
 Indeed, there is a quick and time-saving way to read your own parameters without having to give an explicit value in the usr file and recompile each time. Instead, add this in your usr file : 
 
