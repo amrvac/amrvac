@@ -626,9 +626,14 @@ contains
           w(ixO^S, gas_mom(idir)) = w(ixO^S, gas_mom(idir)) + tmp(ixO^S)
           if (gas_e_ > 0) then
             if(dust_backreaction_fh) then
-              w(ixO^S, gas_e_) = w(ixO^S, gas_e_) + alpha(ixO^S, idir,n) * &
+              where(w(ixO^S,dust_rho(n)) > 0d0)
+                w(ixO^S, gas_e_) = w(ixO^S, gas_e_) + alpha(ixO^S, idir,n) * &
                 (w(ixO^S,gas_rho_) * (w(ixO^S, dust_mom(idir,n))**2/w(ixO^S,dust_rho(n))) - &
                 w(ixO^S,dust_rho(n)) * (w(ixO^S, gas_mom(idir))**2/w(ixO^S,gas_rho_)))
+              elsewhere
+                w(ixO^S, gas_e_) = w(ixO^S, gas_e_) + alpha(ixO^S, idir,n) * ( - &
+                w(ixO^S,dust_rho(n)) * (w(ixO^S, gas_mom(idir))**2/w(ixO^S,gas_rho_)))
+              endwhere
             else  
               w(ixO^S, gas_e_) = w(ixO^S, gas_e_) + vgas(ixO^S, idir)  &
                  * tmp(ixO^S)
