@@ -50,7 +50,9 @@ MPI-AMRVAC is developed and maintained by an international team led by professor
 [Rony Keppens](https://perswww.kuleuven.be/~u0016541/) from 
 [Centre for mathematical Plasma-Astrophysics (CmPA)](https://wis.kuleuven.be/CmPA), KU Leuven.
 
-In 2016-2017, a large modernization was completed by Chun Xia and 
+In November 2022, we released the current 3.0 version, with the aid of Beatrice Popescu Braileanu, Niels Claes, Chun Xia, Gou Yang, Wenzhi Ruan, Fabio Bacchini, Yuhao Zhou.
+
+Prior, in 2016-2017, a large modernization was completed by Chun Xia and 
 [Jannis Teunissen](http://teunissen.net/) marked with version 2.0 with 
 important changes as following:
 
@@ -62,7 +64,7 @@ important changes as following:
   magnetohydrodynamics
 * Many smaller improvements to the physics modules
 
-From 2018, more developers have joined in to contribute in various aspects. They are
- Yuhao Zhou, Niels Claes, Wenzhi Ruan, Clément Robert and Ileyk El Mellah. Great ideas
-and important help have been received from Oliver Porth (main developer of MPI-AMRVAC v1.0), 
+From 2018, more developers have joined in to contribute in various aspects. 
+We explicitly mention important help from Oliver Porth (main developer of MPI-AMRVAC 1.0), 
  and Hector Olivares, who are the developers of the sister GRMHD code [BHAC](http://bhac.science/), the Black Hole Accretion Code.
+
