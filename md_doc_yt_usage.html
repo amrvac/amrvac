@@ -77,10 +77,10 @@ $(function() {
 <div class="contents">
 <div class="textblock"><h1><a class="anchor" id="yt_introduction"></a>
 Introduction</h1>
-<p>The release of AMRVAC 2.2 included minor changes in the datfile format, in order to improve compatibility with <a href="https://yt-project.org"><code>yt</code></a>, an open-source Python package for analysing and visualising volumetric data. <code>yt</code> supports AMR meshes and can handle discrete or sampled data such as particles. It's query-based so that it can handle larger-than-RAM datasets and makes uses of <a href="https://cython.org">Cython</a> for speed-up and C-interoperability.</p>
+<p>The datfile format is such that its is compatible with <a href="https://yt-project.org"><code>yt</code></a>, an open-source Python package for analysing and visualising volumetric data. <code>yt</code> supports AMR meshes and can handle discrete or sampled data such as particles. It's query-based so that it can handle larger-than-RAM datasets and makes uses of <a href="https://cython.org">Cython</a> for speed-up and C-interoperability.</p>
 <p>The main goal of this webpage is to show off some of yt's functionality and possibilities. For a detailed guide explaining the full capabilities of <code>yt</code> (with examples!), we refer to <a href="https://yt-project.org/docs/dev/cookbook/index.html">the YT Cookbook</a>.</p>
 <p>The <code>yt</code> frontend for AMRVAC was developed by Clément Robert and Niels Claes (who are also the current maintainers). The actual pull request for the frontend, including it in the main <code>yt</code> repository, was accepted on the 13th of November, 2019.</p>
-<p>Because the frontend is still relatively new, we would greatly appreciate any feedback or issues that you encounter. The most efficient ways to get in touch with us are either</p><ul>
+<p>We would greatly appreciate any feedback or issues that you encounter. The most efficient ways to get in touch with us are either</p><ul>
 <li><a href="https://github.com/yt-project/yt/issues">reporting issues on github</a></li>
 <li><a href="https://yt-project.org/doc/help/index.html#go-on-slack-or-irc-to-ask-a-question">joining yt's Slackspace</a> (join channels <b>help</b> and <b>amrvac</b>)</li>
 </ul>
@@ -91,15 +91,7 @@ git clone https://github.com/yt-project/yt
 cd yt
 git checkout master
 pip install -e .
-</pre><h2><a class="anchor" id="latest_news"></a>
-Latest news and updates for the AMRVAC frontend</h2>
-<ul>
-<li><b>2019-12-05</b>: Datasets can now be consistently renormalised to physical units using the <code>mod_usr.t</code> AMRVAC normalisations.</li>
-<li><b>2019-12-19</b>: Default derived field list is extended with kinetic energy density, sound speed, mach number and thermal pressure.</li>
-<li><b>2020-01-21</b>: Dust fields are now detected by the frontend; density, momentum and velocity fields are set up together with total dust density and dust to gas ratio.</li>
-<li><b>2020-06-23</b>: yt-4 was merged into master (don't forget to update!).</li>
-</ul>
-<h2><a class="anchor" id="features_todo"></a>
+</pre><h2><a class="anchor" id="features_todo"></a>
 Features currently in development/planned</h2>
 <ul>
 <li>Support for staggered grids (<em>planned</em>)</li>

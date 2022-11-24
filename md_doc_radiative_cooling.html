@@ -77,9 +77,11 @@ $(function() {
 <div class="contents">
 <div class="textblock"><p>The webpage describes how users can add radiative cooling to their setup in MPI-AMRVAC</p>
 <h1>Physics</h1>
-<p>The implemented radiative cooling is optically thin and describes locally the energy loss by radiation. The source is</p>
-<p>\( Q = -n_i n_e \Lambda(T) \),</p>
-<p>where \( n_i \) and \( n_e \) are the ion- and electronnumberdensities. \( \Lambda(T) \) is the cooling funtion or curve and represents the efficiency. This cooling curve can be a tabulated set of points obtained by detailed calculations (see e.g. Colgan et. al. 2008). These tables can be interpolated to high temperature resolution. Alternatively, some cooling curves are described as piecewise power laws (see e.g. Hildner 1974). They are explicit functions over the whole temperature domain.</p>
+<p>The implemented radiative cooling is optically thin and describes locally the energy loss by radiation. The source is </p><p class="formulaDsp">
+\[ Q = -n_i n_e \Lambda(T) \]
+</p>
+<p> <br  />
+ where \( n_i \) and \( n_e \) are the ion- and electron number densities. \( \Lambda(T) \) is the cooling funtion or curve and represents the efficiency. This cooling curve can be a tabulated set of points obtained by detailed calculations (see e.g. Colgan et. al. 2008). These tables can be interpolated to high temperature resolution. Alternatively, some cooling curves are described as piecewise power laws (see e.g. Hildner 1974). They are explicit functions over the whole temperature domain.</p>
 <h1>Practical use</h1>
 <p>In order to use radiative cooling in a simulation, the user has to adjust the .par file as indicated in this section.</p>
 <h2>Activating the module</h2>
