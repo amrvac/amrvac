@@ -366,8 +366,6 @@ mod_variables.o: mod_basic_types.mod
 mod_viscosity.o: mod_geometry.mod
 mod_viscosity.o: mod_physics.mod
 mod_weno.o: mod_physics.mod
-pointgrav.o: mod_geometry.mod
-raytracing.o: mod_raytracing.mod
 refine.o: mod_amr_fct.mod
 refine.o: mod_physics.mod
 set_B0.o: mod_geometry.mod
