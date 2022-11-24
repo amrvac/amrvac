@@ -1,0 +1,6 @@
+<map id="mod_afld::afld_get_fluxlimiter" name="mod_afld::afld_get_fluxlimiter">
+<area shape="rect" id="node1" title="Calculate fld flux limiter This subroutine calculates flux limiter lambda using the prescription stor..." alt="" coords="5,64,148,105"/>
+<area shape="rect" id="node2" href="$namespacemod__afld.html#acd5029394980153674cd833436e7de0f" title="Sets the opacity in the w&#45;array by calling mod_opal_opacity." alt="" coords="201,5,343,47"/>
+<area shape="rect" id="node3" href="$comm__lib_8t.html#a49b49ea9ffbbadfe688e332921c4cddd" title="Exit MPI&#45;AMRVAC with an error message." alt="" coords="396,71,471,98"/>
+<area shape="rect" id="node4" href="$namespacemod__afld.html#abc9c121f004800e7363f3a8d053d1efc" title="Calculate gradient of a scalar q within ixL in direction idir difference with gradient is gradq(ixO^S..." alt="" coords="196,122,348,149"/>
+</map>

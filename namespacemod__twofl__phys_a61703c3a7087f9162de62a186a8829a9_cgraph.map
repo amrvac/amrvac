@@ -1,0 +1,8 @@
+<map id="mod_twofl_phys::twofl_get_dt" name="mod_twofl_phys::twofl_get_dt">
+<area shape="rect" id="node1" title="If resistivity is not zero, check diffusion time limit for dt." alt="" coords="5,136,173,177"/>
+<area shape="rect" id="node2" href="$namespacemod__radiative__cooling.html#a6ce0229b23f942e86c22b3c89f7f96dd" title=" " alt="" coords="255,5,426,47"/>
+<area shape="rect" id="node3" href="$namespacemod__twofl__phys.html#a35943a026269e9b298b1b62e51b411da" title="Calculate idirmin and the idirmin:3 components of the common current array make sure that dxlevel(^D)..." alt="" coords="262,71,419,112"/>
+<area shape="rect" id="node4" href="$namespacemod__twofl__phys.html#a80603cb4f048784b4fc9edf63e9e6540" title=" " alt="" coords="249,136,432,177"/>
+<area shape="rect" id="node5" href="$namespacemod__twofl__phys.html#a09e1dfe1c6f7c4ee37720152b77fe3e4" title=" " alt="" coords="261,201,420,243"/>
+<area shape="rect" id="node6" href="$namespacemod__twofl__phys.html#a0a03dd90e0bbde6d3064a4e0e7dd0ad4" title=" " alt="" coords="221,267,460,308"/>
+</map>

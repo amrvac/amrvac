@@ -1,0 +1,5 @@
+<map id="mod_particle_base::destroy_particles" name="mod_particle_base::destroy_particles">
+<area shape="rect" id="node1" title="clean up destroyed particles on all cores" alt="" coords="5,43,159,84"/>
+<area shape="rect" id="node2" href="$namespacemod__particle__base.html#a200b89fe40b173fc7d0e619c3a35baa3" title=" " alt="" coords="231,5,385,47"/>
+<area shape="rect" id="node3" href="$namespacemod__particle__base.html#a594d8a5c5b6d0801a3814db632cdedbf" title=" " alt="" coords="207,71,409,127"/>
+</map>

@@ -1,0 +1,8 @@
+<map id="mod_particle_lorentz::lorentz_integrate_particles" name="mod_particle_lorentz::lorentz_integrate_particles">
+<area shape="rect" id="node1" title="Relativistic particle integrator." alt="" coords="5,123,209,164"/>
+<area shape="rect" id="node2" href="$namespacemod__particle__base.html#a543c5dd3a4184ec64857fea2c6526279" title="Get Lorentz factor from relativistic momentum." alt="" coords="492,93,645,135"/>
+<area shape="rect" id="node3" href="$namespacemod__particle__base.html#a85a2d46a6cbe809098c52ea9beca540a" title=" " alt="" coords="492,188,645,229"/>
+<area shape="rect" id="node4" href="$namespacemod__particle__lorentz.html#a2a6c5840d70a2361b316c53aa7408b63" title=" " alt="" coords="261,188,440,229"/>
+<area shape="rect" id="node5" href="$namespacemod__particle__lorentz.html#a4b56018da43c07e1b1cc5928b6af3272" title="Momentum update subroutine for full Lorentz dynamics." alt="" coords="271,5,430,47"/>
+<area shape="rect" id="node6" href="$namespacemod__particle__lorentz.html#ab1897998904bc04b8bb8c9e0a91c6e31" title="Update payload subroutine." alt="" coords="257,123,444,164"/>
+</map>

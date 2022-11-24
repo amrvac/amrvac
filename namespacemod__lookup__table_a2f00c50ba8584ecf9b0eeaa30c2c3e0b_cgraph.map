@@ -1,0 +1,5 @@
+<map id="mod_lookup_table::lt_get_col" name="mod_lookup_table::lt_get_col">
+<area shape="rect" id="node1" title="Get the value of a single column at x." alt="" coords="5,39,164,80"/>
+<area shape="rect" id="node2" href="$namespacemod__lookup__table.html#a21d5dc4f8dc3a07623948d856620fb2e" title="Get the value of a single column at a location." alt="" coords="212,5,371,47"/>
+<area shape="rect" id="node3" href="$namespacemod__lookup__table.html#a6d09e6d65a16455d1e101cc415f626b1" title="Get a location in the lookup table." alt="" coords="212,71,371,112"/>
+</map>

@@ -1,0 +1,4 @@
+<map id="mod_mhd_phys::mhd_get_temperature_from_etot" name="mod_mhd_phys::mhd_get_temperature_from_etot">
+<area shape="rect" id="node1" title="Calculate temperature=p/rho when in e_ the total energy is stored this does not check the values of m..." alt="" coords="5,5,196,47"/>
+<area shape="rect" id="node2" href="$namespacemod__mhd__phys.html#a9f0c00b60ad9533fb4cb29ec319d33e6" title="Compute evolving magnetic energy." alt="" coords="244,13,465,39"/>
+</map>

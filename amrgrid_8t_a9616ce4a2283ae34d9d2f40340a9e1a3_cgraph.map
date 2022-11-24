@@ -1,0 +1,8 @@
+<map id="settree" name="settree">
+<area shape="rect" id="node1" title="Build up AMR." alt="" coords="5,115,73,141"/>
+<area shape="rect" id="node2" href="$namespacemod__advance.html#a3abc5d81403e5443dc97a4db696acfd1" title="Advance all the grids over one time step, including all sources." alt="" coords="149,5,325,32"/>
+<area shape="rect" id="node3" href="$namespacemod__fix__conserve.html#ad56616828b83c369718a109e26b0e9ff" title=" " alt="" coords="121,56,353,83"/>
+<area shape="rect" id="node4" href="$namespacemod__coarsen__refine.html#a90d7cd8cbcd1b2de285dee4d58973632" title="coarsen and refine blocks to update AMR grid" alt="" coords="158,107,317,149"/>
+<area shape="rect" id="node5" href="$errest_8t.html#a63749891be57e814fb40044d74c58e30" title="Do all local error estimation which determines (de)refinement." alt="" coords="207,173,267,200"/>
+<area shape="rect" id="node6" href="$setdt_8t.html#a73d6257f8db69324189855900568a4e1" title="setdt &#45; set dt for all levels between levmin and levmax. dtpar&gt;0 &#45;&#45;&gt; use fixed dtpar for all level dt..." alt="" coords="210,224,265,251"/>
+</map>

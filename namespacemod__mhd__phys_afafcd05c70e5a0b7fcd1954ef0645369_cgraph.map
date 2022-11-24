@@ -1,0 +1,4 @@
+<map id="mod_mhd_phys::mhd_e_to_ei_hde" name="mod_mhd_phys::mhd_e_to_ei_hde">
+<area shape="rect" id="node1" title="Transform hydrodynamic energy to internal energy." alt="" coords="5,5,183,47"/>
+<area shape="rect" id="node2" href="$namespacemod__mhd__phys.html#ad50b3d711e10d6316238b8688d218914" title="handle small or negative internal energy" alt="" coords="231,5,444,47"/>
+</map>

@@ -1,0 +1,9 @@
+<map id="mod_twofl_phys::twofl_get_cbounds_species" name="mod_twofl_phys::twofl_get_cbounds_species">
+<area shape="rect" id="node1" title="Estimating bounds for the minimum and maximum signal velocities." alt="" coords="5,133,173,175"/>
+<area shape="rect" id="node2" href="$namespacemod__twofl__phys.html#a4e18f8b5346e80f4d7e4418f32845e7f" title=" " alt="" coords="437,35,595,76"/>
+<area shape="rect" id="node3" href="$namespacemod__twofl__phys.html#a7621aad8684305f6320e23d5797bd071" title=" " alt="" coords="437,231,595,272"/>
+<area shape="rect" id="node4" href="$namespacemod__twofl__phys.html#a265f73f7fadf3244fc54f587c2d3d5d9" title=" " alt="" coords="221,100,389,141"/>
+<area shape="rect" id="node5" href="$namespacemod__twofl__phys.html#a54443e040270edd9403016a3766a95b8" title=" " alt="" coords="221,165,389,207"/>
+<area shape="rect" id="node6" href="$namespacemod__twofl__phys.html#a5ad5075e3b73c8a795dd0fd08c24cb99" title="Calculate fast magnetosonic wave speed." alt="" coords="221,35,389,76"/>
+<area shape="rect" id="node7" href="$namespacemod__twofl__phys.html#ae08d4bc76f8c0cdd7020b346c5d7e151" title="Calculate fast magnetosonic wave speed." alt="" coords="221,231,389,272"/>
+</map>

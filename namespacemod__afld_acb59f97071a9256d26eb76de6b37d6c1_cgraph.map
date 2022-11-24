@@ -1,0 +1,6 @@
+<map id="mod_afld::afld_get_radflux" name="mod_afld::afld_get_radflux">
+<area shape="rect" id="node1" title="Calculate Radiation Flux stores radiation flux in w&#45;array." alt="" coords="5,49,148,91"/>
+<area shape="rect" id="node2" href="$namespacemod__afld.html#a15de558bd4ac30eafda8e094ef42845e" title="Calculate fld flux limiter This subroutine calculates flux limiter lambda using the prescription stor..." alt="" coords="196,49,339,91"/>
+<area shape="rect" id="node3" href="$namespacemod__afld.html#acd5029394980153674cd833436e7de0f" title="Sets the opacity in the w&#45;array by calling mod_opal_opacity." alt="" coords="391,5,534,47"/>
+<area shape="rect" id="node4" href="$namespacemod__afld.html#abc9c121f004800e7363f3a8d053d1efc" title="Calculate gradient of a scalar q within ixL in direction idir difference with gradient is gradq(ixO^S..." alt="" coords="387,86,539,113"/>
+</map>

@@ -1,0 +1,6 @@
+<map id="m_octree_mg_1d::mg_restrict_lvl" name="m_octree_mg_1d::mg_restrict_lvl">
+<area shape="rect" id="node1" title="Restrict from lvl to lvl&#45;1." alt="" coords="5,71,168,112"/>
+<area shape="rect" id="node2" href="$namespacem__octree__mg__1d.html#a7105068254493ce42792a6e664b85810" title="Get the offset of a box with respect to its parent (e.g. in 2d, there can be a child at offset 0,..." alt="" coords="218,5,381,47"/>
+<area shape="rect" id="node3" href="$namespacem__octree__mg__1d.html#a83d3d682ed96befab21bee9a5b73e4d5" title="Compute the child index for a box with spatial index ix. With child index we mean the index in the ch..." alt="" coords="218,71,381,112"/>
+<area shape="rect" id="node4" href="$namespacem__octree__mg__1d.html#afe2d94dd6f83f033c9dbb6898782d1b8" title=" " alt="" coords="216,136,383,177"/>
+</map>

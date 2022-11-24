@@ -1,0 +1,9 @@
+<map id="mod_mhd_phys::mhd_get_dt" name="mod_mhd_phys::mhd_get_dt">
+<area shape="rect" id="node1" title="If resistivity is not zero, check diffusion time limit for dt." alt="" coords="5,162,216,189"/>
+<area shape="rect" id="node2" href="$namespacemod__cak__force.html#a3342a8e2da21d6e48bd73851449898c9" title="Check time step for total radiation contribution." alt="" coords="311,5,463,47"/>
+<area shape="rect" id="node3" href="$namespacemod__radiative__cooling.html#a6ce0229b23f942e86c22b3c89f7f96dd" title=" " alt="" coords="302,71,473,112"/>
+<area shape="rect" id="node4" href="$namespacemod__mhd__phys.html#ab34b3cd939e25f69f8b07ad3319c8e4d" title="Calculates the explicit dt for the ambipokar term This function is used by both explicit scheme and S..." alt="" coords="264,137,511,163"/>
+<area shape="rect" id="node5" href="$namespacemod__mhd__phys.html#a3338aacd3dacb242389aa735b3e787af" title="Calculate idirmin and the idirmin:3 components of the common current array make sure that dxlevel(^D)..." alt="" coords="284,187,491,214"/>
+<area shape="rect" id="node6" href="$namespacemod__gravity.html#a6567eb0ce75b7a2b770ab848461c6fb5" title=" " alt="" coords="309,239,466,280"/>
+<area shape="rect" id="node7" href="$namespacemod__viscosity.html#a3abc58754cd1fd2237da85b19407d595" title=" " alt="" coords="297,304,478,345"/>
+</map>

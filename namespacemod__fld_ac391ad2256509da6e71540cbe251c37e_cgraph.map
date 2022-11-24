@@ -1,0 +1,8 @@
+<map id="mod_fld::fld_init" name="mod_fld::fld_init">
+<area shape="rect" id="node1" title="Initialising FLD&#45;module: Read opacities Initialise Multigrid adimensionalise kappa Add extra variable..." alt="" coords="5,137,132,163"/>
+<area shape="rect" id="node2" href="$namespacemod__fld.html#a252186780c5a68f744c09e61199eed1c" title="Calling all subroutines to perform the multigrid method Communicates rad_e and diff_coeff to multigri..." alt="" coords="211,5,353,47"/>
+<area shape="rect" id="node3" href="$namespacemod__fld.html#ade46e76ac547d6c1f1c27e324f94af46" title="inplace update of psa==&gt;F_im(psa)" alt="" coords="205,71,359,112"/>
+<area shape="rect" id="node4" href="$namespacemod__fld.html#a2fab030adfe37e60459f2f6c8140f091" title="public methods these are called in mod_rhd_phys" alt="" coords="187,137,377,163"/>
+<area shape="rect" id="node5" href="$namespacemod__opal__opacity.html#ac42d05a1ff082e78575d8b017da6010b" title="This routine is called when the fld radiation module is initialised. Here, the tables for different H..." alt="" coords="180,187,384,214"/>
+<area shape="rect" id="node6" href="$namespacemod__variables.html#a924c3b2f4e13f6f6432de212ac790966" title="Set extra variable in w, which is not advected and has no boundary conditions. This has to be done af..." alt="" coords="209,239,355,280"/>
+</map>

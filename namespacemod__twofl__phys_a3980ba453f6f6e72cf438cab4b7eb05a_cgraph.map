@@ -1,0 +1,6 @@
+<map id="mod_twofl_phys::gravity_add_source" name="mod_twofl_phys::gravity_add_source">
+<area shape="rect" id="node1" title="w[iw]=w[iw]+qdt*S[wCT,qtC,x] where S is the source based on wCT within ixO" alt="" coords="5,57,188,98"/>
+<area shape="rect" id="node2" href="$comm__lib_8t.html#a49b49ea9ffbbadfe688e332921c4cddd" title="Exit MPI&#45;AMRVAC with an error message." alt="" coords="283,5,357,32"/>
+<area shape="rect" id="node3" href="$namespacemod__twofl__phys.html#ae75430a9644fd40e05232b3d0c7cf9e9" title="Calculate v_c component." alt="" coords="236,57,404,98"/>
+<area shape="rect" id="node4" href="$namespacemod__twofl__phys.html#a5b2aeb62c9e0a037a48252fdda1a632d" title="Calculate v component." alt="" coords="236,122,404,163"/>
+</map>

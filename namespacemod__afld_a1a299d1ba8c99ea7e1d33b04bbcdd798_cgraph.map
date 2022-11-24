@@ -1,0 +1,4 @@
+<map id="mod_afld::get_afld_energy_interact" name="mod_afld::get_afld_energy_interact">
+<area shape="rect" id="node1" title="w[iw]=w[iw]+qdt*S[wCT,qtC,x] where S is the source based on wCT within ixO This subroutine handles th..." alt="" coords="5,5,148,47"/>
+<area shape="rect" id="node2" href="$namespacemod__afld.html#a82dd0394b7f8e8ab01b44bc521217105" title="This subroutine calculates the radiation heating, radiation cooling and photon tiring using an implic..." alt="" coords="196,13,408,39"/>
+</map>

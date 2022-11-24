@@ -1,0 +1,4 @@
+<map id="mod_input_output::create_output_file" name="mod_input_output::create_output_file">
+<area shape="rect" id="node1" title="Standard method for creating a new output file." alt="" coords="5,5,195,47"/>
+<area shape="rect" id="node2" href="$comm__lib_8t.html#a49b49ea9ffbbadfe688e332921c4cddd" title="Exit MPI&#45;AMRVAC with an error message." alt="" coords="243,13,317,39"/>
+</map>

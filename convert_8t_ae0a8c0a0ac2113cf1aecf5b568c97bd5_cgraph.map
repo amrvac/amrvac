@@ -1,0 +1,8 @@
+<map id="tecplot_mpi" name="tecplot_mpi">
+<area shape="rect" id="node1" title=" " alt="" coords="5,107,104,133"/>
+<area shape="rect" id="node2" href="$namespacemod__calculate__xw.html#a006c2619a5377d574da9393a41a10865" title="Compute both corner as well as cell&#45;centered values for output." alt="" coords="178,5,386,32"/>
+<area shape="rect" id="node3" href="$comm__lib_8t.html#a49b49ea9ffbbadfe688e332921c4cddd" title="Exit MPI&#45;AMRVAC with an error message." alt="" coords="460,56,535,83"/>
+<area shape="rect" id="node4" href="$namespacemod__calculate__xw.html#a3ca517175958ca7d8e3e55131acf4b5d" title="computes cell corner (xC) and cell center (xCC) coordinates" alt="" coords="187,107,377,133"/>
+<area shape="rect" id="node5" href="$namespacemod__calculate__xw.html#a3c777f366638d870c023352a16d4ef2e" title="get all variables names" alt="" coords="152,157,412,184"/>
+<area shape="rect" id="node6" href="$convert_8t.html#af1f14d21ae76224b46708be24b184185" title=" " alt="" coords="227,208,337,235"/>
+</map>

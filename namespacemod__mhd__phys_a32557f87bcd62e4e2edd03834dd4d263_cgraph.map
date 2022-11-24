@@ -1,0 +1,4 @@
+<map id="mod_mhd_phys::mhd_to_conserved_origin" name="mod_mhd_phys::mhd_to_conserved_origin">
+<area shape="rect" id="node1" title="Transform primitive variables into conservative ones." alt="" coords="5,5,188,47"/>
+<area shape="rect" id="node2" href="$namespacemod__mhd__phys.html#a9f0c00b60ad9533fb4cb29ec319d33e6" title="Compute evolving magnetic energy." alt="" coords="236,13,457,39"/>
+</map>

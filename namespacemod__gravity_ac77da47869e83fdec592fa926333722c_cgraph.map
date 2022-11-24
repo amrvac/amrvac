@@ -1,0 +1,4 @@
+<map id="mod_gravity::gravity_init" name="mod_gravity::gravity_init">
+<area shape="rect" id="node1" title="Initialize the module." alt="" coords="5,5,191,32"/>
+<area shape="rect" id="node2" href="$namespacemod__gravity.html#ab7d092c1b27307517cbb8bd631519932" title="Read this module&#39;s parameters from a file." alt="" coords="239,5,471,32"/>
+</map>

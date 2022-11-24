@@ -1,0 +1,4 @@
+<map id="mod_mhd_phys::multiplyambicoef" name="mod_mhd_phys::multiplyambicoef">
+<area shape="rect" id="node1" title="multiply res by the ambipolar coefficient The ambipolar coefficient is calculated as &#45;mhd_eta_ambi/rh..." alt="" coords="5,5,253,32"/>
+<area shape="rect" id="node2" href="$namespacemod__mhd__phys.html#a363460651196f934c305aa8d52ac8593" title=" " alt="" coords="301,5,520,32"/>
+</map>

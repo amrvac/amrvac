@@ -1,0 +1,4 @@
+<map id="mod_cak_force::rays_init" name="mod_cak_force::rays_init">
+<area shape="rect" id="node1" title="Initialise (theta&#39;,phi&#39;) radiation angles coming from stellar disc." alt="" coords="5,13,191,39"/>
+<area shape="rect" id="node2" href="$namespacemod__cak__force.html#a4de21e5ed2f71feb2a89ee2c8705c1ec" title="Fast Gauss&#45;Legendre N&#45;point quadrature algorithm by G. Rybicki." alt="" coords="239,5,405,47"/>
+</map>

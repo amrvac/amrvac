@@ -1,0 +1,7 @@
+<map id="mod_afld::halley_method" name="mod_afld::halley_method">
+<area shape="rect" id="node1" title="Find the root of the 4th degree polynomial using the Halley method." alt="" coords="5,97,192,123"/>
+<area shape="rect" id="node2" href="$namespacemod__afld.html#a77e713c279492245503edda6384cef4a" title="Evaluate second derivative of polynomial at argument e_gas." alt="" coords="248,5,427,47"/>
+<area shape="rect" id="node3" href="$namespacemod__afld.html#a8a78bd59aab671d27b82fd0f79713d1a" title="Evaluate first derivative of polynomial at argument e_gas." alt="" coords="483,73,653,115"/>
+<area shape="rect" id="node4" href="$namespacemod__afld.html#af647b7657d9ce38ec6a51c1501f7524c" title="Find the root of the 4th degree polynomial using the Newton&#45;Ralphson method." alt="" coords="240,122,435,149"/>
+<area shape="rect" id="node5" href="$namespacemod__afld.html#aa9ba324228b7daabfdf1ee26a7c88026" title="Evaluate polynomial at argument e_gas." alt="" coords="487,148,649,189"/>
+</map>

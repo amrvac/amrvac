@@ -1,0 +1,10 @@
+<map id="mod_input_output::saveamrfile" name="mod_input_output::saveamrfile">
+<area shape="rect" id="node1" title=" " alt="" coords="5,180,231,207"/>
+<area shape="rect" id="node2" href="$convert_8t.html#aba99108af4b3d5f34e0227792617cecd" title=" " alt="" coords="312,5,444,32"/>
+<area shape="rect" id="node3" href="$comm__lib_8t.html#a49b49ea9ffbbadfe688e332921c4cddd" title="Exit MPI&#45;AMRVAC with an error message." alt="" coords="525,31,600,57"/>
+<area shape="rect" id="node4" href="$namespacemod__input__output.html#ac699b426ea2d42b06de1c1798b98f96d" title="Write volume&#45;averaged values and other information to the log file." alt="" coords="279,107,477,149"/>
+<area shape="rect" id="node5" href="$namespacemod__input__output.html#a97e4df1969002df5c3fcc551db7d354e" title="Print a log that can be used to check whether the code still produces the same output (regression tes..." alt="" coords="279,173,477,214"/>
+<area shape="rect" id="node6" href="$namespacemod__collapse.html#ae345a692009d6f8bf85ddd4cdb30cb4e" title=" " alt="" coords="301,238,455,279"/>
+<area shape="rect" id="node7" href="$namespacemod__slice.html#a6a45feb00cf001fcff14f72e126a89c4" title=" " alt="" coords="295,304,461,331"/>
+<area shape="rect" id="node8" href="$namespacemod__input__output.html#ae1d4a41dcf32cae3752c48ef73f42364" title=" " alt="" coords="287,355,469,397"/>
+</map>

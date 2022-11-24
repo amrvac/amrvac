@@ -1,0 +1,5 @@
+<map id="mod_multigrid_coupling::mg_copy_to_tree" name="mod_multigrid_coupling::mg_copy_to_tree">
+<area shape="rect" id="node1" title="Copy a variable to the multigrid tree, including a layer of ghost cells." alt="" coords="5,39,184,80"/>
+<area shape="rect" id="node2" href="$namespacem__octree__mg__1d.html#a6d0dd6be708ecce88d9c0c52e27b58f9" title="Fill ghost cells at all grid levels." alt="" coords="232,5,395,47"/>
+<area shape="rect" id="node3" href="$namespacem__octree__mg__1d.html#a8aaf70a1c8437510eae5db8ec0472498" title="Restrict all levels." alt="" coords="232,71,395,112"/>
+</map>

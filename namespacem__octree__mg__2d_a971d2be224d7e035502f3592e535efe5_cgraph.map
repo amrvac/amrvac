@@ -1,0 +1,8 @@
+<map id="m_octree_mg_2d::diffusion_solve_vcoeff" name="m_octree_mg_2d::diffusion_solve_vcoeff">
+<area shape="rect" id="node1" title="Solve a diffusion equation implicitly, assuming a variable diffusion coefficient which has been store..." alt="" coords="5,129,204,171"/>
+<area shape="rect" id="node2" href="$namespacem__octree__mg__2d.html#ade0f67e6813012ee2ffac182b9c33581" title="Apply operator to the tree and store in variable i_out." alt="" coords="278,5,441,47"/>
+<area shape="rect" id="node3" href="$namespacem__octree__mg__2d.html#a3290a5136d8f015c074035761fc590e2" title="Perform FAS&#45;FMG cycle (full approximation scheme, full multigrid)." alt="" coords="278,71,441,112"/>
+<area shape="rect" id="node4" href="$namespacem__octree__mg__2d.html#a038db13e02f485ee9fb4fee2e8a0d770" title="Perform FAS V&#45;cycle (full approximation scheme)." alt="" coords="515,100,677,141"/>
+<area shape="rect" id="node5" href="$namespacem__octree__mg__2d.html#ae213d3b6a5960caf6003e3c21a4c9fe6" title=" " alt="" coords="278,188,441,229"/>
+<area shape="rect" id="node6" href="$namespacem__octree__mg__2d.html#ab48fe1ad0459d29bc45d190771f56fdc" title=" " alt="" coords="252,253,467,295"/>
+</map>

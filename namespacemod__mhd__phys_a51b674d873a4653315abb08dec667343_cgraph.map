@@ -1,0 +1,7 @@
+<map id="mod_mhd_phys::mhd_get_csound" name="mod_mhd_phys::mhd_get_csound">
+<area shape="rect" id="node1" title="Calculate fast magnetosonic wave speed." alt="" coords="5,104,196,145"/>
+<area shape="rect" id="node2" href="$namespacemod__mhd__phys.html#a1c4274208e89339ede6ac4f138aa6f93" title="Compute 1/sqrt(1+v_A^2/c^2) for semirelativisitic MHD, where v_A is the Alfven velocity." alt="" coords="244,5,463,47"/>
+<area shape="rect" id="node3" href="$namespacemod__mhd__phys.html#a9e3c0286c2409cc35c04b6f46c27f960" title="Calculate the square of the thermal sound speed csound2 within ixO^L. csound2=gamma*p/rho." alt="" coords="258,71,449,112"/>
+<area shape="rect" id="node4" href="$namespacemod__mhd__phys.html#af14fa2e60e611999dd386a22dc273449" title="Compute 2 times total magnetic energy." alt="" coords="254,136,453,177"/>
+<area shape="rect" id="node5" href="$namespacemod__mhd__phys.html#a1ec41703a636a9c11cf09ccf97b193a8" title="Compute full magnetic field by direction." alt="" coords="254,201,453,243"/>
+</map>

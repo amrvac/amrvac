@@ -1,0 +1,4 @@
+<map id="mod_dust::get_sticking" name="mod_dust::get_sticking">
+<area shape="rect" id="node1" title="Get sticking coefficient alpha_T (always between 0 and 1)" alt="" coords="5,5,179,32"/>
+<area shape="rect" id="node2" href="$namespacemod__dust.html#a5e84ceadcf8c52a8eeea8cd82096d1e1" title="Returns dust temperature (in K), either as constant or based on equ. 5.41, 5.42 and 5...." alt="" coords="227,5,381,32"/>
+</map>

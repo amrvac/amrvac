@@ -1,0 +1,6 @@
+<map id="mod_afld::afld_get_diffcoef_central" name="mod_afld::afld_get_diffcoef_central">
+<area shape="rect" id="node1" title="Calculates cell&#45;centered diffusion coefficient to be used in multigrid." alt="" coords="5,64,148,105"/>
+<area shape="rect" id="node2" href="$namespacemod__afld.html#a15de558bd4ac30eafda8e094ef42845e" title="Calculate fld flux limiter This subroutine calculates flux limiter lambda using the prescription stor..." alt="" coords="210,5,353,47"/>
+<area shape="rect" id="node3" href="$namespacemod__afld.html#acd5029394980153674cd833436e7de0f" title="Sets the opacity in the w&#45;array by calling mod_opal_opacity." alt="" coords="415,35,557,76"/>
+<area shape="rect" id="node4" href="$namespacemod__afld.html#a06134992ba7622d3d01e4c8336d62c01" title="Use running average on Diffusion coefficient." alt="" coords="196,123,367,164"/>
+</map>

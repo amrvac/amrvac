@@ -1,0 +1,4 @@
+<map id="mod_mhd_phys::mhd_get_cbounds_semirelati" name="mod_mhd_phys::mhd_get_cbounds_semirelati">
+<area shape="rect" id="node1" title="Estimating bounds for the minimum and maximum signal velocities without split." alt="" coords="5,5,196,47"/>
+<area shape="rect" id="node2" href="$namespacemod__mhd__phys.html#af3a7727b9e625807ac3dc8d92a67082a" title="Calculate cmax_idim for semirelativistic MHD." alt="" coords="244,5,435,47"/>
+</map>

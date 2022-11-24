@@ -1,0 +1,8 @@
+<map id="mod_solar_atmosphere::get_atm_para" name="mod_solar_atmosphere::get_atm_para">
+<area shape="rect" id="node1" title=" " alt="" coords="5,136,180,177"/>
+<area shape="rect" id="node2" href="$namespacemod__solar__atmosphere.html#a13fa2a100a87b91ca13619b4150ddfb3" title=" " alt="" coords="228,5,403,47"/>
+<area shape="rect" id="node3" href="$namespacemod__solar__atmosphere.html#a460226349b39f28d24ddaf40113c310b" title=" " alt="" coords="228,71,403,112"/>
+<area shape="rect" id="node4" href="$namespacemod__solar__atmosphere.html#aaa36616a9ab93efdfddc9393c5bfd44c" title=" " alt="" coords="228,136,403,177"/>
+<area shape="rect" id="node5" href="$namespacemod__solar__atmosphere.html#a7f11d581f87e4bc4c7f081dfedad4440" title=" " alt="" coords="228,201,403,243"/>
+<area shape="rect" id="node6" href="$comm__lib_8t.html#a49b49ea9ffbbadfe688e332921c4cddd" title="Exit MPI&#45;AMRVAC with an error message." alt="" coords="278,267,353,294"/>
+</map>

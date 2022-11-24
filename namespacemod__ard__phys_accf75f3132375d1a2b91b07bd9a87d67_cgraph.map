@@ -1,0 +1,4 @@
+<map id="mod_ard_phys::ard_implicit_update" name="mod_ard_phys::ard_implicit_update">
+<area shape="rect" id="node1" title="Implicit solve of psa=psb+dtfactor*dt*F_im(psa)" alt="" coords="5,5,208,47"/>
+<area shape="rect" id="node2" href="$comm__lib_8t.html#a49b49ea9ffbbadfe688e332921c4cddd" title="Exit MPI&#45;AMRVAC with an error message." alt="" coords="256,13,331,39"/>
+</map>

@@ -1,0 +1,5 @@
+<map id="mod_mhd_phys::mhd_e_to_ei" name="mod_mhd_phys::mhd_e_to_ei">
+<area shape="rect" id="node1" title="Transform total energy to internal energy." alt="" coords="5,35,183,76"/>
+<area shape="rect" id="node2" href="$namespacemod__mhd__phys.html#ad50b3d711e10d6316238b8688d218914" title="handle small or negative internal energy" alt="" coords="235,5,448,47"/>
+<area shape="rect" id="node3" href="$namespacemod__mhd__phys.html#a9f0c00b60ad9533fb4cb29ec319d33e6" title="Compute evolving magnetic energy." alt="" coords="231,71,452,98"/>
+</map>

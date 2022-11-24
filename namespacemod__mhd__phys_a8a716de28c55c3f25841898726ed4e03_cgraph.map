@@ -1,0 +1,4 @@
+<map id="mod_mhd_phys::mhd_get_pthermal_semirelati" name="mod_mhd_phys::mhd_get_pthermal_semirelati">
+<area shape="rect" id="node1" title="Calculate thermal pressure=(gamma&#45;1)*(e&#45;0.5*m**2/rho&#45;b**2/2) within ixO^L." alt="" coords="5,5,196,47"/>
+<area shape="rect" id="node2" href="$namespacemod__mhd__phys.html#a997d8dd2ca9a6cdc14ffc4bf57b82c1c" title="Transform conservative variables into primitive ones." alt="" coords="244,5,427,47"/>
+</map>

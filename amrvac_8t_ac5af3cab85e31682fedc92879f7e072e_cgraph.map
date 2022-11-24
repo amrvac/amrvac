@@ -1,0 +1,11 @@
+<map id="timeintegration" name="timeintegration">
+<area shape="rect" id="node1" title=" " alt="" coords="5,195,128,221"/>
+<area shape="rect" id="node2" href="$namespacemod__advance.html#a3abc5d81403e5443dc97a4db696acfd1" title="Advance all the grids over one time step, including all sources." alt="" coords="201,5,377,32"/>
+<area shape="rect" id="node3" href="$amrvac_8t.html#a0ced65b6e56f54386e2f7718d7095a10" title="Return true if the AMR grid should not be adapted any more. This is controlled by tfixgrid or itfixgr..." alt="" coords="257,56,320,83"/>
+<area shape="rect" id="node4" href="$namespacemod__advance.html#a4c2beedac0bce5cbce19c516a00b5c98" title="process is a user entry in time loop, before output and advance allows to modify solution,..." alt="" coords="203,107,374,133"/>
+<area shape="rect" id="node5" href="$namespacemod__advance.html#a0dc1d03e0f58c2714522534be50cb915" title="process_advanced is user entry in time loop, just after advance allows to modify solution,..." alt="" coords="203,158,374,199"/>
+<area shape="rect" id="node6" href="$amrgrid_8t.html#af154aac5664c544db6772f9d3578afbd" title="reset AMR and (de)allocate boundary flux storage at level changes" alt="" coords="248,224,329,251"/>
+<area shape="rect" id="node7" href="$namespacemod__input__output.html#a061b50e8aaaaf828c94809adf831ccbe" title=" " alt="" coords="176,275,401,301"/>
+<area shape="rect" id="node8" href="$setdt_8t.html#a73d6257f8db69324189855900568a4e1" title="setdt &#45; set dt for all levels between levmin and levmax. dtpar&gt;0 &#45;&#45;&gt; use fixed dtpar for all level dt..." alt="" coords="261,325,316,352"/>
+<area shape="rect" id="node9" href="$amrvac_8t.html#a5161b0d2d5cd17f5ef88afee2e969ac1" title="Save times are defined by either tsave(isavet(ifile),ifile) or itsave(isaveit(ifile),..." alt="" coords="241,376,337,403"/>
+</map>

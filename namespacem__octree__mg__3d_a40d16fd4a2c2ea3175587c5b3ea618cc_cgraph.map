@@ -1,0 +1,7 @@
+<map id="m_octree_mg_3d::mg_build_rectangle" name="m_octree_mg_3d::mg_build_rectangle">
+<area shape="rect" id="node1" title=" " alt="" coords="5,104,168,145"/>
+<area shape="rect" id="node2" href="$namespacem__octree__mg__3d.html#a6d735c1ed9fa93e7fdb1578e3cbe3c92" title=" " alt="" coords="216,5,379,47"/>
+<area shape="rect" id="node3" href="$namespacem__octree__mg__3d.html#a676743031a29548f8eb7d12b41832ab6" title="Create a list of leaves and a list of parents for a level." alt="" coords="216,71,379,112"/>
+<area shape="rect" id="node4" href="$namespacem__octree__mg__3d.html#a552e15c9f8ab987107f2018690005ce8" title=" " alt="" coords="216,136,379,177"/>
+<area shape="rect" id="node5" href="$namespacem__octree__mg__3d.html#a9d00cc9c7c529fa2cb37ccb72203456b" title=" " alt="" coords="216,201,379,243"/>
+</map>

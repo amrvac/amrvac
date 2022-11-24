@@ -1,0 +1,5 @@
+<map id="mod_twofl_phys::twofl_e_to_ei_c" name="mod_twofl_phys::twofl_e_to_ei_c">
+<area shape="rect" id="node1" title="Transform total energy to internal energy." alt="" coords="5,39,173,80"/>
+<area shape="rect" id="node2" href="$namespacemod__twofl__phys.html#ac5281ea9af4d384f350c6b13eee076da" title="compute kinetic energy of charges w are conserved variables" alt="" coords="221,5,389,47"/>
+<area shape="rect" id="node3" href="$namespacemod__twofl__phys.html#aaecd38986d84940cc41c8d30b0edfb6e" title="Compute evolving magnetic energy." alt="" coords="221,71,389,112"/>
+</map>

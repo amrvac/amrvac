@@ -1,0 +1,6 @@
+<map id="mod_mhd_phys::add_source_b0split" name="mod_mhd_phys::add_source_b0split">
+<area shape="rect" id="node1" title="Source terms after split off time&#45;independent magnetic field." alt="" coords="5,71,212,112"/>
+<area shape="rect" id="node2" href="$namespacemod__global__parameters.html#ab7c08882c0c573fe148b826cf02a2546" title="Cross product of two vectors." alt="" coords="294,5,474,47"/>
+<area shape="rect" id="node3" href="$namespacemod__mhd__phys.html#a808b52d1c59329d1f905245fbe76d237" title=" " alt="" coords="289,71,479,112"/>
+<area shape="rect" id="node4" href="$namespacemod__mhd__phys.html#ae7f950253d527c1f35fbde3597da75c0" title="multiply res by the ambipolar coefficient The ambipolar coefficient is calculated as &#45;mhd_eta_ambi/rh..." alt="" coords="260,137,508,163"/>
+</map>

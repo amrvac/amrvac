@@ -1,0 +1,5 @@
+<map id="mod_magnetofriction::divbclean" name="mod_magnetofriction::divbclean">
+<area shape="rect" id="node1" title="Clean divergence of magnetic field by Janhunen&#39;s and Linde&#39;s source terms." alt="" coords="5,35,168,76"/>
+<area shape="rect" id="node2" href="$namespacemod__magnetofriction.html#a6c1e3c52ca480adf1732a3cd2756f624" title="Calculate div B within ixO." alt="" coords="226,5,389,47"/>
+<area shape="rect" id="node3" href="$namespacemod__geometry.html#a92ec4e2c8ae00a42bf5bf2c1ce3a26c4" title="Calculate gradient of a scalar q within ixL in direction idir." alt="" coords="216,71,399,98"/>
+</map>

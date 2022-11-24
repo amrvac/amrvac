@@ -1,0 +1,6 @@
+<map id="mod_cak_force::get_cak_force_radial" name="mod_cak_force::get_cak_force_radial">
+<area shape="rect" id="node1" title="1&#45;D CAK line force in the Gayley line&#45;ensemble distribution parametrisation" alt="" coords="5,71,156,112"/>
+<area shape="rect" id="node2" href="$namespacemod__cak__force.html#a0ef9eac0ed4ccc968912372844591dec" title="Compute continuum radiation force from Thomson scattering." alt="" coords="204,5,355,47"/>
+<area shape="rect" id="node3" href="$namespacemod__cak__force.html#a19e50108bb9d55cdb8cc5b292c33fb42" title="Compute velocity gradient in direction &#39;idir&#39; on a non&#45;uniform grid." alt="" coords="204,71,355,112"/>
+<area shape="rect" id="node4" href="$comm__lib_8t.html#a49b49ea9ffbbadfe688e332921c4cddd" title="Exit MPI&#45;AMRVAC with an error message." alt="" coords="242,137,317,163"/>
+</map>

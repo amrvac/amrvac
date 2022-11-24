@@ -1,0 +1,5 @@
+<map id="mod_input_output::printlog_default" name="mod_input_output::printlog_default">
+<area shape="rect" id="node1" title="Write volume&#45;averaged values and other information to the log file." alt="" coords="5,39,204,80"/>
+<area shape="rect" id="node2" href="$namespacemod__input__output.html#a9cf9ab211dc4836b216f1fe919d969ed" title="Compute mean(w**power) over the leaves of the grid. The first mode (power=1) corresponds to the mean,..." alt="" coords="252,5,421,47"/>
+<area shape="rect" id="node3" href="$namespacemod__input__output.html#ab8da1bad0d6ad49b56081e6fe6bbcc85" title="Compute how much of the domain is covered by each grid level. This routine does not take a non&#45;Cartes..." alt="" coords="252,71,421,112"/>
+</map>

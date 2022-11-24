@@ -1,0 +1,4 @@
+<map id="mod_particle_base::fill_gridvars_default" name="mod_particle_base::fill_gridvars_default">
+<area shape="rect" id="node1" title="This routine fills the particle grid variables with the default for mhd, i.e. only E and B." alt="" coords="5,5,159,47"/>
+<area shape="rect" id="node2" href="$namespacemod__particle__base.html#a1b92855e3b68eb1bddda43087dce2f84" title="Determine fields from MHD variables." alt="" coords="207,5,360,47"/>
+</map>

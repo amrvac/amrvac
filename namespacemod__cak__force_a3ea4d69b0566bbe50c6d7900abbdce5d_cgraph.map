@@ -1,0 +1,6 @@
+<map id="mod_cak_force::cak_init" name="mod_cak_force::cak_init">
+<area shape="rect" id="node1" title="Initialize the module." alt="" coords="5,71,185,98"/>
+<area shape="rect" id="node2" href="$namespacemod__cak__force.html#a3f11fac7bc8895d5ad4001f8e818621d" title="Public method." alt="" coords="250,5,402,47"/>
+<area shape="rect" id="node3" href="$comm__lib_8t.html#a49b49ea9ffbbadfe688e332921c4cddd" title="Exit MPI&#45;AMRVAC with an error message." alt="" coords="289,71,363,98"/>
+<area shape="rect" id="node4" href="$namespacemod__cak__force.html#aef780782d3155c249770b687578d070b" title="Initialise (theta&#39;,phi&#39;) radiation angles coming from stellar disc." alt="" coords="233,122,419,149"/>
+</map>

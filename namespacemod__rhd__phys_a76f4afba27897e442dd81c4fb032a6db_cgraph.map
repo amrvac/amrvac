@@ -1,0 +1,6 @@
+<map id="mod_rhd_phys::rhd_get_ptot" name="mod_rhd_phys::rhd_get_ptot">
+<area shape="rect" id="node1" title="calculates the sum of the gas pressure and max Prad tensor element" alt="" coords="5,78,212,105"/>
+<area shape="rect" id="node2" href="$namespacemod__rhd__phys.html#a24577589fb9f8f42259a60ecc50574cb" title="Calculate radiation pressure within ixO^L." alt="" coords="266,5,441,47"/>
+<area shape="rect" id="node3" href="$namespacemod__rhd__phys.html#ac35b28a6a4b662912b5d755502927fcb" title="Calculate thermal pressure=(gamma&#45;1)*(e&#45;0.5*m**2/rho) within ixO^L." alt="" coords="266,71,441,112"/>
+<area shape="rect" id="node4" href="$namespacemod__rhd__phys.html#aac0bb1176938f95064ea7e1737f229e3" title="Filter peaks in cmax due to radiation energy density, used for debugging." alt="" coords="260,136,447,177"/>
+</map>

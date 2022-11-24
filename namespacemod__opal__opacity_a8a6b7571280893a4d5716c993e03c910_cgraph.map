@@ -1,0 +1,4 @@
+<map id="mod_opal_opacity::set_opal_opacity" name="mod_opal_opacity::set_opal_opacity">
+<area shape="rect" id="node1" title="This subroutine calculates the opacity for a given temperature&#45;density structure. The opacities are r..." alt="" coords="5,5,173,47"/>
+<area shape="rect" id="node2" href="$namespacemod__opal__opacity.html#a0a8016626d4010a8b066fa7dae39add9" title="This subroutine looks in the table for the four couples (T,R)" alt="" coords="221,5,391,47"/>
+</map>

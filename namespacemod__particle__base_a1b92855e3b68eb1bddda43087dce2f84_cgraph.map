@@ -1,0 +1,4 @@
+<map id="mod_particle_base::fields_from_mhd" name="mod_particle_base::fields_from_mhd">
+<area shape="rect" id="node1" title="Determine fields from MHD variables." alt="" coords="5,5,159,47"/>
+<area shape="rect" id="node2" href="$namespacemod__particle__base.html#a7c5a6278e4417d5783e1c3bd5f5ff859" title="Calculate idirmin and the idirmin:3 components of the common current array make sure that dxlevel(^D)..." alt="" coords="207,5,360,47"/>
+</map>

@@ -1,0 +1,7 @@
+<map id="mod_twofl_phys::twofl_update_faces" name="mod_twofl_phys::twofl_update_faces">
+<area shape="rect" id="node1" title=" " alt="" coords="5,90,173,131"/>
+<area shape="rect" id="node2" href="$comm__lib_8t.html#a49b49ea9ffbbadfe688e332921c4cddd" title="Exit MPI&#45;AMRVAC with an error message." alt="" coords="275,5,349,32"/>
+<area shape="rect" id="node3" href="$namespacemod__twofl__phys.html#ad70be1d246157d9a70b9f64fcf52241d" title="get electric field though averaging neighors to update faces in CT" alt="" coords="221,57,403,98"/>
+<area shape="rect" id="node4" href="$namespacemod__twofl__phys.html#a3364af8a8ba5127e58a6b3fc97ccb309" title="update faces using UCT contact mode by Gardiner and Stone 2005 JCP 205, 509" alt="" coords="221,122,403,163"/>
+<area shape="rect" id="node5" href="$namespacemod__twofl__phys.html#a6749e61e09d1753af54ffceca49d9f21" title="update faces" alt="" coords="221,187,403,229"/>
+</map>

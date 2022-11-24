@@ -1,0 +1,6 @@
+<map id="improve_initial_condition" name="improve_initial_condition">
+<area shape="rect" id="node1" title="improve initial condition after initialization" alt="" coords="5,34,192,61"/>
+<area shape="rect" id="node2" href="$namespacemod__ghostcells__update.html#abc70508ceb326fb28166d751e5de31fc" title="do update ghost cells of all blocks including physical boundaries" alt="" coords="488,31,664,72"/>
+<area shape="rect" id="node3" href="$namespacemod__multigrid__coupling.html#aec3563c8809267a23e94c236093a2b12" title="Setup multigrid for usage." alt="" coords="251,27,429,68"/>
+<area shape="rect" id="node4" href="$namespacemod__constrained__transport.html#a0d59d156c7a3e6112fdc5de77d009a61" title="re&#45;calculate the magnetic field from the vector potential in a completely divergency free way" alt="" coords="240,92,440,133"/>
+</map>

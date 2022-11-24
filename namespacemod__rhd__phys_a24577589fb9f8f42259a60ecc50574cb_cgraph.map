@@ -1,0 +1,6 @@
+<map id="mod_rhd_phys::rhd_get_pradiation" name="mod_rhd_phys::rhd_get_pradiation">
+<area shape="rect" id="node1" title="Calculate radiation pressure within ixO^L." alt="" coords="5,64,180,105"/>
+<area shape="rect" id="node2" href="$namespacemod__afld.html#ad940cd1c97b3ceb38496516a955092e5" title="Calculate Radiation Pressure Returns Radiation Pressure as tensor." alt="" coords="251,5,394,47"/>
+<area shape="rect" id="node3" href="$namespacemod__fld.html#ab6de94c421ca190d4cc8fbd98890df60" title="Calculate Radiation Pressure Returns Radiation Pressure as tensor." alt="" coords="228,71,417,98"/>
+<area shape="rect" id="node4" href="$comm__lib_8t.html#a49b49ea9ffbbadfe688e332921c4cddd" title="Exit MPI&#45;AMRVAC with an error message." alt="" coords="285,122,360,149"/>
+</map>

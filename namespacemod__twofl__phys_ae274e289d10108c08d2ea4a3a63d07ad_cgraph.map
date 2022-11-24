@@ -1,0 +1,7 @@
+<map id="mod_twofl_phys::twofl_get_cbounds_one" name="mod_twofl_phys::twofl_get_cbounds_one">
+<area shape="rect" id="node1" title="Estimating bounds for the minimum and maximum signal velocities." alt="" coords="5,62,173,103"/>
+<area shape="rect" id="node2" href="$namespacemod__twofl__phys.html#a4e18f8b5346e80f4d7e4418f32845e7f" title=" " alt="" coords="437,29,595,70"/>
+<area shape="rect" id="node3" href="$namespacemod__twofl__phys.html#a7621aad8684305f6320e23d5797bd071" title=" " alt="" coords="437,94,595,135"/>
+<area shape="rect" id="node4" href="$namespacemod__twofl__phys.html#aaa019190291045effe820078bba68e20" title=" " alt="" coords="221,29,389,70"/>
+<area shape="rect" id="node5" href="$namespacemod__twofl__phys.html#abbbe4868533d29a913b6809db7d40db5" title="Calculate fast magnetosonic wave speed when cbounds_species=false." alt="" coords="221,94,389,135"/>
+</map>

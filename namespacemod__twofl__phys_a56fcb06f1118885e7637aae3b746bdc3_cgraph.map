@@ -1,0 +1,6 @@
+<map id="mod_twofl_phys::get_lorentz" name="mod_twofl_phys::get_lorentz">
+<area shape="rect" id="node1" title="Compute the Lorentz force (JxB)" alt="" coords="5,71,163,112"/>
+<area shape="rect" id="node2" href="$namespacemod__global__parameters.html#ab7c08882c0c573fe148b826cf02a2546" title="Cross product of two vectors." alt="" coords="211,5,391,47"/>
+<area shape="rect" id="node3" href="$namespacemod__twofl__phys.html#a35943a026269e9b298b1b62e51b411da" title="Calculate idirmin and the idirmin:3 components of the common current array make sure that dxlevel(^D)..." alt="" coords="222,71,379,112"/>
+<area shape="rect" id="node4" href="$namespacemod__twofl__phys.html#ad5909743198e8160e3d81cf6771cbd10" title="Compute full magnetic field by direction." alt="" coords="217,136,385,177"/>
+</map>

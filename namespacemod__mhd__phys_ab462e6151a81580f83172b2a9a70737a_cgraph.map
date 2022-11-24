@@ -1,0 +1,19 @@
+<map id="mod_mhd_phys::mhd_add_source" name="mod_mhd_phys::mhd_add_source">
+<area shape="rect" id="node1" title="w[iws]=w[iws]+qdt*S[iws,wCT] where S is the source based on wCT within ixO" alt="" coords="5,455,199,497"/>
+<area shape="rect" id="node2" href="$namespacemod__mhd__phys.html#a73a23283a89afaa799df21ce24e48974" title=" " alt="" coords="257,5,479,32"/>
+<area shape="rect" id="node3" href="$namespacemod__mhd__phys.html#a34700ad74a3d9f47b82567b4062b4913" title="Source terms after split off time&#45;independent magnetic field." alt="" coords="265,57,471,98"/>
+<area shape="rect" id="node4" href="$namespacemod__mhd__phys.html#a539f7b44e5eb79a96889ccaca2c4f476" title=" " alt="" coords="249,123,487,149"/>
+<area shape="rect" id="node5" href="$namespacemod__mhd__phys.html#a6c97f3a58814b483aae39681e38acd31" title="Source terms for hydrodynamic energy version of MHD." alt="" coords="265,174,471,215"/>
+<area shape="rect" id="node6" href="$comm__lib_8t.html#a49b49ea9ffbbadfe688e332921c4cddd" title="Exit MPI&#45;AMRVAC with an error message." alt="" coords="537,616,612,643"/>
+<area shape="rect" id="node7" href="$namespacemod__mhd__phys.html#a6eac8ae60957456f73440695a3d6bb93" title="Add Hyper&#45;resistive source to w within ixO Uses 9 point stencil (4 neighbours) in each direction." alt="" coords="265,291,471,333"/>
+<area shape="rect" id="node8" href="$namespacemod__mhd__phys.html#abb139e59658b5899f252bc92a51e4e34" title=" " alt="" coords="265,357,471,398"/>
+<area shape="rect" id="node9" href="$namespacemod__mhd__phys.html#a697edad8ffdc6976eb89a37326dbaa2b" title=" " alt="" coords="265,422,471,463"/>
+<area shape="rect" id="node10" href="$namespacemod__mhd__phys.html#a1647cb58218eadaf9c5724e053ef7a40" title="Add divB related sources to w within ixO corresponding to Powel." alt="" coords="265,487,471,529"/>
+<area shape="rect" id="node11" href="$namespacemod__mhd__phys.html#ac2540d1d3511903e1107277f88f4e009" title="Add resistive source to w within ixO Uses 5 point stencil (2 neighbours) in each direction,..." alt="" coords="247,553,489,580"/>
+<area shape="rect" id="node12" href="$namespacemod__mhd__phys.html#a0b043eacbdbddc8ecb0717a4ec2fdd9c" title="Source terms for semirelativistic MHD." alt="" coords="265,605,471,646"/>
+<area shape="rect" id="node13" href="$namespacemod__cak__force.html#a83fe70934132062bf7aec456aa93f530" title="w[iw]=w[iw]+qdt*S[wCT,qtC,x] where S is the source based on wCT within ixO" alt="" coords="292,670,444,711"/>
+<area shape="rect" id="node14" href="$namespacemod__gravity.html#ab1d9813bcabaa6449eb6534d567537e1" title="w[iw]=w[iw]+qdt*S[wCT,qtC,x] where S is the source based on wCT within ixO" alt="" coords="289,735,447,777"/>
+<area shape="rect" id="node15" href="$namespacemod__mhd__phys.html#a0ff92d0125117b5a65e4f48f8ed1d204" title=" " alt="" coords="277,801,459,842"/>
+<area shape="rect" id="node16" href="$namespacemod__radiative__cooling.html#a7b37d80a2bb954fedb9fa305980f3bc0" title=" " alt="" coords="281,867,455,923"/>
+<area shape="rect" id="node17" href="$namespacemod__viscosity.html#a61f06d68c91f32ec45245f989be9614c" title=" " alt="" coords="277,947,459,989"/>
+</map>

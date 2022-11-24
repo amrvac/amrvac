@@ -1,0 +1,8 @@
+<map id="m_octree_mg_2d::get_sum" name="m_octree_mg_2d::get_sum">
+<area shape="rect" id="node1" title=" " alt="" coords="5,143,204,170"/>
+<area shape="rect" id="node2" href="$namespacem__octree__mg__2d.html#ab36013f6a6ae568e5c275d97f061c3d4" title="Fill ghost cells at a grid level." alt="" coords="252,5,415,47"/>
+<area shape="rect" id="node3" href="$namespacem__octree__mg__2d.html#a51d51e35b789eb11e253e6eec7a7283b" title="Prolong variable iv from lvl to variable iv_to at lvl+1." alt="" coords="252,71,415,112"/>
+<area shape="rect" id="node4" href="$namespacem__octree__mg__2d.html#ad0b0b055e5c5afa0727c681765d31bbc" title="Restrict from lvl to lvl&#45;1." alt="" coords="252,136,415,177"/>
+<area shape="rect" id="node5" href="$namespacem__octree__mg__2d.html#a0952e0df482accb3fa95e9de0968f397" title=" " alt="" coords="252,201,415,243"/>
+<area shape="rect" id="node6" href="$namespacem__octree__mg__2d.html#a65da24011c03c83cb0902d6c5b3e276a" title=" " alt="" coords="252,267,415,308"/>
+</map>

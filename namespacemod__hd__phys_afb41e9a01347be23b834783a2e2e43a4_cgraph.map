@@ -1,0 +1,4 @@
+<map id="mod_hd_phys::hd_get_temperature_from_etot" name="mod_hd_phys::hd_get_temperature_from_etot">
+<area shape="rect" id="node1" title="Calculate temperature=p/rho when in e_ the total energy is stored." alt="" coords="5,5,187,47"/>
+<area shape="rect" id="node2" href="$namespacemod__hd__phys.html#aa893373436eb62993cc188e9005870c8" title="Calculate thermal pressure=(gamma&#45;1)*(e&#45;0.5*m**2/rho) within ixO^L." alt="" coords="235,5,399,47"/>
+</map>

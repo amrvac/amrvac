@@ -1,0 +1,7 @@
+<map id="alloc_node" name="alloc_node">
+<area shape="rect" id="node1" title="allocate arrays on igrid node" alt="" coords="5,81,97,108"/>
+<area shape="rect" id="node2" href="$amr__solution__node_8t.html#af243a699033b92443a177d94a7093157" title="allocate memory to physical state of igrid node" alt="" coords="170,5,263,32"/>
+<area shape="rect" id="node3" href="$amr__solution__node_8t.html#ac5a07cba25dc74609352b0caffbc439a" title="allocate memory to one&#45;level coarser physical state of igrid node" alt="" coords="145,56,288,83"/>
+<area shape="rect" id="node4" href="$comm__lib_8t.html#a49b49ea9ffbbadfe688e332921c4cddd" title="Exit MPI&#45;AMRVAC with an error message." alt="" coords="179,107,254,133"/>
+<area shape="rect" id="node5" href="$set__B0_8t.html#a71eb73340ae243dea4bbd3cd519c73c6" title=" " alt="" coords="168,157,265,184"/>
+</map>

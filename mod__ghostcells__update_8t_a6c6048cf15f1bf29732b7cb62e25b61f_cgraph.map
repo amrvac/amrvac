@@ -1,0 +1,4 @@
+<map id="fill_coarse_boundary" name="fill_coarse_boundary">
+<area shape="rect" id="node1" title=" " alt="" coords="5,5,161,32"/>
+<area shape="rect" id="node2" href="$boundary__conditions_8t.html#a0247bf56d20b1af9e5135a09d6d97ce7" title="fill ghost cells at a physical boundary" alt="" coords="209,5,284,32"/>
+</map>

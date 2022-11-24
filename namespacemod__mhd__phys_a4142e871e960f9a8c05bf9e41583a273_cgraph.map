@@ -1,0 +1,5 @@
+<map id="mod_mhd_phys::mhd_add_source_geom" name="mod_mhd_phys::mhd_add_source_geom">
+<area shape="rect" id="node1" title=" " alt="" coords="5,35,199,76"/>
+<area shape="rect" id="node2" href="$namespacemod__mhd__phys.html#a8c0ad0285c3cb34cadb1344c8c4448f1" title="Calculate total pressure within ixO^L including magnetic pressure." alt="" coords="247,5,437,47"/>
+<area shape="rect" id="node3" href="$comm__lib_8t.html#a49b49ea9ffbbadfe688e332921c4cddd" title="Exit MPI&#45;AMRVAC with an error message." alt="" coords="305,71,379,98"/>
+</map>

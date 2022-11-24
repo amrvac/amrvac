@@ -1,0 +1,4 @@
+<map id="mod_lookup_table::lt_get_spaced_data" name="mod_lookup_table::lt_get_spaced_data">
+<area shape="rect" id="node1" title="Linearly interpolate the (x, y) input data to the new_x coordinates." alt="" coords="5,5,164,47"/>
+<area shape="rect" id="node2" href="$namespacemod__lookup__table.html#a6d82fcd000721de2c3f007d206c66f24" title="Compute by use of linear interpolation the value in the middle." alt="" coords="212,5,371,47"/>
+</map>

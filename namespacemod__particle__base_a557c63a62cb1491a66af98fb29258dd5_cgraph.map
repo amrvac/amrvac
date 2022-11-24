@@ -1,0 +1,5 @@
+<map id="mod_particle_base::find_particle_ipe" name="mod_particle_base::find_particle_ipe">
+<area shape="rect" id="node1" title=" " alt="" coords="5,27,159,69"/>
+<area shape="rect" id="node2" href="$namespacemod__slice.html#a29d6f9885b76722d9fd862805d94e030" title=" " alt="" coords="207,5,373,32"/>
+<area shape="rect" id="node3" href="$namespacemod__particle__base.html#ae7e59fb41ba6b4365b1ee55be06e15d9" title="Check if particle is inside computational domain." alt="" coords="213,57,367,98"/>
+</map>

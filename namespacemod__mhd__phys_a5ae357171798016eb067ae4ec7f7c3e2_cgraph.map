@@ -1,0 +1,6 @@
+<map id="mod_mhd_phys::add_source_ambipolar_internal_energy" name="mod_mhd_phys::add_source_ambipolar_internal_energy">
+<area shape="rect" id="node1" title="Source terms J.E in internal energy. For the ambipolar term E = ambiCoef * JxBxB=ambiCoef * B^2(&#45;J_pe..." alt="" coords="5,71,212,112"/>
+<area shape="rect" id="node2" href="$namespacemod__mhd__phys.html#a808b52d1c59329d1f905245fbe76d237" title=" " alt="" coords="289,5,479,47"/>
+<area shape="rect" id="node3" href="$namespacemod__mhd__phys.html#af14fa2e60e611999dd386a22dc273449" title="Compute 2 times total magnetic energy." alt="" coords="285,71,483,112"/>
+<area shape="rect" id="node4" href="$namespacemod__mhd__phys.html#ae7f950253d527c1f35fbde3597da75c0" title="multiply res by the ambipolar coefficient The ambipolar coefficient is calculated as &#45;mhd_eta_ambi/rh..." alt="" coords="260,137,508,163"/>
+</map>

@@ -1,0 +1,10 @@
+<map id="mod_mhd_phys::sts_set_source_ambipolar" name="mod_mhd_phys::sts_set_source_ambipolar">
+<area shape="rect" id="node1" title="Sets the sources for the ambipolar this is used for the STS method." alt="" coords="5,195,184,236"/>
+<area shape="rect" id="node2" href="$namespacemod__global__parameters.html#ab7c08882c0c573fe148b826cf02a2546" title="Cross product of two vectors." alt="" coords="266,5,446,47"/>
+<area shape="rect" id="node3" href="$namespacemod__mhd__phys.html#a852523ab7ae30516e4cfe1681b00a5e9" title="use cell&#45;center flux to get cell&#45;face flux and get the source term as the divergence of the flux" alt="" coords="263,71,449,112"/>
+<area shape="rect" id="node4" href="$namespacemod__mhd__phys.html#a808b52d1c59329d1f905245fbe76d237" title=" " alt="" coords="261,136,451,177"/>
+<area shape="rect" id="node5" href="$namespacemod__mhd__phys.html#ae7f950253d527c1f35fbde3597da75c0" title="multiply res by the ambipolar coefficient The ambipolar coefficient is calculated as &#45;mhd_eta_ambi/rh..." alt="" coords="232,202,480,229"/>
+<area shape="rect" id="node6" href="$namespacemod__fix__conserve.html#a8e321b6488183dd5e10247497d0d975e" title=" " alt="" coords="246,253,466,279"/>
+<area shape="rect" id="node7" href="$namespacemod__fix__conserve.html#af0fc91a69837c51f45b6d82fe884d75a" title=" " alt="" coords="250,303,462,330"/>
+<area shape="rect" id="node8" href="$namespacemod__mhd__phys.html#a4e631377334223eb3c779f02497ffe0e" title="get ambipolar electric field and the integrals around cell faces" alt="" coords="267,355,445,396"/>
+</map>

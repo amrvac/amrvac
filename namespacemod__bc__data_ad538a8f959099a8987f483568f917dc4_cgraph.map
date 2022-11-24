@@ -1,0 +1,9 @@
+<map id="mod_bc_data::bc_data_init" name="mod_bc_data::bc_data_init">
+<area shape="rect" id="node1" title=" " alt="" coords="5,177,201,203"/>
+<area shape="rect" id="node2" href="$namespacemod__bc__data.html#a6f436a987e52eb59ddf8fc9879c90c61" title="Read this module&quot;s parameters from a file." alt="" coords="253,5,421,47"/>
+<area shape="rect" id="node3" href="$namespacemod__lookup__table.html#a01c0f9215297dbded33962a29af671c6" title="This function returns a new lookup table from regularly spaced data." alt="" coords="253,71,420,112"/>
+<area shape="rect" id="node4" href="$namespacemod__lookup__table.html#a9b81ce4e240c8b8992ee85dce528ca7f" title="This function returns a new lookup table from regularly spaced data." alt="" coords="253,136,420,177"/>
+<area shape="rect" id="node5" href="$namespacemod__lookup__table.html#a78dc1ef852daa8da2ddde52bbc494e92" title="This function returns a new lookup table from regularly spaced data." alt="" coords="257,201,416,243"/>
+<area shape="rect" id="node6" href="$comm__lib_8t.html#a49b49ea9ffbbadfe688e332921c4cddd" title="Exit MPI&#45;AMRVAC with an error message." alt="" coords="299,267,374,294"/>
+<area shape="rect" id="node7" href="$namespacemod__bc__data.html#a109eb1561b92c366aec1adca7324eb58" title=" " alt="" coords="249,319,424,360"/>
+</map>

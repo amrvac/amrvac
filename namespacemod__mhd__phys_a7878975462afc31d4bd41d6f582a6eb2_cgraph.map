@@ -1,0 +1,5 @@
+<map id="mod_mhd_phys::get_resistive_electric_field" name="mod_mhd_phys::get_resistive_electric_field">
+<area shape="rect" id="node1" title="calculate eta J at cell edges" alt="" coords="5,23,223,65"/>
+<area shape="rect" id="node2" href="$namespacemod__mhd__phys.html#a3338aacd3dacb242389aa735b3e787af" title="Calculate idirmin and the idirmin:3 components of the common current array make sure that dxlevel(^D)..." alt="" coords="271,5,477,32"/>
+<area shape="rect" id="node3" href="$namespacemod__geometry.html#afb4a536895193b5cace9dcddd0011926" title="Calculate gradient of a scalar q in direction idir at cell interfaces." alt="" coords="279,56,469,83"/>
+</map>

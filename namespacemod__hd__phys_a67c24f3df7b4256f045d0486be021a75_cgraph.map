@@ -1,0 +1,8 @@
+<map id="mod_hd_phys::hd_get_dt" name="mod_hd_phys::hd_get_dt">
+<area shape="rect" id="node1" title=" " alt="" coords="5,137,189,163"/>
+<area shape="rect" id="node2" href="$namespacemod__cak__force.html#a3342a8e2da21d6e48bd73851449898c9" title="Check time step for total radiation contribution." alt="" coords="252,5,404,47"/>
+<area shape="rect" id="node3" href="$namespacemod__radiative__cooling.html#a6ce0229b23f942e86c22b3c89f7f96dd" title=" " alt="" coords="243,71,413,112"/>
+<area shape="rect" id="node4" href="$namespacemod__dust.html#a4544afb33be648a3fb4c9a70d6004130" title="Get dt related to dust and gas stopping time (Laibe 2011)" alt="" coords="243,137,413,163"/>
+<area shape="rect" id="node5" href="$namespacemod__gravity.html#a6567eb0ce75b7a2b770ab848461c6fb5" title=" " alt="" coords="249,188,407,229"/>
+<area shape="rect" id="node6" href="$namespacemod__viscosity.html#a3abc58754cd1fd2237da85b19407d595" title=" " alt="" coords="237,253,419,295"/>
+</map>

@@ -1,0 +1,5 @@
+<map id="mod_multigrid_coupling::mg_update_refinement" name="mod_multigrid_coupling::mg_update_refinement">
+<area shape="rect" id="node1" title="If the grid has changed, rebuild the full multigrid tree." alt="" coords="5,39,187,80"/>
+<area shape="rect" id="node2" href="$namespacem__octree__mg__1d.html#ad7be9286da39cfc92ca1ad2feb89bb81" title="Deallocate all allocatable arrays." alt="" coords="243,5,405,47"/>
+<area shape="rect" id="node3" href="$namespacemod__multigrid__coupling.html#aea3f8b822761ecb311f84dea0d4f59ca" title="Generate a multigrid tree that includes the amrvac tree, but also contains coarser grid levels...." alt="" coords="235,71,413,112"/>
+</map>

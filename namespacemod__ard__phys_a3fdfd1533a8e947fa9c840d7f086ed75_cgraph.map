@@ -1,0 +1,17 @@
+<map id="mod_ard_phys::ard_phys_init" name="mod_ard_phys::ard_phys_init">
+<area shape="rect" id="node1" title=" " alt="" coords="5,410,217,437"/>
+<area shape="rect" id="node2" href="$namespacemod__ard__phys.html#acdeb53db6a2659e9da612bffccc6f9fe" title=" " alt="" coords="286,5,463,47"/>
+<area shape="rect" id="node3" href="$comm__lib_8t.html#a49b49ea9ffbbadfe688e332921c4cddd" title="Exit MPI&#45;AMRVAC with an error message." alt="" coords="532,315,607,342"/>
+<area shape="rect" id="node4" href="$namespacemod__ard__phys.html#af84d58d7e8e4ab45fc22d8a2c0ef1511" title=" " alt="" coords="286,123,463,164"/>
+<area shape="rect" id="node5" href="$namespacemod__ard__phys.html#ace35bfd8a4726b89756634a95d3c3e4d" title=" " alt="" coords="279,188,470,229"/>
+<area shape="rect" id="node6" href="$namespacemod__ard__phys.html#af248e66e4de9bbdc01f1b66f07ccc772" title="inplace update of psa==&gt;F_im(psa)" alt="" coords="269,253,480,295"/>
+<area shape="rect" id="node7" href="$namespacemod__ard__phys.html#a4769341f689125088039d055bda1b259" title=" " alt="" coords="287,319,462,360"/>
+<area shape="rect" id="node8" href="$namespacemod__ard__phys.html#a38776e42c1d5412f59c7db9c299a9cc8" title=" " alt="" coords="266,385,483,411"/>
+<area shape="rect" id="node9" href="$namespacemod__ard__phys.html#a2284bdc7e6308d9349070f592dbd757b" title=" " alt="" coords="277,435,472,462"/>
+<area shape="rect" id="node10" href="$namespacemod__ard__phys.html#a0313faa74c915de3881f5ead468a2d5a" title=" " alt="" coords="272,486,477,513"/>
+<area shape="rect" id="node11" href="$namespacemod__ard__phys.html#accf75f3132375d1a2b91b07bd9a87d67" title="Implicit solve of psa=psb+dtfactor*dt*F_im(psa)" alt="" coords="273,537,476,579"/>
+<area shape="rect" id="node12" href="$namespacemod__ard__phys.html#afb49214cbf0c693723e746efb8bb70cf" title=" " alt="" coords="291,603,458,644"/>
+<area shape="rect" id="node13" href="$namespacemod__ard__phys.html#ae8a910f81841b8cfd808baaaa18e59a3" title=" " alt="" coords="291,668,458,709"/>
+<area shape="rect" id="node14" href="$namespacemod__ard__phys.html#ac5cdea1232953d5348539d83fe7f69bd" title="Write this modules parameters to a snapshot." alt="" coords="265,734,484,761"/>
+<area shape="rect" id="node15" href="$namespacemod__particles.html#a7a89b126b34bb788a3911955880ddd8f" title="Initialize particle data and parameters." alt="" coords="271,785,478,811"/>
+</map>

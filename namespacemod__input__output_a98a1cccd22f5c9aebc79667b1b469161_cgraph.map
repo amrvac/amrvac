@@ -1,0 +1,4 @@
+<map id="mod_input_output::read_arguments" name="mod_input_output::read_arguments">
+<area shape="rect" id="node1" title="Read the command line arguments passed to amrvac." alt="" coords="5,5,183,47"/>
+<area shape="rect" id="node2" href="$namespacemod__input__output.html#ab2d0a28e065926627226ed89b96ada9d" title="Routine to find entries in a string." alt="" coords="231,5,400,47"/>
+</map>

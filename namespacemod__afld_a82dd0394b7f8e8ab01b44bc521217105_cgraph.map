@@ -1,0 +1,8 @@
+<map id="mod_afld::energy_interaction" name="mod_afld::energy_interaction">
+<area shape="rect" id="node1" title="This subroutine calculates the radiation heating, radiation cooling and photon tiring using an implic..." alt="" coords="5,122,217,149"/>
+<area shape="rect" id="node2" href="$namespacemod__afld.html#acd5029394980153674cd833436e7de0f" title="Sets the opacity in the w&#45;array by calling mod_opal_opacity." alt="" coords="526,5,669,47"/>
+<area shape="rect" id="node3" href="$comm__lib_8t.html#a49b49ea9ffbbadfe688e332921c4cddd" title="Exit MPI&#45;AMRVAC with an error message." alt="" coords="940,71,1015,98"/>
+<area shape="rect" id="node4" href="$namespacemod__afld.html#a2a7c0d0983c705cc2f54f20c74dca427" title="Find the root of the 4th degree polynomial using the bisection method." alt="" coords="743,123,892,164"/>
+<area shape="rect" id="node5" href="$namespacemod__afld.html#aa3f2d320f9577c8635da03a3345c38a3" title="Find the root of the 4th degree polynomial using the Halley method." alt="" coords="265,173,452,199"/>
+<area shape="rect" id="node6" href="$namespacemod__afld.html#af647b7657d9ce38ec6a51c1501f7524c" title="Find the root of the 4th degree polynomial using the Newton&#45;Ralphson method." alt="" coords="500,173,695,199"/>
+</map>

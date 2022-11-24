@@ -1,0 +1,7 @@
+<map id="mod_fld::diffuse_e_rad_mg" name="mod_fld::diffuse_e_rad_mg">
+<area shape="rect" id="node1" title="Calling all subroutines to perform the multigrid method Communicates rad_e and diff_coeff to multigri..." alt="" coords="5,100,147,141"/>
+<area shape="rect" id="node2" href="$namespacemod__multigrid__coupling.html#adba5ed257a7b740fc0152041faa8f490" title="Copy from multigrid tree with one layer of ghost cells. Corner ghost cells are not used/set." alt="" coords="197,5,379,47"/>
+<area shape="rect" id="node3" href="$namespacemod__multigrid__coupling.html#a6844c00572acb078d62136c84a07a4c8" title="Copy a variable to the multigrid tree, including a layer of ghost cells." alt="" coords="199,71,377,112"/>
+<area shape="rect" id="node4" href="$comm__lib_8t.html#a49b49ea9ffbbadfe688e332921c4cddd" title="Exit MPI&#45;AMRVAC with an error message." alt="" coords="251,137,325,163"/>
+<area shape="rect" id="node5" href="$namespacemod__fld.html#a38e6e06ef18024f6865cadb7aab2aa00" title=" " alt="" coords="195,187,381,214"/>
+</map>

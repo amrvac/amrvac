@@ -1,0 +1,4 @@
+<map id="mod_mhd_phys::mhd_get_csound2" name="mod_mhd_phys::mhd_get_csound2">
+<area shape="rect" id="node1" title="Calculate the square of the thermal sound speed csound2 within ixO^L. csound2=gamma*p/rho." alt="" coords="5,5,196,47"/>
+<area shape="rect" id="node2" href="$namespacemod__mhd__phys.html#a363460651196f934c305aa8d52ac8593" title=" " alt="" coords="244,13,463,39"/>
+</map>

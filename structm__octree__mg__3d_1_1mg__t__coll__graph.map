@@ -1,0 +1,9 @@
+<map id="m_octree_mg_3d::mg_t" name="m_octree_mg_3d::mg_t">
+<area shape="rect" id="node1" title=" " alt="" coords="363,177,537,203"/>
+<area shape="rect" id="node2" href="$structm__octree__mg__3d_1_1mg__buf__t.html" title="Buffer type (one is used for each pair of communicating processes)" alt="" coords="23,5,185,47"/>
+<area shape="rect" id="node3" href="$structm__octree__mg__3d_1_1mg__box__t.html" title="Box data structure." alt="" coords="23,71,185,112"/>
+<area shape="rect" id="node4" href="$structm__octree__mg__3d_1_1mg__lvl__t.html" title="Lists of blocks per refinement level." alt="" coords="23,136,185,177"/>
+<area shape="rect" id="node5" href="$structm__octree__mg__3d_1_1mg__timer__t.html" title=" " alt="" coords="23,201,185,243"/>
+<area shape="rect" id="node6" href="$structm__octree__mg__3d_1_1mg__bc__t.html" title=" " alt="" coords="5,267,203,294"/>
+<area shape="rect" id="node7" href="$structm__octree__mg__3d_1_1mg__comm__t.html" title=" " alt="" coords="23,328,185,369"/>
+</map>

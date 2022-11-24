@@ -1,0 +1,4 @@
+<map id="mod_mhd_phys::mhd_gamma2_alfven" name="mod_mhd_phys::mhd_gamma2_alfven">
+<area shape="rect" id="node1" title="Compute 1/(1+v_A^2/c^2) for semirelativistic MHD, where v_A is the Alfven velocity." alt="" coords="5,5,232,47"/>
+<area shape="rect" id="node2" href="$namespacemod__mhd__phys.html#af14fa2e60e611999dd386a22dc273449" title="Compute 2 times total magnetic energy." alt="" coords="280,5,479,47"/>
+</map>

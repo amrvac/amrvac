@@ -1,0 +1,6 @@
+<map id="mod_particle_gca::gca_fill_gridvars" name="mod_particle_gca::gca_fill_gridvars">
+<area shape="rect" id="node1" title=" " alt="" coords="5,64,173,105"/>
+<area shape="rect" id="node2" href="$namespacemod__particle__base.html#a72a44f312e4e01053ad928ec6fa522c2" title="This routine fills the particle grid variables with the default for mhd, i.e. only E and B." alt="" coords="236,5,389,47"/>
+<area shape="rect" id="node3" href="$namespacemod__geometry.html#a92ec4e2c8ae00a42bf5bf2c1ce3a26c4" title="Calculate gradient of a scalar q within ixL in direction idir." alt="" coords="221,71,404,98"/>
+<area shape="rect" id="node4" href="$comm__lib_8t.html#a49b49ea9ffbbadfe688e332921c4cddd" title="Exit MPI&#45;AMRVAC with an error message." alt="" coords="452,97,527,123"/>
+</map>

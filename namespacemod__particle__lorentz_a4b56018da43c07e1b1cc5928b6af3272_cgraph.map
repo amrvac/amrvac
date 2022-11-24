@@ -1,0 +1,6 @@
+<map id="mod_particle_lorentz::lorentz_kick" name="mod_particle_lorentz::lorentz_kick">
+<area shape="rect" id="node1" title="Momentum update subroutine for full Lorentz dynamics." alt="" coords="5,64,164,105"/>
+<area shape="rect" id="node2" href="$namespacemod__particle__base.html#ab86a6399bcf481404721bcb11ca92e8a" title=" " alt="" coords="212,5,365,47"/>
+<area shape="rect" id="node3" href="$comm__lib_8t.html#a49b49ea9ffbbadfe688e332921c4cddd" title="Exit MPI&#45;AMRVAC with an error message." alt="" coords="413,42,488,69"/>
+<area shape="rect" id="node4" href="$namespacemod__particle__base.html#a543c5dd3a4184ec64857fea2c6526279" title="Get Lorentz factor from relativistic momentum." alt="" coords="212,123,365,164"/>
+</map>

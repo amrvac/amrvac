@@ -1,0 +1,5 @@
+<map id="mod_coarsen_refine::proper_nesting" name="mod_coarsen_refine::proper_nesting">
+<area shape="rect" id="node1" title="For all grids on all processors, do a check on refinement flags. Make sure that neighbors will not di..." alt="" coords="5,23,159,65"/>
+<area shape="rect" id="node2" href="$amr__neighbors_8t.html#a7513475f8d5cc2e9b56c24e2fc93272a" title="find neighors of all blocks" alt="" coords="240,5,351,32"/>
+<area shape="rect" id="node3" href="$mod__coarsen__refine_8t.html#adbdb5c3b209cb26da159a3a80033ba26" title=" " alt="" coords="207,56,384,83"/>
+</map>

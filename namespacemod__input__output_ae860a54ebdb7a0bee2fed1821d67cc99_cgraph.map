@@ -1,0 +1,5 @@
+<map id="mod_input_output::snapshot_read_header" name="mod_input_output::snapshot_read_header">
+<area shape="rect" id="node1" title="Read header for a snapshot." alt="" coords="5,35,212,76"/>
+<area shape="rect" id="node2" href="$namespacemod__input__output.html#a2b408b40f813e4fe523621ab4a497d76" title=" " alt="" coords="260,5,429,47"/>
+<area shape="rect" id="node3" href="$comm__lib_8t.html#a49b49ea9ffbbadfe688e332921c4cddd" title="Exit MPI&#45;AMRVAC with an error message." alt="" coords="307,71,382,98"/>
+</map>

@@ -1,0 +1,25 @@
+<map id="mod_mf_phys::mf_phys_init" name="mod_mf_phys::mf_phys_init">
+<area shape="rect" id="node1" title=" " alt="" coords="5,641,212,668"/>
+<area shape="rect" id="node2" href="$namespacemod__mf__phys.html#aa7c4d86b90f7a160be28c10d6e9db2a9" title="w[iws]=w[iws]+qdt*S[iws,wCT] where S is the source based on wCT within ixO" alt="" coords="285,57,456,98"/>
+<area shape="rect" id="node3" href="$comm__lib_8t.html#a49b49ea9ffbbadfe688e332921c4cddd" title="Exit MPI&#45;AMRVAC with an error message." alt="" coords="579,276,654,303"/>
+<area shape="rect" id="node4" href="$namespacemod__mf__phys.html#a3e4dc78b3e757463416f11d121809d67" title=" " alt="" coords="285,174,456,215"/>
+<area shape="rect" id="node5" href="$namespacemod__mf__phys.html#ab8389e2b24a0802649999f987a046d84" title=" " alt="" coords="260,371,481,397"/>
+<area shape="rect" id="node6" href="$namespacemod__mf__phys.html#ab99b07b21395999f8a61e4d96faa76ac" title=" " alt="" coords="267,239,475,281"/>
+<area shape="rect" id="node7" href="$namespacemod__mf__phys.html#a18f4a9e18c389b5a90f76dd2dc2f9dce" title=" " alt="" coords="278,305,463,346"/>
+<area shape="rect" id="node8" href="$namespacemod__mf__phys.html#ad9c6423d95f07ba8b1d77ea65420c6ee" title=" " alt="" coords="279,1070,462,1111"/>
+<area shape="rect" id="node9" href="$namespacemod__mf__phys.html#a1db6517eae55918bcd93739e670a77fd" title="calculate cell&#45;center values from face&#45;center values" alt="" coords="529,1157,704,1198"/>
+<area shape="rect" id="node10" href="$namespacemod__mf__phys.html#a859dd5f245e21f3986dd445bf816de7d" title="Estimating bounds for the minimum and maximum signal velocities." alt="" coords="287,487,455,529"/>
+<area shape="rect" id="node11" href="$namespacemod__mf__phys.html#a45a08fd2da766d0f378a8694133f1a54" title="Calculate cmax_idim=csound+abs(v_idim) within ixO^L." alt="" coords="265,553,476,580"/>
+<area shape="rect" id="node12" href="$namespacemod__mf__phys.html#a09d95616d2987b148f0ff0fc6e8143f1" title="prepare velocities for ct methods" alt="" coords="287,422,455,463"/>
+<area shape="rect" id="node13" href="$namespacemod__mf__phys.html#a95fccc26e8e0deffb81122c9e3027cc4" title="If resistivity is not zero, check diffusion time limit for dt." alt="" coords="277,671,465,697"/>
+<area shape="rect" id="node14" href="$namespacemod__mf__phys.html#a16dd0f06c273cb9f8b90026dc8756e28" title="Calculate fluxes within ixO^L." alt="" coords="271,721,470,748"/>
+<area shape="rect" id="node15" href="$namespacemod__mf__phys.html#aea0ee2b93079543018cd3347f7dc54fe" title="Calculate v vector." alt="" coords="279,772,462,799"/>
+<area shape="rect" id="node16" href="$namespacemod__mf__phys.html#a298879015f462984603c544bfed4aab4" title=" " alt="" coords="261,823,480,849"/>
+<area shape="rect" id="node17" href="$namespacemod__mf__phys.html#affce02bda119815622485d3b707dcb03" title=" " alt="" coords="270,874,471,915"/>
+<area shape="rect" id="node18" href="$namespacemod__mf__phys.html#ab70dfa046f9db36bdbc4099530ebf1c1" title="Transform primitive variables into conservative ones." alt="" coords="291,939,451,981"/>
+<area shape="rect" id="node19" href="$namespacemod__mf__phys.html#a1276a43e95a34a706934608fe37904c4" title="Transform conservative variables into primitive ones." alt="" coords="291,1005,451,1046"/>
+<area shape="rect" id="node20" href="$namespacemod__mf__phys.html#af7c51c3f27621ab02a85f9c8a2c4e81b" title=" " alt="" coords="275,605,467,646"/>
+<area shape="rect" id="node21" href="$namespacemod__mf__phys.html#a891ceb8d3185e1df2b98270bfc1d2083" title="Add global source terms to update frictional velocity on complete domain." alt="" coords="271,1135,470,1177"/>
+<area shape="rect" id="node22" href="$namespacemod__mf__phys.html#ad0edb985cb7c4a3ca53eed3ca655b3dc" title="Write this module&#39;s parameters to a snapsoht." alt="" coords="265,1201,477,1228"/>
+<area shape="rect" id="node23" href="$namespacemod__particles.html#a7a89b126b34bb788a3911955880ddd8f" title="Initialize particle data and parameters." alt="" coords="267,5,474,32"/>
+</map>

@@ -1,0 +1,4 @@
+<map id="mod_particle_base::particle_base_init" name="mod_particle_base::particle_base_init">
+<area shape="rect" id="node1" title="Give initial values to parameters." alt="" coords="5,5,159,47"/>
+<area shape="rect" id="node2" href="$namespacemod__particle__base.html#a1c7a69af852985c5bb0245a9e996f140" title="Read this module&#39;s parameters from a file." alt="" coords="207,5,377,47"/>
+</map>

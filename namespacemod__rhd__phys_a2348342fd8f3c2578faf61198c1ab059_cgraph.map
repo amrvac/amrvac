@@ -1,0 +1,10 @@
+<map id="mod_rhd_phys::rhd_get_dt" name="mod_rhd_phys::rhd_get_dt">
+<area shape="rect" id="node1" title=" " alt="" coords="5,187,200,214"/>
+<area shape="rect" id="node2" href="$namespacemod__afld.html#a1004dbfd125b7e713b998583121bd554" title=" " alt="" coords="251,5,426,47"/>
+<area shape="rect" id="node3" href="$namespacemod__radiative__cooling.html#a6ce0229b23f942e86c22b3c89f7f96dd" title=" " alt="" coords="253,71,424,112"/>
+<area shape="rect" id="node4" href="$namespacemod__dust.html#a4544afb33be648a3fb4c9a70d6004130" title="Get dt related to dust and gas stopping time (Laibe 2011)" alt="" coords="253,137,424,163"/>
+<area shape="rect" id="node5" href="$comm__lib_8t.html#a49b49ea9ffbbadfe688e332921c4cddd" title="Exit MPI&#45;AMRVAC with an error message." alt="" coords="477,187,552,214"/>
+<area shape="rect" id="node6" href="$namespacemod__fld.html#a2e37bb8ef924c82af5fc1d1263c9415a" title=" " alt="" coords="259,239,418,280"/>
+<area shape="rect" id="node7" href="$namespacemod__gravity.html#a6567eb0ce75b7a2b770ab848461c6fb5" title=" " alt="" coords="260,304,417,345"/>
+<area shape="rect" id="node8" href="$namespacemod__viscosity.html#a3abc58754cd1fd2237da85b19407d595" title=" " alt="" coords="248,369,429,411"/>
+</map>

@@ -1,0 +1,14 @@
+<map id="mod_twofl_phys::dump_hyperdiffusivity_coef_dim" name="mod_twofl_phys::dump_hyperdiffusivity_coef_dim">
+<area shape="rect" id="node1" title=" " alt="" coords="5,319,204,360"/>
+<area shape="rect" id="node2" href="$namespacemod__hyperdiffusivity.html#a77f4b6a6990fdc6f1cd5c98ddc7c8094" title=" " alt="" coords="291,5,451,47"/>
+<area shape="rect" id="node3" href="$namespacemod__twofl__phys.html#a4e18f8b5346e80f4d7e4418f32845e7f" title=" " alt="" coords="537,136,695,177"/>
+<area shape="rect" id="node4" href="$namespacemod__twofl__phys.html#a7621aad8684305f6320e23d5797bd071" title=" " alt="" coords="537,544,695,585"/>
+<area shape="rect" id="node5" href="$namespacemod__hyperdiffusivity.html#a8ca5fee3be217a38b119153470c5fe5a" title=" " alt="" coords="291,201,451,243"/>
+<area shape="rect" id="node6" href="$namespacemod__twofl__phys.html#a492dab0f96b1a91af8329412f7e3e291" title=" " alt="" coords="252,71,489,112"/>
+<area shape="rect" id="node7" href="$namespacemod__twofl__phys.html#a54443e040270edd9403016a3766a95b8" title=" " alt="" coords="287,319,455,360"/>
+<area shape="rect" id="node8" href="$namespacemod__twofl__phys.html#ad19194e30ae692fb883ac2e1d8c7b232" title=" " alt="" coords="266,384,475,425"/>
+<area shape="rect" id="node9" href="$namespacemod__twofl__phys.html#aa6b8c1938400ce53b5046179cb6aaeb8" title=" " alt="" coords="265,449,476,491"/>
+<area shape="rect" id="node10" href="$namespacemod__twofl__phys.html#a24133b0cf4345eb22d782077403d87b8" title="Calculate v_c vector." alt="" coords="287,136,455,177"/>
+<area shape="rect" id="node11" href="$namespacemod__twofl__phys.html#a9577917ed367b281004fd8b15eae554e" title="Calculate v_n vector." alt="" coords="287,515,455,556"/>
+<area shape="rect" id="node12" href="$namespacemod__twofl__phys.html#ac36cb8a7f352e9bdc3ca1c2dd54489d2" title="Compute 2 times total magnetic energy." alt="" coords="287,632,455,673"/>
+</map>

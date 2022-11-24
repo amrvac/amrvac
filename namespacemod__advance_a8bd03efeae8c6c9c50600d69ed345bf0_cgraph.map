@@ -1,0 +1,9 @@
+<map id="mod_advance::advect" name="mod_advance::advect">
+<area shape="rect" id="node1" title="Advance all grids over one time step, but without taking dimensional splitting or split source terms ..." alt="" coords="5,148,171,175"/>
+<area shape="rect" id="node2" href="$namespacemod__advance.html#a4bef2610a9a75d0590dce3edad6d7fee" title="Integrate all grids by one partial step." alt="" coords="221,5,395,32"/>
+<area shape="rect" id="node3" href="$namespacemod__ghostcells__update.html#abc70508ceb326fb28166d751e5de31fc" title="do update ghost cells of all blocks including physical boundaries" alt="" coords="445,49,621,90"/>
+<area shape="rect" id="node4" href="$namespacemod__advance.html#a5b51995016800b085e215559cebbc3fa" title="Evaluate Implicit part in place, i.e. psa==&gt;F_im(psa)" alt="" coords="219,107,397,149"/>
+<area shape="rect" id="node5" href="$namespacemod__advance.html#a5dc73deec2eeb8e8301d6fb18dc241f2" title="Implicit global update step within IMEX schemes, advance psa=psb+dtfactor*qdt*F_im(psa)" alt="" coords="227,173,389,214"/>
+<area shape="rect" id="node6" href="$namespacemod__fix__conserve.html#ab77976465c9541ed8b78e91e0d01077d" title=" " alt="" coords="223,238,393,279"/>
+<area shape="rect" id="node7" href="$comm__lib_8t.html#a49b49ea9ffbbadfe688e332921c4cddd" title="Exit MPI&#45;AMRVAC with an error message." alt="" coords="271,304,345,331"/>
+</map>

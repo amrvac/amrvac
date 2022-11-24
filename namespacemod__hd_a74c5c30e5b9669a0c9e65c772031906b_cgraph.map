@@ -1,0 +1,7 @@
+<map id="mod_hd::hd_activate" name="mod_hd::hd_activate">
+<area shape="rect" id="node1" title=" " alt="" coords="5,81,164,108"/>
+<area shape="rect" id="node2" href="$namespacemod__hd__hllc.html#a0833bd009acd265827ed1d7fcba916b0" title=" " alt="" coords="220,5,407,32"/>
+<area shape="rect" id="node3" href="$namespacemod__hd__phys.html#a86518623ab235a1cf8ce7a29593d0599" title="Initialize the module." alt="" coords="212,56,415,83"/>
+<area shape="rect" id="node4" href="$namespacemod__hd__ppm.html#a9c0b414d31f8a3c5b9be210c5b7cb914" title=" " alt="" coords="214,107,413,133"/>
+<area shape="rect" id="node5" href="$namespacemod__hd__roe.html#a2914c6ee26f6009d4973a8e68c8e2069" title=" " alt="" coords="222,157,405,184"/>
+</map>

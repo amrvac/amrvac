@@ -1,0 +1,4 @@
+<map id="mod_advance::global_implicit_update" name="mod_advance::global_implicit_update">
+<area shape="rect" id="node1" title="Implicit global update step within IMEX schemes, advance psa=psb+dtfactor*qdt*F_im(psa)" alt="" coords="5,5,167,47"/>
+<area shape="rect" id="node2" href="$namespacemod__ghostcells__update.html#abc70508ceb326fb28166d751e5de31fc" title="do update ghost cells of all blocks including physical boundaries" alt="" coords="215,5,391,47"/>
+</map>

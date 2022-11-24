@@ -1,0 +1,12 @@
+<map id="mod_twofl_phys::twofl_explicit_coll_terms_update" name="mod_twofl_phys::twofl_explicit_coll_terms_update">
+<area shape="rect" id="node1" title=" " alt="" coords="5,239,173,295"/>
+<area shape="rect" id="node2" href="$namespacemod__twofl__phys.html#a8aac7dbd38c21aa7ba645ccfa581cb24" title=" " alt="" coords="227,5,384,47"/>
+<area shape="rect" id="node3" href="$namespacemod__twofl__phys.html#ad14998d9db5ab36260637b09333ddcba" title=" " alt="" coords="227,71,384,112"/>
+<area shape="rect" id="node4" href="$namespacemod__twofl__phys.html#a4e18f8b5346e80f4d7e4418f32845e7f" title=" " alt="" coords="437,129,595,171"/>
+<area shape="rect" id="node5" href="$namespacemod__twofl__phys.html#a7621aad8684305f6320e23d5797bd071" title=" " alt="" coords="437,276,595,317"/>
+<area shape="rect" id="node6" href="$namespacemod__twofl__phys.html#a24133b0cf4345eb22d782077403d87b8" title="Calculate v_c vector." alt="" coords="221,188,389,229"/>
+<area shape="rect" id="node7" href="$namespacemod__twofl__phys.html#a9577917ed367b281004fd8b15eae554e" title="Calculate v_n vector." alt="" coords="221,305,389,347"/>
+<area shape="rect" id="node8" href="$namespacemod__twofl__phys.html#ac5281ea9af4d384f350c6b13eee076da" title="compute kinetic energy of charges w are conserved variables" alt="" coords="221,371,389,412"/>
+<area shape="rect" id="node9" href="$namespacemod__twofl__phys.html#acdfb8efbf527c4c01dfa9f9f50ea7dd8" title="compute kinetic energy of neutrals" alt="" coords="221,436,389,477"/>
+<area shape="rect" id="node10" href="$namespacemod__twofl__phys.html#aaecd38986d84940cc41c8d30b0edfb6e" title="Compute evolving magnetic energy." alt="" coords="221,501,389,543"/>
+</map>

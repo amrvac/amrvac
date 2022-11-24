@@ -1,0 +1,11 @@
+<map id="mod_multigrid_coupling::mg_tree_from_amrvac" name="mod_multigrid_coupling::mg_tree_from_amrvac">
+<area shape="rect" id="node1" title="Generate a multigrid tree that includes the amrvac tree, but also contains coarser grid levels...." alt="" coords="5,196,184,237"/>
+<area shape="rect" id="node2" href="$namespacem__octree__mg__1d.html#a8fedc74930bb1cb9235686e273df7c93" title=" " alt="" coords="487,5,649,47"/>
+<area shape="rect" id="node3" href="$namespacem__octree__mg__1d.html#ab88c6fda89340ef56a59e9ccd0259ed3" title="Allocate communication buffers and local boxes for a tree that has already been created." alt="" coords="254,280,417,321"/>
+<area shape="rect" id="node4" href="$namespacem__octree__mg__1d.html#a6f3f6a899dd51ef27fc6bdf7ddf2edaf" title=" " alt="" coords="254,112,417,153"/>
+<area shape="rect" id="node5" href="$namespacem__octree__mg__1d.html#ade277efcd08f44946612f19628897e7c" title="Create a list of leaves and a list of parents for a level." alt="" coords="487,72,649,113"/>
+<area shape="rect" id="node6" href="$namespacem__octree__mg__1d.html#aaa064c2eccc2547149e15f27d80c5c40" title=" " alt="" coords="487,140,649,181"/>
+<area shape="rect" id="node7" href="$namespacem__octree__mg__1d.html#aa5ceddcac386c2e9b227a05be842f7b3" title=" " alt="" coords="487,211,649,252"/>
+<area shape="rect" id="node8" href="$namespacem__octree__mg__1d.html#ae0b7c562e83f6e66eef68314c3326785" title="Load balance the parents (non&#45;leafs). Assign them to the rank that has most children." alt="" coords="250,345,421,387"/>
+<area shape="rect" id="node9" href="$namespacem__octree__mg__1d.html#a9b386275450bb125a9abd55c9f22d865" title="Create a list of refinement boundaries (from the coarse side)" alt="" coords="232,411,439,452"/>
+</map>

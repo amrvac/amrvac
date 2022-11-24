@@ -1,0 +1,8 @@
+<map id="mod_mhd_phys::mhd_clean_divb_multigrid" name="mod_mhd_phys::mhd_clean_divb_multigrid">
+<area shape="rect" id="node1" title=" " alt="" coords="5,99,209,141"/>
+<area shape="rect" id="node2" href="$namespacemod__mhd__phys.html#a7f270b20aa476cb6de2a94c60b9ec6c7" title="Calculate div B within ixO." alt="" coords="261,5,451,32"/>
+<area shape="rect" id="node3" href="$namespacemod__geometry.html#a92ec4e2c8ae00a42bf5bf2c1ce3a26c4" title="Calculate gradient of a scalar q within ixL in direction idir." alt="" coords="265,56,447,83"/>
+<area shape="rect" id="node4" href="$comm__lib_8t.html#a49b49ea9ffbbadfe688e332921c4cddd" title="Exit MPI&#45;AMRVAC with an error message." alt="" coords="503,107,577,133"/>
+<area shape="rect" id="node5" href="$namespacemod__geometry.html#afb4a536895193b5cace9dcddd0011926" title="Calculate gradient of a scalar q in direction idir at cell interfaces." alt="" coords="261,157,451,184"/>
+<area shape="rect" id="node6" href="$namespacemod__mhd__phys.html#a423fcb181a59dff9779ee1cc56844dec" title="calculate cell&#45;center values from face&#45;center values" alt="" coords="257,209,455,250"/>
+</map>

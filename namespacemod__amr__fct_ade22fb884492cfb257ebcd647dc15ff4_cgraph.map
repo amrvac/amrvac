@@ -1,0 +1,4 @@
+<map id="mod_amr_fct::prolong_2nd_stg" name="mod_amr_fct::prolong_2nd_stg">
+<area shape="rect" id="node1" title="This subroutine performs a 2nd order prolongation for a staggered field F, preserving the divergence ..." alt="" coords="5,5,171,47"/>
+<area shape="rect" id="node2" href="$comm__lib_8t.html#a49b49ea9ffbbadfe688e332921c4cddd" title="Exit MPI&#45;AMRVAC with an error message." alt="" coords="219,13,293,39"/>
+</map>

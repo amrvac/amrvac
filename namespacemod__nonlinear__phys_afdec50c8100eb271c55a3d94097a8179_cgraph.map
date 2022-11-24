@@ -1,0 +1,4 @@
+<map id="mod_nonlinear_phys::nonlinear_add_source" name="mod_nonlinear_phys::nonlinear_add_source">
+<area shape="rect" id="node1" title=" " alt="" coords="5,5,177,47"/>
+<area shape="rect" id="node2" href="$namespacemod__kdv.html#aedd5f2fdfec0c96e7b73da66b0242fdd" title="w[iw]=w[iw]+qdt*S[wCT,qtC,x] where S is the source based on wCT within ixO" alt="" coords="225,13,420,39"/>
+</map>

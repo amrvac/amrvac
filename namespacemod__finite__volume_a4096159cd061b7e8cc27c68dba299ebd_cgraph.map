@@ -1,0 +1,5 @@
+<map id="mod_finite_volume::reconstruct_lr" name="mod_finite_volume::reconstruct_lr">
+<area shape="rect" id="node1" title="Determine the upwinded wLC(ixL) and wRC(ixR) from w. the wCT is only used when PPM is exploited." alt="" coords="5,23,160,65"/>
+<area shape="rect" id="node2" href="$namespacemod__limiter.html#a358e3650bfa838c75f25186e88f850e6" title="Limit the centered dwC differences within ixC for iw in direction idim. The limiter is chosen accordi..." alt="" coords="208,5,387,32"/>
+<area shape="rect" id="node3" href="$comm__lib_8t.html#a49b49ea9ffbbadfe688e332921c4cddd" title="Exit MPI&#45;AMRVAC with an error message." alt="" coords="435,31,509,57"/>
+</map>

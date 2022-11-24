@@ -1,0 +1,9 @@
+<map id="mod_hd_roe::hd_roe_init" name="mod_hd_roe::hd_roe_init">
+<area shape="rect" id="node1" title=" " alt="" coords="5,148,188,175"/>
+<area shape="rect" id="node2" href="$namespacemod__hd__roe.html#a2727242fea6879fcdd80f57bbaa0890f" title="Calculate the Roe average of w, assignment of variables: rho &#45;&gt; rho, m &#45;&gt; v, e &#45;&gt; h." alt="" coords="249,5,435,32"/>
+<area shape="rect" id="node3" href="$namespacemod__hd__roe.html#a9806248b3fefea296bbf96869156a82b" title=" " alt="" coords="236,56,448,83"/>
+<area shape="rect" id="node4" href="$namespacemod__hd__roe.html#acb3430a4b8126eb7b0ed04a4969e56cb" title="Calculate the il&#45;th characteristic speed and the jump in the il&#45;th characteristic variable in the idi..." alt="" coords="265,107,419,149"/>
+<area shape="rect" id="node5" href="$namespacemod__hd__roe.html#ae4cdb5e3de0b458b310fe1b2f804d540" title=" " alt="" coords="265,173,419,214"/>
+<area shape="rect" id="node6" href="$namespacemod__hd__roe.html#a1c37ca7e072c14b56f9f8cc8d2a0d03b" title="Multiply q by R(il,iw), where R is the right eigenvalue matrix at wroe." alt="" coords="255,239,429,265"/>
+<area shape="rect" id="node7" href="$namespacemod__hd__roe.html#adfe28f544f140408493ac7351db6f057" title=" " alt="" coords="241,289,443,316"/>
+</map>

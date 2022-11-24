@@ -1,0 +1,9 @@
+<map id="mod_afld::afld_init" name="mod_afld::afld_init">
+<area shape="rect" id="node1" title="Initialising FLD&#45;module: Read opacities Initialise Multigrid adimensionalise kappa Add extra variable..." alt="" coords="5,152,148,179"/>
+<area shape="rect" id="node2" href="$namespacemod__afld.html#af061aa858d2bb7d78828d23afbe78291" title="public methods these are called in mod_rhd_phys" alt="" coords="196,5,403,32"/>
+<area shape="rect" id="node3" href="$namespacemod__afld.html#ac6e85832eaa8abcb9235a65ff0dbce6e" title="Calling all subroutines to perform the multigrid method Communicates rad_e and diff_coeff to multigri..." alt="" coords="225,57,374,98"/>
+<area shape="rect" id="node4" href="$comm__lib_8t.html#a49b49ea9ffbbadfe688e332921c4cddd" title="Exit MPI&#45;AMRVAC with an error message." alt="" coords="451,93,525,120"/>
+<area shape="rect" id="node5" href="$namespacemod__afld.html#a3893a80f56c473f3d9ebf1cf7cc03dfe" title="inplace update of psa==&gt;F_im(psa)" alt="" coords="226,174,373,215"/>
+<area shape="rect" id="node6" href="$namespacemod__opal__opacity.html#ac42d05a1ff082e78575d8b017da6010b" title="This routine is called when the fld radiation module is initialised. Here, the tables for different H..." alt="" coords="197,240,401,267"/>
+<area shape="rect" id="node7" href="$namespacemod__variables.html#a924c3b2f4e13f6f6432de212ac790966" title="Set extra variable in w, which is not advected and has no boundary conditions. This has to be done af..." alt="" coords="226,291,373,333"/>
+</map>

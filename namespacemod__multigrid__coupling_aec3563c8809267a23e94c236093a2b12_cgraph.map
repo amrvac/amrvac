@@ -1,0 +1,6 @@
+<map id="mod_multigrid_coupling::mg_setup_multigrid" name="mod_multigrid_coupling::mg_setup_multigrid">
+<area shape="rect" id="node1" title="Setup multigrid for usage." alt="" coords="5,71,184,112"/>
+<area shape="rect" id="node2" href="$namespacem__octree__mg__1d.html#a73ca10723160a036d9da70def7a35d10" title="Prolong from a parent to a child with index offset dix. This method could sometimes work better than ..." alt="" coords="240,5,403,47"/>
+<area shape="rect" id="node3" href="$namespacem__octree__mg__1d.html#a4f486bb046797dbd4bb808db4c7e6e87" title=" " alt="" coords="240,71,403,112"/>
+<area shape="rect" id="node4" href="$namespacemod__multigrid__coupling.html#aea3f8b822761ecb311f84dea0d4f59ca" title="Generate a multigrid tree that includes the amrvac tree, but also contains coarser grid levels...." alt="" coords="232,136,411,177"/>
+</map>

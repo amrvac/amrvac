@@ -1,0 +1,4 @@
+<map id="mod_geometry::gradientx" name="mod_geometry::gradientx">
+<area shape="rect" id="node1" title="Calculate gradient of a scalar q in direction idir at cell interfaces." alt="" coords="5,5,196,32"/>
+<area shape="rect" id="node2" href="$comm__lib_8t.html#a49b49ea9ffbbadfe688e332921c4cddd" title="Exit MPI&#45;AMRVAC with an error message." alt="" coords="244,5,319,32"/>
+</map>

@@ -1,0 +1,9 @@
+<map id="mod_twofl_phys::twofl_to_primitive" name="mod_twofl_phys::twofl_to_primitive">
+<area shape="rect" id="node1" title="Transform conservative variables into primitive ones." alt="" coords="5,159,173,200"/>
+<area shape="rect" id="node2" href="$namespacemod__twofl__phys.html#a4e18f8b5346e80f4d7e4418f32845e7f" title=" " alt="" coords="227,5,384,47"/>
+<area shape="rect" id="node3" href="$namespacemod__twofl__phys.html#a7621aad8684305f6320e23d5797bd071" title=" " alt="" coords="227,71,384,112"/>
+<area shape="rect" id="node4" href="$namespacemod__twofl__phys.html#ac3a9eb19d555dfbc5e17d410f70d6479" title=" " alt="" coords="221,188,389,229"/>
+<area shape="rect" id="node5" href="$namespacemod__twofl__phys.html#ac5281ea9af4d384f350c6b13eee076da" title="compute kinetic energy of charges w are conserved variables" alt="" coords="437,135,605,176"/>
+<area shape="rect" id="node6" href="$namespacemod__twofl__phys.html#acdfb8efbf527c4c01dfa9f9f50ea7dd8" title="compute kinetic energy of neutrals" alt="" coords="437,204,605,245"/>
+<area shape="rect" id="node7" href="$namespacemod__twofl__phys.html#aaecd38986d84940cc41c8d30b0edfb6e" title="Compute evolving magnetic energy." alt="" coords="437,279,605,320"/>
+</map>

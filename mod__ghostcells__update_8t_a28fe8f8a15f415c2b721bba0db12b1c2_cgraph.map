@@ -1,0 +1,6 @@
+<map id="bc_prolong" name="bc_prolong">
+<area shape="rect" id="node1" title="do prolongation for fine blocks after receipt data from coarse neighbors" alt="" coords="5,56,99,83"/>
+<area shape="rect" id="node2" href="$boundary__conditions_8t.html#a0247bf56d20b1af9e5135a09d6d97ce7" title="fill ghost cells at a physical boundary" alt="" coords="184,5,259,32"/>
+<area shape="rect" id="node3" href="$mod__ghostcells__update_8t.html#a6f2b5f58c2e4f44287925b26bb08d6b3" title=" " alt="" coords="150,56,293,83"/>
+<area shape="rect" id="node4" href="$mod__ghostcells__update_8t.html#a16aa54e7671cf5a1f0b20cf94bb3c02a" title=" " alt="" coords="147,107,296,133"/>
+</map>

@@ -1,0 +1,4 @@
+<map id="m_octree_mg_3d::mg_set_refinement_boundaries" name="m_octree_mg_3d::mg_set_refinement_boundaries">
+<area shape="rect" id="node1" title="Create a list of refinement boundaries (from the coarse side)" alt="" coords="5,5,212,47"/>
+<area shape="rect" id="node2" href="$namespacem__octree__mg__3d.html#ae609401a7d11933337491c56c3f36f33" title="Return .true. if a box has children." alt="" coords="260,5,423,47"/>
+</map>

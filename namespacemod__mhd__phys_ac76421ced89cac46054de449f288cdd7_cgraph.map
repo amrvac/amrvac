@@ -1,0 +1,6 @@
+<map id="mod_mhd_phys::mhd_get_flux_split" name="mod_mhd_phys::mhd_get_flux_split">
+<area shape="rect" id="node1" title="Calculate fluxes within ixO^L with possible splitting." alt="" coords="5,64,196,105"/>
+<area shape="rect" id="node2" href="$namespacemod__mhd__phys.html#a1eb4da6addad78b4fbcdef914353b432" title=" " alt="" coords="263,5,454,47"/>
+<area shape="rect" id="node3" href="$namespacemod__mhd__phys.html#a363460651196f934c305aa8d52ac8593" title=" " alt="" coords="521,97,740,123"/>
+<area shape="rect" id="node4" href="$namespacemod__mhd__phys.html#ab1e50a79d14f2477608caee279b0dc86" title=" " alt="" coords="244,122,473,149"/>
+</map>

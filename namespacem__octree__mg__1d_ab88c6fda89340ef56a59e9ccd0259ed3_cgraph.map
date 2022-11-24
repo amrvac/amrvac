@@ -1,0 +1,6 @@
+<map id="m_octree_mg_1d::mg_allocate_storage" name="m_octree_mg_1d::mg_allocate_storage">
+<area shape="rect" id="node1" title="Allocate communication buffers and local boxes for a tree that has already been created." alt="" coords="5,71,168,112"/>
+<area shape="rect" id="node2" href="$namespacem__octree__mg__1d.html#a7c2119a8745bf745faab9c1602bea1f6" title="Specify minimum buffer size (per process) for communication." alt="" coords="216,5,389,47"/>
+<area shape="rect" id="node3" href="$namespacem__octree__mg__1d.html#aa5987b8f4a1f52013cf5ebdf98e0243b" title="Specify minimum buffer size (per process) for communication." alt="" coords="221,71,384,112"/>
+<area shape="rect" id="node4" href="$namespacem__octree__mg__1d.html#a3cec80a765c0aee454a5f4909a44f999" title="Specify minimum buffer size (per process) for communication." alt="" coords="221,136,384,177"/>
+</map>

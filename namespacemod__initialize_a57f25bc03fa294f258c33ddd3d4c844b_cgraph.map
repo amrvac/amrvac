@@ -1,0 +1,11 @@
+<map id="mod_initialize::initialize_amrvac" name="mod_initialize::initialize_amrvac">
+<area shape="rect" id="node1" title="Initialize amrvac: read par files and initialize variables." alt="" coords="5,191,184,233"/>
+<area shape="rect" id="node2" href="$namespacemod__bc__data.html#ad538a8f959099a8987f483568f917dc4" title=" " alt="" coords="241,5,437,32"/>
+<area shape="rect" id="node3" href="$comm__lib_8t.html#a7aa767a80864b79cba09ebbca8c797ad" title="Create and store the MPI types that will be used for parallel communication." alt="" coords="271,56,406,83"/>
+<area shape="rect" id="node4" href="$namespacemod__trac.html#a53160d14117527fc7ed0e5425d007440" title=" " alt="" coords="267,107,411,149"/>
+<area shape="rect" id="node5" href="$namespacemod__trac.html#af9b4c9186b7be563edb785640f3777ee" title=" " alt="" coords="251,173,426,200"/>
+<area shape="rect" id="node6" href="$namespacemod__initialize.html#a9a3b9297f1ba4c1feafaa36381791c94" title="Initialize (and allocate) simulation and grid variables." alt="" coords="232,224,445,251"/>
+<area shape="rect" id="node7" href="$namespacemod__physics.html#aea7f8deb14a3c301c4db010855407ce3" title=" " alt="" coords="243,275,434,301"/>
+<area shape="rect" id="node8" href="$namespacemod__init__datafromfile.html#ae428d479ea3d920683af9a2b2a40943a" title=" " alt="" coords="255,326,422,367"/>
+<area shape="rect" id="node9" href="$namespacemod__input__output.html#a3d02333ce1529f982c89bf948cc871e7" title="Read in the user&#45;supplied parameter&#45;file." alt="" coords="250,391,427,433"/>
+</map>

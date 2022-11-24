@@ -1,0 +1,6 @@
+<map id="mod_mhd_phys::mhd_get_tcutoff" name="mod_mhd_phys::mhd_get_tcutoff">
+<area shape="rect" id="node1" title="get adaptive cutoff temperature for TRAC (Johnston 2019 ApJL, 873, L22)" alt="" coords="5,49,196,90"/>
+<area shape="rect" id="node2" href="$namespacemod__geometry.html#a92ec4e2c8ae00a42bf5bf2c1ce3a26c4" title="Calculate gradient of a scalar q within ixL in direction idir." alt="" coords="262,5,445,32"/>
+<area shape="rect" id="node3" href="$comm__lib_8t.html#a49b49ea9ffbbadfe688e332921c4cddd" title="Exit MPI&#45;AMRVAC with an error message." alt="" coords="511,31,585,57"/>
+<area shape="rect" id="node4" href="$namespacemod__mhd__phys.html#a363460651196f934c305aa8d52ac8593" title=" " alt="" coords="244,107,463,133"/>
+</map>

@@ -1,0 +1,6 @@
+<map id="mod_twofl_phys::add_source_b0split" name="mod_twofl_phys::add_source_b0split">
+<area shape="rect" id="node1" title="Source terms after split off time&#45;independent magnetic field." alt="" coords="5,71,165,112"/>
+<area shape="rect" id="node2" href="$namespacemod__global__parameters.html#ab7c08882c0c573fe148b826cf02a2546" title="Cross product of two vectors." alt="" coords="213,5,393,47"/>
+<area shape="rect" id="node3" href="$namespacemod__twofl__phys.html#ae75430a9644fd40e05232b3d0c7cf9e9" title="Calculate v_c component." alt="" coords="219,71,387,112"/>
+<area shape="rect" id="node4" href="$namespacemod__twofl__phys.html#ac3a9eb19d555dfbc5e17d410f70d6479" title=" " alt="" coords="219,136,387,177"/>
+</map>

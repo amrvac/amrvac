@@ -1,0 +1,4 @@
+<map id="mod_input_output::block_shape_io" name="mod_input_output::block_shape_io">
+<area shape="rect" id="node1" title="Determine the shape of a block for output (whether to include ghost cells, and on which sides)" alt="" coords="5,5,188,47"/>
+<area shape="rect" id="node2" href="$namespacemod__input__output.html#a22315d7443f62f6cd637218df95f962d" title="Compute number of elements in index range." alt="" coords="236,13,439,39"/>
+</map>

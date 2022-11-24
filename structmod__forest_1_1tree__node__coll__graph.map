@@ -1,0 +1,4 @@
+<map id="mod_forest::tree_node" name="mod_forest::tree_node">
+<area shape="rect" id="node1" title="The data structure that contains information about a tree node/grid block." alt="" coords="18,5,187,32"/>
+<area shape="rect" id="node2" href="$structmod__forest_1_1tree__node__ptr.html" title="Pointer to a tree_node." alt="" coords="5,153,200,180"/>
+</map>

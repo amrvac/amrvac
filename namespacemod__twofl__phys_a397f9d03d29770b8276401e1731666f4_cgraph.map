@@ -1,0 +1,7 @@
+<map id="mod_twofl_phys::add_source_hyperres" name="mod_twofl_phys::add_source_hyperres">
+<area shape="rect" id="node1" title="Add Hyper&#45;resistive source to w within ixO Uses 9 point stencil (4 neighbours) in each direction." alt="" coords="5,57,165,98"/>
+<area shape="rect" id="node2" href="$namespacemod__geometry.html#aabd378d228c27c5b83d0d14d9058661e" title="Calculate curl of a vector qvec within ixL Options to employ standard second order CD evaluations use..." alt="" coords="429,35,623,61"/>
+<area shape="rect" id="node3" href="$comm__lib_8t.html#a49b49ea9ffbbadfe688e332921c4cddd" title="Exit MPI&#45;AMRVAC with an error message." alt="" coords="671,64,745,91"/>
+<area shape="rect" id="node4" href="$namespacemod__twofl__phys.html#a35943a026269e9b298b1b62e51b411da" title="Calculate idirmin and the idirmin:3 components of the common current array make sure that dxlevel(^D)..." alt="" coords="219,27,376,69"/>
+<area shape="rect" id="node5" href="$namespacemod__twofl__phys.html#ac3a9eb19d555dfbc5e17d410f70d6479" title=" " alt="" coords="213,145,381,186"/>
+</map>

@@ -1,0 +1,4 @@
+<map id="mod_mhd_phys::mhd_get_tc_dt_mhd" name="mod_mhd_phys::mhd_get_tc_dt_mhd">
+<area shape="rect" id="node1" title=" " alt="" coords="5,5,196,47"/>
+<area shape="rect" id="node2" href="$namespacemod__thermal__conduction.html#af8b53592736ea52c07ce819bf7869e35" title="Get the explicut timestep for the TC (mhd implementation)" alt="" coords="244,5,431,47"/>
+</map>

@@ -1,0 +1,7 @@
+<map id="mod_fld::halley_method" name="mod_fld::halley_method">
+<area shape="rect" id="node1" title="Find the root of the 4th degree polynomial using the Halley method." alt="" coords="5,97,184,123"/>
+<area shape="rect" id="node2" href="$namespacemod__fld.html#a5c3cb192d4ff204d751bbabdc46570a3" title="Evaluate second derivative of polynomial at argument e_gas." alt="" coords="240,5,411,47"/>
+<area shape="rect" id="node3" href="$namespacemod__fld.html#ac956fe2dd223e2039a113a0d0c2991d0" title="Evaluate first derivative of polynomial at argument e_gas." alt="" coords="467,73,629,115"/>
+<area shape="rect" id="node4" href="$namespacemod__fld.html#afd1668b588f8b86ac4d95d46ee2ecd1f" title="Find the root of the 4th degree polynomial using the Newton&#45;Ralphson method." alt="" coords="232,122,419,149"/>
+<area shape="rect" id="node5" href="$namespacemod__fld.html#a8ec89cf1950c713250b72d34680df7c0" title="Evaluate polynomial at argument e_gas." alt="" coords="471,148,625,189"/>
+</map>

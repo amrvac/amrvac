@@ -1,0 +1,7 @@
+<map id="mod_mhd_phys::add_source_hydrodynamic_e" name="mod_mhd_phys::add_source_hydrodynamic_e">
+<area shape="rect" id="node1" title="Source terms for hydrodynamic energy version of MHD." alt="" coords="5,89,212,131"/>
+<area shape="rect" id="node2" href="$namespacemod__global__parameters.html#ab7c08882c0c573fe148b826cf02a2546" title="Cross product of two vectors." alt="" coords="273,5,453,47"/>
+<area shape="rect" id="node3" href="$namespacemod__mhd__phys.html#a3338aacd3dacb242389aa735b3e787af" title="Calculate idirmin and the idirmin:3 components of the common current array make sure that dxlevel(^D)..." alt="" coords="260,71,467,98"/>
+<area shape="rect" id="node4" href="$namespacemod__geometry.html#a92ec4e2c8ae00a42bf5bf2c1ce3a26c4" title="Calculate gradient of a scalar q within ixL in direction idir." alt="" coords="272,122,455,149"/>
+<area shape="rect" id="node5" href="$comm__lib_8t.html#a49b49ea9ffbbadfe688e332921c4cddd" title="Exit MPI&#45;AMRVAC with an error message." alt="" coords="515,147,589,174"/>
+</map>
