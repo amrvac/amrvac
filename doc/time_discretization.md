@@ -96,3 +96,9 @@ However, it is proved that if we want an *s*-step *s*-order RK method to fulfill
 ![](figmovdir/td_eq_14.png)
 
 But note that this upper limit m-s+1 could not be met by most RK methods, for example, for the five-step fourth-order RK method, the CFL number could only be 1.508 instead of 2. Anyway, even with 1.508, the effective CFL number (means CFL per step) is larger than Shu-Osher method. Therefore, this **fivestep** with **ssprk5** method is also favoured by many users. But since the coefficients of **ssprk5** are too long to present here, the users are recommended to see the Appendix B in Spiteri et al. 2002 or Section 2.1 in Gottlieb 2005 for details (but actually, the coefficients in these two papers are not exactly the same...) .
+***IMEX SCHEMES***
+
+
+When another imex scheme is implemented (in mod\_advance.t) use\_imex\_scheme flag should  also be set to .true.  in amrvacio/mod\_input\_output.t
+This is used by the physics modules which usually use IMEX schemes (and have both explicit and implicit implementations, such is the case of rd and twofl physics modules).
+

@@ -18,7 +18,8 @@
  &methodlist
         time_stepper='threestep'
         flux_scheme=20*'hll'
-        limiter= 20*'mp5'
+        !limiter= 20*'mp5'
+        limiter= 20*'wenozp5'
  /
 
  &boundlist

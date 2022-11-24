@@ -260,7 +260,8 @@ contains
     use mod_fix_conserve
     integer, intent(in) :: ixI^L, ixO^L, igrid, nflux
     double precision, intent(in) ::  x(ixI^S,1:ndim)
-    double precision, intent(inout) ::  wres(ixI^S,1:nw), w(ixI^S,1:nw)
+    double precision, intent(in) ::   w(ixI^S,1:nw)
+    double precision, intent(inout) ::  wres(ixI^S,1:nw)
     double precision, intent(in) :: my_dt
     logical, intent(in) :: fix_conserve_at_step
     type(tc_fluid), intent(in) :: fl
@@ -331,7 +332,7 @@ contains
     use mod_fix_conserve
     integer, intent(in) :: ixI^L, ixO^L
     double precision, intent(in) ::  x(ixI^S,1:ndim)
-    double precision ::  w(ixI^S,1:nw)
+    double precision, intent(in) ::  w(ixI^S,1:nw)
     type(tc_fluid), intent(in) :: fl
     double precision, intent(in) :: rho(ixI^S),Te(ixI^S)
     double precision, intent(in) :: alpha
@@ -705,7 +706,8 @@ contains
 
     integer, intent(in) :: ixI^L, ixO^L, igrid, nflux
     double precision, intent(in) ::  x(ixI^S,1:ndim)
-    double precision, intent(inout) ::  wres(ixI^S,1:nw), w(ixI^S,1:nw)
+    double precision, intent(in) ::  w(ixI^S,1:nw)
+    double precision, intent(inout) ::  wres(ixI^S,1:nw)
     double precision, intent(in) :: my_dt
     logical, intent(in) :: fix_conserve_at_step
     type(tc_fluid), intent(in)    :: fl

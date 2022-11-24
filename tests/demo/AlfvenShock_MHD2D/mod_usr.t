@@ -340,9 +340,9 @@ contains
 
     if (idir.eq.3) then
       where(xC(ixC^S,1)<xshock)
-        A(ixC^S)=Bxa*xC(ixC^S,2)-Bya*xC(ixC^S,1)
+        A(ixC^S)=Bxa*xC(ixC^S,2)-Bya*(xC(ixC^S,1)-xshock)
       elsewhere
-        A(ixC^S)=Bxb*xC(ixC^S,2)-Byb*xC(ixC^S,1)
+        A(ixC^S)=Bxb*xC(ixC^S,2)-Byb*(xC(ixC^S,1)-xshock)
       endwhere
     else 
       A(ixC^S) = zero

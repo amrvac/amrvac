@@ -7,6 +7,7 @@ module mod_usr
 
   double precision:: min_ar,max_ar
   double precision:: delvy,delv
+  double precision :: delrho=0.01d0
   logical:: reproduce
   double precision,allocatable, save:: xgrid(:),ygrid(:)
   integer, save:: Nx,Ny,ntmp
@@ -71,6 +72,7 @@ contains
       call random_seed(SIZE=seed_size)
       allocate(seed(seed_size))
       if(reproduce)then
+         seed = 20180815
         call random_seed(PUT=seed(1:seed_size))
       else
         call random_seed(GET=seed(1:seed_size))
@@ -150,7 +152,7 @@ contains
     character(len=*), intent(in) :: files(:)
     integer                      :: n
 
-    namelist /usr_list/ delvy,delv,reproduce
+    namelist /usr_list/ delvy,delv,delrho,reproduce
     do n=1, size(files)
       open(unitpar, file=trim(files(n)), status='old')
       read(unitpar, usr_list, end=111)
@@ -210,10 +212,12 @@ contains
       w(ixO^S, dust_mom(:, n)) = 0.0d0
 
       where(x(ixO^S,2)>0.0d0)
-        w(ixO^S,dust_rho(n))    = 0.01d0/dust_n_species
+        w(ixO^S,dust_rho(n))    = delrho/dust_n_species
         w(ixO^S,dust_mom(1, n)) = delv/2.5d0
       elsewhere
-        w(ixO^S,dust_rho(n)) = 0.0d0
+        !w(ixO^S,dust_rho(n)) = 0.0d0
+        w(ixO^S,dust_rho(n)) =  0.1*delrho/dust_n_species
+        w(ixO^S,dust_mom(1,n))=-delv*1.5d0/2.5d0
       endwhere
     end do
    endif

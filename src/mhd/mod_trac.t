@@ -505,17 +505,18 @@ contains
     enddo
   end subroutine block_interp_grid
 
-  subroutine get_Tmax_grid(x,w,ixI^L,ixO^L,Tmax_grid)
-    integer, intent(in) :: ixI^L,ixO^L
-    double precision, intent(in) :: x(ixI^S,1:ndim)
-    double precision, intent(out) :: w(ixI^S,1:nw)
-    double precision :: Tmax_grid
-    double precision :: pth(ixI^S),Te(ixI^S)
-
-    call mhd_get_pthermal(w,x,ixI^L,ixO^L,pth)
-    Te(ixO^S)=pth(ixO^S)/w(ixO^S,rho_)
-    Tmax_grid=maxval(Te(ixO^S))
-  end subroutine get_Tmax_grid  
+   ! TODO remove, not used? 
+!  subroutine get_Tmax_grid(x,w,ixI^L,ixO^L,Tmax_grid)
+!    integer, intent(in) :: ixI^L,ixO^L
+!    double precision, intent(in) :: x(ixI^S,1:ndim)
+!    double precision, intent(out) :: w(ixI^S,1:nw)
+!    double precision :: Tmax_grid
+!    double precision :: pth(ixI^S),Te(ixI^S)
+!
+!    call mhd_get_pthermal(w,x,ixI^L,ixO^L,pth)
+!    Te(ixO^S)=pth(ixO^S)/w(ixO^S,rho_)
+!    Tmax_grid=maxval(Te(ixO^S))
+!  end subroutine get_Tmax_grid  
 
   subroutine init_trac_Tcoff()
     integer :: ixI^L,ixO^L,igrid,iigrid
@@ -583,8 +584,15 @@ contains
 
     do j=1,ngrid_trac
       igrid=trac_grid(j)
+      
       call mhd_get_pthermal(ps(igrid)%w,ps(igrid)%x,ixI^L,ixI^L,ps(igrid)%wextra(ixI^S,Tcoff_))
-      ps(igrid)%wextra(ixI^S,Tcoff_)=ps(igrid)%wextra(ixI^S,Tcoff_)/ps(igrid)%w(ixI^S,rho_)
+      !TODO move  outside loop for optimziation? 
+      if(has_equi_rho0) then
+        ps(igrid)%wextra(ixI^S,Tcoff_)=ps(igrid)%wextra(ixI^S,Tcoff_)/&
+          (ps(igrid)%w(ixI^S,rho_) + ps(igrid)%equi_vars(ixI^S,equi_rho0_,0))
+      else
+        ps(igrid)%wextra(ixI^S,Tcoff_)=ps(igrid)%wextra(ixI^S,Tcoff_)/ps(igrid)%w(ixI^S,rho_)
+      endif
     enddo
 
   end subroutine get_Te_grid

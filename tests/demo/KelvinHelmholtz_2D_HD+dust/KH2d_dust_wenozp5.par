@@ -22,6 +22,7 @@
 
 &methodlist
         time_stepper=  'threestep'
+        time_integrator = 'IMEX_ARS3'
         flux_scheme=20*'hllc'
         limiter=20*'wenozp5'
         check_small_values=.true.
@@ -64,13 +65,20 @@
 
 &dust_list
      dust_n_species=1
-     dust_method='Kwok'
+     dust_method='linear'
+     !dust_K_lineardrag=1d2
+     dust_K_lineardrag=1d16
      dust_small_to_zero=.true.
      dust_min_rho=1.0d-10
-     dust_dtpar=0.2d0
+     dust_dtpar=-1
+      dust_implicit_second_order=.false.
+      dust_backreaction_fh=.true.
+
 /
 
 &usr_list
-   delv=0.2d0
    delvy=0.001d0
+   delrho=0.01d0 
+   delv=0.2d0
+   reproduce = .true.
 /

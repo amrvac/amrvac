@@ -34,6 +34,57 @@ contains
     nullify(head_convert_vars_methods)
   end subroutine init_convert
 
+
+
+   function get_names_from_string(aux_variable_names,nwc) result(names) 
+    use mod_global_parameters
+    character(len=*),intent(in):: aux_variable_names
+    integer, intent(in) :: nwc
+    character(len=name_len)   :: names(1:nwc)
+
+    integer::  space_position,iw
+    character(len=name_len)::  wname
+    character(len=std_len)::  scanstring
+
+
+    ! copied from subroutine getheadernames in calculate_xw
+    scanstring=TRIM(adjustl(aux_variable_names))
+    space_position=index(scanstring,' ')
+    do iw=1,nwc
+       do while (space_position==1)
+         scanstring=scanstring(2:)
+         space_position=index(scanstring,' ')
+       enddo
+       wname=scanstring(:space_position-1)
+       scanstring=scanstring(space_position+1:)
+       space_position=index(scanstring,' ')
+
+       names(iw)=TRIM(adjustl(wname))
+    enddo
+  end function get_names_from_string  
+
+
+  ! shortcut
+  subroutine add_convert_method2(phys_convert_vars, nwc, aux_variable_names, file_suffix)
+    use mod_global_parameters
+    integer, intent(in) :: nwc
+    character(len=*),intent(in):: aux_variable_names
+    character(len=*), intent(in) :: file_suffix
+
+    interface
+     function phys_convert_vars(ixI^L, ixO^L, w, x, nwc) result(wnew)
+       use mod_global_parameters
+       integer, intent(in)             :: ixI^L, ixO^L, nwc
+       double precision, intent(in)    :: w(ixI^S, 1:nw)
+       double precision, intent(in)    :: x(ixI^S,1:ndim) 
+       double precision    :: wnew(ixO^S, 1:nwc)
+     end function phys_convert_vars
+    end interface
+
+    call add_convert_method(phys_convert_vars, nwc, get_names_from_string(aux_variable_names,nwc), file_suffix)
+
+  end subroutine add_convert_method2
+
   subroutine add_convert_method(phys_convert_vars, nwc, dataset_names, file_suffix)
     integer, intent(in) :: nwc
     character(len=*), intent(in) :: dataset_names(:)

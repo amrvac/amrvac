@@ -54,6 +54,7 @@ module mod_radiative_cooling
     procedure (get_subr1), pointer, nopass :: get_rho_equi => null()
     procedure (get_subr1), pointer, nopass :: get_pthermal => null()
     procedure (get_subr1), pointer, nopass :: get_pthermal_equi => null()
+    procedure (get_subr1), pointer, nopass :: get_var_Rfactor => null()
 
     ! factor in eq of state p = Rfactor * rho * T
     ! used for getting temperature
@@ -1318,7 +1319,7 @@ module mod_radiative_cooling
       double precision, intent(inout) :: dtnew
       
       double precision :: etherm(ixI^S), rho(ixI^S)
-      double precision :: L1,Tlocal1, ptherm(ixI^S), lum(ixI^S)
+      double precision :: L1,Tlocal1, ptherm(ixI^S), lum(ixI^S), Rfactor(ixI^S)
       double precision :: plocal, rholocal
       double precision :: Lmax
       integer :: ix^D
@@ -1330,11 +1331,16 @@ module mod_radiative_cooling
       if(fl%coolmethod == 'explicit1') then
        call fl%get_pthermal(w,x,ixI^L,ixO^L,ptherm)   
        call fl%get_rho(w,x,ixI^L,ixO^L,rho)   
+       if(associated(fl%get_var_Rfactor)) then
+          call fl%get_var_Rfactor(w,x,ixI^L,ixO^L,Rfactor)
+       else
+          Rfactor(ixO^S)=fl%Rfactor 
+       endif
        {do ix^DB = ixO^LIM^DB\}
          plocal   = ptherm(ix^D)
          rholocal = rho(ix^D)
          !  Tlocal = P/rho
-         Tlocal1       = max(plocal/(fl%Rfactor * rholocal),smalldouble)
+         Tlocal1       = max(plocal/(Rfactor(ix^D) * rholocal),smalldouble)
          !  Determine explicit cooling
          !  If temperature is below floor level, no cooling. 
          !  Stop wasting time and go to next gridpoint.
@@ -1372,7 +1378,7 @@ module mod_radiative_cooling
       double precision, intent(out):: coolrate(ixI^S)
       type(rc_fluid), intent(in) :: fl
       
-      double precision :: etherm(ixI^S),rho(ixI^S)
+      double precision :: etherm(ixI^S),rho(ixI^S),Rfactor(ixI^S)
       double precision :: L1,Tlocal1, ptherm(ixI^S)
       double precision :: plocal, rholocal
       double precision :: emin
@@ -1381,12 +1387,17 @@ module mod_radiative_cooling
       
       call fl%get_pthermal(w,x,ixI^L,ixO^L,ptherm) 
       call fl%get_rho(w,x,ixI^L,ixO^L,rho) 
+      if(associated(fl%get_var_Rfactor)) then
+        call fl%get_var_Rfactor(w,x,ixI^L,ixO^L,Rfactor)
+      else
+        Rfactor(ixO^S)=fl%Rfactor 
+      endif
       
       {do ix^DB = ixO^LIM^DB\}
          plocal   = ptherm(ix^D)
          rholocal = rho(ix^D)
          !  Tlocal = P/rho
-         Tlocal1       = max(plocal/(rholocal * fl%Rfactor),smalldouble)
+         Tlocal1       = max(plocal/(rholocal * Rfactor(ix^D)),smalldouble)
          !
          !  Determine explicit cooling
          !
@@ -1420,7 +1431,7 @@ module mod_radiative_cooling
     
       double precision              :: y1, y2, l1, l2
       double precision              :: plocal, rholocal, tlocal1, tlocal2, invgam
-      double precision              :: ptherm(ixI^S), pnew(ixI^S), rho(ixI^S), rhonew(ixI^S)
+      double precision              :: ptherm(ixI^S), pnew(ixI^S), rho(ixI^S), rhonew(ixI^S), Rfactor(ixI^S)
       double precision              :: emin, Lmax, fact
     
       integer                       :: ix^D
@@ -1437,13 +1448,18 @@ module mod_radiative_cooling
     
       fact   =fl%lref*qdt/fl%tref
       invgam = 1.d0/(rc_gamma-1.d0)
+      if(associated(fl%get_var_Rfactor)) then
+        call fl%get_var_Rfactor(w,x,ixI^L,ixO^L,Rfactor)
+      else
+        Rfactor(ixO^S)=fl%Rfactor 
+      endif
     
       {do ix^DB = ixO^LIM^DB\}
          plocal   = ptherm(ix^D)
          rholocal = rho(ix^D)
-         tlocal1  = max(plocal/(rholocal*fl%Rfactor), smalldouble)
+         tlocal1  = max(plocal/(rholocal*Rfactor(ix^D)), smalldouble)
        
-         emin     = rhonew(ix^D) * fl%tlow * fl%Rfactor* invgam
+         emin     = rhonew(ix^D) * fl%tlow * Rfactor(ix^D)* invgam
          lmax     = max(zero, ( pnew(ix^D)*invgam - emin ) / qdt)
        
          ! No cooling if temperature is below floor level.
@@ -1559,7 +1575,7 @@ module mod_radiative_cooling
       type(rc_fluid), intent(in) :: fl
       double precision, intent(out) :: res(ixI^S)
       
-      double precision :: ptherm(ixI^S),rho(ixI^S),L1,Tlocal1,Tlocal2
+      double precision :: ptherm(ixI^S),rho(ixI^S),Rfactor(ixI^S),L1,Tlocal1,Tlocal2
       double precision :: plocal, rholocal, ttofflocal
       double precision :: emin, Lmax
       double precision :: Y1, Y2, invgam
@@ -1570,6 +1586,11 @@ module mod_radiative_cooling
 
       call fl%get_pthermal_equi(wCT,x,ixI^L,ixO^L,ptherm)     
       call fl%get_rho_equi(wCT,x,ixI^L,ixO^L,rho)     
+      if(associated(fl%get_var_Rfactor)) then
+        call fl%get_var_Rfactor(w,x,ixI^L,ixO^L,Rfactor)
+      else
+        Rfactor(ixO^S)=fl%Rfactor 
+      endif
 
       res=0d0
 
@@ -1585,12 +1606,12 @@ module mod_radiative_cooling
            if(phys_trac) then
              ttofflocal=block%wextra(ix^D,fl%Tcoff_)
            end if
-           emin     = rho(ix^D)*fl%tlow*fl%Rfactor*invgam
+           emin     = rho(ix^D)*fl%tlow*Rfactor(ix^D)*invgam
            Lmax     = max(zero,(ptherm(ix^D)*invgam-emin)/qdt)
            emax     = max(zero, ptherm(ix^D)*invgam-emin)
   
            !  Tlocal = P/rho
-           Tlocal1   = max(plocal/(rholocal*fl%Rfactor),smalldouble)
+           Tlocal1   = max(plocal/(rholocal*Rfactor(ix^D)),smalldouble)
            !
            !  Determine explicit cooling
            !
@@ -1633,10 +1654,10 @@ module mod_radiative_cooling
            if(phys_trac) then
              ttofflocal=block%wextra(ix^D,fl%Tcoff_)
            end if
-           emin     = rholocal*fl%tlow*fl%Rfactor/(rc_gamma-1.d0)
+           emin     = rholocal*fl%tlow*Rfactor(ix^D)/(rc_gamma-1.d0)
            Lmax            = max(zero,plocal/(rc_gamma-1.d0)-emin)/qdt
            !  Tlocal = P/rho
-           Tlocal1       = max(plocal/(fl%Rfactor * rholocal),smalldouble)
+           Tlocal1       = max(plocal/(Rfactor(ix^D) * rholocal),smalldouble)
            !
            !  Determine explicit cooling
            !
@@ -1673,7 +1694,7 @@ module mod_radiative_cooling
       double precision, intent(inout) :: w(ixI^S,1:nw)
       type(rc_fluid), intent(in) :: fl
       
-      double precision :: L1,Tlocal1, ptherm(ixI^S),pnew(ixI^S),rho(ixI^S)
+      double precision :: L1,Tlocal1, ptherm(ixI^S),pnew(ixI^S),rho(ixI^S),Rfactor(ixI^S)
       double precision :: plocal, rholocal, ttofflocal
       double precision :: emin, Lmax
       
@@ -1683,6 +1704,11 @@ module mod_radiative_cooling
       call fl%get_pthermal(wCT,x,ixI^L,ixO^L,ptherm)     
       call fl%get_pthermal(w,x,ixI^L,ixO^L,pnew)
       call fl%get_rho(wCT,x,ixI^L,ixO^L,rho)     
+      if(associated(fl%get_var_Rfactor)) then
+        call fl%get_var_Rfactor(w,x,ixI^L,ixO^L,Rfactor)
+      else
+        Rfactor(ixO^S)=fl%Rfactor 
+      endif
 
       ttofflocal=zero
       {do ix^DB = ixO^LIM^DB\}
@@ -1691,10 +1717,10 @@ module mod_radiative_cooling
          if(phys_trac) then
            ttofflocal=block%wextra(ix^D,fl%Tcoff_)
          end if
-         emin     = rholocal*fl%tlow*fl%Rfactor/(rc_gamma-1.d0)
+         emin     = rholocal*fl%tlow*Rfactor(ix^D)/(rc_gamma-1.d0)
          Lmax            = max(zero,pnew(ix^D)/(rc_gamma-1.d0)-emin)/qdt
          !  Tlocal = P/rho
-         Tlocal1       = max(plocal/(fl%Rfactor * rholocal),smalldouble)
+         Tlocal1       = max(plocal/(Rfactor(ix^D) * rholocal),smalldouble)
          !
          !  Determine explicit cooling
          !
@@ -1753,7 +1779,7 @@ module mod_radiative_cooling
       
       integer :: idt,ndtstep
       
-      double precision :: L1,Tlocal1,ptherm(ixI^S),pnew(ixI^S),rho(ixI^S)
+      double precision :: L1,Tlocal1,ptherm(ixI^S),pnew(ixI^S),rho(ixI^S),Rfactor(ixI^S)
       double precision :: plocal, rholocal, ttofflocal
       double precision :: emin, Lmax
       
@@ -1763,6 +1789,11 @@ module mod_radiative_cooling
       call fl%get_pthermal(wCT,x,ixI^L,ixO^L,ptherm) 
       call fl%get_pthermal(w,x,ixI^L,ixO^L,pnew ) 
       call fl%get_rho(wCT,x,ixI^L,ixO^L,rho) 
+      if(associated(fl%get_var_Rfactor)) then
+        call fl%get_var_Rfactor(w,x,ixI^L,ixO^L,Rfactor)
+      else
+        Rfactor(ixO^S)=fl%Rfactor 
+      endif
 
       ttofflocal=zero
       {do ix^DB = ixO^LIM^DB\}
@@ -1775,10 +1806,10 @@ module mod_radiative_cooling
          if(phys_trac) then
            ttofflocal=block%wextra(ix^D,fl%Tcoff_)
          end if
-         emin     = rholocal*fl%tlow*fl%Rfactor/(rc_gamma-1.d0)
+         emin     = rholocal*fl%tlow*Rfactor(ix^D)/(rc_gamma-1.d0)
          Lmax            = max(zero,(pnew(ix^D)/(rc_gamma-1.d0))-emin)/qdt
          !  Tlocal = P/rho
-         Tlocal1       = plocal/(rholocal*fl%Rfactor)
+         Tlocal1       = plocal/(rholocal*Rfactor(ix^D))
          !
          !  Determine explicit cooling
          !
@@ -1820,7 +1851,7 @@ module mod_radiative_cooling
             plocal = etherm*(rc_gamma-1.d0)
             Lmax   = max(zero,etherm-emin)/dtstep
             !  Tlocal = P/rho
-            Tlocal1 = plocal/(rholocal * fl%Rfactor)
+            Tlocal1 = plocal/(rholocal * Rfactor(ix^D))
             if( Tlocal1<=fl%tcoolmin ) then
                L1 = zero
                exit
@@ -1868,12 +1899,17 @@ module mod_radiative_cooling
       double precision :: plocal, rholocal, ttofflocal
       double precision :: emin, Lmax
       
-      double precision :: ptherm(ixI^S),pnew(ixI^S),rho(ixI^S)
+      double precision :: ptherm(ixI^S),pnew(ixI^S),rho(ixI^S),Rfactor(ixI^S)
       integer :: ix^D
 
       call fl%get_pthermal(wCT,x,ixI^L,ixO^L,ptherm)   
       call fl%get_pthermal(w,x,ixI^L,ixO^L,pnew )  
       call fl%get_rho(wCT,x,ixI^L,ixO^L,rho)   
+      if(associated(fl%get_var_Rfactor)) then
+        call fl%get_var_Rfactor(w,x,ixI^L,ixO^L,Rfactor)
+      else
+        Rfactor(ixO^S)=fl%Rfactor 
+      endif
 
       ttofflocal=zero
       {do ix^DB = ixO^LIM^DB\}
@@ -1882,10 +1918,10 @@ module mod_radiative_cooling
          if(phys_trac) then
            ttofflocal=block%wextra(ix^D,fl%Tcoff_)
          end if
-         emin     = rholocal*fl%tlow*fl%Rfactor/(rc_gamma-1.d0)
+         emin     = rholocal*fl%tlow*Rfactor(ix^D)/(rc_gamma-1.d0)
          Lmax            = max(zero,pnew(ix^D)/(rc_gamma-1.d0)-emin)/qdt
          !  Tlocal = P/rho
-         Tlocal1       = max(plocal/(rholocal * fl%Rfactor),smalldouble)
+         Tlocal1       = max(plocal/(rholocal * Rfactor(ix^D)),smalldouble)
          !
          !  Determine explicit cooling at present temperature
          !
@@ -1942,7 +1978,7 @@ module mod_radiative_cooling
       double precision, intent(inout) :: w(ixI^S,1:nw)
       type(rc_fluid), intent(in) :: fl
       
-      double precision :: Ltemp,Tlocal1,Tnew,f1,f2,ptherm(ixI^S), pnew(ixI^S), rho(ixI^S)
+      double precision :: Ltemp,Tlocal1,Tnew,f1,f2,ptherm(ixI^S), pnew(ixI^S), rho(ixI^S), Rfactor(ixI^S)
       
       double precision :: plocal, rholocal, elocal, ttofflocal
       double precision :: emin, Lmax, eold, enew, estep
@@ -1954,6 +1990,11 @@ module mod_radiative_cooling
       call fl%get_pthermal(wCT,x,ixI^L,ixO^L,ptherm)   
       call fl%get_pthermal(w,x,ixI^L,ixO^L,pnew )  
       call fl%get_rho(wCT,x,ixI^L,ixO^L,rho)   
+      if(associated(fl%get_var_Rfactor)) then
+        call fl%get_var_Rfactor(w,x,ixI^L,ixO^L,Rfactor)
+      else
+        Rfactor(ixO^S)=fl%Rfactor 
+      endif
 
       ttofflocal=zero
       {do ix^DB = ixO^LIM^DB\}
@@ -1963,10 +2004,10 @@ module mod_radiative_cooling
          if(phys_trac) then
            ttofflocal=block%wextra(ix^D,fl%Tcoff_)
          end if
-         emin     = rholocal*fl%tlow*fl%Rfactor/(rc_gamma-1.d0)
+         emin     = rholocal*fl%tlow*Rfactor(ix^D)/(rc_gamma-1.d0)
          Lmax            = max(zero,pnew(ix^D)/(rc_gamma-1.d0)-emin)/qdt
          !  Tlocal = P/rho
-         Tlocal1       = max(plocal/(rholocal * fl%Rfactor),smalldouble)
+         Tlocal1       = max(plocal/(rholocal * Rfactor(ix^D)),smalldouble)
          !
          !  Determine explicit cooling at present temperature
          !
@@ -1983,7 +2024,7 @@ module mod_radiative_cooling
            f2    = 1.d0
            do j=1,maxiter+1
              if( j>maxiter ) call mpistop("Implicit cooling exceeds maximum iterations")
-             Tnew  = enew*(rc_gamma-1.d0)/(rholocal * fl%Rfactor)   
+             Tnew  = enew*(rc_gamma-1.d0)/(rholocal * Rfactor(ix^D))   
              if( Tnew<=fl%tcoolmin ) then
                Ltemp = Lmax
                exit
@@ -2026,7 +2067,7 @@ module mod_radiative_cooling
 
       double precision :: Y1, Y2
       double precision :: L1,Tlocal1, ptherm(ixI^S), Tlocal2, pnew(ixI^S)
-      double precision :: rho(ixI^S), rhonew(ixI^S)
+      double precision :: rho(ixI^S), rhonew(ixI^S), Rfactor(ixI^S)
       double precision :: plocal, rholocal, invgam, ttofflocal
       double precision :: emin, Lmax, fact
       double precision :: de, emax
@@ -2038,6 +2079,11 @@ module mod_radiative_cooling
       call fl%get_pthermal(w,x,ixI^L,ixO^L,pnew)
       call fl%get_rho(wCT,x,ixI^L,ixO^L,rho)
       call fl%get_rho(w,x,ixI^L,ixO^L,rhonew)
+      if(associated(fl%get_var_Rfactor)) then
+        call fl%get_var_Rfactor(w,x,ixI^L,ixO^L,Rfactor)
+      else
+        Rfactor(ixO^S)=fl%Rfactor 
+      endif
 
       ttofflocal=zero
       fact = fl%lref*qdt/fl%tref
@@ -2049,12 +2095,12 @@ module mod_radiative_cooling
          if(phys_trac) then
            ttofflocal=block%wextra(ix^D,fl%Tcoff_)
          end if
-         emin = rhonew(ix^D)*fl%tlow*fl%Rfactor*invgam
+         emin = rhonew(ix^D)*fl%tlow*Rfactor(ix^D)*invgam
          Lmax = max(zero,(pnew(ix^D)*invgam-emin)/qdt)
          emax = max(zero, pnew(ix^D)*invgam-emin)
 
          !  Tlocal = P/rho
-         Tlocal1 = max(plocal/(rholocal*fl%Rfactor),smalldouble)
+         Tlocal1 = max(plocal/(rholocal*Rfactor(ix^D)),smalldouble)
          !
          !  Determine explicit cooling
          !

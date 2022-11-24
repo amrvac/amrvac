@@ -6,33 +6,25 @@
 
 ##Preprocessor directives variables defined in **amrvac.h**
 
-    ONE_FLUID
-In order to use the two fluid module as MHD (remove neutral related and possibility to add ambipolar diffusion) set explicitly ONE\_FLUID=1 in the h file
-In the ONE\_FLUID case it is possible to set the ionizations fractions of H and He which imply a change in the units compared to the MHD module where H and He are fully ionized.
 
 ##Parameters set in **twofl\_list**
 
 ```
     namelist /twofl_list/ twofl_eq_energy, twofl_gamma, twofl_adiab,&
-      twofl_eta, twofl_eta_hyper, twofl_etah, twofl_glm_alpha,&
+      twofl_eta, twofl_eta_hyper, twofl_etah, twofl_glm_alpha,& 
       twofl_thermal_conduction_c, use_twofl_tc_c, twofl_radiative_cooling_c, twofl_Hall, twofl_gravity,&
       twofl_viscosity, twofl_4th_order, typedivbfix, source_split_divb, divbdiff,&
       typedivbdiff, type_ct, divbwave, SI_unit, B0field,&
       B0field_forcefree, Bdip, Bquad, Boct, Busr,twofl_equi_thermal_c,&
-      !added:
       twofl_dump_full_vars, has_equi_rho_c0, has_equi_pe_c0, twofl_hyperdiffusivity,twofl_dump_hyperdiffusivity_coef,&
-#if !defined(ONE_FLUID) || ONE_FLUID==0
       has_equi_pe_n0, has_equi_rho_n0, twofl_thermal_conduction_n, twofl_radiative_cooling_n,  &
-      twofl_alpha_coll,twofl_alpha_coll_constant,twofl_implicit_coll_terms,&
-      twofl_coll_inc_te, twofl_coll_inc_ionrec,twofl_equi_thermal,twofl_equi_thermal_n,dtcollpar,&
+      twofl_alpha_coll,twofl_alpha_coll_constant,&
+      twofl_coll_inc_te, twofl_coll_inc_ionrec,twofl_equi_ionrec,twofl_equi_thermal,&
+      twofl_equi_thermal_n,dtcollpar,&
       twofl_dump_coll_terms,twofl_implicit_calc_mult_method,&
-#else
-      twofl_ambipolar, twofl_ambipolar_sts, twofl_eta_ambi,&
-      H_ion_fr, He_ion_fr, He_abundance, He_ion_fr2,&
-#endif
       boundary_divbfix, boundary_divbfix_skip, twofl_divb_4thorder, &
-      twofl_boris_method, twofl_boris_c, clean_initial_divb,  &
-      twofl_trac, twofl_trac_type, twofl_trac_mask,twofl_cbounds_species
+      clean_initial_divb,  &
+      twofl_trac, twofl_trac_type, twofl_trac_mask,twofl_cbounds_species 
 ``` 
 
 

@@ -1191,3 +1191,44 @@ Only Cartesian coordinate system are supported currently.
       location_slit= DOUBLE
       direction_slit= INTEGER
     /
+
+
+## Splitting of the hydrostatic equilibrium
+
+set 
+```
+
+        has_equi_pe0 = .true.
+        has_equi_rho0 = .true.
+
+```
+to true in ***mhd\_list***
+and implement usr\_set\_equi\_vars in mod\_ust.t file
+
+
+
+```
+  subroutine usr_init()
+
+  ...
+
+    usr_set_equi_vars => special_set_equi_vars
+  
+  ...
+  end subroutine usr_init
+
+
+  subroutine special_set_equi_vars(ixI^L,ixO^L,x,w0)
+    use mod_global_parameters
+    integer, intent(in)             :: ixI^L,ixO^L
+    double precision, intent(in)    :: x(ixI^S,1:ndim)
+    double precision, intent(inout) :: w0(ixI^S,1:number_equi_vars)
+
+
+    w0(ixO^S,equi_pe0_) = ...
+    w0(ixO^S,equi_rho0_) = ...
+
+  end subroutine special_set_equi_vars
+
+```
+

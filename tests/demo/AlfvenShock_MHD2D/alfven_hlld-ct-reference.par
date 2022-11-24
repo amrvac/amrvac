@@ -5,18 +5,20 @@
 !=====================================================
 
  &filelist
-        base_filename='output/alfven_hllc_'
+        base_filename='output/alfven_hlld_ct_'
         saveprim=.true.
         autoconvert=.true.
-        convert_type='vtuBCCmpi'
-        nwauxio=3
+        !convert_type='vtuBCCmpi'
+        !nwauxio=3
+        convert_type='user'
         usr_filename='alfven.vtk'
+        !restart_from_file='output/alfven_hlld_ct_0015.dat'
  /
 
  &savelist
         itsave(1,1)=0
         itsave(1,2)=0
-        dtsave=0.01d0,0.01d0
+        dtsave=0.01d0,0.1d0
  /
 
  &stoplist
@@ -26,7 +28,7 @@
 
  &methodlist
         time_stepper=  'threestep'
-        flux_scheme=   20*'hllc'
+        flux_scheme=   20*'hlld'
         limiter= 20*'koren'
         fix_small_values=T
         check_small_values=F
@@ -44,15 +46,18 @@
 
  &meshlist
         refine_criterion=3
-        refine_max_level=6
+        !refine_max_level=6
+        refine_max_level=1
         w_refine_weight(1)=0.6d0
         w_refine_weight(2)=0.1d0
         w_refine_weight(3)=0.1d0
         w_refine_weight(4)=0.2d0
         refine_threshold=20*0.2d0
         derefine_ratio=20*0.125d0
-        domain_nx1=128
-        domain_nx2=128
+        !domain_nx1=128
+        !domain_nx2=128
+        domain_nx1=8192
+        domain_nx2=8192
         block_nx1=16
         block_nx2=16
         xprobmin1=-0.5d0
@@ -68,7 +73,7 @@
  /
 
  &mhd_list
-        typedivbfix='multigrid'
+      typedivbfix='ct'
  /
 
  &usr_list

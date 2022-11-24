@@ -32,7 +32,7 @@
         check_small_values=F
         small_values_method='average'
         small_values_daverage=4
-        small_pressure=1.0d-3
+        small_pressure=1.0d-7
  /
 
  &boundlist

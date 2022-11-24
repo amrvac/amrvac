@@ -6866,6 +6866,9 @@ contains
     double precision :: rhon(ixI^S), rhoc(ixI^S), alpha(ixI^S)
     double precision, allocatable :: gamma_rec(:^D&), gamma_ion(:^D&)
 
+    !TODO latest changes sets already wout to w in implicit update (see where psb=psa) 
+    ! commment out setting mag and density when they are not modified here
+
     ! copy vars at the indices which are not updated here: mag. field
     wout(ixO^S,mag(:)) = w(ixO^S,mag(:))
 
