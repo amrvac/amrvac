@@ -1193,7 +1193,7 @@ end subroutine readout_satellite
     end do
     counter_lon= 1
     minimum = abs(coord_grid_init(1,1,2)-coordinate(3))
-    do k = 1, nr_lon+4
+    do k = 1, nr_lon
         if (abs(coord_grid_init(1,k,2)-coordinate(3)) < minimum) then
             minimum = abs(coord_grid_init(1,k,2)-coordinate(3))
             counter_lon = k

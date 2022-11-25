@@ -26,7 +26,7 @@ mhd/blast_wave_spherical_stretched_3D mhd/convection_2D mhd/Kelvin_Helmholtz_3D 
 mhd/ring_thermal_conduction_2D mhd/ring_thermal_conduction_3D mhd/solar_flare_reconnection_2.5D mhd/lfff_extrapolation_3D  \
 mhd/Low_flux_rope_3D mhd/field_loop_2.5D mhd/solar_wind_2.5D mhd/Orszag_Tang_2.5D mhd/solar_atmosphere_3D  mhd/alfvenwing_3D \
 mhd/semirelativistic_Alfven_wave_1.75D \
-mhd/blast_wave_Cartesian_3D mhd/Ambipolar1DWave-B0split mhd/Ambipolar1DWave 
+mhd/blast_wave_Cartesian_3D mhd/Ambipolar1DWave-B0split mhd/Ambipolar1DWave mhd/icarus
 
 RHD_DIRS := rhd/RHD_wave_1D
 
