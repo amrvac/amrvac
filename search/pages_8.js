@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['looking_20at_20line_2dintegrated_20quantities_6623',['Looking at line-integrated quantities',['../md_doc_collapsed.html',1,'']]]
+  ['kelvin_2dhelmholtz_20instability_6626',['Kelvin-Helmholtz instability',['../md_doc_demo-movies.html',1,'']]]
 ];
