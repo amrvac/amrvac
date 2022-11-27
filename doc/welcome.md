@@ -51,6 +51,7 @@ MPI-AMRVAC is developed and maintained by an international team led by professor
 [Centre for mathematical Plasma-Astrophysics (CmPA)](https://wis.kuleuven.be/CmPA), KU Leuven.
 
 In November 2022, we released the current 3.0 version, with the aid of Beatrice Popescu Braileanu, Niels Claes, Chun Xia, Guo Yang, Wenzhi Ruan, Fabio Bacchini, Yuhao Zhou.
+The movies generated from the demo simulations (found in the tests/demo folder) can be seen [here](demo-movies.md). 
 
 Prior, in 2016-2017, a large modernization was completed by Chun Xia and 
 [Jannis Teunissen](http://teunissen.net/) marked with version 2.0 with 

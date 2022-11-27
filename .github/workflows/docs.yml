@@ -25,6 +25,8 @@ jobs:
       run: |
         cd doc
         doxygen Doxyfile
+        cp figmovdir/videos-demo/*.mp4 html/
+
 
     - name: Deploy website
       uses: peaceiris/actions-gh-pages@v3
