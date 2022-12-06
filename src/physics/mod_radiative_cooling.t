@@ -2110,7 +2110,6 @@ module mod_radiative_cooling
             L1 = min(L1,Lmax)
             w(ix^D,fl%e_) = w(ix^D,fl%e_)-L1*qdt
          else
-            call findL(Tlocal1,L1,fl)
             call findY(Tlocal1,Y1,fl)
             Y2 = Y1 + fact * rholocal * (rc_gamma-1.d0)
             call findT(Tlocal2,Y2,fl)
