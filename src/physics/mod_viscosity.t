@@ -88,7 +88,6 @@ contains
   ! dm/dt= +div(mu*[d_j v_i+d_i v_j]-(2*mu/3)* div v * kr)
     use mod_global_parameters
     use mod_geometry
-    use mod_physics, only: phys_solve_eaux
 
     integer, intent(in) :: ixI^L, ixO^L
     double precision, intent(in) :: qdt, x(ixI^S,1:ndim), wCT(ixI^S,1:nw)
@@ -230,10 +229,9 @@ contains
           do idir=1,ndir
              vlambda(ixI^S,idim)=vlambda(ixI^S,idim)+v(ixI^S,idir)*lambda(ixI^S,idir,idim)
           end do
-        enddo
+        end do
         call divvector(vlambda,ixI^L,ixO^L,tmp2)
         w(ixO^S,e_)=w(ixO^S,e_)+tmp2(ixO^S)
-        if(phys_solve_eaux) w(ixO^S,iw_eaux)=w(ixO^S,iw_eaux)+tmp2(ixO^S)
       end if
     end if
 

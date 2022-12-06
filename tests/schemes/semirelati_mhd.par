@@ -6,5 +6,4 @@
         mhd_semirelativistic=.true.
         mhd_reduced_c=5.d8
         B0field=.true.
-        mhd_solve_eaux=.false.
  /

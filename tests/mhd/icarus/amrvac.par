@@ -12,8 +12,6 @@
 ! At line 998 of file convert.f // Fortran runtime error: End of record
 
 !=====================================================
- &testlist
- /
 
  &filelist
         autoconvert   = .true.
@@ -24,23 +22,14 @@
         slice_type    = 'csv'
         nocartesian   = .true.
         nwauxio       = 3
-
-/
-
+ /
 
  &savelist
-        itsave(1,1)   = 0
-        itsave(1,2)   = 0
-
-   !     tsavestart(2) = 336.0
-        ditsave_log = 10
-        dtsave_dat    = 3.0
-/
-
-
+        dtsave_log       = 1.d-3
+ /
 
  &stoplist
-        time_max      = 90.0d0
+        time_max      = 5.d-2
  /
 
  &methodlist
@@ -56,7 +45,6 @@
         small_values_method = 'replace'
         small_values_daverage = 8
  /
-
 
 
  &mhd_list
@@ -78,7 +66,6 @@
  &meshlist
         stretch_dim(1)='uni'
         stretch_uncentered = .false.
-
         refine_criterion=0
         refine_max_level = 1
         nbufferx1=0
@@ -98,8 +85,8 @@
         xprobmax3=1.0d0
  /
 
-
  &paramlist
         typecourant='maxsum'
         courantpar=0.9d0
         slowsteps=10
+ /

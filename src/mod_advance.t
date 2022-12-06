@@ -673,14 +673,6 @@ contains
         end do
         !$OMP END PARALLEL DO
       end if
-      if(phys_solve_eaux) then
-        ! synchronize internal energy for AMR mesh
-        !$OMP PARALLEL DO PRIVATE(igrid)
-        do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
-          call phys_energy_synchro(ixG^LL,ixM^LL,psb(igrid)%w,psb(igrid)%x)
-        end do
-        !$OMP END PARALLEL DO
-      end if
     end if
 
     ! For all grids: fill ghost cells

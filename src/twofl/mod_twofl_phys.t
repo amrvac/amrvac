@@ -22,10 +22,6 @@ module mod_twofl_phys
   !! E_c = E_kin + E_int
   !! E_n = E_kin + E_int
   integer, public, parameter              :: EQ_ENERGY_KI=3
-  !! additional variable for the charges energy at index eaux_
-  !! E_c (index e_) = E_kin + E_mag + E_int, E_c (index eaux_) = E_int
-  !! E_n (index e_) = E_kin + E_int
-  integer, public, parameter              :: EQ_ENERGY_TOT2=4
 
   integer, public, protected              :: twofl_eq_energy = EQ_ENERGY_TOT
 
@@ -103,9 +99,6 @@ module mod_twofl_phys
 
   !> Indices of the GLM psi
   integer, public, protected :: psi_
-
-  !> Indices of auxiliary internal energy
-  integer, public :: eaux_c_
 
   !> Indices of the magnetic field
   integer, allocatable, public :: mag(:)
@@ -386,17 +379,10 @@ contains
   ! E_neutrals =  E_kin_neutrals + E_int_neutrals
     phys_gamma = twofl_gamma
 
-  !> Solve internal energy and total energy equations
-  ! this implies two equations of energy solved
-    phys_solve_eaux=.false.
-
     if(twofl_eq_energy == EQ_ENERGY_INT) then
       phys_internal_e = .true.
-    elseif(twofl_eq_energy == EQ_ENERGY_TOT .or. twofl_eq_energy == EQ_ENERGY_TOT2) then
+    elseif(twofl_eq_energy == EQ_ENERGY_TOT) then
       phys_total_energy = .true.
-      if(twofl_eq_energy == EQ_ENERGY_TOT2) then
-        phys_solve_eaux = .true.
-      endif
     elseif(twofl_eq_energy == EQ_ENERGY_NONE) then
       phys_energy = .false.
     endif
@@ -437,8 +423,6 @@ contains
       if(mype==0) write(*,*) 'WARNING: set twofl_trac_mask==bigdouble for global TRAC method'
     end if
     phys_trac_mask=twofl_trac_mask
-
-    if(phys_solve_eaux) prolongprimitive=.true.
 
     ! set default gamma for polytropic/isothermal process
     if(ndim==1) typedivbfix='none'
@@ -509,14 +493,6 @@ contains
       psi_ = var_set_fluxvar('psi', 'psi', need_bc=.false.)
     else
       psi_ = -1
-    end if
-
-    !  set auxiliary internal energy variable
-    if(phys_energy .and. phys_solve_eaux) then
-      eaux_c_ = var_set_fluxvar("eaux_c", "paux_c",need_bc=.false.)
-      iw_eaux = eaux_c_
-    else
-      eaux_c_ = -1
     end if
 
     ! set cutoff temperature when using the TRAC method, as well as an auxiliary weight
@@ -635,7 +611,6 @@ contains
     phys_write_info          => twofl_write_info
     phys_angmomfix           => twofl_angmomfix
     phys_handle_small_values => twofl_handle_small_values
-    phys_energy_synchro      => twofl_energy_synchro
     !set equilibrium variables for the new grid
     if(number_equi_vars>0) then
       phys_set_equi_vars => set_equi_vars_grid
@@ -780,7 +755,6 @@ contains
         rc_fl_c%get_pthermal => twofl_get_pthermal_c
         rc_fl_c%Rfactor = Rc
         rc_fl_c%e_ = e_c_
-        rc_fl_c%eaux_ = eaux_c_
         rc_fl_c%Tcoff_ = Tcoff_c_
         if(has_equi_pe_c0 .and. has_equi_rho_c0 .and. twofl_equi_thermal_c) then
           rc_fl_c%has_equi = .true.
@@ -1419,10 +1393,6 @@ contains
           tmp(ixO^S) = tmp(ixO^S)+block%equi_vars(ixO^S,equi_pe_c0_,0)
         endif
         where(tmp(ixO^S) < small_pressure) flag(ixO^S,e_c_) = .true.
-        ! TODO , also in mhd?
-        !if(twofl_eq_energy == EQ_ENERGY_TOT2) then 
-        !  where(w(ixO^S,eaux_c_) < small_pressure) flag(ixO^S,eaux_c_) = .true.
-        !endif
       else
         if(phys_internal_e) then
           tmp(ixO^S)=w(ixO^S,e_n_)
@@ -1454,13 +1424,6 @@ contains
             tmp(ixO^S) = tmp(ixO^S)+block%equi_vars(ixO^S,equi_pe_c0_,0)*inv_gamma_1
           endif
           where(tmp(ixO^S) < small_e) flag(ixO^S,e_c_) = .true.
-          if(twofl_eq_energy == EQ_ENERGY_TOT2) then 
-            tmp(ixO^S)=w(ixO^S,eaux_c_)
-            if(has_equi_pe_c0) then
-              tmp(ixO^S) = tmp(ixO^S)+block%equi_vars(ixO^S,equi_pe_c0_,0)*inv_gamma_1
-            endif
-            where(tmp(ixO^S) < small_e) flag(ixO^S,e_c_) = .true.
-          endif
         end if
       endif
     end if
@@ -1496,17 +1459,12 @@ contains
           w(ixO^S,e_c_)=w(ixO^S,e_c_)*inv_gamma_1&
                    +half*sum(w(ixO^S,mom_c(:))**2,dim=ndim+1)*rhoc(ixO^S)&
                    +twofl_mag_en(w, ixI^L, ixO^L)
-          if(twofl_eq_energy == EQ_ENERGY_TOT2) then
-            w(ixO^S,eaux_c_)=w(ixO^S,eaux_c_)*inv_gamma_1
-          endif
         else
           ! kinetic energy + internal energy is evolved   
           w(ixO^S,e_c_)=w(ixO^S,e_c_)*inv_gamma_1&
                    +half*sum(w(ixO^S,mom_c(:))**2,dim=ndim+1)*rhoc(ixO^S)
-        endif
+        end if
       end if
-      !print*, "TOCONS ec ", w(1:10,e_c_)
-      !print*, "TOCONS en ", w(1:10,e_n_)
     end if
 
     ! Convert velocity to momentum
@@ -1547,9 +1505,6 @@ contains
           w(ixO^S,e_c_)=gamma_1*(w(ixO^S,e_c_)&
                     -twofl_kin_en_c(w,ixI^L,ixO^L)&
                     -twofl_mag_en(w,ixI^L,ixO^L))
-          if(twofl_eq_energy == EQ_ENERGY_TOT2) then
-            w(ixO^S,eaux_c_)=w(ixO^S,eaux_c_)*gamma_1
-          endif
         else
          ! evolved energy = ke + e_int 
           w(ixO^S,e_c_)=gamma_1*(w(ixO^S,e_c_)&
@@ -1575,7 +1530,6 @@ contains
     double precision, intent(in)    :: x(ixI^S, 1:ndim)
  
     ! Calculate total energy from internal, kinetic and magnetic energy
-    if(phys_solve_eaux) w(ixI^S,eaux_c_)=w(ixI^S,e_c_)
     if(twofl_eq_energy == EQ_ENERGY_KI) then
       w(ixO^S,e_c_)=w(ixO^S,e_c_)&
                 +twofl_kin_en_c(w,ixI^L,ixO^L)
@@ -1630,45 +1584,6 @@ contains
     call twofl_handle_small_ei_n(w,x,ixI^L,ixO^L,e_n_,"e_to_ei_n")
   end subroutine twofl_e_to_ei_n
 
-  subroutine twofl_energy_synchro(ixI^L,ixO^L,w,x)
-    use mod_global_parameters
-    integer, intent(in) :: ixI^L,ixO^L
-    double precision, intent(in) :: x(ixI^S,1:ndim)
-    double precision, intent(inout) :: w(ixI^S,1:nw)
-
-    double precision :: pth1(ixI^S),pth2(ixI^S),alfa(ixI^S),beta(ixI^S)
-    double precision, parameter :: beta_low=0.005d0,beta_high=0.05d0
-
-!    double precision :: vtot(ixI^S),cs2(ixI^S),mach(ixI^S)
-!    double precision, parameter :: mach_low=20.d0,mach_high=200.d0
-
-    ! get magnetic energy
-    alfa(ixO^S)=twofl_mag_en(w,ixI^L,ixO^L)
-    pth1(ixO^S)=gamma_1*(w(ixO^S,e_c_)-twofl_kin_en_c(w,ixI^L,ixO^L)-alfa(ixO^S))
-    pth2(ixO^S)=w(ixO^S,eaux_c_)*gamma_1
-    ! get plasma beta
-    beta(ixO^S)=min(pth1(ixO^S),pth2(ixO^S))/alfa(ixO^S)
-
-    ! whether Mach number should be another criterion ?
-!    vtot(ixO^S)=sum(w(ixO^S,mom(:))**2,dim=ndim+1)
-!    call twofl_get_csound2(w,x,ixI^L,ixO^L,cs2)
-!    mach(ixO^S)=sqrt(vtot(ixO^S)/cs2(ixO^S))/w(ixO^S,rho_)
-    where(beta(ixO^S) .ge. beta_high)
-!    where(beta(ixO^S) .ge. beta_high .and. mach(ixO^S) .le. mach_low)
-      w(ixO^S,eaux_c_)=pth1(ixO^S)*inv_gamma_1
-    else where(beta(ixO^S) .le. beta_low)
-!    else where(beta(ixO^S) .le. beta_low .or. mach(ixO^S) .ge. mach_high)
-      w(ixO^S,e_c_)=w(ixO^S,e_c_)-pth1(ixO^S)*inv_gamma_1+w(ixO^S,eaux_c_)
-    else where
-      alfa(ixO^S)=dlog(beta(ixO^S)/beta_low)/dlog(beta_high/beta_low)
-!      alfa(ixO^S)=min(dlog(beta(ixO^S)/beta_low)/dlog(beta_high/beta_low),
-!                      dlog(mach_high(ixO^S)/mach(ixO^S))/dlog(mach_high/mach_low))
-      w(ixO^S,eaux_c_)=(pth2(ixO^S)*(one-alfa(ixO^S))&
-                     +pth1(ixO^S)*alfa(ixO^S))*inv_gamma_1
-      w(ixO^S,e_c_)=w(ixO^S,e_c_)-pth1(ixO^S)*inv_gamma_1+w(ixO^S,eaux_c_)
-    end where
-  end subroutine twofl_energy_synchro
-
   subroutine twofl_handle_small_values(primitive, w, x, ixI^L, ixO^L, subname)
     use mod_global_parameters
     use mod_small_values
@@ -1695,13 +1610,13 @@ contains
                     small_density-block%equi_vars(ixO^S,equi_rho_c0_,0)
         else
           where(flag(ixO^S,rho_c_)) w(ixO^S,rho_c_) = small_density
-        endif
+        end if
         if(has_equi_rho_n0) then
           where(flag(ixO^S,rho_n_)) w(ixO^S,rho_n_) = &
                   small_density-block%equi_vars(ixO^S,equi_rho_n0_,0)
         else
           where(flag(ixO^S,rho_n_)) w(ixO^S,rho_n_) = small_density
-        endif
+        end if
         do idir = 1, ndir
           if(small_values_fix_iw(mom_n(idir))) then
             where(flag(ixO^S,rho_n_)) w(ixO^S, mom_n(idir)) = 0.0d0
@@ -1713,18 +1628,18 @@ contains
 
         if(phys_energy) then
           if(primitive) then
-           if(has_equi_pe_n0) then 
-            tmp1(ixO^S) = small_pressure - &
-              block%equi_vars(ixO^S,equi_pe_n0_,0)
-           else
-            tmp1(ixO^S) = small_pressure
-           endif  
-           if(has_equi_pe_c0) then 
-            tmp2(ixO^S) = small_e - &
-              block%equi_vars(ixO^S,equi_pe_c0_,0)
-           else
-            tmp2(ixO^S) = small_pressure
-           endif
+            if(has_equi_pe_n0) then 
+             tmp1(ixO^S) = small_pressure - &
+               block%equi_vars(ixO^S,equi_pe_n0_,0)
+            else
+             tmp1(ixO^S) = small_pressure
+            end if  
+            if(has_equi_pe_c0) then 
+             tmp2(ixO^S) = small_e - &
+               block%equi_vars(ixO^S,equi_pe_c0_,0)
+            else
+             tmp2(ixO^S) = small_pressure
+            end if
           else
             ! conserved  
             if(has_equi_pe_n0) then 
@@ -1732,13 +1647,13 @@ contains
               block%equi_vars(ixO^S,equi_pe_n0_,0)*inv_gamma_1 
             else
               tmp1(ixO^S) = small_e
-            endif  
+            end if  
             if(has_equi_pe_c0) then 
               tmp2(ixO^S) = small_e - &
                 block%equi_vars(ixO^S,equi_pe_c0_,0)*inv_gamma_1 
             else
               tmp2(ixO^S) = small_e
-            endif  
+            end if  
             if(phys_internal_e) then
               where(flag(ixO^S,e_n_))
                 w(ixO^S,e_n_)=tmp1(ixO^S)
@@ -1762,11 +1677,6 @@ contains
                   w(ixO^S,e_c_) = tmp2(ixO^S)+&
                    twofl_kin_en_c(w,ixI^L,ixO^L)
                 end where
-              endif
-              if(phys_solve_eaux) then
-                where(flag(ixO^S,e_c_))
-                  w(ixO^S,eaux_c_)=tmp2(ixO^S)
-                end where
               end if
             end if
           end if
@@ -1782,7 +1692,7 @@ contains
               w(ixO^S,e_c_)=w(ixO^S,e_c_)*gamma_1
               w(ixO^S,e_n_)=w(ixO^S,e_n_)*gamma_1
             else
-             w(ixO^S,e_n_)=gamma_1*(w(ixO^S,e_n_)&
+              w(ixO^S,e_n_)=gamma_1*(w(ixO^S,e_n_)&
                          -twofl_kin_en_n(w,ixI^L,ixO^L))
               if(phys_total_energy) then
                 w(ixO^S,e_c_)=gamma_1*(w(ixO^S,e_c_)&
@@ -1792,8 +1702,7 @@ contains
                  w(ixO^S,e_c_)=gamma_1*(w(ixO^S,e_c_)&
                           -twofl_kin_en_c(w,ixI^L,ixO^L))
 
-               endif  
-              if(phys_solve_eaux) w(ixO^S,eaux_c_)=w(ixO^S,eaux_c_)*gamma_1
+               end if  
             end if
           end if
           ! Convert momentum to velocity
@@ -1801,13 +1710,13 @@ contains
             tmp1(ixO^S) = w(ixO^S,rho_n_) + block%equi_vars(ixO^S,equi_rho_n0_,0)
           else  
             tmp1(ixO^S) = w(ixO^S,rho_n_) 
-          endif
+          end if
     
           if(has_equi_rho_c0) then
             tmp2(ixO^S) = w(ixO^S,rho_c_) + block%equi_vars(ixO^S,equi_rho_c0_,0)
           else  
             tmp2(ixO^S) = w(ixO^S,rho_c_) 
-          endif
+          end if
           do idir = 1, ndir
              w(ixO^S, mom_n(idir)) = w(ixO^S, mom_n(idir))/tmp1(ixO^S)
              w(ixO^S, mom_c(idir)) = w(ixO^S, mom_c(idir))/tmp2(ixO^S)
@@ -3133,7 +3042,7 @@ contains
       pgas(ixO^S)=twofl_adiab*tmp(ixO^S)**twofl_gamma
       if(has_equi_pe_c0) then
         pgas(ixO^S)=pgas(ixO^S)-block%equi_vars(ixO^S,equi_pe_c0_,b0i)
-      endif
+      end if
     end if
 
     if (twofl_Hall) then
@@ -3173,7 +3082,6 @@ contains
       else
         f(ixO^S,e_c_)=w(ixO^S,mom_c(idim))*(wC(ixO^S,e_c_)+ptotal(ixO^S))&
            -w(ixO^S,mag(idim))*sum(w(ixO^S,mag(:))*w(ixO^S,mom_c(:)),dim=ndim+1)
-        !if(phys_solve_eaux) f(ixO^S,eaux_)=w(ixO^S,mom(idim))*wC(ixO^S,eaux_)
 
         if (B0field) then
            f(ixO^S,e_c_) = f(ixO^S,e_c_) &
@@ -3207,7 +3115,7 @@ contains
         else
           f(ixO^S,e_c_)=  f(ixO^S,e_c_) &
           + w(ixO^S,mom_c(idim)) * block%equi_vars(ixO^S,equi_pe_c0_,idim) * twofl_gamma * inv_gamma_1
-        endif
+        end if
 #endif
       end if
     end if !phys_energy
@@ -3267,8 +3175,8 @@ contains
       pgas(ixO^S)=twofl_adiab*tmp(ixO^S)**twofl_gamma
       if(has_equi_pe_n0) then
         pgas(ixO^S)=pgas(ixO^S)-block%equi_vars(ixO^S,equi_pe_n0_,b0i)
-      endif
-    endif
+      end if
+    end if
     ! Momentum flux is v_i*m_i, +p in direction idim
     do idir = 1, ndir
         !if(idim==idir) then
@@ -3288,7 +3196,7 @@ contains
       if(.not. phys_internal_e) then
         ! add pressure perturbation
         pgas(ixO^S) = pgas(ixO^S) + w(ixO^S,e_n_)
-      endif
+      end if
       ! add flux of equilibrium internal energy corresponding to pe_n0
       if(has_equi_pe_n0) then
 #if !defined(E_RM_W0) || E_RM_W0 == 1
@@ -3296,7 +3204,7 @@ contains
 #else
         pgas(ixO^S) = pgas(ixO^S) + block%equi_vars(ixO^S,equi_pe_n0_,idim) * twofl_gamma * inv_gamma_1
 #endif
-      endif
+      end if
       ! add u_n * a in the flux
       f(ixO^S, e_n_) = w(ixO^S,mom_n(idim)) * pgas(ixO^S)
 
@@ -3330,9 +3238,6 @@ contains
         call internal_energy_add_source_n(qdt,ixI^L,ixO^L,wCT,w,x)
         call internal_energy_add_source_c(qdt,ixI^L,ixO^L,wCT,w,x,e_c_)
       else 
-        if(phys_solve_eaux) then
-          call internal_energy_add_source_c(qdt,ixI^L,ixO^L,wCT,w,x,eaux_c_)
-        endif
 #if !defined(E_RM_W0) || E_RM_W0==1
         ! add -p0 div v source terms when equi are present
         if(has_equi_pe_n0) then
@@ -4087,22 +3992,14 @@ contains
 
        ! Add sources related to eta*laplB-grad(eta) x J to B and e
        w(ixO^S,mag(idir))=w(ixO^S,mag(idir))+qdt*tmp(ixO^S)
-       if (phys_energy) then
+       if (phys_total_energy) then
           w(ixO^S,e_c_)=w(ixO^S,e_c_)+qdt*tmp(ixO^S)*Bf(ixO^S,idir)
-          if(phys_solve_eaux) then
-            w(ixO^S,eaux_c_)=w(ixO^S,eaux_c_)+qdt*tmp(ixO^S)*Bf(ixO^S,idir)
-          end if
        end if
     end do ! idir
 
     if (phys_energy) then
        ! de/dt+=eta*J**2
-      tmp(ixO^S)=qdt*eta(ixO^S)*sum(current(ixO^S,:)**2,dim=ndim+1)
-      w(ixO^S,e_c_)=w(ixO^S,e_c_)+tmp(ixO^S)
-      if(phys_solve_eaux) then
-        ! add eta*J**2 source term in the internal energy equation
-        w(ixO^S,eaux_c_)=w(ixO^S,eaux_c_)+tmp(ixO^S)
-      end if
+      w(ixO^S,e_c_)=w(ixO^S,e_c_)+qdt*eta(ixO^S)*sum(current(ixO^S,:)**2,dim=ndim+1)
     end if
 
     if (fix_small_values) call twofl_handle_small_values(.false.,w,x,ixI^L,ixO^L,'add_source_res1')
@@ -4157,15 +4054,16 @@ contains
     end if
 
     if(phys_energy) then
-      ! de/dt= +div(B x Jeta) = eta J^2 - B dot curl(eta J)
-      ! de1/dt= eta J^2 - B1 dot curl(eta J)
-      tmp(ixO^S)=eta(ixO^S)*sum(current(ixO^S,:)**2,dim=ndim+1)
-      w(ixO^S,e_c_)=w(ixO^S,e_c_)+qdt*(tmp(ixO^S)-&
-        sum(wCT(ixO^S,mag(1:ndir))*curlj(ixO^S,1:ndir),dim=ndim+1))
-      if(phys_solve_eaux) then
+      if(phys_total_energy) then
+        ! de/dt= +div(B x Jeta) = eta J^2 - B dot curl(eta J)
+        ! de1/dt= eta J^2 - B1 dot curl(eta J)
+        w(ixO^S,e_c_)=w(ixO^S,e_c_)+qdt*(eta(ixO^S)*sum(current(ixO^S,:)**2,dim=ndim+1)-&
+          sum(wCT(ixO^S,mag(1:ndir))*curlj(ixO^S,1:ndir),dim=ndim+1))
+      else
         ! add eta*J**2 source term in the internal energy equation
-        w(ixO^S,eaux_c_)=w(ixO^S,eaux_c_)+tmp(ixO^S)
+        w(ixO^S,e_c_)=w(ixO^S,e_c_)+qdt*eta(ixO^S)*sum(current(ixO^S,:)**2,dim=ndim+1)
       end if
+
     end if
 
     if (fix_small_values) call twofl_handle_small_values(.false.,w,x,ixI^L,ixO^L,'add_source_res2')
@@ -4596,7 +4494,6 @@ contains
     end do
 
   end subroutine gravity_get_dt
-
 
   !> If resistivity is not zero, check diffusion time limit for dt
   subroutine twofl_get_dt(w,ixI^L,ixO^L,dtnew,dx^D,x)

@@ -61,8 +61,6 @@ module mod_radiative_cooling
     double precision :: Rfactor = 1d0
     !> Index of the energy density
     integer              :: e_
-    !> Index of the internal energy density
-    integer              :: eaux_
     !> Index of cut off temperature for TRAC
     integer              :: Tcoff_
     ! END these are to be set directly
@@ -1530,7 +1528,6 @@ module mod_radiative_cooling
           allocate(Lequi(ixI^S))
           call  get_cool_equi(qdt,ixI^L,ixO^L,wCT,w,x,fl,Lequi)
           w(ixO^S,fl%e_) = w(ixO^S,fl%e_)+Lequi(ixO^S)
-          if(phys_solve_eaux) w(ixO^S,fl%eaux_)=w(ixO^S,fl%eaux_)+Lequi(ixO^S) 
           deallocate(Lequi)
         endif
         if( fl%Tfix ) call floortemperature(qdt,ixI^L,ixO^L,wCT,w,x,fl)
@@ -1738,7 +1735,6 @@ module mod_radiative_cooling
             end if
             L1         = min(L1,Lmax)
             w(ix^D,fl%e_) = w(ix^D,fl%e_)-L1*qdt
-            if(phys_solve_eaux) w(ix^D,fl%eaux_)=w(ix^D,fl%eaux_)-L1*qdt 
          else  
             call findL(Tlocal1,L1,fl)
             !print*, it, ix^D, " L1 ", L1 
@@ -1750,7 +1746,6 @@ module mod_radiative_cooling
             !print*, "it: ", it , " coords ", ix^D," EXPLICIT1 ", L1, &
             !  "VARS ", rholocal, Tlocal1, plocal, pnew(ix^D)
             w(ix^D,fl%e_) = w(ix^D,fl%e_)-L1*qdt
-            if(phys_solve_eaux) w(ix^D,fl%eaux_)=w(ix^D,fl%eaux_)-L1*qdt 
          endif
       {enddo^D&\}
             !print* , it," SUM E ",  sum(w(ixO^S,fl%e_)) + &
@@ -1875,7 +1870,6 @@ module mod_radiative_cooling
             etherm = etherm - L1*dtstep
          enddo
          w(ix^D,fl%e_) = w(ix^D,fl%e_) -de 
-         if(phys_solve_eaux) w(ix^D,fl%eaux_)=w(ix^D,fl%eaux_)-de
       {enddo^D&\}
       
     end subroutine cool_explicit2
@@ -1959,9 +1953,7 @@ module mod_radiative_cooling
              L2=L2*sqrt((Tlocal2/ttofflocal)**5)
            end if
            w(ix^D,fl%e_) = w(ix^D,fl%e_) - min(half*(L1+L2),Lmax)*qdt
-           if(phys_solve_eaux) &
-             w(ix^D,fl%eaux_)=w(ix^D,fl%eaux_)-min(half*(L1+L2),Lmax)*qdt
-         endif 
+         end if 
       {enddo^D&\}
       
     end subroutine cool_semiimplicit
@@ -2049,7 +2041,6 @@ module mod_radiative_cooling
            enddo
          endif     
          w(ix^D,fl%e_)     = w(ix^D,fl%e_) - min(Ltemp,Lmax)*qdt
-         if(phys_solve_eaux) w(ix^D,fl%eaux_)=w(ix^D,fl%eaux_)-min(Ltemp,Lmax)*qdt
       {enddo^D&\}
        
     end subroutine cool_implicit
@@ -2118,7 +2109,6 @@ module mod_radiative_cooling
             end if
             L1 = min(L1,Lmax)
             w(ix^D,fl%e_) = w(ix^D,fl%e_)-L1*qdt
-            if(phys_solve_eaux) w(ix^D,fl%eaux_)=w(ix^D,fl%eaux_)-L1*qdt
          else
             call findL(Tlocal1,L1,fl)
             call findY(Tlocal1,Y1,fl)
@@ -2134,7 +2124,6 @@ module mod_radiative_cooling
             end if
             de = min(de,emax)
             w(ix^D,fl%e_)  = w(ix^D,fl%e_)-de
-            if(phys_solve_eaux) w(ix^D,fl%eaux_)=w(ix^D,fl%eaux_)-de              
          endif
       {enddo^D&\}
 

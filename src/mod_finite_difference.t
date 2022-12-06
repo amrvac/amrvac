@@ -134,10 +134,6 @@ contains
     call addsource2(qdt*dble(idimsmax-idimsmin+1)/dble(ndim), &
          ixI^L,ixO^L,1,nw,qtC,wCT,qt,wnew,x,.false.,active,wprim)
 
-    if(phys_solve_eaux.and.levmin==levmax) then
-      ! synchronize internal energy for uniform grid
-      call phys_energy_synchro(ixI^L,ixO^L,wnew,x)
-    endif
     end associate
 
   end subroutine fd
@@ -434,10 +430,6 @@ contains
     call addsource2(qdt*dble(idimsmax-idimsmin+1)/dble(ndim), &
          ixI^L,ixO^L,1,nw,qtC,wCT,qt,w,x,.false.,active,wprim)
 
-    if(phys_solve_eaux.and.levmin==levmax) then
-      ! synchronize internal energy for uniform grid
-      call phys_energy_synchro(ixI^L,ixO^L,w,x)
-    endif
     end associate
   end subroutine centdiff
 

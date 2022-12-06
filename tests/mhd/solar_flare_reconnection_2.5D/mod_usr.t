@@ -68,7 +68,6 @@ contains
       w(ixO^S,mag(1:ndir))=Bf(ixO^S,1:ndir)
     end if
     if(mhd_glm) w(ixO^S,psi_)=0.d0
-    if(mhd_solve_eaux) w(ixO^S,paux_)=w(ixO^S,p_)
     call mhd_to_conserved(ixI^L,ixO^L,w,x)
   end subroutine initonegrid_usr
 
@@ -130,7 +129,6 @@ contains
                 +4.0d0*w(ix1+1,ixOmin2:ixOmax2,mag(:)))
         end do
       end if
-      if(mhd_solve_eaux) w(ixO^S,paux_)=w(ixO^S,p_)
       call mhd_to_conserved(ixI^L,ixO^L,w,x)
     case(2)
       ixA^L=ixO^L;
@@ -180,7 +178,6 @@ contains
                 +4.0d0*w(ix1-1^%1ixO^S,mag(:)))
         end do
       end if
-      if(mhd_solve_eaux) w(ixO^S,paux_)=w(ixO^S,p_)
       call mhd_to_conserved(ixI^L,ixO^L,w,x)
     case(3)
       ixA^L=ixO^L;
@@ -225,7 +222,6 @@ contains
         end do
         w(ixO^S,mag(1))=zero
       end if
-      if(mhd_solve_eaux) w(ixO^S,paux_)=w(ixO^S,p_)
       call mhd_to_conserved(ixI^L,ixO^L,w,x)
     case(4)
       ixA^L=ixO^L;
@@ -273,7 +269,6 @@ contains
                  +4.0d0*w(ix2-1^%2ixO^S,mag(:)))
         end do
       end if
-      if(mhd_solve_eaux) w(ixO^S,paux_)=w(ixO^S,p_)
       call mhd_to_conserved(ixI^L,ixO^L,w,x)
     case default
       call mpistop("Special boundary is not defined for this region")

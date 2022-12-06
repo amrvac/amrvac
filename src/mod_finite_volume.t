@@ -284,11 +284,6 @@ contains
     call addsource2(qdt*dble(idimsmax-idimsmin+1)/dble(ndim), &
          ixI^L,ixO^L,1,nw,qtC,wCT,qt,wnew,x,.false.,active,wprim)
 
-    if(phys_solve_eaux.and.levmin==levmax) then
-      ! synchronize internal energy for uniform grid
-      call phys_energy_synchro(ixI^L,ixO^L,wnew,x)
-    end if
-
   end associate
   contains
 
@@ -351,15 +346,14 @@ contains
       double precision, dimension(ixI^S,1:nwflux)     :: whll, Fhll, fCD
       double precision, dimension(ixI^S)              :: lambdaCD
 
-      integer  :: rho_, p_, e_, eaux_, mom(1:ndir)
+      integer  :: rho_, p_, e_, mom(1:ndir)
 
       rho_ = iw_rho
       if (allocated(iw_mom)) mom(:) = iw_mom(:)
       e_ = iw_e 
-      eaux_ = iw_eaux
 
       if(associated(phys_hllc_init_species)) then
-       call phys_hllc_init_species(ii, rho_, mom(:), e_, eaux_)
+       call phys_hllc_init_species(ii, rho_, mom(:), e_)
       endif  
 
       p_ = e_
@@ -385,13 +379,6 @@ contains
          call phys_get_wCD(wLC,wRC,whll,fRC,fLC,Fhll,patchf,lambdaCD,&
               cminC(ixI^S,ii),cmaxC(ixI^S,ii),ixI^L,ixC^L,idims,fCD)
       endif ! Calculate the CD flux
-
-      ! use hll flux for the auxiliary internal e
-      if(phys_energy.and.phys_solve_eaux .and. eaux_>0) then
-        iw=eaux_
-        fCD(ixC^S, iw) = (cmaxC(ixC^S,ii)*fLC(ixC^S, iw)-cminC(ixC^S,ii) * fRC(ixC^S, iw) &
-             +cminC(ixC^S,ii)*cmaxC(ixC^S,ii)*(wRC(ixC^S,iw)-wLC(ixC^S,iw)))/(cmaxC(ixC^S,ii)-cminC(ixC^S,ii))
-      end if
 
       do iw=iws,iwe
          if (flux_type(idims, iw) == flux_tvdlf) then
@@ -432,7 +419,7 @@ contains
       ! magnetic field from the right and the left reconstruction
       double precision, dimension(ixI^S,ndir) :: BR, BL
       integer :: ip1,ip2,ip3,idir,ix^D
-      integer  :: rho_, p_, e_, eaux_, mom(1:ndir), mag(1:ndir)
+      integer  :: rho_, p_, e_, mom(1:ndir), mag(1:ndir)
 
       associate (sR=>cmaxC,sL=>cminC)
 
@@ -440,8 +427,6 @@ contains
       mom(:) = iw_mom(:)
       mag(:) = iw_mag(:) 
       e_ = iw_e 
-      eaux_ = iw_eaux 
-
       p_ = e_
 
       f1R=0.d0
@@ -647,7 +632,7 @@ contains
           f2L(ixC^S,iw)=f1L(ixC^S,iw)
           f2R(ixC^S,iw)=f1L(ixC^S,iw)
         else if(flux_type(idims, iw) == flux_hll) then
-          ! using hll flux for eaux and tracers
+          ! using hll flux for tracers
           f1L(ixC^S,iw)=(sR(ixC^S,ii)*fLC(ixC^S, iw)-sL(ixC^S,ii)*fRC(ixC^S, iw) &
                     +sR(ixC^S,ii)*sL(ixC^S,ii)*(wRC(ixC^S,iw)-wLC(ixC^S,iw)))/(sR(ixC^S,ii)-sL(ixC^S,ii))
           f1R(ixC^S,iw)=f1L(ixC^S,iw)
@@ -700,7 +685,7 @@ contains
       integer :: ip1,ip2,ip3,idir,ix^D
       double precision :: phiPres, thetaSM, du, dv, dw
       integer :: ixV^L, ixVb^L, ixVc^L, ixVd^L, ixVe^L, ixVf^L
-      integer  :: rho_, p_, e_, eaux_, mom(1:ndir), mag(1:ndir)
+      integer  :: rho_, p_, e_, mom(1:ndir), mag(1:ndir)
       double precision, parameter :: aParam = 4d0
 
       rho_ = iw_rho
@@ -708,7 +693,6 @@ contains
       mag(:) = iw_mag(:) 
       p_ = iw_e
       e_ = iw_e 
-      eaux_ = iw_eaux 
 
       associate (sR=>cmaxC,sL=>cminC)
 
@@ -895,10 +879,6 @@ contains
           phiPres * suR(ixC^S)*suL(ixC^S)*(vRC(ixC^S,ip1)-vLC(ixC^S,ip1)))/&
           (suR(ixC^S)-suL(ixC^S))
         w1L(ixC^S,p_)=w1R(ixC^S,p_)
-        !if(mhd_solve_eaux) then
-        !  w1R(ixC^S,eaux_)=(w1R(ixC^S,p_)-half*sum(w1R(ixC^S,mag(:))**2,dim=ndim+1))/(mhd_gamma-one)
-        !  w1L(ixC^S,eaux_)=(w1L(ixC^S,p_)-half*sum(w1L(ixC^S,mag(:))**2,dim=ndim+1))/(mhd_gamma-one)
-        !end if
         if(B0field) then
           ! Guo equation (32)
           w1R(ixC^S,p_)=w1R(ixC^S,p_)+sum(block%B0(ixC^S,:,ip1)*(wRC(ixC^S,mag(:))-w1R(ixC^S,mag(:))),dim=ndim+1)
@@ -978,7 +958,7 @@ contains
           f2L(ixC^S,iw)=f1L(ixC^S,iw)
           f2R(ixC^S,iw)=f1L(ixC^S,iw)
         else if(flux_type(idims, iw) == flux_hll) then
-          ! using hll flux for eaux and tracers
+          ! using hll flux for tracers
           f1L(ixC^S,iw)=(sR(ixC^S,index_v_mag)*fLC(ixC^S, iw)-sL(ixC^S,index_v_mag)*fRC(ixC^S, iw) &
                     +sR(ixC^S,index_v_mag)*sL(ixC^S,index_v_mag)*(wRC(ixC^S,iw)-wLC(ixC^S,iw)))/(sR(ixC^S,index_v_mag)-sL(ixC^S,index_v_mag))
           f1R(ixC^S,iw)=f1L(ixC^S,iw)
@@ -1021,14 +1001,13 @@ contains
       double precision, intent(out):: csound(ixI^S)
       double precision :: cfast2(ixI^S), AvMinCs2(ixI^S), b2(ixI^S), kmax
       double precision :: inv_rho(ixO^S), gamma_A2(ixO^S)
-      integer  :: rho_, p_, e_, eaux_, mom(1:ndir), mag(1:ndir)
+      integer  :: rho_, p_, e_, mom(1:ndir), mag(1:ndir)
 
         rho_ = iw_rho
         mom(:) = iw_mom(:)
         mag(:) = iw_mag(:) 
         p_ = iw_e
         e_ = iw_e 
-        eaux_ = iw_eaux 
 
       inv_rho=1.d0/w(ixO^S,rho_)
 

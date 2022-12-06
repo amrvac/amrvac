@@ -78,7 +78,6 @@
         typedivbfix='ct'
         mhd_thermal_conduction=.true.
         mhd_radiative_cooling=.true.
-        mhd_solve_eaux=.true.
         mhd_trac=.true.
         Busr=30.d0
  /

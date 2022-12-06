@@ -68,9 +68,6 @@ module mod_mhd_phys
   !> Distance between two adjacent traced magnetic field lines (in finest cell size)
   integer, public, protected              :: mhd_trac_finegrid=4
 
-  !> Whether auxiliary internal energy is solved
-  logical, public, protected              :: mhd_solve_eaux = .false.
-
   !> Whether internal energy is solved instead of total energy
   logical, public, protected              :: mhd_internal_e = .false.
 
@@ -94,6 +91,9 @@ module mod_mhd_phys
 
   !> Reduced speed of light for semirelativistic MHD
   double precision, public, protected     :: mhd_reduced_c = const_c
+
+  !> Whether plasma is partially ionized
+  logical, public, protected              :: mhd_partial_ionization = .false.
 
   !> Whether CAK radiation line force is activated
   logical, public, protected              :: mhd_cak_force = .false.
@@ -135,9 +135,8 @@ module mod_mhd_phys
   !> Indices of the GLM psi
   integer, public, protected :: psi_
 
-  !> Indices of auxiliary internal energy
-  integer, public, protected :: eaux_
-  integer, public, protected :: paux_
+  !> Indices of temperature
+  integer, public, protected :: Te_
 
   !> Index of the cutoff temperature for the TRAC method
   integer, public, protected              :: Tcoff_
@@ -323,10 +322,10 @@ contains
       mhd_viscosity, mhd_4th_order, typedivbfix, source_split_divb, divbdiff,&
       typedivbdiff, type_ct, compactres, divbwave, He_abundance, &
       H_ion_fr, He_ion_fr, He_ion_fr2, eq_state_units, SI_unit, B0field ,mhd_dump_full_vars,&
-      B0field_forcefree, Bdip, Bquad, Boct, Busr, mhd_particles,&
+      B0field_forcefree, Bdip, Bquad, Boct, Busr, mhd_particles, mhd_partial_ionization,&
       particles_eta, particles_etah,has_equi_rho0, has_equi_pe0,mhd_equi_thermal,&
       boundary_divbfix, boundary_divbfix_skip, mhd_divb_4thorder, mhd_semirelativistic,&
-      mhd_boris_simplification, mhd_reduced_c, clean_initial_divb, mhd_solve_eaux, mhd_internal_e, &
+      mhd_boris_simplification, mhd_reduced_c, clean_initial_divb, mhd_internal_e, &
       mhd_hydrodynamic_e, mhd_trac, mhd_trac_type, mhd_trac_mask, mhd_trac_finegrid, mhd_cak_force
 
     do n = 1, size(files)
@@ -388,10 +387,6 @@ contains
     call mhd_read_params(par_files)
 
     if(mhd_internal_e) then
-      if(mhd_solve_eaux) then
-        mhd_solve_eaux=.false.
-        if(mype==0) write(*,*) 'WARNING: set mhd_solve_eaux=F when mhd_internal_e=T'
-      end if
       if(mhd_hydrodynamic_e) then
         mhd_hydrodynamic_e=.false.
         if(mype==0) write(*,*) 'WARNING: set mhd_hydrodynamic_e=F when mhd_internal_e=T'
@@ -419,10 +414,6 @@ contains
         mhd_internal_e=.false.
         if(mype==0) write(*,*) 'WARNING: set mhd_internal_e=F when mhd_energy=F'
       end if
-      if(mhd_solve_eaux) then
-        mhd_solve_eaux=.false.
-        if(mype==0) write(*,*) 'WARNING: set mhd_solve_eaux=F when mhd_energy=F'
-      end if
       if(mhd_hydrodynamic_e) then
         mhd_hydrodynamic_e=.false.
         if(mype==0) write(*,*) 'WARNING: set mhd_hydrodynamic_e=F when mhd_energy=F'
@@ -439,12 +430,15 @@ contains
         mhd_trac=.false.
         if(mype==0) write(*,*) 'WARNING: set mhd_trac=F when mhd_energy=F'
       end if
+      if(mhd_partial_ionization) then
+        mhd_partial_ionization=.false.
+        if(mype==0) write(*,*) 'WARNING: set mhd_partial_ionization=F when mhd_energy=F'
+      end if
     end if
 
     physics_type = "mhd"
     phys_energy=mhd_energy
     phys_internal_e=mhd_internal_e
-    phys_solve_eaux=mhd_solve_eaux
     phys_trac=mhd_trac
     phys_trac_type=mhd_trac_type
 
@@ -477,8 +471,6 @@ contains
       if(mype==0) write(*,*) 'WARNING: set mhd_trac_mask==bigdouble for global TRAC method'
     end if
     phys_trac_mask=mhd_trac_mask
-
-    if(mhd_solve_eaux) prolongprimitive=.true.
 
     ! set default gamma for polytropic/isothermal process
     use_particles=mhd_particles
@@ -541,15 +533,6 @@ contains
     allocate(mag(ndir))
     mag(:) = var_set_bfield(ndir)
 
-    !  set auxiliary internal energy variable
-    if(mhd_energy .and. mhd_solve_eaux) then
-      eaux_ = var_set_internal_energy()
-      paux_ = eaux_
-    else
-      eaux_ = -1
-      paux_ = -1
-    end if
-
     if (mhd_glm) then
       psi_ = var_set_fluxvar('psi', 'psi', need_bc=.false.)
     else
@@ -557,7 +540,6 @@ contains
     end if
 
     allocate(tracer(mhd_n_tracer))
-
     ! Set starting index of tracers
     do itr = 1, mhd_n_tracer
       tracer(itr) = var_set_fluxvar("trc", "trp", itr, need_bc=.false.)
@@ -568,6 +550,13 @@ contains
 
     ! set the index of the last flux variable for species 1
     stop_indices(1)=nwflux
+
+    !  set temperature as an auxiliary variable to get ionization degree
+    if(mhd_partial_ionization) then
+      Te_ = var_set_auxvar('Te','Te')
+    else
+      Te_ = -1
+    end if
 
     ! set cutoff temperature when using the TRAC method, as well as an auxiliary weight
     Tweight_ = -1
@@ -610,7 +599,7 @@ contains
     end if
 
     if(nwflux>mag(ndir)) then
-      ! for flux of eaux and tracers, using hll flux
+      ! for flux of tracers, using hll flux
       flux_type(:,mag(ndir)+1:nwflux)=flux_hll
     end if
 
@@ -717,7 +706,6 @@ contains
       phys_get_pthermal        => mhd_get_pthermal_origin
       mhd_get_pthermal         => mhd_get_pthermal_origin
     end if
-    phys_energy_synchro      => mhd_energy_synchro
     if(number_equi_vars>0) then
       phys_set_equi_vars => set_equi_vars_grid
     endif
@@ -782,9 +770,7 @@ contains
           tc_fl%get_temperature_from_conserved => mhd_get_temperature_from_etot
         end if
       end if
-      if(mhd_solve_eaux) then
-        call set_conversion_methods_to_head(mhd_e_to_ei_aux, mhd_ei_to_e_aux)
-      else if(unsplit_semirelativistic) then
+      if(unsplit_semirelativistic) then
         call set_conversion_methods_to_head(mhd_e_to_ei_semirelati, mhd_ei_to_e_semirelati)
       else if(mhd_hydrodynamic_e) then
         call set_conversion_methods_to_head(mhd_e_to_ei_hde, mhd_ei_to_e_hde)
@@ -817,7 +803,6 @@ contains
       rc_fl%get_rho => mhd_get_rho
       rc_fl%get_pthermal => mhd_get_pthermal
       rc_fl%e_ = e_
-      rc_fl%eaux_ = eaux_
       rc_fl%Tcoff_ = Tcoff_
       if(associated(usr_Rfactor)) then
         rc_fl%get_var_Rfactor => usr_Rfactor
@@ -1390,7 +1375,6 @@ contains
       w(ixO^S,e_)=w(ixO^S,p_)*inv_gamma_1&
                  +half*sum(w(ixO^S,mom(:))**2,dim=ndim+1)*w(ixO^S,rho_)&
                  +mhd_mag_en(w, ixI^L, ixO^L)
-      if(mhd_solve_eaux) w(ixO^S,eaux_)=w(ixO^S,paux_)*inv_gamma_1
     end if
 
     if(mhd_boris_simplification) then
@@ -1487,7 +1471,6 @@ contains
         w(ixO^S,e_)=w(ixO^S,p_)*inv_gamma_1&
                    +half*sum(w(ixO^S,mom(:))**2,dim=ndim+1)*rho(ixO^S)&
                    +mhd_mag_en(w, ixI^L, ixO^L)
-        if(mhd_solve_eaux) w(ixO^S,eaux_)=w(ixO^S,paux_)*inv_gamma_1
       end if
     end if
 
@@ -1588,7 +1571,6 @@ contains
       w(ixO^S,p_)=gamma_1*(w(ixO^S,e_)&
                   -mhd_kin_en(w,ixI^L,ixO^L,inv_rho)&
                   -mhd_mag_en(w,ixI^L,ixO^L))
-      if(mhd_solve_eaux) w(ixO^S,paux_)=w(ixO^S,eaux_)*gamma_1
     end if
 
     if(mhd_boris_simplification) then
@@ -1696,7 +1678,6 @@ contains
         w(ixO^S,p_)=gamma_1*(w(ixO^S,e_)&
                     -mhd_kin_en(w,ixI^L,ixO^L,inv_rho)&
                     -mhd_mag_en(w,ixI^L,ixO^L))
-        if(mhd_solve_eaux) w(ixO^S,paux_)=w(ixO^S,eaux_)*gamma_1
       end if
     end if
     
@@ -1854,71 +1835,6 @@ contains
     w(ixI^S,e_)=w(ixI^S,p_)*inv_gamma_1
 
   end subroutine mhd_e_to_ei_semirelati
-
-  !> Update eaux and transform internal energy to total energy
-  subroutine mhd_ei_to_e_aux(ixI^L,ixO^L,w,x)
-    use mod_global_parameters
-    integer, intent(in)             :: ixI^L, ixO^L
-    double precision, intent(inout) :: w(ixI^S, nw)
-    double precision, intent(in)    :: x(ixI^S, 1:ndim)
- 
-    w(ixI^S,eaux_)=w(ixI^S,e_)
-    ! Calculate total energy from internal, kinetic and magnetic energy
-    w(ixI^S,e_)=w(ixI^S,e_)&
-               +mhd_kin_en(w,ixI^L,ixI^L)&
-               +mhd_mag_en(w,ixI^L,ixI^L)
-
-  end subroutine mhd_ei_to_e_aux
-
-  !> Transform total energy to internal energy via eaux as internal energy
-  subroutine mhd_e_to_ei_aux(ixI^L,ixO^L,w,x)
-    use mod_global_parameters
-    integer, intent(in)             :: ixI^L, ixO^L
-    double precision, intent(inout) :: w(ixI^S, nw)
-    double precision, intent(in)    :: x(ixI^S, 1:ndim)
-
-    w(ixI^S,e_)=w(ixI^S,eaux_)
-
-  end subroutine mhd_e_to_ei_aux
-
-  subroutine mhd_energy_synchro(ixI^L,ixO^L,w,x)
-    use mod_global_parameters
-    integer, intent(in) :: ixI^L,ixO^L
-    double precision, intent(in) :: x(ixI^S,1:ndim)
-    double precision, intent(inout) :: w(ixI^S,1:nw)
-
-    double precision :: pth1(ixI^S),pth2(ixI^S),alfa(ixI^S),beta(ixI^S)
-    double precision, parameter :: beta_low=0.005d0,beta_high=0.05d0
-
-!    double precision :: vtot(ixI^S),cs2(ixI^S),mach(ixI^S)
-!    double precision, parameter :: mach_low=20.d0,mach_high=200.d0
-
-    ! get magnetic energy
-    alfa(ixO^S)=mhd_mag_en(w,ixI^L,ixO^L)
-    pth1(ixO^S)=gamma_1*(w(ixO^S,e_)-mhd_kin_en(w,ixI^L,ixO^L)-alfa(ixO^S))
-    pth2(ixO^S)=w(ixO^S,eaux_)*gamma_1
-    ! get plasma beta
-    beta(ixO^S)=min(pth1(ixO^S),pth2(ixO^S))/alfa(ixO^S)
-
-    ! whether Mach number should be another criterion ?
-!    vtot(ixO^S)=sum(w(ixO^S,mom(:))**2,dim=ndim+1)
-!    call mhd_get_csound2(w,x,ixI^L,ixO^L,cs2)
-!    mach(ixO^S)=sqrt(vtot(ixO^S)/cs2(ixO^S))/w(ixO^S,rho_)
-    where(beta(ixO^S) .ge. beta_high)
-!    where(beta(ixO^S) .ge. beta_high .and. mach(ixO^S) .le. mach_low)
-      w(ixO^S,eaux_)=pth1(ixO^S)*inv_gamma_1
-    else where(beta(ixO^S) .le. beta_low)
-!    else where(beta(ixO^S) .le. beta_low .or. mach(ixO^S) .ge. mach_high)
-      w(ixO^S,e_)=w(ixO^S,e_)-pth1(ixO^S)*inv_gamma_1+w(ixO^S,eaux_)
-    else where
-      alfa(ixO^S)=dlog(beta(ixO^S)/beta_low)/dlog(beta_high/beta_low)
-!      alfa(ixO^S)=min(dlog(beta(ixO^S)/beta_low)/dlog(beta_high/beta_low),
-!                      dlog(mach_high(ixO^S)/mach(ixO^S))/dlog(mach_high/mach_low))
-      w(ixO^S,eaux_)=(pth2(ixO^S)*(one-alfa(ixO^S))&
-                     +pth1(ixO^S)*alfa(ixO^S))*inv_gamma_1
-      w(ixO^S,e_)=w(ixO^S,e_)-pth1(ixO^S)*inv_gamma_1+w(ixO^S,eaux_)
-    end where
-  end subroutine mhd_energy_synchro
 
   subroutine mhd_handle_small_values_semirelati(primitive, w, x, ixI^L, ixO^L, subname)
     use mod_global_parameters
@@ -2083,11 +1999,6 @@ contains
                    mhd_kin_en(w,ixI^L,ixO^L)+&
                    mhd_mag_en(w,ixI^L,ixO^L)
               end where
-              if(mhd_solve_eaux) then
-                where(flag(ixO^S,e_))
-                  w(ixO^S,eaux_)=tmp2(ixO^S)
-                end where
-              end if
             end if
           end if
         end if
@@ -2114,10 +2025,6 @@ contains
                           +mhd_kin_en(w,ixI^L,ixI^L)&
                           +mhd_mag_en(w,ixI^L,ixI^L)
             end if
-            ! eaux
-            if(mhd_solve_eaux) then
-              call small_values_average(ixI^L, ixO^L, w, x, flag, paux_)
-            end if
           end if
         endif
       case default
@@ -2131,7 +2038,6 @@ contains
               w(ixO^S,p_)=gamma_1*(w(ixO^S,e_)&
                           -mhd_kin_en(w,ixI^L,ixO^L)&
                           -mhd_mag_en(w,ixI^L,ixO^L))
-              if(mhd_solve_eaux) w(ixO^S,paux_)=w(ixO^S,eaux_)*gamma_1
             end if
           end if
           ! Convert momentum to velocity
@@ -3299,7 +3205,6 @@ contains
       else
         f(ixO^S,e_)=w(ixO^S,mom(idim))*(wC(ixO^S,e_)+ptotal(ixO^S))&
            -w(ixO^S,mag(idim))*sum(w(ixO^S,mag(:))*w(ixO^S,mom(:)),dim=ndim+1)
-        if(mhd_solve_eaux) f(ixO^S,eaux_)=w(ixO^S,mom(idim))*wC(ixO^S,eaux_)
         if(mhd_Hall) then
         ! f_i[e]= f_i[e] + vHall_i*(b_k*b_k) - b_i*(vHall_k*b_k)
           f(ixO^S,e_) = f(ixO^S,e_) + vHall(ixO^S,idim) * &
@@ -3572,7 +3477,6 @@ contains
       else
         f(ixO^S,e_)=w(ixO^S,mom(idim))*(wC(ixO^S,e_)+ptotal(ixO^S))&
            -B(ixO^S,idim)*sum(w(ixO^S,mag(:))*w(ixO^S,mom(:)),dim=ndim+1)
-        if(mhd_solve_eaux) f(ixO^S,eaux_)=w(ixO^S,mom(idim))*wC(ixO^S,eaux_)
 
         if (mhd_Hall) then
         ! f_i[e]= f_i[e] + vHall_i*(b_k*b_k) - b_i*(vHall_k*b_k)
@@ -4127,16 +4031,11 @@ contains
         active = .true.
         call internal_energy_add_source(qdt,ixI^L,ixO^L,wCT,w,x,e_)
       else
-        if(mhd_solve_eaux) then
-          ! Source for auxiliary internal energy equation
-          active = .true.
-          call internal_energy_add_source(qdt,ixI^L,ixO^L,wCT,w,x,eaux_)
-        endif
         if(has_equi_pe0) then
           active = .true.
           call add_pe0_divv(qdt,ixI^L,ixO^L,wCT,w,x)
-        endif
-      endif
+        end if
+      end if
 
       ! Source for B0 splitting
       if (B0field.or.B0field) then
@@ -4730,12 +4629,7 @@ contains
 
     if(mhd_energy) then
       ! de/dt+=eta*J**2
-      tmp(ixO^S)=qdt*eta(ixO^S)*sum(current(ixO^S,:)**2,dim=ndim+1)
-      w(ixO^S,e_)=w(ixO^S,e_)+tmp(ixO^S)
-      if(mhd_solve_eaux) then
-        ! add eta*J**2 source term in the internal energy equation
-        w(ixO^S,eaux_)=w(ixO^S,eaux_)+tmp(ixO^S)
-      end if
+      w(ixO^S,e_)=w(ixO^S,e_)+qdt*eta(ixO^S)*sum(current(ixO^S,:)**2,dim=ndim+1)
     end if
 
     if (fix_small_values) call mhd_handle_small_values(.false.,w,x,ixI^L,ixO^L,'add_source_res1')
@@ -4806,10 +4700,6 @@ contains
       else
         ! add eta*J**2 source term in the internal energy equation
         w(ixO^S,e_)=w(ixO^S,e_)+tmp(ixO^S)
-      end if
-      if(mhd_solve_eaux) then
-        ! add eta*J**2 source term in the internal energy equation
-        w(ixO^S,eaux_)=w(ixO^S,eaux_)+tmp(ixO^S)
       end if
     end if
 

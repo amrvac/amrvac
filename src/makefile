@@ -364,7 +364,6 @@ mod_twofl_roe.o: mod_tvd.mod
 mod_twofl_roe.o: mod_twofl_phys.mod
 mod_variables.o: mod_basic_types.mod
 mod_viscosity.o: mod_geometry.mod
-mod_viscosity.o: mod_physics.mod
 mod_weno.o: mod_physics.mod
 refine.o: mod_amr_fct.mod
 refine.o: mod_physics.mod

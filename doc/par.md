@@ -961,7 +961,6 @@ sharp discontinuities. It is normally inactive with a default value -1.
      mhd_4th_order= F | T
      mhd_internal_e= F | T
      mhd_hydrodynamic_e= F | T
-     mhd_solve_eaux= F | T
      mhd_semirelativistic= F | T
      mhd_boris_simplification= F | T
      mhd_reduced_c = 3.d10
@@ -1082,26 +1081,12 @@ Thus, it could be used in either 1D (M)HD or multi-D MHD simulations, and is muc
 In extremely low beta plasma, internal energy or gas pressure easily goes to
 negative values when solving total energy equation, because numerical error of magnetic
  energy is comparable to the internal energy due to its extremely small fraction in the 
-total energy. We have three methods to avoid this problem. In the first method, we solve 
+total energy. We have two methods to avoid this problem. In the first method, we solve 
 internal energy equation instead of total energy equation by setting `mhd_internal_e=T`.
-In the second method, we solve both the total energy equation and an auxiliary internal energy equation 
- and synchronize the internal energy with the result from total energy equation. In each step of 
-advection, the synchronization replace the internal energy from 
-the total energy with the auxiliary internal energy where plasma beta is lower than 0.005, 
-mix them where plasma beta is between 0.005 and 0.05, and replace the auxiliary internal 
-energy with the internal energy from the total energy where plasma beta is larger than 0.05.
-This function is activated by `mhd_solve_eaux=T`. If you set `mhd_solve_eaux=T`, you need to
-add a line, "if(mhd_solve_eaux) w(ixO^S,eaux_)=w(ixO^S,p_)", after initial gas pressure is given
-in subroutine usr_init_one_grid of mod_usr.t, to give the initial condition for the auxiliary gas pressure 
-or internal energy. The boundary type 
-of the auxiliary internal energy is coded to be the same as the boundary type of density. 
-So you do not need to specify boundary types for the auxiliary internal energy in the par file. 
-It is, however, needed to specify the special boundary 
-for the auxiliary internal energy in mod_usr.t if special boundary is used. 
 This function is compatible with all finite volume and finite difference schemes we have, including
-HLL, HLLC, and HLLD, in which the Riemann flux of the auxiliary internal energy is evaluted
+HLL, HLLC, and HLLD, in which the Riemann flux of the internal energy is evaluted
 as the HLL flux in all intermediate states of the Riemann fan. 
-In the third method, We solve hydrodynamic energy, i.e., internal and kinetic energy, instead of
+In the second method, We solve hydrodynamic energy, i.e., internal and kinetic energy, instead of
 total energy with an additional source term of Lorentz force work, by setting `mhd_hydrodynamic_e=T`,
 which has better conservation than solving internal energy.
 

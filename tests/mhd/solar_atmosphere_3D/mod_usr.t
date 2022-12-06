@@ -203,7 +203,6 @@ contains
       w(ixO^S,rho_)=sum(w(ixO^S,mag(:))**2,dim=ndim+1)
     end if
 
-    if(mhd_solve_eaux) w(ixO^S,paux_)=w(ixO^S,p_)
     call mhd_to_conserved(ixI^L,ixO^L,w,x)
 
   end subroutine initonegrid_usr
@@ -348,7 +347,6 @@ contains
          w(ixO^S,rho_)=rhob*dexp(usr_grav*SRadius**2/Tiso*&
                        (1.d0/SRadius-1.d0/(x(ixO^S,3)+SRadius)))
        end if
-       if(mhd_solve_eaux) w(ixO^S,paux_)=w(ixO^S,p_)
        call mhd_to_conserved(ixI^L,ixO^L,w,x)
      case(2)
        w(ixO^S,mom(1))=-w(ixOmin1-1:ixOmin1-nghostcells:-1,ixOmin2:ixOmax2,ixOmin3:ixOmax3,mom(1))/&
@@ -402,7 +400,6 @@ contains
          w(ixO^S,rho_)=rhob*dexp(usr_grav*SRadius**2/Tiso*&
                        (1.d0/SRadius-1.d0/(x(ixO^S,3)+SRadius)))
        end if
-       if(mhd_solve_eaux) w(ixO^S,paux_)=w(ixO^S,p_)
        call mhd_to_conserved(ixI^L,ixO^L,w,x)
      case(3)
        w(ixO^S,mom(1))=-w(ixOmin1:ixOmax1,ixOmax2+nghostcells:ixOmax2+1:-1,ixOmin3:ixOmax3,mom(1))/&
@@ -456,7 +453,6 @@ contains
          w(ixO^S,rho_)=rhob*dexp(usr_grav*SRadius**2/Tiso*&
                        (1.d0/SRadius-1.d0/(x(ixO^S,3)+SRadius)))
        end if
-       if(mhd_solve_eaux) w(ixO^S,paux_)=w(ixO^S,p_)
        call mhd_to_conserved(ixI^L,ixO^L,w,x)
      case(4)
        w(ixO^S,mom(1))=-w(ixOmin1:ixOmax1,ixOmin2-1:ixOmin2-nghostcells:-1,ixOmin3:ixOmax3,mom(1))/&
@@ -510,7 +506,6 @@ contains
          w(ixO^S,rho_)=rhob*dexp(usr_grav*SRadius**2/Tiso*&
                        (1.d0/SRadius-1.d0/(x(ixO^S,3)+SRadius)))
        end if
-       if(mhd_solve_eaux) w(ixO^S,paux_)=w(ixO^S,p_)
        call mhd_to_conserved(ixI^L,ixO^L,w,x)
      case(5)
        w(ixO^S,mom(1))=-w(ixOmin1:ixOmax1,ixOmin2:ixOmax2,ixOmax3+nghostcells:ixOmax3+1:-1,mom(1))/&
@@ -564,7 +559,6 @@ contains
          w(ixO^S,rho_)=rhob*dexp(usr_grav*SRadius**2/Tiso*&
                        (1.d0/SRadius-1.d0/(x(ixO^S,3)+SRadius)))
        end if
-       if(mhd_solve_eaux) w(ixO^S,paux_)=w(ixO^S,p_)
        call mhd_to_conserved(ixI^L,ixO^L,w,x)
      case(6)
        w(ixO^S,mom(1))=w(ixOmin1:ixOmax1,ixOmin2:ixOmax2,ixOmin3-1:ixOmin3-nghostcells:-1,mom(1))/&
@@ -632,7 +626,6 @@ contains
            x(ixOmin3-1^%3ixO^S,3))-1.d0/(SRadius+x(ix3^%3ixO^S,3))))
          enddo
        end if
-       if(mhd_solve_eaux) w(ixO^S,paux_)=w(ixO^S,p_)
        call mhd_to_conserved(ixI^L,ixO^L,w,x)
      case default
       call mpistop("Special boundary is not defined for this region")
@@ -676,7 +669,6 @@ contains
     !! add global background heating bQ
     call getbQ(bQgrid,ixI^L,ixO^L,qtC,wCT,x)
     w(ixO^S,e_)=w(ixO^S,e_)+qdt*bQgrid(ixO^S)
-    if(mhd_solve_eaux) w(ixO^S,eaux_)=w(ixO^S,eaux_)+qdt*bQgrid(ixO^S)
     !! add localized heating lQ
     !if(iprob==2) then
     !  call getlQ(lQgrid,ixI^L,ixO^L,qtC,wCT,x)
