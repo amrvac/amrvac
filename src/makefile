@@ -214,6 +214,7 @@ mod_mhd_phys.o: mod_convert.mod
 mod_mhd_phys.o: mod_fix_conserve.mod
 mod_mhd_phys.o: mod_geometry.mod
 mod_mhd_phys.o: mod_gravity.mod
+mod_mhd_phys.o: mod_ionization_degree.mod
 mod_mhd_phys.o: mod_magnetofriction.mod
 mod_mhd_phys.o: mod_multigrid_coupling.mod
 mod_mhd_phys.o: mod_particles.mod

@@ -755,19 +755,36 @@ contains
       allocate(tc_fl)
       call tc_get_mhd_params(tc_fl,tc_params_read_mhd)
       call add_sts_method(mhd_get_tc_dt_mhd,mhd_sts_set_source_tc_mhd,e_,1,e_,1,.false.)
-      if(phys_internal_e) then
-        if(has_equi_pe0 .and. has_equi_rho0) then
-          tc_fl%get_temperature_from_conserved => mhd_get_temperature_from_eint_with_equi
-        else
-          tc_fl%get_temperature_from_conserved => mhd_get_temperature_from_eint
-        end if
-      else if(mhd_hydrodynamic_e) then
-        tc_fl%get_temperature_from_conserved => mhd_get_temperature_from_hde
+      if(mhd_partial_ionization) then
+        tc_fl%get_temperature_from_conserved => mhd_get_temperature_from_Te
+        tc_fl%get_temperature_from_eint => mhd_get_temperature_from_Te
       else
-        if(has_equi_pe0 .and. has_equi_rho0) then
-          tc_fl%get_temperature_from_conserved => mhd_get_temperature_from_etot_with_equi
+        if(phys_internal_e) then
+          if(has_equi_pe0 .and. has_equi_rho0) then
+            tc_fl%get_temperature_from_conserved => mhd_get_temperature_from_eint_with_equi
+          else
+            tc_fl%get_temperature_from_conserved => mhd_get_temperature_from_eint
+          end if
+        else if(mhd_hydrodynamic_e) then
+          tc_fl%get_temperature_from_conserved => mhd_get_temperature_from_hde
         else
-          tc_fl%get_temperature_from_conserved => mhd_get_temperature_from_etot
+          if(has_equi_pe0 .and. has_equi_rho0) then
+            tc_fl%get_temperature_from_conserved => mhd_get_temperature_from_etot_with_equi
+          else
+            tc_fl%get_temperature_from_conserved => mhd_get_temperature_from_etot
+          end if
+        end if
+        if(has_equi_pe0 .and. has_equi_rho0) then
+          tc_fl%get_temperature_from_eint => mhd_get_temperature_from_eint_with_equi
+          if(mhd_equi_thermal) then
+            tc_fl%has_equi = .true.
+            tc_fl%get_temperature_equi => mhd_get_temperature_equi
+            tc_fl%get_rho_equi => mhd_get_rho_equi
+          else
+            tc_fl%has_equi = .false.
+          end if
+        else
+          tc_fl%get_temperature_from_eint => mhd_get_temperature_from_eint
         end if
       end if
       if(unsplit_semirelativistic) then
@@ -777,18 +794,6 @@ contains
       else if(.not. mhd_internal_e) then
         call set_conversion_methods_to_head(mhd_e_to_ei, mhd_ei_to_e)
       end if
-      if(has_equi_pe0 .and. has_equi_rho0) then
-        tc_fl%get_temperature_from_eint => mhd_get_temperature_from_eint_with_equi
-        if(mhd_equi_thermal) then
-          tc_fl%has_equi = .true.
-          tc_fl%get_temperature_equi => mhd_get_temperature_equi
-          tc_fl%get_rho_equi => mhd_get_rho_equi
-        else
-          tc_fl%has_equi = .false.
-        endif
-      else
-        tc_fl%get_temperature_from_eint => mhd_get_temperature_from_eint
-      endif
       call set_error_handling_to_head(mhd_tc_handle_small_e)
       tc_fl%get_rho => mhd_get_rho
       tc_fl%e_ = e_
@@ -1169,7 +1174,11 @@ contains
     end if
     if(eq_state_units) then
       a = 1d0 + 4d0 * He_abundance
-      b = 1d0 + H_ion_fr + He_abundance*(He_ion_fr*(He_ion_fr2 + 1d0)+1d0)
+      if(mhd_partial_ionization) then
+        b = 1d0
+      else
+        b = 1d0 + H_ion_fr + He_abundance*(He_ion_fr*(He_ion_fr2 + 1d0)+1d0)
+      end if
       RR = 1d0
     else
       a = 1d0
@@ -3027,6 +3036,16 @@ contains
 
   end subroutine mhd_get_pthermal_hde
 
+  !> copy temperature from stored Te variable
+  subroutine mhd_get_temperature_from_Te(w, x, ixI^L, ixO^L, res)
+    use mod_global_parameters
+    integer, intent(in)          :: ixI^L, ixO^L
+    double precision, intent(in) :: w(ixI^S, 1:nw)
+    double precision, intent(in) :: x(ixI^S, 1:ndim)
+    double precision, intent(out):: res(ixI^S)
+    res(ixO^S) = w(ixO^S, Te_)
+  end subroutine mhd_get_temperature_from_Te
+
   !> Calculate temperature=p/rho when in e_ the internal energy is stored
   subroutine mhd_get_temperature_from_eint(w, x, ixI^L, ixO^L, res)
     use mod_global_parameters
@@ -4063,6 +4082,11 @@ contains
         active = .true.
         call add_source_hydrodynamic_e(qdt,ixI^L,ixO^L,wCT,w,x,wCTprim)
       end if
+      ! update temperature from new pressure, density, and old ionization degree
+      if(mhd_partial_ionization) then
+        active = .true.
+        call add_source_update_temperature(qdt,ixI^L,ixO^L,wCT,w,x)
+      end if
     end if
 
       {^NOONED
@@ -4333,6 +4357,26 @@ contains
     end if
 
   end subroutine mhd_handle_small_ei
+
+  subroutine add_source_update_temperature(qdt,ixI^L,ixO^L,wCT,w,x)
+    use mod_global_parameters
+    use mod_ionization_degree
+
+    integer, intent(in)             :: ixI^L, ixO^L
+    double precision, intent(in)    :: qdt
+    double precision, intent(in)    :: wCT(ixI^S,1:nw), x(ixI^S,1:ndim)
+    double precision, intent(inout) :: w(ixI^S,1:nw)
+
+    double precision :: iz_H(ixO^S),iz_He(ixO^S), pth(ixI^S)
+
+    call ionization_degree_from_temperature(ixI^L,ixO^L,wCT(ixI^S,Te_),iz_H,iz_He)
+
+    call mhd_get_pthermal(w,x,ixI^L,ixO^L,pth)
+
+    w(ixO^S,Te_)=pth(ixO^S)/w(ixO^S,rho_)/(1.d0+iz_H(ixO^S)+&
+     He_abundance*(iz_He(ixO^S)*(iz_He(ixO^S)+1.d0)+1.d0))
+
+  end subroutine add_source_update_temperature
 
   !> Source terms after split off time-independent magnetic field
   subroutine add_source_B0split(qdt,ixI^L,ixO^L,wCT,w,x)
