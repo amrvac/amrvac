@@ -169,4 +169,32 @@ module mod_ionization_degree
 
     end subroutine ionization_degree_from_temperature
 
+    function R_ideal_gas_law_partial_ionization(Te)
+      use mod_global_parameters
+      double precision, intent(in) :: Te
+      double precision :: R_ideal_gas_law_partial_ionization
+
+      double precision :: iz_H, iz_He
+      integer :: i
+
+      if(Te<Te_table_min) then
+        iz_H=0.d0
+      else if (Te>Te_table_max) then
+        iz_H=1.d0
+      else
+        i=int((Te-Te_table_min)*inv_Te_table_step)+1
+        iz_H=iz_H_table(i)+(Te-Te_H_table(i))&
+         *(iz_H_table(i+1)-iz_H_table(i))*inv_Te_table_step
+      end if
+      if(Te<Te_low_iz_He) then
+        iz_He=1.0084814d-4
+      else
+        iz_He=1.d0-log10(0.322571d0-5.96d-5*Te*unit_temperature)
+      end if
+      ! dimensionless: kB and mp are included in units
+      R_ideal_gas_law_partial_ionization=1.d0+iz_H+0.1d0*(1.d0+iz_He*(1.d0+iz_He))
+      return
+
+    end function R_ideal_gas_law_partial_ionization
+
 end module mod_ionization_degree

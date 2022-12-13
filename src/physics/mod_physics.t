@@ -35,6 +35,9 @@ module mod_physics
   !> Solve internal enery instead of total energy
   logical :: phys_internal_e=.false.
 
+  !> Solve partially ionized one-fluid plasma
+  logical :: phys_partial_ionization=.false.
+
   !> Array per direction per variable, which can be used to specify that certain
   !> fluxes have to be treated differently
   integer, allocatable :: flux_type(:, :)

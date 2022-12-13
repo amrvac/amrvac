@@ -441,6 +441,7 @@ contains
     phys_internal_e=mhd_internal_e
     phys_trac=mhd_trac
     phys_trac_type=mhd_trac_type
+    phys_partial_ionization=mhd_partial_ionization
 
     phys_gamma = mhd_gamma
 
