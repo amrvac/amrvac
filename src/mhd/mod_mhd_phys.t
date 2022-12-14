@@ -378,6 +378,7 @@ contains
     use mod_supertimestepping, only: sts_init, add_sts_method,&
             set_conversion_methods_to_head, set_error_handling_to_head
     use mod_cak_force, only: cak_init
+    use mod_ionization_degree
     {^NOONED
     use mod_multigrid_coupling
     }
@@ -893,6 +894,9 @@ contains
       end if
     end if
 
+    ! initialize ionization degree table
+    if(mhd_partial_ionization) call ionization_degree_init()
+
     ! Initialize CAK radiation force module
     if (mhd_cak_force) call cak_init(mhd_gamma)
 
@@ -1176,7 +1180,7 @@ contains
     if(eq_state_units) then
       a = 1d0 + 4d0 * He_abundance
       if(mhd_partial_ionization) then
-        b = 1d0
+        b = 2.3d0
       else
         b = 1d0 + H_ion_fr + He_abundance*(He_ion_fr*(He_ion_fr2 + 1d0)+1d0)
       end if
@@ -4374,8 +4378,8 @@ contains
 
     call mhd_get_pthermal(w,x,ixI^L,ixO^L,pth)
 
-    w(ixO^S,Te_)=pth(ixO^S)/w(ixO^S,rho_)/(1.d0+iz_H(ixO^S)+&
-     He_abundance*(iz_He(ixO^S)*(iz_He(ixO^S)+1.d0)+1.d0))
+    w(ixO^S,Te_)=2.3d0*pth(ixO^S)/(w(ixO^S,rho_)*(1.d0+iz_H(ixO^S)+&
+     He_abundance*(iz_He(ixO^S)*(iz_He(ixO^S)+1.d0)+1.d0)))
 
   end subroutine add_source_update_temperature
 

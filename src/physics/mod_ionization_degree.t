@@ -192,7 +192,7 @@ module mod_ionization_degree
         iz_He=1.d0-log10(0.322571d0-5.96d-5*Te*unit_temperature)
       end if
       ! dimensionless: kB and mp are included in units
-      R_ideal_gas_law_partial_ionization=1.d0+iz_H+0.1d0*(1.d0+iz_He*(1.d0+iz_He))
+      R_ideal_gas_law_partial_ionization=(1.d0+iz_H+0.1d0*(1.d0+iz_He*(1.d0+iz_He)))/2.3d0
       return
 
     end function R_ideal_gas_law_partial_ionization

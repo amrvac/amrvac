@@ -259,7 +259,7 @@ module mod_solar_atmosphere
 
 contains
 
-  subroutine get_atm_para(h,rho,pth,grav,nh,Tcurve,hc,rhohc)
+  subroutine get_atm_para(h,rho,pth,grav,nh,Tcurve,hc,rhohc,Tem)
     use mod_physics, only: phys_partial_ionization
     use mod_ionization_degree
     ! input:h,grav,nh,rho0,Tcurve; output:rho,pth (dimensionless units)
@@ -268,7 +268,9 @@ contains
     ! Tcurve -- 'VAL-C' | 'Hong2017' | 'SPRM305' | 'AL-C7'
 
     integer, intent(in) :: nh
-    double precision :: h(nh),rho(nh),pth(nh),grav(nh)
+    double precision, intent(in) :: h(nh),grav(nh)
+    double precision, intent(out) :: rho(nh),pth(nh)
+    double precision, intent(out),optional :: Tem(nh)
     double precision :: rhohc,hc
     character(*) :: Tcurve
 
@@ -301,6 +303,7 @@ contains
     end select
 
     Te=Te_cgs/unit_temperature
+    if(present(Tem)) Tem=Te
 
     if(phys_partial_ionization) then
       do j=1,nh
