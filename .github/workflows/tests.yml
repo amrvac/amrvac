@@ -13,8 +13,10 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest]
-        compiler: [gfortran-8, gfortran-9, gfortran-10, gfortran-11]
+        compiler: [gfortran-9, gfortran-10, gfortran-11]
         include:
+          - os: ubuntu-20.04
+            compiler: gfortran-8  # not longer supported for ubuntu-22
           - os: macos-11
             compiler: gfortran-11
             gcc_name: gcc@11
@@ -34,7 +36,7 @@ jobs:
       - uses: actions/checkout@v2
       - name: install dependencies
         run: |
-          if [[ "${{ matrix.os }}" == "ubuntu-latest" ]]; then
+          if [[ $RUNNER_OS == "Linux" ]]; then
             sudo apt-get update
             sudo apt-get install ${{ matrix.compiler }}
             sudo apt-get install openmpi-bin libopenmpi-dev
