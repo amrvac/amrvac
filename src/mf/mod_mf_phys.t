@@ -156,19 +156,6 @@ contains
     call MPI_FILE_WRITE(fh, names, n_par * name_len, MPI_CHARACTER, st, er)
   end subroutine mf_write_info
 
-  subroutine mf_angmomfix(fC,x,wnew,ixI^L,ixO^L,idim)
-    use mod_global_parameters
-    double precision, intent(in)       :: x(ixI^S,1:ndim)
-    double precision, intent(inout)    :: fC(ixI^S,1:nwflux,1:ndim),  wnew(ixI^S,1:nw)
-    integer, intent(in)                :: ixI^L, ixO^L
-    integer, intent(in)                :: idim
-    integer                            :: hxO^L, kxC^L, iw
-    double precision                   :: inv_volume(ixI^S)
-
-    call mpistop("to do")
-
-  end subroutine mf_angmomfix
-
   subroutine mf_phys_init()
     use mod_global_parameters
     use mod_physics
@@ -281,7 +268,6 @@ contains
     phys_to_primitive        => mf_to_primitive
     phys_check_params        => mf_check_params
     phys_write_info          => mf_write_info
-    phys_angmomfix           => mf_angmomfix
     phys_special_advance     => mf_velocity_update
 
     if(type_divb==divb_glm) then
@@ -1303,9 +1289,6 @@ contains
 
     select case (coordinate)
     case (cylindrical)
-      if (angmomfix) then
-        call mpistop("angmomfix not implemented yet in MHD")
-      endif
       call mf_get_p_total(wCT,x,ixI^L,ixO^L,tmp)
       if(phi_>0) then
         if(.not.stagger_grid) then

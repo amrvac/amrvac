@@ -268,7 +268,7 @@ contains
          rk2_alfa,imex222_lambda,ssprk_order,rk3_switch,imex_switch,&
          small_temperature,small_pressure,small_density, &
          small_values_method, small_values_daverage, fix_small_values, check_small_values, &
-         trace_small_values, angmomfix, small_values_fix_iw, &
+         trace_small_values, small_values_fix_iw, &
          schmid_rad^D
 
     namelist /boundlist/ nghostcells,ghost_copy,&
@@ -476,7 +476,6 @@ contains
     source_split_usr= .false.
     time_stepper    = 'twostep'
     time_integrator = 'default'
-    angmomfix       = .false.
     ! default PC or explicit midpoint, hence alfa=0.5
     rk2_alfa        = half 
     ! default IMEX-RK22Ln hence lambda = 1 - 1/sqrt(2)

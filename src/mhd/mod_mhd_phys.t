@@ -33,6 +33,9 @@ module mod_mhd_phys
   !> Whether gravity is added
   logical, public, protected              :: mhd_gravity = .false.
 
+  !> Whether rotating frame is activated
+  logical, public, protected              :: mhd_rotating_frame = .false.
+
   !> Whether Hall-MHD is used
   logical, public, protected              :: mhd_Hall = .false.
 
@@ -319,7 +322,7 @@ contains
     namelist /mhd_list/ mhd_energy, mhd_n_tracer, mhd_gamma, mhd_adiab,&
       mhd_eta, mhd_eta_hyper, mhd_etah, mhd_eta_ambi, mhd_glm_alpha, mhd_glm_extended, mhd_magnetofriction,&
       mhd_thermal_conduction, mhd_radiative_cooling, mhd_Hall, mhd_ambipolar, mhd_ambipolar_sts, mhd_gravity,&
-      mhd_viscosity, mhd_4th_order, typedivbfix, source_split_divb, divbdiff,&
+      mhd_rotating_frame,mhd_viscosity, mhd_4th_order, typedivbfix, source_split_divb, divbdiff,&
       typedivbdiff, type_ct, compactres, divbwave, He_abundance, &
       H_ion_fr, He_ion_fr, He_ion_fr2, eq_state_units, SI_unit, B0field ,mhd_dump_full_vars,&
       B0field_forcefree, Bdip, Bquad, Boct, Busr, mhd_particles, mhd_partial_ionization,&
@@ -354,19 +357,6 @@ contains
     call MPI_FILE_WRITE(fh, names, n_par * name_len, MPI_CHARACTER, st, er)
   end subroutine mhd_write_info
 
-  subroutine mhd_angmomfix(fC,x,wnew,ixI^L,ixO^L,idim)
-    use mod_global_parameters
-    double precision, intent(in)       :: x(ixI^S,1:ndim)
-    double precision, intent(inout)    :: fC(ixI^S,1:nwflux,1:ndim),  wnew(ixI^S,1:nw)
-    integer, intent(in)                :: ixI^L, ixO^L
-    integer, intent(in)                :: idim
-    integer                            :: hxO^L, kxC^L, iw
-    double precision                   :: inv_volume(ixI^S)
-
-    call mpistop("to do")
-
-  end subroutine mhd_angmomfix
-
   subroutine mhd_phys_init()
     use mod_global_parameters
     use mod_thermal_conduction
@@ -375,6 +365,7 @@ contains
     use mod_gravity, only: gravity_init
     use mod_particles, only: particles_init, particles_eta, particles_etah
     use mod_magnetofriction, only: magnetofriction_init
+    use mod_rotating_frame, only: rotating_frame_init
     use mod_supertimestepping, only: sts_init, add_sts_method,&
             set_conversion_methods_to_head, set_error_handling_to_head
     use mod_cak_force, only: cak_init
@@ -695,7 +686,6 @@ contains
     phys_add_source          => mhd_add_source
     phys_check_params        => mhd_check_params
     phys_write_info          => mhd_write_info
-    phys_angmomfix           => mhd_angmomfix
  
     if(unsplit_semirelativistic) then
       phys_handle_small_values => mhd_handle_small_values_semirelati
@@ -863,6 +853,9 @@ contains
     if(mhd_gravity) then
       call gravity_init()
     end if
+
+    ! Initialize rotating frame module
+    if(mhd_rotating_frame) call rotating_frame_init()
 
     ! Initialize particles module
     if(mhd_particles) then
@@ -5236,6 +5229,7 @@ contains
   subroutine mhd_add_source_geom(qdt,ixI^L,ixO^L,wCT,w,x)
     use mod_global_parameters
     use mod_geometry
+    use mod_rotating_frame, only: rotating_frame_add_source
 
     integer, intent(in)             :: ixI^L, ixO^L
     double precision, intent(in)    :: qdt, x(ixI^S,1:ndim)
@@ -5255,9 +5249,6 @@ contains
     invr(ixO^S)=1.d0/x(ixO^S,1)
     select case (coordinate)
     case (cylindrical)
-      if (angmomfix) then
-        call mpistop("angmomfix not implemented yet in MHD")
-      endif
       call mhd_get_p_total(wCT,x,ixI^L,ixO^L,tmp)
       if(phi_>0) then
         w(ixO^S,mr_)=w(ixO^S,mr_)+qdt*invr(ixO^S)*(tmp(ixO^S)-&
@@ -5317,16 +5308,12 @@ contains
 
        if(ndir==3) then
          ! m3
-         if(.not.angmomfix) then
-           tmp(ixO^S)=-(wCT(ixO^S,mom(3))*wCT(ixO^S,mom(1))*invrho(ixO^S) &
-                -wCT(ixO^S,mag(3))*wCT(ixO^S,mag(1))) {^NOONED &
-                -(wCT(ixO^S,mom(2))*wCT(ixO^S,mom(3))*invrho(ixO^S) &
-                -wCT(ixO^S,mag(2))*wCT(ixO^S,mag(3))) &
-                *dcos(x(ixO^S,2))/dsin(x(ixO^S,2)) }
-           w(ixO^S,mom(3))=w(ixO^S,mom(3))+qdt*tmp(ixO^S)*invr(ixO^S)
-         else
-           call mpistop("angmomfix not implemented yet in MHD")
-         end if
+         tmp(ixO^S)=-(wCT(ixO^S,mom(3))*wCT(ixO^S,mom(1))*invrho(ixO^S) &
+              -wCT(ixO^S,mag(3))*wCT(ixO^S,mag(1))) {^NOONED &
+              -(wCT(ixO^S,mom(2))*wCT(ixO^S,mom(3))*invrho(ixO^S) &
+              -wCT(ixO^S,mag(2))*wCT(ixO^S,mag(3))) &
+              *dcos(x(ixO^S,2))/dsin(x(ixO^S,2)) }
+         w(ixO^S,mom(3))=w(ixO^S,mom(3))+qdt*tmp(ixO^S)*invr(ixO^S)
          ! b3
          if(.not.stagger_grid) then
            tmp(ixO^S)=(wCT(ixO^S,mom(1))*wCT(ixO^S,mag(3)) &
@@ -5338,6 +5325,11 @@ contains
          end if
        end if
     end select
+
+    if (mhd_rotating_frame) then
+       call rotating_frame_add_source(qdt,ixI^L,ixO^L,wCT,w,x)
+    endif
+
   end subroutine mhd_add_source_geom
 
   ! Add geometrical source terms to w
@@ -5367,9 +5359,6 @@ contains
 
     select case (coordinate)
     case (cylindrical)
-      if (angmomfix) then
-        call mpistop("angmomfix not implemented yet in MHD")
-      endif
       call mhd_get_p_total(wCT,x,ixI^L,ixO^L,tmp)
       if(phi_>0) then
         w(ixO^S,mr_)=w(ixO^S,mr_)+qdt*invr(ixO^S)*(tmp(ixO^S)-&
@@ -5453,23 +5442,19 @@ contains
 
        if(ndir==3) then
          ! m3
-         if(.not.angmomfix) then
-           tmp(ixO^S)=-(wCT(ixO^S,mom(3))*wCT(ixO^S,mom(1))*invrho(ixO^S) &
-                -wCT(ixO^S,mag(3))*wCT(ixO^S,mag(1))) {^NOONED &
-                -(wCT(ixO^S,mom(2))*wCT(ixO^S,mom(3))*invrho(ixO^S) &
-                -wCT(ixO^S,mag(2))*wCT(ixO^S,mag(3))) &
-                *dcos(x(ixO^S,2))/dsin(x(ixO^S,2)) }
-           if (B0field) then
-              tmp(ixO^S)=tmp(ixO^S)+block%B0(ixO^S,1,0)*wCT(ixO^S,mag(3)) &
-                   +wCT(ixO^S,mag(1))*block%B0(ixO^S,3,0) {^NOONED &
-                   +(block%B0(ixO^S,2,0)*wCT(ixO^S,mag(3)) &
-                   +wCT(ixO^S,mag(2))*block%B0(ixO^S,3,0)) &
-                   *dcos(x(ixO^S,2))/dsin(x(ixO^S,2)) }
-           end if
-           w(ixO^S,mom(3))=w(ixO^S,mom(3))+qdt*tmp(ixO^S)*invr(ixO^S)
-         else
-           call mpistop("angmomfix not implemented yet in MHD")
+         tmp(ixO^S)=-(wCT(ixO^S,mom(3))*wCT(ixO^S,mom(1))*invrho(ixO^S) &
+              -wCT(ixO^S,mag(3))*wCT(ixO^S,mag(1))) {^NOONED &
+              -(wCT(ixO^S,mom(2))*wCT(ixO^S,mom(3))*invrho(ixO^S) &
+              -wCT(ixO^S,mag(2))*wCT(ixO^S,mag(3))) &
+              *dcos(x(ixO^S,2))/dsin(x(ixO^S,2)) }
+         if (B0field) then
+            tmp(ixO^S)=tmp(ixO^S)+block%B0(ixO^S,1,0)*wCT(ixO^S,mag(3)) &
+                 +wCT(ixO^S,mag(1))*block%B0(ixO^S,3,0) {^NOONED &
+                 +(block%B0(ixO^S,2,0)*wCT(ixO^S,mag(3)) &
+                 +wCT(ixO^S,mag(2))*block%B0(ixO^S,3,0)) &
+                 *dcos(x(ixO^S,2))/dsin(x(ixO^S,2)) }
          end if
+         w(ixO^S,mom(3))=w(ixO^S,mom(3))+qdt*tmp(ixO^S)*invr(ixO^S)
          ! b3
          if(.not.stagger_grid) then
            tmp(ixO^S)=(wCT(ixO^S,mom(1))*wCT(ixO^S,mag(3)) &

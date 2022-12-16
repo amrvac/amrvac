@@ -221,6 +221,7 @@ mod_mhd_phys.o: mod_multigrid_coupling.mod
 mod_mhd_phys.o: mod_particles.mod
 mod_mhd_phys.o: mod_physics.mod
 mod_mhd_phys.o: mod_radiative_cooling.mod
+mod_mhd_phys.o: mod_rotating_frame.mod
 mod_mhd_phys.o: mod_small_values.mod
 mod_mhd_phys.o: mod_supertimestepping.mod
 mod_mhd_phys.o: mod_thermal_conduction.mod
@@ -317,6 +318,7 @@ mod_rho_phys.o: mod_physics.mod
 mod_rho_roe.o: mod_physics_roe.mod
 mod_rho_roe.o: mod_rho_phys.mod
 mod_rotating_frame.o: mod_geometry.mod
+mod_rotating_frame.o: mod_physics.mod
 mod_slice.o: mod_basic_types.mod
 mod_slice.o: mod_calculate_xw.mod
 mod_solar_atmosphere.o: mod_interpolation.mod

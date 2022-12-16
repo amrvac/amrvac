@@ -199,66 +199,6 @@ contains
     call MPI_FILE_WRITE(fh, names, n_par * name_len, MPI_CHARACTER, st, er)
   end subroutine rhd_write_info
 
-  !> Add fluxes in an angular momentum conserving way
-  subroutine rhd_angmomfix(fC,x,wnew,ixI^L,ixO^L,idim)
-    use mod_global_parameters
-    use mod_dust, only: dust_n_species, dust_mom
-    use mod_geometry
-    double precision, intent(in)       :: x(ixI^S,1:ndim)
-    double precision, intent(inout)    :: fC(ixI^S,1:nwflux,1:ndim),  wnew(ixI^S,1:nw)
-    integer, intent(in)                :: ixI^L, ixO^L
-    integer, intent(in)                :: idim
-    integer                            :: hxO^L, kxC^L, iw
-    double precision                   :: inv_volume(ixI^S)
-
-    logical isangmom
-
-    ! shifted indexes
-    hxO^L=ixO^L-kr(idim,^D);
-    ! all the indexes
-    kxCmin^D=hxOmin^D;
-    kxCmax^D=ixOmax^D;
-
-    inv_volume(ixO^S) = 1.0d0/block%dvolume(ixO^S)
-
-    select case(coordinate)
-    case (cylindrical)
-       do iw=1,nwflux
-        isangmom = (iw==iw_mom(phi_))
-        if (rhd_dust) &
-             isangmom = (isangmom .or. any(dust_mom(phi_,1:dust_n_species) == iw))
-        if (idim==r_ .and. isangmom) then
-          fC(kxC^S,iw,idim)= fC(kxC^S,iw,idim)*(x(kxC^S,r_)+half*block%dx(kxC^S,idim))
-          wnew(ixO^S,iw)=wnew(ixO^S,iw) + (fC(ixO^S,iw,idim)-fC(hxO^S,iw,idim)) * &
-               (inv_volume(ixO^S)/x(ixO^S,idim))
-        else
-          wnew(ixO^S,iw)=wnew(ixO^S,iw) + (fC(ixO^S,iw,idim)-fC(hxO^S,iw,idim)) * &
-                inv_volume(ixO^S)
-        endif
-      enddo
-     case (spherical)
-      if (rhd_dust) &
-        call mpistop("Error: rhd_angmomfix is not implemented &\\
-        &with dust and coordinate=='spherical'")
-      do iw=1,nwflux
-        if     (idim==r_ .and. (iw==iw_mom(2) .or. iw==iw_mom(phi_))) then
-          fC(kxC^S,iw,idim)= fC(kxC^S,iw,idim)*(x(kxC^S,idim)+half*block%dx(kxC^S,idim))
-          wnew(ixO^S,iw)=wnew(ixO^S,iw) + (fC(ixO^S,iw,idim)-fC(hxO^S,iw,idim)) * &
-               (inv_volume(ixO^S)/x(ixO^S,idim))
-        elseif (idim==2  .and. iw==iw_mom(phi_)) then
-          fC(kxC^S,iw,idim)=fC(kxC^S,iw,idim)*sin(x(kxC^S,idim)+half*block%dx(kxC^S,idim)) ! (x(4,3,1)-x(3,3,1)))
-          wnew(ixO^S,iw)=wnew(ixO^S,iw) + (fC(ixO^S,iw,idim)-fC(hxO^S,iw,idim)) * &
-               (inv_volume(ixO^S)/sin(x(ixO^S,idim)))
-        else
-          wnew(ixO^S,iw)=wnew(ixO^S,iw) + (fC(ixO^S,iw,idim)-fC(hxO^S,iw,idim)) * &
-                inv_volume(ixO^S)
-        endif
-      enddo
-
-    end select
-
-  end subroutine rhd_angmomfix
-
   !> Initialize the module
   subroutine rhd_phys_init()
     use mod_global_parameters
@@ -364,7 +304,6 @@ contains
     phys_get_pthermal        => rhd_get_pthermal
     phys_write_info          => rhd_write_info
     phys_handle_small_values => rhd_handle_small_values
-    phys_angmomfix           => rhd_angmomfix
     phys_set_mg_bounds       => rhd_set_mg_bounds
     phys_get_trad            => rhd_get_trad
     phys_get_tgas            => rhd_get_tgas
@@ -1404,7 +1343,6 @@ contains
   subroutine rhd_get_flux_cons(w, x, ixI^L, ixO^L, idim, f)
     use mod_global_parameters
     use mod_dust, only: dust_get_flux
-    use mod_rotating_frame, only: rotating_frame_velocity
 
     integer, intent(in)             :: ixI^L, ixO^L, idim
     double precision, intent(in)    :: w(ixI^S, 1:nw), x(ixI^S, 1:ndim)
@@ -1420,10 +1358,6 @@ contains
     ! Momentum flux is v_i*m_i, +p in direction idim
     do idir = 1, ndir
        f(ixO^S, mom(idir)) = v(ixO^S) * w(ixO^S, mom(idir))
-       if (rhd_rotating_frame .and. angmomfix .and. idir==phi_) then
-          call rotating_frame_velocity(x,ixI^L,ixO^L,frame_vel)
-          f(ixO^S, mom(idir)) = f(ixO^S, mom(idir)) + v(ixO^S) * frame_vel(ixO^S)*w(ixO^S,rho_)
-       end if
     end do
 
     f(ixO^S, mom(idim)) = f(ixO^S, mom(idim)) + pth(ixO^S)
@@ -1455,7 +1389,6 @@ contains
     use mod_global_parameters
     use mod_dust, only: dust_get_flux_prim
     use mod_viscosity, only: visc_get_flux_prim ! viscInDiv
-    use mod_rotating_frame, only: rotating_frame_velocity
 
     integer, intent(in)             :: ixI^L, ixO^L, idim
     ! conservative w
@@ -1478,12 +1411,6 @@ contains
     ! Momentum flux is v_i*m_i, +p in direction idim
     do idir = 1, ndir
        f(ixO^S, mom(idir)) = w(ixO^S,mom(idim)) * wC(ixO^S, mom(idir))
-       if (rhd_rotating_frame .and. angmomfix .and. idir==phi_) then
-          call mpistop("rhd_rotating_frame not implemented yet with angmomfix")
-          !One have to compute the frame velocity on cell edge (but we dont know if right of left edge here!!!)
-          call rotating_frame_velocity(x,ixI^L,ixO^L,frame_vel)
-          f(ixO^S, mom(idir)) = f(ixO^S, mom(idir)) + w(ixO^S,mom(idim))* wC(ixO^S, rho_) * frame_vel(ixO^S)
-       end if
     end do
 
     f(ixO^S, mom(idim)) = f(ixO^S, mom(idim)) + pth(ixO^S)
@@ -1520,8 +1447,6 @@ contains
   !> Notice that the expressions of the geometrical terms depend only on ndir,
   !> not ndim. Eg, they are the same in 2.5D and in 3D, for any geometry.
   !>
-  !> Ileyk : to do :
-  !>     - address the source term for the dust in case (coordinate == spherical)
   subroutine rhd_add_source_geom(qdt, ixI^L, ixO^L, wCT, w, x)
     use mod_global_parameters
     use mod_usr_methods, only: usr_set_surface
@@ -1584,12 +1509,10 @@ contains
                 w(ixO^S, mr_) = w(ixO^S, mr_) + qdt * source(ixO^S) / x(ixO^S, r_)
              end where
              ! s[mphi]=(-mphi*mr/rho)/radius
-             if(.not. angmomfix) then
-                where (wCT(ixO^S, irho) > minrho)
-                   source(ixO^S) = -wCT(ixO^S, mphi_) * wCT(ixO^S, mr_) / wCT(ixO^S, irho)
-                   w(ixO^S, mphi_) = w(ixO^S, mphi_) + qdt * source(ixO^S) / x(ixO^S, r_)
-                end where
-             end if
+             where (wCT(ixO^S, irho) > minrho)
+                source(ixO^S) = -wCT(ixO^S, mphi_) * wCT(ixO^S, mr_) / wCT(ixO^S, irho)
+                w(ixO^S, mphi_) = w(ixO^S, mphi_) + qdt * source(ixO^S) / x(ixO^S, r_)
+             end where
           else
              ! s[mr]=2pthermal/radius
              w(ixO^S, mr_) = w(ixO^S, mr_) + qdt * source(ixO^S) / x(ixO^S, r_)
@@ -1627,18 +1550,14 @@ contains
        if (ndir == 3) then
           source(ixO^S) = source(ixO^S) + (wCT(ixO^S, mom(3))**2 / wCT(ixO^S, rho_)) / tan(x(ixO^S, 2))
        end if
-       if (.not. angmomfix) then
-          source(ixO^S) = source(ixO^S) - (wCT(ixO^S, mom(2)) * wCT(ixO^S, mr_)) / wCT(ixO^S, rho_)
-       end if
+       source(ixO^S) = source(ixO^S) - (wCT(ixO^S, mom(2)) * wCT(ixO^S, mr_)) / wCT(ixO^S, rho_)
        w(ixO^S, mom(2)) = w(ixO^S, mom(2)) + qdt * source(ixO^S) / x(ixO^S, 1)
 
        if (ndir == 3) then
          ! s[mphi]=-(mphi*mr/rho)/r-cot(theta)*(mtheta*mphi/rho)/r
-         if (.not. angmomfix) then
-           source(ixO^S) = -(wCT(ixO^S, mom(3)) * wCT(ixO^S, mr_)) / wCT(ixO^S, rho_)&
-                      - (wCT(ixO^S, mom(2)) * wCT(ixO^S, mom(3))) / wCT(ixO^S, rho_) / tan(x(ixO^S, 2))
-           w(ixO^S, mom(3)) = w(ixO^S, mom(3)) + qdt * source(ixO^S) / x(ixO^S, 1)
-         end if
+         source(ixO^S) = -(wCT(ixO^S, mom(3)) * wCT(ixO^S, mr_)) / wCT(ixO^S, rho_)&
+                        - (wCT(ixO^S, mom(2)) * wCT(ixO^S, mom(3))) / wCT(ixO^S, rho_) / tan(x(ixO^S, 2))
+         w(ixO^S, mom(3)) = w(ixO^S, mom(3)) + qdt * source(ixO^S) / x(ixO^S, 1)
        end if
        }
     end select

@@ -366,10 +366,6 @@ module mod_global_parameters
   integer :: phys_trac_type=1
   double precision :: phys_trac_mask
 
-  !> Enable to strictly conserve the angular momentum
-  !> (works both in cylindrical and spherical coordinates)
-  logical :: angmomfix=.false.
-
   !> Use particles module or not
   logical :: use_particles=.false.
 
