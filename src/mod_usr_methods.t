@@ -105,6 +105,9 @@ module mod_usr_methods
   procedure(set_field_w), pointer :: usr_set_field_w => null()
   procedure(set_field), pointer :: usr_set_field => null()
 
+  ! allow user to specify R factor in ideal gas law with partial ionization
+  procedure(Rfactor), pointer :: usr_Rfactor => null()
+
   abstract interface
 
     subroutine p_no_args()
@@ -285,6 +288,15 @@ module mod_usr_methods
       double precision, intent(in)    :: w(ixI^S,1:nw)
       double precision, intent(out)   :: pth(ixI^S)
     end subroutine hd_pthermal
+
+    !>Calculation R factor for ideal gas law with partial ionization
+    subroutine Rfactor(w,x,ixI^L,ixO^L,pth)
+      use mod_global_parameters
+      integer, intent(in)             :: ixI^L, ixO^L
+      double precision, intent(in)    :: x(ixI^S,1:ndim)
+      double precision, intent(in)    :: w(ixI^S,1:nw)
+      double precision, intent(out)   :: pth(ixI^S)
+    end subroutine Rfactor
 
     !> Set the "eta" array for resistive MHD based on w or the
     !> "current" variable which has components between idirmin and 3.

@@ -169,6 +169,7 @@ module mod_ionization_degree
 
     end subroutine ionization_degree_from_temperature
 
+    ! gas constant R in ideal gas law for solar plasma
     function R_ideal_gas_law_partial_ionization(Te)
       use mod_global_parameters
       double precision, intent(in) :: Te
@@ -191,7 +192,8 @@ module mod_ionization_degree
       else
         iz_He=1.d0-log10(0.322571d0-5.96d-5*Te*unit_temperature)
       end if
-      ! dimensionless: kB and mp are included in units
+      ! dimensionless: kB and mp are included in units 
+      ! assume the first and second ionization of Helium have the same degree
       R_ideal_gas_law_partial_ionization=(1.d0+iz_H+0.1d0*(1.d0+iz_He*(1.d0+iz_He)))/2.3d0
       return
 

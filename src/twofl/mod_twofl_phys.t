@@ -753,7 +753,7 @@ contains
         call radiative_cooling_init(rc_fl_c,rc_params_read_c)
         rc_fl_c%get_rho => get_rhoc_tot
         rc_fl_c%get_pthermal => twofl_get_pthermal_c
-        rc_fl_c%Rfactor = Rc
+        rc_fl_c%get_var_Rfactor => Rfactor_c
         rc_fl_c%e_ = e_c_
         rc_fl_c%Tcoff_ = Tcoff_c_
         if(has_equi_pe_c0 .and. has_equi_rho_c0 .and. twofl_equi_thermal_c) then
@@ -1310,7 +1310,6 @@ contains
       miu0=4.d0*dpi
       c_lightspeed=const_c
     end if
-
 
     a=1d0  
     b=1d0
@@ -7165,5 +7164,16 @@ contains
        deallocate(gamma_ion, gamma_rec) 
     endif
   end subroutine twofl_explicit_coll_terms_update
+
+  subroutine Rfactor_c(w,x,ixI^L,ixO^L,Rfactor)
+    use mod_global_parameters
+    integer, intent(in) :: ixI^L, ixO^L
+    double precision, intent(in) :: w(ixI^S,1:nw)
+    double precision, intent(in) :: x(ixI^S,1:ndim)
+    double precision, intent(out):: Rfactor(ixI^S)
+
+    Rfactor(ixO^S)=Rc
+
+  end subroutine Rfactor_c
 
 end module mod_twofl_phys

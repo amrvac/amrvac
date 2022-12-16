@@ -19,6 +19,7 @@ module mod_mhd_phys
   logical, public, protected              :: mhd_thermal_conduction = .false.
   !> type of fluid for thermal conduction
   type(tc_fluid), public, allocatable     :: tc_fl
+  !> type of fluid for thermal emission synthesis
   type(te_fluid), public, allocatable     :: te_fl_mhd
 
   !> Whether radiative cooling is added
@@ -274,16 +275,15 @@ module mod_mhd_phys
   end interface
 
   procedure(mask_subroutine), pointer  :: usr_mask_ambipolar => null()
-  procedure(sub_get_pthermal), pointer  :: usr_Rfactor => null()
   procedure(sub_convert), pointer      :: mhd_to_primitive  => null()
   procedure(sub_convert), pointer      :: mhd_to_conserved  => null()
   procedure(sub_small_values), pointer :: mhd_handle_small_values => null()
   procedure(sub_get_pthermal), pointer :: mhd_get_pthermal  => null()
+  procedure(sub_get_pthermal), pointer :: mhd_get_Rfactor   => null()
   procedure(sub_get_v), pointer        :: mhd_get_v         => null()
   procedure(fun_kin_en), pointer       :: mhd_kin_en        => null()
   ! Public methods
   public :: usr_mask_ambipolar
-  public :: usr_Rfactor
   public :: mhd_phys_init
   public :: mhd_kin_en
   public :: mhd_get_pthermal
@@ -379,6 +379,7 @@ contains
             set_conversion_methods_to_head, set_error_handling_to_head
     use mod_cak_force, only: cak_init
     use mod_ionization_degree
+    use mod_usr_methods, only: usr_Rfactor
     {^NOONED
     use mod_multigrid_coupling
     }
@@ -434,6 +435,12 @@ contains
       if(mhd_partial_ionization) then
         mhd_partial_ionization=.false.
         if(mype==0) write(*,*) 'WARNING: set mhd_partial_ionization=F when mhd_energy=F'
+      end if
+    end if
+    if(.not.eq_state_units) then
+      if(mhd_partial_ionization) then
+        mhd_partial_ionization=.false.
+        if(mype==0) write(*,*) 'WARNING: set mhd_partial_ionization=F when eq_state_units=F'
       end if
     end if
 
@@ -689,24 +696,38 @@ contains
     phys_check_params        => mhd_check_params
     phys_write_info          => mhd_write_info
     phys_angmomfix           => mhd_angmomfix
+ 
     if(unsplit_semirelativistic) then
       phys_handle_small_values => mhd_handle_small_values_semirelati
       mhd_handle_small_values  => mhd_handle_small_values_semirelati
       phys_check_w             => mhd_check_w_semirelati
-      phys_get_pthermal        => mhd_get_pthermal_semirelati
-      mhd_get_pthermal         => mhd_get_pthermal_semirelati
     else if(mhd_hydrodynamic_e) then
       phys_handle_small_values => mhd_handle_small_values_hde
       mhd_handle_small_values  => mhd_handle_small_values_hde
       phys_check_w             => mhd_check_w_hde
-      phys_get_pthermal        => mhd_get_pthermal_hde
-      mhd_get_pthermal         => mhd_get_pthermal_hde
     else
       phys_handle_small_values => mhd_handle_small_values_origin
       mhd_handle_small_values  => mhd_handle_small_values_origin
       phys_check_w             => mhd_check_w_origin
-      phys_get_pthermal        => mhd_get_pthermal_origin
-      mhd_get_pthermal         => mhd_get_pthermal_origin
+    end if
+ 
+    if(.not.mhd_energy) then
+      phys_get_pthermal        => mhd_get_pthermal_iso
+      mhd_get_pthermal         => mhd_get_pthermal_iso
+    else
+      if(unsplit_semirelativistic) then
+        phys_get_pthermal        => mhd_get_pthermal_semirelati
+        mhd_get_pthermal         => mhd_get_pthermal_semirelati
+      else if(mhd_hydrodynamic_e) then
+        phys_get_pthermal        => mhd_get_pthermal_hde
+        mhd_get_pthermal         => mhd_get_pthermal_hde
+      else if(mhd_internal_e) then
+        phys_get_pthermal        => mhd_get_pthermal_eint
+        mhd_get_pthermal         => mhd_get_pthermal_eint
+      else
+        phys_get_pthermal        => mhd_get_pthermal_origin
+        mhd_get_pthermal         => mhd_get_pthermal_origin
+      end if
     end if
     if(number_equi_vars>0) then
       phys_set_equi_vars => set_equi_vars_grid
@@ -714,6 +735,15 @@ contains
 
     if(type_divb==divb_glm) then
       phys_modify_wLR => mhd_modify_wLR
+    end if
+
+    ! choose Rfactor in ideal gas law
+    if(mhd_partial_ionization) then
+      mhd_get_Rfactor=>Rfactor_from_temperature_ionization
+    else if(associated(usr_Rfactor)) then
+      mhd_get_Rfactor=>usr_Rfactor
+    else
+      mhd_get_Rfactor=>Rfactor_from_constant_ionization
     end if
 
     ! if using ct stagger grid, boundary divb=0 is not done here
@@ -767,8 +797,6 @@ contains
           else
             tc_fl%get_temperature_from_conserved => mhd_get_temperature_from_eint
           end if
-        else if(mhd_hydrodynamic_e) then
-          tc_fl%get_temperature_from_conserved => mhd_get_temperature_from_hde
         else
           if(has_equi_pe0 .and. has_equi_rho0) then
             tc_fl%get_temperature_from_conserved => mhd_get_temperature_from_etot_with_equi
@@ -809,11 +837,9 @@ contains
       call radiative_cooling_init(rc_fl,rc_params_read)
       rc_fl%get_rho => mhd_get_rho
       rc_fl%get_pthermal => mhd_get_pthermal
+      rc_fl%get_var_Rfactor => mhd_get_Rfactor
       rc_fl%e_ = e_
       rc_fl%Tcoff_ = Tcoff_
-      if(associated(usr_Rfactor)) then
-        rc_fl%get_var_Rfactor => usr_Rfactor
-      endif
       if(has_equi_pe0 .and. has_equi_rho0 .and. mhd_equi_thermal) then
         rc_fl%has_equi = .true.
         rc_fl%get_rho_equi => mhd_get_rho_equi
@@ -826,9 +852,7 @@ contains
     te_fl_mhd%get_rho=> mhd_get_rho
     te_fl_mhd%get_pthermal=> mhd_get_pthermal
     te_fl_mhd%Rfactor = RR
-    if(associated(usr_Rfactor)) then
-      te_fl_mhd%get_var_Rfactor => usr_Rfactor
-    endif
+    te_fl_mhd%get_var_Rfactor => mhd_get_Rfactor
 {^IFTHREED
     phys_te_images => mhd_te_images
 }
@@ -1180,7 +1204,7 @@ contains
     if(eq_state_units) then
       a = 1d0 + 4d0 * He_abundance
       if(mhd_partial_ionization) then
-        b = 2.3d0
+        b = 2+.3d0
       else
         b = 1d0 + H_ion_fr + He_abundance*(He_ion_fr*(He_ion_fr2 + 1d0)+1d0)
       end if
@@ -1189,7 +1213,7 @@ contains
       a = 1d0
       b = 1d0
       RR = (1d0 + H_ion_fr + He_abundance*(He_ion_fr*(He_ion_fr2 + 1d0)+1d0))/(1d0 + 4d0 * He_abundance)
-    endif
+    end if
     if(unit_density/=1.d0) then
       unit_numberdensity=unit_density/(a*mp)
     else
@@ -2897,6 +2921,66 @@ contains
 
   end subroutine mhd_get_csound_semirelati
 
+  !> Calculate isothermal thermal pressure
+  subroutine mhd_get_pthermal_iso(w,x,ixI^L,ixO^L,pth)
+    use mod_global_parameters
+
+    integer, intent(in)          :: ixI^L, ixO^L
+    double precision, intent(in) :: w(ixI^S,nw)
+    double precision, intent(in) :: x(ixI^S,1:ndim)
+    double precision, intent(out):: pth(ixI^S)
+
+    call mhd_get_rho(w,x,ixI^L,ixO^L,pth)
+    pth(ixO^S)=mhd_adiab*pth(ixO^S)**mhd_gamma
+
+  end subroutine mhd_get_pthermal_iso
+
+  !> Calculate thermal pressure from internal energy
+  subroutine mhd_get_pthermal_eint(w,x,ixI^L,ixO^L,pth)
+    use mod_global_parameters
+    use mod_small_values, only: trace_small_values
+
+    integer, intent(in)          :: ixI^L, ixO^L
+    double precision, intent(in) :: w(ixI^S,nw)
+    double precision, intent(in) :: x(ixI^S,1:ndim)
+    double precision, intent(out):: pth(ixI^S)
+    integer                      :: iw, ix^D
+
+    pth(ixO^S)=gamma_1*w(ixO^S,e_)
+
+    if(has_equi_pe0) then
+      pth(ixO^S) = pth(ixO^S) + block%equi_vars(ixO^S,equi_pe0_,b0i)
+    end if
+
+    if (fix_small_values) then
+      {do ix^DB= ixO^LIM^DB\}
+         if(pth(ix^D)<small_pressure) then
+            pth(ix^D)=small_pressure
+         end if
+      {enddo^D&\}
+    end if
+
+    if (check_small_values) then
+      {do ix^DB= ixO^LIM^DB\}
+         if(pth(ix^D)<small_pressure) then
+           write(*,*) "Error: small value of gas pressure",pth(ix^D),&
+                " encountered when call mhd_get_pthermal"
+           write(*,*) "Iteration: ", it, " Time: ", global_time
+           write(*,*) "Location: ", x(ix^D,:)
+           write(*,*) "Cell number: ", ix^D
+           do iw=1,nw
+             write(*,*) trim(cons_wnames(iw)),": ",w(ix^D,iw)
+           end do
+           ! use erroneous arithmetic operation to crash the run
+           if(trace_small_values) write(*,*) sqrt(pth(ix^D)-bigdouble)
+           write(*,*) "Saving status at the previous time step"
+           crash=.true.
+         end if
+      {enddo^D&\}
+    end if
+
+  end subroutine mhd_get_pthermal_eint
+
   !> Calculate thermal pressure=(gamma-1)*(e-0.5*m**2/rho-b**2/2) within ixO^L
   subroutine mhd_get_pthermal_origin(w,x,ixI^L,ixO^L,pth)
     use mod_global_parameters
@@ -2908,20 +2992,12 @@ contains
     double precision, intent(out):: pth(ixI^S)
     integer                      :: iw, ix^D
 
-    if(mhd_energy) then
-      if(mhd_internal_e) then
-        pth(ixO^S)=gamma_1*w(ixO^S,e_)
-      else
-        pth(ixO^S)=gamma_1*(w(ixO^S,e_)&
-           - mhd_kin_en(w,ixI^L,ixO^L)&
-           - mhd_mag_en(w,ixI^L,ixO^L))
-      end if
-      if(has_equi_pe0) then
-        pth(ixO^S) = pth(ixO^S) + block%equi_vars(ixO^S,equi_pe0_,b0i)
-      endif
-    else
-      call mhd_get_rho(w,x,ixI^L,ixO^L,pth)
-      pth(ixO^S)=mhd_adiab*pth(ixO^S)**mhd_gamma
+    pth(ixO^S)=gamma_1*(w(ixO^S,e_)&
+         - mhd_kin_en(w,ixI^L,ixO^L)&
+         - mhd_mag_en(w,ixI^L,ixO^L))
+
+    if(has_equi_pe0) then
+      pth(ixO^S) = pth(ixO^S) + block%equi_vars(ixO^S,equi_pe0_,b0i)
     end if
 
     if (fix_small_values) then
@@ -2966,13 +3042,9 @@ contains
 
     double precision :: wprim(ixI^S,nw)
 
-    if(mhd_energy) then
-      wprim=w
-      call mhd_to_primitive_semirelati(ixI^L,ixO^L,wprim,x)
-      pth(ixO^S)=wprim(ixO^S,p_)
-    else
-      pth(ixO^S)=mhd_adiab*w(ixO^S,rho_)**mhd_gamma
-    end if
+    wprim=w
+    call mhd_to_primitive_semirelati(ixI^L,ixO^L,wprim,x)
+    pth(ixO^S)=wprim(ixO^S,p_)
 
     if (check_small_values) then
       {do ix^DB= ixO^LIM^DB\}
@@ -3006,11 +3078,7 @@ contains
     double precision, intent(out):: pth(ixI^S)
     integer                      :: iw, ix^D
 
-    if(mhd_energy) then
-      pth(ixO^S)=gamma_1*(w(ixO^S,e_)-mhd_kin_en(w,ixI^L,ixO^L))
-    else
-      pth(ixO^S)=mhd_adiab*w(ixO^S,rho_)**mhd_gamma
-    end if
+    pth(ixO^S)=gamma_1*(w(ixO^S,e_)-mhd_kin_en(w,ixI^L,ixO^L))
 
     if (fix_small_values) then
       {do ix^DB= ixO^LIM^DB\}
@@ -3058,34 +3126,43 @@ contains
     double precision, intent(in) :: w(ixI^S, 1:nw)
     double precision, intent(in) :: x(ixI^S, 1:ndim)
     double precision, intent(out):: res(ixI^S)
-    res(ixO^S) = gamma_1 * w(ixO^S, e_) /w(ixO^S,rho_)
+
+    double precision :: R(ixI^S)
+
+    call mhd_get_Rfactor(w,x,ixI^L,ixO^L,R)
+    res(ixO^S) = gamma_1 * w(ixO^S, e_)/(w(ixO^S,rho_)*R(ixO^S))
   end subroutine mhd_get_temperature_from_eint
 
   !> Calculate temperature=p/rho when in e_ the total energy is stored
-  !> this does not check the values of mhd_energy and mhd_internal_e,
-  !>  mhd_energy = .true. and mhd_internal_e = .false.
-  !> also check small_values is avoided
   subroutine mhd_get_temperature_from_etot(w, x, ixI^L, ixO^L, res)
     use mod_global_parameters
     integer, intent(in)          :: ixI^L, ixO^L
     double precision, intent(in) :: w(ixI^S, 1:nw)
     double precision, intent(in) :: x(ixI^S, 1:ndim)
     double precision, intent(out):: res(ixI^S)
-    res(ixO^S)=(gamma_1*(w(ixO^S,e_)&
-           - mhd_kin_en(w,ixI^L,ixO^L)&
-           - mhd_mag_en(w,ixI^L,ixO^L)))/w(ixO^S,rho_)
+
+    double precision :: R(ixI^S)
+
+    call mhd_get_Rfactor(w,x,ixI^L,ixO^L,R)
+    call mhd_get_pthermal(w,x,ixI^L,ixO^L,res)
+    res(ixO^S)=res(ixO^S)/(R(ixO^S)*w(ixO^S,rho_))
+
   end subroutine mhd_get_temperature_from_etot
 
-  !> Calculate temperature from hydrodynamic energy
-  subroutine mhd_get_temperature_from_hde(w, x, ixI^L, ixO^L, res)
+  subroutine mhd_get_temperature_from_etot_with_equi(w, x, ixI^L, ixO^L, res)
     use mod_global_parameters
     integer, intent(in)          :: ixI^L, ixO^L
     double precision, intent(in) :: w(ixI^S, 1:nw)
     double precision, intent(in) :: x(ixI^S, 1:ndim)
     double precision, intent(out):: res(ixI^S)
-    res(ixO^S)=gamma_1*(w(ixO^S,e_)&
-           - mhd_kin_en(w,ixI^L,ixO^L))/w(ixO^S,rho_)
-  end subroutine mhd_get_temperature_from_hde
+
+    double precision :: R(ixI^S)
+
+    call mhd_get_Rfactor(w,x,ixI^L,ixO^L,R)
+    call mhd_get_pthermal(w,x,ixI^L,ixO^L,res)
+    res(ixO^S)=res(ixO^S)/(R(ixO^S)*(w(ixO^S,rho_)+block%equi_vars(ixO^S,equi_rho0_,b0i)))
+
+  end subroutine mhd_get_temperature_from_etot_with_equi
 
   subroutine mhd_get_temperature_from_eint_with_equi(w, x, ixI^L, ixO^L, res)
     use mod_global_parameters
@@ -3093,8 +3170,13 @@ contains
     double precision, intent(in) :: w(ixI^S, 1:nw)
     double precision, intent(in) :: x(ixI^S, 1:ndim)
     double precision, intent(out):: res(ixI^S)
+
+    double precision :: R(ixI^S)
+
+    call mhd_get_Rfactor(w,x,ixI^L,ixO^L,R)
     res(ixO^S) = (gamma_1 * w(ixO^S, e_) + block%equi_vars(ixO^S,equi_pe0_,b0i)) /&
-                (w(ixO^S,rho_) +block%equi_vars(ixO^S,equi_rho0_,b0i))
+                ((w(ixO^S,rho_) +block%equi_vars(ixO^S,equi_rho0_,b0i))*R(ixO^S))
+
   end subroutine mhd_get_temperature_from_eint_with_equi
 
   subroutine mhd_get_temperature_equi(w,x, ixI^L, ixO^L, res)
@@ -3103,7 +3185,12 @@ contains
     double precision, intent(in) :: w(ixI^S, 1:nw)
     double precision, intent(in) :: x(ixI^S, 1:ndim)
     double precision, intent(out):: res(ixI^S)
-    res(ixO^S)= block%equi_vars(ixO^S,equi_pe0_,b0i)/block%equi_vars(ixO^S,equi_rho0_,b0i)
+
+    double precision :: R(ixI^S)
+
+    call mhd_get_Rfactor(w,x,ixI^L,ixO^L,R)
+    res(ixO^S)= block%equi_vars(ixO^S,equi_pe0_,b0i)/(block%equi_vars(ixO^S,equi_rho0_,b0i)*R(ixO^S))
+
   end subroutine mhd_get_temperature_equi
 
   subroutine mhd_get_rho_equi(w, x, ixI^L, ixO^L, res)
@@ -3123,19 +3210,6 @@ contains
     double precision, intent(out):: res(ixI^S)
     res(ixO^S) = block%equi_vars(ixO^S,equi_pe0_,b0i)
   end subroutine mhd_get_pe_equi
-
-  subroutine mhd_get_temperature_from_etot_with_equi(w, x, ixI^L, ixO^L, res)
-    use mod_global_parameters
-    integer, intent(in)          :: ixI^L, ixO^L
-    double precision, intent(in) :: w(ixI^S, 1:nw)
-    double precision, intent(in) :: x(ixI^S, 1:ndim)
-    double precision, intent(out):: res(ixI^S)
-    res(ixO^S)=(gamma_1*(w(ixO^S,e_)&
-           - mhd_kin_en(w,ixI^L,ixO^L)&
-           - mhd_mag_en(w,ixI^L,ixO^L)) +  block%equi_vars(ixO^S,equi_pe0_,b0i))&
-            /(w(ixO^S,rho_) +block%equi_vars(ixO^S,equi_rho0_,b0i))
-            
-  end subroutine mhd_get_temperature_from_etot_with_equi
 
   !> Calculate the square of the thermal sound speed csound2 within ixO^L.
   !> csound2=gamma*p/rho
@@ -4378,7 +4452,7 @@ contains
 
     call mhd_get_pthermal(w,x,ixI^L,ixO^L,pth)
 
-    w(ixO^S,Te_)=2.3d0*pth(ixO^S)/(w(ixO^S,rho_)*(1.d0+iz_H(ixO^S)+&
+    w(ixO^S,Te_)=(2.d0+3.d0*He_abundance)*pth(ixO^S)/(w(ixO^S,rho_)*(1.d0+iz_H(ixO^S)+&
      He_abundance*(iz_He(ixO^S)*(iz_He(ixO^S)+1.d0)+1.d0)))
 
   end subroutine add_source_update_temperature
@@ -6820,5 +6894,32 @@ contains
     call b_from_vector_potentialA(ixIs^L, ixI^L, ixO^L, ws, x, Adummy)
 
   end subroutine b_from_vector_potential
+
+  subroutine Rfactor_from_temperature_ionization(w,x,ixI^L,ixO^L,Rfactor)
+    use mod_global_parameters
+    use mod_ionization_degree
+    integer, intent(in) :: ixI^L, ixO^L
+    double precision, intent(in) :: w(ixI^S,1:nw)
+    double precision, intent(in) :: x(ixI^S,1:ndim)
+    double precision, intent(out):: Rfactor(ixI^S)
+
+    double precision :: iz_H(ixO^S),iz_He(ixO^S)
+
+    call ionization_degree_from_temperature(ixI^L,ixO^L,w(ixI^S,Te_),iz_H,iz_He)
+    ! assume the first and second ionization of Helium have the same degree
+    Rfactor(ixO^S)=(1.d0+iz_H(ixO^S)+0.1d0*(1.d0+iz_He(ixO^S)*(1.d0+iz_He(ixO^S))))/(2.d0+3.d0*He_abundance)
+
+  end subroutine Rfactor_from_temperature_ionization
+
+  subroutine Rfactor_from_constant_ionization(w,x,ixI^L,ixO^L,Rfactor)
+    use mod_global_parameters
+    integer, intent(in) :: ixI^L, ixO^L
+    double precision, intent(in) :: w(ixI^S,1:nw)
+    double precision, intent(in) :: x(ixI^S,1:ndim)
+    double precision, intent(out):: Rfactor(ixI^S)
+
+    Rfactor(ixO^S)=RR
+
+  end subroutine Rfactor_from_constant_ionization
 
 end module mod_mhd_phys

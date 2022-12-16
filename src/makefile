@@ -146,6 +146,7 @@ mod_hd_phys.o: mod_dust.mod
 mod_hd_phys.o: mod_fix_conserve.mod
 mod_hd_phys.o: mod_geometry.mod
 mod_hd_phys.o: mod_gravity.mod
+mod_hd_phys.o: mod_ionization_degree.mod
 mod_hd_phys.o: mod_particles.mod
 mod_hd_phys.o: mod_physics.mod
 mod_hd_phys.o: mod_radiative_cooling.mod
@@ -290,6 +291,7 @@ mod_rhd_phys.o: mod_fix_conserve.mod
 mod_rhd_phys.o: mod_fld.mod
 mod_rhd_phys.o: mod_geometry.mod
 mod_rhd_phys.o: mod_gravity.mod
+mod_rhd_phys.o: mod_ionization_degree.mod
 mod_rhd_phys.o: mod_multigrid_coupling.mod
 mod_rhd_phys.o: mod_particles.mod
 mod_rhd_phys.o: mod_physics.mod

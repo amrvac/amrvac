@@ -12,6 +12,7 @@ module mod_rhd_phys
   use mod_thermal_conduction, only: tc_fluid
   use mod_radiative_cooling, only: rc_fluid
   use mod_thermal_emission, only: te_fluid
+  use mod_physics
   implicit none
   private
 
@@ -63,6 +64,9 @@ module mod_rhd_phys
   !> Index of the radiation energy
   integer, public, protected              :: r_e
 
+  !> Indices of temperature
+  integer, public, protected :: Te_
+
   !> Index of the cutoff temperature for the TRAC method
   integer, public, protected              :: Tcoff_
 
@@ -106,6 +110,9 @@ module mod_rhd_phys
   !> Treat radiation advection
   logical, public, protected :: rhd_radiation_advection = .true.
 
+  !> Whether plasma is partially ionized
+  logical, public, protected :: rhd_partial_ionization = .false.
+
   !> Do a running mean over the radiation pressure when determining dt
   logical, protected :: radio_acoustic_filter = .false.
   integer, protected :: size_ra_filter = 1
@@ -116,6 +123,25 @@ module mod_rhd_phys
   !> Use the speed of light to calculate the timestep, usefull for debugging
   logical :: dt_c = .false.
 
+  !> Ionization fraction of H
+  !> H_ion_fr = H+/(H+ + H)
+  double precision, public, protected  :: H_ion_fr=1d0
+  !> Ionization fraction of He
+  !> He_ion_fr = (He2+ + He+)/(He2+ + He+ + He)
+  double precision, public, protected  :: He_ion_fr=1d0
+  !> Ratio of number He2+ / number He+ + He2+
+  !> He_ion_fr2 = He2+/(He2+ + He+)
+  double precision, public, protected  :: He_ion_fr2=1d0
+  ! used for eq of state when it is not defined by units,
+  ! the units do not contain terms related to ionization fraction
+  ! and it is p = RR * rho * T
+  double precision, public, protected  :: RR=1d0
+  ! remove the below flag  and assume default value = .false.
+  ! when eq state properly implemented everywhere
+  ! and not anymore through units
+  logical, public, protected :: eq_state_units = .true.
+
+  procedure(sub_get_pthermal), pointer :: rhd_get_Rfactor   => null()
   ! Public methods
   public :: rhd_phys_init
   public :: rhd_kin_en
@@ -141,10 +167,11 @@ contains
 
     namelist /rhd_list/ rhd_energy, rhd_pressure, rhd_n_tracer, rhd_gamma, rhd_adiab, &
     rhd_dust, rhd_thermal_conduction, rhd_radiative_cooling, rhd_viscosity, &
-    rhd_gravity, He_abundance, SI_unit, rhd_particles, rhd_rotating_frame, rhd_trac, &
+    rhd_gravity, He_abundance, H_ion_fr, He_ion_fr, He_ion_fr2, eq_state_units, &
+    SI_unit, rhd_particles, rhd_rotating_frame, rhd_trac, &
     rhd_force_diagonal, rhd_trac_type, rhd_radiation_formalism, &
     rhd_radiation_force, rhd_energy_interact, rhd_radiation_diffusion, &
-    rhd_radiation_advection, radio_acoustic_filter, size_ra_filter, dt_c
+    rhd_radiation_advection, radio_acoustic_filter, size_ra_filter, dt_c, rhd_partial_ionization
 
     do n = 1, size(files)
        open(unitpar, file=trim(files(n)), status="old")
@@ -244,9 +271,10 @@ contains
     use mod_rotating_frame, only:rotating_frame_init
     use mod_fld
     use mod_afld
-    use mod_physics
     use mod_supertimestepping, only: sts_init, add_sts_method,&
             set_conversion_methods_to_head, set_error_handling_to_head
+    use mod_ionization_degree
+    use mod_usr_methods, only: usr_Rfactor
 
     integer :: itr, idir
 
@@ -282,6 +310,12 @@ contains
         if(mype==0) write(*,*) 'WARNING: set rhd_radiative_cooling=F when rhd_energy=F'
       end if
     end if
+    if(.not.eq_state_units) then
+      if(rhd_partial_ionization) then
+        rhd_partial_ionization=.false.
+        if(mype==0) write(*,*) 'WARNING: set rhd_partial_ionization=F when eq_state_units=F'
+      end if
+    end if
     use_particles = rhd_particles
 
     allocate(start_indices(number_species),stop_indices(number_species))
@@ -305,6 +339,13 @@ contains
 
     !> set radiation energy
     r_e = var_set_radiation_energy()
+
+    !  set temperature as an auxiliary variable to get ionization degree
+    if(rhd_partial_ionization) then
+      Te_ = var_set_auxvar('Te','Te')
+    else
+      Te_ = -1
+    end if
 
     phys_get_dt              => rhd_get_dt
     phys_get_cmax            => rhd_get_cmax
@@ -374,6 +415,15 @@ contains
       Tcoff_ = -1
     end if
 
+    ! choose Rfactor in ideal gas law
+    if(rhd_partial_ionization) then
+      rhd_get_Rfactor=>Rfactor_from_temperature_ionization
+    else if(associated(usr_Rfactor)) then
+      rhd_get_Rfactor=>usr_Rfactor
+    else
+      rhd_get_Rfactor=>Rfactor_from_constant_ionization
+    end if
+
     ! initialize thermal conduction module
     if (rhd_thermal_conduction) then
       if (.not. rhd_energy) &
@@ -403,6 +453,7 @@ contains
       call radiative_cooling_init(rc_fl,rc_params_read)
       rc_fl%get_rho => rhd_get_rho
       rc_fl%get_pthermal => rhd_get_pthermal
+      rc_fl%get_var_Rfactor => rhd_get_Rfactor
       rc_fl%e_ = e_
       rc_fl%Tcoff_ = Tcoff_
     end if
@@ -442,6 +493,8 @@ contains
 
     !> Usefull constante
     kbmpmua4 = unit_pressure**(-3.d0/4.d0)*unit_density*const_kB/(const_mp*fld_mu)*const_rad_a**(-1.d0/4.d0)
+    ! initialize ionization degree table
+    if(rhd_partial_ionization) call ionization_degree_init()
 
   end subroutine rhd_phys_init
 
@@ -668,10 +721,10 @@ contains
     end do
   end subroutine rhd_set_mg_bounds
 
-
   subroutine rhd_physical_units
     use mod_global_parameters
     double precision :: mp,kB
+    double precision :: a,b
     ! Derive scaling units
     if(SI_unit) then
       mp=mp_SI
@@ -680,21 +733,34 @@ contains
       mp=mp_cgs
       kB=kB_cgs
     end if
+    if(eq_state_units) then
+      a = 1d0 + 4d0 * He_abundance
+      if(rhd_partial_ionization) then
+        b = 2.d0+3.d0*He_abundance
+      else
+        b = 1d0 + H_ion_fr + He_abundance*(He_ion_fr*(He_ion_fr2 + 1d0)+1d0)
+      end if
+      RR = 1d0
+    else
+      a = 1d0
+      b = 1d0
+      RR = (1d0 + H_ion_fr + He_abundance*(He_ion_fr*(He_ion_fr2 + 1d0)+1d0))/(1d0 + 4d0 * He_abundance)
+    end if
     if(unit_density/=1.d0) then
-      unit_numberdensity=unit_density/((1.d0+4.d0*He_abundance)*mp)
+      unit_numberdensity=unit_density/(a*mp)
     else
       ! unit of numberdensity is independent by default
-      unit_density=(1.d0+4.d0*He_abundance)*mp*unit_numberdensity
+      unit_density=a*mp*unit_numberdensity
     end if
     if(unit_velocity/=1.d0) then
       unit_pressure=unit_density*unit_velocity**2
-      unit_temperature=unit_pressure/((2.d0+3.d0*He_abundance)*unit_numberdensity*kB)
+      unit_temperature=unit_pressure/(b*unit_numberdensity*kB)
     else if(unit_pressure/=1.d0) then
-      unit_temperature=unit_pressure/((2.d0+3.d0*He_abundance)*unit_numberdensity*kB)
+      unit_temperature=unit_pressure/(b*unit_numberdensity*kB)
       unit_velocity=sqrt(unit_pressure/unit_density)
     else
       ! unit of temperature is independent by default
-      unit_pressure=(2.d0+3.d0*He_abundance)*unit_numberdensity*kB*unit_temperature
+      unit_pressure=b*unit_numberdensity*kB*unit_temperature
       unit_velocity=sqrt(unit_pressure/unit_density)
     end if
     if(unit_time/=1.d0) then
@@ -1886,5 +1952,32 @@ contains
       end select
     end if
   end subroutine rhd_handle_small_values
+
+  subroutine Rfactor_from_temperature_ionization(w,x,ixI^L,ixO^L,Rfactor)
+    use mod_global_parameters
+    use mod_ionization_degree
+    integer, intent(in) :: ixI^L, ixO^L
+    double precision, intent(in) :: w(ixI^S,1:nw)
+    double precision, intent(in) :: x(ixI^S,1:ndim)
+    double precision, intent(out):: Rfactor(ixI^S)
+
+    double precision :: iz_H(ixO^S),iz_He(ixO^S)
+
+    call ionization_degree_from_temperature(ixI^L,ixO^L,w(ixI^S,Te_),iz_H,iz_He)
+    ! assume the first and second ionization of Helium have the same degree
+    Rfactor(ixO^S)=(1.d0+iz_H(ixO^S)+0.1d0*(1.d0+iz_He(ixO^S)*(1.d0+iz_He(ixO^S))))/2.3d0
+
+  end subroutine Rfactor_from_temperature_ionization
+
+  subroutine Rfactor_from_constant_ionization(w,x,ixI^L,ixO^L,Rfactor)
+    use mod_global_parameters
+    integer, intent(in) :: ixI^L, ixO^L
+    double precision, intent(in) :: w(ixI^S,1:nw)
+    double precision, intent(in) :: x(ixI^S,1:ndim)
+    double precision, intent(out):: Rfactor(ixI^S)
+
+    Rfactor(ixO^S)=RR
+
+  end subroutine Rfactor_from_constant_ionization
 
 end module mod_rhd_phys
