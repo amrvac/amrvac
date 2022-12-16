@@ -15,7 +15,7 @@ It should be noted that we do not follow the original CAK parametrisation (\f$ \
 \f[
 \mathbf{g}_\mathrm{r} = g_\mathrm{cont} \mathbf{e}_r + g_\mathrm{line}  \mathbf{e}_r = g_\mathrm{e}\,\mathbf{e}_r + f_\mathrm{d} g_\mathrm{line} \mathbf{e}_r
 \f]
-where \f$ g_\mathrm{e} = \kappa_\mathrm{e}L_\star/(4\pi r^2 c) \f$ is the (continuum) radiation acceleration due to Thomson scattering on free electrons with opacity \f$ \kappa_\mathrm{e}=0.34 \, \mathrm{cm}^2/g \f$. The radiation line force expression can take several forms depending on the physics included (see below). The classical radially streaming CAK expression for the force coming from a point star obeys
+where \f$ g_\mathrm{e} = \kappa_\mathrm{e}L_\star/(4\pi r^2 c) \f$ is the (continuum) radiation acceleration due to Thomson scattering on free electrons with opacity \f$ \kappa_\mathrm{e}=0.34 \f$ cm\f$^2\f$/g. The radiation line force expression can take several forms depending on the physics included (see below). The classical radially streaming CAK expression for the force coming from a point star obeys
 \f[
 g_\mathrm{line} = \frac{\bar{Q}^{1-\alpha}}{(1-\alpha)} \frac{g_\mathrm{e}}{t_r^\alpha}
 \f]
@@ -55,14 +55,14 @@ Additionally, specific parameters can be set in the `&cak_list` for the source t
 
 name | type | default | description
 ---|---|---|---
-cak_alpha | double | 0.65 | Power-law index of the CAK line-ensemble distribution function. Allowed values are in the range $\alpha\in [0,1[$.  
+cak_alpha | double | 0.65 | Power-law index of the CAK line-ensemble distribution function. Allowed values are in the range \f$\alpha\in [0,1[\f$.
 gayley_qbar | double | 2000 | Gayley (1995) ensemble-integrated line-strength of the line-ensemble distribution function. Number should be bigger than zero.
 gayley_q0 | double | 2000 | Gayley (1995) line-strength cut-off for the line-ensemble distribution function. Extension to the original CAK formulation to avoid an inifinite line force in the optically thin limit. Number should be bigger than zero.
-cak_1d_force | logical | F | If true, activate the original CAK 1-D (radial) line force prescription as source term to the (M)HD equations. Hence, computes $g_{\mathrm{line},r}$. 
+cak_1d_force | logical | F | If true, activate the original CAK 1-D (radial) line force prescription as source term to the (M)HD equations. Hence, computes \f$g_{\mathrm{line},r}\f$.
 cak_1d_opt | integer | 1 | Switch that allows to select different CAK 1-D force prescriptions. When cak_1d_opt=0 we follow the original CAK radially streaming limit (point star). When cak_1d_opt=1 the 1-D radially streaming force gets adjusted with the finite disc factor to take into account the finite extent of the star. When cak_1d_opt=2 the 1-D radially streaming force is corrected with the finite disc factor and with the line-strength cut-off.
-cak_vector_force | logical | F | If true, activate the CAK line force with components computed in all coordinate directions (radial, polar, azimuthal). Hence, computes $g_{\mathrm{line},r}$, $g_{\mathrm{line},\theta}$, and $g_{\mathrm{line},\phi}$. 
-nthetaray | integer | 6 | If `cak_vector_force=T`, amount of radiation ray points used to describe the radiation angle $\varTheta$.
-nphiray | integer | 6 | If `cak_vector_force=T`, amount of radiation ray points used to describe the radiation angle $\varPhi$.
+cak_vector_force | logical | F | If true, activate the CAK line force with components computed in all coordinate directions (radial, polar, azimuthal). Hence, computes \f$g_{\mathrm{line},r}\f$, \f$g_{\mathrm{line},\theta}\f$, and \f$g_{\mathrm{line},\phi}\f$.
+nthetaray | integer | 6 | If `cak_vector_force=T`, amount of radiation ray points used to describe the radiation angle \f$\Theta\f$.
+nphiray | integer | 6 | If `cak_vector_force=T`, amount of radiation ray points used to describe the radiation angle \f$\Phi\f$.
 fix_vector_force_1d | logical | F | If true, the CAK vector line force will only have a non-zero radial component.
 cak_split |  logical | F | To add the source term in a split or unsplit (default) fashion.
 
@@ -109,7 +109,7 @@ This routine computes a second-order spatially accurate gradient in a certain co
 If a uniform grid is used, the formulae will collapse to a second-order spatially accurate gradient expression for uniform grids.
 
 *rays_init:*
-Initialisation routine for the radiation rays when the `cak_vector_force` is applied. It distributes a preselected amount of rays with radiation angles $(\varTheta, \varPhi)$ on the (projected) stellar disc. Additionally, it assigns weights to the rays in theor contribution to the radiation line force. For convenience the radiation polar angle points are recast to a formulation in terms of impact parameter points. Both the ray points and weights are set by a Gauss-Legendre quadrature.
+Initialisation routine for the radiation rays when the `cak_vector_force` is applied. It distributes a preselected amount of rays with radiation angles (\f$\Theta\f$, \f$\Phi\f$)$ on the (projected) stellar disc. Additionally, it assigns weights to the rays in the contribution to the radiation line force. For convenience the radiation polar angle points are recast to a formulation in terms of impact parameter points. Both the ray points and weights are set by a Gauss-Legendre quadrature.
 This routine is called once in the *cak_init* routine when `cak_vector_force=T`.
 
 *gauss_legendre_quadrature:*
