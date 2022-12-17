@@ -514,7 +514,6 @@ end subroutine readout_satellite
     double precision, intent(in)    :: wCT(ixI^S,1:nw), x(ixI^S,1:ndim)
     double precision, intent(inout) :: w(ixI^S,1:nw)
     double precision   :: test(ixI^S, 1:ndim)
-    double precision :: omega_normalized, omega = 2.97d-6     !Rotation rate: rad/s
     double precision :: MSun = 1.9891d30   !kg
     double precision :: Gravconst_Msun_normalized , GravConst = 6.67384d-11 !SI units
 
@@ -596,26 +595,12 @@ end subroutine readout_satellite
   end if
 
 
-
-
-    omega_normalized = omega * unit_length/unit_velocity
-    Gravconst_Msun_normalized = GravConst*MSun / (unit_velocity**2 * unit_length )
-    !momentum equation -> source = F = rho.g + rho (omega x r)x omega + 2(v x omega)
-    !energy equation   -> source  = v . F
     !Gravity
+    Gravconst_Msun_normalized = GravConst*MSun / (unit_velocity**2 * unit_length )
+    !momentum equation -> source = F = rho.g 
+    !energy equation   -> source  = v . F
     w(ixO^S,e_)  = w(ixO^S,e_)  - qdt*wCT(ixO^S,mom(1))*Gravconst_Msun_normalized/(x(ixO^S,1)**2)
     w(ixO^S,mom(1)) = w(ixO^S,mom(1)) - qdt*wCT(ixO^S,rho_)*Gravconst_Msun_normalized/(x(ixO^S,1)**2)
-    !Centrifugal
-    w(ixO^S,mom(1)) = w(ixO^S,mom(1)) + qdt*( omega_normalized*omega_normalized*x(ixO^S,1)*wCT(ixO^S,rho_)*sin(x(ixO^S,2))*sin(x(ixO^S,2)) )
-    w(ixO^S,mom(2)) = w(ixO^S,mom(2)) + qdt*( omega_normalized*omega_normalized*x(ixO^S,1)*wCT(ixO^S,rho_)*cos(x(ixO^S,2))*sin(x(ixO^S,2)) )
-    !No phi component for the centrifugal force.
-    w(ixO^S,e_)  = w(ixO^S,e_)  + qdt*( omega_normalized*omega_normalized*x(ixO^S,1)*sin(x(ixO^S,2))*( cos(x(ixO^S,2))*wCT(ixO^S,mom(2))&
-       +sin(x(ixO^S,2))*wCT(ixO^S,mom(1)) ) )
-    !Coriolis
-    w(ixO^S,mom(1)) = w(ixO^S,mom(1)) + qdt*2.0d0*(omega_normalized*sin(x(ixO^S,2)))*wCT(ixO^S,mom(3))
-    w(ixO^S,mom(2)) = w(ixO^S,mom(2)) + qdt*2.0d0*(omega_normalized*cos(x(ixO^S,2)))*wCT(ixO^S,mom(3))
-    w(ixO^S,mom(3)) = w(ixO^S,mom(3)) + qdt*2.0d0*omega_normalized*( -cos(x(ixO^S,2))*wCT(ixO^S,mom(2))-sin(x(ixO^S,2))*wCT(ixO^S,mom(1)) )
-    !v.F for coriolis is zero.
 
   end subroutine specialsource
 !-----------------------------------------------------------------------------
@@ -674,7 +659,7 @@ end subroutine readout_satellite
     integer                         :: ix1, ix2, ix3
     double precision                :: xloc(1:ndim)
     double precision                :: r, theta, phi, r_this, theta_this, phi_this
-    double precision                :: lon_cir, u_artificial, omega
+    double precision                :: lon_cir, u_artificial
     double precision                :: before_cme
     double precision                :: phi_satellite
     !-----------------------------------------------------------------------------
@@ -684,38 +669,6 @@ end subroutine readout_satellite
     r_in = 21.5
     ratio = r_out/r_in
     step_size = x(ixI^S,1)*(ratio**((block_num-1)/block_num)-1)
-
-
-    !Implementation of a specific cir, values are for 2012 wind
-
-    !if (qt > timestamp) then
-    !u_artificial = 500000
-    !omega = (2.0*dpi)/24.0/3600.0*(1/2.447d1-1/365.24)
-    !do ix3 = ixImin3, ixImax3
-    !    do ix2 = ixImin2,ixImax2
-    !        do ix1 = ixImin1, ixImax1
-    !            lon_cir = x(ix1, ix2, ix3,3) + (x(ix1, ix2, ix3, 1) - 21.5)*6.955d8/u_artificial*omega
-    !            if (x(ix1, ix2, ix3, 2) > 85*dpi/180.0) then
-    !            if (x(ix1, ix2, ix3, 2) < 95*dpi/180.0) then
-    !
-    !            if (lon_cir > 5.0) then
-    !                if (lon_cir < 7.3) then
-    !                    refine = 1
-    !                    coarsen = -1
-    !                else
-    !                    refine = -1
-    !                    coarsen = 1
-    !                end if
-    !            else
-    !                refine = -1
-    !                coarsen = 1
-    !            end if
-    !            end if
-    !            end if
-    !       end do
-    !    end do
-   !end do
-   !end if
 
 
     ! To Follow Earth location in the domain
@@ -781,7 +734,6 @@ end subroutine readout_satellite
 
     double precision    :: clt_zero, lon_zero
     integer             :: mask_cme, n
-    double precision    :: omega = 2.97d-6
     !-----------------------------------------------------------------------------
 
     select case(iB)
@@ -1837,7 +1789,7 @@ end subroutine readout_satellite
 
   subroutine mask(clt_p, lon_p, mask_value, i)
     use mod_global_parameters
-    double precision          :: clt_p, lon_p, omega = 2.97d-6
+    double precision          :: clt_p, lon_p
     double precision, dimension(num_cmes)           :: theta_opening_angle, t_half, distance, distance1
     integer, intent(out)      :: mask_value
     integer                   :: i

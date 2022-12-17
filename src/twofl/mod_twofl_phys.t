@@ -330,19 +330,6 @@ contains
     call MPI_FILE_WRITE(fh, names, n_par * name_len, MPI_CHARACTER, st, er)
   end subroutine twofl_write_info
 
-  subroutine twofl_angmomfix(fC,x,wnew,ixI^L,ixO^L,idim)
-    use mod_global_parameters
-    double precision, intent(in)       :: x(ixI^S,1:ndim)
-    double precision, intent(inout)    :: fC(ixI^S,1:nwflux,1:ndim),  wnew(ixI^S,1:nw)
-    integer, intent(in)                :: ixI^L, ixO^L
-    integer, intent(in)                :: idim
-    integer                            :: hxO^L, kxC^L, iw
-    double precision                   :: inv_volume(ixI^S)
-
-    call mpistop("to do")
-
-  end subroutine twofl_angmomfix
-
   subroutine twofl_phys_init()
     use mod_global_parameters
     use mod_thermal_conduction
@@ -368,8 +355,8 @@ contains
   ! E_neutrals =  E_kin_neutrals + E_int_neutrals
     phys_total_energy=.false.
 
-  !> Solve internal enery instead of total energy
-  ! for the two fluid the true vale means 
+  !> Solve internal energy instead of total energy
+  ! for the two fluid the true value means 
   ! E_charges = E_int_charges
   ! E_neutrals = E_int_neutrals
     phys_internal_e=.false.
@@ -609,7 +596,6 @@ contains
     phys_check_params        => twofl_check_params
     phys_check_w             => twofl_check_w
     phys_write_info          => twofl_write_info
-    phys_angmomfix           => twofl_angmomfix
     phys_handle_small_values => twofl_handle_small_values
     !set equilibrium variables for the new grid
     if(number_equi_vars>0) then
@@ -4621,9 +4607,6 @@ contains
 
     select case (coordinate)
     case (cylindrical)
-      if (angmomfix) then
-        call mpistop("angmomfix not implemented yet in MHD")
-      endif
       call twofl_get_p_c_total(wCT,x,ixI^L,ixO^L,tmp)
 
       if(phi_>0) then
@@ -4708,23 +4691,19 @@ contains
 
        if(ndir==3) then
          ! m3
-         if(.not.angmomfix) then
-           tmp(ixO^S)=-(wCT(ixO^S,mom_c(3))*wCT(ixO^S,mom_c(1))/rho(ixO^S) &
-                -wCT(ixO^S,mag(3))*wCT(ixO^S,mag(1))) {^NOONED &
-                -(wCT(ixO^S,mom_c(2))*wCT(ixO^S,mom_c(3))/rho(ixO^S) &
-                -wCT(ixO^S,mag(2))*wCT(ixO^S,mag(3))) &
-                *dcos(x(ixO^S,2))/dsin(x(ixO^S,2)) }
-           if (B0field) then
-              tmp(ixO^S)=tmp(ixO^S)+block%B0(ixO^S,1,0)*wCT(ixO^S,mag(3)) &
-                   +wCT(ixO^S,mag(1))*block%B0(ixO^S,3,0) {^NOONED &
-                   +(block%B0(ixO^S,2,0)*wCT(ixO^S,mag(3)) &
-                   +wCT(ixO^S,mag(2))*block%B0(ixO^S,3,0)) &
-                   *dcos(x(ixO^S,2))/dsin(x(ixO^S,2)) }
-           end if
-           w(ixO^S,mom_c(3))=w(ixO^S,mom_c(3))+qdt*tmp(ixO^S)/x(ixO^S,1)
-         else
-           call mpistop("angmomfix not implemented yet in MHD")
+         tmp(ixO^S)=-(wCT(ixO^S,mom_c(3))*wCT(ixO^S,mom_c(1))/rho(ixO^S) &
+              -wCT(ixO^S,mag(3))*wCT(ixO^S,mag(1))) {^NOONED &
+              -(wCT(ixO^S,mom_c(2))*wCT(ixO^S,mom_c(3))/rho(ixO^S) &
+              -wCT(ixO^S,mag(2))*wCT(ixO^S,mag(3))) &
+              *dcos(x(ixO^S,2))/dsin(x(ixO^S,2)) }
+         if (B0field) then
+            tmp(ixO^S)=tmp(ixO^S)+block%B0(ixO^S,1,0)*wCT(ixO^S,mag(3)) &
+                 +wCT(ixO^S,mag(1))*block%B0(ixO^S,3,0) {^NOONED &
+                 +(block%B0(ixO^S,2,0)*wCT(ixO^S,mag(3)) &
+                 +wCT(ixO^S,mag(2))*block%B0(ixO^S,3,0)) &
+                 *dcos(x(ixO^S,2))/dsin(x(ixO^S,2)) }
          end if
+         w(ixO^S,mom_c(3))=w(ixO^S,mom_c(3))+qdt*tmp(ixO^S)/x(ixO^S,1)
          ! b3
          if(.not.stagger_grid) then
            tmp(ixO^S)=(wCT(ixO^S,mom_c(1))*wCT(ixO^S,mag(3)) &
@@ -4765,12 +4744,10 @@ contains
             w(ixO^S, mr_) = w(ixO^S, mr_) + qdt * tmp(ixO^S) / x(ixO^S, r_)
          end where
          ! s[mphi]=(-mphi*mr/rho)/radius
-         if(.not. angmomfix) then
-            where (rho(ixO^S) > 0d0)
-               tmp(ixO^S) = -wCT(ixO^S, mphi_) * wCT(ixO^S, mr_) / rho(ixO^S)
-               w(ixO^S, mphi_) = w(ixO^S, mphi_) + qdt * tmp(ixO^S) / x(ixO^S, r_)
-            end where
-         end if
+         where (rho(ixO^S) > 0d0)
+             tmp(ixO^S) = -wCT(ixO^S, mphi_) * wCT(ixO^S, mr_) / rho(ixO^S)
+             w(ixO^S, mphi_) = w(ixO^S, mphi_) + qdt * tmp(ixO^S) / x(ixO^S, r_)
+         end where
       else
          ! s[mr]=2pthermal/radius
          w(ixO^S, mr_) = w(ixO^S, mr_) + qdt * tmp1(ixO^S) / x(ixO^S, r_)
@@ -4797,32 +4774,17 @@ contains
        if (ndir == 3) then
           tmp(ixO^S) = tmp(ixO^S) + (wCT(ixO^S, mom_n(3))**2 / rho(ixO^S)) / tan(x(ixO^S, 2))
        end if
-       if (.not. angmomfix) then
-          tmp(ixO^S) = tmp(ixO^S) - (wCT(ixO^S, mom_n(2)) * wCT(ixO^S, mr_)) / rho(ixO^S)
-       end if
+       tmp(ixO^S) = tmp(ixO^S) - (wCT(ixO^S, mom_n(2)) * wCT(ixO^S, mr_)) / rho(ixO^S)
        w(ixO^S, mom_n(2)) = w(ixO^S, mom_n(2)) + qdt * tmp(ixO^S) / x(ixO^S, 1)
 
        if (ndir == 3) then
          ! s[mphi]=-(mphi*mr/rho)/r-cot(theta)*(mtheta*mphi/rho)/r
-         if (.not. angmomfix) then
-           tmp(ixO^S) = -(wCT(ixO^S, mom_n(3)) * wCT(ixO^S, mr_)) / rho(ixO^S)&
-                      - (wCT(ixO^S, mom_n(2)) * wCT(ixO^S, mom_n(3))) / rho(ixO^S) / tan(x(ixO^S, 2))
-           w(ixO^S, mom_n(3)) = w(ixO^S, mom_n(3)) + qdt * tmp(ixO^S) / x(ixO^S, 1)
-         end if
+         tmp(ixO^S) = -(wCT(ixO^S, mom_n(3)) * wCT(ixO^S, mr_)) / rho(ixO^S)&
+                     - (wCT(ixO^S, mom_n(2)) * wCT(ixO^S, mom_n(3))) / rho(ixO^S) / tan(x(ixO^S, 2))
+         w(ixO^S, mom_n(3)) = w(ixO^S, mom_n(3)) + qdt * tmp(ixO^S) / x(ixO^S, 1)
        end if
        }
     end select
-
-!    if (hd_viscosity) call visc_add_source_geom(qdt,ixI^L,ixO^L,wCT,w,x)
-!
-!    if (hd_rotating_frame) then
-!       if (hd_dust) then
-!          call mpistop("Rotating frame not implemented yet with dust")
-!       else
-!          call rotating_frame_add_source(qdt,ixI^L,ixO^L,wCT,w,x)
-!       end if
-!    end if
-!
 
     contains
       subroutine twofl_get_p_c_total(w,x,ixI^L,ixO^L,p)

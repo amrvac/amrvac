@@ -1,4 +1,4 @@
-!> Module for including rotating frame in hydrodynamics simulations
+!> Module for including rotating frame in (magneto)hydrodynamics simulations
 !> The rotation vector is assumed to be along z direction
 !>(both in cylindrical and spherical)
 
@@ -42,6 +42,7 @@ contains
     use mod_global_parameters
     use mod_usr_methods
     use mod_geometry
+    use mod_physics, only: phys_energy, phys_internal_e
     
     integer, intent(in)             :: ixI^L, ixO^L
     double precision, intent(in)    :: qdt, x(ixI^S,1:ndim)
@@ -52,6 +53,7 @@ contains
     ! .. local ..
 
     double precision                :: rotating_terms(ixI^S),frame_omega(ixI^S)
+    double precision                :: work(ixI^S)
 
     select case (coordinate)
     case (cylindrical)
@@ -61,17 +63,20 @@ contains
        end if
        w(ixO^S, iw_mom(r_)) = w(ixO^S, iw_mom(r_)) + qdt * rotating_terms(ixO^S)
        
-       if(phi_>0 .and. .not. angmomfix) then
+       if(phi_>0) then
           rotating_terms(ixO^S)   = - two * omega_frame * wCT(ixO^S,iw_mom(r_))
           w(ixO^S, iw_mom(phi_)) = w(ixO^S, iw_mom(phi_)) + qdt * rotating_terms(ixO^S)
        end if
-    case (spherical)
-       !call mpistop("Rotating frame not implemented yet with spherical geometries")
-       ! source[mrad] = 2mphi*vframe/r + rho*vframe**2/r
 
-       call rotating_frame_omega(x,ixI^L,ixO^L,frame_omega)
+       if(phys_energy .and. (.not.phys_internal_e)) then
+          w(ixO^S, iw_e) = w(ixO^S, iw_e) + qdt * omega_frame**2 * x(ixO^S,r_) * wCT(ixO^S,iw_mom(r_))
+       endif
+
+    case (spherical)
+       frame_omega(ixO^S) = omega_frame * dsin(x(ixO^S,2))
+       ! source[mrad] = 2mphi*vframe/r + rho*vframe**2/r
        rotating_terms(ixO^S) = frame_omega(ixO^S)**2 * x(ixO^S,r_) * wCT(ixO^S,iw_rho)
-        if (phi_ > 0) then
+       if (phi_ > 0) then
            rotating_terms(ixO^S) = rotating_terms(ixO^S) + &
                 2.d0 * frame_omega(ixO^S) * wCT(ixO^S,iw_mom(phi_))
        end if
@@ -86,53 +91,26 @@ contains
        end if
        w(ixO^S, iw_mom(2)) = w(ixO^S, iw_mom(2)) + qdt * rotating_terms(ixO^S)/ tan(x(ixO^S, 2))
 
-       if (phi_>0  .and. .not. angmomfix) then
+       if (phi_>0) then
           ! source[mphi]=-2*mr*vframe/r-2*cot(theta)*mtheta*vframe/r
           rotating_terms(ixO^S) = -2.d0*frame_omega(ixO^S)* wCT(ixO^S, iw_mom(r_))&
                - 2.d0*wCT(ixO^S, iw_mom(2)) * frame_omega(ixO^S)/ tan(x(ixO^S, 2))
           w(ixO^S, iw_mom(3)) = w(ixO^S, iw_mom(3)) + qdt * rotating_terms(ixO^S)
        end if
        }
+ 
+       if(phys_energy .and. (.not.phys_internal_e)) then
+          work(ixO^S)= frame_omega(ixO^S)**2 * x(ixO^S,r_) * wCT(ixO^S,iw_mom(r_))
+          {^NOONED
+          work(ixO^S)=work(ixO^S)+frame_omega(ixO^S)**2 * x(ixO^S,r_)* wCT(ixO^S, iw_mom(2))/ tan(x(ixO^S, 2))
+          }
+          w(ixO^S, iw_e) = w(ixO^S, iw_e) + qdt * work(ixO^S)
+       endif
+
     case default
-       call mpistop("Rotating frame not implemented in this geometries")
+       call mpistop("Rotating frame not implemented in this geometrie")
     end select
     
   end subroutine rotating_frame_add_source
 
-
-  subroutine rotating_frame_velocity(x,ixI^L,ixO^L,frame_vel)
-        use mod_global_parameters
-    use mod_usr_methods
-    use mod_geometry
-    
-    integer, intent(in)             :: ixI^L, ixO^L
-    double precision, intent(in)    :: x(ixI^S,1:ndim)
-    double precision, intent(out)   :: frame_vel(ixI^S)
-
-    frame_vel(ixO^S) = x(ixO^S,r_) * omega_frame
-    {^NOONED
-    if (coordinate == spherical .and. ndim > 1) then
-       frame_vel(ixO^S) = frame_vel(ixO^S) * dsin(x(ixO^S,2))
-    end if
-    }
-
-  end subroutine rotating_frame_velocity
-
-    subroutine rotating_frame_omega(x,ixI^L,ixO^L,frame_omega)
-        use mod_global_parameters
-    use mod_usr_methods
-    use mod_geometry
-    
-    integer, intent(in)             :: ixI^L, ixO^L
-    double precision, intent(in)    :: x(ixI^S,1:ndim)
-    double precision, intent(out)   :: frame_omega(ixI^S)
-
-    frame_omega(ixO^S) =  omega_frame
-    {^NOONED
-    if (coordinate == spherical .and. ndim > 1) then
-       frame_omega(ixO^S) = frame_omega(ixO^S)* dsin(x(ixO^S,2))
-    end if
-    }
-
-  end subroutine rotating_frame_omega
 end module mod_rotating_frame

@@ -252,17 +252,11 @@ contains
       do idims= idims^LIM
          hxO^L=ixO^L-kr(idims,^D);
 
-         if(.not. angmomfix) then ! default case
-           do iw=iwstart,nwflux
-             fC(ixI^S,iw,idims)=-qdt*fC(ixI^S,iw,idims)*block%surfaceC(ixI^S,idims)
-             wnew(ixO^S,iw)=wnew(ixO^S,iw) + (fC(ixO^S,iw,idims)-fC(hxO^S,iw,idims)) * &
-                 inv_volume
-           end do
-         else
-           ! If angular momentum conserving way to solve the equations,
-           ! some fluxes additions need to be treated specifically
-           call phys_angmomfix(fC,x,wnew,ixI^L,ixO^L,idims)
-         end if
+         do iw=iwstart,nwflux
+           fC(ixI^S,iw,idims)=-qdt*fC(ixI^S,iw,idims)*block%surfaceC(ixI^S,idims)
+           wnew(ixO^S,iw)=wnew(ixO^S,iw) + (fC(ixO^S,iw,idims)-fC(hxO^S,iw,idims)) * &
+               inv_volume
+         end do
 
          ! For the MUSCL scheme apply the characteristic based limiter
          if (method==fs_tvdmu) &
