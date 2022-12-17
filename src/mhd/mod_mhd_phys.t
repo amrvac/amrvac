@@ -280,6 +280,7 @@ module mod_mhd_phys
   procedure(sub_small_values), pointer :: mhd_handle_small_values => null()
   procedure(sub_get_pthermal), pointer :: mhd_get_pthermal  => null()
   procedure(sub_get_pthermal), pointer :: mhd_get_Rfactor   => null()
+  procedure(sub_get_pthermal), pointer :: mhd_get_temperature=> null()
   procedure(sub_get_v), pointer        :: mhd_get_v         => null()
   procedure(fun_kin_en), pointer       :: mhd_kin_en        => null()
   ! Public methods
@@ -287,6 +288,7 @@ module mod_mhd_phys
   public :: mhd_phys_init
   public :: mhd_kin_en
   public :: mhd_get_pthermal
+  public :: mhd_get_temperature
   public :: mhd_get_v
   public :: mhd_get_rho
   public :: mhd_get_v_idim
@@ -744,6 +746,24 @@ contains
       mhd_get_Rfactor=>usr_Rfactor
     else
       mhd_get_Rfactor=>Rfactor_from_constant_ionization
+    end if
+
+    if(mhd_partial_ionization) then
+      mhd_get_temperature => mhd_get_temperature_from_Te
+    else
+      if(mhd_internal_e) then
+        if(has_equi_pe0 .and. has_equi_rho0) then
+          mhd_get_temperature => mhd_get_temperature_from_eint_with_equi
+        else
+          mhd_get_temperature => mhd_get_temperature_from_eint
+        end if
+      else
+        if(has_equi_pe0 .and. has_equi_rho0) then
+          mhd_get_temperature => mhd_get_temperature_from_etot_with_equi
+        else
+          mhd_get_temperature => mhd_get_temperature_from_etot
+        end if
+      end if
     end if
 
     ! if using ct stagger grid, boundary divb=0 is not done here
@@ -2329,14 +2349,7 @@ contains
     integer :: jxP^L,hxP^L,ixP^L
     logical :: lrlt(ixI^S)
 
-    ! reuse lts as rhoc
-    call mhd_get_rho(w,x,ixI^L,ixI^L,lts)
-    if(mhd_internal_e) then
-      tmp1(ixI^S)=w(ixI^S,e_)*gamma_1
-    else
-      call phys_get_pthermal(w,x,ixI^L,ixI^L,tmp1)
-    end if
-    Te(ixI^S)=tmp1(ixI^S)/lts(ixI^S)
+    call mhd_get_temperature(w,x,ixI^L,ixI^L,Te)
     Tco_local=zero
     Tmax_local=maxval(Te(ixO^S))
 

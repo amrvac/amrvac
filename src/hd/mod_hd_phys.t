@@ -902,8 +902,7 @@ contains
     logical :: lrlt(ixI^S)
 
     {^IFONED
-    tmp1(ixI^S)=w(ixI^S,e_)-0.5d0*sum(w(ixI^S,iw_mom(:))**2,dim=ndim+1)/w(ixI^S,rho_)
-    Te(ixI^S)=tmp1(ixI^S)/w(ixI^S,rho_)*(hd_gamma-1.d0)
+    call hd_get_temperature_from_etot(w,x,ixI^L,ixI^L,Te)
 
     Tco_local=zero
     Tmax_local=maxval(Te(ixO^S))
