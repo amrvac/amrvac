@@ -382,10 +382,6 @@ module mod_thermal_emission
     procedure (get_subr1), pointer, nopass :: get_pthermal => null()
     procedure (get_subr1), pointer, nopass :: get_var_Rfactor => null()
 
-    ! factor in eq of state p = Rfactor * rho * T
-    ! used for getting temperature
-    double precision :: Rfactor = 1d0
-
   end type te_fluid
 
 
@@ -624,12 +620,8 @@ module mod_thermal_emission
       end select
       call fl%get_pthermal(w,x,ixI^L,ixO^L,pth)
       call fl%get_rho(w,x,ixI^L,ixO^L,Ne)
-      if(associated(fl%get_var_Rfactor)) then
-        call fl%get_var_Rfactor(w,x,ixI^L,ixO^L,Te)
-        Te(ixO^S)=pth(ixO^S)/(Ne(ixO^S)*Te(ixO^S))*unit_temperature
-      else  
-        Te(ixO^S)=pth(ixO^S)/(Ne(ixO^S)*fl%Rfactor)*unit_temperature
-      endif
+      call fl%get_var_Rfactor(w,x,ixI^L,ixO^L,Te)
+      Te(ixO^S)=pth(ixO^S)/(Ne(ixO^S)*Te(ixO^S))*unit_temperature
       if (SI_unit) then
         Ne(ixO^S)=Ne(ixO^S)*unit_numberdensity/1.d6 ! m^-3 -> cm-3
         flux(ixO^S)=Ne(ixO^S)**2
@@ -713,13 +705,8 @@ module mod_thermal_emission
       numE=floor((Eu-El)/dE)
       call fl%get_pthermal(w,x,ixI^L,ixO^L,pth)
       call fl%get_rho(w,x,ixI^L,ixO^L,Ne)
-
-      if(associated(fl%get_var_Rfactor)) then
-        call fl%get_var_Rfactor(w,x,ixI^L,ixO^L,Te)
-        Te(ixO^S)=pth(ixO^S)/(Ne(ixO^S)*Te(ixO^S))*unit_temperature
-      else
-        Te(ixO^S)=pth(ixO^S)/(Ne(ixO^S)*fl%Rfactor)*unit_temperature
-      endif
+      call fl%get_var_Rfactor(w,x,ixI^L,ixO^L,Te)
+      Te(ixO^S)=pth(ixO^S)/(Ne(ixO^S)*Te(ixO^S))*unit_temperature
       if (SI_unit) then
         Ne(ixO^S)=Ne(ixO^S)*unit_numberdensity/1.d6 ! m^-3 -> cm-3
         EM(ixO^S)=(Ne(ixO^S))**2*1.d6 ! cm^-3 m^-3
@@ -812,12 +799,8 @@ module mod_thermal_emission
         numE=floor((Eu-El)/dE)
         call fl%get_pthermal(w,x,ixI^L,ixb^L,pth)
         call fl%get_rho(w,x,ixI^L,ixb^L,Ne)
-        if(associated(fl%get_var_Rfactor)) then
-          call fl%get_var_Rfactor(w,x,ixI^L,ixb^L,Te)
-          Te(ixb^S)=pth(ixb^S)/(Ne(ixb^S)*Te(ixb^S))*unit_temperature
-        else
-          Te(ixb^S)=pth(ixb^S)/(Ne(ixb^S)*fl%Rfactor)*unit_temperature
-        endif
+        call fl%get_var_Rfactor(w,x,ixI^L,ixb^L,Te)
+        Te(ixb^S)=pth(ixb^S)/(Ne(ixb^S)*Te(ixb^S))*unit_temperature
         if (SI_unit) then
           Ne(ixO^S)=Ne(ixO^S)*unit_numberdensity/1.d6 ! m^-3 -> cm-3
           EM(ixb^S)=(I0*(Ne(ixb^S))**2)*dV(ixb^S)*(unit_length*1.d2)**3 ! cm^-3
@@ -1089,12 +1072,8 @@ module mod_thermal_emission
       call get_EUV(spectrum_wl,ixI^L,ixO^L,ps(igrid)%w,ps(igrid)%x,fl,flux)
       call fl%get_pthermal(ps(igrid)%w,ps(igrid)%x,ixI^L,ixO^L,pth)
       call fl%get_rho(ps(igrid)%w,ps(igrid)%x,ixI^L,ixO^L,rho)
-      if(associated(fl%get_var_Rfactor)) then
-        call fl%get_var_Rfactor(ps(igrid)%w,ps(igrid)%x,ixI^L,ixO^L,Te)
-        Te(ixO^S)=pth(ixO^S)/(Te(ixO^S)*rho(ixO^S))
-      else
-        Te(ixO^S)=pth(ixO^S)/(fl%Rfactor*rho(ixO^S))
-      endif
+      call fl%get_var_Rfactor(ps(igrid)%w,ps(igrid)%x,ixI^L,ixO^L,Te)
+      Te(ixO^S)=pth(ixO^S)/(Te(ixO^S)*rho(ixO^S))
       {do ix^D=ixOmin^D,ixOmax^D\}
         do j=1,3
           vloc(j)=ps(igrid)%w(ix^D,iw_mom(j))/rho(ix^D)
@@ -1411,12 +1390,8 @@ module mod_thermal_emission
       call fl%get_rho(ps(igrid)%w,ps(igrid)%x,ixI^L,ixO^L,rho)
       v(ixO^S)=-ps(igrid)%w(ixO^S,iw_mom(direction_LOS))/rho(ixO^S)
       call fl%get_pthermal(ps(igrid)%w,ps(igrid)%x,ixI^L,ixO^L,pth)
-      if(associated(fl%get_var_Rfactor)) then
-        call fl%get_var_Rfactor(ps(igrid)%w,ps(igrid)%x,ixI^L,ixO^L,Te)
-        Te(ixO^S)=pth(ixO^S)/(Te(ixO^S)*rho(ixO^S))
-      else
-        Te(ixO^S)=pth(ixO^S)/(fl%Rfactor*rho(ixO^S))
-      endif
+      call fl%get_var_Rfactor(ps(igrid)%w,ps(igrid)%x,ixI^L,ixO^L,Te)
+      Te(ixO^S)=pth(ixO^S)/(Te(ixO^S)*rho(ixO^S))
 
       ! grid parameters
       levelg=ps(igrid)%level

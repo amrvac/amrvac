@@ -73,7 +73,7 @@ contains
        endif
 
     case (spherical)
-       frame_omega(ixO^S) = omega_frame * dsin(x(ixO^S,2))
+       frame_omega(ixO^S) = omega_frame{^NOONED * dsin(x(ixO^S,2))}
        ! source[mrad] = 2mphi*vframe/r + rho*vframe**2/r
        rotating_terms(ixO^S) = frame_omega(ixO^S)**2 * x(ixO^S,r_) * wCT(ixO^S,iw_rho)
        if (phi_ > 0) then

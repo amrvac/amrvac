@@ -335,7 +335,7 @@ contains
     allocate(te_fl_hd)
     te_fl_hd%get_rho=> hd_get_rho
     te_fl_hd%get_pthermal=> hd_get_pthermal
-    te_fl_hd%Rfactor = 1d0
+    te_fl_hd%get_var_Rfactor => hd_get_Rfactor
 {^IFTHREED
     phys_te_images => hd_te_images
 }

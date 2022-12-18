@@ -754,7 +754,7 @@ contains
     allocate(te_fl_c)
     te_fl_c%get_rho=> get_rhoc_tot
     te_fl_c%get_pthermal=> twofl_get_pthermal_c
-    te_fl_c%Rfactor = Rc
+    te_fl_c%get_var_Rfactor => Rfactor_c
 {^IFTHREED
     phys_te_images => twofl_te_images
 }

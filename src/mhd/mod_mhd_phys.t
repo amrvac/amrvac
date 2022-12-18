@@ -861,7 +861,6 @@ contains
     allocate(te_fl_mhd)
     te_fl_mhd%get_rho=> mhd_get_rho
     te_fl_mhd%get_pthermal=> mhd_get_pthermal
-    te_fl_mhd%Rfactor = RR
     te_fl_mhd%get_var_Rfactor => mhd_get_Rfactor
 {^IFTHREED
     phys_te_images => mhd_te_images
