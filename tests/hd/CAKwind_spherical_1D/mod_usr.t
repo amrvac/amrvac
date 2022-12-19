@@ -181,12 +181,12 @@ contains
     ! Small offset (~vtherm/vinf) to avoid starting at terminal wind speed
     sfac = 1.0d0 - 1.0d-3**(1.0d0/beta)
 
-    where (x(ixI^S,1) >= rstar)
-       w(ixI^S,mom(1)) = vinf * ( 1.0d0 - sfac * rstar / x(ixI^S,1) )**beta
-       w(ixI^S,rho_) = mdot / (4.0d0*dpi * x(ixI^S,1)**2.0d0 * w(ixI^S,mom(1)))
-    endwhere
+    w(ixO^S,mom(1)) = vinf * ( 1.0d0 - sfac * rstar / x(ixO^S,1) )**beta
+    w(ixO^S,rho_)   = mdot / (4.0d0*dpi * x(ixO^S,1)**2.0d0 * w(ixO^S,mom(1)))
 
-    if (hd_energy) w(ixI^S,p_) = w(ixI^S,rho_)
+    if (hd_energy) then
+      w(ixO^S,p_) = asound**2.0 * rhobound * (w(ixO^S,rho_)/rhobound)**hd_gamma
+    endif
 
     call hd_to_conserved(ixI^L,ixO^L,w,x)
 
@@ -226,7 +226,9 @@ contains
       w(ixB^S,mom(1)) = min(w(ixB^S,mom(1)), asound)
       w(ixB^S,mom(1)) = max(w(ixB^S,mom(1)), -asound)
 
-      if (hd_energy) w(ixB^S,p_) = asound**2.0d0 * w(ixB^S,rho_)
+      if (hd_energy) then
+        w(ixB^S,p_) = asound**2.0 * rhobound * (w(ixB^S,rho_)/rhobound)**hd_gamma
+      endif
 
       call hd_to_conserved(ixI^L,ixI^L,w,x)
 
@@ -240,7 +242,9 @@ contains
         w(ir,mom(1)) = w(ir-1,mom(1)) + (w(ixBmin1-1,mom(1)) - w(ixBmin1-2,mom(1)))
       enddo
 
-      if (hd_energy) w(ixB^S,p_) = asound**2.0d0 * w(ixB^S,rho_)
+      if (hd_energy) then
+        w(ixB^S,p_) = asound**2.0 * rhobound * (w(ixB^S,rho_)/rhobound)**hd_gamma
+      endif
 
       call hd_to_conserved(ixI^L,ixI^L,w,x)
 

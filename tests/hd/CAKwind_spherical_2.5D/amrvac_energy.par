@@ -1,0 +1,84 @@
+!==================================================
+! Project : 2.5D adiabatic CAK wind
+!
+! Aim     : Include energy effects in wind outflow
+!
+! Config  : setup.pl -d=2
+!===================================================
+
+&filelist
+  base_filename = 'test/cakenergy'
+  saveprim      = .true.
+  autoconvert   = .true.
+  convert_type  = 'vtuBCCmpi'
+/
+
+&savelist
+  itsave(1,1)  = 0
+  itsave(1,2)  = 0
+  ditsave_log  = 1000
+  dtsave_dat   = 1.0d-2
+/
+
+&stoplist
+  dtmin    = 1.0d-12
+  time_max = 0.5d0
+/
+
+&methodlist
+  time_stepper = 'twostep'
+  flux_scheme  = 'tvdlf'
+  limiter      = 'vanleer'
+/
+
+&boundlist
+  ! rho, mom1, mom2, mom3, e
+  typeboundary_min1 = 5*'special'
+  typeboundary_max1 = 5*'cont'
+  typeboundary_min2 = 'symm','symm','asymm','asymm','symm'
+  typeboundary_max2 = 'symm','symm','asymm','asymm','symm'
+/
+
+&meshlist
+  domain_nx1         = 200
+  domain_nx2         = 120
+  block_nx1          = 50
+  block_nx2          = 20
+  xprobmin1          = 1.0d0
+  xprobmax1          = 10.0d0
+  xprobmin2          = 0.0d0
+  xprobmax2          = 0.5d0
+  stretch_dim(1)     = 'uni'
+  qstretch_baselevel = 1.022
+/
+
+&paramlist
+  courantpar = 0.3d0 
+/
+
+&hd_list
+  hd_gravity = .true.
+  hd_energy  = .true.
+  hd_gamma   = 1.66667d0
+  hd_cak_force = .true.
+  hd_rotating_frame = .false.
+/
+
+&rotating_frame_list
+  omega_frame = 1.0d0
+/
+
+&cak_list
+  cak_alpha    = 0.65d0
+  gayley_qbar  = 2000.0d0
+  cak_1d_force = .true.
+/
+
+&star_list
+  mstar    = 50.0d0
+  rstar    = 20.0d0
+  twind    = 4.0d4
+  rhobound = 2.0d-11
+  beta     = 0.5d0
+  Wrot     = 0.5d0
+/
