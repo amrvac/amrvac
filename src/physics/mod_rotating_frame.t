@@ -1,6 +1,6 @@
 !> Module for including rotating frame in (magneto)hydrodynamics simulations
 !> The rotation vector is assumed to be along z direction
-!>(both in cylindrical and spherical)
+!> (both in cylindrical and spherical)
 
 module mod_rotating_frame
   implicit none
@@ -9,7 +9,7 @@ module mod_rotating_frame
   double precision :: omega_frame
 
   !> Index of the density (in the w array)
-  integer, private, parameter              :: rho_ = 1
+  integer, private, parameter :: rho_ = 1
   
 contains
   !> Read this module's parameters from a file
@@ -51,64 +51,67 @@ contains
     integer                         :: idir
 
     ! .. local ..
-
-    double precision                :: rotating_terms(ixI^S),frame_omega(ixI^S)
-    double precision                :: work(ixI^S)
+    double precision :: rotating_terms(ixI^S), frame_omega(ixI^S)
+    double precision :: work(ixI^S)
 
     select case (coordinate)
     case (cylindrical)
-       rotating_terms(ixO^S) =  omega_frame**2 * x(ixO^S,r_) * wCT(ixO^S,iw_rho)
-       if (phi_ > 0) then
-          rotating_terms(ixO^S) = rotating_terms(ixO^S) + 2.d0 * omega_frame *wCT(ixO^S,iw_mom(phi_))
-       end if
-       w(ixO^S, iw_mom(r_)) = w(ixO^S, iw_mom(r_)) + qdt * rotating_terms(ixO^S)
-       
-       if(phi_>0) then
-          rotating_terms(ixO^S)   = - two * omega_frame * wCT(ixO^S,iw_mom(r_))
-          w(ixO^S, iw_mom(phi_)) = w(ixO^S, iw_mom(phi_)) + qdt * rotating_terms(ixO^S)
-       end if
 
-       if(phys_energy .and. (.not.phys_internal_e)) then
-          w(ixO^S, iw_e) = w(ixO^S, iw_e) + qdt * omega_frame**2 * x(ixO^S,r_) * wCT(ixO^S,iw_mom(r_))
-       endif
+      ! S[mrad] = 2*mphi*Omegaframe + rho*r*Omegaframe**2
+      rotating_terms(ixO^S) = omega_frame**2 * x(ixO^S,r_) * wCT(ixO^S,iw_rho)
+
+      if (phi_ > 0) then
+        rotating_terms(ixO^S) = rotating_terms(ixO^S) + 2.d0 * omega_frame *wCT(ixO^S,iw_mom(phi_))
+      end if
+
+      w(ixO^S, iw_mom(r_)) = w(ixO^S, iw_mom(r_)) + qdt * rotating_terms(ixO^S)
+
+      ! S[mphi] = -2*mrad*Omegaframe
+      if (phi_ > 0) then
+        rotating_terms(ixO^S) = - 2.0d0*omega_frame * wCT(ixO^S,iw_mom(r_))
+        w(ixO^S, iw_mom(phi_)) = w(ixO^S, iw_mom(phi_)) + qdt * rotating_terms(ixO^S)
+      end if
+
+      ! S[etot] = mrad*r*Omegaframe**2
+      if (phys_energy .and. (.not.phys_internal_e)) then
+        w(ixO^S, iw_e) = w(ixO^S, iw_e) + qdt * omega_frame**2 * x(ixO^S,r_) * wCT(ixO^S,iw_mom(r_))
+      endif
 
     case (spherical)
        frame_omega(ixO^S) = omega_frame{^NOONED * dsin(x(ixO^S,2))}
-       ! source[mrad] = 2mphi*vframe/r + rho*vframe**2/r
+
+       ! S[mrad] = 2*mphi*Omegaframe + rho*r*Omegaframe**2
        rotating_terms(ixO^S) = frame_omega(ixO^S)**2 * x(ixO^S,r_) * wCT(ixO^S,iw_rho)
+
        if (phi_ > 0) then
-           rotating_terms(ixO^S) = rotating_terms(ixO^S) + &
+         rotating_terms(ixO^S) = rotating_terms(ixO^S) + &
                 2.d0 * frame_omega(ixO^S) * wCT(ixO^S,iw_mom(phi_))
        end if
        w(ixO^S, iw_mom(r_)) = w(ixO^S, iw_mom(r_)) + qdt * rotating_terms(ixO^S)
 
        {^NOONED
-       ! source[mtheta] = cot(theta)*(2mphi*vframe/r + rho*vframe**2/r )
-       rotating_terms(ixO^S) =  frame_omega(ixO^S)**2 * x(ixO^S,r_) * wCT(ixO^S,iw_rho)
-       if (phi_>0 ) then
-          rotating_terms(ixO^S) = rotating_terms(ixO^S) + &
-               2.d0*wCT(ixO^S, iw_mom(phi_))* frame_omega(ixO^S)
-       end if
+       ! S[mtheta] = cot(theta) * S[mrad], reuse above rotating_terms
        w(ixO^S, iw_mom(2)) = w(ixO^S, iw_mom(2)) + qdt * rotating_terms(ixO^S)/ tan(x(ixO^S, 2))
 
-       if (phi_>0) then
-          ! source[mphi]=-2*mr*vframe/r-2*cot(theta)*mtheta*vframe/r
-          rotating_terms(ixO^S) = -2.d0*frame_omega(ixO^S)* wCT(ixO^S, iw_mom(r_))&
+       ! S[mphi] = -2*Omegaframe * (mrad + cot(theta)*mtheta)
+       if (phi_ > 0) then
+         rotating_terms(ixO^S) = -2.d0*frame_omega(ixO^S)* wCT(ixO^S, iw_mom(r_))&
                - 2.d0*wCT(ixO^S, iw_mom(2)) * frame_omega(ixO^S)/ tan(x(ixO^S, 2))
-          w(ixO^S, iw_mom(3)) = w(ixO^S, iw_mom(3)) + qdt * rotating_terms(ixO^S)
+         w(ixO^S, iw_mom(3)) = w(ixO^S, iw_mom(3)) + qdt * rotating_terms(ixO^S)
        end if
        }
- 
-       if(phys_energy .and. (.not.phys_internal_e)) then
-          work(ixO^S)= frame_omega(ixO^S)**2 * x(ixO^S,r_) * wCT(ixO^S,iw_mom(r_))
-          {^NOONED
-          work(ixO^S)=work(ixO^S)+frame_omega(ixO^S)**2 * x(ixO^S,r_)* wCT(ixO^S, iw_mom(2))/ tan(x(ixO^S, 2))
-          }
-          w(ixO^S, iw_e) = w(ixO^S, iw_e) + qdt * work(ixO^S)
+
+       ! S[etot] = r*Omegaframe**2 * (mrad + cot(theta)*mtheta)
+       if (phys_energy .and. (.not.phys_internal_e)) then
+         work(ixO^S) = frame_omega(ixO^S)**2 * x(ixO^S,r_) * wCT(ixO^S,iw_mom(r_))
+         {^NOONED
+         work(ixO^S) = work(ixO^S) + frame_omega(ixO^S)**2 * x(ixO^S,r_) * wCT(ixO^S, iw_mom(2))/ tan(x(ixO^S, 2))
+         }
+         w(ixO^S, iw_e) = w(ixO^S, iw_e) + qdt * work(ixO^S)
        endif
 
     case default
-       call mpistop("Rotating frame not implemented in this geometrie")
+       call mpistop("Rotating frame not implemented in this geometry")
     end select
     
   end subroutine rotating_frame_add_source
