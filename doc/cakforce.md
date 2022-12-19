@@ -40,15 +40,16 @@ With this formula all components of the force can be computed: \f$ \mathbf{g}_\m
 Finally, note that contrary to the RHD physics module of MPI-AMRVAC, the radiation force prescription presented here is a **reduced** dynamical picture. Indeed, we do not solve for the detailed radiation-energy exchange that is done via the flux-limited diffusion in the RHD module. This is justified since for the typical stellar conditions where the CAK force prescription applies (OB-star atmospheres), such detailed radiation-energy exchanges between the radiation field and gas are rather minor and instead the radiation dynamically couples to the gas only without considering the radiation energy budget.
 
 # Practical use
-In order to add the CAK force to a line-driven stellar wind simulation, the user has to adjust the .par file as indicated in this section. A 1D and 2.5D example test problem of this module is also provided in the HD tests folder.
+In order to add the CAK force to a line-driven stellar wind simulation, the user has to adjust the .par file as indicated in this section.
 
 ## Activating the module
-Depending whether the setup is in (M)HD, the the force needs to be activated in the physics-dependent namelist. This means that for a (M)HD simulation one adds in the `&(m)hd_list` the following:
+Depending whether the setup is in (M)HD, the the force needs to be activated in the physics-dependent namelist. This means that for a HD simulation one adds in the `&hd_list` the following:
 ```
-&(m)hd_list
-  (m)hd_cak_force = .true.
+&hd_list
+  hd_cak_force = .true.
 /
 ```
+and a similar procedure applies for the `&mhd_list` with `mhd_cak_force`.
 
 ## Customizing the setup
 Additionally, specific parameters can be set in the `&cak_list` for the source term physics treatment. In the following table, the available parameters are briefly described with their possible values. If some values are not set, they are default to a 1-D CAK force prescription for a proto-typical Galactic O-supergiant.
@@ -65,6 +66,12 @@ nthetaray | integer | 6 | If `cak_vector_force=T`, amount of radiation ray point
 nphiray | integer | 6 | If `cak_vector_force=T`, amount of radiation ray points used to describe the radiation angle \f$\Phi\f$.
 fix_vector_force_1d | logical | F | If true, the CAK vector line force will only have a non-zero radial component.
 cak_split |  logical | F | To add the source term in a split or unsplit (default) fashion.
+
+## Test problems
+Two test problems are provided in the HD tests folder that can be configured in several wats to illustrate the above physics, see `CAKwind_spherical_1D` and `CAKwind_spherical_2.5D`. Functionalities included are:
+- 1D and 2.5D spherical isothermal or adiabatic wind models.
+- Rotating frame of reference for 2.5D wind.
+- Radial line force or vector line force with one or more of the previous listed combinations.
 
 # Numerics and implementation
 
@@ -83,7 +90,7 @@ This subroutine computes the force normalisation in dimensionless units. **It ha
 *cak_add_source:*
 The subroutine cak_add_source is called at each timestep to add the CAK line force together with the radial Thomson (continuum) force. Depending on the chosen option (`cak_1d_force` or `cak_vector_force`) either the original 1-D CAK line force or the full CAK vector force is computed. The forces are all computed in dimensionless units.
 
-In case there is adiabatic (M)HD, the forces will also be added to the energy equation. To mimic stellar heating there is a floor temperature set (being the stellar surface temperature) to the wind. This also fixes the sometimes possible occurence of negative thermal pressures in parts of the hypersonic wind outflow. However, if this happens the code will still crash inside phys_get_pthermal, that is called to compute the floor temperature.To avoid a code crash set `check_small_values=.false.` in the method_list and the floor temperature will fix any misbehaving cells instead. 
+In case there is adiabatic (M)HD, the forces will also be added to the energy equation. To mimic stellar heating there is a floor temperature set (being the stellar surface temperature) to the wind. This also fixes the sometimes possible occurrence of negative thermal pressures in parts of the hypersonic wind outflow.
 
 *cak_get_dt:*
 Since an additional force is introduced to the (M)HD system, we also check for possible time step constraints in every coordinate direction. When the 1-D CAK force is used this only applies to the radial direction again, when the vector CAK force is used then it depends on how many dimensions the problem uses to determine possible additional time step limitations.
