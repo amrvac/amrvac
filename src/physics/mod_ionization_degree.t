@@ -6,6 +6,7 @@ module mod_ionization_degree
   double precision, dimension(:), allocatable :: Te_H_table
   double precision, dimension(:), allocatable :: iz_H_table
   double precision :: Te_table_min, Te_table_max, Te_table_step, inv_Te_table_step
+  ! Carlsson, M., & Leenaarts, J. 2012, A&A, 539, A39
   data Te_H_CL /2.1000005d+03, 2.2349495d+03, 2.3785708d+03, 2.5314199d+03, 2.6940928d+03, &
                 2.8672190d+03, 3.0514692d+03, 3.2475613d+03, 3.4562544d+03, 3.6783584d+03, &
                 3.9147351d+03, 4.1662998d+03, 4.4340322d+03, 4.7189697d+03, 5.0222153d+03, &
@@ -27,6 +28,7 @@ module mod_ionization_degree
                 5.7090725d+05, 6.0759431d+05, 6.4663956d+05, 6.8819319d+05, 7.3241712d+05, &
                 7.7948294d+05, 8.2957412d+05, 8.8288331d+05, 9.3961919d+05, 1.0000000d+06  /
 
+  ! Carlsson, M., & Leenaarts, J. 2012, A&A, 539, A39
   data iz_H_CL /1.0000000d+00, 1.0000000d+00, 1.0000000d+00, 1.0000000d+00, 1.0000000d+00, &
                 1.0000000d+00, 1.0000000d+00, 9.9999928d-01, 9.9999774d-01, 9.9999624d-01, &
                 9.9999428d-01, 9.9999219d-01, 9.9998862d-01, 9.9998313d-01, 9.9997944d-01, &
@@ -160,10 +162,11 @@ module mod_ionization_degree
           iz_H(ix^D)=iz_H_table(i)+(Te(ix^D)-Te_H_table(i))&
            *(iz_H_table(i+1)-iz_H_table(i))*inv_Te_table_step
         end if
+        ! Ni, L. et al. A&A, 665, A116
         if(Te(ix^D)<Te_low_iz_He) then
           iz_He(ix^D)=1.0084814d-4
         else
-          iz_He(ix^D)=1.d0-log10(0.322571d0-5.96d-5*Te(ix^D)*unit_temperature)
+          iz_He(ix^D)=1.d0-10**(0.322571d0-5.96d-5*Te(ix^D)*unit_temperature)
         end if
       {end do\}
 
@@ -190,7 +193,7 @@ module mod_ionization_degree
       if(Te<Te_low_iz_He) then
         iz_He=1.0084814d-4
       else
-        iz_He=1.d0-log10(0.322571d0-5.96d-5*Te*unit_temperature)
+        iz_He=1.d0-10**(0.322571d0-5.96d-5*Te*unit_temperature)
       end if
       ! dimensionless: kB and mp are included in units 
       ! assume the first and second ionization of Helium have the same degree
