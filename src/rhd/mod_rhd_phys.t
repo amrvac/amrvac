@@ -399,7 +399,7 @@ contains
     allocate(te_fl_rhd)
     te_fl_rhd%get_rho=> rhd_get_rho
     te_fl_rhd%get_pthermal=> rhd_get_pthermal
-    te_fl_rhd%Rfactor = 1d0
+    te_fl_rhd%get_var_Rfactor => rhd_get_Rfactor
 {^IFTHREED
     phys_te_images => rhd_te_images
 }
@@ -938,8 +938,7 @@ contains
     logical :: lrlt(ixI^S)
 
     {^IFONED
-    tmp1(ixI^S)=w(ixI^S,e_)-0.5d0*sum(w(ixI^S,iw_mom(:))**2,dim=ndim+1)/w(ixI^S,rho_)
-    Te(ixI^S)=tmp1(ixI^S)/w(ixI^S,rho_)*(rhd_gamma-1.d0)
+    call rhd_get_temperature_from_etot(w,x,ixI^L,ixI^L,Te)
 
     Tco_local=zero
     Tmax_local=maxval(Te(ixO^S))
@@ -1265,8 +1264,11 @@ contains
     double precision, intent(in) :: x(ixI^S, 1:ndim)
     double precision, intent(out):: res(ixI^S)
 
+    double precision :: R(ixI^S)
+
+    call rhd_get_Rfactor(w,x,ixI^L,ixO^L,R)
     call rhd_get_pthermal(w, x, ixI^L, ixO^L, res)
-    res(ixO^S)=res(ixO^S)/w(ixO^S,rho_)
+    res(ixO^S)=res(ixO^S)/(R(ixO^S)*w(ixO^S,rho_))
   end subroutine rhd_get_temperature_from_etot
 
 
@@ -1277,7 +1279,10 @@ contains
     double precision, intent(in) :: w(ixI^S, 1:nw)
     double precision, intent(in) :: x(ixI^S, 1:ndim)
     double precision, intent(out):: res(ixI^S)
-    res(ixO^S) = (rhd_gamma - 1.0d0) * w(ixO^S, e_) /w(ixO^S,rho_)
+    double precision :: R(ixI^S)
+
+    call rhd_get_Rfactor(w,x,ixI^L,ixO^L,R)
+    res(ixO^S) = (rhd_gamma - 1.0d0) * w(ixO^S, e_)/(w(ixO^S,rho_)*R(ixO^S))
   end subroutine rhd_get_temperature_from_eint
 
   !> Calculates gas temperature

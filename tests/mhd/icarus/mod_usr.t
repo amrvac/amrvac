@@ -1,6 +1,14 @@
 module mod_usr
   use mod_mhd
+  !SI units, constants 
+  use mod_constants, only: mp_SI, kB_SI, miu0_SI
+  ! Note also the available (in cgs) constants like
+  !  const_RSun, const_MSun, const_mp, const_G, const_kB
+
   implicit none
+
+  character(len=20) :: printsettingformat
+
   !Shared over subroutines
   real(kind=8), allocatable :: coord_grid_init(:,:,:),variables_init(:,:,:)
   real(kind=8), allocatable :: satellite_positions(:,:)
@@ -10,19 +18,14 @@ module mod_usr
   real(kind=8), allocatable :: stb_positions(:,:)
   real(kind=8), allocatable :: mercury_positions(:,:)
 
-  !SI units
-  ! define my cme parameters here
-  double precision    :: k_b    = 1.38064853d-23
-  double precision    :: mu_0   = 4.d0*dpi*1.0d-7
-  double precision    :: m_p    = 1.67262158d-27
   double precision    :: last_earth=0, last_mercury=0, last_mars=0, last_sta=0, last_stb=0
   double precision    :: last_venus=0
   double precision    :: delta_phi
-  !integer             :: starting_index = 0, magnetogram_index = 0, cme_index = 0
   integer, dimension(:), allocatable  :: starting_index(:), cme_index(:)
   integer              :: magnetogram_index = 0, last_index = 0
 
   ! CME parameters
+  ! define my cme parameters here
   integer, dimension(:), allocatable             :: cme_year, cme_month, cme_day, cme_hour, cme_minute, cme_second
   double precision, dimension(:), allocatable    :: relaxation, cme_insertion, vr_cme, w_half, clt_cme, lon_cme, rho_cme, temperature_cme
   double precision, dimension(:), allocatable    :: timestamp, time_difference_cme_magn, longitudes_fix
@@ -50,6 +53,48 @@ contains
     call set_coordinate_system('spherical_3D')
     call mhd_activate()
 
+
+    ! Note: mhd_activate sets the physical units used by MPI-AMRVAC as governed
+    ! in subroutine mhd_phys_init (in mod_mhd_phys.t) which in turn calls 
+    ! subroutine mhd_physical_units (also in mod_mhd_phys.t)
+    !  There, the parameters SI_unit, eq_state_units, mhd_partial_ionization enter
+    !  Sometime we use He_abundance, H_ion_fr, He_ion_fr, He_ion_fr2
+    !  Moreover, we use 3 out of 
+    !      unit_density, unit_numberdensity, unit_length, unit_time, unit_velocity, 
+    !      unit_pressure, unit_magneticfield, unit_temperature,
+    !      unit_mass, unit_charge
+    !  Note we have factor RR (p=RR rho T)
+    printsettingformat='(1x,A50,ES15.7)'
+    if(mype==0) then
+      write(*,*)'----------------PARAMETERS--   ----------------------'
+      write(*,printsettingformat) "mhd_gamma ",mhd_gamma
+      write(*,printsettingformat) "mhd_eta ",mhd_eta
+      write(*,*)'----------------BEGIN UNITS  ------------------------'
+      write(*,*)'----------------UNIT CONTROLS------------------------'
+      write(*,*) "SI_unit",SI_unit
+      write(*,*) "eq_state_units",eq_state_units
+      write(*,*) "mhd_partial_ionization",mhd_partial_ionization
+      write(*,printsettingformat) "He_abundance",He_abundance
+      write(*,printsettingformat) "H_ion_fr",H_ion_fr
+      write(*,printsettingformat) "He_ion_fr",He_ion_fr
+      write(*,printsettingformat) "He_ion_fr2",He_ion_fr2
+      write(*,*)'----------------UNIT CONTROLS------------------------'
+      write(*,*)'----------------UNITS---------        ---------------'
+      write(*,printsettingformat) "unit density in g/cm-3: ",unit_density
+      write(*,printsettingformat) "unit number density cm-3: ",unit_numberdensity
+      write(*,printsettingformat) "unit length in cm: ",unit_length
+      write(*,printsettingformat) "unit time  in seconds: ",unit_time
+      write(*,printsettingformat) "unit velocity in cm/s: ",unit_velocity
+      write(*,printsettingformat) "unit pressure in cgs: ",unit_pressure
+      write(*,printsettingformat) "unit magnetic field in gauss: ",unit_magneticfield
+      write(*,printsettingformat) "unit temperature in K: ",unit_temperature
+      write(*,printsettingformat) "unit mass in g: ",unit_mass
+      write(*,printsettingformat) "unit charge: ",unit_charge
+      write(*,*)'----------------UNITS--------------------------------'
+      write(*,printsettingformat) "p=RR rho T with RR: ",RR
+      write(*,*)'----------------END UNITS----------------------------'
+    end if
+
   end subroutine usr_init
 !-----------------------------------------------------------------------------
 !-----------------------------------------------------------------------------
@@ -72,9 +117,6 @@ contains
     character(len=50)   :: satelite_trajectory, mars_trajectory, venus_trajectory
     character(len=50)   :: sta_trajectory, stb_trajectory, mercury_trajectory
     integer             :: nr_colat, nr_lon, k, n
-
-
-    double precision    :: time_difference
     !-----------------------------------------------------------------------------
 
     if(firstglobalusr) then
@@ -93,14 +135,14 @@ contains
         sta_trajectory = "2015_june_sta_ext.unf"
         stb_trajectory = "2015_june_stb_ext.unf"
 
-
         call grid_info_coronal_model(boundary_file, nr_colat, nr_lon)
 
+        ! WARNING: ASSUMES STENCIL IS USING 2 GHOSTCELLS: may need to GENERALIZE!
         !We have 4 extra points for longitude because the boundary is periodic
         ALLOCATE(coord_grid_init(nr_colat, nr_lon+4, ndim-1), STAT = AllocateStatus)
-            IF (AllocateStatus /= 0) STOP "*** Not enough memory ***"
+            IF (AllocateStatus /= 0) call mpistop('*** Not enough memory ***')
         ALLOCATE(variables_init(nr_colat, nr_lon+4, 4), STAT = AllocateStatus)
-            IF (AllocateStatus /= 0) STOP "*** Not enough memory ***"
+            IF (AllocateStatus /= 0) call mpistop('*** Not enough memory ***')
 
         call read_boundary_coronal_model(boundary_file, coord_grid_init, variables_init, delta_phi)
 
@@ -130,6 +172,48 @@ contains
     mhd_gamma= 3.0d0/2.0d0
     call set_units(Lunit, Tunit, Rhounit, Vunit, Bunit, Eunit, Punit)
 
+    ! Note: mhd_activate sets the physical units used by MPI-AMRVAC as governed
+    ! in subroutine mhd_phys_init (in mod_mhd_phys.t) which in turn calls 
+    ! subroutine mhd_physical_units (also in mod_mhd_phys.t)
+    !  There, the parameters SI_unit, eq_state_units, mhd_partial_ionization enter
+    !  Sometime we use He_abundance, H_ion_fr, He_ion_fr, He_ion_fr2
+    !  Moreover, we use 3 out of 
+    !      unit_density, unit_numberdensity, unit_length, unit_time, unit_velocity, 
+    !      unit_pressure, unit_magneticfield, unit_temperature,
+    !      unit_mass, unit_charge
+    !  Note we have factor RR (p=RR rho T)
+    printsettingformat='(1x,A50,ES15.7)'
+    if(mype==0) then
+      write(*,*)'*********AT END OF INITGLOBALDATA_USR***************'
+      write(*,*)'----------------PARAMETERS--   ----------------------'
+      write(*,printsettingformat) "mhd_gamma ",mhd_gamma
+      write(*,printsettingformat) "mhd_eta ",mhd_eta
+      write(*,*)'----------------BEGIN UNITS  ------------------------'
+      write(*,*)'----------------UNIT CONTROLS------------------------'
+      write(*,*) "SI_unit",SI_unit
+      write(*,*) "eq_state_units",eq_state_units
+      write(*,*) "mhd_partial_ionization",mhd_partial_ionization
+      write(*,printsettingformat) "He_abundance",He_abundance
+      write(*,printsettingformat) "H_ion_fr",H_ion_fr
+      write(*,printsettingformat) "He_ion_fr",He_ion_fr
+      write(*,printsettingformat) "He_ion_fr2",He_ion_fr2
+      write(*,*)'----------------UNIT CONTROLS------------------------'
+      write(*,*)'----------------UNITS---------        ---------------'
+      write(*,printsettingformat) "unit density in g/cm-3: ",unit_density
+      write(*,printsettingformat) "unit number density cm-3: ",unit_numberdensity
+      write(*,printsettingformat) "unit length in cm: ",unit_length
+      write(*,printsettingformat) "unit time  in seconds: ",unit_time
+      write(*,printsettingformat) "unit velocity in cm/s: ",unit_velocity
+      write(*,printsettingformat) "unit pressure in cgs: ",unit_pressure
+      write(*,printsettingformat) "unit magnetic field in gauss: ",unit_magneticfield
+      write(*,printsettingformat) "unit temperature in K: ",unit_temperature
+      write(*,printsettingformat) "unit mass in g: ",unit_mass
+      write(*,printsettingformat) "unit charge: ",unit_charge
+      write(*,*)'----------------UNITS--------------------------------'
+      write(*,printsettingformat) "p=RR rho T with RR: ",RR
+      write(*,*)'----------------END UNITS----------------------------'
+      write(*,*)'*********AT END OF INITGLOBALDATA_USR***************'
+    end if
   end subroutine initglobaldata_usr
 !-----------------------------------------------------------------------------
 !-----------------------------------------------------------------------------
@@ -153,7 +237,7 @@ contains
     !-----------------------------------------------------------------------------
 
     w(ix^S,1:nw) = zero
-    r_boundary   = 2.15d1 !in R_sun
+    r_boundary   = xprobmin1 !in R_sun
 
     !Loop non-ghost cells of cell-block
     {do ix^DB=ixmin^DB,ixmax^DB\}
@@ -164,14 +248,13 @@ contains
       call find_indices_coord_grid(xloc, point11_clt, point11_lon, point22_clt, point22_lon)
 
       ! INTERPOLATION
-      w(ix^D, mom(1)) = linear_interpolation(xloc(2), xloc(3), point11_clt, point11_lon, point22_clt, point22_lon, 1)/unit_velocity
-      w(ix^D, rho_)   = linear_interpolation(xloc(2),xloc(3),point11_clt, point11_lon, point22_clt, point22_lon, 2)/unit_density*(r_boundary/xloc(1))**2
-      w(ix^D, p_)     = linear_interpolation(xloc(2),xloc(3),point11_clt, point11_lon, point22_clt, point22_lon,3)/unit_pressure*(r_boundary/xloc(1))**2
-      w(ix^D, mag(1)) = linear_interpolation(xloc(2),xloc(3),point11_clt, point11_lon, point22_clt, point22_lon,4)/unit_magneticfield*(r_boundary/xloc(1))**2
+      w(ix^D, mom(1)) = linear_interpolation(xloc(2),xloc(3),point11_clt,point11_lon,point22_clt,point22_lon,1)/unit_velocity
+      w(ix^D, rho_)   = linear_interpolation(xloc(2),xloc(3),point11_clt,point11_lon,point22_clt,point22_lon,2)/unit_density*(r_boundary/xloc(1))**2
+      w(ix^D, p_)     = linear_interpolation(xloc(2),xloc(3),point11_clt,point11_lon,point22_clt,point22_lon,3)/unit_pressure*(r_boundary/xloc(1))**2
+      w(ix^D, mag(1)) = linear_interpolation(xloc(2),xloc(3),point11_clt,point11_lon,point22_clt,point22_lon,4)/unit_magneticfield*(r_boundary/xloc(1))**2
 
-
-      if(w(ix^D, p_)<0.0d0) then
-          print*, "NEGATIVE PRESSURE when setting the initial grid: ", w(ix^D, p_)
+      if(w(ix^D, p_)<0.0d0.or.w(ix^D, rho_)<0.0d0) then
+          print*, "NEGATIVE PRESSURE/DENSITY when setting the initial grid: ", w(ix^D, p_), w(ix^D, rho_)
       end if
 
     {end do\}
@@ -206,9 +289,10 @@ contains
     double precision :: r_out, r_in, ratio, block_num, degree, step_size(ixI^S)
 
 
+    ! THIS SHOULD BE USING INPUT DATA ON GRID+BLOCK NUMBERS!!!
     block_num = 61.0
-    r_out = 432.5
-    r_in = 21.5
+    r_out = xprobmax1
+    r_in = xprobmin1
     ratio = r_out/r_in
     degree = (block_num-1)/block_num
     step_size(ixI^S) = x(ixI^S,1)*(ratio**degree-1)
@@ -461,8 +545,8 @@ p_r  = r_satellite/214.93946938      ![AU] from solar radii
 p_th = theta_satellite               ![rad]
 p_phi= phi_satellite                 ![rad]
 
-rho_e = rho_e * unit_density / 0.5d0 / m_p /1.0d6
-!rho_e = rho_e * unit_density / 0.5d0 / m_p
+rho_e = rho_e * unit_density / 0.5d0 / mp_SI /1.0d6
+!rho_e = rho_e * unit_density / 0.5d0 / mp_SI
 P_e = P_e*unit_pressure ![ks/s/m^2] this is energy
 vr_e = vr_e *unit_velocity / 1.0d3 !km/s
 vclt_e = vclt_e *unit_velocity / 1.0d3 !km/s
@@ -664,9 +748,10 @@ end subroutine readout_satellite
     double precision                :: phi_satellite
     !-----------------------------------------------------------------------------
     !Currently no refining!
+    ! THIS SHOULD BE USING INPUT DATA ON GRID+BLOCK NUMBERS!!!
     block_num = 61
-    r_out = 432.5
-    r_in = 21.5
+    r_out = xprobmax1
+    r_in = xprobmin1
     ratio = r_out/r_in
     step_size = x(ixI^S,1)*(ratio**((block_num-1)/block_num)-1)
 
@@ -809,8 +894,8 @@ end subroutine readout_satellite
                         w(ixOmin1, ix2, ix3, mag(3)) = - w(ixOmin1+3,ix2, ix3,mag(3))
 
                         !pressure: p
-                        w(ixOmax1, ix2, ix3, p_) = rho_cme(n) / (0.5 * M_P) * k_b * temperature_cme(n)/unit_pressure
-                        w(ixOmin1, ix2, ix3, p_) = rho_cme(n) / (0.5 * M_P) * k_b * temperature_cme(n)/unit_pressure
+                        w(ixOmax1, ix2, ix3, p_) = rho_cme(n) / (0.5 * mp_SI) * kB_SI * temperature_cme(n)/unit_pressure
+                        w(ixOmin1, ix2, ix3, p_) = rho_cme(n) / (0.5 * mp_SI) * kB_SI * temperature_cme(n)/unit_pressure
 
 
                         ! Setting tracer function to the value of densicy inside CME
@@ -977,7 +1062,7 @@ end subroutine readout_satellite
     read(iUnit,*) nr_colat
     read(iUnit,*)
     ALLOCATE(colat_points(nr_colat), STAT = AllocateStatus)
-            IF (AllocateStatus /= 0) STOP "*** Not enough memory ***"
+            IF (AllocateStatus /= 0) call mpistop('*** Not enough memory ***')
     do i = 1, nr_colat
         read(iUnit,*) colat_points(i)
     end do
@@ -985,14 +1070,14 @@ end subroutine readout_satellite
     read(iUnit,*) nr_lon
     read(iUnit,*)
     ALLOCATE(lon_points(nr_lon), STAT = AllocateStatus)
-        IF (AllocateStatus /= 0) STOP "*** Not enough memory ***"
+            IF (AllocateStatus /= 0) call mpistop('*** Not enough memory ***')
     do i = 1, nr_lon
         read(iUnit,*) lon_points(i)
     end do
     read(iUnit,*)
     total_boundary_points = nr_colat*nr_lon
     ALLOCATE(variables_boundary_data(total_boundary_points, nVar), STAT = AllocateStatus)
-        IF (AllocateStatus /= 0) STOP "*** Not enough memory ***"
+            IF (AllocateStatus /= 0) call mpistop('*** Not enough memory ***')
     do j = 1,nVar
         do i = 1, total_boundary_points
             read(iUnit,*) variables_boundary_data(i,j)
@@ -1022,10 +1107,10 @@ end subroutine readout_satellite
             coord_grid(j,k+2,2) = lon_points(k) + delta_phi
             !vr stays vr
             variables(j,k+2,1)  = variables_boundary_data(counter,1)
-            !number density -> density rho = n_bound * 0.5 * m_p * (r_0/r)**2
-            variables(j,k+2,2)  = variables_boundary_data(counter,2) * 0.5 * m_p
+            !number density -> density rho = n_bound * 0.5 * mp_SI * (r_0/r)**2
+            variables(j,k+2,2)  = variables_boundary_data(counter,2) * 0.5 * mp_SI
             !temperature --> change to pressure = n k_b T
-            variables(j,k+2,3) = variables_boundary_data(counter,3) * k_b * variables_boundary_data(counter, 2)
+            variables(j,k+2,3) = variables_boundary_data(counter,3) * kB_SI * variables_boundary_data(counter, 2)
             !magnetic field: Br = Br_bound * sqrt(r_0/r)
             variables(j,k+2,4)  = variables_boundary_data(counter,4)
 
@@ -1077,7 +1162,7 @@ end subroutine readout_satellite
     !Velocity unit
     Vunit = Lunit/Tunit
     !Magnetic filed unit
-    Bunit = dsqrt( mu_0 * Vunit**2 * Rhounit)
+    Bunit = dsqrt( miu0_SI * Vunit**2 * Rhounit)
     !Energy density unit
     Eunit = Vunit*Vunit * Rhounit
     !Pressure unit: [kg/s/m^2]
@@ -1111,7 +1196,7 @@ end subroutine readout_satellite
     unit_velocity  = Vunit
     unit_magneticfield  = Bunit
     unit_pressure = Punit
-    unit_numberdensity = unit_density / 0.5 / m_p
+    unit_numberdensity = unit_density / 0.5 / mp_SI
   end subroutine set_units
 
   subroutine print_initial_information()
