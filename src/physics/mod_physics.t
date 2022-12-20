@@ -86,7 +86,9 @@ module mod_physics
   ! set the equilibrium variables
   procedure(sub_set_equi_vars), pointer   :: phys_set_equi_vars          => null()
   ! subroutine with no parameters which creates EUV images
-  procedure(sub_check_params), pointer    :: phys_te_images           => null()
+  procedure(sub_check_params), pointer    :: phys_te_images              => null()
+  ! to update temperature variable with partial ionization
+  procedure(sub_update_temperature), pointer :: phys_update_temperature  => null()
 
   abstract interface
 
@@ -332,8 +334,14 @@ module mod_physics
        double precision, intent(in) :: dtfactor
      end subroutine sub_implicit_update
 
-   end interface
+     subroutine sub_update_temperature(ixI^L,ixO^L,wCT,w,x)
+       use mod_global_parameters
+       integer, intent(in)             :: ixI^L, ixO^L
+       double precision, intent(in)    :: wCT(ixI^S,nw),x(ixI^S,1:ndim)
+       double precision, intent(inout) :: w(ixI^S,nw)
+     end subroutine sub_update_temperature
 
+   end interface
 
 contains
 
@@ -580,7 +588,5 @@ contains
     !$OMP END PARALLEL DO
 
   end subroutine dummy_implicit_update
-
-
 
 end module mod_physics

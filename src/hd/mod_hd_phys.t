@@ -293,6 +293,7 @@ contains
     ! choose Rfactor in ideal gas law
     if(hd_partial_ionization) then
       hd_get_Rfactor=>Rfactor_from_temperature_ionization
+      phys_update_temperature => hd_update_temperature
     else if(associated(usr_Rfactor)) then
       hd_get_Rfactor=>usr_Rfactor
     else
@@ -1359,6 +1360,13 @@ contains
       call cak_add_source(qdt,ixI^L,ixO^L,wCT,w,x,hd_energy,qsourcesplit,active)
     end if
 
+    if(hd_partial_ionization) then
+      if(.not.qsourcesplit) then
+        active = .true.
+        call hd_update_temperature(ixI^L,ixO^L,wCT,w,x)
+      end if
+    end if
+
   end subroutine hd_add_source
 
   subroutine hd_get_dt(w, ixI^L, ixO^L, dtnew, dx^D, x)
@@ -1548,5 +1556,24 @@ contains
     Rfactor(ixO^S)=RR
 
   end subroutine Rfactor_from_constant_ionization
+
+  subroutine hd_update_temperature(ixI^L,ixO^L,wCT,w,x)
+    use mod_global_parameters
+    use mod_ionization_degree
+
+    integer, intent(in)             :: ixI^L, ixO^L
+    double precision, intent(in)    :: wCT(ixI^S,1:nw), x(ixI^S,1:ndim)
+    double precision, intent(inout) :: w(ixI^S,1:nw)
+
+    double precision :: iz_H(ixO^S),iz_He(ixO^S), pth(ixI^S)
+
+    call ionization_degree_from_temperature(ixI^L,ixO^L,wCT(ixI^S,Te_),iz_H,iz_He)
+
+    call hd_get_pthermal(w,x,ixI^L,ixO^L,pth)
+
+    w(ixO^S,Te_)=(2.d0+3.d0*He_abundance)*pth(ixO^S)/(w(ixO^S,rho_)*(1.d0+iz_H(ixO^S)+&
+     He_abundance*(iz_He(ixO^S)*(iz_He(ixO^S)+1.d0)+1.d0)))
+
+  end subroutine hd_update_temperature
 
 end module mod_hd_phys

@@ -732,6 +732,7 @@ contains
     ! choose Rfactor in ideal gas law
     if(mhd_partial_ionization) then
       mhd_get_Rfactor=>Rfactor_from_temperature_ionization
+      phys_update_temperature => mhd_update_temperature
     else if(associated(usr_Rfactor)) then
       mhd_get_Rfactor=>usr_Rfactor
     else
@@ -797,35 +798,30 @@ contains
       allocate(tc_fl)
       call tc_get_mhd_params(tc_fl,tc_params_read_mhd)
       call add_sts_method(mhd_get_tc_dt_mhd,mhd_sts_set_source_tc_mhd,e_,1,e_,1,.false.)
-      if(mhd_partial_ionization) then
-        tc_fl%get_temperature_from_conserved => mhd_get_temperature_from_Te
-        tc_fl%get_temperature_from_eint => mhd_get_temperature_from_Te
-      else
-        if(phys_internal_e) then
-          if(has_equi_pe0 .and. has_equi_rho0) then
-            tc_fl%get_temperature_from_conserved => mhd_get_temperature_from_eint_with_equi
-          else
-            tc_fl%get_temperature_from_conserved => mhd_get_temperature_from_eint
-          end if
-        else
-          if(has_equi_pe0 .and. has_equi_rho0) then
-            tc_fl%get_temperature_from_conserved => mhd_get_temperature_from_etot_with_equi
-          else
-            tc_fl%get_temperature_from_conserved => mhd_get_temperature_from_etot
-          end if
-        end if
+      if(phys_internal_e) then
         if(has_equi_pe0 .and. has_equi_rho0) then
-          tc_fl%get_temperature_from_eint => mhd_get_temperature_from_eint_with_equi
-          if(mhd_equi_thermal) then
-            tc_fl%has_equi = .true.
-            tc_fl%get_temperature_equi => mhd_get_temperature_equi
-            tc_fl%get_rho_equi => mhd_get_rho_equi
-          else
-            tc_fl%has_equi = .false.
-          end if
+          tc_fl%get_temperature_from_conserved => mhd_get_temperature_from_eint_with_equi
         else
-          tc_fl%get_temperature_from_eint => mhd_get_temperature_from_eint
+          tc_fl%get_temperature_from_conserved => mhd_get_temperature_from_eint
         end if
+      else
+        if(has_equi_pe0 .and. has_equi_rho0) then
+          tc_fl%get_temperature_from_conserved => mhd_get_temperature_from_etot_with_equi
+        else
+          tc_fl%get_temperature_from_conserved => mhd_get_temperature_from_etot
+        end if
+      end if
+      if(has_equi_pe0 .and. has_equi_rho0) then
+        tc_fl%get_temperature_from_eint => mhd_get_temperature_from_eint_with_equi
+        if(mhd_equi_thermal) then
+          tc_fl%has_equi = .true.
+          tc_fl%get_temperature_equi => mhd_get_temperature_equi
+          tc_fl%get_rho_equi => mhd_get_rho_equi
+        else
+          tc_fl%has_equi = .false.
+        end if
+      else
+        tc_fl%get_temperature_from_eint => mhd_get_temperature_from_eint
       end if
       if(unsplit_semirelativistic) then
         call set_conversion_methods_to_head(mhd_e_to_ei_semirelati, mhd_ei_to_e_semirelati)
@@ -4161,16 +4157,6 @@ contains
         active = .true.
         call add_source_semirelativistic(qdt,ixI^L,ixO^L,wCT,w,x,wCTprim)
       end if
-      ! add sources for hydrodynamic energy version of MHD
-      if (mhd_hydrodynamic_e) then
-        active = .true.
-        call add_source_hydrodynamic_e(qdt,ixI^L,ixO^L,wCT,w,x,wCTprim)
-      end if
-      ! update temperature from new pressure, density, and old ionization degree
-      if(mhd_partial_ionization) then
-        active = .true.
-        call add_source_update_temperature(qdt,ixI^L,ixO^L,wCT,w,x)
-      end if
     end if
 
       {^NOONED
@@ -4266,6 +4252,14 @@ contains
 
     if (mhd_cak_force) then
       call cak_add_source(qdt,ixI^L,ixO^L,wCT,w,x,mhd_energy,qsourcesplit,active)
+    end if
+
+    ! update temperature from new pressure, density, and old ionization degree
+    if(mhd_partial_ionization) then
+      if(.not.qsourcesplit) then
+        active = .true.
+        call mhd_update_temperature(ixI^L,ixO^L,wCT,w,x)
+      end if
     end if
 
   end subroutine mhd_add_source
@@ -4442,12 +4436,11 @@ contains
 
   end subroutine mhd_handle_small_ei
 
-  subroutine add_source_update_temperature(qdt,ixI^L,ixO^L,wCT,w,x)
+  subroutine mhd_update_temperature(ixI^L,ixO^L,wCT,w,x)
     use mod_global_parameters
     use mod_ionization_degree
 
     integer, intent(in)             :: ixI^L, ixO^L
-    double precision, intent(in)    :: qdt
     double precision, intent(in)    :: wCT(ixI^S,1:nw), x(ixI^S,1:ndim)
     double precision, intent(inout) :: w(ixI^S,1:nw)
 
@@ -4460,7 +4453,7 @@ contains
     w(ixO^S,Te_)=(2.d0+3.d0*He_abundance)*pth(ixO^S)/(w(ixO^S,rho_)*(1.d0+iz_H(ixO^S)+&
      He_abundance*(iz_He(ixO^S)*(iz_He(ixO^S)+1.d0)+1.d0)))
 
-  end subroutine add_source_update_temperature
+  end subroutine mhd_update_temperature
 
   !> Source terms after split off time-independent magnetic field
   subroutine add_source_B0split(qdt,ixI^L,ixO^L,wCT,w,x)

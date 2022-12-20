@@ -38,15 +38,15 @@ contains
           case (sourcetype_sts_prior)
             if(prior) then
               call sts_add_source(dt)
-            endif  
+            end if
           case (sourcetype_sts_after)
             if(.not. prior) then
               call sts_add_source(dt)
-            endif
+            end if
           case (sourcetype_sts_split)
             call sts_add_source(0.5d0*dt)
-          endselect
-    endif  
+          end select
+    end if
     src_active = .false.
 
     if ((.not.prior).and.&
@@ -135,15 +135,15 @@ contains
 
     tmp_active = .false.
 
-    ! physics defined sources, typically explicitly added,
-    ! along with geometrical source additions
-    call phys_add_source(qdt,ixI^L,ixO^L,wCT,w,x,qsourcesplit,tmp_active,wCTprim)
-
     ! user defined sources, typically explicitly added
     if ((qsourcesplit .eqv. source_split_usr) .and. associated(usr_source)) then
        tmp_active = .true.
        call usr_source(qdt,ixI^L,ixO^L,iw^LIM,qtC,wCT,qt,w,x)
     end if
+
+    ! physics defined sources, typically explicitly added,
+    ! along with geometrical source additions
+    call phys_add_source(qdt,ixI^L,ixO^L,wCT,w,x,qsourcesplit,tmp_active,wCTprim)
 
     if (present(src_active)) src_active = src_active .or. tmp_active
 
