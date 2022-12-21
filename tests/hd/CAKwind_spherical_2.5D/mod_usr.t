@@ -200,21 +200,24 @@ contains
     ! Small offset (~vtherm/vinf) to avoid starting at terminal wind speed
     sfac = 1.0d0 - 1.0d-3**(1.0d0/beta)
 
-    where (x(ixI^S,1) >= drstar)
-       w(ixI^S,mom(1)) = dvinf * ( 1.0d0 - sfac * drstar/x(ixI^S,1) )**beta
-       w(ixI^S,rho_) = dmdot / (4.0d0*dpi * x(ixI^S,1)**2.0d0 * w(ixI^S,mom(1)))
-    endwhere
-
-    w(ixI^S,mom(2)) = 0.0d0
+    w(ixO^S,mom(1)) = dvinf * ( 1.0d0 - sfac * drstar/x(ixO^S,1) )**beta
+    w(ixO^S,rho_)   = dmdot / (4.0d0*dpi * x(ixO^S,1)**2.0d0 * w(ixO^S,mom(1)))
+    w(ixO^S,mom(2)) = 0.0d0
     
-    ! Angular momentum conserving
-    w(ixI^S,mom(3)) = dvrot * sin(x(ixI^S,2)) * drstar/x(ixI^S,1)
+    if (hd_rotating_frame) then
+      w(ixO^S,mom(3)) = 0.0d0
+    else
+      ! Angular momentum conserving
+      w(ixO^S,mom(3)) = dvrot * sin(x(ixO^S,2)) * drstar**2.0d0/x(ixO^S,1)
+    endif
 
-    if (hd_energy) w(ixO^S,p_) = dasound**2.0d0 * w(ixI^S,rho_)
+    if (hd_energy) then
+      w(ixO^S,p_) = dasound**2.0 * drhobound * (w(ixO^S,rho_)/drhobound)**hd_gamma
+    endif
 
     call hd_to_conserved(ixI^L,ixO^L,w,x)
 
-    ! Initialise extra vars at 0 since some compilers fill with crap
+    ! Initialise extra vars at 0
     w(ixO^S,nw-nwextra+1:nw) = 0.0d0
 
   end subroutine initial_conditions
@@ -251,14 +254,20 @@ contains
       ! Polar velocity (no-slip condition to avoid equator-ward flow)
       w(ixB^S,mom(2)) = 0.0d0
 
-      ! Azimuthal velocity (rigid body rotation of star)
-      w(ixB^S,mom(3)) = dvrot * sin(x(ixB^S,2))
+      if (hd_rotating_frame) then
+        w(ixB^S,mom(3)) = 0.0d0
+      else
+        ! Rigid body rotation of star
+        w(ixB^S,mom(3)) = dvrot * sin(x(ixB^S,2))
+      endif
 
       ! Avoid supersonic ghost cells, also avoid overloading too much
       w(ixB^S,mom(1)) = min(w(ixB^S,mom(1)), dasound)
       w(ixB^S,mom(1)) = max(w(ixB^S,mom(1)), -dasound)
 
-      if (hd_energy) w(ixB^S,p_) = dasound**2.0d0 * w(ixB^S,rho_)
+      if (hd_energy) then
+        w(ixB^S,p_) = dasound**2.0 * drhobound * (w(ixB^S,rho_)/drhobound)**hd_gamma
+      endif
 
       call hd_to_conserved(ixI^L,ixI^L,w,x)
 

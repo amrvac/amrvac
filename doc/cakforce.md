@@ -15,7 +15,7 @@ It should be noted that we do not follow the original CAK parametrisation (\f$ \
 \f[
 \mathbf{g}_\mathrm{r} = g_\mathrm{cont} \mathbf{e}_r + g_\mathrm{line}  \mathbf{e}_r = g_\mathrm{e}\,\mathbf{e}_r + f_\mathrm{d} g_\mathrm{line} \mathbf{e}_r
 \f]
-where \f$ g_\mathrm{e} = \kappa_\mathrm{e}L_\star/(4\pi r^2 c) \f$ is the (continuum) radiation acceleration due to Thomson scattering on free electrons with opacity \f$ \kappa_\mathrm{e}=0.34 \, \mathrm{cm}^2/g \f$. The radiation line force expression can take several forms depending on the physics included (see below). The classical radially streaming CAK expression for the force coming from a point star obeys
+where \f$ g_\mathrm{e} = \kappa_\mathrm{e}L_\star/(4\pi r^2 c) \f$ is the (continuum) radiation acceleration due to Thomson scattering on free electrons with opacity \f$ \kappa_\mathrm{e}=0.34 \f$ cm\f$^2\f$/g. The radiation line force expression can take several forms depending on the physics included (see below). The classical radially streaming CAK expression for the force coming from a point star obeys
 \f[
 g_\mathrm{line} = \frac{\bar{Q}^{1-\alpha}}{(1-\alpha)} \frac{g_\mathrm{e}}{t_r^\alpha}
 \f]
@@ -40,31 +40,38 @@ With this formula all components of the force can be computed: \f$ \mathbf{g}_\m
 Finally, note that contrary to the RHD physics module of MPI-AMRVAC, the radiation force prescription presented here is a **reduced** dynamical picture. Indeed, we do not solve for the detailed radiation-energy exchange that is done via the flux-limited diffusion in the RHD module. This is justified since for the typical stellar conditions where the CAK force prescription applies (OB-star atmospheres), such detailed radiation-energy exchanges between the radiation field and gas are rather minor and instead the radiation dynamically couples to the gas only without considering the radiation energy budget.
 
 # Practical use
-In order to add the CAK force to a line-driven stellar wind simulation, the user has to adjust the .par file as indicated in this section. A 1D and 2.5D example test problem of this module is also provided in the HD tests folder.
+In order to add the CAK force to a line-driven stellar wind simulation, the user has to adjust the .par file as indicated in this section.
 
 ## Activating the module
-Depending whether the setup is in (M)HD, the the force needs to be activated in the physics-dependent namelist. This means that for a (M)HD simulation one adds in the `&(m)hd_list` the following:
+Depending whether the setup is in (M)HD, the the force needs to be activated in the physics-dependent namelist. This means that for a HD simulation one adds in the `&hd_list` the following:
 ```
-&(m)hd_list
-  (m)hd_cak_force = .true.
+&hd_list
+  hd_cak_force = .true.
 /
 ```
+and a similar procedure applies for the `&mhd_list` with `mhd_cak_force`.
 
 ## Customizing the setup
 Additionally, specific parameters can be set in the `&cak_list` for the source term physics treatment. In the following table, the available parameters are briefly described with their possible values. If some values are not set, they are default to a 1-D CAK force prescription for a proto-typical Galactic O-supergiant.
 
 name | type | default | description
 ---|---|---|---
-cak_alpha | double | 0.65 | Power-law index of the CAK line-ensemble distribution function. Allowed values are in the range $\alpha\in [0,1[$.  
+cak_alpha | double | 0.65 | Power-law index of the CAK line-ensemble distribution function. Allowed values are in the range \f$\alpha\in [0,1[\f$.
 gayley_qbar | double | 2000 | Gayley (1995) ensemble-integrated line-strength of the line-ensemble distribution function. Number should be bigger than zero.
 gayley_q0 | double | 2000 | Gayley (1995) line-strength cut-off for the line-ensemble distribution function. Extension to the original CAK formulation to avoid an inifinite line force in the optically thin limit. Number should be bigger than zero.
-cak_1d_force | logical | F | If true, activate the original CAK 1-D (radial) line force prescription as source term to the (M)HD equations. Hence, computes $g_{\mathrm{line},r}$. 
+cak_1d_force | logical | F | If true, activate the original CAK 1-D (radial) line force prescription as source term to the (M)HD equations. Hence, computes \f$g_{\mathrm{line},r}\f$.
 cak_1d_opt | integer | 1 | Switch that allows to select different CAK 1-D force prescriptions. When cak_1d_opt=0 we follow the original CAK radially streaming limit (point star). When cak_1d_opt=1 the 1-D radially streaming force gets adjusted with the finite disc factor to take into account the finite extent of the star. When cak_1d_opt=2 the 1-D radially streaming force is corrected with the finite disc factor and with the line-strength cut-off.
-cak_vector_force | logical | F | If true, activate the CAK line force with components computed in all coordinate directions (radial, polar, azimuthal). Hence, computes $g_{\mathrm{line},r}$, $g_{\mathrm{line},\theta}$, and $g_{\mathrm{line},\phi}$. 
-nthetaray | integer | 6 | If `cak_vector_force=T`, amount of radiation ray points used to describe the radiation angle $\varTheta$.
-nphiray | integer | 6 | If `cak_vector_force=T`, amount of radiation ray points used to describe the radiation angle $\varPhi$.
+cak_vector_force | logical | F | If true, activate the CAK line force with components computed in all coordinate directions (radial, polar, azimuthal). Hence, computes \f$g_{\mathrm{line},r}\f$, \f$g_{\mathrm{line},\theta}\f$, and \f$g_{\mathrm{line},\phi}\f$.
+nthetaray | integer | 6 | If `cak_vector_force=T`, amount of radiation ray points used to describe the radiation angle \f$\Theta\f$.
+nphiray | integer | 6 | If `cak_vector_force=T`, amount of radiation ray points used to describe the radiation angle \f$\Phi\f$.
 fix_vector_force_1d | logical | F | If true, the CAK vector line force will only have a non-zero radial component.
 cak_split |  logical | F | To add the source term in a split or unsplit (default) fashion.
+
+## Test problems
+Two test problems are provided in the HD tests folder that can be configured in several wats to illustrate the above physics, see `CAKwind_spherical_1D` and `CAKwind_spherical_2.5D`. Functionalities included are:
+- 1D and 2.5D spherical isothermal or adiabatic wind models.
+- Rotating frame of reference for 2.5D wind.
+- Radial line force or vector line force with one or more of the previous listed combinations.
 
 # Numerics and implementation
 
@@ -83,7 +90,7 @@ This subroutine computes the force normalisation in dimensionless units. **It ha
 *cak_add_source:*
 The subroutine cak_add_source is called at each timestep to add the CAK line force together with the radial Thomson (continuum) force. Depending on the chosen option (`cak_1d_force` or `cak_vector_force`) either the original 1-D CAK line force or the full CAK vector force is computed. The forces are all computed in dimensionless units.
 
-In case there is adiabatic (M)HD, the forces will also be added to the energy equation. To mimic stellar heating there is a floor temperature set (being the stellar surface temperature) to the wind. This also fixes the sometimes possible occurence of negative thermal pressures in parts of the hypersonic wind outflow. However, if this happens the code will still crash inside phys_get_pthermal, that is called to compute the floor temperature.To avoid a code crash set `check_small_values=.false.` in the method_list and the floor temperature will fix any misbehaving cells instead. 
+In case there is adiabatic (M)HD, the forces will also be added to the energy equation. To mimic stellar heating there is a floor temperature set (being the stellar surface temperature) to the wind. This also fixes the sometimes possible occurrence of negative thermal pressures in parts of the hypersonic wind outflow.
 
 *cak_get_dt:*
 Since an additional force is introduced to the (M)HD system, we also check for possible time step constraints in every coordinate direction. When the 1-D CAK force is used this only applies to the radial direction again, when the vector CAK force is used then it depends on how many dimensions the problem uses to determine possible additional time step limitations.
@@ -109,7 +116,7 @@ This routine computes a second-order spatially accurate gradient in a certain co
 If a uniform grid is used, the formulae will collapse to a second-order spatially accurate gradient expression for uniform grids.
 
 *rays_init:*
-Initialisation routine for the radiation rays when the `cak_vector_force` is applied. It distributes a preselected amount of rays with radiation angles $(\varTheta, \varPhi)$ on the (projected) stellar disc. Additionally, it assigns weights to the rays in theor contribution to the radiation line force. For convenience the radiation polar angle points are recast to a formulation in terms of impact parameter points. Both the ray points and weights are set by a Gauss-Legendre quadrature.
+Initialisation routine for the radiation rays when the `cak_vector_force` is applied. It distributes a preselected amount of rays with radiation angles (\f$\Theta\f$, \f$\Phi\f$)$ on the (projected) stellar disc. Additionally, it assigns weights to the rays in the contribution to the radiation line force. For convenience the radiation polar angle points are recast to a formulation in terms of impact parameter points. Both the ray points and weights are set by a Gauss-Legendre quadrature.
 This routine is called once in the *cak_init* routine when `cak_vector_force=T`.
 
 *gauss_legendre_quadrature:*
