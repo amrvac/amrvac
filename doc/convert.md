@@ -7,6 +7,7 @@
 The standard [MPI-AMRVAC dataformat](fileformat.md), i.e. the _*.dat_
 files usable for restart, contain all the conservative variables in
 all gridblocks, and hence suffice for visualization.
+Additional variables can be added in the _*.dat_ files as explained [here](dat_convert.md).  
 > Since late 2019, it can be directly read, visualised and
 > analysed with the Python package [yt](https://yt-project.org),
 > see [our documentation to get started with yt](yt_usage.md).
