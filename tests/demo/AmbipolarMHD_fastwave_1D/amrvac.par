@@ -1,0 +1,90 @@
+ &filelist
+        autoconvert   = T
+        !saveprim      = T
+        !nwauxio       = 1
+        !base_filename = 'ambi'
+        convert_type = "user"
+        !restart_from_file = 'ambi0000.dat'
+ /
+
+ &savelist
+        !ditsave_dat   = 1000
+        dtsave_dat     = 0.1
+ /
+
+ &stoplist
+        time_max      = 0.8
+        !it_max      = 2
+ /
+
+ &methodlist
+        time_stepper = 'threestep'
+        flux_scheme     = 20*'hll'
+        limiter  = 20*'cada3'
+        small_values_method = 'ignore'
+ /
+
+ &boundlist
+        !save_physical_boundary = .true. 
+        internalboundary = .true.
+        typeboundary_min1  = 8*'special'
+        typeboundary_max1  = 8*'symm'
+
+
+ /
+
+ &meshlist
+        refine_criterion = 3
+        refine_max_level = 1
+    	  refine_threshold = 20*0.4d0
+        domain_nx1    = 3200
+        block_nx1    = 50
+        xprobmin1     = 0.5d0
+        xprobmax1     = 2.1d0
+ /
+
+ &paramlist
+        !dtdiffpar    = 1d-2
+        courantpar    = 0.8d0
+ /
+
+ &mhd_list
+        typedivbfix   =  'linde'
+        !typedivbfix   =  'none'
+        has_equi_pe0 = .true.
+        has_equi_rho0 = .true.
+        B0field=.true.
+        B0field_forcefree=.true.
+
+        mhd_dump_full_vars = .true.
+        mhd_gravity   =  .true.
+        SI_unit       =  .true.
+        He_abundance  =  0d0
+        H_ion_fr = 1d-3
+        mhd_ambipolar =  .true.
+        mhd_eta_ambi=1d-4
+        mhd_ambipolar_sts = .true.
+ /
+
+ &sts_list
+        sts_ncycles=1000
+        sts_method=1
+        sourcetype_sts=2
+ /
+
+ &usr_list
+        Period= 5
+        usePml = .false.
+        useFilter = .false.
+        sigmaPml = 1
+        xL = 1.85
+        maskAmbi = .true.
+        xLambi = 1.7
+        wLambi = 0.05
+
+        niter_filter = 1
+        ambi_mask_method = 1
+        ambi_mask_smooth = .false.
+        random_ambi = .false.
+
+/
