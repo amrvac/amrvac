@@ -95,3 +95,9 @@
  &rotating_frame_list
         omega_frame= 1.069199999999d-2
  /
+
+&icarus_list
+        timeseries_file = 'pressure_runs_'
+        amr_criterion = 'tracing'
+/
+
