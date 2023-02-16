@@ -18,7 +18,7 @@
  &filelist
         autoconvert   = .true.
         saveprim      = .true. 
-        base_filename ='./output_rotation/icarus_centrifugal_rotate_short'
+        base_filename ='./output_rotation/icarus_cme'
         convert_type  = 'vtuBCCmpi'
         slice_type    = 'csv'
         nocartesian   = .true.
@@ -28,15 +28,15 @@
 /
 
  &savelist
-       ! itsave(1,1)   = 0
-       ! itsave(1,2)   = 0
+        itsave(1,1)   = 0
+        itsave(1,2)   = 0
         tsavestart(2) = 336.0
-       ! dtsave_dat    = 3.0
+        dtsave_dat    = 3.0
 /
 
 
  &stoplist
-        time_max      = 336.0d0
+        time_max      = 576.0d0
  /
 
  &methodlist
