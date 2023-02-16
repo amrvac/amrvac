@@ -1,34 +1,38 @@
 module mod_usr
   use mod_mhd
-  !SI units, constants 
+  !SI units, constants
   use mod_constants, only: mp_SI, kB_SI, miu0_SI
-  ! Note also the available (in cgs) constants like
-  !  const_RSun, const_MSun, const_mp, const_G, const_kB
 
   implicit none
 
-  character(len=20) :: printsettingformat
+  character(len=20)                              :: printsettingformat
+  double precision                               :: omega_frame
+  character(len=500)                             :: timeseries_file, amr_criterion
+  type satellite_pos
+    real(kind=8), dimension(:,:), allocatable    :: positions
+  end type satellite_pos
 
   !Shared over subroutines
-  real(kind=8), allocatable :: coord_grid_init(:,:,:),variables_init(:,:,:)
-  real(kind=8), allocatable :: satellite_positions(:,:)
-  real(kind=8), allocatable :: mars_positions(:,:)
-  real(kind=8), allocatable :: venus_positions(:,:)
-  real(kind=8), allocatable :: sta_positions(:,:)
-  real(kind=8), allocatable :: stb_positions(:,:)
-  real(kind=8), allocatable :: mercury_positions(:,:)
+  real(kind=8), allocatable                      :: coord_grid_init(:,:,:),variables_init(:,:,:)
+  type(satellite_pos), dimension(:), allocatable :: positions_list
+  character(len=250), dimension(8)               :: trajectory_list
+  integer, dimension(8)                          :: which_satellite = (/1, 1, 1, 1, 1, 1, 0, 0/)     ! intended order: earth, mars, mercury, venus, sta, stb, psp, solo
+  double precision, dimension(8)                 :: last = (/0, 0, 0, 0, 0, 0, 0, 0/)        ! intended order: earth, mars, mercury, venus, sta, stb, psp, solo
+  integer, dimension(8)                          :: last_index = (/0, 0, 0, 0, 0, 0, 0, 0/)  ! intended order: earth, mars, mercury, venus, sta, stb, psp, solo
+  double precision                               :: delta_phi
+  integer, dimension(:,:), allocatable           :: starting_index, cme_index    ! first coordinate: satellite index; second coordinate: cme index
+  integer, dimension(8)                          :: magnetogram_index = (/0, 0, 0, 0, 0, 0, 0, 0/)
 
-  double precision    :: last_earth=0, last_mercury=0, last_mars=0, last_sta=0, last_stb=0
-  double precision    :: last_venus=0
-  double precision    :: delta_phi
-  integer, dimension(:), allocatable  :: starting_index(:), cme_index(:)
-  integer              :: magnetogram_index = 0, last_index = 0
 
-  ! CME parameters
+  ! CME parameters and simulation details from the parameter file
   ! define my cme parameters here
+
+ 
+  integer                                        :: cme_flag
   integer, dimension(:), allocatable             :: cme_year, cme_month, cme_day, cme_hour, cme_minute, cme_second
   double precision, dimension(:), allocatable    :: relaxation, cme_insertion, vr_cme, w_half, clt_cme, lon_cme, rho_cme, temperature_cme
-  double precision, dimension(:), allocatable    :: timestamp, time_difference_cme_magn, longitudes_fix
+  double precision, dimension(:), allocatable    :: timestamp, longitudes_fix
+  double precision, dimension(:,:), allocatable  :: time_difference_cme_magn
   double precision, dimension(:), allocatable    :: lon_updated, lon_original
   integer             :: magnetogram_timestamp(6)
 
@@ -36,12 +40,32 @@ module mod_usr
 
 contains
 
+
+subroutine usr_params_read(files)
+    character(len=*), intent(in) :: files(:)
+!    double precision, intent(in) :: omega_frame
+    integer :: n
+
+    namelist /rotating_frame_list/ omega_frame
+    namelist /icarus_list/ timeseries_file, amr_criterion
+
+    do n = 1, size(files)
+       open(unitpar, file=trim(files(n)), status="old")
+       read(unitpar, rotating_frame_list, end=111)
+       read(unitpar, icarus_list, end=111)
+111    close(unitpar)
+    end do
+
+
+  end subroutine usr_params_read
+
 !-----------------------------------------------------------------------------
 !-----------------------------------------------------------------------------
   subroutine usr_init()
     use mod_global_parameters
     use mod_usr_methods
 
+    call usr_params_read(par_files)
     usr_set_parameters  => initglobaldata_usr
     usr_init_one_grid   => initonegrid_usr
     usr_aux_output      => specialvar_output
@@ -50,17 +74,19 @@ contains
     usr_refine_grid     => specialrefine_grid
     usr_source          => specialsource
 
+   
+
     call set_coordinate_system('spherical_3D')
     call mhd_activate()
 
 
     ! Note: mhd_activate sets the physical units used by MPI-AMRVAC as governed
-    ! in subroutine mhd_phys_init (in mod_mhd_phys.t) which in turn calls 
+    ! in subroutine mhd_phys_init (in mod_mhd_phys.t) which in turn calls
     ! subroutine mhd_physical_units (also in mod_mhd_phys.t)
     !  There, the parameters SI_unit, eq_state_units, mhd_partial_ionization enter
     !  Sometime we use He_abundance, H_ion_fr, He_ion_fr, He_ion_fr2
-    !  Moreover, we use 3 out of 
-    !      unit_density, unit_numberdensity, unit_length, unit_time, unit_velocity, 
+    !  Moreover, we use 3 out of
+    !      unit_density, unit_numberdensity, unit_length, unit_time, unit_velocity,
     !      unit_pressure, unit_magneticfield, unit_temperature,
     !      unit_mass, unit_charge
     !  Note we have factor RR (p=RR rho T)
@@ -110,25 +136,26 @@ contains
     logical, save       :: firstglobalusr=.true.
     integer             :: AllocateStatus, DeAllocateStatus
     !Parameters related to the unit conversions
-    double precision    :: Lunit, Tunit, Rhounit, Vunit, Bunit, Eunit, Punit
+    double precision    :: Lunit_in, Tunit_in, Rhounit_in, Vunit_in, Bunit_in, Eunit_in, Punit_in
     !Parameters related to the read-in of the boundary file
     character(len=50)   :: boundary_file
     character(len=50)   :: cme_parameter_file
-    character(len=50)   :: satelite_trajectory, mars_trajectory, venus_trajectory
+    character(len=50)   :: earth_trajectory, mars_trajectory, venus_trajectory
     character(len=50)   :: sta_trajectory, stb_trajectory, mercury_trajectory
-    integer             :: nr_colat, nr_lon, k, n
-    !-----------------------------------------------------------------------------
+    character(len=50), dimension(8) :: trajectory_lists
+    integer             :: nr_colat, nr_lon, k, n, i 
+   !-----------------------------------------------------------------------------
 
     if(firstglobalusr) then
         call print_initial_information()
         !Read-in coronal model
         !Coronal model at boundary has 2 coordinates: colat and lon
         !Coronal model has data for 4 parameters: vr, n, T, Br
-        cme_parameter_file = "cme_input_parameters.dat"   !"cme_cone_model_old.par"
+        cme_parameter_file = "cme_input_updated.dat"  !"cme_input_parameters.dat"   !"cme_cone_model_old.par"
         boundary_file = "solar_wind_bc_used_in_paper.dat"
 
         ! 2015 event june corresponding satellite data
-        satelite_trajectory = "2015_june_earth_ext.unf"
+        earth_trajectory = "2015_june_earth_ext.unf"
         mars_trajectory = "2015_june_mars_ext.unf"
         venus_trajectory = "2015_june_venus_ext.unf"
         mercury_trajectory = "2015_june_mercury_ext.unf"
@@ -143,42 +170,75 @@ contains
             IF (AllocateStatus /= 0) call mpistop('*** Not enough memory ***')
         ALLOCATE(variables_init(nr_colat, nr_lon+4, 4), STAT = AllocateStatus)
             IF (AllocateStatus /= 0) call mpistop('*** Not enough memory ***')
-
+  
+        ! read in boundary file
         call read_boundary_coronal_model(boundary_file, coord_grid_init, variables_init, delta_phi)
 
-        !read in cme parameters
+        ! read in cme parameters
         call read_cme_parameters(cme_parameter_file)
 
+        ! Initialize cme starting index in the trajectory file, cme index in the trajectory file and the time difference between the start and cme indexes
         do n = 1, num_cmes
-          cme_index(n) = 0
-          starting_index(n) = 0
-          time_difference_cme_magn(n) = 0
+          do i = 1, 8
+            cme_index(i, n) = 0
+            starting_index(i, n) = 0
+            time_difference_cme_magn(i, n) = 0
+          end do
         end do
-        ! read in trajectory coordinates
-        call read_earth_trajectory(satelite_trajectory)
-        call read_mars_trajectory(mars_trajectory)
-        call read_venus_trajectory(venus_trajectory)
-        call read_mercury_trajectory(mercury_trajectory)
-        call read_sta_trajectory(sta_trajectory)
-        call read_stb_trajectory(stb_trajectory)
+     
+
+
+        trajectory_lists(1) = earth_trajectory
+        trajectory_lists(2) = mars_trajectory
+        trajectory_lists(4) = venus_trajectory
+        trajectory_lists(3) = mercury_trajectory
+        trajectory_lists(5) = sta_trajectory
+        trajectory_lists(6) = stb_trajectory
+
+        ALLOCATE(positions_list(8), STAT=AllocateStatus)
+
+        ! for each satellite, read the trajectory data and save in the arrays of time and locations
+        do i = 1, 8
+          if (which_satellite(i)==1) then
+            call read_satellite_trajectory(trajectory_lists(i), i)
+          end if
+        end do
+
 
         ! calculate timestamp for cme insertion
         do k=1, num_cmes
-          timestamp(k) = relaxation(k)*24.0 + cme_insertion(k)*24.0 + time_difference_cme_magn(k)
+          timestamp(k) = relaxation(k)*24.0 + cme_insertion(k)*24.0 + time_difference_cme_magn(1, k)
         end do
         call cme_insertion_longitudes_fix()
     end if
 
     mhd_gamma= 3.0d0/2.0d0
-    call set_units(Lunit, Tunit, Rhounit, Vunit, Bunit, Eunit, Punit)
+    call set_units(Lunit_in, Tunit_in, Rhounit_in, Vunit_in, Bunit_in, Eunit_in, Punit_in)
+
+!    length_convert_factor = Lunit_in
+!    time_convert_factor = Tunit_in
+
+    print *, 2.0*dpi, Rhounit_in, "  ", Vunit_in, "  ", Punit_in, " ", Bunit_in
+
+    w_convert_factor(rho_) = Rhounit_in ! in km/m^3
+    w_convert_factor(mom(1)) =Vunit_in*1d-3  ! in km/s
+    w_convert_factor(mom(2)) = w_convert_factor(mom(1))
+    w_convert_factor(mom(3)) = w_convert_factor(mom(1)) 
+    w_convert_factor(p_) = Punit_in  ! in kg/s/m^2
+    w_convert_factor(mag(1)) = Bunit_in*1d9 ! in nT
+    w_convert_factor(mag(2)) = w_convert_factor(mag(1))
+    w_convert_factor(mag(3)) = w_convert_factor(mag(1))
+
+
+!    print *, "converts:  ", w_convert_factor(rho_), w_convert_factor(mom(1)), w_convert_factor(p_), w_convert_factor(mag(1))
 
     ! Note: mhd_activate sets the physical units used by MPI-AMRVAC as governed
-    ! in subroutine mhd_phys_init (in mod_mhd_phys.t) which in turn calls 
+    ! in subroutine mhd_phys_init (in mod_mhd_phys.t) which in turn calls
     ! subroutine mhd_physical_units (also in mod_mhd_phys.t)
     !  There, the parameters SI_unit, eq_state_units, mhd_partial_ionization enter
     !  Sometime we use He_abundance, H_ion_fr, He_ion_fr, He_ion_fr2
-    !  Moreover, we use 3 out of 
-    !      unit_density, unit_numberdensity, unit_length, unit_time, unit_velocity, 
+    !  Moreover, we use 3 out of
+    !      unit_density, unit_numberdensity, unit_length, unit_time, unit_velocity,
     !      unit_pressure, unit_magneticfield, unit_temperature,
     !      unit_mass, unit_charge
     !  Note we have factor RR (p=RR rho T)
@@ -214,10 +274,12 @@ contains
       write(*,*)'----------------END UNITS----------------------------'
       write(*,*)'*********AT END OF INITGLOBALDATA_USR***************'
     end if
+
+
+!     print *, "grid info:   ", ps(igrid)%x
   end subroutine initglobaldata_usr
 !-----------------------------------------------------------------------------
 !-----------------------------------------------------------------------------
-
 
 
 
@@ -286,16 +348,8 @@ contains
     double precision :: divb(ixI^S), divmom(ixI^S)
     double precision :: v(ixI^S,ndir), divV(ixI^S), momentum(ixI^S, ndir)
     integer :: i
-    double precision :: r_out, r_in, ratio, block_num, degree, step_size(ixI^S)
 
-
-    ! THIS SHOULD BE USING INPUT DATA ON GRID+BLOCK NUMBERS!!!
-    block_num = 61.0
-    r_out = xprobmax1
-    r_in = xprobmin1
-    ratio = r_out/r_in
-    degree = (block_num-1)/block_num
-    step_size(ixI^S) = x(ixI^S,1)*(ratio**degree-1)
+    
 
     ! output divB1
     call get_divb(w,ixI^L,ixO^L,divb)
@@ -340,13 +394,14 @@ end subroutine specialvarnames_output
 !-----------------------------------------------------------------------------
 !-----------------------------------------------------------------------------
 
-subroutine readout_satellite(satellite_name, file_name, ixI^L,ixO^L, before_cme, qt,w,x)
+subroutine readout_satellite(satellite_index, file_name, ixI^L,ixO^L, before_cme, qt,w,x)
   double precision, intent(inout) :: w(ixI^S,1:nw)
   integer, intent(in)             :: ixI^L, ixO^L
   double precision, intent(in)    :: x(ixI^S,1:ndim), qt
   double precision   :: rho_e, P_e, vr_e, vclt_e, vlon_e, Br_e, Bclt_e, Blon_e
+  double precision   :: v_tot, b_tot, pressure
   character(len=250) :: file_name
-  character(len=20)  :: satellite_name
+  integer            :: satellite_index
 
   !integer            :: last_index
   double precision   :: before_cme
@@ -359,45 +414,14 @@ subroutine readout_satellite(satellite_name, file_name, ixI^L,ixO^L, before_cme,
   double precision   :: p_r, p_th, p_phi, p_rme, p_thme, p_phime
   integer            :: i, check
   real(8)            :: yr, mnth, day, hr, mn, sc
+  double precision, dimension(8) :: orbital_period = (/365.24, 686.98, 87.969, 224.7, 346.0, 388.0, 88.0, 168.0/)    ! earth, mars, mercury, venus, sta, stb, psp, solo
 
 
-  if (satellite_name == "earth") then
-  r_satellite = satellite_positions(7,last_index)
-  theta_satellite = dpi/2.0 - satellite_positions(8, last_index)
-  phi_satellite = delta_phi + &
-            satellite_positions(9, last_index)&
-           - (qt-(timestamp(1)-before_cme))*(2.0*dpi)/24.0*(1/2.447d1-1/365.24)
+  r_satellite = positions_list(satellite_index)%positions(7, last_index(satellite_index))
+  theta_satellite = dpi/2.0 - positions_list(satellite_index)%positions(8, last_index(satellite_index))
+  phi_satellite = delta_phi+positions_list(satellite_index)%positions(9, last_index(satellite_index))&
+   - (qt-(timestamp(1)-before_cme))*(2.0*dpi)/24.0*(1/2.447d1-1/orbital_period(satellite_index))
 
-  else if (satellite_name == "mercury") then
-  r_satellite = mercury_positions(7,last_index)
-  theta_satellite = dpi/2.0 - mercury_positions(8, last_index)
-  phi_satellite = delta_phi + mercury_positions(9, last_index)&
-           - (qt-(timestamp(1)-before_cme))*(2.0*dpi)/24.0*(1/2.447d1-1/87.969)
-
-  else if (satellite_name == "mars") then
-  r_satellite = mars_positions(7,last_index)
-  theta_satellite = dpi/2.0 - mars_positions(8, last_index)
-  phi_satellite = delta_phi + mars_positions(9, last_index)&
-           - (qt-(timestamp(1)-before_cme))*(2.0*dpi)/24.0*(1/2.447d1-1/686.98)
-
-  else if (satellite_name == "sta") then
-  r_satellite = sta_positions(7,last_index)
-  theta_satellite = dpi/2.0 - sta_positions(8, last_index)
-  phi_satellite = delta_phi + sta_positions(9, last_index)&
-           - (qt-(timestamp(1)-before_cme))*(2.0*dpi)/24.0*(1/2.447d1-1/346.0)
-
-  else if (satellite_name == "stb") then
-  r_satellite = stb_positions(7,last_index)
-  theta_satellite = dpi/2.0 - stb_positions(8, last_index)
-  phi_satellite = delta_phi + stb_positions(9, last_index)&
-           - (qt-(timestamp(1)-before_cme))*(2.0*dpi)/24.0*(1/2.447d1-1/388.0)
-
-  else if (satellite_name == "venus") then
-  r_satellite = venus_positions(7,last_index)
-  theta_satellite = dpi/2.0 - venus_positions(8, last_index)
-  phi_satellite = delta_phi + venus_positions(9, last_index)&
-           - (qt-(timestamp(1)-before_cme))*(2.0*dpi)/24.0*(1/2.447d1-1/224.7)
-  end if
 
   if (phi_satellite < 0) then
      phi_satellite = 2 * dpi + phi_satellite
@@ -407,61 +431,47 @@ subroutine readout_satellite(satellite_name, file_name, ixI^L,ixO^L, before_cme,
 
 
 
-     if((x(ixImin1+1,ixImin2,ixImin3,1)<= r_satellite) .and. &
-        (x(ixImax1-2,ixImin2,ixImin3,1) >= r_satellite)) then
+  if((x(ixImin1+1,ixImin2,ixImin3,1)<= r_satellite) .and. &
+    (x(ixImax1-2,ixImin2,ixImin3,1) >= r_satellite)) then
 
-     if((x(ixImin1,ixImin2+1,ixImin3,2)<= theta_satellite) .and. &
-       (x(ixImin1,ixImax2-2,ixImin3,2) >= theta_satellite)) then
+  if((x(ixImin1,ixImin2+1,ixImin3,2)<= theta_satellite) .and. &
+    (x(ixImin1,ixImax2-2,ixImin3,2) >= theta_satellite)) then
 
-     if((x(ixImin1,ixImin2,ixImin3+1,3)<= phi_satellite) .and. &
-        (x(ixImin1,ixImin2,ixImax3-2,3) >= phi_satellite)) then
+  if((x(ixImin1,ixImin2,ixImin3+1,3)<= phi_satellite) .and. &
+     (x(ixImin1,ixImin2,ixImax3-2,3) >= phi_satellite)) then
 
-  if (satellite_name == "earth") then
-    last_earth= qt
-  else if (satellite_name == "mercury") then
-    last_mercury= qt
-  else if (satellite_name == "mars") then
-    last_mars= qt
-  else if (satellite_name == "sta") then
-    last_sta= qt
-  else if (satellite_name == "stb") then
-    last_stb= qt
-  else if (satellite_name == "venus") then
-    last_venus= qt
-  end if
+  last(satellite_index) = qt
 
+  rmin = 0
+  thmin = 0
+  phimin = 0
 
-
-   rmin = 0
-   thmin = 0
-   phimin = 0
-
-   do ir1=ixImin1+1,ixImax1-2
-       if( ( x(ir1,ixImin2,ixImin3,1) <= r_satellite) .and. &
-           ( x(ir1+1,ixImin2,ixImin3,1) > r_satellite)) then
-         rmin = ir1
-       end if
-   end do
-   do ith2=ixImin2+1,ixImax2-2
-       if( ( x(ixImin1,ith2,ixImin3,2) <= theta_satellite) .and. &
-           ( x(ixImin1,ith2+1,ixImin3,2) > theta_satellite)) then
-         thmin=ith2
-       end if
-   end do
-   do iphi3=ixImin3+1,ixImax3-2
-       if( ( x(ixImin1,ixImin2,iphi3,3) <= phi_satellite) .and. &
-           ( x(ixImin1,ixImin2,iphi3+1,3) > phi_satellite)) then
-         phimin=iphi3
-       end if
-   end do
+  do ir1=ixImin1+1,ixImax1-2
+      if( ( x(ir1,ixImin2,ixImin3,1) <= r_satellite) .and. &
+          ( x(ir1+1,ixImin2,ixImin3,1) > r_satellite)) then
+        rmin = ir1
+      end if
+  end do
+  do ith2=ixImin2+1,ixImax2-2
+      if( ( x(ixImin1,ith2,ixImin3,2) <= theta_satellite) .and. &
+          ( x(ixImin1,ith2+1,ixImin3,2) > theta_satellite)) then
+        thmin=ith2
+      end if
+  end do
+  do iphi3=ixImin3+1,ixImax3-2
+      if( ( x(ixImin1,ixImin2,iphi3,3) <= phi_satellite) .and. &
+          ( x(ixImin1,ixImin2,iphi3+1,3) > phi_satellite)) then
+        phimin=iphi3
+      end if
+  end do
 
 
-xd = (r_satellite - x(rmin, thmin, phimin,1))/(x(rmin+1, thmin+1, phimin+1,1)-x(rmin, thmin, phimin,1))
-yd = (theta_satellite - x(rmin, thmin, phimin,2))/(x(rmin+1, thmin+1, phimin+1,2)-x(rmin, thmin, phimin,2))
-zd = (phi_satellite - x(rmin, thmin, phimin,3))/(x(rmin+1, thmin+1, phimin+1,3)-x(rmin, thmin, phimin,3))
+  xd = (r_satellite - x(rmin, thmin, phimin,1))/(x(rmin+1, thmin+1, phimin+1,1)-x(rmin, thmin, phimin,1))
+  yd = (theta_satellite - x(rmin, thmin, phimin,2))/(x(rmin+1, thmin+1, phimin+1,2)-x(rmin, thmin, phimin,2))
+  zd = (phi_satellite - x(rmin, thmin, phimin,3))/(x(rmin+1, thmin+1, phimin+1,3)-x(rmin, thmin, phimin,3))
 
 
-rho_e = linear_interpolation_3D(xd, yd, zd, &
+  rho_e = linear_interpolation_3D(xd, yd, zd, &
        w(rmin,thmin,phimin,rho_), &
        w(rmin+1,thmin,phimin,rho_), &
        w(rmin,thmin,phimin+1,rho_), &
@@ -471,7 +481,7 @@ rho_e = linear_interpolation_3D(xd, yd, zd, &
        w(rmin,thmin+1,phimin+1,rho_), &
        w(rmin+1,thmin+1,phimin+1,rho_))
 
-P_e = linear_interpolation_3D(xd, yd, zd, &
+  P_e = linear_interpolation_3D(xd, yd, zd, &
        w(rmin,thmin,phimin,p_), &
        w(rmin+1,thmin,phimin,p_), &
        w(rmin,thmin,phimin+1,p_), &
@@ -481,7 +491,7 @@ P_e = linear_interpolation_3D(xd, yd, zd, &
        w(rmin,thmin+1,phimin+1,p_), &
        w(rmin+1,thmin+1,phimin+1,p_))
 
-vr_e = linear_interpolation_3D(xd, yd, zd, &
+  vr_e = linear_interpolation_3D(xd, yd, zd, &
        w(rmin,thmin,phimin,mom(1))/w(rmin,thmin,phimin,rho_), &
        w(rmin+1,thmin,phimin,mom(1))/w(rmin+1,thmin,phimin,rho_), &
        w(rmin,thmin,phimin+1,mom(1))/w(rmin,thmin,phimin+1,rho_), &
@@ -491,7 +501,7 @@ vr_e = linear_interpolation_3D(xd, yd, zd, &
        ,w(rmin,thmin+1,phimin+1,mom(1))/w(rmin,thmin+1,phimin+1,rho_)&
        ,w(rmin+1,thmin+1,phimin+1,mom(1))/w(rmin+1,thmin+1,phimin+1,rho_))
 
-vclt_e = linear_interpolation_3D(xd, yd, zd, &
+  vclt_e = linear_interpolation_3D(xd, yd, zd, &
        w(rmin,thmin,phimin,mom(2))/w(rmin,thmin,phimin,rho_), &
        w(rmin+1,thmin,phimin,mom(2))/w(rmin+1,thmin,phimin,rho_), &
        w(rmin,thmin,phimin+1,mom(2))/w(rmin,thmin,phimin+1,rho_), &
@@ -501,7 +511,7 @@ vclt_e = linear_interpolation_3D(xd, yd, zd, &
        ,w(rmin,thmin+1,phimin+1,mom(2))/w(rmin,thmin+1,phimin+1,rho_)&
        ,w(rmin+1,thmin+1,phimin+1,mom(2))/w(rmin+1,thmin+1,phimin+1,rho_))
 
-vlon_e = linear_interpolation_3D(xd, yd, zd, &
+  vlon_e = linear_interpolation_3D(xd, yd, zd, &
        w(rmin,thmin,phimin,mom(3))/w(rmin,thmin,phimin,rho_), &
        w(rmin+1,thmin,phimin,mom(3))/w(rmin+1,thmin,phimin,rho_), &
        w(rmin,thmin,phimin+1,mom(3))/w(rmin,thmin,phimin+1,rho_), &
@@ -511,7 +521,7 @@ vlon_e = linear_interpolation_3D(xd, yd, zd, &
        ,w(rmin,thmin+1,phimin+1,mom(3))/w(rmin,thmin+1,phimin+1,rho_)&
        ,w(rmin+1,thmin+1,phimin+1,mom(3))/w(rmin+1,thmin+1,phimin+1,rho_))
 
-Br_e = linear_interpolation_3D(xd, yd, zd, &
+  Br_e = linear_interpolation_3D(xd, yd, zd, &
        w(rmin,thmin,phimin,mag(1)), &
        w(rmin+1,thmin,phimin,mag(1)), &
        w(rmin,thmin,phimin+1,mag(1)), &
@@ -521,7 +531,7 @@ Br_e = linear_interpolation_3D(xd, yd, zd, &
        w(rmin,thmin+1,phimin+1,mag(1)), &
        w(rmin+1,thmin+1,phimin+1,mag(1)))
 
-Bclt_e = linear_interpolation_3D(xd, yd, zd, &
+  Bclt_e = linear_interpolation_3D(xd, yd, zd, &
        w(rmin,thmin,phimin,mag(2)), &
        w(rmin+1,thmin,phimin,mag(2)), &
        w(rmin,thmin,phimin+1,mag(2)), &
@@ -531,7 +541,7 @@ Bclt_e = linear_interpolation_3D(xd, yd, zd, &
        w(rmin,thmin+1,phimin+1,mag(2)), &
        w(rmin+1,thmin+1,phimin+1,mag(2)))
 
-Blon_e = linear_interpolation_3D(xd, yd, zd, &
+  Blon_e = linear_interpolation_3D(xd, yd, zd, &
        w(rmin,thmin,phimin,mag(3)), &
        w(rmin+1,thmin,phimin,mag(3)), &
        w(rmin,thmin,phimin+1,mag(3)), &
@@ -541,44 +551,51 @@ Blon_e = linear_interpolation_3D(xd, yd, zd, &
        w(rmin,thmin+1,phimin+1,mag(3)), &
        w(rmin+1,thmin+1,phimin+1,mag(3)))
 
-p_r  = r_satellite/214.93946938      ![AU] from solar radii
-p_th = theta_satellite               ![rad]
-p_phi= phi_satellite                 ![rad]
+  p_r  = r_satellite/214.93946938      ![AU] from solar radii
+  p_th = theta_satellite               ![rad]
+  p_phi= phi_satellite                 ![rad]
 
-rho_e = rho_e * unit_density / 0.5d0 / mp_SI /1.0d6
-!rho_e = rho_e * unit_density / 0.5d0 / mp_SI
-P_e = P_e*unit_pressure ![ks/s/m^2] this is energy
-vr_e = vr_e *unit_velocity / 1.0d3 !km/s
-vclt_e = vclt_e *unit_velocity / 1.0d3 !km/s
-vlon_e = vlon_e *unit_velocity / 1.0d3 !km/s
-Br_e =Br_e *unit_magneticfield*1.0d9 ![nT], from T to nT
-Bclt_e=Bclt_e *unit_magneticfield*1.0d9 ![nT], from T to nT
-Blon_e = Blon_e *unit_magneticfield*1.0d9 ![nT], from T to nT
-yr = satellite_positions(1,last_index)
-mnth = satellite_positions(2,last_index)
-day = satellite_positions(3,last_index)
-hr = satellite_positions(4,last_index)
-mn = satellite_positions(5,last_index)
-sc = satellite_positions(6,last_index)
-
-inquire(file=file_name, exist=exist)
-if (exist) then
-open(12, file=file_name, status="old", position="append", action="write")
-write(12,*) yr, mnth, day, hr, mn, sc, qt, p_r, p_th, p_phi, rho_e, P_e, vr_e, vclt_e, vlon_e, Br_e, Bclt_e, Blon_e
-!write(12,*) qt, p_r, p_th, p_phi, rho_e, P_e, vr_e, vclt_e, vlon_e, Br_e, Bclt_e, Blon_e
-close(12)
-else
-open(12, file=file_name, status="new", action="write")
-write(12, *) "yy mm dd hh MM ss time r clt lon n P vr vclt vlon Br Bclt Blon"
-write(12,*) yr, mnth, day, hr, mn, sc, qt, p_r, p_th, p_phi, rho_e, P_e, vr_e, vclt_e, vlon_e, Br_e, Bclt_e, Blon_e
-!write(12,*) qt, p_r, p_th, p_phi, rho_e, P_e, vr_e, vclt_e, vlon_e, Br_e, Bclt_e, Blon_e
-close(12)
-end if
+  rho_e = rho_e * unit_density / 0.5d0 / mp_SI /1.0d6
+  !rho_e = rho_e * unit_density / 0.5d0 / mp_SI
+  P_e = P_e*unit_pressure ![ks/s/m^2] this is energy
+  vr_e = vr_e *unit_velocity / 1.0d3 !km/s
+  vclt_e = vclt_e *unit_velocity / 1.0d3 !km/s
+  vlon_e = vlon_e *unit_velocity / 1.0d3 !km/s
+  Br_e =Br_e *unit_magneticfield*1.0d9 ![nT], from T to nT
+  Bclt_e=Bclt_e *unit_magneticfield*1.0d9 ![nT], from T to nT
+  Blon_e = Blon_e *unit_magneticfield*1.0d9 ![nT], from T to nT
+  b_tot = sqrt(br_e**2 + bclt_e**2 + blon_e**2) *1.0d-9
+  v_tot = sqrt(vr_e**2 + vlon_e**2 + vclt_e**2)*1.0d3
+  pressure = (3.0/2.0-1)*(P_e-rho_e*1.0d6*0.5*mp_SI*v_tot**2/2 - b_tot**2/2)
 
 
 
-end if
-end if
+  yr = positions_list(satellite_index)%positions(1,last_index(satellite_index))
+  mnth = positions_list(satellite_index)%positions(2,last_index(satellite_index))
+  day = positions_list(satellite_index)%positions(3,last_index(satellite_index))
+  hr = positions_list(satellite_index)%positions(4,last_index(satellite_index))
+  mn = positions_list(satellite_index)%positions(5,last_index(satellite_index))
+  sc = positions_list(satellite_index)%positions(6,last_index(satellite_index))
+
+  inquire(file=file_name, exist=exist)
+  if (exist) then
+    open(12, file=file_name, status="old", position="append", action="write")
+  !  write(12,*) yr, mnth, day, hr, mn, sc, qt, p_r, p_th, p_phi, rho_e, P_e, vr_e, vclt_e, vlon_e, Br_e, Bclt_e, Blon_e
+    write(12,*) qt, p_r, p_th, p_phi, rho_e, pressure, vr_e, vclt_e, vlon_e, Br_e, Bclt_e, Blon_e
+    close(12)
+  else
+    open(12, file=file_name, status="new", action="write")
+   ! write(12, *) "yy mm dd hh MM ss time r clt lon n P vr vclt vlon Br Bclt Blon"
+    write(12, *) "time r clt lon n pressure P vr vclt vlon Br Bclt Blon"
+    !write(12,*) yr, mnth, day, hr, mn, sc, qt, p_r, p_th, p_phi, rho_e, P_e, vr_e, vclt_e, vlon_e, Br_e, Bclt_e, Blon_e
+    write(12,*) qt, p_r, p_th, p_phi, rho_e,pressure, vr_e, vclt_e, vlon_e, Br_e, Bclt_e, Blon_e
+    close(12)
+  end if
+
+
+
+  end if
+ end if
 end if
 
 
@@ -598,9 +615,8 @@ end subroutine readout_satellite
     double precision, intent(in)    :: wCT(ixI^S,1:nw), x(ixI^S,1:ndim)
     double precision, intent(inout) :: w(ixI^S,1:nw)
     double precision   :: test(ixI^S, 1:ndim)
-    double precision :: MSun = 1.9891d30   !kg
-    double precision :: Gravconst_Msun_normalized , GravConst = 6.67384d-11 !SI units
-
+    double precision :: Gravconst_Msun_normalized
+    double precision :: omega_normalized, omega = 2.97d-6
     logical, save      :: exist
     double precision   :: xloc(1:ndim)
     double precision   :: r_earth, theta_earth, phi_earth
@@ -615,73 +631,60 @@ end subroutine readout_satellite
     double precision   :: rho_e, P_e, vr_e, vclt_e, vlon_e, Br_e, Bclt_e, Blon_e
     double precision   :: rho_me, P_me, vr_me, vclt_me, vlon_me, Br_me, Bclt_me, Blon_me
     double precision   :: rho_earth
-    character(len=250) :: earth_file, mars_file, sta_file, stb_file
-    character(len=250) :: mercury_file, venus_file
-    character(len=50)  :: satellite_name
-
+    character(len=7), dimension(8) :: satellite_list = (/'earth  ', 'mars   ', 'mercury', 'venus  ', 'sta    ', 'stb    ', 'psp    ', 'solo   '/)
+    character(len=250) :: file_name
     double precision   :: delta_time
     integer            :: delta_steps
-    !integer            :: last_index
     double precision   :: elapsed_time !from the start of the simulation until magnetogram time
     double precision   :: before_cme ! Time from magnetogram time to cme starting time
     double precision   :: current_time
     integer           :: r_min, r_max, th_min, th_max, phi_min, phi_max
     integer            :: r_min1, r_max1, th_min1, th_max1, phi_min1, phi_max1
-    !integer            :: i
+    integer            :: i
     integer            :: ix1, ix2, ix3
     integer            :: check
     ! ---------------------------------------------------------------------------------
-    earth_file = "./multi_cme_2015june_master_lc_earth.txt"
-    mars_file = "./multi_cme_2015june_master_lc_mars.txt"
-    mercury_file = "./multi_cme_2015june_master_lc_mercury.txt"
-    sta_file = "./multi_cme_2015june_master_lc_sta.txt"
-    stb_file = "./multi_cme_2015june_master_lc_stb.txt"
-    venus_file = "./multi_cme_2015june_master_lc_venus.txt"
 
+    
     delta_time = 0.25d0
     delta_steps = int(timestamp(1)*60) !each step is one minute there fore 1 : 60 h
-    elapsed_time = (magnetogram_index-starting_index(1))*1/60.0
-    before_cme = (cme_index(1) - magnetogram_index)/60.0
+    elapsed_time = (magnetogram_index(1)-starting_index(1,1))*1/60.0
+    before_cme = (cme_index(1,1) - magnetogram_index(1))/60.0
 
-    if (mod(qt,0.25d0)<0.25d0 .and. mod(qt+qdt,0.25d0)<mod(qt,0.25d0)) then
-        last_index = starting_index(1) + int(qt*60.0)
-        if (qt>last_earth) then
-          satellite_name = "earth"
-          !call readout_satellite(satellite_name, earth_file, last_index, ixI^L, ixO^L, before_cme, qt,w,x)
-           call readout_satellite(satellite_name, earth_file, ixI^L, ixO^L, before_cme, qt,w,x)
-        end if
-        if (qt>last_mercury) then
-            satellite_name = "mercury"
-            !call readout_satellite(satellite_name, mercury_file, last_index, ixI^L, ixO^L, before_cme, qt,w,x)
-            call readout_satellite(satellite_name, mercury_file, ixI^L, ixO^L, before_cme, qt,w,x)
-        end if
-        if (qt>last_mars) then
-            satellite_name = "mars"
-            !call readout_satellite(satellite_name, mars_file, last_index, ixI^L, ixO^L, before_cme, qt,w,x)
-            call readout_satellite(satellite_name, mars_file, ixI^L, ixO^L, before_cme, qt,w,x)
-        end if
-        if (qt>last_sta) then
-            satellite_name = "sta"
-            !call readout_satellite(satellite_name, sta_file, last_index, ixI^L, ixO^L, before_cme, qt,w,x)
-            call readout_satellite(satellite_name, sta_file, ixI^L, ixO^L, before_cme, qt,w,x)
-        end if
-        if (qt>last_stb) then
-            satellite_name = "stb"
-            !call readout_satellite(satellite_name, stb_file, last_index, ixI^L, ixO^L, before_cme, qt,w,x)
-            call readout_satellite(satellite_name, stb_file, ixI^L, ixO^L, before_cme, qt,w,x)
-        end if
-        if (qt>last_venus) then
-            satellite_name = "venus"
-            !call readout_satellite(satellite_name, venus_file, last_index, ixI^L, ixO^L, before_cme, qt,w,x)
-            call readout_satellite(satellite_name, venus_file, ixI^L, ixO^L, before_cme, qt,w,x)
-        end if
 
-  end if
+    do i=1, 8
+        if (mod(qt,0.25d0)<0.25d0 .and. mod(qt+qdt,0.25d0)<mod(qt,0.25d0)) then
+            last_index(i) = starting_index(i, 1) + int(qt*60.0)
+            if (qt>last(i)) then
+                if (which_satellite(i)==1) then
+                    file_name=trim(timeseries_file)//trim(satellite_list(i))//'.txt'
+                    call readout_satellite(i, file_name, ixI^L, ixO^L, before_cme, qt,w,x)
+                end if
+            end if
+        end if
+    end do
+
+    
+
+    omega_normalized = omega * unit_length/unit_velocity
+
+!    !Centrifugal
+!    w(ixO^S,mom(1)) = w(ixO^S,mom(1)) + qdt*( omega_normalized*omega_normalized*x(ixO^S,1)*wCT(ixO^S,rho_)*sin(x(ixO^S,2))*sin(x(ixO^S,2)) )
+!    w(ixO^S,mom(2)) = w(ixO^S,mom(2)) + qdt*( omega_normalized*omega_normalized*x(ixO^S,1)*wCT(ixO^S,rho_)*cos(x(ixO^S,2))*sin(x(ixO^S,2)) )
+!    !No phi component for the centrifugal force.
+!    w(ixO^S,e_)  = w(ixO^S,e_)  + qdt*( omega_normalized*omega_normalized*x(ixO^S,1)*sin(x(ixO^S,2))*( cos(x(ixO^S,2))*wCT(ixO^S,mom(2))&
+!       +sin(x(ixO^S,2))*wCT(ixO^S,mom(1)) ) )
+!    !Coriolis
+!    w(ixO^S,mom(1)) = w(ixO^S,mom(1)) + qdt*2.0d0*(omega_normalized*sin(x(ixO^S,2)))*wCT(ixO^S,mom(3))
+!    w(ixO^S,mom(2)) = w(ixO^S,mom(2)) + qdt*2.0d0*(omega_normalized*cos(x(ixO^S,2)))*wCT(ixO^S,mom(3))
+!    w(ixO^S,mom(3)) = w(ixO^S,mom(3)) + qdt*2.0d0*omega_normalized*( -cos(x(ixO^S,2))*wCT(ixO^S,mom(2))-sin(x(ixO^S,2))*wCT(ixO^S,mom(1)) )
+!    !v.F for coriolis is zero.
+
 
 
     !Gravity
-    Gravconst_Msun_normalized = GravConst*MSun / (unit_velocity**2 * unit_length )
-    !momentum equation -> source = F = rho.g 
+    Gravconst_Msun_normalized = const_G*1d-3*const_MSun/1.0d3 / (unit_velocity**2 * unit_length )
+    !momentum equation -> source = F = rho.g
     !energy equation   -> source  = v . F
     w(ixO^S,e_)  = w(ixO^S,e_)  - qdt*wCT(ixO^S,mom(1))*Gravconst_Msun_normalized/(x(ixO^S,1)**2)
     w(ixO^S,mom(1)) = w(ixO^S,mom(1)) - qdt*wCT(ixO^S,rho_)*Gravconst_Msun_normalized/(x(ixO^S,1)**2)
@@ -721,7 +724,6 @@ end subroutine readout_satellite
 
 !-----------------------------------------------------------------------------
 !-----------------------------------------------------------------------------
-  !subroutine specialrefine_grid(igrid,level,ixG^L,ix^L,qt,w,x,refine,coarsen)
   subroutine specialrefine_grid(igrid,level,ixI^L,ixO^L,qt,w,x,refine,coarsen)
     ! refine = -1 enforce to not refine
     ! refine =  0 doesn't enforce anything
@@ -729,9 +731,6 @@ end subroutine readout_satellite
     ! coarsen = -1 enforce to not coarsen
     !  coarsen =  0 doesn't enforce anything
     ! coarsen =  1 enforce coarsen
-    !integer, intent(in)             :: igrid, level, ixG^L, ix^L
-
-    !double precision, intent(in)    :: qt, w(ixG^S,1:nw+nwauxio), x(ixG^S,1:ndim)
     integer, intent(inout)          :: refine, coarsen
 
     ! added by me
@@ -739,7 +738,7 @@ end subroutine readout_satellite
     double precision, intent(in)    :: qt, w(ixI^S,1:nw), x(ixI^S,1:ndim)
     double precision                :: v(ixI^S,ndir), divV(ixI^S)
     integer                         :: i, block_num
-    double precision                :: threshold, step_size(ixI^S), r_out, r_in, ratio
+    double precision                :: threshold
     integer                         :: ix1, ix2, ix3
     double precision                :: xloc(1:ndim)
     double precision                :: r, theta, phi, r_this, theta_this, phi_this
@@ -747,53 +746,48 @@ end subroutine readout_satellite
     double precision                :: before_cme
     double precision                :: phi_satellite
     !-----------------------------------------------------------------------------
-    !Currently no refining!
-    ! THIS SHOULD BE USING INPUT DATA ON GRID+BLOCK NUMBERS!!!
-    block_num = 61
-    r_out = xprobmax1
-    r_in = xprobmin1
-    ratio = r_out/r_in
-    step_size = x(ixI^S,1)*(ratio**((block_num-1)/block_num)-1)
-
-
+   
     ! To Follow Earth location in the domain
 
-    before_cme = (cme_index(1) - magnetogram_index)/60.0
-    phi_satellite = 1.1982114855026409 + satellite_positions(9, last_index)&
-           - (qt-(timestamp(1)-before_cme))*(2.0*dpi)/24.0*(1/2.447d1-1/365.24)
+    before_cme = (cme_index(1,1) - magnetogram_index(1))/60.0
+    phi_satellite = delta_phi + positions_list(1)%positions(9, last_index(1))&
+      - (qt-(timestamp(1)-&
+      before_cme))*(2.0*dpi)/24.0*(1/2.447d1-1/365.24)
 
     ! Threshold for negative nabla V
     threshold = -0.005
 
     ! Refinement criterion for div(V)
+    if (amr_criterion == "shock") then
+      if (qt > timestamp(1)) then
+        do i=1,ndir
+            v(ixI^S,i)=w(ixI^S,mom(i))/w(ixI^S, rho_)
+        end do
+        call divvector(v,ixI^L,ixO^L,divV)
 
-    if (qt > timestamp(1)) then
-      do i=1,ndir
-          v(ixI^S,i)=w(ixI^S,mom(i))/w(ixI^S, rho_)
-      end do
-      call divvector(v,ixI^L,ixO^L,divV)
+        if (any(divV(ixO^S) < threshold)) then
+            refine = 1
+            coarsen = -1
+        else
+            refine = -1
+            coarsen = 1
+        end if
 
-      if (any(divV(ixO^S) < threshold)) then
-          refine = 1
-          coarsen = -1
-      else
-          refine = -1
-          coarsen = 1
       end if
-
     end if
-
+    
     ! Refinement criterion for tracing function
-
-    !if (qt > timestamp) then
-    !    if (any(w(ixI^S,tracer(1)) > 0.001)) then
-    !        refine = 1
-    !        coarsen = -1
-    !    else
-    !        refine = -1
-    !        coarsen = 1
-    !    end if
-    !end if
+    if (amr_criterion == "tracing") then
+      if (qt > timestamp(1)) then
+          if (any(w(ixI^S,tracer(1)) > 0.001)) then
+              refine = 1
+              coarsen = -1
+          else
+              refine = -1
+              coarsen = 1
+          end if
+      end if
+    end if
 
 
 
@@ -861,7 +855,9 @@ end subroutine readout_satellite
 
                     do n=1, num_cmes
                     if (mask_cme .eq. 0) then
-                    call mask(xloc(2), xloc(3), mask_cme, n)
+                    if (cme_flag == 1) then
+                      call mask(xloc(2), xloc(3), mask_cme, n)
+                    end if
 
 
                     if (mask_cme .eq. 1) then
@@ -1107,8 +1103,8 @@ end subroutine readout_satellite
             coord_grid(j,k+2,2) = lon_points(k) + delta_phi
             !vr stays vr
             variables(j,k+2,1)  = variables_boundary_data(counter,1)
-            !number density -> density rho = n_bound * 0.5 * mp_SI * (r_0/r)**2
-            variables(j,k+2,2)  = variables_boundary_data(counter,2) * 0.5 * mp_SI
+            !number density -> density rho = n_bound * half * mp_SI * (r_0/r)**2
+            variables(j,k+2,2)  = variables_boundary_data(counter,2) * half * mp_SI
             !temperature --> change to pressure = n k_b T
             variables(j,k+2,3) = variables_boundary_data(counter,3) * kB_SI * variables_boundary_data(counter, 2)
             !magnetic field: Br = Br_bound * sqrt(r_0/r)
@@ -1123,19 +1119,19 @@ end subroutine readout_satellite
     !k+2 for periodic reasons longitude (copy last two to front and first two to back)
     do j = 1, nr_colat
         coord_grid(j,1,1) = colat_points(j)
-        coord_grid(j,1,2) = lon_points(nr_lon-1) + delta_phi - 2*dpi
+        coord_grid(j,1,2) = lon_points(nr_lon-1) + delta_phi - two*dpi
         variables(j,1,:)  = variables(j,nr_lon-1,:)
 
         coord_grid(j,2,1) = colat_points(j)
-        coord_grid(j,2,2) = lon_points(nr_lon-2) + delta_phi - 2*dpi
+        coord_grid(j,2,2) = lon_points(nr_lon-2) + delta_phi - two*dpi
         variables(j,2,:)  = variables(j,nr_lon-2,:)
 
         coord_grid(j,nr_lon+3,1) = colat_points(j)
-        coord_grid(j,nr_lon+3,2) = lon_points(1) +delta_phi + 2*dpi
+        coord_grid(j,nr_lon+3,2) = lon_points(1) +delta_phi + two*dpi
         variables(j,nr_lon+3,:)  = variables(j,3,:)
 
         coord_grid(j,nr_lon+4,1) = colat_points(j)
-        coord_grid(j,nr_lon+4,2) = lon_points(2) + delta_phi + 2*dpi
+        coord_grid(j,nr_lon+4,2) = lon_points(2) + delta_phi + two*dpi
         variables(j,nr_lon+4,:)  = variables(j,4,:)
     end do
 
@@ -1154,7 +1150,7 @@ end subroutine readout_satellite
     double precision, intent(out)    :: Lunit, Tunit, Rhounit, Vunit, Bunit, Eunit, Punit
     !-----------------------------------------------------------------------------
     !Unit Length: [m] = 1 solar radii
-    Lunit = 6.955d8
+    Lunit = const_RSun*1d-2
     !Unit Time : [s] = 1 hour
     Tunit = 6.0d1*6.0d1
     !Unit Mass density: [kg/m^3] = 1.6726d-13 - scaled so that rho is +- 1 in dimensionless form
@@ -1196,7 +1192,7 @@ end subroutine readout_satellite
     unit_velocity  = Vunit
     unit_magneticfield  = Bunit
     unit_pressure = Punit
-    unit_numberdensity = unit_density / 0.5 / mp_SI
+    unit_numberdensity = unit_density / half / mp_SI
   end subroutine set_units
 
   subroutine print_initial_information()
@@ -1269,11 +1265,12 @@ end subroutine readout_satellite
 !-----------------------------------------------------------------------------
 !-----------------------------------------------------------------------------
 
-  subroutine read_earth_trajectory(trajectory_file)
+  subroutine read_satellite_trajectory(trajectory_file, index)
 
     use mod_global_parameters
     character(len=50), intent(in)   :: trajectory_file
-    integer                         :: iUnit=15, iError, i, j
+    integer, intent(in)             :: index
+    integer                         :: iUnit=16, iError, i, j
     integer                         :: arr_size(2), nr_positions, nr_coordinates
     double precision, allocatable   :: radii(:), latitudes(:), longitudes(:)
     integer, allocatable            :: year(:), month(:), day(:)
@@ -1311,28 +1308,28 @@ end subroutine readout_satellite
     read(iUnit) longitudes
     close(iUnit)
 
-    ALLOCATE(satellite_positions(nr_coordinates, nr_positions), STAT = AllocateStatus)
+    ALLOCATE(positions_list(index)%positions(nr_coordinates, nr_positions), STAT = AllocateStatus)
 
 
-    satellite_positions(1,:) = year
-    satellite_positions(2,:) = month
-    satellite_positions(3,:) = day
-    satellite_positions(4,:) = hour
-    satellite_positions(5,:) = minute
-    satellite_positions(6,:) = second
-    satellite_positions(7,:) = radii
-    satellite_positions(8,:) = latitudes
-    satellite_positions(9,:) = longitudes
+    positions_list(index)%positions(1,:) = year
+    positions_list(index)%positions(2,:) = month
+    positions_list(index)%positions(3,:) = day
+    positions_list(index)%positions(4,:) = hour
+    positions_list(index)%positions(5,:) = minute
+    positions_list(index)%positions(6,:) = second
+    positions_list(index)%positions(7,:) = radii
+    positions_list(index)%positions(8,:) = latitudes
+    positions_list(index)%positions(9,:) = longitudes
 
     delta_time = 0.25d0
     ! delta_steps = int(timestamp*60)
 
-    if (magnetogram_index .eq. 0) then
+    if (magnetogram_index(index) .eq. 0) then
       do j_date = 1, size(year)
         if ((year(j_date) == magnetogram_timestamp(1)) .and.  (month(j_date) == magnetogram_timestamp(2))) then
           if ((day(j_date) == magnetogram_timestamp(3)) .and. (hour(j_date) == magnetogram_timestamp(4))) then
             if (minute(j_date) == magnetogram_timestamp(5)) then
-              magnetogram_index = j_date
+              magnetogram_index(index) = j_date
               exit
             end if
           end if
@@ -1341,16 +1338,16 @@ end subroutine readout_satellite
     end if
 
 
-    if (starting_index(1) .eq. 0) then
+    if (starting_index(index, 1) .eq. 0) then
       do n = 1, num_cmes
       do i_date = 1, size(year)
         if ((year(i_date) == cme_year(n)) .and.  (month(i_date) == cme_month(n))) then
           if ((day(i_date) == cme_day(n)) .and. (hour(i_date) == cme_hour(n))) then
             if (minute(i_date) == cme_minute(n)) then
-              cme_index(n) = i_date
-              time_difference_cme_magn(n) = (cme_index(n) - magnetogram_index)/60.0 !hours
-              delta_steps = int((relaxation(1)+cme_insertion(1)+time_difference_cme_magn(n))*60)
-              starting_index(n) = i_date - delta_steps
+              cme_index(index, n) = i_date
+              time_difference_cme_magn(index, n) = (cme_index(index, n) - magnetogram_index(index))/60.0 !hours
+              delta_steps = int((relaxation(1)+cme_insertion(1)+time_difference_cme_magn(index, n))*60)
+              starting_index(index, n) = i_date - delta_steps
               exit
             end if
           end if
@@ -1372,385 +1369,9 @@ end subroutine readout_satellite
 
 
 
-  end subroutine read_earth_trajectory
+  end subroutine read_satellite_trajectory
 !-----------------------------------------------------------------------------
 !-----------------------------------------------------------------------------
-
-!-----------------------------------------------------------------------------
-!-----------------------------------------------------------------------------
-
-  subroutine read_mars_trajectory(trajectory_file)
-
-    use mod_global_parameters
-    character(len=50), intent(in)   :: trajectory_file
-    integer                         :: iUnit=16, iError, i, j
-    integer                         :: arr_size(2), nr_positions, nr_coordinates
-    double precision, allocatable   :: radii(:), latitudes(:), longitudes(:)
-    integer, allocatable            :: year(:), month(:), day(:)
-    integer, allocatable            :: hour(:), minute(:), second(:)
-    integer                         :: AllocateStatus, DeAllocateStatus
-    double precision                :: delta_time
-    integer                         :: delta_steps, i_date, j_date
-
-
-
-    open(iUnit, file=trajectory_file, action="read", form='unformatted', iostat=iError)
-    if(iError /= 0) call mpistop('Importdata could not open real4 file = '//trim(trajectory_file))
-      read(iUnit) arr_size
-    nr_positions = arr_size(1)
-    nr_coordinates = arr_size(2)
-
-    ALLOCATE(year(nr_positions), STAT = AllocateStatus)
-    ALLOCATE(month(nr_positions), STAT = AllocateStatus)
-    ALLOCATE(day(nr_positions), STAT = AllocateStatus)
-    ALLOCATE(hour(nr_positions), STAT = AllocateStatus)
-    ALLOCATE(minute(nr_positions), STAT = AllocateStatus)
-    ALLOCATE(second(nr_positions), STAT = AllocateStatus)
-    ALLOCATE(radii(nr_positions), STAT = AllocateStatus)
-    ALLOCATE(latitudes(nr_positions), STAT = AllocateStatus)
-    ALLOCATE(longitudes(nr_positions), STAT = AllocateStatus)
-
-    read(iUnit) year
-    read(iUnit) month
-    read(iUnit) day
-    read(iUnit) hour
-    read(iUnit) minute
-    read(iUnit) second
-    read(iUnit) radii
-    read(iUnit) latitudes
-    read(iUnit) longitudes
-    close(iUnit)
-
-    ALLOCATE(mars_positions(nr_coordinates, nr_positions), STAT = AllocateStatus)
-
-
-    mars_positions(1,:) = year
-    mars_positions(2,:) = month
-    mars_positions(3,:) = day
-    mars_positions(4,:) = hour
-    mars_positions(5,:) = minute
-    mars_positions(6,:) = second
-    mars_positions(7,:) = radii
-    mars_positions(8,:) = latitudes
-    mars_positions(9,:) = longitudes
-
-
-    DEALLOCATE(year, STAT = DEAllocateStatus)
-    DEALLOCATE(month, STAT = DEAllocateStatus)
-    DEALLOCATE(day, STAT = DEAllocateStatus)
-    DEALLOCATE(hour, STAT = DEAllocateStatus)
-    DEALLOCATE(minute, STAT = DEAllocateStatus)
-    DEALLOCATE(second, STAT = DEAllocateStatus)
-    DEALLOCATE(radii, STAT = DEAllocateStatus)
-    DEALLOCATE(latitudes, STAT = DEAllocateStatus)
-    DEALLOCATE(longitudes, STAT = DEAllocateStatus)
-
-
-
-  end subroutine read_mars_trajectory
-  !-----------------------------------------------------------------------------
-  !-----------------------------------------------------------------------------
-
-!-----------------------------------------------------------------------------
-!-----------------------------------------------------------------------------
-
-  subroutine read_venus_trajectory(trajectory_file)
-
-    use mod_global_parameters
-    character(len=50), intent(in)   :: trajectory_file
-    integer                         :: iUnit=17, iError, i, j
-    integer                         :: arr_size(2), nr_positions, nr_coordinates
-    double precision, allocatable   :: radii(:), latitudes(:), longitudes(:)
-    integer, allocatable            :: year(:), month(:), day(:)
-    integer, allocatable            :: hour(:), minute(:), second(:)
-    integer                         :: AllocateStatus, DeAllocateStatus
-    double precision                :: delta_time
-    integer                         :: delta_steps, i_date, j_date
-
-
-
-    open(iUnit, file=trajectory_file, action="read", form='unformatted', iostat=iError)
-    if(iError /= 0) call mpistop('Importdata could not open real4 file = '//trim(trajectory_file))
-      read(iUnit) arr_size
-    nr_positions = arr_size(1)
-    nr_coordinates = arr_size(2)
-
-    ALLOCATE(year(nr_positions), STAT = AllocateStatus)
-    ALLOCATE(month(nr_positions), STAT = AllocateStatus)
-    ALLOCATE(day(nr_positions), STAT = AllocateStatus)
-    ALLOCATE(hour(nr_positions), STAT = AllocateStatus)
-    ALLOCATE(minute(nr_positions), STAT = AllocateStatus)
-    ALLOCATE(second(nr_positions), STAT = AllocateStatus)
-    ALLOCATE(radii(nr_positions), STAT = AllocateStatus)
-    ALLOCATE(latitudes(nr_positions), STAT = AllocateStatus)
-    ALLOCATE(longitudes(nr_positions), STAT = AllocateStatus)
-
-    read(iUnit) year
-    read(iUnit) month
-    read(iUnit) day
-    read(iUnit) hour
-    read(iUnit) minute
-    read(iUnit) second
-    read(iUnit) radii
-    read(iUnit) latitudes
-    read(iUnit) longitudes
-    close(iUnit)
-
-    ALLOCATE(venus_positions(nr_coordinates, nr_positions), STAT = AllocateStatus)
-
-
-    venus_positions(1,:) = year
-    venus_positions(2,:) = month
-    venus_positions(3,:) = day
-    venus_positions(4,:) = hour
-    venus_positions(5,:) = minute
-    venus_positions(6,:) = second
-    venus_positions(7,:) = radii
-    venus_positions(8,:) = latitudes
-    venus_positions(9,:) = longitudes
-
-
-    DEALLOCATE(year, STAT = DEAllocateStatus)
-    DEALLOCATE(month, STAT = DEAllocateStatus)
-    DEALLOCATE(day, STAT = DEAllocateStatus)
-    DEALLOCATE(hour, STAT = DEAllocateStatus)
-    DEALLOCATE(minute, STAT = DEAllocateStatus)
-    DEALLOCATE(second, STAT = DEAllocateStatus)
-    DEALLOCATE(radii, STAT = DEAllocateStatus)
-    DEALLOCATE(latitudes, STAT = DEAllocateStatus)
-    DEALLOCATE(longitudes, STAT = DEAllocateStatus)
-
-
-
-  end subroutine read_venus_trajectory
-  !-----------------------------------------------------------------------------
-  !-----------------------------------------------------------------------------
-
-!-----------------------------------------------------------------------------
-!-----------------------------------------------------------------------------
-
-  subroutine read_mercury_trajectory(trajectory_file)
-
-    use mod_global_parameters
-    character(len=50), intent(in)   :: trajectory_file
-    integer                         :: iUnit=18, iError, i, j
-    integer                         :: arr_size(2), nr_positions, nr_coordinates
-    double precision, allocatable   :: radii(:), latitudes(:), longitudes(:)
-    integer, allocatable            :: year(:), month(:), day(:)
-    integer, allocatable            :: hour(:), minute(:), second(:)
-    integer                         :: AllocateStatus, DeAllocateStatus
-    double precision                :: delta_time
-    integer                         :: delta_steps, i_date, j_date
-
-
-
-    open(iUnit, file=trajectory_file, action="read", form='unformatted', iostat=iError)
-    if(iError /= 0) call mpistop('Importdata could not open real4 file = '//trim(trajectory_file))
-      read(iUnit) arr_size
-    nr_positions = arr_size(1)
-    nr_coordinates = arr_size(2)
-
-    ALLOCATE(year(nr_positions), STAT = AllocateStatus)
-    ALLOCATE(month(nr_positions), STAT = AllocateStatus)
-    ALLOCATE(day(nr_positions), STAT = AllocateStatus)
-    ALLOCATE(hour(nr_positions), STAT = AllocateStatus)
-    ALLOCATE(minute(nr_positions), STAT = AllocateStatus)
-    ALLOCATE(second(nr_positions), STAT = AllocateStatus)
-    ALLOCATE(radii(nr_positions), STAT = AllocateStatus)
-    ALLOCATE(latitudes(nr_positions), STAT = AllocateStatus)
-    ALLOCATE(longitudes(nr_positions), STAT = AllocateStatus)
-
-    read(iUnit) year
-    read(iUnit) month
-    read(iUnit) day
-    read(iUnit) hour
-    read(iUnit) minute
-    read(iUnit) second
-    read(iUnit) radii
-    read(iUnit) latitudes
-    read(iUnit) longitudes
-    close(iUnit)
-
-    ALLOCATE(mercury_positions(nr_coordinates, nr_positions), STAT = AllocateStatus)
-
-
-    mercury_positions(1,:) = year
-    mercury_positions(2,:) = month
-    mercury_positions(3,:) = day
-    mercury_positions(4,:) = hour
-    mercury_positions(5,:) = minute
-    mercury_positions(6,:) = second
-    mercury_positions(7,:) = radii
-    mercury_positions(8,:) = latitudes
-    mercury_positions(9,:) = longitudes
-
-
-    DEALLOCATE(year, STAT = DEAllocateStatus)
-    DEALLOCATE(month, STAT = DEAllocateStatus)
-    DEALLOCATE(day, STAT = DEAllocateStatus)
-    DEALLOCATE(hour, STAT = DEAllocateStatus)
-    DEALLOCATE(minute, STAT = DEAllocateStatus)
-    DEALLOCATE(second, STAT = DEAllocateStatus)
-    DEALLOCATE(radii, STAT = DEAllocateStatus)
-    DEALLOCATE(latitudes, STAT = DEAllocateStatus)
-    DEALLOCATE(longitudes, STAT = DEAllocateStatus)
-
-
-
-  end subroutine read_mercury_trajectory
-  !-----------------------------------------------------------------------------
-  !-----------------------------------------------------------------------------
-
-!-----------------------------------------------------------------------------
-!-----------------------------------------------------------------------------
-
-  subroutine read_sta_trajectory(trajectory_file)
-
-    use mod_global_parameters
-    character(len=50), intent(in)   :: trajectory_file
-    integer                         :: iUnit=19, iError, i, j
-    integer                         :: arr_size(2), nr_positions, nr_coordinates
-    double precision, allocatable   :: radii(:), latitudes(:), longitudes(:)
-    integer, allocatable            :: year(:), month(:), day(:)
-    integer, allocatable            :: hour(:), minute(:), second(:)
-    integer                         :: AllocateStatus, DeAllocateStatus
-    double precision                :: delta_time
-    integer                         :: delta_steps, i_date, j_date
-
-
-
-    open(iUnit, file=trajectory_file, action="read", form='unformatted', iostat=iError)
-    if(iError /= 0) call mpistop('Importdata could not open real4 file = '//trim(trajectory_file))
-      read(iUnit) arr_size
-    nr_positions = arr_size(1)
-    nr_coordinates = arr_size(2)
-
-    ALLOCATE(year(nr_positions), STAT = AllocateStatus)
-    ALLOCATE(month(nr_positions), STAT = AllocateStatus)
-    ALLOCATE(day(nr_positions), STAT = AllocateStatus)
-    ALLOCATE(hour(nr_positions), STAT = AllocateStatus)
-    ALLOCATE(minute(nr_positions), STAT = AllocateStatus)
-    ALLOCATE(second(nr_positions), STAT = AllocateStatus)
-    ALLOCATE(radii(nr_positions), STAT = AllocateStatus)
-    ALLOCATE(latitudes(nr_positions), STAT = AllocateStatus)
-    ALLOCATE(longitudes(nr_positions), STAT = AllocateStatus)
-
-    read(iUnit) year
-    read(iUnit) month
-    read(iUnit) day
-    read(iUnit) hour
-    read(iUnit) minute
-    read(iUnit) second
-    read(iUnit) radii
-    read(iUnit) latitudes
-    read(iUnit) longitudes
-    close(iUnit)
-
-    ALLOCATE(sta_positions(nr_coordinates, nr_positions), STAT = AllocateStatus)
-
-
-    sta_positions(1,:) = year
-    sta_positions(2,:) = month
-    sta_positions(3,:) = day
-    sta_positions(4,:) = hour
-    sta_positions(5,:) = minute
-    sta_positions(6,:) = second
-    sta_positions(7,:) = radii
-    sta_positions(8,:) = latitudes
-    sta_positions(9,:) = longitudes
-
-
-    DEALLOCATE(year, STAT = DEAllocateStatus)
-    DEALLOCATE(month, STAT = DEAllocateStatus)
-    DEALLOCATE(day, STAT = DEAllocateStatus)
-    DEALLOCATE(hour, STAT = DEAllocateStatus)
-    DEALLOCATE(minute, STAT = DEAllocateStatus)
-    DEALLOCATE(second, STAT = DEAllocateStatus)
-    DEALLOCATE(radii, STAT = DEAllocateStatus)
-    DEALLOCATE(latitudes, STAT = DEAllocateStatus)
-    DEALLOCATE(longitudes, STAT = DEAllocateStatus)
-
-
-
-  end subroutine read_sta_trajectory
-  !-----------------------------------------------------------------------------
-  !-----------------------------------------------------------------------------
-
-!-----------------------------------------------------------------------------
-!-----------------------------------------------------------------------------
-
-  subroutine read_stb_trajectory(trajectory_file)
-
-    use mod_global_parameters
-    character(len=50), intent(in)   :: trajectory_file
-    integer                         :: iUnit=14, iError, i, j
-    integer                         :: arr_size(2), nr_positions, nr_coordinates
-    double precision, allocatable   :: radii(:), latitudes(:), longitudes(:)
-    integer, allocatable            :: year(:), month(:), day(:)
-    integer, allocatable            :: hour(:), minute(:), second(:)
-    integer                         :: AllocateStatus, DeAllocateStatus
-    double precision                :: delta_time
-    integer                         :: delta_steps, i_date, j_date
-
-
-
-    open(iUnit, file=trajectory_file, action="read", form='unformatted', iostat=iError)
-    if(iError /= 0) call mpistop('Importdata could not open real4 file = '//trim(trajectory_file))
-      read(iUnit) arr_size
-    nr_positions = arr_size(1)
-    nr_coordinates = arr_size(2)
-
-    ALLOCATE(year(nr_positions), STAT = AllocateStatus)
-    ALLOCATE(month(nr_positions), STAT = AllocateStatus)
-    ALLOCATE(day(nr_positions), STAT = AllocateStatus)
-    ALLOCATE(hour(nr_positions), STAT = AllocateStatus)
-    ALLOCATE(minute(nr_positions), STAT = AllocateStatus)
-    ALLOCATE(second(nr_positions), STAT = AllocateStatus)
-    ALLOCATE(radii(nr_positions), STAT = AllocateStatus)
-    ALLOCATE(latitudes(nr_positions), STAT = AllocateStatus)
-    ALLOCATE(longitudes(nr_positions), STAT = AllocateStatus)
-
-    read(iUnit) year
-    read(iUnit) month
-    read(iUnit) day
-    read(iUnit) hour
-    read(iUnit) minute
-    read(iUnit) second
-    read(iUnit) radii
-    read(iUnit) latitudes
-    read(iUnit) longitudes
-    close(iUnit)
-
-    ALLOCATE(stb_positions(nr_coordinates, nr_positions), STAT = AllocateStatus)
-
-
-    stb_positions(1,:) = year
-    stb_positions(2,:) = month
-    stb_positions(3,:) = day
-    stb_positions(4,:) = hour
-    stb_positions(5,:) = minute
-    stb_positions(6,:) = second
-    stb_positions(7,:) = radii
-    stb_positions(8,:) = latitudes
-    stb_positions(9,:) = longitudes
-
-
-    DEALLOCATE(year, STAT = DEAllocateStatus)
-    DEALLOCATE(month, STAT = DEAllocateStatus)
-    DEALLOCATE(day, STAT = DEAllocateStatus)
-    DEALLOCATE(hour, STAT = DEAllocateStatus)
-    DEALLOCATE(minute, STAT = DEAllocateStatus)
-    DEALLOCATE(second, STAT = DEAllocateStatus)
-    DEALLOCATE(radii, STAT = DEAllocateStatus)
-    DEALLOCATE(latitudes, STAT = DEAllocateStatus)
-    DEALLOCATE(longitudes, STAT = DEAllocateStatus)
-
-
-
-  end subroutine read_stb_trajectory
-  !-----------------------------------------------------------------------------
-  !-----------------------------------------------------------------------------
-
 
 
   subroutine read_cme_parameters(filename)
@@ -1762,6 +1383,7 @@ end subroutine readout_satellite
 
     open(iUnit, file = filename, status = 'old', action="read", iostat=iError)
     if(iError /= 0) call mpistop('Importdata could not open real4 file = '//trim(filename))
+    read(iUnit,*) cme_flag
     read(iUnit,*) num_cmes
     ALLOCATE(cme_year(num_cmes))
     ALLOCATE(cme_month(num_cmes))
@@ -1779,9 +1401,9 @@ end subroutine readout_satellite
     ALLOCATE(lon_cme(num_cmes))
     ALLOCATE(rho_cme(num_cmes))
     ALLOCATE(temperature_cme(num_cmes))
-    ALLOCATE(cme_index(num_cmes))
-    ALLOCATE(starting_index(num_cmes))
-    ALLOCATE(time_difference_cme_magn(num_cmes))
+    ALLOCATE(cme_index(8,num_cmes))
+    ALLOCATE(starting_index(8, num_cmes))
+    ALLOCATE(time_difference_cme_magn(8, num_cmes))
     ALLOCATE(longitudes_fix(num_cmes))
 
     do i=1, num_cmes
@@ -1790,13 +1412,9 @@ end subroutine readout_satellite
       w_half(i) = w_half(i) * dpi/180.0
       clt_cme(i) = (-clt_cme(i) + 90.0) * dpi/180.0
       lon_cme(i) = delta_phi + lon_cme(i) * dpi/180.0
-
     end do
-
-
-
     close(iUnit)
-
+    
   end subroutine read_cme_parameters
 
 
@@ -1860,7 +1478,7 @@ end subroutine readout_satellite
       if (global_time <= (timestamp(i) + 2*t_half(i))) then
         ! opening angle defined as eq 5 in Shapes paper. spheroidal in planar b
         r_half(i) = 0.1 * au * sin(w_half(i))
-        r_new(i) = (global_time - timestamp(i)) * vr_cme(i)*3600.0 + 0.1*au - r_half(i)
+        r_new(i) = (global_time - timestamp(i)) * vr_cme(i)*unit_time + 0.1*au - r_half(i)
 
         theta_opening_angle(i)=acos((r_new(i)**2+(0.1*au)**2-r_half(i)**2)/(2.0*r_new(i)*0.1*au))
       end if
