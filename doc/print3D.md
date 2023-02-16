@@ -24,3 +24,6 @@ Procedure:
     * Alternatively, you can use a program such as Meshlab, available for free at [http://meshlab.sourceforge.net/](http://meshlab.sourceforge.net/). This will also let you  manipulate the STL file by hand, allowing you to merge multiple STL files or insert additional objects. Once you are done, it would be wise to apply one of the online services to your end result in order to fix any errors that you may have missed.
   5. The process demonstrated in the previous steps will yield a printable file. However, it may still cause problems. For example, if part of your surface is not connected to the rest. If that happens, the printer will create two separate objects, which may not be desirable. It is up to the user to make sure to check this in advance. Also, you may run into trouble if the size of the .stl file is too large. Generally, it is a good idea to keep it below 100 MB. This may require that you use a low resolution version of the .vtu file. This can be specified with the 'level_io_max' parameter in the .par file, before converting to .vtu.
 
+An example print is shown below, which was made from the MPI-AMRVAC simulation presented in `Pinwheels in the sky, with dust: 3D modelling of the Wolf-Rayet 98a environment', see [doi:10.1093/mnras/stw1289](http://dx.doi.org/10.1093/mnras/stw1289).
+
+![](figmovdir/spiral3D.png)
