@@ -48,8 +48,6 @@ contains
     unit_temperature = twind    ! K
     unit_density     = rhobound ! g cm^-3
 
-    call HD_activate()
-    call set_cak_force_norm(rstar,twind)
 
     usr_set_parameters => initglobaldata_usr
     usr_init_one_grid  => initial_conditions
@@ -64,6 +62,8 @@ contains
     !   if (hd_energy) w_convert_factor(p_) = unit_pressure
     ! endif
 
+    call HD_activate()
+    call set_cak_force_norm(rstar,twind)
   end subroutine usr_init
 
   !=============================================================================

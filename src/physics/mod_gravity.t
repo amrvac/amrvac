@@ -25,8 +25,14 @@ contains
   !> Initialize the module
   subroutine gravity_init()
     use mod_global_parameters
+    use mod_usr_methods
     integer :: nwx,idir
 
+    if (.not. associated(usr_gravity)) then
+      write(*,*) "mod_usr.t: please define usr_gravity before (m)hd activate"
+      write(*,*) "like the phys_gravity in mod_usr_methods.t"
+      call mpistop("usr_gravity not defined or pointed")
+    end if
     call grav_params_read(par_files)
 
   end subroutine gravity_init
@@ -50,13 +56,7 @@ contains
     if(qsourcesplit .eqv. grav_split) then
       active = .true.
 
-      if (.not. associated(usr_gravity)) then
-        write(*,*) "mod_usr.t: please point usr_gravity to a subroutine"
-        write(*,*) "like the phys_gravity in mod_usr_methods.t"
-        call mpistop("gravity_add_source: usr_gravity not defined")
-      else
-        call usr_gravity(ixI^L,ixO^L,wCT,x,gravity_field)
-      end if
+      call usr_gravity(ixI^L,ixO^L,wCT,x,gravity_field)
   
       do idim = 1, ndim
         w(ixO^S,iw_mom(idim)) = w(ixO^S,iw_mom(idim)) &
@@ -93,13 +93,7 @@ contains
 
     ^D&dxinv(^D)=one/dx^D;
 
-    if(.not. associated(usr_gravity)) then
-      write(*,*) "mod_usr.t: please point usr_gravity to a subroutine"
-      write(*,*) "like the phys_gravity in mod_usr_methods.t"
-      call mpistop("gravity_get_dt: usr_gravity not defined")
-    else
-      call usr_gravity(ixI^L,ixO^L,w,x,gravity_field)
-    end if
+    call usr_gravity(ixI^L,ixO^L,w,x,gravity_field)
 
     do idim = 1, ndim
       max_grav = maxval(abs(gravity_field(ixO^S,idim)))
