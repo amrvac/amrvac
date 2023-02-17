@@ -157,7 +157,7 @@ contains
     else
       call bipolar_field(ixI^L,ixO^L,x,A,Bfr)
       w(ixO^S,mag(:))=Bfr(ixO^S,:)
-      call rbsl(ixI^L,ixI^L,np,a0,F_flx,.false.,x,x_axis,A,Bfr)
+      call rbsl(ixI^L,ixO^L,np,a0,F_flx,.false.,x,x_axis,A,Bfr)
       w(ixO^S,mag(:))=w(ixO^S,mag(:))+Bfr(ixO^S,:)
     end if
     w(ixO^S,mom(:))=0.d0
