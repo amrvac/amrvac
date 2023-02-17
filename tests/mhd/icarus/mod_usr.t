@@ -151,8 +151,8 @@ subroutine usr_params_read(files)
         !Read-in coronal model
         !Coronal model at boundary has 2 coordinates: colat and lon
         !Coronal model has data for 4 parameters: vr, n, T, Br
-        cme_parameter_file = "cme_input_updated.dat"  !"cme_input_parameters.dat"   !"cme_cone_model_old.par"
-        boundary_file = "solar_wind_bc_used_in_paper.dat"
+        cme_parameter_file = "cme_input_updated.in"  !"cme_input_parameters.in"   !"cme_cone_model_old.par"
+        boundary_file = "solar_wind_bc_used_in_paper.in"
 
         ! 2015 event june corresponding satellite data
         earth_trajectory = "2015_june_earth_ext.unf"
