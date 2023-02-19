@@ -963,7 +963,7 @@ sharp discontinuities. It is normally inactive with a default value -1.
      mhd_hydrodynamic_e= F | T
      mhd_semirelativistic= F | T
      mhd_boris_simplification= F | T
-     mhd_reduced_c = 3.d10
+     mhd_reduced_c = 6.d8
      mhd_trac= F | T
      mhd_trac_type= INTEGER from 1 to 5
      mhd_trac_mask= bigdouble
@@ -1099,12 +1099,11 @@ equations solve the problem and have the same steady-state solution as nonrelati
 By artificially lowering the speed of light, one can reduce the wave speeds allowing larger time steps 
 thus faster solution in explicit numerical schemes. Set `mhd_semirelativistic=T` and `mhd_reduced_c` 
 equals to a value smaller than light speed with physical unit to solve semirelativistic MHD. If setting
-`mhd_hydrodynamic_e=T`, the approximate split semirelativistic MHD equations (Rempel 2017 ApJ 834, 10)
-are solved with hydrodynamic energy instead of total energy. `mhd_semirelativistic=T` contradicts with 
-`mhd_internal_e=T`, since internal energy equation has not been derived from semirelativistic MHD 
-equations. Boris simplification of semirelativistic MHD equations can be solved by 
-setting `mhd_boris_simplification=T` and `mhd_semirelativistic=F` to get faster but less accurate solutions.
-`mhd_boris_simplification=T` is empirically working with `mhd_internal_e=T` or `mhd_hydrodynamic_e=T`.
+`mhd_hydrodynamic_e=T` or `mhd_internal_e=T`, the approximate split semirelativistic MHD equations (Rempel 2017 ApJ 834, 10)
+are solved with hydrodynamic or internal energy instead of total energy. Boris simplification of 
+semirelativistic MHD equations can be solved by setting `mhd_boris_simplification=T` and `mhd_semirelativistic=F` 
+to get faster but less accurate solutions. `mhd_boris_simplification=T` is working with all versions of MHD 
+equations including `mhd_internal_e=T` and `mhd_hydrodynamic_e=T`.
 Since semirelativistic MHD waves are very complicated, only approximate fast magnetosonic wave speed
 is implemented to use HLL or tvdlf scheme, schemes (such as HLLC and HLLD) depending on more wave speeds 
 are not yet fully compatible with semirelativistic MHD.
