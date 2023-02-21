@@ -285,7 +285,7 @@ contains
 
   end subroutine particle_base_init
 
-  !> Initialise communicators for particles
+  !> Initialize communicators for particles
   subroutine init_particles_com()
     use mod_global_parameters
 
@@ -404,6 +404,7 @@ contains
   !> Determine fields from MHD variables
   subroutine fields_from_mhd(igrid, w_mhd, w_part)
     use mod_global_parameters
+    use mod_geometry
     integer, intent(in)             :: igrid
     double precision, intent(in)    :: w_mhd(ixG^T,nw)
     double precision, intent(inout) :: w_part(ixG^T,ngridvars)
@@ -427,7 +428,6 @@ contains
     else
       w_part(ixG^T,bp(:)) = w(ixG^T,iw_mag(:))
     end if
-!    w_part(ixG^T,bp(:)) = w(ixG^T,iw_mag(:))
 
     ! fill with current
     current = zero
@@ -435,24 +435,47 @@ contains
     w_part(ixG^T,jp(:)) = current(ixG^T,:)
 
     ! fill with electric field
-    w_part(ixG^T,ep(1)) = w_part(ixG^T,bp(2)) * &
-         w(ixG^T,iw_mom(3)) - w_part(ixG^T,bp(3)) * &
-         w(ixG^T,iw_mom(2)) + particles_eta * current(ixG^T,1)
-    w_part(ixG^T,ep(2)) = w_part(ixG^T,bp(3)) * &
-         w(ixG^T,iw_mom(1)) - w_part(ixG^T,bp(1)) * &
-         w(ixG^T,iw_mom(3)) + particles_eta * current(ixG^T,2)
-    w_part(ixG^T,ep(3)) = w_part(ixG^T,bp(1)) * &
-         w(ixG^T,iw_mom(2)) - w_part(ixG^T,bp(2)) * &
-         w(ixG^T,iw_mom(1)) + particles_eta * current(ixG^T,3)
+    select case (coordinate)
+    case (Cartesian,Cartesian_stretched,spherical)
+      w_part(ixG^T,ep(1)) = w_part(ixG^T,bp(2)) * &
+           w(ixG^T,iw_mom(3)) - w_part(ixG^T,bp(3)) * &
+           w(ixG^T,iw_mom(2)) + particles_eta * current(ixG^T,1)
+      w_part(ixG^T,ep(2)) = w_part(ixG^T,bp(3)) * &
+           w(ixG^T,iw_mom(1)) - w_part(ixG^T,bp(1)) * &
+           w(ixG^T,iw_mom(3)) + particles_eta * current(ixG^T,2)
+      w_part(ixG^T,ep(3)) = w_part(ixG^T,bp(1)) * &
+           w(ixG^T,iw_mom(2)) - w_part(ixG^T,bp(2)) * &
+           w(ixG^T,iw_mom(1)) + particles_eta * current(ixG^T,3)
+    case (cylindrical)
+      w_part(ixG^T,ep(r_)) = w_part(ixG^T,bp(phi_)) * &
+           w(ixG^T,iw_mom(z_)) - w_part(ixG^T,bp(z_)) * &
+           w(ixG^T,iw_mom(phi_)) + particles_eta * current(ixG^T,r_)
+      w_part(ixG^T,ep(phi_)) = w_part(ixG^T,bp(z_)) * &
+           w(ixG^T,iw_mom(r_)) - w_part(ixG^T,bp(r_)) * &
+           w(ixG^T,iw_mom(z_)) + particles_eta * current(ixG^T,phi_)
+      w_part(ixG^T,ep(z_)) = w_part(ixG^T,bp(r_)) * &
+           w(ixG^T,iw_mom(phi_)) - w_part(ixG^T,bp(phi_)) * &
+           w(ixG^T,iw_mom(r_)) + particles_eta * current(ixG^T,z_)
+    end select
 
     ! Hall term
     if (particles_etah > zero) then
-      w_part(ixG^T,ep(1)) = w_part(ixG^T,ep(1)) + particles_etah/w(ixG^T,iw_rho) * &
-           (current(ixG^T,2) * w_part(ixG^T,bp(3)) - current(ixG^T,3) * w_part(ixG^T,bp(2)))
-      w_part(ixG^T,ep(2)) = w_part(ixG^T,ep(2)) + particles_etah/w(ixG^T,iw_rho) * &
-           (-current(ixG^T,1) * w_part(ixG^T,bp(3)) + current(ixG^T,3) * w_part(ixG^T,bp(1)))
-      w_part(ixG^T,ep(3)) = w_part(ixG^T,ep(3)) + particles_etah/w(ixG^T,iw_rho) * &
-           (current(ixG^T,1) * w_part(ixG^T,bp(2)) - current(ixG^T,2) * w_part(ixG^T,bp(1)))
+      select case (coordinate)
+      case (Cartesian,Cartesian_stretched,spherical)
+        w_part(ixG^T,ep(1)) = w_part(ixG^T,ep(1)) + particles_etah/w(ixG^T,iw_rho) * &
+             (current(ixG^T,2) * w_part(ixG^T,bp(3)) - current(ixG^T,3) * w_part(ixG^T,bp(2)))
+        w_part(ixG^T,ep(2)) = w_part(ixG^T,ep(2)) + particles_etah/w(ixG^T,iw_rho) * &
+             (-current(ixG^T,1) * w_part(ixG^T,bp(3)) + current(ixG^T,3) * w_part(ixG^T,bp(1)))
+        w_part(ixG^T,ep(3)) = w_part(ixG^T,ep(3)) + particles_etah/w(ixG^T,iw_rho) * &
+             (current(ixG^T,1) * w_part(ixG^T,bp(2)) - current(ixG^T,2) * w_part(ixG^T,bp(1)))
+      case (cylindrical)
+        w_part(ixG^T,ep(r_)) = w_part(ixG^T,ep(r_)) + particles_etah/w(ixG^T,iw_rho) * &
+             (current(ixG^T,phi_) * w_part(ixG^T,bp(z_)) - current(ixG^T,z_) * w_part(ixG^T,bp(phi_)))
+        w_part(ixG^T,ep(phi_)) = w_part(ixG^T,ep(phi_)) + particles_etah/w(ixG^T,iw_rho) * &
+             (-current(ixG^T,r_) * w_part(ixG^T,bp(z_)) + current(ixG^T,z_) * w_part(ixG^T,bp(r_)))
+        w_part(ixG^T,ep(z_)) = w_part(ixG^T,ep(z_)) + particles_etah/w(ixG^T,iw_rho) * &
+             (current(ixG^T,r_) * w_part(ixG^T,bp(phi_)) - current(ixG^T,phi_) * w_part(ixG^T,bp(r_)))
+      end select
     end if
 
   end subroutine fields_from_mhd
@@ -671,14 +694,14 @@ contains
     ! ndir needs to be three for this to work!!!
     if(ndir==3) then
       select case(coordinate)
-      case(Cartesian,Cartesian_stretched)
+      case(Cartesian,Cartesian_stretched,spherical)
         c(1) = a(2)*b(3) - a(3)*b(2)
         c(2) = a(3)*b(1) - a(1)*b(3)
         c(3) = a(1)*b(2) - a(2)*b(1)
       case (cylindrical)
-        c(r_) = a(phi_)*b(z_) - a(z_)*b(phi_)
+        c(r_)   = a(phi_)*b(z_) - a(z_)*b(phi_)
         c(phi_) = a(z_)*b(r_) - a(r_)*b(z_)
-        c(z_) = a(r_)*b(phi_) - a(phi_)*b(r_)
+        c(z_)   = a(r_)*b(phi_) - a(phi_)*b(r_)
       case default
         call mpistop('geometry not implemented in cross(a,b,c)')
       end select
@@ -761,7 +784,7 @@ contains
     use mod_timing
     use mod_global_parameters
 
-    double precision         :: tpartc_avg, tpartc_int_avg, tpartc_io_avg, tpartc_com_avg, tpartc_grid_avg
+    double precision :: tpartc_avg, tpartc_int_avg, tpartc_io_avg, tpartc_com_avg, tpartc_grid_avg
 
     call MPI_REDUCE(tpartc,tpartc_avg,1,MPI_DOUBLE_PRECISION,MPI_SUM,0,icomm,ierrmpi)
     call MPI_REDUCE(tpartc_int,tpartc_int_avg,1,MPI_DOUBLE_PRECISION,MPI_SUM,0,icomm,ierrmpi)
@@ -769,12 +792,12 @@ contains
     call MPI_REDUCE(tpartc_com,tpartc_com_avg,1,MPI_DOUBLE_PRECISION,MPI_SUM,0,icomm,ierrmpi)
     call MPI_REDUCE(tpartc_grid,tpartc_grid_avg,1,MPI_DOUBLE_PRECISION,MPI_SUM,0,icomm,ierrmpi)
 
-    if( mype ==0 ) then
-      tpartc_avg     = tpartc_avg/dble(npe)
-      tpartc_int_avg = tpartc_int_avg/dble(npe)
-      tpartc_io_avg  = tpartc_io_avg/dble(npe)
+    if (mype ==0) then
+      tpartc_avg      = tpartc_avg/dble(npe)
+      tpartc_int_avg  = tpartc_int_avg/dble(npe)
+      tpartc_io_avg   = tpartc_io_avg/dble(npe)
       tpartc_com_avg  = tpartc_com_avg/dble(npe)
-      tpartc_grid_avg  = tpartc_grid_avg/dble(npe)
+      tpartc_grid_avg = tpartc_grid_avg/dble(npe)
       write(*,'(a,f12.3,a)')' Particle handling took     : ',tpartc,' sec'
       write(*,'(a,f12.2,a)')'                  Percentage: ',100.0d0*tpartc/timeloop,' %'
       write(*,'(a,f12.3,a)')' Particle IO took           : ',tpartc_io_avg,' sec'
