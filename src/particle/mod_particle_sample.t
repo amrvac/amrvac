@@ -166,7 +166,7 @@ contains
 
       ! Position update (if defined)
       ! TODO: this may create problems with interpolation out of boundaries
-      if (associated(usr_particle_position)) call usr_particle_position(x,ipart,tloc,tlocnew)
+      if (associated(usr_particle_position)) call usr_particle_position(x,particle(ipart)%self%index,tloc,tlocnew)
       particle(ipart)%self%x(1:ndir) = x
 
       ! Time update
@@ -210,15 +210,16 @@ contains
 
   end subroutine sample_update_payload
 
-  pure function sample_get_particle_dt(partp, end_time) result(dt_p)
+  function sample_get_particle_dt(partp, end_time) result(dt_p)
     use mod_global_parameters
     use mod_geometry
+    use mod_usr_methods, only: usr_particle_position
     type(particle_ptr), intent(in) :: partp
     double precision, intent(in)   :: end_time
     double precision               :: dt_p
-    integer                        :: ipart, iipart, nout
+    integer                        :: ipart, iipart, nout, id
     double precision               :: tout, dt_cfl
-    double precision               :: v(1:ndir)
+    double precision               :: v(1:ndir), xp(3), told, tnew
 
     if (const_dt_particles > 0) then
       dt_p = const_dt_particles
@@ -227,9 +228,38 @@ contains
 
     dt_p = dtsave_particles
 
+    ! Make sure the user-defined particle movement doesnt break communication
+    if (associated(usr_particle_position)) then
+      xp = partp%self%x
+      told = partp%self%time
+      tnew = told+dt_p
+      call usr_particle_position(xp, partp%self%index, told, tnew)
+      do while (.not. point_in_igrid_ghostc(xp,partp%igrid,1))
+        dt_p = dt_p/10.d0
+        xp = partp%self%x
+        tnew = told+dt_p
+        call usr_particle_position(xp, partp%self%index, told, tnew)
+      end do
+    end if
+
     ! Make sure we don't advance beyond end_time
     call limit_dt_endtime(end_time - partp%self%time, dt_p)
 
   end function sample_get_particle_dt
+
+  !> Quick check if particle coordinate is inside igrid
+  !> (ghost cells included, except last one)
+  logical function point_in_igrid_ghostc(x, igrid, ngh)
+    use mod_global_parameters
+    use mod_geometry
+    integer, intent(in) :: igrid, ngh
+    double precision, intent(in) :: x(ndim)
+    double precision    :: grid_rmin(ndim), grid_rmax(ndim)
+
+    ! First check if the igrid is still there
+    grid_rmin      = [ {rnode(rpxmin^D_,igrid)-rnode(rpdx^D_,igrid)*(DBLE(nghostcells-ngh)-0.5d0)} ]
+    grid_rmax      = [ {rnode(rpxmax^D_,igrid)+rnode(rpdx^D_,igrid)*(DBLE(nghostcells-ngh)-0.5d0)} ]
+    point_in_igrid_ghostc = all(x >= grid_rmin) .and. all(x < grid_rmax)
+  end function point_in_igrid_ghostc
 
 end module mod_particle_sample
