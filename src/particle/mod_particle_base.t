@@ -529,7 +529,7 @@ contains
     call comm_particles_global
     tpartc_com=tpartc_com + (MPI_WTIME()-tpartc_com0)
 
-    if(time_advance) then
+    if (time_advance) then
       tmax_particles = global_time + dt
     else
       tmax_particles = global_time + (time_max-global_time)
@@ -540,7 +540,7 @@ contains
       if (tmax_particles >= t_next_output) then
         call advance_particles(t_next_output, steps_taken)
         tpartc_io_0 = MPI_WTIME()
-        if (mype .eq. 0) print*, "Writing particle output at time",tmax_particles
+        if (mype .eq. 0) print*, "Writing particle output at time",t_next_output
         call write_particle_output()
         timeio_tot  = timeio_tot+(MPI_WTIME()-tpartc_io_0)
         tpartc_io   = tpartc_io+(MPI_WTIME()-tpartc_io_0)
