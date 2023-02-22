@@ -540,6 +540,7 @@ contains
       if (tmax_particles >= t_next_output) then
         call advance_particles(t_next_output, steps_taken)
         tpartc_io_0 = MPI_WTIME()
+        if (mype .eq. 0) print*, "Writing particle output at time",tmax_particles
         call write_particle_output()
         timeio_tot  = timeio_tot+(MPI_WTIME()-tpartc_io_0)
         tpartc_io   = tpartc_io+(MPI_WTIME()-tpartc_io_0)
@@ -617,14 +618,6 @@ contains
 
   end subroutine limit_dt_endtime
 
-  ! Get the electric field in the grid at postion x.
-  ! For ideal SRMHD, we first interpolate b and u=lfac*v/c
-  ! The electric field then follows from e = b x beta, where beta=u/lfac.
-  ! This ensures for the resulting e that e<b and e.b=0. Interpolating on u
-  ! avoids interpolation-errors leading to v>c.
-  ! For (non-ideal) MHD, we directly interpolate the electric field as
-  ! there is no such constraint.
-
   subroutine get_vec(ix,igrid,x,tloc,vec)
     use mod_global_parameters
     use mod_usr_methods, only: usr_particle_analytic
@@ -669,6 +662,7 @@ contains
     else
        lfac = 1.0d0
     end if
+
   end subroutine get_lfac
 
   !> Get Lorentz factor from velocity
