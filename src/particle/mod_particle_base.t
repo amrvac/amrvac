@@ -540,7 +540,7 @@ contains
       if (tmax_particles >= t_next_output) then
         call advance_particles(t_next_output, steps_taken)
         tpartc_io_0 = MPI_WTIME()
-        if (mype .eq. 0) print*, "Writing particle output at time",t_next_output
+        if (mype .eq. 0 .and. (.not. time_advance)) print*, "Writing particle output at time",t_next_output
         call write_particle_output()
         timeio_tot  = timeio_tot+(MPI_WTIME()-tpartc_io_0)
         tpartc_io   = tpartc_io+(MPI_WTIME()-tpartc_io_0)
@@ -1407,11 +1407,9 @@ contains
 
   end subroutine output_particle
 
-  !> convert to cartesian coordinates
+  !> Convert position to Cartesian coordinates
   subroutine partcoord_to_cartesian(xp,xpcart)
     ! conversion of particle coordinate from cylindrical/spherical to cartesian coordinates done here
-    ! NOT converting velocity components: TODO?
-    ! Also: nullifying values lower than smalldouble
     use mod_global_parameters
     use mod_geometry
 
@@ -1420,24 +1418,180 @@ contains
 
     select case (coordinate)
        case (Cartesian,Cartesian_stretched,Cartesian_expansion)
-          xpcart(1:3)=xp(1:3)
+         xpcart(1:3) = xp(1:3)
        case (cylindrical)
-          xpcart(1)=xp(1)*cos(xp(phi_))
-          xpcart(2)=xp(1)*sin(xp(phi_))
-          xpcart(3)=xp(z_)
+         xpcart(1) = xp(r_)*cos(xp(phi_))
+         xpcart(2) = xp(r_)*sin(xp(phi_))
+         xpcart(3) = xp(z_)
        case (spherical)
-          xpcart(1)=xp(1)*sin(xp(2))*cos(xp(3))
-          {^IFTWOD
-          xpcart(2)=xp(1)*cos(xp(2))
-          xpcart(3)=xp(1)*sin(xp(2))*sin(xp(3))}
-          {^IFTHREED
-          xpcart(2)=xp(1)*sin(xp(2))*sin(xp(3))
-          xpcart(3)=xp(1)*cos(xp(2))}
+         xpcart(1) = xp(1)*sin(xp(2))*cos(xp(3))
+         {^IFTWOD
+         xpcart(2) = xp(1)*cos(xp(2))
+         xpcart(3) = xp(1)*sin(xp(2))*sin(xp(3))}
+         {^IFTHREED
+         xpcart(2) = xp(1)*sin(xp(2))*sin(xp(3))
+         xpcart(3) = xp(1)*cos(xp(2))}
        case default
           write(*,*) "No converter for coordinate=",coordinate
        end select
 
   end subroutine partcoord_to_cartesian
+
+  !> Convert to noncartesian coordinates
+  subroutine partcoord_from_cartesian(xp,xpcart)
+    ! conversion of particle coordinate from Cartesian to cylindrical/spherical coordinates done here
+    use mod_global_parameters
+    use mod_geometry
+
+    double precision, intent(in)  :: xpcart(1:3)
+    double precision, intent(out) :: xp(1:3)
+    double precision :: xx, yy, zz
+    double precision :: rr, tth, pphi
+
+    select case (coordinate)
+    case (Cartesian,Cartesian_stretched,Cartesian_expansion)
+      xp(1:3)=xpcart(1:3)
+    case (cylindrical)
+      xp(r_) = sqrt(xpcart(1)**2 + xpcart(2)**2)
+      xp(phi_) = atan2(xpcart(2),xpcart(1))
+      if (xp(phi_) .lt. 0.d0) xp(phi_) = 2.0d0*dpi + xp(phi_)
+      xp(z_) = xpcart(3)
+    case (spherical)
+      xx = xpcart(1)
+      {^IFTWOD
+      yy = xpcart(3)
+      zz = xpcart(2)}
+      {^IFTHREED
+      yy = xpcart(2)
+      zz = xpcart(3)}
+      rr = sqrt(xx**2 + yy**2 + zz**2)
+      tth = acos(zz/rr)
+      if (yy > 0.d0) then
+        pphi = acos(xx/sqrt(xx**2+yy**2))
+      else
+        pphi = 2.d0*dpi - acos(xx/sqrt(xx**2+yy**2))
+      endif
+      xp(1:3) = (/ rr, tth, pphi /)
+    case default
+      write(*,*) "No converter for coordinate=",coordinate
+    end select
+
+  end subroutine partcoord_from_cartesian
+
+  !> Convert vector to Cartesian coordinates
+  subroutine partvec_to_cartesian(xp,up,upcart)
+    ! conversion of a generic vector from cylindrical/spherical to cartesian coordinates done here
+    use mod_global_parameters
+    use mod_geometry
+
+    double precision, intent(in)  :: xp(1:3),up(1:3)
+    double precision, intent(out) :: upcart(1:3)
+
+    select case (coordinate)
+    case (Cartesian,Cartesian_stretched,Cartesian_expansion)
+      upcart(1:3)=up(1:3)
+    case (cylindrical)
+      upcart(1) = cos(xp(phi_)) * up(r_) - sin(xp(phi_)) * up(phi_)
+      upcart(2) = cos(xp(phi_)) * up(phi_) + sin(xp(phi_)) * up(r_)
+      upcart(3) = up(z_)
+    case (spherical)
+      upcart(1) = up(1)*sin(xp(2))*cos(xp(3)) + up(2)*cos(xp(2))*cos(xp(3)) - up(3)*sin(xp(3)) 
+      {^IFTWOD
+      upcart(2) = up(1)*cos(xp(2)) - up(2)*sin(xp(2))
+      upcart(3) = up(1)*sin(xp(2))*sin(xp(3)) + up(2)*cos(xp(2))*sin(xp(3)) + up(3)*cos(xp(3))}
+      {^IFTHREED
+      upcart(2) = up(1)*sin(xp(2))*sin(xp(3)) + up(2)*cos(xp(2))*sin(xp(3)) + up(3)*cos(xp(3))
+      upcart(3) = up(1)*cos(xp(2)) - up(2)*sin(xp(2))}
+    case default
+      write(*,*) "No converter for coordinate=",coordinate
+    end select
+
+  end subroutine partvec_to_cartesian
+
+  !> Convert vector from Cartesian coordinates
+  subroutine partvec_from_cartesian(xp,up,upcart)
+    ! conversion of a generic vector to cylindrical/spherical from cartesian coordinates done here
+    use mod_global_parameters
+    use mod_geometry
+
+    double precision, intent(in)  :: xp(1:3),upcart(1:3)
+    double precision, intent(out) :: up(1:3)
+
+    select case (coordinate)
+    case (Cartesian,Cartesian_stretched)
+      up(1:3) = upcart(1:3)
+    case (cylindrical)
+      up(r_) = cos(xp(phi_)) * upcart(1) + sin(xp(phi_)) * upcart(2)
+      up(phi_) = -sin(xp(phi_)) * upcart(1) + cos(xp(phi_)) * upcart(2)
+      up(z_) = upcart(3)
+    case (spherical)
+      {^IFTWOD
+      up(1) = upcart(1)*sin(xp(2))*cos(xp(3)) + upcart(3)*sin(xp(2))*sin(xp(3)) + upcart(2)*cos(xp(2)) 
+      up(2) = upcart(1)*cos(xp(2))*cos(xp(3)) + upcart(3)*cos(xp(2))*sin(xp(3)) - upcart(2)*sin(xp(2)
+      up(3) = -upcart(1)*sin(xp(3)) + upcart(3)*cos(xp(3))}
+      {^IFTHREED
+      up(1) = upcart(1)*sin(xp(2))*cos(xp(3)) + upcart(2)*sin(xp(2))*sin(xp(3)) + upcart(3)*cos(xp(2)) 
+      up(2) = upcart(1)*cos(xp(2))*cos(xp(3)) + upcart(2)*cos(xp(2))*sin(xp(3)) - upcart(3)*sin(xp(2))
+      up(3) = -upcart(1)*sin(xp(3)) + upcart(2)*cos(xp(3))}
+    case default
+      write(*,*) "No converter for coordinate=",coordinate
+    end select
+
+  end subroutine partvec_from_cartesian
+
+  !> Fix particle position when crossing the 0,2pi boundary in noncartesian coordinates
+  subroutine fix_phi_crossing(xp,igrid)
+    use mod_global_parameters
+    use mod_geometry
+
+    integer, intent(in)             :: igrid
+    double precision, intent(inout) :: xp(1:3)
+    double precision                :: xpmod(1:3)
+    integer :: phiind
+
+    select case (coordinate)
+    case (Cartesian,Cartesian_stretched,Cartesian_expansion)
+      ! Do nothing
+      return
+    case (cylindrical)
+      phiind = phi_
+    case (spherical)
+      phiind = 3
+    end select
+
+    xpmod = xp
+
+    ! Fix phi-boundary crossing
+    ! Case 1: particle has crossed from ~2pi to ~0
+    xpmod(phiind) = xp(phiind) + 2.d0*pi
+    if ((.not. point_in_igrid_ghostc(xp,igrid,0)) &
+        .and. (point_in_igrid_ghostc(xpmod,igrid,0))) then
+      xp(phiind) = xpmod(phiind)
+      return
+    end if
+    ! Case 2: particle has crossed from ~0 to ~2pi
+    xpmod(phiind) = xp(phiind) - 2.d0*pi
+    if ((.not. point_in_igrid_ghostc(xp,igrid,0)) &
+        .and. (point_in_igrid_ghostc(xpmod,igrid,0))) then 
+      xp(phiind) = xpmod(phiind)
+      return
+    end if
+      
+  end subroutine fix_phi_crossing
+
+  !> Quick check if particle coordinate is inside igrid
+  !> (ghost cells included, except the last ngh)
+  logical function point_in_igrid_ghostc(x, igrid, ngh)
+    use mod_global_parameters
+    use mod_geometry
+    integer, intent(in) :: igrid, ngh
+    double precision, intent(in) :: x(ndim)
+    double precision    :: grid_rmin(ndim), grid_rmax(ndim)
+
+    grid_rmin      = [ {rnode(rpxmin^D_,igrid)-rnode(rpdx^D_,igrid)*(DBLE(nghostcells-ngh)-0.5d0)} ]
+    grid_rmax      = [ {rnode(rpxmax^D_,igrid)+rnode(rpdx^D_,igrid)*(DBLE(nghostcells-ngh)-0.5d0)} ]
+    point_in_igrid_ghostc = all(x >= grid_rmin) .and. all(x < grid_rmax)
+  end function point_in_igrid_ghostc
 
   subroutine comm_particles()
     use mod_global_parameters

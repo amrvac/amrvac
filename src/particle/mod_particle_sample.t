@@ -251,19 +251,4 @@ contains
 
   end function sample_get_particle_dt
 
-  !> Quick check if particle coordinate is inside igrid
-  !> (ghost cells included, except last one)
-  logical function point_in_igrid_ghostc(x, igrid, ngh)
-    use mod_global_parameters
-    use mod_geometry
-    integer, intent(in) :: igrid, ngh
-    double precision, intent(in) :: x(ndim)
-    double precision    :: grid_rmin(ndim), grid_rmax(ndim)
-
-    ! First check if the igrid is still there
-    grid_rmin      = [ {rnode(rpxmin^D_,igrid)-rnode(rpdx^D_,igrid)*(DBLE(nghostcells-ngh)-0.5d0)} ]
-    grid_rmax      = [ {rnode(rpxmax^D_,igrid)+rnode(rpdx^D_,igrid)*(DBLE(nghostcells-ngh)-0.5d0)} ]
-    point_in_igrid_ghostc = all(x >= grid_rmin) .and. all(x < grid_rmax)
-  end function point_in_igrid_ghostc
-
 end module mod_particle_sample

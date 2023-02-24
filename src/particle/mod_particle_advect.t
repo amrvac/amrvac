@@ -7,6 +7,10 @@ module mod_particle_advect
 
   public :: advect_init
   public :: advect_create_particles
+  integer, parameter :: Euler = 1, RK4=2, ARK4=3
+
+  ! Variables
+  public :: vp
 
 contains
 
@@ -26,7 +30,18 @@ contains
       call particles_define_additional_gridvars(ngridvars)
     end if
 
-    particles_integrate     => advect_integrate_particles
+    select case(integrator_type_particles)
+    case('Euler','euler')
+      integrator = Euler
+    case('RK4','Rk4','rk4')
+      integrator = RK4
+    case('ARK4','ARk4','Ark4','ark4')
+      integrator = ARK4
+    case default
+      integrator = ARK4
+    end select
+
+    particles_integrate  => advect_integrate_particles
 
   end subroutine advect_init
 
@@ -103,8 +118,9 @@ contains
         end do
         particle(n)%self%u(:) = 0.d0
         particle(n)%self%u(1:ndir) = v(1:ndir,n)
-        allocate(particle(n)%payload(npayload))
+
         ! Compute default and user-defined payloads
+        allocate(particle(n)%payload(npayload))
         call advect_update_payload(igrid,ps(igrid)%w,pso(igrid)%w,ps(igrid)%x,x(:,n),v(:,n),q(n),m(n),defpayload,ndefpayload,0.d0)
         particle(n)%payload(1:ndefpayload)=defpayload
         if (associated(usr_update_payload)) then
@@ -125,14 +141,11 @@ contains
     integer                                   :: igrid, iigrid, idir
     double precision, dimension(ixG^T,1:nw)   :: w
 
+    ! Fill fluid velocity only
     do iigrid=1,igridstail; igrid=igrids(iigrid);
-
-      ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
-
       gridvars(igrid)%w(ixG^T,1:ngridvars) = 0.0d0
       w(ixG^T,1:nw) = ps(igrid)%w(ixG^T,1:nw)
       call phys_to_primitive(ixG^LL,ixG^LL,w,ps(igrid)%x)
-      ! fill with velocity:
       gridvars(igrid)%w(ixG^T,vp(:)) = w(ixG^T,iw_mom(:))
 
       if(time_advance) then
@@ -173,7 +186,10 @@ contains
       tlocnew                 = tloc+dt_p
 
       ! Position update
-      ! Simple forward Euler start
+    
+        
+      ! Simple forward Euler
+    
       !call get_vec_advect(igrid,x,tloc,v,vp(1),vp(ndir))
       !particle(ipart)%self%u(1:ndir) = v(1:ndir)
       !particle(ipart)%self%x(1:ndir) = particle(ipart)%self%x(1:ndir) &
