@@ -1527,7 +1527,7 @@ contains
     case (spherical)
       {^IFTWOD
       up(1) = upcart(1)*sin(xp(2))*cos(xp(3)) + upcart(3)*sin(xp(2))*sin(xp(3)) + upcart(2)*cos(xp(2)) 
-      up(2) = upcart(1)*cos(xp(2))*cos(xp(3)) + upcart(3)*cos(xp(2))*sin(xp(3)) - upcart(2)*sin(xp(2)
+      up(2) = upcart(1)*cos(xp(2))*cos(xp(3)) + upcart(3)*cos(xp(2))*sin(xp(3)) - upcart(2)*sin(xp(2))
       up(3) = -upcart(1)*sin(xp(3)) + upcart(3)*cos(xp(3))}
       {^IFTHREED
       up(1) = upcart(1)*sin(xp(2))*cos(xp(3)) + upcart(2)*sin(xp(2))*sin(xp(3)) + upcart(3)*cos(xp(2)) 
