@@ -304,7 +304,7 @@ contains
     use mod_geometry
     double precision, intent(in)      :: e(ndir), b(ndir), q, m, dtp
     double precision, intent(inout)   :: upart(ndir)
-    double precision                  :: lfac, cosphi, sinphi, phi1, phi2, r, re, sigma
+    double precision                  :: lfac, cosphi, sinphi, phi1, phi2, r, re, sigma, td
     double precision, dimension(ndir) :: emom, uprime, tau, s, tmp, uplus, xcart1, xcart2, ucart2, radmom
     double precision, dimension(ndir) :: upartk, vbar, Fk, C1, C2, dupartk
     double precision                  :: abserr, tol, lfack, J11, J12, J13, J21, J22, J23, J31, J32, J33
@@ -477,7 +477,7 @@ contains
     if (particles_etah > zero) then
       call interpolate_var(igrid,ixG^LL,ixM^LL,ps(igrid)%w(ixG^T,1),ps(igrid)%x,xpart,rho)
       if (time_advance) then
-        td = (tp+dt_p/2.d0 - global_time) / dt
+        td = (particle_time - global_time) / dt
         call interpolate_var(igrid,ixG^LL,ixM^LL,pso(igrid)%w(ixG^T,1),ps(igrid)%x,xpart,rhoold)
         rho = rhoold * (1.d0-td) + rho * td
       end if
