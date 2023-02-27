@@ -21,6 +21,7 @@ module mod_particle_gca
 
   public :: gca_init
   public :: gca_create_particles
+  integer, parameter :: RK4=1, ARK4=2
 
   ! Variables
   public :: bp, ep, grad_kappa_B, b_dot_grad_b
@@ -89,6 +90,15 @@ contains
     if (associated(particles_define_additional_gridvars)) then
       call particles_define_additional_gridvars(ngridvars)
     end if
+
+    select case(integrator_type_particles)
+    case('RK4','Rk4','rk4')
+      integrator = RK4
+    case('ARK4','ARk4','Ark4','ark4')
+      integrator = ARK4
+    case default
+      integrator = ARK4
+    end select
 
     particles_integrate => gca_integrate_particles
 
@@ -288,7 +298,7 @@ contains
         end do
       end do
 
-      if(time_advance) then
+      if (time_advance) then
         ! Fluid velocity
         w(ixG^T,1:nw) = pso(igrid)%w(ixG^T,1:nw)
         call phys_to_primitive(ixG^LL,ixG^LL,w,ps(igrid)%x)
@@ -372,6 +382,7 @@ contains
     double precision                    :: defpayload(ndefpayload)
     double precision                    :: usrpayload(nusrpayload)
     double precision                    :: dt_p, tloc, y(ndir+2),dydt(ndir+2),ytmp(ndir+2), euler_cfl, int_factor
+    double precision                    :: tk, k1(ndir+2),k2(ndir+2),k3(ndir+2),k4(ndir+2)
     double precision, dimension(1:ndir) :: x, vE, e, b, bhat, x_new, vfluid, current
     double precision, dimension(1:ndir) :: drift1, drift2
     double precision, dimension(1:ndir) :: drift3, drift4, drift5, drift6, drift7
@@ -407,112 +418,138 @@ contains
       tloc                    = particle(ipart)%self%time
       x(1:ndir)               = particle(ipart)%self%x(1:ndir)
 
-      ! Adaptive stepwidth RK4:
-      ! initial solution vector:
-      y(1:ndir) = x(1:ndir) ! position of guiding center
-      y(ndir+1) = particle(ipart)%self%u(1) ! parallel momentum component (gamma v||)
-      y(ndir+2) = particle(ipart)%self%u(2) ! conserved magnetic moment Mr
-    ! y(ndir+3) = particle(ipart)%self%u(3) ! Lorentz factor of particle
+      select case (integrator)
+      case (RK4)
+        ! Runge-Kutta order 4
+        tk = tloc
+        y(1:ndir) = x(1:ndir) ! position of guiding center
+        y(ndir+1) = particle(ipart)%self%u(1) ! parallel momentum component (gamma v||)
+        y(ndir+2) = particle(ipart)%self%u(2) ! conserved magnetic moment Mr
+        call derivs_gca_rk(tk,y,k1)
+        tk = tloc + dt_p/2.d0
+        y(1:ndir) = x + dt_p*k1(1:ndir)/2.d0
+        y(ndir+1) = particle(ipart)%self%u(1) + dt_p*k1(ndir+1)/2.d0
+        call derivs_gca_rk(tk,y,k2)
+        tk = tloc + dt_p/2.d0
+        y(1:ndir) = x + dt_p*k2(1:ndir)/2.d0
+        y(ndir+1) = particle(ipart)%self%u(1) + dt_p*k2(ndir+1)/2.d0
+        call derivs_gca_rk(tk,y,k3)
+        tk = tloc + dt_p
+        y(1:ndir) = x + dt_p*k3(1:ndir)
+        y(ndir+1) = particle(ipart)%self%u(1) + dt_p*k3(ndir+1)
+        call derivs_gca_rk(tk,y,k4)
+        y = y + dt_p/6.d0*(k1 + 2.d0*k2 + 2.d0*k3 + k4)
+        particle(ipart)%self%x(1:ndir) = y(1:ndir)
+        particle(ipart)%self%u(1)      = y(ndir+1)
 
-      ! we temporarily save the solution vector, to replace the one from the euler
-      ! timestep after euler integration
-      ytmp=y
-
-      call derivs_gca(particle(ipart)%self%time,y,dydt)
-
-      ! make an Euler step with the proposed timestep:
-      ! factor to ensure we capture all particles near the internal ghost cells.
-      ! Can be adjusted during a run, after an interpolation error.
-      euler_cfl=2.5d0
-
-      ! new solution vector:
-      y(1:ndir+2) = y(1:ndir+2) + euler_cfl * dt_p * dydt(1:ndir+2)
-      particle(ipart)%self%x(1:ndir) = y(1:ndir) ! position of guiding center
-      particle(ipart)%self%u(1)      = y(ndir+1) ! parallel momentum component(gamma v||)
-      particle(ipart)%self%u(2)      = y(ndir+2) ! conserved magnetic moment
-
-      ! check if the particle is in the internal ghost cells
-      int_factor =1.0d0
-
-      if(.not. particle_in_igrid(ipart_working,igrid_working)) then
-        ! if particle is not in the grid an euler timestep is taken instead of a RK4
-        ! timestep. Then based on that we do an interpolation and check how much further
-        ! the timestep for the RK4 has to be restricted.
-        ! factor to make integration more accurate for particles near the internal
-        ! ghost cells. This factor can be changed during integration after an
-        ! interpolation error. But one should be careful with timesteps for i/o
-
-        ! flat interpolation:
-        {ic^D = int((y(^D)-rnode(rpxmin^D_,igrid_working))/rnode(rpdx^D_,igrid_working)) + 1 + nghostcells\}
-
-        ! linear interpolation:
-        {
-        if (ps(igrid_working)%x({ic^DD},^D) .lt. y(^D)) then
-           ic1^D = ic^D
-        else
-           ic1^D = ic^D -1
+      case (ARK4)
+        ! Adaptive stepwidth RK4:
+        ! initial solution vector:
+        y(1:ndir) = x(1:ndir) ! position of guiding center
+        y(ndir+1) = particle(ipart)%self%u(1) ! parallel momentum component (gamma v||)
+        y(ndir+2) = particle(ipart)%self%u(2) ! conserved magnetic moment Mr
+      ! y(ndir+3) = particle(ipart)%self%u(3) ! Lorentz factor of particle
+  
+        ! we temporarily save the solution vector, to replace the one from the euler
+        ! timestep after euler integration
+        ytmp=y
+  
+        call derivs_gca(particle(ipart)%self%time,y,dydt)
+  
+        ! make an Euler step with the proposed timestep:
+        ! factor to ensure we capture all particles near the internal ghost cells.
+        ! Can be adjusted during a run, after an interpolation error.
+        euler_cfl=2.5d0
+  
+        ! new solution vector:
+        y(1:ndir+2) = y(1:ndir+2) + euler_cfl * dt_p * dydt(1:ndir+2)
+        particle(ipart)%self%x(1:ndir) = y(1:ndir) ! position of guiding center
+        particle(ipart)%self%u(1)      = y(ndir+1) ! parallel momentum component(gamma v||)
+        particle(ipart)%self%u(2)      = y(ndir+2) ! conserved magnetic moment
+  
+        ! check if the particle is in the internal ghost cells
+        int_factor =1.0d0
+  
+        if(.not. particle_in_igrid(ipart_working,igrid_working)) then
+          ! if particle is not in the grid an euler timestep is taken instead of a RK4
+          ! timestep. Then based on that we do an interpolation and check how much further
+          ! the timestep for the RK4 has to be restricted.
+          ! factor to make integration more accurate for particles near the internal
+          ! ghost cells. This factor can be changed during integration after an
+          ! interpolation error. But one should be careful with timesteps for i/o
+  
+          ! flat interpolation:
+          {ic^D = int((y(^D)-rnode(rpxmin^D_,igrid_working))/rnode(rpdx^D_,igrid_working)) + 1 + nghostcells\}
+  
+          ! linear interpolation:
+          {
+          if (ps(igrid_working)%x({ic^DD},^D) .lt. y(^D)) then
+             ic1^D = ic^D
+          else
+             ic1^D = ic^D -1
+          end if
+          ic2^D = ic1^D + 1
+          \}
+  
+          int_factor =0.5d0
+  
+          {^D&
+          if (ic1^D .le. ixGlo^D-2 .or. ic2^D .ge. ixGhi^D+2) then
+            int_factor = 0.05d0
+          end if
+          \}
+  
+          {^D&
+          if (ic1^D .eq. ixGlo^D-1 .or. ic2^D .eq. ixGhi^D+1) then
+            int_factor = 0.1d0
+          end if
+          \}
+  
+          dt_p=int_factor*dt_p
         end if
-        ic2^D = ic1^D + 1
-        \}
-
-        int_factor =0.5d0
-
-        {^D&
-        if (ic1^D .le. ixGlo^D-2 .or. ic2^D .ge. ixGhi^D+2) then
-          int_factor = 0.05d0
+  
+        ! replace the solution vector with the original as it was before the Euler timestep
+        y(1:ndir+2) = ytmp(1:ndir+2)
+  
+        particle(ipart)%self%x(1:ndir) = ytmp(1:ndir) ! position of guiding center
+        particle(ipart)%self%u(1)      = ytmp(ndir+1) ! parallel momentum component (gamma v||)
+        particle(ipart)%self%u(2)      = ytmp(ndir+2) ! conserved magnetic moment
+  
+        ! specify a minimum step hmin. If the timestep reaches this minimum, multiply by
+        ! a factor 100 to make sure the RK integration doesn't crash
+        h1 = dt_p/2.0d0; hmin=1.0d-9; h_old=dt_p/2.0d0
+  
+        if(h1 .lt. hmin)then
+          h1=hmin
+          dt_p=2.0d0*h1
+        endif
+  
+        if (any(y .ne. y)) then
+          call mpistop("NaNs DETECTED IN GCA_INTEGRATE BEFORE ODEINT CALL! ABORTING...")
         end if
-        \}
-
-        {^D&
-        if (ic1^D .eq. ixGlo^D-1 .or. ic2^D .eq. ixGhi^D+1) then
-          int_factor = 0.1d0
+  
+        ! RK4 integration with adaptive stepwidth
+        call odeint(y,nvar,tloc,tloc+dt_p,eps,h1,hmin,nok,nbad,derivs_gca_rk,rkqs,ierror)
+  
+        if (ierror /= 0) then
+           print *, "odeint returned error code", ierror
+           print *, "1 means hmin too small, 2 means MAXSTP exceeded"
+           print *, "Having a problem with particle", iipart
         end if
-        \}
-
-        dt_p=int_factor*dt_p
-      end if
-
-      ! replace the solution vector with the original as it was before the Euler timestep
-      y(1:ndir+2) = ytmp(1:ndir+2)
-
-      particle(ipart)%self%x(1:ndir) = ytmp(1:ndir) ! position of guiding center
-      particle(ipart)%self%u(1)      = ytmp(ndir+1) ! parallel momentum component (gamma v||)
-      particle(ipart)%self%u(2)      = ytmp(ndir+2) ! conserved magnetic moment
-
-      ! specify a minimum step hmin. If the timestep reaches this minimum, multiply by
-      ! a factor 100 to make sure the RK integration doesn't crash
-      h1 = dt_p/2.0d0; hmin=1.0d-9; h_old=dt_p/2.0d0
-
-      if(h1 .lt. hmin)then
-        h1=hmin
-        dt_p=2.0d0*h1
-      endif
-
-      if (any(y .ne. y)) then
-        call mpistop("NaNs DETECTED IN GCA_INTEGRATE BEFORE ODEINT CALL! ABORTING...")
-      end if
-
-      ! RK4 integration with adaptive stepwidth
-      call odeint(y,nvar,tloc,tloc+dt_p,eps,h1,hmin,nok,nbad,derivs_gca_rk,rkqs,ierror)
-
-      if (ierror /= 0) then
-         print *, "odeint returned error code", ierror
-         print *, "1 means hmin too small, 2 means MAXSTP exceeded"
-         print *, "Having a problem with particle", iipart
-      end if
-
-      if (any(y .ne. y)) then
-        call mpistop("NaNs DETECTED IN GCA_INTEGRATE AFTER ODEINT CALL! ABORTING...")
-      end if
-
-      ! original RK integration without interpolation in ghost cells
-!       call odeint(y,nvar,tloc,tloc+dt_p,eps,h1,hmin,nok,nbad,derivs_gca,rkqs)
-
-      ! final solution vector after rk integration
-      particle(ipart)%self%x(1:ndir) = y(1:ndir)
-      particle(ipart)%self%u(1)      = y(ndir+1)
-      particle(ipart)%self%u(2)      = y(ndir+2)
-      !particle(ipart)%self%u(3)      = y(ndir+3)
+  
+        if (any(y .ne. y)) then
+          call mpistop("NaNs DETECTED IN GCA_INTEGRATE AFTER ODEINT CALL! ABORTING...")
+        end if
+  
+        ! original RK integration without interpolation in ghost cells
+  !       call odeint(y,nvar,tloc,tloc+dt_p,eps,h1,hmin,nok,nbad,derivs_gca,rkqs)
+  
+        ! final solution vector after rk integration
+        particle(ipart)%self%x(1:ndir) = y(1:ndir)
+        particle(ipart)%self%u(1)      = y(ndir+1)
+        particle(ipart)%self%u(2)      = y(ndir+2)
+        !particle(ipart)%self%u(3)      = y(ndir+3)
+      end select
 
       ! now calculate other quantities, mean Lorentz factor, drifts, perpendicular velocity:
       call get_vec(bp, igrid_working,y(1:ndir),tloc+dt_p,b)
