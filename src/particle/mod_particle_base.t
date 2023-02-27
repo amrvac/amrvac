@@ -1563,14 +1563,14 @@ contains
 
     ! Fix phi-boundary crossing
     ! Case 1: particle has crossed from ~2pi to ~0
-    xpmod(phiind) = xp(phiind) + 2.d0*pi
+    xpmod(phiind) = xp(phiind) + 2.d0*dpi
     if ((.not. point_in_igrid_ghostc(xp,igrid,0)) &
         .and. (point_in_igrid_ghostc(xpmod,igrid,0))) then
       xp(phiind) = xpmod(phiind)
       return
     end if
     ! Case 2: particle has crossed from ~0 to ~2pi
-    xpmod(phiind) = xp(phiind) - 2.d0*pi
+    xpmod(phiind) = xp(phiind) - 2.d0*dpi
     if ((.not. point_in_igrid_ghostc(xp,igrid,0)) &
         .and. (point_in_igrid_ghostc(xpmod,igrid,0))) then 
       xp(phiind) = xpmod(phiind)
