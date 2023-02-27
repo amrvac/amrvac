@@ -204,7 +204,7 @@ contains
     double precision                  :: xp(ndir), xpm(ndir), xpc(ndir), xpcm(ndir)
     double precision                  :: up(ndir), upc(ndir), tp
     double precision, dimension(ndir) :: b, e, bc, ec, vfluid, current
-    double precision                  :: rho, rhoold
+    double precision                  :: rho, rhoold, td
 
     do iipart=1,nparticles_active_on_mype
       ipart = particles_active_on_mype(iipart);
@@ -459,7 +459,7 @@ contains
     double precision, intent(in)  :: w(ixG^T,1:nw),wold(ixG^T,1:nw)
     double precision, intent(in)  :: xgrid(ixG^T,1:ndim),xpart(1:ndir),upart(1:ndir),qpart,mpart,particle_time
     double precision, intent(out) :: mypayload(mynpayload)
-    double precision              :: b(3), e(3), tmp(3), lfac, vfluid(3), current(3), rho, rhoold
+    double precision              :: b(3), e(3), tmp(3), lfac, vfluid(3), current(3), rho, rhoold, td
 
     call get_vec(bp, igrid, xpart,particle_time,b)
     call get_vec(vp, igrid, xpart,particle_time,vfluid)

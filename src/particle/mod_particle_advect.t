@@ -148,7 +148,7 @@ contains
       call phys_to_primitive(ixG^LL,ixG^LL,w,ps(igrid)%x)
       gridvars(igrid)%w(ixG^T,vp(:)) = w(ixG^T,iw_mom(:))
 
-      if(time_advance) then
+      if (time_advance) then
         gridvars(igrid)%wold(ixG^T,1:ngridvars) = 0.0d0
         w(ixG^T,1:nw) = pso(igrid)%w(ixG^T,1:nw)
         call phys_to_primitive(ixG^LL,ixG^LL,w,ps(igrid)%x)
@@ -169,7 +169,8 @@ contains
     double precision, dimension(1:ndir) :: v, x
     double precision                 :: defpayload(ndefpayload)
     double precision                 :: usrpayload(nusrpayload)
-    double precision                 :: tloc, tlocnew, dt_p, h1
+    double precision                 :: tloc, tlocnew, dt_p, h1, tk
+    double precision, dimension(1:ndir) :: yk, k1, k2, k3, k4
     double precision,parameter       :: eps=1.0d-6, hmin=1.0d-8
     integer                          :: ipart, iipart, igrid
     integer                          :: nok, nbad, ierror
@@ -186,26 +187,40 @@ contains
       tlocnew                 = tloc+dt_p
 
       ! Position update
-    
-        
-      ! Simple forward Euler
-    
-      !call get_vec_advect(igrid,x,tloc,v,vp(1),vp(ndir))
-      !particle(ipart)%self%u(1:ndir) = v(1:ndir)
-      !particle(ipart)%self%x(1:ndir) = particle(ipart)%self%x(1:ndir) &
-      !     + dt_p * v(1:ndir)
-      ! Simple forward Euler end
+      select case (integrator)
+      case (Euler) 
+        ! Simple forward Euler 
+        call get_vec_advect(igrid,x,tloc,v,vp(1),vp(ndir))
+        particle(ipart)%self%u(1:ndir) = v(1:ndir)
+        particle(ipart)%self%x(1:ndir) = particle(ipart)%self%x(1:ndir) + dt_p * v(1:ndir)
 
-      ! Adaptive stepwidth RK4:
-      h1 = dt_p/2.0d0
-      call odeint(x,ndir,tloc,tlocnew,eps,h1,hmin,nok,nbad,derivs_advect,rkqs,ierror)
-
-      if (ierror /= 0) then
-        print *, "odeint returned error code", ierror
-        print *, "1 means hmin too small, 2 means MAXSTP exceeded"
-        print *, "Having a problem with particle", iipart
-      end if
-
+      case (RK4)
+        ! Runge-Kutta order 4
+        tk = tloc
+        yk = x
+        call derivs_advect(tk,yk,k1)
+        tk = tloc + dt_p/2.d0
+        yk = x + dt_p*k1/2.d0
+        call derivs_advect(tk,yk,k2)
+        tk = tloc + dt_p/2.d0
+        yk = x + dt_p*k2/2.d0
+        call derivs_advect(tk,yk,k3)
+        tk = tloc + dt_p
+        yk = x + dt_p*k3
+        call derivs_advect(tloc,yk,k4)
+        x = x + dt_p/6.d0*(k1 + 2.d0*k2 + 2.d0*k3 + k4)
+      
+      case (ARK4)
+        ! Adaptive stepwidth RK4:
+        h1 = dt_p/2.0d0
+        call odeint(x,ndir,tloc,tlocnew,eps,h1,hmin,nok,nbad,derivs_advect,rkqs,ierror)
+  
+        if (ierror /= 0) then
+          print *, "odeint returned error code", ierror
+          print *, "1 means hmin too small, 2 means MAXSTP exceeded"
+          print *, "Having a problem with particle", iipart
+        end if
+      end select
       particle(ipart)%self%x(1:ndir) = x(1:ndir)
 
       ! Velocity update
@@ -283,11 +298,11 @@ contains
     v(1:ndir)=abs(partp%self%u(1:ndir))
 
     ! convert to angular velocity:
-    if(coordinate ==cylindrical.and.phi_>0) v(phi_) = abs(v(phi_)/partp%self%x(r_))
+    if (coordinate ==cylindrical.and.phi_>0) v(phi_) = abs(v(phi_)/partp%self%x(r_))
 
     dt_cfl = min({rnode(rpdx^D_,partp%igrid)/v(^D)},bigdouble)
 
-    if(coordinate ==cylindrical.and.phi_>0) then
+    if (coordinate ==cylindrical.and.phi_>0) then
       ! phi-momentum leads to radial velocity:
       if(phi_ .gt. ndim) dt_cfl = min(dt_cfl, &
            sqrt(rnode(rpdx1_,partp%igrid)/partp%self%x(r_)) &
