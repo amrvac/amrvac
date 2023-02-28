@@ -286,7 +286,7 @@ contains
 
   end subroutine derivs_advect
 
-  pure function advect_get_particle_dt(partp, end_time) result(dt_p)
+  function advect_get_particle_dt(partp, end_time) result(dt_p)
     use mod_global_parameters
     use mod_geometry
     type(particle_ptr), intent(in) :: partp
@@ -302,7 +302,7 @@ contains
     end if
 
     ! make sure we step only one cell at a time:
-    call dervis_advect(partp%self%time,partp%self%x,v)
+    call derivs_advect(partp%self%time,partp%self%x,v)
 
     dt_cfl = min({rnode(rpdx^D_,partp%igrid)/v(^D)},bigdouble)
 
