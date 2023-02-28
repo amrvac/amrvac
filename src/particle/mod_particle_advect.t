@@ -190,8 +190,7 @@ contains
       select case (integrator)
       case (Euler) 
         ! Simple forward Euler 
-        call get_vec_advect(igrid,x,tloc,v,vp(1),vp(ndir))
-        particle(ipart)%self%u(1:ndir) = v(1:ndir)
+        call derivs_advect(tloc,x,v)
         particle(ipart)%self%x(1:ndir) = particle(ipart)%self%x(1:ndir) + dt_p * v(1:ndir)
 
       case (RK4)
@@ -269,12 +268,20 @@ contains
 
   subroutine derivs_advect(t_s,x,dxdt)
     use mod_global_parameters
+    use mod_geometry
     double precision :: t_s, x(ndir)
     double precision :: dxdt(ndir)
 
     double precision :: v(ndir)
 
     call get_vec_advect(igrid_working,x,t_s,v,vp(1),vp(ndir))
+    select case (coordinate)
+    case (cylindrical)
+      v(phi_) = v(phi_)/x(r_)
+    case (spherical)
+      v(2) = v(2)/x(1)
+      v(3) = v(3)/x(1)/sin(x(2))
+    end select
     dxdt(:) = v(:)
 
   end subroutine derivs_advect
@@ -295,27 +302,25 @@ contains
     end if
 
     ! make sure we step only one cell at a time:
-    v(1:ndir)=abs(partp%self%u(1:ndir))
-
-    ! convert to angular velocity:
-    if (coordinate ==cylindrical.and.phi_>0) v(phi_) = abs(v(phi_)/partp%self%x(r_))
+    call dervis_advect(partp%self%time,partp%self%x,v)
 
     dt_cfl = min({rnode(rpdx^D_,partp%igrid)/v(^D)},bigdouble)
 
-    if (coordinate ==cylindrical.and.phi_>0) then
-      ! phi-momentum leads to radial velocity:
-      if(phi_ .gt. ndim) dt_cfl = min(dt_cfl, &
-           sqrt(rnode(rpdx1_,partp%igrid)/partp%self%x(r_)) &
-           / v(phi_))
-      ! limit the delta phi of the orbit (just for aesthetic reasons):
-      dt_cfl = min(dt_cfl,0.1d0/v(phi_))
-      ! take some care at the axis:
-      dt_cfl = min(dt_cfl,(partp%self%x(r_)+smalldouble)/v(r_))
-    end if
+    ! TODO: verify if following is needed
+!    if (coordinate ==cylindrical.and.phi_>0) then
+!      ! phi-momentum leads to radial velocity:
+!      if(phi_ .gt. ndim) dt_cfl = min(dt_cfl, &
+!           sqrt(rnode(rpdx1_,partp%igrid)/partp%self%x(r_)) &
+!           / v(phi_))
+!      ! limit the delta phi of the orbit (just for aesthetic reasons):
+!      dt_cfl = min(dt_cfl,0.1d0/v(phi_))
+!      ! take some care at the axis:
+!      dt_cfl = min(dt_cfl,(partp%self%x(r_)+smalldouble)/v(r_))
+!    end if
 
     dt_p = dt_cfl
 
-    ! Make sure we don't advance beyond end_time
+    ! Make sure we do not advance beyond end_time
     call limit_dt_endtime(end_time - partp%self%time, dt_p)
 
   end function advect_get_particle_dt

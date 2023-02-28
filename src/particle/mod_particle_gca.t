@@ -438,6 +438,9 @@ contains
         y(1:ndir) = x + dt_p*k3(1:ndir)
         y(ndir+1) = particle(ipart)%self%u(1) + dt_p*k3(ndir+1)
         call derivs_gca_rk(tk,y,k4)
+        y(1:ndir) = x(1:ndir) ! position of guiding center
+        y(ndir+1) = particle(ipart)%self%u(1) ! parallel momentum component (gamma v||)
+        y(ndir+2) = particle(ipart)%self%u(2) ! conserved magnetic moment Mr
         y = y + dt_p/6.d0*(k1 + 2.d0*k2 + 2.d0*k3 + k4)
         particle(ipart)%self%x(1:ndir) = y(1:ndir)
         particle(ipart)%self%u(1)      = y(ndir+1)
