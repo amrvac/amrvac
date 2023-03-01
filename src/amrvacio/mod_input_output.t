@@ -308,7 +308,7 @@ contains
     !! default number of ghost-cell layers at each boundary of a block
     ! this is now done when the variable is defined in mod_global_parameters
     ! the physics modules might set this variable in their init subroutine called earlier
-    !nghostcells = 2
+    nghostcells = 2
 
     ! Allocate boundary conditions arrays in new and old style
     {
@@ -1378,6 +1378,11 @@ contains
     end do
     }
 
+    if(.not.phys_energy) then
+      flatcd=.false.
+      flatsh=.false.
+    end if
+
     if(any(limiter(1:nlevelshi)=='mp5')) then
       nghostcells=max(nghostcells,3)
     end if
@@ -1415,7 +1420,11 @@ contains
     end if
 
     if(any(limiter(1:nlevelshi)=='ppm')) then
-      nghostcells=max(nghostcells,4)
+      if(flatsh .or. flatcd) then
+        nghostcells=max(nghostcells,4)
+      else
+        nghostcells=max(nghostcells,3)
+      end if
     end if
 
     if(any(limiter(1:nlevelshi)=='weno7')) then

@@ -23,56 +23,54 @@ contains
     integer, intent(in)             :: ixI^L, ix^L, idims
     double precision, intent(in)    :: q(ixI^S),qCT(ixI^S)
 
-    double precision, intent(inout) :: qRC(ixG^T),qLC(ixG^T)
+    double precision, intent(inout) :: qRC(ixI^S),qLC(ixI^S)
 
-    double precision,dimension(ixG^T)  :: dqC,d2qC,ldq
-    double precision,dimension(ixG^T)  :: qMin,qMax,tmp
+    double precision,dimension(ixI^S)  :: dqC,d2qC,ldq
+    double precision,dimension(ixI^S)  :: qMin,qMax,tmp
 
-    integer   :: lxC^L,lxR^L
-    integer   :: ixLL^L,ixL^L,ixO^L,ixR^L,ixRR^L
+    integer   :: lxC^L,lxR^L,lxL^L
+    integer   :: ixL^L,ixO^L,ixR^L,ixOL^L,ixOR^L
     integer   :: hxL^L,hxC^L,hxR^L
-    integer   :: kxLL^L,kxL^L,kxC^L,kxR^L,kxRR^L
+    integer   :: kxL^L,kxC^L,kxR^L
 
-    ixOmin^D=ixmin^D-kr(idims,^D);ixOmax^D=ixmax^D+kr(idims,^D);!ixO[ixMmin1-1,ixMmax1+1]
-    ixL^L=ixO^L-kr(idims,^D);                                   !ixL[ixMmin1-2,ixMmax1]
-    ixLL^L=ixL^L-kr(idims,^D);                                  !ixLL[ixMmin1-3,ixMmax1-1]
-    ixR^L=ixO^L+kr(idims,^D);                                   !ixR=[iMmin1,ixMmax+2]
-    ixRR^L=ixR^L+kr(idims,^D);                                  !ixRR=[iMmin1+1,ixMmax+3]
+    ixOmin^D=ixmin^D-kr(idims,^D);ixOmax^D=ixmax^D+kr(idims,^D);!ixO[ixMmin-1,ixMmax+1]
+    ixOLmin^D=ixOmin^D-kr(idims,^D);ixOLmax^D=ixOmax^D;         !ixOL[ixMmin-2,ixMmax+1]
+    ixOR^L=ixOL^L+kr(idims,^D);                                 !ixOR=[iMmin-1,ixMmax+2]
+    ixL^L=ixO^L-kr(idims,^D);                                   !ixL[ixMmin-2,ixMmax]
+    ixR^L=ixO^L+kr(idims,^D);                                   !ixR=[iMmin,ixMmax+2]
 
     hxCmin^D=ixOmin^D;hxCmax^D=ixmax^D; ! hxC = [ixMmin-1,ixMmax]
     hxL^L=hxC^L-kr(idims,^D);           ! hxL = [ixMmin-2,ixMmax-1]
     hxR^L=hxC^L+kr(idims,^D);           ! hxR = [ixMmin,ixMmax+1]
 
-    kxCmin^D=ixLLmin^D; kxCmax^D=ixRmax^D; ! kxC=[iMmin1-3,ixMmax1+2]
-    kxL^L=kxC^L-kr(idims,^D);              ! kxL=[iMmin1-4,ixMmax1+1]
-    kxR^L=kxC^L+kr(idims,^D);              ! kxR=[iMmin1-2,ixMmax1+3]
+    kxCmin^D=ixLmin^D-1; kxCmax^D=ixRmax^D; ! kxC=[iMmin-3,ixMmax+2]
+    kxR^L=kxC^L+kr(idims,^D);              ! kxR=[iMmin-2,ixMmax+3]
 
-    lxCmin^D=ixLLmin^D-kr(idims,^D);lxCmax^D=ixRRmax^D;! ixC=[iMmin1-4,ixMmax1+3]
-    lxR^L=lxC^L+kr(idims,^D);                          ! lxR=[iMmin1-3,ixMmax1+4]
+    lxCmin^D=ixOmin^D-kr(idims,^D);lxCmax^D=ixOmax^D+kr(idims,^D);! lxC=[iMmin-2,ixMmax+2]
+    lxL^L=lxC^L-kr(idims,^D);                          ! lxL=[iMmin-3,ixMmax+1]
+    lxR^L=lxC^L+kr(idims,^D);                          ! lxR=[iMmin-1,ixMmax+3]
 
-
-    dqC(lxC^S)=q(lxR^S)-q(lxC^S)
-    ! Eq. 64,  Miller and Colella 2002, JCP 183, 26
-    d2qC(kxC^S)=half*(q(kxR^S)-q(kxL^S))
-    where(dqC(kxC^S)*dqC(kxL^S)>zero)
-       ! Store the sign of d2qC in qMin
-       qMin(kxC^S)= sign(one,d2qC(kxC^S))
-       ! Eq. 65,  Miller and Colella 2002, JCP 183, 26
-       ldq(kxC^S)= qMin(kxC^S)*min(dabs(d2qC(kxC^S)),&
-            2.0d0*dabs(dqC(kxL^S)),&
-            2.0d0*dabs(dqC(kxC^S)))
-    elsewhere
-       ldq(kxC^S)=zero
+    dqC(kxC^S)=q(kxR^S)-q(kxC^S)
+    ! Eq. 64,  Miller and Colella 2002, JCP 183, 26 
+    d2qC(kxC^S)=half*(q(lxR^S)-q(lxL^S))
+    where(dqC(lxC^S)*dqC(lxL^S)>zero)
+       ! Store the sign of dwC in wMin
+       qMin(kxC^S)= sign(one,d2qC(lxC^S))
+       ! Eq. 65,  Miller and Colella 2002, JCP 183, 26 
+       ldq(lxC^S)= qMin(lxC^S)*min(dabs(d2qC(lxC^S)),&
+            2.0d0*dabs(dqC(lxL^S)),&
+            2.0d0*dabs(dqC(lxC^S)))
+    else where
+       ldq(lxC^S)=zero
     end where
 
     ! Eq. 66, Miller and Colella 2002, JCP 183, 26
-    qLC(ixO^S)=qLC(ixO^S)+half*dqC(ixO^S)&
-         +(ldq(ixO^S)-ldq(ixR^S))/6.0d0
-    qRC(ixL^S)=qRC(ixL^S) -(half*dqC(ixL^S)&
-        -(ldq(ixL^S)-ldq(ixO^S))/6.0d0)
+    qLC(ixOL^S)=qLC(ixOL^S)+half*dqC(ixOL^S)&
+         +(ldq(ixOL^S)-ldq(ixOR^S))/6.0d0
+    qRC(ixL^S)=qLC(ixL^S)
 
     ! make sure that min wCT(i)<wLC(i)<wCT(i+1) same for wRC(i)
-    call extremaq(ixI^L,kxC^L,qCT,1,qMax,qMin)
+    call extremaq(ixI^L,ixO^L,qCT,1,qMax,qMin)
 
     ! Eq. B8, page 217, Mignone et al 2005, ApJS
     qRC(ixL^S)=max(qMin(ixO^S),min(qMax(ixO^S),qRC(ixL^S)))
@@ -85,10 +83,10 @@ contains
     end where
 
     qMax(ixO^S)=(qLC(ixO^S)-qRC(ixL^S))&
-         *(qCT(ixO^S)-(qLC(ixO^S)+qRC(ixL^S))/2.0d0)
-    qMin(ixO^S)=(qLC(ixO^S)-qRC(ixL^S))**2.0d0/6.0d0
-    tmp(ixL^S)=qRC(ixL^S)
+         *(qCT(ixO^S)-half*(qLC(ixO^S)+qRC(ixL^S)))
+    qMin(ixO^S)=(qLC(ixO^S)-qRC(ixL^S))**2/6.0d0
 
+    tmp(hxL^S)=qRC(hxL^S)
     ! Eq. B10, page 218, Mignone et al 2005, ApJS
     where(qMax(hxR^S)>qMin(hxR^S))
        qRC(hxC^S)= 3.0d0*qCT(hxR^S)-2.0d0*qLC(hxR^S)
@@ -116,15 +114,14 @@ contains
     integer, intent(in)             :: ixI^L, ix^L, idims
     double precision, intent(in)    :: w(ixI^S,1:nw),wCT(ixI^S,1:nw)
 
-    double precision, intent(inout) :: wRC(ixG^T,1:nw),wLC(ixG^T,1:nw) 
+    double precision, intent(inout) :: wRC(ixI^S,1:nw),wLC(ixI^S,1:nw) 
 
-    double precision,dimension(ixG^T,1:nwflux)  :: dwC,d2wC,ldw
-    double precision,dimension(ixG^T,1:nwflux)  :: wMin,wMax,tmp
-    double precision,dimension(ixG^T) :: aa, ab, ac, dv
-    double precision,dimension(ixG^T,1:ndim) ::  exi
+    double precision,dimension(ixI^S,1:nwflux)  :: dwC,d2wC,ldw
+    double precision,dimension(ixI^S,1:nwflux)  :: wMin,wMax,tmp
+    double precision,dimension(ixI^S) :: aa, ab, ac, ki
 
-    integer   :: lxC^L,lxR^L
-    integer   :: ixLL^L,ixL^L,ixO^L,ixR^L,ixRR^L
+    integer   :: lxC^L,lxL^L,lxR^L
+    integer   :: ixLL^L,ixL^L,ixO^L,ixR^L,ixRR^L,ixOL^L,ixOR^L
     integer   :: hxL^L,hxC^L,hxR^L
     integer   :: kxLL^L,kxL^L,kxC^L,kxR^L,kxRR^L
     integer   :: iw, idimss
@@ -133,53 +130,50 @@ contains
          Zmin=0.25d0, Zmax=0.75d0,&
          eta1=20.0d0,eta2=0.05d0,eps=0.01d0,kappa=0.1d0
 
-    ixOmin^D=ixmin^D-kr(idims,^D);ixOmax^D=ixmax^D+kr(idims,^D);!ixO[ixMmin1-1,ixMmax1+1]
-    ixL^L=ixO^L-kr(idims,^D);                                   !ixL[ixMmin1-2,ixMmax1]
-    ixLL^L=ixL^L-kr(idims,^D);                                  !ixLL[ixMmin1-3,ixMmax1-1]
-    ixR^L=ixO^L+kr(idims,^D);                                   !ixR=[iMmin1,ixMmax+2]
-    ixRR^L=ixR^L+kr(idims,^D);                                  !ixRR=[iMmin1+1,ixMmax+3]
+    ixOmin^D=ixmin^D-kr(idims,^D);ixOmax^D=ixmax^D+kr(idims,^D);!ixO[ixMmin-1,ixMmax+1]
+    ixOLmin^D=ixOmin^D-kr(idims,^D);ixOLmax^D=ixOmax^D;         !ixOL[ixMmin-2,ixMmax+1]
+    ixOR^L=ixOL^L+kr(idims,^D);                                 !ixOR=[iMmin-1,ixMmax+2]
+    ixL^L=ixO^L-kr(idims,^D);                                   !ixL[ixMmin-2,ixMmax]
+    ixR^L=ixO^L+kr(idims,^D);                                   !ixR=[iMmin,ixMmax+2]
 
     hxCmin^D=ixOmin^D;hxCmax^D=ixmax^D; ! hxC = [ixMmin-1,ixMmax]
     hxL^L=hxC^L-kr(idims,^D);           ! hxL = [ixMmin-2,ixMmax-1]
     hxR^L=hxC^L+kr(idims,^D);           ! hxR = [ixMmin,ixMmax+1]
 
-    kxCmin^D=ixLLmin^D; kxCmax^D=ixRmax^D; ! kxC=[iMmin1-3,ixMmax1+2]
-    kxL^L=kxC^L-kr(idims,^D);              ! kxL=[iMmin1-4,ixMmax1+1]
-    kxR^L=kxC^L+kr(idims,^D);              ! kxR=[iMmin1-2,ixMmax1+3]
+    kxCmin^D=ixLmin^D-1; kxCmax^D=ixRmax^D; ! kxC=[iMmin-3,ixMmax+2]
+    kxR^L=kxC^L+kr(idims,^D);              ! kxR=[iMmin-2,ixMmax+3]
 
-    lxCmin^D=ixLLmin^D-kr(idims,^D);lxCmax^D=ixRRmax^D;! ixC=[iMmin1-4,ixMmax1+3]
-    lxR^L=lxC^L+kr(idims,^D);                          ! lxR=[iMmin1-3,ixMmax1+4]
+    lxCmin^D=ixOmin^D-kr(idims,^D);lxCmax^D=ixOmax^D+kr(idims,^D);! lxC=[iMmin-2,ixMmax+2]
+    lxL^L=lxC^L-kr(idims,^D);                          ! lxL=[iMmin-3,ixMmax+1]
+    lxR^L=lxC^L+kr(idims,^D);                          ! lxR=[iMmin-1,ixMmax+3]
 
-    dwC(lxC^S,1:nwflux)=w(lxR^S,1:nwflux)-w(lxC^S,1:nwflux)
+    dwC(kxC^S,1:nwflux)=w(kxR^S,1:nwflux)-w(kxC^S,1:nwflux)
     ! Eq. 64,  Miller and Colella 2002, JCP 183, 26 
-    d2wC(kxC^S,1:nwflux)=half*(w(kxR^S,1:nwflux)-w(kxL^S,1:nwflux))
-    where(dwC(kxC^S,1:nwflux)*dwC(kxL^S,1:nwflux)>zero)
+    d2wC(lxC^S,1:nwflux)=half*(w(lxR^S,1:nwflux)-w(lxL^S,1:nwflux))
+    where(dwC(lxC^S,1:nwflux)*dwC(lxL^S,1:nwflux)>zero)
        ! Store the sign of dwC in wMin
-       wMin(kxC^S,1:nwflux)= sign(one,d2wC(kxC^S,1:nwflux))
+       wMin(lxC^S,1:nwflux)= sign(one,d2wC(lxC^S,1:nwflux))
        ! Eq. 65,  Miller and Colella 2002, JCP 183, 26 
-       ldw(kxC^S,1:nwflux)= wMin(kxC^S,1:nwflux)*min(dabs(d2wC(kxC^S,1:nwflux)),&
-            2.0d0*dabs(dwC(kxL^S,1:nwflux)),&
-            2.0d0*dabs(dwC(kxC^S,1:nwflux)))
-    elsewhere
-       ldw(kxC^S,1:nwflux)=zero
-    endwhere
+       ldw(lxC^S,1:nwflux)= wMin(lxC^S,1:nwflux)*min(dabs(d2wC(lxC^S,1:nwflux)),&
+            2.0d0*dabs(dwC(lxL^S,1:nwflux)),&
+            2.0d0*dabs(dwC(lxC^S,1:nwflux)))
+    else where
+       ldw(lxC^S,1:nwflux)=zero
+    end where
 
     ! Eq. 66,  Miller and Colella 2002, JCP 183, 26 
-    wLC(ixO^S,1:nwflux)=wLC(ixO^S,1:nwflux)+half*dwC(ixO^S,1:nwflux)&
-         +(ldw(ixO^S,1:nwflux)-ldw(ixR^S,1:nwflux))/6.0d0
+    wLC(ixOL^S,1:nwflux)=wLC(ixOL^S,1:nwflux)+half*dwC(ixOL^S,1:nwflux)&
+         +(ldw(ixOL^S,1:nwflux)-ldw(ixOR^S,1:nwflux))/6.0d0
+    wRC(ixL^S,1:nwflux)=wLC(ixL^S,1:nwflux)
 
-    wRC(ixL^S,1:nwflux)=wRC(ixL^S,1:nwflux)-(half*dwC(ixL^S,1:nwflux)&
-         -(ldw(ixL^S,1:nwflux)-ldw(ixO^S,1:nwflux))/6.0d0)
-
-    ! make sure that min wCT(i)<wLC(i)<wCT(i+1) same for wRC(i)
-    call extremaw(ixI^L,kxC^L,wCT,1,wMax,wMin)
+    ! make sure that min w(i)<wLC(i)<w(i+1) same for wRC(i)
+    call extremaw(ixI^L,ixO^L,w,1,wMax,wMin)
 
     ! Eq. B8, page 217, Mignone et al 2005, ApJS
     wRC(ixL^S,1:nwflux)=max(wMin(ixO^S,1:nwflux)&
          ,min(wMax(ixO^S,1:nwflux),wRC(ixL^S,1:nwflux))) 
     wLC(ixO^S,1:nwflux)=max(wMin(ixO^S,1:nwflux)&
          ,min(wMax(ixO^S,1:nwflux),wLC(ixO^S,1:nwflux)))
-
 
     ! Eq. B9, page 217, Mignone et al 2005, ApJS
     where((wRC(ixL^S,1:nwflux)-wCT(ixO^S,1:nwflux))&
@@ -189,96 +183,97 @@ contains
     end where
 
     wMax(ixO^S,1:nwflux)=(wLC(ixO^S,1:nwflux)-wRC(ixL^S,1:nwflux))*&
-         (wCT(ixO^S,1:nwflux)-&
-         (wLC(ixO^S,1:nwflux)+wRC(ixL^S,1:nwflux))/2.0d0)
-    wMin(ixO^S,1:nwflux)=(wLC(ixO^S,1:nwflux)-wRC(ixL^S,1:nwflux))**2.0d0/6.0d0
-    tmp(ixL^S,1:nwflux)=wRC(ixL^S,1:nwflux)
+         (wCT(ixO^S,1:nwflux)-half*(wLC(ixO^S,1:nwflux)+wRC(ixL^S,1:nwflux)))
+    wMin(ixO^S,1:nwflux)=(wLC(ixO^S,1:nwflux)-wRC(ixL^S,1:nwflux))**2/6.0d0
+    tmp(hxL^S,1:nwflux)=wRC(hxL^S,1:nwflux)
     ! Eq. B10, page 218, Mignone et al 2005, ApJS
     where(wMax(hxR^S,1:nwflux)>wMin(hxR^S,1:nwflux))
        wRC(hxC^S,1:nwflux)= 3.0d0*wCT(hxR^S,1:nwflux)&
             -2.0d0*wLC(hxR^S,1:nwflux)
-    endwhere
+    end where
     ! Eq. B11, page 218, Mignone et al 2005, ApJS
     where(wMax(hxC^S,1:nwflux)<-wMin(hxC^S,1:nwflux))
        wLC(hxC^S,1:nwflux)= 3.0d0*wCT(hxC^S,1:nwflux)&
             -2.0d0*tmp(hxL^S,1:nwflux)
-    endwhere
+    end where
 
     ! flattening at the contact discontinuities
     if(flatcd)then
-       call phys_ppm_flatcd(ixI^L,kxC^L,kxL^L,kxR^L,wCT,d2wC,aa,ab)
-       if(any(kappa*aa(kxC^S)>=ab(kxC^S)))then
-          do iw=1,nwflux
-             where(kappa*aa(kxC^S)>=ab(kxC^S).and. dabs(dwC(kxC^S,iw))>smalldouble)
-                wMax(kxC^S,iw) = wCT(kxR^S,iw)-2.0d0*wCT(kxC^S,iw)+wCT(kxL^S,iw)
-             end where
+      ixRR^L=ixR^L+kr(idims,^D);               !ixRR=[iMmin+1,ixMmax+3]
+      kxL^L=kxC^L-kr(idims,^D);                ! kxL=[iMmin-4,ixMmax+1]
+      call phys_ppm_flatcd(ixI^L,kxC^L,kxL^L,kxR^L,wCT,d2wC,aa,ab)
+      if(any(kappa*aa(kxC^S)>=ab(kxC^S)))then
+        do iw=1,nwflux
+          where(kappa*aa(kxC^S)>=ab(kxC^S).and. dabs(dwC(kxC^S,iw))>smalldouble)
+            wMax(kxC^S,iw) = wCT(kxR^S,iw)-2.0d0*wCT(kxC^S,iw)+wCT(kxL^S,iw)
+          end where
 
-             where(wMax(ixR^S,iw)*wMax(ixL^S,iw)<zero .and.&
-                  dabs(wCT(ixR^S,iw)-wCT(ixL^S,iw))&
-                  -eps*min(dabs(wCT(ixR^S,iw)),dabs(wCT(ixL^S,iw)))>zero &
-                  .and. kappa*aa(ixO^S)>=ab(ixO^S)&
-                  .and. dabs(dwC(ixO^S,iw))>smalldouble)
+          where(wMax(ixR^S,iw)*wMax(ixL^S,iw)<zero .and.&
+               dabs(wCT(ixR^S,iw)-wCT(ixL^S,iw))&
+               -eps*min(dabs(wCT(ixR^S,iw)),dabs(wCT(ixL^S,iw)))>zero &
+               .and. kappa*aa(ixO^S)>=ab(ixO^S)&
+               .and. dabs(dwC(ixO^S,iw))>smalldouble)
 
-                ac(ixO^S)=(wCT(ixLL^S,iw)-wCT(ixRR^S,iw)+4.0d0*dwC(ixO^S,iw))&
-                     /(12.0d0*dwC(ixO^S,iw))
-                wMin(ixO^S,iw)=max(zero,min(eta1*(ac(ixO^S)-eta2),one))
-             elsewhere
-                wMin(ixO^S,iw)=zero
-             end where
+            ac(ixO^S)=(wCT(ixLL^S,iw)-wCT(ixRR^S,iw)+4.0d0*dwC(ixO^S,iw))&
+                 /(12.0d0*dwC(ixO^S,iw))
+            wMin(ixO^S,iw)=max(zero,min(eta1*(ac(ixO^S)-eta2),one))
+          else where
+            wMin(ixO^S,iw)=zero
+          end where
 
-             where(wMin(hxC^S,iw)>zero)
-                wLC(hxC^S,iw) = wLC(hxC^S,iw)*(one-wMin(hxC^S,iw))&
-                     +(wCT(hxC^S,iw)+half*ldw(hxC^S,iw))*wMin(hxC^S,iw)
-             end where
-             where(wMin(hxR^S,iw)>zero)
-                wRC(hxC^S,iw) = wRC(hxC^S,iw)*(one-wMin(hxR^S,iw))&
-                     +(wCT(hxR^S,iw)-half*ldw(hxR^S,iw))*wMin(hxR^S,iw)
-             end where
-          end do
-       endif
-    endif
+          where(wMin(hxC^S,iw)>zero)
+            wLC(hxC^S,iw) = wLC(hxC^S,iw)*(one-wMin(hxC^S,iw))&
+                 +(wCT(hxC^S,iw)+half*ldw(hxC^S,iw))*wMin(hxC^S,iw)
+          end where
+          where(wMin(hxR^S,iw)>zero)
+            wRC(hxC^S,iw) = wRC(hxC^S,iw)*(one-wMin(hxR^S,iw))&
+                 +(wCT(hxR^S,iw)-half*ldw(hxR^S,iw))*wMin(hxR^S,iw)
+          end where
+        end do
+      end if
+    end if
 
     ! flattening at the shocks
     if(flatsh)then
        ! following MILLER and COLELLA 2002 JCP 183, 26
-       kxCmin^D=ixmin^D-2; kxCmax^D=ixmax^D+2; ! kxC=[ixMmin1-2,ixMmax1+2]
+       kxCmin^D=ixmin^D-2; kxCmax^D=ixmax^D+2; ! kxC=[ixMmin-2,ixMmax+2]
+       ki=bigdouble
        do idimss=1,ndim
-          kxL^L=kxC^L-kr(idimss,^D); ! kxL=[ixMmin1-3,ixMmax1+1]
-          kxR^L=kxC^L+kr(idimss,^D); ! kxR=[ixMmin1-1,ixMmax1+3]
+          kxL^L=kxC^L-kr(idimss,^D); ! kxL=[ixMmin-3,ixMmax+1]
+          kxR^L=kxC^L+kr(idimss,^D); ! kxR=[ixMmin-1,ixMmax+3]
           kxLL^L=kxL^L-kr(idimss,^D);! kxLL=[ixMmin-4,ixMmax]
           kxRR^L=kxR^L+kr(idimss,^D);! kxRR=[ixMmin,ixMmax+4]
 
-          call phys_ppm_flatsh(ixI^L,kxC^L,kxLL^L,kxL^L,kxR^L,kxRR^L,idimss,wCT,aa,ab,dv)
+          call phys_ppm_flatsh(ixI^L,kxC^L,kxLL^L,kxL^L,kxR^L,kxRR^L,idimss,wCT,aa,ab)
 
-          ! eq. B17, page 218, Mignone et al 2005, ApJS (had(Xi1))
+          ! eq. B17, page 218, Mignone et al 2005, ApJS (Xi1 min)
           ac(kxC^S) = max(zero,min(one,(betamax-aa(kxC^S))/(betamax-betamin)))
-          ! eq. B18, page 218, Mignone et al 2005, ApJS (had(Xi1))
+          ! eq. B18, page 218, Mignone et al 2005, ApJS (Xi1)
           ! recycling aa(ixL^S)
-          where (dabs(dv(kxC^S))<smalldouble)
+          where(wCT(kxR^S,iw_mom(idimss))<wCT(kxL^S,iw_mom(idimss)))
              aa(kxC^S) = max(ac(kxC^S), min(one,(Zmax-ab(kxC^S))/(Zmax-Zmin)))
-          elsewhere
+          else where
              aa(kxC^S) = one
-          endwhere
-
-          {^IFONED call extremaa(ixI^L,ixO^L,aa,1,ab)}
-          {^NOONED call extremaa(ixI^L,ixO^L,aa,1,exi(ixG^T,idimss))}
-       enddo
-       {^NOONED ab(ixO^S)=min(^D&exi(ixO^S,^D))}
+          end where
+          ixL^L=ixO^L-kr(idimss,^D); ! ixL=[ixMmin-2,ixMmax]
+          ixR^L=ixO^L+kr(idimss,^D); ! ixR=[ixMmin,ixMmax+2]
+          ki(ixO^S)=min(ki(ixO^S),aa(ixL^S),aa(ixO^S),aa(ixR^S))
+       end do
        ! recycling wMax
        do iw=1,nwflux
           where(dabs(ab(ixO^S)-one)>smalldouble)
              wMax(ixO^S,iw) = (one-ab(ixO^S))*wCT(ixO^S,iw)
-          endwhere
+          end where
 
           where(dabs(ab(hxC^S)-one)>smalldouble)
              wLC(hxC^S,iw) = ab(hxC^S)*wLC(hxC^S,iw)+wMax(hxC^S,iw)
-          endwhere
+          end where
 
           where(dabs(ab(hxR^S)-one)>smalldouble)
              wRC(hxC^S,iw) = ab(hxR^S)*wRC(hxC^S,iw)+wMax(hxR^S,iw)
-          endwhere
-       enddo
-    endif
+          end where
+       end do
+    end if
 
   end subroutine PPMlimiter
 
@@ -334,50 +329,6 @@ contains
     enddo
 
   end subroutine  extremaq
-
-  subroutine extremaa(ixI^L,ixO^L,a,nshift,aMin)
-    use mod_global_parameters
-
-    integer,intent(in)           :: ixI^L,ixO^L
-    double precision, intent(in) :: a(ixI^S)
-    integer,intent(in)           :: nshift
-
-    double precision, intent(out) :: aMin(ixI^S)
-
-    integer          :: ixs^L,ixsR^L,ixsL^L,idims,jdims,kdims,ishift,i,j
-
-    do ishift=1,nshift
-      idims=1
-      ixsR^L=ixO^L+ishift*kr(idims,^D);
-      ixsL^L=ixO^L-ishift*kr(idims,^D);
-      aMin(ixO^S)=min(a(ixsR^S),a(ixO^S),a(ixsL^S))
-      {^NOONED
-      idims=1
-      jdims=idims+1
-      do i=-1,1
-        ixs^L=ixO^L+i*ishift*kr(idims,^D);
-        ixsR^L=ixs^L+ishift*kr(jdims,^D);
-        ixsL^L=ixs^L-ishift*kr(jdims,^D);
-        aMin(ixO^S)=min(aMin(ixO^S),a(ixsR^S),a(ixsL^S))
-      end do
-      }
-      {^IFTHREED
-      idims=1
-      jdims=idims+1
-      kdims=jdims+1
-      do i=-1,1
-        ixs^L=ixO^L+i*ishift*kr(idims,^D);
-        do j=-1,1
-          ixs^L=ixO^L+j*ishift*kr(jdims,^D);
-          ixsR^L=ixs^L+ishift*kr(kdims,^D);
-          ixsL^L=ixs^L-ishift*kr(kdims,^D);
-          aMin(ixO^S)=min(aMin(ixO^S),a(ixsR^S),a(ixsL^S))
-        end do
-      end do
-      }
-    end do
-
-  end subroutine extremaa
 
   subroutine extremaw(ixI^L,ixO^L,w,nshift,wMax,wMin)
     use mod_global_parameters

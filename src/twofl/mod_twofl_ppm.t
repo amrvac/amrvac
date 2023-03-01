@@ -22,49 +22,32 @@ contains
     double precision, intent(in)    :: w(ixI^S,nw),d2w(ixI^S,1:nwflux)
     double precision, intent(inout) :: drho(ixI^S),dp(ixI^S)
 
-    if(twofl_eq_energy/=0) then
-      drho(ixO^S) =twofl_gamma*dabs(d2w(ixO^S,rho_c_))&
-           /min(w(ixL^S,rho_c_),w(ixR^S,rho_c_))
-      dp(ixO^S) = dabs(d2w(ixO^S,e_c_))/min(w(ixL^S,e_c_),w(ixR^S,e_c_))
-    else
-      call mpistop("PPM with flatcd=.true. can not be used without energy equation!")
-    end if
+    drho(ixO^S) =twofl_gamma*dabs(d2w(ixO^S,iw_rho))&
+         /min(w(ixL^S,iw_rho),w(ixR^S,iw_rho))
+    dp(ixO^S) = dabs(d2w(ixO^S,iw_e))/min(w(ixL^S,iw_e),w(ixR^S,iw_e))
+
   end subroutine twofl_ppm_flatcd
 
   ! based on Mignone and Miller and Collela 2002
   ! PPM flattening at shocks: we use total pressure and not thermal pressure
-  subroutine twofl_ppm_flatsh(ixI^L,ixO^L,ixLL^L,ixL^L,ixR^L,ixRR^L,idims,w,drho,dp,dv)
+  subroutine twofl_ppm_flatsh(ixI^L,ixO^L,ixLL^L,ixL^L,ixR^L,ixRR^L,idims,w,drho,dp)
     use mod_global_parameters
-    use mod_geometry
 
     integer, intent(in)             :: ixI^L,ixO^L,ixLL^L,ixL^L,ixR^L,ixRR^L
     integer, intent(in)             :: idims
     double precision, intent(in)    :: w(ixI^S,nw)
-    double precision, intent(inout) :: drho(ixI^S),dp(ixI^S),dv(ixI^S)
-    double precision                :: ptot(ixI^S)
+    double precision, intent(inout) :: drho(ixI^S),dp(ixI^S)
 
-    if(twofl_eq_energy/=0) then
-      ! eq. B15, page 218, Mignone and Bodo 2005, ApJS (beta1)
-      ptot(ixO^S)=w(ixO^S,e_c_)+half*sum(w(ixO^S,mag(:))**2,dim=ndim+1)
-      where (dabs(ptot(ixRR^S)-ptot(ixLL^S))>smalldouble)
-         drho(ixO^S) = dabs((ptot(ixR^S)-ptot(ixL^S))&
-              /(ptot(ixRR^S)-ptot(ixLL^S)))
-      elsewhere
-         drho(ixO^S) = zero
-      end where
+    where (dabs(w(ixRR^S,iw_e)-w(ixLL^S,iw_e))>smalldouble)
+       drho(ixO^S) = dabs((w(ixR^S,iw_e)-w(ixL^S,iw_e))&
+            /(w(ixRR^S,iw_e)-w(ixLL^S,iw_e)))
+    elsewhere
+       drho(ixO^S) = zero
+    end where
 
-      !  eq. B76, page 48, Miller and Collela 2002, JCP 183, 26
-      !  use "dp" to save squared sound speed, assume primitive in w
-      dp(ixO^S)=(twofl_gamma*w(ixO^S,e_c_)/w(ixO^S,rho_c_))
-
-      dp(ixO^S)  = dabs(ptot(ixR^S)-ptot(ixL^S))&
-           /(w(ixO^S,rho_c_)*dp(ixO^S))
-      ! recycle ptot to store v
-      ptot(ixI^S)= w(ixI^S,mom_c(idims))
-      call gradient(ptot,ixI^L,ixO^L,idims,dv)
-    else
-      call mpistop("PPM with flatsh=.true. can not be used without energy equation!")
-    end if
+    ! eq. 76, page 48, Miller and Colella 2002, JCoPh, adjusted by testing
+    dp(ixO^S) = abs(w(ixR^S, iw_e)-w(ixL^S, iw_e))&
+         /(twofl_gamma*0.8d0*(w(ixR^S, iw_e)+w(ixL^S, iw_e)))
 
   end subroutine twofl_ppm_flatsh
 

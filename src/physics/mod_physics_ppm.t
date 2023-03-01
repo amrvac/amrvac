@@ -14,12 +14,12 @@ module mod_physics_ppm
        double precision, intent(inout) :: drho(ixI^S),dp(ixI^S)
      end subroutine sub_ppm_flatcd
 
-     subroutine sub_ppm_flatsh(ixI^L,ixO^L,ixLL^L,ixL^L,ixR^L,ixRR^L,idims,w,drho,dp,dv)
+     subroutine sub_ppm_flatsh(ixI^L,ixO^L,ixLL^L,ixL^L,ixR^L,ixRR^L,idims,w,drho,dp)
        use mod_global_parameters
        integer, intent(in)             :: ixI^L,ixO^L,ixLL^L,ixL^L,ixR^L,ixRR^L
        integer, intent(in)             :: idims
        double precision, intent(in)    :: w(ixI^S,nw)
-       double precision, intent(inout) :: drho(ixI^S),dp(ixI^S),dv(ixI^S)
+       double precision, intent(inout) :: drho(ixI^S),dp(ixI^S)
      end subroutine sub_ppm_flatsh
   end interface
 
@@ -42,15 +42,14 @@ contains
     dp(ixO^S)=zero
   end subroutine dummy_ppm_flatcd
 
-  subroutine dummy_ppm_flatsh(ixI^L,ixO^L,ixLL^L,ixL^L,ixR^L,ixRR^L,idims,w,drho,dp,dv)
+  subroutine dummy_ppm_flatsh(ixI^L,ixO^L,ixLL^L,ixL^L,ixR^L,ixRR^L,idims,w,drho,dp)
     use mod_global_parameters
     integer, intent(in)             :: ixI^L,ixO^L,ixLL^L,ixL^L,ixR^L,ixRR^L
     integer, intent(in)             :: idims
     double precision, intent(in)    :: w(ixI^S,nw)
-    double precision, intent(inout) :: drho(ixI^S),dp(ixI^S),dv(ixI^S)
+    double precision, intent(inout) :: drho(ixI^S),dp(ixI^S)
     drho(ixO^S)=zero
     dp(ixO^S)=zero
-    dv(ixO^S)=zero
   end subroutine dummy_ppm_flatsh
 
 end module mod_physics_ppm
