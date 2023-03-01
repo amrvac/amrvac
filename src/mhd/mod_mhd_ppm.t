@@ -48,7 +48,7 @@ contains
 
     ! eq. 76, page 48, Miller and Colella 2002, JCoPh, adjusted by testing
     dp(ixO^S) = abs(w(ixR^S, p_)-w(ixL^S, p_))&
-         /(mhd_gamma*0.8d0*(w(ixR^S, p_)+w(ixL^S, p_)))
+         /(mhd_gamma*(w(ixR^S, p_)+w(ixL^S, p_)))
 
   end subroutine mhd_ppm_flatsh
 

@@ -46,7 +46,7 @@ contains
 
     ! eq. 76, page 48, Miller and Colella 2002, JCoPh
     dp(ixO^S) = abs(w(ixR^S, p_)-w(ixL^S, p_))&
-         /(hd_gamma*w(ixO^S, p_))
+         /(hd_gamma*(w(ixR^S, p_)+w(ixL^S, p_)))
 
   end subroutine hd_ppm_flatsh
 
