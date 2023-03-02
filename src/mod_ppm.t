@@ -15,8 +15,9 @@ contains
     ! Miller and Colella 2002, JCP 183, 26
     ! Fryxell et al. 2000 ApJ, 131, 273 (Flash)
     ! baciotti Phd (http://www.aei.mpg.de/~baiotti/Baiotti_PhD.pdf)
-    ! version : april 2009
+    ! old version : april 2009
     ! author: zakaria.meliani@wis.kuleuven.be
+    ! current version : March 2023 by Chun Xia
 
     use mod_global_parameters
 
@@ -105,11 +106,10 @@ contains
     ! Miller and Colella 2002, JCP 183, 26 
     ! Fryxell et al. 2000 ApJ, 131, 273 (Flash)
     ! baciotti Phd (http://www.aei.mpg.de/~baiotti/Baiotti_PhD.pdf)
-    ! version : april 2009
+    ! old version : april 2009
     ! author: zakaria.meliani@wis.kuleuven.be
-
+    ! current version : March 2023 by Chun Xia
     use mod_global_parameters
-    use mod_physics, only: phys_ppm_flatcd, phys_ppm_flatsh
 
     integer, intent(in)             :: ixI^L, ix^L, idims
     double precision, intent(in)    :: w(ixI^S,1:nw),wCT(ixI^S,1:nw)
@@ -201,7 +201,7 @@ contains
     if(flatcd)then
       ixRR^L=ixR^L+kr(idims,^D);               !ixRR=[iMmin+1,ixMmax+3]
       kxL^L=kxC^L-kr(idims,^D);                ! kxL=[iMmin-4,ixMmax+1]
-      call phys_ppm_flatcd(ixI^L,kxC^L,kxL^L,kxR^L,wCT,d2wC,aa,ab)
+      call ppm_flatcd(ixI^L,kxC^L,kxL^L,kxR^L,wCT,d2wC,aa,ab)
       if(any(kappa*aa(kxC^S)>=ab(kxC^S)))then
         do iw=1,nwflux
           where(kappa*aa(kxC^S)>=ab(kxC^S).and. dabs(dwC(kxC^S,iw))>smalldouble)
@@ -244,7 +244,7 @@ contains
           kxLL^L=kxL^L-kr(idimss,^D);! kxLL=[ixMmin-4,ixMmax]
           kxRR^L=kxR^L+kr(idimss,^D);! kxRR=[ixMmin,ixMmax+4]
 
-          call phys_ppm_flatsh(ixI^L,kxC^L,kxLL^L,kxL^L,kxR^L,kxRR^L,idimss,wCT,aa,ab)
+          call ppm_flatsh(ixI^L,kxC^L,kxLL^L,kxL^L,kxR^L,kxRR^L,idimss,wCT,aa,ab)
 
           ! eq. B17, page 218, Mignone et al 2005, ApJS (Xi1 min)
           ac(kxC^S) = max(zero,min(one,(betamax-aa(kxC^S))/(betamax-betamin)))
@@ -276,6 +276,43 @@ contains
     end if
 
   end subroutine PPMlimiter
+
+  subroutine ppm_flatcd(ixI^L,ixO^L,ixL^L,ixR^L,w,d2w,drho,dp)
+    use mod_global_parameters
+    use mod_physics, only: phys_gamma
+
+    integer, intent(in)             :: ixI^L, ixO^L, ixL^L, ixR^L
+    double precision, intent(in)    :: w(ixI^S, nw), d2w(ixG^T, 1:nwflux)
+    double precision, intent(inout) :: drho(ixG^T), dp(ixG^T)
+
+    drho(ixO^S) = phys_gamma*abs(d2w(ixO^S, iw_rho))&
+         /min(w(ixL^S, iw_rho), w(ixR^S, iw_rho))
+    dp(ixO^S) = abs(d2w(ixO^S, iw_e))/min(w(ixL^S, iw_e), w(ixR^S, iw_e))
+
+  end subroutine ppm_flatcd
+
+  subroutine ppm_flatsh(ixI^L,ixO^L,ixLL^L,ixL^L,ixR^L,ixRR^L,idims,w,drho,dp)
+    use mod_global_parameters
+    use mod_physics, only: phys_gamma
+
+    integer, intent(in)             :: ixI^L, ixO^L, ixLL^L, ixL^L, ixR^L, ixRR^L
+    integer, intent(in)             :: idims
+    double precision, intent(in)    :: w(ixI^S, nw)
+    double precision, intent(inout) :: drho(ixI^S), dp(ixI^S)
+
+    ! eq. B15, page 218, Mignone and Bodo 2005, ApJS (beta1)
+    where (abs(w(ixRR^S, iw_e)-w(ixLL^S, iw_e))>smalldouble)
+       drho(ixO^S) = abs((w(ixR^S, iw_e)-w(ixL^S, iw_e))&
+            /(w(ixRR^S, iw_e)-w(ixLL^S, iw_e)))
+    else where
+       drho(ixO^S) = zero
+    end where
+
+    ! eq. 76, page 48, Miller and Colella 2002, JCoPh, adjusted
+    dp(ixO^S) = abs(w(ixR^S, iw_e)-w(ixL^S, iw_e))&
+         /(phys_gamma*(w(ixR^S, iw_e)+w(ixL^S, iw_e)))
+
+  end subroutine ppm_flatsh
 
   subroutine extremaq(ixI^L,ixO^L,q,nshift,qMax,qMin)
 
