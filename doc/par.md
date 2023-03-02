@@ -430,10 +430,11 @@ switches flatcd and flatsh. These are meant to minimize potential
 ripples around contact discontuinities (flatcd) or shocks (flatsh), but one
 should first try without these flattenings (default behavior). PPM is actually
 only used in a quadratic reconstruction from center to edge, requires the use
-of a larger stencil (nghostcells=4), and can be used either in the methods (by
+of a larger stencil (nghostcells=3), and can be used either in the methods (by
 setting limiter) or in the gradientS/divvectorS routines (when typegrad
-or typediv is limited, and gradient_limiter is ppm). The latter is encoded in
-geometry.t.
+or typediv is limited, and gradient_limiter is ppm) in geometry.t. If _flatcd=T_ or
+_flatsh=T_ to flattern oscillations at contact discontuinities or shocks, it needs
+1 more ghost cell, e.g., nghostcells=4.
 
 ### Typeentropy, entropycoef {#par_typeentropy}
 

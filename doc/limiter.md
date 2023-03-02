@@ -24,7 +24,7 @@ TVD | 'woodward' | 2 | 2 | van Leer (1977), Woodward et al. (1984)
 TVD | 'mcbeta' | 2 | 2 | van Leer (1977) 
 TVD | 'albada' | 2 | 2 | van Albada et al. (1974)
 TVD | 'koren' | 3 | 2 | Koren (1993)
-TVD | 'ppm' | 3 | 4 | Colella et al. (1984)
+TVD | 'ppm' | 3 | 3 | Colella and Woodward (1984)
 beyond TVD | 'cada' | 2 | 2 | Cada et al. (2009)
 beyond TVD | 'cada3' | 3 | 2 | Cada et al. (2009)
 beyond TVD | 'schmid1' | 3 | 2 | Schmidtmann et al. (2016)
@@ -55,7 +55,7 @@ ENO-based | 'mpweno7' | 7 | 4 | Balsara et al. (2000)
 
 'koren': A third-order asymmetric TVD limiter. Uses less resources than 'cada3' but is more diffusive as a third-order limiter. Maybe as robust as 'wenoyc3'.
 
-'ppm': A four-point (why 4 points?) centered stencil third-order TVD limiter, the acronym stands for the Piecewise Parabolic Method. See also the references in mod_ppm.t for the implementation of this method. Since 4 ghostcells are needed, it would be time-consuming as a third-order limiter.
+'ppm': A three-point centered stencil third-order TVD limiter, the acronym stands for the Piecewise Parabolic Method (Colella and Woodward 1984). See also the references in mod_ppm.t for the implementation of this method.
 
 'cada', 'cada3': Second-order and third-order asymmetric limiter, a.k.a. LIMO or LIMO3. They are designed to simplify the complex TVD limiter created by Artebrant et al. (2005).  However, the simplication makes it not strictly TVD any more. As a third-order limiter, 'cada3' performs better than 'koren' limiter. Thus, although it has some drawbacks like being asymmetric or relying on some artificial parameters, this limiter is still recommended when choosing third-order limiters.
 
