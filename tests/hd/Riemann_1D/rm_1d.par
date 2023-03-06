@@ -20,6 +20,7 @@
         time_stepper=  'threestep'
         flux_scheme=20*'hllc'
         limiter='cada3'
+        flatsh=.true.
  /
 
  &boundlist

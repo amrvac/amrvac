@@ -135,7 +135,6 @@ mod_global_parameters.o: mod_basic_types.mod
 mod_hd.o: mod_amrvac.mod
 mod_hd.o: mod_hd_hllc.mod
 mod_hd.o: mod_hd_phys.mod
-mod_hd.o: mod_hd_ppm.mod
 mod_hd.o: mod_hd_roe.mod
 mod_hd_hllc.o: mod_dust.mod
 mod_hd_hllc.o: mod_hd_phys.mod
@@ -156,9 +155,6 @@ mod_hd_phys.o: mod_supertimestepping.mod
 mod_hd_phys.o: mod_thermal_conduction.mod
 mod_hd_phys.o: mod_thermal_emission.mod
 mod_hd_phys.o: mod_viscosity.mod
-mod_hd_ppm.o: mod_geometry.mod
-mod_hd_ppm.o: mod_hd_phys.mod
-mod_hd_ppm.o: mod_physics_ppm.mod
 mod_hd_roe.o: mod_hd_phys.mod
 mod_hd_roe.o: mod_physics_roe.mod
 mod_hd_roe.o: mod_tvd.mod
@@ -205,7 +201,6 @@ mod_mf_phys.o: mod_physics.mod
 mod_mhd.o: mod_amrvac.mod
 mod_mhd.o: mod_mhd_hllc.mod
 mod_mhd.o: mod_mhd_phys.mod
-mod_mhd.o: mod_mhd_ppm.mod
 mod_mhd.o: mod_mhd_roe.mod
 mod_mhd_hllc.o: mod_mhd_phys.mod
 mod_mhd_hllc.o: mod_physics_hllc.mod
@@ -227,9 +222,6 @@ mod_mhd_phys.o: mod_supertimestepping.mod
 mod_mhd_phys.o: mod_thermal_conduction.mod
 mod_mhd_phys.o: mod_thermal_emission.mod
 mod_mhd_phys.o: mod_viscosity.mod
-mod_mhd_ppm.o: mod_geometry.mod
-mod_mhd_ppm.o: mod_mhd_phys.mod
-mod_mhd_ppm.o: mod_physics_ppm.mod
 mod_mhd_roe.o: mod_mhd_phys.mod
 mod_mhd_roe.o: mod_physics_roe.mod
 mod_mhd_roe.o: mod_tvd.mod
@@ -265,7 +257,6 @@ mod_particles.o: mod_particle_lorentz.mod
 mod_particles.o: mod_particle_sample.mod
 mod_particles.o: mod_timing.mod
 mod_physics.o: mod_physics_hllc.mod
-mod_physics.o: mod_physics_ppm.mod
 mod_physics.o: mod_physics_roe.mod
 mod_point_searching.o: mod_particle_base.mod
 mod_point_searching.o: mod_physics.mod
@@ -280,7 +271,6 @@ mod_rd_phys.o: mod_physics.mod
 mod_rhd.o: mod_amrvac.mod
 mod_rhd.o: mod_rhd_hllc.mod
 mod_rhd.o: mod_rhd_phys.mod
-mod_rhd.o: mod_rhd_ppm.mod
 mod_rhd.o: mod_rhd_roe.mod
 mod_rhd_hllc.o: mod_dust.mod
 mod_rhd_hllc.o: mod_physics_hllc.mod
@@ -303,9 +293,6 @@ mod_rhd_phys.o: mod_supertimestepping.mod
 mod_rhd_phys.o: mod_thermal_conduction.mod
 mod_rhd_phys.o: mod_thermal_emission.mod
 mod_rhd_phys.o: mod_viscosity.mod
-mod_rhd_ppm.o: mod_geometry.mod
-mod_rhd_ppm.o: mod_physics_ppm.mod
-mod_rhd_ppm.o: mod_rhd_phys.mod
 mod_rhd_roe.o: mod_physics_roe.mod
 mod_rhd_roe.o: mod_rhd_phys.mod
 mod_rhd_roe.o: mod_tvd.mod
@@ -344,7 +331,6 @@ mod_tvd.o: mod_physics_roe.mod
 mod_twofl.o: mod_amrvac.mod
 mod_twofl.o: mod_twofl_hllc.mod
 mod_twofl.o: mod_twofl_phys.mod
-mod_twofl.o: mod_twofl_ppm.mod
 mod_twofl.o: mod_twofl_roe.mod
 mod_twofl_hllc.o: mod_physics.mod
 mod_twofl_hllc.o: mod_physics_hllc.mod
@@ -363,9 +349,6 @@ mod_twofl_phys.o: mod_supertimestepping.mod
 mod_twofl_phys.o: mod_thermal_conduction.mod
 mod_twofl_phys.o: mod_thermal_emission.mod
 mod_twofl_phys.o: mod_viscosity.mod
-mod_twofl_ppm.o: mod_geometry.mod
-mod_twofl_ppm.o: mod_physics_ppm.mod
-mod_twofl_ppm.o: mod_twofl_phys.mod
 mod_twofl_roe.o: mod_physics_roe.mod
 mod_twofl_roe.o: mod_tvd.mod
 mod_twofl_roe.o: mod_twofl_phys.mod

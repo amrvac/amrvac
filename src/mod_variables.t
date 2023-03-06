@@ -60,9 +60,6 @@ module mod_variables
   !> Index of the radiation energy density
   integer :: iw_r_e = -1
 
-  !> Index of the internal energy density
-  integer  :: iw_eaux = -1
-
   !> Indices of the magnetic field components
   integer, allocatable, protected :: iw_mag(:)
 
@@ -246,17 +243,5 @@ contains
       write(prim_wnames(nwflux),"(A1,I1)") "b", idir
     end do
   end function var_set_bfield
-
-  !> Set internal energy variable
-  function var_set_internal_energy() result(iw)
-    integer :: iw
-
-    nwflux              = nwflux + 1
-    nw                  = nw + 1
-    iw_eaux             = nwflux
-    iw                  = nwflux
-    cons_wnames(nwflux) = 'eaux'
-    prim_wnames(nwflux) = 'paux'
-  end function var_set_internal_energy
 
 end module mod_variables
