@@ -440,7 +440,6 @@ contains
         call derivs_gca_rk(tk,y,k4)
         y(1:ndir) = x(1:ndir) ! position of guiding center
         y(ndir+1) = particle(ipart)%self%u(1) ! parallel momentum component (gamma v||)
-        y(ndir+2) = particle(ipart)%self%u(2) ! conserved magnetic moment Mr
         y = y + dt_p/6.d0*(k1 + 2.d0*k2 + 2.d0*k3 + k4)
         particle(ipart)%self%x(1:ndir) = y(1:ndir)
         particle(ipart)%self%u(1)      = y(ndir+1)
@@ -569,7 +568,7 @@ contains
 
       call cross(e,bhat,vE)
 
-      vE(1:ndir)   = vE(1:ndir) / absb
+      vE(1:ndir) = vE(1:ndir) / absb
       vEabs = sqrt(sum(vE(:)**2))
       if (relativistic) then
         kappa = 1.d0/sqrt(1.0d0 - sum(vE(:)**2)/c_norm**2)
@@ -583,17 +582,17 @@ contains
         gamma = 1.d0
       end if
 
-      particle(ipart)%self%u(3)      = gamma
+      particle(ipart)%self%u(3) = gamma
 
       ! Time update
       particle(ipart)%self%time = particle(ipart)%self%time + dt_p
 
       ! Update payload
-      call gca_update_payload(particle(ipart)%igrid,ps(particle(ipart)%igrid)%w,pso(particle(ipart)%igrid)%w,ps(particle(ipart)%igrid)%x, &
+      call gca_update_payload(igrid_working,ps(igrid_working)%w,pso(igrid_working)%w,ps(igrid_working)%x, &
              particle(ipart)%self%x,particle(ipart)%self%u,q,m,defpayload,ndefpayload,particle(ipart)%self%time)
       particle(ipart)%payload(1:ndefpayload) = defpayload
       if (associated(usr_update_payload)) then
-        call usr_update_payload(particle(ipart)%igrid,ps(particle(ipart)%igrid)%w,pso(particle(ipart)%igrid)%w,ps(particle(ipart)%igrid)%x,&
+        call usr_update_payload(igrid_working,ps(igrid_working)%w,pso(igrid_working)%w,ps(igrid_working)%x,&
              particle(ipart)%self%x,particle(ipart)%self%u,q,m,usrpayload,nusrpayload,particle(ipart)%self%time)
         particle(ipart)%payload(ndefpayload+1:npayload) = usrpayload
       end if
@@ -659,16 +658,20 @@ contains
       call mpistop("ABORTING...")
     end if
 
-    absb         = sqrt(sum(b(:)**2))
+    absb  = sqrt(sum(b(:)**2))
     if (absb .gt. 0.d0) then
       bhat(1:ndir) = b(1:ndir) / absb
     else
       bhat = 0.d0
     end if
-    epar         = sum(e(:)*bhat(:))
+    epar = sum(e(:)*bhat(:))
 
     call cross(e,bhat,vE)
-    if (absb .gt. 0.d0) vE(1:ndir)   = vE(1:ndir) / absb
+    if (absb .gt. 0.d0) then
+      vE(1:ndir) = vE(1:ndir) / absb
+    else
+      vE(1:ndir) = 0.d0
+    end if
 
     if (relativistic) then
       kappa = 1.d0/sqrt(1.0d0 - sum(vE(:)**2)/c_norm**2)
@@ -749,7 +752,7 @@ contains
     if (absb .gt. 0.d0) vE(1:ndir)   = vE(1:ndir) / absb
 
     if (relativistic) then
-      kappa = sqrt(1.0d0 - sum(vE(:)**2)/c_norm**2)
+      kappa = 1.d0/sqrt(1.0d0 - sum(vE(:)**2)/c_norm**2)
       gamma = sqrt(1.0d0+upar**2/c_norm**2+2.0d0*Mr*absb/m/c_norm**2)*kappa
     else
       kappa = 1.d0
@@ -951,7 +954,7 @@ contains
     ! then we make an Euler step to the new location and check the new CFL
     ! we simply take the minimum of the two timesteps.
     ! added safety factor cfl:
-    dxmin  = min({rnode(rpdx^D_,partp%igrid)},bigdouble)*cfl
+    dxmin  = min({rnode(rpdx^D_,igrid_working)},bigdouble)*cfl
     ! initial solution vector:
     y(1:ndir) = partp%self%x(1:ndir) ! position of guiding center
     y(ndir+1) = partp%self%u(1) ! parallel momentum component (gamma v||)
@@ -1023,7 +1026,7 @@ contains
     !dt_p = min(dt_tmp , dt_a)
     dt_p = dt_tmp
 
-    ! Make sure we don't advance beyond end_time
+    ! Make sure we do not advance beyond end_time
     call limit_dt_endtime(end_time - partp%self%time, dt_p)
 
   end function gca_get_particle_dt

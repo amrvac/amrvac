@@ -713,7 +713,7 @@ contains
     double precision, intent(in)          :: x(ixI^S,1:ndim)
     double precision, intent(in)          :: xloc(1:3)
     double precision, intent(out)         :: gfloc
-    double precision                      :: xd^D
+    double precision                      :: xd^D, myq, dx1
     {^IFTWOD
     double precision                      :: c00, c10
     }
@@ -723,7 +723,13 @@ contains
     integer                               :: ic^D, ic1^D, ic2^D, idir
 
     ! flat interpolation:
-    {ic^D = int((xloc(^D)-rnode(rpxmin^D_,igrid))/rnode(rpdx^D_,igrid)) + 1 + nghostcells \}
+    {if (.not. stretched_dim(^D)) then
+      ic^D = int((xloc(^D)-rnode(rpxmin^D_,igrid))/rnode(rpdx^D_,igrid)) + 1 + nghostcells
+    else
+      myq = qstretch(ps(igrid)%level,^D)
+      dx1 = dxfirst(ps(igrid)%level,^D)
+      ic^D = int(log((xloc(^D)-rnode(rpxmin^D_,igrid))/dx1*(myq-1.d0)+1.d0)/log(myq)) + 1 + nghostcells
+    end if\}
     !gfloc = gf(ic^D)
 
     ! linear interpolation:
@@ -1588,6 +1594,8 @@ contains
     double precision, intent(in) :: x(ndim)
     double precision    :: grid_rmin(ndim), grid_rmax(ndim)
 
+    ! TODO: this does not work with stretched coordinates!
+    ! TODO: but phi should not be stretched in principle...
     grid_rmin      = [ {rnode(rpxmin^D_,igrid)-rnode(rpdx^D_,igrid)*(DBLE(nghostcells-ngh)-0.5d0)} ]
     grid_rmax      = [ {rnode(rpxmax^D_,igrid)+rnode(rpdx^D_,igrid)*(DBLE(nghostcells-ngh)-0.5d0)} ]
     point_in_igrid_ghostc = all(x >= grid_rmin) .and. all(x < grid_rmax)
