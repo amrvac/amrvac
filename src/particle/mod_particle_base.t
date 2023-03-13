@@ -728,8 +728,11 @@ contains
     else
       myq = qstretch(ps(igrid)%level,^D)
       dx1 = dxfirst(ps(igrid)%level,^D)
-      ic^D = int(log((xloc(^D)-rnode(rpxmin^D_,igrid))/dx1*(myq-1.d0)+1.d0)/log(myq)) + 1 + nghostcells
-    end if\}
+      ic^D = int(dlog((xloc(^D)-xprobmin^D)/dx1*(myq-1.d0)+1.d0)/dlog(myq) & 
+                 -dlog((rnode(rpxmin^D_,igrid)-xprobmin^D)/dx1*(myq-1.d0)+1.d0)/dlog(myq)) &
+             + 1 + nghostcells
+    end if
+!    print*, ^D, xloc(^D), rnode(rpxmin^D_,igrid), rnode(rpxmax^D_,igrid), ic^D, ixGhi^D-1\}
     !gfloc = gf(ic^D)
 
     ! linear interpolation:
@@ -1082,7 +1085,7 @@ contains
 
   subroutine find_particle_ipe(x,igrid_particle,ipe_particle)
     use mod_forest, only: tree_node_ptr, tree_root
-    use mod_slice, only: get_igslice
+    use mod_slice, only: get_igslice, get_igslice_mod
     use mod_global_parameters
 
     double precision, intent(in) :: x(3)
@@ -1100,7 +1103,7 @@ contains
 
     ! get the index on each level
     do idim = 1, ndim
-      call get_igslice(idim,x(idim), ig_lvl)
+      call get_igslice_mod(idim,x(idim), ig_lvl)
       ig(idim,:) = ig_lvl
     end do
 
