@@ -722,18 +722,30 @@ contains
     }
     integer                               :: ic^D, ic1^D, ic2^D, idir
 
-    ! flat interpolation:
-    {if (.not. stretched_dim(^D)) then
-      ic^D = int((xloc(^D)-rnode(rpxmin^D_,igrid))/rnode(rpdx^D_,igrid)) + 1 + nghostcells
+    {
+    if(stretch_type(^D)==stretch_uni) then
+      ! uniform stretch from xprobmin
+      ic^D = ceiling(dlog((xloc(^D)-xprobmin^D)/(x({ixOmin^DD},^D)-xprobmin^D))/&
+         dlog(qstretch(ps(igrid)%level,^D)))+nghostcells
+    else if(stretch_type(^D)==stretch_symm) then
+      ! symmetric stretch about 0.5*(xprobmin+xprobmax)
+      if(xloc(^D)<xprobmin^D+xstretch^D) then
+        ! stretch to left from xprobmin+xstretch
+        ic^D = block_nx^D-int(dlog((xloc(^D)-xprobmin^D-xstretch^D)/(x({ixOmax^DD},^D)-xprobmax^D+xstretch^D))/&
+           dlog(qstretch(ps(igrid)%level,^D)))+nghostcells
+      else if(xloc(^D)>xprobmax^D-xstretch^D) then
+        ! stretch to right from xprobmax-xstretch
+        ic^D = ceiling(dlog((xloc(^D)-xprobmax^D+xstretch^D)/(x({ixOmin^DD},^D)-xprobmax^D+xstretch^D))/&
+           dlog(qstretch(ps(igrid)%level,^D)))+nghostcells
+      else
+        ! possible non-stretched central part
+        ic^D = int((xloc(^D)-rnode(rpxmin^D_,igrid))/rnode(rpdx^D_,igrid)) + 1 + nghostcells
+      end if
     else
-      myq = qstretch(ps(igrid)%level,^D)
-      dx1 = dxfirst(ps(igrid)%level,^D)
-      ic^D = int(dlog((xloc(^D)-xprobmin^D)/dx1*(myq-1.d0)+1.d0)/dlog(myq) & 
-                 -dlog((rnode(rpxmin^D_,igrid)-xprobmin^D)/dx1*(myq-1.d0)+1.d0)/dlog(myq)) &
-             + 1 + nghostcells
+      ! no stretch
+      ic^D = int((xloc(^D)-rnode(rpxmin^D_,igrid))/rnode(rpdx^D_,igrid)) + 1 + nghostcells
     end if
-!    print*, ^D, xloc(^D), rnode(rpxmin^D_,igrid), rnode(rpxmax^D_,igrid), ic^D, ixGhi^D-1\}
-    !gfloc = gf(ic^D)
+    \}
 
     ! linear interpolation:
     {
@@ -1102,6 +1114,7 @@ contains
     end if
 
     ! get the index on each level
+    ! TODO only for uniform grid, need extention to stretched grid
     do idim = 1, ndim
       call get_igslice_mod(idim,x(idim), ig_lvl)
       ig(idim,:) = ig_lvl
