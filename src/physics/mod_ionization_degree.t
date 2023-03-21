@@ -72,14 +72,11 @@ module mod_ionization_degree
     
       ! create cooling table(s) for use in amrvac
       Te_table_step = (Te_H_CL(ntable)-Te_H_CL(1))/dble(n_interpolated_table-1)
-      inv_Te_table_step=1.d0/Te_table_step
-      
+
       Te_H_table(1) = Te_H_CL(1)
-      Te_table_min=Te_H_table(1)
       iz_H_table(1) = iz_H_CL(1)
       
       Te_H_table(n_interpolated_table) = Te_H_CL(ntable)
-      Te_table_max=Te_H_table(n_interpolated_table)
       iz_H_table(n_interpolated_table) = iz_H_CL(ntable)
       
       do i=2,n_interpolated_table        ! loop to create one table
@@ -138,6 +135,9 @@ module mod_ionization_degree
 
       ! nondimensionalize temperature
       Te_H_table=Te_H_table/unit_temperature
+      Te_table_min=Te_H_table(1)
+      Te_table_max=Te_H_table(n_interpolated_table)
+      inv_Te_table_step=unit_temperature/Te_table_step
 
       ! transition temperature
       Te_low_iz_He=Te_low_iz_He/unit_temperature
