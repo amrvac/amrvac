@@ -135,6 +135,16 @@ subroutine bc_phys(iside,idims,time,qdt,s,ixG^L,ixB^L)
               w(ixO^S,iw) = w(ixOmax^D+nghostcells:ixOmax^D+1:-1^D%ixO^S,iw)
            case (bc_asymm)
               w(ixO^S,iw) =-w(ixOmax^D+nghostcells:ixOmax^D+1:-1^D%ixO^S,iw)
+           case(bc_rsymm)
+              do ix^D=ixOmax^D,ixOmin^D,-1
+                if ((iw==iw_mom(1)).or.(iw==(iw_mom(3)))) then
+                  w(ix^D^D%ixO^S,iw) =-w(ixOmax1:ixOmin1:-1,ixOmin2:ixOmax2,2*ixOmin3-(ix^D-1),iw)
+                else if ((iw==iw_mag(1)).or.(iw==(iw_mag(3)))) then
+                  w(ix^D^D%ixO^S,iw) =-w(ixOmax1:ixOmin1:-1,ixOmin2:ixOmax2,2*ixOmin3-(ix^D-1),iw)
+                else
+                  w(ix^D^D%ixO^S,iw) = w(ixOmax1:ixOmin1:-1,ixOmin2:ixOmax2,2*ixOmin3-(ix^D-1),iw)
+                end if
+              end do
            case (bc_periodic)
               ! skip it here, periodic bc info should come from neighbors
            case(bc_noinflow)

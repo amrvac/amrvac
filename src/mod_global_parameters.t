@@ -651,6 +651,9 @@ module mod_global_parameters
   !> True for dimensions with periodic boundaries
   logical :: periodB(ndim)
 
+  !> True for dimensions with rotation symmetric boundaries
+  logical :: rsymmB(ndim)
+
   !> Indicates whether there is a pole at a boundary
   logical :: poleB(2,ndim)
 
@@ -676,6 +679,7 @@ module mod_global_parameters
   integer, parameter :: bc_noinflow=7
   integer, parameter :: bc_data=8
   integer, parameter :: bc_character=9
+  integer, parameter :: bc_rsymm=10
 
   !> whether copy values instead of interpolation in ghost cells of finer blocks
   logical :: ghost_copy=.false.

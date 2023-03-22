@@ -1252,6 +1252,8 @@ contains
         typeboundary(iw,2*^D-1)=bc_symm
       case("asymm")
         typeboundary(iw,2*^D-1)=bc_asymm
+      case("rsymm")
+        typeboundary(iw,2*^D-1)=bc_rsymm
       case("periodic")
         typeboundary(iw,2*^D-1)=bc_periodic
       case("aperiodic")
@@ -1279,6 +1281,8 @@ contains
         typeboundary(iw,2*^D)=bc_symm
       case("asymm")
         typeboundary(iw,2*^D)=bc_asymm
+      case("rsymm")
+        typeboundary(iw,2*^D)=bc_rsymm
       case("periodic")
         typeboundary(iw,2*^D)=bc_periodic
       case("aperiodic")
@@ -1318,19 +1322,49 @@ contains
     do idim=1,ndim
        periodB(idim)=(any(typeboundary(:,2*idim-1:2*idim)==bc_periodic))
        aperiodB(idim)=(any(typeboundary(:,2*idim-1:2*idim)==bc_aperiodic))
+       rsymmB(idim)=(any(typeboundary(:,2*idim-1:2*idim)==bc_rsymm))
        if (periodB(idim).or.aperiodB(idim)) then
           do iw=1,nwflux
              if (typeboundary(iw,2*idim-1) .ne. typeboundary(iw,2*idim)) &
                   call mpistop("Wrong counterpart in periodic boundary")
-
+             
              if (typeboundary(iw,2*idim-1) /= bc_periodic .and. &
                   typeboundary(iw,2*idim-1) /= bc_aperiodic) then
                call mpistop("Each dimension should either have all "//&
                     "or no variables periodic, some can be aperiodic")
              end if
           end do
-       end if
+        end if
+
+        if (rsymmB(idim)) then
+          if (ndim/=3) then
+            call mpistop("Rotational symmetry is only applicable to 3D.")
+          end if
+
+          if ((idim/=3).and.(any(typeboundary(:,2*idim-1:2*idim)==bc_rsymm))) then
+            call mpistop("Rotational symmetry is (currently) only implemented "//&
+                 "for the lower z-boundary.")
+          end if 
+
+          if ((idim==3).and.(all(typeboundary(:,2*idim)==bc_rsymm))) then
+            call mpistop("Rotational symmetry is (currently) only implemented "//&
+                  "for the lower z-boundary.")
+          end if
+          
+          if (nocartesian) then
+            call mpistop("Rotational symmetry only applicable for a Cartesian "//&
+                 "grid.")
+          end if
+
+          do iw=1,nwflux
+            if (typeboundary(iw,2*idim-1) /= bc_rsymm) then
+               call mpistop("For rotational symmetry either all variables are "//&
+                    "rotationally symmetric or none at all.")
+            end if
+          end do
+        end if
     end do
+
     {^NOONED
     do idim=1,ndim
       if(any(typeboundary(:,2*idim-1)==12)) then
