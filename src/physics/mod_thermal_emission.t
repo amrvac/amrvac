@@ -2632,7 +2632,7 @@ module mod_thermal_emission
       spacing(1)=dxO1(1)
       spacing(2)=dxO2(1)
       spacing(3)=zero
-      wholeExtent=zero
+      wholeExtent=0
       wholeExtent(2)=nXO1
       wholeExtent(4)=nXO2
       nP1=nXO1/nC1
@@ -2683,7 +2683,7 @@ module mod_thermal_emission
         ! pixel/cell data
         do iP1=1,nP1
           do iP2=1,nP2
-            extent=zero
+            extent=0
             extent(1)=(iP1-1)*nC1
             extent(2)=iP1*nC1
             extent(3)=(iP2-1)*nC2

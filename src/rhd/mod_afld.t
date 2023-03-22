@@ -1498,7 +1498,7 @@ end subroutine Diffuse_E_rad_mg
     integer :: n, max_its
 
     n = 0
-    max_its = 1d7
+    max_its = 10000000
 
     bisect_a = zero
     bisect_b = 1.2d0*max(abs(c0/c1),abs(c0)**(1.d0/4.d0))

@@ -1244,7 +1244,7 @@ module mod_fld
     integer :: n, max_its
 
     n = 0
-    max_its = 1d2
+    max_its = 100
 
     bisect_a = zero
     bisect_b = min(abs(c0/c1),abs(c0)**(1.d0/4.d0))+smalldouble
