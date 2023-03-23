@@ -6586,6 +6586,7 @@ contains
   subroutine update_faces_contact(ixI^L,ixO^L,qt,qdt,wp,fC,fE,sCT,s,vcts)
     use mod_global_parameters
     use mod_usr_methods
+    use mod_geometry
 
     integer, intent(in)                :: ixI^L, ixO^L
     double precision, intent(in)       :: qt, qdt
@@ -6599,6 +6600,7 @@ contains
     double precision                   :: circ(ixI^S,1:ndim)
     ! electric field at cell centers
     double precision                   :: ECC(ixI^S,7-2*ndim:3)
+    double precision                   :: Ein(ixI^S,7-2*ndim:3)
     ! gradient of E at left and right side of a cell face
     double precision                   :: EL(ixI^S),ER(ixI^S)
     ! gradient of E at left and right side of a cell corner
@@ -6607,10 +6609,15 @@ contains
     double precision, dimension(ixI^S,7-2*ndim:3) :: E_resi, E_ambi
     ! total magnetic field at cell centers
     double precision                   :: Btot(ixI^S,1:ndim)
+    ! current on cell edges
+    double precision :: jce(ixI^S,7-2*ndim:3)
+    ! location at cell faces
+    double precision :: xs(ixGs^T,1:ndim)
+    double precision :: gradi(ixGs^T)
     integer                            :: hxC^L,ixC^L,jxC^L,ixA^L,ixB^L
-    integer                            :: idim1,idim2,idir,iwdim1,iwdim2
+    integer                            :: idim1,idim2,idir,iwdim1,iwdim2,ix^D
 
-    associate(bfaces=>s%ws,x=>s%x,w=>s%w,vnorm=>vcts%vnorm)
+    associate(bfaces=>s%ws,x=>s%x,w=>s%w,vnorm=>vcts%vnorm,wCTs=>sCT%ws)
 
     if(B0field) then
       Btot(ixI^S,1:ndim)=wp(ixI^S,mag(1:ndim))+block%B0(ixI^S,1:ndim,0)
@@ -6653,6 +6660,7 @@ contains
             fE(ixC^S,idir)=quarter*&
             (fC(ixC^S,iwdim1,idim2)+fC(jxC^S,iwdim1,idim2)&
             -fC(ixC^S,iwdim2,idim1)-fC(hxC^S,iwdim2,idim1))
+            if(.not.total_energy) Ein(ixC^S,idir)=fE(ixC^S,idir)
 
             ! add slope in idim2 direction from equation (50)
             ixAmin^D=ixCmin^D;
@@ -6700,7 +6708,8 @@ contains
               ERC(ixC^S)=0.5d0*(ER(ixC^S)+ER(jxC^S))
             end where
             fE(ixC^S,idir)=fE(ixC^S,idir)+0.25d0*(ELC(ixC^S)+ERC(ixC^S))
-
+            ! difference between average and upwind interpolated E
+            if(.not.total_energy) Ein(ixC^S,idir)=fE(ixC^S,idir)-Ein(ixC^S,idir)
             ! add resistive electric field at cell edges E=-vxB+eta J
             if(mhd_eta/=zero) fE(ixC^S,idir)=fE(ixC^S,idir)+E_resi(ixC^S,idir)
             ! add ambipolar electric field
@@ -6717,6 +6726,50 @@ contains
         end do
       end do
     end do
+
+    if(.not.total_energy) then
+      ! add upwind diffused magnetic energy back to energy
+      ! calculate current density at cell edges
+      jce=0.d0
+      do idim1=1,ndim
+        do idim2=1,ndim
+          do idir=7-2*ndim,3
+            if (lvc(idim1,idim2,idir)==0) cycle
+            ixCmax^D=ixOmax^D;
+            ixCmin^D=ixOmin^D+kr(idir,^D)-1;
+            ixBmax^D=ixCmax^D-kr(idir,^D)+1;
+            ixBmin^D=ixCmin^D;
+            ! current at transverse faces
+            xs(ixB^S,:)=x(ixB^S,:)
+            xs(ixB^S,idim2)=x(ixB^S,idim2)+half*s%dx(ixB^S,idim2)
+            call gradientx(wCTs(ixGs^T,idim2),xs,ixGs^LL,ixC^L,idim1,gradi,.true.)
+            if (lvc(idim1,idim2,idir)==1) then
+              jce(ixC^S,idir)=jce(ixC^S,idir)+gradi(ixC^S)
+            else
+              jce(ixC^S,idir)=jce(ixC^S,idir)-gradi(ixC^S)
+            end if
+          end do
+        end do
+      end do
+      do idir=7-2*ndim,3
+        ixCmax^D=ixOmax^D;
+        ixCmin^D=ixOmin^D+kr(idir,^D)-1;
+        ! E dot J on cell edges
+        Ein(ixC^S,idir)=Ein(ixC^S,idir)*jce(ixC^S,idir)
+        ! average from cell edge to cell center
+        jce(ixI^S,idir)=0.d0
+        {do ix^DB=-1,0\}
+           if({ ix^D==-1 .and. ^D==idir | .or.}) cycle
+           ixAmin^D=ixOmin^D+ix^D;
+           ixAmax^D=ixOmax^D+ix^D;
+           jce(ixO^S,idir)=jce(ixO^S,idir)+Ein(ixA^S,idir)
+        {end do\}
+        where(jce(ixO^S,idir)<0.d0)
+          jce(ixO^S,idir)=0.d0
+        end where
+        w(ixO^S,e_)=w(ixO^S,e_)+qdt*0.25d0*jce(ixO^S,idir)
+      end do
+    end if
 
     ! allow user to change inductive electric field, especially for boundary driven applications
     if(associated(usr_set_electric_field)) &
