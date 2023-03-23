@@ -15,7 +15,6 @@ var searchData=
   ['kdv_5fparams_5fread_1135',['kdv_params_read',['../namespacemod__kdv.html#a7996531684b665567e1f2297e0c9f4a8',1,'mod_kdv']]],
   ['kdv_5fsource_5fterm_1136',['kdv_source_term',['../namespacemod__nonlinear__phys.html#a673d1030c11f7d04b8102184cde63dd6',1,'mod_nonlinear_phys']]],
   ['kdv_5fsplit_1137',['kdv_split',['../namespacemod__kdv.html#ad8ce6e5248e6db5c86d1e4e8b1635f4e',1,'mod_kdv']]],
-  ['kelvin_2dhelmholtz_20instability_1138',['Kelvin-Helmholtz instability',['../md_doc_demo_movies.html',1,'']]],
-  ['kmaxx_1139',['kmaxx',['../namespacemod__odeint.html#a4dd539fe2bf3bc713ff7b1275efecbd5',1,'mod_odeint']]],
-  ['kr_1140',['kr',['../namespacemod__global__parameters.html#a31226ca76b94f6c33496105fd25e8fd9',1,'mod_global_parameters']]]
+  ['kmaxx_1138',['kmaxx',['../namespacemod__odeint.html#a4dd539fe2bf3bc713ff7b1275efecbd5',1,'mod_odeint']]],
+  ['kr_1139',['kr',['../namespacemod__global__parameters.html#a31226ca76b94f6c33496105fd25e8fd9',1,'mod_global_parameters']]]
 ];
