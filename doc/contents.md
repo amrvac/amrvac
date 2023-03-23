@@ -11,6 +11,7 @@
 financial support.
 * [FAQ](faq.md) Frequently asked questions.
 * [**Tests**](test.html) An overview of documented test cases.
+* @ref demo-movies.md
 * @ref contributing.md
 * [Documentation](documentation.md) How the documentation works.
 

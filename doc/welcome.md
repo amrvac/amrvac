@@ -17,6 +17,7 @@ please send them to the mailing list: <mailto:amrvacusers@ls.kuleuven.be>, which
 * @ref getting_started.md
 * @ref par.md
 * @ref faq.md
+* @ref demo-movies.md
 * @ref contributing.md
 * @ref publications.md
 * @ref acknowledgments.md
