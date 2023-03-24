@@ -177,11 +177,11 @@ contains
 
     do iipart=1,nparticles_active_on_mype
       ipart                   = particles_active_on_mype(iipart);
+      igrid                   = particle(ipart)%igrid
+      igrid_working           = igrid
       dt_p                    = advect_get_particle_dt(particle(ipart), end_time)
       particle(ipart)%self%dt = dt_p
 
-      igrid                   = particle(ipart)%igrid
-      igrid_working           = igrid
       tloc                    = particle(ipart)%self%time
       x(1:ndir)               = particle(ipart)%self%x(1:ndir)
       tlocnew                 = tloc+dt_p
@@ -288,13 +288,11 @@ contains
 
   function advect_get_particle_dt(partp, end_time) result(dt_p)
     use mod_global_parameters
-    use mod_geometry
     type(particle_ptr), intent(in) :: partp
     double precision, intent(in)   :: end_time
     double precision               :: dt_p
-    integer                        :: ipart, iipart, nout
-    double precision               :: tout, dt_cfl
-    double precision               :: v(1:ndir)
+    integer                        :: ipart, iipart, idims
+    double precision               :: v(1:ndir),dtdims(1:ndim)
 
     if (const_dt_particles > 0) then
       dt_p = const_dt_particles
@@ -303,22 +301,11 @@ contains
 
     ! make sure we step only one cell at a time:
     call derivs_advect(partp%self%time,partp%self%x,v)
+    do idims=1,ndim
+      dtdims(idims)=minval(ps(partp%igrid)%ds(ixM^T,idims))/(max(v(idims),smalldouble))
+    end do
 
-    dt_cfl = min({rnode(rpdx^D_,partp%igrid)/v(^D)},bigdouble)
-
-    ! TODO: verify if following is needed
-!    if (coordinate ==cylindrical.and.phi_>0) then
-!      ! phi-momentum leads to radial velocity:
-!      if(phi_ .gt. ndim) dt_cfl = min(dt_cfl, &
-!           sqrt(rnode(rpdx1_,partp%igrid)/partp%self%x(r_)) &
-!           / v(phi_))
-!      ! limit the delta phi of the orbit (just for aesthetic reasons):
-!      dt_cfl = min(dt_cfl,0.1d0/v(phi_))
-!      ! take some care at the axis:
-!      dt_cfl = min(dt_cfl,(partp%self%x(r_)+smalldouble)/v(r_))
-!    end if
-
-    dt_p = dt_cfl
+    dt_p = minval(dtdims)
 
     ! Make sure we do not advance beyond end_time
     call limit_dt_endtime(end_time - partp%self%time, dt_p)

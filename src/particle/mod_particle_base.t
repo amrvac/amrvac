@@ -722,7 +722,6 @@ contains
     }
     integer                               :: ic^D, ic1^D, ic2^D, idir
 
-    ! version 1 based on delta x
     {
     if(stretch_type(^D)==stretch_uni) then
       ! uniform stretch from xprobmin
@@ -751,33 +750,6 @@ contains
       ic^D = int((xloc(^D)-rnode(rpxmin^D_,igrid))/rnode(rpdx^D_,igrid)) + 1 + nghostcells
     end if
     \}
-
-   ! ! version 2 based on x
-   ! {
-   ! if(stretch_type(^D)==stretch_uni) then
-   !   ! uniform stretch from xprobmin
-   !   ic^D = ceiling(dlog((xloc(^D)-xprobmin^D)/(half*dxfirst(ps(igrid)%level,^D)))/&
-   !     dlog(qstretch(ps(igrid)%level,^D)))-(node(pig^D_,igrid)-1)*block_nx^D+nghostcells
-   ! else if(stretch_type(^D)==stretch_symm) then
-   !   ! symmetric stretch about 0.5*(xprobmin+xprobmax)
-   !   if(xloc(^D)<xprobmin^D+xstretch^D) then
-   !     ! stretch to left from xprobmin+xstretch
-   !     ic^D = block_nx^D-(int(dlog((xloc(^D)-xprobmin^D-xstretch^D)/(half*dxfirst(ps(igrid)%level,^D)))/&
-   !         dlog(qstretch(ps(igrid)%level,^D)))-(nstretchedblocks(level,^D)/2-node(pig^D_,igrid))*block_nx^D)+nghostcells
-   !   else if(xloc(^D)>xprobmax^D-xstretch^D) then
-   !     ! stretch to right from xprobmax-xstretch
-   !     ic^D = ceiling(dlog((xloc(^D)-xprobmax^D+xstretch^D)/(half*dxfirst(ps(igrid)%level,^D)))/&
-   !       dlog(qstretch(ps(igrid)%level,^D)))-((node(pig^D_,igrid)-1+nstretchedblocks(level,^D)/2)*block_nx^D-&
-   !       domain_nx^D*2**(ps(igrid)%level-one))+nghostcells
-   !   else
-   !     ! possible non-stretched central part
-   !     ic^D = int((xloc(^D)-rnode(rpxmin^D_,igrid))/rnode(rpdx^D_,igrid)) + 1 + nghostcells
-   !   end if
-   ! else
-   !   ! no stretch
-   !   ic^D = int((xloc(^D)-rnode(rpxmin^D_,igrid))/rnode(rpdx^D_,igrid)) + 1 + nghostcells
-   ! end if
-   ! \}
 
     ! linear interpolation:
     {

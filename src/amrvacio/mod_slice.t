@@ -1131,13 +1131,13 @@ contains
 
   subroutine get_igslice_mod(dir,x,igslice)
     use mod_global_parameters
-    use mod_geometry
     integer, intent(in) :: dir
     double precision, intent(in) :: x
     integer, dimension(nlevelshi), intent(out) :: igslice
     ! .. local ..
     integer :: level, nbefore
-    double precision :: xsgrid(ndim,3),qs(ndim),xmgrid(ndim,3),xnew,xlgrid(ndim,3)
+    double precision :: distance
+    double precision :: xsgrid(ndim,nlevelshi),qs(ndim),xmgrid(ndim,3),xnew,xlgrid(ndim,3)
 
     if (x.ne.x) &
          call mpistop("get_igslice: your slice position is NaN!")
@@ -1146,26 +1146,33 @@ contains
     {case (^D)
       select case (stretch_type(^D))
       case (stretch_none) ! This dimension is unstretched
-        do level = 1, refine_max_level
-           igslice(level) = int((x-xprobmin^D)/dg^D(level))+1
-           ! Gets out of domain when x==xprobmax^D, not caught by put_slice, so limit:
-           if (x>=xprobmax^D) igslice(level) =  int((xprobmax^D-xprobmin^D)/dg^D(level))
-           ! This is already caught by control in put_slice, but anyways:
-           if (x<=xprobmin^D) igslice(level) =  1
-        end do  
+        if (x<=xprobmin^D) then
+          igslice=1
+        else if (x>=xprobmax^D) then
+          do level=1,refine_max_level
+            igslice(level)=domain_nx^D*2**(level-1)/block_nx^D
+          end do
+        else
+          do level = 1, refine_max_level
+            igslice(level) = ceiling((x-xprobmin^D)/dg^D(level))
+          end do
+        end if
 
       case (stretch_uni) ! Uniform stretching
-        xsgrid(^D,1)=(xprobmax^D-xprobmin^D)*(1.d0-qstretch_baselevel(^D))/(1.d0-qstretch_baselevel(^D)**domain_nx^D)
-        xlgrid(^D,1)=xsgrid(^D,1)
 
-        do level=1,refine_max_level
-          qs(^D)=qstretch_baselevel(^D)**(one/2.d0**(level-1))
-          if (level .gt. 1) xsgrid(^D,level)=xsgrid(^D,level-1)/(one+qs(^D))
-          igslice(level)= int((dlog((x-xprobmin^D)/xsgrid(^D,level)*(qs(^D)-1.d0)+1.d0)/dlog(qs(^D)))/dble(block_nx^D))+1
-          !floor((dlog(one-x/xsgrid(^D,level)*(one-qs(^D)))/dlog(qs(^D)))/dble(block_nx^D))+1
-          if (x<=xprobmin^D) igslice(level)=1
-          if (x>=xprobmax^D) igslice(level)=domain_nx^D*2**(level-1)
-        end do
+        if (x<=xprobmin^D) then
+          igslice=1
+        else if (x>=xprobmax^D) then
+          do level=1,refine_max_level
+            igslice(level)=domain_nx^D*2**(level-1)/block_nx^D
+          end do
+        else
+          distance=x-xprobmin^D
+          do level=1,refine_max_level
+            igslice(level)= ceiling(dlog(distance/dxfirst(level,^D)*(qstretch(level,^D)-1.d0)+1.d0)&
+              /dlog(qstretch(level,^D))/dble(block_nx^D))
+          end do
+        end if
 
       case (stretch_symm) ! Symmetric stretching
         xsgrid(^D,1)=half*(xprobmax^D-xprobmin^D)&
@@ -1209,19 +1216,6 @@ contains
     case default
       call mpistop("slice direction not clear in get_igslice")
     end select
-
-!    select case (dir)
-!       {case (^D)
-!       do level = 1, refine_max_level
-!          igslice(level) = int((x-xprobmin^D)/dg^D(level))+1
-!          ! Gets out of domain when x==xprobmax^D, not caught by put_slice, so limit:
-!          if (x>=xprobmax^D) igslice(level) =  int((xprobmax^D-xprobmin^D)/dg^D(level))
-!          ! This is already caught by control in put_slice, but anyways:
-!          if (x<=xprobmin^D) igslice(level) =  1
-!       end do\}
-!    case default
-!       call mpistop("slice direction not clear in get_igslice")
-!    end select
 
   end subroutine get_igslice_mod
 
