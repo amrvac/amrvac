@@ -308,7 +308,6 @@ mod_rotating_frame.o: mod_geometry.mod
 mod_rotating_frame.o: mod_physics.mod
 mod_slice.o: mod_basic_types.mod
 mod_slice.o: mod_calculate_xw.mod
-mod_slice.o: mod_geometry.mod
 mod_solar_atmosphere.o: mod_interpolation.mod
 mod_solar_atmosphere.o: mod_ionization_degree.mod
 mod_solar_atmosphere.o: mod_physics.mod
