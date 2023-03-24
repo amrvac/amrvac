@@ -232,6 +232,9 @@ module mod_mhd_phys
   !> Whether an total energy equation is used
   logical :: total_energy = .true.
 
+  !> Whether an internal or hydrodynamic energy equation is used
+  logical :: partial_energy = .false.
+
   !> Whether unsplit semirelativistic MHD is solved
   logical :: unsplit_semirelativistic=.false.
 
@@ -446,8 +449,14 @@ contains
 
     phys_gamma = mhd_gamma
 
-    if(mhd_energy.and..not.mhd_internal_e.and..not.mhd_hydrodynamic_e) then
-      total_energy=.true.
+    if(mhd_energy) then
+      if(mhd_internal_e.or.mhd_hydrodynamic_e) then
+        partial_energy=.true.
+        total_energy=.false.
+      else
+        partial_energy=.false.
+        total_energy=.true.
+      end if
     else
       total_energy=.false.
     end if
@@ -6660,7 +6669,7 @@ contains
             fE(ixC^S,idir)=quarter*&
             (fC(ixC^S,iwdim1,idim2)+fC(jxC^S,iwdim1,idim2)&
             -fC(ixC^S,iwdim2,idim1)-fC(hxC^S,iwdim2,idim1))
-            if(.not.total_energy) Ein(ixC^S,idir)=fE(ixC^S,idir)
+            if(partial_energy) Ein(ixC^S,idir)=fE(ixC^S,idir)
 
             ! add slope in idim2 direction from equation (50)
             ixAmin^D=ixCmin^D;
@@ -6709,7 +6718,7 @@ contains
             end where
             fE(ixC^S,idir)=fE(ixC^S,idir)+0.25d0*(ELC(ixC^S)+ERC(ixC^S))
             ! difference between average and upwind interpolated E
-            if(.not.total_energy) Ein(ixC^S,idir)=fE(ixC^S,idir)-Ein(ixC^S,idir)
+            if(partial_energy) Ein(ixC^S,idir)=fE(ixC^S,idir)-Ein(ixC^S,idir)
             ! add resistive electric field at cell edges E=-vxB+eta J
             if(mhd_eta/=zero) fE(ixC^S,idir)=fE(ixC^S,idir)+E_resi(ixC^S,idir)
             ! add ambipolar electric field
@@ -6727,7 +6736,7 @@ contains
       end do
     end do
 
-    if(.not.total_energy) then
+    if(partial_energy) then
       ! add upwind diffused magnetic energy back to energy
       ! calculate current density at cell edges
       jce=0.d0
