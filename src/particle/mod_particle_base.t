@@ -732,7 +732,7 @@ contains
       ! symmetric stretch about 0.5*(xprobmin+xprobmax)
       if(xloc(^D)<xprobmin^D+xstretch^D) then
         ! stretch to left from xprobmin+xstretch
-        ic^D = block_nx^D-(int(dlog((xloc(^D)-xprobmin^D-xstretch^D)*(qstretch(ps(igrid)%level,^D)-one)/&
+        ic^D = block_nx^D-(int(dlog((xprobmin^D+xstretch^D-xloc(^D))*(qstretch(ps(igrid)%level,^D)-one)/&
             dxfirst(ps(igrid)%level,^D)+one)/dlog(qstretch(ps(igrid)%level,^D)))-&
             (nstretchedblocks(level,^D)/2-node(pig^D_,igrid))*block_nx^D)+nghostcells
       else if(xloc(^D)>xprobmax^D-xstretch^D) then
@@ -1101,7 +1101,7 @@ contains
 
   subroutine find_particle_ipe(x,igrid_particle,ipe_particle)
     use mod_forest, only: tree_node_ptr, tree_root
-    use mod_slice, only: get_igslice, get_igslice_mod
+    use mod_slice, only: get_igslice
     use mod_global_parameters
 
     double precision, intent(in) :: x(3)
@@ -1118,9 +1118,8 @@ contains
     end if
 
     ! get the index on each level
-    ! TODO only for uniform grid, need extention to stretched grid
     do idim = 1, ndim
-      call get_igslice_mod(idim,x(idim), ig_lvl)
+      call get_igslice(idim,x(idim), ig_lvl)
       ig(idim,:) = ig_lvl
     end do
 
