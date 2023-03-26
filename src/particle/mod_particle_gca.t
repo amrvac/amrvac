@@ -198,10 +198,10 @@ contains
 
         ! initialise payloads for GCA module
         allocate(particle(n)%payload(npayload))
-        call gca_update_payload(igrid,ps(igrid)%w,pso(igrid)%w,ps(igrid)%x,x(:,n),particle(n)%self%u(:),q(n),m(n),defpayload,ndefpayload,0.d0)
+        call gca_update_payload(igrid,x(:,n),particle(n)%self%u(:),q(n),m(n),defpayload,ndefpayload,0.d0)
         particle(n)%payload(1:ndefpayload) = defpayload
         if (associated(usr_update_payload)) then
-          call usr_update_payload(igrid,ps(igrid)%w,pso(igrid)%w,ps(igrid)%x,x(:,n),particle(n)%self%u(:),q(n),m(n),usrpayload,nusrpayload,0.d0)
+          call usr_update_payload(igrid,x(:,n),particle(n)%self%u(:),q(n),m(n),usrpayload,nusrpayload,0.d0)
           particle(n)%payload(ndefpayload+1:npayload) = usrpayload
         end if
       end if
@@ -588,11 +588,11 @@ contains
       particle(ipart)%self%time = particle(ipart)%self%time + dt_p
 
       ! Update payload
-      call gca_update_payload(igrid_working,ps(igrid_working)%w,pso(igrid_working)%w,ps(igrid_working)%x, &
+      call gca_update_payload(igrid_working,&
              particle(ipart)%self%x,particle(ipart)%self%u,q,m,defpayload,ndefpayload,particle(ipart)%self%time)
       particle(ipart)%payload(1:ndefpayload) = defpayload
       if (associated(usr_update_payload)) then
-        call usr_update_payload(igrid_working,ps(igrid_working)%w,pso(igrid_working)%w,ps(igrid_working)%x,&
+        call usr_update_payload(igrid_working,&
              particle(ipart)%self%x,particle(ipart)%self%u,q,m,usrpayload,nusrpayload,particle(ipart)%self%time)
         particle(ipart)%payload(ndefpayload+1:npayload) = usrpayload
       end if
@@ -782,11 +782,10 @@ contains
   end subroutine derivs_gca
 
   !> Update payload subroutine
-  subroutine gca_update_payload(igrid,w,wold,xgrid,xpart,upart,qpart,mpart,mypayload,mynpayload,particle_time)
+  subroutine gca_update_payload(igrid,xpart,upart,qpart,mpart,mypayload,mynpayload,particle_time)
     use mod_global_parameters
     integer, intent(in)           :: igrid,mynpayload
-    double precision, intent(in)  :: w(ixG^T,1:nw),wold(ixG^T,1:nw)
-    double precision, intent(in)  :: xgrid(ixG^T,1:ndim),xpart(1:ndir),upart(1:ndir),qpart,mpart,particle_time
+    double precision, intent(in)  :: xpart(1:ndir),upart(1:ndir),qpart,mpart,particle_time
     double precision, intent(out) :: mypayload(mynpayload)
     double precision, dimension(1:ndir) :: vE, e, b, bhat, vfluid, current
     double precision, dimension(1:ndir) :: drift1, drift2

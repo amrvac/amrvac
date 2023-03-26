@@ -121,10 +121,10 @@ contains
 
         ! Compute default and user-defined payloads
         allocate(particle(n)%payload(npayload))
-        call advect_update_payload(igrid,ps(igrid)%w,pso(igrid)%w,ps(igrid)%x,x(:,n),v(:,n),q(n),m(n),defpayload,ndefpayload,0.d0)
+        call advect_update_payload(igrid,x(:,n),v(:,n),q(n),m(n),defpayload,ndefpayload,0.d0)
         particle(n)%payload(1:ndefpayload)=defpayload
         if (associated(usr_update_payload)) then
-          call usr_update_payload(igrid,ps(igrid)%w,pso(igrid)%w,ps(igrid)%x,x(:,n),v(:,n),q(n),m(n),usrpayload,nusrpayload,0.d0)
+          call usr_update_payload(igrid,x(:,n),v(:,n),q(n),m(n),usrpayload,nusrpayload,0.d0)
           particle(n)%payload(ndefpayload+1:npayload)=usrpayload
         end if
       end if
@@ -230,10 +230,10 @@ contains
       particle(ipart)%self%time = tlocnew
 
       ! Update payload
-      call advect_update_payload(igrid,ps(igrid)%w,pso(igrid)%w,ps(igrid)%x,x,v,0.d0,0.d0,defpayload,ndefpayload,tlocnew)
+      call advect_update_payload(igrid,x,v,0.d0,0.d0,defpayload,ndefpayload,tlocnew)
       particle(ipart)%payload(1:ndefpayload) = defpayload
       if (associated(usr_update_payload)) then
-        call usr_update_payload(igrid,ps(igrid)%w,pso(igrid)%w,ps(igrid)%x,x,v,0.d0,0.d0,usrpayload,nusrpayload,tlocnew)
+        call usr_update_payload(igrid,x,v,0.d0,0.d0,usrpayload,nusrpayload,tlocnew)
       end if
       particle(ipart)%payload(ndefpayload+1:npayload) = usrpayload
 
@@ -242,11 +242,10 @@ contains
   end subroutine advect_integrate_particles
 
   !> Payload update
-  subroutine advect_update_payload(igrid,w,wold,xgrid,xpart,upart,qpart,mpart,mypayload,mynpayload,particle_time)
+  subroutine advect_update_payload(igrid,xpart,upart,qpart,mpart,mypayload,mynpayload,particle_time)
     use mod_global_parameters
     integer, intent(in)           :: igrid,mynpayload
-    double precision, intent(in)  :: w(ixG^T,1:nw),wold(ixG^T,1:nw)
-    double precision, intent(in)  :: xgrid(ixG^T,1:ndim),xpart(1:ndir),upart(1:ndir),qpart,mpart,particle_time
+    double precision, intent(in)  :: xpart(1:ndir),upart(1:ndir),qpart,mpart,particle_time
     double precision, intent(out) :: mypayload(mynpayload)
     double precision              :: rho, rho1, rho2, td
 
@@ -255,10 +254,10 @@ contains
     ! Payload 1 is density
     if (mynpayload > 0 ) then
       if (.not.time_advance) then
-        call interpolate_var(igrid,ixG^LL,ixM^LL,w(ixG^T,iw_rho),xgrid,xpart,rho)
+        call interpolate_var(igrid,ixG^LL,ixM^LL,ps(igrid)%w(ixG^T,iw_rho),ps(igrid)%x,xpart,rho)
       else
-        call interpolate_var(igrid,ixG^LL,ixM^LL,wold(ixG^T,iw_rho),xgrid,xpart,rho1)
-        call interpolate_var(igrid,ixG^LL,ixM^LL,w(ixG^T,iw_rho),xgrid,xpart,rho2)
+        call interpolate_var(igrid,ixG^LL,ixM^LL,pso(igrid)%w(ixG^T,iw_rho),ps(igrid)%x,xpart,rho1)
+        call interpolate_var(igrid,ixG^LL,ixM^LL,ps(igrid)%w(ixG^T,iw_rho),ps(igrid)%x,xpart,rho2)
         rho = rho1 * (1.0d0 - td) + rho2 * td
       end if
       mypayload(1) = rho * w_convert_factor(1)
