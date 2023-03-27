@@ -279,7 +279,7 @@ contains
       v(phi_) = v(phi_)/x(r_)
     case (spherical)
       v(2) = v(2)/x(1)
-      v(3) = v(3)/x(1)/sin(x(2))
+      v(3) = v(3)/(x(1)*sin(x(2)))
     end select
     dxdt(:) = v(:)
 
