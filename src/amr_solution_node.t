@@ -542,7 +542,7 @@ subroutine alloc_node(igrid)
     ! blocks at periodic boundary have neighbors in the physical domain
     ! thus threated at internal blocks with no physical boundary
     if (periodB(^D)) ign^D=1+modulo(ign^D-1,ng^D(level))
-    if (rsymmB(^D).and.ig^D==1) ign1=ng1(level)-(ign1-1)
+    if (rsymmB(^D).and.ign1==0) ign1=ng1(level)-(ign1-1)
     if (ign^D > ng^D(level)) then
        if(phi_ > 0 .and. poleB(2,^D)) then
          ! if at a pole, the boundary is not physical boundary
