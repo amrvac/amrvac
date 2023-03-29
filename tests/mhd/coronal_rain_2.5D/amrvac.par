@@ -1,0 +1,98 @@
+!==============================================================
+! Project : 2.5D MHD solar atmosphere in bipolar magnetic field
+! Aim     : serve as a basic model for solar applications
+! Results :
+! Update  : 10/02/2017
+! configuration :
+! $AMRVAC_DIR/setup.pl -d=2
+!==============================================================
+
+ &filelist
+        base_filename='coronalrain_ct_hll_b'
+        saveprim=.true.
+        autoconvert=.true.
+        convert_type='vtuBCCmpi'
+        nwauxio=9
+        !restart_from_file='coronalrain_ct_hll_b0100.dat'
+ /
+
+ &savelist
+        itsave(1,1)=0
+        itsave(1,2)=0
+        dtsave_log=0.1d0
+        dtsave_dat=1.d0
+ /
+
+
+ &stoplist
+        dtmin=1.D-7
+        time_max=200.0d0
+ /
+
+ &methodlist
+        time_stepper=  'threestep'
+        flux_scheme=    20*'hll'
+        limiter= 20*'cada3'
+        small_pressure=1.0d-8
+        small_density=1.0d-14
+        check_small_values=.true.
+        !fix_small_values=.true. 
+        !small_values_method='average'
+ / 
+
+ &boundlist
+        typeboundary_min1 = 'symm','asymm','symm','asymm','symm','asymm','symm','asymm'
+        typeboundary_max1 = 'symm','asymm','symm','asymm','symm','asymm','symm','asymm'
+        typeboundary_min2 = 8*'special'
+        typeboundary_max2 = 8*'special'
+ /
+
+ &meshlist
+        refine_criterion=3
+        refine_max_level=3
+        refine_threshold=20*0.2d0
+        derefine_ratio=20*0.15d0
+        block_nx1=12
+        block_nx2=12
+        domain_nx1=96
+        domain_nx2=96
+        iprob=2
+        xprobmin1=-3.d0
+        xprobmax1=3.d0
+        xprobmin2=0.d0
+        xprobmax2=6.d0
+        ditregrid=3
+        !max_blocks=40000 
+ /
+
+ &paramlist
+        typecourant='maxsum'
+        courantpar=0.8d0
+ /
+
+ &mhd_list
+        mhd_radiative_cooling=.true.
+        mhd_thermal_conduction=.true.
+        mhd_gravity=.true.
+        typedivbfix='ct'
+        Busr=20.d0
+        B0field=.false.
+        boundary_divbfix(3)=.false.
+        mhd_trac=.true.
+        !mhd_trac_type=2
+        !mhd_trac_mask=0.5
+ /
+
+ &tc_list
+        tc_perpendicular=.false.
+        tc_saturate=.true.
+ /
+
+ &rc_list
+        ncool=4000
+        coolcurve='JCcorona'
+        coolmethod='exact'
+        Tfix=.false.
+ /
+
+
