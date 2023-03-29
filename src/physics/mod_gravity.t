@@ -38,16 +38,16 @@ contains
   end subroutine gravity_init
 
   !> w[iw]=w[iw]+qdt*S[wCT,qtC,x] where S is the source based on wCT within ixO
-  subroutine gravity_add_source(qdt,ixI^L,ixO^L,wCT,w,x,&
-       energy,qsourcesplit,active)
+  subroutine gravity_add_source(qdt,ixI^L,ixO^L,wCT,wCTprim,w,x,&
+       energy,rhov,qsourcesplit,active)
     use mod_global_parameters
     use mod_usr_methods
 
     integer, intent(in)             :: ixI^L, ixO^L
     double precision, intent(in)    :: qdt, x(ixI^S,1:ndim)
-    double precision, intent(in)    :: wCT(ixI^S,1:nw)
+    double precision, intent(in)    :: wCT(ixI^S,1:nw),wCTprim(ixI^S,1:nw)
     double precision, intent(inout) :: w(ixI^S,1:nw)
-    logical, intent(in) :: energy,qsourcesplit
+    logical, intent(in) :: energy,rhov,qsourcesplit
     logical, intent(inout) :: active
     integer                         :: idim
 
@@ -62,16 +62,13 @@ contains
         w(ixO^S,iw_mom(idim)) = w(ixO^S,iw_mom(idim)) &
               + qdt * gravity_field(ixO^S,idim) * wCT(ixO^S,iw_rho)
         if(energy) then
-          if(iw_equi_rho>0) then
+          if(rhov) then
             w(ixO^S,iw_e)=w(ixO^S,iw_e) &
-              + qdt * gravity_field(ixO^S,idim) *&
-               wCT(ixO^S,iw_mom(idim))/(wCT(ixO^S,iw_rho)+block%equi_vars(ixO^S,iw_equi_rho,0))*&
-              wCT(ixO^S,iw_rho)
-
+              +qdt*gravity_field(ixO^S,idim)*wCTprim(ixO^S,iw_mom(idim))*wCTprim(ixO^S,iw_rho)
           else
             w(ixO^S,iw_e)=w(ixO^S,iw_e) &
               + qdt * gravity_field(ixO^S,idim) * wCT(ixO^S,iw_mom(idim))
-          endif
+          end if
         end if
       end do
     end if

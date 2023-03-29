@@ -192,6 +192,7 @@ sub definepatterns{
    &patdef('IFTWOD'	,$ndim==2		);
    &patdef('IFTHREED'	,$ndim==3		);
    &patdef('NOONED'	,$ndim!=1		);
+   &patdef('NOTHREED'	,$ndim!=3		);
 }
 #============================================================================
 sub patdef{

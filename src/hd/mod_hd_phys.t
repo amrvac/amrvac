@@ -1340,8 +1340,8 @@ contains
     end if
 
     if (hd_gravity) then
-      call gravity_add_source(qdt,ixI^L,ixO^L,wCT,w,x,&
-           hd_energy,qsourcesplit,active)
+      call gravity_add_source(qdt,ixI^L,ixO^L,wCT,wCTprim,w,x,&
+           hd_energy,.false.,qsourcesplit,active)
 
       if (hd_dust .and. qsourcesplit .eqv. grav_split) then
          active = .true.
