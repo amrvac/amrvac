@@ -4659,7 +4659,7 @@ contains
 
   end subroutine add_source_B0split
 
-  !> Source terms for semirelativistic MHD
+  !> Source terms for semirelativistic MHD Gombosi 2002 JCP 177, 176
   subroutine add_source_semirelativistic(qdt,ixI^L,ixO^L,wCT,w,x,wCTprim)
     use mod_global_parameters
     use mod_geometry
@@ -4670,7 +4670,7 @@ contains
     double precision, intent(in), optional :: wCTprim(ixI^S,1:nw)
 
     double precision :: B(ixI^S,3), v(ixI^S,3), E(ixI^S,3), divE(ixI^S)
-    integer :: idir
+    integer :: idir, idirmin
 
     ! store B0 magnetic field in b
     B=0.d0
@@ -4688,11 +4688,16 @@ contains
     {^IFTHREED
     call cross_product(ixI^L,ixI^L,B,wCTprim(ixI^S,mom(1:ndir)),E)
     }
-    ! add source term in momentum equations (1/c0^2-1/c^2)E divE
     call divvector(E,ixI^L,ixO^L,divE)
-    divE(ixO^S)=qdt*(inv_squared_c0-inv_squared_c)*divE(ixO^S)
+    ! curl E => B
+    call curlvector(E,ixI^L,ixO^L,B,idirmin,1,3)
+    ! E x (curl E) => v
+    call cross_product(ixI^L,ixO^L,E,B,v)
+    ! add source term in momentum equations (1/c0^2-1/c^2)(E dot divE - E x curlE)
+    ! equation (26) and (27)
     do idir=1,ndir
-      w(ixO^S,mom(idir))=w(ixO^S,mom(idir))+E(ixO^S,idir)*divE(ixO^S)
+      w(ixO^S,mom(idir))=w(ixO^S,mom(idir))+qdt*(inv_squared_c0-inv_squared_c)*&
+        (E(ixO^S,idir)*divE(ixO^S)-v(ixO^S,idir))
     end do
 
   end subroutine add_source_semirelativistic
