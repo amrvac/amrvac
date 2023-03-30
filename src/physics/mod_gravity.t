@@ -34,6 +34,7 @@ contains
       call mpistop("usr_gravity not defined or pointed")
     end if
     call grav_params_read(par_files)
+    if(grav_split) any_source_split=.true.
 
   end subroutine gravity_init
 

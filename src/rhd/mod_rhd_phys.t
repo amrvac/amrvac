@@ -1581,7 +1581,7 @@ contains
   end subroutine rhd_add_source_geom
 
   ! w[iw]= w[iw]+qdt*S[wCT, qtC, x] where S is the source based on wCT within ixO
-  subroutine rhd_add_source(qdt,ixI^L,ixO^L,wCT,w,x,qsourcesplit,active,wCTprim)
+  subroutine rhd_add_source(qdt,ixI^L,ixO^L,wCT,wCTprim,w,x,qsourcesplit,active)
     use mod_global_parameters
     use mod_radiative_cooling, only: radiative_cooling_add_source
     use mod_dust, only: dust_add_source, dust_mom, dust_rho, dust_n_species
@@ -1591,11 +1591,10 @@ contains
 
     integer, intent(in)             :: ixI^L, ixO^L
     double precision, intent(in)    :: qdt
-    double precision, intent(in)    :: wCT(ixI^S, 1:nw), x(ixI^S, 1:ndim)
+    double precision, intent(in)    :: wCT(ixI^S, 1:nw),wCTprim(ixI^S,1:nw),x(ixI^S, 1:ndim)
     double precision, intent(inout) :: w(ixI^S, 1:nw)
     logical, intent(in)             :: qsourcesplit
     logical, intent(inout)          :: active
-    double precision, intent(in),optional :: wCTprim(ixI^S, 1:nw)
 
     double precision :: gravity_field(ixI^S, 1:ndim)
     integer :: idust, idim
@@ -1605,7 +1604,7 @@ contains
     end if
 
     if(rhd_radiative_cooling) then
-      call radiative_cooling_add_source(qdt,ixI^L,ixO^L,wCT,w,x,&
+      call radiative_cooling_add_source(qdt,ixI^L,ixO^L,wCT,wCTprim,w,x,&
            qsourcesplit,active, rc_fl)
     end if
 

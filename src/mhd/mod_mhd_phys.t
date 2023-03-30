@@ -398,14 +398,6 @@ contains
       end if
     end if
 
-    if(mhd_hydrodynamic_e) then
-      if(mhd_boris_simplification) then
-        mhd_boris_simplification=.false.
-        if(mype==0) write(*,*) 'WARNING: set mhd_boris_simplification=F when mhd_hydrodynamic=T'
-        if(mype==0) write(*,*) 'Boris simplification is not implemented for solving hydrodynamic energy'
-      end if
-    end if
-
     if(.not. mhd_energy) then
       if(mhd_internal_e) then
         mhd_internal_e=.false.
@@ -2300,9 +2292,13 @@ contains
         end do
 
         if(mhd_energy) then
-          where(flag(ixO^S,e_))
-            w(ixO^S,e_) = small_e+mhd_kin_en(w,ixI^L,ixO^L)
-          end where
+          if(primitive) then
+            where(flag(ixO^S,e_)) w(ixO^S,p_) = small_pressure
+          else
+            where(flag(ixO^S,e_))
+              w(ixO^S,e_) = small_e+mhd_kin_en(w,ixI^L,ixO^L)
+            end where
+          end if
         end if
       case ("average")
         ! do averaging of density
@@ -3203,7 +3199,7 @@ contains
 
   end subroutine mhd_get_pthermal_origin
 
-  !> Calculate thermal pressure=(gamma-1)*(e-0.5*m**2/rho-b**2/2) within ixO^L
+  !> Calculate thermal pressure
   subroutine mhd_get_pthermal_semirelati(w,x,ixI^L,ixO^L,pth)
     use mod_global_parameters
     use mod_small_values, only: trace_small_values
@@ -3241,7 +3237,7 @@ contains
 
   end subroutine mhd_get_pthermal_semirelati
 
-  !> Calculate thermal pressure=(gamma-1)*(e-0.5*m**2/rho-b**2/2) within ixO^L
+  !> Calculate thermal pressure=(gamma-1)*(e-0.5*m**2/rho) within ixO^L
   subroutine mhd_get_pthermal_hde(w,x,ixI^L,ixO^L,pth)
     use mod_global_parameters
     use mod_small_values, only: trace_small_values
@@ -4285,7 +4281,7 @@ contains
   end subroutine multiplyAmbiCoef
 
   !> w[iws]=w[iws]+qdt*S[iws,wCT] where S is the source based on wCT within ixO
-  subroutine mhd_add_source(qdt,ixI^L,ixO^L,wCT,w,x,qsourcesplit,active,wCTprim)
+  subroutine mhd_add_source(qdt,ixI^L,ixO^L,wCT,wCTprim,w,x,qsourcesplit,active)
     use mod_global_parameters
     use mod_radiative_cooling, only: radiative_cooling_add_source
     use mod_viscosity, only: viscosity_add_source
@@ -4294,11 +4290,10 @@ contains
 
     integer, intent(in)             :: ixI^L, ixO^L
     double precision, intent(in)    :: qdt
-    double precision, intent(in)    :: wCT(ixI^S,1:nw), x(ixI^S,1:ndim)
+    double precision, intent(in)    :: wCT(ixI^S,1:nw),wCTprim(ixI^S,1:nw), x(ixI^S,1:ndim)
     double precision, intent(inout) :: w(ixI^S,1:nw)
     logical, intent(in)             :: qsourcesplit
     logical, intent(inout)            :: active
-    double precision, intent(in), optional :: wCTprim(ixI^S,1:nw)
 
     if (.not. qsourcesplit) then
       if(mhd_internal_e) then
@@ -4417,7 +4412,7 @@ contains
     }
 
     if(mhd_radiative_cooling) then
-      call radiative_cooling_add_source(qdt,ixI^L,ixO^L,wCT,&
+      call radiative_cooling_add_source(qdt,ixI^L,ixO^L,wCT,wCTprim,&
            w,x,qsourcesplit,active, rc_fl)
     end if
 

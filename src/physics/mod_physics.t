@@ -186,16 +186,15 @@ module mod_physics
        double precision, intent(inout) :: wCT(ixI^S, 1:nw), w(ixI^S, 1:nw)
      end subroutine sub_add_source_geom
 
-     subroutine sub_add_source(qdt, ixI^L, ixO^L, wCT, w, x, &
-          qsourcesplit, active, wCTprim)
+     subroutine sub_add_source(qdt, ixI^L, ixO^L, wCT, wCTprim, w, x, &
+          qsourcesplit, active)
        use mod_global_parameters
        integer, intent(in)             :: ixI^L, ixO^L
        double precision, intent(in)    :: qdt
-       double precision, intent(in)    :: wCT(ixI^S, 1:nw), x(ixI^S, 1:ndim)
+       double precision, intent(in)    :: wCT(ixI^S, 1:nw), wCTprim(ixI^S,1:nw), x(ixI^S, 1:ndim)
        double precision, intent(inout) :: w(ixI^S, 1:nw)
        logical, intent(in)             :: qsourcesplit
        logical, intent(inout)          :: active !< Needs to be set to true when active
-       double precision, intent(in), optional :: wCTprim(ixI^S,1:nw)
      end subroutine sub_add_source
 
      !> Add global source terms on complete domain (potentially implicit)
@@ -460,16 +459,15 @@ contains
     double precision, intent(inout) :: wCT(ixI^S, 1:nw), w(ixI^S, 1:nw)
   end subroutine dummy_add_source_geom
 
-  subroutine dummy_add_source(qdt, ixI^L, ixO^L, wCT, w, x, &
-       qsourcesplit, active, wCTprim)
+  subroutine dummy_add_source(qdt, ixI^L, ixO^L, wCT, wCTprim, w, x, &
+       qsourcesplit, active)
     use mod_global_parameters
     integer, intent(in)             :: ixI^L, ixO^L
     double precision, intent(in)    :: qdt
-    double precision, intent(in)    :: wCT(ixI^S, 1:nw), x(ixI^S, 1:ndim)
+    double precision, intent(in)    :: wCT(ixI^S, 1:nw), wCTprim(ixI^S,1:nw), x(ixI^S, 1:ndim)
     double precision, intent(inout) :: w(ixI^S, 1:nw)
     logical, intent(in)             :: qsourcesplit
     logical, intent(inout)          :: active
-    double precision, intent(in), optional :: wCTprim(ixI^S,1:nw)
     ! Don't have to set active, since it starts as .false.
   end subroutine dummy_add_source
 

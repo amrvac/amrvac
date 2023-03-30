@@ -795,6 +795,8 @@ module mod_radiative_cooling
       fl%rc_split=.false.
       call read_params(fl)
 
+      if(fl%rc_split) any_source_split=.true.
+
       ! Checks if coolcurve is a piecewise power law (PPL)
       PPL_curves = [Character(len=65) :: 'Hildner','FM', 'Rosner', 'Klimchuk','SPEX_DM_rough','SPEX_DM_fine']
       do i=1,size(PPL_curves)
@@ -1358,13 +1360,13 @@ module mod_radiative_cooling
 
     end subroutine getvar_cooling_exact
 
-    subroutine radiative_cooling_add_source(qdt,ixI^L,ixO^L,wCT,w,x,&
+    subroutine radiative_cooling_add_source(qdt,ixI^L,ixO^L,wCT,wCTprim,w,x,&
          qsourcesplit,active,fl)
     ! w[iw]=w[iw]+qdt*S[wCT,x] where S is the source based on wCT within ixO
       use mod_global_parameters
  
       integer, intent(in) :: ixI^L, ixO^L
-      double precision, intent(in) :: qdt, x(ixI^S,1:ndim), wCT(ixI^S,1:nw)
+      double precision, intent(in) :: qdt, x(ixI^S,1:ndim), wCT(ixI^S,1:nw), wCTprim(ixI^S,1:nw)
       double precision, intent(inout) :: w(ixI^S,1:nw)
       logical, intent(in) :: qsourcesplit
       logical, intent(inout) :: active
@@ -1390,7 +1392,7 @@ module mod_radiative_cooling
         case ('implicit')   
           call cool_implicit(qdt,ixI^L,ixO^L,wCT,w,x,fl)   
         case ('exact')   
-          call cool_exact(qdt,ixI^L,ixO^L,wCT,w,x,fl)
+          call cool_exact(qdt,ixI^L,ixO^L,wCT,wCTprim,w,x,fl)
         case default
           call mpistop("This cooling method is unknown")
         end select
@@ -1822,12 +1824,12 @@ module mod_radiative_cooling
 
     end subroutine cool_implicit
 
-    subroutine cool_exact(qdt,ixI^L,ixO^L,wCT,w,x, fl)
+    subroutine cool_exact(qdt,ixI^L,ixO^L,wCT,wCTprim,w,x,fl)
     !  Cooling routine using exact integration method from Townsend 2009
       use mod_global_parameters
 
       integer, intent(in)             :: ixI^L, ixO^L
-      double precision, intent(in)    :: qdt, x(ixI^S,1:ndim), wCT(ixI^S,1:nw)
+      double precision, intent(in)    :: qdt, x(ixI^S,1:ndim), wCT(ixI^S,1:nw), wCTprim(ixI^S,1:nw)
       double precision, intent(inout) :: w(ixI^S,1:nw)
       type(rc_fluid), intent(in) :: fl
 
@@ -1838,10 +1840,9 @@ module mod_radiative_cooling
       double precision :: de, emax
       integer :: ix^D
 
-      call fl%get_pthermal(wCT,x,ixI^L,ixO^L,pth)
       call fl%get_rho(wCT,x,ixI^L,ixO^L,rho)
       call fl%get_var_Rfactor(wCT,x,ixI^L,ixO^L,Rfactor)
-      Te(ixO^S)=pth(ixO^S)/(rho(ixO^S)*Rfactor(ixO^S))
+      Te(ixO^S)=wCTprim(ixO^S,iw_e)/(rho(ixO^S)*Rfactor(ixO^S))
 
       call fl%get_pthermal(w,x,ixI^L,ixO^L,pnew)
       call fl%get_rho(w,x,ixI^L,ixO^L,rhonew)

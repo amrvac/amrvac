@@ -719,13 +719,14 @@ contains
     use mod_finite_difference
     use mod_tvd
     use mod_source, only: addsource2
+    use mod_physics, only: phys_to_primitive
     use mod_global_parameters
 
     integer, intent(in) :: method
     integer, intent(in) :: ixI^L, idim^LIM
     double precision, intent(in) :: qdt, qtC, qt, dxs(ndim), x(ixI^S,1:ndim)
     type(state), target          :: sCT, s, sold
-    double precision :: fC(ixI^S,1:nwflux,1:ndim)
+    double precision :: fC(ixI^S,1:nwflux,1:ndim), wprim(ixI^S,1:nw)
     double precision :: fE(ixI^S,7-2*ndim:3)
 
     integer :: ixO^L
@@ -744,8 +745,10 @@ contains
        call centdiff(fs_cd,qdt,ixI^L,ixO^L,idim^LIM,qtC,sCT,qt,s,fC,fE,dxs,x)
        call tvdlimit(method,qdt,ixI^L,ixO^L,idim^LIM,sCT,qt+qdt,s,fC,dxs,x)
     case (fs_source)
+       wprim=sCT%w
+       call phys_to_primitive(ixI^L,ixI^L,wprim,x)
        call addsource2(qdt*dble(idimmax-idimmin+1)/dble(ndim),&
-            ixI^L,ixO^L,1,nw,qtC,sCT%w,qt,s%w,x,.false.)
+            ixI^L,ixO^L,1,nw,qtC,sCT%w,wprim,qt,s%w,x,.false.)
     case (fs_nul)
        ! There is nothing to do
     case default

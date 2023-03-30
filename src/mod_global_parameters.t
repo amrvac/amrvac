@@ -603,6 +603,8 @@ module mod_global_parameters
   logical                       :: flathllc,flatcd,flatsh
   !> Use split or unsplit way to add user's source terms, default: unsplit
   logical                       :: source_split_usr
+  !> if any normal source term is added in split fasion
+  logical                       :: any_source_split=.false.
   logical                       :: dimsplit
 
   !> RK2(alfa) method parameters from Butcher tableau

@@ -615,6 +615,8 @@ contains
       end if
     end if
 
+    if(source_split_usr) any_source_split=.true.
+
     ! restart filename from command line overwrites the one in par file
     if(restart_from_file_arg /= undefined) &
       restart_from_file=restart_from_file_arg

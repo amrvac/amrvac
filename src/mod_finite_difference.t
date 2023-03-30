@@ -132,7 +132,7 @@ contains
     endif
 
     call addsource2(qdt*dble(idimsmax-idimsmin+1)/dble(ndim), &
-         ixI^L,ixO^L,1,nw,qtC,wCT,qt,wnew,x,.false.,active,wprim)
+         ixI^L,ixO^L,1,nw,qtC,wCT,wprim,qt,wnew,x,.false.,active)
 
     end associate
 
@@ -428,7 +428,7 @@ contains
     endif
 
     call addsource2(qdt*dble(idimsmax-idimsmin+1)/dble(ndim), &
-         ixI^L,ixO^L,1,nw,qtC,wCT,qt,w,x,.false.,active,wprim)
+         ixI^L,ixO^L,1,nw,qtC,wCT,wprim,qt,w,x,.false.,active)
 
     end associate
   end subroutine centdiff

@@ -3202,7 +3202,7 @@ contains
   end subroutine twofl_get_flux
 
   !> w[iws]=w[iws]+qdt*S[iws,wCT] where S is the source based on wCT within ixO
-  subroutine twofl_add_source(qdt,ixI^L,ixO^L,wCT,w,x,qsourcesplit,active,wCTprim)
+  subroutine twofl_add_source(qdt,ixI^L,ixO^L,wCT,wCTprim,w,x,qsourcesplit,active)
     use mod_global_parameters
     use mod_radiative_cooling, only: radiative_cooling_add_source
     use mod_viscosity, only: viscosity_add_source
@@ -3210,11 +3210,10 @@ contains
 
     integer, intent(in)             :: ixI^L, ixO^L
     double precision, intent(in)    :: qdt
-    double precision, intent(in)    :: wCT(ixI^S,1:nw), x(ixI^S,1:ndim)
+    double precision, intent(in)    :: wCT(ixI^S,1:nw),wCTprim(ixI^S,1:nw),x(ixI^S,1:ndim)
     double precision, intent(inout) :: w(ixI^S,1:nw)
     logical, intent(in)             :: qsourcesplit
     logical, intent(inout)            :: active
-    double precision, intent(in), optional :: wCTprim(ixI^S,1:nw)
 
     if (.not. qsourcesplit) then
       ! Source for solving internal energy
@@ -3346,11 +3345,11 @@ contains
     }
 
     if(twofl_radiative_cooling_c) then
-      call radiative_cooling_add_source(qdt,ixI^L,ixO^L,wCT,&
+      call radiative_cooling_add_source(qdt,ixI^L,ixO^L,wCT,wCTprim,&
            w,x,qsourcesplit,active,rc_fl_c)
     end if
     if(twofl_radiative_cooling_n) then
-      call radiative_cooling_add_source(qdt,ixI^L,ixO^L,wCT,&
+      call radiative_cooling_add_source(qdt,ixI^L,ixO^L,wCT,wCTprim,&
            w,x,qsourcesplit,active,rc_fl_n)
     end if
 !

@@ -84,7 +84,7 @@ contains
     if (.not.slab.and.idimsmin==1) call phys_add_source_geom(qdt,ixI^L,ixO^L,wCT,wnew,x)
 
     call addsource2(qdt*dble(idimsmax-idimsmin+1)/dble(ndim), &
-         ixI^L,ixO^L,1,nw,qtC,wCT,qt,wnew,x,.false.,active,wprim)
+         ixI^L,ixO^L,1,nw,qtC,wCT,wprim,qt,wnew,x,.false.,active)
 
     ! check and optionally correct unphysical values
     if(fix_small_values) then
@@ -276,7 +276,7 @@ contains
     end if
  
     call addsource2(qdt*dble(idimsmax-idimsmin+1)/dble(ndim), &
-         ixI^L,ixO^L,1,nw,qtC,wCT,qt,wnew,x,.false.,active,wprim)
+         ixI^L,ixO^L,1,nw,qtC,wCT,wprim,qt,wnew,x,.false.,active)
 
   end associate
   contains

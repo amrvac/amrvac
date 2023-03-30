@@ -61,6 +61,8 @@ contains
 
     call vc_params_read(par_files)
 
+    if(vc_split) any_source_split=.true.
+
     ! Determine flux variables
     nwx = 1                  ! rho (density)
 

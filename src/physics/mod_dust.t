@@ -101,6 +101,7 @@ contains
 
     call dust_read_params(par_files)
 
+    if(dust_source_split) any_source_split=.true.
     allocate(gas_mom(ndir))
     gas_rho_ = g_rho
     gas_mom  = g_mom

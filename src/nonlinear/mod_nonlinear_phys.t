@@ -232,17 +232,16 @@ contains
 
   end subroutine nonlinear_add_source_geom
 
-  subroutine nonlinear_add_source(qdt,ixI^L,ixO^L,wCT,w,x,qsourcesplit,active,wCTprim)
+  subroutine nonlinear_add_source(qdt,ixI^L,ixO^L,wCT,wCTprim,w,x,qsourcesplit,active)
     use mod_global_parameters
     use mod_kdv, only: kdv_add_source
 
     integer, intent(in)             :: ixI^L, ixO^L
     double precision, intent(in)    :: qdt
-    double precision, intent(in)    :: wCT(ixI^S, 1:nw), x(ixI^S, 1:ndim)
+    double precision, intent(in)    :: wCT(ixI^S, 1:nw),wCTprim(ixI^S,1:nw), x(ixI^S, 1:ndim)
     double precision, intent(inout) :: w(ixI^S, 1:nw)
     logical, intent(in)             :: qsourcesplit
     logical, intent(inout)          :: active
-    double precision, intent(in), optional :: wCTprim(ixI^S, 1:nw)
 
     if(kdv_source_term) then
       call kdv_add_source(qdt,ixI^L,ixO^L,wCT,w,x,qsourcesplit,active)

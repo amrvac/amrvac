@@ -381,16 +381,15 @@ contains
   end subroutine rd_get_flux
 
   ! w[iw]= w[iw]+qdt*S[wCT, qtC, x] where S is the source based on wCT within ixO
-  subroutine rd_add_source(qdt,ixI^L,ixO^L,wCT,w,x,qsourcesplit,active,wCTprim)
+  subroutine rd_add_source(qdt,ixI^L,ixO^L,wCT,wCTprim,w,x,qsourcesplit,active)
     use mod_global_parameters
     integer, intent(in)             :: ixI^L, ixO^L
     double precision, intent(in)    :: qdt
-    double precision, intent(in)    :: wCT(ixI^S, 1:nw), x(ixI^S, 1:ndim)
+    double precision, intent(in)    :: wCT(ixI^S, 1:nw),wCTprim(ixI^S,1:nw),x(ixI^S, 1:ndim)
     double precision, intent(inout) :: w(ixI^S, 1:nw)
     double precision                :: lpl_u(ixO^S), lpl_v(ixO^S), lpl_w(ixO^S)
     logical, intent(in)             :: qsourcesplit
     logical, intent(inout)          :: active
-    double precision, intent(in), optional :: wCTprim(ixI^S, 1:nw)
 
     ! here we add the reaction terms (always) and the diffusion if no imex is used
     if (qsourcesplit .eqv. rd_source_split) then
