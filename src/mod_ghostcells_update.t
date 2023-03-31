@@ -816,6 +816,10 @@ contains
           ipole=neighbor_pole(i^D,igrid)
           if(ipole==0) then
             n_i^D=-i^D;
+
+            ! Left boundary of block A is left boundary of block B in rsymm
+            if (rsymmB(3).and.psb(igrid)%is_physical_boundary(5)) n_i1 = i1 
+
             isend_c=isend_c+1
             itag=(3**^ND+4**^ND)*(ineighbor-1)+{(n_i^D+1)*3**(^D-1)+}
             call MPI_ISEND(psb(igrid)%w,1,type_send_srl(iib^D,i^D), &
@@ -885,6 +889,8 @@ contains
           ipole=neighbor_pole(i^D,igrid)
           if(ipole==0) then
             n_i^D=-i^D;
+
+            if (rsymmB(3).and.psb(igrid)%is_physical_boundary(5)) n_i1 = i1
             ixS^L=ixS_srl_^L(iib^D,i^D);
             ixR^L=ixR_srl_^L(iib^D,n_i^D);
             psb(ineighbor)%w(ixR^S,nwhead:nwtail)=&

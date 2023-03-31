@@ -13,7 +13,10 @@ subroutine find_root_neighbor(tree_neighbor,tree,i^D)
 
   ! find the periodic grid indices, modulo(-1,10)=9
   {if (periodB(^D)) jg^D=1+modulo(jg^D-1,ng^D(1))\}
-  if (rsymmB(3).and.jg3==0) jg1=ng1(1)-(jg1-1)
+  if (rsymmB(3).and.jg3==0) then
+     jg1=ng1(1)-(jg1-1)
+     jg3=1
+  endif
 
   ! pi-periodicity at pole
   select case (coordinate)
