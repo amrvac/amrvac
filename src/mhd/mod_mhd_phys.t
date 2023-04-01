@@ -4759,7 +4759,8 @@ contains
       B(ixO^S, idir) = wCT(ixO^S,mag(idir))
     end do
 
-    call get_current(wCT,ixI^L,ixO^L,idirmin,current)
+    !call get_current(wCT,ixI^L,ixO^L,idirmin,current)
+    call curlvector(wCT(ixI^S,mag(1:ndir)),ixI^L,ixO^L,current,idirmin,7-2*ndir,ndir,.true.)
 
     J=0.0d0
     do idir=7-2*ndir,3
@@ -4770,7 +4771,9 @@ contains
     call cross_product(ixI^L,ixO^L,J,B,JxB)
     }
     {^IFTHREED
-    call get_current(wCT,ixI^L,ixO^L,idirmin,current)
+    !call get_current(wCT,ixI^L,ixO^L,idirmin,current)
+    ! get current in fourth order accuracy in Cartesian
+    call curlvector(wCT(ixI^S,mag(1:ndir)),ixI^L,ixO^L,current,idirmin,1,ndir,.true.)
     ! get Lorentz force JxB
     call cross_product(ixI^L,ixO^L,current,wCT(ixI^S,mag(1:ndir)),JxB)
     }
