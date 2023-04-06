@@ -19,6 +19,7 @@ module mod_usr
   integer, dimension(8)                          :: which_satellite = (/1, 1, 1, 1, 1, 1, 0, 0/)     ! intended order: earth, mars, mercury, venus, sta, stb, psp, solo
   double precision, dimension(8)                 :: last = (/0, 0, 0, 0, 0, 0, 0, 0/)        ! intended order: earth, mars, mercury, venus, sta, stb, psp, solo
   integer, dimension(8)                          :: last_index = (/0, 0, 0, 0, 0, 0, 0, 0/)  ! intended order: earth, mars, mercury, venus, sta, stb, psp, solo
+  integer, dimension(8)                          :: last_index_s = (/0, 0, 0, 0, 0, 0, 0, 0/)
   double precision                               :: delta_phi
   integer, dimension(:,:), allocatable           :: starting_index, cme_index    ! first coordinate: satellite index; second coordinate: cme index
   integer, dimension(8)                          :: magnetogram_index = (/0, 0, 0, 0, 0, 0, 0, 0/)
@@ -27,7 +28,7 @@ module mod_usr
   ! CME parameters and simulation details from the parameter file
   ! define my cme parameters here
 
- 
+
   integer                                        :: cme_flag
   integer, dimension(:), allocatable             :: cme_year, cme_month, cme_day, cme_hour, cme_minute, cme_second
   double precision, dimension(:), allocatable    :: relaxation, cme_insertion, vr_cme, w_half, clt_cme, lon_cme, rho_cme, temperature_cme
@@ -73,8 +74,10 @@ subroutine usr_params_read(files)
     usr_special_bc      => specialbound_usr
     usr_refine_grid     => specialrefine_grid
     usr_source          => specialsource
+    usr_create_particles => generate_particles
+    usr_particle_position => move_particle
 
-   
+
 
     call set_coordinate_system('spherical_3D')
     call mhd_activate()
@@ -143,7 +146,7 @@ subroutine usr_params_read(files)
     character(len=50)   :: earth_trajectory, mars_trajectory, venus_trajectory
     character(len=50)   :: sta_trajectory, stb_trajectory, mercury_trajectory
     character(len=50), dimension(8) :: trajectory_lists
-    integer             :: nr_colat, nr_lon, k, n, i 
+    integer             :: nr_colat, nr_lon, k, n, i
    !-----------------------------------------------------------------------------
 
     if(firstglobalusr) then
@@ -170,7 +173,7 @@ subroutine usr_params_read(files)
             IF (AllocateStatus /= 0) call mpistop('*** Not enough memory ***')
         ALLOCATE(variables_init(nr_colat, nr_lon+4, 4), STAT = AllocateStatus)
             IF (AllocateStatus /= 0) call mpistop('*** Not enough memory ***')
-  
+
         ! read in boundary file
         call read_boundary_coronal_model(boundary_file, coord_grid_init, variables_init, delta_phi)
 
@@ -185,7 +188,7 @@ subroutine usr_params_read(files)
             time_difference_cme_magn(i, n) = 0
           end do
         end do
-     
+
 
 
         trajectory_lists(1) = earth_trajectory
@@ -204,7 +207,6 @@ subroutine usr_params_read(files)
           end if
         end do
 
-
         ! calculate timestamp for cme insertion
         do k=1, num_cmes
           timestamp(k) = relaxation(k)*24.0 + cme_insertion(k)*24.0 + time_difference_cme_magn(1, k)
@@ -215,71 +217,144 @@ subroutine usr_params_read(files)
     mhd_gamma= 3.0d0/2.0d0
     call set_units(Lunit_in, Tunit_in, Rhounit_in, Vunit_in, Bunit_in, Eunit_in, Punit_in)
 
-!    length_convert_factor = Lunit_in
-!    time_convert_factor = Tunit_in
-
-    print *, 2.0*dpi, Rhounit_in, "  ", Vunit_in, "  ", Punit_in, " ", Bunit_in
 
     w_convert_factor(rho_) = Rhounit_in ! in km/m^3
     w_convert_factor(mom(1)) =Vunit_in*1d-3  ! in km/s
     w_convert_factor(mom(2)) = w_convert_factor(mom(1))
-    w_convert_factor(mom(3)) = w_convert_factor(mom(1)) 
+    w_convert_factor(mom(3)) = w_convert_factor(mom(1))
     w_convert_factor(p_) = Punit_in  ! in kg/s/m^2
     w_convert_factor(mag(1)) = Bunit_in*1d9 ! in nT
     w_convert_factor(mag(2)) = w_convert_factor(mag(1))
     w_convert_factor(mag(3)) = w_convert_factor(mag(1))
 
 
-!    print *, "converts:  ", w_convert_factor(rho_), w_convert_factor(mom(1)), w_convert_factor(p_), w_convert_factor(mag(1))
-
-    ! Note: mhd_activate sets the physical units used by MPI-AMRVAC as governed
-    ! in subroutine mhd_phys_init (in mod_mhd_phys.t) which in turn calls
-    ! subroutine mhd_physical_units (also in mod_mhd_phys.t)
-    !  There, the parameters SI_unit, eq_state_units, mhd_partial_ionization enter
-    !  Sometime we use He_abundance, H_ion_fr, He_ion_fr, He_ion_fr2
-    !  Moreover, we use 3 out of
-    !      unit_density, unit_numberdensity, unit_length, unit_time, unit_velocity,
-    !      unit_pressure, unit_magneticfield, unit_temperature,
-    !      unit_mass, unit_charge
-    !  Note we have factor RR (p=RR rho T)
-    printsettingformat='(1x,A50,ES15.7)'
-    if(mype==0) then
-      write(*,*)'*********AT END OF INITGLOBALDATA_USR***************'
-      write(*,*)'----------------PARAMETERS--   ----------------------'
-      write(*,printsettingformat) "mhd_gamma ",mhd_gamma
-      write(*,printsettingformat) "mhd_eta ",mhd_eta
-      write(*,*)'----------------BEGIN UNITS  ------------------------'
-      write(*,*)'----------------UNIT CONTROLS------------------------'
-      write(*,*) "SI_unit",SI_unit
-      write(*,*) "eq_state_units",eq_state_units
-      write(*,*) "mhd_partial_ionization",mhd_partial_ionization
-      write(*,printsettingformat) "He_abundance",He_abundance
-      write(*,printsettingformat) "H_ion_fr",H_ion_fr
-      write(*,printsettingformat) "He_ion_fr",He_ion_fr
-      write(*,printsettingformat) "He_ion_fr2",He_ion_fr2
-      write(*,*)'----------------UNIT CONTROLS------------------------'
-      write(*,*)'----------------UNITS---------        ---------------'
-      write(*,printsettingformat) "unit density in g/cm-3: ",unit_density
-      write(*,printsettingformat) "unit number density cm-3: ",unit_numberdensity
-      write(*,printsettingformat) "unit length in cm: ",unit_length
-      write(*,printsettingformat) "unit time  in seconds: ",unit_time
-      write(*,printsettingformat) "unit velocity in cm/s: ",unit_velocity
-      write(*,printsettingformat) "unit pressure in cgs: ",unit_pressure
-      write(*,printsettingformat) "unit magnetic field in gauss: ",unit_magneticfield
-      write(*,printsettingformat) "unit temperature in K: ",unit_temperature
-      write(*,printsettingformat) "unit mass in g: ",unit_mass
-      write(*,printsettingformat) "unit charge: ",unit_charge
-      write(*,*)'----------------UNITS--------------------------------'
-      write(*,printsettingformat) "p=RR rho T with RR: ",RR
-      write(*,*)'----------------END UNITS----------------------------'
-      write(*,*)'*********AT END OF INITGLOBALDATA_USR***************'
-    end if
-
-
-!     print *, "grid info:   ", ps(igrid)%x
   end subroutine initglobaldata_usr
 !-----------------------------------------------------------------------------
 !-----------------------------------------------------------------------------
+
+subroutine generate_particles(n_particles, x, v, q, m, follow)
+  use mod_particles
+  integer, intent(in)           :: n_particles
+  double precision, intent(out) :: x(3, n_particles)
+  double precision, intent(out) :: v(3, n_particles)
+  double precision, intent(out) :: q(n_particles)
+  double precision, intent(out) :: m(n_particles)
+  logical, intent(out)          :: follow(n_particles)
+  integer                       :: satellite_index
+
+
+do satellite_index = 1, n_particles
+ v(:, satellite_index) = 0.d0
+ q(satellite_index) = 0.d0
+ m(satellite_index) = 0.d0
+ call get_particle(x(:, satellite_index), satellite_index, n_particles)
+end do
+follow(:) = .true.
+
+
+end subroutine generate_particles
+
+
+!-----------------------------------------------------------------------------
+!-----------------------------------------------------------------------------
+
+
+
+
+!-----------------------------------------------------------------------------
+!-----------------------------------------------------------------------------
+
+subroutine get_particle(x, satellite_index, n_particles)
+double precision, intent(out)      :: x(3)
+integer, intent(in)                :: satellite_index
+integer                            :: n_particles
+double precision, dimension(8)     :: orbital_period = (/365.24, 686.98, 87.969, 224.7, 346.0, 388.0, 88.0, 168.0/)    ! earth, mars, mercury, venus, sta, stb, psp, solo
+double precision                   :: phi_satellite, before_cme
+
+
+
+!print *, xprobmin1, xprobmax1, xprobmin2, xprobmax2, xprobmin3, xprobmax3
+before_cme = (cme_index(1,1) - magnetogram_index(1))/60.0
+
+x(1) = positions_list(satellite_index)%positions(7, starting_index(satellite_index,1))
+x(2) = (dpi/2.0 - positions_list(satellite_index)%positions(8, starting_index(satellite_index,1)))
+
+! phi_satellite here is at qt = 0, so at the simulation start
+phi_satellite = delta_phi+positions_list(satellite_index)%positions(9, starting_index(satellite_index,1))&
+ + ((timestamp(1)-before_cme))*(2.0*dpi)/24.0*(1/2.447d1-1/orbital_period(1))
+
+
+if (phi_satellite < 0) then
+   phi_satellite = 2 * dpi + phi_satellite
+else if (phi_satellite > 2*dpi) then
+   phi_satellite = mod(phi_satellite, 2.0*dpi)
+end if
+x(3) = phi_satellite
+end subroutine get_particle
+
+!-----------------------------------------------------------------------------
+!-----------------------------------------------------------------------------
+
+subroutine move_particle(x, satellite_index, told, tnew)
+double precision, intent(inout) :: x(3)
+double precision, intent(in)    :: told,tnew
+double precision                :: xf(3), xc(3), x_test(3)
+integer, intent(in)             :: satellite_index
+
+double precision                :: phi_satellite, before_cme, delta_lon, lon_old, lon_new
+double precision, dimension(8)     :: orbital_period = (/365.24, 686.98, 87.969, 224.7, 346.0, 388.0, 88.0, 168.0/)    ! earth, mars, mercury, venus, sta, stb, psp, solo
+double precision                :: curr_lon, final_fix
+
+
+
+last_index_s(satellite_index) = starting_index(satellite_index, 1) + floor(tnew*60.0)
+before_cme = (cme_index(1,1) - magnetogram_index(1))/60.0
+
+
+xf(1) = positions_list(satellite_index)%positions(7, last_index_s(satellite_index))
+xf(2) = dpi/2.0 - positions_list(satellite_index)%positions(8, last_index_s(satellite_index))
+xf(3) = x(3) - (tnew-told)*(2.0*dpi)/24.0*(1/2.447d1-1/orbital_period(1))
+last_index_s(satellite_index) = starting_index(satellite_index, 1) + ceiling(tnew*60.0)
+
+xc(1) = positions_list(satellite_index)%positions(7, last_index_s(satellite_index))
+xc(2) = dpi/2.0 - positions_list(satellite_index)%positions(8, last_index_s(satellite_index))
+xc(3) = x(3) - (tnew-told)*(2.0*dpi)/24.0*(1/2.447d1-1/orbital_period(1))
+
+
+if ((ceiling(tnew) - floor(tnew)) .gt. 0.0) then
+  x(1) = xf(1) + (tnew - floor(tnew))*(xc(1)-xf(1))/(ceiling(tnew) - floor(tnew))
+  x(2) = xf(2) + (tnew - floor(tnew))*(xc(2)-xf(2))/(ceiling(tnew) - floor(tnew))
+  x(3) = xf(3) + (tnew - floor(tnew))*(xc(3)-xf(3))/(ceiling(tnew) - floor(tnew))
+else
+  x(1) = xf(1)
+  x(2) = xf(2)
+  x(3) = xf(3)
+end if
+
+
+
+! This is the small (temporary) fix for the longitude update from the file
+! because now we are updating the previous longitude, which only reads out the first longitude of the satellite from the file
+! but not afterwards at everystep, so to fix for that we are doing this
+x_test(3) = delta_phi+positions_list(satellite_index)%positions(9, last_index_s(satellite_index))&
+ - (tnew-(timestamp(1)-before_cme))*(2.0*dpi)/24.0*(1/2.447d1-1/orbital_period(1))
+
+if (x_test(3) < 0) then
+   x_test(3) = 2 * dpi + x_test(3)
+else if (x_test(3) > 2*dpi) then
+   x_test(3) = mod(x_test(3), 2.0*dpi)
+end if
+
+final_fix = x_test(3) - x(3)
+if (final_fix < -2*dpi) then
+final_fix = final_fix + 2*dpi
+end if
+if (final_fix > 2*dpi) then
+final_fix = final_fix - 2*dpi
+end if
+x(3) = x(3) + final_fix
+
+end subroutine move_particle
 
 
 
@@ -349,7 +424,7 @@ subroutine usr_params_read(files)
     double precision :: v(ixI^S,ndir), divV(ixI^S), momentum(ixI^S, ndir)
     integer :: i
 
-    
+
 
     ! output divB1
     call get_divb(w,ixI^L,ixO^L,divb)
@@ -389,218 +464,6 @@ subroutine usr_params_read(files)
       varnames='divB divV div_mom'
 end subroutine specialvarnames_output
 
-
-
-!-----------------------------------------------------------------------------
-!-----------------------------------------------------------------------------
-
-subroutine readout_satellite(satellite_index, file_name, ixI^L,ixO^L, before_cme, qt,w,x)
-  double precision, intent(inout) :: w(ixI^S,1:nw)
-  integer, intent(in)             :: ixI^L, ixO^L
-  double precision, intent(in)    :: x(ixI^S,1:ndim), qt
-  double precision   :: rho_e, P_e, vr_e, vclt_e, vlon_e, Br_e, Bclt_e, Blon_e
-  double precision   :: v_tot, b_tot, pressure
-  character(len=250) :: file_name
-  integer            :: satellite_index
-
-  !integer            :: last_index
-  double precision   :: before_cme
-  logical, save      :: exist
-  double precision   :: xloc(1:ndim)
-  double precision   :: r_satellite, theta_satellite, phi_satellite
-  integer            :: rmin, thmin, phimin
-  double precision   :: xd, yd, zd
-  integer            :: ir1, ith2, iphi3, i_date
-  double precision   :: p_r, p_th, p_phi, p_rme, p_thme, p_phime
-  integer            :: i, check
-  real(8)            :: yr, mnth, day, hr, mn, sc
-  double precision, dimension(8) :: orbital_period = (/365.24, 686.98, 87.969, 224.7, 346.0, 388.0, 88.0, 168.0/)    ! earth, mars, mercury, venus, sta, stb, psp, solo
-
-
-  r_satellite = positions_list(satellite_index)%positions(7, last_index(satellite_index))
-  theta_satellite = dpi/2.0 - positions_list(satellite_index)%positions(8, last_index(satellite_index))
-  phi_satellite = delta_phi+positions_list(satellite_index)%positions(9, last_index(satellite_index))&
-   - (qt-(timestamp(1)-before_cme))*(2.0*dpi)/24.0*(1/2.447d1-1/orbital_period(satellite_index))
-
-
-  if (phi_satellite < 0) then
-     phi_satellite = 2 * dpi + phi_satellite
-  else if (phi_satellite > 2*dpi) then
-     phi_satellite = mod(phi_satellite, 2.0*dpi)
-  end if
-
-
-
-  if((x(ixImin1+1,ixImin2,ixImin3,1)<= r_satellite) .and. &
-    (x(ixImax1-2,ixImin2,ixImin3,1) >= r_satellite)) then
-
-  if((x(ixImin1,ixImin2+1,ixImin3,2)<= theta_satellite) .and. &
-    (x(ixImin1,ixImax2-2,ixImin3,2) >= theta_satellite)) then
-
-  if((x(ixImin1,ixImin2,ixImin3+1,3)<= phi_satellite) .and. &
-     (x(ixImin1,ixImin2,ixImax3-2,3) >= phi_satellite)) then
-
-  last(satellite_index) = qt
-
-  rmin = 0
-  thmin = 0
-  phimin = 0
-
-  do ir1=ixImin1+1,ixImax1-2
-      if( ( x(ir1,ixImin2,ixImin3,1) <= r_satellite) .and. &
-          ( x(ir1+1,ixImin2,ixImin3,1) > r_satellite)) then
-        rmin = ir1
-      end if
-  end do
-  do ith2=ixImin2+1,ixImax2-2
-      if( ( x(ixImin1,ith2,ixImin3,2) <= theta_satellite) .and. &
-          ( x(ixImin1,ith2+1,ixImin3,2) > theta_satellite)) then
-        thmin=ith2
-      end if
-  end do
-  do iphi3=ixImin3+1,ixImax3-2
-      if( ( x(ixImin1,ixImin2,iphi3,3) <= phi_satellite) .and. &
-          ( x(ixImin1,ixImin2,iphi3+1,3) > phi_satellite)) then
-        phimin=iphi3
-      end if
-  end do
-
-
-  xd = (r_satellite - x(rmin, thmin, phimin,1))/(x(rmin+1, thmin+1, phimin+1,1)-x(rmin, thmin, phimin,1))
-  yd = (theta_satellite - x(rmin, thmin, phimin,2))/(x(rmin+1, thmin+1, phimin+1,2)-x(rmin, thmin, phimin,2))
-  zd = (phi_satellite - x(rmin, thmin, phimin,3))/(x(rmin+1, thmin+1, phimin+1,3)-x(rmin, thmin, phimin,3))
-
-
-  rho_e = linear_interpolation_3D(xd, yd, zd, &
-       w(rmin,thmin,phimin,rho_), &
-       w(rmin+1,thmin,phimin,rho_), &
-       w(rmin,thmin,phimin+1,rho_), &
-       w(rmin+1,thmin,phimin+1,rho_), &
-       w(rmin,thmin+1,phimin,rho_), &
-       w(rmin+1,thmin+1,phimin,rho_), &
-       w(rmin,thmin+1,phimin+1,rho_), &
-       w(rmin+1,thmin+1,phimin+1,rho_))
-
-  P_e = linear_interpolation_3D(xd, yd, zd, &
-       w(rmin,thmin,phimin,p_), &
-       w(rmin+1,thmin,phimin,p_), &
-       w(rmin,thmin,phimin+1,p_), &
-       w(rmin+1,thmin,phimin+1,p_), &
-       w(rmin,thmin+1,phimin,p_), &
-       w(rmin+1,thmin+1,phimin,p_), &
-       w(rmin,thmin+1,phimin+1,p_), &
-       w(rmin+1,thmin+1,phimin+1,p_))
-
-  vr_e = linear_interpolation_3D(xd, yd, zd, &
-       w(rmin,thmin,phimin,mom(1))/w(rmin,thmin,phimin,rho_), &
-       w(rmin+1,thmin,phimin,mom(1))/w(rmin+1,thmin,phimin,rho_), &
-       w(rmin,thmin,phimin+1,mom(1))/w(rmin,thmin,phimin+1,rho_), &
-       w(rmin+1,thmin,phimin+1,mom(1))/w(rmin+1,thmin,phimin+1,rho_)&
-       ,w(rmin,thmin+1,phimin,mom(1))/w(rmin,thmin+1,phimin,rho_), &
-       w(rmin+1,thmin+1,phimin,mom(1))/w(rmin+1,thmin+1,phimin,rho_)&
-       ,w(rmin,thmin+1,phimin+1,mom(1))/w(rmin,thmin+1,phimin+1,rho_)&
-       ,w(rmin+1,thmin+1,phimin+1,mom(1))/w(rmin+1,thmin+1,phimin+1,rho_))
-
-  vclt_e = linear_interpolation_3D(xd, yd, zd, &
-       w(rmin,thmin,phimin,mom(2))/w(rmin,thmin,phimin,rho_), &
-       w(rmin+1,thmin,phimin,mom(2))/w(rmin+1,thmin,phimin,rho_), &
-       w(rmin,thmin,phimin+1,mom(2))/w(rmin,thmin,phimin+1,rho_), &
-       w(rmin+1,thmin,phimin+1,mom(2))/w(rmin+1,thmin,phimin+1,rho_)&
-       ,w(rmin,thmin+1,phimin,mom(2))/w(rmin,thmin+1,phimin,rho_), &
-       w(rmin+1,thmin+1,phimin,mom(2))/w(rmin+1,thmin+1,phimin,rho_)&
-       ,w(rmin,thmin+1,phimin+1,mom(2))/w(rmin,thmin+1,phimin+1,rho_)&
-       ,w(rmin+1,thmin+1,phimin+1,mom(2))/w(rmin+1,thmin+1,phimin+1,rho_))
-
-  vlon_e = linear_interpolation_3D(xd, yd, zd, &
-       w(rmin,thmin,phimin,mom(3))/w(rmin,thmin,phimin,rho_), &
-       w(rmin+1,thmin,phimin,mom(3))/w(rmin+1,thmin,phimin,rho_), &
-       w(rmin,thmin,phimin+1,mom(3))/w(rmin,thmin,phimin+1,rho_), &
-       w(rmin+1,thmin,phimin+1,mom(3))/w(rmin+1,thmin,phimin+1,rho_)&
-       ,w(rmin,thmin+1,phimin,mom(3))/w(rmin,thmin+1,phimin,rho_), &
-       w(rmin+1,thmin+1,phimin,mom(3))/w(rmin+1,thmin+1,phimin,rho_)&
-       ,w(rmin,thmin+1,phimin+1,mom(3))/w(rmin,thmin+1,phimin+1,rho_)&
-       ,w(rmin+1,thmin+1,phimin+1,mom(3))/w(rmin+1,thmin+1,phimin+1,rho_))
-
-  Br_e = linear_interpolation_3D(xd, yd, zd, &
-       w(rmin,thmin,phimin,mag(1)), &
-       w(rmin+1,thmin,phimin,mag(1)), &
-       w(rmin,thmin,phimin+1,mag(1)), &
-       w(rmin+1,thmin,phimin+1,mag(1)), &
-       w(rmin,thmin+1,phimin,mag(1)), &
-       w(rmin+1,thmin+1,phimin,mag(1)), &
-       w(rmin,thmin+1,phimin+1,mag(1)), &
-       w(rmin+1,thmin+1,phimin+1,mag(1)))
-
-  Bclt_e = linear_interpolation_3D(xd, yd, zd, &
-       w(rmin,thmin,phimin,mag(2)), &
-       w(rmin+1,thmin,phimin,mag(2)), &
-       w(rmin,thmin,phimin+1,mag(2)), &
-       w(rmin+1,thmin,phimin+1,mag(2)), &
-       w(rmin,thmin+1,phimin,mag(2)), &
-       w(rmin+1,thmin+1,phimin,mag(2)), &
-       w(rmin,thmin+1,phimin+1,mag(2)), &
-       w(rmin+1,thmin+1,phimin+1,mag(2)))
-
-  Blon_e = linear_interpolation_3D(xd, yd, zd, &
-       w(rmin,thmin,phimin,mag(3)), &
-       w(rmin+1,thmin,phimin,mag(3)), &
-       w(rmin,thmin,phimin+1,mag(3)), &
-       w(rmin+1,thmin,phimin+1,mag(3)), &
-       w(rmin,thmin+1,phimin,mag(3)), &
-       w(rmin+1,thmin+1,phimin,mag(3)), &
-       w(rmin,thmin+1,phimin+1,mag(3)), &
-       w(rmin+1,thmin+1,phimin+1,mag(3)))
-
-  p_r  = r_satellite/214.93946938      ![AU] from solar radii
-  p_th = theta_satellite               ![rad]
-  p_phi= phi_satellite                 ![rad]
-
-  rho_e = rho_e * unit_density / 0.5d0 / mp_SI /1.0d6
-  !rho_e = rho_e * unit_density / 0.5d0 / mp_SI
-  P_e = P_e*unit_pressure ![ks/s/m^2] this is energy
-  vr_e = vr_e *unit_velocity / 1.0d3 !km/s
-  vclt_e = vclt_e *unit_velocity / 1.0d3 !km/s
-  vlon_e = vlon_e *unit_velocity / 1.0d3 !km/s
-  Br_e =Br_e *unit_magneticfield*1.0d9 ![nT], from T to nT
-  Bclt_e=Bclt_e *unit_magneticfield*1.0d9 ![nT], from T to nT
-  Blon_e = Blon_e *unit_magneticfield*1.0d9 ![nT], from T to nT
-  b_tot = sqrt(br_e**2 + bclt_e**2 + blon_e**2) *1.0d-9
-  v_tot = sqrt(vr_e**2 + vlon_e**2 + vclt_e**2)*1.0d3
-  pressure = (3.0/2.0-1)*(P_e-rho_e*1.0d6*0.5*mp_SI*v_tot**2/2 - b_tot**2/2)
-
-
-
-  yr = positions_list(satellite_index)%positions(1,last_index(satellite_index))
-  mnth = positions_list(satellite_index)%positions(2,last_index(satellite_index))
-  day = positions_list(satellite_index)%positions(3,last_index(satellite_index))
-  hr = positions_list(satellite_index)%positions(4,last_index(satellite_index))
-  mn = positions_list(satellite_index)%positions(5,last_index(satellite_index))
-  sc = positions_list(satellite_index)%positions(6,last_index(satellite_index))
-
-  inquire(file=file_name, exist=exist)
-  if (exist) then
-    open(12, file=file_name, status="old", position="append", action="write")
-  !  write(12,*) yr, mnth, day, hr, mn, sc, qt, p_r, p_th, p_phi, rho_e, P_e, vr_e, vclt_e, vlon_e, Br_e, Bclt_e, Blon_e
-    write(12,*) qt, p_r, p_th, p_phi, rho_e, pressure, vr_e, vclt_e, vlon_e, Br_e, Bclt_e, Blon_e
-    close(12)
-  else
-    open(12, file=file_name, status="new", action="write")
-   ! write(12, *) "yy mm dd hh MM ss time r clt lon n P vr vclt vlon Br Bclt Blon"
-    write(12, *) "time r clt lon n pressure P vr vclt vlon Br Bclt Blon"
-    !write(12,*) yr, mnth, day, hr, mn, sc, qt, p_r, p_th, p_phi, rho_e, P_e, vr_e, vclt_e, vlon_e, Br_e, Bclt_e, Blon_e
-    write(12,*) qt, p_r, p_th, p_phi, rho_e,pressure, vr_e, vclt_e, vlon_e, Br_e, Bclt_e, Blon_e
-    close(12)
-  end if
-
-
-
-  end if
- end if
-end if
-
-
-
-end subroutine readout_satellite
 
 
 
@@ -645,41 +508,9 @@ end subroutine readout_satellite
     integer            :: check
     ! ---------------------------------------------------------------------------------
 
-    
-    delta_time = 0.25d0
-    delta_steps = int(timestamp(1)*60) !each step is one minute there fore 1 : 60 h
-    elapsed_time = (magnetogram_index(1)-starting_index(1,1))*1/60.0
-    before_cme = (cme_index(1,1) - magnetogram_index(1))/60.0
 
-
-    do i=1, 8
-        if (mod(qt,0.25d0)<0.25d0 .and. mod(qt+qdt,0.25d0)<mod(qt,0.25d0)) then
-            last_index(i) = starting_index(i, 1) + int(qt*60.0)
-            if (qt>last(i)) then
-                if (which_satellite(i)==1) then
-                    file_name=trim(timeseries_file)//trim(satellite_list(i))//'.txt'
-                    call readout_satellite(i, file_name, ixI^L, ixO^L, before_cme, qt,w,x)
-                end if
-            end if
-        end if
-    end do
-
-    
 
     omega_normalized = omega * unit_length/unit_velocity
-
-!    !Centrifugal
-!    w(ixO^S,mom(1)) = w(ixO^S,mom(1)) + qdt*( omega_normalized*omega_normalized*x(ixO^S,1)*wCT(ixO^S,rho_)*sin(x(ixO^S,2))*sin(x(ixO^S,2)) )
-!    w(ixO^S,mom(2)) = w(ixO^S,mom(2)) + qdt*( omega_normalized*omega_normalized*x(ixO^S,1)*wCT(ixO^S,rho_)*cos(x(ixO^S,2))*sin(x(ixO^S,2)) )
-!    !No phi component for the centrifugal force.
-!    w(ixO^S,e_)  = w(ixO^S,e_)  + qdt*( omega_normalized*omega_normalized*x(ixO^S,1)*sin(x(ixO^S,2))*( cos(x(ixO^S,2))*wCT(ixO^S,mom(2))&
-!       +sin(x(ixO^S,2))*wCT(ixO^S,mom(1)) ) )
-!    !Coriolis
-!    w(ixO^S,mom(1)) = w(ixO^S,mom(1)) + qdt*2.0d0*(omega_normalized*sin(x(ixO^S,2)))*wCT(ixO^S,mom(3))
-!    w(ixO^S,mom(2)) = w(ixO^S,mom(2)) + qdt*2.0d0*(omega_normalized*cos(x(ixO^S,2)))*wCT(ixO^S,mom(3))
-!    w(ixO^S,mom(3)) = w(ixO^S,mom(3)) + qdt*2.0d0*omega_normalized*( -cos(x(ixO^S,2))*wCT(ixO^S,mom(2))-sin(x(ixO^S,2))*wCT(ixO^S,mom(1)) )
-!    !v.F for coriolis is zero.
-
 
 
     !Gravity
@@ -746,7 +577,7 @@ end subroutine readout_satellite
     double precision                :: before_cme
     double precision                :: phi_satellite
     !-----------------------------------------------------------------------------
-   
+
     ! To Follow Earth location in the domain
 
     before_cme = (cme_index(1,1) - magnetogram_index(1))/60.0
@@ -775,7 +606,7 @@ end subroutine readout_satellite
 
       end if
     end if
-    
+
     ! Refinement criterion for tracing function
     if (amr_criterion == "tracing") then
       if (qt > timestamp(1)) then
@@ -1330,6 +1161,7 @@ end subroutine readout_satellite
           if ((day(j_date) == magnetogram_timestamp(3)) .and. (hour(j_date) == magnetogram_timestamp(4))) then
             if (minute(j_date) == magnetogram_timestamp(5)) then
               magnetogram_index(index) = j_date
+            !  print *, index, magnetogram_index(index)
               exit
             end if
           end if
@@ -1348,6 +1180,7 @@ end subroutine readout_satellite
               time_difference_cme_magn(index, n) = (cme_index(index, n) - magnetogram_index(index))/60.0 !hours
               delta_steps = int((relaxation(1)+cme_insertion(1)+time_difference_cme_magn(index, n))*60)
               starting_index(index, n) = i_date - delta_steps
+             ! print *, starting_index(2,1), starting_index(2,1)+250*60
               exit
             end if
           end if
@@ -1414,7 +1247,7 @@ end subroutine readout_satellite
       lon_cme(i) = delta_phi + lon_cme(i) * dpi/180.0
     end do
     close(iUnit)
-    
+
   end subroutine read_cme_parameters
 
 
