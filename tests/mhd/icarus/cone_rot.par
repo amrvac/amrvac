@@ -59,6 +59,15 @@
        divbdiff = 0.9
        mhd_rotating_frame = .true.
        mhd_n_tracer = 1
+       mhd_particles = .true.
+ /
+&particles_list
+       physics_type_particles='sample'
+       num_particles=6
+       dtsave_particles=0.0225d0
+       write_individual=.true.
+       write_ensemble=.false.
+
  /
 
 
