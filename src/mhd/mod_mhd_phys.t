@@ -1617,7 +1617,7 @@ contains
     if(mhd_internal_e) then
       ! internal energy
       w(ixO^S,e_)=w(ixO^S,p_)*inv_gamma_1
-    else
+    else if(mhd_energy) then
       ! equation (9)
       ! Calculate total energy from internal, kinetic and magnetic energy
       w(ixO^S,e_)=w(ixO^S,p_)*inv_gamma_1&
@@ -1846,7 +1846,7 @@ contains
     if(mhd_internal_e) then
       ! internal energy to pressure
       w(ixO^S,p_)=gamma_1*w(ixO^S,e_)
-    else
+    else if(mhd_energy) then
       ! E=Bxv
       b=0.d0
       do idir=1,ndir; do jdir=1,ndir; do kdir=1,ndir
@@ -1968,53 +1968,55 @@ contains
     flag=.false.
     where(w(ixO^S,rho_) < small_density) flag(ixO^S,rho_) = .true.
 
-    if(primitive) then
-      if(mhd_energy) where(w(ixO^S,p_) < small_pressure) flag(ixO^S,e_) = .true.
-    else
-      if(mhd_internal_e) then
-        pressure(ixI^S)=gamma_1*w(ixI^S,e_)
-        where(pressure(ixO^S) < small_pressure) flag(ixO^S,p_) = .true.
+    if(mhd_energy) then
+      if(primitive) then
+        where(w(ixO^S,p_) < small_pressure) flag(ixO^S,e_) = .true.
       else
-        if(B0field) then
-          Ba(ixI^S,1:ndir)=w(ixI^S,mag(1:ndir))+block%B0(ixI^S,1:ndir,b0i)
+        if(mhd_internal_e) then
+          pressure(ixI^S)=gamma_1*w(ixI^S,e_)
+          where(pressure(ixO^S) < small_pressure) flag(ixO^S,p_) = .true.
         else
-          Ba(ixI^S,1:ndir)=w(ixI^S,mag(1:ndir))
-        end if
-        inv_rho(ixI^S) = 1d0/w(ixI^S,rho_)
-        b2(ixI^S)=sum(Ba(ixI^S,:)**2,dim=ndim+1)
-        tmp(ixI^S)=sqrt(b2(ixI^S))
-        where(tmp(ixI^S)>smalldouble)
-          tmp(ixI^S)=1.d0/tmp(ixI^S)
-        else where
-          tmp(ixI^S)=0.d0
-        end where
-        do idir=1,ndir
-          b(ixI^S,idir)=Ba(ixI^S,idir)*tmp(ixI^S)
-        end do
-        tmp(ixI^S)=sum(b(ixI^S,:)*w(ixI^S,mom(:)),dim=ndim+1)
-        ! Va^2/c^2
-        b2(ixI^S)=b2(ixI^S)*inv_rho(ixI^S)*inv_squared_c
-        ! equation (15)
-        gamma2(ixI^S)=1.d0/(1.d0+b2(ixI^S))
-        ! Convert momentum to velocity
-        do idir = 1, ndir
-           v(ixI^S,idir) = gamma2*(w(ixI^S, mom(idir))+b2*b(ixI^S,idir)*tmp(ixI^S))*inv_rho(ixI^S)
-        end do
-        ! E=Bxv
-        b=0.d0
-        do idir=1,ndir; do jdir=1,ndir; do kdir=1,ndir
-          if(lvc(idir,jdir,kdir)==1)then
-            b(ixI^S,idir)=b(ixI^S,idir)+Ba(ixI^S,jdir)*v(ixI^S,kdir)
-          else if(lvc(idir,jdir,kdir)==-1)then
-            b(ixI^S,idir)=b(ixI^S,idir)-Ba(ixI^S,jdir)*v(ixI^S,kdir)
+          if(B0field) then
+            Ba(ixI^S,1:ndir)=w(ixI^S,mag(1:ndir))+block%B0(ixI^S,1:ndir,b0i)
+          else
+            Ba(ixI^S,1:ndir)=w(ixI^S,mag(1:ndir))
           end if
-        end do; end do; end do
-        ! Calculate pressure p = (gamma-1)(e-eK-eB-eE)
-        pressure(ixI^S)=gamma_1*(w(ixI^S,e_)&
-                   -half*(sum(v(ixI^S,:)**2,dim=ndim+1)*w(ixI^S,rho_)&
-                   +sum(w(ixI^S,mag(:))**2,dim=ndim+1)&
-                   +sum(b(ixI^S,:)**2,dim=ndim+1)*inv_squared_c))
-        where(pressure(ixO^S) < small_pressure) flag(ixO^S,p_) = .true.
+          inv_rho(ixI^S) = 1d0/w(ixI^S,rho_)
+          b2(ixI^S)=sum(Ba(ixI^S,:)**2,dim=ndim+1)
+          tmp(ixI^S)=sqrt(b2(ixI^S))
+          where(tmp(ixI^S)>smalldouble)
+            tmp(ixI^S)=1.d0/tmp(ixI^S)
+          else where
+            tmp(ixI^S)=0.d0
+          end where
+          do idir=1,ndir
+            b(ixI^S,idir)=Ba(ixI^S,idir)*tmp(ixI^S)
+          end do
+          tmp(ixI^S)=sum(b(ixI^S,:)*w(ixI^S,mom(:)),dim=ndim+1)
+          ! Va^2/c^2
+          b2(ixI^S)=b2(ixI^S)*inv_rho(ixI^S)*inv_squared_c
+          ! equation (15)
+          gamma2(ixI^S)=1.d0/(1.d0+b2(ixI^S))
+          ! Convert momentum to velocity
+          do idir = 1, ndir
+             v(ixI^S,idir) = gamma2*(w(ixI^S, mom(idir))+b2*b(ixI^S,idir)*tmp(ixI^S))*inv_rho(ixI^S)
+          end do
+          ! E=Bxv
+          b=0.d0
+          do idir=1,ndir; do jdir=1,ndir; do kdir=1,ndir
+            if(lvc(idir,jdir,kdir)==1)then
+              b(ixI^S,idir)=b(ixI^S,idir)+Ba(ixI^S,jdir)*v(ixI^S,kdir)
+            else if(lvc(idir,jdir,kdir)==-1)then
+              b(ixI^S,idir)=b(ixI^S,idir)-Ba(ixI^S,jdir)*v(ixI^S,kdir)
+            end if
+          end do; end do; end do
+          ! Calculate pressure p = (gamma-1)(e-eK-eB-eE)
+          pressure(ixI^S)=gamma_1*(w(ixI^S,e_)&
+                     -half*(sum(v(ixI^S,:)**2,dim=ndim+1)*w(ixI^S,rho_)&
+                     +sum(w(ixI^S,mag(:))**2,dim=ndim+1)&
+                     +sum(b(ixI^S,:)**2,dim=ndim+1)*inv_squared_c))
+          where(pressure(ixO^S) < small_pressure) flag(ixO^S,p_) = .true.
+        end if
       end if
     end if
 
@@ -2022,44 +2024,47 @@ contains
       select case (small_values_method)
       case ("replace")
         where(flag(ixO^S,rho_)) w(ixO^S,rho_) = small_density
-
-        if(primitive) then
-          if(mhd_energy) where(flag(ixO^S,e_)) w(ixO^S,p_) = small_pressure
-        else
-          if(mhd_internal_e) then
-            ! internal energy
-            {do ix^DB=ixOmin^DB,ixOmax^DB\}
-              if(flag(ix^D,e_)) then
-                w(ix^D,e_)=small_pressure*inv_gamma_1
-              end if
-            {end do\}
+        if(mhd_energy) then
+          if(primitive) then
+            where(flag(ixO^S,e_)) w(ixO^S,p_) = small_pressure
           else
-            {do ix^DB=ixOmin^DB,ixOmax^DB\}
-              if(flag(ix^D,e_)) then
-                w(ix^D,e_)=small_pressure*inv_gamma_1+half*(sum(v(ix^D,:)**2)*w(ix^D,rho_)&
-                           +sum(w(ix^D,mag(:))**2)+sum(b(ix^D,:)**2)*inv_squared_c)
-              end if
-            {end do\}
+            if(mhd_internal_e) then
+              ! internal energy
+              {do ix^DB=ixOmin^DB,ixOmax^DB\}
+                if(flag(ix^D,e_)) then
+                  w(ix^D,e_)=small_pressure*inv_gamma_1
+                end if
+              {end do\}
+            else
+              {do ix^DB=ixOmin^DB,ixOmax^DB\}
+                if(flag(ix^D,e_)) then
+                  w(ix^D,e_)=small_pressure*inv_gamma_1+half*(sum(v(ix^D,:)**2)*w(ix^D,rho_)&
+                             +sum(w(ix^D,mag(:))**2)+sum(b(ix^D,:)**2)*inv_squared_c)
+                end if
+              {end do\}
+            end if
           end if
         end if
       case ("average")
         ! do averaging of density
         call small_values_average(ixI^L, ixO^L, w, x, flag, rho_)
-        if(primitive) then
-          if(mhd_energy) call small_values_average(ixI^L, ixO^L, w, x, flag, p_)
-        else
-          if(mhd_internal_e) then
-            ! internal energy
-            w(ixI^S,e_)=pressure(ixI^S)
+        if(mhd_energy) then
+          if(primitive) then
             call small_values_average(ixI^L, ixO^L, w, x, flag, p_)
-            w(ixI^S,e_)=w(ixI^S,p_)*inv_gamma_1
           else
-            w(ixI^S,e_)=pressure(ixI^S)
-            call small_values_average(ixI^L, ixO^L, w, x, flag, p_)
-            w(ixI^S,e_)=w(ixI^S,p_)*inv_gamma_1&
-                       +half*(sum(v(ixI^S,:)**2,dim=ndim+1)*w(ixI^S,rho_)&
-                       +sum(w(ixI^S,mag(:))**2,dim=ndim+1)&
-                       +sum(b(ixI^S,:)**2,dim=ndim+1)*inv_squared_c)
+            if(mhd_internal_e) then
+              ! internal energy
+              w(ixI^S,e_)=pressure(ixI^S)
+              call small_values_average(ixI^L, ixO^L, w, x, flag, p_)
+              w(ixI^S,e_)=w(ixI^S,p_)*inv_gamma_1
+            else
+              w(ixI^S,e_)=pressure(ixI^S)
+              call small_values_average(ixI^L, ixO^L, w, x, flag, p_)
+              w(ixI^S,e_)=w(ixI^S,p_)*inv_gamma_1&
+                         +half*(sum(v(ixI^S,:)**2,dim=ndim+1)*w(ixI^S,rho_)&
+                         +sum(w(ixI^S,mag(:))**2,dim=ndim+1)&
+                         +sum(b(ixI^S,:)**2,dim=ndim+1)*inv_squared_c)
+            end if
           end if
         end if
       case default
@@ -2128,15 +2133,12 @@ contains
           end if
         end if
       case ("average")
-        if(primitive)then
-          call small_values_average(ixI^L, ixO^L, w, x, flag, rho_)
-          if(mhd_energy) then
+        ! do averaging of density
+        call small_values_average(ixI^L, ixO^L, w, x, flag, rho_)
+        if(mhd_energy) then
+          if(primitive)then
             call small_values_average(ixI^L, ixO^L, w, x, flag, p_)
-          end if
-        else
-          ! do averaging of density
-          call small_values_average(ixI^L, ixO^L, w, x, flag, rho_)
-          if(mhd_energy) then
+          else
             ! do averaging of internal energy
             w(ixI^S,e_)=w(ixI^S,e_)&
                         -mhd_kin_en(w,ixI^L,ixI^L)&
@@ -2229,15 +2231,12 @@ contains
           end if
         end if
       case ("average")
-        if(primitive)then
-          call small_values_average(ixI^L, ixO^L, w, x, flag, rho_)
-          if(mhd_energy) then
+        ! do averaging of density
+        call small_values_average(ixI^L, ixO^L, w, x, flag, rho_)
+        if(mhd_energy) then
+          if(primitive)then
             call small_values_average(ixI^L, ixO^L, w, x, flag, p_)
-          end if
-        else
-          ! do averaging of density
-          call small_values_average(ixI^L, ixO^L, w, x, flag, rho_)
-          if(mhd_energy) then
+          else
             ! do averaging of internal energy
             call small_values_average(ixI^L, ixO^L, w, x, flag, e_)
           end if
@@ -3919,7 +3918,7 @@ contains
     if(mhd_internal_e) then
       ! Get flux of internal energy
       f(ixO^S,e_)=w(ixO^S,mom(idim))*wC(ixO^S,e_)
-    else
+    else if(mhd_energy) then
       SA=0.d0
       do jdir=1,ndir; do kdir=1,ndir
         if(lvc(idim,jdir,kdir)==1)then
