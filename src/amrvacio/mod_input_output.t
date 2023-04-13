@@ -289,7 +289,8 @@ contains
           filename_sxr,emin_sxr,emax_sxr,resolution_sxr,&
           LOS_theta,LOS_phi,image_rotate,x_origin,big_image,spectrum_wl,&
           location_slit,direction_slit,filename_spectrum,&
-          resolution_spectrum,spectrum_window_min,spectrum_window_max
+          resolution_spectrum,spectrum_window_min,spectrum_window_max,&
+          instrument_resolution_factor,activate_unit_arcsec
 
     ! default maximum number of grid blocks in a processor
     max_blocks=4000
@@ -499,6 +500,8 @@ contains
     resolution_euv = 'instrument'
     resolution_sxr = 'instrument'
     resolution_spectrum = 'instrument'
+    instrument_resolution_factor=1.d0
+    activate_unit_arcsec=.true.
 
     allocate(flux_scheme(nlevelshi),typepred1(nlevelshi),flux_method(nlevelshi))
     allocate(limiter(nlevelshi),gradient_limiter(nlevelshi))

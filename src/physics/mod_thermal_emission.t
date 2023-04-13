@@ -517,6 +517,8 @@ module mod_thermal_emission
       case default
         call mpistop("No information about this line")
       end select
+
+      spatial_px=spatial_px/instrument_resolution_factor
     end subroutine get_line_info
     
     subroutine get_EUV(wl,ixI^L,ixO^L,w,x,fl,flux)
@@ -868,20 +870,37 @@ module mod_thermal_emission
 
       if (resolution_spectrum=='data') then
         if (mype==0) print *, 'Unit of wavelength: Angstrom (0.1 nm) '
-        if (mype==0) write(*,'(a,f8.1,a)') ' Unit of length: ',unit_length/1.d8,' Mm'
         if (SI_unit) then
-          if (mype==0) write(*,'(a,f8.1,a)') ' Location of slit: ',location_slit*unit_length/1.d6,' Mm'
+          if (mype==0) write(*,'(a,f8.1,a)') ' Unit of length: ',unit_length/1.d6,' Mm'
         else
-          if (mype==0) write(*,'(a,f8.1,a)') ' Location of slit: ',location_slit*unit_length/1.d8,' Mm'
+          if (mype==0) write(*,'(a,f8.1,a)') ' Unit of length: ',unit_length/1.d8,' Mm'
         endif
+        if (mype==0) write(*,'(a,f8.1,a)') ' Location of slit: xI1 = ',location_slit,' Unit_length'
+        !if (SI_unit) then
+        !  if (mype==0) write(*,'(a,f8.1,a)') ' Location of slit: ',location_slit*unit_length/1.d6,' Mm'
+        !else
+        !  if (mype==0) write(*,'(a,f8.1,a)') ' Location of slit: ',location_slit*unit_length/1.d8,' Mm'
+        !endif
         if (mype==0) write(*,'(a,f8.1,a)') ' Width of slit: ',wslit*725.0,' km'
         call get_spectrum_data_resol(qunit,datatype,fl)
       else if (resolution_spectrum=='instrument') then
         if (mype==0) print *, 'Unit of wavelength: Angstrom (0.1 nm) '
-        if (mype==0) print *, 'Unit of length: arcsec (~725 km)'
+        if (mype==0) then
+          if (activate_unit_arcsec) then
+            print *, 'Unit of length: arcsec (~725 km)'
+            write(*,'(a,f8.1,a)') ' Location of slit: xI1 = ',location_slit,' arcsec'
+            write(*,'(a,f8.1,a)') ' Width of slit: ',wslit,' arcsec'
+          else
+            if (SI_unit) then
+              if (mype==0) write(*,'(a,f8.1,a)') ' Unit of length: ',unit_length/1.d6,' Mm'
+            else
+              if (mype==0) write(*,'(a,f8.1,a)') ' Unit of length: ',unit_length/1.d8,' Mm'
+            endif
+            write(*,'(a,f8.1,a)') ' Location of slit: xI1 = ',location_slit,' Unit_length'
+            write(*,'(a,f8.1,a)') ' Width of slit: ',wslit*725.d0,' km'
+          endif
+        endif
         if (mype==0) print *, 'Direction of the slit: parallel to xI2 vector'
-        if (mype==0) write(*,'(a,f8.1,a)') ' Location of slit: xI1 = ',location_slit,' arcsec'
-        if (mype==0) write(*,'(a,f8.1,a)') ' Width of slit: ',wslit,' arcsec'
         call get_spectrum_inst_resol(qunit,datatype,fl)
       else
         call MPISTOP('Wrong resolution for resolution_spectrum!')
@@ -1004,7 +1023,11 @@ module mod_thermal_emission
           enddo
         enddo
 
-        xslit=location_slit*arcsec
+        if (activate_unit_arcsec) then 
+          xslit=location_slit*arcsec
+        else
+          xslit=location_slit
+        endif
         if (xslit>=xLmin-wslit*arcsec .and. xslit<=xLmax+wslit*arcsec) then
           call integrate_spectra_inst_resol(igrid,wL,dwLg,xS,dxSg,spectra,numWL,numXS,fl)
         endif
@@ -1023,8 +1046,10 @@ module mod_thermal_emission
         enddo
       enddo
 
-      xS=xS/arcsec
-      dxS=dxS/arcsec
+      if (activate_unit_arcsec) then 
+        xS=xS/arcsec
+        dxS=dxS/arcsec
+      endif
 
       call output_data(qunit,wL,xS,dwL,dxS,wI,numWL,numXS,numWI,datatype)
 
@@ -1059,7 +1084,11 @@ module mod_thermal_emission
       else
         arcsec=7.25d7/unit_length
       endif
-      xslit=location_slit*arcsec
+      if (activate_unit_arcsec) then 
+        xslit=location_slit*arcsec
+      else
+        xslit=location_slit
+      endif
 
       call get_line_info(spectrum_wl,ion,mass,logTe,lineCent,spaceRsl,wlRsl,sigma_PSF,wslit)
 
@@ -1070,6 +1099,7 @@ module mod_thermal_emission
       allocate(flux(ixI^S),v(ixI^S),pth(ixI^S),Te(ixI^S),rho(ixI^S))
       ! get local EUV flux and velocity
       call get_EUV(spectrum_wl,ixI^L,ixO^L,ps(igrid)%w,ps(igrid)%x,fl,flux)
+      flux=flux/instrument_resolution_factor**2   ! adjust flux due to artifical change of resolution
       call fl%get_pthermal(ps(igrid)%w,ps(igrid)%x,ixI^L,ixO^L,pth)
       call fl%get_rho(ps(igrid)%w,ps(igrid)%x,ixI^L,ixO^L,rho)
       call fl%get_var_Rfactor(ps(igrid)%w,ps(igrid)%x,ixI^L,ixO^L,Te)
@@ -1387,6 +1417,7 @@ module mod_thermal_emission
       endif
 
       call get_EUV(spectrum_wl,ixI^L,ixO^L,ps(igrid)%w,ps(igrid)%x,fl,flux)
+      flux=flux/instrument_resolution_factor**2   ! adjust flux due to artifical change of resolution
       call fl%get_rho(ps(igrid)%w,ps(igrid)%x,ixI^L,ixO^L,rho)
       v(ixO^S)=-ps(igrid)%w(ixO^S,iw_mom(direction_LOS))/rho(ixO^S)
       call fl%get_pthermal(ps(igrid)%w,ps(igrid)%x,ixI^L,ixO^L,pth)
@@ -1479,7 +1510,17 @@ module mod_thermal_emission
           call MPISTOP('ERROR: Wrong LOS for synthesizing emission!')
         endif
       else if (resolution_euv=='instrument') then
-        if (mype==0) print *, 'Unit of length: arcsec (~725 km)'
+        if (mype==0) then
+          if (activate_unit_arcsec) then
+            print *, 'Unit of length: arcsec (~725 km)'
+          else
+            if (SI_unit) then
+              if (mype==0) write(*,'(a,f8.1,a)') ' Unit of length: ',unit_length/1.d6,' Mm'
+            else
+              if (mype==0) write(*,'(a,f8.1,a)') ' Unit of length: ',unit_length/1.d8,' Mm'
+            endif
+          endif
+        endif
         call get_image_inst_resol(qunit,datatype,fl)
       else
         call MPISTOP('ERROR: Wrong resolution type')
@@ -1500,7 +1541,8 @@ module mod_thermal_emission
       if (mype==0) print *, 'Systhesizing SXR image (observed at 1 AU).'
       if (mype==0) write(*,'(a,i2,a,i2,a)') ' Passband: ',emin_sxr,' - ',emax_sxr,' keV'
       if (mype==0) print *, 'Unit of SXR flux: photons cm^-2 s^-1 pixel^-1'
-      if (mype==0) write(*,'(a,f6.1,a,f6.1,a)') ' Pixel: ',2.3*725.0,' km x ',2.3*725.0, ' km'
+      if (mype==0) write(*,'(a,f6.1,a,f6.1,a)') ' Pixel: ',2.3*725.0/instrument_resolution_factor, &
+                                                    ' km x ',2.3*725.0/instrument_resolution_factor, ' km'
       if (mype==0) write(*,'(a,f6.3,f8.3,f8.3,a)') ' Mapping: [',x_origin(1),x_origin(2),x_origin(3), &
                                                    '] of the simulation box is located at [X=0,Y=0] of the image'
 
@@ -1522,7 +1564,17 @@ module mod_thermal_emission
           call MPISTOP('ERROR: Wrong LOS for synthesizing emission!')
         endif
       else if (resolution_sxr=='instrument') then
-        if (mype==0) print *, 'Unit of length: arcsec (~725 km)'
+        if (mype==0) then
+          if (activate_unit_arcsec) then
+            print *, 'Unit of length: arcsec (~725 km)'
+          else
+            if (SI_unit) then
+              if (mype==0) write(*,'(a,f8.1,a)') ' Unit of length: ',unit_length/1.d6,' Mm'
+            else
+              if (mype==0) write(*,'(a,f8.1,a)') ' Unit of length: ',unit_length/1.d8,' Mm'
+            endif
+          endif
+        endif
         call get_image_inst_resol(qunit,datatype,fl)
       else
         call MPISTOP('ERROR: Wrong resolution type')
@@ -1615,7 +1667,7 @@ module mod_thermal_emission
         call get_line_info(wavelength,ion,mass,logTe,lineCent,spaceRsl,wlRsl,sigma_PSF,wslit)
         dxI=spaceRsl*arcsec  ! intrument resolution of image
       else
-        RHESSI_rsl=2.3d0
+        RHESSI_rsl=2.3d0/instrument_resolution_factor
         dxI=RHESSI_rsl*arcsec
       endif
       numXI1=2*ceiling((xImax1-xIcent1)/dxI/2.d0)
@@ -1674,10 +1726,12 @@ module mod_thermal_emission
           enddo
         enddo
 
-        xI1=xI1/arcsec
-        dxI1=dxI1/arcsec
-        xI2=xI2/arcsec
-        dxI2=dxI2/arcsec
+        if (activate_unit_arcsec) then
+          xI1=xI1/arcsec
+          dxI1=dxI1/arcsec
+          xI2=xI2/arcsec
+          dxI2=dxI2/arcsec
+        endif
         call output_data(qunit,xI1,xI2,dxI1,dxI2,wI,numXI1,numXI2,numWI,datatype)
         deallocate(wI,EUV,EUVs,Dpl,Dpls)
       endif
@@ -1703,10 +1757,12 @@ module mod_thermal_emission
         enddo
         wI(:,:,1)=SXR(:,:)
 
-        xI1=xI1/arcsec
-        dxI1=dxI1/arcsec
-        xI2=xI2/arcsec
-        dxI2=dxI2/arcsec
+        if (activate_unit_arcsec) then
+          xI1=xI1/arcsec
+          dxI1=dxI1/arcsec
+          xI2=xI2/arcsec
+          dxI2=dxI2/arcsec
+        endif
         call output_data(qunit,xI1,xI2,dxI1,dxI2,wI,numXI1,numXI2,numWI,datatype)
         deallocate(wI,SXR,SXRs)
       endif
@@ -1741,8 +1797,8 @@ module mod_thermal_emission
       ^D&xbmax^D=rnode(rpxmax^D_,igrid)\
 
       allocate(flux(ixI^S))
-      ! get local SXR flux
-      call get_SXR(ixI^L,ixO^L,ps(igrid)%w,ps(igrid)%x,fl,flux,emin_sxr,emax_sxr)
+      ! get local SXR flux photons cm^-3 s^-1 (cgs) or photons m^-3 s^-1 (SI)
+      call get_SXR(ixI^L,ixO^L,ps(igrid)%w,ps(igrid)%x,fl,flux,emin_sxr,emax_sxr) 
 
       ! integrate emission
       if (SI_unit) then
@@ -1750,7 +1806,7 @@ module mod_thermal_emission
       else
         arcsec=7.25d7/unit_length
       endif
-      RHESSI_rsl=2.3d0      
+      RHESSI_rsl=2.3d0/instrument_resolution_factor
       sigma_PSF=1.d0
       pixel=RHESSI_rsl*arcsec
       sigma0=sigma_PSF*pixel
@@ -1763,6 +1819,7 @@ module mod_thermal_emission
         ! dividing a cell to several parts to get more accurate integrating values
         {do iSubC^D=1,nSubC^D\}
           ^D&xSubC(^D)=ps(igrid)%x(ix^DD,^D)-half*ps(igrid)%dx(ix^DD,^D)+(iSubC^D-half)*dxSubC^D;
+          ! sub cell SXR flux at 1 AU [photons s^-1 cm^-2]
           fluxSubC=flux(ix^D)*dxSubC1*dxSubC2*dxSubC3*unit_length**3/area_1AU
           ! mapping the 3D coordinate to location at the image
           call get_cor_image(xSubC,xCent)
@@ -1820,6 +1877,7 @@ module mod_thermal_emission
       allocate(flux(ixI^S),v(ixI^S),rho(ixI^S))
       ! get local EUV flux and velocity
       call get_EUV(wavelength,ixI^L,ixO^L,ps(igrid)%w,ps(igrid)%x,fl,flux)
+      flux=flux/instrument_resolution_factor**2   ! adjust flux due to artifical change of resolution
       call fl%get_rho(ps(igrid)%w,ps(igrid)%x,ixI^L,ixO^L,rho)
       {do ix^D=ixOmin^D,ixOmax^D\}
         do j=1,3
@@ -2117,7 +2175,7 @@ module mod_thermal_emission
         else
           arcsec=7.25d7
         endif
-        RHESSI_rsl=2.3d0
+        RHESSI_rsl=2.3d0/instrument_resolution_factor
         numWI=1
         allocate(wI(nXIF1,nXIF2,numWI))
         allocate(SXRs(nXIF1,nXIF2),SXR(nXIF1,nXIF2))
@@ -2130,7 +2188,7 @@ module mod_thermal_emission
         call MPI_ALLREDUCE(SXRs,SXR,numSI,MPI_DOUBLE_PRECISION, &
                            MPI_SUM,icomm,ierrmpi)
 
-        SXR=SXR*(RHESSI_rsl*arcsec)**2
+        SXR=SXR*(RHESSI_rsl*arcsec)**2 ! photons cm^-2 s^-1 pixel^-1
         do ix1=1,nXIF1
           do ix2=1,nXIF2
             if (SXR(ix1,ix2)<smalldouble) SXR(ix1,ix2)=zero
@@ -2187,6 +2245,7 @@ module mod_thermal_emission
       dxb3(ixO^S)=ps(igrid)%dx(ixO^S,3)
       ! get local EUV flux and velocity
       call get_EUV(wavelength,ixI^L,ixO^L,ps(igrid)%w,ps(igrid)%x,fl,flux)
+      flux=flux/instrument_resolution_factor**2   ! adjust flux due to artifical change of resolution
       call fl%get_rho(ps(igrid)%w,ps(igrid)%x,ixI^L,ixO^L,rho)
       v(ixO^S)=-ps(igrid)%w(ixO^S,iw_mom(direction_LOS))/rho(ixO^S)
       deallocate(rho)
