@@ -322,10 +322,8 @@ contains
     integer, intent(in)             :: ixI^L, ixO^L, idir
     double precision, intent(in)    :: q(ixI^S)
     double precision, intent(inout) :: gradq(ixI^S)
-    double precision                :: x(ixI^S,1:ndim)
-    integer                         :: jxO^L, hxO^L
 
-    x(ixI^S,1:ndim)=block%x(ixI^S,1:ndim)
+    integer                         :: jxO^L, hxO^L
 
     hxO^L=ixO^L-kr(idir,^D);
     jxO^L=ixO^L+kr(idir,^D);
@@ -333,25 +331,25 @@ contains
     case(Cartesian)
       gradq(ixO^S)=half*(q(jxO^S)-q(hxO^S))/dxlevel(idir)
     case(Cartesian_stretched,Cartesian_expansion)
-      gradq(ixO^S)=(q(jxO^S)-q(hxO^S))/(x(jxO^S,idir)-x(hxO^S,idir))
+      gradq(ixO^S)=(q(jxO^S)-q(hxO^S))/(block%x(jxO^S,idir)-block%x(hxO^S,idir))
     case(spherical)
       select case(idir)
       case(1)
-        gradq(ixO^S)=(q(jxO^S)-q(hxO^S))/((x(jxO^S,1)-x(hxO^S,1)))
+        gradq(ixO^S)=(q(jxO^S)-q(hxO^S))/((block%x(jxO^S,1)-block%x(hxO^S,1)))
         {^NOONED
       case(2)
-        gradq(ixO^S)=(q(jxO^S)-q(hxO^S))/((x(jxO^S,2)-x(hxO^S,2))*x(ixO^S,1))
+        gradq(ixO^S)=(q(jxO^S)-q(hxO^S))/((block%x(jxO^S,2)-block%x(hxO^S,2))*block%x(ixO^S,1))
         }
         {^IFTHREED
       case(3)
-        gradq(ixO^S)=(q(jxO^S)-q(hxO^S))/((x(jxO^S,3)-x(hxO^S,3))*x(ixO^S,1)*dsin(x(ixO^S,2)))
+        gradq(ixO^S)=(q(jxO^S)-q(hxO^S))/((block%x(jxO^S,3)-block%x(hxO^S,3))*block%x(ixO^S,1)*dsin(block%x(ixO^S,2)))
         }
       end select
     case(cylindrical)
       if(idir==phi_) then
-        gradq(ixO^S)=(q(jxO^S)-q(hxO^S))/((x(jxO^S,phi_)-x(hxO^S,phi_))*x(ixO^S,r_))
+        gradq(ixO^S)=(q(jxO^S)-q(hxO^S))/((block%x(jxO^S,phi_)-block%x(hxO^S,phi_))*block%x(ixO^S,r_))
       else
-        gradq(ixO^S)=(q(jxO^S)-q(hxO^S))/(x(jxO^S,idir)-x(hxO^S,idir))
+        gradq(ixO^S)=(q(jxO^S)-q(hxO^S))/(block%x(jxO^S,idir)-block%x(hxO^S,idir))
       end if
     case default
       call mpistop('Unknown geometry')
@@ -414,6 +412,47 @@ contains
     end select
 
   end subroutine gradientx
+
+  !> Calculate gradient of a scalar q in direction idir at cell interfaces
+  subroutine gradientq(q,x,ixI^L,ixO^L,idir,gradq)
+    use mod_global_parameters
+
+    integer, intent(in)             :: ixI^L, ixO^L, idir
+    double precision, intent(in)    :: q(ixI^S), x(ixI^S,1:ndim)
+    double precision, intent(inout) :: gradq(ixI^S)
+    integer                         :: jxO^L, hxO^L, kxO^L
+
+    jxO^L=ixO^L;
+    hxO^L=ixO^L-kr(idir,^D);
+    select case(coordinate)
+    case(Cartesian)
+      gradq(ixO^S)=(q(jxO^S)-q(hxO^S))/dxlevel(idir)
+    case(Cartesian_stretched,Cartesian_expansion)
+      gradq(ixO^S)=(q(jxO^S)-q(hxO^S))/(x(jxO^S,idir)-x(hxO^S,idir))
+    case(spherical)
+      select case(idir)
+      case(1)
+        gradq(ixO^S)=(q(jxO^S)-q(hxO^S))/((x(jxO^S,1)-x(hxO^S,1)))
+        {^NOONED
+      case(2)
+        gradq(ixO^S)=(q(jxO^S)-q(hxO^S))/((x(jxO^S,2)-x(hxO^S,2))*x(ixO^S,1))
+        }
+        {^IFTHREED
+      case(3)
+        gradq(ixO^S)=(q(jxO^S)-q(hxO^S))/((x(jxO^S,3)-x(hxO^S,3))*x(ixO^S,1)*dsin(x(ixO^S,2)))
+        }
+      end select
+    case(cylindrical)
+      if(idir==phi_) then
+        gradq(ixO^S)=(q(jxO^S)-q(hxO^S))/((x(jxO^S,phi_)-x(hxO^S,phi_))*x(ixO^S,r_))
+      else
+        gradq(ixO^S)=(q(jxO^S)-q(hxO^S))/(x(jxO^S,idir)-x(hxO^S,idir))
+      end if
+    case default
+      call mpistop('Unknown geometry')
+    end select
+
+  end subroutine gradientq
 
   !> Calculate gradient of a scalar q within ixL in direction idir
   !> first use limiter to go from cell center to edge

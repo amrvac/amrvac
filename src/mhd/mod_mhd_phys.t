@@ -2500,7 +2500,7 @@ contains
     double precision :: Bdir(ndim)
     double precision :: ltrc,ltrp,altr(ixI^S)
     integer :: idims,jxO^L,hxO^L,ixA^D,ixB^D
-    integer :: jxP^L,hxP^L,ixP^L
+    integer :: jxP^L,hxP^L,ixP^L,ixQ^L
     logical :: lrlt(ixI^S)
 
     call mhd_get_temperature(w,x,ixI^L,ixI^L,Te)
@@ -2601,11 +2601,23 @@ contains
       !> iijima et al. 2021, LTRAC method
       ltrc=1.5d0
       ltrp=4.d0
-      ixP^L=ixO^L^LADD1;
+      ixP^L=ixO^L^LADD2;
       ! temperature gradient at cell centers
       do idims=1,ndim
-        call gradient(Te,ixI^L,ixP^L,idims,tmp1)
-        gradT(ixP^S,idims)=tmp1(ixP^S)
+        ixQ^L=ixP^L;
+        hxP^L=ixP^L;
+        jxP^L=ixP^L;
+        select case(idims)
+          {case(^D)
+           ixQmin^D=ixQmin^D+1
+           ixQmax^D=ixQmax^D-1
+           hxPmax^D=ixPmin^D
+           jxPmin^D=ixPmax^D
+          \}
+        end select
+        call gradient(Te,ixI^L,ixQ^L,idims,gradT(ixI^S,idims))
+        call gradientx(Te,x,ixI^L,hxP^L,idims,gradT(ixI^S,idims),.false.)
+        call gradientq(Te,x,ixI^L,jxP^L,idims,gradT(ixI^S,idims))
       end do
       ! B vector
       if(B0field) then
@@ -2613,12 +2625,7 @@ contains
       else
         bunitvec(ixP^S,:)=w(ixP^S,iw_mag(:))
       end if
-      tmp1(ixP^S)=dsqrt(sum(bunitvec(ixP^S,:)**2,dim=ndim+1))
-      where(tmp1(ixP^S)/=0.d0)
-        tmp1(ixP^S)=1.d0/tmp1(ixP^S)
-      elsewhere
-        tmp1(ixP^S)=bigdouble
-      end where
+      tmp1(ixP^S)=1.d0/(dsqrt(sum(bunitvec(ixP^S,:)**2,dim=ndim+1))+smalldouble)
       ! b unit vector: magnetic field direction vector
       do idims=1,ndim
         bunitvec(ixP^S,idims)=bunitvec(ixP^S,idims)*tmp1(ixP^S)
@@ -2634,15 +2641,14 @@ contains
       lts(ixP^S)=max(one, (exp(lts(ixP^S))/ltrc)**ltrp)
   
       altr=zero
-      do idims=1,ndim
-        hxO^L=ixO^L-kr(idims,^D);
-        jxO^L=ixO^L+kr(idims,^D);
-        altr(ixO^S)=altr(ixO^S)+0.25d0*(lts(hxO^S)+two*lts(ixO^S)+lts(jxO^S))*bunitvec(ixO^S,idims)**2
-      end do
-      block%wextra(ixO^S,Tcoff_)=Te(ixO^S)*altr(ixO^S)**0.4d0
       ! need one ghost layer for thermal conductivity
-      {block%wextra(ixOmin^D-1^D%ixP^S,Tcoff_)=block%wextra(ixOmin^D^D%ixP^S,Tcoff_) \}
-      {block%wextra(ixOmax^D+1^D%ixP^S,Tcoff_)=block%wextra(ixOmax^D^D%ixP^S,Tcoff_) \}
+      ixP^L=ixO^L^LADD1;
+      do idims=1,ndim
+        hxO^L=ixP^L-kr(idims,^D);
+        jxO^L=ixP^L+kr(idims,^D);
+        altr(ixP^S)=altr(ixP^S)+0.25d0*(lts(hxO^S)+two*lts(ixP^S)+lts(jxO^S))*bunitvec(ixP^S,idims)**2
+      end do
+      block%wextra(ixP^S,Tcoff_)=Te(ixP^S)*altr(ixP^S)**0.4d0
     case(3,5)
       !> do nothing here
     case default

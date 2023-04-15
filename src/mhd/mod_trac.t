@@ -166,7 +166,7 @@ contains
     integer :: iigrid, igrid
     integer :: ixO^L,trac_tcoff
 
-    ixO^L=ixM^LL;
+    ixO^L=ixM^LL^LADD1;
     trac_tcoff=iw_tcoff
     do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
       where(ps(igrid)%wextra(ixO^S,trac_tcoff) .lt. T_bott)
