@@ -57,8 +57,6 @@ module mod_particle_base
   integer                 :: nparticles
   !> Iteration number of paritcles
   integer                 :: it_particles
-  !> Output count for ensembles
-  integer                 :: n_output_ensemble
   !> Output count for ensembles of destroyed particles
   integer                 :: n_output_destroyed
 
@@ -230,7 +228,6 @@ contains
     losses                    = .false.
     nparticles                = 0
     it_particles              = 0
-    n_output_ensemble         = 0
     n_output_destroyed        = 0
     nparticles_on_mype        = 0
     nparticles_active_on_mype = 0
@@ -818,15 +815,15 @@ contains
       tpartc_com_avg  = tpartc_com_avg/dble(npe)
       tpartc_grid_avg = tpartc_grid_avg/dble(npe)
       write(*,'(a,f12.3,a)')' Particle handling took     : ',tpartc,' sec'
-      write(*,'(a,f12.2,a)')'                  Percentage: ',100.0d0*tpartc/timeloop,' %'
+      write(*,'(a,f12.2,a)')'                  Percentage: ',100.0d0*tpartc/(timeloop+smalldouble),' %'
       write(*,'(a,f12.3,a)')' Particle IO took           : ',tpartc_io_avg,' sec'
-      write(*,'(a,f12.2,a)')'                  Percentage: ',100.0d0*tpartc_io_avg/timeloop,' %'
+      write(*,'(a,f12.2,a)')'                  Percentage: ',100.0d0*tpartc_io_avg/(timeloop+smalldouble),' %'
       write(*,'(a,f12.3,a)')' Particle COM took          : ',tpartc_com_avg,' sec'
-      write(*,'(a,f12.2,a)')'                  Percentage: ',100.0d0*tpartc_com_avg/timeloop,' %'
+      write(*,'(a,f12.2,a)')'                  Percentage: ',100.0d0*tpartc_com_avg/(timeloop+smalldouble),' %'
       write(*,'(a,f12.3,a)')' Particle integration took  : ',tpartc_int_avg,' sec'
-      write(*,'(a,f12.2,a)')'                  Percentage: ',100.0d0*tpartc_int_avg/timeloop,' %'
+      write(*,'(a,f12.2,a)')'                  Percentage: ',100.0d0*tpartc_int_avg/(timeloop+smalldouble),' %'
       write(*,'(a,f12.3,a)')' Particle init grid took    : ',tpartc_grid_avg,' sec'
-      write(*,'(a,f12.2,a)')'                  Percentage: ',100.0d0*tpartc_grid_avg/timeloop,' %'
+      write(*,'(a,f12.2,a)')'                  Percentage: ',100.0d0*tpartc_grid_avg/(timeloop+smalldouble),' %'
     end if
 
   end subroutine time_spent_on_particles
@@ -1321,6 +1318,7 @@ contains
       call MPI_SEND(send_particles,send_n_particles_for_output,type_particle,0,mype,icomm,ierrmpi)
       call MPI_SEND(send_payload,npayload*send_n_particles_for_output,MPI_DOUBLE_PRECISION,0,mype,icomm,ierrmpi)
     else
+      write(*,*) 'particle time',send_particles(1)%time
       ! Create file and write header
       if(typefile=='destroy') then ! Destroyed file
         write(filename,"(a,a,i6.6,a)") trim(base_filename) // '_', &
@@ -1337,8 +1335,7 @@ contains
 
       else ! Ensemble file
         write(filename,"(a,a,i6.6,a)") trim(base_filename) // '_', &
-             trim(typefile) // '_', n_output_ensemble,'.csv'
-        n_output_ensemble = n_output_ensemble + 1
+             trim(typefile) // '_', nint(send_particles(1)%time/dtsave_particles),'.csv'
         open(unit=unitparticles,file=filename)
         write(unitparticles,"(a)") trim(csv_header)
       end if
