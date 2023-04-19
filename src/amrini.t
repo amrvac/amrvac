@@ -18,6 +18,7 @@ subroutine initlevelone
      call alloc_node(igrid)
      ! in case gradient routine used in initial condition, ensure geometry known
      call initial_condition(igrid)
+
   end do
   {#IFDEF EVOLVINGBOUNDARY
   ! mark physical-boundary blocks on space-filling curve

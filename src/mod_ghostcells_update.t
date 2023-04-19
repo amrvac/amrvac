@@ -357,12 +357,10 @@ contains
       ixR_p_max^D( 1,2)=ixCoGmax^D
       \}
     end if
-
   end subroutine init_bc
 
   subroutine create_bc_mpi_datatype(nwstart,nwbc) 
     use mod_global_parameters 
-
     integer, intent(in) :: nwstart, nwbc
     integer :: i^D, ic^D, inc^D, iib^D
 
@@ -381,12 +379,10 @@ contains
          {end do\}
       {end do\}
     {end do\}
-  
   end subroutine create_bc_mpi_datatype
 
   subroutine get_bc_comm_type(comm_type,ix^L,ixG^L,nwstart,nwbc)
     use mod_global_parameters 
-  
     integer, intent(inout) :: comm_type
     integer, intent(in) :: ix^L, ixG^L, nwstart, nwbc
     
@@ -402,7 +398,6 @@ contains
     call MPI_TYPE_CREATE_SUBARRAY(ndim+1,fullsize,subsize,start,MPI_ORDER_FORTRAN, &
                                   MPI_DOUBLE_PRECISION,comm_type,ierrmpi)
     call MPI_TYPE_COMMIT(comm_type,ierrmpi)
-    
   end subroutine get_bc_comm_type
 
   subroutine put_bc_comm_types()
@@ -443,8 +438,8 @@ contains
     double precision :: time_bcin
     integer :: ipole, nwhead, nwtail
     integer :: iigrid, igrid, ineighbor, ipe_neighbor, isizes
-    integer :: ixR^L, ixS^L
-    integer :: i^D, n_i^D, ic^D, inc^D, n_inc^D, iib^D, idir
+    integer :: ixR^L, ixS^L, ixG^L
+    integer :: i^D, n_i^D, ic^D, inc^D, n_inc^D, iib^D, n_iib^D,idir
     ! store physical boundary indicating index
     integer :: idphyb(ndim,max_blocks)
     integer :: isend_buf(npwbuf), ipwbuf, nghostcellsco
@@ -561,7 +556,6 @@ contains
   
       call MPI_WAITALL(irecv_c,recvrequest_c_sr,recvstatus_c_sr,ierrmpi)
       call MPI_WAITALL(isend_c,sendrequest_c_sr,sendstatus_c_sr,ierrmpi)
-  
       if(stagger_grid) then
         call MPI_WAITALL(nrecv_bc_srl,recvrequest_srl,recvstatus_srl,ierrmpi)
         call MPI_WAITALL(nsend_bc_srl,sendrequest_srl,sendstatus_srl,ierrmpi)
@@ -714,7 +708,7 @@ contains
           if(idims > 2 .and. neighbor_type(0, 1,0,igrid)==neighbor_boundary) ixBmax2=ixGhi2}
           do iside=1,2
             i^D=kr(^D,idims)*(2*iside-3);
-            if (aperiodB(idims)) then
+            if (aperiodB(idims) .or. rsymmB(idims)) then
               if (neighbor_type(i^D,igrid) /= neighbor_boundary .and. &
                    .not. psb(igrid)%is_physical_boundary(2*idims-2+iside)) cycle
             else
@@ -752,7 +746,7 @@ contains
           ixBmax^D=ixGhi^D-kmax^D*nghostcells;
           do iside=1,2
             i^D=kr(^D,idims)*(2*iside-3);
-            if (aperiodB(idims)) then 
+            if (aperiodB(idims) .or. rsymmB(idims)) then 
               if (neighbor_type(i^D,igrid) /= neighbor_boundary .and. &
                  .not. psb(igrid)%is_physical_boundary(2*idims-2+iside)) cycle
             else 
@@ -766,13 +760,23 @@ contains
 
       !> Receive from sibling at same refinement level
       subroutine bc_recv_srl
-
         ipe_neighbor=neighbor(2,i^D,igrid)
         if (ipe_neighbor/=mype) then
            irecv_c=irecv_c+1
            itag=(3**^ND+4**^ND)*(igrid-1)+{(i^D+1)*3**(^D-1)+}
-           call MPI_IRECV(psb(igrid)%w,1,type_recv_srl(iib^D,i^D), &
+           n_iib^D=iib^D;
+{^IFTHREED
+           if(rsymmB(3) .and. iib3==-1 .and. i3==-1 .and. iib1 .ne. 0) n_iib1=-iib1
+}
+           ixR^L=ixR_srl_^L(n_iib^D,i^D);
+           call MPI_IRECV(psb(igrid)%w,1,type_recv_srl(n_iib^D,i^D), &
                           ipe_neighbor,itag,icomm,recvrequest_c_sr(irecv_c),ierrmpi)
+{^IFTHREED
+            if(rsymmB(3) .and. iib3==-1 .and. i3==-1) then
+              psb(igrid)%w(ixR^S,nwhead:nwtail)=&
+                 psb(igrid)%w(ixRmax1:ixRmin1:-1,ixRmin2:ixRmax2,ixRmax3:ixRmin3:-1,nwhead:nwtail)
+            endif
+}
            if(stagger_grid) then
              irecv_srl=irecv_srl+1
              call MPI_IRECV(recvbuffer_srl(ibuf_recv_srl),sizes_srl_recv_total(i^D),MPI_DOUBLE_PRECISION, &
@@ -780,7 +784,6 @@ contains
              ibuf_recv_srl=ibuf_recv_srl+sizes_srl_recv_total(i^D)
            end if
         end if
-
       end subroutine bc_recv_srl
 
       !> Receive from fine neighbor
@@ -808,19 +811,19 @@ contains
 
       !> Send to sibling at same refinement level
       subroutine bc_send_srl
-
         ipe_neighbor=neighbor(2,i^D,igrid)
-
         if(ipe_neighbor/=mype) then
           ineighbor=neighbor(1,i^D,igrid)
           ipole=neighbor_pole(i^D,igrid)
           if(ipole==0) then
             n_i^D=-i^D;
-
-            ! Left boundary of block A is left boundary of block B in rsymm
-            if (rsymmB(3).and.psb(igrid)%is_physical_boundary(5)) n_i1 = i1 
-
             isend_c=isend_c+1
+{^IFTHREED
+            if(rsymmB(3) .and. iib3==-1 .and. i3==-1) then
+              n_i1=i1
+              n_i3=i3
+            endif
+}
             itag=(3**^ND+4**^ND)*(ineighbor-1)+{(n_i^D+1)*3**(^D-1)+}
             call MPI_ISEND(psb(igrid)%w,1,type_send_srl(iib^D,i^D), &
                            ipe_neighbor,itag,icomm,sendrequest_c_sr(isend_c),ierrmpi)
@@ -881,7 +884,8 @@ contains
 
       subroutine bc_fill_srl(igrid,i^D,iib^D)
         integer, intent(in) :: igrid,i^D,iib^D
-        integer :: ineighbor,ipe_neighbor,ipole,ixS^L,ixR^L,n_i^D,idir
+        integer :: ineighbor,ipe_neighbor,ipole,ixS^L,ixR^L,idir
+        integer :: n_i^D,n_iib^D
 
         ipe_neighbor=neighbor(2,i^D,igrid)
         if(ipe_neighbor==mype) then
@@ -889,12 +893,24 @@ contains
           ipole=neighbor_pole(i^D,igrid)
           if(ipole==0) then
             n_i^D=-i^D;
-
-            if (rsymmB(3).and.psb(igrid)%is_physical_boundary(5)) n_i1 = i1
             ixS^L=ixS_srl_^L(iib^D,i^D);
-            ixR^L=ixR_srl_^L(iib^D,n_i^D);
+            n_iib^D=iib^D;
+{^IFTHREED
+            if(rsymmB(3) .and. iib3==-1 .and. i3==-1) then
+              n_i1=i1
+              n_i3=i3
+              if (iib1 .ne. 0) n_iib1=-iib1
+            endif
+}
+            ixR^L=ixR_srl_^L(n_iib^D,n_i^D);
             psb(ineighbor)%w(ixR^S,nwhead:nwtail)=&
                 psb(igrid)%w(ixS^S,nwhead:nwtail)
+{^IFTHREED
+            if(rsymmB(3) .and. iib3==-1 .and. i3==-1) then
+              psb(ineighbor)%w(ixR^S,nwhead:nwtail)=&
+                 psb(ineighbor)%w(ixRmax1:ixRmin1:-1,ixRmin2:ixRmax2,ixRmax3:ixRmin3:-1,nwhead:nwtail)
+            endif
+}
             if(stagger_grid) then
               do idir=1,ndim
                 ixS^L=ixS_srl_stg_^L(idir,i^D);
@@ -1862,4 +1878,12 @@ contains
 
   end subroutine identifyphysbound
 
+  subroutine swap(numa,numb)
+    integer, intent(inout) :: numa,numb
+    integer :: numc
+    
+    numc=numa
+    numa=numb
+    numb=numc
+  end subroutine swap
 end module mod_ghostcells_update
