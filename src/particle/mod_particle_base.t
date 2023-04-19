@@ -1318,7 +1318,6 @@ contains
       call MPI_SEND(send_particles,send_n_particles_for_output,type_particle,0,mype,icomm,ierrmpi)
       call MPI_SEND(send_payload,npayload*send_n_particles_for_output,MPI_DOUBLE_PRECISION,0,mype,icomm,ierrmpi)
     else
-      write(*,*) 'particle time',send_particles(1)%time
       ! Create file and write header
       if(typefile=='destroy') then ! Destroyed file
         write(filename,"(a,a,i6.6,a)") trim(base_filename) // '_', &

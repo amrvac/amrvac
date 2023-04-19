@@ -6714,11 +6714,6 @@ contains
 
             ! times time step and edge length
             fE(ixC^S,idir)=fE(ixC^S,idir)*qdt*s%dsC(ixC^S,idir)
-            if (.not.slab) then
-              where(abs(x(ixC^S,r_)+half*dxlevel(r_))<1.0d-9)
-                fE(ixC^S,idir)=zero
-              end where
-            end if
           end if
         end do
       end do
@@ -6739,7 +6734,7 @@ contains
             ! current at transverse faces
             xs(ixB^S,:)=x(ixB^S,:)
             xs(ixB^S,idim2)=x(ixB^S,idim2)+half*s%dx(ixB^S,idim2)
-            call gradientx(wCTs(ixGs^T,idim2),xs,ixGs^LL,ixC^L,idim1,gradi,.true.)
+            call gradientx(wCTs(ixGs^T,idim2),xs,ixGs^LL,ixC^L,idim1,gradi,.false.)
             if (lvc(idim1,idim2,idir)==1) then
               jce(ixC^S,idir)=jce(ixC^S,idir)+gradi(ixC^S)
             else
@@ -6748,6 +6743,7 @@ contains
           end do
         end do
       end do
+      if(nwextra>0) block%w(ixO^S,nw)=0.d0
       do idir=7-2*ndim,3
         ixCmax^D=ixOmax^D;
         ixCmin^D=ixOmin^D+kr(idir,^D)-1;
@@ -6764,6 +6760,8 @@ contains
         where(jce(ixO^S,idir)<0.d0)
           jce(ixO^S,idir)=0.d0
         end where
+        ! save additional numerical resistive heating to an extra variable
+        if(nwextra>0) block%w(ixO^S,nw)=block%w(ixO^S,nw)+0.25d0*jce(ixO^S,idir)
         w(ixO^S,e_)=w(ixO^S,e_)+qdt*0.25d0*jce(ixO^S,idir)
       end do
     end if
@@ -6792,7 +6790,7 @@ contains
         end do
       end do
       ! Divide by the area of the face to get dB/dt
-      where(s%surfaceC(ixC^S,idim1) > 1.0d-9*s%dvolume(ixC^S))
+      where(s%surfaceC(ixC^S,idim1) > smalldouble)
         circ(ixC^S,idim1)=circ(ixC^S,idim1)/s%surfaceC(ixC^S,idim1)
       elsewhere
         circ(ixC^S,idim1)=zero

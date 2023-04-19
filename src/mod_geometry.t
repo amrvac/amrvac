@@ -367,21 +367,18 @@ contains
     logical, intent(in)             :: fourth_order
     integer                         :: jxO^L, hxO^L, kxO^L
 
-    if(fourth_order) then
-      ! Fourth order, stencil width is two
-      kxO^L=ixO^L^LADD2;
-      if(ixImin^D>kxOmin^D.or.ixImax^D<kxOmax^D|.or.) &
-           call mpistop("Error in gradientx: Non-conforming input limits")
-      hxO^L=ixO^L-kr(idir,^D);
-      jxO^L=ixO^L+kr(idir,^D);
-      kxO^L=ixO^L+kr(idir,^D)*2;
-    else
-      hxO^L=ixO^L;
-    end if
+    hxO^L=ixO^L;
     jxO^L=ixO^L+kr(idir,^D);
     select case(coordinate)
     case(Cartesian)
       if(fourth_order) then
+        ! Fourth order, stencil width is two
+        kxO^L=ixO^L^LADD2;
+        if(ixImin^D>kxOmin^D.or.ixImax^D<kxOmax^D|.or.) &
+             call mpistop("Error in gradientx: Non-conforming input limits")
+        hxO^L=ixO^L-kr(idir,^D);
+        jxO^L=ixO^L+kr(idir,^D);
+        kxO^L=ixO^L+kr(idir,^D)*2;
         gradq(ixO^S)=(27.d0*(q(jxO^S)-q(ixO^S))-q(kxO^S)+q(hxO^S))/24.d0/dxlevel(idir)
       else
         gradq(ixO^S)=(q(jxO^S)-q(hxO^S))/dxlevel(idir)

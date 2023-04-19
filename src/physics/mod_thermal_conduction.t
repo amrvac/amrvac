@@ -200,12 +200,10 @@ contains
     double precision, intent(in) :: w(ixI^S,1:nw)
     double precision :: dtnew
 
-    double precision :: dxinv(1:ndim),mf(ixI^S,1:ndir)
+    double precision :: mf(ixI^S,1:ndir)
     double precision :: tmp2(ixI^S),tmp(ixI^S),Te(ixI^S),B2(ixI^S)
     double precision :: dtdiff_tcond,maxtmp2
     integer          :: idim,ix^D
-
-    ^D&dxinv(^D)=one/dx^D;
 
     !temperature
     call fl%get_temperature_from_conserved(w,x,ixI^L,ixO^L,Te)
@@ -235,23 +233,38 @@ contains
 
     if(fl%tc_saturate) B2(ixO^S)=22.d0*dsqrt(Te(ixO^S))
     dtnew=bigdouble
-    do idim=1,ndim
-      tmp2(ixO^S)=tmp(ixO^S)*mf(ixO^S,idim)
-      if(fl%tc_saturate) then
-        where(tmp2(ixO^S)>B2(ixO^S))
-          tmp2(ixO^S)=B2(ixO^S)
-        end where
-      end if
-      maxtmp2=maxval(tmp2(ixO^S))
-      if(maxtmp2==0.d0) maxtmp2=smalldouble
-      ! dt< dx_idim**2/((gamma-1)*tc_k_para_i/rho*B_i**2/B**2)
-      dtdiff_tcond=1.d0/tc_gamma_1/(maxtmp2*dxinv(idim)**2)
-      ! limit the time step
-      dtnew=min(dtnew,dtdiff_tcond)
-    end do
+    if(slab_uniform) then
+      do idim=1,ndim
+        tmp2(ixO^S)=tmp(ixO^S)*mf(ixO^S,idim)
+        if(fl%tc_saturate) then
+          where(tmp2(ixO^S)>B2(ixO^S))
+            tmp2(ixO^S)=B2(ixO^S)
+          end where
+        end if
+        maxtmp2=maxval(tmp2(ixO^S))
+        ! dt< dx_idim**2/((gamma-1)*tc_k_para_i/rho*B_i**2/B**2)
+        dtdiff_tcond=dxlevel(idim)**2/(tc_gamma_1*maxtmp2+smalldouble)
+        ! limit the time step
+        dtnew=min(dtnew,dtdiff_tcond)
+      end do
+    else
+      do idim=1,ndim
+        tmp2(ixO^S)=tmp(ixO^S)*mf(ixO^S,idim)
+        if(fl%tc_saturate) then
+          where(tmp2(ixO^S)>B2(ixO^S))
+            tmp2(ixO^S)=B2(ixO^S)
+          end where
+        end if
+        maxtmp2=maxval(tmp2(ixO^S)/block%ds(ixO^S,idim)**2)
+        ! dt< dx_idim**2/((gamma-1)*tc_k_para_i/rho*B_i**2/B**2)
+        dtdiff_tcond=1.d0/(tc_gamma_1*maxtmp2+smalldouble)
+        ! limit the time step
+        dtnew=min(dtnew,dtdiff_tcond)
+      end do
+    end if
     dtnew=dtnew/dble(ndim)
 
-  end  function get_tc_dt_mhd
+  end function get_tc_dt_mhd
 
   !> anisotropic thermal conduction with slope limited symmetric scheme
   !> Sharma 2007 Journal of Computational Physics 227, 123
@@ -671,11 +684,9 @@ contains
     type(tc_fluid), intent(in) :: fl
     double precision :: dtnew
 
-    double precision :: dxinv(1:ndim), tmp(ixI^S), Te(ixI^S), rho(ixI^S)
+    double precision :: tmp(ixI^S), Te(ixI^S), rho(ixI^S)
     double precision :: dtdiff_tcond,dtdiff_tsat
     integer          :: idim,ix^D
-
-    ^D&dxinv(^D)=one/dx^D;
 
     call fl%get_temperature_from_conserved(w,x,ixI^L,ixO^L,Te)
     call fl%get_rho(w,x,ixI^L,ixO^L,rho)
@@ -683,19 +694,33 @@ contains
     tmp(ixO^S)=tc_gamma_1*fl%tc_k_para*dsqrt((Te(ixO^S))**5)/rho(ixO^S)
     dtnew = bigdouble
 
-    do idim=1,ndim
-       ! dt< dx_idim**2/((gamma-1)*tc_k_para_idim/rho)
-       dtdiff_tcond=1d0/maxval(tmp(ixO^S)*dxinv(idim)**2)
-       if(fl%tc_saturate) then
-         ! dt< dx_idim**2/((gamma-1)*sqrt(Te)*5*phi)
-         dtdiff_tsat=1d0/maxval(tc_gamma_1*dsqrt(Te(ixO^S))*&
-                     5.d0*dxinv(idim)**2)
-         ! choose the slower flux (bigger time scale) between classic and saturated
-         dtdiff_tcond=max(dtdiff_tcond,dtdiff_tsat)
-       end if
-       ! limit the time step
-       dtnew=min(dtnew,dtdiff_tcond)
-    end do
+    if(slab_uniform) then
+      do idim=1,ndim
+         ! dt< dx_idim**2/((gamma-1)*tc_k_para_idim/rho)
+         dtdiff_tcond=dxlevel(idim)**2/maxval(tmp(ixO^S))
+         if(fl%tc_saturate) then
+           ! dt< dx_idim**2/((gamma-1)*sqrt(Te)*5*phi)
+           dtdiff_tsat=dxlevel(idim)**2/(tc_gamma_1*dsqrt(maxval(Te(ixO^S)))*5.d0)
+           ! choose the slower flux (bigger time scale) between classic and saturated
+           dtdiff_tcond=max(dtdiff_tcond,dtdiff_tsat)
+         end if
+         ! limit the time step
+         dtnew=min(dtnew,dtdiff_tcond)
+      end do
+    else
+      do idim=1,ndim
+         ! dt< dx_idim**2/((gamma-1)*tc_k_para_idim/rho)
+         dtdiff_tcond=maxval(block%ds(ixO^S,idim)**2/tmp(ixO^S))
+         if(fl%tc_saturate) then
+           ! dt< dx_idim**2/((gamma-1)*sqrt(Te)*5*phi)
+           dtdiff_tsat=maxval(block%ds(ixO^S,idim)**2/dsqrt(Te(ixO^S)))/(tc_gamma_1*5.d0)
+           ! choose the slower flux (bigger time scale) between classic and saturated
+           dtdiff_tcond=max(dtdiff_tcond,dtdiff_tsat)
+         end if
+         ! limit the time step
+         dtnew=min(dtnew,dtdiff_tcond)
+      end do
+    end if
     dtnew=dtnew/dble(ndim)
 
   end function get_tc_dt_hd
@@ -859,10 +884,6 @@ contains
       qvec(ixA^S,idims)=qvec(ixA^S,idims)*0.5d0**(ndim-1)
     end do
 
-
   end subroutine set_source_tc_hd
-
-
-
 
 end module mod_thermal_conduction
