@@ -679,6 +679,7 @@ subroutine dealloc_state(igrid, s,dealloc_x)
   deallocate(s%w)
   if(stagger_grid) then
     deallocate(s%ws)
+    if(record_electric_field) deallocate(s%we)
   end if
   if(dealloc_x) then
     if(nw_extra>0) deallocate(s%wextra)
