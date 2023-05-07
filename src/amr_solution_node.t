@@ -150,7 +150,7 @@ subroutine alloc_node(igrid)
   ! determine the minimal and maximal corners
   ^D&rnode(rpxmin^D_,igrid)=xprobmin^D+dble(ig^D-1)*dg^D(level)\
   ^D&rnode(rpxmax^D_,igrid)=xprobmin^D+dble(ig^D)*dg^D(level)\
-!  ^D&rnode(rpxmax^D_,igrid)=xprobmax^D-dble(ng^D(level)-ig^D)*dg^D(level)\
+ {if(rnode(rpxmax^D_,igrid)>xprobmax^D) rnode(rpxmax^D_,igrid)=xprobmax^D\}
 
   ^D&dx^D=rnode(rpdx^D_,igrid)\
  {do ix=ixGlo^D,ixMhi^D-nghostcells
