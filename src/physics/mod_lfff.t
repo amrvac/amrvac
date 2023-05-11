@@ -184,6 +184,7 @@ contains
     zk(ixO^S)=x(ixO^S,3)-xprobmin3+zshift
     potential=0.d0
     ! looping Bz0 pixels see equation (2)
+    !$OMP PARALLEL DO PRIVATE(bigr) REDUCTION(+:potential)
     do ixp2=1,nx2
       do ixp1=1,nx1
         bigr(ixO^S)=dsqrt((x(ixO^S,1)-xa1(ixp1))**2+&
@@ -192,6 +193,50 @@ contains
         potential(ixO^S)=potential(ixO^S)+0.5d0*Bz0(ixp1,ixp2)/bigr*darea/dpi
       end do
     end do
+    !$OMP END PARALLEL DO
   end subroutine get_potential_field_potential
+
+  subroutine get_potential_field_potential_sphere(ixI^L,x,potential,nth,nph,magnetogram,theta,phi,r_sphere)
+  ! PURPOSE: 
+  ! Calculation scalar potential of potential field given
+  ! Bz at photosphere (Schmidt 1964 NASSP). 
+  ! NOTE: Only works for spherical coordinates 
+  ! OUTPUT: potential
+    use mod_global_parameters
+    integer, intent(in) :: ixI^L,nth,nph
+    real*8, intent(in) :: x(ixI^S,1:ndim)
+    ! magnetogram Br on photosphere
+    real*8, intent(in) :: magnetogram(nth,nph)
+    ! theta and phi grid of the photospheric magnetogram
+    real*8, intent(in) :: theta(nth),phi(nph)
+    ! radius of photosphere
+    real*8, intent(in) :: r_sphere
+    real*8, intent(out) :: potential(ixI^S)
+
+    real*8 :: area(nth),distance(ixI^S),dtheta_half,dphi,inv2pi
+    integer :: ix1,ix2
+
+    potential=0.d0
+    ! assume uniformly discretized theta and phi
+    dtheta_half=0.5d0*(theta(2)-theta(1))
+    dphi=phi(2)-phi(1)
+    area(1:nth)=2.d0*r_sphere**2*sin(theta(1:nth))*sin(dtheta_half)*sin(dphi)
+    inv2pi=-1.d0/(2.d0*dpi)
+    
+    !$OMP PARALLEL DO PRIVATE(distance) REDUCTION(+:potential)
+    do ix2=1,nph,2
+      do ix1=1,nth,2
+        distance(ixI^S)=sqrt(x(ixI^S,1)**2+r_sphere**2-2.d0*x(ixI^S,1)*r_sphere*&
+        (sin(x(ixI^S,2))*sin(theta(ix1))*cos(phi(ix2)-x(ixI^S,3))+cos(x(ixI^S,2))*&
+        cos(theta(ix1))))
+        where(distance(ixI^S)/=0.d0)
+          distance(ixI^S)=1.d0/distance(ixI^S)
+        end where
+        potential(ixI^S)=potential(ixI^S)+inv2pi*magnetogram(ix1,ix2)*distance(ixI^S)*area(ix1)
+      end do
+    end do
+    !$OMP END PARALLEL DO
+
+  end subroutine get_potential_field_potential_sphere
 }
 end module mod_lfff

@@ -76,6 +76,12 @@ program amrvac
        if (levmax>levmin) call allocateBflux
      end if
 
+     ! all blocks refined to the same level for output
+     if(convert .and. level_io>0 .or. level_io_min.ne.1 .or. level_io_max.ne.nlevelshi) &
+       call resettree_convert
+
+     if (use_multigrid) call mg_setup_multigrid()
+
      if(use_particles) then
        call read_particles_snapshot(part_file_exists)
        if (.not. part_file_exists) call particles_create()
@@ -87,30 +93,29 @@ program amrvac
        end if
      end if
 
-     if (use_multigrid) call mg_setup_multigrid()
+     if(convert) then
+       if (npe/=1.and.(.not.(index(convert_type,'mpi')>=1)) &
+            .and. convert_type .ne. 'user')  &
+            call mpistop("non-mpi conversion only uses 1 cpu")
+       if(mype==0.and.level_io>0) write(unitterm,*)'reset tree to fixed level=',level_io
 
-     if (convert) then
-        if (npe/=1.and.(.not.(index(convert_type,'mpi')>=1)) &
-             .and. convert_type .ne. 'user')  &
-             call mpistop("non-mpi conversion only uses 1 cpu")
+       ! Optionally call a user method that can modify the grid variables
+       ! before saving the converted data
+       if (associated(usr_process_grid) .or. &
+            associated(usr_process_global)) then
+          call process(it,global_time)
+       end if
+       !here requires -1 snapshot
+       if (autoconvert .or. snapshotnext>0) snapshotnext = snapshotnext - 1
 
-        ! Optionally call a user method that can modify the grid variables
-        ! before saving the converted data
-        if (associated(usr_process_grid) .or. &
-             associated(usr_process_global)) then
-           call process(it,global_time)
-        end if
-        !here requires -1 snapshot
-        if (autoconvert .or. snapshotnext>0) snapshotnext = snapshotnext - 1
+       if(associated(phys_special_advance)) then
+         ! e.g. calculate MF velocity from magnetic field
+         call phys_special_advance(global_time,ps)
+       end if
 
-        if(associated(phys_special_advance)) then
-          ! e.g. calculate MF velocity from magnetic field
-          call phys_special_advance(global_time,ps)
-        end if
-
-        call generate_plotfile
-        call comm_finalize
-        stop
+       call generate_plotfile
+       call comm_finalize
+       stop
      end if
 
   else
