@@ -7,7 +7,8 @@ module mod_usr
 
   character(len=20)                              :: printsettingformat
   double precision                               :: omega_frame
-  character(len=500)                             :: timeseries_file, amr_criterion
+  character(len=500)                             :: amr_criterion, cme_parameter_file, boundary_file
+  integer                                        :: cme_flag, num_cmes, relaxation, cme_insertion
   type satellite_pos
     real(kind=8), dimension(:,:), allocatable    :: positions
   end type satellite_pos
@@ -16,7 +17,9 @@ module mod_usr
   real(kind=8), allocatable                      :: coord_grid_init(:,:,:),variables_init(:,:,:)
   type(satellite_pos), dimension(:), allocatable :: positions_list
   character(len=250), dimension(8)               :: trajectory_list
-  integer, dimension(8)                          :: which_satellite = (/1, 1, 1, 1, 1, 1, 0, 0/)     ! intended order: earth, mars, mercury, venus, sta, stb, psp, solo
+  integer, dimension(8)                          :: which_satellite = (/0, 0, 0, 0, 0, 0, 0, 0/)     ! intended order: earth, mars, mercury, venus, sta, stb, psp, solo
+  integer, dimension(8)                          :: sat_indx = (/0, 0, 0, 0, 0, 0, 0, 0/)     ! intended order: earth, mars, mercury, venus, sta, stb, psp, solo
+  integer                                        :: sat_count=0, zero_count=0
   double precision, dimension(8)                 :: last = (/0, 0, 0, 0, 0, 0, 0, 0/)        ! intended order: earth, mars, mercury, venus, sta, stb, psp, solo
   integer, dimension(8)                          :: last_index = (/0, 0, 0, 0, 0, 0, 0, 0/)  ! intended order: earth, mars, mercury, venus, sta, stb, psp, solo
   integer, dimension(8)                          :: last_index_s = (/0, 0, 0, 0, 0, 0, 0, 0/)
@@ -28,27 +31,26 @@ module mod_usr
   ! CME parameters and simulation details from the parameter file
   ! define my cme parameters here
 
-
-  integer                                        :: cme_flag
+  character(len=100), dimension(:), allocatable   :: cme_type, cme_date
   integer, dimension(:), allocatable             :: cme_year, cme_month, cme_day, cme_hour, cme_minute, cme_second
-  double precision, dimension(:), allocatable    :: relaxation, cme_insertion, vr_cme, w_half, clt_cme, lon_cme, rho_cme, temperature_cme
+  double precision, dimension(:), allocatable    ::  vr_cme, w_half, clt_cme, lon_cme, rho_cme, temperature_cme
   double precision, dimension(:), allocatable    :: timestamp, longitudes_fix
   double precision, dimension(:,:), allocatable  :: time_difference_cme_magn
   double precision, dimension(:), allocatable    :: lon_updated, lon_original
   integer             :: magnetogram_timestamp(6)
 
-  integer             :: num_cmes, cme_exists
+  integer             :: cme_exists
 
 contains
 
 
 subroutine usr_params_read(files)
     character(len=*), intent(in) :: files(:)
-!    double precision, intent(in) :: omega_frame
     integer :: n
 
     namelist /rotating_frame_list/ omega_frame
-    namelist /icarus_list/ timeseries_file, amr_criterion
+    namelist /icarus_list/ amr_criterion, cme_flag, num_cmes, relaxation, cme_insertion, &
+    cme_parameter_file, boundary_file
 
     do n = 1, size(files)
        open(unitpar, file=trim(files(n)), status="old")
@@ -56,7 +58,11 @@ subroutine usr_params_read(files)
        read(unitpar, icarus_list, end=111)
 111    close(unitpar)
     end do
+   if (num_cmes .eq.0) then
+      cme_flag = 0
+   end if
 
+    
 
   end subroutine usr_params_read
 
@@ -141,11 +147,10 @@ subroutine usr_params_read(files)
     !Parameters related to the unit conversions
     double precision    :: Lunit_in, Tunit_in, Rhounit_in, Vunit_in, Bunit_in, Eunit_in, Punit_in
     !Parameters related to the read-in of the boundary file
-    character(len=50)   :: boundary_file
-    character(len=50)   :: cme_parameter_file
     character(len=50)   :: earth_trajectory, mars_trajectory, venus_trajectory
     character(len=50)   :: sta_trajectory, stb_trajectory, mercury_trajectory
-    character(len=50), dimension(8) :: trajectory_lists
+
+    character(len=200)  :: path_satellite_trajectories
     integer             :: nr_colat, nr_lon, k, n, i
    !-----------------------------------------------------------------------------
 
@@ -154,16 +159,7 @@ subroutine usr_params_read(files)
         !Read-in coronal model
         !Coronal model at boundary has 2 coordinates: colat and lon
         !Coronal model has data for 4 parameters: vr, n, T, Br
-        cme_parameter_file = "cme_input_updated.in"  !"cme_input_parameters.in"   !"cme_cone_model_old.par"
-        boundary_file = "solar_wind_bc_used_in_paper.in"
-
-        ! 2015 event june corresponding satellite data
-        earth_trajectory = "2015_june_earth_ext.unf"
-        mars_trajectory = "2015_june_mars_ext.unf"
-        venus_trajectory = "2015_june_venus_ext.unf"
-        mercury_trajectory = "2015_june_mercury_ext.unf"
-        sta_trajectory = "2015_june_sta_ext.unf"
-        stb_trajectory = "2015_june_stb_ext.unf"
+        path_satellite_trajectories = './orbit/'
 
         call grid_info_coronal_model(boundary_file, nr_colat, nr_lon)
 
@@ -178,9 +174,16 @@ subroutine usr_params_read(files)
         call read_boundary_coronal_model(boundary_file, coord_grid_init, variables_init, delta_phi)
 
         ! read in cme parameters
-        call read_cme_parameters(cme_parameter_file)
-
+        if (num_cmes == 0) then 
+          ALLOCATE(timestamp(1))
+          ALLOCATE(cme_index(8,1))
+          ALLOCATE(starting_index(8, 1))
+          ALLOCATE(time_difference_cme_magn(8, 1))
+        else
+          call read_cme_parameters(cme_parameter_file)
+        end if
         ! Initialize cme starting index in the trajectory file, cme index in the trajectory file and the time difference between the start and cme indexes
+        if (num_cmes > 0) then
         do n = 1, num_cmes
           do i = 1, 8
             cme_index(i, n) = 0
@@ -188,32 +191,49 @@ subroutine usr_params_read(files)
             time_difference_cme_magn(i, n) = 0
           end do
         end do
+        else 
+          do i = 1, 8
+            cme_index(i, 1) = 0
+            starting_index(i, 1) = 0
+            time_difference_cme_magn(i, 1) = 0
+          end do
+       end if
 
+       
+        do i=1, 8
+            call find_trajectory_file(i, path_satellite_trajectories)
+        end do
 
-
-        trajectory_lists(1) = earth_trajectory
-        trajectory_lists(2) = mars_trajectory
-        trajectory_lists(4) = venus_trajectory
-        trajectory_lists(3) = mercury_trajectory
-        trajectory_lists(5) = sta_trajectory
-        trajectory_lists(6) = stb_trajectory
-
+    
         ALLOCATE(positions_list(8), STAT=AllocateStatus)
 
         ! for each satellite, read the trajectory data and save in the arrays of time and locations
         do i = 1, 8
           if (which_satellite(i)==1) then
-            call read_satellite_trajectory(trajectory_lists(i), i)
+            sat_indx(i-zero_count) = i
+            
+            sat_count = sat_count+1
+            call read_satellite_trajectory(trajectory_list(i), i)
           end if
+           if (which_satellite(i) == 0) then
+            zero_count = zero_count+1
+           end if
         end do
-
+        
         ! calculate timestamp for cme insertion
+        timestamp(:) = relaxation*24.0+cme_insertion*24.0
+        if (num_cmes >0) then
         do k=1, num_cmes
-          timestamp(k) = relaxation(k)*24.0 + cme_insertion(k)*24.0 + time_difference_cme_magn(1, k)
+          timestamp(k) = timestamp(k) + time_difference_cme_magn(1, k)
         end do
         call cme_insertion_longitudes_fix()
+        end if
+     
+       
+   
     end if
 
+   
     mhd_gamma= 3.0d0/2.0d0
     call set_units(Lunit_in, Tunit_in, Rhounit_in, Vunit_in, Bunit_in, Eunit_in, Punit_in)
 
@@ -240,14 +260,16 @@ subroutine generate_particles(n_particles, x, v, q, m, follow)
   double precision, intent(out) :: q(n_particles)
   double precision, intent(out) :: m(n_particles)
   logical, intent(out)          :: follow(n_particles)
-  integer                       :: satellite_index
+  integer                       :: satellite_index, delta_sat
 
-
-do satellite_index = 1, n_particles
+if (sat_count < n_particles) then
+  delta_sat = n_particles-sat_count
+end if
+do satellite_index = 1, n_particles-delta_sat
  v(:, satellite_index) = 0.d0
  q(satellite_index) = 0.d0
  m(satellite_index) = 0.d0
- call get_particle(x(:, satellite_index), satellite_index, n_particles)
+ call get_particle(x(:, sat_indx(satellite_index)), sat_indx(satellite_index), n_particles-delta_sat)
 end do
 follow(:) = .true.
 
@@ -272,10 +294,8 @@ double precision, dimension(8)     :: orbital_period = (/365.24, 686.98, 87.969,
 double precision                   :: phi_satellite, before_cme
 
 
-
 !print *, xprobmin1, xprobmax1, xprobmin2, xprobmax2, xprobmin3, xprobmax3
 before_cme = (cme_index(1,1) - magnetogram_index(1))/60.0
-
 x(1) = positions_list(satellite_index)%positions(7, starting_index(satellite_index,1))
 x(2) = (dpi/2.0 - positions_list(satellite_index)%positions(8, starting_index(satellite_index,1)))
 
@@ -339,21 +359,28 @@ end if
 x_test(3) = delta_phi+positions_list(satellite_index)%positions(9, last_index_s(satellite_index))&
  - (tnew-(timestamp(1)-before_cme))*(2.0*dpi)/24.0*(1/2.447d1-1/orbital_period(1))
 
+
 if (x_test(3) < 0) then
    x_test(3) = 2 * dpi + x_test(3)
-else if (x_test(3) > 2*dpi) then
-   x_test(3) = mod(x_test(3), 2.0*dpi)
+else if (x_test(3) > 2.0*dpi) then
+   x_test(3) = x_test(3) - 2.0*dpi
 end if
 
 final_fix = x_test(3) - x(3)
 if (final_fix < -2*dpi) then
 final_fix = final_fix + 2*dpi
 end if
-if (final_fix > 2*dpi) then
+
+if (final_fix > 2*dpi) then 
 final_fix = final_fix - 2*dpi
 end if
-x(3) = x(3) + final_fix
-
+!if (tnew > 138.7 .and. satellite_index == 3 .and. tnew < 140.0) then
+!print *, "inside ", tnew, x_test(3), x(3)
+!x(3) = x(3)+mod((x_test(3)-x(3)), 2*dpi)
+!else
+!x(3) = x(3) + final_fix
+!end if
+x(3) = x(3)+mod((x_test(3)-x(3)), 2*dpi)
 end subroutine move_particle
 
 
@@ -424,7 +451,7 @@ end subroutine move_particle
     double precision :: v(ixI^S,ndir), divV(ixI^S), momentum(ixI^S, ndir)
     integer :: i
 
-
+   
 
     ! output divB1
     call get_divb(w,ixI^L,ixO^L,divb)
@@ -477,35 +504,9 @@ end subroutine specialvarnames_output
     double precision, intent(in)    :: qdt, qtC, qt
     double precision, intent(in)    :: wCT(ixI^S,1:nw), x(ixI^S,1:ndim)
     double precision, intent(inout) :: w(ixI^S,1:nw)
-    double precision   :: test(ixI^S, 1:ndim)
     double precision :: Gravconst_Msun_normalized
     double precision :: omega_normalized, omega = 2.97d-6
-    logical, save      :: exist
     double precision   :: xloc(1:ndim)
-    double precision   :: r_earth, theta_earth, phi_earth
-    double precision   :: r_mercury, theta_mercury, phi_mercury
-    integer            :: ir1, ith2, iphi3, i_date
-    integer            :: ir1_me, ith2_me, iphi3_me, i_date_me
-    integer            :: rmin, thmin, phimin
-    integer            :: rmin_me, thmin_me, phimin_me
-    !double precision   :: x1, x2, y1, y2, z1, z
-    double precision   :: xd, yd, zd, yd_me, xd_me, zd_me
-    double precision   :: p_r, p_th, p_phi, p_rme, p_thme, p_phime
-    double precision   :: rho_e, P_e, vr_e, vclt_e, vlon_e, Br_e, Bclt_e, Blon_e
-    double precision   :: rho_me, P_me, vr_me, vclt_me, vlon_me, Br_me, Bclt_me, Blon_me
-    double precision   :: rho_earth
-    character(len=7), dimension(8) :: satellite_list = (/'earth  ', 'mars   ', 'mercury', 'venus  ', 'sta    ', 'stb    ', 'psp    ', 'solo   '/)
-    character(len=250) :: file_name
-    double precision   :: delta_time
-    integer            :: delta_steps
-    double precision   :: elapsed_time !from the start of the simulation until magnetogram time
-    double precision   :: before_cme ! Time from magnetogram time to cme starting time
-    double precision   :: current_time
-    integer           :: r_min, r_max, th_min, th_max, phi_min, phi_max
-    integer            :: r_min1, r_max1, th_min1, th_max1, phi_min1, phi_max1
-    integer            :: i
-    integer            :: ix1, ix2, ix3
-    integer            :: check
     ! ---------------------------------------------------------------------------------
 
 
@@ -624,7 +625,7 @@ end subroutine specialvarnames_output
 
   end subroutine specialrefine_grid
 !-----------------------------------------------------------------------------
-!-----------------------------------------------------------------------------
+!------------------                    -----------------------------------------------------------
 
 
 
@@ -643,7 +644,7 @@ end subroutine specialvarnames_output
     double precision    :: xloc(1:ndim)
 
     double precision    :: clt_zero, lon_zero
-    integer             :: mask_cme, n
+    integer             :: mask_cme, n, local_check
     !-----------------------------------------------------------------------------
 
     select case(iB)
@@ -683,8 +684,12 @@ end subroutine specialvarnames_output
 
 
                     mask_cme = 0
-
-                    do n=1, num_cmes
+                    if (num_cmes == 0) then
+                      local_check = 1
+                    else 
+                      local_check = num_cmes
+                    end if
+                    do n=1, local_check
                     if (mask_cme .eq. 0) then
                     if (cme_flag == 1) then
                       call mask(xloc(2), xloc(3), mask_cme, n)
@@ -940,8 +945,7 @@ end subroutine specialvarnames_output
             variables(j,k+2,3) = variables_boundary_data(counter,3) * kB_SI * variables_boundary_data(counter, 2)
             !magnetic field: Br = Br_bound * sqrt(r_0/r)
             variables(j,k+2,4)  = variables_boundary_data(counter,4)
-
-            if(variables(j,k+1,3)<0) call mpistop('NEGATIVE PRESSURE in boundary file.')
+            if(variables(j,k+1,3)<0 ) call mpistop('NEGATIVE PRESSURE in boundary file.')
 
             counter = counter + 1
         end do
@@ -1005,6 +1009,7 @@ end subroutine specialvarnames_output
         print *, ''//NEW_LINE('A')
         print *, "CME characteristic parameters"
         print *, ''//NEW_LINE('A')
+        if (num_cmes > 0) then
         print *, "CME Timestamp[Y/M/D H/M/S]: ", cme_year, cme_month, cme_day, cme_hour, cme_minute, cme_second
         print *,  "Vr [m/s] = ", vr_cme
         print *, "Half width [deg]= ", w_half*180.0/dpi
@@ -1014,6 +1019,9 @@ end subroutine specialvarnames_output
         print *, "Temperature [K] = ", temperature_cme
         print *, '=================================================================='
         print *, '=================================================================='//NEW_LINE('A')
+        else
+        print *, " No CME injected"//NEW_LINE('A')
+        end if
     end if
 
     !Set conversion units
@@ -1093,6 +1101,117 @@ end subroutine specialvarnames_output
 
   end subroutine find_indices_coord_grid
 
+
+!-----------------------------------------------------------------------------
+!-----------------------------------------------------------------------------
+
+  subroutine find_trajectory_file(satellite_index, path_satellite_trajectories)
+  
+    use mod_global_parameters
+    integer, intent(in)             :: satellite_index
+    character(len=200) , intent(in) :: path_satellite_trajectories
+        
+    character(len=10), dimension(20) :: satellite_begin_dates = (/'1975_01_01', '1977_10_03', '1980_10_03', '1983_10_04', '1986_10_04', '1989_10_04', '1992_10_04', '1995_10_05', '1998_10_05', '2001_10_05', '2004_10_05', '2007_10_06', '2010_10_06', '2013_10_06', '2016_10_06', '2019_10_07', '2022_10_07', '2025_10_07', '2028_10_07', '2031_10_08'/)
+    character(len=10), dimension(20) :: satellite_end_dates = (/'1978_04_01', '1981_04_01', '1984_04_01', '1987_04_02', '1990_04_02', '1993_04_02', '1996_04_02', '1999_04_03', '2002_04_03', '2005_04_03', '2008_04_03', '2011_04_04', '2014_04_04', '2017_04_04', '2020_04_04', '2023_04_05', '2026_04_05', '2029_04_05', '2032_04_05', '2034_12_31'/)
+    character(len=10), dimension(9) :: sta_begin_dates = (/'2006_10_10', '2007_10_06', '2010_10_06', '2013_10_06', '2016_10_06', '2019_10_07', '2022_10_07', '2025_10_07', '2028_10_07'/)
+    character(len=10), dimension(9) :: sta_end_dates = (/'2008_04_03', '2011_04_04', '2014_04_04', '2017_04_04', '2020_04_04', '2023_04_05', '2026_04_05', '2029_04_05', '2030_10_09'/)
+    character(len=10), dimension(4) :: stb_begin_dates = (/'2006_10_10', '2007_10_06', '2010_10_06', '2013_10_06'/)
+    character(len=10), dimension(4) :: stb_end_dates = (/'2008_04_03', '2011_04_04', '2014_04_04', '2016_09_12'/)
+    character(len=10), dimension(3) :: psp_begin_dates = (/'2018_08_13', '2019_10_07', '2022_10_07'/)
+    character(len=10), dimension(3) :: psp_end_dates = (/'2020_04_04', '2023_04_05', '2025_08_30'/)
+    character(len=10), dimension(4) :: solo_begin_dates = (/'2020_02_11', '2022_10_07', '2025_10_07', '2028_10_07'/)
+    character(len=10), dimension(4) :: solo_end_dates = (/'2023_04_05', '2026_04_05', '2029_04_05', '2030_11_17'/)
+    character(len=10), dimension(:), allocatable :: begin_dates, end_dates
+    
+    character(len=11), dimension(8) :: satellite_list = (/'earth      ', 'mars       ', 'mercury    ', 'venus      ', 'sta        ', 'stb        ', 'psp_nom_R02', 'SolO       '/)
+    
+    integer, dimension(8)           :: dates_lengths = (/20, 20, 20, 20, 9, 4, 3, 4/)
+    integer :: begin_year, begin_month, begin_day, begin_year_previous, begin_month_previous
+    integer :: first_year, first_month, first_day
+    integer :: last_year, last_month, last_day
+    
+    integer :: AllocateStatus, DeAllocateStatus
+    integer :: i, j, length
+  
+    
+    
+    length = dates_lengths(satellite_index)
+    ALLOCATE(begin_dates(length), STAT = AllocateStatus)
+    ALLOCATE(end_dates(length), STAT = AllocateStatus)
+    
+    if (satellite_index <= 4) then
+        begin_dates = satellite_begin_dates
+        end_dates = satellite_end_dates
+    else if (satellite_index == 5) then
+        begin_dates = sta_begin_dates
+        end_dates = sta_end_dates
+    else if (satellite_index == 6) then
+        begin_dates = stb_begin_dates
+        end_dates = stb_end_dates
+    else if (satellite_index == 7) then
+        begin_dates = psp_begin_dates
+        end_dates = psp_end_dates
+    else
+        begin_dates = solo_begin_dates
+        end_dates = solo_end_dates
+    end if
+  
+  
+    read(begin_dates(1)(1:4), '(i4)') first_year
+    read(begin_dates(1)(6:7), '(i2)') first_month
+    read(begin_dates(1)(9:10), '(i2)') first_day
+    read(end_dates(length)(1:4), '(i4)') last_year
+    read(end_dates(length)(6:7), '(i2)') last_month
+    read(end_dates(length)(9:10), '(i2)') last_day      
+
+    if ((magnetogram_timestamp(1)>first_year .and. .not.(magnetogram_timestamp(1)==first_year+1 .and. magnetogram_timestamp(2)==1 .and. first_month==12) .or. magnetogram_timestamp(1)==first_year .and. magnetogram_timestamp(2)>first_month+1) .and. & 
+        (magnetogram_timestamp(1)<last_year .and. .not.(magnetogram_timestamp(1)==last_year-1 .and. magnetogram_timestamp(2)==12 .and. first_month==1) .or. magnetogram_timestamp(1)==last_year .and. magnetogram_timestamp(2)<last_month-1)) then
+
+        do i=2, length
+            read(begin_dates(i)(1:4), '(i4)') begin_year
+            read(begin_dates(i)(6:7), '(i2)') begin_month
+            read(begin_dates(i)(9:10), '(i2)') begin_day
+            if (magnetogram_timestamp(1)<begin_year .or. magnetogram_timestamp(1)==begin_year .and. magnetogram_timestamp(2)<begin_month .or. & 
+                magnetogram_timestamp(1)==begin_year .and. magnetogram_timestamp(2)==begin_month .and. magnetogram_timestamp(3)<begin_day) then
+
+                j = i-1
+                if (i > 2) then
+                if ((magnetogram_timestamp(1)==begin_year_previous .and. (magnetogram_timestamp(2)==begin_month_previous .or. magnetogram_timestamp(2)-1==begin_month_previous)) .or. & 
+                    (magnetogram_timestamp(1)-1==begin_year_previous .and. magnetogram_timestamp(2)==1 .and. begin_month_previous==12)) then    ! if magnetogram time is too close to the begin date of the file (at most 1 month)
+                    j = i-2     ! change to the one file before
+                end if
+                end if
+
+                trajectory_list(satellite_index) = trim(path_satellite_trajectories)//trim(satellite_list(satellite_index))//'__'//begin_dates(j)//'__'//end_dates(j)//'.unf'
+                which_satellite(satellite_index) = 1
+                exit
+            end if
+            begin_year_previous = begin_year
+            begin_month_previous = begin_month 
+       end do
+      
+       
+        if (which_satellite(satellite_index)==0) then
+            if ((magnetogram_timestamp(1)==begin_year_previous .and. (magnetogram_timestamp(2)==begin_month_previous .or. magnetogram_timestamp(2)-1==begin_month_previous)) .or. & 
+                (magnetogram_timestamp(1)-1==begin_year_previous .and. magnetogram_timestamp(2)==1 .and. begin_month_previous==12)) then    ! if magnetogram time is too close to the begin date of the file (at most 1 month)
+                length = length-1       ! change to the one file before
+            end if
+            trajectory_list(satellite_index) = trim(path_satellite_trajectories)//trim(satellite_list(satellite_index))//'__'//begin_dates(length)//'__'//end_dates(length)//'.unf'
+            which_satellite(satellite_index) = 1
+        end if
+    end if
+    
+    
+    DEALLOCATE(begin_dates, STAT = DeAllocateStatus)
+    DEALLOCATE(end_dates, STAT = DeAllocateStatus)
+  
+
+  end subroutine find_trajectory_file
+
+
+
+
+
 !-----------------------------------------------------------------------------
 !-----------------------------------------------------------------------------
 
@@ -1111,7 +1230,7 @@ end subroutine specialvarnames_output
     integer                         :: delta_steps, i_date, j_date, n
 
 
-
+    
     open(iUnit, file=trajectory_file, action="read", form='unformatted', iostat=iError)
     if(iError /= 0) call mpistop('Importdata could not open real4 file = '//trim(trajectory_file))
       read(iUnit) arr_size
@@ -1141,7 +1260,7 @@ end subroutine specialvarnames_output
 
     ALLOCATE(positions_list(index)%positions(nr_coordinates, nr_positions), STAT = AllocateStatus)
 
-
+    
     positions_list(index)%positions(1,:) = year
     positions_list(index)%positions(2,:) = month
     positions_list(index)%positions(3,:) = day
@@ -1161,16 +1280,19 @@ end subroutine specialvarnames_output
           if ((day(j_date) == magnetogram_timestamp(3)) .and. (hour(j_date) == magnetogram_timestamp(4))) then
             if (minute(j_date) == magnetogram_timestamp(5)) then
               magnetogram_index(index) = j_date
-            !  print *, index, magnetogram_index(index)
               exit
             end if
           end if
         end if
       end do
     end if
+    if (starting_index(index, 1) .eq. 0 .and. (num_cmes == 0)) then
+      starting_index(index, 1) = magnetogram_index(index)
+      !time_difference_cme_magn(index, 1) = 0.0
+      cme_index(index,1) = magnetogram_index(index)
+    end if
 
-
-    if (starting_index(index, 1) .eq. 0) then
+    if (starting_index(index, 1) .eq. 0 .and. (num_cmes > 0)) then
       do n = 1, num_cmes
       do i_date = 1, size(year)
         if ((year(i_date) == cme_year(n)) .and.  (month(i_date) == cme_month(n))) then
@@ -1178,9 +1300,9 @@ end subroutine specialvarnames_output
             if (minute(i_date) == cme_minute(n)) then
               cme_index(index, n) = i_date
               time_difference_cme_magn(index, n) = (cme_index(index, n) - magnetogram_index(index))/60.0 !hours
-              delta_steps = int((relaxation(1)+cme_insertion(1)+time_difference_cme_magn(index, n))*60)
+              delta_steps = int((relaxation*24.0+cme_insertion*24.0+time_difference_cme_magn(index, n))*60)
               starting_index(index, n) = i_date - delta_steps
-             ! print *, starting_index(2,1), starting_index(2,1)+250*60
+              
               exit
             end if
           end if
@@ -1212,12 +1334,13 @@ end subroutine specialvarnames_output
     character(len=50), intent(in)   :: filename
     integer                         :: iUnit=30, iError, i, DEAllocateStatus, j
     character(len=50)               :: cme_parameter_file
-
+    character(len=500)              :: commented_line
 
     open(iUnit, file = filename, status = 'old', action="read", iostat=iError)
     if(iError /= 0) call mpistop('Importdata could not open real4 file = '//trim(filename))
-    read(iUnit,*) cme_flag
-    read(iUnit,*) num_cmes
+
+    ALLOCATE(cme_type(num_cmes))
+    ALLOCATE(cme_date(num_cmes))
     ALLOCATE(cme_year(num_cmes))
     ALLOCATE(cme_month(num_cmes))
     ALLOCATE(cme_day(num_cmes))
@@ -1226,8 +1349,6 @@ end subroutine specialvarnames_output
     ALLOCATE(cme_second(num_cmes))
 
     ALLOCATE(timestamp(num_cmes))
-    ALLOCATE(relaxation(num_cmes))
-    ALLOCATE(cme_insertion(num_cmes))
     ALLOCATE(vr_cme(num_cmes))
     ALLOCATE(w_half(num_cmes))
     ALLOCATE(clt_cme(num_cmes))
@@ -1239,15 +1360,22 @@ end subroutine specialvarnames_output
     ALLOCATE(time_difference_cme_magn(8, num_cmes))
     ALLOCATE(longitudes_fix(num_cmes))
 
+
     do i=1, num_cmes
-      read(iUnit,*) cme_year(i), cme_month(i), cme_day(i), cme_hour(i), cme_minute(i), cme_second(i)
-      read(iUnit,*) relaxation(i), cme_insertion(i), vr_cme(i), w_half(i), clt_cme(i), lon_cme(i), rho_cme(i), temperature_cme(i)
+      read(iUnit,*) cme_type(i), cme_date(i), clt_cme(i), lon_cme(i), w_half(i),  vr_cme(i), rho_cme(i), temperature_cme(i)
       w_half(i) = w_half(i) * dpi/180.0
       clt_cme(i) = (-clt_cme(i) + 90.0) * dpi/180.0
       lon_cme(i) = delta_phi + lon_cme(i) * dpi/180.0
     end do
     close(iUnit)
-
+    do i=1, num_cmes
+      read (cme_date(i)(1:4),*) cme_year(i)
+      read (cme_date(i)(6:7),*) cme_month(i)
+      read (cme_date(i)(9:10),*) cme_day(i)
+      read (cme_date(i)(12:13),*) cme_hour(i)
+      read (cme_date(i)(15:16),*) cme_minute(i)
+      read (cme_date(i)(18:19),*) cme_second(i)
+    end do
   end subroutine read_cme_parameters
 
 
@@ -1255,7 +1383,7 @@ end subroutine specialvarnames_output
      integer       :: i
 
      do i=1, num_cmes
-        longitudes_fix(i) = (timestamp(i)-relaxation(i)*24.0 - cme_insertion(i)*24.0)*(2.0*dpi)/24.0*(1/2.447d1-1/365.24)
+        longitudes_fix(i) = (timestamp(i)-relaxation*24.0 - cme_insertion*24.0)*(2.0*dpi)/24.0*(1/2.447d1-1/365.24)
         lon_cme(i) = lon_cme(i) - longitudes_fix(i)
      end do
 
