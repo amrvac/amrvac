@@ -285,7 +285,7 @@ contains
 
     mg%operator_type = mg_laplacian
     max_its=50
-    max_residual=1.d-10
+    max_residual=1.d-8
 
     ! Set boundary conditions
     mg%bc(:, mg_iphi)%bc_type = mg_bc_neumann
