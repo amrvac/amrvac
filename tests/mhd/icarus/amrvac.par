@@ -57,7 +57,7 @@
 
 &particles_list
        physics_type_particles='sample'
-       num_particles=6
+       num_particles=8
        dtsave_particles=0.0225d0
        write_individual=.true.
        write_ensemble=.false.
@@ -106,7 +106,12 @@
  /
 
 &icarus_list
-        timeseries_file = 'pressure_runs_'
         amr_criterion = 'tracing'
+        cme_flag = 0
+        num_cmes = 0
+        relaxation = 14
+        cme_insertion = 7
+        cme_parameter_file = 'cme_euhforia_formatted.in'
+        boundary_file = 'solar_wind_bc_used_in_paper.in'
 /
 
