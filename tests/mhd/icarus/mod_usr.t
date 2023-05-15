@@ -17,7 +17,7 @@ module mod_usr
   real(kind=8), allocatable                      :: coord_grid_init(:,:,:),variables_init(:,:,:)
   type(satellite_pos), dimension(:), allocatable :: positions_list
   character(len=250), dimension(8)               :: trajectory_list
-  integer, dimension(8)                          :: which_satellite = (/0, 0, 0, 0, 0, 0, 0, 0/)     ! intended order: earth, mars, mercury, venus, sta, stb, psp, solo
+  integer, dimension(8)                          :: which_satellite = (/1, 1, 1, 1, 1, 1, 0, 0/)     ! intended order: earth, mars, mercury, venus, sta, stb, psp, solo
   integer, dimension(8)                          :: sat_indx = (/0, 0, 0, 0, 0, 0, 0, 0/)     ! intended order: earth, mars, mercury, venus, sta, stb, psp, solo
   integer                                        :: sat_count=0, zero_count=0
   double precision, dimension(8)                 :: last = (/0, 0, 0, 0, 0, 0, 0, 0/)        ! intended order: earth, mars, mercury, venus, sta, stb, psp, solo
@@ -200,10 +200,24 @@ subroutine usr_params_read(files)
        end if
 
        
-        do i=1, 8
-            call find_trajectory_file(i, path_satellite_trajectories)
-        end do
+   !     do i=1, 8
+   !         call find_trajectory_file(i, path_satellite_trajectories)
+   !     end do
 
+        earth_trajectory = "orbit/2015_june_earth_ext.unf"
+        mars_trajectory = "orbit/2015_june_mars_ext.unf"
+        venus_trajectory = "orbit/2015_june_venus_ext.unf"
+        mercury_trajectory = "orbit/2015_june_mercury_ext.unf"
+        sta_trajectory = "orbit/2015_june_sta_ext.unf"
+        stb_trajectory = "orbit/2015_june_stb_ext.unf"
+
+
+        trajectory_list(1) = earth_trajectory
+        trajectory_list(2) = mars_trajectory
+        trajectory_list(4) = venus_trajectory
+        trajectory_list(3) = mercury_trajectory
+        trajectory_list(5) = sta_trajectory
+        trajectory_list(6) = stb_trajectory
     
         ALLOCATE(positions_list(8), STAT=AllocateStatus)
 
@@ -219,6 +233,8 @@ subroutine usr_params_read(files)
             zero_count = zero_count+1
            end if
         end do
+      
+ 
         
         ! calculate timestamp for cme insertion
         timestamp(:) = relaxation*24.0+cme_insertion*24.0
@@ -298,7 +314,7 @@ double precision                   :: phi_satellite, before_cme
 before_cme = (cme_index(1,1) - magnetogram_index(1))/60.0
 x(1) = positions_list(satellite_index)%positions(7, starting_index(satellite_index,1))
 x(2) = (dpi/2.0 - positions_list(satellite_index)%positions(8, starting_index(satellite_index,1)))
-
+ 
 ! phi_satellite here is at qt = 0, so at the simulation start
 phi_satellite = delta_phi+positions_list(satellite_index)%positions(9, starting_index(satellite_index,1))&
  + ((timestamp(1)-before_cme))*(2.0*dpi)/24.0*(1/2.447d1-1/orbital_period(1))
@@ -1280,6 +1296,7 @@ end subroutine specialvarnames_output
           if ((day(j_date) == magnetogram_timestamp(3)) .and. (hour(j_date) == magnetogram_timestamp(4))) then
             if (minute(j_date) == magnetogram_timestamp(5)) then
               magnetogram_index(index) = j_date
+
               exit
             end if
           end if
