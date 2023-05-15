@@ -317,8 +317,8 @@ contains
       x(3) = xf(3)
     end if
 
-<<<<<<< HEAD
-!print *, xprobmin1, xprobmax1, xprobmin2, xprobmax2, xprobmin3, xprobmax3
+
+
 before_cme = (cme_index(1,1) - magnetogram_index(1))/60.0
 x(1) = positions_list(satellite_index)%positions(7, starting_index(satellite_index,1))
 x(2) = (dpi/2.0 - positions_list(satellite_index)%positions(8, starting_index(satellite_index,1)))
@@ -326,7 +326,7 @@ x(2) = (dpi/2.0 - positions_list(satellite_index)%positions(8, starting_index(sa
 ! phi_satellite here is at qt = 0, so at the simulation start
 phi_satellite = delta_phi+positions_list(satellite_index)%positions(9, starting_index(satellite_index,1))&
  + ((timestamp(1)-before_cme))*(2.0*dpi)/24.0*(1/2.447d1-1/orbital_period(1))
-=======
+
     ! This is the small (temporary) fix for the longitude update from the file
     ! because now we are updating the previous longitude, which only reads out the first longitude of the satellite from the file
     ! but not afterwards at everystep, so to fix for that we are doing this
@@ -338,7 +338,7 @@ phi_satellite = delta_phi+positions_list(satellite_index)%positions(9, starting_
     else if (x_test(3) > 2.0*dpi) then
       x_test(3) = x_test(3) - 2.0*dpi
     end if
->>>>>>> d1b33023a9ddd03793e1526214de09876a50c7d8
+
 
     final_fix = x_test(3) - x(3)
     if (final_fix < -2*dpi) then
