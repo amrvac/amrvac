@@ -179,6 +179,8 @@ mod_input_output.o: mod_slice.mod
 mod_input_output.o: mod_small_values.mod
 mod_input_output.o: mod_source.mod
 mod_input_output.o: mod_timing.mod
+mod_lfff.o: mod_geometry.mod
+mod_lfff.o: mod_multigrid_coupling.mod
 mod_limiter.o: mod_mp5.mod
 mod_limiter.o: mod_ppm.mod
 mod_limiter.o: mod_venk.mod

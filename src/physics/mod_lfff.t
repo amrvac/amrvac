@@ -238,5 +238,251 @@ contains
     !$OMP END PARALLEL DO
 
   end subroutine get_potential_field_potential_sphere
+
+  !> get potential magnetic field energy given normal B on all boundaries
+  subroutine potential_field_energy_mg(benergy)
+  ! NOTE: Solve Poisson equation of scalar potential using multigrid solver
+  ! Only works for 3D Cartesian coordinates 
+    use mod_global_parameters
+    use mod_multigrid_coupling
+    use mod_forest
+    use mod_geometry
+    real*8, intent(out) :: benergy
+    real*8  :: block_Benergy(ixM^T), mype_Benergy
+    real*8, allocatable :: tmp(:,:,:)
+    integer :: iigrid, igrid, idir
+    integer :: id,nc, lvl, ixI^L
+
+    call get_potential_field_potential_mg()
+    ixImin^D=ixMlo^D-1;
+    ixImax^D=ixMhi^D+1;
+    allocate(tmp(ixI^S))
+    mype_Benergy=0.d0
+    do iigrid=1,igridstail; igrid=igrids(iigrid);
+      block=>ps(igrid)
+      ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
+      id = igrid_to_node(igrid, mype)%node%id
+      lvl= mg%boxes(id)%lvl
+      nc = mg%box_size_lvl(lvl)
+      block_Benergy=0.d0
+      do idir=1,ndim
+        call gradient(mg%boxes(id)%cc({0:nc+1},mg_iphi),ixI^L,ixM^LL,idir,tmp)
+        block_Benergy(ixM^T)=block_Benergy(ixM^T)+tmp(ixM^T)**2
+      end do
+      mype_Benergy=mype_Benergy+sum(0.5d0*block_Benergy(ixM^T)*block%dvolume(ixM^T))
+    end do
+
+    call MPI_ALLREDUCE(mype_Benergy,benergy,1,MPI_DOUBLE_PRECISION,MPI_SUM,icomm,ierrmpi)
+
+  end subroutine potential_field_energy_mg
+
+  !>  Solve Poisson equation of scalar potential using multigrid solver
+  subroutine get_potential_field_potential_mg()
+    use mod_global_parameters
+    use mod_multigrid_coupling
+    double precision :: max_residual, res
+    integer :: i, max_its
+
+    mg%operator_type = mg_laplacian
+    max_its=50
+    max_residual=1.d-8
+
+    ! Set boundary conditions
+    mg%bc(:, mg_iphi)%bc_type = mg_bc_neumann
+
+    do i=1,2*ndim
+       mg%bc(i, mg_iphi)%boundary_cond => multigrid_bc
+    end do
+
+    ! Solve laplacian(phi) = 0
+    do i=1,max_its
+       !call mg_fas_vcycle(mg, max_res=res)
+       call mg_fas_fmg(mg,.true.,max_res=res)
+       if(mype==0) write(*,*) 'mg iteration',i,'residual:', res
+       if(res < max_residual) exit
+    end do
+    if(res > max_residual) call mpistop("get potential multigrid: no convergence")
+
+  end subroutine get_potential_field_potential_mg
+
+  !> To set boundary condition on physical boundaries for mg Poisson solver
+  subroutine multigrid_bc(box, nc, iv, nb, bc_type, bc)
+    use mod_global_parameters
+    use mod_multigrid_coupling
+    type(mg_box_t), intent(in)    :: box
+    integer, intent(in)           :: nc
+    integer, intent(in)           :: iv      !< Index of variable
+    integer, intent(in)           :: nb      !< number of boundary from 1 to 6 for 3D
+    integer, intent(out)          :: bc_type !< Type of b.c.
+    ! mg boundary values
+    double precision, intent(out) :: bc(nc, nc)
+    ! mg coordinates of boundary layer
+    double precision              :: rr(nc, nc, 3)
+    double precision :: rmina,rminb,rmaxa,rmaxb,xmina,xminb,xmaxa,xmaxb
+    ! store normal magnetic field on the boundary
+    double precision :: wbn(ixG^T)
+    double precision, allocatable :: xcoarse(:,:,:)
+    integer :: iigrid,igrid,ix^D,idir,ixbca,ixbcb,ixbcn,dlvl,wnc
+
+    bc_type = mg_bc_neumann
+
+    call mg_get_face_coords(box, nb, nc, rr)
+
+    idir=(nb+1)/2
+    bc=0.d0
+    ! send normal B on boundaries from AMRVAC to mg Poisson solver
+    ! for Neumann boundary condition
+    select case(idir)
+    case(1)
+      if(mod(nb,2)==0) then
+        ixbcn=ixMhi1
+      else
+        ixbcn=ixMlo1-1
+      end if
+      rmina=rr(1,1,2)-0.5d0*box%dr(2)
+      rmaxa=rr(nc,1,2)+0.5d0*box%dr(2)
+      rminb=rr(1,1,3)-0.5d0*box%dr(3)
+      rmaxb=rr(1,nc,3)+0.5d0*box%dr(3)
+      do iigrid=1,igridstail; igrid=igrids(iigrid);
+        block=>ps(igrid)
+        if(.not.block%is_physical_boundary(nb)) cycle
+        if(stagger_grid) then
+          !wbn(ixbcn^%1ixG^T)=block%ws(ixbcn^%1ixG^T,idir)
+          wbn(ixbcn^%1ixG^T)=block%ws(ixbcn^%1ixG^T,idir)
+        else
+          wbn(ixbcn^%1ixG^T)=half*(block%w(ixbcn^%1ixG^T,iw_mag(idir))+block%w(ixbcn+1^%1ixG^T,iw_mag(idir)))
+        end if
+        xmina=block%x(1,1,1,2)-0.5d0*rnode(rpdx2_,igrid)
+        xmaxa=block%x(1,ixGhi2,1,2)+0.5d0*rnode(rpdx2_,igrid)
+        xminb=block%x(1,1,1,3)-0.5d0*rnode(rpdx3_,igrid)
+        xmaxb=block%x(1,1,ixGhi3,3)+0.5d0*rnode(rpdx3_,igrid)
+        if(xmina<rr(1,1,2) .and. xmaxa>rr(nc,1,2) .and. &
+           xminb<rr(1,1,3) .and. xmaxb>rr(1,nc,3)) then
+          do ix2=1,nc
+            do ix1=1,nc
+              ixbca=ceiling((rr(ix1,ix2,2)-xmina)/rnode(rpdx2_,igrid))
+              ixbcb=ceiling((rr(ix1,ix2,3)-xminb)/rnode(rpdx3_,igrid))
+              bc(ix1,ix2)=wbn(ixbcn,ixbca,ixbcb)
+            end do
+          end do
+        else if(block%x(1,ixMlo2,1,2)>rmina .and. block%x(1,ixMhi2,1,2)<rmaxa .and. &
+                block%x(1,1,ixMlo3,3)>rminb .and. block%x(1,1,ixMhi3,3)<rmaxb) then
+          dlvl=node(plevel_,igrid)-box%lvl
+          wnc=nc/2**dlvl
+          allocate(xcoarse(wnc,wnc,2))
+          do ix2=1,wnc
+            do ix1=1,wnc
+              xcoarse(ix1,ix2,1)=sum(block%x(1,(ix1-1)*2**dlvl+1+nghostcells:ix1*2**dlvl+nghostcells,1,2))/dble(2**dlvl)
+              xcoarse(ix1,ix2,2)=sum(block%x(1,1,(ix2-1)*2**dlvl+1+nghostcells:ix2*2**dlvl+nghostcells,3))/dble(2**dlvl)
+              ixbca=ceiling((xcoarse(ix1,ix2,1)-rmina)/box%dr(2))
+              ixbcb=ceiling((xcoarse(ix1,ix2,2)-rminb)/box%dr(3))
+              bc(ixbca,ixbcb)=sum(wbn(ixbcn,(ix1-1)*2**dlvl+1+nghostcells:ix1*2**dlvl+nghostcells,&
+                                  (ix2-1)*2**dlvl+1+nghostcells:ix2*2**dlvl+nghostcells))/dble(2**(2*dlvl))
+            end do
+          end do
+          deallocate(xcoarse)
+        end if
+      end do
+    case(2)
+      if(mod(nb,2)==0) then
+        ixbcn=ixMhi2
+      else
+        ixbcn=ixMlo2-1
+      end if
+      rmina=rr(1,1,1)-0.5d0*box%dr(1)
+      rmaxa=rr(nc,1,1)+0.5d0*box%dr(1)
+      rminb=rr(1,1,3)-0.5d0*box%dr(3)
+      rmaxb=rr(1,nc,3)+0.5d0*box%dr(3)
+      do iigrid=1,igridstail; igrid=igrids(iigrid);
+        block=>ps(igrid)
+        if(.not.block%is_physical_boundary(nb)) cycle
+        if(stagger_grid) then
+          wbn(ixbcn^%2ixG^T)=block%ws(ixbcn^%2ixG^T,idir)
+        else
+          wbn(ixbcn^%2ixG^T)=half*(block%w(ixbcn^%2ixG^T,iw_mag(idir))+block%w(ixbcn+1^%2ixG^T,iw_mag(idir)))
+        end if
+        xmina=block%x(1,1,1,1)-0.5d0*rnode(rpdx1_,igrid)
+        xmaxa=block%x(ixGhi1,1,1,1)+0.5d0*rnode(rpdx1_,igrid)
+        xminb=block%x(1,1,1,3)-0.5d0*rnode(rpdx3_,igrid)
+        xmaxb=block%x(1,1,ixGhi3,3)+0.5d0*rnode(rpdx3_,igrid)
+        if(xmina<rr(1,1,1) .and. xmaxa>rr(nc,1,1) .and. &
+           xminb<rr(1,1,3) .and. xmaxb>rr(1,nc,3)) then
+          do ix2=1,nc
+            do ix1=1,nc
+              ixbca=ceiling((rr(ix1,ix2,1)-xmina)/rnode(rpdx1_,igrid))
+              ixbcb=ceiling((rr(ix1,ix2,3)-xminb)/rnode(rpdx3_,igrid))
+              bc(ix1,ix2)=wbn(ixbca,ixbcn,ixbcb)
+            end do
+          end do
+        else if(block%x(ixMlo1,1,1,1)>rmina .and. block%x(ixMhi1,1,1,1)<rmaxa .and. &
+                block%x(1,1,ixMlo3,3)>rminb .and. block%x(1,1,ixMhi3,3)<rmaxb) then
+          dlvl=node(plevel_,igrid)-box%lvl
+          wnc=nc/2**dlvl
+          allocate(xcoarse(wnc,wnc,2))
+          do ix2=1,wnc
+            do ix1=1,wnc
+              xcoarse(ix1,ix2,1)=sum(block%x((ix1-1)*2**dlvl+1+nghostcells:ix1*2**dlvl+nghostcells,1,1,1))/dble(2**dlvl)
+              xcoarse(ix1,ix2,2)=sum(block%x(1,1,(ix2-1)*2**dlvl+1+nghostcells:ix2*2**dlvl+nghostcells,3))/dble(2**dlvl)
+              ixbca=ceiling((xcoarse(ix1,ix2,1)-rmina)/box%dr(1))
+              ixbcb=ceiling((xcoarse(ix1,ix2,2)-rminb)/box%dr(3))
+              bc(ixbca,ixbcb)=sum(wbn((ix1-1)*2**dlvl+1+nghostcells:ix1*2**dlvl+nghostcells,ixbcn,&
+                                  (ix2-1)*2**dlvl+1+nghostcells:ix2*2**dlvl+nghostcells))/dble(2**(2*dlvl))
+            end do
+          end do
+          deallocate(xcoarse)
+        end if
+      end do
+    case(3)
+      if(mod(nb,2)==0) then
+        ixbcn=ixMhi3
+      else
+        ixbcn=ixMlo3-1
+      end if
+      rmina=rr(1,1,1)-0.5d0*box%dr(1)
+      rmaxa=rr(nc,1,1)+0.5d0*box%dr(1)
+      rminb=rr(1,1,2)-0.5d0*box%dr(2)
+      rmaxb=rr(1,nc,2)+0.5d0*box%dr(2)
+      do iigrid=1,igridstail; igrid=igrids(iigrid);
+        block=>ps(igrid)
+        if(.not.block%is_physical_boundary(nb)) cycle
+        if(stagger_grid) then
+          wbn(ixbcn^%3ixG^T)=block%ws(ixbcn^%3ixG^T,idir)
+        else
+          wbn(ixbcn^%3ixG^T)=half*(block%w(ixbcn^%3ixG^T,iw_mag(idir))+block%w(ixbcn+1^%3ixG^T,iw_mag(idir)))
+        end if
+        xmina=block%x(1,1,1,1)-0.5d0*rnode(rpdx1_,igrid)
+        xmaxa=block%x(ixGhi1,1,1,1)+0.5d0*rnode(rpdx1_,igrid)
+        xminb=block%x(1,1,1,2)-0.5d0*rnode(rpdx2_,igrid)
+        xmaxb=block%x(1,ixGhi2,1,2)+0.5d0*rnode(rpdx2_,igrid)
+        if(xmina<rr(1,1,1) .and. xmaxa>rr(nc,1,1) .and. &
+           xminb<rr(1,1,2) .and. xmaxb>rr(1,nc,2)) then
+          do ix2=1,nc
+            do ix1=1,nc
+              ixbca=ceiling((rr(ix1,ix2,1)-xmina)/rnode(rpdx1_,igrid))
+              ixbcb=ceiling((rr(ix1,ix2,2)-xminb)/rnode(rpdx2_,igrid))
+              bc(ix1,ix2)=wbn(ixbca,ixbcb,ixbcn)
+            end do
+          end do
+        else if(block%x(ixMlo1,1,1,1)>rmina .and. block%x(ixMhi1,1,1,1)<rmaxa .and. &
+                block%x(1,ixMlo2,1,2)>rminb .and. block%x(1,ixMhi2,1,2)<rmaxb) then
+          dlvl=node(plevel_,igrid)-box%lvl
+          wnc=nc/2**dlvl
+          allocate(xcoarse(wnc,wnc,2))
+          do ix2=1,wnc
+            do ix1=1,wnc
+              xcoarse(ix1,ix2,1)=sum(block%x((ix1-1)*2**dlvl+1+nghostcells:ix1*2**dlvl+nghostcells,1,1,1))/dble(2**dlvl)
+              xcoarse(ix1,ix2,2)=sum(block%x(1,(ix2-1)*2**dlvl+1+nghostcells:ix2*2**dlvl+nghostcells,1,2))/dble(2**dlvl)
+              ixbca=ceiling((xcoarse(ix1,ix2,1)-rmina)/box%dr(1))
+              ixbcb=ceiling((xcoarse(ix1,ix2,2)-rminb)/box%dr(2))
+              bc(ixbca,ixbcb)=sum(wbn((ix1-1)*2**dlvl+1+nghostcells:ix1*2**dlvl+nghostcells,&
+                                  (ix2-1)*2**dlvl+1+nghostcells:ix2*2**dlvl+nghostcells,ixbcn))/dble(2**(2*dlvl))
+            end do
+          end do
+          deallocate(xcoarse)
+        end if
+      end do
+    end select
+
+  end subroutine multigrid_bc
 }
 end module mod_lfff
