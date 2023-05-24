@@ -89,7 +89,7 @@ contains
 
   subroutine initglobaldata_usr
     use mod_global_parameters
-    use mod_opal_opacity, only: init_opal
+    use mod_opal_opacity, only: init_opal_table
     use mod_cak_opacity, only: init_cak
 
     use mod_fld
@@ -97,7 +97,7 @@ contains
     integer :: i
 
     !> Initialise Opal
-    call init_opal(He_abundance, fld_opal_table)
+    call init_opal_table(He_abundance, fld_opal_table)
 
     !> Initialise CAK tables
     call init_cak(fld_opal_table)

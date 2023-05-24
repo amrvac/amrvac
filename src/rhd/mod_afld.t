@@ -122,7 +122,7 @@ module mod_afld
     use mod_global_parameters
     use mod_variables
     use mod_physics
-    use mod_opal_opacity, only: init_opal
+    use mod_opal_opacity, only: init_opal_table
     use mod_multigrid_coupling
 
     double precision, intent(in) :: He_abundance, afld_gamma
@@ -190,7 +190,7 @@ module mod_afld
     ! afld_gamma = phys_gamma
 
     ! !> Read in opacity table if necesary
-    ! if (any(fld_opacity_law) .eq. 'opal') call init_opal(He_abundance)
+    ! if (any(fld_opacity_law) .eq. 'opal') call init_opal_table(He_abundance)
     !
     ! sigma_thomson = 6.6524585d-25
     ! fld_kappa0 = sigma_thomson/const_mp * (1.+2.*He_abundance)/(1.+4.*He_abundance)
