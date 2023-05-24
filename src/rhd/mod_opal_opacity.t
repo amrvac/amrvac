@@ -75,8 +75,6 @@ contains
   !> This routine reads in 1-D (rho,T) values from an opacity table and gives
   !> back as output the 1-D (rho,T) values and 2-D opacity
   subroutine read_table(R, T, K, filename)
-
-    use mod_global_parameters, ONLY: unitstdin
         
     character(*), intent(in)      :: filename
     double precision, intent(out) :: K(iTmin:iTmax,iRmin:iRmax), R(iRmin:iRmax), T(iTmin:iTmax)
@@ -85,23 +83,23 @@ contains
     character :: dum
     integer   :: row, col
 
-    open(unitstdin, status='old', file=trim(filename))
+    open(unit=1, status='old', file=trim(filename))
 
     ! Skip first 4 lines
     do row = 1,4
-        read(unitstdin,*)
+        read(1,*)
     enddo
 
     ! Read rho
-    read(unitstdin,*) dum, R(iRmin:iRmax)
-    read(unitstdin,*)
+    read(1,*) dum, R(iRmin:iRmax)
+    read(1,*)
 
     ! Read T and kappa
     do row = iTmin,iTmax
-        read(unitstdin,'(f4.2,19f7.3)') T(row), K(row,iRmin:iRmax)
+        read(1,'(f4.2,19f7.3)') T(row), K(row,iRmin:iRmax)
     enddo
 
-    close(unitstdin)
+    close(1)
 
   end subroutine read_table
 

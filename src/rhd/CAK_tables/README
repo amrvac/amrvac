@@ -1,0 +1,16 @@
+
+# Overview of directory files
+
+The base directory of the source code contains the following text files by default:
+
+- `Y09800`: example directory with LTE line opacity tables for a pure helium atmosphere appropriate to model a wind outflows from classical Wolf-Rayet stars (hydrogen mass fraction $X=0$, helium mass fraction $Y=0.98$, metal mass fraction $Z=0.02$). The name of the file corresponds to the CAK line-opacity parameter tabulated as a function of mass density and temperature (both are given in base 10 logarithm).
+
+# Generating new tables
+
+The line opacity tables use the parameters ($\alpha$, $\bar{Q}$, $Q_0$) introduced by Gayley (1995) together with the Thomson (free-electron) opacity $\kappa_e$. These opacities are appropriate to model wind outflows using the line-driven wind formalism of Castor, Abbott, & Klein (CAK). New tabulations for different metalicities can be made by following the method outlined in Poniatowski+ (2021, A&A 667).
+
+It is important to follow the file structure and naming convention of files, as in the example directory `Y09800`, in order to avoid problems with reading in the tables. Because four files need to be given for a given metalicity, corresponding to the three line opacity parameters and the free-electron opacity, the files are expected to be grouped in a directory. Additionally, the name of the directory containing the new tables should not exceed 50 characters.
+
+# How-to
+
+The usage of the CAK line-opacity tables is akin to that of the OPAL_tables (see README of OPAL tables). Except that the initialisation call is made to the subroutine `init_cak_table` and access to line opacity values is achieved by calling the subroutine `set_cak_opacity`.
