@@ -40,6 +40,8 @@ module mod_magnetofriction
   double precision :: cmax_mype
   !> maximal speed for fd scheme
   double precision :: cmax_global
+  !> maximal limit of magnetofrictional velocity in cm s^-1 (Pomoell 2019 A&A)
+  double precision, public :: mf_vmax = 3.d6
 
   !> Index of the density (in the w array)
   integer, private, protected              :: rho_
@@ -95,6 +97,8 @@ contains
     mf_cdivb_max=mf_cdivb ! maximum of the divb cleaning coefficient
     mf_tvdlfeps=1.d0 ! coefficient to control the TVDLF dissipation
     mf_tvdlfeps_min = mf_tvdlfeps ! minimum of the TVDLF dissipation coefficient
+    ! get dimensionless maximal mf velocity limit
+    mf_vmax=mf_vmax/unit_velocity
 
     call mf_params_read(par_files)
 
@@ -524,21 +528,22 @@ contains
        endif
     enddo; enddo; enddo
 
+    ! 1/B**2
     if(B0field) then
-      tmp(ixO^S)=sum((w(ixO^S,mag(:))+block%b0(ixO^S,:,0))**2,dim=ndim+1)  ! |B|**2
+      tmp(ixO^S)=1.d0/(sum((w(ixO^S,mag(:))+block%b0(ixO^S,:,0))**2,dim=ndim+1)+smalldouble)
     else
-      tmp(ixO^S)=sum(w(ixO^S,mag(:))**2,dim=ndim+1)         ! |B|**2
+      tmp(ixO^S)=1.d0/(sum(w(ixO^S,mag(:))**2,dim=ndim+1)+smalldouble)
     endif
 
     if(slab_uniform) then
       dxhm=dble(ndim)/(^D&1.0d0/dxlevel(^D)+)
       do idir=1,ndir
-        w(ixO^S,mom(idir))=dxhm*w(ixO^S,mom(idir))/tmp(ixO^S)
+        w(ixO^S,mom(idir))=dxhm*w(ixO^S,mom(idir))*tmp(ixO^S)
       end do
     else
       dxhms(ixO^S)=dble(ndim)/sum(1.d0/block%dx(ixO^S,:),dim=ndim+1)
       do idir=1,ndir
-        w(ixO^S,mom(idir))=dxhms(ixO^S)*w(ixO^S,mom(idir))/tmp(ixO^S)
+        w(ixO^S,mom(idir))=dxhms(ixO^S)*w(ixO^S,mom(idir))*tmp(ixO^S)
       end do
     end if
     vhatmaxgrid=maxval(sqrt(sum(w(ixO^S,mom(:))**2,dim=ndim+1)))
@@ -606,6 +611,13 @@ contains
        endif
     {end do\}
 }
+
+    ! saturate mf velocity at mf_vmax
+    dxhms(ixO^S)=sqrt(sum(w(ixO^S,mom(:))**2,dim=ndim+1))/mf_vmax+1.d-12
+    dxhms(ixO^S)=dtanh(dxhms(ixO^S))/dxhms(ixO^S)
+    do idir=1,ndir
+      w(ixO^S,mom(idir))=w(ixO^S,mom(idir))*dxhms(ixO^S)
+    end do
   end subroutine frictional_velocity
 
   subroutine advectmf(idim^LIM,qt,qdt)

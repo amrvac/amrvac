@@ -310,7 +310,8 @@ contains
              !block%ws(ix1^%1ixOs^S,idir) = 1.d0/3.d0*&
              !       (-block%ws(ix1+2^%1ixOs^S,idir)&
              !   +4.d0*block%ws(ix1+1^%1ixOs^S,idir))
-             block%ws(ix1^%1ixOs^S,idir) = 1.d0/3.d0*&
+             ! 2nd order one-sided equal gradient extrapolation
+             block%ws(ix1^%1ixOs^S,idir) = third*&
                     ( block%ws(ix1+3^%1ixOs^S,idir)&
                 -5.d0*block%ws(ix1+2^%1ixOs^S,idir)&
                 +7.d0*block%ws(ix1+1^%1ixOs^S,idir))
@@ -326,12 +327,17 @@ contains
          end do
          call mhd_face_to_center(ixO^L,block)
        else
-         ! 2nd order accuacy constant value extrapolation
          do ix1=ixOmax1,ixOmin1,-1
-           w(ix1,ixOmin2:ixOmax2,ixOmin3:ixOmax3,mag(1):mag(3))=(1.0d0/3.0d0)* &
-                      (-w(ix1+2,ixOmin2:ixOmax2,ixOmin3:ixOmax3,mag(1):mag(3)) &
-                 +4.0d0*w(ix1+1,ixOmin2:ixOmax2,ixOmin3:ixOmax3,mag(1):mag(3)))
-         enddo
+           !! 2nd order accuacy zero gradient extrapolation
+           !w(ix1^%1ixO^S,mag(:))=third* &
+           !           (-w(ix1+2^%1ixO^S,mag(:)) &
+           !      +4.0d0*w(ix1+1^%1ixO^S,mag(:)))
+           ! 3rd order one-sided equal gradient extrapolation
+           w(ix1^%1ixO^S,mag(:)) = third*&
+                   (w(ix1+3^%1ixO^S,mag(:))&
+              -5.d0*w(ix1+2^%1ixO^S,mag(:))&
+              +7.d0*w(ix1+1^%1ixO^S,mag(:)))
+         end do
        end if
        if(mhd_energy) then
          ixIM^L=ixO^L;
@@ -364,7 +370,8 @@ contains
              !block%ws(ix1^%1ixOs^S,idir) = 1.d0/3.d0*&
              !       (-block%ws(ix1-2^%1ixOs^S,idir)&
              !   +4.d0*block%ws(ix1-1^%1ixOs^S,idir))
-             block%ws(ix1^%1ixOs^S,idir) = 1.d0/3.d0*&
+             ! 2nd order one-sided equal gradient extrapolation
+             block%ws(ix1^%1ixOs^S,idir) = third*&
                     ( block%ws(ix1-3^%1ixOs^S,idir)&
                 -5.d0*block%ws(ix1-2^%1ixOs^S,idir)&
                 +7.d0*block%ws(ix1-1^%1ixOs^S,idir))
@@ -380,12 +387,17 @@ contains
          end do
          call mhd_face_to_center(ixO^L,block)
        else
-         ! 2nd order accuacy constant value extrapolation
          do ix1=ixOmin1,ixOmax1
-           w(ix1,ixOmin2:ixOmax2,ixOmin3:ixOmax3,mag(1):mag(3))=(1.0d0/3.0d0)* &
-                      (-w(ix1-2,ixOmin2:ixOmax2,ixOmin3:ixOmax3,mag(1):mag(3)) &
-                 +4.0d0*w(ix1-1,ixOmin2:ixOmax2,ixOmin3:ixOmax3,mag(1):mag(3)))
-         enddo
+           !! 2nd order accuacy zero gradient extrapolation
+           !w(ix1^%1ixO^S,mag(:))=third* &
+           !           (-w(ix1-2^%1ixO^S,mag(:)) &
+           !      +4.0d0*w(ix1-1^%1ixO^S,mag(:)))
+           ! 3rd order one-sided equal gradient extrapolation
+           w(ix1^%1ixO^S,mag(:)) = third*&
+                   (w(ix1-3^%1ixO^S,mag(:))&
+              -5.d0*w(ix1-2^%1ixO^S,mag(:))&
+              +7.d0*w(ix1-1^%1ixO^S,mag(:)))
+         end do
        end if
        if(mhd_energy) then
          ixIM^L=ixO^L;
@@ -417,7 +429,8 @@ contains
              !block%ws(ix2^%2ixOs^S,idir) = 1.d0/3.d0*&
              !       (-block%ws(ix2+2^%2ixOs^S,idir)&
              !   +4.d0*block%ws(ix2+1^%2ixOs^S,idir))
-             block%ws(ix2^%2ixOs^S,idir) = 1.d0/3.d0*&
+             ! 2nd order one-sided equal gradient extrapolation
+             block%ws(ix2^%2ixOs^S,idir) = third*&
                     ( block%ws(ix2+3^%2ixOs^S,idir)&
                 -5.d0*block%ws(ix2+2^%2ixOs^S,idir)&
                 +7.d0*block%ws(ix2+1^%2ixOs^S,idir))
@@ -433,12 +446,17 @@ contains
          end do
          call mhd_face_to_center(ixO^L,block)
        else
-         ! 2nd order accuacy constant value extrapolation
          do ix2=ixOmax2,ixOmin2,-1
-           w(ixOmin1:ixOmax1,ix2,ixOmin3:ixOmax3,mag(1):mag(3))=(1.0d0/3.0d0)* &
-                      (-w(ixOmin1:ixOmax1,ix2+2,ixOmin3:ixOmax3,mag(1):mag(3)) &
-                 +4.0d0*w(ixOmin1:ixOmax1,ix2+1,ixOmin3:ixOmax3,mag(1):mag(3)))
-         enddo
+           !! 2nd order accuacy zero gradient extrapolation
+           !w(ix2^%2ixO^S,mag(:))=third* &
+           !           (-w(ix2+2^%2ixO^S,mag(:)) &
+           !      +4.0d0*w(ix2+1^%2ixO^S,mag(:)))
+           ! 3rd order one-sided equal gradient extrapolation
+           w(ix2^%2ixO^S,mag(:)) = third*&
+                   (w(ix2+3^%2ixO^S,mag(:))&
+              -5.d0*w(ix2+2^%2ixO^S,mag(:))&
+              +7.d0*w(ix2+1^%2ixO^S,mag(:)))
+         end do
        end if
        if(mhd_energy) then
          ixIM^L=ixO^L;
@@ -470,7 +488,8 @@ contains
              !block%ws(ix2^%2ixOs^S,idir) = 1.d0/3.d0*&
              !       (-block%ws(ix2-2^%2ixOs^S,idir)&
              !   +4.d0*block%ws(ix2-1^%2ixOs^S,idir))
-             block%ws(ix2^%2ixOs^S,idir) = 1.d0/3.d0*&
+             ! 2nd order one-sided equal gradient extrapolation
+             block%ws(ix2^%2ixOs^S,idir) = third*&
                     ( block%ws(ix2-3^%2ixOs^S,idir)&
                 -5.d0*block%ws(ix2-2^%2ixOs^S,idir)&
                 +7.d0*block%ws(ix2-1^%2ixOs^S,idir))
@@ -486,12 +505,17 @@ contains
          end do
          call mhd_face_to_center(ixO^L,block)
        else
-         ! 2nd order accuacy constant value extrapolation
-         do ix2=ixOmin2,ixOmax2
-           w(ixOmin1:ixOmax1,ix2,ixOmin3:ixOmax3,mag(1):mag(3))=(1.0d0/3.0d0)* &
-                       (-w(ixOmin1:ixOmax1,ix2-2,ixOmin3:ixOmax3,mag(1):mag(3))&
-                  +4.0d0*w(ixOmin1:ixOmax1,ix2-1,ixOmin3:ixOmax3,mag(1):mag(3)))
-         enddo
+         do ix2=ixOmax2,ixOmin2,-1
+           !! 2nd order accuacy zero gradient extrapolation
+           !w(ix2^%2ixO^S,mag(:))=third* &
+           !           (-w(ix2-2^%2ixO^S,mag(:)) &
+           !      +4.0d0*w(ix2-1^%2ixO^S,mag(:)))
+           ! 3rd order one-sided equal gradient extrapolation
+           w(ix2^%2ixO^S,mag(:)) = third*&
+                   (w(ix2-3^%2ixO^S,mag(:))&
+              -5.d0*w(ix2-2^%2ixO^S,mag(:))&
+              +7.d0*w(ix2-1^%2ixO^S,mag(:)))
+         end do
        end if
        if(mhd_energy) then
          ixIM^L=ixO^L;
@@ -520,7 +544,7 @@ contains
              ixOsmax^D=ixOmax^D;
              ixOsmin^D=ixOmin^D-kr(^D,idir);
              do ix3=ixOsmax3,ixOsmin3,-1
-               ! 3 one-sided equal gradient
+               ! 3rd order one-sided equal gradient extrapolation
                block%ws(ix3^%3ixOs^S,idir) = 1.d0/11.d0*&
                   ( -2.d0*block%ws(ix3+4^%3ixOs^S,idir)&
                    +11.d0*block%ws(ix3+3^%3ixOs^S,idir)&
@@ -538,14 +562,22 @@ contains
          end do
          call mhd_face_to_center(ixO^L,block)
        else
-         ! 4th order accuacy constant value extrapolation
+         !! 4th order accuacy zero gradient extrapolation
+         !do ix3=ixOmax3,ixOmin3,-1
+         !  w(ix3^%3ixO^S,mag(:)) = 0.04d0*&
+         !     ( -3.d0*w(ix3+4^%3ixO^S,mag(:))&
+         !      +16.d0*w(ix3+3^%3ixO^S,mag(:))&
+         !      -36.d0*w(ix3+2^%3ixO^S,mag(:))&
+         !      +48.d0*w(ix3+1^%3ixO^S,mag(:)))
+         !end do
          do ix3=ixOmax3,ixOmin3,-1
-           w(ixOmin1:ixOmax1,ixOmin2:ixOmax2,ix3,mag(1):mag(3))=(1.0d0/25.0d0)* &
-                ( -3.0d0*w(ixOmin1:ixOmax1,ixOmin2:ixOmax2,ix3+4,mag(1):mag(3)) &
-                 +16.0d0*w(ixOmin1:ixOmax1,ixOmin2:ixOmax2,ix3+3,mag(1):mag(3)) &
-                 -36.0d0*w(ixOmin1:ixOmax1,ixOmin2:ixOmax2,ix3+2,mag(1):mag(3)) &
-                 +48.0d0*w(ixOmin1:ixOmax1,ixOmin2:ixOmax2,ix3+1,mag(1):mag(3)))
-         enddo
+           ! 3rd order one-sided equal gradient extrapolation
+           w(ix3^%3ixO^S,mag(:)) = 1.d0/11.d0*&
+              ( -2.d0*w(ix3+4^%3ixO^S,mag(:))&
+               +11.d0*w(ix3+3^%3ixO^S,mag(:))&
+               -27.d0*w(ix3+2^%3ixO^S,mag(:))&
+               +29.d0*w(ix3+1^%3ixO^S,mag(:)))
+         end do
        end if
        if(mhd_energy) then
          do ix3=ixOmin3,ixOmax3
@@ -573,10 +605,12 @@ contains
            ixOsmax^D=ixOmax^D;
            ixOsmin^D=ixOmin^D-kr(^D,idir);
            do ix3=ixOsmin3,ixOsmax3
+             ! 3rd order one-sided equal gradient extrapolation
              block%ws(ix3^%3ixOs^S,idir) = 1.d0/3.d0*&
                     ( block%ws(ix3-3^%3ixOs^S,idir)&
                 -5.d0*block%ws(ix3-2^%3ixOs^S,idir)&
                 +7.d0*block%ws(ix3-1^%3ixOs^S,idir))
+             ! 3rd order one-sided zero gradient extrapolation
              !block%ws(ix3^%3ixOs^S,idir) = 1.d0/11.d0*&
              !   (+2.d0*block%ws(ix3-3^%3ixOs^S,idir)&
              !    -9.d0*block%ws(ix3-2^%3ixOs^S,idir)&
@@ -593,12 +627,17 @@ contains
          end do
          call mhd_face_to_center(ixO^L,block)
        else
-         ! 2nd order accuacy constant value extrapolation
          do ix3=ixOmin3,ixOmax3
-           w(ixOmin1:ixOmax1,ixOmin2:ixOmax2,ix3,mag(1):mag(3))=(1.0d0/3.0d0)* &
-                 (     -w(ixOmin1:ixOmax1,ixOmin2:ixOmax2,ix3-2,mag(1):mag(3)) &
-                  +4.d0*w(ixOmin1:ixOmax1,ixOmin2:ixOmax2,ix3-1,mag(1):mag(3)))
-         enddo
+           ! 3rd order one-sided equal gradient extrapolation
+           w(ix3^%3ixO^S,mag(:)) = 1.d0/3.d0*&
+                   (w(ix3-3^%3ixO^S,mag(:))&
+              -5.d0*w(ix3-2^%3ixO^S,mag(:))&
+              +7.d0*w(ix3-1^%3ixO^S,mag(:)))
+           !! 2nd order one-sided zero gradient extrapolation
+           !w(ix3^%3ixO^S,mag(:)) = 1.d0/3.d0*&
+           !       (-w(ix3-2^%3ixO^S,mag(:))&
+           !   +4.d0*w(ix3-1^%3ixO^S,mag(:)))
+         end do
        end if
        if(mhd_energy) then
          ixIM^L=ixO^L;
@@ -737,7 +776,7 @@ contains
     integer, intent(inout) :: refine, coarsen
 
     ! fix the bottom layer to the highest level
-    if (any(x(ixO^S,3)<=xprobmin3+0.2d0)) then
+    if (block%is_physical_boundary(5)) then
       refine=1
       coarsen=-1
     endif
