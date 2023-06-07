@@ -22,6 +22,9 @@ module mod_input_output
   !> whether a manually inserted snapshot is saved
   logical :: save_now
 
+  !> whether staggered field is in dat
+  logical, private :: stagger_mark_dat=.false.
+
   ! Formats used in output
   character(len=*), parameter :: fmt_r  = 'es16.8' ! Default precision
   character(len=*), parameter :: fmt_r2 = 'es10.2' ! Two digits
@@ -1934,7 +1937,7 @@ contains
     double precision, allocatable         :: params(:)
     character(len=name_len)               :: phys_name, geom_name
     integer                               :: er, n_par, tmp_int
-    logical                               :: stagger_mark_dat, periodic(ndim)
+    logical                               :: periodic(ndim)
 
     ! Version number
     call MPI_FILE_READ(fh, version, 1, MPI_INTEGER, st, er)
@@ -2038,8 +2041,8 @@ contains
 
       call MPI_FILE_READ(fh, stagger_mark_dat, 1, MPI_LOGICAL, st, er)
       if (stagger_grid .and. .not. stagger_mark_dat .or. .not.stagger_grid.and.stagger_mark_dat) then
-        write(*,*) "Error: stagger grid flag differs from restart data:", stagger_mark_dat
-        call mpistop("change parameter to use stagger grid")
+        write(*,*) "Warning: stagger grid flag differs from restart data:", stagger_mark_dat
+        !call mpistop("change parameter to use stagger grid")
       end if
     end if
 
@@ -2368,7 +2371,7 @@ contains
 
     ! Allocate send/receive buffer
     n_values = count_ix(ixG^LL) * nw_found
-    if(stagger_grid) then
+    if(stagger_mark_dat) then
       n_values = n_values + count_ix(ixGs^LL) * nws
     end if
     allocate(w_buffer(n_values))
@@ -2404,7 +2407,7 @@ contains
           {ixOmin^D = ixMlo^D - ix_buffer(^D)\}
           {ixOmax^D = ixMhi^D + ix_buffer(ndim+^D)\}
           n_values = count_ix(ixO^L) * nw_found
-          if(stagger_grid) then
+          if(stagger_mark_dat) then
             {ixOsmin^D = ixOmin^D - 1\}
             {ixOsmax^D = ixOmax^D\}
             n_values_stagger = n_values
@@ -2417,9 +2420,10 @@ contains
           if (mype == ipe) then ! Root task
             igrid=sfc_to_igrid(Morton_no)
             block=>ps(igrid)
-            if(stagger_grid) then
+            if(stagger_mark_dat) then
               w(ixO^S, 1:nw_found) = reshape(w_buffer(1:n_values_stagger), &
                    shape(w(ixO^S, 1:nw_found)))
+              if(stagger_grid) &
               ps(igrid)%ws(ixOs^S,1:nws)=reshape(w_buffer(n_values_stagger+1:n_values), &
                    shape(ws(ixOs^S, 1:nws)))
             else
@@ -2468,12 +2472,13 @@ contains
         call MPI_RECV(w_buffer, n_values, MPI_DOUBLE_PRECISION,&
              0, itag, icomm, iorecvstatus, ierrmpi)
 
-        if(stagger_grid) then
+        if(stagger_mark_dat) then
           n_values_stagger = count_ix(ixO^L) * nw_found
           {ixOsmin^D = ixOmin^D - 1\}
           {ixOsmax^D = ixOmax^D\}
           w(ixO^S, 1:nw_found) = reshape(w_buffer(1:n_values_stagger), &
                shape(w(ixO^S, 1:nw_found)))
+          if(stagger_grid) &
           ps(igrid)%ws(ixOs^S,1:nws)=reshape(w_buffer(n_values_stagger+1:n_values), &
                shape(ws(ixOs^S, 1:nws)))
         else
