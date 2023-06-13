@@ -293,7 +293,9 @@ contains
           LOS_theta,LOS_phi,image_rotate,x_origin,big_image,spectrum_wl,&
           location_slit,direction_slit,filename_spectrum,&
           resolution_spectrum,spectrum_window_min,spectrum_window_max,&
-          instrument_resolution_factor,activate_unit_arcsec
+          instrument_resolution_factor,activate_unit_arcsec,&
+          filename_whitelight,distance_bottom_suncenter,&
+          whitelight_instrument,H_block
 
     ! default maximum number of grid blocks in a processor
     max_blocks=4000
@@ -505,6 +507,9 @@ contains
     resolution_spectrum = 'instrument'
     instrument_resolution_factor=1.d0
     activate_unit_arcsec=.true.
+    distance_bottom_suncenter=1.d0
+    whitelight_instrument='SDO/HMI'
+    H_block=0.d0
 
     allocate(flux_scheme(nlevelshi),typepred1(nlevelshi),flux_method(nlevelshi))
     allocate(limiter(nlevelshi),gradient_limiter(nlevelshi))

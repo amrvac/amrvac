@@ -962,6 +962,8 @@ contains
         call get_EUV_spectrum(unitconvert,te_fl_mhd)
       case('SIvtiCCmpi','SIvtuCCmpi')
         call get_SXR_image(unitconvert,te_fl_mhd)
+      case('WIvtiCCmpi','WIvtuCCmpi')
+        call get_whitelight_image(unitconvert,te_fl_mhd)
       case default
         call mpistop("Error in synthesize emission: Unknown convert_type")
       end select
