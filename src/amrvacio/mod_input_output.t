@@ -2373,6 +2373,7 @@ contains
     call MPI_BCAST(snapshotnext,1,MPI_INTEGER,0,icomm,ierrmpi)
     call MPI_BCAST(slicenext,1,MPI_INTEGER,0,icomm,ierrmpi)
     call MPI_BCAST(collapsenext,1,MPI_INTEGER,0,icomm,ierrmpi)
+    call MPI_BCAST(stagger_mark_dat,1,MPI_LOGICAL,0,icomm,ierrmpi)
 
     ! Allocate send/receive buffer
     n_values = count_ix(ixG^LL) * nw_found
