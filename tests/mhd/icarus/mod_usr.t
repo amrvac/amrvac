@@ -1186,6 +1186,7 @@ contains
       w_half(i) = w_half(i) * dpi/180.0
       clt_cme(i) = (-clt_cme(i) + 90.0) * dpi/180.0
       lon_cme(i) = delta_phi + lon_cme(i) * dpi/180.0
+      vr_cme(i) = vr_cme(i)*1000.0
     end do
     close(iUnit)
     do i=1, num_cmes
