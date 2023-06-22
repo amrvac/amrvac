@@ -56,6 +56,9 @@ contains
    if (num_cmes .eq.0) then
       cme_flag = 0
    end if
+   if (cme_flag .eq. 0) then
+     cme_insertion = 0
+   end if 
 
   end subroutine usr_params_read
 
