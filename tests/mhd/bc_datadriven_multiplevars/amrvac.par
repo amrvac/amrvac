@@ -1,0 +1,79 @@
+!setup.pl -d=3
+
+ &filelist
+        base_filename='testbc' 
+	      convert_type='vtuBCCmpi'
+	      !convert_type='vtuCCmpi'
+        autoconvert=T
+/
+
+ &savelist
+        itsave(1,2)     = 0  
+        ditsave_dat=1000   
+ /
+
+ &stoplist
+        it_max=3
+ /
+
+ &methodlist
+        time_stepper= 'threestep'
+        flux_scheme=20*'tvdlf'
+        limiter=20*'minmod'
+        check_small_values=.false.
+        fix_small_values=.true.
+        small_values_method = 'replace'
+
+/
+
+ &boundlist
+        typeboundary_min1 = 5*'symm',3*'bc_data'
+        typeboundary_max1 = 8*'symm'
+        typeboundary_min2 = 8*'symm'
+        typeboundary_max2 = 8*'symm'
+        typeboundary_min3 = 8*'symm'
+        typeboundary_max3 = 8*'symm'
+ /
+
+ &meshlist
+        refine_max_level=1
+        refine_criterion= 3
+        w_refine_weight(1)=1.0d0
+    	  refine_threshold = 20*0.2d0
+        domain_nx1=16
+        domain_nx2=128
+        domain_nx3=128
+        block_nx1=8
+        block_nx2=8
+        block_nx3=8
+        xprobmin1=0    
+        xprobmax1=5
+        xprobmin2=109  !lon 
+        xprobmax2=128    
+        xprobmin3=-15  !lat
+        xprobmax3=-3
+       ! max_blocks=10000 
+ /
+
+ &paramlist
+        typecourant='maxsum'
+        courantpar=0.3
+ /
+
+ &mhd_list
+        typedivbfix = 'linde'
+ /
+
+
+ &bd_list
+   boundary_data_file_name="test.vtk" 
+   interp_phy_first_row=.false.   
+ /
+
+
+&usr_list
+
+/
+
+
+
