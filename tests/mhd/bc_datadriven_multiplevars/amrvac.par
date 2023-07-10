@@ -13,7 +13,7 @@
  /
 
  &stoplist
-        it_max=3
+        it_max=1
  /
 
  &methodlist
