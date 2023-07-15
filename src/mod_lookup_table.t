@@ -584,7 +584,8 @@ contains
     my_lt%x_min    = x_min
     my_lt%dx       = (x_max - x_min) / (n_points - 1)
     my_lt%inv_dx   = 1 / my_lt%dx
-
+    !TODO modified so that it does not rely on automatic allocation
+    allocate(my_lt%rows_cols(n_points(1), n_points(2), n_points(3), n_cols))
     my_lt%rows_cols = spaced_data
   end function LT3_create_from_data
 
