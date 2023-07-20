@@ -1148,10 +1148,14 @@ contains
        end if
     end select
 
-    wLC(ixL^S,1:nw)=wLp(ixL^S,1:nw)
-    wRC(ixR^S,1:nw)=wRp(ixR^S,1:nw)
-    call phys_to_conserved(ixI^L,ixL^L,wLC,x)
-    call phys_to_conserved(ixI^L,ixR^L,wRC,x)
+   wLC(ixL^S,1:nwflux) = wLp(ixL^S,1:nwflux)
+   wRC(ixR^S,1:nwflux) = wRp(ixR^S,1:nwflux)
+   call phys_to_conserved(ixI^L,ixL^L,wLC,x)
+   call phys_to_conserved(ixI^L,ixR^L,wRC,x)
+   if(nwaux>0)then
+      wLp(ixL^S,nwflux+1:nwflux+nwaux) = wLC(ixL^S,nwflux+1:nwflux+nwaux)
+      wRp(ixR^S,nwflux+1:nwflux+nwaux) = wRC(ixR^S,nwflux+1:nwflux+nwaux)
+   endif
 
   end subroutine reconstruct_LR
 
