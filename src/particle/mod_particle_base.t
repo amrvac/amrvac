@@ -1326,10 +1326,6 @@ contains
     double precision, dimension(npayload,send_n_particles_for_output), intent(in)  :: send_payload
     character(len=*), intent(in)    :: typefile
     character(len=std_len)              :: filename
-!    type(particle_t), dimension(nparticles_per_cpu_hi)  :: receive_particles
-!    double precision, dimension(npayload,nparticles_per_cpu_hi) :: receive_payload
-!    type(particle_t), allocatable, dimension(:)  :: send_particles_copy
-!    double precision, allocatable, dimension(:,:):: send_payload_copy
     type(particle_t), allocatable, dimension(:)   :: receive_particles
     double precision, allocatable, dimension(:,:) :: receive_payload
     integer                         :: status(MPI_STATUS_SIZE)
@@ -1345,18 +1341,9 @@ contains
     ! If there are no particles to be written, skip the output
     if (sum(receive_n_particles_for_output_from_ipe(:)) == 0) return
 
-!    allocate(send_particles_copy(1:send_n_particles_for_output))
-!    allocate(send_payload_copy(1:npayload,1:send_n_particles_for_output))
-!    do ipart=1,send_n_particles_for_output
-!      send_particles_copy(ipart) = send_particles(ipart)
-!      send_payload_copy(1:npayload,ipart) = send_payload(1:npayload,ipart)
-!    end do
-
     if (mype > 0) then
       call MPI_SEND(send_particles,send_n_particles_for_output,type_particle,0,mype,icomm,ierrmpi)
       call MPI_SEND(send_payload,npayload*send_n_particles_for_output,MPI_DOUBLE_PRECISION,0,mype,icomm,ierrmpi)
-!      call MPI_SEND(send_particles_copy,send_n_particles_for_output,type_particle,0,mype,icomm,ierrmpi)
-!      call MPI_SEND(send_payload_copy,npayload*send_n_particles_for_output,MPI_DOUBLE_PRECISION,0,mype,icomm,ierrmpi)
     else
       ! Create file and write header
       if(typefile=='destroy') then ! Destroyed file
@@ -1374,8 +1361,7 @@ contains
 
       else ! Ensemble file
         write(filename,"(a,a,i6.6,a)") trim(base_filename) // '_', &
-            trim(typefile) // '_', nint(send_particles(1)%time/dtsave_particles),'.csv'
-!            trim(typefile) // '_', nint(send_particles_copy(1)%time/dtsave_particles),'.csv'
+            trim(typefile) // '_', nint(t_next_output/dtsave_particles),'.csv'
         open(unit=unitparticles,file=filename)
         write(unitparticles,"(a)") trim(csv_header)
       end if
@@ -1383,7 +1369,6 @@ contains
       ! Write own particles
       do ipart=1,send_n_particles_for_output
         call output_particle(send_particles(ipart),send_payload(1:npayload,ipart),0,unitparticles)
-!        call output_particle(send_particles_copy(ipart),send_payload_copy(1:npayload,ipart),0,unitparticles)
       end do
 
       ! Write particles from other tasks
@@ -1401,8 +1386,6 @@ contains
 
       close(unitparticles)
     end if
-!    deallocate(send_particles_copy)
-!    deallocate(send_payload_copy)
 
   end subroutine output_ensemble
 

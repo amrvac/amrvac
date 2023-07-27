@@ -1735,7 +1735,7 @@ contains
        ! Generate formatted output (e.g., VTK)
        if(autoconvert) call generate_plotfile
 
-!       if(use_particles) call write_particles_snapshot()
+       if(use_particles) call write_particles_snapshot()
 
        snapshotnext = snapshotnext + 1
     case (fileslice_)
