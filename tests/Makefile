@@ -37,7 +37,7 @@ RD_DIRS := rd/schnakenberg_2d rd/test_suite_2d
 
 ARD_DIRS := ard/schnakenberg_2d
 
-MF_DIRS := mf/Mackay_bipole_Cartesian_3D
+MF_DIRS := mf/Mackay_bipole_Cartesian_3D mf/sheared_arcade_Antiochos_3D
 
 TWOFL_DIRS := twofl/Alfven_wave_1D twofl/Riemann_1D twofl/KHI_2D
 

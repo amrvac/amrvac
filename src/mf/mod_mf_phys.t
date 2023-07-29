@@ -737,7 +737,18 @@ contains
     ! because extrapolation of B at boundaries introduces artificial current
 {
     if(block%is_physical_boundary(2*^D-1)) then
-      current(ixOmin^D^D%ixO^S,:)=current(ixOmin^D+1^D%ixO^S,:)
+      if(slab) then
+        ! exclude boundary 5 in 3D Cartesian
+        if(2*^D-1==5.and.ndim==3) then
+        else
+          current(ixOmin^D^D%ixO^S,:)=current(ixOmin^D+1^D%ixO^S,:)
+        end if
+      else
+        ! exclude boundary 1 spherical/cylindrical
+        if(2*^D-1>1) then
+          current(ixOmin^D^D%ixO^S,:)=current(ixOmin^D+1^D%ixO^S,:)
+        end if
+      end if
     end if
     if(block%is_physical_boundary(2*^D)) then
       current(ixOmax^D^D%ixO^S,:)=current(ixOmax^D-1^D%ixO^S,:)
