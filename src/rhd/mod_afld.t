@@ -35,7 +35,8 @@ module mod_afld
     integer, public :: i_test
 
     !> Use constant Opacity?
-    character(len=8),dimension(:),allocatable :: fld_opacity_law
+    character(len=8), allocatable :: fld_opacity_law(:)
+    character(len=50) :: fld_opal_table = 'Y09800'
 
     !> Diffusion limit lambda = 0.33
     character(len=16) :: fld_fluxlimiter = 'Pomraning'
@@ -99,7 +100,7 @@ module mod_afld
     integer                      :: n
 
     namelist /fld_list/ fld_kappa0, fld_Eint_split, fld_Radforce_split, &
-    fld_bisect_tol, fld_diff_testcase, fld_diff_tol,&
+    fld_bisect_tol, fld_diff_testcase, fld_diff_tol, fld_opal_table, &
     fld_opacity_law, fld_fluxlimiter, afld_diff_scheme, fld_interaction_method, &
     diff_coef_filter, size_D_filter, flux_lim_filter, size_L_filter, &
     lineforce_opacities, diffcrash_resume
@@ -107,7 +108,7 @@ module mod_afld
     do n = 1, size(files)
        open(unitpar, file=trim(files(n)), status="old")
        read(unitpar, fld_list, end=111)
-       111    close(unitpar)
+       111 close(unitpar)
     end do
   end subroutine afld_params_read
 
@@ -190,7 +191,7 @@ module mod_afld
     ! afld_gamma = phys_gamma
 
     ! !> Read in opacity table if necesary
-    ! if (any(fld_opacity_law) .eq. 'opal') call init_opal_table(He_abundance)
+    ! if (any(fld_opacity_law) .eq. 'opal') call init_opal_table(fld_opal_table)
     !
     ! sigma_thomson = 6.6524585d-25
     ! fld_kappa0 = sigma_thomson/const_mp * (1.+2.*He_abundance)/(1.+4.*He_abundance)

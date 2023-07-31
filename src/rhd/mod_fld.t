@@ -166,7 +166,7 @@ module mod_fld
     fld_gamma = rhd_gamma
 
     !> Read in opacity table if necesary
-    if (fld_opacity_law .eq. 'opal') call init_opal_table(He_abundance,fld_opal_table)
+    if (fld_opacity_law .eq. 'opal') call init_opal_table(fld_opal_table)
     if ((fld_opacity_law .eq. 'thomson') .or. (fld_opacity_law .eq. 'fastwind'))  then
       sigma_thomson = 6.6524585d-25
       fld_kappa0 = sigma_thomson/const_mp * (1.+2.*He_abundance)/(1.+4.*He_abundance)

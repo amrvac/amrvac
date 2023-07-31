@@ -21,9 +21,8 @@ contains
 
   !> This subroutine is called when the FLD radiation module is initialised.
   !> The OPAL tables for different helium abundances are read and interpolated.
-  subroutine init_opal_table(He_abundance, tablename)
+  subroutine init_opal_table(tablename)
     
-    double precision, intent(in) :: He_abundance
     character(len=*), intent(in) :: tablename
 
     ! Local variables

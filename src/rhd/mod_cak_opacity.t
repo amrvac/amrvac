@@ -9,8 +9,8 @@ module mod_cak_opacity
   implicit none
 
   !> min and max indices for R,T-range in opacity table
-  integer, parameter :: iDmin = 2, iDmax = 21
-  integer, parameter :: iTmin = 2, iTmax = 21
+  integer, parameter :: iDmin = 2, iDmax = 16
+  integer, parameter :: iTmin = 2, iTmax = 51
 
   !> The opacity tables are read once and stored globally
   double precision, public :: alpha_vals(iDmin:iDmax,iTmin:iTmax)
