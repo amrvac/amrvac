@@ -701,6 +701,14 @@ module mod_global_parameters
   integer :: emin_sxr,emax_sxr
   !> resolution of the SXR image
   character(len=std_len) :: resolution_sxr
+  !> Base file name for synthetic white light
+  character(len=std_len) :: filename_whitelight
+  !> distance of lower boundary from sun center in sun radia
+  double precision :: distance_bottom_suncenter
+  !> white light observation instrument
+  character(len=std_len) :: whitelight_instrument
+  !> the white light emission below given height is not visible 
+  double precision :: H_block
   !> direction of the line of sight (LOS)
   double precision :: LOS_theta,LOS_phi
   !> rotation of image

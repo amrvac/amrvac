@@ -316,6 +316,13 @@ mod_solar_atmosphere.o: mod_physics.mod
 mod_source.o: mod_ghostcells_update.mod
 mod_source.o: mod_physics.mod
 mod_source.o: mod_supertimestepping.mod
+mod_srhd.o: mod_amrvac.mod
+mod_srhd.o: mod_srhd_phys.mod
+mod_srhd_phys.o: mod_con2prim_vars.mod
+mod_srhd_phys.o: mod_geometry.mod
+mod_srhd_phys.o: mod_particles.mod
+mod_srhd_phys.o: mod_physics.mod
+mod_srhd_phys.o: mod_small_values.mod
 mod_supertimestepping.o: mod_fix_conserve.mod
 mod_supertimestepping.o: mod_geometry.mod
 mod_supertimestepping.o: mod_ghostcells_update.mod

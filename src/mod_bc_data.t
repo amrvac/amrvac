@@ -29,6 +29,7 @@ module mod_bc_data
 
   !> data file name
   character(len=std_len), public, protected :: boundary_data_file_name
+  logical, public, protected :: interp_phy_first_row=.true.
 
   public :: bc_data_init
   public :: bc_data_set
@@ -51,20 +52,19 @@ contains
     bc_data_ix(:, :) = -1
     n_bc             = 0
 
+    if(any(typeboundary(1:nwfluxbc,1:2*ndim)==bc_data )) then
+      call read_vtk_structured_points(trim(boundary_data_file_name), bc)
+      xmax = bc%origin + (bc%n_points-1) * bc%dx
+      bc_data_time_varying = (bc%n_points(ndim) > 1)
+
+    endif
+
     do ib = 1, 2 * ndim
        do iw = 1, nwfluxbc
           if (typeboundary(iw, ib)==bc_data) then
              n_bc               = n_bc + 1
              bc_data_ix(iw, ib) = n_bc
 
-             call read_vtk_structured_points(trim(boundary_data_file_name), bc)
-             xmax = bc%origin + (bc%n_points-1) * bc%dx
-
-             if (n_bc == 1) then
-                bc_data_time_varying = (bc%n_points(ndim) > 1)
-             else if (bc_data_time_varying .neqv. (bc%n_points(ndim) > 1)) then
-                call mpistop("bc_data_init: only some files are time varying")
-             end if
 
              {^IFONED
              call mpistop("bc_data_init: 1D case not supported")
@@ -72,21 +72,21 @@ contains
              {^IFTWOD
              if (bc_data_time_varying) then
                 lt_2d(n_bc) = LT2_create_from_data(bc%origin(1:ndim), &
-                     xmax(1:ndim), bc%values(:, :, 1:1, 1))
+                     xmax(1:ndim), bc%values(:, :, 1:1, n_bc))
              else
                 ! Use first point in time
                 lt_1d(n_bc) = LT_create_from_data(bc%origin(1), &
-                     xmax(1), bc%values(:, 1, 1:1, 1))
+                     xmax(1), bc%values(:, 1, 1:1, n_bc))
              end if
              }
              {^IFTHREED
              if (bc_data_time_varying) then
                 lt_3d(n_bc) = LT3_create_from_data(bc%origin(1:ndim), &
-                     xmax(1:ndim), bc%values(:, :, :, 1:1))
+                     xmax(1:ndim), bc%values(:, :, :, n_bc:n_bc))
              else
                 ! Use first point in time
                 lt_2d(n_bc) = LT2_create_from_data(bc%origin(1:ndim-1), &
-                     xmax(1:ndim-1), bc%values(:, :, 1:1, 1))
+                     xmax(1:ndim-1), bc%values(:, :, 1:1, n_bc))
              end if
              }
           end if
@@ -101,7 +101,7 @@ contains
     character(len=*), intent(in) :: files(:)
     integer                      :: n
 
-    namelist /bd_list/ boundary_data_file_name
+    namelist /bd_list/ boundary_data_file_name, interp_phy_first_row
 
     do n = 1, size(files)
        open(unitpar, file=trim(files(n)), status="old")
@@ -144,29 +144,37 @@ contains
     double precision                :: tmp(ixO^S)
     integer                         :: i, ix, iw, n_bc
 
+
     {^IFTWOD
     select case (iB)
     case (1, 2)
        do iw = 1, nwfluxbc
           n_bc = bc_data_ix(iw, iB)
           if (n_bc == -1) cycle
-
+          
           tmp(ixOmin1, ixOmin2:ixOmax2) = bc_data_get_2d(n_bc, &
                   x(ixOmin1, ixOmin2:ixOmax2, 2), qt)
-
-          if (iB == 1) then
-             ix = ixOmax1+1
+          if(interp_phy_first_row) then
+            if (iB == 1) then
+               ix = ixOmax1+1
+            else
+               ix = ixOmin1-1
+            end if
+  
+            ! Approximate boundary value by linear interpolation to first ghost
+            ! cell, rest of ghost cells contains the same value
+            do i = 0, ixOmax1-ixOmin1
+               w(ixOmin1+i, ixOmin2:ixOmax2, iw) = &
+                    2 * tmp(ixOmin1, ixOmin2:ixOmax2) - &
+                    w(ix, ixOmin2:ixOmax2, iw)
+            end do
           else
-             ix = ixOmin1-1
-          end if
+            do i = ixOmin1, ixOmax1
+               w(i, ixOmin2:ixOmax2, iw) = &
+                   tmp(ixOmin1, ixOmin2:ixOmax2)
+            end do
 
-          ! Approximate boundary value by linear interpolation to first ghost
-          ! cell, rest of ghost cells contains the same value
-          do i = 0, ixOmax1-ixOmin1
-             w(ixOmin1+i, ixOmin2:ixOmax2, iw) = &
-                  2 * tmp(ixOmin1, ixOmin2:ixOmax2) - &
-                  w(ix, ixOmin2:ixOmax2, iw)
-          end do
+          endif
        end do
     case (3, 4)
        do iw = 1, nwfluxbc
@@ -176,19 +184,27 @@ contains
           tmp(ixOmin1:ixOmax1, ixOmin2) = bc_data_get_2d(n_bc, &
                   x(ixOmin1:ixOmax1, ixOmin2, 1), qt)
 
-          if (iB == 3) then
-             ix = ixOmax2+1
+          if(interp_phy_first_row) then
+            if (iB == 3) then
+               ix = ixOmax2+1
+            else
+               ix = ixOmin2-1
+            end if
+  
+            ! Approximate boundary value by linear interpolation to first ghost
+            ! cell, rest of ghost cells contains the same value
+            do i = 0, ixOmax2-ixOmin2
+               w(ixOmin1:ixOmax1, ixOmin2+i, iw) = &
+                    2 * tmp(ixOmin1:ixOmax1, ixOmin2) - &
+                    w(ixOmin1:ixOmax1, ix, iw)
+            end do
           else
-             ix = ixOmin2-1
-          end if
+            do i = ixOmin2, ixOmax2
+             w(ixOmin1:ixOmax1, i, iw) = &
+                  tmp(ixOmin1:ixOmax1, ixOmin2)
+            end do
 
-          ! Approximate boundary value by linear interpolation to first ghost
-          ! cell, rest of ghost cells contains the same value
-          do i = 0, ixOmax2-ixOmin2
-             w(ixOmin1:ixOmax1, ixOmin2+i, iw) = &
-                  2 * tmp(ixOmin1:ixOmax1, ixOmin2) - &
-                  w(ixOmin1:ixOmax1, ix, iw)
-          end do
+          endif
        end do
     case default
        call mpistop("bc_data_set: unknown iB")
@@ -198,6 +214,7 @@ contains
     {^IFTHREED
     select case (iB)
     case (1, 2)
+
        do iw = 1, nwfluxbc
           n_bc = bc_data_ix(iw, iB)
           if (n_bc == -1) cycle
@@ -206,19 +223,28 @@ contains
                x(ixOmin1, ixOmin2:ixOmax2, ixOmin3:ixOmax3, 2), &
                x(ixOmin1, ixOmin2:ixOmax2, ixOmin3:ixOmax3, 3), qt)
 
-          if (iB == 1) then
-             ix = ixOmax1+1
+          if(interp_phy_first_row) then
+            if (iB == 1) then
+               ix = ixOmax1+1
+            else
+               ix = ixOmin1-1
+            end if
+  
+            ! Approximate boundary value by linear interpolation to first ghost
+            ! cell, rest of ghost cells contains the same value
+            do i = 0, ixOmax1-ixOmin1
+               w(ixOmin1+i, ixOmin2:ixOmax2, ixOmin3:ixOmax3, iw) = &
+                    2 * tmp(ixOmin1, ixOmin2:ixOmax2, ixOmin3:ixOmax3) - &
+                    w(ix, ixOmin2:ixOmax2, ixOmin3:ixOmax3, iw)
+            end do
           else
-             ix = ixOmin1-1
+            do i = ixOmin1,ixOmax1
+               w(i, ixOmin2:ixOmax2, ixOmin3:ixOmax3, iw) = &
+                     tmp(ixOmin1, ixOmin2:ixOmax2, ixOmin3:ixOmax3) 
+            end do
           end if
 
-          ! Approximate boundary value by linear interpolation to first ghost
-          ! cell, rest of ghost cells contains the same value
-          do i = 0, ixOmax1-ixOmin1
-             w(ixOmin1+i, ixOmin2:ixOmax2, ixOmin3:ixOmax3, iw) = &
-                  2 * tmp(ixOmin1, ixOmin2:ixOmax2, ixOmin3:ixOmax3) - &
-                  w(ix, ixOmin2:ixOmax2, ixOmin3:ixOmax3, iw)
-          end do
+
        end do
     case (3, 4)
        do iw = 1, nwfluxbc
@@ -229,19 +255,26 @@ contains
                   x(ixOmin1:ixOmax1, ixOmin2, ixOmin3:ixOmax3, 1), &
                   x(ixOmin1:ixOmax1, ixOmin2, ixOmin3:ixOmax3, 3), qt)
 
-          if (iB == 3) then
-             ix = ixOmax2+1
+          if(interp_phy_first_row) then
+            if (iB == 3) then
+               ix = ixOmax2+1
+            else
+               ix = ixOmin2-1
+            end if
+  
+            ! Approximate boundary value by linear interpolation to first ghost
+            ! cell, rest of ghost cells contains the same value
+            do i = 0, ixOmax2-ixOmin2
+               w(ixOmin1:ixOmax1, ixOmin2+i, ixOmin3:ixOmax3, iw) = &
+                    2 * tmp(ixOmin1:ixOmax1, ixOmin2, ixOmin3:ixOmax3) - &
+                    w(ixOmin1:ixOmax1, ix, ixOmin3:ixOmax3, iw)
+            end do
           else
-             ix = ixOmin2-1
+            do i = ixOmin2,ixOmax2
+               w(ixOmin1:ixOmax1, i, ixOmin3:ixOmax3, iw) = &
+                    tmp(ixOmin1:ixOmax1, ixOmin2, ixOmin3:ixOmax3)
+            end do
           end if
-
-          ! Approximate boundary value by linear interpolation to first ghost
-          ! cell, rest of ghost cells contains the same value
-          do i = 0, ixOmax2-ixOmin2
-             w(ixOmin1:ixOmax1, ixOmin2+i, ixOmin3:ixOmax3, iw) = &
-                  2 * tmp(ixOmin1:ixOmax1, ixOmin2, ixOmin3:ixOmax3) - &
-                  w(ixOmin1:ixOmax1, ix, ixOmin3:ixOmax3, iw)
-          end do
        end do
     case (5, 6)
        do iw = 1, nwfluxbc
@@ -252,19 +285,26 @@ contains
                   x(ixOmin1:ixOmax1, ixOmin2:ixOmax2, ixOmin3, 1), &
                   x(ixOmin1:ixOmax1, ixOmin2:ixOmax2, ixOmin3, 2), qt)
 
-          if (iB == 5) then
-             ix = ixOmax3+1
+          if(interp_phy_first_row) then
+            if (iB == 5) then
+               ix = ixOmax3+1
+            else
+               ix = ixOmin3-1
+            end if
+  
+            ! Approximate boundary value by linear interpolation to first ghost
+            ! cell, rest of ghost cells contains the same value
+            do i = 0, ixOmax3-ixOmin3
+               w(ixOmin1:ixOmax1, ixOmin2:ixOmax2, ixOmin3+i, iw) = &
+                    2 * tmp(ixOmin1:ixOmax1, ixOmin2:ixOmax2, ixOmin3) - &
+                    w(ixOmin1:ixOmax1, ixOmin2:ixOmax2, ix, iw)
+            end do
           else
-             ix = ixOmin3-1
+            do i = ixOmin3,ixOmax3
+               w(ixOmin1:ixOmax1, ixOmin2:ixOmax2, i, iw) = &
+                    tmp(ixOmin1:ixOmax1, ixOmin2:ixOmax2, ixOmin3)
+            end do
           end if
-
-          ! Approximate boundary value by linear interpolation to first ghost
-          ! cell, rest of ghost cells contains the same value
-          do i = 0, ixOmax3-ixOmin3
-             w(ixOmin1:ixOmax1, ixOmin2:ixOmax2, ixOmin3+i, iw) = &
-                  2 * tmp(ixOmin1:ixOmax1, ixOmin2:ixOmax2, ixOmin3) - &
-                  w(ixOmin1:ixOmax1, ixOmin2:ixOmax2, ix, iw)
-          end do
        end do
     case default
        call mpistop("bc_data_set: unknown iB")

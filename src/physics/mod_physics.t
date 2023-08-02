@@ -86,6 +86,8 @@ module mod_physics
   procedure(sub_check_params), pointer    :: phys_te_images              => null()
   ! to update temperature variable with partial ionization
   procedure(sub_update_temperature), pointer :: phys_update_temperature  => null()
+  procedure(sub_get_auxiliary), pointer         :: phys_get_auxiliary         => null()
+  procedure(sub_get_auxiliary_prim), pointer    :: phys_get_auxiliary_prim    => null()
 
   abstract interface
 
@@ -250,6 +252,19 @@ module mod_physics
        double precision, intent(out):: pth(ixI^S)
      end subroutine sub_get_pthermal
 
+     subroutine sub_get_auxiliary(ixI^L,ixO^L,w,x)
+       use mod_global_parameters
+       integer, intent(in)          :: ixI^L, ixO^L
+       double precision, intent(inout) :: w(ixI^S,nw)
+       double precision, intent(in) :: x(ixI^S,1:ndim)
+     end subroutine sub_get_auxiliary
+
+     subroutine sub_get_auxiliary_prim(ixI^L,ixO^L,w)
+       use mod_global_parameters
+       integer, intent(in)          :: ixI^L, ixO^L
+       double precision, intent(inout) :: w(ixI^S,nw)
+     end subroutine sub_get_auxiliary_prim
+
      subroutine sub_get_tgas(w,x,ixI^L,ixO^L,tgas)
        use mod_global_parameters
        integer, intent(in)          :: ixI^L, ixO^L
@@ -394,6 +409,10 @@ contains
 
     if (.not. associated(phys_get_pthermal)) &
          phys_get_pthermal => dummy_get_pthermal
+    if (.not. associated(phys_get_auxiliary)) &
+         phys_get_auxiliary => dummy_get_auxiliary
+    if (.not. associated(phys_get_auxiliary_prim)) &
+         phys_get_auxiliary_prim => dummy_get_auxiliary_prim
 
     if (.not. associated(phys_boundary_adjust)) &
          phys_boundary_adjust => dummy_boundary_adjust
@@ -491,6 +510,25 @@ contains
 
     call mpistop("No get_pthermal method specified")
   end subroutine dummy_get_pthermal
+
+  subroutine dummy_get_auxiliary(ixI^L, ixO^L, w, x)
+    use mod_global_parameters
+
+    integer, intent(in)          :: ixI^L, ixO^L
+    double precision, intent(inout) :: w(ixI^S, nw)
+    double precision, intent(in) :: x(ixI^S, 1:ndim)
+
+    call mpistop("No get_auxiliary method specified")
+  end subroutine dummy_get_auxiliary
+
+  subroutine dummy_get_auxiliary_prim(ixI^L, ixO^L, w)
+    use mod_global_parameters
+
+    integer, intent(in)          :: ixI^L, ixO^L
+    double precision, intent(inout) :: w(ixI^S, nw)
+
+    call mpistop("No get_auxiliary_prim method specified")
+  end subroutine dummy_get_auxiliary_prim
 
   subroutine dummy_boundary_adjust(igrid,psb)
     use mod_global_parameters

@@ -41,7 +41,7 @@ select case(convert_type)
    call onegrid(unitconvert)
   case('oneblock','oneblockB')
    call oneblock(unitconvert)
-  case('EIvtiCCmpi','ESvtiCCmpi','SIvtiCCmpi','EIvtuCCmpi','ESvtuCCmpi','SIvtuCCmpi')
+  case('EIvtiCCmpi','ESvtiCCmpi','SIvtiCCmpi','WIvtiCCmpi','EIvtuCCmpi','ESvtuCCmpi','SIvtuCCmpi','WIvtuCCmpi')
     ! output synthetic euv emission
     if (ndim==3 .and. slab .and. associated(phys_te_images)) then
       call phys_te_images

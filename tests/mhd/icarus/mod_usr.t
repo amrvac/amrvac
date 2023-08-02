@@ -56,6 +56,9 @@ contains
    if (num_cmes .eq.0) then
       cme_flag = 0
    end if
+   if (cme_flag .eq. 0) then
+     cme_insertion = 0
+   end if 
 
   end subroutine usr_params_read
 
@@ -317,15 +320,13 @@ contains
       x(3) = xf(3)
     end if
 
+    before_cme = (cme_index(1,1) - magnetogram_index(1))/60.0
+    x(1) = positions_list(satellite_index)%positions(7, starting_index(satellite_index,1))
+    x(2) = (dpi/2.0 - positions_list(satellite_index)%positions(8, starting_index(satellite_index,1)))
 
-
-before_cme = (cme_index(1,1) - magnetogram_index(1))/60.0
-x(1) = positions_list(satellite_index)%positions(7, starting_index(satellite_index,1))
-x(2) = (dpi/2.0 - positions_list(satellite_index)%positions(8, starting_index(satellite_index,1)))
- 
-! phi_satellite here is at qt = 0, so at the simulation start
-phi_satellite = delta_phi+positions_list(satellite_index)%positions(9, starting_index(satellite_index,1))&
- + ((timestamp(1)-before_cme))*(2.0*dpi)/24.0*(1/2.447d1-1/orbital_period(1))
+    ! phi_satellite here is at qt = 0, so at the simulation start
+    phi_satellite = delta_phi+positions_list(satellite_index)%positions(9, starting_index(satellite_index,1))&
+     + ((timestamp(1)-before_cme))*(2.0*dpi)/24.0*(1/2.447d1-1/orbital_period(1))
 
     ! This is the small (temporary) fix for the longitude update from the file
     ! because now we are updating the previous longitude, which only reads out the first longitude of the satellite from the file
@@ -1188,6 +1189,7 @@ phi_satellite = delta_phi+positions_list(satellite_index)%positions(9, starting_
       w_half(i) = w_half(i) * dpi/180.0
       clt_cme(i) = (-clt_cme(i) + 90.0) * dpi/180.0
       lon_cme(i) = delta_phi + lon_cme(i) * dpi/180.0
+      vr_cme(i) = vr_cme(i)*1000.0
     end do
     close(iUnit)
     do i=1, num_cmes

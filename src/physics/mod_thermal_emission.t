@@ -832,6 +832,177 @@ module mod_thermal_emission
 
     end subroutine get_GOES_flux_grid
 
+    subroutine get_whitelight_Thomson(ixI^L,ixO^L,w,x,fl,flux)
+      ! from Jejcic et al. (2018)
+      ! emissivity erg s-1 cm-2 sr-1 Hz-1
+      use mod_global_parameters
+
+      integer, intent(in)           :: ixI^L,ixO^L
+      double precision, intent(in)  :: x(ixI^S,1:ndim)
+      double precision, intent(in)  :: w(ixI^S,nw)
+      type(te_fluid), intent(in) :: fl
+      double precision, intent(out) :: flux(ixI^S)
+
+      integer :: ix^D,ixO^D
+      double precision :: rho(ixI^S),Ne(ixI^S)
+      double precision :: sigmaT,Rsun,Rcell
+      double precision :: I0_surface
+
+      I0_surface=3.96d-5*0.354 ! erg s-1 cm-2 sr-1 A-1
+
+      sigmaT=6.65d-25
+      Rsun=const_RSun/unit_length
+
+      ! electron density
+      call fl%get_rho(w,x,ixI^L,ixO^L,rho)
+      Ne(ixO^S)=rho(ixO^S)*unit_numberdensity
+
+      {do ix^DB=ixOmin^DB,ixOmax^DB\}
+        Rcell=x(ix^D,ndim)/Rsun+distance_bottom_suncenter
+        flux(ix^D)=I0_surface*Ne(ix^D)*sigmaT/Rcell**2
+      {enddo\}
+
+    end subroutine get_whitelight_Thomson
+
+    subroutine get_whitelight_Paschen(ixI^L,ixO^L,w,x,fl,flux)
+      ! from Jejcic et al. (2018)
+      ! emissivity erg s-1 cm-2 sr-1 Hz-1
+      use mod_global_parameters
+
+      integer, intent(in)           :: ixI^L,ixO^L
+      double precision, intent(in)  :: x(ixI^S,1:ndim)
+      double precision, intent(in)  :: w(ixI^S,nw)
+      type(te_fluid), intent(in) :: fl
+      double precision, intent(out) :: flux(ixI^S)
+
+      double precision :: Np(ixI^S),Ne(ixI^S),Te(ixI^S),pth(ixI^S)
+      double precision :: Fi(ixI^S),Bmu(ixI^S),ratio1(ixI^S),ratio2(ixI^S)
+      double precision :: temp(ixI^S)
+      double precision :: mu,mui,gbf,Bmucell,T
+      integer :: ix^D
+
+      call fl%get_rho(w,x,ixI^L,ixO^L,Np)
+      call fl%get_pthermal(w,x,ixI^L,ixO^L,pth)
+      Te(ixO^S)=(pth(ixO^S)/Np(ixO^S))*unit_temperature
+      Np(ixO^S)=Np(ixO^S)*unit_numberdensity
+      Ne(ixO^S)=Np(ixO^S)
+      
+      gbf=0.942d0
+      mu=const_c/6.173d-5 !frequency HMI 6173 A
+      mui=const_c/8.204d-5 !frequency Paschen continuum head 8204 A
+      ratio1(ixO^S)=const_h*mui/const_kb/Te(ixO^S)
+      ratio2(ixO^S)=const_h*mu/const_kb/Te(ixO^S)
+      temp(ixO^S)=dexp(ratio1(ixO^S))*(1.d0-dexp(-ratio2(ixO^S)))
+      call get_Plank_function_block(ixI^L,ixO^L,mu,Te,Bmu)
+      Fi(ixO^S)=1.1658d14*gbf*(Te(ixO^S)**(-3./2))*Bmu(ixO^S)*temp(ixO^S)*(3*mu)**(-3)
+
+      flux(ixO^S)=Ne(ixO^S)*Np(ixO^S)*Fi(ixO^S)
+
+    end subroutine get_whitelight_Paschen
+
+    subroutine get_whitelight_Brackett(ixI^L,ixO^L,w,x,fl,flux)
+      ! from Jejcic et al. (2018)
+      ! emissivity erg s-1 cm-2 sr-1 Hz-1
+      use mod_global_parameters
+
+      integer, intent(in)           :: ixI^L,ixO^L
+      double precision, intent(in)  :: x(ixI^S,1:ndim)
+      double precision, intent(in)  :: w(ixI^S,nw)
+      type(te_fluid), intent(in) :: fl
+      double precision, intent(out) :: flux(ixI^S)
+
+      double precision :: Np(ixI^S),Ne(ixI^S),Te(ixI^S),pth(ixI^S)
+      double precision :: Fi(ixI^S),Bmu(ixI^S),ratio1(ixI^S),ratio2(ixI^S)
+      double precision :: temp(ixI^S)
+      double precision :: mu,mui,gbf
+      integer :: ix^D
+
+      call fl%get_rho(w,x,ixI^L,ixO^L,Np)
+      call fl%get_pthermal(w,x,ixI^L,ixO^L,pth)
+      Te(ixO^S)=(pth(ixO^S)/Np(ixO^S))*unit_temperature
+      Np(ixO^S)=Np(ixO^S)*unit_numberdensity
+      Ne(ixO^S)=Np(ixO^S)
+
+      gbf=0.998d0
+      mu=const_c/6.173d-5 !frequency HMI 6173 A
+      mui=const_c/1.4584d-4 !frequency Brackett continuum head 14584 A
+      ratio1(ixO^S)=const_h*mui/const_kb/Te(ixO^S)
+      ratio2(ixO^S)=const_h*mu/const_kb/Te(ixO^S)
+      temp(ixO^S)=dexp(ratio1(ixO^S))*(1.d0-dexp(-ratio2(ixO^S)))
+      call get_Plank_function_block(ixI^L,ixO^L,mu,Te,Bmu)
+      Fi(ixO^S)=1.1658d14*gbf*(Te(ixO^S)**(-3./2))*Bmu(ixO^S)*temp(ixO^S)*(4*mu)**(-3)
+
+      flux(ixO^S)=Ne(ixO^S)*Np(ixO^S)*Fi(ixO^S)
+
+    end subroutine get_whitelight_Brackett
+
+    subroutine get_whitelight_freefree(ixI^L,ixO^L,w,x,fl,flux)
+      ! from Jejcic et al. (2018)
+      ! emissivity erg s-1 cm-2 sr-1 Hz-1
+      use mod_global_parameters
+
+      integer, intent(in)           :: ixI^L,ixO^L
+      double precision, intent(in)  :: x(ixI^S,1:ndim)
+      double precision, intent(in)  :: w(ixI^S,nw)
+      type(te_fluid), intent(in) :: fl
+      double precision, intent(out) :: flux(ixI^S)
+
+      double precision :: Egff(1:8)
+      double precision :: gff(1:8)
+      double precision :: Np(ixI^S),Ne(ixI^S),Te(ixI^S),pth(ixI^S)
+      double precision :: emiPa(ixI^S),gffT(ixI^S),ratio(ixI^S)
+      double precision :: mu,mui,gbf,kbT,dEmin,dE
+      integer :: ix^D,iE
+
+      Egff(1:8)=(/0.5d0,1.d0,2.d0,5.d0,1.d1,2.d1,5.d1,1.d2/)  !eV
+      gff(1:8)=(/1.121d0,1.162d0,1.234d0,1.394d0,1.577d0,1.822d0,2.230d0,2.579d0/) !6000 A
+      Egff=Egff*const_ev  !erg
+      call fl%get_rho(w,x,ixI^L,ixO^L,Np)
+      call fl%get_pthermal(w,x,ixI^L,ixO^L,pth)
+      Te(ixO^S)=(pth(ixO^S)/Np(ixO^S))*unit_temperature
+
+      {do ix^DB=ixOmin^DB,ixOmax^DB\}
+        kbT=const_kb*Te(ix^D)
+        if (kbT<Egff(1)) then 
+          gffT(ix^D)=gff(1)
+        else if (kbT>=Egff(8)) then 
+          gffT(ix^D)=gff(8)
+        else
+          do iE=1,7
+            if (Egff(iE)<=kbT .and. Egff(iE+1)>kbT) then
+              dE=Egff(iE+1)-Egff(iE)
+              dEmin=kbT-Egff(iE)
+              gffT(ix^D)=(1.d0-dEmin/dE)*gff(iE)+gff(iE+1)*dEmin/dE
+            endif
+          enddo
+        endif
+      {enddo\}
+
+      gbf=0.942d0
+      mui=const_c/8.204d-5 !frequency Paschen continuum head 8204 A
+      ratio(ixO^S)=const_h*mui/const_kb/Te(ixO^S)
+
+      call get_whitelight_Paschen(ixI^L,ixO^L,w,x,fl,emiPa)
+
+      flux(ixO^S)=8.546d-5*(gffT(ixO^S)/gbf)*Te(ixO^S)*dexp(-ratio(ixO^S))*emiPa(ixO^S)
+
+    end subroutine get_whitelight_freefree
+
+    subroutine get_Plank_function_block(ixI^L,ixO^L,mu,Te,Bmu)
+      ! Te in K, mu in s-1
+      integer, intent(in)           :: ixI^L,ixO^L
+      double precision, intent(in)  :: mu
+      double precision, intent(in)  :: Te(ixI^S)
+      double precision, intent(out) :: Bmu(ixI^S)
+
+      double precision :: ratio(ixI^S)
+
+      ratio(ixO^S)=const_h*mu/const_kb/Te(ixO^S)
+      Bmu(ixO^S)=2*const_h*mu**3/(const_c**2)/(dexp(ratio(ixO^S))-1.d0)
+
+    end subroutine get_Plank_function_block
+
+
   {^IFTHREED
     subroutine get_EUV_spectrum(qunit,fl)
       use mod_global_parameters
@@ -876,11 +1047,6 @@ module mod_thermal_emission
           if (mype==0) write(*,'(a,f8.1,a)') ' Unit of length: ',unit_length/1.d8,' Mm'
         endif
         if (mype==0) write(*,'(a,f8.1,a)') ' Location of slit: xI1 = ',location_slit,' Unit_length'
-        !if (SI_unit) then
-        !  if (mype==0) write(*,'(a,f8.1,a)') ' Location of slit: ',location_slit*unit_length/1.d6,' Mm'
-        !else
-        !  if (mype==0) write(*,'(a,f8.1,a)') ' Location of slit: ',location_slit*unit_length/1.d8,' Mm'
-        !endif
         if (mype==0) write(*,'(a,f8.1,a)') ' Width of slit: ',wslit*725.0,' km'
         call get_spectrum_data_resol(qunit,datatype,fl)
       else if (resolution_spectrum=='instrument') then
@@ -1584,6 +1750,40 @@ module mod_thermal_emission
 
     end subroutine get_SXR_image
 
+    subroutine get_whitelight_image(qunit,fl)
+      use mod_global_parameters
+
+      integer, intent(in) :: qunit
+      type(te_fluid), intent(in) :: fl
+      character(20) :: datatype
+      
+      if (mype==0) print *, '###################################################'
+      if (mype==0) print *, 'Systhesizing white light image.'
+      if (mype==0) write(*,'(a,f6.1,a,f6.1,a)') ' Pixel: ',0.505*725.0/instrument_resolution_factor, &
+                                                    ' km x ',0.505*725.0/instrument_resolution_factor, ' km'
+      if (mype==0) write(*,'(a,f6.3,f8.3,f8.3,a)') ' Mapping: [',x_origin(1),x_origin(2),x_origin(3), &
+                                                   '] of the simulation box is located at [X=0,Y=0] of the image'
+
+      datatype='image_whitelight'
+
+      if (mype==0) then
+        if (activate_unit_arcsec) then
+          print *, 'Unit of length: arcsec (~725 km)'
+        else
+          if (SI_unit) then
+            if (mype==0) write(*,'(a,f8.1,a)') ' Unit of length: ',unit_length/1.d6,' Mm'
+          else
+            if (mype==0) write(*,'(a,f8.1,a)') ' Unit of length: ',unit_length/1.d8,' Mm'
+          endif
+        endif
+      endif
+
+      call get_image_inst_resol(qunit,datatype,fl)
+
+      if (mype==0) print *, '###################################################'
+
+    end subroutine get_whitelight_image
+
     subroutine get_image_inst_resol(qunit,datatype,fl)
       ! integrate emission flux along line of sight (LOS) 
       ! in a 3D simulation box and get a 2D EUV image
@@ -1598,7 +1798,7 @@ module mod_thermal_emission
       double precision :: xImin1,xImax1,xImin2,xImax2,xIcent1,xIcent2,dxI
       double precision, allocatable :: xI1(:),xI2(:),dxI1(:),dxI2(:),wI(:,:,:)
       double precision, allocatable :: EUVs(:,:),EUV(:,:),Dpls(:,:),Dpl(:,:)
-      double precision, allocatable :: SXRs(:,:),SXR(:,:)
+      double precision, allocatable :: SXRs(:,:),SXR(:,:),Wlights(:,:),Wlight(:,:)
       double precision :: vec_temp1(1:3),vec_temp2(1:3)
       double precision :: vec_z(1:3),vec_cor(1:3),xI_cor(1:2)
       double precision :: res,LOS_psi,r_max,r_loc
@@ -1606,7 +1806,7 @@ module mod_thermal_emission
       integer :: mass
       character (30) :: ion
       double precision :: logTe,lineCent,sigma_PSF,spaceRsl,wlRsl,wslit
-      double precision :: unitv,arcsec,RHESSI_rsl,pixel
+      double precision :: unitv,arcsec,RHESSI_rsl,HMI_rsl,pixel
       integer :: iigrid,igrid,i,j,numSI
 
       call init_vectors()
@@ -1666,9 +1866,12 @@ module mod_thermal_emission
       if (datatype=='image_euv') then
         call get_line_info(wavelength,ion,mass,logTe,lineCent,spaceRsl,wlRsl,sigma_PSF,wslit)
         dxI=spaceRsl*arcsec  ! intrument resolution of image
-      else
+      else if (datatype=='image_sxr') then
         RHESSI_rsl=2.3d0/instrument_resolution_factor
         dxI=RHESSI_rsl*arcsec
+      else
+        HMI_rsl=0.505d0/instrument_resolution_factor
+        dxI=HMI_rsl*arcsec
       endif
       numXI1=2*ceiling((xImax1-xIcent1)/dxI/2.d0)
       xImin1=xIcent1-numXI1*dxI
@@ -1767,9 +1970,128 @@ module mod_thermal_emission
         deallocate(wI,SXR,SXRs)
       endif
 
+      if (datatype=='image_whitelight') then
+        numWI=1
+        allocate(wI(numXI1,numXI2,numWI))
+        allocate(Wlight(numXI1,numXI2),Wlights(numXI1,numXI2))
+        wI=zero
+        Wlight=zero
+        WLights=zero
+        do iigrid=1,igridstail; igrid=igrids(iigrid);
+          call integrate_whitelight_inst_resol(igrid,numXI1,numXI2,xI1,xI2,dxI,fl,Wlights)
+        enddo
+        numSI=numXI1*numXI2
+        call MPI_ALLREDUCE(Wlights,Wlight,numSI,MPI_DOUBLE_PRECISION, &
+                           MPI_SUM,icomm,ierrmpi)
+
+        do ix1=1,numXI1
+          do ix2=1,numXI2
+            if (Wlight(ix1,ix2)<smalldouble) Wlight(ix1,ix2)=zero
+          enddo
+        enddo
+        wI(:,:,1)=Wlight(:,:)
+
+        if (activate_unit_arcsec) then
+          xI1=xI1/arcsec
+          dxI1=dxI1/arcsec
+          xI2=xI2/arcsec
+          dxI2=dxI2/arcsec
+        endif
+        call output_data(qunit,xI1,xI2,dxI1,dxI2,wI,numXI1,numXI2,numWI,datatype)
+        deallocate(wI,Wlight,Wlights)
+      endif
+
       deallocate(xI1,xI2,dxI1,dxI2)
 
     end subroutine get_image_inst_resol
+
+    subroutine integrate_whitelight_inst_resol(igrid,numXI1,numXI2,xI1,xI2,dxI,fl,Wlight)
+      integer, intent(in) :: igrid,numXI1,numXI2
+      double precision, intent(in) :: xI1(numXI1),xI2(numXI2)
+      double precision, intent(in) :: dxI
+      type(te_fluid), intent(in) :: fl
+      double precision, intent(out) :: Wlight(numXI1,numXI2)
+
+      integer :: ixO^L,ixO^D,ixI^L,ix^D,i,j
+      double precision :: xb^L,xd^D
+      double precision, allocatable :: flux(:^D&),emit(:^D&)
+      double precision :: vloc(1:3),res
+      integer :: ixP^L,ixP^D,nSubC^D,iSubC^D
+      double precision :: xSubP1,xSubP2,dxSubP,xerf^L,fluxsubC
+      double precision :: xSubC(1:3),dxSubC^D,xCent(1:2)
+
+      double precision :: sigma_PSF,HMI_rsl,sigma0,factor
+      double precision :: arcsec,pixel,area_1AU,hmu
+
+      ^D&ixOmin^D=ixmlo^D\
+      ^D&ixOmax^D=ixmhi^D\
+      ^D&ixImin^D=ixglo^D\
+      ^D&ixImax^D=ixghi^D\
+      ^D&xbmin^D=rnode(rpxmin^D_,igrid)\
+      ^D&xbmax^D=rnode(rpxmax^D_,igrid)\
+
+      allocate(flux(ixI^S),emit(ixI^S))
+      if (whitelight_instrument=='SDO/HMI') then
+        ! get local whitelight flux erg sr-1 cm-2 s-1 A-1 (cgs)
+        call get_whitelight_Thomson(ixI^L,ixO^L,ps(igrid)%w,ps(igrid)%x,fl,emit) 
+        flux(ixO^S)=emit(ixO^S)
+        call get_whitelight_Paschen(ixI^L,ixO^L,ps(igrid)%w,ps(igrid)%x,fl,emit) 
+        flux(ixO^S)=flux(ixO^S)+emit(ixO^S)
+        call get_whitelight_Brackett(ixI^L,ixO^L,ps(igrid)%w,ps(igrid)%x,fl,emit) 
+        flux(ixO^S)=flux(ixO^S)+emit(ixO^S)
+        call get_whitelight_freefree(ixI^L,ixO^L,ps(igrid)%w,ps(igrid)%x,fl,emit) 
+        flux(ixO^S)=flux(ixO^S)+emit(ixO^S)
+      else
+        call MPISTOP('ERROR: instrument not yet supported!')
+      endif
+
+      ! integrate emission
+      if (SI_unit) then
+        arcsec=7.25d5/unit_length
+      else
+        arcsec=7.25d7/unit_length
+      endif
+      HMI_rsl=0.505d0/instrument_resolution_factor
+      sigma_PSF=1.d0
+      pixel=HMI_rsl*arcsec
+      sigma0=sigma_PSF*pixel
+
+      {do ix^D=ixOmin^D,ixOmax^D\}
+        ^D&nSubC^D=1;
+        ^D&nSubC^D=max(nSubC^D,ceiling(ps(igrid)%dx(ix^DD,^D)*abs(vec_xI1(^D))/(dxI/2.d0)));
+        ^D&nSubC^D=max(nSubC^D,ceiling(ps(igrid)%dx(ix^DD,^D)*abs(vec_xI2(^D))/(dxI/2.d0)));
+        ^D&dxSubC^D=ps(igrid)%dx(ix^DD,^D)/nSubC^D;
+        ! dividing a cell to several parts to get more accurate integrating values
+        {do iSubC^D=1,nSubC^D\}
+          ^D&xSubC(^D)=ps(igrid)%x(ix^DD,^D)-half*ps(igrid)%dx(ix^DD,^D)+(iSubC^D-half)*dxSubC^D;
+          ! sub cell white light flux at 1 AU [photons s^-1 cm^-2]
+          !fluxSubC=flux(ix^D)*dxSubC1*dxSubC2*dxSubC3*unit_length**3/area_1AU
+          fluxSubC=flux(ix^D)*dxSubC1*dxSubC2*dxSubC3*unit_length**3
+          if (xSubC(ndim)<H_block) fluxSubC=zero
+          ! mapping the 3D coordinate to location at the image
+          call get_cor_image(xSubC,xCent)
+          ixP1=floor((xCent(1)-(xI1(1)-half*dxI))/dxI)+1
+          ixP2=floor((xCent(2)-(xI2(1)-half*dxI))/dxI)+1
+          ixPmin1=max(1,ixP1-3)
+          ixPmax1=min(ixP1+3,numXI1)
+          ixPmin2=max(1,ixP2-3)
+          ixPmax2=min(ixP2+3,numXI2)
+          do ixP1=ixPmin1,ixPmax1
+            do ixP2=ixPmin2,ixPmax2
+              xerfmin1=((xI1(ixP1)-half*dxI)-xCent(1))/(sqrt(2.d0)*sigma0)
+              xerfmax1=((xI1(ixP1)+half*dxI)-xCent(1))/(sqrt(2.d0)*sigma0)
+              xerfmin2=((xI2(ixP2)-half*dxI)-xCent(2))/(sqrt(2.d0)*sigma0)
+              xerfmax2=((xI2(ixP2)+half*dxI)-xCent(2))/(sqrt(2.d0)*sigma0)
+              factor=(erfc(xerfmin1)-erfc(xerfmax1))*(erfc(xerfmin2)-erfc(xerfmax2))/4.d0
+              Wlight(ixP1,ixP2)=Wlight(ixP1,ixP2)+fluxSubC*factor
+            enddo !ixP2
+          enddo !ixP1
+        {enddo\} !iSubC
+      {enddo\} !ix
+
+
+      deallocate(flux,emit)
+    end subroutine integrate_whitelight_inst_resol
 
     subroutine integrate_SXR_inst_resol(igrid,numXI1,numXI2,xI1,xI2,dxI,fl,SXR)
       integer, intent(in) :: igrid,numXI1,numXI2
@@ -1866,6 +2188,7 @@ module mod_thermal_emission
       double precision :: lineCent
       double precision :: sigma_PSF,spaceRsl,wlRsl,sigma0,factor,wslit
       double precision :: unitv,arcsec,pixel
+      double precision :: aa,bb
 
       ^D&ixOmin^D=ixmlo^D\
       ^D&ixOmax^D=ixmhi^D\
@@ -1873,6 +2196,7 @@ module mod_thermal_emission
       ^D&ixImax^D=ixghi^D\
       ^D&xbmin^D=rnode(rpxmin^D_,igrid)\
       ^D&xbmax^D=rnode(rpxmax^D_,igrid)\
+
 
       allocate(flux(ixI^S),v(ixI^S),rho(ixI^S))
       ! get local EUV flux and velocity
@@ -2621,7 +2945,7 @@ module mod_thermal_emission
       nWC=nWO
 
       select case(convert_type)
-        case('EIvtuCCmpi','ESvtuCCmpi','SIvtuCCmpi')
+        case('EIvtuCCmpi','ESvtuCCmpi','SIvtuCCmpi','WIvtuCCmpi')
           ! put data into grids
           allocate(xC(nPiece,nC1,nC2,2))
           allocate(dxC(nPiece,nC1,nC2,2))
@@ -2644,7 +2968,7 @@ module mod_thermal_emission
           ! write data into vtu file
           call write_image_vtuCC(qunit,xC,wC,dxC,nPiece,nC1,nC2,nWC,datatype)
           deallocate(xC,dxC,wC)
-        case('EIvtiCCmpi','ESvtiCCmpi','SIvtiCCmpi')
+        case('EIvtiCCmpi','ESvtiCCmpi','SIvtiCCmpi','WIvtiCCmpi')
           if (convert_type=='EIvtiCCmpi') resolution_type=resolution_euv
           if (convert_type=='ESvtiCCmpi') resolution_type=resolution_spectrum
           if (convert_type=='SIvtiCCmpi') resolution_type=resolution_sxr
@@ -2714,6 +3038,8 @@ module mod_thermal_emission
             write(filename,'(a,i4.4,a)') trim(filename_euv),filenr,".vti"
           else if (convert_type=='SIvtiCCmpi') then
             write(filename,'(a,i4.4,a)') trim(filename_sxr),filenr,".vti"
+          else if (convert_type=='WIvtiCCmpi') then
+            write(filename,'(a,i4.4,a)') trim(filename_whitelight),filenr,".vti"
           else if (convert_type=='ESvtiCCmpi') then
             write(filename,'(a,i4.4,a)') trim(filename_spectrum),filenr,".vti"
           endif
@@ -2775,6 +3101,8 @@ module mod_thermal_emission
                 else
                   write(vname,'(a,i2,a,i2,a)') "SXR",emin_sxr,"-",emax_sxr,"keV"
                 endif
+              else if (convert_type=='WIvtiCCmpi') then
+                write(vname,'(a)')'whitelight'
               else if (convert_type=='ESvtiCCmpi') then
                 if (spectrum_wl==1354) then
                   write(vname,'(a,i4)') "SG",spectrum_wl
@@ -2855,6 +3183,8 @@ module mod_thermal_emission
             write(filename,'(a,i4.4,a)') trim(filename_euv),filenr,".vtu"
           else if (datatype=='image_sxr') then
             write(filename,'(a,i4.4,a)') trim(filename_sxr),filenr,".vtu"
+          else if (datatype=='image_whitelight') then
+            write(filename,'(a,i4.4,a)') trim(filename_whitelight),filenr,".vtu"
           else if (datatype=='spectrum_euv') then
             write(filename,'(a,i4.4,a)') trim(filename_spectrum),filenr,".vtu"
           endif
@@ -2901,6 +3231,8 @@ module mod_thermal_emission
               else
                 write(vname,'(a,i2,a,i2,a)') "SXR",emin_sxr,"-",emax_sxr,"keV"
               endif
+            else if (datatype=='image_whitelight') then
+              write(vname,'(a)')'whitelight'
             else if (datatype=='spectrum_euv') then
               if (spectrum_wl==1354) then
                 write(vname,'(a,i4)') "SG",spectrum_wl

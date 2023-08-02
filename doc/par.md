@@ -1175,6 +1175,10 @@ Only Cartesian coordinate system are supported currently.
       spectrum_window_max= DOUBLE
       location_slit= DOUBLE
       direction_slit= INTEGER
+      filename_whitelight= CHARACTER
+      distance_bottom_suncenter= DOUBLE
+      whitelight_instrument= 'SDO/HMI'
+      H_block= DOUBLE
     /
 
 
