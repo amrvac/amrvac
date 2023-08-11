@@ -591,7 +591,7 @@ contains
       iw_equi_p = equi_pe0_
     endif
     ! determine number of stagger variables
-    if(stagger_grid) nws=ndim
+    nws=ndim
 
     nvector      = 2 ! No. vector vars
     allocate(iw_vector(nvector))

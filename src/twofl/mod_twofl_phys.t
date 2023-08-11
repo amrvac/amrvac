@@ -552,7 +552,7 @@ contains
     nwgc=nwflux
 
     ! determine number of stagger variables
-    if(stagger_grid) nws=ndim
+    nws=ndim
 
     ! Check whether custom flux types have been defined
     if (.not. allocated(flux_type)) then
