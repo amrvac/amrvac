@@ -265,6 +265,7 @@ contains
         call mpistop("GCA FILL GRIDVARS: NaNs IN kappa_B! ABORTING...")
       end if
 
+      tmp=0.d0
       do idim=1,ndim
         call gradient(kappa_B,ixG^LL,ixG^LL^LSUB1,idim,tmp)
         gridvars(igrid)%w(ixG^T,grad_kappa_B(idim)) = tmp(ixG^T)
