@@ -1668,7 +1668,7 @@ contains
     integer, allocatable, dimension(:)        :: sndrqst, rcvrqst
     integer, allocatable, dimension(:)        :: sndrqst_payload, rcvrqst_payload
     integer                                   :: isnd, ircv
-    integer, parameter                        :: maxneighbors=32 ! maximum case: coarse-fine in 3D
+    integer, parameter                        :: maxneighbors=56 ! maximum case: coarse-fine in 3D
     !-----------------------------------------------------------------------------
 
     send_n_particles_to_ipe(:)      = 0
