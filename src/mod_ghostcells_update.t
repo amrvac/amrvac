@@ -9,9 +9,8 @@ module mod_ghostcells_update
 
   ! A switch of update physical boundary or not
   logical, public :: bcphys=.true.
-  ! A switch of update non-physical boundary or not
-  !logical, public :: bcexch=.true.
-  integer :: ixM^L, ixCoG^L, ixCoM^L
+
+  integer :: ixM^L, ixCoG^L, ixCoM^L, ixCoGs^L
 
   ! The number of interleaving sending buffers for ghost cells
   integer, parameter :: npwbuf=2
@@ -129,8 +128,9 @@ contains
     ixG^L=ixG^LL;
     ixM^L=ixG^L^LSUBnghostcells;
     ixCoGmin^D=1;
-    !ixCoGmax^D=ixGmax^D/2+nghostcells;
     ixCoGmax^D=(ixGhi^D-2*nghostcells)/2+2*nghostcells;
+    ixCoGsmin^D=0;
+    ixCoGsmax^D=ixCoGmax^D;
 
     ixCoM^L=ixCoG^L^LSUBnghostcells;
 
@@ -490,165 +490,164 @@ contains
       end if
     end do
     !$OMP END PARALLEL DO
-    !if(bcexch) then
-      ! default : no singular axis
-      ipole=0
-      irecv_c=0
-      isend_c=0
-      isend_buf=0
-      ipwbuf=1
-  
-      if(stagger_grid) then
-        ibuf_recv_srl=1
-        ibuf_recv_r=1
-        ibuf_recv_p=1
-        ibuf_send_srl=1
-        ibuf_send_r=1
-        ibuf_send_p=1
-        irecv_srl=0
-        irecv_r=0
-        irecv_p=0
-        isend_srl=0
-        isend_r=0
-        isend_p=0
-      end if
-  
-  
-      ! MPI receive ghost-cell values from sibling blocks and finer neighbors in different processors
+
+    ! default : no singular axis
+    ipole=0
+    irecv_c=0
+    isend_c=0
+    isend_buf=0
+    ipwbuf=1
+
+    if(stagger_grid) then
+      ibuf_recv_srl=1
+      ibuf_recv_r=1
+      ibuf_recv_p=1
+      ibuf_send_srl=1
+      ibuf_send_r=1
+      ibuf_send_p=1
+      irecv_srl=0
+      irecv_r=0
+      irecv_p=0
+      isend_srl=0
+      isend_r=0
+      isend_p=0
+    end if
+
+    ! MPI receive ghost-cell values from sibling blocks and finer neighbors in different processors
+    do iigrid=1,igridstail; igrid=igrids(iigrid);
+      call identifyphysbound(ps(igrid),iib^D)
+      ^D&idphyb(^D,igrid)=iib^D;
+      {do i^DB=-1,1\}
+         if (skip_direction([ i^D ])) cycle
+         select case (neighbor_type(i^D,igrid))
+         case (neighbor_sibling)
+            call bc_recv_srl
+         case (neighbor_fine)
+            call bc_recv_restrict
+         end select
+      {end do\}
+    end do
+
+    ! MPI send ghost-cell values to sibling blocks and coarser neighbors in different processors
+    do iigrid=1,igridstail; igrid=igrids(iigrid);
+      ^D&iib^D=idphyb(^D,igrid);
+      {do i^DB=-1,1\}
+         if(skip_direction([ i^D ])) cycle
+         select case (neighbor_type(i^D,igrid))
+         case (neighbor_sibling)
+            call bc_send_srl
+         case (neighbor_coarse)
+            call bc_send_restrict
+         end select
+      {end do\}
+    end do
+
+    ! fill ghost-cell values of sibling blocks and coarser neighbors in the same processor
+    !$OMP PARALLEL DO SCHEDULE(dynamic) PRIVATE(igrid,iib^D)
+    do iigrid=1,igridstail; igrid=igrids(iigrid);
+      ^D&iib^D=idphyb(^D,igrid);
+      {do i^DB=-1,1\}
+        if(skip_direction([ i^D ])) cycle
+         select case (neighbor_type(i^D,igrid))
+         case(neighbor_sibling)
+           call bc_fill_srl(igrid,i^D,iib^D)
+         case(neighbor_coarse)
+           call bc_fill_restrict(igrid,i^D,iib^D)
+         end select
+      {end do\}
+    end do
+    !$OMP END PARALLEL DO
+
+    call MPI_WAITALL(irecv_c,recvrequest_c_sr,recvstatus_c_sr,ierrmpi)
+    call MPI_WAITALL(isend_c,sendrequest_c_sr,sendstatus_c_sr,ierrmpi)
+
+    if(stagger_grid) then
+      call MPI_WAITALL(nrecv_bc_srl,recvrequest_srl,recvstatus_srl,ierrmpi)
+      call MPI_WAITALL(nsend_bc_srl,sendrequest_srl,sendstatus_srl,ierrmpi)
+      call MPI_WAITALL(nrecv_bc_r,recvrequest_r,recvstatus_r,ierrmpi)
+      call MPI_WAITALL(nsend_bc_r,sendrequest_r,sendstatus_r,ierrmpi)
+      ! unpack the received data from sibling blocks and finer neighbors to fill ghost-cell staggered values
+      ibuf_recv_srl=1
+      ibuf_recv_r=1
       do iigrid=1,igridstail; igrid=igrids(iigrid);
-        call identifyphysbound(ps(igrid),iib^D)   
-        ^D&idphyb(^D,igrid)=iib^D;
+        ^D&iib^D=idphyb(^D,igrid);
+       {do i^DB=-1,1\}
+          if (skip_direction([ i^D ])) cycle
+          select case (neighbor_type(i^D,igrid))
+          case (neighbor_sibling)
+             call bc_fill_srl_stg
+          case (neighbor_fine)
+             call bc_fill_restrict_stg
+          end select
+       {end do\}
+      end do
+    end if
+
+    do ipwbuf=1,npwbuf
+       if (isend_buf(ipwbuf)/=0) deallocate(pwbuf(ipwbuf)%w)
+    end do
+
+    irecv_c=0
+    isend_c=0
+    isend_buf=0
+    ipwbuf=1
+
+    ! MPI receive ghost-cell values from coarser neighbors in different processors
+    do iigrid=1,igridstail; igrid=igrids(iigrid);
+      ^D&iib^D=idphyb(^D,igrid);
+      {do i^DB=-1,1\}
+         if (skip_direction([ i^D ])) cycle
+         if (neighbor_type(i^D,igrid)==neighbor_coarse) call bc_recv_prolong
+      {end do\}
+    end do
+    ! MPI send ghost-cell values to finer neighbors in different processors
+    do iigrid=1,igridstail; igrid=igrids(iigrid);
+      ^D&iib^D=idphyb(^D,igrid);
+      {do i^DB=-1,1\}
+         if (skip_direction([ i^D ])) cycle
+         if (neighbor_type(i^D,igrid)==neighbor_fine) call bc_send_prolong
+      {end do\}
+    end do
+
+    ! fill coarse ghost-cell values of finer neighbors in the same processor
+    !$OMP PARALLEL DO SCHEDULE(dynamic) PRIVATE(igrid,iib^D)
+    do iigrid=1,igridstail; igrid=igrids(iigrid);
+      ^D&iib^D=idphyb(^D,igrid);
+      {do i^DB=-1,1\}
+         if (skip_direction([ i^D ])) cycle
+         if (neighbor_type(i^D,igrid)==neighbor_fine) call bc_fill_prolong(igrid,i^D,iib^D)
+      {end do\}
+    end do
+    !$OMP END PARALLEL DO
+
+    call MPI_WAITALL(irecv_c,recvrequest_c_p,recvstatus_c_p,ierrmpi)
+    call MPI_WAITALL(isend_c,sendrequest_c_p,sendstatus_c_p,ierrmpi)
+
+    if(stagger_grid) then
+      call MPI_WAITALL(nrecv_bc_p,recvrequest_p,recvstatus_p,ierrmpi)
+      call MPI_WAITALL(nsend_bc_p,sendrequest_p,sendstatus_p,ierrmpi)
+
+      ! fill coarser representative ghost cells after receipt
+      ibuf_recv_p=1
+      do iigrid=1,igridstail; igrid=igrids(iigrid);
+        ^D&iib^D=idphyb(^D,igrid);
         {do i^DB=-1,1\}
            if (skip_direction([ i^D ])) cycle
-           select case (neighbor_type(i^D,igrid))
-           case (neighbor_sibling)
-              call bc_recv_srl
-           case (neighbor_fine)
-              call bc_recv_restrict
-           end select
+           if(neighbor_type(i^D,igrid)==neighbor_coarse) call bc_fill_prolong_stg
         {end do\}
       end do
-  
-      ! MPI send ghost-cell values to sibling blocks and coarser neighbors in different processors
-      do iigrid=1,igridstail; igrid=igrids(iigrid);
-        ^D&iib^D=idphyb(^D,igrid);
-        {do i^DB=-1,1\}
-           if(skip_direction([ i^D ])) cycle
-           select case (neighbor_type(i^D,igrid))
-           case (neighbor_sibling)
-              call bc_send_srl
-           case (neighbor_coarse)
-              call bc_send_restrict
-           end select
-        {end do\}
-      end do
-  
-      ! fill ghost-cell values of sibling blocks and coarser neighbors in the same processor
-      !$OMP PARALLEL DO SCHEDULE(dynamic) PRIVATE(igrid,iib^D)
-      do iigrid=1,igridstail; igrid=igrids(iigrid);
-        ^D&iib^D=idphyb(^D,igrid);
-        {do i^DB=-1,1\}
-          if(skip_direction([ i^D ])) cycle
-           select case (neighbor_type(i^D,igrid))
-           case(neighbor_sibling) 
-             call bc_fill_srl(igrid,i^D,iib^D)
-           case(neighbor_coarse)
-             call bc_fill_restrict(igrid,i^D,iib^D)
-           end select
-        {end do\}
-      end do
-      !$OMP END PARALLEL DO
-  
-      call MPI_WAITALL(irecv_c,recvrequest_c_sr,recvstatus_c_sr,ierrmpi)
-      call MPI_WAITALL(isend_c,sendrequest_c_sr,sendstatus_c_sr,ierrmpi)
-  
-      if(stagger_grid) then
-        call MPI_WAITALL(nrecv_bc_srl,recvrequest_srl,recvstatus_srl,ierrmpi)
-        call MPI_WAITALL(nsend_bc_srl,sendrequest_srl,sendstatus_srl,ierrmpi)
-        call MPI_WAITALL(nrecv_bc_r,recvrequest_r,recvstatus_r,ierrmpi)
-        call MPI_WAITALL(nsend_bc_r,sendrequest_r,sendstatus_r,ierrmpi)
-        ! unpack the received data from sibling blocks and finer neighbors to fill ghost-cell staggered values 
-        ibuf_recv_srl=1
-        ibuf_recv_r=1
-        do iigrid=1,igridstail; igrid=igrids(iigrid);
-          ^D&iib^D=idphyb(^D,igrid);
-         {do i^DB=-1,1\}
-            if (skip_direction([ i^D ])) cycle
-            select case (neighbor_type(i^D,igrid))
-            case (neighbor_sibling)
-               call bc_fill_srl_stg
-            case (neighbor_fine)
-               call bc_fill_restrict_stg
-            end select
-         {end do\}
-        end do
-      end if
-  
-      do ipwbuf=1,npwbuf
-         if (isend_buf(ipwbuf)/=0) deallocate(pwbuf(ipwbuf)%w)
-      end do
-  
-      irecv_c=0
-      isend_c=0
-      isend_buf=0
-      ipwbuf=1
-  
-      ! MPI receive ghost-cell values from coarser neighbors in different processors
-      do iigrid=1,igridstail; igrid=igrids(iigrid);
-        ^D&iib^D=idphyb(^D,igrid);
-        {do i^DB=-1,1\}
-           if (skip_direction([ i^D ])) cycle
-           if (neighbor_type(i^D,igrid)==neighbor_coarse) call bc_recv_prolong
-        {end do\}
-      end do
-      ! MPI send ghost-cell values to finer neighbors in different processors
-      do iigrid=1,igridstail; igrid=igrids(iigrid);
-        ^D&iib^D=idphyb(^D,igrid);
-        {do i^DB=-1,1\}
-           if (skip_direction([ i^D ])) cycle
-           if (neighbor_type(i^D,igrid)==neighbor_fine) call bc_send_prolong
-        {end do\}
-      end do
-  
-      ! fill coarse ghost-cell values of finer neighbors in the same processor
-      !$OMP PARALLEL DO SCHEDULE(dynamic) PRIVATE(igrid,iib^D)
-      do iigrid=1,igridstail; igrid=igrids(iigrid);
-        ^D&iib^D=idphyb(^D,igrid);
-        {do i^DB=-1,1\}
-           if (skip_direction([ i^D ])) cycle
-           if (neighbor_type(i^D,igrid)==neighbor_fine) call bc_fill_prolong(igrid,i^D,iib^D)
-        {end do\}
-      end do
-      !$OMP END PARALLEL DO
-  
-      call MPI_WAITALL(irecv_c,recvrequest_c_p,recvstatus_c_p,ierrmpi)
-      call MPI_WAITALL(isend_c,sendrequest_c_p,sendstatus_c_p,ierrmpi)
-  
-      if(stagger_grid) then
-        call MPI_WAITALL(nrecv_bc_p,recvrequest_p,recvstatus_p,ierrmpi)
-        call MPI_WAITALL(nsend_bc_p,sendrequest_p,sendstatus_p,ierrmpi)
-  
-        ! fill coarser representative ghost cells after receipt
-        ibuf_recv_p=1
-        do iigrid=1,igridstail; igrid=igrids(iigrid);
-          ^D&iib^D=idphyb(^D,igrid);
-          {do i^DB=-1,1\}
-             if (skip_direction([ i^D ])) cycle
-             if(neighbor_type(i^D,igrid)==neighbor_coarse) call bc_fill_prolong_stg
-          {end do\}
-        end do
-      end if
-      ! do prolongation on the ghost-cell values based on the received coarse values from coarser neighbors 
-      !$OMP PARALLEL DO SCHEDULE(dynamic) PRIVATE(igrid)
-      do iigrid=1,igridstail; igrid=igrids(iigrid);
-        call gc_prolong(igrid)
-      end do
-      !$OMP END PARALLEL DO
-      
-      do ipwbuf=1,npwbuf
-         if (isend_buf(ipwbuf)/=0) deallocate(pwbuf(ipwbuf)%w)
-      end do
-    !endif !bcexch
+    end if
+    ! do prolongation on the ghost-cell values based on the received coarse values from coarser neighbors
+    !$OMP PARALLEL DO SCHEDULE(dynamic) PRIVATE(igrid)
+    do iigrid=1,igridstail; igrid=igrids(iigrid);
+      call gc_prolong(igrid)
+    end do
+    !$OMP END PARALLEL DO
+
+    do ipwbuf=1,npwbuf
+       if (isend_buf(ipwbuf)/=0) deallocate(pwbuf(ipwbuf)%w)
+    end do
+
     ! fill physical boundary ghost cells after internal ghost-cell values exchange
     if(bcphys.and.stagger_grid) then
       !$OMP PARALLEL DO SCHEDULE(dynamic) PRIVATE(igrid)
@@ -908,7 +907,7 @@ contains
               do idir=1,ndim
                 ixS^L=ixS_srl_stg_^L(idir,i^D);
                 ixR^L=ixR_srl_stg_^L(idir,n_i^D);
-                call pole_copy_stg(psb(ineighbor)%ws,ixR^L,psb(igrid)%ws,ixS^L,idir,ipole)
+                call pole_copy_stg(psb(ineighbor)%ws,ixGs^LL,ixR^L,psb(igrid)%ws,ixGs^LL,ixS^L,idir,ipole)
               end do
             end if
           end if
@@ -1070,7 +1069,7 @@ contains
                 ixS^L=ixS_r_stg_^L(idir,i^D);
                 ixR^L=ixR_r_stg_^L(idir,n_inc^D);
                 !! Fill ghost cells
-                call pole_copy_stg(psb(ineighbor)%ws,ixR^L,psc(igrid)%ws,ixS^L,idir,ipole)
+                call pole_copy_stg(psb(ineighbor)%ws,ixGs^LL,ixR^L,psc(igrid)%ws,ixCoGs^L,ixS^L,idir,ipole)
               end do
             end if
           end if
@@ -1115,7 +1114,7 @@ contains
              pole_buf%ws(ixS^S,idir)=reshape(source=recvbuffer_srl(ibuf_recv_srl:ibuf_next-1),&
                shape=shape(psb(igrid)%ws(ixS^S,idir)))
              ibuf_recv_srl=ibuf_next
-             call pole_copy_stg(psb(igrid)%ws,ixR^L,pole_buf%ws,ixS^L,idir,ipole)
+             call pole_copy_stg(psb(igrid)%ws,ixGs^LL,ixR^L,pole_buf%ws,ixGs^LL,ixS^L,idir,ipole)
             end do
           end if
         end if
@@ -1191,7 +1190,7 @@ contains
                  ibuf_next=ibuf_recv_r+sizes_r_recv_stg(idir,inc^D)
                  pole_buf%ws(ixR^S,idir)=reshape(source=recvbuffer_r(ibuf_recv_r:ibuf_next-1),&
                    shape=shape(psb(igrid)%ws(ixR^S,idir)))
-                 call pole_copy_stg(psb(igrid)%ws,ixR^L,pole_buf%ws,ixR^L,idir,ipole)
+                 call pole_copy_stg(psb(igrid)%ws,ixGs^LL,ixR^L,pole_buf%ws,ixGs^LL,ixR^L,idir,ipole)
                  ibuf_recv_r=ibuf_next
                end do
              end if
@@ -1348,7 +1347,7 @@ contains
                  do idir=1,ndim
                    ixS^L=ixS_p_stg_^L(idir,inc^D);
                    ixR^L=ixR_p_stg_^L(idir,n_inc^D);
-                   call pole_copy_stg(psc(ineighbor)%ws,ixR^L,psb(igrid)%ws,ixS^L,idir,ipole)
+                   call pole_copy_stg(psc(ineighbor)%ws,ixCoGs^L,ixR^L,psb(igrid)%ws,ixGs^LL,ixS^L,idir,ipole)
                  end do
                end if
              end if
@@ -1449,7 +1448,7 @@ contains
               ibuf_next=ibuf_recv_p+sizes_p_recv_stg(idir,inc^D)
               pole_buf%ws(ixR^S,idir)=reshape(source=recvbuffer_p(ibuf_recv_p:ibuf_next-1),&
                 shape=shape(psc(igrid)%ws(ixR^S,idir)))
-              call pole_copy_stg(psc(igrid)%ws,ixR^L,pole_buf%ws,ixR^L,idir,ipole)
+              call pole_copy_stg(psc(igrid)%ws,ixCoGs^L,ixR^L,pole_buf%ws,ixGs^LL,ixR^L,idir,ipole)
               ibuf_recv_p=ibuf_next
             end do
           end if
@@ -1522,8 +1521,7 @@ contains
           block=>psc(igrid)
           ixComin^D=int((xFimin^D+(dble(ixFimin^D)-half)*dxFi^D-xComin^D)*invdxCo^D)+1-1;
           ixComax^D=int((xFimin^D+(dble(ixFimax^D)-half)*dxFi^D-xComin^D)*invdxCo^D)+1+1;
-          call phys_to_primitive(ixCoG^L,ixCo^L,&
-            psc(igrid)%w,psc(igrid)%x)
+          call phys_to_primitive(ixCoG^L,ixCo^L,psc(igrid)%w,psc(igrid)%x)
         end if
 
         if(ghost_copy) then
@@ -1784,11 +1782,11 @@ contains
       
       end subroutine pole_copy
 
-      subroutine pole_copy_stg(wrecv,ixR^L,wsend,ixS^L,idirs,ipole)
+      subroutine pole_copy_stg(wrecv,ixIR^L,ixR^L,wsend,ixIS^L,ixS^L,idirs,ipole)
       
-        integer, intent(in) :: ixR^L,ixS^L,idirs,ipole
+        integer, intent(in) :: ixIR^L,ixR^L,ixIS^L,ixS^L,idirs,ipole
 
-        double precision :: wrecv(ixGs^T,1:nws), wsend(ixGs^T,1:nws)
+        double precision :: wrecv(ixIR^S,1:nws), wsend(ixIS^S,1:nws)
         integer :: iB, iside
 
         select case (ipole)
