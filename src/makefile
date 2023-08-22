@@ -330,6 +330,7 @@ mod_supertimestepping.o: mod_physics.mod
 mod_supertimestepping.o: mod_small_values.mod
 mod_thermal_conduction.o: mod_fix_conserve.mod
 mod_thermal_conduction.o: mod_geometry.mod
+mod_thermal_emission.o: mod_geometry.mod
 mod_thermal_emission.o: mod_physics.mod
 mod_trac.o: mod_mhd.mod
 mod_trac.o: mod_trace_field.mod

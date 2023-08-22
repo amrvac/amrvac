@@ -796,12 +796,14 @@ contains
     use mod_thermal_emission
 
     select case(convert_type)
-      case('EIvtiCCmpi','EIvtuCCmpi')
+      case('EIvtiCCmpi')
         call get_EUV_image(unitconvert,te_fl_c)
-      case('ESvtiCCmpi','ESvtuCCmpi')
+      case('ESvtiCCmpi')
         call get_EUV_spectrum(unitconvert,te_fl_c)
-      case('SIvtiCCmpi','SIvtuCCmpi')
+      case('SIvtiCCmpi')
         call get_SXR_image(unitconvert,te_fl_c)
+      case('WIvtiCCmpi')
+        call get_whitelight_image(unitconvert,te_fl_c)
       case default
         call mpistop("Error in synthesize emission: Unknown convert_type")
       end select
