@@ -38,7 +38,7 @@ modules:
 * `dust_list` (dust, see `mod_dust`)
 * `vc_list` (viscosity, see `mod_viscosity`)
 * `grav_list` (gravity, see `mod_gravity`)
-* `mf_list` (magnetofriction, see `mod_magnetofriction`)
+* `mf_list` (magnetofriction, see `mod_mf_phys`)
 
 ## An example for a namelist
 
@@ -975,6 +975,7 @@ sharp discontinuities. It is normally inactive with a default value -1.
      boundary_divbfix= 2*ndim logicals, all false by default
      divbdiff= 0.8d0 between 0 and 2
      typedivbdiff= 'all' | 'ind'
+     clean_initial_divb= F | T
      divbwave= T | F
      B0field= F | T
      B0field_forcefree= T | F
@@ -1031,7 +1032,8 @@ You can choose 'lindejanhunen', 'lindepowel', or 'lindeglm' to use combined divb
 
 Projection scheme using multigrid Poisson solver by Teunissen and Keppens in 
 _Computer Physics Communications 245, 1068, (2019)_ can be chosen as 'multigrid' to
-remove div B part of B.
+remove div B part of B. If `clean_initial_divb` is set to T, the projection scheme is 
+used to remove div B once after initial condition in unstretched Cartesian CT-MHD cases.
 
 ### Magnetic field splitting strategy {#par_MFS}
 
