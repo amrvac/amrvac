@@ -719,8 +719,12 @@ module mod_global_parameters
   double precision :: spectrum_window_min,spectrum_window_max
   !> location of the slit
   double precision :: location_slit
+  !> direction of the slit (for dat resolution only)
+  integer :: direction_slit
   !> for spherical coordinate, region below it (unit=Rsun) is treated as not transparent
   double precision :: R_opt_thick
+  !> resolution of the images
+  logical :: dat_resolution
 
   !> Block pointer for using one block and its previous state
   type(state), pointer :: block

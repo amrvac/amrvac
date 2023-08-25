@@ -294,7 +294,8 @@ contains
           spectrum_wl,location_slit,filename_spectrum,&
           spectrum_window_min,spectrum_window_max,&
           instrument_resolution_factor,activate_unit_arcsec,&
-          filename_whitelight,whitelight_instrument,R_occultor,R_opt_thick
+          filename_whitelight,whitelight_instrument,R_occultor,R_opt_thick,&
+          dat_resolution,direction_slit
 
     ! default maximum number of grid blocks in a processor
     max_blocks=4000
@@ -501,11 +502,13 @@ contains
     x_origin = 0.d0
     big_image = .false.
     location_slit = 0.d0
+    direction_slit = -1
     instrument_resolution_factor=1.d0
     activate_unit_arcsec=.true.
     whitelight_instrument='LASCO/C2'
     R_occultor=-1.d0
     R_opt_thick=1.d0
+    dat_resolution=.false.
 
     allocate(flux_scheme(nlevelshi),typepred1(nlevelshi),flux_method(nlevelshi))
     allocate(limiter(nlevelshi),gradient_limiter(nlevelshi))

@@ -846,7 +846,9 @@ module mod_thermal_emission
       double precision :: logTe,lineCent,sigma_PSF,spaceRsl,wlRsl,wslit
       double precision :: xslit,arcsec
 
+      datatype='spectrum_euv'
       arcsec=7.25d7/unit_length
+      call get_line_info(spectrum_wl,ion,mass,logTe,lineCent,spaceRsl,wlRsl,sigma_PSF,wslit)
 
       if (mype==0) print *, '###################################################'
       select case(spectrum_wl)
@@ -858,43 +860,360 @@ module mod_thermal_emission
         call MPISTOP('Wrong wavelength!')
       end select
 
-      call get_line_info(spectrum_wl,ion,mass,logTe,lineCent,spaceRsl,wlRsl,sigma_PSF,wslit)
-      if (mype==0) write(*,'(a,f8.3,a)') ' Wavelength: ',lineCent,' Angstrom'
-      if (mype==0) print *, 'Unit of EUV flux: DN s^-1 pixel^-1'
-      if (mype==0) write(*,'(a,f5.3,a,f5.1,a)') ' Pixel: ',wlRsl,' Angstrom x ',spaceRsl*725.0, ' km'
-
       if (spectrum_window_max<=spectrum_window_min) then
         call MPISTOP('Wrong spectrum window!')
       endif
 
-      datatype='spectrum_euv'
+      if (mype==0) write(*,'(a,f8.3,a)') ' Wavelength: ',lineCent,' Angstrom'
+      if (mype==0) print *, 'Unit of EUV flux: DN s^-1 pixel^-1'
 
-      if (mype==0) print *, 'Unit of wavelength: Angstrom (0.1 nm) '
-      if (mype==0) then
-        if (activate_unit_arcsec) then
-          print *, 'Unit of length: arcsec (~725 km)'
-          write(*,'(a,f8.1,a)') ' Location of slit: xI1 = ',location_slit,' arcsec'
-          write(*,'(a,f8.1,a)') ' Width of slit: ',wslit,' arcsec'
-        else
+      if (dat_resolution) then
+        if (mype==0) then
+          write(*,'(a,f5.3,a,f5.1,a)') ' Supposed pixel: ',wlRsl,' Angstrom x ',spaceRsl*725.0, ' km'
+          print *, 'Unit of wavelength: Angstrom (0.1 nm) '
           if (SI_unit) then
-            if (mype==0) write(*,'(a,f8.1,a)') ' Unit of length: ',unit_length/1.d6,' Mm'
+            write(*,'(a,f8.1,a)') ' Unit of length: ',unit_length/1.d6,' Mm'
           else
-            if (mype==0) write(*,'(a,f8.1,a)') ' Unit of length: ',unit_length/1.d8,' Mm'
+            write(*,'(a,f8.1,a)') ' Unit of length: ',unit_length/1.d8,' Mm'
           endif
-          write(*,'(a,f8.1,a)') ' Location of slit: xI1 = ',location_slit,' Unit_length'
-          write(*,'(a,f8.1,a)') ' Width of slit: ',wslit*725.d0,' km'
+          write(*,'(a,f8.1,a)') ' Supposed width of slit: ',wslit*725.0,' km'
         endif
-      endif
-      if (mype==0) print *, 'Direction of the slit: parallel to xI2 vector'
-      if (coordinate==cartesian .or. coordinate==spherical) then
-        call get_spectrum(qunit,datatype,fl)
+        call get_spectrum_datresol(qunit,datatype,fl)
       else
-        call MPISTOP("EUV spectrum synthesis: support for sperical coordinates is to be added!")
+        if (mype==0) then
+          print *, 'Unit of wavelength: Angstrom (0.1 nm) '
+          if (activate_unit_arcsec) then
+            write(*,'(a,f5.3,a,f5.1,a)') ' Pixel: ',wlRsl,' Angstrom x ',spaceRsl*725.0, ' km'
+            print *, 'Unit of length: arcsec (~725 km)'
+            write(*,'(a,f8.1,a)') ' Location of slit: xI1 = ',location_slit,' arcsec'
+            write(*,'(a,f8.1,a)') ' Width of slit: ',wslit,' arcsec'
+          else
+            if (SI_unit) then
+              if (mype==0) write(*,'(a,f8.1,a)') ' Unit of length: ',unit_length/1.d6,' Mm'
+            else
+              if (mype==0) write(*,'(a,f8.1,a)') ' Unit of length: ',unit_length/1.d8,' Mm'
+            endif
+            write(*,'(a,f8.1,a)') ' Location of slit: xI1 = ',location_slit,' Unit_length'
+            write(*,'(a,f8.1,a)') ' Width of slit: ',wslit*725.d0,' km'
+          endif
+        endif
+        if (mype==0) print *, 'Direction of the slit: parallel to xI2 vector'
+        if (coordinate==cartesian .or. coordinate==spherical) then
+          call get_spectrum(qunit,datatype,fl)
+        else
+          call MPISTOP("EUV spectrum synthesis: support for sperical coordinates is to be added!")
+        endif
       endif
 
       if (mype==0) print *, '###################################################'
 
     end subroutine get_EUV_spectrum
+
+    subroutine get_spectrum_datresol(qunit,datatype,fl)
+
+      integer, intent(in) :: qunit
+      character(20), intent(in) :: datatype
+      type(te_fluid), intent(in) :: fl
+
+      integer :: numWL,numXS,iwL,ixS,numWI,numS
+      double precision :: dwLg,xSmin,xSmax,wLmin,wLmax
+      double precision, allocatable :: wL(:),xS(:),dwL(:),dxS(:)
+      double precision, allocatable :: wI(:,:,:),spectra(:,:),spectra_rc(:,:)
+      integer :: strtype,nstrb,nbb,nuni,nstr,bnx
+      double precision :: qs,dxfirst,dxmid,lenstr
+
+      integer :: iigrid,igrid,j,dir_loc
+      double precision :: xbmin(1:ndim),xbmax(1:ndim)
+
+      dwLg=1.d-3
+      numWL=4*int((spectrum_window_max-spectrum_window_min)/(4.d0*dwLg))
+      wLmin=(spectrum_window_max+spectrum_window_min)/2.d0-dwLg*numWL/2
+      wLmax=(spectrum_window_max+spectrum_window_min)/2.d0+dwLg*numWL/2
+      allocate(wL(numWL),dwL(numWL))
+      dwL(:)=dwLg
+      do iwL=1,numWL
+        wL(iwL)=wLmin+iwL*dwLg-half*dwLg
+      enddo
+
+      select case(direction_slit)
+      case (1)
+        numXS=domain_nx1*2**(refine_max_level-1)
+        xSmin=xprobmin1
+        xSmax=xprobmax1
+        bnx=block_nx1
+        nbb=domain_nx1
+        strtype=stretch_type(1)
+        nstrb=nstretchedblocks_baselevel(1)
+        qs=qstretch_baselevel(1)
+        if (mype==0) print *, 'Direction of the slit: x'
+      case (2)
+        numXS=domain_nx2*2**(refine_max_level-1)
+        xSmin=xprobmin2
+        xSmax=xprobmax2
+        bnx=block_nx2
+        nbb=domain_nx2
+        strtype=stretch_type(2)
+        nstrb=nstretchedblocks_baselevel(2)
+        qs=qstretch_baselevel(2)
+        if (mype==0) print *, 'Direction of the slit: y'
+      case (3)
+        numXS=domain_nx3*2**(refine_max_level-1)
+        xSmin=xprobmin3
+        xSmax=xprobmax3
+        bnx=block_nx3
+        nbb=domain_nx3
+        strtype=stretch_type(3)
+        nstrb=nstretchedblocks_baselevel(3)
+        qs=qstretch_baselevel(3)
+        if (mype==0) print *, 'Direction of the slit: z'
+      case default
+        call MPISTOP('Wrong direction_slit')
+      end select
+
+      allocate(xS(numXS),dxS(numXS),spectra(numWL,numXS),spectra_rc(numWL,numXS))
+      numWI=1
+      allocate(wI(numWL,numXS,numWI))
+
+      select case(strtype)
+      case(0) ! uniform
+        dxS(:)=(xSmax-xSmin)/numXS
+        do ixS=1,numXS
+          xS(ixS)=xSmin+dxS(ixS)*(ixS-half)
+        enddo
+      case(1) ! uni stretch
+        qs=qs**(one/2**(refine_max_level-1))
+        dxfirst=(xSmax-xSmin)*(one-qs)/(one-qs**numXS)
+        dxS(1)=dxfirst
+        do ixS=2,numXS
+          dxS(ixS)=dxfirst*qs**(ixS-1)
+          xS(ixS)=dxS(1)/(one-qs)*(one-qs**(ixS-1))+half*dxS(ixS)
+        enddo
+      case(2) ! symm stretch
+        ! base level, nbb = nstr + nuni + nstr
+        nstr=nstrb*bnx/2
+        nuni=nbb-nstrb*bnx
+        lenstr=(xSmax-xSmin)/(2.d0+nuni*(one-qs)/(one-qs**nstr))
+        dxfirst=(xSmax-xSmin)/(dble(nuni)+2.d0/(one-qs)*(one-qs**nstr))
+        dxmid=dxfirst
+        ! refine_max level, numXI = nstr + nuni + nstr
+        nstr=nstr*2**(refine_max_level-1)
+        nuni=nuni*2**(refine_max_level-1)
+        qs=qs**(one/2**(refine_max_level-1))
+        dxfirst=lenstr*(one-qs)/(one-qs**nstr)
+        dxmid=dxmid/2**(refine_max_level-1)
+        ! uniform center
+        if(nuni .gt. 0) then
+          do ixS=nstr+1,nstr+nuni
+            dxS(ixS)=dxmid
+            xS(ixS)=lenstr+(dble(ixS)-0.5d0-nstr)*dxS(ixS)+xSmin
+          enddo
+        endif
+        ! left half
+        do ixS=nstr,1,-1
+          dxS(ixS)=dxfirst*qs**(nstr-ixS)
+          xS(ixS)=xSmin+lenstr-dxS(ixS)*half-dxfirst*(one-qs**(nstr-ixS))/(one-qs)
+        enddo
+        ! right half
+        do ixS=nstr+nuni+1,numXS
+          dxS(ixS)=dxfirst*qs**(ixS-nstr-nuni-1)
+          xS(ixS)=xSmax-lenstr+dxS(ixS)*half+dxfirst*(one-qs**(ixS-nstr-nuni-1))/(one-qs)
+        enddo
+      case default
+        call mpistop("unknown stretch type")
+      end select
+
+      if (LOS_phi==0 .and. LOS_theta==90 .and. direction_slit==2) then
+      ! LOS->x slit->y
+        dir_loc=3
+      else if (LOS_phi==0 .and. LOS_theta==90 .and. direction_slit==3) then
+      ! LOS->x slit->z
+        dir_loc=2
+      else if (LOS_phi==90 .and. LOS_theta==90 .and. direction_slit==1) then
+      ! LOS->y slit->x
+        dir_loc=3
+      else if (LOS_phi==90 .and. LOS_theta==90 .and. direction_slit==3) then
+      ! LOS->y slit->z
+        dir_loc=1
+      else if (LOS_theta==0 .and. direction_slit==1) then
+      ! LOS->z slit->x
+        dir_loc=2
+      else if (LOS_theta==0 .and. direction_slit==2) then
+      ! LOS->z slit->y
+        dir_loc=1
+      else
+        call MPISTOP('Wrong combination of LOS and slit direction!')
+      endif
+
+      if (dir_loc==1) then
+        if (location_slit>xprobmax1 .or. location_slit<xprobmin1) then
+          call MPISTOP('Wrong value for location_slit!')
+        endif
+        if(mype==0) write(*,'(a,f8.1,a)') ' Location of slit: x = ',location_slit,' Unit_length'
+      else if (dir_loc==2) then
+        if (location_slit>xprobmax2 .or. location_slit<xprobmin2) then
+          call MPISTOP('Wrong value for location_slit!')
+        endif
+        if(mype==0) write(*,'(a,f8.1,a)') ' Location of slit: y = ',location_slit,' Unit_length'
+      else
+        if (location_slit>xprobmax3 .or. location_slit<xprobmin3) then
+          call MPISTOP('Wrong value for location_slit!')
+        endif
+        if(mype==0) write(*,'(a,f8.1,a)') ' Location of slit: z = ',location_slit,' Unit_length'
+      endif
+
+      ! find slit and do integration
+      spectra=zero
+      do iigrid=1,igridstail; igrid=igrids(iigrid);
+        ^D&xbmin(^D)=rnode(rpxmin^D_,igrid);
+        ^D&xbmax(^D)=rnode(rpxmax^D_,igrid);
+        if (location_slit>=xbmin(dir_loc) .and. location_slit<xbmax(dir_loc)) then
+          call integrate_spectra_datresol(igrid,wL,dwL,spectra,numWL,numXS,dir_loc,fl)
+        endif
+      enddo
+
+      numS=numWL*numXS
+      call MPI_ALLREDUCE(spectra,spectra_rc,numS,MPI_DOUBLE_PRECISION, &
+                         MPI_SUM,icomm,ierrmpi)
+      do iwL=1,numWL
+        do ixS=1,numXS
+          if (spectra_rc(iwL,ixS)>smalldouble) then
+            wI(iwL,ixS,1)=spectra_rc(iwL,ixS)
+          else
+            wI(iwL,ixS,1)=zero
+          endif
+        enddo
+      enddo
+
+      call output_data(qunit,wL,xS,dwL,dxS,wI,numWL,numXS,numWI,datatype)
+
+      deallocate(wL,xS,dwL,dxS,spectra,spectra_rc,wI)
+
+    end subroutine get_spectrum_datresol
+
+    subroutine integrate_spectra_datresol(igrid,wL,dwL,spectra,numWL,numXS,dir_loc,fl)
+      use mod_constants
+
+      integer, intent(in) :: igrid,numWL,numXS,dir_loc
+      type(te_fluid), intent(in) :: fl
+      double precision, intent(in) :: wL(numWL),dwL(numWL)
+      double precision, intent(inout) :: spectra(numWL,numXS)
+
+      integer :: direction_LOS
+      integer :: ixO^L,ixI^L,ix^D,ixOnew
+      double precision, allocatable :: flux(:^D&),v(:^D&),pth(:^D&),Te(:^D&),rho(:^D&)
+      double precision :: wlc,wlwd
+
+      integer :: mass
+      double precision :: logTe,lineCent
+      character (30) :: ion
+      double precision :: spaceRsl,wlRsl,sigma_PSF,wslit
+
+      integer :: levelg,rft,ixSmin,ixSmax,iwL
+      double precision :: flux_pix,dL
+
+      call get_line_info(spectrum_wl,ion,mass,logTe,lineCent,spaceRsl,wlRsl,sigma_PSF,wslit)
+
+      if (LOS_phi==0 .and. LOS_theta==90) then
+        direction_LOS=1
+      else if (LOS_phi==90 .and. LOS_theta==90) then
+        direction_LOS=2
+      else
+        direction_LOS=3
+      endif
+
+      ^D&ixOmin^D=ixmlo^D\
+      ^D&ixOmax^D=ixmhi^D\
+      ^D&ixImin^D=ixglo^D\
+      ^D&ixImax^D=ixghi^D\
+      allocate(flux(ixI^S),v(ixI^S),pth(ixI^S),Te(ixI^S),rho(ixI^S))
+
+      ^D&ix^D=ixOmin^D;
+      if (dir_loc==1) then
+        do ix1=ixOmin1,ixOmax1
+          if (location_slit>=(ps(igrid)%x(ix^D,1)-half*ps(igrid)%dx(ix^D,1)) .and. &
+              location_slit<(ps(igrid)%x(ix^D,1)+half*ps(igrid)%dx(ix^D,1))) then
+            ixOnew=ix1
+          endif
+        enddo
+        ixOmin1=ixOnew
+        ixOmax1=ixOnew
+      else if (dir_loc==2) then
+        do ix2=ixOmin2,ixOmax2
+          if (location_slit>=(ps(igrid)%x(ix^D,2)-half*ps(igrid)%dx(ix^D,2)) .and. &
+              location_slit<(ps(igrid)%x(ix^D,2)+half*ps(igrid)%dx(ix^D,2))) then
+            ixOnew=ix2
+          endif
+        enddo
+        ixOmin2=ixOnew
+        ixOmax2=ixOnew
+      else
+        do ix3=ixOmin3,ixOmax3
+          if (location_slit>=(ps(igrid)%x(ix^D,3)-half*ps(igrid)%dx(ix^D,3)) .and. &
+              location_slit<(ps(igrid)%x(ix^D,3)+half*ps(igrid)%dx(ix^D,3))) then
+            ixOnew=ix3
+          endif
+        enddo
+        ixOmin3=ixOnew
+        ixOmax3=ixOnew
+      endif
+
+      call get_EUV(spectrum_wl,ixI^L,ixO^L,ps(igrid)%w,ps(igrid)%x,fl,flux)
+      flux(ixO^S)=flux(ixO^S)/instrument_resolution_factor**2   ! adjust flux due to artifical change of resolution
+      call fl%get_rho(ps(igrid)%w,ps(igrid)%x,ixI^L,ixO^L,rho)
+      v(ixO^S)=-ps(igrid)%w(ixO^S,iw_mom(direction_LOS))/rho(ixO^S)
+      call fl%get_pthermal(ps(igrid)%w,ps(igrid)%x,ixI^L,ixO^L,pth)
+      call fl%get_var_Rfactor(ps(igrid)%w,ps(igrid)%x,ixI^L,ixO^L,Te)
+      Te(ixO^S)=pth(ixO^S)/(Te(ixO^S)*rho(ixO^S))
+
+      ! grid parameters
+      levelg=ps(igrid)%level
+      rft=2**(refine_max_level-levelg)
+
+      {do ix^D=ixOmin^D,ixOmax^D\}
+        if (flux(ix^D)>smalldouble) then
+          if (SI_unit) then
+            wlc=lineCent*(1.d0+v(ix^D)*unit_velocity*1.d2/const_c)
+          else
+            wlc=lineCent*(1.d0+v(ix^D)*unit_velocity/const_c)
+          endif
+          wlwd=sqrt(kb_cgs*Te(ix^D)*unit_temperature/(mass*mp_cgs))
+          wlwd=wlwd*lineCent/const_c
+          ! involved pixel
+          select case(direction_slit)
+          case(1)
+            ixSmin=(block_nx1*(node(pig1_,igrid)-1)+(ix1-ixOmin1))*rft+1
+            ixSmax=(block_nx1*(node(pig1_,igrid)-1)+(ix1-ixOmin1+1))*rft
+          case(2)
+            ixSmin=(block_nx2*(node(pig2_,igrid)-1)+(ix2-ixOmin2))*rft+1
+            ixSmax=(block_nx2*(node(pig2_,igrid)-1)+(ix2-ixOmin2+1))*rft
+          case(3)
+            ixSmin=(block_nx3*(node(pig3_,igrid)-1)+(ix3-ixOmin3))*rft+1
+            ixSmax=(block_nx3*(node(pig3_,igrid)-1)+(ix3-ixOmin3+1))*rft
+          end select
+          ! LOS depth
+          select case(direction_LOS)
+          case(1)
+            dL=ps(igrid)%dx(ix^D,1)*unit_length
+          case(2)
+            dL=ps(igrid)%dx(ix^D,2)*unit_length
+          case default
+            dL=ps(igrid)%dx(ix^D,3)*unit_length
+          end select
+          if (SI_unit) dL=dL*1.d2
+          ! integral pixel flux
+          do iwL=1,numWL
+            flux_pix=flux(ix^D)*wlRsl*dL*exp(-(wL(iwL)-wlc)**2/(2*wlwd**2))/(sqrt(2*dpi)*wlwd)
+            if (flux_pix>smalldouble) then
+              flux_pix=flux_pix*wslit/spaceRsl
+              spectra(iwL,ixSmin:ixSmax)=spectra(iwL,ixSmin:ixSmax)+flux_pix
+            endif
+          enddo
+        endif
+      {enddo\}
+
+      deallocate(flux,v,pth,Te,rho)
+
+    end subroutine integrate_spectra_datresol
 
     subroutine get_spectrum(qunit,datatype,fl)
 
@@ -1095,7 +1414,7 @@ module mod_thermal_emission
       allocate(flux(ixI^S),v(ixI^S),pth(ixI^S),Te(ixI^S),rho(ixI^S))
       ! get local EUV flux and velocity
       call get_EUV(spectrum_wl,ixI^L,ixO^L,ps(igrid)%w,ps(igrid)%x,fl,flux)
-      flux=flux/instrument_resolution_factor**2   ! adjust flux due to artifical change of resolution
+      flux(ixO^S)=flux(ixO^S)/instrument_resolution_factor**2   ! adjust flux due to artifical change of resolution
       call fl%get_pthermal(ps(igrid)%w,ps(igrid)%x,ixI^L,ixO^L,pth)
       call fl%get_rho(ps(igrid)%w,ps(igrid)%x,ixI^L,ixO^L,rho)
       call fl%get_var_Rfactor(ps(igrid)%w,ps(igrid)%x,ixI^L,ixO^L,Te)
@@ -1114,60 +1433,64 @@ module mod_thermal_emission
       sigma_wl=sigma_PSF*dwLg
       sigma_xs=sigma_PSF*dxSg
       {do ix^D=ixOmin^D,ixOmax^D\}
-        xloc(1:3)=ps(igrid)%x(ix^D,1:3)
-        dxloc(1:3)=ps(igrid)%dx(ix^D,1:3)
-        call get_cor_image(xloc,xIloc)
-        call dot_product_loc(dxloc,vec_xI1,res)
-        dxIloc(1)=abs(res)
-        if (xIloc(1)>=xslit-half*(slit_width+dxIloc(1)) .and. & 
-            xIloc(1)<=xslit+half*(slit_width+dxIloc(1))) then
-          ^D&nSubC^D=1;
-          ^D&nSubC^D=max(nSubC^D,ceiling(ps(igrid)%dx(ix^DD,^D)*abs(vec_xI1(^D))/(slit_width/16.d0)));
-          ^D&nSubC^D=max(nSubC^D,ceiling(ps(igrid)%dx(ix^DD,^D)*abs(vec_xI2(^D))/(dxSg/4.d0)));
-          ^D&dxSubC^D=ps(igrid)%dx(ix^DD,^D)/nSubC^D;
-          ! local line center and line width
-          if (SI_unit) then
-            fluxSubC=flux(ix^D)*dxSubC1*dxSubC2*dxSubC3*unit_length*1.d2/dxSg/dxSg  ! DN s^-1
-            wlc=lineCent*(1.d0+v(ix^D)*unit_velocity*1.d2/const_c)
-          else
-            fluxSubC=flux(ix^D)*dxSubC1*dxSubC2*dxSubC3*unit_length/dxSg/dxSg  ! DN s^-1
-            wlc=lineCent*(1.d0+v(ix^D)*unit_velocity/const_c)
-          endif
-          wlwd=sqrt(kb_cgs*Te(ix^D)*unit_temperature/(mass*mp_cgs))
-          wlwd=wlwd*lineCent/const_c
-          ! dividing a cell to several parts to get more accurate integrating values
-          {do iSubC^D=1,nSubC^D\}
-            ^D&xSubC(^D)=xloc(^D)-half*dxloc(^D)+(iSubC^D-half)*dxSubC^D;
-            call get_cor_image(xSubC,xCent)
-            dst_slit=abs(xCent(1)-xslit)  ! space distance to slit center
-            if (dst_slit<=half*slit_width) then
-              ixS=floor((xCent(2)-(xS(1)-half*dxSg))/dxSg)+1
-              ixSmin=max(1,ixS-3)
-              ixSmax=min(ixS+3,numXS)
-              iwL=floor((wlc-(wL(1)-half*dwLg))/dwLg)+1
-              nwL=3*ceiling(wlwd/dwLg+1)
-              iwLmin=max(1,iwL-nwL)
-              iwLmax=min(iwL+nwL,numWL)
-              ! calculate the contribution to nearby pixels
-              do iwL=iwLmin,iwLmax
-                do ixS=ixSmin,ixSmax
-                  xerfmin1=(wL(iwL)-half*dwLg-wlc)/sqrt(2.d0*(sigma_wl**2+wlwd**2))
-                  xerfmax1=(wL(iwL)+half*dwLg-wlc)/sqrt(2.d0*(sigma_wl**2+wlwd**2))
-                  xerfmin2=(xS(ixS)-half*dxSg-xCent(2))/(sqrt(2.d0)*sigma_xs)
-                  xerfmax2=(xS(ixS)+half*dxSg-xCent(2))/(sqrt(2.d0)*sigma_xs)
-                  factor=(erfc(xerfmin1)-erfc(xerfmax1))*(erfc(xerfmin2)-erfc(xerfmax2))/4.d0
-                  spectra(iwL,ixS)=spectra(iwL,ixS)+fluxSubC*factor
-                enddo
-              enddo
-              ! nearby pixels
+        if (flux(ix^D)>smalldouble) then
+          xloc(1:3)=ps(igrid)%x(ix^D,1:3)
+          dxloc(1:3)=ps(igrid)%dx(ix^D,1:3)
+          call get_cor_image(xloc,xIloc)
+          call dot_product_loc(dxloc,vec_xI1,res)
+          dxIloc(1)=abs(res)
+          if (xIloc(1)>=xslit-half*(slit_width+dxIloc(1)) .and. & 
+              xIloc(1)<=xslit+half*(slit_width+dxIloc(1))) then
+            ^D&nSubC^D=1;
+            ^D&nSubC^D=max(nSubC^D,ceiling(ps(igrid)%dx(ix^DD,^D)*abs(vec_xI1(^D))/(slit_width/16.d0)));
+            ^D&nSubC^D=max(nSubC^D,ceiling(ps(igrid)%dx(ix^DD,^D)*abs(vec_xI2(^D))/(dxSg/4.d0)));
+            ^D&dxSubC^D=ps(igrid)%dx(ix^DD,^D)/nSubC^D;
+            ! local line center and line width
+            if (SI_unit) then
+              fluxSubC=flux(ix^D)*dxSubC1*dxSubC2*dxSubC3*unit_length*1.d2/dxSg/dxSg  ! DN s^-1
+              wlc=lineCent*(1.d0+v(ix^D)*unit_velocity*1.d2/const_c)
+            else
+              fluxSubC=flux(ix^D)*dxSubC1*dxSubC2*dxSubC3*unit_length/dxSg/dxSg  ! DN s^-1
+              wlc=lineCent*(1.d0+v(ix^D)*unit_velocity/const_c)
             endif
-          {enddo\}
+            wlwd=sqrt(kb_cgs*Te(ix^D)*unit_temperature/(mass*mp_cgs))
+            wlwd=wlwd*lineCent/const_c
+            ! dividing a cell to several parts to get more accurate integrating values
+            {do iSubC^D=1,nSubC^D\}
+              ^D&xSubC(^D)=xloc(^D)-half*dxloc(^D)+(iSubC^D-half)*dxSubC^D;
+              call get_cor_image(xSubC,xCent)
+              dst_slit=abs(xCent(1)-xslit)  ! space distance to slit center
+              if (dst_slit<=half*slit_width) then
+                ixS=floor((xCent(2)-(xS(1)-half*dxSg))/dxSg)+1
+                ixSmin=max(1,ixS-3)
+                ixSmax=min(ixS+3,numXS)
+                iwL=floor((wlc-(wL(1)-half*dwLg))/dwLg)+1
+                nwL=3*ceiling(wlwd/dwLg+1)
+                iwLmin=max(1,iwL-nwL)
+                iwLmax=min(iwL+nwL,numWL)
+                ! calculate the contribution to nearby pixels
+                do iwL=iwLmin,iwLmax
+                  do ixS=ixSmin,ixSmax
+                    xerfmin1=(wL(iwL)-half*dwLg-wlc)/sqrt(2.d0*(sigma_wl**2+wlwd**2))
+                    xerfmax1=(wL(iwL)+half*dwLg-wlc)/sqrt(2.d0*(sigma_wl**2+wlwd**2))
+                    xerfmin2=(xS(ixS)-half*dxSg-xCent(2))/(sqrt(2.d0)*sigma_xs)
+                    xerfmax2=(xS(ixS)+half*dxSg-xCent(2))/(sqrt(2.d0)*sigma_xs)
+                    factor=(erfc(xerfmin1)-erfc(xerfmax1))*(erfc(xerfmin2)-erfc(xerfmax2))/4.d0
+                    spectra(iwL,ixS)=spectra(iwL,ixS)+fluxSubC*factor
+                  enddo
+                enddo
+                ! nearby pixels
+              endif
+            {enddo\}
+          endif
         endif
       {enddo\}
 
       deallocate(flux,v,pth,Te)
     end subroutine integrate_spectra_cartesian
+  }
 
+  {^IFTHREED
     subroutine get_EUV_image(qunit,fl)
       use mod_global_parameters
 
@@ -1181,42 +1504,64 @@ module mod_thermal_emission
       double precision :: t0,t1
 
       t0=MPI_WTIME()
-
-      call get_line_info(wavelength,ion,mass,logTe,lineCent,spaceRsl,wlRsl,sigma_PSF,wslit)
-      if (mype==0) print *, '###################################################'
-      if (mype==0) print *, 'Systhesizing EUV image'
-      if (mype==0) write(*,'(a,f8.3,a)') ' Wavelength: ',lineCent,' Angstrom'
-      if (mype==0) print *, 'Unit of EUV flux: DN s^-1 pixel^-1'
-      if (mype==0) write(*,'(a,f7.1,a,f7.1,a,f5.1,a,f5.1,a)') ' Pixel: ',spaceRsl*725.0,' km x ',spaceRsl*725.0, ' km  (', &
-                                                                spaceRsl, ' arcsec x ', spaceRsl, ' arcsec)'
-
       datatype='image_euv'
+      call get_line_info(wavelength,ion,mass,logTe,lineCent,spaceRsl,wlRsl,sigma_PSF,wslit)
 
       if (mype==0) then
-        if (activate_unit_arcsec) then
-          print *, 'Unit of length: arcsec (~725 km)'
-        else
+        print *, '###################################################'
+        print *, 'Systhesizing EUV image'
+        write(*,'(a,f8.3,a)') ' Wavelength: ',lineCent,' Angstrom'
+        print *, 'Unit of EUV flux: DN s^-1 pixel^-1'
+      endif
+
+      if (dat_resolution) then
+        if (coordinate/=cartesian) call MPISTOP('EUV synthesis: only cartesian is supported for .dat resolution!')
+        if (mype==0) then
+          write(*,'(a,f7.1,a,f7.1,a,f5.1,a,f5.1,a)') ' Supposed Pixel: ',spaceRsl*725.0,' km x ',spaceRsl*725.0, & 
+                                                     ' km  (', spaceRsl, ' arcsec x ', spaceRsl, ' arcsec)'
           if (SI_unit) then
-            if (mype==0) write(*,'(a,f8.1,a)') ' Unit of length: ',unit_length/1.d6,' Mm'
+            write(*,'(a,f8.1,a)') ' Unit of length: ',unit_length/1.d6,' Mm'
           else
-            if (mype==0) write(*,'(a,f8.1,a)') ' Unit of length: ',unit_length/1.d8,' Mm'
+            write(*,'(a,f8.1,a)') ' Unit of length: ',unit_length/1.d8,' Mm'
           endif
+        endif
+        if (LOS_phi==0 .and. LOS_theta==90) then
+          call get_image_datresol(qunit,datatype,fl)
+        else if (LOS_phi==90 .and. LOS_theta==90) then
+          call get_image_datresol(qunit,datatype,fl)
+        else if (LOS_theta==0) then
+          call get_image_datresol(qunit,datatype,fl)
+        else
+          call MPISTOP('ERROR: Wrong LOS for synthesizing emission!')
+        endif
+      else
+        if (mype==0) then
+          write(*,'(a,f7.1,a,f7.1,a,f5.1,a,f5.1,a)') ' Pixel: ',spaceRsl*725.0,' km x ',spaceRsl*725.0, ' km  (', &
+                                                                  spaceRsl, ' arcsec x ', spaceRsl, ' arcsec)'
+          if (activate_unit_arcsec) then
+            print *, 'Unit of length: arcsec (~725 km)'
+          else
+            if (SI_unit) then
+              write(*,'(a,f8.1,a)') ' Unit of length: ',unit_length/1.d6,' Mm'
+            else
+              write(*,'(a,f8.1,a)') ' Unit of length: ',unit_length/1.d8,' Mm'
+            endif
+          endif
+        endif
+        if (coordinate==cartesian) then
+          if (mype==0) write(*,'(a,f8.3,f8.3,f8.3,a)') ' Mapping: [',x_origin(1),x_origin(2),x_origin(3), &
+                                                     '] of the simulation box is located at [X=0,Y=0] of the image'
+            call get_image(qunit,datatype,fl)
+        else if (coordinate==spherical) then
+          if (mype==0) write(*,'(a,f6.3,f8.3,f8.3,a)') ' Mapping: R=0 of the simulation box is located at [X=0,Y=0] of the image'
+          call get_image(qunit,datatype,fl)
+        else
+          call MPISTOP("EUV synthesis: this coordinate is not supported!")
         endif
       endif
 
-      if (coordinate==cartesian) then
-        if (mype==0) write(*,'(a,f8.3,f8.3,f8.3,a)') ' Mapping: [',x_origin(1),x_origin(2),x_origin(3), &
-                                                   '] of the simulation box is located at [X=0,Y=0] of the image'
-        call get_image(qunit,datatype,fl)
-      else if (coordinate==spherical) then
-        if (mype==0) write(*,'(a,f6.3,f8.3,f8.3,a)') ' Mapping: R=0 of the simulation box is located at [X=0,Y=0] of the image'
-        call get_image(qunit,datatype,fl)
-      else
-        call MPISTOP("EUV synthesis: this coordinate is not supported!")
-      endif
-
       t1=MPI_WTIME()
-      if (mype==0) print *, 'time comsume:',t1-t0
+      if (mype==0) print *, 'time comsuming: ',t1-t0,' s'
       if (mype==0) print *, '###################################################'
       
     end subroutine get_EUV_image
@@ -1231,44 +1576,65 @@ module mod_thermal_emission
       double precision :: t0,t1
 
       t0=MPI_WTIME()
-
+      datatype='image_sxr'
       RHESSI_rsl=2.3/instrument_resolution_factor
 
-      if (mype==0) print *, '###################################################'
-      if (mype==0) print *, 'Systhesizing SXR image (observed at 1 AU).'
-      if (mype==0) write(*,'(a,i2,a,i2,a)') ' Passband: ',emin_sxr,' - ',emax_sxr,' keV'
-      if (mype==0) print *, 'Unit of SXR flux: photons cm^-2 s^-1 pixel^-1'
-      if (mype==0) write(*,'(a,f5.1,a,f5.1,a,f5.1,a,f5.1,a)') ' Pixel: ',RHESSI_rsl*0.725, &
-                                                    ' Mm x ',RHESSI_rsl*0.725, ' Mm  (', &
-                                                    RHESSI_rsl, ' arcsec x ', RHESSI_rsl, ' arcsec)'
-
-      datatype='image_sxr'
-
       if (mype==0) then
-        if (activate_unit_arcsec) then
-          print *, 'Unit of length: arcsec (~725 km)'
-        else
+        print *, '###################################################'
+        print *, 'Systhesizing SXR image (observed at 1 AU).'
+        write(*,'(a,i2,a,i2,a)') ' Passband: ',emin_sxr,' - ',emax_sxr,' keV'
+      endif
+
+      if (dat_resolution) then
+        if (coordinate/=cartesian) call MPISTOP('SXR synthesis: only cartesian is supported for .dat resolution!')
+        if (mype==0) then
+          print *, 'Unit of SXR flux: photons cm^-2 s^-1 pixel^-1'
+          write(*,'(a,f5.1,a,f5.1,a,f5.1,a,f5.1,a)') ' Supposed Pixel: ',RHESSI_rsl*0.725, ' Mm x ',RHESSI_rsl*0.725, &
+                                                     ' Mm  (', RHESSI_rsl, ' arcsec x ', RHESSI_rsl, ' arcsec)'
           if (SI_unit) then
-            if (mype==0) write(*,'(a,f8.1,a)') ' Unit of length: ',unit_length/1.d6,' Mm'
+            write(*,'(a,f8.1,a)') ' Unit of length: ',unit_length/1.d6,' Mm'
           else
-            if (mype==0) write(*,'(a,f8.1,a)') ' Unit of length: ',unit_length/1.d8,' Mm'
+            write(*,'(a,f8.1,a)') ' Unit of length: ',unit_length/1.d8,' Mm'
           endif
+        endif
+        if (LOS_phi==0 .and. LOS_theta==90) then
+          call get_image_datresol(qunit,datatype,fl)
+        else if (LOS_phi==90 .and. LOS_theta==90) then
+          call get_image_datresol(qunit,datatype,fl)
+        else if (LOS_theta==0) then
+          call get_image_datresol(qunit,datatype,fl)
+        else
+          call MPISTOP('ERROR: Wrong LOS for synthesizing emission!')
+        endif
+      else
+        if (mype==0) then
+          print *, 'Unit of SXR flux: photons cm^-2 s^-1 pixel^-1'
+          write(*,'(a,f5.1,a,f5.1,a,f5.1,a,f5.1,a)') ' Pixel: ',RHESSI_rsl*0.725, ' Mm x ',RHESSI_rsl*0.725, &
+                                                      ' Mm  (', RHESSI_rsl, ' arcsec x ', RHESSI_rsl, ' arcsec)'
+          if (activate_unit_arcsec) then
+            print *, 'Unit of length: arcsec (~725 km)'
+          else
+            if (SI_unit) then
+              write(*,'(a,f8.1,a)') ' Unit of length: ',unit_length/1.d6,' Mm'
+            else
+              write(*,'(a,f8.1,a)') ' Unit of length: ',unit_length/1.d8,' Mm'
+            endif
+          endif
+        endif
+        if (coordinate==cartesian) then
+          if (mype==0) write(*,'(a,f8.3,f8.3,f8.3,a)') ' Mapping: [',x_origin(1),x_origin(2),x_origin(3), &
+                                                     '] of the simulation box is located at [X=0,Y=0] of the image'
+            call get_image(qunit,datatype,fl)
+        else if (coordinate==spherical) then
+          if (mype==0) write(*,'(a,f6.3,f8.3,f8.3,a)') ' Mapping: R=0 of the simulation box is located at [X=0,Y=0] of the image'
+          call get_image(qunit,datatype,fl)
+        else
+          call MPISTOP("SXR synthesis: this coordinate is not supported!")
         endif
       endif
 
-      if (coordinate==cartesian) then
-        if (mype==0) write(*,'(a,f8.3,f8.3,f8.3,a)') ' Mapping: [',x_origin(1),x_origin(2),x_origin(3), &
-                                                   '] of the simulation box is located at [X=0,Y=0] of the image'
-        call get_image(qunit,datatype,fl)
-      else if (coordinate==spherical) then
-        if (mype==0) write(*,'(a,f6.3,f8.3,f8.3,a)') ' Mapping: R=0 of the simulation box is located at [X=0,Y=0] of the image'
-        call get_image(qunit,datatype,fl)
-      else
-        call MPISTOP("SXR synthesis: this coordinate is not supported!")
-      endif
-
       t1=MPI_WTIME()
-      if (mype==0) print *, 'time comsume:',t1-t0
+      if (mype==0) print *, 'time comsuming:',t1-t0
       if (mype==0) print *, '###################################################'
 
     end subroutine get_SXR_image
@@ -1324,6 +1690,611 @@ module mod_thermal_emission
       if (mype==0) print *, '###################################################'
 
     end subroutine get_whitelight_image
+
+    subroutine get_image_datresol(qunit,datatype,fl)
+      ! integrate emission flux along line of sight (LOS) 
+      ! in a 3D simulation box and get a 2D EUV image
+      use mod_global_parameters
+      use mod_constants
+
+      integer, intent(in) :: qunit
+      character(20), intent(in) :: datatype
+      type(te_fluid), intent(in) :: fl
+
+      double precision :: dx^D
+      integer :: numX^D,ix^D
+      double precision, allocatable :: EUV(:,:),EUVs(:,:),Dpl(:,:),Dpls(:,:)
+      double precision, allocatable :: SXR(:,:),SXRs(:,:),wI(:,:,:)
+      double precision, allocatable :: xI1(:),xI2(:),dxI1(:),dxI2(:),dxIi
+      integer :: numXI1,numXI2,numSI,numWI
+      double precision :: xI^L
+      integer :: iigrid,igrid,i,j
+      double precision, allocatable :: xIF1(:),xIF2(:),dxIF1(:),dxIF2(:)
+      integer :: nXIF1,nXIF2
+      double precision :: xIF^L
+
+      double precision :: unitv,arcsec,RHESSI_rsl
+      integer :: strtype^D,nstrb^D,nbb^D,nuni^D,nstr^D,bnx^D
+      double precision :: qs^D,dxfirst^D,dxmid^D,lenstr^D
+
+      numX1=domain_nx1*2**(refine_max_level-1)
+      numX2=domain_nx2*2**(refine_max_level-1)
+      numX3=domain_nx3*2**(refine_max_level-1)
+
+      ! parameters for creating table
+      if (LOS_phi==0 .and. LOS_theta==90) then
+        nXIF1=domain_nx2*2**(refine_max_level-1)
+        nXIF2=domain_nx3*2**(refine_max_level-1)
+        xIFmin1=xprobmin2
+        xIFmax1=xprobmax2
+        xIFmin2=xprobmin3
+        xIFmax2=xprobmax3
+        bnx1=block_nx2
+        bnx2=block_nx3
+        nbb1=domain_nx2
+        nbb2=domain_nx3
+        strtype1=stretch_type(2)
+        strtype2=stretch_type(3)
+        nstrb1=nstretchedblocks_baselevel(2)
+        nstrb2=nstretchedblocks_baselevel(3)
+        qs1=qstretch_baselevel(2)
+        qs2=qstretch_baselevel(3)
+        if (mype==0) write(*,'(a)') ' LOS vector: [-1.00  0.00  0.00]'
+        if (mype==0) write(*,'(a)') ' xI1 vector: [ 0.00  1.00  0.00]'
+        if (mype==0) write(*,'(a)') ' xI2 vector: [ 0.00  0.00  1.00]'
+      else if (LOS_phi==90 .and. LOS_theta==90) then
+        nXIF1=domain_nx3*2**(refine_max_level-1)
+        nXIF2=domain_nx1*2**(refine_max_level-1)
+        xIFmin1=xprobmin3
+        xIFmax1=xprobmax3
+        xIFmin2=xprobmin1
+        xIFmax2=xprobmax1
+        bnx1=block_nx3
+        bnx2=block_nx1
+        nbb1=domain_nx3
+        nbb2=domain_nx1
+        strtype1=stretch_type(3)
+        strtype2=stretch_type(1)
+        nstrb1=nstretchedblocks_baselevel(3)
+        nstrb2=nstretchedblocks_baselevel(1)
+        qs1=qstretch_baselevel(3)
+        qs2=qstretch_baselevel(1)
+        if (mype==0) write(*,'(a)') ' LOS vector: [ 0.00 -1.00  0.00]'
+        if (mype==0) write(*,'(a)') ' xI1 vector: [-1.00  0.00  0.00]'
+        if (mype==0) write(*,'(a)') ' xI2 vector: [ 0.00  0.00  1.00]'
+      else
+        nXIF1=domain_nx1*2**(refine_max_level-1)
+        nXIF2=domain_nx2*2**(refine_max_level-1)
+        xIFmin1=xprobmin1
+        xIFmax1=xprobmax1
+        xIFmin2=xprobmin2
+        xIFmax2=xprobmax2
+        bnx1=block_nx1
+        bnx2=block_nx2
+        nbb1=domain_nx1
+        nbb2=domain_nx2
+        strtype1=stretch_type(1)
+        strtype2=stretch_type(2)
+        nstrb1=nstretchedblocks_baselevel(1)
+        nstrb2=nstretchedblocks_baselevel(2)
+        qs1=qstretch_baselevel(1)
+        qs2=qstretch_baselevel(2)
+        if (mype==0) write(*,'(a)') ' LOS vector: [ 0.00  0.00 -1.00]'
+        if (mype==0) write(*,'(a)') ' xI1 vector: [ 1.00  0.00  0.00]'
+        if (mype==0) write(*,'(a)') ' xI2 vector: [ 0.00  1.00  0.00]'
+      endif
+      allocate(xIF1(nXIF1),xIF2(nXIF2),dxIF1(nXIF1),dxIF2(nXIF2))
+
+      ! initialize image coordinate
+      select case(strtype1)
+      case(0) ! uniform
+        dxIF1(:)=(xIFmax1-xIFmin1)/nXIF1
+        do ix1=1,nXIF1
+          xIF1(ix1)=xIFmin1+dxIF1(ix1)*(ix1-half)
+        enddo
+      case(1) ! uni stretch
+        qs1=qs1**(one/2**(refine_max_level-1))
+        dxfirst1=(xIFmax1-xIFmin1)*(one-qs1)/(one-qs1**nXIF1)
+        dxIF1(1)=dxfirst1
+        do ix1=2,nXIF1
+          dxIF1(ix1)=dxfirst1*qs1**(ix1-1)
+          xIF1(ix1)=dxIF1(1)/(one-qs1)*(one-qs1**(ix1-1))+half*dxIF1(ix1)
+        enddo
+      case(2) ! symm stretch
+        ! base level, nbb = nstr + nuni + nstr
+        nstr1=nstrb1*bnx1/2
+        nuni1=nbb1-nstrb1*bnx1
+        lenstr1=(xIFmax1-xIFmin1)/(2.d0+nuni1*(one-qs1)/(one-qs1**nstr1))
+        dxfirst1=(xIFmax1-xIFmin1)/(dble(nuni1)+2.d0/(one-qs1)*(one-qs1**nstr1))
+        dxmid1=dxfirst1
+        ! refine_max level, numXI = nstr + nuni + nstr
+        nstr1=nstr1*2**(refine_max_level-1)
+        nuni1=nuni1*2**(refine_max_level-1)
+        qs1=qs1**(one/2**(refine_max_level-1))
+        dxfirst1=lenstr1*(one-qs1)/(one-qs1**nstr1)
+        dxmid1=dxmid1/2**(refine_max_level-1)
+        ! uniform center
+        if(nuni1 .gt. 0) then
+          do ix1=nstr1+1,nstr1+nuni1
+            dxIF1(ix1)=dxmid1
+            xIF1(ix1)=lenstr1+(dble(ix1)-0.5d0-nstr1)*dxIF1(ix1)+xIFmin1
+          enddo
+        endif
+        ! left half
+        do ix1=nstr1,1,-1
+          dxIF1(ix1)=dxfirst1*qs1**(nstr1-ix1)
+          xIF1(ix1)=xIFmin1+lenstr1-dxIF1(ix1)*half-dxfirst1*(one-qs1**(nstr1-ix1))/(one-qs1)
+        enddo
+        ! right half
+        do ix1=nstr1+nuni1+1,nXIF1
+          dxIF1(ix1)=dxfirst1*qs1**(ix1-nstr1-nuni1-1)
+          xIF1(ix1)=xIFmax1-lenstr1+dxIF1(ix1)*half+dxfirst1*(one-qs1**(ix1-nstr1-nuni1-1))/(one-qs1)
+        enddo
+      case default
+        call mpistop("unknown stretch type")
+      end select
+
+      select case(strtype2)
+      case(0) ! uniform
+        dxIF2(:)=(xIFmax2-xIFmin2)/nXIF2
+        do ix2=1,nXIF2
+          xIF2(ix2)=xIFmin2+dxIF2(ix2)*(ix2-half)
+        enddo
+      case(1) ! uni stretch
+        qs2=qs2**(one/2**(refine_max_level-1))
+        dxfirst2=(xIFmax2-xIFmin2)*(one-qs2)/(one-qs2**nXIF2)
+        dxIF2(1)=dxfirst2
+        do ix2=2,nXIF1
+          dxIF2(ix2)=dxfirst2*qs2**(ix2-1)
+          xIF2(ix2)=dxIF2(1)/(one-qs2)*(one-qs2**(ix2-1))+half*dxIF2(ix2)
+        enddo
+      case(2) ! symm stretch
+        ! base level, nbb = nstr + nuni + nstr
+        nstr2=nstrb2*bnx2/2
+        nuni2=nbb2-nstrb2*bnx2
+        lenstr2=(xIFmax2-xIFmin2)/(2.d0+nuni2*(one-qs2)/(one-qs2**nstr2))
+        dxfirst2=(xIFmax2-xIFmin2)/(dble(nuni2)+2.d0/(one-qs2)*(one-qs2**nstr2))
+        dxmid2=dxfirst2
+        ! refine_max level, numXI = nstr + nuni + nstr
+        nstr2=nstr2*2**(refine_max_level-1)
+        nuni2=nuni2*2**(refine_max_level-1)
+        qs2=qs2**(one/2**(refine_max_level-1))
+        dxfirst2=lenstr2*(one-qs2)/(one-qs2**nstr2)
+        dxmid2=dxmid2/2**(refine_max_level-1)
+        ! uniform center
+        if(nuni2 .gt. 0) then
+          do ix2=nstr2+1,nstr2+nuni2
+            dxIF2(ix2)=dxmid2
+            xIF2(ix2)=lenstr2+(dble(ix2)-0.5d0-nstr2)*dxIF2(ix2)+xIFmin2
+          enddo
+        endif
+        ! left half
+        do ix2=nstr2,1,-1
+          dxIF2(ix2)=dxfirst2*qs2**(nstr2-ix2)
+          xIF2(ix2)=xIFmin2+lenstr2-dxIF2(ix2)*half-dxfirst2*(one-qs2**(nstr2-ix2))/(one-qs2)
+        enddo
+        ! right half
+        do ix2=nstr2+nuni2+1,nXIF2
+          dxIF2(ix2)=dxfirst2*qs2**(ix2-nstr2-nuni2-1)
+          xIF2(ix2)=xIFmax2-lenstr2+dxIF2(ix2)*half+dxfirst2*(one-qs2**(ix2-nstr2-nuni2-1))/(one-qs2)
+        enddo
+      case default
+        call mpistop("unknown stretch type")
+      end select
+
+      ! integrate EUV flux and get cell average flux for image
+      if (datatype=='image_euv') then
+        if (SI_unit) then
+          unitv=unit_velocity/1.0e3 ! km/s
+        else
+          unitv=unit_velocity/1.0e5 ! km/s
+        endif
+        numWI=2
+        allocate(wI(nXIF1,nXIF2,numWI))
+        allocate(EUVs(nXIF1,nXIF2),EUV(nXIF1,nXIF2))
+        allocate(Dpl(nXIF1,nXIF2),Dpls(nXIF1,nXIF2))
+        EUVs=0.0d0
+        EUV=0.0d0
+        Dpl=0.d0
+        Dpls=0.d0
+        do iigrid=1,igridstail; igrid=igrids(iigrid);
+          call integrate_EUV_datresol(igrid,nXIF1,nXIF2,xIF1,xIF2,dxIF1,dxIF2,fl,EUVs,Dpls)
+        enddo
+        numSI=nXIF1*nXIF2
+        call MPI_ALLREDUCE(EUVs,EUV,numSI,MPI_DOUBLE_PRECISION, &
+                           MPI_SUM,icomm,ierrmpi)
+        call MPI_ALLREDUCE(Dpls,Dpl,numSI,MPI_DOUBLE_PRECISION, &
+                           MPI_SUM,icomm,ierrmpi)
+        do ix1=1,nXIF1
+          do ix2=1,nXIF2
+            if (EUV(ix1,ix2)<smalldouble) EUV(ix1,ix2)=zero
+            if(EUV(ix1,ix2)/=0) then
+              Dpl(ix1,ix2)=(Dpl(ix1,ix2)/EUV(ix1,ix2))*unitv
+            else
+              Dpl(ix1,ix2)=0.d0
+            endif
+            if (abs(Dpl(ix1,ix2))<smalldouble) Dpl(ix1,ix2)=zero
+          enddo
+        enddo
+        wI(:,:,1)=EUV(:,:)
+        wI(:,:,2)=Dpl(:,:)
+
+        call output_data(qunit,xIF1,xIF2,dxIF1,dxIF2,wI,nXIF1,nXIF2,numWI,datatype)
+        deallocate(WI,EUV,EUVs,Dpl,Dpls)
+      endif
+
+      ! integrate SXR flux and get cell average flux for image
+      if (datatype=='image_sxr') then
+        if (SI_unit) then
+          arcsec=7.25d5
+        else
+          arcsec=7.25d7
+        endif
+        RHESSI_rsl=2.3d0/instrument_resolution_factor
+        numWI=1
+        allocate(wI(nXIF1,nXIF2,numWI))
+        allocate(SXRs(nXIF1,nXIF2),SXR(nXIF1,nXIF2))
+        SXRs=0.0d0
+        SXR=0.0d0
+        do iigrid=1,igridstail; igrid=igrids(iigrid);
+          call integrate_SXR_datresol(igrid,nXIF1,nXIF2,xIF1,xIF2,dxIF1,dxIF2,fl,SXRs)
+        enddo
+        numSI=nXIF1*nXIF2
+        call MPI_ALLREDUCE(SXRs,SXR,numSI,MPI_DOUBLE_PRECISION, &
+                           MPI_SUM,icomm,ierrmpi)
+
+        SXR=SXR*(RHESSI_rsl*arcsec)**2 ! photons cm^-2 s^-1 pixel^-1
+        do ix1=1,nXIF1
+          do ix2=1,nXIF2
+            if (SXR(ix1,ix2)<smalldouble) SXR(ix1,ix2)=zero
+          enddo
+        enddo
+        wI(:,:,1)=SXR(:,:)
+
+        call output_data(qunit,xIF1,xIF2,dxIF1,dxIF2,wI,nXIF1,nXIF2,numWI,datatype)
+        deallocate(WI,SXR,SXRs)
+      endif
+
+      deallocate(xIF1,xIF2,dxIF1,dxIF2)
+
+    end subroutine get_image_datresol
+
+    subroutine integrate_SXR_datresol(igrid,nXIF1,nXIF2,xIF1,xIF2,dxIF1,dxIF2,fl,SXR)
+      use mod_global_parameters
+
+      integer, intent(in) :: igrid,nXIF1,nXIF2
+      double precision, intent(in) :: xIF1(nXIF1),xIF2(nXIF2)
+      double precision, intent(in) :: dxIF1(nXIF1),dxIF2(nXIF2)
+      type(te_fluid), intent(in) :: fl
+      double precision, intent(out) :: SXR(nXIF1,nXIF2)
+
+      integer :: ixO^L,ixO^D,ixI^L,ix^D,i,j
+      double precision :: xb^L,xd^D
+      double precision, allocatable :: flux(:^D&)
+      double precision, allocatable :: dxb1(:^D&),dxb2(:^D&),dxb3(:^D&)
+      double precision, allocatable :: SXRg(:,:),xg1(:),xg2(:),dxg1(:),dxg2(:)
+      integer :: levelg,nXg1,nXg2,iXgmin1,iXgmax1,iXgmin2,iXgmax2,rft,iXg^D
+      double precision :: SXRt,xc^L,xg^L,r2,area_1AU
+      integer :: ixP^L,ixP^D
+      integer :: direction_LOS
+
+      if (LOS_phi==0 .and. LOS_theta==90) then
+        direction_LOS=1
+      else if (LOS_phi==90 .and. LOS_theta==90) then
+        direction_LOS=2
+      else
+        direction_LOS=3
+      endif
+
+      ^D&ixOmin^D=ixmlo^D\
+      ^D&ixOmax^D=ixmhi^D\
+      ^D&ixImin^D=ixglo^D\
+      ^D&ixImax^D=ixghi^D\
+      ^D&xbmin^D=rnode(rpxmin^D_,igrid)\
+      ^D&xbmax^D=rnode(rpxmax^D_,igrid)\
+
+      allocate(flux(ixI^S))
+      allocate(dxb1(ixI^S),dxb2(ixI^S),dxb3(ixI^S))
+      dxb1(ixO^S)=ps(igrid)%dx(ixO^S,1)
+      dxb2(ixO^S)=ps(igrid)%dx(ixO^S,2)
+      dxb3(ixO^S)=ps(igrid)%dx(ixO^S,3)
+      ! get local SXR flux
+      call get_SXR(ixI^L,ixO^L,ps(igrid)%w,ps(igrid)%x,fl,flux,emin_sxr,emax_sxr)
+
+      ! grid parameters
+      levelg=ps(igrid)%level
+      rft=2**(refine_max_level-levelg)
+
+      ! fine table for storing EUV flux of current grid
+      select case(direction_LOS)
+      case(1)
+        nXg1=ixImax2*rft
+        nXg2=ixImax3*rft
+      case(2)
+        nXg1=ixImax3*rft
+        nXg2=ixImax1*rft
+      case(3)
+        nXg1=ixImax1*rft
+        nXg2=ixImax2*rft
+      end select
+      allocate(SXRg(nXg1,nXg2),xg1(nXg1),xg2(nXg2),dxg1(nXg1),dxg2(nXg2))
+      SXRg=zero
+      xg1=zero
+      xg2=zero
+
+      ! integrate for different direction
+      select case(direction_LOS)
+      case(1)
+        do ix2=ixOmin2,ixOmax2
+          iXgmin1=(ix2-1)*rft+1
+          iXgmax1=ix2*rft
+          do ix3=ixOmin3,ixOmax3
+            iXgmin2=(ix3-1)*rft+1
+            iXgmax2=ix3*rft
+            SXRt=0.d0
+            do ix1=ixOmin1,ixOmax1
+              SXRt=SXRt+flux(ix^D)*dxb1(ix^D)*unit_length
+            enddo
+            SXRg(iXgmin1:iXgmax1,iXgmin2:iXgmax2)=SXRt
+          enddo
+        enddo
+      case(2)
+        do ix3=ixOmin3,ixOmax3
+          iXgmin1=(ix3-1)*rft+1
+          iXgmax1=ix3*rft
+          do ix1=ixOmin1,ixOmax1
+            iXgmin2=(ix1-1)*rft+1
+            iXgmax2=ix1*rft
+            SXRt=0.d0
+            do ix2=ixOmin2,ixOmax2
+              SXRt=SXRt+flux(ix^D)*dxb2(ix^D)*unit_length
+            enddo
+            SXRg(iXgmin1:iXgmax1,iXgmin2:iXgmax2)=SXRt
+          enddo
+        enddo
+      case(3)
+        do ix1=ixOmin1,ixOmax1
+          iXgmin1=(ix1-1)*rft+1
+          iXgmax1=ix1*rft
+          do ix2=ixOmin2,ixOmax2
+            iXgmin2=(ix2-1)*rft+1
+            iXgmax2=ix2*rft
+            SXRt=0.d0
+            do ix3=ixOmin3,ixOmax3
+              SXRt=SXRt+flux(ix^D)*dxb3(ix^D)*unit_length
+            enddo
+            SXRg(iXgmin1:iXgmax1,iXgmin2:iXgmax2)=SXRt
+          enddo
+        enddo
+      end select
+
+      area_1AU=2.81d27
+      SXRg=SXRg/area_1AU
+
+      ! mapping grid data to global table 
+      ! index ranges in local table
+      select case(direction_LOS)
+      case(1)
+        iXgmin1=(ixOmin2-1)*rft+1
+        iXgmax1=ixOmax2*rft
+        iXgmin2=(ixOmin3-1)*rft+1
+        iXgmax2=ixOmax3*rft
+      case(2)
+        iXgmin1=(ixOmin3-1)*rft+1
+        iXgmax1=ixOmax3*rft
+        iXgmin2=(ixOmin1-1)*rft+1
+        iXgmax2=ixOmax1*rft
+      case(3)
+        iXgmin1=(ixOmin1-1)*rft+1
+        iXgmax1=ixOmax1*rft
+        iXgmin2=(ixOmin2-1)*rft+1
+        iXgmax2=ixOmax2*rft
+      end select
+      ! index ranges in global table & mapping
+      select case(direction_LOS)
+      case(1)
+        ixPmin1=(node(pig2_,igrid)-1)*rft*block_nx2+1
+        ixPmax1=node(pig2_,igrid)*rft*block_nx2
+        ixPmin2=(node(pig3_,igrid)-1)*rft*block_nx3+1
+        ixPmax2=node(pig3_,igrid)*rft*block_nx3
+      case(2)
+        ixPmin1=(node(pig3_,igrid)-1)*rft*block_nx3+1
+        ixPmax1=node(pig3_,igrid)*rft*block_nx3
+        ixPmin2=(node(pig1_,igrid)-1)*rft*block_nx1+1
+        ixPmax2=node(pig1_,igrid)*rft*block_nx1
+      case(3)
+        ixPmin1=(node(pig1_,igrid)-1)*rft*block_nx1+1
+        ixPmax1=node(pig1_,igrid)*rft*block_nx1
+        ixPmin2=(node(pig2_,igrid)-1)*rft*block_nx2+1
+        ixPmax2=node(pig2_,igrid)*rft*block_nx2
+      end select
+      xg1(iXgmin1:iXgmax1)=xIF1(ixPmin1:ixPmax1)
+      xg2(iXgmin2:iXgmax2)=xIF2(ixPmin2:ixPmax2)
+      dxg1(iXgmin1:iXgmax1)=dxIF1(ixPmin1:ixPmax1)
+      dxg2(iXgmin2:iXgmax2)=dxIF2(ixPmin2:ixPmax2)
+      SXR(ixPmin1:ixPmax1,ixPmin2:ixPmax2)=SXR(ixPmin1:ixPmax1,ixPmin2:ixPmax2)+&
+                                           SXRg(iXgmin1:iXgmax1,iXgmin2:iXgmax2)
+
+      deallocate(flux,dxb1,dxb2,dxb3,SXRg,xg1,xg2,dxg1,dxg2)
+
+    end subroutine integrate_SXR_datresol
+
+    subroutine integrate_EUV_datresol(igrid,nXIF1,nXIF2,xIF1,xIF2,dxIF1,dxIF2,fl,EUV,Dpl)
+      use mod_global_parameters
+
+      integer, intent(in) :: igrid,nXIF1,nXIF2
+      double precision, intent(in) :: xIF1(nXIF1),xIF2(nXIF2)
+      double precision, intent(in) :: dxIF1(nXIF1),dxIF2(nXIF2)
+      type(te_fluid), intent(in) :: fl
+      double precision, intent(out) :: EUV(nXIF1,nXIF2),Dpl(nXIF1,nXIF2)
+
+      integer :: ixO^L,ixO^D,ixI^L,ix^D,i,j
+      double precision :: xb^L,xd^D
+      double precision, allocatable :: flux(:^D&),v(:^D&),rho(:^D&)
+      double precision, allocatable :: dxb1(:^D&),dxb2(:^D&),dxb3(:^D&)
+      double precision, allocatable :: EUVg(:,:),Fvg(:,:),xg1(:),xg2(:),dxg1(:),dxg2(:)
+      integer :: levelg,nXg1,nXg2,iXgmin1,iXgmax1,iXgmin2,iXgmax2,rft,iXg^D
+      double precision :: EUVt,Fvt,xc^L,xg^L,r2
+      integer :: ixP^L,ixP^D
+      integer :: direction_LOS
+
+      if (LOS_phi==0 .and. LOS_theta==90) then
+        direction_LOS=1
+      else if (LOS_phi==90 .and. LOS_theta==90) then
+        direction_LOS=2
+      else
+        direction_LOS=3
+      endif
+
+      ^D&ixOmin^D=ixmlo^D\
+      ^D&ixOmax^D=ixmhi^D\
+      ^D&ixImin^D=ixglo^D\
+      ^D&ixImax^D=ixghi^D\
+      ^D&xbmin^D=rnode(rpxmin^D_,igrid)\
+      ^D&xbmax^D=rnode(rpxmax^D_,igrid)\
+
+      allocate(flux(ixI^S),v(ixI^S),rho(ixI^S))
+      allocate(dxb1(ixI^S),dxb2(ixI^S),dxb3(ixI^S))
+      dxb1(ixO^S)=ps(igrid)%dx(ixO^S,1)
+      dxb2(ixO^S)=ps(igrid)%dx(ixO^S,2)
+      dxb3(ixO^S)=ps(igrid)%dx(ixO^S,3)
+      ! get local EUV flux and velocity
+      call get_EUV(wavelength,ixI^L,ixO^L,ps(igrid)%w,ps(igrid)%x,fl,flux)
+      flux(ixO^S)=flux(ixO^S)/instrument_resolution_factor**2   ! adjust flux due to artifical change of resolution
+      call fl%get_rho(ps(igrid)%w,ps(igrid)%x,ixI^L,ixO^L,rho)
+      v(ixO^S)=-ps(igrid)%w(ixO^S,iw_mom(direction_LOS))/rho(ixO^S)
+      deallocate(rho)
+
+      ! grid parameters
+      levelg=ps(igrid)%level
+      rft=2**(refine_max_level-levelg)
+
+      ! fine table for storing EUV flux of current grid
+      select case(direction_LOS)
+      case(1)
+        nXg1=ixImax2*rft
+        nXg2=ixImax3*rft
+      case(2)
+        nXg1=ixImax3*rft
+        nXg2=ixImax1*rft
+      case(3)
+        nXg1=ixImax1*rft
+        nXg2=ixImax2*rft
+      end select
+      allocate(EUVg(nXg1,nXg2),Fvg(nXg1,nXg2),xg1(nXg1),xg2(nXg2),dxg1(nXg1),dxg2(nXg2))
+      EUVg=zero
+      Fvg=zero
+      xg1=zero
+      xg2=zero
+
+      ! integrate for different direction
+      select case(direction_LOS)
+      case(1)
+        do ix2=ixOmin2,ixOmax2
+          iXgmin1=(ix2-1)*rft+1
+          iXgmax1=ix2*rft
+          do ix3=ixOmin3,ixOmax3
+            iXgmin2=(ix3-1)*rft+1
+            iXgmax2=ix3*rft
+            EUVt=0.d0
+            Fvt=0.d0
+            do ix1=ixOmin1,ixOmax1
+              EUVt=EUVt+flux(ix^D)*dxb1(ix^D)*unit_length
+              Fvt=Fvt+flux(ix^D)*dxb1(ix^D)*unit_length*v(ix^D)
+            enddo
+            EUVg(iXgmin1:iXgmax1,iXgmin2:iXgmax2)=EUVt
+            Fvg(iXgmin1:iXgmax1,iXgmin2:iXgmax2)=Fvt
+          enddo
+        enddo
+      case(2)
+        do ix3=ixOmin3,ixOmax3
+          iXgmin1=(ix3-1)*rft+1
+          iXgmax1=ix3*rft
+          do ix1=ixOmin1,ixOmax1
+            iXgmin2=(ix1-1)*rft+1
+            iXgmax2=ix1*rft
+            EUVt=0.d0
+            Fvt=0.d0
+            do ix2=ixOmin2,ixOmax2
+              EUVt=EUVt+flux(ix^D)*dxb2(ix^D)*unit_length
+              Fvt=Fvt+flux(ix^D)*dxb2(ix^D)*unit_length*v(ix^D)
+            enddo
+            EUVg(iXgmin1:iXgmax1,iXgmin2:iXgmax2)=EUVt
+            Fvg(iXgmin1:iXgmax1,iXgmin2:iXgmax2)=Fvt
+          enddo
+        enddo
+      case(3)
+        do ix1=ixOmin1,ixOmax1
+          iXgmin1=(ix1-1)*rft+1
+          iXgmax1=ix1*rft
+          do ix2=ixOmin2,ixOmax2
+            iXgmin2=(ix2-1)*rft+1
+            iXgmax2=ix2*rft
+            EUVt=0.d0
+            Fvt=0.d0
+            do ix3=ixOmin3,ixOmax3
+              EUVt=EUVt+flux(ix^D)*dxb3(ix^D)*unit_length
+              Fvt=Fvt+flux(ix^D)*dxb3(ix^D)*unit_length*v(ix^D)
+            enddo
+            EUVg(iXgmin1:iXgmax1,iXgmin2:iXgmax2)=EUVt
+            Fvg(iXgmin1:iXgmax1,iXgmin2:iXgmax2)=Fvt
+          enddo
+        enddo
+      end select
+      if (SI_unit) then
+        EUVg=EUVg*1.d2
+        Fvg=Fvg*1.d2
+      endif
+
+      ! mapping grid data to global table 
+      ! index ranges in local table
+      select case(direction_LOS)
+      case(1)
+        iXgmin1=(ixOmin2-1)*rft+1
+        iXgmax1=ixOmax2*rft
+        iXgmin2=(ixOmin3-1)*rft+1
+        iXgmax2=ixOmax3*rft
+      case(2)
+        iXgmin1=(ixOmin3-1)*rft+1
+        iXgmax1=ixOmax3*rft
+        iXgmin2=(ixOmin1-1)*rft+1
+        iXgmax2=ixOmax1*rft
+      case(3)
+        iXgmin1=(ixOmin1-1)*rft+1
+        iXgmax1=ixOmax1*rft
+        iXgmin2=(ixOmin2-1)*rft+1
+        iXgmax2=ixOmax2*rft
+      end select
+      ! index ranges in global table & mapping
+      select case(direction_LOS)
+      case(1)
+        ixPmin1=(node(pig2_,igrid)-1)*rft*block_nx2+1
+        ixPmax1=node(pig2_,igrid)*rft*block_nx2
+        ixPmin2=(node(pig3_,igrid)-1)*rft*block_nx3+1
+        ixPmax2=node(pig3_,igrid)*rft*block_nx3
+      case(2)
+        ixPmin1=(node(pig3_,igrid)-1)*rft*block_nx3+1
+        ixPmax1=node(pig3_,igrid)*rft*block_nx3
+        ixPmin2=(node(pig1_,igrid)-1)*rft*block_nx1+1
+        ixPmax2=node(pig1_,igrid)*rft*block_nx1
+      case(3)
+        ixPmin1=(node(pig1_,igrid)-1)*rft*block_nx1+1
+        ixPmax1=node(pig1_,igrid)*rft*block_nx1
+        ixPmin2=(node(pig2_,igrid)-1)*rft*block_nx2+1
+        ixPmax2=node(pig2_,igrid)*rft*block_nx2
+      end select
+      xg1(iXgmin1:iXgmax1)=xIF1(ixPmin1:ixPmax1)
+      xg2(iXgmin2:iXgmax2)=xIF2(ixPmin2:ixPmax2)
+      dxg1(iXgmin1:iXgmax1)=dxIF1(ixPmin1:ixPmax1)
+      dxg2(iXgmin2:iXgmax2)=dxIF2(ixPmin2:ixPmax2)
+      EUV(ixPmin1:ixPmax1,ixPmin2:ixPmax2)=EUV(ixPmin1:ixPmax1,ixPmin2:ixPmax2)+&
+                                           EUVg(iXgmin1:iXgmax1,iXgmin2:iXgmax2)
+      Dpl(ixPmin1:ixPmax1,ixPmin2:ixPmax2)=Dpl(ixPmin1:ixPmax1,ixPmin2:ixPmax2)+&
+                                           FVg(iXgmin1:iXgmax1,iXgmin2:iXgmax2)
+
+      deallocate(flux,v,dxb1,dxb2,dxb3,EUVg,Fvg,xg1,xg2,dxg1,dxg2)
+
+    end subroutine integrate_EUV_datresol
 
     subroutine get_image(qunit,datatype,fl)
       ! integrate emission flux along line of sight (LOS) 
@@ -1991,10 +2962,33 @@ module mod_thermal_emission
         enddo
       enddo
 
-      piece_nmax1=20
-      piece_nmax2=20
-      !endif
-
+      ! how many cells in each grid
+      if (dat_resolution) then
+        if (datatype=='image_euv' .or. datatype=='image_sxr') then
+          if (LOS_phi==0 .and. LOS_theta==90) then
+            piece_nmax1=block_nx2
+            piece_nmax2=block_nx3
+          else if (LOS_phi==90 .and. LOS_theta==90) then
+            piece_nmax1=block_nx3
+            piece_nmax2=block_nx1
+          else
+            piece_nmax1=block_nx1
+            piece_nmax2=block_nx2
+          endif
+        else if (datatype=='spectrum_euv') then
+          piece_nmax1=16
+          if (direction_slit==1) then
+            piece_nmax2=block_nx1
+          else if (direction_slit==2) then
+            piece_nmax2=block_nx2
+          else
+            piece_nmax2=block_nx3
+          endif
+        endif
+      else
+        piece_nmax1=20
+        piece_nmax2=20
+      endif
       LOOPN1: do j=piece_nmax1,1,-1
         if(mod(nXO1,j)==0) then
           nC1=j
@@ -2013,7 +3007,40 @@ module mod_thermal_emission
       nPiece=nP1*nP2
       nWC=nWO
 
-      call write_image_vtiCC(qunit,xO1,xO2,dxO1,dxO2,wO,nXO1,nXO2,nWO,nC1,nC2)
+      ! output images
+      select case(convert_type)
+        case('EIvtuCCmpi','ESvtuCCmpi','SIvtuCCmpi','WIvtuCCmpi')
+          ! put data into grids
+          allocate(xC(nPiece,nC1,nC2,2))
+          allocate(dxC(nPiece,nC1,nC2,2))
+          allocate(wC(nPiece,nC1,nC2,nWO))
+          do ipc=1,nPiece
+            do ixc1=1,nC1
+              do ixc2=1,nC2
+                ix1=mod(ipc-1,nP1)*nC1+ixc1
+                ix2=floor(1.0*(ipc-1)/nP1)*nC2+ixc2
+                xC(ipc,ixc1,ixc2,1)=xO1(ix1)
+                xC(ipc,ixc1,ixc2,2)=xO2(ix2)
+                dxC(ipc,ixc1,ixc2,1)=dxO1(ix1)
+                dxC(ipc,ixc1,ixc2,2)=dxO2(ix2)
+                do j=1,nWC
+                  wC(ipc,ixc1,ixc2,j)=wO(ix1,ix2,j)
+                enddo
+              enddo
+            enddo
+          enddo
+          ! write data into vtu file
+          call write_image_vtuCC(qunit,xC,wC,dxC,nPiece,nC1,nC2,nWC,datatype)
+          deallocate(xC,dxC,wC)
+        case('EIvtiCCmpi','ESvtiCCmpi','SIvtiCCmpi','WIvtiCCmpi')
+          if (sum(stretch_type(:))>0 .and. dat_resolution) then
+            call mpistop("Error in synthesize emission: vti is not supported for dat resolution")
+          else
+            call write_image_vtiCC(qunit,xO1,xO2,dxO1,dxO2,wO,nXO1,nXO2,nWO,nC1,nC2)
+          endif
+        case default
+          call mpistop("Error in synthesize emission: Unknown convert_type")
+      end select
 
     end subroutine output_data
   }
@@ -2124,6 +3151,7 @@ module mod_thermal_emission
                 else
                   write(vname,'(a,i4)') "IRIS",wavelength
                 endif
+                if (iw==2 .and. dat_resolution) vname='Doppler_velocity'
               else if (convert_type=='SIvtiCCmpi') then
                 if (emin_sxr<10 .and. emax_sxr<10) then
                   write(vname,'(a,i1,a,i1,a)') "SXR",emin_sxr,"-",emax_sxr,"keV"
@@ -2158,6 +3186,185 @@ module mod_thermal_emission
       endif
 
     end subroutine write_image_vtiCC
+
+    subroutine write_image_vtuCC(qunit,xC,wC,dxC,nPiece,nC1,nC2,nWC,datatype)
+      ! write image data to vtu
+      use mod_global_parameters
+
+      integer, intent(in) :: qunit
+      integer, intent(in) :: nPiece,nC1,nC2,nWC
+      double precision, intent(in) :: xC(nPiece,nC1,nC2,2),dxC(nPiece,nc1,nc2,2)
+      double precision, intent(in) :: wC(nPiece,nC1,nC2,nWC)
+      character(20), intent(in) :: datatype
+
+      integer :: nP1,nP2
+      double precision :: xP(nPiece,nC1+1,nC2+1,2)
+      integer :: filenr
+      logical :: fileopen
+      character (70) :: subname,wname,vname,nameL,nameS
+      character (len=std_len) :: filename
+      integer :: ixC1,ixC2,ixP,ix1,ix2,j
+      integer :: nc,np,icel,VTK_type
+      integer :: mass
+      double precision :: logTe
+      character (30) :: ion
+      double precision :: line_center
+      double precision :: spatial_rsl,spectral_rsl,sigma_PSF,wslit
+
+      nP1=nC1+1
+      nP2=nC2+1
+      np=nP1*nP2
+      nc=nC1*nC2
+      ! cell corner location     
+      do ixP=1,nPiece
+        do ix1=1,nP1
+          do ix2=1,nP2
+            if (ix1<nP1) xP(ixP,ix1,ix2,1)=xC(ixP,ix1,1,1)-0.5d0*dxC(ixP,ix1,1,1)
+            if (ix1==nP1) xP(ixP,ix1,ix2,1)=xC(ixP,ix1-1,1,1)+0.5d0*dxC(ixP,ix1-1,1,1)
+            if (ix2<nP2) xP(ixP,ix1,ix2,2)=xC(ixP,1,ix2,2)-0.5d0*dxC(ixP,1,ix2,2)
+            if (ix2==nP2) xP(ixP,ix1,ix2,2)=xC(ixP,1,ix2-1,2)+0.5d0*dxC(ixP,1,ix2-1,2)
+          enddo
+        enddo
+      enddo
+      ! get information of emission line
+      if (datatype=='image_euv') then
+        call get_line_info(wavelength,ion,mass,logTe,line_center,spatial_rsl,spectral_rsl,sigma_PSF,wslit)
+      else if (datatype=='spectrum_euv') then
+        call get_line_info(spectrum_wl,ion,mass,logTe,line_center,spatial_rsl,spectral_rsl,sigma_PSF,wslit)
+      endif
+
+      if (mype==0) then
+        inquire(qunit,opened=fileopen)
+        if(.not.fileopen)then
+          ! generate filename 
+          filenr=snapshotini
+          if (autoconvert) filenr=snapshotnext
+          if (datatype=='image_euv') then
+            write(filename,'(a,i4.4,a)') trim(filename_euv),filenr,".vtu"
+          else if (datatype=='image_sxr') then
+            write(filename,'(a,i4.4,a)') trim(filename_sxr),filenr,".vtu"
+          else if (datatype=='image_whitelight') then
+            write(filename,'(a,i4.4,a)') trim(filename_whitelight),filenr,".vtu"
+          else if (datatype=='spectrum_euv') then
+            write(filename,'(a,i4.4,a)') trim(filename_spectrum),filenr,".vtu"
+          endif
+          open(qunit,file=filename,status='unknown',form='formatted')
+        endif
+        ! generate xml header
+        write(qunit,'(a)')'<?xml version="1.0"?>'
+        write(qunit,'(a)',advance='no') '<VTKFile type="UnstructuredGrid"'
+        write(qunit,'(a)')' version="0.1" byte_order="LittleEndian">'
+        write(qunit,'(a)')'<UnstructuredGrid>'
+        write(qunit,'(a)')'<FieldData>'
+        write(qunit,'(2a)')'<DataArray type="Float32" Name="TIME" ',&
+                           'NumberOfTuples="1" format="ascii">'
+        write(qunit,*) real(global_time*time_convert_factor)
+        write(qunit,'(a)')'</DataArray>'
+        if (datatype=='image_euv' .or. datatype=='spectrum_euv') then
+          write(qunit,'(2a)')'<DataArray type="Float32" Name="logT" ',&
+                             'NumberOfTuples="1" format="ascii">'
+          write(qunit,*) real(logTe)
+          write(qunit,'(a)')'</DataArray>'
+        endif
+        write(qunit,'(a)')'</FieldData>'
+        do ixP=1,nPiece
+          write(qunit,'(a,i7,a,i7,a)') &
+                '<Piece NumberOfPoints="',np,'" NumberOfCells="',nc,'">'
+          write(qunit,'(a)')'<CellData>'
+          do j=1,nWC
+            if (datatype=='image_euv') then
+              if (j==1) then
+                if (wavelength<100) then
+                  write(vname,'(a,i2)') "AIA",wavelength
+                else if (wavelength<1000) then
+                  write(vname,'(a,i3)') "AIA",wavelength
+                else
+                  write(vname,'(a,i4)') "IRIS",wavelength
+                endif
+              endif
+              if (j==2 .and. dat_resolution) vname='Doppler_velocity'
+            else if (datatype=='image_sxr') then
+              if (emin_sxr<10 .and. emax_sxr<10) then
+                write(vname,'(a,i1,a,i1,a)') "SXR",emin_sxr,"-",emax_sxr,"keV"
+              else if (emin_sxr<10 .and. emax_sxr>=10) then
+                write(vname,'(a,i1,a,i2,a)') "SXR",emin_sxr,"-",emax_sxr,"keV"
+              else
+                write(vname,'(a,i2,a,i2,a)') "SXR",emin_sxr,"-",emax_sxr,"keV"
+              endif
+            else if (datatype=='image_whitelight') then
+              write(vname,'(a)')'whitelight'
+            else if (datatype=='spectrum_euv') then
+              if (spectrum_wl==1354) then
+                write(vname,'(a,i4)') "SG",spectrum_wl
+              else
+                write(vname,'(a,i3)') "EIS",spectrum_wl
+              endif
+            endif
+            write(qunit,'(a,a,a)')&
+              '<DataArray type="Float64" Name="',TRIM(vname),'" format="ascii">'
+            write(qunit,'(200(1pe14.6))') ((wC(ixP,ixC1,ixC2,j),ixC1=1,nC1),ixC2=1,nC2)
+            write(qunit,'(a)')'</DataArray>'
+          enddo
+          write(qunit,'(a)')'</CellData>'
+          write(qunit,'(a)')'<Points>'
+          write(qunit,'(a)')'<DataArray type="Float32" NumberOfComponents="3" format="ascii">'
+          do ix2=1,nP2
+            do ix1=1,nP1
+              if (datatype=='image_euv' .and. dat_resolution) then
+                if (LOS_phi==0 .and. LOS_theta==90) then
+                  write(qunit,'(3(1pe14.6))') 0.d0,xP(ixP,ix1,ix2,1),xP(ixP,ix1,ix2,2)
+                else if (LOS_phi==90 .and. LOS_theta==90) then
+                  write(qunit,'(3(1pe14.6))') xP(ixP,ix1,ix2,2),0.d0,xP(ixP,ix1,ix2,1)
+                else
+                  write(qunit,'(3(1pe14.6))') xP(ixP,ix1,ix2,1),xP(ixP,ix1,ix2,2),0.d0
+                endif
+              else if (datatype=='image_sxr' .and. dat_resolution) then
+                if (LOS_phi==0 .and. LOS_theta==90) then
+                  write(qunit,'(3(1pe14.6))') 0.d0,xP(ixP,ix1,ix2,1),xP(ixP,ix1,ix2,2)
+                else if (LOS_phi==90 .and. LOS_theta==90) then
+                  write(qunit,'(3(1pe14.6))') xP(ixP,ix1,ix2,2),0.d0,xP(ixP,ix1,ix2,1)
+                else
+                  write(qunit,'(3(1pe14.6))') xP(ixP,ix1,ix2,1),xP(ixP,ix1,ix2,2),0.d0
+                endif
+              else
+                write(qunit,'(3(1pe14.6))') xP(ixP,ix1,ix2,1),xP(ixP,ix1,ix2,2),0.d0
+              endif
+            enddo
+          enddo
+          write(qunit,'(a)')'</DataArray>'
+          write(qunit,'(a)')'</Points>'
+          ! connetivity part
+          write(qunit,'(a)')'<Cells>'
+          write(qunit,'(a)')'<DataArray type="Int32" Name="connectivity" format="ascii">'
+          do ix2=1,nC2
+            do ix1=1,nC1
+              write(qunit,'(4(i7))') ix1-1+(ix2-1)*nP1,ix1+(ix2-1)*nP1,&
+                                     ix1-1+ix2*nP1,ix1+ix2*nP1
+            enddo
+          enddo
+          write(qunit,'(a)')'</DataArray>'
+          ! offsets data array
+          write(qunit,'(a)')'<DataArray type="Int32" Name="offsets" format="ascii">'
+          do icel=1,nc
+            write(qunit,'(i7)') icel*(2**2)
+          enddo
+          write(qunit,'(a)')'</DataArray>'
+          ! VTK cell type data array
+          write(qunit,'(a)')'<DataArray type="Int32" Name="types" format="ascii">'
+          ! VTK_LINE=3; VTK_PIXEL=8; VTK_VOXEL=11 -> vtk-syntax
+          VTK_type=8
+          do icel=1,nc
+            write(qunit,'(i2)') VTK_type
+          enddo
+          write(qunit,'(a)')'</DataArray>'
+          write(qunit,'(a)')'</Cells>'
+          write(qunit,'(a)')'</Piece>'
+        enddo
+        write(qunit,'(a)')'</UnstructuredGrid>'
+        write(qunit,'(a)')'</VTKFile>'
+        close(qunit)
+      endif
+    end subroutine write_image_vtuCC
 
     subroutine dot_product_loc(vec1,vec2,res)
       double precision, intent(in) :: vec1(1:3),vec2(1:3)
