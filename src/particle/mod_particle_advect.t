@@ -301,7 +301,7 @@ contains
     ! make sure we step only one cell at a time:
     call derivs_advect(partp%self%time,partp%self%x,v)
     do idims=1,ndim
-      dtdims(idims)=minval(ps(partp%igrid)%ds(ixM^T,idims))/(max(v(idims),smalldouble))
+      dtdims(idims)=minval(ps(partp%igrid)%ds(ixM^T,idims))/(max(abs(v(idims)),smalldouble))
     end do
 
     dt_p = minval(dtdims)
