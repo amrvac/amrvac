@@ -3461,7 +3461,7 @@ module mod_thermal_emission
 
       vec_sph(1)=dsqrt(vec_car(1)**2+vec_car(2)**2+vec_car(3)**2)
       vec_sph(2)=dacos(vec_car(3)/vec_sph(1))
-      vec_sph(3)=atan(vec_car(2),vec_car(3))
+      vec_sph(3)=atan2(vec_car(2),vec_car(3))
 
     end subroutine cartesian_to_spherical
 
