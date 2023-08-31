@@ -469,12 +469,13 @@ module mod_usr_methods
     end subroutine check_particle
 
     !> Associate fields to particle
-    subroutine particle_fields(w, x, E, B)
+    subroutine particle_fields(w, x, E, B, J)
       use mod_global_parameters
       double precision, intent(in)  :: w(ixG^T,1:nw)
       double precision, intent(in)  :: x(ixG^T,1:ndim)
       double precision, intent(out) :: E(ixG^T, ndir)
       double precision, intent(out) :: B(ixG^T, ndir)
+      double precision, intent(out) :: J(ixG^T, ndir)
     end subroutine particle_fields
 
     subroutine particle_analytic(ix, x, tloc, vec)
