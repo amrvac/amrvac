@@ -1109,7 +1109,9 @@ to get faster but less accurate solutions. `mhd_boris_simplification=T` is worki
 equations including `mhd_internal_e=T` and `mhd_hydrodynamic_e=T`.
 Since semirelativistic MHD waves are very complicated, only approximate fast magnetosonic wave speed
 is implemented to use HLL or tvdlf scheme, schemes (such as HLLC and HLLD) depending on more wave speeds 
-are not yet fully compatible with semirelativistic MHD.
+are not yet fully compatible with semirelativistic MHD. Note that when using semirelativistic MHD, the 
+definitions of momentum and total energy are different from MHD, so call `mhd_to_primitive` to get velocity
+and gas pressure from momentum and total energy instead of using the classic relations.
 
 ## Synthetic EUV/SXR/whitelight emission {#par_emissionlist}
 
