@@ -30,6 +30,7 @@ module mod_bc_data
   !> data file name
   character(len=std_len), public, protected :: boundary_data_file_name
   logical, public, protected :: interp_phy_first_row=.true.
+  logical, public, protected :: boundary_data_primitive=.false.
 
   public :: bc_data_init
   public :: bc_data_set
@@ -101,7 +102,7 @@ contains
     character(len=*), intent(in) :: files(:)
     integer                      :: n
 
-    namelist /bd_list/ boundary_data_file_name, interp_phy_first_row
+    namelist /bd_list/ boundary_data_file_name, interp_phy_first_row, boundary_data_primitive
 
     do n = 1, size(files)
        open(unitpar, file=trim(files(n)), status="old")
@@ -138,6 +139,8 @@ contains
   !> Set boundary conditions according to user data
   subroutine bc_data_set(qt,ixI^L,ixO^L,iB,w,x)
     use mod_global_parameters
+    use mod_physics, only: phys_to_conserved,phys_to_primitive
+
     integer, intent(in)             :: ixI^L, ixO^L, iB
     double precision, intent(in)    :: qt, x(ixI^S,1:ndim)
     double precision, intent(inout) :: w(ixI^S,1:nw)
@@ -148,6 +151,16 @@ contains
     {^IFTWOD
     select case (iB)
     case (1, 2)
+       if(interp_phy_first_row) then
+            if (iB == 1) then
+               ix = ixOmax1+1
+            else
+               ix = ixOmin1-1
+            end if
+            if(boundary_data_primitive) then
+              call phys_to_primitive(ixI^L,ix,ixOmin2,ix,ixOmax2,w,x)
+            endif   
+       endif   
        do iw = 1, nwfluxbc
           n_bc = bc_data_ix(iw, iB)
           if (n_bc == -1) cycle
@@ -155,12 +168,6 @@ contains
           tmp(ixOmin1, ixOmin2:ixOmax2) = bc_data_get_2d(n_bc, &
                   x(ixOmin1, ixOmin2:ixOmax2, 2), qt)
           if(interp_phy_first_row) then
-            if (iB == 1) then
-               ix = ixOmax1+1
-            else
-               ix = ixOmin1-1
-            end if
-  
             ! Approximate boundary value by linear interpolation to first ghost
             ! cell, rest of ghost cells contains the same value
             do i = 0, ixOmax1-ixOmin1
@@ -176,7 +183,22 @@ contains
 
           endif
        end do
+       if(interp_phy_first_row) then
+            if(boundary_data_primitive) then
+              call phys_to_conserved(ixI^L,ix,ixOmin2,ix,ixOmax2,w,x)
+            endif   
+       endif   
     case (3, 4)
+       if(interp_phy_first_row) then
+            if (iB == 3) then
+               ix = ixOmax2+1
+            else
+               ix = ixOmin2-1
+            end if
+            if(boundary_data_primitive) then
+              call phys_to_primitive(ixI^L,ixOmin1,ix,ixOmax1,ix,w,x)
+            endif   
+       endif   
        do iw = 1, nwfluxbc
           n_bc = bc_data_ix(iw, iB)
           if (n_bc == -1) cycle
@@ -185,11 +207,6 @@ contains
                   x(ixOmin1:ixOmax1, ixOmin2, 1), qt)
 
           if(interp_phy_first_row) then
-            if (iB == 3) then
-               ix = ixOmax2+1
-            else
-               ix = ixOmin2-1
-            end if
   
             ! Approximate boundary value by linear interpolation to first ghost
             ! cell, rest of ghost cells contains the same value
@@ -206,6 +223,11 @@ contains
 
           endif
        end do
+       if(interp_phy_first_row) then
+            if(boundary_data_primitive) then
+              call phys_to_conserved(ixI^L,ixOmin1,ix,ixOmax1,ix,w,x)
+            endif   
+       endif   
     case default
        call mpistop("bc_data_set: unknown iB")
     end select
@@ -214,7 +236,16 @@ contains
     {^IFTHREED
     select case (iB)
     case (1, 2)
-
+       if(interp_phy_first_row) then
+            if (iB == 1) then
+               ix = ixOmax1+1
+            else
+               ix = ixOmin1-1
+            end if
+            if(boundary_data_primitive) then
+              call phys_to_primitive(ixI^L,ix,ixOmin2,ixOmin3,ix,ixOmax2,ixOmax3,w,x)
+            endif   
+       endif 
        do iw = 1, nwfluxbc
           n_bc = bc_data_ix(iw, iB)
           if (n_bc == -1) cycle
@@ -224,11 +255,6 @@ contains
                x(ixOmin1, ixOmin2:ixOmax2, ixOmin3:ixOmax3, 3), qt)
 
           if(interp_phy_first_row) then
-            if (iB == 1) then
-               ix = ixOmax1+1
-            else
-               ix = ixOmin1-1
-            end if
   
             ! Approximate boundary value by linear interpolation to first ghost
             ! cell, rest of ghost cells contains the same value
@@ -244,9 +270,24 @@ contains
             end do
           end if
 
-
        end do
+       if(interp_phy_first_row) then
+            if(boundary_data_primitive) then
+              call phys_to_conserved(ixI^L,ix,ixOmin2,ixOmin3,ix,ixOmax2,ixOmax3,w,x)
+            endif  
+       endif 
     case (3, 4)
+       if(interp_phy_first_row) then
+            if (iB == 3) then
+               ix = ixOmax2+1
+            else
+               ix = ixOmin2-1
+            end if
+            if(boundary_data_primitive) then
+              call phys_to_primitive(ixI^L,ixOmin1,ix,ixOmin3,ixOmax1,ix,ixOmax3,w,x)
+            endif   
+
+       endif 
        do iw = 1, nwfluxbc
           n_bc = bc_data_ix(iw, iB)
           if (n_bc == -1) cycle
@@ -256,11 +297,6 @@ contains
                   x(ixOmin1:ixOmax1, ixOmin2, ixOmin3:ixOmax3, 3), qt)
 
           if(interp_phy_first_row) then
-            if (iB == 3) then
-               ix = ixOmax2+1
-            else
-               ix = ixOmin2-1
-            end if
   
             ! Approximate boundary value by linear interpolation to first ghost
             ! cell, rest of ghost cells contains the same value
@@ -276,7 +312,22 @@ contains
             end do
           end if
        end do
+       if(interp_phy_first_row) then
+            if(boundary_data_primitive) then
+              call phys_to_conserved(ixI^L,ixOmin1,ix,ixOmin3,ixOmax1,ix,ixOmax3,w,x)
+            endif   
+       endif 
     case (5, 6)
+       if(interp_phy_first_row) then
+            if (iB == 5) then
+               ix = ixOmax3+1
+            else
+               ix = ixOmin3-1
+            end if
+            if(boundary_data_primitive) then
+              call phys_to_primitive(ixI^L,ixOmin1,ixOmax1,ixOmin2,ixOmax2,ix,ix,w,x)
+            endif   
+       endif 
        do iw = 1, nwfluxbc
           n_bc = bc_data_ix(iw, iB)
           if (n_bc == -1) cycle
@@ -286,11 +337,6 @@ contains
                   x(ixOmin1:ixOmax1, ixOmin2:ixOmax2, ixOmin3, 2), qt)
 
           if(interp_phy_first_row) then
-            if (iB == 5) then
-               ix = ixOmax3+1
-            else
-               ix = ixOmin3-1
-            end if
   
             ! Approximate boundary value by linear interpolation to first ghost
             ! cell, rest of ghost cells contains the same value
@@ -306,10 +352,19 @@ contains
             end do
           end if
        end do
+       if(interp_phy_first_row) then
+            if(boundary_data_primitive) then
+              call phys_to_conserved(ixI^L,ixOmin1,ixOmax1,ixOmin2,ixOmax2,ix,ix,w,x)
+            endif   
+       endif 
     case default
        call mpistop("bc_data_set: unknown iB")
     end select
     }
+
+    if(boundary_data_primitive) then
+      call phys_to_conserved(ixI^L,ixO^L,w,x)
+    endif
 
   end subroutine bc_data_set
 

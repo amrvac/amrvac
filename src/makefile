@@ -93,6 +93,7 @@ mod_ard_phys.o: mod_multigrid_coupling.mod
 mod_ard_phys.o: mod_particles.mod
 mod_ard_phys.o: mod_physics.mod
 mod_bc_data.o: mod_lookup_table.mod
+mod_bc_data.o: mod_physics.mod
 mod_bremsstrahlung.o: mod_physics.mod
 mod_cak_force.o: mod_physics.mod
 mod_calculate_xw.o: mod_geometry.mod
