@@ -265,6 +265,7 @@ contains
         call mpistop("GCA FILL GRIDVARS: NaNs IN kappa_B! ABORTING...")
       end if
 
+      tmp=0.d0
       do idim=1,ndim
         call gradient(kappa_B,ixG^LL,ixG^LL^LSUB1,idim,tmp)
         gridvars(igrid)%w(ixG^T,grad_kappa_B(idim)) = tmp(ixG^T)
@@ -970,7 +971,7 @@ contains
     vp = sqrt(sum(v(:)**2))
 
     dt_cfl0    = dxmin / max(vp, smalldouble)
-    dt_cfl_ap0 = uparcfl * abs(max(abs(y(ndir+1)),uparmin) / max(ap0, smalldouble))
+    dt_cfl_ap0 = uparcfl * abs(max(abs(y(ndir+1)),uparmin) / max(abs(ap0), smalldouble))
     !dt_cfl_ap0 = min(dt_cfl_ap0, uparcfl * sqrt(abs(unit_length*dxmin/(ap0+smalldouble))) )
 
     ! make an Euler step with the proposed timestep:
@@ -998,7 +999,7 @@ contains
     vp = sqrt(sum(v(:)**2))
 
     dt_cfl1    = dxmin / max(vp, smalldouble)
-    dt_cfl_ap1 = uparcfl * abs(max(abs(y(ndir+1)),uparmin) / max(ap1, smalldouble))
+    dt_cfl_ap1 = uparcfl * abs(max(abs(y(ndir+1)),uparmin) / max(abs(ap1), smalldouble))
     !dt_cfl_ap1 = min(dt_cfl_ap1, uparcfl * sqrt(abs(unit_length*dxmin/(ap1+smalldouble))) )
 
     dt_tmp = min(dt_euler, dt_cfl1, dt_cfl_ap1)

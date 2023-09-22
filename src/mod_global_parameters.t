@@ -689,8 +689,6 @@ module mod_global_parameters
   character(len=std_len) :: filename_euv
   !> wavelength for output
   integer :: wavelength
-  !> resolution of the EUV image
-  character(len=std_len) :: resolution_euv
   !> times for enhancing spatial resolution for EUV image/spectra
   double precision :: instrument_resolution_factor
   !> use arcsec as length unit of images/spectra
@@ -699,16 +697,12 @@ module mod_global_parameters
   character(len=std_len) :: filename_sxr
   ! minimum and maximum energy of SXR (keV)
   integer :: emin_sxr,emax_sxr
-  !> resolution of the SXR image
-  character(len=std_len) :: resolution_sxr
   !> Base file name for synthetic white light
   character(len=std_len) :: filename_whitelight
-  !> distance of lower boundary from sun center in sun radia
-  double precision :: distance_bottom_suncenter
   !> white light observation instrument
   character(len=std_len) :: whitelight_instrument
-  !> the white light emission below given height is not visible 
-  double precision :: H_block
+  !> the white light emission below it (unit=Rsun) is not visible 
+  double precision :: R_occultor
   !> direction of the line of sight (LOS)
   double precision :: LOS_theta,LOS_phi
   !> rotation of image
@@ -725,10 +719,12 @@ module mod_global_parameters
   double precision :: spectrum_window_min,spectrum_window_max
   !> location of the slit
   double precision :: location_slit
-  !> direction of the slit
+  !> direction of the slit (for dat resolution only)
   integer :: direction_slit
-  !> resolution of the spectrum
-  character(len=std_len) :: resolution_spectrum
+  !> for spherical coordinate, region below it (unit=Rsun) is treated as not transparent
+  double precision :: R_opt_thick
+  !> resolution of the images
+  logical :: dat_resolution
 
   !> Block pointer for using one block and its previous state
   type(state), pointer :: block

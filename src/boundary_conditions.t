@@ -105,17 +105,23 @@ subroutine bc_phys(iside,idims,time,qdt,s,ixG^L,ixB^L)
                  -Qp(ixOmin^D+ix^D^D%ixO^S)*s%dvolume(ixOmin^D+ix^D^D%ixO^S))&
                   /s%surfaceC(ixOsmin^D+ix^D^D%ixOs^S,^D)
               end do
+              ! Fill cell averages
+              call phys_face_to_center(ixO^L,s)
             case(bc_symm)
               ! (a)symmetric normal B ensures symmetric divB
               ws(ixOs^S,idir)= ws(ixOsmin^D-2:ixOsmin^D-nghostcells-1:-1^D%ixOs^S,idir)
+              ! Fill cell averages
+              call phys_face_to_center(ixO^L,s)
             case(bc_asymm)
               ! (a)symmetric normal B ensures symmetric divB
               ws(ixOs^S,idir)=-ws(ixOsmin^D-2:ixOsmin^D-nghostcells-1:-1^D%ixOs^S,idir)
+              ! Fill cell averages
+              call phys_face_to_center(ixO^L,s)
             case(bc_periodic)
+              ! Fill cell averages
+              call phys_face_to_center(ixO^L,s)
             end select
           end do
-          ! Fill cell averages
-          call phys_face_to_center(ixO^L,s)
         end if
      else
         ! minimal boundary
@@ -202,17 +208,23 @@ subroutine bc_phys(iside,idims,time,qdt,s,ixG^L,ixB^L)
                  -Qp(ixOmax^D-ix^D^D%ixO^S)*s%dvolume(ixOmax^D-ix^D^D%ixO^S))&
                   /s%surfaceC(ixOsmax^D-ix^D^D%ixOs^S,^D)
               end do
+              ! Fill cell averages
+              call phys_face_to_center(ixO^L,s)
             case(bc_symm)
               ! (a)symmetric normal B ensures symmetric divB
               ws(ixOs^S,idir)= ws(ixOsmax^D+nghostcells+1:ixOsmax^D+2:-1^D%ixOs^S,idir)
+              ! Fill cell averages
+              call phys_face_to_center(ixO^L,s)
             case(bc_asymm)
               ! (a)symmetric normal B ensures symmetric divB
               ws(ixOs^S,idir)=-ws(ixOsmax^D+nghostcells+1:ixOsmax^D+2:-1^D%ixOs^S,idir)
+              ! Fill cell averages
+              call phys_face_to_center(ixO^L,s)
             case(bc_periodic)
+              ! Fill cell averages
+              call phys_face_to_center(ixO^L,s)
             end select
           end do
-          ! Fill cell averages
-          call phys_face_to_center(ixO^L,s)
         end if
      end if \}
   end select

@@ -591,7 +591,7 @@ contains
       iw_equi_p = equi_pe0_
     endif
     ! determine number of stagger variables
-    if(stagger_grid) nws=ndim
+    nws=ndim
 
     nvector      = 2 ! No. vector vars
     allocate(iw_vector(nvector))
@@ -4713,29 +4713,27 @@ contains
   subroutine add_source_internal_e(qdt,ixI^L,ixO^L,wCT,w,x,wCTprim)
     use mod_global_parameters
     use mod_geometry
-    use mod_usr_methods, only: usr_gravity
 
     integer, intent(in)             :: ixI^L, ixO^L
     double precision, intent(in)    :: qdt
     double precision, intent(in)    :: wCT(ixI^S,1:nw), x(ixI^S,1:ndim)
     double precision, intent(inout) :: w(ixI^S,1:nw)
-    double precision, intent(in), optional :: wCTprim(ixI^S,1:nw)
+    double precision, intent(in)    :: wCTprim(ixI^S,1:nw)
 
-    double precision                :: v(ixI^S,1:ndir),divv(ixI^S)
+    double precision                :: divv(ixI^S)
 
-    call mhd_get_v(wCT,x,ixI^L,ixI^L,v)
     if(slab_uniform) then
       if(nghostcells .gt. 2) then
-        call divvector(v,ixI^L,ixO^L,divv,sixthorder=.true.)
+        call divvector(wCTprim(ixI^S,mom(:)),ixI^L,ixO^L,divv,sixthorder=.true.)
       else
-        call divvector(v,ixI^L,ixO^L,divv,fourthorder=.true.)
+        call divvector(wCTprim(ixI^S,mom(:)),ixI^L,ixO^L,divv,fourthorder=.true.)
       end if
     else
-     call divvector(v,ixI^L,ixO^L,divv)
+      call divvector(wCTprim(ixI^S,mom(:)),ixI^L,ixO^L,divv)
     end if
     w(ixO^S,e_)=w(ixO^S,e_)-qdt*wCTprim(ixO^S,p_)*divv(ixO^S)
     if(mhd_ambipolar)then
-       call add_source_ambipolar_internal_energy(qdt,ixI^L,ixO^L,wCT,w,x,e_)
+      call add_source_ambipolar_internal_energy(qdt,ixI^L,ixO^L,wCT,w,x,e_)
     end if
 
     if(fix_small_values) then

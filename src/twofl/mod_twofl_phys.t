@@ -552,7 +552,7 @@ contains
     nwgc=nwflux
 
     ! determine number of stagger variables
-    if(stagger_grid) nws=ndim
+    nws=ndim
 
     ! Check whether custom flux types have been defined
     if (.not. allocated(flux_type)) then
@@ -802,6 +802,8 @@ contains
         call get_EUV_spectrum(unitconvert,te_fl_c)
       case('SIvtiCCmpi','SIvtuCCmpi')
         call get_SXR_image(unitconvert,te_fl_c)
+      case('WIvtiCCmpi','WIvtuCCmpi')
+        call get_whitelight_image(unitconvert,te_fl_c)
       case default
         call mpistop("Error in synthesize emission: Unknown convert_type")
       end select

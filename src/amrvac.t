@@ -72,11 +72,6 @@ program amrvac
      ! update ghost cells for all need-boundary variables
      call getbc(global_time,0.d0,ps,1,nwflux+nwaux)
 
-     {^NOONED
-     ! improve initial condition after restart and modification
-     if(firstprocess) call improve_initial_condition()
-     }
-
      ! reset AMR grid
      if (reset_grid) then
        call settree
@@ -88,6 +83,11 @@ program amrvac
      ! all blocks refined to the same level for output
      if(convert .and. level_io>0 .or. level_io_min.ne.1 .or. level_io_max.ne.nlevelshi) &
        call resettree_convert
+
+     {^NOONED
+     ! improve initial condition after restart and modification
+     if(firstprocess) call improve_initial_condition()
+     }
 
      if (use_multigrid) call mg_setup_multigrid()
 

@@ -376,21 +376,24 @@ contains
     integer :: igrid, iigrid
     double precision :: E(ixG^T, ndir)
     double precision :: B(ixG^T, ndir)
+    double precision :: J(ixG^T, ndir)
 
     do iigrid=1,igridstail; igrid=igrids(iigrid);
       if (associated(usr_particle_fields)) then
-        call usr_particle_fields(ps(igrid)%w, ps(igrid)%x, E, B)
+        call usr_particle_fields(ps(igrid)%w, ps(igrid)%x, E, B, J)
         gridvars(igrid)%w(ixG^T,ep(:)) = E
         gridvars(igrid)%w(ixG^T,bp(:)) = B
+        gridvars(igrid)%w(ixG^T,jp(:)) = J
       else
         call fields_from_mhd(igrid, ps(igrid)%w, gridvars(igrid)%w)
       end if
 
       if (time_advance) then
         if (associated(usr_particle_fields)) then
-          call usr_particle_fields(pso(igrid)%w, ps(igrid)%x, E, B)
+          call usr_particle_fields(pso(igrid)%w, ps(igrid)%x, E, B, J)
           gridvars(igrid)%wold(ixG^T,ep(:)) = E
           gridvars(igrid)%wold(ixG^T,bp(:)) = B
+          gridvars(igrid)%wold(ixG^T,jp(:)) = J
         else
           call fields_from_mhd(igrid, pso(igrid)%w, gridvars(igrid)%wold)
         end if
@@ -1668,7 +1671,7 @@ contains
     integer, allocatable, dimension(:)        :: sndrqst, rcvrqst
     integer, allocatable, dimension(:)        :: sndrqst_payload, rcvrqst_payload
     integer                                   :: isnd, ircv
-    integer, parameter                        :: maxneighbors=32 ! maximum case: coarse-fine in 3D
+    integer, parameter                        :: maxneighbors=56 ! maximum case: coarse-fine in 3D
     !-----------------------------------------------------------------------------
 
     send_n_particles_to_ipe(:)      = 0

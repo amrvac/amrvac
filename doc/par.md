@@ -38,7 +38,7 @@ modules:
 * `dust_list` (dust, see `mod_dust`)
 * `vc_list` (viscosity, see `mod_viscosity`)
 * `grav_list` (gravity, see `mod_gravity`)
-* `mf_list` (magnetofriction, see `mod_magnetofriction`)
+* `mf_list` (magnetofriction, see `mod_mf_phys`)
 
 ## An example for a namelist
 
@@ -975,6 +975,7 @@ sharp discontinuities. It is normally inactive with a default value -1.
      boundary_divbfix= 2*ndim logicals, all false by default
      divbdiff= 0.8d0 between 0 and 2
      typedivbdiff= 'all' | 'ind'
+     clean_initial_divb= F | T
      divbwave= T | F
      B0field= F | T
      B0field_forcefree= T | F
@@ -1031,7 +1032,8 @@ You can choose 'lindejanhunen', 'lindepowel', or 'lindeglm' to use combined divb
 
 Projection scheme using multigrid Poisson solver by Teunissen and Keppens in 
 _Computer Physics Communications 245, 1068, (2019)_ can be chosen as 'multigrid' to
-remove div B part of B.
+remove div B part of B. If `clean_initial_divb` is set to T, the projection scheme is 
+used to remove div B once after initial condition in unstretched Cartesian CT-MHD cases.
 
 ### Magnetic field splitting strategy {#par_MFS}
 
@@ -1107,29 +1109,31 @@ to get faster but less accurate solutions. `mhd_boris_simplification=T` is worki
 equations including `mhd_internal_e=T` and `mhd_hydrodynamic_e=T`.
 Since semirelativistic MHD waves are very complicated, only approximate fast magnetosonic wave speed
 is implemented to use HLL or tvdlf scheme, schemes (such as HLLC and HLLD) depending on more wave speeds 
-are not yet fully compatible with semirelativistic MHD.
+are not yet fully compatible with semirelativistic MHD. Note that when using semirelativistic MHD, the 
+definitions of momentum and total energy are different from MHD, so call `mhd_to_primitive` to get velocity
+and gas pressure from momentum and total energy instead of using the classic relations.
 
-## Synthetic EUV emission {#par_emissionlist}
+## Synthetic EUV/SXR/whitelight emission {#par_emissionlist}
 
-User can synthesize EUV images, EUV spectra, SXR images using 3D .dat files inside amrvac. 
+User can synthesize EUV images, EUV spectra, SXR images and whitelight images using 3D .dat files inside amrvac. 
 These can be finished easily by adding some parameters into .par file. The images/spectra will 
 be output to .vtu/.vti files when the convert_type in @ref par_filelist is set to  `EIvtiCCmpi`, 
-`ESvtiCCmpi`,  `SIvtiCCmpi` ... etc. Two types of resolution are supported: data resolution and 
-instrument resolution. In data resolution, the size of the image pixel is the same as the size of the 
-finest cell. In instrument resolution, the size of a pixel is the same as that in relevant observation 
+`ESvtiCCmpi`,  `SIvtiCCmpi` ... Thehe size of a pixel is the same as that in relevant observation 
 data (such as SDO and RHESSI). The point spread function (PSF, instrument effect) has been 
-included for `instrument` resolution. The resolution or EUV image/SXR image/EUV spectra is 
-controlled by the parameter `resolution_euv`/`resolution_sxr`/`resolution_spectrum`.
+included for `instrument` resolution. 
 
 The line of sight (LOS) is controlled with `LOS_theta` and `LOS_phi`, where the LOS is anti-parallel 
 to the vector [cos(LOS_phi)*sin(LOS_theta), sin(LOS_phi)*sin(LOS_theta),cos(LOS_theta)] (see the 
-following figure). The units of `LOS_theta` and `LOS_phi` are degree. For resolution type `data`, 
-only combinations `LOS_theta=0, LOS_phi=90`, `LOS_theta=90, LOS_phi=90` and `LOS_phi=0` 
-are supported, otherwise the boundaries of image pixels can not match the cell boundaries of the 
-cell boundaries of the simulation data. `LOS_theta` and `LOS_phi` can be any integer for 
-`instrument` resolution. User can rotate the image with `image_rotate` (in degree) in 
-`instrument` resolution (for both EUV image and SXR image. By default, the y direction 
-of the image is located in a plane given by the LOS and the z direction of the simulation data. 
+following figure). The units of `LOS_theta` and `LOS_phi` are degree. 
+User can rotate the image with `image_rotate` (in degree). In cartesian coordinate, the y direction 
+of the image is located in a plane given by the LOS and the z direction of the simulation data.
+In spherical coordinate, the definations of `LOS_theta` and `LOS_phi` are the same with theta and
+phi of the coodinate, but `LOS_theta` and `LOS_phi` are in degree.
+
+The whitelight emission supposed observed by LASCO can be synthesized, and the instrument related parameter
+refers to `whitelight_instrument'. User can specify the radius of the occultor of the instrument with 
+`R_occultor' (in solar radius).
+
 
 ![](figmovdir/LOS_emission.png)
 
@@ -1138,47 +1142,50 @@ of SXR image is defined with `emin_sxr`/`emax_sxr` (in keV).
 
 The wavelength of the EUV spectra is defined with `spectrum_wl`. When `spectrum_euv` is`true`, 
 spectra at a slit in the corresponding image will be given. The output is a 2D image, where x-axis is 
-wavelength and y-axis is space (physics distance at the slit). Under the `instrument` resolution type, 
-the slit is parallel to the y axis of corresponding EUV image (controlled by `LOS_theta`, `LOS_phi` and 
-`image_rotate`). The location of the slit `location_slit` is the x value of the image (in arcsec).
+wavelength and y-axis is space (physics distance at the slit). 
+The slit is parallel to the y axis of corresponding EUV image (controlled by `LOS_theta`, `LOS_phi` and 
+`image_rotate`). The location of the slit `location_slit` is the x value of the image.
 For the `data` resolution, the direction of the slit is controlled by `direction_slit`. The location of 
 the slit `location_slit` is the coordinate value at the third direction (perpendicular to LOS and slit).
 For example, the LOS along x direction and the slit along y direction, then `location_slit` should 
 be z of the slit. The domain in wavelength is controlled by `spectrum_window_min` and `spectrum_window_max`.
 
-The mapping between simulation box coordinate and synthesized image coordinate is not only controlled by LOS, 
+
+In cartesian, the mapping between simulation box coordinate and synthesized image coordinate is not only controlled by LOS, 
 but also controlled by the parameter `x_origin`. The simulation box point given by `x_origin` will always located
 at (X=0,Y=0) of the synthesized image. The parameter `big_image` is added for making movie that the LOS is 
 changing. When `big_image=T`, then the synthesized EUV/SXR image will have a fixed big domain. The domain will
 not change when changing the LOS, and the whole simulation box will always be convered inside the domain. The 
 parameter `x_origin` is also added for making such kind of movie.
 
-Only Cartesian coordinate system are supported currently.
+
+The default unit of length for the outputed image is arcsec and the related variables in .par file, 
+but user can set `activate_unit_arcsec' to F to use the simulation length unit.
+
+Only Cartesian and spherical coordinate system are supported currently. In spherical coordinate,
+region below `R_opt_thick' (in solar radius, default value is 1) is assumed as not transparent.
 
     &emissionlist
       filename_euv= CHARACTER
       wavelength= 94 | 131 | 171 | 193 | 211 | 304 | 335 | 1354 | 263 | 264 | 192 | 255
-      resolution_euv= 'instrument' | 'data'
       LOS_theta= DOUBLE
       LOS_phi= DOUBLE
       image_rotate= DOUBLE
       x_origin(1:3)= DOUBLE
-      big_image=LOGICAL
+      big_image= LOGICAL
       filename_sxr= CHARACTER
       emin_sxr= INTEGER
       emax_sxr= INTEGER
-      resolution_sxr= 'instrument' | 'data'
       filename_spectrum= CHARACTER
       spectrum_wl= 1354 | 263 | 264| 192 | 255
-      resolution_sxr= 'instrument' | 'data'
       spectrum_window_min= DOUBLE
       spectrum_window_max= DOUBLE
       location_slit= DOUBLE
-      direction_slit= INTEGER
       filename_whitelight= CHARACTER
-      distance_bottom_suncenter= DOUBLE
-      whitelight_instrument= 'SDO/HMI'
-      H_block= DOUBLE
+      whitelight_instrument= 'LASCO/C1' | 'LASCO/C2' | 'LASCO/C3'
+      R_occultor= DOUBLE
+      R_opt_thick= DOUBLE
+      activate_unit_arcsec= LOGICAL
     /
 
 
