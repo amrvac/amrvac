@@ -186,6 +186,8 @@ The usage of `double precision` is deprecated. Instead use the kind-parameter
     double precision :: x ! deprecated
 ```
 
+In MPI-AMRVAC `dp` is defined in ...
+\todo Include a parameter `dp`
 
 Write floating point constants using the `_dp` suffix:
 ```{fortran}

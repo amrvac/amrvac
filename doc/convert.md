@@ -4,25 +4,20 @@
 
 # Introduction {#convert_intro}
 
-The standard [MPI-AMRVAC dataformat](fileformat.md), i.e. the _*.dat_
-files usable for restart, contain all the conservative variables in
-all gridblocks, and hence suffice for visualization.
-Additional variables can be added in the _*.dat_ files as explained [here](dat_convert.md).  
-> Since late 2019, it can be directly read, visualised and
-> analysed with the Python package [yt](https://yt-project.org),
-> see [our documentation to get started with yt](yt_usage.md).
-
-However, in many instances, one would like to use data formats that
-are directly readable by some of the more widespread visualization
-software packages. Therefore, we created the _convert.t_ module, which
-ensures that this post-process data file conversion can be done with
-the same executable (but possibly even on a different platform). The
-many possibilities include conversion to _*.vtu_ (*VTK* *U*nstructured
-data format) directly readable by [Paraview](http://www.paraview.org/)
-(or [ViSiT](https://wci.llnl.gov/codes/visit/)), to _*.plt_ format for
-the commercial package [Tecplot](http://www.tecplot.com/).  Also,
-**this info will not explain you how to use the mentioned software for
-visualization, but just explain how to do the conversion.**
+The standard [MPI-AMRVAC dataformat](fileformat.md), i.e. the _*.dat_ files
+usable for restart, contain all the conservative variables in all gridblocks,
+and hence suffice for visualization, in principle. However, in many instances,
+one would like to use data formats that are directly readable by some of the
+more widespread visualization software packages. Therefore, we created the
+_convert.t_ module, which ensures that this post-process data file conversion
+can be done with the same executable (but possibly even on a different
+platform). The many possibilities include conversion to _*.vtu_ (VTK
+unformatted data format) directly readable by
+[Paraview](http://www.paraview.org/) (or
+[ViSiT](https://wci.llnl.gov/codes/visit/)), to _*.plt_ format for the
+commercial package [Tecplot](http://www.tecplot.com/).
+Also, **this info will not explain you how to use the mentioned
+software for visualization, but just explain how to do the conversion.**
 Furthermore, this part of the code is subject to continuous change and
 improvement, and we welcome extra contributions.
 
@@ -90,8 +85,8 @@ files, the script **aiconvert** is added. If you have a line
 `PATH="$AMRVAC_DIR:$AMRVAC_DIR/tools:./:$PATH"` in `~/.bash_profile` (or
 `~/.bashrc`), typing _aiconvert_ will tell you its intended usage.
 In the example case at hand, where we created 21 data files from running the
-advection problem, **this _aiconvert_ script needs the intended _base_filename_ 
-and the executable _amrvac_ to exist in the same directory.** It will complain when the parfile
+advection problem. **This _aiconvert_ script needs the intended _base_filename_ 
+and the executable _amrvac_ exists in the same directory.** It will complain when the parfile
 does not exist, and obviously requires the existence of all files between the
 start and stopindex (0 and 20 here). With paraview, you will then be able to
 immediately import all 21 _*.vtu_ files with the same base filename, and

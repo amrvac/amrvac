@@ -19,8 +19,8 @@ deps=$(echo "$deps" | sed 's/use mod_variables//')
 # Remove old_physics entries
 deps=$(echo "$deps" | sed 's/^.*old_physics[/].*$//')
 
-# Remove amrvac.o entry (it is compiled later)
-deps=$(echo "$deps" | sed 's/^amrvac[.]t.*$//')
+# Remove gmunu.o entry (it is compiled later)
+deps=$(echo "$deps" | sed 's/^gmunu[.]t.*$//')
 
 # Remove comments
 deps=$(echo "$deps" | sed 's/!.*$//')

@@ -1,4 +1,0 @@
-F90=mpiifort
-FFLAGS = -c
-F90FLAGS = -fpp -free -implicitnone -O2 -traceback -check nooutput_conversion -g -xHost
-LINK= $(F90)  $(F90FLAGS) 

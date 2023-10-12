@@ -41,19 +41,18 @@ contains
     use mod_global_parameters
 
     integer                :: i, iw, ib, n_files, n_bc
+    character(len=std_len) :: bc_name, fname
     double precision       :: xmax(3)
     type(bc_data_t)        :: bc
 
-    call bc_read_params(par_files)
-
-    allocate(bc_data_ix(nwfluxbc, 2*ndim))
+    allocate(bc_data_ix(nw, 2*ndim))
 
     bc_data_ix(:, :) = -1
     n_bc             = 0
 
     do ib = 1, 2 * ndim
-       do iw = 1, nwfluxbc
-          if (typeboundary(iw, ib)==bc_data) then
+       do iw = 1, nwflux
+          if (bc_type%w(iw, ib)==bc_data) then
              n_bc               = n_bc + 1
              bc_data_ix(iw, ib) = n_bc
 
@@ -95,22 +94,6 @@ contains
 
   end subroutine bc_data_init
 
-  !> Read this module"s parameters from a file
-  subroutine bc_read_params(files)
-    use mod_global_parameters
-    character(len=*), intent(in) :: files(:)
-    integer                      :: n
-
-    namelist /bd_list/ boundary_data_file_name
-
-    do n = 1, size(files)
-       open(unitpar, file=trim(files(n)), status="old")
-       read(unitpar, bd_list, end=111)
-111    close(unitpar)
-    end do
- 
-  end subroutine bc_read_params
-
   elemental function bc_data_get_3d(n_bc, x1, x2, qt) result(val)
     integer, intent(in)          :: n_bc
     double precision, intent(in) :: x1, x2, qt
@@ -147,7 +130,7 @@ contains
     {^IFTWOD
     select case (iB)
     case (1, 2)
-       do iw = 1, nwfluxbc
+       do iw = 1, nwflux
           n_bc = bc_data_ix(iw, iB)
           if (n_bc == -1) cycle
 
@@ -169,7 +152,7 @@ contains
           end do
        end do
     case (3, 4)
-       do iw = 1, nwfluxbc
+       do iw = 1, nwflux
           n_bc = bc_data_ix(iw, iB)
           if (n_bc == -1) cycle
 
@@ -198,7 +181,7 @@ contains
     {^IFTHREED
     select case (iB)
     case (1, 2)
-       do iw = 1, nwfluxbc
+       do iw = 1, nwflux
           n_bc = bc_data_ix(iw, iB)
           if (n_bc == -1) cycle
 
@@ -221,7 +204,7 @@ contains
           end do
        end do
     case (3, 4)
-       do iw = 1, nwfluxbc
+       do iw = 1, nwflux
           n_bc = bc_data_ix(iw, iB)
           if (n_bc == -1) cycle
 
@@ -244,7 +227,7 @@ contains
           end do
        end do
     case (5, 6)
-       do iw = 1, nwfluxbc
+       do iw = 1, nwflux
           n_bc = bc_data_ix(iw, iB)
           if (n_bc == -1) cycle
 

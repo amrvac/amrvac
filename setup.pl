@@ -5,7 +5,7 @@ use warnings;
 use Getopt::Long;
 
 my $help_message =
-"Usage: setup.pl [options]      To set up an AMRVAC problem
+"Usage: setup.pl [options]      To set up an GMUNU problem
 
 Options:
 
@@ -48,21 +48,15 @@ if ($help || !($ndim || $arch )) {
     exit;
 }
 
-# Check if the environment variable AMRVAC_DIR is defined
-if (!$ENV{AMRVAC_DIR}) {
-    print STDERR "Error: \$AMRVAC_DIR variable undefined, set it with:\n";
-    print STDERR "export \$AMRVAC_DIR=your/amrvac/dir\n";
+# Check if the environment variable GMUNU_DIR is defined
+if (!$ENV{GMUNU_DIR}) {
+    print STDERR "Error: \$GMUNU_DIR variable undefined, set it with:\n";
+    print STDERR "export \$GMUNU_DIR=your/gmunu/dir\n";
     exit;
 }
 
 # Copy makefile
-copy_file("makefile", "arch", "amrvac.make");
-
-unless (-e 'amrvac.h') {
-# create amrvac.h to use the std preprocessor
-open(my $fh, '>', 'amrvac.h') or die "amrvac.h is not created $!";
-close $fh;
-}
+copy_file("makefile", "arch", "gmunu.make");
 
 if ($ndim) {
     replace_regexp_file("makefile", qr/NDIM\s*[:?]?=.*/, "NDIM := $ndim");
@@ -101,7 +95,7 @@ sub copy_file {
     }
 
     print "Getting $filename from $location/$local_name\n";
-    my $output = `cp $ENV{AMRVAC_DIR}/$location/$local_name $filename`;
+    my $output = `cp $ENV{GMUNU_DIR}/$location/$local_name $filename`;
 }
 
 # Copy a file if it doesn't exist yet
@@ -117,7 +111,7 @@ sub copy_if_not_present {
     # If the file does not exist, copy it
     unless (-e($filename)) {
         print "Getting $filename from $location/$local_name\n";
-        my $output = `cp $ENV{AMRVAC_DIR}/$location/$local_name $filename`;
+        my $output = `cp $ENV{GMUNU_DIR}/$location/$local_name $filename`;
     }
 }
 

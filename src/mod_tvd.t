@@ -10,34 +10,34 @@ module mod_tvd
 
 contains
 
-  subroutine tvdlimit(method,qdt,ixI^L,ixO^L,idim^LIM,s,qt,snew,fC,dxs,x)
+  subroutine tvdlimit(method,qdt,ixI^L,ixO^L,idim^LIM,s,qt,snew,fC,dx^D,x)
     use mod_global_parameters
 
     integer, intent(in) :: method
-    double precision, intent(in) :: qdt, qt, dxs(ndim)
+    double precision, intent(in) :: qdt, qt, dx^D
     integer, intent(in) :: ixI^L, ixO^L, idim^LIM
-    double precision, dimension(ixI^S,nw) :: w, wnew
+    double precision, dimension(ixI^S,nw) :: w, w_new
     type(state) :: s, snew
     double precision, intent(in) :: x(ixI^S,1:ndim)
-    double precision :: fC(ixI^S,1:nwflux,1:ndim)
+    double precision :: fC(ixI^S,1:nw,1:ndim)
 
     integer :: idims, ixIC^L, jxIC^L
     double precision, dimension(ixI^S,nw) :: wR, wL
 
-    associate(w=>s%w,wnew=>snew%w)
+    associate(w=>s%w,w_new=>snew%w)
     do idims= idim^LIM
        ixICmax^D=ixOmax^D+kr(idims,^D); ixICmin^D=ixOmin^D-2*kr(idims,^D);
        wL(ixIC^S,1:nw)=w(ixIC^S,1:nw)
        jxIC^L=ixIC^L+kr(idims,^D);
        wR(ixIC^S,1:nw)=w(jxIC^S,1:nw)
-       call tvdlimit2(method,qdt,ixI^L,ixIC^L,ixO^L,idims,wL,wR,wnew,x,fC,dxs)
+       call tvdlimit2(method,qdt,ixI^L,ixIC^L,ixO^L,idims,wL,wR,w_new,x,fC,dx^D)
     end do
     end associate
   end subroutine tvdlimit
 
-  subroutine tvdlimit2(method,qdt,ixI^L,ixIC^L,ixO^L,idims,wL,wR,wnew,x,fC,dxs)
+  subroutine tvdlimit2(method,qdt,ixI^L,ixIC^L,ixO^L,idims,wL,wR,w_new,x,fC,dx^D)
 
-    ! Limit the flow variables in wnew according to typetvd. 
+    ! Limit the flow variables in w_new according to typetvd. 
     ! wroeC is based on wL and wR.
     ! If method=fs_tvd an extra adtdx**2*jumpC is added to phiC for 2nd order
     ! accuracy in time.
@@ -46,12 +46,12 @@ contains
     use mod_physics_roe
 
     integer, intent(in) :: method
-    double precision, intent(in) :: qdt, dxs(ndim)
+    double precision, intent(in) :: qdt, dx^D
     integer, intent(in) :: ixI^L, ixIC^L, ixO^L, idims
     double precision, dimension(ixG^T,nw) :: wL, wR
     double precision, intent(in) :: x(ixI^S,1:ndim)
-    double precision :: wnew(ixI^S,1:nw)
-    double precision :: fC(ixI^S,1:nwflux,1:ndim)
+    double precision :: w_new(ixI^S,1:nw)
+    double precision :: fC(ixI^S,1:nw,1:ndim)
 
     double precision:: workroe(ixG^T,1:nworkroe)
     double precision, dimension(ixG^T,nw) :: wroeC
@@ -68,10 +68,10 @@ contains
 
     call phys_average(wL,wR,x,ixIC^L,idims,wroeC,workroe)
 
-    dxinv=qdt/dxs
+    ^D&dxinv(^D)=qdt/dx^D;
 
     ! A loop on characteristic variables to calculate the dissipative flux phiC.
-    do il=1,nwflux
+    do il=1,nw
        !Calculate the jump in the il-th characteristic variable: L(wroe)*dw
        call phys_get_eigenjump(wL,wR,wroeC,x,ixIC^L,il,idims,smallaC,adtdxC,jumpC,workroe)
 
@@ -81,30 +81,30 @@ contains
           if (typeentropy(il)=='harten' .or. typeentropy(il)=='powell')&
             smallaC(ixIC^S)=smallaC(ixIC^S)*dxinv(idims)
        else
-          adtdxC(ixIC^S)=adtdxC(ixIC^S)*qdt*block%surfaceC(ixIC^S,idims)*&
-             2.0d0/(block%dvolume(ixIC^S)+block%dvolume(jxIC^S))
+          adtdxC(ixIC^S)=adtdxC(ixIC^S)*qdt*block%mesh%surfaceC(ixIC^S,idims)*&
+             2.0d0/(block%mesh%dvolume(ixIC^S)+block%mesh%dvolume(jxIC^S))
           if (typeentropy(il)=='harten' .or. typeentropy(il)=='powell')&
-            smallaC(ixIC^S)=smallaC(ixIC^S)*qdt*block%surfaceC(ixIC^S,idims)*&
-             2.0d0/(block%dvolume(ixIC^S)+block%dvolume(jxIC^S))
+            smallaC(ixIC^S)=smallaC(ixIC^S)*qdt*block%mesh%surfaceC(ixIC^S,idims)*&
+             2.0d0/(block%mesh%dvolume(ixIC^S)+block%mesh%dvolume(jxIC^S))
        endif
 
        ! Calculate the flux limiter function phi
        call getphi(method,jumpC,adtdxC,smallaC,ixI^L,ixIC^L,ixC^L,il,idims,phiC)
 
-       !Add R(iw,il)*phiC(il) to each variable iw in wnew
-       do iw=1,nwflux
+       !Add R(iw,il)*phiC(il) to each variable iw in cons_new
+       do iw=1,nw
           call phys_rtimes(phiC,wroeC,ixC^L,iw,il,idims,rphiC,workroe)
 
           if (slab_uniform) then
              rphiC(ixC^S)=rphiC(ixC^S)*half
              fC(ixC^S,iw,idims)=fC(ixC^S,iw,idims)+rphiC(ixC^S)
-             wnew(ixO^S,iw)=wnew(ixO^S,iw)+rphiC(ixO^S)-rphiC(hxO^S)
+             w_new(ixO^S,iw)=w_new(ixO^S,iw)+rphiC(ixO^S)-rphiC(hxO^S)
           else
              rphiC(ixC^S)=rphiC(ixC^S)*quarter* &
-                   (block%dvolume(ixC^S)+block%dvolume(jxC^S))
+                   (block%mesh%dvolume(ixC^S)+block%mesh%dvolume(jxC^S))
              fC(ixC^S,iw,idims)=fC(ixC^S,iw,idims)+rphiC(ixC^S)
-             wnew(ixO^S,iw)=wnew(ixO^S,iw)+(rphiC(ixO^S)-rphiC(hxO^S)) &
-                                            /block%dvolume(ixO^S)
+             w_new(ixO^S,iw)=w_new(ixO^S,iw)+(rphiC(ixO^S)-rphiC(hxO^S)) &
+                                            /block%mesh%dvolume(ixO^S)
           endif
        end do  !iw
     end do     !il
@@ -127,7 +127,7 @@ contains
     integer :: jxC^L, ix^L, hx^L, typelimiter
     !-----------------------------------------------------------------------------
 
-    typelimiter=type_limiter(block%level)
+    typelimiter=type_limiter(block%mesh%level)
     if(method==fs_tvdmu)then
        ! In the MUSCL scheme phi=|a|*jump, apply entropy fix to it
        if(typeentropy(il)=='nul'.or.typeentropy(il)=='ratio')then

@@ -3,7 +3,7 @@
 ## Introduction
 
 This document briefly describes the AMR-related features in MPI-AMRVAC. The
-different options can be set in the meshlist part (see @ref par.md) of the
+different options can be set in the [meshlist](#par_meshlist) of the
 **amrvac.par** file. For a more extensive description, you can read the article
 'Parallel, grid-adaptive approaches for relativistic hydro and
 magnetohydrodynamics', R. Keppens, Z. Meliani, A.J. van Marle, P. Delmont, A.
@@ -16,7 +16,9 @@ in a hierarchically nested manner. To simplify the parallelization, we gave up
 flexibility to allow different sized refinement ratios between grid levels,
 fixing it to 2. Also, we now use the same time step for all levels. A generic
 skeleton code, generic enough to hold for any AMR code having similar
-restrictions, is shown below.
+restrictions, is shown below (in the subroutine terminology of MPI-AMRVAC it
+is shown [here](amrvac_schematic.md), where it corresponds with
+_timeintegration_).
 
 ![](figmovdir/skeleton.gif)
 
@@ -131,14 +133,7 @@ indices across AMR levels are schematically given below, which are used to
 identify the directional neighbours, as well as the children and parent
 blocks. These are used to realize and facilitate the possible interprocessor
 communication patterns, which are schematically shown at right.
-
-![](figmovdir/dataA.gif)
-
-![](figmovdir/dataB.gif)
-
-![](figmovdir/dataD.gif)
-
-![](figmovdir/dataG.gif)
+![](figmovdir/dataA.gif)![](figmovdir/dataB.gif)![](figmovdir/dataD.gif)![](figmovdir/dataG.gif)
 
 The directional neighbours of a grid block are shown for a 1D, 2D and 3D case
 in the picture below. ![](figmovdir/dataC.gif)

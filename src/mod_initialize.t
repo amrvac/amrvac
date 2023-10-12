@@ -1,4 +1,4 @@
-!> This module handles the initialization of various components of amrvac
+!> This module handles the initialization of various components of gmunu
 module mod_initialize
 
   implicit none
@@ -7,43 +7,42 @@ module mod_initialize
   logical :: initialized_already = .false.
 
   ! Public methods
-  public :: initialize_amrvac
+  public :: initialize_gmunu
+  public :: initlevelone
+  public :: initial_condition
+  public :: modify_IC
+  public :: improve_initial_condition
 
 contains
 
-  !> Initialize amrvac: read par files and initialize variables
-  subroutine initialize_amrvac()
-    use mod_global_parameters
+  !> Initialize gmunu: read par files and initialize variables
+  subroutine initialize_gmunu()
     use mod_input_output
-    use mod_physics, only: phys_check, phys_check_params
+    use mod_physics,     only: phys_check, phys_check_params
     use mod_usr_methods, only: usr_set_parameters
-    use mod_bc_data, only: bc_data_init
-    use mod_trac, only:init_trac_line, init_trac_block
-    use mod_init_datafromfile, only: read_data_init
+    use mod_bc_data,     only: bc_data_init
 
     if (initialized_already) return
-
-    ! add auxiliary variable(s) to update boundary ghost cells
-    nwgc=nwgc+nwaux
 
     ! Check whether the user has loaded a physics module
     call phys_check()
 
     ! Read input files
     call read_par_files()
-    call initialize_vars()
-    call init_comm_types()
 
-    ! Possibly load boundary condition data or initial data
+    call initialize_vars()
+
+    ! set physical boundary condition
+    call bc_init()
+    ! Possibly load boundary condition data
     call bc_data_init()
-    call read_data_init()
 
     if(associated(usr_set_parameters)) call usr_set_parameters()
 
     call phys_check_params()
 
     initialized_already = .true.
-  end subroutine initialize_amrvac
+  end subroutine initialize_gmunu
 
   !> Initialize (and allocate) simulation and grid variables
   subroutine initialize_vars
@@ -56,6 +55,13 @@ contains
 
     integer :: igrid, level, ipe, ig^D
     logical :: ok
+
+    ! fixme: maybe we dont need to use all ps?
+    allocate(mesh(max_blocks))
+    allocate(mesh_co(max_blocks))
+
+    allocate(metric(max_blocks))
+    allocate(metric_co(max_blocks))
 
     allocate(ps(max_blocks))
     allocate(ps1(max_blocks))
@@ -72,17 +78,15 @@ contains
     allocate(rnode(rnodehi,max_blocks),rnode_sub(rnodehi,max_blocks))
     allocate(node(nodehi,max_blocks),node_sub(nodehi,max_blocks),phyboundblock(max_blocks))
     allocate(pflux(2,^ND,max_blocks))
-    ! allocate mesh for particles
-    if(use_particles) allocate(gridvars(max_blocks))
     if(stagger_grid) then
       allocate(pface(2,^ND,max_blocks),fine_neighbors(2^D&,^ND,max_blocks))
       allocate(old_neighbor(2,-1:1^D,max_blocks))
     end if
 
-    it=it_init
-    global_time=time_init
+    it          = it_init
+    global_time = time_init
 
-    dt=zero
+    dt = zero
 
     ! no poles initially
     neighbor_pole=0
@@ -99,10 +103,14 @@ contains
        call mpistop("")
     end if
 
+    ! fixme: split read par and initial var
+
     ! initialize dx arrays on finer (>1) levels
     do level=2,refine_max_level
        {dx(^D,level) = dx(^D,level-1) * half\}  ! refine ratio 2
     end do
+
+    ! fixme: maybe we should assign values here
 
     ! domain decomposition
     ! physical extent of a grid block at level 1, per dimension
@@ -179,20 +187,121 @@ contains
 
     allocate(tree_root(1:ng^D(1)))
     {do ig^DB=1,ng^DB(1)\}
-    nullify(tree_root(ig^D)%node)
+       nullify(tree_root(ig^D)%node)
     {end do\}
 
     ! define index ranges and MPI send/receive derived datatype for ghost-cell swap
     call init_bc()
-    type_send_srl=>type_send_srl_f
-    type_recv_srl=>type_recv_srl_f
-    type_send_r=>type_send_r_f
-    type_recv_r=>type_recv_r_f
-    type_send_p=>type_send_p_f
-    type_recv_p=>type_recv_p_f
-    call create_bc_mpi_datatype(iwstart,nwgc)
+    call init_comm_types()
 
   end subroutine initialize_vars
 
+  !> Generate and initialize all grids at the coarsest level (level one)
+  subroutine initlevelone
+    use mod_global_parameters
+    use mod_ghostcells_update
+  
+    integer :: iigrid, igrid{#IFDEF EVOLVINGBOUNDARY , Morton_no}
+    integer :: ierrmpi
+  
+    levmin=1
+    levmax=1
+  
+    call init_forest_root
+  
+    call getigrids
+    call build_connectivity
+  
+    ! fill solution space of all root grids
+    do iigrid=1,igridstail; igrid=igrids(iigrid);
+       call alloc_node(igrid)
+       ! in case gradient routine used in initial condition, ensure geometry known
+       call initial_condition(igrid)
+    end do
+    {#IFDEF EVOLVINGBOUNDARY
+    ! mark physical-boundary blocks on space-filling curve
+    do Morton_no=Morton_start(mype),Morton_stop(mype)
+       igrid=sfc_to_igrid(Morton_no)
+       if (phyboundblock(igrid)) sfc_phybound(Morton_no)=1
+    end do
+    call MPI_ALLREDUCE(MPI_IN_PLACE,sfc_phybound,nleafs,MPI_INTEGER,&
+                       MPI_SUM,icomm,ierrmpi)
+    }
+  
+    ! update ghost cells
+    call getbc(global_time,0.d0,ps,1,nmetric,gc_metric)
+    call getbc(global_time,0.d0,ps,1,nw,gc_hydro)
+  
+  end subroutine initlevelone
+  
+  !> fill in initial condition
+  subroutine initial_condition(igrid)
+    ! Need only to set the mesh values (can leave ghost cells untouched)
+    use mod_usr_methods, only: usr_init_one_grid
+    use mod_global_parameters
+  
+    integer, intent(in) :: igrid
+  
+    ps(igrid)%is_prim=.False.
+    ps(igrid)%w(ixG^T,1:nw)=zero
+  
+    ! in case gradient routine used in initial condition, ensure geometry known
+    block=>ps(igrid)
+    ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
+  
+    if (.not. associated(usr_init_one_grid)) then
+       call mpistop("usr_init_one_grid not defined")
+    else
+       call usr_init_one_grid(ixG^LL,ixM^LL,ps(igrid))
+    end if
+
+    if (ps(igrid)%is_prim) &
+       call mpistop("usr_init_one_grid: w has to be conserved variables")
+  
+  end subroutine initial_condition
+  
+  !> modify initial condition
+  subroutine modify_IC
+    use mod_usr_methods, only: usr_init_one_grid
+    use mod_global_parameters
+  
+    integer :: iigrid, igrid
+  
+    do iigrid=1,igridstail; igrid=igrids(iigrid);
+       block=>ps(igrid)
+       ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
+  
+       if (.not. associated(usr_init_one_grid)) then
+          call mpistop("usr_init_one_grid not defined")
+       else
+          call usr_init_one_grid(ixG^LL,ixM^LL,ps(igrid))
+       end if
+    end do
+  
+  end subroutine modify_IC
+  
+  !> improve initial condition after initialization
+  subroutine improve_initial_condition()
+    use mod_global_parameters
+    use mod_usr_methods
+    use mod_constrained_transport
+    use mod_ghostcells_update
+  
+    logical :: active
+  
+    if(associated(usr_improve_initial_condition)) then
+      if (mype==0) then
+         print*,'-------------------------------------------------------------------------------'
+         write(*,'(a,f17.3,a)')' Grid tree is set, now improve the initial condition'
+         print*,'-------------------------------------------------------------------------------'
+      end if
+      call usr_improve_initial_condition
+    end if
+  
+    ! update bc after improving initial condition
+    call getbc(global_time,0.d0,ps,1,nmetric,gc_metric)
+    call getbc(global_time,0.d0,ps,1,nw,gc_hydro)
+  
+  end subroutine improve_initial_condition
 
 end module mod_initialize

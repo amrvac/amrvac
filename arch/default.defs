@@ -1,5 +1,11 @@
 F90=mpif90
 FFLAGS = -c
-F90FLAGS = -cpp -ffree-form -O3 -Wall -Wno-unused-dummy-argument	\
--Wno-unused-function -Wno-unused -Wno-uninitialized -Wno-zerotrip -Wno-target-lifetime
+
+HDF5DIR = /usr/local/hdf5
+HDF5INCS = -I${HDF5DIR}/include
+HDF5LIBS = -L${HDF5DIR}/lib -lhdf5hl_fortran -lhdf5_hl -lhdf5_fortran -lhdf5 -lz
+
+F90FLAGS = -ffree-form -O2 -g -Wall -Wno-unused-dummy-argument	\
+-Wno-unused-function -Wno-unused -Wno-uninitialized -Wno-zerotrip  \
+${HDF5INCS} ${HDF5LIBS}
 LINK= $(F90)  $(F90FLAGS)

@@ -16,25 +16,26 @@ contains
   !> Advance all the grids over one time step, including all sources
   subroutine advance(iit)
     use mod_global_parameters
-    use mod_particles, only: handle_particles
     use mod_source, only: add_split_source
+    use mod_physics
+    use mod_ghostcells_update
+    use mod_usr_methods
 
     integer, intent(in) :: iit
-
     integer :: iigrid, igrid, idimsplit
 
     ! old solution values at t_n-1 no longer needed: make copy of w(t_n)
     !$OMP PARALLEL DO PRIVATE(igrid)
     do iigrid=1,igridstail; igrid=igrids(iigrid);
+       pso(igrid)%is_prim=ps(igrid)%is_prim
        pso(igrid)%w=ps(igrid)%w
+       if (nw_extra>0) &
+          pso(igrid)%wextra(ixG^T,1:nw_extra)=ps(igrid)%wextra(ixG^T,1:nw_extra)
+       if (ps(igrid)%is_prim) call phys_to_conserved(ixG^LL,ixG^LL,ps(igrid))
        if(stagger_grid) pso(igrid)%ws=ps(igrid)%ws
     end do
     !$OMP END PARALLEL DO
-
-    {#IFDEF RAY
-    call update_rays
-    }
-
+   
     ! split source addition
     call add_split_source(prior=.true.)
 
@@ -59,7 +60,9 @@ contains
     ! split source addition
     call add_split_source(prior=.false.)
 
-    if(use_particles) call handle_particles
+    ! clean b field
+    if (associated(phys_clean_divb)) &
+          call phys_clean_divb(iit,global_time)
 
   end subroutine advance
 
@@ -69,7 +72,7 @@ contains
     use mod_global_parameters
     use mod_fix_conserve
     use mod_ghostcells_update
-    use mod_physics, only: phys_req_diagonal
+    use mod_physics
 
     integer, intent(in) :: idim^LIM
     integer             :: iigrid, igrid
@@ -91,21 +94,21 @@ contains
     case (onestep)
        select case (t_integrator)
        case (Forward_Euler)
-          call advect1(flux_method,one,idim^LIM,global_time,ps1,global_time,ps)
+          call advect1(flux_method,1.0d0,idim^LIM,global_time,ps1,global_time,ps)
 
        case (IMEX_Euler)
-          call advect1(flux_method,one,idim^LIM,global_time,ps,global_time,ps1)
-          call global_implicit_update(one,dt,global_time+dt,ps,ps1)
+          call advect1(flux_method,1.0d0,idim^LIM,global_time,ps,global_time,ps1)
+          call global_implicit_update(1.0d0,dt,global_time+dt,ps,ps1)
 
        case (IMEX_SP)
-          call global_implicit_update(one,dt,global_time,ps,ps1)
+          call global_implicit_update(1.0d0,dt,global_time,ps,ps1)
           !$OMP PARALLEL DO PRIVATE(igrid)
           do iigrid=1,igridstail; igrid=igrids(iigrid);
              ps1(igrid)%w=ps(igrid)%w
              if(stagger_grid) ps1(igrid)%ws=ps(igrid)%ws
           end do
           !$OMP END PARALLEL DO
-          call advect1(flux_method,one,idim^LIM,global_time,ps1,global_time,ps)
+          call advect1(flux_method,1.0d0,idim^LIM,global_time,ps1,global_time,ps)
 
        case default
           call mpistop("unkown onestep time_integrator in advect")
@@ -114,13 +117,13 @@ contains
     case (twostep)
        select case (t_integrator)
        case (Predictor_Corrector)
-          ! PC or explicit midpoint
+          ! PC or explicit midpoint 
           ! predictor step
           fix_conserve_at_step = .false.
-          call advect1(typepred1,half,idim^LIM,global_time,ps,global_time,ps1)
+          call advect1(typepred1,0.5d0,idim^LIM,global_time,ps,global_time,ps1)
           ! corrector step
           fix_conserve_at_step = time_advance .and. levmax>levmin
-          call advect1(flux_method,one,idim^LIM,global_time+half*dt,ps1,global_time,ps)
+          call advect1(flux_method,1.0d0,idim^LIM,global_time+0.5d0*dt,ps1,global_time,ps)
 
        case (RK2_alf)
           ! RK2 with alfa parameter, where rk_a21=alfa
@@ -128,73 +131,75 @@ contains
           !$OMP PARALLEL DO PRIVATE(igrid)
           do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
              ps(igrid)%w = ps(igrid)%w+rk_b1*(ps1(igrid)%w-ps(igrid)%w)/rk_a21
-             if(stagger_grid) ps(igrid)%ws = ps(igrid)%ws+(one-rk_b2)*(ps1(igrid)%ws-ps(igrid)%ws)/rk_a21
+             if(stagger_grid) ps(igrid)%ws = ps(igrid)%ws+(1.0d0-rk_b2)*(ps1(igrid)%ws-ps(igrid)%ws)/rk_a21
           end do
           !$OMP END PARALLEL DO
           call advect1(flux_method,rk_b2,idim^LIM,global_time+rk_a21*dt,ps1,global_time+rk_b1*dt,ps)
 
        case (ssprk2)
           ! ssprk2 or Heun's method
-          call advect1(flux_method,one, idim^LIM,global_time,ps,global_time,ps1)
+          call advect1(flux_method,1.0d0, idim^LIM,global_time,ps,global_time,ps1)
           !$OMP PARALLEL DO PRIVATE(igrid)
           do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
-             ps(igrid)%w = half*ps(igrid)%w+half*ps1(igrid)%w
-             if(stagger_grid) ps(igrid)%ws = half*ps(igrid)%ws+half*ps1(igrid)%ws
+             ps(igrid)%w = 0.5d0*ps(igrid)%w+0.5d0*ps1(igrid)%w
+             if(stagger_grid) ps(igrid)%ws = 0.5d0*ps(igrid)%ws+0.5d0*ps1(igrid)%ws
           end do
           !$OMP END PARALLEL DO
-          call advect1(flux_method,half,idim^LIM,global_time+dt,ps1,global_time+half*dt,ps)
+          call advect1(flux_method,0.5d0,idim^LIM,global_time+dt,ps1,global_time+0.5d0*dt,ps)
 
        case (IMEX_Midpoint)
+          ! IMEX Midpoint (1,2,2)
           !$OMP PARALLEL DO PRIVATE(igrid)
           do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
              ps2(igrid)%w = ps(igrid)%w
              if(stagger_grid) ps2(igrid)%ws = ps(igrid)%ws
           end do
           !$OMP END PARALLEL DO
-          call advect1(flux_method,half, idim^LIM,global_time,ps,global_time,ps1)
-          call global_implicit_update(half,dt,global_time+half*dt,ps2,ps1)
+          call advect1(flux_method,0.5d0, idim^LIM,global_time,ps,global_time,ps1)
+          call global_implicit_update(0.5d0,dt,global_time+0.5d0*dt,ps2,ps1)
           !$OMP PARALLEL DO PRIVATE(igrid)
           do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
              ps(igrid)%w = ps(igrid)%w+2.0d0*(ps2(igrid)%w-ps1(igrid)%w)
              if(stagger_grid) ps(igrid)%ws = ps(igrid)%ws+2.0d0*(ps2(igrid)%ws-ps1(igrid)%ws)
           end do
           !$OMP END PARALLEL DO
-          call advect1(flux_method,one, idim^LIM,global_time+half*dt,ps2,global_time,ps)
+          call advect1(flux_method,1.0d0, idim^LIM,global_time+0.5d0*dt,ps2,global_time,ps)
 
        case (IMEX_Trapezoidal)
-          call advect1(flux_method,one, idim^LIM,global_time,ps,global_time,ps1)
+          call advect1(flux_method,1.0d0, idim^LIM,global_time,ps,global_time,ps1)
           !$OMP PARALLEL DO PRIVATE(igrid)
           do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
-             ps2(igrid)%w = half*(ps(igrid)%w+ps1(igrid)%w)
-             if(stagger_grid) ps2(igrid)%ws = half*(ps(igrid)%ws+ps1(igrid)%ws)
+             ps2(igrid)%w = 0.5d0*(ps(igrid)%w+ps1(igrid)%w)
+             if(stagger_grid) ps2(igrid)%ws = 0.5d0*(ps(igrid)%ws+ps1(igrid)%ws)
           end do
           !$OMP END PARALLEL DO
           call evaluate_implicit(global_time,ps)
           !$OMP PARALLEL DO PRIVATE(igrid)
           do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
-             ps1(igrid)%w = ps1(igrid)%w+half*dt*ps(igrid)%w
-             if(stagger_grid) ps1(igrid)%ws = ps1(igrid)%ws+half*dt*ps(igrid)%ws
+             ps1(igrid)%w = ps1(igrid)%w+0.5d0*dt*ps(igrid)%w
+             if(stagger_grid) ps1(igrid)%ws = ps1(igrid)%ws+0.5d0*dt*ps(igrid)%ws
           end do
           !$OMP END PARALLEL DO
           !$OMP PARALLEL DO PRIVATE(igrid)
           do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
-             ps(igrid)%w = ps2(igrid)%w+half*dt*ps(igrid)%w
-             if(stagger_grid) ps(igrid)%ws = ps2(igrid)%ws+half*dt*ps(igrid)%ws
+             ps(igrid)%w = ps2(igrid)%w+0.5d0*dt*ps(igrid)%w
+             if(stagger_grid) ps(igrid)%ws = ps2(igrid)%ws+0.5d0*dt*ps(igrid)%ws
           end do
           !$OMP END PARALLEL DO
-          call getbc(global_time+dt,dt,ps1,iwstart,nwgc,phys_req_diagonal)
-          call global_implicit_update(half,dt,global_time+dt,ps2,ps1)
+          ! fixme: maybe we dont need getbc here? at least for GRRMHD?
+          !call getbc(global_time+dt,dt,ps1,1,nprim,gc_hydro,phys_req_diagonal)
+          call global_implicit_update(0.5d0,dt,global_time+dt,ps2,ps1)
           !$OMP PARALLEL DO PRIVATE(igrid)
           do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
              ps(igrid)%w = ps(igrid)%w+ps2(igrid)%w-ps1(igrid)%w
              if(stagger_grid) ps(igrid)%ws = ps(igrid)%ws+ps2(igrid)%ws-ps1(igrid)%ws
           end do
           !$OMP END PARALLEL DO
-          call advect1(flux_method,half, idim^LIM,global_time+dt,ps2,global_time+half*dt,ps)
+          call advect1(flux_method,0.5d0, idim^LIM,global_time+dt,ps2,global_time+0.5d0*dt,ps)
 
        case (IMEX_222)
           ! One-parameter family of schemes (parameter is imex222_lambda) from
-          ! Pareschi&Russo 2005, which is L-stable (for default lambda) and
+          ! Pareschi&Russo 2005, which is L-stable (for default lambda) and 
           ! asymptotically SSP.
           ! See doi.org/10.1007/s10915-004-4636-4 (table II)
           ! See doi.org/10.1016/j.apnum.2016.10.018 for interesting values of lambda
@@ -210,7 +215,7 @@ contains
           call global_implicit_update(imex222_lambda, dt, global_time, ps2, ps)
 
           ! Set ps1 = y^n + dt.F_ex(xi1)
-          call advect1(flux_method, one, idim^LIM, global_time, ps2, global_time, ps1)
+          call advect1(flux_method, 1.0d0, idim^LIM, global_time, ps2, global_time, ps1)
           ! Set ps2 = dt.F_im(xi1)        (is at t^n)
           ! Set ps  = y^n + dt/2 . F(xi1) (is at t^n+dt/2)
           ! Set ps1 = y^n + dt.F_ex(xi1) + (1-2.lambda).dt.F_im(xi1) and enforce BC (at t^n+dt)
@@ -222,8 +227,8 @@ contains
           !$OMP END PARALLEL DO
           !$OMP PARALLEL DO PRIVATE(igrid)
           do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
-             ps(igrid)%w = half*(ps(igrid)%w + ps1(igrid)%w + ps2(igrid)%w)
-             if(stagger_grid) ps(igrid)%ws = half*(ps(igrid)%ws + ps1(igrid)%ws + ps2(igrid)%ws)
+             ps(igrid)%w = 0.5d0*(ps(igrid)%w + ps1(igrid)%w + ps2(igrid)%w)
+             if(stagger_grid) ps(igrid)%ws = 0.5d0*(ps(igrid)%ws + ps1(igrid)%ws + ps2(igrid)%ws)
           end do
           !$OMP END PARALLEL DO
           !$OMP PARALLEL DO PRIVATE(igrid)
@@ -232,7 +237,7 @@ contains
              if(stagger_grid) ps1(igrid)%ws = ps1(igrid)%ws + (1.0d0 - 2.0d0*imex222_lambda)*ps2(igrid)%ws
           end do
           !$OMP END PARALLEL DO
-          call getbc(global_time+dt,dt,ps1,iwstart,nwgc,phys_req_diagonal)
+          call getbc(global_time+dt,dt,ps1,1,nwflux,gc_hydro,phys_req_diagonal)
 
           ! Preallocate ps2 as xi1 for the implicit update (is at t^n)
           !$OMP PARALLEL DO PRIVATE(igrid)
@@ -252,7 +257,7 @@ contains
           end do
           !$OMP END PARALLEL DO
           ! Set ps = y^n + dt/2.(F(xi1)+F(xi2)) = y^(n+1)
-          call advect1(flux_method, half, idim^LIM, global_time+dt, ps2, global_time+half*dt, ps)
+          call advect1(flux_method, 0.5d0, idim^LIM, global_time+dt, ps2, global_time+0.5d0*dt, ps)
 
        case default
           call mpistop("unkown twostep time_integrator in advect")
@@ -301,7 +306,7 @@ contains
              if(stagger_grid)then
                  ps(igrid)%ws=ps(igrid)%ws+rk3_b1*ps3(igrid)%ws &
                    +rk3_b2*(ps2(igrid)%ws-(ps(igrid)%ws+rk3_a31*ps3(igrid)%ws))/rk3_a32
-             endif
+             end if
           end do
           !$OMP END PARALLEL DO
           call advect1(flux_method,rk3_b3, idim^LIM,global_time+rk3_c3*dt,ps2,global_time+(1.0d0-rk3_b3)*dt,ps)
@@ -327,7 +332,7 @@ contains
              ps3(igrid)%w=ps(igrid)%w+(ars_gamma-1.0d0)*ps4(igrid)%w+(1.0d0-2.0d0*ars_gamma)*ps1(igrid)%w
              if(stagger_grid) then
                 ps3(igrid)%ws=ps(igrid)%ws+(ars_gamma-1.0d0)*ps4(igrid)%ws+(1.0d0-2.0d0*ars_gamma)*ps1(igrid)%ws
-             endif
+             end if
           end do
           !$OMP END PARALLEL DO
           call advect1(flux_method,2.0d0*(1.0d0-ars_gamma), idim^LIM,global_time+ars_gamma*dt,ps2,global_time+(ars_gamma-1.0d0)*dt,ps3)
@@ -336,23 +341,23 @@ contains
              ps2(igrid)%w=ps1(igrid)%w+(ps3(igrid)%w-(ps(igrid)%w+ &
                (ars_gamma-1.0d0)*ps4(igrid)%w+(1.0d0-2.0d0*ars_gamma)*ps1(igrid)%w))/(2.0d0*(1.0d0-ars_gamma))
              if(stagger_grid) then
-             ps2(igrid)%ws=ps1(igrid)%ws+(ps3(igrid)%ws-(ps(igrid)%ws+ &
-               (ars_gamma-1.0d0)*ps4(igrid)%ws+(1.0d0-2.0d0*ars_gamma)*ps1(igrid)%ws))/(2.0d0*(1.0d0-ars_gamma))
-             endif
+                ps2(igrid)%ws=ps1(igrid)%ws+(ps3(igrid)%ws-(ps(igrid)%ws+ &
+                  (ars_gamma-1.0d0)*ps4(igrid)%ws+(1.0d0-2.0d0*ars_gamma)*ps1(igrid)%ws))/(2.0d0*(1.0d0-ars_gamma))
+             end if
           end do
           !$OMP END PARALLEL DO
           call global_implicit_update(ars_gamma,dt,global_time+(1.0d0-ars_gamma)*dt,ps4,ps3)
           !$OMP PARALLEL DO PRIVATE(igrid)
           do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
-             ps(igrid)%w=ps(igrid)%w+half*ps2(igrid)%w &
-                +half*(ps4(igrid)%w-ps3(igrid)%w)/ars_gamma
+             ps(igrid)%w=ps(igrid)%w+0.5d0*ps2(igrid)%w &
+                +0.5d0*(ps4(igrid)%w-ps3(igrid)%w)/ars_gamma
              if(stagger_grid) then
-                ps(igrid)%ws=ps(igrid)%ws+half*ps2(igrid)%ws &
-                    +half*(ps4(igrid)%ws-ps3(igrid)%ws)/ars_gamma
-             endif
+                ps(igrid)%ws=ps(igrid)%ws+0.5d0*ps2(igrid)%ws &
+                    +0.5d0*(ps4(igrid)%ws-ps3(igrid)%ws)/ars_gamma
+             end if
           end do
           !$OMP END PARALLEL DO
-          call advect1(flux_method,half, idim^LIM,global_time+(1.0d0-ars_gamma)*dt,ps4,global_time+half*dt,ps)
+          call advect1(flux_method,0.5d0, idim^LIM,global_time+(1.0d0-ars_gamma)*dt,ps4,global_time+0.5d0*dt,ps)
 
        case (IMEX_232)
           ! this is IMEX_ARK(2,3,2) or IMEX_SSP(2,3,2)
@@ -364,7 +369,7 @@ contains
              if(stagger_grid) then
                ps4(igrid)%ws=(ps1(igrid)%ws-ps(igrid)%ws)/imex_a21
                ps3(igrid)%ws=ps(igrid)%ws
-             endif
+             end if
           end do
           !$OMP END PARALLEL DO
           call evaluate_implicit(global_time,ps3)
@@ -374,16 +379,16 @@ contains
              if(stagger_grid) ps1(igrid)%ws=ps1(igrid)%ws+imex_ha21*dt*ps3(igrid)%ws
           end do
           !$OMP END PARALLEL DO
-          call getbc(global_time+imex_a21*dt,dt,ps1,iwstart,nwgc,phys_req_diagonal)
+          !call getbc(global_time+imex_a21*dt,dt,ps1,1,nprim,gc_hydro,phys_req_diagonal)
           call global_implicit_update(imex_ha22,dt,global_time+imex_c2*dt,ps2,ps1)
           !$OMP PARALLEL DO PRIVATE(igrid)
           do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
              ps(igrid)%w=ps(igrid)%w+imex_a31*ps4(igrid)%w &
                 +imex_b1*dt*ps3(igrid)%w+imex_b2*(ps2(igrid)%w-ps1(igrid)%w)/imex_ha22
              if(stagger_grid) then
-             ps(igrid)%ws=ps(igrid)%ws+imex_a31*ps4(igrid)%ws &
-                +imex_b1*dt*ps3(igrid)%ws+imex_b2*(ps2(igrid)%ws-ps1(igrid)%ws)/imex_ha22
-             endif
+                ps(igrid)%ws=ps(igrid)%ws+imex_a31*ps4(igrid)%ws &
+                   +imex_b1*dt*ps3(igrid)%ws+imex_b2*(ps2(igrid)%ws-ps1(igrid)%ws)/imex_ha22
+             end if
           end do
           !$OMP END PARALLEL DO
           !$OMP PARALLEL DO PRIVATE(igrid)
@@ -391,9 +396,9 @@ contains
              ps3(igrid)%w=ps1(igrid)%w-imex_a21*ps4(igrid)%w &
                 -imex_ha21*dt*ps3(igrid)%w+imex_b1*dt*ps3(igrid)%w
              if(stagger_grid) then
-             ps3(igrid)%ws=ps1(igrid)%ws-imex_a21*ps4(igrid)%ws &
-                -imex_ha21*dt*ps3(igrid)%ws+imex_b1*dt*ps3(igrid)%ws
-             endif
+                ps3(igrid)%ws=ps1(igrid)%ws-imex_a21*ps4(igrid)%ws &
+                   -imex_ha21*dt*ps3(igrid)%ws+imex_b1*dt*ps3(igrid)%ws
+             end if
           end do
           !$OMP END PARALLEL DO
           call advect1(flux_method,imex_a32, idim^LIM,global_time+imex_c2*dt,ps2,global_time+imex_a31*dt,ps)
@@ -402,17 +407,17 @@ contains
              ps2(igrid)%w=(ps(igrid)%w-ps3(igrid)%w-imex_a31*ps4(igrid)%w)/imex_a32 &
                 +(1.0d0-imex_b2/imex_a32)*(ps2(igrid)%w-ps1(igrid)%w)/imex_ha22
              if(stagger_grid) then
-             ps2(igrid)%ws=(ps(igrid)%ws-ps3(igrid)%ws-imex_a31*ps4(igrid)%ws)/imex_a32 &
-                +(1.0d0-imex_b2/imex_a32)*(ps2(igrid)%ws-ps1(igrid)%ws)/imex_ha22
-             endif
+                ps2(igrid)%ws=(ps(igrid)%ws-ps3(igrid)%ws-imex_a31*ps4(igrid)%ws)/imex_a32 &
+                   +(1.0d0-imex_b2/imex_a32)*(ps2(igrid)%ws-ps1(igrid)%ws)/imex_ha22
+             end if
           end do
           !$OMP END PARALLEL DO
           !$OMP PARALLEL DO PRIVATE(igrid)
           do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
              ps1(igrid)%w=ps3(igrid)%w+imex_b1*ps4(igrid)%w+imex_b2*ps2(igrid)%w
              if(stagger_grid) then
-             ps1(igrid)%ws=ps3(igrid)%ws+imex_b1*ps4(igrid)%ws+imex_b2*ps2(igrid)%ws
-             endif
+                ps1(igrid)%ws=ps3(igrid)%ws+imex_b1*ps4(igrid)%ws+imex_b2*ps2(igrid)%ws
+             end if
           end do
           !$OMP END PARALLEL DO
           call global_implicit_update(imex_b3,dt,global_time+imex_c3*dt,ps2,ps)
@@ -420,18 +425,18 @@ contains
           do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
              ps(igrid)%w=ps1(igrid)%w+ps2(igrid)%w-ps(igrid)%w
              if(stagger_grid) then
-             ps(igrid)%ws=ps1(igrid)%ws+ps2(igrid)%ws-ps(igrid)%ws
-             endif
+                ps(igrid)%ws=ps1(igrid)%ws+ps2(igrid)%ws-ps(igrid)%ws
+             end if
           end do
           !$OMP END PARALLEL DO
           call advect1(flux_method,imex_b3, idim^LIM,global_time+imex_c3*dt,ps2,global_time+(1.0d0-imex_b3)*dt,ps)
 
        case (IMEX_CB3a)
-          ! Third order IMEX scheme with low-storage implementation (4 registers).
-          ! From Cavaglieri&Bewley 2015, see doi.org/10.1016/j.jcp.2015.01.031
-          ! (scheme called "IMEXRKCB3a" there). Uses 3 explicit and 2 implicit stages.
-          ! Parameters are in imex_bj, imex_cj (same for implicit/explicit),
-          ! imex_aij (implicit tableau) and imex_haij (explicit tableau).
+          !> Third order IMEX scheme with low-storage implementation (4 registers).
+          !> From Cavaglieri&Bewley 2015, see doi.org/10.1016/j.jcp.2015.01.031
+          !> (scheme called "IMEXRKCB3a" there). Uses 3 explicit and 2 implicit stages.
+          !> Parameters are in imex_bj, imex_cj (same for implicit/explicit), 
+          !> imex_aij (implicit tableau) and imex_haij (explicit tableau).
           call advect1(flux_method, imex_ha21, idim^LIM, global_time, ps, global_time, ps1)
           call global_implicit_update(imex_a22, dt, global_time+imex_c2*dt, ps2, ps1)
           !$OMP PARALLEL DO PRIVATE(igrid)
@@ -439,9 +444,11 @@ contains
              ps3(igrid)%w = ps(igrid)%w + imex_a32/imex_a22 * (ps2(igrid)%w - ps1(igrid)%w)
              ps(igrid)%w  = ps(igrid)%w + imex_b2 /imex_a22 * (ps2(igrid)%w - ps1(igrid)%w)
              ps1(igrid)%w = ps3(igrid)%w
-             if(stagger_grid) ps3(igrid)%ws = ps(igrid)%ws + imex_a32/imex_a22 * (ps2(igrid)%ws - ps1(igrid)%ws)
-             if(stagger_grid) ps(igrid)%ws  = ps(igrid)%ws + imex_b2 /imex_a22 * (ps2(igrid)%ws - ps1(igrid)%ws)
-             if(stagger_grid) ps1(igrid)%ws = ps3(igrid)%ws
+             if(stagger_grid) then
+                ps3(igrid)%ws = ps(igrid)%ws + imex_a32/imex_a22 * (ps2(igrid)%ws - ps1(igrid)%ws)
+                ps(igrid)%ws  = ps(igrid)%ws + imex_b2 /imex_a22 * (ps2(igrid)%ws - ps1(igrid)%ws)
+                ps1(igrid)%ws = ps3(igrid)%ws
+             end if
           end do
           !$OMP END PARALLEL DO
           call advect1(flux_method, imex_ha32, idim^LIM, global_time+imex_c2*dt, ps2, global_time, ps3)
@@ -503,12 +510,12 @@ contains
              if(stagger_grid) then
                 ps2(igrid)%ws=ps(igrid)%ws
                 ps3(igrid)%ws=ps(igrid)%ws
-             endif
+             end if
           end do
           !$OMP END PARALLEL DO
-          call advect1(flux_method,half, idim^LIM,global_time,ps,global_time,ps1)
-          call advect1(flux_method,half, idim^LIM,global_time+half*dt,ps1,global_time,ps2)
-          call advect1(flux_method,1.0d0, idim^LIM,global_time+half*dt,ps2,global_time,ps3)
+          call advect1(flux_method,0.5d0, idim^LIM,global_time,ps,global_time,ps1)
+          call advect1(flux_method,0.5d0, idim^LIM,global_time+0.5d0*dt,ps1,global_time,ps2)
+          call advect1(flux_method,1.0d0, idim^LIM,global_time+0.5d0*dt,ps2,global_time,ps3)
           !$OMP PARALLEL DO PRIVATE(igrid)
           do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
              ps(igrid)%w=(1.0d0/3.0d0)*(-ps(igrid)%w+ps1(igrid)%w+2.0d0*ps2(igrid)%w+ps3(igrid)%w)
@@ -518,6 +525,77 @@ contains
           !$OMP END PARALLEL DO
           call advect1(flux_method,1.0d0/6.0d0, idim^LIM,global_time+dt,ps3,global_time+dt*5.0d0/6.0d0,ps)
 
+       case (jameson)
+          !$OMP PARALLEL DO PRIVATE(igrid)
+          do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
+             ps2(igrid)%w=ps(igrid)%w
+             if(stagger_grid) ps2(igrid)%ws=ps(igrid)%ws
+          end do
+          !$OMP END PARALLEL DO
+          call advect1(flux_method,1.0d0/4.0d0, idim^LIM,global_time,ps,global_time,ps1)
+          call advect1(flux_method,1.0d0/3.0d0, idim^LIM,global_time+dt/4.0d0,ps1,global_time,ps2)
+          !$OMP PARALLEL DO PRIVATE(igrid)
+          do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
+             ps1(igrid)%w=ps(igrid)%w
+             if(stagger_grid) ps1(igrid)%ws=ps(igrid)%ws
+          end do
+          !$OMP END PARALLEL DO
+          call advect1(flux_method,0.5d0, idim^LIM,global_time+dt/3.0d0,ps2,global_time,ps1)
+          call advect1(flux_method,1.0d0, idim^LIM,global_time+0.5d0*dt,ps1,global_time,ps)
+
+       case (IMEX_RK4)
+          ! step 1
+          call global_implicit_update(1d0/4d0,dt,global_time,ps1,ps)
+          !$OMP PARALLEL DO PRIVATE(igrid)
+          do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
+             ps2(igrid)%w=ps1(igrid)%w 
+             if(stagger_grid) then
+               ps2(igrid)%ws=ps1(igrid)%ws
+             end if
+          end do
+          !$OMP END PARALLEL DO
+
+          call advect1(flux_method,1d0/4d0, idim^LIM,global_time,ps,global_time,ps2)
+          ! step 2
+          call global_implicit_update(1d0/12d0,dt,global_time + dt/4d0,ps3,ps2)
+          !$OMP PARALLEL DO PRIVATE(igrid)
+          do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
+             ps(igrid)%w=ps1(igrid)%w + ps3(igrid)%w -ps2(igrid)%w
+             ps1(igrid)%w=ps(igrid)%w 
+             if(stagger_grid) then
+               ps(igrid)%ws=ps1(igrid)%ws + ps3(igrid)%ws -ps2(igrid)%ws
+               ps1(igrid)%ws=ps(igrid)%ws 
+             end if
+          end do
+          !$OMP END PARALLEL DO
+
+          call advect1(flux_method,1d0/3d0, idim^LIM,global_time + dt/4d0,ps2,global_time,ps)
+          ! step 3
+          call global_implicit_update(1d0/6d0,dt,global_time + dt/3d0,ps3,ps)
+          !$OMP PARALLEL DO PRIVATE(igrid)
+          do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
+             ps2(igrid)%w=ps1(igrid)%w + ps3(igrid)%w - ps(igrid)%w
+             ps1(igrid)%w=ps2(igrid)%w 
+             if(stagger_grid) then
+               ps2(igrid)%ws=ps1(igrid)%ws + ps3(igrid)%ws - ps(igrid)%ws
+               ps1(igrid)%ws=ps2(igrid)%ws 
+             end if
+          end do
+          !$OMP END PARALLEL DO
+          call advect1(flux_method,1d0/2d0, idim^LIM,global_time + dt/2d0,ps,global_time,ps2)
+
+          ! step 4
+          call global_implicit_update(1d0/2d0,dt,global_time + dt/3d0,ps3,ps2)
+          !$OMP PARALLEL DO PRIVATE(igrid)
+          do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
+             ps(igrid)%w=ps3(igrid)%w - ps2(igrid)%w + ps1(igrid)%w
+             if(stagger_grid) then
+               ps(igrid)%ws=ps3(igrid)%ws - ps2(igrid)%ws + ps1(igrid)%ws
+             end if
+          end do
+          !$OMP END PARALLEL DO
+          call advect1(flux_method,1d0, idim^LIM,global_time + dt/2d0,ps2,global_time,ps)
+
        case default
           call mpistop("unkown fourstep time_integrator in advect")
        end select
@@ -526,7 +604,6 @@ contains
        select case (t_integrator)
        case (ssprk5)
           ! SSPRK(5,4) by Ruuth and Spiteri
-          !bcexch = .false.
           call advect1(flux_method,rk_beta11, idim^LIM,global_time,ps,global_time,ps1)
           !$OMP PARALLEL DO PRIVATE(igrid)
           do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
@@ -560,12 +637,11 @@ contains
              ps(igrid)%w=ps3(igrid)%w+rk_alfa55*ps2(igrid)%w &
                 +(rk_beta54/rk_beta44)*(ps2(igrid)%w-(rk_alfa41*ps(igrid)%w+rk_alfa44*ps1(igrid)%w))
              if(stagger_grid) then
-             ps(igrid)%ws=ps3(igrid)%ws+rk_alfa55*ps2(igrid)%ws &
-                +(rk_beta54/rk_beta44)*(ps2(igrid)%ws-(rk_alfa41*ps(igrid)%ws+rk_alfa44*ps1(igrid)%ws))
-             endif
+                ps(igrid)%ws=ps3(igrid)%ws+rk_alfa55*ps2(igrid)%ws &
+                   +(rk_beta54/rk_beta44)*(ps2(igrid)%ws-(rk_alfa41*ps(igrid)%ws+rk_alfa44*ps1(igrid)%ws))
+             end if
           end do
           !$OMP END PARALLEL DO
-          !bcexch = .true.
           call advect1(flux_method,rk_beta55, idim^LIM,global_time+rk_c5*dt,ps2,global_time+(1.0d0-rk_beta55)*dt,ps)
 
        case default
@@ -576,13 +652,20 @@ contains
        call mpistop("unkown time_stepper in advect")
     end select
 
+    !> if IMEX schemes are not begin used while the implicit solver is not null,
+    !> we simply use first order method, as in IMEX_Euler
+    if (associated(phys_implicit_update) .and. (.not.use_imex_scheme)) then
+      call phys_implicit_update(1.0d0,dt,global_time+dt,ps,ps)
+      call getbc(global_time+dt,dt,ps,1,nwflux,gc_hydro,phys_req_diagonal)
+    end if
+
   end subroutine advect
 
   !> Implicit global update step within IMEX schemes, advance psa=psb+dtfactor*qdt*F_im(psa)
   subroutine global_implicit_update(dtfactor,qdt,qtC,psa,psb)
     use mod_global_parameters
     use mod_ghostcells_update
-    use mod_physics, only: phys_implicit_update, phys_req_diagonal
+    use mod_physics
 
     type(state), target :: psa(max_blocks)   !< Compute implicit part from this state and update it
     type(state), target :: psb(max_blocks)   !< Will be unchanged, as on entry
@@ -590,20 +673,31 @@ contains
     double precision, intent(in) :: qtC      !< Both states psa and psb at this time level
     double precision, intent(in) :: dtfactor !< Advance psa=psb+dtfactor*qdt*F_im(psa)
 
-    integer                        :: iigrid, igrid
+    double precision :: delta_t
+    integer :: iigrid, igrid
+
+    delta_t = dtfactor * qdt
 
     !> First copy all variables from a to b, this is necessary to account for
-    ! quantities is w with no implicit sourceterm
-    do iigrid=1,igridstail; igrid=igrids(iigrid);
+    !> quantities is w with no implicit sourceterm
+    !$OMP PARALLEL DO PRIVATE(igrid)
+    do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
+    !do iigrid=1,igridstail; igrid=igrids(iigrid);
        psa(igrid)%w = psb(igrid)%w
+       if (stagger_grid) then
+          psa(igrid)%ws = psb(igrid)%ws
+          !call phys_face_to_center(ixM^LL, psa(igrid))
+       end if
     end do
+    !$OMP END PARALLEL DO
 
     if (associated(phys_implicit_update)) then
        call phys_implicit_update(dtfactor,qdt,qtC,psa,psb)
     end if
 
     ! enforce boundary conditions for psa
-    call getbc(qtC,0.d0,psa,iwstart,nwgc,phys_req_diagonal)
+    ! here we assume all the primitive variables are updated in psa
+    call getbc(qtC+delta_t,delta_t,psa,1,nwflux,gc_hydro,phys_req_diagonal)
 
   end subroutine global_implicit_update
 
@@ -614,9 +708,16 @@ contains
 
     type(state), target :: psa(max_blocks)   !< Compute implicit part from this state and update it
     double precision, intent(in) :: qtC      !< psa at this time level
+    integer :: iigrid, igrid
 
     if (associated(phys_evaluate_implicit)) then
        call phys_evaluate_implicit(qtC,psa)
+    else
+       !$OMP PARALLEL DO PRIVATE(igrid)
+       do iigrid=1,igridstail; igrid=igrids(iigrid);
+          psa(igrid)%w = 0.0d0
+       end do
+       !$OMP END PARALLEL DO
     end if
 
   end subroutine evaluate_implicit
@@ -637,11 +738,20 @@ contains
     integer, intent(in) :: method(nlevelshi)
 
     double precision :: qdt
-    integer :: iigrid, igrid
+    integer :: iigrid, igrid, level
+
+    logical :: setigrid
 
     istep = istep+1
 
-    if(associated(phys_special_advance)) then
+    ! fixme: seems no need, remove this
+    !!$OMP PARALLEL DO PRIVATE(igrid)
+    !do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
+    !   if (stagger_grid) call phys_face_to_center(ixM^LL, psa(igrid))
+    !end do
+    !!$OMP END PARALLEL DO
+
+    if (associated(phys_special_advance)) then
       call phys_special_advance(qtC,psa)
     end if
 
@@ -651,15 +761,13 @@ contains
     do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
        block=>ps(igrid)
        ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
-
-       call process1_grid(method(block%level),igrid,qdt,ixG^LL,idim^LIM,qtC,&
+       call process1_grid(method(ps(igrid)%mesh%level),igrid,qdt,ixG^LL,idim^LIM,qtC,&
             psa(igrid),qt,psb(igrid),pso(igrid))
     end do
     !$OMP END PARALLEL DO
 
     ! opedit: Send flux for all grids, expects sends for all
     ! nsend_fc(^D), set in connectivity.t.
-
     if (fix_conserve_global .and. fix_conserve_at_step) then
       call recvflux(idim^LIM)
       call sendflux(idim^LIM)
@@ -673,18 +781,10 @@ contains
         end do
         !$OMP END PARALLEL DO
       end if
-      if(phys_solve_eaux) then
-        ! synchronize internal energy for AMR mesh
-        !$OMP PARALLEL DO PRIVATE(igrid)
-        do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
-          call phys_energy_synchro(ixG^LL,ixM^LL,psb(igrid)%w,psb(igrid)%x)
-        end do
-        !$OMP END PARALLEL DO
-      end if
     end if
 
     ! For all grids: fill ghost cells
-    call getbc(qt+qdt,qdt,psb,iwstart,nwgc,phys_req_diagonal)
+    call getbc(qt+qdt,qdt,psb,1,nwflux,gc_hydro,phys_req_diagonal)
 
   end subroutine advect1
 
@@ -698,17 +798,19 @@ contains
     double precision, intent(in) :: qdt, qtC, qt
     type(state), target          :: sCT, s, sold
 
+    double precision :: dx^D
     ! cell face flux
     double precision :: fC(ixI^S,1:nwflux,1:ndim)
     ! cell edge flux
     double precision :: fE(ixI^S,7-2*ndim:3)
 
-    call advect1_grid(method,qdt,ixI^L,idim^LIM,qtC,sCT,qt,s,sold,fC,fE,&
-         rnode(rpdx1_:rnodehi,igrid),ps(igrid)%x)
+    dx^D=rnode(rpdx^D_,igrid);
+
+    ! fixme: remove dx to make the code more compact
+    call advect1_grid(method,qdt,ixI^L,idim^LIM,qtC,sCT,qt,s,sold,fC,fE,dx^D)
 
     ! opedit: Obviously, flux is stored only for active grids.
     ! but we know in fix_conserve wether there is a passive neighbor
-    ! but we know in conserve_fix wether there is a passive neighbor
     ! via neighbor_active(i^D,igrid) thus we skip the correction for those.
     ! This violates strict conservation when the active/passive interface
     ! coincides with a coarse/fine interface.
@@ -720,7 +822,7 @@ contains
   end subroutine process1_grid
 
   !> Advance a single grid over one partial time step
-  subroutine advect1_grid(method,qdt,ixI^L,idim^LIM,qtC,sCT,qt,s,sold,fC,fE,dxs,x)
+  subroutine advect1_grid(method,qdt,ixI^L,idim^LIM,qtC,sCT,qt,s,sold,fC,fE,dx^D)
 
     !  integrate one grid by one partial step
     use mod_finite_volume
@@ -731,7 +833,7 @@ contains
 
     integer, intent(in) :: method
     integer, intent(in) :: ixI^L, idim^LIM
-    double precision, intent(in) :: qdt, qtC, qt, dxs(ndim), x(ixI^S,1:ndim)
+    double precision, intent(in) :: qdt, qtC, qt, dx^D
     type(state), target          :: sCT, s, sold
     double precision :: fC(ixI^S,1:nwflux,1:ndim)
     double precision :: fE(ixI^S,7-2*ndim:3)
@@ -740,22 +842,21 @@ contains
 
     ixO^L=ixI^L^LSUBnghostcells;
     select case (method)
-    case (fs_hll,fs_hllc,fs_hllcd,fs_hlld,fs_tvdlf,fs_tvdmu)
-       call finite_volume(method,qdt,ixI^L,ixO^L,idim^LIM,qtC,sCT,qt,s,sold,fC,fE,dxs,x)
-    case (fs_cd,fs_cd4)
-       call centdiff(method,qdt,ixI^L,ixO^L,idim^LIM,qtC,sCT,qt,s,fC,fE,dxs,x)
-    case (fs_hancock)
-       call hancock(qdt,ixI^L,ixO^L,idim^LIM,qtC,sCT,qt,s,dxs,x)
+    case (fs_hll,fs_tvdlf,fs_tvdmu)
+       call finite_volume(method,qdt,ixI^L,ixO^L,idim^LIM,qtC,sCT,qt,s,sold,fC,fE,dx^D)
+    case (fs_fd_hll)
+       call finite_difference(method,qdt,ixI^L,ixO^L,idim^LIM,qtC,sCT,qt,s,sold,fC,fE,dx^D)
     case (fs_fd)
-       call fd(qdt,ixI^L,ixO^L,idim^LIM,qtC,sCT,qt,s,fC,fE,dxs,x)
+       call fd(qdt,ixI^L,ixO^L,idim^LIM,qtC,sCT,qt,s,sold,fC,fE,dx^D)
     case (fs_tvd)
-       call centdiff(fs_cd,qdt,ixI^L,ixO^L,idim^LIM,qtC,sCT,qt,s,fC,fE,dxs,x)
-       call tvdlimit(method,qdt,ixI^L,ixO^L,idim^LIM,sCT,qt+qdt,s,fC,dxs,x)
+       call tvdlimit(method,qdt,ixI^L,ixO^L,idim^LIM,sCT,qt+qdt,s,fC,dx^D,s%mesh%x)
     case (fs_source)
        call addsource2(qdt*dble(idimmax-idimmin+1)/dble(ndim),&
-            ixI^L,ixO^L,1,nw,qtC,sCT%w,qt,s%w,x,.false.)
+            ixI^L,ixO^L,1,nwflux,qtC,sCT,sold,qt,s%w,.false.)
     case (fs_nul)
        ! There is nothing to do
+       fC = 0.0d0 ! this is needed for mod_fix_conserve
+       fE = 0.0d0 ! this is needed for mod_fix_conserve
     case default
        call mpistop("unknown flux scheme in advect1_grid")
     end select
@@ -764,34 +865,57 @@ contains
 
   !> process is a user entry in time loop, before output and advance
   !>         allows to modify solution, add extra variables, etc.
-  !> Warning: CFL dt already determined (and is not recomputed)!
+  !> Warning: CFL dt already determined (and is not recomputed)! 
   subroutine process(iit,qt)
     use mod_usr_methods, only: usr_process_grid, usr_process_global
+    use mod_physics, only: phys_process_grid, &
+                           phys_process_global
     use mod_global_parameters
     use mod_ghostcells_update
-    use mod_physics, only: phys_req_diagonal
     ! .. scalars ..
     integer,intent(in)          :: iit
     double precision, intent(in):: qt
-
+    logical :: update_bc
     integer:: iigrid, igrid
 
-    if (associated(usr_process_global)) then
-       call usr_process_global(iit,qt)
+    update_bc = .False.
+
+    if (associated(phys_process_global)) then
+       call phys_process_global(iit,qt)
+       update_bc = .True.
     end if
 
-    if (associated(usr_process_grid)) then
+    if (associated(phys_process_grid)) then
       !$OMP PARALLEL DO PRIVATE(igrid)
       do iigrid=1,igridstail; igrid=igrids(iigrid);
          ! next few lines ensure correct usage of routines like divvector etc
          ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
          block=>ps(igrid)
-         call usr_process_grid(igrid,node(plevel_,igrid),ixG^LL,ixM^LL, &
-              qt,ps(igrid)%w,ps(igrid)%x)
+         call phys_process_grid(igrid,plevel_,ixG^LL,ixM^LL, &
+              qt,ps(igrid)%w,ps(igrid)%mesh%xbar)
       end do
       !$OMP END PARALLEL DO
-      call getbc(qt,dt,ps,iwstart,nwgc,phys_req_diagonal)
+      update_bc = .True.
     end if
+    if (update_bc) call getbc(qt,dt,ps,1,nwflux,gc_hydro)
+
+    if (associated(usr_process_global)) then
+       call usr_process_global(iit,qt)
+       update_bc = .True.
+    end if
+
+    if (associated(usr_process_grid)) then
+      !$OMP PARALLEL DO PRIVATE(igrid)
+      do iigrid=1,igridstail; igrid=igrids(iigrid);
+         block=>ps(igrid)
+         ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
+         call usr_process_grid(igrid,plevel_,ixG^LL,ixM^LL,qt,ps(igrid))
+      end do
+      !$OMP END PARALLEL DO
+       update_bc = .True.
+    end if
+    if (update_bc) call getbc(qt,dt,ps,1,nwflux,gc_hydro)
+
   end subroutine process
 
   !> process_advanced is user entry in time loop, just after advance
@@ -799,33 +923,80 @@ contains
   !>           added for handling two-way coupled PIC-MHD
   !> Warning: w is now at global_time^(n+1), global time and iteration at global_time^n, it^n
   subroutine process_advanced(iit,qt)
+    use mod_small_values, only: w_NaN_checker
     use mod_usr_methods, only: usr_process_adv_grid, &
                                usr_process_adv_global
+    use mod_physics, only: phys_handle_small_values, &
+                           phys_process_adv_grid, &
+                           phys_process_adv_global
     use mod_global_parameters
     use mod_ghostcells_update
-    use mod_physics, only: phys_req_diagonal
     ! .. scalars ..
     integer,intent(in)          :: iit
     double precision, intent(in):: qt
-
+    logical :: update_bc
     integer:: iigrid, igrid
+
+    update_bc = .False.
+
+    if (associated(phys_process_adv_global)) then
+       call phys_process_adv_global(iit,qt)
+       update_bc = .True.
+    end if
+
+    if (associated(phys_process_adv_grid)) then
+      !$OMP PARALLEL DO PRIVATE(igrid)
+      do iigrid=1,igridstail; igrid=igrids(iigrid);
+         block=>ps(igrid)
+         ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
+         call phys_process_adv_grid(igrid,plevel_,ixG^LL,ixM^LL, &
+              qt,ps(igrid)%w,ps(igrid)%mesh%xbar)
+      end do
+      !$OMP END PARALLEL DO
+      update_bc = .True.
+    end if
+    if (update_bc) call getbc(qt,dt,ps,1,nwflux,gc_hydro)
 
     if (associated(usr_process_adv_global)) then
        call usr_process_adv_global(iit,qt)
+       update_bc = .True.
     end if
 
     if (associated(usr_process_adv_grid)) then
       !$OMP PARALLEL DO PRIVATE(igrid)
       do iigrid=1,igridstail; igrid=igrids(iigrid);
-         ! next few lines ensure correct usage of routines like divvector etc
-         ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
          block=>ps(igrid)
-
-         call usr_process_adv_grid(igrid,node(plevel_,igrid),ixG^LL,ixM^LL, &
-              qt,ps(igrid)%w,ps(igrid)%x)
+         ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
+         call usr_process_adv_grid(igrid,plevel_,ixG^LL,ixM^LL, &
+              qt,ps(igrid))
       end do
       !$OMP END PARALLEL DO
-      call getbc(qt,dt,ps,iwstart,nwgc,phys_req_diagonal)
+      update_bc = .True.
+    end if
+
+    if (update_bc) call getbc(qt,dt,ps,1,nwflux,gc_hydro)
+
+    ! check and optionally correct unphysical values
+    ! note that NaN of rho/ eps will be treat as small value here.
+    if ( fix_small_values ) then
+       !$OMP PARALLEL DO PRIVATE(igrid)
+       do iigrid=1,igridstail; igrid=igrids(iigrid);
+          ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
+          block=>ps(igrid)
+          call phys_handle_small_values(ps(igrid),ixG^LL,ixM^LL, 'process_advanced')
+       end do
+       !$OMP END PARALLEL DO
+    end if
+
+    ! check if there are any NaN_values
+    if (check_NaN_values) then
+       !$OMP PARALLEL DO PRIVATE(igrid)
+       do iigrid=1,igridstail; igrid=igrids(iigrid);
+          ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
+          block=>ps(igrid)
+          call w_NaN_checker(ixG^LL,ixM^LL,ps(igrid)%w(ixG^T,1:nw),ps(igrid)%mesh%xbar(ixG^T,1:ndim))
+       end do
+       !$OMP END PARALLEL DO
     end if
   end subroutine process_advanced
 

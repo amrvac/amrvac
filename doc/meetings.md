@@ -4,42 +4,9 @@
 
 # Upcoming meetings {#meetings-upcoming}
 
-## AMRVAC/BHAC Code Developer's [ABCD] meeting 30 March - 3 April 2020
+## AMRVAC/BHAC meeting early March 2020
 
 * Location: KU Leuven, Belgium
-* Organization: R. Keppens
-
-### Participants
-
-* Rony Keppens
-* Jannis Teunissen
-* Oliver Porth
-* Chun Xia
-* Yang Guo
-* Bart Ripperda
-* Fabio Bacchini
-* Niels Claes
-* Hector Olivares
-* Elias Most
-* Yuhao Zhou
-* Wenzhi Ruan
-* Sebastiaan Selvi
-* Ileyk El Mellah
-* Fabien Casse
-* Nicolas Moens
-* Alexander Philippov
-* Jack Jenkins
-* Pushpita Das
-
-### Summary
-
-This second ABCD meeting targets further code streamlining, adding functionality in both the physics
-and the numerical algorithmic techniques. We also plan to discuss and initiate future collaborative efforts. 
-We will dedicate attention to visualization and python post-processing, as well as to formulating long term code strategies.
-
-### Suggested discussion topics
-
-https://docs.google.com/document/d/1-Vp81z_fTQiwUPR4C5eTMkbQKMg1PVWDpc5rMB621Ec/edit?usp=sharing
 
 # Past meetings {#past-meetings}
 

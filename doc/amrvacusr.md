@@ -1,4 +1,4 @@
-# Setting up a new problem
+# Setting up an new problem
 
 [TOC]
 
@@ -27,11 +27,6 @@ Alternatively, you can look for an existing problem (look in `tests/`) and
 customize its `mod_usr.t` or `mod_usr.f` file to get started. To create a normal
 Fortran file from `mod_usr.t`, you can type `make mod_usr.f`.
 Specify other user routines, for a list see mod_usr_methods.t
-WARNING: If you have compiled your code in n dimension, e.g., -d=3, and want 
-switch to another dimension with the same mod_usr.t file, e.g., -d=2, You need to 
-remove the mod_usr.f file before make to compile because the mod_usr.f will not 
-be updated if mod_usr.t is not changed or touched and it will remain in the 
-n-dimension form.
 
 # Structure of mod_usr.t {#user_structure}
 
@@ -76,12 +71,11 @@ can then base refinement as well.
 
 ## Special output and analysis {#user_speciallog}
 
-The default log-file may be altered, for which you need to code up  
+The default log-file may be altered, for which you need to code up the 
 a **usr_print_log** subroutine. For parallel execution,
 this invariably means the use of MPI constructs, so you should copy in the
 default version **printlog_default** from _src/amrvacio/mod_input_output.t_ 
-and then study it, and modify accordingly. An example of this customization is 
-given in _tests/rho/custom_log_file_.
+and then study it, and modify accordingly.
 
 A pointed **usr_aux_output** is extremely handy to compute variables from the
 actually computed conserved variables, that can then be visualized directly.

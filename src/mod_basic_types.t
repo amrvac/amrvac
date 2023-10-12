@@ -1,4 +1,4 @@
-!> Module with basic data types used in amrvac
+!> Module with basic data types used in gmunu
 module mod_basic_types
   implicit none
   public
@@ -15,7 +15,7 @@ module mod_basic_types
   !> Size (in bytes) of default logical
   integer, parameter :: size_logical = 4
 
-    !> Default length for strings
+  !> Default length for strings
   integer, parameter :: std_len = 131
 
   !> Default length for names (of e.g. variables)

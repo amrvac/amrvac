@@ -1,199 +1,181 @@
-# Test particle module for HD/MHD
+# Relativistic test particle module
 
-The test particle module in MPI-AMRVAC provides the possibility to track test particles, i.e. particles evolved according to the HD/MHD fields in a simulation without any feedback from the particles to these fields. Test particles can be added on top of an (M)HD state and evolved concurrently to the fluid. Alternatively, test particles can be evolved in a static snapshot, i.e. without evolving the underlying fluid quantities. The test particle module can also be used to sample the fluid quantities at specific locations (which may differ from the computational grid points) and output the results separately from the usual <tt>.dat</tt> and <tt>.vtu</tt> files.
+The test particle module in MPI-AMRVAC solves the **special relativistic equations of motion** for test particles (i.e. particles guided by electromagnetic fields, without kinetic feedback from the particles to the electromagnetic fields). There are three options to resolve particle dynamics, listed in the order of most demanding in time to least demanding. The first is to solve the full **special relativistic equation of motion** for charged particles guided by the Lorentz force:
 
-The particle module can work in four different modes, depending on the user's choice:
-* **Advection** (compatible with HD/MHD): In this mode particles represent Lagrangian blobs of fluid that are tracked through the physical domain. The fluid properties are interpolated at the particle location, which is advected by using the local fluid speed.
-* **Charged particles: Full Lorentz dynamics** (compatible with MHD): This mode is used to solve the dynamics of charged particles, whose motion is determined by the electromagnetic fields of the underlying MHD state. The equations of motion for particles are formulated according to the full Lorentz dynamics. The user can switch between the Newtonian and the special-relativistic formulation of the equations of motion. While for the Newtonian case a standard Boris integrator is employed, several numerical integrators are available for treating the relativistic case.
-* **Charged particles: Guiding centre approximation** (compatible with MHD): In this case, the dynamics of charged particles is treated according to the guiding centre approximation (GCA) formalism. The user can again switch between the Newtonian and the relativistic equations of motion.
-* **Sampling** (compatible with HD/MHD): Particles represent fixed points in space where the fluid quantities are interpolated. The location and output cadence at these points can be different from those chosen for the computational grid points. This mode can be used to monitor fluid quantities at specific locations during a run.
+\f[\frac{d^2x_i}{d\tau^2} = F_{ik}\frac{dx_k}{d\tau}\f],
 
-In the next sections, the details of each mode are illustrated.
+in which the Einstein summation convention is used and with \f$x_i = (ct, \mathbf{r})\f$ the particles position in spacetime, \f$c\f$ the speed of light in vacuum and \f$\tau\f$ the proper time. \f$F_{ik}\f$ is the electromagnetic field tensor consisting of the components of \f$\mathbf{B}\f$ and \f$\mathbf{E}\f$. The equations can be split by choosing a certain frame of reference. The first three components are similar to the equation of motion \f$d\mathbf{p}/dt = q(\mathbf{E}+\mathbf{v}\times\mathbf{B})\f$, in three-space. Where \f$\mathbf{p}=m_0 \gamma \mathbf{v}\f$ is the relativistic momentum, with \f$m_0\f$ is the rest mass of the particle and \f$\gamma = 1/\sqrt{1-v^2/c^2}\f$ the Lorentz factor, \f$q\f$ the particles charge, \f$\mathbf{E}\f$ and \f$\mathbf{B}\f$ the electromagnetic fields guiding the particle and \f$\mathbf{v}\f$ the particles velocity. The fourth component is the rate of change of energy of the particle.
 
+Option two is solving the **relativistic guiding centre equations of motion** for charged particles (see [Northrop - Adiabatic charged-particle motion](http://onlinelibrary.wiley.com/doi/10.1029/RG001i003p00283/abstract)), consisting of three equations describing the (change in) guiding center position \f$\mathbf{R}\f$, parallel relativistic momentum \f$p_{\|} = m_0\gamma v_{\|}\f$ and relativistic magnetic moment \f$\mu_r\f$ in three-space:
 
-# Advection (HD/MHD)
-This mode is used to track fluid parcels moving through the simulation domain with the fluid speed. At each step, a simple equation of motion is solved for each particle,
-\f[ \frac{d\mathbf{x}}{dt} = \mathbf{v}, \f]
-where \f$\mathbf{v}\f$ is the local fluid velocity, linearly interpolated at the particle position \f$\mathbf{x}\f$. The equation of motion above is solved by means of a fourth-order Runge-Kutta integrator with adaptive time-stepping.
+\f[\frac{d\mathbf{R}}{dt} = \frac{\left(\gamma v_{\|}\right)}{\gamma}\mathbf{\hat{b}}+\frac{\mathbf{\hat{b}}}{B\left(1-\frac{E_{\perp}^{2}}{B^2}\right)} \times \Biggl\{ -\left(1-\frac{E_{\perp}^{2}}{B^2}\right)c\mathbf{E} + \Biggr. \nonumber\f]
 
-As the Lagrangian motion of the fluid particles is computed, it is possible to track various fluid quantities at the particle locations, e.g. the fluid density, pressure, etc. See the "Payloads" section below for further details.
+\f[\frac{cm_0\gamma}{q}\left(v_{\|}^{2}\left(\mathbf{\hat{b}}\cdot\nabla\right)\mathbf{\hat{b}}+v_{\|}\left(\mathbf{u_E}\cdot\nabla\right)\mathbf{\hat{b}} + v_{\|}\left(\mathbf{\hat{b}}\cdot\nabla\right)\mathbf{u_E} + \left(\mathbf{u_E}\cdot \nabla\right)\mathbf{u_E}\right) + \nonumber\f]
 
+\f[\Biggl. \frac{\mu_r c}{\gamma q}\nabla\left[B\left(1-\frac{E_{\perp}^{2}}{B^2}\right)^{1/2}\right]  + \frac{v_{\|}E_{\|}}{c}\mathbf{u_E}  \Biggr\}\f],
 
-# Charged particles (MHD): Full Lorentz dynamics
-A charged particle of charge \f$q\f$ and mass \f$m\f$ in electromagnetic fields evolves in time according to Newton's equations of motion
-\f[ \frac{d\mathbf{x}}{dt} = \mathbf{v}, \f]
-\f[ \frac{d\mathbf{v}}{dt} = \frac{q}{m}\left(\mathbf{E}+\mathbf{v}\times\mathbf{B}\right), \f]
-where \f$\mathbf{x}\f$ is the particle position, \f$\mathbf{v}\f$ is the velocity, and the electric and magnetic fields \f$\mathbf{E}\f$ and \f$\mathbf{B}\f$ provide the accelerating Lorentz force for the particle. The typical particle trajectory is a superposition of a parallel motion along magnetic field lines, a gyro-motion around magnetic field lines, and various "drift" mechanisms that allow the particle to cross magnetic field lines. As the magnetic field does no work on charged particles, a change in the particle kinetic energy is only associated to the presence of electric fields.
+\f[\frac{d \left(m_0 \gamma v_{\|}\right)}{dt} =  m_0\gamma\mathbf{u_E}\cdot \left(v_{\|}^{2}\left(\mathbf{\hat{b}}\cdot\nabla\right)\mathbf{\hat{b}}+v_{\|}\left(\mathbf{u_E}\cdot\nabla\right)\mathbf{\hat{b}}\right) +\nonumber \\ 
+qE_{\|} -\frac{\mu_r}{\gamma}\mathbf{\hat{b}}\cdot\nabla\left[B\left(1-\frac{E^{2}_{\perp}}{B^2}\right)^{1/2}\right]\f],
 
-The equations above are valid for a particle travelling at speeds much smaller than the speed of light in vacuum \f$c\f$. When \f$v\rightarrow c\f$, it is necessary to adopt the **relativistic equations of motion**
-\f[ \frac{d\mathbf{x}}{dt} = \frac{\mathbf{u}}{\gamma}, \f]
-\f[ \frac{d\mathbf{u}}{dt} = \frac{q}{m}\left(\mathbf{E}+\frac{\mathbf{u}}{\gamma}\times\mathbf{B}\right), \f]
-where \f$\mathbf{u}=\gamma\mathbf{v}\f$ is the normalised particle momentum, with \f$\gamma=\sqrt{1+u^2/c^2}=1/\sqrt{1-v^2/c^2}\f$ the Lorentz factor.
+\f[\frac{d \left(m_0 \gamma^{*2} v^{*2}_{\perp}/2B^*\right)}{dt} = \frac{d \mu_{r}^{*}}{dt} = 0\f].
 
-For the relativistic case, the solution of the equations for the Lorentz dynamics can be carried out numerically in several fashions. Below we list the options available in MPI-AMRVAC:
-* **Boris algorithm**: the equations of motion are solved with the Boris scheme (Boris 1970), popular for its simplicity and limited computational cost.
-* **Vay algorithm**: this more recent scheme (Vay 2008) is more suitable for particles travelling at highly relativistic speeds.
-* **Higuera-Cary algorithm**: this scheme exhibits smaller numerical errors in the particle gyro-phase with respect to the Boris algorithm (Higuera and Cary 2010). It provides advantages for ultra-relativistic particle motion.
-* **Lapenta-Markidis algorithm**: this is a fully-implicit iterative scheme, and is therefore more expensive than the three previous schemes, which carry out the solution explicitly. The higher computational cost is compensated by the fact that this scheme introduces no numerical errors in the particle energy (Lapenta and Markidis 2011). In all cases (as well as for the Newtonian case) the particle time step is obtained by ensuring that the particle gyro-period is resolved by 60 points.
+with \f$\mathbf{\hat{b}}\f$ the unit vector in the direction of the magnetic field, \f$E\f$ the amplitude of the electric field vector and \f$v_{\|}\f$ the component of the particle velocity vector parallel to \f$\mathbf{\hat{b}}\f$. The drift velocity, perpendicular to \f$\mathbf{B}\f$ is written as \f$\mathbf{u_E} = \frac{c\mathbf{E}\times\mathbf{\mathbf{\hat{b}}}}{B}\f$ and \f$v^{*}_{\perp}\f$ is the perpendicular velocity the particle has, where we chose the frame of reference moving at \f$\mathbf{u_E}\f$. The magnetic field in that frame is given by \f$B^* = B(1-E^{2}_{\perp}/B^2)^{1/2}\f$ up to first order. The relativistic magnetic moment \f$\mu_{r}^{*}\f$ is  also evaluated in the frame of reference moving at \f$\mathbf{u_E}\f$. The Lorentz factor is not constant, but oscillates at the gyrofrequency, \f$\gamma = \gamma^{*}(1-E^{2}_{\perp}/B^2)^{-1/2}\f$.
 
+The third option is to solve the **advection equation** for neutral particles.
 
-# Charged particles (MHD): Guiding centre approximation
-In this mode, a "reduced" set of equations is employed to resolve the dynamics of charged particles, according to the so-called "guiding centre approximation" (GCA) paradigm. This neglects the particle gyro-motion, and may present advantages in certain physical scenarios. The equations of motion in this case are
-\f[ \begin{aligned}
-    \frac{d\mathbf{R}}{dt} = & \mathbf{v}_{\|} + \mathbf{v}_E + \frac{\hat{\mathbf{b}}}{B}\times\frac{\mu}{q}\nabla B \\
-                             & + \frac{m\hat{\mathbf{b}}}{qB} \times\left\{ v_{\|}^2\left(\hat{\mathbf{b}}\cdot\nabla\right)\hat{\mathbf{b}} + v_{\|}\left(\mathbf{v}_E\cdot\nabla\right)\hat{\mathbf{b}} + v_{\|}\left(\hat{\mathbf{b}}\cdot\nabla\right)\mathbf{v}_E + \left(\mathbf{v}_E\cdot\nabla\right)\mathbf{v}_E \right\},
-\end{aligned} \f]
-\f[ \frac{dv_{\|}}{dt} = \frac{q}{m}E_{\|} - \frac{\mu}{m}\hat{\mathbf{b}}\cdot\nabla B + \mathbf{v}_E\cdot\left(v_{\|}\left(\hat{\mathbf{b}}\cdot\nabla\right)\hat{\mathbf{b}}+\left(\mathbf{v}_E\cdot\nabla\right)\hat{\mathbf{b}}\right), \f]
-\f[ \frac{d\mu}{dt} = 0, \f]
-where \f$\mathbf{R}\f$ is the guiding centre position and \f$\mathbf{v}_{\|}=(\mathbf{v}\cdot\hat{\mathbf{b}})\hat{\mathbf{b}}\f$ is the particle velocity in the direction parallel to the magnetic field. The unit vector \f$\hat{\mathbf{b}}=\mathbf{B}/B\f$ also defines the drift velocity \f$\mathbf{v}_E=\mathbf{E}\times\hat{\mathbf{b}}/B\f$ and the parallel electric field \f$E_{\|}=\mathbf{E}\cdot\hat{\mathbf{b}}\f$. The conservation of the adiabatic invariant \f$\mu=mv_\perp^2/(2B)\f$, with \f$v_\perp\f$ the particle velocity perpendicular to \f$\mathbf{B}\f$, is an assumption of this paradigm and may not be valid in general.
+All three modules are compatible with all the geometries available in MPI-AMRVAC. The magnetic fields are interpolated from (SR)MHD data and the electric fields and derivatives are calculated in the particle module.
 
-For particles travelling at velocities close to \f$c\f$, the special-relativistic formulation of the equations above reads
-\f[ \begin{aligned}
-    \frac{d\mathbf{R}}{dt} = & \frac{\mathbf{u}_{\|}}{\gamma} + \mathbf{v}_E 
-    + \frac{\kappa^2\hat{\mathbf{b}}}{B}\times\left\{\frac{\mu_r}{q\gamma}\nabla (B/\kappa) + \frac{u_{\|}}{\gamma}E_{\|}\mathbf{v}_E\right\} \\
-    & + \frac{m\kappa^2\hat{\mathbf{b}}}{qB}\times\left\{\frac{u_{\|}^2}{\gamma}\left(\hat{\mathbf{b}}\cdot\nabla\right)\hat{\mathbf{b}} + u_{\|}\left(\mathbf{v}_E\cdot\nabla\right)\hat{\mathbf{b}} + u_{\|}\left(\hat{\mathbf{b}}\cdot\nabla\right)\mathbf{v}_E + \gamma\left(\mathbf{v}_E\cdot\nabla\right)\mathbf{v}_E\right\},
-\end{aligned} \f]
-\f[ \frac{du_{\|}}{dt} = \frac{q}{m}E_{\|} - \frac{\mu_r}{m\gamma}\hat{\mathbf{b}}\cdot\nabla \left( B/\kappa\right) + \mathbf{v}_E\cdot\left(u_{\|}\left(\hat{\mathbf{b}}\cdot\nabla\right)\hat{\mathbf{b}}+\gamma\left(\mathbf{v}_E\cdot\nabla\right)\hat{\mathbf{b}}\right), \f]
-\f[ \frac{d\mu_r}{dt} = 0, \f]
-where \f$\mathbf{u}_{\|}=\mathbf{v}_{\|}\gamma\f$, and \f$\kappa=1/\sqrt{1-v_E^2/c^2}\f$ is the Lorentz factor corresponding to the frame moving at a speed equal to \f$\mathbf{v}_E\f$. These equations are obtained by averaging over the particle gyro-motion, and therefore assume the conservation of the relativistic magnetic moment \f$\mu_r=m\gamma^2 v_\perp^2/(2B)\f$. Because of the averaging, it can be shown that the expansion of the guiding centre velocity leads to the definition of the Lorentz factor \f$\gamma = \kappa\sqrt{1+(u_{\|}^2+2\mu_r B/m)/c^2} = \kappa\sqrt{(1+2\mu_r B/(mc^2))/(1-v_{\|}^2/c^2)}\f$ up to first order. This implies that the dominant drift mechanism in the guiding centre motion is represented by \f$\mathbf{v}_E\f$. For both the Newtonian and relativistic cases, the assumption of slowly time-varying electromagnetic fields has been made, in order to simplify the equations of motion. This is justified by the reasonable assumption that the particle dynamics takes place on much faster time scales than that of the typical MHD evolution.
+The particle module can be called by defining it in the **definitions.h** file. Then a choice can be made between solving the full equation of motion, applying the guiding centre approximation or just solving the advection equation. For example, for solving the guiding centre equations of motion, add the following lines to **definitions.h**:
 
-The solution of the equations above is carried out in MPI-AMRVAC with a fourth-order Runge-Kutta numerical integrator with adaptive time stepping.
+	#define PARTICLES
+	#define PARTICLES_GCA
 
+Or:
 
-# Scattered sampling (HD/MHD)
-With this mode, the user is allowed to sample the fluid quantities at an arbitrary number of points in space, which may or may not be spatially distinguished from the numerical grid points. All quantities are retrieved at such locations via linear interpolation. By default, the quantities used in a standard HD/MHD run are computed at the sampling points (density, momentum, pressure/energy/temperature, and magnetic field components in the MHD case). The user is also free to define their own list of additional quantities to be sampled (e.g. the current).
+	#define PARTICLES
+	#define PARTICLES_LORENTZ
 
+to solve the full equation of motion.
 
-# Usage and input file parameters
-All particle-related computations can be activated by setting <tt>hd_particles=.true.</tt> in the \p hd_list (if running in HD) or <tt>mhd_particles=.true.</tt> in the \p mhd_list (if running in MHD) of the <tt>.par</tt> file. If the particle calculations are switched on, additional parameters can be specified in the \p particles_list. Below is a description of these parameters and their role in the particle modules.
+The following files from the **src** directory have to be included in the **amrvacusr.t** file:
 
-## Initialisation
-Below, we describe the essential steps needed to correctly set up a particle simulation.
+	INCLUDE:amrvacmodules/handle_particles.t
+	INCLUDE:amrvacmodules/integrate_particles.t
 
-- **Choice of mode**: the user can choose to run the particle module in the advection, Lorentz, GCA, or sampling modes. This is determined by the parameter \p physics_type_particles, which can be set to \p 'advect', \p 'Lorentz', \p 'GCA', or \p 'sample'.
+Or directly from your working directory. These files evolve and integrate the particles. They call the file to initiate particles: amrvacmodules/init_particles.t to initiate the particles and the particle module in which all subroutines necessary for particle communication are written: modules/mod_particles.t.
 
-- **Number of particles**: the most important parameter is the number of particles whose trajectory should be integrated during the calculations. The user can choose such a number via the parameter \p num_particles (an integer).
+# Parameters
 
-- **Particle position and velocity**: for all choices of \p physics_type_particles, the particles must be initialised at the desired locations in space. For the \p 'Lorentz' and \p 'GCA' modes, a velocity distribution should also be specified.
-  
-  The user can specify their own particle initialisation setup in the \p mod_usr.t file. Then, the user must associate the pointer \p usr_create_particles with their particle initialisation subroutine (named e.g. \p generate_particles). The format for such a routine *must* be:
+In the par-file there are few parameters which are relevant for the particle module. Most parameters can be chosen in the separate particle files described below. However, in the par-file one can choose whether the particles are evolved alongside the MHD simulation, or if they are separately evolved in a static MHD snapshot. To apply this option the following convert type has to be chose in the **amrvac.par** file:
 
-  \code{.f90}
-  subroutine generate_particles(n_particles, x, v, q, m, follow)
-    integer, intent(in)           :: n_particles
-    double precision, intent(out) :: x(3, n_particles)
-    double precision, intent(out) :: v(3, n_particles)
-    double precision, intent(out) :: q(n_particles)
-    double precision, intent(out) :: m(n_particles)
-    logical, intent(out)          :: follow(n_particles)
+	convert_type  = 'particlesmpi'
 
-  end subroutine generate_particles
-  \endcode
+When this convert_type is not chosen, the particles will be evolved simultaneously with the MHD or HD simulation. When no particle data file is provided for the chosen snapshot(s), the code will automatically initialise the particles from amrvacmodules/init_particles.t. The timesteps chosen for output in the par-file can be used in amrvacmodules/init_particles.t to let particle data be outputted at the same timesteps as the MHD or HD simulation, or for instance at smaller timescales, like in the next example.
 
-  Here, \p x is the particle position, \p v is the particle velocity, \p q is the particle charge, and \p m is the particle mass. The \p follow variable tells the routine whether a certain particle should be tracked individually during the simulation (see section "Output and visualisation" below). While the position will be used in all modes, information on the velocity, charge, and mass will only be employed if \p physics_type_particles is \p 'Lorentz' or \p 'GCA'. If the user does not provide their own particle initialisation subroutine (and/or if the latter is not associated with the \p usr_create_particles pointer), the code will by default initialise all particles at randomly generated locations inside the domain, with zero velocity, mass, and charge, and with <tt>follow=.false.</tt>.
+# Particle initialisation
 
-  By default, the code generates the particles on the processor #0 and then distributes them among the processors depending on which processor handles which spatial region. After the particles generated with the initial position and velocity have been distributed, the user has the option to perform additional operations such as modifying the particle velocity based on local MHD properties, discard particles that are found outside of specific regions of interest, etc. For example, the user may choose to retain only particles belonging to regions wheret he temperature is above a chosen threshold (an operation that cannot be performed at generation time, since processor #0 where particles are generated does not possess information on the spatial regions where the particles will be sent). This can be done by associating the pointer \p usr_check_particle in the user file. The pointer must be associated with a subroutine (named e.g. particle_modification) which *must* have the follwing format:
+In: amrvacmodules/init_particles.t in the subroutine: `init_particle_integrator()` the maximum number of iterations, the maximum time and the timesteps (both in real, physical time) can be chosen. Typical settings are:
 
-  \code{.f90}
-  subroutine particle_modification(igrid, x, v, q, m, follow, check)
-    integer, intent(in)             :: igrid
-    double precision, intent(in)    :: x(1:ndir)
-    double precision, intent(inout) :: v(1:ndir), q, m
-    logical, intent(inout)          :: follow
-    logical, intent(out)            :: check
+```{.f90}
+	!=============================================================================
+	subroutine init_particle_integrator()
+		
+	use mod_particles
+	use constants
+	include 'amrvacdef.f'
+	!-----------------------------------------------------------------------------
+	
+	itmax_particles   = 1000000000
+	tmax_particles    = tmax * (UNIT_LENGTH/UNIT_VELOCITY)
+	ditsave_particles = 8
+	dtsave_ensemble   = (dtsave(2)) * UNIT_LENGTH/UNIT_VELOCITY
+	dtheta            = 2.0d0 * dpi / 60.0d0
+		
+	end subroutine init_particle_integrator
+	!=============================================================================
+```
 
-  end subroutine particle_modification
-  \endcode
+In: amrvacmodules/init_particles.t in the subroutine: `init_particles()` the total number of particles **Npart** can be defined. One can also indicate the particles which have to be followed individually (like in the example below for particle number 174969), with a higher temporal resolution, outputted in a separate file:
 
-  Here, the user is free to apply modifications to the particle velocity, mass, charge, and to the \p follow parameter, but not to the particle position, which is assumed will stay unchanged (otherwise, handling the particles may require further communications). Whenever this subroutine returns a <tt>check=.false.</tt> flag, the particle will be *discarded*. For all particles that should be kept, it is necessary that <tt>check=.true.</tt> 
+```{.f90}
+	!=============================================================================
+	subroutine init_particles()
+	! initialise the particles
 
-- **Payloads**: particle simulations are especially flexible in terms of the quantities that can be dynamically stored in the particle output files. On top of tracking positions and velocities, an arbitrary number of payloads can be assigned to each particle in order to monitor additional physical aspects. As an example, in the \p 'advect' mode each particle can be assigned to track the local fluid density, which will be then stored in a payload variable and added to the output. A number of default payloads can be calculated and stored for each running mode. Additionally, the user can define custom payloads. The number of default and custom payloads is chosen by the user by setting the parameters \p ndefpayload and \nusrpayload in the \p particles_list of the <tt>.par</tt> file. By default, \p ndefpayload=1, and payload tracking can be suppressed by setting \p ndefpayload=0.
+	use constants
+	use mod_particles
+	use mod_gridvars
+	use Knuth_random
+	include 'amrvacdef.f'
 
-  The default payloads, depending on the running mode, are:
-  * For the \p 'advect' mode, the fluid density at the particle location will be tracked and stored in the first payload.
-  * For the \p 'Lorentz' mode, up to four payloads can be updated by default: the particle Lorentz factor (\p =1 if <tt>relativistic=.false.</tt>), the particle gyroradius, the magnetic moment, and the local value of \f$ \textbf{E}\cdot\textbf{B}\f$.
-  * For the \p 'GCA' mode, there are 14 default payloads:
-    * Particle gyroradius;
-    * Pitch angle \f$\tan^{-1}(v_\perp/v_{\|})\f$;
-    * Perpendicular velocity \f$v_\perp\f$;
-    * Four parallel acceleration terms (see right-hand side of the \f$du_{\|}/dt\f$ equation above);
-    * Seven drift velocity terms (in magnitude; see right-hand side of the \f$d\textbf{R}/dt\f$ equation above).
-  * For the \p 'sample' mode, by default (regardless of the value of \p ndefpayload in the <tt>.par</tt> file) there will be a number of payloads \p n=nw, where \p nw is the number of variables in the fluid simulation. Each of these payloads samples one of the *primitive* fluid quantities, and therefore in the <tt>.csv</tt> output these payloads are named according to the names given to the primitive quantities.
+	integer, parameter                   :: Npart=200000
+	!-----------------------------------------------------------------------------
 
-  A custom payload update routine allows the user to store additional payloads (on top of the default ones). This can be done in the \p mod_usr.t file via a user-defined routine which *must* be associated with the \p usr_update_payload pointer at the beginning of \p mod_usr.t. The required format for a user-defined payload update routine (e.g. named \p update_payload) is:
+	follow(174969)   = .true.
+```
 
-  \code{.f90}
-  subroutine update_payload(igrid,w,wold,xgrid,x,u,q,m,mypayload,mynpayload,particle_time)
-    use mod_global_parameters
-    integer, intent(in)           :: igrid,mynpayload
-    double precision, intent(in)  :: w(ixG^T,1:nw),wold(ixG^T,1:nw)
-    double precision, intent(in)  :: xgrid(ixG^T,1:ndim),x(1:ndir),u(1:ndir),q,m,particle_time
-    double precision, intent(out) :: mypayload(mynpayload)
-  
-  end subroutine update_payload
-  \endcode
+And the mass (for instance **CONST_me** for an electron or positron and **CONST_mp** for a proton) and charge (adding a plus sign for a positively charged particle and a minus sign for a negatively charged particle) of a particle:
 
-- **Boundary conditions**: by default, the boundary conditions for the particles are the same as the underlying (M)HD simulation. If a particle crosses a periodic boundary, it will be re-injected at the corresponding opposite side of the simulation box. If a particle crosses an open boundary, it will be "destroyed" (i.e., removed from the simulation). Destroyed particles are stored in a dedicated output file as the simulation progresses; see the "Output and visualisation" section below for more information on particle output.
+```{.f90}
+	particle(nparticles)%self%q      = + CONST_e
+	particle(nparticles)%self%m      =   CONST_mp
+```
 
+In the same subroutine the particles can be positioned according to the wishes of the user. The particles are initialised according to a Maxwellian velocity distribution, but this can also be edited.
 
-## Running
-Particle calculations in MPI-AMRVAC can be carried out in two different modes, namely i) concurrently to the (M)HD evolution, or ii) in a fixed (M)HD snapshot. Additionally, the convert operations that can be performed with (M)HD output files also affect the particle outputs. Each of these options is illustrated below.
+Standard, for the guiding centre module, the particles mass, charge, parallel momentum, magnetic moment, Lorentz factor and x, y and z position are evolved in time. For the full equation of motion, also the x, y and z component of the velocity vector are evolved instead of the parallel momentum.
 
-- **Running the particle module along an HD/MHD simulation**: as mentioned above, after the (M)HD setup has been coded correctly in the \p mod_usr.t file and all parameters for the (M)HD simulation are set in the <tt>.par</tt> file, the particle module can be activated simply by including the statement <tt>hd_particles=.true.</tt> or <tt>mhd_particles=.true.</tt> in the \p mhd_list of the <tt>.par</tt> file. This will tell the code to perform the particle calculations according to the parameters specified in the \p particles_list block of the input file. The (M)HD calculation will behave as usual, and the particle results will be stored in the output according to dedicated parameters (see section "Output and visualisation" below).
+Additional variables can be defined in the same subroutine as payloads. For instance the gyroradius of the particle:
 
-- **Running the particle module in a fixed fluid snapshot**: this feature allows for running the particle module only, while keeping the (M)HD background fixed in time. This is accomplished by exploiting the \p convert functionality of the code. First, the user must set the parameters <tt>convert=.true., autoconvert=.false.</tt> in the \p filelist block of the <tt>.par</tt> file. Finally, the particle module must be activated via <tt>hd_particles=.true.</tt> or <tt>mhd_particles=.true.</tt> in the \p mhd_list. The particles will be initialised according to the user-defined (or the default) routines. Alternatively, an initial particle snapshot can be used as initial condition for the particles, if provided in the same folder of the fluid snapshot (see the "output and visualisation" section below for more info on particle outputs). In this mode, the particle integration will be carried over until \p time_max is reached; the code will assume that the initial time is the same as that stored inside the fluid snapshot. This implies that, if the snapshot was saved at time (say) \p t=9 and the user wishes to integrate particles in this snapshot for a total time of \p 1, they will have to specify \p time_max=10 in the <tt>.par</tt> file.
+```{.f90}
+	  particle(nparticles)%self%payload(1) = sqrt(2.0d0*particle(nparticles)%self%m*particle(nparticles)%self%u(2)*absB)/abs(particle(nparticles)%self%q*absB)*CONST_c
+```
+The total number of payloads has to be defined in: modules/mod_particles.t to avoid segmentation faults.
 
-- **Restarting a run with particles**: restarting a run that includes particles is done in the usual way, by first selecting a restart file via the \p restart_from_file parameter in the <tt>.par</tt> file for the fluid. If <tt>hd_particles=.true.</tt> or <tt>mhd_particles=.true.</tt> in the same <tt>.par</tt> file, the code will search for a particle snapshot (<tt>.dat</tt> file) in the same directory of the fluid snapshot used for the restart (and with the same base file name - see next sections for more info on particle output). The particles will then be initialised according to the information stored in the particle snapshot. Note that if the particle snapshot is not found, then the code will restart the fluid calculations from the given fluid snapshot, and it will then initialise the particle module with the user-provided particle initialisation routines (or the default routines if the user-defined ones are not provided). In essence, this allows for either restarting a previously interrupted particle run or for starting a new particle run on top of a restarted fluid run.
+# Particle integration
 
+The particle integration is done in amrvacmodules/integrate_particles.t. The main integration is done with a fourth order Runge Kutta integrator with an adaptive timestep found in modules/mod_odeint.t. A minimum timestep can be chosen by setting **hmin** in the `integrate_particles()` subroutine. 
+
+In the subroutine `integrate_particles()` the integration is done. The timestep is determined in `set_particles_dt()`. Generally, an Euler timestep is taken to determine an initial timestep, limited by a cfl condition (which can be made more restrictive by changing **cfl** and **uparcfl**) for the particles not to jump cells. The Euler timestep is chosen based on the ratio of the step in position and the velocity and on the ratio of the velocity and the acceleration of the particle. After the Euler integration the particle is brought back to its previous position and velocity and the minimum timestep is chosen out of the Euler timestep, and the two ratios mentioned before.
+
+In the subroutine `integrate_particles_gca()` this Euler timestep is used to estimate if a particle ends in an internal ghost cell. If a particle is nearby an internal ghost cell, the timestep is restricted by choosing an **int_factor** smaller than one. Then the Runge Kutta integrator is called to solve for the position of the particle, the parallel momentum, the magnetic moment and the Lorentz factor for the guiding centre module, and the velocity of the particle for the full equation of motion and the advection module. The electromagnetic field and its derivatives are interpolated in the subroutines `derivs_gca()`, `derivs_advect()` for the guiding centre module and the advection module respectively and subroutines `get_e()` and `get_b()` for the full equation of motion in which the general interpolator is used: modules/mod_gridvars.t. 
+
+In `integrate_particles()` the payloads, as set in amrvacmodules/init_particles.t are also updated.
+
+# Specific particle subroutines
+
+The most important subroutines and functions in the particle module modules/mod_particles.t are highlighted here. They can be edited accordingly, but the particle communication is done in this file and these routines rely somewhat more on parallel computing algorithms than the particle initialisation and integration. So care should be taken before editing.
+
+## General parameters
+
+In the modules/mod_particles.t module a few general parameters are important to set to avoid segmentation faults. The maximum number of particles and maximum number of particles per processor should always be higher than or equal to the number of particles in your simulation. The number of payloads as set in amrvacmodules/init_particles.t should be defined here as well:
+
+```{.f90}
+integer,parameter                      :: nparticleshi = 500000, nparticles_per_cpu_hi = 500000
+integer, parameter                     :: npayload=1
+```
 
 ## Output and visualisation
-Below is a description of the various outputs associated to the use of the particle module, together with a brief introduction to the visualisation of the particle results.
 
-- **Output files and formats**: the output of particle calculations (regardless of the chosen mode) consists of two file types, which will be stored in the same folder as the (M)HD results.
+All particle data is assembled in the **particles.dat** files. For visualisation there are several options, listed here.
 
-  <em>Particle snapshots</em> (format <tt>.dat</tt>) will be produced only when running the particle module along with a time-evolving (M)HD calculation, and will be produced with the same cadence of the (M)HD output. These files contain all particle information in raw binary format, and do not have any direct use beside providing a checkpoint for restarts. The base file name for particle snapshots will be constructed by concatenating the \p base_filename given in the <tt>.par</tt> file with an additional \p _particles and followed by the output number (same as the fluid <tt>.dat</tt> snapshots). Note that particle snapshots will *NOT* be produced when running the particle module in a fixed (M)HD snapshot.
+The particle output is generated in several subroutines in modules/mod_particles.t. There are several options, namely to output a a file called **ensemble** containing all the particles data, to output a file for individual particles and to output the particles which are destroyed, called **destroy**, based on user defined criteria or because they left the physical domain. 
 
-  <em>Particle individual and ensemble outputs</em> (format <tt>.csv</tt>) can be used to easily analyse particle results. Whether or not these files are produced is controlled by the parameters \p write_individual and \p write_ensemble in the \p particles_list of the <tt>.par</tt> file. The output cadence to both individual and ensemble files is controlled via the \p dtsave_particles parameter in the same list. The output cadence may or may not be the same of the (M)HD output; the two can be specified completely independently.
+For individual particles, two output types are available. If **follow(ipart)** is called in amrvacmodules/init_particles.t for particle number **ipart**, as described above, one file is written with all the data for the particles indicated, called **followed**. A second file is written per particle in which high resolution data is written for just this particle, called **particle** with the particle number indicated in the filename. 
 
-  The standard output quantities stored in the <tt>.csv</tt> files are, for each particle:
-  * Particle index (unique for each particle);
-  * Current parent processor number (i.e. the processor on which the particle is found at that moment);
-  * Current iteration;
-  * Current time;
-  * Current time step \p dt;
-  * Particle position <tt>(x1,x2,x3)</tt>;
-  * Particle velocity <tt>(u1,u2,u3)</tt>;
-  * Default payloads associated with the particle, labelled \p pl01, \p pl02, ..., \p plN (where \p N is the number of default payloads specified via \p ndefpayload);
-  * Custom payloads associated with the particle, labelled \p usrpl01, \p usrpl02, ..., \p usrplN (where \p N is the number of custom payloads specified via \p nusrpayload).
+All these files are in **csv** format, which can be opened with paraview, visit, matlab, python, excell or another program of your choice.
 
-  Note that when <tt>relativistic=.true.</tt> in the \p 'Lorentz' mode, the particle velocity will be replaced by the particle normalised momentum in the output files. In the \p 'GCA' mode, the quantities stored in \p (u1,u2,u3) are not the full particle velocity components, but rather the particle parallel velocity (or normalised parallel momentum) in \p u1 and the magnetic moment (or relativistic magnetic moment) in \p u2. The Lorentz factor will be stored in \p u3 if <tt>relativistic=.true.</tt>, otherwise \p u3=1 will be set by default.
+## Boundary conditions
 
-  If <tt>write_individual=.true.</tt>, the code will produce one <tt>.csv</tt> file for each particle that the user flagged with <tt>follow=.true.</tt> at initialisation (by default, when the user does not provide a custom initial particle setup, all particles are flagged with <tt>follow=.false.</tt>). The base file name for individual particle <tt>.csv</tt>'s is obtained by concatenating \p base_filename with \p _particle_XXXXXX, where \p XXXXXX is a unique integer index (in \p %06d format) associated with each particle at initialisation. All information for a single individually followed particle will be stored over time, with cadence equal to \p dtsave_particles, inside the same <tt>.csv</tt> file, such that at the end of the run that file will contain the complete history of that single particle. Therefore, individual particle <tt>.csv</tt>'s can be used to visualise the trajectory and time evolution of the quantities associated to specific particles.
+The particles generally follow the boundary conditions as set for the (M)HD simulation. However there are few exceptions possible. One can choose to destroy particles which leave
+the domain or which reach a certain energy. One can also choose to inject particles at another position, or to let them reflect in a certain way. This is all done in the subroutines and functions described here.
 
-  If <tt>write_ensemble=.true.</tt>, the code will produce <em>ensemble</em> <tt>.csv</tt> files which, oppositely to individual <tt>.csv</tt> files, gather information from all particles at a specific time. A single ensemble <tt>.csv</tt> file will be produced at each output time specified via \p dtsave_particles. The base file name for ensemble <tt>.csv</tt>'s is obtained by concatenating \p base_filename with \p _ensemble_XXXXXX, where \p XXXXXX is a number (format \p %06d) corresponding to the \p n-th output time, based on the cadence specified via \p dtsave_particles. Ensemble <tt>.csv</tt>'s are useful to visualise all particles together at a specific moment in time.
+## Particle communication
 
-  As a practical example, suppose the user has chosen \p dtsave_particles such that 10 particle outputs will be produced during a simulation. Suppose further that both <tt>write_individual=.true.</tt> and <tt>write_ensemble=.true.</tt>, \p nparticles=100, and the user has flagged particles with index 36, 47, and 99 with <tt>follow=.true.</tt> at initialisation. The <tt>.csv</tt> particle files that will be found in the output folder will then be:
+The most important and useful subroutines and functions in modules/mod_particles.t are listed here. 
+The subroutine `find_particle_ipe()` can be called to find the processor and the grid block the particle is in, simply by calling it and giving the particles position vector. 
 
-  * 11 ensemble <tt>.csv</tt> files (one for each \p dtsave_particles, plus the initial state) containing 100 rows each (one row for each particle);
-  * 3 individual <tt>.csv</tt> files (one for each of the three followed particles) containing 11 rows each (one row for each output time plus the initial state).
+The function `particle_in_domain()` can be called to give a true or false statement to indicate whether the particle is in the physical domain or not, based on the particles position vector. The physical domain does not include the ghost cells.
 
-  An additional <tt>.csv</tt> file, containing the \p _destroyed label, may be present in the output folder. In this file, "destroyed" particles (i.e. particles removed from the domain) are stored as the simulation progresses.
+The function `particle_in_igrid()` can be called to give a true of false statement to indicate whether the particle is in the grid or not. The grid does include the ghost cells.
 
+The function `particle_in_zboundaries()` can be used in 2.5D simulations, when the particle dynamics are solved in 3D. Artificial z-boundaries for the particles can be chosen (set **zboundarymin** for the lower boundary and **zboundarymax** for the upper boundary) and this routine tells if a particle has crossed the boundaries in the invariant direction, after which the user can decide to destroy the particle or inject it at another position or with another velocity.
 
-## Additional options
-Additional parameters in the \p particles_list of the .par file are available for refining the particle integration process:
-- \p relativistic: if <tt>.true.</tt>, the relativistic equations of motion will be solved, instead of the Newtonian ones, when \p physics_type_particles='Lorentz' or \p \p physics_type_particles='GCA'.
-- \p integrator_type_particles: if \p physics_type_particles='Lorentz' and \p relativistic=<tt>.true.</tt>, the user can set this parameter to the preferred particle integrator, choosing among \p 'Boris' (for the Boris integrator), \p 'Vay' (for the Vay integrator), \p 'HC' (for the Higuera-Cary integrator), or \p 'LM' (for the Lapenta-Markidis integrator).
-- \p eta_particles, \p etah_particles: when \p physics_type_particles='Lorentz' or \p physics_type_particles='GCA', the user can replace the resistivity or the hall resistivity from the MHD with a different (constant) resistivity which will be employed for calculating the electric field that enters the particle equations of motion.
-- \p const_dt_particles: the user can define a constant time step for the particle integration, which will be used instead of calculating the time step from standard procedures.
+The function `particle_in_ghostcell()` can be called to give a true or false statement to indicate whether the particle is in the (internal) ghost cells or not. It uses the same interpolation as used for the Runge Kutta integration in modules/mod_gridvars.t 
 
-## Limitations and TODOs
-The particle module is still affected by some limitations. Features currently in the works (hence NOT working as of yet) include:
-- Stretched grids are currently not compatible with the particle module
-- Cylindrical/spherical grids may not work as desired with all particle routines. Caution is advised.
-We kindly ask users to report bugs/issues encountered when using the particle module.
+The subroutine `apply_periodb()` applies periodic boundary conditions for a particle, in accordance with any applied periodic boundary conditions in the (M)HD simulation
+
+The subroutine `apply_2_5D_periodb()` applies periodic boundary conditions at some user-set artifical z-boundaries in the function `particle_in_zboundaries()` and then thermalises the particle according to a Maxwellian velocity distribution and repositions it at the opposite boundary.
+
+The subroutine `apply_periodb_thermalisation()` does the same as the `apply_periodb()` subroutine, but on top of periodically reinjecting the particle, it is also thermalised according to a Maxwellian velocity distribution
+
+The subroutine `apply_hardwallb()` applies hard wall boundaries for a particle and reflects the particles velocity.
+
+All these subroutines can be called in the `comm_particles()` subroutine based on the users wishes. Other subroutines can be written for particular boundary conditions a user wishes to apply. The subroutine `comm_particles()` checks if the particle should be destroyed, left or moved to a new position and grid block based on user defined criteria.
+
+The subroutine `destroy_particles()` is called to destroy particles, either when the simulation has ended, when the particles leave the physical domain and are not reinjected or when some user defined criterion is met. 
 
 # Contact details
 
-For more specific questions, email [Fabio Bacchini](mailto:fabio.bacchini@kuleuven.be), [Bart Ripperda](mailto:bart.ripperda@gmail.com), or [Jannis Teunissen](mailto:jannis.teunissen@cwi.nl).
+For more specific questions, email bart.ripperda@kuleuven.be
 

@@ -30,11 +30,11 @@ we have the following combinations typically:
     --------------------------------------------------------------------------
     rho       TVDLF, HLL, HLLC, TVD (Roe solver), TVDMU (Roe solver), FD
     HD        TVDLF, HLL, HLLC, TVD (Roe solver), TVDMU (Roe solver), FD
-    MHD       TVDLF, HLL, HLLD, TVD (Roe solver), TVDMU (Roe solver), FD
+    MHD    TVDLF, HLL, HLLC, TVD (Roe solver), TVDMU (Roe solver), FD, HLLD
 
 Also, the method can be selected per AMR grid level, but one can not combine
 different stepsize methods (hence, TVD is the only second order onestep
-method, while all others can be used with all steps time stepper/integrator
+method, while all others can be used with all steps time integrator
 setting). In MPI-AMRVAC, the **flux_scheme** is thus an array of strings, one
 string per level up to **nlevelshi**. Some more info follows on the various
 methods.
@@ -44,25 +44,29 @@ methods.
 The TVDLF scheme hence uses minimal info on the wave speeds, and in
 combination with AMR and its inherent robustness due to its diffusive nature,
 it is readily usable for any system of conservation laws at minimal
-implementation costs. But TVDLF maybe too diffusive to resolve details in
-your applications. Maximal wave speed info is used in a full Roe-type
+implementation costs. Maximal wave speed info is used in a full Roe-type
 approximate Riemann solver as employed by TVD or TVD-MUSCL, where all
 characteristic wave speeds (7 in total for (relativistic) MHD) as well as the
 wave strengths are deduced from the eigenvalues, as well as right and left
-eigenvector pairs of the flux Jacobian. However,  TVD or TVD-MUSCL is limited
-to second-order accuracy and not the most efficient one. The simpler HLL, 
-HLLC, and HLLD solvers, make further approximations to their corresponding 
-representation of the Riemann fan, as schematically illustrated below. ![](figmovdir/solvers.gif)
-In these approximate Riemann solvers, the HLL is available for all physics 
-modules but the most diffusive one. The HLLC is designed for HD physics and
-gives unreliable results for MHD. The HLLD works only for MHD and gives the
-best resolution with higher efficiency than Roe solver. 
+eigenvector pairs of the flux Jacobian. The simpler HLL, HLLC solvers, make
+further approximations to their corresponding representation of the Riemann
+fan, as schematically illustrated below. ![](figmovdir/solvers.gif) These type
+of solvers originated in gas dynamics and Newtonian MHD, and have meanwhile
+been adapted to relativistic (M)HD. Depending on the amount of waves used to
+approximate the actual 7-wave fan, a corresponding amount of different fluxes
+are computed. One switches between their expressions according to the relative
+orientation of the wave signals in the (x,t) diagram. Appropriate recipes for
+computing meaningful intermediate states ensure desirable properties like
+positivity (positive pressures and densities), the ability to capture isolated
+discontinuities, etc. For most physics modules, these HLL and HLLC variants are
+available too. The HLLD variant is only applicable for MHD.
 
 ## TVDLF Scheme
 
 The TVD Lax-Friedrich method is robust, in most cases there are no spurious
-oscillations, but it is somewhat more diffusive than HLL, HLLC, HLLD or TVD
-methods. Since it does not use a Riemann solver, it is the fastest.
+oscillations, but it is somewhat more diffusive than other TVD or HLLC
+methods. Since it does not use a Riemann solver, it is usually faster than TVD
+or TVD-MUSCL.
 The Courant number should be less than 1, **courantpar=0.8** is recommended.
 Second order time discretization is best achieved by a Hancock predictor step,
 so the corresponding **typepred1='hancock'**.
@@ -92,7 +96,7 @@ The scalar transport equation has a trivial Riemann solver. The scheme has
 comparable resolution to the non-MUSCL TVD method.
 The Courant number should be less than 1, **courantpar=0.8** is recommended.
 TVD-MUSCL can be dimensionally split **dimsplit=T** or unsplit **dimsplit=F**. 
-The multistep Runge-Kutta schemes can be applied, such as **time_stepper='fourstep'** with **time_integrator='rk4'**.
+The multistep Runge-Kutta schemes can be applied, such as **time_integrator='fourstep'**.
 Linear Riemann solvers can produce non-physical solutions. This can be
 eliminated by the use of an entropy fix, controlled by **typeentropy** and the
 **entropycoef**. The default is **typeentropy='nul'**. See the details for
@@ -126,7 +130,7 @@ artificial fluxes, thus comparison with analytic formulae is straightforward.
 It is straightforward to generalize this central difference approach to higher
 order accuracy, at the expense of introducing a wider stencil.
 
-## High order finite difference FD Scheme
+## High order finite difference Scheme
 
 This scheme **flux_scheme='fd'** implements conservative finite differences 
 with global Lax-Friedrich flux splitting. It can be used with almost all 
@@ -156,7 +160,7 @@ Astrophysics , 473, 11 (2007)_  **type_ct='uct_hll'**,
 using staggered grid for magnetic field, can preserve initial div B to round off
 errors. A simple non-upwinding version of ct is through averaging electric 
 fields from neighbors **type_ct='average'**.
-It only works with HLL and HLLD Riemann flux schemes in the current 
+It only works with HLL, HLLC, and HLLD Riemann flux schemes in the current 
 implementation. It works in Cartesian and non-Cartesian coordinates with or
 without grid stretching. It works with finite non-zero resistivity. 
 Initial conditions and boundary conditions for
@@ -185,7 +189,7 @@ is usable for both classical and relativistic MHD.
 #### Diffusive fix: typedivbfix='linde'
 
 You can also use the diffusive (parabolic) approach, see the
-[equations](@ref par_divbfix). It uses a `C_d` coefficient quantified by
+[equations](@ref eq_divb_fix). It uses a `C_d` coefficient quantified by
 `divbdiff`, which can be up to 2. This method is by default inactive,
 identified by `divbdiff=1`, but it is recommended for many multi-D MHD
 applications.

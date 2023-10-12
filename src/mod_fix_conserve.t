@@ -176,6 +176,7 @@ module mod_fix_conserve
      integer, intent(in) :: idim^LIM
 
      integer :: iigrid, igrid, idims, iside, i^D, nxCo^D
+     integer :: ierrmpi
      integer :: ic^D, inc^D, ipe_neighbor
      integer :: pi^D,mi^D,ph^D,mh^D,idir
 
@@ -286,6 +287,7 @@ module mod_fix_conserve
      integer :: idims, iside, i^D, ic^D, inc^D, ix^D, ixCo^D, nxCo^D, iw
      integer :: ineighbor, ipe_neighbor, igrid, iigrid, ibuf_send_next
      integer :: idir, ibuf_cc_send_next, pi^D, ph^D, mi^D, mh^D
+     integer :: ierrmpi
 
      fc_sendreq = MPI_REQUEST_NULL
      isend      = 0
@@ -469,6 +471,7 @@ module mod_fix_conserve
      type(state) :: psb(max_blocks)
 
      integer :: iigrid, igrid, idims, iside, iotherside, i^D, ic^D, inc^D, ix^L
+     integer :: ierrmpi
      integer :: nxCo^D, iw, ix, ipe_neighbor, ineighbor, nbuf, ibufnext, nw1
      double precision :: CoFiratio
 
@@ -530,7 +533,7 @@ module mod_fix_conserve
                do iw=nw0,nw1
                  psb(igrid)%w(ix^D%ixM^T,iw)=psb(igrid)%w(ix^D%ixM^T,iw)&
                       -pflux(iside,^D,igrid)%flux(1^D%:^DD&,iw-nw0+1) &
-                      /ps(igrid)%dvolume(ix^D%ixM^T)
+                      /ps(igrid)%mesh%dvolume(ix^D%ixM^T)
                end do
              end if
 
@@ -553,7 +556,7 @@ module mod_fix_conserve
                    do iw=nw0,nw1
                      psb(igrid)%w(ix^S,iw)=psb(igrid)%w(ix^S,iw) &
                           +pflux(iotherside,^D,ineighbor)%flux(:^DD&,iw-nw0+1) &
-                          /ps(igrid)%dvolume(ix^S)
+                          /ps(igrid)%mesh%dvolume(ix^S)
                    end do
                  end if
                else
@@ -576,7 +579,7 @@ module mod_fix_conserve
                      psb(igrid)%w(ix^S,iw)=psb(igrid)%w(ix^S,iw) &
                           +reshape(source=recvbuffer(ibuf:ibufnext-1), &
                           shape=shape(psb(igrid)%w(ix^S,iw))) &
-                          /ps(igrid)%dvolume(ix^S)
+                          /ps(igrid)%mesh%dvolume(ix^S)
                      ibuf=ibuf+nbuf
                    end do
                    ibuf=ibufnext
@@ -785,6 +788,7 @@ module mod_fix_conserve
      integer :: pi^D, mi^D, ph^D, mh^D ! To detect corners
      integer :: ixE^L(1:3), ixtE^L, ixF^L(1:ndim), ixfE^L(1:3)
      integer :: nx^D, idir, ix, ipe_neighbor, ineighbor
+     integer :: ierrmpi
      logical :: pcorner(1:ndim),mcorner(1:ndim)
 
      if (nrecv_ct>0) then
@@ -1160,8 +1164,8 @@ module mod_fix_conserve
      ! Divide circulation by surface and add
      do idim1=1,ndim
         ixC^L=ixF^L(idim1);
-        where(s%surfaceC(ixC^S,idim1)>1.0d-9*s%dvolume(ixC^S))
-          circ(ixC^S,idim1)=circ(ixC^S,idim1)/s%surfaceC(ixC^S,idim1)
+        where(s%mesh%surfaceC(ixC^S,idim1)>1.0d-9*s%mesh%dvolume(ixC^S))
+          circ(ixC^S,idim1)=circ(ixC^S,idim1)/s%mesh%surfaceC(ixC^S,idim1)
         elsewhere
           circ(ixC^S,idim1)=zero
         end where

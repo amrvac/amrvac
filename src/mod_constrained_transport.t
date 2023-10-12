@@ -35,14 +35,15 @@ contains
     ! Now we fill the centers for the staggered variables
     !$OMP PARALLEL DO PRIVATE(igrid)
     do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
-       call phys_to_primitive(ixG^LL,ixM^LL,ps(igrid)%w,ps(igrid)%x)
+       !call phys_to_primitive(ixG^LL,ixM^LL,ps(igrid)%w,ps(igrid)%x)
        ! update cell center magnetic field
-       call phys_face_to_center(ixM^LL,ps(igrid))
-       call phys_to_conserved(ixG^LL,ixM^LL,ps(igrid)%w,ps(igrid)%x)
+       !call phys_face_to_center(ixM^LL,ps(igrid))
+       !call phys_to_conserved(ixG^LL,ixM^LL,ps(igrid)%w,ps(igrid)%x)
     end do
     !$OMP END PARALLEL DO
 
-    call getbc(global_time,0.d0,ps,iwstart,nwgc)
+    ! fixme: correct it
+    !call getbc(global_time,0.d0,ps,iwstart,nwgc)
 
   end subroutine recalculateB
 
@@ -78,14 +79,14 @@ contains
     double precision             :: dx^D
 
     integer                            :: ixIs^L,ixO^L,idir
-    double precision                   :: A(s%ixGs^S,1:3)
+    double precision                   :: A(s%mesh%ixGs^S,1:3)
 
-    associate(ws=>s%ws,x=>s%x)
+    associate(ws=>s%ws,x=>s%mesh%x)
 
     A=zero
     ws=zero
 
-    ixIs^L=s%ixGs^L;
+    ixIs^L=s%mesh%ixGs^L;
     ixO^L=ixI^L^LSUBnghostcells;
 
     fC=0.d0
@@ -114,12 +115,11 @@ contains
 
     A=zero
     ! extend one layer of cell center locations in xCC
-    xC=0.d0
     xCC=0.d0
     xCC(ixI^S,1:ndim)=x(ixI^S,1:ndim)
     {
     xCC(ixIsmin^D^D%ixI^S,1:ndim)=x(ixImin^D^D%ixI^S,1:ndim)
-    xCC(ixIsmin^D^D%ixIs^S,^D)=x({ixImin^DD,},^D)-block%dx({ixImin^DD,},^D)
+    xCC(ixIsmin^D^D%ixIs^S,^D)=x({ixImin^DD,},^D)-block%mesh%dx({ixImin^DD,},^D)
     \}
     {^IFTHREED
     xCC(ixImin1:ixImax1,ixIsmin2,ixIsmin3,1)=x(ixImin1:ixImax1,ixImin2,ixImin3,1)
@@ -127,20 +127,21 @@ contains
     xCC(ixIsmin1,ixIsmin2,ixImin3:ixImax3,3)=x(ixImin1,ixImin2,ixImin3:ixImax3,3)
     }
 
+    {^NOONED
     do idir=7-2*ndim,3
       ixCmax^D=ixOmax^D;
       ixCmin^D=ixOmin^D-1+kr(idir,^D);
       do idim1=1,ndim
         ! Get edge coordinates
         if (idim1/=idir) then
-          xC(ixC^S,idim1)=xCC(ixC^S,idim1)+half*block%dx(ixC^S,idim1)
+          xC(ixC^S,idim1)=xCC(ixC^S,idim1)+half*block%mesh%dx(ixC^S,idim1)
         else
           xC(ixC^S,idim1)=xCC(ixC^S,idim1)
         end if
       end do
       ! Initialise vector potential at the edge
       call usr_init_vector_potential(ixIs^L, ixC^L, xC, A(ixIs^S,idir), idir)
-      A(ixC^S,idir)=A(ixC^S,idir)*block%dsC(ixC^S,idir)
+      A(ixC^S,idir)=A(ixC^S,idir)*block%mesh%dsC(ixC^S,idir)
     end do
 
     ! Take the curl of the vector potential 
@@ -162,13 +163,14 @@ contains
         end do
       end do
       ! Divide by the area of the face to get B
-      where(block%surfaceC(ixC^S,idim1)==0)
+      where(block%mesh%surfaceC(ixC^S,idim1)==0)
         circ(ixC^S,idim1)=zero
       elsewhere
-        circ(ixC^S,idim1)=circ(ixC^S,idim1)/block%surfaceC(ixC^S,idim1)
+        circ(ixC^S,idim1)=circ(ixC^S,idim1)/block%mesh%surfaceC(ixC^S,idim1)
       end where
       ws(ixC^S,idim1) = circ(ixC^S,idim1)
     end do
+    }
 
   end subroutine b_from_vector_potentialA
 
@@ -184,7 +186,7 @@ contains
 
     double precision                   :: qC(ixI^S)
     double precision,dimension(ixI^S)  :: dqC,ldq,rdq
-    integer                            :: ixO^L,jxC^L,gxC^L,hxC^L
+    integer                            :: jxC^L,gxC^L,hxC^L
 
     jxC^L=ixC^L+kr(idir,^D);
     gxCmin^D=ixCmin^D-kr(idir,^D);gxCmax^D=jxCmax^D;
@@ -193,43 +195,42 @@ contains
     qR(gxC^S) = q(hxC^S)
     qL(gxC^S) = q(gxC^S)
 
-    select case (type_limiter(block%level))
+    select case (type_limiter(block%mesh%level))
     case (limiter_ppm)
-       ! the ordinary grid-index:
-       ixOmin^D=ixCmin^D+kr(idir,^D);
-       ixOmax^D=ixCmax^D;
-       call PPMlimitervar(ixI^L,ixO^L,idir,q,q,qL,qR)
+       call PPMlimiter(ixI^L,ixC^L,idir,q,qL,qR,.false.)
     case (limiter_mp5)
-       call MP5limitervar(ixI^L,ixC^L,idir,q,qL,qR)
+       call MP5limiter(ixI^L,ixC^L,idir,q,qL,qR,.false.)
     case (limiter_weno3)
-       call WENO3limiter(ixI^L,ixC^L,idir,dxlevel(idir),q,qL,qR,1)
+       call WENO3limiter(ixI^L,ixC^L,idir,dxlevel(idir),q,qL,qR,1,.false.)
     case (limiter_wenoyc3)
-       call WENO3limiter(ixI^L,ixC^L,idir,dxlevel(idir),q,qL,qR,2)
+       call WENO3limiter(ixI^L,ixC^L,idir,dxlevel(idir),q,qL,qR,2,.false.)
     case (limiter_weno5)
-       call WENO5limiter(ixI^L,ixC^L,idir,dxlevel(idir),q,qL,qR,1)
+       call WENO5limiter(ixI^L,ixC^L,idir,dxlevel(idir),q,qL,qR,1,.false.)
     case (limiter_weno5nm)
-       call WENO5NMlimiter(ixI^L,ixC^L,idir,dxlevel(idir),q,qL,qR,1)
+       call WENO5NMlimiter(ixI^L,ixC^L,idir,dxlevel(idir),q,qL,qR,1,.false.)
     case (limiter_wenoz5)
-       call WENO5limiter(ixI^L,ixC^L,idir,dxlevel(idir),q,qL,qR,2)
+       call WENO5limiter(ixI^L,ixC^L,idir,dxlevel(idir),q,qL,qR,2,.false.)
     case (limiter_wenoz5nm)
-       call WENO5NMlimiter(ixI^L,ixC^L,idir,dxlevel(idir),q,qL,qR,2)
+       call WENO5NMlimiter(ixI^L,ixC^L,idir,dxlevel(idir),q,qL,qR,2,.false.)
     case (limiter_wenozp5)
-       call WENO5limiter(ixI^L,ixC^L,idir,dxlevel(idir),q,qL,qR,3)
+       call WENO5limiter(ixI^L,ixC^L,idir,dxlevel(idir),q,qL,qR,3,.false.)
     case (limiter_wenozp5nm)
-       call WENO5NMlimiter(ixI^L,ixC^L,idir,dxlevel(idir),q,qL,qR,3)
+       call WENO5NMlimiter(ixI^L,ixC^L,idir,dxlevel(idir),q,qL,qR,3,.false.)
     case (limiter_weno5cu6)
-       call WENO5CU6limiter(ixI^L,ixC^L,idir,q,qL,qR)
+       call WENO5CU6limiter(ixI^L,ixC^L,idir,q,qL,qR,.false.)
     case (limiter_teno5ad)
-       call TENO5ADlimiter(ixI^L,ixC^L,idir,dxlevel(idir),q,qL,qR)
+       call TENO5ADlimiter(ixI^L,ixC^L,idir,dxlevel(idir),q,qL,qR,.false.)
     case (limiter_weno7)
-       call WENO7limiter(ixI^L,ixC^L,idir,q,qL,qR,1)
+       call WENO7limiter(ixI^L,ixC^L,idir,q,qL,qR,1,.false.)
     case (limiter_mpweno7)
-       call WENO7limiter(ixI^L,ixC^L,idir,q,qL,qR,2)
+       call WENO7limiter(ixI^L,ixC^L,idir,q,qL,qR,2,.false.)
+    case (limiter_exeno7)
+       call exENO7limiter(ixI^L,ixC^L,idir,q,qL,qR,.false.)
     case (limiter_venk)
        call venklimiter(ixI^L,ixC^L,idir,dxlevel(idir),q,qL,qR)
     case default
        dqC(gxC^S)= qR(gxC^S)-qL(gxC^S)
-       call dwlimiter2(dqC,ixI^L,gxC^L,idir,type_limiter(block%level),ldq,rdq)
+       call dwlimiter2(dqC,ixI^L,gxC^L,idir,type_limiter(block%mesh%level),ldq,rdq)
        qL(ixC^S) = qL(ixC^S) + half*ldq(ixC^S)
        qR(ixC^S) = qR(ixC^S) - half*rdq(jxC^S)
     end select

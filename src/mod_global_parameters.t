@@ -1,10 +1,11 @@
 !> This module contains definitions of global parameters and variables and some
-!> generic functions/subroutines used in AMRVAC.
+!> generic functions/subroutines used in GMUNU.
 !>
+!> \todo Move the parameters to the relevant (physics) modules
 module mod_global_parameters
   use mod_physicaldata
   use mod_connectivity
-  use mpi
+  use mod_comm
   use mod_constants
   use mod_variables
   use mod_basic_types
@@ -15,28 +16,20 @@ module mod_global_parameters
   ! Parameters
   character(len=*), parameter :: undefined = 'undefined'
 
-  !> The number of MPI tasks
-  integer :: npe
-
-  !> The rank of the current MPI task
-  integer :: mype
-
-  !> The MPI communicator
-  integer :: icomm
-
-  !> A global MPI error return code
-  integer :: ierrmpi
-
   !> MPI file handle for logfile
   integer :: log_fh
   !> MPI type for block including ghost cells and its size
   integer :: type_block, size_block
   !> MPI type for block coarsened by 2, and for its children blocks
   integer :: type_coarse_block, type_sub_block(2^D&)
+  !> MPI type for metric block coarsened by 2, and for its children blocks
+  integer :: type_coarse_block_m, type_sub_block_m(2^D&)
   !> MPI type for staggered block coarsened by 2, and for its children blocks
   integer :: type_coarse_block_stg(^ND,2^D&), type_sub_block_stg(^ND,2^D&)
   !> MPI type for IO: block excluding ghost cells
   integer :: type_block_io, size_block_io
+  !> MPI type for IO of metric variables
+  integer :: type_block_io_m, size_block_io_m
   !> MPI type for IO of staggered variables
   integer :: type_block_io_stg, size_block_io_stg
   !> MPI type for IO: cell corner (xc) or cell center (xcc) coordinates
@@ -44,19 +37,13 @@ module mod_global_parameters
   !> MPI type for IO: cell corner (wc) or cell center (wcc) variables
   integer :: type_block_wc_io,type_block_wcc_io
 
-
-  ! geometry and domain setups
+  ! geometry and domain setups 
 
   !> the mesh range (within a block with ghost cells)
   integer :: ixM^LL
 
   !> minimum and maximum domain boundaries for each dimension
   double precision  :: xprob^L
-
-  !> Indices for cylindrical coordinates FOR TESTS, negative value when not used:
-  integer :: r_ = -1
-  integer :: phi_ = -1
-  integer :: z_ = -1
 
   !> Number of spatial dimensions for grid variables
   integer, parameter :: ndim=^ND
@@ -94,7 +81,7 @@ module mod_global_parameters
   integer :: ixGshi^D
 
   !> Number of ghost cells surrounding a grid
-  integer :: nghostcells = 2
+  integer :: nghostcells
 
   integer, parameter :: stretch_none = 0 !< No stretching
   integer, parameter :: stretch_uni  = 1 !< Unidirectional stretching from a side
@@ -151,15 +138,12 @@ module mod_global_parameters
   !> Number of output methods
   integer, parameter :: nfile = 5
 
-  !> index number of the latest existing data file
-  integer :: index_latest_data
-
   !> Names of the output methods
   character(len=40), parameter  :: output_names(nfile) = &
        ['log      ', 'normal   ', 'slice    ', 'collapsed', 'analysis ']
 
   !> User parameter file
-  character(len=std_len)   :: usr_filename
+  character(len=std_len)   :: usr_filename 
 
   !> If collapse(DIM) is true, generate output integrated over DIM
   logical :: collapse(ndim)
@@ -167,6 +151,7 @@ module mod_global_parameters
   !> Save output of type N on times tsave(:, N)
   double precision :: tsave(nsavehi,nfile)
 
+  !> \todo Move tsavelast to gmunu.t
   double precision :: tsavelast(nfile)
 
   !> Repeatedly save output of type N when dtsave(N) simulation time has passed
@@ -175,13 +160,16 @@ module mod_global_parameters
   !> Save output of type N on iterations itsave(:, N)
   integer :: itsave(nsavehi,nfile)
 
+  !> \todo remove itsavelast?
   integer :: itsavelast(nfile)
 
   !> Repeatedly save output of type N when ditsave(N) time steps have passed
   integer :: ditsave(nfile)
 
+  !> \todo Move to gmunu.t
   integer :: isavet(nfile)
 
+  !> \todo Move to gmunu.t
   integer :: isaveit(nfile)
 
   !> Start of read out (not counting specified read outs)
@@ -191,6 +179,7 @@ module mod_global_parameters
   integer :: collapseLevel
 
   !> Number of saved files of each type
+  !> \todo Move to mod_input_output
   integer :: n_saves(1:nfile)
 
   !> whether or not to save an output file
@@ -221,31 +210,28 @@ module mod_global_parameters
   integer, parameter :: fileanalysis_ = 5
 
   !> Unit for standard input
-  integer, parameter :: unitstdin=5
+  integer, parameter :: unitstdin = 5
 
   !> Unit for standard output
-  integer, parameter :: unitterm=6
+  integer, parameter :: unitterm  = 6
 
   !> Unit for error messages
-  integer, parameter :: uniterr=6
+  integer, parameter :: uniterr   = 6
 
-  !> file handle for IO
-  integer, parameter :: unitpar=9
-  integer, parameter :: unitconvert=10
-  integer, parameter :: unitslice=11
-  integer, parameter :: unitsnapshot=12
-  integer, parameter :: unitcollapse=13
-  integer, parameter :: unitanalysis=14
-
-  !> Number of auxiliary variables that are only included in output
-  integer :: nwauxio
+  !> \todo Move to mod_input_output
+  integer, parameter :: unitpar      = 9
+  integer, parameter :: unitconvert  = 10
+  integer, parameter :: unitslice    = 11
+  integer, parameter :: unitsnapshot = 12
+  integer, parameter :: unitcollapse = 13
+  integer, parameter :: unitanalysis = 14
 
   !> IO switches for conversion
   logical          :: nocartesian
   logical, allocatable :: w_write(:)
   logical, allocatable :: writelevel(:)
   double precision :: writespshift(ndim,2)
-  integer          :: level_io, level_io_min, level_io_max, type_endian
+  integer          :: level_io, level_io_min, level_io_max
 
   !> Which par files are used as input
   character(len=std_len), allocatable :: par_files(:)
@@ -275,9 +261,12 @@ module mod_global_parameters
   !> If true, convert from conservative to primitive variables in output
   logical                :: saveprim
 
+  !> If true, include extra variables in output
+  logical                :: savewextra
+
   !> Which format to use when converting
   !>
-  !> Options are: tecplot, tecplotCC, vtu, vtuCC, vtuB, vtuBCC,
+  !> Options are: tecplot, tecplotCC, vtu, vtuCC, vtuB, vtuBCC, 
   !> tecplotmpi, tecplotCCmpi, vtumpi, vtuCCmpi, vtuBmpi, vtuBCCmpi, pvtumpi, pvtuCCmpi,
   !> pvtuBmpi, pvtuBCCmpi, tecline, teclinempi, onegrid
   character(len=std_len) :: convert_type
@@ -310,7 +299,7 @@ module mod_global_parameters
   double precision :: unit_density=1.d0
 
   !> Physical scaling factor for velocity
-  double precision :: unit_velocity=1.d0
+  double precision :: unit_velocity=0.d0
 
   !> Physical scaling factor for temperature
   double precision :: unit_temperature=1.d0
@@ -333,47 +322,19 @@ module mod_global_parameters
   !> Normalised speed of light
   double precision :: c_norm=1.d0
 
-  !> Physical scaling factor for Opacity
-  double precision :: unit_opacity=1.d0
-
-  !> Physical scaling factor for radiation flux
-  double precision :: unit_radflux=1.d0
-
-  !> error handling
-  double precision :: small_temperature,small_pressure,small_density
-
-  !> amplitude of background dipolar, quadrupolar, octupolar, user's field
-  double precision :: Bdip=0.d0
-  double precision :: Bquad=0.d0
-  double precision :: Boct=0.d0
-  double precision :: Busr=0.d0
-
   !> check and optionally fix unphysical small values (density, gas pressure)
-  logical :: check_small_values=.true.
   logical :: fix_small_values=.false.
 
-  !> split magnetic field as background B0 field
-  logical :: B0field=.false.
+  !> check unphysical small values
+  logical :: check_NaN_values=.false.
 
-  ! number of equilibrium set variables, besides the mag field
-  integer :: number_equi_vars = 0
+  !> Whether to apply small value fixes to certain variables
+  logical, allocatable :: small_values_fix_iw(:)
 
   !> Use SI units (.true.) or use cgs units (.false.)
   logical :: SI_unit=.false.
 
-  !> Use TRAC (Johnston 2019 ApJL, 873, L22) for MHD or 1D HD
-  logical :: phys_trac=.false.
-  integer :: phys_trac_type=1
-  double precision :: phys_trac_mask
-
-  !> Enable to strictly conserve the angular momentum
-  !> (works both in cylindrical and spherical coordinates)
-  logical :: angmomfix=.false.
-
-  !> Use particles module or not
-  logical :: use_particles=.false.
-
-  !> Use multigrid (only available in 2D and 3D)
+  !> Use multigrid
   logical :: use_multigrid = .false.
 
   ! AMR switches
@@ -406,8 +367,9 @@ module mod_global_parameters
   double precision, allocatable :: amr_wavefilter(:)
 
   integer                       :: refine_criterion
-  logical                       :: prolongprimitive=.false.
-  logical                       :: coarsenprimitive=.false.
+  ! fixme: debug these parts
+  logical                       :: prolongprimitive=.True.
+  logical                       :: coarsenprimitive=.True.
 
   !> Error tolerance for refinement decision
   double precision, allocatable :: refine_threshold(:)
@@ -417,17 +379,16 @@ module mod_global_parameters
   logical :: reset_grid
   !> True for using stagger grid
   logical :: stagger_grid=.false.
-  !> True for record electric field
-  logical :: record_electric_field=.false.
 
   !> Number of cells as buffer zone
+  !> \todo is it necessary?
   integer :: nbufferx^D
 
   integer :: levmin
   integer :: levmax
   integer :: levmax_sub
 
-  ! Miscellaneous
+  ! Miscellaneous 
 
   !> problem switch allowing different setups in same usr_mod.t
   integer           :: iprob
@@ -437,8 +398,10 @@ module mod_global_parameters
 
   !> Levi-Civita tensor
   integer :: lvc(3,3,3)
+  !> 4-Levi-Civita tensor
+  integer :: four_lvc(0:3,0:3,0:3,0:3)
 
-  ! Time integration aspects
+  ! Time integration aspects 
 
   double precision :: dt
 
@@ -447,12 +410,12 @@ module mod_global_parameters
   !> The Courant (CFL) number used for the simulation
   double precision :: courantpar
 
-  !> How to compute the CFL-limited time step
+  !> How to compute the CFL-limited time step.
   integer :: type_courant=1
   !> integer switchers for type courant
-  integer, parameter :: type_maxsum=1
-  integer, parameter :: type_summax=2
-  integer, parameter :: type_minimum=3
+  integer, parameter :: type_maxsum  = 1
+  integer, parameter :: type_summax  = 2
+  integer, parameter :: type_minimum = 3
 
   !> If dtpar is positive, it sets the timestep dt, otherwise courantpar is used
   !> to limit the time step based on the Courant condition.
@@ -496,9 +459,6 @@ module mod_global_parameters
   !> If true, wall time is up, modify snapshotnext for later overwrite
   logical :: pass_wall_time
 
-  !> If true, do H-correction to fix the carbuncle problem at grid-aligned shocks
-  logical :: H_correction=.false.
-
   !> Number of time steps taken
   integer :: it
 
@@ -528,50 +488,54 @@ module mod_global_parameters
   integer, allocatable :: typepred1(:)
 
   !> flux schemes
-  integer, parameter :: fs_hll=1
-  integer, parameter :: fs_hllc=2
-  integer, parameter :: fs_hlld=3
-  integer, parameter :: fs_hllcd=4
-  integer, parameter :: fs_tvdlf=5
-  integer, parameter :: fs_tvdmu=6
-  integer, parameter :: fs_tvd=7
-  integer, parameter :: fs_hancock=8
-  integer, parameter :: fs_cd=9
-  integer, parameter :: fs_cd4=10
-  integer, parameter :: fs_fd=11
-  integer, parameter :: fs_source=12
-  integer, parameter :: fs_nul=13
+  integer, parameter :: fs_nul     = 0
+  integer, parameter :: fs_hll     = 1
+  integer, parameter :: fs_hllc    = 2
+  integer, parameter :: fs_hlld    = 3
+  integer, parameter :: fs_hllcd   = 4
+  integer, parameter :: fs_tvdlf   = 5
+  integer, parameter :: fs_tvdmu   = 6
+  integer, parameter :: fs_tvd     = 7
+  integer, parameter :: fs_hancock = 8
+  integer, parameter :: fs_cd      = 9
+  integer, parameter :: fs_cd4     = 10
+  integer, parameter :: fs_fd      = 11
+  integer, parameter :: fs_source  = 12
+  integer, parameter :: fs_fd_hll  = 13
+  integer, parameter :: fs_fd_tvdlf= 14
 
   !> time stepper type
-  integer :: t_stepper=0
-  integer, parameter :: onestep=1
-  integer, parameter :: twostep=2
-  integer, parameter :: threestep=3
-  integer, parameter :: fourstep=4
-  integer, parameter :: fivestep=5
+  integer :: t_stepper = 0
+  integer, parameter :: onestep   = 1
+  integer, parameter :: twostep   = 2
+  integer, parameter :: threestep = 3
+  integer, parameter :: fourstep  = 4
+  integer, parameter :: fivestep  = 5
 
   !> time integrator method
-  integer :: t_integrator=0
-  integer, parameter :: Forward_Euler=1
-  integer, parameter :: Predictor_Corrector=2
-  integer, parameter :: ssprk3=3
-  integer, parameter :: ssprk4=4
-  integer, parameter :: ssprk5=5
+  integer :: t_integrator = 0
+  integer, parameter :: Forward_Euler       = 1
+  integer, parameter :: Predictor_Corrector = 2
+  integer, parameter :: ssprk3              = 3
+  integer, parameter :: ssprk4              = 4
+  integer, parameter :: ssprk5              = 5
 
-  integer, parameter :: IMEX_Euler=6
-  integer, parameter :: IMEX_SP=7
-  integer, parameter :: RK2_alf=8
-  integer, parameter :: ssprk2=9
-  integer, parameter :: IMEX_Midpoint=10
-  integer, parameter :: IMEX_Trapezoidal=11
-  integer, parameter :: IMEX_222=12
+  integer, parameter :: IMEX_Euler          = 6
+  integer, parameter :: IMEX_SP             = 7
+  integer, parameter :: RK2_alf             = 8
+  integer, parameter :: ssprk2              = 9
+  integer, parameter :: IMEX_Midpoint       = 10
+  integer, parameter :: IMEX_Trapezoidal    = 11
+  integer, parameter :: IMEX_222            = 12
 
-  integer, parameter :: RK3_BT=13
-  integer, parameter :: IMEX_ARS3=14
-  integer, parameter :: IMEX_232=15
-  integer, parameter :: IMEX_CB3a=16
+  integer, parameter :: RK3_BT              = 13
+  integer, parameter :: IMEX_ARS3           = 14
+  integer, parameter :: IMEX_232            = 15
+  integer, parameter :: IMEX_CB3a           = 16
 
-  integer, parameter :: rk4=17
+  integer, parameter :: rk4                 = 17
+  integer, parameter :: jameson             = 18
+  integer, parameter :: IMEX_RK4            = 19
 
   !> Type of slope limiter used for reconstructing variables on cell edges
   integer, allocatable :: type_limiter(:)
@@ -579,9 +543,6 @@ module mod_global_parameters
   !> Type of slope limiter used for computing gradients or divergences, when
   !> typegrad or typediv are set to 'limited'
   integer, allocatable :: type_gradient_limiter(:)
-
-  !> background magnetic field location indicator
-  integer :: b0i=0
 
   !> Limiter used for prolongation to refined grids and ghost cells
   integer :: prolong_limiter=0
@@ -592,25 +553,23 @@ module mod_global_parameters
   !> Which type of TVD method to use
   character(len=std_len) :: typetvd
 
-  !> bound (left/min and right.max) speed of Riemann fan
-  integer :: boundspeed
-
   character(len=std_len) :: typeaverage
   character(len=std_len) :: typedimsplit
   character(len=std_len) :: geometry_name='default'
   character(len=std_len) :: typepoly
 
   integer                       :: nxdiffusehllc
-  double precision, allocatable :: entropycoef(:)
   double precision              :: tvdlfeps
   logical, allocatable          :: loglimit(:), logflag(:)
-  logical                       :: flathllc,flatcd,flatsh
+  logical                       :: flathllc
+  logical                       :: PPM_extrema, PPM_flatcd, PPM_flatsh
+  logical                       :: positivity_preserving
   !> Use split or unsplit way to add user's source terms, default: unsplit
   logical                       :: source_split_usr
   logical                       :: dimsplit
 
   !> RK2(alfa) method parameters from Butcher tableau
-  double precision              :: rk_a21,rk_b1,rk_b2
+  double precision              :: rk2_alfa,rk_a21,rk_b1,rk_b2
   !> IMEX-222(lambda) one-parameter family of schemes
   double precision              :: imex222_lambda
   !> SSPRK choice of methods (both threestep and fourstep, Shu-Osher 2N* implementation)
@@ -633,22 +592,16 @@ module mod_global_parameters
   !> whether IMEX in use or not
   logical                       :: use_imex_scheme
 
-  character(len=std_len) :: typediv,typegrad
+  character(len=std_len)        :: typediv,typegrad
+
+  !> number of points used to interpolate metric in FV module
+  integer :: fv_n_interp = 4
 
   !> global fastest wave speed needed in fd scheme and glm method
   double precision :: cmax_global
 
-  !> global fastest flow speed needed in glm method
-  double precision :: vmax_global
-
-  !> global largest a2 for schmid scheme
-  double precision :: a2max_global(ndim)
-
   !> need global maximal wave speed
-  logical :: need_global_cmax=.false.
-
-  !> global value for schmid scheme
-  logical :: need_global_a2max=.false.
+  logical :: need_global_cmax = .false.
 
   ! Boundary region parameters
 
@@ -669,61 +622,36 @@ module mod_global_parameters
 
   !> Array indicating the type of boundary condition per variable and per
   !> physical boundary
-  integer, allocatable :: typeboundary(:, :)
+  type bc_t
+     integer, allocatable :: w(:,:)
+     integer, allocatable :: m(:,:)
+  end type bc_t
+  type(bc_t) bc_type
   !> boundary condition types
-  integer, parameter :: bc_special=1
-  integer, parameter :: bc_cont=2
-  integer, parameter :: bc_symm=3
-  integer, parameter :: bc_asymm=4
-  integer, parameter :: bc_periodic=5
-  integer, parameter :: bc_aperiodic=6
-  integer, parameter :: bc_noinflow=7
-  integer, parameter :: bc_data=8
-  integer, parameter :: bc_character=9
+  integer, parameter :: bc_special   = 1
+  integer, parameter :: bc_cont      = 2
+  integer, parameter :: bc_symm      = 3
+  integer, parameter :: bc_asymm     = 4
+  integer, parameter :: bc_periodic  = 5
+  integer, parameter :: bc_aperiodic = 6
+  integer, parameter :: bc_noinflow  = 7
+  integer, parameter :: bc_data      = 8
+  integer, parameter :: bc_character = 9
+  integer, parameter :: bc_pole      = 12
 
   !> whether copy values instead of interpolation in ghost cells of finer blocks
-  logical :: ghost_copy=.false.
+  logical :: ghost_copy = .false.
 
   !> if there is an internal boundary
   logical :: internalboundary
 
-  !> Base file name for synthetic EUV emission output
-  character(len=std_len) :: filename_euv
-  !> wavelength for output
-  integer :: wavelength
-  !> resolution of the EUV image
-  character(len=std_len) :: resolution_euv
-  !> Base file name for synthetic SXR emission output
-  character(len=std_len) :: filename_sxr
-  ! minimum and maximum energy of SXR (keV)
-  integer :: emin_sxr,emax_sxr
-  !> resolution of the SXR image
-  character(len=std_len) :: resolution_sxr
-  !> direction of the line of sight (LOS)
-  double precision :: LOS_theta,LOS_phi
-  !> rotation of image
-  double precision :: image_rotate
-  !> where the is the origin (X=0,Y=0) of image
-  double precision :: x_origin(1:3)
-  !> big image
-  logical :: big_image
-  !> Base file name for synthetic EUV spectrum output
-  character(len=std_len) :: filename_spectrum
-  !> wave length for spectrum
-  integer :: spectrum_wl
-  !> spectral window
-  double precision :: spectrum_window_min,spectrum_window_max
-  !> location of the slit
-  double precision :: location_slit
-  !> direction of the slit
-  integer :: direction_slit
-  !> resolution of the spectrum
-  character(len=std_len) :: resolution_spectrum
+  !> if wants to update cons after getbc
+  logical :: update_cons_after_getbc = .true.
 
   !> Block pointer for using one block and its previous state
   type(state), pointer :: block
 
-  !$OMP THREADPRIVATE(block,dxlevel,b0i)
+  !$OMP THREADPRIVATE(block,dxlevel)
 
 contains
 
@@ -732,10 +660,21 @@ contains
     integer, intent(in) :: ixI^L, ixO^L
     double precision, intent(in) :: a(ixI^S,3), b(ixI^S,3)
     double precision, intent(out) :: axb(ixI^S,3)
+    !-------------------------------------------------------------------------
 
     axb(ixO^S,1)=a(ixO^S,2)*b(ixO^S,3)-a(ixO^S,3)*b(ixO^S,2)
     axb(ixO^S,2)=a(ixO^S,3)*b(ixO^S,1)-a(ixO^S,1)*b(ixO^S,3)
     axb(ixO^S,3)=a(ixO^S,1)*b(ixO^S,2)-a(ixO^S,2)*b(ixO^S,1)
   end subroutine cross_product
+
+  !> SNG function
+  integer function sgn(x)
+    integer, intent(in) :: x
+    if (x==0) then
+      sgn = 0
+    else
+      sgn = sign(1,x)
+    end if
+  end function sgn
 
 end module mod_global_parameters

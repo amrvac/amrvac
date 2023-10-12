@@ -17,16 +17,19 @@ integer                                                    :: unit=15 !file unit
 
 contains
 !=============================================================================
-subroutine read_oneblock(filename)
+subroutine read_oneblock(filename, type_of_ID_input)
 
 use mod_global_parameters
-
+use mod_physics
 character(len=*), intent(in)             :: filename
+character(len=*), intent(in)             :: type_of_ID_input
+
 ! .. local ..
 character(len=1024)                      :: outfilehead
 integer                                  :: nctot, ix^D, ixp^D
 double precision                         :: time
 integer                                  :: idim
+integer                                  :: ierrmpi
 integer,dimension(^ND)                   :: sendbuff
 !-----------------------------------------------------------------------------
 
@@ -45,12 +48,25 @@ if (mype == 0) then
    ! Allocate and read the grid and variables:
    allocate(xoneblock(nc^D,1:^ND))
    allocate(woneblock(nc^D,1:nw))
-   
-   {do ix^DB=1,nc^DB\}  
-   
-   read(unit,*) xoneblock(ix^D,1:^ND), woneblock(ix^D,1:nw)
-   
+
+   {do ix^DB=1,nc^DB\}
+     select case(type_of_ID_input)
+     case('c2b_phiav')
+        read(unit,*) xoneblock(ix^D,1:^ND), woneblock(ix^D,rho_),woneblock(ix^D,W_vel(1:ndir))!,woneblock(ix^D,press_)
+     case('c2b_phiav_tabulated')
+        read(unit,*) xoneblock(ix^D,1:^ND), woneblock(ix^D,rho_),woneblock(ix^D, ye_), woneblock(ix^D,logtemp_),&
+                              woneblock(ix^D,W_vel(1:ndir))!, woneblock(ix^D,press_)
+     case('')
+          call mpistop("You need to select a case of type_of_ID")
+     end select
+
    {end do\}
+
+!   {do ix^DB=1,nc^DB\}  
+!   
+!   read(unit,*) xoneblock(ix^D,1:^ND), woneblock(ix^D,1:nw)
+!   
+!   {end do\}
    
 ! Close the file
    close(unit)
@@ -76,9 +92,12 @@ end if! npe>1
 
 end subroutine read_oneblock
 !=============================================================================
+
+
+
 subroutine interpolate_oneblock(x,iw,out)
 
-double precision, dimension(^ND),intent(in)             :: x 
+double precision, dimension(^ND),intent(in)             :: x
 integer, intent(in)                                     :: iw
 double precision, intent(out)                           :: out
 ! .. local ..
@@ -95,6 +114,8 @@ integer                                                 :: ipivot^D, idir
 !-----------------------------------------------------------------------------
 
 xloc=x
+
+ic^D=1;
 
 !--------------------------------------------
 ! Hunt for the index closest to the point
@@ -152,7 +173,7 @@ ic2^D = ic1^D + 1
 \}
 
 !--------------------------------------------
-! apply flat interpolation if outside of range, 
+! apply flat interpolation if outside of range,
 ! change point-location to make this easy!
 !--------------------------------------------
 {
@@ -179,16 +200,16 @@ xd1 = (xloc(1)-xoneblock(ic11,1)) / (xoneblock(ic21,1) - xoneblock(ic11,1))
 out = woneblock(ic11,iw) * (1.0d0 - xd1) + woneblock(ic21,iw) * xd1
 }
 {^IFTWOD
-xd1 = (xloc(1)-xoneblock(ic11,ic12,1)) / (xoneblock(ic21,ic12,1) - xoneblock(ic11,ic12,1))      
+xd1 = (xloc(1)-xoneblock(ic11,ic12,1)) / (xoneblock(ic21,ic12,1) - xoneblock(ic11,ic12,1))
 xd2 = (xloc(2)-xoneblock(ic11,ic12,2)) / (xoneblock(ic11,ic22,2) - xoneblock(ic11,ic12,2))
 c00 = woneblock(ic11,ic12,iw) * (1.0d0 - xd1) + woneblock(ic21,ic12,iw) * xd1
 c10 = woneblock(ic11,ic22,iw) * (1.0d0 - xd1) + woneblock(ic21,ic22,iw) * xd1
 out = c00 * (1.0d0 - xd2) + c10 * xd2
 }
 {^IFTHREED
-xd1 = (xloc(1)-xoneblock(ic11,ic12,ic13,1)) / (xoneblock(ic21,ic12,ic13,1) - xoneblock(ic11,ic12,ic13,1))      
-xd2 = (xloc(2)-xoneblock(ic11,ic12,ic13,2)) / (xoneblock(ic11,ic22,ic13,2) - xoneblock(ic11,ic12,ic13,2))      
-xd3 = (xloc(3)-xoneblock(ic11,ic12,ic13,3)) / (xoneblock(ic11,ic12,ic23,3) - xoneblock(ic11,ic12,ic13,3))    
+xd1 = (xloc(1)-xoneblock(ic11,ic12,ic13,1)) / (xoneblock(ic21,ic12,ic13,1) - xoneblock(ic11,ic12,ic13,1))
+xd2 = (xloc(2)-xoneblock(ic11,ic12,ic13,2)) / (xoneblock(ic11,ic22,ic13,2) - xoneblock(ic11,ic12,ic13,2))
+xd3 = (xloc(3)-xoneblock(ic11,ic12,ic13,3)) / (xoneblock(ic11,ic12,ic23,3) - xoneblock(ic11,ic12,ic13,3))
 
 c00 = woneblock(ic11,ic12,ic13,iw) * (1.0d0 - xd1) + woneblock(ic21,ic12,ic13,iw) * xd1
 c10 = woneblock(ic11,ic22,ic13,iw) * (1.0d0 - xd1) + woneblock(ic21,ic22,ic13,iw) * xd1
@@ -202,6 +223,5 @@ out = c0 * (1.0d0 - xd3) + c1 * xd3
 }
 
 end subroutine interpolate_oneblock
-!=============================================================================
+
 end module mod_oneblock
-!=============================================================================

@@ -10,8 +10,8 @@ package.
 This software has to be configured, preprocessed, and compiled into a single
 main executable program, **amrvac** which can be run on multiple processors
 using MPI. MPI-AMRVAC will initialize and advance the unknowns, and perform
-automated grid refinement to follow all details of the (possibly shock-dominated) flow. 
-The program is split into several logical parts, and heavily
+automated grid refinement to follow all details of the (possibly shock-
+dominated) flow. The program is split into several logical parts, and heavily
 uses Fortran 90 modules and dynamic allocation.
 
 Once the configuration and compilation are done, **amrvac** can advance the
@@ -101,7 +101,7 @@ See [methods](methods.md) for a more detailed description.
 
 With the finite volume methods, second order accurate explicit time
 integration can be obtained by predictor-corrector and multistep Runge-Kutta
-type discretizations. See [time_discretization](time_discretization.md). In finite differences, the overall accuracy can go up to
+type discretizations. In finite differences, the overall accuracy can go up to
 fourth order using the appropriate temporal discretizations. The more
 important ones are:
 
@@ -110,8 +110,8 @@ Name | Description
 onestep | 1st order Euler scheme
 twostep | 2nd order predictor-corrector schemes
 threestep | 3rd order (TVD) Runge-Kutta
-fourstep | rk4 allows for selecting 4th order Runge-Kutta (classical)
-fourstep | ssprk4 is a 3rd order, strong stability preserving four step Runge-Kutta
-fivestep | ssprk5 is 4th order, strong stability preserving five step Runge-Kutta
+rk4 | 4th order Runge-Kutta (classical)
+ssprk43 | 3rd order, strong stability preserving four step Runge-Kutta
+ssprk54 | 4th order, strong stability preserving five step Runge-Kutta
 
 The time step can be adjusted dynamically to satisfy the stability criteria.

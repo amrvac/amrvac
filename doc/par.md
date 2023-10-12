@@ -13,7 +13,7 @@ have physics-independent class and physics-dependent class. The physics-independ
 * @ref par_filelist Name and type of files to save (or read)
 * @ref par_savelist When to save data
 * @ref par_stoplist When to stop the simulation
-* @ref par_methodlist Which numerical methods to use (e.g., flux scheme, time stepper, time integrator, limiter)
+* @ref par_methodlist Which numerical methods to use (e.g., flux scheme, time integrator, limiter)
 * @ref par_boundlist Boundary conditions
 * @ref par_meshlist Mesh-related settings (e.g. domain size, refinement)
 * @ref par_paramlist Time-step parameters
@@ -89,7 +89,7 @@ slicenext | integer | 0 | Start index for writing slices
 firstprocess | logical | F | If true, call `initonegrid_usr` upon restarting
 reset_grid | logical | F | If true, rebuild the AMR grid upon restarting
 convert | logical | F | If true and filenameini and snapshotini are given, convert snapshots to other file formats
-convert_type | string | vtuBCCmpi | Which format to use when converting, options are: tecplot, tecplotCC, vtu, vtuCC, vtuB, vtuBCC, tecplotmpi, tecplotCCmpi, vtuBmpi, vtuBCCmpi, vtumpi,  vtuCCmpi, pvtumpi, pvtuCCmpi, tecline, teclinempi, onegrid, EIvtiCCmpi, ESvtiCCmpi, SIvtiCCmpi, EIvtuCCmpi, ESvtuCCmpi, SIvtuCCmpi
+convert_type | string | vtuBCCmpi | Which format to use when converting, options are: tecplot, tecplotCC, vtu, vtuCC, vtuB, vtuBCC, tecplotmpi, tecplotCCmpi, vtuBmpi, vtuBCCmpi, vtumpi,  vtuCCmpi, pvtumpi, pvtuCCmpi, tecline, teclinempi, onegrid
 slice_type | string | vtu | Which format to use when slicing, options are: csv, dat, vtu, vtuCC
 collapse_type | string | vti | Which format to use when slicing, options are: csv, vti
 autoconvert | logical | F | If true, already convert to output format during the run
@@ -117,9 +117,9 @@ integer timestep counter `it`, the time `global_time`, the time step to be used 
 next time advance `dt`, the domain integrated value of each conserved variable
 (nw real numbers, which allows to check perfect conservation across the grid
 tree when the boundary conditions imply it), the percentage of the domain
-covered by each allowed grid level (given by `refine_max_level` real numbers between 0.0 and 1.0,
+covered by each allowed grid level (`refine_max_level` real numbers between 0.0 and 1.0,
 with 1.0 indicating 100% coverage: when all numbers are summed, we get
-1.0), and the number of grids per allowed grid level (hence, given by `refine_max_level` integers).
+1.0), and the number of grids per allowed grid level (hence, `refine_max_level` integers).
 The logfile is by default saved as an ASCII file.
 The order of saving snapshots, and regridding actions is fixed: regrid happens after the advance by one timestep,
 then regrid, then save the data. This has consequences for the optional
@@ -226,14 +226,6 @@ level_io_min until level_io_min is reached. Correspondingly, _level_io_max_
 limits the maximum level of the output file. This can be useful to visualize
 large datasets.
 
-The convert types `EIvtiCCmpi`, `ESvtiCCmpi`, `SIvtiCCmpi`, `EIvtuCCmpi`, 
-`ESvtuCCmpi` and `SIvtuCCmpi` are added for synthesize EUV images, EUV spectra
-and SXR images, where EI represents EUV image, ES represents EUV spectra and
-SI represents SXR image. The corresponding parameters , e.g. line of sight direction, 
-for synthesizing emissions should be provided in the @ref par_emissionlist when the 
-convert types are activited. 
-
-
 ## Savelist {#par_savelist}
 
 Example:
@@ -290,7 +282,6 @@ output is always saved after the stop condition has been fulfilled. If
     	time_init =DOUBLE
     	reset_time =F | T
     	reset_it   =F | T
-        final_dt_reduction=T | F
     /
 name | type | default | description
 ---|---|---|---
@@ -302,7 +293,6 @@ name | type | default | description
 `time_init` | double | 0 | set the initial time when start a new run
 `reset_time` | logical | F | when restart from a previous run, reset the time to the initial one if it is T
 `reset_it` | logical | F | when restart from a previous run, reset the number of time steps to the initial one if it is T
-`final_dt_reduction` | logical | T | forces the last dt to comply with time_max limit
 
 You may use an upper limit `it_max` for the number of timesteps, and/or the
 physical time `time_max`, and/or the wall time 'wall_time_max' to end a run.
@@ -327,9 +317,9 @@ without changing time, set `reset_it=T`.
 
     &methodlist
 
-    time_stepper='twostep' | 'onestep' | 'threestep' | 'fourstep' | 'fivestep'
-    time_integrator= choices depends on time_stepper
+    time_integrator='twostep' | 'onestep' | 'threestep' | 'rk4' | 'fourstep' | 'ssprk43' | 'ssprk54'
     flux_scheme=nlevelshi strings from: 'hll'|'hllc'|'hlld','hllcd'|'tvdlf'|'tvdmu'|'tvd'|'cd'|'fd'|'source'|'nul'
+    typepred1=nlevelshi strings from: 'default'|'hancock'|'tvdlf'|'hll'|'hllc'|'tvdmu'|'cd'|'fd'|'nul'
     limiter= nlevelshi strings from: 'minmod' | 'woodward' | 'superbee' | 'vanleer' | 'albada' | 'ppm' | 'mcbeta' | 'koren' | 'cada' | 'cada3' | 'mp5'
     gradient_limiter= nlevelshi strings from: 'minmod' | 'woodward' | 'superbee' | 'vanleer' | 'albada' | 'ppm' | 'mcbeta' | 'koren' | 'cada' | 'cada3'
     loglimit= nw logicals, all false by default
@@ -343,7 +333,7 @@ without changing time, set `reset_it=T`.
     typetvd= 'roe' | 'yee' | 'harten' | 'sweby'
     typeaverage='default' | 'roe' | 'arithmetic'
 
-    typeboundspeed= 'Einfeldt' | 'cmaxmean' | 'cmaxleftright'
+    typeboundspeed= 'cmaxmean' | 'other'
     tvdlfeps = DOUBLE
 
     flathllc= F | T
@@ -356,22 +346,18 @@ without changing time, set `reset_it=T`.
 
     small_density= DOUBLE
     small_pressure= DOUBLE
-    small_temperature= DOUBLE
     small_values_method='error' | 'replace' | 'average'
     small_values_daverage=1
     check_small_values= F | T
-    fix_small_values= F | T
-    trace_small_values= F | T
-    small_values_fix_iw= LOGICAL, LOGICAL, LOGICAL, ...
 
     typegrad = 'central' | 'limited'
     typediv = 'central' | 'limited'
-    typecurl = 'central' | 'Gaussbased' | 'Stokesbased'
+
     /
 
-### time_stepper, time_integrator, flux_scheme {#par_time_integrator}
+### time_integrator, flux_scheme, typepred1 {#par_time_integrator}
 
-The `time_stepper` variable determines the time integration procedure. The
+The `time_integrator` variable determines the time integration procedure. The
 default procedure is a second order predictor-corrector type 'twostep' scheme
 (suitable for TVDLF, TVD-MUSCL schemes), and a simple 'onestep' algorithm for
 the temporally second order TVD method, or the first order TVDLF1, TVDMU1,
@@ -380,16 +366,13 @@ the AMR grid levels. The temporally first order but spatially second order
 TVD1 algorithm is best suited for steady state calculations as a 'onestep'
 scheme. The TVDLF and TVD-MUSCL schemes can be forced to be first order, and
 linear in the time step, which is good for getting a steady state, by setting
-`time_stepper='onestep'`.
+`time_integrator='onestep'`.
 
 There is also a fourth order Runge-Kutta type method, when
-`time_stepper='fourstep'` 
-and one sets
-`time_integrator='rk4'`. It can be used with _dimsplit=.true._.
+`time_integrator='fourstep'`. It can be used with _dimsplit=.true._.
  These higher order time integration methods can be
 most useful in conjunction with higher order spatial discretizations.
-See also [discretization](discretization.md) and
-[time_discretization](time_discretization.md).
+See also [discretization](discretization.md).
 
 The array `flux_scheme` defines a scheme to calculate the flux at cell interfaces using the chosen
 [method](methods.md) (like hll based approximate Riemann solver) per activated grid level
@@ -404,6 +387,15 @@ all, and 'source' merely adds sources. These latter two values must be used
 with care, obviously, and are only useful for testing source terms or to save
 computations when fluxes are known to be zero.
 
+The `typepred1` array is only used when `time_integrator='twostep'` and
+specifies the predictor step discretization, again per level (so _nlevelshi_
+strings must be set). By default, it contains _typepred1=20*'default'_ (default
+value _nlevelshi=20_), and it then deduces e.g. that 'cd' is predictor for
+'cd', 'hancock' is predictor for both 'tvdlf' and 'tvdmu'. Check its default
+behavior in the _mod_input_output.t_ module. Thus `typepred1` need not be defined in
+most cases, however `flux_scheme` should always be defined if methods other
+than 'tvdlf' are to be used.
+
 ### Limiter type {#par_typelimiter}
 
 For the TVDLF and TVD-MUSCL methods different limiter functions can be defined
@@ -411,13 +403,12 @@ for the limited linear reconstructions from cell-center to cell-edge
 variables, and for the TVD method, for the characteristic variables.
 The default limiter is the most diffusive `limiter=nlevelshi*'minmod'`
 limiter (minmod for all levels), but one can also use
-`limiter=nlevelshi*'woodward'`, or use different limiters per level. Click
-[Slope limiters](limiter.md) to see detailed description of all available limiters.
+`limiter=nlevelshi*'woodward'`, or use different limiters per level.
 
 The `gradient_limiter` is the selection of a limiter to be used in computing
 gradients (or divergence of vector) when the typegrad=limited (or
 typediv=limited) is selected. It is thus only used in the gradientS
-(divvectorS) subroutines in geometry.t and has effect for the magnetohydrodynamics (MHD) modules.
+(divvectorS) subroutines in geometry.t (and has effect for the MHD modules).
 
 When having a gravitational stratification, one might benefit from performing linear
 reconstruction on the primitive variables log10(rho) and/or log10(p). This can
@@ -452,7 +443,7 @@ array.
 ### Different TVD variants {#par_tvdvariants}
 
 Both `tvd` and `tvdlf` have a few variants, these can be set in the
-strings `typetvd` and `typeboundspeed`, with defaults 'roe' and 'Einfeldt',
+strings `typetvd` and `typeboundspeed`, with defaults 'roe' and 'cmaxmean',
 respectively. The default `typetvd='roe'` is the fastest of the four upwind
 types. For the TVDLF, the 'cmaxmean' merely means whether the maximal physical
 propagation speed is determined as the maximum speed for the mean state based
@@ -504,36 +495,23 @@ described in [methods](methods.md).
 Negative pressure or density caused by the numerical approximations can make the
 code crash. For HD and MHD modules this can be monitored
 or even cured by the handle_small_values subroutines in each substep of iteration. 
-The control parameters small_density, small_pressure, small_temperature play a role here:
+The control parameters `small_density, small_pressure, small_temperature` play a role here:
 they can be set to small positive values but not negative values, while their default is 0. If 
-small_temperature is positive, small_pressure is overwritten by the product of 
-small_rho and small_temperature. If check_small_values is set to .true.,
-an additional check for small values will be triggered in phys_get_pthermal. NOTE: If 
-small values are detected then a crash will occur regardless
-of whether any other positivity fixes are enabled. If fix_small_values is set to .true., 
-small values are actually treated or fixed in subroutines such as phys_to_primitive, 
-phys_to_conserved and source terms like resistive terms in MHD. 
+`small_temperature` is positive, `small_pressure` is overwritten by the product of 
+`small_pressure` and `small_temperature`. If `check_small_values` is set to .true.,
+additional check for small values will be triggered in phys_to_primitive, phys_to_conserved,
+and source terms such as resistive terms in MHD.
 
-The actual treatment is determined by the small_values_method parameter: Its default value
+The actual treatment involves the _small_values_method_ parameter: Its default value
 'error' causes a full stop in the handle_small_values subroutine in the physics 
 modules. In this way, you can use it for debugging purposes, to spot from where the actual
-negative pressure and unphysical value gets introduced during which call. If the compilation
-is in debug mode and trace_small_value=T, then the error message shows the path of execution as
-number of lines of subroutines so that you know when the small values are encountered in the execution
-sqeuence. If it is somehow unavoidable in
+negative pressure and unphysical value gets introduced. If it is somehow unavoidable in
 your simulations, then you may rerun with a recovery process turned on as
-follows.  When small_values_method='replace', the parameters small_pressure, small_density 
+follows.  When _small_values_method='replace'_, the parameters small_pressure, small_density 
 are used to replace any unphysical value and set momentum to be 0, as encoded in 
-`mod_small_values.t`. When you select small_values_method='average', any unphysical value
+`mod_small_values.t`. When you select _small_values_method='average'_, any unphysical value
 is replaced by averaging from a user-controlled environment about the faulty cells.
-The width of this environment in cells is set by the integer small_values_daverage.
-The parameter small_values_fix_iw is an array, containing a logical for each variable. It has a length nw. 
-It can be used to make sure that a certain variable is not adjusted by the small_values_method. 
-The default is true for all the variables. If the user sets it to false for a given variable, 
-that variable will not be adjusted by the small_values_method. The first elements are the logicals 
-for the conservative variables in their standard order. As an example: if the user would like to adjust 
-the pressure and density but not the momentum in a 2D MHD simulation, then small_values_fix_iw has to 
-be set to T, F, F, T, T, T. 
+The width of this environment is set by the integer _small_values_daverage_.
 
 ### Special process {#par_process}
 User controlled special process can be added to 
@@ -558,7 +536,8 @@ corresponding gradient_limiter array to select a limiter (per level).
      typeboundary_min^D= 'cont'|'symm'|'asymm'|'periodic'|'special'|'noinflow'
      typeboundary_max^D= 'cont'|'symm'|'asymm'|'periodic'|'special'|'noinflow'
      internalboundary = F | T
-     ghost_copy= F | T
+     typeghostfill= 'linear' | 'copy' 
+     prolongation_method= 'linear' | 'other' (no interpolation)
     /
 
 The boundary types have to be defined for each **conserved variable**, except for 
@@ -685,10 +664,17 @@ specified values through _usr_internal_bc_ subroutine. This is activated with th
 Internally, these are assigned before the ghost-cells and external boundaries
 are applied (in subroutine get_bc).
 
-The `ghost_copy=F` implies the use of limited linear
+The `typeghostfill='linear'` implies the use of limited linear
 reconstructions in the filling of ghost cells for internal boundaries that
-exist due to the AMR hierarchy. If `ghost_copy=T`, a first order 'copy' is 
-used 'unlimit'. To retain second order accuracy, the default set is needed.
+exist due to the AMR hierarchy. A first order 'copy' can be used as well, or
+an unlimited linear reconstruction by setting it to 'unlimit'. To retain
+second order accuracy, at least the default 'linear' type is needed.
+
+The `prolongation_method='linear'` implies the use of limited linear
+reconstructions when filling newly triggered, finer grids from previous
+coarser grid values. Setting it different from this default string will imply
+mere first order copying for finer level grids (and is thus not advised when
+second order is desired).
 
 ## meshlist {#par_meshlist}
 
@@ -719,6 +705,7 @@ used 'unlimit'. To retain second order accuracy, the default set is needed.
      iprob= INTEGER
      prolongprimitive= F | T
      coarsenprimitive= F | T
+     typeprolonglimit= 'default' | 'minmod' | 'woodward' | 'koren' | 'unlimit'
      tfixgrid= DOUBLE
      itfixgrid= INTEGER
      ditregrid= INTEGER
@@ -752,10 +739,7 @@ The base grid resolution (i.e. on the coarsest level 1) is best specified by
 providing _domain_nx^D_, the number of grid cells per dimension, to cover the full
 computational domain set by the _xprobmin^D_ and _xprobmax^D_. The resolution
 of each grid block is set by _block_nx^D_ which exclude ghost cells at each side.
-The _domain_nx^D_ must thus be a integer multiple of _block_nx^D_. The number of 
-blocks on level 1 in a dimension, which does not have any pole or periodic boundary, 
-must be larger than 1 for a rectanuglar mesh with more than one level because of 
-the limitation from ghost-cell exchange at physical boundaries.
+The _domain_nx^D_ must thus be a integer multiple of _block_nx^D_.
 
 ### refine_criterion, nbufferx^D, amr_wavefilter {#par_errest}
 
@@ -949,8 +933,7 @@ sharp discontinuities. It is normally inactive with a default value -1.
      mhd_eta= DOUBLE
      mhd_eta_hyper= DOUBLE
      mhd_etah= DOUBLE 
-     mhd_glm_alpha= 0.5d0 between 0 and 1
-     mhd_glm_extended= T | F
+     mhd_glm_alpha= DOUBLE
      mhd_magnetofriction= F | T
      mhd_thermal_conduction= F | T
      mhd_radiative_cooling= F | T
@@ -959,21 +942,11 @@ sharp discontinuities. It is normally inactive with a default value -1.
      mhd_viscosity= F | T
      mhd_particles= F | T
      mhd_4th_order= F | T
-     mhd_internal_e= F | T
-     mhd_hydrodynamic_e= F | T
-     mhd_solve_eaux= F | T
-     mhd_semirelativistic= F | T
-     mhd_boris_simplification= F | T
-     mhd_reduced_c = 3.d10
-     mhd_trac= F | T
-     mhd_trac_type= INTEGER from 1 to 5
-     mhd_trac_mask= bigdouble
-     mhd_trac_finegrid= INTEGER
      typedivbfix= 'linde'|'ct'|'glm'|'powel'|'lindejanhunen'|'lindepowel'|'lindeglm'|'multigrid'|'none'
      type_ct='uct_contact'|'uct_hll'|'average'
      source_split_divb= F | T
      boundary_divbfix= 2*ndim logicals, all false by default
-     divbdiff= 0.8d0 between 0 and 2
+     divbdiff= DOUBLE between 0 and 2
      typedivbdiff= 'all' | 'ind'
      divbwave= T | F
      B0field= F | T
@@ -1023,10 +996,6 @@ GLM-MHD mixed hyperbolic and parabolic dampening of the divB error using an
 additional scalar variable `Psi`.  The algorithm of 'glm' is described by
 Dedner et al. as _Equation (24)_ in 
 _Journal of Computational Physics 175, 645-673 (2002) doi:10.1006/jcph.2001.6961_. 
-The default one with parameter **mhd_glm_extended=.true.** is the extended GLM-MHD with
-divb related sources terms in momemtum and energy equation. The GLM-MHD method without the
-sources terms is used when `mhd_glm_extended=.false.`. The parameter `mhd_glm_alpha` ranging
-from 0 to 1.0 is the ratio of the diffusive to advective time scales for divb cleaning.
 You can choose 'lindejanhunen', 'lindepowel', or 'lindeglm' to use combined divb cleaning.
 
 Projection scheme using multigrid Poisson solver by Teunissen and Keppens in 
@@ -1038,7 +1007,8 @@ remove div B part of B.
 For MHD, we implemented the possibility to use a splitting strategy following
 Tanaka, where a time-invariant background magnetic field is handled
 exactly, so that one solves for perturbed magnetic field components instead.
-This method works with HLLD, HLL and TVDLF flux and with all divb cleaning methods.
+This method work only with HLL or TVDLF schemes and non CT divb cleaning methods 
+in the current implementation.
 The magnetic field splitting is activated by `B0field=T`, and the magnitude of 
 the background magnetic field can be controlled using the parameters 
 `Bdip, Bquad, Boct, Busr`. The first
@@ -1053,182 +1023,29 @@ _usr_set_J0_ subroutine to significantly increase accuracy. Choose
 `B0field_forcefree=T` when your background magnetic field is forcefree for better
 efficiency and accuracy.
 
-### The transition region adaptive conduction (TRAC) method {#par_TRAC}
 
-For solar atmosphere, simulations can sometimes suffer from the huge temperature gradient in the transition region.
-If the resolution is not enough (typically 1 km), the upward evaporation might be underestimated.
-The TRAC method could be used to correct the evaporation through artificially broadening the transition region.
-Set `mhd_trac=T` to enable this function.
-`mhd_trac_type=1` is the basic TRAC method for 1D simulation (see Johnston et al. 2019, 2020).
-When it is used for 2D or 3D simulations, the local cutoff temperature inside each block would be calculated separately.
-It is the fastest way in multi-D simulations, it is not accurate but basically, is physically correct.
-For multi-D uniform Cartesian grids, we prepared some other methods.
-`mhd_trac_type=3` is the multi-D TRAC method based on the field line tracing module.
-For multi-D simulations, it should be the most accurate one, but might be very slow.
-Considering that this TRAC modificaiton will mostly affect the transition region,
-one can use `mhd_trac_type=5` to add a mask to limit the region where the field lines are integrated.
-Give `mhd_trac_mask` to set the maximum height of the mask, in your unit_length.
-`mhd_trac_type=4` uses the block-based TRAC method for multi-D simulations, which should be faster than the second type.
-And `mhd_trac_type=6` works in a similar way with the 4th type, by adding a mask on the block-based TRAC method.
-Give `mhd_trac_finegrid` to set the distance between two adjacent traced field lines (in the unit of finest cell size).
-Note that when setting `mhd_trac_type >=3`, the direction of your gravity should follow y-dir (2D) or z-dir(3D).
 
-`mhd_trac_type=2` is anthor TRAC method, which broadens the transition region according to a different criterion.
-Unlike Johnston's TRAC method, this TRAC method has the advantage that all the calculation is done locally within the block.
-Thus, it could be used in either 1D (M)HD or multi-D MHD simulations, and is much faster than other multi-D methods.
+## Synthetic EUV emission {#par_euvlist}
 
-### Solve internal or hydrodynamic energy to avoid negative pressure{#par_AIE}
+User can use this module to synthesize EUV emission based on the plasma parameters. 
+Two types of data can be generated with module: 2D image of given EUV line and the
+spectra of the line. The data will be outputed into two .vtu files. User can activate
+the systhesis by set 'image = .true.' or 'spectrum = .true.'. It works only when the
+simulation is 3D currently.
 
-In extremely low beta plasma, internal energy or gas pressure easily goes to
-negative values when solving total energy equation, because numerical error of magnetic
- energy is comparable to the internal energy due to its extremely small fraction in the 
-total energy. We have three methods to avoid this problem. In the first method, we solve 
-internal energy equation instead of total energy equation by setting `mhd_internal_e=T`.
-In the second method, we solve both the total energy equation and an auxiliary internal energy equation 
- and synchronize the internal energy with the result from total energy equation. In each step of 
-advection, the synchronization replace the internal energy from 
-the total energy with the auxiliary internal energy where plasma beta is lower than 0.005, 
-mix them where plasma beta is between 0.005 and 0.05, and replace the auxiliary internal 
-energy with the internal energy from the total energy where plasma beta is larger than 0.05.
-This function is activated by `mhd_solve_eaux=T`. If you set `mhd_solve_eaux=T`, you need to
-add a line, "if(mhd_solve_eaux) w(ixO^S,eaux_)=w(ixO^S,p_)", after initial gas pressure is given
-in subroutine usr_init_one_grid of mod_usr.t, to give the initial condition for the auxiliary gas pressure 
-or internal energy. The boundary type 
-of the auxiliary internal energy is coded to be the same as the boundary type of density. 
-So you do not need to specify boundary types for the auxiliary internal energy in the par file. 
-It is, however, needed to specify the special boundary 
-for the auxiliary internal energy in mod_usr.t if special boundary is used. 
-This function is compatible with all finite volume and finite difference schemes we have, including
-HLL, HLLC, and HLLD, in which the Riemann flux of the auxiliary internal energy is evaluted
-as the HLL flux in all intermediate states of the Riemann fan. 
-In the third method, We solve hydrodynamic energy, i.e., internal and kinetic energy, instead of
-total energy with an additional source term of Lorentz force work, by setting `mhd_hydrodynamic_e=T`,
-which has better conservation than solving internal energy.
+User can specify the emission line, light of sight direction, slit dirction for spectral
+observation and the slit location via parameters 'wavelength', 'direction_LOS',
+'direction_slit', 'location_slit', respectively. User can choose the resolution of the 
+outputed image or spectra via 'resolution_euv'. The resolution will be changed to 
+instrument resolution (AIA or IRIS) by setting 'resolution_euv= `instrument`'.
 
-### Solve semirelativistic MHD to tackle extreme Alfven speed{#par_semirelati}
-
-The Alfven speed in nonrelativistic MHD, defined as B/sqrt(mu rho), can be extremely large, even unphysically larger
-than speed of light in strong magnetic field and low density regions. Semirelativistic MHD equations
-(Gombosi et al. 2002 JCP 177, 176) as the nonrelativistic hydrodynamic limit of the relativistic MHD 
-equations solve the problem and have the same steady-state solution as nonrelativistic MHD. 
-By artificially lowering the speed of light, one can reduce the wave speeds allowing larger time steps 
-thus faster solution in explicit numerical schemes. Set `mhd_semirelativistic=T` and `mhd_reduced_c` 
-equals to a value smaller than light speed with physical unit to solve semirelativistic MHD. If setting
-`mhd_hydrodynamic_e=T`, the approximate split semirelativistic MHD equations (Rempel 2017 ApJ 834, 10)
-are solved with hydrodynamic energy instead of total energy. `mhd_semirelativistic=T` contradicts with 
-`mhd_internal_e=T`, since internal energy equation has not been derived from semirelativistic MHD 
-equations. Boris simplification of semirelativistic MHD equations can be solved by 
-setting `mhd_boris_simplification=T` and `mhd_semirelativistic=F` to get faster but less accurate solutions.
-`mhd_boris_simplification=T` is empirically working with `mhd_internal_e=T` or `mhd_hydrodynamic_e=T`.
-Since semirelativistic MHD waves are very complicated, only approximate fast magnetosonic wave speed
-is implemented to use HLL or tvdlf scheme, schemes (such as HLLC and HLLD) depending on more wave speeds 
-are not yet fully compatible with semirelativistic MHD.
-
-## Synthetic EUV emission {#par_emissionlist}
-
-User can synthesize EUV images, EUV spectra, SXR images using 3D .dat files inside amrvac. 
-These can be finished easily by adding some parameters into .par file. The images/spectra will 
-be output to .vtu/.vti files when the convert_type in @ref par_filelist is set to  `EIvtiCCmpi`, 
-`ESvtiCCmpi`,  `SIvtiCCmpi` ... etc. Two types of resolution are supported: data resolution and 
-instrument resolution. In data resolution, the size of the image pixel is the same as the size of the 
-finest cell. In instrument resolution, the size of a pixel is the same as that in relevant observation 
-data (such as SDO and RHESSI). The point spread function (PSF, instrument effect) has been 
-included for `instrument` resolution. The resolution or EUV image/SXR image/EUV spectra is 
-controlled by the parameter `resolution_euv`/`resolution_sxr`/`resolution_spectrum`.
-
-The line of sight (LOS) is controlled with `LOS_theta` and `LOS_phi`, where the LOS is anti-parallel 
-to the vector [cos(LOS_phi)*sin(LOS_theta), sin(LOS_phi)*sin(LOS_theta),cos(LOS_theta)] (see the 
-following figure). The units of `LOS_theta` and `LOS_phi` are degree. For resolution type `data`, 
-only combinations `LOS_theta=0, LOS_phi=90`, `LOS_theta=90, LOS_phi=90` and `LOS_phi=0` 
-are supported, otherwise the boundaries of image pixels can not match the cell boundaries of the 
-cell boundaries of the simulation data. `LOS_theta` and `LOS_phi` can be any integer for 
-`instrument` resolution. User can rotate the image with `image_rotate` (in degree) in 
-`instrument` resolution (for both EUV image and SXR image. By default, the y direction 
-of the image is located in a plane given by the LOS and the z direction of the simulation data. 
-
-![](figmovdir/LOS_emission.png)
-
-The wavelength of an EUV image is defined with `wavelength`. The bottom/upper cutoff energy 
-of SXR image is defined with `emin_sxr`/`emax_sxr` (in keV). 
-
-The wavelength of the EUV spectra is defined with `spectrum_wl`. When `spectrum_euv` is`true`, 
-spectra at a slit in the corresponding image will be given. The output is a 2D image, where x-axis is 
-wavelength and y-axis is space (physics distance at the slit). Under the `instrument` resolution type, 
-the slit is parallel to the y axis of corresponding EUV image (controlled by `LOS_theta`, `LOS_phi` and 
-`image_rotate`). The location of the slit `location_slit` is the x value of the image (in arcsec).
-For the `data` resolution, the direction of the slit is controlled by `direction_slit`. The location of 
-the slit `location_slit` is the coordinate value at the third direction (perpendicular to LOS and slit).
-For example, the LOS along x direction and the slit along y direction, then `location_slit` should 
-be z of the slit. The domain in wavelength is controlled by `spectrum_window_min` and `spectrum_window_max`.
-
-The mapping between simulation box coordinate and synthesized image coordinate is not only controlled by LOS, 
-but also controlled by the parameter `x_origin`. The simulation box point given by `x_origin` will always located
-at (X=0,Y=0) of the synthesized image. The parameter `big_image` is added for making movie that the LOS is 
-changing. When `big_image=T`, then the synthesized EUV/SXR image will have a fixed big domain. The domain will
-not change when changing the LOS, and the whole simulation box will always be convered inside the domain. The 
-parameter `x_origin` is also added for making such kind of movie.
-
-Only Cartesian coordinate system are supported currently.
-
-    &emissionlist
+    &euv_list
       filename_euv= CHARACTER
-      wavelength= 94 | 131 | 171 | 193 | 211 | 304 | 335 | 1354 | 263 | 264 | 192 | 255
-      resolution_euv= 'instrument' | 'data'
-      LOS_theta= DOUBLE
-      LOS_phi= DOUBLE
-      image_rotate= DOUBLE
-      x_origin(1:3)= DOUBLE
-      big_image=LOGICAL
-      filename_sxr= CHARACTER
-      emin_sxr= INTEGER
-      emax_sxr= INTEGER
-      resolution_sxr= 'instrument' | 'data'
-      filename_spectrum= CHARACTER
-      spectrum_wl= 1354 | 263 | 264| 192 | 255
-      resolution_sxr= 'instrument' | 'data'
-      spectrum_window_min= DOUBLE
-      spectrum_window_max= DOUBLE
+      image= F | T
+      spectrum= F | T
+      wavelength= 94 | 131 | 171 | 193 | 211 | 304 | 335 | 1394 | 1403 | 1338 | 1343 | 1397 | 1400 | 1401 | 1405 | 1349 | 1351
+      direction_LOS= 1 | 2 | 3
+      direction_slit= 1 | 2 | 3
       location_slit= DOUBLE
-      direction_slit= INTEGER
+      resolution_euv= 'instrument' | 'data'
     /
-
-
-## Splitting of the hydrostatic equilibrium
-
-set 
-```
-
-        has_equi_pe0 = .true.
-        has_equi_rho0 = .true.
-
-```
-to true in ***mhd\_list***
-and implement usr\_set\_equi\_vars in mod\_ust.t file
-
-
-
-```
-  subroutine usr_init()
-
-  ...
-
-    usr_set_equi_vars => special_set_equi_vars
-  
-  ...
-  end subroutine usr_init
-
-
-  subroutine special_set_equi_vars(ixI^L,ixO^L,x,w0)
-    use mod_global_parameters
-    integer, intent(in)             :: ixI^L,ixO^L
-    double precision, intent(in)    :: x(ixI^S,1:ndim)
-    double precision, intent(inout) :: w0(ixI^S,1:number_equi_vars)
-
-
-    w0(ixO^S,equi_pe0_) = ...
-    w0(ixO^S,equi_rho0_) = ...
-
-  end subroutine special_set_equi_vars
-
-```
-

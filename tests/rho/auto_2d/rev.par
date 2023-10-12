@@ -1,9 +1,0 @@
-! Reverse velocity, to test symmetry of schemes
-
- &filelist
-        base_filename='_rev'
- /
-
- &rho_list
-        rho_v = -1.0 -1.0
- /

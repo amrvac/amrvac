@@ -1,4 +1,4 @@
-# TODO: check AMRVAC_DIR
+# TODO: check GMUNU_DIR
 ARCH ?= default
 DIRS := 1d_$(ARCH) 2d_$(ARCH) 3d_$(ARCH)
 LIB_MAKE := $(AMRVAC_DIR)/arch/lib.make
@@ -22,10 +22,6 @@ export ARCH NDIM
 # How to make the builds
 $(DIRS):
 	@mkdir -p $@
-ifeq ("$(wildcard amrvac.h)","")
-	touch amrvac.h
-endif
-	rsync -c amrvac.h $@/amrvac.h
 	$(MAKE) -C $@ -f $(LIB_MAKE)
 
 # Remove everything

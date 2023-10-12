@@ -10,7 +10,7 @@ module mod_physics_ppm
      subroutine sub_ppm_flatcd(ixI^L,ixO^L,ixL^L,ixR^L,w,d2w,drho,dp)
        use mod_global_parameters
        integer, intent(in)             :: ixI^L,ixO^L,ixL^L,ixR^L
-       double precision, intent(in)    :: w(ixI^S,nw),d2w(ixI^S,1:nwflux)
+       double precision, intent(in)    :: w(ixI^S,1:nw),d2w(ixI^S,1:nw)
        double precision, intent(inout) :: drho(ixI^S),dp(ixI^S)
      end subroutine sub_ppm_flatcd
 
@@ -18,7 +18,7 @@ module mod_physics_ppm
        use mod_global_parameters
        integer, intent(in)             :: ixI^L,ixO^L,ixLL^L,ixL^L,ixR^L,ixRR^L
        integer, intent(in)             :: idims
-       double precision, intent(in)    :: w(ixI^S,nw)
+       double precision, intent(in)    :: w(ixI^S,1:nw)
        double precision, intent(inout) :: drho(ixI^S),dp(ixI^S),dv(ixI^S)
      end subroutine sub_ppm_flatsh
   end interface
@@ -26,17 +26,16 @@ module mod_physics_ppm
 contains
 
   subroutine phys_ppm_check
-    if (.not. associated(phys_ppm_flatcd)) &
-         phys_ppm_flatcd => dummy_ppm_flatcd
-
-    if (.not. associated(phys_ppm_flatsh)) &
-         phys_ppm_flatsh => dummy_ppm_flatsh
+    !if (.not. associated(phys_ppm_flatcd)) &
+    !     phys_ppm_flatcd => dummy_ppm_flatcd
+    !if (.not. associated(phys_ppm_flatsh)) &
+    !     phys_ppm_flatsh => dummy_ppm_flatsh
   end subroutine phys_ppm_check
 
   subroutine dummy_ppm_flatcd(ixI^L,ixO^L,ixL^L,ixR^L,w,d2w,drho,dp)
     use mod_global_parameters
     integer, intent(in)             :: ixI^L,ixO^L,ixL^L,ixR^L
-    double precision, intent(in)    :: w(ixI^S,nw),d2w(ixI^S,1:nwflux)
+    double precision, intent(in)    :: w(ixI^S,1:nw),d2w(ixI^S,1,nw)
     double precision, intent(inout) :: drho(ixI^S),dp(ixI^S)
     drho(ixO^S)=zero
     dp(ixO^S)=zero
@@ -46,7 +45,7 @@ contains
     use mod_global_parameters
     integer, intent(in)             :: ixI^L,ixO^L,ixLL^L,ixL^L,ixR^L,ixRR^L
     integer, intent(in)             :: idims
-    double precision, intent(in)    :: w(ixI^S,nw)
+    double precision, intent(in)    :: w(ixI^S,1:nw)
     double precision, intent(inout) :: drho(ixI^S),dp(ixI^S),dv(ixI^S)
     drho(ixO^S)=zero
     dp(ixO^S)=zero

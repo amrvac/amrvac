@@ -20,8 +20,6 @@ contains
     use mod_global_parameters
     use mod_ghostcells_update
     use mod_physics, only: phys_req_diagonal, phys_global_source_after
-    use mod_supertimestepping, only: is_sts_initialized, sts_add_source,sourcetype_sts,&
-                                      sourcetype_sts_prior, sourcetype_sts_after, sourcetype_sts_split   
 
     logical, intent(in) :: prior
     ! This variable, later allocated on the thread stack, causes segmentation fault
@@ -32,21 +30,6 @@ contains
     integer :: iigrid, igrid
     logical :: src_active
 
-    ! add stiff source terms via super time stepping
-    if(is_sts_initialized()) then
-        select case (sourcetype_sts)
-          case (sourcetype_sts_prior)
-            if(prior) then
-              call sts_add_source(dt)
-            endif  
-          case (sourcetype_sts_after)
-            if(.not. prior) then
-              call sts_add_source(dt)
-            endif
-          case (sourcetype_sts_split)
-            call sts_add_source(0.5d0*dt)
-          endselect
-    endif  
     src_active = .false.
 
     if ((.not.prior).and.&
@@ -65,8 +48,8 @@ contains
       do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
          block=>ps(igrid)
          ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
-         call addsource2(0.5d0*dt,ixG^LL,ixM^LL,1,nw,qt,ps(igrid)%w,qt,ps(igrid)%w,&
-              ps(igrid)%x,.true.,src_active)
+         call addsource2(0.5d0*dt,ixG^LL,ixM^LL,1,nw,qt,ps(igrid),pso(igrid),qt,ps(igrid)%w,&
+              .true.,src_active)
       end do
       !$OMP END PARALLEL DO
     case (sourcesplit_sf)
@@ -74,8 +57,8 @@ contains
       do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
          block=>ps(igrid)
          ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
-         call addsource2(dt  ,ixG^LL,ixM^LL,1,nw,qt,ps(igrid)%w,qt,ps(igrid)%w,&
-              ps(igrid)%x,.true.,src_active)
+         call addsource2(dt  ,ixG^LL,ixM^LL,1,nw,qt,ps(igrid),pso(igrid),qt,ps(igrid)%w,&
+              .true.,src_active)
       end do
       !$OMP END PARALLEL DO
     case (sourcesplit_ssf)
@@ -83,10 +66,10 @@ contains
       do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
          block=>ps(igrid)
          ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
-         call addsource2(0.5d0*dt,ixG^LL,ixG^LL,1,nw,qt,ps(igrid)%w,qt,ps(igrid)%w,&
-              ps(igrid)%x,.true.,src_active)
-         call addsource2(dt  ,ixG^LL,ixM^LL,1,nw,qt,ps(igrid)%w,qt,ps(igrid)%w,&
-              ps(igrid)%x,.true.,src_active)
+         call addsource2(0.5d0*dt,ixG^LL,ixG^LL,1,nw,qt,ps(igrid),pso(igrid),qt,ps(igrid)%w,&
+              .true.,src_active)
+         call addsource2(dt  ,ixG^LL,ixM^LL,1,nw,qt,ps(igrid),pso(igrid),qt,ps(igrid)%w,&
+              .true.,src_active)
       end do
       !$OMP END PARALLEL DO
     case (sourcesplit_ssfss)
@@ -94,10 +77,10 @@ contains
       do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
          block=>ps(igrid)
          ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
-         call addsource2(0.25d0*dt,ixG^LL,ixG^LL,1,nw,qt,ps(igrid)%w,qt,ps(igrid)%w,&
-              ps(igrid)%x,.true.,src_active)
-         call addsource2(0.5d0*dt,ixG^LL,ixM^LL,1,nw,qt,ps(igrid)%w,qt,ps(igrid)%w,&
-              ps(igrid)%x,.true.,src_active)
+         call addsource2(0.25d0*dt,ixG^LL,ixG^LL,1,nw,qt,ps(igrid),pso(igrid),qt,ps(igrid)%w,&
+              .true.,src_active)
+         call addsource2(0.5d0*dt,ixG^LL,ixM^LL,1,nw,qt,ps(igrid),pso(igrid),qt,ps(igrid)%w,&
+              .true.,src_active)
       end do
       !$OMP END PARALLEL DO
     case default
@@ -110,14 +93,14 @@ contains
     end if
 
     if (src_active) then
-       call getbc(qt,0.d0,ps,iwstart,nwgc,phys_req_diagonal)
+       ! fixme: need to do con2prim before getbc
+       call getbc(qt,0.d0,ps,1,nw,gc_hydro,phys_req_diagonal)
     end if
 
   end subroutine add_split_source
 
   !> Add source within ixO for iws: w=w+qdt*S[wCT]
-  subroutine addsource2(qdt,ixI^L,ixO^L,iw^LIM,qtC,wCT,qt,&
-       w,x,qsourcesplit,src_active,wCTprim)
+  subroutine addsource2(qdt,ixI^L,ixO^L,iw^LIM,qtC,sCT,sold,qt,w,qsourcesplit,src_active)
     use mod_global_parameters
     use mod_physics, only: phys_add_source
     use mod_usr_methods, only: usr_source
@@ -125,24 +108,22 @@ contains
 
     integer, intent(in)              :: ixI^L, ixO^L, iw^LIM
     double precision, intent(in)     :: qdt, qtC, qt
-    double precision, intent(in)     :: wCT(ixI^S,1:nw), x(ixI^S,1:ndim)
+    type(state), intent(in)          :: sCT, sold
     double precision, intent(inout)  :: w(ixI^S,1:nw)
     logical, intent(in)              :: qsourcesplit
     logical, intent(inout), optional :: src_active
-    double precision, intent(in), optional :: wCTprim(ixI^S,1:nw)
-
     logical                          :: tmp_active
 
     tmp_active = .false.
 
     ! physics defined sources, typically explicitly added,
     ! along with geometrical source additions
-    call phys_add_source(qdt,ixI^L,ixO^L,wCT,w,x,qsourcesplit,tmp_active,wCTprim)
+    call phys_add_source(qdt,sCT,sold,ixI^L,ixO^L,w,qsourcesplit,tmp_active)
 
     ! user defined sources, typically explicitly added
     if ((qsourcesplit .eqv. source_split_usr) .and. associated(usr_source)) then
        tmp_active = .true.
-       call usr_source(qdt,ixI^L,ixO^L,iw^LIM,qtC,wCT,qt,w,x)
+       call usr_source(qdt,ixI^L,ixO^L,iw^LIM,qtC,sCT,qt,w)
     end if
 
     if (present(src_active)) src_active = src_active .or. tmp_active

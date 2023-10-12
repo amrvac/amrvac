@@ -1,7 +1,7 @@
 #!/usr/bin/perl -s
 #############################################################################
 #
-# AMRVAC PreProcessor (Based on vacpp.pl by Gabor Toth)
+# GMUNU PreProcessor (Based on vacpp.pl by Gabor Toth)
 #                  June 2020: Simplified usage (Teunissen/Keppens)
 #
 #    Todo: here: remove IFDEF/IFNDEF constructions
@@ -44,14 +44,14 @@ if (! ($d)) {
     exit
 }
 
-$AMRVAC_DIR=$ENV{AMRVAC_DIR};
+$GMUNU_DIR=$ENV{GMUNU_DIR};
 
 # Store current working directory
 my $cwd = getcwd();
 
 # Include these directories for header files
 # TODO: check whether $p has a valid value
-@INC = {"$CWD","$AMRVAC_DIR/$p"};
+@INC = {"$CWD","$GMUNU_DIR/$p"};
 
 # Default maximum length for lines unless set by eg. "vacpp.pl -maxlen=72 ..."
 $maxlen=78 unless $maxlen;
@@ -67,7 +67,7 @@ $ndim = $1;
 # Call these routines
 &definepatterns;
 
-# leftover switch D1, only used in amrvacio/mod_slice.t
+# leftover switch D1, only used in io/mod_slice.t
 # to allow for nesting in lasy syntax, acts as nooned
 %defvars = ();
 if ($ndim==1){$defvars{D1}=1;}
@@ -118,9 +118,9 @@ sub processfile {
 sub contline {
     my ($line, $partial_line) = @_;
 
-    if ($line =~ /^ *!\$OMP/ || $line =~ /^#/ || $line =~ /^ *print *\*.*& *$/ ||
+    if ($line =~ /^ *!\$OMP/ || $line =~ /^ *print *\*.*& *$/ ||
         $line =~ /\/\/ *& *$/) {
-        # Don't break OpenMP, std preprocessor directives (lines starting with '#'), print and //&
+        # Don't break OpenMP, print and //&
         $line = $partial_line.$line;
         $partial_line = "";
     } elsif ($line =~ /[^A-Z]& *$/) {
@@ -392,9 +392,9 @@ sub format90 {
    # If line is not too long return
    return($line) if length($line)<=$maxlen;
 
-   if ($line =~ /^ *!\$OMP/ || $line =~ /^#/ || $line =~ /^ *print *\*.*& *$/ ||
+   if ($line =~ /^ *!\$OMP/ || $line =~ /^ *print *\*.*& *$/ ||
         $line =~ /\/\/ *& *$/ || $line =~ /error stop/) {
-       # Don't break lines with OpenMP,std preprocessor directives (lines starting with '#'), print, //&, error stop
+       # Don't break lines with OpenMP, print, //&, error stop
        return ($line);
    }
 
