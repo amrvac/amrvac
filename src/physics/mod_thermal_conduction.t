@@ -200,10 +200,10 @@ contains
     double precision, intent(in) :: w(ixI^S,1:nw)
     double precision :: dtnew
 
-    double precision :: mf(ixI^S,1:ndir)
-    double precision :: tmp2(ixI^S),tmp(ixI^S),Te(ixI^S),B2(ixI^S)
+    double precision :: mf(ixO^S,1:ndir),Te(ixI^S),B2(ixI^S)
+    double precision :: tmp2(ixO^S),tmp(ixO^S),hfs(ixO^S)
     double precision :: dtdiff_tcond,maxtmp2
-    integer          :: idim,ix^D
+    integer          :: idim
 
     !temperature
     call fl%get_temperature_from_conserved(w,x,ixI^L,ixO^L,Te)
@@ -212,8 +212,7 @@ contains
     if(fl%tc_constant) then
       tmp(ixO^S)=fl%tc_k_para
     else
-      call fl%get_rho(w,x,ixI^L,ixO^L,tmp2)
-      tmp(ixO^S)=fl%tc_k_para*dsqrt(Te(ixO^S)**5)/tmp2(ixO^S)
+      tmp(ixO^S)=fl%tc_k_para*dsqrt(Te(ixO^S)**5)
     end if
 
     ! B
@@ -231,36 +230,65 @@ contains
       ^D&mf(ixO^S,^D)=1.d0;
     end where
 
-    if(fl%tc_saturate) B2(ixO^S)=22.d0*dsqrt(Te(ixO^S))
     dtnew=bigdouble
+    ! B2 is now density
+    call fl%get_rho(w,x,ixI^L,ixO^L,B2)
     if(slab_uniform) then
-      do idim=1,ndim
-        tmp2(ixO^S)=tmp(ixO^S)*mf(ixO^S,idim)
-        if(fl%tc_saturate) then
-          where(tmp2(ixO^S)>B2(ixO^S))
-            tmp2(ixO^S)=B2(ixO^S)
+      if(fl%tc_saturate) then
+        Te(ixO^S)=5.5d0*dsqrt(Te(ixO^S))
+        do idim=1,ndim
+          ! approximate thermal conduction flux: tc_k_para_i/rho/dx*B_i**2/B**2
+          tmp2(ixO^S)=tmp(ixO^S)*mf(ixO^S,idim)/(B2(ixO^S)*dxlevel(idim))
+          ! approximate saturate conduction flux: 5.5sqrt(Te)*B_i/B
+          hfs(ixO^S)=Te(ixO^S)*sqrt(mf(ixO^S,idim))
+          where(tmp2(ixO^S)>hfs(ixO^S))
+            tmp2(ixO^S)=hfs(ixO^S)
           end where
-        end if
-        maxtmp2=maxval(tmp2(ixO^S))
-        ! dt< dx_idim**2/((gamma-1)*tc_k_para_i/rho*B_i**2/B**2)
-        dtdiff_tcond=dxlevel(idim)**2/(tc_gamma_1*maxtmp2+smalldouble)
-        ! limit the time step
-        dtnew=min(dtnew,dtdiff_tcond)
-      end do
+          maxtmp2=maxval(tmp2(ixO^S))
+          ! dt< dx_idim**2/((gamma-1)*tc_k_para_i/rho*B_i**2/B**2)
+          dtdiff_tcond=dxlevel(idim)/(tc_gamma_1*maxtmp2+smalldouble)
+          ! limit the time step
+          dtnew=min(dtnew,dtdiff_tcond)
+        end do
+      else
+        do idim=1,ndim
+          ! approximate thermal conduction flux: tc_k_para_i/rho/dx*B_i**2/B**2
+          tmp2(ixO^S)=tmp(ixO^S)*mf(ixO^S,idim)/(B2(ixO^S)*dxlevel(idim))
+          maxtmp2=maxval(tmp2(ixO^S))
+          ! dt< dx_idim**2/((gamma-1)*tc_k_para_i/rho*B_i**2/B**2)
+          dtdiff_tcond=dxlevel(idim)/(tc_gamma_1*maxtmp2+smalldouble)
+          ! limit the time step
+          dtnew=min(dtnew,dtdiff_tcond)
+        end do
+      end if
     else
-      do idim=1,ndim
-        tmp2(ixO^S)=tmp(ixO^S)*mf(ixO^S,idim)
-        if(fl%tc_saturate) then
-          where(tmp2(ixO^S)>B2(ixO^S))
-            tmp2(ixO^S)=B2(ixO^S)
+      if(fl%tc_saturate) then
+        Te(ixO^S)=5.5d0*dsqrt(Te(ixO^S))
+        do idim=1,ndim
+          ! approximate thermal conduction flux: tc_k_para_i/rho/dx*B_i**2/B**2
+          tmp2(ixO^S)=tmp(ixO^S)*mf(ixO^S,idim)/(B2(ixO^S)*block%ds(ixO^S,idim))
+          ! approximate saturate conduction flux: 5.5sqrt(Te)*B_i/B
+          hfs(ixO^S)=Te(ixO^S)*sqrt(mf(ixO^S,idim))
+          where(tmp2(ixO^S)>hfs(ixO^S))
+            tmp2(ixO^S)=hfs(ixO^S)
           end where
-        end if
-        maxtmp2=maxval(tmp2(ixO^S)/block%ds(ixO^S,idim)**2)
-        ! dt< dx_idim**2/((gamma-1)*tc_k_para_i/rho*B_i**2/B**2)
-        dtdiff_tcond=1.d0/(tc_gamma_1*maxtmp2+smalldouble)
-        ! limit the time step
-        dtnew=min(dtnew,dtdiff_tcond)
-      end do
+          maxtmp2=maxval(tmp2(ixO^S)/block%ds(ixO^S,idim))
+          ! dt< dx_idim**2/((gamma-1)*tc_k_para_i/rho*B_i**2/B**2)
+          dtdiff_tcond=1.d0/(tc_gamma_1*maxtmp2+smalldouble)
+          ! limit the time step
+          dtnew=min(dtnew,dtdiff_tcond)
+        end do
+      else
+        do idim=1,ndim
+          ! approximate thermal conduction flux: tc_k_para_i/rho/dx*B_i**2/B**2
+          tmp2(ixO^S)=tmp(ixO^S)*mf(ixO^S,idim)/(B2(ixO^S)*block%ds(ixO^S,idim))
+          maxtmp2=maxval(tmp2(ixO^S)/block%ds(ixO^S,idim))
+          ! dt< dx_idim**2/((gamma-1)*tc_k_para_i/rho*B_i**2/B**2)
+          dtdiff_tcond=1.d0/(tc_gamma_1*maxtmp2+smalldouble)
+          ! limit the time step
+          dtnew=min(dtnew,dtdiff_tcond)
+        end do
+      end if
     end if
     dtnew=dtnew/dble(ndim)
 
@@ -684,41 +712,47 @@ contains
     type(tc_fluid), intent(in) :: fl
     double precision :: dtnew
 
-    double precision :: tmp(ixI^S), Te(ixI^S), rho(ixI^S)
-    double precision :: dtdiff_tcond,dtdiff_tsat
-    integer          :: idim,ix^D
+    double precision :: tmp(ixO^S),tmp2(ixO^S),Te(ixI^S),rho(ixI^S),hfs(ixO^S)
+    double precision :: dtdiff_tcond,maxtmp2
+    integer          :: idim
 
     call fl%get_temperature_from_conserved(w,x,ixI^L,ixO^L,Te)
     call fl%get_rho(w,x,ixI^L,ixO^L,rho)
 
-    tmp(ixO^S)=tc_gamma_1*fl%tc_k_para*dsqrt((Te(ixO^S))**5)/rho(ixO^S)
+    tmp(ixO^S)=fl%tc_k_para*dsqrt((Te(ixO^S))**5)/rho(ixO^S)
     dtnew = bigdouble
+    ! approximate saturate conduction flux: 5.5sqrt(Te)
+    hfs(ixO^S)=5.5d0*dsqrt(Te(ixO^S))
 
     if(slab_uniform) then
       do idim=1,ndim
-         ! dt< dx_idim**2/((gamma-1)*tc_k_para_idim/rho)
-         dtdiff_tcond=dxlevel(idim)**2/maxval(tmp(ixO^S))
-         if(fl%tc_saturate) then
-           ! dt< dx_idim**2/((gamma-1)*sqrt(Te)*5*phi)
-           dtdiff_tsat=dxlevel(idim)**2/(tc_gamma_1*dsqrt(maxval(Te(ixO^S)))*5.d0)
-           ! choose the slower flux (bigger time scale) between classic and saturated
-           dtdiff_tcond=max(dtdiff_tcond,dtdiff_tsat)
-         end if
-         ! limit the time step
-         dtnew=min(dtnew,dtdiff_tcond)
+        ! approximate thermal conduction flux: tc_k_para_i/rho/dx
+        tmp2(ixO^S)=tmp(ixO^S)/dxlevel(idim)
+        if(fl%tc_saturate) then
+          where(tmp2(ixO^S)>hfs(ixO^S))
+            tmp2(ixO^S)=hfs(ixO^S)
+          end where
+        end if
+        maxtmp2=maxval(tmp2(ixO^S))
+        ! dt< dx_idim**2/((gamma-1)*tc_k_para_i/rho*B_i**2/B**2)
+        dtdiff_tcond=dxlevel(idim)/(tc_gamma_1*maxtmp2+smalldouble)
+        ! limit the time step
+        dtnew=min(dtnew,dtdiff_tcond)
       end do
     else
       do idim=1,ndim
-         ! dt< dx_idim**2/((gamma-1)*tc_k_para_idim/rho)
-         dtdiff_tcond=maxval(block%ds(ixO^S,idim)**2/tmp(ixO^S))
-         if(fl%tc_saturate) then
-           ! dt< dx_idim**2/((gamma-1)*sqrt(Te)*5*phi)
-           dtdiff_tsat=maxval(block%ds(ixO^S,idim)**2/dsqrt(Te(ixO^S)))/(tc_gamma_1*5.d0)
-           ! choose the slower flux (bigger time scale) between classic and saturated
-           dtdiff_tcond=max(dtdiff_tcond,dtdiff_tsat)
-         end if
-         ! limit the time step
-         dtnew=min(dtnew,dtdiff_tcond)
+        ! approximate thermal conduction flux: tc_k_para_i/rho/dx
+        tmp2(ixO^S)=tmp(ixO^S)/block%ds(ixO^S,idim)
+        if(fl%tc_saturate) then
+          where(tmp2(ixO^S)>hfs(ixO^S))
+            tmp2(ixO^S)=hfs(ixO^S)
+          end where
+        end if
+        maxtmp2=maxval(tmp2(ixO^S)/block%ds(ixO^S,idim))
+        ! dt< dx_idim**2/((gamma-1)*tc_k_para_i/rho*B_i**2/B**2)
+        dtdiff_tcond=1.d0/(tc_gamma_1*maxtmp2+smalldouble)
+        ! limit the time step
+        dtnew=min(dtnew,dtdiff_tcond)
       end do
     end if
     dtnew=dtnew/dble(ndim)
@@ -846,7 +880,7 @@ contains
     if(fl%tc_saturate) then
       ! consider saturation with unsigned saturated TC flux = 5 phi rho c**3
       ! saturation flux at cell center
-      qd(ix^S)=5.d0*rho(ix^S)*dsqrt(Te(ix^S)**3)
+      qd(ix^S)=5.5d0*rho(ix^S)*dsqrt(Te(ix^S)**3)
       !cell corner values of qd in ke
       ke=0.d0
       {do ix^DB=0,1\}
