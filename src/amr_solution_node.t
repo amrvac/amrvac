@@ -601,6 +601,10 @@ subroutine alloc_state(igrid, s, ixG^L, ixGext^L, alloc_once_for_ps)
              s%surface(ixG^S,1:ndim))
     ! allocate physical boundary flag
     allocate(s%is_physical_boundary(2*ndim))
+    if(local_timestep) then
+      allocate(s%dt(ixG^S))
+    endif
+
     if(B0field) then
       allocate(s%B0(ixG^S,1:ndir,0:ndim))
       allocate(s%J0(ixG^S,7-2*ndir:3))

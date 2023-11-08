@@ -652,7 +652,7 @@ contains
        block=>ps(igrid)
        ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
 
-       call process1_grid(method(block%level),igrid,qdt,ixG^LL,idim^LIM,qtC,&
+       call process1_grid(method(block%level),igrid,qdt,dtfactor,ixG^LL,idim^LIM,qtC,&
             psa(igrid),qt,psb(igrid),pso(igrid))
     end do
     !$OMP END PARALLEL DO
@@ -681,13 +681,13 @@ contains
   end subroutine advect1
 
   !> Prepare to advance a single grid over one partial time step
-  subroutine process1_grid(method,igrid,qdt,ixI^L,idim^LIM,qtC,sCT,qt,s,sold)
+  subroutine process1_grid(method,igrid,qdt,dtfactor,ixI^L,idim^LIM,qtC,sCT,qt,s,sold)
     use mod_global_parameters
     use mod_fix_conserve
 
     integer, intent(in) :: method
     integer, intent(in) :: igrid, ixI^L, idim^LIM
-    double precision, intent(in) :: qdt, qtC, qt
+    double precision, intent(in) :: qdt, dtfactor, qtC, qt
     type(state), target          :: sCT, s, sold
 
     ! cell face flux
@@ -695,7 +695,7 @@ contains
     ! cell edge flux
     double precision :: fE(ixI^S,7-2*ndim:3)
 
-    call advect1_grid(method,qdt,ixI^L,idim^LIM,qtC,sCT,qt,s,sold,fC,fE,&
+    call advect1_grid(method,qdt,dtfactor,ixI^L,idim^LIM,qtC,sCT,qt,s,sold,fC,fE,&
          rnode(rpdx1_:rnodehi,igrid),ps(igrid)%x)
 
     ! opedit: Obviously, flux is stored only for active grids.
@@ -712,7 +712,7 @@ contains
   end subroutine process1_grid
 
   !> Advance a single grid over one partial time step
-  subroutine advect1_grid(method,qdt,ixI^L,idim^LIM,qtC,sCT,qt,s,sold,fC,fE,dxs,x)
+  subroutine advect1_grid(method,qdt,dtfactor,ixI^L,idim^LIM,qtC,sCT,qt,s,sold,fC,fE,dxs,x)
 
     !  integrate one grid by one partial step
     use mod_finite_volume
@@ -724,7 +724,7 @@ contains
 
     integer, intent(in) :: method
     integer, intent(in) :: ixI^L, idim^LIM
-    double precision, intent(in) :: qdt, qtC, qt, dxs(ndim), x(ixI^S,1:ndim)
+    double precision, intent(in) :: qdt, dtfactor, qtC, qt, dxs(ndim), x(ixI^S,1:ndim)
     type(state), target          :: sCT, s, sold
     double precision :: fC(ixI^S,1:nwflux,1:ndim), wprim(ixI^S,1:nw)
     double precision :: fE(ixI^S,7-2*ndim:3)
@@ -734,20 +734,21 @@ contains
     ixO^L=ixI^L^LSUBnghostcells;
     select case (method)
     case (fs_hll,fs_hllc,fs_hllcd,fs_hlld,fs_tvdlf,fs_tvdmu)
-       call finite_volume(method,qdt,ixI^L,ixO^L,idim^LIM,qtC,sCT,qt,s,sold,fC,fE,dxs,x)
+       call finite_volume(method,qdt,dtfactor,ixI^L,ixO^L,idim^LIM,qtC,sCT,qt,s,sold,fC,fE,dxs,x)
     case (fs_cd,fs_cd4)
-       call centdiff(method,qdt,ixI^L,ixO^L,idim^LIM,qtC,sCT,qt,s,fC,fE,dxs,x)
+       call centdiff(method,qdt,dtfactor,ixI^L,ixO^L,idim^LIM,qtC,sCT,qt,s,fC,fE,dxs,x)
     case (fs_hancock)
-       call hancock(qdt,ixI^L,ixO^L,idim^LIM,qtC,sCT,qt,s,dxs,x)
+       call hancock(qdt,dtfactor,ixI^L,ixO^L,idim^LIM,qtC,sCT,qt,s,dxs,x)
     case (fs_fd)
-       call fd(qdt,ixI^L,ixO^L,idim^LIM,qtC,sCT,qt,s,fC,fE,dxs,x)
+       call fd(qdt,dtfactor,ixI^L,ixO^L,idim^LIM,qtC,sCT,qt,s,fC,fE,dxs,x)
     case (fs_tvd)
-       call centdiff(fs_cd,qdt,ixI^L,ixO^L,idim^LIM,qtC,sCT,qt,s,fC,fE,dxs,x)
+       call centdiff(fs_cd,qdt,dtfactor,ixI^L,ixO^L,idim^LIM,qtC,sCT,qt,s,fC,fE,dxs,x)
        call tvdlimit(method,qdt,ixI^L,ixO^L,idim^LIM,sCT,qt+qdt,s,fC,dxs,x)
     case (fs_source)
        wprim=sCT%w
        call phys_to_primitive(ixI^L,ixI^L,wprim,x)
        call addsource2(qdt*dble(idimmax-idimmin+1)/dble(ndim),&
+            dtfactor*dble(idimmax-idimmin+1)/dble(ndim),&
             ixI^L,ixO^L,1,nw,qtC,sCT%w,wprim,qt,s%w,x,.false.)
     case (fs_nul)
        ! There is nothing to do

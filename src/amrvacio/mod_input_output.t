@@ -260,7 +260,7 @@ contains
          wall_time_max,final_dt_reduction
 
     namelist /methodlist/ time_stepper,time_integrator, &
-         source_split_usr,typesourcesplit,&
+         source_split_usr,typesourcesplit,local_timestep,&
          dimsplit,typedimsplit,flux_scheme,&
          limiter,gradient_limiter,cada3_radius,&
          loglimit,typeboundspeed, H_correction,&
@@ -406,7 +406,11 @@ contains
     time_init     = 0.d0
     time_max      = bigdouble
     wall_time_max = bigdouble
-    final_dt_reduction=.true.
+    if(local_timestep) then
+      final_dt_reduction=.false.
+    else
+      final_dt_reduction=.true.
+    endif
     final_dt_exit=.false.
     dtmin         = 1.0d-10
     nslices       = 0

@@ -132,7 +132,6 @@ module mod_twofl_phys
   logical, public                         :: twofl_coll_inc_te = .true.
   !> whether include ionization/recombination inelastic collisional terms
   logical, public                         :: twofl_coll_inc_ionrec = .false.
-  logical, public                         :: twofl_equi_thermal = .true.
   logical, public                         :: twofl_equi_ionrec = .false.
   logical, public                         :: twofl_equi_thermal_n = .false.
   double precision, public                :: dtcollpar = -1d0 !negative value does not impose restriction on the timestep
@@ -294,7 +293,7 @@ contains
       twofl_dump_full_vars, has_equi_rho_c0, has_equi_pe_c0, twofl_hyperdiffusivity,twofl_dump_hyperdiffusivity_coef,&
       has_equi_pe_n0, has_equi_rho_n0, twofl_thermal_conduction_n, twofl_radiative_cooling_n,  &
       twofl_alpha_coll,twofl_alpha_coll_constant,&
-      twofl_coll_inc_te, twofl_coll_inc_ionrec,twofl_equi_ionrec,twofl_equi_thermal,&
+      twofl_coll_inc_te, twofl_coll_inc_ionrec,twofl_equi_ionrec,&
       twofl_equi_thermal_n,dtcollpar,&
       twofl_dump_coll_terms,twofl_implicit_calc_mult_method,&
       boundary_divbfix, boundary_divbfix_skip, twofl_divb_4thorder, &
@@ -3226,14 +3225,14 @@ contains
   end subroutine twofl_get_flux
 
   !> w[iws]=w[iws]+qdt*S[iws,wCT] where S is the source based on wCT within ixO
-  subroutine twofl_add_source(qdt,ixI^L,ixO^L,wCT,wCTprim,w,x,qsourcesplit,active)
+  subroutine twofl_add_source(qdt,dtfactor,ixI^L,ixO^L,wCT,wCTprim,w,x,qsourcesplit,active)
     use mod_global_parameters
     use mod_radiative_cooling, only: radiative_cooling_add_source
     use mod_viscosity, only: viscosity_add_source
     !use mod_gravity, only: gravity_add_source
 
     integer, intent(in)             :: ixI^L, ixO^L
-    double precision, intent(in)    :: qdt
+    double precision, intent(in)    :: qdt,dtfactor
     double precision, intent(in)    :: wCT(ixI^S,1:nw),wCTprim(ixI^S,1:nw),x(ixI^S,1:ndim)
     double precision, intent(inout) :: w(ixI^S,1:nw)
     logical, intent(in)             :: qsourcesplit
@@ -4608,12 +4607,12 @@ contains
   end subroutine coll_get_dt
 
   ! Add geometrical source terms to w
-  subroutine twofl_add_source_geom(qdt,ixI^L,ixO^L,wCT,w,x)
+  subroutine twofl_add_source_geom(qdt,dtfactor,ixI^L,ixO^L,wCT,w,x)
     use mod_global_parameters
     use mod_geometry
 
     integer, intent(in)             :: ixI^L, ixO^L
-    double precision, intent(in)    :: qdt, x(ixI^S,1:ndim)
+    double precision, intent(in)    :: qdt, dtfactor,x(ixI^S,1:ndim)
     double precision, intent(inout) :: wCT(ixI^S,1:nw), w(ixI^S,1:nw)
 
     integer          :: iw,idir, h1x^L{^NOONED, h2x^L}
@@ -6847,13 +6846,11 @@ contains
 
     !update internal energy
     if(twofl_coll_inc_te) then
-     if(.not. twofl_equi_thermal) then   
-        if(has_equi_pe_n0) then
-          tmp4(ixO^S) = tmp4(ixO^S) + block%equi_vars(ixO^S,equi_pe_n0_,0)*inv_gamma_1  
-        endif
-        if(has_equi_pe_c0) then
-          tmp5(ixO^S) = tmp5(ixO^S) + block%equi_vars(ixO^S,equi_pe_c0_,0)*inv_gamma_1 
-        endif
+      if(has_equi_pe_n0) then
+        tmp4(ixO^S) = tmp4(ixO^S) + block%equi_vars(ixO^S,equi_pe_n0_,0)*inv_gamma_1  
+      endif
+      if(has_equi_pe_c0) then
+        tmp5(ixO^S) = tmp5(ixO^S) + block%equi_vars(ixO^S,equi_pe_c0_,0)*inv_gamma_1 
       endif
 
       tmp(ixO^S) = alpha(ixO^S) *(-rhoc(ixO^S)/Rn * tmp4(ixO^S) + rhon(ixO^S)/Rc * tmp5(ixO^S))
@@ -7016,13 +7013,11 @@ contains
 
     !update internal energy
     if(twofl_coll_inc_te) then
-     if(.not. twofl_equi_thermal) then   
-        if(has_equi_pe_n0) then
-          tmp4(ixO^S) = tmp4(ixO^S) + block%equi_vars(ixO^S,equi_pe_n0_,0)*inv_gamma_1  
-        endif
-        if(has_equi_pe_c0) then
-          tmp5(ixO^S) = tmp5(ixO^S) + block%equi_vars(ixO^S,equi_pe_c0_,0)*inv_gamma_1 
-        endif
+      if(has_equi_pe_n0) then
+        tmp4(ixO^S) = tmp4(ixO^S) + block%equi_vars(ixO^S,equi_pe_n0_,0)*inv_gamma_1  
+      endif
+      if(has_equi_pe_c0) then
+        tmp5(ixO^S) = tmp5(ixO^S) + block%equi_vars(ixO^S,equi_pe_c0_,0)*inv_gamma_1 
       endif
 
       tmp(ixO^S) = alpha(ixO^S) *(-rhoc(ixO^S)/Rn * tmp4(ixO^S) + rhon(ixO^S)/Rc * tmp5(ixO^S))
@@ -7132,13 +7127,11 @@ contains
 
     !update internal energy
     if(twofl_coll_inc_te) then
-     if(.not. twofl_equi_thermal) then   
-        if(has_equi_pe_n0) then
-          tmp4(ixO^S) = tmp4(ixO^S) + block%equi_vars(ixO^S,equi_pe_n0_,0)*inv_gamma_1  
-        endif
-        if(has_equi_pe_c0) then
-          tmp5(ixO^S) = tmp5(ixO^S) + block%equi_vars(ixO^S,equi_pe_c0_,0)*inv_gamma_1 
-        endif
+      if(has_equi_pe_n0) then
+        tmp4(ixO^S) = tmp4(ixO^S) + block%equi_vars(ixO^S,equi_pe_n0_,0)*inv_gamma_1  
+      endif
+      if(has_equi_pe_c0) then
+        tmp5(ixO^S) = tmp5(ixO^S) + block%equi_vars(ixO^S,equi_pe_c0_,0)*inv_gamma_1 
       endif
 
       tmp(ixO^S) = alpha(ixO^S) *(-rhoc(ixO^S)/Rn * tmp4(ixO^S) + rhon(ixO^S)/Rc * tmp5(ixO^S))

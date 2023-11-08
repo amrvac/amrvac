@@ -571,11 +571,11 @@ contains
 
   !> dummy addsource subroutine
   ! w[iw]= w[iw]+qdt*S[wCT, qtC, x] where S is the source based on wCT within ixO
-  subroutine srhd_add_source(qdt,ixI^L,ixO^L,wCT,wCTprim,w,x,qsourcesplit,active)
+  subroutine srhd_add_source(qdt,dtfactor,ixI^L,ixO^L,wCT,wCTprim,w,x,qsourcesplit,active)
     use mod_global_parameters
 
     integer, intent(in)             :: ixI^L, ixO^L
-    double precision, intent(in)    :: qdt
+    double precision, intent(in)    :: qdt,dtfactor
     double precision, intent(in)    :: wCT(ixI^S, 1:nw),wCTprim(ixI^S,1:nw), x(ixI^S, 1:ndim)
     double precision, intent(inout) :: w(ixI^S, 1:nw)
     logical, intent(in)             :: qsourcesplit
@@ -821,12 +821,12 @@ contains
   end subroutine srhd_get_flux
 
   !> Add geometrical source terms to w
-  subroutine srhd_add_source_geom(qdt, ixI^L, ixO^L, wCT, w, x)
+  subroutine srhd_add_source_geom(qdt, dtfactor, ixI^L, ixO^L, wCT, w, x)
     use mod_global_parameters
     use mod_usr_methods, only: usr_set_surface
     use mod_geometry
     integer, intent(in)             :: ixI^L, ixO^L
-    double precision, intent(in)    :: qdt, x(ixI^S, 1:ndim)
+    double precision, intent(in)    :: qdt, dtfactor, x(ixI^S, 1:ndim)
     double precision, intent(inout) :: wCT(ixI^S, 1:nw), w(ixI^S, 1:nw)
 
     double precision :: pth(ixI^S), source(ixI^S), v(ixI^S,1:ndir)

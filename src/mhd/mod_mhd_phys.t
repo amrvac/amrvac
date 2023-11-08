@@ -4288,7 +4288,7 @@ contains
   end subroutine multiplyAmbiCoef
 
   !> w[iws]=w[iws]+qdt*S[iws,wCT] where S is the source based on wCT within ixO
-  subroutine mhd_add_source(qdt,ixI^L,ixO^L,wCT,wCTprim,w,x,qsourcesplit,active)
+  subroutine mhd_add_source(qdt,dtfactor,ixI^L,ixO^L,wCT,wCTprim,w,x,qsourcesplit,active)
     use mod_global_parameters
     use mod_radiative_cooling, only: radiative_cooling_add_source
     use mod_viscosity, only: viscosity_add_source
@@ -4296,11 +4296,16 @@ contains
     use mod_cak_force, only: cak_add_source
 
     integer, intent(in)             :: ixI^L, ixO^L
-    double precision, intent(in)    :: qdt
+    double precision, intent(in)    :: qdt,dtfactor
     double precision, intent(in)    :: wCT(ixI^S,1:nw),wCTprim(ixI^S,1:nw), x(ixI^S,1:ndim)
     double precision, intent(inout) :: w(ixI^S,1:nw)
     logical, intent(in)             :: qsourcesplit
     logical, intent(inout)            :: active
+
+    !TODO local_timestep support is only added for splitting
+    ! but not for other nonideal terms such gravity, RC, viscosity,..
+    ! it will also only work for divbfix  'linde', which does not require
+    ! modification as it does not use dt in the update
 
     if (.not. qsourcesplit) then
       if(mhd_internal_e) then
@@ -4310,14 +4315,14 @@ contains
       else
         if(has_equi_pe0) then
           active = .true.
-          call add_pe0_divv(qdt,ixI^L,ixO^L,wCT,w,x)
+          call add_pe0_divv(qdt,dtfactor,ixI^L,ixO^L,wCT,w,x)
         end if
       end if
 
       ! Source for B0 splitting
       if (B0field) then
         active = .true.
-        call add_source_B0split(qdt,ixI^L,ixO^L,wCT,w,x)
+        call add_source_B0split(qdt,dtfactor,ixI^L,ixO^L,wCT,w,x)
       end if
 
       ! Sources for resistivity in eqs. for e, B1, B2 and B3
@@ -4447,12 +4452,12 @@ contains
 
   end subroutine mhd_add_source
 
-  subroutine add_pe0_divv(qdt,ixI^L,ixO^L,wCT,w,x)
+  subroutine add_pe0_divv(qdt,dtfactor,ixI^L,ixO^L,wCT,w,x)
     use mod_global_parameters
     use mod_geometry
 
     integer, intent(in)             :: ixI^L, ixO^L
-    double precision, intent(in)    :: qdt
+    double precision, intent(in)    :: qdt,dtfactor
     double precision, intent(in)    :: wCT(ixI^S,1:nw), x(ixI^S,1:ndim)
     double precision, intent(inout) :: w(ixI^S,1:nw)
     double precision                :: v(ixI^S,1:ndir)
@@ -4469,8 +4474,11 @@ contains
     else
      call divvector(v,ixI^L,ixO^L,divv)
     end if
-    w(ixO^S,e_)=w(ixO^S,e_)-qdt*block%equi_vars(ixO^S,equi_pe0_,0)*divv(ixO^S)
-
+    if(local_timestep) then
+      w(ixO^S,e_)=w(ixO^S,e_)-dtfactor*block%dt(ixO^S)*block%equi_vars(ixO^S,equi_pe0_,0)*divv(ixO^S)
+    else
+      w(ixO^S,e_)=w(ixO^S,e_)-qdt*block%equi_vars(ixO^S,equi_pe0_,0)*divv(ixO^S)
+    endif
   end subroutine add_pe0_divv
 
   !> Compute the Lorentz force (JxB)
@@ -4609,11 +4617,11 @@ contains
   end subroutine mhd_update_temperature
 
   !> Source terms after split off time-independent magnetic field
-  subroutine add_source_B0split(qdt,ixI^L,ixO^L,wCT,w,x)
+  subroutine add_source_B0split(qdt,dtfactor,ixI^L,ixO^L,wCT,w,x)
     use mod_global_parameters
 
     integer, intent(in) :: ixI^L, ixO^L
-    double precision, intent(in) :: qdt, wCT(ixI^S,1:nw), x(ixI^S,1:ndim)
+    double precision, intent(in) :: qdt, dtfactor,wCT(ixI^S,1:nw), x(ixI^S,1:ndim)
     double precision, intent(inout) :: w(ixI^S,1:nw)
 
     double precision :: a(ixI^S,3), b(ixI^S,3), axb(ixI^S,3)
@@ -4631,7 +4639,13 @@ contains
         a(ixO^S,idir)=block%J0(ixO^S,idir)
       end do
       call cross_product(ixI^L,ixO^L,a,b,axb)
-      axb(ixO^S,:)=axb(ixO^S,:)*qdt
+      if(local_timestep) then
+        do idir=1,3
+          axb(ixO^S,idir)=axb(ixO^S,idir)*block%dt(ixO^S)*dtfactor
+        enddo
+      else
+        axb(ixO^S,:)=axb(ixO^S,:)*qdt
+      endif
       ! add J0xB0 source term in momentum equations
       w(ixO^S,mom(1:ndir))=w(ixO^S,mom(1:ndir))+axb(ixO^S,1:ndir)
     end if
@@ -4645,7 +4659,13 @@ contains
       ! store velocity in a
       call mhd_get_v(wCT,x,ixI^L,ixO^L,a(ixI^S,1:ndir))
       call cross_product(ixI^L,ixO^L,a,b,axb)
-      axb(ixO^S,:)=axb(ixO^S,:)*qdt
+      if(local_timestep) then
+        do idir=1,3
+          axb(ixO^S,idir)=axb(ixO^S,idir)*block%dt(ixO^S)*dtfactor
+        enddo
+      else
+        axb(ixO^S,:)=axb(ixO^S,:)*qdt
+      endif
       ! add -(vxB) dot J0 source term in energy equation
       do idir=7-2*ndir,3
         w(ixO^S,e_)=w(ixO^S,e_)-axb(ixO^S,idir)*block%J0(ixO^S,idir)
@@ -5432,13 +5452,13 @@ contains
   end subroutine mhd_get_dt
 
   ! Add geometrical source terms to w
-  subroutine mhd_add_source_geom(qdt,ixI^L,ixO^L,wCT,w,x)
+  subroutine mhd_add_source_geom(qdt,dtfactor,ixI^L,ixO^L,wCT,w,x)
     use mod_global_parameters
     use mod_geometry
     use mod_rotating_frame, only: rotating_frame_add_source
 
     integer, intent(in)             :: ixI^L, ixO^L
-    double precision, intent(in)    :: qdt, x(ixI^S,1:ndim)
+    double precision, intent(in)    :: qdt, dtfactor,x(ixI^S,1:ndim)
     double precision, intent(inout) :: wCT(ixI^S,1:nw), w(ixI^S,1:nw)
 
     integer          :: iw,idir, h1x^L{^NOONED, h2x^L}
@@ -5452,26 +5472,33 @@ contains
 
     ! 1/rho
     invrho(ixO^S)=1.d0/wCT(ixO^S,rho_)
-    invr(ixO^S)=1.d0/x(ixO^S,1)
+    ! include dt in invr, invr is always used with qdt
+    if(local_timestep) then
+      invr(ixO^S) = block%dt(ixO^S) * dtfactor/x(ixO^S,1)
+    else
+      invr(ixO^S) = qdt/x(ixO^S,1)
+    endif  
+
+
     select case (coordinate)
     case (cylindrical)
       call mhd_get_p_total(wCT,x,ixI^L,ixO^L,tmp)
       if(phi_>0) then
-        w(ixO^S,mr_)=w(ixO^S,mr_)+qdt*invr(ixO^S)*(tmp(ixO^S)-&
+        w(ixO^S,mr_)=w(ixO^S,mr_)+invr(ixO^S)*(tmp(ixO^S)-&
                   wCT(ixO^S,bphi_)**2+wCT(ixO^S,mphi_)**2*invrho(ixO^S))
-        w(ixO^S,mphi_)=w(ixO^S,mphi_)+qdt*invr(ixO^S)*(&
+        w(ixO^S,mphi_)=w(ixO^S,mphi_)+invr(ixO^S)*(&
                  -wCT(ixO^S,mphi_)*wCT(ixO^S,mr_)*invrho(ixO^S) &
                  +wCT(ixO^S,bphi_)*wCT(ixO^S,br_))
         if(.not.stagger_grid) then
-          w(ixO^S,bphi_)=w(ixO^S,bphi_)+qdt*invr(ixO^S)*&
+          w(ixO^S,bphi_)=w(ixO^S,bphi_)+invr(ixO^S)*&
                    (wCT(ixO^S,bphi_)*wCT(ixO^S,mr_) &
                    -wCT(ixO^S,br_)*wCT(ixO^S,mphi_)) &
                    *invrho(ixO^S)
         end if
       else
-        w(ixO^S,mr_)=w(ixO^S,mr_)+qdt*invr(ixO^S)*tmp(ixO^S)
+        w(ixO^S,mr_)=w(ixO^S,mr_)+invr(ixO^S)*tmp(ixO^S)
       end if
-      if(mhd_glm) w(ixO^S,br_)=w(ixO^S,br_)+qdt*wCT(ixO^S,psi_)*invr(ixO^S)
+      if(mhd_glm) w(ixO^S,br_)=w(ixO^S,br_)+wCT(ixO^S,psi_)*invr(ixO^S)
     case (spherical)
        h1x^L=ixO^L-kr(1,^D); {^NOONED h2x^L=ixO^L-kr(2,^D);}
        call mhd_get_p_total(wCT,x,ixI^L,ixO^L,tmp1)
@@ -5481,16 +5508,21 @@ contains
        do idir=2,ndir
          tmp(ixO^S)=tmp(ixO^S)+wCT(ixO^S,mom(idir))**2*invrho(ixO^S)-wCT(ixO^S,mag(idir))**2
        end do
-       w(ixO^S,mom(1))=w(ixO^S,mom(1))+qdt*tmp(ixO^S)*invr(ixO^S)
+       w(ixO^S,mom(1))=w(ixO^S,mom(1))+tmp(ixO^S)*invr(ixO^S)
        ! b1
        if(mhd_glm) then
-         w(ixO^S,mag(1))=w(ixO^S,mag(1))+qdt*invr(ixO^S)*2.0d0*wCT(ixO^S,psi_)
+         w(ixO^S,mag(1))=w(ixO^S,mag(1))+invr(ixO^S)*2.0d0*wCT(ixO^S,psi_)
        end if
 
        {^NOONED
        ! m2
        ! This will make hydrostatic p=const an exact solution
-       w(ixO^S,mom(2))=w(ixO^S,mom(2))+qdt*tmp1(ixO^S) &
+       if(local_timestep) then
+          tmp(ixO^S) = block%dt(ixO^S) * tmp1(ixO^S)
+       else
+          tmp(ixO^S) = qdt * tmp1(ixO^S)
+       endif  
+       w(ixO^S,mom(2))=w(ixO^S,mom(2))+tmp(ixO^S) &
             *(block%surfaceC(ixO^S,2)-block%surfaceC(h2x^S,2)) &
             /block%dvolume(ixO^S)
        tmp(ixO^S)=-(wCT(ixO^S,mom(1))*wCT(ixO^S,mom(2))*invrho(ixO^S) &
@@ -5499,7 +5531,7 @@ contains
          tmp(ixO^S)=tmp(ixO^S)+(wCT(ixO^S,mom(3))**2*invrho(ixO^S) &
               -wCT(ixO^S,mag(3))**2)*dcos(x(ixO^S,2))/dsin(x(ixO^S,2))
        end if
-       w(ixO^S,mom(2))=w(ixO^S,mom(2))+qdt*tmp(ixO^S)*invr(ixO^S)
+       w(ixO^S,mom(2))=w(ixO^S,mom(2))+tmp(ixO^S)*invr(ixO^S)
        ! b2
        if(.not.stagger_grid) then
          tmp(ixO^S)=(wCT(ixO^S,mom(1))*wCT(ixO^S,mag(2)) &
@@ -5508,7 +5540,7 @@ contains
            tmp(ixO^S)=tmp(ixO^S) &
                 + dcos(x(ixO^S,2))/dsin(x(ixO^S,2))*wCT(ixO^S,psi_)
          end if
-         w(ixO^S,mag(2))=w(ixO^S,mag(2))+qdt*tmp(ixO^S)*invr(ixO^S)
+         w(ixO^S,mag(2))=w(ixO^S,mag(2))+tmp(ixO^S)*invr(ixO^S)
        end if
        }
 
@@ -5519,7 +5551,7 @@ contains
               -(wCT(ixO^S,mom(2))*wCT(ixO^S,mom(3))*invrho(ixO^S) &
               -wCT(ixO^S,mag(2))*wCT(ixO^S,mag(3))) &
               *dcos(x(ixO^S,2))/dsin(x(ixO^S,2)) }
-         w(ixO^S,mom(3))=w(ixO^S,mom(3))+qdt*tmp(ixO^S)*invr(ixO^S)
+         w(ixO^S,mom(3))=w(ixO^S,mom(3))+tmp(ixO^S)*invr(ixO^S)
          ! b3
          if(.not.stagger_grid) then
            tmp(ixO^S)=(wCT(ixO^S,mom(1))*wCT(ixO^S,mag(3)) &
@@ -5527,24 +5559,24 @@ contains
                 -(wCT(ixO^S,mom(3))*wCT(ixO^S,mag(2)) &
                 -wCT(ixO^S,mom(2))*wCT(ixO^S,mag(3)))*dcos(x(ixO^S,2)) &
                 /(wCT(ixO^S,rho_)*dsin(x(ixO^S,2))) }
-           w(ixO^S,mag(3))=w(ixO^S,mag(3))+qdt*tmp(ixO^S)*invr(ixO^S)
+           w(ixO^S,mag(3))=w(ixO^S,mag(3))+tmp(ixO^S)*invr(ixO^S)
          end if
        end if
     end select
 
     if (mhd_rotating_frame) then
-       call rotating_frame_add_source(qdt,ixI^L,ixO^L,wCT,w,x)
+       call rotating_frame_add_source(qdt,dtfactor,ixI^L,ixO^L,wCT,w,x)
     endif
 
   end subroutine mhd_add_source_geom
 
   ! Add geometrical source terms to w
-  subroutine mhd_add_source_geom_split(qdt,ixI^L,ixO^L,wCT,w,x)
+  subroutine mhd_add_source_geom_split(qdt,dtfactor, ixI^L,ixO^L,wCT,w,x)
     use mod_global_parameters
     use mod_geometry
 
     integer, intent(in)             :: ixI^L, ixO^L
-    double precision, intent(in)    :: qdt, x(ixI^S,1:ndim)
+    double precision, intent(in)    :: qdt, dtfactor, x(ixI^S,1:ndim)
     double precision, intent(inout) :: wCT(ixI^S,1:nw), w(ixI^S,1:nw)
 
     integer          :: iw,idir, h1x^L{^NOONED, h2x^L}
@@ -5561,27 +5593,32 @@ contains
     else
       invrho(ixO^S) = 1d0/wCT(ixO^S,rho_)
     end if
-    invr(ixO^S)=1d0/x(ixO^S,1)
+    ! include dt in invr, invr is always used with qdt
+    if(local_timestep) then
+      invr(ixO^S) = block%dt(ixO^S) * dtfactor/x(ixO^S,1)
+    else
+      invr(ixO^S) = qdt/x(ixO^S,1)
+    endif  
 
     select case (coordinate)
     case (cylindrical)
       call mhd_get_p_total(wCT,x,ixI^L,ixO^L,tmp)
       if(phi_>0) then
-        w(ixO^S,mr_)=w(ixO^S,mr_)+qdt*invr(ixO^S)*(tmp(ixO^S)-&
+        w(ixO^S,mr_)=w(ixO^S,mr_)+invr(ixO^S)*(tmp(ixO^S)-&
                   wCT(ixO^S,bphi_)**2+wCT(ixO^S,mphi_)**2*invrho(ixO^S))
         w(ixO^S,mphi_)=w(ixO^S,mphi_)+qdt*invr(ixO^S)*(&
                  -wCT(ixO^S,mphi_)*wCT(ixO^S,mr_)*invrho(ixO^S) &
                  +wCT(ixO^S,bphi_)*wCT(ixO^S,br_))
         if(.not.stagger_grid) then
-          w(ixO^S,bphi_)=w(ixO^S,bphi_)+qdt*invr(ixO^S)*&
+          w(ixO^S,bphi_)=w(ixO^S,bphi_)+invr(ixO^S)*&
                    (wCT(ixO^S,bphi_)*wCT(ixO^S,mr_) &
                    -wCT(ixO^S,br_)*wCT(ixO^S,mphi_)) &
                    *invrho(ixO^S)
         end if
       else
-        w(ixO^S,mr_)=w(ixO^S,mr_)+qdt*invr(ixO^S)*tmp(ixO^S)
+        w(ixO^S,mr_)=w(ixO^S,mr_)+invr(ixO^S)*tmp(ixO^S)
       end if
-      if(mhd_glm) w(ixO^S,br_)=w(ixO^S,br_)+qdt*wCT(ixO^S,psi_)*invr(ixO^S)
+      if(mhd_glm) w(ixO^S,br_)=w(ixO^S,br_)+wCT(ixO^S,psi_)*invr(ixO^S)
     case (spherical)
        h1x^L=ixO^L-kr(1,^D); {^NOONED h2x^L=ixO^L-kr(2,^D);}
        call mhd_get_p_total(wCT,x,ixI^L,ixO^L,tmp1)
@@ -5599,10 +5636,10 @@ contains
            if(B0field) tmp(ixO^S)=tmp(ixO^S)-2.0d0*block%B0(ixO^S,idir,0)*wCT(ixO^S,mag(idir))
          end do
        end if
-       w(ixO^S,mom(1))=w(ixO^S,mom(1))+qdt*tmp(ixO^S)*invr(ixO^S)
+       w(ixO^S,mom(1))=w(ixO^S,mom(1))+tmp(ixO^S)*invr(ixO^S)
        ! b1
        if(mhd_glm) then
-         w(ixO^S,mag(1))=w(ixO^S,mag(1))+qdt*invr(ixO^S)*2.0d0*wCT(ixO^S,psi_)
+         w(ixO^S,mag(1))=w(ixO^S,mag(1))+invr(ixO^S)*2.0d0*wCT(ixO^S,psi_)
        end if
 
        {^NOONED
@@ -5611,8 +5648,13 @@ contains
        if(B0field) then
          tmp(ixO^S)=tmp(ixO^S)+tmp2(ixO^S)
        end if
+       if(local_timestep) then
+         tmp1(ixO^S) = block%dt(ixO^S) * tmp(ixO^S)
+       else
+         tmp1(ixO^S) = qdt * tmp(ixO^S)
+       endif  
        ! This will make hydrostatic p=const an exact solution
-       w(ixO^S,mom(2))=w(ixO^S,mom(2))+qdt*tmp(ixO^S) &
+       w(ixO^S,mom(2))=w(ixO^S,mom(2))+tmp1(ixO^S) &
             *(block%surfaceC(ixO^S,2)-block%surfaceC(h2x^S,2)) &
             /block%dvolume(ixO^S)
        tmp(ixO^S)=-(wCT(ixO^S,mom(1))*wCT(ixO^S,mom(2))*invrho(ixO^S) &
@@ -5629,7 +5671,7 @@ contains
                  *dcos(x(ixO^S,2))/dsin(x(ixO^S,2))
          end if
        end if
-       w(ixO^S,mom(2))=w(ixO^S,mom(2))+qdt*tmp(ixO^S)*invr(ixO^S)
+       w(ixO^S,mom(2))=w(ixO^S,mom(2))+tmp(ixO^S)*invr(ixO^S)
        ! b2
        if(.not.stagger_grid) then
          tmp(ixO^S)=(wCT(ixO^S,mom(1))*wCT(ixO^S,mag(2)) &
@@ -5642,7 +5684,7 @@ contains
            tmp(ixO^S)=tmp(ixO^S) &
                 + dcos(x(ixO^S,2))/dsin(x(ixO^S,2))*wCT(ixO^S,psi_)
          end if
-         w(ixO^S,mag(2))=w(ixO^S,mag(2))+qdt*tmp(ixO^S)*invr(ixO^S)
+         w(ixO^S,mag(2))=w(ixO^S,mag(2))+tmp(ixO^S)*invr(ixO^S)
        end if
        }
 
@@ -5660,7 +5702,7 @@ contains
                  +wCT(ixO^S,mag(2))*block%B0(ixO^S,3,0)) &
                  *dcos(x(ixO^S,2))/dsin(x(ixO^S,2)) }
          end if
-         w(ixO^S,mom(3))=w(ixO^S,mom(3))+qdt*tmp(ixO^S)*invr(ixO^S)
+         w(ixO^S,mom(3))=w(ixO^S,mom(3))+tmp(ixO^S)*invr(ixO^S)
          ! b3
          if(.not.stagger_grid) then
            tmp(ixO^S)=(wCT(ixO^S,mom(1))*wCT(ixO^S,mag(3)) &
@@ -5675,7 +5717,7 @@ contains
                    -wCT(ixO^S,mom(2))*block%B0(ixO^S,3,0))*dcos(x(ixO^S,2)) &
                    *invrho(ixO^S)/dsin(x(ixO^S,2)) }
            end if
-           w(ixO^S,mag(3))=w(ixO^S,mag(3))+qdt*tmp(ixO^S)*invr(ixO^S)
+           w(ixO^S,mag(3))=w(ixO^S,mag(3))+tmp(ixO^S)*invr(ixO^S)
          end if
        end if
     end select

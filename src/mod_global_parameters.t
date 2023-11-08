@@ -70,6 +70,9 @@ module mod_global_parameters
   !> uniform Cartesian geometry or not (stretched Cartesian)
   logical :: slab_uniform
 
+  !> each cell has its own timestep or not
+  logical :: local_timestep = .false.
+
   !> number of grid blocks in domain per dimension, in array over levels
   integer, dimension(:), allocatable :: ng^D
   !> extent of grid blocks in domain per dimension, in array over levels

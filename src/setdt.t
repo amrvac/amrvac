@@ -29,6 +29,9 @@ subroutine setdt()
       dx^D=rnode(rpdx^D_,igrid);
       ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
       block=>ps(igrid)
+      if(local_timestep) then
+        ps(igrid)%dt(ixM^T)=bigdouble
+      endif
 
       call getdt_courant(ps(igrid)%w,ixG^LL,ixM^LL,qdtnew,dx^D,ps(igrid)%x,&
            cmax_mype,a2max_mype)
@@ -39,8 +42,8 @@ subroutine setdt()
 
       if (associated(usr_get_dt)) then
          call usr_get_dt(ps(igrid)%w,ixG^LL,ixM^LL,qdtnew,dx^D,ps(igrid)%x)
+         dtnew          = min(dtnew,qdtnew)
       end if
-      dtnew          = min(dtnew,qdtnew)
       dtmin_mype     = min(dtmin_mype,dtnew)
     end do
     !$OMP END PARALLEL DO
@@ -182,8 +185,9 @@ subroutine setdt()
       double precision, intent(inout) :: w(ixI^S,1:nw), dtnew, cmax_mype, a2max_mype(ndim)
 
       integer :: idims
+      integer :: hxO^L
       double precision :: courantmax, dxinv(1:ndim), courantmaxtot, courantmaxtots
-      double precision :: cmax(ixI^S), cmaxtot(ixO^S)
+      double precision :: cmax(ixI^S), cmaxtot(ixI^S)
       double precision :: a2max(ndim),tco_local,Tmax_local
 
       dtnew=bigdouble
@@ -191,6 +195,16 @@ subroutine setdt()
       courantmaxtot=zero
       courantmaxtots=zero
 
+      ! local timestep dt has to be calculated in the 
+      ! extended region because of the calculation from the
+      ! div fluxes in mod_finite_volume
+      if(local_timestep) then
+        hxOmin^D=ixOmin^D-1; 
+        hxOmax^D=ixOmax^D; 
+      else
+        hxOmin^D=ixOmin^D; 
+        hxOmax^D=ixOmax^D; 
+      endif  
 
       if(need_global_a2max) then
         call phys_get_a2max(w,x,ixI^L,ixO^L,a2max)
@@ -226,29 +240,38 @@ subroutine setdt()
       !  end do
       !end if
 
-      if(nwaux>0) call phys_get_auxiliary(ixI^L,ixO^L,w,x)
+      ! these are also calculated in hxO because of local timestep
+      if(nwaux>0) call phys_get_auxiliary(ixI^L,hxO^L,w,x)
 
       select case (type_courant)
       case (type_maxsum)
-        cmaxtot(ixO^S)=zero
+        cmaxtot(hxO^S)=zero
         if(slab_uniform) then
           ^D&dxinv(^D)=one/dx^D;
           do idims=1,ndim
-            call phys_get_cmax(w,x,ixI^L,ixO^L,idims,cmax)
+            call phys_get_cmax(w,x,ixI^L,hxO^L,idims,cmax)
             if(need_global_cmax) cmax_mype = max(cmax_mype,maxval(cmax(ixO^S)))
-            cmaxtot(ixO^S)=cmaxtot(ixO^S)+cmax(ixO^S)*dxinv(idims)
+            cmaxtot(hxO^S)=cmaxtot(hxO^S)+cmax(hxO^S)*dxinv(idims)
           end do
         else
           do idims=1,ndim
-            call phys_get_cmax(w,x,ixI^L,ixO^L,idims,cmax)
+            call phys_get_cmax(w,x,ixI^L,hxO^L,idims,cmax)
             if(need_global_cmax) cmax_mype = max(cmax_mype,maxval(cmax(ixO^S)))
-            cmaxtot(ixO^S)=cmaxtot(ixO^S)+cmax(ixO^S)/block%ds(ixO^S,idims)
+            cmaxtot(hxO^S)=cmaxtot(hxO^S)+cmax(hxO^S)/block%ds(hxO^S,idims)
           end do
         end if
         ! courantmaxtots='max(summed c/dx)'
         courantmaxtots=max(courantmaxtots,maxval(cmaxtot(ixO^S)))
         if (courantmaxtots>smalldouble) dtnew=min(dtnew,courantpar/courantmaxtots)
+        if(local_timestep) then
+          block%dt(hxO^S) = courantpar/cmaxtot(hxO^S)
+        endif
+
       case (type_summax)
+        !TODO this should be mod_input_output?
+        if(local_timestep) then
+          call mpistop("Type courant summax incompatible with local_timestep")
+        endif  
         if(slab_uniform) then
           ^D&dxinv(^D)=one/dx^D;
           do idims=1,ndim
@@ -268,6 +291,9 @@ subroutine setdt()
         ! courantmaxtot='summed max(c/dx)'
         if (courantmaxtot>smalldouble)  dtnew=min(dtnew,courantpar/courantmaxtot)
       case (type_minimum)
+        if(local_timestep) then
+          call mpistop("Type courant not implemented for local_timestep, use maxsum")
+        endif  
         if(slab_uniform) then
           ^D&dxinv(^D)=one/dx^D;
           do idims=1,ndim

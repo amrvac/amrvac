@@ -38,14 +38,14 @@ contains
   end subroutine rotating_frame_init
   
   !> w[iw]=w[iw]+qdt*S[wCT,qtC,x] where S is the source based on wCT within ixO
-  subroutine rotating_frame_add_source(qdt,ixI^L,ixO^L,wCT,w,x)
+  subroutine rotating_frame_add_source(qdt,dtfactor,ixI^L,ixO^L,wCT,w,x)
     use mod_global_parameters
     use mod_usr_methods
     use mod_geometry
     use mod_physics, only: phys_energy, phys_internal_e
     
     integer, intent(in)             :: ixI^L, ixO^L
-    double precision, intent(in)    :: qdt, x(ixI^S,1:ndim)
+    double precision, intent(in)    :: qdt, dtfactor,x(ixI^S,1:ndim)
     double precision, intent(in)    :: wCT(ixI^S,1:nw)
     double precision, intent(inout) :: w(ixI^S,1:nw)
     integer                         :: idir
@@ -64,17 +64,28 @@ contains
         rotating_terms(ixO^S) = rotating_terms(ixO^S) + 2.d0 * omega_frame *wCT(ixO^S,iw_mom(phi_))
       end if
 
-      w(ixO^S, iw_mom(r_)) = w(ixO^S, iw_mom(r_)) + qdt * rotating_terms(ixO^S)
-
+      if(local_timestep) then
+        w(ixO^S, iw_mom(r_)) = w(ixO^S, iw_mom(r_)) + block%dt(ixO^S)*dtfactor * rotating_terms(ixO^S)
+      else
+        w(ixO^S, iw_mom(r_)) = w(ixO^S, iw_mom(r_)) + qdt * rotating_terms(ixO^S)
+      endif
       ! S[mphi] = -2*mrad*Omegaframe
       if (phi_ > 0) then
         rotating_terms(ixO^S) = - 2.0d0*omega_frame * wCT(ixO^S,iw_mom(r_))
-        w(ixO^S, iw_mom(phi_)) = w(ixO^S, iw_mom(phi_)) + qdt * rotating_terms(ixO^S)
+        if(local_timestep) then
+          w(ixO^S, iw_mom(phi_)) = w(ixO^S, iw_mom(phi_)) + block%dt(ixO^S)*dtfactor * rotating_terms(ixO^S)
+        else
+          w(ixO^S, iw_mom(phi_)) = w(ixO^S, iw_mom(phi_)) + qdt * rotating_terms(ixO^S)
+        endif
       end if
 
       ! S[etot] = mrad*r*Omegaframe**2
       if (phys_energy .and. (.not.phys_internal_e)) then
-        w(ixO^S, iw_e) = w(ixO^S, iw_e) + qdt * omega_frame**2 * x(ixO^S,r_) * wCT(ixO^S,iw_mom(r_))
+        if(local_timestep) then
+          w(ixO^S, iw_e) = w(ixO^S, iw_e) + block%dt(ixO^S) *dtfactor * omega_frame**2 * x(ixO^S,r_) * wCT(ixO^S,iw_mom(r_))
+        else
+          w(ixO^S, iw_e) = w(ixO^S, iw_e) + qdt * omega_frame**2 * x(ixO^S,r_) * wCT(ixO^S,iw_mom(r_))
+        endif
       endif
 
     case (spherical)
@@ -87,17 +98,27 @@ contains
          rotating_terms(ixO^S) = rotating_terms(ixO^S) + &
                 2.d0 * frame_omega(ixO^S) * wCT(ixO^S,iw_mom(phi_))
        end if
-       w(ixO^S, iw_mom(r_)) = w(ixO^S, iw_mom(r_)) + qdt * rotating_terms(ixO^S)
-
+        if(local_timestep) then
+          w(ixO^S, iw_mom(r_)) = w(ixO^S, iw_mom(r_)) + block%dt(ixO^S)*dtfactor * rotating_terms(ixO^S)
+        else
+          w(ixO^S, iw_mom(r_)) = w(ixO^S, iw_mom(r_)) + qdt * rotating_terms(ixO^S)
+        endif
        {^NOONED
        ! S[mtheta] = cot(theta) * S[mrad], reuse above rotating_terms
-       w(ixO^S, iw_mom(2)) = w(ixO^S, iw_mom(2)) + qdt * rotating_terms(ixO^S)/ tan(x(ixO^S, 2))
-
+        if(local_timestep) then
+          w(ixO^S, iw_mom(2)) = w(ixO^S, iw_mom(2)) + block%dt(ixO^S)*dtfactor * rotating_terms(ixO^S)/ tan(x(ixO^S, 2))
+        else
+          w(ixO^S, iw_mom(2)) = w(ixO^S, iw_mom(2)) + qdt * rotating_terms(ixO^S)/ tan(x(ixO^S, 2))
+        endif
        ! S[mphi] = -2*Omegaframe * (mrad + cot(theta)*mtheta)
        if (phi_ > 0) then
          rotating_terms(ixO^S) = -2.d0*frame_omega(ixO^S)* wCT(ixO^S, iw_mom(r_))&
                - 2.d0*wCT(ixO^S, iw_mom(2)) * frame_omega(ixO^S)/ tan(x(ixO^S, 2))
+        if(local_timestep) then
+          w(ixO^S, iw_mom(3)) = w(ixO^S, iw_mom(3)) + block%dt(ixO^S)*dtfactor * rotating_terms(ixO^S)
+        else
          w(ixO^S, iw_mom(3)) = w(ixO^S, iw_mom(3)) + qdt * rotating_terms(ixO^S)
+        endif
        end if
        }
 
@@ -107,7 +128,11 @@ contains
          {^NOONED
          work(ixO^S) = work(ixO^S) + frame_omega(ixO^S)**2 * x(ixO^S,r_) * wCT(ixO^S, iw_mom(2))/ tan(x(ixO^S, 2))
          }
-         w(ixO^S, iw_e) = w(ixO^S, iw_e) + qdt * work(ixO^S)
+          if(local_timestep) then
+            w(ixO^S, iw_e) = w(ixO^S, iw_e) + block%dt(ixO^S)*dtfactor* work(ixO^S)
+          else
+            w(ixO^S, iw_e) = w(ixO^S, iw_e) + qdt * work(ixO^S)
+        endif
        endif
 
     case default

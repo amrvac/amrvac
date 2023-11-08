@@ -452,7 +452,7 @@ contains
 
   end subroutine ard_get_flux
 
-  subroutine ard_add_source_geom(qdt, ixI^L, ixO^L, wCT, w, x)
+  subroutine ard_add_source_geom(qdt, dtfactor, ixI^L, ixO^L, wCT, w, x)
 
     ! Add geometrical source terms
     ! There are no geometrical source terms 
@@ -460,16 +460,16 @@ contains
     use mod_global_parameters
 
     integer, intent(in) :: ixI^L, ixO^L
-    double precision, intent(in) :: qdt, x(ixI^S, 1:^ND)
+    double precision, intent(in) :: qdt, dtfactor, x(ixI^S, 1:^ND)
     double precision, intent(inout) :: wCT(ixI^S, 1:nw), w(ixI^S, 1:nw)
 
   end subroutine ard_add_source_geom
 
   ! w[iw]= w[iw]+qdt*S[wCT, qtC, x] where S is the source based on wCT within ixO
-  subroutine ard_add_source(qdt,ixI^L,ixO^L,wCT,wCTprim,w,x,qsourcesplit,active)
+  subroutine ard_add_source(qdt,dtfactor,ixI^L,ixO^L,wCT,wCTprim,w,x,qsourcesplit,active)
     use mod_global_parameters
     integer, intent(in)             :: ixI^L, ixO^L
-    double precision, intent(in)    :: qdt
+    double precision, intent(in)    :: qdt, dtfactor
     double precision, intent(in)    :: wCT(ixI^S, 1:nw),wCTprim(ixI^S,1:nw), x(ixI^S, 1:ndim)
     double precision, intent(inout) :: w(ixI^S, 1:nw)
     double precision                :: lpl_u(ixO^S), lpl_v(ixO^S), lpl_w(ixO^S)

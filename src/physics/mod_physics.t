@@ -181,18 +181,18 @@ module mod_physics
        double precision, intent(out)   :: f(ixI^S, nwflux)
      end subroutine sub_get_flux
 
-     subroutine sub_add_source_geom(qdt, ixI^L, ixO^L, wCT, w, x)
+     subroutine sub_add_source_geom(qdt, dtfactor, ixI^L, ixO^L, wCT, w, x)
        use mod_global_parameters
        integer, intent(in)             :: ixI^L, ixO^L
-       double precision, intent(in)    :: qdt, x(ixI^S, 1:^ND)
+       double precision, intent(in)    :: qdt, dtfactor, x(ixI^S, 1:^ND)
        double precision, intent(inout) :: wCT(ixI^S, 1:nw), w(ixI^S, 1:nw)
      end subroutine sub_add_source_geom
 
-     subroutine sub_add_source(qdt, ixI^L, ixO^L, wCT, wCTprim, w, x, &
+     subroutine sub_add_source(qdt, dtfactor, ixI^L, ixO^L, wCT, wCTprim, w, x, &
           qsourcesplit, active)
        use mod_global_parameters
        integer, intent(in)             :: ixI^L, ixO^L
-       double precision, intent(in)    :: qdt
+       double precision, intent(in)    :: qdt, dtfactor
        double precision, intent(in)    :: wCT(ixI^S, 1:nw), wCTprim(ixI^S,1:nw), x(ixI^S, 1:ndim)
        double precision, intent(inout) :: w(ixI^S, 1:nw)
        logical, intent(in)             :: qsourcesplit
@@ -471,18 +471,18 @@ contains
        call mpistop("Error: entered dummy_get_a2max")
   end subroutine dummy_get_a2max
 
-  subroutine dummy_add_source_geom(qdt, ixI^L, ixO^L, wCT, w, x)
+  subroutine dummy_add_source_geom(qdt, dtfactor, ixI^L, ixO^L, wCT, w, x)
     use mod_global_parameters
     integer, intent(in)             :: ixI^L, ixO^L
-    double precision, intent(in)    :: qdt, x(ixI^S, 1:^ND)
+    double precision, intent(in)    :: qdt, dtfactor, x(ixI^S, 1:^ND)
     double precision, intent(inout) :: wCT(ixI^S, 1:nw), w(ixI^S, 1:nw)
   end subroutine dummy_add_source_geom
 
-  subroutine dummy_add_source(qdt, ixI^L, ixO^L, wCT, wCTprim, w, x, &
+  subroutine dummy_add_source(qdt, dtfactor, ixI^L, ixO^L, wCT, wCTprim, w, x, &
        qsourcesplit, active)
     use mod_global_parameters
     integer, intent(in)             :: ixI^L, ixO^L
-    double precision, intent(in)    :: qdt
+    double precision, intent(in)    :: qdt,dtfactor
     double precision, intent(in)    :: wCT(ixI^S, 1:nw), wCTprim(ixI^S,1:nw), x(ixI^S, 1:ndim)
     double precision, intent(inout) :: w(ixI^S, 1:nw)
     logical, intent(in)             :: qsourcesplit
