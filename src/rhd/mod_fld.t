@@ -30,8 +30,8 @@ module mod_fld
     double precision, public :: diff_crit
 
     !> Use constant Opacity?
-    character(len=8) :: fld_opacity_law = 'const'
-    character(len=6) :: fld_opal_table = 'Y09800' !>'xxxxxx'
+    character(len=8)  :: fld_opacity_law = 'const'
+    character(len=50) :: fld_opal_table = 'Y09800' !>'xxxxxx'
 
     !> Diffusion limit lambda = 0.33
     character(len=16) :: fld_fluxlimiter = 'Pomraning'
@@ -117,7 +117,7 @@ module mod_fld
     use mod_global_parameters
     use mod_variables
     use mod_physics
-    use mod_opal_opacity, only: init_opal
+    use mod_opal_opacity, only: init_opal_table
     use mod_multigrid_coupling
 
     double precision, intent(in) :: He_abundance, rhd_gamma
@@ -166,7 +166,7 @@ module mod_fld
     fld_gamma = rhd_gamma
 
     !> Read in opacity table if necesary
-    if (fld_opacity_law .eq. 'opal') call init_opal(He_abundance,fld_opal_table)
+    if (fld_opacity_law .eq. 'opal') call init_opal_table(fld_opal_table)
     if ((fld_opacity_law .eq. 'thomson') .or. (fld_opacity_law .eq. 'fastwind'))  then
       sigma_thomson = 6.6524585d-25
       fld_kappa0 = sigma_thomson/const_mp * (1.+2.*He_abundance)/(1.+4.*He_abundance)

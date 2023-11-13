@@ -68,10 +68,15 @@ fix_vector_force_1d | logical | F | If true, the CAK vector line force will only
 cak_split |  logical | F | To add the source term in a split or unsplit (default) fashion.
 
 ## Test problems
-Two test problems are provided in the HD tests folder that can be configured in several wats to illustrate the above physics, see `CAKwind_spherical_1D` and `CAKwind_spherical_2.5D`. Functionalities included are:
+Two test problems are provided in the HD test folder that can be configured in several ways to illustrate the above physics, see `CAKwind_spherical_1D` and `CAKwind_spherical_2.5D`. Functionalities included are:
 - 1D and 2.5D spherical isothermal or adiabatic wind models.
 - Rotating frame of reference for 2.5D wind.
 - Radial line force or vector line force with one or more of the previous listed combinations.
+
+Additionally, one test problem is provided in the MHD test folder, see `CAKwind_Magnetosphere_spherical_2D`. This problem treats a non-rotating, trans-magnetosonic line-driven wind interacting with a stellar dipole field that creates a so-called "Dynamical Magnetosphere". This example problem can be run in isothermal conditions or in adiabatic conditions with radiative cooling included. For the latter see also the documentation on [radiative cooling](radiative_cooling.md).
+
+For all test problems several .par files are provided to serve as a starting point.
+
 
 # Numerics and implementation
 

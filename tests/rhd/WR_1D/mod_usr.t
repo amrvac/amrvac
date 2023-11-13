@@ -89,18 +89,18 @@ contains
 
   subroutine initglobaldata_usr
     use mod_global_parameters
-    use mod_opal_opacity, only: init_opal
-    use mod_cak_opacity, only: init_cak
+    use mod_opal_opacity, only: init_opal_table
+    use mod_cak_opacity, only: init_cak_table
 
     use mod_fld
 
     integer :: i
 
     !> Initialise Opal
-    call init_opal(He_abundance, fld_opal_table)
+    call init_opal_table(fld_opal_table)
 
     !> Initialise CAK tables
-    call init_cak(fld_opal_table)
+    call init_cak_table(fld_opal_table)
 
     !> read usr par
     call params_read(par_files)
