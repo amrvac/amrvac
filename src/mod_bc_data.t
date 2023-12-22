@@ -53,7 +53,7 @@ contains
     bc_data_ix(:, :) = -1
     n_bc             = 0
 
-    if(any(typeboundary(1:nwfluxbc,1:2*ndim)==bc_data )) then
+    if(any(typeboundary(1:nwfluxbc,1:2*ndim)==bc_data ) .or. any(typeboundary(1:nwfluxbc,1:2*ndim)==bc_icarus)) then
       call read_vtk_structured_points(trim(boundary_data_file_name), bc)
       xmax = bc%origin + (bc%n_points-1) * bc%dx
       bc_data_time_varying = (bc%n_points(ndim) > 1)
@@ -62,7 +62,7 @@ contains
 
     do ib = 1, 2 * ndim
        do iw = 1, nwfluxbc
-          if (typeboundary(iw, ib)==bc_data) then
+          if (typeboundary(iw, ib)==bc_data .or. typeboundary(iw, ib)==bc_icarus) then
              n_bc               = n_bc + 1
              bc_data_ix(iw, ib) = n_bc
 
@@ -109,6 +109,7 @@ contains
        read(unitpar, bd_list, end=111)
 111    close(unitpar)
     end do
+    
  
   end subroutine bc_read_params
 
