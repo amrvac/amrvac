@@ -681,6 +681,7 @@ module mod_global_parameters
   integer, parameter :: bc_noinflow=7
   integer, parameter :: bc_data=8
   integer, parameter :: bc_character=9
+  integer, parameter :: bc_icarus=10
 
   !> whether copy values instead of interpolation in ghost cells of finer blocks
   logical :: ghost_copy=.false.
