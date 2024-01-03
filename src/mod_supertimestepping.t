@@ -306,10 +306,10 @@ contains
     else
       ss = dt/dtnew
       ! get number of sub-steps of supertime stepping (Meyer 2012 MNRAS 422,2102)
-      if(ss .le. 1d0) then
+      if(ss .le. 1.d0) then
         is=1
       else
-        is=ceiling((dsqrt(9.d0+16.d0*ss)-1.d0)/2.d0)
+        is=ceiling((dsqrt(9.d0+16.d0*ss)-1.d0)*0.5d0)
         is=is/2*2+1
       end if
     end if

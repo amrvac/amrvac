@@ -1021,7 +1021,7 @@ contains
     integer                      :: n
 
     ! list parameters
-    logical :: tc_perpendicular=.true.
+    logical :: tc_perpendicular=.false.
     logical :: tc_saturate=.false.
     double precision :: tc_k_para=0d0
     double precision :: tc_k_perp=0d0
@@ -1258,8 +1258,7 @@ contains
       unit_pressure=unit_magneticfield**2/miu0
       unit_temperature=unit_pressure/(b*unit_numberdensity*kB)
       unit_velocity=sqrt(unit_pressure/unit_density)
-    else
-      ! unit of temperature is independent by default
+    else if(unit_temperature/=1.d0) then
       unit_pressure=b*unit_numberdensity*kB*unit_temperature
       unit_velocity=sqrt(unit_pressure/unit_density)
       unit_magneticfield=sqrt(miu0*unit_pressure)

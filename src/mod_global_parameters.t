@@ -47,7 +47,7 @@ module mod_global_parameters
 
   ! geometry and domain setups
 
-  !> the mesh range (within a block with ghost cells)
+  !> the mesh range of a physical block without ghost cells
   integer :: ixM^LL
 
   !> minimum and maximum domain boundaries for each dimension

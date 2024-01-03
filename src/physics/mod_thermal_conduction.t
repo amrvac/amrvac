@@ -34,7 +34,7 @@
 !>    (m)hd_thermal_conduction=.true.
 !> 3. in the tc_list of amrvac.par :
 !>    tc_perpendicular=.true.  ! (default .false.) turn on thermal conduction perpendicular to magnetic field
-!>    tc_saturate=.false.  ! (default .true. ) turn off thermal conduction saturate effect
+!>    tc_saturate=.true.  ! (default .false. ) turn on thermal conduction saturate effect
 !>    tc_slope_limiter='MC' ! choose limiter for slope-limited anisotropic thermal conduction in MHD
 
 module mod_thermal_conduction
@@ -86,7 +86,7 @@ module mod_thermal_conduction
     logical :: tc_perpendicular=.false.
 
     !> Consider thermal conduction saturation effect (.true.) or not (.false.)
-    logical :: tc_saturate=.true.
+    logical :: tc_saturate=.false.
     ! END the following are read from param file or set in tc_read_hd_params or tc_read_mhd_params
   end type tc_fluid
 
@@ -203,10 +203,10 @@ contains
     double precision :: mf(ixO^S,1:ndim),Te(ixI^S),B2(ixI^S),gradT(ixI^S)
     double precision :: tmp2(ixO^S),tmp(ixO^S),hfs(ixO^S)
     double precision :: dtdiff_tcond,maxtmp2
-    integer          :: idim
+    integer          :: idims
 
     !temperature
-    call fl%get_temperature_from_conserved(w,x,ixI^L,ixO^L,Te)
+    call fl%get_temperature_from_conserved(w,x,ixI^L,ixI^L,Te)
 
     !tc_k_para_i
     if(fl%tc_constant) then
@@ -230,79 +230,61 @@ contains
       ^D&mf(ixO^S,^D)=1.d0;
     end where
 
-
     dtnew=bigdouble
     ! B2 is now density
     call fl%get_rho(w,x,ixI^L,ixO^L,B2)
 
-    !if(fl%tc_saturate) then
-    !  ! Kannan 2016 MN 458, 410
-    !  ! 3^1.5*kB^2/(4*sqrt(pi)*e^4)
-    !  tmp2(ixO^S)=Te(ixO^S)**2/B2(ixO^S)*7093.9239487765044d0*unit_temperature**2/(unit_numberdensity*unit_length)
-    !  hfs=0.d0
-    !  do idim=1,ndim
-    !    call gradient(Te,ixI^L,ixO^L,idim,gradT)
-    !    hfs(ixO^S)=hfs(ixO^S)+gradT(ixO^S)*mf(ixO^S,idim)
-    !  end do
-    !  ! kappa=kappa_Spizer/(1+4.2*l_mfpe/(T/|gradT|))
-    !  tmp(ixO^S)=tmp(ixO^S)/(1.d0+4.2d0*tmp2(ixO^S)*dabs(hfs(ixO^S))/Te(ixO^S))
-    !end if
+    if(fl%tc_saturate) then
+      ! Kannan 2016 MN 458, 410
+      ! 3^1.5*kB^2/(4*sqrt(pi)*e^4)
+      ! l_mfpe=3.d0**1.5d0*kB_cgs**2/(4.d0*sqrt(dpi)*e_cgs**4*37.d0)=7093.9239487765044d0
+      tmp2(ixO^S)=Te(ixO^S)**2/B2(ixO^S)*7093.9239487765044d0*unit_temperature**2/(unit_numberdensity*unit_length)
+      hfs=0.d0
+      do idims=1,ndim
+        call gradient(Te,ixI^L,ixO^L,idims,gradT)
+        hfs(ixO^S)=hfs(ixO^S)+gradT(ixO^S)*sqrt(mf(ixO^S,idims))
+      end do
+      ! kappa=kappa_Spizer/(1+4.2*l_mfpe/(T/|gradT.b|))
+      tmp(ixO^S)=tmp(ixO^S)/(1.d0+4.2d0*tmp2(ixO^S)*dabs(hfs(ixO^S))/Te(ixO^S))
+    end if
     if(slab_uniform) then
-      if(fl%tc_saturate) then
-        Te(ixO^S)=5.5d0*dsqrt(Te(ixO^S))
-        do idim=1,ndim
-          ! approximate thermal conduction flux: tc_k_para_i/rho/dx*B_i**2/B**2
-          tmp2(ixO^S)=tmp(ixO^S)*mf(ixO^S,idim)/(B2(ixO^S)*dxlevel(idim))
-          ! approximate saturate conduction flux: 5.5sqrt(Te)*B_i/B
-          hfs(ixO^S)=Te(ixO^S)*sqrt(mf(ixO^S,idim))
-          where(tmp2(ixO^S)>hfs(ixO^S))
-            tmp2(ixO^S)=hfs(ixO^S)
-          end where
-          maxtmp2=maxval(tmp2(ixO^S))
-          ! dt< dx_idim**2/((gamma-1)*tc_k_para_i/rho*B_i**2/B**2)
-          dtdiff_tcond=dxlevel(idim)/(tc_gamma_1*maxtmp2+smalldouble)
-          ! limit the time step
-          dtnew=min(dtnew,dtdiff_tcond)
-        end do
-      else
-        do idim=1,ndim
-          ! approximate thermal conduction flux: tc_k_para_i/rho/dx*B_i**2/B**2
-          tmp2(ixO^S)=tmp(ixO^S)*mf(ixO^S,idim)/(B2(ixO^S)*dxlevel(idim))
-          maxtmp2=maxval(tmp2(ixO^S))
-          ! dt< dx_idim**2/((gamma-1)*tc_k_para_i/rho*B_i**2/B**2)
-          dtdiff_tcond=dxlevel(idim)/(tc_gamma_1*maxtmp2+smalldouble)
-          ! limit the time step
-          dtnew=min(dtnew,dtdiff_tcond)
-        end do
-      end if
+      !if(fl%tc_saturate) then
+      !  !Te(ixO^S)=5.5d0*dsqrt(Te(ixO^S))
+      !  do idims=1,ndim
+      !    ! approximate thermal conduction flux: tc_k_para_i/rho/dx*B_i**2/B**2
+      !    tmp2(ixO^S)=tmp(ixO^S)*mf(ixO^S,idims)/(B2(ixO^S)*dxlevel(idims))
+      !    ! approximate saturate conduction flux: 5.5sqrt(Te)*B_i/B
+      !    hfs(ixO^S)=Te(ixO^S)*sqrt(mf(ixO^S,idims))
+      !    tmp2(ixO^S)=tmp2(ixO^S)*hfs(ixO^S)/(tmp2(ixO^S)+hfs(ixO^S))
+      !    !where(tmp2(ixO^S)>hfs(ixO^S))
+      !    !  !tmp2(ixO^S)=hfs(ixO^S)
+      !    !  tmp2(ixO^S)=0.5d0*tmp2(ixO^S)
+      !    !end where
+      !    maxtmp2=maxval(tmp2(ixO^S))
+      !    ! dt< dx_idim**2/((gamma-1)*tc_k_para_i/rho*B_i**2/B**2)
+      !    dtdiff_tcond=dxlevel(idims)/(tc_gamma_1*maxtmp2+smalldouble)
+      !    ! limit the time step
+      !    dtnew=min(dtnew,dtdiff_tcond)
+      !  end do
+      do idims=1,ndim
+        ! approximate thermal conduction flux: tc_k_para_i/rho/dx*B_i**2/B**2
+        tmp2(ixO^S)=tmp(ixO^S)*mf(ixO^S,idims)/(B2(ixO^S)*dxlevel(idims))
+        maxtmp2=maxval(tmp2(ixO^S))
+        ! dt< dx_idim**2/((gamma-1)*tc_k_para_i/rho*B_i**2/B**2)
+        dtdiff_tcond=dxlevel(idims)/(tc_gamma_1*maxtmp2+smalldouble)
+        ! limit the time step
+        dtnew=min(dtnew,dtdiff_tcond)
+      end do
     else
-      if(fl%tc_saturate) then
-        Te(ixO^S)=5.5d0*dsqrt(Te(ixO^S))
-        do idim=1,ndim
-          ! approximate thermal conduction flux: tc_k_para_i/rho/dx*B_i**2/B**2
-          tmp2(ixO^S)=tmp(ixO^S)*mf(ixO^S,idim)/(B2(ixO^S)*block%ds(ixO^S,idim))
-          ! approximate saturate conduction flux: 5.5sqrt(Te)*B_i/B
-          hfs(ixO^S)=Te(ixO^S)*sqrt(mf(ixO^S,idim))
-          where(tmp2(ixO^S)>hfs(ixO^S))
-            tmp2(ixO^S)=hfs(ixO^S)
-          end where
-          maxtmp2=maxval(tmp2(ixO^S)/block%ds(ixO^S,idim))
-          ! dt< dx_idim**2/((gamma-1)*tc_k_para_i/rho*B_i**2/B**2)
-          dtdiff_tcond=1.d0/(tc_gamma_1*maxtmp2+smalldouble)
-          ! limit the time step
-          dtnew=min(dtnew,dtdiff_tcond)
-        end do
-      else
-        do idim=1,ndim
-          ! approximate thermal conduction flux: tc_k_para_i/rho/dx*B_i**2/B**2
-          tmp2(ixO^S)=tmp(ixO^S)*mf(ixO^S,idim)/(B2(ixO^S)*block%ds(ixO^S,idim))
-          maxtmp2=maxval(tmp2(ixO^S)/block%ds(ixO^S,idim))
-          ! dt< dx_idim**2/((gamma-1)*tc_k_para_i/rho*B_i**2/B**2)
-          dtdiff_tcond=1.d0/(tc_gamma_1*maxtmp2+smalldouble)
-          ! limit the time step
-          dtnew=min(dtnew,dtdiff_tcond)
-        end do
-      end if
+      do idims=1,ndim
+        ! approximate thermal conduction flux: tc_k_para_i/rho/dx*B_i**2/B**2
+        tmp2(ixO^S)=tmp(ixO^S)*mf(ixO^S,idims)/(B2(ixO^S)*block%ds(ixO^S,idims))
+        maxtmp2=maxval(tmp2(ixO^S)/block%ds(ixO^S,idims))
+        ! dt< dx_idim**2/((gamma-1)*tc_k_para_i/rho*B_i**2/B**2)
+        dtdiff_tcond=1.d0/(tc_gamma_1*maxtmp2+smalldouble)
+        ! limit the time step
+        dtnew=min(dtnew,dtdiff_tcond)
+      end do
     end if
     dtnew=dtnew/dble(ndim)
 
@@ -459,21 +441,6 @@ contains
       else
         minq(ix^S)=fl%tc_k_para*sqrt(Te(ix^S)**5)
       end if
-      !if(fl%tc_saturate) then
-      !  ! Kannan 2016 MN 458, 410
-      !  ! 3^1.5*kB^2/(4*sqrt(pi)*e^4)
-      !  !l_mfpe=3.d0**1.5d0*const_kB**2/(4.d0*sqrt(dpi)*const_e**4*37.d0)
-      !  qdd(ix^S)=Te(ix^S)**2/rho(ix^S)*7093.9239487765044d0*unit_temperature**2/(unit_numberdensity*unit_length)
-      !  Bnorm=0.d0
-      !  do idims=1,ndim
-      !    call gradient(Te,ixI^L,ix^L,idims,qe)
-      !    Bnorm(ix^S)=Bnorm(ix^S)+qe(ix^S)*mf(ix^S,idims)
-      !    !Bnorm(ix^S)=Bnorm(ix^S)+qe(ix^S)**2
-      !  end do
-      !  ! kappa=kappa_Spizer/(1+4.2*l_mfpe/(T/|gradT|))
-      !  minq(ix^S)=minq(ix^S)/(1.d0+4.2d0*qdd(ix^S)*dabs(Bnorm(ix^S))/Te(ix^S))
-      !  !minq(ix^S)=minq(ix^S)/(1.d0+4.2d0*qdd(ix^S)*sqrt(Bnorm(ix^S))/Te(ix^S))
-      !end if
       ka=0.d0
       {do ix^DB=0,1\}
         ixBmin^D=ixCmin^D+ix^D;
@@ -496,8 +463,8 @@ contains
         where(ke(ixC^S)<ka(ixC^S))
           ka(ixC^S)=ka(ixC^S)-ke(ixC^S)
         elsewhere
-          ka(ixC^S)=0.d0
           ke(ixC^S)=ka(ixC^S)
+          ka(ixC^S)=0.d0
         end where
       end if
     end if
@@ -628,20 +595,15 @@ contains
           qvec(ixA^S,idims)=qvec(ixA^S,idims)+kaf(ixA^S)*Bnorm(ixA^S)*Bcf(ixA^S,idir)*qd(ixA^S)
         end do
 
-        ! consider magnetic null point
-        !where(Binv(ixA^S)==0.d0)
-        !  qvec(ixA^S,idims)=tc_k_para*(0.5d0*(Te(ixA^S)+Te(ixB^S)))**2.5d0*gradT(ixA^S,idims)
-        !end where
-
         if(fl%tc_saturate) then
           ! consider saturation (Cowie and Mckee 1977 ApJ, 211, 135)
-          ! unsigned saturated TC flux = 5 phi rho c**3, c is isothermal sound speed
+          ! unsigned saturated TC flux = 5 phi rho c**3, c=sqrt(p/rho) is isothermal sound speed, phi=1.1
           ixB^L=ixA^L+kr(idims,^D);
           qd(ixA^S)=2.75d0*(rho(ixA^S)+rho(ixB^S))*dsqrt(0.5d0*(Te(ixA^S)+Te(ixB^S)))**3*dabs(Bnorm(ixA^S))
          {do ix^DB=ixAmin^DB,ixAmax^DB\}
             if(dabs(qvec(ix^D,idims))>qd(ix^D)) then
-        !      write(*,*) 'it',it,qvec(ix^D,idims),qd(ix^D),' TC saturated at ',&
-        !      x(ix^D,:),' rho',rho(ix^D),' Te',Te(ix^D)
+              !write(*,*) 'it',it,qvec(ix^D,idims),qd(ix^D),' TC saturated at ',&
+              !x(ix^D,:),' rho',rho(ix^D),' Te',Te(ix^D)
               qvec(ix^D,idims)=sign(1.d0,qvec(ix^D,idims))*qd(ix^D)
             end if
          {end do\}
