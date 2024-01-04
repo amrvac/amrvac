@@ -79,9 +79,11 @@ module mod_thermal_conduction
     double precision :: tc_k_perp
 
     !> Name of slope limiter for transverse component of thermal flux
-    character(len=std_len)  :: tc_slope_limiter
+    integer :: tc_slope_limiter
+
     !> Logical switch for test constant conductivity
     logical :: tc_constant=.false.
+
     !> Calculate thermal conduction perpendicular to magnetic field (.true.) or not (.false.)
     logical :: tc_perpendicular=.false.
 
@@ -100,8 +102,6 @@ module mod_thermal_conduction
 
 contains
 
-
-
   subroutine tc_init_params(phys_gamma)
     use mod_global_parameters
     double precision, intent(in) :: phys_gamma
@@ -109,24 +109,22 @@ contains
     tc_gamma_1=phys_gamma-1d0
   end subroutine tc_init_params
 
-
   !> Init  TC coeffiecients: MHD case
   subroutine tc_get_mhd_params(fl,read_mhd_params)
-
     use mod_global_parameters
 
     interface
-    subroutine read_mhd_params(fl)
-      use mod_global_parameters, only: unitpar,par_files
-      import tc_fluid
-      type(tc_fluid), intent(inout) :: fl
+      subroutine read_mhd_params(fl)
+        use mod_global_parameters, only: unitpar,par_files
+        import tc_fluid
+        type(tc_fluid), intent(inout) :: fl
 
-    end subroutine read_mhd_params
+      end subroutine read_mhd_params
     end interface
 
     type(tc_fluid), intent(inout) :: fl
 
-    fl%tc_slope_limiter='MC'
+    fl%tc_slope_limiter=1
 
     fl%tc_k_para=0.d0
 
@@ -157,7 +155,6 @@ contains
     !> Read tc module parameters from par file: MHD case
 
   end subroutine tc_get_mhd_params
-
 
   subroutine tc_get_hd_params(fl,read_hd_params)
     use mod_global_parameters
@@ -416,7 +413,6 @@ contains
     {end do\}
     Bc(ixC^S,1:ndim)=Bc(ixC^S,1:ndim)*0.5d0**ndim
     ! T gradient at cell faces
-    gradT=0.d0
     do idims=1,ndim
       ixBmin^D=ixmin^D;
       ixBmax^D=ixmax^D-kr(idims,^D);
@@ -468,7 +464,7 @@ contains
         end where
       end if
     end if
-    if(fl%tc_slope_limiter=='no') then
+    if(fl%tc_slope_limiter==0) then
       ! calculate thermal conduction flux with symmetric scheme
       do idims=1,ndim
         !qd corner values
@@ -618,7 +614,7 @@ contains
     integer, intent(in) :: ixI^L, ixO^L, idims, pm
     double precision, intent(in) :: f(ixI^S)
     double precision :: lf(ixI^S)
-    character(len=*), intent(in)  :: tc_slope_limiter
+    integer, intent(in)  :: tc_slope_limiter
 
     double precision :: signf(ixI^S)
     integer :: ixB^L
@@ -626,21 +622,21 @@ contains
     ixB^L=ixO^L+pm*kr(idims,^D);
     signf(ixO^S)=sign(1.d0,f(ixO^S))
     select case(tc_slope_limiter)
-     case('minmod')
-       ! minmod limiter
-       lf(ixO^S)=signf(ixO^S)*max(0.d0,min(abs(f(ixO^S)),signf(ixO^S)*f(ixB^S)))
-     case ('MC')
-       ! montonized central limiter Woodward and Collela limiter (eq.3.51h), a factor of 2 is pulled out
+     case(1)
+       ! 'MC' montonized central limiter Woodward and Collela limiter (eq.3.51h), a factor of 2 is pulled out
        lf(ixO^S)=two*signf(ixO^S)* &
             max(zero,min(dabs(f(ixO^S)),signf(ixO^S)*f(ixB^S),&
             signf(ixO^S)*quarter*(f(ixB^S)+f(ixO^S))))
-     case ('superbee')
-       ! Roes superbee limiter (eq.3.51i)
+     case(2)
+       ! 'minmod' limiter
+       lf(ixO^S)=signf(ixO^S)*max(0.d0,min(abs(f(ixO^S)),signf(ixO^S)*f(ixB^S)))
+     case(3)
+       ! 'superbee' Roes superbee limiter (eq.3.51i)
        lf(ixO^S)=signf(ixO^S)* &
             max(zero,min(two*dabs(f(ixO^S)),signf(ixO^S)*f(ixB^S)),&
             min(dabs(f(ixO^S)),two*signf(ixO^S)*f(ixB^S)))
-     case ('koren')
-       ! Barry Koren Right variant
+     case(4)
+       ! 'koren' Barry Koren Right variant
        lf(ixO^S)=signf(ixO^S)* &
             max(zero,min(two*dabs(f(ixO^S)),two*signf(ixO^S)*f(ixB^S),&
             (two*f(ixB^S)*signf(ixO^S)+dabs(f(ixO^S)))*third))

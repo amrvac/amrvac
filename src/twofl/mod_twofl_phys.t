@@ -1031,7 +1031,24 @@ contains
     fl%tc_saturate = tc_saturate
     fl%tc_k_para = tc_k_para
     fl%tc_k_perp = tc_k_perp
-    fl%tc_slope_limiter = tc_slope_limiter
+    select case(tc_slope_limiter)
+     case ('no','none')
+       fl%tc_slope_limiter = 0
+     case ('MC')
+       ! montonized central limiter Woodward and Collela limiter (eq.3.51h), a factor of 2 is pulled out
+       fl%tc_slope_limiter = 1
+     case('minmod')
+       ! minmod limiter
+       fl%tc_slope_limiter = 2
+     case ('superbee')
+       ! Roes superbee limiter (eq.3.51i)
+       fl%tc_slope_limiter = 3
+     case ('koren')
+       ! Barry Koren Right variant
+       fl%tc_slope_limiter = 4
+     case default
+       call mpistop("Unknown tc_slope_limiter, choose MC, minmod")
+    end select
   end subroutine tc_c_params_read_mhd
 
   subroutine tc_c_params_read_hd(fl)
