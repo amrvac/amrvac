@@ -132,7 +132,6 @@ module mod_twofl_phys
   logical, public                         :: twofl_coll_inc_te = .true.
   !> whether include ionization/recombination inelastic collisional terms
   logical, public                         :: twofl_coll_inc_ionrec = .false.
-  logical, public                         :: twofl_equi_ionrec = .false.
   logical, public                         :: twofl_equi_thermal_n = .false.
   double precision, public                :: dtcollpar = -1d0 !negative value does not impose restriction on the timestep
   !> whether dump collisional terms in a separte dat file
@@ -293,7 +292,7 @@ contains
       twofl_dump_full_vars, has_equi_rho_c0, has_equi_pe_c0, twofl_hyperdiffusivity,twofl_dump_hyperdiffusivity_coef,&
       has_equi_pe_n0, has_equi_rho_n0, twofl_thermal_conduction_n, twofl_radiative_cooling_n,  &
       twofl_alpha_coll,twofl_alpha_coll_constant,&
-      twofl_coll_inc_te, twofl_coll_inc_ionrec,twofl_equi_ionrec,&
+      twofl_coll_inc_te, twofl_coll_inc_ionrec,&
       twofl_equi_thermal_n,dtcollpar,&
       twofl_dump_coll_terms,twofl_implicit_calc_mult_method,&
       boundary_divbfix, boundary_divbfix_skip, twofl_divb_4thorder, &
@@ -1364,8 +1363,7 @@ contains
       unit_pressure=unit_magneticfield**2/miu0
       unit_temperature=unit_pressure/(b*unit_numberdensity*kB)
       unit_velocity=sqrt(unit_pressure/unit_density)
-    else
-      ! unit of temperature is independent by default
+    else if(unit_temperature/=1.d0) then
       unit_pressure=b*unit_numberdensity*kB*unit_temperature
       unit_velocity=sqrt(unit_pressure/unit_density)
       unit_magneticfield=sqrt(miu0*unit_pressure)
@@ -6783,15 +6781,8 @@ contains
        call get_gamma_ion_rec(ixI^L, ixO^L, w, x, gamma_rec, gamma_ion)
        tmp2(ixO^S) =  gamma_rec(ixO^S) +  gamma_ion(ixO^S)
        call calc_mult_factor(ixI^L, ixO^L, dtfactor * qdt, tmp2, tmp3) 
-
-      if(.not. twofl_equi_ionrec) then
        tmp(ixO^S) = (-gamma_ion(ixO^S) * rhon(ixO^S) + &
                                         gamma_rec(ixO^S) * rhoc(ixO^S))
-      else
-       ! equilibrium density does not evolve through ion/rec 
-       tmp(ixO^S) = (-gamma_ion(ixO^S) * w(ixO^S,rho_n_) + &
-                                        gamma_rec(ixO^S) * w(ixO^S,rho_c_))
-      endif
       wout(ixO^S,rho_n_) = w(ixO^S,rho_n_) + tmp(ixO^S) * tmp3(ixO^S)
       wout(ixO^S,rho_c_) = w(ixO^S,rho_c_) - tmp(ixO^S) * tmp3(ixO^S)
     else
@@ -6962,15 +6953,8 @@ contains
     if(twofl_coll_inc_ionrec) then
        allocate(gamma_ion(ixI^S), gamma_rec(ixI^S)) 
        call get_gamma_ion_rec(ixI^L, ixO^L, w, x, gamma_rec, gamma_ion)
-
-       if(.not. twofl_equi_ionrec) then
         tmp(ixO^S) = -gamma_ion(ixO^S) * rhon(ixO^S) + &
                                         gamma_rec(ixO^S) * rhoc(ixO^S)
-       else
-       ! equilibrium density does not evolve through ion/rec 
-        tmp(ixO^S) = -gamma_ion(ixO^S) * w(ixO^S,rho_n_) + &
-                                        gamma_rec(ixO^S) * w(ixO^S,rho_c_)
-       endif
        w(ixO^S,rho_n_) = tmp(ixO^S) 
        w(ixO^S,rho_c_) = -tmp(ixO^S) 
     else
@@ -7076,14 +7060,8 @@ contains
     if(twofl_coll_inc_ionrec) then
        allocate(gamma_ion(ixI^S), gamma_rec(ixI^S)) 
        call get_gamma_ion_rec(ixI^L, ixO^L, wCT, x, gamma_rec, gamma_ion)
-
-      if(.not. twofl_equi_ionrec) then
         tmp(ixO^S) = qdt *(-gamma_ion(ixO^S) * rhon(ixO^S) + &
                                         gamma_rec(ixO^S) * rhoc(ixO^S))
-      else
-       tmp(ixO^S) = qdt * (-gamma_ion(ixO^S) * wCT(ixO^S,rho_n_) + &
-                                        gamma_rec(ixO^S) * wCT(ixO^S,rho_c_))
-      endif  
       w(ixO^S,rho_n_) = w(ixO^S,rho_n_) + tmp(ixO^S) 
       w(ixO^S,rho_c_) = w(ixO^S,rho_c_) - tmp(ixO^S) 
     endif
