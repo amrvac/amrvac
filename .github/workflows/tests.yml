@@ -130,8 +130,11 @@ jobs:
           sudo add-apt-repository  -y "deb https://apt.repos.intel.com/oneapi all main"
       - name: install Intel oneAPI
         run: |
-          sudo apt-get install intel-oneapi-compiler-fortran
+          sudo apt update 
+          sudo apt-get -y upgrade 
           sudo apt-get install intel-oneapi-compiler-dpcpp-cpp-and-cpp-classic
+          #sudo apt-get install intel-oneapi-dpcpp-cpp
+          sudo apt-get install intel-oneapi-compiler-fortran
           sudo apt-get install intel-oneapi-mpi
           sudo apt-get install intel-oneapi-mpi-devel
           source /opt/intel/oneapi/setvars.sh
@@ -139,9 +142,9 @@ jobs:
       - name: check compiler versions
         run: |
           ${FC} --version
-          ${CC} --version
+          #${CC} --version
           mpirun --version
-          mpiifort --version
+          mpiifx --version
       - name: check code dependencies
         run: |
           cd src
