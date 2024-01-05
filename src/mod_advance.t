@@ -70,6 +70,8 @@ contains
     use mod_fix_conserve
     use mod_ghostcells_update
     use mod_physics, only: phys_req_diagonal
+    use mod_comm_lib, only: mpistop
+
 
     integer, intent(in) :: idim^LIM
     integer             :: iigrid, igrid
@@ -721,6 +723,7 @@ contains
     use mod_source, only: addsource2
     use mod_physics, only: phys_to_primitive
     use mod_global_parameters
+    use mod_comm_lib, only: mpistop
 
     integer, intent(in) :: method
     integer, intent(in) :: ixI^L, idim^LIM

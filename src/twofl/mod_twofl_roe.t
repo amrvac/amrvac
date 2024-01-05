@@ -3,6 +3,7 @@ module mod_twofl_roe
 #include "amrvac.h"
 
   use mod_twofl_phys
+  use mod_functions_bfield, only: mag
   use mod_physics_roe
 
   implicit none

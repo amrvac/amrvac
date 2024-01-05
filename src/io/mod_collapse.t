@@ -3,6 +3,7 @@
 ! writes out as either csv or vti file (collapse_type)
 module mod_collapse
   use mod_global_parameters
+  use mod_comm_lib, only: mpistop
   implicit none
 
 contains

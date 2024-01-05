@@ -58,6 +58,7 @@ module mod_physics
   procedure(sub_get_cmax), pointer        :: phys_get_cmax               => null()
   procedure(sub_get_a2max), pointer       :: phys_get_a2max              => null()
   procedure(sub_get_tcutoff), pointer     :: phys_get_tcutoff            => null()
+  procedure(sub_trac_after_setdt), pointer:: phys_trac_after_setdt       => null()
   procedure(sub_get_H_speed), pointer     :: phys_get_H_speed            => null()
   procedure(sub_get_cbounds), pointer     :: phys_get_cbounds            => null()
   procedure(sub_get_flux), pointer        :: phys_get_flux               => null()
@@ -142,6 +143,10 @@ module mod_physics
        double precision, intent(in)    :: x(ixI^S, 1:^ND)
        double precision, intent(out) :: tco_local, Tmax_local
      end subroutine sub_get_tcutoff
+
+     subroutine sub_trac_after_setdt(trac_alfa,tco,T_peak,T_bott)
+       double precision, intent(in)    :: trac_alfa,tco,T_peak,T_bott
+     end subroutine sub_trac_after_setdt
 
      subroutine sub_get_v(w,x,ixI^L,ixO^L,v)
        use mod_global_parameters
@@ -361,6 +366,7 @@ contains
 
     use mod_physics_hllc, only: phys_hllc_check
     use mod_physics_roe, only: phys_roe_check
+    use mod_comm_lib, only: mpistop
 
     if (physics_type == "") call mpistop("Error: no physics module loaded")
 
@@ -465,6 +471,7 @@ contains
 
   subroutine dummy_get_a2max(w, x, ixI^L, ixO^L, a2max)
        use mod_global_parameters
+       use mod_comm_lib, only: mpistop
        integer, intent(in)             :: ixI^L, ixO^L
        double precision, intent(in)    :: w(ixI^S, nw), x(ixI^S, 1:^ND)
        double precision, intent(inout) :: a2max(ndim)
@@ -502,6 +509,7 @@ contains
 
   subroutine dummy_get_pthermal(w, x, ixI^L, ixO^L, pth)
     use mod_global_parameters
+    use mod_comm_lib, only: mpistop
 
     integer, intent(in)          :: ixI^L, ixO^L
     double precision, intent(in) :: w(ixI^S, nw)
@@ -513,6 +521,7 @@ contains
 
   subroutine dummy_get_auxiliary(ixI^L, ixO^L, w, x)
     use mod_global_parameters
+    use mod_comm_lib, only: mpistop
 
     integer, intent(in)          :: ixI^L, ixO^L
     double precision, intent(inout) :: w(ixI^S, nw)
@@ -523,6 +532,7 @@ contains
 
   subroutine dummy_get_auxiliary_prim(ixI^L, ixO^L, w)
     use mod_global_parameters
+    use mod_comm_lib, only: mpistop
 
     integer, intent(in)          :: ixI^L, ixO^L
     double precision, intent(inout) :: w(ixI^S, nw)

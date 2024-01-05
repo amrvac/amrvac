@@ -41,6 +41,7 @@ contains
 
   subroutine bc_data_init()
     use mod_global_parameters
+    use mod_comm_lib, only: mpistop
 
     integer                :: i, iw, ib, n_files, n_bc
     double precision       :: xmax(3)
@@ -109,7 +110,6 @@ contains
        read(unitpar, bd_list, end=111)
 111    close(unitpar)
     end do
-    
  
   end subroutine bc_read_params
 
@@ -141,6 +141,7 @@ contains
   subroutine bc_data_set(qt,ixI^L,ixO^L,iB,w,x)
     use mod_global_parameters
     use mod_physics, only: phys_to_conserved,phys_to_primitive
+    use mod_comm_lib, only: mpistop
 
     integer, intent(in)             :: ixI^L, ixO^L, iB
     double precision, intent(in)    :: qt, x(ixI^S,1:ndim)

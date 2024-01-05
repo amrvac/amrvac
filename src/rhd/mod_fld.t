@@ -7,6 +7,9 @@
 !> For more information.
 
 module mod_fld
+
+    use mod_comm_lib, only: mpistop
+
     implicit none
 
     !> source split for energy interact and radforce:

@@ -1,4 +1,5 @@
 module mod_physics_roe
+  use mod_comm_lib, only: mpistop
 
   implicit none
   public

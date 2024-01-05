@@ -39,6 +39,7 @@ contains
   end subroutine interp_linear
 
   subroutine interp_cubic_spline(x_table,y_table,n_table,x_itp,y_itp,n_itp)
+    use mod_comm_lib, only: mpistop
     ! interpolation function fi=ai+bi*(x-xi)+ci*(x-xi)^2+di*(x-xi)^3
     ! first order derivative and second order derivative is continous 
     ! 1D method
@@ -174,6 +175,7 @@ contains
   end subroutine interp_linear_multiD
 
   subroutine interp_from_grid_linear(igrid,xp,wp)
+    use mod_comm_lib, only: mpistop
     ! get point values from given grid via linear interpolation
     ! multi-D method
     
@@ -193,7 +195,7 @@ contains
     inblock=0
     {if (xp(^D)>=xbmin^D .and. xp(^D)<xbmax^D) inblock=inblock+1\}
     if (inblock/=ndim) then
-      call MPISTOP('Interpolation error: given point is not in given grid')
+      call mpistop('Interpolation error: given point is not in given grid')
     endif
 
     ! cell indexes for the point

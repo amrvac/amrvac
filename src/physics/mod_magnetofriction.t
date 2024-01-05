@@ -115,6 +115,8 @@ contains
     use mod_physics
     use mod_ghostcells_update
     use mod_input_output
+    use mod_amr_grid, only: resettree
+    use mod_comm_lib, only: mpistop
 
     double precision :: dvolume(ixG^T),dsurface(ixG^T),dvone
     double precision :: dtfff,dtfff_pe,dtnew,dx^D
@@ -626,6 +628,7 @@ contains
     ! `advect' (with the difference that it will `advect' all grids)
     use mod_global_parameters
     use mod_fix_conserve
+    use mod_comm_lib, only: mpistop
 
     integer, intent(in) :: idim^LIM
     double precision, intent(in) :: qt, qdt
@@ -742,6 +745,7 @@ contains
     ! This subroutine is equivalent to VAC's `advect1' for one grid
     use mod_global_parameters
     use mod_fix_conserve
+    use mod_comm_lib, only: mpistop
 
     integer, intent(in) :: method
     integer, intent(in) :: igrid, ixG^L, idim^LIM
@@ -860,6 +864,7 @@ contains
     ! method=='tvdlf'  --> 2nd order TVD-Lax-Friedrich scheme.
     ! method=='tvdlf1' --> 1st order TVD-Lax-Friedrich scheme.
     use mod_global_parameters
+    use mod_comm_lib, only: mpistop
 
     double precision, intent(in)                         :: qdt, qtC, qt, dx^D
     integer, intent(in)                                  :: ixI^L, ixO^L, idim^LIM
@@ -960,6 +965,7 @@ contains
     ! one entry: (predictor): wCT -- w_n        wnew -- w_n   qdt=dt/2
     ! on exit :  (predictor): wCT -- w_n        wnew -- w_n+1/2
     use mod_global_parameters
+    use mod_comm_lib, only: mpistop
 
     integer, intent(in) :: ixI^L, ixO^L, idim^LIM
     double precision, intent(in) :: qdt, qtC, qt, dx^D, x(ixI^S,1:ndim)
@@ -1158,6 +1164,7 @@ contains
     ! wCT contains the time centered variables at time qtC for flux and source.
     ! w is the old value at qt on input and the new value at qt+qdt on output.
     use mod_global_parameters
+    use mod_comm_lib, only: mpistop
 
     integer, intent(in) :: ixI^L, ixO^L, idim^LIM
     double precision, intent(in) :: qdt, qtC, qt, dx^D

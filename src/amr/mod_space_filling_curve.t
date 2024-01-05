@@ -85,6 +85,7 @@ contains
   subroutine amr_Morton_order
     use mod_forest
     use mod_global_parameters
+    use mod_comm_lib, only: mpistop
 
     integer :: ig^D, Morton_no, isfc
 

@@ -36,6 +36,7 @@ contains
 
   subroutine init_b_fff_data(magnetogramname,qLunit,qBunit)
     use mod_global_parameters
+    use mod_comm_lib, only: mpistop
 
     double precision, intent(in) :: qLunit,qBunit
     double precision :: xc1,xc2,dxm1,dxm2
@@ -279,6 +280,7 @@ contains
   !>  Solve Poisson equation of scalar potential using multigrid solver
   subroutine get_potential_field_potential_mg()
     use mod_global_parameters
+    use mod_comm_lib, only: mpistop
     use mod_multigrid_coupling
     double precision :: max_residual, res
     integer :: i, max_its

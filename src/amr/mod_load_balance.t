@@ -7,6 +7,8 @@ contains
     use mod_forest
     use mod_global_parameters
     use mod_space_filling_curve
+    use mod_amr_solution_node, only: getnode,putnode
+    use mod_functions_forest, only: change_ipe_tree_leaf
 
     integer :: Morton_no, recv_igrid, recv_ipe, send_igrid, send_ipe, igrid, ipe
     !> MPI recv send variables for AMR
@@ -18,7 +20,6 @@ contains
     integer, dimension(:), allocatable :: recvrequest_stg, sendrequest_stg
     integer, dimension(:,:), allocatable :: recvstatus_stg, sendstatus_stg
 
-    integer, external :: getnode
 
     ! Jannis: for now, not using version for passive/active blocks
     call get_Morton_range()
@@ -107,6 +108,7 @@ contains
     contains
 
       subroutine lb_recv
+        use mod_amr_solution_node, only: alloc_node
 
         call alloc_node(recv_igrid)
 

@@ -8,6 +8,8 @@ module mod_mhd_phys
   use mod_radiative_cooling, only: rc_fluid
   use mod_thermal_emission, only: te_fluid
   use mod_physics
+  use mod_comm_lib, only: mpistop
+  use mod_functions_bfield, only: get_divb, mag
 
   implicit none
   private
@@ -133,8 +135,6 @@ module mod_mhd_phys
   !> Index of the gas pressure (-1 if not present) should equal e_
   integer, public, protected              :: p_
 
-  !> Indices of the magnetic field
-  integer, allocatable, public, protected :: mag(:)
 
   !> Indices of the GLM psi
   integer, public, protected :: psi_
@@ -396,6 +396,7 @@ contains
         mhd_boris_simplification=.false.
         if(mype==0) write(*,*) 'WARNING: set mhd_boris_simplification=F when mhd_semirelativistic=T'
       end if
+      if(B0field) B0fieldAllocCoarse=.true.
     end if
 
     if(.not. mhd_energy) then
@@ -5312,36 +5313,6 @@ contains
 
   end subroutine add_source_linde
 
-  !> Calculate div B within ixO
-  subroutine get_divb(w,ixI^L,ixO^L,divb, fourthorder)
-    use mod_global_parameters
-    use mod_geometry
-
-    integer, intent(in)             :: ixI^L, ixO^L
-    double precision, intent(in)    :: w(ixI^S,1:nw)
-    double precision, intent(inout) :: divb(ixI^S)
-    logical, intent(in), optional   :: fourthorder
-
-    integer                            :: ixC^L, idir
-
-    if(stagger_grid) then
-      divb(ixO^S)=0.d0
-      do idir=1,ndim
-        ixC^L=ixO^L-kr(idir,^D);
-        divb(ixO^S)=divb(ixO^S)+block%ws(ixO^S,idir)*block%surfaceC(ixO^S,idir)-&
-                                block%ws(ixC^S,idir)*block%surfaceC(ixC^S,idir)
-      end do
-      divb(ixO^S)=divb(ixO^S)/block%dvolume(ixO^S)
-    else
-      select case(typediv)
-      case("central")
-        call divvector(w(ixI^S,mag(1:ndir)),ixI^L,ixO^L,divb,fourthorder)
-      case("limited")
-        call divvectorS(w(ixI^S,mag(1:ndir)),ixI^L,ixO^L,divb)
-      end select
-    end if
-
-  end subroutine get_divb
 
   !> get dimensionless div B = |divB| * volume / area / |B|
   subroutine get_normalized_divb(w,ixI^L,ixO^L,divb)

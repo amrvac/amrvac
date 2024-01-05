@@ -356,7 +356,9 @@ module mod_global_parameters
   logical :: fix_small_values=.false.
 
   !> split magnetic field as background B0 field
+  ! TODO these should be moved in a different file  
   logical :: B0field=.false.
+  logical :: B0fieldAllocCoarse=.false.
 
   ! number of equilibrium set variables, besides the mag field
   integer :: number_equi_vars = 0

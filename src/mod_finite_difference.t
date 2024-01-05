@@ -158,6 +158,7 @@ contains
     use mod_global_parameters
     use mod_mp5
     use mod_limiter
+    use mod_comm_lib, only: mpistop
 
     integer, intent(in)             :: ixI^L, iL^L, idims
     double precision, intent(in)    :: w(ixI^S,1:nw)
@@ -228,6 +229,7 @@ contains
     use mod_global_parameters
     use mod_mp5
     use mod_limiter
+    use mod_comm_lib, only: mpistop
 
     integer, intent(in)             :: ixI^L, iL^L, idims
     double precision, intent(in)    :: w(ixI^S,1:nw)
@@ -307,6 +309,7 @@ contains
     use mod_source, only: addsource2
     use mod_usr_methods
     use mod_variables
+    use mod_comm_lib, only: mpistop
 
     integer, intent(in) :: method
     integer, intent(in) :: ixI^L, ixO^L, idims^LIM

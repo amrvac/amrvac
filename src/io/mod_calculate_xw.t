@@ -19,6 +19,7 @@ contains
     use mod_global_parameters
     use mod_limiter
     use mod_physics, only: phys_energy, physics_type, phys_to_primitive
+    use mod_comm_lib, only: mpistop
 
     integer, intent(in) :: qunit, igrid
     double precision, intent(in), dimension(ixMlo^D-1:ixMhi^D,ndim) :: xC
@@ -298,6 +299,7 @@ contains
     use mod_usr_methods, only: usr_add_aux_names
     use mod_global_parameters
     use mod_geometry
+    use mod_comm_lib, only: mpistop
 
     character(len=name_len)   :: wnamei(1:nw+nwauxio),xandwnamei(1:ndim+nw+nwauxio)
     character(len=1024) :: outfilehead

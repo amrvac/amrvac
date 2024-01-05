@@ -22,6 +22,7 @@ contains
     use mod_physics, only: phys_req_diagonal, phys_global_source_after, phys_to_primitive
     use mod_supertimestepping, only: is_sts_initialized, sts_add_source,sourcetype_sts,&
                                       sourcetype_sts_prior, sourcetype_sts_after, sourcetype_sts_split   
+    use mod_comm_lib, only: mpistop
 
     logical, intent(in) :: prior
     ! This variable, later allocated on the thread stack, causes segmentation fault

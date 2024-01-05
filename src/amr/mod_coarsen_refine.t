@@ -25,6 +25,13 @@ contains
     use mod_amr_fct
     use mod_space_filling_curve
     use mod_load_balance
+    use mod_functions_connectivity, only: get_level_range,getigrids,build_connectivity
+    use mod_amr_solution_node, only: getnode, putnode
+    use mod_functions_forest, only: coarsen_tree_leaf,refine_tree_leaf
+    use mod_selectgrids, only: selectgrids
+    use mod_refine, only: refine_grids
+
+
     {^NOONED
     use mod_multigrid_coupling
     }
@@ -34,7 +41,6 @@ contains
     integer :: n_coarsen, n_refine
     type(tree_node_ptr) :: tree, sibling
     logical             :: active
-    integer, external :: getnode
 
     call proper_nesting
 
@@ -184,6 +190,7 @@ contains
   subroutine proper_nesting
     use mod_forest
     use mod_global_parameters
+    use mod_amr_neighbors, only: find_neighbor
 
     logical, dimension(:,:), allocatable :: refine2
     integer :: iigrid, igrid, level, ic^D, inp^D, i^D, my_neighbor_type,ipe
@@ -318,6 +325,9 @@ contains
   !> coarsen sibling blocks into one block
   subroutine coarsen_grid_siblings(igrid,ipe,child_igrid,child_ipe,active)
     use mod_global_parameters
+    use mod_coarsen, only: coarsen_grid
+    use mod_initialize_amr, only: initial_condition
+    use mod_amr_solution_node, only: alloc_node
 
     integer, intent(in) :: igrid, ipe
     integer, dimension(2^D&), intent(in) :: child_igrid, child_ipe

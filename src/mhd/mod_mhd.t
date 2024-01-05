@@ -1,5 +1,6 @@
 module mod_mhd
   use mod_mhd_phys
+  use mod_functions_bfield, only: mag
   use mod_mhd_hllc
   use mod_mhd_roe
 

@@ -15,6 +15,7 @@ deps=$(echo "$deps" | sed 's/use mod_physicaldata//')
 deps=$(echo "$deps" | sed 's/use mod_connectivity//')
 deps=$(echo "$deps" | sed 's/use mod_constants//')
 deps=$(echo "$deps" | sed 's/use mod_variables//')
+deps=$(echo "$deps" | sed 's/use mod_basic_types//')
 
 # Remove old_physics entries
 deps=$(echo "$deps" | sed 's/^.*old_physics[/].*$//')

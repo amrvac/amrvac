@@ -42,6 +42,7 @@ module mod_limiter
 contains
 
   integer function limiter_type(namelim)
+    use mod_comm_lib, only: mpistop
     character(len=*), intent(in) :: namelim
 
     select case (namelim)
@@ -127,6 +128,7 @@ contains
   subroutine dwlimiter2(dwC,ixI^L,ixC^L,idims,typelim,ldw,rdw,a2max)
 
     use mod_global_parameters
+    use mod_comm_lib, only: mpistop
 
     integer, intent(in) :: ixI^L, ixC^L, idims
     double precision, intent(in) :: dwC(ixI^S)

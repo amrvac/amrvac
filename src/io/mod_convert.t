@@ -36,37 +36,12 @@ contains
 
 
 
-   function get_names_from_string(aux_variable_names,nwc) result(names) 
-    use mod_global_parameters
-    character(len=*),intent(in):: aux_variable_names
-    integer, intent(in) :: nwc
-    character(len=name_len)   :: names(1:nwc)
-
-    integer::  space_position,iw
-    character(len=name_len)::  wname
-    character(len=std_len)::  scanstring
-
-
-    ! copied from subroutine getheadernames in calculate_xw
-    scanstring=TRIM(adjustl(aux_variable_names))
-    space_position=index(scanstring,' ')
-    do iw=1,nwc
-       do while (space_position==1)
-         scanstring=scanstring(2:)
-         space_position=index(scanstring,' ')
-       enddo
-       wname=scanstring(:space_position-1)
-       scanstring=scanstring(space_position+1:)
-       space_position=index(scanstring,' ')
-
-       names(iw)=TRIM(adjustl(wname))
-    enddo
-  end function get_names_from_string  
 
 
   ! shortcut
   subroutine add_convert_method2(phys_convert_vars, nwc, aux_variable_names, file_suffix)
     use mod_global_parameters
+    use mod_input_output_helper, only: get_names_from_string
     integer, intent(in) :: nwc
     character(len=*),intent(in):: aux_variable_names
     character(len=*), intent(in) :: file_suffix
@@ -86,6 +61,7 @@ contains
   end subroutine add_convert_method2
 
   subroutine add_convert_method(phys_convert_vars, nwc, dataset_names, file_suffix)
+    use mod_comm_lib, only: mpistop
     integer, intent(in) :: nwc
     character(len=*), intent(in) :: dataset_names(:)
     character(len=*), intent(in) :: file_suffix
@@ -131,7 +107,8 @@ contains
 
     use mod_forest
     use mod_global_parameters
-    use mod_input_output, only: count_ix, create_output_file, snapshot_write_header1, block_shape_io
+    use mod_input_output_helper, only: count_ix, create_output_file, snapshot_write_header1, block_shape_io
+    use mod_functions_forest, only: write_forest
 
     integer                       :: file_handle, igrid, Morton_no, iwrite
     integer                       :: ipe, ix_buffer(2*ndim+1), n_values

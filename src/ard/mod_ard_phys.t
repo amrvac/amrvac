@@ -19,6 +19,7 @@
 !>
 module mod_ard_phys
   use mod_multigrid_coupling
+  use mod_comm_lib, only: mpistop
 
   implicit none
   private

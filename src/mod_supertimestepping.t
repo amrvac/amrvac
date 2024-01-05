@@ -638,6 +638,7 @@ contains
     use mod_ghostcells_update
     use mod_fix_conserve
     use mod_physics
+    use mod_amr_solution_node, only: alloc_state
 
     double precision, intent(in) :: my_dt
     double precision :: dtj

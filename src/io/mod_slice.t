@@ -1,6 +1,7 @@
 !> Writes D-1 slice, can do so in various formats, depending on slice_type
 module mod_slice
   use mod_basic_types
+  use mod_comm_lib, only: mpistop
   implicit none
 
   !> Maximum number of slices

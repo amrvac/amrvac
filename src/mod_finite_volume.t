@@ -20,6 +20,7 @@ contains
     use mod_physics
     use mod_global_parameters
     use mod_source, only: addsource2
+    use mod_comm_lib, only: mpistop
 
     integer, intent(in) :: ixI^L, ixO^L, idims^LIM
     double precision, intent(in) :: qdt, dtfactor,qtC, qt, dxs(ndim), x(ixI^S,1:ndim)
@@ -118,6 +119,7 @@ contains
     use mod_tvd, only:tvdlimit2
     use mod_source, only: addsource2
     use mod_usr_methods
+    use mod_comm_lib, only: mpistop
 
     integer, intent(in)                                   :: method
     double precision, intent(in)                          :: qdt, dtfactor, qtC, qt, dxs(ndim)
@@ -1075,6 +1077,7 @@ contains
     use mod_physics
     use mod_global_parameters
     use mod_limiter
+    use mod_comm_lib, only: mpistop
 
     integer, intent(in) :: ixI^L, ixL^L, ixR^L, idims
     double precision, intent(in) :: dxdim
