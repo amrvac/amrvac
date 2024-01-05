@@ -459,7 +459,6 @@ contains
     ! fill in tc_fluid fields from namelist
     subroutine tc_params_read_hd(fl)
       use mod_global_parameters, only: unitpar,par_files
-      use mod_global_parameters, only: unitpar
       type(tc_fluid), intent(inout) :: fl
       integer                      :: n
       logical :: tc_saturate=.false.
