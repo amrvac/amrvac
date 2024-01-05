@@ -260,17 +260,6 @@ mod_magnetofriction.o: mod_physics.mod
 mod_mf.o: mod_amrvac.mod
 mod_mf.o: mod_functions_bfield.mod
 mod_mf.o: mod_mf_phys.mod
-mod_mf2.o: mod_amrvac.mod
-mod_mf2.o: mod_functions_bfield.mod
-mod_mf2.o: mod_mf2_phys.mod
-mod_mf2_phys.o: mod_comm_lib.mod
-mod_mf2_phys.o: mod_constrained_transport.mod
-mod_mf2_phys.o: mod_convert.mod
-mod_mf2_phys.o: mod_functions_bfield.mod
-mod_mf2_phys.o: mod_geometry.mod
-mod_mf2_phys.o: mod_multigrid_coupling.mod
-mod_mf2_phys.o: mod_particles.mod
-mod_mf2_phys.o: mod_physics.mod
 mod_mf_phys.o: mod_comm_lib.mod
 mod_mf_phys.o: mod_constrained_transport.mod
 mod_mf_phys.o: mod_functions_bfield.mod
@@ -465,5 +454,3 @@ mod_twofl_roe.o: mod_tvd.mod
 mod_twofl_roe.o: mod_twofl_phys.mod
 mod_viscosity.o: mod_geometry.mod
 mod_weno.o: mod_physics.mod
-pointgrav.o: mod_geometry.mod
-raytracing.o: mod_raytracing.mod
