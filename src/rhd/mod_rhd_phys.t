@@ -13,6 +13,7 @@ module mod_rhd_phys
   use mod_radiative_cooling, only: rc_fluid
   use mod_thermal_emission, only: te_fluid
   use mod_physics
+  use mod_comm_lib, only: mpistop
   implicit none
   private
 

@@ -8,6 +8,7 @@
 !>   PI_i,j = - (dv_j/dx_i + dv_i/dx_j) + (2/3)*Sum_k dv_k/dx_k
 !>   where vc_mu is the dynamic viscosity coefficient (g cm^-1 s^-1).
 module mod_viscosity
+  use mod_comm_lib, only: mpistop
   implicit none
 
   !> Viscosity coefficient

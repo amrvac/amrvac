@@ -2,6 +2,7 @@
 module mod_srhd_phys
   use mod_physics
   use mod_constants
+  use mod_comm_lib, only: mpistop
   implicit none
   private
 

@@ -40,6 +40,7 @@
 module mod_thermal_conduction
   use mod_global_parameters, only: std_len
   use mod_geometry
+  use mod_comm_lib, only: mpistop
   implicit none
 
     !> The adiabatic index

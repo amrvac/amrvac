@@ -4,6 +4,7 @@ module mod_particle_base
   use mod_physics
   use mod_random
   use mod_constants
+  use mod_comm_lib, only: mpistop
 
   !> String describing the particle physics type
   character(len=name_len) :: physics_type_particles = ""

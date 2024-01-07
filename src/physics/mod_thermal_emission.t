@@ -11,6 +11,7 @@ module mod_thermal_emission
   use mod_global_parameters
   use mod_geometry
   use mod_physics
+  use mod_comm_lib, only: mpistop
 
   implicit none
 

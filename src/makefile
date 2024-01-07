@@ -135,9 +135,11 @@ mod_convert_files.o: mod_convert.mod
 mod_convert_files.o: mod_ghostcells_update.mod
 mod_convert_files.o: mod_physics.mod
 mod_convert_files.o: mod_thermal_emission.mod
+mod_dipole.o: mod_comm_lib.mod
 mod_dt.o: mod_comm_lib.mod
 mod_dt.o: mod_physics.mod
 mod_dt.o: mod_supertimestepping.mod
+mod_dust.o: mod_comm_lib.mod
 mod_dust.o: mod_geometry.mod
 mod_dust.o: mod_physics.mod
 mod_errest.o: mod_comm_lib.mod
@@ -183,6 +185,7 @@ mod_hd_hllc.o: mod_dust.mod
 mod_hd_hllc.o: mod_hd_phys.mod
 mod_hd_hllc.o: mod_physics_hllc.mod
 mod_hd_phys.o: mod_cak_force.mod
+mod_hd_phys.o: mod_comm_lib.mod
 mod_hd_phys.o: mod_dust.mod
 mod_hd_phys.o: mod_fix_conserve.mod
 mod_hd_phys.o: mod_geometry.mod
@@ -311,9 +314,11 @@ mod_nonlinear_phys.o: mod_physics.mod
 mod_nonlinear_roe.o: mod_nonlinear_phys.mod
 mod_nonlinear_roe.o: mod_physics_roe.mod
 mod_odeint.o: mod_comm_lib.mod
+mod_oneblock.o: mod_comm_lib.mod
 mod_particle_advect.o: mod_geometry.mod
 mod_particle_advect.o: mod_odeint.mod
 mod_particle_advect.o: mod_particle_base.mod
+mod_particle_base.o: mod_comm_lib.mod
 mod_particle_base.o: mod_geometry.mod
 mod_particle_base.o: mod_physics.mod
 mod_particle_base.o: mod_random.mod
@@ -332,14 +337,18 @@ mod_particles.o: mod_particle_gca.mod
 mod_particles.o: mod_particle_lorentz.mod
 mod_particles.o: mod_particle_sample.mod
 mod_particles.o: mod_timing.mod
+mod_pfss.o: mod_comm_lib.mod
 mod_physics.o: mod_comm_lib.mod
 mod_physics.o: mod_physics_hllc.mod
 mod_physics.o: mod_physics_roe.mod
 mod_physics_roe.o: mod_comm_lib.mod
+mod_point_searching.o: mod_comm_lib.mod
 mod_point_searching.o: mod_particle_base.mod
 mod_point_searching.o: mod_physics.mod
 mod_ppm.o: mod_physics.mod
+mod_radiative_cooling.o: mod_comm_lib.mod
 mod_radiative_cooling.o: mod_physics.mod
+mod_random_heating.o: mod_comm_lib.mod
 mod_rbsl.o: mod_geometry.mod
 mod_rd.o: mod_amrvac.mod
 mod_rd.o: mod_rd_phys.mod
@@ -359,6 +368,7 @@ mod_rhd_hllc.o: mod_dust.mod
 mod_rhd_hllc.o: mod_physics_hllc.mod
 mod_rhd_hllc.o: mod_rhd_phys.mod
 mod_rhd_phys.o: mod_afld.mod
+mod_rhd_phys.o: mod_comm_lib.mod
 mod_rhd_phys.o: mod_dust.mod
 mod_rhd_phys.o: mod_fix_conserve.mod
 mod_rhd_phys.o: mod_fld.mod
@@ -386,10 +396,12 @@ mod_rho_phys.o: mod_particles.mod
 mod_rho_phys.o: mod_physics.mod
 mod_rho_roe.o: mod_physics_roe.mod
 mod_rho_roe.o: mod_rho_phys.mod
+mod_rotating_frame.o: mod_comm_lib.mod
 mod_rotating_frame.o: mod_geometry.mod
 mod_rotating_frame.o: mod_physics.mod
 mod_slice.o: mod_calculate_xw.mod
 mod_slice.o: mod_comm_lib.mod
+mod_solar_atmosphere.o: mod_comm_lib.mod
 mod_solar_atmosphere.o: mod_interpolation.mod
 mod_solar_atmosphere.o: mod_ionization_degree.mod
 mod_solar_atmosphere.o: mod_physics.mod
@@ -400,6 +412,7 @@ mod_source.o: mod_supertimestepping.mod
 mod_space_filling_curve.o: mod_comm_lib.mod
 mod_srhd.o: mod_amrvac.mod
 mod_srhd.o: mod_srhd_phys.mod
+mod_srhd_phys.o: mod_comm_lib.mod
 mod_srhd_phys.o: mod_con2prim_vars.mod
 mod_srhd_phys.o: mod_geometry.mod
 mod_srhd_phys.o: mod_particles.mod
@@ -411,8 +424,10 @@ mod_supertimestepping.o: mod_geometry.mod
 mod_supertimestepping.o: mod_ghostcells_update.mod
 mod_supertimestepping.o: mod_physics.mod
 mod_supertimestepping.o: mod_small_values.mod
+mod_thermal_conduction.o: mod_comm_lib.mod
 mod_thermal_conduction.o: mod_fix_conserve.mod
 mod_thermal_conduction.o: mod_geometry.mod
+mod_thermal_emission.o: mod_comm_lib.mod
 mod_thermal_emission.o: mod_geometry.mod
 mod_thermal_emission.o: mod_physics.mod
 mod_trac.o: mod_functions_bfield.mod
@@ -433,6 +448,7 @@ mod_twofl_hllc.o: mod_functions_bfield.mod
 mod_twofl_hllc.o: mod_physics.mod
 mod_twofl_hllc.o: mod_physics_hllc.mod
 mod_twofl_hllc.o: mod_twofl_phys.mod
+mod_twofl_phys.o: mod_comm_lib.mod
 mod_twofl_phys.o: mod_constrained_transport.mod
 mod_twofl_phys.o: mod_convert.mod
 mod_twofl_phys.o: mod_fix_conserve.mod
@@ -452,5 +468,6 @@ mod_twofl_roe.o: mod_functions_bfield.mod
 mod_twofl_roe.o: mod_physics_roe.mod
 mod_twofl_roe.o: mod_tvd.mod
 mod_twofl_roe.o: mod_twofl_phys.mod
+mod_viscosity.o: mod_comm_lib.mod
 mod_viscosity.o: mod_geometry.mod
 mod_weno.o: mod_physics.mod

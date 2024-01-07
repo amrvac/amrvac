@@ -43,6 +43,7 @@ contains
     use mod_usr_methods
     use mod_geometry
     use mod_physics, only: phys_energy, phys_internal_e
+    use mod_comm_lib, only: mpistop
     
     integer, intent(in)             :: ixI^L, ixO^L
     double precision, intent(in)    :: qdt, dtfactor,x(ixI^S,1:ndim)

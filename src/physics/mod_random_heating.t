@@ -1,5 +1,6 @@
-module mod_randomheating
+module mod_random_heating
   use mod_global_parameters
+  use mod_comm_lib, only: mpistop
   double precision, allocatable :: va1(:),ta1(:),tb1(:),va2(:),ta2(:),tb2(:)
   !> This module is for imposing randomized heating at x-axis for 2.5D simulation, for details please see Zhou et al. (2020, Nature Astronomy,4,994) and
   !> Li et al. (2022,ApJ,926,216). 
@@ -147,7 +148,6 @@ contains
     end select
   
   end subroutine getlQgrid
-
 
   subroutine generateTV(vtim,vlim,periods,variation,mnx,num,si)
     integer, intent(in)          :: vtim,vlim,mnx,num
@@ -309,5 +309,4 @@ contains
 
   end subroutine randomV
 
-
-end module mod_randomheating
+end module mod_random_heating
