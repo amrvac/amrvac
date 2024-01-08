@@ -6,8 +6,7 @@ mod_basic_types.t
 FOBJECTS = mod_advance.t mod_dt.t 		\
 mod_finite_volume.t mod_tvd.t mod_finite_difference.t \
 mod_functions_connectivity.t mod_boundary_conditions.t mod_comm_lib.t 	\
-mod_b0.t  mod_geometry.t	\
-mod_ghostcells_update.t mod_small_values.t  \
+mod_geometry.t mod_ghostcells_update.t mod_small_values.t  \
 mod_fix_conserve.t mod_source.t mod_initialize.t  \
 mod_amrvac.t mod_bc_data.t mod_lookup_table.t    \
 mod_constrained_transport.t mod_multigrid_coupling.t \
