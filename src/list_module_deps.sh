@@ -7,16 +7,6 @@ export LC_ALL=C
 # - The 'sort' is to ensure the order is identical on different systems
 deps="$(grep -r -e "^\s*use mod_" --include \*.t . | sort)"
 
-# Remove the INCLUDES (are compiled first)
-deps=$(echo "$deps" | sed 's/use mod_global_parameters//')
-deps=$(echo "$deps" | sed 's/use mod_usr_methods//')
-deps=$(echo "$deps" | sed 's/use mod_forest//')
-deps=$(echo "$deps" | sed 's/use mod_physicaldata//')
-deps=$(echo "$deps" | sed 's/use mod_connectivity//')
-deps=$(echo "$deps" | sed 's/use mod_constants//')
-deps=$(echo "$deps" | sed 's/use mod_variables//')
-deps=$(echo "$deps" | sed 's/use mod_basic_types//')
-
 # Remove old_physics entries
 deps=$(echo "$deps" | sed 's/^.*old_physics[/].*$//')
 

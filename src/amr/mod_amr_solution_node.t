@@ -658,7 +658,7 @@ contains
   
   !> allocate memory to one-level coarser physical state of igrid node
   subroutine alloc_state_coarse(igrid, s, ixG^L, ixGext^L)
-    use mod_global_parameters 
+    use mod_global_parameters
     type(state) :: s
     integer, intent(in) :: igrid, ixG^L, ixGext^L
     integer             :: ixGs^L

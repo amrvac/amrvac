@@ -119,7 +119,7 @@ module mod_ghostcells_update
 contains
 
   subroutine init_bc()
-    use mod_global_parameters 
+    use mod_global_parameters
     use mod_physics, only: phys_req_diagonal, physics_type
     use mod_comm_lib, only: mpistop
 
@@ -362,7 +362,7 @@ contains
   end subroutine init_bc
 
   subroutine create_bc_mpi_datatype(nwstart,nwbc) 
-    use mod_global_parameters 
+    use mod_global_parameters
 
     integer, intent(in) :: nwstart, nwbc
     integer :: i^D, ic^D, inc^D, iib^D
@@ -386,7 +386,7 @@ contains
   end subroutine create_bc_mpi_datatype
 
   subroutine get_bc_comm_type(comm_type,ix^L,ixG^L,nwstart,nwbc)
-    use mod_global_parameters 
+    use mod_global_parameters
   
     integer, intent(inout) :: comm_type
     integer, intent(in) :: ix^L, ixG^L, nwstart, nwbc
@@ -407,7 +407,7 @@ contains
   end subroutine get_bc_comm_type
 
   subroutine put_bc_comm_types()
-    use mod_global_parameters 
+    use mod_global_parameters
  
     integer :: i^D, ic^D, inc^D, iib^D
 
