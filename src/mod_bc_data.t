@@ -30,6 +30,7 @@ module mod_bc_data
   !> data file name
   character(len=std_len), public, protected :: boundary_data_file_name
   logical, public, protected :: interp_phy_first_row=.true.
+  logical, public, protected :: bc_phy_first_row=.false.
   logical, public, protected :: boundary_data_primitive=.false.
 
   public :: bc_data_init
@@ -103,7 +104,8 @@ contains
     character(len=*), intent(in) :: files(:)
     integer                      :: n
 
-    namelist /bd_list/ boundary_data_file_name, interp_phy_first_row, boundary_data_primitive
+    namelist /bd_list/ boundary_data_file_name, interp_phy_first_row, bc_phy_first_row,&
+                       boundary_data_primitive
 
     do n = 1, size(files)
        open(unitpar, file=trim(files(n)), status="old")
@@ -149,6 +151,9 @@ contains
     double precision                :: tmp(ixO^S)
     integer                         :: i, ix, iw, n_bc
 
+    integer :: ixOO^L
+
+    ixOO^L=ixO^L;
 
     {^IFTWOD
     select case (iB)
@@ -162,7 +167,29 @@ contains
             if(boundary_data_primitive) then
               call phys_to_primitive(ixI^L,ix,ixOmin2,ix,ixOmax2,w,x)
             endif   
-       endif   
+       endif  
+      ! the reason for this is that not all bc for all the vars 
+      ! might be set with bc_data  
+      if(bc_phy_first_row)then 
+        if (iB == 1) then
+          ixOOmax1=ixOOmax1+1 
+        else
+          ixOOmin1=ixOOmin1-1 
+        endif
+        if(boundary_data_primitive) then
+          if (iB == 1) then
+            ixOOmin1=ixOOmax1 
+          else
+            ixOOmax1=ixOOmin1
+          endif
+          call phys_to_primitive(ixI^L,ixOO^L,w,x)
+          if (iB == 1) then
+            ixOOmin1=ixOmin1 ! to be used later in to_conserved
+          else
+            ixOOmax1=ixOmax1
+          endif
+        endif
+      endif
        do iw = 1, nwfluxbc
           n_bc = bc_data_ix(iw, iB)
           if (n_bc == -1) cycle
@@ -172,13 +199,13 @@ contains
           if(interp_phy_first_row) then
             ! Approximate boundary value by linear interpolation to first ghost
             ! cell, rest of ghost cells contains the same value
-            do i = 0, ixOmax1-ixOmin1
-               w(ixOmin1+i, ixOmin2:ixOmax2, iw) = &
+            do i = 0, ixOOmax1-ixOOmin1
+               w(ixOOmin1+i, ixOmin2:ixOmax2, iw) = &
                     2 * tmp(ixOmin1, ixOmin2:ixOmax2) - &
                     w(ix, ixOmin2:ixOmax2, iw)
             end do
           else
-            do i = ixOmin1, ixOmax1
+            do i = ixOOmin1, ixOOmax1
                w(i, ixOmin2:ixOmax2, iw) = &
                    tmp(ixOmin1, ixOmin2:ixOmax2)
             end do
@@ -201,6 +228,26 @@ contains
               call phys_to_primitive(ixI^L,ixOmin1,ix,ixOmax1,ix,w,x)
             endif   
        endif   
+       if(bc_phy_first_row)then 
+         if (iB == 3) then
+           ixOOmax2=ixOOmax2+1 
+         else
+           ixOOmin2=ixOOmin2-1 
+         endif
+         if(boundary_data_primitive) then
+           if (iB == 3) then
+             ixOOmin2=ixOOmax2 
+           else
+             ixOOmax2=ixOOmin2
+           endif
+           call phys_to_primitive(ixI^L,ixOO^L,w,x)
+           if (iB == 3) then
+             ixOOmin2=ixOmin2 ! to be used later in to_conserved
+           else
+             ixOOmax2=ixOmax2
+           endif
+         endif
+       endif
        do iw = 1, nwfluxbc
           n_bc = bc_data_ix(iw, iB)
           if (n_bc == -1) cycle
@@ -212,13 +259,13 @@ contains
   
             ! Approximate boundary value by linear interpolation to first ghost
             ! cell, rest of ghost cells contains the same value
-            do i = 0, ixOmax2-ixOmin2
-               w(ixOmin1:ixOmax1, ixOmin2+i, iw) = &
+            do i = 0, ixOOmax2-ixOOmin2
+               w(ixOmin1:ixOmax1, ixOOmin2+i, iw) = &
                     2 * tmp(ixOmin1:ixOmax1, ixOmin2) - &
                     w(ixOmin1:ixOmax1, ix, iw)
             end do
           else
-            do i = ixOmin2, ixOmax2
+            do i = ixOOmin2, ixOOmax2
              w(ixOmin1:ixOmax1, i, iw) = &
                   tmp(ixOmin1:ixOmax1, ixOmin2)
             end do
@@ -248,6 +295,26 @@ contains
               call phys_to_primitive(ixI^L,ix,ixOmin2,ixOmin3,ix,ixOmax2,ixOmax3,w,x)
             endif   
        endif 
+       if(bc_phy_first_row)then 
+         if (iB == 1) then
+           ixOOmax1=ixOOmax1+1 
+         else
+           ixOOmin1=ixOOmin1-1 
+         endif
+         if(boundary_data_primitive) then
+           if (iB == 1) then
+             ixOOmin1=ixOOmax1 
+           else
+             ixOOmax1=ixOOmin1
+           endif
+           call phys_to_primitive(ixI^L,ixOO^L,w,x)
+           if (iB == 1) then
+             ixOOmin1=ixOmin1 ! to be used later in to_conserved
+           else
+             ixOOmax1=ixOmax1
+           endif
+         endif
+       endif
        do iw = 1, nwfluxbc
           n_bc = bc_data_ix(iw, iB)
           if (n_bc == -1) cycle
@@ -260,13 +327,13 @@ contains
   
             ! Approximate boundary value by linear interpolation to first ghost
             ! cell, rest of ghost cells contains the same value
-            do i = 0, ixOmax1-ixOmin1
-               w(ixOmin1+i, ixOmin2:ixOmax2, ixOmin3:ixOmax3, iw) = &
+            do i = 0, ixOOmax1-ixOOmin1
+               w(ixOOmin1+i, ixOmin2:ixOmax2, ixOmin3:ixOmax3, iw) = &
                     2 * tmp(ixOmin1, ixOmin2:ixOmax2, ixOmin3:ixOmax3) - &
                     w(ix, ixOmin2:ixOmax2, ixOmin3:ixOmax3, iw)
             end do
           else
-            do i = ixOmin1,ixOmax1
+            do i = ixOOmin1,ixOOmax1
                w(i, ixOmin2:ixOmax2, ixOmin3:ixOmax3, iw) = &
                      tmp(ixOmin1, ixOmin2:ixOmax2, ixOmin3:ixOmax3) 
             end do
@@ -279,7 +346,7 @@ contains
             endif  
        endif 
     case (3, 4)
-       if(interp_phy_first_row) then
+        if(interp_phy_first_row) then
             if (iB == 3) then
                ix = ixOmax2+1
             else
@@ -288,8 +355,27 @@ contains
             if(boundary_data_primitive) then
               call phys_to_primitive(ixI^L,ixOmin1,ix,ixOmin3,ixOmax1,ix,ixOmax3,w,x)
             endif   
-
-       endif 
+        endif 
+        if(bc_phy_first_row)then 
+          if (iB == 3) then
+            ixOOmax2=ixOOmax2+1 
+          else
+            ixOOmin2=ixOOmin2-1 
+          endif
+          if(boundary_data_primitive) then
+            if (iB == 3) then
+              ixOOmin2=ixOOmax2 
+            else
+              ixOOmax2=ixOOmin2
+            endif
+            call phys_to_primitive(ixI^L,ixOO^L,w,x)
+            if (iB == 3) then
+              ixOOmin2=ixOmin2 ! to be used later in to_conserved
+            else
+              ixOOmax2=ixOmax2
+            endif
+          endif
+       endif
        do iw = 1, nwfluxbc
           n_bc = bc_data_ix(iw, iB)
           if (n_bc == -1) cycle
@@ -302,13 +388,13 @@ contains
   
             ! Approximate boundary value by linear interpolation to first ghost
             ! cell, rest of ghost cells contains the same value
-            do i = 0, ixOmax2-ixOmin2
-               w(ixOmin1:ixOmax1, ixOmin2+i, ixOmin3:ixOmax3, iw) = &
+            do i = 0, ixOOmax2-ixOOmin2
+               w(ixOmin1:ixOmax1, ixOOmin2+i, ixOmin3:ixOmax3, iw) = &
                     2 * tmp(ixOmin1:ixOmax1, ixOmin2, ixOmin3:ixOmax3) - &
                     w(ixOmin1:ixOmax1, ix, ixOmin3:ixOmax3, iw)
             end do
           else
-            do i = ixOmin2,ixOmax2
+            do i = ixOOmin2,ixOOmax2
                w(ixOmin1:ixOmax1, i, ixOmin3:ixOmax3, iw) = &
                     tmp(ixOmin1:ixOmax1, ixOmin2, ixOmin3:ixOmax3)
             end do
@@ -330,6 +416,26 @@ contains
               call phys_to_primitive(ixI^L,ixOmin1,ixOmax1,ixOmin2,ixOmax2,ix,ix,w,x)
             endif   
        endif 
+       if(bc_phy_first_row)then 
+         if (iB == 5) then
+           ixOOmax3=ixOOmax3+1 
+         else
+           ixOOmin3=ixOOmin3-1 
+         endif
+         if(boundary_data_primitive) then
+           if (iB == 5) then
+             ixOOmin3=ixOOmax3 
+           else
+             ixOOmax3=ixOOmin3
+           endif
+           call phys_to_primitive(ixI^L,ixOO^L,w,x)
+           if (iB == 5) then
+             ixOOmin3=ixOmin3 ! to be used later in to_conserved
+           else
+             ixOOmax3=ixOmax3
+           endif
+         endif
+       endif
        do iw = 1, nwfluxbc
           n_bc = bc_data_ix(iw, iB)
           if (n_bc == -1) cycle
@@ -342,13 +448,13 @@ contains
   
             ! Approximate boundary value by linear interpolation to first ghost
             ! cell, rest of ghost cells contains the same value
-            do i = 0, ixOmax3-ixOmin3
-               w(ixOmin1:ixOmax1, ixOmin2:ixOmax2, ixOmin3+i, iw) = &
+            do i = 0, ixOOmax3-ixOOmin3
+               w(ixOmin1:ixOmax1, ixOmin2:ixOmax2, ixOOmin3+i, iw) = &
                     2 * tmp(ixOmin1:ixOmax1, ixOmin2:ixOmax2, ixOmin3) - &
                     w(ixOmin1:ixOmax1, ixOmin2:ixOmax2, ix, iw)
             end do
           else
-            do i = ixOmin3,ixOmax3
+            do i = ixOOmin3,ixOOmax3
                w(ixOmin1:ixOmax1, ixOmin2:ixOmax2, i, iw) = &
                     tmp(ixOmin1:ixOmax1, ixOmin2:ixOmax2, ixOmin3)
             end do
@@ -365,7 +471,7 @@ contains
     }
 
     if(boundary_data_primitive) then
-      call phys_to_conserved(ixI^L,ixO^L,w,x)
+      call phys_to_conserved(ixI^L,ixOO^L,w,x)
     endif
 
   end subroutine bc_data_set
