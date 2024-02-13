@@ -110,17 +110,18 @@ contains
 
   subroutine initglobaldata_usr
     use mod_global_parameters
-    use mod_opal_opacity, only: init_opal
-    use mod_cak_opacity, only: init_cak
+    use mod_opal_opacity, only: init_opal_table
+    use mod_cak_opacity, only: init_cak_table
 
     use mod_fld
 
     integer :: i
 
     !> Initialise Opal
-    call init_opal(He_abundance,'Y02800')
+    call init_opal_table('Y02400')
 
-    call init_cak('Y09800')
+    !> Initialise CAK tables
+    call init_cak_table('Y02400')
 
     !> read usr par
     call params_read(par_files)
@@ -164,7 +165,7 @@ contains
      print*, 'unit_density', unit_density
      print*, 'unit_time', unit_time
      print*, 'unit_pressure', unit_pressure
-     print*, 'unit_length', unit_length 
+     print*, 'unit_length', unit_length
    endif
 
     sum_time = 0.d0

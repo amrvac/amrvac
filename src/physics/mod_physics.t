@@ -58,6 +58,7 @@ module mod_physics
   procedure(sub_get_cmax), pointer        :: phys_get_cmax               => null()
   procedure(sub_get_a2max), pointer       :: phys_get_a2max              => null()
   procedure(sub_get_tcutoff), pointer     :: phys_get_tcutoff            => null()
+  procedure(sub_trac_after_setdt), pointer:: phys_trac_after_setdt       => null()
   procedure(sub_get_H_speed), pointer     :: phys_get_H_speed            => null()
   procedure(sub_get_cbounds), pointer     :: phys_get_cbounds            => null()
   procedure(sub_get_flux), pointer        :: phys_get_flux               => null()
@@ -86,6 +87,8 @@ module mod_physics
   procedure(sub_check_params), pointer    :: phys_te_images              => null()
   ! to update temperature variable with partial ionization
   procedure(sub_update_temperature), pointer :: phys_update_temperature  => null()
+  procedure(sub_get_auxiliary), pointer         :: phys_get_auxiliary         => null()
+  procedure(sub_get_auxiliary_prim), pointer    :: phys_get_auxiliary_prim    => null()
 
   abstract interface
 
@@ -141,6 +144,10 @@ module mod_physics
        double precision, intent(out) :: tco_local, Tmax_local
      end subroutine sub_get_tcutoff
 
+     subroutine sub_trac_after_setdt(trac_alfa,tco,T_peak,T_bott)
+       double precision, intent(in)    :: trac_alfa,tco,T_peak,T_bott
+     end subroutine sub_trac_after_setdt
+
      subroutine sub_get_v(w,x,ixI^L,ixO^L,v)
        use mod_global_parameters
 
@@ -179,18 +186,18 @@ module mod_physics
        double precision, intent(out)   :: f(ixI^S, nwflux)
      end subroutine sub_get_flux
 
-     subroutine sub_add_source_geom(qdt, ixI^L, ixO^L, wCT, w, x)
+     subroutine sub_add_source_geom(qdt, dtfactor, ixI^L, ixO^L, wCT, w, x)
        use mod_global_parameters
        integer, intent(in)             :: ixI^L, ixO^L
-       double precision, intent(in)    :: qdt, x(ixI^S, 1:^ND)
+       double precision, intent(in)    :: qdt, dtfactor, x(ixI^S, 1:^ND)
        double precision, intent(inout) :: wCT(ixI^S, 1:nw), w(ixI^S, 1:nw)
      end subroutine sub_add_source_geom
 
-     subroutine sub_add_source(qdt, ixI^L, ixO^L, wCT, wCTprim, w, x, &
+     subroutine sub_add_source(qdt, dtfactor, ixI^L, ixO^L, wCT, wCTprim, w, x, &
           qsourcesplit, active)
        use mod_global_parameters
        integer, intent(in)             :: ixI^L, ixO^L
-       double precision, intent(in)    :: qdt
+       double precision, intent(in)    :: qdt, dtfactor
        double precision, intent(in)    :: wCT(ixI^S, 1:nw), wCTprim(ixI^S,1:nw), x(ixI^S, 1:ndim)
        double precision, intent(inout) :: w(ixI^S, 1:nw)
        logical, intent(in)             :: qsourcesplit
@@ -249,6 +256,19 @@ module mod_physics
        double precision, intent(in) :: x(ixI^S,1:ndim)
        double precision, intent(out):: pth(ixI^S)
      end subroutine sub_get_pthermal
+
+     subroutine sub_get_auxiliary(ixI^L,ixO^L,w,x)
+       use mod_global_parameters
+       integer, intent(in)          :: ixI^L, ixO^L
+       double precision, intent(inout) :: w(ixI^S,nw)
+       double precision, intent(in) :: x(ixI^S,1:ndim)
+     end subroutine sub_get_auxiliary
+
+     subroutine sub_get_auxiliary_prim(ixI^L,ixO^L,w)
+       use mod_global_parameters
+       integer, intent(in)          :: ixI^L, ixO^L
+       double precision, intent(inout) :: w(ixI^S,nw)
+     end subroutine sub_get_auxiliary_prim
 
      subroutine sub_get_tgas(w,x,ixI^L,ixO^L,tgas)
        use mod_global_parameters
@@ -346,6 +366,7 @@ contains
 
     use mod_physics_hllc, only: phys_hllc_check
     use mod_physics_roe, only: phys_roe_check
+    use mod_comm_lib, only: mpistop
 
     if (physics_type == "") call mpistop("Error: no physics module loaded")
 
@@ -394,6 +415,10 @@ contains
 
     if (.not. associated(phys_get_pthermal)) &
          phys_get_pthermal => dummy_get_pthermal
+    if (.not. associated(phys_get_auxiliary)) &
+         phys_get_auxiliary => dummy_get_auxiliary
+    if (.not. associated(phys_get_auxiliary_prim)) &
+         phys_get_auxiliary_prim => dummy_get_auxiliary_prim
 
     if (.not. associated(phys_boundary_adjust)) &
          phys_boundary_adjust => dummy_boundary_adjust
@@ -446,24 +471,25 @@ contains
 
   subroutine dummy_get_a2max(w, x, ixI^L, ixO^L, a2max)
        use mod_global_parameters
+       use mod_comm_lib, only: mpistop
        integer, intent(in)             :: ixI^L, ixO^L
        double precision, intent(in)    :: w(ixI^S, nw), x(ixI^S, 1:^ND)
        double precision, intent(inout) :: a2max(ndim)
        call mpistop("Error: entered dummy_get_a2max")
   end subroutine dummy_get_a2max
 
-  subroutine dummy_add_source_geom(qdt, ixI^L, ixO^L, wCT, w, x)
+  subroutine dummy_add_source_geom(qdt, dtfactor, ixI^L, ixO^L, wCT, w, x)
     use mod_global_parameters
     integer, intent(in)             :: ixI^L, ixO^L
-    double precision, intent(in)    :: qdt, x(ixI^S, 1:^ND)
+    double precision, intent(in)    :: qdt, dtfactor, x(ixI^S, 1:^ND)
     double precision, intent(inout) :: wCT(ixI^S, 1:nw), w(ixI^S, 1:nw)
   end subroutine dummy_add_source_geom
 
-  subroutine dummy_add_source(qdt, ixI^L, ixO^L, wCT, wCTprim, w, x, &
+  subroutine dummy_add_source(qdt, dtfactor, ixI^L, ixO^L, wCT, wCTprim, w, x, &
        qsourcesplit, active)
     use mod_global_parameters
     integer, intent(in)             :: ixI^L, ixO^L
-    double precision, intent(in)    :: qdt
+    double precision, intent(in)    :: qdt,dtfactor
     double precision, intent(in)    :: wCT(ixI^S, 1:nw), wCTprim(ixI^S,1:nw), x(ixI^S, 1:ndim)
     double precision, intent(inout) :: w(ixI^S, 1:nw)
     logical, intent(in)             :: qsourcesplit
@@ -483,6 +509,7 @@ contains
 
   subroutine dummy_get_pthermal(w, x, ixI^L, ixO^L, pth)
     use mod_global_parameters
+    use mod_comm_lib, only: mpistop
 
     integer, intent(in)          :: ixI^L, ixO^L
     double precision, intent(in) :: w(ixI^S, nw)
@@ -491,6 +518,27 @@ contains
 
     call mpistop("No get_pthermal method specified")
   end subroutine dummy_get_pthermal
+
+  subroutine dummy_get_auxiliary(ixI^L, ixO^L, w, x)
+    use mod_global_parameters
+    use mod_comm_lib, only: mpistop
+
+    integer, intent(in)          :: ixI^L, ixO^L
+    double precision, intent(inout) :: w(ixI^S, nw)
+    double precision, intent(in) :: x(ixI^S, 1:ndim)
+
+    call mpistop("No get_auxiliary method specified")
+  end subroutine dummy_get_auxiliary
+
+  subroutine dummy_get_auxiliary_prim(ixI^L, ixO^L, w)
+    use mod_global_parameters
+    use mod_comm_lib, only: mpistop
+
+    integer, intent(in)          :: ixI^L, ixO^L
+    double precision, intent(inout) :: w(ixI^S, nw)
+
+    call mpistop("No get_auxiliary_prim method specified")
+  end subroutine dummy_get_auxiliary_prim
 
   subroutine dummy_boundary_adjust(igrid,psb)
     use mod_global_parameters

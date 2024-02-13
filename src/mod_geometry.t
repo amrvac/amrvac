@@ -1,5 +1,6 @@
 !> Module with geometry-related routines (e.g., divergence, curl)
 module mod_geometry
+  use mod_comm_lib, only: mpistop
   implicit none
   public
 

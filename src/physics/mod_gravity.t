@@ -26,6 +26,7 @@ contains
   subroutine gravity_init()
     use mod_global_parameters
     use mod_usr_methods
+    use mod_comm_lib, only: mpistop
     integer :: nwx,idir
 
     if (.not. associated(usr_gravity)) then

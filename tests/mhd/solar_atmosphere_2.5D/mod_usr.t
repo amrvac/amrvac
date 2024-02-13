@@ -38,7 +38,7 @@ contains
 
     usr_grav=-2.74d4*unit_length/unit_velocity**2 ! solar gravity
     bQ0=1.d-4/heatunit ! background heating power density
-    gzone=0.2d0 ! thickness of a ghostzone below the bottom boundary
+    gzone=2.d8/unit_length ! thickness of a ghostzone below the bottom boundary
     dya=(2.d0*gzone+xprobmax2-xprobmin2)/dble(jmax) ! cells size of high-resolution 1D solar atmosphere
     B0=Busr/unit_magneticfield ! magnetic field strength at the bottom
     theta=60.d0*dpi/180.d0 ! the angle to the plane xy, 90-theta is the angle to the polarity inversion line of the arcade 
@@ -57,7 +57,7 @@ contains
     ! initialize the table in a vertical line through the global domain
     integer :: j,na,ibc
     double precision, allocatable :: Ta(:),gg(:),ya(:)
-    double precision :: rpho,Ttop,Tpho,wtra,res,rhob,pb,htra,Ttr,Fc,invT,kappa
+    double precision :: rpho,Ttop,Tpho,wtra,res,rhob,pb,htra,ftra,Ttr,Fc,invT,kappa
     double precision :: rhohc,hc
     logical :: simple_temperature_curve
 
@@ -69,17 +69,18 @@ contains
       rpho=1.151d15/unit_numberdensity ! number density at the bottom of height table
       Tpho=8.d3/unit_temperature ! temperature of chromosphere
       Ttop=1.5d6/unit_temperature ! estimated temperature in the top
-      htra=0.2d0 ! height of initial transition region
-      wtra=0.02d0 ! width of initial transition region 
+      htra=2.d8/unit_length ! height of initial transition region
+      wtra=0.2d8/unit_length! width of initial transition region 
       Ttr=1.6d5/unit_temperature ! lowest temperature of upper profile
       Fc=2.d5/heatunit/unit_length ! constant thermal conduction flux
+      ftra=wtra*atanh(2.d0*(Ttr-Tpho)/(Ttop-Tpho)-1.d0)
       kappa=8.d-7*unit_temperature**3.5d0/unit_length/unit_density/unit_velocity**3
       do j=1,jmax
          ya(j)=(dble(j)-0.5d0)*dya-gzone
          if(ya(j)>htra) then
            Ta(j)=(3.5d0*Fc/kappa*(ya(j)-htra)+Ttr**3.5d0)**(2.d0/7.d0)
          else
-           Ta(j)=Tpho+0.5d0*(Ttop-Tpho)*(tanh((ya(j)-htra-0.027d0)/wtra)+1.d0)
+           Ta(j)=Tpho+0.5d0*(Ttop-Tpho)*(tanh((ya(j)-htra+ftra)/wtra)+1.d0)
          endif
          gg(j)=usr_grav*(SRadius/(SRadius+ya(j)))**2
       enddo

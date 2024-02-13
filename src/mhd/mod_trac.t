@@ -1,7 +1,11 @@
 module mod_trac
   use mod_global_parameters
   use mod_mhd
+  use mod_functions_bfield, only: mag
+
   implicit none
+  private
+
   ! common
   integer :: numFL,numLP
   double precision :: dL,Tmax,trac_delta,T_bott
@@ -15,6 +19,9 @@ module mod_trac
   integer, allocatable :: trac_grid(:),ground_grid(:)
   integer :: ngrid_trac,ngrid_ground
   logical, allocatable :: trac_pe(:)
+
+  public :: initialize_trac_after_settree
+
 contains
 
   subroutine init_trac_line(mask)
@@ -846,5 +853,73 @@ contains
     enddo
 
   end subroutine interp_Tcoff
+
+
+  subroutine trac_after_setdt(tco,trac_alfa,T_peak, T_bott_in)
+       double precision, intent(in)    :: trac_alfa,tco,T_peak, T_bott_in
+      ! default lower limit of cutoff temperature
+      T_bott = T_bott_in
+      select case(phys_trac_type)
+      case(0)
+        !> Test case, fixed cutoff temperature
+        !> do nothing here
+      case(1)
+        !> 1D TRAC method
+        call TRAC_simple(tco,trac_alfa,T_peak)
+      case(2)
+        !> LTRAC method, by iijima et al. 2021
+        !> do nothing here 
+        call LTRAC(T_peak)
+      case(3)
+        !> 2D or 3D TRACL(ine) method
+        call TRACL(.false.,T_peak)
+      case(4)
+        !> 2D or 3D TRACB(lock) method
+        call TRACB(.false.,T_peak)
+      case(5)
+        !> 2D or 3D TRACL(ine) method with mask
+        call TRACL(.true.,T_peak)
+      case(6)
+        !> 2D or 3D TRACB(lock) method with mask
+        call TRACB(.true.,T_peak)
+      case default
+        call mpistop("undefined TRAC method type")
+      end select
+
+  end subroutine trac_after_setdt
+
+  subroutine initialize_trac_after_settree
+    use mod_global_parameters
+    use mod_physics, only: phys_trac_after_setdt
+  
+    if(phys_trac) then
+      phys_trac_after_setdt => trac_after_setdt
+      if(phys_trac_type .eq. 3) then
+        if(mype .eq. 0) write(*,*) 'Using TRACL(ine) global method'
+        if(mype .eq. 0) write(*,*) 'By default, magnetic field lines are traced every 4 grid cells'
+        call init_trac_line(.false.)
+      end if
+      if(phys_trac_type .eq. 4) then
+        if(mype .eq. 0) write(*,*) 'Using TRACB(lock) global method'
+        if(mype .eq. 0) write(*,*) 'Currently, only valid in Cartesian uniform settings'
+        if(mype .eq. 0) write(*,*) 'By default, magnetic field lines are traced every 4 grid cells'
+        call init_trac_block(.false.)
+      end if
+      if(phys_trac_type .eq. 5) then
+        if(mype .eq. 0) write(*,*) 'Using TRACL(ine) method with a mask'
+        if(mype .eq. 0) write(*,*) 'By default, magnetic field lines are traced every 4 grid cells'
+        call init_trac_line(.true.)
+      end if
+      if(phys_trac_type .eq. 6) then
+        if(mype .eq. 0) write(*,*) 'Using TRACB(lock) method with a mask'
+        if(mype .eq. 0) write(*,*) 'Currently, only valid in Cartesian uniform settings'
+        if(mype .eq. 0) write(*,*) 'By default, magnetic field lines are traced every 4 grid cells'
+        call init_trac_block(.true.)
+      end if
+    end if
+  
+  end subroutine initialize_trac_after_settree
+
+
 
 end module mod_trac

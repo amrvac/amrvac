@@ -179,13 +179,25 @@ contains
     cons_wnames(nwflux) = 'rho'
   end function var_set_rho
 
+  ! THE INCLUDE files cannot use other modules
+  ! mpistop replaced by errormsg, should it exit?
+  !> Exit MPI-AMRVAC with an error message
+  subroutine errormsg(message)
+  
+    character(len=*), intent(in) :: message !< The error message
+  
+    write(*, *) "ERROR for processor"
+    write(*, *) trim(message)
+  
+  
+  end subroutine errormsg
   !> Set momentum variables
   function var_set_momentum(ndir) result(iw)
     integer, intent(in) :: ndir
     integer             :: iw(ndir), idir
 
     if (allocated(iw_mom)) &
-         call mpistop("Error: set_mom was already called")
+         call errormsg("Error: set_mom was already called")
     allocate(iw_mom(ndir))
 
     do idir = 1, ndir
@@ -230,7 +242,7 @@ contains
     integer             :: iw(ndir), idir
 
     if (allocated(iw_mag)) &
-         call mpistop("Error: set_mag was already called")
+         call errormsg("Error: set_mag was already called")
     allocate(iw_mag(ndir))
 
     do idir = 1, ndir

@@ -21,6 +21,7 @@ module mod_radiative_cooling
 ! at the official upper limit of log(T) = 8.16)
   use mod_global_parameters, only: std_len
   use mod_physics
+  use mod_comm_lib, only: mpistop
   implicit none
 
   !> Helium abundance over Hydrogen
@@ -1842,8 +1843,12 @@ module mod_radiative_cooling
 
       call fl%get_rho(wCT,x,ixI^L,ixO^L,rho)
       call fl%get_var_Rfactor(wCT,x,ixI^L,ixO^L,Rfactor)
-      Te(ixO^S)=wCTprim(ixO^S,iw_e)/(rho(ixO^S)*Rfactor(ixO^S))
-
+      ! TODO replaced  
+      !Te(ixO^S)=wCTprim(ixO^S,iw_e)/(rho(ixO^S)*Rfactor(ixO^S))
+      ! back to:
+      call fl%get_pthermal(wCT,x,ixI^L,ixO^L,Te)
+      Te(ixO^S)=Te(ixO^S)/(rho(ixO^S)*Rfactor(ixO^S))
+      ! because it breaks the pressure splitting.
       call fl%get_pthermal(w,x,ixI^L,ixO^L,pnew)
       call fl%get_rho(w,x,ixI^L,ixO^L,rhonew)
 

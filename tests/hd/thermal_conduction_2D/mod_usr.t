@@ -26,12 +26,12 @@ contains
     ! set all velocity to zero
     w(ixO^S, mom(:)) = zero
     ! uniform pressure
-    w(ixO^S,p_)   =2.d0
+    w(ixO^S,p_)   =1.d0
     ! hot central circular spot with uniform pressure
     where((^D&x(ixO^S,^D)**2+) .lt. 0.25d0**2)
-     w(ixO^S,rho_) =1.d0
+     w(ixO^S,rho_) =0.05d0
     elsewhere
-     w(ixO^S,rho_) =10.d0
+     w(ixO^S,rho_) =1.d0
     endwhere
 
     call hd_to_conserved(ixI^L,ixO^L,w,x)

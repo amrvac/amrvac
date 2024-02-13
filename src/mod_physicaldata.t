@@ -33,6 +33,8 @@ module mod_physicaldata
      double precision, dimension(:^D&,:), pointer :: x=>Null()
      !> Cell sizes in coordinate units
      double precision, dimension(:^D&,:), pointer :: dx=>Null()
+     !> Cell local timesteps
+     double precision, dimension(:^D&), pointer :: dt=>Null()
      !> Cell sizes at cell center in length unit
      double precision, dimension(:^D&,:), pointer :: ds=>Null()
      !> Cell sizes at cell face in length unit

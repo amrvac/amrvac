@@ -18,6 +18,7 @@
 
  &stoplist
         time_max=10.0d0
+        it_max=1
  /
 
  &methodlist

@@ -1,6 +1,10 @@
 !> Magnetofriction module
 module mod_mf_phys
   use mod_global_parameters, only: std_len
+  use mod_functions_bfield, only: get_divb,mag
+  use mod_comm_lib, only: mpistop
+
+
   implicit none
   private
 
@@ -35,8 +39,6 @@ module mod_mf_phys
   !> Indices of the momentum density
   integer, allocatable, public, protected :: mom(:)
 
-  !> Indices of the magnetic field
-  integer, allocatable, public, protected :: mag(:)
 
   !> Indices of the GLM psi
   integer, public, protected :: psi_
@@ -238,7 +240,7 @@ contains
     stop_indices(1)=nwflux
 
     ! determine number of stagger variables
-    if(stagger_grid) nws=ndim
+    nws=ndim
 
     nvector      = 2 ! No. vector vars
     allocate(iw_vector(nvector))
@@ -617,11 +619,11 @@ contains
   end subroutine mf_velocity_update
 
   !> w[iws]=w[iws]+qdt*S[iws,wCT] where S is the source based on wCT within ixO
-  subroutine mf_add_source(qdt,ixI^L,ixO^L,wCT,wCTprim,w,x,qsourcesplit,active)
+  subroutine mf_add_source(qdt,dtfactor,ixI^L,ixO^L,wCT,wCTprim,w,x,qsourcesplit,active)
     use mod_global_parameters
 
     integer, intent(in)             :: ixI^L, ixO^L
-    double precision, intent(in)    :: qdt
+    double precision, intent(in)    :: qdt, dtfactor
     double precision, intent(in)    :: wCT(ixI^S,1:nw),wCTprim(ixI^S,1:nw), x(ixI^S,1:ndim)
     double precision, intent(inout) :: w(ixI^S,1:nw)
     logical, intent(in)             :: qsourcesplit
@@ -737,7 +739,18 @@ contains
     ! because extrapolation of B at boundaries introduces artificial current
 {
     if(block%is_physical_boundary(2*^D-1)) then
-      current(ixOmin^D^D%ixO^S,:)=current(ixOmin^D+1^D%ixO^S,:)
+      if(slab) then
+        ! exclude boundary 5 in 3D Cartesian
+        if(2*^D-1==5.and.ndim==3) then
+        else
+          current(ixOmin^D^D%ixO^S,:)=current(ixOmin^D+1^D%ixO^S,:)
+        end if
+      else
+        ! exclude boundary 1 spherical/cylindrical
+        if(2*^D-1>1) then
+          current(ixOmin^D^D%ixO^S,:)=current(ixOmin^D+1^D%ixO^S,:)
+        end if
+      end if
     end if
     if(block%is_physical_boundary(2*^D)) then
       current(ixOmax^D^D%ixO^S,:)=current(ixOmax^D-1^D%ixO^S,:)
@@ -1135,36 +1148,6 @@ contains
 
   end subroutine add_source_linde
 
-  !> Calculate div B within ixO
-  subroutine get_divb(w,ixI^L,ixO^L,divb, fourthorder)
-    use mod_global_parameters
-    use mod_geometry
-
-    integer, intent(in)             :: ixI^L, ixO^L
-    double precision, intent(in)    :: w(ixI^S,1:nw)
-    double precision, intent(inout) :: divb(ixI^S)
-    logical, intent(in), optional   :: fourthorder
-
-    integer                            :: ixC^L, idir
-
-    if(stagger_grid) then
-      divb(ixO^S)=0.d0
-      do idir=1,ndim
-        ixC^L=ixO^L-kr(idir,^D);
-        divb(ixO^S)=divb(ixO^S)+block%ws(ixO^S,idir)*block%surfaceC(ixO^S,idir)-&
-                                block%ws(ixC^S,idir)*block%surfaceC(ixC^S,idir)
-      end do
-      divb(ixO^S)=divb(ixO^S)/block%dvolume(ixO^S)
-    else
-      select case(typediv)
-      case("central")
-        call divvector(w(ixI^S,mag(1:ndir)),ixI^L,ixO^L,divb,fourthorder)
-      case("limited")
-        call divvectorS(w(ixI^S,mag(1:ndir)),ixI^L,ixO^L,divb)
-      end select
-    end if
-
-  end subroutine get_divb
 
   !> get dimensionless div B = |divB| * volume / area / |B|
   subroutine get_normalized_divb(w,ixI^L,ixO^L,divb)
@@ -1269,12 +1252,12 @@ contains
   end subroutine mf_get_dt
 
   ! Add geometrical source terms to w
-  subroutine mf_add_source_geom(qdt,ixI^L,ixO^L,wCT,w,x)
+  subroutine mf_add_source_geom(qdt,dtfactor, ixI^L,ixO^L,wCT,w,x)
     use mod_global_parameters
     use mod_geometry
 
     integer, intent(in)             :: ixI^L, ixO^L
-    double precision, intent(in)    :: qdt, x(ixI^S,1:ndim)
+    double precision, intent(in)    :: qdt, dtfactor, x(ixI^S,1:ndim)
     double precision, intent(inout) :: wCT(ixI^S,1:nw), w(ixI^S,1:nw)
 
     integer          :: iw,idir

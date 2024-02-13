@@ -118,6 +118,7 @@ contains
     ! Limit according to method and typetvd.
     use mod_limiter
     use mod_global_parameters
+    use mod_comm_lib, only: mpistop
 
     integer, intent(in) :: method
     integer, intent(in) :: ixI^L, ixIC^L, ixC^L, il, idims
@@ -266,6 +267,7 @@ contains
     ! Calculate "smalla" (Harten,Powell) or modify "a" (ratio)
 
     use mod_global_parameters
+    use mod_comm_lib, only: mpistop
 
     integer, intent(in) :: ix^L, il
     double precision, dimension(ixG^T) :: aL, aR, a, smalla

@@ -12,6 +12,8 @@
 !>
 module mod_rd_phys
   use mod_multigrid_coupling
+  use mod_comm_lib, only: mpistop
+
 
   implicit none
   private
@@ -381,10 +383,10 @@ contains
   end subroutine rd_get_flux
 
   ! w[iw]= w[iw]+qdt*S[wCT, qtC, x] where S is the source based on wCT within ixO
-  subroutine rd_add_source(qdt,ixI^L,ixO^L,wCT,wCTprim,w,x,qsourcesplit,active)
+  subroutine rd_add_source(qdt,dtfactor,ixI^L,ixO^L,wCT,wCTprim,w,x,qsourcesplit,active)
     use mod_global_parameters
     integer, intent(in)             :: ixI^L, ixO^L
-    double precision, intent(in)    :: qdt
+    double precision, intent(in)    :: qdt, dtfactor
     double precision, intent(in)    :: wCT(ixI^S, 1:nw),wCTprim(ixI^S,1:nw),x(ixI^S, 1:ndim)
     double precision, intent(inout) :: w(ixI^S, 1:nw)
     double precision                :: lpl_u(ixO^S), lpl_v(ixO^S), lpl_w(ixO^S)

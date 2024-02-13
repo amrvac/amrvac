@@ -96,6 +96,7 @@ contains
   !> Initialize the module
   subroutine cak_init(phys_gamma)
     use mod_global_parameters
+    use mod_comm_lib, only: mpistop
 
     real(8), intent(in) :: phys_gamma
 
@@ -157,6 +158,7 @@ contains
   !> w[iw]=w[iw]+qdt*S[wCT,qtC,x] where S is the source based on wCT within ixO
   subroutine cak_add_source(qdt,ixI^L,ixO^L,wCT,w,x,energy,qsourcesplit,active)
     use mod_global_parameters
+    use mod_comm_lib, only: mpistop
 
     integer, intent(in)    :: ixI^L, ixO^L
     real(8), intent(in)    :: qdt, x(ixI^S,1:ndim), wCT(ixI^S,1:nw)
@@ -213,6 +215,7 @@ contains
   !> 1-D CAK line force in the Gayley line-ensemble distribution parametrisation
   subroutine get_cak_force_radial(ixI^L,ixO^L,wCT,w,x,gcak)
     use mod_global_parameters
+    use mod_comm_lib, only: mpistop
 
     integer, intent(in)    :: ixI^L, ixO^L
     real(8), intent(in)    :: wCT(ixI^S,1:nw), x(ixI^S,1:ndim)

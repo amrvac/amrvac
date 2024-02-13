@@ -301,10 +301,10 @@ contains
     ! make sure we step only one cell at a time:
     call derivs_advect(partp%self%time,partp%self%x,v)
     do idims=1,ndim
-      dtdims(idims)=minval(ps(partp%igrid)%ds(ixM^T,idims))/(max(v(idims),smalldouble))
+      dtdims(idims)=minval(ps(partp%igrid)%ds(ixM^T,idims))/(max(abs(v(idims)),smalldouble))
     end do
 
-    dt_p = minval(dtdims)
+    dt_p = particles_cfl*minval(dtdims)
 
     ! Make sure we do not advance beyond end_time
     call limit_dt_endtime(end_time - partp%self%time, dt_p)

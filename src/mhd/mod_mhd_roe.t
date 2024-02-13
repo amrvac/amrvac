@@ -1,6 +1,7 @@
 !> Subroutines for Roe-type Riemann solver for MHD
 module mod_mhd_roe
   use mod_mhd_phys
+  use mod_functions_bfield, only: mag
   use mod_physics_roe
 
   implicit none

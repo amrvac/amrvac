@@ -1,9 +1,9 @@
  ! setup.pl -d=2
  &filelist
+        base_filename = 'ot_particles_adva'
         autoconvert   = T
         saveprim      = T
         nwauxio       = 2
-        base_filename = 'ot_2d'
         convert_type  = 'vtuBmpi'
  /
         restart_from_file='ot_2d0004.dat'
@@ -17,7 +17,7 @@
  /
 
  &stoplist
-        time_max      = 0.1d0
+        time_max      = 0.2d0
  /
 
  &methodlist
@@ -58,7 +58,6 @@
 
  &particles_list
         physics_type_particles='advect'
-        num_particles=1
+        num_particles=5
         dtsave_particles=0.02d0
-        npayload=1
  /

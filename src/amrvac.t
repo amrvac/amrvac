@@ -9,12 +9,22 @@ program amrvac
   use mod_ghostcells_update
   use mod_usr
   use mod_initialize
+  use mod_initialize_amr, only: initlevelone, modify_IC
+  {^NOONED
+  use mod_initialize_amr, only: improve_initial_condition
+  }
+  use mod_selectgrids, only: selectgrids
   use mod_particles
   use mod_fix_conserve
   use mod_advance, only: process
   use mod_multigrid_coupling
   use mod_convert, only: init_convert
   use mod_physics
+  use mod_amr_grid, only: resettree, settree, resettree_convert
+  use mod_trac, only: initialize_trac_after_settree
+  use mod_convert_files, only: generate_plotfile
+  use mod_comm_lib, only: comm_start, comm_finalize,mpistop
+
 
   double precision :: time0, time_in
   logical,save     :: part_file_exists=.false.
@@ -60,7 +70,11 @@ program amrvac
      end if
 
      ! modify initial condition
-     if (firstprocess) call modify_IC
+     if (firstprocess) then
+       ! update ghost cells for all need-boundary variables before modification
+       call getbc(global_time,0.d0,ps,1,nwflux+nwaux)
+       call modify_IC
+     end if
 
      ! select active grids
      call selectgrids
@@ -76,6 +90,17 @@ program amrvac
        if (levmax>levmin) call allocateBflux
      end if
 
+     ! all blocks refined to the same level for output
+     if(convert .and. level_io>0 .or. level_io_min.ne.1 .or. level_io_max.ne.nlevelshi) &
+       call resettree_convert
+
+     {^NOONED
+     ! improve initial condition after restart and modification
+     if(firstprocess) call improve_initial_condition()
+     }
+
+     if (use_multigrid) call mg_setup_multigrid()
+
      if(use_particles) then
        call read_particles_snapshot(part_file_exists)
        if (.not. part_file_exists) call particles_create()
@@ -87,30 +112,29 @@ program amrvac
        end if
      end if
 
-     if (use_multigrid) call mg_setup_multigrid()
+     if(convert) then
+       if (npe/=1.and.(.not.(index(convert_type,'mpi')>=1)) &
+            .and. convert_type .ne. 'user')  &
+            call mpistop("non-mpi conversion only uses 1 cpu")
+       if(mype==0.and.level_io>0) write(unitterm,*)'reset tree to fixed level=',level_io
 
-     if (convert) then
-        if (npe/=1.and.(.not.(index(convert_type,'mpi')>=1)) &
-             .and. convert_type .ne. 'user')  &
-             call mpistop("non-mpi conversion only uses 1 cpu")
+       ! Optionally call a user method that can modify the grid variables
+       ! before saving the converted data
+       if (associated(usr_process_grid) .or. &
+            associated(usr_process_global)) then
+          call process(it,global_time)
+       end if
+       !here requires -1 snapshot
+       if (autoconvert .or. snapshotnext>0) snapshotnext = snapshotnext - 1
 
-        ! Optionally call a user method that can modify the grid variables
-        ! before saving the converted data
-        if (associated(usr_process_grid) .or. &
-             associated(usr_process_global)) then
-           call process(it,global_time)
-        end if
-        !here requires -1 snapshot
-        if (autoconvert .or. snapshotnext>0) snapshotnext = snapshotnext - 1
+       if(associated(phys_special_advance)) then
+         ! e.g. calculate MF velocity from magnetic field
+         call phys_special_advance(global_time,ps)
+       end if
 
-        if(associated(phys_special_advance)) then
-          ! e.g. calculate MF velocity from magnetic field
-          call phys_special_advance(global_time,ps)
-        end if
-
-        call generate_plotfile
-        call comm_finalize
-        stop
+       call generate_plotfile
+       call comm_finalize
+       stop
      end if
 
   else
@@ -136,7 +160,7 @@ program amrvac
   end if
 
   ! initialize something base on tree information
-  call initialize_after_settree
+  call initialize_trac_after_settree
 
   if (mype==0) then
      print*,'-------------------------------------------------------------------------------'
@@ -166,8 +190,11 @@ contains
     use mod_advance, only: advance, process, process_advanced
     use mod_forest, only: nleafs_active
     use mod_global_parameters
-    use mod_input_output, only: saveamrfile, save_now
+    use mod_input_output, only: saveamrfile
+    use mod_input_output_helper, only: save_now
     use mod_ghostcells_update
+    use mod_dt, only: setdt
+
 
     integer :: level, ifile, fixcount, ncells_block, igrid, iigrid
     integer(kind=8) ncells_update

@@ -72,7 +72,7 @@ collapsed data) and stop the code immediately after the IO (_it_max=0_).
 
 The code can then be started with
 
-    amrvac -i collapse.par -collapse 10 -if datamr/data0010.dat
+    amrvac -i collapse.par -collapsenext 10 -if datamr/data0010.dat
 
 which will take the output _datamr/data0010.dat_ to create new collapsed view 
 with index 10 (-collapse 10). The par-file is the newly created collapse.par 
@@ -81,7 +81,7 @@ untouched. It is a simple exercise in
 shell scripting to run along all output-files in one go. For example with the
 BASH:
 
-    for i in {0..10}; do printf -v j "%04d" $i; ./amrvac -i collapse.par -collapse $i -if datamr/data$j.dat; done
+    for i in {0..10}; do printf -v j "%04d" $i; mpirun -np 4 ./amrvac -i collapse.par -collapsenext $i -if datamr/data$j.dat; done
 
 # ASCII output
 

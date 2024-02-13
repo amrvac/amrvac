@@ -10,7 +10,7 @@ ifndef NDIM
 $(error build.make: NDIM is not set)
 endif
 
-SRC_DIRS := . modules amrvacio physics rho hd mhd rhd particle nonlinear rd mf twofl ard
+SRC_DIRS := . modules amr io limiter physics rho hd mhd rhd particle nonlinear rd mf twofl ard srhd
 SRC_DIRS := $(addprefix $(AMRVAC_DIR)/src/, $(SRC_DIRS))
 LIB_AMRVAC := libamrvac.a
 PPFLAGS :=
@@ -30,7 +30,7 @@ include $(AMRVAC_DIR)/arch/rules.make
 # Get .t files from SRC_DIRS
 vpath %.t $(SRC_DIRS)
 
-OBJECTS := $(FOBJECTS:.t=.o) $(INCLUDES:.t=.o)
+OBJECTS := $(FOBJECTS:.t=.o) 
 
 $(LIB_AMRVAC): $(OBJECTS)
 	$(RM) $@
@@ -38,6 +38,3 @@ $(LIB_AMRVAC): $(OBJECTS)
 
 clean:
 	$(RM) *.o *.mod *.f $(LIB_AMRVAC)
-
-# INCLUDES are always compiled before FOBJECTS
-$(FOBJECTS:.t=.o): $(INCLUDES:.t=.mod)

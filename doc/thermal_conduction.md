@@ -30,7 +30,8 @@ In order to add thermal conduction to a simulation, the user has to do the follo
            unit_velocity=<your velocity unit>
 
      before call (m)hd_activate()
-  3. You can add the name list for thermal conduction, tc_list, in par file, where parameters tc_perpendicular, 
+  3. You can add the name list for thermal conduction, tc_list, in par file, where parameters tc_perpendicular (not in hd), 
      tc_saturate, tc_slope_limiter can be modified. tc_perpendicular=.true. will add conduction flux
      perpendicular to magnetic field, which is not considered by default. tc_saturate=.true. to consider
-     saturation effect of thermal conduction, which is the default choice. 
+     saturation effect of thermal conduction, which is not the default choice.
+  4. If thermal conduction fails or gives unphysical oscillations, reduce sts_dtpar (default 0.8) of sts_list to smaller values.
