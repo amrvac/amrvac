@@ -1,0 +1,112 @@
+!====================================================
+!Project : Reconnection-condensation of solar prominences. See Kaneko & Yokoyama (2017)
+!setup.pl -d=3
+!====================================================
+
+!Name and type of files to save: filelist
+&filelist
+       base_filename      	      = 'data/data'
+       !restart_from_file 	      = 'data/data0215.dat'
+       saveprim           	      = .true.
+       autoconvert        	      = .true.
+       convert_type       	      = "usermpi"
+       nwauxio            	      = 8
+/
+
+&savelist
+       itsave(1,1)     	      = 0
+       itsave(1,2)     	      = 0
+       ditsave_log     	      = 1000
+       dtsave_dat      	      = 2.d0  ! save time
+       !ditsave_dat    	      = 1     ! save iteration
+       !ditsave_custom 	      = 1
+/
+
+&stoplist
+       dtmin    		      = 1.0d-20
+       !it_max  		      = 40
+       time_max 		      = 1.0d3
+/
+
+
+!methodlist: Which numerical methods to use
+&methodlist
+       !time_integrator   	      = 'rk4'
+       time_stepper        	      = 'fourstep'      !Choose between time_stepper and time_integrator
+       flux_scheme         	      = 20*'hll'
+       limiter             	      = 20*'vanleer'     !20*'vanleer' or 20*'minmod'
+       check_small_values  	      = .true.
+       small_values_method 	      = 'replace'
+       small_density       	      = 1.d-12
+       small_pressure      	      = 1.d-12
+       source_split_usr    	      = .true.
+/
+
+!boundlist: boundary conditions -> 8 variables: rho, m1, m2, m3, e, b1, b2, b3
+&boundlist
+       typeboundary_min1 	      = 8*'special' 
+       typeboundary_max1 	      = 8*'special' 
+       typeboundary_min2 	      = 8*'special'
+       typeboundary_max2 	      = 8*'special'
+       typeboundary_min3          = 8*'special' 
+       typeboundary_max3          = 8*'special' 
+/
+
+!Mesh-related settings
+&meshlist
+       refine_criterion 	      = 3
+       refine_max_level 	      = 5            !How many times its allowed to to adaptive mesh refinement
+       domain_nx1       	      = 60           !Grid cells for x
+       domain_nx2       	      = 240          !Grid cells for y
+       domain_nx3                 = 300          !Grid cells for z
+       block_nx1                  = 10
+       block_nx2                  = 10
+       block_nx3                  = 10
+       xprobmin1        	      = -20.0d0  	!min boundary x
+       xprobmax1        	      =  20.0d0  	!max boundary x
+       xprobmin2        	      =   0.0d0   	!min boundary y
+       xprobmax2        	      = 160.0d0  	!max boundary y
+       xprobmin3        	      = -100.0d0   	!min boundary z
+       xprobmax3        	      =  100.0d0  	!max boundary z
+/
+
+
+!Time-step parameters
+&paramlist
+       courantpar                 = 1.d0
+/
+
+
+&mhd_list
+       mhd_energy                = .true.
+       mhd_internal_e            = .true.
+       mhd_gravity               = .true.
+       typedivbfix               = 'linde'
+       B0field                   = .false.
+       !B0field_forcefree         = .true.
+       !mhd_solve_eaux            = .true.
+       mhd_thermal_conduction    = .true.
+       mhd_radiative_cooling     = .true.
+       Busr                      = 8.d0
+       mhd_eta                   = -0.002d0         ! Value not important, just activate it
+       mhd_4th_order             = .false.
+/
+
+ &rc_list
+       !ncool=12000
+       coolcurve='Colgan_DM'
+       coolmethod='exact'
+       Tfix=.true.
+	tlow=1.d-3
+ /
+
+!Custom parameters
+&usr_list
+	v00_usr              = 6.d5
+       perturbation         = .false.
+       perturbation_str     = 0.05d0
+       T_threshold_refine   = 1.d5            ! In Kelvin
+       special_dt_min       = 4.d-3
+       t1_user              = 4320.d0
+       t2_user              = 4500.d0
+/
