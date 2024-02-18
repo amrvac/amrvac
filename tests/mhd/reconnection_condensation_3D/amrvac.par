@@ -6,10 +6,9 @@
 !Name and type of files to save: filelist
 &filelist
        base_filename      	      = 'data/data'
-       !restart_from_file 	      = 'data/data0215.dat'
        saveprim           	      = .true.
        autoconvert        	      = .true.
-       convert_type       	      = "usermpi"
+       convert_type       	      = 'usermpi'
        nwauxio            	      = 8
 /
 
@@ -31,7 +30,6 @@
 
 !methodlist: Which numerical methods to use
 &methodlist
-       !time_integrator   	      = 'rk4'
        time_stepper        	      = 'fourstep'      !Choose between time_stepper and time_integrator
        flux_scheme         	      = 20*'hll'
        limiter             	      = 20*'vanleer'     !20*'vanleer' or 20*'minmod'
@@ -83,8 +81,6 @@
        mhd_gravity               = .true.
        typedivbfix               = 'linde'
        B0field                   = .false.
-       !B0field_forcefree         = .true.
-       !mhd_solve_eaux            = .true.
        mhd_thermal_conduction    = .true.
        mhd_radiative_cooling     = .true.
        Busr                      = 8.d0
