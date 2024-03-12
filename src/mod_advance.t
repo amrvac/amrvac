@@ -23,18 +23,6 @@ contains
 
     integer :: iigrid, igrid, idimsplit
 
-    ! old solution values at t_n-1 no longer needed: make copy of w(t_n)
-    !$OMP PARALLEL DO PRIVATE(igrid)
-    do iigrid=1,igridstail; igrid=igrids(iigrid);
-       pso(igrid)%w=ps(igrid)%w
-       if(stagger_grid) pso(igrid)%ws=ps(igrid)%ws
-    end do
-    !$OMP END PARALLEL DO
-
-    {#IFDEF RAY
-    call update_rays
-    }
-
     ! split source addition
     call add_split_source(prior=.true.)
 
@@ -71,7 +59,6 @@ contains
     use mod_ghostcells_update
     use mod_physics, only: phys_req_diagonal
     use mod_comm_lib, only: mpistop
-
 
     integer, intent(in) :: idim^LIM
     integer             :: iigrid, igrid
@@ -655,7 +642,7 @@ contains
        ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
 
        call process1_grid(method(block%level),igrid,qdt,dtfactor,ixG^LL,idim^LIM,qtC,&
-            psa(igrid),qt,psb(igrid),pso(igrid))
+            psa(igrid),qt,psb(igrid))
     end do
     !$OMP END PARALLEL DO
 
@@ -683,21 +670,21 @@ contains
   end subroutine advect1
 
   !> Prepare to advance a single grid over one partial time step
-  subroutine process1_grid(method,igrid,qdt,dtfactor,ixI^L,idim^LIM,qtC,sCT,qt,s,sold)
+  subroutine process1_grid(method,igrid,qdt,dtfactor,ixI^L,idim^LIM,qtC,sCT,qt,s)
     use mod_global_parameters
     use mod_fix_conserve
 
     integer, intent(in) :: method
     integer, intent(in) :: igrid, ixI^L, idim^LIM
     double precision, intent(in) :: qdt, dtfactor, qtC, qt
-    type(state), target          :: sCT, s, sold
+    type(state), target          :: sCT, s
 
     ! cell face flux
     double precision :: fC(ixI^S,1:nwflux,1:ndim)
     ! cell edge flux
     double precision :: fE(ixI^S,7-2*ndim:3)
 
-    call advect1_grid(method,qdt,dtfactor,ixI^L,idim^LIM,qtC,sCT,qt,s,sold,fC,fE,&
+    call advect1_grid(method,qdt,dtfactor,ixI^L,idim^LIM,qtC,sCT,qt,s,fC,fE,&
          rnode(rpdx1_:rnodehi,igrid),ps(igrid)%x)
 
     ! opedit: Obviously, flux is stored only for active grids.
@@ -714,7 +701,7 @@ contains
   end subroutine process1_grid
 
   !> Advance a single grid over one partial time step
-  subroutine advect1_grid(method,qdt,dtfactor,ixI^L,idim^LIM,qtC,sCT,qt,s,sold,fC,fE,dxs,x)
+  subroutine advect1_grid(method,qdt,dtfactor,ixI^L,idim^LIM,qtC,sCT,qt,s,fC,fE,dxs,x)
 
     !  integrate one grid by one partial step
     use mod_finite_volume
@@ -728,7 +715,7 @@ contains
     integer, intent(in) :: method
     integer, intent(in) :: ixI^L, idim^LIM
     double precision, intent(in) :: qdt, dtfactor, qtC, qt, dxs(ndim), x(ixI^S,1:ndim)
-    type(state), target          :: sCT, s, sold
+    type(state), target          :: sCT, s
     double precision :: fC(ixI^S,1:nwflux,1:ndim), wprim(ixI^S,1:nw)
     double precision :: fE(ixI^S,7-2*ndim:3)
 
@@ -737,7 +724,7 @@ contains
     ixO^L=ixI^L^LSUBnghostcells;
     select case (method)
     case (fs_hll,fs_hllc,fs_hllcd,fs_hlld,fs_tvdlf,fs_tvdmu)
-       call finite_volume(method,qdt,dtfactor,ixI^L,ixO^L,idim^LIM,qtC,sCT,qt,s,sold,fC,fE,dxs,x)
+       call finite_volume(method,qdt,dtfactor,ixI^L,ixO^L,idim^LIM,qtC,sCT,qt,s,fC,fE,dxs,x)
     case (fs_cd,fs_cd4)
        call centdiff(method,qdt,dtfactor,ixI^L,ixO^L,idim^LIM,qtC,sCT,qt,s,fC,fE,dxs,x)
     case (fs_hancock)

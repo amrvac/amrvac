@@ -763,12 +763,8 @@ the limitation from ghost-cell exchange at physical boundaries.
 The code offers various choices for the error estimator used in automatically
 detecting regions that need refinement.
 
-When `refine_criterion=0`, all refinement will only be based on the user-
+When `refine_criterion=1`, all refinement will only be based on the user-
 defined criteria to be coded up in subroutine _specialrefine_grid_.
-
-When `refine_criterion=1`, we simply compare the previous time level t_(n-1)
-solution with the present t_n values, and trigger refinement on relative
-differences.
 
 When `refine_criterion=3`, the default value, errors are estimated using
 current t_n values and their gradients following Lohner prescription. In
@@ -792,7 +788,7 @@ default value.
 
 ### w_refine_weight, logflag, refine_threshold, derefine_ratio {#par_flags}
 
-In all error estimators mentioned above (except the refine_criterion=0 case), the
+In all error estimators mentioned above (except the refine_criterion=1 case), the
 comparison or evaluation is done only with a user-selected (sub)set of the
 conserved variables. The _nw_ variables (which may include auxiliary
 variables) can be used for error estimation, by setting corresponding weights 

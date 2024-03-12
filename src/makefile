@@ -67,10 +67,8 @@ mod_afld.o: mod_variables.mod
 mod_amr_fct.o: mod_forest.mod
 mod_amr_fct.o: mod_global_parameters.mod
 mod_amr_fct.o: mod_physics.mod
-mod_amr_grid.o: mod_advance.mod
 mod_amr_grid.o: mod_amr_fct.mod
 mod_amr_grid.o: mod_coarsen_refine.mod
-mod_amr_grid.o: mod_dt.mod
 mod_amr_grid.o: mod_errest.mod
 mod_amr_grid.o: mod_fix_conserve.mod
 mod_amr_grid.o: mod_ghostcells_update.mod
@@ -467,7 +465,6 @@ mod_particles.o: mod_particle_base.mod
 mod_particles.o: mod_particle_gca.mod
 mod_particles.o: mod_particle_lorentz.mod
 mod_particles.o: mod_particle_sample.mod
-mod_particles.o: mod_timing.mod
 mod_pfss.o: mod_comm_lib.mod
 mod_pfss.o: mod_global_parameters.mod
 mod_physics.o: mod_comm_lib.mod

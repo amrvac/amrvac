@@ -7,31 +7,20 @@ module mod_errest
  
 contains
 
-
-
   !> Do all local error estimation which determines (de)refinement
   subroutine errest
     use mod_forest, only: refine, buffer
     use mod_global_parameters
-  
+
     integer :: igrid, iigrid, ixCoG^L
     double precision :: factor
     logical, dimension(:,:), allocatable :: refine2
-  
+
     if (igridstail==0) return
-  
+
     select case (refine_criterion)
-    case (0) 
-       ! all refinement solely based on user routine usr_refine_grid
     case (1) 
-       ! simply compare w_n-1 with w_n and trigger refinement on relative
-       ! differences
-    !$OMP PARALLEL DO PRIVATE(igrid)
-       do iigrid=1,igridstail; igrid=igrids(iigrid);
-          block=>ps(igrid)
-          call compare1_grid(igrid,pso(igrid)%w,ps(igrid)%w)
-       end do
-    !$OMP END PARALLEL DO
+       ! all refinement solely based on user routine usr_refine_grid
     case (2)
        ! Error estimation is based on Lohner's original scheme
     !$OMP PARALLEL DO PRIVATE(igrid)
@@ -51,7 +40,7 @@ contains
     case default
        call mpistop("Unknown error estimator")
     end select
-  
+
     ! enforce additional refinement on e.g. coordinate and/or time info here
     if (nbufferx^D/=0|.or.) then
        allocate(refine2(max_blocks,npe))
@@ -65,20 +54,20 @@ contains
        call forcedrefine_grid(igrid,ps(igrid)%w)
     end do
     !$OMP END PARALLEL DO
-  
+
     if (nbufferx^D/=0|.or.) &
     buffer=.false.
-  
+
   end subroutine errest
-  
+
   subroutine lohner_grid(igrid)
     use mod_usr_methods, only: usr_var_for_errest, usr_refine_threshold
     use mod_forest, only: coarsen, refine
     use mod_physics, only: phys_energy
     use mod_global_parameters
-  
+
     integer, intent(in) :: igrid
-  
+
     integer                            :: iflag, idims, idims2, level
     integer                            :: ix^L, hx^L, jx^L, h2x^L, j2x^L, ix^D
     double precision                   :: epsilon, threshold, wtol(1:nw), xtol(1:ndim)
@@ -86,27 +75,27 @@ contains
     double precision, dimension(ixG^T) :: tmp, tmp1, tmp2
     double precision                   :: w(ixG^T,1:nw)
     logical, dimension(ixG^T)          :: refineflag, coarsenflag
-  
+
     epsilon = 1.0d-6
     level   = node(plevel_,igrid)
     ix^L=ixM^LL^LADD1;
-  
+
     error=zero
-  
+
     w(ixG^T,1:nw)=ps(igrid)%w(ixG^T,1:nw)
-  
+
     if(B0field) then
       if(phys_energy) &
         w(ixG^T,iw_e)=w(ixG^T,iw_e)+0.5d0*sum(ps(igrid)%B0(ixG^T,:,0)**2,dim=ndim+1) &
                         + sum(w(ixG^T,iw_mag(:))*ps(igrid)%B0(ixG^T,:,0),dim=ndim+1)
       w(ixG^T,iw_mag(:))=w(ixG^T,iw_mag(:))+ps(igrid)%B0(ixG^T,:,0)
     end if
-  
+
     do iflag=1,nw+1
-  
+
        if(w_refine_weight(iflag)==0.d0) cycle
        numerator=zero
-  
+
        if (iflag > nw) then
           if (.not. associated(usr_var_for_errest)) then
              call mpistop("usr_var_for_errest not defined")
@@ -114,7 +103,7 @@ contains
              call usr_var_for_errest(ixG^LL,ixG^LL,iflag,ps(igrid)%w,ps(igrid)%x,tmp1)
           end if
        end if
-  
+
        do idims=1,ndim
           hx^L=ix^L-kr(^D,idims);
           jx^L=ix^L+kr(^D,idims);
@@ -203,36 +192,36 @@ contains
           coarsenflag(ix^D) = .true.
        end if
     {end do\}
-    
+
     if (any(refineflag(ixM^T)).and.level<refine_max_level) refine(igrid,mype)=.true.
     if (all(coarsenflag(ixM^T)).and.level>1) coarsen(igrid,mype)=.true.
-  
+
   end subroutine lohner_grid
-  
+
   subroutine lohner_orig_grid(igrid)
     use mod_usr_methods, only: usr_var_for_errest, usr_refine_threshold
     use mod_forest, only: coarsen, refine
     use mod_global_parameters
-  
+
     integer, intent(in) :: igrid
-  
+
     integer :: iflag, idims, level
     integer :: ix^L, hx^L, jx^L, ix^D
     double precision :: epsilon, threshold, wtol(1:nw), xtol(1:ndim)
     double precision, dimension(ixM^T) :: numerator, denominator, error
     double precision, dimension(ixG^T) :: dp, dm, dref, tmp1
     logical, dimension(ixG^T) :: refineflag, coarsenflag
-  
+
     epsilon=1.0d-6
     level=node(plevel_,igrid)
     ix^L=ixM^LL;
-  
+
     error=zero
     do iflag=1,nw+1
        if(w_refine_weight(iflag)==0.d0) cycle
        numerator=zero
        denominator=zero
-  
+
        if (iflag > nw) then
           if (.not. associated(usr_var_for_errest)) then
              call mpistop("usr_var_for_errest not defined")
@@ -240,7 +229,7 @@ contains
              call usr_var_for_errest(ixG^LL,ixG^LL,iflag,ps(igrid)%w,ps(igrid)%x,tmp1)
           end if
        end if
-  
+
        do idims=1,ndim
           hx^L=ix^L-kr(^D,idims);
           jx^L=ix^L+kr(^D,idims);
@@ -271,136 +260,69 @@ contains
                           +dabs(tmp1(hx^S))
             end if
           end if
-  
+
           numerator(ixM^T)=numerator+(dp(ixM^T)-dm(ixM^T))**2.0d0
-  
           denominator(ixM^T)=denominator &
                + (dabs(dp(ixM^T)) + dabs(dm(ixM^T)) + amr_wavefilter(level)*dref(ixM^T))**2.0d0
   
        end do
        error=error+w_refine_weight(iflag)*dsqrt(numerator/max(denominator,epsilon))
     end do
-  
+
     refineflag=.false.
     coarsenflag=.false.
-  
+
     threshold=refine_threshold(level)
     {do ix^DB=ixMlo^DB,ixMhi^DB\}
-  
+
        if (associated(usr_refine_threshold)) then
           wtol(1:nw)   = ps(igrid)%w(ix^D,1:nw)
           xtol(1:ndim) = ps(igrid)%x(ix^D,1:ndim)
           call usr_refine_threshold(wtol, xtol, threshold, global_time, level)
        end if
-  
+
        if (error(ix^D) >= threshold) then
           refineflag(ix^D) = .true.
        else if (error(ix^D) <= derefine_ratio(level)*threshold) then
           coarsenflag(ix^D) = .true.
        end if
     {end do\}
-  
+
     if (any(refineflag(ixM^T)).and.level<refine_max_level) refine(igrid,mype)=.true.
     if (all(coarsenflag(ixM^T)).and.level>1) coarsen(igrid,mype)=.true.
-  
+
   end subroutine lohner_orig_grid
-  
-  subroutine compare1_grid(igrid,wold,w)
-    use mod_usr_methods, only: usr_refine_threshold
-    use mod_forest, only: coarsen, refine
-    use mod_global_parameters
-  
-    integer, intent(in) :: igrid
-    double precision, intent(in) :: wold(ixG^T,1:nw), w(ixG^T,1:nw)
-  
-    integer :: ix^D, iflag, level
-    double precision :: epsilon, threshold, wtol(1:nw), xtol(1:ndim)
-    double precision :: average, error
-    double precision :: averages(nw)
-    logical, dimension(ixG^T) :: refineflag, coarsenflag
-  
-    ! identify the points to be flagged in two steps:
-    !  step I: compare w_n-1 with w_n solution, store w_for_refine in auxiliary
-    !  step II: transfer w_for_refine from auxiliary to refine and coarsen
-  
-    epsilon=1.0d-6
-  
-    refineflag(ixM^T) = .false.
-    coarsenflag(ixM^T) = .false.
-    level=node(plevel_,igrid)
-    threshold=refine_threshold(level)
-    {do ix^DB=ixMlo^DB,ixMhi^DB \}
-       average=zero
-       error=zero
-       do iflag=1,nw+1
-          if(w_refine_weight(iflag)==0) cycle
-          averages(iflag) = w(ix^D,iflag)-wold(ix^D,iflag)
-          average=average+w_refine_weight(iflag)*abs(averages(iflag))
-          if (abs(wold(ix^D,iflag))<smalldouble)then
-             error=error+w_refine_weight(iflag)* &
-                abs(averages(iflag))/(abs(wold(ix^D,iflag))+epsilon)
-          else
-             error=error+w_refine_weight(iflag)* &
-                abs(averages(iflag))/(abs(wold(ix^D,iflag)))
-          end if
-       end do
-  
-       if (associated(usr_refine_threshold)) then
-          wtol(1:nw)   = ps(igrid)%w(ix^D,1:nw)
-          xtol(1:ndim) = ps(igrid)%x(ix^D,1:ndim)
-          call usr_refine_threshold(wtol, xtol, threshold, global_time, level)
-       end if
-  
-       if (error >= threshold) then
-          refineflag(ix^D) = .true.
-       else if (error <= derefine_ratio(level)*threshold) then
-          coarsenflag(ix^D) = .true.
-       end if
-    {end do\}
-  
-    if (any(refineflag(ixM^T))) then
-       if (level<refine_max_level) refine(igrid,mype)=.true.
-    end if
-    if (time_advance) then
-       if (all(coarsenflag(ixM^T)).and.level>1) coarsen(igrid,mype)=.true.
-    end if
-  
-  end subroutine compare1_grid
-  
+
   subroutine forcedrefine_grid(igrid,w)
     use mod_usr_methods, only: usr_refine_grid
     use mod_forest, only: coarsen, refine, buffer
     use mod_global_parameters
-  
+
     integer, intent(in) :: igrid
     double precision, intent(in) :: w(ixG^T,nw)
-  
+
     integer :: level
     integer :: my_refine, my_coarsen
     double precision :: qt
     logical, dimension(ixG^T) :: refineflag
-  
+
     level=node(plevel_,igrid)
-  
+
     ! initialize to 0
     my_refine   = 0
     my_coarsen  = 0
-  
+
     if (time_advance) then
        qt=global_time+dt
     else
-       if (refine_criterion==1) then
-          qt=global_time+dt
-       else
-          qt=global_time
-       end if
+       qt=global_time
     end if
-  
+
     if (associated(usr_refine_grid)) then
        call usr_refine_grid(igrid,level,ixG^LL,ixM^LL,qt,w,ps(igrid)%x, &
             my_refine,my_coarsen)
     end if
-  
+
     if (my_coarsen==1) then
        if (level>1) then
           refine(igrid,mype)=.false.
@@ -409,12 +331,12 @@ contains
           refine(igrid,mype)=.false.
           coarsen(igrid,mype)=.false.
        end if
-    endif
-  
+    end if
+
     if (my_coarsen==-1)then
        coarsen(igrid,mype)=.false.
     end if
-  
+
     if (my_refine==1) then
        if (level<refine_max_level) then
           refine(igrid,mype)=.true.
@@ -424,7 +346,7 @@ contains
           coarsen(igrid,mype)=.false.
        end if
     end if
-  
+
     if (my_refine==-1) then
       refine(igrid,mype)=.false.
     end if
@@ -441,15 +363,15 @@ contains
   subroutine forcedrefine_grid_io(igrid,w)
     use mod_forest, only: coarsen, refine
     use mod_global_parameters
-  
+
     integer, intent(in)          :: igrid
     double precision, intent(in) :: w(ixG^T,nw)
-  
+
     integer                   :: level, my_levmin, my_levmax
     logical, dimension(ixG^T) :: refineflag
-  
+
     level=node(plevel_,igrid)
-  
+
     if (level_io > 0) then
        my_levmin = level_io
        my_levmax = level_io
@@ -457,36 +379,34 @@ contains
        my_levmin = max(1,level_io_min)
        my_levmax = min(refine_max_level,level_io_max)
     end if
-  
-  
+
     if (level>my_levmax) then
-          refine(igrid,mype)=.false.
-          coarsen(igrid,mype)=.true.
+      refine(igrid,mype)=.false.
+      coarsen(igrid,mype)=.true.
     elseif (level<my_levmin) then
-          refine(igrid,mype)=.true.
-          coarsen(igrid,mype)=.false.
+      refine(igrid,mype)=.true.
+      coarsen(igrid,mype)=.false.
     end if
-  
+
     if (level==my_levmin .or. level==my_levmax) then
       refine(igrid,mype)=.false.
       coarsen(igrid,mype)=.false.
     end if
-  
-  
+
     if(refine(igrid,mype).and.level>=refine_max_level)refine(igrid,mype)=.false.
     if(coarsen(igrid,mype).and.level<=1)coarsen(igrid,mype)=.false.
-  
+
   end subroutine forcedrefine_grid_io
-  
+
   subroutine refinebuffer(igrid,refineflag)
     use mod_forest, only: refine, buffer
     use mod_global_parameters
-  
+
     integer, intent(in) :: igrid
     logical, dimension(ixG^T), intent(in) :: refineflag
-  
+
     integer :: ishiftbuf^D, i^D, ix^L, ineighbor, ipe_neighbor, level
-  
+
     ishiftbuf^D=ixMhi^D-ixMlo^D-nbufferx^D+1;
     {do i^DB=-1,1\}
        ixmin^D=max(ixMlo^D,ixMlo^D+i^D*ishiftbuf^D);
@@ -514,6 +434,7 @@ contains
           end select
        end if
     {end do\}
-  
+
   end subroutine refinebuffer
+
 end module mod_errest

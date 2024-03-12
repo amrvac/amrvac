@@ -112,7 +112,7 @@ contains
 
   !> finite volume method
   subroutine finite_volume(method,qdt,dtfactor,ixI^L,ixO^L,idims^LIM, &
-       qtC,sCT,qt,snew,sold,fC,fE,dxs,x)
+       qtC,sCT,qt,snew,fC,fE,dxs,x)
     use mod_physics
     use mod_variables
     use mod_global_parameters
@@ -125,7 +125,7 @@ contains
     double precision, intent(in)                          :: qdt, dtfactor, qtC, qt, dxs(ndim)
     integer, intent(in)                                   :: ixI^L, ixO^L, idims^LIM
     double precision, dimension(ixI^S,1:ndim), intent(in) :: x
-    type(state)                                           :: sCT, snew, sold
+    type(state)                                           :: sCT, snew
     double precision, dimension(ixI^S,1:nwflux,1:ndim)    :: fC
     double precision, dimension(ixI^S,7-2*ndim:3)         :: fE
 
@@ -146,7 +146,7 @@ contains
     logical :: active
     type(ct_velocity) :: vcts
 
-    associate(wCT=>sCT%w, wnew=>snew%w, wold=>sold%w)
+    associate(wCT=>sCT%w, wnew=>snew%w)
 
     fC=0.d0
     fLC=0.d0

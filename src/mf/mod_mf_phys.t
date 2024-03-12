@@ -644,44 +644,8 @@ contains
 
     end if
 
-      {^NOONED
-    if(.not.source_split_divb .and. .not.qsourcesplit .and. istep==nstep) then
-      ! Sources related to div B
-      select case (type_divb)
-      case (divb_none)
-        ! Do nothing
-      case (divb_glm)
-        active = .true.
-        call add_source_glm(dt,ixI^L,ixO^L,pso(block%igrid)%w,w,x)
-      case (divb_powel)
-        active = .true.
-        call add_source_powel(dt,ixI^L,ixO^L,pso(block%igrid)%w,w,x)
-      case (divb_janhunen)
-        active = .true.
-        call add_source_janhunen(dt,ixI^L,ixO^L,pso(block%igrid)%w,w,x)
-      case (divb_linde)
-        active = .true.
-        call add_source_linde(dt,ixI^L,ixO^L,pso(block%igrid)%w,w,x)
-      case (divb_lindejanhunen)
-        active = .true.
-        call add_source_linde(dt,ixI^L,ixO^L,pso(block%igrid)%w,w,x)
-        call add_source_janhunen(dt,ixI^L,ixO^L,pso(block%igrid)%w,w,x)
-      case (divb_lindepowel)
-        active = .true.
-        call add_source_linde(dt,ixI^L,ixO^L,pso(block%igrid)%w,w,x)
-        call add_source_powel(dt,ixI^L,ixO^L,pso(block%igrid)%w,w,x)
-      case (divb_lindeglm)
-        active = .true.
-        call add_source_linde(dt,ixI^L,ixO^L,pso(block%igrid)%w,w,x)
-        call add_source_glm(dt,ixI^L,ixO^L,pso(block%igrid)%w,w,x)
-      case (divb_ct)
-        continue ! Do nothing
-      case (divb_multigrid)
-        continue ! Do nothing
-      case default
-        call mpistop('Unknown divB fix')
-      end select
-    else if(source_split_divb .and. qsourcesplit) then
+    {^NOONED
+    if(source_split_divb .eqv. qsourcesplit) then
       ! Sources related to div B
       select case (type_divb)
       case (divb_none)

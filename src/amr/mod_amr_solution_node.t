@@ -104,8 +104,6 @@ contains
       ! allocate arrays for one level coarser solution
       call alloc_state_coarse(igrid, psc(igrid), ixCoG^L, ixCoG^L)
       if(.not.convert) then
-        ! allocate arrays for old solution
-        call alloc_state(igrid, pso(igrid), ixG^LL, ixGext^L, .false.)
         ! allocate arrays for temp solution 1
         call alloc_state(igrid, ps1(igrid), ixG^LL, ixGext^L, .false.)
   
@@ -133,7 +131,6 @@ contains
     psc(igrid)%w(:^D&,1)=1.d0
     if(phys_trac) ps(igrid)%special_values=0.d0
     if(.not.convert) then
-      pso(igrid)%level=level
       ps1(igrid)%level=level
       select case (t_integrator)
       case(ssprk3,ssprk4,IMEX_Midpoint,IMEX_Trapezoidal,IMEX_222)
@@ -757,7 +754,6 @@ contains
     call dealloc_state_coarse(igrid, psc(igrid))
     if(.not.convert) then
       call dealloc_state(igrid, ps1(igrid),.false.)
-      call dealloc_state(igrid, pso(igrid),.false.)
       ! deallocate temporary solution space
       select case (t_integrator)
       case(ssprk3,ssprk4,IMEX_Midpoint,IMEX_Trapezoidal,IMEX_222)

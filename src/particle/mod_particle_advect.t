@@ -18,11 +18,13 @@ contains
     use mod_global_parameters
     integer :: idir
 
+    ngridvars=0
+    if(ndefpayload>0) ngridvars=1
     allocate(vp(ndir))
     do idir = 1, ndir
       vp(idir) = idir
     end do
-    ngridvars=ndir
+    ngridvars=ngridvars+ndir
 
     particles_fill_gridvars => advect_fill_gridvars
 
@@ -146,15 +148,8 @@ contains
       gridvars(igrid)%w(ixG^T,1:ngridvars) = 0.0d0
       w(ixG^T,1:nw) = ps(igrid)%w(ixG^T,1:nw)
       call phys_to_primitive(ixG^LL,ixG^LL,w,ps(igrid)%x)
+      gridvars(igrid)%w(ixG^T,1) = w(ixG^T,iw_rho)
       gridvars(igrid)%w(ixG^T,vp(:)) = w(ixG^T,iw_mom(:))
-
-      if (time_advance) then
-        gridvars(igrid)%wold(ixG^T,1:ngridvars) = 0.0d0
-        w(ixG^T,1:nw) = pso(igrid)%w(ixG^T,1:nw)
-        call phys_to_primitive(ixG^LL,ixG^LL,w,ps(igrid)%x)
-        gridvars(igrid)%wold(ixG^T,vp(:)) = w(ixG^T,iw_mom(:))
-      end if
-
     end do
 
   end subroutine advect_fill_gridvars
@@ -253,12 +248,12 @@ contains
 
     ! Payload 1 is density
     if (mynpayload > 0 ) then
-      if (.not.time_advance) then
-        call interpolate_var(igrid,ixG^LL,ixM^LL,ps(igrid)%w(ixG^T,iw_rho),ps(igrid)%x,xpart,rho)
-      else
-        call interpolate_var(igrid,ixG^LL,ixM^LL,pso(igrid)%w(ixG^T,iw_rho),ps(igrid)%x,xpart,rho1)
-        call interpolate_var(igrid,ixG^LL,ixM^LL,ps(igrid)%w(ixG^T,iw_rho),ps(igrid)%x,xpart,rho2)
+      if (time_advance) then
+        call interpolate_var(igrid,ixG^LL,ixM^LL,gridvars(igrid)%wold(ixG^T,1),ps(igrid)%x,xpart,rho1)
+        call interpolate_var(igrid,ixG^LL,ixM^LL,gridvars(igrid)%w(ixG^T,1),ps(igrid)%x,xpart,rho2)
         rho = rho1 * (1.0d0 - td) + rho2 * td
+      else
+        call interpolate_var(igrid,ixG^LL,ixM^LL,gridvars(igrid)%w(ixG^T,1),ps(igrid)%x,xpart,rho)
       end if
       mypayload(1) = rho * w_convert_factor(1)
     end if

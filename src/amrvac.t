@@ -103,9 +103,11 @@ program amrvac
 
      if(use_particles) then
        call read_particles_snapshot(part_file_exists)
+       call init_gridvars()
        if (.not. part_file_exists) call particles_create()
        if(convert) then
          call handle_particles()
+         call finish_gridvars()
          call time_spent_on_particles()
          call comm_finalize
          stop
@@ -155,7 +157,10 @@ program amrvac
      ! select active grids
      call selectgrids
 
-     if (use_particles) call particles_create()
+     if (use_particles) then
+       call init_gridvars()
+       call particles_create()
+     end if
 
   end if
 
@@ -311,9 +316,6 @@ contains
        ! if met unphysical values, output the last good status and stop the run
        call MPI_ALLREDUCE(crash,crashall,1,MPI_LOGICAL,MPI_LOR,icomm,ierrmpi)
        if (crashall) then
-         do iigrid=1,igridstail; igrid=igrids(iigrid);
-           ps(igrid)%w=pso(igrid)%w
-         end do
          call saveamrfile(1)
          call saveamrfile(2)
          if(mype==0) write(*,*) "Error: small value encountered, run crash."
@@ -356,6 +358,10 @@ contains
        ! time lapses in one loop
        dt_loop=MPI_WTIME()-time_before_advance
     end do time_evol
+
+    if(use_particles) then
+      call finish_gridvars()
+    end if
 
     time_advance=.false.
 

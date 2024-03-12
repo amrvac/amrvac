@@ -336,23 +336,30 @@ contains
   !> Initialize grid variables for particles
   subroutine init_gridvars()
     use mod_global_parameters
+    use mod_timing
 
     integer :: igrid, iigrid
+
+    tpartc_grid_0=MPI_WTIME()
 
     do iigrid=1,igridstail; igrid=igrids(iigrid);
       allocate(gridvars(igrid)%w(ixG^T,1:ngridvars))
       gridvars(igrid)%w = 0.0d0
-
-      if (time_advance) then
-        allocate(gridvars(igrid)%wold(ixG^T,1:ngridvars))
-        gridvars(igrid)%wold = 0.0d0
-      end if
     end do
 
     call particles_fill_gridvars()
     if (associated(particles_define_additional_gridvars)) then
       call particles_fill_additional_gridvars()
     end if
+
+    if (time_advance) then
+      do iigrid=1,igridstail; igrid=igrids(iigrid);
+        allocate(gridvars(igrid)%wold(ixG^T,1:ngridvars))
+        gridvars(igrid)%wold = 0.0d0
+      end do
+    end if
+
+    tpartc_grid = tpartc_grid + (MPI_WTIME()-tpartc_grid_0)
 
   end subroutine init_gridvars
 
@@ -388,18 +395,8 @@ contains
       else
         call fields_from_mhd(igrid, ps(igrid)%w, gridvars(igrid)%w)
       end if
-
-      if (time_advance) then
-        if (associated(usr_particle_fields)) then
-          call usr_particle_fields(pso(igrid)%w, ps(igrid)%x, E, B, J)
-          gridvars(igrid)%wold(ixG^T,ep(:)) = E
-          gridvars(igrid)%wold(ixG^T,bp(:)) = B
-          gridvars(igrid)%wold(ixG^T,jp(:)) = J
-        else
-          call fields_from_mhd(igrid, pso(igrid)%w, gridvars(igrid)%wold)
-        end if
-      end if
     end do
+
   end subroutine fill_gridvars_default
 
   !> Determine fields from MHD variables
@@ -510,6 +507,27 @@ contains
 
   end subroutine particle_get_current
 
+  !> update grid variables for particles
+  subroutine update_gridvars()
+    use mod_global_parameters
+
+    integer :: igrid, iigrid
+
+    tpartc_grid_0=MPI_WTIME()
+
+    do iigrid=1,igridstail; igrid=igrids(iigrid);
+       gridvars(igrid)%wold(ixG^T,1:ngridvars)=gridvars(igrid)%w(ixG^T,1:ngridvars)
+    end do
+
+    call particles_fill_gridvars()
+    if (associated(particles_define_additional_gridvars)) then
+      call particles_fill_additional_gridvars()
+    end if
+
+    tpartc_grid = tpartc_grid + (MPI_WTIME()-tpartc_grid_0)
+
+  end subroutine update_gridvars
+
   !> Let particles evolve in time. The routine also handles grid variables and
   !> output.
   subroutine handle_particles()
@@ -522,19 +540,16 @@ contains
 
     call set_neighbor_ipe
 
-    tpartc_grid_0=MPI_WTIME()
-    call init_gridvars()
-    tpartc_grid = tpartc_grid + (MPI_WTIME()-tpartc_grid_0)
-
+    if (time_advance) then
+      tmax_particles = global_time + dt
+      call update_gridvars()
+    else
+      tmax_particles = time_max
+    end if
     tpartc_com0=MPI_WTIME()
     call comm_particles_global()
     tpartc_com=tpartc_com + (MPI_WTIME()-tpartc_com0)
 
-    if (time_advance) then
-      tmax_particles = global_time + dt
-    else
-      tmax_particles = global_time + (time_max-global_time)
-    end if
 
     ! main integration loop
     do
@@ -561,8 +576,6 @@ contains
       if (nparticles_left == 0 .and. convert) call mpistop('No particles left')
 
     end do
-
-    call finish_gridvars()
 
     tpartc = tpartc + (MPI_WTIME() - tpartc0)
 

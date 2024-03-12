@@ -23,8 +23,15 @@ contains
 
     ! The first 6 gridvars are always B and E
     ngridvars = ndir*2
-    nwx = 0
+    nwx=0
+    ! density
+    if(particles_etah>0) nwx = 1
 
+    allocate(vp(ndir))
+    do idir = 1, ndir
+      nwx = nwx + 1
+      vp(idir) = nwx
+    end do
     allocate(bp(ndir))
     do idir = 1, ndir
       nwx = nwx + 1
@@ -34,11 +41,6 @@ contains
     do idir = 1, ndir
       nwx = nwx + 1
       ep(idir) = nwx
-    end do
-    allocate(vp(ndir))
-    do idir = 1, ndir
-      nwx = nwx + 1
-      vp(idir) = nwx
     end do
     allocate(jp(ndir))
     do idir = 1, ndir
@@ -173,21 +175,16 @@ contains
     double precision, dimension(ixG^T,1:ndir) :: vE, bhat
     double precision, dimension(ixG^T)        :: kappa, kappa_B, absB, tmp
 
-    ! Fill electromagnetic quantities
-    call fill_gridvars_default()
-
     ! Fill fluid velocity
     do iigrid=1,igridstail; igrid=igrids(iigrid);
       w(ixG^T,1:nw) = ps(igrid)%w(ixG^T,1:nw)
       call phys_to_primitive(ixG^LL,ixG^LL,w,ps(igrid)%x)
+      gridvars(igrid)%w(ixG^T,1) = w(ixG^T,iw_rho)
       gridvars(igrid)%w(ixG^T,vp(:)) = w(ixG^T,iw_mom(:))
-
-      if(time_advance) then
-        w(ixG^T,1:nw) = pso(igrid)%w(ixG^T,1:nw)
-        call phys_to_primitive(ixG^LL,ixG^LL,w,ps(igrid)%x)
-        gridvars(igrid)%wold(ixG^T,vp(:)) = w(ixG^T,iw_mom(:))
-      end if
     end do
+
+    ! Fill electromagnetic quantities
+    call fill_gridvars_default()
 
   end subroutine lorentz_fill_gridvars
 
@@ -243,10 +240,10 @@ contains
         e(z_) = -vfluid(r_)*b(phi_)+vfluid(phi_)*b(r_) + particles_eta*current(z_)
       end select
       if (particles_etah > zero) then
-        call interpolate_var(igrid,ixG^LL,ixM^LL,ps(igrid)%w(ixG^T,1),ps(igrid)%x,xpm,rho)
+        call interpolate_var(igrid,ixG^LL,ixM^LL,gridvars(igrid)%w(ixG^T,1),ps(igrid)%x,xpm,rho)
         if (time_advance) then
           td = (tp+dt_p/2.d0 - global_time) / dt
-          call interpolate_var(igrid,ixG^LL,ixM^LL,pso(igrid)%w(ixG^T,1),ps(igrid)%x,xpm,rhoold)
+          call interpolate_var(igrid,ixG^LL,ixM^LL,gridvars(igrid)%wold(ixG^T,1),ps(igrid)%x,xpm,rhoold)
           rho = rhoold * (1.d0-td) + rho * td
         end if
         select case (coordinate)
@@ -472,10 +469,10 @@ contains
       e(z_) = -vfluid(r_)*b(phi_)+vfluid(phi_)*b(r_) + particles_eta*current(z_)
     end select
     if (particles_etah > zero) then
-      call interpolate_var(igrid,ixG^LL,ixM^LL,ps(igrid)%w(ixG^T,1),ps(igrid)%x,xpart,rho)
+      call interpolate_var(igrid,ixG^LL,ixM^LL,gridvars(igrid)%w(ixG^T,1),ps(igrid)%x,xpart,rho)
       if (time_advance) then
         td = (particle_time - global_time) / dt
-        call interpolate_var(igrid,ixG^LL,ixM^LL,pso(igrid)%w(ixG^T,1),ps(igrid)%x,xpart,rhoold)
+        call interpolate_var(igrid,ixG^LL,ixM^LL,gridvars(igrid)%wold(ixG^T,1),ps(igrid)%x,xpart,rhoold)
         rho = rhoold * (1.d0-td) + rho * td
       end if
       select case (coordinate)

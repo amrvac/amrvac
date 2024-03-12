@@ -63,7 +63,6 @@ contains
     allocate(ps2(max_blocks))
     allocate(ps3(max_blocks))
     allocate(ps4(max_blocks))
-    allocate(pso(max_blocks))
     allocate(psc(max_blocks))
     allocate(ps_sub(max_blocks))
     allocate(neighbor(2,-1:1^D&,max_blocks),neighbor_child(2,0:3^D&,max_blocks))

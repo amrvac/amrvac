@@ -3,12 +3,10 @@ module mod_boundary_conditions
   implicit none
   private
 
-
   public :: bc_phys
   public :: getintbc
 
 contains
-  
 
   !> fill ghost cells at a physical boundary
   subroutine bc_phys(iside,idims,time,qdt,s,ixG^L,ixB^L)
@@ -17,18 +15,18 @@ contains
     use mod_global_parameters
     use mod_physics
     use mod_functions_bfield, only: get_divb
-  
+
     integer, intent(in) :: iside, idims, ixG^L,ixB^L
     double precision, intent(in) :: time,qdt
     type(state), intent(inout) :: s
     double precision :: wtmp(ixG^S,1:nwflux)
-  
+
     integer :: idir, is
     integer :: ixOs^L,hxO^L,jxO^L
     double precision :: Q(ixG^S),Qp(ixG^S) 
     integer :: iw, iB, ix^D, ixO^L, ixM^L, nghostcellsi,iib^D
     logical  :: isphysbound
-  
+
     associate(x=>s%x,w=>s%w,ws=>s%ws)
     select case (idims)
     {case (^D)
@@ -244,133 +242,53 @@ contains
           end if
        end if \}
     end select
-  
+
     ! do user defined special boundary conditions
     if (any(typeboundary(1:nwflux+nwaux,iB)==bc_special)) then
        if (.not. associated(usr_special_bc)) &
             call mpistop("usr_special_bc not defined")
        call usr_special_bc(time,ixG^L,ixO^L,iB,w,x)
     end if
-  
+
     ! fill boundary conditions from external data vtk files
     if (any(typeboundary(1:nwflux+nwaux,iB)==bc_data)) then
        call bc_data_set(time,ixG^L,ixO^L,iB,w,x)
     end if
-  
 
-  ! fill boundary conditions from external data vtk files and do user defined special boundary conditions
-  if (any(typeboundary(1:nwflux+nwaux,iB)==bc_icarus)) then
-     call bc_data_set(time,ixG^L,ixO^L,iB,w,x)
-     if (.not. associated(usr_special_bc)) &
-          call mpistop("usr_special_bc not defined")
-     call usr_special_bc(time,ixG^L,ixO^L,iB,w,x)
-  end if
-
-    {#IFDEF EVOLVINGBOUNDARY
-    if (any(typeboundary(1:nwflux,iB)==bc_character)) then
-      ixM^L=ixM^LL;
-      if(ixGmax1==ixGhi1) then
-        nghostcellsi=nghostcells
-      else
-        nghostcellsi=ceiling(nghostcells*0.5d0)
-      end if
-      select case (idims)
-      {case (^D)
-         if (iside==2) then
-            ! maximal boundary
-            ixOmin^DD=ixGmax^D+1-nghostcellsi^D%ixOmin^DD=ixBmin^DD;
-            ixOmax^DD=ixBmax^DD;
-            if(all(w(ixO^S,1:nwflux)==0.d0)) then
-              do ix^D=ixOmin^D,ixOmax^D
-                 w(ix^D^D%ixO^S,1:nwflux) = w(ixOmin^D-1^D%ixO^S,1:nwflux)
-              end do
-            end if
-            if(qdt>0.d0.and.ixGmax^D==ixGhi^D) then
-              ixOmin^DD=ixOmin^D^D%ixOmin^DD=ixMmin^DD;
-              ixOmax^DD=ixOmax^D^D%ixOmax^DD=ixMmax^DD;
-              wtmp(ixG^S,1:nw)=pso(block%igrid)%w(ixG^S,1:nw)
-              call characteristic_project(idims,iside,ixG^L,ixO^L,wtmp,x,dxlevel,qdt)
-              w(ixO^S,1:nwflux)=wtmp(ixO^S,1:nwflux)
-            end if
-         else
-            ! minimal boundary
-            ixOmin^DD=ixBmin^DD;
-            ixOmax^DD=ixGmin^D-1+nghostcellsi^D%ixOmax^DD=ixBmax^DD;
-            if(all(w(ixO^S,1:nwflux)==0.d0)) then
-              do ix^D=ixOmin^D,ixOmax^D
-                 w(ix^D^D%ixO^S,1:nwflux) = w(ixOmax^D+1^D%ixO^S,1:nwflux)
-              end do
-            end if
-            if(qdt>0.d0.and.ixGmax^D==ixGhi^D) then
-              ixOmin^DD=ixOmin^D^D%ixOmin^DD=ixMmin^DD;
-              ixOmax^DD=ixOmax^D^D%ixOmax^DD=ixMmax^DD;
-              wtmp(ixG^S,1:nw)=pso(block%igrid)%w(ixG^S,1:nw)
-              call characteristic_project(idims,iside,ixG^L,ixO^L,wtmp,x,dxlevel,qdt)
-              w(ixO^S,1:nwflux)=wtmp(ixO^S,1:nwflux)
-            end if
-         end if \}
-      end select
-      if(ixGmax1==ixGhi1) then
-        call identifyphysbound(block%igrid,isphysbound,iib^D)   
-        if(iib1==-1.and.iib2==-1) then
-          do ix2=nghostcells,1,-1 
-            do ix1=nghostcells,1,-1 
-              w(ix^D,1:nwflux)=(w(ix1+1,ix2+1,1:nwflux)+w(ix1+1,ix2,1:nwflux)+w(ix1,ix2+1,1:nwflux))/3.d0
-            end do
-          end do
-        end if
-        if(iib1== 1.and.iib2==-1) then
-          do ix2=nghostcells,1,-1 
-            do ix1=ixMmax1+1,ixGmax1
-              w(ix^D,1:nwflux)=(w(ix1-1,ix2+1,1:nwflux)+w(ix1-1,ix2,1:nwflux)+w(ix1,ix2+1,1:nwflux))/3.d0
-            end do
-          end do
-        end if
-        if(iib1==-1.and.iib2== 1) then
-          do ix2=ixMmax2+1,ixGmax2
-            do ix1=nghostcells,1,-1 
-              w(ix^D,1:nwflux)=(w(ix1+1,ix2-1,1:nwflux)+w(ix1+1,ix2,1:nwflux)+w(ix1,ix2-1,1:nwflux))/3.d0
-            end do
-          end do
-        end if
-        if(iib1== 1.and.iib2== 1) then
-          do ix2=ixMmax2+1,ixGmax2
-            do ix1=ixMmax1+1,ixGmax1
-              w(ix^D,1:nwflux)=(w(ix1-1,ix2-1,1:nwflux)+w(ix1-1,ix2,1:nwflux)+w(ix1,ix2-1,1:nwflux))/3.d0
-            end do
-          end do
-        end if
-      end if
+    ! fill boundary conditions from external data vtk files and do user defined special boundary conditions
+    if (any(typeboundary(1:nwflux+nwaux,iB)==bc_icarus)) then
+       call bc_data_set(time,ixG^L,ixO^L,iB,w,x)
+       if (.not. associated(usr_special_bc)) &
+            call mpistop("usr_special_bc not defined")
+       call usr_special_bc(time,ixG^L,ixO^L,iB,w,x)
     end if
-    }
-    !end do
-  
+
     end associate
   end subroutine bc_phys
-  
+
   !> fill inner boundary values
   subroutine getintbc(time,ixG^L)
     use mod_usr_methods, only: usr_internal_bc
     use mod_global_parameters
-  
+
     double precision, intent(in)   :: time
     integer, intent(in)            :: ixG^L
   
     integer :: iigrid, igrid, ixO^L
   
     ixO^L=ixG^L^LSUBnghostcells;
-  
+
     !$OMP PARALLEL DO SCHEDULE(dynamic) PRIVATE(igrid)
     do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
        block=>ps(igrid)
        ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
-  
+
        if (associated(usr_internal_bc)) then
           call usr_internal_bc(node(plevel_,igrid),time,ixG^L,ixO^L,ps(igrid)%w,ps(igrid)%x)
        end if
     end do
     !$OMP END PARALLEL DO
-  
+
   end subroutine getintbc
 
 end module mod_boundary_conditions
