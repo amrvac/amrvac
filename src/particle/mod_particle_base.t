@@ -352,12 +352,10 @@ contains
       call particles_fill_additional_gridvars()
     end if
 
-    if (time_advance) then
-      do iigrid=1,igridstail; igrid=igrids(iigrid);
-        allocate(gridvars(igrid)%wold(ixG^T,1:ngridvars))
-        gridvars(igrid)%wold = 0.0d0
-      end do
-    end if
+    do iigrid=1,igridstail; igrid=igrids(iigrid);
+      allocate(gridvars(igrid)%wold(ixG^T,1:ngridvars))
+      gridvars(igrid)%wold = 0.0d0
+    end do
 
     tpartc_grid = tpartc_grid + (MPI_WTIME()-tpartc_grid_0)
 
