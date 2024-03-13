@@ -73,6 +73,7 @@ mod_amr_grid.o: mod_errest.mod
 mod_amr_grid.o: mod_fix_conserve.mod
 mod_amr_grid.o: mod_ghostcells_update.mod
 mod_amr_grid.o: mod_global_parameters.mod
+mod_amr_grid.o: mod_particles.mod
 mod_amr_neighbors.o: mod_forest.mod
 mod_amr_neighbors.o: mod_geometry.mod
 mod_amr_neighbors.o: mod_global_parameters.mod

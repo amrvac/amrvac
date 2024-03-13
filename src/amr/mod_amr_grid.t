@@ -49,9 +49,15 @@ contains
     use mod_amr_fct
     use mod_coarsen_refine
     use mod_errest, only: errest 
+    use mod_particles
 
     if(levmax>levmin) call deallocateBflux
     if(stagger_grid) call deallocateBfaces
+
+    ! deallocate old grids for particles
+    if(use_particles) then
+      call finish_gridvars()
+    end if
   
     call errest
 
@@ -59,6 +65,11 @@ contains
 
     ! set up boundary flux conservation arrays
     if(levmax>levmin) call allocateBflux
+
+    ! generate new grids for particles
+    if(use_particles) then
+      call init_gridvars()
+    end if
 
   end subroutine resettree
 

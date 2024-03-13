@@ -343,19 +343,15 @@ contains
     tpartc_grid_0=MPI_WTIME()
 
     do iigrid=1,igridstail; igrid=igrids(iigrid);
-      allocate(gridvars(igrid)%w(ixG^T,1:ngridvars))
+      allocate(gridvars(igrid)%w(ixG^T,1:ngridvars),gridvars(igrid)%wold(ixG^T,1:ngridvars))
       gridvars(igrid)%w = 0.0d0
+      gridvars(igrid)%wold = 0.0d0
     end do
 
     call particles_fill_gridvars()
     if (associated(particles_define_additional_gridvars)) then
       call particles_fill_additional_gridvars()
     end if
-
-    do iigrid=1,igridstail; igrid=igrids(iigrid);
-      allocate(gridvars(igrid)%wold(ixG^T,1:ngridvars))
-      gridvars(igrid)%wold = 0.0d0
-    end do
 
     tpartc_grid = tpartc_grid + (MPI_WTIME()-tpartc_grid_0)
 
@@ -368,8 +364,7 @@ contains
     integer :: iigrid, igrid
 
     do iigrid=1,igridstail; igrid=igrids(iigrid);
-      deallocate(gridvars(igrid)%w)
-      if(time_advance) deallocate(gridvars(igrid)%wold)
+      deallocate(gridvars(igrid)%w,gridvars(igrid)%wold)
     end do
 
   end subroutine finish_gridvars
@@ -508,13 +503,14 @@ contains
   !> update grid variables for particles
   subroutine update_gridvars()
     use mod_global_parameters
+    use mod_timing
 
     integer :: igrid, iigrid
 
     tpartc_grid_0=MPI_WTIME()
 
     do iigrid=1,igridstail; igrid=igrids(iigrid);
-       gridvars(igrid)%wold(ixG^T,1:ngridvars)=gridvars(igrid)%w(ixG^T,1:ngridvars)
+       gridvars(igrid)%wold=gridvars(igrid)%w
     end do
 
     call particles_fill_gridvars()
@@ -529,8 +525,8 @@ contains
   !> Let particles evolve in time. The routine also handles grid variables and
   !> output.
   subroutine handle_particles()
-    use mod_timing
     use mod_global_parameters
+    use mod_timing
 
     integer :: steps_taken, nparticles_left
 

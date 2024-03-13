@@ -75,7 +75,7 @@ contains
           end do
         end do
         do n=1, num_particles
-          {^D&x(^D,n) = xprobmin^D + rrd(n+1,^D) * (xprobmax^D - xprobmin^D)\}
+          {^D&x(^D,n) = xprobmin^D + rrd(n,^D) * (xprobmax^D - xprobmin^D)\}
         end do
       else
         call usr_create_particles(num_particles, x, v, q, m, follow)
