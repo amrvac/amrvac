@@ -152,7 +152,7 @@ contains
   subroutine generateTV(vtim,vlim,periods,variation,mnx,num,si)
     integer, intent(in)          :: vtim,vlim,mnx,num
     double precision, intent(in) :: periods,variation,si
-    integer                      :: vx,j
+    integer                      :: i,vx,j
     character(len=100)           :: filename
     logical                      :: alive
 
@@ -274,6 +274,7 @@ contains
     character(len=100), intent(in)  :: filename
     double precision, allocatable   :: vn(:,:),vm(:)
     double precision                :: lambda,c,lambda_min,lambda_max,rms,ll
+    integer                         :: i
     integer                         :: j, kk, lth = 1
  
     allocate(vn(num, mnx))

@@ -742,12 +742,12 @@ contains
         ! stretch to left from xprobmin+xstretch
         ic^D = block_nx^D-(int(dlog((xprobmin^D+xstretch^D-xloc(^D))*(qstretch(ps(igrid)%level,^D)-one)/&
             dxfirst(ps(igrid)%level,^D)+one)/dlog(qstretch(ps(igrid)%level,^D)))-&
-            (nstretchedblocks(level,^D)/2-node(pig^D_,igrid))*block_nx^D)+nghostcells
+            (nstretchedblocks(ps(igrid)%level,^D)/2-node(pig^D_,igrid))*block_nx^D)+nghostcells
       else if(xloc(^D)>xprobmax^D-xstretch^D) then
         ! stretch to right from xprobmax-xstretch
         ic^D = ceiling(dlog((xloc(^D)-xprobmax^D+xstretch^D)*(qstretch(ps(igrid)%level,^D)-one)/&
             dxfirst(ps(igrid)%level,^D)+one)/dlog(qstretch(ps(igrid)%level,^D)))-&
-            ((node(pig^D_,igrid)-1+nstretchedblocks(level,^D)/2)*block_nx^D-&
+            ((node(pig^D_,igrid)-1+nstretchedblocks(ps(igrid)%level,^D)/2)*block_nx^D-&
             domain_nx^D*2**(ps(igrid)%level-one))+nghostcells
       else
         ! possible non-stretched central part
