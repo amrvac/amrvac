@@ -21,10 +21,11 @@ contains
     integer, intent(in)             :: ixI^L, ixO^L, mode, vtim, vlim
     double precision, intent(in)    :: qt, trelax, x(ixI^S,1:ndim)
     double precision, intent(inout) :: lQgrid(ixI^S)
-    integer                         :: Bp,Bt1,Bt2,ix^D,i
+
     double precision                :: tl1,tl2,tl3,tl4,tl5,tl6,t2,stt
     double precision                :: tr1,tr2,tr3,tr4,tr5,tr6
     double precision                :: va0
+    integer                         :: Bp,Bt1,Bt2,ix^D,i
 
     t2 = qt - trelax
     va0=0.4d0
@@ -44,8 +45,7 @@ contains
             tl4 = dexp(-(t2 - tb1(i))**2/(0.5d0*ta1(i))**2)
             tl5 = dexp(-(t2 - tb1(i+1))**2/(0.5d0*ta1(i+1))**2)
             tl6 = dexp(-(t2 - tb1(i+2))**2/(0.5d0*ta1(i+2))**2)
-            do ix2 = ixOmin2,ixOmax2
-            do ix1 = ixOmin1,ixOmax1
+            {do ix^DB = ixOmin^DB,ixOmax^DB\}
               Bp = floor((x(ix^D,1) - xprobmin1) / stt) + 1
               if (Bp .lt. 1)  Bp=1
               if(x(ix^D,1) .lt. 0.d0) then
@@ -56,8 +56,7 @@ contains
                                 + tl5 * (va1(Bp + (i)*vlim)*(one-va0)+va0) &
                                 + tl6 * (va1(Bp + (i+1)*vlim)*(one-va0)+va0)
               endif
-            enddo
-            enddo
+            {enddo\}
             exit
           endif
         enddo
@@ -70,8 +69,7 @@ contains
             tr4 = dexp(-(t2 - tb2(i))**2/(0.5d0*ta2(i))**2)
             tr5 = dexp(-(t2 - tb2(i+1))**2/(0.5d0*ta2(i+1))**2)
             tr6 = dexp(-(t2 - tb2(i+2))**2/(0.5d0*ta2(i+2))**2)
-            do ix2 = ixOmin2,ixOmax2
-            do ix1 = ixOmin1,ixOmax1
+            {do ix^DB = ixOmin^DB,ixOmax^DB\}
               Bp = floor((x(ix^D,1) - xprobmin1) / stt) + 1   
               if (Bp .lt. 1)  Bp=1
               if(x(ix^D,1) .ge. 0.d0) then
@@ -82,8 +80,7 @@ contains
                                 + tr5 * (va2(Bp + (i)*vlim)*(one-va0)+va0) &
                                 + tr6 * (va2(Bp + (i+1)*vlim)*(one-va0)+va0)
               endif
-            enddo
-            enddo
+            {enddo\}
             exit
           endif
         enddo
@@ -133,16 +130,14 @@ contains
         tr2 = dsin((t2 - tb2(Bt2-1)) * dpi / (tb2(Bt2+1) - tb2(Bt2-1)))
         tr4 = dsin((t2 - tb2(Bt2)) * dpi / (tb2(Bt2+2) - tb2(Bt2)))
       endif
-      do ix1 = ixOmin1,ixOmax1
-        do ix2 = ixOmin2,ixOmax2
+      {do ix^DB = ixOmin^DB,ixOmax^DB\}
           Bp = floor((x(ix^D,1) - xprobmin1) / stt) + 1
           if(x(ix^D,1) .lt. 0.d0) then
             lQgrid(ix^D) = tr1 * (va1(Bp + Bt1*vlim)*(one-va0)+va0) + tr3 * (va1(Bp+(Bt1+1)*vlim)*(one-va0)+va0)
           else
             lQgrid(ix^D) = tr2 * (va2(Bp + Bt2*vlim)*(one-va0)+va0) + tr4 * (va2(Bp+(Bt2+1)*vlim)*(one-va0)+va0)
           endif
-        enddo
-      enddo
+      {enddo\}
     case default
       call mpistop('unknow mode')
     end select
@@ -265,7 +260,6 @@ contains
     close(21)
      
   end subroutine randomT
-
 
   subroutine randomV(va,vtim,vlim,mnx,num,si,filename)
     integer, intent(in)             :: vtim,vlim,mnx,num

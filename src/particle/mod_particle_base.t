@@ -748,7 +748,7 @@ contains
         ic^D = ceiling(dlog((xloc(^D)-xprobmax^D+xstretch^D)*(qstretch(ps(igrid)%level,^D)-one)/&
             dxfirst(ps(igrid)%level,^D)+one)/dlog(qstretch(ps(igrid)%level,^D)))-&
             ((node(pig^D_,igrid)-1+nstretchedblocks(ps(igrid)%level,^D)/2)*block_nx^D-&
-            domain_nx^D*2**(ps(igrid)%level-one))+nghostcells
+            domain_nx^D*2**(ps(igrid)%level-1))+nghostcells
       else
         ! possible non-stretched central part
         ic^D = int((xloc(^D)-rnode(rpxmin^D_,igrid))/rnode(rpdx^D_,igrid)) + 1 + nghostcells
@@ -1733,8 +1733,7 @@ contains
              send_n_particles_to_ipe(ipe_particle) = &
                   send_n_particles_to_ipe(ipe_particle) + 1
              if (send_n_particles_to_ipe(ipe_particle) .gt. nparticles_per_cpu_hi) &
-               call mpistop('comm_particles: sending too&
-                 &many particles, increase nparticles_per_cpu_hi')
+               call mpistop('too many particles, increase nparticles_per_cpu_hi')
              particle_index_to_be_sent_to_ipe(send_n_particles_to_ipe(ipe_particle),ipe_particle) = ipart
              !             !$OMP END CRITICAL(send)
           end if ! ipe_particle
@@ -1885,8 +1884,7 @@ contains
           send_n_particles_to_ipe(ipe_particle) = &
                send_n_particles_to_ipe(ipe_particle) + 1
           if (send_n_particles_to_ipe(ipe_particle) .gt. nparticles_per_cpu_hi) &
-            call mpistop('comm_particles_global: sending too&
-              &many particles, increase nparticles_per_cpu_hi')
+            call mpistop('G: too many particles increase nparticles_per_cpu_hi')
           particle_index_to_be_sent_to_ipe(send_n_particles_to_ipe(ipe_particle),ipe_particle) = ipart
           !          !$OMP END CRITICAL(send)
        end if ! ipe_particle
