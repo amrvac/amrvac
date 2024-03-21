@@ -112,6 +112,7 @@ module mod_twofl_phys
   integer, public :: equi_pe_c0_ = -1
   logical, public                         :: twofl_equi_thermal_c = .false.
 
+  logical, public                         :: twofl_equi_thermal = .false.
   !neutrals:
 
   integer, public              :: rho_n_
@@ -226,7 +227,7 @@ module mod_twofl_phys
   ! TODO needed for the roe, see if can be used for n
   public :: twofl_get_csound2_c_from_conserved
   public :: get_rhon_tot
-  public :: get_alpha_coll_plasma
+  public :: get_alpha_coll
   public :: get_gamma_ion_rec
   public :: twofl_get_v_n_idim
   public :: get_current
@@ -288,7 +289,7 @@ contains
       twofl_thermal_conduction_c, use_twofl_tc_c, twofl_radiative_cooling_c, twofl_Hall, twofl_gravity,&
       twofl_viscosity, twofl_4th_order, typedivbfix, source_split_divb, divbdiff,&
       typedivbdiff, type_ct, divbwave, SI_unit, B0field,&
-      B0field_forcefree, Bdip, Bquad, Boct, Busr,twofl_equi_thermal_c,&
+      B0field_forcefree, Bdip, Bquad, Boct, Busr,twofl_equi_thermal_c,twofl_equi_thermal,&
       twofl_dump_full_vars, has_equi_rho_c0, has_equi_pe_c0, twofl_hyperdiffusivity,twofl_dump_hyperdiffusivity_coef,&
       has_equi_pe_n0, has_equi_rho_n0, twofl_thermal_conduction_n, twofl_radiative_cooling_n,  &
       twofl_alpha_coll,twofl_alpha_coll_constant,&
@@ -748,6 +749,10 @@ contains
         .or. twofl_radiative_cooling_n)) then
       call mpistop("radiative cooling needs twofl_energy=T")
     end if
+
+    if(twofl_equi_thermal .and. (.not. has_equi_pe_c0 .or. .not.  has_equi_pe_n0)) then
+      call mpistop("twofl_equi_thermal=T has_equi_pe_n0 and has _equi_pe_c0=T")
+    endif
 
     ! initialize thermal conduction module
     if (twofl_radiative_cooling_c &
@@ -6784,21 +6789,31 @@ contains
     !update internal energy
     if(twofl_coll_inc_te) then
       if(has_equi_pe_n0) then
-        tmp4(ixO^S) = tmp4(ixO^S) + block%equi_vars(ixO^S,equi_pe_n0_,0)*inv_gamma_1  
+        tmp2= block%equi_vars(ixO^S,equi_pe_n0_,0)*inv_gamma_1  
       endif
       if(has_equi_pe_c0) then
-        tmp5(ixO^S) = tmp5(ixO^S) + block%equi_vars(ixO^S,equi_pe_c0_,0)*inv_gamma_1 
+        tmp3(ixO^S)=block%equi_vars(ixO^S,equi_pe_c0_,0)*inv_gamma_1
       endif
-
+      if (twofl_equi_thermal) then
+        tmp(ixO^S) = alpha(ixO^S) *(-1d0/Rn*(rhoc(ixO^S) * tmp4(ixO^S) + &
+          tmp2(ixO^S)*w(ixO^S,rho_c_)) + 1d0/Rc*(rhon(ixO^S) * tmp5(ixO^S) +&
+          tmp3(ixO^S)*w(ixO^S,rho_n_))) 
+       endif 
+      if(has_equi_pe_n0) then
+        tmp4(ixO^S) = tmp2(ixO^S) + tmp4(ixO^S) 
+      endif
+      if(has_equi_pe_c0) then
+        tmp5(ixO^S) = tmp3(ixO^S) + tmp5(ixO^S) 
+      endif
+      if (.not. twofl_equi_thermal) then
       tmp(ixO^S) = alpha(ixO^S) *(-rhoc(ixO^S)/Rn * tmp4(ixO^S) + rhon(ixO^S)/Rc * tmp5(ixO^S))
+      endif
       tmp2(ixO^S) =  alpha(ixO^S) * (rhon(ixO^S)/Rc +  rhoc(ixO^S)/Rn)     
       if(twofl_coll_inc_ionrec) then
         tmp2(ixO^S) =  tmp2(ixO^S) + gamma_rec(ixO^S)/Rc + gamma_ion(ixO^S)/Rn 
         tmp(ixO^S) = tmp(ixO^S) - gamma_ion(ixO^S)/Rn * tmp4(ixO^S) + gamma_rec(ixO^S)/Rc * tmp5(ixO^S)
       endif
-
       call calc_mult_factor(ixI^L, ixO^L, dtfactor * qdt, tmp2, tmp3) 
-
       wout(ixO^S,e_n_) = wout(ixO^S,e_n_)+tmp(ixO^S)*tmp3(ixO^S)
       wout(ixO^S,e_c_) = wout(ixO^S,e_c_)-tmp(ixO^S)*tmp3(ixO^S)
     endif
@@ -6860,11 +6875,18 @@ contains
     double precision :: tmp(ixI^S),tmp1(ixI^S),tmp2(ixI^S),tmp3(ixI^S),tmp4(ixI^S),tmp5(ixI^S)
     !double precision :: v_c(ixI^S,ndir), v_n(ixI^S,ndir)
     double precision, allocatable :: v_c(:^D&,:), v_n(:^D&,:)
+    double precision, allocatable :: rho_c1(:^D&), rho_n1(:^D&)
     double precision :: rhon(ixI^S), rhoc(ixI^S), alpha(ixI^S)
     double precision, allocatable :: gamma_rec(:^D&), gamma_ion(:^D&)
 
+    ! copy density before overwrite 
+    if(twofl_equi_thermal) then
+       allocate(rho_n1(ixI^S), rho_c1(ixI^S)) 
+       rho_n1(ixO^S) = w(ixO^S,rho_n_) 
+       rho_c1(ixO^S) = w(ixO^S,rho_c_) 
+    endif
 
-    ! get velocity before overwrite density
+    ! get total density before overwrite density
     call get_rhon_tot(w,x,ixI^L,ixO^L,rhon)
     call get_rhoc_tot(w,x,ixI^L,ixO^L,rhoc)
     if(phys_internal_e) then
@@ -6943,14 +6965,28 @@ contains
 
     !update internal energy
     if(twofl_coll_inc_te) then
+
       if(has_equi_pe_n0) then
-        tmp4(ixO^S) = tmp4(ixO^S) + block%equi_vars(ixO^S,equi_pe_n0_,0)*inv_gamma_1  
+        tmp2= block%equi_vars(ixO^S,equi_pe_n0_,0)*inv_gamma_1  
       endif
       if(has_equi_pe_c0) then
-        tmp5(ixO^S) = tmp5(ixO^S) + block%equi_vars(ixO^S,equi_pe_c0_,0)*inv_gamma_1 
+        tmp3(ixO^S)=block%equi_vars(ixO^S,equi_pe_c0_,0)*inv_gamma_1
+      endif
+      if (twofl_equi_thermal) then
+        tmp(ixO^S) = alpha(ixO^S) *(-1d0/Rn*(rhoc(ixO^S) * tmp4(ixO^S) + &
+          tmp2(ixO^S)*rho_c1(ixO^S)) + 1d0/Rc*(rhon(ixO^S) * tmp5(ixO^S) +&
+          tmp3(ixO^S)*rho_n1(ixO^S))) 
+       endif 
+      if(has_equi_pe_n0) then
+        tmp4(ixO^S) = tmp2(ixO^S) + tmp4(ixO^S) 
+      endif
+      if(has_equi_pe_c0) then
+        tmp5(ixO^S) = tmp3(ixO^S) + tmp5(ixO^S) 
+      endif
+      if (.not. twofl_equi_thermal) then
+        tmp(ixO^S) = alpha(ixO^S) *(-rhoc(ixO^S)/Rn * tmp4(ixO^S) + rhon(ixO^S)/Rc * tmp5(ixO^S))
       endif
 
-      tmp(ixO^S) = alpha(ixO^S) *(-rhoc(ixO^S)/Rn * tmp4(ixO^S) + rhon(ixO^S)/Rc * tmp5(ixO^S))
       if(twofl_coll_inc_ionrec) then
         tmp(ixO^S) = tmp(ixO^S) - gamma_ion(ixO^S)/Rn * tmp4(ixO^S) + gamma_rec(ixO^S)/Rc * tmp5(ixO^S)
       endif
@@ -6963,6 +6999,9 @@ contains
     endif
     if(phys_internal_e) then
        deallocate(v_n, v_c) 
+    endif
+    if(twofl_equi_thermal) then
+       deallocate(rho_n1, rho_c1) 
     endif
     !set contribution to mag field
     w(ixO^S,mag(1:ndir)) = 0d0 
@@ -7052,13 +7091,26 @@ contains
     !update internal energy
     if(twofl_coll_inc_te) then
       if(has_equi_pe_n0) then
-        tmp4(ixO^S) = tmp4(ixO^S) + block%equi_vars(ixO^S,equi_pe_n0_,0)*inv_gamma_1  
+        tmp2= block%equi_vars(ixO^S,equi_pe_n0_,0)*inv_gamma_1  
       endif
       if(has_equi_pe_c0) then
-        tmp5(ixO^S) = tmp5(ixO^S) + block%equi_vars(ixO^S,equi_pe_c0_,0)*inv_gamma_1 
+        tmp3(ixO^S)=block%equi_vars(ixO^S,equi_pe_c0_,0)*inv_gamma_1
+      endif
+      if (twofl_equi_thermal) then
+        tmp(ixO^S) = alpha(ixO^S) *(-1d0/Rn*(rhoc(ixO^S) * tmp4(ixO^S) + &
+          tmp2(ixO^S)*wCT(ixO^S,rho_c_)) + 1d0/Rc*(rhon(ixO^S) * tmp5(ixO^S) +&
+          tmp3(ixO^S)*wCT(ixO^S,rho_n_))) 
+       endif 
+      if(has_equi_pe_n0) then
+        tmp4(ixO^S) = tmp2(ixO^S) + tmp4(ixO^S) 
+      endif
+      if(has_equi_pe_c0) then
+        tmp5(ixO^S) = tmp3(ixO^S) + tmp5(ixO^S) 
+      endif
+      if (.not. twofl_equi_thermal) then
+        tmp(ixO^S) = alpha(ixO^S) *(-rhoc(ixO^S)/Rn * tmp4(ixO^S) + rhon(ixO^S)/Rc * tmp5(ixO^S))
       endif
 
-      tmp(ixO^S) = alpha(ixO^S) *(-rhoc(ixO^S)/Rn * tmp4(ixO^S) + rhon(ixO^S)/Rc * tmp5(ixO^S))
       if(twofl_coll_inc_ionrec) then
         tmp(ixO^S) = tmp(ixO^S) - gamma_ion(ixO^S)/Rn * tmp4(ixO^S) + gamma_rec(ixO^S)/Rc * tmp5(ixO^S)
       endif
