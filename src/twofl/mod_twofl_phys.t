@@ -6789,7 +6789,7 @@ contains
     !update internal energy
     if(twofl_coll_inc_te) then
       if(has_equi_pe_n0) then
-        tmp2= block%equi_vars(ixO^S,equi_pe_n0_,0)*inv_gamma_1  
+        tmp2(ixO^S)= block%equi_vars(ixO^S,equi_pe_n0_,0)*inv_gamma_1  
       endif
       if(has_equi_pe_c0) then
         tmp3(ixO^S)=block%equi_vars(ixO^S,equi_pe_c0_,0)*inv_gamma_1
@@ -6967,7 +6967,7 @@ contains
     if(twofl_coll_inc_te) then
 
       if(has_equi_pe_n0) then
-        tmp2= block%equi_vars(ixO^S,equi_pe_n0_,0)*inv_gamma_1  
+        tmp2(ixO^S)= block%equi_vars(ixO^S,equi_pe_n0_,0)*inv_gamma_1  
       endif
       if(has_equi_pe_c0) then
         tmp3(ixO^S)=block%equi_vars(ixO^S,equi_pe_c0_,0)*inv_gamma_1
@@ -7091,7 +7091,7 @@ contains
     !update internal energy
     if(twofl_coll_inc_te) then
       if(has_equi_pe_n0) then
-        tmp2= block%equi_vars(ixO^S,equi_pe_n0_,0)*inv_gamma_1  
+        tmp2(ixO^S)= block%equi_vars(ixO^S,equi_pe_n0_,0)*inv_gamma_1  
       endif
       if(has_equi_pe_c0) then
         tmp3(ixO^S)=block%equi_vars(ixO^S,equi_pe_c0_,0)*inv_gamma_1
