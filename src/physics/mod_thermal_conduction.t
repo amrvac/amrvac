@@ -213,7 +213,7 @@ contains
       mf(ixO^S,1:ndim)=w(ixO^S,iw_mag(1:ndim))
     end if
     ! B^-2
-    B2(ixO^S)=sum(mf(ixO^S,1:ndim)**2,dim=ndim+1)
+    B2(ixO^S)=sum(mf**2,dim=ndim+1)
     ! B_i**2/B**2
     where(B2(ixO^S)/=0.d0)
       ^D&mf(ixO^S,^D)=mf(ixO^S,^D)**2/B2(ixO^S);
@@ -365,7 +365,7 @@ contains
     double precision, dimension(ixI^S) :: ka,kaf,ke,kef,qdd,qe,Binv,minq,maxq,Bnorm
     double precision, allocatable, dimension(:^D&,:,:) :: fluxall
     integer, dimension(ndim) :: lowindex
-    integer :: idims,idir,ix^D,ix^L,ixC^L,ixA^L,ixB^L
+    integer :: idims,idir,ix^D,ix^L,ixC^L,ixA^L,ixB^L,ixA^D,ixB^D
 
     ix^L=ixO^L^LADD1;
 
@@ -377,12 +377,14 @@ contains
       mf(ixI^S,1:ndim)=w(ixI^S,iw_mag(1:ndim))
     end if
     ! |B|
-    Binv(ix^S)=dsqrt(sum(mf(ix^S,1:ndim)**2,dim=ndim+1))
-    where(Binv(ix^S)/=0.d0)
-      Binv(ix^S)=1.d0/Binv(ix^S)
-    elsewhere
-      Binv(ix^S)=bigdouble
-    end where
+    Binv=dsqrt(sum(mf**2,dim=ndim+1))
+    {do ix^DB=ixmin^DB,ixmax^DB\}
+      if(Binv(ix^D)/=0.d0) then
+        Binv(ix^D)=1.d0/Binv(ix^D)
+      else
+        Binv(ix^D)=bigdouble
+      end if
+    {end do\}
     ! b unit vector: magnetic field direction vector
     do idims=1,ndim
       mf(ix^S,idims)=mf(ix^S,idims)*Binv(ix^S)
@@ -415,9 +417,11 @@ contains
       ! conductivity at cell center
       if(phys_trac) then
         minq(ix^S)=Te(ix^S)
-        where(minq(ix^S) < block%wextra(ix^S,fl%Tcoff_))
-          minq(ix^S)=block%wextra(ix^S,fl%Tcoff_)
-        end where
+       {do ix^DB=ixmin^DB,ixmax^DB\}
+          if(minq(ix^D) < block%wextra(ix^D,fl%Tcoff_)) then
+            minq(ix^D)=block%wextra(ix^D,fl%Tcoff_)
+          end if
+       {end do\}
         minq(ix^S)=fl%tc_k_para*sqrt(minq(ix^S)**5)
       else
         minq(ix^S)=fl%tc_k_para*sqrt(Te(ix^S)**5)
@@ -441,12 +445,14 @@ contains
         {end do\}
         ! cell corner conductivity: k_parallel-k_perpendicular
         ke(ixC^S)=0.5d0**ndim*ke(ixC^S)
-        where(ke(ixC^S)<ka(ixC^S))
-          ka(ixC^S)=ka(ixC^S)-ke(ixC^S)
-        elsewhere
-          ke(ixC^S)=ka(ixC^S)
-          ka(ixC^S)=0.d0
-        end where
+       {do ix^DB=ixCmin^DB,ixCmax^DB\}
+          if(ke(ix^D)<ka(ix^D)) then
+            ka(ix^D)=ka(ix^D)-ke(ix^D)
+          else
+            ke(ix^D)=ka(ix^D)
+            ka(ix^D)=0.d0
+          end if
+       {end do\}
       end if
     end if
     if(fl%tc_slope_limiter==0) then
@@ -465,7 +471,10 @@ contains
         qvec(ixC^S,idims)=qd(ixC^S)*0.5d0**(ndim-1)
       end do
       ! b grad T at cell corner
-      qd(ixC^S)=sum(qvec(ixC^S,1:ndim)*Bc(ixC^S,1:ndim),dim=ndim+1)
+      qd(ixC^S)=0.d0
+      do idims=1,ndim
+       qd(ixC^S)=qvec(ixC^S,idims)*Bc(ixC^S,idims)+qd(ixC^S)
+      end do
       do idims=1,ndim
         ! TC flux at cell corner
         gradT(ixC^S,idims)=ka(ixC^S)*Bc(ixC^S,idims)*qd(ixC^S)
@@ -554,11 +563,14 @@ contains
            if({ ix^D==0 .and. ^D==idims | .or.}) then
              ixBmin^D=ixAmin^D-ix^D;
              ixBmax^D=ixAmax^D-ix^D;
-             where(qd(ixB^S)<=minq(ixA^S))
-               qd(ixB^S)=minq(ixA^S)
-             elsewhere(qd(ixB^S)>=maxq(ixA^S))
-               qd(ixB^S)=maxq(ixA^S)
-             end where
+            {do ixA^DB=ixAmin^DB,ixAmax^DB
+               ixB^DB=ixA^DB-ix^DB\}
+               if(qd(ixB^D)<=minq(ixA^D)) then
+                 qd(ixB^D)=minq(ixA^D)
+               else if(qd(ixB^D)>=maxq(ixA^D)) then
+                 qd(ixB^D)=maxq(ixA^D)
+               end if 
+            {end do\}
              qvec(ixA^S,idims)=qvec(ixA^S,idims)+Bc(ixB^S,idims)**2*qd(ixB^S)
              if(fl%tc_perpendicular) qe(ixA^S)=qe(ixA^S)+qd(ixB^S)
            end if
@@ -866,11 +878,13 @@ contains
     ! conductivity at cell center
     if(phys_trac) then
       ! transition region adaptive conduction
-      where(Te(ix^S) < block%wextra(ix^S,fl%Tcoff_))
-        qd(ix^S)=fl%tc_k_para*dsqrt(block%wextra(ix^S,fl%Tcoff_))**5
-      else where
-        qd(ix^S)=fl%tc_k_para*dsqrt(Te(ix^S))**5
-      end where
+      {do ix^DB=ixmin^DB,ixmax^DB\}
+        if(Te(ix^D) < block%wextra(ix^D,fl%Tcoff_)) then
+          qd(ix^D)=fl%tc_k_para*dsqrt(block%wextra(ix^D,fl%Tcoff_))**5
+        else
+          qd(ix^D)=fl%tc_k_para*dsqrt(Te(ix^D))**5
+        end if
+      {end do\}
     else
       qd(ix^S)=fl%tc_k_para*dsqrt(Te(ix^S))**5
     end if

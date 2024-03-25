@@ -1161,7 +1161,7 @@ contains
     real(dp), intent(in)      :: r_min(3)
     logical, intent(in)       :: periodic(3)
     integer, intent(in)       :: n_finer
-    integer                   :: i, j, k, lvl, n, id, nx(3)
+    integer                   :: i, j, k, lvl, n, id, nx(3), ib, nb(3)
     integer                   :: boxes_per_dim(3, mg_lvl_lo:1)
     integer                   :: periodic_offset(3)
 
@@ -1242,23 +1242,38 @@ contains
             n-nx(1)*nx(2), n+nx(1)*nx(2)]
 
        ! Handle boundaries
-       where ([i, j, k] == 1 .and. .not. periodic)
-          mg%boxes(n)%neighbors(1:mg_num_neighbors:2) = &
-               mg_physical_boundary
-       end where
-       where ([i, j, k] == 1 .and. periodic)
-          mg%boxes(n)%neighbors(1:mg_num_neighbors:2) = &
-               n + periodic_offset
-       end where
+       nb=[i, j, k]
+       do ib=1,3
+         if(nb(ib)==1 .and. .not.periodic(ib)) then
+           mg%boxes(n)%neighbors(ib*2-1) = mg_physical_boundary
+         end if
+         if(nb(ib)==1 .and. periodic(ib)) then
+           mg%boxes(n)%neighbors(ib*2-1) = n + periodic_offset(ib)
+         end if
+         if(nb(ib)==nx(ib) .and. .not.periodic(ib)) then
+           mg%boxes(n)%neighbors(ib*2) = mg_physical_boundary
+         end if
+         if(nb(ib)==nx(ib) .and. periodic(ib)) then
+           mg%boxes(n)%neighbors(ib*2) = n - periodic_offset(ib)
+         end if
+       end do
+       !where ([i, j, k] == 1 .and. .not. periodic)
+       !   mg%boxes(n)%neighbors(1:mg_num_neighbors:2) = &
+       !        mg_physical_boundary
+       !end where
+       !where ([i, j, k] == 1 .and. periodic)
+       !   mg%boxes(n)%neighbors(1:mg_num_neighbors:2) = &
+       !        n + periodic_offset
+       !end where
 
-       where ([i, j, k] == nx .and. .not. periodic)
-          mg%boxes(n)%neighbors(2:mg_num_neighbors:2) = &
-               mg_physical_boundary
-       end where
-       where ([i, j, k] == nx .and. periodic)
-          mg%boxes(n)%neighbors(2:mg_num_neighbors:2) = &
-               n - periodic_offset
-       end where
+       !where ([i, j, k] == nx .and. .not. periodic)
+       !   mg%boxes(n)%neighbors(2:mg_num_neighbors:2) = &
+       !        mg_physical_boundary
+       !end where
+       !where ([i, j, k] == nx .and. periodic)
+       !   mg%boxes(n)%neighbors(2:mg_num_neighbors:2) = &
+       !        n - periodic_offset
+       !end where
     end do; end do; end do
 
     mg%lvls(mg%lowest_lvl)%ids = [(n, n=1, mg%n_boxes)]
