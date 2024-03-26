@@ -5568,7 +5568,7 @@ contains
     type(state)                        :: sCT, s
     type(ct_velocity)                  :: vcts
     double precision, intent(in)       :: fC(ixI^S,1:nwflux,1:ndim)
-    double precision, intent(inout)    :: fE(ixI^S,7-2*ndim:3)
+    double precision, intent(inout)    :: fE(ixI^S,sdim:3)
 
     select case(type_ct)
     case('average')
@@ -5592,13 +5592,13 @@ contains
     double precision, intent(in)       :: qt, qdt
     type(state)                        :: sCT, s
     double precision, intent(in)       :: fC(ixI^S,1:nwflux,1:ndim)
-    double precision, intent(inout)    :: fE(ixI^S,7-2*ndim:3)
+    double precision, intent(inout)    :: fE(ixI^S,sdim:3)
 
     integer                            :: hxC^L,ixC^L,jxC^L,ixCm^L
     integer                            :: idim1,idim2,idir,iwdim1,iwdim2
     double precision                   :: circ(ixI^S,1:ndim)
     ! non-ideal electric field on cell edges
-    double precision, dimension(ixI^S,7-2*ndim:3) :: E_resi
+    double precision, dimension(ixI^S,sdim:3) :: E_resi
 
     associate(bfaces=>s%ws,x=>s%x)
 
@@ -5617,7 +5617,7 @@ contains
       iwdim1 = mag(idim1)
       do idim2=1,ndim
         iwdim2 = mag(idim2)
-        do idir=7-2*ndim,3! Direction of line integral
+        do idir=sdim,3! Direction of line integral
           ! Allow only even permutations
           if (lvc(idim1,idim2,idir)==1) then
             ! Assemble indices
@@ -5651,7 +5651,7 @@ contains
 
     do idim1=1,ndim ! Coordinate perpendicular to face 
       do idim2=1,ndim
-        do idir=7-2*ndim,3 ! Direction of line integral
+        do idir=sdim,3 ! Direction of line integral
           ! Assemble indices
           hxC^L=ixC^L-kr(idim2,^D);
           ! Add line integrals in direction idir
@@ -5692,17 +5692,17 @@ contains
     type(state)                        :: sCT, s
     type(ct_velocity)                  :: vcts
     double precision, intent(in)       :: fC(ixI^S,1:nwflux,1:ndim)
-    double precision, intent(inout)    :: fE(ixI^S,7-2*ndim:3)
+    double precision, intent(inout)    :: fE(ixI^S,sdim:3)
 
     double precision                   :: circ(ixI^S,1:ndim)
     ! electric field at cell centers
-    double precision                   :: ECC(ixI^S,7-2*ndim:3)
+    double precision                   :: ECC(ixI^S,sdim:3)
     ! gradient of E at left and right side of a cell face
     double precision                   :: EL(ixI^S),ER(ixI^S)
     ! gradient of E at left and right side of a cell corner
     double precision                   :: ELC(ixI^S),ERC(ixI^S)
     ! non-ideal electric field on cell edges
-    double precision, dimension(ixI^S,7-2*ndim:3) :: E_resi, E_ambi
+    double precision, dimension(ixI^S,sdim:3) :: E_resi, E_ambi
     ! total magnetic field at cell centers
     double precision                   :: Btot(ixI^S,1:ndim)
     integer                            :: hxC^L,ixC^L,jxC^L,ixA^L,ixB^L
@@ -5717,7 +5717,7 @@ contains
     end if
     ECC=0.d0
     ! Calculate electric field at cell centers
-    do idim1=1,ndim; do idim2=1,ndim; do idir=7-2*ndim,3
+    do idim1=1,ndim; do idim2=1,ndim; do idir=sdim,3
       if(lvc(idim1,idim2,idir)==1)then
          ECC(ixI^S,idir)=ECC(ixI^S,idir)+Btot(ixI^S,idim1)*wp(ixI^S,mom_c(idim2))
       else if(lvc(idim1,idim2,idir)==-1) then
@@ -5736,7 +5736,7 @@ contains
       iwdim1 = mag(idim1)
       do idim2=1,ndim
         iwdim2 = mag(idim2)
-        do idir=7-2*ndim,3 ! Direction of line integral
+        do idir=sdim,3 ! Direction of line integral
           ! Allow only even permutations
           if (lvc(idim1,idim2,idir)==1) then
             ixCmax^D=ixOmax^D;
@@ -5821,7 +5821,7 @@ contains
       ixCmax^D=ixOmax^D;
       ixCmin^D=ixOmin^D-kr(idim1,^D);
       do idim2=1,ndim
-        do idir=7-2*ndim,3 ! Direction of line integral
+        do idir=sdim,3 ! Direction of line integral
           ! Assemble indices
           hxC^L=ixC^L-kr(idim2,^D);
           ! Add line integrals in direction idir
@@ -5855,7 +5855,7 @@ contains
 
     integer, intent(in)                :: ixI^L, ixO^L
     double precision, intent(in)       :: qt, qdt
-    double precision, intent(inout)    :: fE(ixI^S,7-2*ndim:3)
+    double precision, intent(inout)    :: fE(ixI^S,sdim:3)
     type(state)                        :: sCT, s
     type(ct_velocity)                  :: vcts
 
@@ -5868,7 +5868,7 @@ contains
     double precision                   :: cm(ixI^S,2)
     double precision                   :: circ(ixI^S,1:ndim)
     ! non-ideal electric field on cell edges
-    double precision, dimension(ixI^S,7-2*ndim:3) :: E_resi, E_ambi
+    double precision, dimension(ixI^S,sdim:3) :: E_resi, E_ambi
     integer                            :: hxC^L,ixC^L,ixCp^L,jxC^L,ixCm^L
     integer                            :: idim1,idim2,idir
 
@@ -5889,7 +5889,7 @@ contains
     if(twofl_eta/=zero) call get_resistive_electric_field(ixI^L,ixO^L,sCT,s,E_resi)
     fE=zero
 
-    do idir=7-2*ndim,3
+    do idir=sdim,3
       ! Indices
       ! idir: electric field component
       ! idim1: one surface
@@ -5975,7 +5975,7 @@ contains
       ixCmax^D=ixOmax^D;
       ixCmin^D=ixOmin^D-kr(idim1,^D);
       do idim2=1,ndim
-        do idir=7-2*ndim,3 ! Direction of line integral
+        do idir=sdim,3 ! Direction of line integral
           ! Assemble indices
           hxC^L=ixC^L-kr(idim2,^D);
           ! Add line integrals in direction idir
@@ -6012,7 +6012,7 @@ contains
     integer, intent(in)                :: ixI^L, ixO^L
     type(state), intent(in)            :: sCT, s
     ! current on cell edges
-    double precision :: jce(ixI^S,7-2*ndim:3)
+    double precision :: jce(ixI^S,sdim:3)
 
     ! current on cell centers
     double precision :: jcc(ixI^S,7-2*ndir:3)
@@ -6028,7 +6028,7 @@ contains
     jce=0.d0
     do idim1=1,ndim 
       do idim2=1,ndim
-        do idir=7-2*ndim,3
+        do idir=sdim,3
           if (lvc(idim1,idim2,idir)==0) cycle
           ixCmax^D=ixOmax^D;
           ixCmin^D=ixOmin^D+kr(idir,^D)-1;
@@ -6054,7 +6054,7 @@ contains
       call get_current(wCT,ixI^L,ixA^L,idirmin,jcc)
       call usr_special_resistivity(wCT,ixI^L,ixA^L,idirmin,x,jcc,eta)
       ! calcuate eta on cell edges
-      do idir=7-2*ndim,3
+      do idir=sdim,3
         ixCmax^D=ixOmax^D;
         ixCmin^D=ixOmin^D+kr(idir,^D)-1;
         jcc(ixC^S,idir)=0.d0

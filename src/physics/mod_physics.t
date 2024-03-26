@@ -326,7 +326,7 @@ module mod_physics
        type(state)                        :: sCT, s
        type(ct_velocity)                  :: vcts
        double precision, intent(in)       :: fC(ixI^S,1:nwflux,1:ndim)
-       double precision, intent(inout)    :: fE(ixI^S,7-2*ndim:3)
+       double precision, intent(inout)    :: fE(ixI^S,sdim:3)
      end subroutine sub_update_faces
 
      subroutine sub_face_to_center(ixO^L,s)
@@ -586,7 +586,7 @@ contains
     type(state)                        :: sCT, s
     type(ct_velocity)                  :: vcts
     double precision, intent(in)       :: fC(ixI^S,1:nwflux,1:ndim)
-    double precision, intent(inout)    :: fE(ixI^S,7-2*ndim:3)
+    double precision, intent(inout)    :: fE(ixI^S,sdim:3)
   end subroutine dummy_update_faces
 
   subroutine dummy_face_to_center(ixO^L,s)

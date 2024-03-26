@@ -22,7 +22,7 @@ contains
 
     type(state)                                                      :: sCT, snew
     double precision, dimension(ixI^S,1:nwflux,1:ndim), intent(out)  :: fC
-    double precision, dimension(ixI^S,7-2*ndim:3)                    :: fE
+    double precision, dimension(ixI^S,sdim:3)                        :: fE
 
     double precision, dimension(ixI^S,1:nwflux)                      :: fCT
     double precision, dimension(ixI^S,1:nw)                          :: fm, fp, fmR, fpL, wprim
@@ -317,7 +317,7 @@ contains
     type(state)      :: sCT, s
     double precision, intent(in) :: x(ixI^S,1:ndim)
     double precision :: fC(ixI^S,1:nwflux,1:ndim)
-    double precision :: fE(ixI^S,7-2*ndim:3)
+    double precision :: fE(ixI^S,sdim:3)
 
     double precision :: v(ixI^S,ndim), f(ixI^S, nwflux)
 

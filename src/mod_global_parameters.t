@@ -64,6 +64,17 @@ module mod_global_parameters
   !> Number of spatial dimensions (components) for vector variables
   integer :: ndir=ndim
 
+  !> starting dimension for electric field
+  {^IFONED
+  integer, parameter :: sdim=3
+  }
+  {^IFTWOD
+  integer, parameter :: sdim=3
+  }
+  {^IFTHREED
+  integer, parameter :: sdim=1
+  }
+
   !> Cartesian geometry or not
   logical :: slab
 

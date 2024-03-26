@@ -127,7 +127,7 @@ contains
     double precision, dimension(ixI^S,1:ndim), intent(in) :: x
     type(state)                                           :: sCT, snew
     double precision, dimension(ixI^S,1:nwflux,1:ndim)    :: fC
-    double precision, dimension(ixI^S,7-2*ndim:3)         :: fE
+    double precision, dimension(ixI^S,sdim:3)             :: fE
 
     ! primitive w at cell center
     double precision, dimension(ixI^S,1:nw) :: wprim
@@ -254,13 +254,13 @@ contains
         ! TODO maybe put if outside loop idims: but too much code is copy pasted
         ! this is also done in hancock and fd, centdiff in mod_finite_difference
         if(local_timestep) then
-           do iw=iwstart,nwflux
+          do iw=iwstart,nwflux
             fC(ixI^S,iw,idims)=-block%dt(ixI^S)*dtfactor/dxs(idims)*fC(ixI^S,iw,idims)
-          enddo
+          end do
         else
           ! Multiply the fluxes by -dt/dx since Flux fixing expects this
           fC(ixI^S,1:nwflux,idims)=dxinv(idims)*fC(ixI^S,1:nwflux,idims)
-        endif
+        end if
 
         wnew(ixO^S,iwstart:nwflux)=wnew(ixO^S,iwstart:nwflux)+&
             (fC(ixO^S,iwstart:nwflux,idims)-fC(hxO^S,iwstart:nwflux,idims))
@@ -273,24 +273,24 @@ contains
     else
       inv_volume = 1.d0/block%dvolume(ixO^S)
       do idims= idims^LIM
-         hxO^L=ixO^L-kr(idims,^D);
+        hxO^L=ixO^L-kr(idims,^D);
 
         if(local_timestep) then
-           do iw=iwstart,nwflux
-             fC(ixI^S,iw,idims)=-block%dt(ixI^S)*dtfactor*fC(ixI^S,iw,idims)*block%surfaceC(ixI^S,idims)
-             wnew(ixO^S,iw)=wnew(ixO^S,iw) + (fC(ixO^S,iw,idims)-fC(hxO^S,iw,idims)) * &
-                 inv_volume
-           end do
+          do iw=iwstart,nwflux
+            fC(ixI^S,iw,idims)=-block%dt(ixI^S)*dtfactor*fC(ixI^S,iw,idims)*block%surfaceC(ixI^S,idims)
+            wnew(ixO^S,iw)=wnew(ixO^S,iw) + (fC(ixO^S,iw,idims)-fC(hxO^S,iw,idims)) * &
+                inv_volume
+          end do
         else
-           do iw=iwstart,nwflux
-             fC(ixI^S,iw,idims)=-qdt*fC(ixI^S,iw,idims)*block%surfaceC(ixI^S,idims)
-             wnew(ixO^S,iw)=wnew(ixO^S,iw) + (fC(ixO^S,iw,idims)-fC(hxO^S,iw,idims)) * &
-                 inv_volume
-           end do
-         endif 
-         ! For the MUSCL scheme apply the characteristic based limiter
-         if (method==fs_tvdmu) &
-              call tvdlimit2(method,qdt,ixI^L,ixC^L,ixO^L,idims,wLC,wRC,wnew,x,fC,dxs)
+          do iw=iwstart,nwflux
+            fC(ixI^S,iw,idims)=-qdt*fC(ixI^S,iw,idims)*block%surfaceC(ixI^S,idims)
+            wnew(ixO^S,iw)=wnew(ixO^S,iw) + (fC(ixO^S,iw,idims)-fC(hxO^S,iw,idims)) * &
+                inv_volume
+          end do
+        end if 
+        ! For the MUSCL scheme apply the characteristic based limiter
+        if (method==fs_tvdmu) &
+             call tvdlimit2(method,qdt,ixI^L,ixC^L,ixO^L,idims,wLC,wRC,wnew,x,fC,dxs)
 
       end do ! Next idims
     end if

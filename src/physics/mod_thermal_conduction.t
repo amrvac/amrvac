@@ -212,11 +212,11 @@ contains
     else
       mf(ixO^S,1:ndim)=w(ixO^S,iw_mag(1:ndim))
     end if
-    ! B^-2
-    B2(ixO^S)=sum(mf**2,dim=ndim+1)
+    ! B**2
+    tmp=sum(mf**2,dim=ndim+1)
     ! B_i**2/B**2
-    where(B2(ixO^S)/=0.d0)
-      ^D&mf(ixO^S,^D)=mf(ixO^S,^D)**2/B2(ixO^S);
+    where(tmp(ixO^S)/=0.d0)
+      ^D&mf(ixO^S,^D)=mf(ixO^S,^D)**2/tmp(ixO^S);
     elsewhere
       ^D&mf(ixO^S,^D)=1.d0;
     end where

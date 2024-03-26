@@ -1,6 +1,6 @@
 !setup.pl -d=2
  &filelist
-        base_filename='datamr/thermal_conduction_2dd'
+        base_filename='thermal_conduction_2dd'
         saveprim=.true.
         convert_type='vtuBCCmpi'
         autoconvert=.true.

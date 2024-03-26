@@ -515,7 +515,7 @@ module mod_usr_methods
       integer, intent(in)                :: ixI^L, ixO^L
       double precision, intent(in)       :: qt, qdt
       type(state)                        :: s
-      double precision, intent(inout)    :: fE(ixI^S,7-2*ndim:3)
+      double precision, intent(inout)    :: fE(ixI^S,sdim:3)
 
       !integer :: ixC^L,ixA^L
       ! For example, to set inductive electric field at bottom boundary in a 3D box for induction equation

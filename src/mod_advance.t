@@ -628,7 +628,7 @@ contains
     ! cell face flux
     double precision :: fC(ixG^T,1:nwflux,1:ndim)
     ! cell edge flux
-    double precision :: fE(ixG^T,7-2*ndim:3)
+    double precision :: fE(ixG^T,sdim:3)
     double precision :: qdt
     integer :: iigrid, igrid
 
@@ -702,7 +702,7 @@ contains
     double precision, intent(in) :: qdt, dtfactor, qtC, qt, dxs(ndim), x(ixI^S,1:ndim)
     type(state), target          :: sCT, s
     double precision :: fC(ixI^S,1:nwflux,1:ndim), wprim(ixI^S,1:nw)
-    double precision :: fE(ixI^S,7-2*ndim:3)
+    double precision :: fE(ixI^S,sdim:3)
 
     integer :: ixO^L
 
