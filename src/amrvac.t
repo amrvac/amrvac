@@ -385,7 +385,9 @@ contains
     do ifile=nfile,1,-1
        if(itsavelast(ifile)<it) call saveamrfile(ifile)
     end do
-    if (mype==0) call MPI_FILE_CLOSE(log_fh,ierrmpi)
+    if (mype==0 .and. log_fh > 0) then
+      call MPI_FILE_CLOSE(log_fh,ierrmpi)
+    endif
     timeio_tot=timeio_tot+(MPI_WTIME()-timeio0)
 
     if (mype==0) then

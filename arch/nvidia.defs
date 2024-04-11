@@ -1,0 +1,5 @@
+F90=mpif90
+FFLAGS = -c
+#F90FLAGS = -cpp -mp -Mfree -O3 
+F90FLAGS = -cpp  -Mfree -O3 
+LINK= $(F90)  $(F90FLAGS)
