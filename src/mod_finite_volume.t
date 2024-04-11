@@ -1162,7 +1162,7 @@ contains
               call mpistop("idims is wrong in mod_limiter")
             end select
           end if
-            
+
           ! limit flux from left and/or right
           call dwlimiter2(dwC,ixI^L,ixC^L,idims,type_limiter(block%level),ldw,rdw,a2max=a2max)
           wLp(ixL^S,iw)=wLp(ixL^S,iw)+half*ldw(ixL^S)

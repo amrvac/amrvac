@@ -14,7 +14,7 @@ module mod_mf_phys
   !> maximal limit of magnetofrictional velocity in cm s^-1 (Pomoell 2019 A&A)
   double precision, public                :: mf_vmax = 3.d6
 
-  !> decay scale of frictional velocity 
+  !> decay scale of frictional velocity near boundaries
   double precision, public                :: mf_decay_scale(2*^ND)=0.d0
 
   !> Whether particles module is added

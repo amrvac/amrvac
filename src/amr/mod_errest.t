@@ -123,7 +123,7 @@ contains
           do idims2=1,ndim
              h2x^L=ixM^LL-kr(^D,idims2);
              j2x^L=ixM^LL+kr(^D,idims2);
-             numerator=numerator+(tmp(j2x^S)-tmp(h2x^S))**2.0d0
+             numerator=numerator+(tmp(j2x^S)-tmp(h2x^S))**2
           end do
        end do
        denominator=zero
@@ -261,9 +261,9 @@ contains
             end if
           end if
 
-          numerator(ixM^T)=numerator+(dp(ixM^T)-dm(ixM^T))**2.0d0
+          numerator(ixM^T)=numerator+(dp(ixM^T)-dm(ixM^T))**2
           denominator(ixM^T)=denominator &
-               + (dabs(dp(ixM^T)) + dabs(dm(ixM^T)) + amr_wavefilter(level)*dref(ixM^T))**2.0d0
+               + (dabs(dp(ixM^T)) + dabs(dm(ixM^T)) + amr_wavefilter(level)*dref(ixM^T))**2
   
        end do
        error=error+w_refine_weight(iflag)*dsqrt(numerator/max(denominator,epsilon))

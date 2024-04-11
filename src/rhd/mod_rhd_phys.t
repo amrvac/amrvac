@@ -1794,8 +1794,6 @@ contains
     integer :: n,idir
     logical :: flag(ixI^S,1:nw)
 
-    if (small_values_method == "ignore") return
-
     call rhd_check_w(primitive, ixI^L, ixO^L, w, flag)
 
     if (any(flag)) then

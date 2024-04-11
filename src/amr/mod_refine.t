@@ -51,15 +51,7 @@ contains
     integer :: ix^L, ichild, ixCo^L, ic^D
     double precision :: dxCo^D, xComin^D, dxFi^D, xFimin^D
   
-    {#IFDEF EVOLVINGBOUNDARY
-    if (phyboundblock(igrid)) then
-       ix^L=ixG^LL;
-    else
-       ix^L=ixM^LL^LADD1;
-    end if
-    }{#IFNDEF EVOLVINGBOUNDARY
     ix^L=ixM^LL^LADD1;
-    }
   
     if(prolongprimitive) call phys_to_primitive(ixG^LL,ix^L,ps(igrid)%w,ps(igrid)%x)
   
@@ -104,13 +96,6 @@ contains
   
     associate(wCo=>sCo%w, wFi=>sFi%w)
     ixCg^L=ixCo^L;
-    {#IFDEF EVOLVINGBOUNDARY
-    if (phyboundblock(ichild)) then
-      el=ceiling(real(nghostcells)/2.d0)
-      ixCgmin^D=ixComin^D-el\
-      ixCgmax^D=ixComax^D+el\
-    end if
-    }
     {do ixCo^DB = ixCg^LIM^DB
        ! lower left grid index in finer child block
        ixFi^DB=2*(ixCo^DB-ixComin^DB)+ixMlo^DB\}

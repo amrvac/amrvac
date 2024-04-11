@@ -1626,8 +1626,6 @@ contains
     double precision :: tmp2(ixI^S)
     double precision :: tmp1(ixI^S)
 
-    if(small_values_method == "ignore") return
-
     call twofl_check_w(primitive, ixI^L, ixO^L, w, flag)
 
     if(any(flag)) then

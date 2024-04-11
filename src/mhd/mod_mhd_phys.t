@@ -1982,8 +1982,6 @@ contains
     integer :: idir, jdir, kdir, ix^D
     logical :: flag(ixI^S,1:nw)
 
-    if(small_values_method == "ignore") return
-
     flag=.false.
     where(w(ixO^S,rho_) < small_density) flag(ixO^S,rho_) = .true.
 
@@ -2105,8 +2103,6 @@ contains
     logical :: flag(ixI^S,1:nw)
     double precision :: tmp2(ixI^S)
 
-    if(small_values_method == "ignore") return
-
     call phys_check_w(primitive, ixI^L, ixO^L, w, flag)
 
     if(any(flag)) then
@@ -2207,8 +2203,6 @@ contains
     logical :: flag(ixI^S,1:nw)
     double precision :: tmp2(ixI^S)
 
-    if(small_values_method == "ignore") return
-
     call phys_check_w(primitive, ixI^L, ixO^L, w, flag)
 
     if(any(flag)) then
@@ -2294,8 +2288,6 @@ contains
     integer :: idir
     logical :: flag(ixI^S,1:nw)
     double precision :: tmp2(ixI^S)
-
-    if(small_values_method == "ignore") return
 
     call phys_check_w(primitive, ixI^L, ixO^L, w, flag)
 
