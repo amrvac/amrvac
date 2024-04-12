@@ -1,11 +1,11 @@
-!This is the linear acceleration test 
+!This is the linear acceleration test
 &filelist
         base_filename = '_Lorentz1'
  /
 
  &particles_list
         physics_type_particles='Lorentz'
-        npayload=1
+        ndefpayload=1
  /
 
  &meshlist
@@ -25,4 +25,3 @@
         x0 = 0.0d0, 0.0d0, 0.0d0
         v0 = 0.0d0, 0.0d0, 0.0d0
  /
-

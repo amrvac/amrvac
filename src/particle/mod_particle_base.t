@@ -93,6 +93,8 @@ module mod_particle_base
   integer, allocatable :: vp(:)
   !> Variable index for current
   integer, allocatable :: jp(:)
+  !> Variable index for density
+  integer :: rhop
 
   type particle_ptr
     type(particle_t), pointer         :: self
@@ -220,7 +222,7 @@ contains
     write_ensemble            = .true.
     write_snapshot            = .true.
     downsample_particles      = 1
-    relativistic              = .true.
+    relativistic              = .false.
     particles_eta             = -1.d0
     particles_etah            = -1.d0
     t_next_output             = 0.0d0
@@ -615,6 +617,8 @@ contains
 
   end subroutine limit_dt_endtime
 
+  ! Get a generic vector quantity stored on the grid at the particle position
+  ! NOTE: DON'T GET E OR B IN THIS WAY, USE FUNCTIONS BELOW!
   subroutine get_vec(ix,igrid,x,tloc,vec)
     use mod_global_parameters
     use mod_usr_methods, only: usr_particle_analytic
@@ -630,23 +634,113 @@ contains
 
     if (associated(usr_particle_analytic)) then
       call usr_particle_analytic(ix, x, tloc, vec)
-    else if (.not.time_advance) then
+    else
       do idir=1,ndir
         call interpolate_var(igrid,ixG^LL,ixM^LL,gridvars(igrid)%w(ixG^T,ix(idir)), &
              ps(igrid)%x(ixG^T,1:ndim),x,vec(idir))
       end do
-    else
-      do idir=1,ndir
-        call interpolate_var(igrid,ixG^LL,ixM^LL,gridvars(igrid)%wold(ixG^T,ix(idir)), &
-             ps(igrid)%x(ixG^T,1:ndim),x,vec1(idir))
-        call interpolate_var(igrid,ixG^LL,ixM^LL,gridvars(igrid)%w(ixG^T,ix(idir)), &
-             ps(igrid)%x(ixG^T,1:ndim),x,vec2(idir))
-      end do
-      td = (tloc - global_time) / dt
-      vec(:) = vec1(:) * (1.0d0 - td) + vec2(:) * td
+      if (time_advance) then
+        do idir=1,ndir
+          call interpolate_var(igrid,ixG^LL,ixM^LL,gridvars(igrid)%w(ixG^T,ix(idir)), &
+               ps(igrid)%x(ixG^T,1:ndim),x,vec2(idir))
+        end do
+        td = (tloc - global_time) / dt
+        vec(:) = vec(:) * (1.0d0 - td) + vec2(:) * td
+      end if
     end if
 
   end subroutine get_vec
+
+  ! Shorthand for getting specifically the B field at the particle position
+  subroutine get_bfield(igrid,x,tloc,b)
+    use mod_global_parameters
+    use mod_usr_methods, only: usr_particle_analytic, usr_particle_fields
+
+    integer,intent(in)                                 :: igrid
+    double precision,dimension(3), intent(in)          :: x
+    double precision, intent(in)                       :: tloc
+    double precision,dimension(ndir), intent(out)      :: b
+    double precision,dimension(ndir)                   :: vec1, vec2, vec
+    double precision                                   :: td
+    integer                                            :: ic^D,idir
+
+    if (associated(usr_particle_analytic)) then
+      call usr_particle_analytic(bp, x, tloc, vec)
+    else if (associated(usr_particle_fields)) then
+      call get_vec(bp, igrid, x, tloc, vec)
+    else
+      do idir=1,ndir
+        call interpolate_var(igrid,ixG^LL,ixM^LL,gridvars(igrid)%w(ixG^T,bp(idir)), &
+             ps(igrid)%x(ixG^T,1:ndim),x,vec(idir))
+      end do
+      if (time_advance) then
+        do idir=1,ndir
+          call interpolate_var(igrid,ixG^LL,ixM^LL,gridvars(igrid)%w(ixG^T,bp(idir)), &
+               ps(igrid)%x(ixG^T,1:ndim),x,vec2(idir))
+        end do
+        td = (tloc - global_time) / dt
+        vec(:) = vec(:) * (1.0d0 - td) + vec2(:) * td
+      end if
+    end if
+
+    b(:) = vec(:)
+
+  end subroutine get_bfield
+
+  ! Shorthand for getting specifically the E field at the particle position
+  subroutine get_efield(igrid,x,tloc,e)
+    use mod_global_parameters
+    use mod_usr_methods, only: usr_particle_analytic, usr_particle_fields
+    use mod_geometry
+
+    integer,intent(in)                                 :: igrid
+    double precision,dimension(3), intent(in)          :: x
+    double precision, intent(in)                       :: tloc
+    double precision,dimension(ndir), intent(out)      :: e
+    double precision,dimension(ndir)                   :: vec1, vec2, vec
+    double precision,dimension(ndir)                   :: vfluid, b
+    double precision,dimension(ndir)                   :: current
+    double precision                                   :: rho = 1.d0, rho2 = 1.d0
+    double precision                                   :: td
+    integer                                            :: ic^D,idir
+
+    current(:) = 0.d0
+
+    if (associated(usr_particle_analytic)) then
+      call usr_particle_analytic(ep, x, tloc, vec)
+    else if (associated(usr_particle_fields)) then
+      call get_vec(ep, igrid, x, tloc, vec)
+    else
+      call get_bfield(igrid, x, tloc, b)
+      call get_vec(vp, igrid, x, tloc, vfluid)
+      if (particles_eta > zero) then
+        call get_vec(jp, igrid, x, tloc, current)
+      end if
+      if (particles_etah > zero) then
+        call interpolate_var(igrid,ixG^LL,ixM^LL,gridvars(igrid)%w(ixG^T,rhop),ps(igrid)%x(ixG^T,1:ndim),x,rho)
+        if (time_advance) then
+          call interpolate_var(igrid,ixG^LL,ixM^LL,gridvars(igrid)%wold(ixG^T,rhop),ps(igrid)%x(ixG^T,1:ndim),x,rho2)
+          td = (tloc - global_time) / dt
+          rho = rho * (1.0d0 - td) + rho2 * td
+        end if
+      end if
+
+      ! Build E
+      select case (coordinate)
+      case (Cartesian,Cartesian_stretched,spherical)
+        vec(1) = -vfluid(2)*b(3)+vfluid(3)*b(2) + particles_eta*current(1) + particles_etah/rho*(current(2)*b(3) - current(3)*b(2))
+        vec(2) = vfluid(1)*b(3)-vfluid(3)*b(1) + particles_eta*current(2)  + particles_etah/rho*(-current(1)*b(3) + current(3)*b(1))
+        vec(3) = -vfluid(1)*b(2)+vfluid(2)*b(1) + particles_eta*current(3) + particles_etah/rho*(current(1)*b(2) - current(2)*b(1))
+      case (cylindrical)
+        vec(r_) = -vfluid(phi_)*b(z_)+vfluid(z_)*b(phi_) + particles_eta*current(r_)   + particles_etah/rho*(current(phi_)*b(z_) - current(z_)*b(phi_))
+        vec(phi_) = vfluid(r_)*b(z_)-vfluid(z_)*b(r_)    + particles_eta*current(phi_) + particles_etah/rho*(-current(r_)*b(z_) + current(z_)*b(r_))
+        vec(z_) = -vfluid(r_)*b(phi_)+vfluid(phi_)*b(r_) + particles_eta*current(z_)   + particles_etah/rho*(current(r_)*b(phi_) - current(phi_)*b(r_))
+      end select
+    end if
+
+    e(:) = vec(:)
+
+  end subroutine get_efield
 
   !> Get Lorentz factor from relativistic momentum
   pure subroutine get_lfac(u,lfac)
