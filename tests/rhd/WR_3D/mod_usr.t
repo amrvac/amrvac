@@ -112,17 +112,18 @@ contains
 
   subroutine initglobaldata_usr
     use mod_global_parameters
-    use mod_opal_opacity, only: init_opal
-    use mod_cak_opacity, only: init_cak
+    use mod_opal_opacity, only: init_opal_table
+    use mod_cak_opacity, only: init_cak_table
 
     use mod_fld
 
     integer :: i
 
     !> Initialise Opal
-    call init_opal(He_abundance,'Y09800')
+    call init_opal_table('Y09800')
 
-    call init_cak('Y09800')
+    !> Initialise CAK tables
+    call init_cak_table('Y09800')
 
     !> read usr par
     call params_read(par_files)
@@ -998,7 +999,7 @@ contains
     integer :: lvl_h(1:domain_nx1), lvl_h_S(1:domain_nx1), lvl_h_R(1:domain_nx1)
     integer :: lvl_l(1:domain_nx1), lvl_l_S(1:domain_nx1), lvl_l_R(1:domain_nx1)
 
-    ! if (refine_max_level .ne. 1) 
+    ! if (refine_max_level .ne. 1)
     ! call mpistop("collapse_to_1D doesnt work YET with mpi")
 
     !> #R_star -1 in simulation

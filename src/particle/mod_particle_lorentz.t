@@ -23,9 +23,11 @@ contains
 
     ! The first 6 gridvars are always B and E
     ngridvars = ndir*2
-    nwx = 0
+    nwx=0
+    ! density
+    if(particles_etah>0) nwx = 1
 
-    allocate(bp(ndir)) ! magnetic field
+    allocate(bp(ndir))
     do idir = 1, ndir
       nwx = nwx + 1
       bp(idir) = nwx
@@ -194,6 +196,9 @@ contains
       end if
     end do
 
+    ! Fill electromagnetic quantities
+    call fill_gridvars_default()
+
   end subroutine lorentz_fill_gridvars
 
   !> Relativistic particle integrator
@@ -267,6 +272,7 @@ contains
 !          e(z_) = e(z_) + particles_etah/rho * (current(r_)*b(phi_) - current(phi_)*b(r_))
 !        end select
 !      end if
+
       ! Convert fields to Cartesian frame
       call partvec_to_cartesian(xpm,b,bc)
       call partvec_to_cartesian(xpm,e,ec)

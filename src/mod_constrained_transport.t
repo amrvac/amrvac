@@ -56,7 +56,7 @@ contains
 
     double precision             :: dx^D
     double precision             :: fC(ixG^T,1:nwflux,1:ndim)
-    double precision             :: fE(ixG^T,7-2*ndim:3)
+    double precision             :: fE(ixG^T,sdim:3)
 
     dx^D=rnode(rpdx^D_,igrid);
 
@@ -74,7 +74,7 @@ contains
     integer       :: ixI^L
     type(state)   :: s
     double precision             :: fC(ixI^S,1:nwflux,1:ndim)
-    double precision             :: fE(ixI^S,7-2*ndim:3)
+    double precision             :: fE(ixI^S,sdim:3)
     double precision             :: dx^D
 
     integer                            :: ixIs^L,ixO^L,idir
@@ -92,7 +92,7 @@ contains
     call b_from_vector_potentialA(ixIs^L, ixI^L, ixO^L, ws, x, A)
 
     ! This is important only in 3D
-    do idir=7-2*ndim,3
+    do idir=sdim,3
        fE(ixI^S,idir) =-A(ixI^S,idir)
     end do
 
@@ -127,7 +127,7 @@ contains
     xCC(ixIsmin1,ixIsmin2,ixImin3:ixImax3,3)=x(ixImin1,ixImin2,ixImin3:ixImax3,3)
     }
 
-    do idir=7-2*ndim,3
+    do idir=sdim,3
       ixCmax^D=ixOmax^D;
       ixCmin^D=ixOmin^D-1+kr(idir,^D);
       do idim1=1,ndim
@@ -150,7 +150,7 @@ contains
       ixCmax^D=ixOmax^D;
       ixCmin^D=ixOmin^D-kr(idim1,^D);
       do idim2=1,ndim
-        do idir=7-2*ndim,3 ! Direction of line integral
+        do idir=sdim,3 ! Direction of line integral
           if(lvc(idim1,idim2,idir)==0) cycle
           ! Assemble indices
           hxC^L=ixC^L-kr(idim2,^D);

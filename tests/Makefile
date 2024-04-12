@@ -23,7 +23,7 @@ mhd/blast_wave_spherical_3D mhd/ripple_2.5D	\
 mhd/solar_atmosphere_2.5D  mhd/radiative_cooling_3D \
 mhd/tilt_instability_2D mhd/tilt_instability_3D mhd/doubleGEM_2.5D mhd/Longcope_Strauss_2D mhd/blast_wave_cylindrical_3D \
 mhd/blast_wave_spherical_stretched_3D mhd/convection_2D mhd/Kelvin_Helmholtz_3D mhd/Kelvin_Helmholtz_double_2D \
-mhd/ring_thermal_conduction_2D mhd/ring_thermal_conduction_3D mhd/solar_flare_reconnection_2.5D mhd/lfff_extrapolation_3D  \
+mhd/thermal_conduction_mhd_2D mhd/ring_thermal_conduction_3D mhd/solar_flare_reconnection_2.5D mhd/lfff_extrapolation_3D  \
 mhd/Low_flux_rope_3D mhd/field_loop_2.5D mhd/solar_wind_2.5D mhd/Orszag_Tang_2.5D mhd/solar_atmosphere_3D  mhd/alfvenwing_3D \
 mhd/semirelativistic_Alfven_wave_1.75D \
 mhd/blast_wave_Cartesian_3D mhd/Ambipolar1DWave-B0split mhd/Ambipolar1DWave mhd/icarus
@@ -37,7 +37,7 @@ RD_DIRS := rd/schnakenberg_2d rd/test_suite_2d
 
 ARD_DIRS := ard/schnakenberg_2d
 
-MF_DIRS := mf/Mackay_bipole_Cartesian_3D
+MF_DIRS := mf/Mackay_bipole_Cartesian_3D mf/sheared_arcade_Antiochos_3D
 
 TWOFL_DIRS := twofl/Alfven_wave_1D twofl/Riemann_1D twofl/KHI_2D
 

@@ -115,6 +115,8 @@ contains
     use mod_physics
     use mod_ghostcells_update
     use mod_input_output
+    use mod_amr_grid, only: resettree
+    use mod_comm_lib, only: mpistop
 
     double precision :: dvolume(ixG^T),dsurface(ixG^T),dvone
     double precision :: dtfff,dtfff_pe,dtnew,dx^D
@@ -181,7 +183,6 @@ contains
       cmax_mype=zero
       do iigrid=1,igridstail; igrid=igrids(iigrid);
         block=>ps(igrid)
-        pso(igrid)%w(ixG^T,mag(:))=ps(igrid)%w(ixG^T,mag(:))
         ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
         call getdtfff_courant(ps(igrid)%w,ps(igrid)%x,ixG^LL,ixM^LL,dtnew)
         dtfff_pe=min(dtfff_pe,dtnew)
@@ -626,6 +627,7 @@ contains
     ! `advect' (with the difference that it will `advect' all grids)
     use mod_global_parameters
     use mod_fix_conserve
+    use mod_comm_lib, only: mpistop
 
     integer, intent(in) :: idim^LIM
     double precision, intent(in) :: qt, qdt
@@ -635,7 +637,6 @@ contains
     call init_comm_fix_conserve(idim^LIM,ndir)
     fix_conserve_at_step = mf_advance .and. levmax>levmin
 
-    ! copy w instead of wold because of potential use of dimsplit or sourcesplit
     do iigrid=1,igridstail; igrid=igrids(iigrid);
       ps1(igrid)%w=ps(igrid)%w
     end do
@@ -704,7 +705,7 @@ contains
        level=node(plevel_,igrid)
 
        call process1_gridmf(method(level),igrid,qdt,ixG^LL,idim^LIM,qtC,&
-                       psa(igrid)%w,qt,psb(igrid)%w,pso(igrid)%w)
+                       psa(igrid)%w,qt,psb(igrid)%w)
     end do
 
     ! opedit: Send flux for all grids, expects sends for all
@@ -738,15 +739,16 @@ contains
 
   end subroutine advect1mf
 
-  subroutine process1_gridmf(method,igrid,qdt,ixG^L,idim^LIM,qtC,wCT,qt,w,wold)
+  subroutine process1_gridmf(method,igrid,qdt,ixG^L,idim^LIM,qtC,wCT,qt,w)
     ! This subroutine is equivalent to VAC's `advect1' for one grid
     use mod_global_parameters
     use mod_fix_conserve
+    use mod_comm_lib, only: mpistop
 
     integer, intent(in) :: method
     integer, intent(in) :: igrid, ixG^L, idim^LIM
     double precision, intent(in) :: qdt, qtC, qt
-    double precision :: wCT(ixG^S,1:nw), w(ixG^S,1:nw), wold(ixG^S,1:nw)
+    double precision :: wCT(ixG^S,1:nw), w(ixG^S,1:nw)
     double precision :: dx^D, fC(ixG^S,1:ndir,1:ndim)
     integer :: ixO^L
 
@@ -760,12 +762,12 @@ contains
        !================================
        ! 4th order central difference
        !================================
-       call centdiff4mf(qdt,ixG^L,ixO^L,idim^LIM,qtC,wCT,qt,w,wold,fC,dx^D,ps(igrid)%x)
+       call centdiff4mf(qdt,ixG^L,ixO^L,idim^LIM,qtC,wCT,qt,w,fC,dx^D,ps(igrid)%x)
      case (fs_tvdlf)
        !================================
        ! TVDLF
        !================================
-       call tvdlfmf(qdt,ixG^L,ixO^L,idim^LIM,qtC,wCT,qt,w,wold,fC,dx^D,ps(igrid)%x)
+       call tvdlfmf(qdt,ixG^L,ixO^L,idim^LIM,qtC,wCT,qt,w,fC,dx^D,ps(igrid)%x)
      case (fs_hancock)
        ! hancock predict (first) step for twostep tvdlf and tvdmu scheme
        call hancockmf(qdt,ixG^L,ixO^L,idim^LIM,qtC,wCT,qt,w,dx^D,ps(igrid)%x)
@@ -773,7 +775,7 @@ contains
        !================================
        ! finite difference
        !================================
-       call fdmf(qdt,ixG^L,ixO^L,idim^LIM,qtC,wCT,qt,w,wold,fC,dx^D,ps(igrid)%x)
+       call fdmf(qdt,ixG^L,ixO^L,idim^LIM,qtC,wCT,qt,w,fC,dx^D,ps(igrid)%x)
     case default
        call mpistop("unknown flux scheme in advect1_gridmf")
     end select
@@ -856,15 +858,16 @@ contains
 
   end subroutine getfluxmf
 
-  subroutine tvdlfmf(qdt,ixI^L,ixO^L,idim^LIM,qtC,wCT,qt,wnew,wold,fC,dx^D,x)
+  subroutine tvdlfmf(qdt,ixI^L,ixO^L,idim^LIM,qtC,wCT,qt,wnew,fC,dx^D,x)
     ! method=='tvdlf'  --> 2nd order TVD-Lax-Friedrich scheme.
     ! method=='tvdlf1' --> 1st order TVD-Lax-Friedrich scheme.
     use mod_global_parameters
+    use mod_comm_lib, only: mpistop
 
     double precision, intent(in)                         :: qdt, qtC, qt, dx^D
     integer, intent(in)                                  :: ixI^L, ixO^L, idim^LIM
     double precision, dimension(ixI^S,1:ndim), intent(in) ::  x
-    double precision, dimension(ixI^S,1:nw)               :: wCT, wnew, wold
+    double precision, dimension(ixI^S,1:nw)               :: wCT, wnew
     double precision, dimension(ixI^S,1:ndir,1:ndim)        :: fC
 
     double precision, dimension(ixI^S,1:nw) :: wLC, wRC, wmean
@@ -960,6 +963,7 @@ contains
     ! one entry: (predictor): wCT -- w_n        wnew -- w_n   qdt=dt/2
     ! on exit :  (predictor): wCT -- w_n        wnew -- w_n+1/2
     use mod_global_parameters
+    use mod_comm_lib, only: mpistop
 
     integer, intent(in) :: ixI^L, ixO^L, idim^LIM
     double precision, intent(in) :: qdt, qtC, qt, dx^D, x(ixI^S,1:ndim)
@@ -1013,13 +1017,13 @@ contains
 
   end subroutine hancockmf
 
-  subroutine fdmf(qdt,ixI^L,ixO^L,idim^LIM,qtC,wCT,qt,wnew,wold,fC,dx^D,x)
+  subroutine fdmf(qdt,ixI^L,ixO^L,idim^LIM,qtC,wCT,qt,wnew,fC,dx^D,x)
     use mod_global_parameters
     double precision, intent(in)                                     :: qdt, qtC, qt, dx^D
     integer, intent(in)                                              :: ixI^L, ixO^L, idim^LIM
     double precision, dimension(ixI^S,1:ndim), intent(in)            :: x
 
-    double precision, dimension(ixI^S,1:nw), intent(inout)           :: wCT, wnew, wold
+    double precision, dimension(ixI^S,1:nw), intent(inout)           :: wCT, wnew
     double precision, dimension(ixI^S,1:ndir,1:ndim), intent(out)  :: fC
 
     double precision, dimension(ixI^S)                               :: fCT
@@ -1151,17 +1155,18 @@ contains
 
   end subroutine reconstructRmf
 
-  subroutine centdiff4mf(qdt,ixI^L,ixO^L,idim^LIM,qtC,wCT,qt,w,wold,fC,dx^D,x)
+  subroutine centdiff4mf(qdt,ixI^L,ixO^L,idim^LIM,qtC,wCT,qt,w,fC,dx^D,x)
     ! Advance the flow variables from global_time to global_time+qdt within ixO^L by
     ! fourth order centered differencing in space
     ! for the dw/dt+dF_i(w)/dx_i=S type equation.
     ! wCT contains the time centered variables at time qtC for flux and source.
     ! w is the old value at qt on input and the new value at qt+qdt on output.
     use mod_global_parameters
+    use mod_comm_lib, only: mpistop
 
     integer, intent(in) :: ixI^L, ixO^L, idim^LIM
     double precision, intent(in) :: qdt, qtC, qt, dx^D
-    double precision :: wCT(ixI^S,1:nw), w(ixI^S,1:nw), wold(ixI^S,1:nw)
+    double precision :: wCT(ixI^S,1:nw), w(ixI^S,1:nw)
     double precision, intent(in) :: x(ixI^S,1:ndim)
     double precision :: fC(ixI^S,1:ndir,1:ndim)
 

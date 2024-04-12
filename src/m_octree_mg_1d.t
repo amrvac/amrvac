@@ -1187,24 +1187,36 @@ contains
        mg%boxes(n)%neighbors(:) = [n-1, n+1]
 
        ! Handle boundaries
-       where ([i] == 1 .and. .not. periodic)
-          mg%boxes(n)%neighbors(1:mg_num_neighbors:2) = &
-               mg_physical_boundary
-       end where
-       where ([i] == 1 .and. periodic)
-          mg%boxes(n)%neighbors(1:mg_num_neighbors:2) = &
-               n + periodic_offset
-       end where
+       if(i==1 .and. .not.periodic(1)) then
+         mg%boxes(n)%neighbors(1) = mg_physical_boundary
+       end if
+       if(i==1 .and. periodic(1)) then
+         mg%boxes(n)%neighbors(1) = n + periodic_offset(1)
+       end if
+       if(i==nx(1) .and. .not.periodic(1)) then
+         mg%boxes(n)%neighbors(2) = mg_physical_boundary
+       end if
+       if(i==nx(1) .and. periodic(1)) then
+         mg%boxes(n)%neighbors(2) = n - periodic_offset(1)
+       end if
+       !where ([i] == 1 .and. .not. periodic)
+       !   mg%boxes(n)%neighbors(1:mg_num_neighbors:2) = &
+       !        mg_physical_boundary
+       !end where
+       !where ([i] == 1 .and. periodic)
+       !   mg%boxes(n)%neighbors(1:mg_num_neighbors:2) = &
+       !        n + periodic_offset
+       !end where
 
-       where ([i] == nx .and. .not. periodic)
-          mg%boxes(n)%neighbors(2:mg_num_neighbors:2) = &
-               mg_physical_boundary
-       end where
-       where ([i] == nx .and. periodic)
-          mg%boxes(n)%neighbors(2:mg_num_neighbors:2) = &
-               n - periodic_offset
-       end where
-    end do;
+       !where ([i] == nx .and. .not. periodic)
+       !   mg%boxes(n)%neighbors(2:mg_num_neighbors:2) = &
+       !        mg_physical_boundary
+       !end where
+       !where ([i] == nx .and. periodic)
+       !   mg%boxes(n)%neighbors(2:mg_num_neighbors:2) = &
+       !        n - periodic_offset
+       !end where
+    end do
 
     mg%lvls(mg%lowest_lvl)%ids = [(n, n=1, mg%n_boxes)]
 

@@ -33,6 +33,8 @@ module mod_physicaldata
      double precision, dimension(:^D&,:), pointer :: x=>Null()
      !> Cell sizes in coordinate units
      double precision, dimension(:^D&,:), pointer :: dx=>Null()
+     !> Cell local timesteps
+     double precision, dimension(:^D&), pointer :: dt=>Null()
      !> Cell sizes at cell center in length unit
      double precision, dimension(:^D&,:), pointer :: ds=>Null()
      !> Cell sizes at cell face in length unit
@@ -116,8 +118,6 @@ module mod_physicaldata
   type(state), dimension(:), allocatable, target :: ps3
   !> array of physical states, temp 4 for multi-step time integrator
   type(state), dimension(:), allocatable, target :: ps4
-  !> array of physical states, at the beginning of each iteration
-  type(state), dimension(:), allocatable, target :: pso
   !> array of physical blocks, one level coarser representative
   type(state), dimension(:), allocatable, target :: psc
 

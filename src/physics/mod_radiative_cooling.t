@@ -21,6 +21,7 @@ module mod_radiative_cooling
 ! at the official upper limit of log(T) = 8.16)
   use mod_global_parameters, only: std_len
   use mod_physics
+  use mod_comm_lib, only: mpistop
   implicit none
 
   !> Helium abundance over Hydrogen

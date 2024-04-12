@@ -1,5 +1,6 @@
 module mod_interpolation
   use mod_global_parameters
+  use mod_comm_lib, only: mpistop
   implicit none
 
 contains
@@ -193,7 +194,7 @@ contains
     inblock=0
     {if (xp(^D)>=xbmin^D .and. xp(^D)<xbmax^D) inblock=inblock+1\}
     if (inblock/=ndim) then
-      call MPISTOP('Interpolation error: given point is not in given grid')
+      call mpistop('Interpolation error: given point is not in given grid')
     endif
 
     ! cell indexes for the point

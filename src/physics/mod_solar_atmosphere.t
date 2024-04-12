@@ -5,6 +5,7 @@
 !> This subroutine will return density and pressure at each point.
 module mod_solar_atmosphere
   use mod_global_parameters
+  use mod_comm_lib, only: mpistop
   implicit none
 
   integer :: n_valc,n_hong,n_fontenla,n_alc7

@@ -3,6 +3,7 @@
 module mod_dust
   use mod_global_parameters, only: std_len
   use mod_physics
+  use mod_comm_lib, only: mpistop
 
   implicit none
   private

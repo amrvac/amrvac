@@ -23,18 +23,6 @@ contains
 
     integer :: iigrid, igrid, idimsplit
 
-    ! old solution values at t_n-1 no longer needed: make copy of w(t_n)
-    !$OMP PARALLEL DO PRIVATE(igrid)
-    do iigrid=1,igridstail; igrid=igrids(iigrid);
-       pso(igrid)%w=ps(igrid)%w
-       if(stagger_grid) pso(igrid)%ws=ps(igrid)%ws
-    end do
-    !$OMP END PARALLEL DO
-
-    {#IFDEF RAY
-    call update_rays
-    }
-
     ! split source addition
     call add_split_source(prior=.true.)
 
@@ -70,6 +58,7 @@ contains
     use mod_fix_conserve
     use mod_ghostcells_update
     use mod_physics, only: phys_req_diagonal
+    use mod_comm_lib, only: mpistop
 
     integer, intent(in) :: idim^LIM
     integer             :: iigrid, igrid
@@ -636,6 +625,10 @@ contains
     double precision, intent(in) :: qt
     integer, intent(in) :: method(nlevelshi)
 
+    ! cell face flux
+    double precision :: fC(ixG^T,1:nwflux,1:ndim)
+    ! cell edge flux
+    double precision :: fE(ixG^T,sdim:3)
     double precision :: qdt
     integer :: iigrid, igrid
 
@@ -649,11 +642,23 @@ contains
     ! opedit: Just advance the active grids:
     !$OMP PARALLEL DO PRIVATE(igrid)
     do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
-       block=>ps(igrid)
-       ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
+      block=>ps(igrid)
+      ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
 
-       call process1_grid(method(block%level),igrid,qdt,ixG^LL,idim^LIM,qtC,&
-            psa(igrid),qt,psb(igrid),pso(igrid))
+      call advect1_grid(method(block%level),qdt,dtfactor,ixG^LL,idim^LIM,&
+        qtC,psa(igrid),qt,psb(igrid),fC,fE,rnode(rpdx1_:rnodehi,igrid),ps(igrid)%x)
+
+      ! opedit: Obviously, flux is stored only for active grids.
+      ! but we know in fix_conserve wether there is a passive neighbor
+      ! but we know in conserve_fix wether there is a passive neighbor
+      ! via neighbor_active(i^D,igrid) thus we skip the correction for those.
+      ! This violates strict conservation when the active/passive interface
+      ! coincides with a coarse/fine interface.
+      if (fix_conserve_global .and. fix_conserve_at_step) then
+        call store_flux(igrid,fC,idim^LIM,nwflux)
+        if(stagger_grid) call store_edge(igrid,ixG^LL,fE,idim^LIM)
+      end if
+
     end do
     !$OMP END PARALLEL DO
 
@@ -680,39 +685,8 @@ contains
 
   end subroutine advect1
 
-  !> Prepare to advance a single grid over one partial time step
-  subroutine process1_grid(method,igrid,qdt,ixI^L,idim^LIM,qtC,sCT,qt,s,sold)
-    use mod_global_parameters
-    use mod_fix_conserve
-
-    integer, intent(in) :: method
-    integer, intent(in) :: igrid, ixI^L, idim^LIM
-    double precision, intent(in) :: qdt, qtC, qt
-    type(state), target          :: sCT, s, sold
-
-    ! cell face flux
-    double precision :: fC(ixI^S,1:nwflux,1:ndim)
-    ! cell edge flux
-    double precision :: fE(ixI^S,7-2*ndim:3)
-
-    call advect1_grid(method,qdt,ixI^L,idim^LIM,qtC,sCT,qt,s,sold,fC,fE,&
-         rnode(rpdx1_:rnodehi,igrid),ps(igrid)%x)
-
-    ! opedit: Obviously, flux is stored only for active grids.
-    ! but we know in fix_conserve wether there is a passive neighbor
-    ! but we know in conserve_fix wether there is a passive neighbor
-    ! via neighbor_active(i^D,igrid) thus we skip the correction for those.
-    ! This violates strict conservation when the active/passive interface
-    ! coincides with a coarse/fine interface.
-    if (fix_conserve_global .and. fix_conserve_at_step) then
-      call store_flux(igrid,fC,idim^LIM,nwflux)
-      if(stagger_grid) call store_edge(igrid,ixI^L,fE,idim^LIM)
-    end if
-
-  end subroutine process1_grid
-
   !> Advance a single grid over one partial time step
-  subroutine advect1_grid(method,qdt,ixI^L,idim^LIM,qtC,sCT,qt,s,sold,fC,fE,dxs,x)
+  subroutine advect1_grid(method,qdt,dtfactor,ixI^L,idim^LIM,qtC,sCT,qt,s,fC,fE,dxs,x)
 
     !  integrate one grid by one partial step
     use mod_finite_volume
@@ -721,33 +695,35 @@ contains
     use mod_source, only: addsource2
     use mod_physics, only: phys_to_primitive
     use mod_global_parameters
+    use mod_comm_lib, only: mpistop
 
     integer, intent(in) :: method
     integer, intent(in) :: ixI^L, idim^LIM
-    double precision, intent(in) :: qdt, qtC, qt, dxs(ndim), x(ixI^S,1:ndim)
-    type(state), target          :: sCT, s, sold
+    double precision, intent(in) :: qdt, dtfactor, qtC, qt, dxs(ndim), x(ixI^S,1:ndim)
+    type(state), target          :: sCT, s
     double precision :: fC(ixI^S,1:nwflux,1:ndim), wprim(ixI^S,1:nw)
-    double precision :: fE(ixI^S,7-2*ndim:3)
+    double precision :: fE(ixI^S,sdim:3)
 
     integer :: ixO^L
 
     ixO^L=ixI^L^LSUBnghostcells;
     select case (method)
     case (fs_hll,fs_hllc,fs_hllcd,fs_hlld,fs_tvdlf,fs_tvdmu)
-       call finite_volume(method,qdt,ixI^L,ixO^L,idim^LIM,qtC,sCT,qt,s,sold,fC,fE,dxs,x)
+       call finite_volume(method,qdt,dtfactor,ixI^L,ixO^L,idim^LIM,qtC,sCT,qt,s,fC,fE,dxs,x)
     case (fs_cd,fs_cd4)
-       call centdiff(method,qdt,ixI^L,ixO^L,idim^LIM,qtC,sCT,qt,s,fC,fE,dxs,x)
+       call centdiff(method,qdt,dtfactor,ixI^L,ixO^L,idim^LIM,qtC,sCT,qt,s,fC,fE,dxs,x)
     case (fs_hancock)
-       call hancock(qdt,ixI^L,ixO^L,idim^LIM,qtC,sCT,qt,s,dxs,x)
+       call hancock(qdt,dtfactor,ixI^L,ixO^L,idim^LIM,qtC,sCT,qt,s,dxs,x)
     case (fs_fd)
-       call fd(qdt,ixI^L,ixO^L,idim^LIM,qtC,sCT,qt,s,fC,fE,dxs,x)
+       call fd(qdt,dtfactor,ixI^L,ixO^L,idim^LIM,qtC,sCT,qt,s,fC,fE,dxs,x)
     case (fs_tvd)
-       call centdiff(fs_cd,qdt,ixI^L,ixO^L,idim^LIM,qtC,sCT,qt,s,fC,fE,dxs,x)
+       call centdiff(fs_cd,qdt,dtfactor,ixI^L,ixO^L,idim^LIM,qtC,sCT,qt,s,fC,fE,dxs,x)
        call tvdlimit(method,qdt,ixI^L,ixO^L,idim^LIM,sCT,qt+qdt,s,fC,dxs,x)
     case (fs_source)
        wprim=sCT%w
        call phys_to_primitive(ixI^L,ixI^L,wprim,x)
        call addsource2(qdt*dble(idimmax-idimmin+1)/dble(ndim),&
+            dtfactor*dble(idimmax-idimmin+1)/dble(ndim),&
             ixI^L,ixO^L,1,nw,qtC,sCT%w,wprim,qt,s%w,x,.false.)
     case (fs_nul)
        ! There is nothing to do

@@ -62,7 +62,7 @@ contains
 
     bQ0=1.d-4/unit_pressure*unit_time          ! 3.697693390805347E-003 erg*cm^-3/s
 
-    gzone=0.2d0
+    gzone=2.d8/unit_length
     ! cell size in 1D solar atmosphere table
     dr=(2.d0*gzone+xprobmax3-xprobmin3)/dble(jmax)
     usr_grav=-2.74d4*unit_length/unit_velocity**2  ! solar gravity
@@ -92,7 +92,7 @@ contains
     use mod_global_parameters
 
     double precision :: Ta(jmax),gg(jmax)
-    double precision :: rpho,Tpho,Ttop,htra,wtra,Ttr,Fc,k_para
+    double precision :: rpho,Tpho,Ttop,htra,wtra,ftra,Ttr,Fc,k_para
     double precision :: res,pb,rhob,invT
     integer :: j,na,ibc,btlevel
 
@@ -101,10 +101,11 @@ contains
     Ttop=1.5d6/unit_temperature ! estimated temperature in the top
     htra=2.d8/unit_length ! height of initial transition region
     wtra=2.d7/unit_length ! width of initial transition region 
-    htra=0.2d0           ! height of initial transition region
-    wtra=0.02d0          ! width of initial transition region 
+    htra=2.d8/unit_length ! height of initial transition region
+    wtra=0.2d8/unit_length! width of initial transition region 
     Ttr=1.6d5/unit_temperature ! lowest temperature of upper profile
     Fc=2.d5/unit_pressure/unit_velocity  ! constant thermal conduction flux
+    ftra=wtra*atanh(2.d0*(Ttr-Tpho)/(Ttop-Tpho)-1.d0)
     ! Spitzer thermal conductivity with cgs units
     k_para=8.d-7*unit_temperature**3.5d0/unit_length/unit_density/unit_velocity**3 
     !! set T distribution with height
@@ -113,7 +114,7 @@ contains
        if(ya(j)>htra) then
          Ta(j)=(3.5d0*Fc/k_para*(ya(j)-htra)+Ttr**3.5d0)**(2.d0/7.d0)
        else
-         Ta(j)=Tpho+0.5d0*(Ttop-Tpho)*(tanh((ya(j)-htra-0.027d0)/wtra)+1.d0)
+         Ta(j)=Tpho+0.5d0*(Ttop-Tpho)*(tanh((ya(j)-htra+ftra)/wtra)+1.d0)
        endif
        gg(j)=usr_grav*(SRadius/(SRadius+ya(j)))**2
     enddo

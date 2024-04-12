@@ -1,5 +1,6 @@
 module mod_mf
   use mod_mf_phys
+  use mod_functions_bfield, only: mag
   use mod_amrvac
 
   implicit none

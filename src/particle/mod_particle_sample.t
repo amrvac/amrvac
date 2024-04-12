@@ -118,19 +118,10 @@ contains
     do iigrid=1,igridstail; igrid=igrids(iigrid);
 
       ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
-
-      gridvars(igrid)%w(ixG^T,1:ngridvars) = 0.0d0
       w(ixG^T,1:nw) = ps(igrid)%w(ixG^T,1:nw)
       call phys_to_primitive(ixG^LL,ixG^LL,w,ps(igrid)%x)
       ! fill all variables:
       gridvars(igrid)%w(ixG^T,1:ngridvars) = w(ixG^T,1:ngridvars)
-
-      if (time_advance) then
-        gridvars(igrid)%wold(ixG^T,1:ngridvars) = 0.0d0
-        w(ixG^T,1:nw) = pso(igrid)%w(ixG^T,1:nw)
-        call phys_to_primitive(ixG^LL,ixG^LL,w,ps(igrid)%x)
-        gridvars(igrid)%wold(ixG^T,1:ngridvars) = w(ixG^T,1:ngridvars)
-      end if
 
     end do
 
@@ -193,12 +184,12 @@ contains
 
 
     ! There are npayload=nw payloads, one for each primitive fluid quantity
-    myw(ixG^T,1:nw) = ps(igrid)%w(ixG^T,1:nw)
-    if (time_advance) mywold(ixG^T,1:nw) = pso(igrid)%w(ixG^T,1:nw)
+    myw(ixG^T,1:nw) = gridvars(igrid)%w(ixG^T,1:nw)
+    if (time_advance) mywold(ixG^T,1:nw) = gridvars(igrid)%wold(ixG^T,1:nw)
 
-    if (saveprim) then
-      call phys_to_primitive(ixG^LL,ixG^LL,myw,ps(igrid)%x)
-      if (time_advance) call phys_to_primitive(ixG^LL,ixG^LL,mywold,ps(igrid)%x)
+    if (.not.saveprim) then
+      call phys_to_conserved(ixG^LL,ixG^LL,myw,ps(igrid)%x)
+      if (time_advance) call phys_to_conserved(ixG^LL,ixG^LL,mywold,ps(igrid)%x)
     end if
 
     do ii=1,mynpayload

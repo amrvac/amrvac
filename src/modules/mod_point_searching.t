@@ -3,6 +3,7 @@ module mod_point_searching
   use mod_global_parameters
   use mod_physics
   use mod_particle_base
+  use mod_comm_lib, only: mpistop
   implicit none
 
 contains

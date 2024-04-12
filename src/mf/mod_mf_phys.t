@@ -1,6 +1,10 @@
 !> Magnetofriction module
 module mod_mf_phys
   use mod_global_parameters, only: std_len
+  use mod_functions_bfield, only: get_divb,mag
+  use mod_comm_lib, only: mpistop
+
+
   implicit none
   private
 
@@ -10,7 +14,7 @@ module mod_mf_phys
   !> maximal limit of magnetofrictional velocity in cm s^-1 (Pomoell 2019 A&A)
   double precision, public                :: mf_vmax = 3.d6
 
-  !> decay scale of frictional velocity 
+  !> decay scale of frictional velocity near boundaries
   double precision, public                :: mf_decay_scale(2*^ND)=0.d0
 
   !> Whether particles module is added
@@ -35,8 +39,6 @@ module mod_mf_phys
   !> Indices of the momentum density
   integer, allocatable, public, protected :: mom(:)
 
-  !> Indices of the magnetic field
-  integer, allocatable, public, protected :: mag(:)
 
   !> Indices of the GLM psi
   integer, public, protected :: psi_
@@ -238,7 +240,7 @@ contains
     stop_indices(1)=nwflux
 
     ! determine number of stagger variables
-    if(stagger_grid) nws=ndim
+    nws=ndim
 
     nvector      = 2 ! No. vector vars
     allocate(iw_vector(nvector))
@@ -617,11 +619,11 @@ contains
   end subroutine mf_velocity_update
 
   !> w[iws]=w[iws]+qdt*S[iws,wCT] where S is the source based on wCT within ixO
-  subroutine mf_add_source(qdt,ixI^L,ixO^L,wCT,wCTprim,w,x,qsourcesplit,active)
+  subroutine mf_add_source(qdt,dtfactor,ixI^L,ixO^L,wCT,wCTprim,w,x,qsourcesplit,active)
     use mod_global_parameters
 
     integer, intent(in)             :: ixI^L, ixO^L
-    double precision, intent(in)    :: qdt
+    double precision, intent(in)    :: qdt, dtfactor
     double precision, intent(in)    :: wCT(ixI^S,1:nw),wCTprim(ixI^S,1:nw), x(ixI^S,1:ndim)
     double precision, intent(inout) :: w(ixI^S,1:nw)
     logical, intent(in)             :: qsourcesplit
@@ -642,44 +644,8 @@ contains
 
     end if
 
-      {^NOONED
-    if(.not.source_split_divb .and. .not.qsourcesplit .and. istep==nstep) then
-      ! Sources related to div B
-      select case (type_divb)
-      case (divb_none)
-        ! Do nothing
-      case (divb_glm)
-        active = .true.
-        call add_source_glm(dt,ixI^L,ixO^L,pso(block%igrid)%w,w,x)
-      case (divb_powel)
-        active = .true.
-        call add_source_powel(dt,ixI^L,ixO^L,pso(block%igrid)%w,w,x)
-      case (divb_janhunen)
-        active = .true.
-        call add_source_janhunen(dt,ixI^L,ixO^L,pso(block%igrid)%w,w,x)
-      case (divb_linde)
-        active = .true.
-        call add_source_linde(dt,ixI^L,ixO^L,pso(block%igrid)%w,w,x)
-      case (divb_lindejanhunen)
-        active = .true.
-        call add_source_linde(dt,ixI^L,ixO^L,pso(block%igrid)%w,w,x)
-        call add_source_janhunen(dt,ixI^L,ixO^L,pso(block%igrid)%w,w,x)
-      case (divb_lindepowel)
-        active = .true.
-        call add_source_linde(dt,ixI^L,ixO^L,pso(block%igrid)%w,w,x)
-        call add_source_powel(dt,ixI^L,ixO^L,pso(block%igrid)%w,w,x)
-      case (divb_lindeglm)
-        active = .true.
-        call add_source_linde(dt,ixI^L,ixO^L,pso(block%igrid)%w,w,x)
-        call add_source_glm(dt,ixI^L,ixO^L,pso(block%igrid)%w,w,x)
-      case (divb_ct)
-        continue ! Do nothing
-      case (divb_multigrid)
-        continue ! Do nothing
-      case default
-        call mpistop('Unknown divB fix')
-      end select
-    else if(source_split_divb .and. qsourcesplit) then
+    {^NOONED
+    if(source_split_divb .eqv. qsourcesplit) then
       ! Sources related to div B
       select case (type_divb)
       case (divb_none)
@@ -737,7 +703,18 @@ contains
     ! because extrapolation of B at boundaries introduces artificial current
 {
     if(block%is_physical_boundary(2*^D-1)) then
-      current(ixOmin^D^D%ixO^S,:)=current(ixOmin^D+1^D%ixO^S,:)
+      if(slab) then
+        ! exclude boundary 5 in 3D Cartesian
+        if(2*^D-1==5.and.ndim==3) then
+        else
+          current(ixOmin^D^D%ixO^S,:)=current(ixOmin^D+1^D%ixO^S,:)
+        end if
+      else
+        ! exclude boundary 1 spherical/cylindrical
+        if(2*^D-1>1) then
+          current(ixOmin^D^D%ixO^S,:)=current(ixOmin^D+1^D%ixO^S,:)
+        end if
+      end if
     end if
     if(block%is_physical_boundary(2*^D)) then
       current(ixOmax^D^D%ixO^S,:)=current(ixOmax^D-1^D%ixO^S,:)
@@ -1135,36 +1112,6 @@ contains
 
   end subroutine add_source_linde
 
-  !> Calculate div B within ixO
-  subroutine get_divb(w,ixI^L,ixO^L,divb, fourthorder)
-    use mod_global_parameters
-    use mod_geometry
-
-    integer, intent(in)             :: ixI^L, ixO^L
-    double precision, intent(in)    :: w(ixI^S,1:nw)
-    double precision, intent(inout) :: divb(ixI^S)
-    logical, intent(in), optional   :: fourthorder
-
-    integer                            :: ixC^L, idir
-
-    if(stagger_grid) then
-      divb(ixO^S)=0.d0
-      do idir=1,ndim
-        ixC^L=ixO^L-kr(idir,^D);
-        divb(ixO^S)=divb(ixO^S)+block%ws(ixO^S,idir)*block%surfaceC(ixO^S,idir)-&
-                                block%ws(ixC^S,idir)*block%surfaceC(ixC^S,idir)
-      end do
-      divb(ixO^S)=divb(ixO^S)/block%dvolume(ixO^S)
-    else
-      select case(typediv)
-      case("central")
-        call divvector(w(ixI^S,mag(1:ndir)),ixI^L,ixO^L,divb,fourthorder)
-      case("limited")
-        call divvectorS(w(ixI^S,mag(1:ndir)),ixI^L,ixO^L,divb)
-      end select
-    end if
-
-  end subroutine get_divb
 
   !> get dimensionless div B = |divB| * volume / area / |B|
   subroutine get_normalized_divb(w,ixI^L,ixO^L,divb)
@@ -1269,12 +1216,12 @@ contains
   end subroutine mf_get_dt
 
   ! Add geometrical source terms to w
-  subroutine mf_add_source_geom(qdt,ixI^L,ixO^L,wCT,w,x)
+  subroutine mf_add_source_geom(qdt,dtfactor, ixI^L,ixO^L,wCT,w,x)
     use mod_global_parameters
     use mod_geometry
 
     integer, intent(in)             :: ixI^L, ixO^L
-    double precision, intent(in)    :: qdt, x(ixI^S,1:ndim)
+    double precision, intent(in)    :: qdt, dtfactor, x(ixI^S,1:ndim)
     double precision, intent(inout) :: wCT(ixI^S,1:nw), w(ixI^S,1:nw)
 
     integer          :: iw,idir
@@ -1944,7 +1891,7 @@ contains
     type(state)                        :: sCT, s
     type(ct_velocity)                  :: vcts
     double precision, intent(in)       :: fC(ixI^S,1:nwflux,1:ndim)
-    double precision, intent(inout)    :: fE(ixI^S,7-2*ndim:3)
+    double precision, intent(inout)    :: fE(ixI^S,sdim:3)
 
     select case(type_ct)
     case('average')
@@ -1968,13 +1915,13 @@ contains
     double precision, intent(in)       :: qt, qdt
     type(state)                        :: sCT, s
     double precision, intent(in)       :: fC(ixI^S,1:nwflux,1:ndim)
-    double precision, intent(inout)    :: fE(ixI^S,7-2*ndim:3)
+    double precision, intent(inout)    :: fE(ixI^S,sdim:3)
 
     integer                            :: hxC^L,ixC^L,jxC^L,ixCm^L
     integer                            :: idim1,idim2,idir,iwdim1,iwdim2
     double precision                   :: circ(ixI^S,1:ndim)
     ! current on cell edges
-    double precision :: jce(ixI^S,7-2*ndim:3)
+    double precision :: jce(ixI^S,sdim:3)
 
     associate(bfaces=>s%ws,x=>s%x)
 
@@ -1989,7 +1936,7 @@ contains
       iwdim1 = mag(idim1)
       do idim2=1,ndim
         iwdim2 = mag(idim2)
-        do idir=7-2*ndim,3! Direction of line integral
+        do idir=sdim,3! Direction of line integral
           ! Allow only even permutations
           if (lvc(idim1,idim2,idir)==1) then
             ixCmax^D=ixOmax^D;
@@ -2025,7 +1972,7 @@ contains
       ixCmax^D=ixOmax^D;
       ixCmin^D=ixOmin^D-kr(idim1,^D);
       do idim2=1,ndim
-        do idir=7-2*ndim,3 ! Direction of line integral
+        do idir=sdim,3 ! Direction of line integral
           ! Assemble indices
           if(lvc(idim1,idim2,idir)/=0) then
             hxC^L=ixC^L-kr(idim2,^D);
@@ -2059,17 +2006,17 @@ contains
     type(state)                        :: sCT, s
     type(ct_velocity)                  :: vcts
     double precision, intent(in)       :: fC(ixI^S,1:nwflux,1:ndim)
-    double precision, intent(inout)    :: fE(ixI^S,7-2*ndim:3)
+    double precision, intent(inout)    :: fE(ixI^S,sdim:3)
 
     double precision                   :: circ(ixI^S,1:ndim)
     ! electric field at cell centers
-    double precision                   :: ECC(ixI^S,7-2*ndim:3)
+    double precision                   :: ECC(ixI^S,sdim:3)
     ! gradient of E at left and right side of a cell face
     double precision                   :: EL(ixI^S),ER(ixI^S)
     ! gradient of E at left and right side of a cell corner
     double precision                   :: ELC(ixI^S),ERC(ixI^S)
     ! current on cell edges
-    double precision                   :: jce(ixI^S,7-2*ndim:3)
+    double precision                   :: jce(ixI^S,sdim:3)
     integer                            :: hxC^L,ixC^L,jxC^L,ixA^L,ixB^L
     integer                            :: idim1,idim2,idir,iwdim1,iwdim2
 
@@ -2077,7 +2024,7 @@ contains
 
     ECC=0.d0
     ! Calculate electric field at cell centers
-    do idim1=1,ndim; do idim2=1,ndim; do idir=7-2*ndim,3
+    do idim1=1,ndim; do idim2=1,ndim; do idir=sdim,3
       if(lvc(idim1,idim2,idir)==1)then
          ECC(ixI^S,idir)=ECC(ixI^S,idir)+wp(ixI^S,mag(idim1))*wp(ixI^S,mom(idim2))
       else if(lvc(idim1,idim2,idir)==-1) then
@@ -2096,7 +2043,7 @@ contains
       iwdim1 = mag(idim1)
       do idim2=1,ndim
         iwdim2 = mag(idim2)
-        do idir=7-2*ndim,3 ! Direction of line integral
+        do idir=sdim,3 ! Direction of line integral
           ! Allow only even permutations
           if (lvc(idim1,idim2,idir)==1) then
             ixCmax^D=ixOmax^D;
@@ -2183,7 +2130,7 @@ contains
       ixCmax^D=ixOmax^D;
       ixCmin^D=ixOmin^D-kr(idim1,^D);
       do idim2=1,ndim
-        do idir=7-2*ndim,3 ! Direction of line integral
+        do idir=sdim,3 ! Direction of line integral
           ! Assemble indices
           if(lvc(idim1,idim2,idir)/=0) then
             hxC^L=ixC^L-kr(idim2,^D);
@@ -2217,7 +2164,7 @@ contains
 
     integer, intent(in)                :: ixI^L, ixO^L
     double precision, intent(in)       :: qt, qdt
-    double precision, intent(inout)    :: fE(ixI^S,7-2*ndim:3)
+    double precision, intent(inout)    :: fE(ixI^S,sdim:3)
     type(state)                        :: sCT, s
     type(ct_velocity)                  :: vcts
 
@@ -2229,7 +2176,7 @@ contains
     double precision                   :: cm(ixI^S,2)
     double precision                   :: circ(ixI^S,1:ndim)
     ! current on cell edges
-    double precision                   :: jce(ixI^S,7-2*ndim:3)
+    double precision                   :: jce(ixI^S,sdim:3)
     integer                            :: hxC^L,ixC^L,ixCp^L,jxC^L,ixCm^L
     integer                            :: idim1,idim2,idir
 
@@ -2249,7 +2196,7 @@ contains
     ! if there is resistivity, get eta J
     if(mf_eta/=zero) call get_resistive_electric_field(ixI^L,ixO^L,sCT,s,jce)
 
-    do idir=7-2*ndim,3
+    do idir=sdim,3
       ! Indices
       ! idir: electric field component
       ! idim1: one surface
@@ -2331,7 +2278,7 @@ contains
       ixCmax^D=ixOmax^D;
       ixCmin^D=ixOmin^D-kr(idim1,^D);
       do idim2=1,ndim
-        do idir=7-2*ndim,3 ! Direction of line integral
+        do idir=sdim,3 ! Direction of line integral
           ! Assemble indices
           if(lvc(idim1,idim2,idir)/=0) then
             hxC^L=ixC^L-kr(idim2,^D);
@@ -2365,7 +2312,7 @@ contains
     integer, intent(in)                :: ixI^L, ixO^L
     type(state), intent(in)            :: sCT, s
     ! current on cell edges
-    double precision :: jce(ixI^S,7-2*ndim:3)
+    double precision :: jce(ixI^S,sdim:3)
 
     ! current on cell centers
     double precision :: jcc(ixI^S,7-2*ndir:3)
@@ -2381,7 +2328,7 @@ contains
     jce=0.d0
     do idim1=1,ndim 
       do idim2=1,ndim
-        do idir=7-2*ndim,3
+        do idir=sdim,3
           if (lvc(idim1,idim2,idir)==0) cycle
           ixCmax^D=ixOmax^D+1;
           ixCmin^D=ixOmin^D+kr(idir,^D)-2;
@@ -2407,7 +2354,7 @@ contains
       call get_current(wCT,ixI^L,ixA^L,idirmin,jcc)
       call usr_special_resistivity(wCT,ixI^L,ixA^L,idirmin,x,jcc,eta)
       ! calcuate eta on cell edges
-      do idir=7-2*ndim,3
+      do idir=sdim,3
         ixCmax^D=ixOmax^D;
         ixCmin^D=ixOmin^D+kr(idir,^D)-1;
         jcc(ixC^S,idir)=0.d0

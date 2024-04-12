@@ -30,9 +30,9 @@ module mod_supertimestepping
 
   ! input parameters from parameter file
   !> the coefficient that multiplies the sts dt
-  double precision :: sts_dtpar=0.9d0 
+  double precision :: sts_dtpar=0.8d0
   !> the maximum number of subcycles
-  integer :: sts_ncycles=1000 
+  integer :: sts_ncycles=1000
   integer :: sts_method = 1
   integer, parameter :: sourcetype_sts_prior =0
   integer, parameter :: sourcetype_sts_after =1
@@ -40,7 +40,7 @@ module mod_supertimestepping
   integer :: sourcetype_sts = sourcetype_sts_split
 
   !The following is used only for method 2, not input parameter TODO check if we want as input parameter
-  double precision,parameter :: nu_sts = 0.5
+  double precision,parameter :: nu_sts = 0.5d0
   !> Whether to conserve fluxes at the current partial step
   logical :: fix_conserve_at_step = .true.
   logical :: sts_initialized = .false.
@@ -261,7 +261,7 @@ contains
         use mod_global_parameters
         integer, intent(in) :: ixI^L, ixO^L
         double precision, intent(in) :: x(ixI^S,1:ndim)
-        double precision, intent(inout) :: w(ixI^S,1:nw) 
+        double precision, intent(inout) :: w(ixI^S,1:nw)
       end subroutine sts_after_last_cycle
     end interface
 
@@ -306,10 +306,10 @@ contains
     else
       ss = dt/dtnew
       ! get number of sub-steps of supertime stepping (Meyer 2012 MNRAS 422,2102)
-      if(ss .le. 1d0) then
+      if(ss .le. 1.d0) then
         is=1
       else
-        is=ceiling((dsqrt(9.d0+16.d0*ss)-1.d0)/2.d0)
+        is=ceiling((dsqrt(9.d0+16.d0*ss)-1.d0)*0.5d0)
         is=is/2*2+1
       end if
     end if
@@ -388,9 +388,9 @@ contains
         do while(.not. associated(oldTemp,temp))  
          oldTemp%s = sts_get_ncycles(my_dt1,oldTemp%dt_expl,dt_modified1) 
          !check dt is not modified again, and this should not happen, except for bug in sts_get_ncycles1,2
-         if(dt_modified1) call mpistop("sts dt modified twice")  
+         if(dt_modified1) call mpistop("sts dt modified twice")
          oldTemp=>oldTemp%next
-        end do 
+        end do
       end if
       temp=>temp%next
 
@@ -481,7 +481,7 @@ contains
           ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
           block=>ps(igrid)
           call temp%sts_before_first_cycle(ixG^LL,ixG^LL,ps(igrid)%w,ps(igrid)%x)  
-        end do 
+        end do
       end if
 
       allocate(bj(1:temp%s))
@@ -496,7 +496,7 @@ contains
       type_send_p=>temp%type_send_p_sts_1
       type_recv_p=>temp%type_recv_p_sts_1
 
-      if(.not. temp%types_initialized) then 
+      if(.not. temp%types_initialized) then
         call create_bc_mpi_datatype(temp%startwbc,temp%nwbc)
         if(temp%nflux>temp%nwbc) then
           ! prepare types for the changed no-need-ghost-update variables in the last getbc
@@ -516,14 +516,14 @@ contains
         end if
         temp%types_initialized = .true.
       end if
-        
+
       sumbj=0.d0
       do j=1,temp%s
         if(j .eq. temp%s .and. (sumbj + bj(j)) * temp%dt_expl > my_dt) then
           dtj = my_dt - sumbj * temp%dt_expl
         else
           dtj = bj(j)* temp%dt_expl
-        end if  
+        end if
         sumbj = sumbj + bj(j)
         if(stagger_grid) then
           !$OMP PARALLEL DO PRIVATE(igrid)
@@ -593,7 +593,7 @@ contains
           ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
           block=>ps(igrid)
           call temp%sts_after_last_cycle(ixG^LL,ixG^LL,ps(igrid)%w,ps(igrid)%x)
-        end do 
+        end do
         prolongprimitive  = prolong_flag
         coarsenprimitive = coarsen_flag
       end if
@@ -638,6 +638,7 @@ contains
     use mod_ghostcells_update
     use mod_fix_conserve
     use mod_physics
+    use mod_amr_solution_node, only: alloc_state
 
     double precision, intent(in) :: my_dt
     double precision :: dtj
@@ -941,7 +942,7 @@ contains
           end do
           !$OMP END PARALLEL DO
         end if
-      endif
+      end if
 
       deallocate(bj)
 

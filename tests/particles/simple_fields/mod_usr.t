@@ -155,7 +155,6 @@ contains
     case (7)
       ! Magnetic dipole (run up to t = 100)
       E = [0.0d0, 0.0d0, 0.0d0]
-      ! x is in cm, this corresponds to B = 10 T at 1 m
       B =  1d6 * [3d0 * x(1) * x(3), &
            3d0 * x(2) * x(3), &
            2d0 * x(3)**2 - x(1)**2 - x(2)**2] / &

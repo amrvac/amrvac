@@ -2,6 +2,8 @@ module mod_twofl_hllc
 #include "amrvac.h"
   use mod_twofl_phys
   use mod_physics_hllc
+  use mod_functions_bfield, only: mag
+
   implicit none
   private
 

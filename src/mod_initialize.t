@@ -1,5 +1,6 @@
 !> This module handles the initialization of various components of amrvac
 module mod_initialize
+  use mod_comm_lib, only: mpistop
 
   implicit none
   private
@@ -18,8 +19,8 @@ contains
     use mod_physics, only: phys_check, phys_check_params
     use mod_usr_methods, only: usr_set_parameters
     use mod_bc_data, only: bc_data_init
-    use mod_trac, only:init_trac_line, init_trac_block
     use mod_init_datafromfile, only: read_data_init
+    use mod_comm_lib, only: init_comm_types
 
     if (initialized_already) return
 
@@ -62,7 +63,6 @@ contains
     allocate(ps2(max_blocks))
     allocate(ps3(max_blocks))
     allocate(ps4(max_blocks))
-    allocate(pso(max_blocks))
     allocate(psc(max_blocks))
     allocate(ps_sub(max_blocks))
     allocate(neighbor(2,-1:1^D&,max_blocks),neighbor_child(2,0:3^D&,max_blocks))

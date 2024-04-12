@@ -4,6 +4,7 @@ module mod_hd_phys
   use mod_radiative_cooling, only: rc_fluid
   use mod_thermal_emission, only: te_fluid
   use mod_physics
+  use mod_comm_lib, only: mpistop
   implicit none
   private
 
@@ -459,7 +460,6 @@ contains
     ! fill in tc_fluid fields from namelist
     subroutine tc_params_read_hd(fl)
       use mod_global_parameters, only: unitpar,par_files
-      use mod_global_parameters, only: unitpar
       type(tc_fluid), intent(inout) :: fl
       integer                      :: n
       logical :: tc_saturate=.false.
@@ -1188,7 +1188,7 @@ contains
   !>
   !> Ileyk : to do :
   !>     - address the source term for the dust in case (coordinate == spherical)
-  subroutine hd_add_source_geom(qdt, ixI^L, ixO^L, wCT, w, x)
+  subroutine hd_add_source_geom(qdt, dtfactor, ixI^L, ixO^L, wCT, w, x)
     use mod_global_parameters
     use mod_usr_methods, only: usr_set_surface
     use mod_viscosity, only: visc_add_source_geom ! viscInDiv
@@ -1196,7 +1196,7 @@ contains
     use mod_dust, only: dust_n_species, dust_mom, dust_rho
     use mod_geometry
     integer, intent(in)             :: ixI^L, ixO^L
-    double precision, intent(in)    :: qdt, x(ixI^S, 1:ndim)
+    double precision, intent(in)    :: qdt, dtfactor, x(ixI^S, 1:ndim)
     double precision, intent(inout) :: wCT(ixI^S, 1:nw), w(ixI^S, 1:nw)
     ! to change and to set as a parameter in the parfile once the possibility to
     ! solve the equations in an angular momentum conserving form has been
@@ -1300,14 +1300,14 @@ contains
        if (hd_dust) then
           call mpistop("Rotating frame not implemented yet with dust")
        else
-          call rotating_frame_add_source(qdt,ixI^L,ixO^L,wCT,w,x)
+          call rotating_frame_add_source(qdt,dtfactor,ixI^L,ixO^L,wCT,w,x)
        end if
     end if
 
   end subroutine hd_add_source_geom
 
   ! w[iw]= w[iw]+qdt*S[wCT, qtC, x] where S is the source based on wCT within ixO
-  subroutine hd_add_source(qdt,ixI^L,ixO^L,wCT,wCTprim,w,x,qsourcesplit,active)
+  subroutine hd_add_source(qdt,dtfactor, ixI^L,ixO^L,wCT,wCTprim,w,x,qsourcesplit,active)
     use mod_global_parameters
     use mod_radiative_cooling, only: radiative_cooling_add_source
     use mod_dust, only: dust_add_source, dust_mom, dust_rho, dust_n_species
@@ -1317,7 +1317,7 @@ contains
     use mod_cak_force, only: cak_add_source
 
     integer, intent(in)             :: ixI^L, ixO^L
-    double precision, intent(in)    :: qdt
+    double precision, intent(in)    :: qdt, dtfactor
     double precision, intent(in)    :: wCT(ixI^S, 1:nw),wCTprim(ixI^S,1:nw), x(ixI^S, 1:ndim)
     double precision, intent(inout) :: w(ixI^S, 1:nw)
     logical, intent(in)             :: qsourcesplit
@@ -1446,8 +1446,6 @@ contains
 
     integer :: n,idir
     logical :: flag(ixI^S,1:nw)
-
-    if (small_values_method == "ignore") return
 
     call hd_check_w(primitive, ixI^L, ixO^L, w, flag)
 

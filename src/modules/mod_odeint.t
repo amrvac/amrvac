@@ -1,5 +1,6 @@
 !> This module packages odeint from numerical recipes.
 module mod_odeint
+  use mod_comm_lib, only: mpistop
   implicit none
   integer                  :: MAXSTP, NMAX, KMAXX
   PARAMETER (MAXSTP=10000,NMAX=50,KMAXX=200)
@@ -201,7 +202,7 @@ contains
         write(*,*) "y0",y(1:n)
         write(*,*) "derivs",dydx(1:n)
         write(*,*) "ABORTING..."
-        call mpistop()
+        call mpistop("")
       end if
       do 11 i=1,n
          ytemp(i)=y(i)+B21*h*dydx(i)
@@ -212,7 +213,7 @@ contains
         write(*,*) "y1",ytemp(1:n)
         write(*,*) "derivs",ak2(1:n)
         write(*,*) "ABORTING..."
-        call mpistop()
+        call mpistop("")
       end if
       do 12 i=1,n
          ytemp(i)=y(i)+h*(B31*dydx(i)+B32*ak2(i))
@@ -223,7 +224,7 @@ contains
         write(*,*) "y2",ytemp(1:n)
         write(*,*) "derivs",ak3(1:n)
         write(*,*) "ABORTING..."
-        call mpistop()
+        call mpistop("")
       end if
       do 13 i=1,n
          ytemp(i)=y(i)+h*(B41*dydx(i)+B42*ak2(i)+B43*ak3(i))
@@ -234,7 +235,7 @@ contains
         write(*,*) "y3",ytemp(1:n)
         write(*,*) "derivs",ak4(1:n)
         write(*,*) "ABORTING..."
-        call mpistop()
+        call mpistop("")
       end if
       do 14 i=1,n
          ytemp(i)=y(i)+h*(B51*dydx(i)+B52*ak2(i)+B53*ak3(i)+B54*ak4(i))
@@ -245,7 +246,7 @@ contains
         write(*,*) "y4",ytemp(1:n)
         write(*,*) "derivs",ak5(1:n)
         write(*,*) "ABORTING..."
-        call mpistop()
+        call mpistop("")
       end if
       do 15 i=1,n
          ytemp(i)=y(i)+h*(B61*dydx(i)+B62*ak2(i)+B63*ak3(i)+B64*ak4(i)+B65*ak5(i))
@@ -256,7 +257,7 @@ contains
         write(*,*) "y15",ytemp(1:n)
         write(*,*) "derivs",ak6(1:n)
         write(*,*) "ABORTING..."
-        call mpistop()
+        call mpistop("")
       end if
       do 16 i=1,n
          yout(i)=y(i)+h*(C1*dydx(i)+C3*ak3(i)+C4*ak4(i)+C6*ak6(i))
