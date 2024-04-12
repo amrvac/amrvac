@@ -10,7 +10,7 @@ module mod_particle_advect
   integer, parameter :: Euler = 1, RK4=2, ARK4=3
 
   ! Variables
-  public :: vp
+  public :: vp, rhop
 
 contains
 
@@ -148,7 +148,7 @@ contains
       gridvars(igrid)%w(ixG^T,1:ngridvars) = 0.0d0
       w(ixG^T,1:nw) = ps(igrid)%w(ixG^T,1:nw)
       call phys_to_primitive(ixG^LL,ixG^LL,w,ps(igrid)%x)
-      gridvars(igrid)%w(ixG^T,1) = w(ixG^T,iw_rho)
+      gridvars(igrid)%w(ixG^T,rhop) = w(ixG^T,iw_rho)
       gridvars(igrid)%w(ixG^T,vp(:)) = w(ixG^T,iw_mom(:))
     end do
 

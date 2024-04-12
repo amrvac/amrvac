@@ -181,24 +181,6 @@ contains
     ! Fill electromagnetic quantities
     call fill_gridvars_default()
 
-    ! Fill fluid velocity and density
-    do iigrid=1,igridstail; igrid=igrids(iigrid);
-      w(ixG^T,1:nw) = ps(igrid)%w(ixG^T,1:nw)
-      call phys_to_primitive(ixG^LL,ixG^LL,w,ps(igrid)%x)
-      gridvars(igrid)%w(ixG^T,vp(:)) = w(ixG^T,iw_mom(:))
-      gridvars(igrid)%w(ixG^T,rhop) = w(ixG^T,iw_rho)
-
-      if(time_advance) then
-        w(ixG^T,1:nw) = pso(igrid)%w(ixG^T,1:nw)
-        call phys_to_primitive(ixG^LL,ixG^LL,w,ps(igrid)%x)
-        gridvars(igrid)%wold(ixG^T,vp(:)) = w(ixG^T,iw_mom(:))
-        gridvars(igrid)%wold(ixG^T,rhop) = w(ixG^T,iw_rho)
-      end if
-    end do
-
-    ! Fill electromagnetic quantities
-    call fill_gridvars_default()
-
   end subroutine lorentz_fill_gridvars
 
   !> Relativistic particle integrator

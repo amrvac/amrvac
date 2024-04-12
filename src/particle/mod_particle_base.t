@@ -379,14 +379,12 @@ contains
     integer :: igrid, iigrid
     double precision :: E(ixG^T, ndir)
     double precision :: B(ixG^T, ndir)
-    double precision :: J(ixG^T, ndir)
 
     do iigrid=1,igridstail; igrid=igrids(iigrid);
-      if (associated(usr_particle_fields)) then
-        call usr_particle_fields(ps(igrid)%w, ps(igrid)%x, E, B, J)
+      if (associated(usr_particle_fields)) then ! FILL ONLY E AND B
+        call usr_particle_fields(ps(igrid)%w, ps(igrid)%x, E, B)
         gridvars(igrid)%w(ixG^T,ep(:)) = E
         gridvars(igrid)%w(ixG^T,bp(:)) = B
-        gridvars(igrid)%w(ixG^T,jp(:)) = J
       else
         call fields_from_mhd(igrid, ps(igrid)%w, gridvars(igrid)%w)
       end if
@@ -412,6 +410,12 @@ contains
     w_part(ixG^T,ep(1):ep(3)) = 0.0d0
 
     call phys_to_primitive(ixG^LL,ixG^LL,w,ps(igrid)%x)
+
+    ! fill with density:
+    w_part(ixG^T,rhop) = w(ixG^T,iw_rho)
+
+    ! fill with velocity:
+    w_part(ixG^T,vp(:)) = w(ixG^T,iw_mom(:))
 
     ! fill with magnetic field:
     if (B0field) then
@@ -652,7 +656,7 @@ contains
       end do
       if (time_advance) then
         do idir=1,ndir
-          call interpolate_var(igrid,ixG^LL,ixM^LL,gridvars(igrid)%w(ixG^T,ix(idir)), &
+          call interpolate_var(igrid,ixG^LL,ixM^LL,gridvars(igrid)%wold(ixG^T,ix(idir)), &
                ps(igrid)%x(ixG^T,1:ndim),x,vec2(idir))
         end do
         td = (tloc - global_time) / dt
@@ -686,7 +690,7 @@ contains
       end do
       if (time_advance) then
         do idir=1,ndir
-          call interpolate_var(igrid,ixG^LL,ixM^LL,gridvars(igrid)%w(ixG^T,bp(idir)), &
+          call interpolate_var(igrid,ixG^LL,ixM^LL,gridvars(igrid)%wold(ixG^T,bp(idir)), &
                ps(igrid)%x(ixG^T,1:ndim),x,vec2(idir))
         end do
         td = (tloc - global_time) / dt

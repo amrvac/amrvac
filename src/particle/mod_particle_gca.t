@@ -232,10 +232,6 @@ contains
     do iigrid=1,igridstail; igrid=igrids(iigrid);
       w(ixG^T,1:nw) = ps(igrid)%w(ixG^T,1:nw)
       call phys_to_primitive(ixG^LL,ixG^LL,w,ps(igrid)%x)
-      ! fill with velocity:
-      gridvars(igrid)%w(ixG^T,vp(:)) = w(ixG^T,iw_mom(:))
-      ! fill with density:
-      gridvars(igrid)%w(ixG^T,rhop) = w(ixG^T,iw_rho)
 
       ! grad(kappa B)
       absB(ixG^T) = sqrt(sum(gridvars(igrid)%w(ixG^T,bp(:))**2,dim=ndim+1))
@@ -304,77 +300,6 @@ contains
         end do
       end do
 
-      if (time_advance) then
-        ! Fluid velocity and density
-        w(ixG^T,1:nw) = pso(igrid)%w(ixG^T,1:nw)
-        call phys_to_primitive(ixG^LL,ixG^LL,w,ps(igrid)%x)
-        gridvars(igrid)%wold(ixG^T,vp(:)) = w(ixG^T,iw_mom(:))
-        gridvars(igrid)%wold(ixG^T,rhop) = w(ixG^T,iw_rho)
-
-        ! grad(kappa B)
-        absB(ixG^T) = sqrt(sum(gridvars(igrid)%wold(ixG^T,bp(:))**2,dim=ndim+1))
-        vE(ixG^T,1) = gridvars(igrid)%wold(ixG^T,ep(2)) * gridvars(igrid)%wold(ixG^T,bp(3)) &
-             - gridvars(igrid)%wold(ixG^T,ep(3)) * gridvars(igrid)%wold(ixG^T,bp(2))
-        vE(ixG^T,2) = gridvars(igrid)%wold(ixG^T,ep(3)) * gridvars(igrid)%wold(ixG^T,bp(1)) &
-             - gridvars(igrid)%wold(ixG^T,ep(1)) * gridvars(igrid)%wold(ixG^T,bp(3))
-        vE(ixG^T,3) = gridvars(igrid)%wold(ixG^T,ep(1)) * gridvars(igrid)%wold(ixG^T,bp(2)) &
-             - gridvars(igrid)%wold(ixG^T,ep(2)) * gridvars(igrid)%wold(ixG^T,bp(1))
-        do idir=1,ndir
-          where (absB(ixG^T) .gt. 0.d0) 
-            vE(ixG^T,idir) = vE(ixG^T,idir) / absB(ixG^T)**2
-          elsewhere
-            vE(ixG^T,idir) = 0.d0
-          end where
-        end do
-        if (any(sum(vE(ixG^T,:)**2,dim=ndim+1) .ge. c_norm**2) .and. relativistic) then
-          call mpistop("GCA FILL GRIDVARS: vE>c! ABORTING...")
-        end if
-        if (any(vE .ne. vE)) then
-          call mpistop("GCA FILL GRIDVARS: NaNs IN vE! ABORTING...")
-        end if
-
-        if (relativistic) then
-          kappa(ixG^T) = 1.d0/sqrt(1.0d0 - sum(vE(ixG^T,:)**2,dim=ndim+1)/c_norm**2)
-        else
-          kappa(ixG^T) = 1.d0
-        end if
-        kappa_B(ixG^T) = absB(ixG^T) / kappa(ixG^T)
-        if (any(kappa_B .ne. kappa_B)) then
-          call mpistop("GCA FILL GRIDVARS: NaNs IN kappa_B! ABORTING...")
-        end if
-
-        do idim=1,ndim
-          call gradient(kappa_B,ixG^LL,ixG^LL^LSUB1,idim,tmp)
-          gridvars(igrid)%wold(ixG^T,grad_kappa_B(idim)) = tmp(ixG^T)
-        end do
-
-        do idir=1,ndir
-          where (absB(ixG^T) .gt. 0.d0)
-            bhat(ixG^T,idir) = gridvars(igrid)%wold(ixG^T,bp(idir)) / absB(ixG^T)
-          elsewhere
-            bhat(ixG^T,idir) = 0.d0
-          end where
-        end do
-        if (any(bhat .ne. bhat)) then
-          call mpistop("GCA FILL GRIDVARS: NaNs IN bhat! ABORTING...")
-        end if
-  
-        do idir=1,ndir
-          ! (b dot grad) b and the other directional derivatives
-          do idim=1,ndim
-            call gradient(bhat(ixG^T,idir),ixG^LL,ixG^LL^LSUB1,idim,tmp)
-            gridvars(igrid)%wold(ixG^T,b_dot_grad_b(idir)) = gridvars(igrid)%wold(ixG^T,b_dot_grad_b(idir)) &
-                 + bhat(ixG^T,idim) * tmp(ixG^T)
-            gridvars(igrid)%wold(ixG^T,vE_dot_grad_b(idir)) = gridvars(igrid)%wold(ixG^T,vE_dot_grad_b(idir)) &
-                 + vE(ixG^T,idim) * tmp(ixG^T)
-            call gradient(vE(ixG^T,idir),ixG^LL,ixG^LL^LSUB1,idim,tmp)
-            gridvars(igrid)%wold(ixG^T,b_dot_grad_vE(idir)) = gridvars(igrid)%wold(ixG^T,b_dot_grad_vE(idir)) &
-                 + bhat(ixG^T,idim) * tmp(ixG^T)
-            gridvars(igrid)%wold(ixG^T,vE_dot_grad_vE(idir)) = gridvars(igrid)%wold(ixG^T,vE_dot_grad_vE(idir)) &
-                 + vE(ixG^T,idim) * tmp(ixG^T)
-          end do
-        end do
-      end if
     end do
 
   end subroutine gca_fill_gridvars
