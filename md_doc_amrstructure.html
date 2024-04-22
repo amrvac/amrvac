@@ -30,7 +30,7 @@
  <tr style="height: 56px;">
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">MPI-AMRVAC
-   &#160;<span id="projectnumber">3.0</span>
+   &#160;<span id="projectnumber">3.1</span>
    </div>
    <div id="projectbrief">The MPI - Adaptive Mesh Refinement - Versatile Advection Code</div>
   </td>
@@ -83,15 +83,13 @@ $(function() {
 <h1>Important (global) parameters</h1>
 <p>Some important global parameters are in the module <em><a class="el" href="mod__global__parameters_8t.html">mod_global_parameters.t</a></em>. In particular, note that the maximum number of blocks per processor is the parameter <b>max_blocks</b>, and the maximum number of levels is the parameter <b>nlevelshi</b>. The latter is default set to 20. If your want to run with more levels, and/or allow for more grids per processor, you need to change their value and recompile. The number of levels set in the par file as <em>refine_max_level</em> must always be smaller or equal to <b>nlevelshi</b>. This <b>nlevelshi</b> also returns in those parameters that are defined per level, such as <em>limiter</em> which needs to be set for all (default) 20 levels.</p>
 <h1>AMR criteria</h1>
-<p>This in essence describes the module <em><a class="el" href="errest_8t.html">errest.t</a></em>, or at least its most essential aspets.</p>
+<p>This in essence describes the module <em>errest.t</em>, or at least its most essential aspets.</p>
 <p>The block-tree nature implies that a decision for refining/coarsening is to be made on a block-by-block basis. This automated block-based regridding procedure involves 3 steps: </p><pre class="fragment">(1) consider all blocks at level 1&lt; l&lt; _refine_max_level_ , with _refine_max_level_ the maximal grid level selected;
 (2) quantify the local error E_\xx at each gridpoint in a certain grid block;
 (3) if any point has this error exceeding a user-set threshold _refine_threshold(l)_, refine this block (and ensure proper nesting);
 (4) if all points have their error below a user-set fraction of the threshold _derefine_ratio(l)_ used in the previous step, coarsen the block (for l&gt;1).
-</pre><p> The local error estimator can be one of four options, selected by <em>refine_criterion</em>, each possibly augmented with user-defined criteria. For <em>refine_criterion=0</em>, only refinement based on <em>usr_refine_grid</em> is active. Any of the other 3 estimators use a user-selected subset of the conserved or auxiliary variables (or even variables that are computed dynamically at the time of regridding), through the formula <img src="error1.gif" alt="" class="inline"/></p>
+</pre><p> The local error estimator can be one of three options, selected by <em>refine_criterion</em>, each possibly augmented with user-defined criteria. For <em>refine_criterion=1</em>, only refinement based on <em>usr_refine_grid</em> is active. Any of the other 3 estimators use a user-selected subset of the conserved or auxiliary variables (or even variables that are computed dynamically at the time of regridding), through the formula <img src="error1.gif" alt="" class="inline"/></p>
 <p>The indices included are user-identified with the <em>w_refine_weight</em> array, where the sum of weights of all variables should equal to 1. The estimated error is a weighted sum of contributions from all variables with non-zero weight.</p>
-<p>For <em>refine_criterion=1</em>, a local comparison merely employs the availability of the t^{n-1} and t^n solution vectors. It estimates the local relative variable errors as <img src="error3.gif" alt="" class="inline"/></p>
-<p>This is obviously computationally cheaper, but has the disadvantage that it in essence uses historical info, which may be insufficient for rapidly moving, strong shock cases. In our experience, local error estimators work satisfactorily on a variety of test problems, but may need an added, user-set buffer zone around each grid point flagged for refinement in this manner. This zone sets the buffer width in numbers of grid cells (per dimension) <em>nbufferx1,...</em> about flagged grid cells.</p>
 <p>For <em>refine_criterion=2</em> or <em>refine_criterion=3</em>, we select a Lohner type [R. Lohner, An adaptive finite element scheme for transient problems in CFD, Comp. Meth. App. Mech. Eng. 61, 323 (1987)] prescription as also used in the PARAMESH library or the FLASH3 code. In our experience, it does not require any of the buffering just discussed, and is computationally efficient as it employs only instantaneous values from t^n. It in essence discretizes a weighted second derivative in each grid point.</p>
 <p>The <em>refine_criterion=3</em> is also Lohner prescription, which writes in formulae as <img src="error4.gif" alt="" class="inline"/></p>
 <p>where the operators mean a central difference and a sum, per dimension. The wave filter parameter is set per level, and defaults as <em>amr_wavefilter(1:nlevelshi)=1.0d-2</em>.</p>

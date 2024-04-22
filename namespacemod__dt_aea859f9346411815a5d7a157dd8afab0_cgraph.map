@@ -1,0 +1,7 @@
+<map id="mod_dt::setdt" name="mod_dt::setdt">
+<area shape="rect" id="node1" title="setdt &#45; set dt for all levels between levmin and levmax. dtpar&gt;0 &#45;&#45;&gt; use fixed dtpar for all level dt..." alt="" coords="5,85,117,112"/>
+<area shape="rect" id="node2" href="$mod__dt_8t.html#a7f1eb3b1519e6726bb1f85a2bbee6802" title="compute CFL limited dt (for variable time stepping)" alt="" coords="199,5,311,32"/>
+<area shape="rect" id="node3" href="$namespacemod__comm__lib.html#a9b6f1a8fd13bc5670e3b426151c34048" title="Exit MPI&#45;AMRVAC with an error message." alt="" coords="393,31,576,57"/>
+<area shape="rect" id="node4" href="$namespacemod__supertimestepping.html#a5e081548b6182229b9430302af5da2a8" title=" " alt="" coords="165,107,345,149"/>
+<area shape="rect" id="node5" href="$namespacemod__supertimestepping.html#a6d6948528fda69fe0fb9b924603bb355" title="This sets the explicit dt and calculates the number of cycles for each of the terms implemented with ..." alt="" coords="165,173,345,214"/>
+</map>

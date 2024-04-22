@@ -30,7 +30,7 @@
  <tr style="height: 56px;">
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">MPI-AMRVAC
-   &#160;<span id="projectnumber">3.0</span>
+   &#160;<span id="projectnumber">3.1</span>
    </div>
    <div id="projectbrief">The MPI - Adaptive Mesh Refinement - Versatile Advection Code</div>
   </td>
@@ -109,7 +109,7 @@ Functions/Subroutines</h2></td></tr>
 <tr class="memdesc:a1a299d1ba8c99ea7e1d33b04bbcdd798"><td class="mdescLeft">&#160;</td><td class="mdescRight">w[iw]=w[iw]+qdt*S[wCT,qtC,x] where S is the source based on wCT within ixO This subroutine handles the energy exchange between gas and radiation  <a href="namespacemod__afld.html#a1a299d1ba8c99ea7e1d33b04bbcdd798">More...</a><br /></td></tr>
 <tr class="separator:a1a299d1ba8c99ea7e1d33b04bbcdd798"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:acd5029394980153674cd833436e7de0f"><td class="memItemLeft" align="right" valign="top">subroutine, public&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__afld.html#acd5029394980153674cd833436e7de0f">mod_afld::afld_get_opacity</a> (w, x, ixIL, ixOL, fld_kappa)</td></tr>
-<tr class="memdesc:acd5029394980153674cd833436e7de0f"><td class="mdescLeft">&#160;</td><td class="mdescRight">Sets the opacity in the w-array by calling <a class="el" href="namespacemod__opal__opacity.html" title="This module reads in opacities from opal tables.">mod_opal_opacity</a>.  <a href="namespacemod__afld.html#acd5029394980153674cd833436e7de0f">More...</a><br /></td></tr>
+<tr class="memdesc:acd5029394980153674cd833436e7de0f"><td class="mdescLeft">&#160;</td><td class="mdescRight">Sets the opacity in the w-array by calling <a class="el" href="namespacemod__opal__opacity.html" title="This module reads in Rosseland-mean opacities from OPAL tables. Table opacity values are given in bas...">mod_opal_opacity</a>.  <a href="namespacemod__afld.html#acd5029394980153674cd833436e7de0f">More...</a><br /></td></tr>
 <tr class="separator:acd5029394980153674cd833436e7de0f"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a15de558bd4ac30eafda8e094ef42845e"><td class="memItemLeft" align="right" valign="top">subroutine, public&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__afld.html#a15de558bd4ac30eafda8e094ef42845e">mod_afld::afld_get_fluxlimiter</a> (w, x, ixIL, ixOL, fld_lambda, fld_R)</td></tr>
 <tr class="memdesc:a15de558bd4ac30eafda8e094ef42845e"><td class="mdescLeft">&#160;</td><td class="mdescRight">Calculate fld flux limiter This subroutine calculates flux limiter lambda using the prescription stored in fld_fluxlimiter. It also calculates the ratio of radiation scaleheight and mean free path.  <a href="namespacemod__afld.html#a15de558bd4ac30eafda8e094ef42845e">More...</a><br /></td></tr>
@@ -193,6 +193,8 @@ Variables</h2></td></tr>
 <tr class="memitem:a8f033efe15a187dbef91fc708de9c42e"><td class="memItemLeft" align="right" valign="top">character(len=8), dimension(:), allocatable&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__afld.html#a8f033efe15a187dbef91fc708de9c42e">mod_afld::fld_opacity_law</a></td></tr>
 <tr class="memdesc:a8f033efe15a187dbef91fc708de9c42e"><td class="mdescLeft">&#160;</td><td class="mdescRight">Use constant Opacity?  <a href="namespacemod__afld.html#a8f033efe15a187dbef91fc708de9c42e">More...</a><br /></td></tr>
 <tr class="separator:a8f033efe15a187dbef91fc708de9c42e"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ab585bc66c9a64f80d7718f0d17ebc1cf"><td class="memItemLeft" align="right" valign="top">character(len=50)&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__afld.html#ab585bc66c9a64f80d7718f0d17ebc1cf">mod_afld::fld_opal_table</a> = 'Y09800'</td></tr>
+<tr class="separator:ab585bc66c9a64f80d7718f0d17ebc1cf"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a61ae06bf2c058e6700a663662495da48"><td class="memItemLeft" align="right" valign="top">character(len=16)&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__afld.html#a61ae06bf2c058e6700a663662495da48">mod_afld::fld_fluxlimiter</a> = 'Pomraning'</td></tr>
 <tr class="memdesc:a61ae06bf2c058e6700a663662495da48"><td class="mdescLeft">&#160;</td><td class="mdescRight">Diffusion limit lambda = 0.33.  <a href="namespacemod__afld.html#a61ae06bf2c058e6700a663662495da48">More...</a><br /></td></tr>
 <tr class="separator:a61ae06bf2c058e6700a663662495da48"><td class="memSeparator" colspan="2">&#160;</td></tr>

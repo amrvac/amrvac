@@ -30,7 +30,7 @@
  <tr style="height: 56px;">
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">MPI-AMRVAC
-   &#160;<span id="projectnumber">3.0</span>
+   &#160;<span id="projectnumber">3.1</span>
    </div>
    <div id="projectbrief">The MPI - Adaptive Mesh Refinement - Versatile Advection Code</div>
   </td>
@@ -190,6 +190,9 @@ $(function() {
 <li>refine_grid()
 : <a class="el" href="interfacemod__usr__methods_1_1refine__grid.html#a3e25e3c5ca0a743609ac8d0a218b4f36">mod_usr_methods::refine_grid</a>
 </li>
+<li>rfactor()
+: <a class="el" href="interfacemod__usr__methods_1_1Rfactor.html#a22803a5023181e45a72df4d7eab39f33">mod_usr_methods::Rfactor</a>
+</li>
 </ul>
 
 
@@ -249,13 +252,10 @@ $(function() {
 : <a class="el" href="interfacemod__usr__methods_1_1special__resistivity.html#a5421d4175aec0ae8a14b7c6796d51f65">mod_usr_methods::special_resistivity</a>
 </li>
 <li>sub_add_source()
-: <a class="el" href="interfacemod__physics_1_1sub__add__source.html#ad6efffe15bae3bea345bd2d18b8fcc6f">mod_physics::sub_add_source</a>
+: <a class="el" href="interfacemod__physics_1_1sub__add__source.html#ac534b97d04110fbddad68745c4d89980">mod_physics::sub_add_source</a>
 </li>
 <li>sub_add_source_geom()
-: <a class="el" href="interfacemod__physics_1_1sub__add__source__geom.html#a6fb77d1c2109343233219d8fa143f1ca">mod_physics::sub_add_source_geom</a>
-</li>
-<li>sub_angmomfix()
-: <a class="el" href="interfacemod__physics_1_1sub__angmomfix.html#a5d1d0b70ede4b87d509087132fe466e0">mod_physics::sub_angmomfix</a>
+: <a class="el" href="interfacemod__physics_1_1sub__add__source__geom.html#a9f5c2b17304aa20c6512f1d3f8d6ffac">mod_physics::sub_add_source_geom</a>
 </li>
 <li>sub_average()
 : <a class="el" href="interfacemod__physics__roe_1_1sub__average.html#a07d9969bef137275e8315dd2ccbaacdb">mod_physics_roe::sub_average</a>
@@ -284,9 +284,6 @@ $(function() {
 <li>sub_diffuse_hllcd()
 : <a class="el" href="interfacemod__physics__hllc_1_1sub__diffuse__hllcd.html#a8e73dbdbb6f277b834f39179f0e90a9a">mod_physics_hllc::sub_diffuse_hllcd</a>
 </li>
-<li>sub_energy_synchro()
-: <a class="el" href="interfacemod__physics_1_1sub__energy__synchro.html#a0b18e5c045ccfba96714234f9f2bcd90">mod_physics::sub_energy_synchro</a>
-</li>
 <li>sub_evaluate_implicit()
 : <a class="el" href="interfacemod__physics_1_1sub__evaluate__implicit.html#acb31d8c943ca535815e74a73a02ee146">mod_physics::sub_evaluate_implicit</a>
 </li>
@@ -301,6 +298,12 @@ $(function() {
 </li>
 <li>sub_get_a2max()
 : <a class="el" href="interfacemod__physics_1_1sub__get__a2max.html#aadad4832a7630ede46ea08efa4c36e2c">mod_physics::sub_get_a2max</a>
+</li>
+<li>sub_get_auxiliary()
+: <a class="el" href="interfacemod__physics_1_1sub__get__auxiliary.html#a98747894b967c5517edcbbba576c8fb9">mod_physics::sub_get_auxiliary</a>
+</li>
+<li>sub_get_auxiliary_prim()
+: <a class="el" href="interfacemod__physics_1_1sub__get__auxiliary__prim.html#ab1ae45e5bc24c1f3ab84a2107a38a1bf">mod_physics::sub_get_auxiliary_prim</a>
 </li>
 <li>sub_get_cbounds()
 : <a class="el" href="interfacemod__physics_1_1sub__get__cbounds.html#a31aedb062836e98ab6a2219559e4bf36">mod_physics::sub_get_cbounds</a>
@@ -351,7 +354,7 @@ $(function() {
 : <a class="el" href="interfacemod__physics_1_1sub__global__source.html#a883ee0e601daf56908ba7f1b6ac563c0">mod_physics::sub_global_source</a>
 </li>
 <li>sub_hllc_init_species()
-: <a class="el" href="interfacemod__physics__hllc_1_1sub__hllc__init__species.html#a8429c6039143ec09c6bab8226deae191">mod_physics_hllc::sub_hllc_init_species</a>
+: <a class="el" href="interfacemod__physics__hllc_1_1sub__hllc__init__species.html#a81d5cbce13c9da165a738438c1815408">mod_physics_hllc::sub_hllc_init_species</a>
 </li>
 <li>sub_implicit_update()
 : <a class="el" href="interfacemod__physics_1_1sub__implicit__update.html#a3bc4e9fb255d5501c959e11eef70d03b">mod_physics::sub_implicit_update</a>
@@ -364,12 +367,6 @@ $(function() {
 </li>
 <li>sub_modify_wlr()
 : <a class="el" href="interfacemod__physics_1_1sub__modify__wLR.html#a8865daf438ddae9280d4a9acb3902358">mod_physics::sub_modify_wLR</a>
-</li>
-<li>sub_ppm_flatcd()
-: <a class="el" href="interfacemod__physics__ppm_1_1sub__ppm__flatcd.html#aeb38525cb5df1fa41a258b8de9cfc808">mod_physics_ppm::sub_ppm_flatcd</a>
-</li>
-<li>sub_ppm_flatsh()
-: <a class="el" href="interfacemod__physics__ppm_1_1sub__ppm__flatsh.html#a5fa558b6bf7b615d7ce1ecc1771b5123">mod_physics_ppm::sub_ppm_flatsh</a>
 </li>
 <li>sub_rtimes()
 : <a class="el" href="interfacemod__physics__roe_1_1sub__rtimes.html#a1017e9b447352f0f45a586b7d5c558d7">mod_physics_roe::sub_rtimes</a>
@@ -386,8 +383,14 @@ $(function() {
 <li>sub_special_advance()
 : <a class="el" href="interfacemod__physics_1_1sub__special__advance.html#a5d01f925bafb062c7cde03954fef452f">mod_physics::sub_special_advance</a>
 </li>
+<li>sub_trac_after_setdt()
+: <a class="el" href="interfacemod__physics_1_1sub__trac__after__setdt.html#a5ab2472c0bdbb82c1169fb05f82fc7ff">mod_physics::sub_trac_after_setdt</a>
+</li>
 <li>sub_update_faces()
 : <a class="el" href="interfacemod__physics_1_1sub__update__faces.html#a88339267a33869f454564af195e9de1f">mod_physics::sub_update_faces</a>
+</li>
+<li>sub_update_temperature()
+: <a class="el" href="interfacemod__physics_1_1sub__update__temperature.html#a2434d3185a9c0c8e968b007947a2ef71">mod_physics::sub_update_temperature</a>
 </li>
 <li>sub_write_info()
 : <a class="el" href="interfacemod__physics_1_1sub__write__info.html#a980b0c0b8b93bc35f91eeb7ab11f4ca0">mod_physics::sub_write_info</a>
@@ -404,7 +407,7 @@ $(function() {
 
 <h3><a id="index_u"></a>- u -</h3><ul>
 <li>update_payload()
-: <a class="el" href="interfacemod__usr__methods_1_1update__payload.html#a00d231ea91736868e22b1212d34f3527">mod_usr_methods::update_payload</a>
+: <a class="el" href="interfacemod__usr__methods_1_1update__payload.html#a546e6b7e48a19ceb2893a133232f76cf">mod_usr_methods::update_payload</a>
 </li>
 </ul>
 

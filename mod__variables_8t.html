@@ -30,7 +30,7 @@
  <tr style="height: 56px;">
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">MPI-AMRVAC
-   &#160;<span id="projectnumber">3.0</span>
+   &#160;<span id="projectnumber">3.1</span>
    </div>
    <div id="projectbrief">The MPI - Adaptive Mesh Refinement - Versatile Advection Code</div>
   </td>
@@ -108,6 +108,9 @@ Functions/Subroutines</h2></td></tr>
 <tr class="memitem:a25c5de60438d48ea9d2d50daf741f59b"><td class="memItemLeft" align="right" valign="top">integer function&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__variables.html#a25c5de60438d48ea9d2d50daf741f59b">mod_variables::var_set_rho</a> ()</td></tr>
 <tr class="memdesc:a25c5de60438d48ea9d2d50daf741f59b"><td class="mdescLeft">&#160;</td><td class="mdescRight">Set density variable.  <a href="namespacemod__variables.html#a25c5de60438d48ea9d2d50daf741f59b">More...</a><br /></td></tr>
 <tr class="separator:a25c5de60438d48ea9d2d50daf741f59b"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a67d7a43716758f18d4a148274819a39a"><td class="memItemLeft" align="right" valign="top">subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__variables.html#a67d7a43716758f18d4a148274819a39a">mod_variables::errormsg</a> (message)</td></tr>
+<tr class="memdesc:a67d7a43716758f18d4a148274819a39a"><td class="mdescLeft">&#160;</td><td class="mdescRight">Exit MPI-AMRVAC with an error message.  <a href="namespacemod__variables.html#a67d7a43716758f18d4a148274819a39a">More...</a><br /></td></tr>
+<tr class="separator:a67d7a43716758f18d4a148274819a39a"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a9dacb21908b77b96b8e1f7d860d0e761"><td class="memItemLeft" align="right" valign="top">integer function, dimension(ndir)&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__variables.html#a9dacb21908b77b96b8e1f7d860d0e761">mod_variables::var_set_momentum</a> (ndir)</td></tr>
 <tr class="memdesc:a9dacb21908b77b96b8e1f7d860d0e761"><td class="mdescLeft">&#160;</td><td class="mdescRight">Set momentum variables.  <a href="namespacemod__variables.html#a9dacb21908b77b96b8e1f7d860d0e761">More...</a><br /></td></tr>
 <tr class="separator:a9dacb21908b77b96b8e1f7d860d0e761"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -119,9 +122,6 @@ Functions/Subroutines</h2></td></tr>
 <tr class="memitem:ac367c759b5cd63f9375d0c2be9eff03c"><td class="memItemLeft" align="right" valign="top">integer function, dimension(ndir)&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__variables.html#ac367c759b5cd63f9375d0c2be9eff03c">mod_variables::var_set_bfield</a> (ndir)</td></tr>
 <tr class="memdesc:ac367c759b5cd63f9375d0c2be9eff03c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Set magnetic field variables.  <a href="namespacemod__variables.html#ac367c759b5cd63f9375d0c2be9eff03c">More...</a><br /></td></tr>
 <tr class="separator:ac367c759b5cd63f9375d0c2be9eff03c"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:af6556768ceafeae6acf37e6afe30f0b6"><td class="memItemLeft" align="right" valign="top">integer function&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__variables.html#af6556768ceafeae6acf37e6afe30f0b6">mod_variables::var_set_internal_energy</a> ()</td></tr>
-<tr class="memdesc:af6556768ceafeae6acf37e6afe30f0b6"><td class="mdescLeft">&#160;</td><td class="mdescRight">Set internal energy variable.  <a href="namespacemod__variables.html#af6556768ceafeae6acf37e6afe30f0b6">More...</a><br /></td></tr>
-<tr class="separator:af6556768ceafeae6acf37e6afe30f0b6"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="var-members"></a>
 Variables</h2></td></tr>
@@ -178,9 +178,6 @@ Variables</h2></td></tr>
 <tr class="memitem:ab618464ebd5883bba46c082d2de72a68"><td class="memItemLeft" align="right" valign="top">integer&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__variables.html#ab618464ebd5883bba46c082d2de72a68">mod_variables::iw_r_e</a> = -1</td></tr>
 <tr class="memdesc:ab618464ebd5883bba46c082d2de72a68"><td class="mdescLeft">&#160;</td><td class="mdescRight">Index of the radiation energy density.  <a href="namespacemod__variables.html#ab618464ebd5883bba46c082d2de72a68">More...</a><br /></td></tr>
 <tr class="separator:ab618464ebd5883bba46c082d2de72a68"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a43b7169adfebd7214f738ec71456ba1b"><td class="memItemLeft" align="right" valign="top">integer&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__variables.html#a43b7169adfebd7214f738ec71456ba1b">mod_variables::iw_eaux</a> = -1</td></tr>
-<tr class="memdesc:a43b7169adfebd7214f738ec71456ba1b"><td class="mdescLeft">&#160;</td><td class="mdescRight">Index of the internal energy density.  <a href="namespacemod__variables.html#a43b7169adfebd7214f738ec71456ba1b">More...</a><br /></td></tr>
-<tr class="separator:a43b7169adfebd7214f738ec71456ba1b"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a653576f4d89ed96d1d577cb5a6b239c2"><td class="memItemLeft" align="right" valign="top">integer, dimension(:), allocatable, protected&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__variables.html#a653576f4d89ed96d1d577cb5a6b239c2">mod_variables::iw_mag</a></td></tr>
 <tr class="memdesc:a653576f4d89ed96d1d577cb5a6b239c2"><td class="mdescLeft">&#160;</td><td class="mdescRight">Indices of the magnetic field components.  <a href="namespacemod__variables.html#a653576f4d89ed96d1d577cb5a6b239c2">More...</a><br /></td></tr>
 <tr class="separator:a653576f4d89ed96d1d577cb5a6b239c2"><td class="memSeparator" colspan="2">&#160;</td></tr>

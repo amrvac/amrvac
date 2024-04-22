@@ -1,11 +1,11 @@
 <map id="mod_supertimestepping::sts_add_source1" name="mod_supertimestepping::sts_add_source1">
-<area shape="rect" id="node1" title="Iterates all the terms implemented with STS and adds the sources STS method 1 implementation." alt="" coords="5,221,185,262"/>
-<area shape="rect" id="node2" href="$amr__solution__node_8t.html#af243a699033b92443a177d94a7093157" title="allocate memory to physical state of igrid node" alt="" coords="288,5,381,32"/>
-<area shape="rect" id="node3" href="$namespacemod__ghostcells__update.html#a5a035ca86bfa7e52a61d1ba8f5d1389d" title=" " alt="" coords="239,57,430,98"/>
-<area shape="rect" id="node4" href="$namespacemod__fix__conserve.html#a63d6347a8533a8ed2e9537869c665444" title=" " alt="" coords="253,122,417,163"/>
-<area shape="rect" id="node5" href="$namespacemod__fix__conserve.html#a482f9e62d354bc5d00003e380fbc8ee1" title=" " alt="" coords="253,187,417,229"/>
-<area shape="rect" id="node6" href="$namespacemod__ghostcells__update.html#abc70508ceb326fb28166d751e5de31fc" title="do update ghost cells of all blocks including physical boundaries" alt="" coords="247,253,423,294"/>
-<area shape="rect" id="node7" href="$namespacemod__fix__conserve.html#ab77976465c9541ed8b78e91e0d01077d" title=" " alt="" coords="250,318,419,359"/>
-<area shape="rect" id="node8" href="$namespacemod__fix__conserve.html#a295f588de053ce80e0500c241ae24460" title=" " alt="" coords="235,384,435,411"/>
-<area shape="rect" id="node9" href="$namespacemod__fix__conserve.html#a58ec316c5eb551df342c792ed2612f0e" title=" " alt="" coords="233,435,436,461"/>
+<area shape="rect" id="node1" title="Iterates all the terms implemented with STS and adds the sources STS method 1 implementation." alt="" coords="5,235,185,276"/>
+<area shape="rect" id="node2" href="$namespacemod__amr__solution__node.html#adc8ef27e0cc0959b70d05d2b00cfbe7e" title="allocate memory to physical state of igrid node" alt="" coords="243,5,426,47"/>
+<area shape="rect" id="node3" href="$namespacemod__ghostcells__update.html#a5a035ca86bfa7e52a61d1ba8f5d1389d" title=" " alt="" coords="239,71,430,112"/>
+<area shape="rect" id="node4" href="$namespacemod__fix__conserve.html#a63d6347a8533a8ed2e9537869c665444" title=" " alt="" coords="253,136,417,177"/>
+<area shape="rect" id="node5" href="$namespacemod__fix__conserve.html#a482f9e62d354bc5d00003e380fbc8ee1" title=" " alt="" coords="253,201,417,243"/>
+<area shape="rect" id="node6" href="$namespacemod__ghostcells__update.html#abc70508ceb326fb28166d751e5de31fc" title="do update ghost cells of all blocks including physical boundaries" alt="" coords="247,267,423,308"/>
+<area shape="rect" id="node7" href="$namespacemod__fix__conserve.html#ab77976465c9541ed8b78e91e0d01077d" title=" " alt="" coords="250,332,419,373"/>
+<area shape="rect" id="node8" href="$namespacemod__fix__conserve.html#a295f588de053ce80e0500c241ae24460" title=" " alt="" coords="235,398,435,425"/>
+<area shape="rect" id="node9" href="$namespacemod__fix__conserve.html#a58ec316c5eb551df342c792ed2612f0e" title=" " alt="" coords="233,449,436,475"/>
 </map>

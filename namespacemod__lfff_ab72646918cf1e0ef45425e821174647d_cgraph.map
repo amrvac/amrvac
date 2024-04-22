@@ -1,0 +1,5 @@
+<map id="mod_lfff::potential_field_energy_mg" name="mod_lfff::potential_field_energy_mg">
+<area shape="rect" id="node1" title="get potential magnetic field energy given normal B on all boundaries" alt="" coords="5,35,147,76"/>
+<area shape="rect" id="node2" href="$namespacemod__lfff.html#aa0491e688dc5adc1c54fa02046093150" title="Solve Poisson equation of scalar potential using multigrid solver." alt="" coords="201,5,371,47"/>
+<area shape="rect" id="node3" href="$namespacemod__geometry.html#a92ec4e2c8ae00a42bf5bf2c1ce3a26c4" title="Calculate gradient of a scalar q within ixL in direction idir." alt="" coords="195,71,377,98"/>
+</map>

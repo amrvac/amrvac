@@ -1,10 +1,8 @@
 <map id="mod_particle_base::handle_particles" name="mod_particle_base::handle_particles">
-<area shape="rect" id="node1" title="Let particles evolve in time. The routine also handles grid variables and output." alt="" coords="5,201,159,243"/>
+<area shape="rect" id="node1" title="Let particles evolve in time. The routine also handles grid variables and output." alt="" coords="5,136,159,177"/>
 <area shape="rect" id="node2" href="$namespacemod__particle__base.html#abe0a898715bc93553b26b9ff359f2e54" title="Routine handles the particle evolution." alt="" coords="217,5,370,47"/>
 <area shape="rect" id="node3" href="$namespacemod__particle__base.html#af299ec05dc0bd3fe76a9341ce4472946" title=" " alt="" coords="207,71,380,112"/>
-<area shape="rect" id="node4" href="$namespacemod__particle__base.html#a799d41e9927b073958394e6d90d2e3ee" title="Deallocate grid variables for particles." alt="" coords="217,136,370,177"/>
-<area shape="rect" id="node5" href="$namespacemod__particle__base.html#ae95dfec331c76d35b90c6210a9b85f58" title="Initialize grid variables for particles." alt="" coords="217,201,370,243"/>
-<area shape="rect" id="node6" href="$comm__lib_8t.html#a49b49ea9ffbbadfe688e332921c4cddd" title="Exit MPI&#45;AMRVAC with an error message." alt="" coords="256,267,331,294"/>
-<area shape="rect" id="node7" href="$namespacemod__particle__base.html#a83e06128a50d73e09215a45b2f05080e" title=" " alt="" coords="217,319,370,360"/>
-<area shape="rect" id="node8" href="$namespacemod__particle__base.html#a22d691333cb182e116559e4043a16590" title=" " alt="" coords="213,384,373,425"/>
+<area shape="rect" id="node4" href="$namespacemod__particle__base.html#a83e06128a50d73e09215a45b2f05080e" title=" " alt="" coords="217,136,370,177"/>
+<area shape="rect" id="node5" href="$namespacemod__particle__base.html#a2b078cd13a41fd38ad141b6f8eaf6c0d" title="update grid variables for particles" alt="" coords="217,201,370,243"/>
+<area shape="rect" id="node6" href="$namespacemod__particle__base.html#a22d691333cb182e116559e4043a16590" title=" " alt="" coords="213,267,373,308"/>
 </map>

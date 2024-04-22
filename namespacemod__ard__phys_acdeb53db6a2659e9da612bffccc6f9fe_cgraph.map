@@ -1,5 +1,0 @@
-<map id="mod_ard_phys::ard_add_source" name="mod_ard_phys::ard_add_source">
-<area shape="rect" id="node1" title=" " alt="" coords="5,23,183,65"/>
-<area shape="rect" id="node2" href="$namespacemod__ard__phys.html#a7f4dc2ccf8f65dfcde0509cd3d532221" title="Compute the Laplacian using a standard second order scheme. For now this method only works in slab ge..." alt="" coords="231,5,443,32"/>
-<area shape="rect" id="node3" href="$comm__lib_8t.html#a49b49ea9ffbbadfe688e332921c4cddd" title="Exit MPI&#45;AMRVAC with an error message." alt="" coords="491,31,565,57"/>
-</map>

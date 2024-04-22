@@ -30,7 +30,7 @@
  <tr style="height: 56px;">
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">MPI-AMRVAC
-   &#160;<span id="projectnumber">3.0</span>
+   &#160;<span id="projectnumber">3.1</span>
    </div>
    <div id="projectbrief">The MPI - Adaptive Mesh Refinement - Versatile Advection Code</div>
   </td>
@@ -122,7 +122,7 @@ Functions/Subroutines</h2></td></tr>
 <tr class="memdesc:ad1d0184bacf1d2b43594640158665c65"><td class="mdescLeft">&#160;</td><td class="mdescRight">Give initial values to parameters.  <a href="namespacemod__particle__base.html#ad1d0184bacf1d2b43594640158665c65">More...</a><br /></td></tr>
 <tr class="separator:ad1d0184bacf1d2b43594640158665c65"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a2369bf21b0e74e54a2a801252da69ad6"><td class="memItemLeft" align="right" valign="top">subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__particle__base.html#a2369bf21b0e74e54a2a801252da69ad6">mod_particle_base::init_particles_com</a> ()</td></tr>
-<tr class="memdesc:a2369bf21b0e74e54a2a801252da69ad6"><td class="mdescLeft">&#160;</td><td class="mdescRight">Initialise communicators for particles.  <a href="namespacemod__particle__base.html#a2369bf21b0e74e54a2a801252da69ad6">More...</a><br /></td></tr>
+<tr class="memdesc:a2369bf21b0e74e54a2a801252da69ad6"><td class="mdescLeft">&#160;</td><td class="mdescRight">Initialize communicators for particles.  <a href="namespacemod__particle__base.html#a2369bf21b0e74e54a2a801252da69ad6">More...</a><br /></td></tr>
 <tr class="separator:a2369bf21b0e74e54a2a801252da69ad6"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a069162a4a624d829bc5446bbafd01092"><td class="memItemLeft" align="right" valign="top">subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__particle__base.html#a069162a4a624d829bc5446bbafd01092">mod_particle_base::get_maxwellian_velocity</a> (v, velocity)</td></tr>
 <tr class="separator:a069162a4a624d829bc5446bbafd01092"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -143,6 +143,9 @@ Functions/Subroutines</h2></td></tr>
 <tr class="memitem:a7c5a6278e4417d5783e1c3bd5f5ff859"><td class="memItemLeft" align="right" valign="top">subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__particle__base.html#a7c5a6278e4417d5783e1c3bd5f5ff859">mod_particle_base::particle_get_current</a> (w, ixIL, ixOL, idirmin, current)</td></tr>
 <tr class="memdesc:a7c5a6278e4417d5783e1c3bd5f5ff859"><td class="mdescLeft">&#160;</td><td class="mdescRight">Calculate idirmin and the idirmin:3 components of the common current array make sure that dxlevel(^D) is set correctly.  <a href="namespacemod__particle__base.html#a7c5a6278e4417d5783e1c3bd5f5ff859">More...</a><br /></td></tr>
 <tr class="separator:a7c5a6278e4417d5783e1c3bd5f5ff859"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a2b078cd13a41fd38ad141b6f8eaf6c0d"><td class="memItemLeft" align="right" valign="top">subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__particle__base.html#a2b078cd13a41fd38ad141b6f8eaf6c0d">mod_particle_base::update_gridvars</a> ()</td></tr>
+<tr class="memdesc:a2b078cd13a41fd38ad141b6f8eaf6c0d"><td class="mdescLeft">&#160;</td><td class="mdescRight">update grid variables for particles  <a href="namespacemod__particle__base.html#a2b078cd13a41fd38ad141b6f8eaf6c0d">More...</a><br /></td></tr>
+<tr class="separator:a2b078cd13a41fd38ad141b6f8eaf6c0d"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a6ff9e2fbe7d77c6678c39ec52c521d0d"><td class="memItemLeft" align="right" valign="top">subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__particle__base.html#a6ff9e2fbe7d77c6678c39ec52c521d0d">mod_particle_base::handle_particles</a> ()</td></tr>
 <tr class="memdesc:a6ff9e2fbe7d77c6678c39ec52c521d0d"><td class="mdescLeft">&#160;</td><td class="mdescRight">Let particles evolve in time. The routine also handles grid variables and output.  <a href="namespacemod__particle__base.html#a6ff9e2fbe7d77c6678c39ec52c521d0d">More...</a><br /></td></tr>
 <tr class="separator:a6ff9e2fbe7d77c6678c39ec52c521d0d"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -153,6 +156,10 @@ Functions/Subroutines</h2></td></tr>
 <tr class="separator:a10fdd3836ff16c481594ceec5fd1e97e"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a85a2d46a6cbe809098c52ea9beca540a"><td class="memItemLeft" align="right" valign="top">subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__particle__base.html#a85a2d46a6cbe809098c52ea9beca540a">mod_particle_base::get_vec</a> (ix, igrid, x, tloc, vec)</td></tr>
 <tr class="separator:a85a2d46a6cbe809098c52ea9beca540a"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a7d9a58afea8627c45f86fb2657d9b8df"><td class="memItemLeft" align="right" valign="top">subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__particle__base.html#a7d9a58afea8627c45f86fb2657d9b8df">mod_particle_base::get_bfield</a> (igrid, x, tloc, b)</td></tr>
+<tr class="separator:a7d9a58afea8627c45f86fb2657d9b8df"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a39bc08ff3212378f905b861b84bcfc85"><td class="memItemLeft" align="right" valign="top">subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__particle__base.html#a39bc08ff3212378f905b861b84bcfc85">mod_particle_base::get_efield</a> (igrid, x, tloc, e)</td></tr>
+<tr class="separator:a39bc08ff3212378f905b861b84bcfc85"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a543c5dd3a4184ec64857fea2c6526279"><td class="memItemLeft" align="right" valign="top">pure subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__particle__base.html#a543c5dd3a4184ec64857fea2c6526279">mod_particle_base::get_lfac</a> (u, lfac)</td></tr>
 <tr class="memdesc:a543c5dd3a4184ec64857fea2c6526279"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get Lorentz factor from relativistic momentum.  <a href="namespacemod__particle__base.html#a543c5dd3a4184ec64857fea2c6526279">More...</a><br /></td></tr>
 <tr class="separator:a543c5dd3a4184ec64857fea2c6526279"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -206,8 +213,23 @@ Functions/Subroutines</h2></td></tr>
 <tr class="memitem:a2a8d13c8dfa62063094c7e3c7c4b7d2b"><td class="memItemLeft" align="right" valign="top">subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__particle__base.html#a2a8d13c8dfa62063094c7e3c7c4b7d2b">mod_particle_base::output_particle</a> (myparticle, payload, ipe, file_unit)</td></tr>
 <tr class="separator:a2a8d13c8dfa62063094c7e3c7c4b7d2b"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a97ad783df74c9688112b7c5ff085a21d"><td class="memItemLeft" align="right" valign="top">subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__particle__base.html#a97ad783df74c9688112b7c5ff085a21d">mod_particle_base::partcoord_to_cartesian</a> (xp, xpcart)</td></tr>
-<tr class="memdesc:a97ad783df74c9688112b7c5ff085a21d"><td class="mdescLeft">&#160;</td><td class="mdescRight">convert to cartesian coordinates  <a href="namespacemod__particle__base.html#a97ad783df74c9688112b7c5ff085a21d">More...</a><br /></td></tr>
+<tr class="memdesc:a97ad783df74c9688112b7c5ff085a21d"><td class="mdescLeft">&#160;</td><td class="mdescRight">Convert position to Cartesian coordinates.  <a href="namespacemod__particle__base.html#a97ad783df74c9688112b7c5ff085a21d">More...</a><br /></td></tr>
 <tr class="separator:a97ad783df74c9688112b7c5ff085a21d"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a094350df67cbde16abbe80c34667f1fd"><td class="memItemLeft" align="right" valign="top">subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__particle__base.html#a094350df67cbde16abbe80c34667f1fd">mod_particle_base::partcoord_from_cartesian</a> (xp, xpcart)</td></tr>
+<tr class="memdesc:a094350df67cbde16abbe80c34667f1fd"><td class="mdescLeft">&#160;</td><td class="mdescRight">Convert to noncartesian coordinates.  <a href="namespacemod__particle__base.html#a094350df67cbde16abbe80c34667f1fd">More...</a><br /></td></tr>
+<tr class="separator:a094350df67cbde16abbe80c34667f1fd"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ac0a3275511fe0763985b90055d9138ca"><td class="memItemLeft" align="right" valign="top">subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__particle__base.html#ac0a3275511fe0763985b90055d9138ca">mod_particle_base::partvec_to_cartesian</a> (xp, up, upcart)</td></tr>
+<tr class="memdesc:ac0a3275511fe0763985b90055d9138ca"><td class="mdescLeft">&#160;</td><td class="mdescRight">Convert vector to Cartesian coordinates.  <a href="namespacemod__particle__base.html#ac0a3275511fe0763985b90055d9138ca">More...</a><br /></td></tr>
+<tr class="separator:ac0a3275511fe0763985b90055d9138ca"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a705f221ec9ab699b106f6a84a3c92d88"><td class="memItemLeft" align="right" valign="top">subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__particle__base.html#a705f221ec9ab699b106f6a84a3c92d88">mod_particle_base::partvec_from_cartesian</a> (xp, up, upcart)</td></tr>
+<tr class="memdesc:a705f221ec9ab699b106f6a84a3c92d88"><td class="mdescLeft">&#160;</td><td class="mdescRight">Convert vector from Cartesian coordinates.  <a href="namespacemod__particle__base.html#a705f221ec9ab699b106f6a84a3c92d88">More...</a><br /></td></tr>
+<tr class="separator:a705f221ec9ab699b106f6a84a3c92d88"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a155095a480a44dd87013d92e65d9bd11"><td class="memItemLeft" align="right" valign="top">subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__particle__base.html#a155095a480a44dd87013d92e65d9bd11">mod_particle_base::fix_phi_crossing</a> (xp, igrid)</td></tr>
+<tr class="memdesc:a155095a480a44dd87013d92e65d9bd11"><td class="mdescLeft">&#160;</td><td class="mdescRight">Fix particle position when crossing the 0,2pi boundary in noncartesian coordinates.  <a href="namespacemod__particle__base.html#a155095a480a44dd87013d92e65d9bd11">More...</a><br /></td></tr>
+<tr class="separator:a155095a480a44dd87013d92e65d9bd11"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ac297f1a4a2d25d4fcc6e11cda15b47eb"><td class="memItemLeft" align="right" valign="top">logical function&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__particle__base.html#ac297f1a4a2d25d4fcc6e11cda15b47eb">mod_particle_base::point_in_igrid_ghostc</a> (x, igrid, ngh)</td></tr>
+<tr class="memdesc:ac297f1a4a2d25d4fcc6e11cda15b47eb"><td class="mdescLeft">&#160;</td><td class="mdescRight">Quick check if particle coordinate is inside igrid (ghost cells included, except the last ngh)  <a href="namespacemod__particle__base.html#ac297f1a4a2d25d4fcc6e11cda15b47eb">More...</a><br /></td></tr>
+<tr class="separator:ac297f1a4a2d25d4fcc6e11cda15b47eb"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aa5f28cce5fcaba2c51de288ae406b6d7"><td class="memItemLeft" align="right" valign="top">subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__particle__base.html#aa5f28cce5fcaba2c51de288ae406b6d7">mod_particle_base::comm_particles</a> ()</td></tr>
 <tr class="separator:aa5f28cce5fcaba2c51de288ae406b6d7"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:af299ec05dc0bd3fe76a9341ce4472946"><td class="memItemLeft" align="right" valign="top">subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__particle__base.html#af299ec05dc0bd3fe76a9341ce4472946">mod_particle_base::comm_particles_global</a> ()</td></tr>
@@ -305,9 +327,6 @@ Variables</h2></td></tr>
 <tr class="memitem:a1b423b9413a86242c6158516280a6652"><td class="memItemLeft" align="right" valign="top">integer&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__particle__base.html#a1b423b9413a86242c6158516280a6652">mod_particle_base::it_particles</a></td></tr>
 <tr class="memdesc:a1b423b9413a86242c6158516280a6652"><td class="mdescLeft">&#160;</td><td class="mdescRight">Iteration number of paritcles.  <a href="namespacemod__particle__base.html#a1b423b9413a86242c6158516280a6652">More...</a><br /></td></tr>
 <tr class="separator:a1b423b9413a86242c6158516280a6652"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ad7be0339030439c82fb1d13f41c54ee2"><td class="memItemLeft" align="right" valign="top">integer&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__particle__base.html#ad7be0339030439c82fb1d13f41c54ee2">mod_particle_base::n_output_ensemble</a></td></tr>
-<tr class="memdesc:ad7be0339030439c82fb1d13f41c54ee2"><td class="mdescLeft">&#160;</td><td class="mdescRight">Output count for ensembles.  <a href="namespacemod__particle__base.html#ad7be0339030439c82fb1d13f41c54ee2">More...</a><br /></td></tr>
-<tr class="separator:ad7be0339030439c82fb1d13f41c54ee2"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a1ab006356b12c5230198f2bcd37bec1f"><td class="memItemLeft" align="right" valign="top">integer&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__particle__base.html#a1ab006356b12c5230198f2bcd37bec1f">mod_particle_base::n_output_destroyed</a></td></tr>
 <tr class="memdesc:a1ab006356b12c5230198f2bcd37bec1f"><td class="mdescLeft">&#160;</td><td class="mdescRight">Output count for ensembles of destroyed particles.  <a href="namespacemod__particle__base.html#a1ab006356b12c5230198f2bcd37bec1f">More...</a><br /></td></tr>
 <tr class="separator:a1ab006356b12c5230198f2bcd37bec1f"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -355,6 +374,9 @@ Variables</h2></td></tr>
 <tr class="memitem:ad90e636f187a854645a5107012b60831"><td class="memItemLeft" align="right" valign="top">integer, dimension(:), allocatable&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__particle__base.html#ad90e636f187a854645a5107012b60831">mod_particle_base::jp</a></td></tr>
 <tr class="memdesc:ad90e636f187a854645a5107012b60831"><td class="mdescLeft">&#160;</td><td class="mdescRight">Variable index for current.  <a href="namespacemod__particle__base.html#ad90e636f187a854645a5107012b60831">More...</a><br /></td></tr>
 <tr class="separator:ad90e636f187a854645a5107012b60831"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:af994f15a72865bdd9944fd314ed920a2"><td class="memItemLeft" align="right" valign="top">integer&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__particle__base.html#af994f15a72865bdd9944fd314ed920a2">mod_particle_base::rhop</a></td></tr>
+<tr class="memdesc:af994f15a72865bdd9944fd314ed920a2"><td class="mdescLeft">&#160;</td><td class="mdescRight">Variable index for density.  <a href="namespacemod__particle__base.html#af994f15a72865bdd9944fd314ed920a2">More...</a><br /></td></tr>
+<tr class="separator:af994f15a72865bdd9944fd314ed920a2"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aa8a738f61f2ee57b8ef6415e36c3d360"><td class="memItemLeft" align="right" valign="top">type(particle_ptr), dimension(:), allocatable&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__particle__base.html#aa8a738f61f2ee57b8ef6415e36c3d360">mod_particle_base::particle</a></td></tr>
 <tr class="separator:aa8a738f61f2ee57b8ef6415e36c3d360"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a1500c751bc27b1ad1aa3cd033ae83423"><td class="memItemLeft" align="right" valign="top">type(rng_t)&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__particle__base.html#a1500c751bc27b1ad1aa3cd033ae83423">mod_particle_base::rng</a></td></tr>

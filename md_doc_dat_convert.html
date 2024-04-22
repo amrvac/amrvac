@@ -30,7 +30,7 @@
  <tr style="height: 56px;">
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">MPI-AMRVAC
-   &#160;<span id="projectnumber">3.0</span>
+   &#160;<span id="projectnumber">3.1</span>
    </div>
    <div id="projectbrief">The MPI - Adaptive Mesh Refinement - Versatile Advection Code</div>
   </td>
@@ -83,7 +83,7 @@ $(function() {
 <li>Implement one of the user methods which are called every timestep: <code>usr_process_grid</code>, <code>usr_modify_output</code>,... and set there the extra variables (and properly assign the pointer to the implemented subroutine in <code>usr_init</code>).</li>
 </ol>
 <h1>New dat files</h1>
-<p>With this method an extra dat file is generated with new variables. (see <code><a class="el" href="mod__convert_8t.html">amrvacio/mod_convert.t</a></code>).</p><ol type="1">
+<p>With this method an extra dat file is generated with new variables. (see <code>amrvacio/mod_convert.t</code>).</p><ol type="1">
 <li>Set <code>convert_type</code> to <code>"dat_generic_mpi"</code>: <pre class="fragment"> &amp;filelist
        ...
        convert_type = "dat_generic_mpi"

@@ -1,8 +1,7 @@
 <map id="mod_slice::fill_subnode" name="mod_slice::fill_subnode">
-<area shape="rect" id="node1" title=" " alt="" coords="5,107,180,133"/>
+<area shape="rect" id="node1" title=" " alt="" coords="5,81,180,108"/>
 <area shape="rect" id="node2" href="$namespacemod__slice.html#a3e46b0faa76f755baca8577613805076" title=" " alt="" coords="237,5,427,32"/>
-<area shape="rect" id="node3" href="$comm__lib_8t.html#a49b49ea9ffbbadfe688e332921c4cddd" title="Exit MPI&#45;AMRVAC with an error message." alt="" coords="484,81,559,108"/>
-<area shape="rect" id="node4" href="$namespacemod__calculate__xw.html#a006c2619a5377d574da9393a41a10865" title="Compute both corner as well as cell&#45;centered values for output." alt="" coords="228,107,436,133"/>
-<area shape="rect" id="node5" href="$namespacemod__calculate__xw.html#a3ca517175958ca7d8e3e55131acf4b5d" title="computes cell corner (xC) and cell center (xCC) coordinates" alt="" coords="237,157,427,184"/>
-<area shape="rect" id="node6" href="$namespacemod__slice.html#a2754dd15e0ee5efa8c741d63fe2dd7b1" title=" " alt="" coords="229,208,435,235"/>
+<area shape="rect" id="node3" href="$namespacemod__calculate__xw.html#a006c2619a5377d574da9393a41a10865" title="Compute both corner as well as cell&#45;centered values for output." alt="" coords="228,56,436,83"/>
+<area shape="rect" id="node4" href="$namespacemod__calculate__xw.html#a3ca517175958ca7d8e3e55131acf4b5d" title="computes cell corner (xC) and cell center (xCC) coordinates" alt="" coords="237,107,427,133"/>
+<area shape="rect" id="node5" href="$namespacemod__slice.html#a2754dd15e0ee5efa8c741d63fe2dd7b1" title=" " alt="" coords="229,157,435,184"/>
 </map>

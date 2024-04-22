@@ -30,7 +30,7 @@
  <tr style="height: 56px;">
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">MPI-AMRVAC
-   &#160;<span id="projectnumber">3.0</span>
+   &#160;<span id="projectnumber">3.1</span>
    </div>
    <div id="projectbrief">The MPI - Adaptive Mesh Refinement - Versatile Advection Code</div>
   </td>
@@ -132,7 +132,7 @@ Variables</h2></td></tr>
 <p>PURPOSE: IN MHD ADD THE HEAT CONDUCTION SOURCE TO THE ENERGY EQUATION S=DIV(KAPPA_i,j . GRAD_j T) where KAPPA_i,j = tc_k_para b_i b_j + tc_k_perp (I - b_i b_j) b_i b_j = B_i B_j / B**2, I is the unit matrix, and i, j= 1, 2, 3 for 3D IN HD ADD THE HEAT CONDUCTION SOURCE TO THE ENERGY EQUATION S=DIV(tc_k_para . GRAD T) USAGE:</p><ol type="1">
 <li>in mod_usr.t -&gt; subroutine usr_init(), add unit_length=your length unit unit_numberdensity=your number density unit unit_velocity=your velocity unit unit_temperature=your temperature unit before call (m)<a class="el" href="namespacemod__hd.html#a74c5c30e5b9669a0c9e65c772031906b">hd_activate()</a></li>
 <li>to switch on thermal conduction in the (m)hd_list of amrvac.par add: (m)hd_thermal_conduction=.true.</li>
-<li>in the tc_list of amrvac.par : tc_perpendicular=.true. ! (default .false.) turn on thermal conduction perpendicular to magnetic field tc_saturate=.false. ! (default .true. ) turn off thermal conduction saturate effect tc_slope_limiter='MC' ! choose limiter for slope-limited anisotropic thermal conduction in MHD </li>
+<li>in the tc_list of amrvac.par : tc_perpendicular=.true. ! (default .false.) turn on thermal conduction perpendicular to magnetic field tc_saturate=.true. ! (default .false. ) turn on thermal conduction saturate effect tc_slope_limiter='MC' ! choose limiter for slope-limited anisotropic thermal conduction in MHD </li>
 </ol>
 </div><h2 class="groupheader">Function/Subroutine Documentation</h2>
 <a id="a7bc4890ec3bcb79a3f068eca6659fd63"></a>
@@ -180,7 +180,7 @@ Variables</h2></td></tr>
         <tr>
           <td class="paramkey"></td>
           <td></td>
-          <td class="paramtype">integer, intent(in)&#160;</td>
+          <td class="paramtype">double precision, intent(in)&#160;</td>
           <td class="paramname"><em>D</em>, </td>
         </tr>
         <tr>
@@ -203,7 +203,7 @@ Variables</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="mod__thermal__conduction_8t_source.html#l00664">664</a> of file <a class="el" href="mod__thermal__conduction_8t_source.html">mod_thermal_conduction.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__thermal__conduction_8t_source.html#l00689">689</a> of file <a class="el" href="mod__thermal__conduction_8t_source.html">mod_thermal_conduction.t</a>.</p>
 
 </div>
 </div>
@@ -252,7 +252,7 @@ Variables</h2></td></tr>
         <tr>
           <td class="paramkey"></td>
           <td></td>
-          <td class="paramtype">integer, intent(in)&#160;</td>
+          <td class="paramtype">double precision, intent(in)&#160;</td>
           <td class="paramname"><em>D</em>, </td>
         </tr>
         <tr>
@@ -277,7 +277,16 @@ Variables</h2></td></tr>
 
 <p>Get the explicut timestep for the TC (mhd implementation) </p>
 
-<p class="definition">Definition at line <a class="el" href="mod__thermal__conduction_8t_source.html#l00191">191</a> of file <a class="el" href="mod__thermal__conduction_8t_source.html">mod_thermal_conduction.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__thermal__conduction_8t_source.html#l00189">189</a> of file <a class="el" href="mod__thermal__conduction_8t_source.html">mod_thermal_conduction.t</a>.</p>
+<div class="dynheader">
+Here is the call graph for this function:</div>
+<div class="dyncontent">
+<div class="center"><img src="namespacemod__thermal__conduction_af8b53592736ea52c07ce819bf7869e35_cgraph.png" border="0" usemap="#anamespacemod__thermal__conduction_af8b53592736ea52c07ce819bf7869e35_cgraph" alt=""/></div>
+<map name="anamespacemod__thermal__conduction_af8b53592736ea52c07ce819bf7869e35_cgraph" id="anamespacemod__thermal__conduction_af8b53592736ea52c07ce819bf7869e35_cgraph">
+<area shape="rect" title="Get the explicut timestep for the TC (mhd implementation)" alt="" coords="5,5,192,47"/>
+<area shape="rect" href="namespacemod__geometry.html#a92ec4e2c8ae00a42bf5bf2c1ce3a26c4" title="Calculate gradient of a scalar q within ixL in direction idir." alt="" coords="240,13,423,39"/>
+</map>
+</div>
 
 </div>
 </div>
@@ -339,16 +348,7 @@ Variables</h2></td></tr>
 
 <p>Calculate gradient of a scalar q at cell interfaces in direction idir. </p>
 
-<p class="definition">Definition at line <a class="el" href="mod__thermal__conduction_8t_source.html#l00622">622</a> of file <a class="el" href="mod__thermal__conduction_8t_source.html">mod_thermal_conduction.t</a>.</p>
-<div class="dynheader">
-Here is the call graph for this function:</div>
-<div class="dyncontent">
-<div class="center"><img src="namespacemod__thermal__conduction_a5c8e7bb356302dd7255d6e9ff296d841_cgraph.png" border="0" usemap="#anamespacemod__thermal__conduction_a5c8e7bb356302dd7255d6e9ff296d841_cgraph" alt=""/></div>
-<map name="anamespacemod__thermal__conduction_a5c8e7bb356302dd7255d6e9ff296d841_cgraph" id="anamespacemod__thermal__conduction_a5c8e7bb356302dd7255d6e9ff296d841_cgraph">
-<area shape="rect" title="Calculate gradient of a scalar q at cell interfaces in direction idir." alt="" coords="5,5,192,47"/>
-<area shape="rect" href="comm__lib_8t.html#a49b49ea9ffbbadfe688e332921c4cddd" title="Exit MPI&#45;AMRVAC with an error message." alt="" coords="240,13,315,39"/>
-</map>
-</div>
+<p class="definition">Definition at line <a class="el" href="mod__thermal__conduction_8t_source.html#l00647">647</a> of file <a class="el" href="mod__thermal__conduction_8t_source.html">mod_thermal_conduction.t</a>.</p>
 
 </div>
 </div>
@@ -426,7 +426,16 @@ Here is the call graph for this function:</div>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="mod__thermal__conduction_8t_source.html#l00769">769</a> of file <a class="el" href="mod__thermal__conduction_8t_source.html">mod_thermal_conduction.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__thermal__conduction_8t_source.html#l00814">814</a> of file <a class="el" href="mod__thermal__conduction_8t_source.html">mod_thermal_conduction.t</a>.</p>
+<div class="dynheader">
+Here is the call graph for this function:</div>
+<div class="dyncontent">
+<div class="center"><img src="namespacemod__thermal__conduction_a7f6223b1a346f63d39efe9f351a0aeb8_cgraph.png" border="0" usemap="#anamespacemod__thermal__conduction_a7f6223b1a346f63d39efe9f351a0aeb8_cgraph" alt=""/></div>
+<map name="anamespacemod__thermal__conduction_a7f6223b1a346f63d39efe9f351a0aeb8_cgraph" id="anamespacemod__thermal__conduction_a7f6223b1a346f63d39efe9f351a0aeb8_cgraph">
+<area shape="rect" title=" " alt="" coords="5,5,192,47"/>
+<area shape="rect" href="namespacemod__thermal__conduction.html#a5c8e7bb356302dd7255d6e9ff296d841" title="Calculate gradient of a scalar q at cell interfaces in direction idir." alt="" coords="240,5,427,47"/>
+</map>
+</div>
 
 </div>
 </div>
@@ -510,7 +519,7 @@ Here is the call graph for this function:</div>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="mod__thermal__conduction_8t_source.html#l00330">330</a> of file <a class="el" href="mod__thermal__conduction_8t_source.html">mod_thermal_conduction.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__thermal__conduction_8t_source.html#l00349">349</a> of file <a class="el" href="mod__thermal__conduction_8t_source.html">mod_thermal_conduction.t</a>.</p>
 <div class="dynheader">
 Here is the call graph for this function:</div>
 <div class="dyncontent">
@@ -575,7 +584,7 @@ Here is the call graph for this function:</div>
         <tr>
           <td class="paramkey"></td>
           <td></td>
-          <td class="paramtype">character(len=*), intent(in)&#160;</td>
+          <td class="paramtype">integer, intent(in)&#160;</td>
           <td class="paramname"><em>tc_slope_limiter</em>&#160;</td>
         </tr>
         <tr>
@@ -586,16 +595,7 @@ Here is the call graph for this function:</div>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="mod__thermal__conduction_8t_source.html#l00584">584</a> of file <a class="el" href="mod__thermal__conduction_8t_source.html">mod_thermal_conduction.t</a>.</p>
-<div class="dynheader">
-Here is the call graph for this function:</div>
-<div class="dyncontent">
-<div class="center"><img src="namespacemod__thermal__conduction_ace260cd152691d8f575c0f91b9996a3f_cgraph.png" border="0" usemap="#anamespacemod__thermal__conduction_ace260cd152691d8f575c0f91b9996a3f_cgraph" alt=""/></div>
-<map name="anamespacemod__thermal__conduction_ace260cd152691d8f575c0f91b9996a3f_cgraph" id="anamespacemod__thermal__conduction_ace260cd152691d8f575c0f91b9996a3f_cgraph">
-<area shape="rect" title=" " alt="" coords="5,5,192,47"/>
-<area shape="rect" href="comm__lib_8t.html#a49b49ea9ffbbadfe688e332921c4cddd" title="Exit MPI&#45;AMRVAC with an error message." alt="" coords="240,13,315,39"/>
-</map>
-</div>
+<p class="definition">Definition at line <a class="el" href="mod__thermal__conduction_8t_source.html#l00609">609</a> of file <a class="el" href="mod__thermal__conduction_8t_source.html">mod_thermal_conduction.t</a>.</p>
 
 </div>
 </div>
@@ -685,7 +685,7 @@ Here is the call graph for this function:</div>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="mod__thermal__conduction_8t_source.html#l00703">703</a> of file <a class="el" href="mod__thermal__conduction_8t_source.html">mod_thermal_conduction.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__thermal__conduction_8t_source.html#l00748">748</a> of file <a class="el" href="mod__thermal__conduction_8t_source.html">mod_thermal_conduction.t</a>.</p>
 <div class="dynheader">
 Here is the call graph for this function:</div>
 <div class="dyncontent">
@@ -787,7 +787,7 @@ Here is the call graph for this function:</div>
 
 <p>anisotropic thermal conduction with slope limited symmetric scheme Sharma 2007 Journal of Computational Physics 227, 123 </p>
 
-<p class="definition">Definition at line <a class="el" href="mod__thermal__conduction_8t_source.html#l00258">258</a> of file <a class="el" href="mod__thermal__conduction_8t_source.html">mod_thermal_conduction.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__thermal__conduction_8t_source.html#l00277">277</a> of file <a class="el" href="mod__thermal__conduction_8t_source.html">mod_thermal_conduction.t</a>.</p>
 <div class="dynheader">
 Here is the call graph for this function:</div>
 <div class="dyncontent">
@@ -830,7 +830,7 @@ Here is the call graph for this function:</div>
 <p>Read tc module parameters from par file: MHD case. </p>
 <p>Read tc parameters from par file: HD case</p>
 
-<p class="definition">Definition at line <a class="el" href="mod__thermal__conduction_8t_source.html#l00162">162</a> of file <a class="el" href="mod__thermal__conduction_8t_source.html">mod_thermal_conduction.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__thermal__conduction_8t_source.html#l00160">160</a> of file <a class="el" href="mod__thermal__conduction_8t_source.html">mod_thermal_conduction.t</a>.</p>
 
 </div>
 </div>
@@ -882,7 +882,7 @@ Here is the call graph for this function:</div>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="mod__thermal__conduction_8t_source.html#l00105">105</a> of file <a class="el" href="mod__thermal__conduction_8t_source.html">mod_thermal_conduction.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__thermal__conduction_8t_source.html#l00106">106</a> of file <a class="el" href="mod__thermal__conduction_8t_source.html">mod_thermal_conduction.t</a>.</p>
 
 </div>
 </div>
@@ -901,7 +901,7 @@ Here is the call graph for this function:</div>
 
 <p>The adiabatic index. </p>
 
-<p class="definition">Definition at line <a class="el" href="mod__thermal__conduction_8t_source.html#l00046">46</a> of file <a class="el" href="mod__thermal__conduction_8t_source.html">mod_thermal_conduction.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__thermal__conduction_8t_source.html#l00047">47</a> of file <a class="el" href="mod__thermal__conduction_8t_source.html">mod_thermal_conduction.t</a>.</p>
 
 </div>
 </div>

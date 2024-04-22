@@ -30,7 +30,7 @@
  <tr style="height: 56px;">
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">MPI-AMRVAC
-   &#160;<span id="projectnumber">3.0</span>
+   &#160;<span id="projectnumber">3.1</span>
    </div>
    <div id="projectbrief">The MPI - Adaptive Mesh Refinement - Versatile Advection Code</div>
   </td>
@@ -81,23 +81,26 @@ $(function() {
 <div class="contents">
 <a href="mod__mf_8t.html">Go to the documentation of this file.</a><div class="fragment"><div class="line"><a name="l00001"></a><span class="lineno"><a class="line" href="namespacemod__mf.html">    1</a></span>&#160;<span class="keyword">module</span> <a class="code" href="namespacemod__mf.html">mod_mf</a></div>
 <div class="line"><a name="l00002"></a><span class="lineno">    2</span>&#160;  <span class="keywordtype">use </span><a class="code" href="namespacemod__mf__phys.html">mod_mf_phys</a></div>
-<div class="line"><a name="l00003"></a><span class="lineno">    3</span>&#160;  <span class="keywordtype">use </span><a class="code" href="namespacemod__amrvac.html">mod_amrvac</a></div>
-<div class="line"><a name="l00004"></a><span class="lineno">    4</span>&#160; </div>
-<div class="line"><a name="l00005"></a><span class="lineno">    5</span>&#160;  <span class="keywordtype">implicit none</span></div>
-<div class="line"><a name="l00006"></a><span class="lineno">    6</span>&#160;  <span class="keywordtype">public</span></div>
-<div class="line"><a name="l00007"></a><span class="lineno">    7</span>&#160; </div>
-<div class="line"><a name="l00008"></a><span class="lineno">    8</span>&#160;<span class="keyword">contains</span></div>
-<div class="line"><a name="l00009"></a><span class="lineno">    9</span>&#160; </div>
-<div class="line"><a name="l00010"></a><span class="lineno"><a class="line" href="namespacemod__mf.html#aa345d2a96252119a169da86fb071ca70">   10</a></span>&#160;  <span class="keyword">subroutine </span><a class="code" href="namespacemod__mf.html#aa345d2a96252119a169da86fb071ca70">mf_activate</a>()</div>
-<div class="line"><a name="l00011"></a><span class="lineno">   11</span>&#160;    <span class="keyword">call </span><a class="code" href="namespacemod__mf__phys.html#a164e326547f7aa16b24fcbaf0e8bf01a">mf_phys_init</a>()</div>
-<div class="line"><a name="l00012"></a><span class="lineno">   12</span>&#160;  <span class="keyword">end subroutine </span><a class="code" href="namespacemod__mf.html#aa345d2a96252119a169da86fb071ca70">mf_activate</a></div>
-<div class="line"><a name="l00013"></a><span class="lineno">   13</span>&#160; </div>
-<div class="line"><a name="l00014"></a><span class="lineno">   14</span>&#160;<span class="keyword">end module </span><a class="code" href="namespacemod__mf.html">mod_mf</a></div>
+<div class="line"><a name="l00003"></a><span class="lineno">    3</span>&#160;  <span class="keywordtype">use </span><a class="code" href="namespacemod__functions__bfield.html">mod_functions_bfield</a>, <span class="keywordtype">only</span>: <a class="code" href="namespacemod__functions__bfield.html#a9325934e82e214dd9a5fc608b174fbb9">mag</a></div>
+<div class="line"><a name="l00004"></a><span class="lineno">    4</span>&#160;  <span class="keywordtype">use </span><a class="code" href="namespacemod__amrvac.html">mod_amrvac</a></div>
+<div class="line"><a name="l00005"></a><span class="lineno">    5</span>&#160; </div>
+<div class="line"><a name="l00006"></a><span class="lineno">    6</span>&#160;  <span class="keywordtype">implicit none</span></div>
+<div class="line"><a name="l00007"></a><span class="lineno">    7</span>&#160;  <span class="keywordtype">public</span></div>
+<div class="line"><a name="l00008"></a><span class="lineno">    8</span>&#160; </div>
+<div class="line"><a name="l00009"></a><span class="lineno">    9</span>&#160;<span class="keyword">contains</span></div>
+<div class="line"><a name="l00010"></a><span class="lineno">   10</span>&#160; </div>
+<div class="line"><a name="l00011"></a><span class="lineno"><a class="line" href="namespacemod__mf.html#aa345d2a96252119a169da86fb071ca70">   11</a></span>&#160;  <span class="keyword">subroutine </span><a class="code" href="namespacemod__mf.html#aa345d2a96252119a169da86fb071ca70">mf_activate</a>()</div>
+<div class="line"><a name="l00012"></a><span class="lineno">   12</span>&#160;    <span class="keyword">call </span><a class="code" href="namespacemod__mf__phys.html#a164e326547f7aa16b24fcbaf0e8bf01a">mf_phys_init</a>()</div>
+<div class="line"><a name="l00013"></a><span class="lineno">   13</span>&#160;  <span class="keyword">end subroutine </span><a class="code" href="namespacemod__mf.html#aa345d2a96252119a169da86fb071ca70">mf_activate</a></div>
+<div class="line"><a name="l00014"></a><span class="lineno">   14</span>&#160; </div>
+<div class="line"><a name="l00015"></a><span class="lineno">   15</span>&#160;<span class="keyword">end module </span><a class="code" href="namespacemod__mf.html">mod_mf</a></div>
 <div class="ttc" id="anamespacemod__amrvac_html"><div class="ttname"><a href="namespacemod__amrvac.html">mod_amrvac</a></div><div class="ttdoc">This module contains modules that users could want to have in their mod_usr.t code,...</div><div class="ttdef"><b>Definition:</b> <a href="mod__amrvac_8t_source.html#l00003">mod_amrvac.t:3</a></div></div>
+<div class="ttc" id="anamespacemod__functions__bfield_html"><div class="ttname"><a href="namespacemod__functions__bfield.html">mod_functions_bfield</a></div><div class="ttdef"><b>Definition:</b> <a href="mod__functions__bfield_8t_source.html#l00001">mod_functions_bfield.t:1</a></div></div>
+<div class="ttc" id="anamespacemod__functions__bfield_html_a9325934e82e214dd9a5fc608b174fbb9"><div class="ttname"><a href="namespacemod__functions__bfield.html#a9325934e82e214dd9a5fc608b174fbb9">mod_functions_bfield::mag</a></div><div class="ttdeci">integer, dimension(:), allocatable, public mag</div><div class="ttdoc">Indices of the magnetic field.</div><div class="ttdef"><b>Definition:</b> <a href="mod__functions__bfield_8t_source.html#l00010">mod_functions_bfield.t:10</a></div></div>
 <div class="ttc" id="anamespacemod__mf__phys_html"><div class="ttname"><a href="namespacemod__mf__phys.html">mod_mf_phys</a></div><div class="ttdoc">Magnetofriction module.</div><div class="ttdef"><b>Definition:</b> <a href="mod__mf__phys_8t_source.html#l00002">mod_mf_phys.t:2</a></div></div>
-<div class="ttc" id="anamespacemod__mf__phys_html_a164e326547f7aa16b24fcbaf0e8bf01a"><div class="ttname"><a href="namespacemod__mf__phys.html#a164e326547f7aa16b24fcbaf0e8bf01a">mod_mf_phys::mf_phys_init</a></div><div class="ttdeci">subroutine, public mf_phys_init()</div><div class="ttdef"><b>Definition:</b> <a href="mod__mf__phys_8t_source.html#l00172">mod_mf_phys.t:173</a></div></div>
+<div class="ttc" id="anamespacemod__mf__phys_html_a164e326547f7aa16b24fcbaf0e8bf01a"><div class="ttname"><a href="namespacemod__mf__phys.html#a164e326547f7aa16b24fcbaf0e8bf01a">mod_mf_phys::mf_phys_init</a></div><div class="ttdeci">subroutine, public mf_phys_init()</div><div class="ttdef"><b>Definition:</b> <a href="mod__mf__phys_8t_source.html#l00161">mod_mf_phys.t:162</a></div></div>
 <div class="ttc" id="anamespacemod__mf_html"><div class="ttname"><a href="namespacemod__mf.html">mod_mf</a></div><div class="ttdef"><b>Definition:</b> <a href="mod__mf_8t_source.html#l00001">mod_mf.t:1</a></div></div>
-<div class="ttc" id="anamespacemod__mf_html_aa345d2a96252119a169da86fb071ca70"><div class="ttname"><a href="namespacemod__mf.html#aa345d2a96252119a169da86fb071ca70">mod_mf::mf_activate</a></div><div class="ttdeci">subroutine mf_activate()</div><div class="ttdef"><b>Definition:</b> <a href="mod__mf_8t_source.html#l00010">mod_mf.t:11</a></div></div>
+<div class="ttc" id="anamespacemod__mf_html_aa345d2a96252119a169da86fb071ca70"><div class="ttname"><a href="namespacemod__mf.html#aa345d2a96252119a169da86fb071ca70">mod_mf::mf_activate</a></div><div class="ttdeci">subroutine mf_activate()</div><div class="ttdef"><b>Definition:</b> <a href="mod__mf_8t_source.html#l00011">mod_mf.t:12</a></div></div>
 </div><!-- fragment --></div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>

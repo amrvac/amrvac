@@ -1,5 +1,4 @@
 <map id="mod_rhd_phys::e_to_rhos" name="mod_rhd_phys::e_to_rhos">
-<area shape="rect" id="node1" title=" " alt="" coords="5,31,193,57"/>
-<area shape="rect" id="node2" href="$comm__lib_8t.html#a49b49ea9ffbbadfe688e332921c4cddd" title="Exit MPI&#45;AMRVAC with an error message." alt="" coords="302,5,377,32"/>
-<area shape="rect" id="node3" href="$namespacemod__rhd__phys.html#a1e07786761252b41b296d48374a982fa" title=" " alt="" coords="241,56,437,83"/>
+<area shape="rect" id="node1" title=" " alt="" coords="5,5,193,32"/>
+<area shape="rect" id="node2" href="$namespacemod__rhd__phys.html#a1e07786761252b41b296d48374a982fa" title=" " alt="" coords="241,5,437,32"/>
 </map>

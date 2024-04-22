@@ -30,7 +30,7 @@
  <tr style="height: 56px;">
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">MPI-AMRVAC
-   &#160;<span id="projectnumber">3.0</span>
+   &#160;<span id="projectnumber">3.1</span>
    </div>
    <div id="projectbrief">The MPI - Adaptive Mesh Refinement - Versatile Advection Code</div>
   </td>
@@ -100,8 +100,8 @@ $(function() {
         it_max            = 0
 /
 </pre><p> where we reset the iteration counter (so that <em>itsave(1,4)=0</em> will output collapsed data) and stop the code immediately after the IO (<em>it_max=0</em>).</p>
-<p>The code can then be started with </p><pre class="fragment">amrvac -i collapse.par -collapse 10 -if datamr/data0010.dat
-</pre><p> which will take the output <em>datamr/data0010.dat</em> to create new collapsed view with index 10 (-collapse 10). The par-file is the newly created collapse.par (-i collapse.par) so that the default used to run the code can be left untouched. It is a simple exercise in shell scripting to run along all output-files in one go. For example with the BASH: </p><pre class="fragment">for i in {0..10}; do printf -v j "%04d" $i; ./amrvac -i collapse.par -collapse $i -if datamr/data$j.dat; done
+<p>The code can then be started with </p><pre class="fragment">amrvac -i collapse.par -collapsenext 10 -if datamr/data0010.dat
+</pre><p> which will take the output <em>datamr/data0010.dat</em> to create new collapsed view with index 10 (-collapse 10). The par-file is the newly created collapse.par (-i collapse.par) so that the default used to run the code can be left untouched. It is a simple exercise in shell scripting to run along all output-files in one go. For example with the BASH: </p><pre class="fragment">for i in {0..10}; do printf -v j "%04d" $i; mpirun -np 4 ./amrvac -i collapse.par -collapsenext $i -if datamr/data$j.dat; done
 </pre> <h1>ASCII output</h1>
 <p>As an alternative to the cell-type <em>*.vti</em> file format, you can obtain comma- separated-value <em>*.csv</em> files of the cell-center variables. This can be useful especially for 2D simulations (ergo 1D line output) which can then be simply visualized using e.g. gnuplot. For a quick look, the <em>*.csv</em> files can be visualized with GNUplot using a command similar to the following: </p><pre class="fragment">gnuplot&gt; p 'data_d1_l3_n0000.csv' u 2:1:9 with image
 </pre><p> To activate csv ASCII output, the option </p><pre class="fragment"> &amp; filelist

@@ -1,6 +1,5 @@
 <map id="mod_mhd_phys::mhd_check_params" name="mod_mhd_phys::mhd_check_params">
-<area shape="rect" id="node1" title=" " alt="" coords="5,64,212,105"/>
+<area shape="rect" id="node1" title=" " alt="" coords="5,39,212,80"/>
 <area shape="rect" id="node2" href="$namespacemod__convert.html#aaa0d8f3b2be317c7b2be1924cdad1c57" title=" " alt="" coords="260,5,455,47"/>
-<area shape="rect" id="node3" href="$comm__lib_8t.html#a49b49ea9ffbbadfe688e332921c4cddd" title="Exit MPI&#45;AMRVAC with an error message." alt="" coords="503,42,577,69"/>
-<area shape="rect" id="node4" href="$namespacemod__mhd__phys.html#a71b34ec56fc29e9a6229874aa7a5b76e" title=" " alt="" coords="266,123,449,164"/>
+<area shape="rect" id="node3" href="$namespacemod__mhd__phys.html#a71b34ec56fc29e9a6229874aa7a5b76e" title=" " alt="" coords="266,71,449,112"/>
 </map>

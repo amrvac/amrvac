@@ -5,7 +5,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=9"/>
 <meta name="generator" content="Doxygen 1.9.1"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>MPI-AMRVAC: src/mod_mp5.t Source File</title>
+<title>MPI-AMRVAC: src/limiter/mod_mp5.t Source File</title>
 <link href="tabs.css" rel="stylesheet" type="text/css"/>
 <script type="text/javascript" src="jquery.js"></script>
 <script type="text/javascript" src="dynsections.js"></script>
@@ -30,7 +30,7 @@
  <tr style="height: 56px;">
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">MPI-AMRVAC
-   &#160;<span id="projectnumber">3.0</span>
+   &#160;<span id="projectnumber">3.1</span>
    </div>
    <div id="projectbrief">The MPI - Adaptive Mesh Refinement - Versatile Advection Code</div>
   </td>
@@ -71,7 +71,7 @@ $(function() {
 
 <div id="nav-path" class="navpath">
   <ul>
-<li class="navelem"><a class="el" href="dir_68267d1309a1af8e8297ef4c3efbcdba.html">src</a></li>  </ul>
+<li class="navelem"><a class="el" href="dir_68267d1309a1af8e8297ef4c3efbcdba.html">src</a></li><li class="navelem"><a class="el" href="dir_b16847893d729ccccb7801b44e1ba9f6.html">limiter</a></li>  </ul>
 </div>
 </div><!-- top -->
 <div class="header">
@@ -680,8 +680,8 @@ $(function() {
 <div class="line"><a name="l00599"></a><span class="lineno">  599</span>&#160; </div>
 <div class="line"><a name="l00600"></a><span class="lineno">  600</span>&#160;<span class="keyword">end module </span><a class="code" href="namespacemod__mp5.html">mod_mp5</a></div>
 <div class="ttc" id="anamespacemod__global__parameters_html"><div class="ttname"><a href="namespacemod__global__parameters.html">mod_global_parameters</a></div><div class="ttdoc">This module contains definitions of global parameters and variables and some generic functions/subrou...</div><div class="ttdef"><b>Definition:</b> <a href="mod__global__parameters_8t_source.html#l00004">mod_global_parameters.t:4</a></div></div>
-<div class="ttc" id="anamespacemod__global__parameters_html_a31226ca76b94f6c33496105fd25e8fd9"><div class="ttname"><a href="namespacemod__global__parameters.html#a31226ca76b94f6c33496105fd25e8fd9">mod_global_parameters::kr</a></div><div class="ttdeci">integer, dimension(3, 3) kr</div><div class="ttdoc">Kronecker delta tensor.</div><div class="ttdef"><b>Definition:</b> <a href="mod__global__parameters_8t_source.html#l00436">mod_global_parameters.t:436</a></div></div>
-<div class="ttc" id="anamespacemod__global__parameters_html_a68549065c490d02e1de338e8a60c3f12"><div class="ttname"><a href="namespacemod__global__parameters.html#a68549065c490d02e1de338e8a60c3f12">mod_global_parameters::d</a></div><div class="ttdeci">integer, dimension(:), allocatable, parameter d</div><div class="ttdef"><b>Definition:</b> <a href="mod__global__parameters_8t_source.html#l00074">mod_global_parameters.t:74</a></div></div>
+<div class="ttc" id="anamespacemod__global__parameters_html_a31226ca76b94f6c33496105fd25e8fd9"><div class="ttname"><a href="namespacemod__global__parameters.html#a31226ca76b94f6c33496105fd25e8fd9">mod_global_parameters::kr</a></div><div class="ttdeci">integer, dimension(3, 3) kr</div><div class="ttdoc">Kronecker delta tensor.</div><div class="ttdef"><b>Definition:</b> <a href="mod__global__parameters_8t_source.html#l00448">mod_global_parameters.t:448</a></div></div>
+<div class="ttc" id="anamespacemod__global__parameters_html_a68549065c490d02e1de338e8a60c3f12"><div class="ttname"><a href="namespacemod__global__parameters.html#a68549065c490d02e1de338e8a60c3f12">mod_global_parameters::d</a></div><div class="ttdeci">integer, dimension(:), allocatable, parameter d</div><div class="ttdef"><b>Definition:</b> <a href="mod__global__parameters_8t_source.html#l00088">mod_global_parameters.t:88</a></div></div>
 <div class="ttc" id="anamespacemod__global__parameters_html_a8242f42a9b14d7655e6eb74ee23e6195"><div class="ttname"><a href="namespacemod__global__parameters.html#a8242f42a9b14d7655e6eb74ee23e6195">mod_global_parameters::l</a></div><div class="ttdeci">double precision l</div><div class="ttdef"><b>Definition:</b> <a href="mod__global__parameters_8t_source.html#l00054">mod_global_parameters.t:54</a></div></div>
 <div class="ttc" id="anamespacemod__mp5_html"><div class="ttname"><a href="namespacemod__mp5.html">mod_mp5</a></div><div class="ttdoc">Module containing the MP5 (fifth order) flux scheme.</div><div class="ttdef"><b>Definition:</b> <a href="mod__mp5_8t_source.html#l00002">mod_mp5.t:2</a></div></div>
 <div class="ttc" id="anamespacemod__mp5_html_a3748df6957ec7922e79a513047118743"><div class="ttname"><a href="namespacemod__mp5.html#a3748df6957ec7922e79a513047118743">mod_mp5::mp5limiter</a></div><div class="ttdeci">subroutine, public mp5limiter(ixIL, iLL, idims, w, wLC, wRC)</div><div class="ttdoc">MP5 limiter from Suresh &amp; Huynh 1997 Following the convention of Mignone et al. 2010....</div><div class="ttdef"><b>Definition:</b> <a href="mod__mp5_8t_source.html#l00016">mod_mp5.t:17</a></div></div>

@@ -1,0 +1,5 @@
+<map id="mod_boundary_conditions::bc_phys" name="mod_boundary_conditions::bc_phys">
+<area shape="rect" id="node1" title="fill ghost cells at a physical boundary" alt="" coords="5,27,199,69"/>
+<area shape="rect" id="node2" href="$namespacemod__bc__data.html#ac4692cab356d6370d401eaa9aabc417a" title="Set boundary conditions according to user data." alt="" coords="247,5,441,32"/>
+<area shape="rect" id="node3" href="$namespacemod__functions__bfield.html#aebb8fb6527300058b4b839f4193c47a4" title="Calculate div B within ixO." alt="" coords="263,57,425,98"/>
+</map>

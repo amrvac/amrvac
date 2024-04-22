@@ -1,6 +1,5 @@
 <map id="mod_radiative_cooling::cool_implicit" name="mod_radiative_cooling::cool_implicit">
-<area shape="rect" id="node1" title=" " alt="" coords="5,71,176,112"/>
+<area shape="rect" id="node1" title=" " alt="" coords="5,39,176,80"/>
 <area shape="rect" id="node2" href="$namespacemod__radiative__cooling.html#a7961a939e49a748f32727184fafd6718" title=" " alt="" coords="224,5,395,47"/>
 <area shape="rect" id="node3" href="$namespacemod__radiative__cooling.html#ab2477d54f5f1250b8513b3bbb5a20ea5" title=" " alt="" coords="224,71,395,112"/>
-<area shape="rect" id="node4" href="$comm__lib_8t.html#a49b49ea9ffbbadfe688e332921c4cddd" title="Exit MPI&#45;AMRVAC with an error message." alt="" coords="272,137,347,163"/>
 </map>

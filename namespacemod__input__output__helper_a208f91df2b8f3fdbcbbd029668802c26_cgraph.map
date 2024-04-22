@@ -1,0 +1,4 @@
+<map id="mod_input_output_helper::create_output_file" name="mod_input_output_helper::create_output_file">
+<area shape="rect" id="node1" title="Standard method for creating a new output file." alt="" coords="5,5,193,47"/>
+<area shape="rect" id="node2" href="$namespacemod__comm__lib.html#a9b6f1a8fd13bc5670e3b426151c34048" title="Exit MPI&#45;AMRVAC with an error message." alt="" coords="241,13,424,39"/>
+</map>

@@ -1,0 +1,5 @@
+<map id="mod_cak_opacity::get_val_comb" name="mod_cak_opacity::get_val_comb">
+<area shape="rect" id="node1" title="This subroutine looks in the table for the four couples (T,rho) surrounding a given input T and rho." alt="" coords="5,35,169,76"/>
+<area shape="rect" id="node2" href="$namespacemod__cak__opacity.html#aa312932bbdd1afc070d36a7059ad1594" title="This subroutine finds the indices in rho and T arrays of the two values surrounding the input rho and..." alt="" coords="255,5,419,47"/>
+<area shape="rect" id="node3" href="$namespacemod__cak__opacity.html#ab05d980b1ca2548f11c83a6f625a504a" title="This subroutine does a bilinear interpolation in the R,T&#45;plane." alt="" coords="217,71,456,98"/>
+</map>

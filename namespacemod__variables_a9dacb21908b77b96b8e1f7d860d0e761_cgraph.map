@@ -1,4 +1,4 @@
 <map id="mod_variables::var_set_momentum" name="mod_variables::var_set_momentum">
 <area shape="rect" id="node1" title="Set momentum variables." alt="" coords="5,5,152,47"/>
-<area shape="rect" id="node2" href="$comm__lib_8t.html#a49b49ea9ffbbadfe688e332921c4cddd" title="Exit MPI&#45;AMRVAC with an error message." alt="" coords="200,13,275,39"/>
+<area shape="rect" id="node2" href="$namespacemod__variables.html#a67d7a43716758f18d4a148274819a39a" title="Exit MPI&#45;AMRVAC with an error message." alt="" coords="200,13,385,39"/>
 </map>

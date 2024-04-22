@@ -1,5 +1,4 @@
 <map id="mod_fld::fld_get_opacity" name="mod_fld::fld_get_opacity">
-<area shape="rect" id="node1" title="Sets the opacity in the w&#45;array by calling mod_opal_opacity." alt="" coords="5,35,187,61"/>
-<area shape="rect" id="node2" href="$comm__lib_8t.html#a49b49ea9ffbbadfe688e332921c4cddd" title="Exit MPI&#45;AMRVAC with an error message." alt="" coords="281,5,356,32"/>
-<area shape="rect" id="node3" href="$namespacemod__opal__opacity.html#a8a6b7571280893a4d5716c993e03c910" title="This subroutine calculates the opacity for a given temperature&#45;density structure. The opacities are r..." alt="" coords="235,57,403,98"/>
+<area shape="rect" id="node1" title="Sets the opacity in the w&#45;array by calling mod_opal_opacity." alt="" coords="5,13,187,39"/>
+<area shape="rect" id="node2" href="$namespacemod__opal__opacity.html#a8a6b7571280893a4d5716c993e03c910" title="This subroutine calculates the opacity for a given temperature&#45;density structure. Opacities are read ..." alt="" coords="235,5,403,47"/>
 </map>

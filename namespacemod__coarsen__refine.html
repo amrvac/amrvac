@@ -30,7 +30,7 @@
  <tr style="height: 56px;">
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">MPI-AMRVAC
-   &#160;<span id="projectnumber">3.0</span>
+   &#160;<span id="projectnumber">3.1</span>
    </div>
    <div id="projectbrief">The MPI - Adaptive Mesh Refinement - Versatile Advection Code</div>
   </td>
@@ -113,19 +113,19 @@ Here is the call graph for this function:</div>
 <div class="dyncontent">
 <div class="center"><img src="namespacemod__coarsen__refine_a90d7cd8cbcd1b2de285dee4d58973632_cgraph.png" border="0" usemap="#anamespacemod__coarsen__refine_a90d7cd8cbcd1b2de285dee4d58973632_cgraph" alt=""/></div>
 <map name="anamespacemod__coarsen__refine_a90d7cd8cbcd1b2de285dee4d58973632_cgraph" id="anamespacemod__coarsen__refine_a90d7cd8cbcd1b2de285dee4d58973632_cgraph">
-<area shape="rect" title="coarsen and refine blocks to update AMR grid" alt="" coords="5,281,164,322"/>
-<area shape="rect" href="connectivity_8t.html#a4498f4f4998ce2079f13ec9fa4fd507f" title=" " alt="" coords="241,5,382,32"/>
-<area shape="rect" href="forest_8t.html#a7790d1d4cdd74e67b5e049f2fb0d4e3a" title=" " alt="" coords="242,56,381,83"/>
-<area shape="rect" href="namespacemod__amr__fct.html#a7b0f4490bde4c832fd63c3651eb174da" title="When refining a coarse block with fine neighbours, it is necessary prolong consistently with the alre..." alt="" coords="212,107,411,133"/>
-<area shape="rect" href="connectivity_8t.html#a949ecd025a2d92d7bff4dfffcbdbc442" title=" " alt="" coords="248,157,375,184"/>
-<area shape="rect" href="connectivity_8t.html#a8e0c70b7de9e9563c520f731ed8bfc8c" title=" " alt="" coords="272,208,351,235"/>
-<area shape="rect" href="amr__solution__node_8t.html#a2fa10df2ead73cb1294944ca97da2bea" title="Get first available igrid on processor ipe." alt="" coords="274,259,349,285"/>
-<area shape="rect" href="namespacemod__coarsen__refine.html#a8fa0bcad0754af25dcdcf6baa984e756" title="For all grids on all processors, do a check on refinement flags. Make sure that neighbors will not di..." alt="" coords="235,310,388,351"/>
-<area shape="rect" href="amr__solution__node_8t.html#a85269111d1d1e93e55d7f3ec33f7f076" title=" " alt="" coords="274,376,349,403"/>
-<area shape="rect" href="refine_8t.html#a1e1e904ea184e74882b8a9eda21d8efe" title="refine one block to its children blocks" alt="" coords="262,427,361,453"/>
-<area shape="rect" href="forest_8t.html#a7cb6669c78e08f49f5ed106f70872a06" title=" " alt="" coords="249,477,373,504"/>
-<area shape="rect" href="selectgrids_8t.html#a9b7e3b71e41bf47f4aaab7fc452f54cc" title=" " alt="" coords="265,528,358,555"/>
-<area shape="rect" href="namespacemod__amr__fct.html#a6742566c4457a0931b368db9539791b9" title="To achive consistency and thus conservation of divergence, when refining a block we take into account..." alt="" coords="237,579,386,621"/>
+<area shape="rect" title="coarsen and refine blocks to update AMR grid" alt="" coords="5,352,164,393"/>
+<area shape="rect" href="namespacemod__functions__connectivity.html#ad0f896bb9a50442f121e8fa63b365b15" title=" " alt="" coords="213,5,419,47"/>
+<area shape="rect" href="namespacemod__functions__forest.html#a987618ae3b9ab1b1f6e1d9d8d18b4448" title=" " alt="" coords="235,71,397,112"/>
+<area shape="rect" href="namespacemod__amr__fct.html#a7b0f4490bde4c832fd63c3651eb174da" title="When refining a coarse block with fine neighbours, it is necessary prolong consistently with the alre..." alt="" coords="217,137,415,163"/>
+<area shape="rect" href="namespacemod__functions__connectivity.html#a110e68b70f3eb0ec2de3d4855cf0901e" title=" " alt="" coords="213,188,419,229"/>
+<area shape="rect" href="namespacemod__functions__connectivity.html#ad727947fbcfbbb6f3b25ab9fa7515dda" title=" " alt="" coords="213,253,419,295"/>
+<area shape="rect" href="namespacemod__amr__solution__node.html#aeef76b98e4c841f25f27fefa770ce314" title="Get first available igrid on processor ipe." alt="" coords="225,319,407,360"/>
+<area shape="rect" href="namespacemod__coarsen__refine.html#a8fa0bcad0754af25dcdcf6baa984e756" title="For all grids on all processors, do a check on refinement flags. Make sure that neighbors will not di..." alt="" coords="239,384,393,425"/>
+<area shape="rect" href="namespacemod__amr__solution__node.html#a24e271e2c807eb2e0881f075d6ff55c2" title=" " alt="" coords="225,449,407,491"/>
+<area shape="rect" href="namespacemod__refine.html#a76d1615a759e3cbdd1fea0c20f074a2f" title="refine one block to its children blocks" alt="" coords="246,515,386,556"/>
+<area shape="rect" href="namespacemod__functions__forest.html#a7d3c451c93ebfe605cf07e465147be67" title=" " alt="" coords="235,580,397,621"/>
+<area shape="rect" href="namespacemod__selectgrids.html#aa15f11bf5108fe0eae81eb81aa46f3b1" title=" " alt="" coords="212,646,420,673"/>
+<area shape="rect" href="namespacemod__amr__fct.html#a6742566c4457a0931b368db9539791b9" title="To achive consistency and thus conservation of divergence, when refining a block we take into account..." alt="" coords="241,697,391,739"/>
 </map>
 </div>
 
@@ -145,15 +145,15 @@ Here is the call graph for this function:</div>
 
 <p>For all grids on all processors, do a check on refinement flags. Make sure that neighbors will not differ more than one level of refinement. </p>
 
-<p class="definition">Definition at line <a class="el" href="mod__coarsen__refine_8t_source.html#l00184">184</a> of file <a class="el" href="mod__coarsen__refine_8t_source.html">mod_coarsen_refine.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__coarsen__refine_8t_source.html#l00190">190</a> of file <a class="el" href="mod__coarsen__refine_8t_source.html">mod_coarsen_refine.t</a>.</p>
 <div class="dynheader">
 Here is the call graph for this function:</div>
 <div class="dyncontent">
 <div class="center"><img src="namespacemod__coarsen__refine_a8fa0bcad0754af25dcdcf6baa984e756_cgraph.png" border="0" usemap="#anamespacemod__coarsen__refine_a8fa0bcad0754af25dcdcf6baa984e756_cgraph" alt=""/></div>
 <map name="anamespacemod__coarsen__refine_a8fa0bcad0754af25dcdcf6baa984e756_cgraph" id="anamespacemod__coarsen__refine_a8fa0bcad0754af25dcdcf6baa984e756_cgraph">
-<area shape="rect" title="For all grids on all processors, do a check on refinement flags. Make sure that neighbors will not di..." alt="" coords="5,23,159,65"/>
-<area shape="rect" href="amr__neighbors_8t.html#a7513475f8d5cc2e9b56c24e2fc93272a" title="find neighors of all blocks" alt="" coords="240,5,351,32"/>
-<area shape="rect" href="mod__coarsen__refine_8t.html#adbdb5c3b209cb26da159a3a80033ba26" title=" " alt="" coords="207,56,384,83"/>
+<area shape="rect" title="For all grids on all processors, do a check on refinement flags. Make sure that neighbors will not di..." alt="" coords="5,35,159,76"/>
+<area shape="rect" href="namespacemod__amr__neighbors.html#a9a8f5feacf60fbac6b4b9a8cf9062b41" title="find neighors of all blocks" alt="" coords="214,5,377,47"/>
+<area shape="rect" href="mod__coarsen__refine_8t.html#adbdb5c3b209cb26da159a3a80033ba26" title=" " alt="" coords="207,71,384,98"/>
 </map>
 </div>
 

@@ -1,4 +1,0 @@
-<map id="mod_cak_opacity::init_cak" name="mod_cak_opacity::init_cak">
-<area shape="rect" id="node1" title="This routine is called when the fld radiation module is initialised. Here, the tables for different H..." alt="" coords="5,13,200,39"/>
-<area shape="rect" id="node2" href="$namespacemod__cak__opacity.html#aca180ac6c9fc13252d1dde39c135200c" title="This routine reads out values and arguments from a table." alt="" coords="248,5,420,47"/>
-</map>

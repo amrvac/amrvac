@@ -1,6 +1,0 @@
-<map id="mod_finite_difference::centdiff" name="mod_finite_difference::centdiff">
-<area shape="rect" id="node1" title=" " alt="" coords="5,49,168,90"/>
-<area shape="rect" id="node2" href="$namespacemod__source.html#aca516efaaeb3b7e650a64c1ab285295a" title="Add source within ixO for iws: w=w+qdt*S[wCT]." alt="" coords="216,5,400,32"/>
-<area shape="rect" id="node3" href="$comm__lib_8t.html#a49b49ea9ffbbadfe688e332921c4cddd" title="Exit MPI&#45;AMRVAC with an error message." alt="" coords="448,85,523,112"/>
-<area shape="rect" id="node4" href="$namespacemod__finite__volume.html#a4096159cd061b7e8cc27c68dba299ebd" title="Determine the upwinded wLC(ixL) and wRC(ixR) from w. the wCT is only used when PPM is exploited." alt="" coords="231,107,385,149"/>
-</map>

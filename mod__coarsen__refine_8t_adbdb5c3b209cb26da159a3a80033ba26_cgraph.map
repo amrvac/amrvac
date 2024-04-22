@@ -1,6 +1,6 @@
 <map id="unflag_coarsen_siblings" name="unflag_coarsen_siblings">
-<area shape="rect" id="node1" title=" " alt="" coords="5,56,183,83"/>
-<area shape="rect" id="node2" href="$amr__solution__node_8t.html#a18f209c67b004dfa60490520e9eb028c" title="allocate arrays on igrid node" alt="" coords="248,5,340,32"/>
-<area shape="rect" id="node3" href="$coarsen_8t.html#ae87eacc198ccd8116d6bafa766dd7b2a" title="coarsen one grid to its coarser representative" alt="" coords="241,56,347,83"/>
-<area shape="rect" id="node4" href="$amrini_8t.html#a1b4f9e6fa789396ccd9f6fb0688aaebf" title="fill in initial condition" alt="" coords="231,107,357,133"/>
+<area shape="rect" id="node1" title=" " alt="" coords="5,71,183,98"/>
+<area shape="rect" id="node2" href="$namespacemod__amr__solution__node.html#a5360422247c76466eb60cf0a2d6fd5e9" title="allocate arrays on igrid node" alt="" coords="239,5,422,47"/>
+<area shape="rect" id="node3" href="$namespacemod__coarsen.html#aa405d60da3c03b9423df6c225752424b" title="coarsen one grid to its coarser representative" alt="" coords="231,71,431,98"/>
+<area shape="rect" id="node4" href="$namespacemod__initialize__amr.html#af51458e257138c8950600f7ada222ea7" title="fill in initial condition" alt="" coords="257,123,404,164"/>
 </map>

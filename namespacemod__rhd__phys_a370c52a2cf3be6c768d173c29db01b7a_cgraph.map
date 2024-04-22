@@ -1,6 +1,5 @@
 <map id="mod_rhd_phys::rhd_check_params" name="mod_rhd_phys::rhd_check_params">
-<area shape="rect" id="node1" title=" " alt="" coords="5,64,196,105"/>
+<area shape="rect" id="node1" title=" " alt="" coords="5,39,196,80"/>
 <area shape="rect" id="node2" href="$namespacemod__dust.html#abac9be1c49bbffe25b1de9e17c608392" title=" " alt="" coords="247,5,414,47"/>
-<area shape="rect" id="node3" href="$comm__lib_8t.html#a49b49ea9ffbbadfe688e332921c4cddd" title="Exit MPI&#45;AMRVAC with an error message." alt="" coords="465,71,540,98"/>
-<area shape="rect" id="node4" href="$namespacemod__rhd__phys.html#aae68137f6db48de868d85892e0c9ad2b" title="Set the boundaries for the diffusion of E." alt="" coords="244,123,417,164"/>
+<area shape="rect" id="node3" href="$namespacemod__rhd__phys.html#aae68137f6db48de868d85892e0c9ad2b" title="Set the boundaries for the diffusion of E." alt="" coords="244,71,417,112"/>
 </map>

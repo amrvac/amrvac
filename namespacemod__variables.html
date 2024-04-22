@@ -30,7 +30,7 @@
  <tr style="height: 56px;">
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">MPI-AMRVAC
-   &#160;<span id="projectnumber">3.0</span>
+   &#160;<span id="projectnumber">3.1</span>
    </div>
    <div id="projectbrief">The MPI - Adaptive Mesh Refinement - Versatile Advection Code</div>
   </td>
@@ -96,6 +96,9 @@ Functions/Subroutines</h2></td></tr>
 <tr class="memitem:a25c5de60438d48ea9d2d50daf741f59b"><td class="memItemLeft" align="right" valign="top">integer function&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__variables.html#a25c5de60438d48ea9d2d50daf741f59b">var_set_rho</a> ()</td></tr>
 <tr class="memdesc:a25c5de60438d48ea9d2d50daf741f59b"><td class="mdescLeft">&#160;</td><td class="mdescRight">Set density variable.  <a href="namespacemod__variables.html#a25c5de60438d48ea9d2d50daf741f59b">More...</a><br /></td></tr>
 <tr class="separator:a25c5de60438d48ea9d2d50daf741f59b"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a67d7a43716758f18d4a148274819a39a"><td class="memItemLeft" align="right" valign="top">subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__variables.html#a67d7a43716758f18d4a148274819a39a">errormsg</a> (message)</td></tr>
+<tr class="memdesc:a67d7a43716758f18d4a148274819a39a"><td class="mdescLeft">&#160;</td><td class="mdescRight">Exit MPI-AMRVAC with an error message.  <a href="namespacemod__variables.html#a67d7a43716758f18d4a148274819a39a">More...</a><br /></td></tr>
+<tr class="separator:a67d7a43716758f18d4a148274819a39a"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a9dacb21908b77b96b8e1f7d860d0e761"><td class="memItemLeft" align="right" valign="top">integer function, dimension(ndir)&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__variables.html#a9dacb21908b77b96b8e1f7d860d0e761">var_set_momentum</a> (ndir)</td></tr>
 <tr class="memdesc:a9dacb21908b77b96b8e1f7d860d0e761"><td class="mdescLeft">&#160;</td><td class="mdescRight">Set momentum variables.  <a href="namespacemod__variables.html#a9dacb21908b77b96b8e1f7d860d0e761">More...</a><br /></td></tr>
 <tr class="separator:a9dacb21908b77b96b8e1f7d860d0e761"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -107,9 +110,6 @@ Functions/Subroutines</h2></td></tr>
 <tr class="memitem:ac367c759b5cd63f9375d0c2be9eff03c"><td class="memItemLeft" align="right" valign="top">integer function, dimension(ndir)&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__variables.html#ac367c759b5cd63f9375d0c2be9eff03c">var_set_bfield</a> (ndir)</td></tr>
 <tr class="memdesc:ac367c759b5cd63f9375d0c2be9eff03c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Set magnetic field variables.  <a href="namespacemod__variables.html#ac367c759b5cd63f9375d0c2be9eff03c">More...</a><br /></td></tr>
 <tr class="separator:ac367c759b5cd63f9375d0c2be9eff03c"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:af6556768ceafeae6acf37e6afe30f0b6"><td class="memItemLeft" align="right" valign="top">integer function&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__variables.html#af6556768ceafeae6acf37e6afe30f0b6">var_set_internal_energy</a> ()</td></tr>
-<tr class="memdesc:af6556768ceafeae6acf37e6afe30f0b6"><td class="mdescLeft">&#160;</td><td class="mdescRight">Set internal energy variable.  <a href="namespacemod__variables.html#af6556768ceafeae6acf37e6afe30f0b6">More...</a><br /></td></tr>
-<tr class="separator:af6556768ceafeae6acf37e6afe30f0b6"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="var-members"></a>
 Variables</h2></td></tr>
@@ -166,9 +166,6 @@ Variables</h2></td></tr>
 <tr class="memitem:ab618464ebd5883bba46c082d2de72a68"><td class="memItemLeft" align="right" valign="top">integer&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__variables.html#ab618464ebd5883bba46c082d2de72a68">iw_r_e</a> = -1</td></tr>
 <tr class="memdesc:ab618464ebd5883bba46c082d2de72a68"><td class="mdescLeft">&#160;</td><td class="mdescRight">Index of the radiation energy density.  <a href="namespacemod__variables.html#ab618464ebd5883bba46c082d2de72a68">More...</a><br /></td></tr>
 <tr class="separator:ab618464ebd5883bba46c082d2de72a68"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a43b7169adfebd7214f738ec71456ba1b"><td class="memItemLeft" align="right" valign="top">integer&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__variables.html#a43b7169adfebd7214f738ec71456ba1b">iw_eaux</a> = -1</td></tr>
-<tr class="memdesc:a43b7169adfebd7214f738ec71456ba1b"><td class="mdescLeft">&#160;</td><td class="mdescRight">Index of the internal energy density.  <a href="namespacemod__variables.html#a43b7169adfebd7214f738ec71456ba1b">More...</a><br /></td></tr>
-<tr class="separator:a43b7169adfebd7214f738ec71456ba1b"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a653576f4d89ed96d1d577cb5a6b239c2"><td class="memItemLeft" align="right" valign="top">integer, dimension(:), allocatable, protected&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__variables.html#a653576f4d89ed96d1d577cb5a6b239c2">iw_mag</a></td></tr>
 <tr class="memdesc:a653576f4d89ed96d1d577cb5a6b239c2"><td class="mdescLeft">&#160;</td><td class="mdescRight">Indices of the magnetic field components.  <a href="namespacemod__variables.html#a653576f4d89ed96d1d577cb5a6b239c2">More...</a><br /></td></tr>
 <tr class="separator:a653576f4d89ed96d1d577cb5a6b239c2"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -193,6 +190,34 @@ Variables</h2></td></tr>
 <tr class="separator:abc7dc2944d824d524068c56dad3b413e"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <h2 class="groupheader">Function/Subroutine Documentation</h2>
+<a id="a67d7a43716758f18d4a148274819a39a"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a67d7a43716758f18d4a148274819a39a">&#9670;&nbsp;</a></span>errormsg()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">subroutine mod_variables::errormsg </td>
+          <td>(</td>
+          <td class="paramtype">character(len=*), intent(in)&#160;</td>
+          <td class="paramname"><em>message</em></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Exit MPI-AMRVAC with an error message. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramdir">[in]</td><td class="paramname">message</td><td>The error message </td></tr>
+  </table>
+  </dd>
+</dl>
+
+<p class="definition">Definition at line <a class="el" href="mod__variables_8t_source.html#l00185">185</a> of file <a class="el" href="mod__variables_8t_source.html">mod_variables.t</a>.</p>
+
+</div>
+</div>
 <a id="a667fe89fa15d44f07bcda501b8992bb0"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a667fe89fa15d44f07bcda501b8992bb0">&#9670;&nbsp;</a></span>var_set_auxvar()</h2>
 
@@ -227,7 +252,7 @@ Variables</h2></td></tr>
 
 <p>Set auxiliary variable, which is not advected but has boundary conditions. This has to be done after defining flux variables. </p>
 
-<p class="definition">Definition at line <a class="el" href="mod__variables_8t_source.html#l00154">154</a> of file <a class="el" href="mod__variables_8t_source.html">mod_variables.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__variables_8t_source.html#l00151">151</a> of file <a class="el" href="mod__variables_8t_source.html">mod_variables.t</a>.</p>
 
 </div>
 </div>
@@ -249,14 +274,14 @@ Variables</h2></td></tr>
 
 <p>Set magnetic field variables. </p>
 
-<p class="definition">Definition at line <a class="el" href="mod__variables_8t_source.html#l00231">231</a> of file <a class="el" href="mod__variables_8t_source.html">mod_variables.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__variables_8t_source.html#l00240">240</a> of file <a class="el" href="mod__variables_8t_source.html">mod_variables.t</a>.</p>
 <div class="dynheader">
 Here is the call graph for this function:</div>
 <div class="dyncontent">
 <div class="center"><img src="namespacemod__variables_ac367c759b5cd63f9375d0c2be9eff03c_cgraph.png" border="0" usemap="#anamespacemod__variables_ac367c759b5cd63f9375d0c2be9eff03c_cgraph" alt=""/></div>
 <map name="anamespacemod__variables_ac367c759b5cd63f9375d0c2be9eff03c_cgraph" id="anamespacemod__variables_ac367c759b5cd63f9375d0c2be9eff03c_cgraph">
 <area shape="rect" title="Set magnetic field variables." alt="" coords="5,5,152,47"/>
-<area shape="rect" href="comm__lib_8t.html#a49b49ea9ffbbadfe688e332921c4cddd" title="Exit MPI&#45;AMRVAC with an error message." alt="" coords="200,13,275,39"/>
+<area shape="rect" href="namespacemod__variables.html#a67d7a43716758f18d4a148274819a39a" title="Exit MPI&#45;AMRVAC with an error message." alt="" coords="200,13,385,39"/>
 </map>
 </div>
 
@@ -276,7 +301,7 @@ Here is the call graph for this function:</div>
 
 <p>Set energy variable. </p>
 
-<p class="definition">Definition at line <a class="el" href="mod__variables_8t_source.html#l00206">206</a> of file <a class="el" href="mod__variables_8t_source.html">mod_variables.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__variables_8t_source.html#l00215">215</a> of file <a class="el" href="mod__variables_8t_source.html">mod_variables.t</a>.</p>
 
 </div>
 </div>
@@ -314,7 +339,7 @@ Here is the call graph for this function:</div>
 
 <p>Set extra variable in w, which is not advected and has no boundary conditions. This has to be done after defining flux variables and auxiliary variables. </p>
 
-<p class="definition">Definition at line <a class="el" href="mod__variables_8t_source.html#l00124">124</a> of file <a class="el" href="mod__variables_8t_source.html">mod_variables.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__variables_8t_source.html#l00121">121</a> of file <a class="el" href="mod__variables_8t_source.html">mod_variables.t</a>.</p>
 
 </div>
 </div>
@@ -367,25 +392,7 @@ Here is the call graph for this function:</div>
   </dd>
 </dl>
 
-<p class="definition">Definition at line <a class="el" href="mod__variables_8t_source.html#l00097">97</a> of file <a class="el" href="mod__variables_8t_source.html">mod_variables.t</a>.</p>
-
-</div>
-</div>
-<a id="af6556768ceafeae6acf37e6afe30f0b6"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#af6556768ceafeae6acf37e6afe30f0b6">&#9670;&nbsp;</a></span>var_set_internal_energy()</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">integer function mod_variables::var_set_internal_energy</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>Set internal energy variable. </p>
-
-<p class="definition">Definition at line <a class="el" href="mod__variables_8t_source.html#l00251">251</a> of file <a class="el" href="mod__variables_8t_source.html">mod_variables.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__variables_8t_source.html#l00094">94</a> of file <a class="el" href="mod__variables_8t_source.html">mod_variables.t</a>.</p>
 
 </div>
 </div>
@@ -407,14 +414,14 @@ Here is the call graph for this function:</div>
 
 <p>Set momentum variables. </p>
 
-<p class="definition">Definition at line <a class="el" href="mod__variables_8t_source.html#l00186">186</a> of file <a class="el" href="mod__variables_8t_source.html">mod_variables.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__variables_8t_source.html#l00195">195</a> of file <a class="el" href="mod__variables_8t_source.html">mod_variables.t</a>.</p>
 <div class="dynheader">
 Here is the call graph for this function:</div>
 <div class="dyncontent">
 <div class="center"><img src="namespacemod__variables_a9dacb21908b77b96b8e1f7d860d0e761_cgraph.png" border="0" usemap="#anamespacemod__variables_a9dacb21908b77b96b8e1f7d860d0e761_cgraph" alt=""/></div>
 <map name="anamespacemod__variables_a9dacb21908b77b96b8e1f7d860d0e761_cgraph" id="anamespacemod__variables_a9dacb21908b77b96b8e1f7d860d0e761_cgraph">
 <area shape="rect" title="Set momentum variables." alt="" coords="5,5,152,47"/>
-<area shape="rect" href="comm__lib_8t.html#a49b49ea9ffbbadfe688e332921c4cddd" title="Exit MPI&#45;AMRVAC with an error message." alt="" coords="200,13,275,39"/>
+<area shape="rect" href="namespacemod__variables.html#a67d7a43716758f18d4a148274819a39a" title="Exit MPI&#45;AMRVAC with an error message." alt="" coords="200,13,385,39"/>
 </map>
 </div>
 
@@ -432,7 +439,7 @@ Here is the call graph for this function:</div>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="mod__variables_8t_source.html#l00218">218</a> of file <a class="el" href="mod__variables_8t_source.html">mod_variables.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__variables_8t_source.html#l00227">227</a> of file <a class="el" href="mod__variables_8t_source.html">mod_variables.t</a>.</p>
 
 </div>
 </div>
@@ -450,7 +457,7 @@ Here is the call graph for this function:</div>
 
 <p>Set density variable. </p>
 
-<p class="definition">Definition at line <a class="el" href="mod__variables_8t_source.html#l00173">173</a> of file <a class="el" href="mod__variables_8t_source.html">mod_variables.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__variables_8t_source.html#l00170">170</a> of file <a class="el" href="mod__variables_8t_source.html">mod_variables.t</a>.</p>
 
 </div>
 </div>
@@ -468,7 +475,7 @@ Here is the call graph for this function:</div>
 
 <p>Set extra variable in wextra, which is not advected and has no boundary conditions and not output in dat. This has to be done after defining flux variables and auxiliary variables. </p>
 
-<p class="definition">Definition at line <a class="el" href="mod__variables_8t_source.html#l00144">144</a> of file <a class="el" href="mod__variables_8t_source.html">mod_variables.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__variables_8t_source.html#l00141">141</a> of file <a class="el" href="mod__variables_8t_source.html">mod_variables.t</a>.</p>
 
 </div>
 </div>
@@ -505,7 +512,7 @@ Here is the call graph for this function:</div>
 
 <p>index of the var whose velocity appears in the induction eq. </p>
 
-<p class="definition">Definition at line <a class="el" href="mod__variables_8t_source.html#l00078">78</a> of file <a class="el" href="mod__variables_8t_source.html">mod_variables.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__variables_8t_source.html#l00075">75</a> of file <a class="el" href="mod__variables_8t_source.html">mod_variables.t</a>.</p>
 
 </div>
 </div>
@@ -527,24 +534,6 @@ Here is the call graph for this function:</div>
 
 </div>
 </div>
-<a id="a43b7169adfebd7214f738ec71456ba1b"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a43b7169adfebd7214f738ec71456ba1b">&#9670;&nbsp;</a></span>iw_eaux</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">integer mod_variables::iw_eaux = -1</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>Index of the internal energy density. </p>
-
-<p class="definition">Definition at line <a class="el" href="mod__variables_8t_source.html#l00064">64</a> of file <a class="el" href="mod__variables_8t_source.html">mod_variables.t</a>.</p>
-
-</div>
-</div>
 <a id="abc7dc2944d824d524068c56dad3b413e"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#abc7dc2944d824d524068c56dad3b413e">&#9670;&nbsp;</a></span>iw_equi_p</h2>
 
@@ -557,7 +546,7 @@ Here is the call graph for this function:</div>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="mod__variables_8t_source.html#l00092">92</a> of file <a class="el" href="mod__variables_8t_source.html">mod_variables.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__variables_8t_source.html#l00089">89</a> of file <a class="el" href="mod__variables_8t_source.html">mod_variables.t</a>.</p>
 
 </div>
 </div>
@@ -573,7 +562,7 @@ Here is the call graph for this function:</div>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="mod__variables_8t_source.html#l00091">91</a> of file <a class="el" href="mod__variables_8t_source.html">mod_variables.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__variables_8t_source.html#l00088">88</a> of file <a class="el" href="mod__variables_8t_source.html">mod_variables.t</a>.</p>
 
 </div>
 </div>
@@ -591,7 +580,7 @@ Here is the call graph for this function:</div>
 
 <p>Indices of the magnetic field components. </p>
 
-<p class="definition">Definition at line <a class="el" href="mod__variables_8t_source.html#l00067">67</a> of file <a class="el" href="mod__variables_8t_source.html">mod_variables.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__variables_8t_source.html#l00064">64</a> of file <a class="el" href="mod__variables_8t_source.html">mod_variables.t</a>.</p>
 
 </div>
 </div>
@@ -663,7 +652,7 @@ Here is the call graph for this function:</div>
 
 <p>Index of the cutoff temperature for the TRAC method. </p>
 
-<p class="definition">Definition at line <a class="el" href="mod__variables_8t_source.html#l00070">70</a> of file <a class="el" href="mod__variables_8t_source.html">mod_variables.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__variables_8t_source.html#l00067">67</a> of file <a class="el" href="mod__variables_8t_source.html">mod_variables.t</a>.</p>
 
 </div>
 </div>
@@ -733,7 +722,7 @@ Here is the call graph for this function:</div>
 
 <p>number of species: each species has different characterictic speeds and should be used accordingly in <a class="el" href="namespacemod__finite__volume.html" title="Module with finite volume methods for fluxes.">mod_finite_volume</a> and <a class="el" href="namespacemod__finite__difference.html" title="Module with finite difference methods for fluxes.">mod_finite_difference</a> </p>
 
-<p class="definition">Definition at line <a class="el" href="mod__variables_8t_source.html#l00074">74</a> of file <a class="el" href="mod__variables_8t_source.html">mod_variables.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__variables_8t_source.html#l00071">71</a> of file <a class="el" href="mod__variables_8t_source.html">mod_variables.t</a>.</p>
 
 </div>
 </div>
@@ -931,7 +920,7 @@ Here is the call graph for this function:</div>
 
 <p>the indices in 1:nwflux array are assumed consecutive for each species this array should be of size number_species and contain the first index in the array of the number_species </p>
 
-<p class="definition">Definition at line <a class="el" href="mod__variables_8t_source.html#l00083">83</a> of file <a class="el" href="mod__variables_8t_source.html">mod_variables.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__variables_8t_source.html#l00080">80</a> of file <a class="el" href="mod__variables_8t_source.html">mod_variables.t</a>.</p>
 
 </div>
 </div>
@@ -949,7 +938,7 @@ Here is the call graph for this function:</div>
 
 <p>the indices in 1:nwflux array are assumed consecutive for each species this array should be of size number_species and contain the last index in the array of the first number_species, the last index for the last one is nwflux </p>
 
-<p class="definition">Definition at line <a class="el" href="mod__variables_8t_source.html#l00087">87</a> of file <a class="el" href="mod__variables_8t_source.html">mod_variables.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__variables_8t_source.html#l00084">84</a> of file <a class="el" href="mod__variables_8t_source.html">mod_variables.t</a>.</p>
 
 </div>
 </div>

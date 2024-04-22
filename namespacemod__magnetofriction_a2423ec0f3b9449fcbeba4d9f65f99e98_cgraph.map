@@ -1,9 +1,0 @@
-<map id="mod_magnetofriction::process1_gridmf" name="mod_magnetofriction::process1_gridmf">
-<area shape="rect" id="node1" title=" " alt="" coords="5,156,168,197"/>
-<area shape="rect" id="node2" href="$namespacemod__magnetofriction.html#afa355e2764e3843b4efb54a2656dd97b" title=" " alt="" coords="241,5,403,47"/>
-<area shape="rect" id="node3" href="$comm__lib_8t.html#a49b49ea9ffbbadfe688e332921c4cddd" title="Exit MPI&#45;AMRVAC with an error message." alt="" coords="476,134,551,161"/>
-<area shape="rect" id="node4" href="$namespacemod__magnetofriction.html#a5e8ab5144075581def3cf44294b1b887" title=" " alt="" coords="241,123,403,164"/>
-<area shape="rect" id="node5" href="$namespacemod__magnetofriction.html#ae703f8a283f8d8a35971d7daabe0a7ff" title=" " alt="" coords="241,188,403,229"/>
-<area shape="rect" id="node6" href="$namespacemod__fix__conserve.html#af0fc91a69837c51f45b6d82fe884d75a" title=" " alt="" coords="216,254,428,281"/>
-<area shape="rect" id="node7" href="$namespacemod__magnetofriction.html#acb2662627c40d4a31c109b3b5f22516e" title=" " alt="" coords="241,305,403,347"/>
-</map>

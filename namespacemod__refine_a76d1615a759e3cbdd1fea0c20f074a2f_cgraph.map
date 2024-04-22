@@ -1,0 +1,7 @@
+<map id="mod_refine::refine_grids" name="mod_refine::refine_grids">
+<area shape="rect" id="node1" title="refine one block to its children blocks" alt="" coords="5,104,145,145"/>
+<area shape="rect" id="node2" href="$namespacemod__amr__solution__node.html#a5360422247c76466eb60cf0a2d6fd5e9" title="allocate arrays on igrid node" alt="" coords="194,5,377,47"/>
+<area shape="rect" id="node3" href="$namespacemod__amr__solution__node.html#a46ef45ac86c356bf8616032f5c04afdf" title=" " alt="" coords="194,71,377,112"/>
+<area shape="rect" id="node4" href="$namespacemod__initialize__amr.html#af51458e257138c8950600f7ada222ea7" title="fill in initial condition" alt="" coords="212,136,359,177"/>
+<area shape="rect" id="node5" href="$namespacemod__refine.html#a47229e0de9bfa71c48e870c809afc85c" title="prolong one block" alt="" coords="193,202,377,229"/>
+</map>

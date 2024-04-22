@@ -1,0 +1,4 @@
+<map id="mod_cak_opacity::init_cak_table" name="mod_cak_opacity::init_cak_table">
+<area shape="rect" id="node1" title="This routine is called when the FLD radiation module is initialised." alt="" coords="5,5,169,47"/>
+<area shape="rect" id="node2" href="$namespacemod__cak__opacity.html#aca180ac6c9fc13252d1dde39c135200c" title="This routine reads in 1&#45;D (T,rho) values from a line opacity table and gives back as output the 1&#45;D (..." alt="" coords="217,5,389,47"/>
+</map>

@@ -1,5 +1,4 @@
 <map id="traverse_slice" name="traverse_slice">
-<area shape="rect" id="node1" title=" " alt="" coords="5,31,119,57"/>
+<area shape="rect" id="node1" title=" " alt="" coords="5,5,119,32"/>
 <area shape="rect" id="node2" href="$namespacemod__slice.html#a2fe453ca6dc91583c77bc093c00db5cc" title=" " alt="" coords="167,5,341,32"/>
-<area shape="rect" id="node3" href="$comm__lib_8t.html#a49b49ea9ffbbadfe688e332921c4cddd" title="Exit MPI&#45;AMRVAC with an error message." alt="" coords="389,31,464,57"/>
 </map>

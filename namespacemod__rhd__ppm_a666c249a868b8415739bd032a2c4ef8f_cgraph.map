@@ -1,5 +1,0 @@
-<map id="mod_rhd_ppm::rhd_ppm_flatsh" name="mod_rhd_ppm::rhd_ppm_flatsh">
-<area shape="rect" id="node1" title=" " alt="" coords="5,23,185,65"/>
-<area shape="rect" id="node2" href="$namespacemod__geometry.html#a92ec4e2c8ae00a42bf5bf2c1ce3a26c4" title="Calculate gradient of a scalar q within ixL in direction idir." alt="" coords="233,5,416,32"/>
-<area shape="rect" id="node3" href="$comm__lib_8t.html#a49b49ea9ffbbadfe688e332921c4cddd" title="Exit MPI&#45;AMRVAC with an error message." alt="" coords="464,31,539,57"/>
-</map>

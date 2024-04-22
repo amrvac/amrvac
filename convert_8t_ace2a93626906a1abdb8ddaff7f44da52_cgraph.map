@@ -1,8 +1,0 @@
-<map id="punstructuredvtk_mpi" name="punstructuredvtk_mpi">
-<area shape="rect" id="node1" title=" " alt="" coords="5,107,171,133"/>
-<area shape="rect" id="node2" href="$namespacemod__calculate__xw.html#a006c2619a5377d574da9393a41a10865" title="Compute both corner as well as cell&#45;centered values for output." alt="" coords="219,5,427,32"/>
-<area shape="rect" id="node3" href="$namespacemod__calculate__xw.html#a3ca517175958ca7d8e3e55131acf4b5d" title="computes cell corner (xC) and cell center (xCC) coordinates" alt="" coords="227,56,418,83"/>
-<area shape="rect" id="node4" href="$namespacemod__calculate__xw.html#a3c777f366638d870c023352a16d4ef2e" title="get all variables names" alt="" coords="475,132,735,159"/>
-<area shape="rect" id="node5" href="$convert_8t.html#aeecdedccd03a8eeda8bc0a62c2bd7ff7" title=" " alt="" coords="277,157,368,184"/>
-<area shape="rect" id="node6" href="$convert_8t.html#aeb5b35f883e662385f06e24de6480157" title=" " alt="" coords="281,208,364,235"/>
-</map>

@@ -1,4 +1,0 @@
-<map id="mod_opal_opacity::init_opal" name="mod_opal_opacity::init_opal">
-<area shape="rect" id="node1" title="This routine is called when the fld radiation module is initialised. Here, the tables for different H..." alt="" coords="5,13,209,39"/>
-<area shape="rect" id="node2" href="$namespacemod__opal__opacity.html#aec221a112c8b33e1c6d1573de7215e36" title="This routine reads out values and arguments from an opacity table." alt="" coords="257,5,435,47"/>
-</map>

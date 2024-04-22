@@ -30,7 +30,7 @@
  <tr style="height: 56px;">
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">MPI-AMRVAC
-   &#160;<span id="projectnumber">3.0</span>
+   &#160;<span id="projectnumber">3.1</span>
    </div>
    <div id="projectbrief">The MPI - Adaptive Mesh Refinement - Versatile Advection Code</div>
   </td>
@@ -84,34 +84,30 @@ $(function() {
 <div class="line"><a name="l00003"></a><span class="lineno">    3</span>&#160;  <span class="keywordtype">use </span><a class="code" href="namespacemod__rhd__phys.html">mod_rhd_phys</a></div>
 <div class="line"><a name="l00004"></a><span class="lineno">    4</span>&#160;  <span class="keywordtype">use </span><a class="code" href="namespacemod__rhd__hllc.html">mod_rhd_hllc</a></div>
 <div class="line"><a name="l00005"></a><span class="lineno">    5</span>&#160;  <span class="keywordtype">use </span><a class="code" href="namespacemod__rhd__roe.html">mod_rhd_roe</a></div>
-<div class="line"><a name="l00006"></a><span class="lineno">    6</span>&#160;  <span class="keywordtype">use </span><a class="code" href="namespacemod__rhd__ppm.html">mod_rhd_ppm</a></div>
-<div class="line"><a name="l00007"></a><span class="lineno">    7</span>&#160; </div>
-<div class="line"><a name="l00008"></a><span class="lineno">    8</span>&#160;  <span class="keywordtype">use </span><a class="code" href="namespacemod__amrvac.html">mod_amrvac</a></div>
-<div class="line"><a name="l00009"></a><span class="lineno">    9</span>&#160; </div>
-<div class="line"><a name="l00010"></a><span class="lineno">   10</span>&#160;  <span class="keywordtype">implicit none</span></div>
-<div class="line"><a name="l00011"></a><span class="lineno">   11</span>&#160;  <span class="keywordtype">public</span></div>
-<div class="line"><a name="l00012"></a><span class="lineno">   12</span>&#160; </div>
-<div class="line"><a name="l00013"></a><span class="lineno">   13</span>&#160;<span class="keyword">contains</span></div>
-<div class="line"><a name="l00014"></a><span class="lineno">   14</span>&#160; </div>
-<div class="line"><a name="l00015"></a><span class="lineno"><a class="line" href="namespacemod__rhd.html#a5214527c78760df9ecee3f6944259b29">   15</a></span>&#160;  <span class="keyword">subroutine </span><a class="code" href="namespacemod__rhd.html#a5214527c78760df9ecee3f6944259b29">rhd_activate</a>()</div>
-<div class="line"><a name="l00016"></a><span class="lineno">   16</span>&#160;    <span class="keyword">call </span><a class="code" href="namespacemod__rhd__phys.html#a3f7d6dc56a47e47cd1e733b2ae66b071">rhd_phys_init</a>()</div>
-<div class="line"><a name="l00017"></a><span class="lineno">   17</span>&#160;    <span class="keyword">call </span><a class="code" href="namespacemod__rhd__hllc.html#aa9700d5ba5c88c906445992300fae71c">rhd_hllc_init</a>()</div>
-<div class="line"><a name="l00018"></a><span class="lineno">   18</span>&#160;    <span class="keyword">call </span><a class="code" href="namespacemod__rhd__roe.html#a7ca00a23ee8fa7c9e5286a2669431c64">rhd_roe_init</a>()</div>
-<div class="line"><a name="l00019"></a><span class="lineno">   19</span>&#160;    <span class="keyword">call </span><a class="code" href="namespacemod__rhd__ppm.html#a80a65f5aee20074ca255a5fd4252c730">rhd_ppm_init</a>()</div>
-<div class="line"><a name="l00020"></a><span class="lineno">   20</span>&#160;  <span class="keyword">end subroutine </span><a class="code" href="namespacemod__rhd.html#a5214527c78760df9ecee3f6944259b29">rhd_activate</a></div>
-<div class="line"><a name="l00021"></a><span class="lineno">   21</span>&#160; </div>
-<div class="line"><a name="l00022"></a><span class="lineno">   22</span>&#160;<span class="keyword">end module </span><a class="code" href="namespacemod__rhd.html">mod_rhd</a></div>
+<div class="line"><a name="l00006"></a><span class="lineno">    6</span>&#160; </div>
+<div class="line"><a name="l00007"></a><span class="lineno">    7</span>&#160;  <span class="keywordtype">use </span><a class="code" href="namespacemod__amrvac.html">mod_amrvac</a></div>
+<div class="line"><a name="l00008"></a><span class="lineno">    8</span>&#160; </div>
+<div class="line"><a name="l00009"></a><span class="lineno">    9</span>&#160;  <span class="keywordtype">implicit none</span></div>
+<div class="line"><a name="l00010"></a><span class="lineno">   10</span>&#160;  <span class="keywordtype">public</span></div>
+<div class="line"><a name="l00011"></a><span class="lineno">   11</span>&#160; </div>
+<div class="line"><a name="l00012"></a><span class="lineno">   12</span>&#160;<span class="keyword">contains</span></div>
+<div class="line"><a name="l00013"></a><span class="lineno">   13</span>&#160; </div>
+<div class="line"><a name="l00014"></a><span class="lineno"><a class="line" href="namespacemod__rhd.html#a5214527c78760df9ecee3f6944259b29">   14</a></span>&#160;  <span class="keyword">subroutine </span><a class="code" href="namespacemod__rhd.html#a5214527c78760df9ecee3f6944259b29">rhd_activate</a>()</div>
+<div class="line"><a name="l00015"></a><span class="lineno">   15</span>&#160;    <span class="keyword">call </span><a class="code" href="namespacemod__rhd__phys.html#a3f7d6dc56a47e47cd1e733b2ae66b071">rhd_phys_init</a>()</div>
+<div class="line"><a name="l00016"></a><span class="lineno">   16</span>&#160;    <span class="keyword">call </span><a class="code" href="namespacemod__rhd__hllc.html#aa9700d5ba5c88c906445992300fae71c">rhd_hllc_init</a>()</div>
+<div class="line"><a name="l00017"></a><span class="lineno">   17</span>&#160;    <span class="keyword">call </span><a class="code" href="namespacemod__rhd__roe.html#a7ca00a23ee8fa7c9e5286a2669431c64">rhd_roe_init</a>()</div>
+<div class="line"><a name="l00018"></a><span class="lineno">   18</span>&#160;  <span class="keyword">end subroutine </span><a class="code" href="namespacemod__rhd.html#a5214527c78760df9ecee3f6944259b29">rhd_activate</a></div>
+<div class="line"><a name="l00019"></a><span class="lineno">   19</span>&#160; </div>
+<div class="line"><a name="l00020"></a><span class="lineno">   20</span>&#160;<span class="keyword">end module </span><a class="code" href="namespacemod__rhd.html">mod_rhd</a></div>
 <div class="ttc" id="anamespacemod__amrvac_html"><div class="ttname"><a href="namespacemod__amrvac.html">mod_amrvac</a></div><div class="ttdoc">This module contains modules that users could want to have in their mod_usr.t code,...</div><div class="ttdef"><b>Definition:</b> <a href="mod__amrvac_8t_source.html#l00003">mod_amrvac.t:3</a></div></div>
 <div class="ttc" id="anamespacemod__rhd__hllc_html"><div class="ttname"><a href="namespacemod__rhd__hllc.html">mod_rhd_hllc</a></div><div class="ttdoc">Hydrodynamics HLLC module.</div><div class="ttdef"><b>Definition:</b> <a href="mod__rhd__hllc_8t_source.html#l00002">mod_rhd_hllc.t:2</a></div></div>
 <div class="ttc" id="anamespacemod__rhd__hllc_html_aa9700d5ba5c88c906445992300fae71c"><div class="ttname"><a href="namespacemod__rhd__hllc.html#aa9700d5ba5c88c906445992300fae71c">mod_rhd_hllc::rhd_hllc_init</a></div><div class="ttdeci">subroutine, public rhd_hllc_init()</div><div class="ttdef"><b>Definition:</b> <a href="mod__rhd__hllc_8t_source.html#l00012">mod_rhd_hllc.t:13</a></div></div>
 <div class="ttc" id="anamespacemod__rhd__phys_html"><div class="ttname"><a href="namespacemod__rhd__phys.html">mod_rhd_phys</a></div><div class="ttdoc">Radiation-Hydrodynamics physics module Module aims at solving the Hydrodynamic equations toghether wi...</div><div class="ttdef"><b>Definition:</b> <a href="mod__rhd__phys_8t_source.html#l00011">mod_rhd_phys.t:11</a></div></div>
-<div class="ttc" id="anamespacemod__rhd__phys_html_a3f7d6dc56a47e47cd1e733b2ae66b071"><div class="ttname"><a href="namespacemod__rhd__phys.html#a3f7d6dc56a47e47cd1e733b2ae66b071">mod_rhd_phys::rhd_phys_init</a></div><div class="ttdeci">subroutine, public rhd_phys_init()</div><div class="ttdoc">Initialize the module.</div><div class="ttdef"><b>Definition:</b> <a href="mod__rhd__phys_8t_source.html#l00236">mod_rhd_phys.t:237</a></div></div>
-<div class="ttc" id="anamespacemod__rhd__ppm_html"><div class="ttname"><a href="namespacemod__rhd__ppm.html">mod_rhd_ppm</a></div><div class="ttdoc">Hydrodynamics PPM module.</div><div class="ttdef"><b>Definition:</b> <a href="mod__rhd__ppm_8t_source.html#l00002">mod_rhd_ppm.t:2</a></div></div>
-<div class="ttc" id="anamespacemod__rhd__ppm_html_a80a65f5aee20074ca255a5fd4252c730"><div class="ttname"><a href="namespacemod__rhd__ppm.html#a80a65f5aee20074ca255a5fd4252c730">mod_rhd_ppm::rhd_ppm_init</a></div><div class="ttdeci">subroutine, public rhd_ppm_init()</div><div class="ttdef"><b>Definition:</b> <a href="mod__rhd__ppm_8t_source.html#l00012">mod_rhd_ppm.t:13</a></div></div>
+<div class="ttc" id="anamespacemod__rhd__phys_html_a3f7d6dc56a47e47cd1e733b2ae66b071"><div class="ttname"><a href="namespacemod__rhd__phys.html#a3f7d6dc56a47e47cd1e733b2ae66b071">mod_rhd_phys::rhd_phys_init</a></div><div class="ttdeci">subroutine, public rhd_phys_init()</div><div class="ttdoc">Initialize the module.</div><div class="ttdef"><b>Definition:</b> <a href="mod__rhd__phys_8t_source.html#l00204">mod_rhd_phys.t:205</a></div></div>
 <div class="ttc" id="anamespacemod__rhd__roe_html"><div class="ttname"><a href="namespacemod__rhd__roe.html">mod_rhd_roe</a></div><div class="ttdoc">Module with Roe-type Riemann solver for hydrodynamics.</div><div class="ttdef"><b>Definition:</b> <a href="mod__rhd__roe_8t_source.html#l00002">mod_rhd_roe.t:2</a></div></div>
 <div class="ttc" id="anamespacemod__rhd__roe_html_a7ca00a23ee8fa7c9e5286a2669431c64"><div class="ttname"><a href="namespacemod__rhd__roe.html#a7ca00a23ee8fa7c9e5286a2669431c64">mod_rhd_roe::rhd_roe_init</a></div><div class="ttdeci">subroutine, public rhd_roe_init()</div><div class="ttdef"><b>Definition:</b> <a href="mod__rhd__roe_8t_source.html#l00018">mod_rhd_roe.t:19</a></div></div>
 <div class="ttc" id="anamespacemod__rhd_html"><div class="ttname"><a href="namespacemod__rhd.html">mod_rhd</a></div><div class="ttdoc">Module containing all hydrodynamics.</div><div class="ttdef"><b>Definition:</b> <a href="mod__rhd_8t_source.html#l00002">mod_rhd.t:2</a></div></div>
-<div class="ttc" id="anamespacemod__rhd_html_a5214527c78760df9ecee3f6944259b29"><div class="ttname"><a href="namespacemod__rhd.html#a5214527c78760df9ecee3f6944259b29">mod_rhd::rhd_activate</a></div><div class="ttdeci">subroutine rhd_activate()</div><div class="ttdef"><b>Definition:</b> <a href="mod__rhd_8t_source.html#l00015">mod_rhd.t:16</a></div></div>
+<div class="ttc" id="anamespacemod__rhd_html_a5214527c78760df9ecee3f6944259b29"><div class="ttname"><a href="namespacemod__rhd.html#a5214527c78760df9ecee3f6944259b29">mod_rhd::rhd_activate</a></div><div class="ttdeci">subroutine rhd_activate()</div><div class="ttdef"><b>Definition:</b> <a href="mod__rhd_8t_source.html#l00014">mod_rhd.t:15</a></div></div>
 </div><!-- fragment --></div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>

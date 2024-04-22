@@ -1,15 +1,15 @@
 <map id="mod_coarsen_refine::amr_coarsen_refine" name="mod_coarsen_refine::amr_coarsen_refine">
-<area shape="rect" id="node1" title="coarsen and refine blocks to update AMR grid" alt="" coords="5,281,164,322"/>
-<area shape="rect" id="node2" href="$connectivity_8t.html#a4498f4f4998ce2079f13ec9fa4fd507f" title=" " alt="" coords="241,5,382,32"/>
-<area shape="rect" id="node3" href="$forest_8t.html#a7790d1d4cdd74e67b5e049f2fb0d4e3a" title=" " alt="" coords="242,56,381,83"/>
-<area shape="rect" id="node4" href="$namespacemod__amr__fct.html#a7b0f4490bde4c832fd63c3651eb174da" title="When refining a coarse block with fine neighbours, it is necessary prolong consistently with the alre..." alt="" coords="212,107,411,133"/>
-<area shape="rect" id="node5" href="$connectivity_8t.html#a949ecd025a2d92d7bff4dfffcbdbc442" title=" " alt="" coords="248,157,375,184"/>
-<area shape="rect" id="node6" href="$connectivity_8t.html#a8e0c70b7de9e9563c520f731ed8bfc8c" title=" " alt="" coords="272,208,351,235"/>
-<area shape="rect" id="node7" href="$amr__solution__node_8t.html#a2fa10df2ead73cb1294944ca97da2bea" title="Get first available igrid on processor ipe." alt="" coords="274,259,349,285"/>
-<area shape="rect" id="node8" href="$namespacemod__coarsen__refine.html#a8fa0bcad0754af25dcdcf6baa984e756" title="For all grids on all processors, do a check on refinement flags. Make sure that neighbors will not di..." alt="" coords="235,310,388,351"/>
-<area shape="rect" id="node9" href="$amr__solution__node_8t.html#a85269111d1d1e93e55d7f3ec33f7f076" title=" " alt="" coords="274,376,349,403"/>
-<area shape="rect" id="node10" href="$refine_8t.html#a1e1e904ea184e74882b8a9eda21d8efe" title="refine one block to its children blocks" alt="" coords="262,427,361,453"/>
-<area shape="rect" id="node11" href="$forest_8t.html#a7cb6669c78e08f49f5ed106f70872a06" title=" " alt="" coords="249,477,373,504"/>
-<area shape="rect" id="node12" href="$selectgrids_8t.html#a9b7e3b71e41bf47f4aaab7fc452f54cc" title=" " alt="" coords="265,528,358,555"/>
-<area shape="rect" id="node13" href="$namespacemod__amr__fct.html#a6742566c4457a0931b368db9539791b9" title="To achive consistency and thus conservation of divergence, when refining a block we take into account..." alt="" coords="237,579,386,621"/>
+<area shape="rect" id="node1" title="coarsen and refine blocks to update AMR grid" alt="" coords="5,352,164,393"/>
+<area shape="rect" id="node2" href="$namespacemod__functions__connectivity.html#ad0f896bb9a50442f121e8fa63b365b15" title=" " alt="" coords="213,5,419,47"/>
+<area shape="rect" id="node3" href="$namespacemod__functions__forest.html#a987618ae3b9ab1b1f6e1d9d8d18b4448" title=" " alt="" coords="235,71,397,112"/>
+<area shape="rect" id="node4" href="$namespacemod__amr__fct.html#a7b0f4490bde4c832fd63c3651eb174da" title="When refining a coarse block with fine neighbours, it is necessary prolong consistently with the alre..." alt="" coords="217,137,415,163"/>
+<area shape="rect" id="node5" href="$namespacemod__functions__connectivity.html#a110e68b70f3eb0ec2de3d4855cf0901e" title=" " alt="" coords="213,188,419,229"/>
+<area shape="rect" id="node6" href="$namespacemod__functions__connectivity.html#ad727947fbcfbbb6f3b25ab9fa7515dda" title=" " alt="" coords="213,253,419,295"/>
+<area shape="rect" id="node7" href="$namespacemod__amr__solution__node.html#aeef76b98e4c841f25f27fefa770ce314" title="Get first available igrid on processor ipe." alt="" coords="225,319,407,360"/>
+<area shape="rect" id="node8" href="$namespacemod__coarsen__refine.html#a8fa0bcad0754af25dcdcf6baa984e756" title="For all grids on all processors, do a check on refinement flags. Make sure that neighbors will not di..." alt="" coords="239,384,393,425"/>
+<area shape="rect" id="node9" href="$namespacemod__amr__solution__node.html#a24e271e2c807eb2e0881f075d6ff55c2" title=" " alt="" coords="225,449,407,491"/>
+<area shape="rect" id="node10" href="$namespacemod__refine.html#a76d1615a759e3cbdd1fea0c20f074a2f" title="refine one block to its children blocks" alt="" coords="246,515,386,556"/>
+<area shape="rect" id="node11" href="$namespacemod__functions__forest.html#a7d3c451c93ebfe605cf07e465147be67" title=" " alt="" coords="235,580,397,621"/>
+<area shape="rect" id="node12" href="$namespacemod__selectgrids.html#aa15f11bf5108fe0eae81eb81aa46f3b1" title=" " alt="" coords="212,646,420,673"/>
+<area shape="rect" id="node13" href="$namespacemod__amr__fct.html#a6742566c4457a0931b368db9539791b9" title="To achive consistency and thus conservation of divergence, when refining a block we take into account..." alt="" coords="241,697,391,739"/>
 </map>

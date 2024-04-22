@@ -1,4 +1,4 @@
 <map id="mod_particle_base::output_particle" name="mod_particle_base::output_particle">
 <area shape="rect" id="node1" title=" " alt="" coords="5,5,159,47"/>
-<area shape="rect" id="node2" href="$namespacemod__particle__base.html#a97ad783df74c9688112b7c5ff085a21d" title="convert to cartesian coordinates" alt="" coords="207,5,377,47"/>
+<area shape="rect" id="node2" href="$namespacemod__particle__base.html#a97ad783df74c9688112b7c5ff085a21d" title="Convert position to Cartesian coordinates." alt="" coords="207,5,377,47"/>
 </map>

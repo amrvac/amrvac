@@ -1,0 +1,5 @@
+<map id="mod_lfff::get_potential_field_potential_mg" name="mod_lfff::get_potential_field_potential_mg">
+<area shape="rect" id="node1" title="Solve Poisson equation of scalar potential using multigrid solver." alt="" coords="5,23,175,65"/>
+<area shape="rect" id="node2" href="$namespacemod__comm__lib.html#a9b6f1a8fd13bc5670e3b426151c34048" title="Exit MPI&#45;AMRVAC with an error message." alt="" coords="223,5,405,32"/>
+<area shape="rect" id="node3" href="$namespacemod__lfff.html#a2dfde2312d44bebae1dd490a3828886b" title="To set boundary condition on physical boundaries for mg Poisson solver." alt="" coords="232,56,396,83"/>
+</map>

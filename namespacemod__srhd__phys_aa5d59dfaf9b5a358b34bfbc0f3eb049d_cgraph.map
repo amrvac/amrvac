@@ -1,0 +1,7 @@
+<map id="mod_srhd_phys::srhd_handle_small_values" name="mod_srhd_phys::srhd_handle_small_values">
+<area shape="rect" id="node1" title="handles bootstrapping" alt="" coords="5,104,172,145"/>
+<area shape="rect" id="node2" href="$namespacemod__small__values.html#a327e5c8e043106015f50a464cd16fce8" title=" " alt="" coords="220,5,408,47"/>
+<area shape="rect" id="node3" href="$namespacemod__small__values.html#ae1bc437ca6fe653ef9e9249e09d0f4aa" title=" " alt="" coords="220,71,408,112"/>
+<area shape="rect" id="node4" href="$namespacemod__srhd__phys.html#ae21c3cfd80b98d7df197106a73137e90" title="Returns logical argument flag T where values are not ok." alt="" coords="234,136,394,177"/>
+<area shape="rect" id="node5" href="$namespacemod__srhd__phys.html#a59a070edd7d0842fff1432984b4173c3" title="Set auxiliary variables lfac and xi from a primitive state only used when handle_small_values average..." alt="" coords="234,201,394,243"/>
+</map>

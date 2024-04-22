@@ -1,6 +1,6 @@
 <map id="mod_tvd::getphi" name="mod_tvd::getphi">
 <area shape="rect" id="node1" title=" " alt="" coords="5,56,133,83"/>
 <area shape="rect" id="node2" href="$namespacemod__limiter.html#a358e3650bfa838c75f25186e88f850e6" title="Limit the centered dwC differences within ixC for iw in direction idim. The limiter is chosen accordi..." alt="" coords="181,5,360,32"/>
-<area shape="rect" id="node3" href="$comm__lib_8t.html#a49b49ea9ffbbadfe688e332921c4cddd" title="Exit MPI&#45;AMRVAC with an error message." alt="" coords="408,31,483,57"/>
+<area shape="rect" id="node3" href="$namespacemod__comm__lib.html#a9b6f1a8fd13bc5670e3b426151c34048" title="Exit MPI&#45;AMRVAC with an error message." alt="" coords="408,31,591,57"/>
 <area shape="rect" id="node4" href="$namespacemod__limiter.html#a211107a3ba4806836a4857ade8ba68c6" title=" " alt="" coords="195,107,347,149"/>
 </map>

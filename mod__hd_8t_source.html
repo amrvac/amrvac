@@ -30,7 +30,7 @@
  <tr style="height: 56px;">
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">MPI-AMRVAC
-   &#160;<span id="projectnumber">3.0</span>
+   &#160;<span id="projectnumber">3.1</span>
    </div>
    <div id="projectbrief">The MPI - Adaptive Mesh Refinement - Versatile Advection Code</div>
   </td>
@@ -84,34 +84,30 @@ $(function() {
 <div class="line"><a name="l00003"></a><span class="lineno">    3</span>&#160;  <span class="keywordtype">use </span><a class="code" href="namespacemod__hd__phys.html">mod_hd_phys</a></div>
 <div class="line"><a name="l00004"></a><span class="lineno">    4</span>&#160;  <span class="keywordtype">use </span><a class="code" href="namespacemod__hd__hllc.html">mod_hd_hllc</a></div>
 <div class="line"><a name="l00005"></a><span class="lineno">    5</span>&#160;  <span class="keywordtype">use </span><a class="code" href="namespacemod__hd__roe.html">mod_hd_roe</a></div>
-<div class="line"><a name="l00006"></a><span class="lineno">    6</span>&#160;  <span class="keywordtype">use </span><a class="code" href="namespacemod__hd__ppm.html">mod_hd_ppm</a></div>
-<div class="line"><a name="l00007"></a><span class="lineno">    7</span>&#160; </div>
-<div class="line"><a name="l00008"></a><span class="lineno">    8</span>&#160;  <span class="keywordtype">use </span><a class="code" href="namespacemod__amrvac.html">mod_amrvac</a></div>
-<div class="line"><a name="l00009"></a><span class="lineno">    9</span>&#160; </div>
-<div class="line"><a name="l00010"></a><span class="lineno">   10</span>&#160;  <span class="keywordtype">implicit none</span></div>
-<div class="line"><a name="l00011"></a><span class="lineno">   11</span>&#160;  <span class="keywordtype">public</span></div>
-<div class="line"><a name="l00012"></a><span class="lineno">   12</span>&#160; </div>
-<div class="line"><a name="l00013"></a><span class="lineno">   13</span>&#160;<span class="keyword">contains</span></div>
-<div class="line"><a name="l00014"></a><span class="lineno">   14</span>&#160; </div>
-<div class="line"><a name="l00015"></a><span class="lineno"><a class="line" href="namespacemod__hd.html#a74c5c30e5b9669a0c9e65c772031906b">   15</a></span>&#160;  <span class="keyword">subroutine </span><a class="code" href="namespacemod__hd.html#a74c5c30e5b9669a0c9e65c772031906b">hd_activate</a>()</div>
-<div class="line"><a name="l00016"></a><span class="lineno">   16</span>&#160;    <span class="keyword">call </span><a class="code" href="namespacemod__hd__phys.html#a86518623ab235a1cf8ce7a29593d0599">hd_phys_init</a>()</div>
-<div class="line"><a name="l00017"></a><span class="lineno">   17</span>&#160;    <span class="keyword">call </span><a class="code" href="namespacemod__hd__hllc.html#a0833bd009acd265827ed1d7fcba916b0">hd_hllc_init</a>()</div>
-<div class="line"><a name="l00018"></a><span class="lineno">   18</span>&#160;    <span class="keyword">call </span><a class="code" href="namespacemod__hd__roe.html#a2914c6ee26f6009d4973a8e68c8e2069">hd_roe_init</a>()</div>
-<div class="line"><a name="l00019"></a><span class="lineno">   19</span>&#160;    <span class="keyword">call </span><a class="code" href="namespacemod__hd__ppm.html#a9c0b414d31f8a3c5b9be210c5b7cb914">hd_ppm_init</a>()</div>
-<div class="line"><a name="l00020"></a><span class="lineno">   20</span>&#160;  <span class="keyword">end subroutine </span><a class="code" href="namespacemod__hd.html#a74c5c30e5b9669a0c9e65c772031906b">hd_activate</a></div>
-<div class="line"><a name="l00021"></a><span class="lineno">   21</span>&#160; </div>
-<div class="line"><a name="l00022"></a><span class="lineno">   22</span>&#160;<span class="keyword">end module </span><a class="code" href="namespacemod__hd.html">mod_hd</a></div>
+<div class="line"><a name="l00006"></a><span class="lineno">    6</span>&#160; </div>
+<div class="line"><a name="l00007"></a><span class="lineno">    7</span>&#160;  <span class="keywordtype">use </span><a class="code" href="namespacemod__amrvac.html">mod_amrvac</a></div>
+<div class="line"><a name="l00008"></a><span class="lineno">    8</span>&#160; </div>
+<div class="line"><a name="l00009"></a><span class="lineno">    9</span>&#160;  <span class="keywordtype">implicit none</span></div>
+<div class="line"><a name="l00010"></a><span class="lineno">   10</span>&#160;  <span class="keywordtype">public</span></div>
+<div class="line"><a name="l00011"></a><span class="lineno">   11</span>&#160; </div>
+<div class="line"><a name="l00012"></a><span class="lineno">   12</span>&#160;<span class="keyword">contains</span></div>
+<div class="line"><a name="l00013"></a><span class="lineno">   13</span>&#160; </div>
+<div class="line"><a name="l00014"></a><span class="lineno"><a class="line" href="namespacemod__hd.html#a74c5c30e5b9669a0c9e65c772031906b">   14</a></span>&#160;  <span class="keyword">subroutine </span><a class="code" href="namespacemod__hd.html#a74c5c30e5b9669a0c9e65c772031906b">hd_activate</a>()</div>
+<div class="line"><a name="l00015"></a><span class="lineno">   15</span>&#160;    <span class="keyword">call </span><a class="code" href="namespacemod__hd__phys.html#a86518623ab235a1cf8ce7a29593d0599">hd_phys_init</a>()</div>
+<div class="line"><a name="l00016"></a><span class="lineno">   16</span>&#160;    <span class="keyword">call </span><a class="code" href="namespacemod__hd__hllc.html#a0833bd009acd265827ed1d7fcba916b0">hd_hllc_init</a>()</div>
+<div class="line"><a name="l00017"></a><span class="lineno">   17</span>&#160;    <span class="keyword">call </span><a class="code" href="namespacemod__hd__roe.html#a2914c6ee26f6009d4973a8e68c8e2069">hd_roe_init</a>()</div>
+<div class="line"><a name="l00018"></a><span class="lineno">   18</span>&#160;  <span class="keyword">end subroutine </span><a class="code" href="namespacemod__hd.html#a74c5c30e5b9669a0c9e65c772031906b">hd_activate</a></div>
+<div class="line"><a name="l00019"></a><span class="lineno">   19</span>&#160; </div>
+<div class="line"><a name="l00020"></a><span class="lineno">   20</span>&#160;<span class="keyword">end module </span><a class="code" href="namespacemod__hd.html">mod_hd</a></div>
 <div class="ttc" id="anamespacemod__amrvac_html"><div class="ttname"><a href="namespacemod__amrvac.html">mod_amrvac</a></div><div class="ttdoc">This module contains modules that users could want to have in their mod_usr.t code,...</div><div class="ttdef"><b>Definition:</b> <a href="mod__amrvac_8t_source.html#l00003">mod_amrvac.t:3</a></div></div>
 <div class="ttc" id="anamespacemod__hd__hllc_html"><div class="ttname"><a href="namespacemod__hd__hllc.html">mod_hd_hllc</a></div><div class="ttdoc">Hydrodynamics HLLC module.</div><div class="ttdef"><b>Definition:</b> <a href="mod__hd__hllc_8t_source.html#l00002">mod_hd_hllc.t:2</a></div></div>
 <div class="ttc" id="anamespacemod__hd__hllc_html_a0833bd009acd265827ed1d7fcba916b0"><div class="ttname"><a href="namespacemod__hd__hllc.html#a0833bd009acd265827ed1d7fcba916b0">mod_hd_hllc::hd_hllc_init</a></div><div class="ttdeci">subroutine, public hd_hllc_init()</div><div class="ttdef"><b>Definition:</b> <a href="mod__hd__hllc_8t_source.html#l00012">mod_hd_hllc.t:13</a></div></div>
 <div class="ttc" id="anamespacemod__hd__phys_html"><div class="ttname"><a href="namespacemod__hd__phys.html">mod_hd_phys</a></div><div class="ttdoc">Hydrodynamics physics module.</div><div class="ttdef"><b>Definition:</b> <a href="mod__hd__phys_8t_source.html#l00002">mod_hd_phys.t:2</a></div></div>
-<div class="ttc" id="anamespacemod__hd__phys_html_a86518623ab235a1cf8ce7a29593d0599"><div class="ttname"><a href="namespacemod__hd__phys.html#a86518623ab235a1cf8ce7a29593d0599">mod_hd_phys::hd_phys_init</a></div><div class="ttdeci">subroutine, public hd_phys_init()</div><div class="ttdoc">Initialize the module.</div><div class="ttdef"><b>Definition:</b> <a href="mod__hd__phys_8t_source.html#l00189">mod_hd_phys.t:190</a></div></div>
-<div class="ttc" id="anamespacemod__hd__ppm_html"><div class="ttname"><a href="namespacemod__hd__ppm.html">mod_hd_ppm</a></div><div class="ttdoc">Hydrodynamics PPM module.</div><div class="ttdef"><b>Definition:</b> <a href="mod__hd__ppm_8t_source.html#l00002">mod_hd_ppm.t:2</a></div></div>
-<div class="ttc" id="anamespacemod__hd__ppm_html_a9c0b414d31f8a3c5b9be210c5b7cb914"><div class="ttname"><a href="namespacemod__hd__ppm.html#a9c0b414d31f8a3c5b9be210c5b7cb914">mod_hd_ppm::hd_ppm_init</a></div><div class="ttdeci">subroutine, public hd_ppm_init()</div><div class="ttdef"><b>Definition:</b> <a href="mod__hd__ppm_8t_source.html#l00012">mod_hd_ppm.t:13</a></div></div>
+<div class="ttc" id="anamespacemod__hd__phys_html_a86518623ab235a1cf8ce7a29593d0599"><div class="ttname"><a href="namespacemod__hd__phys.html#a86518623ab235a1cf8ce7a29593d0599">mod_hd_phys::hd_phys_init</a></div><div class="ttdeci">subroutine, public hd_phys_init()</div><div class="ttdoc">Initialize the module.</div><div class="ttdef"><b>Definition:</b> <a href="mod__hd__phys_8t_source.html#l00156">mod_hd_phys.t:157</a></div></div>
 <div class="ttc" id="anamespacemod__hd__roe_html"><div class="ttname"><a href="namespacemod__hd__roe.html">mod_hd_roe</a></div><div class="ttdoc">Module with Roe-type Riemann solver for hydrodynamics.</div><div class="ttdef"><b>Definition:</b> <a href="mod__hd__roe_8t_source.html#l00002">mod_hd_roe.t:2</a></div></div>
 <div class="ttc" id="anamespacemod__hd__roe_html_a2914c6ee26f6009d4973a8e68c8e2069"><div class="ttname"><a href="namespacemod__hd__roe.html#a2914c6ee26f6009d4973a8e68c8e2069">mod_hd_roe::hd_roe_init</a></div><div class="ttdeci">subroutine, public hd_roe_init()</div><div class="ttdef"><b>Definition:</b> <a href="mod__hd__roe_8t_source.html#l00018">mod_hd_roe.t:19</a></div></div>
 <div class="ttc" id="anamespacemod__hd_html"><div class="ttname"><a href="namespacemod__hd.html">mod_hd</a></div><div class="ttdoc">Module containing all hydrodynamics.</div><div class="ttdef"><b>Definition:</b> <a href="mod__hd_8t_source.html#l00002">mod_hd.t:2</a></div></div>
-<div class="ttc" id="anamespacemod__hd_html_a74c5c30e5b9669a0c9e65c772031906b"><div class="ttname"><a href="namespacemod__hd.html#a74c5c30e5b9669a0c9e65c772031906b">mod_hd::hd_activate</a></div><div class="ttdeci">subroutine hd_activate()</div><div class="ttdef"><b>Definition:</b> <a href="mod__hd_8t_source.html#l00015">mod_hd.t:16</a></div></div>
+<div class="ttc" id="anamespacemod__hd_html_a74c5c30e5b9669a0c9e65c772031906b"><div class="ttname"><a href="namespacemod__hd.html#a74c5c30e5b9669a0c9e65c772031906b">mod_hd::hd_activate</a></div><div class="ttdeci">subroutine hd_activate()</div><div class="ttdef"><b>Definition:</b> <a href="mod__hd_8t_source.html#l00014">mod_hd.t:15</a></div></div>
 </div><!-- fragment --></div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>

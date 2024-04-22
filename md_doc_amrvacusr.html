@@ -30,7 +30,7 @@
  <tr style="height: 56px;">
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">MPI-AMRVAC
-   &#160;<span id="projectnumber">3.0</span>
+   &#160;<span id="projectnumber">3.1</span>
    </div>
    <div id="projectbrief">The MPI - Adaptive Mesh Refinement - Versatile Advection Code</div>
   </td>
@@ -105,7 +105,7 @@ Special source</h2>
 <h2><a class="anchor" id="user_speciallog"></a>
 Special output and analysis</h2>
 <p>The default log-file may be altered, for which you need to code up <br  />
- a <b>usr_print_log</b> subroutine. For parallel execution, this invariably means the use of MPI constructs, so you should copy in the default version <b>printlog_default</b> from <em><a class="el" href="mod__input__output_8t.html">src/amrvacio/mod_input_output.t</a></em> and then study it, and modify accordingly. An example of this customization is given in <em>tests/rho/custom_log_file</em>.</p>
+ a <b>usr_print_log</b> subroutine. For parallel execution, this invariably means the use of MPI constructs, so you should copy in the default version <b>printlog_default</b> from <em>src/amrvacio/mod_input_output.t</em> and then study it, and modify accordingly. An example of this customization is given in <em>tests/rho/custom_log_file</em>.</p>
 <p>A pointed <b>usr_aux_output</b> is extremely handy to compute variables from the actually computed conserved variables, that can then be visualized directly. It is only used in combination with the conversion subroutines. e.g., one may here compute current density components using the actual code discretizations for computing a curl, and then visualize those with any of the visualization tools applicable. You then also need to specify a name for each variable, in a pointed <b>usr_add_aux_names</b>.</p>
 <p>A pointed <b>usr_process_grid</b> and a pointed <b>usr_process_global</b> are subroutines called in each iteration, which allow to compute auxiliary variables which happen to be non-local (like div v), and are in no way used for flux computations. As auxiliaries, they are also not advanced. This functionality was added to allow e.g. for separate particle treatments using stochastic differential equations, where the particle dynamics is only relying on local compression values. </p>
 </div></div><!-- contents -->

@@ -30,7 +30,7 @@
  <tr style="height: 56px;">
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">MPI-AMRVAC
-   &#160;<span id="projectnumber">3.0</span>
+   &#160;<span id="projectnumber">3.1</span>
    </div>
    <div id="projectbrief">The MPI - Adaptive Mesh Refinement - Versatile Advection Code</div>
   </td>
@@ -86,9 +86,9 @@ $(function() {
 Functions/Subroutines</h2></td></tr>
 <tr class="memitem:ade000a04c13e706d440c104d28b71cfa"><td class="memItemLeft" align="right" valign="top">subroutine, public&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__source.html#ade000a04c13e706d440c104d28b71cfa">add_split_source</a> (prior)</td></tr>
 <tr class="separator:ade000a04c13e706d440c104d28b71cfa"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:aca516efaaeb3b7e650a64c1ab285295a"><td class="memItemLeft" align="right" valign="top">subroutine, public&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__source.html#aca516efaaeb3b7e650a64c1ab285295a">addsource2</a> (qdt, ixIL, ixOL, iwLIM, qtC, wCT, qt, w, x, qsourcesplit, src_active, wCTprim)</td></tr>
-<tr class="memdesc:aca516efaaeb3b7e650a64c1ab285295a"><td class="mdescLeft">&#160;</td><td class="mdescRight">Add source within ixO for iws: w=w+qdt*S[wCT].  <a href="namespacemod__source.html#aca516efaaeb3b7e650a64c1ab285295a">More...</a><br /></td></tr>
-<tr class="separator:aca516efaaeb3b7e650a64c1ab285295a"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a37caec5d9f530bb58e31bcbaea843afe"><td class="memItemLeft" align="right" valign="top">subroutine, public&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__source.html#a37caec5d9f530bb58e31bcbaea843afe">addsource2</a> (qdt, dtfactor, ixIL, ixOL, iwLIM, qtC, wCT, wCTprim, qt, w, x, qsourcesplit, src_active)</td></tr>
+<tr class="memdesc:a37caec5d9f530bb58e31bcbaea843afe"><td class="mdescLeft">&#160;</td><td class="mdescRight">Add source within ixO for iws: w=w+qdt*S[wCT].  <a href="namespacemod__source.html#a37caec5d9f530bb58e31bcbaea843afe">More...</a><br /></td></tr>
+<tr class="separator:a37caec5d9f530bb58e31bcbaea843afe"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="var-members"></a>
 Variables</h2></td></tr>
@@ -129,18 +129,18 @@ Here is the call graph for this function:</div>
 <div class="dyncontent">
 <div class="center"><img src="namespacemod__source_ade000a04c13e706d440c104d28b71cfa_cgraph.png" border="0" usemap="#anamespacemod__source_ade000a04c13e706d440c104d28b71cfa_cgraph" alt=""/></div>
 <map name="anamespacemod__source_ade000a04c13e706d440c104d28b71cfa_cgraph" id="anamespacemod__source_ade000a04c13e706d440c104d28b71cfa_cgraph">
-<area shape="rect" title=" " alt="" coords="5,90,173,131"/>
-<area shape="rect" href="namespacemod__source.html#aca516efaaeb3b7e650a64c1ab285295a" title="Add source within ixO for iws: w=w+qdt*S[wCT]." alt="" coords="221,5,405,32"/>
+<area shape="rect" title=" " alt="" coords="5,86,173,127"/>
+<area shape="rect" href="namespacemod__source.html#a37caec5d9f530bb58e31bcbaea843afe" title="Add source within ixO for iws: w=w+qdt*S[wCT]." alt="" coords="221,5,405,32"/>
 <area shape="rect" href="namespacemod__ghostcells__update.html#abc70508ceb326fb28166d751e5de31fc" title="do update ghost cells of all blocks including physical boundaries" alt="" coords="225,57,401,98"/>
-<area shape="rect" href="namespacemod__supertimestepping.html#a5e081548b6182229b9430302af5da2a8" title=" " alt="" coords="223,122,403,163"/>
-<area shape="rect" href="comm__lib_8t.html#a49b49ea9ffbbadfe688e332921c4cddd" title="Exit MPI&#45;AMRVAC with an error message." alt="" coords="276,188,351,215"/>
+<area shape="rect" href="namespacemod__comm__lib.html#a9b6f1a8fd13bc5670e3b426151c34048" title="Exit MPI&#45;AMRVAC with an error message." alt="" coords="453,93,636,120"/>
+<area shape="rect" href="namespacemod__supertimestepping.html#a5e081548b6182229b9430302af5da2a8" title=" " alt="" coords="223,174,403,215"/>
 </map>
 </div>
 
 </div>
 </div>
-<a id="aca516efaaeb3b7e650a64c1ab285295a"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#aca516efaaeb3b7e650a64c1ab285295a">&#9670;&nbsp;</a></span>addsource2()</h2>
+<a id="a37caec5d9f530bb58e31bcbaea843afe"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a37caec5d9f530bb58e31bcbaea843afe">&#9670;&nbsp;</a></span>addsource2()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -150,6 +150,12 @@ Here is the call graph for this function:</div>
           <td>(</td>
           <td class="paramtype">double precision, intent(in)&#160;</td>
           <td class="paramname"><em>qdt</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">double precision, intent(in)&#160;</td>
+          <td class="paramname"><em>dtfactor</em>, </td>
         </tr>
         <tr>
           <td class="paramkey"></td>
@@ -202,6 +208,12 @@ Here is the call graph for this function:</div>
         <tr>
           <td class="paramkey"></td>
           <td></td>
+          <td class="paramtype">double precision, dimension(ixi^s,1:nw), intent(in)&#160;</td>
+          <td class="paramname"><em>wCTprim</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
           <td class="paramtype">double precision, intent(in)&#160;</td>
           <td class="paramname"><em>qt</em>, </td>
         </tr>
@@ -227,13 +239,7 @@ Here is the call graph for this function:</div>
           <td class="paramkey"></td>
           <td></td>
           <td class="paramtype">logical, intent(inout), optional&#160;</td>
-          <td class="paramname"><em>src_active</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">double precision, dimension(ixi^s,1:nw), intent(in), optional&#160;</td>
-          <td class="paramname"><em>wCTprim</em>&#160;</td>
+          <td class="paramname"><em>src_active</em>&#160;</td>
         </tr>
         <tr>
           <td></td>
@@ -245,7 +251,7 @@ Here is the call graph for this function:</div>
 
 <p>Add source within ixO for iws: w=w+qdt*S[wCT]. </p>
 
-<p class="definition">Definition at line <a class="el" href="mod__source_8t_source.html#l00119">119</a> of file <a class="el" href="mod__source_8t_source.html">mod_source.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__source_8t_source.html#l00130">130</a> of file <a class="el" href="mod__source_8t_source.html">mod_source.t</a>.</p>
 
 </div>
 </div>

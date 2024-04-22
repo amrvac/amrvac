@@ -30,7 +30,7 @@
  <tr style="height: 56px;">
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">MPI-AMRVAC
-   &#160;<span id="projectnumber">3.0</span>
+   &#160;<span id="projectnumber">3.1</span>
    </div>
    <div id="projectbrief">The MPI - Adaptive Mesh Refinement - Versatile Advection Code</div>
   </td>
@@ -101,6 +101,8 @@ Data Types</h2></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">interface &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="interfacemod__physics_1_1sub__get__tcutoff.html">sub_get_tcutoff</a></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">interface &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="interfacemod__physics_1_1sub__trac__after__setdt.html">sub_trac_after_setdt</a></td></tr>
+<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">interface &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="interfacemod__physics_1_1sub__get__v.html">sub_get_v</a></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">interface &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="interfacemod__physics_1_1sub__get__H__speed.html">sub_get_H_speed</a></td></tr>
@@ -108,8 +110,6 @@ Data Types</h2></td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">interface &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="interfacemod__physics_1_1sub__get__cbounds.html">sub_get_cbounds</a></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">interface &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="interfacemod__physics_1_1sub__get__flux.html">sub_get_flux</a></td></tr>
-<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">interface &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="interfacemod__physics_1_1sub__energy__synchro.html">sub_energy_synchro</a></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">interface &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="interfacemod__physics_1_1sub__add__source__geom.html">sub_add_source_geom</a></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -133,13 +133,15 @@ Data Types</h2></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">interface &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="interfacemod__physics_1_1sub__get__pthermal.html">sub_get_pthermal</a></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">interface &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="interfacemod__physics_1_1sub__get__auxiliary.html">sub_get_auxiliary</a></td></tr>
+<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">interface &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="interfacemod__physics_1_1sub__get__auxiliary__prim.html">sub_get_auxiliary_prim</a></td></tr>
+<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">interface &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="interfacemod__physics_1_1sub__get__tgas.html">sub_get_tgas</a></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">interface &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="interfacemod__physics_1_1sub__get__trad.html">sub_get_trad</a></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">interface &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="interfacemod__physics_1_1sub__write__info.html">sub_write_info</a></td></tr>
-<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">interface &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="interfacemod__physics_1_1sub__angmomfix.html">sub_angmomfix</a></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">interface &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="interfacemod__physics_1_1sub__small__values.html">sub_small_values</a></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -154,6 +156,8 @@ Data Types</h2></td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">interface &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="interfacemod__physics_1_1sub__evaluate__implicit.html">sub_evaluate_implicit</a></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">interface &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="interfacemod__physics_1_1sub__implicit__update.html">sub_implicit_update</a></td></tr>
+<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">interface &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="interfacemod__physics_1_1sub__update__temperature.html">sub_update_temperature</a></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="func-members"></a>
@@ -170,20 +174,22 @@ Functions/Subroutines</h2></td></tr>
 <tr class="separator:a600435056460e3a5f76661016c489afd"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ae8aebc6b57c4c528fddc21ecdaf17e72"><td class="memItemLeft" align="right" valign="top">subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__physics.html#ae8aebc6b57c4c528fddc21ecdaf17e72">dummy_get_a2max</a> (w, x, ixIL, ixOL, a2max)</td></tr>
 <tr class="separator:ae8aebc6b57c4c528fddc21ecdaf17e72"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a48ebe8d7aa8fe9b4799db4bc1af1975b"><td class="memItemLeft" align="right" valign="top">subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__physics.html#a48ebe8d7aa8fe9b4799db4bc1af1975b">dummy_add_source_geom</a> (qdt, ixIL, ixOL, wCT, w, x)</td></tr>
-<tr class="separator:a48ebe8d7aa8fe9b4799db4bc1af1975b"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a53e15b7a9353c0e85a4bcc876e617bb4"><td class="memItemLeft" align="right" valign="top">subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__physics.html#a53e15b7a9353c0e85a4bcc876e617bb4">dummy_add_source</a> (qdt, ixIL, ixOL, wCT, w, x, qsourcesplit, active, wCTprim)</td></tr>
-<tr class="separator:a53e15b7a9353c0e85a4bcc876e617bb4"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:abccb7aed990f67bf08b6a6e93409d06e"><td class="memItemLeft" align="right" valign="top">subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__physics.html#abccb7aed990f67bf08b6a6e93409d06e">dummy_add_source_geom</a> (qdt, dtfactor, ixIL, ixOL, wCT, w, x)</td></tr>
+<tr class="separator:abccb7aed990f67bf08b6a6e93409d06e"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ae1f7336a61841a297f6b629386c1428e"><td class="memItemLeft" align="right" valign="top">subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__physics.html#ae1f7336a61841a297f6b629386c1428e">dummy_add_source</a> (qdt, dtfactor, ixIL, ixOL, wCT, wCTprim, w, x, qsourcesplit, active)</td></tr>
+<tr class="separator:ae1f7336a61841a297f6b629386c1428e"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:af9213e958662387013ac07f086ff3f21"><td class="memItemLeft" align="right" valign="top">subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__physics.html#af9213e958662387013ac07f086ff3f21">dummy_check_w</a> (primitive, ixIL, ixOL, w, w_flag)</td></tr>
 <tr class="separator:af9213e958662387013ac07f086ff3f21"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ad630a9ceff3e8decc0ca2c04fa15e256"><td class="memItemLeft" align="right" valign="top">subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__physics.html#ad630a9ceff3e8decc0ca2c04fa15e256">dummy_get_pthermal</a> (w, x, ixIL, ixOL, pth)</td></tr>
 <tr class="separator:ad630a9ceff3e8decc0ca2c04fa15e256"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ac687637834e4686478b211a05966c044"><td class="memItemLeft" align="right" valign="top">subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__physics.html#ac687637834e4686478b211a05966c044">dummy_get_auxiliary</a> (ixIL, ixOL, w, x)</td></tr>
+<tr class="separator:ac687637834e4686478b211a05966c044"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ae86d0ed9cda4e2eb8d72eabbeb400ddb"><td class="memItemLeft" align="right" valign="top">subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__physics.html#ae86d0ed9cda4e2eb8d72eabbeb400ddb">dummy_get_auxiliary_prim</a> (ixIL, ixOL, w)</td></tr>
+<tr class="separator:ae86d0ed9cda4e2eb8d72eabbeb400ddb"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a0c16dbee64a6667a0d86337bc7dce6bf"><td class="memItemLeft" align="right" valign="top">subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__physics.html#a0c16dbee64a6667a0d86337bc7dce6bf">dummy_boundary_adjust</a> (igrid, psb)</td></tr>
 <tr class="separator:a0c16dbee64a6667a0d86337bc7dce6bf"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ad95e43868a4a0bd787b8953adf6b97f3"><td class="memItemLeft" align="right" valign="top">subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__physics.html#ad95e43868a4a0bd787b8953adf6b97f3">dummy_write_info</a> (fh)</td></tr>
 <tr class="separator:ad95e43868a4a0bd787b8953adf6b97f3"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a3afbf962a4e709e6408da6c76e0b939f"><td class="memItemLeft" align="right" valign="top">subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__physics.html#a3afbf962a4e709e6408da6c76e0b939f">dummy_angmomfix</a> (fC, x, wnew, ixIL, ixOL, idim)</td></tr>
-<tr class="separator:a3afbf962a4e709e6408da6c76e0b939f"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:af376f6becf29ca737dfd22a66cdc2ecc"><td class="memItemLeft" align="right" valign="top">subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__physics.html#af376f6becf29ca737dfd22a66cdc2ecc">dummy_small_values</a> (primitive, w, x, ixIL, ixOL, subname)</td></tr>
 <tr class="separator:af376f6becf29ca737dfd22a66cdc2ecc"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a0d73baf64c54cb5346f93e6679f15f34"><td class="memItemLeft" align="right" valign="top">subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__physics.html#a0d73baf64c54cb5346f93e6679f15f34">dummy_get_ct_velocity</a> (vcts, wLp, wRp, ixIL, ixOL, idim, cmax, cmin)</td></tr>
@@ -199,7 +205,7 @@ Functions/Subroutines</h2></td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="var-members"></a>
 Variables</h2></td></tr>
-<tr class="memitem:acd5c12827a0427c2b14e969cdebff01a"><td class="memItemLeft" align="right" valign="top">double precision&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__physics.html#acd5c12827a0427c2b14e969cdebff01a">phys_gamma</a> =5.0/3</td></tr>
+<tr class="memitem:acd5c12827a0427c2b14e969cdebff01a"><td class="memItemLeft" align="right" valign="top">double precision&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__physics.html#acd5c12827a0427c2b14e969cdebff01a">phys_gamma</a> =5.d0/3.d0</td></tr>
 <tr class="separator:acd5c12827a0427c2b14e969cdebff01a"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a9c0b8a2dc10a59ca87e89eaa056929ad"><td class="memItemLeft" align="right" valign="top">character(len=name_len)&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__physics.html#a9c0b8a2dc10a59ca87e89eaa056929ad">physics_type</a> = &quot;&quot;</td></tr>
 <tr class="memdesc:a9c0b8a2dc10a59ca87e89eaa056929ad"><td class="mdescLeft">&#160;</td><td class="mdescRight">String describing the physics type of the simulation.  <a href="namespacemod__physics.html#a9c0b8a2dc10a59ca87e89eaa056929ad">More...</a><br /></td></tr>
@@ -217,11 +223,14 @@ Variables</h2></td></tr>
 <tr class="memdesc:a5b6685b7b87dbdf0c128274c2fdb6fe8"><td class="mdescLeft">&#160;</td><td class="mdescRight">Solve total energy equation or not.  <a href="namespacemod__physics.html#a5b6685b7b87dbdf0c128274c2fdb6fe8">More...</a><br /></td></tr>
 <tr class="separator:a5b6685b7b87dbdf0c128274c2fdb6fe8"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:adc593c33eda4c0fb560d4fc167e2e5f6"><td class="memItemLeft" align="right" valign="top">logical&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__physics.html#adc593c33eda4c0fb560d4fc167e2e5f6">phys_internal_e</a> =.false.</td></tr>
-<tr class="memdesc:adc593c33eda4c0fb560d4fc167e2e5f6"><td class="mdescLeft">&#160;</td><td class="mdescRight">Solve internal enery instead of total energy.  <a href="namespacemod__physics.html#adc593c33eda4c0fb560d4fc167e2e5f6">More...</a><br /></td></tr>
+<tr class="memdesc:adc593c33eda4c0fb560d4fc167e2e5f6"><td class="mdescLeft">&#160;</td><td class="mdescRight">Solve internal energy instead of total energy.  <a href="namespacemod__physics.html#adc593c33eda4c0fb560d4fc167e2e5f6">More...</a><br /></td></tr>
 <tr class="separator:adc593c33eda4c0fb560d4fc167e2e5f6"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a51bbbee51ccb77a7bdab0f091872fa3d"><td class="memItemLeft" align="right" valign="top">logical&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__physics.html#a51bbbee51ccb77a7bdab0f091872fa3d">phys_solve_eaux</a> =.false.</td></tr>
-<tr class="memdesc:a51bbbee51ccb77a7bdab0f091872fa3d"><td class="mdescLeft">&#160;</td><td class="mdescRight">Solve internal energy and total energy equations.  <a href="namespacemod__physics.html#a51bbbee51ccb77a7bdab0f091872fa3d">More...</a><br /></td></tr>
-<tr class="separator:a51bbbee51ccb77a7bdab0f091872fa3d"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a5b3ad5fce8064d09f9f7608cb83a2d5d"><td class="memItemLeft" align="right" valign="top">logical&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__physics.html#a5b3ad5fce8064d09f9f7608cb83a2d5d">phys_partial_ionization</a> =.false.</td></tr>
+<tr class="memdesc:a5b3ad5fce8064d09f9f7608cb83a2d5d"><td class="mdescLeft">&#160;</td><td class="mdescRight">Solve partially ionized one-fluid plasma.  <a href="namespacemod__physics.html#a5b3ad5fce8064d09f9f7608cb83a2d5d">More...</a><br /></td></tr>
+<tr class="separator:a5b3ad5fce8064d09f9f7608cb83a2d5d"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ab01e4b6aad73357775df534191d7e3ae"><td class="memItemLeft" align="right" valign="top">logical&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__physics.html#ab01e4b6aad73357775df534191d7e3ae">phys_equi_pe</a> =.false.</td></tr>
+<tr class="memdesc:ab01e4b6aad73357775df534191d7e3ae"><td class="mdescLeft">&#160;</td><td class="mdescRight">if equilibrium pressure is splitted  <a href="namespacemod__physics.html#ab01e4b6aad73357775df534191d7e3ae">More...</a><br /></td></tr>
+<tr class="separator:ab01e4b6aad73357775df534191d7e3ae"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a94801b6f3634c5ba37080e3920d6f7ee"><td class="memItemLeft" align="right" valign="top">integer, dimension(:, :), allocatable&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__physics.html#a94801b6f3634c5ba37080e3920d6f7ee">flux_type</a></td></tr>
 <tr class="memdesc:a94801b6f3634c5ba37080e3920d6f7ee"><td class="mdescLeft">&#160;</td><td class="mdescRight">Array per direction per variable, which can be used to specify that certain fluxes have to be treated differently.  <a href="namespacemod__physics.html#a94801b6f3634c5ba37080e3920d6f7ee">More...</a><br /></td></tr>
 <tr class="separator:a94801b6f3634c5ba37080e3920d6f7ee"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -256,14 +265,14 @@ Variables</h2></td></tr>
 <tr class="separator:a06885516d7158196f9c54dfc0c1a0451"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a62dcecb6bf57ce3d54ef7639998862fb"><td class="memItemLeft" align="right" valign="top">procedure(<a class="el" href="interfacemod__physics_1_1sub__get__tcutoff.html">sub_get_tcutoff</a>), pointer&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__physics.html#a62dcecb6bf57ce3d54ef7639998862fb">phys_get_tcutoff</a> =&gt; null()</td></tr>
 <tr class="separator:a62dcecb6bf57ce3d54ef7639998862fb"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a89eb266cd1982cecd9417fe9cdfc2aa2"><td class="memItemLeft" align="right" valign="top">procedure(<a class="el" href="interfacemod__physics_1_1sub__trac__after__setdt.html">sub_trac_after_setdt</a>), pointer&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__physics.html#a89eb266cd1982cecd9417fe9cdfc2aa2">phys_trac_after_setdt</a> =&gt; null()</td></tr>
+<tr class="separator:a89eb266cd1982cecd9417fe9cdfc2aa2"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:adb03a3921f0b0e850e289c4eeb7c9966"><td class="memItemLeft" align="right" valign="top">procedure(sub_get_h_speed), pointer&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__physics.html#adb03a3921f0b0e850e289c4eeb7c9966">phys_get_h_speed</a> =&gt; null()</td></tr>
 <tr class="separator:adb03a3921f0b0e850e289c4eeb7c9966"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a414c54f8225121d3e55cd1345eb98d17"><td class="memItemLeft" align="right" valign="top">procedure(<a class="el" href="interfacemod__physics_1_1sub__get__cbounds.html">sub_get_cbounds</a>), pointer&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__physics.html#a414c54f8225121d3e55cd1345eb98d17">phys_get_cbounds</a> =&gt; null()</td></tr>
 <tr class="separator:a414c54f8225121d3e55cd1345eb98d17"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a2d5e65cc41b36dea6b49f714a983d14d"><td class="memItemLeft" align="right" valign="top">procedure(<a class="el" href="interfacemod__physics_1_1sub__get__flux.html">sub_get_flux</a>), pointer&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__physics.html#a2d5e65cc41b36dea6b49f714a983d14d">phys_get_flux</a> =&gt; null()</td></tr>
 <tr class="separator:a2d5e65cc41b36dea6b49f714a983d14d"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ab0eb67627a1ce648a320e8257f85bca8"><td class="memItemLeft" align="right" valign="top">procedure(<a class="el" href="interfacemod__physics_1_1sub__energy__synchro.html">sub_energy_synchro</a>), pointer&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__physics.html#ab0eb67627a1ce648a320e8257f85bca8">phys_energy_synchro</a> =&gt; null()</td></tr>
-<tr class="separator:ab0eb67627a1ce648a320e8257f85bca8"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ae19630150a3f06bcc5efe6b2bfe0987e"><td class="memItemLeft" align="right" valign="top">procedure(<a class="el" href="interfacemod__physics_1_1sub__get__v.html">sub_get_v</a>), pointer&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__physics.html#ae19630150a3f06bcc5efe6b2bfe0987e">phys_get_v</a> =&gt; null()</td></tr>
 <tr class="separator:ae19630150a3f06bcc5efe6b2bfe0987e"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a5813eee20a2d7e3892b1c280c2d1c18e"><td class="memItemLeft" align="right" valign="top">procedure(<a class="el" href="interfacemod__physics_1_1sub__get__dt.html">sub_get_dt</a>), pointer&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__physics.html#a5813eee20a2d7e3892b1c280c2d1c18e">phys_get_dt</a> =&gt; null()</td></tr>
@@ -288,8 +297,6 @@ Variables</h2></td></tr>
 <tr class="separator:aca2eab6d19e3d04f2730aa71f25915f9"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a241ab0320ce19c071fa11e0be4e88095"><td class="memItemLeft" align="right" valign="top">procedure(<a class="el" href="interfacemod__physics_1_1sub__write__info.html">sub_write_info</a>), pointer&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__physics.html#a241ab0320ce19c071fa11e0be4e88095">phys_write_info</a> =&gt; null()</td></tr>
 <tr class="separator:a241ab0320ce19c071fa11e0be4e88095"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:adc72e7cc63f6aa94306d342127806e0c"><td class="memItemLeft" align="right" valign="top">procedure(<a class="el" href="interfacemod__physics_1_1sub__angmomfix.html">sub_angmomfix</a>), pointer&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__physics.html#adc72e7cc63f6aa94306d342127806e0c">phys_angmomfix</a> =&gt; null()</td></tr>
-<tr class="separator:adc72e7cc63f6aa94306d342127806e0c"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a204bf73adea52d31b0a11617b43a5c97"><td class="memItemLeft" align="right" valign="top">procedure(<a class="el" href="interfacemod__physics_1_1sub__small__values.html">sub_small_values</a>), pointer&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__physics.html#a204bf73adea52d31b0a11617b43a5c97">phys_handle_small_values</a> =&gt; null()</td></tr>
 <tr class="separator:a204bf73adea52d31b0a11617b43a5c97"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a07cbc3c672f84b1cea8805b583767d5e"><td class="memItemLeft" align="right" valign="top">procedure(<a class="el" href="interfacemod__physics_1_1sub__get__ct__velocity.html">sub_get_ct_velocity</a>), pointer&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__physics.html#a07cbc3c672f84b1cea8805b583767d5e">phys_get_ct_velocity</a> =&gt; null()</td></tr>
@@ -308,12 +315,18 @@ Variables</h2></td></tr>
 <tr class="separator:a93e56f0ef37799348039c48e21b97768"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a508fedcf0d20e73db468b7a05778a325"><td class="memItemLeft" align="right" valign="top">procedure(<a class="el" href="interfacemod__physics_1_1sub__check__params.html">sub_check_params</a>), pointer&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__physics.html#a508fedcf0d20e73db468b7a05778a325">phys_te_images</a> =&gt; null()</td></tr>
 <tr class="separator:a508fedcf0d20e73db468b7a05778a325"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a6220bffb8430e4125d340bb12124b3fc"><td class="memItemLeft" align="right" valign="top">procedure(<a class="el" href="interfacemod__physics_1_1sub__update__temperature.html">sub_update_temperature</a>), pointer&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__physics.html#a6220bffb8430e4125d340bb12124b3fc">phys_update_temperature</a> =&gt; null()</td></tr>
+<tr class="separator:a6220bffb8430e4125d340bb12124b3fc"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a8363ff077d45953128c278bed97d43c0"><td class="memItemLeft" align="right" valign="top">procedure(<a class="el" href="interfacemod__physics_1_1sub__get__auxiliary.html">sub_get_auxiliary</a>), pointer&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__physics.html#a8363ff077d45953128c278bed97d43c0">phys_get_auxiliary</a> =&gt; null()</td></tr>
+<tr class="separator:a8363ff077d45953128c278bed97d43c0"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a8834df44c87ecf2a57755b8af7620b0a"><td class="memItemLeft" align="right" valign="top">procedure(<a class="el" href="interfacemod__physics_1_1sub__get__auxiliary__prim.html">sub_get_auxiliary_prim</a>), pointer&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__physics.html#a8834df44c87ecf2a57755b8af7620b0a">phys_get_auxiliary_prim</a> =&gt; null()</td></tr>
+<tr class="separator:a8834df44c87ecf2a57755b8af7620b0a"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>This module defines the procedures of a physics module. It contains function pointers for the various supported routines. An actual physics module has to set these pointers to its implementation of these routines. </p>
 </div><h2 class="groupheader">Function/Subroutine Documentation</h2>
-<a id="a53e15b7a9353c0e85a4bcc876e617bb4"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a53e15b7a9353c0e85a4bcc876e617bb4">&#9670;&nbsp;</a></span>dummy_add_source()</h2>
+<a id="ae1f7336a61841a297f6b629386c1428e"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ae1f7336a61841a297f6b629386c1428e">&#9670;&nbsp;</a></span>dummy_add_source()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -323,6 +336,12 @@ Variables</h2></td></tr>
           <td>(</td>
           <td class="paramtype">double precision, intent(in)&#160;</td>
           <td class="paramname"><em>qdt</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">double precision, intent(in)&#160;</td>
+          <td class="paramname"><em>dtfactor</em>, </td>
         </tr>
         <tr>
           <td class="paramkey"></td>
@@ -357,6 +376,12 @@ Variables</h2></td></tr>
         <tr>
           <td class="paramkey"></td>
           <td></td>
+          <td class="paramtype">double precision, dimension(ixi^s,1:nw), intent(in)&#160;</td>
+          <td class="paramname"><em>wCTprim</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
           <td class="paramtype">double precision, dimension(ixi^s, 1:nw), intent(inout)&#160;</td>
           <td class="paramname"><em>w</em>, </td>
         </tr>
@@ -376,13 +401,7 @@ Variables</h2></td></tr>
           <td class="paramkey"></td>
           <td></td>
           <td class="paramtype">logical, intent(inout)&#160;</td>
-          <td class="paramname"><em>active</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">double precision, dimension(ixi^s,1:nw), intent(in), optional&#160;</td>
-          <td class="paramname"><em>wCTprim</em>&#160;</td>
+          <td class="paramname"><em>active</em>&#160;</td>
         </tr>
         <tr>
           <td></td>
@@ -392,12 +411,12 @@ Variables</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="mod__physics_8t_source.html#l00480">480</a> of file <a class="el" href="mod__physics_8t_source.html">mod_physics.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__physics_8t_source.html#l00491">491</a> of file <a class="el" href="mod__physics_8t_source.html">mod_physics.t</a>.</p>
 
 </div>
 </div>
-<a id="a48ebe8d7aa8fe9b4799db4bc1af1975b"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a48ebe8d7aa8fe9b4799db4bc1af1975b">&#9670;&nbsp;</a></span>dummy_add_source_geom()</h2>
+<a id="abccb7aed990f67bf08b6a6e93409d06e"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#abccb7aed990f67bf08b6a6e93409d06e">&#9670;&nbsp;</a></span>dummy_add_source_geom()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -407,6 +426,12 @@ Variables</h2></td></tr>
           <td>(</td>
           <td class="paramtype">double precision, intent(in)&#160;</td>
           <td class="paramname"><em>qdt</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">double precision, intent(in)&#160;</td>
+          <td class="paramname"><em>dtfactor</em>, </td>
         </tr>
         <tr>
           <td class="paramkey"></td>
@@ -458,73 +483,7 @@ Variables</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="mod__physics_8t_source.html#l00473">473</a> of file <a class="el" href="mod__physics_8t_source.html">mod_physics.t</a>.</p>
-
-</div>
-</div>
-<a id="a3afbf962a4e709e6408da6c76e0b939f"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a3afbf962a4e709e6408da6c76e0b939f">&#9670;&nbsp;</a></span>dummy_angmomfix()</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">subroutine mod_physics::dummy_angmomfix </td>
-          <td>(</td>
-          <td class="paramtype">double precision, dimension(ixi^s,1:nwflux,1:ndim), intent(inout)&#160;</td>
-          <td class="paramname"><em>fC</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">double precision, dimension(ixi^s,1:ndim), intent(in)&#160;</td>
-          <td class="paramname"><em>x</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">double precision, dimension(ixi^s,1:nw), intent(inout)&#160;</td>
-          <td class="paramname"><em>wnew</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">integer, intent(in)&#160;</td>
-          <td class="paramname"><em>ixI</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">integer, intent(in)&#160;</td>
-          <td class="paramname"><em>L</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">integer, intent(in)&#160;</td>
-          <td class="paramname"><em>ixO</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">&#160;</td>
-          <td class="paramname"><em>L</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">integer, intent(in)&#160;</td>
-          <td class="paramname"><em>idim</em>&#160;</td>
-        </tr>
-        <tr>
-          <td></td>
-          <td>)</td>
-          <td></td><td></td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p class="definition">Definition at line <a class="el" href="mod__physics_8t_source.html#l00532">532</a> of file <a class="el" href="mod__physics_8t_source.html">mod_physics.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__physics_8t_source.html#l00484">484</a> of file <a class="el" href="mod__physics_8t_source.html">mod_physics.t</a>.</p>
 
 </div>
 </div>
@@ -554,7 +513,7 @@ Variables</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="mod__physics_8t_source.html#l00514">514</a> of file <a class="el" href="mod__physics_8t_source.html">mod_physics.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__physics_8t_source.html#l00546">546</a> of file <a class="el" href="mod__physics_8t_source.html">mod_physics.t</a>.</p>
 
 </div>
 </div>
@@ -570,7 +529,7 @@ Variables</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="mod__physics_8t_source.html#l00445">445</a> of file <a class="el" href="mod__physics_8t_source.html">mod_physics.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__physics_8t_source.html#l00455">455</a> of file <a class="el" href="mod__physics_8t_source.html">mod_physics.t</a>.</p>
 
 </div>
 </div>
@@ -630,7 +589,7 @@ Variables</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="mod__physics_8t_source.html#l00493">493</a> of file <a class="el" href="mod__physics_8t_source.html">mod_physics.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__physics_8t_source.html#l00503">503</a> of file <a class="el" href="mod__physics_8t_source.html">mod_physics.t</a>.</p>
 
 </div>
 </div>
@@ -660,7 +619,7 @@ Variables</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="mod__physics_8t_source.html#l00577">577</a> of file <a class="el" href="mod__physics_8t_source.html">mod_physics.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__physics_8t_source.html#l00601">601</a> of file <a class="el" href="mod__physics_8t_source.html">mod_physics.t</a>.</p>
 
 </div>
 </div>
@@ -696,7 +655,7 @@ Variables</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="mod__physics_8t_source.html#l00571">571</a> of file <a class="el" href="mod__physics_8t_source.html">mod_physics.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__physics_8t_source.html#l00595">595</a> of file <a class="el" href="mod__physics_8t_source.html">mod_physics.t</a>.</p>
 
 </div>
 </div>
@@ -756,14 +715,134 @@ Variables</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="mod__physics_8t_source.html#l00465">465</a> of file <a class="el" href="mod__physics_8t_source.html">mod_physics.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__physics_8t_source.html#l00475">475</a> of file <a class="el" href="mod__physics_8t_source.html">mod_physics.t</a>.</p>
 <div class="dynheader">
 Here is the call graph for this function:</div>
 <div class="dyncontent">
 <div class="center"><img src="namespacemod__physics_ae8aebc6b57c4c528fddc21ecdaf17e72_cgraph.png" border="0" usemap="#anamespacemod__physics_ae8aebc6b57c4c528fddc21ecdaf17e72_cgraph" alt=""/></div>
 <map name="anamespacemod__physics_ae8aebc6b57c4c528fddc21ecdaf17e72_cgraph" id="anamespacemod__physics_ae8aebc6b57c4c528fddc21ecdaf17e72_cgraph">
 <area shape="rect" title=" " alt="" coords="5,5,171,47"/>
-<area shape="rect" href="comm__lib_8t.html#a49b49ea9ffbbadfe688e332921c4cddd" title="Exit MPI&#45;AMRVAC with an error message." alt="" coords="219,13,293,39"/>
+<area shape="rect" href="namespacemod__comm__lib.html#a9b6f1a8fd13bc5670e3b426151c34048" title="Exit MPI&#45;AMRVAC with an error message." alt="" coords="219,13,401,39"/>
+</map>
+</div>
+
+</div>
+</div>
+<a id="ac687637834e4686478b211a05966c044"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ac687637834e4686478b211a05966c044">&#9670;&nbsp;</a></span>dummy_get_auxiliary()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">subroutine mod_physics::dummy_get_auxiliary </td>
+          <td>(</td>
+          <td class="paramtype">integer, intent(in)&#160;</td>
+          <td class="paramname"><em>ixI</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">integer, intent(in)&#160;</td>
+          <td class="paramname"><em>L</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">integer, intent(in)&#160;</td>
+          <td class="paramname"><em>ixO</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">&#160;</td>
+          <td class="paramname"><em>L</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">double precision, dimension(ixi^s, nw), intent(inout)&#160;</td>
+          <td class="paramname"><em>w</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">double precision, dimension(ixi^s, 1:ndim), intent(in)&#160;</td>
+          <td class="paramname"><em>x</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p class="definition">Definition at line <a class="el" href="mod__physics_8t_source.html#l00525">525</a> of file <a class="el" href="mod__physics_8t_source.html">mod_physics.t</a>.</p>
+<div class="dynheader">
+Here is the call graph for this function:</div>
+<div class="dyncontent">
+<div class="center"><img src="namespacemod__physics_ac687637834e4686478b211a05966c044_cgraph.png" border="0" usemap="#anamespacemod__physics_ac687637834e4686478b211a05966c044_cgraph" alt=""/></div>
+<map name="anamespacemod__physics_ac687637834e4686478b211a05966c044_cgraph" id="anamespacemod__physics_ac687637834e4686478b211a05966c044_cgraph">
+<area shape="rect" title=" " alt="" coords="5,5,171,47"/>
+<area shape="rect" href="namespacemod__comm__lib.html#a9b6f1a8fd13bc5670e3b426151c34048" title="Exit MPI&#45;AMRVAC with an error message." alt="" coords="219,13,401,39"/>
+</map>
+</div>
+
+</div>
+</div>
+<a id="ae86d0ed9cda4e2eb8d72eabbeb400ddb"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ae86d0ed9cda4e2eb8d72eabbeb400ddb">&#9670;&nbsp;</a></span>dummy_get_auxiliary_prim()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">subroutine mod_physics::dummy_get_auxiliary_prim </td>
+          <td>(</td>
+          <td class="paramtype">integer, intent(in)&#160;</td>
+          <td class="paramname"><em>ixI</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">integer, intent(in)&#160;</td>
+          <td class="paramname"><em>L</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">integer, intent(in)&#160;</td>
+          <td class="paramname"><em>ixO</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">&#160;</td>
+          <td class="paramname"><em>L</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">double precision, dimension(ixi^s, nw), intent(inout)&#160;</td>
+          <td class="paramname"><em>w</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p class="definition">Definition at line <a class="el" href="mod__physics_8t_source.html#l00536">536</a> of file <a class="el" href="mod__physics_8t_source.html">mod_physics.t</a>.</p>
+<div class="dynheader">
+Here is the call graph for this function:</div>
+<div class="dyncontent">
+<div class="center"><img src="namespacemod__physics_ae86d0ed9cda4e2eb8d72eabbeb400ddb_cgraph.png" border="0" usemap="#anamespacemod__physics_ae86d0ed9cda4e2eb8d72eabbeb400ddb_cgraph" alt=""/></div>
+<map name="anamespacemod__physics_ae86d0ed9cda4e2eb8d72eabbeb400ddb_cgraph" id="anamespacemod__physics_ae86d0ed9cda4e2eb8d72eabbeb400ddb_cgraph">
+<area shape="rect" title=" " alt="" coords="5,5,171,47"/>
+<area shape="rect" href="namespacemod__comm__lib.html#a9b6f1a8fd13bc5670e3b426151c34048" title="Exit MPI&#45;AMRVAC with an error message." alt="" coords="219,13,401,39"/>
 </map>
 </div>
 
@@ -843,7 +922,7 @@ Here is the call graph for this function:</div>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="mod__physics_8t_source.html#l00549">549</a> of file <a class="el" href="mod__physics_8t_source.html">mod_physics.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__physics_8t_source.html#l00573">573</a> of file <a class="el" href="mod__physics_8t_source.html">mod_physics.t</a>.</p>
 
 </div>
 </div>
@@ -909,7 +988,7 @@ Here is the call graph for this function:</div>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="mod__physics_8t_source.html#l00457">457</a> of file <a class="el" href="mod__physics_8t_source.html">mod_physics.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__physics_8t_source.html#l00467">467</a> of file <a class="el" href="mod__physics_8t_source.html">mod_physics.t</a>.</p>
 
 </div>
 </div>
@@ -969,14 +1048,14 @@ Here is the call graph for this function:</div>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="mod__physics_8t_source.html#l00503">503</a> of file <a class="el" href="mod__physics_8t_source.html">mod_physics.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__physics_8t_source.html#l00513">513</a> of file <a class="el" href="mod__physics_8t_source.html">mod_physics.t</a>.</p>
 <div class="dynheader">
 Here is the call graph for this function:</div>
 <div class="dyncontent">
 <div class="center"><img src="namespacemod__physics_ad630a9ceff3e8decc0ca2c04fa15e256_cgraph.png" border="0" usemap="#anamespacemod__physics_ad630a9ceff3e8decc0ca2c04fa15e256_cgraph" alt=""/></div>
 <map name="anamespacemod__physics_ad630a9ceff3e8decc0ca2c04fa15e256_cgraph" id="anamespacemod__physics_ad630a9ceff3e8decc0ca2c04fa15e256_cgraph">
 <area shape="rect" title=" " alt="" coords="5,5,171,47"/>
-<area shape="rect" href="comm__lib_8t.html#a49b49ea9ffbbadfe688e332921c4cddd" title="Exit MPI&#45;AMRVAC with an error message." alt="" coords="219,13,293,39"/>
+<area shape="rect" href="namespacemod__comm__lib.html#a9b6f1a8fd13bc5670e3b426151c34048" title="Exit MPI&#45;AMRVAC with an error message." alt="" coords="219,13,401,39"/>
 </map>
 </div>
 
@@ -1026,7 +1105,7 @@ Here is the call graph for this function:</div>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="mod__physics_8t_source.html#l00593">593</a> of file <a class="el" href="mod__physics_8t_source.html">mod_physics.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__physics_8t_source.html#l00617">617</a> of file <a class="el" href="mod__physics_8t_source.html">mod_physics.t</a>.</p>
 
 </div>
 </div>
@@ -1042,7 +1121,7 @@ Here is the call graph for this function:</div>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="mod__physics_8t_source.html#l00442">442</a> of file <a class="el" href="mod__physics_8t_source.html">mod_physics.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__physics_8t_source.html#l00452">452</a> of file <a class="el" href="mod__physics_8t_source.html">mod_physics.t</a>.</p>
 
 </div>
 </div>
@@ -1126,7 +1205,7 @@ Here is the call graph for this function:</div>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="mod__physics_8t_source.html#l00448">448</a> of file <a class="el" href="mod__physics_8t_source.html">mod_physics.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__physics_8t_source.html#l00458">458</a> of file <a class="el" href="mod__physics_8t_source.html">mod_physics.t</a>.</p>
 
 </div>
 </div>
@@ -1192,7 +1271,7 @@ Here is the call graph for this function:</div>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="mod__physics_8t_source.html#l00540">540</a> of file <a class="el" href="mod__physics_8t_source.html">mod_physics.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__physics_8t_source.html#l00564">564</a> of file <a class="el" href="mod__physics_8t_source.html">mod_physics.t</a>.</p>
 
 </div>
 </div>
@@ -1253,7 +1332,7 @@ Here is the call graph for this function:</div>
         <tr>
           <td class="paramkey"></td>
           <td></td>
-          <td class="paramtype">double precision, dimension(ixi^s,7-2*ndim:3), intent(inout)&#160;</td>
+          <td class="paramtype">double precision, dimension(ixi^s,sdim:3), intent(inout)&#160;</td>
           <td class="paramname"><em>fE</em>, </td>
         </tr>
         <tr>
@@ -1282,7 +1361,7 @@ Here is the call graph for this function:</div>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="mod__physics_8t_source.html#l00559">559</a> of file <a class="el" href="mod__physics_8t_source.html">mod_physics.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__physics_8t_source.html#l00583">583</a> of file <a class="el" href="mod__physics_8t_source.html">mod_physics.t</a>.</p>
 
 </div>
 </div>
@@ -1308,7 +1387,7 @@ Here is the call graph for this function:</div>
   </dd>
 </dl>
 
-<p class="definition">Definition at line <a class="el" href="mod__physics_8t_source.html#l00520">520</a> of file <a class="el" href="mod__physics_8t_source.html">mod_physics.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__physics_8t_source.html#l00552">552</a> of file <a class="el" href="mod__physics_8t_source.html">mod_physics.t</a>.</p>
 
 </div>
 </div>
@@ -1324,34 +1403,34 @@ Here is the call graph for this function:</div>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="mod__physics_8t_source.html#l00357">357</a> of file <a class="el" href="mod__physics_8t_source.html">mod_physics.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__physics_8t_source.html#l00367">367</a> of file <a class="el" href="mod__physics_8t_source.html">mod_physics.t</a>.</p>
 <div class="dynheader">
 Here is the call graph for this function:</div>
 <div class="dyncontent">
 <div class="center"><img src="namespacemod__physics_aea7f8deb14a3c301c4db010855407ce3_cgraph.png" border="0" usemap="#anamespacemod__physics_aea7f8deb14a3c301c4db010855407ce3_cgraph" alt=""/></div>
 <map name="anamespacemod__physics_aea7f8deb14a3c301c4db010855407ce3_cgraph" id="anamespacemod__physics_aea7f8deb14a3c301c4db010855407ce3_cgraph">
 <area shape="rect" title=" " alt="" coords="5,653,196,679"/>
-<area shape="rect" href="namespacemod__physics.html#a53e15b7a9353c0e85a4bcc876e617bb4" title=" " alt="" coords="253,5,418,47"/>
-<area shape="rect" href="namespacemod__physics.html#a48ebe8d7aa8fe9b4799db4bc1af1975b" title=" " alt="" coords="253,71,418,112"/>
-<area shape="rect" href="namespacemod__physics.html#a3afbf962a4e709e6408da6c76e0b939f" title=" " alt="" coords="253,136,418,177"/>
-<area shape="rect" href="namespacemod__physics.html#a0c16dbee64a6667a0d86337bc7dce6bf" title=" " alt="" coords="253,201,418,243"/>
-<area shape="rect" href="namespacemod__physics.html#ac22202501f5cbeb12c46765f66769eb5" title=" " alt="" coords="253,267,418,308"/>
-<area shape="rect" href="namespacemod__physics.html#af9213e958662387013ac07f086ff3f21" title=" " alt="" coords="253,332,418,373"/>
-<area shape="rect" href="namespacemod__physics.html#aae18e004d3281383b491bbac9a250c67" title=" " alt="" coords="253,397,418,439"/>
-<area shape="rect" href="namespacemod__physics.html#a5476af6a63cda81914ec5d93a0cdcbde" title=" " alt="" coords="253,463,418,504"/>
-<area shape="rect" href="namespacemod__physics.html#ae8aebc6b57c4c528fddc21ecdaf17e72" title=" " alt="" coords="253,528,418,569"/>
-<area shape="rect" href="comm__lib_8t.html#a49b49ea9ffbbadfe688e332921c4cddd" title="Exit MPI&#45;AMRVAC with an error message." alt="" coords="475,594,549,621"/>
-<area shape="rect" href="namespacemod__physics.html#a0d73baf64c54cb5346f93e6679f15f34" title=" " alt="" coords="253,645,418,687"/>
-<area shape="rect" href="namespacemod__physics.html#a600435056460e3a5f76661016c489afd" title=" " alt="" coords="253,711,418,752"/>
-<area shape="rect" href="namespacemod__physics.html#ad630a9ceff3e8decc0ca2c04fa15e256" title=" " alt="" coords="253,776,418,817"/>
-<area shape="rect" href="namespacemod__physics.html#ac80a37685eb1dbac4d7558d81009dc35" title=" " alt="" coords="253,841,418,883"/>
-<area shape="rect" href="namespacemod__physics.html#afe1c2605c6355eaffded3a7bcf5085e2" title=" " alt="" coords="253,907,418,948"/>
-<area shape="rect" href="namespacemod__physics.html#af376f6becf29ca737dfd22a66cdc2ecc" title=" " alt="" coords="253,972,418,1013"/>
-<area shape="rect" href="namespacemod__physics.html#a0b4f0cfc243a6ec24553a74fd31ee1ca" title=" " alt="" coords="253,1037,418,1079"/>
-<area shape="rect" href="namespacemod__physics.html#ad95e43868a4a0bd787b8953adf6b97f3" title=" " alt="" coords="253,1103,418,1144"/>
-<area shape="rect" href="namespacemod__physics__hllc.html#ad7c46ece6c1f2f3e2925fd5f8ad82465" title=" " alt="" coords="247,1168,423,1209"/>
-<area shape="rect" href="namespacemod__physics__ppm.html#a48b2a20f1d429f56a1a257835dda89d3" title=" " alt="" coords="244,1233,427,1275"/>
-<area shape="rect" href="namespacemod__physics__roe.html#a2f639d0151ac75a4fbfdd2262541ac41" title=" " alt="" coords="248,1299,423,1340"/>
+<area shape="rect" href="namespacemod__physics.html#ae1f7336a61841a297f6b629386c1428e" title=" " alt="" coords="249,5,415,47"/>
+<area shape="rect" href="namespacemod__physics.html#abccb7aed990f67bf08b6a6e93409d06e" title=" " alt="" coords="249,71,415,112"/>
+<area shape="rect" href="namespacemod__physics.html#a0c16dbee64a6667a0d86337bc7dce6bf" title=" " alt="" coords="249,136,415,177"/>
+<area shape="rect" href="namespacemod__physics.html#ac22202501f5cbeb12c46765f66769eb5" title=" " alt="" coords="249,201,415,243"/>
+<area shape="rect" href="namespacemod__physics.html#af9213e958662387013ac07f086ff3f21" title=" " alt="" coords="249,267,415,308"/>
+<area shape="rect" href="namespacemod__physics.html#aae18e004d3281383b491bbac9a250c67" title=" " alt="" coords="249,332,415,373"/>
+<area shape="rect" href="namespacemod__physics.html#a5476af6a63cda81914ec5d93a0cdcbde" title=" " alt="" coords="249,397,415,439"/>
+<area shape="rect" href="namespacemod__physics.html#ae8aebc6b57c4c528fddc21ecdaf17e72" title=" " alt="" coords="249,463,415,504"/>
+<area shape="rect" href="namespacemod__comm__lib.html#a9b6f1a8fd13bc5670e3b426151c34048" title="Exit MPI&#45;AMRVAC with an error message." alt="" coords="468,587,651,614"/>
+<area shape="rect" href="namespacemod__physics.html#ac687637834e4686478b211a05966c044" title=" " alt="" coords="249,580,415,621"/>
+<area shape="rect" href="namespacemod__physics.html#ae86d0ed9cda4e2eb8d72eabbeb400ddb" title=" " alt="" coords="249,645,415,687"/>
+<area shape="rect" href="namespacemod__physics.html#a0d73baf64c54cb5346f93e6679f15f34" title=" " alt="" coords="249,711,415,752"/>
+<area shape="rect" href="namespacemod__physics.html#a600435056460e3a5f76661016c489afd" title=" " alt="" coords="249,776,415,817"/>
+<area shape="rect" href="namespacemod__physics.html#ad630a9ceff3e8decc0ca2c04fa15e256" title=" " alt="" coords="249,841,415,883"/>
+<area shape="rect" href="namespacemod__physics.html#ac80a37685eb1dbac4d7558d81009dc35" title=" " alt="" coords="249,907,415,948"/>
+<area shape="rect" href="namespacemod__physics.html#afe1c2605c6355eaffded3a7bcf5085e2" title=" " alt="" coords="249,972,415,1013"/>
+<area shape="rect" href="namespacemod__physics.html#af376f6becf29ca737dfd22a66cdc2ecc" title=" " alt="" coords="249,1037,415,1079"/>
+<area shape="rect" href="namespacemod__physics.html#a0b4f0cfc243a6ec24553a74fd31ee1ca" title=" " alt="" coords="249,1103,415,1144"/>
+<area shape="rect" href="namespacemod__physics.html#ad95e43868a4a0bd787b8953adf6b97f3" title=" " alt="" coords="249,1168,415,1209"/>
+<area shape="rect" href="namespacemod__physics__hllc.html#ad7c46ece6c1f2f3e2925fd5f8ad82465" title=" " alt="" coords="244,1233,420,1275"/>
+<area shape="rect" href="namespacemod__physics__roe.html#a2f639d0151ac75a4fbfdd2262541ac41" title=" " alt="" coords="245,1299,419,1340"/>
 </map>
 </div>
 
@@ -1498,22 +1577,6 @@ Here is the call graph for this function:</div>
 
 </div>
 </div>
-<a id="adc72e7cc63f6aa94306d342127806e0c"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#adc72e7cc63f6aa94306d342127806e0c">&#9670;&nbsp;</a></span>phys_angmomfix</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">procedure(<a class="el" href="interfacemod__physics_1_1sub__angmomfix.html">sub_angmomfix</a>), pointer mod_physics::phys_angmomfix =&gt; null()</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p class="definition">Definition at line <a class="el" href="mod__physics_8t_source.html#l00080">80</a> of file <a class="el" href="mod__physics_8t_source.html">mod_physics.t</a>.</p>
-
-</div>
-</div>
 <a id="aca2eab6d19e3d04f2730aa71f25915f9"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#aca2eab6d19e3d04f2730aa71f25915f9">&#9670;&nbsp;</a></span>phys_boundary_adjust</h2>
 
@@ -1574,7 +1637,7 @@ Here is the call graph for this function:</div>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="mod__physics_8t_source.html#l00087">87</a> of file <a class="el" href="mod__physics_8t_source.html">mod_physics.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__physics_8t_source.html#l00086">86</a> of file <a class="el" href="mod__physics_8t_source.html">mod_physics.t</a>.</p>
 
 </div>
 </div>
@@ -1592,23 +1655,25 @@ Here is the call graph for this function:</div>
 
 <p>Solve energy equation or not. </p>
 
-<p class="definition">Definition at line <a class="el" href="mod__physics_8t_source.html#l00030">30</a> of file <a class="el" href="mod__physics_8t_source.html">mod_physics.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__physics_8t_source.html#l00027">27</a> of file <a class="el" href="mod__physics_8t_source.html">mod_physics.t</a>.</p>
 
 </div>
 </div>
-<a id="ab0eb67627a1ce648a320e8257f85bca8"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ab0eb67627a1ce648a320e8257f85bca8">&#9670;&nbsp;</a></span>phys_energy_synchro</h2>
+<a id="ab01e4b6aad73357775df534191d7e3ae"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ab01e4b6aad73357775df534191d7e3ae">&#9670;&nbsp;</a></span>phys_equi_pe</h2>
 
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">procedure(<a class="el" href="interfacemod__physics_1_1sub__energy__synchro.html">sub_energy_synchro</a>), pointer mod_physics::phys_energy_synchro =&gt; null()</td>
+          <td class="memname">logical mod_physics::phys_equi_pe =.false.</td>
         </tr>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="mod__physics_8t_source.html#l00067">67</a> of file <a class="el" href="mod__physics_8t_source.html">mod_physics.t</a>.</p>
+<p>if equilibrium pressure is splitted </p>
+
+<p class="definition">Definition at line <a class="el" href="mod__physics_8t_source.html#l00039">39</a> of file <a class="el" href="mod__physics_8t_source.html">mod_physics.t</a>.</p>
 
 </div>
 </div>
@@ -1624,7 +1689,7 @@ Here is the call graph for this function:</div>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="mod__physics_8t_source.html#l00086">86</a> of file <a class="el" href="mod__physics_8t_source.html">mod_physics.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__physics_8t_source.html#l00085">85</a> of file <a class="el" href="mod__physics_8t_source.html">mod_physics.t</a>.</p>
 
 </div>
 </div>
@@ -1640,7 +1705,7 @@ Here is the call graph for this function:</div>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="mod__physics_8t_source.html#l00084">84</a> of file <a class="el" href="mod__physics_8t_source.html">mod_physics.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__physics_8t_source.html#l00083">83</a> of file <a class="el" href="mod__physics_8t_source.html">mod_physics.t</a>.</p>
 
 </div>
 </div>
@@ -1651,12 +1716,12 @@ Here is the call graph for this function:</div>
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">double precision mod_physics::phys_gamma =5.0/3</td>
+          <td class="memname">double precision mod_physics::phys_gamma =5.d0/3.d0</td>
         </tr>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="mod__physics_8t_source.html#l00016">16</a> of file <a class="el" href="mod__physics_8t_source.html">mod_physics.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__physics_8t_source.html#l00013">13</a> of file <a class="el" href="mod__physics_8t_source.html">mod_physics.t</a>.</p>
 
 </div>
 </div>
@@ -1676,6 +1741,38 @@ Here is the call graph for this function:</div>
 
 </div>
 </div>
+<a id="a8363ff077d45953128c278bed97d43c0"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a8363ff077d45953128c278bed97d43c0">&#9670;&nbsp;</a></span>phys_get_auxiliary</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">procedure(<a class="el" href="interfacemod__physics_1_1sub__get__auxiliary.html">sub_get_auxiliary</a>), pointer mod_physics::phys_get_auxiliary =&gt; null()</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p class="definition">Definition at line <a class="el" href="mod__physics_8t_source.html#l00093">93</a> of file <a class="el" href="mod__physics_8t_source.html">mod_physics.t</a>.</p>
+
+</div>
+</div>
+<a id="a8834df44c87ecf2a57755b8af7620b0a"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a8834df44c87ecf2a57755b8af7620b0a">&#9670;&nbsp;</a></span>phys_get_auxiliary_prim</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">procedure(<a class="el" href="interfacemod__physics_1_1sub__get__auxiliary__prim.html">sub_get_auxiliary_prim</a>), pointer mod_physics::phys_get_auxiliary_prim =&gt; null()</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p class="definition">Definition at line <a class="el" href="mod__physics_8t_source.html#l00094">94</a> of file <a class="el" href="mod__physics_8t_source.html">mod_physics.t</a>.</p>
+
+</div>
+</div>
 <a id="a414c54f8225121d3e55cd1345eb98d17"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a414c54f8225121d3e55cd1345eb98d17">&#9670;&nbsp;</a></span>phys_get_cbounds</h2>
 
@@ -1688,7 +1785,7 @@ Here is the call graph for this function:</div>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="mod__physics_8t_source.html#l00065">65</a> of file <a class="el" href="mod__physics_8t_source.html">mod_physics.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__physics_8t_source.html#l00066">66</a> of file <a class="el" href="mod__physics_8t_source.html">mod_physics.t</a>.</p>
 
 </div>
 </div>
@@ -1720,7 +1817,7 @@ Here is the call graph for this function:</div>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="mod__physics_8t_source.html#l00082">82</a> of file <a class="el" href="mod__physics_8t_source.html">mod_physics.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__physics_8t_source.html#l00081">81</a> of file <a class="el" href="mod__physics_8t_source.html">mod_physics.t</a>.</p>
 
 </div>
 </div>
@@ -1752,7 +1849,7 @@ Here is the call graph for this function:</div>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="mod__physics_8t_source.html#l00066">66</a> of file <a class="el" href="mod__physics_8t_source.html">mod_physics.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__physics_8t_source.html#l00067">67</a> of file <a class="el" href="mod__physics_8t_source.html">mod_physics.t</a>.</p>
 
 </div>
 </div>
@@ -1768,7 +1865,7 @@ Here is the call graph for this function:</div>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="mod__physics_8t_source.html#l00064">64</a> of file <a class="el" href="mod__physics_8t_source.html">mod_physics.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__physics_8t_source.html#l00065">65</a> of file <a class="el" href="mod__physics_8t_source.html">mod_physics.t</a>.</p>
 
 </div>
 </div>
@@ -1880,7 +1977,7 @@ Here is the call graph for this function:</div>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="mod__physics_8t_source.html#l00081">81</a> of file <a class="el" href="mod__physics_8t_source.html">mod_physics.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__physics_8t_source.html#l00080">80</a> of file <a class="el" href="mod__physics_8t_source.html">mod_physics.t</a>.</p>
 
 </div>
 </div>
@@ -1896,7 +1993,7 @@ Here is the call graph for this function:</div>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="mod__physics_8t_source.html#l00085">85</a> of file <a class="el" href="mod__physics_8t_source.html">mod_physics.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__physics_8t_source.html#l00084">84</a> of file <a class="el" href="mod__physics_8t_source.html">mod_physics.t</a>.</p>
 
 </div>
 </div>
@@ -1912,9 +2009,9 @@ Here is the call graph for this function:</div>
       </table>
 </div><div class="memdoc">
 
-<p>Solve internal enery instead of total energy. </p>
+<p>Solve internal energy instead of total energy. </p>
 
-<p class="definition">Definition at line <a class="el" href="mod__physics_8t_source.html#l00036">36</a> of file <a class="el" href="mod__physics_8t_source.html">mod_physics.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__physics_8t_source.html#l00033">33</a> of file <a class="el" href="mod__physics_8t_source.html">mod_physics.t</a>.</p>
 
 </div>
 </div>
@@ -1934,6 +2031,24 @@ Here is the call graph for this function:</div>
 
 </div>
 </div>
+<a id="a5b3ad5fce8064d09f9f7608cb83a2d5d"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a5b3ad5fce8064d09f9f7608cb83a2d5d">&#9670;&nbsp;</a></span>phys_partial_ionization</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">logical mod_physics::phys_partial_ionization =.false.</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Solve partially ionized one-fluid plasma. </p>
+
+<p class="definition">Definition at line <a class="el" href="mod__physics_8t_source.html#l00036">36</a> of file <a class="el" href="mod__physics_8t_source.html">mod_physics.t</a>.</p>
+
+</div>
+</div>
 <a id="a3b574f164bdb18cad0d1e95962df62a4"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a3b574f164bdb18cad0d1e95962df62a4">&#9670;&nbsp;</a></span>phys_req_diagonal</h2>
 
@@ -1948,7 +2063,7 @@ Here is the call graph for this function:</div>
 
 <p>Whether the physics routines require diagonal ghost cells, for example for computing a curl. </p>
 
-<p class="definition">Definition at line <a class="el" href="mod__physics_8t_source.html#l00027">27</a> of file <a class="el" href="mod__physics_8t_source.html">mod_physics.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__physics_8t_source.html#l00024">24</a> of file <a class="el" href="mod__physics_8t_source.html">mod_physics.t</a>.</p>
 
 </div>
 </div>
@@ -1964,7 +2079,7 @@ Here is the call graph for this function:</div>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="mod__physics_8t_source.html#l00089">89</a> of file <a class="el" href="mod__physics_8t_source.html">mod_physics.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__physics_8t_source.html#l00088">88</a> of file <a class="el" href="mod__physics_8t_source.html">mod_physics.t</a>.</p>
 
 </div>
 </div>
@@ -1981,24 +2096,6 @@ Here is the call graph for this function:</div>
 </div><div class="memdoc">
 
 <p class="definition">Definition at line <a class="el" href="mod__physics_8t_source.html#l00057">57</a> of file <a class="el" href="mod__physics_8t_source.html">mod_physics.t</a>.</p>
-
-</div>
-</div>
-<a id="a51bbbee51ccb77a7bdab0f091872fa3d"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a51bbbee51ccb77a7bdab0f091872fa3d">&#9670;&nbsp;</a></span>phys_solve_eaux</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">logical mod_physics::phys_solve_eaux =.false.</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>Solve internal energy and total energy equations. </p>
-
-<p class="definition">Definition at line <a class="el" href="mod__physics_8t_source.html#l00039">39</a> of file <a class="el" href="mod__physics_8t_source.html">mod_physics.t</a>.</p>
 
 </div>
 </div>
@@ -2030,7 +2127,7 @@ Here is the call graph for this function:</div>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="mod__physics_8t_source.html#l00091">91</a> of file <a class="el" href="mod__physics_8t_source.html">mod_physics.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__physics_8t_source.html#l00090">90</a> of file <a class="el" href="mod__physics_8t_source.html">mod_physics.t</a>.</p>
 
 </div>
 </div>
@@ -2080,7 +2177,23 @@ Here is the call graph for this function:</div>
 
 <p>Solve total energy equation or not. </p>
 
-<p class="definition">Definition at line <a class="el" href="mod__physics_8t_source.html#l00033">33</a> of file <a class="el" href="mod__physics_8t_source.html">mod_physics.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__physics_8t_source.html#l00030">30</a> of file <a class="el" href="mod__physics_8t_source.html">mod_physics.t</a>.</p>
+
+</div>
+</div>
+<a id="a89eb266cd1982cecd9417fe9cdfc2aa2"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a89eb266cd1982cecd9417fe9cdfc2aa2">&#9670;&nbsp;</a></span>phys_trac_after_setdt</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">procedure(<a class="el" href="interfacemod__physics_1_1sub__trac__after__setdt.html">sub_trac_after_setdt</a>), pointer mod_physics::phys_trac_after_setdt =&gt; null()</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p class="definition">Definition at line <a class="el" href="mod__physics_8t_source.html#l00064">64</a> of file <a class="el" href="mod__physics_8t_source.html">mod_physics.t</a>.</p>
 
 </div>
 </div>
@@ -2096,7 +2209,23 @@ Here is the call graph for this function:</div>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="mod__physics_8t_source.html#l00083">83</a> of file <a class="el" href="mod__physics_8t_source.html">mod_physics.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__physics_8t_source.html#l00082">82</a> of file <a class="el" href="mod__physics_8t_source.html">mod_physics.t</a>.</p>
+
+</div>
+</div>
+<a id="a6220bffb8430e4125d340bb12124b3fc"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a6220bffb8430e4125d340bb12124b3fc">&#9670;&nbsp;</a></span>phys_update_temperature</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">procedure(<a class="el" href="interfacemod__physics_1_1sub__update__temperature.html">sub_update_temperature</a>), pointer mod_physics::phys_update_temperature =&gt; null()</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p class="definition">Definition at line <a class="el" href="mod__physics_8t_source.html#l00092">92</a> of file <a class="el" href="mod__physics_8t_source.html">mod_physics.t</a>.</p>
 
 </div>
 </div>
@@ -2114,7 +2243,7 @@ Here is the call graph for this function:</div>
 
 <p>To use wider stencils in flux calculations. A value of 1 will extend it by one cell in both directions, in any dimension. </p>
 
-<p class="definition">Definition at line <a class="el" href="mod__physics_8t_source.html#l00023">23</a> of file <a class="el" href="mod__physics_8t_source.html">mod_physics.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__physics_8t_source.html#l00020">20</a> of file <a class="el" href="mod__physics_8t_source.html">mod_physics.t</a>.</p>
 
 </div>
 </div>
@@ -2148,7 +2277,7 @@ Here is the call graph for this function:</div>
 
 <p>String describing the physics type of the simulation. </p>
 
-<p class="definition">Definition at line <a class="el" href="mod__physics_8t_source.html#l00019">19</a> of file <a class="el" href="mod__physics_8t_source.html">mod_physics.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__physics_8t_source.html#l00016">16</a> of file <a class="el" href="mod__physics_8t_source.html">mod_physics.t</a>.</p>
 
 </div>
 </div>

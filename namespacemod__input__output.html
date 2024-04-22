@@ -30,7 +30,7 @@
  <tr style="height: 56px;">
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">MPI-AMRVAC
-   &#160;<span id="projectnumber">3.0</span>
+   &#160;<span id="projectnumber">3.1</span>
    </div>
    <div id="projectbrief">The MPI - Adaptive Mesh Refinement - Versatile Advection Code</div>
   </td>
@@ -95,28 +95,16 @@ Functions/Subroutines</h2></td></tr>
 <tr class="separator:ab2d0a28e065926627226ed89b96ada9d"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a061b50e8aaaaf828c94809adf831ccbe"><td class="memItemLeft" align="right" valign="top">subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__input__output.html#a061b50e8aaaaf828c94809adf831ccbe">saveamrfile</a> (ifile)</td></tr>
 <tr class="separator:a061b50e8aaaaf828c94809adf831ccbe"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a4cddb904b15d3bc7e45953c6b7329eed"><td class="memItemLeft" align="right" valign="top">subroutine, public&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__input__output.html#a4cddb904b15d3bc7e45953c6b7329eed">create_output_file</a> (fh, ix, extension, suffix)</td></tr>
-<tr class="memdesc:a4cddb904b15d3bc7e45953c6b7329eed"><td class="mdescLeft">&#160;</td><td class="mdescRight">Standard method for creating a new output file.  <a href="namespacemod__input__output.html#a4cddb904b15d3bc7e45953c6b7329eed">More...</a><br /></td></tr>
-<tr class="separator:a4cddb904b15d3bc7e45953c6b7329eed"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a261f5086d85a96e13547d0e1c60928af"><td class="memItemLeft" align="right" valign="top">logical function&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__input__output.html#a261f5086d85a96e13547d0e1c60928af">snapshot_exists</a> (ix)</td></tr>
 <tr class="separator:a261f5086d85a96e13547d0e1c60928af"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a2b408b40f813e4fe523621ab4a497d76"><td class="memItemLeft" align="right" valign="top">integer function&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__input__output.html#a2b408b40f813e4fe523621ab4a497d76">get_snapshot_index</a> (filename)</td></tr>
 <tr class="separator:a2b408b40f813e4fe523621ab4a497d76"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ad596a6ad9e1a0a7ff3feb742d22e5e15"><td class="memItemLeft" align="right" valign="top">subroutine, public&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__input__output.html#ad596a6ad9e1a0a7ff3feb742d22e5e15">snapshot_write_header1</a> (fh, offset_tree, offset_block, dataset_names, nw_vars)</td></tr>
-<tr class="memdesc:ad596a6ad9e1a0a7ff3feb742d22e5e15"><td class="mdescLeft">&#160;</td><td class="mdescRight">Write header for a snapshot, generalize cons_wnames and nw.  <a href="namespacemod__input__output.html#ad596a6ad9e1a0a7ff3feb742d22e5e15">More...</a><br /></td></tr>
-<tr class="separator:ad596a6ad9e1a0a7ff3feb742d22e5e15"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:acd293c80fe4dffe68b3bd5af075cc137"><td class="memItemLeft" align="right" valign="top">subroutine, public&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__input__output.html#acd293c80fe4dffe68b3bd5af075cc137">snapshot_write_header</a> (fh, offset_tree, offset_block)</td></tr>
 <tr class="memdesc:acd293c80fe4dffe68b3bd5af075cc137"><td class="mdescLeft">&#160;</td><td class="mdescRight">Write header for a snapshot.  <a href="namespacemod__input__output.html#acd293c80fe4dffe68b3bd5af075cc137">More...</a><br /></td></tr>
 <tr class="separator:acd293c80fe4dffe68b3bd5af075cc137"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ae860a54ebdb7a0bee2fed1821d67cc99"><td class="memItemLeft" align="right" valign="top">subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__input__output.html#ae860a54ebdb7a0bee2fed1821d67cc99">snapshot_read_header</a> (fh, offset_tree, offset_block)</td></tr>
 <tr class="memdesc:ae860a54ebdb7a0bee2fed1821d67cc99"><td class="mdescLeft">&#160;</td><td class="mdescRight">Read header for a snapshot.  <a href="namespacemod__input__output.html#ae860a54ebdb7a0bee2fed1821d67cc99">More...</a><br /></td></tr>
 <tr class="separator:ae860a54ebdb7a0bee2fed1821d67cc99"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a22315d7443f62f6cd637218df95f962d"><td class="memItemLeft" align="right" valign="top">pure integer function, public&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__input__output.html#a22315d7443f62f6cd637218df95f962d">count_ix</a> (ixOL)</td></tr>
-<tr class="memdesc:a22315d7443f62f6cd637218df95f962d"><td class="mdescLeft">&#160;</td><td class="mdescRight">Compute number of elements in index range.  <a href="namespacemod__input__output.html#a22315d7443f62f6cd637218df95f962d">More...</a><br /></td></tr>
-<tr class="separator:a22315d7443f62f6cd637218df95f962d"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a82e2ee2fa4e39ed73c2ab7aa3bc05a89"><td class="memItemLeft" align="right" valign="top">subroutine, public&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__input__output.html#a82e2ee2fa4e39ed73c2ab7aa3bc05a89">block_shape_io</a> (igrid, n_ghost, ixOL, n_values)</td></tr>
-<tr class="memdesc:a82e2ee2fa4e39ed73c2ab7aa3bc05a89"><td class="mdescLeft">&#160;</td><td class="mdescRight">Determine the shape of a block for output (whether to include ghost cells, and on which sides)  <a href="namespacemod__input__output.html#a82e2ee2fa4e39ed73c2ab7aa3bc05a89">More...</a><br /></td></tr>
-<tr class="separator:a82e2ee2fa4e39ed73c2ab7aa3bc05a89"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ae1d4a41dcf32cae3752c48ef73f42364"><td class="memItemLeft" align="right" valign="top">subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__input__output.html#ae1d4a41dcf32cae3752c48ef73f42364">write_snapshot</a></td></tr>
 <tr class="separator:ae1d4a41dcf32cae3752c48ef73f42364"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aa2d00e56c4444b0b4806a9c13ce2eff7"><td class="memItemLeft" align="right" valign="top">subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__input__output.html#aa2d00e56c4444b0b4806a9c13ce2eff7">read_snapshot</a></td></tr>
@@ -148,18 +136,12 @@ Functions/Subroutines</h2></td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="var-members"></a>
 Variables</h2></td></tr>
-<tr class="memitem:ab01fdfe0369eff4df510ef5c7db2e7f8"><td class="memItemLeft" align="right" valign="top">integer, parameter&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__input__output.html#ab01fdfe0369eff4df510ef5c7db2e7f8">version_number</a> = 5</td></tr>
-<tr class="memdesc:ab01fdfe0369eff4df510ef5c7db2e7f8"><td class="mdescLeft">&#160;</td><td class="mdescRight">Version number of the .dat file output.  <a href="namespacemod__input__output.html#ab01fdfe0369eff4df510ef5c7db2e7f8">More...</a><br /></td></tr>
-<tr class="separator:ab01fdfe0369eff4df510ef5c7db2e7f8"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:af6450e39c0d1c69b17bbbb5db487231a"><td class="memItemLeft" align="right" valign="top">integer, dimension(3), parameter&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__input__output.html#af6450e39c0d1c69b17bbbb5db487231a">compatible_versions</a> = [3, 4, 5]</td></tr>
 <tr class="memdesc:af6450e39c0d1c69b17bbbb5db487231a"><td class="mdescLeft">&#160;</td><td class="mdescRight">List of compatible versions.  <a href="namespacemod__input__output.html#af6450e39c0d1c69b17bbbb5db487231a">More...</a><br /></td></tr>
 <tr class="separator:af6450e39c0d1c69b17bbbb5db487231a"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aa90f67fcd1dcf23e3d7f0f13e3dcc87e"><td class="memItemLeft" align="right" valign="top">integer&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__input__output.html#aa90f67fcd1dcf23e3d7f0f13e3dcc87e">nw_found</a></td></tr>
 <tr class="memdesc:aa90f67fcd1dcf23e3d7f0f13e3dcc87e"><td class="mdescLeft">&#160;</td><td class="mdescRight">number of w found in dat files  <a href="namespacemod__input__output.html#aa90f67fcd1dcf23e3d7f0f13e3dcc87e">More...</a><br /></td></tr>
 <tr class="separator:aa90f67fcd1dcf23e3d7f0f13e3dcc87e"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a85ab6438ece93eeac25fdfac7beed77b"><td class="memItemLeft" align="right" valign="top">logical&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__input__output.html#a85ab6438ece93eeac25fdfac7beed77b">save_now</a></td></tr>
-<tr class="memdesc:a85ab6438ece93eeac25fdfac7beed77b"><td class="mdescLeft">&#160;</td><td class="mdescRight">whether a manually inserted snapshot is saved  <a href="namespacemod__input__output.html#a85ab6438ece93eeac25fdfac7beed77b">More...</a><br /></td></tr>
-<tr class="separator:a85ab6438ece93eeac25fdfac7beed77b"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a5a4c8ad20085895e6afea0b6da413313"><td class="memItemLeft" align="right" valign="top">character(len= *), parameter&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__input__output.html#a5a4c8ad20085895e6afea0b6da413313">fmt_r</a> = 'es16.8'</td></tr>
 <tr class="separator:a5a4c8ad20085895e6afea0b6da413313"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ab0092e81ef07b5ca84ceddacc7c4d9f9"><td class="memItemLeft" align="right" valign="top">character(len= *), parameter&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__input__output.html#ab0092e81ef07b5ca84ceddacc7c4d9f9">fmt_r2</a> = 'es10.2'</td></tr>
@@ -170,168 +152,6 @@ Variables</h2></td></tr>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>Module for reading input and writing output. </p>
 </div><h2 class="groupheader">Function/Subroutine Documentation</h2>
-<a id="a82e2ee2fa4e39ed73c2ab7aa3bc05a89"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a82e2ee2fa4e39ed73c2ab7aa3bc05a89">&#9670;&nbsp;</a></span>block_shape_io()</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">subroutine, public mod_input_output::block_shape_io </td>
-          <td>(</td>
-          <td class="paramtype">integer, intent(in)&#160;</td>
-          <td class="paramname"><em>igrid</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">integer, dimension(2*ndim), intent(out)&#160;</td>
-          <td class="paramname"><em>n_ghost</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">integer, intent(out)&#160;</td>
-          <td class="paramname"><em>ixO</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">integer, intent(out)&#160;</td>
-          <td class="paramname"><em>L</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">integer, intent(out)&#160;</td>
-          <td class="paramname"><em>n_values</em>&#160;</td>
-        </tr>
-        <tr>
-          <td></td>
-          <td>)</td>
-          <td></td><td></td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>Determine the shape of a block for output (whether to include ghost cells, and on which sides) </p>
-<dl class="params"><dt>Parameters</dt><dd>
-  <table class="params">
-    <tr><td class="paramdir">[out]</td><td class="paramname">n_ghost</td><td>nghost(1:ndim) contains the number of ghost cells on the block's minimum boundaries, and nghost(ndim+1:2*ndim) on the block's maximum boundaries </td></tr>
-    <tr><td class="paramdir">[out]</td><td class="paramname">ixo</td><td>Index range on output block </td></tr>
-    <tr><td class="paramdir">[out]</td><td class="paramname">l</td><td>Index range on output block </td></tr>
-    <tr><td class="paramdir">[out]</td><td class="paramname">n_values</td><td>Number of cells/values in output </td></tr>
-  </table>
-  </dd>
-</dl>
-
-<p class="definition">Definition at line <a class="el" href="mod__input__output_8t_source.html#l02088">2088</a> of file <a class="el" href="mod__input__output_8t_source.html">mod_input_output.t</a>.</p>
-<div class="dynheader">
-Here is the call graph for this function:</div>
-<div class="dyncontent">
-<div class="center"><img src="namespacemod__input__output_a82e2ee2fa4e39ed73c2ab7aa3bc05a89_cgraph.png" border="0" usemap="#anamespacemod__input__output_a82e2ee2fa4e39ed73c2ab7aa3bc05a89_cgraph" alt=""/></div>
-<map name="anamespacemod__input__output_a82e2ee2fa4e39ed73c2ab7aa3bc05a89_cgraph" id="anamespacemod__input__output_a82e2ee2fa4e39ed73c2ab7aa3bc05a89_cgraph">
-<area shape="rect" title="Determine the shape of a block for output (whether to include ghost cells, and on which sides)" alt="" coords="5,5,188,47"/>
-<area shape="rect" href="namespacemod__input__output.html#a22315d7443f62f6cd637218df95f962d" title="Compute number of elements in index range." alt="" coords="236,13,439,39"/>
-</map>
-</div>
-
-</div>
-</div>
-<a id="a22315d7443f62f6cd637218df95f962d"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a22315d7443f62f6cd637218df95f962d">&#9670;&nbsp;</a></span>count_ix()</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">pure integer function, public mod_input_output::count_ix </td>
-          <td>(</td>
-          <td class="paramtype">integer, intent(in)&#160;</td>
-          <td class="paramname"><em>ixO</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">integer, intent(in)&#160;</td>
-          <td class="paramname"><em>L</em>&#160;</td>
-        </tr>
-        <tr>
-          <td></td>
-          <td>)</td>
-          <td></td><td></td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>Compute number of elements in index range. </p>
-
-<p class="definition">Definition at line <a class="el" href="mod__input__output_8t_source.html#l02080">2080</a> of file <a class="el" href="mod__input__output_8t_source.html">mod_input_output.t</a>.</p>
-
-</div>
-</div>
-<a id="a4cddb904b15d3bc7e45953c6b7329eed"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a4cddb904b15d3bc7e45953c6b7329eed">&#9670;&nbsp;</a></span>create_output_file()</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">subroutine, public mod_input_output::create_output_file </td>
-          <td>(</td>
-          <td class="paramtype">integer, intent(out)&#160;</td>
-          <td class="paramname"><em>fh</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">integer, intent(in)&#160;</td>
-          <td class="paramname"><em>ix</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">character(len=*), intent(in)&#160;</td>
-          <td class="paramname"><em>extension</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">character(len=*), intent(in), optional&#160;</td>
-          <td class="paramname"><em>suffix</em>&#160;</td>
-        </tr>
-        <tr>
-          <td></td>
-          <td>)</td>
-          <td></td><td></td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>Standard method for creating a new output file. </p>
-<dl class="params"><dt>Parameters</dt><dd>
-  <table class="params">
-    <tr><td class="paramdir">[out]</td><td class="paramname">fh</td><td>File handle </td></tr>
-    <tr><td class="paramdir">[in]</td><td class="paramname">ix</td><td>Index of file </td></tr>
-    <tr><td class="paramdir">[in]</td><td class="paramname">extension</td><td>Extension of file </td></tr>
-    <tr><td class="paramdir">[in]</td><td class="paramname">suffix</td><td>Optional suffix </td></tr>
-  </table>
-  </dd>
-</dl>
-
-<p class="definition">Definition at line <a class="el" href="mod__input__output_8t_source.html#l01754">1754</a> of file <a class="el" href="mod__input__output_8t_source.html">mod_input_output.t</a>.</p>
-<div class="dynheader">
-Here is the call graph for this function:</div>
-<div class="dyncontent">
-<div class="center"><img src="namespacemod__input__output_a4cddb904b15d3bc7e45953c6b7329eed_cgraph.png" border="0" usemap="#anamespacemod__input__output_a4cddb904b15d3bc7e45953c6b7329eed_cgraph" alt=""/></div>
-<map name="anamespacemod__input__output_a4cddb904b15d3bc7e45953c6b7329eed_cgraph" id="anamespacemod__input__output_a4cddb904b15d3bc7e45953c6b7329eed_cgraph">
-<area shape="rect" title="Standard method for creating a new output file." alt="" coords="5,5,195,47"/>
-<area shape="rect" href="comm__lib_8t.html#a49b49ea9ffbbadfe688e332921c4cddd" title="Exit MPI&#45;AMRVAC with an error message." alt="" coords="243,13,317,39"/>
-</map>
-</div>
-
-</div>
-</div>
 <a id="ab2d0a28e065926627226ed89b96ada9d"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#ab2d0a28e065926627226ed89b96ada9d">&#9670;&nbsp;</a></span>get_fields_string()</h2>
 
@@ -394,7 +214,7 @@ Here is the call graph for this function:</div>
   </dd>
 </dl>
 
-<p class="definition">Definition at line <a class="el" href="mod__input__output_8t_source.html#l01652">1652</a> of file <a class="el" href="mod__input__output_8t_source.html">mod_input_output.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__input__output_8t_source.html#l01671">1671</a> of file <a class="el" href="mod__input__output_8t_source.html">mod_input_output.t</a>.</p>
 
 </div>
 </div>
@@ -422,7 +242,7 @@ Here is the call graph for this function:</div>
   </dd>
 </dl>
 
-<p class="definition">Definition at line <a class="el" href="mod__input__output_8t_source.html#l02899">2899</a> of file <a class="el" href="mod__input__output_8t_source.html">mod_input_output.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__input__output_8t_source.html#l02777">2777</a> of file <a class="el" href="mod__input__output_8t_source.html">mod_input_output.t</a>.</p>
 
 </div>
 </div>
@@ -450,7 +270,7 @@ Here is the call graph for this function:</div>
   </dd>
 </dl>
 
-<p class="definition">Definition at line <a class="el" href="mod__input__output_8t_source.html#l02926">2926</a> of file <a class="el" href="mod__input__output_8t_source.html">mod_input_output.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__input__output_8t_source.html#l02804">2804</a> of file <a class="el" href="mod__input__output_8t_source.html">mod_input_output.t</a>.</p>
 
 </div>
 </div>
@@ -470,7 +290,7 @@ Here is the call graph for this function:</div>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="mod__input__output_8t_source.html#l01799">1799</a> of file <a class="el" href="mod__input__output_8t_source.html">mod_input_output.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__input__output_8t_source.html#l01784">1784</a> of file <a class="el" href="mod__input__output_8t_source.html">mod_input_output.t</a>.</p>
 
 </div>
 </div>
@@ -516,7 +336,7 @@ Here is the call graph for this function:</div>
   </dd>
 </dl>
 
-<p class="definition">Definition at line <a class="el" href="mod__input__output_8t_source.html#l02792">2792</a> of file <a class="el" href="mod__input__output_8t_source.html">mod_input_output.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__input__output_8t_source.html#l02670">2670</a> of file <a class="el" href="mod__input__output_8t_source.html">mod_input_output.t</a>.</p>
 
 </div>
 </div>
@@ -561,7 +381,7 @@ Here is the call graph for this function:</div>
   </dd>
 </dl>
 
-<p class="definition">Definition at line <a class="el" href="mod__input__output_8t_source.html#l02856">2856</a> of file <a class="el" href="mod__input__output_8t_source.html">mod_input_output.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__input__output_8t_source.html#l02734">2734</a> of file <a class="el" href="mod__input__output_8t_source.html">mod_input_output.t</a>.</p>
 
 </div>
 </div>
@@ -583,7 +403,7 @@ Here is the call graph for this function:</div>
 
 <p>Compute how much of the domain is covered by each grid level. This routine does not take a non-Cartesian geometry into account. </p>
 
-<p class="definition">Definition at line <a class="el" href="mod__input__output_8t_source.html#l02830">2830</a> of file <a class="el" href="mod__input__output_8t_source.html">mod_input_output.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__input__output_8t_source.html#l02708">2708</a> of file <a class="el" href="mod__input__output_8t_source.html">mod_input_output.t</a>.</p>
 
 </div>
 </div>
@@ -601,7 +421,7 @@ Here is the call graph for this function:</div>
 
 <p>Write volume-averaged values and other information to the log file. </p>
 
-<p class="definition">Definition at line <a class="el" href="mod__input__output_8t_source.html#l02631">2631</a> of file <a class="el" href="mod__input__output_8t_source.html">mod_input_output.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__input__output_8t_source.html#l02509">2509</a> of file <a class="el" href="mod__input__output_8t_source.html">mod_input_output.t</a>.</p>
 <div class="dynheader">
 Here is the call graph for this function:</div>
 <div class="dyncontent">
@@ -629,7 +449,7 @@ Here is the call graph for this function:</div>
 
 <p>Print a log that can be used to check whether the code still produces the same output (regression test) </p>
 
-<p class="definition">Definition at line <a class="el" href="mod__input__output_8t_source.html#l02762">2762</a> of file <a class="el" href="mod__input__output_8t_source.html">mod_input_output.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__input__output_8t_source.html#l02640">2640</a> of file <a class="el" href="mod__input__output_8t_source.html">mod_input_output.t</a>.</p>
 <div class="dynheader">
 Here is the call graph for this function:</div>
 <div class="dyncontent">
@@ -656,7 +476,7 @@ Here is the call graph for this function:</div>
 
 <p>Read the command line arguments passed to amrvac. </p>
 
-<p class="definition">Definition at line <a class="el" href="mod__input__output_8t_source.html#l00040">40</a> of file <a class="el" href="mod__input__output_8t_source.html">mod_input_output.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__input__output_8t_source.html#l00036">36</a> of file <a class="el" href="mod__input__output_8t_source.html">mod_input_output.t</a>.</p>
 <div class="dynheader">
 Here is the call graph for this function:</div>
 <div class="dyncontent">
@@ -691,16 +511,17 @@ Here is the call graph for this function:</div>
 <p>Limiter used for prolongation to refined grids and ghost cells</p>
 <p>How to compute the CFL-limited time step. Options are 'maxsum': max(sum(c/dx)); 'summax': sum(max(c/dx)) and 'minimum: max(c/dx), where the summations loop over the grid dimensions and c is the velocity. The default 'maxsum' is the conventiontal way of computing CFL-limited time steps.</p>
 
-<p class="definition">Definition at line <a class="el" href="mod__input__output_8t_source.html#l00179">179</a> of file <a class="el" href="mod__input__output_8t_source.html">mod_input_output.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__input__output_8t_source.html#l00175">175</a> of file <a class="el" href="mod__input__output_8t_source.html">mod_input_output.t</a>.</p>
 <div class="dynheader">
 Here is the call graph for this function:</div>
 <div class="dyncontent">
 <div class="center"><img src="namespacemod__input__output_a3d02333ce1529f982c89bf948cc871e7_cgraph.png" border="0" usemap="#anamespacemod__input__output_a3d02333ce1529f982c89bf948cc871e7_cgraph" alt=""/></div>
 <map name="anamespacemod__input__output_a3d02333ce1529f982c89bf948cc871e7_cgraph" id="anamespacemod__input__output_a3d02333ce1529f982c89bf948cc871e7_cgraph">
-<area shape="rect" title="Read in the user&#45;supplied parameter&#45;file." alt="" coords="5,64,183,105"/>
-<area shape="rect" href="namespacemod__input__output.html#a2b408b40f813e4fe523621ab4a497d76" title=" " alt="" coords="249,5,419,47"/>
-<area shape="rect" href="comm__lib_8t.html#a49b49ea9ffbbadfe688e332921c4cddd" title="Exit MPI&#45;AMRVAC with an error message." alt="" coords="297,71,371,98"/>
-<area shape="rect" href="namespacemod__input__output.html#a261f5086d85a96e13547d0e1c60928af" title=" " alt="" coords="231,123,437,164"/>
+<area shape="rect" title="Read in the user&#45;supplied parameter&#45;file." alt="" coords="5,100,183,141"/>
+<area shape="rect" href="namespacemod__input__output__helper.html#ab75e38c0b0f267995e208c94854d9973" title=" " alt="" coords="240,5,428,47"/>
+<area shape="rect" href="namespacemod__input__output.html#a2b408b40f813e4fe523621ab4a497d76" title=" " alt="" coords="249,71,419,112"/>
+<area shape="rect" href="namespacemod__comm__lib.html#a9b6f1a8fd13bc5670e3b426151c34048" title="Exit MPI&#45;AMRVAC with an error message." alt="" coords="243,137,425,163"/>
+<area shape="rect" href="namespacemod__input__output.html#a261f5086d85a96e13547d0e1c60928af" title=" " alt="" coords="231,188,437,229"/>
 </map>
 </div>
 
@@ -720,20 +541,19 @@ Here is the call graph for this function:</div>
 
 <p>Routine to read in snapshots (.dat files). When it cannot recognize the file version, it will automatically try the 'old' reader. </p>
 
-<p class="definition">Definition at line <a class="el" href="mod__input__output_8t_source.html#l02292">2292</a> of file <a class="el" href="mod__input__output_8t_source.html">mod_input_output.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__input__output_8t_source.html#l02162">2162</a> of file <a class="el" href="mod__input__output_8t_source.html">mod_input_output.t</a>.</p>
 <div class="dynheader">
 Here is the call graph for this function:</div>
 <div class="dyncontent">
 <div class="center"><img src="namespacemod__input__output_aa2d00e56c4444b0b4806a9c13ce2eff7_cgraph.png" border="0" usemap="#anamespacemod__input__output_aa2d00e56c4444b0b4806a9c13ce2eff7_cgraph" alt=""/></div>
 <map name="anamespacemod__input__output_aa2d00e56c4444b0b4806a9c13ce2eff7_cgraph" id="anamespacemod__input__output_aa2d00e56c4444b0b4806a9c13ce2eff7_cgraph">
-<area shape="rect" title="Routine to read in snapshots (.dat files). When it cannot recognize the file version,..." alt="" coords="5,165,183,207"/>
-<area shape="rect" href="amr__solution__node_8t.html#a18f209c67b004dfa60490520e9eb028c" title="allocate arrays on igrid node" alt="" coords="524,282,616,309"/>
-<area shape="rect" href="comm__lib_8t.html#a49b49ea9ffbbadfe688e332921c4cddd" title="Exit MPI&#45;AMRVAC with an error message." alt="" coords="703,257,777,283"/>
-<area shape="rect" href="namespacemod__input__output.html#a22315d7443f62f6cd637218df95f962d" title="Compute number of elements in index range." alt="" coords="233,122,435,149"/>
-<area shape="rect" href="namespacemod__input__output.html#a2b408b40f813e4fe523621ab4a497d76" title=" " alt="" coords="485,64,655,105"/>
-<area shape="rect" href="forest_8t.html#aac4f7a8627eec150e762830c08ad9530" title=" " alt="" coords="522,177,618,203"/>
+<area shape="rect" title="Routine to read in snapshots (.dat files). When it cannot recognize the file version,..." alt="" coords="5,136,183,177"/>
+<area shape="rect" href="namespacemod__amr__solution__node.html#a5360422247c76466eb60cf0a2d6fd5e9" title="allocate arrays on igrid node" alt="" coords="485,174,668,216"/>
+<area shape="rect" href="namespacemod__input__output__helper.html#a54d24b33757cb6dc549aeb19a2563964" title="Compute number of elements in index range." alt="" coords="240,41,428,82"/>
+<area shape="rect" href="namespacemod__input__output.html#a2b408b40f813e4fe523621ab4a497d76" title=" " alt="" coords="492,98,661,140"/>
+<area shape="rect" href="namespacemod__functions__forest.html#a693fb7f8cc66f54e57220b83e219320e" title=" " alt="" coords="495,262,658,304"/>
 <area shape="rect" href="namespacemod__input__output.html#afa9ed59afcf773a8f071c30b69d1bceb" title=" " alt="" coords="245,224,423,265"/>
-<area shape="rect" href="namespacemod__input__output.html#ae860a54ebdb7a0bee2fed1821d67cc99" title="Read header for a snapshot." alt="" coords="231,5,437,47"/>
+<area shape="rect" href="namespacemod__input__output.html#ae860a54ebdb7a0bee2fed1821d67cc99" title="Read header for a snapshot." alt="" coords="231,106,437,148"/>
 </map>
 </div>
 
@@ -751,16 +571,15 @@ Here is the call graph for this function:</div>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="mod__input__output_8t_source.html#l02492">2492</a> of file <a class="el" href="mod__input__output_8t_source.html">mod_input_output.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__input__output_8t_source.html#l02368">2368</a> of file <a class="el" href="mod__input__output_8t_source.html">mod_input_output.t</a>.</p>
 <div class="dynheader">
 Here is the call graph for this function:</div>
 <div class="dyncontent">
 <div class="center"><img src="namespacemod__input__output_afa9ed59afcf773a8f071c30b69d1bceb_cgraph.png" border="0" usemap="#anamespacemod__input__output_afa9ed59afcf773a8f071c30b69d1bceb_cgraph" alt=""/></div>
 <map name="anamespacemod__input__output_afa9ed59afcf773a8f071c30b69d1bceb_cgraph" id="anamespacemod__input__output_afa9ed59afcf773a8f071c30b69d1bceb_cgraph">
-<area shape="rect" title=" " alt="" coords="5,49,183,90"/>
-<area shape="rect" href="amr__solution__node_8t.html#a18f209c67b004dfa60490520e9eb028c" title="allocate arrays on igrid node" alt="" coords="233,5,325,32"/>
-<area shape="rect" href="comm__lib_8t.html#a49b49ea9ffbbadfe688e332921c4cddd" title="Exit MPI&#45;AMRVAC with an error message." alt="" coords="375,31,449,57"/>
-<area shape="rect" href="forest_8t.html#aac4f7a8627eec150e762830c08ad9530" title=" " alt="" coords="231,107,327,133"/>
+<area shape="rect" title=" " alt="" coords="5,39,183,80"/>
+<area shape="rect" href="namespacemod__amr__solution__node.html#a5360422247c76466eb60cf0a2d6fd5e9" title="allocate arrays on igrid node" alt="" coords="231,5,413,47"/>
+<area shape="rect" href="namespacemod__functions__forest.html#a693fb7f8cc66f54e57220b83e219320e" title=" " alt="" coords="241,71,403,112"/>
 </map>
 </div>
 
@@ -782,20 +601,19 @@ Here is the call graph for this function:</div>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="mod__input__output_8t_source.html#l01700">1700</a> of file <a class="el" href="mod__input__output_8t_source.html">mod_input_output.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__input__output_8t_source.html#l01719">1719</a> of file <a class="el" href="mod__input__output_8t_source.html">mod_input_output.t</a>.</p>
 <div class="dynheader">
 Here is the call graph for this function:</div>
 <div class="dyncontent">
 <div class="center"><img src="namespacemod__input__output_a061b50e8aaaaf828c94809adf831ccbe_cgraph.png" border="0" usemap="#anamespacemod__input__output_a061b50e8aaaaf828c94809adf831ccbe_cgraph" alt=""/></div>
 <map name="anamespacemod__input__output_a061b50e8aaaaf828c94809adf831ccbe_cgraph" id="anamespacemod__input__output_a061b50e8aaaaf828c94809adf831ccbe_cgraph">
-<area shape="rect" title=" " alt="" coords="5,180,231,207"/>
-<area shape="rect" href="convert_8t.html#aba99108af4b3d5f34e0227792617cecd" title=" " alt="" coords="312,5,444,32"/>
-<area shape="rect" href="comm__lib_8t.html#a49b49ea9ffbbadfe688e332921c4cddd" title="Exit MPI&#45;AMRVAC with an error message." alt="" coords="525,31,600,57"/>
-<area shape="rect" href="namespacemod__input__output.html#ac699b426ea2d42b06de1c1798b98f96d" title="Write volume&#45;averaged values and other information to the log file." alt="" coords="279,107,477,149"/>
-<area shape="rect" href="namespacemod__input__output.html#a97e4df1969002df5c3fcc551db7d354e" title="Print a log that can be used to check whether the code still produces the same output (regression tes..." alt="" coords="279,173,477,214"/>
-<area shape="rect" href="namespacemod__collapse.html#ae345a692009d6f8bf85ddd4cdb30cb4e" title=" " alt="" coords="301,238,455,279"/>
-<area shape="rect" href="namespacemod__slice.html#a6a45feb00cf001fcff14f72e126a89c4" title=" " alt="" coords="295,304,461,331"/>
-<area shape="rect" href="namespacemod__input__output.html#ae1d4a41dcf32cae3752c48ef73f42364" title=" " alt="" coords="287,355,469,397"/>
+<area shape="rect" title=" " alt="" coords="5,177,231,203"/>
+<area shape="rect" href="namespacemod__convert__files.html#a62a6fb3fa85f5bb311485d3dc140562c" title=" " alt="" coords="303,5,453,47"/>
+<area shape="rect" href="namespacemod__input__output.html#ac699b426ea2d42b06de1c1798b98f96d" title="Write volume&#45;averaged values and other information to the log file." alt="" coords="279,71,477,112"/>
+<area shape="rect" href="namespacemod__input__output.html#a97e4df1969002df5c3fcc551db7d354e" title="Print a log that can be used to check whether the code still produces the same output (regression tes..." alt="" coords="279,136,477,177"/>
+<area shape="rect" href="namespacemod__collapse.html#ae345a692009d6f8bf85ddd4cdb30cb4e" title=" " alt="" coords="301,201,455,243"/>
+<area shape="rect" href="namespacemod__slice.html#a6a45feb00cf001fcff14f72e126a89c4" title=" " alt="" coords="295,267,461,294"/>
+<area shape="rect" href="namespacemod__input__output.html#ae1d4a41dcf32cae3752c48ef73f42364" title=" " alt="" coords="287,319,469,360"/>
 </map>
 </div>
 
@@ -823,7 +641,7 @@ Here is the call graph for this function:</div>
   </dd>
 </dl>
 
-<p class="definition">Definition at line <a class="el" href="mod__input__output_8t_source.html#l01790">1790</a> of file <a class="el" href="mod__input__output_8t_source.html">mod_input_output.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__input__output_8t_source.html#l01775">1775</a> of file <a class="el" href="mod__input__output_8t_source.html">mod_input_output.t</a>.</p>
 
 </div>
 </div>
@@ -869,15 +687,14 @@ Here is the call graph for this function:</div>
   </dd>
 </dl>
 
-<p class="definition">Definition at line <a class="el" href="mod__input__output_8t_source.html#l01908">1908</a> of file <a class="el" href="mod__input__output_8t_source.html">mod_input_output.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__input__output_8t_source.html#l01815">1815</a> of file <a class="el" href="mod__input__output_8t_source.html">mod_input_output.t</a>.</p>
 <div class="dynheader">
 Here is the call graph for this function:</div>
 <div class="dyncontent">
 <div class="center"><img src="namespacemod__input__output_ae860a54ebdb7a0bee2fed1821d67cc99_cgraph.png" border="0" usemap="#anamespacemod__input__output_ae860a54ebdb7a0bee2fed1821d67cc99_cgraph" alt=""/></div>
 <map name="anamespacemod__input__output_ae860a54ebdb7a0bee2fed1821d67cc99_cgraph" id="anamespacemod__input__output_ae860a54ebdb7a0bee2fed1821d67cc99_cgraph">
-<area shape="rect" title="Read header for a snapshot." alt="" coords="5,35,212,76"/>
+<area shape="rect" title="Read header for a snapshot." alt="" coords="5,5,212,47"/>
 <area shape="rect" href="namespacemod__input__output.html#a2b408b40f813e4fe523621ab4a497d76" title=" " alt="" coords="260,5,429,47"/>
-<area shape="rect" href="comm__lib_8t.html#a49b49ea9ffbbadfe688e332921c4cddd" title="Exit MPI&#45;AMRVAC with an error message." alt="" coords="307,71,382,98"/>
 </map>
 </div>
 
@@ -925,74 +742,16 @@ Here is the call graph for this function:</div>
   </dd>
 </dl>
 
-<p class="definition">Definition at line <a class="el" href="mod__input__output_8t_source.html#l01893">1893</a> of file <a class="el" href="mod__input__output_8t_source.html">mod_input_output.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__input__output_8t_source.html#l01799">1799</a> of file <a class="el" href="mod__input__output_8t_source.html">mod_input_output.t</a>.</p>
 <div class="dynheader">
 Here is the call graph for this function:</div>
 <div class="dyncontent">
 <div class="center"><img src="namespacemod__input__output_acd293c80fe4dffe68b3bd5af075cc137_cgraph.png" border="0" usemap="#anamespacemod__input__output_acd293c80fe4dffe68b3bd5af075cc137_cgraph" alt=""/></div>
 <map name="anamespacemod__input__output_acd293c80fe4dffe68b3bd5af075cc137_cgraph" id="anamespacemod__input__output_acd293c80fe4dffe68b3bd5af075cc137_cgraph">
 <area shape="rect" title="Write header for a snapshot." alt="" coords="5,5,212,47"/>
-<area shape="rect" href="namespacemod__input__output.html#ad596a6ad9e1a0a7ff3feb742d22e5e15" title="Write header for a snapshot, generalize cons_wnames and nw." alt="" coords="260,5,467,47"/>
+<area shape="rect" href="namespacemod__input__output__helper.html#a9b3e3365ae87d58b382931ee36cb6d7e" title="Write header for a snapshot, generalize cons_wnames and nw." alt="" coords="260,5,449,47"/>
 </map>
 </div>
-
-</div>
-</div>
-<a id="ad596a6ad9e1a0a7ff3feb742d22e5e15"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ad596a6ad9e1a0a7ff3feb742d22e5e15">&#9670;&nbsp;</a></span>snapshot_write_header1()</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">subroutine, public mod_input_output::snapshot_write_header1 </td>
-          <td>(</td>
-          <td class="paramtype">integer, intent(in)&#160;</td>
-          <td class="paramname"><em>fh</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">integer(kind=mpi_offset_kind), intent(in)&#160;</td>
-          <td class="paramname"><em>offset_tree</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">integer(kind=mpi_offset_kind), intent(in)&#160;</td>
-          <td class="paramname"><em>offset_block</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">character(len=*), dimension(:), intent(in)&#160;</td>
-          <td class="paramname"><em>dataset_names</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">integer, intent(in)&#160;</td>
-          <td class="paramname"><em>nw_vars</em>&#160;</td>
-        </tr>
-        <tr>
-          <td></td>
-          <td>)</td>
-          <td></td><td></td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>Write header for a snapshot, generalize cons_wnames and nw. </p>
-<p>If you edit the header, don't forget to update: <a class="el" href="namespacemod__input__output.html#acd293c80fe4dffe68b3bd5af075cc137" title="Write header for a snapshot.">snapshot_write_header()</a>, <a class="el" href="namespacemod__input__output.html#ae860a54ebdb7a0bee2fed1821d67cc99" title="Read header for a snapshot.">snapshot_read_header()</a>, <a class="el" href="fileformat_8md.html">doc/fileformat.md</a>, tools/python/dat_reader.py </p><dl class="params"><dt>Parameters</dt><dd>
-  <table class="params">
-    <tr><td class="paramdir">[in]</td><td class="paramname">fh</td><td>File handle </td></tr>
-    <tr><td class="paramdir">[in]</td><td class="paramname">offset_tree</td><td>Offset of tree info </td></tr>
-    <tr><td class="paramdir">[in]</td><td class="paramname">offset_block</td><td>Offset of block data </td></tr>
-  </table>
-  </dd>
-</dl>
-
-<p class="definition">Definition at line <a class="el" href="mod__input__output_8t_source.html#l01813">1813</a> of file <a class="el" href="mod__input__output_8t_source.html">mod_input_output.t</a>.</p>
 
 </div>
 </div>
@@ -1008,18 +767,18 @@ Here is the call graph for this function:</div>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="mod__input__output_8t_source.html#l02120">2120</a> of file <a class="el" href="mod__input__output_8t_source.html">mod_input_output.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__input__output_8t_source.html#l01988">1988</a> of file <a class="el" href="mod__input__output_8t_source.html">mod_input_output.t</a>.</p>
 <div class="dynheader">
 Here is the call graph for this function:</div>
 <div class="dyncontent">
 <div class="center"><img src="namespacemod__input__output_ae1d4a41dcf32cae3752c48ef73f42364_cgraph.png" border="0" usemap="#anamespacemod__input__output_ae1d4a41dcf32cae3752c48ef73f42364_cgraph" alt=""/></div>
 <map name="anamespacemod__input__output_ae1d4a41dcf32cae3752c48ef73f42364_cgraph" id="anamespacemod__input__output_ae1d4a41dcf32cae3752c48ef73f42364_cgraph">
 <area shape="rect" title=" " alt="" coords="5,123,187,164"/>
-<area shape="rect" href="namespacemod__input__output.html#a82e2ee2fa4e39ed73c2ab7aa3bc05a89" title="Determine the shape of a block for output (whether to include ghost cells, and on which sides)" alt="" coords="247,5,429,47"/>
-<area shape="rect" href="namespacemod__input__output.html#a22315d7443f62f6cd637218df95f962d" title="Compute number of elements in index range." alt="" coords="489,42,692,69"/>
-<area shape="rect" href="namespacemod__input__output.html#a4cddb904b15d3bc7e45953c6b7329eed" title="Standard method for creating a new output file." alt="" coords="243,123,433,164"/>
+<area shape="rect" href="namespacemod__input__output__helper.html#ac03c76ebf22aa6a66b2b1677e00a82d9" title="Determine the shape of a block for output (whether to include ghost cells, and on which sides)" alt="" coords="244,5,432,47"/>
+<area shape="rect" href="namespacemod__input__output__helper.html#a54d24b33757cb6dc549aeb19a2563964" title="Compute number of elements in index range." alt="" coords="489,35,677,76"/>
+<area shape="rect" href="namespacemod__input__output__helper.html#a208f91df2b8f3fdbcbbd029668802c26" title="Standard method for creating a new output file." alt="" coords="244,123,432,164"/>
 <area shape="rect" href="namespacemod__input__output.html#acd293c80fe4dffe68b3bd5af075cc137" title="Write header for a snapshot." alt="" coords="235,188,441,229"/>
-<area shape="rect" href="forest_8t.html#aaf46ac430ac0a103fe25d89d40b5ac91" title=" " alt="" coords="288,254,388,281"/>
+<area shape="rect" href="namespacemod__functions__forest.html#a5fe089544b6f559e305b5b6e41544191" title=" " alt="" coords="257,253,419,295"/>
 </map>
 </div>
 
@@ -1040,7 +799,7 @@ Here is the call graph for this function:</div>
 
 <p>List of compatible versions. </p>
 
-<p class="definition">Definition at line <a class="el" href="mod__input__output_8t_source.html#l00011">11</a> of file <a class="el" href="mod__input__output_8t_source.html">mod_input_output.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__input__output_8t_source.html#l00010">10</a> of file <a class="el" href="mod__input__output_8t_source.html">mod_input_output.t</a>.</p>
 
 </div>
 </div>
@@ -1106,43 +865,7 @@ Here is the call graph for this function:</div>
 
 <p>number of w found in dat files </p>
 
-<p class="definition">Definition at line <a class="el" href="mod__input__output_8t_source.html#l00014">14</a> of file <a class="el" href="mod__input__output_8t_source.html">mod_input_output.t</a>.</p>
-
-</div>
-</div>
-<a id="a85ab6438ece93eeac25fdfac7beed77b"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a85ab6438ece93eeac25fdfac7beed77b">&#9670;&nbsp;</a></span>save_now</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">logical mod_input_output::save_now</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>whether a manually inserted snapshot is saved </p>
-
-<p class="definition">Definition at line <a class="el" href="mod__input__output_8t_source.html#l00023">23</a> of file <a class="el" href="mod__input__output_8t_source.html">mod_input_output.t</a>.</p>
-
-</div>
-</div>
-<a id="ab01fdfe0369eff4df510ef5c7db2e7f8"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ab01fdfe0369eff4df510ef5c7db2e7f8">&#9670;&nbsp;</a></span>version_number</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">integer, parameter mod_input_output::version_number = 5</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>Version number of the .dat file output. </p>
-
-<p class="definition">Definition at line <a class="el" href="mod__input__output_8t_source.html#l00008">8</a> of file <a class="el" href="mod__input__output_8t_source.html">mod_input_output.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__input__output_8t_source.html#l00013">13</a> of file <a class="el" href="mod__input__output_8t_source.html">mod_input_output.t</a>.</p>
 
 </div>
 </div>

@@ -30,7 +30,7 @@
  <tr style="height: 56px;">
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">MPI-AMRVAC
-   &#160;<span id="projectnumber">3.0</span>
+   &#160;<span id="projectnumber">3.1</span>
    </div>
    <div id="projectbrief">The MPI - Adaptive Mesh Refinement - Versatile Advection Code</div>
   </td>
@@ -89,7 +89,7 @@ $(function() {
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="namespaces"></a>
 Modules</h2></td></tr>
 <tr class="memitem:namespacemod__rotating__frame"><td class="memItemLeft" align="right" valign="top">module &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__rotating__frame.html">mod_rotating_frame</a></td></tr>
-<tr class="memdesc:namespacemod__rotating__frame"><td class="mdescLeft">&#160;</td><td class="mdescRight">Module for including rotating frame in hydrodynamics simulations The rotation vector is assumed to be along z direction (both in cylindrical and spherical) <br /></td></tr>
+<tr class="memdesc:namespacemod__rotating__frame"><td class="mdescLeft">&#160;</td><td class="mdescRight">Module for including rotating frame in (magneto)hydrodynamics simulations The rotation vector is assumed to be along z direction (both in cylindrical and spherical) <br /></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="func-members"></a>
@@ -100,13 +100,9 @@ Functions/Subroutines</h2></td></tr>
 <tr class="memitem:ac4472518b3e7e80ad298502342cfb9ef"><td class="memItemLeft" align="right" valign="top">subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__rotating__frame.html#ac4472518b3e7e80ad298502342cfb9ef">mod_rotating_frame::rotating_frame_init</a> ()</td></tr>
 <tr class="memdesc:ac4472518b3e7e80ad298502342cfb9ef"><td class="mdescLeft">&#160;</td><td class="mdescRight">Initialize the module.  <a href="namespacemod__rotating__frame.html#ac4472518b3e7e80ad298502342cfb9ef">More...</a><br /></td></tr>
 <tr class="separator:ac4472518b3e7e80ad298502342cfb9ef"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a2ff601f629ea6c87c1be3b513b5474c9"><td class="memItemLeft" align="right" valign="top">subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__rotating__frame.html#a2ff601f629ea6c87c1be3b513b5474c9">mod_rotating_frame::rotating_frame_add_source</a> (qdt, ixIL, ixOL, wCT, w, x)</td></tr>
-<tr class="memdesc:a2ff601f629ea6c87c1be3b513b5474c9"><td class="mdescLeft">&#160;</td><td class="mdescRight">w[iw]=w[iw]+qdt*S[wCT,qtC,x] where S is the source based on wCT within ixO  <a href="namespacemod__rotating__frame.html#a2ff601f629ea6c87c1be3b513b5474c9">More...</a><br /></td></tr>
-<tr class="separator:a2ff601f629ea6c87c1be3b513b5474c9"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:afa298e6e4ce0cf59f6ac09a4c76ab1eb"><td class="memItemLeft" align="right" valign="top">subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__rotating__frame.html#afa298e6e4ce0cf59f6ac09a4c76ab1eb">mod_rotating_frame::rotating_frame_velocity</a> (x, ixIL, ixOL, frame_vel)</td></tr>
-<tr class="separator:afa298e6e4ce0cf59f6ac09a4c76ab1eb"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a8dd15777c37252c37afc5915db423983"><td class="memItemLeft" align="right" valign="top">subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__rotating__frame.html#a8dd15777c37252c37afc5915db423983">mod_rotating_frame::rotating_frame_omega</a> (x, ixIL, ixOL, frame_omega)</td></tr>
-<tr class="separator:a8dd15777c37252c37afc5915db423983"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a2c66211145083d9dc744d39d837b74ed"><td class="memItemLeft" align="right" valign="top">subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__rotating__frame.html#a2c66211145083d9dc744d39d837b74ed">mod_rotating_frame::rotating_frame_add_source</a> (qdt, dtfactor, ixIL, ixOL, wCT, w, x)</td></tr>
+<tr class="memdesc:a2c66211145083d9dc744d39d837b74ed"><td class="mdescLeft">&#160;</td><td class="mdescRight">w[iw]=w[iw]+qdt*S[wCT,qtC,x] where S is the source based on wCT within ixO  <a href="namespacemod__rotating__frame.html#a2c66211145083d9dc744d39d837b74ed">More...</a><br /></td></tr>
+<tr class="separator:a2c66211145083d9dc744d39d837b74ed"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="var-members"></a>
 Variables</h2></td></tr>

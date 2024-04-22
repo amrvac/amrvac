@@ -1,8 +1,14 @@
 <map id="mod_particle_lorentz::lorentz_integrate_particles" name="mod_particle_lorentz::lorentz_integrate_particles">
-<area shape="rect" id="node1" title="Relativistic particle integrator." alt="" coords="5,123,209,164"/>
-<area shape="rect" id="node2" href="$namespacemod__particle__base.html#a543c5dd3a4184ec64857fea2c6526279" title="Get Lorentz factor from relativistic momentum." alt="" coords="492,93,645,135"/>
-<area shape="rect" id="node3" href="$namespacemod__particle__base.html#a85a2d46a6cbe809098c52ea9beca540a" title=" " alt="" coords="492,188,645,229"/>
-<area shape="rect" id="node4" href="$namespacemod__particle__lorentz.html#a2a6c5840d70a2361b316c53aa7408b63" title=" " alt="" coords="261,188,440,229"/>
-<area shape="rect" id="node5" href="$namespacemod__particle__lorentz.html#a4b56018da43c07e1b1cc5928b6af3272" title="Momentum update subroutine for full Lorentz dynamics." alt="" coords="271,5,430,47"/>
-<area shape="rect" id="node6" href="$namespacemod__particle__lorentz.html#ab1897998904bc04b8bb8c9e0a91c6e31" title="Update payload subroutine." alt="" coords="257,123,444,164"/>
+<area shape="rect" id="node1" title="Relativistic particle integrator." alt="" coords="5,305,209,347"/>
+<area shape="rect" id="node2" href="$namespacemod__particle__base.html#a155095a480a44dd87013d92e65d9bd11" title="Fix particle position when crossing the 0,2pi boundary in noncartesian coordinates." alt="" coords="275,5,429,47"/>
+<area shape="rect" id="node3" href="$namespacemod__particle__base.html#a7d9a58afea8627c45f86fb2657d9b8df" title=" " alt="" coords="696,276,849,317"/>
+<area shape="rect" id="node4" href="$namespacemod__particle__base.html#a39bc08ff3212378f905b861b84bcfc85" title=" " alt="" coords="495,335,648,376"/>
+<area shape="rect" id="node5" href="$namespacemod__particle__base.html#a543c5dd3a4184ec64857fea2c6526279" title="Get Lorentz factor from relativistic momentum." alt="" coords="495,217,648,259"/>
+<area shape="rect" id="node6" href="$namespacemod__particle__lorentz.html#a2a6c5840d70a2361b316c53aa7408b63" title=" " alt="" coords="263,123,441,164"/>
+<area shape="rect" id="node7" href="$namespacemod__particle__lorentz.html#ad1c7982aec23c0452da155f5b01b602e" title="Momentum update subroutine for full Lorentz dynamics." alt="" coords="273,188,431,229"/>
+<area shape="rect" id="node8" href="$namespacemod__particle__lorentz.html#a4bf01ec77776724dc13e7e8259ab4092" title="Update payload subroutine." alt="" coords="259,305,445,347"/>
+<area shape="rect" id="node9" href="$namespacemod__particle__base.html#a094350df67cbde16abbe80c34667f1fd" title="Convert to noncartesian coordinates." alt="" coords="257,423,447,464"/>
+<area shape="rect" id="node10" href="$namespacemod__particle__base.html#a97ad783df74c9688112b7c5ff085a21d" title="Convert position to Cartesian coordinates." alt="" coords="267,488,437,529"/>
+<area shape="rect" id="node11" href="$namespacemod__particle__base.html#a705f221ec9ab699b106f6a84a3c92d88" title="Convert vector from Cartesian coordinates." alt="" coords="264,553,440,595"/>
+<area shape="rect" id="node12" href="$namespacemod__particle__base.html#ac0a3275511fe0763985b90055d9138ca" title="Convert vector to Cartesian coordinates." alt="" coords="273,619,431,660"/>
 </map>

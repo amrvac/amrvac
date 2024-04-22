@@ -30,7 +30,7 @@
  <tr style="height: 56px;">
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">MPI-AMRVAC
-   &#160;<span id="projectnumber">3.0</span>
+   &#160;<span id="projectnumber">3.1</span>
    </div>
    <div id="projectbrief">The MPI - Adaptive Mesh Refinement - Versatile Advection Code</div>
   </td>
@@ -79,7 +79,7 @@ $(function() {
 </div><!--header-->
 <div class="contents">
 
-<p>Module for including rotating frame in hydrodynamics simulations The rotation vector is assumed to be along z direction (both in cylindrical and spherical)  
+<p>Module for including rotating frame in (magneto)hydrodynamics simulations The rotation vector is assumed to be along z direction (both in cylindrical and spherical)  
 <a href="namespacemod__rotating__frame.html#details">More...</a></p>
 <table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="func-members"></a>
@@ -90,13 +90,9 @@ Functions/Subroutines</h2></td></tr>
 <tr class="memitem:ac4472518b3e7e80ad298502342cfb9ef"><td class="memItemLeft" align="right" valign="top">subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__rotating__frame.html#ac4472518b3e7e80ad298502342cfb9ef">rotating_frame_init</a> ()</td></tr>
 <tr class="memdesc:ac4472518b3e7e80ad298502342cfb9ef"><td class="mdescLeft">&#160;</td><td class="mdescRight">Initialize the module.  <a href="namespacemod__rotating__frame.html#ac4472518b3e7e80ad298502342cfb9ef">More...</a><br /></td></tr>
 <tr class="separator:ac4472518b3e7e80ad298502342cfb9ef"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a2ff601f629ea6c87c1be3b513b5474c9"><td class="memItemLeft" align="right" valign="top">subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__rotating__frame.html#a2ff601f629ea6c87c1be3b513b5474c9">rotating_frame_add_source</a> (qdt, ixIL, ixOL, wCT, w, x)</td></tr>
-<tr class="memdesc:a2ff601f629ea6c87c1be3b513b5474c9"><td class="mdescLeft">&#160;</td><td class="mdescRight">w[iw]=w[iw]+qdt*S[wCT,qtC,x] where S is the source based on wCT within ixO  <a href="namespacemod__rotating__frame.html#a2ff601f629ea6c87c1be3b513b5474c9">More...</a><br /></td></tr>
-<tr class="separator:a2ff601f629ea6c87c1be3b513b5474c9"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:afa298e6e4ce0cf59f6ac09a4c76ab1eb"><td class="memItemLeft" align="right" valign="top">subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__rotating__frame.html#afa298e6e4ce0cf59f6ac09a4c76ab1eb">rotating_frame_velocity</a> (x, ixIL, ixOL, frame_vel)</td></tr>
-<tr class="separator:afa298e6e4ce0cf59f6ac09a4c76ab1eb"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a8dd15777c37252c37afc5915db423983"><td class="memItemLeft" align="right" valign="top">subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__rotating__frame.html#a8dd15777c37252c37afc5915db423983">rotating_frame_omega</a> (x, ixIL, ixOL, frame_omega)</td></tr>
-<tr class="separator:a8dd15777c37252c37afc5915db423983"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a2c66211145083d9dc744d39d837b74ed"><td class="memItemLeft" align="right" valign="top">subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__rotating__frame.html#a2c66211145083d9dc744d39d837b74ed">rotating_frame_add_source</a> (qdt, dtfactor, ixIL, ixOL, wCT, w, x)</td></tr>
+<tr class="memdesc:a2c66211145083d9dc744d39d837b74ed"><td class="mdescLeft">&#160;</td><td class="mdescRight">w[iw]=w[iw]+qdt*S[wCT,qtC,x] where S is the source based on wCT within ixO  <a href="namespacemod__rotating__frame.html#a2c66211145083d9dc744d39d837b74ed">More...</a><br /></td></tr>
+<tr class="separator:a2c66211145083d9dc744d39d837b74ed"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="var-members"></a>
 Variables</h2></td></tr>
@@ -105,10 +101,10 @@ Variables</h2></td></tr>
 <tr class="separator:a7cad4773bd9e48b5a20060ee47747ed8"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
-<div class="textblock"><p>Module for including rotating frame in hydrodynamics simulations The rotation vector is assumed to be along z direction (both in cylindrical and spherical) </p>
+<div class="textblock"><p>Module for including rotating frame in (magneto)hydrodynamics simulations The rotation vector is assumed to be along z direction (both in cylindrical and spherical) </p>
 </div><h2 class="groupheader">Function/Subroutine Documentation</h2>
-<a id="a2ff601f629ea6c87c1be3b513b5474c9"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a2ff601f629ea6c87c1be3b513b5474c9">&#9670;&nbsp;</a></span>rotating_frame_add_source()</h2>
+<a id="a2c66211145083d9dc744d39d837b74ed"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a2c66211145083d9dc744d39d837b74ed">&#9670;&nbsp;</a></span>rotating_frame_add_source()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -118,6 +114,12 @@ Variables</h2></td></tr>
           <td>(</td>
           <td class="paramtype">double precision, intent(in)&#160;</td>
           <td class="paramname"><em>qdt</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">double precision, intent(in)&#160;</td>
+          <td class="paramname"><em>dtfactor</em>, </td>
         </tr>
         <tr>
           <td class="paramkey"></td>
@@ -175,11 +177,10 @@ Variables</h2></td></tr>
 <div class="dynheader">
 Here is the call graph for this function:</div>
 <div class="dyncontent">
-<div class="center"><img src="namespacemod__rotating__frame_a2ff601f629ea6c87c1be3b513b5474c9_cgraph.png" border="0" usemap="#anamespacemod__rotating__frame_a2ff601f629ea6c87c1be3b513b5474c9_cgraph" alt=""/></div>
-<map name="anamespacemod__rotating__frame_a2ff601f629ea6c87c1be3b513b5474c9_cgraph" id="anamespacemod__rotating__frame_a2ff601f629ea6c87c1be3b513b5474c9_cgraph">
-<area shape="rect" title="w[iw]=w[iw]+qdt*S[wCT,qtC,x] where S is the source based on wCT within ixO" alt="" coords="5,20,164,76"/>
-<area shape="rect" href="comm__lib_8t.html#a49b49ea9ffbbadfe688e332921c4cddd" title="Exit MPI&#45;AMRVAC with an error message." alt="" coords="264,5,339,32"/>
-<area shape="rect" href="namespacemod__rotating__frame.html#a8dd15777c37252c37afc5915db423983" title=" " alt="" coords="212,57,391,98"/>
+<div class="center"><img src="namespacemod__rotating__frame_a2c66211145083d9dc744d39d837b74ed_cgraph.png" border="0" usemap="#anamespacemod__rotating__frame_a2c66211145083d9dc744d39d837b74ed_cgraph" alt=""/></div>
+<map name="anamespacemod__rotating__frame_a2c66211145083d9dc744d39d837b74ed_cgraph" id="anamespacemod__rotating__frame_a2c66211145083d9dc744d39d837b74ed_cgraph">
+<area shape="rect" title="w[iw]=w[iw]+qdt*S[wCT,qtC,x] where S is the source based on wCT within ixO" alt="" coords="5,5,164,61"/>
+<area shape="rect" href="namespacemod__comm__lib.html#a9b6f1a8fd13bc5670e3b426151c34048" title="Exit MPI&#45;AMRVAC with an error message." alt="" coords="212,20,395,47"/>
 </map>
 </div>
 
@@ -212,60 +213,6 @@ Here is the call graph for this function:</div>
 
 </div>
 </div>
-<a id="a8dd15777c37252c37afc5915db423983"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a8dd15777c37252c37afc5915db423983">&#9670;&nbsp;</a></span>rotating_frame_omega()</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">subroutine mod_rotating_frame::rotating_frame_omega </td>
-          <td>(</td>
-          <td class="paramtype">double precision, dimension(ixi^s,1:ndim), intent(in)&#160;</td>
-          <td class="paramname"><em>x</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">integer, intent(in)&#160;</td>
-          <td class="paramname"><em>ixI</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">integer, intent(in)&#160;</td>
-          <td class="paramname"><em>L</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">integer, intent(in)&#160;</td>
-          <td class="paramname"><em>ixO</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">&#160;</td>
-          <td class="paramname"><em>L</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">double precision, dimension(ixi^s), intent(out)&#160;</td>
-          <td class="paramname"><em>frame_omega</em>&#160;</td>
-        </tr>
-        <tr>
-          <td></td>
-          <td>)</td>
-          <td></td><td></td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p class="definition">Definition at line <a class="el" href="mod__rotating__frame_8t_source.html#l00121">121</a> of file <a class="el" href="mod__rotating__frame_8t_source.html">mod_rotating_frame.t</a>.</p>
-
-</div>
-</div>
 <a id="a235c4f2d16241e1f91b41c1640936087"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a235c4f2d16241e1f91b41c1640936087">&#9670;&nbsp;</a></span>rotating_frame_params_read()</h2>
 
@@ -285,60 +232,6 @@ Here is the call graph for this function:</div>
 <p>Read this module's parameters from a file. </p>
 
 <p class="definition">Definition at line <a class="el" href="mod__rotating__frame_8t_source.html#l00016">16</a> of file <a class="el" href="mod__rotating__frame_8t_source.html">mod_rotating_frame.t</a>.</p>
-
-</div>
-</div>
-<a id="afa298e6e4ce0cf59f6ac09a4c76ab1eb"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#afa298e6e4ce0cf59f6ac09a4c76ab1eb">&#9670;&nbsp;</a></span>rotating_frame_velocity()</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">subroutine mod_rotating_frame::rotating_frame_velocity </td>
-          <td>(</td>
-          <td class="paramtype">double precision, dimension(ixi^s,1:ndim), intent(in)&#160;</td>
-          <td class="paramname"><em>x</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">integer, intent(in)&#160;</td>
-          <td class="paramname"><em>ixI</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">integer, intent(in)&#160;</td>
-          <td class="paramname"><em>L</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">integer, intent(in)&#160;</td>
-          <td class="paramname"><em>ixO</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">&#160;</td>
-          <td class="paramname"><em>L</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">double precision, dimension(ixi^s), intent(out)&#160;</td>
-          <td class="paramname"><em>frame_vel</em>&#160;</td>
-        </tr>
-        <tr>
-          <td></td>
-          <td>)</td>
-          <td></td><td></td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p class="definition">Definition at line <a class="el" href="mod__rotating__frame_8t_source.html#l00103">103</a> of file <a class="el" href="mod__rotating__frame_8t_source.html">mod_rotating_frame.t</a>.</p>
 
 </div>
 </div>

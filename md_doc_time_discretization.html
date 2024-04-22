@@ -30,7 +30,7 @@
  <tr style="height: 56px;">
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">MPI-AMRVAC
-   &#160;<span id="projectnumber">3.0</span>
+   &#160;<span id="projectnumber">3.1</span>
    </div>
    <div id="projectbrief">The MPI - Adaptive Mesh Refinement - Versatile Advection Code</div>
   </td>
@@ -114,7 +114,7 @@ $(function() {
 <p><img src="td_eq_14.png" alt="" class="inline"/></p>
 <p>But note that this upper limit m-s+1 could not be met by most RK methods, for example, for the five-step fourth-order RK method, the CFL number could only be 1.508 instead of 2. Anyway, even with 1.508, the effective CFL number (means CFL per step) is larger than Shu-Osher method. Therefore, this <b>fivestep</b> with <b>ssprk5</b> method is also favoured by many users. But since the coefficients of <b>ssprk5</b> are too long to present here, the users are recommended to see the Appendix B in Spiteri et al. 2002 or Section 2.1 in Gottlieb 2005 for details (but actually, the coefficients in these two papers are not exactly the same...) .</p>
 <p><em><b>IMEX SCHEMES</b></em></p>
-<p>Various IMEX flavors are available. When another imex scheme is implemented (in <a class="el" href="mod__advance_8t.html">mod_advance.t</a>) use_imex_scheme flag should also be set to .true. in <a class="el" href="mod__input__output_8t.html">amrvacio/mod_input_output.t</a> This is used by the physics modules which usually use IMEX schemes (and have both explicit and implicit implementations, such is the case of rd and twofl physics modules). </p>
+<p>Various IMEX flavors are available. When another imex scheme is implemented (in <a class="el" href="mod__advance_8t.html">mod_advance.t</a>) use_imex_scheme flag should also be set to .true. in amrvacio/mod_input_output.t This is used by the physics modules which usually use IMEX schemes (and have both explicit and implicit implementations, such is the case of rd and twofl physics modules). </p>
 </div></div><!-- contents -->
 </div><!-- PageDoc -->
 <!-- start footer part -->

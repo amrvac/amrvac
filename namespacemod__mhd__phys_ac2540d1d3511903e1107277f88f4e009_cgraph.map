@@ -1,6 +1,5 @@
 <map id="mod_mhd_phys::add_source_res2" name="mod_mhd_phys::add_source_res2">
-<area shape="rect" id="node1" title="Add resistive source to w within ixO Uses 5 point stencil (2 neighbours) in each direction,..." alt="" coords="5,23,248,50"/>
-<area shape="rect" id="node2" href="$namespacemod__geometry.html#aabd378d228c27c5b83d0d14d9058661e" title="Calculate curl of a vector qvec within ixL Options to employ standard second order CD evaluations use..." alt="" coords="551,23,744,50"/>
-<area shape="rect" id="node3" href="$comm__lib_8t.html#a49b49ea9ffbbadfe688e332921c4cddd" title="Exit MPI&#45;AMRVAC with an error message." alt="" coords="792,48,867,75"/>
-<area shape="rect" id="node4" href="$namespacemod__mhd__phys.html#a3338aacd3dacb242389aa735b3e787af" title="Calculate idirmin and the idirmin:3 components of the common current array make sure that dxlevel(^D)..." alt="" coords="296,23,503,50"/>
+<area shape="rect" id="node1" title="Add resistive source to w within ixO Uses 5 point stencil (2 neighbours) in each direction,..." alt="" coords="5,5,248,32"/>
+<area shape="rect" id="node2" href="$namespacemod__geometry.html#aabd378d228c27c5b83d0d14d9058661e" title="Calculate curl of a vector qvec within ixL Options to employ standard second order CD evaluations use..." alt="" coords="551,5,744,32"/>
+<area shape="rect" id="node3" href="$namespacemod__mhd__phys.html#a3338aacd3dacb242389aa735b3e787af" title="Calculate idirmin and the idirmin:3 components of the common current array make sure that dxlevel(^D)..." alt="" coords="296,31,503,57"/>
 </map>

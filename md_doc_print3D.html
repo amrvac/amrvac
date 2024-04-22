@@ -30,7 +30,7 @@
  <tr style="height: 56px;">
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">MPI-AMRVAC
-   &#160;<span id="projectnumber">3.0</span>
+   &#160;<span id="projectnumber">3.1</span>
    </div>
    <div id="projectbrief">The MPI - Adaptive Mesh Refinement - Versatile Advection Code</div>
   </td>
@@ -98,8 +98,10 @@ $(function() {
 <li>Alternatively, you can use a program such as Meshlab, available for free at <a href="http://meshlab.sourceforge.net/">http://meshlab.sourceforge.net/</a>. This will also let you manipulate the STL file by hand, allowing you to merge multiple STL files or insert additional objects. Once you are done, it would be wise to apply one of the online services to your end result in order to fix any errors that you may have missed.</li>
 </ul>
 </li>
-<li>The process demonstrated in the previous steps will yield a printable file. However, it may still cause problems. For example, if part of your surface is not connected to the rest. If that happens, the printer will create two separate objects, which may not be desirable. It is up to the user to make sure to check this in advance. Also, you may run into trouble if the size of the .stl file is too large. Generally, it is a good idea to keep it below 100 MB. This may require that you use a low resolution version of the .vtu file. This can be specified with the 'level_io_max' parameter in the .par file, before converting to .vtu. </li>
+<li>The process demonstrated in the previous steps will yield a printable file. However, it may still cause problems. For example, if part of your surface is not connected to the rest. If that happens, the printer will create two separate objects, which may not be desirable. It is up to the user to make sure to check this in advance. Also, you may run into trouble if the size of the .stl file is too large. Generally, it is a good idea to keep it below 100 MB. This may require that you use a low resolution version of the .vtu file. This can be specified with the 'level_io_max' parameter in the .par file, before converting to .vtu.</li>
 </ol>
+<p>An example print is shown below, which was made from the MPI-AMRVAC simulation presented in &lsquo;Pinwheels in the sky, with dust: 3D modelling of the Wolf-Rayet 98a environment&rsquo;, see <a href="http://dx.doi.org/10.1093/mnras/stw1289">doi:10.1093/mnras/stw1289</a>.</p>
+<p><img src="spiral3D.png" alt="" class="inline"/> </p>
 </div></div><!-- contents -->
 </div><!-- PageDoc -->
 <!-- start footer part -->

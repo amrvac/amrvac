@@ -30,7 +30,7 @@
  <tr style="height: 56px;">
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">MPI-AMRVAC
-   &#160;<span id="projectnumber">3.0</span>
+   &#160;<span id="projectnumber">3.1</span>
    </div>
    <div id="projectbrief">The MPI - Adaptive Mesh Refinement - Versatile Advection Code</div>
   </td>
@@ -78,7 +78,7 @@ $(function() {
 </div><!--header-->
 <div class="contents">
 
-<p>Scattered sampling based on fixed-particle interpolation By Fabio Bacchini (2020)  
+<p>Scattered sampling based on fixed- or moving-particle interpolation By Fabio Bacchini (2020)  
 <a href="namespacemod__particle__sample.html#details">More...</a></p>
 <table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="func-members"></a>
@@ -91,14 +91,14 @@ Functions/Subroutines</h2></td></tr>
 <tr class="separator:a9c4b6312f6beee82ea1de084f588f57e"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ab90da43eae0916ebd793a21880cca706"><td class="memItemLeft" align="right" valign="top">subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__particle__sample.html#ab90da43eae0916ebd793a21880cca706">sample_integrate_particles</a> (end_time)</td></tr>
 <tr class="separator:ab90da43eae0916ebd793a21880cca706"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:aed2ce3808e3a89eadbd2e9ce243c5ccf"><td class="memItemLeft" align="right" valign="top">subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__particle__sample.html#aed2ce3808e3a89eadbd2e9ce243c5ccf">sample_update_payload</a> (igrid, w, wold, xgrid, xpart, upart, qpart, mpart, mypayload, mynpayload, particle_time)</td></tr>
-<tr class="memdesc:aed2ce3808e3a89eadbd2e9ce243c5ccf"><td class="mdescLeft">&#160;</td><td class="mdescRight">Payload update.  <a href="namespacemod__particle__sample.html#aed2ce3808e3a89eadbd2e9ce243c5ccf">More...</a><br /></td></tr>
-<tr class="separator:aed2ce3808e3a89eadbd2e9ce243c5ccf"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ab207e0fc6b4a6dc66e1a2fdd04745e88"><td class="memItemLeft" align="right" valign="top">pure double precision function&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__particle__sample.html#ab207e0fc6b4a6dc66e1a2fdd04745e88">sample_get_particle_dt</a> (partp, end_time)</td></tr>
-<tr class="separator:ab207e0fc6b4a6dc66e1a2fdd04745e88"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:acbe682f513025797a5b7d54b80825be9"><td class="memItemLeft" align="right" valign="top">subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__particle__sample.html#acbe682f513025797a5b7d54b80825be9">sample_update_payload</a> (igrid, xpart, upart, qpart, mpart, mypayload, mynpayload, particle_time)</td></tr>
+<tr class="memdesc:acbe682f513025797a5b7d54b80825be9"><td class="mdescLeft">&#160;</td><td class="mdescRight">Payload update.  <a href="namespacemod__particle__sample.html#acbe682f513025797a5b7d54b80825be9">More...</a><br /></td></tr>
+<tr class="separator:acbe682f513025797a5b7d54b80825be9"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a45cf85cce01436052b44076f84e032c8"><td class="memItemLeft" align="right" valign="top">double precision function&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__particle__sample.html#a45cf85cce01436052b44076f84e032c8">sample_get_particle_dt</a> (partp, end_time)</td></tr>
+<tr class="separator:a45cf85cce01436052b44076f84e032c8"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
-<div class="textblock"><p>Scattered sampling based on fixed-particle interpolation By Fabio Bacchini (2020) </p>
+<div class="textblock"><p>Scattered sampling based on fixed- or moving-particle interpolation By Fabio Bacchini (2020) </p>
 </div><h2 class="groupheader">Function/Subroutine Documentation</h2>
 <a id="aee684c8a4df45d1ae8aa316ee1251143"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#aee684c8a4df45d1ae8aa316ee1251143">&#9670;&nbsp;</a></span>sample_create_particles()</h2>
@@ -112,7 +112,7 @@ Functions/Subroutines</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="mod__particle__sample_8t_source.html#l00033">33</a> of file <a class="el" href="mod__particle__sample_8t_source.html">mod_particle_sample.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__particle__sample_8t_source.html#l00029">29</a> of file <a class="el" href="mod__particle__sample_8t_source.html">mod_particle_sample.t</a>.</p>
 <div class="dynheader">
 Here is the call graph for this function:</div>
 <div class="dyncontent">
@@ -121,7 +121,7 @@ Here is the call graph for this function:</div>
 <area shape="rect" title=" " alt="" coords="5,79,195,120"/>
 <area shape="rect" href="namespacemod__particle__base.html#a557c63a62cb1491a66af98fb29258dd5" title=" " alt="" coords="268,5,421,47"/>
 <area shape="rect" href="namespacemod__particle__base.html#a8cb2c79dc331397db976421b8e78431e" title=" " alt="" coords="243,71,447,127"/>
-<area shape="rect" href="namespacemod__particle__sample.html#aed2ce3808e3a89eadbd2e9ce243c5ccf" title="Payload update." alt="" coords="250,152,439,193"/>
+<area shape="rect" href="namespacemod__particle__sample.html#acbe682f513025797a5b7d54b80825be9" title="Payload update." alt="" coords="250,152,439,193"/>
 </map>
 </div>
 
@@ -139,18 +139,18 @@ Here is the call graph for this function:</div>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="mod__particle__sample_8t_source.html#l00115">115</a> of file <a class="el" href="mod__particle__sample_8t_source.html">mod_particle_sample.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__particle__sample_8t_source.html#l00112">112</a> of file <a class="el" href="mod__particle__sample_8t_source.html">mod_particle_sample.t</a>.</p>
 
 </div>
 </div>
-<a id="ab207e0fc6b4a6dc66e1a2fdd04745e88"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ab207e0fc6b4a6dc66e1a2fdd04745e88">&#9670;&nbsp;</a></span>sample_get_particle_dt()</h2>
+<a id="a45cf85cce01436052b44076f84e032c8"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a45cf85cce01436052b44076f84e032c8">&#9670;&nbsp;</a></span>sample_get_particle_dt()</h2>
 
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">pure double precision function mod_particle_sample::sample_get_particle_dt </td>
+          <td class="memname">double precision function mod_particle_sample::sample_get_particle_dt </td>
           <td>(</td>
           <td class="paramtype">type(<a class="el" href="structmod__particle__base_1_1particle__ptr.html">particle_ptr</a>), intent(in)&#160;</td>
           <td class="paramname"><em>partp</em>, </td>
@@ -169,14 +169,15 @@ Here is the call graph for this function:</div>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="mod__particle__sample_8t_source.html#l00213">213</a> of file <a class="el" href="mod__particle__sample_8t_source.html">mod_particle_sample.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__particle__sample_8t_source.html#l00207">207</a> of file <a class="el" href="mod__particle__sample_8t_source.html">mod_particle_sample.t</a>.</p>
 <div class="dynheader">
 Here is the call graph for this function:</div>
 <div class="dyncontent">
-<div class="center"><img src="namespacemod__particle__sample_ab207e0fc6b4a6dc66e1a2fdd04745e88_cgraph.png" border="0" usemap="#anamespacemod__particle__sample_ab207e0fc6b4a6dc66e1a2fdd04745e88_cgraph" alt=""/></div>
-<map name="anamespacemod__particle__sample_ab207e0fc6b4a6dc66e1a2fdd04745e88_cgraph" id="anamespacemod__particle__sample_ab207e0fc6b4a6dc66e1a2fdd04745e88_cgraph">
-<area shape="rect" title=" " alt="" coords="5,5,188,47"/>
-<area shape="rect" href="namespacemod__particle__base.html#a10fdd3836ff16c481594ceec5fd1e97e" title=" " alt="" coords="236,5,389,47"/>
+<div class="center"><img src="namespacemod__particle__sample_a45cf85cce01436052b44076f84e032c8_cgraph.png" border="0" usemap="#anamespacemod__particle__sample_a45cf85cce01436052b44076f84e032c8_cgraph" alt=""/></div>
+<map name="anamespacemod__particle__sample_a45cf85cce01436052b44076f84e032c8_cgraph" id="anamespacemod__particle__sample_a45cf85cce01436052b44076f84e032c8_cgraph">
+<area shape="rect" title=" " alt="" coords="5,39,188,80"/>
+<area shape="rect" href="namespacemod__particle__base.html#a10fdd3836ff16c481594ceec5fd1e97e" title=" " alt="" coords="239,5,393,47"/>
+<area shape="rect" href="namespacemod__particle__base.html#ac297f1a4a2d25d4fcc6e11cda15b47eb" title="Quick check if particle coordinate is inside igrid (ghost cells included, except the last ngh)" alt="" coords="236,71,396,112"/>
 </map>
 </div>
 
@@ -224,22 +225,22 @@ Here is the call graph for this function:</div>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="mod__particle__sample_8t_source.html#l00142">142</a> of file <a class="el" href="mod__particle__sample_8t_source.html">mod_particle_sample.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__particle__sample_8t_source.html#l00130">130</a> of file <a class="el" href="mod__particle__sample_8t_source.html">mod_particle_sample.t</a>.</p>
 <div class="dynheader">
 Here is the call graph for this function:</div>
 <div class="dyncontent">
 <div class="center"><img src="namespacemod__particle__sample_ab90da43eae0916ebd793a21880cca706_cgraph.png" border="0" usemap="#anamespacemod__particle__sample_ab90da43eae0916ebd793a21880cca706_cgraph" alt=""/></div>
 <map name="anamespacemod__particle__sample_ab90da43eae0916ebd793a21880cca706_cgraph" id="anamespacemod__particle__sample_ab90da43eae0916ebd793a21880cca706_cgraph">
 <area shape="rect" title=" " alt="" coords="5,39,212,80"/>
-<area shape="rect" href="namespacemod__particle__sample.html#ab207e0fc6b4a6dc66e1a2fdd04745e88" title=" " alt="" coords="263,5,446,47"/>
-<area shape="rect" href="namespacemod__particle__sample.html#aed2ce3808e3a89eadbd2e9ce243c5ccf" title="Payload update." alt="" coords="260,71,449,112"/>
+<area shape="rect" href="namespacemod__particle__sample.html#a45cf85cce01436052b44076f84e032c8" title=" " alt="" coords="263,5,446,47"/>
+<area shape="rect" href="namespacemod__particle__sample.html#acbe682f513025797a5b7d54b80825be9" title="Payload update." alt="" coords="260,71,449,112"/>
 </map>
 </div>
 
 </div>
 </div>
-<a id="aed2ce3808e3a89eadbd2e9ce243c5ccf"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#aed2ce3808e3a89eadbd2e9ce243c5ccf">&#9670;&nbsp;</a></span>sample_update_payload()</h2>
+<a id="acbe682f513025797a5b7d54b80825be9"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#acbe682f513025797a5b7d54b80825be9">&#9670;&nbsp;</a></span>sample_update_payload()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -249,24 +250,6 @@ Here is the call graph for this function:</div>
           <td>(</td>
           <td class="paramtype">integer, intent(in)&#160;</td>
           <td class="paramname"><em>igrid</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">double precision, dimension(ixg^t,1:nw), intent(in)&#160;</td>
-          <td class="paramname"><em>w</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">double precision, dimension(ixg^t,1:nw), intent(in)&#160;</td>
-          <td class="paramname"><em>wold</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">double precision, dimension(ixg^t,1:ndim), intent(in)&#160;</td>
-          <td class="paramname"><em>xgrid</em>, </td>
         </tr>
         <tr>
           <td class="paramkey"></td>
@@ -320,12 +303,12 @@ Here is the call graph for this function:</div>
 
 <p>Payload update. </p>
 
-<p class="definition">Definition at line <a class="el" href="mod__particle__sample_8t_source.html#l00188">188</a> of file <a class="el" href="mod__particle__sample_8t_source.html">mod_particle_sample.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__particle__sample_8t_source.html#l00176">176</a> of file <a class="el" href="mod__particle__sample_8t_source.html">mod_particle_sample.t</a>.</p>
 <div class="dynheader">
 Here is the call graph for this function:</div>
 <div class="dyncontent">
-<div class="center"><img src="namespacemod__particle__sample_aed2ce3808e3a89eadbd2e9ce243c5ccf_cgraph.png" border="0" usemap="#anamespacemod__particle__sample_aed2ce3808e3a89eadbd2e9ce243c5ccf_cgraph" alt=""/></div>
-<map name="anamespacemod__particle__sample_aed2ce3808e3a89eadbd2e9ce243c5ccf_cgraph" id="anamespacemod__particle__sample_aed2ce3808e3a89eadbd2e9ce243c5ccf_cgraph">
+<div class="center"><img src="namespacemod__particle__sample_acbe682f513025797a5b7d54b80825be9_cgraph.png" border="0" usemap="#anamespacemod__particle__sample_acbe682f513025797a5b7d54b80825be9_cgraph" alt=""/></div>
+<map name="anamespacemod__particle__sample_acbe682f513025797a5b7d54b80825be9_cgraph" id="anamespacemod__particle__sample_acbe682f513025797a5b7d54b80825be9_cgraph">
 <area shape="rect" title="Payload update." alt="" coords="5,5,195,47"/>
 <area shape="rect" href="namespacemod__particle__base.html#afbb3e79e4e88f4a187510bef0211f4a0" title=" " alt="" coords="243,5,396,47"/>
 </map>

@@ -30,7 +30,7 @@
  <tr style="height: 56px;">
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">MPI-AMRVAC
-   &#160;<span id="projectnumber">3.0</span>
+   &#160;<span id="projectnumber">3.1</span>
    </div>
    <div id="projectbrief">The MPI - Adaptive Mesh Refinement - Versatile Advection Code</div>
   </td>
@@ -103,8 +103,8 @@ Functions/Subroutines</h2></td></tr>
 <tr class="separator:a9b4f15b29777e04ac172942d8cba356d"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ae2d56888e0d5505f3ba052005637bd4d"><td class="memItemLeft" align="right" valign="top">subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__rd__phys.html#ae2d56888e0d5505f3ba052005637bd4d">rd_get_flux</a> (wC, w, x, ixIL, ixOL, idim, f)</td></tr>
 <tr class="separator:ae2d56888e0d5505f3ba052005637bd4d"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a1981e00d4b5ffc0cf4de18b308a45791"><td class="memItemLeft" align="right" valign="top">subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__rd__phys.html#a1981e00d4b5ffc0cf4de18b308a45791">rd_add_source</a> (qdt, ixIL, ixOL, wCT, w, x, qsourcesplit, active, wCTprim)</td></tr>
-<tr class="separator:a1981e00d4b5ffc0cf4de18b308a45791"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ac69cc118bc967ea7275a19a822eb9398"><td class="memItemLeft" align="right" valign="top">subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__rd__phys.html#ac69cc118bc967ea7275a19a822eb9398">rd_add_source</a> (qdt, dtfactor, ixIL, ixOL, wCT, wCTprim, w, x, qsourcesplit, active)</td></tr>
+<tr class="separator:ac69cc118bc967ea7275a19a822eb9398"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ad91427217c2802e2847fdad64201d511"><td class="memItemLeft" align="right" valign="top">subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__rd__phys.html#ad91427217c2802e2847fdad64201d511">rd_laplacian</a> (ixIL, ixOL, var, lpl)</td></tr>
 <tr class="memdesc:ad91427217c2802e2847fdad64201d511"><td class="mdescLeft">&#160;</td><td class="mdescRight">Compute the Laplacian using a standard second order scheme. For now this method only works in slab geometries. Requires one ghost cell only.  <a href="namespacemod__rd__phys.html#ad91427217c2802e2847fdad64201d511">More...</a><br /></td></tr>
 <tr class="separator:ad91427217c2802e2847fdad64201d511"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -250,7 +250,7 @@ Variables</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="mod__rd__phys_8t_source.html#l00504">504</a> of file <a class="el" href="mod__rd__phys_8t_source.html">mod_rd_phys.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__rd__phys_8t_source.html#l00505">505</a> of file <a class="el" href="mod__rd__phys_8t_source.html">mod_rd_phys.t</a>.</p>
 <div class="dynheader">
 Here is the call graph for this function:</div>
 <div class="dyncontent">
@@ -263,8 +263,8 @@ Here is the call graph for this function:</div>
 
 </div>
 </div>
-<a id="a1981e00d4b5ffc0cf4de18b308a45791"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a1981e00d4b5ffc0cf4de18b308a45791">&#9670;&nbsp;</a></span>rd_add_source()</h2>
+<a id="ac69cc118bc967ea7275a19a822eb9398"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ac69cc118bc967ea7275a19a822eb9398">&#9670;&nbsp;</a></span>rd_add_source()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -274,6 +274,12 @@ Here is the call graph for this function:</div>
           <td>(</td>
           <td class="paramtype">double precision, intent(in)&#160;</td>
           <td class="paramname"><em>qdt</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">double precision, intent(in)&#160;</td>
+          <td class="paramname"><em>dtfactor</em>, </td>
         </tr>
         <tr>
           <td class="paramkey"></td>
@@ -308,6 +314,12 @@ Here is the call graph for this function:</div>
         <tr>
           <td class="paramkey"></td>
           <td></td>
+          <td class="paramtype">double precision, dimension(ixi^s,1:nw), intent(in)&#160;</td>
+          <td class="paramname"><em>wCTprim</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
           <td class="paramtype">double precision, dimension(ixi^s, 1:nw), intent(inout)&#160;</td>
           <td class="paramname"><em>w</em>, </td>
         </tr>
@@ -327,13 +339,7 @@ Here is the call graph for this function:</div>
           <td class="paramkey"></td>
           <td></td>
           <td class="paramtype">logical, intent(inout)&#160;</td>
-          <td class="paramname"><em>active</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">double precision, dimension(ixi^s, 1:nw), intent(in), optional&#160;</td>
-          <td class="paramname"><em>wCTprim</em>&#160;</td>
+          <td class="paramname"><em>active</em>&#160;</td>
         </tr>
         <tr>
           <td></td>
@@ -343,15 +349,14 @@ Here is the call graph for this function:</div>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="mod__rd__phys_8t_source.html#l00384">384</a> of file <a class="el" href="mod__rd__phys_8t_source.html">mod_rd_phys.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__rd__phys_8t_source.html#l00386">386</a> of file <a class="el" href="mod__rd__phys_8t_source.html">mod_rd_phys.t</a>.</p>
 <div class="dynheader">
 Here is the call graph for this function:</div>
 <div class="dyncontent">
-<div class="center"><img src="namespacemod__rd__phys_a1981e00d4b5ffc0cf4de18b308a45791_cgraph.png" border="0" usemap="#anamespacemod__rd__phys_a1981e00d4b5ffc0cf4de18b308a45791_cgraph" alt=""/></div>
-<map name="anamespacemod__rd__phys_a1981e00d4b5ffc0cf4de18b308a45791_cgraph" id="anamespacemod__rd__phys_a1981e00d4b5ffc0cf4de18b308a45791_cgraph">
+<div class="center"><img src="namespacemod__rd__phys_ac69cc118bc967ea7275a19a822eb9398_cgraph.png" border="0" usemap="#anamespacemod__rd__phys_ac69cc118bc967ea7275a19a822eb9398_cgraph" alt=""/></div>
+<map name="anamespacemod__rd__phys_ac69cc118bc967ea7275a19a822eb9398_cgraph" id="anamespacemod__rd__phys_ac69cc118bc967ea7275a19a822eb9398_cgraph">
 <area shape="rect" title=" " alt="" coords="5,5,167,47"/>
-<area shape="rect" href="comm__lib_8t.html#a49b49ea9ffbbadfe688e332921c4cddd" title="Exit MPI&#45;AMRVAC with an error message." alt="" coords="459,13,533,39"/>
-<area shape="rect" href="namespacemod__rd__phys.html#ad91427217c2802e2847fdad64201d511" title="Compute the Laplacian using a standard second order scheme. For now this method only works in slab ge..." alt="" coords="215,38,411,65"/>
+<area shape="rect" href="namespacemod__rd__phys.html#ad91427217c2802e2847fdad64201d511" title="Compute the Laplacian using a standard second order scheme. For now this method only works in slab ge..." alt="" coords="215,13,411,39"/>
 </map>
 </div>
 
@@ -369,16 +374,7 @@ Here is the call graph for this function:</div>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="mod__rd__phys_8t_source.html#l00213">213</a> of file <a class="el" href="mod__rd__phys_8t_source.html">mod_rd_phys.t</a>.</p>
-<div class="dynheader">
-Here is the call graph for this function:</div>
-<div class="dyncontent">
-<div class="center"><img src="namespacemod__rd__phys_ab397361da8fcff07f5c38dcbbacf7f24_cgraph.png" border="0" usemap="#anamespacemod__rd__phys_ab397361da8fcff07f5c38dcbbacf7f24_cgraph" alt=""/></div>
-<map name="anamespacemod__rd__phys_ab397361da8fcff07f5c38dcbbacf7f24_cgraph" id="anamespacemod__rd__phys_ab397361da8fcff07f5c38dcbbacf7f24_cgraph">
-<area shape="rect" title=" " alt="" coords="5,5,180,47"/>
-<area shape="rect" href="comm__lib_8t.html#a49b49ea9ffbbadfe688e332921c4cddd" title="Exit MPI&#45;AMRVAC with an error message." alt="" coords="228,13,303,39"/>
-</map>
-</div>
+<p class="definition">Definition at line <a class="el" href="mod__rd__phys_8t_source.html#l00215">215</a> of file <a class="el" href="mod__rd__phys_8t_source.html">mod_rd_phys.t</a>.</p>
 
 </div>
 </div>
@@ -410,7 +406,7 @@ Here is the call graph for this function:</div>
 
 <p>inplace update of psa==&gt;F_im(psa) </p>
 
-<p class="definition">Definition at line <a class="el" href="mod__rd__phys_8t_source.html#l00530">530</a> of file <a class="el" href="mod__rd__phys_8t_source.html">mod_rd_phys.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__rd__phys_8t_source.html#l00531">531</a> of file <a class="el" href="mod__rd__phys_8t_source.html">mod_rd_phys.t</a>.</p>
 <div class="dynheader">
 Here is the call graph for this function:</div>
 <div class="dyncontent">
@@ -515,7 +511,7 @@ Here is the call graph for this function:</div>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="mod__rd__phys_8t_source.html#l00295">295</a> of file <a class="el" href="mod__rd__phys_8t_source.html">mod_rd_phys.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__rd__phys_8t_source.html#l00297">297</a> of file <a class="el" href="mod__rd__phys_8t_source.html">mod_rd_phys.t</a>.</p>
 
 </div>
 </div>
@@ -581,7 +577,7 @@ Here is the call graph for this function:</div>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="mod__rd__phys_8t_source.html#l00286">286</a> of file <a class="el" href="mod__rd__phys_8t_source.html">mod_rd_phys.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__rd__phys_8t_source.html#l00288">288</a> of file <a class="el" href="mod__rd__phys_8t_source.html">mod_rd_phys.t</a>.</p>
 
 </div>
 </div>
@@ -653,16 +649,7 @@ Here is the call graph for this function:</div>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="mod__rd__phys_8t_source.html#l00315">315</a> of file <a class="el" href="mod__rd__phys_8t_source.html">mod_rd_phys.t</a>.</p>
-<div class="dynheader">
-Here is the call graph for this function:</div>
-<div class="dyncontent">
-<div class="center"><img src="namespacemod__rd__phys_a9b4f15b29777e04ac172942d8cba356d_cgraph.png" border="0" usemap="#anamespacemod__rd__phys_a9b4f15b29777e04ac172942d8cba356d_cgraph" alt=""/></div>
-<map name="anamespacemod__rd__phys_a9b4f15b29777e04ac172942d8cba356d_cgraph" id="anamespacemod__rd__phys_a9b4f15b29777e04ac172942d8cba356d_cgraph">
-<area shape="rect" title=" " alt="" coords="5,5,184,32"/>
-<area shape="rect" href="comm__lib_8t.html#a49b49ea9ffbbadfe688e332921c4cddd" title="Exit MPI&#45;AMRVAC with an error message." alt="" coords="232,5,307,32"/>
-</map>
-</div>
+<p class="definition">Definition at line <a class="el" href="mod__rd__phys_8t_source.html#l00317">317</a> of file <a class="el" href="mod__rd__phys_8t_source.html">mod_rd_phys.t</a>.</p>
 
 </div>
 </div>
@@ -734,7 +721,7 @@ Here is the call graph for this function:</div>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="mod__rd__phys_8t_source.html#l00372">372</a> of file <a class="el" href="mod__rd__phys_8t_source.html">mod_rd_phys.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__rd__phys_8t_source.html#l00374">374</a> of file <a class="el" href="mod__rd__phys_8t_source.html">mod_rd_phys.t</a>.</p>
 
 </div>
 </div>
@@ -784,16 +771,7 @@ Here is the call graph for this function:</div>
 
 <p>Implicit solve of psa=psb+dtfactor*dt*F_im(psa) </p>
 
-<p class="definition">Definition at line <a class="el" href="mod__rd__phys_8t_source.html#l00550">550</a> of file <a class="el" href="mod__rd__phys_8t_source.html">mod_rd_phys.t</a>.</p>
-<div class="dynheader">
-Here is the call graph for this function:</div>
-<div class="dyncontent">
-<div class="center"><img src="namespacemod__rd__phys_ab954733b26c3c4fe7a902ebbc7faa46c_cgraph.png" border="0" usemap="#anamespacemod__rd__phys_ab954733b26c3c4fe7a902ebbc7faa46c_cgraph" alt=""/></div>
-<map name="anamespacemod__rd__phys_ab954733b26c3c4fe7a902ebbc7faa46c_cgraph" id="anamespacemod__rd__phys_ab954733b26c3c4fe7a902ebbc7faa46c_cgraph">
-<area shape="rect" title="Implicit solve of psa=psb+dtfactor*dt*F_im(psa)" alt="" coords="5,5,192,47"/>
-<area shape="rect" href="comm__lib_8t.html#a49b49ea9ffbbadfe688e332921c4cddd" title="Exit MPI&#45;AMRVAC with an error message." alt="" coords="240,13,315,39"/>
-</map>
-</div>
+<p class="definition">Definition at line <a class="el" href="mod__rd__phys_8t_source.html#l00551">551</a> of file <a class="el" href="mod__rd__phys_8t_source.html">mod_rd_phys.t</a>.</p>
 
 </div>
 </div>
@@ -849,16 +827,7 @@ Here is the call graph for this function:</div>
 
 <p>Compute the Laplacian using a standard second order scheme. For now this method only works in slab geometries. Requires one ghost cell only. </p>
 
-<p class="definition">Definition at line <a class="el" href="mod__rd__phys_8t_source.html#l00481">481</a> of file <a class="el" href="mod__rd__phys_8t_source.html">mod_rd_phys.t</a>.</p>
-<div class="dynheader">
-Here is the call graph for this function:</div>
-<div class="dyncontent">
-<div class="center"><img src="namespacemod__rd__phys_ad91427217c2802e2847fdad64201d511_cgraph.png" border="0" usemap="#anamespacemod__rd__phys_ad91427217c2802e2847fdad64201d511_cgraph" alt=""/></div>
-<map name="anamespacemod__rd__phys_ad91427217c2802e2847fdad64201d511_cgraph" id="anamespacemod__rd__phys_ad91427217c2802e2847fdad64201d511_cgraph">
-<area shape="rect" title="Compute the Laplacian using a standard second order scheme. For now this method only works in slab ge..." alt="" coords="5,5,201,32"/>
-<area shape="rect" href="comm__lib_8t.html#a49b49ea9ffbbadfe688e332921c4cddd" title="Exit MPI&#45;AMRVAC with an error message." alt="" coords="249,5,324,32"/>
-</map>
-</div>
+<p class="definition">Definition at line <a class="el" href="mod__rd__phys_8t_source.html#l00482">482</a> of file <a class="el" href="mod__rd__phys_8t_source.html">mod_rd_phys.t</a>.</p>
 
 </div>
 </div>
@@ -874,7 +843,7 @@ Here is the call graph for this function:</div>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="mod__rd__phys_8t_source.html#l00159">159</a> of file <a class="el" href="mod__rd__phys_8t_source.html">mod_rd_phys.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__rd__phys_8t_source.html#l00161">161</a> of file <a class="el" href="mod__rd__phys_8t_source.html">mod_rd_phys.t</a>.</p>
 <div class="dynheader">
 Here is the call graph for this function:</div>
 <div class="dyncontent">
@@ -882,7 +851,7 @@ Here is the call graph for this function:</div>
 <map name="anamespacemod__rd__phys_a2781b19b4d1c74287564f4b4bfa70779_cgraph" id="anamespacemod__rd__phys_a2781b19b4d1c74287564f4b4bfa70779_cgraph">
 <area shape="rect" title=" " alt="" coords="5,344,201,371"/>
 <area shape="rect" href="namespacemod__particles.html#a7a89b126b34bb788a3911955880ddd8f" title="Initialize particle data and parameters." alt="" coords="249,5,456,32"/>
-<area shape="rect" href="namespacemod__rd__phys.html#a1981e00d4b5ffc0cf4de18b308a45791" title=" " alt="" coords="272,57,433,98"/>
+<area shape="rect" href="namespacemod__rd__phys.html#ac69cc118bc967ea7275a19a822eb9398" title=" " alt="" coords="272,57,433,98"/>
 <area shape="rect" href="namespacemod__rd__phys.html#ab397361da8fcff07f5c38dcbbacf7f24" title=" " alt="" coords="265,122,440,163"/>
 <area shape="rect" href="namespacemod__rd__phys.html#a495a9b0617f38890bf71ee50ee0b51a0" title="inplace update of psa==&gt;F_im(psa)" alt="" coords="255,187,450,229"/>
 <area shape="rect" href="namespacemod__rd__phys.html#a61fcfc9e258693d50fd8dd1254a737ff" title=" " alt="" coords="273,253,432,294"/>
@@ -948,7 +917,7 @@ Here is the call graph for this function:</div>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="mod__rd__phys_8t_source.html#l00268">268</a> of file <a class="el" href="mod__rd__phys_8t_source.html">mod_rd_phys.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__rd__phys_8t_source.html#l00270">270</a> of file <a class="el" href="mod__rd__phys_8t_source.html">mod_rd_phys.t</a>.</p>
 
 </div>
 </div>
@@ -1002,7 +971,7 @@ Here is the call graph for this function:</div>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="mod__rd__phys_8t_source.html#l00277">277</a> of file <a class="el" href="mod__rd__phys_8t_source.html">mod_rd_phys.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__rd__phys_8t_source.html#l00279">279</a> of file <a class="el" href="mod__rd__phys_8t_source.html">mod_rd_phys.t</a>.</p>
 
 </div>
 </div>
@@ -1024,7 +993,7 @@ Here is the call graph for this function:</div>
 
 <p>Write this module's parameters to a snapshot. </p>
 
-<p class="definition">Definition at line <a class="el" href="mod__rd__phys_8t_source.html#l00148">148</a> of file <a class="el" href="mod__rd__phys_8t_source.html">mod_rd_phys.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__rd__phys_8t_source.html#l00150">150</a> of file <a class="el" href="mod__rd__phys_8t_source.html">mod_rd_phys.t</a>.</p>
 
 </div>
 </div>
@@ -1043,7 +1012,7 @@ Here is the call graph for this function:</div>
 
 <p>Parameter for Brusselator model. </p>
 
-<p class="definition">Definition at line <a class="el" href="mod__rd__phys_8t_source.html#l00062">62</a> of file <a class="el" href="mod__rd__phys_8t_source.html">mod_rd_phys.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__rd__phys_8t_source.html#l00064">64</a> of file <a class="el" href="mod__rd__phys_8t_source.html">mod_rd_phys.t</a>.</p>
 
 </div>
 </div>
@@ -1061,7 +1030,7 @@ Here is the call graph for this function:</div>
 
 <p>Parameter for Brusselator model. </p>
 
-<p class="definition">Definition at line <a class="el" href="mod__rd__phys_8t_source.html#l00064">64</a> of file <a class="el" href="mod__rd__phys_8t_source.html">mod_rd_phys.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__rd__phys_8t_source.html#l00066">66</a> of file <a class="el" href="mod__rd__phys_8t_source.html">mod_rd_phys.t</a>.</p>
 
 </div>
 </div>
@@ -1079,7 +1048,7 @@ Here is the call graph for this function:</div>
 
 <p>Parameter for extended Brusselator model. </p>
 
-<p class="definition">Definition at line <a class="el" href="mod__rd__phys_8t_source.html#l00066">66</a> of file <a class="el" href="mod__rd__phys_8t_source.html">mod_rd_phys.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__rd__phys_8t_source.html#l00068">68</a> of file <a class="el" href="mod__rd__phys_8t_source.html">mod_rd_phys.t</a>.</p>
 
 </div>
 </div>
@@ -1097,7 +1066,7 @@ Here is the call graph for this function:</div>
 
 <p>Parameter for extended Brusselator model. </p>
 
-<p class="definition">Definition at line <a class="el" href="mod__rd__phys_8t_source.html#l00068">68</a> of file <a class="el" href="mod__rd__phys_8t_source.html">mod_rd_phys.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__rd__phys_8t_source.html#l00070">70</a> of file <a class="el" href="mod__rd__phys_8t_source.html">mod_rd_phys.t</a>.</p>
 
 </div>
 </div>
@@ -1115,7 +1084,7 @@ Here is the call graph for this function:</div>
 
 <p>Parameter for the Field-Noyes model of the Belousov-Zhabotinsky reaction. </p>
 
-<p class="definition">Definition at line <a class="el" href="mod__rd__phys_8t_source.html#l00076">76</a> of file <a class="el" href="mod__rd__phys_8t_source.html">mod_rd_phys.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__rd__phys_8t_source.html#l00078">78</a> of file <a class="el" href="mod__rd__phys_8t_source.html">mod_rd_phys.t</a>.</p>
 
 </div>
 </div>
@@ -1133,7 +1102,7 @@ Here is the call graph for this function:</div>
 
 <p>Parameter for the Field-Noyes model of the Belousov-Zhabotinsky reaction. </p>
 
-<p class="definition">Definition at line <a class="el" href="mod__rd__phys_8t_source.html#l00074">74</a> of file <a class="el" href="mod__rd__phys_8t_source.html">mod_rd_phys.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__rd__phys_8t_source.html#l00076">76</a> of file <a class="el" href="mod__rd__phys_8t_source.html">mod_rd_phys.t</a>.</p>
 
 </div>
 </div>
@@ -1151,7 +1120,7 @@ Here is the call graph for this function:</div>
 
 <p>Parameter for the Field-Noyes model of the Belousov-Zhabotinsky reaction. </p>
 
-<p class="definition">Definition at line <a class="el" href="mod__rd__phys_8t_source.html#l00078">78</a> of file <a class="el" href="mod__rd__phys_8t_source.html">mod_rd_phys.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__rd__phys_8t_source.html#l00080">80</a> of file <a class="el" href="mod__rd__phys_8t_source.html">mod_rd_phys.t</a>.</p>
 
 </div>
 </div>
@@ -1169,7 +1138,7 @@ Here is the call graph for this function:</div>
 
 <p>Parameter for the Field-Noyes model of the Belousov-Zhabotinsky reaction. </p>
 
-<p class="definition">Definition at line <a class="el" href="mod__rd__phys_8t_source.html#l00080">80</a> of file <a class="el" href="mod__rd__phys_8t_source.html">mod_rd_phys.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__rd__phys_8t_source.html#l00082">82</a> of file <a class="el" href="mod__rd__phys_8t_source.html">mod_rd_phys.t</a>.</p>
 
 </div>
 </div>
@@ -1187,7 +1156,7 @@ Here is the call graph for this function:</div>
 
 <p>Diffusion coefficient for first species (u) </p>
 
-<p class="definition">Definition at line <a class="el" href="mod__rd__phys_8t_source.html#l00043">43</a> of file <a class="el" href="mod__rd__phys_8t_source.html">mod_rd_phys.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__rd__phys_8t_source.html#l00045">45</a> of file <a class="el" href="mod__rd__phys_8t_source.html">mod_rd_phys.t</a>.</p>
 
 </div>
 </div>
@@ -1205,7 +1174,7 @@ Here is the call graph for this function:</div>
 
 <p>Diffusion coefficient for second species (v) (if applicable) </p>
 
-<p class="definition">Definition at line <a class="el" href="mod__rd__phys_8t_source.html#l00045">45</a> of file <a class="el" href="mod__rd__phys_8t_source.html">mod_rd_phys.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__rd__phys_8t_source.html#l00047">47</a> of file <a class="el" href="mod__rd__phys_8t_source.html">mod_rd_phys.t</a>.</p>
 
 </div>
 </div>
@@ -1223,7 +1192,7 @@ Here is the call graph for this function:</div>
 
 <p>Diffusion coefficient for third species (w) (if applicable) </p>
 
-<p class="definition">Definition at line <a class="el" href="mod__rd__phys_8t_source.html#l00047">47</a> of file <a class="el" href="mod__rd__phys_8t_source.html">mod_rd_phys.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__rd__phys_8t_source.html#l00049">49</a> of file <a class="el" href="mod__rd__phys_8t_source.html">mod_rd_phys.t</a>.</p>
 
 </div>
 </div>
@@ -1241,7 +1210,7 @@ Here is the call graph for this function:</div>
 
 <p>Parameter with which to multiply the reaction timestep restriction. </p>
 
-<p class="definition">Definition at line <a class="el" href="mod__rd__phys_8t_source.html#l00027">27</a> of file <a class="el" href="mod__rd__phys_8t_source.html">mod_rd_phys.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__rd__phys_8t_source.html#l00029">29</a> of file <a class="el" href="mod__rd__phys_8t_source.html">mod_rd_phys.t</a>.</p>
 
 </div>
 </div>
@@ -1259,7 +1228,7 @@ Here is the call graph for this function:</div>
 
 <p>Name of the system to be solved. </p>
 
-<p class="definition">Definition at line <a class="el" href="mod__rd__phys_8t_source.html#l00030">30</a> of file <a class="el" href="mod__rd__phys_8t_source.html">mod_rd_phys.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__rd__phys_8t_source.html#l00032">32</a> of file <a class="el" href="mod__rd__phys_8t_source.html">mod_rd_phys.t</a>.</p>
 
 </div>
 </div>
@@ -1277,7 +1246,7 @@ Here is the call graph for this function:</div>
 
 <p>Feed rate for Gray-Scott model. </p>
 
-<p class="definition">Definition at line <a class="el" href="mod__rd__phys_8t_source.html#l00057">57</a> of file <a class="el" href="mod__rd__phys_8t_source.html">mod_rd_phys.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__rd__phys_8t_source.html#l00059">59</a> of file <a class="el" href="mod__rd__phys_8t_source.html">mod_rd_phys.t</a>.</p>
 
 </div>
 </div>
@@ -1295,7 +1264,7 @@ Here is the call graph for this function:</div>
 
 <p>Kill rate for Gray-Scott model. </p>
 
-<p class="definition">Definition at line <a class="el" href="mod__rd__phys_8t_source.html#l00059">59</a> of file <a class="el" href="mod__rd__phys_8t_source.html">mod_rd_phys.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__rd__phys_8t_source.html#l00061">61</a> of file <a class="el" href="mod__rd__phys_8t_source.html">mod_rd_phys.t</a>.</p>
 
 </div>
 </div>
@@ -1313,7 +1282,7 @@ Here is the call graph for this function:</div>
 
 <p>Parameter for logistic model (Fisher / KPP equation) </p>
 
-<p class="definition">Definition at line <a class="el" href="mod__rd__phys_8t_source.html#l00071">71</a> of file <a class="el" href="mod__rd__phys_8t_source.html">mod_rd_phys.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__rd__phys_8t_source.html#l00073">73</a> of file <a class="el" href="mod__rd__phys_8t_source.html">mod_rd_phys.t</a>.</p>
 
 </div>
 </div>
@@ -1331,7 +1300,7 @@ Here is the call graph for this function:</div>
 
 <p>Parameter for Lorenz system (aspect ratio of the convection rolls) </p>
 
-<p class="definition">Definition at line <a class="el" href="mod__rd__phys_8t_source.html#l00087">87</a> of file <a class="el" href="mod__rd__phys_8t_source.html">mod_rd_phys.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__rd__phys_8t_source.html#l00089">89</a> of file <a class="el" href="mod__rd__phys_8t_source.html">mod_rd_phys.t</a>.</p>
 
 </div>
 </div>
@@ -1349,7 +1318,7 @@ Here is the call graph for this function:</div>
 
 <p>Parameter for Lorenz system (Rayleigh number) </p>
 
-<p class="definition">Definition at line <a class="el" href="mod__rd__phys_8t_source.html#l00083">83</a> of file <a class="el" href="mod__rd__phys_8t_source.html">mod_rd_phys.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__rd__phys_8t_source.html#l00085">85</a> of file <a class="el" href="mod__rd__phys_8t_source.html">mod_rd_phys.t</a>.</p>
 
 </div>
 </div>
@@ -1367,7 +1336,7 @@ Here is the call graph for this function:</div>
 
 <p>Parameter for Lorenz system (Prandtl number) </p>
 
-<p class="definition">Definition at line <a class="el" href="mod__rd__phys_8t_source.html#l00085">85</a> of file <a class="el" href="mod__rd__phys_8t_source.html">mod_rd_phys.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__rd__phys_8t_source.html#l00087">87</a> of file <a class="el" href="mod__rd__phys_8t_source.html">mod_rd_phys.t</a>.</p>
 
 </div>
 </div>
@@ -1385,7 +1354,7 @@ Here is the call graph for this function:</div>
 
 <p>Boundary condition information for the multigrid method. </p>
 
-<p class="definition">Definition at line <a class="el" href="mod__rd__phys_8t_source.html#l00093">93</a> of file <a class="el" href="mod__rd__phys_8t_source.html">mod_rd_phys.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__rd__phys_8t_source.html#l00095">95</a> of file <a class="el" href="mod__rd__phys_8t_source.html">mod_rd_phys.t</a>.</p>
 
 </div>
 </div>
@@ -1403,7 +1372,7 @@ Here is the call graph for this function:</div>
 
 <p>Whether particles module is added. </p>
 
-<p class="definition">Definition at line <a class="el" href="mod__rd__phys_8t_source.html#l00024">24</a> of file <a class="el" href="mod__rd__phys_8t_source.html">mod_rd_phys.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__rd__phys_8t_source.html#l00026">26</a> of file <a class="el" href="mod__rd__phys_8t_source.html">mod_rd_phys.t</a>.</p>
 
 </div>
 </div>
@@ -1421,7 +1390,7 @@ Here is the call graph for this function:</div>
 
 <p>Parameter for Schnakenberg model. </p>
 
-<p class="definition">Definition at line <a class="el" href="mod__rd__phys_8t_source.html#l00050">50</a> of file <a class="el" href="mod__rd__phys_8t_source.html">mod_rd_phys.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__rd__phys_8t_source.html#l00052">52</a> of file <a class="el" href="mod__rd__phys_8t_source.html">mod_rd_phys.t</a>.</p>
 
 </div>
 </div>
@@ -1439,7 +1408,7 @@ Here is the call graph for this function:</div>
 
 <p>Parameter for Schnakenberg model. </p>
 
-<p class="definition">Definition at line <a class="el" href="mod__rd__phys_8t_source.html#l00052">52</a> of file <a class="el" href="mod__rd__phys_8t_source.html">mod_rd_phys.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__rd__phys_8t_source.html#l00054">54</a> of file <a class="el" href="mod__rd__phys_8t_source.html">mod_rd_phys.t</a>.</p>
 
 </div>
 </div>
@@ -1457,7 +1426,7 @@ Here is the call graph for this function:</div>
 
 <p>Parameter for Schnakenberg model. </p>
 
-<p class="definition">Definition at line <a class="el" href="mod__rd__phys_8t_source.html#l00054">54</a> of file <a class="el" href="mod__rd__phys_8t_source.html">mod_rd_phys.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__rd__phys_8t_source.html#l00056">56</a> of file <a class="el" href="mod__rd__phys_8t_source.html">mod_rd_phys.t</a>.</p>
 
 </div>
 </div>
@@ -1473,7 +1442,7 @@ Here is the call graph for this function:</div>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="mod__rd__phys_8t_source.html#l00019">19</a> of file <a class="el" href="mod__rd__phys_8t_source.html">mod_rd_phys.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__rd__phys_8t_source.html#l00021">21</a> of file <a class="el" href="mod__rd__phys_8t_source.html">mod_rd_phys.t</a>.</p>
 
 </div>
 </div>
@@ -1491,7 +1460,7 @@ Here is the call graph for this function:</div>
 
 <p>For 2 or more equations. </p>
 
-<p class="definition">Definition at line <a class="el" href="mod__rd__phys_8t_source.html#l00020">20</a> of file <a class="el" href="mod__rd__phys_8t_source.html">mod_rd_phys.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__rd__phys_8t_source.html#l00022">22</a> of file <a class="el" href="mod__rd__phys_8t_source.html">mod_rd_phys.t</a>.</p>
 
 </div>
 </div>
@@ -1509,7 +1478,7 @@ Here is the call graph for this function:</div>
 
 <p>For 3 or more equations. </p>
 
-<p class="definition">Definition at line <a class="el" href="mod__rd__phys_8t_source.html#l00021">21</a> of file <a class="el" href="mod__rd__phys_8t_source.html">mod_rd_phys.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__rd__phys_8t_source.html#l00023">23</a> of file <a class="el" href="mod__rd__phys_8t_source.html">mod_rd_phys.t</a>.</p>
 
 </div>
 </div>

@@ -1,6 +1,5 @@
 <map id="mod_fld::fld_get_fluxlimiter" name="mod_fld::fld_get_fluxlimiter">
-<area shape="rect" id="node1" title="Calculate fld flux limiter This subroutine calculates flux limiter lambda using the prescription stor..." alt="" coords="5,56,205,83"/>
+<area shape="rect" id="node1" title="Calculate fld flux limiter This subroutine calculates flux limiter lambda using the prescription stor..." alt="" coords="5,31,205,57"/>
 <area shape="rect" id="node2" href="$namespacemod__fld.html#ac9f2df78330406043ccd51c94710a9f7" title="Sets the opacity in the w&#45;array by calling mod_opal_opacity." alt="" coords="253,5,435,32"/>
-<area shape="rect" id="node3" href="$comm__lib_8t.html#a49b49ea9ffbbadfe688e332921c4cddd" title="Exit MPI&#45;AMRVAC with an error message." alt="" coords="483,56,557,83"/>
-<area shape="rect" id="node4" href="$namespacemod__fld.html#a10a1413ec8612a5dd9a5b09eb68919a7" title="Calculate gradient of a scalar q within ixL in direction idir difference with gradient is gradq(ixO^S..." alt="" coords="272,107,416,133"/>
+<area shape="rect" id="node3" href="$namespacemod__fld.html#a10a1413ec8612a5dd9a5b09eb68919a7" title="Calculate gradient of a scalar q within ixL in direction idir difference with gradient is gradq(ixO^S..." alt="" coords="272,56,416,83"/>
 </map>

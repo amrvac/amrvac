@@ -1,5 +1,5 @@
 <map id="mod_calculate_xw::calc_grid" name="mod_calculate_xw::calc_grid">
 <area shape="rect" id="node1" title="Compute both corner as well as cell&#45;centered values for output." alt="" coords="5,35,213,61"/>
-<area shape="rect" id="node2" href="$comm__lib_8t.html#a49b49ea9ffbbadfe688e332921c4cddd" title="Exit MPI&#45;AMRVAC with an error message." alt="" coords="305,5,380,32"/>
-<area shape="rect" id="node3" href="$namespacemod__calculate__xw.html#adb7cda7608fcab120e66e129ce309d61" title="convert to cartesian coordinates and vector components" alt="" coords="261,57,424,98"/>
+<area shape="rect" id="node2" href="$namespacemod__comm__lib.html#a9b6f1a8fd13bc5670e3b426151c34048" title="Exit MPI&#45;AMRVAC with an error message." alt="" coords="261,5,444,32"/>
+<area shape="rect" id="node3" href="$namespacemod__calculate__xw.html#adb7cda7608fcab120e66e129ce309d61" title="convert to cartesian coordinates and vector components" alt="" coords="271,57,434,98"/>
 </map>

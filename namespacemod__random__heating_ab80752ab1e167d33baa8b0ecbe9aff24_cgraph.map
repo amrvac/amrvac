@@ -1,0 +1,4 @@
+<map id="mod_random_heating::getlqgrid" name="mod_random_heating::getlqgrid">
+<area shape="rect" id="node1" title="This module is for imposing randomized heating at x&#45;axis for 2.5D simulation, for details please see ..." alt="" coords="5,5,169,47"/>
+<area shape="rect" id="node2" href="$namespacemod__comm__lib.html#a9b6f1a8fd13bc5670e3b426151c34048" title="Exit MPI&#45;AMRVAC with an error message." alt="" coords="217,13,400,39"/>
+</map>

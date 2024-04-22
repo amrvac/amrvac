@@ -30,7 +30,7 @@
  <tr style="height: 56px;">
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">MPI-AMRVAC
-   &#160;<span id="projectnumber">3.0</span>
+   &#160;<span id="projectnumber">3.1</span>
    </div>
    <div id="projectbrief">The MPI - Adaptive Mesh Refinement - Versatile Advection Code</div>
   </td>
@@ -81,7 +81,7 @@ Introduction</h1>
  </p><blockquote class="doxtable">
 <p>Since late 2019, it can be directly read, visualised and analysed with the Python package <a href="https://yt-project.org">yt</a>, see <a class="el" href="md_doc_yt_usage.html">our documentation to get started with yt</a>. </p>
 </blockquote>
-<p>However, in many instances, one would like to use data formats that are directly readable by some of the more widespread visualization software packages. Therefore, we created the <em><a class="el" href="convert_8t.html">convert.t</a></em> module, which ensures that this post-process data file conversion can be done with the same executable (but possibly even on a different platform). The many possibilities include conversion to <em>*.vtu</em> (<em>VTK</em> <em>U*nstructured data format) directly readable by <a href="http://www.paraview.org/">Paraview</a> (or <a href="https://wci.llnl.gov/codes/visit/">ViSiT</a>), to _</em>.plt_ format for the commercial package <a href="http://www.tecplot.com/">Tecplot</a>. Also, <b>this info will not explain you how to use the mentioned software for visualization, but just explain how to do the conversion.</b> Furthermore, this part of the code is subject to continuous change and improvement, and we welcome extra contributions.</p>
+<p>However, in many instances, one would like to use data formats that are directly readable by some of the more widespread visualization software packages. Therefore, we created the <em>convert.t</em> module, which ensures that this post-process data file conversion can be done with the same executable (but possibly even on a different platform). The many possibilities include conversion to <em>*.vtu</em> (<em>VTK</em> <em>U*nstructured data format) directly readable by <a href="http://www.paraview.org/">Paraview</a> (or <a href="https://wci.llnl.gov/codes/visit/">ViSiT</a>), to _</em>.plt_ format for the commercial package <a href="http://www.tecplot.com/">Tecplot</a>. Also, <b>this info will not explain you how to use the mentioned software for visualization, but just explain how to do the conversion.</b> Furthermore, this part of the code is subject to continuous change and improvement, and we welcome extra contributions.</p>
 <p>We now give some brief info on how to use the same executable <em>amrvac</em> (which you already compiled and used to obtain output <em>*.dat</em> files with), to convert a single or all <em>*.dat</em> file(s) to one of these formats.</p>
 <h1><a class="anchor" id="converting"></a>
 Converting (on a single CPU)</h1>
@@ -111,7 +111,7 @@ mpirun -np 1 amrvac
 </pre><p> For details of aiconvert, please read the header of the $AMRVAC_DIR/tools/aiconvert.</p>
 <h1><a class="anchor" id="parallel_convert"></a>
 Parallel conversion options</h1>
-<p>For very large simulations (typically 3D, and/or runs achieving high effective resolutions), even the data conversion may need to be done in parallel (and ultimately, the visualization itself too). The <em><a class="el" href="convert_8t.html">convert.t</a></em> allows to perform some of the <em>*.dat</em> conversions in parallel, in particular, this is true for the <em>*.vtu</em> format, and for the <em>*.plt</em> format. You should then select one of </p><pre class="fragment">convert_type='vtumpi'
+<p>For very large simulations (typically 3D, and/or runs achieving high effective resolutions), even the data conversion may need to be done in parallel (and ultimately, the visualization itself too). The <em>convert.t</em> allows to perform some of the <em>*.dat</em> conversions in parallel, in particular, this is true for the <em>*.vtu</em> format, and for the <em>*.plt</em> format. You should then select one of </p><pre class="fragment">convert_type='vtumpi'
 convert_type='vtuCCmpi'
 convert_type='vtuBmpi'
 convert_type='vtuBCCmpi'
@@ -138,7 +138,7 @@ Autoconvert</h1>
 Notes on conversion possibilities</h1>
 <h2><a class="anchor" id="cell_vs_corner"></a>
 Cell center versus cell corner values</h2>
-<p>In all cases mentioned below, the difference between convert-types with or without <em>CC</em> relates to the difference between cell center (&lsquo;CC&rsquo;) versus cell corner values. For the cell center case, no interpolation of the computed data is needed, since the (conservative) variables actually represent volume averages stored at cell centers. For the other cases (without 'CC'), the <em><a class="el" href="convert_8t.html">convert.t</a></em> tries to interpolate from cell center to the cell corners, and then the data will be known at the grid nodes. This will be noticable on reading in the data in <em>paraview</em>, which reports whether data is cell data (cell centered) or point data (nodes or corners). In principle, the conversion from cell centered (or cell data) to cell corner (or point data) types can also be achieved in paraview itself, with the filter <em>Cell data to Point data</em>. There may be subtle differences between the way MPI-AMRVAC does this interpolation, and the way it happens internally to paraview, so we provide both options as output <em>*.vtu</em> files. Similar observations hold for the Tecplot format.</p>
+<p>In all cases mentioned below, the difference between convert-types with or without <em>CC</em> relates to the difference between cell center (&lsquo;CC&rsquo;) versus cell corner values. For the cell center case, no interpolation of the computed data is needed, since the (conservative) variables actually represent volume averages stored at cell centers. For the other cases (without 'CC'), the <em>convert.t</em> tries to interpolate from cell center to the cell corners, and then the data will be known at the grid nodes. This will be noticable on reading in the data in <em>paraview</em>, which reports whether data is cell data (cell centered) or point data (nodes or corners). In principle, the conversion from cell centered (or cell data) to cell corner (or point data) types can also be achieved in paraview itself, with the filter <em>Cell data to Point data</em>. There may be subtle differences between the way MPI-AMRVAC does this interpolation, and the way it happens internally to paraview, so we provide both options as output <em>*.vtu</em> files. Similar observations hold for the Tecplot format.</p>
 <h2><a class="anchor" id="cons_vs_prim"></a>
 Conservative/primitive storage and adding derived quantities</h2>
 <p>The <b>saveprim</b> logical allows you to select whether the conservative or primitive variables need to be stored in the resulting output file. The names for the conservative variables and primitive ones are hard coded depending on the physics.</p>
@@ -158,7 +158,7 @@ Conservative/primitive storage and adding derived quantities</h2>
 <h3><em>convert_type='tecplotmpi'</em> or <em>convert_type='tecplotCCmpi'</em></h3>
 <p>Same as above, but allows to perform the conversion in parallel. One can add user -defined variables with <em>nwauxio</em>, and renormalize using the <em>normt</em> and <em>normvar</em> array. The current implementation is such that tecplotmpi and tecplotCCmpi will create different length output ASCII files when used on 1 versus multiple CPUs. In fact, on 1 CPU, there will be as many (tecplot) zones as there are levels, while on on multiple CPUs, there will be a number of zones up to the number of levels times the number of CPUs (or less, when some level does not exist on a certain CPU).</p>
 <h3>onegrid(mpi), oneblock(B), ...</h3>
-<p>Extra possibilities to allow creation of a single uniform grid level output. Please inspect the workings in <em><a class="el" href="convert_8t.html">convert.t</a></em>. </p>
+<p>Extra possibilities to allow creation of a single uniform grid level output. Please inspect the workings in <em>convert.t</em>. </p>
 </div></div><!-- contents -->
 </div><!-- PageDoc -->
 <!-- start footer part -->

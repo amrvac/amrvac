@@ -1,10 +1,9 @@
 <map id="mod_input_output::read_snapshot" name="mod_input_output::read_snapshot">
-<area shape="rect" id="node1" title="Routine to read in snapshots (.dat files). When it cannot recognize the file version,..." alt="" coords="5,165,183,207"/>
-<area shape="rect" id="node2" href="$amr__solution__node_8t.html#a18f209c67b004dfa60490520e9eb028c" title="allocate arrays on igrid node" alt="" coords="524,282,616,309"/>
-<area shape="rect" id="node3" href="$comm__lib_8t.html#a49b49ea9ffbbadfe688e332921c4cddd" title="Exit MPI&#45;AMRVAC with an error message." alt="" coords="703,257,777,283"/>
-<area shape="rect" id="node4" href="$namespacemod__input__output.html#a22315d7443f62f6cd637218df95f962d" title="Compute number of elements in index range." alt="" coords="233,122,435,149"/>
-<area shape="rect" id="node5" href="$namespacemod__input__output.html#a2b408b40f813e4fe523621ab4a497d76" title=" " alt="" coords="485,64,655,105"/>
-<area shape="rect" id="node6" href="$forest_8t.html#aac4f7a8627eec150e762830c08ad9530" title=" " alt="" coords="522,177,618,203"/>
-<area shape="rect" id="node7" href="$namespacemod__input__output.html#afa9ed59afcf773a8f071c30b69d1bceb" title=" " alt="" coords="245,224,423,265"/>
-<area shape="rect" id="node8" href="$namespacemod__input__output.html#ae860a54ebdb7a0bee2fed1821d67cc99" title="Read header for a snapshot." alt="" coords="231,5,437,47"/>
+<area shape="rect" id="node1" title="Routine to read in snapshots (.dat files). When it cannot recognize the file version,..." alt="" coords="5,136,183,177"/>
+<area shape="rect" id="node2" href="$namespacemod__amr__solution__node.html#a5360422247c76466eb60cf0a2d6fd5e9" title="allocate arrays on igrid node" alt="" coords="485,174,668,216"/>
+<area shape="rect" id="node3" href="$namespacemod__input__output__helper.html#a54d24b33757cb6dc549aeb19a2563964" title="Compute number of elements in index range." alt="" coords="240,41,428,82"/>
+<area shape="rect" id="node4" href="$namespacemod__input__output.html#a2b408b40f813e4fe523621ab4a497d76" title=" " alt="" coords="492,98,661,140"/>
+<area shape="rect" id="node5" href="$namespacemod__functions__forest.html#a693fb7f8cc66f54e57220b83e219320e" title=" " alt="" coords="495,262,658,304"/>
+<area shape="rect" id="node6" href="$namespacemod__input__output.html#afa9ed59afcf773a8f071c30b69d1bceb" title=" " alt="" coords="245,224,423,265"/>
+<area shape="rect" id="node7" href="$namespacemod__input__output.html#ae860a54ebdb7a0bee2fed1821d67cc99" title="Read header for a snapshot." alt="" coords="231,106,437,148"/>
 </map>

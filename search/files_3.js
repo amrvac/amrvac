@@ -1,8 +1,5 @@
 var searchData=
 [
-  ['dat_5fconvert_2emd_3555',['dat_convert.md',['../dat__convert_8md.html',1,'']]],
-  ['demo_2dmovies_2emd_3556',['demo-movies.md',['../demo-movies_8md.html',1,'']]],
-  ['discretization_2emd_3557',['discretization.md',['../discretization_8md.html',1,'']]],
-  ['documentation_2emd_3558',['documentation.md',['../documentation_8md.html',1,'']]],
-  ['dust_2emd_3559',['dust.md',['../dust_8md.html',1,'']]]
+  ['equations_2emd_3644',['equations.md',['../equations_8md.html',1,'']]],
+  ['examples_2emd_3645',['examples.md',['../examples_8md.html',1,'']]]
 ];

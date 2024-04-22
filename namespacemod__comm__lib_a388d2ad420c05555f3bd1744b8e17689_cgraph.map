@@ -1,0 +1,4 @@
+<map id="mod_comm_lib::comm_start" name="mod_comm_lib::comm_start">
+<area shape="rect" id="node1" title="Initialize the MPI environment." alt="" coords="5,5,176,47"/>
+<area shape="rect" id="node2" href="$namespacemod__comm__lib.html#a9b6f1a8fd13bc5670e3b426151c34048" title="Exit MPI&#45;AMRVAC with an error message." alt="" coords="224,13,407,39"/>
+</map>

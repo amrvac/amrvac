@@ -30,7 +30,7 @@
  <tr style="height: 56px;">
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">MPI-AMRVAC
-   &#160;<span id="projectnumber">3.0</span>
+   &#160;<span id="projectnumber">3.1</span>
    </div>
    <div id="projectbrief">The MPI - Adaptive Mesh Refinement - Versatile Advection Code</div>
   </td>
@@ -101,6 +101,9 @@ Functions/Subroutines</h2></td></tr>
 <tr class="memitem:afb4a536895193b5cace9dcddd0011926"><td class="memItemLeft" align="right" valign="top">subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__geometry.html#afb4a536895193b5cace9dcddd0011926">gradientx</a> (q, x, ixIL, ixOL, idir, gradq, fourth_order)</td></tr>
 <tr class="memdesc:afb4a536895193b5cace9dcddd0011926"><td class="mdescLeft">&#160;</td><td class="mdescRight">Calculate gradient of a scalar q in direction idir at cell interfaces.  <a href="namespacemod__geometry.html#afb4a536895193b5cace9dcddd0011926">More...</a><br /></td></tr>
 <tr class="separator:afb4a536895193b5cace9dcddd0011926"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a1ddb1aed09387c6a4002ed4f14de66a5"><td class="memItemLeft" align="right" valign="top">subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__geometry.html#a1ddb1aed09387c6a4002ed4f14de66a5">gradientq</a> (q, x, ixIL, ixOL, idir, gradq)</td></tr>
+<tr class="memdesc:a1ddb1aed09387c6a4002ed4f14de66a5"><td class="mdescLeft">&#160;</td><td class="mdescRight">Calculate gradient of a scalar q in direction idir at cell interfaces.  <a href="namespacemod__geometry.html#a1ddb1aed09387c6a4002ed4f14de66a5">More...</a><br /></td></tr>
+<tr class="separator:a1ddb1aed09387c6a4002ed4f14de66a5"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ad4e9524cb60a1c8ce07d4641fe761251"><td class="memItemLeft" align="right" valign="top">subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__geometry.html#ad4e9524cb60a1c8ce07d4641fe761251">gradients</a> (q, ixIL, ixOL, idir, gradq)</td></tr>
 <tr class="memdesc:ad4e9524cb60a1c8ce07d4641fe761251"><td class="mdescLeft">&#160;</td><td class="mdescRight">Calculate gradient of a scalar q within ixL in direction idir first use limiter to go from cell center to edge.  <a href="namespacemod__geometry.html#ad4e9524cb60a1c8ce07d4641fe761251">More...</a><br /></td></tr>
 <tr class="separator:ad4e9524cb60a1c8ce07d4641fe761251"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -225,16 +228,7 @@ Variables</h2></td></tr>
   </dd>
 </dl>
 
-<p class="definition">Definition at line <a class="el" href="mod__geometry_8t_source.html#l00625">625</a> of file <a class="el" href="mod__geometry_8t_source.html">mod_geometry.t</a>.</p>
-<div class="dynheader">
-Here is the call graph for this function:</div>
-<div class="dyncontent">
-<div class="center"><img src="namespacemod__geometry_aabd378d228c27c5b83d0d14d9058661e_cgraph.png" border="0" usemap="#anamespacemod__geometry_aabd378d228c27c5b83d0d14d9058661e_cgraph" alt=""/></div>
-<map name="anamespacemod__geometry_aabd378d228c27c5b83d0d14d9058661e_cgraph" id="anamespacemod__geometry_aabd378d228c27c5b83d0d14d9058661e_cgraph">
-<area shape="rect" title="Calculate curl of a vector qvec within ixL Options to employ standard second order CD evaluations use..." alt="" coords="5,5,199,32"/>
-<area shape="rect" href="comm__lib_8t.html#a49b49ea9ffbbadfe688e332921c4cddd" title="Exit MPI&#45;AMRVAC with an error message." alt="" coords="247,5,321,32"/>
-</map>
-</div>
+<p class="definition">Definition at line <a class="el" href="mod__geometry_8t_source.html#l00662">662</a> of file <a class="el" href="mod__geometry_8t_source.html">mod_geometry.t</a>.</p>
 
 </div>
 </div>
@@ -320,16 +314,7 @@ Here is the call graph for this function:</div>
 
 <p>Calculate idim transverse components of curl of a vector qvec within ixL Options to employ standard second order CD evaluations use Gauss theorem for non-Cartesian grids use Stokes theorem for non-Cartesian grids. </p>
 
-<p class="definition">Definition at line <a class="el" href="mod__geometry_8t_source.html#l01094">1094</a> of file <a class="el" href="mod__geometry_8t_source.html">mod_geometry.t</a>.</p>
-<div class="dynheader">
-Here is the call graph for this function:</div>
-<div class="dyncontent">
-<div class="center"><img src="namespacemod__geometry_ae203fb192b7412be18461b61560d7552_cgraph.png" border="0" usemap="#anamespacemod__geometry_ae203fb192b7412be18461b61560d7552_cgraph" alt=""/></div>
-<map name="anamespacemod__geometry_ae203fb192b7412be18461b61560d7552_cgraph" id="anamespacemod__geometry_ae203fb192b7412be18461b61560d7552_cgraph">
-<area shape="rect" title="Calculate idim transverse components of curl of a vector qvec within ixL Options to employ standard s..." alt="" coords="5,5,199,47"/>
-<area shape="rect" href="comm__lib_8t.html#a49b49ea9ffbbadfe688e332921c4cddd" title="Exit MPI&#45;AMRVAC with an error message." alt="" coords="247,13,321,39"/>
-</map>
-</div>
+<p class="definition">Definition at line <a class="el" href="mod__geometry_8t_source.html#l01131">1131</a> of file <a class="el" href="mod__geometry_8t_source.html">mod_geometry.t</a>.</p>
 
 </div>
 </div>
@@ -404,16 +389,7 @@ Here is the call graph for this function:</div>
   </dd>
 </dl>
 
-<p class="definition">Definition at line <a class="el" href="mod__geometry_8t_source.html#l00478">478</a> of file <a class="el" href="mod__geometry_8t_source.html">mod_geometry.t</a>.</p>
-<div class="dynheader">
-Here is the call graph for this function:</div>
-<div class="dyncontent">
-<div class="center"><img src="namespacemod__geometry_ae6552832949b076a9d4f2c96704077cc_cgraph.png" border="0" usemap="#anamespacemod__geometry_ae6552832949b076a9d4f2c96704077cc_cgraph" alt=""/></div>
-<map name="anamespacemod__geometry_ae6552832949b076a9d4f2c96704077cc_cgraph" id="anamespacemod__geometry_ae6552832949b076a9d4f2c96704077cc_cgraph">
-<area shape="rect" title="Calculate divergence of a vector qvec within ixL." alt="" coords="5,5,195,32"/>
-<area shape="rect" href="comm__lib_8t.html#a49b49ea9ffbbadfe688e332921c4cddd" title="Exit MPI&#45;AMRVAC with an error message." alt="" coords="243,5,317,32"/>
-</map>
-</div>
+<p class="definition">Definition at line <a class="el" href="mod__geometry_8t_source.html#l00515">515</a> of file <a class="el" href="mod__geometry_8t_source.html">mod_geometry.t</a>.</p>
 
 </div>
 </div>
@@ -469,16 +445,15 @@ Here is the call graph for this function:</div>
 
 <p>Calculate divergence of a vector qvec within ixL using limited extrapolation to cell edges. </p>
 
-<p class="definition">Definition at line <a class="el" href="mod__geometry_8t_source.html#l00570">570</a> of file <a class="el" href="mod__geometry_8t_source.html">mod_geometry.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__geometry_8t_source.html#l00607">607</a> of file <a class="el" href="mod__geometry_8t_source.html">mod_geometry.t</a>.</p>
 <div class="dynheader">
 Here is the call graph for this function:</div>
 <div class="dyncontent">
 <div class="center"><img src="namespacemod__geometry_a25150b60cbb554923349cbfdf879ce9e_cgraph.png" border="0" usemap="#anamespacemod__geometry_a25150b60cbb554923349cbfdf879ce9e_cgraph" alt=""/></div>
 <map name="anamespacemod__geometry_a25150b60cbb554923349cbfdf879ce9e_cgraph" id="anamespacemod__geometry_a25150b60cbb554923349cbfdf879ce9e_cgraph">
-<area shape="rect" title="Calculate divergence of a vector qvec within ixL using limited extrapolation to cell edges." alt="" coords="5,56,201,83"/>
+<area shape="rect" title="Calculate divergence of a vector qvec within ixL using limited extrapolation to cell edges." alt="" coords="5,31,201,57"/>
 <area shape="rect" href="namespacemod__limiter.html#a358e3650bfa838c75f25186e88f850e6" title="Limit the centered dwC differences within ixC for iw in direction idim. The limiter is chosen accordi..." alt="" coords="254,5,433,32"/>
-<area shape="rect" href="comm__lib_8t.html#a49b49ea9ffbbadfe688e332921c4cddd" title="Exit MPI&#45;AMRVAC with an error message." alt="" coords="485,31,560,57"/>
-<area shape="rect" href="namespacemod__ppm.html#a96670619b5c26282a40260cf0a77032a" title=" " alt="" coords="249,107,437,133"/>
+<area shape="rect" href="namespacemod__ppm.html#a96670619b5c26282a40260cf0a77032a" title=" " alt="" coords="249,56,437,83"/>
 </map>
 </div>
 
@@ -518,16 +493,7 @@ Here is the call graph for this function:</div>
 
 <p>calculate area of surfaces of cells </p>
 
-<p class="definition">Definition at line <a class="el" href="mod__geometry_8t_source.html#l00157">157</a> of file <a class="el" href="mod__geometry_8t_source.html">mod_geometry.t</a>.</p>
-<div class="dynheader">
-Here is the call graph for this function:</div>
-<div class="dyncontent">
-<div class="center"><img src="namespacemod__geometry_a2d1ea82010421ead0537e32626831886_cgraph.png" border="0" usemap="#anamespacemod__geometry_a2d1ea82010421ead0537e32626831886_cgraph" alt=""/></div>
-<map name="anamespacemod__geometry_a2d1ea82010421ead0537e32626831886_cgraph" id="anamespacemod__geometry_a2d1ea82010421ead0537e32626831886_cgraph">
-<area shape="rect" title="calculate area of surfaces of cells" alt="" coords="5,5,245,32"/>
-<area shape="rect" href="comm__lib_8t.html#a49b49ea9ffbbadfe688e332921c4cddd" title="Exit MPI&#45;AMRVAC with an error message." alt="" coords="293,5,368,32"/>
-</map>
-</div>
+<p class="definition">Definition at line <a class="el" href="mod__geometry_8t_source.html#l00158">158</a> of file <a class="el" href="mod__geometry_8t_source.html">mod_geometry.t</a>.</p>
 
 </div>
 </div>
@@ -589,16 +555,75 @@ Here is the call graph for this function:</div>
 
 <p>Calculate gradient of a scalar q within ixL in direction idir. </p>
 
-<p class="definition">Definition at line <a class="el" href="mod__geometry_8t_source.html#l00319">319</a> of file <a class="el" href="mod__geometry_8t_source.html">mod_geometry.t</a>.</p>
-<div class="dynheader">
-Here is the call graph for this function:</div>
-<div class="dyncontent">
-<div class="center"><img src="namespacemod__geometry_a92ec4e2c8ae00a42bf5bf2c1ce3a26c4_cgraph.png" border="0" usemap="#anamespacemod__geometry_a92ec4e2c8ae00a42bf5bf2c1ce3a26c4_cgraph" alt=""/></div>
-<map name="anamespacemod__geometry_a92ec4e2c8ae00a42bf5bf2c1ce3a26c4_cgraph" id="anamespacemod__geometry_a92ec4e2c8ae00a42bf5bf2c1ce3a26c4_cgraph">
-<area shape="rect" title="Calculate gradient of a scalar q within ixL in direction idir." alt="" coords="5,5,188,32"/>
-<area shape="rect" href="comm__lib_8t.html#a49b49ea9ffbbadfe688e332921c4cddd" title="Exit MPI&#45;AMRVAC with an error message." alt="" coords="236,5,311,32"/>
-</map>
+<p class="definition">Definition at line <a class="el" href="mod__geometry_8t_source.html#l00320">320</a> of file <a class="el" href="mod__geometry_8t_source.html">mod_geometry.t</a>.</p>
+
 </div>
+</div>
+<a id="a1ddb1aed09387c6a4002ed4f14de66a5"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a1ddb1aed09387c6a4002ed4f14de66a5">&#9670;&nbsp;</a></span>gradientq()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">subroutine mod_geometry::gradientq </td>
+          <td>(</td>
+          <td class="paramtype">double precision, dimension(ixi^s), intent(in)&#160;</td>
+          <td class="paramname"><em>q</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">double precision, dimension(ixi^s,1:ndim), intent(in)&#160;</td>
+          <td class="paramname"><em>x</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">integer, intent(in)&#160;</td>
+          <td class="paramname"><em>ixI</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">integer, intent(in)&#160;</td>
+          <td class="paramname"><em>L</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">integer, intent(in)&#160;</td>
+          <td class="paramname"><em>ixO</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">&#160;</td>
+          <td class="paramname"><em>L</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">integer, intent(in)&#160;</td>
+          <td class="paramname"><em>idir</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">double precision, dimension(ixi^s), intent(inout)&#160;</td>
+          <td class="paramname"><em>gradq</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Calculate gradient of a scalar q in direction idir at cell interfaces. </p>
+
+<p class="definition">Definition at line <a class="el" href="mod__geometry_8t_source.html#l00415">415</a> of file <a class="el" href="mod__geometry_8t_source.html">mod_geometry.t</a>.</p>
 
 </div>
 </div>
@@ -660,7 +685,7 @@ Here is the call graph for this function:</div>
 
 <p>Calculate gradient of a scalar q within ixL in direction idir first use limiter to go from cell center to edge. </p>
 
-<p class="definition">Definition at line <a class="el" href="mod__geometry_8t_source.html#l00420">420</a> of file <a class="el" href="mod__geometry_8t_source.html">mod_geometry.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__geometry_8t_source.html#l00457">457</a> of file <a class="el" href="mod__geometry_8t_source.html">mod_geometry.t</a>.</p>
 <div class="dynheader">
 Here is the call graph for this function:</div>
 <div class="dyncontent">
@@ -744,16 +769,7 @@ Here is the call graph for this function:</div>
 
 <p>Calculate gradient of a scalar q in direction idir at cell interfaces. </p>
 
-<p class="definition">Definition at line <a class="el" href="mod__geometry_8t_source.html#l00363">363</a> of file <a class="el" href="mod__geometry_8t_source.html">mod_geometry.t</a>.</p>
-<div class="dynheader">
-Here is the call graph for this function:</div>
-<div class="dyncontent">
-<div class="center"><img src="namespacemod__geometry_afb4a536895193b5cace9dcddd0011926_cgraph.png" border="0" usemap="#anamespacemod__geometry_afb4a536895193b5cace9dcddd0011926_cgraph" alt=""/></div>
-<map name="anamespacemod__geometry_afb4a536895193b5cace9dcddd0011926_cgraph" id="anamespacemod__geometry_afb4a536895193b5cace9dcddd0011926_cgraph">
-<area shape="rect" title="Calculate gradient of a scalar q in direction idir at cell interfaces." alt="" coords="5,5,196,32"/>
-<area shape="rect" href="comm__lib_8t.html#a49b49ea9ffbbadfe688e332921c4cddd" title="Exit MPI&#45;AMRVAC with an error message." alt="" coords="244,5,319,32"/>
-</map>
-</div>
+<p class="definition">Definition at line <a class="el" href="mod__geometry_8t_source.html#l00362">362</a> of file <a class="el" href="mod__geometry_8t_source.html">mod_geometry.t</a>.</p>
 
 </div>
 </div>
@@ -775,7 +791,7 @@ Here is the call graph for this function:</div>
 
 <p>Deallocate geometry-related variables. </p>
 
-<p class="definition">Definition at line <a class="el" href="mod__geometry_8t_source.html#l00147">147</a> of file <a class="el" href="mod__geometry_8t_source.html">mod_geometry.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__geometry_8t_source.html#l00148">148</a> of file <a class="el" href="mod__geometry_8t_source.html">mod_geometry.t</a>.</p>
 
 </div>
 </div>
@@ -803,14 +819,14 @@ Here is the call graph for this function:</div>
   </dd>
 </dl>
 
-<p class="definition">Definition at line <a class="el" href="mod__geometry_8t_source.html#l00021">21</a> of file <a class="el" href="mod__geometry_8t_source.html">mod_geometry.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__geometry_8t_source.html#l00022">22</a> of file <a class="el" href="mod__geometry_8t_source.html">mod_geometry.t</a>.</p>
 <div class="dynheader">
 Here is the call graph for this function:</div>
 <div class="dyncontent">
 <div class="center"><img src="namespacemod__geometry_a0fcd68eb2468ec0b8f01903ce372faaf_cgraph.png" border="0" usemap="#anamespacemod__geometry_a0fcd68eb2468ec0b8f01903ce372faaf_cgraph" alt=""/></div>
 <map name="anamespacemod__geometry_a0fcd68eb2468ec0b8f01903ce372faaf_cgraph" id="anamespacemod__geometry_a0fcd68eb2468ec0b8f01903ce372faaf_cgraph">
 <area shape="rect" title="Set the coordinate system to be used." alt="" coords="5,5,229,47"/>
-<area shape="rect" href="comm__lib_8t.html#a49b49ea9ffbbadfe688e332921c4cddd" title="Exit MPI&#45;AMRVAC with an error message." alt="" coords="277,13,352,39"/>
+<area shape="rect" href="namespacemod__comm__lib.html#a9b6f1a8fd13bc5670e3b426151c34048" title="Exit MPI&#45;AMRVAC with an error message." alt="" coords="277,13,460,39"/>
 </map>
 </div>
 
@@ -828,14 +844,14 @@ Here is the call graph for this function:</div>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="mod__geometry_8t_source.html#l00099">99</a> of file <a class="el" href="mod__geometry_8t_source.html">mod_geometry.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__geometry_8t_source.html#l00100">100</a> of file <a class="el" href="mod__geometry_8t_source.html">mod_geometry.t</a>.</p>
 <div class="dynheader">
 Here is the call graph for this function:</div>
 <div class="dyncontent">
 <div class="center"><img src="namespacemod__geometry_a419308dd8d42f82ba97cc9f7f7f07d95_cgraph.png" border="0" usemap="#anamespacemod__geometry_a419308dd8d42f82ba97cc9f7f7f07d95_cgraph" alt=""/></div>
 <map name="anamespacemod__geometry_a419308dd8d42f82ba97cc9f7f7f07d95_cgraph" id="anamespacemod__geometry_a419308dd8d42f82ba97cc9f7f7f07d95_cgraph">
 <area shape="rect" title=" " alt="" coords="5,5,188,32"/>
-<area shape="rect" href="comm__lib_8t.html#a49b49ea9ffbbadfe688e332921c4cddd" title="Exit MPI&#45;AMRVAC with an error message." alt="" coords="236,5,311,32"/>
+<area shape="rect" href="namespacemod__comm__lib.html#a9b6f1a8fd13bc5670e3b426151c34048" title="Exit MPI&#45;AMRVAC with an error message." alt="" coords="236,5,419,32"/>
 </map>
 </div>
 
@@ -854,7 +870,7 @@ Here is the call graph for this function:</div>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="mod__geometry_8t_source.html#l00007">7</a> of file <a class="el" href="mod__geometry_8t_source.html">mod_geometry.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__geometry_8t_source.html#l00008">8</a> of file <a class="el" href="mod__geometry_8t_source.html">mod_geometry.t</a>.</p>
 
 </div>
 </div>
@@ -870,7 +886,7 @@ Here is the call graph for this function:</div>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="mod__geometry_8t_source.html#l00011">11</a> of file <a class="el" href="mod__geometry_8t_source.html">mod_geometry.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__geometry_8t_source.html#l00012">12</a> of file <a class="el" href="mod__geometry_8t_source.html">mod_geometry.t</a>.</p>
 
 </div>
 </div>
@@ -886,7 +902,7 @@ Here is the call graph for this function:</div>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="mod__geometry_8t_source.html#l00008">8</a> of file <a class="el" href="mod__geometry_8t_source.html">mod_geometry.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__geometry_8t_source.html#l00009">9</a> of file <a class="el" href="mod__geometry_8t_source.html">mod_geometry.t</a>.</p>
 
 </div>
 </div>
@@ -902,7 +918,7 @@ Here is the call graph for this function:</div>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="mod__geometry_8t_source.html#l00014">14</a> of file <a class="el" href="mod__geometry_8t_source.html">mod_geometry.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__geometry_8t_source.html#l00015">15</a> of file <a class="el" href="mod__geometry_8t_source.html">mod_geometry.t</a>.</p>
 
 </div>
 </div>
@@ -918,7 +934,7 @@ Here is the call graph for this function:</div>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="mod__geometry_8t_source.html#l00006">6</a> of file <a class="el" href="mod__geometry_8t_source.html">mod_geometry.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__geometry_8t_source.html#l00007">7</a> of file <a class="el" href="mod__geometry_8t_source.html">mod_geometry.t</a>.</p>
 
 </div>
 </div>
@@ -934,7 +950,7 @@ Here is the call graph for this function:</div>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="mod__geometry_8t_source.html#l00009">9</a> of file <a class="el" href="mod__geometry_8t_source.html">mod_geometry.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__geometry_8t_source.html#l00010">10</a> of file <a class="el" href="mod__geometry_8t_source.html">mod_geometry.t</a>.</p>
 
 </div>
 </div>
@@ -950,7 +966,7 @@ Here is the call graph for this function:</div>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="mod__geometry_8t_source.html#l00015">15</a> of file <a class="el" href="mod__geometry_8t_source.html">mod_geometry.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__geometry_8t_source.html#l00016">16</a> of file <a class="el" href="mod__geometry_8t_source.html">mod_geometry.t</a>.</p>
 
 </div>
 </div>
@@ -966,7 +982,7 @@ Here is the call graph for this function:</div>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="mod__geometry_8t_source.html#l00010">10</a> of file <a class="el" href="mod__geometry_8t_source.html">mod_geometry.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__geometry_8t_source.html#l00011">11</a> of file <a class="el" href="mod__geometry_8t_source.html">mod_geometry.t</a>.</p>
 
 </div>
 </div>
@@ -982,7 +998,7 @@ Here is the call graph for this function:</div>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="mod__geometry_8t_source.html#l00016">16</a> of file <a class="el" href="mod__geometry_8t_source.html">mod_geometry.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__geometry_8t_source.html#l00017">17</a> of file <a class="el" href="mod__geometry_8t_source.html">mod_geometry.t</a>.</p>
 
 </div>
 </div>
@@ -998,7 +1014,7 @@ Here is the call graph for this function:</div>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="mod__geometry_8t_source.html#l00013">13</a> of file <a class="el" href="mod__geometry_8t_source.html">mod_geometry.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__geometry_8t_source.html#l00014">14</a> of file <a class="el" href="mod__geometry_8t_source.html">mod_geometry.t</a>.</p>
 
 </div>
 </div>

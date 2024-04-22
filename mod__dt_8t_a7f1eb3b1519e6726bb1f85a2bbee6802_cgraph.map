@@ -1,0 +1,4 @@
+<map id="getdt_courant" name="getdt_courant">
+<area shape="rect" id="node1" title="compute CFL limited dt (for variable time stepping)" alt="" coords="5,5,117,32"/>
+<area shape="rect" id="node2" href="$namespacemod__comm__lib.html#a9b6f1a8fd13bc5670e3b426151c34048" title="Exit MPI&#45;AMRVAC with an error message." alt="" coords="165,5,348,32"/>
+</map>

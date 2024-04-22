@@ -1,7 +1,6 @@
 <map id="mod_twofl::twofl_activate" name="mod_twofl::twofl_activate">
-<area shape="rect" id="node1" title=" " alt="" coords="5,111,196,138"/>
+<area shape="rect" id="node1" title=" " alt="" coords="5,78,196,105"/>
 <area shape="rect" id="node2" href="$namespacemod__twofl__hllc.html#ab068a76ec599072b50e40f7339318b5c" title=" " alt="" coords="248,5,408,47"/>
 <area shape="rect" id="node3" href="$namespacemod__twofl__phys.html#a37cb143c35775a990582148b69794b2b" title=" " alt="" coords="244,71,412,112"/>
-<area shape="rect" id="node4" href="$namespacemod__twofl__ppm.html#af71bbc8208cbaae277c65fc73f8b09ac" title=" " alt="" coords="245,136,411,177"/>
-<area shape="rect" id="node5" href="$namespacemod__twofl__roe.html#af1894c58261978684d83cc9dc2445af9" title=" " alt="" coords="249,201,407,243"/>
+<area shape="rect" id="node4" href="$namespacemod__twofl__roe.html#af1894c58261978684d83cc9dc2445af9" title=" " alt="" coords="249,136,407,177"/>
 </map>

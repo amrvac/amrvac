@@ -1,6 +1,7 @@
 <map id="mod_input_output::read_par_files" name="mod_input_output::read_par_files">
-<area shape="rect" id="node1" title="Read in the user&#45;supplied parameter&#45;file." alt="" coords="5,64,183,105"/>
-<area shape="rect" id="node2" href="$namespacemod__input__output.html#a2b408b40f813e4fe523621ab4a497d76" title=" " alt="" coords="249,5,419,47"/>
-<area shape="rect" id="node3" href="$comm__lib_8t.html#a49b49ea9ffbbadfe688e332921c4cddd" title="Exit MPI&#45;AMRVAC with an error message." alt="" coords="297,71,371,98"/>
-<area shape="rect" id="node4" href="$namespacemod__input__output.html#a261f5086d85a96e13547d0e1c60928af" title=" " alt="" coords="231,123,437,164"/>
+<area shape="rect" id="node1" title="Read in the user&#45;supplied parameter&#45;file." alt="" coords="5,100,183,141"/>
+<area shape="rect" id="node2" href="$namespacemod__input__output__helper.html#ab75e38c0b0f267995e208c94854d9973" title=" " alt="" coords="240,5,428,47"/>
+<area shape="rect" id="node3" href="$namespacemod__input__output.html#a2b408b40f813e4fe523621ab4a497d76" title=" " alt="" coords="249,71,419,112"/>
+<area shape="rect" id="node4" href="$namespacemod__comm__lib.html#a9b6f1a8fd13bc5670e3b426151c34048" title="Exit MPI&#45;AMRVAC with an error message." alt="" coords="243,137,425,163"/>
+<area shape="rect" id="node5" href="$namespacemod__input__output.html#a261f5086d85a96e13547d0e1c60928af" title=" " alt="" coords="231,188,437,229"/>
 </map>

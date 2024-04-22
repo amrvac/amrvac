@@ -1,10 +1,9 @@
 <map id="mod_particles::particles_init" name="mod_particles::particles_init">
-<area shape="rect" id="node1" title="Initialize particle data and parameters." alt="" coords="5,181,212,207"/>
+<area shape="rect" id="node1" title="Initialize particle data and parameters." alt="" coords="5,163,212,190"/>
 <area shape="rect" id="node2" href="$namespacemod__particle__advect.html#a077a7238a312ce4135e9c3a5ae595c9b" title=" " alt="" coords="279,5,437,47"/>
 <area shape="rect" id="node3" href="$namespacemod__particle__gca.html#a3d2463d9188aa68326c9222f45677b42" title=" " alt="" coords="260,71,456,98"/>
-<area shape="rect" id="node4" href="$comm__lib_8t.html#a49b49ea9ffbbadfe688e332921c4cddd" title="Exit MPI&#45;AMRVAC with an error message." alt="" coords="504,122,579,149"/>
-<area shape="rect" id="node5" href="$namespacemod__particle__base.html#a2369bf21b0e74e54a2a801252da69ad6" title="Initialise communicators for particles." alt="" coords="281,173,435,215"/>
-<area shape="rect" id="node6" href="$namespacemod__particle__lorentz.html#a7d69e6051df4a9ac4aa2893e21a45370" title=" " alt="" coords="279,239,437,280"/>
-<area shape="rect" id="node7" href="$namespacemod__particle__base.html#ad1d0184bacf1d2b43594640158665c65" title="Give initial values to parameters." alt="" coords="281,304,435,345"/>
-<area shape="rect" id="node8" href="$namespacemod__particle__sample.html#a93f9d66f8e6029b91724e5672e332298" title=" " alt="" coords="277,369,439,411"/>
+<area shape="rect" id="node4" href="$namespacemod__particle__base.html#a2369bf21b0e74e54a2a801252da69ad6" title="Initialize communicators for particles." alt="" coords="281,123,435,164"/>
+<area shape="rect" id="node5" href="$namespacemod__particle__lorentz.html#a7d69e6051df4a9ac4aa2893e21a45370" title=" " alt="" coords="279,188,437,229"/>
+<area shape="rect" id="node6" href="$namespacemod__particle__base.html#ad1d0184bacf1d2b43594640158665c65" title="Give initial values to parameters." alt="" coords="281,253,435,295"/>
+<area shape="rect" id="node7" href="$namespacemod__particle__sample.html#a93f9d66f8e6029b91724e5672e332298" title=" " alt="" coords="277,319,439,360"/>
 </map>

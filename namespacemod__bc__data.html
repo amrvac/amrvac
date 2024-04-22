@@ -30,7 +30,7 @@
  <tr style="height: 56px;">
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">MPI-AMRVAC
-   &#160;<span id="projectnumber">3.0</span>
+   &#160;<span id="projectnumber">3.1</span>
    </div>
    <div id="projectbrief">The MPI - Adaptive Mesh Refinement - Versatile Advection Code</div>
   </td>
@@ -111,6 +111,12 @@ Variables</h2></td></tr>
 <tr class="memitem:a1a97a20d7363ba321264e955123370c2"><td class="memItemLeft" align="right" valign="top">character(len=std_len), public, protected&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__bc__data.html#a1a97a20d7363ba321264e955123370c2">boundary_data_file_name</a></td></tr>
 <tr class="memdesc:a1a97a20d7363ba321264e955123370c2"><td class="mdescLeft">&#160;</td><td class="mdescRight">data file name  <a href="namespacemod__bc__data.html#a1a97a20d7363ba321264e955123370c2">More...</a><br /></td></tr>
 <tr class="separator:a1a97a20d7363ba321264e955123370c2"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:af29551cf30de89f0669df9bb29ee67d7"><td class="memItemLeft" align="right" valign="top">logical, public, protected&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__bc__data.html#af29551cf30de89f0669df9bb29ee67d7">interp_phy_first_row</a> =.true.</td></tr>
+<tr class="separator:af29551cf30de89f0669df9bb29ee67d7"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a67e32dd332a9f2134ef5a5e6b1f9ef5e"><td class="memItemLeft" align="right" valign="top">logical, public, protected&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__bc__data.html#a67e32dd332a9f2134ef5a5e6b1f9ef5e">bc_phy_first_row</a> =.false.</td></tr>
+<tr class="separator:a67e32dd332a9f2134ef5a5e6b1f9ef5e"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a9f08e519aa826d3eafebb1fe83635988"><td class="memItemLeft" align="right" valign="top">logical, public, protected&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__bc__data.html#a9f08e519aa826d3eafebb1fe83635988">boundary_data_primitive</a> =.false.</td></tr>
+<tr class="separator:a9f08e519aa826d3eafebb1fe83635988"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>Module to set boundary conditions from user data. </p>
@@ -147,7 +153,7 @@ Variables</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="mod__bc__data_8t_source.html#l00126">126</a> of file <a class="el" href="mod__bc__data_8t_source.html">mod_bc_data.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__bc__data_8t_source.html#l00130">130</a> of file <a class="el" href="mod__bc__data_8t_source.html">mod_bc_data.t</a>.</p>
 
 </div>
 </div>
@@ -189,7 +195,7 @@ Variables</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="mod__bc__data_8t_source.html#l00114">114</a> of file <a class="el" href="mod__bc__data_8t_source.html">mod_bc_data.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__bc__data_8t_source.html#l00118">118</a> of file <a class="el" href="mod__bc__data_8t_source.html">mod_bc_data.t</a>.</p>
 
 </div>
 </div>
@@ -205,19 +211,19 @@ Variables</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="mod__bc__data_8t_source.html#l00040">40</a> of file <a class="el" href="mod__bc__data_8t_source.html">mod_bc_data.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__bc__data_8t_source.html#l00043">43</a> of file <a class="el" href="mod__bc__data_8t_source.html">mod_bc_data.t</a>.</p>
 <div class="dynheader">
 Here is the call graph for this function:</div>
 <div class="dyncontent">
 <div class="center"><img src="namespacemod__bc__data_ad538a8f959099a8987f483568f917dc4_cgraph.png" border="0" usemap="#anamespacemod__bc__data_ad538a8f959099a8987f483568f917dc4_cgraph" alt=""/></div>
 <map name="anamespacemod__bc__data_ad538a8f959099a8987f483568f917dc4_cgraph" id="anamespacemod__bc__data_ad538a8f959099a8987f483568f917dc4_cgraph">
 <area shape="rect" title=" " alt="" coords="5,177,201,203"/>
-<area shape="rect" href="namespacemod__bc__data.html#a6f436a987e52eb59ddf8fc9879c90c61" title="Read this module&quot;s parameters from a file." alt="" coords="253,5,421,47"/>
-<area shape="rect" href="namespacemod__lookup__table.html#a01c0f9215297dbded33962a29af671c6" title="This function returns a new lookup table from regularly spaced data." alt="" coords="253,71,420,112"/>
-<area shape="rect" href="namespacemod__lookup__table.html#a9b81ce4e240c8b8992ee85dce528ca7f" title="This function returns a new lookup table from regularly spaced data." alt="" coords="253,136,420,177"/>
-<area shape="rect" href="namespacemod__lookup__table.html#a78dc1ef852daa8da2ddde52bbc494e92" title="This function returns a new lookup table from regularly spaced data." alt="" coords="257,201,416,243"/>
-<area shape="rect" href="comm__lib_8t.html#a49b49ea9ffbbadfe688e332921c4cddd" title="Exit MPI&#45;AMRVAC with an error message." alt="" coords="299,267,374,294"/>
-<area shape="rect" href="namespacemod__bc__data.html#a109eb1561b92c366aec1adca7324eb58" title=" " alt="" coords="249,319,424,360"/>
+<area shape="rect" href="namespacemod__bc__data.html#a6f436a987e52eb59ddf8fc9879c90c61" title="Read this module&quot;s parameters from a file." alt="" coords="257,5,425,47"/>
+<area shape="rect" href="namespacemod__lookup__table.html#a01c0f9215297dbded33962a29af671c6" title="This function returns a new lookup table from regularly spaced data." alt="" coords="257,71,424,112"/>
+<area shape="rect" href="namespacemod__lookup__table.html#a9b81ce4e240c8b8992ee85dce528ca7f" title="This function returns a new lookup table from regularly spaced data." alt="" coords="257,136,424,177"/>
+<area shape="rect" href="namespacemod__lookup__table.html#a78dc1ef852daa8da2ddde52bbc494e92" title="This function returns a new lookup table from regularly spaced data." alt="" coords="261,201,420,243"/>
+<area shape="rect" href="namespacemod__comm__lib.html#a9b6f1a8fd13bc5670e3b426151c34048" title="Exit MPI&#45;AMRVAC with an error message." alt="" coords="249,267,432,294"/>
+<area shape="rect" href="namespacemod__bc__data.html#a109eb1561b92c366aec1adca7324eb58" title=" " alt="" coords="253,319,428,360"/>
 </map>
 </div>
 
@@ -287,16 +293,16 @@ Here is the call graph for this function:</div>
 
 <p>Set boundary conditions according to user data. </p>
 
-<p class="definition">Definition at line <a class="el" href="mod__bc__data_8t_source.html#l00139">139</a> of file <a class="el" href="mod__bc__data_8t_source.html">mod_bc_data.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__bc__data_8t_source.html#l00143">143</a> of file <a class="el" href="mod__bc__data_8t_source.html">mod_bc_data.t</a>.</p>
 <div class="dynheader">
 Here is the call graph for this function:</div>
 <div class="dyncontent">
 <div class="center"><img src="namespacemod__bc__data_ac4692cab356d6370d401eaa9aabc417a_cgraph.png" border="0" usemap="#anamespacemod__bc__data_ac4692cab356d6370d401eaa9aabc417a_cgraph" alt=""/></div>
 <map name="anamespacemod__bc__data_ac4692cab356d6370d401eaa9aabc417a_cgraph" id="anamespacemod__bc__data_ac4692cab356d6370d401eaa9aabc417a_cgraph">
 <area shape="rect" title="Set boundary conditions according to user data." alt="" coords="5,78,200,105"/>
-<area shape="rect" href="namespacemod__bc__data.html#a64c84a14d5d9b7a14cb84988232a563d" title=" " alt="" coords="248,5,416,47"/>
-<area shape="rect" href="namespacemod__bc__data.html#aa9044317516169ad6a005c0a9e20bb84" title=" " alt="" coords="248,71,416,112"/>
-<area shape="rect" href="comm__lib_8t.html#a49b49ea9ffbbadfe688e332921c4cddd" title="Exit MPI&#45;AMRVAC with an error message." alt="" coords="295,137,369,163"/>
+<area shape="rect" href="namespacemod__bc__data.html#a64c84a14d5d9b7a14cb84988232a563d" title=" " alt="" coords="255,5,423,47"/>
+<area shape="rect" href="namespacemod__bc__data.html#aa9044317516169ad6a005c0a9e20bb84" title=" " alt="" coords="255,71,423,112"/>
+<area shape="rect" href="namespacemod__comm__lib.html#a9b6f1a8fd13bc5670e3b426151c34048" title="Exit MPI&#45;AMRVAC with an error message." alt="" coords="248,137,431,163"/>
 </map>
 </div>
 
@@ -320,7 +326,7 @@ Here is the call graph for this function:</div>
 
 <p>Read this module"s parameters from a file. </p>
 
-<p class="definition">Definition at line <a class="el" href="mod__bc__data_8t_source.html#l00099">99</a> of file <a class="el" href="mod__bc__data_8t_source.html">mod_bc_data.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__bc__data_8t_source.html#l00102">102</a> of file <a class="el" href="mod__bc__data_8t_source.html">mod_bc_data.t</a>.</p>
 
 </div>
 </div>
@@ -350,7 +356,7 @@ Here is the call graph for this function:</div>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="mod__bc__data_8t_source.html#l00276">276</a> of file <a class="el" href="mod__bc__data_8t_source.html">mod_bc_data.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__bc__data_8t_source.html#l00479">479</a> of file <a class="el" href="mod__bc__data_8t_source.html">mod_bc_data.t</a>.</p>
 
 </div>
 </div>
@@ -391,6 +397,22 @@ Here is the call graph for this function:</div>
 
 </div>
 </div>
+<a id="a67e32dd332a9f2134ef5a5e6b1f9ef5e"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a67e32dd332a9f2134ef5a5e6b1f9ef5e">&#9670;&nbsp;</a></span>bc_phy_first_row</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">logical, public, protected mod_bc_data::bc_phy_first_row =.false.</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p class="definition">Definition at line <a class="el" href="mod__bc__data_8t_source.html#l00033">33</a> of file <a class="el" href="mod__bc__data_8t_source.html">mod_bc_data.t</a>.</p>
+
+</div>
+</div>
 <a id="a1a97a20d7363ba321264e955123370c2"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a1a97a20d7363ba321264e955123370c2">&#9670;&nbsp;</a></span>boundary_data_file_name</h2>
 
@@ -406,6 +428,38 @@ Here is the call graph for this function:</div>
 <p>data file name </p>
 
 <p class="definition">Definition at line <a class="el" href="mod__bc__data_8t_source.html#l00031">31</a> of file <a class="el" href="mod__bc__data_8t_source.html">mod_bc_data.t</a>.</p>
+
+</div>
+</div>
+<a id="a9f08e519aa826d3eafebb1fe83635988"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a9f08e519aa826d3eafebb1fe83635988">&#9670;&nbsp;</a></span>boundary_data_primitive</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">logical, public, protected mod_bc_data::boundary_data_primitive =.false.</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p class="definition">Definition at line <a class="el" href="mod__bc__data_8t_source.html#l00034">34</a> of file <a class="el" href="mod__bc__data_8t_source.html">mod_bc_data.t</a>.</p>
+
+</div>
+</div>
+<a id="af29551cf30de89f0669df9bb29ee67d7"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#af29551cf30de89f0669df9bb29ee67d7">&#9670;&nbsp;</a></span>interp_phy_first_row</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">logical, public, protected mod_bc_data::interp_phy_first_row =.true.</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p class="definition">Definition at line <a class="el" href="mod__bc__data_8t_source.html#l00032">32</a> of file <a class="el" href="mod__bc__data_8t_source.html">mod_bc_data.t</a>.</p>
 
 </div>
 </div>

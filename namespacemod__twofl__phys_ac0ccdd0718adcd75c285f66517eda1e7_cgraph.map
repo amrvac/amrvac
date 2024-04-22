@@ -1,8 +1,0 @@
-<map id="mod_twofl_phys::twofl_add_source_geom" name="mod_twofl_phys::twofl_add_source_geom">
-<area shape="rect" id="node1" title=" " alt="" coords="5,115,173,156"/>
-<area shape="rect" id="node2" href="$namespacemod__twofl__phys.html#a4e18f8b5346e80f4d7e4418f32845e7f" title=" " alt="" coords="227,5,384,47"/>
-<area shape="rect" id="node3" href="$namespacemod__twofl__phys.html#a7621aad8684305f6320e23d5797bd071" title=" " alt="" coords="437,144,595,185"/>
-<area shape="rect" id="node4" href="$comm__lib_8t.html#a49b49ea9ffbbadfe688e332921c4cddd" title="Exit MPI&#45;AMRVAC with an error message." alt="" coords="268,122,343,149"/>
-<area shape="rect" id="node5" href="$mod__twofl__phys_8t.html#a77990851e17a3938374a57e629a840b9" title=" " alt="" coords="231,173,379,199"/>
-<area shape="rect" id="node6" href="$namespacemod__twofl__phys.html#a62bc7138cabe74d3e373aa98cef9337f" title=" " alt="" coords="221,224,389,265"/>
-</map>

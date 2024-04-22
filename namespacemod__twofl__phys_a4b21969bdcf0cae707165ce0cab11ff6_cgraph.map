@@ -1,7 +1,6 @@
 <map id="mod_twofl_phys::add_source_powel" name="mod_twofl_phys::add_source_powel">
-<area shape="rect" id="node1" title="Add divB related sources to w within ixO corresponding to Powel." alt="" coords="5,90,165,131"/>
-<area shape="rect" id="node2" href="$namespacemod__twofl__phys.html#a427e01515131a67806de21d64a4876f3" title="Calculate div B within ixO." alt="" coords="213,5,405,32"/>
-<area shape="rect" id="node3" href="$namespacemod__twofl__phys.html#a24133b0cf4345eb22d782077403d87b8" title="Calculate v_c vector." alt="" coords="225,57,393,98"/>
-<area shape="rect" id="node4" href="$namespacemod__twofl__phys.html#ac3a9eb19d555dfbc5e17d410f70d6479" title=" " alt="" coords="225,122,393,163"/>
-<area shape="rect" id="node5" href="$namespacemod__twofl__phys.html#ad5909743198e8160e3d81cf6771cbd10" title="Compute full magnetic field by direction." alt="" coords="225,187,393,229"/>
+<area shape="rect" id="node1" title="Add divB related sources to w within ixO corresponding to Powel." alt="" coords="5,71,165,112"/>
+<area shape="rect" id="node2" href="$namespacemod__twofl__phys.html#a24133b0cf4345eb22d782077403d87b8" title="Calculate v_c vector." alt="" coords="213,5,381,47"/>
+<area shape="rect" id="node3" href="$namespacemod__twofl__phys.html#ac3a9eb19d555dfbc5e17d410f70d6479" title=" " alt="" coords="213,71,381,112"/>
+<area shape="rect" id="node4" href="$namespacemod__twofl__phys.html#ad5909743198e8160e3d81cf6771cbd10" title="Compute full magnetic field by direction." alt="" coords="213,136,381,177"/>
 </map>

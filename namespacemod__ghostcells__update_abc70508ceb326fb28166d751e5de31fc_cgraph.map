@@ -1,23 +1,25 @@
 <map id="mod_ghostcells_update::getbc" name="mod_ghostcells_update::getbc">
-<area shape="rect" id="node1" title="do update ghost cells of all blocks including physical boundaries" alt="" coords="5,479,181,521"/>
-<area shape="rect" id="node2" href="$mod__ghostcells__update_8t.html#a5ee99fa517ba8aed6ee7e4832fe6e9c8" title="Send to finer neighbor." alt="" coords="260,5,376,32"/>
-<area shape="rect" id="node3" href="$mod__ghostcells__update_8t.html#aeaf06ff9ff7245392d4b36ea99daf8e9" title="fill coarser representative with data from coarser neighbors" alt="" coords="247,56,389,83"/>
-<area shape="rect" id="node4" href="$mod__ghostcells__update_8t.html#a6833bb80a867d031b572bd6b490470fe" title="fill coarser neighbor&#39;s ghost cells" alt="" coords="261,107,375,133"/>
-<area shape="rect" id="node5" href="$mod__ghostcells__update_8t.html#aaecf56715d4aa987c2d2846a78efaa7f" title="fill restricted ghost cells after receipt" alt="" coords="248,157,388,184"/>
-<area shape="rect" id="node6" href="$mod__ghostcells__update_8t.html#aa5ff8da62fe7629286b041def212c8a7" title=" " alt="" coords="277,208,359,235"/>
-<area shape="rect" id="node7" href="$mod__ghostcells__update_8t.html#a358a8046cfea98d291c992ca8aeec302" title="fill siblings ghost cells with received data" alt="" coords="263,259,373,285"/>
-<area shape="rect" id="node8" href="$mod__ghostcells__update_8t.html#a539d4a89f11162c6f5f0057ffaddcf16" title="Receive from coarse neighbor." alt="" coords="254,309,382,336"/>
-<area shape="rect" id="node9" href="$mod__ghostcells__update_8t.html#a0b916400026997679437ff54b4703c97" title="Receive from fine neighbor." alt="" coords="255,360,381,387"/>
-<area shape="rect" id="node10" href="$mod__ghostcells__update_8t.html#a6674928ec26f66fb35762f2d1d47479a" title="Receive from sibling at same refinement level." alt="" coords="271,411,365,437"/>
-<area shape="rect" id="node11" href="$mod__ghostcells__update_8t.html#accc88c24bcedcc958a5cec0a5b8b76c4" title="Send to finer neighbor." alt="" coords="253,461,383,488"/>
-<area shape="rect" id="node12" href="$mod__ghostcells__update_8t.html#a7c4628701a4c136653b81b23c0efd94a" title="Send to coarser neighbor." alt="" coords="254,512,382,539"/>
-<area shape="rect" id="node13" href="$mod__ghostcells__update_8t.html#ab56a57badc0ef82a6f341d823e3364e5" title="Send to sibling at same refinement level." alt="" coords="269,563,367,589"/>
-<area shape="rect" id="node14" href="$coarsen_8t.html#ae87eacc198ccd8116d6bafa766dd7b2a" title="coarsen one grid to its coarser representative" alt="" coords="265,613,371,640"/>
-<area shape="rect" id="node15" href="$mod__ghostcells__update_8t.html#ac48bcd1b79a3575792e5109cf6fe0ffc" title="Physical boundary conditions." alt="" coords="235,664,401,691"/>
-<area shape="rect" id="node16" href="$mod__ghostcells__update_8t.html#a92e0e3c485610e82b304a816bcc6e01c" title="Physical boundary conditions." alt="" coords="229,715,407,741"/>
-<area shape="rect" id="node17" href="$mod__ghostcells__update_8t.html#a6c6048cf15f1bf29732b7cb62e25b61f" title=" " alt="" coords="240,765,396,792"/>
-<area shape="rect" id="node18" href="$mod__ghostcells__update_8t.html#a131730352407c781c98ee1dc41b4f3bd" title=" " alt="" coords="271,816,365,843"/>
-<area shape="rect" id="node19" href="$mod__ghostcells__update_8t.html#ac9f81bd4734be3dddddaf1c127c8aab4" title=" " alt="" coords="455,841,568,868"/>
-<area shape="rect" id="node20" href="$boundary__conditions_8t.html#a3de741534d17bc94b4d5c5bfd6bf6d81" title="fill inner boundary values" alt="" coords="281,917,355,944"/>
-<area shape="rect" id="node21" href="$namespacemod__ghostcells__update.html#a1d2bac4c882f79a5d943b3e11147c275" title=" " alt="" coords="230,969,406,1010"/>
+<area shape="rect" id="node1" title="do update ghost cells of all blocks including physical boundaries" alt="" coords="5,546,181,587"/>
+<area shape="rect" id="node2" href="$mod__ghostcells__update_8t.html#a5ee99fa517ba8aed6ee7e4832fe6e9c8" title="Send to finer neighbor." alt="" coords="271,5,387,32"/>
+<area shape="rect" id="node3" href="$mod__ghostcells__update_8t.html#aeaf06ff9ff7245392d4b36ea99daf8e9" title="fill coarser representative with data from coarser neighbors" alt="" coords="258,56,401,83"/>
+<area shape="rect" id="node4" href="$mod__ghostcells__update_8t.html#a6833bb80a867d031b572bd6b490470fe" title="fill coarser neighbor&#39;s ghost cells" alt="" coords="273,107,386,133"/>
+<area shape="rect" id="node5" href="$mod__ghostcells__update_8t.html#aaecf56715d4aa987c2d2846a78efaa7f" title="fill restricted ghost cells after receipt" alt="" coords="259,157,399,184"/>
+<area shape="rect" id="node6" href="$mod__ghostcells__update_8t.html#aa5ff8da62fe7629286b041def212c8a7" title=" " alt="" coords="288,208,371,235"/>
+<area shape="rect" id="node7" href="$mod__ghostcells__update_8t.html#a358a8046cfea98d291c992ca8aeec302" title="fill siblings ghost cells with received data" alt="" coords="274,259,385,285"/>
+<area shape="rect" id="node8" href="$namespacemod__boundary__conditions.html#acb1710f32d334f37c8937542b5dfdaaa" title="fill ghost cells at a physical boundary" alt="" coords="233,310,426,351"/>
+<area shape="rect" id="node9" href="$mod__ghostcells__update_8t.html#a539d4a89f11162c6f5f0057ffaddcf16" title="Receive from coarse neighbor." alt="" coords="265,376,393,403"/>
+<area shape="rect" id="node10" href="$mod__ghostcells__update_8t.html#a0b916400026997679437ff54b4703c97" title="Receive from fine neighbor." alt="" coords="267,427,392,453"/>
+<area shape="rect" id="node11" href="$mod__ghostcells__update_8t.html#a6674928ec26f66fb35762f2d1d47479a" title="Receive from sibling at same refinement level." alt="" coords="282,477,377,504"/>
+<area shape="rect" id="node12" href="$mod__ghostcells__update_8t.html#accc88c24bcedcc958a5cec0a5b8b76c4" title="Send to finer neighbor." alt="" coords="264,528,395,555"/>
+<area shape="rect" id="node13" href="$mod__ghostcells__update_8t.html#a7c4628701a4c136653b81b23c0efd94a" title="Send to coarser neighbor." alt="" coords="265,579,393,605"/>
+<area shape="rect" id="node14" href="$mod__ghostcells__update_8t.html#ab56a57badc0ef82a6f341d823e3364e5" title="Send to sibling at same refinement level." alt="" coords="280,629,379,656"/>
+<area shape="rect" id="node15" href="$namespacemod__coarsen.html#aa405d60da3c03b9423df6c225752424b" title="coarsen one grid to its coarser representative" alt="" coords="229,680,429,707"/>
+<area shape="rect" id="node16" href="$mod__ghostcells__update_8t.html#ac48bcd1b79a3575792e5109cf6fe0ffc" title="Physical boundary conditions." alt="" coords="247,731,412,757"/>
+<area shape="rect" id="node17" href="$mod__ghostcells__update_8t.html#a92e0e3c485610e82b304a816bcc6e01c" title="Physical boundary conditions." alt="" coords="241,781,418,808"/>
+<area shape="rect" id="node18" href="$mod__ghostcells__update_8t.html#a6c6048cf15f1bf29732b7cb62e25b61f" title=" " alt="" coords="251,832,407,859"/>
+<area shape="rect" id="node19" href="$mod__ghostcells__update_8t.html#a131730352407c781c98ee1dc41b4f3bd" title=" " alt="" coords="283,883,376,909"/>
+<area shape="rect" id="node20" href="$mod__ghostcells__update_8t.html#ac9f81bd4734be3dddddaf1c127c8aab4" title=" " alt="" coords="477,908,591,935"/>
+<area shape="rect" id="node21" href="$namespacemod__boundary__conditions.html#a38f7ce058a949049b745bfcebef0b2bd" title="fill inner boundary values" alt="" coords="233,985,426,1026"/>
+<area shape="rect" id="node22" href="$namespacemod__ghostcells__update.html#a1d2bac4c882f79a5d943b3e11147c275" title=" " alt="" coords="241,1050,417,1091"/>
+<area shape="rect" id="node23" href="$namespacemod__comm__lib.html#a9b6f1a8fd13bc5670e3b426151c34048" title="Exit MPI&#45;AMRVAC with an error message." alt="" coords="238,1116,421,1143"/>
 </map>

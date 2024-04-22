@@ -1,0 +1,8 @@
+<map id="mod_finite_volume::finite_volume" name="mod_finite_volume::finite_volume">
+<area shape="rect" id="node1" title="finite volume method" alt="" coords="5,99,160,141"/>
+<area shape="rect" id="node2" href="$namespacemod__source.html#a37caec5d9f530bb58e31bcbaea843afe" title="Add source within ixO for iws: w=w+qdt*S[wCT]." alt="" coords="208,5,392,32"/>
+<area shape="rect" id="node3" href="$mod__finite__volume_8t.html#a9e2798344330527451517501c987da7b" title=" " alt="" coords="208,56,392,83"/>
+<area shape="rect" id="node4" href="$namespacemod__comm__lib.html#a9b6f1a8fd13bc5670e3b426151c34048" title="Exit MPI&#45;AMRVAC with an error message." alt="" coords="440,136,623,163"/>
+<area shape="rect" id="node5" href="$namespacemod__finite__volume.html#a4096159cd061b7e8cc27c68dba299ebd" title="Determine the upwinded wLC(ixL) and wRC(ixR) from w. the wCT is only used when PPM is exploited." alt="" coords="223,158,377,199"/>
+<area shape="rect" id="node6" href="$namespacemod__tvd.html#a7211b4da33554a9af0251ada49f54bf3" title=" " alt="" coords="227,224,373,251"/>
+</map>

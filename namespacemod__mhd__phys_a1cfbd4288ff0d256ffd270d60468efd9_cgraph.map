@@ -1,5 +1,6 @@
 <map id="mod_mhd_phys::update_faces_contact" name="mod_mhd_phys::update_faces_contact">
-<area shape="rect" id="node1" title="update faces using UCT contact mode by Gardiner and Stone 2005 JCP 205, 509" alt="" coords="5,39,184,80"/>
+<area shape="rect" id="node1" title="update faces using UCT contact mode by Gardiner and Stone 2005 JCP 205, 509" alt="" coords="5,71,184,112"/>
 <area shape="rect" id="node2" href="$namespacemod__mhd__phys.html#a941606423adad1d3332607d682f80660" title="get ambipolar electric field on cell edges" alt="" coords="232,5,459,47"/>
 <area shape="rect" id="node3" href="$namespacemod__mhd__phys.html#a7878975462afc31d4bd41d6f582a6eb2" title="calculate eta J at cell edges" alt="" coords="237,71,454,112"/>
+<area shape="rect" id="node4" href="$namespacemod__geometry.html#afb4a536895193b5cace9dcddd0011926" title="Calculate gradient of a scalar q in direction idir at cell interfaces." alt="" coords="507,107,697,134"/>
 </map>

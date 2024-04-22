@@ -30,7 +30,7 @@
  <tr style="height: 56px;">
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">MPI-AMRVAC
-   &#160;<span id="projectnumber">3.0</span>
+   &#160;<span id="projectnumber">3.1</span>
    </div>
    <div id="projectbrief">The MPI - Adaptive Mesh Refinement - Versatile Advection Code</div>
   </td>
@@ -665,68 +665,69 @@ $(function() {
 <div class="line"><a name="l00584"></a><span class="lineno">  584</span>&#160;    my_lt%x_min    = x_min</div>
 <div class="line"><a name="l00585"></a><span class="lineno">  585</span>&#160;    my_lt%dx       = (x_max - x_min) / (n_points - 1)</div>
 <div class="line"><a name="l00586"></a><span class="lineno">  586</span>&#160;    my_lt%inv_dx   = 1 / my_lt%dx</div>
-<div class="line"><a name="l00587"></a><span class="lineno">  587</span>&#160; </div>
-<div class="line"><a name="l00588"></a><span class="lineno">  588</span>&#160;    my_lt%rows_cols = spaced_data</div>
-<div class="line"><a name="l00589"></a><span class="lineno">  589</span>&#160;  <span class="keyword">end function </span><a class="code" href="namespacemod__lookup__table.html#a9b81ce4e240c8b8992ee85dce528ca7f">lt3_create_from_data</a></div>
-<div class="line"><a name="l00590"></a><span class="lineno">  590</span>&#160;<span class="comment"></span> </div>
-<div class="line"><a name="l00591"></a><span class="lineno">  591</span>&#160;<span class="comment">  !&gt; Get a location in the lookup table</span></div>
-<div class="line"><a name="l00592"></a><span class="lineno"><a class="line" href="namespacemod__lookup__table.html#a4dfdc6b900980d5f0de419155de4d2c3">  592</a></span>&#160;  <span class="keywordtype">elemental</span> <span class="keyword">function </span><a class="code" href="namespacemod__lookup__table.html#a4dfdc6b900980d5f0de419155de4d2c3">lt3_get_loc</a>(my_lt, x1, x2, x3) <span class="keyword">result</span>(my_loc)</div>
-<div class="line"><a name="l00593"></a><span class="lineno">  593</span>&#160;    <span class="keywordtype">type</span>(lt3_t), <span class="keywordtype">intent(in)</span> :: my_lt</div>
-<div class="line"><a name="l00594"></a><span class="lineno">  594</span>&#160;<span class="keywordtype">    real</span>(dp), <span class="keywordtype">intent(in)</span>    :: x1, x2, x3</div>
-<div class="line"><a name="l00595"></a><span class="lineno">  595</span>&#160;    <span class="keywordtype">type</span>(lt3_loc_t)         :: my_loc</div>
-<div class="line"><a name="l00596"></a><span class="lineno">  596</span>&#160;<span class="keywordtype">    real</span>(dp)                :: frac(3)</div>
-<div class="line"><a name="l00597"></a><span class="lineno">  597</span>&#160; </div>
-<div class="line"><a name="l00598"></a><span class="lineno">  598</span>&#160;    frac            = ([x1, x2, x3] - my_lt%x_min) * my_lt%inv_dx</div>
-<div class="line"><a name="l00599"></a><span class="lineno">  599</span>&#160;    my_loc%low_ix   = ceiling(frac)</div>
-<div class="line"><a name="l00600"></a><span class="lineno">  600</span>&#160;    my_loc%low_frac = my_loc%low_ix - frac</div>
-<div class="line"><a name="l00601"></a><span class="lineno">  601</span>&#160; </div>
-<div class="line"><a name="l00602"></a><span class="lineno">  602</span>&#160;    <span class="comment">! Check bounds</span></div>
-<div class="line"><a name="l00603"></a><span class="lineno">  603</span>&#160;    <span class="keywordflow">where</span> (my_loc%low_ix &lt; 1)</div>
-<div class="line"><a name="l00604"></a><span class="lineno">  604</span>&#160;       my_loc%low_ix   = 1</div>
-<div class="line"><a name="l00605"></a><span class="lineno">  605</span>&#160;       my_loc%low_frac = 1</div>
-<div class="line"><a name="l00606"></a><span class="lineno">  606</span>&#160;<span class="keywordflow">    end where</span></div>
-<div class="line"><a name="l00607"></a><span class="lineno">  607</span>&#160; </div>
-<div class="line"><a name="l00608"></a><span class="lineno">  608</span>&#160;    <span class="keywordflow">where</span> (my_loc%low_ix &gt;= my_lt%n_points)</div>
-<div class="line"><a name="l00609"></a><span class="lineno">  609</span>&#160;       my_loc%low_ix   = my_lt%n_points - 1</div>
-<div class="line"><a name="l00610"></a><span class="lineno">  610</span>&#160;       my_loc%low_frac = 0</div>
-<div class="line"><a name="l00611"></a><span class="lineno">  611</span>&#160;<span class="keywordflow">    end where</span></div>
-<div class="line"><a name="l00612"></a><span class="lineno">  612</span>&#160;  <span class="keyword">end function </span><a class="code" href="namespacemod__lookup__table.html#a4dfdc6b900980d5f0de419155de4d2c3">lt3_get_loc</a></div>
-<div class="line"><a name="l00613"></a><span class="lineno">  613</span>&#160;<span class="comment"></span> </div>
-<div class="line"><a name="l00614"></a><span class="lineno">  614</span>&#160;<span class="comment">  !&gt; Get the value of a single column at x</span></div>
-<div class="line"><a name="l00615"></a><span class="lineno"><a class="line" href="namespacemod__lookup__table.html#a4b43822f62bd4ffc155c871bed2e7b1b">  615</a></span>&#160;  <span class="keywordtype">elemental</span> <span class="keyword">function </span><a class="code" href="namespacemod__lookup__table.html#a4b43822f62bd4ffc155c871bed2e7b1b">lt3_get_col</a>(my_lt, col_ix, x1, x2, x3) <span class="keyword">result</span>(col_value)</div>
-<div class="line"><a name="l00616"></a><span class="lineno">  616</span>&#160;    <span class="keywordtype">type</span>(lt3_t), <span class="keywordtype">intent(in)</span> :: my_lt</div>
-<div class="line"><a name="l00617"></a><span class="lineno">  617</span>&#160;    <span class="keywordtype">integer</span>, <span class="keywordtype">intent(in)</span>     :: col_ix</div>
-<div class="line"><a name="l00618"></a><span class="lineno">  618</span>&#160;<span class="keywordtype">    real</span>(dp), <span class="keywordtype">intent(in)</span>    :: x1, x2, x3</div>
-<div class="line"><a name="l00619"></a><span class="lineno">  619</span>&#160;<span class="keywordtype">    real</span>(dp)                :: col_value</div>
-<div class="line"><a name="l00620"></a><span class="lineno">  620</span>&#160;    <span class="keywordtype">type</span>(lt3_loc_t)         :: loc</div>
-<div class="line"><a name="l00621"></a><span class="lineno">  621</span>&#160; </div>
-<div class="line"><a name="l00622"></a><span class="lineno">  622</span>&#160;    loc       = <a class="code" href="namespacemod__lookup__table.html#a4dfdc6b900980d5f0de419155de4d2c3">lt3_get_loc</a>(my_lt, x1, x2, x3)</div>
-<div class="line"><a name="l00623"></a><span class="lineno">  623</span>&#160;    col_value = <a class="code" href="namespacemod__lookup__table.html#a51464d153f8762cd309cf4a2d08b378d">lt3_get_col_at_loc</a>(my_lt, col_ix, loc)</div>
-<div class="line"><a name="l00624"></a><span class="lineno">  624</span>&#160;  <span class="keyword">end function </span><a class="code" href="namespacemod__lookup__table.html#a4b43822f62bd4ffc155c871bed2e7b1b">lt3_get_col</a></div>
-<div class="line"><a name="l00625"></a><span class="lineno">  625</span>&#160;<span class="comment"></span> </div>
-<div class="line"><a name="l00626"></a><span class="lineno">  626</span>&#160;<span class="comment">  !&gt; Get the value of a single column at a location</span></div>
-<div class="line"><a name="l00627"></a><span class="lineno"><a class="line" href="namespacemod__lookup__table.html#a51464d153f8762cd309cf4a2d08b378d">  627</a></span>&#160;  <span class="keywordtype">elemental</span> <span class="keyword">function </span><a class="code" href="namespacemod__lookup__table.html#a51464d153f8762cd309cf4a2d08b378d">lt3_get_col_at_loc</a>(my_lt, col_ix, loc) <span class="keyword">result</span>(col_value)</div>
-<div class="line"><a name="l00628"></a><span class="lineno">  628</span>&#160;    <span class="keywordtype">type</span>(lt3_t), <span class="keywordtype">intent(in)</span>     :: my_lt</div>
-<div class="line"><a name="l00629"></a><span class="lineno">  629</span>&#160;    <span class="keywordtype">integer</span>, <span class="keywordtype">intent(in)</span>         :: col_ix</div>
-<div class="line"><a name="l00630"></a><span class="lineno">  630</span>&#160;    <span class="keywordtype">type</span>(lt3_loc_t), <span class="keywordtype">intent(in)</span> :: loc</div>
-<div class="line"><a name="l00631"></a><span class="lineno">  631</span>&#160;    <span class="keywordtype">integer</span>                     :: ix(3)</div>
-<div class="line"><a name="l00632"></a><span class="lineno">  632</span>&#160;<span class="keywordtype">    real</span>(dp)                    :: w(2, 2, 2)</div>
-<div class="line"><a name="l00633"></a><span class="lineno">  633</span>&#160;<span class="keywordtype">    real</span>(dp)                    :: col_value</div>
-<div class="line"><a name="l00634"></a><span class="lineno">  634</span>&#160; </div>
-<div class="line"><a name="l00635"></a><span class="lineno">  635</span>&#160;    <span class="comment">! Bilinear interpolation</span></div>
-<div class="line"><a name="l00636"></a><span class="lineno">  636</span>&#160;    w(1, 1, 1) = loc%low_frac(1) * loc%low_frac(2)</div>
-<div class="line"><a name="l00637"></a><span class="lineno">  637</span>&#160;    w(2, 1, 1) = (1 - loc%low_frac(1)) * loc%low_frac(2)</div>
-<div class="line"><a name="l00638"></a><span class="lineno">  638</span>&#160;    w(1, 2, 1) = loc%low_frac(1) * (1 - loc%low_frac(2))</div>
-<div class="line"><a name="l00639"></a><span class="lineno">  639</span>&#160;    w(2, 2, 1) = (1 - loc%low_frac(1)) * (1 - loc%low_frac(2))</div>
-<div class="line"><a name="l00640"></a><span class="lineno">  640</span>&#160;    w(:, :, 2) = w(:, :, 1) * (1 - loc%low_frac(3))</div>
-<div class="line"><a name="l00641"></a><span class="lineno">  641</span>&#160;    w(:, :, 1) = w(:, :, 1) * loc%low_frac(3)</div>
-<div class="line"><a name="l00642"></a><span class="lineno">  642</span>&#160;    ix = loc%low_ix</div>
-<div class="line"><a name="l00643"></a><span class="lineno">  643</span>&#160; </div>
-<div class="line"><a name="l00644"></a><span class="lineno">  644</span>&#160;    col_value = sum(w * my_lt%rows_cols(ix(1):ix(1)+1, &amp;</div>
-<div class="line"><a name="l00645"></a><span class="lineno">  645</span>&#160;         ix(2):ix(2)+1, ix(3):ix(3)+1, col_ix))</div>
-<div class="line"><a name="l00646"></a><span class="lineno">  646</span>&#160;  <span class="keyword">end function </span><a class="code" href="namespacemod__lookup__table.html#a51464d153f8762cd309cf4a2d08b378d">lt3_get_col_at_loc</a></div>
-<div class="line"><a name="l00647"></a><span class="lineno">  647</span>&#160; </div>
-<div class="line"><a name="l00648"></a><span class="lineno">  648</span>&#160;<span class="keyword">end module </span><a class="code" href="namespacemod__lookup__table.html">mod_lookup_table</a></div>
+<div class="line"><a name="l00587"></a><span class="lineno">  587</span>&#160;    <span class="comment">!TODO modified so that it does not rely on automatic allocation</span></div>
+<div class="line"><a name="l00588"></a><span class="lineno">  588</span>&#160;    <span class="keyword">allocate</span>(my_lt%rows_cols(n_points(1), n_points(2), n_points(3), n_cols))</div>
+<div class="line"><a name="l00589"></a><span class="lineno">  589</span>&#160;    my_lt%rows_cols = spaced_data</div>
+<div class="line"><a name="l00590"></a><span class="lineno">  590</span>&#160;  <span class="keyword">end function </span><a class="code" href="namespacemod__lookup__table.html#a9b81ce4e240c8b8992ee85dce528ca7f">lt3_create_from_data</a></div>
+<div class="line"><a name="l00591"></a><span class="lineno">  591</span>&#160;<span class="comment"></span> </div>
+<div class="line"><a name="l00592"></a><span class="lineno">  592</span>&#160;<span class="comment">  !&gt; Get a location in the lookup table</span></div>
+<div class="line"><a name="l00593"></a><span class="lineno"><a class="line" href="namespacemod__lookup__table.html#a4dfdc6b900980d5f0de419155de4d2c3">  593</a></span>&#160;  <span class="keywordtype">elemental</span> <span class="keyword">function </span><a class="code" href="namespacemod__lookup__table.html#a4dfdc6b900980d5f0de419155de4d2c3">lt3_get_loc</a>(my_lt, x1, x2, x3) <span class="keyword">result</span>(my_loc)</div>
+<div class="line"><a name="l00594"></a><span class="lineno">  594</span>&#160;    <span class="keywordtype">type</span>(lt3_t), <span class="keywordtype">intent(in)</span> :: my_lt</div>
+<div class="line"><a name="l00595"></a><span class="lineno">  595</span>&#160;<span class="keywordtype">    real</span>(dp), <span class="keywordtype">intent(in)</span>    :: x1, x2, x3</div>
+<div class="line"><a name="l00596"></a><span class="lineno">  596</span>&#160;    <span class="keywordtype">type</span>(lt3_loc_t)         :: my_loc</div>
+<div class="line"><a name="l00597"></a><span class="lineno">  597</span>&#160;<span class="keywordtype">    real</span>(dp)                :: frac(3)</div>
+<div class="line"><a name="l00598"></a><span class="lineno">  598</span>&#160; </div>
+<div class="line"><a name="l00599"></a><span class="lineno">  599</span>&#160;    frac            = ([x1, x2, x3] - my_lt%x_min) * my_lt%inv_dx</div>
+<div class="line"><a name="l00600"></a><span class="lineno">  600</span>&#160;    my_loc%low_ix   = ceiling(frac)</div>
+<div class="line"><a name="l00601"></a><span class="lineno">  601</span>&#160;    my_loc%low_frac = my_loc%low_ix - frac</div>
+<div class="line"><a name="l00602"></a><span class="lineno">  602</span>&#160; </div>
+<div class="line"><a name="l00603"></a><span class="lineno">  603</span>&#160;    <span class="comment">! Check bounds</span></div>
+<div class="line"><a name="l00604"></a><span class="lineno">  604</span>&#160;    <span class="keywordflow">where</span> (my_loc%low_ix &lt; 1)</div>
+<div class="line"><a name="l00605"></a><span class="lineno">  605</span>&#160;       my_loc%low_ix   = 1</div>
+<div class="line"><a name="l00606"></a><span class="lineno">  606</span>&#160;       my_loc%low_frac = 1</div>
+<div class="line"><a name="l00607"></a><span class="lineno">  607</span>&#160;<span class="keywordflow">    end where</span></div>
+<div class="line"><a name="l00608"></a><span class="lineno">  608</span>&#160; </div>
+<div class="line"><a name="l00609"></a><span class="lineno">  609</span>&#160;    <span class="keywordflow">where</span> (my_loc%low_ix &gt;= my_lt%n_points)</div>
+<div class="line"><a name="l00610"></a><span class="lineno">  610</span>&#160;       my_loc%low_ix   = my_lt%n_points - 1</div>
+<div class="line"><a name="l00611"></a><span class="lineno">  611</span>&#160;       my_loc%low_frac = 0</div>
+<div class="line"><a name="l00612"></a><span class="lineno">  612</span>&#160;<span class="keywordflow">    end where</span></div>
+<div class="line"><a name="l00613"></a><span class="lineno">  613</span>&#160;  <span class="keyword">end function </span><a class="code" href="namespacemod__lookup__table.html#a4dfdc6b900980d5f0de419155de4d2c3">lt3_get_loc</a></div>
+<div class="line"><a name="l00614"></a><span class="lineno">  614</span>&#160;<span class="comment"></span> </div>
+<div class="line"><a name="l00615"></a><span class="lineno">  615</span>&#160;<span class="comment">  !&gt; Get the value of a single column at x</span></div>
+<div class="line"><a name="l00616"></a><span class="lineno"><a class="line" href="namespacemod__lookup__table.html#a4b43822f62bd4ffc155c871bed2e7b1b">  616</a></span>&#160;  <span class="keywordtype">elemental</span> <span class="keyword">function </span><a class="code" href="namespacemod__lookup__table.html#a4b43822f62bd4ffc155c871bed2e7b1b">lt3_get_col</a>(my_lt, col_ix, x1, x2, x3) <span class="keyword">result</span>(col_value)</div>
+<div class="line"><a name="l00617"></a><span class="lineno">  617</span>&#160;    <span class="keywordtype">type</span>(lt3_t), <span class="keywordtype">intent(in)</span> :: my_lt</div>
+<div class="line"><a name="l00618"></a><span class="lineno">  618</span>&#160;    <span class="keywordtype">integer</span>, <span class="keywordtype">intent(in)</span>     :: col_ix</div>
+<div class="line"><a name="l00619"></a><span class="lineno">  619</span>&#160;<span class="keywordtype">    real</span>(dp), <span class="keywordtype">intent(in)</span>    :: x1, x2, x3</div>
+<div class="line"><a name="l00620"></a><span class="lineno">  620</span>&#160;<span class="keywordtype">    real</span>(dp)                :: col_value</div>
+<div class="line"><a name="l00621"></a><span class="lineno">  621</span>&#160;    <span class="keywordtype">type</span>(lt3_loc_t)         :: loc</div>
+<div class="line"><a name="l00622"></a><span class="lineno">  622</span>&#160; </div>
+<div class="line"><a name="l00623"></a><span class="lineno">  623</span>&#160;    loc       = <a class="code" href="namespacemod__lookup__table.html#a4dfdc6b900980d5f0de419155de4d2c3">lt3_get_loc</a>(my_lt, x1, x2, x3)</div>
+<div class="line"><a name="l00624"></a><span class="lineno">  624</span>&#160;    col_value = <a class="code" href="namespacemod__lookup__table.html#a51464d153f8762cd309cf4a2d08b378d">lt3_get_col_at_loc</a>(my_lt, col_ix, loc)</div>
+<div class="line"><a name="l00625"></a><span class="lineno">  625</span>&#160;  <span class="keyword">end function </span><a class="code" href="namespacemod__lookup__table.html#a4b43822f62bd4ffc155c871bed2e7b1b">lt3_get_col</a></div>
+<div class="line"><a name="l00626"></a><span class="lineno">  626</span>&#160;<span class="comment"></span> </div>
+<div class="line"><a name="l00627"></a><span class="lineno">  627</span>&#160;<span class="comment">  !&gt; Get the value of a single column at a location</span></div>
+<div class="line"><a name="l00628"></a><span class="lineno"><a class="line" href="namespacemod__lookup__table.html#a51464d153f8762cd309cf4a2d08b378d">  628</a></span>&#160;  <span class="keywordtype">elemental</span> <span class="keyword">function </span><a class="code" href="namespacemod__lookup__table.html#a51464d153f8762cd309cf4a2d08b378d">lt3_get_col_at_loc</a>(my_lt, col_ix, loc) <span class="keyword">result</span>(col_value)</div>
+<div class="line"><a name="l00629"></a><span class="lineno">  629</span>&#160;    <span class="keywordtype">type</span>(lt3_t), <span class="keywordtype">intent(in)</span>     :: my_lt</div>
+<div class="line"><a name="l00630"></a><span class="lineno">  630</span>&#160;    <span class="keywordtype">integer</span>, <span class="keywordtype">intent(in)</span>         :: col_ix</div>
+<div class="line"><a name="l00631"></a><span class="lineno">  631</span>&#160;    <span class="keywordtype">type</span>(lt3_loc_t), <span class="keywordtype">intent(in)</span> :: loc</div>
+<div class="line"><a name="l00632"></a><span class="lineno">  632</span>&#160;    <span class="keywordtype">integer</span>                     :: ix(3)</div>
+<div class="line"><a name="l00633"></a><span class="lineno">  633</span>&#160;<span class="keywordtype">    real</span>(dp)                    :: w(2, 2, 2)</div>
+<div class="line"><a name="l00634"></a><span class="lineno">  634</span>&#160;<span class="keywordtype">    real</span>(dp)                    :: col_value</div>
+<div class="line"><a name="l00635"></a><span class="lineno">  635</span>&#160; </div>
+<div class="line"><a name="l00636"></a><span class="lineno">  636</span>&#160;    <span class="comment">! Bilinear interpolation</span></div>
+<div class="line"><a name="l00637"></a><span class="lineno">  637</span>&#160;    w(1, 1, 1) = loc%low_frac(1) * loc%low_frac(2)</div>
+<div class="line"><a name="l00638"></a><span class="lineno">  638</span>&#160;    w(2, 1, 1) = (1 - loc%low_frac(1)) * loc%low_frac(2)</div>
+<div class="line"><a name="l00639"></a><span class="lineno">  639</span>&#160;    w(1, 2, 1) = loc%low_frac(1) * (1 - loc%low_frac(2))</div>
+<div class="line"><a name="l00640"></a><span class="lineno">  640</span>&#160;    w(2, 2, 1) = (1 - loc%low_frac(1)) * (1 - loc%low_frac(2))</div>
+<div class="line"><a name="l00641"></a><span class="lineno">  641</span>&#160;    w(:, :, 2) = w(:, :, 1) * (1 - loc%low_frac(3))</div>
+<div class="line"><a name="l00642"></a><span class="lineno">  642</span>&#160;    w(:, :, 1) = w(:, :, 1) * loc%low_frac(3)</div>
+<div class="line"><a name="l00643"></a><span class="lineno">  643</span>&#160;    ix = loc%low_ix</div>
+<div class="line"><a name="l00644"></a><span class="lineno">  644</span>&#160; </div>
+<div class="line"><a name="l00645"></a><span class="lineno">  645</span>&#160;    col_value = sum(w * my_lt%rows_cols(ix(1):ix(1)+1, &amp;</div>
+<div class="line"><a name="l00646"></a><span class="lineno">  646</span>&#160;         ix(2):ix(2)+1, ix(3):ix(3)+1, col_ix))</div>
+<div class="line"><a name="l00647"></a><span class="lineno">  647</span>&#160;  <span class="keyword">end function </span><a class="code" href="namespacemod__lookup__table.html#a51464d153f8762cd309cf4a2d08b378d">lt3_get_col_at_loc</a></div>
+<div class="line"><a name="l00648"></a><span class="lineno">  648</span>&#160; </div>
+<div class="line"><a name="l00649"></a><span class="lineno">  649</span>&#160;<span class="keyword">end module </span><a class="code" href="namespacemod__lookup__table.html">mod_lookup_table</a></div>
 <div class="ttc" id="anamespacemod__lookup__table_html"><div class="ttname"><a href="namespacemod__lookup__table.html">mod_lookup_table</a></div><div class="ttdoc">A Fortran 90 module for creating 1D and 2D lookup tables. These tables can be used to efficiently int...</div><div class="ttdef"><b>Definition:</b> <a href="mod__lookup__table_8t_source.html#l00005">mod_lookup_table.t:5</a></div></div>
 <div class="ttc" id="anamespacemod__lookup__table_html_a01c0f9215297dbded33962a29af671c6"><div class="ttname"><a href="namespacemod__lookup__table.html#a01c0f9215297dbded33962a29af671c6">mod_lookup_table::lt2_create_from_data</a></div><div class="ttdeci">type(lt2_t) function, public lt2_create_from_data(x_min, x_max, spaced_data)</div><div class="ttdoc">This function returns a new lookup table from regularly spaced data.</div><div class="ttdef"><b>Definition:</b> <a href="mod__lookup__table_8t_source.html#l00439">mod_lookup_table.t:440</a></div></div>
 <div class="ttc" id="anamespacemod__lookup__table_html_a1058217df01d65584f1d1bfab076b0dd"><div class="ttname"><a href="namespacemod__lookup__table.html#a1058217df01d65584f1d1bfab076b0dd">mod_lookup_table::lt2_get_col_at_loc</a></div><div class="ttdeci">elemental real(dp) function, public lt2_get_col_at_loc(my_lt, col_ix, loc)</div><div class="ttdoc">Get the value of a single column at a location.</div><div class="ttdef"><b>Definition:</b> <a href="mod__lookup__table_8t_source.html#l00524">mod_lookup_table.t:525</a></div></div>
@@ -738,9 +739,9 @@ $(function() {
 <div class="ttc" id="anamespacemod__lookup__table_html_a34cba56d0575b6cb45f20477582151f9"><div class="ttname"><a href="namespacemod__lookup__table.html#a34cba56d0575b6cb45f20477582151f9">mod_lookup_table::lt2_get_col</a></div><div class="ttdeci">elemental real(dp) function, public lt2_get_col(my_lt, col_ix, x1, x2)</div><div class="ttdoc">Get the value of a single column at x.</div><div class="ttdef"><b>Definition:</b> <a href="mod__lookup__table_8t_source.html#l00512">mod_lookup_table.t:513</a></div></div>
 <div class="ttc" id="anamespacemod__lookup__table_html_a43e58f33e2913d67e380f6ab5ff60ea6"><div class="ttname"><a href="namespacemod__lookup__table.html#a43e58f33e2913d67e380f6ab5ff60ea6">mod_lookup_table::lt3_create</a></div><div class="ttdeci">type(lt3_t) function, public lt3_create(x_min, x_max, n_points, n_cols)</div><div class="ttdoc">This function returns a new lookup table.</div><div class="ttdef"><b>Definition:</b> <a href="mod__lookup__table_8t_source.html#l00546">mod_lookup_table.t:547</a></div></div>
 <div class="ttc" id="anamespacemod__lookup__table_html_a488ed42f3cdbe3619fe5ba16fb69a148"><div class="ttname"><a href="namespacemod__lookup__table.html#a488ed42f3cdbe3619fe5ba16fb69a148">mod_lookup_table::lt_set_col</a></div><div class="ttdeci">pure subroutine, public lt_set_col(my_lt, col_ix, x, y)</div><div class="ttdoc">Fill the column with index col_ix using the linearly interpolated (x, y) data.</div><div class="ttdef"><b>Definition:</b> <a href="mod__lookup__table_8t_source.html#l00250">mod_lookup_table.t:251</a></div></div>
-<div class="ttc" id="anamespacemod__lookup__table_html_a4b43822f62bd4ffc155c871bed2e7b1b"><div class="ttname"><a href="namespacemod__lookup__table.html#a4b43822f62bd4ffc155c871bed2e7b1b">mod_lookup_table::lt3_get_col</a></div><div class="ttdeci">elemental real(dp) function, public lt3_get_col(my_lt, col_ix, x1, x2, x3)</div><div class="ttdoc">Get the value of a single column at x.</div><div class="ttdef"><b>Definition:</b> <a href="mod__lookup__table_8t_source.html#l00615">mod_lookup_table.t:616</a></div></div>
-<div class="ttc" id="anamespacemod__lookup__table_html_a4dfdc6b900980d5f0de419155de4d2c3"><div class="ttname"><a href="namespacemod__lookup__table.html#a4dfdc6b900980d5f0de419155de4d2c3">mod_lookup_table::lt3_get_loc</a></div><div class="ttdeci">elemental type(lt3_loc_t) function, public lt3_get_loc(my_lt, x1, x2, x3)</div><div class="ttdoc">Get a location in the lookup table.</div><div class="ttdef"><b>Definition:</b> <a href="mod__lookup__table_8t_source.html#l00592">mod_lookup_table.t:593</a></div></div>
-<div class="ttc" id="anamespacemod__lookup__table_html_a51464d153f8762cd309cf4a2d08b378d"><div class="ttname"><a href="namespacemod__lookup__table.html#a51464d153f8762cd309cf4a2d08b378d">mod_lookup_table::lt3_get_col_at_loc</a></div><div class="ttdeci">elemental real(dp) function, public lt3_get_col_at_loc(my_lt, col_ix, loc)</div><div class="ttdoc">Get the value of a single column at a location.</div><div class="ttdef"><b>Definition:</b> <a href="mod__lookup__table_8t_source.html#l00627">mod_lookup_table.t:628</a></div></div>
+<div class="ttc" id="anamespacemod__lookup__table_html_a4b43822f62bd4ffc155c871bed2e7b1b"><div class="ttname"><a href="namespacemod__lookup__table.html#a4b43822f62bd4ffc155c871bed2e7b1b">mod_lookup_table::lt3_get_col</a></div><div class="ttdeci">elemental real(dp) function, public lt3_get_col(my_lt, col_ix, x1, x2, x3)</div><div class="ttdoc">Get the value of a single column at x.</div><div class="ttdef"><b>Definition:</b> <a href="mod__lookup__table_8t_source.html#l00616">mod_lookup_table.t:617</a></div></div>
+<div class="ttc" id="anamespacemod__lookup__table_html_a4dfdc6b900980d5f0de419155de4d2c3"><div class="ttname"><a href="namespacemod__lookup__table.html#a4dfdc6b900980d5f0de419155de4d2c3">mod_lookup_table::lt3_get_loc</a></div><div class="ttdeci">elemental type(lt3_loc_t) function, public lt3_get_loc(my_lt, x1, x2, x3)</div><div class="ttdoc">Get a location in the lookup table.</div><div class="ttdef"><b>Definition:</b> <a href="mod__lookup__table_8t_source.html#l00593">mod_lookup_table.t:594</a></div></div>
+<div class="ttc" id="anamespacemod__lookup__table_html_a51464d153f8762cd309cf4a2d08b378d"><div class="ttname"><a href="namespacemod__lookup__table.html#a51464d153f8762cd309cf4a2d08b378d">mod_lookup_table::lt3_get_col_at_loc</a></div><div class="ttdeci">elemental real(dp) function, public lt3_get_col_at_loc(my_lt, col_ix, loc)</div><div class="ttdoc">Get the value of a single column at a location.</div><div class="ttdef"><b>Definition:</b> <a href="mod__lookup__table_8t_source.html#l00628">mod_lookup_table.t:629</a></div></div>
 <div class="ttc" id="anamespacemod__lookup__table_html_a5c37452351e8703b4c9032ff4e5ccc28"><div class="ttname"><a href="namespacemod__lookup__table.html#a5c37452351e8703b4c9032ff4e5ccc28">mod_lookup_table::lt_get_spaced_data</a></div><div class="ttdeci">pure real(dp) function, dimension(size(new_x)), public lt_get_spaced_data(in_x, in_y, new_x)</div><div class="ttdoc">Linearly interpolate the (x, y) input data to the new_x coordinates.</div><div class="ttdef"><b>Definition:</b> <a href="mod__lookup__table_8t_source.html#l00238">mod_lookup_table.t:239</a></div></div>
 <div class="ttc" id="anamespacemod__lookup__table_html_a6d09e6d65a16455d1e101cc415f626b1"><div class="ttname"><a href="namespacemod__lookup__table.html#a6d09e6d65a16455d1e101cc415f626b1">mod_lookup_table::lt_get_loc</a></div><div class="ttdeci">elemental type(lt_loc_t) function, public lt_get_loc(my_lt, x)</div><div class="ttdoc">Get a location in the lookup table.</div><div class="ttdef"><b>Definition:</b> <a href="mod__lookup__table_8t_source.html#l00280">mod_lookup_table.t:281</a></div></div>
 <div class="ttc" id="anamespacemod__lookup__table_html_a6d82fcd000721de2c3f007d206c66f24"><div class="ttname"><a href="namespacemod__lookup__table.html#a6d82fcd000721de2c3f007d206c66f24">mod_lookup_table::lt_lin_interp_list</a></div><div class="ttdeci">pure subroutine, public lt_lin_interp_list(x_list, y_list, x_value, y_value)</div><div class="ttdoc">Compute by use of linear interpolation the value in the middle.</div><div class="ttdef"><b>Definition:</b> <a href="mod__lookup__table_8t_source.html#l00359">mod_lookup_table.t:360</a></div></div>

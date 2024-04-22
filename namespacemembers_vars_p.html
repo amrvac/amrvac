@@ -30,7 +30,7 @@
  <tr style="height: 56px;">
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">MPI-AMRVAC
-   &#160;<span id="projectnumber">3.0</span>
+   &#160;<span id="projectnumber">3.1</span>
    </div>
    <div id="projectbrief">The MPI - Adaptive Mesh Refinement - Versatile Advection Code</div>
   </td>
@@ -78,6 +78,7 @@ $(function() {
 : <a class="el" href="namespacemod__hd__phys.html#afa17866e94e20529b5f7fdca33e33c96">mod_hd_phys</a>
 , <a class="el" href="namespacemod__mhd__phys.html#ab5d8d7978ec9cd3f0a993f2ef2f69a06">mod_mhd_phys</a>
 , <a class="el" href="namespacemod__rhd__phys.html#a0a9a0fcf5eb47246bbaa270106b92fe5">mod_rhd_phys</a>
+, <a class="el" href="namespacemod__srhd__phys.html#abf6e962c3358a82f79bb6781215a4279">mod_srhd_phys</a>
 </li>
 <li>p_bt_ratio
 : <a class="el" href="namespacemod__tdfluxrope.html#acae88b13165aeac91a7f8ff11b311005">mod_tdfluxrope</a>
@@ -118,9 +119,6 @@ $(function() {
 <li>pass_wall_time
 : <a class="el" href="namespacemod__global__parameters.html#ae37434f1201849e8248975d38f191b66">mod_global_parameters</a>
 </li>
-<li>paux_
-: <a class="el" href="namespacemod__mhd__phys.html#a61cb16f0a6b634357a0162415ae76267">mod_mhd_phys</a>
-</li>
 <li>periodb
 : <a class="el" href="namespacemod__global__parameters.html#a9af4bac5cdacef49764bebff3e1dd01b">mod_global_parameters</a>
 </li>
@@ -145,9 +143,6 @@ $(function() {
 <li>phys_add_source_geom
 : <a class="el" href="namespacemod__physics.html#a69a351b0e023d06873d3d4e3a57362b5">mod_physics</a>
 </li>
-<li>phys_angmomfix
-: <a class="el" href="namespacemod__physics.html#adc72e7cc63f6aa94306d342127806e0c">mod_physics</a>
-</li>
 <li>phys_average
 : <a class="el" href="namespacemod__physics__roe.html#afdf22e22d29ed09e980fab5dc898b26c">mod_physics_roe</a>
 </li>
@@ -169,8 +164,8 @@ $(function() {
 <li>phys_energy
 : <a class="el" href="namespacemod__physics.html#af51a72a2fd88d69c5745864770c06f93">mod_physics</a>
 </li>
-<li>phys_energy_synchro
-: <a class="el" href="namespacemod__physics.html#ab0eb67627a1ce648a320e8257f85bca8">mod_physics</a>
+<li>phys_equi_pe
+: <a class="el" href="namespacemod__physics.html#ab01e4b6aad73357775df534191d7e3ae">mod_physics</a>
 </li>
 <li>phys_evaluate_implicit
 : <a class="el" href="namespacemod__physics.html#a301711ea029ca9b98e0c651d49d5bce3">mod_physics</a>
@@ -183,6 +178,12 @@ $(function() {
 </li>
 <li>phys_get_a2max
 : <a class="el" href="namespacemod__physics.html#a06885516d7158196f9c54dfc0c1a0451">mod_physics</a>
+</li>
+<li>phys_get_auxiliary
+: <a class="el" href="namespacemod__physics.html#a8363ff077d45953128c278bed97d43c0">mod_physics</a>
+</li>
+<li>phys_get_auxiliary_prim
+: <a class="el" href="namespacemod__physics.html#a8834df44c87ecf2a57755b8af7620b0a">mod_physics</a>
 </li>
 <li>phys_get_cbounds
 : <a class="el" href="namespacemod__physics.html#a414c54f8225121d3e55cd1345eb98d17">mod_physics</a>
@@ -244,11 +245,8 @@ $(function() {
 <li>phys_modify_wlr
 : <a class="el" href="namespacemod__physics.html#ad8227fd090a5aa6db412769ef31ebcb7">mod_physics</a>
 </li>
-<li>phys_ppm_flatcd
-: <a class="el" href="namespacemod__physics__ppm.html#a9847ff596c2298828860f10e9eef772a">mod_physics_ppm</a>
-</li>
-<li>phys_ppm_flatsh
-: <a class="el" href="namespacemod__physics__ppm.html#af8a57b9dd430942978894686d61ad6ae">mod_physics_ppm</a>
+<li>phys_partial_ionization
+: <a class="el" href="namespacemod__physics.html#a5b3ad5fce8064d09f9f7608cb83a2d5d">mod_physics</a>
 </li>
 <li>phys_req_diagonal
 : <a class="el" href="namespacemod__physics.html#a3b574f164bdb18cad0d1e95962df62a4">mod_physics</a>
@@ -261,9 +259,6 @@ $(function() {
 </li>
 <li>phys_set_mg_bounds
 : <a class="el" href="namespacemod__physics.html#aa85c921eee9edba9e64d48917df2b914">mod_physics</a>
-</li>
-<li>phys_solve_eaux
-: <a class="el" href="namespacemod__physics.html#a51bbbee51ccb77a7bdab0f091872fa3d">mod_physics</a>
 </li>
 <li>phys_special_advance
 : <a class="el" href="namespacemod__physics.html#afc22cf6c5ef51120a483f6e11549b91c">mod_physics</a>
@@ -283,6 +278,9 @@ $(function() {
 <li>phys_trac
 : <a class="el" href="namespacemod__global__parameters.html#ab908e5eeaa29a966331d7211514c1ade">mod_global_parameters</a>
 </li>
+<li>phys_trac_after_setdt
+: <a class="el" href="namespacemod__physics.html#a89eb266cd1982cecd9417fe9cdfc2aa2">mod_physics</a>
+</li>
 <li>phys_trac_mask
 : <a class="el" href="namespacemod__global__parameters.html#a343c17217840077aed7f0477467113de">mod_global_parameters</a>
 </li>
@@ -291,6 +289,9 @@ $(function() {
 </li>
 <li>phys_update_faces
 : <a class="el" href="namespacemod__physics.html#a99866badaa46de39097afb5523f07ea3">mod_physics</a>
+</li>
+<li>phys_update_temperature
+: <a class="el" href="namespacemod__physics.html#a6220bffb8430e4125d340bb12124b3fc">mod_physics</a>
 </li>
 <li>phys_wider_stencil
 : <a class="el" href="namespacemod__physics.html#a95ed0d73188b963f6d662c2e6626fb1c">mod_physics</a>
@@ -353,9 +354,6 @@ $(function() {
 : <a class="el" href="namespacemod__mf__phys.html#ad757a51b54302ed9b356eb98a4aa4be8">mod_mf_phys</a>
 , <a class="el" href="namespacemod__mhd__phys.html#afbf98327551c6d26b4350591c7debf3a">mod_mhd_phys</a>
 , <a class="el" href="namespacemod__twofl__phys.html#aff4388f6f45f6c1f450f7638a29f46fb">mod_twofl_phys</a>
-</li>
-<li>pso
-: <a class="el" href="namespacemod__physicaldata.html#a9fc511bef29ef28483030664511f6a54">mod_physicaldata</a>
 </li>
 </ul>
 </div><!-- contents -->

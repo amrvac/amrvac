@@ -1,5 +1,4 @@
 <map id="mod_twofl_phys::dump_hyperdiffusivity_coef_z" name="mod_twofl_phys::dump_hyperdiffusivity_coef_z">
-<area shape="rect" id="node1" title=" " alt="" coords="5,35,185,76"/>
+<area shape="rect" id="node1" title=" " alt="" coords="5,5,185,47"/>
 <area shape="rect" id="node2" href="$namespacemod__twofl__phys.html#a110b080718ccc7a4fb9848520b851871" title=" " alt="" coords="233,5,432,47"/>
-<area shape="rect" id="node3" href="$comm__lib_8t.html#a49b49ea9ffbbadfe688e332921c4cddd" title="Exit MPI&#45;AMRVAC with an error message." alt="" coords="295,71,370,98"/>
 </map>

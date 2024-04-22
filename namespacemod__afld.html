@@ -30,7 +30,7 @@
  <tr style="height: 56px;">
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">MPI-AMRVAC
-   &#160;<span id="projectnumber">3.0</span>
+   &#160;<span id="projectnumber">3.1</span>
    </div>
    <div id="projectbrief">The MPI - Adaptive Mesh Refinement - Versatile Advection Code</div>
   </td>
@@ -99,7 +99,7 @@ Functions/Subroutines</h2></td></tr>
 <tr class="memdesc:a1a299d1ba8c99ea7e1d33b04bbcdd798"><td class="mdescLeft">&#160;</td><td class="mdescRight">w[iw]=w[iw]+qdt*S[wCT,qtC,x] where S is the source based on wCT within ixO This subroutine handles the energy exchange between gas and radiation  <a href="namespacemod__afld.html#a1a299d1ba8c99ea7e1d33b04bbcdd798">More...</a><br /></td></tr>
 <tr class="separator:a1a299d1ba8c99ea7e1d33b04bbcdd798"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:acd5029394980153674cd833436e7de0f"><td class="memItemLeft" align="right" valign="top">subroutine, public&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__afld.html#acd5029394980153674cd833436e7de0f">afld_get_opacity</a> (w, x, ixIL, ixOL, fld_kappa)</td></tr>
-<tr class="memdesc:acd5029394980153674cd833436e7de0f"><td class="mdescLeft">&#160;</td><td class="mdescRight">Sets the opacity in the w-array by calling <a class="el" href="namespacemod__opal__opacity.html" title="This module reads in opacities from opal tables.">mod_opal_opacity</a>.  <a href="namespacemod__afld.html#acd5029394980153674cd833436e7de0f">More...</a><br /></td></tr>
+<tr class="memdesc:acd5029394980153674cd833436e7de0f"><td class="mdescLeft">&#160;</td><td class="mdescRight">Sets the opacity in the w-array by calling <a class="el" href="namespacemod__opal__opacity.html" title="This module reads in Rosseland-mean opacities from OPAL tables. Table opacity values are given in bas...">mod_opal_opacity</a>.  <a href="namespacemod__afld.html#acd5029394980153674cd833436e7de0f">More...</a><br /></td></tr>
 <tr class="separator:acd5029394980153674cd833436e7de0f"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a15de558bd4ac30eafda8e094ef42845e"><td class="memItemLeft" align="right" valign="top">subroutine, public&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__afld.html#a15de558bd4ac30eafda8e094ef42845e">afld_get_fluxlimiter</a> (w, x, ixIL, ixOL, fld_lambda, fld_R)</td></tr>
 <tr class="memdesc:a15de558bd4ac30eafda8e094ef42845e"><td class="mdescLeft">&#160;</td><td class="mdescRight">Calculate fld flux limiter This subroutine calculates flux limiter lambda using the prescription stored in fld_fluxlimiter. It also calculates the ratio of radiation scaleheight and mean free path.  <a href="namespacemod__afld.html#a15de558bd4ac30eafda8e094ef42845e">More...</a><br /></td></tr>
@@ -183,6 +183,8 @@ Variables</h2></td></tr>
 <tr class="memitem:a8f033efe15a187dbef91fc708de9c42e"><td class="memItemLeft" align="right" valign="top">character(len=8), dimension(:), allocatable&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__afld.html#a8f033efe15a187dbef91fc708de9c42e">fld_opacity_law</a></td></tr>
 <tr class="memdesc:a8f033efe15a187dbef91fc708de9c42e"><td class="mdescLeft">&#160;</td><td class="mdescRight">Use constant Opacity?  <a href="namespacemod__afld.html#a8f033efe15a187dbef91fc708de9c42e">More...</a><br /></td></tr>
 <tr class="separator:a8f033efe15a187dbef91fc708de9c42e"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ab585bc66c9a64f80d7718f0d17ebc1cf"><td class="memItemLeft" align="right" valign="top">character(len=50)&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__afld.html#ab585bc66c9a64f80d7718f0d17ebc1cf">fld_opal_table</a> = 'Y09800'</td></tr>
+<tr class="separator:ab585bc66c9a64f80d7718f0d17ebc1cf"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a61ae06bf2c058e6700a663662495da48"><td class="memItemLeft" align="right" valign="top">character(len=16)&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__afld.html#a61ae06bf2c058e6700a663662495da48">fld_fluxlimiter</a> = 'Pomraning'</td></tr>
 <tr class="memdesc:a61ae06bf2c058e6700a663662495da48"><td class="mdescLeft">&#160;</td><td class="mdescRight">Diffusion limit lambda = 0.33.  <a href="namespacemod__afld.html#a61ae06bf2c058e6700a663662495da48">More...</a><br /></td></tr>
 <tr class="separator:a61ae06bf2c058e6700a663662495da48"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -280,7 +282,7 @@ Variables</h2></td></tr>
 <p>Calculates cell-centered diffusion coefficient to be used in multigrid. </p>
 <p>calculate diffusion coefficient</p>
 
-<p class="definition">Definition at line <a class="el" href="mod__afld_8t_source.html#l01258">1258</a> of file <a class="el" href="mod__afld_8t_source.html">mod_afld.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__afld_8t_source.html#l01262">1262</a> of file <a class="el" href="mod__afld_8t_source.html">mod_afld.t</a>.</p>
 <div class="dynheader">
 Here is the call graph for this function:</div>
 <div class="dyncontent">
@@ -355,7 +357,7 @@ Here is the call graph for this function:</div>
 <p>Calculate R everywhere |grad E|/(rho kappa E)</p>
 <p>Calculate radiation pressure P = (lambda + lambda^2 R^2)*E</p>
 
-<p class="definition">Definition at line <a class="el" href="mod__afld_8t_source.html#l00635">635</a> of file <a class="el" href="mod__afld_8t_source.html">mod_afld.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__afld_8t_source.html#l00639">639</a> of file <a class="el" href="mod__afld_8t_source.html">mod_afld.t</a>.</p>
 <div class="dynheader">
 Here is the call graph for this function:</div>
 <div class="dyncontent">
@@ -439,16 +441,15 @@ Here is the call graph for this function:</div>
 <p>Calculate R everywhere |grad E|/(rho kappa E)</p>
 <p>Calculate the flux limiter, lambda Minerbo:</p>
 
-<p class="definition">Definition at line <a class="el" href="mod__afld_8t_source.html#l00456">456</a> of file <a class="el" href="mod__afld_8t_source.html">mod_afld.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__afld_8t_source.html#l00460">460</a> of file <a class="el" href="mod__afld_8t_source.html">mod_afld.t</a>.</p>
 <div class="dynheader">
 Here is the call graph for this function:</div>
 <div class="dyncontent">
 <div class="center"><img src="namespacemod__afld_a15de558bd4ac30eafda8e094ef42845e_cgraph.png" border="0" usemap="#anamespacemod__afld_a15de558bd4ac30eafda8e094ef42845e_cgraph" alt=""/></div>
 <map name="anamespacemod__afld_a15de558bd4ac30eafda8e094ef42845e_cgraph" id="anamespacemod__afld_a15de558bd4ac30eafda8e094ef42845e_cgraph">
-<area shape="rect" title="Calculate fld flux limiter This subroutine calculates flux limiter lambda using the prescription stor..." alt="" coords="5,64,148,105"/>
+<area shape="rect" title="Calculate fld flux limiter This subroutine calculates flux limiter lambda using the prescription stor..." alt="" coords="5,35,148,76"/>
 <area shape="rect" href="namespacemod__afld.html#acd5029394980153674cd833436e7de0f" title="Sets the opacity in the w&#45;array by calling mod_opal_opacity." alt="" coords="201,5,343,47"/>
-<area shape="rect" href="comm__lib_8t.html#a49b49ea9ffbbadfe688e332921c4cddd" title="Exit MPI&#45;AMRVAC with an error message." alt="" coords="396,71,471,98"/>
-<area shape="rect" href="namespacemod__afld.html#abc9c121f004800e7363f3a8d053d1efc" title="Calculate gradient of a scalar q within ixL in direction idir difference with gradient is gradq(ixO^S..." alt="" coords="196,122,348,149"/>
+<area shape="rect" href="namespacemod__afld.html#abc9c121f004800e7363f3a8d053d1efc" title="Calculate gradient of a scalar q within ixL in direction idir difference with gradient is gradq(ixO^S..." alt="" coords="196,71,348,98"/>
 </map>
 </div>
 
@@ -510,22 +511,21 @@ Here is the call graph for this function:</div>
       </table>
 </div><div class="memdoc">
 
-<p>Sets the opacity in the w-array by calling <a class="el" href="namespacemod__opal__opacity.html" title="This module reads in opacities from opal tables.">mod_opal_opacity</a>. </p>
+<p>Sets the opacity in the w-array by calling <a class="el" href="namespacemod__opal__opacity.html" title="This module reads in Rosseland-mean opacities from OPAL tables. Table opacity values are given in bas...">mod_opal_opacity</a>. </p>
 <p>Take lower value of rho in domain</p>
 <p>Opacity bump</p>
 <p>Take lower value of rho in domain</p>
 <p>Hard limit on kappa</p>
 <p>Limit kappa through T</p>
 
-<p class="definition">Definition at line <a class="el" href="mod__afld_8t_source.html#l00366">366</a> of file <a class="el" href="mod__afld_8t_source.html">mod_afld.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__afld_8t_source.html#l00370">370</a> of file <a class="el" href="mod__afld_8t_source.html">mod_afld.t</a>.</p>
 <div class="dynheader">
 Here is the call graph for this function:</div>
 <div class="dyncontent">
 <div class="center"><img src="namespacemod__afld_acd5029394980153674cd833436e7de0f_cgraph.png" border="0" usemap="#anamespacemod__afld_acd5029394980153674cd833436e7de0f_cgraph" alt=""/></div>
 <map name="anamespacemod__afld_acd5029394980153674cd833436e7de0f_cgraph" id="anamespacemod__afld_acd5029394980153674cd833436e7de0f_cgraph">
-<area shape="rect" title="Sets the opacity in the w&#45;array by calling mod_opal_opacity." alt="" coords="5,27,148,69"/>
-<area shape="rect" href="comm__lib_8t.html#a49b49ea9ffbbadfe688e332921c4cddd" title="Exit MPI&#45;AMRVAC with an error message." alt="" coords="243,5,317,32"/>
-<area shape="rect" href="namespacemod__opal__opacity.html#a8a6b7571280893a4d5716c993e03c910" title="This subroutine calculates the opacity for a given temperature&#45;density structure. The opacities are r..." alt="" coords="196,57,364,98"/>
+<area shape="rect" title="Sets the opacity in the w&#45;array by calling mod_opal_opacity." alt="" coords="5,5,148,47"/>
+<area shape="rect" href="namespacemod__opal__opacity.html#a8a6b7571280893a4d5716c993e03c910" title="This subroutine calculates the opacity for a given temperature&#45;density structure. Opacities are read ..." alt="" coords="196,5,364,47"/>
 </map>
 </div>
 
@@ -590,7 +590,7 @@ Here is the call graph for this function:</div>
 <p>Calculate Radiation Flux stores radiation flux in w-array. </p>
 <p>Calculate the Flux using the fld closure relation F = -c*lambda/(kappa*rho) *grad E</p>
 
-<p class="definition">Definition at line <a class="el" href="mod__afld_8t_source.html#l00602">602</a> of file <a class="el" href="mod__afld_8t_source.html">mod_afld.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__afld_8t_source.html#l00606">606</a> of file <a class="el" href="mod__afld_8t_source.html">mod_afld.t</a>.</p>
 <div class="dynheader">
 Here is the call graph for this function:</div>
 <div class="dyncontent">
@@ -663,7 +663,7 @@ Here is the call graph for this function:</div>
 
 <p>Calculate Radiation Pressure Returns Radiation Pressure as tensor. </p>
 
-<p class="definition">Definition at line <a class="el" href="mod__afld_8t_source.html#l00711">711</a> of file <a class="el" href="mod__afld_8t_source.html">mod_afld.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__afld_8t_source.html#l00715">715</a> of file <a class="el" href="mod__afld_8t_source.html">mod_afld.t</a>.</p>
 <div class="dynheader">
 Here is the call graph for this function:</div>
 <div class="dyncontent">
@@ -716,19 +716,18 @@ Here is the call graph for this function:</div>
 <p>Need mean molecular weight</p>
 <p>set rhd_gamma</p>
 
-<p class="definition">Definition at line <a class="el" href="mod__afld_8t_source.html#l00121">121</a> of file <a class="el" href="mod__afld_8t_source.html">mod_afld.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__afld_8t_source.html#l00125">125</a> of file <a class="el" href="mod__afld_8t_source.html">mod_afld.t</a>.</p>
 <div class="dynheader">
 Here is the call graph for this function:</div>
 <div class="dyncontent">
 <div class="center"><img src="namespacemod__afld_a2f3fcaef8d35731e147d5f65b5ad4006_cgraph.png" border="0" usemap="#anamespacemod__afld_a2f3fcaef8d35731e147d5f65b5ad4006_cgraph" alt=""/></div>
 <map name="anamespacemod__afld_a2f3fcaef8d35731e147d5f65b5ad4006_cgraph" id="anamespacemod__afld_a2f3fcaef8d35731e147d5f65b5ad4006_cgraph">
-<area shape="rect" title="Initialising FLD&#45;module: Read opacities Initialise Multigrid adimensionalise kappa Add extra variable..." alt="" coords="5,152,148,179"/>
+<area shape="rect" title="Initialising FLD&#45;module: Read opacities Initialise Multigrid adimensionalise kappa Add extra variable..." alt="" coords="5,129,148,156"/>
 <area shape="rect" href="namespacemod__afld.html#af061aa858d2bb7d78828d23afbe78291" title="public methods these are called in mod_rhd_phys" alt="" coords="196,5,403,32"/>
 <area shape="rect" href="namespacemod__afld.html#ac6e85832eaa8abcb9235a65ff0dbce6e" title="Calling all subroutines to perform the multigrid method Communicates rad_e and diff_coeff to multigri..." alt="" coords="225,57,374,98"/>
-<area shape="rect" href="comm__lib_8t.html#a49b49ea9ffbbadfe688e332921c4cddd" title="Exit MPI&#45;AMRVAC with an error message." alt="" coords="451,93,525,120"/>
-<area shape="rect" href="namespacemod__afld.html#a3893a80f56c473f3d9ebf1cf7cc03dfe" title="inplace update of psa==&gt;F_im(psa)" alt="" coords="226,174,373,215"/>
-<area shape="rect" href="namespacemod__opal__opacity.html#ac42d05a1ff082e78575d8b017da6010b" title="This routine is called when the fld radiation module is initialised. Here, the tables for different H..." alt="" coords="197,240,401,267"/>
-<area shape="rect" href="namespacemod__variables.html#a924c3b2f4e13f6f6432de212ac790966" title="Set extra variable in w, which is not advected and has no boundary conditions. This has to be done af..." alt="" coords="226,291,373,333"/>
+<area shape="rect" href="namespacemod__afld.html#a3893a80f56c473f3d9ebf1cf7cc03dfe" title="inplace update of psa==&gt;F_im(psa)" alt="" coords="226,122,373,163"/>
+<area shape="rect" href="namespacemod__opal__opacity.html#a7c35946184618fb6e09dc3257316b79d" title="This subroutine is called when the FLD radiation module is initialised. The OPAL tables for different..." alt="" coords="215,187,384,229"/>
+<area shape="rect" href="namespacemod__variables.html#a924c3b2f4e13f6f6432de212ac790966" title="Set extra variable in w, which is not advected and has no boundary conditions. This has to be done af..." alt="" coords="226,253,373,294"/>
 </map>
 </div>
 
@@ -753,7 +752,7 @@ Here is the call graph for this function:</div>
 <p>public methods these are called in <a class="el" href="namespacemod__rhd__phys.html" title="Radiation-Hydrodynamics physics module Module aims at solving the Hydrodynamic equations toghether wi...">mod_rhd_phys</a> </p>
 <p>Reading in fld-list parameters from .par file </p>
 
-<p class="definition">Definition at line <a class="el" href="mod__afld_8t_source.html#l00095">95</a> of file <a class="el" href="mod__afld_8t_source.html">mod_afld.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__afld_8t_source.html#l00099">99</a> of file <a class="el" href="mod__afld_8t_source.html">mod_afld.t</a>.</p>
 
 </div>
 </div>
@@ -825,7 +824,7 @@ Here is the call graph for this function:</div>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="mod__afld_8t_source.html#l00311">311</a> of file <a class="el" href="mod__afld_8t_source.html">mod_afld.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__afld_8t_source.html#l00315">315</a> of file <a class="el" href="mod__afld_8t_source.html">mod_afld.t</a>.</p>
 <div class="dynheader">
 Here is the call graph for this function:</div>
 <div class="dyncontent">
@@ -891,16 +890,7 @@ Here is the call graph for this function:</div>
 
 <p>Use running average on Diffusion coefficient. </p>
 
-<p class="definition">Definition at line <a class="el" href="mod__afld_8t_source.html#l01324">1324</a> of file <a class="el" href="mod__afld_8t_source.html">mod_afld.t</a>.</p>
-<div class="dynheader">
-Here is the call graph for this function:</div>
-<div class="dyncontent">
-<div class="center"><img src="namespacemod__afld_a06134992ba7622d3d01e4c8336d62c01_cgraph.png" border="0" usemap="#anamespacemod__afld_a06134992ba7622d3d01e4c8336d62c01_cgraph" alt=""/></div>
-<map name="anamespacemod__afld_a06134992ba7622d3d01e4c8336d62c01_cgraph" id="anamespacemod__afld_a06134992ba7622d3d01e4c8336d62c01_cgraph">
-<area shape="rect" title="Use running average on Diffusion coefficient." alt="" coords="5,5,176,47"/>
-<area shape="rect" href="comm__lib_8t.html#a49b49ea9ffbbadfe688e332921c4cddd" title="Exit MPI&#45;AMRVAC with an error message." alt="" coords="224,13,299,39"/>
-</map>
-</div>
+<p class="definition">Definition at line <a class="el" href="mod__afld_8t_source.html#l01328">1328</a> of file <a class="el" href="mod__afld_8t_source.html">mod_afld.t</a>.</p>
 
 </div>
 </div>
@@ -944,15 +934,14 @@ Here is the call graph for this function:</div>
 
 <p>Find the root of the 4th degree polynomial using the bisection method. </p>
 
-<p class="definition">Definition at line <a class="el" href="mod__afld_8t_source.html#l01490">1490</a> of file <a class="el" href="mod__afld_8t_source.html">mod_afld.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__afld_8t_source.html#l01494">1494</a> of file <a class="el" href="mod__afld_8t_source.html">mod_afld.t</a>.</p>
 <div class="dynheader">
 Here is the call graph for this function:</div>
 <div class="dyncontent">
 <div class="center"><img src="namespacemod__afld_a2a7c0d0983c705cc2f54f20c74dca427_cgraph.png" border="0" usemap="#anamespacemod__afld_a2a7c0d0983c705cc2f54f20c74dca427_cgraph" alt=""/></div>
 <map name="anamespacemod__afld_a2a7c0d0983c705cc2f54f20c74dca427_cgraph" id="anamespacemod__afld_a2a7c0d0983c705cc2f54f20c74dca427_cgraph">
-<area shape="rect" title="Find the root of the 4th degree polynomial using the bisection method." alt="" coords="5,27,155,69"/>
-<area shape="rect" href="comm__lib_8t.html#a49b49ea9ffbbadfe688e332921c4cddd" title="Exit MPI&#45;AMRVAC with an error message." alt="" coords="247,5,321,32"/>
-<area shape="rect" href="namespacemod__afld.html#aa9ba324228b7daabfdf1ee26a7c88026" title="Evaluate polynomial at argument e_gas." alt="" coords="203,57,365,98"/>
+<area shape="rect" title="Find the root of the 4th degree polynomial using the bisection method." alt="" coords="5,5,155,47"/>
+<area shape="rect" href="namespacemod__afld.html#aa9ba324228b7daabfdf1ee26a7c88026" title="Evaluate polynomial at argument e_gas." alt="" coords="203,5,365,47"/>
 </map>
 </div>
 
@@ -992,7 +981,7 @@ Here is the call graph for this function:</div>
 
 <p>Evaluate second derivative of polynomial at argument e_gas. </p>
 
-<p class="definition">Definition at line <a class="el" href="mod__afld_8t_source.html#l01659">1659</a> of file <a class="el" href="mod__afld_8t_source.html">mod_afld.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__afld_8t_source.html#l01663">1663</a> of file <a class="el" href="mod__afld_8t_source.html">mod_afld.t</a>.</p>
 
 </div>
 </div>
@@ -1045,17 +1034,16 @@ Here is the call graph for this function:</div>
 <p>replace call set_rhs(mg, -1/dt, 0.0_dp)</p>
 <p>Reset dt_diff when diffusion worked out</p>
 
-<p class="definition">Definition at line <a class="el" href="mod__afld_8t_source.html#l01067">1067</a> of file <a class="el" href="mod__afld_8t_source.html">mod_afld.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__afld_8t_source.html#l01071">1071</a> of file <a class="el" href="mod__afld_8t_source.html">mod_afld.t</a>.</p>
 <div class="dynheader">
 Here is the call graph for this function:</div>
 <div class="dyncontent">
 <div class="center"><img src="namespacemod__afld_ac6e85832eaa8abcb9235a65ff0dbce6e_cgraph.png" border="0" usemap="#anamespacemod__afld_ac6e85832eaa8abcb9235a65ff0dbce6e_cgraph" alt=""/></div>
 <map name="anamespacemod__afld_ac6e85832eaa8abcb9235a65ff0dbce6e_cgraph" id="anamespacemod__afld_ac6e85832eaa8abcb9235a65ff0dbce6e_cgraph">
-<area shape="rect" title="Calling all subroutines to perform the multigrid method Communicates rad_e and diff_coeff to multigri..." alt="" coords="5,100,155,141"/>
+<area shape="rect" title="Calling all subroutines to perform the multigrid method Communicates rad_e and diff_coeff to multigri..." alt="" coords="5,71,155,112"/>
 <area shape="rect" href="namespacemod__multigrid__coupling.html#adba5ed257a7b740fc0152041faa8f490" title="Copy from multigrid tree with one layer of ghost cells. Corner ghost cells are not used/set." alt="" coords="209,5,391,47"/>
 <area shape="rect" href="namespacemod__multigrid__coupling.html#a6844c00572acb078d62136c84a07a4c8" title="Copy a variable to the multigrid tree, including a layer of ghost cells." alt="" coords="211,71,389,112"/>
-<area shape="rect" href="comm__lib_8t.html#a49b49ea9ffbbadfe688e332921c4cddd" title="Exit MPI&#45;AMRVAC with an error message." alt="" coords="263,137,337,163"/>
-<area shape="rect" href="namespacemod__afld.html#a9d5289df9bf8e1e13a2af0815ef926a5" title=" " alt="" coords="203,187,397,214"/>
+<area shape="rect" href="namespacemod__afld.html#a9d5289df9bf8e1e13a2af0815ef926a5" title=" " alt="" coords="203,137,397,163"/>
 </map>
 </div>
 
@@ -1095,7 +1083,7 @@ Here is the call graph for this function:</div>
 
 <p>Evaluate first derivative of polynomial at argument e_gas. </p>
 
-<p class="definition">Definition at line <a class="el" href="mod__afld_8t_source.html#l01648">1648</a> of file <a class="el" href="mod__afld_8t_source.html">mod_afld.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__afld_8t_source.html#l01652">1652</a> of file <a class="el" href="mod__afld_8t_source.html">mod_afld.t</a>.</p>
 
 </div>
 </div>
@@ -1166,18 +1154,17 @@ Here is the call graph for this function:</div>
 <p>Beginning of module substracted wCT Ekin So now add wCT Ekin</p>
 <p>Update rad-energy in w</p>
 
-<p class="definition">Definition at line <a class="el" href="mod__afld_8t_source.html#l01367">1367</a> of file <a class="el" href="mod__afld_8t_source.html">mod_afld.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__afld_8t_source.html#l01371">1371</a> of file <a class="el" href="mod__afld_8t_source.html">mod_afld.t</a>.</p>
 <div class="dynheader">
 Here is the call graph for this function:</div>
 <div class="dyncontent">
 <div class="center"><img src="namespacemod__afld_a82dd0394b7f8e8ab01b44bc521217105_cgraph.png" border="0" usemap="#anamespacemod__afld_a82dd0394b7f8e8ab01b44bc521217105_cgraph" alt=""/></div>
 <map name="anamespacemod__afld_a82dd0394b7f8e8ab01b44bc521217105_cgraph" id="anamespacemod__afld_a82dd0394b7f8e8ab01b44bc521217105_cgraph">
-<area shape="rect" title="This subroutine calculates the radiation heating, radiation cooling and photon tiring using an implic..." alt="" coords="5,122,217,149"/>
-<area shape="rect" href="namespacemod__afld.html#acd5029394980153674cd833436e7de0f" title="Sets the opacity in the w&#45;array by calling mod_opal_opacity." alt="" coords="526,5,669,47"/>
-<area shape="rect" href="comm__lib_8t.html#a49b49ea9ffbbadfe688e332921c4cddd" title="Exit MPI&#45;AMRVAC with an error message." alt="" coords="940,71,1015,98"/>
-<area shape="rect" href="namespacemod__afld.html#a2a7c0d0983c705cc2f54f20c74dca427" title="Find the root of the 4th degree polynomial using the bisection method." alt="" coords="743,123,892,164"/>
-<area shape="rect" href="namespacemod__afld.html#aa3f2d320f9577c8635da03a3345c38a3" title="Find the root of the 4th degree polynomial using the Halley method." alt="" coords="265,173,452,199"/>
-<area shape="rect" href="namespacemod__afld.html#af647b7657d9ce38ec6a51c1501f7524c" title="Find the root of the 4th degree polynomial using the Newton&#45;Ralphson method." alt="" coords="500,173,695,199"/>
+<area shape="rect" title="This subroutine calculates the radiation heating, radiation cooling and photon tiring using an implic..." alt="" coords="5,97,217,123"/>
+<area shape="rect" href="namespacemod__afld.html#acd5029394980153674cd833436e7de0f" title="Sets the opacity in the w&#45;array by calling mod_opal_opacity." alt="" coords="287,5,430,47"/>
+<area shape="rect" href="namespacemod__afld.html#a2a7c0d0983c705cc2f54f20c74dca427" title="Find the root of the 4th degree polynomial using the bisection method." alt="" coords="743,89,892,131"/>
+<area shape="rect" href="namespacemod__afld.html#aa3f2d320f9577c8635da03a3345c38a3" title="Find the root of the 4th degree polynomial using the Halley method." alt="" coords="265,122,452,149"/>
+<area shape="rect" href="namespacemod__afld.html#af647b7657d9ce38ec6a51c1501f7524c" title="Find the root of the 4th degree polynomial using the Newton&#45;Ralphson method." alt="" coords="500,122,695,149"/>
 </map>
 </div>
 
@@ -1211,7 +1198,7 @@ Here is the call graph for this function:</div>
 
 <p>inplace update of psa==&gt;F_im(psa) </p>
 
-<p class="definition">Definition at line <a class="el" href="mod__afld_8t_source.html#l01201">1201</a> of file <a class="el" href="mod__afld_8t_source.html">mod_afld.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__afld_8t_source.html#l01205">1205</a> of file <a class="el" href="mod__afld_8t_source.html">mod_afld.t</a>.</p>
 <div class="dynheader">
 Here is the call graph for this function:</div>
 <div class="dyncontent">
@@ -1310,7 +1297,7 @@ Here is the call graph for this function:</div>
 <p>Calculate and add sourceterms</p>
 <p>Add energy sourceterms</p>
 
-<p class="definition">Definition at line <a class="el" href="mod__afld_8t_source.html#l00341">341</a> of file <a class="el" href="mod__afld_8t_source.html">mod_afld.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__afld_8t_source.html#l00345">345</a> of file <a class="el" href="mod__afld_8t_source.html">mod_afld.t</a>.</p>
 <div class="dynheader">
 Here is the call graph for this function:</div>
 <div class="dyncontent">
@@ -1413,7 +1400,7 @@ Here is the call graph for this function:</div>
 <p>VARIABLE NAMES DIV ARE ACTUALLY GRADIENTS</p>
 <p>eq 34 Turner and stone (Only 2D)</p>
 
-<p class="definition">Definition at line <a class="el" href="mod__afld_8t_source.html#l00202">202</a> of file <a class="el" href="mod__afld_8t_source.html">mod_afld.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__afld_8t_source.html#l00206">206</a> of file <a class="el" href="mod__afld_8t_source.html">mod_afld.t</a>.</p>
 <div class="dynheader">
 Here is the call graph for this function:</div>
 <div class="dyncontent">
@@ -1508,16 +1495,7 @@ Here is the call graph for this function:</div>
 <p>coef 1/60</p>
 <p>divide by dx</p>
 
-<p class="definition">Definition at line <a class="el" href="mod__afld_8t_source.html#l01671">1671</a> of file <a class="el" href="mod__afld_8t_source.html">mod_afld.t</a>.</p>
-<div class="dynheader">
-Here is the call graph for this function:</div>
-<div class="dyncontent">
-<div class="center"><img src="namespacemod__afld_abc9c121f004800e7363f3a8d053d1efc_cgraph.png" border="0" usemap="#anamespacemod__afld_abc9c121f004800e7363f3a8d053d1efc_cgraph" alt=""/></div>
-<map name="anamespacemod__afld_abc9c121f004800e7363f3a8d053d1efc_cgraph" id="anamespacemod__afld_abc9c121f004800e7363f3a8d053d1efc_cgraph">
-<area shape="rect" title="Calculate gradient of a scalar q within ixL in direction idir difference with gradient is gradq(ixO^S..." alt="" coords="5,5,157,32"/>
-<area shape="rect" href="comm__lib_8t.html#a49b49ea9ffbbadfe688e332921c4cddd" title="Exit MPI&#45;AMRVAC with an error message." alt="" coords="205,5,280,32"/>
-</map>
-</div>
+<p class="definition">Definition at line <a class="el" href="mod__afld_8t_source.html#l01675">1675</a> of file <a class="el" href="mod__afld_8t_source.html">mod_afld.t</a>.</p>
 
 </div>
 </div>
@@ -1562,7 +1540,7 @@ Here is the call graph for this function:</div>
 <p>Find the root of the 4th degree polynomial using the Halley method. </p>
 <p>Compare error with dx = dx/dy dy</p>
 
-<p class="definition">Definition at line <a class="el" href="mod__afld_8t_source.html#l01600">1600</a> of file <a class="el" href="mod__afld_8t_source.html">mod_afld.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__afld_8t_source.html#l01604">1604</a> of file <a class="el" href="mod__afld_8t_source.html">mod_afld.t</a>.</p>
 <div class="dynheader">
 Here is the call graph for this function:</div>
 <div class="dyncontent">
@@ -1619,7 +1597,7 @@ Here is the call graph for this function:</div>
 <p>Find the root of the 4th degree polynomial using the Newton-Ralphson method. </p>
 <p>Compare error with dx = dx/dy dy</p>
 
-<p class="definition">Definition at line <a class="el" href="mod__afld_8t_source.html#l01566">1566</a> of file <a class="el" href="mod__afld_8t_source.html">mod_afld.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__afld_8t_source.html#l01570">1570</a> of file <a class="el" href="mod__afld_8t_source.html">mod_afld.t</a>.</p>
 <div class="dynheader">
 Here is the call graph for this function:</div>
 <div class="dyncontent">
@@ -1668,7 +1646,7 @@ Here is the call graph for this function:</div>
 
 <p>Evaluate polynomial at argument e_gas. </p>
 
-<p class="definition">Definition at line <a class="el" href="mod__afld_8t_source.html#l01637">1637</a> of file <a class="el" href="mod__afld_8t_source.html">mod_afld.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__afld_8t_source.html#l01641">1641</a> of file <a class="el" href="mod__afld_8t_source.html">mod_afld.t</a>.</p>
 
 </div>
 </div>
@@ -1718,7 +1696,7 @@ Here is the call graph for this function:</div>
 
 <p>inplace update of psa==&gt;F_im(psa) </p>
 
-<p class="definition">Definition at line <a class="el" href="mod__afld_8t_source.html#l01229">1229</a> of file <a class="el" href="mod__afld_8t_source.html">mod_afld.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__afld_8t_source.html#l01233">1233</a> of file <a class="el" href="mod__afld_8t_source.html">mod_afld.t</a>.</p>
 
 </div>
 </div>
@@ -1738,7 +1716,7 @@ Here is the call graph for this function:</div>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="mod__afld_8t_source.html#l01302">1302</a> of file <a class="el" href="mod__afld_8t_source.html">mod_afld.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__afld_8t_source.html#l01306">1306</a> of file <a class="el" href="mod__afld_8t_source.html">mod_afld.t</a>.</p>
 <div class="dynheader">
 Here is the call graph for this function:</div>
 <div class="dyncontent">
@@ -1766,7 +1744,7 @@ Here is the call graph for this function:</div>
 
 <p>Which method to solve diffusion part. </p>
 
-<p class="definition">Definition at line <a class="el" href="mod__afld_8t_source.html#l00049">49</a> of file <a class="el" href="mod__afld_8t_source.html">mod_afld.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__afld_8t_source.html#l00053">53</a> of file <a class="el" href="mod__afld_8t_source.html">mod_afld.t</a>.</p>
 
 </div>
 </div>
@@ -1784,7 +1762,7 @@ Here is the call graph for this function:</div>
 
 <p>mean particle mass </p>
 
-<p class="definition">Definition at line <a class="el" href="mod__afld_8t_source.html#l00019">19</a> of file <a class="el" href="mod__afld_8t_source.html">mod_afld.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__afld_8t_source.html#l00022">22</a> of file <a class="el" href="mod__afld_8t_source.html">mod_afld.t</a>.</p>
 
 </div>
 </div>
@@ -1802,7 +1780,7 @@ Here is the call graph for this function:</div>
 
 <p>Take running average for Diffusion coefficient. </p>
 
-<p class="definition">Definition at line <a class="el" href="mod__afld_8t_source.html#l00058">58</a> of file <a class="el" href="mod__afld_8t_source.html">mod_afld.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__afld_8t_source.html#l00062">62</a> of file <a class="el" href="mod__afld_8t_source.html">mod_afld.t</a>.</p>
 
 </div>
 </div>
@@ -1820,7 +1798,7 @@ Here is the call graph for this function:</div>
 
 <p>Number for splitting the diffusion module. </p>
 
-<p class="definition">Definition at line <a class="el" href="mod__afld_8t_source.html#l00029">29</a> of file <a class="el" href="mod__afld_8t_source.html">mod_afld.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__afld_8t_source.html#l00032">32</a> of file <a class="el" href="mod__afld_8t_source.html">mod_afld.t</a>.</p>
 
 </div>
 </div>
@@ -1838,7 +1816,7 @@ Here is the call graph for this function:</div>
 
 <p>Resume run when multigrid returns error. </p>
 
-<p class="definition">Definition at line <a class="el" href="mod__afld_8t_source.html#l00069">69</a> of file <a class="el" href="mod__afld_8t_source.html">mod_afld.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__afld_8t_source.html#l00073">73</a> of file <a class="el" href="mod__afld_8t_source.html">mod_afld.t</a>.</p>
 
 </div>
 </div>
@@ -1856,7 +1834,7 @@ Here is the call graph for this function:</div>
 
 <p>running timestep for diffusion solver, initialised as zero </p>
 
-<p class="definition">Definition at line <a class="el" href="mod__afld_8t_source.html#l00075">75</a> of file <a class="el" href="mod__afld_8t_source.html">mod_afld.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__afld_8t_source.html#l00079">79</a> of file <a class="el" href="mod__afld_8t_source.html">mod_afld.t</a>.</p>
 
 </div>
 </div>
@@ -1874,7 +1852,7 @@ Here is the call graph for this function:</div>
 
 <p>Tolerance for bisection method for Energy sourceterms This is a percentage of the minimum of gas- and radiation energy. </p>
 
-<p class="definition">Definition at line <a class="el" href="mod__afld_8t_source.html#l00023">23</a> of file <a class="el" href="mod__afld_8t_source.html">mod_afld.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__afld_8t_source.html#l00026">26</a> of file <a class="el" href="mod__afld_8t_source.html">mod_afld.t</a>.</p>
 
 </div>
 </div>
@@ -1892,7 +1870,7 @@ Here is the call graph for this function:</div>
 
 <p>Set Diffusion coefficient to unity. </p>
 
-<p class="definition">Definition at line <a class="el" href="mod__afld_8t_source.html#l00055">55</a> of file <a class="el" href="mod__afld_8t_source.html">mod_afld.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__afld_8t_source.html#l00059">59</a> of file <a class="el" href="mod__afld_8t_source.html">mod_afld.t</a>.</p>
 
 </div>
 </div>
@@ -1910,7 +1888,7 @@ Here is the call graph for this function:</div>
 
 <p>Tolerance for adi method for radiative Energy diffusion. </p>
 
-<p class="definition">Definition at line <a class="el" href="mod__afld_8t_source.html#l00026">26</a> of file <a class="el" href="mod__afld_8t_source.html">mod_afld.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__afld_8t_source.html#l00029">29</a> of file <a class="el" href="mod__afld_8t_source.html">mod_afld.t</a>.</p>
 
 </div>
 </div>
@@ -1928,7 +1906,7 @@ Here is the call graph for this function:</div>
 
 <p>source split for energy interact and radforce: </p>
 
-<p class="definition">Definition at line <a class="el" href="mod__afld_8t_source.html#l00012">12</a> of file <a class="el" href="mod__afld_8t_source.html">mod_afld.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__afld_8t_source.html#l00015">15</a> of file <a class="el" href="mod__afld_8t_source.html">mod_afld.t</a>.</p>
 
 </div>
 </div>
@@ -1946,7 +1924,7 @@ Here is the call graph for this function:</div>
 
 <p>Diffusion limit lambda = 0.33. </p>
 
-<p class="definition">Definition at line <a class="el" href="mod__afld_8t_source.html#l00041">41</a> of file <a class="el" href="mod__afld_8t_source.html">mod_afld.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__afld_8t_source.html#l00045">45</a> of file <a class="el" href="mod__afld_8t_source.html">mod_afld.t</a>.</p>
 
 </div>
 </div>
@@ -1964,7 +1942,7 @@ Here is the call graph for this function:</div>
 
 <p>Which method to find the root for the energy interaction polynomial. </p>
 
-<p class="definition">Definition at line <a class="el" href="mod__afld_8t_source.html#l00052">52</a> of file <a class="el" href="mod__afld_8t_source.html">mod_afld.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__afld_8t_source.html#l00056">56</a> of file <a class="el" href="mod__afld_8t_source.html">mod_afld.t</a>.</p>
 
 </div>
 </div>
@@ -1982,7 +1960,7 @@ Here is the call graph for this function:</div>
 
 <p>Opacity per unit of unit_density. </p>
 
-<p class="definition">Definition at line <a class="el" href="mod__afld_8t_source.html#l00016">16</a> of file <a class="el" href="mod__afld_8t_source.html">mod_afld.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__afld_8t_source.html#l00019">19</a> of file <a class="el" href="mod__afld_8t_source.html">mod_afld.t</a>.</p>
 
 </div>
 </div>
@@ -2000,7 +1978,23 @@ Here is the call graph for this function:</div>
 
 <p>Use constant Opacity? </p>
 
-<p class="definition">Definition at line <a class="el" href="mod__afld_8t_source.html#l00038">38</a> of file <a class="el" href="mod__afld_8t_source.html">mod_afld.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__afld_8t_source.html#l00041">41</a> of file <a class="el" href="mod__afld_8t_source.html">mod_afld.t</a>.</p>
+
+</div>
+</div>
+<a id="ab585bc66c9a64f80d7718f0d17ebc1cf"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ab585bc66c9a64f80d7718f0d17ebc1cf">&#9670;&nbsp;</a></span>fld_opal_table</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">character(len=50) mod_afld::fld_opal_table = 'Y09800'</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p class="definition">Definition at line <a class="el" href="mod__afld_8t_source.html#l00042">42</a> of file <a class="el" href="mod__afld_8t_source.html">mod_afld.t</a>.</p>
 
 </div>
 </div>
@@ -2016,7 +2010,7 @@ Here is the call graph for this function:</div>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="mod__afld_8t_source.html#l00013">13</a> of file <a class="el" href="mod__afld_8t_source.html">mod_afld.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__afld_8t_source.html#l00016">16</a> of file <a class="el" href="mod__afld_8t_source.html">mod_afld.t</a>.</p>
 
 </div>
 </div>
@@ -2034,7 +2028,7 @@ Here is the call graph for this function:</div>
 
 <p>Take a running average over the fluxlimiter. </p>
 
-<p class="definition">Definition at line <a class="el" href="mod__afld_8t_source.html#l00062">62</a> of file <a class="el" href="mod__afld_8t_source.html">mod_afld.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__afld_8t_source.html#l00066">66</a> of file <a class="el" href="mod__afld_8t_source.html">mod_afld.t</a>.</p>
 
 </div>
 </div>
@@ -2052,7 +2046,7 @@ Here is the call graph for this function:</div>
 
 <p>Index for Diffusion coeficients. </p>
 
-<p class="definition">Definition at line <a class="el" href="mod__afld_8t_source.html#l00046">46</a> of file <a class="el" href="mod__afld_8t_source.html">mod_afld.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__afld_8t_source.html#l00050">50</a> of file <a class="el" href="mod__afld_8t_source.html">mod_afld.t</a>.</p>
 
 </div>
 </div>
@@ -2071,7 +2065,7 @@ Here is the call graph for this function:</div>
 <p>Index for testvariable. </p>
 <p>DELETE WHEN DONE </p>
 
-<p class="definition">Definition at line <a class="el" href="mod__afld_8t_source.html#l00035">35</a> of file <a class="el" href="mod__afld_8t_source.html">mod_afld.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__afld_8t_source.html#l00038">38</a> of file <a class="el" href="mod__afld_8t_source.html">mod_afld.t</a>.</p>
 
 </div>
 </div>
@@ -2089,7 +2083,7 @@ Here is the call graph for this function:</div>
 
 <p>Use or dont use lineforce opacities. </p>
 
-<p class="definition">Definition at line <a class="el" href="mod__afld_8t_source.html#l00066">66</a> of file <a class="el" href="mod__afld_8t_source.html">mod_afld.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__afld_8t_source.html#l00070">70</a> of file <a class="el" href="mod__afld_8t_source.html">mod_afld.t</a>.</p>
 
 </div>
 </div>
@@ -2105,7 +2099,7 @@ Here is the call graph for this function:</div>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="mod__afld_8t_source.html#l00059">59</a> of file <a class="el" href="mod__afld_8t_source.html">mod_afld.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__afld_8t_source.html#l00063">63</a> of file <a class="el" href="mod__afld_8t_source.html">mod_afld.t</a>.</p>
 
 </div>
 </div>
@@ -2121,7 +2115,7 @@ Here is the call graph for this function:</div>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="mod__afld_8t_source.html#l00063">63</a> of file <a class="el" href="mod__afld_8t_source.html">mod_afld.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__afld_8t_source.html#l00067">67</a> of file <a class="el" href="mod__afld_8t_source.html">mod_afld.t</a>.</p>
 
 </div>
 </div>

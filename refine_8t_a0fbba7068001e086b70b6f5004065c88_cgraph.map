@@ -1,5 +1,0 @@
-<map id="prolong_grid" name="prolong_grid">
-<area shape="rect" id="node1" title="prolong one block" alt="" coords="5,31,108,57"/>
-<area shape="rect" id="node2" href="$namespacemod__amr__fct.html#a3e49fcf98a33e001dfd449ec2236ddf3" title=" " alt="" coords="156,5,363,32"/>
-<area shape="rect" id="node3" href="$refine_8t.html#a0b892e92c750ef9e79fd744002c72c3a" title="do 2nd order prolongation" alt="" coords="208,56,311,83"/>
-</map>

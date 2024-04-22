@@ -1,12 +1,11 @@
 <map id="add_density_hyper_source" name="add_density_hyper_source">
-<area shape="rect" id="node1" title=" " alt="" coords="5,226,200,253"/>
-<area shape="rect" id="node2" href="$namespacemod__twofl__phys.html#a110b080718ccc7a4fb9848520b851871" title=" " alt="" coords="248,109,447,151"/>
+<area shape="rect" id="node1" title=" " alt="" coords="5,205,200,231"/>
+<area shape="rect" id="node2" href="$namespacemod__twofl__phys.html#a110b080718ccc7a4fb9848520b851871" title=" " alt="" coords="248,59,447,100"/>
 <area shape="rect" id="node3" href="$namespacemod__hyperdiffusivity.html#a8ca5fee3be217a38b119153470c5fe5a" title=" " alt="" coords="520,5,680,47"/>
 <area shape="rect" id="node4" href="$namespacemod__twofl__phys.html#ad19194e30ae692fb883ac2e1d8c7b232" title=" " alt="" coords="495,75,705,116"/>
 <area shape="rect" id="node5" href="$namespacemod__twofl__phys.html#aa6b8c1938400ce53b5046179cb6aaeb8" title=" " alt="" coords="495,149,705,191"/>
-<area shape="rect" id="node6" href="$comm__lib_8t.html#a49b49ea9ffbbadfe688e332921c4cddd" title="Exit MPI&#45;AMRVAC with an error message." alt="" coords="310,226,385,253"/>
-<area shape="rect" id="node7" href="$namespacemod__hyperdiffusivity.html#a20e04bad59cac11dccd4e5ace43f1fd2" title=" " alt="" coords="267,277,427,319"/>
-<area shape="rect" id="node8" href="$namespacemod__hyperdiffusivity.html#aa423c396f36437fbc5c9350086e04a0c" title=" " alt="" coords="265,343,430,384"/>
-<area shape="rect" id="node9" href="$namespacemod__hyperdiffusivity.html#ae1d9056daa752eb3365cda592ed5fc92" title=" " alt="" coords="267,408,427,449"/>
-<area shape="rect" id="node10" href="$namespacemod__hyperdiffusivity.html#a042e3638e1a7f5030dc7752dae2e996f" title=" " alt="" coords="264,473,431,515"/>
+<area shape="rect" id="node6" href="$namespacemod__hyperdiffusivity.html#a20e04bad59cac11dccd4e5ace43f1fd2" title=" " alt="" coords="267,227,427,268"/>
+<area shape="rect" id="node7" href="$namespacemod__hyperdiffusivity.html#aa423c396f36437fbc5c9350086e04a0c" title=" " alt="" coords="265,292,430,333"/>
+<area shape="rect" id="node8" href="$namespacemod__hyperdiffusivity.html#ae1d9056daa752eb3365cda592ed5fc92" title=" " alt="" coords="267,357,427,399"/>
+<area shape="rect" id="node9" href="$namespacemod__hyperdiffusivity.html#a042e3638e1a7f5030dc7752dae2e996f" title=" " alt="" coords="264,423,431,464"/>
 </map>

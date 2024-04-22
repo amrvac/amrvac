@@ -1,6 +1,6 @@
 <map id="mod_collapse::collapse_subnode" name="mod_collapse::collapse_subnode">
 <area shape="rect" id="node1" title=" " alt="" coords="5,49,180,90"/>
 <area shape="rect" id="node2" href="$namespacemod__calculate__xw.html#a006c2619a5377d574da9393a41a10865" title="Compute both corner as well as cell&#45;centered values for output." alt="" coords="228,5,436,32"/>
-<area shape="rect" id="node3" href="$comm__lib_8t.html#a49b49ea9ffbbadfe688e332921c4cddd" title="Exit MPI&#45;AMRVAC with an error message." alt="" coords="484,31,559,57"/>
+<area shape="rect" id="node3" href="$namespacemod__comm__lib.html#a9b6f1a8fd13bc5670e3b426151c34048" title="Exit MPI&#45;AMRVAC with an error message." alt="" coords="484,31,667,57"/>
 <area shape="rect" id="node4" href="$namespacemod__calculate__xw.html#a3ca517175958ca7d8e3e55131acf4b5d" title="computes cell corner (xC) and cell center (xCC) coordinates" alt="" coords="237,107,427,133"/>
 </map>

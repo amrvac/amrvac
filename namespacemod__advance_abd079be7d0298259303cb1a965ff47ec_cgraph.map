@@ -1,6 +1,0 @@
-<map id="mod_advance::process1_grid" name="mod_advance::process1_grid">
-<area shape="rect" id="node1" title="Prepare to advance a single grid over one partial time step." alt="" coords="5,56,216,83"/>
-<area shape="rect" id="node2" href="$namespacemod__advance.html#a7a4d34ce5366f6e4ac60338d75b2147a" title="Advance a single grid over one partial time step." alt="" coords="271,5,477,32"/>
-<area shape="rect" id="node3" href="$namespacemod__fix__conserve.html#a8e321b6488183dd5e10247497d0d975e" title=" " alt="" coords="264,56,484,83"/>
-<area shape="rect" id="node4" href="$namespacemod__fix__conserve.html#af0fc91a69837c51f45b6d82fe884d75a" title=" " alt="" coords="268,107,480,133"/>
-</map>

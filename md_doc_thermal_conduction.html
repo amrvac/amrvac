@@ -30,7 +30,7 @@
  <tr style="height: 56px;">
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">MPI-AMRVAC
-   &#160;<span id="projectnumber">3.0</span>
+   &#160;<span id="projectnumber">3.1</span>
    </div>
    <div id="projectbrief">The MPI - Adaptive Mesh Refinement - Versatile Advection Code</div>
   </td>
@@ -90,7 +90,8 @@ $(function() {
   unit_temperature=&lt;your temperature unit&gt;
   unit_velocity=&lt;your velocity unit&gt;
 </pre> before call (m)<a class="el" href="namespacemod__hd.html#a74c5c30e5b9669a0c9e65c772031906b">hd_activate()</a></li>
-<li>You can add the name list for thermal conduction, tc_list, in par file, where parameters tc_perpendicular, tc_saturate, tc_slope_limiter can be modified. tc_perpendicular=.true. will add conduction flux perpendicular to magnetic field, which is not considered by default. tc_saturate=.true. to consider saturation effect of thermal conduction, which is the default choice. </li>
+<li>You can add the name list for thermal conduction, tc_list, in par file, where parameters tc_perpendicular (not in hd), tc_saturate, tc_slope_limiter can be modified. tc_perpendicular=.true. will add conduction flux perpendicular to magnetic field, which is not considered by default. tc_saturate=.true. to consider saturation effect of thermal conduction, which is not the default choice.</li>
+<li>If thermal conduction fails or gives unphysical oscillations, reduce sts_dtpar (default 0.8) of sts_list to smaller values. </li>
 </ol>
 </div></div><!-- contents -->
 </div><!-- PageDoc -->

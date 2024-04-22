@@ -1,8 +1,6 @@
 <map id="mod_rhd_phys::rhd_get_flux" name="mod_rhd_phys::rhd_get_flux">
-<area shape="rect" id="node1" title=" " alt="" coords="5,130,211,157"/>
-<area shape="rect" id="node2" href="$namespacemod__dust.html#aba91e073d2ba19189fb1e0e8e3599e45" title=" " alt="" coords="277,5,427,47"/>
-<area shape="rect" id="node3" href="$comm__lib_8t.html#a49b49ea9ffbbadfe688e332921c4cddd" title="Exit MPI&#45;AMRVAC with an error message." alt="" coords="493,101,568,127"/>
-<area shape="rect" id="node4" href="$namespacemod__rhd__phys.html#ac35b28a6a4b662912b5d755502927fcb" title="Calculate thermal pressure=(gamma&#45;1)*(e&#45;0.5*m**2/rho) within ixO^L." alt="" coords="265,123,439,164"/>
-<area shape="rect" id="node5" href="$namespacemod__rotating__frame.html#afa298e6e4ce0cf59f6ac09a4c76ab1eb" title=" " alt="" coords="259,188,445,229"/>
-<area shape="rect" id="node6" href="$namespacemod__viscosity.html#ad6a3f8605f27c9e28b7f8c75ba81d3f8" title=" " alt="" coords="277,253,427,295"/>
+<area shape="rect" id="node1" title=" " alt="" coords="5,78,211,105"/>
+<area shape="rect" id="node2" href="$namespacemod__dust.html#aba91e073d2ba19189fb1e0e8e3599e45" title=" " alt="" coords="271,5,421,47"/>
+<area shape="rect" id="node3" href="$namespacemod__rhd__phys.html#ac35b28a6a4b662912b5d755502927fcb" title="Calculate thermal pressure=(gamma&#45;1)*(e&#45;0.5*m**2/rho) within ixO^L." alt="" coords="259,71,433,112"/>
+<area shape="rect" id="node4" href="$namespacemod__viscosity.html#ad6a3f8605f27c9e28b7f8c75ba81d3f8" title=" " alt="" coords="271,136,421,177"/>
 </map>

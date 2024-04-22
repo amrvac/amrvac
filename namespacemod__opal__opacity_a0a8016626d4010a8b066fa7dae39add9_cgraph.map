@@ -1,5 +1,0 @@
-<map id="mod_opal_opacity::get_kappa" name="mod_opal_opacity::get_kappa">
-<area shape="rect" id="node1" title="This subroutine looks in the table for the four couples (T,R)" alt="" coords="5,35,175,76"/>
-<area shape="rect" id="node2" href="$namespacemod__opal__opacity.html#a44c4ffb2affdf3070caebee9f5f73684" title="this subroutine finds the indexes in R and T arrays of the two values surrounding the input R and T" alt="" coords="260,5,429,47"/>
-<area shape="rect" id="node3" href="$namespacemod__opal__opacity.html#a5e67d4e10e7f53f0ff9369c2ddbfbb3e" title="This subroutine does a bilinear interpolation in the R,T&#45;plane." alt="" coords="223,71,467,98"/>
-</map>

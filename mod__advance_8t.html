@@ -30,7 +30,7 @@
  <tr style="height: 56px;">
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">MPI-AMRVAC
-   &#160;<span id="projectnumber">3.0</span>
+   &#160;<span id="projectnumber">3.1</span>
    </div>
    <div id="projectbrief">The MPI - Adaptive Mesh Refinement - Versatile Advection Code</div>
   </td>
@@ -108,12 +108,9 @@ Functions/Subroutines</h2></td></tr>
 <tr class="memitem:a4bef2610a9a75d0590dce3edad6d7fee"><td class="memItemLeft" align="right" valign="top">subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__advance.html#a4bef2610a9a75d0590dce3edad6d7fee">mod_advance::advect1</a> (method, dtfactor, idimLIM, qtC, psa, qt, psb)</td></tr>
 <tr class="memdesc:a4bef2610a9a75d0590dce3edad6d7fee"><td class="mdescLeft">&#160;</td><td class="mdescRight">Integrate all grids by one partial step.  <a href="namespacemod__advance.html#a4bef2610a9a75d0590dce3edad6d7fee">More...</a><br /></td></tr>
 <tr class="separator:a4bef2610a9a75d0590dce3edad6d7fee"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:abd079be7d0298259303cb1a965ff47ec"><td class="memItemLeft" align="right" valign="top">subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__advance.html#abd079be7d0298259303cb1a965ff47ec">mod_advance::process1_grid</a> (method, igrid, qdt, ixIL, idimLIM, qtC, sCT, qt, s, sold)</td></tr>
-<tr class="memdesc:abd079be7d0298259303cb1a965ff47ec"><td class="mdescLeft">&#160;</td><td class="mdescRight">Prepare to advance a single grid over one partial time step.  <a href="namespacemod__advance.html#abd079be7d0298259303cb1a965ff47ec">More...</a><br /></td></tr>
-<tr class="separator:abd079be7d0298259303cb1a965ff47ec"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a7a4d34ce5366f6e4ac60338d75b2147a"><td class="memItemLeft" align="right" valign="top">subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__advance.html#a7a4d34ce5366f6e4ac60338d75b2147a">mod_advance::advect1_grid</a> (method, qdt, ixIL, idimLIM, qtC, sCT, qt, s, sold, fC, fE, dxs, x)</td></tr>
-<tr class="memdesc:a7a4d34ce5366f6e4ac60338d75b2147a"><td class="mdescLeft">&#160;</td><td class="mdescRight">Advance a single grid over one partial time step.  <a href="namespacemod__advance.html#a7a4d34ce5366f6e4ac60338d75b2147a">More...</a><br /></td></tr>
-<tr class="separator:a7a4d34ce5366f6e4ac60338d75b2147a"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a8003ddfc1af37662208929f2caa00cbd"><td class="memItemLeft" align="right" valign="top">subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__advance.html#a8003ddfc1af37662208929f2caa00cbd">mod_advance::advect1_grid</a> (method, qdt, dtfactor, ixIL, idimLIM, qtC, sCT, qt, s, fC, fE, dxs, x)</td></tr>
+<tr class="memdesc:a8003ddfc1af37662208929f2caa00cbd"><td class="mdescLeft">&#160;</td><td class="mdescRight">Advance a single grid over one partial time step.  <a href="namespacemod__advance.html#a8003ddfc1af37662208929f2caa00cbd">More...</a><br /></td></tr>
+<tr class="separator:a8003ddfc1af37662208929f2caa00cbd"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a4c2beedac0bce5cbce19c516a00b5c98"><td class="memItemLeft" align="right" valign="top">subroutine, public&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__advance.html#a4c2beedac0bce5cbce19c516a00b5c98">mod_advance::process</a> (iit, qt)</td></tr>
 <tr class="memdesc:a4c2beedac0bce5cbce19c516a00b5c98"><td class="mdescLeft">&#160;</td><td class="mdescRight">process is a user entry in time loop, before output and advance allows to modify solution, add extra variables, etc. Warning: CFL dt already determined (and is not recomputed)!  <a href="namespacemod__advance.html#a4c2beedac0bce5cbce19c516a00b5c98">More...</a><br /></td></tr>
 <tr class="separator:a4c2beedac0bce5cbce19c516a00b5c98"><td class="memSeparator" colspan="2">&#160;</td></tr>

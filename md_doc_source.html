@@ -30,7 +30,7 @@
  <tr style="height: 56px;">
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">MPI-AMRVAC
-   &#160;<span id="projectnumber">3.0</span>
+   &#160;<span id="projectnumber">3.1</span>
    </div>
    <div id="projectbrief">The MPI - Adaptive Mesh Refinement - Versatile Advection Code</div>
   </td>
@@ -82,7 +82,7 @@ Introduction</h1>
 <h1><a class="anchor" id="structure"></a>
 Structure</h1>
 <p>MPI-AMRVAC does both the initialization as well as the advancing of the variables in the governing PDEs. The program consists of several modules. Modules are simply sets of subroutines and functions that belong together and they are put in a single file.</p>
-<p>The main program is in the file <b><a class="el" href="amrvac_8t.html">amrvac.t</a></b> and all time-advancing actually happens in <b><a class="el" href="mod__advance_8t.html">mod_advance.t</a></b>. Input and output routines are in the <b>amrvacio</b> directory which also contains the postprocess conversion part collected in <b><a class="el" href="convert_8t.html">convert.t</a></b>. Subroutines likely to be modified by the user are to be collected in the <b>mod_usr.t</b> module. In this module, you must at the very minimum define all global parameters and provide initial conditions for all (conserved) variables on the grid, by following the template provided in <b>mod_usr_template.t</b>.</p>
+<p>The main program is in the file <b><a class="el" href="amrvac_8t.html">amrvac.t</a></b> and all time-advancing actually happens in <b><a class="el" href="mod__advance_8t.html">mod_advance.t</a></b>. Input and output routines are in the <b>amrvacio</b> directory which also contains the postprocess conversion part collected in <b>convert.t</b>. Subroutines likely to be modified by the user are to be collected in the <b>mod_usr.t</b> module. In this module, you must at the very minimum define all global parameters and provide initial conditions for all (conserved) variables on the grid, by following the template provided in <b>mod_usr_template.t</b>.</p>
 <p>Independence of equations is ensured by putting all flow variables in a single array <b>w</b>, and the variables are distinguished by their named indices, e.g. <b>w(ix1,ix2,rho_)</b> would read <b>rho(ix1,ix2)</b> in a typical code designed for a single equation. Here <b>rho_</b> is an integer parameter defined in the <b><a class="el" href="mod__rho__phys_8t.html">mod_rho_phys.t</a></b> module.</p>
 <p>The physics modules have several variants, and they are found in the corresponding subdirectories called <b>rho</b> for advection, <b>hd</b> for hydro (plus dust) and <b>mhd</b> for MHD. All physics modules are available in the library version of AMRVAC, and the user has to active the module of choice for the application in mind.</p>
 <p>The spatial discretization of the equations algorithms are spread over the modules <b><a class="el" href="mod__finite__volume_8t.html">mod_finite_volume.t</a></b>, <b><a class="el" href="mod__finite__difference_8t.html">mod_finite_difference.t</a></b>, <b><a class="el" href="mod__tvd_8t.html">mod_tvd.t</a></b> where limiter implementations are obtained from <b><a class="el" href="mod__mp5_8t.html">mod_mp5.t</a></b> <b><a class="el" href="mod__ppm_8t.html">mod_ppm.t</a></b> <b><a class="el" href="mod__limiter_8t.html">mod_limiter.t</a></b>.</p>

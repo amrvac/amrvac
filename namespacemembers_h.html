@@ -30,7 +30,7 @@
  <tr style="height: 56px;">
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">MPI-AMRVAC
-   &#160;<span id="projectnumber">3.0</span>
+   &#160;<span id="projectnumber">3.1</span>
    </div>
    <div id="projectbrief">The MPI - Adaptive Mesh Refinement - Versatile Advection Code</div>
   </td>
@@ -87,7 +87,9 @@ $(function() {
 : <a class="el" href="namespacemod__solar__atmosphere.html#aa3de5f5290caa4fd9e6394e22c49cfd1">mod_solar_atmosphere</a>
 </li>
 <li>h_ion_fr
-: <a class="el" href="namespacemod__mhd__phys.html#a37f6f825e1df903fff1c7b5b2ec5cf9d">mod_mhd_phys</a>
+: <a class="el" href="namespacemod__hd__phys.html#a748bde3de60ce52fb8c93aaf03af9dd9">mod_hd_phys</a>
+, <a class="el" href="namespacemod__mhd__phys.html#a37f6f825e1df903fff1c7b5b2ec5cf9d">mod_mhd_phys</a>
+, <a class="el" href="namespacemod__rhd__phys.html#a8e5090b37762fa9893d058eb1910eb17">mod_rhd_phys</a>
 </li>
 <li>h_valc
 : <a class="el" href="namespacemod__solar__atmosphere.html#aa1827b76d72bada3e6dba0a77c833b71">mod_solar_atmosphere</a>
@@ -100,7 +102,7 @@ $(function() {
 , <a class="el" href="namespacemod__fld.html#a6b4aeeffe4c5918e0bd2a8858efea215">mod_fld</a>
 </li>
 <li>hancock()
-: <a class="el" href="namespacemod__finite__volume.html#a9acd70abe2798045db118a804e2dc4ce">mod_finite_volume</a>
+: <a class="el" href="namespacemod__finite__volume.html#a752f4d2fe38f1ac5fb7a3907c589a2e1">mod_finite_volume</a>
 </li>
 <li>hancockmf()
 : <a class="el" href="namespacemod__magnetofriction.html#ae703f8a283f8d8a35971d7daabe0a7ff">mod_magnetofriction</a>
@@ -136,16 +138,13 @@ $(function() {
 : <a class="el" href="namespacemod__hd.html#a74c5c30e5b9669a0c9e65c772031906b">mod_hd</a>
 </li>
 <li>hd_add_source()
-: <a class="el" href="namespacemod__hd__phys.html#a2035e4719c241c4e0ad07b45943376ad">mod_hd_phys</a>
+: <a class="el" href="namespacemod__hd__phys.html#a59505d7b6ed147a198a52134bf30bab1">mod_hd_phys</a>
 </li>
 <li>hd_add_source_geom()
-: <a class="el" href="namespacemod__hd__phys.html#a4ac268fb6e9fcf9553781e51eddfcdf6">mod_hd_phys</a>
+: <a class="el" href="namespacemod__hd__phys.html#a24de3cf866881bb2e9fa57a4c88c982c">mod_hd_phys</a>
 </li>
 <li>hd_adiab
 : <a class="el" href="namespacemod__hd__phys.html#aac2850a6214916289ce973f155229153">mod_hd_phys</a>
-</li>
-<li>hd_angmomfix()
-: <a class="el" href="namespacemod__hd__phys.html#a135f33fd193bcf3bbf5004d43e3fa747">mod_hd_phys</a>
 </li>
 <li>hd_average()
 : <a class="el" href="namespacemod__hd__roe.html#a2727242fea6879fcdd80f57bbaa0890f">mod_hd_roe</a>
@@ -171,14 +170,8 @@ $(function() {
 <li>hd_e_to_ei()
 : <a class="el" href="namespacemod__hd__phys.html#a472abc14b625f0456c2bf00e9d9fd63c">mod_hd_phys</a>
 </li>
-<li>hd_e_to_ei1()
-: <a class="el" href="namespacemod__hd__phys.html#aab9c912cfe4d5ec9a030acfed097e0b8">mod_hd_phys</a>
-</li>
 <li>hd_ei_to_e()
 : <a class="el" href="namespacemod__hd__phys.html#a4f1a62fd8458edd762f05c246eb19cfd">mod_hd_phys</a>
-</li>
-<li>hd_ei_to_e1()
-: <a class="el" href="namespacemod__hd__phys.html#a28d24d04a0fa1488997cfa3f728d4cac">mod_hd_phys</a>
 </li>
 <li>hd_energy
 : <a class="el" href="namespacemod__hd__phys.html#a05a2c4a60ba4b81fb4f805a5495dbcb9">mod_hd_phys</a>
@@ -264,6 +257,9 @@ $(function() {
 <li>hd_n_tracer
 : <a class="el" href="namespacemod__hd__phys.html#ae0b1a44887dbe84fcced445e803bcf69">mod_hd_phys</a>
 </li>
+<li>hd_partial_ionization
+: <a class="el" href="namespacemod__hd__phys.html#abc46ec55ad8c22019aa9d432c2edf696">mod_hd_phys</a>
+</li>
 <li>hd_particles
 : <a class="el" href="namespacemod__hd__phys.html#a2634dfb57b6bdd6614d8ddac0fad2324">mod_hd_phys</a>
 </li>
@@ -272,15 +268,6 @@ $(function() {
 </li>
 <li>hd_physical_units()
 : <a class="el" href="namespacemod__hd__phys.html#ad6408f9157bc1d795fddeeb3f5d8b757">mod_hd_phys</a>
-</li>
-<li>hd_ppm_flatcd()
-: <a class="el" href="namespacemod__hd__ppm.html#a90d807a02c0ea35a297eac17ef930665">mod_hd_ppm</a>
-</li>
-<li>hd_ppm_flatsh()
-: <a class="el" href="namespacemod__hd__ppm.html#a96c597f36c74dcc702f6303ecc9324de">mod_hd_ppm</a>
-</li>
-<li>hd_ppm_init()
-: <a class="el" href="namespacemod__hd__ppm.html#a9c0b414d31f8a3c5b9be210c5b7cb914">mod_hd_ppm</a>
 </li>
 <li>hd_radiative_cooling
 : <a class="el" href="namespacemod__hd__phys.html#a16c6aca406adb87b50befc6a014b1947">mod_hd_phys</a>
@@ -321,6 +308,9 @@ $(function() {
 <li>hd_trac_type
 : <a class="el" href="namespacemod__hd__phys.html#a250e450d81227ed346080fee72723943">mod_hd_phys</a>
 </li>
+<li>hd_update_temperature()
+: <a class="el" href="namespacemod__hd__phys.html#af250d284c660c1a8c289f8b1a99bef49">mod_hd_phys</a>
+</li>
 <li>hd_viscosity
 : <a class="el" href="namespacemod__hd__phys.html#a323d2998e37c0a70c35f00b731fd077f">mod_hd_phys</a>
 </li>
@@ -332,13 +322,18 @@ $(function() {
 , <a class="el" href="namespacemod__mf__phys.html#af607e2dcf3c7e141c203b92a618cff21">mod_mf_phys</a>
 , <a class="el" href="namespacemod__mhd__phys.html#af304cea03e5c0f07f8c2785ff16ffd77">mod_mhd_phys</a>
 , <a class="el" href="namespacemod__rhd__phys.html#aadde80b104bcbd035eb7fd36597629e2">mod_rhd_phys</a>
+, <a class="el" href="namespacemod__srhd__phys.html#a6d9de63277dddc92bf5a5ca25d8d0593">mod_srhd_phys</a>
 , <a class="el" href="namespacemod__twofl__phys.html#abe853af9492e8edee8d6dba94e72e2c0">mod_twofl_phys</a>
 </li>
 <li>he_ion_fr
-: <a class="el" href="namespacemod__mhd__phys.html#a8479108c0f7b2f1831b809b7aaa1cf9d">mod_mhd_phys</a>
+: <a class="el" href="namespacemod__hd__phys.html#ac7b946011ed139b93e5345c14c47817f">mod_hd_phys</a>
+, <a class="el" href="namespacemod__mhd__phys.html#a8479108c0f7b2f1831b809b7aaa1cf9d">mod_mhd_phys</a>
+, <a class="el" href="namespacemod__rhd__phys.html#adde64e1087641476fe877560af8c3d1a">mod_rhd_phys</a>
 </li>
 <li>he_ion_fr2
-: <a class="el" href="namespacemod__mhd__phys.html#abb68e374087297e77dd6dae45571c617">mod_mhd_phys</a>
+: <a class="el" href="namespacemod__hd__phys.html#a47488b4ebf144483b272a47e451af268">mod_hd_phys</a>
+, <a class="el" href="namespacemod__mhd__phys.html#abb68e374087297e77dd6dae45571c617">mod_mhd_phys</a>
+, <a class="el" href="namespacemod__rhd__phys.html#ab7cc01716b20f4a856b10af0f3ab931c">mod_rhd_phys</a>
 </li>
 <li>head_convert_vars_methods
 : <a class="el" href="namespacemod__convert.html#a35538775fafab4886b3d47b49310a877">mod_convert</a>

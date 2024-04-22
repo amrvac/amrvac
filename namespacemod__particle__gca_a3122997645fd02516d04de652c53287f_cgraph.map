@@ -1,6 +1,7 @@
 <map id="mod_particle_gca::derivs_gca" name="mod_particle_gca::derivs_gca">
-<area shape="rect" id="node1" title=" " alt="" coords="5,71,220,98"/>
+<area shape="rect" id="node1" title=" " alt="" coords="5,97,220,123"/>
 <area shape="rect" id="node2" href="$namespacemod__particle__base.html#ab86a6399bcf481404721bcb11ca92e8a" title=" " alt="" coords="268,5,421,47"/>
-<area shape="rect" id="node3" href="$comm__lib_8t.html#a49b49ea9ffbbadfe688e332921c4cddd" title="Exit MPI&#45;AMRVAC with an error message." alt="" coords="469,42,544,69"/>
-<area shape="rect" id="node4" href="$namespacemod__particle__base.html#a85a2d46a6cbe809098c52ea9beca540a" title=" " alt="" coords="268,123,421,164"/>
+<area shape="rect" id="node3" href="$namespacemod__particle__base.html#a7d9a58afea8627c45f86fb2657d9b8df" title=" " alt="" coords="469,123,623,164"/>
+<area shape="rect" id="node4" href="$namespacemod__particle__base.html#a85a2d46a6cbe809098c52ea9beca540a" title=" " alt="" coords="671,123,824,164"/>
+<area shape="rect" id="node5" href="$namespacemod__particle__base.html#a39bc08ff3212378f905b861b84bcfc85" title=" " alt="" coords="268,173,421,215"/>
 </map>

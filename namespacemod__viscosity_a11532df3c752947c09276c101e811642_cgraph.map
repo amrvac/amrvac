@@ -1,6 +1,5 @@
 <map id="mod_viscosity::get_crossgrad" name="mod_viscosity::get_crossgrad">
-<area shape="rect" id="node1" title=" " alt="" coords="5,64,149,105"/>
+<area shape="rect" id="node1" title=" " alt="" coords="5,35,149,76"/>
 <area shape="rect" id="node2" href="$namespacemod__viscosity.html#a96de5ed19b5948f763e61ef03f9b5b5a" title="yields d_i v_j + d_j v_i for a given i, OK in Cartesian and for some tensor terms in cylindrical (rr ..." alt="" coords="197,5,345,47"/>
-<area shape="rect" id="node3" href="$namespacemod__geometry.html#a92ec4e2c8ae00a42bf5bf2c1ce3a26c4" title="Calculate gradient of a scalar q within ixL in direction idir." alt="" coords="393,71,576,98"/>
-<area shape="rect" id="node4" href="$comm__lib_8t.html#a49b49ea9ffbbadfe688e332921c4cddd" title="Exit MPI&#45;AMRVAC with an error message." alt="" coords="624,97,699,123"/>
+<area shape="rect" id="node3" href="$namespacemod__geometry.html#a92ec4e2c8ae00a42bf5bf2c1ce3a26c4" title="Calculate gradient of a scalar q within ixL in direction idir." alt="" coords="393,42,576,69"/>
 </map>

@@ -30,7 +30,7 @@
  <tr style="height: 56px;">
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">MPI-AMRVAC
-   &#160;<span id="projectnumber">3.0</span>
+   &#160;<span id="projectnumber">3.1</span>
    </div>
    <div id="projectbrief">The MPI - Adaptive Mesh Refinement - Versatile Advection Code</div>
   </td>
@@ -75,15 +75,16 @@ $(function() {
 
 <h3><a id="index_m"></a>- m -</h3><ul>
 <li>mag
-: <a class="el" href="namespacemod__mf__phys.html#a68d435fad6d1e16a18cc4db0f5dab13b">mod_mf_phys</a>
-, <a class="el" href="namespacemod__mhd__phys.html#a3e65d304744d08dd60b8d4c21eeb9223">mod_mhd_phys</a>
-, <a class="el" href="namespacemod__twofl__phys.html#a9fa708a5681368c5b3694e7491fa2a2d">mod_twofl_phys</a>
+: <a class="el" href="namespacemod__functions__bfield.html#a9325934e82e214dd9a5fc608b174fbb9">mod_functions_bfield</a>
 </li>
 <li>max_blocks
 : <a class="el" href="namespacemod__global__parameters.html#ad92f0d9f4cbc71571fb26c74cd2be25b">mod_global_parameters</a>
 </li>
 <li>max_nw
 : <a class="el" href="namespacemod__variables.html#a8c13cdaddf33454c9ad6eb8363afbd4d">mod_variables</a>
+</li>
+<li>maxitnr
+: <a class="el" href="namespacemod__srhd__phys.html#a6380e77b9ce22413ccda1809e0960cc3">mod_srhd_phys</a>
 </li>
 <li>maxstp
 : <a class="el" href="namespacemod__odeint.html#a3df87bc64df3cc19bdb548e49b270740">mod_odeint</a>
@@ -155,7 +156,8 @@ $(function() {
 : <a class="el" href="namespacemod__magnetofriction.html#aba857cd437bc4eb5f4bc148f31ece2ab">mod_magnetofriction</a>
 </li>
 <li>mf_vmax
-: <a class="el" href="namespacemod__mf__phys.html#a5dafdd480a29e151163a73b86af117a5">mod_mf_phys</a>
+: <a class="el" href="namespacemod__magnetofriction.html#a836daab5abf6b95b344288034ed88335">mod_magnetofriction</a>
+, <a class="el" href="namespacemod__mf__phys.html#a5dafdd480a29e151163a73b86af117a5">mod_mf_phys</a>
 </li>
 <li>mg
 : <a class="el" href="namespacemod__multigrid__coupling.html#a142d2164d06b247e80e61927349a1d36">mod_multigrid_coupling</a>
@@ -446,6 +448,9 @@ $(function() {
 <li>mhd_get_pthermal
 : <a class="el" href="namespacemod__mhd__phys.html#aeddcf4396bdbd06b2f285c4e717554f4">mod_mhd_phys</a>
 </li>
+<li>mhd_get_temperature
+: <a class="el" href="namespacemod__mhd__phys.html#ab0e9578210815171702ac806eba0bcc0">mod_mhd_phys</a>
+</li>
 <li>mhd_get_v
 : <a class="el" href="namespacemod__mhd__phys.html#a02894eede360c6c766a3bfbade24a92c">mod_mhd_phys</a>
 </li>
@@ -479,6 +484,9 @@ $(function() {
 <li>mhd_n_tracer
 : <a class="el" href="namespacemod__mhd__phys.html#a53f47437ef8854eb2ac6d95a771846b2">mod_mhd_phys</a>
 </li>
+<li>mhd_partial_ionization
+: <a class="el" href="namespacemod__mhd__phys.html#a2c6e281a61380fad11ab1d6f9caa0223">mod_mhd_phys</a>
+</li>
 <li>mhd_particles
 : <a class="el" href="namespacemod__mhd__phys.html#ac0a9d6a27c078950e91d498ad32dc525">mod_mhd_phys</a>
 </li>
@@ -488,11 +496,11 @@ $(function() {
 <li>mhd_reduced_c
 : <a class="el" href="namespacemod__mhd__phys.html#a8da78e5d9b6cc378b1702f24cb9311e1">mod_mhd_phys</a>
 </li>
+<li>mhd_rotating_frame
+: <a class="el" href="namespacemod__mhd__phys.html#a4ef8394bc772d7cdd9947bdef30f4172">mod_mhd_phys</a>
+</li>
 <li>mhd_semirelativistic
 : <a class="el" href="namespacemod__mhd__phys.html#a4f7695ccca82c8bade13cb4f1863fb44">mod_mhd_phys</a>
-</li>
-<li>mhd_solve_eaux
-: <a class="el" href="namespacemod__mhd__phys.html#a942a63ff7334bf68231b5e2df8bfb2b7">mod_mhd_phys</a>
 </li>
 <li>mhd_thermal_conduction
 : <a class="el" href="namespacemod__mhd__phys.html#aaf88212d9e5f3ae5a0bd2037b5b94dfe">mod_mhd_phys</a>
@@ -521,6 +529,12 @@ $(function() {
 <li>min_particle_time
 : <a class="el" href="namespacemod__particle__base.html#a1d3683c6878021d9d67c449dd17f623b">mod_particle_base</a>
 </li>
+<li>minp
+: <a class="el" href="namespacemod__srhd__phys.html#a94ea4f306f21a2ae4280c48c8134c196">mod_srhd_phys</a>
+</li>
+<li>minrho
+: <a class="el" href="namespacemod__srhd__phys.html#ae07d7d91d8e2546f7a741e8f71ec2606">mod_srhd_phys</a>
+</li>
 <li>miu0_si
 : <a class="el" href="namespacemod__constants.html#a9cbe7a0d5cff593ffa4c27bd0884443e">mod_constants</a>
 </li>
@@ -529,6 +543,7 @@ $(function() {
 , <a class="el" href="namespacemod__mf__phys.html#ad9c148e3a71f9839c3cb1069aeb649b5">mod_mf_phys</a>
 , <a class="el" href="namespacemod__mhd__phys.html#a12c911e7c3dc6e3f66434f31bd5f5def">mod_mhd_phys</a>
 , <a class="el" href="namespacemod__rhd__phys.html#a48a856ee050da08341a79fbbdbe51ef1">mod_rhd_phys</a>
+, <a class="el" href="namespacemod__srhd__phys.html#a835dfd74e39d495f57cb942dcdbb5e70">mod_srhd_phys</a>
 </li>
 <li>mom_c
 : <a class="el" href="namespacemod__twofl__phys.html#a74405b485d3340c1b9a2cb6faa9c9c45">mod_twofl_phys</a>

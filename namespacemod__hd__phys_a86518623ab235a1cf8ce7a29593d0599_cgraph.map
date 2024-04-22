@@ -1,47 +1,49 @@
 <map id="mod_hd_phys::hd_phys_init" name="mod_hd_phys::hd_phys_init">
-<area shape="rect" id="node1" title="Initialize the module." alt="" coords="5,1253,208,1279"/>
+<area shape="rect" id="node1" title="Initialize the module." alt="" coords="5,1274,208,1301"/>
 <area shape="rect" id="node2" href="$namespacemod__supertimestepping.html#a30d9310a240e2d446902e06a6359d054" title="subroutine which added programatically a term to be calculated using STS Params: sts_getdt function c..." alt="" coords="278,5,458,47"/>
-<area shape="rect" id="node3" href="$namespacemod__cak__force.html#a3ea4d69b0566bbe50c6d7900abbdce5d" title="Initialize the module." alt="" coords="278,501,458,527"/>
-<area shape="rect" id="node4" href="$comm__lib_8t.html#a49b49ea9ffbbadfe688e332921c4cddd" title="Exit MPI&#45;AMRVAC with an error message." alt="" coords="584,391,659,418"/>
-<area shape="rect" id="node5" href="$namespacemod__dust.html#ae39df6d084f2ff5bd3e9ff6408cbd39c" title=" " alt="" coords="293,837,443,863"/>
-<area shape="rect" id="node6" href="$namespacemod__gravity.html#ac77da47869e83fdec592fa926333722c" title="Initialize the module." alt="" coords="275,887,461,914"/>
-<area shape="rect" id="node7" href="$namespacemod__hd__phys.html#a2035e4719c241c4e0ad07b45943376ad" title=" " alt="" coords="285,939,451,980"/>
-<area shape="rect" id="node8" href="$namespacemod__hd__phys.html#a4ac268fb6e9fcf9553781e51eddfcdf6" title="Add geometrical source terms to w." alt="" coords="285,603,451,644"/>
-<area shape="rect" id="node9" href="$namespacemod__hd__phys.html#aa893373436eb62993cc188e9005870c8" title="Calculate thermal pressure=(gamma&#45;1)*(e&#45;0.5*m**2/rho) within ixO^L." alt="" coords="539,687,703,728"/>
-<area shape="rect" id="node10" href="$namespacemod__hd__phys.html#a135f33fd193bcf3bbf5004d43e3fa747" title="Add fluxes in an angular momentum conserving way." alt="" coords="259,551,477,578"/>
-<area shape="rect" id="node11" href="$namespacemod__hd__phys.html#a0464902bc4be34094c08fafc7abf3488" title=" " alt="" coords="277,71,459,112"/>
-<area shape="rect" id="node12" href="$namespacemod__hd__phys.html#a4138044bc4c10294eea9cdde1e533d96" title="Returns logical argument flag where values are ok." alt="" coords="763,1034,961,1061"/>
-<area shape="rect" id="node13" href="$namespacemod__hd__phys.html#a472abc14b625f0456c2bf00e9d9fd63c" title="Transform total energy to internal energy." alt="" coords="273,1173,463,1199"/>
-<area shape="rect" id="node14" href="$namespacemod__hd__phys.html#a4f1a62fd8458edd762f05c246eb19cfd" title="Transform internal energy to total energy." alt="" coords="273,1223,463,1250"/>
-<area shape="rect" id="node15" href="$namespacemod__hd__phys.html#a22064d3fa7f829b57f026899eab594a5" title=" " alt="" coords="286,1275,450,1316"/>
-<area shape="rect" id="node16" href="$namespacemod__hd__phys.html#a85e7915e76f0c370a9553c4de102eeaa" title="Calculate cmax_idim = csound + abs(v_idim) within ixO^L." alt="" coords="286,1340,450,1381"/>
-<area shape="rect" id="node17" href="$namespacemod__hd__phys.html#ae5e4a236d8ecbd69f6ab215cdfc7d4e0" title="Calculate cmax_idim = csound + abs(v_idim) within ixO^L." alt="" coords="265,1406,471,1433"/>
-<area shape="rect" id="node18" href="$namespacemod__hd__phys.html#a67c24f3df7b4256f045d0486be021a75" title=" " alt="" coords="276,1457,460,1483"/>
-<area shape="rect" id="node19" href="$namespacemod__hd__phys.html#a1833998a00dd467ed9fb68de9c126299" title=" " alt="" coords="271,669,465,695"/>
-<area shape="rect" id="node20" href="$namespacemod__hd__phys.html#a3ef92fae89ce4edb018f8ee44bf6ba9e" title=" " alt="" coords="272,1507,464,1534"/>
-<area shape="rect" id="node21" href="$namespacemod__hd__phys.html#a6f9376f955bad8976f2d0b31983d46d1" title=" " alt="" coords="286,1559,450,1600"/>
-<area shape="rect" id="node22" href="$namespacemod__hd__phys.html#aaf2ab68bb0344e0b96069b57467b5608" title="get adaptive cutoff temperature for TRAC (Johnston 2019 ApJL, 873, L22)" alt="" coords="286,136,450,177"/>
-<area shape="rect" id="node23" href="$namespacemod__hd__phys.html#a87e2860a271bcf86309b5539fc8768c3" title="Calculate temperature=p/rho when in e_ the internal energy is stored." alt="" coords="278,1624,458,1665"/>
-<area shape="rect" id="node24" href="$namespacemod__hd__phys.html#afb41e9a01347be23b834783a2e2e43a4" title="Calculate temperature=p/rho when in e_ the total energy is stored." alt="" coords="277,771,459,812"/>
-<area shape="rect" id="node25" href="$namespacemod__hd__phys.html#ae936a669addaaea7ff63273be9b19aba" title="Calculate velocity vector v_i = m_i / rho within ixO^L." alt="" coords="279,1690,457,1717"/>
-<area shape="rect" id="node26" href="$namespacemod__hd__phys.html#afccb3cc0f088d466841ffc2eb2dfa8eb" title=" " alt="" coords="528,1056,715,1097"/>
-<area shape="rect" id="node27" href="$namespacemod__hd__phys.html#ad6408f9157bc1d795fddeeb3f5d8b757" title=" " alt="" coords="269,1741,467,1783"/>
-<area shape="rect" id="node28" href="$namespacemod__hd__phys.html#a4a5d5cbeafe28ee45cb78a8be4b3f7f0" title=" " alt="" coords="287,1807,449,1848"/>
-<area shape="rect" id="node29" href="$namespacemod__hd__phys.html#afabc3847867b6caa36201cfbf979d4ec" title=" " alt="" coords="291,1872,445,1913"/>
-<area shape="rect" id="node30" href="$namespacemod__hd__phys.html#a2cfeccbed2600a1674aba8853686b01e" title=" " alt="" coords="290,201,446,243"/>
-<area shape="rect" id="node31" href="$namespacemod__hd__phys.html#ad761fa117a08944116be78ba83cf09c5" title="Transform primitive variables into conservative ones." alt="" coords="290,1937,446,1979"/>
-<area shape="rect" id="node32" href="$namespacemod__hd__phys.html#adca96ea5ff64e4d4e201ccf227d9591a" title="Transform conservative variables into primitive ones." alt="" coords="290,1107,446,1148"/>
-<area shape="rect" id="node33" href="$namespacemod__hd__phys.html#a5c4535fff5a88af43f3aafb328a4b4e4" title="Write this module&#39;s parameters to a snapsoht." alt="" coords="264,2003,472,2030"/>
-<area shape="rect" id="node34" href="$namespacemod__particles.html#a7a89b126b34bb788a3911955880ddd8f" title="Initialize particle data and parameters." alt="" coords="265,267,471,294"/>
-<area shape="rect" id="node35" href="$namespacemod__radiative__cooling.html#a2c0aab05964e01b97b9ae65c6d2ea830" title=" " alt="" coords="283,319,453,360"/>
-<area shape="rect" id="node36" href="$namespacemod__radiative__cooling.html#ae450293b5673565067dbec5188ed3325" title="Radiative cooling initialization." alt="" coords="283,2054,453,2110"/>
-<area shape="rect" id="node37" href="$namespacemod__hd__phys.html#a3a604bc9fd0eb6bffa76cf55fc015377" title=" " alt="" coords="256,2134,480,2161"/>
-<area shape="rect" id="node38" href="$namespacemod__rotating__frame.html#ac4472518b3e7e80ad298502342cfb9ef" title="Initialize the module." alt="" coords="291,2185,445,2227"/>
-<area shape="rect" id="node39" href="$namespacemod__supertimestepping.html#aa6c319b28911c6e73c1218f56f66d850" title="Set the hooks called before the first cycle and after the last cycle in the STS update This method sh..." alt="" coords="272,2251,464,2307"/>
-<area shape="rect" id="node40" href="$namespacemod__supertimestepping.html#ab8f1d9807c6320de449a5983500bd7c8" title="Set the hook of error handling in the STS update. This method is called before updating the BC...." alt="" coords="278,2331,458,2387"/>
-<area shape="rect" id="node41" href="$namespacemod__supertimestepping.html#ae300305fc391679ed668a2d0eb686b67" title="Initialize sts module." alt="" coords="278,384,458,425"/>
-<area shape="rect" id="node42" href="$namespacemod__thermal__conduction.html#a06712e83dc81e2953a38bee9f3109661" title="Read tc module parameters from par file: MHD case." alt="" coords="275,2412,461,2453"/>
-<area shape="rect" id="node43" href="$namespacemod__thermal__conduction.html#a398ab45440778263e648a5ad8787a4dc" title=" " alt="" coords="275,2477,461,2519"/>
-<area shape="rect" id="node44" href="$namespacemod__hd__phys.html#ab2348ea31e6f9d7814d61a645200ee00" title=" " alt="" coords="274,2543,462,2584"/>
-<area shape="rect" id="node45" href="$namespacemod__viscosity.html#a694614da2f2a26938cfaca941a18963a" title="Initialize the module." alt="" coords="263,2609,473,2635"/>
+<area shape="rect" id="node3" href="$namespacemod__cak__force.html#a3ea4d69b0566bbe50c6d7900abbdce5d" title="Initialize the module." alt="" coords="278,71,458,98"/>
+<area shape="rect" id="node4" href="$namespacemod__dust.html#ae39df6d084f2ff5bd3e9ff6408cbd39c" title=" " alt="" coords="293,122,443,149"/>
+<area shape="rect" id="node5" href="$namespacemod__gravity.html#ac77da47869e83fdec592fa926333722c" title="Initialize the module." alt="" coords="275,173,461,199"/>
+<area shape="rect" id="node6" href="$namespacemod__hd__phys.html#a59505d7b6ed147a198a52134bf30bab1" title=" " alt="" coords="285,508,451,549"/>
+<area shape="rect" id="node7" href="$namespacemod__hd__phys.html#af250d284c660c1a8c289f8b1a99bef49" title=" " alt="" coords="531,453,719,495"/>
+<area shape="rect" id="node8" href="$namespacemod__hd__phys.html#aa893373436eb62993cc188e9005870c8" title="Calculate thermal pressure=(gamma&#45;1)*(e&#45;0.5*m**2/rho) within ixO^L." alt="" coords="788,453,952,495"/>
+<area shape="rect" id="node9" href="$namespacemod__hd__phys.html#a24de3cf866881bb2e9fa57a4c88c982c" title="Add geometrical source terms to w." alt="" coords="542,1015,709,1056"/>
+<area shape="rect" id="node10" href="$namespacemod__hd__phys.html#a0464902bc4be34094c08fafc7abf3488" title=" " alt="" coords="277,443,459,484"/>
+<area shape="rect" id="node11" href="$namespacemod__hd__phys.html#a4138044bc4c10294eea9cdde1e533d96" title="Returns logical argument flag where values are ok." alt="" coords="771,1495,969,1522"/>
+<area shape="rect" id="node12" href="$namespacemod__hd__phys.html#a472abc14b625f0456c2bf00e9d9fd63c" title="Transform total energy to internal energy." alt="" coords="273,574,463,601"/>
+<area shape="rect" id="node13" href="$namespacemod__hd__phys.html#a4f1a62fd8458edd762f05c246eb19cfd" title="Transform internal energy to total energy." alt="" coords="273,625,463,651"/>
+<area shape="rect" id="node14" href="$namespacemod__hd__phys.html#a22064d3fa7f829b57f026899eab594a5" title=" " alt="" coords="286,676,450,717"/>
+<area shape="rect" id="node15" href="$namespacemod__hd__phys.html#a85e7915e76f0c370a9553c4de102eeaa" title="Calculate cmax_idim = csound + abs(v_idim) within ixO^L." alt="" coords="286,741,450,783"/>
+<area shape="rect" id="node16" href="$namespacemod__hd__phys.html#ae5e4a236d8ecbd69f6ab215cdfc7d4e0" title="Calculate cmax_idim = csound + abs(v_idim) within ixO^L." alt="" coords="265,807,471,834"/>
+<area shape="rect" id="node17" href="$namespacemod__hd__phys.html#a67c24f3df7b4256f045d0486be021a75" title=" " alt="" coords="276,858,460,885"/>
+<area shape="rect" id="node18" href="$namespacemod__hd__phys.html#a1833998a00dd467ed9fb68de9c126299" title=" " alt="" coords="528,253,723,279"/>
+<area shape="rect" id="node19" href="$namespacemod__hd__phys.html#a3ef92fae89ce4edb018f8ee44bf6ba9e" title=" " alt="" coords="272,959,464,986"/>
+<area shape="rect" id="node20" href="$namespacemod__hd__phys.html#a6f9376f955bad8976f2d0b31983d46d1" title=" " alt="" coords="286,1011,450,1052"/>
+<area shape="rect" id="node21" href="$namespacemod__hd__phys.html#aaf2ab68bb0344e0b96069b57467b5608" title="get adaptive cutoff temperature for TRAC (Johnston 2019 ApJL, 873, L22)" alt="" coords="286,275,450,316"/>
+<area shape="rect" id="node22" href="$namespacemod__hd__phys.html#afb41e9a01347be23b834783a2e2e43a4" title="Calculate temperature=p/rho when in e_ the total energy is stored." alt="" coords="535,333,716,375"/>
+<area shape="rect" id="node23" href="$namespacemod__hd__phys.html#a87e2860a271bcf86309b5539fc8768c3" title="Calculate temperature=p/rho when in e_ the internal energy is stored." alt="" coords="278,1179,458,1220"/>
+<area shape="rect" id="node24" href="$namespacemod__hd__phys.html#ae936a669addaaea7ff63273be9b19aba" title="Calculate velocity vector v_i = m_i / rho within ixO^L." alt="" coords="279,1245,457,1271"/>
+<area shape="rect" id="node25" href="$namespacemod__hd__phys.html#afccb3cc0f088d466841ffc2eb2dfa8eb" title=" " alt="" coords="532,1296,719,1337"/>
+<area shape="rect" id="node26" href="$namespacemod__hd__phys.html#ad6408f9157bc1d795fddeeb3f5d8b757" title=" " alt="" coords="269,1361,467,1403"/>
+<area shape="rect" id="node27" href="$namespacemod__hd__phys.html#a4a5d5cbeafe28ee45cb78a8be4b3f7f0" title=" " alt="" coords="287,1427,449,1468"/>
+<area shape="rect" id="node28" href="$namespacemod__hd__phys.html#afabc3847867b6caa36201cfbf979d4ec" title=" " alt="" coords="291,1492,445,1533"/>
+<area shape="rect" id="node29" href="$namespacemod__hd__phys.html#a2cfeccbed2600a1674aba8853686b01e" title=" " alt="" coords="290,1557,446,1599"/>
+<area shape="rect" id="node30" href="$namespacemod__hd__phys.html#ad761fa117a08944116be78ba83cf09c5" title="Transform primitive variables into conservative ones." alt="" coords="290,1623,446,1664"/>
+<area shape="rect" id="node31" href="$namespacemod__hd__phys.html#adca96ea5ff64e4d4e201ccf227d9591a" title="Transform conservative variables into primitive ones." alt="" coords="290,1296,446,1337"/>
+<area shape="rect" id="node32" href="$namespacemod__hd__phys.html#a5c4535fff5a88af43f3aafb328a4b4e4" title="Write this module&#39;s parameters to a snapsoht." alt="" coords="264,1739,472,1766"/>
+<area shape="rect" id="node33" href="$namespacemod__ionization__degree.html#a98f8df508ab03ff6431b97782de7be8d" title=" " alt="" coords="281,1791,455,1832"/>
+<area shape="rect" id="node34" href="$namespacemod__particles.html#a7a89b126b34bb788a3911955880ddd8f" title="Initialize particle data and parameters." alt="" coords="265,1857,471,1883"/>
+<area shape="rect" id="node35" href="$namespacemod__radiative__cooling.html#a2c0aab05964e01b97b9ae65c6d2ea830" title=" " alt="" coords="283,1908,453,1949"/>
+<area shape="rect" id="node36" href="$namespacemod__radiative__cooling.html#ae450293b5673565067dbec5188ed3325" title="Radiative cooling initialization." alt="" coords="283,1974,453,2030"/>
+<area shape="rect" id="node37" href="$namespacemod__hd__phys.html#a3a604bc9fd0eb6bffa76cf55fc015377" title=" " alt="" coords="256,2054,480,2081"/>
+<area shape="rect" id="node38" href="$namespacemod__hd__phys.html#ad6dfcdfb8f63fb9e9788aaf1265e0369" title=" " alt="" coords="271,2105,465,2147"/>
+<area shape="rect" id="node39" href="$namespacemod__hd__phys.html#a0cffebdf95cd71eda223e08075ae328c" title=" " alt="" coords="259,2171,477,2212"/>
+<area shape="rect" id="node40" href="$namespacemod__rotating__frame.html#ac4472518b3e7e80ad298502342cfb9ef" title="Initialize the module." alt="" coords="291,2236,445,2277"/>
+<area shape="rect" id="node41" href="$namespacemod__supertimestepping.html#aa6c319b28911c6e73c1218f56f66d850" title="Set the hooks called before the first cycle and after the last cycle in the STS update This method sh..." alt="" coords="272,2302,464,2358"/>
+<area shape="rect" id="node42" href="$namespacemod__supertimestepping.html#ab8f1d9807c6320de449a5983500bd7c8" title="Set the hook of error handling in the STS update. This method is called before updating the BC...." alt="" coords="278,2382,458,2438"/>
+<area shape="rect" id="node43" href="$namespacemod__supertimestepping.html#ae300305fc391679ed668a2d0eb686b67" title="Initialize sts module." alt="" coords="278,2463,458,2504"/>
+<area shape="rect" id="node44" href="$namespacemod__thermal__conduction.html#a06712e83dc81e2953a38bee9f3109661" title="Read tc module parameters from par file: MHD case." alt="" coords="275,2528,461,2569"/>
+<area shape="rect" id="node45" href="$namespacemod__thermal__conduction.html#a398ab45440778263e648a5ad8787a4dc" title=" " alt="" coords="275,2593,461,2635"/>
+<area shape="rect" id="node46" href="$namespacemod__hd__phys.html#ab2348ea31e6f9d7814d61a645200ee00" title=" " alt="" coords="274,2659,462,2700"/>
+<area shape="rect" id="node47" href="$namespacemod__viscosity.html#a694614da2f2a26938cfaca941a18963a" title="Initialize the module." alt="" coords="263,2725,473,2751"/>
 </map>

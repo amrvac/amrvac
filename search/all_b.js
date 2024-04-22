@@ -1,9 +1,7 @@
 var searchData=
 [
-  ['kappa_5fe_5fvals_1124',['kappa_e_vals',['../namespacemod__cak__opacity.html#a89666ee4e64c2dc48f00437f3c87ebc0',1,'mod_cak_opacity']]],
-  ['kappa_5fvals_1125',['kappa_vals',['../namespacemod__opal__opacity.html#a26c3783a6fd946b3428e17b340bd9ba2',1,'mod_opal_opacity']]],
-  ['kappa_5fvals1_1126',['kappa_vals1',['../namespacemod__opal__opacity.html#abb7d12aa3be5f9914e382f6abcc3a1b6',1,'mod_opal_opacity']]],
-  ['kappa_5fvals2_1127',['kappa_vals2',['../namespacemod__opal__opacity.html#a78abb9bee4fd409552de4d9a0642037c',1,'mod_opal_opacity']]],
+  ['kappa_5fvals_1126',['kappa_vals',['../namespacemod__opal__opacity.html#a7dd97579ace2715cddebb4296ab3101f',1,'mod_opal_opacity']]],
+  ['kappae_5fvals_1127',['kappae_vals',['../namespacemod__cak__opacity.html#adbf22c7880102b71259e10a7bbda2479',1,'mod_cak_opacity']]],
   ['kb_5fcgs_1128',['kb_cgs',['../namespacemod__constants.html#a33660422af2eb7bceb7c9162c04c0688',1,'mod_constants']]],
   ['kb_5fsi_1129',['kb_si',['../namespacemod__constants.html#a9cf643c04abeb836326c027924b53d7c',1,'mod_constants']]],
   ['kbmpmua4_1130',['kbmpmua4',['../namespacemod__rhd__phys.html#a3469570a2c37e3b53c7c620465d9f06d',1,'mod_rhd_phys']]],

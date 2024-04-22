@@ -1,0 +1,4 @@
+<map id="mod_thermal_conduction::set_source_tc_hd" name="mod_thermal_conduction::set_source_tc_hd">
+<area shape="rect" id="node1" title=" " alt="" coords="5,5,192,47"/>
+<area shape="rect" id="node2" href="$namespacemod__thermal__conduction.html#a5c8e7bb356302dd7255d6e9ff296d841" title="Calculate gradient of a scalar q at cell interfaces in direction idir." alt="" coords="240,5,427,47"/>
+</map>

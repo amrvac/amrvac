@@ -1,6 +1,6 @@
 <map id="mod_bc_data::bc_data_set" name="mod_bc_data::bc_data_set">
 <area shape="rect" id="node1" title="Set boundary conditions according to user data." alt="" coords="5,78,200,105"/>
-<area shape="rect" id="node2" href="$namespacemod__bc__data.html#a64c84a14d5d9b7a14cb84988232a563d" title=" " alt="" coords="248,5,416,47"/>
-<area shape="rect" id="node3" href="$namespacemod__bc__data.html#aa9044317516169ad6a005c0a9e20bb84" title=" " alt="" coords="248,71,416,112"/>
-<area shape="rect" id="node4" href="$comm__lib_8t.html#a49b49ea9ffbbadfe688e332921c4cddd" title="Exit MPI&#45;AMRVAC with an error message." alt="" coords="295,137,369,163"/>
+<area shape="rect" id="node2" href="$namespacemod__bc__data.html#a64c84a14d5d9b7a14cb84988232a563d" title=" " alt="" coords="255,5,423,47"/>
+<area shape="rect" id="node3" href="$namespacemod__bc__data.html#aa9044317516169ad6a005c0a9e20bb84" title=" " alt="" coords="255,71,423,112"/>
+<area shape="rect" id="node4" href="$namespacemod__comm__lib.html#a9b6f1a8fd13bc5670e3b426151c34048" title="Exit MPI&#45;AMRVAC with an error message." alt="" coords="248,137,431,163"/>
 </map>

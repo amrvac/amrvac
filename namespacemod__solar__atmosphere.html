@@ -30,7 +30,7 @@
  <tr style="height: 56px;">
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">MPI-AMRVAC
-   &#160;<span id="projectnumber">3.0</span>
+   &#160;<span id="projectnumber">3.1</span>
    </div>
    <div id="projectbrief">The MPI - Adaptive Mesh Refinement - Versatile Advection Code</div>
   </td>
@@ -84,8 +84,8 @@ $(function() {
 <table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="func-members"></a>
 Functions/Subroutines</h2></td></tr>
-<tr class="memitem:a30704d45a795e26a0aaedd0df9a13cad"><td class="memItemLeft" align="right" valign="top">subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__solar__atmosphere.html#a30704d45a795e26a0aaedd0df9a13cad">get_atm_para</a> (h, rho, pth, grav, nh, Tcurve, hc, rhohc)</td></tr>
-<tr class="separator:a30704d45a795e26a0aaedd0df9a13cad"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a79230c210361c533181c6a68696ce9a3"><td class="memItemLeft" align="right" valign="top">subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__solar__atmosphere.html#a79230c210361c533181c6a68696ce9a3">get_atm_para</a> (h, rho, pth, grav, nh, Tcurve, hc, rhohc, Tem)</td></tr>
+<tr class="separator:a79230c210361c533181c6a68696ce9a3"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a13fa2a100a87b91ca13619b4150ddfb3"><td class="memItemLeft" align="right" valign="top">subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__solar__atmosphere.html#a13fa2a100a87b91ca13619b4150ddfb3">get_te_alc7</a> (h, Te, nh)</td></tr>
 <tr class="separator:a13fa2a100a87b91ca13619b4150ddfb3"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aaa36616a9ab93efdfddc9393c5bfd44c"><td class="memItemLeft" align="right" valign="top">subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__solar__atmosphere.html#aaa36616a9ab93efdfddc9393c5bfd44c">get_te_sprm</a> (h, Te, nh)</td></tr>
@@ -125,8 +125,8 @@ Variables</h2></td></tr>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>User can use subroutine get_atm_para to generate 1D solar stmosphere. User should provide heights (h), number density at h=0, number of points (nh), and the gravity (grav) at each point. User can select temperature profile. This subroutine will return density and pressure at each point. </p>
 </div><h2 class="groupheader">Function/Subroutine Documentation</h2>
-<a id="a30704d45a795e26a0aaedd0df9a13cad"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a30704d45a795e26a0aaedd0df9a13cad">&#9670;&nbsp;</a></span>get_atm_para()</h2>
+<a id="a79230c210361c533181c6a68696ce9a3"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a79230c210361c533181c6a68696ce9a3">&#9670;&nbsp;</a></span>get_atm_para()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -134,25 +134,25 @@ Variables</h2></td></tr>
         <tr>
           <td class="memname">subroutine mod_solar_atmosphere::get_atm_para </td>
           <td>(</td>
-          <td class="paramtype">double precision, dimension(nh)&#160;</td>
+          <td class="paramtype">double precision, dimension(nh), intent(in)&#160;</td>
           <td class="paramname"><em>h</em>, </td>
         </tr>
         <tr>
           <td class="paramkey"></td>
           <td></td>
-          <td class="paramtype">double precision, dimension(nh)&#160;</td>
+          <td class="paramtype">double precision, dimension(nh), intent(out)&#160;</td>
           <td class="paramname"><em>rho</em>, </td>
         </tr>
         <tr>
           <td class="paramkey"></td>
           <td></td>
-          <td class="paramtype">double precision, dimension(nh)&#160;</td>
+          <td class="paramtype">double precision, dimension(nh), intent(out)&#160;</td>
           <td class="paramname"><em>pth</em>, </td>
         </tr>
         <tr>
           <td class="paramkey"></td>
           <td></td>
-          <td class="paramtype">double precision, dimension(nh)&#160;</td>
+          <td class="paramtype">double precision, dimension(nh), intent(in)&#160;</td>
           <td class="paramname"><em>grav</em>, </td>
         </tr>
         <tr>
@@ -177,7 +177,13 @@ Variables</h2></td></tr>
           <td class="paramkey"></td>
           <td></td>
           <td class="paramtype">double precision&#160;</td>
-          <td class="paramname"><em>rhohc</em>&#160;</td>
+          <td class="paramname"><em>rhohc</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">double precision, dimension(nh), intent(out), optional&#160;</td>
+          <td class="paramname"><em>Tem</em>&#160;</td>
         </tr>
         <tr>
           <td></td>
@@ -191,14 +197,15 @@ Variables</h2></td></tr>
 <div class="dynheader">
 Here is the call graph for this function:</div>
 <div class="dyncontent">
-<div class="center"><img src="namespacemod__solar__atmosphere_a30704d45a795e26a0aaedd0df9a13cad_cgraph.png" border="0" usemap="#anamespacemod__solar__atmosphere_a30704d45a795e26a0aaedd0df9a13cad_cgraph" alt=""/></div>
-<map name="anamespacemod__solar__atmosphere_a30704d45a795e26a0aaedd0df9a13cad_cgraph" id="anamespacemod__solar__atmosphere_a30704d45a795e26a0aaedd0df9a13cad_cgraph">
-<area shape="rect" title=" " alt="" coords="5,136,180,177"/>
-<area shape="rect" href="namespacemod__solar__atmosphere.html#a13fa2a100a87b91ca13619b4150ddfb3" title=" " alt="" coords="228,5,403,47"/>
-<area shape="rect" href="namespacemod__solar__atmosphere.html#a460226349b39f28d24ddaf40113c310b" title=" " alt="" coords="228,71,403,112"/>
-<area shape="rect" href="namespacemod__solar__atmosphere.html#aaa36616a9ab93efdfddc9393c5bfd44c" title=" " alt="" coords="228,136,403,177"/>
-<area shape="rect" href="namespacemod__solar__atmosphere.html#a7f11d581f87e4bc4c7f081dfedad4440" title=" " alt="" coords="228,201,403,243"/>
-<area shape="rect" href="comm__lib_8t.html#a49b49ea9ffbbadfe688e332921c4cddd" title="Exit MPI&#45;AMRVAC with an error message." alt="" coords="278,267,353,294"/>
+<div class="center"><img src="namespacemod__solar__atmosphere_a79230c210361c533181c6a68696ce9a3_cgraph.png" border="0" usemap="#anamespacemod__solar__atmosphere_a79230c210361c533181c6a68696ce9a3_cgraph" alt=""/></div>
+<map name="anamespacemod__solar__atmosphere_a79230c210361c533181c6a68696ce9a3_cgraph" id="anamespacemod__solar__atmosphere_a79230c210361c533181c6a68696ce9a3_cgraph">
+<area shape="rect" title=" " alt="" coords="5,169,180,211"/>
+<area shape="rect" href="namespacemod__solar__atmosphere.html#a13fa2a100a87b91ca13619b4150ddfb3" title=" " alt="" coords="232,5,407,47"/>
+<area shape="rect" href="namespacemod__solar__atmosphere.html#a460226349b39f28d24ddaf40113c310b" title=" " alt="" coords="232,71,407,112"/>
+<area shape="rect" href="namespacemod__solar__atmosphere.html#aaa36616a9ab93efdfddc9393c5bfd44c" title=" " alt="" coords="232,136,407,177"/>
+<area shape="rect" href="namespacemod__solar__atmosphere.html#a7f11d581f87e4bc4c7f081dfedad4440" title=" " alt="" coords="232,201,407,243"/>
+<area shape="rect" href="namespacemod__comm__lib.html#a9b6f1a8fd13bc5670e3b426151c34048" title="Exit MPI&#45;AMRVAC with an error message." alt="" coords="228,267,411,294"/>
+<area shape="rect" href="namespacemod__ionization__degree.html#a97be73e734bf9303efe25d3292649879" title=" " alt="" coords="228,318,411,374"/>
 </map>
 </div>
 
@@ -236,7 +243,7 @@ Here is the call graph for this function:</div>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="mod__solar__atmosphere_8t_source.html#l00329">329</a> of file <a class="el" href="mod__solar__atmosphere_8t_source.html">mod_solar_atmosphere.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__solar__atmosphere_8t_source.html#l00339">339</a> of file <a class="el" href="mod__solar__atmosphere_8t_source.html">mod_solar_atmosphere.t</a>.</p>
 <div class="dynheader">
 Here is the call graph for this function:</div>
 <div class="dyncontent">
@@ -281,7 +288,7 @@ Here is the call graph for this function:</div>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="mod__solar__atmosphere_8t_source.html#l00535">535</a> of file <a class="el" href="mod__solar__atmosphere_8t_source.html">mod_solar_atmosphere.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__solar__atmosphere_8t_source.html#l00542">542</a> of file <a class="el" href="mod__solar__atmosphere_8t_source.html">mod_solar_atmosphere.t</a>.</p>
 <div class="dynheader">
 Here is the call graph for this function:</div>
 <div class="dyncontent">
@@ -326,7 +333,7 @@ Here is the call graph for this function:</div>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="mod__solar__atmosphere_8t_source.html#l00390">390</a> of file <a class="el" href="mod__solar__atmosphere_8t_source.html">mod_solar_atmosphere.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__solar__atmosphere_8t_source.html#l00399">399</a> of file <a class="el" href="mod__solar__atmosphere_8t_source.html">mod_solar_atmosphere.t</a>.</p>
 <div class="dynheader">
 Here is the call graph for this function:</div>
 <div class="dyncontent">
@@ -371,7 +378,7 @@ Here is the call graph for this function:</div>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="mod__solar__atmosphere_8t_source.html#l00474">474</a> of file <a class="el" href="mod__solar__atmosphere_8t_source.html">mod_solar_atmosphere.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__solar__atmosphere_8t_source.html#l00482">482</a> of file <a class="el" href="mod__solar__atmosphere_8t_source.html">mod_solar_atmosphere.t</a>.</p>
 <div class="dynheader">
 Here is the call graph for this function:</div>
 <div class="dyncontent">

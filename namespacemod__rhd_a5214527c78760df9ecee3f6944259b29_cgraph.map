@@ -1,7 +1,6 @@
 <map id="mod_rhd::rhd_activate" name="mod_rhd::rhd_activate">
-<area shape="rect" id="node1" title=" " alt="" coords="5,81,173,108"/>
+<area shape="rect" id="node1" title=" " alt="" coords="5,56,173,83"/>
 <area shape="rect" id="node2" href="$namespacemod__rhd__hllc.html#aa9700d5ba5c88c906445992300fae71c" title=" " alt="" coords="229,5,425,32"/>
 <area shape="rect" id="node3" href="$namespacemod__rhd__phys.html#a3f7d6dc56a47e47cd1e733b2ae66b071" title="Initialize the module." alt="" coords="221,56,433,83"/>
-<area shape="rect" id="node4" href="$namespacemod__rhd__ppm.html#a80a65f5aee20074ca255a5fd4252c730" title=" " alt="" coords="223,107,431,133"/>
-<area shape="rect" id="node5" href="$namespacemod__rhd__roe.html#a7ca00a23ee8fa7c9e5286a2669431c64" title=" " alt="" coords="231,157,423,184"/>
+<area shape="rect" id="node4" href="$namespacemod__rhd__roe.html#a7ca00a23ee8fa7c9e5286a2669431c64" title=" " alt="" coords="231,107,423,133"/>
 </map>

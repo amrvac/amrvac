@@ -1,5 +1,5 @@
 <map id="mod_initialize::initialize_vars" name="mod_initialize::initialize_vars">
 <area shape="rect" id="node1" title="Initialize (and allocate) simulation and grid variables." alt="" coords="5,5,219,32"/>
-<area shape="rect" id="node2" href="$comm__lib_8t.html#a49b49ea9ffbbadfe688e332921c4cddd" title="Exit MPI&#45;AMRVAC with an error message." alt="" coords="497,5,572,32"/>
+<area shape="rect" id="node2" href="$namespacemod__comm__lib.html#a9b6f1a8fd13bc5670e3b426151c34048" title="Exit MPI&#45;AMRVAC with an error message." alt="" coords="497,5,680,32"/>
 <area shape="rect" id="node3" href="$namespacemod__geometry.html#a419308dd8d42f82ba97cc9f7f7f07d95" title=" " alt="" coords="267,31,449,57"/>
 </map>

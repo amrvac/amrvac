@@ -30,7 +30,7 @@
  <tr style="height: 56px;">
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">MPI-AMRVAC
-   &#160;<span id="projectnumber">3.0</span>
+   &#160;<span id="projectnumber">3.1</span>
    </div>
    <div id="projectbrief">The MPI - Adaptive Mesh Refinement - Versatile Advection Code</div>
   </td>
@@ -90,6 +90,17 @@ Functions/Subroutines</h2></td></tr>
 <tr class="separator:ac604d9a61394c508966a54cb0d6de5b5"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a19aa7cd7bf6dff5b3dc4a7b12612c7c0"><td class="memItemLeft" align="right" valign="top">subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__lfff.html#a19aa7cd7bf6dff5b3dc4a7b12612c7c0">get_potential_field_potential</a> (ixIL, ixOL, potential, x, zshift)</td></tr>
 <tr class="separator:a19aa7cd7bf6dff5b3dc4a7b12612c7c0"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:add184f5f6175190a880cc3543ef8cea2"><td class="memItemLeft" align="right" valign="top">subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__lfff.html#add184f5f6175190a880cc3543ef8cea2">get_potential_field_potential_sphere</a> (ixIL, x, potential, nth, nph, magnetogram, theta, phi, r_sphere)</td></tr>
+<tr class="separator:add184f5f6175190a880cc3543ef8cea2"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ab72646918cf1e0ef45425e821174647d"><td class="memItemLeft" align="right" valign="top">subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__lfff.html#ab72646918cf1e0ef45425e821174647d">potential_field_energy_mg</a> (benergy)</td></tr>
+<tr class="memdesc:ab72646918cf1e0ef45425e821174647d"><td class="mdescLeft">&#160;</td><td class="mdescRight">get potential magnetic field energy given normal B on all boundaries  <a href="namespacemod__lfff.html#ab72646918cf1e0ef45425e821174647d">More...</a><br /></td></tr>
+<tr class="separator:ab72646918cf1e0ef45425e821174647d"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aa0491e688dc5adc1c54fa02046093150"><td class="memItemLeft" align="right" valign="top">subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__lfff.html#aa0491e688dc5adc1c54fa02046093150">get_potential_field_potential_mg</a> ()</td></tr>
+<tr class="memdesc:aa0491e688dc5adc1c54fa02046093150"><td class="mdescLeft">&#160;</td><td class="mdescRight">Solve Poisson equation of scalar potential using multigrid solver.  <a href="namespacemod__lfff.html#aa0491e688dc5adc1c54fa02046093150">More...</a><br /></td></tr>
+<tr class="separator:aa0491e688dc5adc1c54fa02046093150"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a2dfde2312d44bebae1dd490a3828886b"><td class="memItemLeft" align="right" valign="top">subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__lfff.html#a2dfde2312d44bebae1dd490a3828886b">multigrid_bc</a> (box, nc, iv, nb, bc_type, bc)</td></tr>
+<tr class="memdesc:a2dfde2312d44bebae1dd490a3828886b"><td class="mdescLeft">&#160;</td><td class="mdescRight">To set boundary condition on physical boundaries for mg Poisson solver.  <a href="namespacemod__lfff.html#a2dfde2312d44bebae1dd490a3828886b">More...</a><br /></td></tr>
+<tr class="separator:a2dfde2312d44bebae1dd490a3828886b"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="var-members"></a>
 Variables</h2></td></tr>
@@ -183,7 +194,7 @@ Variables</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="mod__lfff_8t_source.html#l00100">100</a> of file <a class="el" href="mod__lfff_8t_source.html">mod_lfff.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__lfff_8t_source.html#l00101">101</a> of file <a class="el" href="mod__lfff_8t_source.html">mod_lfff.t</a>.</p>
 
 </div>
 </div>
@@ -243,7 +254,113 @@ Variables</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="mod__lfff_8t_source.html#l00168">168</a> of file <a class="el" href="mod__lfff_8t_source.html">mod_lfff.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__lfff_8t_source.html#l00169">169</a> of file <a class="el" href="mod__lfff_8t_source.html">mod_lfff.t</a>.</p>
+
+</div>
+</div>
+<a id="aa0491e688dc5adc1c54fa02046093150"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#aa0491e688dc5adc1c54fa02046093150">&#9670;&nbsp;</a></span>get_potential_field_potential_mg()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">subroutine mod_lfff::get_potential_field_potential_mg</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Solve Poisson equation of scalar potential using multigrid solver. </p>
+
+<p class="definition">Definition at line <a class="el" href="mod__lfff_8t_source.html#l00281">281</a> of file <a class="el" href="mod__lfff_8t_source.html">mod_lfff.t</a>.</p>
+<div class="dynheader">
+Here is the call graph for this function:</div>
+<div class="dyncontent">
+<div class="center"><img src="namespacemod__lfff_aa0491e688dc5adc1c54fa02046093150_cgraph.png" border="0" usemap="#anamespacemod__lfff_aa0491e688dc5adc1c54fa02046093150_cgraph" alt=""/></div>
+<map name="anamespacemod__lfff_aa0491e688dc5adc1c54fa02046093150_cgraph" id="anamespacemod__lfff_aa0491e688dc5adc1c54fa02046093150_cgraph">
+<area shape="rect" title="Solve Poisson equation of scalar potential using multigrid solver." alt="" coords="5,23,175,65"/>
+<area shape="rect" href="namespacemod__comm__lib.html#a9b6f1a8fd13bc5670e3b426151c34048" title="Exit MPI&#45;AMRVAC with an error message." alt="" coords="223,5,405,32"/>
+<area shape="rect" href="namespacemod__lfff.html#a2dfde2312d44bebae1dd490a3828886b" title="To set boundary condition on physical boundaries for mg Poisson solver." alt="" coords="232,56,396,83"/>
+</map>
+</div>
+
+</div>
+</div>
+<a id="add184f5f6175190a880cc3543ef8cea2"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#add184f5f6175190a880cc3543ef8cea2">&#9670;&nbsp;</a></span>get_potential_field_potential_sphere()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">subroutine mod_lfff::get_potential_field_potential_sphere </td>
+          <td>(</td>
+          <td class="paramtype">integer, intent(in)&#160;</td>
+          <td class="paramname"><em>ixI</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">integer, intent(in)&#160;</td>
+          <td class="paramname"><em>L</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">real*8, dimension(ixi^s,1:ndim), intent(in)&#160;</td>
+          <td class="paramname"><em>x</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">real*8, dimension(ixi^s), intent(out)&#160;</td>
+          <td class="paramname"><em>potential</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">integer, intent(in)&#160;</td>
+          <td class="paramname"><em>nth</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">integer, intent(in)&#160;</td>
+          <td class="paramname"><em>nph</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">real*8, dimension(nth,nph), intent(in)&#160;</td>
+          <td class="paramname"><em>magnetogram</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">real*8, dimension(nth), intent(in)&#160;</td>
+          <td class="paramname"><em>theta</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">real*8, dimension(nph), intent(in)&#160;</td>
+          <td class="paramname"><em>phi</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">real*8, intent(in)&#160;</td>
+          <td class="paramname"><em>r_sphere</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p class="definition">Definition at line <a class="el" href="mod__lfff_8t_source.html#l00200">200</a> of file <a class="el" href="mod__lfff_8t_source.html">mod_lfff.t</a>.</p>
 
 </div>
 </div>
@@ -286,7 +403,103 @@ Here is the call graph for this function:</div>
 <div class="center"><img src="namespacemod__lfff_abb24141f3d4b7653940b952990530d84_cgraph.png" border="0" usemap="#anamespacemod__lfff_abb24141f3d4b7653940b952990530d84_cgraph" alt=""/></div>
 <map name="anamespacemod__lfff_abb24141f3d4b7653940b952990530d84_cgraph" id="anamespacemod__lfff_abb24141f3d4b7653940b952990530d84_cgraph">
 <area shape="rect" title=" " alt="" coords="5,5,181,32"/>
-<area shape="rect" href="comm__lib_8t.html#a49b49ea9ffbbadfe688e332921c4cddd" title="Exit MPI&#45;AMRVAC with an error message." alt="" coords="229,5,304,32"/>
+<area shape="rect" href="namespacemod__comm__lib.html#a9b6f1a8fd13bc5670e3b426151c34048" title="Exit MPI&#45;AMRVAC with an error message." alt="" coords="229,5,412,32"/>
+</map>
+</div>
+
+</div>
+</div>
+<a id="a2dfde2312d44bebae1dd490a3828886b"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a2dfde2312d44bebae1dd490a3828886b">&#9670;&nbsp;</a></span>multigrid_bc()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">subroutine mod_lfff::multigrid_bc </td>
+          <td>(</td>
+          <td class="paramtype">type(<a class="el" href="structm__octree__mg__1d_1_1mg__box__t.html">mg_box_t</a>), intent(in)&#160;</td>
+          <td class="paramname"><em>box</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">integer, intent(in)&#160;</td>
+          <td class="paramname"><em>nc</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">integer, intent(in)&#160;</td>
+          <td class="paramname"><em>iv</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">integer, intent(in)&#160;</td>
+          <td class="paramname"><em>nb</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">integer, intent(out)&#160;</td>
+          <td class="paramname"><em>bc_type</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">double precision, dimension(nc, nc), intent(out)&#160;</td>
+          <td class="paramname"><em>bc</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>To set boundary condition on physical boundaries for mg Poisson solver. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramdir">[in]</td><td class="paramname">iv</td><td>Index of variable </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">nb</td><td>number of boundary from 1 to 6 for 3D </td></tr>
+    <tr><td class="paramdir">[out]</td><td class="paramname">bc_type</td><td>Type of b.c. </td></tr>
+  </table>
+  </dd>
+</dl>
+
+<p class="definition">Definition at line <a class="el" href="mod__lfff_8t_source.html#l00311">311</a> of file <a class="el" href="mod__lfff_8t_source.html">mod_lfff.t</a>.</p>
+
+</div>
+</div>
+<a id="ab72646918cf1e0ef45425e821174647d"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ab72646918cf1e0ef45425e821174647d">&#9670;&nbsp;</a></span>potential_field_energy_mg()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">subroutine mod_lfff::potential_field_energy_mg </td>
+          <td>(</td>
+          <td class="paramtype">real*8, intent(out)&#160;</td>
+          <td class="paramname"><em>benergy</em></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>get potential magnetic field energy given normal B on all boundaries </p>
+
+<p class="definition">Definition at line <a class="el" href="mod__lfff_8t_source.html#l00244">244</a> of file <a class="el" href="mod__lfff_8t_source.html">mod_lfff.t</a>.</p>
+<div class="dynheader">
+Here is the call graph for this function:</div>
+<div class="dyncontent">
+<div class="center"><img src="namespacemod__lfff_ab72646918cf1e0ef45425e821174647d_cgraph.png" border="0" usemap="#anamespacemod__lfff_ab72646918cf1e0ef45425e821174647d_cgraph" alt=""/></div>
+<map name="anamespacemod__lfff_ab72646918cf1e0ef45425e821174647d_cgraph" id="anamespacemod__lfff_ab72646918cf1e0ef45425e821174647d_cgraph">
+<area shape="rect" title="get potential magnetic field energy given normal B on all boundaries" alt="" coords="5,35,147,76"/>
+<area shape="rect" href="namespacemod__lfff.html#aa0491e688dc5adc1c54fa02046093150" title="Solve Poisson equation of scalar potential using multigrid solver." alt="" coords="201,5,371,47"/>
+<area shape="rect" href="namespacemod__geometry.html#a92ec4e2c8ae00a42bf5bf2c1ce3a26c4" title="Calculate gradient of a scalar q within ixL in direction idir." alt="" coords="195,71,377,98"/>
 </map>
 </div>
 

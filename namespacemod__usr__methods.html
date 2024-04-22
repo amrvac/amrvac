@@ -30,7 +30,7 @@
  <tr style="height: 56px;">
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">MPI-AMRVAC
-   &#160;<span id="projectnumber">3.0</span>
+   &#160;<span id="projectnumber">3.1</span>
    </div>
    <div id="projectbrief">The MPI - Adaptive Mesh Refinement - Versatile Advection Code</div>
   </td>
@@ -139,6 +139,9 @@ Data Types</h2></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">interface &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="interfacemod__usr__methods_1_1hd__pthermal.html">hd_pthermal</a></td></tr>
 <tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Calculation anormal pressure for hd &amp; energy=.False.  <a href="interfacemod__usr__methods_1_1hd__pthermal.html#details">More...</a><br /></td></tr>
+<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">interface &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="interfacemod__usr__methods_1_1Rfactor.html">Rfactor</a></td></tr>
+<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Calculation R factor for ideal gas law with partial ionization.  <a href="interfacemod__usr__methods_1_1Rfactor.html#details">More...</a><br /></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">interface &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="interfacemod__usr__methods_1_1special__resistivity.html">special_resistivity</a></td></tr>
 <tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Set the "eta" array for resistive MHD based on w or the "current" variable which has components between idirmin and 3.  <a href="interfacemod__usr__methods_1_1special__resistivity.html#details">More...</a><br /></td></tr>
@@ -325,6 +328,8 @@ Variables</h2></td></tr>
 <tr class="separator:a9869e5c920bae9a60d6fcebc866e2aab"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:afbc14ab0f8c2422f4922976cae6b306f"><td class="memItemLeft" align="right" valign="top">procedure(<a class="el" href="interfacemod__usr__methods_1_1set__field.html">set_field</a>), pointer&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__usr__methods.html#afbc14ab0f8c2422f4922976cae6b306f">usr_set_field</a> =&gt; null()</td></tr>
 <tr class="separator:afbc14ab0f8c2422f4922976cae6b306f"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a0cbdc0fea03ff0780bb3a5772e546234"><td class="memItemLeft" align="right" valign="top">procedure(rfactor), pointer&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__usr__methods.html#a0cbdc0fea03ff0780bb3a5772e546234">usr_rfactor</a> =&gt; null()</td></tr>
+<tr class="separator:a0cbdc0fea03ff0780bb3a5772e546234"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>Module with all the methods that users can customize in AMRVAC. </p>
@@ -745,6 +750,22 @@ Variables</h2></td></tr>
 </div><div class="memdoc">
 
 <p class="definition">Definition at line <a class="el" href="mod__usr__methods_8t_source.html#l00061">61</a> of file <a class="el" href="mod__usr__methods_8t_source.html">mod_usr_methods.t</a>.</p>
+
+</div>
+</div>
+<a id="a0cbdc0fea03ff0780bb3a5772e546234"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a0cbdc0fea03ff0780bb3a5772e546234">&#9670;&nbsp;</a></span>usr_rfactor</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">procedure(rfactor), pointer mod_usr_methods::usr_rfactor =&gt; null()</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p class="definition">Definition at line <a class="el" href="mod__usr__methods_8t_source.html#l00109">109</a> of file <a class="el" href="mod__usr__methods_8t_source.html">mod_usr_methods.t</a>.</p>
 
 </div>
 </div>

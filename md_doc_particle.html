@@ -30,7 +30,7 @@
  <tr style="height: 56px;">
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">MPI-AMRVAC
-   &#160;<span id="projectnumber">3.0</span>
+   &#160;<span id="projectnumber">3.1</span>
    </div>
    <div id="projectbrief">The MPI - Adaptive Mesh Refinement - Versatile Advection Code</div>
   </td>
@@ -130,7 +130,7 @@ $(function() {
  <p class="formulaDsp">
 \[ \frac{d\mu_r}{dt} = 0, \]
 </p>
-<p> where \(\mathbf{u}_{\|}=\mathbf{v}_{\|}\gamma\), and \(\kappa=1/\sqrt{1-v_E^2/c^2}\) is the Lorentz factor corresponding to the frame moving at a speed equal to \(\mathbf{v}_E\). These equations are obtained by averaging over the particle gyro-motion, and therefore assume the conservation of the relativistic magnetic moment \(\mu_r=m\gamma^2 v_\perp^2/(2B)\). Because of the averaging, it can be shown that the expansion of the guiding centre velocity leads to the definition of the Lorentz factor \(\gamma = \kappa\sqrt{1+(u_{\|}^2+2\mu_r B/m)/c^2} = \kappa\sqrt{(1+2\mu_r B/(mc^2))/(1-v_{\|}^2/c^2)}\) up to first order. This implies that the dominant drift mechanism in the guiding centre motion is represented by \(\mathbf{v}_E\). For both the Newtonian and relativistic cases, the assumption of slowly time-varying electromagnetic fields has been made, in order to simplify the equations of motion. This is justified by the reasonable assumption that the particle dynamics takes place on much faster time scales than that of the typical MHD evolution.</p>
+<p> where \(\mathbf{u}_{\|}=\mathbf{v}_{\|}\gamma\), and \(\kappa=1/\sqrt{1-v_E^2/c^2}\) is the Lorentz factor corresponding to the frame moving at a speed equal to \(\mathbf{v}_E\). These equations are obtained by averaging over the particle gyro-motion, and therefore assume the conservation of the relativistic magnetic moment \(\mu_r=m\gamma^2 v_\perp^2/(2B)\). Because of the averaging, it can be shown that the expansion of the guiding centre velocity leads to the definition of the Lorentz factor \(\gamma = \kappa\sqrt{1+(u_{\|}^2+2\mu_r B/m)/c^2} = \kappa\sqrt{(1+2\mu_r B/(mc^2))/(1-\kappa^2 v_{\|}^2/c^2)}\) up to first order. This implies that the dominant drift mechanism in the guiding centre motion is represented by \(\mathbf{v}_E\). For both the Newtonian and relativistic cases, the assumption of slowly time-varying electromagnetic fields has been made, in order to simplify the equations of motion. This is justified by the reasonable assumption that the particle dynamics takes place on much faster time scales than that of the typical MHD evolution.</p>
 <p>The solution of the equations above is carried out in MPI-AMRVAC with a fourth-order Runge-Kutta numerical integrator with adaptive time stepping.</p>
 <h1>Scattered sampling (HD/MHD)</h1>
 <p>With this mode, the user is allowed to sample the fluid quantities at an arbitrary number of points in space, which may or may not be spatially distinguished from the numerical grid points. All quantities are retrieved at such locations via linear interpolation. By default, the quantities used in a standard HD/MHD run are computed at the sampling points (density, momentum, pressure/energy/temperature, and magnetic field components in the MHD case). The user is also free to define their own list of additional quantities to be sampled (e.g. the current).</p>

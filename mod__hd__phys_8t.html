@@ -30,7 +30,7 @@
  <tr style="height: 56px;">
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">MPI-AMRVAC
-   &#160;<span id="projectnumber">3.0</span>
+   &#160;<span id="projectnumber">3.1</span>
    </div>
    <div id="projectbrief">The MPI - Adaptive Mesh Refinement - Versatile Advection Code</div>
   </td>
@@ -97,9 +97,6 @@ Functions/Subroutines</h2></td></tr>
 <tr class="memitem:a5c4535fff5a88af43f3aafb328a4b4e4"><td class="memItemLeft" align="right" valign="top">subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__hd__phys.html#a5c4535fff5a88af43f3aafb328a4b4e4">mod_hd_phys::hd_write_info</a> (fh)</td></tr>
 <tr class="memdesc:a5c4535fff5a88af43f3aafb328a4b4e4"><td class="mdescLeft">&#160;</td><td class="mdescRight">Write this module's parameters to a snapsoht.  <a href="namespacemod__hd__phys.html#a5c4535fff5a88af43f3aafb328a4b4e4">More...</a><br /></td></tr>
 <tr class="separator:a5c4535fff5a88af43f3aafb328a4b4e4"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a135f33fd193bcf3bbf5004d43e3fa747"><td class="memItemLeft" align="right" valign="top">subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__hd__phys.html#a135f33fd193bcf3bbf5004d43e3fa747">mod_hd_phys::hd_angmomfix</a> (fC, x, wnew, ixIL, ixOL, idim)</td></tr>
-<tr class="memdesc:a135f33fd193bcf3bbf5004d43e3fa747"><td class="mdescLeft">&#160;</td><td class="mdescRight">Add fluxes in an angular momentum conserving way.  <a href="namespacemod__hd__phys.html#a135f33fd193bcf3bbf5004d43e3fa747">More...</a><br /></td></tr>
-<tr class="separator:a135f33fd193bcf3bbf5004d43e3fa747"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a86518623ab235a1cf8ce7a29593d0599"><td class="memItemLeft" align="right" valign="top">subroutine, public&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__hd__phys.html#a86518623ab235a1cf8ce7a29593d0599">mod_hd_phys::hd_phys_init</a> ()</td></tr>
 <tr class="memdesc:a86518623ab235a1cf8ce7a29593d0599"><td class="mdescLeft">&#160;</td><td class="mdescRight">Initialize the module.  <a href="namespacemod__hd__phys.html#a86518623ab235a1cf8ce7a29593d0599">More...</a><br /></td></tr>
 <tr class="separator:a86518623ab235a1cf8ce7a29593d0599"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -169,20 +166,15 @@ Functions/Subroutines</h2></td></tr>
 <tr class="memitem:a87e2860a271bcf86309b5539fc8768c3"><td class="memItemLeft" align="right" valign="top">subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__hd__phys.html#a87e2860a271bcf86309b5539fc8768c3">mod_hd_phys::hd_get_temperature_from_eint</a> (w, x, ixIL, ixOL, res)</td></tr>
 <tr class="memdesc:a87e2860a271bcf86309b5539fc8768c3"><td class="mdescLeft">&#160;</td><td class="mdescRight">Calculate temperature=p/rho when in e_ the internal energy is stored.  <a href="namespacemod__hd__phys.html#a87e2860a271bcf86309b5539fc8768c3">More...</a><br /></td></tr>
 <tr class="separator:a87e2860a271bcf86309b5539fc8768c3"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a28d24d04a0fa1488997cfa3f728d4cac"><td class="memItemLeft" align="right" valign="top">subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__hd__phys.html#a28d24d04a0fa1488997cfa3f728d4cac">mod_hd_phys::hd_ei_to_e1</a> (ixIL, ixOL, w, x)</td></tr>
-<tr class="separator:a28d24d04a0fa1488997cfa3f728d4cac"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:aab9c912cfe4d5ec9a030acfed097e0b8"><td class="memItemLeft" align="right" valign="top">subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__hd__phys.html#aab9c912cfe4d5ec9a030acfed097e0b8">mod_hd_phys::hd_e_to_ei1</a> (ixIL, ixOL, w, x)</td></tr>
-<tr class="memdesc:aab9c912cfe4d5ec9a030acfed097e0b8"><td class="mdescLeft">&#160;</td><td class="mdescRight">Transform total energy to internal energy.  <a href="namespacemod__hd__phys.html#aab9c912cfe4d5ec9a030acfed097e0b8">More...</a><br /></td></tr>
-<tr class="separator:aab9c912cfe4d5ec9a030acfed097e0b8"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a257f3d24264205d1fdbd989c0661dc72"><td class="memItemLeft" align="right" valign="top">subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__hd__phys.html#a257f3d24264205d1fdbd989c0661dc72">mod_hd_phys::hd_get_flux_cons</a> (w, x, ixIL, ixOL, idim, f)</td></tr>
 <tr class="separator:a257f3d24264205d1fdbd989c0661dc72"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a1833998a00dd467ed9fb68de9c126299"><td class="memItemLeft" align="right" valign="top">subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__hd__phys.html#a1833998a00dd467ed9fb68de9c126299">mod_hd_phys::hd_get_flux</a> (wC, w, x, ixIL, ixOL, idim, f)</td></tr>
 <tr class="separator:a1833998a00dd467ed9fb68de9c126299"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a4ac268fb6e9fcf9553781e51eddfcdf6"><td class="memItemLeft" align="right" valign="top">subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__hd__phys.html#a4ac268fb6e9fcf9553781e51eddfcdf6">mod_hd_phys::hd_add_source_geom</a> (qdt, ixIL, ixOL, wCT, w, x)</td></tr>
-<tr class="memdesc:a4ac268fb6e9fcf9553781e51eddfcdf6"><td class="mdescLeft">&#160;</td><td class="mdescRight">Add geometrical source terms to w.  <a href="namespacemod__hd__phys.html#a4ac268fb6e9fcf9553781e51eddfcdf6">More...</a><br /></td></tr>
-<tr class="separator:a4ac268fb6e9fcf9553781e51eddfcdf6"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a2035e4719c241c4e0ad07b45943376ad"><td class="memItemLeft" align="right" valign="top">subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__hd__phys.html#a2035e4719c241c4e0ad07b45943376ad">mod_hd_phys::hd_add_source</a> (qdt, ixIL, ixOL, wCT, w, x, qsourcesplit, active, wCTprim)</td></tr>
-<tr class="separator:a2035e4719c241c4e0ad07b45943376ad"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a24de3cf866881bb2e9fa57a4c88c982c"><td class="memItemLeft" align="right" valign="top">subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__hd__phys.html#a24de3cf866881bb2e9fa57a4c88c982c">mod_hd_phys::hd_add_source_geom</a> (qdt, dtfactor, ixIL, ixOL, wCT, w, x)</td></tr>
+<tr class="memdesc:a24de3cf866881bb2e9fa57a4c88c982c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Add geometrical source terms to w.  <a href="namespacemod__hd__phys.html#a24de3cf866881bb2e9fa57a4c88c982c">More...</a><br /></td></tr>
+<tr class="separator:a24de3cf866881bb2e9fa57a4c88c982c"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a59505d7b6ed147a198a52134bf30bab1"><td class="memItemLeft" align="right" valign="top">subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__hd__phys.html#a59505d7b6ed147a198a52134bf30bab1">mod_hd_phys::hd_add_source</a> (qdt, dtfactor, ixIL, ixOL, wCT, wCTprim, w, x, qsourcesplit, active)</td></tr>
+<tr class="separator:a59505d7b6ed147a198a52134bf30bab1"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a67c24f3df7b4256f045d0486be021a75"><td class="memItemLeft" align="right" valign="top">subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__hd__phys.html#a67c24f3df7b4256f045d0486be021a75">mod_hd_phys::hd_get_dt</a> (w, ixIL, ixOL, dtnew, dxD, x)</td></tr>
 <tr class="separator:a67c24f3df7b4256f045d0486be021a75"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aeb55f3a4ddbad1460eece9c6d1624eaf"><td class="memItemLeft" align="right" valign="top">double precision function, dimension(ixo^s), public&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__hd__phys.html#aeb55f3a4ddbad1460eece9c6d1624eaf">mod_hd_phys::hd_kin_en</a> (w, ixIL, ixOL, inv_rho)</td></tr>
@@ -191,6 +183,12 @@ Functions/Subroutines</h2></td></tr>
 <tr class="separator:afff323147191b70c1e0d36b5bd304446"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:afccb3cc0f088d466841ffc2eb2dfa8eb"><td class="memItemLeft" align="right" valign="top">subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__hd__phys.html#afccb3cc0f088d466841ffc2eb2dfa8eb">mod_hd_phys::hd_handle_small_values</a> (primitive, w, x, ixIL, ixOL, subname)</td></tr>
 <tr class="separator:afccb3cc0f088d466841ffc2eb2dfa8eb"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a0cffebdf95cd71eda223e08075ae328c"><td class="memItemLeft" align="right" valign="top">subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__hd__phys.html#a0cffebdf95cd71eda223e08075ae328c">mod_hd_phys::rfactor_from_temperature_ionization</a> (w, x, ixIL, ixOL, Rfactor)</td></tr>
+<tr class="separator:a0cffebdf95cd71eda223e08075ae328c"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ad6dfcdfb8f63fb9e9788aaf1265e0369"><td class="memItemLeft" align="right" valign="top">subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__hd__phys.html#ad6dfcdfb8f63fb9e9788aaf1265e0369">mod_hd_phys::rfactor_from_constant_ionization</a> (w, x, ixIL, ixOL, Rfactor)</td></tr>
+<tr class="separator:ad6dfcdfb8f63fb9e9788aaf1265e0369"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:af250d284c660c1a8c289f8b1a99bef49"><td class="memItemLeft" align="right" valign="top">subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__hd__phys.html#af250d284c660c1a8c289f8b1a99bef49">mod_hd_phys::hd_update_temperature</a> (ixIL, ixOL, wCT, w, x)</td></tr>
+<tr class="separator:af250d284c660c1a8c289f8b1a99bef49"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="var-members"></a>
 Variables</h2></td></tr>
@@ -230,6 +228,9 @@ Variables</h2></td></tr>
 <tr class="memitem:ae0b1a44887dbe84fcced445e803bcf69"><td class="memItemLeft" align="right" valign="top">integer, public, protected&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__hd__phys.html#ae0b1a44887dbe84fcced445e803bcf69">mod_hd_phys::hd_n_tracer</a> = 0</td></tr>
 <tr class="memdesc:ae0b1a44887dbe84fcced445e803bcf69"><td class="mdescLeft">&#160;</td><td class="mdescRight">Number of tracer species.  <a href="namespacemod__hd__phys.html#ae0b1a44887dbe84fcced445e803bcf69">More...</a><br /></td></tr>
 <tr class="separator:ae0b1a44887dbe84fcced445e803bcf69"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:abc46ec55ad8c22019aa9d432c2edf696"><td class="memItemLeft" align="right" valign="top">logical, public, protected&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__hd__phys.html#abc46ec55ad8c22019aa9d432c2edf696">mod_hd_phys::hd_partial_ionization</a> = .false.</td></tr>
+<tr class="memdesc:abc46ec55ad8c22019aa9d432c2edf696"><td class="mdescLeft">&#160;</td><td class="mdescRight">Whether plasma is partially ionized.  <a href="namespacemod__hd__phys.html#abc46ec55ad8c22019aa9d432c2edf696">More...</a><br /></td></tr>
+<tr class="separator:abc46ec55ad8c22019aa9d432c2edf696"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ab1684505bcef5ec118de29c11165c02f"><td class="memItemLeft" align="right" valign="top">integer, public, protected&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__hd__phys.html#ab1684505bcef5ec118de29c11165c02f">mod_hd_phys::rho_</a></td></tr>
 <tr class="memdesc:ab1684505bcef5ec118de29c11165c02f"><td class="mdescLeft">&#160;</td><td class="mdescRight">Index of the density (in the w array)  <a href="namespacemod__hd__phys.html#ab1684505bcef5ec118de29c11165c02f">More...</a><br /></td></tr>
 <tr class="separator:ab1684505bcef5ec118de29c11165c02f"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -245,6 +246,9 @@ Variables</h2></td></tr>
 <tr class="memitem:afa17866e94e20529b5f7fdca33e33c96"><td class="memItemLeft" align="right" valign="top">integer, public, protected&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__hd__phys.html#afa17866e94e20529b5f7fdca33e33c96">mod_hd_phys::p_</a></td></tr>
 <tr class="memdesc:afa17866e94e20529b5f7fdca33e33c96"><td class="mdescLeft">&#160;</td><td class="mdescRight">Index of the gas pressure (-1 if not present) should equal e_.  <a href="namespacemod__hd__phys.html#afa17866e94e20529b5f7fdca33e33c96">More...</a><br /></td></tr>
 <tr class="separator:afa17866e94e20529b5f7fdca33e33c96"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a5cc7155997b8b175aade4ce8dd028742"><td class="memItemLeft" align="right" valign="top">integer, public, protected&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__hd__phys.html#a5cc7155997b8b175aade4ce8dd028742">mod_hd_phys::te_</a></td></tr>
+<tr class="memdesc:a5cc7155997b8b175aade4ce8dd028742"><td class="mdescLeft">&#160;</td><td class="mdescRight">Indices of temperature.  <a href="namespacemod__hd__phys.html#a5cc7155997b8b175aade4ce8dd028742">More...</a><br /></td></tr>
+<tr class="separator:a5cc7155997b8b175aade4ce8dd028742"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a471fa5a913ec4a39182425c4df6ff9d4"><td class="memItemLeft" align="right" valign="top">integer, public, protected&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__hd__phys.html#a471fa5a913ec4a39182425c4df6ff9d4">mod_hd_phys::tcoff_</a></td></tr>
 <tr class="memdesc:a471fa5a913ec4a39182425c4df6ff9d4"><td class="mdescLeft">&#160;</td><td class="mdescRight">Index of the cutoff temperature for the TRAC method.  <a href="namespacemod__hd__phys.html#a471fa5a913ec4a39182425c4df6ff9d4">More...</a><br /></td></tr>
 <tr class="separator:a471fa5a913ec4a39182425c4df6ff9d4"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -265,6 +269,19 @@ Variables</h2></td></tr>
 <tr class="memitem:aca71164e35d0e3e9ea5751f46ba544df"><td class="memItemLeft" align="right" valign="top">double precision, public, protected&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__hd__phys.html#aca71164e35d0e3e9ea5751f46ba544df">mod_hd_phys::he_abundance</a> =0.1d0</td></tr>
 <tr class="memdesc:aca71164e35d0e3e9ea5751f46ba544df"><td class="mdescLeft">&#160;</td><td class="mdescRight">Helium abundance over Hydrogen.  <a href="namespacemod__hd__phys.html#aca71164e35d0e3e9ea5751f46ba544df">More...</a><br /></td></tr>
 <tr class="separator:aca71164e35d0e3e9ea5751f46ba544df"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a748bde3de60ce52fb8c93aaf03af9dd9"><td class="memItemLeft" align="right" valign="top">double precision, public, protected&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__hd__phys.html#a748bde3de60ce52fb8c93aaf03af9dd9">mod_hd_phys::h_ion_fr</a> =1d0</td></tr>
+<tr class="memdesc:a748bde3de60ce52fb8c93aaf03af9dd9"><td class="mdescLeft">&#160;</td><td class="mdescRight">Ionization fraction of H H_ion_fr = H+/(H+ + H)  <a href="namespacemod__hd__phys.html#a748bde3de60ce52fb8c93aaf03af9dd9">More...</a><br /></td></tr>
+<tr class="separator:a748bde3de60ce52fb8c93aaf03af9dd9"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ac7b946011ed139b93e5345c14c47817f"><td class="memItemLeft" align="right" valign="top">double precision, public, protected&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__hd__phys.html#ac7b946011ed139b93e5345c14c47817f">mod_hd_phys::he_ion_fr</a> =1d0</td></tr>
+<tr class="memdesc:ac7b946011ed139b93e5345c14c47817f"><td class="mdescLeft">&#160;</td><td class="mdescRight">Ionization fraction of He He_ion_fr = (He2+ + He+)/(He2+ + He+ + He)  <a href="namespacemod__hd__phys.html#ac7b946011ed139b93e5345c14c47817f">More...</a><br /></td></tr>
+<tr class="separator:ac7b946011ed139b93e5345c14c47817f"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a47488b4ebf144483b272a47e451af268"><td class="memItemLeft" align="right" valign="top">double precision, public, protected&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__hd__phys.html#a47488b4ebf144483b272a47e451af268">mod_hd_phys::he_ion_fr2</a> =1d0</td></tr>
+<tr class="memdesc:a47488b4ebf144483b272a47e451af268"><td class="mdescLeft">&#160;</td><td class="mdescRight">Ratio of number He2+ / number He+ + He2+ He_ion_fr2 = He2+/(He2+ + He+)  <a href="namespacemod__hd__phys.html#a47488b4ebf144483b272a47e451af268">More...</a><br /></td></tr>
+<tr class="separator:a47488b4ebf144483b272a47e451af268"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a182282a752f3a793d371f78842eb2438"><td class="memItemLeft" align="right" valign="top">double precision, public, protected&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__hd__phys.html#a182282a752f3a793d371f78842eb2438">mod_hd_phys::rr</a> =1d0</td></tr>
+<tr class="separator:a182282a752f3a793d371f78842eb2438"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aa427cd58a88ff4d3eaa2235bdd4c7970"><td class="memItemLeft" align="right" valign="top">logical, public, protected&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__hd__phys.html#aa427cd58a88ff4d3eaa2235bdd4c7970">mod_hd_phys::eq_state_units</a> = .true.</td></tr>
+<tr class="separator:aa427cd58a88ff4d3eaa2235bdd4c7970"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 </div><!-- contents -->
 <!-- start footer part -->

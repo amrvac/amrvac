@@ -1,8 +1,8 @@
 <map id="mod_input_output::write_snapshot" name="mod_input_output::write_snapshot">
 <area shape="rect" id="node1" title=" " alt="" coords="5,123,187,164"/>
-<area shape="rect" id="node2" href="$namespacemod__input__output.html#a82e2ee2fa4e39ed73c2ab7aa3bc05a89" title="Determine the shape of a block for output (whether to include ghost cells, and on which sides)" alt="" coords="247,5,429,47"/>
-<area shape="rect" id="node3" href="$namespacemod__input__output.html#a22315d7443f62f6cd637218df95f962d" title="Compute number of elements in index range." alt="" coords="489,42,692,69"/>
-<area shape="rect" id="node4" href="$namespacemod__input__output.html#a4cddb904b15d3bc7e45953c6b7329eed" title="Standard method for creating a new output file." alt="" coords="243,123,433,164"/>
+<area shape="rect" id="node2" href="$namespacemod__input__output__helper.html#ac03c76ebf22aa6a66b2b1677e00a82d9" title="Determine the shape of a block for output (whether to include ghost cells, and on which sides)" alt="" coords="244,5,432,47"/>
+<area shape="rect" id="node3" href="$namespacemod__input__output__helper.html#a54d24b33757cb6dc549aeb19a2563964" title="Compute number of elements in index range." alt="" coords="489,35,677,76"/>
+<area shape="rect" id="node4" href="$namespacemod__input__output__helper.html#a208f91df2b8f3fdbcbbd029668802c26" title="Standard method for creating a new output file." alt="" coords="244,123,432,164"/>
 <area shape="rect" id="node5" href="$namespacemod__input__output.html#acd293c80fe4dffe68b3bd5af075cc137" title="Write header for a snapshot." alt="" coords="235,188,441,229"/>
-<area shape="rect" id="node6" href="$forest_8t.html#aaf46ac430ac0a103fe25d89d40b5ac91" title=" " alt="" coords="288,254,388,281"/>
+<area shape="rect" id="node6" href="$namespacemod__functions__forest.html#a5fe089544b6f559e305b5b6e41544191" title=" " alt="" coords="257,253,419,295"/>
 </map>

@@ -30,7 +30,7 @@
  <tr style="height: 56px;">
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">MPI-AMRVAC
-   &#160;<span id="projectnumber">3.0</span>
+   &#160;<span id="projectnumber">3.1</span>
    </div>
    <div id="projectbrief">The MPI - Adaptive Mesh Refinement - Versatile Advection Code</div>
   </td>
@@ -132,6 +132,9 @@ Public Attributes</h2></td></tr>
 <tr class="memitem:a933a331b7923a3a756c7f85a750e2565"><td class="memItemLeft" align="right" valign="top">double precision, dimension(:^d &amp;,:), pointer&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structmod__physicaldata_1_1state.html#a933a331b7923a3a756c7f85a750e2565">dx</a> =&gt;Null()</td></tr>
 <tr class="memdesc:a933a331b7923a3a756c7f85a750e2565"><td class="mdescLeft">&#160;</td><td class="mdescRight">Cell sizes in coordinate units.  <a href="structmod__physicaldata_1_1state.html#a933a331b7923a3a756c7f85a750e2565">More...</a><br /></td></tr>
 <tr class="separator:a933a331b7923a3a756c7f85a750e2565"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a57a8c6073cd74f883dee522e8e5fdd3f"><td class="memItemLeft" align="right" valign="top">double precision, dimension(:^d &amp;), pointer&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structmod__physicaldata_1_1state.html#a57a8c6073cd74f883dee522e8e5fdd3f">dt</a> =&gt;Null()</td></tr>
+<tr class="memdesc:a57a8c6073cd74f883dee522e8e5fdd3f"><td class="mdescLeft">&#160;</td><td class="mdescRight">Cell local timesteps.  <a href="structmod__physicaldata_1_1state.html#a57a8c6073cd74f883dee522e8e5fdd3f">More...</a><br /></td></tr>
+<tr class="separator:a57a8c6073cd74f883dee522e8e5fdd3f"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a20d8430d522dab3c8c3b4c0245c21a1e"><td class="memItemLeft" align="right" valign="top">double precision, dimension(:^d &amp;,:), pointer&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structmod__physicaldata_1_1state.html#a20d8430d522dab3c8c3b4c0245c21a1e">ds</a> =&gt;Null()</td></tr>
 <tr class="memdesc:a20d8430d522dab3c8c3b4c0245c21a1e"><td class="mdescLeft">&#160;</td><td class="mdescRight">Cell sizes at cell center in length unit.  <a href="structmod__physicaldata_1_1state.html#a20d8430d522dab3c8c3b4c0245c21a1e">More...</a><br /></td></tr>
 <tr class="separator:a20d8430d522dab3c8c3b4c0245c21a1e"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -187,7 +190,7 @@ Public Attributes</h2></td></tr>
 
 <p>Cell sizes at cell center in length unit. </p>
 
-<p class="definition">Definition at line <a class="el" href="mod__physicaldata_8t_source.html#l00037">37</a> of file <a class="el" href="mod__physicaldata_8t_source.html">mod_physicaldata.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__physicaldata_8t_source.html#l00039">39</a> of file <a class="el" href="mod__physicaldata_8t_source.html">mod_physicaldata.t</a>.</p>
 
 </div>
 </div>
@@ -205,7 +208,25 @@ Public Attributes</h2></td></tr>
 
 <p>Cell sizes at cell face in length unit. </p>
 
-<p class="definition">Definition at line <a class="el" href="mod__physicaldata_8t_source.html#l00039">39</a> of file <a class="el" href="mod__physicaldata_8t_source.html">mod_physicaldata.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__physicaldata_8t_source.html#l00041">41</a> of file <a class="el" href="mod__physicaldata_8t_source.html">mod_physicaldata.t</a>.</p>
+
+</div>
+</div>
+<a id="a57a8c6073cd74f883dee522e8e5fdd3f"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a57a8c6073cd74f883dee522e8e5fdd3f">&#9670;&nbsp;</a></span>dt</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">double precision, dimension(:^d&amp;), pointer mod_physicaldata::state::dt =&gt;Null()</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Cell local timesteps. </p>
+
+<p class="definition">Definition at line <a class="el" href="mod__physicaldata_8t_source.html#l00037">37</a> of file <a class="el" href="mod__physicaldata_8t_source.html">mod_physicaldata.t</a>.</p>
 
 </div>
 </div>
@@ -223,7 +244,7 @@ Public Attributes</h2></td></tr>
 
 <p>Volumes of a cell. </p>
 
-<p class="definition">Definition at line <a class="el" href="mod__physicaldata_8t_source.html#l00041">41</a> of file <a class="el" href="mod__physicaldata_8t_source.html">mod_physicaldata.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__physicaldata_8t_source.html#l00043">43</a> of file <a class="el" href="mod__physicaldata_8t_source.html">mod_physicaldata.t</a>.</p>
 
 </div>
 </div>
@@ -401,7 +422,7 @@ Public Attributes</h2></td></tr>
 
 <p>special values for a block </p>
 
-<p class="definition">Definition at line <a class="el" href="mod__physicaldata_8t_source.html#l00047">47</a> of file <a class="el" href="mod__physicaldata_8t_source.html">mod_physicaldata.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__physicaldata_8t_source.html#l00049">49</a> of file <a class="el" href="mod__physicaldata_8t_source.html">mod_physicaldata.t</a>.</p>
 
 </div>
 </div>
@@ -419,7 +440,7 @@ Public Attributes</h2></td></tr>
 
 <p>Areas of cell-center surfaces. </p>
 
-<p class="definition">Definition at line <a class="el" href="mod__physicaldata_8t_source.html#l00043">43</a> of file <a class="el" href="mod__physicaldata_8t_source.html">mod_physicaldata.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__physicaldata_8t_source.html#l00045">45</a> of file <a class="el" href="mod__physicaldata_8t_source.html">mod_physicaldata.t</a>.</p>
 
 </div>
 </div>
@@ -437,7 +458,7 @@ Public Attributes</h2></td></tr>
 
 <p>Areas of cell-face surfaces. </p>
 
-<p class="definition">Definition at line <a class="el" href="mod__physicaldata_8t_source.html#l00045">45</a> of file <a class="el" href="mod__physicaldata_8t_source.html">mod_physicaldata.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__physicaldata_8t_source.html#l00047">47</a> of file <a class="el" href="mod__physicaldata_8t_source.html">mod_physicaldata.t</a>.</p>
 
 </div>
 </div>

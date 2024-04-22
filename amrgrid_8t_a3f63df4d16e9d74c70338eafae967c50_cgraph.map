@@ -1,6 +1,0 @@
-<map id="resettree_convert" name="resettree_convert">
-<area shape="rect" id="node1" title="Force the tree to desired level(s) from level_io(_min/_max) used for conversion to vtk output." alt="" coords="5,71,143,98"/>
-<area shape="rect" id="node2" href="$namespacemod__coarsen__refine.html#a90d7cd8cbcd1b2de285dee4d58973632" title="coarsen and refine blocks to update AMR grid" alt="" coords="199,5,358,47"/>
-<area shape="rect" id="node3" href="$errest_8t.html#afa72c8f7af364cf8ce0c8ef0128e6be5" title=" " alt="" coords="203,71,354,98"/>
-<area shape="rect" id="node4" href="$namespacemod__ghostcells__update.html#abc70508ceb326fb28166d751e5de31fc" title="do update ghost cells of all blocks including physical boundaries" alt="" coords="191,123,367,164"/>
-</map>

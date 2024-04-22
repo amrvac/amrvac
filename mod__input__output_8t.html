@@ -5,7 +5,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=9"/>
 <meta name="generator" content="Doxygen 1.9.1"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>MPI-AMRVAC: src/amrvacio/mod_input_output.t File Reference</title>
+<title>MPI-AMRVAC: src/io/mod_input_output.t File Reference</title>
 <link href="tabs.css" rel="stylesheet" type="text/css"/>
 <script type="text/javascript" src="jquery.js"></script>
 <script type="text/javascript" src="dynsections.js"></script>
@@ -30,7 +30,7 @@
  <tr style="height: 56px;">
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">MPI-AMRVAC
-   &#160;<span id="projectnumber">3.0</span>
+   &#160;<span id="projectnumber">3.1</span>
    </div>
    <div id="projectbrief">The MPI - Adaptive Mesh Refinement - Versatile Advection Code</div>
   </td>
@@ -71,7 +71,7 @@ $(function() {
 
 <div id="nav-path" class="navpath">
   <ul>
-<li class="navelem"><a class="el" href="dir_68267d1309a1af8e8297ef4c3efbcdba.html">src</a></li><li class="navelem"><a class="el" href="dir_f0d6177eb1ef49401d1748b2916bfce6.html">amrvacio</a></li>  </ul>
+<li class="navelem"><a class="el" href="dir_68267d1309a1af8e8297ef4c3efbcdba.html">src</a></li><li class="navelem"><a class="el" href="dir_c184e51c84f2c3f0345bbc8a0d75d3e1.html">io</a></li>  </ul>
 </div>
 </div><!-- top -->
 <div class="header">
@@ -105,28 +105,16 @@ Functions/Subroutines</h2></td></tr>
 <tr class="separator:ab2d0a28e065926627226ed89b96ada9d"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a061b50e8aaaaf828c94809adf831ccbe"><td class="memItemLeft" align="right" valign="top">subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__input__output.html#a061b50e8aaaaf828c94809adf831ccbe">mod_input_output::saveamrfile</a> (ifile)</td></tr>
 <tr class="separator:a061b50e8aaaaf828c94809adf831ccbe"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a4cddb904b15d3bc7e45953c6b7329eed"><td class="memItemLeft" align="right" valign="top">subroutine, public&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__input__output.html#a4cddb904b15d3bc7e45953c6b7329eed">mod_input_output::create_output_file</a> (fh, ix, extension, suffix)</td></tr>
-<tr class="memdesc:a4cddb904b15d3bc7e45953c6b7329eed"><td class="mdescLeft">&#160;</td><td class="mdescRight">Standard method for creating a new output file.  <a href="namespacemod__input__output.html#a4cddb904b15d3bc7e45953c6b7329eed">More...</a><br /></td></tr>
-<tr class="separator:a4cddb904b15d3bc7e45953c6b7329eed"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a261f5086d85a96e13547d0e1c60928af"><td class="memItemLeft" align="right" valign="top">logical function&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__input__output.html#a261f5086d85a96e13547d0e1c60928af">mod_input_output::snapshot_exists</a> (ix)</td></tr>
 <tr class="separator:a261f5086d85a96e13547d0e1c60928af"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a2b408b40f813e4fe523621ab4a497d76"><td class="memItemLeft" align="right" valign="top">integer function&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__input__output.html#a2b408b40f813e4fe523621ab4a497d76">mod_input_output::get_snapshot_index</a> (filename)</td></tr>
 <tr class="separator:a2b408b40f813e4fe523621ab4a497d76"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ad596a6ad9e1a0a7ff3feb742d22e5e15"><td class="memItemLeft" align="right" valign="top">subroutine, public&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__input__output.html#ad596a6ad9e1a0a7ff3feb742d22e5e15">mod_input_output::snapshot_write_header1</a> (fh, offset_tree, offset_block, dataset_names, nw_vars)</td></tr>
-<tr class="memdesc:ad596a6ad9e1a0a7ff3feb742d22e5e15"><td class="mdescLeft">&#160;</td><td class="mdescRight">Write header for a snapshot, generalize cons_wnames and nw.  <a href="namespacemod__input__output.html#ad596a6ad9e1a0a7ff3feb742d22e5e15">More...</a><br /></td></tr>
-<tr class="separator:ad596a6ad9e1a0a7ff3feb742d22e5e15"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:acd293c80fe4dffe68b3bd5af075cc137"><td class="memItemLeft" align="right" valign="top">subroutine, public&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__input__output.html#acd293c80fe4dffe68b3bd5af075cc137">mod_input_output::snapshot_write_header</a> (fh, offset_tree, offset_block)</td></tr>
 <tr class="memdesc:acd293c80fe4dffe68b3bd5af075cc137"><td class="mdescLeft">&#160;</td><td class="mdescRight">Write header for a snapshot.  <a href="namespacemod__input__output.html#acd293c80fe4dffe68b3bd5af075cc137">More...</a><br /></td></tr>
 <tr class="separator:acd293c80fe4dffe68b3bd5af075cc137"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ae860a54ebdb7a0bee2fed1821d67cc99"><td class="memItemLeft" align="right" valign="top">subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__input__output.html#ae860a54ebdb7a0bee2fed1821d67cc99">mod_input_output::snapshot_read_header</a> (fh, offset_tree, offset_block)</td></tr>
 <tr class="memdesc:ae860a54ebdb7a0bee2fed1821d67cc99"><td class="mdescLeft">&#160;</td><td class="mdescRight">Read header for a snapshot.  <a href="namespacemod__input__output.html#ae860a54ebdb7a0bee2fed1821d67cc99">More...</a><br /></td></tr>
 <tr class="separator:ae860a54ebdb7a0bee2fed1821d67cc99"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a22315d7443f62f6cd637218df95f962d"><td class="memItemLeft" align="right" valign="top">pure integer function, public&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__input__output.html#a22315d7443f62f6cd637218df95f962d">mod_input_output::count_ix</a> (ixOL)</td></tr>
-<tr class="memdesc:a22315d7443f62f6cd637218df95f962d"><td class="mdescLeft">&#160;</td><td class="mdescRight">Compute number of elements in index range.  <a href="namespacemod__input__output.html#a22315d7443f62f6cd637218df95f962d">More...</a><br /></td></tr>
-<tr class="separator:a22315d7443f62f6cd637218df95f962d"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a82e2ee2fa4e39ed73c2ab7aa3bc05a89"><td class="memItemLeft" align="right" valign="top">subroutine, public&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__input__output.html#a82e2ee2fa4e39ed73c2ab7aa3bc05a89">mod_input_output::block_shape_io</a> (igrid, n_ghost, ixOL, n_values)</td></tr>
-<tr class="memdesc:a82e2ee2fa4e39ed73c2ab7aa3bc05a89"><td class="mdescLeft">&#160;</td><td class="mdescRight">Determine the shape of a block for output (whether to include ghost cells, and on which sides)  <a href="namespacemod__input__output.html#a82e2ee2fa4e39ed73c2ab7aa3bc05a89">More...</a><br /></td></tr>
-<tr class="separator:a82e2ee2fa4e39ed73c2ab7aa3bc05a89"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ae1d4a41dcf32cae3752c48ef73f42364"><td class="memItemLeft" align="right" valign="top">subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__input__output.html#ae1d4a41dcf32cae3752c48ef73f42364">mod_input_output::write_snapshot</a></td></tr>
 <tr class="separator:ae1d4a41dcf32cae3752c48ef73f42364"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aa2d00e56c4444b0b4806a9c13ce2eff7"><td class="memItemLeft" align="right" valign="top">subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__input__output.html#aa2d00e56c4444b0b4806a9c13ce2eff7">mod_input_output::read_snapshot</a></td></tr>
@@ -158,18 +146,12 @@ Functions/Subroutines</h2></td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="var-members"></a>
 Variables</h2></td></tr>
-<tr class="memitem:ab01fdfe0369eff4df510ef5c7db2e7f8"><td class="memItemLeft" align="right" valign="top">integer, parameter&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__input__output.html#ab01fdfe0369eff4df510ef5c7db2e7f8">mod_input_output::version_number</a> = 5</td></tr>
-<tr class="memdesc:ab01fdfe0369eff4df510ef5c7db2e7f8"><td class="mdescLeft">&#160;</td><td class="mdescRight">Version number of the .dat file output.  <a href="namespacemod__input__output.html#ab01fdfe0369eff4df510ef5c7db2e7f8">More...</a><br /></td></tr>
-<tr class="separator:ab01fdfe0369eff4df510ef5c7db2e7f8"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:af6450e39c0d1c69b17bbbb5db487231a"><td class="memItemLeft" align="right" valign="top">integer, dimension(3), parameter&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__input__output.html#af6450e39c0d1c69b17bbbb5db487231a">mod_input_output::compatible_versions</a> = [3, 4, 5]</td></tr>
 <tr class="memdesc:af6450e39c0d1c69b17bbbb5db487231a"><td class="mdescLeft">&#160;</td><td class="mdescRight">List of compatible versions.  <a href="namespacemod__input__output.html#af6450e39c0d1c69b17bbbb5db487231a">More...</a><br /></td></tr>
 <tr class="separator:af6450e39c0d1c69b17bbbb5db487231a"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aa90f67fcd1dcf23e3d7f0f13e3dcc87e"><td class="memItemLeft" align="right" valign="top">integer&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__input__output.html#aa90f67fcd1dcf23e3d7f0f13e3dcc87e">mod_input_output::nw_found</a></td></tr>
 <tr class="memdesc:aa90f67fcd1dcf23e3d7f0f13e3dcc87e"><td class="mdescLeft">&#160;</td><td class="mdescRight">number of w found in dat files  <a href="namespacemod__input__output.html#aa90f67fcd1dcf23e3d7f0f13e3dcc87e">More...</a><br /></td></tr>
 <tr class="separator:aa90f67fcd1dcf23e3d7f0f13e3dcc87e"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a85ab6438ece93eeac25fdfac7beed77b"><td class="memItemLeft" align="right" valign="top">logical&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__input__output.html#a85ab6438ece93eeac25fdfac7beed77b">mod_input_output::save_now</a></td></tr>
-<tr class="memdesc:a85ab6438ece93eeac25fdfac7beed77b"><td class="mdescLeft">&#160;</td><td class="mdescRight">whether a manually inserted snapshot is saved  <a href="namespacemod__input__output.html#a85ab6438ece93eeac25fdfac7beed77b">More...</a><br /></td></tr>
-<tr class="separator:a85ab6438ece93eeac25fdfac7beed77b"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a5a4c8ad20085895e6afea0b6da413313"><td class="memItemLeft" align="right" valign="top">character(len= *), parameter&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__input__output.html#a5a4c8ad20085895e6afea0b6da413313">mod_input_output::fmt_r</a> = 'es16.8'</td></tr>
 <tr class="separator:a5a4c8ad20085895e6afea0b6da413313"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ab0092e81ef07b5ca84ceddacc7c4d9f9"><td class="memItemLeft" align="right" valign="top">character(len= *), parameter&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__input__output.html#ab0092e81ef07b5ca84ceddacc7c4d9f9">mod_input_output::fmt_r2</a> = 'es10.2'</td></tr>

@@ -1,0 +1,12 @@
+<map id="mod_thermal_emission::get_image" name="mod_thermal_emission::get_image">
+<area shape="rect" id="node1" title=" " alt="" coords="5,259,180,301"/>
+<area shape="rect" id="node2" href="$namespacemod__thermal__emission.html#a40ab16d9868a8f4e58539198e07a0413" title=" " alt="" coords="451,165,625,206"/>
+<area shape="rect" id="node3" href="$namespacemod__thermal__emission.html#a1a25bc5a0fd959ac45e97815ff19cc41" title=" " alt="" coords="451,89,625,130"/>
+<area shape="rect" id="node4" href="$namespacemod__comm__lib.html#a9b6f1a8fd13bc5670e3b426151c34048" title="Exit MPI&#45;AMRVAC with an error message." alt="" coords="673,259,856,285"/>
+<area shape="rect" id="node5" href="$namespacemod__thermal__emission.html#a9331c81857c90348800db8b06a24bc7d" title=" " alt="" coords="228,369,403,410"/>
+<area shape="rect" id="node6" href="$namespacemod__thermal__emission.html#a84c37e09d748a888076c0f90c0a62244" title=" " alt="" coords="228,434,403,475"/>
+<area shape="rect" id="node7" href="$namespacemod__thermal__emission.html#a7ea574241a164e72818e4132841efcca" title=" " alt="" coords="228,136,403,192"/>
+<area shape="rect" id="node8" href="$namespacemod__thermal__emission.html#a77c386fed55fed1acd78ff00ad05e6aa" title=" " alt="" coords="228,5,403,61"/>
+<area shape="rect" id="node9" href="$namespacemod__thermal__emission.html#a33b7d55ff26fb051dac813a351605bd5" title=" " alt="" coords="228,500,403,556"/>
+<area shape="rect" id="node10" href="$namespacemod__thermal__emission.html#a57369d41967c698ec8dac67f2766c67d" title=" " alt="" coords="451,251,625,293"/>
+</map>

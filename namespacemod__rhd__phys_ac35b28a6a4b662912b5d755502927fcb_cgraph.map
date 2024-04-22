@@ -1,4 +1,0 @@
-<map id="mod_rhd_phys::rhd_get_pthermal" name="mod_rhd_phys::rhd_get_pthermal">
-<area shape="rect" id="node1" title="Calculate thermal pressure=(gamma&#45;1)*(e&#45;0.5*m**2/rho) within ixO^L." alt="" coords="5,5,180,47"/>
-<area shape="rect" id="node2" href="$comm__lib_8t.html#a49b49ea9ffbbadfe688e332921c4cddd" title="Exit MPI&#45;AMRVAC with an error message." alt="" coords="228,13,303,39"/>
-</map>

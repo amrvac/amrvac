@@ -1,0 +1,6 @@
+<map id="mod_thermal_emission::get_spectrum_datresol" name="mod_thermal_emission::get_spectrum_datresol">
+<area shape="rect" id="node1" title=" " alt="" coords="5,64,184,105"/>
+<area shape="rect" id="node2" href="$namespacemod__thermal__emission.html#a2b5356855b856281110717a9ea6d311b" title=" " alt="" coords="232,5,436,47"/>
+<area shape="rect" id="node3" href="$namespacemod__comm__lib.html#a9b6f1a8fd13bc5670e3b426151c34048" title="Exit MPI&#45;AMRVAC with an error message." alt="" coords="484,101,667,127"/>
+<area shape="rect" id="node4" href="$namespacemod__thermal__emission.html#a57369d41967c698ec8dac67f2766c67d" title=" " alt="" coords="247,123,421,164"/>
+</map>

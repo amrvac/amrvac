@@ -1,8 +1,7 @@
 <map id="mod_fld::energy_interaction" name="mod_fld::energy_interaction">
-<area shape="rect" id="node1" title="This subroutine calculates the radiation heating, radiation cooling and photon tiring using an implic..." alt="" coords="5,44,209,71"/>
-<area shape="rect" id="node2" href="$namespacemod__fld.html#ae111198d92df820a9edeaf0073f4107e" title="Find the root of the 4th degree polynomial using the bisection method." alt="" coords="719,47,860,89"/>
-<area shape="rect" id="node3" href="$comm__lib_8t.html#a49b49ea9ffbbadfe688e332921c4cddd" title="Exit MPI&#45;AMRVAC with an error message." alt="" coords="908,55,983,81"/>
-<area shape="rect" id="node4" href="$namespacemod__fld.html#ac9f2df78330406043ccd51c94710a9f7" title="Sets the opacity in the w&#45;array by calling mod_opal_opacity." alt="" coords="487,145,668,172"/>
-<area shape="rect" id="node5" href="$namespacemod__fld.html#a6b4aeeffe4c5918e0bd2a8858efea215" title="Find the root of the 4th degree polynomial using the Halley method." alt="" coords="257,44,436,71"/>
-<area shape="rect" id="node6" href="$namespacemod__fld.html#afd1668b588f8b86ac4d95d46ee2ecd1f" title="Find the root of the 4th degree polynomial using the Newton&#45;Ralphson method." alt="" coords="484,44,671,71"/>
+<area shape="rect" id="node1" title="This subroutine calculates the radiation heating, radiation cooling and photon tiring using an implic..." alt="" coords="5,56,209,82"/>
+<area shape="rect" id="node2" href="$namespacemod__fld.html#ae111198d92df820a9edeaf0073f4107e" title="Find the root of the 4th degree polynomial using the bisection method." alt="" coords="721,23,863,64"/>
+<area shape="rect" id="node3" href="$namespacemod__fld.html#ac9f2df78330406043ccd51c94710a9f7" title="Sets the opacity in the w&#45;array by calling mod_opal_opacity." alt="" coords="257,30,439,57"/>
+<area shape="rect" id="node4" href="$namespacemod__fld.html#a6b4aeeffe4c5918e0bd2a8858efea215" title="Find the root of the 4th degree polynomial using the Halley method." alt="" coords="259,81,437,108"/>
+<area shape="rect" id="node5" href="$namespacemod__fld.html#afd1668b588f8b86ac4d95d46ee2ecd1f" title="Find the root of the 4th degree polynomial using the Newton&#45;Ralphson method." alt="" coords="487,81,673,108"/>
 </map>

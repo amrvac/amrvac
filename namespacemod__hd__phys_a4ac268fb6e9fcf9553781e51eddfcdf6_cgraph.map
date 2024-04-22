@@ -1,7 +1,0 @@
-<map id="mod_hd_phys::hd_add_source_geom" name="mod_hd_phys::hd_add_source_geom">
-<area shape="rect" id="node1" title="Add geometrical source terms to w." alt="" coords="5,97,172,139"/>
-<area shape="rect" id="node2" href="$namespacemod__hd__phys.html#aa893373436eb62993cc188e9005870c8" title="Calculate thermal pressure=(gamma&#45;1)*(e&#45;0.5*m**2/rho) within ixO^L." alt="" coords="220,5,384,47"/>
-<area shape="rect" id="node3" href="$comm__lib_8t.html#a49b49ea9ffbbadfe688e332921c4cddd" title="Exit MPI&#45;AMRVAC with an error message." alt="" coords="432,105,507,131"/>
-<area shape="rect" id="node4" href="$namespacemod__rotating__frame.html#a2ff601f629ea6c87c1be3b513b5474c9" title="w[iw]=w[iw]+qdt*S[wCT,qtC,x] where S is the source based on wCT within ixO" alt="" coords="223,122,381,178"/>
-<area shape="rect" id="node5" href="$namespacemod__viscosity.html#a992638ce7fbbbc28f36a51e4a6d51835" title=" " alt="" coords="227,203,377,244"/>
-</map>

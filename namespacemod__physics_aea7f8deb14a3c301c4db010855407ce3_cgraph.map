@@ -1,24 +1,24 @@
 <map id="mod_physics::phys_check" name="mod_physics::phys_check">
 <area shape="rect" id="node1" title=" " alt="" coords="5,653,196,679"/>
-<area shape="rect" id="node2" href="$namespacemod__physics.html#a53e15b7a9353c0e85a4bcc876e617bb4" title=" " alt="" coords="253,5,418,47"/>
-<area shape="rect" id="node3" href="$namespacemod__physics.html#a48ebe8d7aa8fe9b4799db4bc1af1975b" title=" " alt="" coords="253,71,418,112"/>
-<area shape="rect" id="node4" href="$namespacemod__physics.html#a3afbf962a4e709e6408da6c76e0b939f" title=" " alt="" coords="253,136,418,177"/>
-<area shape="rect" id="node5" href="$namespacemod__physics.html#a0c16dbee64a6667a0d86337bc7dce6bf" title=" " alt="" coords="253,201,418,243"/>
-<area shape="rect" id="node6" href="$namespacemod__physics.html#ac22202501f5cbeb12c46765f66769eb5" title=" " alt="" coords="253,267,418,308"/>
-<area shape="rect" id="node7" href="$namespacemod__physics.html#af9213e958662387013ac07f086ff3f21" title=" " alt="" coords="253,332,418,373"/>
-<area shape="rect" id="node8" href="$namespacemod__physics.html#aae18e004d3281383b491bbac9a250c67" title=" " alt="" coords="253,397,418,439"/>
-<area shape="rect" id="node9" href="$namespacemod__physics.html#a5476af6a63cda81914ec5d93a0cdcbde" title=" " alt="" coords="253,463,418,504"/>
-<area shape="rect" id="node10" href="$namespacemod__physics.html#ae8aebc6b57c4c528fddc21ecdaf17e72" title=" " alt="" coords="253,528,418,569"/>
-<area shape="rect" id="node11" href="$comm__lib_8t.html#a49b49ea9ffbbadfe688e332921c4cddd" title="Exit MPI&#45;AMRVAC with an error message." alt="" coords="475,594,549,621"/>
-<area shape="rect" id="node12" href="$namespacemod__physics.html#a0d73baf64c54cb5346f93e6679f15f34" title=" " alt="" coords="253,645,418,687"/>
-<area shape="rect" id="node13" href="$namespacemod__physics.html#a600435056460e3a5f76661016c489afd" title=" " alt="" coords="253,711,418,752"/>
-<area shape="rect" id="node14" href="$namespacemod__physics.html#ad630a9ceff3e8decc0ca2c04fa15e256" title=" " alt="" coords="253,776,418,817"/>
-<area shape="rect" id="node15" href="$namespacemod__physics.html#ac80a37685eb1dbac4d7558d81009dc35" title=" " alt="" coords="253,841,418,883"/>
-<area shape="rect" id="node16" href="$namespacemod__physics.html#afe1c2605c6355eaffded3a7bcf5085e2" title=" " alt="" coords="253,907,418,948"/>
-<area shape="rect" id="node17" href="$namespacemod__physics.html#af376f6becf29ca737dfd22a66cdc2ecc" title=" " alt="" coords="253,972,418,1013"/>
-<area shape="rect" id="node18" href="$namespacemod__physics.html#a0b4f0cfc243a6ec24553a74fd31ee1ca" title=" " alt="" coords="253,1037,418,1079"/>
-<area shape="rect" id="node19" href="$namespacemod__physics.html#ad95e43868a4a0bd787b8953adf6b97f3" title=" " alt="" coords="253,1103,418,1144"/>
-<area shape="rect" id="node20" href="$namespacemod__physics__hllc.html#ad7c46ece6c1f2f3e2925fd5f8ad82465" title=" " alt="" coords="247,1168,423,1209"/>
-<area shape="rect" id="node21" href="$namespacemod__physics__ppm.html#a48b2a20f1d429f56a1a257835dda89d3" title=" " alt="" coords="244,1233,427,1275"/>
-<area shape="rect" id="node22" href="$namespacemod__physics__roe.html#a2f639d0151ac75a4fbfdd2262541ac41" title=" " alt="" coords="248,1299,423,1340"/>
+<area shape="rect" id="node2" href="$namespacemod__physics.html#ae1f7336a61841a297f6b629386c1428e" title=" " alt="" coords="249,5,415,47"/>
+<area shape="rect" id="node3" href="$namespacemod__physics.html#abccb7aed990f67bf08b6a6e93409d06e" title=" " alt="" coords="249,71,415,112"/>
+<area shape="rect" id="node4" href="$namespacemod__physics.html#a0c16dbee64a6667a0d86337bc7dce6bf" title=" " alt="" coords="249,136,415,177"/>
+<area shape="rect" id="node5" href="$namespacemod__physics.html#ac22202501f5cbeb12c46765f66769eb5" title=" " alt="" coords="249,201,415,243"/>
+<area shape="rect" id="node6" href="$namespacemod__physics.html#af9213e958662387013ac07f086ff3f21" title=" " alt="" coords="249,267,415,308"/>
+<area shape="rect" id="node7" href="$namespacemod__physics.html#aae18e004d3281383b491bbac9a250c67" title=" " alt="" coords="249,332,415,373"/>
+<area shape="rect" id="node8" href="$namespacemod__physics.html#a5476af6a63cda81914ec5d93a0cdcbde" title=" " alt="" coords="249,397,415,439"/>
+<area shape="rect" id="node9" href="$namespacemod__physics.html#ae8aebc6b57c4c528fddc21ecdaf17e72" title=" " alt="" coords="249,463,415,504"/>
+<area shape="rect" id="node10" href="$namespacemod__comm__lib.html#a9b6f1a8fd13bc5670e3b426151c34048" title="Exit MPI&#45;AMRVAC with an error message." alt="" coords="468,587,651,614"/>
+<area shape="rect" id="node11" href="$namespacemod__physics.html#ac687637834e4686478b211a05966c044" title=" " alt="" coords="249,580,415,621"/>
+<area shape="rect" id="node12" href="$namespacemod__physics.html#ae86d0ed9cda4e2eb8d72eabbeb400ddb" title=" " alt="" coords="249,645,415,687"/>
+<area shape="rect" id="node13" href="$namespacemod__physics.html#a0d73baf64c54cb5346f93e6679f15f34" title=" " alt="" coords="249,711,415,752"/>
+<area shape="rect" id="node14" href="$namespacemod__physics.html#a600435056460e3a5f76661016c489afd" title=" " alt="" coords="249,776,415,817"/>
+<area shape="rect" id="node15" href="$namespacemod__physics.html#ad630a9ceff3e8decc0ca2c04fa15e256" title=" " alt="" coords="249,841,415,883"/>
+<area shape="rect" id="node16" href="$namespacemod__physics.html#ac80a37685eb1dbac4d7558d81009dc35" title=" " alt="" coords="249,907,415,948"/>
+<area shape="rect" id="node17" href="$namespacemod__physics.html#afe1c2605c6355eaffded3a7bcf5085e2" title=" " alt="" coords="249,972,415,1013"/>
+<area shape="rect" id="node18" href="$namespacemod__physics.html#af376f6becf29ca737dfd22a66cdc2ecc" title=" " alt="" coords="249,1037,415,1079"/>
+<area shape="rect" id="node19" href="$namespacemod__physics.html#a0b4f0cfc243a6ec24553a74fd31ee1ca" title=" " alt="" coords="249,1103,415,1144"/>
+<area shape="rect" id="node20" href="$namespacemod__physics.html#ad95e43868a4a0bd787b8953adf6b97f3" title=" " alt="" coords="249,1168,415,1209"/>
+<area shape="rect" id="node21" href="$namespacemod__physics__hllc.html#ad7c46ece6c1f2f3e2925fd5f8ad82465" title=" " alt="" coords="244,1233,420,1275"/>
+<area shape="rect" id="node22" href="$namespacemod__physics__roe.html#a2f639d0151ac75a4fbfdd2262541ac41" title=" " alt="" coords="245,1299,419,1340"/>
 </map>

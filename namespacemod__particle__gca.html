@@ -30,7 +30,7 @@
  <tr style="height: 56px;">
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">MPI-AMRVAC
-   &#160;<span id="projectnumber">3.0</span>
+   &#160;<span id="projectnumber">3.1</span>
    </div>
    <div id="projectbrief">The MPI - Adaptive Mesh Refinement - Versatile Advection Code</div>
   </td>
@@ -96,9 +96,9 @@ Functions/Subroutines</h2></td></tr>
 <tr class="separator:a3c6adb0f0d4a68723bba52be3f22de52"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a3122997645fd02516d04de652c53287f"><td class="memItemLeft" align="right" valign="top">subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__particle__gca.html#a3122997645fd02516d04de652c53287f">derivs_gca</a> (t_s, y, dydt)</td></tr>
 <tr class="separator:a3122997645fd02516d04de652c53287f"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a38d615c4ccb96586516e42f229a3d3f9"><td class="memItemLeft" align="right" valign="top">subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__particle__gca.html#a38d615c4ccb96586516e42f229a3d3f9">gca_update_payload</a> (igrid, w, wold, xgrid, xpart, upart, qpart, mpart, mypayload, mynpayload, particle_time)</td></tr>
-<tr class="memdesc:a38d615c4ccb96586516e42f229a3d3f9"><td class="mdescLeft">&#160;</td><td class="mdescRight">Update payload subroutine.  <a href="namespacemod__particle__gca.html#a38d615c4ccb96586516e42f229a3d3f9">More...</a><br /></td></tr>
-<tr class="separator:a38d615c4ccb96586516e42f229a3d3f9"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ab61e3fbbb7abf51240bc184e57b52d41"><td class="memItemLeft" align="right" valign="top">subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__particle__gca.html#ab61e3fbbb7abf51240bc184e57b52d41">gca_update_payload</a> (igrid, xpart, upart, qpart, mpart, mypayload, mynpayload, particle_time)</td></tr>
+<tr class="memdesc:ab61e3fbbb7abf51240bc184e57b52d41"><td class="mdescLeft">&#160;</td><td class="mdescRight">Update payload subroutine.  <a href="namespacemod__particle__gca.html#ab61e3fbbb7abf51240bc184e57b52d41">More...</a><br /></td></tr>
+<tr class="separator:ab61e3fbbb7abf51240bc184e57b52d41"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a564934dbadba5566476ff1be554bb9c3"><td class="memItemLeft" align="right" valign="top">double precision function&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__particle__gca.html#a564934dbadba5566476ff1be554bb9c3">gca_get_particle_dt</a> (partp, end_time)</td></tr>
 <tr class="separator:a564934dbadba5566476ff1be554bb9c3"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
@@ -155,16 +155,17 @@ Variables</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="mod__particle__gca_8t_source.html#l00664">664</a> of file <a class="el" href="mod__particle__gca_8t_source.html">mod_particle_gca.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__particle__gca_8t_source.html#l00643">643</a> of file <a class="el" href="mod__particle__gca_8t_source.html">mod_particle_gca.t</a>.</p>
 <div class="dynheader">
 Here is the call graph for this function:</div>
 <div class="dyncontent">
 <div class="center"><img src="namespacemod__particle__gca_a3122997645fd02516d04de652c53287f_cgraph.png" border="0" usemap="#anamespacemod__particle__gca_a3122997645fd02516d04de652c53287f_cgraph" alt=""/></div>
 <map name="anamespacemod__particle__gca_a3122997645fd02516d04de652c53287f_cgraph" id="anamespacemod__particle__gca_a3122997645fd02516d04de652c53287f_cgraph">
-<area shape="rect" title=" " alt="" coords="5,71,220,98"/>
+<area shape="rect" title=" " alt="" coords="5,97,220,123"/>
 <area shape="rect" href="namespacemod__particle__base.html#ab86a6399bcf481404721bcb11ca92e8a" title=" " alt="" coords="268,5,421,47"/>
-<area shape="rect" href="comm__lib_8t.html#a49b49ea9ffbbadfe688e332921c4cddd" title="Exit MPI&#45;AMRVAC with an error message." alt="" coords="469,42,544,69"/>
-<area shape="rect" href="namespacemod__particle__base.html#a85a2d46a6cbe809098c52ea9beca540a" title=" " alt="" coords="268,123,421,164"/>
+<area shape="rect" href="namespacemod__particle__base.html#a7d9a58afea8627c45f86fb2657d9b8df" title=" " alt="" coords="469,123,623,164"/>
+<area shape="rect" href="namespacemod__particle__base.html#a85a2d46a6cbe809098c52ea9beca540a" title=" " alt="" coords="671,123,824,164"/>
+<area shape="rect" href="namespacemod__particle__base.html#a39bc08ff3212378f905b861b84bcfc85" title=" " alt="" coords="268,173,421,215"/>
 </map>
 </div>
 
@@ -202,16 +203,17 @@ Here is the call graph for this function:</div>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="mod__particle__gca_8t_source.html#l00565">565</a> of file <a class="el" href="mod__particle__gca_8t_source.html">mod_particle_gca.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__particle__gca_8t_source.html#l00538">538</a> of file <a class="el" href="mod__particle__gca_8t_source.html">mod_particle_gca.t</a>.</p>
 <div class="dynheader">
 Here is the call graph for this function:</div>
 <div class="dyncontent">
 <div class="center"><img src="namespacemod__particle__gca_a3c6adb0f0d4a68723bba52be3f22de52_cgraph.png" border="0" usemap="#anamespacemod__particle__gca_a3c6adb0f0d4a68723bba52be3f22de52_cgraph" alt=""/></div>
 <map name="anamespacemod__particle__gca_a3c6adb0f0d4a68723bba52be3f22de52_cgraph" id="anamespacemod__particle__gca_a3c6adb0f0d4a68723bba52be3f22de52_cgraph">
-<area shape="rect" title=" " alt="" coords="5,64,191,105"/>
+<area shape="rect" title=" " alt="" coords="5,89,191,131"/>
 <area shape="rect" href="namespacemod__particle__base.html#ab86a6399bcf481404721bcb11ca92e8a" title=" " alt="" coords="239,5,392,47"/>
-<area shape="rect" href="comm__lib_8t.html#a49b49ea9ffbbadfe688e332921c4cddd" title="Exit MPI&#45;AMRVAC with an error message." alt="" coords="440,42,515,69"/>
-<area shape="rect" href="namespacemod__particle__base.html#a85a2d46a6cbe809098c52ea9beca540a" title=" " alt="" coords="239,123,392,164"/>
+<area shape="rect" href="namespacemod__particle__base.html#a7d9a58afea8627c45f86fb2657d9b8df" title=" " alt="" coords="440,123,593,164"/>
+<area shape="rect" href="namespacemod__particle__base.html#a85a2d46a6cbe809098c52ea9beca540a" title=" " alt="" coords="641,123,795,164"/>
+<area shape="rect" href="namespacemod__particle__base.html#a39bc08ff3212378f905b861b84bcfc85" title=" " alt="" coords="239,173,392,215"/>
 </map>
 </div>
 
@@ -229,7 +231,7 @@ Here is the call graph for this function:</div>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="mod__particle__gca_8t_source.html#l00097">97</a> of file <a class="el" href="mod__particle__gca_8t_source.html">mod_particle_gca.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__particle__gca_8t_source.html#l00110">110</a> of file <a class="el" href="mod__particle__gca_8t_source.html">mod_particle_gca.t</a>.</p>
 <div class="dynheader">
 Here is the call graph for this function:</div>
 <div class="dyncontent">
@@ -237,7 +239,7 @@ Here is the call graph for this function:</div>
 <map name="anamespacemod__particle__gca_a7655ff0241d9b535bda5851a41425f26_cgraph" id="anamespacemod__particle__gca_a7655ff0241d9b535bda5851a41425f26_cgraph">
 <area shape="rect" title=" " alt="" coords="5,129,173,171"/>
 <area shape="rect" href="namespacemod__particle__base.html#a557c63a62cb1491a66af98fb29258dd5" title=" " alt="" coords="247,5,400,47"/>
-<area shape="rect" href="namespacemod__particle__gca.html#a38d615c4ccb96586516e42f229a3d3f9" title="Update payload subroutine." alt="" coords="239,71,407,112"/>
+<area shape="rect" href="namespacemod__particle__gca.html#ab61e3fbbb7abf51240bc184e57b52d41" title="Update payload subroutine." alt="" coords="239,71,407,112"/>
 <area shape="rect" href="namespacemod__particle__base.html#a85a2d46a6cbe809098c52ea9beca540a" title=" " alt="" coords="473,100,627,141"/>
 <area shape="rect" href="namespacemod__particle__base.html#a66f981478b56631fd2a804f359643ff9" title="Get Lorentz factor from velocity." alt="" coords="238,188,409,229"/>
 <area shape="rect" href="namespacemod__particle__base.html#a8cb2c79dc331397db976421b8e78431e" title=" " alt="" coords="221,254,425,310"/>
@@ -258,16 +260,15 @@ Here is the call graph for this function:</div>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="mod__particle__gca_8t_source.html#l00204">204</a> of file <a class="el" href="mod__particle__gca_8t_source.html">mod_particle_gca.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__particle__gca_8t_source.html#l00217">217</a> of file <a class="el" href="mod__particle__gca_8t_source.html">mod_particle_gca.t</a>.</p>
 <div class="dynheader">
 Here is the call graph for this function:</div>
 <div class="dyncontent">
 <div class="center"><img src="namespacemod__particle__gca_a77d2a260ed2247127289c1f6f2a080e1_cgraph.png" border="0" usemap="#anamespacemod__particle__gca_a77d2a260ed2247127289c1f6f2a080e1_cgraph" alt=""/></div>
 <map name="anamespacemod__particle__gca_a77d2a260ed2247127289c1f6f2a080e1_cgraph" id="anamespacemod__particle__gca_a77d2a260ed2247127289c1f6f2a080e1_cgraph">
-<area shape="rect" title=" " alt="" coords="5,64,173,105"/>
+<area shape="rect" title=" " alt="" coords="5,35,173,76"/>
 <area shape="rect" href="namespacemod__particle__base.html#a72a44f312e4e01053ad928ec6fa522c2" title="This routine fills the particle grid variables with the default for mhd, i.e. only E and B." alt="" coords="236,5,389,47"/>
 <area shape="rect" href="namespacemod__geometry.html#a92ec4e2c8ae00a42bf5bf2c1ce3a26c4" title="Calculate gradient of a scalar q within ixL in direction idir." alt="" coords="221,71,404,98"/>
-<area shape="rect" href="comm__lib_8t.html#a49b49ea9ffbbadfe688e332921c4cddd" title="Exit MPI&#45;AMRVAC with an error message." alt="" coords="452,97,527,123"/>
 </map>
 </div>
 
@@ -299,7 +300,7 @@ Here is the call graph for this function:</div>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="mod__particle__gca_8t_source.html#l00880">880</a> of file <a class="el" href="mod__particle__gca_8t_source.html">mod_particle_gca.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__particle__gca_8t_source.html#l00862">862</a> of file <a class="el" href="mod__particle__gca_8t_source.html">mod_particle_gca.t</a>.</p>
 <div class="dynheader">
 Here is the call graph for this function:</div>
 <div class="dyncontent">
@@ -327,16 +328,15 @@ Here is the call graph for this function:</div>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="mod__particle__gca_8t_source.html#l00032">32</a> of file <a class="el" href="mod__particle__gca_8t_source.html">mod_particle_gca.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__particle__gca_8t_source.html#l00033">33</a> of file <a class="el" href="mod__particle__gca_8t_source.html">mod_particle_gca.t</a>.</p>
 <div class="dynheader">
 Here is the call graph for this function:</div>
 <div class="dyncontent">
 <div class="center"><img src="namespacemod__particle__gca_a3d2463d9188aa68326c9222f45677b42_cgraph.png" border="0" usemap="#anamespacemod__particle__gca_a3d2463d9188aa68326c9222f45677b42_cgraph" alt=""/></div>
 <map name="anamespacemod__particle__gca_a3d2463d9188aa68326c9222f45677b42_cgraph" id="anamespacemod__particle__gca_a3d2463d9188aa68326c9222f45677b42_cgraph">
-<area shape="rect" title=" " alt="" coords="5,71,201,98"/>
+<area shape="rect" title=" " alt="" coords="5,46,201,73"/>
 <area shape="rect" href="namespacemod__particle__gca.html#a77d2a260ed2247127289c1f6f2a080e1" title=" " alt="" coords="249,5,417,47"/>
-<area shape="rect" href="comm__lib_8t.html#a49b49ea9ffbbadfe688e332921c4cddd" title="Exit MPI&#45;AMRVAC with an error message." alt="" coords="465,71,540,98"/>
-<area shape="rect" href="namespacemod__particle__gca.html#aa7943225cc9119a0b128de03ba109751" title=" " alt="" coords="249,123,417,164"/>
+<area shape="rect" href="namespacemod__particle__gca.html#aa7943225cc9119a0b128de03ba109751" title=" " alt="" coords="249,71,417,112"/>
 </map>
 </div>
 
@@ -358,30 +358,30 @@ Here is the call graph for this function:</div>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="mod__particle__gca_8t_source.html#l00365">365</a> of file <a class="el" href="mod__particle__gca_8t_source.html">mod_particle_gca.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__particle__gca_8t_source.html#l00307">307</a> of file <a class="el" href="mod__particle__gca_8t_source.html">mod_particle_gca.t</a>.</p>
 <div class="dynheader">
 Here is the call graph for this function:</div>
 <div class="dyncontent">
 <div class="center"><img src="namespacemod__particle__gca_aa7943225cc9119a0b128de03ba109751_cgraph.png" border="0" usemap="#anamespacemod__particle__gca_aa7943225cc9119a0b128de03ba109751_cgraph" alt=""/></div>
 <map name="anamespacemod__particle__gca_aa7943225cc9119a0b128de03ba109751_cgraph" id="anamespacemod__particle__gca_aa7943225cc9119a0b128de03ba109751_cgraph">
-<area shape="rect" title=" " alt="" coords="5,229,173,270"/>
-<area shape="rect" href="namespacemod__particle__base.html#ab86a6399bcf481404721bcb11ca92e8a" title=" " alt="" coords="700,273,853,314"/>
-<area shape="rect" href="comm__lib_8t.html#a49b49ea9ffbbadfe688e332921c4cddd" title="Exit MPI&#45;AMRVAC with an error message." alt="" coords="901,163,976,190"/>
-<area shape="rect" href="namespacemod__particle__gca.html#a3122997645fd02516d04de652c53287f" title=" " alt="" coords="437,104,652,131"/>
-<area shape="rect" href="namespacemod__particle__base.html#a85a2d46a6cbe809098c52ea9beca540a" title=" " alt="" coords="700,156,853,197"/>
-<area shape="rect" href="namespacemod__particle__gca.html#a3c6adb0f0d4a68723bba52be3f22de52" title=" " alt="" coords="452,221,637,262"/>
-<area shape="rect" href="namespacemod__particle__gca.html#a564934dbadba5566476ff1be554bb9c3" title=" " alt="" coords="221,145,389,186"/>
-<area shape="rect" href="namespacemod__particle__base.html#a24d3f7d76b59c8f7954ad59258a02b32" title="Quick check if particle is still in igrid." alt="" coords="468,156,621,197"/>
-<area shape="rect" href="namespacemod__particle__gca.html#a38d615c4ccb96586516e42f229a3d3f9" title="Update payload subroutine." alt="" coords="461,286,629,328"/>
-<area shape="rect" href="namespacemod__odeint.html#a05bdec0f8e3d103dcc0b47ab4cfa2150" title=" " alt="" coords="231,464,379,491"/>
-<area shape="rect" href="namespacemod__odeint.html#a5da5d917b700b1b49cdae329db18e88b" title=" " alt="" coords="477,439,612,466"/>
+<area shape="rect" title=" " alt="" coords="5,199,173,240"/>
+<area shape="rect" href="namespacemod__particle__base.html#ab86a6399bcf481404721bcb11ca92e8a" title=" " alt="" coords="700,78,853,119"/>
+<area shape="rect" href="namespacemod__particle__gca.html#a3122997645fd02516d04de652c53287f" title=" " alt="" coords="437,142,652,169"/>
+<area shape="rect" href="namespacemod__particle__base.html#a7d9a58afea8627c45f86fb2657d9b8df" title=" " alt="" coords="901,136,1055,178"/>
+<area shape="rect" href="namespacemod__particle__base.html#a39bc08ff3212378f905b861b84bcfc85" title=" " alt="" coords="700,195,853,236"/>
+<area shape="rect" href="namespacemod__particle__gca.html#a3c6adb0f0d4a68723bba52be3f22de52" title=" " alt="" coords="452,259,637,300"/>
+<area shape="rect" href="namespacemod__particle__gca.html#a564934dbadba5566476ff1be554bb9c3" title=" " alt="" coords="221,228,389,270"/>
+<area shape="rect" href="namespacemod__particle__base.html#a24d3f7d76b59c8f7954ad59258a02b32" title="Quick check if particle is still in igrid." alt="" coords="468,194,621,235"/>
+<area shape="rect" href="namespacemod__particle__gca.html#ab61e3fbbb7abf51240bc184e57b52d41" title="Update payload subroutine." alt="" coords="461,76,629,118"/>
+<area shape="rect" href="namespacemod__odeint.html#a05bdec0f8e3d103dcc0b47ab4cfa2150" title=" " alt="" coords="231,446,379,473"/>
+<area shape="rect" href="namespacemod__odeint.html#a5da5d917b700b1b49cdae329db18e88b" title=" " alt="" coords="477,421,612,448"/>
 </map>
 </div>
 
 </div>
 </div>
-<a id="a38d615c4ccb96586516e42f229a3d3f9"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a38d615c4ccb96586516e42f229a3d3f9">&#9670;&nbsp;</a></span>gca_update_payload()</h2>
+<a id="ab61e3fbbb7abf51240bc184e57b52d41"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ab61e3fbbb7abf51240bc184e57b52d41">&#9670;&nbsp;</a></span>gca_update_payload()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -391,24 +391,6 @@ Here is the call graph for this function:</div>
           <td>(</td>
           <td class="paramtype">integer, intent(in)&#160;</td>
           <td class="paramname"><em>igrid</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">double precision, dimension(ixg^t,1:nw), intent(in)&#160;</td>
-          <td class="paramname"><em>w</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">double precision, dimension(ixg^t,1:nw), intent(in)&#160;</td>
-          <td class="paramname"><em>wold</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">double precision, dimension(ixg^t,1:ndim), intent(in)&#160;</td>
-          <td class="paramname"><em>xgrid</em>, </td>
         </tr>
         <tr>
           <td class="paramkey"></td>
@@ -462,15 +444,17 @@ Here is the call graph for this function:</div>
 
 <p>Update payload subroutine. </p>
 
-<p class="definition">Definition at line <a class="el" href="mod__particle__gca_8t_source.html#l00742">742</a> of file <a class="el" href="mod__particle__gca_8t_source.html">mod_particle_gca.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__particle__gca_8t_source.html#l00723">723</a> of file <a class="el" href="mod__particle__gca_8t_source.html">mod_particle_gca.t</a>.</p>
 <div class="dynheader">
 Here is the call graph for this function:</div>
 <div class="dyncontent">
-<div class="center"><img src="namespacemod__particle__gca_a38d615c4ccb96586516e42f229a3d3f9_cgraph.png" border="0" usemap="#anamespacemod__particle__gca_a38d615c4ccb96586516e42f229a3d3f9_cgraph" alt=""/></div>
-<map name="anamespacemod__particle__gca_a38d615c4ccb96586516e42f229a3d3f9_cgraph" id="anamespacemod__particle__gca_a38d615c4ccb96586516e42f229a3d3f9_cgraph">
-<area shape="rect" title="Update payload subroutine." alt="" coords="5,39,173,80"/>
+<div class="center"><img src="namespacemod__particle__gca_ab61e3fbbb7abf51240bc184e57b52d41_cgraph.png" border="0" usemap="#anamespacemod__particle__gca_ab61e3fbbb7abf51240bc184e57b52d41_cgraph" alt=""/></div>
+<map name="anamespacemod__particle__gca_ab61e3fbbb7abf51240bc184e57b52d41_cgraph" id="anamespacemod__particle__gca_ab61e3fbbb7abf51240bc184e57b52d41_cgraph">
+<area shape="rect" title="Update payload subroutine." alt="" coords="5,89,173,131"/>
 <area shape="rect" href="namespacemod__particle__base.html#ab86a6399bcf481404721bcb11ca92e8a" title=" " alt="" coords="221,5,375,47"/>
-<area shape="rect" href="namespacemod__particle__base.html#a85a2d46a6cbe809098c52ea9beca540a" title=" " alt="" coords="221,71,375,112"/>
+<area shape="rect" href="namespacemod__particle__base.html#a7d9a58afea8627c45f86fb2657d9b8df" title=" " alt="" coords="423,123,576,164"/>
+<area shape="rect" href="namespacemod__particle__base.html#a85a2d46a6cbe809098c52ea9beca540a" title=" " alt="" coords="624,123,777,164"/>
+<area shape="rect" href="namespacemod__particle__base.html#a39bc08ff3212378f905b861b84bcfc85" title=" " alt="" coords="221,173,375,215"/>
 </map>
 </div>
 

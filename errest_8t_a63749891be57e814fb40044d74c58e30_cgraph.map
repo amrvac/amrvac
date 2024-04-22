@@ -1,8 +1,0 @@
-<map id="errest" name="errest">
-<area shape="rect" id="node1" title="Do all local error estimation which determines (de)refinement." alt="" coords="5,107,65,133"/>
-<area shape="rect" id="node2" href="$errest_8t.html#a0387ec0d02dbbdf75ab70a6040fa2d20" title=" " alt="" coords="120,5,239,32"/>
-<area shape="rect" id="node3" href="$errest_8t.html#a0b398e5053709c376e141d487f123e4e" title=" " alt="" coords="113,56,245,83"/>
-<area shape="rect" id="node4" href="$errest_8t.html#a8a71acb83c5df54ad4d0b16cf399115c" title=" " alt="" coords="132,107,227,133"/>
-<area shape="rect" id="node5" href="$comm__lib_8t.html#a49b49ea9ffbbadfe688e332921c4cddd" title="Exit MPI&#45;AMRVAC with an error message." alt="" coords="293,157,368,184"/>
-<area shape="rect" id="node6" href="$errest_8t.html#a97e9f403b6715dfbdff6c96cca49dc19" title=" " alt="" coords="116,208,243,235"/>
-</map>

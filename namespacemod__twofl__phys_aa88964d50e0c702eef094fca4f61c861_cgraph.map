@@ -1,7 +1,6 @@
 <map id="mod_twofl_phys::add_source_res1" name="mod_twofl_phys::add_source_res1">
-<area shape="rect" id="node1" title="Add resistive source to w within ixO Uses 3 point stencil (1 neighbour) in each direction,..." alt="" coords="5,89,165,131"/>
+<area shape="rect" id="node1" title="Add resistive source to w within ixO Uses 3 point stencil (1 neighbour) in each direction,..." alt="" coords="5,64,165,105"/>
 <area shape="rect" id="node2" href="$namespacemod__twofl__phys.html#a35943a026269e9b298b1b62e51b411da" title="Calculate idirmin and the idirmin:3 components of the common current array make sure that dxlevel(^D)..." alt="" coords="226,5,383,47"/>
 <area shape="rect" id="node3" href="$namespacemod__geometry.html#a92ec4e2c8ae00a42bf5bf2c1ce3a26c4" title="Calculate gradient of a scalar q within ixL in direction idir." alt="" coords="213,71,396,98"/>
-<area shape="rect" id="node4" href="$comm__lib_8t.html#a49b49ea9ffbbadfe688e332921c4cddd" title="Exit MPI&#45;AMRVAC with an error message." alt="" coords="444,97,519,123"/>
-<area shape="rect" id="node5" href="$namespacemod__twofl__phys.html#ac3a9eb19d555dfbc5e17d410f70d6479" title=" " alt="" coords="221,173,389,215"/>
+<area shape="rect" id="node4" href="$namespacemod__twofl__phys.html#ac3a9eb19d555dfbc5e17d410f70d6479" title=" " alt="" coords="221,123,389,164"/>
 </map>

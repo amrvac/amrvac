@@ -30,7 +30,7 @@
  <tr style="height: 56px;">
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">MPI-AMRVAC
-   &#160;<span id="projectnumber">3.0</span>
+   &#160;<span id="projectnumber">3.1</span>
    </div>
    <div id="projectbrief">The MPI - Adaptive Mesh Refinement - Versatile Advection Code</div>
   </td>
@@ -97,9 +97,6 @@ Functions/Subroutines</h2></td></tr>
 <tr class="memitem:a63e1f1be53bf460ec41699619a8e60e0"><td class="memItemLeft" align="right" valign="top">subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__rhd__phys.html#a63e1f1be53bf460ec41699619a8e60e0">mod_rhd_phys::rhd_write_info</a> (fh)</td></tr>
 <tr class="memdesc:a63e1f1be53bf460ec41699619a8e60e0"><td class="mdescLeft">&#160;</td><td class="mdescRight">Write this module's parameters to a snapsoht.  <a href="namespacemod__rhd__phys.html#a63e1f1be53bf460ec41699619a8e60e0">More...</a><br /></td></tr>
 <tr class="separator:a63e1f1be53bf460ec41699619a8e60e0"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:afba9c5fbcc28ff5d7cd914e3d00f6a49"><td class="memItemLeft" align="right" valign="top">subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__rhd__phys.html#afba9c5fbcc28ff5d7cd914e3d00f6a49">mod_rhd_phys::rhd_angmomfix</a> (fC, x, wnew, ixIL, ixOL, idim)</td></tr>
-<tr class="memdesc:afba9c5fbcc28ff5d7cd914e3d00f6a49"><td class="mdescLeft">&#160;</td><td class="mdescRight">Add fluxes in an angular momentum conserving way.  <a href="namespacemod__rhd__phys.html#afba9c5fbcc28ff5d7cd914e3d00f6a49">More...</a><br /></td></tr>
-<tr class="separator:afba9c5fbcc28ff5d7cd914e3d00f6a49"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a3f7d6dc56a47e47cd1e733b2ae66b071"><td class="memItemLeft" align="right" valign="top">subroutine, public&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__rhd__phys.html#a3f7d6dc56a47e47cd1e733b2ae66b071">mod_rhd_phys::rhd_phys_init</a> ()</td></tr>
 <tr class="memdesc:a3f7d6dc56a47e47cd1e733b2ae66b071"><td class="mdescLeft">&#160;</td><td class="mdescRight">Initialize the module.  <a href="namespacemod__rhd__phys.html#a3f7d6dc56a47e47cd1e733b2ae66b071">More...</a><br /></td></tr>
 <tr class="separator:a3f7d6dc56a47e47cd1e733b2ae66b071"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -193,11 +190,11 @@ Functions/Subroutines</h2></td></tr>
 <tr class="separator:aee9910e1fecb222fb0bc431bc9977071"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a9ca65e11c705382335ad41474f56b9e1"><td class="memItemLeft" align="right" valign="top">subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__rhd__phys.html#a9ca65e11c705382335ad41474f56b9e1">mod_rhd_phys::rhd_get_flux</a> (wC, w, x, ixIL, ixOL, idim, f)</td></tr>
 <tr class="separator:a9ca65e11c705382335ad41474f56b9e1"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a587219c99d42811bb189dedf32fc9f6b"><td class="memItemLeft" align="right" valign="top">subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__rhd__phys.html#a587219c99d42811bb189dedf32fc9f6b">mod_rhd_phys::rhd_add_source_geom</a> (qdt, ixIL, ixOL, wCT, w, x)</td></tr>
-<tr class="memdesc:a587219c99d42811bb189dedf32fc9f6b"><td class="mdescLeft">&#160;</td><td class="mdescRight">Add geometrical source terms to w.  <a href="namespacemod__rhd__phys.html#a587219c99d42811bb189dedf32fc9f6b">More...</a><br /></td></tr>
-<tr class="separator:a587219c99d42811bb189dedf32fc9f6b"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a97c6a29405c70592609737bad41a0432"><td class="memItemLeft" align="right" valign="top">subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__rhd__phys.html#a97c6a29405c70592609737bad41a0432">mod_rhd_phys::rhd_add_source</a> (qdt, ixIL, ixOL, wCT, w, x, qsourcesplit, active, wCTprim)</td></tr>
-<tr class="separator:a97c6a29405c70592609737bad41a0432"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a067cd53766353d1a8e79a8773210f34d"><td class="memItemLeft" align="right" valign="top">subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__rhd__phys.html#a067cd53766353d1a8e79a8773210f34d">mod_rhd_phys::rhd_add_source_geom</a> (qdt, dtfactor, ixIL, ixOL, wCT, w, x)</td></tr>
+<tr class="memdesc:a067cd53766353d1a8e79a8773210f34d"><td class="mdescLeft">&#160;</td><td class="mdescRight">Add geometrical source terms to w.  <a href="namespacemod__rhd__phys.html#a067cd53766353d1a8e79a8773210f34d">More...</a><br /></td></tr>
+<tr class="separator:a067cd53766353d1a8e79a8773210f34d"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a5852b88ab2d5e1e74d7755aca6639c11"><td class="memItemLeft" align="right" valign="top">subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__rhd__phys.html#a5852b88ab2d5e1e74d7755aca6639c11">mod_rhd_phys::rhd_add_source</a> (qdt, dtfactor, ixIL, ixOL, wCT, wCTprim, w, x, qsourcesplit, active)</td></tr>
+<tr class="separator:a5852b88ab2d5e1e74d7755aca6639c11"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a5d882fb0fb8e6d01178072fde57a0937"><td class="memItemLeft" align="right" valign="top">subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__rhd__phys.html#a5d882fb0fb8e6d01178072fde57a0937">mod_rhd_phys::rhd_add_radiation_source</a> (qdt, ixIL, ixOL, wCT, w, x, qsourcesplit, active)</td></tr>
 <tr class="separator:a5d882fb0fb8e6d01178072fde57a0937"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a2348342fd8f3c2578faf61198c1ab059"><td class="memItemLeft" align="right" valign="top">subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__rhd__phys.html#a2348342fd8f3c2578faf61198c1ab059">mod_rhd_phys::rhd_get_dt</a> (w, ixIL, ixOL, dtnew, dxD, x)</td></tr>
@@ -208,6 +205,12 @@ Functions/Subroutines</h2></td></tr>
 <tr class="separator:acb7601f3ca24d7f0ea3f3a26d10543eb"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a8eb91b2b6609e139baefc7bb7858e00c"><td class="memItemLeft" align="right" valign="top">subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__rhd__phys.html#a8eb91b2b6609e139baefc7bb7858e00c">mod_rhd_phys::rhd_handle_small_values</a> (primitive, w, x, ixIL, ixOL, subname)</td></tr>
 <tr class="separator:a8eb91b2b6609e139baefc7bb7858e00c"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a376fd3889c705172d1bb97fe9e67ec95"><td class="memItemLeft" align="right" valign="top">subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__rhd__phys.html#a376fd3889c705172d1bb97fe9e67ec95">mod_rhd_phys::rfactor_from_temperature_ionization</a> (w, x, ixIL, ixOL, <a class="el" href="interfacemod__usr__methods_1_1Rfactor.html">Rfactor</a>)</td></tr>
+<tr class="separator:a376fd3889c705172d1bb97fe9e67ec95"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a69053f0e54af9bae79ca518bab17587f"><td class="memItemLeft" align="right" valign="top">subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__rhd__phys.html#a69053f0e54af9bae79ca518bab17587f">mod_rhd_phys::rfactor_from_constant_ionization</a> (w, x, ixIL, ixOL, <a class="el" href="interfacemod__usr__methods_1_1Rfactor.html">Rfactor</a>)</td></tr>
+<tr class="separator:a69053f0e54af9bae79ca518bab17587f"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aa7716ab0f3bab6083faa39ad8cd38bc5"><td class="memItemLeft" align="right" valign="top">subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__rhd__phys.html#aa7716ab0f3bab6083faa39ad8cd38bc5">mod_rhd_phys::rhd_update_temperature</a> (ixIL, ixOL, wCT, w, x)</td></tr>
+<tr class="separator:aa7716ab0f3bab6083faa39ad8cd38bc5"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="var-members"></a>
 Variables</h2></td></tr>
@@ -262,6 +265,9 @@ Variables</h2></td></tr>
 <tr class="memitem:a44bacff24017d807ee5eae9690d30aa7"><td class="memItemLeft" align="right" valign="top">integer, public, protected&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__rhd__phys.html#a44bacff24017d807ee5eae9690d30aa7">mod_rhd_phys::r_e</a></td></tr>
 <tr class="memdesc:a44bacff24017d807ee5eae9690d30aa7"><td class="mdescLeft">&#160;</td><td class="mdescRight">Index of the radiation energy.  <a href="namespacemod__rhd__phys.html#a44bacff24017d807ee5eae9690d30aa7">More...</a><br /></td></tr>
 <tr class="separator:a44bacff24017d807ee5eae9690d30aa7"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a18a97762af1c7472e430d23ab5ffa21a"><td class="memItemLeft" align="right" valign="top">integer, public, protected&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__rhd__phys.html#a18a97762af1c7472e430d23ab5ffa21a">mod_rhd_phys::te_</a></td></tr>
+<tr class="memdesc:a18a97762af1c7472e430d23ab5ffa21a"><td class="mdescLeft">&#160;</td><td class="mdescRight">Indices of temperature.  <a href="namespacemod__rhd__phys.html#a18a97762af1c7472e430d23ab5ffa21a">More...</a><br /></td></tr>
+<tr class="separator:a18a97762af1c7472e430d23ab5ffa21a"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:af18de2213f541e7cde6e5bdb1ad31684"><td class="memItemLeft" align="right" valign="top">integer, public, protected&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__rhd__phys.html#af18de2213f541e7cde6e5bdb1ad31684">mod_rhd_phys::tcoff_</a></td></tr>
 <tr class="memdesc:af18de2213f541e7cde6e5bdb1ad31684"><td class="mdescLeft">&#160;</td><td class="mdescRight">Index of the cutoff temperature for the TRAC method.  <a href="namespacemod__rhd__phys.html#af18de2213f541e7cde6e5bdb1ad31684">More...</a><br /></td></tr>
 <tr class="separator:af18de2213f541e7cde6e5bdb1ad31684"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -303,9 +309,25 @@ Variables</h2></td></tr>
 <tr class="memitem:ad29473edca9d5d426f3dcdcf8d8e69f6"><td class="memItemLeft" align="right" valign="top">logical, public, protected&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__rhd__phys.html#ad29473edca9d5d426f3dcdcf8d8e69f6">mod_rhd_phys::rhd_radiation_advection</a> = .true.</td></tr>
 <tr class="memdesc:ad29473edca9d5d426f3dcdcf8d8e69f6"><td class="mdescLeft">&#160;</td><td class="mdescRight">Treat radiation advection.  <a href="namespacemod__rhd__phys.html#ad29473edca9d5d426f3dcdcf8d8e69f6">More...</a><br /></td></tr>
 <tr class="separator:ad29473edca9d5d426f3dcdcf8d8e69f6"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a6c14fc05482574241b920dd7f36757e3"><td class="memItemLeft" align="right" valign="top">logical, public, protected&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__rhd__phys.html#a6c14fc05482574241b920dd7f36757e3">mod_rhd_phys::rhd_partial_ionization</a> = .false.</td></tr>
+<tr class="memdesc:a6c14fc05482574241b920dd7f36757e3"><td class="mdescLeft">&#160;</td><td class="mdescRight">Whether plasma is partially ionized.  <a href="namespacemod__rhd__phys.html#a6c14fc05482574241b920dd7f36757e3">More...</a><br /></td></tr>
+<tr class="separator:a6c14fc05482574241b920dd7f36757e3"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a3469570a2c37e3b53c7c620465d9f06d"><td class="memItemLeft" align="right" valign="top">double precision, public&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__rhd__phys.html#a3469570a2c37e3b53c7c620465d9f06d">mod_rhd_phys::kbmpmua4</a></td></tr>
 <tr class="memdesc:a3469570a2c37e3b53c7c620465d9f06d"><td class="mdescLeft">&#160;</td><td class="mdescRight">kb/(m_p mu)* 1/a_rad**4,  <a href="namespacemod__rhd__phys.html#a3469570a2c37e3b53c7c620465d9f06d">More...</a><br /></td></tr>
 <tr class="separator:a3469570a2c37e3b53c7c620465d9f06d"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a8e5090b37762fa9893d058eb1910eb17"><td class="memItemLeft" align="right" valign="top">double precision, public, protected&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__rhd__phys.html#a8e5090b37762fa9893d058eb1910eb17">mod_rhd_phys::h_ion_fr</a> =1d0</td></tr>
+<tr class="memdesc:a8e5090b37762fa9893d058eb1910eb17"><td class="mdescLeft">&#160;</td><td class="mdescRight">Ionization fraction of H H_ion_fr = H+/(H+ + H)  <a href="namespacemod__rhd__phys.html#a8e5090b37762fa9893d058eb1910eb17">More...</a><br /></td></tr>
+<tr class="separator:a8e5090b37762fa9893d058eb1910eb17"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:adde64e1087641476fe877560af8c3d1a"><td class="memItemLeft" align="right" valign="top">double precision, public, protected&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__rhd__phys.html#adde64e1087641476fe877560af8c3d1a">mod_rhd_phys::he_ion_fr</a> =1d0</td></tr>
+<tr class="memdesc:adde64e1087641476fe877560af8c3d1a"><td class="mdescLeft">&#160;</td><td class="mdescRight">Ionization fraction of He He_ion_fr = (He2+ + He+)/(He2+ + He+ + He)  <a href="namespacemod__rhd__phys.html#adde64e1087641476fe877560af8c3d1a">More...</a><br /></td></tr>
+<tr class="separator:adde64e1087641476fe877560af8c3d1a"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ab7cc01716b20f4a856b10af0f3ab931c"><td class="memItemLeft" align="right" valign="top">double precision, public, protected&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__rhd__phys.html#ab7cc01716b20f4a856b10af0f3ab931c">mod_rhd_phys::he_ion_fr2</a> =1d0</td></tr>
+<tr class="memdesc:ab7cc01716b20f4a856b10af0f3ab931c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Ratio of number He2+ / number He+ + He2+ He_ion_fr2 = He2+/(He2+ + He+)  <a href="namespacemod__rhd__phys.html#ab7cc01716b20f4a856b10af0f3ab931c">More...</a><br /></td></tr>
+<tr class="separator:ab7cc01716b20f4a856b10af0f3ab931c"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ac1dfbbf99c7cc93fa49dddbba6b6619e"><td class="memItemLeft" align="right" valign="top">double precision, public, protected&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__rhd__phys.html#ac1dfbbf99c7cc93fa49dddbba6b6619e">mod_rhd_phys::rr</a> =1d0</td></tr>
+<tr class="separator:ac1dfbbf99c7cc93fa49dddbba6b6619e"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ae86c9c3ca7bbb1b5f164132adf948bfd"><td class="memItemLeft" align="right" valign="top">logical, public, protected&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__rhd__phys.html#ae86c9c3ca7bbb1b5f164132adf948bfd">mod_rhd_phys::eq_state_units</a> = .true.</td></tr>
+<tr class="separator:ae86c9c3ca7bbb1b5f164132adf948bfd"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 </div><!-- contents -->
 <!-- start footer part -->

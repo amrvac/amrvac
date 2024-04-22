@@ -30,7 +30,7 @@
  <tr style="height: 56px;">
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">MPI-AMRVAC
-   &#160;<span id="projectnumber">3.0</span>
+   &#160;<span id="projectnumber">3.1</span>
    </div>
    <div id="projectbrief">The MPI - Adaptive Mesh Refinement - Versatile Advection Code</div>
   </td>
@@ -74,14 +74,23 @@ $(function() {
 &#160;
 
 <h3><a id="index_r"></a>- r -</h3><ul>
+<li>r_ideal_gas_law_partial_ionization()
+: <a class="el" href="namespacemod__ionization__degree.html#a97be73e734bf9303efe25d3292649879">mod_ionization_degree</a>
+</li>
 <li>radiative_cooling_add_source()
-: <a class="el" href="namespacemod__radiative__cooling.html#a7b37d80a2bb954fedb9fa305980f3bc0">mod_radiative_cooling</a>
+: <a class="el" href="namespacemod__radiative__cooling.html#ae958ed08210d50fa1e01ed5ae3fd4e34">mod_radiative_cooling</a>
 </li>
 <li>radiative_cooling_init()
 : <a class="el" href="namespacemod__radiative__cooling.html#a2c0aab05964e01b97b9ae65c6d2ea830">mod_radiative_cooling</a>
 </li>
 <li>radiative_cooling_init_params()
 : <a class="el" href="namespacemod__radiative__cooling.html#ae450293b5673565067dbec5188ed3325">mod_radiative_cooling</a>
+</li>
+<li>randomt()
+: <a class="el" href="namespacemod__random__heating.html#af46f06ffd0bea7aa8637ba284d43f058">mod_random_heating</a>
+</li>
+<li>randomv()
+: <a class="el" href="namespacemod__random__heating.html#ae81a31f9937d0dafe61c8149838fc36f">mod_random_heating</a>
 </li>
 <li>rays_init()
 : <a class="el" href="namespacemod__cak__force.html#aef780782d3155c249770b687578d070b">mod_cak_force</a>
@@ -110,7 +119,7 @@ $(function() {
 : <a class="el" href="namespacemod__rd.html#ae2e80a89c668b229b81061a03fb720ba">mod_rd</a>
 </li>
 <li>rd_add_source()
-: <a class="el" href="namespacemod__rd__phys.html#a1981e00d4b5ffc0cf4de18b308a45791">mod_rd_phys</a>
+: <a class="el" href="namespacemod__rd__phys.html#ac69cc118bc967ea7275a19a822eb9398">mod_rd_phys</a>
 </li>
 <li>rd_check_params()
 : <a class="el" href="namespacemod__rd__phys.html#ab397361da8fcff07f5c38dcbbacf7f24">mod_rd_phys</a>
@@ -166,6 +175,9 @@ $(function() {
 <li>read_data_set()
 : <a class="el" href="namespacemod__init__datafromfile.html#aa7c7f456d4d1838223bc967dcb96dba9">mod_init_datafromfile</a>
 </li>
+<li>read_forest()
+: <a class="el" href="namespacemod__functions__forest.html#a693fb7f8cc66f54e57220b83e219320e">mod_functions_forest</a>
+</li>
 <li>read_from_snapshot()
 : <a class="el" href="namespacemod__particle__base.html#a8d2abb7efcc7f290bc4e3f92451a8250">mod_particle_base</a>
 </li>
@@ -219,8 +231,36 @@ $(function() {
 <li>recvflux()
 : <a class="el" href="namespacemod__fix__conserve.html#a295f588de053ce80e0500c241ae24460">mod_fix_conserve</a>
 </li>
+<li>refine_grids()
+: <a class="el" href="namespacemod__refine.html#a76d1615a759e3cbdd1fea0c20f074a2f">mod_refine</a>
+</li>
+<li>refine_tree_leaf()
+: <a class="el" href="namespacemod__functions__forest.html#a7d3c451c93ebfe605cf07e465147be67">mod_functions_forest</a>
+</li>
+<li>refinebuffer()
+: <a class="el" href="namespacemod__errest.html#a15fa3c59ddbcaf5dd13ac524228b5f95">mod_errest</a>
+</li>
+<li>resettree()
+: <a class="el" href="namespacemod__amr__grid.html#a1d21768e5b7034d71d93c87a60b14833">mod_amr_grid</a>
+</li>
+<li>resettree_convert()
+: <a class="el" href="namespacemod__amr__grid.html#a46bb4219ed6144389d25ea1d03354575">mod_amr_grid</a>
+</li>
 <li>rf()
 : <a class="el" href="namespacemod__tdfluxrope.html#ab2a8f37e309328dfcdfc2b2a581e223f">mod_tdfluxrope</a>
+</li>
+<li>rfactor_c()
+: <a class="el" href="namespacemod__twofl__phys.html#a465b651d77e8f0ec0fbf9bd993a2965e">mod_twofl_phys</a>
+</li>
+<li>rfactor_from_constant_ionization()
+: <a class="el" href="namespacemod__hd__phys.html#ad6dfcdfb8f63fb9e9788aaf1265e0369">mod_hd_phys</a>
+, <a class="el" href="namespacemod__mhd__phys.html#acb0d3298f903a35d1bc9b81edb6e67f1">mod_mhd_phys</a>
+, <a class="el" href="namespacemod__rhd__phys.html#a69053f0e54af9bae79ca518bab17587f">mod_rhd_phys</a>
+</li>
+<li>rfactor_from_temperature_ionization()
+: <a class="el" href="namespacemod__hd__phys.html#a0cffebdf95cd71eda223e08075ae328c">mod_hd_phys</a>
+, <a class="el" href="namespacemod__mhd__phys.html#af7fd5013e6e8cfcdbd5bfe8ed920c5b3">mod_mhd_phys</a>
+, <a class="el" href="namespacemod__rhd__phys.html#a376fd3889c705172d1bb97fe9e67ec95">mod_rhd_phys</a>
 </li>
 <li>rhd_activate()
 : <a class="el" href="namespacemod__rhd.html#a5214527c78760df9ecee3f6944259b29">mod_rhd</a>
@@ -229,13 +269,10 @@ $(function() {
 : <a class="el" href="namespacemod__rhd__phys.html#a5d882fb0fb8e6d01178072fde57a0937">mod_rhd_phys</a>
 </li>
 <li>rhd_add_source()
-: <a class="el" href="namespacemod__rhd__phys.html#a97c6a29405c70592609737bad41a0432">mod_rhd_phys</a>
+: <a class="el" href="namespacemod__rhd__phys.html#a5852b88ab2d5e1e74d7755aca6639c11">mod_rhd_phys</a>
 </li>
 <li>rhd_add_source_geom()
-: <a class="el" href="namespacemod__rhd__phys.html#a587219c99d42811bb189dedf32fc9f6b">mod_rhd_phys</a>
-</li>
-<li>rhd_angmomfix()
-: <a class="el" href="namespacemod__rhd__phys.html#afba9c5fbcc28ff5d7cd914e3d00f6a49">mod_rhd_phys</a>
+: <a class="el" href="namespacemod__rhd__phys.html#a067cd53766353d1a8e79a8773210f34d">mod_rhd_phys</a>
 </li>
 <li>rhd_average()
 : <a class="el" href="namespacemod__rhd__roe.html#a3be52eae167402570a19ceab1f5af332">mod_rhd_roe</a>
@@ -348,15 +385,6 @@ $(function() {
 <li>rhd_physical_units()
 : <a class="el" href="namespacemod__rhd__phys.html#ac0f411e5442fe1b1194ca39b2abbed46">mod_rhd_phys</a>
 </li>
-<li>rhd_ppm_flatcd()
-: <a class="el" href="namespacemod__rhd__ppm.html#a0beee993e82b88ddf6fbe4fde46f81d5">mod_rhd_ppm</a>
-</li>
-<li>rhd_ppm_flatsh()
-: <a class="el" href="namespacemod__rhd__ppm.html#a666c249a868b8415739bd032a2c4ef8f">mod_rhd_ppm</a>
-</li>
-<li>rhd_ppm_init()
-: <a class="el" href="namespacemod__rhd__ppm.html#a80a65f5aee20074ca255a5fd4252c730">mod_rhd_ppm</a>
-</li>
 <li>rhd_radio_acoustic_filter()
 : <a class="el" href="namespacemod__rhd__phys.html#aac0bb1176938f95064ea7e1737f229e3">mod_rhd_phys</a>
 </li>
@@ -387,6 +415,9 @@ $(function() {
 <li>rhd_to_primitive()
 : <a class="el" href="namespacemod__rhd__phys.html#a0a0f33320c304342bdfb520a283cc114">mod_rhd_phys</a>
 </li>
+<li>rhd_update_temperature()
+: <a class="el" href="namespacemod__rhd__phys.html#aa7716ab0f3bab6083faa39ad8cd38bc5">mod_rhd_phys</a>
+</li>
 <li>rhd_write_info()
 : <a class="el" href="namespacemod__rhd__phys.html#a63e1f1be53bf460ec41699619a8e60e0">mod_rhd_phys</a>
 </li>
@@ -394,7 +425,7 @@ $(function() {
 : <a class="el" href="namespacemod__rho.html#a730bf53b7b017c953dddc3ce7e4b9d32">mod_rho</a>
 </li>
 <li>rho_add_source_geom()
-: <a class="el" href="namespacemod__rho__phys.html#abff48ad41964aaa2913fe73c64640ee8">mod_rho_phys</a>
+: <a class="el" href="namespacemod__rho__phys.html#a08f4baf8c313a095e80da6257b559f65">mod_rho_phys</a>
 </li>
 <li>rho_average()
 : <a class="el" href="namespacemod__rho__roe.html#a8e2e6fd22834e545bc72c57be7416131">mod_rho_roe</a>
@@ -445,9 +476,6 @@ $(function() {
 <li>rj()
 : <a class="el" href="namespacemod__tdfluxrope.html#a748169af3cb116030287f694a739f07e">mod_tdfluxrope</a>
 </li>
-<li>rk_bdir()
-: <a class="el" href="namespacemod__trac.html#a3cce7a2b3554166b3e19f4dd65946350">mod_trac</a>
-</li>
 <li>rkck()
 : <a class="el" href="namespacemod__odeint.html#aa89ab88db1a5f18bf0dd30b5b941d174">mod_odeint</a>
 </li>
@@ -455,19 +483,13 @@ $(function() {
 : <a class="el" href="namespacemod__odeint.html#a5da5d917b700b1b49cdae329db18e88b">mod_odeint</a>
 </li>
 <li>rotating_frame_add_source()
-: <a class="el" href="namespacemod__rotating__frame.html#a2ff601f629ea6c87c1be3b513b5474c9">mod_rotating_frame</a>
+: <a class="el" href="namespacemod__rotating__frame.html#a2c66211145083d9dc744d39d837b74ed">mod_rotating_frame</a>
 </li>
 <li>rotating_frame_init()
 : <a class="el" href="namespacemod__rotating__frame.html#ac4472518b3e7e80ad298502342cfb9ef">mod_rotating_frame</a>
 </li>
-<li>rotating_frame_omega()
-: <a class="el" href="namespacemod__rotating__frame.html#a8dd15777c37252c37afc5915db423983">mod_rotating_frame</a>
-</li>
 <li>rotating_frame_params_read()
 : <a class="el" href="namespacemod__rotating__frame.html#a235c4f2d16241e1f91b41c1640936087">mod_rotating_frame</a>
-</li>
-<li>rotating_frame_velocity()
-: <a class="el" href="namespacemod__rotating__frame.html#afa298e6e4ce0cf59f6ac09a4c76ab1eb">mod_rotating_frame</a>
 </li>
 <li>roundoff_minmax()
 : <a class="el" href="namespacemod__slice.html#acef009a66603f2eac11506c10fd4a9e2">mod_slice</a>

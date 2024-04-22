@@ -1,11 +1,10 @@
 <map id="mod_rhd_phys::rhd_add_radiation_source" name="mod_rhd_phys::rhd_add_radiation_source">
-<area shape="rect" id="node1" title=" " alt="" coords="5,235,183,276"/>
+<area shape="rect" id="node1" title=" " alt="" coords="5,201,183,243"/>
 <area shape="rect" id="node2" href="$namespacemod__afld.html#a834262f00ee7ba17b4bae9d45f9c4ff1" title="Calculates cell&#45;centered diffusion coefficient to be used in multigrid." alt="" coords="258,5,401,47"/>
 <area shape="rect" id="node3" href="$namespacemod__fld.html#ae0cd21f12833bcf8f7c05412c7bc46a6" title="Calculates cell&#45;centered diffusion coefficient to be used in multigrid." alt="" coords="238,71,421,112"/>
 <area shape="rect" id="node4" href="$namespacemod__afld.html#a1a299d1ba8c99ea7e1d33b04bbcdd798" title="w[iw]=w[iw]+qdt*S[wCT,qtC,x] where S is the source based on wCT within ixO This subroutine handles th..." alt="" coords="258,136,401,177"/>
 <area shape="rect" id="node5" href="$namespacemod__afld.html#abcb1092bc89c69052df5fbf4b1be9a01" title="w[iw]=w[iw]+qdt*S[wCT,qtC,x] where S is the source based on wCT within ixO This subroutine handles th..." alt="" coords="258,201,401,243"/>
 <area shape="rect" id="node6" href="$namespacemod__fld.html#ad7aa7efd71997039f66577052264a90b" title="w[iw]=w[iw]+qdt*S[wCT,qtC,x] where S is the source based on wCT within ixO This subroutine handles th..." alt="" coords="240,267,419,308"/>
 <area shape="rect" id="node7" href="$namespacemod__fld.html#a8b296a7d3fd6af5af21981633281db6f" title="w[iw]=w[iw]+qdt*S[wCT,qtC,x] where S is the source based on wCT within ixO This subroutine handles th..." alt="" coords="252,332,407,373"/>
-<area shape="rect" id="node8" href="$comm__lib_8t.html#a49b49ea9ffbbadfe688e332921c4cddd" title="Exit MPI&#45;AMRVAC with an error message." alt="" coords="292,398,367,425"/>
-<area shape="rect" id="node9" href="$namespacemod__rhd__phys.html#a8eb91b2b6609e139baefc7bb7858e00c" title=" " alt="" coords="231,449,428,491"/>
+<area shape="rect" id="node8" href="$namespacemod__rhd__phys.html#a8eb91b2b6609e139baefc7bb7858e00c" title=" " alt="" coords="231,397,428,439"/>
 </map>

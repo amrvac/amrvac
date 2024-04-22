@@ -1,0 +1,8 @@
+<map id="mod_functions_forest::init_forest_root" name="mod_functions_forest::init_forest_root">
+<area shape="rect" id="node1" title="build root forest" alt="" coords="5,136,168,177"/>
+<area shape="rect" id="node2" href="$namespacemod__amr__neighbors.html#a2dc7160e2489b2155324bd6a1a54e781" title="find neighors of level&#45;one root blocks" alt="" coords="226,5,389,47"/>
+<area shape="rect" id="node3" href="$namespacemod__space__filling__curve.html#a934e4e04b49eba5a4caa84f0e7c11e69" title="Set the Morton range for each processor." alt="" coords="216,71,399,112"/>
+<area shape="rect" id="node4" href="$namespacemod__amr__solution__node.html#aeef76b98e4c841f25f27fefa770ce314" title="Get first available igrid on processor ipe." alt="" coords="216,136,399,177"/>
+<area shape="rect" id="node5" href="$namespacemod__functions__forest.html#a9a03da74d688e278042e0d3d1c823897" title=" " alt="" coords="226,201,389,243"/>
+<area shape="rect" id="node6" href="$namespacemod__space__filling__curve.html#aef1e8e8d1ac8b83aaa2c3b5526c4e342" title="build Morton space filling curve for level 1 grid" alt="" coords="216,267,399,308"/>
+</map>

@@ -1,9 +1,0 @@
-<map id="initlevelone" name="initlevelone">
-<area shape="rect" id="node1" title="Generate and initialize all grids at the coarsest level (level one)" alt="" coords="5,144,104,171"/>
-<area shape="rect" id="node2" href="$amr__solution__node_8t.html#a18f209c67b004dfa60490520e9eb028c" title="allocate arrays on igrid node" alt="" coords="194,5,286,32"/>
-<area shape="rect" id="node3" href="$connectivity_8t.html#a4498f4f4998ce2079f13ec9fa4fd507f" title=" " alt="" coords="169,56,311,83"/>
-<area shape="rect" id="node4" href="$namespacemod__ghostcells__update.html#abc70508ceb326fb28166d751e5de31fc" title="do update ghost cells of all blocks including physical boundaries" alt="" coords="152,107,328,149"/>
-<area shape="rect" id="node5" href="$connectivity_8t.html#a8e0c70b7de9e9563c520f731ed8bfc8c" title=" " alt="" coords="201,173,279,200"/>
-<area shape="rect" id="node6" href="$forest_8t.html#a8dae7079805ae09874a1ad97b2eb8f12" title="build root forest" alt="" coords="179,224,301,251"/>
-<area shape="rect" id="node7" href="$amrini_8t.html#a1b4f9e6fa789396ccd9f6fb0688aaebf" title="fill in initial condition" alt="" coords="177,275,303,301"/>
-</map>

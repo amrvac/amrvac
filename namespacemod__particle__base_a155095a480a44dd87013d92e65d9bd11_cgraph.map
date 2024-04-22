@@ -1,0 +1,4 @@
+<map id="mod_particle_base::fix_phi_crossing" name="mod_particle_base::fix_phi_crossing">
+<area shape="rect" id="node1" title="Fix particle position when crossing the 0,2pi boundary in noncartesian coordinates." alt="" coords="5,5,159,47"/>
+<area shape="rect" id="node2" href="$namespacemod__particle__base.html#ac297f1a4a2d25d4fcc6e11cda15b47eb" title="Quick check if particle coordinate is inside igrid (ghost cells included, except the last ngh)" alt="" coords="207,5,367,47"/>
+</map>

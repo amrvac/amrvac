@@ -1,6 +1,0 @@
-<map id="dealloc_node" name="dealloc_node">
-<area shape="rect" id="node1" title=" " alt="" coords="5,56,113,83"/>
-<area shape="rect" id="node2" href="$amr__solution__node_8t.html#a867cb4035dd29f2aed43e85a0d3e55bf" title=" " alt="" coords="186,5,295,32"/>
-<area shape="rect" id="node3" href="$amr__solution__node_8t.html#a755ff7adc6306dca1c82fb6523fa1dee" title=" " alt="" coords="161,56,320,83"/>
-<area shape="rect" id="node4" href="$comm__lib_8t.html#a49b49ea9ffbbadfe688e332921c4cddd" title="Exit MPI&#45;AMRVAC with an error message." alt="" coords="203,107,278,133"/>
-</map>

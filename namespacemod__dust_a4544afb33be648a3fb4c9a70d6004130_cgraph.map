@@ -1,5 +1,4 @@
 <map id="mod_dust::dust_get_dt" name="mod_dust::dust_get_dt">
-<area shape="rect" id="node1" title="Get dt related to dust and gas stopping time (Laibe 2011)" alt="" coords="5,31,176,57"/>
+<area shape="rect" id="node1" title="Get dt related to dust and gas stopping time (Laibe 2011)" alt="" coords="5,5,176,32"/>
 <area shape="rect" id="node2" href="$namespacemod__dust.html#a70cdf84536224d9c5f899b3f30375169" title="Get sticking coefficient alpha_T (always between 0 and 1)" alt="" coords="224,5,397,32"/>
-<area shape="rect" id="node3" href="$comm__lib_8t.html#a49b49ea9ffbbadfe688e332921c4cddd" title="Exit MPI&#45;AMRVAC with an error message." alt="" coords="273,56,348,83"/>
 </map>

@@ -30,7 +30,7 @@
  <tr style="height: 56px;">
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">MPI-AMRVAC
-   &#160;<span id="projectnumber">3.0</span>
+   &#160;<span id="projectnumber">3.1</span>
    </div>
    <div id="projectbrief">The MPI - Adaptive Mesh Refinement - Versatile Advection Code</div>
   </td>
@@ -75,10 +75,10 @@ $(function() {
 
 <h3><a id="index_d"></a>- d -</h3><ul>
 <li>d
-: <a class="el" href="namespacemod__global__parameters.html#a68549065c490d02e1de338e8a60c3f12">mod_global_parameters</a>
+: <a class="el" href="namespacemod__con2prim__vars.html#a752cddce2c501aeb8b3b87438cf296c5">mod_con2prim_vars</a>
+, <a class="el" href="namespacemod__global__parameters.html#a68549065c490d02e1de338e8a60c3f12">mod_global_parameters</a>
 , <a class="el" href="namespacemod__limiter.html#a505f3c44a11522af9a58e78d1444b2d5">mod_limiter</a>
 , <a class="el" href="namespacemod__oneblock.html#a37074f6c500f5dfde23b1cf5a4fb0f90">mod_oneblock</a>
-, <a class="el" href="namespacemod__trac.html#a71ee003132d53879487a9076243b2402">mod_trac</a>
 </li>
 <li>d1
 : <a class="el" href="namespacemod__ard__phys.html#a8ca51462f3bb1773fdd136374bf65d55">mod_ard_phys</a>
@@ -94,6 +94,7 @@ $(function() {
 </li>
 <li>d_
 : <a class="el" href="namespacemod__global__parameters.html#aa3194833cc9e7e739ed1fa396655a636">mod_global_parameters</a>
+, <a class="el" href="namespacemod__srhd__phys.html#aa564027ef494e9b12eb8109adc3053e0">mod_srhd_phys</a>
 </li>
 <li>d_td99
 : <a class="el" href="namespacemod__tdfluxrope.html#a2afa586547d382a96cb196b1dc6e1ff3">mod_tdfluxrope</a>
@@ -101,9 +102,21 @@ $(function() {
 <li>darea
 : <a class="el" href="namespacemod__lfff.html#a072313a92a3f71f5554e1624f107e6fd">mod_lfff</a>
 </li>
+<li>dat_resolution
+: <a class="el" href="namespacemod__global__parameters.html#a84881fbdc47fb8c5db93cff24a57ba46">mod_global_parameters</a>
+</li>
 <li>ddpolynomial_bisection()
 : <a class="el" href="namespacemod__afld.html#a77e713c279492245503edda6384cef4a">mod_afld</a>
 , <a class="el" href="namespacemod__fld.html#a5c3cb192d4ff204d751bbabdc46570a3">mod_fld</a>
+</li>
+<li>dealloc_node()
+: <a class="el" href="namespacemod__amr__solution__node.html#a46ef45ac86c356bf8616032f5c04afdf">mod_amr_solution_node</a>
+</li>
+<li>dealloc_state()
+: <a class="el" href="namespacemod__amr__solution__node.html#afd813751dad7f07270acb3acbacbb120">mod_amr_solution_node</a>
+</li>
+<li>dealloc_state_coarse()
+: <a class="el" href="namespacemod__amr__solution__node.html#a38dd1a474e3240fa2ce18cb1c128e780">mod_amr_solution_node</a>
 </li>
 <li>dealloc_subnode()
 : <a class="el" href="namespacemod__slice.html#af1779f67911ecd3bab21aafbc64f5523">mod_slice</a>
@@ -113,6 +126,9 @@ $(function() {
 </li>
 <li>deallocatebflux()
 : <a class="el" href="namespacemod__fix__conserve.html#a65d99df7e3cd137b545e3067ca538afc">mod_fix_conserve</a>
+</li>
+<li>delete_from_linked_list()
+: <a class="el" href="namespacemod__functions__forest.html#a533a6def3c20726e6a75445c0081af9b">mod_functions_forest</a>
 </li>
 <li>derefine_ratio
 : <a class="el" href="namespacemod__global__parameters.html#ad7554834c993430ee77d00bf0ea95c29">mod_global_parameters</a>
@@ -195,20 +211,14 @@ $(function() {
 <li>divvectors()
 : <a class="el" href="namespacemod__geometry.html#a25150b60cbb554923349cbfdf879ce9e">mod_geometry</a>
 </li>
-<li>dl
-: <a class="el" href="namespacemod__trac.html#ab1af767bc63d08e4b7480796f29e6929">mod_trac</a>
-</li>
-<li>dmax
-: <a class="el" href="namespacemod__cak__opacity.html#a4bfa0ee96cc1b2c9184e0d5d99bdc2c2">mod_cak_opacity</a>
-</li>
-<li>dmin
-: <a class="el" href="namespacemod__cak__opacity.html#ac802a22fecfdd4e99fc938f354da23a0">mod_cak_opacity</a>
+<li>dmaxvel
+: <a class="el" href="namespacemod__srhd__phys.html#addf17d1ad358b23e77c21133ef3a4a5e">mod_srhd_phys</a>
 </li>
 <li>domain_nx
 : <a class="el" href="namespacemod__global__parameters.html#a23b35ecdd0fd1864d80811b347464176">mod_global_parameters</a>
 </li>
 <li>dot_product_loc()
-: <a class="el" href="namespacemod__thermal__emission.html#a6f28647e5a18ff22663f6676af094c4b">mod_thermal_emission</a>
+: <a class="el" href="namespacemod__thermal__emission.html#a7c4ad4cf7531ac9c7ee63034c9872f20">mod_thermal_emission</a>
 </li>
 <li>downsample_particles
 : <a class="el" href="namespacemod__particle__base.html#a88a1c2804a4b6d403ac1e804b65c5b3d">mod_particle_base</a>
@@ -258,13 +268,10 @@ $(function() {
 : <a class="el" href="namespacemod__particle__base.html#a296849256613f0cb3a81d39a4dcb783b">mod_particle_base</a>
 </li>
 <li>dummy_add_source()
-: <a class="el" href="namespacemod__physics.html#a53e15b7a9353c0e85a4bcc876e617bb4">mod_physics</a>
+: <a class="el" href="namespacemod__physics.html#ae1f7336a61841a297f6b629386c1428e">mod_physics</a>
 </li>
 <li>dummy_add_source_geom()
-: <a class="el" href="namespacemod__physics.html#a48ebe8d7aa8fe9b4799db4bc1af1975b">mod_physics</a>
-</li>
-<li>dummy_angmomfix()
-: <a class="el" href="namespacemod__physics.html#a3afbf962a4e709e6408da6c76e0b939f">mod_physics</a>
+: <a class="el" href="namespacemod__physics.html#abccb7aed990f67bf08b6a6e93409d06e">mod_physics</a>
 </li>
 <li>dummy_boundary_adjust()
 : <a class="el" href="namespacemod__physics.html#a0c16dbee64a6667a0d86337bc7dce6bf">mod_physics</a>
@@ -286,6 +293,12 @@ $(function() {
 </li>
 <li>dummy_get_a2max()
 : <a class="el" href="namespacemod__physics.html#ae8aebc6b57c4c528fddc21ecdaf17e72">mod_physics</a>
+</li>
+<li>dummy_get_auxiliary()
+: <a class="el" href="namespacemod__physics.html#ac687637834e4686478b211a05966c044">mod_physics</a>
+</li>
+<li>dummy_get_auxiliary_prim()
+: <a class="el" href="namespacemod__physics.html#ae86d0ed9cda4e2eb8d72eabbeb400ddb">mod_physics</a>
 </li>
 <li>dummy_get_ct_velocity()
 : <a class="el" href="namespacemod__physics.html#a0d73baf64c54cb5346f93e6679f15f34">mod_physics</a>
@@ -310,12 +323,6 @@ $(function() {
 </li>
 <li>dummy_modify_wlr()
 : <a class="el" href="namespacemod__physics.html#afe1c2605c6355eaffded3a7bcf5085e2">mod_physics</a>
-</li>
-<li>dummy_ppm_flatcd()
-: <a class="el" href="namespacemod__physics__ppm.html#ad181a5773ce507038bd48b384b7f5f34">mod_physics_ppm</a>
-</li>
-<li>dummy_ppm_flatsh()
-: <a class="el" href="namespacemod__physics__ppm.html#a24948cac9333864b1af94b3bb9b4255b">mod_physics_ppm</a>
 </li>
 <li>dummy_roe_average()
 : <a class="el" href="namespacemod__physics__roe.html#a5897db8bc8df4dec8e5c33f71b7ba827">mod_physics_roe</a>
@@ -436,9 +443,6 @@ $(function() {
 </li>
 <li>dxmid
 : <a class="el" href="namespacemod__global__parameters.html#afee2bc8ebcd7636780481dcfd79f3625">mod_global_parameters</a>
-</li>
-<li>dxt
-: <a class="el" href="namespacemod__trac.html#a01671c23694adcd9082ae2a52b55a46b">mod_trac</a>
 </li>
 </ul>
 </div><!-- contents -->
