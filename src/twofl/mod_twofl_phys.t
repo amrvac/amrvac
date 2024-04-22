@@ -557,6 +557,7 @@ contains
     if(has_equi_pe_n0) then
       number_equi_vars = number_equi_vars + 1
       equi_pe_n0_ = number_equi_vars
+      phys_equi_pe=.true.
     endif  
     if(has_equi_rho_c0) then
       number_equi_vars = number_equi_vars + 1
@@ -567,6 +568,7 @@ contains
       number_equi_vars = number_equi_vars + 1
       equi_pe_c0_ = number_equi_vars
       iw_equi_p = equi_pe_c0_
+      phys_equi_pe=.true.
     endif  
 
     ! set number of variables which need update ghostcells
@@ -3525,8 +3527,7 @@ contains
             pth(ix^D)=small_pressure
          end if
       {enddo^D&\}
-    end if
-    if (check_small_values) then
+    else if (check_small_values) then
       {do ix^DB= ixO^LIM^DB\}
          if(pth(ix^D)<small_pressure) then
            write(*,*) "Error: small value of gas pressure",pth(ix^D),&
@@ -3663,9 +3664,7 @@ contains
             pth(ix^D)=small_pressure
          end if
       {enddo^D&\}
-    end if
-
-    if (check_small_values) then
+    else if (check_small_values) then
       {do ix^DB= ixO^LIM^DB\}
          if(pth(ix^D)<small_pressure) then
            write(*,*) "Error: small value of gas pressure",pth(ix^D),&

@@ -590,6 +590,7 @@ contains
       number_equi_vars = number_equi_vars + 1
       equi_pe0_ = number_equi_vars
       iw_equi_p = equi_pe0_
+      phys_equi_pe=.true.
     endif
     ! determine number of stagger variables
     nws=ndim
@@ -3144,9 +3145,7 @@ contains
             pth(ix^D)=small_pressure
          end if
       {enddo^D&\}
-    end if
-
-    if (check_small_values) then
+    else if (check_small_values) then
       {do ix^DB= ixO^LIM^DB\}
          if(pth(ix^D)<small_pressure) then
            write(*,*) "Error: small value of gas pressure",pth(ix^D),&
@@ -3192,9 +3191,7 @@ contains
             pth(ix^D)=small_pressure
          end if
       {enddo^D&\}
-    end if
-
-    if (check_small_values) then
+    else if (check_small_values) then
       {do ix^DB= ixO^LIM^DB\}
          if(pth(ix^D)<small_pressure) then
            write(*,*) "Error: small value of gas pressure",pth(ix^D),&
@@ -3232,7 +3229,7 @@ contains
     call mhd_to_primitive_semirelati(ixI^L,ixO^L,wprim,x)
     pth(ixO^S)=wprim(ixO^S,p_)
 
-    if (check_small_values) then
+    if (.not.fix_small_values .and. check_small_values) then
       {do ix^DB= ixO^LIM^DB\}
          if(pth(ix^D)<small_pressure) then
            write(*,*) "Error: small value of gas pressure",pth(ix^D),&
@@ -3272,9 +3269,7 @@ contains
             pth(ix^D)=small_pressure
          end if
       {enddo^D&\}
-    end if
-
-    if (check_small_values) then
+    else if (check_small_values) then
       {do ix^DB= ixO^LIM^DB\}
          if(pth(ix^D)<small_pressure) then
            write(*,*) "Error: small value of gas pressure",pth(ix^D),&

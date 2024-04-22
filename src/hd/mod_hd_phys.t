@@ -1032,7 +1032,13 @@ contains
        end if
     end if
 
-    if (check_small_values) then
+    if (fix_small_values) then
+      {do ix^DB= ixO^LIM^DB\}
+         if(pth(ix^D)<small_pressure) then
+            pth(ix^D)=small_pressure
+         endif
+      {enddo^D&\}
+    else if (check_small_values) then
       {do ix^DB= ixO^LIM^DB\}
          if(pth(ix^D)<small_pressure) then
            write(*,*) "Error: small value of gas pressure",pth(ix^D),&
@@ -1050,14 +1056,6 @@ contains
          end if
       {enddo^D&\}
     end if
-
-    if (fix_small_values) then
-      {do ix^DB= ixO^LIM^DB\}
-         if(pth(ix^D)<small_pressure) then
-            pth(ix^D)=small_pressure
-         endif
-      {enddo^D&\}
-    endif
 
   end subroutine hd_get_pthermal
 
