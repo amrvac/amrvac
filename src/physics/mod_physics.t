@@ -527,7 +527,7 @@ contains
     double precision, intent(inout) :: w(ixI^S, nw)
     double precision, intent(in) :: x(ixI^S, 1:ndim)
 
-    call mpistop("No get_auxiliary method specified")
+    !call mpistop("No get_auxiliary method specified")
   end subroutine dummy_get_auxiliary
 
   subroutine dummy_get_auxiliary_prim(ixI^L, ixO^L, w)
