@@ -23,11 +23,11 @@ To install the code in folder `~/codes/amrvac`:
 
 To use MPI-AMRVAC, the installation directory must be exported as an environment 
 parameter called AMRVAC_DIR and this variable can be added to the command searching path.
-To do so using bash, you should add the following line
-to your `~/.bashrc` file (or perhaps `~/.profile` in mac OS):
+To do so using bash, you should add the following line to your `~/.bashrc` file in b shell linux
+(or `~/.profile` in b shell mac OS, `~/.zshrc` in z shell mac OS):
 
     export AMRVAC_DIR=$HOME/codes/amrvac
-    PATH="$PATH:$HOME/codes/amrvac:$HOME/codes/amrvac/tools"
+    export PATH=$PATH:.:$AMRVAC_DIR:$AMRVAC_DIR/tools
 
 You can then activate the setting by sourcing this file (or you can close and open a new terminal shell), 
 

@@ -15,7 +15,7 @@ Most TVD limiters in mod_limiter.t could be found in Yee (1989).
 
 In the current version, limiters can be chosen from the following list.
 
-Limiter Type | Lmiter | Order | Ghost cells | Reference
+Limiter Type | Limiter | Order | Ghost cells | Reference
 ---|---|---|---|---
 TVD | 'minmod' | 2 | 2 | e.g., Roe (1985), Yee (1989), LeVeque (2002), Toro (2009)
 TVD | 'superbee' | 2 | 2 | Sweby (1984), Roe(1985)
