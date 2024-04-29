@@ -30,7 +30,7 @@
  <tr style="height: 56px;">
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">MPI-AMRVAC
-   &#160;<span id="projectnumber">3.1</span>
+   &#160;<span id="projectnumber">3.2</span>
    </div>
    <div id="projectbrief">The MPI - Adaptive Mesh Refinement - Versatile Advection Code</div>
   </td>
@@ -2722,195 +2722,206 @@ $(function() {
 <div class="line"><a name="l02641"></a><span class="lineno"> 2641</span>&#160;    <span class="keywordtype">use </span><a class="code" href="namespacemod__global__parameters.html">mod_global_parameters</a></div>
 <div class="line"><a name="l02642"></a><span class="lineno"> 2642</span>&#160; </div>
 <div class="line"><a name="l02643"></a><span class="lineno"> 2643</span>&#160;    <span class="keywordtype">integer</span>, <span class="keywordtype">parameter</span> :: n_modes = 2</div>
-<div class="line"><a name="l02644"></a><span class="lineno"> 2644</span>&#160;    <span class="keywordtype">integer</span>, <span class="keywordtype">parameter</span> :: my_unit = 123</div>
-<div class="line"><a name="l02645"></a><span class="lineno"> 2645</span>&#160;    <span class="keywordtype">character(len=40)</span>  :: fmt_string</div>
+<div class="line"><a name="l02644"></a><span class="lineno"> 2644</span>&#160;    <span class="keywordtype">character(len=40)</span>  :: fmt_string</div>
+<div class="line"><a name="l02645"></a><span class="lineno"> 2645</span>&#160;    <span class="keywordtype">character(len=2048)</span>  :: line</div>
 <div class="line"><a name="l02646"></a><span class="lineno"> 2646</span>&#160;    <span class="keywordtype">logical</span>, <span class="keywordtype">save</span>      :: file_open = .false.</div>
 <div class="line"><a name="l02647"></a><span class="lineno"> 2647</span>&#160;    <span class="keywordtype">integer</span>            :: power</div>
 <div class="line"><a name="l02648"></a><span class="lineno"> 2648</span>&#160;    <span class="keywordtype">double precision</span>   :: modes(nw, n_modes), volume</div>
-<div class="line"><a name="l02649"></a><span class="lineno"> 2649</span>&#160; </div>
-<div class="line"><a name="l02650"></a><span class="lineno"> 2650</span>&#160;    <span class="keywordflow">do</span> power = 1, n_modes</div>
-<div class="line"><a name="l02651"></a><span class="lineno"> 2651</span>&#160;       <span class="keyword">call </span><a class="code" href="namespacemod__input__output.html#a9cf9ab211dc4836b216f1fe919d969ed">get_volume_average</a>(power, modes(:, power), volume)</div>
-<div class="line"><a name="l02652"></a><span class="lineno"> 2652</span>&#160;<span class="keywordflow">    end do</span></div>
-<div class="line"><a name="l02653"></a><span class="lineno"> 2653</span>&#160; </div>
-<div class="line"><a name="l02654"></a><span class="lineno"> 2654</span>&#160;    <span class="keywordflow">if</span> (<a class="code" href="namespacemod__global__parameters.html#a605b2c8e7a386f644c7f8817421b6d67">mype</a> == 0) <span class="keywordflow">then</span></div>
-<div class="line"><a name="l02655"></a><span class="lineno"> 2655</span>&#160;       <span class="keywordflow">if</span> (.not. file_open) <span class="keywordflow">then</span></div>
-<div class="line"><a name="l02656"></a><span class="lineno"> 2656</span>&#160;          <span class="keyword">open</span>(my_unit, file = trim(<a class="code" href="namespacemod__global__parameters.html#acca226f88fb362bae425ca71f3742d09">base_filename</a>) // <span class="stringliteral">&quot;.log&quot;</span>)</div>
-<div class="line"><a name="l02657"></a><span class="lineno"> 2657</span>&#160;          file_open = .true.</div>
-<div class="line"><a name="l02658"></a><span class="lineno"> 2658</span>&#160; </div>
-<div class="line"><a name="l02659"></a><span class="lineno"> 2659</span>&#160;          <span class="keyword">write</span>(my_unit, *) <span class="stringliteral">&quot;# time mean(w) mean(w**2)&quot;</span></div>
-<div class="line"><a name="l02660"></a><span class="lineno"> 2660</span>&#160;<span class="keywordflow">       end if</span></div>
+<div class="line"><a name="l02649"></a><span class="lineno"> 2649</span>&#160;    <span class="keywordtype">integer</span>              :: amode, istatus(MPI_STATUS_SIZE)</div>
+<div class="line"><a name="l02650"></a><span class="lineno"> 2650</span>&#160;    <span class="keywordtype">character(len=80)</span>    :: filename</div>
+<div class="line"><a name="l02651"></a><span class="lineno"> 2651</span>&#160; </div>
+<div class="line"><a name="l02652"></a><span class="lineno"> 2652</span>&#160;    <span class="keywordflow">do</span> power = 1, n_modes</div>
+<div class="line"><a name="l02653"></a><span class="lineno"> 2653</span>&#160;       <span class="keyword">call </span><a class="code" href="namespacemod__input__output.html#a9cf9ab211dc4836b216f1fe919d969ed">get_volume_average</a>(power, modes(:, power), volume)</div>
+<div class="line"><a name="l02654"></a><span class="lineno"> 2654</span>&#160;<span class="keywordflow">    end do</span></div>
+<div class="line"><a name="l02655"></a><span class="lineno"> 2655</span>&#160; </div>
+<div class="line"><a name="l02656"></a><span class="lineno"> 2656</span>&#160;    <span class="keywordflow">if</span> (<a class="code" href="namespacemod__global__parameters.html#a605b2c8e7a386f644c7f8817421b6d67">mype</a> == 0) <span class="keywordflow">then</span></div>
+<div class="line"><a name="l02657"></a><span class="lineno"> 2657</span>&#160;       <span class="keywordflow">if</span> (.not. file_open) <span class="keywordflow">then</span></div>
+<div class="line"><a name="l02658"></a><span class="lineno"> 2658</span>&#160;          filename = trim(<a class="code" href="namespacemod__global__parameters.html#acca226f88fb362bae425ca71f3742d09">base_filename</a>) // <span class="stringliteral">&quot;.log&quot;</span></div>
+<div class="line"><a name="l02659"></a><span class="lineno"> 2659</span>&#160;          amode    = ior(mpi_mode_create,mpi_mode_wronly)</div>
+<div class="line"><a name="l02660"></a><span class="lineno"> 2660</span>&#160;          amode    = ior(amode,mpi_mode_append)</div>
 <div class="line"><a name="l02661"></a><span class="lineno"> 2661</span>&#160; </div>
-<div class="line"><a name="l02662"></a><span class="lineno"> 2662</span>&#160;       <span class="keyword">write</span>(fmt_string, <span class="stringliteral">&quot;(a,i0,a)&quot;</span>) <span class="stringliteral">&quot;(&quot;</span>, nw * n_modes + 1, <a class="code" href="namespacemod__input__output.html#a5a4c8ad20085895e6afea0b6da413313">fmt_r</a> // <span class="stringliteral">&quot;)&quot;</span></div>
-<div class="line"><a name="l02663"></a><span class="lineno"> 2663</span>&#160;       <span class="keyword">write</span>(my_unit, fmt_string) <a class="code" href="namespacemod__global__parameters.html#a2bdc961e7304863887ec17a92ae5ac0a">global_time</a>, modes</div>
-<div class="line"><a name="l02664"></a><span class="lineno"> 2664</span>&#160;<span class="keywordflow">    end if</span></div>
-<div class="line"><a name="l02665"></a><span class="lineno"> 2665</span>&#160;  <span class="keyword">end subroutine </span><a class="code" href="namespacemod__input__output.html#a97e4df1969002df5c3fcc551db7d354e">printlog_regression_test</a></div>
-<div class="line"><a name="l02666"></a><span class="lineno"> 2666</span>&#160;<span class="comment"></span> </div>
-<div class="line"><a name="l02667"></a><span class="lineno"> 2667</span>&#160;<span class="comment">  !&gt; Compute mean(w**power) over the leaves of the grid. The first mode</span></div>
-<div class="line"><a name="l02668"></a><span class="lineno"> 2668</span>&#160;<span class="comment">  !&gt; (power=1) corresponds to the mean, the second to the mean squared values</span></div>
-<div class="line"><a name="l02669"></a><span class="lineno"> 2669</span>&#160;<span class="comment">  !&gt; and so on.</span></div>
-<div class="line"><a name="l02670"></a><span class="lineno"><a class="line" href="namespacemod__input__output.html#a9cf9ab211dc4836b216f1fe919d969ed"> 2670</a></span>&#160;  <span class="keyword">subroutine </span><a class="code" href="namespacemod__input__output.html#a9cf9ab211dc4836b216f1fe919d969ed">get_volume_average</a>(power, mode, volume)</div>
-<div class="line"><a name="l02671"></a><span class="lineno"> 2671</span>&#160;    <span class="keywordtype">use </span><a class="code" href="namespacemod__global__parameters.html">mod_global_parameters</a></div>
-<div class="line"><a name="l02672"></a><span class="lineno"> 2672</span>&#160; </div>
-<div class="line"><a name="l02673"></a><span class="lineno"> 2673</span>&#160;    <span class="keywordtype">integer</span>, <span class="keywordtype">intent(in)</span>           :: power<span class="comment">     !&lt; Which mode to compute</span></div>
-<div class="line"><a name="l02674"></a><span class="lineno"> 2674</span>&#160;    <span class="keywordtype">double precision</span>, <span class="keywordtype">intent(out)</span> :: mode(nw)<span class="comment">  !&lt; The computed mode</span></div>
-<div class="line"><a name="l02675"></a><span class="lineno"> 2675</span>&#160;    <span class="keywordtype">double precision</span>, <span class="keywordtype">intent(out)</span> :: volume<span class="comment">    !&lt; The total grid volume</span></div>
-<div class="line"><a name="l02676"></a><span class="lineno"> 2676</span>&#160;    <span class="keywordtype">integer</span>                       :: iigrid, igrid, iw</div>
-<div class="line"><a name="l02677"></a><span class="lineno"> 2677</span>&#160;    <span class="keywordtype">double precision</span>              :: wsum(nw+1)</div>
-<div class="line"><a name="l02678"></a><span class="lineno"> 2678</span>&#160;    <span class="keywordtype">double precision</span>              :: dsum_recv(1:nw+1)</div>
-<div class="line"><a name="l02679"></a><span class="lineno"> 2679</span>&#160; </div>
-<div class="line"><a name="l02680"></a><span class="lineno"> 2680</span>&#160;    wsum(:) = 0</div>
-<div class="line"><a name="l02681"></a><span class="lineno"> 2681</span>&#160; </div>
-<div class="line"><a name="l02682"></a><span class="lineno"> 2682</span>&#160;    <span class="comment">! Loop over all the grids</span></div>
-<div class="line"><a name="l02683"></a><span class="lineno"> 2683</span>&#160;    <span class="keywordflow">do</span> iigrid = 1, igridstail</div>
-<div class="line"><a name="l02684"></a><span class="lineno"> 2684</span>&#160;       igrid = igrids(iigrid)</div>
-<div class="line"><a name="l02685"></a><span class="lineno"> 2685</span>&#160; </div>
-<div class="line"><a name="l02686"></a><span class="lineno"> 2686</span>&#160;       <span class="comment">! Store total volume in last element</span></div>
-<div class="line"><a name="l02687"></a><span class="lineno"> 2687</span>&#160;       wsum(nw+1) = wsum(nw+1) + sum(ps(igrid)%dvolume(<a class="code" href="namespacemod__global__parameters.html#a6f52fc825865569352db4ebc034361b4">ixm</a>^t))</div>
-<div class="line"><a name="l02688"></a><span class="lineno"> 2688</span>&#160; </div>
-<div class="line"><a name="l02689"></a><span class="lineno"> 2689</span>&#160;       <span class="comment">! Compute the modes of the cell-centered variables, weighted by volume</span></div>
-<div class="line"><a name="l02690"></a><span class="lineno"> 2690</span>&#160;       <span class="keywordflow">do</span> iw = 1, nw</div>
-<div class="line"><a name="l02691"></a><span class="lineno"> 2691</span>&#160;          wsum(iw) = wsum(iw) + &amp;</div>
-<div class="line"><a name="l02692"></a><span class="lineno"> 2692</span>&#160;               sum(ps(igrid)%dvolume(<a class="code" href="namespacemod__global__parameters.html#a6f52fc825865569352db4ebc034361b4">ixm</a>^t)*ps(igrid)%w(<a class="code" href="namespacemod__global__parameters.html#a6f52fc825865569352db4ebc034361b4">ixm</a>^t,iw)**power)</div>
-<div class="line"><a name="l02693"></a><span class="lineno"> 2693</span>&#160;<span class="keywordflow">       end do</span></div>
-<div class="line"><a name="l02694"></a><span class="lineno"> 2694</span>&#160;<span class="keywordflow">    end do</span></div>
-<div class="line"><a name="l02695"></a><span class="lineno"> 2695</span>&#160; </div>
-<div class="line"><a name="l02696"></a><span class="lineno"> 2696</span>&#160;    <span class="comment">! Make the information available on all tasks</span></div>
-<div class="line"><a name="l02697"></a><span class="lineno"> 2697</span>&#160;    <span class="keyword">call </span>mpi_allreduce(wsum, dsum_recv, nw+1, mpi_double_precision, &amp;</div>
-<div class="line"><a name="l02698"></a><span class="lineno"> 2698</span>&#160;         mpi_sum, <a class="code" href="namespacemod__global__parameters.html#a5704f1c57aa09935d3491f65ad240861">icomm</a>, <a class="code" href="namespacemod__global__parameters.html#a701c9a9b2d5f02bb7c7a8181f09df2ae">ierrmpi</a>)</div>
+<div class="line"><a name="l02662"></a><span class="lineno"> 2662</span>&#160;          <span class="keyword">call </span>mpi_file_open(mpi_comm_self, filename, amode, &amp;</div>
+<div class="line"><a name="l02663"></a><span class="lineno"> 2663</span>&#160;               mpi_info_null, <a class="code" href="namespacemod__global__parameters.html#afffa1fd3e8b551b3f2ba9defbcc88f50">log_fh</a>, <a class="code" href="namespacemod__global__parameters.html#a701c9a9b2d5f02bb7c7a8181f09df2ae">ierrmpi</a>)</div>
+<div class="line"><a name="l02664"></a><span class="lineno"> 2664</span>&#160;          file_open = .true.</div>
+<div class="line"><a name="l02665"></a><span class="lineno"> 2665</span>&#160; </div>
+<div class="line"><a name="l02666"></a><span class="lineno"> 2666</span>&#160;          line= <span class="stringliteral">&quot;# time mean(w) mean(w**2)&quot;</span></div>
+<div class="line"><a name="l02667"></a><span class="lineno"> 2667</span>&#160;          <span class="keyword">call </span>mpi_file_write(<a class="code" href="namespacemod__global__parameters.html#afffa1fd3e8b551b3f2ba9defbcc88f50">log_fh</a>, trim(line) // new_line(<span class="stringliteral">&#39;a&#39;</span>), &amp;</div>
+<div class="line"><a name="l02668"></a><span class="lineno"> 2668</span>&#160;                 len_trim(line)+1, mpi_character, istatus, <a class="code" href="namespacemod__global__parameters.html#a701c9a9b2d5f02bb7c7a8181f09df2ae">ierrmpi</a>)</div>
+<div class="line"><a name="l02669"></a><span class="lineno"> 2669</span>&#160;<span class="keywordflow">       end if</span></div>
+<div class="line"><a name="l02670"></a><span class="lineno"> 2670</span>&#160; </div>
+<div class="line"><a name="l02671"></a><span class="lineno"> 2671</span>&#160;       <span class="keyword">write</span>(fmt_string, <span class="stringliteral">&quot;(a,i0,a)&quot;</span>) <span class="stringliteral">&quot;(&quot;</span>, nw * n_modes + 1, <a class="code" href="namespacemod__input__output.html#a5a4c8ad20085895e6afea0b6da413313">fmt_r</a> // <span class="stringliteral">&quot;)&quot;</span></div>
+<div class="line"><a name="l02672"></a><span class="lineno"> 2672</span>&#160;       <span class="keyword">write</span>(line, fmt_string) <a class="code" href="namespacemod__global__parameters.html#a2bdc961e7304863887ec17a92ae5ac0a">global_time</a>, modes</div>
+<div class="line"><a name="l02673"></a><span class="lineno"> 2673</span>&#160;       <span class="keyword">call </span>mpi_file_write(<a class="code" href="namespacemod__global__parameters.html#afffa1fd3e8b551b3f2ba9defbcc88f50">log_fh</a>, trim(line) // new_line(<span class="stringliteral">&#39;a&#39;</span>) , &amp;</div>
+<div class="line"><a name="l02674"></a><span class="lineno"> 2674</span>&#160;            len_trim(line)+1, mpi_character, istatus, <a class="code" href="namespacemod__global__parameters.html#a701c9a9b2d5f02bb7c7a8181f09df2ae">ierrmpi</a>)</div>
+<div class="line"><a name="l02675"></a><span class="lineno"> 2675</span>&#160;<span class="keywordflow">    end if</span></div>
+<div class="line"><a name="l02676"></a><span class="lineno"> 2676</span>&#160;  <span class="keyword">end subroutine </span><a class="code" href="namespacemod__input__output.html#a97e4df1969002df5c3fcc551db7d354e">printlog_regression_test</a></div>
+<div class="line"><a name="l02677"></a><span class="lineno"> 2677</span>&#160;<span class="comment"></span> </div>
+<div class="line"><a name="l02678"></a><span class="lineno"> 2678</span>&#160;<span class="comment">  !&gt; Compute mean(w**power) over the leaves of the grid. The first mode</span></div>
+<div class="line"><a name="l02679"></a><span class="lineno"> 2679</span>&#160;<span class="comment">  !&gt; (power=1) corresponds to the mean, the second to the mean squared values</span></div>
+<div class="line"><a name="l02680"></a><span class="lineno"> 2680</span>&#160;<span class="comment">  !&gt; and so on.</span></div>
+<div class="line"><a name="l02681"></a><span class="lineno"><a class="line" href="namespacemod__input__output.html#a9cf9ab211dc4836b216f1fe919d969ed"> 2681</a></span>&#160;  <span class="keyword">subroutine </span><a class="code" href="namespacemod__input__output.html#a9cf9ab211dc4836b216f1fe919d969ed">get_volume_average</a>(power, mode, volume)</div>
+<div class="line"><a name="l02682"></a><span class="lineno"> 2682</span>&#160;    <span class="keywordtype">use </span><a class="code" href="namespacemod__global__parameters.html">mod_global_parameters</a></div>
+<div class="line"><a name="l02683"></a><span class="lineno"> 2683</span>&#160; </div>
+<div class="line"><a name="l02684"></a><span class="lineno"> 2684</span>&#160;    <span class="keywordtype">integer</span>, <span class="keywordtype">intent(in)</span>           :: power<span class="comment">     !&lt; Which mode to compute</span></div>
+<div class="line"><a name="l02685"></a><span class="lineno"> 2685</span>&#160;    <span class="keywordtype">double precision</span>, <span class="keywordtype">intent(out)</span> :: mode(nw)<span class="comment">  !&lt; The computed mode</span></div>
+<div class="line"><a name="l02686"></a><span class="lineno"> 2686</span>&#160;    <span class="keywordtype">double precision</span>, <span class="keywordtype">intent(out)</span> :: volume<span class="comment">    !&lt; The total grid volume</span></div>
+<div class="line"><a name="l02687"></a><span class="lineno"> 2687</span>&#160;    <span class="keywordtype">integer</span>                       :: iigrid, igrid, iw</div>
+<div class="line"><a name="l02688"></a><span class="lineno"> 2688</span>&#160;    <span class="keywordtype">double precision</span>              :: wsum(nw+1)</div>
+<div class="line"><a name="l02689"></a><span class="lineno"> 2689</span>&#160;    <span class="keywordtype">double precision</span>              :: dsum_recv(1:nw+1)</div>
+<div class="line"><a name="l02690"></a><span class="lineno"> 2690</span>&#160; </div>
+<div class="line"><a name="l02691"></a><span class="lineno"> 2691</span>&#160;    wsum(:) = 0</div>
+<div class="line"><a name="l02692"></a><span class="lineno"> 2692</span>&#160; </div>
+<div class="line"><a name="l02693"></a><span class="lineno"> 2693</span>&#160;    <span class="comment">! Loop over all the grids</span></div>
+<div class="line"><a name="l02694"></a><span class="lineno"> 2694</span>&#160;    <span class="keywordflow">do</span> iigrid = 1, igridstail</div>
+<div class="line"><a name="l02695"></a><span class="lineno"> 2695</span>&#160;       igrid = igrids(iigrid)</div>
+<div class="line"><a name="l02696"></a><span class="lineno"> 2696</span>&#160; </div>
+<div class="line"><a name="l02697"></a><span class="lineno"> 2697</span>&#160;       <span class="comment">! Store total volume in last element</span></div>
+<div class="line"><a name="l02698"></a><span class="lineno"> 2698</span>&#160;       wsum(nw+1) = wsum(nw+1) + sum(ps(igrid)%dvolume(<a class="code" href="namespacemod__global__parameters.html#a6f52fc825865569352db4ebc034361b4">ixm</a>^t))</div>
 <div class="line"><a name="l02699"></a><span class="lineno"> 2699</span>&#160; </div>
-<div class="line"><a name="l02700"></a><span class="lineno"> 2700</span>&#160;    <span class="comment">! Set the volume and the average</span></div>
-<div class="line"><a name="l02701"></a><span class="lineno"> 2701</span>&#160;    volume = dsum_recv(nw+1)</div>
-<div class="line"><a name="l02702"></a><span class="lineno"> 2702</span>&#160;    mode   = dsum_recv(1:nw) / volume</div>
-<div class="line"><a name="l02703"></a><span class="lineno"> 2703</span>&#160; </div>
-<div class="line"><a name="l02704"></a><span class="lineno"> 2704</span>&#160;  <span class="keyword">end subroutine </span><a class="code" href="namespacemod__input__output.html#a9cf9ab211dc4836b216f1fe919d969ed">get_volume_average</a></div>
-<div class="line"><a name="l02705"></a><span class="lineno"> 2705</span>&#160;<span class="comment"></span> </div>
-<div class="line"><a name="l02706"></a><span class="lineno"> 2706</span>&#160;<span class="comment">  !&gt; Compute how much of the domain is covered by each grid level. This routine</span></div>
-<div class="line"><a name="l02707"></a><span class="lineno"> 2707</span>&#160;<span class="comment">  !&gt; does not take a non-Cartesian geometry into account.</span></div>
-<div class="line"><a name="l02708"></a><span class="lineno"><a class="line" href="namespacemod__input__output.html#ab8da1bad0d6ad49b56081e6fe6bbcc85"> 2708</a></span>&#160;  <span class="keyword">subroutine </span><a class="code" href="namespacemod__input__output.html#ab8da1bad0d6ad49b56081e6fe6bbcc85">get_volume_coverage</a>(vol_cov)</div>
-<div class="line"><a name="l02709"></a><span class="lineno"> 2709</span>&#160;    <span class="keywordtype">use </span><a class="code" href="namespacemod__global__parameters.html">mod_global_parameters</a></div>
+<div class="line"><a name="l02700"></a><span class="lineno"> 2700</span>&#160;       <span class="comment">! Compute the modes of the cell-centered variables, weighted by volume</span></div>
+<div class="line"><a name="l02701"></a><span class="lineno"> 2701</span>&#160;       <span class="keywordflow">do</span> iw = 1, nw</div>
+<div class="line"><a name="l02702"></a><span class="lineno"> 2702</span>&#160;          wsum(iw) = wsum(iw) + &amp;</div>
+<div class="line"><a name="l02703"></a><span class="lineno"> 2703</span>&#160;               sum(ps(igrid)%dvolume(<a class="code" href="namespacemod__global__parameters.html#a6f52fc825865569352db4ebc034361b4">ixm</a>^t)*ps(igrid)%w(<a class="code" href="namespacemod__global__parameters.html#a6f52fc825865569352db4ebc034361b4">ixm</a>^t,iw)**power)</div>
+<div class="line"><a name="l02704"></a><span class="lineno"> 2704</span>&#160;<span class="keywordflow">       end do</span></div>
+<div class="line"><a name="l02705"></a><span class="lineno"> 2705</span>&#160;<span class="keywordflow">    end do</span></div>
+<div class="line"><a name="l02706"></a><span class="lineno"> 2706</span>&#160; </div>
+<div class="line"><a name="l02707"></a><span class="lineno"> 2707</span>&#160;    <span class="comment">! Make the information available on all tasks</span></div>
+<div class="line"><a name="l02708"></a><span class="lineno"> 2708</span>&#160;    <span class="keyword">call </span>mpi_allreduce(wsum, dsum_recv, nw+1, mpi_double_precision, &amp;</div>
+<div class="line"><a name="l02709"></a><span class="lineno"> 2709</span>&#160;         mpi_sum, <a class="code" href="namespacemod__global__parameters.html#a5704f1c57aa09935d3491f65ad240861">icomm</a>, <a class="code" href="namespacemod__global__parameters.html#a701c9a9b2d5f02bb7c7a8181f09df2ae">ierrmpi</a>)</div>
 <div class="line"><a name="l02710"></a><span class="lineno"> 2710</span>&#160; </div>
-<div class="line"><a name="l02711"></a><span class="lineno"> 2711</span>&#160;    <span class="keywordtype">double precision</span>, <span class="keywordtype">intent(out)</span> :: vol_cov(1:refine_max_level)</div>
-<div class="line"><a name="l02712"></a><span class="lineno"> 2712</span>&#160;    <span class="keywordtype">double precision</span>              :: dsum_recv(1:refine_max_level)</div>
-<div class="line"><a name="l02713"></a><span class="lineno"> 2713</span>&#160;    <span class="keywordtype">integer</span>                       :: iigrid, igrid, iw, level</div>
+<div class="line"><a name="l02711"></a><span class="lineno"> 2711</span>&#160;    <span class="comment">! Set the volume and the average</span></div>
+<div class="line"><a name="l02712"></a><span class="lineno"> 2712</span>&#160;    volume = dsum_recv(nw+1)</div>
+<div class="line"><a name="l02713"></a><span class="lineno"> 2713</span>&#160;    mode   = dsum_recv(1:nw) / volume</div>
 <div class="line"><a name="l02714"></a><span class="lineno"> 2714</span>&#160; </div>
-<div class="line"><a name="l02715"></a><span class="lineno"> 2715</span>&#160;    <span class="comment">! First determine the total &#39;flat&#39; volume in each level</span></div>
-<div class="line"><a name="l02716"></a><span class="lineno"> 2716</span>&#160;    vol_cov(1:refine_max_level)=zero</div>
-<div class="line"><a name="l02717"></a><span class="lineno"> 2717</span>&#160; </div>
-<div class="line"><a name="l02718"></a><span class="lineno"> 2718</span>&#160;    <span class="keywordflow">do</span> iigrid = 1, igridstail</div>
-<div class="line"><a name="l02719"></a><span class="lineno"> 2719</span>&#160;       igrid          = igrids(iigrid);</div>
-<div class="line"><a name="l02720"></a><span class="lineno"> 2720</span>&#160;       level          = <a class="code" href="namespacemod__global__parameters.html#aed90569afef4769570ed43ec84c80975">node</a>(<a class="code" href="namespacemod__global__parameters.html#a6491b365821029b96f98797234dd2839">plevel_</a>,igrid)</div>
-<div class="line"><a name="l02721"></a><span class="lineno"> 2721</span>&#160;       vol_cov(level) = vol_cov(level)+ &amp;</div>
-<div class="line"><a name="l02722"></a><span class="lineno"> 2722</span>&#160;            {(<a class="code" href="namespacemod__global__parameters.html#a9dd666c3ecb8ef351f14f46cf32a3a62">rnode</a>(<a class="code" href="namespacemod__global__parameters.html#ac7028ff82a4d1fd8d5ddf936665837c3">rpxmax</a>^<a class="code" href="namespacemod__global__parameters.html#aa3194833cc9e7e739ed1fa396655a636">d_</a>,igrid)-<a class="code" href="namespacemod__global__parameters.html#a9dd666c3ecb8ef351f14f46cf32a3a62">rnode</a>(<a class="code" href="namespacemod__global__parameters.html#a479b16476da7b1ec12a73e7815a61614">rpxmin</a>^<a class="code" href="namespacemod__global__parameters.html#aa3194833cc9e7e739ed1fa396655a636">d_</a>,igrid))|*}</div>
-<div class="line"><a name="l02723"></a><span class="lineno"> 2723</span>&#160;<span class="keywordflow">    end do</span></div>
-<div class="line"><a name="l02724"></a><span class="lineno"> 2724</span>&#160; </div>
-<div class="line"><a name="l02725"></a><span class="lineno"> 2725</span>&#160;    <span class="comment">! Make the information available on all tasks</span></div>
-<div class="line"><a name="l02726"></a><span class="lineno"> 2726</span>&#160;    <span class="keyword">call </span>mpi_allreduce(vol_cov, dsum_recv, refine_max_level, mpi_double_precision, &amp;</div>
-<div class="line"><a name="l02727"></a><span class="lineno"> 2727</span>&#160;         mpi_sum, <a class="code" href="namespacemod__global__parameters.html#a5704f1c57aa09935d3491f65ad240861">icomm</a>, <a class="code" href="namespacemod__global__parameters.html#a701c9a9b2d5f02bb7c7a8181f09df2ae">ierrmpi</a>)</div>
+<div class="line"><a name="l02715"></a><span class="lineno"> 2715</span>&#160;  <span class="keyword">end subroutine </span><a class="code" href="namespacemod__input__output.html#a9cf9ab211dc4836b216f1fe919d969ed">get_volume_average</a></div>
+<div class="line"><a name="l02716"></a><span class="lineno"> 2716</span>&#160;<span class="comment"></span> </div>
+<div class="line"><a name="l02717"></a><span class="lineno"> 2717</span>&#160;<span class="comment">  !&gt; Compute how much of the domain is covered by each grid level. This routine</span></div>
+<div class="line"><a name="l02718"></a><span class="lineno"> 2718</span>&#160;<span class="comment">  !&gt; does not take a non-Cartesian geometry into account.</span></div>
+<div class="line"><a name="l02719"></a><span class="lineno"><a class="line" href="namespacemod__input__output.html#ab8da1bad0d6ad49b56081e6fe6bbcc85"> 2719</a></span>&#160;  <span class="keyword">subroutine </span><a class="code" href="namespacemod__input__output.html#ab8da1bad0d6ad49b56081e6fe6bbcc85">get_volume_coverage</a>(vol_cov)</div>
+<div class="line"><a name="l02720"></a><span class="lineno"> 2720</span>&#160;    <span class="keywordtype">use </span><a class="code" href="namespacemod__global__parameters.html">mod_global_parameters</a></div>
+<div class="line"><a name="l02721"></a><span class="lineno"> 2721</span>&#160; </div>
+<div class="line"><a name="l02722"></a><span class="lineno"> 2722</span>&#160;    <span class="keywordtype">double precision</span>, <span class="keywordtype">intent(out)</span> :: vol_cov(1:refine_max_level)</div>
+<div class="line"><a name="l02723"></a><span class="lineno"> 2723</span>&#160;    <span class="keywordtype">double precision</span>              :: dsum_recv(1:refine_max_level)</div>
+<div class="line"><a name="l02724"></a><span class="lineno"> 2724</span>&#160;    <span class="keywordtype">integer</span>                       :: iigrid, igrid, iw, level</div>
+<div class="line"><a name="l02725"></a><span class="lineno"> 2725</span>&#160; </div>
+<div class="line"><a name="l02726"></a><span class="lineno"> 2726</span>&#160;    <span class="comment">! First determine the total &#39;flat&#39; volume in each level</span></div>
+<div class="line"><a name="l02727"></a><span class="lineno"> 2727</span>&#160;    vol_cov(1:refine_max_level)=zero</div>
 <div class="line"><a name="l02728"></a><span class="lineno"> 2728</span>&#160; </div>
-<div class="line"><a name="l02729"></a><span class="lineno"> 2729</span>&#160;    <span class="comment">! Normalize</span></div>
-<div class="line"><a name="l02730"></a><span class="lineno"> 2730</span>&#160;    vol_cov = dsum_recv / sum(dsum_recv)</div>
-<div class="line"><a name="l02731"></a><span class="lineno"> 2731</span>&#160;  <span class="keyword">end subroutine </span><a class="code" href="namespacemod__input__output.html#ab8da1bad0d6ad49b56081e6fe6bbcc85">get_volume_coverage</a></div>
-<div class="line"><a name="l02732"></a><span class="lineno"> 2732</span>&#160;<span class="comment"></span> </div>
-<div class="line"><a name="l02733"></a><span class="lineno"> 2733</span>&#160;<span class="comment">  !&gt; Compute the volume average of func(w) over the leaves of the grid.</span></div>
-<div class="line"><a name="l02734"></a><span class="lineno"><a class="line" href="namespacemod__input__output.html#a846c54d7767425c6f966c4db1ad1c235"> 2734</a></span>&#160;  <span class="keyword">subroutine </span><a class="code" href="namespacemod__input__output.html#a846c54d7767425c6f966c4db1ad1c235">get_volume_average_func</a>(func, f_avg, volume)</div>
-<div class="line"><a name="l02735"></a><span class="lineno"> 2735</span>&#160;    <span class="keywordtype">use </span><a class="code" href="namespacemod__global__parameters.html">mod_global_parameters</a></div>
-<div class="line"><a name="l02736"></a><span class="lineno"> 2736</span>&#160; </div>
-<div class="line"><a name="l02737"></a><span class="lineno"> 2737</span>&#160;    <span class="keyword">interface</span></div>
-<div class="line"><a name="l02738"></a><span class="lineno"> 2738</span>&#160;       <span class="keywordtype">pure</span> <span class="keyword">function </span>func(w_vec, w_size) <span class="keyword">result</span>(val)</div>
-<div class="line"><a name="l02739"></a><span class="lineno"> 2739</span>&#160;         <span class="keywordtype">integer</span>, <span class="keywordtype">intent(in)</span>          :: w_size</div>
-<div class="line"><a name="l02740"></a><span class="lineno"> 2740</span>&#160;         <span class="keywordtype">double precision</span>, <span class="keywordtype">intent(in)</span> :: w_vec(w_size)</div>
-<div class="line"><a name="l02741"></a><span class="lineno"> 2741</span>&#160;         <span class="keywordtype">double precision</span>             :: val</div>
-<div class="line"><a name="l02742"></a><span class="lineno"> 2742</span>&#160;       <span class="keyword">end function </span>func</div>
-<div class="line"><a name="l02743"></a><span class="lineno"> 2743</span>&#160;    <span class="keyword">end interface</span></div>
-<div class="line"><a name="l02744"></a><span class="lineno"> 2744</span>&#160;    <span class="keywordtype">double precision</span>, <span class="keywordtype">intent(out)</span> :: f_avg<span class="comment">  !&lt; The volume average of func</span></div>
-<div class="line"><a name="l02745"></a><span class="lineno"> 2745</span>&#160;    <span class="keywordtype">double precision</span>, <span class="keywordtype">intent(out)</span> :: volume<span class="comment">    !&lt; The total grid volume</span></div>
-<div class="line"><a name="l02746"></a><span class="lineno"> 2746</span>&#160;    <span class="keywordtype">integer</span>                       :: iigrid, igrid, i^D</div>
-<div class="line"><a name="l02747"></a><span class="lineno"> 2747</span>&#160;    <span class="keywordtype">double precision</span>              :: wsum(2)</div>
-<div class="line"><a name="l02748"></a><span class="lineno"> 2748</span>&#160;    <span class="keywordtype">double precision</span>              :: dsum_recv(2)</div>
-<div class="line"><a name="l02749"></a><span class="lineno"> 2749</span>&#160; </div>
-<div class="line"><a name="l02750"></a><span class="lineno"> 2750</span>&#160;    wsum(:) = 0</div>
-<div class="line"><a name="l02751"></a><span class="lineno"> 2751</span>&#160; </div>
-<div class="line"><a name="l02752"></a><span class="lineno"> 2752</span>&#160;    <span class="comment">! Loop over all the grids</span></div>
-<div class="line"><a name="l02753"></a><span class="lineno"> 2753</span>&#160;    <span class="keywordflow">do</span> iigrid = 1, igridstail</div>
-<div class="line"><a name="l02754"></a><span class="lineno"> 2754</span>&#160;       igrid = igrids(iigrid)</div>
-<div class="line"><a name="l02755"></a><span class="lineno"> 2755</span>&#160; </div>
-<div class="line"><a name="l02756"></a><span class="lineno"> 2756</span>&#160;       <span class="comment">! Store total volume in last element</span></div>
-<div class="line"><a name="l02757"></a><span class="lineno"> 2757</span>&#160;       wsum(2) = wsum(2) + sum(ps(igrid)%dvolume(<a class="code" href="namespacemod__global__parameters.html#a6f52fc825865569352db4ebc034361b4">ixm</a>^t))</div>
-<div class="line"><a name="l02758"></a><span class="lineno"> 2758</span>&#160; </div>
-<div class="line"><a name="l02759"></a><span class="lineno"> 2759</span>&#160;       <span class="comment">! Compute the modes of the cell-centered variables, weighted by volume</span></div>
-<div class="line"><a name="l02760"></a><span class="lineno"> 2760</span>&#160;       {<span class="keywordflow">do</span> i^d = ixmlo^d, ixmhi^d\}</div>
-<div class="line"><a name="l02761"></a><span class="lineno"> 2761</span>&#160;       wsum(1) = wsum(1) + ps(igrid)%dvolume(i^d) * &amp;</div>
-<div class="line"><a name="l02762"></a><span class="lineno"> 2762</span>&#160;            func(ps(igrid)%w(i^d, :), nw)</div>
-<div class="line"><a name="l02763"></a><span class="lineno"> 2763</span>&#160;       {<span class="keyword">end </span>do\}</div>
-<div class="line"><a name="l02764"></a><span class="lineno"> 2764</span>&#160;<span class="keywordflow">    end do</span></div>
-<div class="line"><a name="l02765"></a><span class="lineno"> 2765</span>&#160; </div>
-<div class="line"><a name="l02766"></a><span class="lineno"> 2766</span>&#160;    <span class="comment">! Make the information available on all tasks</span></div>
-<div class="line"><a name="l02767"></a><span class="lineno"> 2767</span>&#160;    <span class="keyword">call </span>mpi_allreduce(wsum, dsum_recv, 2, mpi_double_precision, &amp;</div>
-<div class="line"><a name="l02768"></a><span class="lineno"> 2768</span>&#160;         mpi_sum, icomm, ierrmpi)</div>
+<div class="line"><a name="l02729"></a><span class="lineno"> 2729</span>&#160;    <span class="keywordflow">do</span> iigrid = 1, igridstail</div>
+<div class="line"><a name="l02730"></a><span class="lineno"> 2730</span>&#160;       igrid          = igrids(iigrid);</div>
+<div class="line"><a name="l02731"></a><span class="lineno"> 2731</span>&#160;       level          = <a class="code" href="namespacemod__global__parameters.html#aed90569afef4769570ed43ec84c80975">node</a>(<a class="code" href="namespacemod__global__parameters.html#a6491b365821029b96f98797234dd2839">plevel_</a>,igrid)</div>
+<div class="line"><a name="l02732"></a><span class="lineno"> 2732</span>&#160;       vol_cov(level) = vol_cov(level)+ &amp;</div>
+<div class="line"><a name="l02733"></a><span class="lineno"> 2733</span>&#160;            {(<a class="code" href="namespacemod__global__parameters.html#a9dd666c3ecb8ef351f14f46cf32a3a62">rnode</a>(<a class="code" href="namespacemod__global__parameters.html#ac7028ff82a4d1fd8d5ddf936665837c3">rpxmax</a>^<a class="code" href="namespacemod__global__parameters.html#aa3194833cc9e7e739ed1fa396655a636">d_</a>,igrid)-<a class="code" href="namespacemod__global__parameters.html#a9dd666c3ecb8ef351f14f46cf32a3a62">rnode</a>(<a class="code" href="namespacemod__global__parameters.html#a479b16476da7b1ec12a73e7815a61614">rpxmin</a>^<a class="code" href="namespacemod__global__parameters.html#aa3194833cc9e7e739ed1fa396655a636">d_</a>,igrid))|*}</div>
+<div class="line"><a name="l02734"></a><span class="lineno"> 2734</span>&#160;<span class="keywordflow">    end do</span></div>
+<div class="line"><a name="l02735"></a><span class="lineno"> 2735</span>&#160; </div>
+<div class="line"><a name="l02736"></a><span class="lineno"> 2736</span>&#160;    <span class="comment">! Make the information available on all tasks</span></div>
+<div class="line"><a name="l02737"></a><span class="lineno"> 2737</span>&#160;    <span class="keyword">call </span>mpi_allreduce(vol_cov, dsum_recv, refine_max_level, mpi_double_precision, &amp;</div>
+<div class="line"><a name="l02738"></a><span class="lineno"> 2738</span>&#160;         mpi_sum, <a class="code" href="namespacemod__global__parameters.html#a5704f1c57aa09935d3491f65ad240861">icomm</a>, <a class="code" href="namespacemod__global__parameters.html#a701c9a9b2d5f02bb7c7a8181f09df2ae">ierrmpi</a>)</div>
+<div class="line"><a name="l02739"></a><span class="lineno"> 2739</span>&#160; </div>
+<div class="line"><a name="l02740"></a><span class="lineno"> 2740</span>&#160;    <span class="comment">! Normalize</span></div>
+<div class="line"><a name="l02741"></a><span class="lineno"> 2741</span>&#160;    vol_cov = dsum_recv / sum(dsum_recv)</div>
+<div class="line"><a name="l02742"></a><span class="lineno"> 2742</span>&#160;  <span class="keyword">end subroutine </span><a class="code" href="namespacemod__input__output.html#ab8da1bad0d6ad49b56081e6fe6bbcc85">get_volume_coverage</a></div>
+<div class="line"><a name="l02743"></a><span class="lineno"> 2743</span>&#160;<span class="comment"></span> </div>
+<div class="line"><a name="l02744"></a><span class="lineno"> 2744</span>&#160;<span class="comment">  !&gt; Compute the volume average of func(w) over the leaves of the grid.</span></div>
+<div class="line"><a name="l02745"></a><span class="lineno"><a class="line" href="namespacemod__input__output.html#a846c54d7767425c6f966c4db1ad1c235"> 2745</a></span>&#160;  <span class="keyword">subroutine </span><a class="code" href="namespacemod__input__output.html#a846c54d7767425c6f966c4db1ad1c235">get_volume_average_func</a>(func, f_avg, volume)</div>
+<div class="line"><a name="l02746"></a><span class="lineno"> 2746</span>&#160;    <span class="keywordtype">use </span><a class="code" href="namespacemod__global__parameters.html">mod_global_parameters</a></div>
+<div class="line"><a name="l02747"></a><span class="lineno"> 2747</span>&#160; </div>
+<div class="line"><a name="l02748"></a><span class="lineno"> 2748</span>&#160;    <span class="keyword">interface</span></div>
+<div class="line"><a name="l02749"></a><span class="lineno"> 2749</span>&#160;       <span class="keywordtype">pure</span> <span class="keyword">function </span>func(w_vec, w_size) <span class="keyword">result</span>(val)</div>
+<div class="line"><a name="l02750"></a><span class="lineno"> 2750</span>&#160;         <span class="keywordtype">integer</span>, <span class="keywordtype">intent(in)</span>          :: w_size</div>
+<div class="line"><a name="l02751"></a><span class="lineno"> 2751</span>&#160;         <span class="keywordtype">double precision</span>, <span class="keywordtype">intent(in)</span> :: w_vec(w_size)</div>
+<div class="line"><a name="l02752"></a><span class="lineno"> 2752</span>&#160;         <span class="keywordtype">double precision</span>             :: val</div>
+<div class="line"><a name="l02753"></a><span class="lineno"> 2753</span>&#160;       <span class="keyword">end function </span>func</div>
+<div class="line"><a name="l02754"></a><span class="lineno"> 2754</span>&#160;    <span class="keyword">end interface</span></div>
+<div class="line"><a name="l02755"></a><span class="lineno"> 2755</span>&#160;    <span class="keywordtype">double precision</span>, <span class="keywordtype">intent(out)</span> :: f_avg<span class="comment">  !&lt; The volume average of func</span></div>
+<div class="line"><a name="l02756"></a><span class="lineno"> 2756</span>&#160;    <span class="keywordtype">double precision</span>, <span class="keywordtype">intent(out)</span> :: volume<span class="comment">    !&lt; The total grid volume</span></div>
+<div class="line"><a name="l02757"></a><span class="lineno"> 2757</span>&#160;    <span class="keywordtype">integer</span>                       :: iigrid, igrid, i^D</div>
+<div class="line"><a name="l02758"></a><span class="lineno"> 2758</span>&#160;    <span class="keywordtype">double precision</span>              :: wsum(2)</div>
+<div class="line"><a name="l02759"></a><span class="lineno"> 2759</span>&#160;    <span class="keywordtype">double precision</span>              :: dsum_recv(2)</div>
+<div class="line"><a name="l02760"></a><span class="lineno"> 2760</span>&#160; </div>
+<div class="line"><a name="l02761"></a><span class="lineno"> 2761</span>&#160;    wsum(:) = 0</div>
+<div class="line"><a name="l02762"></a><span class="lineno"> 2762</span>&#160; </div>
+<div class="line"><a name="l02763"></a><span class="lineno"> 2763</span>&#160;    <span class="comment">! Loop over all the grids</span></div>
+<div class="line"><a name="l02764"></a><span class="lineno"> 2764</span>&#160;    <span class="keywordflow">do</span> iigrid = 1, igridstail</div>
+<div class="line"><a name="l02765"></a><span class="lineno"> 2765</span>&#160;       igrid = igrids(iigrid)</div>
+<div class="line"><a name="l02766"></a><span class="lineno"> 2766</span>&#160; </div>
+<div class="line"><a name="l02767"></a><span class="lineno"> 2767</span>&#160;       <span class="comment">! Store total volume in last element</span></div>
+<div class="line"><a name="l02768"></a><span class="lineno"> 2768</span>&#160;       wsum(2) = wsum(2) + sum(ps(igrid)%dvolume(<a class="code" href="namespacemod__global__parameters.html#a6f52fc825865569352db4ebc034361b4">ixm</a>^t))</div>
 <div class="line"><a name="l02769"></a><span class="lineno"> 2769</span>&#160; </div>
-<div class="line"><a name="l02770"></a><span class="lineno"> 2770</span>&#160;    <span class="comment">! Set the volume and the average</span></div>
-<div class="line"><a name="l02771"></a><span class="lineno"> 2771</span>&#160;    volume = dsum_recv(2)</div>
-<div class="line"><a name="l02772"></a><span class="lineno"> 2772</span>&#160;    f_avg  = dsum_recv(1) / volume</div>
-<div class="line"><a name="l02773"></a><span class="lineno"> 2773</span>&#160; </div>
-<div class="line"><a name="l02774"></a><span class="lineno"> 2774</span>&#160;  <span class="keyword">end subroutine </span><a class="code" href="namespacemod__input__output.html#a846c54d7767425c6f966c4db1ad1c235">get_volume_average_func</a></div>
-<div class="line"><a name="l02775"></a><span class="lineno"> 2775</span>&#160;<span class="comment"></span> </div>
-<div class="line"><a name="l02776"></a><span class="lineno"> 2776</span>&#160;<span class="comment">  !&gt; Compute global maxima of iw variables over the leaves of the grid.</span></div>
-<div class="line"><a name="l02777"></a><span class="lineno"><a class="line" href="namespacemod__input__output.html#a86886a7d99e5a874352cfb6385dbd1f0"> 2777</a></span>&#160;  <span class="keyword">subroutine </span><a class="code" href="namespacemod__input__output.html#a86886a7d99e5a874352cfb6385dbd1f0">get_global_maxima</a>(wmax)</div>
-<div class="line"><a name="l02778"></a><span class="lineno"> 2778</span>&#160;    <span class="keywordtype">use </span><a class="code" href="namespacemod__global__parameters.html">mod_global_parameters</a></div>
-<div class="line"><a name="l02779"></a><span class="lineno"> 2779</span>&#160; </div>
-<div class="line"><a name="l02780"></a><span class="lineno"> 2780</span>&#160;    <span class="keywordtype">double precision</span>, <span class="keywordtype">intent(out)</span> :: wmax(nw)<span class="comment">  !&lt; The global maxima</span></div>
-<div class="line"><a name="l02781"></a><span class="lineno"> 2781</span>&#160; </div>
-<div class="line"><a name="l02782"></a><span class="lineno"> 2782</span>&#160;    <span class="keywordtype">integer</span>                       :: iigrid, igrid, iw</div>
-<div class="line"><a name="l02783"></a><span class="lineno"> 2783</span>&#160;    <span class="keywordtype">double precision</span>              :: wmax_mype(nw),wmax_recv(nw)</div>
+<div class="line"><a name="l02770"></a><span class="lineno"> 2770</span>&#160;       <span class="comment">! Compute the modes of the cell-centered variables, weighted by volume</span></div>
+<div class="line"><a name="l02771"></a><span class="lineno"> 2771</span>&#160;       {<span class="keywordflow">do</span> i^d = ixmlo^d, ixmhi^d\}</div>
+<div class="line"><a name="l02772"></a><span class="lineno"> 2772</span>&#160;       wsum(1) = wsum(1) + ps(igrid)%dvolume(i^d) * &amp;</div>
+<div class="line"><a name="l02773"></a><span class="lineno"> 2773</span>&#160;            func(ps(igrid)%w(i^d, :), nw)</div>
+<div class="line"><a name="l02774"></a><span class="lineno"> 2774</span>&#160;       {<span class="keyword">end </span>do\}</div>
+<div class="line"><a name="l02775"></a><span class="lineno"> 2775</span>&#160;<span class="keywordflow">    end do</span></div>
+<div class="line"><a name="l02776"></a><span class="lineno"> 2776</span>&#160; </div>
+<div class="line"><a name="l02777"></a><span class="lineno"> 2777</span>&#160;    <span class="comment">! Make the information available on all tasks</span></div>
+<div class="line"><a name="l02778"></a><span class="lineno"> 2778</span>&#160;    <span class="keyword">call </span>mpi_allreduce(wsum, dsum_recv, 2, mpi_double_precision, &amp;</div>
+<div class="line"><a name="l02779"></a><span class="lineno"> 2779</span>&#160;         mpi_sum, icomm, ierrmpi)</div>
+<div class="line"><a name="l02780"></a><span class="lineno"> 2780</span>&#160; </div>
+<div class="line"><a name="l02781"></a><span class="lineno"> 2781</span>&#160;    <span class="comment">! Set the volume and the average</span></div>
+<div class="line"><a name="l02782"></a><span class="lineno"> 2782</span>&#160;    volume = dsum_recv(2)</div>
+<div class="line"><a name="l02783"></a><span class="lineno"> 2783</span>&#160;    f_avg  = dsum_recv(1) / volume</div>
 <div class="line"><a name="l02784"></a><span class="lineno"> 2784</span>&#160; </div>
-<div class="line"><a name="l02785"></a><span class="lineno"> 2785</span>&#160;    wmax_mype(1:nw) = -bigdouble</div>
-<div class="line"><a name="l02786"></a><span class="lineno"> 2786</span>&#160; </div>
-<div class="line"><a name="l02787"></a><span class="lineno"> 2787</span>&#160;    <span class="comment">! Loop over all the grids</span></div>
-<div class="line"><a name="l02788"></a><span class="lineno"> 2788</span>&#160;    <span class="keywordflow">do</span> iigrid = 1, igridstail</div>
-<div class="line"><a name="l02789"></a><span class="lineno"> 2789</span>&#160;       igrid = igrids(iigrid)</div>
-<div class="line"><a name="l02790"></a><span class="lineno"> 2790</span>&#160;       <span class="keywordflow">do</span> iw = 1, nw</div>
-<div class="line"><a name="l02791"></a><span class="lineno"> 2791</span>&#160;          wmax_mype(iw)=max(wmax_mype(iw),maxval(ps(igrid)%w(<a class="code" href="namespacemod__global__parameters.html#a6f52fc825865569352db4ebc034361b4">ixm</a>^t,iw)))</div>
-<div class="line"><a name="l02792"></a><span class="lineno"> 2792</span>&#160;<span class="keywordflow">       end do</span></div>
-<div class="line"><a name="l02793"></a><span class="lineno"> 2793</span>&#160;<span class="keywordflow">    end do</span></div>
-<div class="line"><a name="l02794"></a><span class="lineno"> 2794</span>&#160; </div>
-<div class="line"><a name="l02795"></a><span class="lineno"> 2795</span>&#160;    <span class="comment">! Make the information available on all tasks</span></div>
-<div class="line"><a name="l02796"></a><span class="lineno"> 2796</span>&#160;    <span class="keyword">call </span>mpi_allreduce(wmax_mype, wmax_recv, nw, mpi_double_precision, &amp;</div>
-<div class="line"><a name="l02797"></a><span class="lineno"> 2797</span>&#160;         mpi_max, <a class="code" href="namespacemod__global__parameters.html#a5704f1c57aa09935d3491f65ad240861">icomm</a>, <a class="code" href="namespacemod__global__parameters.html#a701c9a9b2d5f02bb7c7a8181f09df2ae">ierrmpi</a>)</div>
-<div class="line"><a name="l02798"></a><span class="lineno"> 2798</span>&#160; </div>
-<div class="line"><a name="l02799"></a><span class="lineno"> 2799</span>&#160;    wmax(1:nw)=wmax_recv(1:nw)</div>
-<div class="line"><a name="l02800"></a><span class="lineno"> 2800</span>&#160; </div>
-<div class="line"><a name="l02801"></a><span class="lineno"> 2801</span>&#160;  <span class="keyword">end subroutine </span><a class="code" href="namespacemod__input__output.html#a86886a7d99e5a874352cfb6385dbd1f0">get_global_maxima</a></div>
-<div class="line"><a name="l02802"></a><span class="lineno"> 2802</span>&#160;<span class="comment"></span> </div>
-<div class="line"><a name="l02803"></a><span class="lineno"> 2803</span>&#160;<span class="comment">  !&gt; Compute global minima of iw variables over the leaves of the grid.</span></div>
-<div class="line"><a name="l02804"></a><span class="lineno"><a class="line" href="namespacemod__input__output.html#a84c632bdd9b080c72ef3b930138ee80a"> 2804</a></span>&#160;  <span class="keyword">subroutine </span><a class="code" href="namespacemod__input__output.html#a84c632bdd9b080c72ef3b930138ee80a">get_global_minima</a>(wmin)</div>
-<div class="line"><a name="l02805"></a><span class="lineno"> 2805</span>&#160;    <span class="keywordtype">use </span><a class="code" href="namespacemod__global__parameters.html">mod_global_parameters</a></div>
-<div class="line"><a name="l02806"></a><span class="lineno"> 2806</span>&#160; </div>
-<div class="line"><a name="l02807"></a><span class="lineno"> 2807</span>&#160;    <span class="keywordtype">double precision</span>, <span class="keywordtype">intent(out)</span> :: wmin(nw)<span class="comment">  !&lt; The global maxima</span></div>
-<div class="line"><a name="l02808"></a><span class="lineno"> 2808</span>&#160; </div>
-<div class="line"><a name="l02809"></a><span class="lineno"> 2809</span>&#160;    <span class="keywordtype">integer</span>                       :: iigrid, igrid, iw</div>
-<div class="line"><a name="l02810"></a><span class="lineno"> 2810</span>&#160;    <span class="keywordtype">double precision</span>              :: wmin_mype(nw),wmin_recv(nw)</div>
+<div class="line"><a name="l02785"></a><span class="lineno"> 2785</span>&#160;  <span class="keyword">end subroutine </span><a class="code" href="namespacemod__input__output.html#a846c54d7767425c6f966c4db1ad1c235">get_volume_average_func</a></div>
+<div class="line"><a name="l02786"></a><span class="lineno"> 2786</span>&#160;<span class="comment"></span> </div>
+<div class="line"><a name="l02787"></a><span class="lineno"> 2787</span>&#160;<span class="comment">  !&gt; Compute global maxima of iw variables over the leaves of the grid.</span></div>
+<div class="line"><a name="l02788"></a><span class="lineno"><a class="line" href="namespacemod__input__output.html#a86886a7d99e5a874352cfb6385dbd1f0"> 2788</a></span>&#160;  <span class="keyword">subroutine </span><a class="code" href="namespacemod__input__output.html#a86886a7d99e5a874352cfb6385dbd1f0">get_global_maxima</a>(wmax)</div>
+<div class="line"><a name="l02789"></a><span class="lineno"> 2789</span>&#160;    <span class="keywordtype">use </span><a class="code" href="namespacemod__global__parameters.html">mod_global_parameters</a></div>
+<div class="line"><a name="l02790"></a><span class="lineno"> 2790</span>&#160; </div>
+<div class="line"><a name="l02791"></a><span class="lineno"> 2791</span>&#160;    <span class="keywordtype">double precision</span>, <span class="keywordtype">intent(out)</span> :: wmax(nw)<span class="comment">  !&lt; The global maxima</span></div>
+<div class="line"><a name="l02792"></a><span class="lineno"> 2792</span>&#160; </div>
+<div class="line"><a name="l02793"></a><span class="lineno"> 2793</span>&#160;    <span class="keywordtype">integer</span>                       :: iigrid, igrid, iw</div>
+<div class="line"><a name="l02794"></a><span class="lineno"> 2794</span>&#160;    <span class="keywordtype">double precision</span>              :: wmax_mype(nw),wmax_recv(nw)</div>
+<div class="line"><a name="l02795"></a><span class="lineno"> 2795</span>&#160; </div>
+<div class="line"><a name="l02796"></a><span class="lineno"> 2796</span>&#160;    wmax_mype(1:nw) = -bigdouble</div>
+<div class="line"><a name="l02797"></a><span class="lineno"> 2797</span>&#160; </div>
+<div class="line"><a name="l02798"></a><span class="lineno"> 2798</span>&#160;    <span class="comment">! Loop over all the grids</span></div>
+<div class="line"><a name="l02799"></a><span class="lineno"> 2799</span>&#160;    <span class="keywordflow">do</span> iigrid = 1, igridstail</div>
+<div class="line"><a name="l02800"></a><span class="lineno"> 2800</span>&#160;       igrid = igrids(iigrid)</div>
+<div class="line"><a name="l02801"></a><span class="lineno"> 2801</span>&#160;       <span class="keywordflow">do</span> iw = 1, nw</div>
+<div class="line"><a name="l02802"></a><span class="lineno"> 2802</span>&#160;          wmax_mype(iw)=max(wmax_mype(iw),maxval(ps(igrid)%w(<a class="code" href="namespacemod__global__parameters.html#a6f52fc825865569352db4ebc034361b4">ixm</a>^t,iw)))</div>
+<div class="line"><a name="l02803"></a><span class="lineno"> 2803</span>&#160;<span class="keywordflow">       end do</span></div>
+<div class="line"><a name="l02804"></a><span class="lineno"> 2804</span>&#160;<span class="keywordflow">    end do</span></div>
+<div class="line"><a name="l02805"></a><span class="lineno"> 2805</span>&#160; </div>
+<div class="line"><a name="l02806"></a><span class="lineno"> 2806</span>&#160;    <span class="comment">! Make the information available on all tasks</span></div>
+<div class="line"><a name="l02807"></a><span class="lineno"> 2807</span>&#160;    <span class="keyword">call </span>mpi_allreduce(wmax_mype, wmax_recv, nw, mpi_double_precision, &amp;</div>
+<div class="line"><a name="l02808"></a><span class="lineno"> 2808</span>&#160;         mpi_max, <a class="code" href="namespacemod__global__parameters.html#a5704f1c57aa09935d3491f65ad240861">icomm</a>, <a class="code" href="namespacemod__global__parameters.html#a701c9a9b2d5f02bb7c7a8181f09df2ae">ierrmpi</a>)</div>
+<div class="line"><a name="l02809"></a><span class="lineno"> 2809</span>&#160; </div>
+<div class="line"><a name="l02810"></a><span class="lineno"> 2810</span>&#160;    wmax(1:nw)=wmax_recv(1:nw)</div>
 <div class="line"><a name="l02811"></a><span class="lineno"> 2811</span>&#160; </div>
-<div class="line"><a name="l02812"></a><span class="lineno"> 2812</span>&#160;    wmin_mype(1:nw) = bigdouble</div>
-<div class="line"><a name="l02813"></a><span class="lineno"> 2813</span>&#160; </div>
-<div class="line"><a name="l02814"></a><span class="lineno"> 2814</span>&#160;    <span class="comment">! Loop over all the grids</span></div>
-<div class="line"><a name="l02815"></a><span class="lineno"> 2815</span>&#160;    <span class="keywordflow">do</span> iigrid = 1, igridstail</div>
-<div class="line"><a name="l02816"></a><span class="lineno"> 2816</span>&#160;       igrid = igrids(iigrid)</div>
-<div class="line"><a name="l02817"></a><span class="lineno"> 2817</span>&#160;       <span class="keywordflow">do</span> iw = 1, nw</div>
-<div class="line"><a name="l02818"></a><span class="lineno"> 2818</span>&#160;          wmin_mype(iw)=min(wmin_mype(iw),minval(ps(igrid)%w(<a class="code" href="namespacemod__global__parameters.html#a6f52fc825865569352db4ebc034361b4">ixm</a>^t,iw)))</div>
-<div class="line"><a name="l02819"></a><span class="lineno"> 2819</span>&#160;<span class="keywordflow">       end do</span></div>
-<div class="line"><a name="l02820"></a><span class="lineno"> 2820</span>&#160;<span class="keywordflow">    end do</span></div>
-<div class="line"><a name="l02821"></a><span class="lineno"> 2821</span>&#160; </div>
-<div class="line"><a name="l02822"></a><span class="lineno"> 2822</span>&#160;    <span class="comment">! Make the information available on all tasks</span></div>
-<div class="line"><a name="l02823"></a><span class="lineno"> 2823</span>&#160;    <span class="keyword">call </span>mpi_allreduce(wmin_mype, wmin_recv, nw, mpi_double_precision, &amp;</div>
-<div class="line"><a name="l02824"></a><span class="lineno"> 2824</span>&#160;         mpi_min, <a class="code" href="namespacemod__global__parameters.html#a5704f1c57aa09935d3491f65ad240861">icomm</a>, <a class="code" href="namespacemod__global__parameters.html#a701c9a9b2d5f02bb7c7a8181f09df2ae">ierrmpi</a>)</div>
-<div class="line"><a name="l02825"></a><span class="lineno"> 2825</span>&#160; </div>
-<div class="line"><a name="l02826"></a><span class="lineno"> 2826</span>&#160;    wmin(1:nw)=wmin_recv(1:nw)</div>
-<div class="line"><a name="l02827"></a><span class="lineno"> 2827</span>&#160; </div>
-<div class="line"><a name="l02828"></a><span class="lineno"> 2828</span>&#160;  <span class="keyword">end subroutine </span><a class="code" href="namespacemod__input__output.html#a84c632bdd9b080c72ef3b930138ee80a">get_global_minima</a></div>
-<div class="line"><a name="l02829"></a><span class="lineno"> 2829</span>&#160; </div>
-<div class="line"><a name="l02830"></a><span class="lineno"> 2830</span>&#160; </div>
-<div class="line"><a name="l02831"></a><span class="lineno"> 2831</span>&#160; </div>
-<div class="line"><a name="l02832"></a><span class="lineno"> 2832</span>&#160;<span class="keyword">end module </span><a class="code" href="namespacemod__input__output.html">mod_input_output</a></div>
+<div class="line"><a name="l02812"></a><span class="lineno"> 2812</span>&#160;  <span class="keyword">end subroutine </span><a class="code" href="namespacemod__input__output.html#a86886a7d99e5a874352cfb6385dbd1f0">get_global_maxima</a></div>
+<div class="line"><a name="l02813"></a><span class="lineno"> 2813</span>&#160;<span class="comment"></span> </div>
+<div class="line"><a name="l02814"></a><span class="lineno"> 2814</span>&#160;<span class="comment">  !&gt; Compute global minima of iw variables over the leaves of the grid.</span></div>
+<div class="line"><a name="l02815"></a><span class="lineno"><a class="line" href="namespacemod__input__output.html#a84c632bdd9b080c72ef3b930138ee80a"> 2815</a></span>&#160;  <span class="keyword">subroutine </span><a class="code" href="namespacemod__input__output.html#a84c632bdd9b080c72ef3b930138ee80a">get_global_minima</a>(wmin)</div>
+<div class="line"><a name="l02816"></a><span class="lineno"> 2816</span>&#160;    <span class="keywordtype">use </span><a class="code" href="namespacemod__global__parameters.html">mod_global_parameters</a></div>
+<div class="line"><a name="l02817"></a><span class="lineno"> 2817</span>&#160; </div>
+<div class="line"><a name="l02818"></a><span class="lineno"> 2818</span>&#160;    <span class="keywordtype">double precision</span>, <span class="keywordtype">intent(out)</span> :: wmin(nw)<span class="comment">  !&lt; The global maxima</span></div>
+<div class="line"><a name="l02819"></a><span class="lineno"> 2819</span>&#160; </div>
+<div class="line"><a name="l02820"></a><span class="lineno"> 2820</span>&#160;    <span class="keywordtype">integer</span>                       :: iigrid, igrid, iw</div>
+<div class="line"><a name="l02821"></a><span class="lineno"> 2821</span>&#160;    <span class="keywordtype">double precision</span>              :: wmin_mype(nw),wmin_recv(nw)</div>
+<div class="line"><a name="l02822"></a><span class="lineno"> 2822</span>&#160; </div>
+<div class="line"><a name="l02823"></a><span class="lineno"> 2823</span>&#160;    wmin_mype(1:nw) = bigdouble</div>
+<div class="line"><a name="l02824"></a><span class="lineno"> 2824</span>&#160; </div>
+<div class="line"><a name="l02825"></a><span class="lineno"> 2825</span>&#160;    <span class="comment">! Loop over all the grids</span></div>
+<div class="line"><a name="l02826"></a><span class="lineno"> 2826</span>&#160;    <span class="keywordflow">do</span> iigrid = 1, igridstail</div>
+<div class="line"><a name="l02827"></a><span class="lineno"> 2827</span>&#160;       igrid = igrids(iigrid)</div>
+<div class="line"><a name="l02828"></a><span class="lineno"> 2828</span>&#160;       <span class="keywordflow">do</span> iw = 1, nw</div>
+<div class="line"><a name="l02829"></a><span class="lineno"> 2829</span>&#160;          wmin_mype(iw)=min(wmin_mype(iw),minval(ps(igrid)%w(<a class="code" href="namespacemod__global__parameters.html#a6f52fc825865569352db4ebc034361b4">ixm</a>^t,iw)))</div>
+<div class="line"><a name="l02830"></a><span class="lineno"> 2830</span>&#160;<span class="keywordflow">       end do</span></div>
+<div class="line"><a name="l02831"></a><span class="lineno"> 2831</span>&#160;<span class="keywordflow">    end do</span></div>
+<div class="line"><a name="l02832"></a><span class="lineno"> 2832</span>&#160; </div>
+<div class="line"><a name="l02833"></a><span class="lineno"> 2833</span>&#160;    <span class="comment">! Make the information available on all tasks</span></div>
+<div class="line"><a name="l02834"></a><span class="lineno"> 2834</span>&#160;    <span class="keyword">call </span>mpi_allreduce(wmin_mype, wmin_recv, nw, mpi_double_precision, &amp;</div>
+<div class="line"><a name="l02835"></a><span class="lineno"> 2835</span>&#160;         mpi_min, <a class="code" href="namespacemod__global__parameters.html#a5704f1c57aa09935d3491f65ad240861">icomm</a>, <a class="code" href="namespacemod__global__parameters.html#a701c9a9b2d5f02bb7c7a8181f09df2ae">ierrmpi</a>)</div>
+<div class="line"><a name="l02836"></a><span class="lineno"> 2836</span>&#160; </div>
+<div class="line"><a name="l02837"></a><span class="lineno"> 2837</span>&#160;    wmin(1:nw)=wmin_recv(1:nw)</div>
+<div class="line"><a name="l02838"></a><span class="lineno"> 2838</span>&#160; </div>
+<div class="line"><a name="l02839"></a><span class="lineno"> 2839</span>&#160;  <span class="keyword">end subroutine </span><a class="code" href="namespacemod__input__output.html#a84c632bdd9b080c72ef3b930138ee80a">get_global_minima</a></div>
+<div class="line"><a name="l02840"></a><span class="lineno"> 2840</span>&#160; </div>
+<div class="line"><a name="l02841"></a><span class="lineno"> 2841</span>&#160; </div>
+<div class="line"><a name="l02842"></a><span class="lineno"> 2842</span>&#160; </div>
+<div class="line"><a name="l02843"></a><span class="lineno"> 2843</span>&#160;<span class="keyword">end module </span><a class="code" href="namespacemod__input__output.html">mod_input_output</a></div>
 <div class="ttc" id="anamespacemod__amr__solution__node_html"><div class="ttname"><a href="namespacemod__amr__solution__node.html">mod_amr_solution_node</a></div><div class="ttdef"><b>Definition:</b> <a href="mod__amr__solution__node_8t_source.html#l00001">mod_amr_solution_node.t:1</a></div></div>
 <div class="ttc" id="anamespacemod__amr__solution__node_html_a5360422247c76466eb60cf0a2d6fd5e9"><div class="ttname"><a href="namespacemod__amr__solution__node.html#a5360422247c76466eb60cf0a2d6fd5e9">mod_amr_solution_node::alloc_node</a></div><div class="ttdeci">subroutine, public alloc_node(igrid)</div><div class="ttdoc">allocate arrays on igrid node</div><div class="ttdef"><b>Definition:</b> <a href="mod__amr__solution__node_8t_source.html#l00060">mod_amr_solution_node.t:61</a></div></div>
 <div class="ttc" id="anamespacemod__collapse_html"><div class="ttname"><a href="namespacemod__collapse.html">mod_collapse</a></div><div class="ttdoc">Collapses D-dimensional output to D-1 view by line-of-sight integration.</div><div class="ttdef"><b>Definition:</b> <a href="mod__collapse_8t_source.html#l00004">mod_collapse.t:4</a></div></div>
@@ -3122,17 +3133,17 @@ $(function() {
 <div class="ttc" id="anamespacemod__input__output_html_a2b408b40f813e4fe523621ab4a497d76"><div class="ttname"><a href="namespacemod__input__output.html#a2b408b40f813e4fe523621ab4a497d76">mod_input_output::get_snapshot_index</a></div><div class="ttdeci">integer function get_snapshot_index(filename)</div><div class="ttdef"><b>Definition:</b> <a href="mod__input__output_8t_source.html#l01784">mod_input_output.t:1785</a></div></div>
 <div class="ttc" id="anamespacemod__input__output_html_a3d02333ce1529f982c89bf948cc871e7"><div class="ttname"><a href="namespacemod__input__output.html#a3d02333ce1529f982c89bf948cc871e7">mod_input_output::read_par_files</a></div><div class="ttdeci">subroutine read_par_files()</div><div class="ttdoc">Read in the user-supplied parameter-file.</div><div class="ttdef"><b>Definition:</b> <a href="mod__input__output_8t_source.html#l00175">mod_input_output.t:176</a></div></div>
 <div class="ttc" id="anamespacemod__input__output_html_a5a4c8ad20085895e6afea0b6da413313"><div class="ttname"><a href="namespacemod__input__output.html#a5a4c8ad20085895e6afea0b6da413313">mod_input_output::fmt_r</a></div><div class="ttdeci">character(len= *), parameter fmt_r</div><div class="ttdef"><b>Definition:</b> <a href="mod__input__output_8t_source.html#l00026">mod_input_output.t:26</a></div></div>
-<div class="ttc" id="anamespacemod__input__output_html_a846c54d7767425c6f966c4db1ad1c235"><div class="ttname"><a href="namespacemod__input__output.html#a846c54d7767425c6f966c4db1ad1c235">mod_input_output::get_volume_average_func</a></div><div class="ttdeci">subroutine get_volume_average_func(func, f_avg, volume)</div><div class="ttdoc">Compute the volume average of func(w) over the leaves of the grid.</div><div class="ttdef"><b>Definition:</b> <a href="mod__input__output_8t_source.html#l02734">mod_input_output.t:2735</a></div></div>
-<div class="ttc" id="anamespacemod__input__output_html_a84c632bdd9b080c72ef3b930138ee80a"><div class="ttname"><a href="namespacemod__input__output.html#a84c632bdd9b080c72ef3b930138ee80a">mod_input_output::get_global_minima</a></div><div class="ttdeci">subroutine get_global_minima(wmin)</div><div class="ttdoc">Compute global minima of iw variables over the leaves of the grid.</div><div class="ttdef"><b>Definition:</b> <a href="mod__input__output_8t_source.html#l02804">mod_input_output.t:2805</a></div></div>
-<div class="ttc" id="anamespacemod__input__output_html_a86886a7d99e5a874352cfb6385dbd1f0"><div class="ttname"><a href="namespacemod__input__output.html#a86886a7d99e5a874352cfb6385dbd1f0">mod_input_output::get_global_maxima</a></div><div class="ttdeci">subroutine get_global_maxima(wmax)</div><div class="ttdoc">Compute global maxima of iw variables over the leaves of the grid.</div><div class="ttdef"><b>Definition:</b> <a href="mod__input__output_8t_source.html#l02777">mod_input_output.t:2778</a></div></div>
+<div class="ttc" id="anamespacemod__input__output_html_a846c54d7767425c6f966c4db1ad1c235"><div class="ttname"><a href="namespacemod__input__output.html#a846c54d7767425c6f966c4db1ad1c235">mod_input_output::get_volume_average_func</a></div><div class="ttdeci">subroutine get_volume_average_func(func, f_avg, volume)</div><div class="ttdoc">Compute the volume average of func(w) over the leaves of the grid.</div><div class="ttdef"><b>Definition:</b> <a href="mod__input__output_8t_source.html#l02745">mod_input_output.t:2746</a></div></div>
+<div class="ttc" id="anamespacemod__input__output_html_a84c632bdd9b080c72ef3b930138ee80a"><div class="ttname"><a href="namespacemod__input__output.html#a84c632bdd9b080c72ef3b930138ee80a">mod_input_output::get_global_minima</a></div><div class="ttdeci">subroutine get_global_minima(wmin)</div><div class="ttdoc">Compute global minima of iw variables over the leaves of the grid.</div><div class="ttdef"><b>Definition:</b> <a href="mod__input__output_8t_source.html#l02815">mod_input_output.t:2816</a></div></div>
+<div class="ttc" id="anamespacemod__input__output_html_a86886a7d99e5a874352cfb6385dbd1f0"><div class="ttname"><a href="namespacemod__input__output.html#a86886a7d99e5a874352cfb6385dbd1f0">mod_input_output::get_global_maxima</a></div><div class="ttdeci">subroutine get_global_maxima(wmax)</div><div class="ttdoc">Compute global maxima of iw variables over the leaves of the grid.</div><div class="ttdef"><b>Definition:</b> <a href="mod__input__output_8t_source.html#l02788">mod_input_output.t:2789</a></div></div>
 <div class="ttc" id="anamespacemod__input__output_html_a97e4df1969002df5c3fcc551db7d354e"><div class="ttname"><a href="namespacemod__input__output.html#a97e4df1969002df5c3fcc551db7d354e">mod_input_output::printlog_regression_test</a></div><div class="ttdeci">subroutine printlog_regression_test()</div><div class="ttdoc">Print a log that can be used to check whether the code still produces the same output (regression tes...</div><div class="ttdef"><b>Definition:</b> <a href="mod__input__output_8t_source.html#l02640">mod_input_output.t:2641</a></div></div>
 <div class="ttc" id="anamespacemod__input__output_html_a98a1cccd22f5c9aebc79667b1b469161"><div class="ttname"><a href="namespacemod__input__output.html#a98a1cccd22f5c9aebc79667b1b469161">mod_input_output::read_arguments</a></div><div class="ttdeci">subroutine read_arguments()</div><div class="ttdoc">Read the command line arguments passed to amrvac.</div><div class="ttdef"><b>Definition:</b> <a href="mod__input__output_8t_source.html#l00036">mod_input_output.t:37</a></div></div>
-<div class="ttc" id="anamespacemod__input__output_html_a9cf9ab211dc4836b216f1fe919d969ed"><div class="ttname"><a href="namespacemod__input__output.html#a9cf9ab211dc4836b216f1fe919d969ed">mod_input_output::get_volume_average</a></div><div class="ttdeci">subroutine get_volume_average(power, mode, volume)</div><div class="ttdoc">Compute mean(w**power) over the leaves of the grid. The first mode (power=1) corresponds to the mean,...</div><div class="ttdef"><b>Definition:</b> <a href="mod__input__output_8t_source.html#l02670">mod_input_output.t:2671</a></div></div>
+<div class="ttc" id="anamespacemod__input__output_html_a9cf9ab211dc4836b216f1fe919d969ed"><div class="ttname"><a href="namespacemod__input__output.html#a9cf9ab211dc4836b216f1fe919d969ed">mod_input_output::get_volume_average</a></div><div class="ttdeci">subroutine get_volume_average(power, mode, volume)</div><div class="ttdoc">Compute mean(w**power) over the leaves of the grid. The first mode (power=1) corresponds to the mean,...</div><div class="ttdef"><b>Definition:</b> <a href="mod__input__output_8t_source.html#l02681">mod_input_output.t:2682</a></div></div>
 <div class="ttc" id="anamespacemod__input__output_html_aa2d00e56c4444b0b4806a9c13ce2eff7"><div class="ttname"><a href="namespacemod__input__output.html#aa2d00e56c4444b0b4806a9c13ce2eff7">mod_input_output::read_snapshot</a></div><div class="ttdeci">subroutine read_snapshot</div><div class="ttdoc">Routine to read in snapshots (.dat files). When it cannot recognize the file version,...</div><div class="ttdef"><b>Definition:</b> <a href="mod__input__output_8t_source.html#l02162">mod_input_output.t:2163</a></div></div>
 <div class="ttc" id="anamespacemod__input__output_html_aa90f67fcd1dcf23e3d7f0f13e3dcc87e"><div class="ttname"><a href="namespacemod__input__output.html#aa90f67fcd1dcf23e3d7f0f13e3dcc87e">mod_input_output::nw_found</a></div><div class="ttdeci">integer nw_found</div><div class="ttdoc">number of w found in dat files</div><div class="ttdef"><b>Definition:</b> <a href="mod__input__output_8t_source.html#l00013">mod_input_output.t:13</a></div></div>
 <div class="ttc" id="anamespacemod__input__output_html_ab0092e81ef07b5ca84ceddacc7c4d9f9"><div class="ttname"><a href="namespacemod__input__output.html#ab0092e81ef07b5ca84ceddacc7c4d9f9">mod_input_output::fmt_r2</a></div><div class="ttdeci">character(len= *), parameter fmt_r2</div><div class="ttdef"><b>Definition:</b> <a href="mod__input__output_8t_source.html#l00027">mod_input_output.t:27</a></div></div>
 <div class="ttc" id="anamespacemod__input__output_html_ab2d0a28e065926627226ed89b96ada9d"><div class="ttname"><a href="namespacemod__input__output.html#ab2d0a28e065926627226ed89b96ada9d">mod_input_output::get_fields_string</a></div><div class="ttdeci">subroutine get_fields_string(line, delims, n_max, fields, n_found, fully_read)</div><div class="ttdoc">Routine to find entries in a string.</div><div class="ttdef"><b>Definition:</b> <a href="mod__input__output_8t_source.html#l01671">mod_input_output.t:1672</a></div></div>
-<div class="ttc" id="anamespacemod__input__output_html_ab8da1bad0d6ad49b56081e6fe6bbcc85"><div class="ttname"><a href="namespacemod__input__output.html#ab8da1bad0d6ad49b56081e6fe6bbcc85">mod_input_output::get_volume_coverage</a></div><div class="ttdeci">subroutine get_volume_coverage(vol_cov)</div><div class="ttdoc">Compute how much of the domain is covered by each grid level. This routine does not take a non-Cartes...</div><div class="ttdef"><b>Definition:</b> <a href="mod__input__output_8t_source.html#l02708">mod_input_output.t:2709</a></div></div>
+<div class="ttc" id="anamespacemod__input__output_html_ab8da1bad0d6ad49b56081e6fe6bbcc85"><div class="ttname"><a href="namespacemod__input__output.html#ab8da1bad0d6ad49b56081e6fe6bbcc85">mod_input_output::get_volume_coverage</a></div><div class="ttdeci">subroutine get_volume_coverage(vol_cov)</div><div class="ttdoc">Compute how much of the domain is covered by each grid level. This routine does not take a non-Cartes...</div><div class="ttdef"><b>Definition:</b> <a href="mod__input__output_8t_source.html#l02719">mod_input_output.t:2720</a></div></div>
 <div class="ttc" id="anamespacemod__input__output_html_abd164abbe2712c03076283f266ae3d52"><div class="ttname"><a href="namespacemod__input__output.html#abd164abbe2712c03076283f266ae3d52">mod_input_output::fmt_i</a></div><div class="ttdeci">character(len= *), parameter fmt_i</div><div class="ttdef"><b>Definition:</b> <a href="mod__input__output_8t_source.html#l00028">mod_input_output.t:28</a></div></div>
 <div class="ttc" id="anamespacemod__input__output_html_ac699b426ea2d42b06de1c1798b98f96d"><div class="ttname"><a href="namespacemod__input__output.html#ac699b426ea2d42b06de1c1798b98f96d">mod_input_output::printlog_default</a></div><div class="ttdeci">subroutine printlog_default</div><div class="ttdoc">Write volume-averaged values and other information to the log file.</div><div class="ttdef"><b>Definition:</b> <a href="mod__input__output_8t_source.html#l02509">mod_input_output.t:2510</a></div></div>
 <div class="ttc" id="anamespacemod__input__output_html_acd293c80fe4dffe68b3bd5af075cc137"><div class="ttname"><a href="namespacemod__input__output.html#acd293c80fe4dffe68b3bd5af075cc137">mod_input_output::snapshot_write_header</a></div><div class="ttdeci">subroutine, public snapshot_write_header(fh, offset_tree, offset_block)</div><div class="ttdoc">Write header for a snapshot.</div><div class="ttdef"><b>Definition:</b> <a href="mod__input__output_8t_source.html#l01799">mod_input_output.t:1800</a></div></div>
