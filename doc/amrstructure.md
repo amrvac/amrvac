@@ -48,7 +48,7 @@ procedure involves 3 steps:
     (3) if any point has this error exceeding a user-set threshold _refine_threshold(l)_, refine this block (and ensure proper nesting);
     (4) if all points have their error below a user-set fraction of the threshold _derefine_ratio(l)_ used in the previous step, coarsen the block (for l>1).
 
-The local error estimator can be one of four options, selected by
+The local error estimator can be one of three options, selected by
 _refine_criterion_, each possibly augmented with user-defined criteria. For _refine_criterion=1_, only refinement based on _usr_refine_grid_ is active. Any of
 the other 3 estimators use a user-selected subset of the conserved or auxiliary
 variables (or even variables that are computed dynamically at the time of

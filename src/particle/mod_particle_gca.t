@@ -26,7 +26,7 @@ module mod_particle_gca
   ! Variables
   public :: bp, ep, grad_kappa_B, b_dot_grad_b
   public :: vE_dot_grad_b, b_dot_grad_vE, vE_dot_grad_vE
-  public :: vp, jp
+  public :: vp, jp, rhop
 
 contains
 
@@ -83,6 +83,9 @@ contains
       nwx = nwx + 1
       jp(idir) = nwx
     end do
+    nwx = nwx + 1 ! density
+    rhop = nwx
+
     ngridvars=nwx
 
     particles_fill_gridvars => gca_fill_gridvars
@@ -229,8 +232,6 @@ contains
     do iigrid=1,igridstail; igrid=igrids(iigrid);
       w(ixG^T,1:nw) = ps(igrid)%w(ixG^T,1:nw)
       call phys_to_primitive(ixG^LL,ixG^LL,w,ps(igrid)%x)
-      ! fill with velocity:
-      gridvars(igrid)%w(ixG^T,vp(:)) = w(ixG^T,iw_mom(:))
 
       ! grad(kappa B)
       absB(ixG^T) = sqrt(sum(gridvars(igrid)%w(ixG^T,bp(:))**2,dim=ndim+1))
@@ -485,12 +486,14 @@ contains
       end select
 
       ! now calculate other quantities, mean Lorentz factor, drifts, perpendicular velocity:
-      call get_vec(bp, igrid_working,y(1:ndir),tloc+dt_p,b)
-      call get_vec(vp, igrid_working,y(1:ndir),tloc+dt_p,vfluid)
-      call get_vec(jp, igrid_working,y(1:ndir),tloc+dt_p,current)
-      e(1) = -vfluid(2)*b(3)+vfluid(3)*b(2) + particles_eta*current(1)
-      e(2) = vfluid(1)*b(3)-vfluid(3)*b(1) + particles_eta*current(2)
-      e(3) = -vfluid(1)*b(2)+vfluid(2)*b(1) + particles_eta*current(3)
+      call get_bfield(igrid_working, y(1:ndir), tloc+dt_p, b)
+      call get_efield(igrid_working, y(1:ndir), tloc+dt_p, e)
+!      call get_vec(bp, igrid_working,y(1:ndir),tloc+dt_p,b)
+!      call get_vec(vp, igrid_working,y(1:ndir),tloc+dt_p,vfluid)
+!      call get_vec(jp, igrid_working,y(1:ndir),tloc+dt_p,current)
+!      e(1) = -vfluid(2)*b(3)+vfluid(3)*b(2) + particles_eta*current(1)
+!      e(2) = vfluid(1)*b(3)-vfluid(3)*b(1) + particles_eta*current(2)
+!      e(3) = -vfluid(1)*b(2)+vfluid(2)*b(1) + particles_eta*current(3)
 
       absb         = sqrt(sum(b(:)**2))
       bhat(1:ndir) = b(1:ndir) / absb
@@ -562,12 +565,14 @@ contains
       call mpistop("ABORTING...")
     end if
 
-    call get_vec(bp, igrid_working,x,t_s,b)
-    call get_vec(vp, igrid_working,x,t_s,vfluid)
-    call get_vec(jp, igrid_working,x,t_s,current)
-    e(1) = -vfluid(2)*b(3)+vfluid(3)*b(2) + particles_eta*current(1)
-    e(2) = vfluid(1)*b(3)-vfluid(3)*b(1) + particles_eta*current(2)
-    e(3) = -vfluid(1)*b(2)+vfluid(2)*b(1) + particles_eta*current(3)
+    call get_bfield(igrid_working, x, t_s, b)
+    call get_efield(igrid_working, x, t_s, e)
+!    call get_vec(bp, igrid_working,x,t_s,b)
+!    call get_vec(vp, igrid_working,x,t_s,vfluid)
+!    call get_vec(jp, igrid_working,x,t_s,current)
+!    e(1) = -vfluid(2)*b(3)+vfluid(3)*b(2) + particles_eta*current(1)
+!    e(2) = vfluid(1)*b(3)-vfluid(3)*b(1) + particles_eta*current(2)
+!    e(3) = -vfluid(1)*b(2)+vfluid(2)*b(1) + particles_eta*current(3)
     call get_vec(b_dot_grad_b, igrid_working,x,t_s,bdotgradb)
     call get_vec(vE_dot_grad_b, igrid_working,x,t_s,vEdotgradb)
     call get_vec(grad_kappa_B, igrid_working,x,t_s,gradkappaB)
@@ -659,12 +664,14 @@ contains
       call mpistop("ERROR IN DERIVS_GCA: NaNs IN X! ABORTING...")
     end if
 
-    call get_vec(bp, igrid_working,x,t_s,b)
-    call get_vec(vp, igrid_working,x,t_s,vfluid)
-    call get_vec(jp, igrid_working,x,t_s,current)
-    e(1) = -vfluid(2)*b(3)+vfluid(3)*b(2) + particles_eta*current(1)
-    e(2) = vfluid(1)*b(3)-vfluid(3)*b(1) + particles_eta*current(2)
-    e(3) = -vfluid(1)*b(2)+vfluid(2)*b(1) + particles_eta*current(3)
+    call get_bfield(igrid_working, x, t_s, b)
+    call get_efield(igrid_working, x, t_s, e)
+!    call get_vec(bp, igrid_working,x,t_s,b)
+!    call get_vec(vp, igrid_working,x,t_s,vfluid)
+!    call get_vec(jp, igrid_working,x,t_s,current)
+!    e(1) = -vfluid(2)*b(3)+vfluid(3)*b(2) + particles_eta*current(1)
+!    e(2) = vfluid(1)*b(3)-vfluid(3)*b(1) + particles_eta*current(2)
+!    e(3) = -vfluid(1)*b(2)+vfluid(2)*b(1) + particles_eta*current(3)
     call get_vec(b_dot_grad_b, igrid_working,x,t_s,bdotgradb)
     call get_vec(vE_dot_grad_b, igrid_working,x,t_s,vEdotgradb)
     call get_vec(grad_kappa_B, igrid_working,x,t_s,gradkappaB)
@@ -732,12 +739,14 @@ contains
     double precision                    :: bdotgradvEdrift_abs, vEdotgradvEdrift_abs
     double precision                    :: momentumpar1, momentumpar2, momentumpar3, momentumpar4
 
-    call get_vec(bp, igrid,xpart(1:ndir),particle_time,b)
-    call get_vec(vp, igrid,xpart(1:ndir),particle_time,vfluid)
-    call get_vec(jp, igrid,xpart(1:ndir),particle_time,current)
-    e(1) = -vfluid(2)*b(3)+vfluid(3)*b(2) + particles_eta*current(1)
-    e(2) = vfluid(1)*b(3)-vfluid(3)*b(1) + particles_eta*current(2)
-    e(3) = -vfluid(1)*b(2)+vfluid(2)*b(1) + particles_eta*current(3)
+    call get_bfield(igrid, xpart(1:ndir), particle_time, b)
+    call get_efield(igrid, xpart(1:ndir), particle_time, e)
+!    call get_vec(bp, igrid,xpart(1:ndir),particle_time,b)
+!    call get_vec(vp, igrid,xpart(1:ndir),particle_time,vfluid)
+!    call get_vec(jp, igrid,xpart(1:ndir),particle_time,current)
+!    e(1) = -vfluid(2)*b(3)+vfluid(3)*b(2) + particles_eta*current(1)
+!    e(2) = vfluid(1)*b(3)-vfluid(3)*b(1) + particles_eta*current(2)
+!    e(3) = -vfluid(1)*b(2)+vfluid(2)*b(1) + particles_eta*current(3)
 
     absb         = sqrt(sum(b(:)**2))
     bhat(1:ndir) = b(1:ndir) / absb

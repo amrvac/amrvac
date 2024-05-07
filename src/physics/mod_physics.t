@@ -35,6 +35,9 @@ module mod_physics
   !> Solve partially ionized one-fluid plasma
   logical :: phys_partial_ionization=.false.
 
+  !> if equilibrium pressure is splitted
+  logical :: phys_equi_pe=.false.
+
   !> Array per direction per variable, which can be used to specify that certain
   !> fluxes have to be treated differently
   integer, allocatable :: flux_type(:, :)
@@ -527,7 +530,7 @@ contains
     double precision, intent(inout) :: w(ixI^S, nw)
     double precision, intent(in) :: x(ixI^S, 1:ndim)
 
-    call mpistop("No get_auxiliary method specified")
+    !call mpistop("No get_auxiliary method specified")
   end subroutine dummy_get_auxiliary
 
   subroutine dummy_get_auxiliary_prim(ixI^L, ixO^L, w)

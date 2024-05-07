@@ -4,8 +4,8 @@
  /
 
  &particles_list
-        physics_type_particles='gca'
-        npayload=14
+        physics_type_particles='GCA'
+        ndefpayload=14
  /
 
  &stoplist

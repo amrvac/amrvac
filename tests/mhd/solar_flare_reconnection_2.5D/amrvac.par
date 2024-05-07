@@ -1,6 +1,6 @@
 !setup.pl -d=2
  &filelist
-        base_filename='solar_flare_2dc'
+        base_filename='solar_flare_2db'
         convert_type='vtuBCCmpi'
         autoconvert=.true.
         nwauxio=8
@@ -20,11 +20,12 @@
 
  &methodlist
         time_stepper='threestep'
-        flux_scheme=20*'hlld'
-        limiter= 20*'weno5'
+        flux_scheme=20*'hll'
+        limiter= 20*'vanleer'
         small_pressure=1.0d-14
         small_density=1.0d-14
         fix_small_values=.true.
+        small_values_method='average'
  /
 
  &boundlist
@@ -48,6 +49,7 @@
         xprobmax1=10.d0
         xprobmin2=0.d0
         xprobmax2=20.d0
+        prolongprimitive=.true.
  /
 
  &paramlist
@@ -60,11 +62,20 @@
         mhd_radiative_cooling=.false.
         mhd_gravity=.false.
         mhd_energy=.true.
-        typedivbfix='glm'
-        Busr=50.d0
+        typedivbfix='ct'
+        Busr=40.d0
         He_abundance=0.d0
         mhd_eta=-0.1d0
  /
         B0field=.true.
         B0field_forcefree=.true.
         boundary_divbfix(3)=.false.
+
+ &tc_list
+        tc_perpendicular=.false.
+        tc_saturate=.true.
+ /
+
+ &sts_list
+        sts_dtpar=0.8d0
+ /

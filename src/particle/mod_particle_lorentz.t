@@ -10,7 +10,7 @@ module mod_particle_lorentz
   integer, parameter :: Boris=1, Vay=2, HC=3, LM=4
 
   ! Variables
-  public :: bp, ep, vp, jp
+  public :: bp, ep, vp, jp, rhop
 
 contains
 
@@ -27,26 +27,29 @@ contains
     ! density
     if(particles_etah>0) nwx = 1
 
-    allocate(vp(ndir))
-    do idir = 1, ndir
-      nwx = nwx + 1
-      vp(idir) = nwx
-    end do
     allocate(bp(ndir))
     do idir = 1, ndir
       nwx = nwx + 1
       bp(idir) = nwx
     end do
-    allocate(ep(ndir))
+    allocate(ep(ndir)) ! electric field
     do idir = 1, ndir
       nwx = nwx + 1
       ep(idir) = nwx
     end do
-    allocate(jp(ndir))
+    allocate(vp(ndir)) ! fluid velocity
+    do idir = 1, ndir
+      nwx = nwx + 1
+      vp(idir) = nwx
+    end do
+    allocate(jp(ndir)) ! current
     do idir = 1, ndir
       nwx = nwx + 1
       jp(idir) = nwx
     end do 
+    nwx = nwx + 1 ! density
+    rhop = nwx
+
     ngridvars=nwx
 
     particles_fill_gridvars => lorentz_fill_gridvars
@@ -175,14 +178,6 @@ contains
     double precision, dimension(ixG^T,1:ndir) :: vE, bhat
     double precision, dimension(ixG^T)        :: kappa, kappa_B, absB, tmp
 
-    ! Fill fluid velocity
-    do iigrid=1,igridstail; igrid=igrids(iigrid);
-      w(ixG^T,1:nw) = ps(igrid)%w(ixG^T,1:nw)
-      call phys_to_primitive(ixG^LL,ixG^LL,w,ps(igrid)%x)
-      gridvars(igrid)%w(ixG^T,1) = w(ixG^T,iw_rho)
-      gridvars(igrid)%w(ixG^T,vp(:)) = w(ixG^T,iw_mom(:))
-    end do
-
     ! Fill electromagnetic quantities
     call fill_gridvars_default()
 
@@ -226,37 +221,40 @@ contains
       call fix_phi_crossing(xpm,igrid)
       
       ! Get E, B at n+1/2 position
-      call get_vec(bp, igrid, xpm, tp+dt_p/2.d0, b)
-      call get_vec(vp, igrid, xpm, tp+dt_p/2.d0, vfluid)
-      call get_vec(jp, igrid, xpm, tp+dt_p/2.d0, current)
-      select case (coordinate)
-      case (Cartesian,Cartesian_stretched,spherical)
-        e(1) = -vfluid(2)*b(3)+vfluid(3)*b(2) + particles_eta*current(1)
-        e(2) = vfluid(1)*b(3)-vfluid(3)*b(1) + particles_eta*current(2)
-        e(3) = -vfluid(1)*b(2)+vfluid(2)*b(1) + particles_eta*current(3)
-      case (cylindrical)
-        e(r_) = -vfluid(phi_)*b(z_)+vfluid(z_)*b(phi_) + particles_eta*current(r_)
-        e(phi_) = vfluid(r_)*b(z_)-vfluid(z_)*b(r_) + particles_eta*current(phi_)
-        e(z_) = -vfluid(r_)*b(phi_)+vfluid(phi_)*b(r_) + particles_eta*current(z_)
-      end select
-      if (particles_etah > zero) then
-        call interpolate_var(igrid,ixG^LL,ixM^LL,gridvars(igrid)%w(ixG^T,1),ps(igrid)%x,xpm,rho)
-        if (time_advance) then
-          td = (tp+dt_p/2.d0 - global_time) / dt
-          call interpolate_var(igrid,ixG^LL,ixM^LL,gridvars(igrid)%wold(ixG^T,1),ps(igrid)%x,xpm,rhoold)
-          rho = rhoold * (1.d0-td) + rho * td
-        end if
-        select case (coordinate)
-        case (Cartesian,Cartesian_stretched,spherical)
-          e(1) = e(1) + particles_etah/rho * (current(2)*b(3) - current(3)*b(2))
-          e(2) = e(2) + particles_etah/rho * (-current(1)*b(3) + current(3)*b(1))
-          e(3) = e(3) + particles_etah/rho * (current(1)*b(2) - current(2)*b(1))
-        case (cylindrical)
-          e(r_) = e(r_) + particles_etah/rho * (current(phi_)*b(z_) - current(z_)*b(phi_))
-          e(phi_) = e(phi_) + particles_etah/rho * (-current(r_)*b(z_) + current(z_)*b(r_))
-          e(z_) = e(z_) + particles_etah/rho * (current(r_)*b(phi_) - current(phi_)*b(r_))
-        end select
-      end if
+      call get_bfield(igrid, xpm, tp+dt_p/2.d0, b)
+      call get_efield(igrid, xpm, tp+dt_p/2.d0, e)
+
+!      call get_vec(vp, igrid, xpm, tp+dt_p/2.d0, vfluid)
+!      call get_vec(jp, igrid, xpm, tp+dt_p/2.d0, current)
+!      select case (coordinate)
+!      case (Cartesian,Cartesian_stretched,spherical)
+!        e(1) = -vfluid(2)*b(3)+vfluid(3)*b(2) + particles_eta*current(1)
+!        e(2) = vfluid(1)*b(3)-vfluid(3)*b(1) + particles_eta*current(2)
+!        e(3) = -vfluid(1)*b(2)+vfluid(2)*b(1) + particles_eta*current(3)
+!      case (cylindrical)
+!        e(r_) = -vfluid(phi_)*b(z_)+vfluid(z_)*b(phi_) + particles_eta*current(r_)
+!        e(phi_) = vfluid(r_)*b(z_)-vfluid(z_)*b(r_) + particles_eta*current(phi_)
+!        e(z_) = -vfluid(r_)*b(phi_)+vfluid(phi_)*b(r_) + particles_eta*current(z_)
+!      end select
+!      if (particles_etah > zero) then
+!        call interpolate_var(igrid,ixG^LL,ixM^LL,ps(igrid)%w(ixG^T,1),ps(igrid)%x,xpm,rho)
+!        if (time_advance) then
+!          td = (tp+dt_p/2.d0 - global_time) / dt
+!          call interpolate_var(igrid,ixG^LL,ixM^LL,pso(igrid)%w(ixG^T,1),ps(igrid)%x,xpm,rhoold)
+!          rho = rhoold * (1.d0-td) + rho * td
+!        end if
+!        select case (coordinate)
+!        case (Cartesian,Cartesian_stretched,spherical)
+!          e(1) = e(1) + particles_etah/rho * (current(2)*b(3) - current(3)*b(2))
+!          e(2) = e(2) + particles_etah/rho * (-current(1)*b(3) + current(3)*b(1))
+!          e(3) = e(3) + particles_etah/rho * (current(1)*b(2) - current(2)*b(1))
+!        case (cylindrical)
+!          e(r_) = e(r_) + particles_etah/rho * (current(phi_)*b(z_) - current(z_)*b(phi_))
+!          e(phi_) = e(phi_) + particles_etah/rho * (-current(r_)*b(z_) + current(z_)*b(r_))
+!          e(z_) = e(z_) + particles_etah/rho * (current(r_)*b(phi_) - current(phi_)*b(r_))
+!        end select
+!      end if
+
       ! Convert fields to Cartesian frame
       call partvec_to_cartesian(xpm,b,bc)
       call partvec_to_cartesian(xpm,e,ec)
@@ -383,6 +381,7 @@ contains
       ! Initialise iteration quantities
       call get_lfac(upart,lfac)
       upartk = upart
+      tau(:) = b(:)
 
       ! START OF THE NONLINEAR CYCLE
       abserr = 1.d0
@@ -395,7 +394,7 @@ contains
 
         call get_lfac(upartk,lfack)
         vbar = (upart + upartk) / (lfac + lfack)
-        call cross(vbar,b,tmp)
+        call cross(vbar,tau,tmp)
 
         ! Compute residual vector
         Fk = upartk - upart - q*dtp/m * (e + tmp)
@@ -405,15 +404,15 @@ contains
         C2 = - upartk / lfack / c_norm**2 / (lfack + lfac)**2
 
         ! Compute Jacobian
-        J11 = 1. - q*dtp/m * (C2(1) * (upartk(2) + upart(2)) * b(3) - C2(1) * (upartk(3) + upart(3)) * b(2))
-        J12 = - q*dtp/m * (C1(2) * b(3) - C2(2) * (upartk(3) + upart(3)) * b(2))
-        J13 = - q*dtp/m * (C2(3) * (upartk(2) + upart(2)) * b(3) - C1(3) * b(2))
-        J21 = - q*dtp/m * (- C1(1) * b(3) + C2(1) * (upartk(3) + upart(3)) * b(1))
-        J22 = 1. - q*dtp/m * (- C2(2) * (upartk(1) + upart(1)) * b(3) + C2(2) * (upartk(3) + upart(3)) * b(1))
-        J23 = - q*dtp/m * (- C2(3) * (upartk(1) + upart(1)) * b(3) + C1(3) * b(1))
-        J31 = - q*dtp/m * (C1(1) * b(2) - C2(1) * (upartk(2) + upart(2)) * b(1))
-        J32 = - q*dtp/m * (C2(2) * (upartk(1) + upart(1)) * b(2) - C1(2) * b(1))
-        J33 = 1. - q*dtp/m * (C2(3) * (upartk(1) + upart(1)) * b(2) - C2(3) * (upartk(2) + upart(2)) * b(1))
+        J11 = 1. - q*dtp/m * (C2(1) * (upartk(2) + upart(2)) * tau(3) - C2(1) * (upartk(3) + upart(3)) * tau(2))
+        J12 = - q*dtp/m * (C1(2) * tau(3) - C2(2) * (upartk(3) + upart(3)) * tau(2))
+        J13 = - q*dtp/m * (C2(3) * (upartk(2) + upart(2)) * tau(3) - C1(3) * tau(2))
+        J21 = - q*dtp/m * (- C1(1) * tau(3) + C2(1) * (upartk(3) + upart(3)) * tau(1))
+        J22 = 1. - q*dtp/m * (- C2(2) * (upartk(1) + upart(1)) * tau(3) + C2(2) * (upartk(3) + upart(3)) * tau(1))
+        J23 = - q*dtp/m * (- C2(3) * (upartk(1) + upart(1)) * tau(3) + C1(3) * tau(1))
+        J31 = - q*dtp/m * (C1(1) * tau(2) - C2(1) * (upartk(2) + upart(2)) * tau(1))
+        J32 = - q*dtp/m * (C2(2) * (upartk(1) + upart(1)) * tau(2) - C1(2) * tau(1))
+        J33 = 1. - q*dtp/m * (C2(3) * (upartk(1) + upart(1)) * tau(2) - C2(3) * (upartk(2) + upart(2)) * tau(1))
 
         ! Compute inverse Jacobian
         Det = J11*J22*J33 + J21*J32*J13 + J31*J12*J23 - J11*J32*J23 - J31*J22*J13 - J21*J12*J33
@@ -455,37 +454,40 @@ contains
     double precision, intent(out) :: mypayload(mynpayload)
     double precision              :: b(3), e(3), tmp(3), lfac, vfluid(3), current(3), rho, rhoold, td
 
-    call get_vec(bp, igrid, xpart,particle_time,b)
-    call get_vec(vp, igrid, xpart,particle_time,vfluid)
-    call get_vec(jp, igrid, xpart,particle_time,current)
-    select case (coordinate)
-    case (Cartesian,Cartesian_stretched,spherical)
-      e(1) = -vfluid(2)*b(3)+vfluid(3)*b(2) + particles_eta*current(1)
-      e(2) = vfluid(1)*b(3)-vfluid(3)*b(1) + particles_eta*current(2)
-      e(3) = -vfluid(1)*b(2)+vfluid(2)*b(1) + particles_eta*current(3)
-    case (cylindrical)
-      e(r_) = -vfluid(phi_)*b(z_)+vfluid(z_)*b(phi_) + particles_eta*current(r_)
-      e(phi_) = vfluid(r_)*b(z_)-vfluid(z_)*b(r_) + particles_eta*current(phi_)
-      e(z_) = -vfluid(r_)*b(phi_)+vfluid(phi_)*b(r_) + particles_eta*current(z_)
-    end select
-    if (particles_etah > zero) then
-      call interpolate_var(igrid,ixG^LL,ixM^LL,gridvars(igrid)%w(ixG^T,1),ps(igrid)%x,xpart,rho)
-      if (time_advance) then
-        td = (particle_time - global_time) / dt
-        call interpolate_var(igrid,ixG^LL,ixM^LL,gridvars(igrid)%wold(ixG^T,1),ps(igrid)%x,xpart,rhoold)
-        rho = rhoold * (1.d0-td) + rho * td
-      end if
-      select case (coordinate)
-      case (Cartesian,Cartesian_stretched,spherical)
-        e(1) = e(1) + particles_etah/rho * (current(2)*b(3) - current(3)*b(2))
-        e(2) = e(2) + particles_etah/rho * (-current(1)*b(3) + current(3)*b(1))
-        e(3) = e(3) + particles_etah/rho * (current(1)*b(2) - current(2)*b(1))
-      case (cylindrical)
-        e(r_) = e(r_) + particles_etah/rho * (current(phi_)*b(z_) - current(z_)*b(phi_))
-        e(phi_) = e(phi_) + particles_etah/rho * (-current(r_)*b(z_) + current(z_)*b(r_))
-        e(z_) = e(z_) + particles_etah/rho * (current(r_)*b(phi_) - current(phi_)*b(r_))
-      end select
-    end if
+    call get_bfield(igrid, xpart, particle_time, b)
+    call get_efield(igrid, xpart, particle_time, e)
+
+!    call get_vec(bp, igrid, xpart,particle_time,b)
+!    call get_vec(vp, igrid, xpart,particle_time,vfluid)
+!    call get_vec(jp, igrid, xpart,particle_time,current)
+!    select case (coordinate)
+!    case (Cartesian,Cartesian_stretched,spherical)
+!      e(1) = -vfluid(2)*b(3)+vfluid(3)*b(2) + particles_eta*current(1)
+!      e(2) = vfluid(1)*b(3)-vfluid(3)*b(1) + particles_eta*current(2)
+!      e(3) = -vfluid(1)*b(2)+vfluid(2)*b(1) + particles_eta*current(3)
+!    case (cylindrical)
+!      e(r_) = -vfluid(phi_)*b(z_)+vfluid(z_)*b(phi_) + particles_eta*current(r_)
+!      e(phi_) = vfluid(r_)*b(z_)-vfluid(z_)*b(r_) + particles_eta*current(phi_)
+!      e(z_) = -vfluid(r_)*b(phi_)+vfluid(phi_)*b(r_) + particles_eta*current(z_)
+!    end select
+!    if (particles_etah > zero) then
+!      call interpolate_var(igrid,ixG^LL,ixM^LL,ps(igrid)%w(ixG^T,1),ps(igrid)%x,xpart,rho)
+!      if (time_advance) then
+!        td = (particle_time - global_time) / dt
+!        call interpolate_var(igrid,ixG^LL,ixM^LL,pso(igrid)%w(ixG^T,1),ps(igrid)%x,xpart,rhoold)
+!        rho = rhoold * (1.d0-td) + rho * td
+!      end if
+!      select case (coordinate)
+!      case (Cartesian,Cartesian_stretched,spherical)
+!        e(1) = e(1) + particles_etah/rho * (current(2)*b(3) - current(3)*b(2))
+!        e(2) = e(2) + particles_etah/rho * (-current(1)*b(3) + current(3)*b(1))
+!        e(3) = e(3) + particles_etah/rho * (current(1)*b(2) - current(2)*b(1))
+!      case (cylindrical)
+!        e(r_) = e(r_) + particles_etah/rho * (current(phi_)*b(z_) - current(z_)*b(phi_))
+!        e(phi_) = e(phi_) + particles_etah/rho * (-current(r_)*b(z_) + current(z_)*b(r_))
+!        e(z_) = e(z_) + particles_etah/rho * (current(r_)*b(phi_) - current(phi_)*b(r_))
+!      end select
+!    end if
 
     ! Payload update
     ! Lorentz factor

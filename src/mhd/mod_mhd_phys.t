@@ -590,6 +590,7 @@ contains
       number_equi_vars = number_equi_vars + 1
       equi_pe0_ = number_equi_vars
       iw_equi_p = equi_pe0_
+      phys_equi_pe=.true.
     endif
     ! determine number of stagger variables
     nws=ndim
@@ -1982,8 +1983,6 @@ contains
     integer :: idir, jdir, kdir, ix^D
     logical :: flag(ixI^S,1:nw)
 
-    if(small_values_method == "ignore") return
-
     flag=.false.
     where(w(ixO^S,rho_) < small_density) flag(ixO^S,rho_) = .true.
 
@@ -2105,8 +2104,6 @@ contains
     logical :: flag(ixI^S,1:nw)
     double precision :: tmp2(ixI^S)
 
-    if(small_values_method == "ignore") return
-
     call phys_check_w(primitive, ixI^L, ixO^L, w, flag)
 
     if(any(flag)) then
@@ -2207,8 +2204,6 @@ contains
     logical :: flag(ixI^S,1:nw)
     double precision :: tmp2(ixI^S)
 
-    if(small_values_method == "ignore") return
-
     call phys_check_w(primitive, ixI^L, ixO^L, w, flag)
 
     if(any(flag)) then
@@ -2294,8 +2289,6 @@ contains
     integer :: idir
     logical :: flag(ixI^S,1:nw)
     double precision :: tmp2(ixI^S)
-
-    if(small_values_method == "ignore") return
 
     call phys_check_w(primitive, ixI^L, ixO^L, w, flag)
 
@@ -3152,9 +3145,7 @@ contains
             pth(ix^D)=small_pressure
          end if
       {enddo^D&\}
-    end if
-
-    if (check_small_values) then
+    else if (check_small_values) then
       {do ix^DB= ixO^LIM^DB\}
          if(pth(ix^D)<small_pressure) then
            write(*,*) "Error: small value of gas pressure",pth(ix^D),&
@@ -3200,9 +3191,7 @@ contains
             pth(ix^D)=small_pressure
          end if
       {enddo^D&\}
-    end if
-
-    if (check_small_values) then
+    else if (check_small_values) then
       {do ix^DB= ixO^LIM^DB\}
          if(pth(ix^D)<small_pressure) then
            write(*,*) "Error: small value of gas pressure",pth(ix^D),&
@@ -3240,7 +3229,7 @@ contains
     call mhd_to_primitive_semirelati(ixI^L,ixO^L,wprim,x)
     pth(ixO^S)=wprim(ixO^S,p_)
 
-    if (check_small_values) then
+    if (.not.fix_small_values .and. check_small_values) then
       {do ix^DB= ixO^LIM^DB\}
          if(pth(ix^D)<small_pressure) then
            write(*,*) "Error: small value of gas pressure",pth(ix^D),&
@@ -3280,9 +3269,7 @@ contains
             pth(ix^D)=small_pressure
          end if
       {enddo^D&\}
-    end if
-
-    if (check_small_values) then
+    else if (check_small_values) then
       {do ix^DB= ixO^LIM^DB\}
          if(pth(ix^D)<small_pressure) then
            write(*,*) "Error: small value of gas pressure",pth(ix^D),&

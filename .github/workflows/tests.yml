@@ -2,9 +2,9 @@ name: tests
 
 on:
   push:
-    branches: [ master, amrvac3.1 ]
+    branches: [ master, amrvac3.2 ]
   pull_request:
-    branches: [ master, amrvac3.1 ]
+    branches: [ master, amrvac3.2 ]
 
 
 jobs:

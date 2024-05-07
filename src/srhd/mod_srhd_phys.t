@@ -920,8 +920,6 @@ contains
     integer :: n,idir
     logical :: flag(ixI^S,1:nw),flagall(ixI^S)
 
-    if (small_values_method == "ignore") return
-
     call srhd_check_w(primitive, ixI^L, ixO^L, w, flag)
 
     if (any(flag)) then

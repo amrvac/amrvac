@@ -65,7 +65,7 @@
  /
 
  &particles_list
-        physics_type_particles='sample'
+        physics_type_particles='Lorentz'
 !        integrator_type_particles='LM'
         num_particles=100
         dtsave_particles = 0.044721359549995793d0

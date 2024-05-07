@@ -1,8 +1,8 @@
  &filelist
-        base_filename = '_gca'
+        base_filename = '_GCA'
  /
 
  &particles_list
-        physics_type_particles='gca'
-        npayload=14
+        physics_type_particles='GCA'
+        ndefpayload=14
  /

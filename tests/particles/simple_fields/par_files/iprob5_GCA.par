@@ -1,11 +1,11 @@
-!This is the grad B test
+!This is the grad B test 
  &filelist
         base_filename = '_GCA5'
  /
 
  &particles_list
-        physics_type_particles='gca'
-        npayload=14
+        physics_type_particles='GCA'
+        ndefpayload=14
         num_particles=20
  /
 
@@ -28,6 +28,5 @@
 
  &my_list
         x0 = 0.0d0, 0.0d0, 0.0d0
-	v0 = -0.5d0, 0.0d0, 0.0d0
+	v0 = -0.5d0, 0.0d0, 0.2d0
  /
-

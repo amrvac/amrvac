@@ -2641,11 +2641,13 @@ contains
     use mod_global_parameters
 
     integer, parameter :: n_modes = 2
-    integer, parameter :: my_unit = 123
     character(len=40)  :: fmt_string
+    character(len=2048)  :: line
     logical, save      :: file_open = .false.
     integer            :: power
     double precision   :: modes(nw, n_modes), volume
+    integer              :: amode, istatus(MPI_STATUS_SIZE)
+    character(len=80)    :: filename
 
     do power = 1, n_modes
        call get_volume_average(power, modes(:, power), volume)
@@ -2653,14 +2655,23 @@ contains
 
     if (mype == 0) then
        if (.not. file_open) then
-          open(my_unit, file = trim(base_filename) // ".log")
+          filename = trim(base_filename) // ".log"
+          amode    = ior(MPI_MODE_CREATE,MPI_MODE_WRONLY)
+          amode    = ior(amode,MPI_MODE_APPEND)
+
+          call MPI_FILE_OPEN(MPI_COMM_SELF, filename, amode, &
+               MPI_INFO_NULL, log_fh, ierrmpi)
           file_open = .true.
 
-          write(my_unit, *) "# time mean(w) mean(w**2)"
+          line= "# time mean(w) mean(w**2)"
+          call MPI_FILE_WRITE(log_fh, trim(line) // new_line('a'), &
+                 len_trim(line)+1, MPI_CHARACTER, istatus, ierrmpi)
        end if
 
        write(fmt_string, "(a,i0,a)") "(", nw * n_modes + 1, fmt_r // ")"
-       write(my_unit, fmt_string) global_time, modes
+       write(line, fmt_string) global_time, modes
+       call MPI_FILE_WRITE(log_fh, trim(line) // new_line('a') , &
+            len_trim(line)+1, MPI_CHARACTER, istatus, ierrmpi)
     end if
   end subroutine printlog_regression_test
 

@@ -10,7 +10,7 @@ module mod_particle_advect
   integer, parameter :: Euler = 1, RK4=2, ARK4=3
 
   ! Variables
-  public :: vp
+  public :: vp, rhop
 
 contains
 
@@ -19,12 +19,15 @@ contains
     integer :: idir
 
     ngridvars=0
-    if(ndefpayload>0) ngridvars=1
     allocate(vp(ndir))
     do idir = 1, ndir
       vp(idir) = idir
     end do
     ngridvars=ngridvars+ndir
+    if(ndefpayload>0) then
+      rhop=vp(ndir)+1
+      ngridvars=ngridvars+ndefpayload
+    end if
 
     particles_fill_gridvars => advect_fill_gridvars
 
@@ -123,8 +126,10 @@ contains
 
         ! Compute default and user-defined payloads
         allocate(particle(n)%payload(npayload))
-        call advect_update_payload(igrid,x(:,n),v(:,n),q(n),m(n),defpayload,ndefpayload,0.d0)
-        particle(n)%payload(1:ndefpayload)=defpayload
+        if(ndefpayload>0) then
+          call advect_update_payload(igrid,x(:,n),v(:,n),q(n),m(n),defpayload,ndefpayload,0.d0)
+          particle(n)%payload(1:ndefpayload)=defpayload
+        end if
         if (associated(usr_update_payload)) then
           call usr_update_payload(igrid,x(:,n),v(:,n),q(n),m(n),usrpayload,nusrpayload,0.d0)
           particle(n)%payload(ndefpayload+1:npayload)=usrpayload
@@ -148,8 +153,8 @@ contains
       gridvars(igrid)%w(ixG^T,1:ngridvars) = 0.0d0
       w(ixG^T,1:nw) = ps(igrid)%w(ixG^T,1:nw)
       call phys_to_primitive(ixG^LL,ixG^LL,w,ps(igrid)%x)
-      gridvars(igrid)%w(ixG^T,1) = w(ixG^T,iw_rho)
       gridvars(igrid)%w(ixG^T,vp(:)) = w(ixG^T,iw_mom(:))
+      gridvars(igrid)%w(ixG^T,rhop) = w(ixG^T,iw_rho)
     end do
 
   end subroutine advect_fill_gridvars
@@ -225,12 +230,14 @@ contains
       particle(ipart)%self%time = tlocnew
 
       ! Update payload
-      call advect_update_payload(igrid,x,v,0.d0,0.d0,defpayload,ndefpayload,tlocnew)
-      particle(ipart)%payload(1:ndefpayload) = defpayload
+      if(ndefpayload>0) then
+        call advect_update_payload(igrid,x,v,0.d0,0.d0,defpayload,ndefpayload,tlocnew)
+        particle(ipart)%payload(1:ndefpayload) = defpayload
+      end if
       if (associated(usr_update_payload)) then
         call usr_update_payload(igrid,x,v,0.d0,0.d0,usrpayload,nusrpayload,tlocnew)
+        particle(ipart)%payload(ndefpayload+1:npayload) = usrpayload
       end if
-      particle(ipart)%payload(ndefpayload+1:npayload) = usrpayload
 
     end do
 
@@ -249,11 +256,11 @@ contains
     ! Payload 1 is density
     if (mynpayload > 0 ) then
       if (time_advance) then
-        call interpolate_var(igrid,ixG^LL,ixM^LL,gridvars(igrid)%wold(ixG^T,1),ps(igrid)%x,xpart,rho1)
-        call interpolate_var(igrid,ixG^LL,ixM^LL,gridvars(igrid)%w(ixG^T,1),ps(igrid)%x,xpart,rho2)
+        call interpolate_var(igrid,ixG^LL,ixM^LL,gridvars(igrid)%wold(ixG^T,rhop),ps(igrid)%x,xpart,rho1)
+        call interpolate_var(igrid,ixG^LL,ixM^LL,gridvars(igrid)%w(ixG^T,rhop),ps(igrid)%x,xpart,rho2)
         rho = rho1 * (1.0d0 - td) + rho2 * td
       else
-        call interpolate_var(igrid,ixG^LL,ixM^LL,gridvars(igrid)%w(ixG^T,1),ps(igrid)%x,xpart,rho)
+        call interpolate_var(igrid,ixG^LL,ixM^LL,gridvars(igrid)%w(ixG^T,rhop),ps(igrid)%x,xpart,rho)
       end if
       mypayload(1) = rho * w_convert_factor(1)
     end if
