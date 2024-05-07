@@ -60,7 +60,7 @@
         dtsave_particles = 1.0d-2
         write_ensemble = f
         write_individual = t
-        npayload=1
+        ndefpayload=1
         particles_eta=0.0d-4
         const_dt_particles = 5d-3
  /

@@ -9,7 +9,7 @@ The documentation of MPI-AMRVAC is generated using
 is automatically updated. You can also generate 
 documentation locally if you have a recent version of Doxygen installed. The
 latest binaries can be downloaded
-[here](http://www.stack.nl/~dimitri/doxygen/download.html).
+[here](https://doxygen.nl/download.html).
 
 To locally generate the documentation, execute
 
@@ -23,7 +23,7 @@ in the documentation folder (`doc`). You can then open the documentation in
 # How to write documentation {#doc-howto}
 
 Below some of the Doxygen basics are described, but for more information see the
-online [manual](http://www.stack.nl/~dimitri/doxygen/manual/index.html). Having
+online [manual](https://www.doxygen.nl/manual/index.html). Having
 a quick look at the documentation already present in MPI-AMRVAC (both in the
 source code and in the `doc` folder) will also help get you started.
 
@@ -80,7 +80,7 @@ Besides documenting your source code, you can also include other information
 using special commands, preceded by a backslash (\). Examples are: **todo** to
 list TODO items, **test** to describe test cases and **page** to create a
 separate documentation page. The full list of commands is available
-[here](http://www.stack.nl/~dimitri/doxygen/manual/commands.html).
+[here](https://www.doxygen.nl/manual/commands.html).
 
 ## Documentation in markdown files {#doc-md}
 

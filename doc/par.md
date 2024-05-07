@@ -38,7 +38,7 @@ modules:
 * `dust_list` (dust, see `mod_dust`)
 * `vc_list` (viscosity, see `mod_viscosity`)
 * `grav_list` (gravity, see `mod_gravity`)
-* `mf_list` (magnetofriction, see `mod_magnetofriction`)
+* `mf_list` (magnetofriction, see `mod_mf_phys`)
 
 ## An example for a namelist
 
@@ -330,7 +330,7 @@ without changing time, set `reset_it=T`.
     time_stepper='twostep' | 'onestep' | 'threestep' | 'fourstep' | 'fivestep'
     time_integrator= choices depends on time_stepper
     flux_scheme=nlevelshi strings from: 'hll'|'hllc'|'hlld','hllcd'|'tvdlf'|'tvdmu'|'tvd'|'cd'|'fd'|'source'|'nul'
-    limiter= nlevelshi strings from: 'minmod' | 'woodward' | 'superbee' | 'vanleer' | 'albada' | 'ppm' | 'mcbeta' | 'koren' | 'cada' | 'cada3' | 'mp5'
+    limiter= nlevelshi strings from: 'minmod' | 'woodward' | 'superbee' | 'vanleer' | 'albada' | 'ppm' | 'mcbeta' | 'koren' | 'cada' | 'cada3' | 'mp5' | 'schmid1' | 'schimid2' | 'venk' | 'weno3' | 'wenoyc3' | 'weno5' | 'weno5nm'| 'wenoz5' | 'wenoz5nm' | 'wenozp5' | 'wenozp5nm' | 'weno5cu6' | 'teno5ad' | 'weno7' | 'mpweno7'
     gradient_limiter= nlevelshi strings from: 'minmod' | 'woodward' | 'superbee' | 'vanleer' | 'albada' | 'ppm' | 'mcbeta' | 'koren' | 'cada' | 'cada3'
     loglimit= nw logicals, all false by default
     flatsh = F | T
@@ -430,10 +430,11 @@ switches flatcd and flatsh. These are meant to minimize potential
 ripples around contact discontuinities (flatcd) or shocks (flatsh), but one
 should first try without these flattenings (default behavior). PPM is actually
 only used in a quadratic reconstruction from center to edge, requires the use
-of a larger stencil (nghostcells=4), and can be used either in the methods (by
+of a larger stencil (nghostcells=3), and can be used either in the methods (by
 setting limiter) or in the gradientS/divvectorS routines (when typegrad
-or typediv is limited, and gradient_limiter is ppm). The latter is encoded in
-geometry.t.
+or typediv is limited, and gradient_limiter is ppm) in geometry.t. If _flatcd=T_ or
+_flatsh=T_ to flattern oscillations at contact discontuinities or shocks, it needs
+1 more ghost cell, e.g., nghostcells=4.
 
 ### Typeentropy, entropycoef {#par_typeentropy}
 
@@ -762,12 +763,8 @@ the limitation from ghost-cell exchange at physical boundaries.
 The code offers various choices for the error estimator used in automatically
 detecting regions that need refinement.
 
-When `refine_criterion=0`, all refinement will only be based on the user-
+When `refine_criterion=1`, all refinement will only be based on the user-
 defined criteria to be coded up in subroutine _specialrefine_grid_.
-
-When `refine_criterion=1`, we simply compare the previous time level t_(n-1)
-solution with the present t_n values, and trigger refinement on relative
-differences.
 
 When `refine_criterion=3`, the default value, errors are estimated using
 current t_n values and their gradients following Lohner prescription. In
@@ -791,7 +788,7 @@ default value.
 
 ### w_refine_weight, logflag, refine_threshold, derefine_ratio {#par_flags}
 
-In all error estimators mentioned above (except the refine_criterion=0 case), the
+In all error estimators mentioned above (except the refine_criterion=1 case), the
 comparison or evaluation is done only with a user-selected (sub)set of the
 conserved variables. The _nw_ variables (which may include auxiliary
 variables) can be used for error estimation, by setting corresponding weights 
@@ -961,12 +958,11 @@ sharp discontinuities. It is normally inactive with a default value -1.
      mhd_4th_order= F | T
      mhd_internal_e= F | T
      mhd_hydrodynamic_e= F | T
-     mhd_solve_eaux= F | T
      mhd_semirelativistic= F | T
      mhd_boris_simplification= F | T
-     mhd_reduced_c = 3.d10
+     mhd_reduced_c = 6.d8
      mhd_trac= F | T
-     mhd_trac_type= INTEGER from 1 to 5
+     mhd_trac_type= INTEGER from 1 to 6
      mhd_trac_mask= bigdouble
      mhd_trac_finegrid= INTEGER
      typedivbfix= 'linde'|'ct'|'glm'|'powel'|'lindejanhunen'|'lindepowel'|'lindeglm'|'multigrid'|'none'
@@ -975,6 +971,7 @@ sharp discontinuities. It is normally inactive with a default value -1.
      boundary_divbfix= 2*ndim logicals, all false by default
      divbdiff= 0.8d0 between 0 and 2
      typedivbdiff= 'all' | 'ind'
+     clean_initial_divb= F | T
      divbwave= T | F
      B0field= F | T
      B0field_forcefree= T | F
@@ -1031,7 +1028,8 @@ You can choose 'lindejanhunen', 'lindepowel', or 'lindeglm' to use combined divb
 
 Projection scheme using multigrid Poisson solver by Teunissen and Keppens in 
 _Computer Physics Communications 245, 1068, (2019)_ can be chosen as 'multigrid' to
-remove div B part of B.
+remove div B part of B. If `clean_initial_divb` is set to T, the projection scheme is 
+used to remove div B once after initial condition in unstretched Cartesian CT-MHD cases.
 
 ### Magnetic field splitting strategy {#par_MFS}
 
@@ -1058,23 +1056,23 @@ efficiency and accuracy.
 For solar atmosphere, simulations can sometimes suffer from the huge temperature gradient in the transition region.
 If the resolution is not enough (typically 1 km), the upward evaporation might be underestimated.
 The TRAC method could be used to correct the evaporation through artificially broadening the transition region.
-Set `mhd_trac=T` to enable this function.
-`mhd_trac_type=1` is the basic TRAC method for 1D simulation (see Johnston et al. 2019, 2020).
+Set 'mhd_trac=T' to enable this function.
+'mhd_trac_type=1' is the basic TRAC method for 1D simulation (see Johnston et al. 2019, 2020).
 When it is used for 2D or 3D simulations, the local cutoff temperature inside each block would be calculated separately.
 It is the fastest way in multi-D simulations, it is not accurate but basically, is physically correct.
 For multi-D uniform Cartesian grids, we prepared some other methods.
-`mhd_trac_type=3` is the multi-D TRAC method based on the field line tracing module.
+'mhd_trac_type=3' is the multi-D TRAC method based on the field line tracing module.
 For multi-D simulations, it should be the most accurate one, but might be very slow.
 Considering that this TRAC modificaiton will mostly affect the transition region,
-one can use `mhd_trac_type=5` to add a mask to limit the region where the field lines are integrated.
-Give `mhd_trac_mask` to set the maximum height of the mask, in your unit_length.
-`mhd_trac_type=4` uses the block-based TRAC method for multi-D simulations, which should be faster than the second type.
-And `mhd_trac_type=6` works in a similar way with the 4th type, by adding a mask on the block-based TRAC method.
-Give `mhd_trac_finegrid` to set the distance between two adjacent traced field lines (in the unit of finest cell size).
-Note that when setting `mhd_trac_type >=3`, the direction of your gravity should follow y-dir (2D) or z-dir(3D).
+one can use 'mhd_trac_type=5' to add a mask to limit the region where the field lines are integrated.
+Give 'mhd_trac_mask' to set the maximum height of the mask, in your unit_length.
+'mhd_trac_type=4' uses the block-based TRAC method for multi-D simulations, which should be faster than the second type.
+And 'mhd_trac_type=6' works in a similar way with the 4th type, by adding a mask on the block-based TRAC method.
+Give 'mhd_trac_finegrid' to set the distance between two adjacent traced field lines (in the unit of finest cell size).
+Note that when setting 'mhd_trac_type >=3', the direction of your gravity should follow y-dir (2D) or z-dir(3D).
 
-`mhd_trac_type=2` is anthor TRAC method, which broadens the transition region according to a different criterion.
-Unlike Johnston's TRAC method, this TRAC method has the advantage that all the calculation is done locally within the block.
+'mhd_trac_type=2' is anthor TRAC method, which broadens the transition region according to a different criterion.
+Unlike Johnston TRAC method, this TRAC method has the advantage that all the calculation is done locally within the block.
 Thus, it could be used in either 1D (M)HD or multi-D MHD simulations, and is much faster than other multi-D methods.
 
 ### Solve internal or hydrodynamic energy to avoid negative pressure{#par_AIE}
@@ -1082,26 +1080,12 @@ Thus, it could be used in either 1D (M)HD or multi-D MHD simulations, and is muc
 In extremely low beta plasma, internal energy or gas pressure easily goes to
 negative values when solving total energy equation, because numerical error of magnetic
  energy is comparable to the internal energy due to its extremely small fraction in the 
-total energy. We have three methods to avoid this problem. In the first method, we solve 
+total energy. We have two methods to avoid this problem. In the first method, we solve 
 internal energy equation instead of total energy equation by setting `mhd_internal_e=T`.
-In the second method, we solve both the total energy equation and an auxiliary internal energy equation 
- and synchronize the internal energy with the result from total energy equation. In each step of 
-advection, the synchronization replace the internal energy from 
-the total energy with the auxiliary internal energy where plasma beta is lower than 0.005, 
-mix them where plasma beta is between 0.005 and 0.05, and replace the auxiliary internal 
-energy with the internal energy from the total energy where plasma beta is larger than 0.05.
-This function is activated by `mhd_solve_eaux=T`. If you set `mhd_solve_eaux=T`, you need to
-add a line, "if(mhd_solve_eaux) w(ixO^S,eaux_)=w(ixO^S,p_)", after initial gas pressure is given
-in subroutine usr_init_one_grid of mod_usr.t, to give the initial condition for the auxiliary gas pressure 
-or internal energy. The boundary type 
-of the auxiliary internal energy is coded to be the same as the boundary type of density. 
-So you do not need to specify boundary types for the auxiliary internal energy in the par file. 
-It is, however, needed to specify the special boundary 
-for the auxiliary internal energy in mod_usr.t if special boundary is used. 
 This function is compatible with all finite volume and finite difference schemes we have, including
-HLL, HLLC, and HLLD, in which the Riemann flux of the auxiliary internal energy is evaluted
+HLL, HLLC, and HLLD, in which the Riemann flux of the internal energy is evaluted
 as the HLL flux in all intermediate states of the Riemann fan. 
-In the third method, We solve hydrodynamic energy, i.e., internal and kinetic energy, instead of
+In the second method, We solve hydrodynamic energy, i.e., internal and kinetic energy, instead of
 total energy with an additional source term of Lorentz force work, by setting `mhd_hydrodynamic_e=T`,
 which has better conservation than solving internal energy.
 
@@ -1112,84 +1096,102 @@ than speed of light in strong magnetic field and low density regions. Semirelati
 (Gombosi et al. 2002 JCP 177, 176) as the nonrelativistic hydrodynamic limit of the relativistic MHD 
 equations solve the problem and have the same steady-state solution as nonrelativistic MHD. 
 By artificially lowering the speed of light, one can reduce the wave speeds allowing larger time steps 
-thus faster solution in explicit numerical schemes. Set `mhd_semirelativistic=T` and `mhd_reduced_c` 
+thus faster solution in explicit numerical schemes. Set 'mhd_semirelativistic=T' and 'mhd_reduced_c' 
 equals to a value smaller than light speed with physical unit to solve semirelativistic MHD. If setting
-`mhd_hydrodynamic_e=T`, the approximate split semirelativistic MHD equations (Rempel 2017 ApJ 834, 10)
-are solved with hydrodynamic energy instead of total energy. `mhd_semirelativistic=T` contradicts with 
-`mhd_internal_e=T`, since internal energy equation has not been derived from semirelativistic MHD 
-equations. Boris simplification of semirelativistic MHD equations can be solved by 
-setting `mhd_boris_simplification=T` and `mhd_semirelativistic=F` to get faster but less accurate solutions.
-`mhd_boris_simplification=T` is empirically working with `mhd_internal_e=T` or `mhd_hydrodynamic_e=T`.
+'mhd_hydrodynamic_e=T' or 'mhd_internal_e=T', the approximate split semirelativistic MHD equations (Rempel 2017 ApJ 834, 10)
+are solved with hydrodynamic or internal energy instead of total energy. Boris simplification of 
+semirelativistic MHD equations can be solved by setting 'mhd_boris_simplification=T' and 'mhd_semirelativistic=F' 
+to get faster but less accurate solutions. 'mhd_boris_simplification=T' is working with all versions of MHD 
+equations including 'mhd_internal_e=T' and 'mhd_hydrodynamic_e=T'.
 Since semirelativistic MHD waves are very complicated, only approximate fast magnetosonic wave speed
 is implemented to use HLL or tvdlf scheme, schemes (such as HLLC and HLLD) depending on more wave speeds 
-are not yet fully compatible with semirelativistic MHD.
+are not yet fully compatible with semirelativistic MHD. Note that when using semirelativistic MHD, the 
+definitions of momentum and total energy are different from MHD, so call 'mhd_to_primitive' to get velocity
+and gas pressure from momentum and total energy instead of using the classic relations.
 
-## Synthetic EUV emission {#par_emissionlist}
+## Synthetic EUV/SXR/whitelight emission {#par_emissionlist}
 
-User can synthesize EUV images, EUV spectra, SXR images using 3D .dat files inside amrvac. 
+User can synthesize EUV images, EUV spectra, SXR images and whitelight images using 3D .dat files inside amrvac. 
 These can be finished easily by adding some parameters into .par file. The images/spectra will 
-be output to .vtu/.vti files when the convert_type in @ref par_filelist is set to  `EIvtiCCmpi`, 
-`ESvtiCCmpi`,  `SIvtiCCmpi` ... etc. Two types of resolution are supported: data resolution and 
-instrument resolution. In data resolution, the size of the image pixel is the same as the size of the 
-finest cell. In instrument resolution, the size of a pixel is the same as that in relevant observation 
+be output to .vtu/.vti files when the convert_type in @ref par_filelist is set to  'EIvtiCCmpi', 
+'ESvtiCCmpi',  'SIvtiCCmpi' ... Thehe size of a pixel is the same as that in relevant observation 
 data (such as SDO and RHESSI). The point spread function (PSF, instrument effect) has been 
-included for `instrument` resolution. The resolution or EUV image/SXR image/EUV spectra is 
-controlled by the parameter `resolution_euv`/`resolution_sxr`/`resolution_spectrum`.
+included for 'instrument' resolution. 
 
-The line of sight (LOS) is controlled with `LOS_theta` and `LOS_phi`, where the LOS is anti-parallel 
+The line of sight (LOS) is controlled with 'LOS_theta' and 'LOS_phi', where the LOS is anti-parallel 
 to the vector [cos(LOS_phi)*sin(LOS_theta), sin(LOS_phi)*sin(LOS_theta),cos(LOS_theta)] (see the 
-following figure). The units of `LOS_theta` and `LOS_phi` are degree. For resolution type `data`, 
-only combinations `LOS_theta=0, LOS_phi=90`, `LOS_theta=90, LOS_phi=90` and `LOS_phi=0` 
-are supported, otherwise the boundaries of image pixels can not match the cell boundaries of the 
-cell boundaries of the simulation data. `LOS_theta` and `LOS_phi` can be any integer for 
-`instrument` resolution. User can rotate the image with `image_rotate` (in degree) in 
-`instrument` resolution (for both EUV image and SXR image. By default, the y direction 
-of the image is located in a plane given by the LOS and the z direction of the simulation data. 
+following figure). The units of 'LOS_theta' and 'LOS_phi' are degree. 
+User can rotate the image with 'image_rotate' (in degree). In cartesian coordinate, the y direction 
+of the image is located in a plane given by the LOS and the z direction of the simulation data.
+In spherical coordinate, the definations of 'LOS_theta' and 'LOS_phi' are the same with theta and
+phi of the coodinate, but 'LOS_theta' and 'LOS_phi' are in degree.
+
+The whitelight emission supposed observed by LASCO can be synthesized, and the instrument related parameter
+refers to 'whitelight_instrument'. User can specify the radius of the occultor of the instrument with 
+'R_occultor' (in solar radius).
+
 
 ![](figmovdir/LOS_emission.png)
 
-The wavelength of an EUV image is defined with `wavelength`. The bottom/upper cutoff energy 
-of SXR image is defined with `emin_sxr`/`emax_sxr` (in keV). 
+The wavelength of an EUV image is defined with 'wavelength'. The bottom/upper cutoff energy 
+of SXR image is defined with 'emin_sxr'/'emax_sxr' (in keV). 
 
-The wavelength of the EUV spectra is defined with `spectrum_wl`. When `spectrum_euv` is`true`, 
+The wavelength of the EUV spectra is defined with 'spectrum_wl'. When 'spectrum_euv' is 'true', 
 spectra at a slit in the corresponding image will be given. The output is a 2D image, where x-axis is 
-wavelength and y-axis is space (physics distance at the slit). Under the `instrument` resolution type, 
-the slit is parallel to the y axis of corresponding EUV image (controlled by `LOS_theta`, `LOS_phi` and 
-`image_rotate`). The location of the slit `location_slit` is the x value of the image (in arcsec).
-For the `data` resolution, the direction of the slit is controlled by `direction_slit`. The location of 
-the slit `location_slit` is the coordinate value at the third direction (perpendicular to LOS and slit).
-For example, the LOS along x direction and the slit along y direction, then `location_slit` should 
-be z of the slit. The domain in wavelength is controlled by `spectrum_window_min` and `spectrum_window_max`.
+wavelength and y-axis is space (physics distance at the slit). 
+The slit is parallel to the y axis of corresponding EUV image (controlled by 'LOS_theta', 'LOS_phi' and 
+'image_rotate'). The location of the slit 'location_slit' is the x value of the image. The location of 
+the slit 'location_slit' is the coordinate value at the third direction (perpendicular to LOS and slit).
+For example, the LOS along x direction and the slit along y direction, then 'location_slit' should 
+be z of the slit. The domain in wavelength is controlled by 'spectrum_window_min' and 'spectrum_window_max'.
 
-The mapping between simulation box coordinate and synthesized image coordinate is not only controlled by LOS, 
-but also controlled by the parameter `x_origin`. The simulation box point given by `x_origin` will always located
-at (X=0,Y=0) of the synthesized image. The parameter `big_image` is added for making movie that the LOS is 
-changing. When `big_image=T`, then the synthesized EUV/SXR image will have a fixed big domain. The domain will
+
+In cartesian, the mapping between simulation box coordinate and synthesized image coordinate is not only controlled by LOS, 
+but also controlled by the parameter 'x_origin'. The simulation box point given by 'x_origin' will always located
+at (X=0,Y=0) of the synthesized image. The parameter 'big_image' is added for making movie that the LOS is 
+changing. When 'big_image=T', then the synthesized EUV/SXR image will have a fixed big domain. The domain will
 not change when changing the LOS, and the whole simulation box will always be convered inside the domain. The 
-parameter `x_origin` is also added for making such kind of movie.
+parameter 'x_origin' is also added for making such kind of movie.
 
-Only Cartesian coordinate system are supported currently.
+Two types of resolution are supported: data resolution and instrument resolution. In data resolution, 
+the size of the image pixel is the same as the size of the finest cell. In instrument resolution, 
+the size of a pixel is the same as that in relevant observation data (such as SDO and RHESSI). 
+The point spread function (PSF, instrument effect) has been included for instrument resolution. 
+The spatial resolution or EUV image/SXR image/EUV spectra is controlled by the parameter 'dat_resolution'.
+The default resolution is instrument resolution, and the data resolution can be activated by
+setting 'dat_resolution' to 'True'. Under the instrument resolution, the spatial resolution can be
+artificially changed with the parameter 'instrument_resolution_factor'. 
+For example, we can double the spatial resolution by setting 'instrument_resolution_factor=2'.
+
+The default unit of length for the outputed image is arcsec and the related variables in .par file, 
+but user can set 'activate_unit_arcsec' to F to use the simulation length unit.
+
+Only Cartesian and spherical coordinate system are supported currently. In spherical coordinate,
+region below 'R_opt_thick' (in solar radius, default value is 1) is assumed as not transparent.
 
     &emissionlist
       filename_euv= CHARACTER
       wavelength= 94 | 131 | 171 | 193 | 211 | 304 | 335 | 1354 | 263 | 264 | 192 | 255
-      resolution_euv= 'instrument' | 'data'
       LOS_theta= DOUBLE
       LOS_phi= DOUBLE
       image_rotate= DOUBLE
       x_origin(1:3)= DOUBLE
-      big_image=LOGICAL
+      big_image= LOGICAL
       filename_sxr= CHARACTER
       emin_sxr= INTEGER
       emax_sxr= INTEGER
-      resolution_sxr= 'instrument' | 'data'
       filename_spectrum= CHARACTER
       spectrum_wl= 1354 | 263 | 264| 192 | 255
-      resolution_sxr= 'instrument' | 'data'
       spectrum_window_min= DOUBLE
       spectrum_window_max= DOUBLE
       location_slit= DOUBLE
-      direction_slit= INTEGER
+      filename_whitelight= CHARACTER
+      whitelight_instrument= 'LASCO/C1' | 'LASCO/C2' | 'LASCO/C3'
+      R_occultor= DOUBLE
+      R_opt_thick= DOUBLE
+      activate_unit_arcsec= LOGICAL
+      dat_resolution=LOGICAL
+      instrument_resolution_factor=INTEGER
     /
 
 

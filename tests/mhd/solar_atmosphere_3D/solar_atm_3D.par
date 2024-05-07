@@ -56,6 +56,7 @@
         xprobmax2=6.0d0
         xprobmin3=0.d0
         xprobmax3=12.d0
+        prolongprimitive=.true.
  /
 
  &paramlist
@@ -68,8 +69,7 @@
         mhd_radiative_cooling=.true.
         mhd_gravity=.true.
         mhd_trac=.true.
-        mhd_solve_eaux=.true.
-        Busr=30.d0
+        Busr=20.d0
  /
 
  &tc_list

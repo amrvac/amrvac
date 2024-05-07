@@ -5,7 +5,7 @@
 !> This subroutine will return density and pressure at each point.
 module mod_solar_atmosphere
   use mod_global_parameters
-  use mod_constants
+  use mod_comm_lib, only: mpistop
   implicit none
 
   integer :: n_valc,n_hong,n_fontenla,n_alc7
@@ -260,15 +260,18 @@ module mod_solar_atmosphere
 
 contains
 
-  subroutine get_atm_para(h,rho,pth,grav,nh,Tcurve,hc,rhohc)
-    use mod_global_parameters
+  subroutine get_atm_para(h,rho,pth,grav,nh,Tcurve,hc,rhohc,Tem)
+    use mod_physics, only: phys_partial_ionization
+    use mod_ionization_degree
     ! input:h,grav,nh,rho0,Tcurve; output:rho,pth (dimensionless units)
     ! nh -- number of points
     ! rho0 -- number density at h=0
     ! Tcurve -- 'VAL-C' | 'Hong2017' | 'SPRM305' | 'AL-C7'
 
     integer, intent(in) :: nh
-    double precision :: h(nh),rho(nh),pth(nh),grav(nh)
+    double precision, intent(in) :: h(nh),grav(nh)
+    double precision, intent(out) :: rho(nh),pth(nh)
+    double precision, intent(out),optional :: Tem(nh)
     double precision :: rhohc,hc
     character(*) :: Tcurve
 
@@ -301,6 +304,13 @@ contains
     end select
 
     Te=Te_cgs/unit_temperature
+    if(present(Tem)) Tem=Te
+
+    if(phys_partial_ionization) then
+      do j=1,nh
+        Te(j)=Te(j)*R_ideal_gas_law_partial_ionization(Te(j))
+      end do
+    end if
 
     ! density and pressure profiles
     rho(1)=1.d5
@@ -317,7 +327,7 @@ contains
       if (h(j-1)<=hc .and. h(j)>hc) then
         dht=hc-h(j-1)
         rhot=rho(j-1)+dht*(rho(j)-rho(j-1))/(h(j)-h(j-1))
-      endif
+      end if
     end do
 
     ratio=rhohc/rhot
@@ -328,7 +338,6 @@ contains
 
   subroutine get_Te_ALC7(h,Te,nh)
     use mod_interpolation
-    use mod_constants
 
     integer :: nh
     double precision :: h(nh),Te(nh)
@@ -389,7 +398,6 @@ contains
 
   subroutine get_Te_SPRM(h,Te,nh)
     use mod_interpolation
-    use mod_constants
 
     integer :: nh
     double precision :: h(nh),Te(nh)
@@ -473,7 +481,6 @@ contains
 
   subroutine get_Te_VALC(h,Te,nh)
     use mod_interpolation
-    use mod_constants
 
     integer :: nh
     double precision :: h(nh),Te(nh)
@@ -534,7 +541,6 @@ contains
 
   subroutine get_Te_Hong(h,Te,nh)
     use mod_interpolation
-    use mod_constants
 
     integer :: nh
     double precision :: h(nh),Te(nh)

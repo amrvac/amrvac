@@ -50,6 +50,7 @@ the data structures for the block-tree AMR.
 * [Advection-Reaction-diffusion equations](advection_reaction_diffusion.md) Using the advection-reaction-diffusion module.
 * [Two-fluid equations](twofluid.md) Getting started with the two-fluid module.
 * [CAK radiation force](cakforce.md) Getting started with the CAK force for line-driven wind outflows.
+* [Rotating frame](rotatingframe.md) Solve governing equations in a rotating frame of reference.
 * [Adding a new physics module](addmodule.md) Description of how to add your own physics module.
 
 # Source Code {#source_code}

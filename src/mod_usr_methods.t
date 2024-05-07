@@ -105,6 +105,9 @@ module mod_usr_methods
   procedure(set_field_w), pointer :: usr_set_field_w => null()
   procedure(set_field), pointer :: usr_set_field => null()
 
+  ! allow user to specify R factor in ideal gas law with partial ionization
+  procedure(Rfactor), pointer :: usr_Rfactor => null()
+
   abstract interface
 
     subroutine p_no_args()
@@ -286,6 +289,15 @@ module mod_usr_methods
       double precision, intent(out)   :: pth(ixI^S)
     end subroutine hd_pthermal
 
+    !>Calculation R factor for ideal gas law with partial ionization
+    subroutine Rfactor(w,x,ixI^L,ixO^L,pth)
+      use mod_global_parameters
+      integer, intent(in)             :: ixI^L, ixO^L
+      double precision, intent(in)    :: x(ixI^S,1:ndim)
+      double precision, intent(in)    :: w(ixI^S,1:nw)
+      double precision, intent(out)   :: pth(ixI^S)
+    end subroutine Rfactor
+
     !> Set the "eta" array for resistive MHD based on w or the
     !> "current" variable which has components between idirmin and 3.
     subroutine special_resistivity(w,ixI^L,ixO^L,idirmin,x,current,eta)
@@ -429,11 +441,10 @@ module mod_usr_methods
     end subroutine flag_grid
 
     !> Update payload of particles
-    subroutine update_payload(igrid,w,wold,xgrid,x,u,q,m,mypayload,mynpayload,particle_time)
+    subroutine update_payload(igrid,x,u,q,m,mypayload,mynpayload,particle_time)
       use mod_global_parameters
       integer, intent(in)           :: igrid,mynpayload
-      double precision, intent(in)  :: w(ixG^T,1:nw),wold(ixG^T,1:nw)
-      double precision, intent(in)  :: xgrid(ixG^T,1:ndim),x(1:ndir),u(1:ndir),q,m,particle_time
+      double precision, intent(in)  :: x(1:ndir),u(1:ndir),q,m,particle_time
       double precision, intent(out) :: mypayload(mynpayload)
     end subroutine update_payload
 
@@ -503,7 +514,7 @@ module mod_usr_methods
       integer, intent(in)                :: ixI^L, ixO^L
       double precision, intent(in)       :: qt, qdt
       type(state)                        :: s
-      double precision, intent(inout)    :: fE(ixI^S,7-2*ndim:3)
+      double precision, intent(inout)    :: fE(ixI^S,sdim:3)
 
       !integer :: ixC^L,ixA^L
       ! For example, to set inductive electric field at bottom boundary in a 3D box for induction equation

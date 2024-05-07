@@ -10,9 +10,7 @@
 !> Included a solar coronal cooling curve (JCcorona) supplied by J. Colgan (2008) ApJ
 !> Modulized and simplified by Chun Xia (2017)
 !> Included piecewise power law functionality by Joris Hermans (01.2020)
-
 module mod_radiative_cooling
-
 ! For the interpolatable tables: these tables contain log_10 temperature values and corresponding
 ! log_10 luminosity values. The simulation-dependent temperature and luminosity
 ! scaling parameters are supposed to be provided in the user file. 
@@ -21,18 +19,22 @@ module mod_radiative_cooling
 ! without timestep check is only used for extremely high temperatures. 
 ! (Except for the SPEX curve, which is more complicated and therefore simply stops  
 ! at the official upper limit of log(T) = 8.16)
-
   use mod_global_parameters, only: std_len
   use mod_physics
+  use mod_comm_lib, only: mpistop
   implicit none
-  ! parameters used for implicit cooling source calculations
-  
 
   !> Helium abundance over Hydrogen
   double precision, private    :: He_abundance
 
   !> The adiabatic index
   double precision, private :: rc_gamma
+
+  !> The adiabatic index minus 1
+  double precision, private :: rc_gamma_1
+
+  !> inverse of the adiabatic index minus 1
+  double precision, private :: invgam
 
   abstract interface
     subroutine get_subr1(w,x,ixI^L,ixO^L,res)
@@ -42,8 +44,6 @@ module mod_radiative_cooling
       double precision, intent(in) :: x(ixI^S,1:ndim)
       double precision, intent(out):: res(ixI^S)
     end subroutine get_subr1
-
-
   end interface
 
   type rc_fluid
@@ -56,58 +56,48 @@ module mod_radiative_cooling
     procedure (get_subr1), pointer, nopass :: get_pthermal_equi => null()
     procedure (get_subr1), pointer, nopass :: get_var_Rfactor => null()
 
-    ! factor in eq of state p = Rfactor * rho * T
-    ! used for getting temperature
-    double precision :: Rfactor = 1d0
     !> Index of the energy density
     integer              :: e_
-    !> Index of the internal energy density
-    integer              :: eaux_
     !> Index of cut off temperature for TRAC
     integer              :: Tcoff_
-    ! END these are to be set directly
 
     ! these are set as parameters
     !> Resolution of temperature in interpolated tables
     integer :: ncool
-  
+
     !> Coefficent of cooling time step
     double precision   :: cfrac
 
     !> Name of cooling curve
     character(len=std_len)  :: coolcurve
-  
+
     !> Name of cooling method
     character(len=std_len)  :: coolmethod
-  
+
     !> Fixed temperature not lower than tlow
     logical   :: Tfix
-  
+
     !> Lower limit of temperature
     double precision   :: tlow
-  
+
     !> Add cooling source in a split way (.true.) or un-split way (.false.)
     logical    :: rc_split
-    ! END these are set as parameters
-  
+
     ! these are set in init method
     double precision, allocatable :: tcool(:), Lcool(:), dLdtcool(:)
     double precision, allocatable :: Yc(:), invYc(:)
     double precision  :: tref, lref, tcoolmin,tcoolmax
     double precision  :: lgtcoolmin, lgtcoolmax, lgstep
-    
+
     ! The piecewise powerlaw (PPL) tabels and variabels
     ! x_* en t_* are given as log_10
     double precision, allocatable :: y_PPL(:), t_PPL(:), l_PPL(:), a_PPL(:)
-  
+
     integer :: n_PPL
-  
+
     logical :: isPPL = .false.
-    ! END  these are set in init method
 
   end type rc_fluid
-
-
 
   integer          :: n_Hildner, n_FM, n_Rosner, n_Klimchuk, n_SPEX_DM_rough, n_SPEX_DM_fine
 
@@ -133,45 +123,45 @@ module mod_radiative_cooling
   data   t_FM / 3.00000, 4.30103, 5.60206, 7.00000, 10.00000 /
 
   data   x_FM / -31.15813, -27.50227, -18.25885, -35.75893 /
-  
+
   data   a_FM / 2.0, 1.15, -0.5, 2.0 /
 
   data   n_Rosner / 9 /
- 
+
   data   t_Rosner / 3.00000, 3.89063, 4.30195, 4.57500,  4.90000, &
                 5.40000, 5.77000, 6.31500, 7.60457, 10.00000  /
 
   data   x_Rosner / -69.900, -48.307, -21.850, -31.000, -21.200, &
                 -10.400, -21.940, -17.730, -26.602           /
-  
+
   data   a_Rosner / 11.70, 6.15, 0.00, 2.00, 0.00, &
                 -2.00, 0.00, -0.67, 0.50       /
 
   data   n_Klimchuk / 7 /
-  
+
   data   t_Klimchuk / 3.00, 4.97, 5.67, 6.18, 6.55, 6.90, 7.63, 10.00 /
 
   data   x_Klimchuk / -30.96257, -16.05208, -21.72125, -12.45223, &
                       -24.46092, -15.26043, -26.70774             /
 
   data   a_Klimchuk / 2.00, -1.00, 0.00, -1.50, 0.33, -1.00, 0.50 /
-  
+
   data   n_SPEX_DM_rough / 7 /
- 
+
   data   t_SPEX_DM_rough / 1.000, 1.572, 3.992, 4.165, 5.221, 5.751, 7.295, 8.160 /
 
   data   x_SPEX_DM_rough / -34.286, -28.282, -108.273, -26.662, -9.729, -17.550, -24.767 /
-  
+
   data   a_SPEX_DM_rough / 4.560, 0.740, 20.777, 1.182, -2.061, -0.701, 0.288 /
 
   data   n_SPEX_DM_fine / 14 /
- 
+
   data   t_SPEX_DM_fine / 1.000, 1.422, 2.806, 3.980, 4.177, 4.443, 4.832, 5.397, &
                           5.570, 5.890, 6.232, 6.505, 6.941, 7.385, 8.160         /
-                          
+
   data   x_SPEX_DM_fine / -35.314, -29.195, -26.912, -108.273, -18.971, -32.195, -21.217, & 
                            -0.247, -15.415, -19.275,   -9.387, -22.476, -17.437, -25.026  /
-  
+
   data   a_SPEX_DM_fine / 5.452,  1.150,  0.337, 20.777, -0.602,  2.374, 0.102, &
                          -3.784, -1.061, -0.406, -1.992,  0.020, -0.706, 0.321  /
 
@@ -180,22 +170,22 @@ module mod_radiative_cooling
                     , n_MLwc    , n_MLsolar1, n_SPEX     &
                     , n_JCcorona, n_cl_ism  , n_cl_solar &
                     , n_DM_2    , n_Dere    , n_Colgan
-  
+
   double precision :: t_DM(1:71),       t_MB(1:51),       t_MLcosmol(1:71) &
                     , t_MLwc(1:71),     t_MLsolar1(1:71), t_SPEX(1:110)    &
                     , t_JCcorona(1:45), t_cl_ism(1:151),  t_cl_solar(1:151)&
                     , t_DM_2(1:76),     t_Dere(1:101),    t_Colgan(1:55) 
-  
+
   double precision :: l_DM(1:71),       l_MB(1:51),           l_MLcosmol(1:71)   &
                     , l_MLwc(1:71),     l_MLsolar1(1:71),     l_SPEX(1:110)      &
                     , l_JCcorona(1:45), l_cl_ism(1:151),      l_cl_solar(1:151)  &
                     , l_DM_2(1:76),     l_Dere_corona(1:101), l_Dere_photo(1:101)&
                     , l_Colgan(1:55)
-  
+
   double precision :: nenh_SPEX(1:110)
-  
+
   data    n_JCcorona / 45 /
-  
+
   data    t_JCcorona / 4.00000, 4.14230, 4.21995, 4.29761, 4.37528, &
                        4.45294, 4.53061, 4.60827, 4.68593, 4.76359, &
                        4.79705, 4.83049, 4.86394, 4.89739, 4.93084, &
@@ -205,7 +195,7 @@ module mod_radiative_cooling
                        6.39796, 6.50907, 6.62018, 6.73129, 6.84240, &
                        6.95351, 7.06461, 7.17574, 7.28684, 7.39796, &
                        7.50907, 7.62018, 7.73129, 7.84240, 7.95351  /
-  
+
   data    l_JCcorona / -200.18883, -100.78630, -30.60384, -22.68481, -21.76445, &
                        -21.67936, -21.54218, -21.37958, -21.25172, -21.17584, &
                        -21.15783, -21.14491, -21.13527, -21.12837, -21.12485, &
@@ -215,9 +205,9 @@ module mod_radiative_cooling
                        -21.86694, -22.02897, -22.08051, -22.06057, -22.01973, &
                        -22.00000, -22.05161, -22.22175, -22.41452, -22.52581, &
                        -22.56914, -22.57486, -22.56151, -22.53969, -22.51490  /
-  
+
   data    n_DM / 71 /
-  
+
   data    t_DM / 2.0, 2.1, 2.2, 2.3, 2.4, &
                  2.5, 2.6, 2.7, 2.8, 2.9, &
                  3.0, 3.1, 3.2, 3.3, 3.4, &
@@ -233,8 +223,7 @@ module mod_radiative_cooling
                  8.0, 8.1, 8.2, 8.3, 8.4, &
                  8.5, 8.6, 8.7, 8.8, 8.9, &
                  9.0 /
-  
-  
+
   data    l_DM / -26.523, -26.398, -26.301, -26.222, -26.097 & 
                , -26.011, -25.936, -25.866, -25.807, -25.754 &
                , -25.708, -25.667, -25.630, -25.595, -25.564 &
@@ -250,9 +239,9 @@ module mod_radiative_cooling
                , -22.680, -22.630, -22.580, -22.530, -22.480 & 
                , -22.430, -22.380, -22.330, -22.280, -22.230 &
                , -22.180 /
-                 
+
   data    n_MB / 51 /
-  
+
   data    t_MB / 4.0, 4.1, 4.2, 4.3, 4.4, &
                  4.5, 4.6, 4.7, 4.8, 4.9, &
                  5.0, 5.1, 5.2, 5.3, 5.4, &
@@ -264,7 +253,7 @@ module mod_radiative_cooling
                  8.0, 8.1, 8.2, 8.3, 8.4, &
                  8.5, 8.6, 8.7, 8.8, 8.9, &
                  9.0 /
-        
+
   data    l_MB  / -23.133, -22.895, -22.548, -22.285, -22.099 &
                 , -21.970, -21.918, -21.826, -21.743, -21.638 &
                 , -21.552, -21.447, -21.431, -21.418, -21.461 &
@@ -276,9 +265,9 @@ module mod_radiative_cooling
                 , -22.603, -22.553, -22.503, -22.453, -22.403 &
                 , -22.353, -22.303, -22.253, -22.203, -22.153 &
                 , -22.103 /
-  
+
   data    n_MLcosmol / 71 /
-  
+
   data    t_MLcosmol / &
                  2.0, 2.1, 2.2, 2.3, 2.4, &
                  2.5, 2.6, 2.7, 2.8, 2.9, &
@@ -295,7 +284,7 @@ module mod_radiative_cooling
                  8.0, 8.1, 8.2, 8.3, 8.4, &
                  8.5, 8.6, 8.7, 8.8, 8.9, &
                  9.0 /
-        
+
   data    l_MLcosmol / &
                  -99.000, -99.000, -99.000, -99.000, -99.000 & 
                , -99.000, -99.000, -99.000, -99.000, -99.000 &
@@ -312,9 +301,9 @@ module mod_radiative_cooling
                , -22.669, -22.619, -22.569, -22.519, -22.469 &
                , -22.419, -22.369, -22.319, -22.269, -22.190 &
                , -22.169 /
-  
+
   data    n_MLwc / 71 /
-  
+
   data    t_MLwc / &
                  2.0, 2.1, 2.2, 2.3, 2.4, &
                  2.5, 2.6, 2.7, 2.8, 2.9, &
@@ -331,7 +320,7 @@ module mod_radiative_cooling
                  8.0, 8.1, 8.2, 8.3, 8.4, &
                  8.5, 8.6, 8.7, 8.8, 8.9, &
                  9.0 /
-        
+
   data    l_MLwc / &
                  -21.192, -21.160, -21.150, -21.150, -21.166 & 
                , -21.191, -21.222, -21.264, -21.308, -21.357 &
@@ -348,9 +337,9 @@ module mod_radiative_cooling
                , -21.089, -21.039, -20.989, -20.939, -20.889 &
                , -20.839, -20.789, -20.739, -20.689, -20.639 & 
                , -20.589 /
-  
+
   data n_MLsolar1 / 71 /
-  
+
   data    t_MLsolar1 / &
                        2.0, 2.1, 2.2, 2.3, 2.4, &
                        2.5, 2.6, 2.7, 2.8, 2.9, &
@@ -367,7 +356,7 @@ module mod_radiative_cooling
                        8.0, 8.1, 8.2, 8.3, 8.4, &
                        8.5, 8.6, 8.7, 8.8, 8.9, &
                        9.0 /
-        
+
   data    l_MLsolar1 / &
                        -26.983, -26.951, -26.941, -26.940, -26.956 &
                      , -26.980, -27.011, -27.052, -27.097, -27.145 &
@@ -384,10 +373,9 @@ module mod_radiative_cooling
                      , -22.620, -22.570, -22.520, -22.470, -22.420 &
                      , -22.370, -22.320, -22.270, -22.220, -22.170 &
                      , -22.120 /
-  
-  
+
   data n_SPEX / 110 /
-  
+
   data    t_SPEX / &
                        3.80, 3.84, 3.88, 3.92, 3.96, &
                        4.00, 4.04, 4.08, 4.12, 4.16, &
@@ -411,7 +399,7 @@ module mod_radiative_cooling
                        7.60, 7.64, 7.68, 7.72, 7.76, &
                        7.80, 7.84, 7.88, 7.92, 7.96, &
                        8.00, 8.04, 8.08, 8.12, 8.16  /
-        
+
   data    l_SPEX / &
                       -25.7331, -25.0383, -24.4059, -23.8288, -23.3027 &
                     , -22.8242, -22.3917, -22.0067, -21.6818, -21.4529 &
@@ -435,8 +423,7 @@ module mod_radiative_cooling
                     , -22.6769, -22.6655, -22.6531, -22.6397, -22.6258 &
                     , -22.6111, -22.5964, -22.5816, -22.5668, -22.5519 &
                     , -22.5367, -22.5216, -22.5062, -22.4912, -22.4753 /
-  
-  
+
   data    nenh_SPEX / &
             0.000013264, 0.000042428, 0.000088276, 0.00017967 &
           , 0.00084362,  0.0034295,   0.013283,    0.042008   &
@@ -485,7 +472,7 @@ module mod_radiative_cooling
   ! Assuming an ionization fraction of 10^-3
   !
   data    n_DM_2 / 76 /
-  
+
   data    t_DM_2 / 1.00, 1.04, 1.08, 1.12, 1.16, 1.20 &
                  , 1.24, 1.28, 1.32, 1.36, 1.40 &
                  , 1.44, 1.48, 1.52, 1.56, 1.60 &
@@ -501,8 +488,7 @@ module mod_radiative_cooling
                  , 3.44, 3.48, 3.52, 3.56, 3.60 & 
                  , 3.64, 3.68, 3.72, 3.76, 3.80 &
                  , 3.84, 3.88, 3.92, 3.96, 4.00 /
-  
-  
+
   data    l_DM_2 / -30.0377, -29.7062, -29.4055, -29.1331, -28.8864, -28.6631 &
                  , -28.4614, -28.2791, -28.1146, -27.9662, -27.8330 &
                  , -27.7129, -27.6052, -27.5088, -27.4225, -27.3454 &
@@ -518,9 +504,9 @@ module mod_radiative_cooling
                  , -25.7310, -25.7222, -25.7142, -25.7071, -25.7005 &
                  , -25.6942, -25.6878, -25.6811, -25.6733, -25.6641 &
                  , -25.6525, -25.6325, -25.6080, -25.5367, -25.4806  /
-  
+
   data n_cl_solar / 151 /
-  
+
   data    t_cl_solar /    &
      1.000   ,   1.050   ,   1.100   ,   1.150   , &
      1.200   ,   1.250   ,   1.300   ,   1.350   , &
@@ -560,8 +546,7 @@ module mod_radiative_cooling
      8.000   ,   8.100   ,   8.200   ,   8.300   , &
      8.400   ,   8.500   ,   8.600   ,   8.700   , &
      8.800   ,   8.900   ,   9.00  / 
-  
-  
+
   data    l_cl_solar / &
    -28.375   , -28.251   , -28.137   , -28.029   , &
    -27.929   , -27.834   , -27.745   , -27.662   , &
@@ -601,10 +586,9 @@ module mod_radiative_cooling
    -22.465   , -22.415   , -22.365   , -22.315   , &
    -22.265   , -22.215   , -22.165   , -22.115   , &
    -22.065   , -22.015   , -21.965   / 
-  
-  
+
   data n_cl_ism / 151 /
-  
+
   data t_cl_ism / &
      1.000   ,   1.050   ,   1.100   ,   1.150   , &
      1.200   ,   1.250   ,   1.300   ,   1.350   , &
@@ -644,7 +628,7 @@ module mod_radiative_cooling
      8.000   ,   8.100   ,   8.200   ,   8.300   , &
      8.400   ,   8.500   ,   8.600   ,   8.700   , &
      8.800   ,   8.900   ,   9.00    /
-  
+
   data l_cl_ism / &
    -28.365   , -28.242   , -28.127   , -28.020   , &
    -27.919   , -27.825   , -27.736   , -27.653   , &
@@ -686,7 +670,7 @@ module mod_radiative_cooling
    -18.519   , -18.469   , -18.419   /
 
   data    n_Dere / 101 /
-  
+
   data    t_Dere / 4.00, 4.05, 4.10, 4.15, 4.20, 4.25, 4.30, 4.35, &
                    4.40, 4.45, 4.50, 4.55, 4.60, 4.65, 4.70, 4.75, &
                    4.80, 4.85, 4.90, 4.95, 5.00, 5.05, 5.10, 5.15, &
@@ -700,55 +684,55 @@ module mod_radiative_cooling
                    8.00, 8.05, 8.10, 8.15, 8.20, 8.25, 8.30, 8.35, &
                    8.40, 8.45, 8.50, 8.55, 8.60, 8.65, 8.70, 8.75, &
                    8.80, 8.85, 8.90, 8.95, 9.00                    /
-  
+
   data    l_Dere_corona / &
- -23.00744648, -22.55439580, -22.15614458, -21.83268267, -21.64589156, &
- -21.61618463, -21.68402965, -21.79048499, -21.87614836, -21.91009489, &
- -21.89962945, -21.86012091, -21.79588002, -21.71669877, -21.62342304, &
- -21.52143350, -21.41793664, -21.33068312, -21.27736608, -21.25181197, &
- -21.24184538, -21.25806092, -21.27901426, -21.27164622, -21.24412514, &
- -21.21467016, -21.19586057, -21.18309616, -21.18708664, -21.24108811, &
- -21.35163999, -21.45099674, -21.48678240, -21.47625353, -21.45222529, &
- -21.43297363, -21.42596873, -21.42021640, -21.41005040, -21.40120949, &
- -21.40450378, -21.42250820, -21.44977165, -21.47755577, -21.51144928, &
- -21.55909092, -21.63451202, -21.73754891, -21.85078089, -21.95467702, &
- -22.03526908, -22.08990945, -22.11804503, -22.12436006, -22.11633856, &
- -22.10072681, -22.08301995, -22.06701918, -22.05650548, -22.05551733, &
- -22.06803389, -22.10072681, -22.15926677, -22.24033216, -22.32882716, &
- -22.40782324, -22.47108330, -22.51855737, -22.54975089, -22.57024772, &
- -22.58004425, -22.58335949, -22.58169871, -22.57511836, -22.56543110, &
- -22.55439580, -22.54060751, -22.52724355, -22.51427857, -22.49894074, &
- -22.48545225, -22.47108330, -22.45593196, -22.44009337, -22.42365865, &
- -22.40671393, -22.38933984, -22.37059040, -22.35163999, -22.33161408, &
- -22.31158018, -22.29073004, -22.26921772, -22.24795155, -22.22621356, &
- -22.20411998, -22.18111459, -22.15864053, -22.13608262, -22.11294562, &
- -22.08937560                                                          /
+   -23.00744648, -22.55439580, -22.15614458, -21.83268267, -21.64589156, &
+   -21.61618463, -21.68402965, -21.79048499, -21.87614836, -21.91009489, &
+   -21.89962945, -21.86012091, -21.79588002, -21.71669877, -21.62342304, &
+   -21.52143350, -21.41793664, -21.33068312, -21.27736608, -21.25181197, &
+   -21.24184538, -21.25806092, -21.27901426, -21.27164622, -21.24412514, &
+   -21.21467016, -21.19586057, -21.18309616, -21.18708664, -21.24108811, &
+   -21.35163999, -21.45099674, -21.48678240, -21.47625353, -21.45222529, &
+   -21.43297363, -21.42596873, -21.42021640, -21.41005040, -21.40120949, &
+   -21.40450378, -21.42250820, -21.44977165, -21.47755577, -21.51144928, &
+   -21.55909092, -21.63451202, -21.73754891, -21.85078089, -21.95467702, &
+   -22.03526908, -22.08990945, -22.11804503, -22.12436006, -22.11633856, &
+   -22.10072681, -22.08301995, -22.06701918, -22.05650548, -22.05551733, &
+   -22.06803389, -22.10072681, -22.15926677, -22.24033216, -22.32882716, &
+   -22.40782324, -22.47108330, -22.51855737, -22.54975089, -22.57024772, &
+   -22.58004425, -22.58335949, -22.58169871, -22.57511836, -22.56543110, &
+   -22.55439580, -22.54060751, -22.52724355, -22.51427857, -22.49894074, &
+   -22.48545225, -22.47108330, -22.45593196, -22.44009337, -22.42365865, &
+   -22.40671393, -22.38933984, -22.37059040, -22.35163999, -22.33161408, &
+   -22.31158018, -22.29073004, -22.26921772, -22.24795155, -22.22621356, &
+   -22.20411998, -22.18111459, -22.15864053, -22.13608262, -22.11294562, &
+   -22.08937560                                                          /
 
   data    l_Dere_photo / &
- -23.25649024, -22.74232143, -22.28988263, -21.93554201, -21.74232143, &
- -21.72353820, -21.80410035, -21.91009489, -22.00000000, -22.04143612, &
- -22.04575749, -22.02502801, -21.97469413, -21.89962945, -21.80410035, &
- -21.69250396, -21.57511836, -21.46852108, -21.38827669, -21.33629907, &
- -21.31069114, -21.31966449, -21.33724217, -21.32882716, -21.30189945, &
- -21.27408837, -21.25649024, -21.24718357, -21.25649024, -21.32148162, &
- -21.46092390, -21.61083392, -21.70774393, -21.74958000, -21.76955108, &
- -21.79588002, -21.84466396, -21.88941029, -21.91009489, -21.91721463, &
- -21.92811799, -21.94692156, -21.96657624, -21.99139983, -22.01412464, &
- -22.04963515, -22.10402527, -22.17848647, -22.26201267, -22.34390180, &
- -22.41680123, -22.47237010, -22.50723961, -22.52578374, -22.53313238, &
- -22.53165267, -22.52578374, -22.51855737, -22.51286162, -22.51286162, &
- -22.52143350, -22.54211810, -22.57839607, -22.62708800, -22.67366414, &
- -22.70996539, -22.73282827, -22.74714697, -22.75202673, -22.74958000, &
- -22.74232143, -22.73282827, -22.72124640, -22.70553377, -22.69036983, &
- -22.67162040, -22.65364703, -22.63638802, -22.61618463, -22.59687948, &
- -22.57675413, -22.55752023, -22.53610701, -22.51570016, -22.49485002, &
- -22.47366072, -22.45222529, -22.42945706, -22.40782324, -22.38510278, &
- -22.36251027, -22.33913452, -22.31605287, -22.29242982, -22.26921772, &
- -22.24565166, -22.22184875, -22.19859629, -22.17457388, -22.15058059, &
- -22.12609840                                                          /           
+   -23.25649024, -22.74232143, -22.28988263, -21.93554201, -21.74232143, &
+   -21.72353820, -21.80410035, -21.91009489, -22.00000000, -22.04143612, &
+   -22.04575749, -22.02502801, -21.97469413, -21.89962945, -21.80410035, &
+   -21.69250396, -21.57511836, -21.46852108, -21.38827669, -21.33629907, &
+   -21.31069114, -21.31966449, -21.33724217, -21.32882716, -21.30189945, &
+   -21.27408837, -21.25649024, -21.24718357, -21.25649024, -21.32148162, &
+   -21.46092390, -21.61083392, -21.70774393, -21.74958000, -21.76955108, &
+   -21.79588002, -21.84466396, -21.88941029, -21.91009489, -21.91721463, &
+   -21.92811799, -21.94692156, -21.96657624, -21.99139983, -22.01412464, &
+   -22.04963515, -22.10402527, -22.17848647, -22.26201267, -22.34390180, &
+   -22.41680123, -22.47237010, -22.50723961, -22.52578374, -22.53313238, &
+   -22.53165267, -22.52578374, -22.51855737, -22.51286162, -22.51286162, &
+   -22.52143350, -22.54211810, -22.57839607, -22.62708800, -22.67366414, &
+   -22.70996539, -22.73282827, -22.74714697, -22.75202673, -22.74958000, &
+   -22.74232143, -22.73282827, -22.72124640, -22.70553377, -22.69036983, &
+   -22.67162040, -22.65364703, -22.63638802, -22.61618463, -22.59687948, &
+   -22.57675413, -22.55752023, -22.53610701, -22.51570016, -22.49485002, &
+   -22.47366072, -22.45222529, -22.42945706, -22.40782324, -22.38510278, &
+   -22.36251027, -22.33913452, -22.31605287, -22.29242982, -22.26921772, &
+   -22.24565166, -22.22184875, -22.19859629, -22.17457388, -22.15058059, &
+   -22.12609840                                                          /           
 
   data    n_Colgan / 55 /
-  
+
   data    t_Colgan / 4.06460772, 4.14229559, 4.21995109, 4.29760733, 4.37527944, 4.45293587, &
                      4.53060946, 4.60826923, 4.68592974, 4.76359269, 4.79704583, 4.83049243, &
                      4.86394114, 4.89738514, 4.93083701, 4.96428321, 4.99773141, 5.03116600, &
@@ -759,7 +743,6 @@ module mod_radiative_cooling
                      7.73129054, 7.84240328, 7.95351325, 8.06460772, 8.17574368, 8.28683805, &
                      8.39795738, 8.50906805, 8.62017771, 8.73129054, 8.84240328, 8.95351325, & 
                      9.06460772                                                              /
-
 
   data    l_Colgan / -22.18883401, -21.78629635, -21.60383554, -21.68480662, -21.76444630, &
                      -21.67935529, -21.54217864, -21.37958284, -21.25171892, -21.17584161, &
@@ -775,11 +758,9 @@ module mod_radiative_cooling
 
   contains
 
-
     !> Radiative cooling initialization
     subroutine radiative_cooling_init_params(phys_gamma,He_abund)
       use mod_global_parameters
-
       double precision, intent(in) :: phys_gamma,He_abund
 
       rc_gamma=phys_gamma
@@ -801,13 +782,12 @@ module mod_radiative_cooling
   
       double precision, dimension(:), allocatable :: t_table
       double precision, dimension(:), allocatable :: L_table
-      double precision :: ratt, Lerror
-      double precision ::fact1, fact2, fact3, dL1, dL2
+      double precision :: ratt, fact1, fact2, fact3, dL1, dL2
       double precision :: tstep, Lstep
-      integer :: ntable, i, j, ic, idir
+      integer :: ntable, i, j
       logical :: jump
-
       Character(len=65) :: PPL_curves(1:6)
+
       fl%ncool=4000
       fl%coolcurve='JCcorona'
       fl%coolmethod='exact'
@@ -815,6 +795,8 @@ module mod_radiative_cooling
       fl%Tfix=.false.
       fl%rc_split=.false.
       call read_params(fl)
+
+      if(fl%rc_split) any_source_split=.true.
 
       ! Checks if coolcurve is a piecewise power law (PPL)
       PPL_curves = [Character(len=65) :: 'Hildner','FM', 'Rosner', 'Klimchuk','SPEX_DM_rough','SPEX_DM_fine']
@@ -832,115 +814,88 @@ module mod_radiative_cooling
          case('Hildner')
             if(mype ==0) &
             print *,'Use Hildner (1974) piecewise power law'
-
             fl%n_PPL = n_Hildner
-         
             allocate(fl%t_PPL(1:fl%n_PPL+1), fl%l_PPL(1:fl%n_PPL+1))
             allocate(fl%a_PPL(1:fl%n_PPL))
-            
             fl%t_PPL(1:fl%n_PPL+1) = t_Hildner(1:n_Hildner+1)
             fl%a_PPL(1:fl%n_PPL) = a_Hildner(1:n_Hildner)
-
             fl%l_PPL(1:fl%n_PPL) = 10.d0**x_Hildner(1:n_Hildner) * (10.d0**fl%t_PPL(1:fl%n_PPL))**fl%a_PPL(1:fl%n_PPL)        
-            
+
          case('FM')
             if(mype==0) &
             print *,'Use Forbes and Malherbe (1991)-like piecewise power law'
-             
             fl%n_PPL = n_FM
-         
             allocate(fl%t_PPL(1:fl%n_PPL+1), fl%l_PPL(1:fl%n_PPL+1))
             allocate(fl%a_PPL(1:fl%n_PPL))
-            
             fl%t_PPL(1:fl%n_PPL+1) = t_FM(1:n_FM+1)
             fl%a_PPL(1:fl%n_PPL) = a_FM(1:n_FM)
-
             fl%l_PPL(1:fl%n_PPL) = 10.d0**x_FM(1:n_FM) * (10.d0**fl%t_PPL(1:fl%n_PPL))**fl%a_PPL(1:fl%n_PPL) 
-            
+
          case('Rosner')
             if(mype==0) &
             print *,'Use piecewise power law according to Rosner (1978)'
             if(mype ==0) &
             print *,'and extended by Priest (1982) from Van Der Linden (1991)'
-             
             fl%n_PPL = n_Rosner
-         
             allocate(fl%t_PPL(1:fl%n_PPL+1), fl%l_PPL(1:fl%n_PPL+1))
             allocate(fl%a_PPL(1:fl%n_PPL))
-            
             fl%t_PPL(1:fl%n_PPL+1) = t_Rosner(1:n_Rosner+1)
             fl%a_PPL(1:fl%n_PPL) = a_Rosner(1:n_Rosner)
-
             fl%l_PPL(1:fl%n_PPL) = 10.d0**x_Rosner(1:n_Rosner) * (10.d0**fl%t_PPL(1:fl%n_PPL))**fl%a_PPL(1:fl%n_PPL)  
 
          case('Klimchuk')
             if(mype==0) &
             print *,'Use Klimchuk (2008) piecewise power law'
-             
             fl%n_PPL = n_Klimchuk
-         
             allocate(fl%t_PPL(1:fl%n_PPL+1), fl%l_PPL(1:fl%n_PPL+1))
             allocate(fl%a_PPL(1:fl%n_PPL))
-            
             fl%t_PPL(1:fl%n_PPL+1) = t_Klimchuk(1:n_Klimchuk+1)
             fl%a_PPL(1:fl%n_PPL) = a_Klimchuk(1:n_Klimchuk)
-
             fl%l_PPL(1:fl%n_PPL) = 10.d0**x_Klimchuk(1:n_Klimchuk) * (10.d0**fl%t_PPL(1:fl%n_PPL))**fl%a_PPL(1:fl%n_PPL)  
 
          case('SPEX_DM_rough')
             if(mype==0) &
             print *,'Use the rough piece wise power law fit to the SPEX_DM curve (2009)'
-             
             fl%n_PPL = n_SPEX_DM_rough
-         
             allocate(fl%t_PPL(1:fl%n_PPL+1), fl%l_PPL(1:fl%n_PPL+1))
             allocate(fl%a_PPL(1:fl%n_PPL))
-            
             fl%t_PPL(1:fl%n_PPL+1) = t_SPEX_DM_rough(1:n_SPEX_DM_rough+1)
             fl%a_PPL(1:fl%n_PPL) = a_SPEX_DM_rough(1:n_SPEX_DM_rough)
-
             fl%l_PPL(1:fl%n_PPL) = 10.d0**x_SPEX_DM_rough(1:n_SPEX_DM_rough) * (10.d0**fl%t_PPL(1:fl%n_PPL))**fl%a_PPL(1:fl%n_PPL)  
 
          case('SPEX_DM_fine')
             if(mype==0) &
             print *,'Use the fine, detailed piece wise power law fit to the SPEX_DM curve (2009)'
-             
             fl%n_PPL = n_SPEX_DM_fine
-         
             allocate(fl%t_PPL(1:fl%n_PPL+1), fl%l_PPL(1:fl%n_PPL+1))
             allocate(fl%a_PPL(1:fl%n_PPL))
-            
             fl%t_PPL(1:fl%n_PPL+1) = t_SPEX_DM_fine(1:n_SPEX_DM_fine+1)
             fl%a_PPL(1:fl%n_PPL) = a_SPEX_DM_fine(1:n_SPEX_DM_fine)
-
             fl%l_PPL(1:fl%n_PPL) = 10.d0**x_SPEX_DM_fine(1:n_SPEX_DM_fine) * (10.d0**fl%t_PPL(1:fl%n_PPL))**fl%a_PPL(1:fl%n_PPL) 
-            
+
          case default
             call mpistop("This piecewise power law is unknown")
          end select
 
          ! Go from logarithmic to actual values.
          fl%t_PPL(1:fl%n_PPL+1) = 10.d0**fl%t_PPL(1:fl%n_PPL+1)
-         
          ! Change unit of table if SI is used instead of cgs
          if (si_unit) fl%l_PPL(1:fl%n_PPL) = fl%l_PPL(1:fl%n_PPL) * 10.0d0**(-13)
-         
+
          ! Make dimensionless
          fl%t_PPL(1:fl%n_PPL+1) = fl%t_PPL(1:fl%n_PPL+1) / unit_temperature
          fl%l_PPL(1:fl%n_PPL) = fl%l_PPL(1:fl%n_PPL) * unit_numberdensity**2 * unit_time / unit_pressure * (1.d0+2.d0*He_abundance)        
-
 
          ! Set tref en lref
          fl%l_PPL(fl%n_PPL+1) = fl%l_PPL(fl%n_PPL) * ( fl%t_PPL(fl%n_PPL+1) / fl%t_PPL(fl%n_PPL) )**fl%a_PPL(fl%n_PPL)
          fl%lref = fl%l_PPL(fl%n_PPL+1)
          fl%tref = fl%t_PPL(fl%n_PPL+1)
-         
+
          ! Set tcoolmin and tcoolmax
          fl%tcoolmin = fl%t_PPL(1)
          fl%tcoolmax = fl%t_PPL(fl%n_PPL+1)
          ! smaller value for lowest temperatures from cooling table and user's choice
          if (fl%tlow==bigdouble) fl%tlow=fl%tcoolmin
-
          !create y_PPL
          call create_y_PPL(fl)
 
@@ -953,122 +908,103 @@ module mod_radiative_cooling
          fl%tcool(1:fl%ncool)    = zero
          fl%Lcool(1:fl%ncool)    = zero
          fl%dLdtcool(1:fl%ncool) = zero
-         
+
          ! Read in the selected cooling curve
          select case(fl%coolcurve)
-         
+
          case('JCcorona')
             if(mype ==0) &
             print *,'Use Colgan & Feldman (2008) cooling curve'
             if(mype ==0) &
             print *,'This version only till 10000 K, beware for floor T treatment'
-         
             ntable = n_JCcorona
-      
             allocate(t_table(1:ntable))
             allocate(L_table(1:ntable))
             t_table(1:ntable) = t_JCcorona(1:n_JCcorona)
             L_table(1:ntable) = l_JCcorona(1:n_JCcorona)
-            
+
          case('DM')
             if(mype ==0) &
             print *,'Use Dalgarno & McCray (1972) cooling curve'
-      
             ntable = n_DM
-      
             allocate(t_table(1:ntable))
             allocate(L_table(1:ntable))
             t_table(1:ntable) = t_DM(1:n_DM)
             L_table(1:ntable) = l_DM(1:n_DM)
-      
+
          case('MB')
             if(mype ==0) &
             write(*,'(3a)') 'Use MacDonald & Bailey (1981) cooling curve '&
                  ,'as implemented in ZEUS-3D, with the values '&
                  ,'from Dalgarno & McCRay (1972) for low temperatures.'
-         
             ntable = n_MB + 20
-      
             allocate(t_table(1:ntable))
             allocate(L_table(1:ntable))
-      
             t_table(1:ntable) = t_DM(1:21)
             L_table(1:ntable) = l_DM(1:21)
             t_table(22:ntable) = t_MB(2:n_MB)
             L_table(22:ntable) = l_MB(2:n_MB)
-          
+
          case('MLcosmol')
             if(mype ==0) &
             print *,'Use Mellema & Lundqvist (2002) cooling curve '&
                  ,'for zero metallicity '
-      
             ntable = n_MLcosmol
-      
             allocate(t_table(1:ntable))
             allocate(L_table(1:ntable))
             t_table(1:ntable) = t_MLcosmol(1:n_MLcosmol)
             L_table(1:ntable) = l_MLcosmol(1:n_MLcosmol)
-      
+
          case('MLwc')
             if(mype ==0) &
             print *,'Use Mellema & Lundqvist (2002) cooling curve '&
                  ,'for WC-star metallicity '
-      
             ntable = n_MLwc
-      
             allocate(t_table(1:ntable))
             allocate(L_table(1:ntable))
             t_table(1:ntable) = t_MLwc(1:n_MLwc)
             L_table(1:ntable) = l_MLwc(1:n_MLwc)
-      
+
          case('MLsolar1')
             if(mype ==0) &
             print *,'Use Mellema & Lundqvist (2002) cooling curve '&
                  ,'for solar metallicity '
-      
             ntable = n_MLsolar1
-      
             allocate(t_table(1:ntable))
             allocate(L_table(1:ntable))
             t_table(1:ntable) = t_MLsolar1(1:n_MLsolar1)
             L_table(1:ntable) = l_MLsolar1(1:n_MLsolar1)
-      
+
          case('cloudy_ism')
             if(mype ==0) &
             print *,'Use Cloudy based cooling curve '&
                  ,'for ism metallicity '
-      
             ntable = n_cl_ism
-      
             allocate(t_table(1:ntable))
             allocate(L_table(1:ntable))
             t_table(1:ntable) = t_cl_ism(1:n_cl_ism)
             L_table(1:ntable) = l_cl_ism(1:n_cl_ism)
-      
+
          case('cloudy_solar')
             if(mype ==0) &
             print *,'Use Cloudy based cooling curve '&
                  ,'for solar metallicity '
-      
             ntable = n_cl_solar
-      
             allocate(t_table(1:ntable))
             allocate(L_table(1:ntable))
             t_table(1:ntable) = t_cl_solar(1:n_cl_solar)
             L_table(1:ntable) = l_cl_solar(1:n_cl_solar)
-      
+
          case('SPEX')
             if(mype ==0) &
             print *,'Use SPEX cooling curve (Schure et al. 2009) '&
                  ,'for solar metallicity '
-      
             ntable = n_SPEX
-      
             allocate(t_table(1:ntable))
             allocate(L_table(1:ntable))
             t_table(1:ntable) = t_SPEX(1:n_SPEX)
             L_table(1:ntable) = l_SPEX(1:n_SPEX) + log10(nenh_SPEX(1:n_SPEX))
-      
+
          case('SPEX_DM')
             if(mype ==0) then
                print *, 'Use SPEX cooling curve for solar metallicity above 10^4 K. ' 
@@ -1076,9 +1012,7 @@ module mod_radiative_cooling
                print *, 'with a pre-set ionization fraction of 10^-3. ' 
                print *, 'as described by Schure et al. (2009). '
             endif
-         
             ntable = n_SPEX + n_DM_2 - 6
-      
             allocate(t_table(1:ntable))
             allocate(L_table(1:ntable))
             t_table(1:n_DM_2-1) = t_DM_2(1:n_DM_2-1)
@@ -1089,9 +1023,7 @@ module mod_radiative_cooling
          case('Dere_corona')
             if(mype ==0) &
             print *,'Use Dere (2009) cooling curve for solar corona'
-         
             ntable = n_Dere
-      
             allocate(t_table(1:ntable))
             allocate(L_table(1:ntable))
             t_table(1:ntable) = t_Dere(1:n_Dere)
@@ -1102,9 +1034,7 @@ module mod_radiative_cooling
             print *, 'Combination of Dere_corona (2009) for high temperatures and'
             if(mype==0)&
             print *, 'Dalgarno & McCray (1972), DM2, for low temperatures'
-
             ntable = n_Dere + n_DM_2 - 1 
-
             allocate(t_table(1:ntable))
             allocate(L_table(1:ntable))
             t_table(1:n_DM_2-1) = t_DM_2(1:n_DM_2-1)
@@ -1115,9 +1045,7 @@ module mod_radiative_cooling
          case('Dere_photo')
             if(mype ==0) &
             print *,'Use Dere (2009) cooling curve for solar photophere'
-         
             ntable = n_Dere
-      
             allocate(t_table(1:ntable))
             allocate(L_table(1:ntable))
             t_table(1:ntable) = t_Dere(1:n_Dere)
@@ -1128,9 +1056,7 @@ module mod_radiative_cooling
             print *, 'Combination of Dere_photo (2009) for high temperatures and'
             if(mype==0)&
             print *, 'Dalgarno & McCray (1972), DM2, for low temperatures'
-
             ntable = n_Dere + n_DM_2 - 1 
-
             allocate(t_table(1:ntable))
             allocate(L_table(1:ntable))
             t_table(1:n_DM_2-1) = t_DM_2(1:n_DM_2-1)
@@ -1141,9 +1067,7 @@ module mod_radiative_cooling
          case('Colgan')
             if(mype==0) &
             print *, 'Use Colgan (2008) cooling curve'
-
             ntable = n_Colgan
-
             allocate(t_table(1:ntable))
             allocate(L_table(1:ntable))
             t_table(1:ntable) = t_Colgan(1:n_Colgan)
@@ -1154,9 +1078,7 @@ module mod_radiative_cooling
             print *, 'Combination of Colgan (2008) for high temperatures and'
             if(mype==0)&
             print *, 'Dalgarno & McCray (1972), DM2, for low temperatures'
-
             ntable = n_Colgan + n_DM_2
-
             allocate(t_table(1:ntable))
             allocate(L_table(1:ntable))
             t_table(1:n_DM_2) = t_DM_2(1:n_DM_2)
@@ -1167,46 +1089,41 @@ module mod_radiative_cooling
          case default
             call mpistop("This coolingcurve is unknown")
          end select
-      
+
          ! create cooling table(s) for use in amrvac
          fl%tcoolmax = t_table(ntable)
          fl%tcoolmin = t_table(1)
-         ratt     = (fl%tcoolmax-fl%tcoolmin)/( dble(fl%ncool-1) + smalldouble)
-         
+         ratt = (fl%tcoolmax-fl%tcoolmin)/( dble(fl%ncool-1) + smalldouble)
+
          fl%tcool(1) = fl%tcoolmin
          fl%Lcool(1) = L_table(1)
-         
+
          fl%tcool(fl%ncool) = fl%tcoolmax
          fl%Lcool(fl%ncool) = L_table(ntable)
-         
+
          do i=2,fl%ncool        ! loop to create one table
            fl%tcool(i) = fl%tcool(i-1)+ratt
            do j=1,ntable-1   ! loop to create one spot on a table
-           ! Second order polynomial interpolation, except at the outer edge, 
+           ! Second order polynomial interpolation, except at the outer edge,
            ! or in case of a large jump.
              if(fl%tcool(i) < t_table(j+1)) then
                 if(j.eq. ntable-1 )then
                   fact1 = (fl%tcool(i)-t_table(j+1))     &
                         /(t_table(j)-t_table(j+1)) 
-         
                   fact2 = (fl%tcool(i)-t_table(j))       &
                         /(t_table(j+1)-t_table(j)) 
-         
                   fl%Lcool(i) = L_table(j)*fact1 + L_table(j+1)*fact2 
                   exit
                 else 
                   dL1 = L_table(j+1)-L_table(j)
                   dL2 = L_table(j+2)-L_table(j+1)
                   jump =(max(dabs(dL1),dabs(dL2)) > 2*min(dabs(dL1),dabs(dL2)))
-                endif
-                  
+                end if
                 if( jump ) then
                   fact1 = (fl%tcool(i)-t_table(j+1))     &
                         /(t_table(j)-t_table(j+1)) 
-         
                   fact2 = (fl%tcool(i)-t_table(j))       &
                         /(t_table(j+1)-t_table(j)) 
-                         
                   fl%Lcool(i) = L_table(j)*fact1 + L_table(j+1)*fact2
                   exit          
                 else
@@ -1214,58 +1131,50 @@ module mod_radiative_cooling
                         * (fl%tcool(i)-t_table(j+2)))   &
                         / ((t_table(j)-t_table(j+1)) &
                         * (t_table(j)-t_table(j+2)))
-      
                   fact2 = ((fl%tcool(i)-t_table(j))       &
                         * (fl%tcool(i)-t_table(j+2)))   &
                         / ((t_table(j+1)-t_table(j)) &
                         * (t_table(j+1)-t_table(j+2)))
-      
                   fact3 = ((fl%tcool(i)-t_table(j))       &
                         * (fl%tcool(i)-t_table(j+1)))   &
                         / ((t_table(j+2)-t_table(j)) &
                         * (t_table(j+2)-t_table(j+1)))
-         
                   fl%Lcool(i) = L_table(j)*fact1 + L_table(j+1)*fact2 &
                            + L_table(j+2)*fact3
                   exit
-                endif
-             endif
-           enddo  ! end loop to find create one spot on a table
-         enddo    ! end loop to create one table
-      
+                end if
+             end if
+           end do  ! end loop to find create one spot on a table
+         end do    ! end loop to create one table
+
          ! Go from logarithmic to actual values.
          fl%tcool(1:fl%ncool) = 10.0D0**fl%tcool(1:fl%ncool)
          fl%Lcool(1:fl%ncool) = 10.0D0**fl%Lcool(1:fl%ncool)
 
-
          ! Change unit of table if SI is used instead of cgs
          if (si_unit) fl%Lcool(1:fl%ncool) = fl%Lcool(1:fl%ncool) * 10.0d0**(-13)
-         
-         
+
          ! Scale both T and Lambda
          fl%tcool(1:fl%ncool) = fl%tcool(1:fl%ncool) / unit_temperature
          fl%Lcool(1:fl%ncool) = fl%Lcool(1:fl%ncool) * unit_numberdensity**2 * unit_time / unit_pressure * (1.d0+2.d0*He_abundance) 
-    
 
          fl%tcoolmin       = fl%tcool(1)+smalldouble  ! avoid pointless interpolation
          ! smaller value for lowest temperatures from cooling table and user's choice
          if (fl%tlow==bigdouble) fl%tlow=fl%tcoolmin
          fl%tcoolmax       = fl%tcool(fl%ncool)
-        
          fl%lgtcoolmin = dlog10(fl%tcoolmin)
          fl%lgtcoolmax = dlog10(fl%tcoolmax)
          fl%lgstep = (fl%lgtcoolmax-fl%lgtcoolmin) * 1.d0 / (fl%ncool-1)
-      
          fl%dLdtcool(1)     = (fl%Lcool(2)-fl%Lcool(1))/(fl%tcool(2)-fl%tcool(1))
          fl%dLdtcool(fl%ncool) = (fl%Lcool(fl%ncool)-fl%Lcool(fl%ncool-1))/(fl%tcool(fl%ncool)-fl%tcool(fl%ncool-1))
-         
+
          do i=2,fl%ncool-1
            fl%dLdtcool(i) = (fl%Lcool(i+1)-fl%Lcool(i-1))/(fl%tcool(i+1)-fl%tcool(i-1))
-         enddo
-      
+         end do
+
          deallocate(t_table)
          deallocate(L_table)
-      
+
          if( fl%coolmethod == 'exact' ) then
             fl%tref = fl%tcoolmax
             fl%lref = fl%Lcool(fl%ncool)
@@ -1276,23 +1185,25 @@ module mod_radiative_cooling
                   tstep = 1.0d-2*(fl%tcool(i+1)-fl%tcool(i))
                   call findL(fl%tcool(i+1)-j*tstep, Lstep, fl)
                   fl%Yc(i) = fl%Yc(i) + fl%lref/fl%tref*tstep/Lstep
-               enddo
-            enddo
-         endif
-      endif       
+               end do
+            end do
+         end if
+      end if
+
+      rc_gamma_1=rc_gamma-1.d0
+      invgam = 1.d0/rc_gamma_1
 
     end subroutine radiative_cooling_init
 
-    subroutine create_y_PPL (fl)
+    subroutine create_y_PPL(fl)
     !  creates the constants of integration needed for solving
     !  the cooling law exact for a piecewise power law 
     !  In correspondence with eq. A6 of Townsend (2009)
- 
       use mod_global_parameters
       type(rc_fluid) :: fl
       integer :: i
       double precision :: y_extra, factor
-      
+
       allocate(fl%y_PPL(1:fl%n_PPL+1))
 
       fl%y_PPL(1:fl%n_PPL+1) = zero
@@ -1305,203 +1216,163 @@ module mod_radiative_cooling
              y_extra = 1 / (1 - fl%a_PPL(i)) * (1 - ( fl%t_PPL(i) / fl%t_PPL(i+1) )**(fl%a_PPL(i)-1) )
           end if
           fl%y_PPL(i) = fl%y_PPL(i+1) - factor*y_extra
-      enddo
+      end do
  
     end subroutine create_y_PPL
-
-
 
     subroutine cooling_get_dt(w,ixI^L,ixO^L,dtnew,dx^D,x,fl)
       use mod_global_parameters
 
       integer, intent(in) :: ixI^L, ixO^L
       double precision, intent(in) :: dx^D, x(ixI^S,1:ndim), w(ixI^S,1:nw)
-      double precision, intent(inout) :: dtnew
-      
-      double precision :: etherm(ixI^S), rho(ixI^S)
-      double precision :: L1,Tlocal1, ptherm(ixI^S), lum(ixI^S), Rfactor(ixI^S)
-      double precision :: plocal, rholocal
-      double precision :: Lmax
-      integer :: ix^D
       type(rc_fluid), intent(in) :: fl
+      double precision, intent(inout) :: dtnew
+
+      double precision :: etherm(ixI^S), rho(ixI^S), Rfactor(ixI^S)
+      double precision :: L1,Te(ixI^S), pth(ixI^S), lum(ixI^S)
+      integer :: ix^D
       !
       ! Limit timestep to avoid cooling problems when using explicit cooling
       !
-      
       if(fl%coolmethod == 'explicit1') then
-       call fl%get_pthermal(w,x,ixI^L,ixO^L,ptherm)   
-       call fl%get_rho(w,x,ixI^L,ixO^L,rho)   
-       if(associated(fl%get_var_Rfactor)) then
-          call fl%get_var_Rfactor(w,x,ixI^L,ixO^L,Rfactor)
-       else
-          Rfactor(ixO^S)=fl%Rfactor 
-       endif
-       {do ix^DB = ixO^LIM^DB\}
-         plocal   = ptherm(ix^D)
-         rholocal = rho(ix^D)
-         !  Tlocal = P/rho
-         Tlocal1       = max(plocal/(Rfactor(ix^D) * rholocal),smalldouble)
-         !  Determine explicit cooling
-         !  If temperature is below floor level, no cooling. 
-         !  Stop wasting time and go to next gridpoint.
-         !  If the temperature is higher than the maximum,
-         !  assume Bremsstrahlung
-         if( Tlocal1<=fl%tcoolmin ) then
-            L1 = zero
-         else if( Tlocal1>=fl%tcoolmax )then
-            call calc_l_extended(Tlocal1, L1, fl)
-            !L1         = fl%Lcool(fl%ncool)*sqrt(Tlocal1/fl%tcoolmax)
-            L1         = L1*(rholocal**2)
-         else  
-            call findL(Tlocal1,L1,fl)
-            L1         = L1*(rholocal**2)
-         endif
-         lum(ix^D) = L1
-        {enddo^D&\}
-        etherm(ixO^S)=ptherm(ixO^S)/(rc_gamma-1.d0)
+        call fl%get_pthermal(w,x,ixI^L,ixO^L,pth) 
+        call fl%get_rho(w,x,ixI^L,ixO^L,rho) 
+        call fl%get_var_Rfactor(w,x,ixI^L,ixO^L,Rfactor)
+        Te(ixO^S)=pth(ixO^S)/(rho(ixO^S)*Rfactor(ixO^S))
+        {do ix^DB = ixO^LIM^DB\}
+          !  Determine explicit cooling
+          !  If temperature is below floor level, no cooling. 
+          !  Stop wasting time and go to next gridpoint.
+          !  If the temperature is higher than the maximum,
+          !  assume Bremsstrahlung
+          if( Te(ix^D)<=fl%tcoolmin ) then
+             L1 = zero
+          else if( Te(ix^D)>=fl%tcoolmax )then
+             call calc_l_extended(Te(ix^D), L1, fl)
+             L1 = L1*rho(ix^D)**2
+          else  
+             call findL(Te(ix^D),L1,fl)
+             L1 = L1*rho(ix^D)**2
+          end if
+          lum(ix^D) = L1
+        {end do\}
+        etherm(ixO^S)=pth(ixO^S)*invgam
         dtnew =fl%cfrac*minval(etherm(ixO^S)/max(lum(ixO^S),smalldouble))
-      endif
-    
+      end if
+
     end subroutine cooling_get_dt
 
     subroutine getvar_cooling(ixI^L,ixO^L,w,x,coolrate,fl)
-    !
     ! Create extra variable to show cooling rate in the output
     ! Uses a simple explicit scheme. 
     ! N.B. Since there is no knowledge of the timestep size, 
     ! there is no upper limit for the cooling rate.
       use mod_global_parameters
-      
+
       integer, intent(in)          :: ixI^L,ixO^L
       double precision, intent(in) :: x(ixI^S,1:ndim)
       double precision             :: w(ixI^S,1:nw)
       double precision, intent(out):: coolrate(ixI^S)
       type(rc_fluid), intent(in) :: fl
-      
-      double precision :: etherm(ixI^S),rho(ixI^S),Rfactor(ixI^S)
-      double precision :: L1,Tlocal1, ptherm(ixI^S)
-      double precision :: plocal, rholocal
-      double precision :: emin
-      
+
+      double precision :: pth(ixI^S),rho(ixI^S)
+      double precision :: L1,Te(ixI^S),Rfactor(ixI^S)
       integer :: ix^D
-      
-      call fl%get_pthermal(w,x,ixI^L,ixO^L,ptherm) 
-      call fl%get_rho(w,x,ixI^L,ixO^L,rho) 
-      if(associated(fl%get_var_Rfactor)) then
-        call fl%get_var_Rfactor(w,x,ixI^L,ixO^L,Rfactor)
-      else
-        Rfactor(ixO^S)=fl%Rfactor 
-      endif
-      
+
+      call fl%get_pthermal(w,x,ixI^L,ixO^L,pth)
+      call fl%get_rho(w,x,ixI^L,ixO^L,rho)
+      call fl%get_var_Rfactor(w,x,ixI^L,ixO^L,Rfactor)
+      Te(ixO^S)=pth(ixO^S)/(rho(ixO^S)*Rfactor(ixO^S))
+
       {do ix^DB = ixO^LIM^DB\}
-         plocal   = ptherm(ix^D)
-         rholocal = rho(ix^D)
-         !  Tlocal = P/rho
-         Tlocal1       = max(plocal/(rholocal * Rfactor(ix^D)),smalldouble)
-         !
          !  Determine explicit cooling
-         !
-         if( Tlocal1<=fl%tcoolmin ) then
+         if( Te(ix^D)<=fl%tcoolmin ) then
             L1 = zero
-         else if( Tlocal1>=fl%tcoolmax )then
-            call calc_l_extended(Tlocal1, L1,fl)
-            L1         = L1*(rholocal**2)
-         else  
-            call findL(Tlocal1,L1,fl)
-            L1         = L1*(rholocal**2)
-         endif
+         else if( Te(ix^D)>=fl%tcoolmax )then
+            call calc_l_extended(Te(ix^D), L1,fl)
+            L1 = L1*rho(ix^D)**2
+         else
+            call findL(Te(ix^D),L1,fl)
+            L1 = L1*rho(ix^D)**2
+         end if
          coolrate(ix^D) = L1
-      {enddo^D&\}
-    
+      {end do\}
+
     end subroutine getvar_cooling
-    
+
     subroutine getvar_cooling_exact(qdt, ixI^L, ixO^L, wCT, w, x, coolrate, fl)
-    !
     ! Calculates cooling rate using the exact cooling method,
     ! for usage in eg. source_terms subroutine.
     ! The TEF must be known, so this routine can only be used
     ! together with the "exact" cooling method.
       use mod_global_parameters
-    
+
       integer, intent(in)           :: ixI^L, ixO^L
       double precision, intent(in)  :: qdt, x(ixI^S, 1:ndim), wCT(ixI^S, 1:nw)
       double precision              :: w(ixI^S, 1:nw)
       double precision, intent(out) :: coolrate(ixI^S)
       type(rc_fluid), intent(in)   :: fl
-    
-      double precision              :: y1, y2, l1, l2
-      double precision              :: plocal, rholocal, tlocal1, tlocal2, invgam
-      double precision              :: ptherm(ixI^S), pnew(ixI^S), rho(ixI^S), rhonew(ixI^S), Rfactor(ixI^S)
-      double precision              :: emin, Lmax, fact
-    
+
+      double precision              :: y1, y2, l1, tlocal2
+      double precision              :: Te(ixI^S), pnew(ixI^S), rho(ixI^S), rhonew(ixI^S)
+      double precision              :: emin, Lmax, fact, Rfactor(ixI^S), pth(ixI^S)
       integer                       :: ix^D
-      
+
       ! Check cooling method
       if( fl%coolmethod /= 'exact') then
          call mpistop("Subroutine getvar_cooling_exact needs the exact cooling method")
-      endif
-    
-      call fl%get_pthermal(wCT, x, ixI^L, ixO^L, ptherm)
-      call fl%get_pthermal(w, x, ixI^L, ixO^L, pnew)
+      end if
+
+      call fl%get_pthermal(wCT, x, ixI^L, ixO^L, pth)
       call fl%get_rho(wCT, x, ixI^L, ixO^L, rho)
+      call fl%get_var_Rfactor(wCT,x,ixI^L,ixO^L,Rfactor)
+      Te(ixO^S)=pth(ixO^S)/(rho(ixO^S)*Rfactor(ixO^S))
+
+      call fl%get_pthermal(w, x, ixI^L, ixO^L, pnew)
       call fl%get_rho(w, x, ixI^L, ixO^L, rhonew)
-    
-      fact   =fl%lref*qdt/fl%tref
-      invgam = 1.d0/(rc_gamma-1.d0)
-      if(associated(fl%get_var_Rfactor)) then
-        call fl%get_var_Rfactor(w,x,ixI^L,ixO^L,Rfactor)
-      else
-        Rfactor(ixO^S)=fl%Rfactor 
-      endif
-    
+
+      fact=fl%lref*qdt/fl%tref
+
       {do ix^DB = ixO^LIM^DB\}
-         plocal   = ptherm(ix^D)
-         rholocal = rho(ix^D)
-         tlocal1  = max(plocal/(rholocal*Rfactor(ix^D)), smalldouble)
-       
-         emin     = rhonew(ix^D) * fl%tlow * Rfactor(ix^D)* invgam
-         lmax     = max(zero, ( pnew(ix^D)*invgam - emin ) / qdt)
-       
+         emin = rhonew(ix^D) * fl%tlow * Rfactor(ix^D) * invgam
+         lmax = max(zero, ( pnew(ix^D)*invgam - emin ) / qdt)
+
          ! No cooling if temperature is below floor level.
          ! Assuming Bremsstrahlung if temperature is higher than maximum.
-         if( tlocal1 <= fl%tcoolmin) then
-            l1 = zero
-         else if( tlocal1 >= fl%tcoolmax ) then
-            call calc_l_extended(tlocal1, l1, fl)
-            l1 = l1 * (rholocal**2)
-            l1 = min(l1, lmax)
+         if( Te(ix^D)<= fl%tcoolmin) then
+           l1 = zero
+         else if( Te(ix^D)>= fl%tcoolmax ) then
+           call calc_l_extended(Te(ix^D), l1, fl)
+           l1 = l1 * rho(ix^D)**2
+           l1 = min(l1, lmax)
          else
-            call findl(tlocal1, l1, fl)
-            call findy(tlocal1, y1, fl)
-            y2   = y1 +  fact * rholocal / invgam
-            call findt(tlocal2, y2, fl)
-          
-            if( tlocal2 <= fl%tcoolmin ) then
-               l1 = lmax
-            else
-               l1 = (tlocal1 - tlocal2) * invgam / (rholocal * qdt)
-               l1 = l1 * (rholocal**2)
-            endif
-
-            l1 = min(l1, lmax)
-         endif
+           call findY(Te(ix^D), y1, fl)
+           y2   = y1 +  fact * rho(ix^D)*rc_gamma_1
+           call findT(tlocal2, y2, fl)
+           if( tlocal2 <= fl%tcoolmin ) then
+             l1 = lmax
+           else
+             l1 = (Te(ix^D)- tlocal2)*rho(ix^D)*Rfactor(ix^D)*invgam/qdt
+           end if
+           l1 = min(l1, lmax)
+         end if
         coolrate(ix^D) = l1
-      {enddo^D&\}
-      
-    end subroutine getvar_cooling_exact
-    
-    subroutine radiative_cooling_add_source(qdt,ixI^L,ixO^L,wCT,w,x,&
-         qsourcesplit,active,fl)
+      {end do\}
 
+    end subroutine getvar_cooling_exact
+
+    subroutine radiative_cooling_add_source(qdt,ixI^L,ixO^L,wCT,wCTprim,w,x,&
+         qsourcesplit,active,fl)
     ! w[iw]=w[iw]+qdt*S[wCT,x] where S is the source based on wCT within ixO
       use mod_global_parameters
  
       integer, intent(in) :: ixI^L, ixO^L
-      double precision, intent(in) :: qdt, x(ixI^S,1:ndim), wCT(ixI^S,1:nw)
+      double precision, intent(in) :: qdt, x(ixI^S,1:ndim), wCT(ixI^S,1:nw), wCTprim(ixI^S,1:nw)
       double precision, intent(inout) :: w(ixI^S,1:nw)
       logical, intent(in) :: qsourcesplit
       logical, intent(inout) :: active
       type(rc_fluid), intent(in) :: fl
+
       double precision, allocatable, dimension(:^D&) :: Lequi
 
       if(qsourcesplit .eqv.fl%rc_split) then
@@ -1522,7 +1393,7 @@ module mod_radiative_cooling
         case ('implicit')   
           call cool_implicit(qdt,ixI^L,ixO^L,wCT,w,x,fl)   
         case ('exact')   
-          call cool_exact(qdt,ixI^L,ixO^L,wCT,w,x,fl)
+          call cool_exact(qdt,ixI^L,ixO^L,wCT,wCTprim,w,x,fl)
         case default
           call mpistop("This cooling method is unknown")
         end select
@@ -1530,7 +1401,6 @@ module mod_radiative_cooling
           allocate(Lequi(ixI^S))
           call  get_cool_equi(qdt,ixI^L,ixO^L,wCT,w,x,fl,Lequi)
           w(ixO^S,fl%e_) = w(ixO^S,fl%e_)+Lequi(ixO^S)
-          if(phys_solve_eaux) w(ixO^S,fl%eaux_)=w(ixO^S,fl%eaux_)+Lequi(ixO^S) 
           deallocate(Lequi)
         endif
         if( fl%Tfix ) call floortemperature(qdt,ixI^L,ixO^L,wCT,w,x,fl)
@@ -1546,21 +1416,19 @@ module mod_radiative_cooling
       double precision, intent(in)    :: qdt, x(ixI^S,1:ndim), wCT(ixI^S,1:nw)
       double precision, intent(inout) :: w(ixI^S,1:nw)
       type(rc_fluid), intent(in) :: fl
-      
-      double precision :: etherm(ixI^S), rho(ixI^S), emin, tfloor
-      integer :: ix^D
 
-      tfloor = fl%tlow
+      double precision :: etherm(ixI^S), rho(ixI^S), Rfactor(ixI^S),emin
+      integer :: ix^D
 
       call fl%get_pthermal(w,x,ixI^L,ixO^L,etherm)  
       call fl%get_rho(w,x,ixI^L,ixO^L,rho)  
+      call fl%get_var_Rfactor(wCT,x,ixI^L,ixO^L,Rfactor)
       {do ix^DB = ixO^LIM^DB\}
-         emin         = rho(ix^D)*tfloor
-         if( etherm(ix^D) < emin ) then
-             !print*, ix1,ix2, " FIXT ",  (emin-etherm(ix^D))/(rc_gamma-1.d0)
-             w(ix^D,fl%e_)=w(ix^D,fl%e_)+(emin-etherm(ix^D))/(rc_gamma-1.d0)
-          endif
-      {enddo^D&\}
+         emin = rho(ix^D)*fl%tlow*Rfactor(ix^D)
+         if(etherm(ix^D) < emin) then
+           w(ix^D,fl%e_)=w(ix^D,fl%e_)+(emin-etherm(ix^D))*invgam
+         end if
+      {end do\}
 
     end subroutine floortemperature
 
@@ -1574,115 +1442,91 @@ module mod_radiative_cooling
       double precision, intent(inout) :: w(ixI^S,1:nw)
       type(rc_fluid), intent(in) :: fl
       double precision, intent(out) :: res(ixI^S)
-      
-      double precision :: ptherm(ixI^S),rho(ixI^S),Rfactor(ixI^S),L1,Tlocal1,Tlocal2
-      double precision :: plocal, rholocal, ttofflocal
-      double precision :: emin, Lmax
-      double precision :: Y1, Y2, invgam
-      double precision :: de, emax,fact
-      
-      integer :: ix^D
-      integer :: icool
 
-      call fl%get_pthermal_equi(wCT,x,ixI^L,ixO^L,ptherm)     
-      call fl%get_rho_equi(wCT,x,ixI^L,ixO^L,rho)     
-      if(associated(fl%get_var_Rfactor)) then
-        call fl%get_var_Rfactor(w,x,ixI^L,ixO^L,Rfactor)
-      else
-        Rfactor(ixO^S)=fl%Rfactor 
-      endif
+      double precision :: pth(ixI^S),rho(ixI^S),Rfactor(ixI^S),L1,Tlocal2
+      double precision :: Te(ixI^S)
+      double precision :: emin, Lmax
+      double precision :: Y1, Y2
+      double precision :: de, emax,fact
+      integer :: ix^D
+
+      call fl%get_pthermal_equi(wCT,x,ixI^L,ixO^L,pth)
+      call fl%get_rho_equi(wCT,x,ixI^L,ixO^L,rho)
+      call fl%get_var_Rfactor(wCT,x,ixI^L,ixO^L,Rfactor)
+      Te(ixO^S)=pth(ixO^S)/(rho(ixO^S)*Rfactor(ixO^S))
 
       res=0d0
 
-      if  (fl%coolmethod == 'exact') then
+      if(fl%coolmethod == 'exact') then
 
-        ttofflocal=zero
         fact = fl%lref*qdt/fl%tref
-  
-        invgam=1.d0/(rc_gamma-1.d0)
         {do ix^DB = ixO^LIM^DB\}
-           plocal   = ptherm(ix^D)
-           rholocal = rho(ix^D)
-           if(phys_trac) then
-             ttofflocal=block%wextra(ix^D,fl%Tcoff_)
-           end if
-           emin     = rho(ix^D)*fl%tlow*Rfactor(ix^D)*invgam
-           Lmax     = max(zero,(ptherm(ix^D)*invgam-emin)/qdt)
-           emax     = max(zero, ptherm(ix^D)*invgam-emin)
-  
-           !  Tlocal = P/rho
-           Tlocal1   = max(plocal/(rholocal*Rfactor(ix^D)),smalldouble)
-           !
+           emin = rho(ix^D)*fl%tlow*Rfactor(ix^D)*invgam
+           Lmax = max(zero,(pth(ix^D)*invgam-emin)/qdt)
+           emax = max(zero, pth(ix^D)*invgam-emin)
            !  Determine explicit cooling
-           !
            !  If temperature is below floor level, no cooling. 
            !  Stop wasting time and go to next gridpoint.
            !  If the temperature is higher than the maximum,
            !  assume Bremsstrahlung
-           if( Tlocal1<=fl%tcoolmin ) then
-              L1 = zero
-           else if( Tlocal1>=fl%tcoolmax )then
-              call calc_l_extended(Tlocal1, L1,fl)
-              L1         = L1*(rholocal**2)
-              if(phys_trac .and. Tlocal1 .lt. ttofflocal) then
-                L1=L1*sqrt((Tlocal1/ttofflocal)**5)
-              end if
-              L1         = min(L1,Lmax)
-              res(ix^D) =  L1*qdt
+           if( Te(ix^D)<=fl%tcoolmin ) then
+             L1 = zero
+           else if( Te(ix^D)>=fl%tcoolmax )then
+             call calc_l_extended(Te(ix^D), L1,fl)
+             L1 = L1*rho(ix^D)**2
+             if(phys_trac) then
+               if(Te(ix^D)<block%wextra(ix^D,fl%Tcoff_)) then
+                 L1=L1*sqrt((Te(ix^D)/block%wextra(ix^D,fl%Tcoff_))**5)
+               end if
+             end if
+             L1 = min(L1,Lmax)
+             res(ix^D) =  L1*qdt
            else  
-              call findL(Tlocal1,L1,fl)
-              call findY(Tlocal1,Y1,fl)
-              Y2         = Y1 + fact * rholocal / invgam
-              call findT(Tlocal2,Y2,fl)
-              if(Tlocal2<=fl%tcoolmin) then
-                de = emax
-              else
-                de = (Tlocal1-Tlocal2)*invgam*rholocal
-              endif
-              if(phys_trac .and. Tlocal1 .lt. ttofflocal) then
-                de=de*sqrt((Tlocal1/ttofflocal)**5)
-              end if
-              de          = min(de,emax)   
-              res(ix^D)  =  de
-           endif
-        {enddo^D&\}
+             call findY(Te(ix^D),Y1,fl)
+             Y2 = Y1 + fact * rho(ix^D)*rc_gamma_1
+             call findT(Tlocal2,Y2,fl)
+             if(Tlocal2<=fl%tcoolmin) then
+               de = emax
+             else
+               de = (Te(ix^D)-Tlocal2)*rho(ix^D)*Rfactor(ix^D)*invgam
+             end if
+             if(phys_trac) then
+               if(Te(ix^D)<block%wextra(ix^D,fl%Tcoff_)) then
+                 de=de*sqrt((Te(ix^D)/block%wextra(ix^D,fl%Tcoff_))**5)
+               end if
+             end if
+             de = min(de,emax)   
+             res(ix^D) = de
+           end if
+        {end do\}
       else
-        ttofflocal=zero
         {do ix^DB = ixO^LIM^DB\}
-           plocal   = ptherm(ix^D)
-           rholocal = rho(ix^D)
-           if(phys_trac) then
-             ttofflocal=block%wextra(ix^D,fl%Tcoff_)
-           end if
-           emin     = rholocal*fl%tlow*Rfactor(ix^D)/(rc_gamma-1.d0)
-           Lmax            = max(zero,plocal/(rc_gamma-1.d0)-emin)/qdt
-           !  Tlocal = P/rho
-           Tlocal1       = max(plocal/(Rfactor(ix^D) * rholocal),smalldouble)
-           !
+           emin = rho(ix^D)*fl%tlow*Rfactor(ix^D)*invgam
+           Lmax = max(zero,pth(ix^D)*invgam-emin)/qdt
            !  Determine explicit cooling
-           !
            !  If temperature is below floor level, no cooling. 
            !  Stop wasting time and go to next gridpoint.
            !  If the temperature is higher than the maximum,
            !  assume Bremsstrahlung
-           if( Tlocal1<=fl%tcoolmin ) then
-              L1 = zero
-           else if( Tlocal1>=fl%tcoolmax )then
-              call calc_l_extended(Tlocal1, L1,fl)
-           else  
-              call findL(Tlocal1,L1,fl)
-           endif
-           L1         = L1*(rholocal**2)
-           if(phys_trac .and. Tlocal1 .lt. ttofflocal) then
-             L1=L1*sqrt((Tlocal1/ttofflocal)**5)
+           if( Te(ix^D)<=fl%tcoolmin ) then
+             L1 = zero
+           else if( Te(ix^D)>=fl%tcoolmax )then
+             call calc_l_extended(Te(ix^D), L1,fl)
+           else
+             call findL(Te(ix^D),L1,fl)
            end if
-           L1         = min(L1,Lmax)
+           L1 = L1*rho(ix^D)**2
+           if(phys_trac) then
+             if(Te(ix^D)<block%wextra(ix^D,fl%Tcoff_)) then
+               L1=L1*sqrt((Te(ix^D)/block%wextra(ix^D,fl%Tcoff_))**5)
+             end if
+           end if
+           L1 = min(L1,Lmax)
            res(ix^D) =L1*qdt
-        {enddo^D&\}
-    
-     endif
-    end subroutine get_cool_equi
+        {end do\}
+     end if
 
+    end subroutine get_cool_equi
 
     subroutine cool_explicit1(qdt,ixI^L,ixO^L,wCT,w,x,fl)
     ! explicit cooling routine that depends on getdt to 
@@ -1693,330 +1537,258 @@ module mod_radiative_cooling
       double precision, intent(in)    :: qdt, x(ixI^S,1:ndim), wCT(ixI^S,1:nw)
       double precision, intent(inout) :: w(ixI^S,1:nw)
       type(rc_fluid), intent(in) :: fl
-      
-      double precision :: L1,Tlocal1, ptherm(ixI^S),pnew(ixI^S),rho(ixI^S),Rfactor(ixI^S)
-      double precision :: plocal, rholocal, ttofflocal
-      double precision :: emin, Lmax
-      
-      integer :: ix^D
-      integer :: icool
-      
-      call fl%get_pthermal(wCT,x,ixI^L,ixO^L,ptherm)     
-      call fl%get_pthermal(w,x,ixI^L,ixO^L,pnew)
-      call fl%get_rho(wCT,x,ixI^L,ixO^L,rho)     
-      if(associated(fl%get_var_Rfactor)) then
-        call fl%get_var_Rfactor(w,x,ixI^L,ixO^L,Rfactor)
-      else
-        Rfactor(ixO^S)=fl%Rfactor 
-      endif
 
-      ttofflocal=zero
+      double precision :: L1,pth(ixI^S),pnew(ixI^S),rho(ixI^S),Rfactor(ixI^S)
+      double precision :: Te(ixI^S)
+      double precision :: emin, Lmax
+      integer :: ix^D
+
+      call fl%get_pthermal(wCT,x,ixI^L,ixO^L,pth)
+      call fl%get_pthermal(w,x,ixI^L,ixO^L,pnew)
+      call fl%get_rho(wCT,x,ixI^L,ixO^L,rho)
+      call fl%get_var_Rfactor(wCT,x,ixI^L,ixO^L,Rfactor)
+      Te(ixO^S)=pth(ixO^S)/(rho(ixO^S)*Rfactor(ixO^S))
+
       {do ix^DB = ixO^LIM^DB\}
-         plocal   = ptherm(ix^D)
-         rholocal = rho(ix^D)
-         if(phys_trac) then
-           ttofflocal=block%wextra(ix^D,fl%Tcoff_)
-         end if
-         emin     = rholocal*fl%tlow*Rfactor(ix^D)/(rc_gamma-1.d0)
-         Lmax            = max(zero,pnew(ix^D)/(rc_gamma-1.d0)-emin)/qdt
-         !  Tlocal = P/rho
-         Tlocal1       = max(plocal/(Rfactor(ix^D) * rholocal),smalldouble)
-         !
+         emin = rho(ix^D)*fl%tlow*Rfactor(ix^D)*invgam
+         Lmax = max(zero,pnew(ix^D)*invgam-emin)/qdt
          !  Determine explicit cooling
-         !
          !  If temperature is below floor level, no cooling. 
          !  Stop wasting time and go to next gridpoint.
          !  If the temperature is higher than the maximum,
          !  assume Bremsstrahlung
-         if( Tlocal1<=fl%tcoolmin ) then
-            L1 = zero
-         else if( Tlocal1>=fl%tcoolmax )then
-            call calc_l_extended(Tlocal1, L1,fl)
-            L1         = L1*(rholocal**2)
-            if(phys_trac .and. Tlocal1 .lt. ttofflocal) then
-              L1=L1*sqrt((Tlocal1/ttofflocal)**5)
-            end if
-            L1         = min(L1,Lmax)
-            w(ix^D,fl%e_) = w(ix^D,fl%e_)-L1*qdt
-            if(phys_solve_eaux) w(ix^D,fl%eaux_)=w(ix^D,fl%eaux_)-L1*qdt 
-         else  
-            call findL(Tlocal1,L1,fl)
-            !print*, it, ix^D, " L1 ", L1 
-            L1         = L1*(rholocal**2)
-            if(phys_trac .and. Tlocal1 .lt. ttofflocal) then
-              L1=L1*sqrt((Tlocal1/ttofflocal)**5)
-            end if
-            L1         = min(L1,Lmax)
-            !print*, "it: ", it , " coords ", ix^D," EXPLICIT1 ", L1, &
-            !  "VARS ", rholocal, Tlocal1, plocal, pnew(ix^D)
-            w(ix^D,fl%e_) = w(ix^D,fl%e_)-L1*qdt
-            if(phys_solve_eaux) w(ix^D,fl%eaux_)=w(ix^D,fl%eaux_)-L1*qdt 
-         endif
-      {enddo^D&\}
-            !print* , it," SUM E ",  sum(w(ixO^S,fl%e_)) + &
-            !  sum(block%equi_vars(ixO^S,2,0))/(rc_gamma-1.d0)
-      
+         if( Te(ix^D)<=fl%tcoolmin ) then
+           L1 = zero
+         else if( Te(ix^D)>=fl%tcoolmax )then
+           call calc_l_extended(Te(ix^D), L1,fl)
+           L1 = L1*rho(ix^D)**2
+           if(phys_trac) then
+             if(Te(ix^D)<block%wextra(ix^D,fl%Tcoff_)) then
+               L1=L1*sqrt((Te(ix^D)/block%wextra(ix^D,fl%Tcoff_))**5)
+             end if
+           end if
+           L1 = min(L1,Lmax)
+           w(ix^D,fl%e_) = w(ix^D,fl%e_)-L1*qdt
+         else
+           call findL(Te(ix^D),L1,fl)
+           L1 = L1*rho(ix^D)**2
+           if(phys_trac) then
+             if(Te(ix^D)<block%wextra(ix^D,fl%Tcoff_)) then
+               L1=L1*sqrt((Te(ix^D)/block%wextra(ix^D,fl%Tcoff_))**5)
+             end if
+           end if
+           L1 = min(L1,Lmax)
+           w(ix^D,fl%e_) = w(ix^D,fl%e_)-L1*qdt
+         end if
+      {end do\}
+
     end subroutine cool_explicit1
 
     subroutine cool_explicit2(qdt,ixI^L,ixO^L,wCT,w,x,fl)
-    !
     ! explicit cooling routine that does a series 
     ! of small forward integration steps, to make 
     ! sure the amount of cooling remains correct
-    !
     ! Not as accurate as 'explicit1', but a lot faster
     ! tends to overestimate cooling
-    
       use mod_global_parameters
-      
+
       integer, intent(in)             :: ixI^L, ixO^L
       double precision, intent(in)    :: qdt, x(ixI^S,1:ndim), wCT(ixI^S,1:nw)
       double precision, intent(inout) :: w(ixI^S,1:nw)
       type(rc_fluid), intent(in) :: fl
-      
+
       double precision :: Ltest, etherm, de
       double precision :: dtmax, dtstep
-      
-      integer :: idt,ndtstep
-      
-      double precision :: L1,Tlocal1,ptherm(ixI^S),pnew(ixI^S),rho(ixI^S),Rfactor(ixI^S)
-      double precision :: plocal, rholocal, ttofflocal
+      double precision :: L1,pth(ixI^S),pnew(ixI^S),rho(ixI^S),Rfactor(ixI^S)
+      double precision :: Tlocal1,plocal,Te(ixI^S)
       double precision :: emin, Lmax
-      
+      integer :: idt,ndtstep
       integer :: ix^D
-      integer :: icool
 
-      call fl%get_pthermal(wCT,x,ixI^L,ixO^L,ptherm) 
-      call fl%get_pthermal(w,x,ixI^L,ixO^L,pnew ) 
-      call fl%get_rho(wCT,x,ixI^L,ixO^L,rho) 
-      if(associated(fl%get_var_Rfactor)) then
-        call fl%get_var_Rfactor(w,x,ixI^L,ixO^L,Rfactor)
-      else
-        Rfactor(ixO^S)=fl%Rfactor 
-      endif
+      call fl%get_pthermal(wCT,x,ixI^L,ixO^L,pth)
+      call fl%get_pthermal(w,x,ixI^L,ixO^L,pnew)
+      call fl%get_rho(wCT,x,ixI^L,ixO^L,rho)
+      call fl%get_var_Rfactor(wCT,x,ixI^L,ixO^L,Rfactor)
+      Te(ixO^S)=pth(ixO^S)/(rho(ixO^S)*Rfactor(ixO^S))
 
-      ttofflocal=zero
       {do ix^DB = ixO^LIM^DB\}
          !  Calculate explicit cooling value
-         dtmax    = qdt
-         plocal   = ptherm(ix^D)
-         etherm   = plocal/(rc_gamma-1.d0)
-      
-         rholocal = rho(ix^D)
-         if(phys_trac) then
-           ttofflocal=block%wextra(ix^D,fl%Tcoff_)
-         end if
-         emin     = rholocal*fl%tlow*Rfactor(ix^D)/(rc_gamma-1.d0)
-         Lmax            = max(zero,(pnew(ix^D)/(rc_gamma-1.d0))-emin)/qdt
-         !  Tlocal = P/rho
-         Tlocal1       = plocal/(rholocal*Rfactor(ix^D))
-         !
+         dtmax  = qdt
+         etherm = pth(ix^D)*invgam
+         emin = rho(ix^D)*fl%tlow*Rfactor(ix^D)*invgam
+         Lmax = max(zero,pnew(ix^D)*invgam-emin)/qdt
          !  Determine explicit cooling
-         !
-         !  If temperature is below floor level, no cooling. 
+         !  If temperature is below floor level, no cooling.
          !  Stop wasting time and go to next gridpoint.
          !  If the temperature is higher than the maximum,
          !  assume Bremmstrahlung
-         if( Tlocal1<=fl%tcoolmin ) then
-            Ltest = zero
-         else if( Tlocal1>=fl%tcoolmax )then
-            call calc_l_extended(Tlocal1, Ltest,fl)
-            Ltest = L1*(rholocal**2)
-            if(phys_trac .and. Tlocal1 .lt. ttofflocal) then
-              Ltest=Ltest*sqrt((Tlocal1/ttofflocal)**5)
-            end if
-            Ltest = min(L1,Lmax)
-            if( dtmax>fl%cfrac*etherm/Ltest) dtmax = fl%cfrac*etherm/Ltest
-         else  
-            call findL(Tlocal1,Ltest,fl)
-            Ltest = Ltest*(rholocal**2)
-            if(phys_trac .and. Tlocal1 .lt. ttofflocal) then
-              Ltest=Ltest*sqrt((Tlocal1/ttofflocal)**5)
-            end if
-            Ltest = min(Ltest,Lmax)
-            if( dtmax>fl%cfrac*etherm/Ltest) dtmax = fl%cfrac*etherm/Ltest
-         endif
-         !
+         if( Te(ix^D)<=fl%tcoolmin ) then
+           Ltest = zero
+         else if( Te(ix^D)>=fl%tcoolmax )then
+           call calc_l_extended(Te(ix^D), Ltest,fl)
+           Ltest = L1*rho(ix^D)**2
+           if(phys_trac) then
+             if(Te(ix^D)<block%wextra(ix^D,fl%Tcoff_)) then
+               Ltest=Ltest*sqrt((Te(ix^D)/block%wextra(ix^D,fl%Tcoff_))**5)
+             end if
+           end if
+           Ltest = min(L1,Lmax)
+           if( dtmax>fl%cfrac*etherm/Ltest) dtmax = fl%cfrac*etherm/Ltest
+         else
+           call findL(Te(ix^D),Ltest,fl)
+           Ltest = Ltest*rho(ix^D)**2
+           if(phys_trac) then
+             if(Te(ix^D)<block%wextra(ix^D,fl%Tcoff_)) then
+               Ltest=Ltest*sqrt((Te(ix^D)/block%wextra(ix^D,fl%Tcoff_))**5)
+             end if
+           end if
+           Ltest = min(Ltest,Lmax)
+           if( dtmax>fl%cfrac*etherm/Ltest) dtmax = fl%cfrac*etherm/Ltest
+         end if
          !  Calculate number of steps for cooling
-         !
          ndtstep = max(nint(qdt/dtmax),1)+1
          dtstep = qdt/ndtstep
-         !
          !  Use explicit cooling value for first step
-         !
          de     = Ltest*dtstep
          etherm = etherm - de
-         
+
          do idt=2,ndtstep
-            plocal = etherm*(rc_gamma-1.d0)
-            Lmax   = max(zero,etherm-emin)/dtstep
-            !  Tlocal = P/rho
-            Tlocal1 = plocal/(rholocal * Rfactor(ix^D))
-            if( Tlocal1<=fl%tcoolmin ) then
-               L1 = zero
-               exit
-            else if( Tlocal1>=fl%tcoolmax )then
-              call calc_l_extended(Tlocal1, L1,fl)
-              L1 = L1*(rholocal**2)
-              if(phys_trac .and. Tlocal1 .lt. ttofflocal) then
-                L1=L1*sqrt((Tlocal1/ttofflocal)**5)
-              end if
-              L1 = min(L1,Lmax)
-            else  
-              call findL(Tlocal1,L1,fl)
-              L1 = L1*(rholocal**2)
-              if(phys_trac .and. Tlocal1 .lt. ttofflocal) then
-                L1=L1*sqrt((Tlocal1/ttofflocal)**5)
-              end if
-              L1 = min(L1,Lmax)
-            end if
-            
-            de     = de + L1*dtstep
-            etherm = etherm - L1*dtstep
-         enddo
+           plocal = etherm*rc_gamma_1
+           Lmax   = max(zero,etherm-emin)/dtstep
+           !  Tlocal = P/(rho*R)
+           Tlocal1 = plocal/(rho(ix^D)*Rfactor(ix^D))
+           if( Tlocal1<=fl%tcoolmin ) then
+             L1 = zero
+             exit
+           else if( Tlocal1>=fl%tcoolmax )then
+             call calc_l_extended(Tlocal1, L1,fl)
+             L1 = L1*rho(ix^D)**2
+             if(phys_trac) then
+               if(Tlocal1<block%wextra(ix^D,fl%Tcoff_)) then
+                 L1=L1*sqrt((Tlocal1/block%wextra(ix^D,fl%Tcoff_))**5)
+               end if
+             end if
+             L1 = min(L1,Lmax)
+           else  
+             call findL(Tlocal1,L1,fl)
+             L1 = L1*rho(ix^D)**2
+             if(phys_trac) then
+               if(Tlocal1<block%wextra(ix^D,fl%Tcoff_)) then
+                 L1=L1*sqrt((Tlocal1/block%wextra(ix^D,fl%Tcoff_))**5)
+               end if
+             end if
+             L1 = min(L1,Lmax)
+           end if
+           de     = de + L1*dtstep
+           etherm = etherm - L1*dtstep
+         end do
          w(ix^D,fl%e_) = w(ix^D,fl%e_) -de 
-         if(phys_solve_eaux) w(ix^D,fl%eaux_)=w(ix^D,fl%eaux_)-de
-      {enddo^D&\}
-      
+      {end do\}
+
     end subroutine cool_explicit2
 
     subroutine cool_semiimplicit(qdt,ixI^L,ixO^L,wCT,w,x,fl)
-    !
-    ! Semi-implicit cooling method based on a two point 
-    ! average
-    !
+    ! Semi-implicit cooling method based on a two point average
     ! Fast, but tends to underestimate cooling
       use mod_global_parameters
-      
+
       integer, intent(in)             :: ixI^L, ixO^L
       double precision, intent(in)    :: qdt, x(ixI^S,1:ndim), wCT(ixI^S,1:nw)
       double precision, intent(inout) :: w(ixI^S,1:nw)
       type(rc_fluid), intent(in) :: fl
-      
-      double precision :: L1,L2,Tlocal1, Tlocal2
+
+      double precision :: L1,L2,Tlocal2
       double precision :: etemp
-      
-      double precision :: plocal, rholocal, ttofflocal
       double precision :: emin, Lmax
-      
-      double precision :: ptherm(ixI^S),pnew(ixI^S),rho(ixI^S),Rfactor(ixI^S)
+      double precision :: pth(ixI^S),pnew(ixI^S),rho(ixI^S),Rfactor(ixI^S),Te(ixI^S)
       integer :: ix^D
 
-      call fl%get_pthermal(wCT,x,ixI^L,ixO^L,ptherm)   
-      call fl%get_pthermal(w,x,ixI^L,ixO^L,pnew )  
-      call fl%get_rho(wCT,x,ixI^L,ixO^L,rho)   
-      if(associated(fl%get_var_Rfactor)) then
-        call fl%get_var_Rfactor(w,x,ixI^L,ixO^L,Rfactor)
-      else
-        Rfactor(ixO^S)=fl%Rfactor 
-      endif
+      call fl%get_pthermal(wCT,x,ixI^L,ixO^L,pth)
+      call fl%get_pthermal(w,x,ixI^L,ixO^L,pnew)
+      call fl%get_rho(wCT,x,ixI^L,ixO^L,rho)
+      call fl%get_var_Rfactor(wCT,x,ixI^L,ixO^L,Rfactor)
+      Te(ixO^S)=pth(ixO^S)/(rho(ixO^S)*Rfactor(ixO^S))
 
-      ttofflocal=zero
       {do ix^DB = ixO^LIM^DB\}
-         plocal   = ptherm(ix^D)
-         rholocal = rho(ix^D)
-         if(phys_trac) then
-           ttofflocal=block%wextra(ix^D,fl%Tcoff_)
-         end if
-         emin     = rholocal*fl%tlow*Rfactor(ix^D)/(rc_gamma-1.d0)
-         Lmax            = max(zero,pnew(ix^D)/(rc_gamma-1.d0)-emin)/qdt
-         !  Tlocal = P/rho
-         Tlocal1       = max(plocal/(rholocal * Rfactor(ix^D)),smalldouble)
-         !
+         emin = rho(ix^D)*fl%tlow*Rfactor(ix^D)*invgam
+         Lmax = max(zero,pnew(ix^D)*invgam-emin)/qdt
          !  Determine explicit cooling at present temperature
          !
          !  If temperature is below floor level, no cooling. 
          !  Stop wasting time and go to next gridpoint.
          !  If the temperature is higher than the maximum,
          !  assume Bremsstrahlung
-         if( Tlocal1<=fl%tcoolmin ) then
-            L1 = zero
-            L2 = zero
+         if( Te(ix^D)<=fl%tcoolmin ) then
+           L1 = zero
+           L2 = zero
          else
-           if( Tlocal1>=fl%tcoolmax )then
-              call calc_l_extended(Tlocal1, L1,fl)
-           else  
-              call findL(Tlocal1,L1,fl)            
-           end if                       
-           L1      = L1*(rholocal**2)
-           if(phys_trac .and. Tlocal1 .lt. ttofflocal) then
-             L1=L1*sqrt((Tlocal1/ttofflocal)**5)
-           end if
-           etemp   = plocal/(rc_gamma-1.d0) - L1*qdt
-           Tlocal2 = etemp*(rc_gamma-1.d0)/(rholocal)
-           !
-           !  Determine explicit cooling at new temperature
-           !
-           if( Tlocal2<=fl%tcoolmin ) then
-              L2 = zero
-           else if( Tlocal2>=fl%tcoolmax )then
-              call calc_l_extended(Tlocal2, L2,fl)
+           if( Te(ix^D)>=fl%tcoolmax ) then
+             call calc_l_extended(Te(ix^D), L1,fl)
            else
-              call findL(Tlocal2,L2,fl)
+             call findL(Te(ix^D),L1,fl)
            end if
-           L2  = L2*(rholocal**2)
-           if(phys_trac .and. Tlocal2 .lt. ttofflocal) then
-             L2=L2*sqrt((Tlocal2/ttofflocal)**5)
+           L1 = L1*rho(ix^D)**2
+           if(phys_trac) then
+             if(Te(ix^D)<block%wextra(ix^D,fl%Tcoff_)) then
+               L1=L1*sqrt((Te(ix^D)/block%wextra(ix^D,fl%Tcoff_))**5)
+             end if
+           end if
+           etemp   = pth(ix^D)*invgam - L1*qdt
+           Tlocal2 = etemp*rc_gamma_1/(rho(ix^D)*Rfactor(ix^D))
+           !  Determine explicit cooling at new temperature
+           if( Tlocal2<=fl%tcoolmin ) then
+             L2 = zero
+           else if( Tlocal2>=fl%tcoolmax )then
+             call calc_l_extended(Tlocal2, L2,fl)
+           else
+             call findL(Tlocal2,L2,fl)
+           end if
+           L2 = L2*rho(ix^D)**2
+           if(phys_trac) then
+             if(Tlocal2<block%wextra(ix^D,fl%Tcoff_)) then
+               L2=L2*sqrt((Tlocal2/block%wextra(ix^D,fl%Tcoff_))**5)
+             end if
            end if
            w(ix^D,fl%e_) = w(ix^D,fl%e_) - min(half*(L1+L2),Lmax)*qdt
-           if(phys_solve_eaux) &
-             w(ix^D,fl%eaux_)=w(ix^D,fl%eaux_)-min(half*(L1+L2),Lmax)*qdt
-         endif 
-      {enddo^D&\}
-      
+         end if 
+      {end do\}
+
     end subroutine cool_semiimplicit
 
     subroutine cool_implicit(qdt,ixI^L,ixO^L,wCT,w,x,fl)
-    !
     ! Implicit cooling method based on a half-step
     ! refinement algorithm
-    !
       use mod_global_parameters
-      
+
       integer, intent(in)             :: ixI^L, ixO^L
       double precision, intent(in)    :: qdt, x(ixI^S,1:ndim), wCT(ixI^S,1:nw)
       double precision, intent(inout) :: w(ixI^S,1:nw)
       type(rc_fluid), intent(in) :: fl
-      
-      double precision :: Ltemp,Tlocal1,Tnew,f1,f2,ptherm(ixI^S), pnew(ixI^S), rho(ixI^S), Rfactor(ixI^S)
-      
-      double precision :: plocal, rholocal, elocal, ttofflocal
+
+      double precision :: Ltemp,Tnew,f1,f2,pth(ixI^S), pnew(ixI^S), rho(ixI^S), Rfactor(ixI^S)
+      double precision :: elocal, Te(ixI^S)
       double precision :: emin, Lmax, eold, enew, estep
       integer, parameter :: maxiter = 100
       double precision, parameter :: e_error = 1.0D-6
-      
       integer :: ix^D, j
 
-      call fl%get_pthermal(wCT,x,ixI^L,ixO^L,ptherm)   
-      call fl%get_pthermal(w,x,ixI^L,ixO^L,pnew )  
-      call fl%get_rho(wCT,x,ixI^L,ixO^L,rho)   
-      if(associated(fl%get_var_Rfactor)) then
-        call fl%get_var_Rfactor(w,x,ixI^L,ixO^L,Rfactor)
-      else
-        Rfactor(ixO^S)=fl%Rfactor 
-      endif
+      call fl%get_pthermal(wCT,x,ixI^L,ixO^L,pth)
+      call fl%get_pthermal(w,x,ixI^L,ixO^L,pnew)
+      call fl%get_rho(wCT,x,ixI^L,ixO^L,rho)
+      call fl%get_var_Rfactor(wCT,x,ixI^L,ixO^L,Rfactor)
+      Te(ixO^S)=pth(ixO^S)/(rho(ixO^S)*Rfactor(ixO^S))
 
-      ttofflocal=zero
       {do ix^DB = ixO^LIM^DB\}
-         plocal   = ptherm(ix^D)  
-         elocal   = plocal/(rc_gamma-1.d0)
-         rholocal = rho(ix^D)
-         if(phys_trac) then
-           ttofflocal=block%wextra(ix^D,fl%Tcoff_)
-         end if
-         emin     = rholocal*fl%tlow*Rfactor(ix^D)/(rc_gamma-1.d0)
-         Lmax            = max(zero,pnew(ix^D)/(rc_gamma-1.d0)-emin)/qdt
-         !  Tlocal = P/rho
-         Tlocal1       = max(plocal/(rholocal * Rfactor(ix^D)),smalldouble)
-         !
+         elocal   = pth(ix^D)*invgam
+         emin = rho(ix^D)*fl%tlow*Rfactor(ix^D)*invgam
+         Lmax = max(zero,pnew(ix^D)*invgam-emin)/qdt
          !  Determine explicit cooling at present temperature
-         !
          !  If temperature is below floor level, no cooling. 
          !  Stop wasting time and go to next gridpoint.
          !  If the temperature is higher than the maximum,
          !  assume Bremsstrahlung
-         if( Tlocal1<=fl%tcoolmin ) then
-            Ltemp = zero
+         if( Te(ix^D)<=fl%tcoolmin ) then
+           Ltemp = zero
          else
            eold  = elocal
            enew  = elocal
@@ -2024,119 +1796,104 @@ module mod_radiative_cooling
            f2    = 1.d0
            do j=1,maxiter+1
              if( j>maxiter ) call mpistop("Implicit cooling exceeds maximum iterations")
-             Tnew  = enew*(rc_gamma-1.d0)/(rholocal * Rfactor(ix^D))   
+             Tnew  = enew*rc_gamma_1/(rho(ix^D)*Rfactor(ix^D))
              if( Tnew<=fl%tcoolmin ) then
                Ltemp = Lmax
                exit
              else if( Tnew>=fl%tcoolmax )then
                call calc_l_extended(Tnew, Ltemp,fl)
-             else  
+             else
                call findL(Tnew,Ltemp,fl)
              end if
-             Ltemp = Ltemp*(rholocal**2)
-            
+             Ltemp = Ltemp*rho(ix^D)**2
              eold  = enew + Ltemp*qdt
-      
              f1 = elocal -eold
-             if( abs(half*f1/(elocal+eold)) < e_error  ) exit 
-             if(phys_trac .and. Tnew .lt. ttofflocal) then
-               Ltemp=Ltemp*sqrt((Tnew/ttofflocal)**5)
+             if( abs(half*f1/(elocal+eold)) < e_error  ) exit
+             if(phys_trac) then
+               if(Tnew<block%wextra(ix^D,fl%Tcoff_)) then
+                 Ltemp=Ltemp*sqrt((Tnew/block%wextra(ix^D,fl%Tcoff_))**5)
+               end if
              end if
              if(j==1) estep = max((elocal-emin)*half,smalldouble)
-             if(f1*f2 < zero ) estep = -half*estep   
+             if(f1*f2 < zero ) estep = -half*estep
              f2 = f1
              enew = enew +estep
-           enddo
-         endif     
-         w(ix^D,fl%e_)     = w(ix^D,fl%e_) - min(Ltemp,Lmax)*qdt
-         if(phys_solve_eaux) w(ix^D,fl%eaux_)=w(ix^D,fl%eaux_)-min(Ltemp,Lmax)*qdt
-      {enddo^D&\}
-       
+           end do
+         end if
+         w(ix^D,fl%e_) = w(ix^D,fl%e_) - min(Ltemp,Lmax)*qdt
+      {end do\}
+
     end subroutine cool_implicit
 
-    subroutine cool_exact(qdt,ixI^L,ixO^L,wCT,w,x, fl)
-    !
+    subroutine cool_exact(qdt,ixI^L,ixO^L,wCT,wCTprim,w,x,fl)
     !  Cooling routine using exact integration method from Townsend 2009
-    !
       use mod_global_parameters
 
       integer, intent(in)             :: ixI^L, ixO^L
-      double precision, intent(in)    :: qdt, x(ixI^S,1:ndim), wCT(ixI^S,1:nw)
+      double precision, intent(in)    :: qdt, x(ixI^S,1:ndim), wCT(ixI^S,1:nw), wCTprim(ixI^S,1:nw)
       double precision, intent(inout) :: w(ixI^S,1:nw)
       type(rc_fluid), intent(in) :: fl
 
       double precision :: Y1, Y2
-      double precision :: L1,Tlocal1, ptherm(ixI^S), Tlocal2, pnew(ixI^S)
-      double precision :: rho(ixI^S), rhonew(ixI^S), Rfactor(ixI^S)
-      double precision :: plocal, rholocal, invgam, ttofflocal
+      double precision :: L1, pth(ixI^S), Tlocal2, pnew(ixI^S)
+      double precision :: rho(ixI^S), Te(ixI^S), rhonew(ixI^S), Rfactor(ixI^S)
       double precision :: emin, Lmax, fact
       double precision :: de, emax
-
       integer :: ix^D
-      integer :: icool
 
-      call fl%get_pthermal(wCT,x,ixI^L,ixO^L,ptherm)
-      call fl%get_pthermal(w,x,ixI^L,ixO^L,pnew)
       call fl%get_rho(wCT,x,ixI^L,ixO^L,rho)
-      call fl%get_rho(w,x,ixI^L,ixO^L,rhonew)
-      if(associated(fl%get_var_Rfactor)) then
-        call fl%get_var_Rfactor(w,x,ixI^L,ixO^L,Rfactor)
+      call fl%get_var_Rfactor(wCT,x,ixI^L,ixO^L,Rfactor)
+      if(phys_equi_pe) then
+        ! need pressure splitting
+        call fl%get_pthermal(wCT,x,ixI^L,ixO^L,Te)
+        Te(ixO^S)=Te(ixO^S)/(rho(ixO^S)*Rfactor(ixO^S))
       else
-        Rfactor(ixO^S)=fl%Rfactor 
-      endif
+        Te(ixO^S)=wCTprim(ixO^S,iw_e)/(rho(ixO^S)*Rfactor(ixO^S))
+      end if
+      call fl%get_pthermal(w,x,ixI^L,ixO^L,pnew)
+      call fl%get_rho(w,x,ixI^L,ixO^L,rhonew)
 
-      ttofflocal=zero
       fact = fl%lref*qdt/fl%tref
 
-      invgam=1.d0/(rc_gamma-1.d0)
       {do ix^DB = ixO^LIM^DB\}
-         plocal   = ptherm(ix^D)
-         rholocal = rho(ix^D)
-         if(phys_trac) then
-           ttofflocal=block%wextra(ix^D,fl%Tcoff_)
-         end if
          emin = rhonew(ix^D)*fl%tlow*Rfactor(ix^D)*invgam
-         Lmax = max(zero,(pnew(ix^D)*invgam-emin)/qdt)
-         emax = max(zero, pnew(ix^D)*invgam-emin)
-
-         !  Tlocal = P/rho
-         Tlocal1 = max(plocal/(rholocal*Rfactor(ix^D)),smalldouble)
-         !
+         Lmax = max(zero,pnew(ix^D)*invgam-emin)/qdt
+         emax = max(zero,pnew(ix^D)*invgam-emin)
          !  Determine explicit cooling
-         !
-         !  If temperature is below floor level, no cooling. 
+         !  If temperature is below floor level, no cooling.
          !  Stop wasting time and go to next gridpoint.
          !  If the temperature is higher than the maximum,
          !  assume Bremsstrahlung
-         if( Tlocal1<=fl%tcoolmin ) then
-            L1 = zero
-         else if( Tlocal1>=fl%tcoolmax )then
-            call calc_l_extended(Tlocal1, L1,fl)
-            L1 = L1*(rholocal**2)
-            if(phys_trac .and. Tlocal1 .lt. ttofflocal) then
-              L1=L1*sqrt((Tlocal1/ttofflocal)**5)
-            end if
-            L1 = min(L1,Lmax)
-            w(ix^D,fl%e_) = w(ix^D,fl%e_)-L1*qdt
-            if(phys_solve_eaux) w(ix^D,fl%eaux_)=w(ix^D,fl%eaux_)-L1*qdt
+         if( Te(ix^D)<=fl%tcoolmin ) then
+           L1 = zero
+         else if( Te(ix^D)>=fl%tcoolmax )then
+           call calc_l_extended(Te(ix^D), L1,fl)
+           L1 = L1*rho(ix^D)**2
+           if(phys_trac) then
+             if(Te(ix^D)<block%wextra(ix^D,fl%Tcoff_)) then
+               L1=L1*sqrt((Te(ix^D)/block%wextra(ix^D,fl%Tcoff_))**5)
+             end if
+           end if
+           L1 = min(L1,Lmax)
+           w(ix^D,fl%e_) = w(ix^D,fl%e_)-L1*qdt
          else
-            call findL(Tlocal1,L1,fl)
-            call findY(Tlocal1,Y1,fl)
-            Y2 = Y1 + fact * rholocal * (rc_gamma-1.d0)
-            call findT(Tlocal2,Y2,fl)
-            if(Tlocal2<=fl%tcoolmin) then
-              de = emax
-            else
-              de = (Tlocal1-Tlocal2)*invgam*rholocal
-            end if
-            if(phys_trac .and. Tlocal1 .lt. ttofflocal) then
-              de=de*sqrt((Tlocal1/ttofflocal)**5)
-            end if
-            de = min(de,emax)
-            w(ix^D,fl%e_)  = w(ix^D,fl%e_)-de
-            if(phys_solve_eaux) w(ix^D,fl%eaux_)=w(ix^D,fl%eaux_)-de              
-         endif
-      {enddo^D&\}
+           call findY(Te(ix^D),Y1,fl)
+           Y2 = Y1 + fact*rho(ix^D)*rc_gamma_1
+           call findT(Tlocal2,Y2,fl)
+           if(Tlocal2<=fl%tcoolmin) then
+             de = emax
+           else
+             de = (Te(ix^D)-Tlocal2)*rho(ix^D)*Rfactor(ix^D)*invgam
+           end if
+           if(phys_trac) then
+             if(Te(ix^D)<block%wextra(ix^D,fl%Tcoff_)) then
+               de=de*sqrt((Te(ix^D)/block%wextra(ix^D,fl%Tcoff_))**5)
+             end if
+           end if
+           de = min(de,emax)
+           w(ix^D,fl%e_) = w(ix^D,fl%e_)-de
+         end if
+      {end do\}
 
     end subroutine cool_exact
 
@@ -2145,41 +1902,38 @@ module mod_radiative_cooling
     !  Assumes Bremsstrahlung for the interpolated tables
     !  Uses the power law for piecewise power laws
       double precision, intent(IN)  :: tpoint
-      double precision, intent(OUT) :: lpoint    
-      type(rc_fluid), intent(in) :: fl   
-   
-      if (fl%isPPL) then
-         lpoint =fl%l_PPL(fl%n_PPL) * ( tpoint / fl%t_PPL(fl%n_PPL) )**fl%a_PPL(fl%n_PPL) 
+      double precision, intent(OUT) :: lpoint
+      type(rc_fluid), intent(in) :: fl
+
+      if(fl%isPPL) then
+        lpoint =fl%l_PPL(fl%n_PPL) * ( tpoint / fl%t_PPL(fl%n_PPL) )**fl%a_PPL(fl%n_PPL)
       else
-         lpoint = fl%Lcool(fl%ncool) * sqrt( tpoint / fl%tcoolmax)
+        lpoint = fl%Lcool(fl%ncool) * sqrt( tpoint / fl%tcoolmax)
       end if
 
     end subroutine calc_l_extended
-
 
     subroutine findL (tpoint,Lpoint,fl)
     !  Fast search option to find correct point 
     !  in cooling curve
       use mod_global_parameters
-      
+
       double precision,intent(IN)   :: tpoint
       double precision, intent(OUT) :: Lpoint
-      type(rc_fluid), intent(in) :: fl   
-      integer :: ipoint
-      integer :: jl,jc,jh
-      double precision :: lgtp
- 
-      integer :: i
+      type(rc_fluid), intent(in) :: fl
 
-      if (fl%isPPL) then
-         i = maxloc(fl%t_PPL, dim=1, mask=fl%t_PPL<tpoint)
-         Lpoint = fl%l_PPL(i) * (tpoint / fl%t_PPL(i))**fl%a_PPL(i)
+      double precision :: lgtp
+      integer :: jl,jc,jh,i
+
+      if(fl%isPPL) then
+        i = maxloc(fl%t_PPL, dim=1, mask=fl%t_PPL<tpoint)
+        Lpoint = fl%l_PPL(i) * (tpoint / fl%t_PPL(i))**fl%a_PPL(i)
       else
-         lgtp = dlog10(tpoint)
-         jl = int((lgtp - fl%lgtcoolmin) /fl%lgstep) + 1
-         Lpoint = fl%Lcool(jl)+ (tpoint-fl%tcool(jl)) &
-                   * (fl%Lcool(jl+1)-fl%Lcool(jl)) &
-                   / (fl%tcool(jl+1)-fl%tcool(jl))
+        lgtp = dlog10(tpoint)
+        jl = int((lgtp - fl%lgtcoolmin) /fl%lgstep) + 1
+        Lpoint = fl%Lcool(jl)+ (tpoint-fl%tcool(jl)) &
+                  * (fl%Lcool(jl+1)-fl%Lcool(jl)) &
+                  / (fl%tcool(jl+1)-fl%tcool(jl))
       end if
 
 !      if (tpoint == fl%tcoolmin) then
@@ -2207,36 +1961,32 @@ module mod_radiative_cooling
     end subroutine findL
 
     subroutine findY (tpoint,Ypoint,fl)
-    
     !  Fast search option to find correct point in cooling time (TEF)
-    
       use mod_global_parameters
-      
+
       double precision,intent(IN)   :: tpoint
       double precision, intent(OUT) :: Ypoint
-      type(rc_fluid), intent(in) :: fl   
-      integer :: ipoint
-      integer :: jl,jc,jh
+      type(rc_fluid), intent(in) :: fl
+
       double precision :: lgtp
-
-      integer :: i
       double precision :: y_extra,factor
+      integer :: jl,jc,jh,i
 
-      if (fl%isPPL) then
-         i = maxloc(fl%t_PPL, dim=1, mask=fl%t_PPL<tpoint)
-         factor = fl%l_PPL(fl%n_PPL+1) * fl%t_PPL(i) / (fl%l_PPL(i) * fl%t_PPL(fl%n_PPL+1))
-         if (fl%a_PPL(i)==1.d0) then
-            y_extra = log( fl%t_PPL(i) / tpoint )
-         else
-            y_extra = 1 / (1 - fl%a_PPL(i)) * (1 - ( fl%t_PPL(i) / tpoint )**(fl%a_PPL(i)-1) )
-         end if
-         Ypoint = fl%y_PPL(i) + factor*y_extra
+      if(fl%isPPL) then
+        i = maxloc(fl%t_PPL, dim=1, mask=fl%t_PPL<tpoint)
+        factor = fl%l_PPL(fl%n_PPL+1) * fl%t_PPL(i) / (fl%l_PPL(i) * fl%t_PPL(fl%n_PPL+1))
+        if(fl%a_PPL(i)==1.d0) then
+          y_extra = log( fl%t_PPL(i) / tpoint )
+        else
+          y_extra = 1 / (1 - fl%a_PPL(i)) * (1 - ( fl%t_PPL(i) / tpoint )**(fl%a_PPL(i)-1) )
+        end if
+        Ypoint = fl%y_PPL(i) + factor*y_extra
       else
-         lgtp = dlog10(tpoint)
-         jl = int((lgtp - fl%lgtcoolmin) / fl%lgstep) + 1
-         Ypoint = fl%Yc(jl)+ (tpoint-fl%tcool(jl)) &
-                   * (fl%Yc(jl+1)-fl%Yc(jl)) &
-                   / (fl%tcool(jl+1)-fl%tcool(jl))
+        lgtp = dlog10(tpoint)
+        jl = int((lgtp - fl%lgtcoolmin) / fl%lgstep) + 1
+        Ypoint = fl%Yc(jl)+ (tpoint-fl%tcool(jl)) &
+                  * (fl%Yc(jl+1)-fl%Yc(jl)) &
+                  / (fl%tcool(jl+1)-fl%tcool(jl))
       end if
 
   !    integer i
@@ -2262,74 +2012,69 @@ module mod_radiative_cooling
   !                * (Yc(jl+1)-Yc(jl)) &
   !                / (tcool(jl+1)-tcool(jl))
   !    end if
-    
+
     end subroutine findY
 
     subroutine findT (tpoint,Ypoint,fl)
-    
     !  Fast search option to find correct temperature 
-    !  from temporal evolution function. Only possible this way because T is a monotonously 
-    !  decreasing function for the interpolated tables 
+    !  from temporal evolution function. Only possible this way because T is a monotonously
+    !  decreasing function for the interpolated tables
     !  Uses eq. A7 from Townsend 2009 for piecewise power laws
       use mod_global_parameters
-      
+
       double precision,intent(OUT)   :: tpoint
       double precision, intent(IN) :: Ypoint
-      type(rc_fluid), intent(in) :: fl   
-      integer :: ipoint
-      integer :: jl,jc,jh
-      
-      integer :: i
+      type(rc_fluid), intent(in) :: fl
+
       double precision :: factor
+      integer :: jl,jc,jh,i
       
-      if (fl%isPPL) then
-         i = minloc(fl%y_PPL, dim=1, mask=fl%y_PPL>Ypoint)
-         factor =  fl%l_PPL(i) * fl%t_PPL(fl%n_PPL+1) / (fl%l_PPL(fl%n_PPL+1) * fl%t_PPL(i))
-         if (fl%a_PPL(i)==1.d0) then
-            tpoint = fl%t_PPL(i) * exp( -1.d0 * factor * ( Ypoint - fl%y_PPL(i)))
-         else
-            tpoint = fl%t_PPL(i) * (1 - (1 - fl%a_PPL(i)) * factor * (Ypoint - fl%y_PPL(i)))**(1 / (1 - fl%a_PPL(i)))
-         end if
+      if(fl%isPPL) then
+        i = minloc(fl%y_PPL, dim=1, mask=fl%y_PPL>Ypoint)
+        factor =  fl%l_PPL(i) * fl%t_PPL(fl%n_PPL+1) / (fl%l_PPL(fl%n_PPL+1) * fl%t_PPL(i))
+        if(fl%a_PPL(i)==1.d0) then
+          tpoint = fl%t_PPL(i) * exp( -1.d0 * factor * ( Ypoint - fl%y_PPL(i)))
+        else
+          tpoint = fl%t_PPL(i) * (1 - (1 - fl%a_PPL(i)) * factor * (Ypoint - fl%y_PPL(i)))**(1 / (1 - fl%a_PPL(i)))
+        end if
       else
-         if (Ypoint >= fl%Yc(1)) then
-            tpoint = fl%tcoolmin
-         else if (Ypoint == fl%Yc(fl%ncool)) then
-            tpoint = fl%tcoolmax
-         else
-            jl=0
-            jh=fl%ncool+1
-            do
-               if (jh-jl <= 1) exit
-               jc=(jh+jl)/2
-               if (Ypoint <= fl%Yc(jc)) then
-                  jl=jc
-               else
-                  jh=jc
-               end if
-            end do
-            ! Linear interpolation to obtain correct temperature
-            tpoint = fl%tcool(jl)+ (Ypoint-fl%Yc(jl)) &
-                   * (fl%tcool(jl+1)-fl%tcool(jl)) &
-                   / (fl%Yc(jl+1)-fl%Yc(jl))
-         end if
+        if(Ypoint >= fl%Yc(1)) then
+          tpoint = fl%tcoolmin
+        else if (Ypoint == fl%Yc(fl%ncool)) then
+          tpoint = fl%tcoolmax
+        else
+          jl=0
+          jh=fl%ncool+1
+          do
+            if(jh-jl <= 1) exit
+            jc=(jh+jl)/2
+            if(Ypoint <= fl%Yc(jc)) then
+              jl=jc
+            else
+              jh=jc
+            end if
+          end do
+          ! Linear interpolation to obtain correct temperature
+          tpoint = fl%tcool(jl)+ (Ypoint-fl%Yc(jl)) &
+                 * (fl%tcool(jl+1)-fl%tcool(jl)) &
+                 / (fl%Yc(jl+1)-fl%Yc(jl))
+        end if
       end if
 
     end subroutine findT
 
-
     subroutine finddLdt (tpoint,dLpoint,fl)
-    
     !  Fast search option to find correct point 
     !  in derivative of cooling curve
     !  Does not work for the piecewise power laws
       use mod_global_parameters
-      
+
       double precision,intent(IN)   :: tpoint
       double precision, intent(OUT) :: dLpoint
-      type(rc_fluid), intent(in) :: fl   
-      integer :: ipoint
-      integer :: jl,jc,jh
+      type(rc_fluid), intent(in) :: fl
+
       double precision :: lgtp
+      integer :: jl,jc,jh
 
       lgtp = dlog10(tpoint)
       jl = int((lgtp -fl%lgtcoolmin) / fl%lgstep) + 1

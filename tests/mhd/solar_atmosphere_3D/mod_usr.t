@@ -62,7 +62,7 @@ contains
 
     bQ0=1.d-4/unit_pressure*unit_time          ! 3.697693390805347E-003 erg*cm^-3/s
 
-    gzone=0.2d0
+    gzone=2.d8/unit_length
     ! cell size in 1D solar atmosphere table
     dr=(2.d0*gzone+xprobmax3-xprobmin3)/dble(jmax)
     usr_grav=-2.74d4*unit_length/unit_velocity**2  ! solar gravity
@@ -92,7 +92,7 @@ contains
     use mod_global_parameters
 
     double precision :: Ta(jmax),gg(jmax)
-    double precision :: rpho,Tpho,Ttop,htra,wtra,Ttr,Fc,k_para
+    double precision :: rpho,Tpho,Ttop,htra,wtra,ftra,Ttr,Fc,k_para
     double precision :: res,pb,rhob,invT
     integer :: j,na,ibc,btlevel
 
@@ -101,10 +101,11 @@ contains
     Ttop=1.5d6/unit_temperature ! estimated temperature in the top
     htra=2.d8/unit_length ! height of initial transition region
     wtra=2.d7/unit_length ! width of initial transition region 
-    htra=0.2d0           ! height of initial transition region
-    wtra=0.02d0          ! width of initial transition region 
+    htra=2.d8/unit_length ! height of initial transition region
+    wtra=0.2d8/unit_length! width of initial transition region 
     Ttr=1.6d5/unit_temperature ! lowest temperature of upper profile
     Fc=2.d5/unit_pressure/unit_velocity  ! constant thermal conduction flux
+    ftra=wtra*atanh(2.d0*(Ttr-Tpho)/(Ttop-Tpho)-1.d0)
     ! Spitzer thermal conductivity with cgs units
     k_para=8.d-7*unit_temperature**3.5d0/unit_length/unit_density/unit_velocity**3 
     !! set T distribution with height
@@ -113,7 +114,7 @@ contains
        if(ya(j)>htra) then
          Ta(j)=(3.5d0*Fc/k_para*(ya(j)-htra)+Ttr**3.5d0)**(2.d0/7.d0)
        else
-         Ta(j)=Tpho+0.5d0*(Ttop-Tpho)*(tanh((ya(j)-htra-0.027d0)/wtra)+1.d0)
+         Ta(j)=Tpho+0.5d0*(Ttop-Tpho)*(tanh((ya(j)-htra+ftra)/wtra)+1.d0)
        endif
        gg(j)=usr_grav*(SRadius/(SRadius+ya(j)))**2
     enddo
@@ -203,7 +204,6 @@ contains
       w(ixO^S,rho_)=sum(w(ixO^S,mag(:))**2,dim=ndim+1)
     end if
 
-    if(mhd_solve_eaux) w(ixO^S,paux_)=w(ixO^S,p_)
     call mhd_to_conserved(ixI^L,ixO^L,w,x)
 
   end subroutine initonegrid_usr
@@ -311,7 +311,8 @@ contains
              !block%ws(ix1^%1ixOs^S,idir) = 1.d0/3.d0*&
              !       (-block%ws(ix1+2^%1ixOs^S,idir)&
              !   +4.d0*block%ws(ix1+1^%1ixOs^S,idir))
-             block%ws(ix1^%1ixOs^S,idir) = 1.d0/3.d0*&
+             ! 2nd order one-sided equal gradient extrapolation
+             block%ws(ix1^%1ixOs^S,idir) = third*&
                     ( block%ws(ix1+3^%1ixOs^S,idir)&
                 -5.d0*block%ws(ix1+2^%1ixOs^S,idir)&
                 +7.d0*block%ws(ix1+1^%1ixOs^S,idir))
@@ -327,12 +328,17 @@ contains
          end do
          call mhd_face_to_center(ixO^L,block)
        else
-         ! 2nd order accuacy constant value extrapolation
          do ix1=ixOmax1,ixOmin1,-1
-           w(ix1,ixOmin2:ixOmax2,ixOmin3:ixOmax3,mag(1):mag(3))=(1.0d0/3.0d0)* &
-                      (-w(ix1+2,ixOmin2:ixOmax2,ixOmin3:ixOmax3,mag(1):mag(3)) &
-                 +4.0d0*w(ix1+1,ixOmin2:ixOmax2,ixOmin3:ixOmax3,mag(1):mag(3)))
-         enddo
+           !! 2nd order accuacy zero gradient extrapolation
+           !w(ix1^%1ixO^S,mag(:))=third* &
+           !           (-w(ix1+2^%1ixO^S,mag(:)) &
+           !      +4.0d0*w(ix1+1^%1ixO^S,mag(:)))
+           ! 3rd order one-sided equal gradient extrapolation
+           w(ix1^%1ixO^S,mag(:)) = third*&
+                   (w(ix1+3^%1ixO^S,mag(:))&
+              -5.d0*w(ix1+2^%1ixO^S,mag(:))&
+              +7.d0*w(ix1+1^%1ixO^S,mag(:)))
+         end do
        end if
        if(mhd_energy) then
          ixIM^L=ixO^L;
@@ -348,7 +354,6 @@ contains
          w(ixO^S,rho_)=rhob*dexp(usr_grav*SRadius**2/Tiso*&
                        (1.d0/SRadius-1.d0/(x(ixO^S,3)+SRadius)))
        end if
-       if(mhd_solve_eaux) w(ixO^S,paux_)=w(ixO^S,p_)
        call mhd_to_conserved(ixI^L,ixO^L,w,x)
      case(2)
        w(ixO^S,mom(1))=-w(ixOmin1-1:ixOmin1-nghostcells:-1,ixOmin2:ixOmax2,ixOmin3:ixOmax3,mom(1))/&
@@ -366,7 +371,8 @@ contains
              !block%ws(ix1^%1ixOs^S,idir) = 1.d0/3.d0*&
              !       (-block%ws(ix1-2^%1ixOs^S,idir)&
              !   +4.d0*block%ws(ix1-1^%1ixOs^S,idir))
-             block%ws(ix1^%1ixOs^S,idir) = 1.d0/3.d0*&
+             ! 2nd order one-sided equal gradient extrapolation
+             block%ws(ix1^%1ixOs^S,idir) = third*&
                     ( block%ws(ix1-3^%1ixOs^S,idir)&
                 -5.d0*block%ws(ix1-2^%1ixOs^S,idir)&
                 +7.d0*block%ws(ix1-1^%1ixOs^S,idir))
@@ -382,12 +388,17 @@ contains
          end do
          call mhd_face_to_center(ixO^L,block)
        else
-         ! 2nd order accuacy constant value extrapolation
          do ix1=ixOmin1,ixOmax1
-           w(ix1,ixOmin2:ixOmax2,ixOmin3:ixOmax3,mag(1):mag(3))=(1.0d0/3.0d0)* &
-                      (-w(ix1-2,ixOmin2:ixOmax2,ixOmin3:ixOmax3,mag(1):mag(3)) &
-                 +4.0d0*w(ix1-1,ixOmin2:ixOmax2,ixOmin3:ixOmax3,mag(1):mag(3)))
-         enddo
+           !! 2nd order accuacy zero gradient extrapolation
+           !w(ix1^%1ixO^S,mag(:))=third* &
+           !           (-w(ix1-2^%1ixO^S,mag(:)) &
+           !      +4.0d0*w(ix1-1^%1ixO^S,mag(:)))
+           ! 3rd order one-sided equal gradient extrapolation
+           w(ix1^%1ixO^S,mag(:)) = third*&
+                   (w(ix1-3^%1ixO^S,mag(:))&
+              -5.d0*w(ix1-2^%1ixO^S,mag(:))&
+              +7.d0*w(ix1-1^%1ixO^S,mag(:)))
+         end do
        end if
        if(mhd_energy) then
          ixIM^L=ixO^L;
@@ -402,7 +413,6 @@ contains
          w(ixO^S,rho_)=rhob*dexp(usr_grav*SRadius**2/Tiso*&
                        (1.d0/SRadius-1.d0/(x(ixO^S,3)+SRadius)))
        end if
-       if(mhd_solve_eaux) w(ixO^S,paux_)=w(ixO^S,p_)
        call mhd_to_conserved(ixI^L,ixO^L,w,x)
      case(3)
        w(ixO^S,mom(1))=-w(ixOmin1:ixOmax1,ixOmax2+nghostcells:ixOmax2+1:-1,ixOmin3:ixOmax3,mom(1))/&
@@ -420,7 +430,8 @@ contains
              !block%ws(ix2^%2ixOs^S,idir) = 1.d0/3.d0*&
              !       (-block%ws(ix2+2^%2ixOs^S,idir)&
              !   +4.d0*block%ws(ix2+1^%2ixOs^S,idir))
-             block%ws(ix2^%2ixOs^S,idir) = 1.d0/3.d0*&
+             ! 2nd order one-sided equal gradient extrapolation
+             block%ws(ix2^%2ixOs^S,idir) = third*&
                     ( block%ws(ix2+3^%2ixOs^S,idir)&
                 -5.d0*block%ws(ix2+2^%2ixOs^S,idir)&
                 +7.d0*block%ws(ix2+1^%2ixOs^S,idir))
@@ -436,12 +447,17 @@ contains
          end do
          call mhd_face_to_center(ixO^L,block)
        else
-         ! 2nd order accuacy constant value extrapolation
          do ix2=ixOmax2,ixOmin2,-1
-           w(ixOmin1:ixOmax1,ix2,ixOmin3:ixOmax3,mag(1):mag(3))=(1.0d0/3.0d0)* &
-                      (-w(ixOmin1:ixOmax1,ix2+2,ixOmin3:ixOmax3,mag(1):mag(3)) &
-                 +4.0d0*w(ixOmin1:ixOmax1,ix2+1,ixOmin3:ixOmax3,mag(1):mag(3)))
-         enddo
+           !! 2nd order accuacy zero gradient extrapolation
+           !w(ix2^%2ixO^S,mag(:))=third* &
+           !           (-w(ix2+2^%2ixO^S,mag(:)) &
+           !      +4.0d0*w(ix2+1^%2ixO^S,mag(:)))
+           ! 3rd order one-sided equal gradient extrapolation
+           w(ix2^%2ixO^S,mag(:)) = third*&
+                   (w(ix2+3^%2ixO^S,mag(:))&
+              -5.d0*w(ix2+2^%2ixO^S,mag(:))&
+              +7.d0*w(ix2+1^%2ixO^S,mag(:)))
+         end do
        end if
        if(mhd_energy) then
          ixIM^L=ixO^L;
@@ -456,7 +472,6 @@ contains
          w(ixO^S,rho_)=rhob*dexp(usr_grav*SRadius**2/Tiso*&
                        (1.d0/SRadius-1.d0/(x(ixO^S,3)+SRadius)))
        end if
-       if(mhd_solve_eaux) w(ixO^S,paux_)=w(ixO^S,p_)
        call mhd_to_conserved(ixI^L,ixO^L,w,x)
      case(4)
        w(ixO^S,mom(1))=-w(ixOmin1:ixOmax1,ixOmin2-1:ixOmin2-nghostcells:-1,ixOmin3:ixOmax3,mom(1))/&
@@ -474,7 +489,8 @@ contains
              !block%ws(ix2^%2ixOs^S,idir) = 1.d0/3.d0*&
              !       (-block%ws(ix2-2^%2ixOs^S,idir)&
              !   +4.d0*block%ws(ix2-1^%2ixOs^S,idir))
-             block%ws(ix2^%2ixOs^S,idir) = 1.d0/3.d0*&
+             ! 2nd order one-sided equal gradient extrapolation
+             block%ws(ix2^%2ixOs^S,idir) = third*&
                     ( block%ws(ix2-3^%2ixOs^S,idir)&
                 -5.d0*block%ws(ix2-2^%2ixOs^S,idir)&
                 +7.d0*block%ws(ix2-1^%2ixOs^S,idir))
@@ -490,12 +506,17 @@ contains
          end do
          call mhd_face_to_center(ixO^L,block)
        else
-         ! 2nd order accuacy constant value extrapolation
-         do ix2=ixOmin2,ixOmax2
-           w(ixOmin1:ixOmax1,ix2,ixOmin3:ixOmax3,mag(1):mag(3))=(1.0d0/3.0d0)* &
-                       (-w(ixOmin1:ixOmax1,ix2-2,ixOmin3:ixOmax3,mag(1):mag(3))&
-                  +4.0d0*w(ixOmin1:ixOmax1,ix2-1,ixOmin3:ixOmax3,mag(1):mag(3)))
-         enddo
+         do ix2=ixOmax2,ixOmin2,-1
+           !! 2nd order accuacy zero gradient extrapolation
+           !w(ix2^%2ixO^S,mag(:))=third* &
+           !           (-w(ix2-2^%2ixO^S,mag(:)) &
+           !      +4.0d0*w(ix2-1^%2ixO^S,mag(:)))
+           ! 3rd order one-sided equal gradient extrapolation
+           w(ix2^%2ixO^S,mag(:)) = third*&
+                   (w(ix2-3^%2ixO^S,mag(:))&
+              -5.d0*w(ix2-2^%2ixO^S,mag(:))&
+              +7.d0*w(ix2-1^%2ixO^S,mag(:)))
+         end do
        end if
        if(mhd_energy) then
          ixIM^L=ixO^L;
@@ -510,7 +531,6 @@ contains
          w(ixO^S,rho_)=rhob*dexp(usr_grav*SRadius**2/Tiso*&
                        (1.d0/SRadius-1.d0/(x(ixO^S,3)+SRadius)))
        end if
-       if(mhd_solve_eaux) w(ixO^S,paux_)=w(ixO^S,p_)
        call mhd_to_conserved(ixI^L,ixO^L,w,x)
      case(5)
        w(ixO^S,mom(1))=-w(ixOmin1:ixOmax1,ixOmin2:ixOmax2,ixOmax3+nghostcells:ixOmax3+1:-1,mom(1))/&
@@ -525,7 +545,7 @@ contains
              ixOsmax^D=ixOmax^D;
              ixOsmin^D=ixOmin^D-kr(^D,idir);
              do ix3=ixOsmax3,ixOsmin3,-1
-               ! 3 one-sided equal gradient
+               ! 3rd order one-sided equal gradient extrapolation
                block%ws(ix3^%3ixOs^S,idir) = 1.d0/11.d0*&
                   ( -2.d0*block%ws(ix3+4^%3ixOs^S,idir)&
                    +11.d0*block%ws(ix3+3^%3ixOs^S,idir)&
@@ -543,14 +563,22 @@ contains
          end do
          call mhd_face_to_center(ixO^L,block)
        else
-         ! 4th order accuacy constant value extrapolation
+         !! 4th order accuacy zero gradient extrapolation
+         !do ix3=ixOmax3,ixOmin3,-1
+         !  w(ix3^%3ixO^S,mag(:)) = 0.04d0*&
+         !     ( -3.d0*w(ix3+4^%3ixO^S,mag(:))&
+         !      +16.d0*w(ix3+3^%3ixO^S,mag(:))&
+         !      -36.d0*w(ix3+2^%3ixO^S,mag(:))&
+         !      +48.d0*w(ix3+1^%3ixO^S,mag(:)))
+         !end do
          do ix3=ixOmax3,ixOmin3,-1
-           w(ixOmin1:ixOmax1,ixOmin2:ixOmax2,ix3,mag(1):mag(3))=(1.0d0/25.0d0)* &
-                ( -3.0d0*w(ixOmin1:ixOmax1,ixOmin2:ixOmax2,ix3+4,mag(1):mag(3)) &
-                 +16.0d0*w(ixOmin1:ixOmax1,ixOmin2:ixOmax2,ix3+3,mag(1):mag(3)) &
-                 -36.0d0*w(ixOmin1:ixOmax1,ixOmin2:ixOmax2,ix3+2,mag(1):mag(3)) &
-                 +48.0d0*w(ixOmin1:ixOmax1,ixOmin2:ixOmax2,ix3+1,mag(1):mag(3)))
-         enddo
+           ! 3rd order one-sided equal gradient extrapolation
+           w(ix3^%3ixO^S,mag(:)) = 1.d0/11.d0*&
+              ( -2.d0*w(ix3+4^%3ixO^S,mag(:))&
+               +11.d0*w(ix3+3^%3ixO^S,mag(:))&
+               -27.d0*w(ix3+2^%3ixO^S,mag(:))&
+               +29.d0*w(ix3+1^%3ixO^S,mag(:)))
+         end do
        end if
        if(mhd_energy) then
          do ix3=ixOmin3,ixOmax3
@@ -564,7 +592,6 @@ contains
          w(ixO^S,rho_)=rhob*dexp(usr_grav*SRadius**2/Tiso*&
                        (1.d0/SRadius-1.d0/(x(ixO^S,3)+SRadius)))
        end if
-       if(mhd_solve_eaux) w(ixO^S,paux_)=w(ixO^S,p_)
        call mhd_to_conserved(ixI^L,ixO^L,w,x)
      case(6)
        w(ixO^S,mom(1))=w(ixOmin1:ixOmax1,ixOmin2:ixOmax2,ixOmin3-1:ixOmin3-nghostcells:-1,mom(1))/&
@@ -579,10 +606,12 @@ contains
            ixOsmax^D=ixOmax^D;
            ixOsmin^D=ixOmin^D-kr(^D,idir);
            do ix3=ixOsmin3,ixOsmax3
+             ! 3rd order one-sided equal gradient extrapolation
              block%ws(ix3^%3ixOs^S,idir) = 1.d0/3.d0*&
                     ( block%ws(ix3-3^%3ixOs^S,idir)&
                 -5.d0*block%ws(ix3-2^%3ixOs^S,idir)&
                 +7.d0*block%ws(ix3-1^%3ixOs^S,idir))
+             ! 3rd order one-sided zero gradient extrapolation
              !block%ws(ix3^%3ixOs^S,idir) = 1.d0/11.d0*&
              !   (+2.d0*block%ws(ix3-3^%3ixOs^S,idir)&
              !    -9.d0*block%ws(ix3-2^%3ixOs^S,idir)&
@@ -599,12 +628,17 @@ contains
          end do
          call mhd_face_to_center(ixO^L,block)
        else
-         ! 2nd order accuacy constant value extrapolation
          do ix3=ixOmin3,ixOmax3
-           w(ixOmin1:ixOmax1,ixOmin2:ixOmax2,ix3,mag(1):mag(3))=(1.0d0/3.0d0)* &
-                 (     -w(ixOmin1:ixOmax1,ixOmin2:ixOmax2,ix3-2,mag(1):mag(3)) &
-                  +4.d0*w(ixOmin1:ixOmax1,ixOmin2:ixOmax2,ix3-1,mag(1):mag(3)))
-         enddo
+           ! 3rd order one-sided equal gradient extrapolation
+           w(ix3^%3ixO^S,mag(:)) = 1.d0/3.d0*&
+                   (w(ix3-3^%3ixO^S,mag(:))&
+              -5.d0*w(ix3-2^%3ixO^S,mag(:))&
+              +7.d0*w(ix3-1^%3ixO^S,mag(:)))
+           !! 2nd order one-sided zero gradient extrapolation
+           !w(ix3^%3ixO^S,mag(:)) = 1.d0/3.d0*&
+           !       (-w(ix3-2^%3ixO^S,mag(:))&
+           !   +4.d0*w(ix3-1^%3ixO^S,mag(:)))
+         end do
        end if
        if(mhd_energy) then
          ixIM^L=ixO^L;
@@ -632,7 +666,6 @@ contains
            x(ixOmin3-1^%3ixO^S,3))-1.d0/(SRadius+x(ix3^%3ixO^S,3))))
          enddo
        end if
-       if(mhd_solve_eaux) w(ixO^S,paux_)=w(ixO^S,p_)
        call mhd_to_conserved(ixI^L,ixO^L,w,x)
      case default
       call mpistop("Special boundary is not defined for this region")
@@ -676,7 +709,6 @@ contains
     !! add global background heating bQ
     call getbQ(bQgrid,ixI^L,ixO^L,qtC,wCT,x)
     w(ixO^S,e_)=w(ixO^S,e_)+qdt*bQgrid(ixO^S)
-    if(mhd_solve_eaux) w(ixO^S,eaux_)=w(ixO^S,eaux_)+qdt*bQgrid(ixO^S)
     !! add localized heating lQ
     !if(iprob==2) then
     !  call getlQ(lQgrid,ixI^L,ixO^L,qtC,wCT,x)
@@ -745,7 +777,7 @@ contains
     integer, intent(inout) :: refine, coarsen
 
     ! fix the bottom layer to the highest level
-    if (any(x(ixO^S,3)<=xprobmin3+0.2d0)) then
+    if (block%is_physical_boundary(5)) then
       refine=1
       coarsen=-1
     endif

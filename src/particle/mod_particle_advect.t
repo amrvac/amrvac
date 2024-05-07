@@ -7,6 +7,10 @@ module mod_particle_advect
 
   public :: advect_init
   public :: advect_create_particles
+  integer, parameter :: Euler = 1, RK4=2, ARK4=3
+
+  ! Variables
+  public :: vp, rhop
 
 contains
 
@@ -14,11 +18,16 @@ contains
     use mod_global_parameters
     integer :: idir
 
+    ngridvars=0
     allocate(vp(ndir))
     do idir = 1, ndir
       vp(idir) = idir
     end do
-    ngridvars=ndir
+    ngridvars=ngridvars+ndir
+    if(ndefpayload>0) then
+      rhop=vp(ndir)+1
+      ngridvars=ngridvars+ndefpayload
+    end if
 
     particles_fill_gridvars => advect_fill_gridvars
 
@@ -26,7 +35,18 @@ contains
       call particles_define_additional_gridvars(ngridvars)
     end if
 
-    particles_integrate     => advect_integrate_particles
+    select case(integrator_type_particles)
+    case('Euler','euler')
+      integrator = Euler
+    case('RK4','Rk4','rk4')
+      integrator = RK4
+    case('ARK4','ARk4','Ark4','ark4')
+      integrator = ARK4
+    case default
+      integrator = ARK4
+    end select
+
+    particles_integrate  => advect_integrate_particles
 
   end subroutine advect_init
 
@@ -58,7 +78,7 @@ contains
           end do
         end do
         do n=1, num_particles
-          {^D&x(^D,n) = xprobmin^D + rrd(n+1,^D) * (xprobmax^D - xprobmin^D)\}
+          {^D&x(^D,n) = xprobmin^D + rrd(n,^D) * (xprobmax^D - xprobmin^D)\}
         end do
       else
         call usr_create_particles(num_particles, x, v, q, m, follow)
@@ -103,12 +123,15 @@ contains
         end do
         particle(n)%self%u(:) = 0.d0
         particle(n)%self%u(1:ndir) = v(1:ndir,n)
-        allocate(particle(n)%payload(npayload))
+
         ! Compute default and user-defined payloads
-        call advect_update_payload(igrid,ps(igrid)%w,pso(igrid)%w,ps(igrid)%x,x(:,n),v(:,n),q(n),m(n),defpayload,ndefpayload,0.d0)
-        particle(n)%payload(1:ndefpayload)=defpayload
+        allocate(particle(n)%payload(npayload))
+        if(ndefpayload>0) then
+          call advect_update_payload(igrid,x(:,n),v(:,n),q(n),m(n),defpayload,ndefpayload,0.d0)
+          particle(n)%payload(1:ndefpayload)=defpayload
+        end if
         if (associated(usr_update_payload)) then
-          call usr_update_payload(igrid,ps(igrid)%w,pso(igrid)%w,ps(igrid)%x,x(:,n),v(:,n),q(n),m(n),usrpayload,nusrpayload,0.d0)
+          call usr_update_payload(igrid,x(:,n),v(:,n),q(n),m(n),usrpayload,nusrpayload,0.d0)
           particle(n)%payload(ndefpayload+1:npayload)=usrpayload
         end if
       end if
@@ -125,23 +148,13 @@ contains
     integer                                   :: igrid, iigrid, idir
     double precision, dimension(ixG^T,1:nw)   :: w
 
+    ! Fill fluid velocity only
     do iigrid=1,igridstail; igrid=igrids(iigrid);
-
-      ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
-
       gridvars(igrid)%w(ixG^T,1:ngridvars) = 0.0d0
       w(ixG^T,1:nw) = ps(igrid)%w(ixG^T,1:nw)
       call phys_to_primitive(ixG^LL,ixG^LL,w,ps(igrid)%x)
-      ! fill with velocity:
       gridvars(igrid)%w(ixG^T,vp(:)) = w(ixG^T,iw_mom(:))
-
-      if(time_advance) then
-        gridvars(igrid)%wold(ixG^T,1:ngridvars) = 0.0d0
-        w(ixG^T,1:nw) = pso(igrid)%w(ixG^T,1:nw)
-        call phys_to_primitive(ixG^LL,ixG^LL,w,ps(igrid)%x)
-        gridvars(igrid)%wold(ixG^T,vp(:)) = w(ixG^T,iw_mom(:))
-      end if
-
+      gridvars(igrid)%w(ixG^T,rhop) = w(ixG^T,iw_rho)
     end do
 
   end subroutine advect_fill_gridvars
@@ -156,40 +169,57 @@ contains
     double precision, dimension(1:ndir) :: v, x
     double precision                 :: defpayload(ndefpayload)
     double precision                 :: usrpayload(nusrpayload)
-    double precision                 :: tloc, tlocnew, dt_p, h1
+    double precision                 :: tloc, tlocnew, dt_p, h1, tk
+    double precision, dimension(1:ndir) :: yk, k1, k2, k3, k4
     double precision,parameter       :: eps=1.0d-6, hmin=1.0d-8
     integer                          :: ipart, iipart, igrid
     integer                          :: nok, nbad, ierror
 
     do iipart=1,nparticles_active_on_mype
       ipart                   = particles_active_on_mype(iipart);
+      igrid                   = particle(ipart)%igrid
+      igrid_working           = igrid
       dt_p                    = advect_get_particle_dt(particle(ipart), end_time)
       particle(ipart)%self%dt = dt_p
 
-      igrid                   = particle(ipart)%igrid
-      igrid_working           = igrid
       tloc                    = particle(ipart)%self%time
       x(1:ndir)               = particle(ipart)%self%x(1:ndir)
       tlocnew                 = tloc+dt_p
 
       ! Position update
-      ! Simple forward Euler start
-      !call get_vec_advect(igrid,x,tloc,v,vp(1),vp(ndir))
-      !particle(ipart)%self%u(1:ndir) = v(1:ndir)
-      !particle(ipart)%self%x(1:ndir) = particle(ipart)%self%x(1:ndir) &
-      !     + dt_p * v(1:ndir)
-      ! Simple forward Euler end
+      select case (integrator)
+      case (Euler) 
+        ! Simple forward Euler 
+        call derivs_advect(tloc,x,v)
+        particle(ipart)%self%x(1:ndir) = particle(ipart)%self%x(1:ndir) + dt_p * v(1:ndir)
 
-      ! Adaptive stepwidth RK4:
-      h1 = dt_p/2.0d0
-      call odeint(x,ndir,tloc,tlocnew,eps,h1,hmin,nok,nbad,derivs_advect,rkqs,ierror)
-
-      if (ierror /= 0) then
-        print *, "odeint returned error code", ierror
-        print *, "1 means hmin too small, 2 means MAXSTP exceeded"
-        print *, "Having a problem with particle", iipart
-      end if
-
+      case (RK4)
+        ! Runge-Kutta order 4
+        tk = tloc
+        yk = x
+        call derivs_advect(tk,yk,k1)
+        tk = tloc + dt_p/2.d0
+        yk = x + dt_p*k1/2.d0
+        call derivs_advect(tk,yk,k2)
+        tk = tloc + dt_p/2.d0
+        yk = x + dt_p*k2/2.d0
+        call derivs_advect(tk,yk,k3)
+        tk = tloc + dt_p
+        yk = x + dt_p*k3
+        call derivs_advect(tloc,yk,k4)
+        x = x + dt_p/6.d0*(k1 + 2.d0*k2 + 2.d0*k3 + k4)
+      
+      case (ARK4)
+        ! Adaptive stepwidth RK4:
+        h1 = dt_p/2.0d0
+        call odeint(x,ndir,tloc,tlocnew,eps,h1,hmin,nok,nbad,derivs_advect,rkqs,ierror)
+  
+        if (ierror /= 0) then
+          print *, "odeint returned error code", ierror
+          print *, "1 means hmin too small, 2 means MAXSTP exceeded"
+          print *, "Having a problem with particle", iipart
+        end if
+      end select
       particle(ipart)%self%x(1:ndir) = x(1:ndir)
 
       ! Velocity update
@@ -200,23 +230,24 @@ contains
       particle(ipart)%self%time = tlocnew
 
       ! Update payload
-      call advect_update_payload(igrid,ps(igrid)%w,pso(igrid)%w,ps(igrid)%x,x,v,0.d0,0.d0,defpayload,ndefpayload,tlocnew)
-      particle(ipart)%payload(1:ndefpayload) = defpayload
-      if (associated(usr_update_payload)) then
-        call usr_update_payload(igrid,ps(igrid)%w,pso(igrid)%w,ps(igrid)%x,x,v,0.d0,0.d0,usrpayload,nusrpayload,tlocnew)
+      if(ndefpayload>0) then
+        call advect_update_payload(igrid,x,v,0.d0,0.d0,defpayload,ndefpayload,tlocnew)
+        particle(ipart)%payload(1:ndefpayload) = defpayload
       end if
-      particle(ipart)%payload(ndefpayload+1:npayload) = usrpayload
+      if (associated(usr_update_payload)) then
+        call usr_update_payload(igrid,x,v,0.d0,0.d0,usrpayload,nusrpayload,tlocnew)
+        particle(ipart)%payload(ndefpayload+1:npayload) = usrpayload
+      end if
 
     end do
 
   end subroutine advect_integrate_particles
 
   !> Payload update
-  subroutine advect_update_payload(igrid,w,wold,xgrid,xpart,upart,qpart,mpart,mypayload,mynpayload,particle_time)
+  subroutine advect_update_payload(igrid,xpart,upart,qpart,mpart,mypayload,mynpayload,particle_time)
     use mod_global_parameters
     integer, intent(in)           :: igrid,mynpayload
-    double precision, intent(in)  :: w(ixG^T,1:nw),wold(ixG^T,1:nw)
-    double precision, intent(in)  :: xgrid(ixG^T,1:ndim),xpart(1:ndir),upart(1:ndir),qpart,mpart,particle_time
+    double precision, intent(in)  :: xpart(1:ndir),upart(1:ndir),qpart,mpart,particle_time
     double precision, intent(out) :: mypayload(mynpayload)
     double precision              :: rho, rho1, rho2, td
 
@@ -224,12 +255,12 @@ contains
 
     ! Payload 1 is density
     if (mynpayload > 0 ) then
-      if (.not.time_advance) then
-        call interpolate_var(igrid,ixG^LL,ixM^LL,w(ixG^T,iw_rho),xgrid,xpart,rho)
-      else
-        call interpolate_var(igrid,ixG^LL,ixM^LL,wold(ixG^T,iw_rho),xgrid,xpart,rho1)
-        call interpolate_var(igrid,ixG^LL,ixM^LL,w(ixG^T,iw_rho),xgrid,xpart,rho2)
+      if (time_advance) then
+        call interpolate_var(igrid,ixG^LL,ixM^LL,gridvars(igrid)%wold(ixG^T,rhop),ps(igrid)%x,xpart,rho1)
+        call interpolate_var(igrid,ixG^LL,ixM^LL,gridvars(igrid)%w(ixG^T,rhop),ps(igrid)%x,xpart,rho2)
         rho = rho1 * (1.0d0 - td) + rho2 * td
+      else
+        call interpolate_var(igrid,ixG^LL,ixM^LL,gridvars(igrid)%w(ixG^T,rhop),ps(igrid)%x,xpart,rho)
       end if
       mypayload(1) = rho * w_convert_factor(1)
     end if
@@ -238,25 +269,31 @@ contains
 
   subroutine derivs_advect(t_s,x,dxdt)
     use mod_global_parameters
+    use mod_geometry
     double precision :: t_s, x(ndir)
     double precision :: dxdt(ndir)
 
     double precision :: v(ndir)
 
     call get_vec_advect(igrid_working,x,t_s,v,vp(1),vp(ndir))
+    select case (coordinate)
+    case (cylindrical)
+      v(phi_) = v(phi_)/x(r_)
+    case (spherical)
+      v(2) = v(2)/x(1)
+      v(3) = v(3)/(x(1)*sin(x(2)))
+    end select
     dxdt(:) = v(:)
 
   end subroutine derivs_advect
 
-  pure function advect_get_particle_dt(partp, end_time) result(dt_p)
+  function advect_get_particle_dt(partp, end_time) result(dt_p)
     use mod_global_parameters
-    use mod_geometry
     type(particle_ptr), intent(in) :: partp
     double precision, intent(in)   :: end_time
     double precision               :: dt_p
-    integer                        :: ipart, iipart, nout
-    double precision               :: tout, dt_cfl
-    double precision               :: v(1:ndir)
+    integer                        :: ipart, iipart, idims
+    double precision               :: v(1:ndir),dtdims(1:ndim)
 
     if (const_dt_particles > 0) then
       dt_p = const_dt_particles
@@ -264,27 +301,14 @@ contains
     end if
 
     ! make sure we step only one cell at a time:
-    v(1:ndir)=abs(partp%self%u(1:ndir))
+    call derivs_advect(partp%self%time,partp%self%x,v)
+    do idims=1,ndim
+      dtdims(idims)=minval(ps(partp%igrid)%ds(ixM^T,idims))/(max(abs(v(idims)),smalldouble))
+    end do
 
-    ! convert to angular velocity:
-    if(coordinate ==cylindrical.and.phi_>0) v(phi_) = abs(v(phi_)/partp%self%x(r_))
+    dt_p = particles_cfl*minval(dtdims)
 
-    dt_cfl = min({rnode(rpdx^D_,partp%igrid)/v(^D)},bigdouble)
-
-    if(coordinate ==cylindrical.and.phi_>0) then
-      ! phi-momentum leads to radial velocity:
-      if(phi_ .gt. ndim) dt_cfl = min(dt_cfl, &
-           sqrt(rnode(rpdx1_,partp%igrid)/partp%self%x(r_)) &
-           / v(phi_))
-      ! limit the delta phi of the orbit (just for aesthetic reasons):
-      dt_cfl = min(dt_cfl,0.1d0/v(phi_))
-      ! take some care at the axis:
-      dt_cfl = min(dt_cfl,(partp%self%x(r_)+smalldouble)/v(r_))
-    end if
-
-    dt_p = dt_cfl
-
-    ! Make sure we don't advance beyond end_time
+    ! Make sure we do not advance beyond end_time
     call limit_dt_endtime(end_time - partp%self%time, dt_p)
 
   end function advect_get_particle_dt

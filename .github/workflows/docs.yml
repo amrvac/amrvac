@@ -2,7 +2,7 @@ name: docs
 
 on:
   push:
-    branches: [ master ]
+    branches: [ master, amrvac3.2 ]
 
 jobs:
   generate:
@@ -21,15 +21,21 @@ jobs:
         sudo apt-get install doxygen
         sudo apt-get install graphviz
 
+    - name: Modify docs file (dev)
+      if: ${{ contains(github.ref, 'refs/heads/amrvac3.2') }}
+      run: |
+        cd doc
+        python dev_modify_doxy.py
+
     - name: Generate documentation
       run: |
         cd doc
         doxygen Doxyfile
         cp figmovdir/videos-demo/*.mp4 html/
 
-
     - name: Deploy website
       uses: peaceiris/actions-gh-pages@v3
+      if: ${{ contains(github.ref, 'refs/heads/master') }}
       with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_branch: gh-pages
@@ -37,3 +43,15 @@ jobs:
           cname: amrvac.org
           enable_jekyll: false
           full_commit_message: "deploy ${{ github.sha }}: ${{ github.event.head_commit.message }}"
+
+    - name: Deploy dev website
+      uses: peaceiris/actions-gh-pages@v3
+      if: ${{ contains(github.ref, 'refs/heads/amrvac3.2') }}
+      with:
+          deploy_key: ${{ secrets.DOCS_DEV_ACTIONS_DEPLOY_KEY }}
+          external_repository: amrvac/dev.amrvac.org
+          publish_branch: main
+          publish_dir: doc/html
+          cname: dev.amrvac.org
+          enable_jekyll: false
+          full_commit_message: "dev: deploy amrvac/amrvac@${{ github.sha }}"

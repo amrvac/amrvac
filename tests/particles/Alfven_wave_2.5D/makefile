@@ -2,7 +2,7 @@ ifndef AMRVAC_DIR
 $(error AMRVAC_DIR is not set)
 endif
 
-ARCH = default
+ARCH ?= default
 NDIM := 2
 
 # By exporting these can be used when building libamrvac
@@ -22,7 +22,9 @@ LIBS := amrvac
 
 .PHONY: all clean allclean force hdr
 
-all: hdr amrvac
+
+
+all: | hdr amrvac
 
 # copy amrvac.h (in order to use the std preprocessor in the main code files, e.g. twofl); create the file if it does not exist
 hdr:
@@ -31,6 +33,7 @@ ifeq ("$(wildcard amrvac.h)","")
 endif
 	@mkdir -p $(LIB_DIR)	# Prevent error message
 	rsync -c amrvac.h $(LIB_DIR)/amrvac.h
+
 
 # Include architecture and compilation rules
 include $(AMRVAC_DIR)/arch/$(ARCH).defs
@@ -69,3 +72,4 @@ amrvac: mod_usr.o amrvac.o
 
 amrvac.o mod_usr.o: $(LIB_AMRVAC)
 amrvac.o: mod_usr.o
+mod_usr.o: mod_usr.f amrvac.h

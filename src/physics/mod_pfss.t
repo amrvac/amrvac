@@ -51,6 +51,7 @@ contains
 
   subroutine harm_coef(mapname)
     use mod_global_parameters
+    use mod_comm_lib, only: mpistop
 
     double precision, allocatable :: b_r0(:,:)
     double precision, allocatable :: theta(:),phi(:),cfwm(:)

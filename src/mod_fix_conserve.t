@@ -651,7 +651,7 @@ module mod_fix_conserve
      use mod_global_parameters
      
      integer, intent(in)          :: igrid, ixI^L, idim^LIM
-     double precision, intent(in) :: fE(ixI^S,7-2*ndim:3)
+     double precision, intent(in) :: fE(ixI^S,sdim:3)
      
      integer :: idims, idir, iside, i^D
      integer :: pi^D, mi^D, ph^D, mh^D ! To detect corners
@@ -699,7 +699,7 @@ module mod_fix_conserve
 
      integer                      :: igrid,ixI^L,idims,iside
      logical                      :: restrict
-     double precision, intent(in) :: fE(ixI^S,7-2*ndim:3)
+     double precision, intent(in) :: fE(ixI^S,sdim:3)
 
      integer                      :: idir1,idir2
      integer                      :: ixE^L,ixF^L{^IFTHREED, jxF^L,}, nx^D,nxCo^D
@@ -1112,8 +1112,8 @@ module mod_fix_conserve
 
      integer            :: idim1,idim2,idir,middle^D
      integer            :: ixfEC^L,ixEC^L
-     double precision   :: fE(ixG^T,7-2*ndim:3) !!!!!!!!
-     double precision   :: circ(ixG^T,1:ndim) !!!!!!!!
+     double precision   :: fE(ixG^T,sdim:3)
+     double precision   :: circ(ixG^T,1:ndim)
      integer            :: ix^L,hx^L,ixC^L,hxC^L ! Indices for edges
 
      ! ixF -> Indices for the faces, depends on the field component
@@ -1137,7 +1137,7 @@ module mod_fix_conserve
      circ=zero
      do idim1=1,ndim
         do idim2=1,ndim
-           do idir=7-2*ndim,3
+           do idir=sdim,3
              if (lvc(idim1,idim2,idir)==0) cycle
              ! Assemble indices
              ixC^L=ixF^L(idim1);

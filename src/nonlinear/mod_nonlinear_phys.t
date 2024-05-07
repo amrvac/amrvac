@@ -219,7 +219,7 @@ contains
 
   end subroutine nonlinear_get_flux
 
-  subroutine nonlinear_add_source_geom(qdt, ixI^L, ixO^L, wCT, w, x)
+  subroutine nonlinear_add_source_geom(qdt, dtfactor, ixI^L, ixO^L, wCT, w, x)
 
     ! Add geometrical source terms to w
     ! There are no geometrical source terms 
@@ -227,22 +227,21 @@ contains
     use mod_global_parameters
 
     integer, intent(in) :: ixI^L, ixO^L
-    double precision, intent(in) :: qdt, x(ixI^S, 1:^ND)
+    double precision, intent(in) :: qdt, dtfactor, x(ixI^S, 1:^ND)
     double precision, intent(inout) :: wCT(ixI^S, 1:nw), w(ixI^S, 1:nw)
 
   end subroutine nonlinear_add_source_geom
 
-  subroutine nonlinear_add_source(qdt,ixI^L,ixO^L,wCT,w,x,qsourcesplit,active,wCTprim)
+  subroutine nonlinear_add_source(qdt, dtfactor, ixI^L,ixO^L,wCT,wCTprim,w,x,qsourcesplit,active)
     use mod_global_parameters
     use mod_kdv, only: kdv_add_source
 
     integer, intent(in)             :: ixI^L, ixO^L
-    double precision, intent(in)    :: qdt
-    double precision, intent(in)    :: wCT(ixI^S, 1:nw), x(ixI^S, 1:ndim)
+    double precision, intent(in)    :: qdt,dtfactor
+    double precision, intent(in)    :: wCT(ixI^S, 1:nw),wCTprim(ixI^S,1:nw), x(ixI^S, 1:ndim)
     double precision, intent(inout) :: w(ixI^S, 1:nw)
     logical, intent(in)             :: qsourcesplit
     logical, intent(inout)          :: active
-    double precision, intent(in), optional :: wCTprim(ixI^S, 1:nw)
 
     if(kdv_source_term) then
       call kdv_add_source(qdt,ixI^L,ixO^L,wCT,w,x,qsourcesplit,active)

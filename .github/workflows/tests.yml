@@ -2,9 +2,9 @@ name: tests
 
 on:
   push:
-    branches: [ master, amrvac3.1 ]
+    branches: [ master, amrvac3.2 ]
   pull_request:
-    branches: [ master, amrvac3.1 ]
+    branches: [ master, amrvac3.2 ]
 
 
 jobs:
@@ -127,11 +127,14 @@ jobs:
           wget https://apt.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS.PUB
           sudo apt-key add GPG-PUB-KEY-INTEL-SW-PRODUCTS.PUB
           rm GPG-PUB-KEY-INTEL-SW-PRODUCTS.PUB
-          sudo add-apt-repository "deb https://apt.repos.intel.com/oneapi all main"
+          sudo add-apt-repository  -y "deb https://apt.repos.intel.com/oneapi all main"
       - name: install Intel oneAPI
         run: |
-          sudo apt-get install intel-oneapi-compiler-fortran
+          sudo apt update 
+          sudo apt-get -y upgrade 
           sudo apt-get install intel-oneapi-compiler-dpcpp-cpp-and-cpp-classic
+          #sudo apt-get install intel-oneapi-dpcpp-cpp
+          sudo apt-get install intel-oneapi-compiler-fortran
           sudo apt-get install intel-oneapi-mpi
           sudo apt-get install intel-oneapi-mpi-devel
           source /opt/intel/oneapi/setvars.sh
@@ -139,9 +142,9 @@ jobs:
       - name: check compiler versions
         run: |
           ${FC} --version
-          ${CC} --version
+          #${CC} --version
           mpirun --version
-          mpiifort --version
+          mpiifx --version
       - name: check code dependencies
         run: |
           cd src

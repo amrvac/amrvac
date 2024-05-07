@@ -34,12 +34,13 @@
 !>    (m)hd_thermal_conduction=.true.
 !> 3. in the tc_list of amrvac.par :
 !>    tc_perpendicular=.true.  ! (default .false.) turn on thermal conduction perpendicular to magnetic field
-!>    tc_saturate=.false.  ! (default .true. ) turn off thermal conduction saturate effect
+!>    tc_saturate=.true.  ! (default .false. ) turn on thermal conduction saturate effect
 !>    tc_slope_limiter='MC' ! choose limiter for slope-limited anisotropic thermal conduction in MHD
 
 module mod_thermal_conduction
   use mod_global_parameters, only: std_len
   use mod_geometry
+  use mod_comm_lib, only: mpistop
   implicit none
 
     !> The adiabatic index
@@ -79,14 +80,16 @@ module mod_thermal_conduction
     double precision :: tc_k_perp
 
     !> Name of slope limiter for transverse component of thermal flux
-    character(len=std_len)  :: tc_slope_limiter
+    integer :: tc_slope_limiter
+
     !> Logical switch for test constant conductivity
     logical :: tc_constant=.false.
+
     !> Calculate thermal conduction perpendicular to magnetic field (.true.) or not (.false.)
     logical :: tc_perpendicular=.false.
 
     !> Consider thermal conduction saturation effect (.true.) or not (.false.)
-    logical :: tc_saturate=.true.
+    logical :: tc_saturate=.false.
     ! END the following are read from param file or set in tc_read_hd_params or tc_read_mhd_params
   end type tc_fluid
 
@@ -100,8 +103,6 @@ module mod_thermal_conduction
 
 contains
 
-
-
   subroutine tc_init_params(phys_gamma)
     use mod_global_parameters
     double precision, intent(in) :: phys_gamma
@@ -109,24 +110,22 @@ contains
     tc_gamma_1=phys_gamma-1d0
   end subroutine tc_init_params
 
-
   !> Init  TC coeffiecients: MHD case
   subroutine tc_get_mhd_params(fl,read_mhd_params)
-
     use mod_global_parameters
 
     interface
-    subroutine read_mhd_params(fl)
-      use mod_global_parameters, only: unitpar,par_files
-      import tc_fluid
-      type(tc_fluid), intent(inout) :: fl
+      subroutine read_mhd_params(fl)
+        use mod_global_parameters, only: unitpar,par_files
+        import tc_fluid
+        type(tc_fluid), intent(inout) :: fl
 
-    end subroutine read_mhd_params
+      end subroutine read_mhd_params
     end interface
 
     type(tc_fluid), intent(inout) :: fl
 
-    fl%tc_slope_limiter='MC'
+    fl%tc_slope_limiter=1
 
     fl%tc_k_para=0.d0
 
@@ -157,7 +156,6 @@ contains
     !> Read tc module parameters from par file: MHD case
 
   end subroutine tc_get_mhd_params
-
 
   subroutine tc_get_hd_params(fl,read_hd_params)
     use mod_global_parameters
@@ -200,58 +198,79 @@ contains
     double precision, intent(in) :: w(ixI^S,1:nw)
     double precision :: dtnew
 
-    double precision :: dxinv(1:ndim),mf(ixI^S,1:ndir)
-    double precision :: tmp2(ixI^S),tmp(ixI^S),Te(ixI^S),B2(ixI^S)
+    double precision :: mf(ixO^S,1:ndim),Te(ixI^S),B2(ixI^S),gradT(ixI^S)
+    double precision :: tmp2(ixO^S),tmp(ixO^S),hfs(ixO^S)
     double precision :: dtdiff_tcond,maxtmp2
-    integer          :: idim,ix^D
-
-    ^D&dxinv(^D)=one/dx^D;
+    integer          :: idims
 
     !temperature
-    call fl%get_temperature_from_conserved(w,x,ixI^L,ixO^L,Te)
+    call fl%get_temperature_from_conserved(w,x,ixI^L,ixI^L,Te)
+
+    ! B
+    if(B0field) then
+      mf(ixO^S,1:ndim)=w(ixO^S,iw_mag(1:ndim))+block%B0(ixO^S,1:ndim,0)
+    else
+      mf(ixO^S,1:ndim)=w(ixO^S,iw_mag(1:ndim))
+    end if
+    ! B**2
+    tmp=sum(mf**2,dim=ndim+1)
+    ! B_i**2/B**2
+    where(tmp(ixO^S)/=0.d0)
+      ^D&mf(ixO^S,^D)=mf(ixO^S,^D)**2/tmp(ixO^S);
+    elsewhere
+      ^D&mf(ixO^S,^D)=1.d0;
+    end where
+
+    dtnew=bigdouble
+    ! B2 is now density
+    call fl%get_rho(w,x,ixI^L,ixO^L,B2)
 
     !tc_k_para_i
     if(fl%tc_constant) then
       tmp(ixO^S)=fl%tc_k_para
     else
-      call fl%get_rho(w,x,ixI^L,ixO^L,tmp2)
-      tmp(ixO^S)=fl%tc_k_para*dsqrt(Te(ixO^S)**5)/tmp2(ixO^S)
-    end if
-
-    ! B
-    if(B0field) then
-      mf(ixO^S,:)=w(ixO^S,iw_mag(:))+block%B0(ixO^S,:,0)
-    else
-      mf(ixO^S,:)=w(ixO^S,iw_mag(:))
-    end if
-    ! B^-2
-    B2(ixO^S)=sum(mf(ixO^S,:)**2,dim=ndim+1)
-    ! B_i**2/B**2
-    where(B2(ixO^S)/=0.d0)
-      ^D&mf(ixO^S,^D)=mf(ixO^S,^D)**2/B2(ixO^S);
-    elsewhere
-      ^D&mf(ixO^S,^D)=1.d0;
-    end where
-
-    if(fl%tc_saturate) B2(ixO^S)=22.d0*dsqrt(Te(ixO^S))
-    dtnew=bigdouble
-    do idim=1,ndim
-      tmp2(ixO^S)=tmp(ixO^S)*mf(ixO^S,idim)
       if(fl%tc_saturate) then
-        where(tmp2(ixO^S)>B2(ixO^S))
-          tmp2(ixO^S)=B2(ixO^S)
-        end where
+        ! Kannan 2016 MN 458, 410
+        ! 3^1.5*kB^2/(4*sqrt(pi)*e^4)
+        ! l_mfpe=3.d0**1.5d0*kB_cgs**2/(4.d0*sqrt(dpi)*e_cgs**4*37.d0)=7093.9239487765044d0
+        tmp2(ixO^S)=Te(ixO^S)**2/B2(ixO^S)*7093.9239487765044d0*unit_temperature**2/(unit_numberdensity*unit_length)
+        hfs=0.d0
+        do idims=1,ndim
+          call gradient(Te,ixI^L,ixO^L,idims,gradT)
+          hfs(ixO^S)=hfs(ixO^S)+gradT(ixO^S)*sqrt(mf(ixO^S,idims))
+        end do
+        ! kappa=kappa_Spizer/(1+4.2*l_mfpe/(T/|gradT.b|))
+        tmp(ixO^S)=fl%tc_k_para*dsqrt(Te(ixO^S)**5)/(1.d0+4.2d0*tmp2(ixO^S)*dabs(hfs(ixO^S))/Te(ixO^S))
+      else
+        ! kappa=kappa_Spizer
+        tmp(ixO^S)=fl%tc_k_para*dsqrt(Te(ixO^S)**5)
       end if
-      maxtmp2=maxval(tmp2(ixO^S))
-      if(maxtmp2==0.d0) maxtmp2=smalldouble
-      ! dt< dx_idim**2/((gamma-1)*tc_k_para_i/rho*B_i**2/B**2)
-      dtdiff_tcond=1.d0/tc_gamma_1/(maxtmp2*dxinv(idim)**2)
-      ! limit the time step
-      dtnew=min(dtnew,dtdiff_tcond)
-    end do
+    end if
+
+    if(slab_uniform) then
+      do idims=1,ndim
+        ! approximate thermal conduction flux: tc_k_para_i/rho/dx*B_i**2/B**2
+        tmp2(ixO^S)=tmp(ixO^S)*mf(ixO^S,idims)/(B2(ixO^S)*dxlevel(idims))
+        maxtmp2=maxval(tmp2(ixO^S))
+        ! dt< dx_idim**2/((gamma-1)*tc_k_para_i/rho*B_i**2/B**2)
+        dtdiff_tcond=dxlevel(idims)/(tc_gamma_1*maxtmp2+smalldouble)
+        ! limit the time step
+        dtnew=min(dtnew,dtdiff_tcond)
+      end do
+    else
+      do idims=1,ndim
+        ! approximate thermal conduction flux: tc_k_para_i/rho/dx*B_i**2/B**2
+        tmp2(ixO^S)=tmp(ixO^S)*mf(ixO^S,idims)/(B2(ixO^S)*block%ds(ixO^S,idims))
+        maxtmp2=maxval(tmp2(ixO^S)/block%ds(ixO^S,idims))
+        ! dt< dx_idim**2/((gamma-1)*tc_k_para_i/rho*B_i**2/B**2)
+        dtdiff_tcond=1.d0/(tc_gamma_1*maxtmp2+smalldouble)
+        ! limit the time step
+        dtnew=min(dtnew,dtdiff_tcond)
+      end do
+    end if
     dtnew=dtnew/dble(ndim)
 
-  end  function get_tc_dt_mhd
+  end function get_tc_dt_mhd
 
   !> anisotropic thermal conduction with slope limited symmetric scheme
   !> Sharma 2007 Journal of Computational Physics 227, 123
@@ -329,7 +348,7 @@ contains
 
   subroutine set_source_tc_mhd(ixI^L,ixO^L,w,x,fl,qvec,rho,Te,alpha)
     use mod_global_parameters
-    use mod_fix_conserve
+
     integer, intent(in) :: ixI^L, ixO^L
     double precision, intent(in) ::  x(ixI^S,1:ndim)
     double precision, intent(in) ::  w(ixI^S,1:nw)
@@ -341,29 +360,31 @@ contains
     !! qd store the heat conduction energy changing rate
     double precision :: qd(ixI^S)
 
-    double precision, dimension(ixI^S,1:ndir) :: mf,Bc,Bcf
+    double precision, dimension(ixI^S,1:ndim) :: mf,Bc,Bcf
     double precision, dimension(ixI^S,1:ndim) :: gradT
     double precision, dimension(ixI^S) :: ka,kaf,ke,kef,qdd,qe,Binv,minq,maxq,Bnorm
     double precision, allocatable, dimension(:^D&,:,:) :: fluxall
     integer, dimension(ndim) :: lowindex
-    integer :: idims,idir,ix^D,ix^L,ixC^L,ixA^L,ixB^L
+    integer :: idims,idir,ix^D,ix^L,ixC^L,ixA^L,ixB^L,ixA^D,ixB^D
 
     ix^L=ixO^L^LADD1;
 
     ! T gradient at cell faces
     ! B vector
     if(B0field) then
-      mf(ixI^S,:)=w(ixI^S,iw_mag(:))+block%B0(ixI^S,:,0)
+      mf(ixI^S,1:ndim)=w(ixI^S,iw_mag(1:ndim))+block%B0(ixI^S,1:ndim,0)
     else
-      mf(ixI^S,:)=w(ixI^S,iw_mag(:))
+      mf(ixI^S,1:ndim)=w(ixI^S,iw_mag(1:ndim))
     end if
     ! |B|
-    Binv(ix^S)=dsqrt(sum(mf(ix^S,:)**2,dim=ndim+1))
-    where(Binv(ix^S)/=0.d0)
-      Binv(ix^S)=1.d0/Binv(ix^S)
-    elsewhere
-      Binv(ix^S)=bigdouble
-    end where
+    Binv=dsqrt(sum(mf**2,dim=ndim+1))
+    {do ix^DB=ixmin^DB,ixmax^DB\}
+      if(Binv(ix^D)/=0.d0) then
+        Binv(ix^D)=1.d0/Binv(ix^D)
+      else
+        Binv(ix^D)=bigdouble
+      end if
+    {end do\}
     ! b unit vector: magnetic field direction vector
     do idims=1,ndim
       mf(ix^S,idims)=mf(ix^S,idims)*Binv(ix^S)
@@ -379,7 +400,6 @@ contains
     {end do\}
     Bc(ixC^S,1:ndim)=Bc(ixC^S,1:ndim)*0.5d0**ndim
     ! T gradient at cell faces
-    gradT=0.d0
     do idims=1,ndim
       ixBmin^D=ixmin^D;
       ixBmax^D=ixmax^D-kr(idims,^D);
@@ -397,9 +417,11 @@ contains
       ! conductivity at cell center
       if(phys_trac) then
         minq(ix^S)=Te(ix^S)
-        where(minq(ix^S) < block%wextra(ix^S,fl%Tcoff_))
-          minq(ix^S)=block%wextra(ix^S,fl%Tcoff_)
-        end where
+       {do ix^DB=ixmin^DB,ixmax^DB\}
+          if(minq(ix^D) < block%wextra(ix^D,fl%Tcoff_)) then
+            minq(ix^D)=block%wextra(ix^D,fl%Tcoff_)
+          end if
+       {end do\}
         minq(ix^S)=fl%tc_k_para*sqrt(minq(ix^S)**5)
       else
         minq(ix^S)=fl%tc_k_para*sqrt(Te(ix^S)**5)
@@ -423,15 +445,17 @@ contains
         {end do\}
         ! cell corner conductivity: k_parallel-k_perpendicular
         ke(ixC^S)=0.5d0**ndim*ke(ixC^S)
-        where(ke(ixC^S)<ka(ixC^S))
-          ka(ixC^S)=ka(ixC^S)-ke(ixC^S)
-        elsewhere
-          ka(ixC^S)=0.d0
-          ke(ixC^S)=ka(ixC^S)
-        end where
+       {do ix^DB=ixCmin^DB,ixCmax^DB\}
+          if(ke(ix^D)<ka(ix^D)) then
+            ka(ix^D)=ka(ix^D)-ke(ix^D)
+          else
+            ke(ix^D)=ka(ix^D)
+            ka(ix^D)=0.d0
+          end if
+       {end do\}
       end if
     end if
-    if(fl%tc_slope_limiter=='no') then
+    if(fl%tc_slope_limiter==0) then
       ! calculate thermal conduction flux with symmetric scheme
       do idims=1,ndim
         !qd corner values
@@ -447,7 +471,10 @@ contains
         qvec(ixC^S,idims)=qd(ixC^S)*0.5d0**(ndim-1)
       end do
       ! b grad T at cell corner
-      qd(ixC^S)=sum(qvec(ixC^S,1:ndim)*Bc(ixC^S,1:ndim),dim=ndim+1)
+      qd(ixC^S)=0.d0
+      do idims=1,ndim
+       qd(ixC^S)=qvec(ixC^S,idims)*Bc(ixC^S,idims)+qd(ixC^S)
+      end do
       do idims=1,ndim
         ! TC flux at cell corner
         gradT(ixC^S,idims)=ka(ixC^S)*Bc(ixC^S,idims)*qd(ixC^S)
@@ -536,11 +563,14 @@ contains
            if({ ix^D==0 .and. ^D==idims | .or.}) then
              ixBmin^D=ixAmin^D-ix^D;
              ixBmax^D=ixAmax^D-ix^D;
-             where(qd(ixB^S)<=minq(ixA^S))
-               qd(ixB^S)=minq(ixA^S)
-             elsewhere(qd(ixB^S)>=maxq(ixA^S))
-               qd(ixB^S)=maxq(ixA^S)
-             end where
+            {do ixA^DB=ixAmin^DB,ixAmax^DB
+               ixB^DB=ixA^DB-ix^DB\}
+               if(qd(ixB^D)<=minq(ixA^D)) then
+                 qd(ixB^D)=minq(ixA^D)
+               else if(qd(ixB^D)>=maxq(ixA^D)) then
+                 qd(ixB^D)=maxq(ixA^D)
+               end if 
+            {end do\}
              qvec(ixA^S,idims)=qvec(ixA^S,idims)+Bc(ixB^S,idims)**2*qd(ixB^S)
              if(fl%tc_perpendicular) qe(ixA^S)=qe(ixA^S)+qd(ixB^S)
            end if
@@ -558,20 +588,15 @@ contains
           qvec(ixA^S,idims)=qvec(ixA^S,idims)+kaf(ixA^S)*Bnorm(ixA^S)*Bcf(ixA^S,idir)*qd(ixA^S)
         end do
 
-        ! consider magnetic null point
-        !where(Binv(ixA^S)==0.d0)
-        !  qvec(ixA^S,idims)=tc_k_para*(0.5d0*(Te(ixA^S)+Te(ixB^S)))**2.5d0*gradT(ixA^S,idims)
-        !end where
-
         if(fl%tc_saturate) then
           ! consider saturation (Cowie and Mckee 1977 ApJ, 211, 135)
-          ! unsigned saturated TC flux = 5 phi rho c**3, c is isothermal sound speed
+          ! unsigned saturated TC flux = 5 phi rho c**3, c=sqrt(p/rho) is isothermal sound speed, phi=1.1
           ixB^L=ixA^L+kr(idims,^D);
           qd(ixA^S)=2.75d0*(rho(ixA^S)+rho(ixB^S))*dsqrt(0.5d0*(Te(ixA^S)+Te(ixB^S)))**3*dabs(Bnorm(ixA^S))
          {do ix^DB=ixAmin^DB,ixAmax^DB\}
             if(dabs(qvec(ix^D,idims))>qd(ix^D)) then
-        !      write(*,*) 'it',it,qvec(ix^D,idims),qd(ix^D),' TC saturated at ',&
-        !      x(ix^D,:),' rho',rho(ix^D),' Te',Te(ix^D)
+              !write(*,*) 'it',it,qvec(ix^D,idims),qd(ix^D),' TC saturated at ',&
+              !x(ix^D,:),' rho',rho(ix^D),' Te',Te(ix^D)
               qvec(ix^D,idims)=sign(1.d0,qvec(ix^D,idims))*qd(ix^D)
             end if
          {end do\}
@@ -586,7 +611,7 @@ contains
     integer, intent(in) :: ixI^L, ixO^L, idims, pm
     double precision, intent(in) :: f(ixI^S)
     double precision :: lf(ixI^S)
-    character(len=*), intent(in)  :: tc_slope_limiter
+    integer, intent(in)  :: tc_slope_limiter
 
     double precision :: signf(ixI^S)
     integer :: ixB^L
@@ -594,21 +619,21 @@ contains
     ixB^L=ixO^L+pm*kr(idims,^D);
     signf(ixO^S)=sign(1.d0,f(ixO^S))
     select case(tc_slope_limiter)
-     case('minmod')
-       ! minmod limiter
-       lf(ixO^S)=signf(ixO^S)*max(0.d0,min(abs(f(ixO^S)),signf(ixO^S)*f(ixB^S)))
-     case ('MC')
-       ! montonized central limiter Woodward and Collela limiter (eq.3.51h), a factor of 2 is pulled out
+     case(1)
+       ! 'MC' montonized central limiter Woodward and Collela limiter (eq.3.51h), a factor of 2 is pulled out
        lf(ixO^S)=two*signf(ixO^S)* &
             max(zero,min(dabs(f(ixO^S)),signf(ixO^S)*f(ixB^S),&
             signf(ixO^S)*quarter*(f(ixB^S)+f(ixO^S))))
-     case ('superbee')
-       ! Roes superbee limiter (eq.3.51i)
+     case(2)
+       ! 'minmod' limiter
+       lf(ixO^S)=signf(ixO^S)*max(0.d0,min(abs(f(ixO^S)),signf(ixO^S)*f(ixB^S)))
+     case(3)
+       ! 'superbee' Roes superbee limiter (eq.3.51i)
        lf(ixO^S)=signf(ixO^S)* &
             max(zero,min(two*dabs(f(ixO^S)),signf(ixO^S)*f(ixB^S)),&
             min(dabs(f(ixO^S)),two*signf(ixO^S)*f(ixB^S)))
-     case ('koren')
-       ! Barry Koren Right variant
+     case(4)
+       ! 'koren' Barry Koren Right variant
        lf(ixO^S)=signf(ixO^S)* &
             max(zero,min(two*dabs(f(ixO^S)),two*signf(ixO^S)*f(ixB^S),&
             (two*f(ixB^S)*signf(ixO^S)+dabs(f(ixO^S)))*third))
@@ -671,31 +696,51 @@ contains
     type(tc_fluid), intent(in) :: fl
     double precision :: dtnew
 
-    double precision :: dxinv(1:ndim), tmp(ixI^S), Te(ixI^S), rho(ixI^S)
-    double precision :: dtdiff_tcond,dtdiff_tsat
-    integer          :: idim,ix^D
+    double precision :: tmp(ixO^S),tmp2(ixO^S),Te(ixI^S),rho(ixI^S),hfs(ixO^S),gradT(ixI^S)
+    double precision :: dtdiff_tcond,maxtmp2
+    integer          :: idim
 
-    ^D&dxinv(^D)=one/dx^D;
-
-    call fl%get_temperature_from_conserved(w,x,ixI^L,ixO^L,Te)
+    call fl%get_temperature_from_conserved(w,x,ixI^L,ixI^L,Te)
     call fl%get_rho(w,x,ixI^L,ixO^L,rho)
 
-    tmp(ixO^S)=tc_gamma_1*fl%tc_k_para*dsqrt((Te(ixO^S))**5)/rho(ixO^S)
+    if(fl%tc_saturate) then
+      ! Kannan 2016 MN 458, 410
+      ! 3^1.5*kB^2/(4*sqrt(pi)*e^4)
+      ! l_mfpe=3.d0**1.5d0*kB_cgs**2/(4.d0*sqrt(dpi)*e_cgs**4*37.d0)=7093.9239487765044d0
+      tmp2(ixO^S)=Te(ixO^S)**2/rho(ixO^S)*7093.9239487765044d0*unit_temperature**2/(unit_numberdensity*unit_length)
+      hfs=0.d0
+      do idim=1,ndim
+        call gradient(Te,ixI^L,ixO^L,idim,gradT)
+        hfs(ixO^S)=hfs(ixO^S)+gradT(ixO^S)**2
+      end do
+      ! kappa=kappa_Spizer/(1+4.2*l_mfpe/(T/|gradT|))
+      tmp(ixO^S)=fl%tc_k_para*dsqrt((Te(ixO^S))**5)/(rho(ixO^S)*(1.d0+4.2d0*tmp2(ixO^S)*sqrt(hfs(ixO^S))/Te(ixO^S)))
+    else
+      tmp(ixO^S)=fl%tc_k_para*dsqrt((Te(ixO^S))**5)/rho(ixO^S)
+    end if
     dtnew = bigdouble
 
-    do idim=1,ndim
-       ! dt< dx_idim**2/((gamma-1)*tc_k_para_idim/rho)
-       dtdiff_tcond=1d0/maxval(tmp(ixO^S)*dxinv(idim)**2)
-       if(fl%tc_saturate) then
-         ! dt< dx_idim**2/((gamma-1)*sqrt(Te)*5*phi)
-         dtdiff_tsat=1d0/maxval(tc_gamma_1*dsqrt(Te(ixO^S))*&
-                     5.d0*dxinv(idim)**2)
-         ! choose the slower flux (bigger time scale) between classic and saturated
-         dtdiff_tcond=max(dtdiff_tcond,dtdiff_tsat)
-       end if
-       ! limit the time step
-       dtnew=min(dtnew,dtdiff_tcond)
-    end do
+    if(slab_uniform) then
+      do idim=1,ndim
+        ! approximate thermal conduction flux: tc_k_para_i/rho/dx
+        tmp2(ixO^S)=tmp(ixO^S)/dxlevel(idim)
+        maxtmp2=maxval(tmp2(ixO^S))
+        ! dt< dx_idim**2/((gamma-1)*tc_k_para_i/rho)
+        dtdiff_tcond=dxlevel(idim)/(tc_gamma_1*maxtmp2+smalldouble)
+        ! limit the time step
+        dtnew=min(dtnew,dtdiff_tcond)
+      end do
+    else
+      do idim=1,ndim
+        ! approximate thermal conduction flux: tc_k_para_i/rho/dx
+        tmp2(ixO^S)=tmp(ixO^S)/block%ds(ixO^S,idim)
+        maxtmp2=maxval(tmp2(ixO^S)/block%ds(ixO^S,idim))
+        ! dt< dx_idim**2/((gamma-1)*tc_k_para_i/rho*B_i**2/B**2)
+        dtdiff_tcond=1.d0/(tc_gamma_1*maxtmp2+smalldouble)
+        ! limit the time step
+        dtnew=min(dtnew,dtdiff_tcond)
+      end do
+    end if
     dtnew=dtnew/dble(ndim)
 
   end function get_tc_dt_hd
@@ -768,7 +813,6 @@ contains
 
   subroutine set_source_tc_hd(ixI^L,ixO^L,w,x,fl,qvec,rho,Te)
     use mod_global_parameters
-    use mod_fix_conserve
 
     integer, intent(in) :: ixI^L, ixO^L
     double precision, intent(in) ::  x(ixI^S,1:ndim)
@@ -780,48 +824,87 @@ contains
 
     double precision :: gradT(ixI^S,1:ndim),ke(ixI^S),qd(ixI^S)
 
-    double precision :: dxinv(ndim)
     integer :: idims,ix^D,ix^L,ixC^L,ixA^L,ixB^L,ixD^L
 
     ix^L=ixO^L^LADD1;
     ! ixC is cell-corner index
     ixCmax^D=ixOmax^D; ixCmin^D=ixOmin^D-1;
 
-    dxinv=1.d0/dxlevel
+    !{^IFONED
+    !! cell corner temperature in ke
+    !ke=0.d0
+    !ixAmax^D=ixmax^D; ixAmin^D=ixmin^D-1;
+    !{do ix^DB=0,1\}
+    !  ixBmin^D=ixAmin^D+ix^D;
+    !  ixBmax^D=ixAmax^D+ix^D;
+    !  ke(ixA^S)=ke(ixA^S)+Te(ixB^S)
+    !{end do\}
+    !ke(ixA^S)=0.5d0**ndim*ke(ixA^S)
+    !do idims=1,ndim
+    !  ixBmin^D=ixmin^D;
+    !  ixBmax^D=ixmax^D-kr(idims,^D);
+    !  call gradient(ke,ixI^L,ixB^L,idims,qd)
+    !  gradT(ixB^S,idims)=qd(ixB^S)
+    !end do
+    !! transition region adaptive conduction
+    !if(phys_trac) then
+    !  where(ke(ixI^S) < block%wextra(ixI^S,fl%Tcoff_))
+    !    ke(ixI^S)=block%wextra(ixI^S,fl%Tcoff_)
+    !  end where
+    !end if
+    !! cell corner conduction flux
+    !do idims=1,ndim
+    !  gradT(ixC^S,idims)=gradT(ixC^S,idims)*fl%tc_k_para*sqrt(ke(ixC^S)**5)
+    !end do
+    !}
 
-    !calculate Te in whole domain (+ghosts)
-    ! cell corner temperature in ke
-    ke=0.d0
-    ixAmax^D=ixmax^D; ixAmin^D=ixmin^D-1;
-    {do ix^DB=0,1\}
-      ixBmin^D=ixAmin^D+ix^D;
-      ixBmax^D=ixAmax^D+ix^D;
-      ke(ixA^S)=ke(ixA^S)+Te(ixB^S)
-    {end do\}
-    ke(ixA^S)=0.5d0**ndim*ke(ixA^S)
+    ! calculate thermal conduction flux with symmetric scheme
     ! T gradient (central difference) at cell corners
-    gradT=0.d0
     do idims=1,ndim
       ixBmin^D=ixmin^D;
       ixBmax^D=ixmax^D-kr(idims,^D);
-      call gradient(ke,ixI^L,ixB^L,idims,qd)
-      gradT(ixB^S,idims)=qd(ixB^S)
+      call gradientC(Te,ixI^L,ixB^L,idims,ke)
+      qd=0.d0
+     {do ix^DB=0,1 \}
+        if({ix^D==0 .and. ^D==idims |.or. }) then
+          ixBmin^D=ixCmin^D+ix^D;
+          ixBmax^D=ixCmax^D+ix^D;
+          qd(ixC^S)=qd(ixC^S)+ke(ixB^S)
+        end if
+     {end do\}
+      ! temperature gradient at cell corner
+      qvec(ixC^S,idims)=qd(ixC^S)*0.5d0**(ndim-1)
     end do
-    ! transition region adaptive conduction
+    ! conductivity at cell center
     if(phys_trac) then
-      where(ke(ixI^S) < block%wextra(ixI^S,fl%Tcoff_))
-        ke(ixI^S)=block%wextra(ixI^S,fl%Tcoff_)
-      end where
+      ! transition region adaptive conduction
+      {do ix^DB=ixmin^DB,ixmax^DB\}
+        if(Te(ix^D) < block%wextra(ix^D,fl%Tcoff_)) then
+          qd(ix^D)=fl%tc_k_para*dsqrt(block%wextra(ix^D,fl%Tcoff_))**5
+        else
+          qd(ix^D)=fl%tc_k_para*dsqrt(Te(ix^D))**5
+        end if
+      {end do\}
+    else
+      qd(ix^S)=fl%tc_k_para*dsqrt(Te(ix^S))**5
     end if
+    ke=0.d0
+    {do ix^DB=0,1\}
+      ixBmin^D=ixCmin^D+ix^D;
+      ixBmax^D=ixCmax^D+ix^D;
+      ke(ixC^S)=ke(ixC^S)+qd(ixB^S)
+    {end do\}
+    ! cell corner conductivity
+    ke(ixC^S)=0.5d0**ndim*ke(ixC^S)
     ! cell corner conduction flux
     do idims=1,ndim
-      gradT(ixC^S,idims)=gradT(ixC^S,idims)*fl%tc_k_para*sqrt(ke(ixC^S)**5)
+      gradT(ixC^S,idims)=ke(ixC^S)*qvec(ixC^S,idims)
     end do
 
     if(fl%tc_saturate) then
       ! consider saturation with unsigned saturated TC flux = 5 phi rho c**3
       ! saturation flux at cell center
-      qd(ix^S)=5.d0*rho(ix^S)*dsqrt(Te(ix^S)**3)
+      qd(ix^S)=5.5d0*rho(ix^S)*dsqrt(Te(ix^S)**3)
       !cell corner values of qd in ke
       ke=0.d0
       {do ix^DB=0,1\}
@@ -835,7 +918,7 @@ contains
       qd(ixC^S)=norm2(gradT(ixC^S,:),dim=ndim+1)
       {do ix^DB=ixCmin^DB,ixCmax^DB\}
         if(qd(ix^D)>ke(ix^D)) then
-          ke(ix^D)=ke(ix^D)/qd(ix^D)
+          ke(ix^D)=ke(ix^D)/(qd(ix^D)+smalldouble)
           do idims=1,ndim
             gradT(ix^D,idims)=ke(ix^D)*gradT(ix^D,idims)
           end do
@@ -843,8 +926,7 @@ contains
       {end do\}
     end if
 
-    ! conductionflux at cell face
-    !face center values of gradT in qvec
+    ! conduction flux at cell face
     qvec=0.d0
     do idims=1,ndim
       ixB^L=ixO^L-kr(idims,^D);
@@ -859,10 +941,6 @@ contains
       qvec(ixA^S,idims)=qvec(ixA^S,idims)*0.5d0**(ndim-1)
     end do
 
-
   end subroutine set_source_tc_hd
-
-
-
 
 end module mod_thermal_conduction

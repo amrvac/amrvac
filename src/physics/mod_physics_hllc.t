@@ -42,10 +42,10 @@ module mod_physics_hllc
        double precision, dimension(ixI^S,1:nwflux),intent(out) :: f
      end subroutine sub_get_wCD
 
-     subroutine sub_hllc_init_species(ii, rho_, mom, e_, eaux_)
+     subroutine sub_hllc_init_species(ii, rho_, mom, e_)
        use mod_global_parameters
-       integer, intent(in)                                    :: ii
-       integer, intent(out)                                    :: rho_, mom(1:ndir),e_,eaux_
+       integer, intent(in) :: ii
+       integer, intent(out) :: rho_, mom(1:ndir), e_
      end subroutine sub_hllc_init_species
   end interface
 

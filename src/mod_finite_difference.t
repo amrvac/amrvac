@@ -9,20 +9,20 @@ module mod_finite_difference
 
 contains
 
-  subroutine fd(qdt,ixI^L,ixO^L,idims^LIM,qtC,sCT,qt,snew,fC,fE,dxs,x)
+  subroutine fd(qdt,dtfactor,ixI^L,ixO^L,idims^LIM,qtC,sCT,qt,snew,fC,fE,dxs,x)
     use mod_physics
     use mod_source, only: addsource2
     use mod_finite_volume, only: reconstruct_LR
     use mod_global_parameters
     use mod_usr_methods
 
-    double precision, intent(in)                                     :: qdt, qtC, qt, dxs(ndim)
+    double precision, intent(in)                                     :: qdt, dtfactor, qtC, qt, dxs(ndim)
     integer, intent(in)                                              :: ixI^L, ixO^L, idims^LIM
     double precision, dimension(ixI^S,1:ndim), intent(in)            :: x
 
     type(state)                                                      :: sCT, snew
     double precision, dimension(ixI^S,1:nwflux,1:ndim), intent(out)  :: fC
-    double precision, dimension(ixI^S,7-2*ndim:3)                    :: fE
+    double precision, dimension(ixI^S,sdim:3)                        :: fE
 
     double precision, dimension(ixI^S,1:nwflux)                      :: fCT
     double precision, dimension(ixI^S,1:nw)                          :: fm, fp, fmR, fpL, wprim
@@ -105,24 +105,39 @@ contains
       dxinv=-qdt/dxs
       do idims= idims^LIM
         hxO^L=ixO^L-kr(idims,^D);
-        do iw=iwstart,nwflux
-          fC(ixI^S,iw,idims) = dxinv(idims) * fC(ixI^S,iw,idims)
-          wnew(ixO^S,iw)=wnew(ixO^S,iw)+(fC(ixO^S,iw,idims)-fC(hxO^S,iw,idims))
-        end do ! iw loop
+        if(local_timestep) then
+          do iw=iwstart,nwflux
+            fC(ixI^S,iw,idims) = -block%dt(ixI^S)*dtfactor/dxs(idims) * fC(ixI^S,iw,idims)
+            wnew(ixO^S,iw)=wnew(ixO^S,iw)+(fC(ixO^S,iw,idims)-fC(hxO^S,iw,idims))
+          end do ! iw loop
+        else
+          do iw=iwstart,nwflux
+            fC(ixI^S,iw,idims) = dxinv(idims) * fC(ixI^S,iw,idims)
+            wnew(ixO^S,iw)=wnew(ixO^S,iw)+(fC(ixO^S,iw,idims)-fC(hxO^S,iw,idims))
+          end do ! iw loop
+        endif
       end do ! Next idims
     else
       inv_volume=1.d0/block%dvolume(ixO^S)
       do idims= idims^LIM
         hxO^L=ixO^L-kr(idims,^D);
-        do iw=iwstart,nwflux
-          fC(ixI^S,iw,idims)=-qdt*fC(ixI^S,iw,idims)*block%surfaceC(ixI^S,idims)
-          wnew(ixO^S,iw)=wnew(ixO^S,iw)+ &
-               (fC(ixO^S,iw,idims)-fC(hxO^S,iw,idims))*inv_volume(ixO^S)
-        end do ! iw loop
+        if(local_timestep) then
+          do iw=iwstart,nwflux
+            fC(ixI^S,iw,idims)=-block%dt(ixI^S)*dtfactor*fC(ixI^S,iw,idims)*block%surfaceC(ixI^S,idims)
+            wnew(ixO^S,iw)=wnew(ixO^S,iw)+ &
+                 (fC(ixO^S,iw,idims)-fC(hxO^S,iw,idims))*inv_volume(ixO^S)
+          end do ! iw loop
+        else
+          do iw=iwstart,nwflux
+            fC(ixI^S,iw,idims)=-qdt*fC(ixI^S,iw,idims)*block%surfaceC(ixI^S,idims)
+            wnew(ixO^S,iw)=wnew(ixO^S,iw)+ &
+                 (fC(ixO^S,iw,idims)-fC(hxO^S,iw,idims))*inv_volume(ixO^S)
+          end do ! iw loop
+        endif ! local_timestep
       end do ! Next idims
     end if
 
-    if (.not.slab.and.idimsmin==1) call phys_add_source_geom(qdt,ixI^L,ixO^L,wCT,wnew,x)
+    if (.not.slab.and.idimsmin==1) call phys_add_source_geom(qdt,dtfactor,ixI^L,ixO^L,wCT,wnew,x)
 
     if(stagger_grid) call phys_face_to_center(ixO^L,snew)
 
@@ -132,12 +147,9 @@ contains
     endif
 
     call addsource2(qdt*dble(idimsmax-idimsmin+1)/dble(ndim), &
-         ixI^L,ixO^L,1,nw,qtC,wCT,qt,wnew,x,.false.,active,wprim)
+         dtfactor*dble(idimsmax-idimsmin+1)/dble(ndim), &
+         ixI^L,ixO^L,1,nw,qtC,wCT,wprim,qt,wnew,x,.false.,active)
 
-    if(phys_solve_eaux.and.levmin==levmax) then
-      ! synchronize internal energy for uniform grid
-      call phys_energy_synchro(ixI^L,ixO^L,wnew,x)
-    endif
     end associate
 
   end subroutine fd
@@ -146,6 +158,7 @@ contains
     use mod_global_parameters
     use mod_mp5
     use mod_limiter
+    use mod_comm_lib, only: mpistop
 
     integer, intent(in)             :: ixI^L, iL^L, idims
     double precision, intent(in)    :: w(ixI^S,1:nw)
@@ -216,6 +229,7 @@ contains
     use mod_global_parameters
     use mod_mp5
     use mod_limiter
+    use mod_comm_lib, only: mpistop
 
     integer, intent(in)             :: ixI^L, iL^L, idims
     double precision, intent(in)    :: w(ixI^S,1:nw)
@@ -282,7 +296,7 @@ contains
 
   end subroutine reconstructR
 
-  subroutine centdiff(method,qdt,ixI^L,ixO^L,idims^LIM,qtC,sCT,qt,s,fC,fE,dxs,x)
+  subroutine centdiff(method,qdt,dtfactor,ixI^L,ixO^L,idims^LIM,qtC,sCT,qt,s,fC,fE,dxs,x)
 
     ! Advance the flow variables from global_time to global_time+qdt within ixO^L by
     ! fourth order centered differencing in space 
@@ -295,14 +309,15 @@ contains
     use mod_source, only: addsource2
     use mod_usr_methods
     use mod_variables
+    use mod_comm_lib, only: mpistop
 
     integer, intent(in) :: method
     integer, intent(in) :: ixI^L, ixO^L, idims^LIM
-    double precision, intent(in) :: qdt, qtC, qt, dxs(ndim)
+    double precision, intent(in) :: qdt, dtfactor, qtC, qt, dxs(ndim)
     type(state)      :: sCT, s
     double precision, intent(in) :: x(ixI^S,1:ndim)
     double precision :: fC(ixI^S,1:nwflux,1:ndim)
-    double precision :: fE(ixI^S,7-2*ndim:3)
+    double precision :: fE(ixI^S,sdim:3)
 
     double precision :: v(ixI^S,ndim), f(ixI^S, nwflux)
 
@@ -404,25 +419,41 @@ contains
       dxinv=-qdt/dxs
       do idims= idims^LIM
         hxO^L=ixO^L-kr(idims,^D);
-        do iw=iwstart,nwflux
-          fC(ixI^S,iw,idims)=dxinv(idims)*fC(ixI^S,iw,idims)
-          ! result: f_(i+1/2)-f_(i-1/2) = [-f_(i+2)+8(f_(i+1)-f_(i-1))+f_(i-2)]/12
-          w(ixO^S,iw)=w(ixO^S,iw)+(fC(ixO^S,iw,idims)-fC(hxO^S,iw,idims))
-        end do    !next iw
+        if(local_timestep) then
+          do iw=iwstart,nwflux
+            fC(ixI^S,iw,idims)=-block%dt(ixI^S)*dtfactor/dxs(idims)*fC(ixI^S,iw,idims)
+            ! result: f_(i+1/2)-f_(i-1/2) = [-f_(i+2)+8(f_(i+1)-f_(i-1))+f_(i-2)]/12
+            w(ixO^S,iw)=w(ixO^S,iw)+(fC(ixO^S,iw,idims)-fC(hxO^S,iw,idims))
+          end do    !next iw
+        else
+          do iw=iwstart,nwflux
+            fC(ixI^S,iw,idims)=dxinv(idims)*fC(ixI^S,iw,idims)
+            ! result: f_(i+1/2)-f_(i-1/2) = [-f_(i+2)+8(f_(i+1)-f_(i-1))+f_(i-2)]/12
+            w(ixO^S,iw)=w(ixO^S,iw)+(fC(ixO^S,iw,idims)-fC(hxO^S,iw,idims))
+          end do    !next iw
+        endif
       end do ! Next idims
     else
       inv_volume=1.d0/block%dvolume
       do idims= idims^LIM
         hxO^L=ixO^L-kr(idims,^D);
-        do iw=iwstart,nwflux
-          fC(ixI^S,iw,idims)=-qdt*block%surfaceC(ixI^S,idims)*fC(ixI^S,iw,idims)
-          w(ixO^S,iw)=w(ixO^S,iw)+ &
-               (fC(ixO^S,iw,idims)-fC(hxO^S,iw,idims))*inv_volume(ixO^S)
-        end do    !next iw
+        if(local_timestep) then
+          do iw=iwstart,nwflux
+            fC(ixI^S,iw,idims)=-block%dt(ixI^S)*dtfactor*block%surfaceC(ixI^S,idims)*fC(ixI^S,iw,idims)
+            w(ixO^S,iw)=w(ixO^S,iw)+ &
+                 (fC(ixO^S,iw,idims)-fC(hxO^S,iw,idims))*inv_volume(ixO^S)
+          end do    !next iw
+        else
+          do iw=iwstart,nwflux
+            fC(ixI^S,iw,idims)=-qdt*block%surfaceC(ixI^S,idims)*fC(ixI^S,iw,idims)
+            w(ixO^S,iw)=w(ixO^S,iw)+ &
+                 (fC(ixO^S,iw,idims)-fC(hxO^S,iw,idims))*inv_volume(ixO^S)
+          end do    !next iw
+        endif 
       end do ! Next idims
     end if
 
-    if (.not.slab.and.idimsmin==1) call phys_add_source_geom(qdt,ixI^L,ixO^L,wCT,w,x)
+    if (.not.slab.and.idimsmin==1) call phys_add_source_geom(qdt,dtfactor,ixI^L,ixO^L,wCT,w,x)
 
     if(stagger_grid) call phys_face_to_center(ixO^L,s)
 
@@ -432,12 +463,9 @@ contains
     endif
 
     call addsource2(qdt*dble(idimsmax-idimsmin+1)/dble(ndim), &
-         ixI^L,ixO^L,1,nw,qtC,wCT,qt,w,x,.false.,active,wprim)
+         dtfactor*dble(idimsmax-idimsmin+1)/dble(ndim), &
+         ixI^L,ixO^L,1,nw,qtC,wCT,wprim,qt,w,x,.false.,active)
 
-    if(phys_solve_eaux.and.levmin==levmax) then
-      ! synchronize internal energy for uniform grid
-      call phys_energy_synchro(ixI^L,ixO^L,w,x)
-    endif
     end associate
   end subroutine centdiff
 

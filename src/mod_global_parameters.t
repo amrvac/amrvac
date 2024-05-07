@@ -47,7 +47,7 @@ module mod_global_parameters
 
   ! geometry and domain setups
 
-  !> the mesh range (within a block with ghost cells)
+  !> the mesh range of a physical block without ghost cells
   integer :: ixM^LL
 
   !> minimum and maximum domain boundaries for each dimension
@@ -64,11 +64,25 @@ module mod_global_parameters
   !> Number of spatial dimensions (components) for vector variables
   integer :: ndir=ndim
 
+  !> starting dimension for electric field
+  {^IFONED
+  integer, parameter :: sdim=3
+  }
+  {^IFTWOD
+  integer, parameter :: sdim=3
+  }
+  {^IFTHREED
+  integer, parameter :: sdim=1
+  }
+
   !> Cartesian geometry or not
   logical :: slab
 
   !> uniform Cartesian geometry or not (stretched Cartesian)
   logical :: slab_uniform
+
+  !> each cell has its own timestep or not
+  logical :: local_timestep = .false.
 
   !> number of grid blocks in domain per dimension, in array over levels
   integer, dimension(:), allocatable :: ng^D
@@ -353,7 +367,9 @@ module mod_global_parameters
   logical :: fix_small_values=.false.
 
   !> split magnetic field as background B0 field
+  ! TODO these should be moved in a different file  
   logical :: B0field=.false.
+  logical :: B0fieldAllocCoarse=.false.
 
   ! number of equilibrium set variables, besides the mag field
   integer :: number_equi_vars = 0
@@ -365,10 +381,6 @@ module mod_global_parameters
   logical :: phys_trac=.false.
   integer :: phys_trac_type=1
   double precision :: phys_trac_mask
-
-  !> Enable to strictly conserve the angular momentum
-  !> (works both in cylindrical and spherical coordinates)
-  logical :: angmomfix=.false.
 
   !> Use particles module or not
   logical :: use_particles=.false.
@@ -607,6 +619,8 @@ module mod_global_parameters
   logical                       :: flathllc,flatcd,flatsh
   !> Use split or unsplit way to add user's source terms, default: unsplit
   logical                       :: source_split_usr
+  !> if any normal source term is added in split fasion
+  logical                       :: any_source_split=.false.
   logical                       :: dimsplit
 
   !> RK2(alfa) method parameters from Butcher tableau
@@ -680,6 +694,7 @@ module mod_global_parameters
   integer, parameter :: bc_noinflow=7
   integer, parameter :: bc_data=8
   integer, parameter :: bc_character=9
+  integer, parameter :: bc_icarus=10
 
   !> whether copy values instead of interpolation in ghost cells of finer blocks
   logical :: ghost_copy=.false.
@@ -691,14 +706,20 @@ module mod_global_parameters
   character(len=std_len) :: filename_euv
   !> wavelength for output
   integer :: wavelength
-  !> resolution of the EUV image
-  character(len=std_len) :: resolution_euv
+  !> times for enhancing spatial resolution for EUV image/spectra
+  double precision :: instrument_resolution_factor
+  !> use arcsec as length unit of images/spectra
+  logical :: activate_unit_arcsec
   !> Base file name for synthetic SXR emission output
   character(len=std_len) :: filename_sxr
   ! minimum and maximum energy of SXR (keV)
   integer :: emin_sxr,emax_sxr
-  !> resolution of the SXR image
-  character(len=std_len) :: resolution_sxr
+  !> Base file name for synthetic white light
+  character(len=std_len) :: filename_whitelight
+  !> white light observation instrument
+  character(len=std_len) :: whitelight_instrument
+  !> the white light emission below it (unit=Rsun) is not visible 
+  double precision :: R_occultor
   !> direction of the line of sight (LOS)
   double precision :: LOS_theta,LOS_phi
   !> rotation of image
@@ -715,10 +736,12 @@ module mod_global_parameters
   double precision :: spectrum_window_min,spectrum_window_max
   !> location of the slit
   double precision :: location_slit
-  !> direction of the slit
+  !> direction of the slit (for dat resolution only)
   integer :: direction_slit
-  !> resolution of the spectrum
-  character(len=std_len) :: resolution_spectrum
+  !> for spherical coordinate, region below it (unit=Rsun) is treated as not transparent
+  double precision :: R_opt_thick
+  !> resolution of the images
+  logical :: dat_resolution
 
   !> Block pointer for using one block and its previous state
   type(state), pointer :: block

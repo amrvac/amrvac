@@ -40,12 +40,6 @@ contains
   !> Create initial particles
   subroutine particles_create()
     use mod_global_parameters
-    use mod_timing
-
-    ! Allocate grid variables
-    tpartc_grid_0=MPI_WTIME()
-    call init_gridvars()
-    tpartc_grid = tpartc_grid + (MPI_WTIME()-tpartc_grid_0)
 
     select case(physics_type_particles)
     case('advect')
@@ -65,9 +59,6 @@ contains
         call mpistop("Unknown physics_type_particles")
       end if
     end select
-
-    ! Remove grid variables again
-    call finish_gridvars()
 
   end subroutine particles_create
 

@@ -7,11 +7,11 @@ module mod_usr
   double precision :: charge = 1.0d0
   double precision :: mass = 1.0d0
 
-  ! Initial position (in m)
+  ! Initial position
   double precision :: x0(3) = [0.0d0, 0.0d0, 0.0d0]
 
-  ! Initial velocity (in m/s)
-  double precision :: v0(3) = [0.0d0, 0.0d0, 0.0d0]
+  ! Initial velocity
+  double precision :: v0(3) = [0.1d0, 0.1d0, 0.1d0]
 
   ! Maxwellian velocity (per component vx, vy, vz)
   double precision :: maxwellian_velocity = 0.0d0
@@ -30,7 +30,7 @@ contains
 
     unit_length        = 1.d0
     unit_numberdensity = 1.d0
-    unit_velocity      = 1.0d0
+    unit_velocity      = 1.d0
 
     usr_init_one_grid => initonegrid_usr
     usr_create_particles => generate_particles
@@ -43,8 +43,6 @@ contains
     call initialize_amrvac()    ! So that we have settings available
 
     if (use_analytic_field) then
-      if (physics_type_particles /= 'Lorentz' .and. physics_type_particles /= 'Vay' .and. physics_type_particles /= 'HC') &
-           call mpistop('Analytic fields only supported with Boris, HC or Vay schemes')
       usr_particle_analytic => get_analytic_field
     end if
 
@@ -115,15 +113,15 @@ contains
 
     follow(:) = .true.
 
-    ! Scale to CGS units
-    x = x * 1d2             ! m to cm
-    v = v * 1d2             ! to cm/s
-    q = q * const_c * 0.1d0 ! A unit charge converted to CGS units
-    m = m * 1d3             ! kg to gram
+!    ! Scale to CGS units
+!    x = x * 1d2             ! m to cm
+!    v = v * 1d2             ! to cm/s
+!    q = q * const_c * 0.1d0 ! A unit charge converted to CGS units
+!    m = m * 1d3             ! kg to gram
     !print*,'mass in cgs:',m,'charge in cgs:',q,'q/m ratio',q/m
   end subroutine generate_particles
 
-  ! Return field at location x (in SI units: Tesla, V/m)
+  ! Return field at location x
   subroutine get_field(x, E, B)
     double precision, intent(in)  :: x(3)
     double precision, intent(out) :: E(3), B(3)
@@ -143,23 +141,21 @@ contains
       B = [0.0d0, 0.0d0, 1.0d0]
     case (4)
       ! ExB
-      E = [1.0d0, 0.0d0, 0.0d0]
-      B = [0.0d0, 0.0d0, 1.0d0]
+      E = [0.1d0, 0.0d0, 0.0d0]
+      B = [0.0d0, 0.0d0, 1.d0]
     case (5)
       ! Gradient in B
       E = [0.0d0, 0.0d0, 0.0d0]
-      B = [0.0d0, 0.0d0, (1.0d0 + 1.0d-2 * x(1))]
+      B = [0.0d0, 0.0d0, (1.0d0 + 2.0d0 * x(1))]
     case (6)
       ! Magnetic mirror (requires longer time a.t.m.)
       E = [0.0d0, 0.0d0, 0.0d0]
-      ! x is in cm
-      !B = [-x(1) * x(3), -x(2) * x(3), 1.0d4 + x(3)**2] * 1.0d-4
-      B = 1.0d6 * [-x(1) * x(3), -x(2) * x(3), 1.0d18 + x(3)**2] * 1.0d-18
+      B = [-x(1) * x(3)/5.d0, -x(2) * x(3)/5.d0, 1.0d0 + x(3)**2/5.d0]
+!      B = 1.0d6 * [-x(1) * x(3), -x(2) * x(3), 1.0d18 + x(3)**2] * 1.0d-18
     case (7)
       ! Magnetic dipole (run up to t = 100)
       E = [0.0d0, 0.0d0, 0.0d0]
-      ! x is in cm, this corresponds to B = 10 T at 1 m
-      B = 10 * 1d6 * [3d0 * x(1) * x(3), &
+      B =  1d6 * [3d0 * x(1) * x(3), &
            3d0 * x(2) * x(3), &
            2d0 * x(3)**2 - x(1)**2 - x(2)**2] / &
            (x(1)**2 + x(2)**2 + x(3)**2)**2.5d0
@@ -168,9 +164,9 @@ contains
       E = 0.0d0
       B = [x(2), x(1), 0.0d0] * 1d-2
     case (9)
-      ! electromagnetic two-body problem. x is in cm 
+      ! electromagnetic two-body problem
       ! Q=-1 (attracting central electron surrounded by positron)
-      E = -1.0d0 * 1.0d14 * [x(1), x(2), 0.0d0] / &
+      E = -1.0d0 * [x(1), x(2), 0.0d0] / &
            (x(1)**2 + x(2)**2 + x(3)**2)**(3.0d0/2.0d0)
       B = [0.0d0, 0.0d0, 0.0d0]
     case default
@@ -183,7 +179,7 @@ contains
 
   end subroutine get_field
 
-  ! Set particle properties (in SI units)
+  ! Set particle properties (in code units)
   subroutine get_particle(x, v, q, m, ipart, n_particles, iprob)
     double precision, intent(out) :: x(3), v(3), q, m
     integer, intent(in)           :: ipart, iprob, n_particles
@@ -206,8 +202,7 @@ contains
     case (7)
        v = v0
        q = (charge * ipart) / n_particles
-       if (physics_type_particles /= 'gca') then
-          ! Assume B = 10 T, and v_x = 0 initially
+       if (physics_type_particles /= 'GCA') then
           x(1) = x(1) + abs(v(2)) * m / (q * 10.0d0)
        end if
     case (8)
@@ -234,14 +229,10 @@ contains
     xtmp = x(i^D, :)
     call get_field(xtmp, E, B)
 
-    ! Convert to CGS units, 1 T -> 1e4 Gauss
-    B_field(i^D, :) = B * 1.0d4
+    B_field(i^D, :) = B
 
-    ! Convert to CGS units
-    E_field(i^D, :) = E * 1.0d6/const_c
+    E_field(i^D, :) = E
     {end do\}
-  !print*,'E in cgs:',E(1) * 1.0d6/const_c, 'B in cgs',B(3) * 1.0d4
-  !print*,'E/B ratio < 1',(E(1)*1.0d6/const_c)/(B(3)*1.0d4)
   end subroutine set_custom_field
 
   subroutine get_analytic_field(ix, x, tloc, vec)
@@ -254,11 +245,11 @@ contains
     call get_field(x, E, B)
 
     if (ix(1) == bp(1)) then
-      vec = B * 1.0d4
+      vec = B
     else if (ix(1) == ep(1)) then
-      vec = E * 1.0d6/const_c
+      vec = E
     else
-      call mpistop("get_analytic_field: unknown variable index")
+      call mpistop("get_analytic_field: requested field is not defined analytically")
     end if
   end subroutine get_analytic_field
 

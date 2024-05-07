@@ -4,6 +4,7 @@ module mod_amrvac
   use mod_global_parameters
   use mod_usr_methods
   use mod_geometry
+  use mod_comm_lib, only: mpistop
 
   implicit none
   public

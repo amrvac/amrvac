@@ -12,7 +12,7 @@
  /
 
  &stoplist
-        time_max = 1.0
+        time_max = 100.0
  /
 
  &methodlist
@@ -52,6 +52,7 @@
  &mhd_list
         typedivbfix   = 'linde'
         mhd_particles = .true.
+        SI_unit = .true.
  /
 
  &particles_list
@@ -60,7 +61,7 @@
         dtsave_particles = 1.0d-2
         write_ensemble = f
         write_individual = t
-        npayload=1
+        ndefpayload=1
         particles_eta=0.0d-4
-        const_dt_particles = 5d-3
+        const_dt_particles = 5.d-3
  /

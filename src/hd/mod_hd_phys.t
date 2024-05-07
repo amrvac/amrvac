@@ -3,6 +3,8 @@ module mod_hd_phys
   use mod_thermal_conduction, only: tc_fluid
   use mod_radiative_cooling, only: rc_fluid
   use mod_thermal_emission, only: te_fluid
+  use mod_physics
+  use mod_comm_lib, only: mpistop
   implicit none
   private
 
@@ -39,6 +41,9 @@ module mod_hd_phys
   !> Number of tracer species
   integer, public, protected              :: hd_n_tracer = 0
 
+  !> Whether plasma is partially ionized
+  logical, public, protected              :: hd_partial_ionization = .false.
+
   !> Index of the density (in the w array)
   integer, public, protected              :: rho_
 
@@ -53,6 +58,9 @@ module mod_hd_phys
 
   !> Index of the gas pressure (-1 if not present) should equal e_
   integer, public, protected              :: p_
+
+  !> Indices of temperature
+  integer, public, protected :: Te_
 
   !> Index of the cutoff temperature for the TRAC method
   integer, public, protected              :: Tcoff_
@@ -75,7 +83,25 @@ module mod_hd_phys
 
   !> Helium abundance over Hydrogen
   double precision, public, protected  :: He_abundance=0.1d0
+  !> Ionization fraction of H
+  !> H_ion_fr = H+/(H+ + H)
+  double precision, public, protected  :: H_ion_fr=1d0
+  !> Ionization fraction of He
+  !> He_ion_fr = (He2+ + He+)/(He2+ + He+ + He)
+  double precision, public, protected  :: He_ion_fr=1d0
+  !> Ratio of number He2+ / number He+ + He2+
+  !> He_ion_fr2 = He2+/(He2+ + He+)
+  double precision, public, protected  :: He_ion_fr2=1d0
+  ! used for eq of state when it is not defined by units,
+  ! the units do not contain terms related to ionization fraction
+  ! and it is p = RR * rho * T
+  double precision, public, protected  :: RR=1d0
+  ! remove the below flag  and assume default value = .false.
+  ! when eq state properly implemented everywhere
+  ! and not anymore through units
+  logical, public, protected :: eq_state_units = .true.
 
+  procedure(sub_get_pthermal), pointer :: hd_get_Rfactor   => null()
   ! Public methods
   public :: hd_phys_init
   public :: hd_kin_en
@@ -96,8 +122,9 @@ contains
 
     namelist /hd_list/ hd_energy, hd_n_tracer, hd_gamma, hd_adiab, &
     hd_dust, hd_thermal_conduction, hd_radiative_cooling, hd_viscosity, &
-    hd_gravity, He_abundance, SI_unit, hd_particles, hd_rotating_frame, hd_trac, &
-    hd_force_diagonal, hd_trac_type, hd_cak_force
+    hd_gravity, He_abundance,H_ion_fr, He_ion_fr, He_ion_fr2, eq_state_units, &
+    SI_unit, hd_particles, hd_rotating_frame, hd_trac, &
+    hd_force_diagonal, hd_trac_type, hd_cak_force, hd_partial_ionization
 
     do n = 1, size(files)
        open(unitpar, file=trim(files(n)), status="old")
@@ -125,66 +152,6 @@ contains
     call MPI_FILE_WRITE(fh, names, n_par * name_len, MPI_CHARACTER, st, er)
   end subroutine hd_write_info
 
-  !> Add fluxes in an angular momentum conserving way
-  subroutine hd_angmomfix(fC,x,wnew,ixI^L,ixO^L,idim)
-    use mod_global_parameters
-    use mod_dust, only: dust_n_species, dust_mom
-    use mod_geometry
-    double precision, intent(in)       :: x(ixI^S,1:ndim)
-    double precision, intent(inout)    :: fC(ixI^S,1:nwflux,1:ndim),  wnew(ixI^S,1:nw)
-    integer, intent(in)                :: ixI^L, ixO^L
-    integer, intent(in)                :: idim
-    integer                            :: hxO^L, kxC^L, iw
-    double precision                   :: inv_volume(ixI^S)
-
-    logical isangmom
-
-    ! shifted indexes
-    hxO^L=ixO^L-kr(idim,^D);
-    ! all the indexes
-    kxCmin^D=hxOmin^D;
-    kxCmax^D=ixOmax^D;
-
-    inv_volume(ixO^S) = 1.0d0/block%dvolume(ixO^S)
-
-    select case(coordinate)
-    case (cylindrical)
-       do iw=1,nwflux
-        isangmom = (iw==iw_mom(phi_))
-        if (hd_dust) &
-             isangmom = (isangmom .or. any(dust_mom(phi_,1:dust_n_species) == iw))
-        if (idim==r_ .and. isangmom) then
-          fC(kxC^S,iw,idim)= fC(kxC^S,iw,idim)*(x(kxC^S,r_)+half*block%dx(kxC^S,idim))
-          wnew(ixO^S,iw)=wnew(ixO^S,iw) + (fC(ixO^S,iw,idim)-fC(hxO^S,iw,idim)) * &
-               (inv_volume(ixO^S)/x(ixO^S,idim))
-        else
-          wnew(ixO^S,iw)=wnew(ixO^S,iw) + (fC(ixO^S,iw,idim)-fC(hxO^S,iw,idim)) * &
-                inv_volume(ixO^S)
-        endif
-      enddo
-     case (spherical)
-      if (hd_dust) &
-        call mpistop("Error: hd_angmomfix is not implemented &\\
-        &with dust and coordinate=='spherical'")
-      do iw=1,nwflux
-        if     (idim==r_ .and. (iw==iw_mom(2) .or. iw==iw_mom(phi_))) then
-          fC(kxC^S,iw,idim)= fC(kxC^S,iw,idim)*(x(kxC^S,idim)+half*block%dx(kxC^S,idim))
-          wnew(ixO^S,iw)=wnew(ixO^S,iw) + (fC(ixO^S,iw,idim)-fC(hxO^S,iw,idim)) * &
-               (inv_volume(ixO^S)/x(ixO^S,idim))
-        elseif (idim==2  .and. iw==iw_mom(phi_)) then
-          fC(kxC^S,iw,idim)=fC(kxC^S,iw,idim)*sin(x(kxC^S,idim)+half*block%dx(kxC^S,idim)) ! (x(4,3,1)-x(3,3,1)))
-          wnew(ixO^S,iw)=wnew(ixO^S,iw) + (fC(ixO^S,iw,idim)-fC(hxO^S,iw,idim)) * &
-               (inv_volume(ixO^S)/sin(x(ixO^S,idim)))
-        else
-          wnew(ixO^S,iw)=wnew(ixO^S,iw) + (fC(ixO^S,iw,idim)-fC(hxO^S,iw,idim)) * &
-                inv_volume(ixO^S)
-        endif
-      enddo
-
-    end select
-
-  end subroutine hd_angmomfix
-
   !> Initialize the module
   subroutine hd_phys_init()
     use mod_global_parameters
@@ -196,9 +163,10 @@ contains
     use mod_particles, only: particles_init
     use mod_rotating_frame, only:rotating_frame_init
     use mod_cak_force, only: cak_init
-    use mod_physics
     use mod_supertimestepping, only: sts_init, add_sts_method,&
             set_conversion_methods_to_head, set_error_handling_to_head
+    use mod_ionization_degree
+    use mod_usr_methods, only: usr_Rfactor
 
     integer :: itr, idir
 
@@ -207,7 +175,9 @@ contains
     physics_type = "hd"
     phys_energy  = hd_energy
     phys_total_energy  = hd_energy
+    phys_internal_e = .false.
     phys_gamma = hd_gamma
+    phys_partial_ionization=hd_partial_ionization
 
     phys_trac=hd_trac
     if(phys_trac) then
@@ -232,6 +202,12 @@ contains
       if(hd_radiative_cooling) then
         hd_radiative_cooling=.false.
         if(mype==0) write(*,*) 'WARNING: set hd_radiative_cooling=F when hd_energy=F'
+      end if
+    end if
+    if(.not.eq_state_units) then
+      if(hd_partial_ionization) then
+        hd_partial_ionization=.false.
+        if(mype==0) write(*,*) 'WARNING: set hd_partial_ionization=F when eq_state_units=F'
       end if
     end if
     use_particles = hd_particles
@@ -265,15 +241,12 @@ contains
     phys_add_source          => hd_add_source
     phys_to_conserved        => hd_to_conserved
     phys_to_primitive        => hd_to_primitive
-    !phys_ei_to_e             => hd_ei_to_e
-    !phys_e_to_ei             => hd_e_to_ei
     phys_check_params        => hd_check_params
     phys_check_w             => hd_check_w
     phys_get_pthermal        => hd_get_pthermal
     phys_get_v               => hd_get_v
     phys_write_info          => hd_write_info
     phys_handle_small_values => hd_handle_small_values
-    phys_angmomfix           => hd_angmomfix
 
     ! Whether diagonal ghost cells are required for the physics
     phys_req_diagonal = .false.
@@ -304,11 +277,28 @@ contains
     ! set the index of the last flux variable for species 1
     stop_indices(1)=nwflux
 
+    !  set temperature as an auxiliary variable to get ionization degree
+    if(hd_partial_ionization) then
+      Te_ = var_set_auxvar('Te','Te')
+    else
+      Te_ = -1
+    end if
+
     if(hd_trac) then
       Tcoff_ = var_set_wextra()
       iw_tcoff=Tcoff_
     else
       Tcoff_ = -1
+    end if
+
+    ! choose Rfactor in ideal gas law
+    if(hd_partial_ionization) then
+      hd_get_Rfactor=>Rfactor_from_temperature_ionization
+      phys_update_temperature => hd_update_temperature
+    else if(associated(usr_Rfactor)) then
+      hd_get_Rfactor=>usr_Rfactor
+    else
+      hd_get_Rfactor=>Rfactor_from_constant_ionization
     end if
 
     ! initialize thermal conduction module
@@ -322,10 +312,10 @@ contains
 
       allocate(tc_fl)
       call tc_get_hd_params(tc_fl,tc_params_read_hd)
-      tc_fl%get_temperature_from_conserved => hd_get_temperature_from_etot
       call add_sts_method(hd_get_tc_dt_hd,hd_sts_set_source_tc_hd,e_,1,e_,1,.false.)
       call set_conversion_methods_to_head(hd_e_to_ei, hd_ei_to_e)
       call set_error_handling_to_head(hd_tc_handle_small_e)
+      tc_fl%get_temperature_from_conserved => hd_get_temperature_from_etot
       tc_fl%get_temperature_from_eint => hd_get_temperature_from_eint
       tc_fl%get_rho => hd_get_rho
       tc_fl%e_ = e_
@@ -340,13 +330,14 @@ contains
       call radiative_cooling_init(rc_fl,rc_params_read)
       rc_fl%get_rho => hd_get_rho
       rc_fl%get_pthermal => hd_get_pthermal
+      rc_fl%get_var_Rfactor => hd_get_Rfactor
       rc_fl%e_ = e_
       rc_fl%Tcoff_ = Tcoff_
     end if
     allocate(te_fl_hd)
     te_fl_hd%get_rho=> hd_get_rho
     te_fl_hd%get_pthermal=> hd_get_pthermal
-    te_fl_hd%Rfactor = 1d0
+    te_fl_hd%get_var_Rfactor => hd_get_Rfactor
 {^IFTHREED
     phys_te_images => hd_te_images
 }
@@ -379,6 +370,8 @@ contains
     nvector      = 1 ! No. vector vars
     allocate(iw_vector(nvector))
     iw_vector(1) = mom(1) - 1
+    ! initialize ionization degree table
+    if(hd_partial_ionization) call ionization_degree_init()
 
   end subroutine hd_phys_init
 
@@ -393,6 +386,8 @@ contains
         call get_EUV_spectrum(unitconvert,te_fl_hd)
       case('SIvtiCCmpi','SIvtuCCmpi')
         call get_SXR_image(unitconvert,te_fl_hd)
+      case('WIvtiCCmpi','WIvtuCCmpi')
+        call get_whitelight_image(unitconvert,te_fl_hd)
       case default
         call mpistop("Error in synthesize emission: Unknown convert_type")
       end select
@@ -413,7 +408,6 @@ contains
     call sts_set_source_tc_hd(ixI^L,ixO^L,w,x,wres,fix_conserve_at_step,my_dt,igrid,nflux,tc_fl)
   end subroutine hd_sts_set_source_tc_hd
 
-
   function hd_get_tc_dt_hd(w,ixI^L,ixO^L,dx^D,x) result(dtnew)
     !Check diffusion time limit dt < dx_i**2/((gamma-1)*tc_k_para_i/rho)
     !where                      tc_k_para_i=tc_k_para*B_i**2/B**2
@@ -429,7 +423,6 @@ contains
     dtnew=get_tc_dt_hd(w,ixI^L,ixO^L,dx^D,x,tc_fl)
   end function hd_get_tc_dt_hd
 
-  
   subroutine hd_tc_handle_small_e(w, x, ixI^L, ixO^L, step)
     ! move this in a different  routine as in mhd if needed in more places
     use mod_global_parameters
@@ -467,7 +460,6 @@ contains
     ! fill in tc_fluid fields from namelist
     subroutine tc_params_read_hd(fl)
       use mod_global_parameters, only: unitpar,par_files
-      use mod_global_parameters, only: unitpar
       type(tc_fluid), intent(inout) :: fl
       integer                      :: n
       logical :: tc_saturate=.false.
@@ -544,7 +536,6 @@ contains
   subroutine hd_check_params
     use mod_global_parameters
     use mod_dust, only: dust_check_params, dust_implicit_update, dust_evaluate_implicit
-    use mod_physics, only: phys_implicit_update, phys_evaluate_implicit
 
     if (.not. hd_energy) then
        if (hd_gamma <= 0.0d0) call mpistop ("Error: hd_gamma <= 0")
@@ -568,6 +559,7 @@ contains
   subroutine hd_physical_units
     use mod_global_parameters
     double precision :: mp,kB
+    double precision :: a,b
     ! Derive scaling units
     if(SI_unit) then
       mp=mp_SI
@@ -576,21 +568,34 @@ contains
       mp=mp_cgs
       kB=kB_cgs
     end if
+    if(eq_state_units) then
+      a = 1d0 + 4d0 * He_abundance
+      if(hd_partial_ionization) then
+        b = 2.d0+3.d0*He_abundance
+      else
+        b = 1d0 + H_ion_fr + He_abundance*(He_ion_fr*(He_ion_fr2 + 1d0)+1d0)
+      end if
+      RR = 1d0
+    else
+      a = 1d0
+      b = 1d0
+      RR = (1d0 + H_ion_fr + He_abundance*(He_ion_fr*(He_ion_fr2 + 1d0)+1d0))/(1d0 + 4d0 * He_abundance)
+    end if
     if(unit_density/=1.d0) then
-      unit_numberdensity=unit_density/((1.d0+4.d0*He_abundance)*mp)
+      unit_numberdensity=unit_density/(a*mp)
     else
       ! unit of numberdensity is independent by default
-      unit_density=(1.d0+4.d0*He_abundance)*mp*unit_numberdensity
+      unit_density=a*mp*unit_numberdensity
     end if
     if(unit_velocity/=1.d0) then
       unit_pressure=unit_density*unit_velocity**2
-      unit_temperature=unit_pressure/((2.d0+3.d0*He_abundance)*unit_numberdensity*kB)
+      unit_temperature=unit_pressure/(b*unit_numberdensity*kB)
     else if(unit_pressure/=1.d0) then
-      unit_temperature=unit_pressure/((2.d0+3.d0*He_abundance)*unit_numberdensity*kB)
+      unit_temperature=unit_pressure/(b*unit_numberdensity*kB)
       unit_velocity=sqrt(unit_pressure/unit_density)
     else
       ! unit of temperature is independent by default
-      unit_pressure=(2.d0+3.d0*He_abundance)*unit_numberdensity*kB*unit_temperature
+      unit_pressure=b*unit_numberdensity*kB*unit_temperature
       unit_velocity=sqrt(unit_pressure/unit_density)
     end if
     if(unit_time/=1.d0) then
@@ -840,8 +845,7 @@ contains
     logical :: lrlt(ixI^S)
 
     {^IFONED
-    tmp1(ixI^S)=w(ixI^S,e_)-0.5d0*sum(w(ixI^S,iw_mom(:))**2,dim=ndim+1)/w(ixI^S,rho_)
-    Te(ixI^S)=tmp1(ixI^S)/w(ixI^S,rho_)*(hd_gamma-1.d0)
+    call hd_get_temperature_from_etot(w,x,ixI^L,ixI^L,Te)
 
     Tco_local=zero
     Tmax_local=maxval(Te(ixO^S))
@@ -1028,7 +1032,13 @@ contains
        end if
     end if
 
-    if (check_small_values) then
+    if (fix_small_values) then
+      {do ix^DB= ixO^LIM^DB\}
+         if(pth(ix^D)<small_pressure) then
+            pth(ix^D)=small_pressure
+         endif
+      {enddo^D&\}
+    else if (check_small_values) then
       {do ix^DB= ixO^LIM^DB\}
          if(pth(ix^D)<small_pressure) then
            write(*,*) "Error: small value of gas pressure",pth(ix^D),&
@@ -1047,14 +1057,6 @@ contains
       {enddo^D&\}
     end if
 
-    if (fix_small_values) then
-      {do ix^DB= ixO^LIM^DB\}
-         if(pth(ix^D)<small_pressure) then
-            pth(ix^D)=small_pressure
-         endif
-      {enddo^D&\}
-    endif
-
   end subroutine hd_get_pthermal
 
   !> Calculate temperature=p/rho when in e_ the  total energy is stored
@@ -1065,11 +1067,13 @@ contains
     double precision, intent(in) :: x(ixI^S, 1:ndim)
     double precision, intent(out):: res(ixI^S)
 
+    double precision :: R(ixI^S)
+
+    call hd_get_Rfactor(w,x,ixI^L,ixO^L,R)
     call hd_get_pthermal(w, x, ixI^L, ixO^L, res)
-    res(ixO^S)=res(ixO^S)/w(ixO^S,rho_)
+    res(ixO^S)=res(ixO^S)/(R(ixO^S)*w(ixO^S,rho_))
   end subroutine hd_get_temperature_from_etot
 
-  
   !> Calculate temperature=p/rho when in e_ the  internal energy is stored
   subroutine hd_get_temperature_from_eint(w, x, ixI^L, ixO^L, res)
     use mod_global_parameters
@@ -1077,42 +1081,17 @@ contains
     double precision, intent(in) :: w(ixI^S, 1:nw)
     double precision, intent(in) :: x(ixI^S, 1:ndim)
     double precision, intent(out):: res(ixI^S)
-    res(ixO^S) = (hd_gamma - 1.0d0) * w(ixO^S, e_) /w(ixO^S,rho_)
+
+    double precision :: R(ixI^S)
+
+    call hd_get_Rfactor(w,x,ixI^L,ixO^L,R)
+    res(ixO^S) = (hd_gamma - 1.0d0) * w(ixO^S, e_)/(w(ixO^S,rho_)*R(ixO^S))
   end subroutine hd_get_temperature_from_eint
-
-  !these are very similar to the subroutines without 1, used in mod_thermal_conductivity
-  !but no check on whether energy variable is present
-  subroutine hd_ei_to_e1(ixI^L,ixO^L,w,x)
-    use mod_global_parameters
-    integer, intent(in)             :: ixI^L, ixO^L
-    double precision, intent(inout) :: w(ixI^S, nw)
-    double precision, intent(in)    :: x(ixI^S, 1:ndim)
-
-    ! Calculate total energy from internal and kinetic energy
-    w(ixO^S,e_)=w(ixO^S,e_)&
-                 +hd_kin_en(w,ixI^L,ixO^L)
-
-  end subroutine hd_ei_to_e1
-
-  !> Transform total energy to internal energy
-  !but no check on whether energy variable is present
-  subroutine hd_e_to_ei1(ixI^L,ixO^L,w,x)
-    use mod_global_parameters
-    integer, intent(in)             :: ixI^L, ixO^L
-    double precision, intent(inout) :: w(ixI^S, nw)
-    double precision, intent(in)    :: x(ixI^S, 1:ndim)
-
-    ! Calculate ei = e - ek
-    w(ixO^S,e_)=w(ixO^S,e_)&
-                  -hd_kin_en(w,ixI^L,ixO^L)
-
-  end subroutine hd_e_to_ei1
 
   ! Calculate flux f_idim[iw]
   subroutine hd_get_flux_cons(w, x, ixI^L, ixO^L, idim, f)
     use mod_global_parameters
     use mod_dust, only: dust_get_flux
-    use mod_rotating_frame, only: rotating_frame_velocity
 
     integer, intent(in)             :: ixI^L, ixO^L, idim
     double precision, intent(in)    :: w(ixI^S, 1:nw), x(ixI^S, 1:ndim)
@@ -1128,10 +1107,6 @@ contains
     ! Momentum flux is v_i*m_i, +p in direction idim
     do idir = 1, ndir
        f(ixO^S, mom(idir)) = v(ixO^S) * w(ixO^S, mom(idir))
-       if (hd_rotating_frame .and. angmomfix .and. idir==phi_) then
-          call rotating_frame_velocity(x,ixI^L,ixO^L,frame_vel)
-          f(ixO^S, mom(idir)) = f(ixO^S, mom(idir)) + v(ixO^S) * frame_vel(ixO^S)*w(ixO^S,rho_)
-       end if
     end do
 
     f(ixO^S, mom(idim)) = f(ixO^S, mom(idim)) + pth(ixO^S)
@@ -1157,7 +1132,6 @@ contains
     use mod_global_parameters
     use mod_dust, only: dust_get_flux_prim
     use mod_viscosity, only: visc_get_flux_prim ! viscInDiv
-    use mod_rotating_frame, only: rotating_frame_velocity
 
     integer, intent(in)             :: ixI^L, ixO^L, idim
     ! conservative w
@@ -1180,12 +1154,6 @@ contains
     ! Momentum flux is v_i*m_i, +p in direction idim
     do idir = 1, ndir
        f(ixO^S, mom(idir)) = w(ixO^S,mom(idim)) * wC(ixO^S, mom(idir))
-       if (hd_rotating_frame .and. angmomfix .and. idir==phi_) then
-          call mpistop("hd_rotating_frame not implemented yet with angmomfix")
-          !One have to compute the frame velocity on cell edge (but we dont know if right of left edge here!!!)
-          call rotating_frame_velocity(x,ixI^L,ixO^L,frame_vel)
-          f(ixO^S, mom(idir)) = f(ixO^S, mom(idir)) + w(ixO^S,mom(idim))* wC(ixO^S, rho_) * frame_vel(ixO^S)
-       end if
     end do
 
     f(ixO^S, mom(idim)) = f(ixO^S, mom(idim)) + pth(ixO^S)
@@ -1218,7 +1186,7 @@ contains
   !>
   !> Ileyk : to do :
   !>     - address the source term for the dust in case (coordinate == spherical)
-  subroutine hd_add_source_geom(qdt, ixI^L, ixO^L, wCT, w, x)
+  subroutine hd_add_source_geom(qdt, dtfactor, ixI^L, ixO^L, wCT, w, x)
     use mod_global_parameters
     use mod_usr_methods, only: usr_set_surface
     use mod_viscosity, only: visc_add_source_geom ! viscInDiv
@@ -1226,7 +1194,7 @@ contains
     use mod_dust, only: dust_n_species, dust_mom, dust_rho
     use mod_geometry
     integer, intent(in)             :: ixI^L, ixO^L
-    double precision, intent(in)    :: qdt, x(ixI^S, 1:ndim)
+    double precision, intent(in)    :: qdt, dtfactor, x(ixI^S, 1:ndim)
     double precision, intent(inout) :: wCT(ixI^S, 1:nw), w(ixI^S, 1:nw)
     ! to change and to set as a parameter in the parfile once the possibility to
     ! solve the equations in an angular momentum conserving form has been
@@ -1276,12 +1244,10 @@ contains
                 w(ixO^S, mr_) = w(ixO^S, mr_) + qdt * source(ixO^S) / x(ixO^S, r_)
              end where
              ! s[mphi]=(-mphi*mr/rho)/radius
-             if(.not. angmomfix) then
-                where (wCT(ixO^S, irho) > minrho)
-                   source(ixO^S) = -wCT(ixO^S, mphi_) * wCT(ixO^S, mr_) / wCT(ixO^S, irho)
-                   w(ixO^S, mphi_) = w(ixO^S, mphi_) + qdt * source(ixO^S) / x(ixO^S, r_)
-                end where
-             end if
+             where (wCT(ixO^S, irho) > minrho)
+                source(ixO^S) = -wCT(ixO^S, mphi_) * wCT(ixO^S, mr_) / wCT(ixO^S, irho)
+                w(ixO^S, mphi_) = w(ixO^S, mphi_) + qdt * source(ixO^S) / x(ixO^S, r_)
+             end where
           else
              ! s[mr]=2pthermal/radius
              w(ixO^S, mr_) = w(ixO^S, mr_) + qdt * source(ixO^S) / x(ixO^S, r_)
@@ -1314,18 +1280,14 @@ contains
        if (ndir == 3) then
           source(ixO^S) = source(ixO^S) + (wCT(ixO^S, mom(3))**2 / wCT(ixO^S, rho_)) / tan(x(ixO^S, 2))
        end if
-       if (.not. angmomfix) then
-          source(ixO^S) = source(ixO^S) - (wCT(ixO^S, mom(2)) * wCT(ixO^S, mr_)) / wCT(ixO^S, rho_)
-       end if
+       source(ixO^S) = source(ixO^S) - (wCT(ixO^S, mom(2)) * wCT(ixO^S, mr_)) / wCT(ixO^S, rho_)
        w(ixO^S, mom(2)) = w(ixO^S, mom(2)) + qdt * source(ixO^S) / x(ixO^S, 1)
 
        if (ndir == 3) then
          ! s[mphi]=-(mphi*mr/rho)/r-cot(theta)*(mtheta*mphi/rho)/r
-         if (.not. angmomfix) then
-           source(ixO^S) = -(wCT(ixO^S, mom(3)) * wCT(ixO^S, mr_)) / wCT(ixO^S, rho_)&
-                      - (wCT(ixO^S, mom(2)) * wCT(ixO^S, mom(3))) / wCT(ixO^S, rho_) / tan(x(ixO^S, 2))
-           w(ixO^S, mom(3)) = w(ixO^S, mom(3)) + qdt * source(ixO^S) / x(ixO^S, 1)
-         end if
+         source(ixO^S) = -(wCT(ixO^S, mom(3)) * wCT(ixO^S, mr_)) / wCT(ixO^S, rho_)&
+                        - (wCT(ixO^S, mom(2)) * wCT(ixO^S, mom(3))) / wCT(ixO^S, rho_) / tan(x(ixO^S, 2))
+         w(ixO^S, mom(3)) = w(ixO^S, mom(3)) + qdt * source(ixO^S) / x(ixO^S, 1)
        end if
        }
     end select
@@ -1336,14 +1298,14 @@ contains
        if (hd_dust) then
           call mpistop("Rotating frame not implemented yet with dust")
        else
-          call rotating_frame_add_source(qdt,ixI^L,ixO^L,wCT,w,x)
+          call rotating_frame_add_source(qdt,dtfactor,ixI^L,ixO^L,wCT,w,x)
        end if
     end if
 
   end subroutine hd_add_source_geom
 
   ! w[iw]= w[iw]+qdt*S[wCT, qtC, x] where S is the source based on wCT within ixO
-  subroutine hd_add_source(qdt,ixI^L,ixO^L,wCT,w,x,qsourcesplit,active,wCTprim)
+  subroutine hd_add_source(qdt,dtfactor, ixI^L,ixO^L,wCT,wCTprim,w,x,qsourcesplit,active)
     use mod_global_parameters
     use mod_radiative_cooling, only: radiative_cooling_add_source
     use mod_dust, only: dust_add_source, dust_mom, dust_rho, dust_n_species
@@ -1353,12 +1315,11 @@ contains
     use mod_cak_force, only: cak_add_source
 
     integer, intent(in)             :: ixI^L, ixO^L
-    double precision, intent(in)    :: qdt
-    double precision, intent(in)    :: wCT(ixI^S, 1:nw), x(ixI^S, 1:ndim)
+    double precision, intent(in)    :: qdt, dtfactor
+    double precision, intent(in)    :: wCT(ixI^S, 1:nw),wCTprim(ixI^S,1:nw), x(ixI^S, 1:ndim)
     double precision, intent(inout) :: w(ixI^S, 1:nw)
     logical, intent(in)             :: qsourcesplit
     logical, intent(inout)          :: active
-    double precision, intent(in),optional :: wCTprim(ixI^S, 1:nw)
 
     double precision :: gravity_field(ixI^S, 1:ndim)
     integer :: idust, idim
@@ -1368,7 +1329,7 @@ contains
     end if
 
     if(hd_radiative_cooling) then
-      call radiative_cooling_add_source(qdt,ixI^L,ixO^L,wCT,w,x,&
+      call radiative_cooling_add_source(qdt,ixI^L,ixO^L,wCT,wCTprim,w,x,&
            qsourcesplit,active, rc_fl)
     end if
 
@@ -1378,8 +1339,8 @@ contains
     end if
 
     if (hd_gravity) then
-      call gravity_add_source(qdt,ixI^L,ixO^L,wCT,w,x,&
-           hd_energy,qsourcesplit,active)
+      call gravity_add_source(qdt,ixI^L,ixO^L,wCT,wCTprim,w,x,&
+           hd_energy,.false.,qsourcesplit,active)
 
       if (hd_dust .and. qsourcesplit .eqv. grav_split) then
          active = .true.
@@ -1396,6 +1357,13 @@ contains
 
     if (hd_cak_force) then
       call cak_add_source(qdt,ixI^L,ixO^L,wCT,w,x,hd_energy,qsourcesplit,active)
+    end if
+
+    if(hd_partial_ionization) then
+      if(.not.qsourcesplit) then
+        active = .true.
+        call hd_update_temperature(ixI^L,ixO^L,wCT,w,x)
+      end if
     end if
 
   end subroutine hd_add_source
@@ -1476,8 +1444,6 @@ contains
 
     integer :: n,idir
     logical :: flag(ixI^S,1:nw)
-
-    if (small_values_method == "ignore") return
 
     call hd_check_w(primitive, ixI^L, ixO^L, w, flag)
 
@@ -1560,5 +1526,51 @@ contains
       end select
     end if
   end subroutine hd_handle_small_values
+
+  subroutine Rfactor_from_temperature_ionization(w,x,ixI^L,ixO^L,Rfactor)
+    use mod_global_parameters
+    use mod_ionization_degree
+    integer, intent(in) :: ixI^L, ixO^L
+    double precision, intent(in) :: w(ixI^S,1:nw)
+    double precision, intent(in) :: x(ixI^S,1:ndim)
+    double precision, intent(out):: Rfactor(ixI^S)
+
+    double precision :: iz_H(ixO^S),iz_He(ixO^S)
+
+    call ionization_degree_from_temperature(ixI^L,ixO^L,w(ixI^S,Te_),iz_H,iz_He)
+    ! assume the first and second ionization of Helium have the same degree
+    Rfactor(ixO^S)=(1.d0+iz_H(ixO^S)+0.1d0*(1.d0+iz_He(ixO^S)*(1.d0+iz_He(ixO^S))))/2.3d0
+
+  end subroutine Rfactor_from_temperature_ionization
+
+  subroutine Rfactor_from_constant_ionization(w,x,ixI^L,ixO^L,Rfactor)
+    use mod_global_parameters
+    integer, intent(in) :: ixI^L, ixO^L
+    double precision, intent(in) :: w(ixI^S,1:nw)
+    double precision, intent(in) :: x(ixI^S,1:ndim)
+    double precision, intent(out):: Rfactor(ixI^S)
+
+    Rfactor(ixO^S)=RR
+
+  end subroutine Rfactor_from_constant_ionization
+
+  subroutine hd_update_temperature(ixI^L,ixO^L,wCT,w,x)
+    use mod_global_parameters
+    use mod_ionization_degree
+
+    integer, intent(in)             :: ixI^L, ixO^L
+    double precision, intent(in)    :: wCT(ixI^S,1:nw), x(ixI^S,1:ndim)
+    double precision, intent(inout) :: w(ixI^S,1:nw)
+
+    double precision :: iz_H(ixO^S),iz_He(ixO^S), pth(ixI^S)
+
+    call ionization_degree_from_temperature(ixI^L,ixO^L,wCT(ixI^S,Te_),iz_H,iz_He)
+
+    call hd_get_pthermal(w,x,ixI^L,ixO^L,pth)
+
+    w(ixO^S,Te_)=(2.d0+3.d0*He_abundance)*pth(ixO^S)/(w(ixO^S,rho_)*(1.d0+iz_H(ixO^S)+&
+     He_abundance*(iz_He(ixO^S)*(iz_He(ixO^S)+1.d0)+1.d0)))
+
+  end subroutine hd_update_temperature
 
 end module mod_hd_phys

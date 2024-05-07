@@ -2,13 +2,15 @@ module mod_twofl_hllc
 #include "amrvac.h"
   use mod_twofl_phys
   use mod_physics_hllc
+  use mod_functions_bfield, only: mag
+
   implicit none
   private
 
 
   public :: twofl_hllc_init
 
-  integer :: i_rho, i_e, i_eaux
+  integer :: i_rho, i_e
   integer, allocatable :: i_mom(:)
 
 
@@ -24,38 +26,30 @@ contains
 
   end subroutine twofl_hllc_init
 
-  subroutine twofl_hllc_init_species(ii, rho_, mom, e_, eaux_)
+  subroutine twofl_hllc_init_species(ii, rho_, mom, e_)
     use mod_global_parameters
-    integer, intent(in)                                    :: ii
-    integer, intent(out)                                 :: rho_, mom(1:ndir),e_,eaux_
+    integer, intent(in) :: ii
+    integer, intent(out) :: rho_, mom(1:ndir),e_
 
-    if (ii==1) then
+    if(ii==1) then
       phys_diffuse_hllcd => twofl_diffuse_hllcd_c
       phys_get_lCD => twofl_get_lCD_c
       phys_get_wCD => twofl_get_wCD_c
-
       i_rho = rho_c_
       i_mom(1:ndir) = mom_c(1:ndir)
       i_e = e_c_
-      i_eaux=eaux_c_
-
     else
       phys_diffuse_hllcd => twofl_diffuse_hllcd_n
       phys_get_lCD => twofl_get_lCD_n
       phys_get_wCD => twofl_get_wCD_n
-
       i_rho = rho_n_
       i_mom(1:ndir) = mom_n(1:ndir)
       i_e = e_n_
-
-      i_eaux=-1
-    endif
+    end if
 
     rho_ = i_rho
     mom(:) = i_mom(:)
     e_ = i_e
-    eaux_ = i_eaux
-
 
   end subroutine twofl_hllc_init_species
 

@@ -1,6 +1,6 @@
 !setup.pl -d=2 
  &filelist
-	base_filename='bw_polar_2D'
+	base_filename='bw_polar_2D_b'
         autoconvert=.true.
         saveprim=.true.
         nwauxio=3
@@ -54,4 +54,5 @@
 
  &mhd_list
         Busr=1.d0
+        typedivbfix='ct'
  /

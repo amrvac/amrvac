@@ -119,8 +119,9 @@ module mod_ghostcells_update
 contains
 
   subroutine init_bc()
-    use mod_global_parameters 
+    use mod_global_parameters
     use mod_physics, only: phys_req_diagonal, physics_type
+    use mod_comm_lib, only: mpistop
 
     integer :: nghostcellsCo, interpolation_order
     integer :: nx^D, nxCo^D, ixG^L, i^D, ic^D, inc^D, idir
@@ -361,7 +362,7 @@ contains
   end subroutine init_bc
 
   subroutine create_bc_mpi_datatype(nwstart,nwbc) 
-    use mod_global_parameters 
+    use mod_global_parameters
 
     integer, intent(in) :: nwstart, nwbc
     integer :: i^D, ic^D, inc^D, iib^D
@@ -385,7 +386,7 @@ contains
   end subroutine create_bc_mpi_datatype
 
   subroutine get_bc_comm_type(comm_type,ix^L,ixG^L,nwstart,nwbc)
-    use mod_global_parameters 
+    use mod_global_parameters
   
     integer, intent(inout) :: comm_type
     integer, intent(in) :: ix^L, ixG^L, nwstart, nwbc
@@ -406,7 +407,7 @@ contains
   end subroutine get_bc_comm_type
 
   subroutine put_bc_comm_types()
-    use mod_global_parameters 
+    use mod_global_parameters
  
     integer :: i^D, ic^D, inc^D, iib^D
 
@@ -433,6 +434,9 @@ contains
   subroutine getbc(time,qdt,psb,nwstart,nwbc,req_diag)
     use mod_global_parameters
     use mod_physics
+    use mod_coarsen, only: coarsen_grid
+    use mod_boundary_conditions, only: getintbc, bc_phys
+    use mod_comm_lib, only: mpistop
 
     double precision, intent(in)      :: time, qdt
     type(state), target               :: psb(max_blocks)

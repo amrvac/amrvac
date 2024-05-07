@@ -96,6 +96,7 @@ contains
   !> Initialize the module
   subroutine cak_init(phys_gamma)
     use mod_global_parameters
+    use mod_comm_lib, only: mpistop
 
     real(8), intent(in) :: phys_gamma
 
@@ -157,6 +158,7 @@ contains
   !> w[iw]=w[iw]+qdt*S[wCT,qtC,x] where S is the source based on wCT within ixO
   subroutine cak_add_source(qdt,ixI^L,ixO^L,wCT,w,x,energy,qsourcesplit,active)
     use mod_global_parameters
+    use mod_comm_lib, only: mpistop
 
     integer, intent(in)    :: ixI^L, ixO^L
     real(8), intent(in)    :: qdt, x(ixI^S,1:ndim), wCT(ixI^S,1:nw)
@@ -166,7 +168,7 @@ contains
 
     ! Local variables
     integer :: idir
-    real(8) :: gl(ixO^S,1:3), ge(ixO^S), etherm(ixI^S), emin(ixI^S)
+    real(8) :: gl(ixO^S,1:3), ge(ixO^S), ptherm(ixI^S), pmin(ixI^S)
 
     ! By default add source in unsplit fashion together with the fluxes
     if (qsourcesplit .eqv. cak_split) then
@@ -194,17 +196,18 @@ contains
                                 
         if (energy) then
           w(ixO^S,iw_e) = w(ixO^S,iw_e) + qdt * gl(ixO^S,idir) * wCT(ixO^S,iw_mom(idir))
-          
-          ! Impose fixed floor temperature to mimic stellar heating
-          call phys_get_pthermal(w,x,ixI^L,ixO^L,etherm)
-          etherm(ixO^S) = etherm(ixO^S) / (cak_gamma - 1.0d0)
-          emin(ixO^S)   = w(ixO^S,iw_rho)*tfloor / (cak_gamma - 1.0d0)
-          
-          where (etherm < emin)
-            w(ixO^S,iw_e) = w(ixO^S,iw_e) - etherm(ixO^S) + emin(ixO^S)
-          endwhere
         endif
       enddo
+
+      ! Impose fixed floor temperature to mimic stellar heating
+      if (energy) then
+        call phys_get_pthermal(w,x,ixI^L,ixO^L,ptherm)
+        pmin(ixO^S) = w(ixO^S,iw_rho) * tfloor
+
+        where (ptherm(ixO^S) < pmin(ixO^S))
+          w(ixO^S,iw_e) = w(ixO^S,iw_e) + (pmin(ixO^S) - ptherm(ixO^S))/(cak_gamma - 1.0d0)
+        endwhere
+      endif
     endif
 
   end subroutine cak_add_source
@@ -212,6 +215,7 @@ contains
   !> 1-D CAK line force in the Gayley line-ensemble distribution parametrisation
   subroutine get_cak_force_radial(ixI^L,ixO^L,wCT,w,x,gcak)
     use mod_global_parameters
+    use mod_comm_lib, only: mpistop
 
     integer, intent(in)    :: ixI^L, ixO^L
     real(8), intent(in)    :: wCT(ixI^S,1:nw), x(ixI^S,1:ndim)
@@ -264,7 +268,7 @@ contains
         fdfac(ixO^S) = 1.0d0/(1.0d0 + cak_alpha)
       elsewhere (beta_fd(ixO^S) < -1.0d10)
         fdfac(ixO^S) = abs(beta_fd(ixO^S))**cak_alpha / (1.0d0 + cak_alpha)
-      elsewhere (abs(beta_fd) > 1.0d-3)
+      elsewhere (abs(beta_fd(ixO^S)) > 1.0d-3)
         fdfac(ixO^S) = (1.0d0 - (1.0d0 - beta_fd(ixO^S))**(1.0d0 + cak_alpha)) &
                        / (beta_fd(ixO^S)*(1.0d0 + cak_alpha))
       elsewhere

@@ -7,7 +7,7 @@ When doing full hydrodynamic (HD) or MHD simulations, the density on the mesh `w
 
 ## Default settings: fix nothing, check nothing, and stop when negative pressure error occurs.
 
-For HD and MHD, the default behavior to handle negative or small density/pressure values is controlled by the settings
+For HD and MHD, the default behaviour to handle negative or small density/pressure values is controlled by the settings
 
 
 ```fortran
@@ -28,7 +28,7 @@ These default settings are initialized in various places, e.g. `check_small_valu
 
 This particular default setting means that we NEVER do any artificial fix of positivity (since `fix_small_values=F`), assuming everything works as physically expected, and we only do a check on getting a positive pressure deduced each time we use the `phys_get_pthermal` subroutine (i.e. hd_get_pthermal or mhd_get_pthermal). Pressure positivity (actually p<small_pressure) is ALWAYS checked in that subroutine (thanks to `check_small_values=T`), and if we encounter p<small_pressure, an error is thrown with some info on its location. The code is then halted and forced to save the last timestep available, for possible debug analysis.
 
-It is to be noted that this default setting is usually sufficient for most practical simulations. It also helps signaling possible implementation errors in user-coded initial conditions: the idea is obviously that you initialize with physically correct conservative values in all grid cells, for which the corresponding primitive variables are all positive. The same must be true for the ghost cells. If the code signals a negative pressure error within the first timestep, or after a few tens of timesteps, first scrutinize your own initial and boundary conditions for mistakes. If they are physically meaningful, and the code can set several 1000 or so timesteps without triggering any error, you are probably doing fine, and may proceed to activate possible non-default settings as described next.
+It is to be noted that this default setting is usually sufficient for most practical simulations. It also helps signalling possible implementation errors in user-coded initial conditions: the idea is obviously that you initialize with physically correct conservative values in all grid cells, for which the corresponding primitive variables are all positive. The same must be true for the ghost cells. If the code signals a negative pressure error within the first timestep, or after a few tens of timesteps, first scrutinize your own initial and boundary conditions for mistakes. If they are physically meaningful, and the code can set several 1000 or so timesteps without triggering any error, you are probably doing fine, and may proceed to activate possible non-default settings as described next.
 
 ## Level one bootstrapping: artificially fix/replace small pressure, only when needed.
 
@@ -43,7 +43,7 @@ If the code eventually (after thousands of steps without problem) throws an erro
   small_density=1.0d-12
 /
 ```
-This setting will replace the deduced pressure in `phys_get_pthermal` by the small but positive `small_pressure` whenever the deduced pressure would end up below it. This sometimes suffices to fix and continue a run without further issue. Keeping the `small_values_method='error'` in combination with the `fix_small_values=T` implies that now, in various places throughout the code, positivity checks will become activated (all using the `small_pressure` and `small_density` values), and again errors will be thrown to stop the code if needed. 
+This setting will replace the deduced pressure in `phys_get_pthermal` by the small but positive `small_pressure` whenever the deduced pressure would end up below it. This sometimes suffices to fix and continue a run without further issue. Keeping the ``small_values_method='error'`` in combination with the `fix_small_values=T` implies that now, in various places throughout the code, positivity checks will become activated (all using the `small_pressure` and `small_density` values), and again errors will be thrown to stop the code if needed.
 
 ## Level two bootstrapping: activate a small-values treatment, and hope for the best.
 
@@ -59,11 +59,11 @@ If the previous setting did not yet fully solve your problem, and you are certai
 /
 ```
 
-This activates a (much) more aggressive fixing of negative pressure (density) instances, and in reality will replace pressure and density values with their input floor values `small_density` and `small_pressure`. Due to `fix_small_values=T`, this now happens in several locations, so not only in the `phys_get_pthermal` subroutine. E.g. it happens when converting conservative to primitive variables, at the end of the `phys_to_primitive` subroutine. What exactly is done to fix things is controlled in the `phys_handle_small_values` subroutine, which has an HD and an MHD version. If `small_values_method\='ignore'`, we check and flag erronous entries, to be 'corrected' or reported further on. The actually implemented checks are found in the `hd_check_w` or `mhd_check_w` instances, using `small_pressure` and `small_density`.
+This activates a (much) more aggressive fixing of negative pressure (density) instances, and in reality will replace pressure and density values with their input floor values `small_density` and `small_pressure`. Due to `fix_small_values=T`, this now happens in several locations, so not only in the `phys_get_pthermal` subroutine. E.g. it happens when converting conservative to primitive variables, at the end of the `phys_to_primitive` subroutine. What exactly is done to fix things is controlled in the `phys_handle_small_values` subroutine, which has an HD and an MHD version. If ``small_values_method='ignore'``, we check and flag erroneous entries, to be 'corrected' or reported further on. The actually implemented checks are found in the `hd_check_w` or `mhd_check_w` instances, using `small_pressure` and `small_density`.
 
 The `small_values_method` can be one of 'replace' or 'average', and the latter 'average' variant uses a kind of buffer zone (with a width controlled by `small_values_daverage=1`) to average info from surrounding cells that are physically ok, to replace the faulty cell. This averaging approach works best on primitive variables directly.
 
-In the `replace` variant, different behaviors can be enforced by the logicals `small_values_fix_iw(1:nw)`: these are normally all set to T, meaning that a small density will also nullify momenta and set the pressure to `small_pressure` (hence internal energy density to `small_e`). You are sort of personally responsible for finding out which (if any) combination and fixing variant works best.
+In the `replace` variant, different behaviours can be enforced by the logicals `small_values_fix_iw(1:nw)`: these are normally all set to T, meaning that a small density will also nullify momenta and set the pressure to `small_pressure` (hence internal energy density to `small_e`). You are sort of personally responsible for finding out which (if any) combination and fixing variant works best.
 
 # Debug options
 

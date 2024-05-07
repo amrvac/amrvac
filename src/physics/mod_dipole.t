@@ -14,6 +14,7 @@ contains
 {^IFTHREED
   subroutine dipole(ixI^L,ixO^L,x,B)
     use mod_global_parameters
+    use mod_comm_lib, only: mpistop
 
     integer, intent(in) :: ixI^L, ixO^L
     double precision, intent(in) :: x(ixI^S,1:ndim)
