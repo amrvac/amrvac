@@ -22,7 +22,7 @@ jobs:
         sudo apt-get install graphviz
 
     - name: Modify docs file (dev)
-      if: ${{ contains(github.ref, 'refs/heads/amrvac3.2') }}
+      if: ${{ contains(github.ref, 'refs/heads/master') }}
       run: |
         cd doc
         python dev_modify_doxy.py
@@ -46,7 +46,7 @@ jobs:
 
     - name: Deploy dev website
       uses: peaceiris/actions-gh-pages@v3
-      if: ${{ contains(github.ref, 'refs/heads/amrvac3.2') }}
+      if: ${{ contains(github.ref, 'refs/heads/master') }}
       with:
           deploy_key: ${{ secrets.DOCS_DEV_ACTIONS_DEPLOY_KEY }}
           external_repository: amrvac/dev.amrvac.org
