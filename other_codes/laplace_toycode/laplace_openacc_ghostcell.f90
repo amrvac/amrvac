@@ -36,7 +36,7 @@ program ghostcell
 
   integer :: t_start, t_end, count_rate
 
-  real(dp) :: t_total
+  real(dp) :: t_total, unknowns_per_ns
   real(dp), allocatable :: uu(:, :, :, :)
 
   ! Set default values
@@ -94,11 +94,6 @@ program ghostcell
        error stop "Block size should divide grid size"
 
   n_blocks = product(blocks_per_dim)
-
-  print *, "grid size", grid_size
-  print *, "block size", block_size
-  print *, "n_blocks", n_blocks
-  print *, "n_iterations", n_iterations
 
   ! Identify each grid block with a number (id) for neighbor detection
   allocate(grid_id(0:blocks_per_dim(1)+1, 0:blocks_per_dim(2)+1))
@@ -172,9 +167,12 @@ program ghostcell
   if (write_output) call write_brick_of_values("test_", 1, real(n, dp), i_new)
 
   t_total = (t_end - t_start)/real(count_rate, dp)
-  print *, "Total time: ", t_total
-  write(*, "(A,E12.4)") "Unknowns/second: ", &
-       n_iterations/t_total * product(grid_size)
+  unknowns_per_ns = 1e-9_dp * n_iterations/t_total * product(grid_size)
+
+  write(*, "(5(A6,' '),2(A8,' '),2A12)") "nx", "ny", "box_nx", "box_ny", &
+       "n_gc", "n_boxes", "n_iter", "t_total", "unknowns/ns"
+  write(*, "(5(I6,' '),2(I8,' '),2F12.6)") grid_size, block_size, n_gc, &
+       n_blocks, n_iterations, t_total, unknowns_per_ns
 
 contains
 
