@@ -19,7 +19,7 @@ ifeq ($(compiler_brand), GNU)
 else ifeq ($(compiler_brand), ifort)
 	FFLAGS ?= -warn all -O2 -stand f08 -assume realloc-lhs -fpp
 else ifeq ($(compiler_brand), nvfortran)
-	FFLAGS ?= -Wall -acc -fast -Minfo=accel -Mpreprocess -static-nvidia
+	FFLAGS ?= -Wall -acc -fast -Minfo=accel -Mpreprocess -static-nvidia -g
 endif
 
 $(addsuffix .o,$(PROGS)): m_blockgrid.o

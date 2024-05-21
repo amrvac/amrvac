@@ -15,6 +15,7 @@ program ghostcell
   integer :: n_variables
   integer :: n_iterations
   integer :: n_gc
+  logical :: periodic(2) = .false.
   logical :: write_output
 
   integer :: n_args
@@ -76,7 +77,7 @@ program ghostcell
      error stop "Too many arguments"
   end if
 
-  call initialize_grid(grid_size, block_size, n_gc, 2, bg)
+  call initialize_grid(grid_size, block_size, n_gc, n_variables, periodic, bg)
   call set_initial_conditions()
 
   if (write_output) &
@@ -91,7 +92,8 @@ program ghostcell
      i_new = mod(n, 2) + 1
      i_old = mod(n+1, 2) + 1
      call update_ghostcells(bg, i_old)
-     call update_solution(bg%bx, bg%n_gc, bg%n_vars, bg%n_blocks, i_new, i_old, bg%uu)
+     call update_solution(bg%bx, bg%ilo, bg%ihi, bg%n_vars, bg%n_blocks, &
+          i_new, i_old, bg%uu)
   end do
   call system_clock(t_end, count_rate)
 
@@ -118,10 +120,10 @@ contains
     bg%bc(:) = 1.0_dp
   end subroutine set_initial_conditions
 
-  subroutine update_solution(bx, n_gc, n_vars, n_blocks, i_new, i_old, uu)
-    integer, intent(in) :: n_blocks, bx(2), n_gc, i_new, i_old, n_vars
-    real(dp), intent(inout) :: uu(IX(1-n_gc:bx(1)+n_gc, 1-n_gc:bx(2)+n_gc, n_blocks, n_vars))
-    integer             :: n, i, j
+  subroutine update_solution(bx, lo, hi, n_vars, n_blocks, i_new, i_old, uu)
+    integer, intent(in)     :: n_blocks, bx(2), lo(2), hi(2), i_new, i_old, n_vars
+    real(dp), intent(inout) :: uu(IX(lo(1):hi(1), lo(2):hi(2), n_blocks, n_vars))
+    integer                 :: n, i, j
 
     !$acc parallel loop
     do n = 1, n_blocks

@@ -1,1 +1,1 @@
-#define IX(nx,ny,iblock,ivar) nx, ny, ivar, iblock
+#define IX(nx,ny,iblock,ivar) nx, ny, iblock, ivar

@@ -13,6 +13,7 @@ module m_blockgrid
      integer :: n_gc
      integer :: n_blocks
      integer :: n_vars
+     integer :: ilo(2), ihi(2)
 
      integer, allocatable :: id_to_index(:, :)
 
@@ -29,11 +30,12 @@ module m_blockgrid
 
 contains
 
-  subroutine initialize_grid(nx, bx, n_gc, n_vars, bg)
+  subroutine initialize_grid(nx, bx, n_gc, n_vars, periodic, bg)
     integer, intent(in)             :: nx(2)
     integer, intent(in)             :: bx(2)
     integer, intent(in)             :: n_gc
     integer, intent(in)             :: n_vars
+    logical, intent(in)             :: periodic(2)
     type(block_grid_t), intent(out) :: bg
     integer                         :: i, j, n, id
     integer                         :: n_bnd(2)
@@ -67,8 +69,20 @@ contains
        end do
     end do
 
+    if (periodic(1)) then
+       grid_id(0, :) = grid_id(bg%blocks_per_dim(1), :)
+       grid_id(bg%blocks_per_dim(1)+1, :) = grid_id(1, :)
+    end if
+
+    if (periodic(2)) then
+       grid_id(:, 0) = grid_id(:, bg%blocks_per_dim(2))
+       grid_id(:, bg%blocks_per_dim(2)+1) = grid_id(:, 1)
+    end if
+
     ! Array of grid blocks
     allocate(bg%uu(IX(1-n_gc:bx(1)+n_gc, 1-n_gc:bx(2)+n_gc, bg%n_blocks, bg%n_vars)))
+    bg%ilo = 1 - n_gc
+    bg%ihi = bg%bx + n_gc
 
     ! Construct list of internal boundaries
     n_bnd(1) = count(grid_id(0:bg%blocks_per_dim(1), :) > 0 .and. &
