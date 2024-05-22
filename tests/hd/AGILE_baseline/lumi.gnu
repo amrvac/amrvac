@@ -174,7 +174,5 @@ set fit brief errorvariables nocovariancevariables errorscaling prescale nowrap 
 GNUTERM = "qt"
 I = {0.0, 1.0}
 VoxelDistance = 0.0
-## Last datafile plotted: "intel.tsv"
-#plot 'nvfortran.tsv' u 1:4 w lp t'NVHPC', 'intel.tsv' u 1:4 w lp t'intel', 12.280*x**-1 t'ideal scaling'
 plot 'lumi_cray.tsv' u 2:3 w lp t'LUMI - Cray', 'lumi_gnu.tsv' u 2:3 w lp t'LUMI - GNU', 25.684*(x/128)**-1 t'ideal scaling (GNU)', 16.297*(x/128)**-1 t'ideal scaling (Cray)'
 #    EOF
