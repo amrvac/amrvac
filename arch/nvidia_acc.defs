@@ -1,0 +1,4 @@
+F90=mpif90
+FFLAGS = -c
+F90FLAGS = -cpp -Mfree -O3 -Wall -acc -fast -Minfo=accel -Mpreprocess -static-nvidia -g
+LINK= $(F90)  $(F90FLAGS)
