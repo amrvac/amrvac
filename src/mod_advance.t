@@ -60,14 +60,40 @@ contains
     use mod_physics, only: phys_req_diagonal
     use mod_comm_lib, only: mpistop
 
+    type dummystate
+       double precision, allocatable, dimension(:,:,:) :: w
+    end type dummystate
+    
     integer, intent(in) :: idim^LIM
     integer             :: iigrid, igrid
+    type(dummystate), dimension(1:max_blocks) :: t1,t2
 
     call init_comm_fix_conserve(idim^LIM,nwflux)
     fix_conserve_at_step = time_advance .and. levmax>levmin
 
-    ! copy w instead of wold because of potential use of dimsplit or sourcesplit
-    !$OMP PARALLEL DO PRIVATE(igrid)
+    do igrid=1,max_blocks
+       allocate(t1(igrid)%w(1:64,4,4), t2(igrid)%w(1:64,4,4))
+       t1(igrid)%w = 666.0d0
+    end do
+    !$acc enter data copyin(t1, t2)
+    do igrid=1,max_blocks
+       !$acc enter data copyin(t1(igrid)%w, t2(igrid)%w)
+    end do
+    !$acc parallel loop
+    do igrid=1,max_blocks
+       associate(w2=>t2(igrid)%w,w1=>t1(igrid)%w)
+         w2 = w1
+       end associate
+    end do
+    
+    do igrid=1,max_blocks
+       !$acc exit data copyout(t1(igrid)%w, t2(igrid)%w)
+    end do
+    !$acc exit data copyout(t2, t1)
+    print *, t2(1)%w(1,1,1), t2(65536)%w(1,1,1)
+
+      ! copy w instead of wold because of potential use of dimsplit or sourcesplit
+      !$OMP PARALLEL DO PRIVATE(igrid)
     do iigrid=1,igridstail; igrid=igrids(iigrid);
        ps1(igrid)%w=ps(igrid)%w
        if(stagger_grid) ps1(igrid)%ws=ps(igrid)%ws
