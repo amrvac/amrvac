@@ -13,13 +13,14 @@ program ghostcell
   type(block_grid_t) :: bg
   type(CFG_t)        :: cfg
 
-  integer, parameter :: n_variables   = 2
-  integer            :: n_iterations  = 100
-  logical            :: periodic(2)   = .false.
-  integer            :: grid_size(2)  = 512
-  integer            :: block_size(2) = 16
-  integer            :: n_gc          = 1
-  logical            :: write_output  = .false.
+  integer, parameter :: n_variables    = 2
+  integer            :: n_iterations   = 100
+  logical            :: periodic(2)    = .false.
+  integer            :: grid_size(2)   = 512
+  real(dp)           :: grid_length(2) = 1.0_dp
+  integer            :: block_size(2)  = 16
+  integer            :: n_gc           = 1
+  logical            :: write_output   = .false.
 
   integer  :: n
   integer  :: i_new, i_old
@@ -34,7 +35,8 @@ program ghostcell
   call CFG_add_get(cfg, 'n_gc', n_gc, 'Number of ghost cells')
   call CFG_add_get(cfg, 'write_output', write_output, 'Whether to write output')
 
-  call initialize_grid(grid_size, block_size, n_gc, n_variables, periodic, bg)
+  call initialize_grid(grid_size, grid_length, block_size, n_gc, n_variables, &
+       periodic, bg)
   call set_initial_conditions()
 
   if (write_output) &

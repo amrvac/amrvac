@@ -8,13 +8,15 @@ module m_blockgrid
   integer, parameter, private :: dp = kind(0.0d0)
 
   type block_grid_t
-     integer :: nx(2)
-     integer :: bx(2)
-     integer :: blocks_per_dim(2)
-     integer :: n_gc
-     integer :: n_blocks
-     integer :: n_vars
-     integer :: ilo(2), ihi(2)
+     integer  :: nx(2)
+     real(dp) :: length(2)
+     real(dp) :: dr(2)
+     integer  :: bx(2)
+     integer  :: blocks_per_dim(2)
+     integer  :: n_gc
+     integer  :: n_blocks
+     integer  :: n_vars
+     integer  :: ilo(2), ihi(2)
 
      integer, allocatable :: id_to_index(:, :)
 
@@ -31,8 +33,9 @@ module m_blockgrid
 
 contains
 
-  subroutine initialize_grid(nx, bx, n_gc, n_vars, periodic, bg)
+  subroutine initialize_grid(nx, length, bx, n_gc, n_vars, periodic, bg)
     integer, intent(in)             :: nx(2)
+    real(dp), intent(in)            :: length(2)
     integer, intent(in)             :: bx(2)
     integer, intent(in)             :: n_gc
     integer, intent(in)             :: n_vars
@@ -44,6 +47,8 @@ contains
     integer, allocatable            :: grid_id(:, :)
 
     bg%nx             = nx
+    bg%length         = length
+    bg%dr             = length/nx
     bg%bx             = bx
     bg%n_gc           = n_gc
     bg%blocks_per_dim = nx / bx
@@ -86,10 +91,10 @@ contains
     bg%ihi = bg%bx + n_gc
 
     ! Construct list of internal boundaries
-    n_bnd(1) = count(grid_id(0:bg%blocks_per_dim(1), :) > 0 .and. &
-         grid_id(1:bg%blocks_per_dim(1)+1, :) > 0)
-    n_bnd(2) = count(grid_id(:, 0:bg%blocks_per_dim(1)) > 0 .and. &
-         grid_id(:, 1:bg%blocks_per_dim(1)+1) > 0)
+    n_bnd(1) = count(grid_id(1:bg%blocks_per_dim(1), 1:bg%blocks_per_dim(2)) > 0 .and. &
+         grid_id(2:bg%blocks_per_dim(1)+1, 1:bg%blocks_per_dim(2)) > 0)
+    n_bnd(2) = count(grid_id(1:bg%blocks_per_dim(1), 1:bg%blocks_per_dim(2)) > 0 .and. &
+         grid_id(1:bg%blocks_per_dim(1), 2:bg%blocks_per_dim(2)+1) > 0)
     allocate(bg%bnd_x(2, n_bnd(1)))
     allocate(bg%bnd_y(2, n_bnd(2)))
 
@@ -265,7 +270,7 @@ contains
     write(my_unit, *) "DATA_ENDIAN: LITTLE"
     write(my_unit, *) "CENTERING: zonal"
     write(my_unit, *) "BRICK_ORIGIN: 0. 0. 0."
-    write(my_unit, *) "BRICK_SIZE: 1. 1. 1."
+    write(my_unit, "(A,3E16.6)") "BRICK_SIZE: ", bg%length, 1.0_dp
     write(my_unit, *) "DATA_COMPONENTS: 1"
     close(my_unit)
 

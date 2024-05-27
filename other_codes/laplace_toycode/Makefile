@@ -1,6 +1,6 @@
 .phony: all clean
 
-PROGS := laplace
+PROGS := laplace scalar_advection
 
 all: $(PROGS)
 
@@ -22,8 +22,8 @@ else ifeq ($(compiler_brand), nvfortran)
 	FFLAGS ?= -Wall -acc -fast -Mpreprocess -static-nvidia -g
 endif
 
-laplace.o: m_blockgrid.o m_config.o
-laplace: m_blockgrid.o m_config.o
+$(addsuffix $(PROGS),.o): m_blockgrid.o m_config.o
+$(PROGS): m_blockgrid.o m_config.o
 
 # How to get .o object files from .f90 source files
 %.o: %.f90
