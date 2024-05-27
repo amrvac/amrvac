@@ -3,6 +3,7 @@
 module m_blockgrid
 
   implicit none
+  public
 
   integer, parameter, private :: dp = kind(0.0d0)
 
@@ -141,6 +142,10 @@ contains
        end do
     end do
 
+    ! Copy data structure and allocatable components to device
+    !$acc enter data copyin(bg)
+    !$acc enter data copyin(bg%uu, bg%bnd_x, bg%bnd_y, bg%bc_xlo, bg%bc_xhi, &
+    !$acc &bg%bc_ylo, bg%bc_yhi)
   end subroutine initialize_grid
 
   subroutine update_ghostcells(bg, ivar)
@@ -158,7 +163,7 @@ contains
     integer, intent(in) :: bnd_x(2, n_bnd_x), bnd_y(2, n_bnd_y)
     real(dp), intent(inout) :: uu(IX(1-n_gc:bx(1)+n_gc, 1-n_gc:bx(2)+n_gc, n_blocks, n_vars))
     type(block_grid_t), intent(inout) :: bg
-    integer                           :: n, i, j, n_max
+    integer                           :: n, i, j
 
     !$acc parallel loop async(1)
     do n = 1, n_bnd_x
