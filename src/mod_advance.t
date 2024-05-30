@@ -59,45 +59,46 @@ contains
     use mod_ghostcells_update
     use mod_physics, only: phys_req_diagonal
     use mod_comm_lib, only: mpistop
-
-    type dummystate
-       double precision, allocatable, dimension(:,:,:) :: w
-    end type dummystate
     
     integer, intent(in) :: idim^LIM
-    integer             :: iigrid, igrid
-    type(dummystate), dimension(1:max_blocks) :: t1,t2
+    integer             :: iigrid, igrid, ix^D, iw, iwlo, iwhi, ixlo^D, ixhi^D
 
     call init_comm_fix_conserve(idim^LIM,nwflux)
     fix_conserve_at_step = time_advance .and. levmax>levmin
-
-    do igrid=1,max_blocks
-       allocate(t1(igrid)%w(1:64,4,4), t2(igrid)%w(1:64,4,4))
-       t1(igrid)%w = 666.0d0
-    end do
-    !$acc enter data copyin(t1, t2)
-    do igrid=1,max_blocks
-       !$acc enter data copyin(t1(igrid)%w, t2(igrid)%w)
-    end do
-    !$acc parallel loop
-    do igrid=1,max_blocks
-       associate(w2=>t2(igrid)%w,w1=>t1(igrid)%w)
-         w2 = w1
-       end associate
-    end do
     
-    do igrid=1,max_blocks
-       !$acc exit data copyout(t1(igrid)%w, t2(igrid)%w)
-    end do
-    !$acc exit data copyout(t2, t1)
-    print *, t2(1)%w(1,1,1), t2(65536)%w(1,1,1)
-
-      ! copy w instead of wold because of potential use of dimsplit or sourcesplit
-      !$OMP PARALLEL DO PRIVATE(igrid)
+    ! copy w instead of wold because of potential use of dimsplit or sourcesplit
+    !$OMP PARALLEL DO PRIVATE(igrid)
+    !$acc enter data copyin(ps,ps1)
     do iigrid=1,igridstail; igrid=igrids(iigrid);
-       ps1(igrid)%w=ps(igrid)%w
-       if(stagger_grid) ps1(igrid)%ws=ps(igrid)%ws
+       !$acc enter data copyin(ps1(igrid)%w,ps(igrid)%w,ps1(igrid)%ws,ps(igrid)%ws)
     end do
+    !$acc parallel loop gang
+    do iigrid=1,igridstail; igrid=igrids(iigrid);
+       iwlo=lbound(ps(igrid)%w,^ND+1);iwhi=ubound(ps(igrid)%w,^ND+1)
+       {ixlo^D=lbound(ps(igrid)%w,^D);ixhi^D=ubound(ps(igrid)%w,^D)|;}
+       !$acc loop vector collapse(^ND+1)
+       do iw = iwlo,iwhi
+          {^D& do ix^DB=ixlo^DB,ixhi^DB\}
+          ps1(igrid)%w(ix^D,iw) = ps(igrid)%w(ix^D,iw)
+          {^D& end do\}
+       end do
+
+       if(stagger_grid) then
+          iwlo=lbound(ps(igrid)%ws,^ND+1);iwhi=ubound(ps(igrid)%ws,^ND+1)
+          {ixlo^D=lbound(ps(igrid)%ws,^D);ixhi^D=ubound(ps(igrid)%ws,^D)|;}
+          !$acc loop vector collapse(^ND+1)
+          do iw = iwlo,iwhi
+             {^D& do ix^DB=ixlo^DB,ixhi^DB\}
+             ps1(igrid)%ws(ix^D,iw) = ps(igrid)%ws(ix^D,iw)
+             {^D& end do\}
+          end do
+       end if
+    end do
+
+    do iigrid=1,igridstail; igrid=igrids(iigrid);
+       !$acc exit data copyout(ps1(igrid)%w,ps(igrid)%w,ps1(igrid)%ws,ps(igrid)%ws)
+    end do
+    !$acc exit data copyout(ps,ps1)
     !$OMP END PARALLEL DO
 
     istep = 0
@@ -658,6 +659,13 @@ contains
     double precision :: qdt
     integer :: iigrid, igrid
 
+    ! Get the state onto the GPU
+    !$acc enter data copyin(psa,psb)
+    do iigrid=1,igridstail; igrid=igrids(iigrid);
+       !$acc enter data copyin(psa(igrid)%w,psb(igrid)%w,psa(igrid)%ws,psb(igrid)%ws)
+    end do
+
+    
     istep = istep+1
 
     if(associated(phys_special_advance)) then
@@ -665,8 +673,8 @@ contains
     end if
 
     qdt=dtfactor*dt
-    ! opedit: Just advance the active grids:
     !$OMP PARALLEL DO PRIVATE(igrid)
+    !$acc parallel loop gang
     do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
       block=>ps(igrid)
       ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
@@ -674,41 +682,39 @@ contains
       call advect1_grid(method(block%level),qdt,dtfactor,ixG^LL,idim^LIM,&
         qtC,psa(igrid),qt,psb(igrid),fC,fE,rnode(rpdx1_:rnodehi,igrid),ps(igrid)%x)
 
-      ! opedit: Obviously, flux is stored only for active grids.
-      ! but we know in fix_conserve wether there is a passive neighbor
-      ! but we know in conserve_fix wether there is a passive neighbor
-      ! via neighbor_active(i^D,igrid) thus we skip the correction for those.
-      ! This violates strict conservation when the active/passive interface
-      ! coincides with a coarse/fine interface.
-      if (fix_conserve_global .and. fix_conserve_at_step) then
-        call store_flux(igrid,fC,idim^LIM,nwflux)
-        if(stagger_grid) call store_edge(igrid,ixG^LL,fE,idim^LIM)
-      end if
+!FIXME
+!      if (fix_conserve_global .and. fix_conserve_at_step) then
+!        call store_flux(igrid,fC,idim^LIM,nwflux)
+!        if(stagger_grid) call store_edge(igrid,ixG^LL,fE,idim^LIM)
+!      end if
 
     end do
     !$OMP END PARALLEL DO
 
-    ! opedit: Send flux for all grids, expects sends for all
-    ! nsend_fc(^D), set in connectivity.t.
-
-    if (fix_conserve_global .and. fix_conserve_at_step) then
-      call recvflux(idim^LIM)
-      call sendflux(idim^LIM)
-      call fix_conserve(psb,idim^LIM,1,nwflux)
-      if(stagger_grid) then
-        call fix_edges(psb,idim^LIM)
-        ! fill the cell-center values from the updated staggered variables
-        !$OMP PARALLEL DO PRIVATE(igrid)
-        do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
-          call phys_face_to_center(ixM^LL,psb(igrid))
-        end do
-        !$OMP END PARALLEL DO
-      end if
-    end if
+!FIXME    
+    ! if (fix_conserve_global .and. fix_conserve_at_step) then
+    !   call recvflux(idim^LIM)
+    !   call sendflux(idim^LIM)
+    !   call fix_conserve(psb,idim^LIM,1,nwflux)
+    !   if(stagger_grid) then
+    !     call fix_edges(psb,idim^LIM)
+    !     ! fill the cell-center values from the updated staggered variables
+    !     !$OMP PARALLEL DO PRIVATE(igrid)
+    !     do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
+    !       call phys_face_to_center(ixM^LL,psb(igrid))
+    !     end do
+    !     !$OMP END PARALLEL DO
+    !   end if
+    ! end if
 
     ! For all grids: fill ghost cells
     call getbc(qt+qdt,qdt,psb,iwstart,nwgc,phys_req_diagonal)
 
+    do iigrid=1,igridstail; igrid=igrids(iigrid);
+       !$acc exit data copyout(psa(igrid)%w,psb(igrid)%w,psa(igrid)%ws,psb(igrid)%ws)
+    end do
+    !$acc exit data copyout(psa,psb)
+    
   end subroutine advect1
 
   !> Advance a single grid over one partial time step

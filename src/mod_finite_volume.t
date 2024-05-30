@@ -113,6 +113,7 @@ contains
   !> finite volume method
   subroutine finite_volume(method,qdt,dtfactor,ixI^L,ixO^L,idims^LIM, &
        qtC,sCT,qt,snew,fC,fE,dxs,x)
+    !$acc routine
     use mod_physics
     use mod_variables
     use mod_global_parameters
@@ -313,6 +314,7 @@ contains
   contains
 
     subroutine get_Riemann_flux_tvdmu()
+      !$acc routine
       do iw=iwstart,nwflux
          ! To save memory we use fLC to store (F_L+F_R)/2=half*(fLC+fRC)
          fLC(ixC^S, iw)=half*(fLC(ixC^S, iw)+fRC(ixC^S, iw))
@@ -321,6 +323,7 @@ contains
     end subroutine get_Riemann_flux_tvdmu
 
     subroutine get_Riemann_flux_tvdlf(iws,iwe)
+      !$acc routine
       integer, intent(in) :: iws,iwe
       double precision :: fac(ixC^S)
 
@@ -339,6 +342,7 @@ contains
     end subroutine get_Riemann_flux_tvdlf
 
     subroutine get_Riemann_flux_hll(iws,iwe)
+      !$acc routine
       integer, intent(in) :: iws,iwe
       integer :: ix^D
 
@@ -367,6 +371,7 @@ contains
     end subroutine get_Riemann_flux_hll
 
     subroutine get_Riemann_flux_hllc(iws,iwe)
+      !$acc routine
       integer, intent(in) :: iws, iwe  
       double precision, dimension(ixI^S,1:nwflux)     :: whll, Fhll, fCD
       double precision, dimension(ixI^S)              :: lambdaCD

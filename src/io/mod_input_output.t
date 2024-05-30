@@ -1452,7 +1452,8 @@ contains
     ! prolongation in AMR for constrained transport MHD needs even number ghosts
     if(stagger_grid .and. refine_max_level>1 .and. mod(nghostcells,2)/=0) then
       nghostcells=nghostcells+1
-    end if
+   end if
+   !$acc update device(nghostcells)
 
       select case (coordinate)
          {^NOONED
