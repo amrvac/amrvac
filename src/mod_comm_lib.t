@@ -205,6 +205,7 @@ contains
 
   !> Exit MPI-AMRVAC with an error message
   subroutine mpistop(message)
+    !$acc routine
     use mod_global_parameters
   
     character(len=*), intent(in) :: message !< The error message

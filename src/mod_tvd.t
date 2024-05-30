@@ -36,7 +36,7 @@ contains
   end subroutine tvdlimit
 
   subroutine tvdlimit2(method,qdt,ixI^L,ixIC^L,ixO^L,idims,wL,wR,wnew,x,fC,dxs)
-
+    
     ! Limit the flow variables in wnew according to typetvd. 
     ! wroeC is based on wL and wR.
     ! If method=fs_tvd an extra adtdx**2*jumpC is added to phiC for 2nd order

@@ -80,6 +80,7 @@ module mod_variables
   !> number of species: each species has different characterictic speeds and should
   !> be used accordingly in mod_finite_volume and mod_finite_difference
   integer :: number_species = 1
+  !$acc declare create(number_species)
 
   !> index of the var
   !> whose velocity appears in the induction eq.

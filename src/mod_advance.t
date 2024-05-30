@@ -676,8 +676,8 @@ contains
     !$OMP PARALLEL DO PRIVATE(igrid)
     !$acc parallel loop gang
     do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
-      block=>ps(igrid)
-      ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
+       block=>ps(igrid)
+       ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
 
       call advect1_grid(method(block%level),qdt,dtfactor,ixG^LL,idim^LIM,&
         qtC,psa(igrid),qt,psb(igrid),fC,fE,rnode(rpdx1_:rnodehi,igrid),ps(igrid)%x)
@@ -742,21 +742,22 @@ contains
     select case (method)
     case (fs_hll,fs_hllc,fs_hllcd,fs_hlld,fs_tvdlf,fs_tvdmu)
        call finite_volume(method,qdt,dtfactor,ixI^L,ixO^L,idim^LIM,qtC,sCT,qt,s,fC,fE,dxs,x)
-    case (fs_cd,fs_cd4)
-       call centdiff(method,qdt,dtfactor,ixI^L,ixO^L,idim^LIM,qtC,sCT,qt,s,fC,fE,dxs,x)
-    case (fs_hancock)
-       call hancock(qdt,dtfactor,ixI^L,ixO^L,idim^LIM,qtC,sCT,qt,s,dxs,x)
-    case (fs_fd)
-       call fd(qdt,dtfactor,ixI^L,ixO^L,idim^LIM,qtC,sCT,qt,s,fC,fE,dxs,x)
-    case (fs_tvd)
-       call centdiff(fs_cd,qdt,dtfactor,ixI^L,ixO^L,idim^LIM,qtC,sCT,qt,s,fC,fE,dxs,x)
-       call tvdlimit(method,qdt,ixI^L,ixO^L,idim^LIM,sCT,qt+qdt,s,fC,dxs,x)
-    case (fs_source)
-       wprim=sCT%w
-       call phys_to_primitive(ixI^L,ixI^L,wprim,x)
-       call addsource2(qdt*dble(idimmax-idimmin+1)/dble(ndim),&
-            dtfactor*dble(idimmax-idimmin+1)/dble(ndim),&
-            ixI^L,ixO^L,1,nw,qtC,sCT%w,wprim,qt,s%w,x,.false.)
+!FIXME: focussing on finite_volume for now
+!    case (fs_cd,fs_cd4)
+!       call centdiff(method,qdt,dtfactor,ixI^L,ixO^L,idim^LIM,qtC,sCT,qt,s,fC,fE,dxs,x)
+!    case (fs_hancock)
+!       call hancock(qdt,dtfactor,ixI^L,ixO^L,idim^LIM,qtC,sCT,qt,s,dxs,x)
+!    case (fs_fd)
+!       call fd(qdt,dtfactor,ixI^L,ixO^L,idim^LIM,qtC,sCT,qt,s,fC,fE,dxs,x)
+!    case (fs_tvd)
+!       call centdiff(fs_cd,qdt,dtfactor,ixI^L,ixO^L,idim^LIM,qtC,sCT,qt,s,fC,fE,dxs,x)
+!       call tvdlimit(method,qdt,ixI^L,ixO^L,idim^LIM,sCT,qt+qdt,s,fC,dxs,x)
+!    case (fs_source)
+!       wprim=sCT%w
+!       call phys_to_primitive(ixI^L,ixI^L,wprim,x)
+!       call addsource2(qdt*dble(idimmax-idimmin+1)/dble(ndim),&
+!            dtfactor*dble(idimmax-idimmin+1)/dble(ndim),&
+!            ixI^L,ixO^L,1,nw,qtC,sCT%w,wprim,qt,s%w,x,.false.)
     case (fs_nul)
        ! There is nothing to do
     case default

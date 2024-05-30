@@ -556,6 +556,7 @@ contains
           enddo
        enddo
     enddo
+    !$acc update device(kr,lvc)
 
     ! These are used to construct file and log names from multiple par files
     basename_full = ''
@@ -1666,6 +1667,8 @@ contains
 
     deallocate(flux_scheme)
 
+    !$acc update device(tvdlfeps,ixGhi^D,ixGshi^D)
+    
   end subroutine read_par_files
 
   !> Routine to find entries in a string

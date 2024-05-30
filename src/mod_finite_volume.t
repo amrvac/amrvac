@@ -146,6 +146,11 @@ contains
     integer :: idims, iw, ix^L, hxO^L, ixC^L, ixCR^L, kxC^L, kxR^L, ii
     logical :: active
     type(ct_velocity) :: vcts
+    double precision :: fac(ixI^S)
+    integer :: ix^D
+    double precision, dimension(ixI^S,1:nwflux)     :: whll, Fhll, fCD
+    double precision, dimension(ixI^S)              :: lambdaCD
+    integer  :: rho_, p_, e_, mom(1:ndir)
 
     associate(wCT=>sCT%w, wnew=>snew%w)
 
@@ -220,27 +225,133 @@ contains
        ! use approximate Riemann solver to get flux at interfaces
        select case(method)
        case(fs_hll)
-         do ii=1,number_species
-           call get_Riemann_flux_hll(start_indices(ii),stop_indices(ii))
-         end do
+
+          do ii=1,number_species
+
+             do iw=start_indices(ii),stop_indices(ii)
+                if(flux_type(idims, iw) == flux_tvdlf) then
+                   ! CT MHD does not need normal B flux
+                   if(stagger_grid) cycle
+                   fC(ixC^S,iw,idims) = -tvdlfeps*half*max(cmaxC(ixC^S,ii),dabs(cminC(ixC^S,ii))) * &
+                        (wRC(ixC^S,iw)-wLC(ixC^S,iw))
+                else
+                   {do ix^DB=ixCmin^DB,ixCmax^DB\}
+                   if(cminC(ix^D,ii) >= zero) then
+                      fC(ix^D,iw,idims)=fLC(ix^D,iw)
+                   else if(cmaxC(ix^D,ii) <= zero) then
+                      fC(ix^D,iw,idims)=fRC(ix^D,iw)
+                   else
+                      ! Add hll dissipation to the flux
+                      fC(ix^D,iw,idims)=(cmaxC(ix^D,ii)*fLC(ix^D, iw)-cminC(ix^D,ii)*fRC(ix^D,iw)&
+                           +cminC(ix^D,ii)*cmaxC(ix^D,ii)*(wRC(ix^D,iw)-wLC(ix^D,iw)))&
+                           /(cmaxC(ix^D,ii)-cminC(ix^D,ii))
+                   end if
+                   {end do\}
+                endif
+             end do
+
+          end do
+
        case(fs_hllc,fs_hllcd)
-         do ii=1,number_species
-           call get_Riemann_flux_hllc(start_indices(ii),stop_indices(ii))
-         end do
-       case(fs_hlld)
-         do ii=1,number_species
-           if(ii==index_v_mag) then
-             call get_Riemann_flux_hlld(start_indices(ii),stop_indices(ii))
-           else
-             call get_Riemann_flux_hll(start_indices(ii),stop_indices(ii))
-           endif   
-         end do
-       case(fs_tvdlf)
-         do ii=1,number_species
-           call get_Riemann_flux_tvdlf(start_indices(ii),stop_indices(ii))
-         end do
+          do ii=1,number_species
+
+             rho_ = iw_rho
+             if (allocated(iw_mom)) mom(:) = iw_mom(:)
+             e_ = iw_e 
+
+             if(associated(phys_hllc_init_species)) then
+                call phys_hllc_init_species(ii, rho_, mom(:), e_)
+             endif
+
+             p_ = e_
+
+             patchf(ixC^S) =  1
+             where(cminC(ixC^S,1) >= zero)
+                patchf(ixC^S) = -2
+             elsewhere(cmaxC(ixC^S,1) <= zero)
+                patchf(ixC^S) =  2
+             endwhere
+             ! Use more diffusive scheme, is actually TVDLF and selected by patchf=4
+             if(method==fs_hllcd) &
+                  call phys_diffuse_hllcd(ixI^L,ixC^L,idims,wLC,wRC,fLC,fRC,patchf)
+
+             !---- calculate speed lambda at CD ----!
+             if(any(patchf(ixC^S)==1)) &
+                  call phys_get_lCD(wLC,wRC,fLC,fRC,cminC(ixI^S,ii),cmaxC(ixI^S,ii),idims,ixI^L,ixC^L, &
+                  whll,Fhll,lambdaCD,patchf)
+
+             ! now patchf may be -1 or 1 due to phys_get_lCD
+             if(any(abs(patchf(ixC^S))== 1))then
+                !======== flux at intermediate state ========!
+                call phys_get_wCD(wLC,wRC,whll,fRC,fLC,Fhll,patchf,lambdaCD,&
+                     cminC(ixI^S,ii),cmaxC(ixI^S,ii),ixI^L,ixC^L,idims,fCD)
+             endif ! Calculate the CD flux
+
+             do iw=start_indices(ii),stop_indices(ii)
+                if (flux_type(idims, iw) == flux_tvdlf) then
+                   fLC(ixC^S,iw)=-tvdlfeps*half*max(cmaxC(ixC^S,ii),abs(cminC(ixC^S,ii))) * &
+                        (wRC(ixC^S,iw) - wLC(ixC^S,iw))
+                else
+                   where(patchf(ixC^S)==-2)
+                      fLC(ixC^S,iw)=fLC(ixC^S,iw)
+                   elsewhere(abs(patchf(ixC^S))==1)
+                      fLC(ixC^S,iw)=fCD(ixC^S,iw)
+                   elsewhere(patchf(ixC^S)==2)
+                      fLC(ixC^S,iw)=fRC(ixC^S,iw)
+                   elsewhere(patchf(ixC^S)==3)
+                      ! fallback option, reducing to HLL flux
+                      fLC(ixC^S,iw)=Fhll(ixC^S,iw)
+                   elsewhere(patchf(ixC^S)==4)
+                      ! fallback option, reducing to TVDLF flux
+                      fLC(ixC^S,iw) = half*((fLC(ixC^S,iw)+fRC(ixC^S,iw)) &
+                           -tvdlfeps * max(cmaxC(ixC^S,ii), dabs(cminC(ixC^S,ii))) * &
+                           (wRC(ixC^S,iw)-wLC(ixC^S,iw)))
+                   endwhere
+                end if
+
+                fC(ixC^S,iw,idims)=fLC(ixC^S,iw)
+
+             end do ! Next iw
+
+
+          end do
+      case(fs_hlld)
+         !FIXME: not implemented (needs to be inlined or written as non-contained subroutine)
+         
+         ! do ii=1,number_species
+         !   if(ii==index_v_mag) then
+         !     call get_Riemann_flux_hlld(start_indices(ii),stop_indices(ii))
+         !   else
+         !     call get_Riemann_flux_hll(start_indices(ii),stop_indices(ii))
+         !   endif   
+         ! end do
+         print *, 'hlld not inlined yet for openacc'
+      case(fs_tvdlf)
+         
+          do ii=1,number_species
+
+               fac(ixC^S) = -0.5d0*tvdlfeps*cmaxC(ixC^S,ii)
+               ! Calculate fLC=f(uL_j+1/2) and fRC=f(uR_j+1/2) for each iw
+               do iw=start_indices(ii),stop_indices(ii)
+                  ! To save memory we use fLC to store (F_L+F_R)/2=half*(fLC+fRC)
+                  fLC(ixC^S, iw)=0.5d0*(fLC(ixC^S, iw)+fRC(ixC^S, iw))
+                  ! Add TVDLF dissipation to the flux
+                  if (flux_type(idims, iw) /= flux_no_dissipation) then
+                     fLC(ixC^S, iw)=fLC(ixC^S, iw) + fac(ixC^S)*(wRC(ixC^S,iw)-wLC(ixC^S,iw))
+                  end if
+                  fC(ixC^S,iw,idims)=fLC(ixC^S, iw)
+               end do ! Next iw
+               
+            end do
+          
        case(fs_tvdmu)
-         call get_Riemann_flux_tvdmu()
+
+          do iw=iwstart,nwflux
+             ! To save memory we use fLC to store (F_L+F_R)/2=half*(fLC+fRC)
+             fLC(ixC^S, iw)=half*(fLC(ixC^S, iw)+fRC(ixC^S, iw))
+             fC(ixC^S,iw,idims)=fLC(ixC^S, iw)
+          end do
+
        case default
          call mpistop('unkown Riemann flux in finite volume')
        end select
@@ -267,8 +378,11 @@ contains
             (fC(ixO^S,iwstart:nwflux,idims)-fC(hxO^S,iwstart:nwflux,idims))
 
         ! For the MUSCL scheme apply the characteristic based limiter
-        if(method==fs_tvdmu) &
-           call tvdlimit2(method,qdt,ixI^L,ixC^L,ixO^L,idims,wLC,wRC,wnew,x,fC,dxs)
+        if(method==fs_tvdmu) then
+           !FIXME: not implemented (needs to declare create further module variables)
+           !           call tvdlimit2(method,qdt,ixI^L,ixC^L,ixO^L,idims,wLC,wRC,wnew,x,fC,dxs)
+           print *, 'tvdllimit2 not yet available'
+        end if
 
       end do ! Next idims
     else
@@ -290,8 +404,11 @@ contains
           end do
         end if 
         ! For the MUSCL scheme apply the characteristic based limiter
-        if (method==fs_tvdmu) &
-             call tvdlimit2(method,qdt,ixI^L,ixC^L,ixO^L,idims,wLC,wRC,wnew,x,fC,dxs)
+        if (method==fs_tvdmu) then
+           !FIXME: not implemented (needs to declare create further module variables)
+           !             call tvdlimit2(method,qdt,ixI^L,ixC^L,ixO^L,idims,wLC,wRC,wnew,x,fC,dxs)
+           print *, 'tvdllimit2 not yet available'
+        end if           
 
       end do ! Next idims
     end if
@@ -314,127 +431,20 @@ contains
   contains
 
     subroutine get_Riemann_flux_tvdmu()
-      !$acc routine
-      do iw=iwstart,nwflux
-         ! To save memory we use fLC to store (F_L+F_R)/2=half*(fLC+fRC)
-         fLC(ixC^S, iw)=half*(fLC(ixC^S, iw)+fRC(ixC^S, iw))
-         fC(ixC^S,iw,idims)=fLC(ixC^S, iw)
-      end do
     end subroutine get_Riemann_flux_tvdmu
 
     subroutine get_Riemann_flux_tvdlf(iws,iwe)
-      !$acc routine
       integer, intent(in) :: iws,iwe
-      double precision :: fac(ixC^S)
-
-      fac(ixC^S) = -0.5d0*tvdlfeps*cmaxC(ixC^S,ii)
-      ! Calculate fLC=f(uL_j+1/2) and fRC=f(uR_j+1/2) for each iw
-      do iw=iws,iwe
-         ! To save memory we use fLC to store (F_L+F_R)/2=half*(fLC+fRC)
-         fLC(ixC^S, iw)=0.5d0*(fLC(ixC^S, iw)+fRC(ixC^S, iw))
-         ! Add TVDLF dissipation to the flux
-         if (flux_type(idims, iw) /= flux_no_dissipation) then
-            fLC(ixC^S, iw)=fLC(ixC^S, iw) + fac(ixC^S)*(wRC(ixC^S,iw)-wLC(ixC^S,iw))
-         end if
-         fC(ixC^S,iw,idims)=fLC(ixC^S, iw)
-      end do ! Next iw
-
+      
     end subroutine get_Riemann_flux_tvdlf
 
     subroutine get_Riemann_flux_hll(iws,iwe)
-      !$acc routine
       integer, intent(in) :: iws,iwe
-      integer :: ix^D
-
-      do iw=iws,iwe
-        if(flux_type(idims, iw) == flux_tvdlf) then
-          ! CT MHD does not need normal B flux
-          if(stagger_grid) cycle
-          fC(ixC^S,iw,idims) = -tvdlfeps*half*max(cmaxC(ixC^S,ii),dabs(cminC(ixC^S,ii))) * &
-               (wRC(ixC^S,iw)-wLC(ixC^S,iw))
-        else
-         {do ix^DB=ixCmin^DB,ixCmax^DB\}
-           if(cminC(ix^D,ii) >= zero) then
-             fC(ix^D,iw,idims)=fLC(ix^D,iw)
-           else if(cmaxC(ix^D,ii) <= zero) then
-             fC(ix^D,iw,idims)=fRC(ix^D,iw)
-           else
-             ! Add hll dissipation to the flux
-             fC(ix^D,iw,idims)=(cmaxC(ix^D,ii)*fLC(ix^D, iw)-cminC(ix^D,ii)*fRC(ix^D,iw)&
-                   +cminC(ix^D,ii)*cmaxC(ix^D,ii)*(wRC(ix^D,iw)-wLC(ix^D,iw)))&
-                   /(cmaxC(ix^D,ii)-cminC(ix^D,ii))
-           end if
-         {end do\}
-       endif 
-      end do
 
     end subroutine get_Riemann_flux_hll
 
     subroutine get_Riemann_flux_hllc(iws,iwe)
-      !$acc routine
       integer, intent(in) :: iws, iwe  
-      double precision, dimension(ixI^S,1:nwflux)     :: whll, Fhll, fCD
-      double precision, dimension(ixI^S)              :: lambdaCD
-
-      integer  :: rho_, p_, e_, mom(1:ndir)
-
-      rho_ = iw_rho
-      if (allocated(iw_mom)) mom(:) = iw_mom(:)
-      e_ = iw_e 
-
-      if(associated(phys_hllc_init_species)) then
-       call phys_hllc_init_species(ii, rho_, mom(:), e_)
-      endif  
-
-      p_ = e_
-
-      patchf(ixC^S) =  1
-      where(cminC(ixC^S,1) >= zero)
-         patchf(ixC^S) = -2
-      elsewhere(cmaxC(ixC^S,1) <= zero)
-         patchf(ixC^S) =  2
-      endwhere
-      ! Use more diffusive scheme, is actually TVDLF and selected by patchf=4
-      if(method==fs_hllcd) &
-           call phys_diffuse_hllcd(ixI^L,ixC^L,idims,wLC,wRC,fLC,fRC,patchf)
-
-      !---- calculate speed lambda at CD ----!
-      if(any(patchf(ixC^S)==1)) &
-           call phys_get_lCD(wLC,wRC,fLC,fRC,cminC(ixI^S,ii),cmaxC(ixI^S,ii),idims,ixI^L,ixC^L, &
-           whll,Fhll,lambdaCD,patchf)
-
-      ! now patchf may be -1 or 1 due to phys_get_lCD
-      if(any(abs(patchf(ixC^S))== 1))then
-         !======== flux at intermediate state ========!
-         call phys_get_wCD(wLC,wRC,whll,fRC,fLC,Fhll,patchf,lambdaCD,&
-              cminC(ixI^S,ii),cmaxC(ixI^S,ii),ixI^L,ixC^L,idims,fCD)
-      endif ! Calculate the CD flux
-
-      do iw=iws,iwe
-         if (flux_type(idims, iw) == flux_tvdlf) then
-            fLC(ixC^S,iw)=-tvdlfeps*half*max(cmaxC(ixC^S,ii),abs(cminC(ixC^S,ii))) * &
-                 (wRC(ixC^S,iw) - wLC(ixC^S,iw))
-         else
-            where(patchf(ixC^S)==-2)
-               fLC(ixC^S,iw)=fLC(ixC^S,iw)
-            elsewhere(abs(patchf(ixC^S))==1)
-               fLC(ixC^S,iw)=fCD(ixC^S,iw)
-            elsewhere(patchf(ixC^S)==2)
-               fLC(ixC^S,iw)=fRC(ixC^S,iw)
-            elsewhere(patchf(ixC^S)==3)
-               ! fallback option, reducing to HLL flux
-               fLC(ixC^S,iw)=Fhll(ixC^S,iw)
-            elsewhere(patchf(ixC^S)==4)
-               ! fallback option, reducing to TVDLF flux
-               fLC(ixC^S,iw) = half*((fLC(ixC^S,iw)+fRC(ixC^S,iw)) &
-                    -tvdlfeps * max(cmaxC(ixC^S,ii), dabs(cminC(ixC^S,ii))) * &
-                    (wRC(ixC^S,iw)-wLC(ixC^S,iw)))
-            endwhere
-         end if
-
-         fC(ixC^S,iw,idims)=fLC(ixC^S,iw)
-
-      end do ! Next iw
     end subroutine get_Riemann_flux_hllc
 
     !> HLLD Riemann flux from Miyoshi 2005 JCP, 208, 315 and Guo 2016 JCP, 327, 543
@@ -1079,6 +1089,7 @@ contains
   !> Determine the upwinded wLC(ixL) and wRC(ixR) from w.
   !> the wCT is only used when PPM is exploited.
   subroutine reconstruct_LR(ixI^L,ixL^L,ixR^L,idims,w,wLC,wRC,wLp,wRp,x,dxdim)
+    !$acc routine
     use mod_physics
     use mod_global_parameters
     use mod_limiter
@@ -1099,44 +1110,45 @@ contains
     double precision   :: a2max
 
     select case (type_limiter(block%level))
-    case (limiter_mp5)
-       call MP5limiter(ixI^L,ixL^L,idims,w,wLp,wRp)
-    case (limiter_weno3)
-       call WENO3limiter(ixI^L,ixL^L,idims,dxdim,w,wLp,wRp,1)
-    case (limiter_wenoyc3)
-       call WENO3limiter(ixI^L,ixL^L,idims,dxdim,w,wLp,wRp,2)
-    case (limiter_weno5)
-       call WENO5limiter(ixI^L,ixL^L,idims,dxdim,w,wLp,wRp,1)
-    case (limiter_weno5nm)
-       call WENO5NMlimiter(ixI^L,ixL^L,idims,dxdim,w,wLp,wRp,1)
-    case (limiter_wenoz5)
-       call WENO5limiter(ixI^L,ixL^L,idims,dxdim,w,wLp,wRp,2)
-    case (limiter_wenoz5nm)
-       call WENO5NMlimiter(ixI^L,ixL^L,idims,dxdim,w,wLp,wRp,2)
-    case (limiter_wenozp5)
-       call WENO5limiter(ixI^L,ixL^L,idims,dxdim,w,wLp,wRp,3)
-    case (limiter_wenozp5nm)
-       call WENO5NMlimiter(ixI^L,ixL^L,idims,dxdim,w,wLp,wRp,3)
-    case (limiter_weno5cu6)
-       call WENO5CU6limiter(ixI^L,ixL^L,idims,w,wLp,wRp)
-    case (limiter_teno5ad)
-       call TENO5ADlimiter(ixI^L,ixL^L,idims,dxdim,w,wLp,wRp)
-    case (limiter_weno7)
-       call WENO7limiter(ixI^L,ixL^L,idims,w,wLp,wRp,1)
-    case (limiter_mpweno7)
-       call WENO7limiter(ixI^L,ixL^L,idims,w,wLp,wRp,2)
-    case (limiter_venk)
-       call venklimiter(ixI^L,ixL^L,idims,dxdim,w,wLp,wRp) 
-       if(fix_small_values) then
-          call phys_handle_small_values(.true.,wLp,x,ixI^L,ixL^L,'reconstruct left')
-          call phys_handle_small_values(.true.,wRp,x,ixI^L,ixR^L,'reconstruct right')
-       end if
-    case (limiter_ppm)
-       call PPMlimiter(ixI^L,ixM^LL,idims,w,w,wLp,wRp)
-       if(fix_small_values) then
-          call phys_handle_small_values(.true.,wLp,x,ixI^L,ixL^L,'reconstruct left')
-          call phys_handle_small_values(.true.,wRp,x,ixI^L,ixR^L,'reconstruct right')
-       end if
+       !FIXME
+    ! case (limiter_mp5)
+    !    call MP5limiter(ixI^L,ixL^L,idims,w,wLp,wRp)
+    ! case (limiter_weno3)
+    !    call WENO3limiter(ixI^L,ixL^L,idims,dxdim,w,wLp,wRp,1)
+    ! case (limiter_wenoyc3)
+    !    call WENO3limiter(ixI^L,ixL^L,idims,dxdim,w,wLp,wRp,2)
+    ! case (limiter_weno5)
+    !    call WENO5limiter(ixI^L,ixL^L,idims,dxdim,w,wLp,wRp,1)
+    ! case (limiter_weno5nm)
+    !    call WENO5NMlimiter(ixI^L,ixL^L,idims,dxdim,w,wLp,wRp,1)
+    ! case (limiter_wenoz5)
+    !    call WENO5limiter(ixI^L,ixL^L,idims,dxdim,w,wLp,wRp,2)
+    ! case (limiter_wenoz5nm)
+    !    call WENO5NMlimiter(ixI^L,ixL^L,idims,dxdim,w,wLp,wRp,2)
+    ! case (limiter_wenozp5)
+    !    call WENO5limiter(ixI^L,ixL^L,idims,dxdim,w,wLp,wRp,3)
+    ! case (limiter_wenozp5nm)
+    !    call WENO5NMlimiter(ixI^L,ixL^L,idims,dxdim,w,wLp,wRp,3)
+    ! case (limiter_weno5cu6)
+    !    call WENO5CU6limiter(ixI^L,ixL^L,idims,w,wLp,wRp)
+    ! case (limiter_teno5ad)
+    !    call TENO5ADlimiter(ixI^L,ixL^L,idims,dxdim,w,wLp,wRp)
+    ! case (limiter_weno7)
+    !    call WENO7limiter(ixI^L,ixL^L,idims,w,wLp,wRp,1)
+    ! case (limiter_mpweno7)
+    !    call WENO7limiter(ixI^L,ixL^L,idims,w,wLp,wRp,2)
+    ! case (limiter_venk)
+    !    call venklimiter(ixI^L,ixL^L,idims,dxdim,w,wLp,wRp) 
+    !    if(fix_small_values) then
+    !       call phys_handle_small_values(.true.,wLp,x,ixI^L,ixL^L,'reconstruct left')
+    !       call phys_handle_small_values(.true.,wRp,x,ixI^L,ixR^L,'reconstruct right')
+    !    end if
+    ! case (limiter_ppm)
+    !    call PPMlimiter(ixI^L,ixM^LL,idims,w,w,wLp,wRp)
+    !    if(fix_small_values) then
+    !       call phys_handle_small_values(.true.,wLp,x,ixI^L,ixL^L,'reconstruct left')
+    !       call phys_handle_small_values(.true.,wRp,x,ixI^L,ixR^L,'reconstruct right')
+    !    end if
     case default
        jxR^L=ixR^L+kr(idims,^D);
        ixCmax^D=jxRmax^D; ixCmin^D=ixLmin^D-kr(idims,^D);

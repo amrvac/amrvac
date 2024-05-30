@@ -60,9 +60,11 @@ module mod_global_parameters
 
   !> Number of spatial dimensions for grid variables
   integer, parameter :: ndim=^ND
+  !$acc declare create(ndim)
 
   !> Number of spatial dimensions (components) for vector variables
   integer :: ndir=ndim
+  !$acc declare create(ndir)
 
   !> starting dimension for electric field
   {^IFONED
@@ -74,15 +76,19 @@ module mod_global_parameters
   {^IFTHREED
   integer, parameter :: sdim=1
   }
+  !$acc declare create(sdim)
 
   !> Cartesian geometry or not
   logical :: slab
+  !$acc declare create(slab)
 
   !> uniform Cartesian geometry or not (stretched Cartesian)
   logical :: slab_uniform
-
+  !$acc declare create(slab_uniform)
+  
   !> each cell has its own timestep or not
   logical :: local_timestep = .false.
+  !$acc declare create(local_timestep)
 
   !> number of grid blocks in domain per dimension, in array over levels
   integer, dimension(:), allocatable :: ng^D
@@ -100,12 +106,14 @@ module mod_global_parameters
 
   !> Upper index of grid block arrays
   integer :: ixGhi^D
+  !$acc declare create(ixGhi^D)
 
   !> Lower index of stagger grid block arrays (always 0)
   integer, parameter :: {ixGslo^D = 0|, }
 
   !> Upper index of stagger grid block arrays
   integer :: ixGshi^D
+  !$acc declare create(ixGshi^D)
 
   !> Number of ghost cells surrounding a grid
   integer :: nghostcells = 2
@@ -157,6 +165,7 @@ module mod_global_parameters
 
   double precision, allocatable :: dx(:,:)
   double precision :: dxlevel(ndim)
+  !$acc declare create(dxlevel)
 
   ! IO related quantities
 
@@ -430,6 +439,8 @@ module mod_global_parameters
   logical :: reset_grid
   !> True for using stagger grid
   logical :: stagger_grid=.false.
+  !$acc declare create(stagger_grid)
+  
   !> True for record electric field
   logical :: record_electric_field=.false.
 
@@ -454,6 +465,7 @@ module mod_global_parameters
   ! Time integration aspects
 
   double precision :: dt
+  !$acc declare create(kr,lvc,dt)
 
   logical :: time_advance
 
@@ -595,6 +607,7 @@ module mod_global_parameters
 
   !> background magnetic field location indicator
   integer :: b0i=0
+  !$acc declare create(b0i)
 
   !> Limiter used for prolongation to refined grids and ghost cells
   integer :: prolong_limiter=0
@@ -616,6 +629,8 @@ module mod_global_parameters
   integer                       :: nxdiffusehllc
   double precision, allocatable :: entropycoef(:)
   double precision              :: tvdlfeps
+  !$acc declare create(tvdlfeps)
+
   logical, allocatable          :: loglimit(:), logflag(:)
   logical                       :: flathllc,flatcd,flatsh
   !> Use split or unsplit way to add user's source terms, default: unsplit
@@ -746,6 +761,7 @@ module mod_global_parameters
 
   !> Block pointer for using one block and its previous state
   type(state), pointer :: block
+  !$acc declare create(block)
 
   !$OMP THREADPRIVATE(block,dxlevel,b0i)
 

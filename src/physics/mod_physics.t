@@ -18,6 +18,7 @@ module mod_physics
   !> To use wider stencils in flux calculations. A value of 1 will extend it by
   !> one cell in both directions, in any dimension
   integer :: phys_wider_stencil = 0
+  !$acc declare create(phys_wider_stencil)
 
   !> Whether the physics routines require diagonal ghost cells, for example for
   !> computing a curl.
