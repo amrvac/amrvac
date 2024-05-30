@@ -30,7 +30,7 @@ module mod_variables
 
   !> Number of vector variables (used for writing output)
   integer           :: nvector = 0
-  !$acc declare create(nwflux,nwfluxbc,nwaux,nwextra,nw_extra,nw,nws,nwgc,nvector)
+  !$acc declare copyin(nwflux,nwfluxbc,nwaux,nwextra,nw_extra,nw,nws,nwgc,nvector)
 
   !> Indices of vector variables
   integer, dimension(:), allocatable :: iw_vector
@@ -38,7 +38,7 @@ module mod_variables
 
   ! the number of the first w variable to exchange ghost cells
   integer            :: iwstart=1
-  !$acc declare create(iwstart)
+  !$acc declare copyin(iwstart)
   
   !> Maximum number of variables
   integer, parameter :: max_nw = 50
@@ -53,7 +53,7 @@ module mod_variables
 
   !> Index of the (gas) density
   integer :: iw_rho = -1
-  !$acc declare create(iw_rho)
+  !$acc declare copyin(iw_rho)
 
   !> Indices of the momentum density
   integer, allocatable :: iw_mom(:)
@@ -62,12 +62,12 @@ module mod_variables
 
   !> Index of the energy density
   integer :: iw_e = -1
-  !$acc declare create(iw_e)
+  !$acc declare copyin(iw_e)
 
 
   !> Index of the radiation energy density
   integer :: iw_r_e = -1
-  !$acc declare create(iw_r_e)
+  !$acc declare copyin(iw_r_e)
 
 
   !> Indices of the magnetic field components
@@ -80,11 +80,12 @@ module mod_variables
   !> number of species: each species has different characterictic speeds and should
   !> be used accordingly in mod_finite_volume and mod_finite_difference
   integer :: number_species = 1
-  !$acc declare create(number_species)
+  !$acc declare copyin(number_species)
 
   !> index of the var
   !> whose velocity appears in the induction eq.
   integer :: index_v_mag = 1
+  !$acc declare copyin(index_v_mag)
 
   !> the indices in 1:nwflux array are assumed consecutive for each species
   !> this array should be of size number_species and contain the first index in the array of
@@ -103,7 +104,7 @@ module mod_variables
   ! these are needed for hlld solver, TODO: consider moving in a separate file
   integer :: iw_equi_rho = -1
   integer :: iw_equi_p = -1
-  !$acc declare create(iw_equi_rho,iw_equi_p)
+  !$acc declare copyin(iw_equi_rho,iw_equi_p)
 
 contains
 

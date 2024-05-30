@@ -761,7 +761,10 @@ contains
     case (fs_nul)
        ! There is nothing to do
     case default
-       call mpistop("unknown flux scheme in advect1_grid")
+       !FIXME: 
+       !       call mpistop("unknown flux scheme in advect1_grid")
+       print *, "unknown flux scheme in advect1_grid"
+       STOP
     end select
 
   end subroutine advect1_grid

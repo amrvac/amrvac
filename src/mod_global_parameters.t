@@ -60,11 +60,11 @@ module mod_global_parameters
 
   !> Number of spatial dimensions for grid variables
   integer, parameter :: ndim=^ND
-  !$acc declare create(ndim)
+  !$acc declare copyin(ndim)
 
   !> Number of spatial dimensions (components) for vector variables
   integer :: ndir=ndim
-  !$acc declare create(ndir)
+  !$acc declare copyin(ndir)
 
   !> starting dimension for electric field
   {^IFONED
@@ -76,7 +76,7 @@ module mod_global_parameters
   {^IFTHREED
   integer, parameter :: sdim=1
   }
-  !$acc declare create(sdim)
+  !$acc declare copyin(sdim)
 
   !> Cartesian geometry or not
   logical :: slab
@@ -88,7 +88,7 @@ module mod_global_parameters
   
   !> each cell has its own timestep or not
   logical :: local_timestep = .false.
-  !$acc declare create(local_timestep)
+  !$acc declare copyin(local_timestep)
 
   !> number of grid blocks in domain per dimension, in array over levels
   integer, dimension(:), allocatable :: ng^D
@@ -117,7 +117,7 @@ module mod_global_parameters
 
   !> Number of ghost cells surrounding a grid
   integer :: nghostcells = 2
-  !$acc declare create(nghostcells)
+  !$acc declare copyin(nghostcells)
 
   integer, parameter :: stretch_none = 0 !< No stretching
   integer, parameter :: stretch_uni  = 1 !< Unidirectional stretching from a side
@@ -439,7 +439,7 @@ module mod_global_parameters
   logical :: reset_grid
   !> True for using stagger grid
   logical :: stagger_grid=.false.
-  !$acc declare create(stagger_grid)
+  !$acc declare copyin(stagger_grid)
   
   !> True for record electric field
   logical :: record_electric_field=.false.
@@ -607,7 +607,7 @@ module mod_global_parameters
 
   !> background magnetic field location indicator
   integer :: b0i=0
-  !$acc declare create(b0i)
+  !$acc declare copyin(b0i)
 
   !> Limiter used for prolongation to refined grids and ghost cells
   integer :: prolong_limiter=0

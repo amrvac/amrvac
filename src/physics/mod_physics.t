@@ -93,7 +93,9 @@ module mod_physics
   procedure(sub_update_temperature), pointer :: phys_update_temperature  => null()
   procedure(sub_get_auxiliary), pointer         :: phys_get_auxiliary         => null()
   procedure(sub_get_auxiliary_prim), pointer    :: phys_get_auxiliary_prim    => null()
+  !$acc declare copyin(phys_modify_wLR)
 
+  
   abstract interface
 
      subroutine sub_check_params
