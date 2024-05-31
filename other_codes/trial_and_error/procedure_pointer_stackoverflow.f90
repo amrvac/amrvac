@@ -1,7 +1,6 @@
   !Example was reported as working with gfortran-11 at
   !https://stackoverflow.com/questions/70818524/fortran-openacc-invoking-a-function-on-device-using-a-function-pointer
 
-
   module modTest2
 
   use openacc
@@ -73,7 +72,7 @@ program test2
   !$acc exit data delete(c)
   print *, "Initialization complete..."
 
-
+  
   do i = 1, n
     print *, i, c%arr(i)
   end do
