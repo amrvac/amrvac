@@ -1,6 +1,6 @@
 .phony: all clean
 
-PROGS := procedure_pointer
+PROGS := procedure_pointer procedure_pointer_stackoverflow	
 
 all: $(PROGS)
 

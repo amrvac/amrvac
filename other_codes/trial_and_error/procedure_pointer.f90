@@ -54,10 +54,10 @@ program procedurepointer
   do i=1,n
 !     y(i) = 2.0d0 * x(i)               ! works
 !     call contained_update(x(i),y(i))  ! works
-!     call gut_update(x(i),y(i))        ! works 
+     call gut_update(x(i),y(i))        ! works 
 !     call update(x(i),y(i))            ! breaks: NVFORTRAN-W-0155-Data clause needed for exposed use of pointer update$sd (procedure_pointer.f90: 53)  -- followed by internal compler error if such measures are taken (e.g. attach)
 
-    call local_update(x(i),y(i))        ! breaks: NVFORTRAN-W-0155-Data clause needed for exposed use of pointer local_update$sd (procedure_pointer.f90: 53) -- followed by internal compler error if such measures are taken (e.g. attach)
+!    call local_update(x(i),y(i))        ! breaks: NVFORTRAN-W-0155-Data clause needed for exposed use of pointer local_update$sd (procedure_pointer.f90: 53) -- followed by internal compler error if such measures are taken (e.g. attach)
 
   end do
   !$acc end data
