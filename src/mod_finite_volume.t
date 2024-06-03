@@ -303,6 +303,11 @@ contains
     ! check and optionally correct unphysical values
     if(fix_small_values) then
        call phys_handle_small_values(.false.,wnew,x,ixI^L,ixO^L,'multi-D finite_volume')
+       if(crash) then
+         ! replace erroneous values with values at previous step
+         wnew=wCT
+         if(stagger_grid) snew%ws=sCT%ws
+       end if
     end if
  
     call addsource2(qdt*dble(idimsmax-idimsmin+1)/dble(ndim),& 
