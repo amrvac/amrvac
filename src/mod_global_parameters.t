@@ -327,51 +327,66 @@ module mod_global_parameters
 
   !> Physical scaling factor for length
   double precision :: unit_length=1.d0
+  !$acc declare copyin(unit_length)
 
   !> Physical scaling factor for time
   double precision :: unit_time=1.d0
+  !$acc declare copyin(unit_time)
 
   !> Physical scaling factor for density
   double precision :: unit_density=1.d0
+  !$acc declare copyin(unit_density)
 
   !> Physical scaling factor for velocity
   double precision :: unit_velocity=1.d0
+  !$acc declare copyin(unit_velocity)
 
   !> Physical scaling factor for temperature
   double precision :: unit_temperature=1.d0
+  !$acc declare copyin(unit_temperature)
 
   !> Physical scaling factor for pressure
   double precision :: unit_pressure=1.d0
+  !$acc declare copyin(unit_pressure)
 
   !> Physical scaling factor for magnetic field
   double precision :: unit_magneticfield=1.d0
+  !$acc declare copyin(unit_magneticfield)
 
   !> Physical scaling factor for number density
   double precision :: unit_numberdensity=1.d0
+  !$acc declare copyin(unit_numberdensity)
 
   !> Physical scaling factor for charge
   double precision :: unit_charge=1.d0
+  !$acc declare copyin(unit_charge)
 
   !> Physical scaling factor for mass
   double precision :: unit_mass=1.d0
+  !$acc declare copyin(unit_mass)  
 
   !> Normalised speed of light
   double precision :: c_norm=1.d0
+  !$acc declare copyin(c_norm)
 
   !> Physical scaling factor for Opacity
   double precision :: unit_opacity=1.d0
+  !$acc declare copyin(unit_opacity)
 
   !> Physical scaling factor for radiation flux
   double precision :: unit_radflux=1.d0
+  !$acc declare copyin(unit_radflux)
 
   !> error handling
   double precision :: small_temperature,small_pressure,small_density
+  !$acc declare create(small_temperature,small_pressure,small_density)
 
   !> amplitude of background dipolar, quadrupolar, octupolar, user's field
   double precision :: Bdip=0.d0
   double precision :: Bquad=0.d0
   double precision :: Boct=0.d0
   double precision :: Busr=0.d0
+  !$acc declare copyin(Bdip, Bquad, Boct, Busr)
 
   !> check and optionally fix unphysical small values (density, gas pressure)
   logical :: check_small_values=.true.
@@ -492,6 +507,7 @@ module mod_global_parameters
 
   !> The global simulation time
   double precision :: global_time
+  !$acc declare create(global_time)
 
   !> Start time for the simulation
   double precision :: time_init
@@ -530,6 +546,7 @@ module mod_global_parameters
 
   !> Number of time steps taken
   integer :: it
+  !$acc declare create(it)
 
   !> Stop the simulation after this many time steps have been taken
   integer :: it_max
@@ -666,6 +683,7 @@ module mod_global_parameters
   double precision              :: imex_a22, imex_a33, imex_ha32
   !> whether IMEX in use or not
   logical                       :: use_imex_scheme
+  !$acc declare create(use_imex_scheme)
 
   character(len=std_len) :: typediv,typegrad
 

@@ -14,57 +14,76 @@ module mod_hd_phys
 
   !> Whether thermal conduction is added
   logical, public, protected              :: hd_thermal_conduction = .false.
+  !$acc declare copyin(hd_thermal_conduction)
   type(tc_fluid), allocatable, public :: tc_fl
   type(te_fluid), allocatable, public :: te_fl_hd
+  !$acc declare create(tc_fl, te_fl_hd)
 
   !> Whether radiative cooling is added
   logical, public, protected              :: hd_radiative_cooling = .false.
+  !$acc declare copyin(hd_radiative_cooling)
   type(rc_fluid), allocatable, public :: rc_fl
 
   !> Whether dust is added
   logical, public, protected              :: hd_dust = .false.
+  !$acc declare copyin(hd_dust)
 
   !> Whether viscosity is added
   logical, public, protected              :: hd_viscosity = .false.
+  !$acc declare copyin(hd_viscosity)
 
   !> Whether gravity is added
   logical, public, protected              :: hd_gravity = .false.
+  !$acc declare copyin(hd_gravity)
 
   !> Whether particles module is added
   logical, public, protected              :: hd_particles = .false.
+  !$acc declare copyin(hd_particles)
 
   !> Whether rotating frame is activated
   logical, public, protected              :: hd_rotating_frame = .false.
+  !$acc declare copyin(hd_rotating_frame)
 
   !> Whether CAK radiation line force is activated
   logical, public, protected              :: hd_cak_force = .false.
-
+  !$acc declare copyin(hd_cak_force)
+  
   !> Number of tracer species
   integer, public, protected              :: hd_n_tracer = 0
+  !$acc declare copyin(hd_n_tracer)
 
   !> Whether plasma is partially ionized
   logical, public, protected              :: hd_partial_ionization = .false.
+  !$acc declare copyin(hd_partial_ionization)
 
   !> Index of the density (in the w array)
   integer, public, protected              :: rho_
+  !$acc declare create(rho_)
 
   !> Indices of the momentum density
   integer, allocatable, public, protected :: mom(:)
+  !$acc declare create(mom)
 
   !> Indices of the tracers
   integer, allocatable, public, protected :: tracer(:)
+  !$acc declare create(tracer)
 
   !> Index of the energy density (-1 if not present)
   integer, public, protected              :: e_
+  !$acc declare create(e_)
 
   !> Index of the gas pressure (-1 if not present) should equal e_
   integer, public, protected              :: p_
+  !$acc declare create(p_)
 
   !> Indices of temperature
   integer, public, protected :: Te_
+  !$acc declare create(Te_)
 
   !> Index of the cutoff temperature for the TRAC method
   integer, public, protected              :: Tcoff_
+  !$acc declare create(Tcoff_)
+
 
   !> The adiabatic index
   double precision, public                :: hd_gamma = 5.d0/3.0d0
@@ -82,29 +101,37 @@ module mod_hd_phys
   !> Whether TRAC method is used
   logical, public, protected              :: hd_trac = .false.
   integer, public, protected              :: hd_trac_type = 1
+  !$acc declare copyin(hd_trac,hd_trac_type)
 
   !> Allows overruling default corner filling (for debug mode, since otherwise corner primitives fail)
   logical, public, protected              :: hd_force_diagonal = .false.
+  !$acc declare copyin(hd_force_diagonal)
 
   !> Helium abundance over Hydrogen
   double precision, public, protected  :: He_abundance=0.1d0
+  !$acc declare copyin(He_abundance)
   !> Ionization fraction of H
   !> H_ion_fr = H+/(H+ + H)
   double precision, public, protected  :: H_ion_fr=1d0
+  !$acc declare copyin(H_ion_fr)
   !> Ionization fraction of He
   !> He_ion_fr = (He2+ + He+)/(He2+ + He+ + He)
   double precision, public, protected  :: He_ion_fr=1d0
+  !$acc declare copyin(He_ion_fr)
   !> Ratio of number He2+ / number He+ + He2+
   !> He_ion_fr2 = He2+/(He2+ + He+)
   double precision, public, protected  :: He_ion_fr2=1d0
+  !$acc declare copyin(He_ion_fr2)
   ! used for eq of state when it is not defined by units,
   ! the units do not contain terms related to ionization fraction
   ! and it is p = RR * rho * T
   double precision, public, protected  :: RR=1d0
+  !$acc declare copyin(RR)
   ! remove the below flag  and assume default value = .false.
   ! when eq state properly implemented everywhere
   ! and not anymore through units
   logical, public, protected :: eq_state_units = .true.
+  !$acc declare copyin(eq_state_units)
 
   procedure(sub_get_pthermal), pointer :: hd_get_Rfactor   => null()
   ! Public methods
@@ -495,8 +522,6 @@ contains
 
   end subroutine hd_get_rho
 
-!!end th cond
-!!rad cool
     subroutine rc_params_read(fl)
       use mod_global_parameters, only: unitpar,par_files
       use mod_constants, only: bigdouble
@@ -539,30 +564,32 @@ contains
       fl%rc_split=rc_split
       fl%cfrac=cfrac
     end subroutine rc_params_read
-!! end rad cool
 
-  subroutine hd_check_params
-    use mod_global_parameters
-    use mod_dust, only: dust_check_params, dust_implicit_update, dust_evaluate_implicit
+    subroutine hd_check_params
+      !$acc routine
+      use mod_global_parameters
+      use mod_dust, only: dust_check_params, dust_implicit_update, dust_evaluate_implicit
 
-    if (.not. hd_energy) then
-       if (hd_gamma <= 0.0d0) call mpistop ("Error: hd_gamma <= 0")
-       if (hd_adiab < 0.0d0) call mpistop  ("Error: hd_adiab < 0")
-       small_pressure= hd_adiab*small_density**hd_gamma
-    else
-       if (hd_gamma <= 0.0d0 .or. hd_gamma == 1.0d0) &
-            call mpistop ("Error: hd_gamma <= 0 or hd_gamma == 1.0")
-       small_e = small_pressure/(hd_gamma - 1.0d0)
-    end if
+      if (.not. hd_energy) then
+         if (hd_gamma <= 0.0d0) call mpistop ("Error: hd_gamma <= 0")
+         if (hd_adiab < 0.0d0) call mpistop  ("Error: hd_adiab < 0")
+         small_pressure= hd_adiab*small_density**hd_gamma
+      else
+         if (hd_gamma <= 0.0d0 .or. hd_gamma == 1.0d0) &
+              call mpistop ("Error: hd_gamma <= 0 or hd_gamma == 1.0")
+         small_e = small_pressure/(hd_gamma - 1.0d0)
+      end if
+!FIXME:
+#ifndef _OPENACC      
+      if (hd_dust) call dust_check_params()
+#endif
+      if(use_imex_scheme) then
+         ! implicit dust update
+         phys_implicit_update => dust_implicit_update
+         phys_evaluate_implicit => dust_evaluate_implicit
+      endif
 
-    if (hd_dust) call dust_check_params()
-    if(use_imex_scheme) then
-        ! implicit dust update
-        phys_implicit_update => dust_implicit_update
-        phys_evaluate_implicit => dust_evaluate_implicit
-    endif  
-
-  end subroutine hd_check_params
+    end subroutine hd_check_params
 
   subroutine hd_physical_units
     use mod_global_parameters
@@ -618,6 +645,7 @@ contains
 
   !> Returns logical argument flag where values are ok
   subroutine hd_check_w(primitive, ixI^L, ixO^L, w, flag)
+    !$acc routine
     use mod_global_parameters
     use mod_dust, only: dust_check_w
 
@@ -672,9 +700,12 @@ contains
        w(ixO^S, mom(idir)) = w(ixO^S, rho_) * w(ixO^S, mom(idir))
     end do
 
+!FIXME:
+#ifndef _OPENACC
     if (hd_dust) then
       call dust_to_conserved(ixI^L, ixO^L, w, x)
-    end if
+   end if
+#endif
 
   end subroutine hd_to_conserved
 
@@ -706,11 +737,15 @@ contains
        w(ixO^S, mom(idir)) = w(ixO^S, mom(idir)) * inv_rho
     end do
 
+    
+!FIXME:
+#ifndef _OPENACC
     ! Convert dust momentum to dust velocity
     if (hd_dust) then
       call dust_to_primitive(ixI^L, ixO^L, w, x)
     end if
-
+#endif
+    
   end subroutine hd_to_primitive
 
   !> Transform internal energy to total energy
@@ -811,10 +846,13 @@ contains
     csound(ixO^S) = dsqrt(csound(ixO^S))
 
     cmax(ixO^S) = dabs(v(ixO^S))+csound(ixO^S)
-
+    
+!FIXME:
+#ifndef _OPENACC
     if (hd_dust) then
       call dust_get_cmax(w, x, ixI^L, ixO^L, idim, cmax)
-    end if
+   end if
+#endif
   end subroutine hd_get_cmax
 
   subroutine hd_get_a2max(w,x,ixI^L,ixO^L,a2max)
@@ -948,10 +986,13 @@ contains
         cmax(ixO^S,1)=dabs(umean(ixO^S))+dmean(ixO^S)
       end if
 
+!FIXME:
+#ifndef _OPENACC      
       if (hd_dust) then
         wmean(ixO^S,1:nwflux)=0.5d0*(wLC(ixO^S,1:nwflux)+wRC(ixO^S,1:nwflux))
         call dust_get_cmax(wmean, x, ixI^L, ixO^L, idim, cmax, cmin)
-      end if
+     end if
+#endif
 
     case (2)
       wmean(ixO^S,1:nwflux)=0.5d0*(wLC(ixO^S,1:nwflux)+wRC(ixO^S,1:nwflux))
@@ -972,9 +1013,12 @@ contains
         cmax(ixO^S,1)=dabs(tmp1(ixO^S))+csoundR(ixO^S)
       end if
 
+!FIXME:
+#ifndef _OPENACC  
       if (hd_dust) then
         call dust_get_cmax(wmean, x, ixI^L, ixO^L, idim, cmax, cmin)
       end if
+#endif
     case (3)
       ! Miyoshi 2005 JCP 208, 315 equation (67)
       if(hd_energy) then
@@ -997,10 +1041,14 @@ contains
       else
         cmax(ixO^S,1)=max(wLp(ixO^S,mom(idim)),wRp(ixO^S,mom(idim)))+csoundL(ixO^S)
       end if
+!FIXME:
+#ifndef _OPENACC  
       if (hd_dust) then
         wmean(ixO^S,1:nwflux)=0.5d0*(wLC(ixO^S,1:nwflux)+wRC(ixO^S,1:nwflux))
         call dust_get_cmax(wmean, x, ixI^L, ixO^L, idim, cmax, cmin)
+        
       end if
+#endif
     end select
 
   end subroutine hd_get_cbounds
@@ -1021,6 +1069,7 @@ contains
 
   !> Calculate thermal pressure=(gamma-1)*(e-0.5*m**2/rho) within ixO^L
   subroutine hd_get_pthermal(w, x, ixI^L, ixO^L, pth)
+    !$acc routine
     use mod_global_parameters
     use mod_usr_methods, only: usr_set_pthermal
     use mod_small_values, only: trace_small_values
@@ -1035,11 +1084,12 @@ contains
        pth(ixO^S) = (hd_gamma - 1.0d0) * (w(ixO^S, e_) - &
             hd_kin_en(w, ixI^L, ixO^L))
     else
-       if (.not. associated(usr_set_pthermal)) then
+!FIXME:          
+!       if (.not. associated(usr_set_pthermal)) then
           pth(ixO^S) = hd_adiab * w(ixO^S, rho_)**hd_gamma
-       else
-          call usr_set_pthermal(w,x,ixI^L,ixO^L,pth)
-       end if
+!       else
+!          call usr_set_pthermal(w,x,ixI^L,ixO^L,pth)
+!       end if
     end if
 
     if (fix_small_values) then
@@ -1054,13 +1104,17 @@ contains
            write(*,*) "Error: small value of gas pressure",pth(ix^D),&
                 " encountered when call hd_get_pthermal"
            write(*,*) "Iteration: ", it, " Time: ", global_time
-           write(*,*) "Location: ", x(ix^D,:)
+           write(*,*) "Location: ", {^D& x(ix^DD,^D) |,}
            write(*,*) "Cell number: ", ix^D
            do iw=1,nw
-             write(*,*) trim(cons_wnames(iw)),": ",w(ix^D,iw)
+!FIXME:
+!             write(*,*) trim(cons_wnames(iw)),": ",w(ix^D,iw)
+             write(*,*) cons_wnames(iw),": ",w(ix^D,iw)
            end do
            ! use erroneous arithmetic operation to crash the run
-           if(trace_small_values) write(*,*) dsqrt(pth(ix^D)-bigdouble)
+!FIXME:           
+!           if(trace_small_values) write(*,*) dsqrt(pth(ix^D)-bigdouble)
+!           
            write(*,*) "Saving status at the previous time step"
            crash=.true.
          end if
@@ -1130,11 +1184,14 @@ contains
        f(ixO^S, tracer(itr)) = v(ixO^S) * w(ixO^S, tracer(itr))
     end do
 
+!FIXME:
+#ifndef _OPENACC  
     ! Dust fluxes
     if (hd_dust) then
       call dust_get_flux(w, x, ixI^L, ixO^L, idim, f)
     end if
-
+#endif
+    
   end subroutine hd_get_flux_cons
 
   ! Calculate flux f_idim[iw]
@@ -1178,10 +1235,13 @@ contains
        f(ixO^S, tracer(itr)) = w(ixO^S,mom(idim)) * w(ixO^S, tracer(itr))
     end do
 
+!FIXME:
+#ifndef _OPENACC  
     ! Dust fluxes
     if (hd_dust) then
       call dust_get_flux_prim(w, x, ixI^L, ixO^L, idim, f)
-    end if
+   end if
+#endif
 
     ! Viscosity fluxes - viscInDiv
     if (hd_viscosity) then
@@ -1225,8 +1285,11 @@ contains
     select case (coordinate)
 
     case(Cartesian_expansion)
-      !the user provides the functions of exp_factor and del_exp_factor
-      if(associated(usr_set_surface)) call usr_set_surface(ixI^L,x,block%dx,exp_factor,del_exp_factor,exp_factor_primitive)
+       !the user provides the functions of exp_factor and del_exp_factor
+!FIXME:       
+#ifndef _OPENACC
+       if(associated(usr_set_surface)) call usr_set_surface(ixI^L,x,block%dx,exp_factor,del_exp_factor,exp_factor_primitive)
+#endif
       call hd_get_pthermal(wCT, x, ixI^L, ixO^L, source)
       source(ixO^S) = source(ixO^S)*del_exp_factor(ixO^S)/exp_factor(ixO^S)
       w(ixO^S,mom(1)) = w(ixO^S,mom(1)) + qdt*source(ixO^S)
@@ -1394,9 +1457,12 @@ contains
 
     dtnew = bigdouble
 
+!FIXME:
+#ifndef _OPENACC  
     if(hd_dust) then
       call dust_get_dt(w, ixI^L, ixO^L, dtnew, dx^D, x)
     end if
+#endif
 
     if(hd_radiative_cooling) then
       call cooling_get_dt(w,ixI^L,ixO^L,dtnew,dx^D,x,rc_fl)
@@ -1417,6 +1483,7 @@ contains
   end subroutine hd_get_dt
 
   function hd_kin_en(w, ixI^L, ixO^L, inv_rho) result(ke)
+    !$acc routine
     use mod_global_parameters, only: nw, ndim
     integer, intent(in)                    :: ixI^L, ixO^L
     double precision, intent(in)           :: w(ixI^S, nw)
@@ -1441,6 +1508,7 @@ contains
   end function hd_inv_rho
 
   subroutine hd_handle_small_values(primitive, w, x, ixI^L, ixO^L, subname)
+    !$acc routine
     ! handles hydro (density,pressure,velocity) bootstrapping
     ! any negative dust density is flagged as well (and throws an error)
     ! small_values_method=replace also for dust
