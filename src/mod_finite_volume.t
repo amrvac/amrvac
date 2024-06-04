@@ -115,6 +115,9 @@ contains
        qtC,sCT,qt,snew,fC,fE,dxs,x)
     !$acc routine
     use mod_physics
+#ifdef _OPENACC
+    use mod_hd_phys, only: hd_to_primitive, hd_get_flux
+#endif
     use mod_variables
     use mod_global_parameters
     use mod_tvd, only:tvdlimit2
@@ -168,7 +171,12 @@ contains
          call mpistop("Error in fv : Nonconforming input limits")
 
     wprim=wCT
+!FIXME:
+#ifndef _OPENACC
     call phys_to_primitive(ixI^L,ixI^L,wprim,x)
+#else
+    call hd_to_primitive(ixI^L,ixI^L,wprim,x)
+#endif
 
     do idims= idims^LIM
        ! use interface value of w0 at idims
@@ -206,8 +214,13 @@ contains
        call phys_modify_wLR(ixI^L,ixCR^L,qt,wLC,wRC,wLp,wRp,sCT,idims)
 
        ! evaluate physical fluxes according to reconstructed status
+#ifndef _OPENACC
        call phys_get_flux(wLC,wLp,x,ixI^L,ixC^L,idims,fLC)
        call phys_get_flux(wRC,wRp,x,ixI^L,ixC^L,idims,fRC)
+#else
+       call hd_get_flux(wLC,wLp,x,ixI^L,ixC^L,idims,fLC)
+       call hd_get_flux(wRC,wRp,x,ixI^L,ixC^L,idims,fRC)
+#endif
 
        if(H_correction) then
          call phys_get_H_speed(wprim,x,ixI^L,ixO^L,idims,Hspeed)
@@ -358,7 +371,10 @@ contains
 
     end do ! Next idims
     b0i=0
+!FIXME:    
+#ifndef _OPENACC
     if(stagger_grid) call phys_update_faces(ixI^L,ixO^L,qt,qdt,wprim,fC,fE,sCT,snew,vcts)
+#endif
     if(slab_uniform) then
       dxinv=-qdt/dxs
       do idims= idims^LIM

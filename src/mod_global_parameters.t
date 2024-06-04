@@ -20,6 +20,7 @@ module mod_global_parameters
 
   !> The rank of the current MPI task
   integer :: mype
+  !$acc declare create(mype)
 
   !> The MPI communicator
   integer :: icomm
@@ -375,11 +376,13 @@ module mod_global_parameters
   !> check and optionally fix unphysical small values (density, gas pressure)
   logical :: check_small_values=.true.
   logical :: fix_small_values=.false.
+  !$acc declare copyin(check_small_values, fix_small_values)
 
   !> split magnetic field as background B0 field
   ! TODO these should be moved in a different file  
   logical :: B0field=.false.
   logical :: B0fieldAllocCoarse=.false.
+  !$acc declare copyin(B0field, B0fieldAllocCoarse)
 
   ! number of equilibrium set variables, besides the mag field
   integer :: number_equi_vars = 0
@@ -523,6 +526,7 @@ module mod_global_parameters
 
   !> If true, do H-correction to fix the carbuncle problem at grid-aligned shocks
   logical :: H_correction=.false.
+  !$acc declare copyin(H_correction)
 
   !> Number of time steps taken
   integer :: it
@@ -667,39 +671,50 @@ module mod_global_parameters
 
   !> global fastest wave speed needed in fd scheme and glm method
   double precision :: cmax_global
+  !$acc declare create(cmax_global)
 
   !> global fastest flow speed needed in glm method
   double precision :: vmax_global
+  !$acc declare create(vmax_global)
 
   !> global largest a2 for schmid scheme
   double precision :: a2max_global(ndim)
+  !$acc declare create(a2max_global)
 
   !> need global maximal wave speed
   logical :: need_global_cmax=.false.
+  !$acc declare create(need_global_cmax)
 
   !> global value for schmid scheme
   logical :: need_global_a2max=.false.
-
+  !$acc declare create(need_global_a2max)
+  
   ! Boundary region parameters
 
   !> True for dimensions with periodic boundaries
   logical :: periodB(ndim)
+  !$acc declare create(periodB)
 
   !> Indicates whether there is a pole at a boundary
   logical :: poleB(2,ndim)
+  !$acc declare create(poleB)
 
   !> True for dimensions with aperiodic boundaries
   logical :: aperiodB(ndim)
+  !$acc declare create(aperiodB)
 
   !> True for save physical boundary cells in dat files
   logical :: save_physical_boundary
+  !$acc declare create(save_physical_boundary)
 
   !> True if a block has any physical boundary
   logical, allocatable :: phyboundblock(:)
+  !$acc declare create(phyboundblock)
 
   !> Array indicating the type of boundary condition per variable and per
   !> physical boundary
   integer, allocatable :: typeboundary(:, :)
+  !$acc declare create(typeboundary)
   !> boundary condition types
   integer, parameter :: bc_special=1
   integer, parameter :: bc_cont=2
@@ -714,9 +729,11 @@ module mod_global_parameters
 
   !> whether copy values instead of interpolation in ghost cells of finer blocks
   logical :: ghost_copy=.false.
+  !$acc declare create(ghost_copy)
 
   !> if there is an internal boundary
   logical :: internalboundary
+  !$acc declare create(internalboundary)
 
   !> Base file name for synthetic EUV emission output
   character(len=std_len) :: filename_euv

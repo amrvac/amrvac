@@ -10,6 +10,7 @@ module mod_hd_phys
 
   !> Whether an energy equation is used
   logical, public, protected              :: hd_energy = .true.
+  !$acc declare copyin(hd_energy)
 
   !> Whether thermal conduction is added
   logical, public, protected              :: hd_thermal_conduction = .false.
@@ -67,12 +68,16 @@ module mod_hd_phys
 
   !> The adiabatic index
   double precision, public                :: hd_gamma = 5.d0/3.0d0
+  !$acc declare copyin(hd_gamma)
 
   !> The adiabatic constant
   double precision, public                :: hd_adiab = 1.0d0
+  !$acc declare copyin(hd_adiab)
 
   !> The small_est allowed energy
   double precision, protected             :: small_e
+  !$acc declare create(small_e)
+
 
   !> Whether TRAC method is used
   logical, public, protected              :: hd_trac = .false.
@@ -111,6 +116,9 @@ module mod_hd_phys
   public :: hd_to_primitive
   public :: hd_check_params
   public :: hd_check_w
+#ifdef _OPENACC
+  public :: hd_get_flux
+#endif
 
 contains
 
@@ -639,6 +647,7 @@ contains
 
   !> Transform primitive variables into conservative ones
   subroutine hd_to_conserved(ixI^L, ixO^L, w, x)
+    !$acc routine
     use mod_global_parameters
     use mod_dust, only: dust_to_conserved
     integer, intent(in)             :: ixI^L, ixO^L
@@ -671,6 +680,7 @@ contains
 
   !> Transform conservative variables into primitive ones
   subroutine hd_to_primitive(ixI^L, ixO^L, w, x)
+    !$acc routine
     use mod_global_parameters
     use mod_dust, only: dust_to_primitive
     integer, intent(in)             :: ixI^L, ixO^L
@@ -1129,6 +1139,7 @@ contains
 
   ! Calculate flux f_idim[iw]
   subroutine hd_get_flux(wC, w, x, ixI^L, ixO^L, idim, f)
+    !$acc routine
     use mod_global_parameters
     use mod_dust, only: dust_get_flux_prim
     use mod_viscosity, only: visc_get_flux_prim ! viscInDiv
