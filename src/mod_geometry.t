@@ -5,6 +5,7 @@ module mod_geometry
   public
 
   integer :: coordinate=-1
+  !$acc declare copyin(coordinate)
   integer, parameter :: Cartesian          = 0
   integer, parameter :: Cartesian_stretched= 1
   integer, parameter :: cylindrical        = 2
@@ -12,6 +13,7 @@ module mod_geometry
   integer, parameter :: Cartesian_expansion= 4
 
   integer :: type_curl=0
+  !$acc declare copyin(type_curl)
   integer, parameter :: central=1
   integer, parameter :: Gaussbased=2
   integer, parameter :: Stokesbased=3

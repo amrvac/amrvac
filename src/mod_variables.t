@@ -6,27 +6,35 @@ module mod_variables
 
   !> Number of flux variables
   integer           :: nwflux = 0
+  !$acc declare copyin(nwflux)
 
   !> Number of flux variables which need user to specify boundary type
   integer           :: nwfluxbc = 0
+  !$acc declare copyin(nwfluxbc)
 
   !> Number of auxiliary variables in w
   integer           :: nwaux = 0
+  !$acc declare copyin(nwaux)
 
   !> Number of extra variables in w
   integer           :: nwextra = 0
+  !$acc declare copyin(nwextra)
 
   !> Number of extra variables in wextra seperated from w
   integer           :: nw_extra = 0
+  !$acc declare copyin(nw_extra)
 
   !> Total number of variables
   integer           :: nw = 0
+  !$acc declare copyin(nw)
 
   !> Total number of stagger variables
   integer           :: nws = 0
+  !$acc declare copyin(nws)
 
   !> Number of variables which need to be updated in ghost cells
   integer           :: nwgc = 0
+  !$acc declare copyin(nwgc)
 
   !> Number of vector variables (used for writing output)
   integer           :: nvector = 0
@@ -42,12 +50,15 @@ module mod_variables
   
   !> Maximum number of variables
   integer, parameter :: max_nw = 50
+  !$acc declare copyin(max_nw)
 
   !> Primitive variable names
   character(len=name_len) :: prim_wnames(max_nw)
+  !$acc declare create(prim_wnames)
 
   !> Conservative variable names
   character(len=name_len) :: cons_wnames(max_nw)
+  !$acc declare create(cons_wnames)
 
   ! Global indices of variables that are often used
 
@@ -76,6 +87,7 @@ module mod_variables
 
   !> Index of the cutoff temperature for the TRAC method
   integer :: iw_tcoff = -1
+  !$acc declare copyin(iw_tcoff)
 
   !> number of species: each species has different characterictic speeds and should
   !> be used accordingly in mod_finite_volume and mod_finite_difference
@@ -104,7 +116,7 @@ module mod_variables
   ! these are needed for hlld solver, TODO: consider moving in a separate file
   integer :: iw_equi_rho = -1
   integer :: iw_equi_p = -1
-  !$acc declare copyin(iw_equi_rho,iw_equi_p)
+  !$acc declare copyin(iw_equi_rho, iw_equi_p)
 
 contains
 
@@ -133,7 +145,7 @@ contains
       write(prim_wnames(nwflux),"(A,I0)") name_prim, ix
    end if
 
-   !$acc update device(nwflux,nw,nwfluxbc)
+   !$acc update device(nwflux, nw, nwfluxbc, prim_wnames, cons_wnames)
   end function var_set_fluxvar
 
   !> Set extra variable in w, which is not advected and has no boundary conditions.
@@ -154,7 +166,7 @@ contains
       write(cons_wnames(iw),"(A,I0)") name_cons, ix
       write(prim_wnames(iw),"(A,I0)") name_prim, ix
    end if
-   !$acc update device(nwextra,nw)
+   !$acc update device(nwextra,nw, prim_wnames, cons_wnames)
   end function var_set_extravar
 
   !> Set extra variable in wextra, which is not advected and has no boundary conditions and not output in dat.
@@ -185,7 +197,7 @@ contains
       write(cons_wnames(iw),"(A,I0)") name_cons, ix
       write(prim_wnames(iw),"(A,I0)") name_prim, ix
    end if
-   !$acc update device(nwaux,nw)
+   !$acc update device(nwaux,nw, prim_wnames, cons_wnames)
   end function var_set_auxvar
 
   !> Set density variable
@@ -199,7 +211,7 @@ contains
     iw                  = nwflux
     prim_wnames(nwflux) = 'rho'
     cons_wnames(nwflux) = 'rho'
-    !$acc update device(nwflux,nw,nwfluxbc,iw_rho)
+    !$acc update device(nwflux,nw,nwfluxbc,iw_rho, prim_wnames, cons_wnames)
   end function var_set_rho
 
   ! THE INCLUDE files cannot use other modules
@@ -232,7 +244,7 @@ contains
       write(cons_wnames(nwflux),"(A1,I1)") "m", idir
       write(prim_wnames(nwflux),"(A1,I1)") "v", idir
     end do
-    !$acc update device(nwflux,nw,nwfluxbc,iw_mom)
+    !$acc update device(nwflux,nw,nwfluxbc,iw_mom, prim_wnames, cons_wnames)
   end function var_set_momentum
 
   !> Set energy variable
@@ -246,7 +258,7 @@ contains
     iw                  = nwflux
     cons_wnames(nwflux) = 'e'
     prim_wnames(nwflux) = 'p'
-    !$acc update device(nwflux,nw,nwfluxbc,iw_e)
+    !$acc update device(nwflux,nw,nwfluxbc,iw_e, prim_wnames, cons_wnames)
   end function var_set_energy
 
   function var_set_radiation_energy() result(iw)
@@ -259,7 +271,7 @@ contains
     iw                  = nwflux
     cons_wnames(nwflux) = 'r_e'
     prim_wnames(nwflux) = 'r_e'
-    !$acc update device(nwflux,nw,nwfluxbc,iw_r_e)
+    !$acc update device(nwflux,nw,nwfluxbc,iw_r_e, prim_wnames, cons_wnames)
   end function var_set_radiation_energy
 
   !> Set magnetic field variables
@@ -280,7 +292,7 @@ contains
       write(cons_wnames(nwflux),"(A1,I1)") "b", idir
       write(prim_wnames(nwflux),"(A1,I1)") "b", idir
    end do
-   !$acc update device(nwflux,nw,nwfluxbc,iw_mag)
+   !$acc update device(nwflux,nw,nwfluxbc,iw_mag, prim_wnames, cons_wnames)
   end function var_set_bfield
 
 end module mod_variables

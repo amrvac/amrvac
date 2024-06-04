@@ -127,18 +127,19 @@ contains
   !> Accordingly, the typelim here corresponds to one of limiter
   !> or one of gradient_limiter.
   subroutine dwlimiter2(dwC,ixI^L,ixC^L,idims,typelim,ldw,rdw,a2max)
+    !$acc routine
 
     use mod_global_parameters
     use mod_comm_lib, only: mpistop
 
-    integer, intent(in) :: ixI^L, ixC^L, idims
+    integer, value, intent(in) :: ixI^L, ixC^L, idims
     double precision, intent(in) :: dwC(ixI^S)
     integer, intent(in) :: typelim
     !> Result using left-limiter (same as right for symmetric)
     double precision, intent(out), optional :: ldw(ixI^S)
     !> Result using right-limiter (same as left for symmetric)
     double precision, intent(out), optional :: rdw(ixI^S)
-    double precision, intent(in), optional :: a2max
+    double precision, value, intent(in), optional :: a2max
 
     double precision :: tmp(ixI^S), tmp2(ixI^S)
     integer :: ixO^L, hxO^L

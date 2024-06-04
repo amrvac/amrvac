@@ -116,7 +116,7 @@ contains
     !$acc routine
     use mod_physics
 #ifdef _OPENACC
-    use mod_hd_phys, only: hd_to_primitive, hd_get_flux
+    use mod_hd_phys, only: hd_to_primitive, hd_get_flux, hd_get_cbounds, hd_add_source_geom, hd_handle_small_values
 #endif
     use mod_variables
     use mod_global_parameters
@@ -221,18 +221,29 @@ contains
        call hd_get_flux(wLC,wLp,x,ixI^L,ixC^L,idims,fLC)
        call hd_get_flux(wRC,wRp,x,ixI^L,ixC^L,idims,fRC)
 #endif
-
+!FIXME:
+#ifndef _OPENACC       
        if(H_correction) then
          call phys_get_H_speed(wprim,x,ixI^L,ixO^L,idims,Hspeed)
-       end if
+      end if
+#endif
        ! estimating bounds for the minimum and maximum signal velocities
-       if(method==fs_tvdlf.or.method==fs_tvdmu) then
-         call phys_get_cbounds(wLC,wRC,wLp,wRp,x,ixI^L,ixC^L,idims,Hspeed,cmaxC)
+      if(method==fs_tvdlf.or.method==fs_tvdmu) then
+!FIXME:         
+#ifndef _OPENACC
+          call phys_get_cbounds(wLC,wRC,wLp,wRp,x,ixI^L,ixC^L,idims,Hspeed,cmaxC)
          ! index of var  velocity appears in the induction eq. 
          if(stagger_grid) call phys_get_ct_velocity(vcts,wLp,wRp,ixI^L,ixC^L,idims,cmaxC(ixI^S,index_v_mag))
-       else
+#else
+          call hd_get_cbounds(wLC,wRC,wLp,wRp,x,ixI^L,ixC^L,idims,Hspeed,cmaxC)
+#endif
+      else
+#ifndef _OPENACC
          call phys_get_cbounds(wLC,wRC,wLp,wRp,x,ixI^L,ixC^L,idims,Hspeed,cmaxC,cminC)
          if(stagger_grid) call phys_get_ct_velocity(vcts,wLp,wRp,ixI^L,ixC^L,idims,cmaxC(ixI^S,index_v_mag),cminC(ixI^S,index_v_mag))
+#else
+         call hd_get_cbounds(wLC,wRC,wLp,wRp,x,ixI^L,ixC^L,idims,Hspeed,cmaxC,cminC)
+#endif
        end if
 
        ! use approximate Riemann solver to get flux at interfaces
@@ -338,7 +349,7 @@ contains
          !     call get_Riemann_flux_hll(start_indices(ii),stop_indices(ii))
          !   endif   
          ! end do
-         print *, 'hlld not inlined yet for openacc'
+!         print *, 'hlld not inlined yet for openacc'
       case(fs_tvdlf)
          
           do ii=1,number_species
@@ -366,7 +377,9 @@ contains
           end do
 
        case default
-         call mpistop('unkown Riemann flux in finite volume')
+!FIXME:
+!          call mpistop('unkown Riemann flux in finite volume')
+          STOP
        end select
 
     end do ! Next idims
@@ -397,7 +410,7 @@ contains
         if(method==fs_tvdmu) then
            !FIXME: not implemented (needs to declare create further module variables)
            !           call tvdlimit2(method,qdt,ixI^L,ixC^L,ixO^L,idims,wLC,wRC,wnew,x,fC,dxs)
-           print *, 'tvdllimit2 not yet available'
+!           print *, 'tvdllimit2 not yet available'
         end if
 
       end do ! Next idims
@@ -423,20 +436,29 @@ contains
         if (method==fs_tvdmu) then
            !FIXME: not implemented (needs to declare create further module variables)
            !             call tvdlimit2(method,qdt,ixI^L,ixC^L,ixO^L,idims,wLC,wRC,wnew,x,fC,dxs)
-           print *, 'tvdllimit2 not yet available'
+!           print *, 'tvdllimit2 not yet available'
         end if           
 
       end do ! Next idims
     end if
 
+!FIXME:
+#ifndef _OPENACC
     if (.not.slab.and.idimsmin==1) &
          call phys_add_source_geom(qdt,dtfactor,ixI^L,ixO^L,wCT,wnew,x)
-
     if(stagger_grid) call phys_face_to_center(ixO^L,snew)
+#else
+    if (.not.slab.and.idimsmin==1) &
+         call hd_add_source_geom(qdt,dtfactor,ixI^L,ixO^L,wCT,wnew,x)
+#endif
 
     ! check and optionally correct unphysical values
     if(fix_small_values) then
+#ifndef _OPENACC
        call phys_handle_small_values(.false.,wnew,x,ixI^L,ixO^L,'multi-D finite_volume')
+#else
+       call hd_handle_small_values(.false.,wnew,x,ixI^L,ixO^L,'multi-D finite_volume')
+#endif
     end if
  
     call addsource2(qdt*dble(idimsmax-idimsmin+1)/dble(ndim),& 
@@ -444,6 +466,7 @@ contains
          ixI^L,ixO^L,1,nw,qtC,wCT,wprim,qt,wnew,x,.false.,active)
 
   end associate
+#ifndef _OPENACC
   contains
 
     subroutine get_Riemann_flux_tvdmu()
@@ -1099,7 +1122,7 @@ contains
      csound(ixO^S) = sqrt(half*(cfast2(ixO^S)+AvMinCs2(ixO^S)))
 
     end subroutine get_hlld2_modif_c
-
+#endif
   end subroutine finite_volume
 
   !> Determine the upwinded wLC(ixL) and wRC(ixR) from w.
@@ -1107,11 +1130,14 @@ contains
   subroutine reconstruct_LR(ixI^L,ixL^L,ixR^L,idims,w,wLC,wRC,wLp,wRp,x,dxdim)
     !$acc routine
     use mod_physics
+#ifdef _OPENACC
+    use mod_hd_phys, only: hd_handle_small_values, hd_to_conserved
+#endif
     use mod_global_parameters
     use mod_limiter
     use mod_comm_lib, only: mpistop
 
-    integer, intent(in) :: ixI^L, ixL^L, ixR^L, idims
+    integer, value, intent(in) :: ixI^L, ixL^L, ixR^L, idims
     double precision, intent(in) :: dxdim
     ! cell center w in primitive form
     double precision, dimension(ixI^S,1:nw) :: w
@@ -1192,7 +1218,9 @@ contains
             case(3)
               a2max=schmid_rad3}
             case default
-              call mpistop("idims is wrong in mod_limiter")
+!FIXME:
+!               call mpistop("idims is wrong in mod_limiter")
+               STOP
             end select
           end if
 
@@ -1208,15 +1236,25 @@ contains
           end if
        end do
        if(fix_small_values) then
+#ifndef _OPENACC
           call phys_handle_small_values(.true.,wLp,x,ixI^L,ixL^L,'reconstruct left')
           call phys_handle_small_values(.true.,wRp,x,ixI^L,ixR^L,'reconstruct right')
+#else
+          call hd_handle_small_values(.true.,wLp,x,ixI^L,ixL^L,'reconstruct left')
+          call hd_handle_small_values(.true.,wRp,x,ixI^L,ixR^L,'reconstruct right')
+#endif
        end if
     end select
 
    wLC(ixL^S,1:nwflux) = wLp(ixL^S,1:nwflux)
    wRC(ixR^S,1:nwflux) = wRp(ixR^S,1:nwflux)
+#ifndef _OPENACC
    call phys_to_conserved(ixI^L,ixL^L,wLC,x)
    call phys_to_conserved(ixI^L,ixR^L,wRC,x)
+#else
+   call hd_to_conserved(ixI^L,ixL^L,wLC,x)
+   call hd_to_conserved(ixI^L,ixR^L,wRC,x)
+#endif   
    if(nwaux>0)then
       wLp(ixL^S,nwflux+1:nwflux+nwaux) = wLC(ixL^S,nwflux+1:nwflux+nwaux)
       wRp(ixR^S,nwflux+1:nwflux+nwaux) = wRC(ixR^S,nwflux+1:nwflux+nwaux)

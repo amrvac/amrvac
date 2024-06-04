@@ -145,6 +145,10 @@ module mod_hd_phys
   public :: hd_check_w
 #ifdef _OPENACC
   public :: hd_get_flux
+  public :: hd_get_cbounds
+  public :: hd_handle_small_values
+  public :: hd_add_source_geom
+  public :: hd_add_source
 #endif
 
 contains
@@ -582,12 +586,12 @@ contains
 !FIXME:
 #ifndef _OPENACC      
       if (hd_dust) call dust_check_params()
-#endif
       if(use_imex_scheme) then
          ! implicit dust update
          phys_implicit_update => dust_implicit_update
          phys_evaluate_implicit => dust_evaluate_implicit
       endif
+#endif
 
     end subroutine hd_check_params
 
@@ -668,9 +672,11 @@ contains
     end if
 
     where(w(ixO^S, rho_) < small_density) flag(ixO^S,rho_) = .true.
-
+!FIXME:
+#ifndef _OPENACC    
     if(hd_dust) call dust_check_w(ixI^L,ixO^L,w,flag)
-
+#endif
+    
   end subroutine hd_check_w
 
   !> Transform primitive variables into conservative ones
@@ -932,11 +938,12 @@ contains
 
   !> Calculate cmax_idim = csound + abs(v_idim) within ixO^L
   subroutine hd_get_cbounds(wLC, wRC, wLp, wRp, x, ixI^L, ixO^L, idim,Hspeed,cmax, cmin)
+    !$acc routine
     use mod_global_parameters
     use mod_dust, only: dust_get_cmax
     use mod_variables
 
-    integer, intent(in)             :: ixI^L, ixO^L, idim
+    integer, value, intent(in)      :: ixI^L, ixO^L, idim
     ! conservative left and right status
     double precision, intent(in)    :: wLC(ixI^S, nw), wRC(ixI^S, nw)
     ! primitive left and right status
@@ -1056,6 +1063,7 @@ contains
   !> Calculate the square of the thermal sound speed csound2 within ixO^L.
   !> csound2=gamma*p/rho
   subroutine hd_get_csound2(w,x,ixI^L,ixO^L,csound2)
+    !$acc routine
     use mod_global_parameters
     integer, intent(in)             :: ixI^L, ixO^L
     double precision, intent(in)    :: w(ixI^S,nw)
@@ -1100,22 +1108,22 @@ contains
       {enddo^D&\}
     else if (check_small_values) then
       {do ix^DB= ixO^LIM^DB\}
-         if(pth(ix^D)<small_pressure) then
+      if(pth(ix^D)<small_pressure) then
+!FIXME: many issues here, e.g. "Reference argument passing prevents parallelization"
+#ifndef _OPENACC
            write(*,*) "Error: small value of gas pressure",pth(ix^D),&
                 " encountered when call hd_get_pthermal"
            write(*,*) "Iteration: ", it, " Time: ", global_time
            write(*,*) "Location: ", {^D& x(ix^DD,^D) |,}
            write(*,*) "Cell number: ", ix^D
            do iw=1,nw
-!FIXME:
-!             write(*,*) trim(cons_wnames(iw)),": ",w(ix^D,iw)
-             write(*,*) cons_wnames(iw),": ",w(ix^D,iw)
+             write(*,*) trim(cons_wnames(iw)),": ",w(ix^D,iw)
            end do
            ! use erroneous arithmetic operation to crash the run
-!FIXME:           
-!           if(trace_small_values) write(*,*) dsqrt(pth(ix^D)-bigdouble)
-!           
+           
+           if(trace_small_values) write(*,*) dsqrt(pth(ix^D)-bigdouble)
            write(*,*) "Saving status at the previous time step"
+#endif           
            crash=.true.
          end if
       {enddo^D&\}
@@ -1201,7 +1209,7 @@ contains
     use mod_dust, only: dust_get_flux_prim
     use mod_viscosity, only: visc_get_flux_prim ! viscInDiv
 
-    integer, intent(in)             :: ixI^L, ixO^L, idim
+    integer, value, intent(in)      :: ixI^L, ixO^L, idim
     ! conservative w
     double precision, intent(in)    :: wC(ixI^S, 1:nw)
     ! primitive w
@@ -1241,12 +1249,12 @@ contains
     if (hd_dust) then
       call dust_get_flux_prim(w, x, ixI^L, ixO^L, idim, f)
    end if
-#endif
 
     ! Viscosity fluxes - viscInDiv
     if (hd_viscosity) then
       call visc_get_flux_prim(w, x, ixI^L, ixO^L, idim, f, hd_energy)
     endif
+#endif
 
   end subroutine hd_get_flux
 
@@ -1258,6 +1266,7 @@ contains
   !> Ileyk : to do :
   !>     - address the source term for the dust in case (coordinate == spherical)
   subroutine hd_add_source_geom(qdt, dtfactor, ixI^L, ixO^L, wCT, w, x)
+    !$acc routine
     use mod_global_parameters
     use mod_usr_methods, only: usr_set_surface
     use mod_viscosity, only: visc_add_source_geom ! viscInDiv
@@ -1365,7 +1374,8 @@ contains
        end if
        }
     end select
-
+!FIXME:
+#ifndef _OPENACC    
     if (hd_viscosity) call visc_add_source_geom(qdt,ixI^L,ixO^L,wCT,w,x)
 
     if (hd_rotating_frame) then
@@ -1375,11 +1385,13 @@ contains
           call rotating_frame_add_source(qdt,dtfactor,ixI^L,ixO^L,wCT,w,x)
        end if
     end if
-
+#endif
+    
   end subroutine hd_add_source_geom
 
   ! w[iw]= w[iw]+qdt*S[wCT, qtC, x] where S is the source based on wCT within ixO
   subroutine hd_add_source(qdt,dtfactor, ixI^L,ixO^L,wCT,wCTprim,w,x,qsourcesplit,active)
+    !$acc routine
     use mod_global_parameters
     use mod_radiative_cooling, only: radiative_cooling_add_source
     use mod_dust, only: dust_add_source, dust_mom, dust_rho, dust_n_species
@@ -1398,6 +1410,8 @@ contains
     double precision :: gravity_field(ixI^S, 1:ndim)
     integer :: idust, idim
 
+!FIXME:
+#ifndef _OPENACC    
     if(hd_dust .and. .not. use_imex_scheme) then
       call dust_add_source(qdt,ixI^L,ixO^L,wCT,w,x,qsourcesplit,active)
     end if
@@ -1406,7 +1420,10 @@ contains
       call radiative_cooling_add_source(qdt,ixI^L,ixO^L,wCT,wCTprim,w,x,&
            qsourcesplit,active, rc_fl)
     end if
-
+#endif
+    
+!FIXME:
+#ifndef _OPENACC
     if(hd_viscosity) then
       call viscosity_add_source(qdt,ixI^L,ixO^L,wCT,w,x,&
            hd_energy,qsourcesplit,active)
@@ -1439,7 +1456,7 @@ contains
         call hd_update_temperature(ixI^L,ixO^L,wCT,w,x)
       end if
     end if
-
+#endif
   end subroutine hd_add_source
 
   subroutine hd_get_dt(w, ixI^L, ixO^L, dtnew, dx^D, x)

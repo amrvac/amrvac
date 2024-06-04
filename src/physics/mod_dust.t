@@ -10,6 +10,7 @@ module mod_dust
 
   !> The number of dust species
   integer, public, protected      :: dust_n_species = 0
+  !$acc declare copyin(dust_n_species)
 
   integer, protected              :: gas_rho_ = -1
   integer, allocatable, protected :: gas_mom(:)
@@ -17,9 +18,11 @@ module mod_dust
 
   !> Indices of the dust densities
   integer, allocatable, public, protected :: dust_rho(:)
+  !$acc declare create(dust_rho)
 
   !> Indices of the dust momentum densities
   integer, allocatable, public, protected :: dust_mom(:, :)
+  !$acc declare create(dust_mom)
 
   !> Size of each dust species, dimensionless expression
   double precision, allocatable, public :: dust_size(:)

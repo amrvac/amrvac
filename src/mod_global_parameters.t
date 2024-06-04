@@ -58,6 +58,7 @@ module mod_global_parameters
   integer :: r_ = -1
   integer :: phi_ = -1
   integer :: z_ = -1
+  !$acc declare copyin(r_, phi_, z_)
 
   !> Number of spatial dimensions for grid variables
   integer, parameter :: ndim=^ND
@@ -322,6 +323,7 @@ module mod_global_parameters
 
   !> Save a snapshot before crash a run met unphysical values
   logical :: crash=.false.
+  !$acc declare copyin(crash)
 
   ! Physics factors
 
@@ -621,10 +623,12 @@ module mod_global_parameters
 
   !> Type of slope limiter used for reconstructing variables on cell edges
   integer, allocatable :: type_limiter(:)
+  !$acc declare create(type_limiter)
 
   !> Type of slope limiter used for computing gradients or divergences, when
   !> typegrad or typediv are set to 'limited'
   integer, allocatable :: type_gradient_limiter(:)
+  !$acc declare create(type_gradient_limiter)
 
   !> background magnetic field location indicator
   integer :: b0i=0
@@ -641,24 +645,31 @@ module mod_global_parameters
 
   !> bound (left/min and right.max) speed of Riemann fan
   integer :: boundspeed
+  !$acc declare create(boundspeed)
 
   character(len=std_len) :: typeaverage
   character(len=std_len) :: typedimsplit
   character(len=std_len) :: geometry_name='default'
   character(len=std_len) :: typepoly
+  !$acc declare copyin(typeaverage, typedimsplit, geometry_name, typepoly)
 
   integer                       :: nxdiffusehllc
   double precision, allocatable :: entropycoef(:)
   double precision              :: tvdlfeps
-  !$acc declare create(tvdlfeps)
+  !$acc declare create(nxdiffusehllc, entropycoef, tvdlfeps)
 
   logical, allocatable          :: loglimit(:), logflag(:)
+  !$acc declare create(loglimit, logflag)
   logical                       :: flathllc,flatcd,flatsh
+  !$acc declare create(flathllc, flatcd, flatsh)
   !> Use split or unsplit way to add user's source terms, default: unsplit
   logical                       :: source_split_usr
+  !$acc declare create(source_split_usr)
   !> if any normal source term is added in split fasion
   logical                       :: any_source_split=.false.
+  !$acc declare copyin(any_source_split)
   logical                       :: dimsplit
+  !$acc declare create(dimsplit)
 
   !> RK2(alfa) method parameters from Butcher tableau
   double precision              :: rk_a21,rk_b1,rk_b2

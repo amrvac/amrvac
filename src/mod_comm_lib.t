@@ -212,11 +212,12 @@ contains
     integer                      :: ierrcode
   
     write(*, *) "ERROR for processor", mype, ":"
-    write(*, *) trim(message)
 
 #ifdef _OPENACC
+    write(*, *) message
     STOP
 #else
+    write(*, *) trim(message)
     call MPI_ABORT(icomm, ierrcode, ierrmpi)
 #endif
   

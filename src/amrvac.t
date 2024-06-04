@@ -21,7 +21,10 @@ program amrvac
   use mod_convert, only: init_convert
   use mod_physics
   use mod_amr_grid, only: resettree, settree, resettree_convert
+!FIXME:  
+#ifndef _OPENACC  
   use mod_trac, only: initialize_trac_after_settree
+#endif
   use mod_convert_files, only: generate_plotfile
   use mod_comm_lib, only: comm_start, comm_finalize,mpistop
 
@@ -164,9 +167,12 @@ program amrvac
 
   end if
 
+!FIXME:  
+#ifndef _OPENACC  
   ! initialize something base on tree information
   call initialize_trac_after_settree
-
+#endif
+  
   if (mype==0) then
      print*,'-------------------------------------------------------------------------------'
      write(*,'(a,f17.3,a)')' Startup phase took : ',MPI_WTIME()-time0,' sec'

@@ -42,6 +42,7 @@ module mod_physics
   !> Array per direction per variable, which can be used to specify that certain
   !> fluxes have to be treated differently
   integer, allocatable :: flux_type(:, :)
+  !$acc declare create(flux_type)
 
   !> Indicates a normal flux
   integer, parameter   :: flux_default        = 0
@@ -174,7 +175,7 @@ module mod_physics
      subroutine sub_get_cbounds(wLC, wRC, wLp, wRp, x, ixI^L, ixO^L, idim, Hspeed, cmax, cmin)
        use mod_global_parameters
        use mod_variables
-       integer, intent(in)             :: ixI^L, ixO^L, idim
+       integer, value, intent(in)      :: ixI^L, ixO^L, idim
        double precision, intent(in)    :: wLC(ixI^S, nw), wRC(ixI^S, nw)
        double precision, intent(in)    :: wLp(ixI^S, nw), wRp(ixI^S, nw)
        double precision, intent(in)    :: x(ixI^S, 1:^ND)
@@ -185,7 +186,7 @@ module mod_physics
 
      subroutine sub_get_flux(wC, w, x, ixI^L, ixO^L, idim, f)
        use mod_global_parameters
-       integer, intent(in)             :: ixI^L, ixO^L, idim
+       integer, value, intent(in)      :: ixI^L, ixO^L, idim
        double precision, intent(in)    :: wC(ixI^S, 1:nw)
        double precision, intent(in)    :: w(ixI^S, 1:nw)
        double precision, intent(in)    :: x(ixI^S, 1:^ND)
