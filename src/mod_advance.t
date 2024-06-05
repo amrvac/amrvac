@@ -660,9 +660,9 @@ contains
     integer :: iigrid, igrid
 
     ! Get the state onto the GPU
-    !$acc enter data copyin(psa,psb)
+    !$acc enter data copyin(psa,psb,ps)
     do iigrid=1,igridstail; igrid=igrids(iigrid);
-       !$acc enter data copyin(psa(igrid)%w,psb(igrid)%w,psa(igrid)%ws,psb(igrid)%ws)
+       !$acc enter data copyin(psa(igrid)%w,psb(igrid)%w,psa(igrid)%ws,psb(igrid)%ws,ps(igrid)%x)
     end do
 
     
@@ -674,14 +674,17 @@ contains
 
     qdt=dtfactor*dt
     !$OMP PARALLEL DO PRIVATE(igrid)
-    !$acc parallel loop gang
+    !$acc parallel loop gang private(block,{dxlevel(^D)})
     do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
        block=>ps(igrid)
        ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
 
+       print *, 'advect1 A'
+       
       call advect1_grid(method(block%level),qdt,dtfactor,ixG^LL,idim^LIM,&
         qtC,psa(igrid),qt,psb(igrid),fC,fE,rnode(rpdx1_:rnodehi,igrid),ps(igrid)%x)
 
+       print *, 'advect1 B'
 !FIXME
 !      if (fix_conserve_global .and. fix_conserve_at_step) then
 !        call store_flux(igrid,fC,idim^LIM,nwflux)
@@ -711,9 +714,9 @@ contains
     call getbc(qt+qdt,qdt,psb,iwstart,nwgc,phys_req_diagonal)
 
     do iigrid=1,igridstail; igrid=igrids(iigrid);
-       !$acc exit data copyout(psa(igrid)%w,psb(igrid)%w,psa(igrid)%ws,psb(igrid)%ws)
+       !$acc exit data copyout(psa(igrid)%w,psb(igrid)%w,psa(igrid)%ws,psb(igrid)%ws) delete(ps(igrid)%x)
     end do
-    !$acc exit data copyout(psa,psb)
+    !$acc exit data copyout(psa,psb) delete(ps)
     
   end subroutine advect1
 
@@ -738,10 +741,15 @@ contains
 
     integer :: ixO^L
 
+    print *, 'advect1_grid A'
+    
     ixO^L=ixI^L^LSUBnghostcells;
     select case (method)
     case (fs_hll,fs_hllc,fs_hllcd,fs_hlld,fs_tvdlf,fs_tvdmu)
-       call finite_volume(method,qdt,dtfactor,ixI^L,ixO^L,idim^LIM,qtC,sCT,qt,s,fC,fE,dxs,x)
+    print *, 'advect1_grid B'
+    call finite_volume(method,qdt,dtfactor,ixI^L,ixO^L,idim^LIM,qtC,sCT,qt,s,fC,fE,dxs,x)
+!    call finite_volume_debug2(method,qdt,dtfactor,ixI^L,ixO^L,idim^LIM)
+    print *, 'advect1_grid C'
 !FIXME: focussing on finite_volume for now
 !    case (fs_cd,fs_cd4)
 !       call centdiff(method,qdt,dtfactor,ixI^L,ixO^L,idim^LIM,qtC,sCT,qt,s,fC,fE,dxs,x)

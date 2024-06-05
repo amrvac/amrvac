@@ -1668,7 +1668,7 @@ contains
     deallocate(flux_scheme)
 
     !$acc update device(tvdlfeps,ixGhi^D,ixGshi^D,schmid_rad^D,cada3_radius)
-    !$acc update device(fix_small_values,H_correction)
+    !$acc update device(fix_small_values,H_correction,type_limiter)
     
   end subroutine read_par_files
 
