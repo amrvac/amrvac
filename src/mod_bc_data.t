@@ -30,6 +30,7 @@ module mod_bc_data
   !> data file name
   character(len=std_len), public, protected :: boundary_data_file_name
   logical, public, protected :: interp_phy_first_row=.true.
+  logical, public, protected :: interp_phy_first_row_same=.false.
   logical, public, protected :: bc_phy_first_row=.false.
   logical, public, protected :: boundary_data_primitive=.false.
 
@@ -105,7 +106,7 @@ contains
     integer                      :: n
 
     namelist /bd_list/ boundary_data_file_name, interp_phy_first_row, bc_phy_first_row,&
-                       boundary_data_primitive
+                       boundary_data_primitive, interp_phy_first_row_same
 
     do n = 1, size(files)
        open(unitpar, file=trim(files(n)), status="old")
@@ -199,11 +200,48 @@ contains
           if(interp_phy_first_row) then
             ! Approximate boundary value by linear interpolation to first ghost
             ! cell, rest of ghost cells contains the same value
-            do i = 0, ixOOmax1-ixOOmin1
-               w(ixOOmin1+i, ixOmin2:ixOmax2, iw) = &
-                    2 * tmp(ixOmin1, ixOmin2:ixOmax2) - &
-                    w(ix, ixOmin2:ixOmax2, iw)
-            end do
+            if(interp_phy_first_row_same) then
+              do i = 0, ixOOmax1-ixOOmin1
+                 w(ixOOmin1+i, ixOmin2:ixOmax2, iw) = &
+                      2 * tmp(ixOmin1, ixOmin2:ixOmax2) - &
+                      w(ix, ixOmin2:ixOmax2, iw)
+              end do
+            else
+              if (iB==1) then
+                do i = 0, ixOOmax1-ixOOmin1
+                  if (i==0) then
+                    w(ixOOmin1+i, ixOmin2:ixOmax2, iw) = &
+                         4 * tmp(ixOmin1, ixOmin2:ixOmax2) - &
+                         3 * w(ix, ixOmin2:ixOmax2, iw)
+                  elseif (i==1)then  
+                    w(ixOOmin1+i, ixOmin2:ixOmax2, iw) = &
+                         2 * tmp(ixOmin1, ixOmin2:ixOmax2) - &
+                         w(ix, ixOmin2:ixOmax2, iw)
+                   else 
+                    w(ixOOmin1+i, ixOmin2:ixOmax2, iw) = &
+                         tmp(ixOmin1, ixOmin2:ixOmax2)
+                   endif 
+                  
+                end do
+              else
+                do i = 0, ixOOmax1-ixOOmin1
+                  if (i==ixOOmax1-ixOOmin1) then
+                    w(ixOOmin1+i, ixOmin2:ixOmax2, iw) = &
+                         4 * tmp(ixOmin1, ixOmin2:ixOmax2) - &
+                         3 * w(ix, ixOmin2:ixOmax2, iw)
+                  elseif (i==ixOOmax1-ixOOmin1-1)then  
+                    w(ixOOmin1+i, ixOmin2:ixOmax2, iw) = &
+                         2 * tmp(ixOmin1, ixOmin2:ixOmax2) - &
+                         w(ix, ixOmin2:ixOmax2, iw)
+                  else 
+                    w(ixOOmin1+i, ixOmin2:ixOmax2, iw) = &
+                         tmp(ixOmin1, ixOmin2:ixOmax2)
+                  endif 
+                  
+                end do
+              endif
+
+            endif
           else
             do i = ixOOmin1, ixOOmax1
                w(i, ixOmin2:ixOmax2, iw) = &
@@ -259,11 +297,48 @@ contains
   
             ! Approximate boundary value by linear interpolation to first ghost
             ! cell, rest of ghost cells contains the same value
+            if(interp_phy_first_row_same) then
             do i = 0, ixOOmax2-ixOOmin2
                w(ixOmin1:ixOmax1, ixOOmin2+i, iw) = &
                     2 * tmp(ixOmin1:ixOmax1, ixOmin2) - &
                     w(ixOmin1:ixOmax1, ix, iw)
             end do
+            else
+              if (iB==3) then
+                do i = 0, ixOOmax2-ixOOmin2
+                  if (i==0) then
+                    w(ixOmin1:ixOmax1, ixOOmin2+i, iw) = &
+                    4 * tmp(ixOmin1:ixOmax1, ixOmin2) - &
+                    3 * w(ixOmin1:ixOmax1, ix, iw)
+                  elseif (i==1)then  
+                    w(ixOmin1:ixOmax1, ixOOmin2+i, iw) = &
+                    2 * tmp(ixOmin1:ixOmax1, ixOmin2) - &
+                    w(ixOmin1:ixOmax1, ix, iw)
+                   else 
+                    w(ixOmin1:ixOmax1, ixOOmin2+i, iw) = &
+                    tmp(ixOmin1:ixOmax1, ixOmin2) 
+                   endif 
+                  
+                end do
+              else
+                do i = 0, ixOOmax2-ixOOmin2
+                  if (i==ixOOmax2-ixOOmin2) then
+                    w(ixOmin1:ixOmax1, ixOOmin2+i, iw) = &
+                    4 * tmp(ixOmin1:ixOmax1, ixOmin2) - &
+                    3 * w(ixOmin1:ixOmax1, ix, iw)
+                  elseif (i==ixOOmax2-ixOOmin2-1)then  
+                    w(ixOmin1:ixOmax1, ixOOmin2+i, iw) = &
+                    2 * tmp(ixOmin1:ixOmax1, ixOmin2) - &
+                    w(ixOmin1:ixOmax1, ix, iw)
+                   else 
+                    w(ixOmin1:ixOmax1, ixOOmin2+i, iw) = &
+                    tmp(ixOmin1:ixOmax1, ixOmin2) 
+                   endif 
+                  
+                end do
+              endif
+
+            endif
           else
             do i = ixOOmin2, ixOOmax2
              w(ixOmin1:ixOmax1, i, iw) = &
@@ -327,11 +402,48 @@ contains
   
             ! Approximate boundary value by linear interpolation to first ghost
             ! cell, rest of ghost cells contains the same value
-            do i = 0, ixOOmax1-ixOOmin1
-               w(ixOOmin1+i, ixOmin2:ixOmax2, ixOmin3:ixOmax3, iw) = &
-                    2 * tmp(ixOmin1, ixOmin2:ixOmax2, ixOmin3:ixOmax3) - &
-                    w(ix, ixOmin2:ixOmax2, ixOmin3:ixOmax3, iw)
-            end do
+            if(interp_phy_first_row_same) then
+              do i = 0, ixOOmax1-ixOOmin1
+                 w(ixOOmin1+i, ixOmin2:ixOmax2, ixOmin3:ixOmax3, iw) = &
+                      2 * tmp(ixOmin1, ixOmin2:ixOmax2, ixOmin3:ixOmax3) - &
+                      w(ix, ixOmin2:ixOmax2, ixOmin3:ixOmax3, iw)
+              end do
+            else
+              if (iB==1) then
+                do i = 0, ixOOmax1-ixOOmin1
+                  if (i==0) then
+                    w(ixOOmin1+i, ixOmin2:ixOmax2, ixOmin3:ixOmax3, iw) = &
+                         4 * tmp(ixOmin1, ixOmin2:ixOmax2, ixOmin3:ixOmax3) - &
+                         3*w(ix, ixOmin2:ixOmax2, ixOmin3:ixOmax3, iw)
+                  elseif (i==1)then  
+                    w(ixOOmin1+i, ixOmin2:ixOmax2, ixOmin3:ixOmax3, iw) = &
+                         2 * tmp(ixOmin1, ixOmin2:ixOmax2, ixOmin3:ixOmax3) - &
+                         w(ix, ixOmin2:ixOmax2, ixOmin3:ixOmax3, iw)
+                   else 
+                    w(ixOOmin1+i, ixOmin2:ixOmax2, ixOmin3:ixOmax3, iw) = &
+                         tmp(ixOmin1, ixOmin2:ixOmax2, ixOmin3:ixOmax3) 
+                   endif 
+                  
+                end do
+              else
+                do i = 0, ixOOmax1-ixOOmin1
+                  if (i==ixOOmax1-ixOOmin1) then
+                    w(ixOOmin1+i, ixOmin2:ixOmax2, ixOmin3:ixOmax3, iw) = &
+                         4 * tmp(ixOmin1, ixOmin2:ixOmax2, ixOmin3:ixOmax3) - &
+                         3*w(ix, ixOmin2:ixOmax2, ixOmin3:ixOmax3, iw)
+                  elseif (i==ixOOmax1-ixOOmin1-1)then  
+                    w(ixOOmin1+i, ixOmin2:ixOmax2, ixOmin3:ixOmax3, iw) = &
+                         2 * tmp(ixOmin1, ixOmin2:ixOmax2, ixOmin3:ixOmax3) - &
+                         w(ix, ixOmin2:ixOmax2, ixOmin3:ixOmax3, iw)
+                   else 
+                    w(ixOOmin1+i, ixOmin2:ixOmax2, ixOmin3:ixOmax3, iw) = &
+                         tmp(ixOmin1, ixOmin2:ixOmax2, ixOmin3:ixOmax3) 
+                   endif 
+                  
+                end do
+              endif
+
+            endif
           else
             do i = ixOOmin1,ixOOmax1
                w(i, ixOmin2:ixOmax2, ixOmin3:ixOmax3, iw) = &
@@ -386,13 +498,50 @@ contains
 
           if(interp_phy_first_row) then
   
+            if(interp_phy_first_row_same) then
             ! Approximate boundary value by linear interpolation to first ghost
             ! cell, rest of ghost cells contains the same value
-            do i = 0, ixOOmax2-ixOOmin2
-               w(ixOmin1:ixOmax1, ixOOmin2+i, ixOmin3:ixOmax3, iw) = &
-                    2 * tmp(ixOmin1:ixOmax1, ixOmin2, ixOmin3:ixOmax3) - &
-                    w(ixOmin1:ixOmax1, ix, ixOmin3:ixOmax3, iw)
-            end do
+              do i = 0, ixOOmax2-ixOOmin2
+                 w(ixOmin1:ixOmax1, ixOOmin2+i, ixOmin3:ixOmax3, iw) = &
+                      2 * tmp(ixOmin1:ixOmax1, ixOmin2, ixOmin3:ixOmax3) - &
+                      w(ixOmin1:ixOmax1, ix, ixOmin3:ixOmax3, iw)
+              end do
+            else
+              if (iB==3) then
+                do i = 0, ixOOmax2-ixOOmin2
+                  if (i==0) then
+                     w(ixOmin1:ixOmax1, ixOOmin2+i, ixOmin3:ixOmax3, iw) = &
+                          4 * tmp(ixOmin1:ixOmax1, ixOmin2, ixOmin3:ixOmax3) - &
+                          3* w(ixOmin1:ixOmax1, ix, ixOmin3:ixOmax3, iw)
+                  elseif (i==1)then  
+                    w(ixOmin1:ixOmax1, ixOOmin2+i, ixOmin3:ixOmax3, iw) = &
+                          2 * tmp(ixOmin1:ixOmax1, ixOmin2, ixOmin3:ixOmax3) - &
+                          w(ixOmin1:ixOmax1, ix, ixOmin3:ixOmax3, iw)
+                   else 
+                     w(ixOmin1:ixOmax1, ixOOmin2+i, ixOmin3:ixOmax3, iw) = &
+                          tmp(ixOmin1:ixOmax1, ixOmin2, ixOmin3:ixOmax3) 
+                   endif 
+                  
+                end do
+              else
+                do i = 0, ixOOmax2-ixOOmin2
+                  if (i==ixOOmax2-ixOOmin2) then
+                     w(ixOmin1:ixOmax1, ixOOmin2+i, ixOmin3:ixOmax3, iw) = &
+                          4 * tmp(ixOmin1:ixOmax1, ixOmin2, ixOmin3:ixOmax3) - &
+                          3* w(ixOmin1:ixOmax1, ix, ixOmin3:ixOmax3, iw)
+                  elseif (i==ixOOmax2-ixOOmin2-1)then  
+                    w(ixOmin1:ixOmax1, ixOOmin2+i, ixOmin3:ixOmax3, iw) = &
+                          2 * tmp(ixOmin1:ixOmax1, ixOmin2, ixOmin3:ixOmax3) - &
+                          w(ixOmin1:ixOmax1, ix, ixOmin3:ixOmax3, iw)
+                   else 
+                    w(ixOmin1:ixOmax1, ixOOmin2+i, ixOmin3:ixOmax3, iw) = &
+                          tmp(ixOmin1:ixOmax1, ixOmin2, ixOmin3:ixOmax3) 
+                   endif 
+                  
+                end do
+              endif
+
+            endif
           else
             do i = ixOOmin2,ixOOmax2
                w(ixOmin1:ixOmax1, i, ixOmin3:ixOmax3, iw) = &
@@ -446,13 +595,50 @@ contains
 
           if(interp_phy_first_row) then
   
-            ! Approximate boundary value by linear interpolation to first ghost
-            ! cell, rest of ghost cells contains the same value
-            do i = 0, ixOOmax3-ixOOmin3
-               w(ixOmin1:ixOmax1, ixOmin2:ixOmax2, ixOOmin3+i, iw) = &
-                    2 * tmp(ixOmin1:ixOmax1, ixOmin2:ixOmax2, ixOmin3) - &
-                    w(ixOmin1:ixOmax1, ixOmin2:ixOmax2, ix, iw)
-            end do
+            if(interp_phy_first_row_same) then
+              ! Approximate boundary value by linear interpolation to first ghost
+              ! cell, rest of ghost cells contains the same value
+              do i = 0, ixOOmax3-ixOOmin3
+                 w(ixOmin1:ixOmax1, ixOmin2:ixOmax2, ixOOmin3+i, iw) = &
+                      2 * tmp(ixOmin1:ixOmax1, ixOmin2:ixOmax2, ixOmin3) - &
+                      w(ixOmin1:ixOmax1, ixOmin2:ixOmax2, ix, iw)
+              end do
+            else
+              if (iB==5) then
+                do i = 0, ixOOmax3-ixOOmin3
+                  if (i==0) then
+                    w(ixOmin1:ixOmax1, ixOmin2:ixOmax2, ixOOmin3+i, iw) = &
+                        4 * tmp(ixOmin1:ixOmax1, ixOmin2:ixOmax2, ixOmin3) - &
+                        3 * w(ixOmin1:ixOmax1, ixOmin2:ixOmax2, ix, iw)
+                  elseif (i==1)then  
+                    w(ixOmin1:ixOmax1, ixOmin2:ixOmax2, ixOOmin3+i, iw) = &
+                        2 * tmp(ixOmin1:ixOmax1, ixOmin2:ixOmax2, ixOmin3) - &
+                        w(ixOmin1:ixOmax1, ixOmin2:ixOmax2, ix, iw)
+                   else 
+                    w(ixOmin1:ixOmax1, ixOmin2:ixOmax2, ixOOmin3+i, iw) = &
+                        tmp(ixOmin1:ixOmax1, ixOmin2:ixOmax2, ixOmin3)
+                   endif 
+                  
+                end do
+              else
+                do i = 0, ixOOmax3-ixOOmin3
+                  if (i==ixOOmax3-ixOOmin3) then
+                    w(ixOmin1:ixOmax1, ixOmin2:ixOmax2, ixOOmin3+i, iw) = &
+                        4 * tmp(ixOmin1:ixOmax1, ixOmin2:ixOmax2, ixOmin3) - &
+                        3 * w(ixOmin1:ixOmax1, ixOmin2:ixOmax2, ix, iw)
+                  elseif (i==ixOOmax3-ixOOmin3-1)then  
+                    w(ixOmin1:ixOmax1, ixOmin2:ixOmax2, ixOOmin3+i, iw) = &
+                        2 * tmp(ixOmin1:ixOmax1, ixOmin2:ixOmax2, ixOmin3) - &
+                        w(ixOmin1:ixOmax1, ixOmin2:ixOmax2, ix, iw)
+                   else 
+                    w(ixOmin1:ixOmax1, ixOmin2:ixOmax2, ixOOmin3+i, iw) = &
+                        tmp(ixOmin1:ixOmax1, ixOmin2:ixOmax2, ixOmin3)
+                   endif 
+                  
+                end do
+              endif
+
+            endif
           else
             do i = ixOOmin3,ixOOmax3
                w(ixOmin1:ixOmax1, ixOmin2:ixOmax2, i, iw) = &
