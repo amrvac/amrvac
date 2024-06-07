@@ -1,5 +1,6 @@
 !> Module to set boundary conditions from user data
 module mod_bc_data
+#include "amrvac.h"
   use mod_lookup_table
   use mod_global_parameters, only: std_len
 
@@ -124,7 +125,11 @@ contains
     if (bc_data_time_varying) then
        val = LT3_get_col(lt_3d(n_bc), 1, x1, x2, qt)
     else
+#if defined(ICARUS_INTERP) && ICARUS_INTERP==1
+       val = LT2_get_col_icarus(lt_2d(n_bc), 1, x1, x2)
+#else
        val = LT2_get_col(lt_2d(n_bc), 1, x1, x2)
+#endif
     end if
   end function bc_data_get_3d
 
@@ -398,6 +403,8 @@ contains
                x(ixOmin1, ixOmin2:ixOmax2, ixOmin3:ixOmax3, 2), &
                x(ixOmin1, ixOmin2:ixOmax2, ixOmin3:ixOmax3, 3), qt)
 
+          !print*,"I ",  mype, it,n_bc, minval(tmp(ixOmin1, ixOmin2:ixOmax2, ixOmin3:ixOmax3)),&
+          !    maxval(tmp(ixOmin1, ixOmin2:ixOmax2, ixOmin3:ixOmax3))
           if(interp_phy_first_row) then
   
             ! Approximate boundary value by linear interpolation to first ghost

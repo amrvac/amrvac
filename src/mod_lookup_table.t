@@ -3,6 +3,7 @@
 !>
 !> Author: Jannis Teunissen
 module mod_lookup_table
+#include "amrvac.h"
   implicit none
   private
 
@@ -108,6 +109,9 @@ module mod_lookup_table
   public :: LT2_set_col          ! Set one table column
   public :: LT2_get_loc          ! Get the index (row) of a value
   public :: LT2_get_col          ! Interpolate one column
+#if defined(ICARUS_INTERP) && ICARUS_INTERP==1
+  public :: LT2_get_col_icarus          ! Interpolate one column
+#endif
   public :: LT2_get_col_at_loc   ! Get one column at location
 
   public :: LT3_create           ! Create a new lookup table
@@ -519,6 +523,170 @@ contains
     loc       = LT2_get_loc(my_lt, x1, x2)
     col_value = LT2_get_col_at_loc(my_lt, col_ix, loc)
   end function LT2_get_col
+
+
+!!!START ICARUS
+#if defined(ICARUS_INTERP) && ICARUS_INTERP==1
+  pure subroutine get_coord_init_grid(my_lt, i1,i2,idir,xout)
+    type(LT2_t), intent(in)     :: my_lt
+    integer, intent(in) :: i1,i2,idir
+    double precision, intent(out) :: xout
+    integer :: ind
+
+    ! icarus has 2 cells on each side for periodic
+    if(idir==1) then
+      ind=i1
+    else
+      if(i2>my_lt%n_points(2)) then
+        ind = i2-my_lt%n_points(2)
+      elseif(ind<3) then 
+        ind = my_lt%n_points(2)-i2
+      else
+        ind = i2 - 2  
+      endif
+  
+    endif  
+    xout = my_lt%x_min(idir) + my_lt%dx(idir) * ind
+  end subroutine get_coord_init_grid
+
+
+  pure subroutine get_variables_init(my_lt, i1,i2,nvar,val)
+    type(LT2_t), intent(in)     :: my_lt
+    integer, intent(in) :: i1, i2, nvar
+    double precision, intent(out) :: val
+    integer :: ind
+
+    if(i2>my_lt%n_points(2)) then
+      ind = i2-my_lt%n_points(2)
+    elseif(ind<3) then 
+      ind = my_lt%n_points(2)-i2
+    else
+      ind = i2 - 2  
+    endif
+
+    val = my_lt%rows_cols(i1,ind,nvar)
+
+  end subroutine get_variables_init
+
+  pure subroutine find_indices_coord_grid(my_lt, x1, x2, index_clt_1, index_lon_1, index_clt_2, index_lon_2)
+    use mod_global_parameters
+    double precision, intent(in)    :: x1,x2
+    type(LT2_t), intent(in)     :: my_lt
+    integer, intent(out)    :: index_clt_1, index_lon_1, index_clt_2, index_lon_2
+    integer                 :: counter_clt, counter_lon, nr_colat, nr_lon, j,k
+    double precision        :: minimum
+    double precision        :: xout
+    double precision        :: xt1, xt2
+
+    nr_colat     = my_lt%n_points(1)
+    nr_lon       = my_lt%n_points(2) + 4
+
+
+    counter_clt= 1
+    call get_coord_init_grid(my_lt, 1, 1, 1, xout)
+    minimum = abs(xout-x1)
+    do j = 1,nr_colat
+      call get_coord_init_grid(my_lt, j, 1, 1, xout)
+      if (abs(xout-x1) < minimum ) then
+        counter_clt = j
+        minimum = abs(xout-x1)
+      end if
+    end do
+    counter_lon= 1
+    call get_coord_init_grid(my_lt, 1, 1, 2, xout)
+    minimum = abs(xout-x2)
+    do k = 1, nr_lon
+      call get_coord_init_grid(my_lt, 1, k, 2, xout)
+      if (abs(xout-x2) < minimum) then
+        minimum = abs(xout-x2)
+        counter_lon = k
+      end if
+    end do
+
+    call get_coord_init_grid(my_lt, counter_clt, counter_lon,1,xt1)
+    call get_coord_init_grid(my_lt, counter_clt, counter_lon,2,xt2)
+    !SET THE COUNTERS FOR THE FOUR POINTS CONNECTED TO THE interpolation
+    !see Q11,Q12,Q21,Q22 from wiki
+    if (x1>=xt1 .and. x2>=xt2) then
+      index_clt_1 = counter_clt
+      index_lon_1 = counter_lon
+      index_clt_2 = counter_clt+1
+      index_lon_2 = counter_lon+1
+    end if
+    if (x1>=xt1 .and. x2<xt2) then
+      index_clt_1 = counter_clt
+      index_lon_1 = counter_lon-1
+      index_clt_2 = counter_clt+1
+      index_lon_2 = counter_lon
+    end if
+    if (x1<xt1 .and. x2>=xt2) then
+      index_clt_1 = counter_clt-1
+      index_lon_1 = counter_lon
+      index_clt_2 = counter_clt
+      index_lon_2 = counter_lon+1
+    end if
+    if (x1<xt1 .and. x2<xt2) then
+      index_clt_1 = counter_clt-1
+      index_lon_1 = counter_lon-1
+      index_clt_2 = counter_clt
+      index_lon_2 = counter_lon
+    end if
+
+  end subroutine find_indices_coord_grid
+
+
+
+  pure subroutine linear_interpolation(my_lt, x, y, counter_x1, counter_y1, counter_x2, counter_y2, variable, interp_value)
+    use mod_global_parameters
+
+    type(LT2_t), intent(in) :: my_lt
+    integer, intent(in)     :: variable
+    real(dp), intent(in)    :: x, y
+    integer, intent(in)     ::  counter_x1, counter_x2, counter_y1, counter_y2
+    real(dp), intent(out)    :: interp_value
+
+    double precision :: x1, x2, y1, y2, interpolation_x1, interpolation_x2
+    double precision :: v11, v12, v21, v22
+
+    call get_coord_init_grid(my_lt, counter_x1, counter_y1, 1, x1)
+    call get_coord_init_grid(my_lt, counter_x2, counter_y2, 1, x2)
+    call get_coord_init_grid(my_lt, counter_x1, counter_y1, 2, y1)
+    call get_coord_init_grid(my_lt, counter_x2, counter_y2, 2, y2)
+
+    call get_variables_init(my_lt, counter_x1, counter_y1, variable, v11)
+    interpolation_x1 = (x2-x)/(x2-x1)*v11
+
+    call get_variables_init(my_lt, counter_x2, counter_y1, variable, v21)
+    interpolation_x1 = interpolation_x1 + (x-x1)/(x2-x1)*v21
+
+    call get_variables_init(my_lt, counter_x1, counter_y2, variable, v12)
+    interpolation_x2 = (x2-x)/(x2-x1)*v12
+
+    call get_variables_init(my_lt, counter_x2, counter_y2, variable, v22)
+    interpolation_x2 = interpolation_x2 + (x-x1)/(x2-x1)*v22
+
+    interp_value = (y2-y)/(y2-y1)*interpolation_x1 + (y-y1)/(y2-y1)*interpolation_x2
+
+  end subroutine linear_interpolation
+
+
+  !> Get the value of a single column at x
+  elemental function LT2_get_col_icarus(my_lt, col_ix, x1, x2) result(col_value)
+    type(LT2_t), intent(in) :: my_lt
+    integer, intent(in)     :: col_ix
+    real(dp), intent(in)    :: x1, x2
+    real(dp)                :: col_value
+    type(LT2_loc_t)         :: loc
+
+    integer             :: point11_clt, point11_lon, point22_clt, point22_lon
+
+
+    call find_indices_coord_grid(my_lt, x1, x2, point11_clt, point11_lon, point22_clt, point22_lon)
+    call linear_interpolation(my_lt, x1, x2, point11_clt, point11_lon, point22_clt, point22_lon, col_ix, col_value)
+
+  end function LT2_get_col_icarus
+#endif
+!!!END ICARUS
 
   !> Get the value of a single column at a location
   elemental function LT2_get_col_at_loc(my_lt, col_ix, loc) result(col_value)
