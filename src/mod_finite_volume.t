@@ -5,8 +5,6 @@ module mod_finite_volume
   private
 
   public :: finite_volume
-  public :: finite_volume_debug
-  public :: finite_volume_debug2
   public :: hancock
   public :: reconstruct_LR
 
@@ -112,101 +110,6 @@ contains
     end associate
   end subroutine hancock
 
-  subroutine finite_volume_debug2(method,qdt,dtfactor,ixI^L,ixO^L,idims^LIM)
-    !$acc routine
-    use mod_variables
-    use mod_global_parameters
-    
-    integer, intent(in)                                   :: method
-    double precision, intent(in)                          :: qdt, dtfactor
-    integer, intent(in)                                   :: ixI^L, ixO^L, idims^LIM
-    
-    integer                                               :: iw, ix^D
-    double precision, dimension(ixI^S,1:nwflux) :: fLC
-!    double precision, dimension(1:20,1:20,1:4) :: fLC
-!    double precision, allocatable, dimension(:,:,:) :: fLC
-!    double precision, dimension(1:20,1:20,1:nwflux) :: fLC
-    
-    print *, 'finite_volume_debug2 A', ixI^L
-
-!    allocate(fLC(1:2,1:2,1:4))
-    
-    print *, 'finite_volume_debug2 B'
-
-    !      fC=0.d0
-    fLC=0.d0
-    ! do iw=1,4
-    !    do ix2=1,2
-    !       do ix1=1,2
-    !          fLC(ix1,ix2,iw)=0.d0
-    !       end do
-    !    end do
-    ! end do
-
-!      fRC=0.d0
-
-    print *, 'finite_volume_debug2 C'
-    
-  end subroutine finite_volume_debug2
-  
-  subroutine finite_volume_debug(method,qdt,dtfactor,ixI^L,ixO^L,idims^LIM, &
-       qtC,sCT,qt,snew,fC,fE,dxs,x)
-    !$acc routine
-    use mod_physics
-#ifdef _OPENACC
-    use mod_hd_phys, only: hd_to_primitive, hd_get_flux, hd_get_cbounds, hd_add_source_geom, hd_handle_small_values
-#endif
-    use mod_variables
-    use mod_global_parameters
-    use mod_tvd, only:tvdlimit2
-    use mod_source, only: addsource2
-    use mod_usr_methods
-    use mod_comm_lib, only: mpistop
-
-    integer, intent(in)                                   :: method
-    double precision, intent(in)                          :: qdt, dtfactor, qtC, qt, dxs(ndim)
-    integer, intent(in)                                   :: ixI^L, ixO^L, idims^LIM
-    double precision, dimension(ixI^S,1:ndim), intent(in) :: x
-    type(state)                                           :: sCT, snew
-    double precision, dimension(ixI^S,1:nwflux,1:ndim)    :: fC
-    double precision, dimension(ixI^S,sdim:3)             :: fE
-
-    ! ! primitive w at cell center
-    ! double precision, dimension(ixI^S,1:nw) :: wprim
-    ! ! left and right constructed status in conservative form
-    ! double precision, dimension(ixI^S,1:nw) :: wLC, wRC
-    ! ! left and right constructed status in primitive form, needed for better performance
-    ! double precision, dimension(ixI^S,1:nw) :: wLp, wRp
-    double precision, dimension(ixI^S,1:nwflux) :: fLC
-    ! double precision, dimension(ixI^S,1:nwflux) :: fRC
-    ! double precision, dimension(ixI^S,1:number_species)      :: cmaxC
-    ! double precision, dimension(ixI^S,1:number_species)      :: cminC
-    ! double precision, dimension(ixI^S)      :: Hspeed
-    ! double precision, dimension(ixO^S)      :: inv_volume
-    ! double precision, dimension(1:ndim)     :: dxinv
-    ! integer, dimension(ixI^S)               :: patchf
-    ! integer :: idims, iw, ix^L, hxO^L, ixC^L, ixCR^L, kxC^L, kxR^L, ii
-    ! logical :: active
-    ! type(ct_velocity) :: vcts
-    ! double precision :: fac(ixI^S)
-    ! integer :: ix^D
-    ! double precision, dimension(ixI^S,1:nwflux)     :: whll, Fhll, fCD
-    ! double precision, dimension(ixI^S)              :: lambdaCD
-    ! integer  :: rho_, p_, e_, mom(1:ndir)
-
-    
-    print *, 'finite_volume_debug A', ixI^L
-
-    print *, 'finite_volume_debug B'
-
-!      fC=0.d0
-      fLC=0.d0
-!      fRC=0.d0
-
-    print *, 'finite_volume_debug C'
-    
-  end subroutine finite_volume_debug
-
   !> finite volume method
   subroutine finite_volume(method,qdt,dtfactor,ixI^L,ixO^L,idims^LIM, &
        qtC,sCT,qt,snew,fC,fE,dxs,x)
@@ -297,7 +200,6 @@ contains
             ixCmax^D=ixOmax^D; ixCmin^D=hxOmin^D;
          end if
 
-      print *, 'finite_volume D'
          ! wRp and wLp are defined at the same locations, and will correspond to
          ! the left and right reconstructed values at a cell face. Their indexing
          ! is similar to cell-centered values, but in direction idims they are
@@ -312,12 +214,10 @@ contains
          {ixCRmax^D = min(ixCmax^D + phys_wider_stencil,ixGhi^D)\}
          !$acc end kernels
          !$acc wait
-         
-         !$acc update host(wRp,wLp,fC,fLC,fRc,wprim)
-      print *, 'finite_volume E',idims,dxs(1),dxs(2)
+
          ! apply limited reconstruction for left and right status at cell interfaces
-      call reconstruct_LR(ixI^L,ixCR^L,ixCR^L,idims,wprim,wLC,wRC,wLp,wRp,x,dxs(idims))
-      print *, 'finite_volume F'
+         call reconstruct_LR(ixI^L,ixCR^L,ixCR^L,idims,wprim,wLC,wRC,wLp,wRp,x,dxs(idims))
+         !$acc update host(wLC, wRC, wRp, wLp, fC, fLC, fRc, wprim)
 
          ! special modification of left and right status before flux evaluation
          call phys_modify_wLR(ixI^L,ixCR^L,qt,wLC,wRC,wLp,wRp,sCT,idims)
@@ -325,32 +225,22 @@ contains
          ! evaluate physical fluxes according to reconstructed status
          call phys_get_flux(wLC,wLp,x,ixI^L,ixC^L,idims,fLC)
          call phys_get_flux(wRC,wRp,x,ixI^L,ixC^L,idims,fRC)
-         print *, 'finite_volume G'
 
-         !FIXME:
-#ifndef _OPENACC       
          if(H_correction) then
             call phys_get_H_speed(wprim,x,ixI^L,ixO^L,idims,Hspeed)
          end if
-#endif
+
          ! estimating bounds for the minimum and maximum signal velocities
          if(method==fs_tvdlf.or.method==fs_tvdmu) then
-            !FIXME:         
-#ifndef _OPENACC
             call phys_get_cbounds(wLC,wRC,wLp,wRp,x,ixI^L,ixC^L,idims,Hspeed,cmaxC)
             ! index of var  velocity appears in the induction eq. 
             if(stagger_grid) call phys_get_ct_velocity(vcts,wLp,wRp,ixI^L,ixC^L,idims,cmaxC(ixI^S,index_v_mag))
-#else
-            call hd_get_cbounds(wLC,wRC,wLp,wRp,x,ixI^L,ixC^L,idims,Hspeed,cmaxC)
-#endif
-         print *, 'finite_volume H'
+
          else
             call phys_get_cbounds(wLC,wRC,wLp,wRp,x,ixI^L,ixC^L,idims,Hspeed,cmaxC,cminC)
             if(stagger_grid) call phys_get_ct_velocity(vcts,wLp,wRp,ixI^L,ixC^L,idims,cmaxC(ixI^S,index_v_mag),cminC(ixI^S,index_v_mag))
          end if
 
-         print *, 'finite_volume I'
-         
          ! use approximate Riemann solver to get flux at interfaces
          select case(method)
          case(fs_hll)
@@ -1230,47 +1120,9 @@ contains
 #endif
   end subroutine finite_volume
 
-
-  subroutine reconstruct_LR_debug(ixI^L,ixL^L,ixR^L,idims,w,wLC,wRC,wLp,wRp,x,dxdim)
-    !$acc routine
-    use mod_physics
-#ifdef _OPENACC
-    use mod_hd_phys, only: hd_handle_small_values, hd_to_conserved
-#endif
-    use mod_global_parameters
-    use mod_limiter
-    use mod_comm_lib, only: mpistop
-
-    integer, value, intent(in) :: ixI^L, ixL^L, ixR^L, idims
-    double precision, intent(in) :: dxdim
-    ! cell center w in primitive form
-    double precision, dimension(ixI^S,1:nw) :: w
-    ! left and right constructed status in conservative form
-    double precision, dimension(ixI^S,1:nw) :: wLC, wRC
-    ! left and right constructed status in primitive form
-    double precision, dimension(ixI^S,1:nw) :: wLp, wRp
-    double precision, dimension(ixI^S,1:ndim) :: x
-
-    integer            :: jxR^L, ixC^L, jxC^L, iw
-    double precision   :: ldw(ixI^S), rdw(ixI^S)
-    double precision   :: dwC(ixI^S)
-    double precision   :: a2max
-    integer            :: ix^D
-
-    print *, 'reconstruct_LR_debug A', block%level, type_limiter(block%level), nwflux
-    print *, 'reconstruct_LR_debug A', ixI^L
-    dwC=0.0d0
-
-       print *, 'reconstruct_LR_debug H'
-              
-       
-  end subroutine reconstruct_LR_debug
-
-  
   !> Determine the upwinded wLC(ixL) and wRC(ixR) from w.
   !> the wCT is only used when PPM is exploited.
   subroutine reconstruct_LR(ixI^L,ixL^L,ixR^L,idims,w,wLC,wRC,wLp,wRp,x,dxdim)
-    !$acc routine
     use mod_physics
 #ifdef _OPENACC
     use mod_hd_phys, only: hd_handle_small_values, hd_to_conserved
@@ -1291,9 +1143,8 @@ contains
 
     integer            :: jxR^L, ixC^L, jxC^L, iw
     double precision   :: ldw(ixI^S), rdw(ixI^S), dwC(ixI^S)
+    !$acc declare create(ldw, rdw, dwC)
     double precision   :: a2max
-
-    print *, 'reconstruct_LR A'
     
     select case (type_limiter(block%level))
        !FIXME
@@ -1336,18 +1187,21 @@ contains
        !       call phys_handle_small_values(.true.,wRp,x,ixI^L,ixR^L,'reconstruct right')
        !    end if
     case default
-    print *, 'reconstruct_LR B'
        jxR^L=ixR^L+kr(idims,^D);
        ixCmax^D=jxRmax^D; ixCmin^D=ixLmin^D-kr(idims,^D);
        jxC^L=ixC^L+kr(idims,^D);
        do iw=1,nwflux
           if (loglimit(iw)) then
+             !$acc kernels async(iw)
              w(ixCmin^D:jxCmax^D,iw)=dlog10(w(ixCmin^D:jxCmax^D,iw))
              wLp(ixL^S,iw)=dlog10(wLp(ixL^S,iw))
              wRp(ixR^S,iw)=dlog10(wRp(ixR^S,iw))
+             !$acc end kernels
           end if
 
+          !$acc kernels async(iw)
           dwC(ixC^S)=w(jxC^S,iw)-w(ixC^S,iw)
+          !$acc end kernels
           if(need_global_a2max) then 
              a2max=a2max_global(idims)
           else
@@ -1363,51 +1217,52 @@ contains
              case(3)
                 a2max=schmid_rad3}
              case default
-                !FIXME:
-                !               call mpistop("idims is wrong in mod_limiter")
+                call mpistop("idims is wrong in mod_limiter")
                 STOP
              end select
           end if
 
+          !$acc wait(iw)
           ! limit flux from left and/or right
           call dwlimiter2(dwC,ixI^L,ixC^L,idims,type_limiter(block%level),ldw,rdw,a2max=a2max)
+          !$acc kernels async(iw)
           wLp(ixL^S,iw)=wLp(ixL^S,iw)+half*ldw(ixL^S)
           wRp(ixR^S,iw)=wRp(ixR^S,iw)-half*rdw(jxR^S)
-    print *, 'reconstruct_LR C'
+          !$acc end kernels
 
           if (loglimit(iw)) then
+             !$acc kernels async(iw)
              w(ixCmin^D:jxCmax^D,iw)=10.0d0**w(ixCmin^D:jxCmax^D,iw)
              wLp(ixL^S,iw)=10.0d0**wLp(ixL^S,iw)
              wRp(ixR^S,iw)=10.0d0**wRp(ixR^S,iw)
+             !$acc end kernels
           end if
        end do
        if(fix_small_values) then
-#ifndef _OPENACC
           call phys_handle_small_values(.true.,wLp,x,ixI^L,ixL^L,'reconstruct left')
           call phys_handle_small_values(.true.,wRp,x,ixI^L,ixR^L,'reconstruct right')
-#else
-          call hd_handle_small_values(.true.,wLp,x,ixI^L,ixL^L,'reconstruct left')
-          call hd_handle_small_values(.true.,wRp,x,ixI^L,ixR^L,'reconstruct right')
-#endif
        end if
-           print *, 'reconstruct_LR D'
 
     end select
-
+    
+    !$acc wait
+    !$acc kernels
     wLC(ixL^S,1:nwflux) = wLp(ixL^S,1:nwflux)
     wRC(ixR^S,1:nwflux) = wRp(ixR^S,1:nwflux)
-#ifndef _OPENACC
+    !$acc end kernels
+
+    !$acc update host(wLp, wRp, wLC, wRC)
+    
     call phys_to_conserved(ixI^L,ixL^L,wLC,x)
     call phys_to_conserved(ixI^L,ixR^L,wRC,x)
-#else
-    call hd_to_conserved(ixI^L,ixL^L,wLC,x)
-    call hd_to_conserved(ixI^L,ixR^L,wRC,x)
-#endif   
+
     if(nwaux>0)then
+       !$acc kernels
        wLp(ixL^S,nwflux+1:nwflux+nwaux) = wLC(ixL^S,nwflux+1:nwflux+nwaux)
        wRp(ixR^S,nwflux+1:nwflux+nwaux) = wRC(ixR^S,nwflux+1:nwflux+nwaux)
+       !$acc end kernels
+       !$acc update host(wLp(ixL^S,nwflux+1:nwflux+nwaux), wRp(ixR^S,nwflux+1:nwflux+nwaux))
     endif
-    print *, 'reconstruct_LR F'
 
   end subroutine reconstruct_LR
 

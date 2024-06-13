@@ -127,7 +127,6 @@ contains
   !> Accordingly, the typelim here corresponds to one of limiter
   !> or one of gradient_limiter.
   subroutine dwlimiter2(dwC,ixI^L,ixC^L,idims,typelim,ldw,rdw,a2max)
-    !$acc routine
 
     use mod_global_parameters
     use mod_comm_lib, only: mpistop
@@ -153,6 +152,7 @@ contains
     ! full third order cada limiter
     double precision :: rdelinv
     double precision :: ldwA(ixI^S),ldwB(ixI^S),tmpeta(ixI^S)
+    !$acc declare create(tmp, tmp2, ldwA, ldwB, tmpeta)
     double precision, parameter :: cadepsilon=1.d-14, invcadepsilon=1.d14,cada3_radius=0.1d0
     integer :: ix^D
     !-----------------------------------------------------------------------------
@@ -254,8 +254,11 @@ contains
        end if
     case (limiter_cada3)
        rdelinv=one/(cada3_radius*dxlevel(idims))**2
+       !$acc kernels
        tmpeta(ixO^S)=(dwC(ixO^S)**2+dwC(hxO^S)**2)*rdelinv
+       !$acc end kernels
        if (present(ldw)) then
+          !$acc kernels
           tmp(ixO^S)=dwC(hxO^S)/(dwC(ixO^S) + sign(eps, dwC(ixO^S)))
           ldwA(ixO^S)=(two+tmp(ixO^S))*third
           where(tmpeta(ixO^S)<=one-cadepsilon)
@@ -272,9 +275,11 @@ contains
                   +(one+tmp2(ixO^S))*ldwB(ixO^S))
           endwhere
           ldw(ixO^S)=ldw(ixO^S) * dwC(ixO^S)
+          !$acc end kernels
        end if
 
        if (present(rdw)) then
+          !$acc kernels
           tmp(ixO^S)=dwC(ixO^S)/(dwC(hxO^S) + sign(eps, dwC(hxO^S)))
           ldwA(ixO^S)=(two+tmp(ixO^S))*third
           where(tmpeta(ixO^S)<=one-cadepsilon)
@@ -291,6 +296,7 @@ contains
                   +(one+tmp2(ixO^S))*ldwB(ixO^S))
           endwhere
           rdw(ixO^S)=rdw(ixO^S) * dwC(hxO^S)
+          !$acc end kernels
        end if
     case(limiter_schmid)
       tmpeta(ixO^S)=(sqrt(0.4d0*(dwC(ixO^S)**2+dwC(hxO^S)**2)))&

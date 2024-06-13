@@ -679,6 +679,7 @@ contains
     do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
        block=>ps(igrid)
        ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
+       !$acc update device(block, dxlevel)  
 
       call advect1_grid(method(block%level),qdt,dtfactor,ixG^LL,idim^LIM,&
         qtC,psa(igrid),qt,psb(igrid),fC,fE,rnode(rpdx1_:rnodehi,igrid),ps(igrid)%x)
@@ -743,16 +744,13 @@ contains
     double precision :: fE(ixI^S,sdim:3)
 
     integer :: ixO^L
-
-    print *, 'advect1_grid A'
     
     ixO^L=ixI^L^LSUBnghostcells;
     select case (method)
     case (fs_hll,fs_hllc,fs_hllcd,fs_hlld,fs_tvdlf,fs_tvdmu)
-    print *, 'advect1_grid B'
+
     call finite_volume(method,qdt,dtfactor,ixI^L,ixO^L,idim^LIM,qtC,sCT,qt,s,fC,fE,dxs,x)
-!    call finite_volume_debug2(method,qdt,dtfactor,ixI^L,ixO^L,idim^LIM)
-    print *, 'advect1_grid C'
+
 !FIXME: focussing on finite_volume for now
 !    case (fs_cd,fs_cd4)
 !       call centdiff(method,qdt,dtfactor,ixI^L,ixO^L,idim^LIM,qtC,sCT,qt,s,fC,fE,dxs,x)
@@ -772,10 +770,7 @@ contains
     case (fs_nul)
        ! There is nothing to do
     case default
-       !FIXME: 
-       !       call mpistop("unknown flux scheme in advect1_grid")
-       print *, "unknown flux scheme in advect1_grid"
-       STOP
+       call mpistop("unknown flux scheme in advect1_grid")
     end select
 
   end subroutine advect1_grid
