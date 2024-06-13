@@ -50,9 +50,11 @@ module mod_global_parameters
 
   !> the mesh range of a physical block without ghost cells
   integer :: ixM^LL
+  !$acc declare create(ixM^LL)
 
   !> minimum and maximum domain boundaries for each dimension
   double precision  :: xprob^L
+  !$acc declare create(xprob^L)
 
   !> Indices for cylindrical coordinates FOR TESTS, negative value when not used:
   integer :: r_ = -1
@@ -406,6 +408,7 @@ module mod_global_parameters
 
   !> Use SI units (.true.) or use cgs units (.false.)
   logical :: SI_unit=.false.
+  !$acc declare copyin(SI_unit)
 
   !> Use TRAC (Johnston 2019 ApJL, 873, L22) for MHD or 1D HD
   logical :: phys_trac=.false.

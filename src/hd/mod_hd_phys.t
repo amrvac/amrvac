@@ -171,6 +171,14 @@ contains
 111    close(unitpar)
     end do
 
+#ifdef _OPENACC
+    !$acc update device(hd_energy, hd_n_tracer, hd_gamma, hd_adiab, &
+    hd_dust, hd_thermal_conduction, hd_radiative_cooling, hd_viscosity, &
+    hd_gravity, He_abundance,H_ion_fr, He_ion_fr, He_ion_fr2, eq_state_units, &
+    SI_unit, hd_particles, hd_rotating_frame, hd_trac, &
+    hd_force_diagonal, hd_trac_type, hd_cak_force, hd_partial_ionization)
+#endif
+    
   end subroutine hd_read_params
 
   !> Write this module's parameters to a snapsoht
@@ -217,6 +225,7 @@ contains
     phys_internal_e = .false.
     phys_gamma = hd_gamma
     phys_partial_ionization=hd_partial_ionization
+    !$acc update device(physics_type, phys_energy, phys_total_energy, phys_internal_e, phys_gamma, phys_partial_ionization)
 
     phys_trac=hd_trac
     if(phys_trac) then
@@ -257,9 +266,11 @@ contains
     start_indices(1)=1
     ! Determine flux variables
     rho_ = var_set_rho()
+    !$acc update device(start_indices, stop_indices, rho_)
 
     allocate(mom(ndir))
     mom(:) = var_set_momentum(ndir)
+    !$acc update device(mom)
 
     ! Set index of energy variable
     if (hd_energy) then
@@ -269,6 +280,7 @@ contains
        e_ = -1
        p_ = -1
     end if
+    !$acc update device(e_,p_)
 
     phys_get_dt              => hd_get_dt
     phys_get_cmax            => hd_get_cmax
@@ -279,7 +291,8 @@ contains
     phys_add_source_geom     => hd_add_source_geom
     phys_add_source          => hd_add_source
     phys_to_conserved        => hd_to_conserved
-    phys_to_primitive        => hd_to_primitive
+!    phys_to_primitive        => hd_to_primitive
+    phys_to_primitive        => hd_to_primitive_gpu
     phys_check_params        => hd_check_params
     phys_check_w             => hd_check_w
     phys_get_pthermal        => hd_get_pthermal
@@ -315,6 +328,7 @@ contains
 
     ! set the index of the last flux variable for species 1
     stop_indices(1)=nwflux
+    !$acc update device(nwgc, stop_indices(1))
 
     !  set temperature as an auxiliary variable to get ionization degree
     if(hd_partial_ionization) then
@@ -409,9 +423,13 @@ contains
     nvector      = 1 ! No. vector vars
     allocate(iw_vector(nvector))
     iw_vector(1) = mom(1) - 1
+    !$acc update device(nvector, iw_vector, flux_type)
     ! initialize ionization degree table
     if(hd_partial_ionization) call ionization_degree_init()
 
+
+    !$acc update device(phys_req_diagonal)
+    
   end subroutine hd_phys_init
 
 {^IFTHREED
@@ -717,7 +735,6 @@ contains
 
   !> Transform conservative variables into primitive ones
   subroutine hd_to_primitive(ixI^L, ixO^L, w, x)
-    !$acc routine
     use mod_global_parameters
     use mod_dust, only: dust_to_primitive
     integer, intent(in)             :: ixI^L, ixO^L
@@ -743,16 +760,35 @@ contains
        w(ixO^S, mom(idir)) = w(ixO^S, mom(idir)) * inv_rho
     end do
 
-    
-!FIXME:
-#ifndef _OPENACC
     ! Convert dust momentum to dust velocity
     if (hd_dust) then
       call dust_to_primitive(ixI^L, ixO^L, w, x)
     end if
-#endif
-    
+
   end subroutine hd_to_primitive
+  
+  !> Transform conservative variables into primitive ones
+  subroutine hd_to_primitive_gpu(ixI^L, ixO^L, w, x)
+    use mod_global_parameters
+    integer, intent(in)             :: ixI^L, ixO^L
+    double precision, intent(inout) :: w(ixI^S, nw)
+    double precision, intent(in)    :: x(ixI^S, 1:ndim)
+    integer                         :: idir, ix^D
+
+    !$acc kernels
+    {^D& do ix^DB=ixOmin^DB,ixOmax^DB\}
+    ! Compute pressure
+    w(ix^D, e_) = (hd_gamma - 1.0d0) * (w(ix^D, e_) - &     
+         0.5d0 * ({^D& w(ix^DD,mom(^D))**2|+}) / w(ix^D, rho_) )
+
+    ! Convert momentum to velocity
+    do idir = 1, ndir
+       w(ix^D, mom(idir)) = w(ix^D, mom(idir)) / w(ix^D, rho_)
+    end do
+    {^D& end do\}
+    !$acc end kernels
+  
+  end subroutine hd_to_primitive_gpu
 
   !> Transform internal energy to total energy
   subroutine hd_ei_to_e(ixI^L,ixO^L,w,x)

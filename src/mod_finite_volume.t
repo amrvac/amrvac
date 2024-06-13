@@ -210,7 +210,6 @@ contains
   !> finite volume method
   subroutine finite_volume(method,qdt,dtfactor,ixI^L,ixO^L,idims^LIM, &
        qtC,sCT,qt,snew,fC,fE,dxs,x)
-    !$acc routine
     use mod_physics
 #ifdef _OPENACC
     use mod_hd_phys, only: hd_to_primitive, hd_get_flux, hd_get_cbounds, hd_add_source_geom, hd_handle_small_values
@@ -236,7 +235,9 @@ contains
     double precision, dimension(ixI^S,1:nw) :: wLC, wRC
     ! left and right constructed status in primitive form, needed for better performance
     double precision, dimension(ixI^S,1:nw) :: wLp, wRp
+    !$acc declare create(wprim, wLC, wRC, wLp, wRp)
     double precision, dimension(ixI^S,1:nwflux) :: fLC, fRC
+    !$acc declare create(fLC, FRC)
     double precision, dimension(ixI^S,1:number_species)      :: cmaxC
     double precision, dimension(ixI^S,1:number_species)      :: cminC
     double precision, dimension(ixI^S)      :: Hspeed
@@ -252,15 +253,13 @@ contains
     double precision, dimension(ixI^S)              :: lambdaCD
     integer  :: rho_, p_, e_, mom(1:ndir)
 
-    print *, 'finite_volume A', nw, nwflux,ndim
-
     associate(wCT=>sCT%w, wnew=>snew%w)
 
-      print *, 'finite_volume B'
-
+      !$acc kernels async
       fC=0.d0
       fLC=0.d0
       fRC=0.d0
+      !$acc end kernels
 
       ! The flux calculation contracts by one in the idims direction it is applied.
       ! The limiter contracts the same directions by one more, so expand ixO by 2.
@@ -271,14 +270,13 @@ contains
       if (ixI^L^LTix^L|.or.|.or.) &
            call mpistop("Error in fv : Nonconforming input limits")
 
+      !$acc kernels async
       wprim=wCT
-      !FIXME:
-#ifndef _OPENACC
+      !$acc end kernels
+
+      !$acc wait
+      
       call phys_to_primitive(ixI^L,ixI^L,wprim,x)
-#else
-      call hd_to_primitive(ixI^L,ixI^L,wprim,x)
-#endif
-      print *, 'finite_volume C'
 
       !$acc loop seq
       do idims= idims^LIM
@@ -304,30 +302,29 @@ contains
          ! the left and right reconstructed values at a cell face. Their indexing
          ! is similar to cell-centered values, but in direction idims they are
          ! shifted half a cell towards the 'lower' direction.
+      
+         !$acc kernels async
          wRp(kxC^S,1:nw)=wprim(kxR^S,1:nw)
          wLp(kxC^S,1:nw)=wprim(kxC^S,1:nw)
-
+      
          ! Determine stencil size
          {ixCRmin^D = max(ixCmin^D - phys_wider_stencil,ixGlo^D)\}
          {ixCRmax^D = min(ixCmax^D + phys_wider_stencil,ixGhi^D)\}
-
+         !$acc end kernels
+         !$acc wait
+         
+         !$acc update host(wRp,wLp,fC,fLC,fRc,wprim)
       print *, 'finite_volume E',idims,dxs(1),dxs(2)
          ! apply limited reconstruction for left and right status at cell interfaces
-         call reconstruct_LR_debug(ixI^L,ixCR^L,ixCR^L,idims,wprim,wLC,wRC,wLp,wRp,x,dxs(idims))
-!         call reconstruct_LR(ixI^L,ixCR^L,ixCR^L,idims,wprim,wLC,wRC,wLp,wRp,x,dxs(idims))
+      call reconstruct_LR(ixI^L,ixCR^L,ixCR^L,idims,wprim,wLC,wRC,wLp,wRp,x,dxs(idims))
       print *, 'finite_volume F'
 
          ! special modification of left and right status before flux evaluation
          call phys_modify_wLR(ixI^L,ixCR^L,qt,wLC,wRC,wLp,wRp,sCT,idims)
 
          ! evaluate physical fluxes according to reconstructed status
-#ifndef _OPENACC
          call phys_get_flux(wLC,wLp,x,ixI^L,ixC^L,idims,fLC)
          call phys_get_flux(wRC,wRp,x,ixI^L,ixC^L,idims,fRC)
-#else
-         call hd_get_flux(wLC,wLp,x,ixI^L,ixC^L,idims,fLC)
-         call hd_get_flux(wRC,wRp,x,ixI^L,ixC^L,idims,fRC)
-#endif
          print *, 'finite_volume G'
 
          !FIXME:
@@ -348,12 +345,8 @@ contains
 #endif
          print *, 'finite_volume H'
          else
-#ifndef _OPENACC
             call phys_get_cbounds(wLC,wRC,wLp,wRp,x,ixI^L,ixC^L,idims,Hspeed,cmaxC,cminC)
             if(stagger_grid) call phys_get_ct_velocity(vcts,wLp,wRp,ixI^L,ixC^L,idims,cmaxC(ixI^S,index_v_mag),cminC(ixI^S,index_v_mag))
-#else
-            call hd_get_cbounds(wLC,wRC,wLp,wRp,x,ixI^L,ixC^L,idims,Hspeed,cmaxC,cminC)
-#endif
          end if
 
          print *, 'finite_volume I'

@@ -76,7 +76,7 @@ contains
     do iigrid=1,igridstail; igrid=igrids(iigrid);
        iwlo=lbound(ps(igrid)%w,^ND+1);iwhi=ubound(ps(igrid)%w,^ND+1)
        {ixlo^D=lbound(ps(igrid)%w,^D);ixhi^D=ubound(ps(igrid)%w,^D)|;}
-       !$acc loop vector collapse(^ND+1)
+       !$acc loop collapse(^ND+1)
        do iw = iwlo,iwhi
           {^D& do ix^DB=ixlo^DB,ixhi^DB\}
           ps1(igrid)%w(ix^D,iw) = ps(igrid)%w(ix^D,iw)
@@ -86,7 +86,7 @@ contains
        if(stagger_grid) then
           iwlo=lbound(ps(igrid)%ws,^ND+1);iwhi=ubound(ps(igrid)%ws,^ND+1)
           {ixlo^D=lbound(ps(igrid)%ws,^D);ixhi^D=ubound(ps(igrid)%ws,^D)|;}
-          !$acc loop vector collapse(^ND+1)
+          !$acc loop collapse(^ND+1)
           do iw = iwlo,iwhi
              {^D& do ix^DB=ixlo^DB,ixhi^DB\}
              ps1(igrid)%ws(ix^D,iw) = ps(igrid)%ws(ix^D,iw)
@@ -656,6 +656,7 @@ contains
     double precision :: fC(ixG^T,1:nwflux,1:ndim)
     ! cell edge flux
     double precision :: fE(ixG^T,sdim:3)
+    !$acc declare create(fC,fE)
     double precision :: qdt
     integer :: iigrid, igrid
 
@@ -674,17 +675,14 @@ contains
 
     qdt=dtfactor*dt
     !$OMP PARALLEL DO PRIVATE(igrid)
-    !$acc parallel loop gang private(block,{dxlevel(^D)})
+!    !$acc parallel loop gang num_gangs(1) private(block,{dxlevel(^D)})
     do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
        block=>ps(igrid)
        ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
 
-       print *, 'advect1 A'
-       
       call advect1_grid(method(block%level),qdt,dtfactor,ixG^LL,idim^LIM,&
         qtC,psa(igrid),qt,psb(igrid),fC,fE,rnode(rpdx1_:rnodehi,igrid),ps(igrid)%x)
 
-       print *, 'advect1 B'
 !FIXME
 !      if (fix_conserve_global .and. fix_conserve_at_step) then
 !        call store_flux(igrid,fC,idim^LIM,nwflux)
@@ -710,14 +708,19 @@ contains
     !   end if
     ! end if
 
+!    do iigrid=1,igridstail; igrid=igrids(iigrid);
+!       !$acc exit data copyout(psa(igrid)%w,psb(igrid)%w,psa(igrid)%ws,psb(igrid)%ws) delete(ps(igrid)%x)
+!    end do
+!    !$acc exit data copyout(psa,psb) delete(ps)
+
+    do iigrid=1,igridstail; igrid=igrids(iigrid);
+       !$acc exit data delete(psa(igrid)%w,psb(igrid)%w,psa(igrid)%ws,psb(igrid)%ws, ps(igrid)%x)
+    end do
+    !$acc exit data delete(ps,psa,psb)
+    
     ! For all grids: fill ghost cells
     call getbc(qt+qdt,qdt,psb,iwstart,nwgc,phys_req_diagonal)
 
-    do iigrid=1,igridstail; igrid=igrids(iigrid);
-       !$acc exit data copyout(psa(igrid)%w,psb(igrid)%w,psa(igrid)%ws,psb(igrid)%ws) delete(ps(igrid)%x)
-    end do
-    !$acc exit data copyout(psa,psb) delete(ps)
-    
   end subroutine advect1
 
   !> Advance a single grid over one partial time step
