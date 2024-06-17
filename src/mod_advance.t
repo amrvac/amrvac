@@ -59,46 +59,19 @@ contains
     use mod_ghostcells_update
     use mod_physics, only: phys_req_diagonal
     use mod_comm_lib, only: mpistop
-    
+
     integer, intent(in) :: idim^LIM
-    integer             :: iigrid, igrid, ix^D, iw, iwlo, iwhi, ixlo^D, ixhi^D
+    integer             :: iigrid, igrid
 
     call init_comm_fix_conserve(idim^LIM,nwflux)
     fix_conserve_at_step = time_advance .and. levmax>levmin
-    
+
     ! copy w instead of wold because of potential use of dimsplit or sourcesplit
     !$OMP PARALLEL DO PRIVATE(igrid)
-    !$acc enter data copyin(ps,ps1)
     do iigrid=1,igridstail; igrid=igrids(iigrid);
-       !$acc enter data copyin(ps1(igrid)%w,ps(igrid)%w,ps1(igrid)%ws,ps(igrid)%ws)
+       ps1(igrid)%w=ps(igrid)%w
+       if(stagger_grid) ps1(igrid)%ws=ps(igrid)%ws
     end do
-    !$acc parallel loop gang
-    do iigrid=1,igridstail; igrid=igrids(iigrid);
-       iwlo=lbound(ps(igrid)%w,^ND+1);iwhi=ubound(ps(igrid)%w,^ND+1)
-       {ixlo^D=lbound(ps(igrid)%w,^D);ixhi^D=ubound(ps(igrid)%w,^D)|;}
-       !$acc loop collapse(^ND+1)
-       do iw = iwlo,iwhi
-          {^D& do ix^DB=ixlo^DB,ixhi^DB\}
-          ps1(igrid)%w(ix^D,iw) = ps(igrid)%w(ix^D,iw)
-          {^D& end do\}
-       end do
-
-       if(stagger_grid) then
-          iwlo=lbound(ps(igrid)%ws,^ND+1);iwhi=ubound(ps(igrid)%ws,^ND+1)
-          {ixlo^D=lbound(ps(igrid)%ws,^D);ixhi^D=ubound(ps(igrid)%ws,^D)|;}
-          !$acc loop collapse(^ND+1)
-          do iw = iwlo,iwhi
-             {^D& do ix^DB=ixlo^DB,ixhi^DB\}
-             ps1(igrid)%ws(ix^D,iw) = ps(igrid)%ws(ix^D,iw)
-             {^D& end do\}
-          end do
-       end if
-    end do
-
-    do iigrid=1,igridstail; igrid=igrids(iigrid);
-       !$acc exit data copyout(ps1(igrid)%w,ps(igrid)%w,ps1(igrid)%ws,ps(igrid)%ws)
-    end do
-    !$acc exit data copyout(ps,ps1)
     !$OMP END PARALLEL DO
 
     istep = 0
@@ -663,9 +636,8 @@ contains
     ! Get the state onto the GPU
     !$acc enter data copyin(psa,psb,ps)
     do iigrid=1,igridstail; igrid=igrids(iigrid);
-       !$acc enter data copyin(psa(igrid)%w,psb(igrid)%w,psa(igrid)%ws,psb(igrid)%ws,ps(igrid)%x)
+       !$acc enter data copyin(psa(igrid)%w, psb(igrid)%w, ps(igrid)%x)
     end do
-
     
     istep = istep+1
 
@@ -674,48 +646,50 @@ contains
     end if
 
     qdt=dtfactor*dt
+    ! opedit: Just advance the active grids:
     !$OMP PARALLEL DO PRIVATE(igrid)
-!    !$acc parallel loop gang num_gangs(1) private(block,{dxlevel(^D)})
     do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
-       block=>ps(igrid)
-       ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
+      block=>ps(igrid)
+      ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
        !$acc update device(block, dxlevel)  
 
       call advect1_grid(method(block%level),qdt,dtfactor,ixG^LL,idim^LIM,&
         qtC,psa(igrid),qt,psb(igrid),fC,fE,rnode(rpdx1_:rnodehi,igrid),ps(igrid)%x)
 
-!FIXME
-!      if (fix_conserve_global .and. fix_conserve_at_step) then
-!        call store_flux(igrid,fC,idim^LIM,nwflux)
-!        if(stagger_grid) call store_edge(igrid,ixG^LL,fE,idim^LIM)
-!      end if
+      ! opedit: Obviously, flux is stored only for active grids.
+      ! but we know in fix_conserve wether there is a passive neighbor
+      ! but we know in conserve_fix wether there is a passive neighbor
+      ! via neighbor_active(i^D,igrid) thus we skip the correction for those.
+      ! This violates strict conservation when the active/passive interface
+      ! coincides with a coarse/fine interface.
+      if (fix_conserve_global .and. fix_conserve_at_step) then
+        call store_flux(igrid,fC,idim^LIM,nwflux)
+        if(stagger_grid) call store_edge(igrid,ixG^LL,fE,idim^LIM)
+      end if
 
     end do
     !$OMP END PARALLEL DO
 
-!FIXME    
-    ! if (fix_conserve_global .and. fix_conserve_at_step) then
-    !   call recvflux(idim^LIM)
-    !   call sendflux(idim^LIM)
-    !   call fix_conserve(psb,idim^LIM,1,nwflux)
-    !   if(stagger_grid) then
-    !     call fix_edges(psb,idim^LIM)
-    !     ! fill the cell-center values from the updated staggered variables
-    !     !$OMP PARALLEL DO PRIVATE(igrid)
-    !     do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
-    !       call phys_face_to_center(ixM^LL,psb(igrid))
-    !     end do
-    !     !$OMP END PARALLEL DO
-    !   end if
-    ! end if
+    ! opedit: Send flux for all grids, expects sends for all
+    ! nsend_fc(^D), set in connectivity.t.
 
-!    do iigrid=1,igridstail; igrid=igrids(iigrid);
-!       !$acc exit data copyout(psa(igrid)%w,psb(igrid)%w,psa(igrid)%ws,psb(igrid)%ws) delete(ps(igrid)%x)
-!    end do
-!    !$acc exit data copyout(psa,psb) delete(ps)
+    if (fix_conserve_global .and. fix_conserve_at_step) then
+      call recvflux(idim^LIM)
+      call sendflux(idim^LIM)
+      call fix_conserve(psb,idim^LIM,1,nwflux)
+      if(stagger_grid) then
+        call fix_edges(psb,idim^LIM)
+        ! fill the cell-center values from the updated staggered variables
+        !$OMP PARALLEL DO PRIVATE(igrid)
+        do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
+          call phys_face_to_center(ixM^LL,psb(igrid))
+        end do
+        !$OMP END PARALLEL DO
+      end if
+    end if
 
     do iigrid=1,igridstail; igrid=igrids(iigrid);
-       !$acc exit data delete(psa(igrid)%w,psb(igrid)%w,psa(igrid)%ws,psb(igrid)%ws, ps(igrid)%x)
+       !$acc exit data delete(psa(igrid)%w, psb(igrid)%w, ps(igrid)%x)
     end do
     !$acc exit data delete(ps,psa,psb)
     
@@ -744,29 +718,26 @@ contains
     double precision :: fE(ixI^S,sdim:3)
 
     integer :: ixO^L
-    
+
     ixO^L=ixI^L^LSUBnghostcells;
     select case (method)
     case (fs_hll,fs_hllc,fs_hllcd,fs_hlld,fs_tvdlf,fs_tvdmu)
-
-    call finite_volume(method,qdt,dtfactor,ixI^L,ixO^L,idim^LIM,qtC,sCT,qt,s,fC,fE,dxs,x)
-
-!FIXME: focussing on finite_volume for now
-!    case (fs_cd,fs_cd4)
-!       call centdiff(method,qdt,dtfactor,ixI^L,ixO^L,idim^LIM,qtC,sCT,qt,s,fC,fE,dxs,x)
-!    case (fs_hancock)
-!       call hancock(qdt,dtfactor,ixI^L,ixO^L,idim^LIM,qtC,sCT,qt,s,dxs,x)
-!    case (fs_fd)
-!       call fd(qdt,dtfactor,ixI^L,ixO^L,idim^LIM,qtC,sCT,qt,s,fC,fE,dxs,x)
-!    case (fs_tvd)
-!       call centdiff(fs_cd,qdt,dtfactor,ixI^L,ixO^L,idim^LIM,qtC,sCT,qt,s,fC,fE,dxs,x)
-!       call tvdlimit(method,qdt,ixI^L,ixO^L,idim^LIM,sCT,qt+qdt,s,fC,dxs,x)
-!    case (fs_source)
-!       wprim=sCT%w
-!       call phys_to_primitive(ixI^L,ixI^L,wprim,x)
-!       call addsource2(qdt*dble(idimmax-idimmin+1)/dble(ndim),&
-!            dtfactor*dble(idimmax-idimmin+1)/dble(ndim),&
-!            ixI^L,ixO^L,1,nw,qtC,sCT%w,wprim,qt,s%w,x,.false.)
+       call finite_volume(method,qdt,dtfactor,ixI^L,ixO^L,idim^LIM,qtC,sCT,qt,s,fC,fE,dxs,x)
+    case (fs_cd,fs_cd4)
+       call centdiff(method,qdt,dtfactor,ixI^L,ixO^L,idim^LIM,qtC,sCT,qt,s,fC,fE,dxs,x)
+    case (fs_hancock)
+       call hancock(qdt,dtfactor,ixI^L,ixO^L,idim^LIM,qtC,sCT,qt,s,dxs,x)
+    case (fs_fd)
+       call fd(qdt,dtfactor,ixI^L,ixO^L,idim^LIM,qtC,sCT,qt,s,fC,fE,dxs,x)
+    case (fs_tvd)
+       call centdiff(fs_cd,qdt,dtfactor,ixI^L,ixO^L,idim^LIM,qtC,sCT,qt,s,fC,fE,dxs,x)
+       call tvdlimit(method,qdt,ixI^L,ixO^L,idim^LIM,sCT,qt+qdt,s,fC,dxs,x)
+    case (fs_source)
+       wprim=sCT%w
+       call phys_to_primitive(ixI^L,ixI^L,wprim,x)
+       call addsource2(qdt*dble(idimmax-idimmin+1)/dble(ndim),&
+            dtfactor*dble(idimmax-idimmin+1)/dble(ndim),&
+            ixI^L,ixO^L,1,nw,qtC,sCT%w,wprim,qt,s%w,x,.false.)
     case (fs_nul)
        ! There is nothing to do
     case default

@@ -130,12 +130,8 @@ contains
   !> Add source within ixO for iws: w=w+qdt*S[wCT]
   subroutine addsource2(qdt,dtfactor,ixI^L,ixO^L,iw^LIM,qtC,wCT,wCTprim,qt,&
        w,x,qsourcesplit,src_active)
-    !$acc routine
     use mod_global_parameters
     use mod_physics, only: phys_add_source
-#ifdef _OPENACC
-    use mod_hd_phys, only: hd_add_source
-#endif
     use mod_usr_methods, only: usr_source
     ! differences with VAC is in iw^LIM and in declaration of ranges for wCT,w
 
@@ -160,12 +156,7 @@ contains
     
     ! physics defined sources, typically explicitly added,
     ! along with geometrical source additions
-!FIXME:
-#ifndef _OPENACC    
     call phys_add_source(qdt,dtfactor,ixI^L,ixO^L,wCT,wCTprim,w,x,qsourcesplit,tmp_active)
-#else
-    call hd_add_source(qdt,dtfactor,ixI^L,ixO^L,wCT,wCTprim,w,x,qsourcesplit,tmp_active)
-#endif
 
     if (present(src_active)) src_active = src_active .or. tmp_active
 

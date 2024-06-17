@@ -286,11 +286,14 @@ contains
     phys_get_cmax            => hd_get_cmax
     phys_get_a2max           => hd_get_a2max
     phys_get_tcutoff         => hd_get_tcutoff
-    phys_get_cbounds         => hd_get_cbounds
-    phys_get_flux            => hd_get_flux
+!    phys_get_cbounds         => hd_get_cbounds
+    phys_get_cbounds         => hd_get_cbounds_gpu
+!    phys_get_flux            => hd_get_flux
+    phys_get_flux            => hd_get_flux_gpu
     phys_add_source_geom     => hd_add_source_geom
     phys_add_source          => hd_add_source
-    phys_to_conserved        => hd_to_conserved
+!    phys_to_conserved        => hd_to_conserved
+    phys_to_conserved        => hd_to_conserved_gpu
 !    phys_to_primitive        => hd_to_primitive
     phys_to_primitive        => hd_to_primitive_gpu
     phys_check_params        => hd_check_params
@@ -588,7 +591,6 @@ contains
     end subroutine rc_params_read
 
     subroutine hd_check_params
-      !$acc routine
       use mod_global_parameters
       use mod_dust, only: dust_check_params, dust_implicit_update, dust_evaluate_implicit
 
@@ -667,7 +669,6 @@ contains
 
   !> Returns logical argument flag where values are ok
   subroutine hd_check_w(primitive, ixI^L, ixO^L, w, flag)
-    !$acc routine
     use mod_global_parameters
     use mod_dust, only: dust_check_w
 
@@ -699,7 +700,6 @@ contains
 
   !> Transform primitive variables into conservative ones
   subroutine hd_to_conserved(ixI^L, ixO^L, w, x)
-    !$acc routine
     use mod_global_parameters
     use mod_dust, only: dust_to_conserved
     integer, intent(in)             :: ixI^L, ixO^L
@@ -724,14 +724,38 @@ contains
        w(ixO^S, mom(idir)) = w(ixO^S, rho_) * w(ixO^S, mom(idir))
     end do
 
-!FIXME:
-#ifndef _OPENACC
     if (hd_dust) then
       call dust_to_conserved(ixI^L, ixO^L, w, x)
    end if
-#endif
 
   end subroutine hd_to_conserved
+  
+  !> Transform primitive variables into conservative ones
+  subroutine hd_to_conserved_gpu(ixI^L, ixO^L, w, x)
+    use mod_global_parameters
+    integer, intent(in)             :: ixI^L, ixO^L
+    double precision, intent(inout) :: w(ixI^S, nw)
+    double precision, intent(in)    :: x(ixI^S, 1:ndim)
+    double precision                :: invgam
+    integer                         :: idir, ix^D
+
+    !$acc kernels
+    invgam = 1.d0/(hd_gamma - 1.0d0)
+    {^D& do ix^DB=ixOmin^DB,ixOmax^DB\}
+    
+       ! Calculate total energy from pressure and kinetic energy
+       w(ix^D, e_) = w(ix^D, e_) * invgam + &
+            0.5d0 * ({^D& w(ix^DD,mom(^D))**2|+}) * w(ix^D, rho_)
+
+       ! Convert velocity to momentum
+       do idir = 1, ndir
+          w(ix^D, mom(idir)) = w(ix^D, rho_) * w(ix^D, mom(idir))
+       end do
+    
+    {^D& end do\}
+    !$acc end kernels
+
+  end subroutine hd_to_conserved_gpu
 
   !> Transform conservative variables into primitive ones
   subroutine hd_to_primitive(ixI^L, ixO^L, w, x)
@@ -974,12 +998,11 @@ contains
 
   !> Calculate cmax_idim = csound + abs(v_idim) within ixO^L
   subroutine hd_get_cbounds(wLC, wRC, wLp, wRp, x, ixI^L, ixO^L, idim,Hspeed,cmax, cmin)
-    !$acc routine
     use mod_global_parameters
     use mod_dust, only: dust_get_cmax
     use mod_variables
 
-    integer, value, intent(in)      :: ixI^L, ixO^L, idim
+    integer, intent(in)             :: ixI^L, ixO^L, idim
     ! conservative left and right status
     double precision, intent(in)    :: wLC(ixI^S, nw), wRC(ixI^S, nw)
     ! primitive left and right status
@@ -1028,14 +1051,11 @@ contains
       else
         cmax(ixO^S,1)=dabs(umean(ixO^S))+dmean(ixO^S)
       end if
-
-!FIXME:
-#ifndef _OPENACC      
+    
       if (hd_dust) then
         wmean(ixO^S,1:nwflux)=0.5d0*(wLC(ixO^S,1:nwflux)+wRC(ixO^S,1:nwflux))
         call dust_get_cmax(wmean, x, ixI^L, ixO^L, idim, cmax, cmin)
      end if
-#endif
 
     case (2)
       wmean(ixO^S,1:nwflux)=0.5d0*(wLC(ixO^S,1:nwflux)+wRC(ixO^S,1:nwflux))
@@ -1056,12 +1076,10 @@ contains
         cmax(ixO^S,1)=dabs(tmp1(ixO^S))+csoundR(ixO^S)
       end if
 
-!FIXME:
-#ifndef _OPENACC  
       if (hd_dust) then
         call dust_get_cmax(wmean, x, ixI^L, ixO^L, idim, cmax, cmin)
-      end if
-#endif
+     end if
+     
     case (3)
       ! Miyoshi 2005 JCP 208, 315 equation (67)
       if(hd_energy) then
@@ -1084,18 +1102,63 @@ contains
       else
         cmax(ixO^S,1)=max(wLp(ixO^S,mom(idim)),wRp(ixO^S,mom(idim)))+csoundL(ixO^S)
       end if
-!FIXME:
-#ifndef _OPENACC  
       if (hd_dust) then
         wmean(ixO^S,1:nwflux)=0.5d0*(wLC(ixO^S,1:nwflux)+wRC(ixO^S,1:nwflux))
         call dust_get_cmax(wmean, x, ixI^L, ixO^L, idim, cmax, cmin)
         
       end if
-#endif
     end select
 
   end subroutine hd_get_cbounds
 
+  subroutine hd_get_cbounds_gpu(wLC, wRC, wLp, wRp, x, ixI^L, ixO^L, idim, Hspeed, cmax, cmin)
+    use mod_global_parameters
+    use mod_variables
+
+    integer, intent(in)             :: ixI^L, ixO^L, idim
+    ! conservative left and right status
+    double precision, intent(in)    :: wLC(ixI^S, nw), wRC(ixI^S, nw)
+    ! primitive left and right status
+    double precision, intent(in)    :: wLp(ixI^S, nw), wRp(ixI^S, nw)
+    double precision, intent(in)    :: x(ixI^S, 1:ndim)
+    double precision, intent(inout) :: cmax(ixI^S,1:number_species)
+    double precision, intent(inout), optional :: cmin(ixI^S,1:number_species)
+    double precision, intent(in)    :: Hspeed(ixI^S,1:number_species)
+
+    double precision, dimension(ixI^S) :: umean, dmean, csoundL, csoundR, tmp1,tmp2,tmp3
+    !$acc declare create(umean, dmean, csoundL, csoundR, tmp1, tmp2, tmp3)
+    integer :: ix^D
+
+    ! This implements formula (10.52) from "Riemann Solvers and Numerical
+    ! Methods for Fluid Dynamics" by Toro.
+
+    !$acc kernels
+    tmp1(ixO^S)=dsqrt(wLp(ixO^S,rho_))
+    tmp2(ixO^S)=dsqrt(wRp(ixO^S,rho_))
+    tmp3(ixO^S)=1.d0/(dsqrt(wLp(ixO^S, rho_))+dsqrt(wRp(ixO^S, rho_)))
+    umean(ixO^S)=(wLp(ixO^S, mom(idim))*tmp1(ixO^S)+wRp(ixO^S, mom(idim))*tmp2(ixO^S))*tmp3(ixO^S)
+
+    csoundL(ixO^S)=hd_gamma*wLp(ixO^S,p_)/wLp(ixO^S,rho_)
+    csoundR(ixO^S)=hd_gamma*wRp(ixO^S,p_)/wRp(ixO^S,rho_)
+
+    dmean(ixO^S) = (tmp1(ixO^S)*csoundL(ixO^S)+tmp2(ixO^S)*csoundR(ixO^S)) * &
+         tmp3(ixO^S) + 0.5d0*tmp1(ixO^S)*tmp2(ixO^S)*tmp3(ixO^S)**2 * &
+         (wRp(ixO^S,mom(idim))-wLp(ixO^S, mom(idim)))**2
+
+    dmean(ixO^S)=dsqrt(dmean(ixO^S))
+    cmax(ixO^S,1)=dabs(umean(ixO^S))+dmean(ixO^S)
+    !$acc end kernels
+    
+    if(present(cmin)) then
+       !$acc kernels
+       cmin(ixO^S,1)=umean(ixO^S)-dmean(ixO^S)
+       cmax(ixO^S,1)=umean(ixO^S)+dmean(ixO^S)
+       !$acc end kernels
+    end if
+
+  end subroutine hd_get_cbounds_gpu
+
+  
   !> Calculate the square of the thermal sound speed csound2 within ixO^L.
   !> csound2=gamma*p/rho
   subroutine hd_get_csound2(w,x,ixI^L,ixO^L,csound2)
@@ -1240,12 +1303,11 @@ contains
 
   ! Calculate flux f_idim[iw]
   subroutine hd_get_flux(wC, w, x, ixI^L, ixO^L, idim, f)
-    !$acc routine
     use mod_global_parameters
     use mod_dust, only: dust_get_flux_prim
     use mod_viscosity, only: visc_get_flux_prim ! viscInDiv
 
-    integer, value, intent(in)      :: ixI^L, ixO^L, idim
+    integer, intent(in)             :: ixI^L, ixO^L, idim
     ! conservative w
     double precision, intent(in)    :: wC(ixI^S, 1:nw)
     ! primitive w
@@ -1279,8 +1341,6 @@ contains
        f(ixO^S, tracer(itr)) = w(ixO^S,mom(idim)) * w(ixO^S, tracer(itr))
     end do
 
-!FIXME:
-#ifndef _OPENACC  
     ! Dust fluxes
     if (hd_dust) then
       call dust_get_flux_prim(w, x, ixI^L, ixO^L, idim, f)
@@ -1290,9 +1350,44 @@ contains
     if (hd_viscosity) then
       call visc_get_flux_prim(w, x, ixI^L, ixO^L, idim, f, hd_energy)
     endif
-#endif
 
   end subroutine hd_get_flux
+
+  ! Calculate flux f_idim[iw]
+  subroutine hd_get_flux_gpu(wC, w, x, ixI^L, ixO^L, idim, f)
+    use mod_global_parameters
+
+    integer, intent(in)             :: ixI^L, ixO^L, idim
+    ! conservative w
+    double precision, intent(in)    :: wC(ixI^S, 1:nw)
+    ! primitive w
+    double precision, intent(in)    :: w(ixI^S, 1:nw)
+    double precision, intent(in)    :: x(ixI^S, 1:ndim)
+    double precision, intent(out)   :: f(ixI^S, nwflux)
+    integer                         :: idir, itr, ix^D
+
+    !$acc parallel loop collapse(^ND) present(f) firstprivate(idim, ixO^L) private(idir, itr)
+    {^D& do ix^DB=ixOmin^DB,ixOmax^DB\}
+    
+       f(ix^D, rho_) = w(ix^D, mom(idim)) * w(ix^D, rho_)
+
+       ! Momentum flux is v_i*m_i, +p in direction idim
+       do idir = 1, ndir
+          f(ix^D, mom(idir)) = w(ix^D,mom(idim)) * wC(ix^D, mom(idir))
+       end do
+       
+       f(ix^D, mom(idim)) = f(ix^D, mom(idim)) + w(ix^D, p_)
+       
+       ! Energy flux is v_i*(e + p)
+       f(ix^D, e_) = w(ix^D, mom(idim)) * (wC(ix^D, e_) + w(ix^D, p_))
+       
+       do itr = 1, hd_n_tracer
+          f(ix^D, tracer(itr)) = w(ix^D, mom(idim)) * w(ix^D, tracer(itr))
+       end do
+       
+    {^D& end do\}
+    
+  end subroutine hd_get_flux_gpu
 
   !> Add geometrical source terms to w
   !>
@@ -1302,7 +1397,6 @@ contains
   !> Ileyk : to do :
   !>     - address the source term for the dust in case (coordinate == spherical)
   subroutine hd_add_source_geom(qdt, dtfactor, ixI^L, ixO^L, wCT, w, x)
-    !$acc routine
     use mod_global_parameters
     use mod_usr_methods, only: usr_set_surface
     use mod_viscosity, only: visc_add_source_geom ! viscInDiv
@@ -1561,7 +1655,6 @@ contains
   end function hd_inv_rho
 
   subroutine hd_handle_small_values(primitive, w, x, ixI^L, ixO^L, subname)
-    !$acc routine
     ! handles hydro (density,pressure,velocity) bootstrapping
     ! any negative dust density is flagged as well (and throws an error)
     ! small_values_method=replace also for dust

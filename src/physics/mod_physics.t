@@ -102,8 +102,6 @@ module mod_physics
   procedure(sub_update_temperature), pointer :: phys_update_temperature  => null()
   procedure(sub_get_auxiliary), pointer         :: phys_get_auxiliary         => null()
   procedure(sub_get_auxiliary_prim), pointer    :: phys_get_auxiliary_prim    => null()
-  !$acc declare copyin(phys_modify_wLR)
-
   
   abstract interface
 
@@ -183,7 +181,7 @@ module mod_physics
      subroutine sub_get_cbounds(wLC, wRC, wLp, wRp, x, ixI^L, ixO^L, idim, Hspeed, cmax, cmin)
        use mod_global_parameters
        use mod_variables
-       integer, value, intent(in)      :: ixI^L, ixO^L, idim
+       integer, intent(in)             :: ixI^L, ixO^L, idim
        double precision, intent(in)    :: wLC(ixI^S, nw), wRC(ixI^S, nw)
        double precision, intent(in)    :: wLp(ixI^S, nw), wRp(ixI^S, nw)
        double precision, intent(in)    :: x(ixI^S, 1:^ND)
@@ -194,7 +192,7 @@ module mod_physics
 
      subroutine sub_get_flux(wC, w, x, ixI^L, ixO^L, idim, f)
        use mod_global_parameters
-       integer, value, intent(in)      :: ixI^L, ixO^L, idim
+       integer, intent(in)             :: ixI^L, ixO^L, idim
        double precision, intent(in)    :: wC(ixI^S, 1:nw)
        double precision, intent(in)    :: w(ixI^S, 1:nw)
        double precision, intent(in)    :: x(ixI^S, 1:^ND)
