@@ -689,9 +689,9 @@ contains
     end if
 
     do iigrid=1,igridstail; igrid=igrids(iigrid);
-       !$acc exit data delete(psa(igrid)%w, psb(igrid)%w, ps(igrid)%x)
+       !$acc exit data delete(psa(igrid)%w, ps(igrid)%x) copyout(psb(igrid)%w)
     end do
-    !$acc exit data delete(ps,psa,psb)
+    !$acc exit data delete(ps, psa, psb)
     
     ! For all grids: fill ghost cells
     call getbc(qt+qdt,qdt,psb,iwstart,nwgc,phys_req_diagonal)

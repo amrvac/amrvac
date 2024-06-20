@@ -473,11 +473,11 @@ contains
        end if
     case (limiter_cada3)
        rdelinv=one/(cada3_radius*dxlevel(idims))**2
-       !$acc kernels present(dwC)
+       !$acc kernels present(dwC, tmpeta)
        tmpeta(ixO^S)=(dwC(ixO^S)**2+dwC(hxO^S)**2)*rdelinv
        !$acc end kernels
        if (present(ldw)) then
-          !$acc kernels present(ldw, dwC)
+          !$acc kernels present(ldw, dwC, tmp, ldwA, ldwB, tmp2)
           tmp(ixO^S)=dwC(hxO^S)/(dwC(ixO^S) + sign(eps, dwC(ixO^S)))
           ldwA(ixO^S)=(two+tmp(ixO^S))*third
           where(tmpeta(ixO^S)<=one-cadepsilon)
@@ -498,7 +498,7 @@ contains
        end if
 
        if (present(rdw)) then
-          !$acc kernels present(rdw, dwC)
+          !$acc kernels present(rdw, dwC, tmp, ldwA, ldwB, tmp2)
           tmp(ixO^S)=dwC(ixO^S)/(dwC(hxO^S) + sign(eps, dwC(hxO^S)))
           ldwA(ixO^S)=(two+tmp(ixO^S))*third
           where(tmpeta(ixO^S)<=one-cadepsilon)
