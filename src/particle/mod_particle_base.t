@@ -644,7 +644,7 @@ contains
     double precision, intent(in)                       :: tloc
     double precision,dimension(ndir), intent(out)      :: vec
     double precision,dimension(ndir)                   :: vec1, vec2
-    double precision                                   :: td
+    double precision                                   :: td, bb
     integer                                            :: ic^D,idir
 
     if (associated(usr_particle_analytic)) then
@@ -654,11 +654,24 @@ contains
         call interpolate_var(igrid,ixG^LL,ixM^LL,gridvars(igrid)%w(ixG^T,ix(idir)), &
              ps(igrid)%x(ixG^T,1:ndim),x,vec(idir))
       end do
+      ! Fabio June 2024: renormalize vector by its grid-evaluated norm
+      call interpolate_var(igrid,ixG^LL,ixM^LL, &
+                           sum(gridvars(igrid)%w(ixG^T,ix(:))**2,dim=ndim+1), &
+                           ps(igrid)%x(ixG^T,1:ndim),x,bb)
+      vec = vec/sqrt(sum(vec(:)**2))*sqrt(bb)
+
       if (time_advance) then
         do idir=1,ndir
           call interpolate_var(igrid,ixG^LL,ixM^LL,gridvars(igrid)%wold(ixG^T,ix(idir)), &
                ps(igrid)%x(ixG^T,1:ndim),x,vec2(idir))
         end do
+        ! Fabio June 2024: renormalize vector by its grid-evaluated norm
+        call interpolate_var(igrid,ixG^LL,ixM^LL, &
+                             sum(gridvars(igrid)%wold(ixG^T,ix(:))**2,dim=ndim+1), &
+                             ps(igrid)%x(ixG^T,1:ndim),x,bb)
+        vec2 = vec2/sqrt(sum(vec2(:)**2))*sqrt(bb)
+
+        ! Interpolate in time
         td = (tloc - global_time) / dt
         vec(:) = vec(:) * (1.0d0 - td) + vec2(:) * td
       end if
@@ -666,7 +679,6 @@ contains
 
   end subroutine get_vec
 
-  ! Shorthand for getting specifically the B field at the particle position
   subroutine get_bfield(igrid,x,tloc,b)
     use mod_global_parameters
     use mod_usr_methods, only: usr_particle_analytic, usr_particle_fields
@@ -676,7 +688,7 @@ contains
     double precision, intent(in)                       :: tloc
     double precision,dimension(ndir), intent(out)      :: b
     double precision,dimension(ndir)                   :: vec1, vec2, vec
-    double precision                                   :: td
+    double precision                                   :: td, bb
     integer                                            :: ic^D,idir
 
     if (associated(usr_particle_analytic)) then
@@ -688,11 +700,24 @@ contains
         call interpolate_var(igrid,ixG^LL,ixM^LL,gridvars(igrid)%w(ixG^T,bp(idir)), &
              ps(igrid)%x(ixG^T,1:ndim),x,vec(idir))
       end do
+      ! Fabio June 2024: Renormalize vector by its grid-evaluated norm
+      call interpolate_var(igrid,ixG^LL,ixM^LL, &
+                           sum(gridvars(igrid)%w(ixG^T,bp(:))**2,dim=ndim+1), &
+                           ps(igrid)%x(ixG^T,1:ndim),x,bb)
+      vec = vec/sqrt(sum(vec(:)**2))*sqrt(bb)
+
       if (time_advance) then
         do idir=1,ndir
           call interpolate_var(igrid,ixG^LL,ixM^LL,gridvars(igrid)%wold(ixG^T,bp(idir)), &
                ps(igrid)%x(ixG^T,1:ndim),x,vec2(idir))
         end do
+        ! Fabio June 2024: Renormalize vector by its grid-evaluated norm
+        call interpolate_var(igrid,ixG^LL,ixM^LL, &
+                             sum(gridvars(igrid)%wold(ixG^T,bp(:))**2,dim=ndim+1), &
+                             ps(igrid)%x(ixG^T,1:ndim),x,bb)
+        vec2 = vec2/sqrt(sum(vec(:)**2))*sqrt(bb)
+
+        ! Interpolate in time
         td = (tloc - global_time) / dt
         vec(:) = vec(:) * (1.0d0 - td) + vec2(:) * td
       end if
