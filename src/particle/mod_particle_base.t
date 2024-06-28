@@ -655,10 +655,12 @@ contains
              ps(igrid)%x(ixG^T,1:ndim),x,vec(idir))
       end do
       ! Fabio June 2024: renormalize vector by its grid-evaluated norm
-      call interpolate_var(igrid,ixG^LL,ixM^LL, &
-                           sum(gridvars(igrid)%w(ixG^T,ix(:))**2,dim=ndim+1), &
-                           ps(igrid)%x(ixG^T,1:ndim),x,bb)
-      vec = vec/sqrt(sum(vec(:)**2))*sqrt(bb)
+      if (sqrt(sum(vec(:)**2)) .gt. 0.d0) then
+        call interpolate_var(igrid,ixG^LL,ixM^LL, &
+                             sum(gridvars(igrid)%w(ixG^T,ix(:))**2,dim=ndim+1), &
+                             ps(igrid)%x(ixG^T,1:ndim),x,bb)
+        vec = vec/sqrt(sum(vec(:)**2))*sqrt(bb)
+      end if
 
       if (time_advance) then
         do idir=1,ndir
@@ -666,14 +668,16 @@ contains
                ps(igrid)%x(ixG^T,1:ndim),x,vec2(idir))
         end do
         ! Fabio June 2024: renormalize vector by its grid-evaluated norm
-        call interpolate_var(igrid,ixG^LL,ixM^LL, &
+        if (sqrt(sum(vec2(:)**2)) .gt. 0.d0) then
+          call interpolate_var(igrid,ixG^LL,ixM^LL, &
                              sum(gridvars(igrid)%wold(ixG^T,ix(:))**2,dim=ndim+1), &
                              ps(igrid)%x(ixG^T,1:ndim),x,bb)
-        vec2 = vec2/sqrt(sum(vec2(:)**2))*sqrt(bb)
+          vec2 = vec2/sqrt(sum(vec2(:)**2))*sqrt(bb)
+        end if
 
         ! Interpolate in time
         td = (tloc - global_time) / dt
-        vec(:) = vec(:) * (1.0d0 - td) + vec2(:) * td
+        vec(:) = vec2(:) * (1.0d0 - td) + vec(:) * td
       end if
     end if
 
@@ -700,26 +704,30 @@ contains
         call interpolate_var(igrid,ixG^LL,ixM^LL,gridvars(igrid)%w(ixG^T,bp(idir)), &
              ps(igrid)%x(ixG^T,1:ndim),x,vec(idir))
       end do
-      ! Fabio June 2024: Renormalize vector by its grid-evaluated norm
-      call interpolate_var(igrid,ixG^LL,ixM^LL, &
-                           sum(gridvars(igrid)%w(ixG^T,bp(:))**2,dim=ndim+1), &
-                           ps(igrid)%x(ixG^T,1:ndim),x,bb)
-      vec = vec/sqrt(sum(vec(:)**2))*sqrt(bb)
+      if (sqrt(sum(vec(:)**2)) .gt. 0.d0) then
+        ! Fabio June 2024: Renormalize vector by its grid-evaluated norm
+        call interpolate_var(igrid,ixG^LL,ixM^LL, &
+                             sum(gridvars(igrid)%w(ixG^T,bp(:))**2,dim=ndim+1), &
+                             ps(igrid)%x(ixG^T,1:ndim),x,bb)
+        vec = vec/sqrt(sum(vec(:)**2))*sqrt(bb)
+      end if
 
       if (time_advance) then
         do idir=1,ndir
           call interpolate_var(igrid,ixG^LL,ixM^LL,gridvars(igrid)%wold(ixG^T,bp(idir)), &
                ps(igrid)%x(ixG^T,1:ndim),x,vec2(idir))
         end do
-        ! Fabio June 2024: Renormalize vector by its grid-evaluated norm
-        call interpolate_var(igrid,ixG^LL,ixM^LL, &
-                             sum(gridvars(igrid)%wold(ixG^T,bp(:))**2,dim=ndim+1), &
-                             ps(igrid)%x(ixG^T,1:ndim),x,bb)
-        vec2 = vec2/sqrt(sum(vec(:)**2))*sqrt(bb)
+        if (sqrt(sum(vec2(:)**2)) .gt. 0.d0) then
+          ! Fabio June 2024: Renormalize vector by its grid-evaluated norm
+          call interpolate_var(igrid,ixG^LL,ixM^LL, &
+                               sum(gridvars(igrid)%wold(ixG^T,bp(:))**2,dim=ndim+1), &
+                               ps(igrid)%x(ixG^T,1:ndim),x,bb)
+          vec2 = vec2/sqrt(sum(vec(:)**2))*sqrt(bb)
+        end if
 
         ! Interpolate in time
         td = (tloc - global_time) / dt
-        vec(:) = vec(:) * (1.0d0 - td) + vec2(:) * td
+        vec(:) = vec2(:) * (1.0d0 - td) + vec(:) * td
       end if
     end if
 
@@ -761,7 +769,7 @@ contains
         if (time_advance) then
           call interpolate_var(igrid,ixG^LL,ixM^LL,gridvars(igrid)%wold(ixG^T,rhop),ps(igrid)%x(ixG^T,1:ndim),x,rho2)
           td = (tloc - global_time) / dt
-          rho = rho * (1.0d0 - td) + rho2 * td
+          rho = rho2 * (1.0d0 - td) + rho * td
         end if
       end if
 
