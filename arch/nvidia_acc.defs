@@ -1,4 +1,4 @@
 F90=mpif90
 FFLAGS = -c
-F90FLAGS = -cpp -Mfree -O3 -Wall -acc -fast -Minfo=accel -Mpreprocess -static-nvidia -fno-omit-frame-pointer -g
+F90FLAGS = -cpp -Mfree -O3 -Wall -acc -fast -Minfo=accel -Mpreprocess 
 LINK= $(F90)  $(F90FLAGS)

@@ -165,7 +165,7 @@ contains
       if (ixI^L^LTix^L|.or.|.or.) &
            call mpistop("Error in fv : Nonconforming input limits")
 
-      !$acc kernels
+      !$acc kernels present(fC, wCT)
       fC=0.d0
       fLC=0.d0
       fRC=0.d0
@@ -209,7 +209,7 @@ contains
 
          ! apply limited reconstruction for left and right status at cell interfaces
          call reconstruct_LR_gpu(ixI^L,ixCR^L,ixCR^L,idims,wprim,wLC,wRC,wLp,wRp,x,dxs(idims))
-
+    
 #ifndef _OPENACC         
          ! special modification of left and right status before flux evaluation
          call phys_modify_wLR(ixI^L,ixCR^L,qt,wLC,wRC,wLp,wRp,sCT,idims)
@@ -295,7 +295,6 @@ contains
 !               call tvdlimit2(method,qdt,ixI^L,ixC^L,ixO^L,idims,wLC,wRC,wnew,x,fC,dxs)
                !           print *, 'tvdllimit2 not yet available'
 !            end if
-
          end do ! Next idims
          
       else
@@ -400,7 +399,7 @@ contains
       integer, intent(in) :: iws,iwe
       integer :: ix^D
 
-      !$acc kernels present(fC)
+      !$acc parallel loop collapse(^ND+1) present(fC)
       do iw=iws,iwe
          {do ix^DB=ixCmin^DB,ixCmax^DB\}
          if(cminC(ix^D,ii) >= zero) then
@@ -415,7 +414,6 @@ contains
          end if
          {end do\}
       end do
-      !$acc end kernels
 
     end subroutine get_Riemann_flux_hll_gpu
 

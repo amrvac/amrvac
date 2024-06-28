@@ -371,14 +371,15 @@ contains
     ! full third order cada limiter
     double precision :: rdelinv
     double precision :: ldwA(ixI^S),ldwB(ixI^S),tmpeta(ixI^S)
-    !$acc declare create(tmp, tmp2, ldwA, ldwB, tmpeta)
+    double precision :: ldwA_s, ldwB_s, tmp_s, tmp2_s, tmpeta_s
     double precision, parameter :: cadepsilon=1.d-14, invcadepsilon=1.d14,cada3_radius=0.1d0
-    integer :: ix^D
+    integer :: ix^D, ioffset^D
     !-----------------------------------------------------------------------------
 
     ! Contract indices in idim for output.
     ixOmin^D=ixCmin^D+kr(idims,^D); ixOmax^D=ixCmax^D;
     hxO^L=ixO^L-kr(idims,^D);
+    ioffset^D=-kr(idims,^D);
 
     ! About the notation: the conventional argument theta (the ratio of slopes)
     ! would be given by dwC(ixO^S)/dwC(hxO^S). However, in the end one
@@ -472,51 +473,57 @@ contains
                cadgamma)))) * dwC(hxO^S)
        end if
     case (limiter_cada3)
+       
        rdelinv=one/(cada3_radius*dxlevel(idims))**2
-       !$acc kernels present(dwC, tmpeta)
-       tmpeta(ixO^S)=(dwC(ixO^S)**2+dwC(hxO^S)**2)*rdelinv
-       !$acc end kernels
+       
        if (present(ldw)) then
-          !$acc kernels present(ldw, dwC, tmp, ldwA, ldwB, tmp2)
-          tmp(ixO^S)=dwC(hxO^S)/(dwC(ixO^S) + sign(eps, dwC(ixO^S)))
-          ldwA(ixO^S)=(two+tmp(ixO^S))*third
-          where(tmpeta(ixO^S)<=one-cadepsilon)
-             ldw(ixO^S)=ldwA(ixO^S)
-          elsewhere(tmpeta(ixO^S)>=one+cadepsilon)
-             ldwB(ixO^S)= max(zero,min(ldwA(ixO^S), max(-cadalfa*tmp(ixO^S), &
-               min(cadbeta*tmp(ixO^S), ldwA(ixO^S), cadgamma))))
-             ldw(ixO^S)=ldwB(ixO^S)
-          elsewhere
-             ldwB(ixO^S)= max(zero,min(ldwA(ixO^S), max(-cadalfa*tmp(ixO^S), &
-               min(cadbeta*tmp(ixO^S), ldwA(ixO^S), cadgamma))))
-             tmp2(ixO^S)=(tmpeta(ixO^S)-one)*invcadepsilon
-             ldw(ixO^S)=half*( (one-tmp2(ixO^S))*ldwA(ixO^S) &
-                  +(one+tmp2(ixO^S))*ldwB(ixO^S))
-          endwhere
-          ldw(ixO^S)=ldw(ixO^S) * dwC(ixO^S)
-          !$acc end kernels
+          !$acc parallel loop collapse(ndim) present(ldw, dwC) firstprivate(ioffset^D, ixO^L, rdelinv) private(tmp_s, ldwA_s, ldwB_s, tmp2_s, tmpeta_s)
+          {^D& do ix^DB=ixOmin^DB, ixOmax^DB\}
+          tmpeta_s = (dwC(ix^D)**2 + dwC(ix^D+ioffset^D)**2) * rdelinv
+          tmp_s    = dwC(ix^D+ioffset^D) / (dwC(ix^D) + sign(eps, dwC(ix^D)))
+          ldwA_s   = (two + tmp_s) * third
+          if (tmpeta_s <= one-cadepsilon) then
+             ldw(ix^D) = ldwA_s
+          else if (tmpeta_s >= one + cadepsilon) then
+             ldwB_s = max(zero, min(ldwA_s, max(-cadalfa * tmp_s, &
+               min(cadbeta*tmp_s, ldwA_s, cadgamma))))
+             ldw(ix^D) = ldwB_s
+          else
+             ldwB_s = max(zero, min(ldwA_s, max(-cadalfa * tmp_s, &
+               min(cadbeta * tmp_s, ldwA_s, cadgamma))))
+             tmp2_s = (tmpeta_s - one) * invcadepsilon
+             ldw(ix^D) = half * ( (one - tmp2_s) * ldwA_s &
+                  + (one + tmp2_s) * ldwB_s)
+          end if
+          ldw(ix^D) = ldw(ix^D) * dwC(ix^D)
+             
+          {^D& end do \}
        end if
 
        if (present(rdw)) then
-          !$acc kernels present(rdw, dwC, tmp, ldwA, ldwB, tmp2)
-          tmp(ixO^S)=dwC(ixO^S)/(dwC(hxO^S) + sign(eps, dwC(hxO^S)))
-          ldwA(ixO^S)=(two+tmp(ixO^S))*third
-          where(tmpeta(ixO^S)<=one-cadepsilon)
-             rdw(ixO^S)=ldwA(ixO^S)
-          elsewhere(tmpeta(ixO^S)>=one+cadepsilon)
-             ldwB(ixO^S)= max(zero,min(ldwA(ixO^S), max(-cadalfa*tmp(ixO^S), &
-               min(cadbeta*tmp(ixO^S), ldwA(ixO^S), cadgamma))))
-             rdw(ixO^S)=ldwB(ixO^S)
-          elsewhere
-             ldwB(ixO^S)= max(zero,min(ldwA(ixO^S), max(-cadalfa*tmp(ixO^S), &
-               min(cadbeta*tmp(ixO^S), ldwA(ixO^S), cadgamma))))
-             tmp2(ixO^S)=(tmpeta(ixO^S)-one)*invcadepsilon
-             rdw(ixO^S)=half*( (one-tmp2(ixO^S))*ldwA(ixO^S) &
-                  +(one+tmp2(ixO^S))*ldwB(ixO^S))
-          endwhere
-          rdw(ixO^S)=rdw(ixO^S) * dwC(hxO^S)
-          !$acc end kernels
+          !$acc parallel loop collapse(ndim) present(rdw, dwC) firstprivate(ioffset^D, ixO^L, rdelinv) private(tmp_s, ldwA_s, ldwB_s, tmp2_s, tmpeta_s)
+          {^D& do ix^DB=ixOmin^DB, ixOmax^DB\}
+          tmpeta_s = (dwC(ix^D)**2 + dwC(ix^D+ioffset^D)**2) * rdelinv
+          tmp_s    = dwC(ix^D) / (dwC(ix^D+ioffset^D) + sign(eps, dwC(ix^D+ioffset^D)))
+          ldwA_s   = (two + tmp_s) * third
+          if (tmpeta_s <= one-cadepsilon) then
+             rdw(ix^D) = ldwA_s
+          else if (tmpeta_s >= one + cadepsilon) then
+             ldwB_s= max(zero, min(ldwA_s, max(-cadalfa * tmp_s, &
+               min(cadbeta * tmp_s, ldwA_s, cadgamma))))
+             rdw(ix^D) = ldwB_s
+          else
+             ldwB_s = max(zero, min(ldwA_s, max(-cadalfa * tmp_s, &
+               min(cadbeta * tmp_s, ldwA_s, cadgamma))))
+             tmp2_s = (tmpeta_s - one) * invcadepsilon
+             rdw(ix^D) = half*( (one - tmp2_s) * ldwA_s &
+                  + (one + tmp2_s) * ldwB_s)
+          end if
+          rdw(ix^D) = rdw(ix^D) * dwC(ix^D+ioffset^D)
+
+          {^D& end do \}
        end if
+       
     case(limiter_schmid)
       tmpeta(ixO^S)=(sqrt(0.4d0*(dwC(ixO^S)**2+dwC(hxO^S)**2)))&
         /((a2max+cadepsilon)*dxlevel(idims)**2)

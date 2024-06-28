@@ -631,12 +631,13 @@ contains
     double precision :: fE(ixG^T,sdim:3)
     !$acc declare create(fC,fE)
     double precision :: qdt
+    !$acc declare create(qdt)
     integer :: iigrid, igrid
 
     ! Get the state onto the GPU
-    !$acc enter data copyin(psa,psb,ps)
+!    !$acc enter data copyin(psa,psb,ps)
     do iigrid=1,igridstail; igrid=igrids(iigrid);
-       !$acc enter data copyin(psa(igrid)%w, psb(igrid)%w, ps(igrid)%x)
+       !$acc enter data copyin(psa(igrid), psb(igrid), ps(igrid), psa(igrid)%w, psb(igrid)%w, ps(igrid)%x)
     end do
     
     istep = istep+1
@@ -689,9 +690,9 @@ contains
     end if
 
     do iigrid=1,igridstail; igrid=igrids(iigrid);
-       !$acc exit data delete(psa(igrid)%w, ps(igrid)%x) copyout(psb(igrid)%w)
+       !$acc exit data delete(psa(igrid)%w, ps(igrid)%x, ps(igrid), psa(igrid), psb(igrid)) copyout(psb(igrid)%w)
     end do
-    !$acc exit data delete(ps, psa, psb)
+!    !$acc exit data delete(ps, psa, psb)
     
     ! For all grids: fill ghost cells
     call getbc(qt+qdt,qdt,psb,iwstart,nwgc,phys_req_diagonal)
@@ -720,6 +721,7 @@ contains
     integer :: ixO^L
 
     ixO^L=ixI^L^LSUBnghostcells;
+    
     select case (method)
     case (fs_hll,fs_hllc,fs_hllcd,fs_hlld,fs_tvdlf,fs_tvdmu)
        call finite_volume(method,qdt,dtfactor,ixI^L,ixO^L,idim^LIM,qtC,sCT,qt,s,fC,fE,dxs,x)
