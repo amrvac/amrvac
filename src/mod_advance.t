@@ -23,6 +23,12 @@ contains
 
     integer :: iigrid, igrid, idimsplit
 
+    !$acc enter data copyin(ps(1:max_blocks), ps1(1:max_blocks), ps2(1:max_blocks))
+    do iigrid=1,igridstail; igrid=igrids(iigrid);
+       !$acc enter data copyin(ps(igrid), ps1(igrid), ps2(igrid), ps(igrid)%w, ps1(igrid)%w, ps2(igrid)%w, ps(igrid)%x)
+    end do
+
+    
     ! split source addition
     call add_split_source(prior=.true.)
 
@@ -49,6 +55,11 @@ contains
 
     if(use_particles) call handle_particles
 
+    do iigrid=1,igridstail; igrid=igrids(iigrid);
+       !$acc exit data delete(ps(igrid)%x, ps(igrid), ps1(igrid), ps2(igrid), ps1(igrid)%w, ps2(igrid)%w) copyout(ps(igrid)%w)
+    end do
+    !$acc exit data delete(ps, ps1, ps2)
+    
   end subroutine advance
 
   !> Advance all grids over one time step, but without taking dimensional
@@ -61,16 +72,25 @@ contains
     use mod_comm_lib, only: mpistop
 
     integer, intent(in) :: idim^LIM
-    integer             :: iigrid, igrid
+    integer             :: iigrid, igrid, ix^D, iw
 
     call init_comm_fix_conserve(idim^LIM,nwflux)
     fix_conserve_at_step = time_advance .and. levmax>levmin
-
+    
     ! copy w instead of wold because of potential use of dimsplit or sourcesplit
     !$OMP PARALLEL DO PRIVATE(igrid)
     do iigrid=1,igridstail; igrid=igrids(iigrid);
-       ps1(igrid)%w=ps(igrid)%w
-       if(stagger_grid) ps1(igrid)%ws=ps(igrid)%ws
+       !$acc parallel loop collapse(ndim+1)
+       do iw = 1, nw
+          {^D& do ix^DB = ixGlo^DB, ixGhi^DB \}
+          ps1(igrid)%w(ix^D,iw) = ps(igrid)%w(ix^D,iw)
+          {^D& end do \}
+       end do
+          if(stagger_grid) then
+             !$acc kernels
+             ps1(igrid)%ws=ps(igrid)%ws
+             !$acc end kernels
+          end if
     end do
     !$OMP END PARALLEL DO
 
@@ -251,20 +271,35 @@ contains
        select case (t_integrator)
        case (ssprk3)
           ! this is SSPRK(3,3) Gottlieb-Shu 1998 or SSP(3,2) depending on ssprk_order (3 vs 2)
+          
           call advect1(flux_method,rk_beta11, idim^LIM,global_time,ps,global_time,ps1)
+          
           !$OMP PARALLEL DO PRIVATE(igrid)
           do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
-             ps2(igrid)%w=rk_alfa21*ps(igrid)%w+rk_alfa22*ps1(igrid)%w
+             !$acc parallel loop collapse(ndim+1)
+             do iw = 1, nw
+                {^D& do ix^DB = ixGlo^DB, ixGhi^DB \}
+                   ps2(igrid)%w(ix^D,iw) = rk_alfa21 * ps(igrid)%w(ix^D,iw) + rk_alfa22 * ps1(igrid)%w(ix^D,iw)
+                {^D& end do \}
+             end do
              if(stagger_grid) ps2(igrid)%ws=rk_alfa21*ps(igrid)%ws+rk_alfa22*ps1(igrid)%ws
           end do
           !$OMP END PARALLEL DO
+          
           call advect1(flux_method,rk_beta22, idim^LIM,global_time+rk_c2*dt,ps1,global_time+rk_alfa22*rk_c2*dt,ps2)
+          
           !$OMP PARALLEL DO PRIVATE(igrid)
           do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
-             ps(igrid)%w=rk_alfa31*ps(igrid)%w+rk_alfa33*ps2(igrid)%w
+             !$acc parallel loop collapse(ndim+1)
+             do iw = 1, nw
+                {^D& do ix^DB = ixGlo^DB, ixGhi^DB \}
+             ps(igrid)%w(ix^D,iw) = rk_alfa31 * ps(igrid)%w(ix^D,iw) + rk_alfa33 * ps2(igrid)%w(ix^D,iw)
+                {^D& end do \}
+             end do
              if(stagger_grid) ps(igrid)%ws=rk_alfa31*ps(igrid)%ws+rk_alfa33*ps2(igrid)%ws
           end do
           !$OMP END PARALLEL DO
+          
           call advect1(flux_method,rk_beta33, idim^LIM,global_time+rk_c3*dt,ps2,global_time+(1.0d0-rk_beta33)*dt,ps)
 
        case (RK3_BT)
@@ -634,11 +669,11 @@ contains
     !$acc declare create(qdt)
     integer :: iigrid, igrid
 
+    
     ! Get the state onto the GPU
-!    !$acc enter data copyin(psa,psb,ps)
-    do iigrid=1,igridstail; igrid=igrids(iigrid);
-       !$acc enter data copyin(psa(igrid), psb(igrid), ps(igrid), psa(igrid)%w, psb(igrid)%w, ps(igrid)%x)
-    end do
+!    do iigrid=1,igridstail; igrid=igrids(iigrid);
+!       !$acc enter data copyin(psa(igrid), psb(igrid), psb, ps(igrid), psa(igrid)%w, psb(igrid)%w, ps(igrid)%x)
+!    end do
     
     istep = istep+1
 
@@ -652,7 +687,8 @@ contains
     do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
       block=>ps(igrid)
       ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
-       !$acc update device(block, dxlevel)  
+      !$acc update device(dxlevel)
+      !$acc enter data attach(block)
 
       call advect1_grid(method(block%level),qdt,dtfactor,ixG^LL,idim^LIM,&
         qtC,psa(igrid),qt,psb(igrid),fC,fE,rnode(rpdx1_:rnodehi,igrid),ps(igrid)%x)
@@ -663,14 +699,16 @@ contains
       ! via neighbor_active(i^D,igrid) thus we skip the correction for those.
       ! This violates strict conservation when the active/passive interface
       ! coincides with a coarse/fine interface.
+
       if (fix_conserve_global .and. fix_conserve_at_step) then
         call store_flux(igrid,fC,idim^LIM,nwflux)
         if(stagger_grid) call store_edge(igrid,ixG^LL,fE,idim^LIM)
       end if
 
+      !$acc exit data detach(block)
     end do
     !$OMP END PARALLEL DO
-
+    
     ! opedit: Send flux for all grids, expects sends for all
     ! nsend_fc(^D), set in connectivity.t.
 
@@ -689,14 +727,19 @@ contains
       end if
     end if
 
-    do iigrid=1,igridstail; igrid=igrids(iigrid);
-       !$acc exit data delete(psa(igrid)%w, ps(igrid)%x, ps(igrid), psa(igrid), psb(igrid)) copyout(psb(igrid)%w)
-    end do
-!    !$acc exit data delete(ps, psa, psb)
-    
     ! For all grids: fill ghost cells
+    do iigrid=1,igridstail; igrid=igrids(iigrid);
+       !$acc update self(psb(igrid)%w)
+    end do
     call getbc(qt+qdt,qdt,psb,iwstart,nwgc,phys_req_diagonal)
+    do iigrid=1,igridstail; igrid=igrids(iigrid);
+       !$acc update device(psb(igrid)%w)
+    end do
 
+!    do iigrid=1,igridstail; igrid=igrids(iigrid);
+!       !$acc exit data delete(psa(igrid)%w, ps(igrid)%x, ps(igrid), psa(igrid), psb(igrid), psb) copyout(psb(igrid)%w)
+!    end do
+    
   end subroutine advect1
 
   !> Advance a single grid over one partial time step

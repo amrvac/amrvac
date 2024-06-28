@@ -890,8 +890,15 @@ contains
             n_i^D=-i^D;
             ixS^L=ixS_srl_^L(iib^D,i^D);
             ixR^L=ixR_srl_^L(iib^D,n_i^D);
+
+            !opedit: not yet working somehow, doing it on host for now... :
+!            !$acc enter data copyin(psb(igrid), psb(igrid)%w, psb(ineighbor), psb(ineighbor)%w)
+!            !$acc kernels present(psb(igrid), psb(igrid)%w, psb(ineighbor), psb(ineighbor)%w)
             psb(ineighbor)%w(ixR^S,nwhead:nwtail)=&
-                psb(igrid)%w(ixS^S,nwhead:nwtail)
+                 psb(igrid)%w(ixS^S,nwhead:nwtail)
+!            !$acc end kernels
+!            !$acc exit data delete(psb(igrid), psb(igrid)%w, psb(ineighbor), psb(ineighbor)%w)
+            
             if(stagger_grid) then
               do idir=1,ndim
                 ixS^L=ixS_srl_stg_^L(idir,i^D);
