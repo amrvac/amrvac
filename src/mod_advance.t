@@ -293,7 +293,7 @@ contains
              !$acc parallel loop collapse(ndim+1)
              do iw = 1, nw
                 {^D& do ix^DB = ixGlo^DB, ixGhi^DB \}
-             ps(igrid)%w(ix^D,iw) = rk_alfa31 * ps(igrid)%w(ix^D,iw) + rk_alfa33 * ps2(igrid)%w(ix^D,iw)
+                   ps(igrid)%w(ix^D,iw) = rk_alfa31 * ps(igrid)%w(ix^D,iw) + rk_alfa33 * ps2(igrid)%w(ix^D,iw)
                 {^D& end do \}
              end do
              if(stagger_grid) ps(igrid)%ws=rk_alfa31*ps(igrid)%ws+rk_alfa33*ps2(igrid)%ws
