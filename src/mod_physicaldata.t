@@ -120,6 +120,7 @@ module mod_physicaldata
   type(state), dimension(:), allocatable, target :: ps4
   !> array of physical blocks, one level coarser representative
   type(state), dimension(:), allocatable, target :: psc
+  !$acc declare create(ps, ps1, ps2, ps3, ps4, psc)
 
   !> array of physical blocks in reduced dimension
   type(state_sub), dimension(:), allocatable, target :: ps_sub

@@ -23,9 +23,9 @@ contains
 
     integer :: iigrid, igrid, idimsplit
 
-    !$acc enter data copyin(ps(1:max_blocks), ps1(1:max_blocks), ps2(1:max_blocks))
+    !$acc update device(ps(1:max_blocks))
     do iigrid=1,igridstail; igrid=igrids(iigrid);
-       !$acc enter data copyin(ps(igrid), ps1(igrid), ps2(igrid), ps(igrid)%w, ps1(igrid)%w, ps2(igrid)%w, ps(igrid)%x)
+       !$acc enter data copyin(ps(igrid)%w, ps(igrid)%x) create(ps1(igrid)%w, ps2(igrid)%w)
     end do
 
     
@@ -56,9 +56,8 @@ contains
     if(use_particles) call handle_particles
 
     do iigrid=1,igridstail; igrid=igrids(iigrid);
-       !$acc exit data delete(ps(igrid)%x, ps(igrid), ps1(igrid), ps2(igrid), ps1(igrid)%w, ps2(igrid)%w) copyout(ps(igrid)%w)
+       !$acc exit data delete(ps(igrid)%x, ps1(igrid)%w, ps2(igrid)%w) copyout(ps(igrid)%w)
     end do
-    !$acc exit data delete(ps, ps1, ps2)
     
   end subroutine advance
 
@@ -666,15 +665,8 @@ contains
     double precision :: fE(ixG^T,sdim:3)
     !$acc declare create(fC,fE)
     double precision :: qdt
-    !$acc declare create(qdt)
     integer :: iigrid, igrid
 
-    
-    ! Get the state onto the GPU
-!    do iigrid=1,igridstail; igrid=igrids(iigrid);
-!       !$acc enter data copyin(psa(igrid), psb(igrid), psb, ps(igrid), psa(igrid)%w, psb(igrid)%w, ps(igrid)%x)
-!    end do
-    
     istep = istep+1
 
     if(associated(phys_special_advance)) then
@@ -728,18 +720,14 @@ contains
     end if
 
     ! For all grids: fill ghost cells
-    do iigrid=1,igridstail; igrid=igrids(iigrid);
-       !$acc update self(psb(igrid)%w)
-    end do
-    call getbc(qt+qdt,qdt,psb,iwstart,nwgc,phys_req_diagonal)
-    do iigrid=1,igridstail; igrid=igrids(iigrid);
-       !$acc update device(psb(igrid)%w)
-    end do
-
 !    do iigrid=1,igridstail; igrid=igrids(iigrid);
-!       !$acc exit data delete(psa(igrid)%w, ps(igrid)%x, ps(igrid), psa(igrid), psb(igrid), psb) copyout(psb(igrid)%w)
+!       !$acc update self(psb(igrid)%w)
 !    end do
-    
+    call getbc(qt+qdt,qdt,psb,iwstart,nwgc,phys_req_diagonal)
+!    do iigrid=1,igridstail; igrid=igrids(iigrid);
+!       !$acc update device(psb(igrid)%w)
+!    end do
+
   end subroutine advect1
 
   !> Advance a single grid over one partial time step
