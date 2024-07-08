@@ -23,11 +23,10 @@ contains
 
     integer :: iigrid, igrid, idimsplit
 
-    !$acc update device(ps(1:max_blocks))
-    do iigrid=1,igridstail; igrid=igrids(iigrid);
-       !$acc enter data copyin(ps(igrid)%w, ps(igrid)%x) create(ps1(igrid)%w, ps2(igrid)%w)
-    end do
-
+    ! !$acc update device(ps(1:max_blocks))
+    ! do iigrid=1,igridstail; igrid=igrids(iigrid);
+    !    !$acc enter data copyin(ps(igrid)%w, ps(igrid)%x) create(ps1(igrid)%w, ps2(igrid)%w)
+    ! end do
     
     ! split source addition
     call add_split_source(prior=.true.)
@@ -55,9 +54,9 @@ contains
 
     if(use_particles) call handle_particles
 
-    do iigrid=1,igridstail; igrid=igrids(iigrid);
-       !$acc exit data delete(ps(igrid)%x, ps1(igrid)%w, ps2(igrid)%w) copyout(ps(igrid)%w)
-    end do
+    ! do iigrid=1,igridstail; igrid=igrids(iigrid);
+    !    !$acc exit data delete(ps(igrid)%x, ps1(igrid)%w, ps2(igrid)%w) copyout(ps(igrid)%w)
+    ! end do
     
   end subroutine advance
 

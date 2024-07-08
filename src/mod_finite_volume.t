@@ -148,7 +148,6 @@ contains
     integer :: idims, iw, ix^L, hxO^L, ixC^L, ixCR^L, kxC^L, kxR^L, ii
     logical :: active
     type(ct_velocity) :: vcts
-    double precision :: fac(ixI^S)
     integer :: ix^D
     double precision, dimension(ixI^S,1:nwflux)     :: whll, Fhll, fCD
     double precision, dimension(ixI^S)              :: lambdaCD

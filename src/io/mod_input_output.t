@@ -1731,7 +1731,11 @@ contains
     use mod_slice, only: write_slice
     use mod_collapse, only: write_collapsed
     use mod_convert_files, only: generate_plotfile
-    integer:: ifile
+    integer:: ifile, iigrid, igrid
+
+    do iigrid=1,igridstail; igrid=igrids(iigrid);
+       !$acc update host(ps(igrid)%w)
+    end do
 
     select case (ifile)
     case (fileout_)

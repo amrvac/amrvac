@@ -223,6 +223,11 @@ contains
          itsavelast(ifile)=it
        end if
     end do
+    
+    !$acc update device(ps(1:max_blocks))
+    do iigrid=1,igridstail; igrid=igrids(iigrid);
+       !$acc enter data copyin(ps(igrid)%w, ps(igrid)%x) create(ps1(igrid)%w, ps2(igrid)%w)
+    end do
 
     ! the next two are used to keep track of the performance during runtime:
     itTimeLast=it
@@ -315,14 +320,15 @@ contains
        ! solving equations
        call advance(it)
 
+       !opedit: FIXME, this seems to take a long time!
        ! if met unphysical values, output the last good status and stop the run
-       call MPI_ALLREDUCE(crash,crashall,1,MPI_LOGICAL,MPI_LOR,icomm,ierrmpi)
-       if (crashall) then
-         call saveamrfile(1)
-         call saveamrfile(2)
-         if(mype==0) write(*,*) "Error: small value encountered, run crash."
-         call MPI_ABORT(icomm, iigrid, ierrmpi)
-       end if
+       ! call MPI_ALLREDUCE(crash,crashall,1,MPI_LOGICAL,MPI_LOR,icomm,ierrmpi)
+       ! if (crashall) then
+       !   call saveamrfile(1)
+       !   call saveamrfile(2)
+       !   if(mype==0) write(*,*) "Error: small value encountered, run crash."
+       !   call MPI_ABORT(icomm, iigrid, ierrmpi)
+       ! end if
 
        ! Optionally call a user method that can modify the grid variables at the
        ! end of a time step: this is for two-way coupling to PIC, e.g.

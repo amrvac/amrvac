@@ -283,7 +283,8 @@ contains
     !$acc update device(e_,p_)
 
     phys_get_dt              => hd_get_dt
-    phys_get_cmax            => hd_get_cmax
+!    phys_get_cmax            => hd_get_cmax
+    phys_get_cmax            => hd_get_cmax_gpu
     phys_get_a2max           => hd_get_a2max
     phys_get_tcutoff         => hd_get_tcutoff
 !    phys_get_cbounds         => hd_get_cbounds
@@ -880,6 +881,20 @@ contains
     v(ixO^S) = w(ixO^S, mom(idim)) / w(ixO^S, rho_)
   end subroutine hd_get_v_idim
 
+  !> Calculate v_i = m_i / rho within ixO^L
+  subroutine hd_get_v_idim_gpu(w, x, ixI^L, ixO^L, idim, v)
+    use mod_global_parameters
+    integer, intent(in)           :: ixI^L, ixO^L, idim
+    double precision, intent(in)  :: w(ixI^S, nw), x(ixI^S, 1:ndim)
+    double precision, intent(out) :: v(ixI^S)
+
+    !$acc kernels
+    v(ixO^S) = w(ixO^S, mom(idim)) / w(ixO^S, rho_)
+    !$acc end kernels
+    
+  end subroutine hd_get_v_idim_gpu
+
+  
   !> Calculate velocity vector v_i = m_i / rho within ixO^L
   subroutine hd_get_v(w,x,ixI^L,ixO^L,v)
     use mod_global_parameters
@@ -913,14 +928,33 @@ contains
 
     cmax(ixO^S) = dabs(v(ixO^S))+csound(ixO^S)
     
-!FIXME:
-#ifndef _OPENACC
     if (hd_dust) then
       call dust_get_cmax(w, x, ixI^L, ixO^L, idim, cmax)
    end if
-#endif
+
   end subroutine hd_get_cmax
 
+  subroutine hd_get_cmax_gpu(w, x, ixI^L, ixO^L, idim, cmax)
+    use mod_global_parameters
+
+    integer, intent(in)                       :: ixI^L, ixO^L, idim
+    double precision, intent(in)              :: w(ixI^S, nw), x(ixI^S, 1:ndim)
+    double precision, intent(inout)           :: cmax(ixI^S)
+    double precision                          :: csound(ixI^S)
+    double precision                          :: v(ixI^S)
+    !$acc declare create(csound, v)
+
+    call hd_get_v_idim_gpu(w, x, ixI^L, ixO^L, idim, v)
+    call hd_get_csound2_gpu(w,x,ixI^L,ixO^L,csound)
+
+    !$acc kernels
+    csound(ixO^S) = dsqrt(csound(ixO^S))
+    cmax(ixO^S) = dabs(v(ixO^S))+csound(ixO^S)
+    !$acc end kernels
+
+  end subroutine hd_get_cmax_gpu
+
+  
   subroutine hd_get_a2max(w,x,ixI^L,ixO^L,a2max)
     use mod_global_parameters
 
@@ -1157,12 +1191,10 @@ contains
     end if
 
   end subroutine hd_get_cbounds_gpu
-
   
   !> Calculate the square of the thermal sound speed csound2 within ixO^L.
   !> csound2=gamma*p/rho
   subroutine hd_get_csound2(w,x,ixI^L,ixO^L,csound2)
-    !$acc routine
     use mod_global_parameters
     integer, intent(in)             :: ixI^L, ixO^L
     double precision, intent(in)    :: w(ixI^S,nw)
@@ -1174,9 +1206,33 @@ contains
 
   end subroutine hd_get_csound2
 
+  !> Calculate the square of the thermal sound speed csound2 within ixO^L.
+  !> csound2=gamma*p/rho
+  subroutine hd_get_csound2_gpu(w,x,ixI^L,ixO^L,csound2)
+    use mod_global_parameters
+    integer, intent(in)             :: ixI^L, ixO^L
+    double precision, intent(in)    :: w(ixI^S,nw)
+    double precision, intent(in)    :: x(ixI^S,1:ndim)
+    double precision, intent(out)   :: csound2(ixI^S)
+
+    integer                         :: ix^D
+    double precision                :: p
+
+    !$acc parallel loop collapse(ndim) private(p)
+    {^D& do ix^DB=ixOmin^DB,ixOmax^DB\}
+
+    ! Compute pressure
+    p = (hd_gamma - 1.0d0) * (w(ix^D, e_) - &     
+         0.5d0 * ({^D& w(ix^DD,mom(^D))**2|+}) / w(ix^D, rho_) )
+
+    csound2(ix^D) = hd_gamma * p / w(ix^D,rho_)
+
+    {^D& end do\}
+    
+  end subroutine hd_get_csound2_gpu
+  
   !> Calculate thermal pressure=(gamma-1)*(e-0.5*m**2/rho) within ixO^L
   subroutine hd_get_pthermal(w, x, ixI^L, ixO^L, pth)
-    !$acc routine
     use mod_global_parameters
     use mod_usr_methods, only: usr_set_pthermal
     use mod_small_values, only: trace_small_values

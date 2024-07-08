@@ -27,7 +27,7 @@ contains
     double precision :: trac_alfa, trac_dmax, trac_tau, T_bott
   
     integer, parameter :: niter_print = 2000
-  
+
     if (dtpar<=zero) then
       dtmin_mype=bigdouble
       cmax_mype = zero
@@ -42,7 +42,8 @@ contains
         block=>ps(igrid)
         if(local_timestep) then
           ps(igrid)%dt(ixM^T)=bigdouble
-        endif
+       endif
+!       !$acc update host(ps(igrid)%w)
   
         call getdt_courant(ps(igrid)%w,ixG^LL,ixM^LL,qdtnew,dx^D,ps(igrid)%x,&
              cmax_mype,a2max_mype)
@@ -182,6 +183,7 @@ contains
         integer :: hxO^L
         double precision :: courantmax, dxinv(1:ndim), courantmaxtot, courantmaxtots
         double precision :: cmax(ixI^S), cmaxtot(ixI^S)
+        !$acc declare create(cmax, cmaxtot)
         double precision :: a2max(ndim),tco_local,Tmax_local
   
         dtnew=bigdouble
@@ -212,28 +214,6 @@ contains
           Tmax_mype=max(Tmax_mype,Tmax_local)
         end if
   
-        !if(slab_uniform) then
-        !  ^D&dxinv(^D)=one/dx^D;
-        !  do idims=1,ndim
-        !    call phys_get_cmax(w,x,ixI^L,ixO^L,idims,cmax)
-        !    if(need_global_cmax) cmax_mype = max(cmax_mype,maxval(cmax(ixO^S)))
-        !    if(need_global_a2max) a2max_mype(idims) = max(a2max_mype(idims),a2max(idims))
-        !    cmaxtot(ixO^S)=cmaxtot(ixO^S)+cmax(ixO^S)*dxinv(idims)
-        !    courantmax=max(courantmax,maxval(cmax(ixO^S)*dxinv(idims)))
-        !    courantmaxtot=courantmaxtot+courantmax
-        !  end do
-        !else
-        !  do idims=1,ndim
-        !    call phys_get_cmax(w,x,ixI^L,ixO^L,idims,cmax)
-        !    if(need_global_cmax) cmax_mype = max(cmax_mype,maxval(cmax(ixO^S)))
-        !    if(need_global_a2max) a2max_mype(idims) = max(a2max_mype(idims),a2max(idims))
-        !    tmp(ixO^S)=cmax(ixO^S)/block%ds(ixO^S,idims)
-        !    cmaxtot(ixO^S)=cmaxtot(ixO^S)+tmp(ixO^S)
-        !    courantmax=max(courantmax,maxval(tmp(ixO^S)))
-        !    courantmaxtot=courantmaxtot+courantmax
-        !  end do
-        !end if
-  
         ! these are also calculated in hxO because of local timestep
         if(nwaux>0) call phys_get_auxiliary(ixI^L,hxO^L,w,x)
   
@@ -245,7 +225,9 @@ contains
             do idims=1,ndim
               call phys_get_cmax(w,x,ixI^L,hxO^L,idims,cmax)
               if(need_global_cmax) cmax_mype = max(cmax_mype,maxval(cmax(ixO^S)))
+              !$acc kernels
               cmaxtot(hxO^S)=cmaxtot(hxO^S)+cmax(hxO^S)*dxinv(idims)
+              !$acc end kernels
             end do
           else
             do idims=1,ndim
@@ -255,8 +237,11 @@ contains
             end do
           end if
           ! courantmaxtots='max(summed c/dx)'
+          !$acc kernels
           courantmaxtots=max(courantmaxtots,maxval(cmaxtot(ixO^S)))
+          !$acc end kernels
           if (courantmaxtots>smalldouble) dtnew=min(dtnew,courantpar/courantmaxtots)
+
           if(local_timestep) then
             block%dt(hxO^S) = courantpar/cmaxtot(hxO^S)
           endif
