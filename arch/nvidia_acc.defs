@@ -1,4 +1,7 @@
 F90=mpif90
 FFLAGS = -c
-F90FLAGS = -cpp -Mfree -O3 -Wall -acc -fast -Minfo=accel -Mpreprocess 
+# should already be in $LIBRARY_PATH (not $LD_LIBRARY_PATH):
+#LIB_DIRS += /opt/nvidia/hpc_sdk/Linux_x86_64/2024/cuda/lib64/
+LIBS += nvToolsExt
+F90FLAGS = -Wall -fast -acc -Minfo=accel -g
 LINK= $(F90)  $(F90FLAGS)

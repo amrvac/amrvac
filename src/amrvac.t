@@ -193,6 +193,7 @@ program amrvac
 contains
 
   subroutine timeintegration()
+    use nvtx
     use mod_timing
     use mod_advance, only: advance, process, process_advanced
     use mod_forest, only: nleafs_active
@@ -253,7 +254,7 @@ contains
 
        time_before_advance=MPI_WTIME()
        ! set time step
-       call setdt()
+       call nvtxStartRange("setdt");       call setdt();       call nvtxEndRange
 
        ! Optionally call a user method that can modify the grid variables at the
        ! beginning of a time step

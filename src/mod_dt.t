@@ -13,6 +13,7 @@ contains
   !>         dtpar>0  --> use fixed dtpar for all level
   !>         dtpar<=0 --> determine CFL limited timestep 
   subroutine setdt()
+    use nvtx
     use mod_global_parameters
     use mod_physics
     use mod_usr_methods, only: usr_get_dt
@@ -43,13 +44,16 @@ contains
         if(local_timestep) then
           ps(igrid)%dt(ixM^T)=bigdouble
        endif
-!       !$acc update host(ps(igrid)%w)
-  
+
+       call nvtxStartRange("getdt_courant",1)      
         call getdt_courant(ps(igrid)%w,ixG^LL,ixM^LL,qdtnew,dx^D,ps(igrid)%x,&
              cmax_mype,a2max_mype)
+        call nvtxEndRange
         dtnew=min(dtnew,qdtnew)
   
+        call nvtxStartRange("phys_get_dt",2)  
         call phys_get_dt(ps(igrid)%w,ixG^LL,ixM^LL,qdtnew,dx^D,ps(igrid)%x)
+        call nvtxEndRange
         dtnew=min(dtnew,qdtnew)
   
         if (associated(usr_get_dt)) then
@@ -185,7 +189,7 @@ contains
         double precision :: cmax(ixI^S), cmaxtot(ixI^S)
         !$acc declare create(cmax, cmaxtot)
         double precision :: a2max(ndim),tco_local,Tmax_local
-  
+        
         dtnew=bigdouble
         courantmax=zero
         courantmaxtot=zero
@@ -201,7 +205,7 @@ contains
           hxOmin^D=ixOmin^D; 
           hxOmax^D=ixOmax^D; 
         endif  
-  
+
         if(need_global_a2max) then
           call phys_get_a2max(w,x,ixI^L,ixO^L,a2max)
           do idims=1,ndim
@@ -212,14 +216,16 @@ contains
           call phys_get_tcutoff(ixI^L,ixO^L,w,x,tco_local,Tmax_local)
           {^IFONED tco_mype=max(tco_mype,tco_local) }
           Tmax_mype=max(Tmax_mype,Tmax_local)
-        end if
-  
+       end if
+       
         ! these are also calculated in hxO because of local timestep
         if(nwaux>0) call phys_get_auxiliary(ixI^L,hxO^L,w,x)
   
         select case (type_courant)
         case (type_maxsum)
-          cmaxtot(hxO^S)=zero
+           !$acc kernels
+           cmaxtot(hxO^S)=zero
+           !$acc end kernels
           if(slab_uniform) then
             ^D&dxinv(^D)=one/dx^D;
             do idims=1,ndim
