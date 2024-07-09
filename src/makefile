@@ -35,6 +35,7 @@ amrvac.o: mod_initialize_amr.mod
 amrvac.o: mod_input_output.mod
 amrvac.o: mod_input_output_helper.mod
 amrvac.o: mod_multigrid_coupling.mod
+amrvac.o: mod_nvtx.mod
 amrvac.o: mod_particles.mod
 amrvac.o: mod_physics.mod
 amrvac.o: mod_selectgrids.mod
@@ -172,6 +173,7 @@ mod_dipole.o: mod_comm_lib.mod
 mod_dipole.o: mod_global_parameters.mod
 mod_dt.o: mod_comm_lib.mod
 mod_dt.o: mod_global_parameters.mod
+mod_dt.o: mod_nvtx.mod
 mod_dt.o: mod_physics.mod
 mod_dt.o: mod_supertimestepping.mod
 mod_dt.o: mod_usr_methods.mod

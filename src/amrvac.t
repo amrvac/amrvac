@@ -193,7 +193,7 @@ program amrvac
 contains
 
   subroutine timeintegration()
-    use nvtx
+    use mod_nvtx
     use mod_timing
     use mod_advance, only: advance, process, process_advanced
     use mod_forest, only: nleafs_active

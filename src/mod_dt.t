@@ -13,7 +13,7 @@ contains
   !>         dtpar>0  --> use fixed dtpar for all level
   !>         dtpar<=0 --> determine CFL limited timestep 
   subroutine setdt()
-    use nvtx
+    use mod_nvtx
     use mod_global_parameters
     use mod_physics
     use mod_usr_methods, only: usr_get_dt
