@@ -719,7 +719,7 @@ contains
     integer :: iFL,iLP,ixO^L,ixI^L,ixc^L,ixb^L,ixc^D
     integer :: igrid,j,ipmin,ipmax,igrid_nb
     double precision :: dxb^D,dxMax^D,xb^L,Tcnow
-    double precision :: xFnow(ndim)
+    double precision :: xFnow(ndim),xc(ndim)
     integer :: weightIndex,idn^D,ixmax^ND
     double precision :: ds,weight
 
@@ -792,7 +792,8 @@ contains
 
                 {do ixc^DD=ixcmin^DD,ixcmax^DD;}
                   ds=0.d0
-                  {ds=ds+(xFnow(^DD)-ps(igrid_nb)%x({ixc^DD},^DD))**2;}
+                  xc(:)=ps(igrid_nb)%x(ixc^DD,:)
+                  {ds=ds+(xFnow(^DD)-xc(^DD))**2;}
                   ds=sqrt(ds)
                   if(ds<1.0d-2*dxb1) then
                     weight=(1/(1.0d-2*dxb1))**weightIndex
@@ -822,7 +823,8 @@ contains
 
                   {do ixc^DD=ixcmin^DD,ixcmax^DD;}
                     ds=0.d0
-                    {ds=ds+(xFnow(^DD)-ps(igrid_nb)%x({ixc^DD},^DD))**2;}
+                    xc(:)=ps(igrid_nb)%x(ixc^DD,:)
+                    {ds=ds+(xFnow(^DD)-xc(^DD))**2;}
                     ds=sqrt(ds)
                     if(ds<1.0d-2*dxb1) then
                       weight=(1/(1.0d-2*dxb1))**weightIndex
