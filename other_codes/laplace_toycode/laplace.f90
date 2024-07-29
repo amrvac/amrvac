@@ -82,11 +82,9 @@ contains
     real(dp), intent(inout) :: uu(IX(lo(1):hi(1), lo(2):hi(2), n_blocks, n_vars))
     integer                 :: n, i, j
 
-    !$acc parallel loop
+    !$acc parallel loop collapse(3)
     do n = 1, n_blocks
-       !$acc loop
        do j = 1, bx(2)
-          !$acc loop
           do i = 1, bx(1)
              uu(IX(i, j, n, i_new)) = 0.25_dp * ( &
                   uu(IX(i+1, j, n, i_old)) + uu(IX(i-1, j, n, i_old)) + &
