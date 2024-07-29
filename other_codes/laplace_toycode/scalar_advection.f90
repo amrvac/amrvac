@@ -12,20 +12,19 @@ program scalar_advection
 
   integer, parameter :: n_variables    = 3
   integer, parameter :: i_phi          = 1
-  integer, parameter :: i_fx           = 2
-  integer, parameter :: i_fy           = 3
+  integer, parameter :: i_dphi         = 3
   integer            :: n_iter   = 100
   logical            :: periodic(2)    = .true.
   integer            :: nx(2)   = 512
   integer            :: bx(2)  = 16
-  integer            :: n_gc           = 1
+  integer            :: n_gc           = 2
   logical            :: write_output   = .false.
   real(dp)           :: v(2)           = [1.0_dp, 1.0_dp]
   real(dp)           :: grid_length(2) = [1.0_dp, 1.0_dp]
   real(dp)           :: dt
   real(dp)           :: cfl_number     = 0.5_dp
 
-  integer            :: n
+  integer            :: n, ii
   integer            :: t_start, t_end, count_rate
   real(dp)           :: t_total, unknowns_per_ns
 
@@ -37,6 +36,9 @@ program scalar_advection
   call CFG_add_get(cfg, 'n_gc', n_gc, 'Number of ghost cells')
   call CFG_add_get(cfg, 'write_output', write_output, 'Whether to write output')
   call CFG_add_get(cfg, 'cfl_number', cfl_number, 'CFL number to use')
+  call CFG_add_get(cfg, 'v', v, 'Velocity')
+
+  if (n_gc < 2) error stop "n_gc < 2"
 
   call initialize_grid(nx, grid_length, bx, n_gc, n_variables, &
        periodic, bg)
@@ -52,11 +54,7 @@ program scalar_advection
 
   call system_clock(t_start, count_rate)
   do n = 1, n_iter
-     call update_ghostcells(bg, i_phi)
-     call compute_fluxes(bg%bx, bg%ilo, bg%ihi, bg%n_vars, bg%n_blocks, &
-          bg%uu)
-     call update_solution(bg%bx, bg%ilo, bg%ihi, bg%n_vars, bg%n_blocks, &
-          dt, bg%uu)
+     call advance_heuns_method(bg, dt)
   end do
   call system_clock(t_end, count_rate)
 
@@ -74,6 +72,16 @@ program scalar_advection
        n_iter, bg%n_blocks, t_total, unknowns_per_ns
 
 contains
+
+  subroutine advance_heuns_method(bg, dt)
+    type(block_grid_t), intent(inout) :: bg
+    real(dp), intent(in)              :: dt
+
+    call forward_euler(bg, bg%bx, bg%ilo, bg%ihi, bg%n_vars, bg%n_blocks, dt, bg%uu, 0, &
+            1, [0], [1.0_dp], 1)
+    call forward_euler(bg, bg%bx, bg%ilo, bg%ihi, bg%n_vars, bg%n_blocks, dt, bg%uu, 1, &
+         2, [0, 1], [0.5_dp, 0.5_dp], 0)
+  end subroutine advance_heuns_method
 
   subroutine set_initial_conditions()
     integer  :: n, i, j, ix(2)
@@ -100,60 +108,124 @@ contains
     end do
   end subroutine set_initial_conditions
 
-  subroutine compute_fluxes(bx, lo, hi, n_vars, n_blocks, uu)
-    integer, intent(in)     :: n_blocks, bx(2), lo(2), hi(2), n_vars
-    real(dp), intent(inout) :: uu(IX(lo(1):hi(1), lo(2):hi(2), n_blocks, n_vars))
-    integer                 :: n, i, j
-
-    !$acc parallel loop
-    do n = 1, n_blocks
-       !$acc loop
-       do j = 1, bx(2)
-          !$acc loop
-          do i = 1, bx(1) + 1
-             if (v(1) > 0) then
-                uu(IX(i, j, n, i_fx)) = v(1) * uu(IX(i-1, j, n, i_phi))
-             else
-                uu(IX(i, j, n, i_fx)) = v(1) * uu(IX(i, j, n, i_phi))
-             end if
-          end do
-       end do
-
-       !$acc loop
-       do j = 1, bx(2) + 1
-          !$acc loop
-          do i = 1, bx(1)
-             if (v(2) > 0) then
-                uu(IX(i, j, n, i_fy)) = v(2) * uu(IX(i, j-1, n, i_phi))
-             else
-                uu(IX(i, j, n, i_fy)) = v(2) * uu(IX(i, j, n, i_phi))
-             end if
-          end do
-       end do
-    end do
-  end subroutine compute_fluxes
-
-  subroutine update_solution(bx, lo, hi, n_vars, n_blocks, dt, uu)
+  subroutine forward_euler(bg, bx, lo, hi, n_vars, n_blocks, dt, uu, &
+       s_deriv, n_prev, s_prev, w_prev, s_out)
+    type(block_grid_t), intent(inout) :: bg
     integer, intent(in)     :: n_blocks, bx(2), lo(2), hi(2), n_vars
     real(dp), intent(in)    :: dt
     real(dp), intent(inout) :: uu(IX(lo(1):hi(1), lo(2):hi(2), n_blocks, n_vars))
-    integer                 :: n, i, j
+    integer, intent(in)     :: s_deriv        !< State to compute derivatives from
+    integer, intent(in)     :: n_prev         !< Number of previous states
+    integer, intent(in)     :: s_prev(n_prev) !< Previous states
+    real(dp), intent(in)    :: w_prev(n_prev) !< Weights of previous states
+    integer, intent(in)     :: s_out          !< Output state
+    integer                 :: n, i, j, m
     real(dp)                :: inv_dr(2)
+    real(dp)                :: fx(2), fy(2), tmp(5), newval
+
+    call update_ghostcells(bg, i_phi+s_deriv)
 
     inv_dr = 1/bg%dr
 
-    !$acc parallel loop
+    !$acc parallel loop private(fx, fy, tmp)
     do n = 1, n_blocks
        !$acc loop
        do j = 1, bx(2)
           !$acc loop
           do i = 1, bx(1)
-             uu(IX(i, j, n, i_phi)) = uu(IX(i, j, n, i_phi)) + dt * (&
-                  (uu(IX(i, j, n, i_fx)) - uu(IX(i+1, j, n, i_fx))) * inv_dr(1) + &
-                  (uu(IX(i, j, n, i_fy)) - uu(IX(i, j+1, n, i_fy))) * inv_dr(2))
+             tmp = uu(IX(i-2:i+2, j, n, i_phi+s_deriv))
+             call muscl_flux(v(1), tmp, fx)
+
+             tmp = uu(IX(i, j-2:j+2, n, i_phi+s_deriv))
+             call muscl_flux(v(2), tmp, fy)
+
+             uu(IX(i, j, n, i_dphi)) = dt * ((fx(1) - fx(2)) * inv_dr(1) + &
+                  (fy(1) - fy(2)) * inv_dr(2))
           end do
        end do
     end do
-  end subroutine update_solution
+
+    !$acc parallel loop private(newval, m)
+    do n = 1, n_blocks
+       do m = 1, n_prev
+          !$acc loop
+          do j = 1, bx(2)
+             !$acc loop
+             do i = 1, bx(1)
+                ! Add weighted previous states
+                uu(IX(i, j, n, i_dphi)) = uu(IX(i, j, n, i_dphi)) + &
+                     uu(IX(i, j, n, i_phi+s_prev(m))) * w_prev(m)
+
+             end do
+          end do
+       end do
+
+       !$acc loop
+       do j = 1, bx(2)
+          !$acc loop
+          do i = 1, bx(1)
+             uu(IX(i, j, n, i_phi + s_out)) = uu(IX(i, j, n, i_dphi))
+          end do
+       end do
+    end do
+  end subroutine forward_euler
+
+  subroutine upwind_flux(v, u, flux)
+    !$acc routine seq
+    real(dp), intent(in)  :: v
+    real(dp), intent(in)  :: u(5)
+    real(dp), intent(out) :: flux(2)
+
+    if (v > 0) then
+       flux(1) = v * u(2)
+       flux(2) = v * u(3)
+    else
+       flux(1) = v * u(3)
+       flux(2) = v * u(4)
+    end if
+  end subroutine upwind_flux
+
+  subroutine muscl_flux(v, u, flux)
+    !$acc routine seq
+    real(dp), intent(in)  :: v
+    real(dp), intent(in)  :: u(5)
+    real(dp), intent(out) :: flux(2)
+    real(dp)              :: u_diff(4), uL, uR
+
+    u_diff = u(2:5) - u(1:4)
+
+    uL = u(2) + 0.5_dp * vanleer(u_diff(1), u_diff(2))
+    uR = u(3) - 0.5_dp * vanleer(u_diff(2), u_diff(3))
+    flux(1) = 0.5 * (v*uL + v*uR - abs(v) * (uR-uL))
+
+    uL = u(3) + 0.5_dp * vanleer(u_diff(2), u_diff(3))
+    uR = u(4) - 0.5_dp * vanleer(u_diff(3), u_diff(4))
+    flux(2) = 0.5 * (v*uL + v*uR - abs(v) * (uR-uL))
+
+  end subroutine muscl_flux
+
+  pure real(dp) function minmod(a, b)
+    real(dp), intent(in) :: a, b
+
+    if (a * b <= 0) then
+       minmod = 0.0_dp
+    else if (abs(a) < abs(b)) then
+       minmod = a
+    else
+       minmod = b
+    end if
+  end function minmod
+
+  pure real(dp) function vanleer(a, b) result(phi)
+    real(dp), intent(in) :: a, b
+    real(dp)             :: ab
+
+    ab = a * b
+    if (ab > 0) then
+       phi = 2 * ab / (a + b)
+    else
+       phi = 0
+    end if
+  end function vanleer
 
 end program scalar_advection
