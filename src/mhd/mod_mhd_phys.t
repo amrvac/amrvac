@@ -2104,7 +2104,7 @@ contains
     logical :: flag(ixI^S,1:nw)
     double precision :: tmp2(ixI^S)
 
-    call phys_check_w(primitive, ixI^L, ixO^L, w, flag)
+    call phys_check_w(primitive, ixI^L, ixI^L, w, flag)
 
     if(any(flag)) then
       select case (small_values_method)
