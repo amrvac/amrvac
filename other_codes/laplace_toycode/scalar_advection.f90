@@ -24,9 +24,10 @@ program scalar_advection
   real(dp)           :: dt
   real(dp)           :: cfl_number     = 0.5_dp
 
-  integer            :: n, ii
+  integer            :: n
   integer            :: t_start, t_end, count_rate
   real(dp)           :: t_total, unknowns_per_ns
+  integer            :: n_integrator_steps = 2
 
   call CFG_update_from_arguments(cfg)
   call CFG_add_get(cfg, 'n_iter', n_iter, 'Number of iterations')
@@ -64,7 +65,7 @@ program scalar_advection
   end if
 
   t_total = (t_end - t_start)/real(count_rate, dp)
-  unknowns_per_ns = 1e-9_dp * n_iter/t_total * product(bg%nx)
+  unknowns_per_ns = 1e-9_dp * n_iter/t_total * product(bg%nx) * n_integrator_steps
 
   write(*, "(5(A6,' '),2(A8,' '),2A12)") "nx", "ny", "box_nx", "box_ny", &
        "n_gc", "n_iter", "n_boxes", "t_total", "unknowns/ns"
@@ -78,7 +79,7 @@ contains
     real(dp), intent(in)              :: dt
 
     call forward_euler(bg, bg%bx, bg%ilo, bg%ihi, bg%n_vars, bg%n_blocks, dt, bg%uu, 0, &
-            1, [0], [1.0_dp], 1)
+         1, [0], [1.0_dp], 1)
     call forward_euler(bg, bg%bx, bg%ilo, bg%ihi, bg%n_vars, bg%n_blocks, dt, bg%uu, 1, &
          2, [0, 1], [0.5_dp, 0.5_dp], 0)
   end subroutine advance_heuns_method
@@ -121,7 +122,7 @@ contains
     integer, intent(in)     :: s_out          !< Output state
     integer                 :: n, i, j, m
     real(dp)                :: inv_dr(2)
-    real(dp)                :: fx(2), fy(2), tmp(5), newval
+    real(dp)                :: fx(2), fy(2), tmp(5)
 
     call update_ghostcells(bg, i_phi+s_deriv)
 
@@ -141,24 +142,17 @@ contains
 
              uu(IX(i, j, n, i_dphi)) = dt * ((fx(1) - fx(2)) * inv_dr(1) + &
                   (fy(1) - fy(2)) * inv_dr(2))
-          end do
-       end do
-    end do
 
-    !$acc parallel loop private(newval, m)
-    do n = 1, n_blocks
-       do m = 1, n_prev
-          !$acc loop
-          do j = 1, bx(2)
-             !$acc loop
-             do i = 1, bx(1)
-                ! Add weighted previous states
+             ! Add weighted previous states
+             do m = 1, n_prev
                 uu(IX(i, j, n, i_dphi)) = uu(IX(i, j, n, i_dphi)) + &
                      uu(IX(i, j, n, i_phi+s_prev(m))) * w_prev(m)
-
              end do
           end do
        end do
+
+       ! Set output state after computations are done, since s_out can be
+       ! equal to s_deriv
 
        !$acc loop
        do j = 1, bx(2)

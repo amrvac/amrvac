@@ -5,7 +5,7 @@ PROGS := laplace scalar_advection
 all: $(PROGS)
 
 clean:
-	$(RM) $(PROGS) *.o
+	$(RM) $(PROGS) *.o *.mod
 
 # Determine compiler brand
 compiler_version = $(shell $(FC) --version)
@@ -19,7 +19,7 @@ ifeq ($(compiler_brand), GNU)
 else ifeq ($(compiler_brand), ifort)
 	FFLAGS ?= -warn all -O2 -stand f08 -assume realloc-lhs -fpp
 else ifeq ($(compiler_brand), nvfortran)
-	FFLAGS ?= -Wall -acc -fast -Mpreprocess -static-nvidia -g
+	FFLAGS ?= -Wall -acc=gpu -fast -Mpreprocess -static-nvidia -g -Minfo=accel
 endif
 
 $(addsuffix $(PROGS),.o): m_blockgrid.o m_config.o
