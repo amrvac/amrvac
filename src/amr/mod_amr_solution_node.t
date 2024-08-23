@@ -98,12 +98,12 @@ contains
     level=igrid_to_node(igrid,mype)%node%level
   
     if(.not. allocated(ps(igrid)%w)) then
-  
-      ! allocate arrays for solution and space
-      call alloc_state(igrid, ps(igrid), ixG^LL, ixGext^L, .true.)
-      ! allocate arrays for one level coarser solution
-      call alloc_state_coarse(igrid, psc(igrid), ixCoG^L, ixCoG^L)
-      if(.not.convert) then
+       
+       ! allocate arrays for solution and space
+       call alloc_state(igrid, ps(igrid), ixG^LL, ixGext^L, .true.)
+       ! allocate arrays for one level coarser solution
+       call alloc_state_coarse(igrid, psc(igrid), ixCoG^L, ixCoG^L)
+       if(.not.convert) then
         ! allocate arrays for temp solution 1
         call alloc_state(igrid, ps1(igrid), ixG^LL, ixGext^L, .false.)
   
@@ -586,7 +586,8 @@ contains
     logical, intent(in) :: alloc_once_for_ps
     integer             :: ixGs^L
   
-    allocate(s%w(ixG^S,1:nw))
+    !allocate(s%w(ixG^S,1:nw))
+    s%w => bg%w(:^D&,:,igrid,s%istep)
     s%igrid=igrid
     s%w=0.d0
     s%ixG^L=ixG^L;

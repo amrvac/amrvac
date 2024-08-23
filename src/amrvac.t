@@ -224,11 +224,17 @@ contains
          itsavelast(ifile)=it
        end if
     end do
-    
-    !$acc update device(ps(1:max_blocks))
+
+!    !$acc update device(bg%w)
+    !$acc enter data copyin(bg%w)
     do iigrid=1,igridstail; igrid=igrids(iigrid);
-       !$acc enter data copyin(ps(igrid)%w, ps(igrid)%x) create(ps1(igrid)%w, ps2(igrid)%w)
+       !$acc enter data copyin(ps(igrid)%x) attach(ps(igrid)%w, ps1(igrid)%w, ps2(igrid)%w)
     end do
+    
+!    !$acc update device(ps(1:max_blocks))
+!    do iigrid=1,igridstail; igrid=igrids(iigrid);
+!       !$acc enter data copyin(ps(igrid)%w, ps(igrid)%x) create(ps1(igrid)%w, ps2(igrid)%w)
+!    end do
 
     ! the next two are used to keep track of the performance during runtime:
     itTimeLast=it

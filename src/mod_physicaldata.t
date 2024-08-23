@@ -1,6 +1,12 @@
 module mod_physicaldata
   implicit none
-  save
+
+  type block_grid_t
+     !> cell center variables for all blocks and time-levels
+     double precision, dimension(:^D&,:,:,:), allocatable :: w
+     !> fac center variables for all blocks and time-levels
+     double precision, dimension(:^D&,:,:,:), allocatable :: ws
+  end type block_grid_t
 
   type state
      !> ID of a grid block
@@ -11,12 +17,14 @@ module mod_physicaldata
      integer :: ixGs^L
      !> level of AMR
      integer :: level
+     !> timelevel
+     integer :: istep=-1
      !> If it face a physical boundary
      logical, dimension(:), pointer :: is_physical_boundary(:) =>Null()
      !> Variables, normally cell center conservative values
-     double precision, dimension(:^D&,:), allocatable :: w
+     double precision, dimension(:^D&,:), pointer :: w
      !> Variables, cell face values
-     double precision, dimension(:^D&,:), allocatable :: ws
+     double precision, dimension(:^D&,:), pointer :: ws
      !> Variables, cell edge values
      double precision, dimension(:^D&,:), allocatable :: we
      !> Variables, cell corner values
@@ -121,6 +129,10 @@ module mod_physicaldata
   !> array of physical blocks, one level coarser representative
   type(state), dimension(:), allocatable, target :: psc
   !$acc declare create(ps, ps1, ps2, ps3, ps4, psc)
+
+  !> one block grid to rule them all
+  type(block_grid_t), target   :: bg
+  !$acc declare create(bg)
 
   !> array of physical blocks in reduced dimension
   type(state_sub), dimension(:), allocatable, target :: ps_sub
