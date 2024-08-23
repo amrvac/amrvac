@@ -587,7 +587,7 @@ contains
     integer             :: ixGs^L
   
     !allocate(s%w(ixG^S,1:nw))
-    s%w => bg%w(:^D&,:,igrid,s%istep)
+    s%w => bg(s%istep)%w(:^D&,:,igrid)
     s%igrid=igrid
     s%w=0.d0
     s%ixG^L=ixG^L;

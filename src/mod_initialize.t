@@ -75,8 +75,11 @@ contains
     allocate(node(nodehi,max_blocks),node_sub(nodehi,max_blocks),phyboundblock(max_blocks))
     allocate(pflux(2,^ND,max_blocks))
 
-    print *, nw
-    allocate( bg%w(ixG^T, 1:nw, 1:max_blocks, 1:nstep) )
+    allocate( bg(1:nstep) )
+    do istep = 1 , nstep
+       bg(istep)%istep = istep
+       allocate( bg(istep)%w(ixG^T, 1:nw, 1:max_blocks) )
+    end do
 
     do igrid = 1, max_blocks
        ps(igrid)%igrid  = igrid; ps(igrid)%istep  = 1

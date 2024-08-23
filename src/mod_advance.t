@@ -82,7 +82,7 @@ contains
        do iw = 1, nw
           {^D& do ix^DB = ixGlo^DB, ixGhi^DB \}
 !          ps1(igrid)%w(ix^D,iw) = ps(igrid)%w(ix^D,iw)
-          bg%w(ix^D,iw,igrid,2) = bg%w(ix^D,iw,igrid,1)
+          bg(2)%w(ix^D,iw,igrid) = bg(1)%w(ix^D,iw,igrid)
           {^D& end do \}
        end do
           if(stagger_grid) then
@@ -278,8 +278,8 @@ contains
              !$acc parallel loop collapse(ndim+1)
              do iw = 1, nw
                 {^D& do ix^DB = ixGlo^DB, ixGhi^DB \}
-             !                   ps2(igrid)%w(ix^D,iw) = rk_alfa21 * ps(igrid)%w(ix^D,iw) + rk_alfa22 * ps1(igrid)%w(ix^D,iw)
-             bg%w(ix^D,iw,igrid,3) = rk_alfa21 * bg%w(ix^D,iw,igrid,1) + rk_alfa22 * bg%w(ix^D,iw,igrid,2)
+!                ps2(igrid)%w(ix^D,iw) = rk_alfa21 * ps(igrid)%w(ix^D,iw) + rk_alfa22 * ps1(igrid)%w(ix^D,iw)
+                bg(3)%w(ix^D,iw,igrid) = rk_alfa21 * bg(1)%w(ix^D,iw,igrid) + rk_alfa22 * bg(2)%w(ix^D,iw,igrid)
                 {^D& end do \}
              end do
              if(stagger_grid) ps2(igrid)%ws=rk_alfa21*ps(igrid)%ws+rk_alfa22*ps1(igrid)%ws
@@ -294,7 +294,7 @@ contains
              do iw = 1, nw
                 {^D& do ix^DB = ixGlo^DB, ixGhi^DB \}
 !                ps(igrid)%w(ix^D,iw) = rk_alfa31 * ps(igrid)%w(ix^D,iw) + rk_alfa33 * ps2(igrid)%w(ix^D,iw)
-                bg%w(ix^D,iw,igrid,1) = rk_alfa31 * bg%w(ix^D,iw,igrid,1) + rk_alfa33 * bg%w(ix^D,iw,igrid,3)
+                bg(1)%w(ix^D,iw,igrid) = rk_alfa31 * bg(1)%w(ix^D,iw,igrid) + rk_alfa33 * bg(3)%w(ix^D,iw,igrid)
                 {^D& end do \}
              end do
              if(stagger_grid) ps(igrid)%ws=rk_alfa31*ps(igrid)%ws+rk_alfa33*ps2(igrid)%ws
