@@ -44,6 +44,8 @@ contains
     if (ixI^L^LTix^L|.or.|.or.) &
          call mpistop("Error in Hancock: Nonconforming input limits")
 
+    wRp=0.d0
+    wLp=0.d0
     wprim=wCT
     call phys_to_primitive(ixI^L,ixI^L,wprim,x)
 
@@ -151,6 +153,8 @@ contains
     fC=0.d0
     fLC=0.d0
     fRC=0.d0
+    wLp=0.d0
+    wRp=0.d0
 
     ! The flux calculation contracts by one in the idims direction it is applied.
     ! The limiter contracts the same directions by one more, so expand ixO by 2.
