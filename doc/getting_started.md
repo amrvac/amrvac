@@ -20,29 +20,33 @@ In the vac test folder, run the setup script with:
     setup.pl -d=2
 
 This will copy a makefile to the current folder, set the problem dimension
-to two, and use the default compiler settings, which is gfortran with openMPI.
+to two, and use the default compiler settings, which is mpif90 (gfortran with openMPI).
 To select different compiler settings (present in `amrvac/arch/`)
-you could for example use:
+
+Then, to compile the code according to the makefile:
+
+    make -j4
+
+To switch to using intel compiler mpiifort, you could modify the makefile and compile:
 
     setup.pl -d=2 -arch=intel
-    setup.pl -d=2 -arch=debug
+    make -j4
 
-You can also edit the `makefile` directly.
+or you can keep the makefile and switch compiler once with compiling command:
 
-Then it is time to compile the code:
-
-    make -j 4
+    make -j4 ARCH=intel
 
 This will perform a parallel compilation using 4 cores. First, the AMRVAC
-library is compiled in `amrvac/lib/` if it is not available already. This
-is the generic part of AMRVAC that does not depend on your user code. Then your
-user code is also compiled, and an executable binary file called `amrvac` is produced.
+library is compiled under `amrvac/lib/` in a folder named by dimension and 
+arch name, if it is not available already. This is the generic part of AMRVAC 
+that does not depend on your user code. Then your user code mod_usr.t is also 
+compiled, and an executable binary file called `amrvac` is produced.
 
 There are a couple of useful commands to know about:
 
+    make ARCH=debug   # do a gfortran debug compilation (extra error checking and running error message)
+    make ARCH=<name>  # use the compilation flags from amrvac/arch/<name>.defs
     make clean        # clean the local object files
-    make ARCH=debug   # do a debug build (extra error checking)
-    make ARCH=<name>  # use the compilation flags from arch/<name>.defs
     make allclean     # clean the local object files and the AMRVAC library
 
 # Running the test {#vac_run}

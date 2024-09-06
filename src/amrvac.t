@@ -67,6 +67,12 @@ program amrvac
        it           = it_init
      end if
 
+     ! allow use to read extra data before filling boundary condition
+     if (associated(usr_process_grid) .or. &
+          associated(usr_process_global)) then
+        call process(it,global_time)
+     end if
+
      ! modify initial condition
      if (firstprocess) then
        ! update ghost cells for all need-boundary variables before modification
@@ -118,12 +124,6 @@ program amrvac
             call mpistop("non-mpi conversion only uses 1 cpu")
        if(mype==0.and.level_io>0) write(unitterm,*)'reset tree to fixed level=',level_io
 
-       ! Optionally call a user method that can modify the grid variables
-       ! before saving the converted data
-       if (associated(usr_process_grid) .or. &
-            associated(usr_process_global)) then
-          call process(it,global_time)
-       end if
        !here requires -1 snapshot
        if (autoconvert .or. snapshotnext>0) snapshotnext = snapshotnext - 1
 
