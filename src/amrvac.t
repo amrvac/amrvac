@@ -10,9 +10,7 @@ program amrvac
   use mod_usr
   use mod_initialize
   use mod_initialize_amr, only: initlevelone, modify_IC
-  {^NOONED
   use mod_initialize_amr, only: improve_initial_condition
-  }
   use mod_selectgrids, only: selectgrids
   use mod_particles
   use mod_fix_conserve
@@ -149,10 +147,8 @@ program amrvac
 
      if (use_multigrid) call mg_setup_multigrid()
 
-     {^NOONED
      ! improve initial condition
      call improve_initial_condition()
-     }
 
      ! select active grids
      call selectgrids

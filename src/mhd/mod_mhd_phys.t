@@ -161,7 +161,7 @@ module mod_mhd_phys
   !> The MHD hyper-resistivity
   double precision, public                :: mhd_eta_hyper = 0.0d0
 
-  !> TODO: what is this?
+  !> Hall resistivity
   double precision, public                :: mhd_etah = 0.0d0
 
   !> The MHD ambipolar coefficient
@@ -5781,38 +5781,6 @@ contains
     enddo
 
   end subroutine mhd_get_Jambi
-
-    ! COMMENTED  because we have that in cmax now:
-!  subroutine mhd_getdt_Hall(w,x,ixI^L,ixO^L,dx^D,dthall)
-!    use mod_global_parameters
-!
-!    integer, intent(in) :: ixI^L, ixO^L
-!    double precision, intent(in)    :: dx^D
-!    double precision, intent(in)    :: w(ixI^S,1:nw)
-!    double precision, intent(in)    :: x(ixI^S,1:ndim)
-!    double precision, intent(out)   :: dthall
-!    !.. local ..
-!    double precision :: dxarr(ndim)
-!    double precision :: bmag(ixI^S)
-!
-!    dthall=bigdouble
-!
-!
-!    ^D&dxarr(^D)=dx^D;
-!
-!    if (.not. B0field) then
-!       bmag(ixO^S)=sqrt(sum(w(ixO^S,mag(:))**2, dim=ndim+1))
-!    else
-!       bmag(ixO^S)=sqrt(sum((w(ixO^S,mag(:)) + block%B0(ixO^S,1:ndir,b0i))**2))
-!    end if
-!
-!    if(slab_uniform) then
-!      dthall=dtdiffpar*minval(dxarr(1:ndim))**2.0d0/(mhd_etah*maxval(bmag(ixO^S)/w(ixO^S,rho_)))
-!    else
-!      dthall=dtdiffpar*minval(block%ds(ixO^S,1:ndim))**2.0d0/(mhd_etah*maxval(bmag(ixO^S)/w(ixO^S,rho_)))
-!    end if
-!
-!  end subroutine mhd_getdt_Hall
 
   subroutine mhd_modify_wLR(ixI^L,ixO^L,qt,wLC,wRC,wLp,wRp,s,idir)
     use mod_global_parameters
