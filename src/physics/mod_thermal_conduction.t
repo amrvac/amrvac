@@ -1,12 +1,13 @@
-!> Thermal conduction for HD and MHD
+!> Thermal conduction for HD and MHD or RHD and RMHD or twofl (plasma-neutral) module
 !> Adaptation of mod_thermal_conduction for the mod_supertimestepping
-!> In order to use it set use_mhd_tc=1 (for the mhd impl) or 2 (for the hd impl) in mhd_list  (for the mhd module both hd and mhd impl can be used)
-!> or use_new_hd_tc in hd_list parameters to true
-!> (for the hd module, hd implementation has to be used)
-!> The TC is set by calling one
-!> tc_init_hd_for_total_energy and tc_init_mhd_for_total_energy might
-!> The second argument: ixArray has to be [rho_,e_,mag(1)] for mhd (Be aware that the other components of the mag field are assumed consecutive) and [rho_,e_] for hd
-!> additionally when internal energy equation is solved, an additional element of this array is eaux_: the index of the internal energy variable.
+!>
+!> The TC is set by calling 
+!> tc_init_params()
+!>
+!> Organized such that it can call either isotropic (HD) or anisotropic (MHD) variants
+!> it adds a heat conduction source to each energy equation
+!> and can be recycled within a multi-fluid context (such as plasma-neutral twofl module)
+!>
 !>
 !> 10.07.2011 developed by Chun Xia and Rony Keppens
 !> 01.09.2012 moved to modules folder by Oliver Porth
@@ -15,6 +16,8 @@
 !> and improve stability and accuracy up to second order in time by Chun Xia.
 !> 23.08.2014 implemented saturation and perpendicular TC by Chun Xia
 !> 12.01.2017 modulized by Chun Xia
+!>            adapted by Beatrice Popescu to twofluid settings
+!> 06.09.2024 cleaned up for use in rhd and rmhd modules (Nishant Narechania and Rony Keppens)
 !>
 !> PURPOSE:
 !> IN MHD ADD THE HEAT CONDUCTION SOURCE TO THE ENERGY EQUATION
@@ -30,12 +33,13 @@
 !>        unit_velocity=your velocity unit
 !>        unit_temperature=your temperature unit
 !>    before call (m)hd_activate()
-!> 2. to switch on thermal conduction in the (m)hd_list of amrvac.par add:
-!>    (m)hd_thermal_conduction=.true.
+!> 2. to switch on thermal conduction in the (r)(m)hd_list of amrvac.par add:
+!>    (r)(m)hd_thermal_conduction=.true.
 !> 3. in the tc_list of amrvac.par :
 !>    tc_perpendicular=.true.  ! (default .false.) turn on thermal conduction perpendicular to magnetic field
 !>    tc_saturate=.true.  ! (default .false. ) turn on thermal conduction saturate effect
 !>    tc_slope_limiter='MC' ! choose limiter for slope-limited anisotropic thermal conduction in MHD
+!> note: twofl_list incorporates instances for charges and neutrals
 
 module mod_thermal_conduction
   use mod_global_parameters, only: std_len
@@ -54,8 +58,6 @@ module mod_thermal_conduction
       double precision, intent(in) :: x(ixI^S,1:ndim)
       double precision, intent(out):: res(ixI^S)
     end subroutine get_var_subr
-
-
   end interface
 
   type tc_fluid
@@ -72,7 +74,7 @@ module mod_thermal_conduction
     ! if has_equi = .true. get_temperature_equi and get_rho_equi have to be set
     logical :: has_equi=.false.
 
-    ! the following are read from param file or set in tc_read_hd_params or tc_read_mhd_params
+    ! BEGIN the following are read from param file or set in tc_read_hd_params or tc_read_mhd_params
     !> Coefficient of thermal conductivity (parallel to magnetic field)
     double precision :: tc_k_para
 
@@ -110,7 +112,7 @@ contains
     tc_gamma_1=phys_gamma-1d0
   end subroutine tc_init_params
 
-  !> Init  TC coeffiecients: MHD case
+  !> Init  TC coefficients: MHD case
   subroutine tc_get_mhd_params(fl,read_mhd_params)
     use mod_global_parameters
 
@@ -122,15 +124,13 @@ contains
 
       end subroutine read_mhd_params
     end interface
-
     type(tc_fluid), intent(inout) :: fl
 
     fl%tc_slope_limiter=1
-
     fl%tc_k_para=0.d0
-
     fl%tc_k_perp=0.d0
 
+    !> Read tc module parameters from par file: MHD case
     call read_mhd_params(fl)
 
     if(fl%tc_k_para==0.d0 .and. fl%tc_k_perp==0.d0) then
@@ -151,12 +151,9 @@ contains
       fl%tc_constant=.true.
     end if
 
-    contains
-
-    !> Read tc module parameters from par file: MHD case
-
   end subroutine tc_get_mhd_params
 
+  !> Init  TC coefficients: HD case
   subroutine tc_get_hd_params(fl,read_hd_params)
     use mod_global_parameters
 
@@ -171,8 +168,10 @@ contains
     type(tc_fluid), intent(inout) :: fl
 
     fl%tc_k_para=0.d0
+
     !> Read tc parameters from par file: HD case
     call read_hd_params(fl)
+
     if(fl%tc_k_para==0.d0 ) then
       if(SI_unit) then
         ! Spitzer thermal conductivity with SI units
@@ -183,9 +182,10 @@ contains
       end if
       if(mype .eq. 0) print*, "Spitzer HD par: ",fl%tc_k_para
     end if
+
   end subroutine tc_get_hd_params
 
-  !> Get the explicut timestep for the TC (mhd implementation)
+  !> Get the explicit timestep for the TC (mhd implementation)
   function get_tc_dt_mhd(w,ixI^L,ixO^L,dx^D,x,fl) result(dtnew)
     !Check diffusion time limit dt < dx_i**2/((gamma-1)*tc_k_para_i/rho)
     !where                      tc_k_para_i=tc_k_para*B_i**2/B**2
@@ -212,11 +212,11 @@ contains
     else
       mf(ixO^S,1:ndim)=w(ixO^S,iw_mag(1:ndim))
     end if
-    ! B**2
-    tmp=sum(mf**2,dim=ndim+1)
+    ! Bsquared
+    B2(ixO^S)=sum(mf(ixO^S,1:ndim)**2,dim=ndim+1)
     ! B_i**2/B**2
-    where(tmp(ixO^S)/=0.d0)
-      ^D&mf(ixO^S,^D)=mf(ixO^S,^D)**2/tmp(ixO^S);
+    where(B2(ixO^S)/=0.d0)
+      ^D&mf(ixO^S,^D)=mf(ixO^S,^D)**2/B2(ixO^S);
     elsewhere
       ^D&mf(ixO^S,^D)=1.d0;
     end where
@@ -365,7 +365,7 @@ contains
     double precision, dimension(ixI^S) :: ka,kaf,ke,kef,qdd,qe,Binv,minq,maxq,Bnorm
     double precision, allocatable, dimension(:^D&,:,:) :: fluxall
     integer, dimension(ndim) :: lowindex
-    integer :: idims,idir,ix^D,ix^L,ixC^L,ixA^L,ixB^L,ixA^D,ixB^D
+    integer :: idims,idir,ix^D,ix^L,ixC^L,ixA^L,ixB^L
 
     ix^L=ixO^L^LADD1;
 
@@ -377,14 +377,12 @@ contains
       mf(ixI^S,1:ndim)=w(ixI^S,iw_mag(1:ndim))
     end if
     ! |B|
-    Binv=dsqrt(sum(mf**2,dim=ndim+1))
-    {do ix^DB=ixmin^DB,ixmax^DB\}
-      if(Binv(ix^D)/=0.d0) then
-        Binv(ix^D)=1.d0/Binv(ix^D)
-      else
-        Binv(ix^D)=bigdouble
-      end if
-    {end do\}
+    Binv(ix^S)=dsqrt(sum(mf(ix^S,1:ndim)**2,dim=ndim+1))
+    where(Binv(ix^S)/=0.d0)
+      Binv(ix^S)=1.d0/Binv(ix^S)
+    elsewhere
+      Binv(ix^S)=bigdouble
+    end where
     ! b unit vector: magnetic field direction vector
     do idims=1,ndim
       mf(ix^S,idims)=mf(ix^S,idims)*Binv(ix^S)
@@ -417,11 +415,9 @@ contains
       ! conductivity at cell center
       if(phys_trac) then
         minq(ix^S)=Te(ix^S)
-       {do ix^DB=ixmin^DB,ixmax^DB\}
-          if(minq(ix^D) < block%wextra(ix^D,fl%Tcoff_)) then
-            minq(ix^D)=block%wextra(ix^D,fl%Tcoff_)
-          end if
-       {end do\}
+        where(minq(ix^S) < block%wextra(ix^S,fl%Tcoff_))
+          minq(ix^S)=block%wextra(ix^S,fl%Tcoff_)
+        end where
         minq(ix^S)=fl%tc_k_para*sqrt(minq(ix^S)**5)
       else
         minq(ix^S)=fl%tc_k_para*sqrt(Te(ix^S)**5)
@@ -445,14 +441,12 @@ contains
         {end do\}
         ! cell corner conductivity: k_parallel-k_perpendicular
         ke(ixC^S)=0.5d0**ndim*ke(ixC^S)
-       {do ix^DB=ixCmin^DB,ixCmax^DB\}
-          if(ke(ix^D)<ka(ix^D)) then
-            ka(ix^D)=ka(ix^D)-ke(ix^D)
-          else
-            ke(ix^D)=ka(ix^D)
-            ka(ix^D)=0.d0
-          end if
-       {end do\}
+        where(ke(ixC^S)<ka(ixC^S))
+          ka(ixC^S)=ka(ixC^S)-ke(ixC^S)
+        elsewhere
+          ke(ixC^S)=ka(ixC^S)
+          ka(ixC^S)=0.d0
+        end where
       end if
     end if
     if(fl%tc_slope_limiter==0) then
@@ -471,10 +465,7 @@ contains
         qvec(ixC^S,idims)=qd(ixC^S)*0.5d0**(ndim-1)
       end do
       ! b grad T at cell corner
-      qd(ixC^S)=0.d0
-      do idims=1,ndim
-       qd(ixC^S)=qvec(ixC^S,idims)*Bc(ixC^S,idims)+qd(ixC^S)
-      end do
+      qd(ixC^S)=sum(qvec(ixC^S,1:ndim)*Bc(ixC^S,1:ndim),dim=ndim+1)
       do idims=1,ndim
         ! TC flux at cell corner
         gradT(ixC^S,idims)=ka(ixC^S)*Bc(ixC^S,idims)*qd(ixC^S)
@@ -563,14 +554,11 @@ contains
            if({ ix^D==0 .and. ^D==idims | .or.}) then
              ixBmin^D=ixAmin^D-ix^D;
              ixBmax^D=ixAmax^D-ix^D;
-            {do ixA^DB=ixAmin^DB,ixAmax^DB
-               ixB^DB=ixA^DB-ix^DB\}
-               if(qd(ixB^D)<=minq(ixA^D)) then
-                 qd(ixB^D)=minq(ixA^D)
-               else if(qd(ixB^D)>=maxq(ixA^D)) then
-                 qd(ixB^D)=maxq(ixA^D)
-               end if 
-            {end do\}
+             where(qd(ixB^S)<=minq(ixA^S))
+               qd(ixB^S)=minq(ixA^S)
+             elsewhere(qd(ixB^S)>=maxq(ixA^S))
+               qd(ixB^S)=maxq(ixA^S)
+             end where
              qvec(ixA^S,idims)=qvec(ixA^S,idims)+Bc(ixB^S,idims)**2*qd(ixB^S)
              if(fl%tc_perpendicular) qe(ixA^S)=qe(ixA^S)+qd(ixB^S)
            end if
@@ -686,6 +674,7 @@ contains
     end associate
   end subroutine gradientC
 
+  !> Get the explicit timestep for the TC (hd implementation)
   function get_tc_dt_hd(w,ixI^L,ixO^L,dx^D,x,fl)  result(dtnew)
     ! Check diffusion time limit dt < dx_i**2 / ((gamma-1)*tc_k_para_i/rho)
     use mod_global_parameters
@@ -830,34 +819,6 @@ contains
     ! ixC is cell-corner index
     ixCmax^D=ixOmax^D; ixCmin^D=ixOmin^D-1;
 
-    !{^IFONED
-    !! cell corner temperature in ke
-    !ke=0.d0
-    !ixAmax^D=ixmax^D; ixAmin^D=ixmin^D-1;
-    !{do ix^DB=0,1\}
-    !  ixBmin^D=ixAmin^D+ix^D;
-    !  ixBmax^D=ixAmax^D+ix^D;
-    !  ke(ixA^S)=ke(ixA^S)+Te(ixB^S)
-    !{end do\}
-    !ke(ixA^S)=0.5d0**ndim*ke(ixA^S)
-    !do idims=1,ndim
-    !  ixBmin^D=ixmin^D;
-    !  ixBmax^D=ixmax^D-kr(idims,^D);
-    !  call gradient(ke,ixI^L,ixB^L,idims,qd)
-    !  gradT(ixB^S,idims)=qd(ixB^S)
-    !end do
-    !! transition region adaptive conduction
-    !if(phys_trac) then
-    !  where(ke(ixI^S) < block%wextra(ixI^S,fl%Tcoff_))
-    !    ke(ixI^S)=block%wextra(ixI^S,fl%Tcoff_)
-    !  end where
-    !end if
-    !! cell corner conduction flux
-    !do idims=1,ndim
-    !  gradT(ixC^S,idims)=gradT(ixC^S,idims)*fl%tc_k_para*sqrt(ke(ixC^S)**5)
-    !end do
-    !}
-
     ! calculate thermal conduction flux with symmetric scheme
     ! T gradient (central difference) at cell corners
     do idims=1,ndim
@@ -878,13 +839,11 @@ contains
     ! conductivity at cell center
     if(phys_trac) then
       ! transition region adaptive conduction
-      {do ix^DB=ixmin^DB,ixmax^DB\}
-        if(Te(ix^D) < block%wextra(ix^D,fl%Tcoff_)) then
-          qd(ix^D)=fl%tc_k_para*dsqrt(block%wextra(ix^D,fl%Tcoff_))**5
-        else
-          qd(ix^D)=fl%tc_k_para*dsqrt(Te(ix^D))**5
-        end if
-      {end do\}
+      where(Te(ix^S) < block%wextra(ix^S,fl%Tcoff_))
+        qd(ix^S)=fl%tc_k_para*dsqrt(block%wextra(ix^S,fl%Tcoff_))**5
+      else where
+        qd(ix^S)=fl%tc_k_para*dsqrt(Te(ix^S))**5
+      end where
     else
       qd(ix^S)=fl%tc_k_para*dsqrt(Te(ix^S))**5
     end if
