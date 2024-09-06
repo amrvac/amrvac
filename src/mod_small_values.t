@@ -51,7 +51,6 @@ contains
        {enddo^D&\}
       end do
     end if
-
   end subroutine small_values_error
 
   subroutine small_values_average(ixI^L, ixO^L, w, x, w_flag, windex)
@@ -109,7 +108,6 @@ contains
         end if
      {enddo^D&\}
     end do
-
   end subroutine small_values_average
 
 end module mod_small_values

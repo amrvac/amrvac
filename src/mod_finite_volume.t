@@ -132,7 +132,7 @@ contains
     double precision, dimension(ixI^S,sdim:3)             :: fE
 
     ! primitive w at cell center
-    double precision, dimension(ixI^S,1:nw) :: wprim
+    double precision, dimension(ixI^S,1:nw) :: wprim, wcons
     ! left and right constructed status in conservative form
     double precision, dimension(ixI^S,1:nw) :: wLC, wRC
     ! left and right constructed status in primitive form, needed for better performance
@@ -144,7 +144,7 @@ contains
     double precision, dimension(ixO^S)      :: inv_volume
     double precision, dimension(1:ndim)     :: dxinv
     integer, dimension(ixI^S)               :: patchf
-    integer :: idims, iw, ix^L, hxO^L, ixC^L, ixCR^L, kxC^L, kxR^L, ii
+    integer :: idims, iw, ix^L, hxO^L, ixC^L, jxC^L,ixCR^L, kxC^L, kxR^L, ii
     logical :: active
     type(ct_velocity) :: vcts
 
@@ -166,6 +166,7 @@ contains
          call mpistop("Error in fv : Nonconforming input limits")
 
     wprim=wCT
+    wcons=wCT
     call phys_to_primitive(ixI^L,ixI^L,wprim,x)
 
     do idims= idims^LIM
@@ -196,7 +197,6 @@ contains
        ! Determine stencil size
        {ixCRmin^D = max(ixCmin^D - phys_wider_stencil,ixGlo^D)\}
        {ixCRmax^D = min(ixCmax^D + phys_wider_stencil,ixGhi^D)\}
-
        ! apply limited reconstruction for left and right status at cell interfaces
        call reconstruct_LR(ixI^L,ixCR^L,ixCR^L,idims,wprim,wLC,wRC,wLp,wRp,x,dxs(idims))
 
@@ -331,25 +331,36 @@ contains
 
     subroutine get_Riemann_flux_tvdlf(iws,iwe)
       integer, intent(in) :: iws,iwe
-      double precision :: fac(ixC^S)
+      double precision :: fac(ixC^S),phi(ixC^S)
 
+      jxC^L=ixC^L+kr(idims,^D);
       fac(ixC^S) = -0.5d0*tvdlfeps*cmaxC(ixC^S,ii)
       ! Calculate fLC=f(uL_j+1/2) and fRC=f(uR_j+1/2) for each iw
       do iw=iws,iwe
          ! To save memory we use fLC to store (F_L+F_R)/2=half*(fLC+fRC)
          fLC(ixC^S, iw)=0.5d0*(fLC(ixC^S, iw)+fRC(ixC^S, iw))
          ! Add TVDLF dissipation to the flux
-         if (flux_type(idims, iw) /= flux_no_dissipation) then
-            fLC(ixC^S, iw)=fLC(ixC^S, iw) + fac(ixC^S)*(wRC(ixC^S,iw)-wLC(ixC^S,iw))
+         if(flux_type(idims, iw) /= flux_no_dissipation) then
+           if(flux_adaptive_diffusion) then
+             !> adaptive diffusion from Rempel et al. 2009, see also Rempel et al. 2014
+             !> the previous version is adopt
+             phi=zero
+             where(((wRC(ixC^S,iw)-wLC(ixC^S,iw))*(wcons(jxC^S,iw)-wcons(ixC^S,iw))) .gt. 1.e-18)
+               phi(ixC^S)=min((wRC(ixC^S,iw)-wLC(ixC^S,iw))**2/((wcons(jxC^S,iw)-wcons(ixC^S,iw))**2+1.e-18),one)
+             endwhere
+           else
+             phi=one
+           end if
+           fLC(ixC^S,iw)=fLC(ixC^S,iw) + fac(ixC^S)*(wRC(ixC^S,iw)-wLC(ixC^S,iw))*phi(ixC^S)
          end if
          fC(ixC^S,iw,idims)=fLC(ixC^S, iw)
       end do ! Next iw
-
     end subroutine get_Riemann_flux_tvdlf
 
     subroutine get_Riemann_flux_hll(iws,iwe)
       integer, intent(in) :: iws,iwe
       integer :: ix^D
+      double precision :: phi(ixI^S)
 
       do iw=iws,iwe
         if(flux_type(idims, iw) == flux_tvdlf) then
@@ -365,14 +376,21 @@ contains
              fC(ix^D,iw,idims)=fRC(ix^D,iw)
            else
              ! Add hll dissipation to the flux
-             fC(ix^D,iw,idims)=(cmaxC(ix^D,ii)*fLC(ix^D, iw)-cminC(ix^D,ii)*fRC(ix^D,iw)&
-                   +cminC(ix^D,ii)*cmaxC(ix^D,ii)*(wRC(ix^D,iw)-wLC(ix^D,iw)))&
-                   /(cmaxC(ix^D,ii)-cminC(ix^D,ii))
+             if(flux_adaptive_diffusion) then
+               !> reduced diffusion is from Wang et al. 2024
+               phi(ix^D)=max(abs(cmaxC(ix^D,ii)),abs(cminC(ix^D,ii)))/(cmaxC(ix^D,ii)-cminC(ix^D,ii))
+               fC(ix^D,iw,idims)=(cmaxC(ix^D,ii)*fLC(ix^D, iw)-cminC(ix^D,ii)*fRC(ix^D,iw)&
+                     +phi(ix^D)*cminC(ix^D,ii)*cmaxC(ix^D,ii)*(wRC(ix^D,iw)-wLC(ix^D,iw)))&
+                     /(cmaxC(ix^D,ii)-cminC(ix^D,ii))
+             else
+               fC(ix^D,iw,idims)=(cmaxC(ix^D,ii)*fLC(ix^D, iw)-cminC(ix^D,ii)*fRC(ix^D,iw)&
+                     +cminC(ix^D,ii)*cmaxC(ix^D,ii)*(wRC(ix^D,iw)-wLC(ix^D,iw)))&
+                     /(cmaxC(ix^D,ii)-cminC(ix^D,ii))
+             end if
            end if
          {end do\}
        endif 
       end do
-
     end subroutine get_Riemann_flux_hll
 
     subroutine get_Riemann_flux_hllc(iws,iwe)

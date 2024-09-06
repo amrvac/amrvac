@@ -260,7 +260,7 @@ contains
          loglimit,typeboundspeed, H_correction,&
          typetvd,typeentropy,entropycoef,typeaverage, &
          typegrad,typediv,typecurl,&
-         nxdiffusehllc, flathllc, tvdlfeps,&
+         nxdiffusehllc, flathllc, tvdlfeps, flux_adaptive_diffusion, &
          flatcd,flatsh,&
          rk2_alfa,imex222_lambda,ssprk_order,rk3_switch,imex_switch,&
          small_temperature,small_pressure,small_density, &
@@ -462,6 +462,7 @@ contains
     ! Defaults for discretization methods
     typeaverage     = 'default'
     tvdlfeps        = one
+    flux_adaptive_diffusion = .false.
     nxdiffusehllc   = 0
     flathllc        = .false.
     slowsteps       = -1
@@ -1983,8 +1984,6 @@ contains
 
   end subroutine snapshot_read_header
 
-
-
   subroutine write_snapshot
     use mod_forest
     use mod_global_parameters
@@ -2154,7 +2153,6 @@ contains
     end if
 
     call MPI_BARRIER(icomm, ierrmpi)
-
   end subroutine write_snapshot
 
   !> Routine to read in snapshots (.dat files). When it cannot recognize the

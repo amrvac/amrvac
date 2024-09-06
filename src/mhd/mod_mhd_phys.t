@@ -19,6 +19,8 @@ module mod_mhd_phys
 
   !> Whether thermal conduction is used
   logical, public, protected              :: mhd_thermal_conduction = .false.
+  !> Whether thermal conduction is used
+  logical, public, protected              :: mhd_hyperbolic_thermal_conduction = .false.
   !> type of fluid for thermal conduction
   type(tc_fluid), public, allocatable     :: tc_fl
   !> type of fluid for thermal emission synthesis
@@ -135,6 +137,8 @@ module mod_mhd_phys
   !> Index of the gas pressure (-1 if not present) should equal e_
   integer, public, protected              :: p_
 
+  !> Index of the heat flux q
+  integer, public, protected :: q_
 
   !> Indices of the GLM psi
   integer, public, protected :: psi_
@@ -169,6 +173,9 @@ module mod_mhd_phys
 
   !> The small_est allowed energy
   double precision, protected             :: small_e
+
+  !> The thermal conductivity kappa in hyperbolic thermal conduction
+  double precision, public                :: hypertc_kappa
 
   !> The number of waves
   integer :: nwwave=8
@@ -334,7 +341,8 @@ contains
       particles_eta, particles_etah,has_equi_rho0, has_equi_pe0,mhd_equi_thermal,&
       boundary_divbfix, boundary_divbfix_skip, mhd_divb_4thorder, mhd_semirelativistic,&
       mhd_boris_simplification, mhd_reduced_c, clean_initial_divb, mhd_internal_e, &
-      mhd_hydrodynamic_e, mhd_trac, mhd_trac_type, mhd_trac_mask, mhd_trac_finegrid, mhd_cak_force
+      mhd_hydrodynamic_e, mhd_trac, mhd_trac_type, mhd_trac_mask, mhd_trac_finegrid, mhd_cak_force, &
+      mhd_hyperbolic_thermal_conduction
 
     do n = 1, size(files)
        open(unitpar, file=trim(files(n)), status="old")
@@ -412,6 +420,10 @@ contains
         mhd_thermal_conduction=.false.
         if(mype==0) write(*,*) 'WARNING: set mhd_thermal_conduction=F when mhd_energy=F'
       end if
+      if(mhd_thermal_conduction) then
+        mhd_hyperbolic_thermal_conduction=.false.
+        if(mype==0) write(*,*) 'WARNING: set mhd_hyperbolic_thermal_conduction=F when mhd_energy=F'
+      end if
       if(mhd_radiative_cooling) then
         mhd_radiative_cooling=.false.
         if(mype==0) write(*,*) 'WARNING: set mhd_radiative_cooling=F when mhd_energy=F'
@@ -432,6 +444,12 @@ contains
       end if
     end if
 
+    if(mhd_hyperbolic_thermal_conduction) then
+      mhd_thermal_conduction=.false.
+      if(mype==0) write(*,*) 'WARNING: turn off parabolic TC when using hyperbolic TC'
+    end if
+
+
     physics_type = "mhd"
     phys_energy=mhd_energy
     phys_internal_e=mhd_internal_e
@@ -440,6 +458,7 @@ contains
     phys_partial_ionization=mhd_partial_ionization
 
     phys_gamma = mhd_gamma
+    phys_trac_finegrid=mhd_trac_finegrid
 
     if(mhd_energy) then
       if(mhd_internal_e.or.mhd_hydrodynamic_e) then
@@ -548,6 +567,13 @@ contains
       psi_ = -1
     end if
 
+    if(mhd_hyperbolic_thermal_conduction) then
+      q_ = var_set_q()
+      need_global_cmax=.true.
+    else
+      q_=-1
+    end if
+
     allocate(tracer(mhd_n_tracer))
     ! Set starting index of tracers
     do itr = 1, mhd_n_tracer
@@ -625,7 +651,8 @@ contains
         end do
       end if
     end if
-
+ 
+    phys_get_rho             => mhd_get_rho
     phys_get_dt              => mhd_get_dt
     if(mhd_semirelativistic) then
       phys_get_cmax            => mhd_get_cmax_semirelati
@@ -794,8 +821,14 @@ contains
     ! derive units from basic units
     call mhd_physical_units()
 
+    if(mhd_hyperbolic_thermal_conduction) then
+      hypertc_kappa=8.d-7*unit_temperature**3.5d0/unit_length/unit_density/unit_velocity**3
+    end if
     if(.not. mhd_energy .and. mhd_thermal_conduction) then
       call mpistop("thermal conduction needs mhd_energy=T")
+    end if
+    if(.not. mhd_energy .and. mhd_hyperbolic_thermal_conduction) then
+      call mpistop("hyperbolic thermal conduction needs mhd_energy=T")
     end if
     if(.not. mhd_energy .and. mhd_radiative_cooling) then
       call mpistop("radiative cooling needs mhd_energy=T")
@@ -1086,9 +1119,11 @@ contains
   
     !> Add cooling source in a split way (.true.) or un-split way (.false.)
     logical    :: rc_split=.false.
+    logical    :: rad_cut=.false.
+    double precision :: rad_cut_hgt=0.5d0
+    double precision :: rad_cut_dey=0.15d0
 
-
-    namelist /rc_list/ coolcurve, coolmethod, ncool, cfrac, tlow, Tfix, rc_split
+    namelist /rc_list/ coolcurve, coolmethod, ncool, cfrac, tlow, Tfix, rc_split,rad_cut,rad_cut_hgt,rad_cut_dey
 
     do n = 1, size(par_files)
       open(unitpar, file=trim(par_files(n)), status="old")
@@ -1103,7 +1138,9 @@ contains
     fl%Tfix=Tfix
     fl%rc_split=rc_split
     fl%cfrac=cfrac
-
+    fl%rad_cut=rad_cut
+    fl%rad_cut_hgt=rad_cut_hgt
+    fl%rad_cut_dey=rad_cut_dey
   end subroutine rc_params_read
 !! end rad cool
 
@@ -3519,6 +3556,24 @@ contains
       f(ixO^S,psi_)  = cmax_global**2*w(ixO^S,mag(idim))
     end if
 
+    if(mhd_hyperbolic_thermal_conduction) then
+      allocate(btot(ixO^S,ndim))
+      allocate(tmp2(ixO^S))
+      if(B0field) then
+        do idir=1,ndim
+          btot(ixO^S,idir)=w(ixO^S,mag(idir))+block%B0(ixO^S,idir,idir)
+        end do
+      else
+        btot(ixO^S,1:ndim)=w(ixO^S,mag(1:ndim))
+      end if
+      tmp2(ixO^S)=sum(btot(ixO^S,1:ndim)**2,dim=ndim+1)
+      do idir=1,ndim
+        btot(ixO^S,idir)=btot(ixO^S,idir)/sqrt(tmp2(ixO^S))
+      enddo
+      f(ixO^S,e_)=f(ixO^S,e_)+w(ixO^S,q_)*btot(ixO^S,idim)
+      f(ixO^S,q_)=zero
+      deallocate(btot,tmp2)
+    end if
     ! Contributions of ambipolar term in explicit scheme
     if(mhd_ambipolar_exp.and. .not.stagger_grid) then
       ! ambipolar electric field
@@ -3552,6 +3607,7 @@ contains
       if(mhd_energy .and. .not. mhd_internal_e) then
         f(ixO^S,e_) = f(ixO^S,e_) + tmp2(ixO^S) *  tmp(ixO^S)
       endif
+
 
       deallocate(Jambi,btot,tmp2,tmp3)
     endif
@@ -4323,6 +4379,10 @@ contains
         end if
       end if
 
+      if(mhd_hyperbolic_thermal_conduction) then
+        call add_hypertc_source(qdt,ixI^L,ixO^L,wCT,w,x,wCTprim)
+      end if
+
       ! Source for B0 splitting
       if (B0field) then
         active = .true.
@@ -4448,6 +4508,75 @@ contains
       w(ixO^S,e_)=w(ixO^S,e_)-qdt*block%equi_vars(ixO^S,equi_pe0_,0)*divv(ixO^S)
     endif
   end subroutine add_pe0_divv
+
+  subroutine get_tau(ixI^L,ixO^L,w,Te,tau,sigT5)
+    use mod_global_parameters
+    integer, intent(in) :: ixI^L, ixO^L
+    double precision, dimension(ixI^S,1:nw), intent(in) :: w
+    double precision, dimension(ixI^S), intent(in) :: Te
+    double precision, dimension(ixI^S), intent(out) :: tau,sigT5
+    integer :: ix^D
+    double precision :: dxmin,taumin
+    double precision, dimension(ixI^S) :: sigT7,eint
+
+    taumin=4.d0
+    !> w supposed to be wCTprim here
+    if(mhd_trac) then
+      where(Te(ixO^S) .lt. block%wextra(ixO^S,Tcoff_))
+        sigT5(ixO^S)=hypertc_kappa*sqrt(block%wextra(ixO^S,Tcoff_)**5)
+        sigT7(ixO^S)=sigT5(ixO^S)*block%wextra(ixO^S,Tcoff_)
+      else where
+        sigT5(ixO^S)=hypertc_kappa*sqrt(Te(ixO^S)**5)
+        sigT7(ixO^S)=sigT5(ixO^S)*Te(ixO^S)
+      end where
+    else
+      sigT5(ixO^S)=hypertc_kappa*sqrt(Te(ixO^S)**5)
+      sigT7(ixO^S)=sigT5(ixO^S)*Te(ixO^S)
+    end if
+    eint(ixO^S)=w(ixO^S,p_)/(mhd_gamma-one)
+    tau(ixO^S)=max(taumin*dt,sigT7(ixO^S)/eint(ixO^S)/cmax_global**2)
+  end subroutine get_tau
+
+  subroutine add_hypertc_source(qdt,ixI^L,ixO^L,wCT,w,x,wCTprim)
+    use mod_global_parameters
+    integer, intent(in) :: ixI^L,ixO^L
+    double precision, intent(in) :: qdt
+    double precision, dimension(ixI^S,1:ndim), intent(in) :: x
+    double precision, dimension(ixI^S,1:nw), intent(in) :: wCT,wCTprim
+    double precision, dimension(ixI^S,1:nw), intent(inout) :: w
+    integer :: idims
+    integer :: hxC^L,hxO^L,ixC^L,jxC^L,jxO^L,kxC^L
+    double precision :: invdx
+    double precision, dimension(ixI^S) :: Te,tau,sigT,htc_qsrc,Tface
+    double precision, dimension(ixI^S) :: htc_esrc,Bsum,Bunit
+    double precision, dimension(ixI^S,1:ndim) :: Btot
+
+    Te(ixI^S)=wCTprim(ixI^S,p_)/wCT(ixI^S,rho_)
+    call get_tau(ixI^L,ixO^L,wCTprim,Te,tau,sigT)
+    htc_qsrc=zero
+    do idims=1,ndim
+      if(B0field) then
+        Btot(ixO^S,idims)=wCT(ixO^S,mag(idims))+block%B0(ixO^S,idims,0)
+      else
+        Btot(ixO^S,idims)=wCT(ixO^S,mag(idims))
+      endif
+    enddo
+    Bsum(ixO^S)=sum(Btot(ixO^S,:)**2,dim=ndim+1)
+    do idims=1,ndim
+      invdx=1.d0/dxlevel(idims)
+      ixC^L=ixO^L;
+      ixCmin^D=ixOmin^D-kr(idims,^D);ixCmax^D=ixOmax^D;
+      jxC^L=ixC^L+kr(idims,^D);
+      kxC^L=jxC^L+kr(idims,^D);
+      hxC^L=ixC^L-kr(idims,^D);
+      hxO^L=ixO^L-kr(idims,^D);
+      Tface(ixC^S)=(7.d0*(Te(ixC^S)+Te(jxC^S))-(Te(hxC^S)+Te(kxC^S)))/12.d0
+      Bunit(ixO^S)=Btot(ixO^S,idims)/sqrt(Bsum(ixO^S))
+      htc_qsrc(ixO^S)=htc_qsrc(ixO^S)+sigT(ixO^S)*Bunit(ixO^S)*(Tface(ixO^S)-Tface(hxO^S))*invdx
+    end do
+    htc_qsrc(ixO^S)=(htc_qsrc(ixO^S)+wCT(ixO^S,q_))/tau(ixO^S)
+    w(ixO^S,q_)=w(ixO^S,q_)-qdt*htc_qsrc(ixO^S)
+  end subroutine add_hypertc_source
 
   !> Compute the Lorentz force (JxB)
   subroutine get_Lorentz_force(ixI^L,ixO^L,w,JxB)
@@ -7111,5 +7240,4 @@ contains
     Rfactor(ixO^S)=RR
 
   end subroutine Rfactor_from_constant_ionization
-
 end module mod_mhd_phys

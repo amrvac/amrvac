@@ -84,7 +84,7 @@ contains
 
     w(ixG^T,1:nw)=ps(igrid)%w(ixG^T,1:nw)
 
-    if(B0field) then
+    if(B0field .and. allocated(iw_mag)) then
       if(phys_energy) &
         w(ixG^T,iw_e)=w(ixG^T,iw_e)+0.5d0*sum(ps(igrid)%B0(ixG^T,:,0)**2,dim=ndim+1) &
                         + sum(w(ixG^T,iw_mag(:))*ps(igrid)%B0(ixG^T,:,0),dim=ndim+1)

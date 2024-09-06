@@ -286,7 +286,6 @@ contains
          end do
        end if
 
-
        ! output a snapshot when user write a file named 'savenow' in the same
        ! folder as the executable amrvac
        if (mype==0) inquire(file='savenow',exist=save_now)

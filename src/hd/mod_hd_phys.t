@@ -245,6 +245,7 @@ contains
     phys_check_w             => hd_check_w
     phys_get_pthermal        => hd_get_pthermal
     phys_get_v               => hd_get_v
+    phys_get_rho             => hd_get_rho
     phys_write_info          => hd_write_info
     phys_handle_small_values => hd_handle_small_values
 

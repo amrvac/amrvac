@@ -19,7 +19,6 @@ contains
        read(unitpar, grav_list, end=111)
 111    close(unitpar)
     end do
-
   end subroutine grav_params_read
 
   !> Initialize the module
@@ -36,7 +35,6 @@ contains
     end if
     call grav_params_read(par_files)
     if(grav_split) any_source_split=.true.
-
   end subroutine gravity_init
 
   !> w[iw]=w[iw]+qdt*S[wCT,qtC,x] where S is the source based on wCT within ixO
@@ -44,37 +42,44 @@ contains
        energy,rhov,qsourcesplit,active)
     use mod_global_parameters
     use mod_usr_methods
-
+    use mod_comm_lib, only: mpistop
     integer, intent(in)             :: ixI^L, ixO^L
     double precision, intent(in)    :: qdt, x(ixI^S,1:ndim)
     double precision, intent(in)    :: wCT(ixI^S,1:nw),wCTprim(ixI^S,1:nw)
     double precision, intent(inout) :: w(ixI^S,1:nw)
-    logical, intent(in) :: energy,rhov,qsourcesplit
-    logical, intent(inout) :: active
+    logical, intent(in)             :: energy,rhov,qsourcesplit
+    logical, intent(inout)          :: active
     integer                         :: idim
-
-    double precision :: gravity_field(ixI^S,ndim)
+    double precision                :: gravity_field(ixI^S,ndim)
 
     if(qsourcesplit .eqv. grav_split) then
       active = .true.
-
       call usr_gravity(ixI^L,ixO^L,wCT,x,gravity_field)
-  
       do idim = 1, ndim
-        w(ixO^S,iw_mom(idim)) = w(ixO^S,iw_mom(idim)) &
-              + qdt * gravity_field(ixO^S,idim) * wCT(ixO^S,iw_rho)
+        if(size(iw_mom)<ndim) then
+          w(ixO^S,iw_mom(1)) = w(ixO^S,iw_mom(1)) &
+                + qdt*gravity_field(ixO^S,idim)*wCT(ixO^S,iw_rho)*block%B0(ixO^S,idim,0)
+        else
+          w(ixO^S,iw_mom(idim)) = w(ixO^S,iw_mom(idim)) &
+                + qdt*gravity_field(ixO^S,idim)*wCT(ixO^S,iw_rho)
+        endif
         if(energy) then
           if(rhov) then
+            if(size(iw_mom)<ndim) call mpistop("rhov is not supported for ffHD")
             w(ixO^S,iw_e)=w(ixO^S,iw_e) &
               +qdt*gravity_field(ixO^S,idim)*wCTprim(ixO^S,iw_mom(idim))*wCTprim(ixO^S,iw_rho)
           else
-            w(ixO^S,iw_e)=w(ixO^S,iw_e) &
-              + qdt * gravity_field(ixO^S,idim) * wCT(ixO^S,iw_mom(idim))
+            if(size(iw_mom)<ndim) then
+              w(ixO^S,iw_e)=w(ixO^S,iw_e) &
+                + qdt*gravity_field(ixO^S,idim)*wCT(ixO^S,iw_mom(1))*block%B0(ixO^S,idim,0)
+            else
+              w(ixO^S,iw_e)=w(ixO^S,iw_e) &
+                + qdt*gravity_field(ixO^S,idim)*wCT(ixO^S,iw_mom(idim))
+            endif
           end if
         end if
       end do
     end if
-
   end subroutine gravity_add_source
 
   subroutine gravity_get_dt(w,ixI^L,ixO^L,dtnew,dx^D,x)
@@ -84,22 +89,16 @@ contains
     integer, intent(in)             :: ixI^L, ixO^L
     double precision, intent(in)    :: dx^D, x(ixI^S,1:ndim), w(ixI^S,1:nw)
     double precision, intent(inout) :: dtnew
-
     double precision                :: dxinv(1:ndim), max_grav
     integer                         :: idim
-
     double precision :: gravity_field(ixI^S,ndim)
 
     ^D&dxinv(^D)=one/dx^D;
-
     call usr_gravity(ixI^L,ixO^L,w,x,gravity_field)
-
     do idim = 1, ndim
       max_grav = maxval(abs(gravity_field(ixO^S,idim)))
       max_grav = max(max_grav, epsilon(1.0d0))
       dtnew = min(dtnew, 1.0d0 / sqrt(max_grav * dxinv(idim)))
     end do
-
   end subroutine gravity_get_dt
-
 end module mod_gravity

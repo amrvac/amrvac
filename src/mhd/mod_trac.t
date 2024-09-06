@@ -1,11 +1,8 @@
 module mod_trac
   use mod_global_parameters
-  use mod_mhd
-  use mod_functions_bfield, only: mag
-
+  use mod_physics
   implicit none
   private
-
   ! common
   integer :: numFL,numLP
   double precision :: dL,Tmax,trac_delta,T_bott
@@ -19,9 +16,7 @@ module mod_trac
   integer, allocatable :: trac_grid(:),ground_grid(:)
   integer :: ngrid_trac,ngrid_ground
   logical, allocatable :: trac_pe(:)
-
   public :: initialize_trac_after_settree
-
 contains
 
   subroutine init_trac_line(mask)
@@ -52,7 +47,7 @@ contains
     numFL=1
     do j=1,ndim-1
       ! number of field lines, every 4 finest grid, every direction
-      finegrid=mhd_trac_finegrid
+      finegrid=phys_trac_finegrid
       numL(j)=floor((xprobmax(j)-xprobmin(j))/dL/finegrid)
       numFL=numFL*numL(j)
     end do
@@ -95,7 +90,7 @@ contains
     ^D&xprobmax(^D)=xprobmax^D\
     ^D&dxT^D=(xprobmax^D-xprobmin^D)/(domain_nx^D*refine_factor/block_nx^D)\
     ^D&dxT(ndim)=dxT^D\
-    finegrid=mhd_trac_finegrid
+    finegrid=phys_trac_finegrid
     {^IFONED
       dL=dxT1/finegrid
     }
@@ -206,7 +201,7 @@ contains
     ! record pe and grid for mask region
     call update_pegrid()
     ! get temperature for the calculation of Te gradient, 
-    ! which will be stored in wextra(ixI^S,Tcoff_) temporarily
+    ! which will be stored in wextra(ixI^S,iw_Tcoff) temporarily
     call get_Te_grid()
     ! find out direction for tracing B field
     call get_Btracing_dir(ipel,igridl,forwardl)
@@ -265,8 +260,8 @@ contains
     xcmin^D=nghostcells+1\
     xcmax^D=block_nx^D+nghostcells\
     do iigrid=1,igridstail; igrid=igrids(iigrid);
-      ps(igrid)%wextra(:^D&,Tweight_)=zero
-      ps(igrid)%wextra(:^D&,Tcoff_)=zero
+      ps(igrid)%wextra(:^D&,iw_Tweight)=zero
+      ps(igrid)%wextra(:^D&,iw_Tcoff)=zero
       ^D&xbmin^D=rnode(rpxmin^D_,igrid)-xTmin(^D)\
       ^D&xbmax^D=rnode(rpxmax^D_,igrid)-xTmin(^D)\
       xdmin^D=nint(xbmin^D/dxT^D)+1\
@@ -492,8 +487,8 @@ contains
                 else
                   weight=(1/ds)**weightIndex
                 endif
-                ps(igrid)%wextra(ixc^D,Tweight_)=ps(igrid)%wextra(ixc^D,Tweight_)+weight
-                ps(igrid)%wextra(ixc^D,Tcoff_)=ps(igrid)%wextra(ixc^D,Tcoff_)+weight*Tcoff_line(i)
+                ps(igrid)%wextra(ixc^D,iw_Tweight)=ps(igrid)%wextra(ixc^D,iw_Tweight)+weight
+                ps(igrid)%wextra(ixc^D,iw_Tcoff)=ps(igrid)%wextra(ixc^D,iw_Tcoff)+weight*Tcoff_line(i)
               {enddo\}
             else
               call mpistop("we need to check here 366Line in mod_trac.t")
@@ -504,10 +499,10 @@ contains
     end do
     ! finish interpolation
     do iigrid=1,igridstail; igrid=igrids(iigrid);
-      where (ps(igrid)%wextra(ixO^S,Tweight_)>0.d0)
-        ps(igrid)%wextra(ixO^S,Tcoff_)=ps(igrid)%wextra(ixO^S,Tcoff_)/ps(igrid)%wextra(ixO^S,Tweight_)
+      where (ps(igrid)%wextra(ixO^S,iw_Tweight)>0.d0)
+        ps(igrid)%wextra(ixO^S,iw_Tcoff)=ps(igrid)%wextra(ixO^S,iw_Tcoff)/ps(igrid)%wextra(ixO^S,iw_Tweight)
       elsewhere
-        ps(igrid)%wextra(ixO^S,Tcoff_)=0.2d0*Tmax
+        ps(igrid)%wextra(ixO^S,iw_Tcoff)=0.2d0*Tmax
       endwhere
     enddo
   end subroutine block_interp_grid
@@ -532,10 +527,9 @@ contains
     ixO^L=ixM^LL;
 
     do iigrid=1,igridstail; igrid=igrids(iigrid);
-      ps(igrid)%wextra(ixI^S,Tcoff_)=0.d0
-      ps(igrid)%wextra(ixI^S,Tweight_)=0.d0
+      ps(igrid)%wextra(ixI^S,iw_Tcoff)=0.d0
+      ps(igrid)%wextra(ixI^S,iw_Tweight)=0.d0
     end do
-
   end subroutine init_trac_Tcoff
 
   subroutine update_pegrid()
@@ -580,34 +574,25 @@ contains
     trac_pe=trac_pe_recv
 
     deallocate(trac_pe_recv)
-
   end subroutine traverse_gridtable
 
   subroutine get_Te_grid()
     integer :: ixI^L,ixO^L,igrid,iigrid,j
+    double precision :: rho(ixM^T)
 
     ixI^L=ixG^LL;
     ixO^L=ixM^LL;
-
     do j=1,ngrid_trac
       igrid=trac_grid(j)
-      
-      call mhd_get_pthermal(ps(igrid)%w,ps(igrid)%x,ixI^L,ixI^L,ps(igrid)%wextra(ixI^S,Tcoff_))
-      !TODO move  outside loop for optimziation? 
-      if(has_equi_rho0) then
-        ps(igrid)%wextra(ixI^S,Tcoff_)=ps(igrid)%wextra(ixI^S,Tcoff_)/&
-          (ps(igrid)%w(ixI^S,rho_) + ps(igrid)%equi_vars(ixI^S,equi_rho0_,0))
-      else
-        ps(igrid)%wextra(ixI^S,Tcoff_)=ps(igrid)%wextra(ixI^S,Tcoff_)/ps(igrid)%w(ixI^S,rho_)
-      endif
+      call phys_get_pthermal(ps(igrid)%w,ps(igrid)%x,ixI^L,ixI^L,ps(igrid)%wextra(ixI^S,iw_Tcoff))
+      call phys_get_rho(ps(igrid)%w,ps(igrid)%x,ixI^L,ixI^L,rho)
+      ps(igrid)%wextra(ixI^S,iw_Tcoff)=ps(igrid)%wextra(ixI^S,iw_Tcoff)/rho(ixI^S)
     enddo
-
   end subroutine get_Te_grid
 
   subroutine get_Btracing_dir(ipel,igridl,forwardl)
     integer :: ipel(numFL,numLP),igridl(numFL,numLP)
     logical :: forwardl(numFL)
-
     integer :: igrid,ixO^L,iFL,j,ix^D,idir,ixb^D,ixbb^D
     double precision :: xb^L,dxb^D,xd^D,factor,Bh
     integer :: numL(ndim),ixmin(ndim),ixmax(ndim),ix(ndim)
@@ -616,7 +601,6 @@ contains
     ipel=-1
     igridl=0
     forwardl=.TRUE.
-
     ^D&ixOmin^D=ixmlo^D;
     ^D&ixOmax^D=ixmhi^D;
 
@@ -625,13 +609,12 @@ contains
       ^D&dxb^D=rnode(rpdx^D_,igrid);
       ^D&xbmin^D=rnode(rpxmin^D_,igrid);
       ^D&xbmax^D=rnode(rpxmax^D_,igrid);
-      ^D&ixmin(^D)=floor((xbmin^D-xprobmin^D)/(mhd_trac_finegrid*dL))+1;
-      ^D&ixmax(^D)=floor((xbmax^D-xprobmin^D)/(mhd_trac_finegrid*dL));
-      ^D&numL(^D)=floor((xprobmax^D-xprobmin^D)/(mhd_trac_finegrid*dL));
+      ^D&ixmin(^D)=floor((xbmin^D-xprobmin^D)/(phys_trac_finegrid*dL))+1;
+      ^D&ixmax(^D)=floor((xbmax^D-xprobmin^D)/(phys_trac_finegrid*dL));
+      ^D&numL(^D)=floor((xprobmax^D-xprobmin^D)/(phys_trac_finegrid*dL));
       ixmin(^ND)=1
       ixmax(^ND)=1
       numL(^ND)=1
-
       {do ix^DB=ixmin(^DB),ixmax(^DB)\}
         ^D&ix(^D)=ix^D;
         iFL=0
@@ -640,16 +623,19 @@ contains
         enddo
         ipel(iFL,1)=mype
         igridl(iFL,1)=igrid
-
         ^D&ixb^D=floor((xFi(iFL,^D)-ps(igrid)%x(ixOmin^DD,^D))/dxb^D)+ixOmin^D;
         ^D&xd^D=(xFi(iFL,^D)-ps(igrid)%x(ixb^DD,^D))/dxb^D;
         Bh=0.d0
         {do ixbb^D=0,1\}
           factor={abs(1-ix^D-xd^D)*}
           if (B0field) then
-            Bh=Bh+factor*(ps(igrid)%w(ixb^D+ixbb^D,mag(^ND))+ps(igrid)%B0(ixb^D+ixbb^D,^ND,0))
+            if(allocated(iw_mag)) then
+              Bh=Bh+factor*(ps(igrid)%w(ixb^D+ixbb^D,iw_mag(^ND))+ps(igrid)%B0(ixb^D+ixbb^D,^ND,0))
+            else
+              Bh=Bh+factor*(ps(igrid)%B0(ixb^D+ixbb^D,^ND,0))
+            endif
           else
-            Bh=Bh+factor*ps(igrid)%w(ixb^D+ixbb^D,mag(^ND))
+            Bh=Bh+factor*ps(igrid)%w(ixb^D+ixbb^D,iw_mag(^ND))
           endif
         {enddo\}
         if (Bh>0) then
@@ -659,23 +645,19 @@ contains
         endif
       {enddo\}
     enddo
-
     call MPI_ALLREDUCE(forwardl,forwardRC,numFL,MPI_LOGICAL,&
                          MPI_LAND,icomm,ierrmpi)
     forwardl=forwardRC
-
   end subroutine get_Btracing_dir
 
   subroutine get_Tcoff_line(xFL,numR,TcoffFL,ipeFL,igridFL,forwardFL,mask)
     use mod_trace_field
-
     double precision :: xFL(numFL,numLP,ndim)
     integer :: numR(numFL)
     double precision :: TcoffFL(numFL),TmaxFL(numFL)
     integer :: ipeFL(numFL,numLP),igridFL(numFL,numLP)
     logical :: forwardFL(numFL)
     logical, intent(in) :: mask
-
     integer :: nwP,nwL,iFL,iLP
     double precision :: wPm(numFL,numLP,2),wLm(numFL,1+2)
     character(len=std_len) :: ftype,tcondi
@@ -707,15 +689,12 @@ contains
         enddo
       endif
     enddo
-
-
   end subroutine get_Tcoff_line
 
   subroutine interp_Tcoff(xF,ipel,igridl,numR,Tlcoff)
     double precision :: xF(numFL,numLP,ndim)
     integer :: numR(numFL),ipel(numFL,numLP),igridl(numFL,numLP)
     double precision :: Tlcoff(numFL)
-
     integer :: iFL,iLP,ixO^L,ixI^L,ixc^L,ixb^L,ixc^D
     integer :: igrid,j,ipmin,ipmax,igrid_nb
     double precision :: dxb^D,dxMax^D,xb^L,Tcnow
@@ -770,8 +749,8 @@ contains
             else
               weight=(1/ds)**weightIndex
             endif
-            ps(igrid)%wextra(ixc^D,Tweight_)=ps(igrid)%wextra(ixc^D,Tweight_)+weight
-            ps(igrid)%wextra(ixc^D,Tcoff_)=ps(igrid)%wextra(ixc^D,Tcoff_)+weight*Tcnow
+            ps(igrid)%wextra(ixc^D,iw_Tweight)=ps(igrid)%wextra(ixc^D,iw_Tweight)+weight
+            ps(igrid)%wextra(ixc^D,iw_Tcoff)=ps(igrid)%wextra(ixc^D,iw_Tcoff)+weight*Tcnow
           {enddo\}
           
           ! do interpolation in neighbor grids that have the same level and pe
@@ -800,8 +779,8 @@ contains
                   else
                     weight=(1/ds)**weightIndex
                   endif
-                  ps(igrid_nb)%wextra(ixc^DD,Tweight_)=ps(igrid_nb)%wextra(ixc^DD,Tweight_)+weight
-                  ps(igrid_nb)%wextra(ixc^DD,Tcoff_)=ps(igrid_nb)%wextra(ixc^DD,Tcoff_)+weight*Tcnow
+                  ps(igrid_nb)%wextra(ixc^DD,iw_Tweight)=ps(igrid_nb)%wextra(ixc^DD,iw_Tweight)+weight
+                  ps(igrid_nb)%wextra(ixc^DD,iw_Tcoff)=ps(igrid_nb)%wextra(ixc^DD,iw_Tcoff)+weight*Tcnow
                 {enddo;}
               endif
             endif
@@ -831,8 +810,8 @@ contains
                     else
                       weight=(1/ds)**weightIndex
                     endif
-                    ps(igrid_nb)%wextra(ixc^DD,Tweight_)=ps(igrid_nb)%wextra(ixc^DD,Tweight_)+weight
-                    ps(igrid_nb)%wextra(ixc^DD,Tcoff_)=ps(igrid_nb)%wextra(ixc^DD,Tcoff_)+weight*Tcnow
+                    ps(igrid_nb)%wextra(ixc^DD,iw_Tweight)=ps(igrid_nb)%wextra(ixc^DD,iw_Tweight)+weight
+                    ps(igrid_nb)%wextra(ixc^DD,iw_Tcoff)=ps(igrid_nb)%wextra(ixc^DD,iw_Tcoff)+weight*Tcnow
                   {enddo;}
                 endif
               endif
@@ -844,18 +823,15 @@ contains
       enddo
     enddo
 
-
     do j=1,ngrid_trac
       igrid=trac_grid(j)
-      where(ps(igrid)%wextra(ixO^S,Tweight_)>0.d0)
-        ps(igrid)%wextra(ixO^S,Tcoff_)=ps(igrid)%wextra(ixO^S,Tcoff_)/ps(igrid)%wextra(ixO^S,Tweight_)
+      where(ps(igrid)%wextra(ixO^S,iw_Tweight)>0.d0)
+        ps(igrid)%wextra(ixO^S,iw_Tcoff)=ps(igrid)%wextra(ixO^S,iw_Tcoff)/ps(igrid)%wextra(ixO^S,iw_Tweight)
       elsewhere
-        ps(igrid)%wextra(ixO^S,Tcoff_)=T_bott
+        ps(igrid)%wextra(ixO^S,iw_Tcoff)=T_bott
       endwhere
     enddo
-
   end subroutine interp_Tcoff
-
 
   subroutine trac_after_setdt(tco,trac_alfa,T_peak, T_bott_in)
        double precision, intent(in)    :: trac_alfa,tco,T_peak, T_bott_in
@@ -887,7 +863,6 @@ contains
       case default
         call mpistop("undefined TRAC method type")
       end select
-
   end subroutine trac_after_setdt
 
   subroutine initialize_trac_after_settree
@@ -919,9 +894,5 @@ contains
         call init_trac_block(.true.)
       end if
     end if
-  
   end subroutine initialize_trac_after_settree
-
-
-
 end module mod_trac
