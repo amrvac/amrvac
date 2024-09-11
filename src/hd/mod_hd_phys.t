@@ -273,7 +273,7 @@ contains
     end do
 
     ! set number of variables which need update ghostcells
-    nwgc=nwflux
+    nwgc=nwflux+nwaux
 
     ! set the index of the last flux variable for species 1
     stop_indices(1)=nwflux

@@ -568,6 +568,7 @@ contains
     end if
 
     if(mhd_hyperbolic_thermal_conduction) then
+      ! hyperbolic thermal conduction flux q
       q_ = var_set_q()
       need_global_cmax=.true.
     else
@@ -580,11 +581,13 @@ contains
       tracer(itr) = var_set_fluxvar("trc", "trp", itr, need_bc=.false.)
     end do
 
-    ! set number of variables which need update ghostcells
-    nwgc=nwflux
-
-    ! set the index of the last flux variable for species 1
-    stop_indices(1)=nwflux
+    !if(mhd_hyperbolic_thermal_conduction) then
+    !  ! hyperbolic thermal conduction flux q
+    !  q_ = var_set_auxvar('q','q')
+    !  need_global_cmax=.true.
+    !else
+    !  q_=-1
+    !end if
 
     !  set temperature as an auxiliary variable to get ionization degree
     if(mhd_partial_ionization) then
@@ -592,6 +595,12 @@ contains
     else
       Te_ = -1
     end if
+
+    ! set number of variables which need update ghostcells
+    nwgc=nwflux+nwaux
+
+    ! set the index of the last flux variable for species 1
+    stop_indices(1)=nwflux
 
     ! set cutoff temperature when using the TRAC method, as well as an auxiliary weight
     Tweight_ = -1
@@ -3557,22 +3566,19 @@ contains
     end if
 
     if(mhd_hyperbolic_thermal_conduction) then
-      allocate(btot(ixO^S,ndim))
-      allocate(tmp2(ixO^S))
       if(B0field) then
         do idir=1,ndim
-          btot(ixO^S,idir)=w(ixO^S,mag(idir))+block%B0(ixO^S,idir,idir)
+          vHall(ixO^S,idir)=w(ixO^S,mag(idir))+block%B0(ixO^S,idir,idir)
         end do
       else
-        btot(ixO^S,1:ndim)=w(ixO^S,mag(1:ndim))
+        vHall(ixO^S,1:ndim)=w(ixO^S,mag(1:ndim))
       end if
-      tmp2(ixO^S)=sum(btot(ixO^S,1:ndim)**2,dim=ndim+1)
+      tmp(ixO^S)=dsqrt(sum(vHall(ixO^S,1:ndim)**2,dim=ndim+1))+smalldouble
       do idir=1,ndim
-        btot(ixO^S,idir)=btot(ixO^S,idir)/sqrt(tmp2(ixO^S))
-      enddo
-      f(ixO^S,e_)=f(ixO^S,e_)+w(ixO^S,q_)*btot(ixO^S,idim)
+        vHall(ixO^S,idir)=vHall(ixO^S,idir)/tmp(ixO^S)
+      end do
+      f(ixO^S,e_)=f(ixO^S,e_)+w(ixO^S,q_)*vHall(ixO^S,idim)
       f(ixO^S,q_)=zero
-      deallocate(btot,tmp2)
     end if
     ! Contributions of ambipolar term in explicit scheme
     if(mhd_ambipolar_exp.and. .not.stagger_grid) then
@@ -4547,11 +4553,13 @@ contains
     integer :: idims
     integer :: hxC^L,hxO^L,ixC^L,jxC^L,jxO^L,kxC^L
     double precision :: invdx
-    double precision, dimension(ixI^S) :: Te,tau,sigT,htc_qsrc,Tface
+    double precision, dimension(ixI^S) :: Te,tau,sigT,htc_qsrc,Tface,R
     double precision, dimension(ixI^S) :: htc_esrc,Bsum,Bunit
     double precision, dimension(ixI^S,1:ndim) :: Btot
 
-    Te(ixI^S)=wCTprim(ixI^S,p_)/wCT(ixI^S,rho_)
+    call mhd_get_Rfactor(wCTprim,x,ixI^L,ixI^L,R)
+    !Te(ixI^S)=wCTprim(ixI^S,p_)/wCT(ixI^S,rho_)
+    Te(ixI^S)=wCTprim(ixI^S,p_)/(R(ixI^S)*w(ixI^S,rho_))
     call get_tau(ixI^L,ixO^L,wCTprim,Te,tau,sigT)
     htc_qsrc=zero
     do idims=1,ndim
@@ -4561,7 +4569,7 @@ contains
         Btot(ixO^S,idims)=wCT(ixO^S,mag(idims))
       endif
     enddo
-    Bsum(ixO^S)=sum(Btot(ixO^S,:)**2,dim=ndim+1)
+    Bsum(ixO^S)=sqrt(sum(Btot(ixO^S,:)**2,dim=ndim+1))+smalldouble
     do idims=1,ndim
       invdx=1.d0/dxlevel(idims)
       ixC^L=ixO^L;
@@ -4571,7 +4579,7 @@ contains
       hxC^L=ixC^L-kr(idims,^D);
       hxO^L=ixO^L-kr(idims,^D);
       Tface(ixC^S)=(7.d0*(Te(ixC^S)+Te(jxC^S))-(Te(hxC^S)+Te(kxC^S)))/12.d0
-      Bunit(ixO^S)=Btot(ixO^S,idims)/sqrt(Bsum(ixO^S))
+      Bunit(ixO^S)=Btot(ixO^S,idims)/Bsum(ixO^S)
       htc_qsrc(ixO^S)=htc_qsrc(ixO^S)+sigT(ixO^S)*Bunit(ixO^S)*(Tface(ixO^S)-Tface(hxO^S))*invdx
     end do
     htc_qsrc(ixO^S)=(htc_qsrc(ixO^S)+wCT(ixO^S,q_))/tau(ixO^S)
