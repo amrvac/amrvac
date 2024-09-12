@@ -2088,6 +2088,11 @@ contains
       select case (small_values_method)
       case ("replace")
         where(flag(ixO^S,rho_)) w(ixO^S,rho_) = small_density
+        do idir = 1, ndir
+          if(small_values_fix_iw(mom(idir))) then
+            where(flag(ixO^S,rho_)) w(ixO^S, mom(idir)) = 0.0d0
+          end if
+        end do
         if(mhd_energy) then
           if(primitive) then
             where(flag(ixO^S,e_)) w(ixO^S,p_) = small_pressure
@@ -4856,7 +4861,11 @@ contains
     else
       call divvector(wCTprim(ixI^S,mom(:)),ixI^L,ixO^L,divv)
     end if
-    w(ixO^S,e_)=w(ixO^S,e_)-qdt*wCTprim(ixO^S,p_)*divv(ixO^S)
+    divv(ixO^S)=qdt*wCTprim(ixO^S,p_)*divv(ixO^S)
+    where(w(ixO^S,e_)-divv(ixO^S)>small_e)
+      w(ixO^S,e_)=w(ixO^S,e_)-divv(ixO^S)
+    end where
+    !w(ixO^S,e_)=w(ixO^S,e_)-qdt*wCTprim(ixO^S,p_)*divv(ixO^S)
     if(mhd_ambipolar)then
       call add_source_ambipolar_internal_energy(qdt,ixI^L,ixO^L,wCT,w,x,e_)
     end if
