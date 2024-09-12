@@ -268,9 +268,11 @@ contains
 
     case (threestep)
        select case (t_integrator)
+       ! AGILE this is our integrator (default threestep)
        case (ssprk3)
           ! this is SSPRK(3,3) Gottlieb-Shu 1998 or SSP(3,2) depending on ssprk_order (3 vs 2)
-          
+         
+          ! TODO call advect1 with bg(2) instead of ps1 ??? 
           call advect1(flux_method,rk_beta11, idim^LIM,global_time,ps,global_time,ps1)
           
           !$OMP PARALLEL DO PRIVATE(igrid)
@@ -286,6 +288,7 @@ contains
           end do
           !$OMP END PARALLEL DO
           
+          ! TODO call advect1 with bg(3) instead of ps2 ??? 
           call advect1(flux_method,rk_beta22, idim^LIM,global_time+rk_c2*dt,ps1,global_time+rk_alfa22*rk_c2*dt,ps2)
           
           !$OMP PARALLEL DO PRIVATE(igrid)
@@ -301,6 +304,7 @@ contains
           end do
           !$OMP END PARALLEL DO
           
+          ! TODO call advect1 with bg(1) instead of ps ??? 
           call advect1(flux_method,rk_beta33, idim^LIM,global_time+rk_c3*dt,ps2,global_time+(1.0d0-rk_beta33)*dt,ps)
 
        case (RK3_BT)
@@ -676,32 +680,39 @@ contains
     end if
 
     qdt=dtfactor*dt
+    ! AGILE FIXME: The following replaces the `call advect1_grid` loop. The
+    ! `advect1_grid` variable is a function pointer to the configured solver.
+    ! Since NVidia doesn't support function pointers, we hard-code to use
+    ! `finite_volume_all` here. In the future this needs to be replaced with
+    ! some logic to select the desired method.
+
+    call finite_volume_all()
     ! opedit: Just advance the active grids:
-    !$OMP PARALLEL DO PRIVATE(igrid)
-    do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
-      block=>ps(igrid)
-      ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
-      !$acc update device(dxlevel)
-      !$acc enter data attach(block)
+    !!$OMP PARALLEL DO PRIVATE(igrid)
+    !do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
+    !  block=>ps(igrid)
+    !  ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
+    !  !$acc update device(dxlevel)
+    !  !$acc enter data attach(block)
 
-      call advect1_grid(method(block%level),qdt,dtfactor,ixG^LL,idim^LIM,&
-        qtC,psa(igrid),qt,psb(igrid),fC,fE,rnode(rpdx1_:rnodehi,igrid),ps(igrid)%x)
+    !  call advect1_grid(method(block%level),qdt,dtfactor,ixG^LL,idim^LIM,&
+    !    qtC,psa(igrid),qt,psb(igrid),fC,fE,rnode(rpdx1_:rnodehi,igrid),ps(igrid)%x)
 
-      ! opedit: Obviously, flux is stored only for active grids.
-      ! but we know in fix_conserve wether there is a passive neighbor
-      ! but we know in conserve_fix wether there is a passive neighbor
-      ! via neighbor_active(i^D,igrid) thus we skip the correction for those.
-      ! This violates strict conservation when the active/passive interface
-      ! coincides with a coarse/fine interface.
+    !  ! opedit: Obviously, flux is stored only for active grids.
+    !  ! but we know in fix_conserve wether there is a passive neighbor
+    !  ! but we know in conserve_fix wether there is a passive neighbor
+    !  ! via neighbor_active(i^D,igrid) thus we skip the correction for those.
+    !  ! This violates strict conservation when the active/passive interface
+    !  ! coincides with a coarse/fine interface.
 
-      if (fix_conserve_global .and. fix_conserve_at_step) then
-        call store_flux(igrid,fC,idim^LIM,nwflux)
-        if(stagger_grid) call store_edge(igrid,ixG^LL,fE,idim^LIM)
-      end if
+    !  if (fix_conserve_global .and. fix_conserve_at_step) then
+    !    call store_flux(igrid,fC,idim^LIM,nwflux)
+    !    if(stagger_grid) call store_edge(igrid,ixG^LL,fE,idim^LIM)
+    !  end if
 
-      !$acc exit data detach(block)
-    end do
-    !$OMP END PARALLEL DO
+    !  !$acc exit data detach(block)
+    !end do
+    !!$OMP END PARALLEL DO
     
     ! opedit: Send flux for all grids, expects sends for all
     ! nsend_fc(^D), set in connectivity.t.
