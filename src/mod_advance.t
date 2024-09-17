@@ -690,7 +690,7 @@ contains
     ixO^L=ixG^L^LSUBnghostcells;
 
     call finite_volume_all( &
-        method(block%level), &          ! ffs_hllc or fs_hllcd
+        method(block%level), &          ! fs_hll
         qdt, dtfactor, &                ! some scalars related to time stepping
         ixG^LL, ixO^L, idim^LIM, &      ! bounds for some arrays
         qtC, &                          ! scalar related to time stepping
