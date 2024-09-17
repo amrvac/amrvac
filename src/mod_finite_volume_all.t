@@ -114,8 +114,6 @@ contains
   !> finite volume method computing all blocks
   subroutine finite_volume_all(method,qdt,dtfactor,ixI^L,ixO^L,idims^LIM, &
        qtC,bga,qt,bgb,fC,fE)
-    ! psT -> bga
-    ! snew -> bgb
     use mod_physics
     use mod_variables
     use mod_global_parameters
@@ -128,9 +126,8 @@ contains
     double precision, intent(in)                          :: qdt, dtfactor, qtC, qt, dxs(ndim)
     integer, intent(in)                                   :: ixI^L, ixO^L, idims^LIM
     double precision, dimension(ixI^S,1:ndim), intent(in) :: x
-    type(block_grid_t)                                    :: bgT
-    ! TODO: also replace snew???
-    type(state)                                           :: snew
+    type(block_grid_t)                                    :: bga
+    type(block_grid_t)                                    :: bgb
     double precision, dimension(ixI^S,1:nwflux,1:ndim)    :: fC
     double precision, dimension(ixI^S,sdim:3)             :: fE
 
@@ -159,7 +156,7 @@ contains
     integer  :: rho_, p_, e_, mom(1:ndir)
 
     ! TODO wCT and therefor wprim references need same treatment as sCT%w
-    associate(wCT=>bgT%w, wnew=>snew%w)
+    associate(wCT=>bga%w, wnew=>bgb%w)
 
       ! The flux calculation contracts by one in the idims direction it is applied.
       ! The limiter contracts the same directions by one more, so expand ixO by 2.
@@ -217,7 +214,7 @@ contains
     
 #ifndef _OPENACC         
          ! special modification of left and right status before flux evaluation
-         call phys_modify_wLR(ixI^L,ixCR^L,qt,wLC,wRC,wLp,wRp,sCT,idims)
+         call phys_modify_wLR(ixI^L,ixCR^L,qt,wLC,wRC,wLp,wRp,bga,idims)
 #endif
          
          ! evaluate physical fluxes according to reconstructed status
@@ -273,7 +270,7 @@ contains
        
       end do ! Next idims
       b0i=0
-      if(stagger_grid) call phys_update_faces(ixI^L,ixO^L,qt,qdt,wprim,fC,fE,sCT,snew,vcts)
+      if(stagger_grid) call phys_update_faces(ixI^L,ixO^L,qt,qdt,wprim,fC,fE,bga,bgb,vcts)
       if(slab_uniform) then
          dxinv=-qdt/dxs
          do idims= idims^LIM
@@ -330,7 +327,7 @@ contains
 
       if (.not.slab.and.idimsmin==1) &
            call phys_add_source_geom(qdt,dtfactor,ixI^L,ixO^L,wCT,wnew,x)
-      if(stagger_grid) call phys_face_to_center(ixO^L,snew)
+      if(stagger_grid) call phys_face_to_center(ixO^L,bgb)
 
 
       ! check and optionally correct unphysical values
