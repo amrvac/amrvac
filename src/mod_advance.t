@@ -651,15 +651,15 @@ contains
   end subroutine evaluate_implicit
 
   !> Integrate all grids by one partial step
-  subroutine advect1(method,dtfactor,idim^LIM,qtC,psa,qt,psb)
+  subroutine advect1(method,dtfactor,idim^LIM,qtC,bga,qt,bgb)
     use mod_global_parameters
     use mod_ghostcells_update
     use mod_fix_conserve
     use mod_physics
 
     integer, intent(in) :: idim^LIM
-    type(state), target :: psa(max_blocks) !< Compute fluxes based on this state
-    type(state), target :: psb(max_blocks) !< Update solution on this state
+    type(block_grid_t), target :: bga(max_blocks) !< Compute fluxes based on this state
+    type(block_grid_t), target :: bgb(max_blocks) !< Update solution on this state
     double precision, intent(in) :: dtfactor !< Advance over dtfactor * dt
     double precision, intent(in) :: qtC
     double precision, intent(in) :: qt
@@ -675,18 +675,30 @@ contains
 
     istep = istep+1
 
-    if(associated(phys_special_advance)) then
-      call phys_special_advance(qtC,psa)
-    end if
+    ! AGILE doesn't happen in our test case
+    ! if(associated(phys_special_advance)) then
+    !  call phys_special_advance(qtC,psa)
+    ! end if
 
     qdt=dtfactor*dt
-    ! AGILE FIXME: The following replaces the `call advect1_grid` loop. The
+    ! FIXME: AGILE The following replaces the `call advect1_grid` loop. The
     ! `advect1_grid` variable is a function pointer to the configured solver.
     ! Since NVidia doesn't support function pointers, we hard-code to use
     ! `finite_volume_all` here. In the future this needs to be replaced with
     ! some logic to select the desired method.
 
-    call finite_volume_all()
+    ixO^L=ixG^L^LSUBnghostcells;
+
+    call finite_volume_all( &
+        method(block%level), &          ! ffs_hllc or fs_hllcd
+        qdt, dtfactor, &                ! some scalars related to time stepping
+        ixG^LL, ixO^L, idim^LIM, &      ! bounds for some arrays
+        qtC, &                          ! scalar related to time stepping
+        bga, &                          ! first block grid
+        qt,  &                          ! scalar related to time stepping
+        bgb, &                          ! second block grid
+        fC, fE &                        ! fluxes
+    )
     ! opedit: Just advance the active grids:
     !!$OMP PARALLEL DO PRIVATE(igrid)
     !do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
@@ -699,7 +711,7 @@ contains
     !    qtC,psa(igrid),qt,psb(igrid),fC,fE,rnode(rpdx1_:rnodehi,igrid),ps(igrid)%x)
 
     !  ! opedit: Obviously, flux is stored only for active grids.
-    !  ! but we know in fix_conserve wether there is a passive neighbor
+    !  ! but we know in fix_conserve wether there is a passivegneighbor
     !  ! but we know in conserve_fix wether there is a passive neighbor
     !  ! via neighbor_active(i^D,igrid) thus we skip the correction for those.
     !  ! This violates strict conservation when the active/passive interface

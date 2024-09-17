@@ -113,7 +113,9 @@ contains
   !AGILE
   !> finite volume method computing all blocks
   subroutine finite_volume_all(method,qdt,dtfactor,ixI^L,ixO^L,idims^LIM, &
-       qtC,bgT,qt,snew,fC,fE,dxs,x)
+       qtC,bga,qt,bgb,fC,fE)
+    ! psT -> bga
+    ! snew -> bgb
     use mod_physics
     use mod_variables
     use mod_global_parameters
