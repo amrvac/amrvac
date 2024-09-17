@@ -6,6 +6,7 @@ doc/html/*
 *.log
 *.mod
 *.o
+amrvac.h
 *amrvac
 *.amrvac.log.shfp.*
 *F90sources
