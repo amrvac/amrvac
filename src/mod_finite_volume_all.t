@@ -1122,7 +1122,7 @@ contains
 
     end subroutine get_hlld2_modif_c
 
-  end subroutine finite_volume
+  end subroutine finite_volume_all
 
 
   subroutine reconstruct_LR(ixI^L,ixL^L,ixR^L,idims,w,wLC,wRC,wLp,wRp,x,dxdim)
