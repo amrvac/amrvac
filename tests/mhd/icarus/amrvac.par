@@ -5,7 +5,7 @@
  &filelist
         autoconvert   = .true.
         saveprim      = .true.
-        base_filename ='./paper_testcase/testcase'
+        base_filename ='icarus_3d'
         convert_type  = 'vtuBCCmpi'
         typefilelog = 'regression_test'
         slice_type    = 'csv'
