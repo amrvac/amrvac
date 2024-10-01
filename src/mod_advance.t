@@ -305,7 +305,7 @@ contains
           !$OMP END PARALLEL DO
           
           ! TODO call advect1 with bg(1) instead of ps ??? 
-          call advect1(flux_method,rk_beta33,
+          call advect1(flux_method,rk_beta33, &
                 idim^LIM,global_time+rk_c3*dt,ps2,bg(3),global_time+(1.0d0-rk_beta33)*dt,ps,bg(1))
 
        case (RK3_BT)
@@ -769,6 +769,7 @@ contains
   subroutine advect1_grid(method,qdt,dtfactor,ixI^L,idim^LIM,qtC,sCT,qt,s,fC,fE,dxs,x)
 
     !  integrate one grid by one partial step
+    use mod_finite_volume_all
     use mod_finite_volume
     use mod_finite_difference
     use mod_tvd

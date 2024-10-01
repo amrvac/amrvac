@@ -126,7 +126,8 @@ contains
     integer, intent(in)                                   :: method
     double precision, intent(in)                          :: qdt, dtfactor, qtC, qt
     integer, intent(in)                                   :: ixI^L, ixO^L, idims^LIM
-    type(state), target                                   :: psa(max_blocks)    type(state), target                                   :: psb(max_blocks)
+    type(state), target                                   :: psa(max_blocks)
+    type(state), target                                   :: psb(max_blocks)
     type(block_grid_t), target                            :: bga(max_blocks)
     type(block_grid_t), target                            :: bgb(max_blocks)
     double precision, dimension(ixI^S,1:nwflux,1:ndim)    :: fC
@@ -171,14 +172,14 @@ contains
           if (ixI^L^LTix^L|.or.|.or.) &
                call mpistop("Error in fv : Nonconforming input limits")
 
-          !$acc kernels present(fC, wCT)
+          ! no longer !$acc kernels present(fC, wCT)
           fC=0.d0     ! this is updated every loop iteration (eg l293),
                       ! how to then parallelize?
           fLC=0.d0
           fRC=0.d0
           
           wprim=wCT
-          !$acc end kernels
+          ! no longer !$acc end kernels
           
           call hd_to_primitive_gpu(ixI^L,ixI^L,wprim,x)
              
@@ -1352,4 +1353,4 @@ contains
 
   end subroutine reconstruct_LR_gpu
   
-end module mod_finite_volume
+end module mod_finite_volume_all
