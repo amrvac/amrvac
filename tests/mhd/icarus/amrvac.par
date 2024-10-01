@@ -32,7 +32,7 @@
         time_stepper      = 'twostep'
         flux_scheme       = 20*'tvdlf'
         !typepred1        = 20*'hancock'
-        limiter           = 20*'woodward'
+        limiter           = 20*'minmod'
         dimsplit          = .false.
         check_small_values = .false.
         !fix_small_values = .true.
