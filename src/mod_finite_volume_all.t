@@ -4,7 +4,7 @@ module mod_finite_volume_all
   implicit none
   private
 
-  public :: finite_volume
+  public :: finite_volume_all
   public :: hancock
   public :: reconstruct_LR
 
@@ -155,14 +155,19 @@ contains
     integer :: ix^D
     double precision, dimension(ixI^S,1:nwflux)     :: whll, Fhll, fCD
     double precision, dimension(ixI^S)              :: lambdaCD
-    integer  :: rho_, p_, e_, mom(1:ndir)
+    integer  :: rho_, p_, e_, mom(1:ndir), igrid, iigrid
+                
+    double precision, dimension(ixI^S,1:ndim) :: x
+    double precision                          :: dxs(ndim)
 
     !$acc parallel loop
     do iigrid=1,igridstail_active
         igrid=igrids_active(iigrid)
+        x = ps(igrid)%x
+        dxs = rnode(rpdx1_:rnodehi,igrid)
+
         ! TODO wCT and therefor wprim references need same treatment as sCT%w
-        associate(wCT=>psa%w(igrid), wnew=>psb%w(igrid), &
-                  x=>ps(igrid)%x, dxs=>rnode(rpdx1_:rnodehi,igrid))
+        associate(wCT=>psa(igrid)%w, wnew=>psb(igrid)%w)
           ! The flux calculation contracts by one in the idims direction it is applied.
           ! The limiter contracts the same directions by one more, so expand ixO by 2.
           ix^L=ixO^L;
@@ -207,10 +212,8 @@ contains
              ! is similar to cell-centered values, but in direction idims they are
              ! shifted half a cell towards the 'lower' direction.
           
-             !$acc kernels
              wRp(kxC^S,1:nw)=wprim(kxR^S,1:nw)
              wLp(kxC^S,1:nw)=wprim(kxC^S,1:nw)
-             !$acc end kernels
              
              ! Determine stencil size
              {ixCRmin^D = max(ixCmin^D - phys_wider_stencil,ixGlo^D)\}
@@ -277,7 +280,7 @@ contains
            
           end do ! Next idims
           b0i=0
-          if(stagger_grid) call phys_update_faces(ixI^L,ixO^L,qt,qdt,wprim,fC,fE,psa,psb,vcts)
+          if(stagger_grid) call phys_update_faces(ixI^L,ixO^L,qt,qdt,wprim,fC,fE,psa(igrid),psb(igrid),vcts)
           if(slab_uniform) then
              dxinv=-qdt/dxs
              do idims= idims^LIM
@@ -291,12 +294,12 @@ contains
     !               end do
     !            else
                    ! Multiply the fluxes by -dt/dx since Flux fixing expects this
-                !$acc kernels present(fC, wnew)
+                !!!!$acc kernels present(fC, wnew)
                 fC(ixI^S,1:nwflux,idims)=dxinv(idims)*fC(ixI^S,1:nwflux,idims)
     !            end if
                 wnew(ixO^S,iwstart:nwflux)=wnew(ixO^S,iwstart:nwflux)+&
                      (fC(ixO^S,iwstart:nwflux,idims)-fC(hxO^S,iwstart:nwflux,idims))
-                !$acc end kernels
+                !!!!$acc end kernels
                 
                 ! For the MUSCL scheme apply the characteristic based limiter
                 !FIXME: not implemented (needs to declare create further module variables)
@@ -334,7 +337,7 @@ contains
 
           if (.not.slab.and.idimsmin==1) &
                call phys_add_source_geom(qdt,dtfactor,ixI^L,ixO^L,wCT,wnew,x)
-          if(stagger_grid) call phys_face_to_center(ixO^L,psb)
+          if(stagger_grid) call phys_face_to_center(ixO^L,psb(igrid))
 
 
           ! check and optionally correct unphysical values
