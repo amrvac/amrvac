@@ -273,7 +273,7 @@ contains
           ! this is SSPRK(3,3) Gottlieb-Shu 1998 or SSP(3,2) depending on ssprk_order (3 vs 2)
          
           ! TODO call advect1 with bg(2) instead of ps1 ??? 
-          call advect1(flux_method,rk_beta11, idim^LIM,global_time,bg(1),global_time,bg(2))
+          call advect1(flux_method,rk_beta11, idim^LIM,global_time,ps,bg(1),global_time,ps1,bg(2))
           
           !$OMP PARALLEL DO PRIVATE(igrid)
           do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
@@ -289,7 +289,7 @@ contains
           !$OMP END PARALLEL DO
           
           ! TODO call advect1 with bg(3) instead of ps2 ??? 
-          call advect1(flux_method,rk_beta22, idim^LIM,global_time+rk_c2*dt,bg(2),global_time+rk_alfa22*rk_c2*dt,bg(3))
+          call advect1(flux_method,rk_beta22, idim^LIM,global_time+rk_c2*dt,ps1,bg(2),global_time+rk_alfa22*rk_c2*dt,ps2,bg(3))
           
           !$OMP PARALLEL DO PRIVATE(igrid)
           do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
@@ -305,7 +305,8 @@ contains
           !$OMP END PARALLEL DO
           
           ! TODO call advect1 with bg(1) instead of ps ??? 
-          call advect1(flux_method,rk_beta33, idim^LIM,global_time+rk_c3*dt,bg(3),global_time+(1.0d0-rk_beta33)*dt,bg(1))
+          call advect1(flux_method,rk_beta33,
+                idim^LIM,global_time+rk_c3*dt,ps2,bg(3),global_time+(1.0d0-rk_beta33)*dt,ps,bg(1))
 
        case (RK3_BT)
           ! this is a general threestep RK according to its Butcher Table
@@ -656,13 +657,15 @@ contains
   end subroutine evaluate_implicit
 
   !> Integrate all grids by one partial step
-  subroutine advect1(method,dtfactor,idim^LIM,qtC,bga,qt,bgb)
+  subroutine advect1(method,dtfactor,idim^LIM,qtC,psa,bga,qt,psb,bgb)
     use mod_global_parameters
     use mod_ghostcells_update
     use mod_fix_conserve
     use mod_physics
 
     integer, intent(in) :: idim^LIM
+    type(state), target :: psa(max_blocks) !< Compute fluxes based on this state
+    type(state), target :: psb(max_blocks) !< Update solution on this state
     type(block_grid_t), target :: bga(max_blocks) !< Compute fluxes based on this state
     type(block_grid_t), target :: bgb(max_blocks) !< Update solution on this state
     double precision, intent(in) :: dtfactor !< Advance over dtfactor * dt
@@ -699,8 +702,10 @@ contains
         qdt, dtfactor, &                ! some scalars related to time stepping
         ixG^LL, ixO^L, idim^LIM, &      ! bounds for some arrays
         qtC, &                          ! scalar related to time stepping
+        psa, &
         bga, &                          ! first block grid
         qt,  &                          ! scalar related to time stepping
+        psb, &
         bgb, &                          ! second block grid
         fC, fE &                        ! fluxes
     )

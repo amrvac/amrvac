@@ -111,9 +111,10 @@ contains
   end subroutine hancock
 
   !AGILE
+  ! psa was ps(igrid)
   !> finite volume method computing all blocks
   subroutine finite_volume_all(method,qdt,dtfactor,ixI^L,ixO^L,idims^LIM, &
-       qtC,bga,qt,bgb,fC,fE)
+       qtC,psa,bga,qt,psb,bgb,fC,fE)
     use mod_physics
     use mod_variables
     use mod_global_parameters
@@ -123,11 +124,11 @@ contains
     use mod_comm_lib, only: mpistop
 
     integer, intent(in)                                   :: method
-    double precision, intent(in)                          :: qdt, dtfactor, qtC, qt, dxs(ndim)
+    double precision, intent(in)                          :: qdt, dtfactor, qtC, qt
     integer, intent(in)                                   :: ixI^L, ixO^L, idims^LIM
-    double precision, dimension(ixI^S,1:ndim), intent(in) :: x
-    type(block_grid_t)                                    :: bga
-    type(block_grid_t)                                    :: bgb
+    type(state), target                                   :: psa(max_blocks)    type(state), target                                   :: psb(max_blocks)
+    type(block_grid_t), target                            :: bga(max_blocks)
+    type(block_grid_t), target                            :: bgb(max_blocks)
     double precision, dimension(ixI^S,1:nwflux,1:ndim)    :: fC
     double precision, dimension(ixI^S,sdim:3)             :: fE
 
@@ -155,191 +156,197 @@ contains
     double precision, dimension(ixI^S)              :: lambdaCD
     integer  :: rho_, p_, e_, mom(1:ndir)
 
-    ! TODO wCT and therefor wprim references need same treatment as sCT%w
-    associate(wCT=>bga%w, wnew=>bgb%w)
+    !$acc parallel loop
+    do iigrid=1,igridstail_active
+        igrid=igrids_active(iigrid)
+        ! TODO wCT and therefor wprim references need same treatment as sCT%w
+        associate(wCT=>psa%w(igrid), wnew=>psb%w(igrid), &
+                  x=>ps(igrid)%x, dxs=>rnode(rpdx1_:rnodehi,igrid))
+          ! The flux calculation contracts by one in the idims direction it is applied.
+          ! The limiter contracts the same directions by one more, so expand ixO by 2.
+          ix^L=ixO^L;
+          do idims= idims^LIM
+             ix^L=ix^L^LADD2*kr(idims,^D);
+          end do
+          if (ixI^L^LTix^L|.or.|.or.) &
+               call mpistop("Error in fv : Nonconforming input limits")
 
-      ! The flux calculation contracts by one in the idims direction it is applied.
-      ! The limiter contracts the same directions by one more, so expand ixO by 2.
-      ix^L=ixO^L;
-      do idims= idims^LIM
-         ix^L=ix^L^LADD2*kr(idims,^D);
-      end do
-      if (ixI^L^LTix^L|.or.|.or.) &
-           call mpistop("Error in fv : Nonconforming input limits")
+          !$acc kernels present(fC, wCT)
+          fC=0.d0     ! this is updated every loop iteration (eg l293),
+                      ! how to then parallelize?
+          fLC=0.d0
+          fRC=0.d0
+          
+          wprim=wCT
+          !$acc end kernels
+          
+          call hd_to_primitive_gpu(ixI^L,ixI^L,wprim,x)
+             
+          !$acc loop
+          do idims= idims^LIM
+             ! use interface value of w0 at idims
+             b0i=idims
 
-      !$acc kernels present(fC, wCT)
-      fC=0.d0
-      fLC=0.d0
-      fRC=0.d0
-      
-      wprim=wCT
-      !$acc end kernels
-      
-      call phys_to_primitive(ixI^L,ixI^L,wprim,x)
-            
-      do idims= idims^LIM
-         ! use interface value of w0 at idims
-         b0i=idims
+             hxO^L=ixO^L-kr(idims,^D);
 
-         hxO^L=ixO^L-kr(idims,^D);
+             kxCmin^D=ixImin^D; kxCmax^D=ixImax^D-kr(idims,^D);
+             kxR^L=kxC^L+kr(idims,^D);
 
-         kxCmin^D=ixImin^D; kxCmax^D=ixImax^D-kr(idims,^D);
-         kxR^L=kxC^L+kr(idims,^D);
+             if(stagger_grid) then
+                ! ct needs all transverse cells
+                ixCmax^D=ixOmax^D+nghostcells-nghostcells*kr(idims,^D);
+                ixCmin^D=hxOmin^D-nghostcells+nghostcells*kr(idims,^D);
+             else
+                ! ixC is centered index in the idims direction from ixOmin-1/2 to ixOmax+1/2
+                ixCmax^D=ixOmax^D; ixCmin^D=hxOmin^D;
+             end if
 
-         if(stagger_grid) then
-            ! ct needs all transverse cells
-            ixCmax^D=ixOmax^D+nghostcells-nghostcells*kr(idims,^D);
-            ixCmin^D=hxOmin^D-nghostcells+nghostcells*kr(idims,^D);
-         else
-            ! ixC is centered index in the idims direction from ixOmin-1/2 to ixOmax+1/2
-            ixCmax^D=ixOmax^D; ixCmin^D=hxOmin^D;
-         end if
+             ! wRp and wLp are defined at the same locations, and will correspond to
+             ! the left and right reconstructed values at a cell face. Their indexing
+             ! is similar to cell-centered values, but in direction idims they are
+             ! shifted half a cell towards the 'lower' direction.
+          
+             !$acc kernels
+             wRp(kxC^S,1:nw)=wprim(kxR^S,1:nw)
+             wLp(kxC^S,1:nw)=wprim(kxC^S,1:nw)
+             !$acc end kernels
+             
+             ! Determine stencil size
+             {ixCRmin^D = max(ixCmin^D - phys_wider_stencil,ixGlo^D)\}
+             {ixCRmax^D = min(ixCmax^D + phys_wider_stencil,ixGhi^D)\}
 
-         ! wRp and wLp are defined at the same locations, and will correspond to
-         ! the left and right reconstructed values at a cell face. Their indexing
-         ! is similar to cell-centered values, but in direction idims they are
-         ! shifted half a cell towards the 'lower' direction.
-      
-         !$acc kernels
-         wRp(kxC^S,1:nw)=wprim(kxR^S,1:nw)
-         wLp(kxC^S,1:nw)=wprim(kxC^S,1:nw)
-         !$acc end kernels
-         
-         ! Determine stencil size
-         {ixCRmin^D = max(ixCmin^D - phys_wider_stencil,ixGlo^D)\}
-         {ixCRmax^D = min(ixCmax^D + phys_wider_stencil,ixGhi^D)\}
-
-         ! apply limited reconstruction for left and right status at cell interfaces
-         call reconstruct_LR_gpu(ixI^L,ixCR^L,ixCR^L,idims,wprim,wLC,wRC,wLp,wRp,x,dxs(idims))
-    
+             ! apply limited reconstruction for left and right status at cell interfaces
+             call reconstruct_LR_gpu(ixI^L,ixCR^L,ixCR^L,idims,wprim,wLC,wRC,wLp,wRp,x,dxs(idims))
+        
 #ifndef _OPENACC         
-         ! special modification of left and right status before flux evaluation
-         call phys_modify_wLR(ixI^L,ixCR^L,qt,wLC,wRC,wLp,wRp,bga,idims)
+             ! special modification of left and right status before flux evaluation
+             call phys_modify_wLR(ixI^L,ixCR^L,qt,wLC,wRC,wLp,wRp,psa,idims)
 #endif
-         
-         ! evaluate physical fluxes according to reconstructed status
-         call phys_get_flux(wLC,wLp,x,ixI^L,ixC^L,idims,fLC)
-         call phys_get_flux(wRC,wRp,x,ixI^L,ixC^L,idims,fRC)
+             
+             ! evaluate physical fluxes according to reconstructed status
+             call hd_get_flux_gpu(wLC,wLp,x,ixI^L,ixC^L,idims,fLC)
+             call hd_get_flux_gpu(wRC,wRp,x,ixI^L,ixC^L,idims,fRC)
 
 #ifndef _OPENACC      
-         if(H_correction) then
-            call phys_get_H_speed(wprim,x,ixI^L,ixO^L,idims,Hspeed)
-         end if
+             if(H_correction) then
+                call phys_get_H_speed(wprim,x,ixI^L,ixO^L,idims,Hspeed)
+             end if
 #endif
-         
-         ! estimating bounds for the minimum and maximum signal velocities
-         if(method==fs_tvdlf.or.method==fs_tvdmu) then
-            call phys_get_cbounds(wLC,wRC,wLp,wRp,x,ixI^L,ixC^L,idims,Hspeed,cmaxC)
-            ! index of var  velocity appears in the induction eq. 
-            if(stagger_grid) call phys_get_ct_velocity(vcts,wLp,wRp,ixI^L,ixC^L,idims,cmaxC(ixI^S,index_v_mag))
+             
+             ! estimating bounds for the minimum and maximum signal velocities
+             if(method==fs_tvdlf.or.method==fs_tvdmu) then
+                call phys_get_cbounds(wLC,wRC,wLp,wRp,x,ixI^L,ixC^L,idims,Hspeed,cmaxC)
+                ! index of var  velocity appears in the induction eq. 
+                if(stagger_grid) call phys_get_ct_velocity(vcts,wLp,wRp,ixI^L,ixC^L,idims,cmaxC(ixI^S,index_v_mag))
 
-         else
-            call phys_get_cbounds(wLC,wRC,wLp,wRp,x,ixI^L,ixC^L,idims,Hspeed,cmaxC,cminC)
-            if(stagger_grid) call phys_get_ct_velocity(vcts,wLp,wRp,ixI^L,ixC^L,idims,cmaxC(ixI^S,index_v_mag),cminC(ixI^S,index_v_mag))
-         end if
-
-
-       ! use approximate Riemann solver to get flux at interfaces
-       select case(method)
-       case(fs_hll)
-         do ii=1,number_species
-!           call get_Riemann_flux_hll(start_indices(ii),stop_indices(ii))
-           call get_Riemann_flux_hll_gpu(start_indices(ii),stop_indices(ii))
-         end do
-       case(fs_hllc,fs_hllcd)
-         do ii=1,number_species
-           call get_Riemann_flux_hllc(start_indices(ii),stop_indices(ii))
-         end do
-       case(fs_hlld)
-         do ii=1,number_species
-           if(ii==index_v_mag) then
-             call get_Riemann_flux_hlld(start_indices(ii),stop_indices(ii))
-           else
-             call get_Riemann_flux_hll(start_indices(ii),stop_indices(ii))
-           endif   
-         end do
-       case(fs_tvdlf)
-         do ii=1,number_species
-           call get_Riemann_flux_tvdlf(start_indices(ii),stop_indices(ii))
-         end do
-       case(fs_tvdmu)
-         call get_Riemann_flux_tvdmu()
-       case default
-         call mpistop('unkown Riemann flux in finite volume')
-       end select
-       
-      end do ! Next idims
-      b0i=0
-      if(stagger_grid) call phys_update_faces(ixI^L,ixO^L,qt,qdt,wprim,fC,fE,bga,bgb,vcts)
-      if(slab_uniform) then
-         dxinv=-qdt/dxs
-         do idims= idims^LIM
-            hxO^L=ixO^L-kr(idims,^D);
-            ! TODO maybe put if outside loop idims: but too much code is copy pasted
-            ! this is also done in hancock and fd, centdiff in mod_finite_difference
-            !FIXME:
-!            if(local_timestep) then
-!               do iw=iwstart,nwflux
-!                  fC(ixI^S,iw,idims)=-block%dt(ixI^S)*dtfactor/dxs(idims)*fC(ixI^S,iw,idims)
-!               end do
-!            else
-               ! Multiply the fluxes by -dt/dx since Flux fixing expects this
-            !$acc kernels present(fC, wnew)
-            fC(ixI^S,1:nwflux,idims)=dxinv(idims)*fC(ixI^S,1:nwflux,idims)
-!            end if
-            wnew(ixO^S,iwstart:nwflux)=wnew(ixO^S,iwstart:nwflux)+&
-                 (fC(ixO^S,iwstart:nwflux,idims)-fC(hxO^S,iwstart:nwflux,idims))
-            !$acc end kernels
-            
-            ! For the MUSCL scheme apply the characteristic based limiter
-            !FIXME: not implemented (needs to declare create further module variables)
-!            if(method==fs_tvdmu) then
-!               call tvdlimit2(method,qdt,ixI^L,ixC^L,ixO^L,idims,wLC,wRC,wnew,x,fC,dxs)
-               !           print *, 'tvdllimit2 not yet available'
-!            end if
-         end do ! Next idims
-         
-      else
-         inv_volume = 1.d0/block%dvolume(ixO^S)
-         do idims= idims^LIM
-            hxO^L=ixO^L-kr(idims,^D);
-
-            if(local_timestep) then
-               do iw=iwstart,nwflux
-                  fC(ixI^S,iw,idims)=-block%dt(ixI^S)*dtfactor*fC(ixI^S,iw,idims)*block%surfaceC(ixI^S,idims)
-                  wnew(ixO^S,iw)=wnew(ixO^S,iw) + (fC(ixO^S,iw,idims)-fC(hxO^S,iw,idims)) * &
-                       inv_volume
-               end do
-            else
-               do iw=iwstart,nwflux
-                  fC(ixI^S,iw,idims)=-qdt*fC(ixI^S,iw,idims)*block%surfaceC(ixI^S,idims)
-                  wnew(ixO^S,iw)=wnew(ixO^S,iw) + (fC(ixO^S,iw,idims)-fC(hxO^S,iw,idims)) * &
-                       inv_volume
-               end do
-            end if
-            ! For the MUSCL scheme apply the characteristic based limiter
-            if (method==fs_tvdmu) then
-               call tvdlimit2(method,qdt,ixI^L,ixC^L,ixO^L,idims,wLC,wRC,wnew,x,fC,dxs)
-            end if
-
-         end do ! Next idims
-      end if
-
-      if (.not.slab.and.idimsmin==1) &
-           call phys_add_source_geom(qdt,dtfactor,ixI^L,ixO^L,wCT,wnew,x)
-      if(stagger_grid) call phys_face_to_center(ixO^L,bgb)
+             else
+                call phys_get_cbounds(wLC,wRC,wLp,wRp,x,ixI^L,ixC^L,idims,Hspeed,cmaxC,cminC)
+                if(stagger_grid) call phys_get_ct_velocity(vcts,wLp,wRp,ixI^L,ixC^L,idims,cmaxC(ixI^S,index_v_mag),cminC(ixI^S,index_v_mag))
+             end if
 
 
-      ! check and optionally correct unphysical values
-      if(fix_small_values) then
-         call phys_handle_small_values(.false.,wnew,x,ixI^L,ixO^L,'multi-D finite_volume')
-      end if
+           ! use approximate Riemann solver to get flux at interfaces
+           select case(method)
+           case(fs_hll)
+             do ii=1,number_species
+    !           call get_Riemann_flux_hll(start_indices(ii),stop_indices(ii))
+               call get_Riemann_flux_hll_gpu(start_indices(ii),stop_indices(ii))
+             end do
+           case(fs_hllc,fs_hllcd)
+             do ii=1,number_species
+               call get_Riemann_flux_hllc(start_indices(ii),stop_indices(ii))
+             end do
+           case(fs_hlld)
+             do ii=1,number_species
+               if(ii==index_v_mag) then
+                 call get_Riemann_flux_hlld(start_indices(ii),stop_indices(ii))
+               else
+                 call get_Riemann_flux_hll(start_indices(ii),stop_indices(ii))
+               endif   
+             end do
+           case(fs_tvdlf)
+             do ii=1,number_species
+               call get_Riemann_flux_tvdlf(start_indices(ii),stop_indices(ii))
+             end do
+           case(fs_tvdmu)
+             call get_Riemann_flux_tvdmu()
+           case default
+             call mpistop('unkown Riemann flux in finite volume')
+           end select
+           
+          end do ! Next idims
+          b0i=0
+          if(stagger_grid) call phys_update_faces(ixI^L,ixO^L,qt,qdt,wprim,fC,fE,psa,psb,vcts)
+          if(slab_uniform) then
+             dxinv=-qdt/dxs
+             do idims= idims^LIM
+                hxO^L=ixO^L-kr(idims,^D);
+                ! TODO maybe put if outside loop idims: but too much code is copy pasted
+                ! this is also done in hancock and fd, centdiff in mod_finite_difference
+                !FIXME:
+    !            if(local_timestep) then
+    !               do iw=iwstart,nwflux
+    !                  fC(ixI^S,iw,idims)=-block%dt(ixI^S)*dtfactor/dxs(idims)*fC(ixI^S,iw,idims)
+    !               end do
+    !            else
+                   ! Multiply the fluxes by -dt/dx since Flux fixing expects this
+                !$acc kernels present(fC, wnew)
+                fC(ixI^S,1:nwflux,idims)=dxinv(idims)*fC(ixI^S,1:nwflux,idims)
+    !            end if
+                wnew(ixO^S,iwstart:nwflux)=wnew(ixO^S,iwstart:nwflux)+&
+                     (fC(ixO^S,iwstart:nwflux,idims)-fC(hxO^S,iwstart:nwflux,idims))
+                !$acc end kernels
+                
+                ! For the MUSCL scheme apply the characteristic based limiter
+                !FIXME: not implemented (needs to declare create further module variables)
+    !            if(method==fs_tvdmu) then
+    !               call tvdlimit2(method,qdt,ixI^L,ixC^L,ixO^L,idims,wLC,wRC,wnew,x,fC,dxs)
+                   !           print *, 'tvdllimit2 not yet available'
+    !            end if
+             end do ! Next idims
+             
+          else
+             inv_volume = 1.d0/block%dvolume(ixO^S)
+             do idims= idims^LIM
+                hxO^L=ixO^L-kr(idims,^D);
 
-      call addsource2(qdt*dble(idimsmax-idimsmin+1)/dble(ndim),& 
-           dtfactor*dble(idimsmax-idimsmin+1)/dble(ndim),&
-           ixI^L,ixO^L,1,nw,qtC,wCT,wprim,qt,wnew,x,.false.,active)
+                if(local_timestep) then
+                   do iw=iwstart,nwflux
+                      fC(ixI^S,iw,idims)=-block%dt(ixI^S)*dtfactor*fC(ixI^S,iw,idims)*block%surfaceC(ixI^S,idims)
+                      wnew(ixO^S,iw)=wnew(ixO^S,iw) + (fC(ixO^S,iw,idims)-fC(hxO^S,iw,idims)) * &
+                           inv_volume
+                   end do
+                else
+                   do iw=iwstart,nwflux
+                      fC(ixI^S,iw,idims)=-qdt*fC(ixI^S,iw,idims)*block%surfaceC(ixI^S,idims)
+                      wnew(ixO^S,iw)=wnew(ixO^S,iw) + (fC(ixO^S,iw,idims)-fC(hxO^S,iw,idims)) * &
+                           inv_volume
+                   end do
+                end if
+                ! For the MUSCL scheme apply the characteristic based limiter
+                if (method==fs_tvdmu) then
+                   call tvdlimit2(method,qdt,ixI^L,ixC^L,ixO^L,idims,wLC,wRC,wnew,x,fC,dxs)
+                end if
 
-    end associate
+             end do ! Next idims
+          end if
+
+          if (.not.slab.and.idimsmin==1) &
+               call phys_add_source_geom(qdt,dtfactor,ixI^L,ixO^L,wCT,wnew,x)
+          if(stagger_grid) call phys_face_to_center(ixO^L,psb)
+
+
+          ! check and optionally correct unphysical values
+          if(fix_small_values) then
+             call phys_handle_small_values(.false.,wnew,x,ixI^L,ixO^L,'multi-D finite_volume')
+          end if
+
+          call addsource2(qdt*dble(idimsmax-idimsmin+1)/dble(ndim),& 
+               dtfactor*dble(idimsmax-idimsmin+1)/dble(ndim),&
+               ixI^L,ixO^L,1,nw,qtC,wCT,wprim,qt,wnew,x,.false.,active)
+
+        end associate
+    end do   ! igrid
 
   contains
 
