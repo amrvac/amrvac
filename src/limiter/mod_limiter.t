@@ -346,6 +346,7 @@ contains
   !> Accordingly, the typelim here corresponds to one of limiter
   !> or one of gradient_limiter.
   subroutine dwlimiter2_gpu(dwC,ixI^L,ixC^L,idims,typelim,ldw,rdw,a2max)
+    !$acc routine
 
     use mod_global_parameters
     use mod_comm_lib, only: mpistop
@@ -477,7 +478,6 @@ contains
        rdelinv=one/(cada3_radius*dxlevel(idims))**2
        
        if (present(ldw)) then
-          !$acc parallel loop collapse(ndim) present(ldw, dwC) firstprivate(ioffset^D, ixO^L, rdelinv) private(tmp_s, ldwA_s, ldwB_s, tmp2_s, tmpeta_s)
           {^D& do ix^DB=ixOmin^DB, ixOmax^DB\}
           tmpeta_s = (dwC(ix^D)**2 + dwC(ix^D+ioffset^D)**2) * rdelinv
           tmp_s    = dwC(ix^D+ioffset^D) / (dwC(ix^D) + sign(eps, dwC(ix^D)))
@@ -501,7 +501,6 @@ contains
        end if
 
        if (present(rdw)) then
-          !$acc parallel loop collapse(ndim) present(rdw, dwC) firstprivate(ioffset^D, ixO^L, rdelinv) private(tmp_s, ldwA_s, ldwB_s, tmp2_s, tmpeta_s)
           {^D& do ix^DB=ixOmin^DB, ixOmax^DB\}
           tmpeta_s = (dwC(ix^D)**2 + dwC(ix^D+ioffset^D)**2) * rdelinv
           tmp_s    = dwC(ix^D) / (dwC(ix^D+ioffset^D) + sign(eps, dwC(ix^D+ioffset^D)))

@@ -409,10 +409,10 @@ contains
     end subroutine get_Riemann_flux_hll
 
     subroutine get_Riemann_flux_hll_gpu(iws,iwe)
+        !$acc routine
       integer, intent(in) :: iws,iwe
       integer :: ix^D
 
-      !$acc parallel loop collapse(^ND+1) present(fC)
       do iw=iws,iwe
          {do ix^DB=ixCmin^DB,ixCmax^DB\}
          if(cminC(ix^D,ii) >= zero) then
@@ -1261,6 +1261,7 @@ contains
   !> Determine the upwinded wLC(ixL) and wRC(ixR) from w.
   !> the wCT is only used when PPM is exploited.
   subroutine reconstruct_LR_gpu(ixI^L,ixL^L,ixR^L,idims,w,wLC,wRC,wLp,wRp,x,dxdim)
+    !$acc routine
     use mod_physics
     use mod_global_parameters
     use mod_limiter
@@ -1288,16 +1289,12 @@ contains
        jxC^L=ixC^L+kr(idims,^D);
        do iw=1,nwflux
           if (loglimit(iw)) then
-             !$acc kernels
              w(ixCmin^D:jxCmax^D,iw)=dlog10(w(ixCmin^D:jxCmax^D,iw))
              wLp(ixL^S,iw)=dlog10(wLp(ixL^S,iw))
              wRp(ixR^S,iw)=dlog10(wRp(ixR^S,iw))
-             !$acc end kernels
           end if
 
-          !$acc kernels
           dwC(ixC^S)=w(jxC^S,iw)-w(ixC^S,iw)
-          !$acc end kernels
           if(need_global_a2max) then 
              a2max=a2max_global(idims)
           else
@@ -1319,17 +1316,13 @@ contains
 
           ! limit flux from left and/or right
           call dwlimiter2_gpu(dwC,ixI^L,ixC^L,idims,type_limiter(block%level),ldw,rdw,a2max=a2max)
-          !$acc kernels
           wLp(ixL^S,iw)=wLp(ixL^S,iw)+half*ldw(ixL^S)
           wRp(ixR^S,iw)=wRp(ixR^S,iw)-half*rdw(jxR^S)
-          !$acc end kernels
 
           if (loglimit(iw)) then
-             !$acc kernels
              w(ixCmin^D:jxCmax^D,iw)=10.0d0**w(ixCmin^D:jxCmax^D,iw)
              wLp(ixL^S,iw)=10.0d0**wLp(ixL^S,iw)
              wRp(ixR^S,iw)=10.0d0**wRp(ixR^S,iw)
-             !$acc end kernels
           end if
        end do
        if(fix_small_values) then
@@ -1339,19 +1332,15 @@ contains
 
     end select
     
-    !$acc kernels
     wLC(ixL^S,1:nwflux) = wLp(ixL^S,1:nwflux)
     wRC(ixR^S,1:nwflux) = wRp(ixR^S,1:nwflux)
-    !$acc end kernels
     
     call phys_to_conserved(ixI^L,ixL^L,wLC,x)
     call phys_to_conserved(ixI^L,ixR^L,wRC,x)
 
     if(nwaux>0)then
-       !$acc kernels
        wLp(ixL^S,nwflux+1:nwflux+nwaux) = wLC(ixL^S,nwflux+1:nwflux+nwaux)
        wRp(ixR^S,nwflux+1:nwflux+nwaux) = wRC(ixR^S,nwflux+1:nwflux+nwaux)
-       !$acc end kernels
     endif
 
   end subroutine reconstruct_LR_gpu

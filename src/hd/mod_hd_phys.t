@@ -1411,6 +1411,7 @@ contains
 
   ! Calculate flux f_idim[iw]
   subroutine hd_get_flux_gpu(wC, w, x, ixI^L, ixO^L, idim, f)
+    !$acc routine
     use mod_global_parameters
 
     integer, intent(in)             :: ixI^L, ixO^L, idim
@@ -1422,7 +1423,6 @@ contains
     double precision, intent(out)   :: f(ixI^S, nwflux)
     integer                         :: idir, itr, ix^D
 
-    !$acc parallel loop collapse(^ND) present(f) firstprivate(idim, ixO^L) private(idir, itr)
     {^D& do ix^DB=ixOmin^DB,ixOmax^DB\}
     
        f(ix^D, rho_) = w(ix^D, mom(idim)) * w(ix^D, rho_)
