@@ -208,6 +208,7 @@ mod_finite_volume.o: mod_usr_methods.mod
 mod_finite_volume.o: mod_variables.mod
 mod_finite_volume_all.o: mod_comm_lib.mod
 mod_finite_volume_all.o: mod_global_parameters.mod
+mod_finite_volume_all.o: mod_hd_phys.mod
 mod_finite_volume_all.o: mod_limiter.mod
 mod_finite_volume_all.o: mod_physics.mod
 mod_finite_volume_all.o: mod_source.mod

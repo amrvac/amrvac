@@ -122,6 +122,7 @@ contains
     use mod_source, only: addsource2
     use mod_usr_methods
     use mod_comm_lib, only: mpistop
+    use mod_hd_phys, only: hd_get_flux_gpu, hd_to_primitive_gpu, hd_get_cbounds_gpu, hd_to_conserved_gpu
 
     integer, intent(in)                                   :: method
     double precision, intent(in)                          :: qdt, dtfactor, qtC, qt
@@ -216,6 +217,7 @@ contains
              wLp(kxC^S,1:nw)=wprim(kxC^S,1:nw)
              
              ! Determine stencil size
+             ! FIXME: here `phys_wider_stencil` is an integer, not a function pointer
              {ixCRmin^D = max(ixCmin^D - phys_wider_stencil,ixGlo^D)\}
              {ixCRmax^D = min(ixCmax^D + phys_wider_stencil,ixGhi^D)\}
 
@@ -238,15 +240,15 @@ contains
 #endif
              
              ! estimating bounds for the minimum and maximum signal velocities
-             if(method==fs_tvdlf.or.method==fs_tvdmu) then
-                call phys_get_cbounds(wLC,wRC,wLp,wRp,x,ixI^L,ixC^L,idims,Hspeed,cmaxC)
-                ! index of var  velocity appears in the induction eq. 
-                if(stagger_grid) call phys_get_ct_velocity(vcts,wLp,wRp,ixI^L,ixC^L,idims,cmaxC(ixI^S,index_v_mag))
+             ! if(method==fs_tvdlf.or.method==fs_tvdmu) then
+             !    call phys_get_cbounds(wLC,wRC,wLp,wRp,x,ixI^L,ixC^L,idims,Hspeed,cmaxC)
+             !    ! index of var  velocity appears in the induction eq. 
+             !    if(stagger_grid) call phys_get_ct_velocity(vcts,wLp,wRp,ixI^L,ixC^L,idims,cmaxC(ixI^S,index_v_mag))
 
-             else
-                call phys_get_cbounds(wLC,wRC,wLp,wRp,x,ixI^L,ixC^L,idims,Hspeed,cmaxC,cminC)
-                if(stagger_grid) call phys_get_ct_velocity(vcts,wLp,wRp,ixI^L,ixC^L,idims,cmaxC(ixI^S,index_v_mag),cminC(ixI^S,index_v_mag))
-             end if
+             ! else
+                call hd_get_cbounds_gpu(wLC,wRC,wLp,wRp,x,ixI^L,ixC^L,idims,Hspeed,cmaxC,cminC)
+             !   if(stagger_grid) call phys_get_ct_velocity(vcts,wLp,wRp,ixI^L,ixC^L,idims,cmaxC(ixI^S,index_v_mag),cminC(ixI^S,index_v_mag))
+             ! end if
 
 
            ! use approximate Riemann solver to get flux at interfaces
@@ -256,31 +258,31 @@ contains
     !           call get_Riemann_flux_hll(start_indices(ii),stop_indices(ii))
                call get_Riemann_flux_hll_gpu(start_indices(ii),stop_indices(ii))
              end do
-           case(fs_hllc,fs_hllcd)
-             do ii=1,number_species
-               call get_Riemann_flux_hllc(start_indices(ii),stop_indices(ii))
-             end do
-           case(fs_hlld)
-             do ii=1,number_species
-               if(ii==index_v_mag) then
-                 call get_Riemann_flux_hlld(start_indices(ii),stop_indices(ii))
-               else
-                 call get_Riemann_flux_hll(start_indices(ii),stop_indices(ii))
-               endif   
-             end do
-           case(fs_tvdlf)
-             do ii=1,number_species
-               call get_Riemann_flux_tvdlf(start_indices(ii),stop_indices(ii))
-             end do
-           case(fs_tvdmu)
-             call get_Riemann_flux_tvdmu()
+     !      case(fs_hllc,fs_hllcd)
+     !        do ii=1,number_species
+     !          call get_Riemann_flux_hllc(start_indices(ii),stop_indices(ii))
+     !        end do
+     !      case(fs_hlld)
+     !        do ii=1,number_species
+     !          if(ii==index_v_mag) then
+     !            call get_Riemann_flux_hlld(start_indices(ii),stop_indices(ii))
+     !          else
+     !            call get_Riemann_flux_hll(start_indices(ii),stop_indices(ii))
+     !          endif   
+     !        end do
+     !      case(fs_tvdlf)
+     !        do ii=1,number_species
+     !          call get_Riemann_flux_tvdlf(start_indices(ii),stop_indices(ii))
+     !        end do
+     !      case(fs_tvdmu)
+     !        call get_Riemann_flux_tvdmu()
            case default
              call mpistop('unkown Riemann flux in finite volume')
            end select
            
           end do ! Next idims
           b0i=0
-          if(stagger_grid) call phys_update_faces(ixI^L,ixO^L,qt,qdt,wprim,fC,fE,psa(igrid),psb(igrid),vcts)
+          ! if(stagger_grid) call phys_update_faces(ixI^L,ixO^L,qt,qdt,wprim,fC,fE,psa(igrid),psb(igrid),vcts)
           if(slab_uniform) then
              dxinv=-qdt/dxs
              do idims= idims^LIM
@@ -335,15 +337,15 @@ contains
              end do ! Next idims
           end if
 
-          if (.not.slab.and.idimsmin==1) &
-               call phys_add_source_geom(qdt,dtfactor,ixI^L,ixO^L,wCT,wnew,x)
-          if(stagger_grid) call phys_face_to_center(ixO^L,psb(igrid))
+          !if (.not.slab.and.idimsmin==1) &
+          !     call phys_add_source_geom(qdt,dtfactor,ixI^L,ixO^L,wCT,wnew,x)
+          ! if(stagger_grid) call phys_face_to_center(ixO^L,psb(igrid))
 
 
           ! check and optionally correct unphysical values
-          if(fix_small_values) then
-             call phys_handle_small_values(.false.,wnew,x,ixI^L,ixO^L,'multi-D finite_volume')
-          end if
+          ! if(fix_small_values) then
+          !   call phys_handle_small_values(.false.,wnew,x,ixI^L,ixO^L,'multi-D finite_volume')
+          ! end if
 
           call addsource2(qdt*dble(idimsmax-idimsmin+1)/dble(ndim),& 
                dtfactor*dble(idimsmax-idimsmin+1)/dble(ndim),&
@@ -1266,6 +1268,7 @@ contains
     use mod_global_parameters
     use mod_limiter
     use mod_comm_lib, only: mpistop
+    use mod_hd_phys, only: hd_to_conserved_gpu
 
     integer, value, intent(in) :: ixI^L, ixL^L, ixR^L, idims
     double precision, intent(in) :: dxdim
@@ -1279,7 +1282,7 @@ contains
 
     integer            :: jxR^L, ixC^L, jxC^L, iw
     double precision   :: ldw(ixI^S), rdw(ixI^S), dwC(ixI^S)
-    !$acc declare create(ldw, rdw, dwC)
+    !!!!$acc declare create(ldw, rdw, dwC)
     double precision   :: a2max
     
     select case (type_limiter(block%level))
@@ -1325,18 +1328,18 @@ contains
              wRp(ixR^S,iw)=10.0d0**wRp(ixR^S,iw)
           end if
        end do
-       if(fix_small_values) then
-          call phys_handle_small_values(.true.,wLp,x,ixI^L,ixL^L,'reconstruct left')
-          call phys_handle_small_values(.true.,wRp,x,ixI^L,ixR^L,'reconstruct right')
-       end if
+       ! if(fix_small_values) then
+       !    call phys_handle_small_values(.true.,wLp,x,ixI^L,ixL^L,'reconstruct left')
+       !    call phys_handle_small_values(.true.,wRp,x,ixI^L,ixR^L,'reconstruct right')
+       ! end if
 
     end select
     
     wLC(ixL^S,1:nwflux) = wLp(ixL^S,1:nwflux)
     wRC(ixR^S,1:nwflux) = wRp(ixR^S,1:nwflux)
     
-    call phys_to_conserved(ixI^L,ixL^L,wLC,x)
-    call phys_to_conserved(ixI^L,ixR^L,wRC,x)
+    call hd_to_conserved_gpu(ixI^L,ixL^L,wLC,x)
+    call hd_to_conserved_gpu(ixI^L,ixR^L,wRC,x)
 
     if(nwaux>0)then
        wLp(ixL^S,nwflux+1:nwflux+nwaux) = wLC(ixL^S,nwflux+1:nwflux+nwaux)

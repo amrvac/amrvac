@@ -130,6 +130,7 @@ contains
   !> Add source within ixO for iws: w=w+qdt*S[wCT]
   subroutine addsource2(qdt,dtfactor,ixI^L,ixO^L,iw^LIM,qtC,wCT,wCTprim,qt,&
        w,x,qsourcesplit,src_active)
+    !$acc routine
     use mod_global_parameters
     use mod_physics, only: phys_add_source
     use mod_usr_methods, only: usr_source

@@ -146,9 +146,13 @@ module mod_hd_phys
 #ifdef _OPENACC
   public :: hd_get_flux
   public :: hd_get_cbounds
+  public :: hd_get_cbounds_gpu
   public :: hd_handle_small_values
   public :: hd_add_source_geom
   public :: hd_add_source
+  public :: hd_get_flux_gpu
+  public :: hd_to_primitive_gpu
+  public :: hd_to_conserved_gpu
 #endif
 
 contains
@@ -733,6 +737,7 @@ contains
   
   !> Transform primitive variables into conservative ones
   subroutine hd_to_conserved_gpu(ixI^L, ixO^L, w, x)
+    !$acc routine
     use mod_global_parameters
     integer, intent(in)             :: ixI^L, ixO^L
     double precision, intent(inout) :: w(ixI^S, nw)
@@ -740,7 +745,6 @@ contains
     double precision                :: invgam
     integer                         :: idir, ix^D
 
-    !$acc kernels
     invgam = 1.d0/(hd_gamma - 1.0d0)
     {^D& do ix^DB=ixOmin^DB,ixOmax^DB\}
     
@@ -754,7 +758,6 @@ contains
        end do
     
     {^D& end do\}
-    !$acc end kernels
 
   end subroutine hd_to_conserved_gpu
 
@@ -794,13 +797,13 @@ contains
   
   !> Transform conservative variables into primitive ones
   subroutine hd_to_primitive_gpu(ixI^L, ixO^L, w, x)
+    !$acc routine
     use mod_global_parameters
     integer, intent(in)             :: ixI^L, ixO^L
     double precision, intent(inout) :: w(ixI^S, nw)
     double precision, intent(in)    :: x(ixI^S, 1:ndim)
     integer                         :: idir, ix^D
 
-    !$acc kernels
     {^D& do ix^DB=ixOmin^DB,ixOmax^DB\}
     ! Compute pressure
     w(ix^D, e_) = (hd_gamma - 1.0d0) * (w(ix^D, e_) - &     
@@ -811,7 +814,6 @@ contains
        w(ix^D, mom(idir)) = w(ix^D, mom(idir)) / w(ix^D, rho_)
     end do
     {^D& end do\}
-    !$acc end kernels
   
   end subroutine hd_to_primitive_gpu
 
@@ -1146,6 +1148,7 @@ contains
   end subroutine hd_get_cbounds
 
   subroutine hd_get_cbounds_gpu(wLC, wRC, wLp, wRp, x, ixI^L, ixO^L, idim, Hspeed, cmax, cmin)
+    !$acc routine
     use mod_global_parameters
     use mod_variables
 
@@ -1160,13 +1163,12 @@ contains
     double precision, intent(in)    :: Hspeed(ixI^S,1:number_species)
 
     double precision, dimension(ixI^S) :: umean, dmean, csoundL, csoundR, tmp1,tmp2,tmp3
-    !$acc declare create(umean, dmean, csoundL, csoundR, tmp1, tmp2, tmp3)
+    !!!$acc declare create(umean, dmean, csoundL, csoundR, tmp1, tmp2, tmp3)
     integer :: ix^D
 
     ! This implements formula (10.52) from "Riemann Solvers and Numerical
     ! Methods for Fluid Dynamics" by Toro.
 
-    !$acc kernels
     tmp1(ixO^S)=dsqrt(wLp(ixO^S,rho_))
     tmp2(ixO^S)=dsqrt(wRp(ixO^S,rho_))
     tmp3(ixO^S)=1.d0/(dsqrt(wLp(ixO^S, rho_))+dsqrt(wRp(ixO^S, rho_)))
@@ -1181,13 +1183,10 @@ contains
 
     dmean(ixO^S)=dsqrt(dmean(ixO^S))
     cmax(ixO^S,1)=dabs(umean(ixO^S))+dmean(ixO^S)
-    !$acc end kernels
     
     if(present(cmin)) then
-       !$acc kernels
        cmin(ixO^S,1)=umean(ixO^S)-dmean(ixO^S)
        cmax(ixO^S,1)=umean(ixO^S)+dmean(ixO^S)
-       !$acc end kernels
     end if
 
   end subroutine hd_get_cbounds_gpu
