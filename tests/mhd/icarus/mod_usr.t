@@ -165,7 +165,7 @@ contains
       ALLOCATE(variables_init(nr_colat, nr_lon+4, 4), STAT = AllocateStatus)
       IF (AllocateStatus /= 0) call mpistop('*** Not enough memory ***')
 
-
+      delta_phi=1.19 ! If input from WSA
 
       ! read in cme parameters
       if (num_cmes == 0) then
