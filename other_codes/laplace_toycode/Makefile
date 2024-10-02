@@ -1,29 +1,29 @@
 .phony: all clean
 
-PROGS := laplace laplace_openacc_ghostcell
+PROGS := laplace scalar_advection
 
 all: $(PROGS)
 
 clean:
-	$(RM) $(PROGS) *.o
+	$(RM) $(PROGS) *.o *.mod
 
 # Determine compiler brand
 compiler_version = $(shell $(FC) --version)
 compiler_brand = $(word 1, $(compiler_version))
 
 ifeq ($(compiler_brand), GNU)
-	FFLAGS ?= -O2 -fopenmp -Wall -g -cpp
+	FFLAGS ?= -O2 -fopenacc -foffload=nvptx-none -Wall -g -cpp
 	ifeq ($(DEBUG), 1)
 		FFLAGS += -fcheck=all -ffpe-trap=invalid,zero,overflow -finit-real=snan
 	endif
 else ifeq ($(compiler_brand), ifort)
 	FFLAGS ?= -warn all -O2 -stand f08 -assume realloc-lhs -fpp
 else ifeq ($(compiler_brand), nvfortran)
-	FFLAGS ?= -Wall -acc -fast -Minfo=accel -Mpreprocess -static-nvidia -g
+	FFLAGS ?= -Wall -acc=gpu -fast -Mpreprocess -static-nvidia -g -Minfo=accel
 endif
 
-$(addsuffix .o,$(PROGS)): m_blockgrid.o
-$(PROGS): m_blockgrid.o
+$(addsuffix $(PROGS),.o): m_blockgrid.o m_config.o
+$(PROGS): m_blockgrid.o m_config.o
 
 # How to get .o object files from .f90 source files
 %.o: %.f90
