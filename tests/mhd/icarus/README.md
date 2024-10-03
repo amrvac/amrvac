@@ -20,34 +20,31 @@ you can run the testcase with
 ```
 mpirun –np 4 ./amrvac -i amrvac.par
 ```
-
-
 Note* 4 here is number of CPUs, can be modified depending on the availability of CPUs.
 
 
+## Standard testcase description
+
+This run will be short, to check that it does not crash and can be finished successfully. I would recommend not modifying this amrvac.par file, instead to work with test_icarus.par file which is also uploaded in this directory. By default this testcase runs a simulation in low resolution, uniform grid, without AMR, with 5 cone CMEs. The simulation lasts 24 days and the output is saved after 14 days.
+
+
 ## Necessary files
-amrvac.par - parameters for the simulation, remove the following line
-```
-         typefilelog = 'regression_test'
-```
-edit the following lines to this in order to perform a run of 24 days and save output every 3h:
-```
-&savelist
-        itsave(1,1)   = 0
-        itsave(1,2)   = 0
-!        tsavestart(2) = 336.0
-        dtsave_dat    = 3.0
-/
+The most important files to run Icarus are the
+
+-User file setting up the simulation (mod_usr.t)
+-Parameter file that fixes the numerical method, computational domain and Icarus specific settings
+-The solar wind boundary (.vtk file)
+-The CME parameter file (.in file)
+
+## Additional Scripts
+The additional files are uploaded to generate necessary files for Icarus.
+-input_boundary_generate.vtk - this python script generates the input VTK file from the standard WSA output file. If you have multiple WSA standard boundary files, it can combine into the timedependent input file. The paths and information should be indicated correctly in the user definition segment of the script.
+-convert_output_euhforia_format.py - This python script converts the standard output .csv files which are the satellite to the standard EUHFORIA format with the corresponding satellite names in the filename.
 
 
-&stoplist
-       time_max      = 576.0d0
-/
-```
-The python script - input_boundary_generate.vtk - generates the input VTK file from the standard WSA output file.
 
+The mangetogram timestamp should be indicated in the amrvac.par file in the icarus_list. When input_boundary_generate.vtk is run, it outputs in the terminal delta_phi value that should be adjusted in &icarus_list for variable delta_phi.
 
-The mangetogram timestamp should be indicated in the amrvac.par file in the icarus_list.
 
 
 The link to a more detailed documentation will be added soon.

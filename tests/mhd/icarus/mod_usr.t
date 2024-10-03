@@ -39,6 +39,7 @@ module mod_usr
   double precision, dimension(:), allocatable    :: lon_updated, lon_original
   integer             :: magnetogram_timestamp(6)
   character(len=20)   :: magnetogram_time
+  
   integer             :: cme_exists
       public :: bc_data_get_3d
 
@@ -50,7 +51,7 @@ contains
 
     namelist /rotating_frame_list/ omega_frame
     namelist /icarus_list/ amr_criterion, cme_flag, num_cmes, relaxation, cme_insertion, &
-    cme_parameter_file, magnetogram_time
+    cme_parameter_file, magnetogram_time, delta_phi
 
     do n = 1, size(files)
        open(unitpar, file=trim(files(n)), status="old")
@@ -71,7 +72,7 @@ contains
       read (magnetogram_time(12:13),*) magnetogram_timestamp(4)
       read (magnetogram_time(15:16),*) magnetogram_timestamp(5)
       read (magnetogram_time(18:19),*) magnetogram_timestamp(6)
-
+      delta_phi = -delta_phi
   end subroutine usr_params_read
 
   subroutine usr_init()
@@ -149,6 +150,7 @@ contains
     character(len=200)  :: path_satellite_trajectories
     integer             :: nr_colat, nr_lon, k, n, i
 
+
     if(firstglobalusr) then
       call print_initial_information()
       !Read-in coronal model
@@ -157,7 +159,8 @@ contains
       path_satellite_trajectories = './orbit/'
 
 
-
+      nr_colat = lt_3d(1)%n_points(1)
+      nr_lon = lt_3d(1)%n_points(2)
       ! WARNING: ASSUMES STENCIL IS USING 2 GHOSTCELLS: may need to GENERALIZE!
       !We have 4 extra points for longitude because the boundary is periodic
       ALLOCATE(coord_grid_init(nr_colat, nr_lon+4, ndim-1), STAT = AllocateStatus)
@@ -165,8 +168,9 @@ contains
       ALLOCATE(variables_init(nr_colat, nr_lon+4, 4), STAT = AllocateStatus)
       IF (AllocateStatus /= 0) call mpistop('*** Not enough memory ***')
 
-      delta_phi=1.19 ! If input from WSA
+     ! delta_phi=1.19 ! If input from WSA
 
+    
       ! read in cme parameters
       if (num_cmes == 0) then
         ALLOCATE(timestamp(1))
@@ -354,7 +358,7 @@ contains
 
 
     r_boundary   = xprobmin1 !in R_sun
-
+!    print *, "lt_2dthing ", lt_3d(1)%n_points(1)
     velocity2d(ixmin2:ixmax2, ixmin3:ixmax3) = bc_data_get_3d(bc_data_ix(mom(1), 1), &
            x(ixmin1, ixmin2:ixmax2, ixmin3:ixmax3, 2), &
            x(ixmin1, ixmin2:ixmax2, ixmin3:ixmax3, 3), 0d0)
@@ -548,8 +552,9 @@ contains
 
     select case(iB)
       case(1)! Lower radial boundary
-        nr_colat = SIZE(coord_grid_init(:,1,1))
-        nr_lon = SIZE(coord_grid_init(1,:,1))
+        nr_colat = lt_3d(1)%n_points(1)
+        nr_lon = lt_3d(1)%n_points(2)
+    !    print *, "in boundary function  ", nr_colat, nr_lon
 !        w(ixO^S,:) = 0.d0
 
         !W IS USING CONSERVATIVE VALUES
@@ -578,7 +583,7 @@ contains
 !            !For now we take the values at 21.5+delta_r/2 as our grid coord_grid_init does not have 21.5R_sun
             !TODO: add the 21.5 R_sun grid!!
 
-            call find_indices_coord_grid(xloc, point11_clt, point11_lon, point22_clt, point22_lon)
+        !    call find_indices_coord_grid(xloc, point11_clt, point11_lon, point22_clt, point22_lon)
             mask_cme = 0
             if (num_cmes == 0) then
               local_check = 1
@@ -690,8 +695,8 @@ contains
     integer                 :: counter_clt, counter_lon, nr_colat, nr_lon, j,k
     double precision        :: minimum
 
-    nr_colat     = SIZE(coord_grid_init(:,1,1))
-    nr_lon       = SIZE(coord_grid_init(1,:,1))
+    nr_colat     = lt_3d(1)%n_points(1)
+    nr_lon       = lt_3d(1)%n_points(2)
 
     counter_clt= 1
     minimum = abs(coord_grid_init(1,1,1)-coordinate(2))
@@ -974,9 +979,10 @@ contains
       read(iUnit,*) cme_type(i), cme_date(i), clt_cme(i), lon_cme(i), w_half(i),  vr_cme(i), rho_cme(i), temperature_cme(i)
       w_half(i) = w_half(i) * dpi/180.0
       clt_cme(i) = (-clt_cme(i) + 90.0) * dpi/180.0
-      lon_cme(i) = delta_phi + lon_cme(i) * dpi/180.0
+      lon_cme(i) = lon_cme(i)*dpi/180.0+delta_phi 
       vr_cme(i) = vr_cme(i)*1000.0
     end do
+ 
     close(iUnit)
     do i=1, num_cmes
       read (cme_date(i)(1:4),*) cme_year(i)

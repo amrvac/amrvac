@@ -288,7 +288,7 @@ file1.write(" ".join(map(lambda x : str(x), br_all.transpose().flatten())))
 
 
 file1.close()
-
+print ("The delta_phi variable to modify in the .par file is: ", float(lons_original[0]))
 print ("The generated boundary file for Icarus is saved tos ", filename_boundary_output)
 if (generated_boundary_images_flag == 'yes'):
     print ("The generated boundary images are stored in ", generated_boundary_images_directory[:-1])
