@@ -117,4 +117,5 @@
         cme_insertion = 0
         cme_parameter_file = 'cme_euhforia_formatted.in'
         magnetogram_time = '2015-06-25T01:04:00'
+        delta_phi = -1.2040994899278814 
 /
