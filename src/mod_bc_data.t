@@ -23,6 +23,7 @@ module mod_bc_data
 
   !> Whether boundary condition data is time varying
   logical, public, protected :: bc_data_time_varying = .false.
+  
 
   !> Integer array for indexing lookup tables per variable per direction
   integer, public, protected, allocatable :: bc_data_ix(:, :)
@@ -38,7 +39,7 @@ module mod_bc_data
   public :: bc_data_set
   public :: bc_data_get_2d
   public :: bc_data_get_3d
-
+  public :: lt_3d
 contains
 
   subroutine bc_data_init()
