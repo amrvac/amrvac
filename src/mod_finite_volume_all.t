@@ -118,7 +118,8 @@ contains
     use mod_physics
     use mod_variables
     use mod_global_parameters
-    use mod_tvd, only:tvdlimit2
+    !opedit: FIXME has internal procedure pointers, used for roe solvers, not implemented:
+!    use mod_tvd, only:tvdlimit2
     use mod_source, only: addsource2
     use mod_usr_methods
     use mod_comm_lib, only: mpistop
@@ -134,6 +135,7 @@ contains
     double precision, dimension(ixI^S,1:nwflux,1:ndim)    :: fC
     double precision, dimension(ixI^S,sdim:3)             :: fE
 
+    
     ! primitive w at cell center
     double precision, dimension(ixI^S,1:nw) :: wprim
     ! left and right constructed status in conservative form
@@ -168,7 +170,7 @@ contains
         dxs = rnode(rpdx1_:rnodehi,igrid)
 
         ! TODO wCT and therefor wprim references need same treatment as sCT%w
-        associate(wCT=>bga%w(:,:,:,igrid), wnew=>bgb%w(:,:,:,igrid))
+        associate(wCT=>bga%w(:^D&,:,igrid), wnew=>bgb%w(:^D&,:,igrid))
           ! The flux calculation contracts by one in the idims direction it is applied.
           ! The limiter contracts the same directions by one more, so expand ixO by 2.
           ix^L=ixO^L;
@@ -343,9 +345,10 @@ contains
                    end do
                 end if
                 ! For the MUSCL scheme apply the characteristic based limiter
-                if (method==fs_tvdmu) then
-                   call tvdlimit2(method,qdt,ixI^L,ixC^L,ixO^L,idims,wLC,wRC,wnew,x,fC,dxs)
-                end if
+                !FIXME: not implemented (needs to declare create further module variables)
+!                if (method==fs_tvdmu) then
+!                   call tvdlimit2(method,qdt,ixI^L,ixC^L,ixO^L,idims,wLC,wRC,wnew,x,fC,dxs)
+!                end if
 
              end do ! Next idims
           end if
