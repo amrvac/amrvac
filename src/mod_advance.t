@@ -668,8 +668,8 @@ contains
     integer :: ixO^L, ixG^L
     type(state), target :: psa(max_blocks) !< Compute fluxes based on this state
     type(state), target :: psb(max_blocks) !< Update solution on this state
-    type(block_grid_t), target :: bga(max_blocks) !< Compute fluxes based on this state
-    type(block_grid_t), target :: bgb(max_blocks) !< Update solution on this state
+    type(block_grid_t), target :: bga !< Compute fluxes based on this state
+    type(block_grid_t), target :: bgb !< Update solution on this state
     double precision, intent(in) :: dtfactor !< Advance over dtfactor * dt
     double precision, intent(in) :: qtC
     double precision, intent(in) :: qt
