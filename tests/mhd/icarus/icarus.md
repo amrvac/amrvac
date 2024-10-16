@@ -77,7 +77,7 @@ Name | Description
 `time_stepper` | time discretization method, e.g., twostep, threestep, fourstep
 `flux_scheme` | spatial discretization method, e.g., tvd, tvdlf, hll
 `limiter` | which limiter to use in the spatial discretization, e.g., woodward, minmod, koren
-`stretch_dim(1)=`'uni' | When uncommented, the grid is stretched radially, when commented it is radially uniform
+`stretch_dim(1)=uni` | When uncommented, the grid is stretched radially, when commented it is radially uniform
 `stretch_uncentered=.false.` | When uncommented, the grid is stretched radially, when commented it is radially uniform
 `refine_max_level` | The maximum number of refinement levels
 `block_nx1` | 30 if uniform, 6 if radially stretched
