@@ -30,7 +30,7 @@
         time_stepper      = 'twostep'
         flux_scheme       = 20*'tvdlf'
         !typepred1        = 20*'hancock'
-        limiter           = 20*'minmod'
+        limiter           = 20*'woodward'
         dimsplit          = .false.
         check_small_values = .false.
         !fix_small_values = .true.
@@ -111,7 +111,7 @@
         amr_criterion = 'tracing'
         cme_flag =1
         num_cmes = 5
-        relaxation = 14
+        relaxation = 10
         cme_insertion = 0
         cme_parameter_file = 'cme_euhforia_formatted.in'
         magnetogram_time = '2015-06-25T01:04:00'

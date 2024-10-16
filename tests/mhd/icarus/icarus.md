@@ -2,8 +2,8 @@
 
 Tinatin Baratashvili
 
-## How to run Icarus testcase
-----------------
+# How to run Icarus testcase
+
 
 To run the Icarus test case, you must follow the standard MPI-AMRVAC procedure. First, you install AMRVAC from https://amrvac.org/md_doc_installation.html.
 
@@ -26,19 +26,20 @@ make -j 4
 ```
 
 you can run the testcase with
+
 ```
 mpirun –np 4 ./amrvac -i amrvac.par
 ```
 Note* 4 here is number of CPUs, can be modified depending on the availability of CPUs.
 
 
-## Standard testcase description
+# Standard testcase description
 
 This run will be short, to check that it does not crash and can be finished successfully. I would recommend not modifying this amrvac.par file, instead to work with test_icarus.par file which is also uploaded in this directory. By default this testcase runs a simulation in low resolution, uniform grid, without AMR, with 5 cone CMEs. The simulation lasts 24 days and the output is saved after 14 days.
 
 
 
-## Necessary files
+# Necessary files
 The most important files to run Icarus are the
 
 
@@ -82,16 +83,16 @@ Name | Description
 `domain_nx1` | Domain Resolutions: 300 - low, 600 - middle, 1200 - high
 `domain_nx2` | Domain Resolutions: 32 - low, 64 - middle, 126 - high
 `domain_nx3` | Domain Resolutions: 96 - low, 192 - middle, 384 - high
-`xprobmin1, xprobmax1` | Lower and outer boundary values in solar radii
+`xprobmin1`, `xprobmax1` | Lower and outer boundary values in solar radii
 `omega_frame` | The rotation rate of the Sun [radian per hour]
 `boundary_data_file_name` | The input boundary file in the VTK format
 
 
 
-A complete list of parameters can be found [par.md](par.md).
+A complete list of parameters can be found [par.md](https://github.com/amrvac/amrvac/blob/amrvac3.2/doc/par.md).
 
 
-## Additional Scripts
+# Additional Scripts
 
 The additional files are uploaded to generate necessary files for Icarus.
 
