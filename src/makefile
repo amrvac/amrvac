@@ -583,6 +583,7 @@ mod_solar_atmosphere.o: mod_physics.mod
 mod_source.o: mod_comm_lib.mod
 mod_source.o: mod_ghostcells_update.mod
 mod_source.o: mod_global_parameters.mod
+mod_source.o: mod_hd_phys.mod
 mod_source.o: mod_physics.mod
 mod_source.o: mod_supertimestepping.mod
 mod_source.o: mod_usr_methods.mod
