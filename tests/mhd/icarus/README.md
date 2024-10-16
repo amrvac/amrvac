@@ -76,13 +76,15 @@ Name | Description
 `time_stepper` | time discretization method, e.g., twostep, threestep, fourstep
 `flux_scheme` | spatial discretization method, e.g., tvd, tvdlf, hll
 `limiter` | which limiter to use in the spatial discretization, e.g., woodward, minmod, koren
-`stretch_dim(1)='uni'` `stretch_uncentered=.false.` | When uncommented, the grid is stretched radially, when commented it is radially uniform
+`stretch_dim(1)='uni'` | When uncommented, the grid is stretched radially, when commented it is radially uniform
+`stretch_uncentered=.false.` | When uncommented, the grid is stretched radially, when commented it is radially uniform
 `refine_max_level` | The maximum number of refinement levels
 `block_nx1` | 30 if uniform, 6 if radially stretched
 `domain_nx1` | Domain Resolutions: 300 - low, 600 - middle, 1200 - high
 `domain_nx2` | Domain Resolutions: 32 - low, 64 - middle, 126 - high
 `domain_nx3` | Domain Resolutions: 96 - low, 192 - middle, 384 - high
-`xprobmin1` `xprobmax1` | Lower and outer boundary values in solar radii
+`xprobmin1`  | Lower boundary in solar radii
+`xprobmax1` | Outer boundary in solar radii
 `omega_frame` | The rotation rate of the Sun [radian per hour]
 `boundary_data_file_name` | The input boundary file in the VTK format
 
