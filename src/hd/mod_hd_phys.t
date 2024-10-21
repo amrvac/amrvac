@@ -143,17 +143,15 @@ module mod_hd_phys
   public :: hd_to_primitive
   public :: hd_check_params
   public :: hd_check_w
-#ifdef _OPENACC
+  public :: hd_add_source
   public :: hd_get_flux
   public :: hd_get_cbounds
   public :: hd_get_cbounds_gpu
   public :: hd_handle_small_values
   public :: hd_add_source_geom
-  public :: hd_add_source
   public :: hd_get_flux_gpu
   public :: hd_to_primitive_gpu
   public :: hd_to_conserved_gpu
-#endif
 
 contains
 

@@ -97,7 +97,7 @@ contains
     ! set level information
     level=igrid_to_node(igrid,mype)%node%level
   
-    if(.not. allocated(ps(igrid)%w)) then
+    if(.not. associated(ps(igrid)%w)) then
        
        ! allocate arrays for solution and space
        call alloc_state(igrid, ps(igrid), ixG^LL, ixGext^L, .true.)
