@@ -665,7 +665,7 @@ contains
     use mod_finite_volume_all, only: finite_volume_all
 
     integer, intent(in) :: idim^LIM
-    integer :: ixO^L, ixG^L
+    integer :: ixO^L
     type(state), target :: psa(max_blocks) !< Compute fluxes based on this state
     type(state), target :: psb(max_blocks) !< Update solution on this state
     type(block_grid_t), target :: bga !< Compute fluxes based on this state
@@ -702,7 +702,7 @@ contains
     call finite_volume_all( &
         method(block%level), &          ! fs_hll
         qdt, dtfactor, &                ! some scalars related to time stepping
-        ixG^L,ixO^L, idim^LIM, &      ! bounds for some arrays
+        ixG^LL,ixO^L, idim^LIM, &      ! bounds for some arrays
         qtC, &                          ! scalar related to time stepping
         psa, &
         bga, &                          ! first block grid
