@@ -154,6 +154,7 @@ module mod_global_parameters
 
   integer, allocatable :: node(:,:)
   integer, allocatable :: node_sub(:,:)
+  !$acc declare create(node)
 
   !> grid location info (corner coordinates and grid spacing)
   integer, parameter :: rnodehi=3*^ND
