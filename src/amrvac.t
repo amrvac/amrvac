@@ -204,7 +204,7 @@ contains
     use mod_dt, only: setdt
 
 
-    integer :: level, ifile, fixcount, ncells_block, igrid, iigrid, istep
+    integer :: level, ifile, fixcount, ncells_block, igrid, iigrid, itimelevel
     integer(kind=8) ncells_update
     logical :: crashall
     double precision :: time_last_print, time_write0, time_write, time_before_advance, dt_loop
@@ -227,8 +227,8 @@ contains
 
 !    !$acc update device(bg%w)
     !$acc enter data copyin(bg)
-    do istep = 1, nstep
-       !$acc enter data copyin( bg(istep)%w )
+    do itimelevel = 1, nstep
+       !$acc enter data copyin( bg(itimelevel)%w )
     end do
     do iigrid=1,igridstail; igrid=igrids(iigrid);
        !$acc enter data copyin(ps(igrid)%x) attach(ps(igrid)%w, ps1(igrid)%w, ps2(igrid)%w)

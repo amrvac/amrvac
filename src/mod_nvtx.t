@@ -1,5 +1,6 @@
 module mod_nvtx
 
+#ifdef __NVCOMPILER 
 use iso_c_binding
 implicit none
 
@@ -60,5 +61,22 @@ end subroutine
 subroutine nvtxEndRange
   call nvtxRangePop
 end subroutine
+
+#else
+
+use iso_c_binding
+implicit none
+
+contains
+
+subroutine nvtxStartRange(name,id)
+  character(kind=c_char,len=*) :: name
+  integer, optional:: id
+end subroutine
+
+subroutine nvtxEndRange
+end subroutine
+
+#endif
 
 end module mod_nvtx
