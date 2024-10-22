@@ -130,8 +130,8 @@ contains
     integer, intent(in)                                   :: ixI^L, ixO^L, idims^LIM
     type(state), target                                   :: psa(max_blocks)
     type(state), target                                   :: psb(max_blocks)
-    type(block_grid_t), target                            :: bga
-    type(block_grid_t), target                            :: bgb
+    type(block_grid_t)                            :: bga
+    type(block_grid_t)                            :: bgb
     double precision, dimension(ixI^S,1:nwflux,1:ndim)    :: fC
     double precision, dimension(ixI^S,sdim:3)             :: fE
 
@@ -227,7 +227,7 @@ contains
         
 #ifndef _OPENACC         
              ! special modification of left and right status before flux evaluation
-             call phys_modify_wLR(ixI^L,ixCR^L,qt,wLC,wRC,wLp,wRp,psa,idims)
+             !call phys_modify_wLR(ixI^L,ixCR^L,qt,wLC,wRC,wLp,wRp,psa,idims)
 #endif
              
              ! evaluate physical fluxes according to reconstructed status

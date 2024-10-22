@@ -697,8 +697,8 @@ contains
     ! `finite_volume_all` here. In the future this needs to be replaced with
     ! some logic to select the desired method.
 
-    ixO^L=ixG^L^LSUBnghostcells;
-
+    ixO^L=ixG^LL^LSUBnghostcells;
+    print*, "DEBUG: ", ixO^L
     call finite_volume_all( &
         method(block%level), &          ! fs_hll
         qdt, dtfactor, &                ! some scalars related to time stepping
