@@ -389,11 +389,11 @@ contains
     double precision, dimension(ixI^S,1:nw) :: wLp, wRp
     double precision, dimension(ixI^S,1:ndim) :: x
 
-    integer            :: jxR^L, ixC^L, jxC^L, iw
+    integer            :: igrid, jxR^L, ixC^L, jxC^L, iw
     double precision   :: ldw(ixI^S), rdw(ixI^S), dwC(ixI^S)
     double precision   :: a2max
     
-    select case (type_limiter(block%level))
+    select case (type_limiter(node(plevel_,igrid)))
        case (limiter_mp5)
           call MP5limiter(ixI^L,ixL^L,idims,w,wLp,wRp)
        case (limiter_weno3)
@@ -515,7 +515,7 @@ contains
     double precision, dimension(ixI^S,1:nw) :: wLp, wRp
     double precision, dimension(ixI^S,1:ndim) :: x
 
-    integer            :: jxR^L, ixC^L, jxC^L, iw
+    integer            :: igrid, jxR^L, ixC^L, jxC^L, iw
     double precision   :: ldw(ixI^S), rdw(ixI^S), dwC(ixI^S)
     !!!!$acc declare create(ldw, rdw, dwC)
     double precision   :: a2max
@@ -553,7 +553,7 @@ contains
           end if
 
           ! limit flux from left and/or right
-          call dwlimiter2_gpu(dwC,ixI^L,ixC^L,idims,type_limiter(block%level),ldw,rdw,a2max=a2max)
+          call dwlimiter2_gpu(dwC,ixI^L,ixC^L,idims,type_limiter(node(plevel_,igrid)),ldw,rdw,a2max=a2max)
           wLp(ixL^S,iw)=wLp(ixL^S,iw)+half*ldw(ixL^S)
           wRp(ixR^S,iw)=wRp(ixR^S,iw)-half*rdw(jxR^S)
 
