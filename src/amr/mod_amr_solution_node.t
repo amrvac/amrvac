@@ -152,13 +152,12 @@ contains
   
     ! block pointer to current block
     block=>ps(igrid)
-  
     ig^D=igrid_to_node(igrid,mype)%node%ig^D;
-  
     node(plevel_,igrid)=level
     ^D&node(pig^D_,igrid)=ig^D\
-    !$acc update host(node(:,:))
-  
+    !$acc update device(node(plevel_,igrid),^D&node(pig^D_,igrid))
+    !$acc update host(node(plevel_,igrid),^D&node(pig^D_,igrid))
+    
     ! set dx information
     ^D&rnode(rpdx^D_,igrid)=dx(^D,level)\
     dxlevel(:)=dx(:,level)
@@ -581,7 +580,6 @@ contains
     else
       phyboundblock(igrid)=.false.
     end if
-  
   end subroutine alloc_node
   
   !> allocate memory to physical state of igrid node
