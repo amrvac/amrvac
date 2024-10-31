@@ -17,9 +17,11 @@ ndir	| number of vector components (1, 2, 3)
 
 name | description
 ---|---
-`ps(igrid)%%w`    |	w - conservative variables
-`pso(igrid)%%w` |	w at beginning of current time step
-`ps(igrid)%%x`    |	x - spatial variables
+`ps(igrid)%%w`    |	w - conservative variables at cell center
+`psc(igrid)%%w` |	w - conservative variables on coarser grids
+`ps(igrid)%%ws`    |	ws - staggered variables on cell faces
+`ps(igrid)%%x`    |	x - spatial variables at cell center
+igrid | serial number of a block
 global_time	| time
 it | integer counter of temporal iterations
 qdt | the time step to be used in a subroutine/function
