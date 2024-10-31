@@ -61,5 +61,7 @@ makefile: $(AMRVAC_DIR)/arch/amrvac.make
 	@$(SETUP_SCRIPT) $(SETUP_FLAGS) > setup.log
 
 # To make sure the comparison utility can be build
+$(LOG_CMP).o: $(LOG_CMP).f amrvac.h
+	$(F90) $(F90FLAGS) -c $(LOG_CMP).f -o $(LOG_CMP).o $(addprefix -I,$(INC_DIRS))
+
 $(LOG_CMP): $(LOG_CMP).o
-$(LOG_CMP).o: $(LOG_CMP).f amrvac.h 
