@@ -523,7 +523,7 @@ contains
     !!!!$acc declare create(ldw, rdw, dwC)
     double precision   :: a2max
     
-    select case (type_limiter(block%level))
+    select case (type_limiter(node(plevel_,igrid)))
     case default
        jxR^L=ixR^L+kr(idims,^D);
        ixCmax^D=jxRmax^D; ixCmin^D=ixLmin^D-kr(idims,^D);
