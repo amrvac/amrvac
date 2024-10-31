@@ -223,7 +223,7 @@ contains
              {ixCRmax^D = min(ixCmax^D + phys_wider_stencil,ixGhi^D)\}
 
              ! apply limited reconstruction for left and right status at cell interfaces
-             call reconstruct_LR_gpu(ixI^L,ixCR^L,ixCR^L,idims,wprim,wLC,wRC,wLp,wRp,x,dxs(idims))
+             call reconstruct_LR_gpu(ixI^L,ixCR^L,ixCR^L,idims,wprim,wLC,wRC,wLp,wRp,x,dxs(idims),igrid)
         
 #ifndef _OPENACC         
              ! special modification of left and right status before flux evaluation
@@ -497,8 +497,7 @@ contains
   
   !> Determine the upwinded wLC(ixL) and wRC(ixR) from w.
   !> the wCT is only used when PPM is exploited.
-  subroutine reconstruct_LR_gpu(ixI^L,ixL^L,ixR^L,idims,w,wLC,wRC,wLp,wRp,x,dxdim)
-    !$acc routine
+  subroutine reconstruct_LR_gpu(ixI^L,ixL^L,ixR^L,idims,w,wLC,wRC,wLp,wRp,x,dxdim,igrid)
     use mod_physics
     use mod_global_parameters
     use mod_limiter
@@ -518,7 +517,7 @@ contains
     double precision, dimension(ixI^S,1:nw) :: wLp, wRp
     double precision, dimension(ixI^S,1:ndim) :: x
 
-    integer            :: igrid, jxR^L, ixC^L, jxC^L, iw
+    integer            :: jxR^L, ixC^L, jxC^L, iw
     double precision   :: ldw(ixI^S), rdw(ixI^S), dwC(ixI^S)
     !!!!$acc declare create(ldw, rdw, dwC)
     double precision   :: a2max
