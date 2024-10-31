@@ -504,8 +504,11 @@ contains
     use mod_limiter
     use mod_comm_lib, only: mpistop
     use mod_hd_phys, only: hd_to_conserved_gpu
+    
+    !$acc declare present(node)
+    !$acc routine
 
-    integer, value, intent(in) :: ixI^L, ixL^L, ixR^L, idims
+    integer, value, intent(in) :: ixI^L, ixL^L, ixR^L, idims, igrid
     double precision, intent(in) :: dxdim
     ! cell center w in primitive form
     double precision, dimension(ixI^S,1:nw) :: w

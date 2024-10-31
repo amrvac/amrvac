@@ -15,7 +15,9 @@ contains
   integer function getnode(ipe)
     use mod_forest, only: igrid_inuse
     use mod_global_parameters
-  
+
+    !$acc declare present(node)
+
     integer, intent(in) :: ipe
     integer :: igrid, igrid_available
   
@@ -38,8 +40,9 @@ contains
     end if
   
     if (ipe==mype) then
-       ! initialize nodal block
+       ! initialize node on host and device
        node(1:nodehi,getnode) = 0
+       !$acc update host(node(1:nodehi,getnode))
        rnode(1:rnodehi,getnode) = zero
     end if
   
@@ -64,7 +67,9 @@ contains
     use mod_usr_methods, only: usr_set_surface
     use mod_physics, only: phys_set_equi_vars
     use mod_b0, only: set_B0_grid 
- 
+    
+    !$acc declare present(node)
+
     integer, intent(in) :: igrid
   
     integer :: level, ig^D, ign^D, ixCoG^L, ix, i^D
@@ -152,6 +157,7 @@ contains
   
     node(plevel_,igrid)=level
     ^D&node(pig^D_,igrid)=ig^D\
+    !$acc update host(node(:,:))
   
     ! set dx information
     ^D&rnode(rpdx^D_,igrid)=dx(^D,level)\
