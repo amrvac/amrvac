@@ -700,7 +700,7 @@ contains
     ixO^L=ixG^LL^LSUBnghostcells;
     print*, "DEBUG: ", ixO^L
     call finite_volume_all( &
-        method(block%level), &          ! fs_hll
+        fs_hll, &          ! fs_hll
         qdt, dtfactor, &                ! some scalars related to time stepping
         ixG^LL,ixO^L, idim^LIM, &      ! bounds for some arrays
         qtC, &                          ! scalar related to time stepping
