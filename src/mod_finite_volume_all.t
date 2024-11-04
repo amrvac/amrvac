@@ -163,7 +163,7 @@ contains
     double precision, dimension(ixI^S,1:ndim) :: x
     double precision                          :: dxs(ndim)
 
-    !$acc parallel loop
+    !$acc parallel loop private(block)
     do iigrid=1,igridstail_active
         block => ps(igrid)
         !$acc enter data attach(block)
@@ -369,8 +369,8 @@ contains
           call addsource2(qdt*dble(idimsmax-idimsmin+1)/dble(ndim),& 
                dtfactor*dble(idimsmax-idimsmin+1)/dble(ndim),&
                ixI^L,ixO^L,1,nw,qtC,wCT,wprim,qt,wnew,x,.false.,active)
-
         end associate
+        !$acc exit data detach(block)
     end do   ! igrid
 
   end subroutine finite_volume_all
