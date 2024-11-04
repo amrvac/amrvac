@@ -698,7 +698,6 @@ contains
     ! some logic to select the desired method.
 
     ixO^L=ixG^LL^LSUBnghostcells;
-    print*, "DEBUG: ", ixO^L
     call finite_volume_all( &
         fs_hll, &          ! fs_hll
         qdt, dtfactor, &                ! some scalars related to time stepping
