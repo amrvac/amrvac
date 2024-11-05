@@ -165,10 +165,10 @@ contains
 
     !$acc parallel loop private(block)
     do iigrid=1,igridstail_active
+        igrid=igrids_active(iigrid)
         block => ps(igrid)
         !$acc enter data attach(block)
 
-        igrid=igrids_active(iigrid)
         x = ps(igrid)%x
         dxs = rnode(rpdx1_:rnodehi,igrid)
 
