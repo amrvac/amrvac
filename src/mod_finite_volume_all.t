@@ -83,11 +83,11 @@ contains
          associate (wCT => bga%w(:^D&, :, igrid), wnew => bgb%w(:^D&, :, igrid))
             ! The flux calculation contracts by one in the idims direction it is applied.
             ! The limiter contracts the same directions by one more, so expand ixO by 2.
-            ix^L = ixO^L; 
+            ix^L=ixO^L; 
             do idims = idims^LIM
-               ix^L = ix^L^LADD2*kr(idims, ^D); 
+               ix^L=ix^L^LADD2*kr(idims,^D); 
             end do
-            if (ixI^L^LTix^L| .or. | .or. ) &
+            if (ixI^L^LTix^L|.or.|.or.) &
                call mpistop("Error in fv : Nonconforming input limits")
 
             ! no longer !$acc kernels present(fC, wCT)
@@ -105,30 +105,24 @@ contains
                ! use interface value of w0 at idims
                b0i = idims
 
-               hxO^L = ixO^L - kr(idims, ^D); 
-               kxCmin^D = ixImin^D; kxCmax^D = ixImax^D - kr(idims, ^D); 
-               kxR^L = kxC^L + kr(idims, ^D); 
-               if (stagger_grid) then
-                  ! ct needs all transverse cells
-                  ixCmax^D = ixOmax^D + nghostcells - nghostcells*kr(idims, ^D); 
-                  ixCmin^D = hxOmin^D - nghostcells + nghostcells*kr(idims, ^D); 
-               else
-                  ! ixC is centered index in the idims direction from ixOmin-1/2 to ixOmax+1/2
-                  ixCmax^D = ixOmax^D; ixCmin^D = hxOmin^D; 
-               end if
+               hxO^L=ixO^L-kr(idims,^D); 
+               kxCmin^D=ixImin^D;kxCmax^D=ixImax^D-kr(idims,^D); 
+               kxR^L=kxC^L+kr(idims,^D); 
+               ! ixC is centered index in the idims direction from ixOmin-1/2 to ixOmax+1/2
+               ixCmax^D=ixOmax^D;ixCmin^D=hxOmin^D; 
 
                ! wRp and wLp are defined at the same locations, and will correspond to
                ! the left and right reconstructed values at a cell face. Their indexing
                ! is similar to cell-centered values, but in direction idims they are
                ! shifted half a cell towards the 'lower' direction.
 
-               wRp(kxC^S, 1:nw) = wprim(kxR^S, 1:nw)
-               wLp(kxC^S, 1:nw) = wprim(kxC^S, 1:nw)
+               wRp(kxC^S,1:nw)=wprim(kxR^S,1:nw)
+               wLp(kxC^S,1:nw)=wprim(kxC^S,1:nw)
 
                ! Determine stencil size
                ! FIXME: here `phys_wider_stencil` is an integer, not a function pointer
-               {ixCRmin^D = max(ixCmin^D - phys_wider_stencil, ixGlo^D) \}
-               {ixCRmax^D = min(ixCmax^D + phys_wider_stencil, ixGhi^D) \}
+               {ixCRmin^D = max(ixCmin^D - phys_wider_stencil,ixGlo^D) \}
+               {ixCRmax^D = min(ixCmax^D + phys_wider_stencil,ixGhi^D) \}
 
                ! apply limited reconstruction for left and right status at cell interfaces
                call reconstruct_LR_gpu(ixI^L, ixCR^L, ixCR^L, idims, wprim, wLC, wRC, wLp, wRp, x, dxs(idims), igrid)
@@ -161,10 +155,10 @@ contains
             b0i = 0
             dxinv = -qdt/dxs
             do idims = idims^LIM
-               hxO^L = ixO^L - kr(idims, ^D); 
-               fC(ixI^S, 1:nwflux, idims) = dxinv(idims)*fC(ixI^S, 1:nwflux, idims)
+               hxO^L=ixO^L-kr(idims,^D); 
+               fC(ixI^S, 1:nwflux, idims)=dxinv(idims)*fC(ixI^S, 1:nwflux, idims)
                !            end if
-               wnew(ixO^S, iwstart:nwflux) = wnew(ixO^S, iwstart:nwflux) + &
+               wnew(ixO^S, iwstart:nwflux)=wnew(ixO^S, iwstart:nwflux) + &
                                              (fC(ixO^S, iwstart:nwflux, idims) - fC(hxO^S, iwstart:nwflux, idims))
 
             end do ! Next idims
@@ -207,9 +201,9 @@ contains
 
       select case (type_limiter(node(plevel_, igrid)))
       case default
-         jxR^L = ixR^L + kr(idims, ^D); 
-         ixCmax^D = jxRmax^D; ixCmin^D = ixLmin^D - kr(idims, ^D); 
-         jxC^L = ixC^L + kr(idims, ^D); 
+         jxR^L=ixR^L+kr(idims,^D); 
+         ixCmax^D=jxRmax^D;ixCmin^D=ixLmin^D-kr(idims,^D); 
+         jxC^L=ixC^L+kr(idims,^D); 
          do iw = 1, nwflux
             if (loglimit(iw)) then
                w(ixCmin^D:jxCmax^D, iw) = dlog10(w(ixCmin^D:jxCmax^D, iw))
