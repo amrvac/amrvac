@@ -9,6 +9,7 @@ module mod_finite_volume_all
    private
 
    public :: finite_volume_all
+   public :: reconstruct_LR_gpu
 
 contains
 
