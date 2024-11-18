@@ -51,7 +51,7 @@ contains
       double precision, dimension(ixI^S, 1:nw) :: wLp, wRp
       !$acc declare create(wprim, wLC, wRC, wLp, wRp)
       double precision, dimension(ixI^S, 1:nwflux) :: fLC, fRC
-      !$acc declare create(fLC, FRC)
+      !$acc declare create(fLC, fRC)
       double precision, dimension(ixI^S, 1:number_species)      :: cmaxC
       double precision, dimension(ixI^S, 1:number_species)      :: cminC
       double precision, dimension(ixI^S)      :: Hspeed
