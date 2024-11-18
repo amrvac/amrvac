@@ -75,13 +75,16 @@ contains
     call init_comm_fix_conserve(idim^LIM,nwflux)
     fix_conserve_at_step = time_advance .and. levmax>levmin
     
+        ! OpenACC data region to manage data movement
+    !$acc data copyin(bg(1)%w, ps%w) copy(bg(2)%w, ps1%w)
+
     ! copy w instead of wold because of potential use of dimsplit or sourcesplit
     !$OMP PARALLEL DO PRIVATE(igrid)
     do iigrid=1,igridstail; igrid=igrids(iigrid);
        !$acc parallel loop collapse(ndim+1)
        do iw = 1, nw
           {^D& do ix^DB = ixGlo^DB, ixGhi^DB \}
-!          ps1(igrid)%w(ix^D,iw) = ps(igrid)%w(ix^D,iw)
+          ps1(igrid)%w(ix^D,iw) = ps(igrid)%w(ix^D,iw)
           bg(2)%w(ix^D,iw,igrid) = bg(1)%w(ix^D,iw,igrid)
           {^D& end do \}
        end do
@@ -93,6 +96,15 @@ contains
     end do
     !$OMP END PARALLEL DO
 
+              ! Ensure data is copied back from GPU to CPU
+      !$acc update self(bg(2)%w, ps1%w)
+    
+    !$acc end data
+    print*, 'bg after1', bg(2)%w(28,41,3,1)
+    print*, 'ps1 after1', ps1(1)%w(28,41,3)
+    print*, 'bg after2', bg(2)%w(13,62,4,1)
+    print*, 'ps1 after2', ps1(1)%w(13,62,4)
+    
     istep = 0
 
      select case (t_stepper)
