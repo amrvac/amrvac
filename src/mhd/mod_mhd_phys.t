@@ -1221,7 +1221,7 @@ contains
     double precision   :: wnew(ixO^S, 1:nwc)
     double precision   :: rho(ixI^S)
 
-    call  mhd_get_rho(w,x,ixI^L,ixO^L,rho(ixI^S))
+    call  mhd_get_rho(w,x,ixI^L,ixO^L,rho)
     wnew(ixO^S,rho_) = rho(ixO^S)
     wnew(ixO^S,mom(:)) =  w(ixO^S,mom(:))
 
@@ -1357,13 +1357,13 @@ contains
     use mod_global_parameters
 
     logical, intent(in) :: primitive
+    logical, intent(inout) :: flag(ixI^S,1:nw)
     integer, intent(in) :: ixI^L, ixO^L
     double precision, intent(in) :: w(ixI^S,nw)
-    double precision :: tmp(ixO^S),b2(ixO^S),b(ixO^S,1:ndir),Ba(ixO^S,1:ndir)
-    double precision :: v(ixO^S,1:ndir),gamma2(ixO^S),inv_rho(ixO^S)
-    logical, intent(inout) :: flag(ixI^S,1:nw)
 
-    integer :: idir, jdir, kdir
+    integer :: idir, jdir, kdir, ix^D
+    double precision :: tmp(ixO^S),b2,b(1:ndir),Ba(ixO^S,1:ndir)
+    double precision :: v(1:ndir),gamma2,inv_rho
 
     flag=.false.
     where(w(ixO^S,rho_) < small_density) flag(ixO^S,rho_) = .true.
@@ -1380,40 +1380,47 @@ contains
           else
             Ba(ixO^S,1:ndir)=w(ixO^S,mag(1:ndir))
           end if
-          inv_rho(ixO^S) = 1d0/w(ixO^S,rho_)
-          b2(ixO^S)=sum(Ba(ixO^S,:)**2,dim=ndim+1)
-          tmp(ixO^S)=sqrt(b2(ixO^S))
-          where(tmp(ixO^S)>smalldouble)
-            tmp(ixO^S)=1.d0/tmp(ixO^S)
-          else where
-            tmp(ixO^S)=0.d0
-          end where
-          do idir=1,ndir
-            b(ixO^S,idir)=Ba(ixO^S,idir)*tmp(ixO^S)
-          end do
-          tmp(ixO^S)=sum(b(ixO^S,:)*w(ixO^S,mom(:)),dim=ndim+1)
-          ! Va^2/c^2
-          b2(ixO^S)=b2(ixO^S)*inv_rho(ixO^S)*inv_squared_c
-          ! equation (15)
-          gamma2(ixO^S)=1.d0/(1.d0+b2(ixO^S))
-          ! Convert momentum to velocity
-          do idir = 1, ndir
-             v(ixO^S,idir) = gamma2*(w(ixO^S, mom(idir))+b2*b(ixO^S,idir)*tmp)*inv_rho
-          end do
-          ! E=Bxv
-          b=0.d0
-          do idir=1,ndir; do jdir=1,ndir; do kdir=1,ndir
-            if(lvc(idir,jdir,kdir)==1)then
-              b(ixO^S,idir)=b(ixO^S,idir)+Ba(ixO^S,jdir)*v(ixO^S,kdir)
-            else if(lvc(idir,jdir,kdir)==-1)then
-              b(ixO^S,idir)=b(ixO^S,idir)-Ba(ixO^S,jdir)*v(ixO^S,kdir)
+         {do ix^DB=ixOmin^DB,ixOmax^DB \}
+            inv_rho = 1d0/w(ix^D,rho_)
+            b2=sum(Ba(ix^D,1:ndir)**2)
+            tmp(ix^D)=sqrt(b2)
+            if(tmp(ix^D)>smalldouble) then
+              tmp(ix^D)=1.d0/tmp(ix^D)
+            else 
+              tmp(ix^D)=0.d0
             end if
-          end do; end do; end do
-          ! Calculate internal e = e-eK-eB-eE
-          tmp(ixO^S)=w(ixO^S,e_)&
-                     -half*(sum(v(ixO^S,:)**2,dim=ndim+1)*w(ixO^S,rho_)&
-                     +sum(w(ixO^S,mag(:))**2,dim=ndim+1)&
-                     +sum(b(ixO^S,:)**2,dim=ndim+1)*inv_squared_c)
+            do idir=1,ndir
+              b(idir)=Ba(ix^D,idir)*tmp(ix^D)
+            end do
+            tmp(ix^D)=sum(b(1:ndir)*w(ix^D,mom(1:ndir)))
+            ! Va^2/c^2
+            b2=b2*inv_rho*inv_squared_c
+            ! equation (15)
+            gamma2=1.d0/(1.d0+b2)
+            ! Convert momentum to velocity
+            do idir = 1, ndir
+               v(idir) = gamma2*(w(ix^D, mom(idir))+b2*b(idir)*tmp(ix^D))*inv_rho
+            end do
+            ! E=Bxv
+            {^IFTHREED
+            b(1)=Ba(ix^D,2)*v(3)-Ba(ix^D,3)*v(2)
+            b(2)=Ba(ix^D,3)*v(1)-Ba(ix^D,1)*v(3)
+            b(3)=Ba(ix^D,1)*v(2)-Ba(ix^D,2)*v(1)
+            }
+            {^NOTHREED
+            b=0.d0
+            do idir=1,ndir; do jdir=1,ndir; do kdir=1,ndir
+              if(lvc(idir,jdir,kdir)==1)then
+                b(idir)=b(idir)+Ba(ix^D,jdir)*v(kdir)
+              else if(lvc(idir,jdir,kdir)==-1)then
+                b(idir)=b(idir)-Ba(ix^D,jdir)*v(kdir)
+              end if
+            end do; end do; end do
+            }
+            ! Calculate internal e = e-eK-eB-eE
+            tmp(ix^D)=w(ix^D,e_)-half*(sum(v(1:ndir)**2)*w(ix^D,rho_)&
+               +sum(w(ix^D,mag(1:ndir))**2)+sum(b(1:ndir)**2)*inv_squared_c)
+         {end do\}
         end if
         where(tmp(ixO^S) < small_e) flag(ixO^S,e_) = .true.
       end if
@@ -2443,7 +2450,7 @@ contains
 
     integer, intent(in)           :: ixI^L, ixO^L, idim
     double precision, intent(in)  :: w(ixI^S,nw), x(ixI^S,1:ndim)
-    double precision, intent(out) :: v(ixI^S)
+    double precision, intent(out) :: v(ixO^S)
 
     double precision              :: rho(ixI^S)
 
@@ -2465,7 +2472,7 @@ contains
     integer, intent(in)          :: ixI^L, ixO^L, idim
     double precision, intent(in) :: w(ixI^S, nw), x(ixI^S,1:ndim)
     double precision, intent(inout) :: cmax(ixI^S)
-    double precision :: vel(ixI^S)
+    double precision :: vel(ixO^S)
 
     call mhd_get_csound(w,x,ixI^L,ixO^L,idim,cmax)
     call mhd_get_v_idim(w,x,ixI^L,ixO^L,idim,vel)
@@ -2481,47 +2488,59 @@ contains
     integer, intent(in)          :: ixI^L, ixO^L, idim
     double precision, intent(in) :: w(ixI^S, nw), x(ixI^S,1:ndim)
     double precision, intent(inout):: cmax(ixI^S)
+
+    integer :: ix^D
     double precision :: wprim(ixI^S,nw)
-    double precision :: csound(ixO^S), AvMinCs2(ixO^S), idim_Alfven_speed2(ixO^S)
-    double precision :: inv_rho(ixO^S), Alfven_speed2(ixO^S), gamma2(ixO^S), B(ixO^S,1:ndir)
-
-    if(B0field) then
-      B(ixO^S,1:ndir)=w(ixO^S,mag(1:ndir))+block%B0(ixO^S,1:ndir,b0i)
-    else
-      B(ixO^S,1:ndir)=w(ixO^S,mag(1:ndir))
-    end if
-    inv_rho = 1.d0/w(ixO^S,rho_)
-
-    Alfven_speed2=sum(B(ixO^S,:)**2,dim=ndim+1)*inv_rho
-    gamma2 = 1.0d0/(1.d0+Alfven_speed2*inv_squared_c)
+    double precision :: csound, AvMinCs2, idim_Alfven_speed2
+    double precision :: inv_rho, Alfven_speed2, gamma2
 
     wprim=w
     call mhd_to_primitive(ixI^L,ixO^L,wprim,x)
-    cmax(ixO^S)=1.d0-gamma2*wprim(ixO^S,mom(idim))**2*inv_squared_c
-    ! equation (69)
-    Alfven_speed2=Alfven_speed2*cmax(ixO^S)
-
-    ! squared sound speed
-    if(mhd_energy) then
-      csound=mhd_gamma*wprim(ixO^S,p_)*inv_rho
+    if(B0field) then
+     {do ix^DB=ixOmin^DB,ixOmax^DB \}
+        inv_rho=1.d0/w(ix^D,rho_)
+        Alfven_speed2=sum((w(ix^D,mag(1:ndir))+block%B0(ix^D,1:ndir,b0i))**2)*inv_rho
+        gamma2=1.0d0/(1.d0+Alfven_speed2*inv_squared_c)
+        cmax(ix^D)=1.d0-gamma2*wprim(ix^D,mom(idim))**2*inv_squared_c
+        ! squared sound speed
+        if(mhd_energy) then
+          csound=mhd_gamma*wprim(ix^D,p_)*inv_rho
+        else
+          csound=mhd_gamma*mhd_adiab*w(ix^D,rho_)**gamma_1
+        end if
+        idim_Alfven_speed2=(w(ix^D,mag(idim))+block%B0(ix^D,idim,b0i))**2*inv_rho
+        ! Va_hat^2+a_hat^2 equation (57)
+        ! equation (69)
+        Alfven_speed2=Alfven_speed2*cmax(ix^D)+csound*(1.d0+idim_Alfven_speed2*inv_squared_c)
+        AvMinCs2=(gamma2*Alfven_speed2)**2-4.0d0*gamma2*csound*idim_Alfven_speed2*cmax(ix^D)
+        if(AvMinCs2<zero) AvMinCs2=zero
+        ! equation (68) fast magnetosonic wave speed
+        csound = sqrt(half*(gamma2*Alfven_speed2+sqrt(AvMinCs2)))
+        cmax(ix^D)=gamma2*abs(wprim(ix^D,mom(idim)))+csound
+      {end do\}
     else
-      csound=mhd_gamma*mhd_adiab*w(ixO^S,rho_)**gamma_1
+     {do ix^DB=ixOmin^DB,ixOmax^DB \}
+        inv_rho=1.d0/w(ix^D,rho_)
+        Alfven_speed2=sum(w(ix^D,mag(1:ndir))**2)*inv_rho
+        gamma2=1.0d0/(1.d0+Alfven_speed2*inv_squared_c)
+        cmax(ix^D)=1.d0-gamma2*wprim(ix^D,mom(idim))**2*inv_squared_c
+        ! squared sound speed
+        if(mhd_energy) then
+          csound=mhd_gamma*wprim(ix^D,p_)*inv_rho
+        else
+          csound=mhd_gamma*mhd_adiab*w(ix^D,rho_)**gamma_1
+        end if
+        idim_Alfven_speed2=w(ix^D,mag(idim))**2*inv_rho
+        ! Va_hat^2+a_hat^2 equation (57)
+        ! equation (69)
+        Alfven_speed2=Alfven_speed2*cmax(ix^D)+csound*(1.d0+idim_Alfven_speed2*inv_squared_c)
+        AvMinCs2=(gamma2*Alfven_speed2)**2-4.0d0*gamma2*csound*idim_Alfven_speed2*cmax(ix^D)
+        if(AvMinCs2<zero) AvMinCs2=zero
+        ! equation (68) fast magnetosonic wave speed
+        csound = sqrt(half*(gamma2*Alfven_speed2+sqrt(AvMinCs2)))
+        cmax(ix^D)=gamma2*abs(wprim(ix^D,mom(idim)))+csound
+      {end do\}
     end if
-
-    idim_Alfven_speed2=B(ixO^S,idim)**2*inv_rho
-
-    ! Va_hat^2+a_hat^2 equation (57)
-    Alfven_speed2=Alfven_speed2+csound*(1.d0+idim_Alfven_speed2*inv_squared_c)
-
-    AvMinCs2=(gamma2*Alfven_speed2)**2-4.0d0*gamma2*csound*idim_Alfven_speed2*cmax(ixO^S)
-
-    where(AvMinCs2<zero)
-       AvMinCs2=zero
-    end where
-
-    ! equation (68) fast magnetosonic wave speed
-    csound = sqrt(half*(gamma2*Alfven_speed2+sqrt(AvMinCs2)))
-    cmax(ixO^S)=gamma2*abs(wprim(ixO^S,mom(idim)))+csound
 
   end subroutine mhd_get_cmax_semirelati
 
@@ -2729,11 +2748,13 @@ contains
     double precision, intent(in)    :: x(ixI^S,1:ndim)
     double precision, intent(out)   :: Hspeed(ixI^S,1:number_species)
 
-    double precision :: csound(ixI^S,ndim),tmp(ixI^S)
+    double precision :: csound(ixI^S,ndim)
+    double precision, allocatable :: tmp(:^D&)
     integer :: jxC^L, ixC^L, ixA^L, id, ix^D
 
     Hspeed=0.d0
     ixA^L=ixO^L^LADD1;
+    allocate(tmp(ixA^S))
     do id=1,ndim
       call mhd_get_csound_prim(wprim,x,ixI^L,ixA^L,id,tmp)
       csound(ixA^S,id)=tmp(ixA^S)
@@ -2763,6 +2784,7 @@ contains
       ixAmin^D=jxCmin^D-kr(id,^D);
       Hspeed(ixC^S,1)=max(Hspeed(ixC^S,1),0.5d0*abs(wprim(jxC^S,mom(id))+csound(jxC^S,id)-wprim(ixA^S,mom(id))+csound(ixA^S,id)))
     end do
+    deallocate(tmp)
 
   end subroutine mhd_get_H_speed
 
@@ -2778,27 +2800,27 @@ contains
     double precision, intent(inout), optional :: cmin(ixI^S,1:number_species)
     double precision, intent(in)    :: Hspeed(ixI^S,1:number_species)
 
-    double precision :: wmean(ixI^S,nw)
-    double precision, dimension(ixI^S) :: umean, dmean, csoundL, csoundR, tmp1,tmp2,tmp3
     integer :: ix^D
+    double precision :: wmean(ixI^S,nw), csoundL(ixO^S), csoundR(ixO^S)
+    double precision :: umean, dmean, tmp1, tmp2, tmp3
 
     select case (boundspeed)
     case (1)
       ! This implements formula (10.52) from "Riemann Solvers and Numerical
       ! Methods for Fluid Dynamics" by Toro.
-      tmp1(ixO^S)=sqrt(wLp(ixO^S,rho_))
-      tmp2(ixO^S)=sqrt(wRp(ixO^S,rho_))
-      tmp3(ixO^S)=1.d0/(tmp1(ixO^S)+tmp2(ixO^S))
-      umean(ixO^S)=(wLp(ixO^S,mom(idim))*tmp1(ixO^S)+wRp(ixO^S,mom(idim))*tmp2(ixO^S))*tmp3(ixO^S)
       call mhd_get_csound_prim(wLp,x,ixI^L,ixO^L,idim,csoundL)
       call mhd_get_csound_prim(wRp,x,ixI^L,ixO^L,idim,csoundR)
-      dmean(ixO^S)=(tmp1(ixO^S)*csoundL(ixO^S)**2+tmp2(ixO^S)*csoundR(ixO^S)**2)*tmp3(ixO^S)+&
-       0.5d0*tmp1(ixO^S)*tmp2(ixO^S)*tmp3(ixO^S)**2*&
-       (wRp(ixO^S,mom(idim))-wLp(ixO^S,mom(idim)))**2
-      dmean(ixO^S)=sqrt(dmean(ixO^S))
       if(present(cmin)) then
-        cmin(ixO^S,1)=umean(ixO^S)-dmean(ixO^S)
-        cmax(ixO^S,1)=umean(ixO^S)+dmean(ixO^S)
+       {do ix^DB=ixOmin^DB,ixOmax^DB\}
+          tmp1=sqrt(wLp(ix^D,rho_))
+          tmp2=sqrt(wRp(ix^D,rho_))
+          tmp3=1.d0/(tmp1+tmp2)
+          umean=(wLp(ix^D,mom(idim))*tmp1+wRp(ix^D,mom(idim))*tmp2)*tmp3
+          dmean=sqrt((tmp1*csoundL(ix^D)**2+tmp2*csoundR(ix^D)**2)*tmp3+&
+           half*tmp1*tmp2*tmp3**2*(wRp(ix^D,mom(idim))-wLp(ix^D,mom(idim)))**2)
+          cmin(ix^D,1)=umean-dmean
+          cmax(ix^D,1)=umean+dmean
+       {end do\}
         if(H_correction) then
           {do ix^DB=ixOmin^DB,ixOmax^DB\}
             cmin(ix^D,1)=sign(one,cmin(ix^D,1))*max(abs(cmin(ix^D,1)),Hspeed(ix^D,1))
@@ -2806,15 +2828,24 @@ contains
           {end do\}
         end if
       else
-        cmax(ixO^S,1)=abs(umean(ixO^S))+dmean(ixO^S)
+       {do ix^DB=ixOmin^DB,ixOmax^DB\}
+          tmp1=sqrt(wLp(ix^D,rho_))
+          tmp2=sqrt(wRp(ix^D,rho_))
+          tmp3=1.d0/(tmp1+tmp2)
+          umean=(wLp(ix^D,mom(idim))*tmp1+wRp(ix^D,mom(idim))*tmp2)*tmp3
+          dmean=sqrt((tmp1*csoundL(ix^D)**2+tmp2*csoundR(ix^D)**2)*tmp3+&
+           half*tmp1*tmp2*tmp3**2*(wRp(ix^D,mom(idim))-wLp(ix^D,mom(idim)))**2)
+          cmax(ix^D,1)=abs(umean)+dmean
+       {end do\}
       end if
     case (2)
-      wmean(ixO^S,1:nwflux)=0.5d0*(wLC(ixO^S,1:nwflux)+wRC(ixO^S,1:nwflux))
-      tmp1(ixO^S)=wmean(ixO^S,mom(idim))/wmean(ixO^S,rho_)
-      call mhd_get_csound(wmean,x,ixI^L,ixO^L,idim,csoundR)
+      wmean(ixO^S,1:nwflux)=0.5d0*(wLp(ixO^S,1:nwflux)+wRp(ixO^S,1:nwflux))
+      call mhd_get_csound_prim(wmean,x,ixI^L,ixO^L,idim,csoundR)
       if(present(cmin)) then
-        cmax(ixO^S,1)=max(tmp1(ixO^S)+csoundR(ixO^S),zero)
-        cmin(ixO^S,1)=min(tmp1(ixO^S)-csoundR(ixO^S),zero)
+       {do ix^DB=ixOmin^DB,ixOmax^DB\}
+          cmax(ix^D,1)=max(wmean(ix^D,mom(idim))+csoundR(ix^D),zero)
+          cmin(ix^D,1)=min(wmean(ix^D,mom(idim))-csoundR(ix^D),zero)
+       {end do\}
         if(H_correction) then
           {do ix^DB=ixOmin^DB,ixOmax^DB\}
             cmin(ix^D,1)=sign(one,cmin(ix^D,1))*max(abs(cmin(ix^D,1)),Hspeed(ix^D,1))
@@ -2822,16 +2853,18 @@ contains
           {end do\}
         end if
       else
-        cmax(ixO^S,1)=abs(tmp1(ixO^S))+csoundR(ixO^S)
+        cmax(ixO^S,1)=abs(wmean(ixO^S,mom(idim)))+csoundR(ixO^S)
       end if
     case (3)
       ! Miyoshi 2005 JCP 208, 315 equation (67)
       call mhd_get_csound_prim(wLp,x,ixI^L,ixO^L,idim,csoundL)
       call mhd_get_csound_prim(wRp,x,ixI^L,ixO^L,idim,csoundR)
-      csoundL(ixO^S)=max(csoundL(ixO^S),csoundR(ixO^S))
       if(present(cmin)) then
-        cmin(ixO^S,1)=min(wLp(ixO^S,mom(idim)),wRp(ixO^S,mom(idim)))-csoundL(ixO^S)
-        cmax(ixO^S,1)=max(wLp(ixO^S,mom(idim)),wRp(ixO^S,mom(idim)))+csoundL(ixO^S)
+       {do ix^DB=ixOmin^DB,ixOmax^DB\}
+          csoundL(ix^D)=max(csoundL(ix^D),csoundR(ix^D))
+          cmin(ix^D,1)=min(wLp(ix^D,mom(idim)),wRp(ix^D,mom(idim)))-csoundL(ix^D)
+          cmax(ix^D,1)=max(wLp(ix^D,mom(idim)),wRp(ix^D,mom(idim)))+csoundL(ix^D)
+       {end do\}
         if(H_correction) then
           {do ix^DB=ixOmin^DB,ixOmax^DB\}
             cmin(ix^D,1)=sign(one,cmin(ix^D,1))*max(abs(cmin(ix^D,1)),Hspeed(ix^D,1))
@@ -2839,7 +2872,10 @@ contains
           {end do\}
         end if
       else
-        cmax(ixO^S,1)=max(wLp(ixO^S,mom(idim)),wRp(ixO^S,mom(idim)))+csoundL(ixO^S)
+       {do ix^DB=ixOmin^DB,ixOmax^DB\}
+          csoundL(ix^D)=max(csoundL(ix^D),csoundR(ix^D))
+          cmax(ix^D,1)=max(wLp(ix^D,mom(idim)),wRp(ix^D,mom(idim)))+csoundL(ix^D)
+       {end do\}
       end if
     end select
 
@@ -2857,17 +2893,23 @@ contains
     double precision, intent(inout), optional :: cmin(ixI^S,1:number_species)
     double precision, intent(in)    :: Hspeed(ixI^S,1:number_species)
 
+    integer :: ix^D
     double precision, dimension(ixO^S) :: csoundL, csoundR, gamma2L, gamma2R
 
     ! Miyoshi 2005 JCP 208, 315 equation (67)
     call mhd_get_csound_semirelati(wLp,x,ixI^L,ixO^L,idim,csoundL,gamma2L)
     call mhd_get_csound_semirelati(wRp,x,ixI^L,ixO^L,idim,csoundR,gamma2R)
-    csoundL(ixO^S)=max(csoundL(ixO^S),csoundR(ixO^S))
     if(present(cmin)) then
-      cmin(ixO^S,1)=min(gamma2L*wLp(ixO^S,mom(idim)),gamma2R*wRp(ixO^S,mom(idim)))-csoundL(ixO^S)
-      cmax(ixO^S,1)=max(gamma2L*wLp(ixO^S,mom(idim)),gamma2R*wRp(ixO^S,mom(idim)))+csoundL(ixO^S)
+     {do ix^DB=ixOmin^DB,ixOmax^DB\}
+        csoundL(ix^D)=max(csoundL(ix^D),csoundR(ix^D))
+        cmin(ix^D,1)=min(gamma2L(ix^D)*wLp(ix^D,mom(idim)),gamma2R(ix^D)*wRp(ix^D,mom(idim)))-csoundL(ix^D)
+        cmax(ix^D,1)=max(gamma2L(ix^D)*wLp(ix^D,mom(idim)),gamma2R(ix^D)*wRp(ix^D,mom(idim)))+csoundL(ix^D)
+     {end do\}
     else
-      cmax(ixO^S,1)=max(gamma2L*wLp(ixO^S,mom(idim)),gamma2R*wRp(ixO^S,mom(idim)))+csoundL(ixO^S)
+     {do ix^DB=ixOmin^DB,ixOmax^DB\}
+        csoundL(ix^D)=max(csoundL(ix^D),csoundR(ix^D))
+        cmax(ix^D,1)=max(gamma2L(ix^D)*wLp(ix^D,mom(idim)),gamma2R(ix^D)*wRp(ix^D,mom(idim)))+csoundL(ix^D)
+     {end do\}
     end if
 
   end subroutine mhd_get_cbounds_semirelati
@@ -2884,28 +2926,27 @@ contains
     double precision, intent(inout), optional :: cmin(ixI^S,1:number_species)
     double precision, intent(in)    :: Hspeed(ixI^S,1:number_species)
 
-    double precision :: wmean(ixI^S,nw)
-    double precision, dimension(ixI^S) :: umean, dmean, csoundL, csoundR, tmp1,tmp2,tmp3
     integer :: ix^D
-    double precision :: rho(ixI^S)
+    double precision :: wmean(ixI^S,nw), csoundL(ixO^S), csoundR(ixO^S)
+    double precision :: umean, dmean, tmp1, tmp2, tmp3
 
     select case (boundspeed)
     case (1)
       ! This implements formula (10.52) from "Riemann Solvers and Numerical
       ! Methods for Fluid Dynamics" by Toro.
-      tmp1(ixO^S)=sqrt(wLp(ixO^S,rho_)+block%equi_vars(ixO^S,equi_rho0_,b0i))
-      tmp2(ixO^S)=sqrt(wRp(ixO^S,rho_)+block%equi_vars(ixO^S,equi_rho0_,b0i))
-      tmp3(ixO^S)=1.d0/(tmp1(ixO^S)+tmp2(ixO^S))
-      umean(ixO^S)=(wLp(ixO^S,mom(idim))*tmp1(ixO^S)+wRp(ixO^S,mom(idim))*tmp2(ixO^S))*tmp3(ixO^S)
       call mhd_get_csound_prim(wLp,x,ixI^L,ixO^L,idim,csoundL)
       call mhd_get_csound_prim(wRp,x,ixI^L,ixO^L,idim,csoundR)
-      dmean(ixO^S)=(tmp1(ixO^S)*csoundL(ixO^S)**2+tmp2(ixO^S)*csoundR(ixO^S)**2)*tmp3(ixO^S)+&
-       0.5d0*tmp1(ixO^S)*tmp2(ixO^S)*tmp3(ixO^S)**2*&
-       (wRp(ixO^S,mom(idim))-wLp(ixO^S,mom(idim)))**2
-      dmean(ixO^S)=sqrt(dmean(ixO^S))
       if(present(cmin)) then
-        cmin(ixO^S,1)=umean(ixO^S)-dmean(ixO^S)
-        cmax(ixO^S,1)=umean(ixO^S)+dmean(ixO^S)
+       {do ix^DB=ixOmin^DB,ixOmax^DB\}
+          tmp1=sqrt(wLp(ix^D,rho_)+block%equi_vars(ix^D,equi_rho0_,b0i))
+          tmp2=sqrt(wRp(ix^D,rho_)+block%equi_vars(ix^D,equi_rho0_,b0i))
+          tmp3=1.d0/(tmp1+tmp2)
+          umean=(wLp(ix^D,mom(idim))*tmp1+wRp(ix^D,mom(idim))*tmp2)*tmp3
+          dmean=sqrt((tmp1*csoundL(ix^D)**2+tmp2*csoundR(ix^D)**2)*tmp3+&
+           half*tmp1*tmp2*tmp3**2*(wRp(ix^D,mom(idim))-wLp(ix^D,mom(idim)))**2)
+          cmin(ix^D,1)=umean-dmean
+          cmax(ix^D,1)=umean+dmean
+       {end do\}
         if(H_correction) then
           {do ix^DB=ixOmin^DB,ixOmax^DB\}
             cmin(ix^D,1)=sign(one,cmin(ix^D,1))*max(abs(cmin(ix^D,1)),Hspeed(ix^D,1))
@@ -2913,15 +2954,24 @@ contains
           {end do\}
         end if
       else
-        cmax(ixO^S,1)=abs(umean(ixO^S))+dmean(ixO^S)
+       {do ix^DB=ixOmin^DB,ixOmax^DB\}
+          tmp1=sqrt(wLp(ix^D,rho_)+block%equi_vars(ix^D,equi_rho0_,b0i))
+          tmp2=sqrt(wRp(ix^D,rho_)+block%equi_vars(ix^D,equi_rho0_,b0i))
+          tmp3=1.d0/(tmp1+tmp2)
+          umean=(wLp(ix^D,mom(idim))*tmp1+wRp(ix^D,mom(idim))*tmp2)*tmp3
+          dmean=sqrt((tmp1*csoundL(ix^D)**2+tmp2*csoundR(ix^D)**2)*tmp3+&
+           half*tmp1*tmp2*tmp3**2*(wRp(ix^D,mom(idim))-wLp(ix^D,mom(idim)))**2)
+          cmax(ix^D,1)=abs(umean)+dmean
+       {end do\}
       end if
     case (2)
-      wmean(ixO^S,1:nwflux)=0.5d0*(wLC(ixO^S,1:nwflux)+wRC(ixO^S,1:nwflux))
-      tmp1(ixO^S)=wmean(ixO^S,mom(idim))/(wmean(ixO^S,rho_)+block%equi_vars(ixO^S,equi_rho0_,b0i))
-      call mhd_get_csound(wmean,x,ixI^L,ixO^L,idim,csoundR)
+      wmean(ixO^S,1:nwflux)=0.5d0*(wLp(ixO^S,1:nwflux)+wRp(ixO^S,1:nwflux))
+      call mhd_get_csound_prim(wmean,x,ixI^L,ixO^L,idim,csoundR)
       if(present(cmin)) then
-        cmax(ixO^S,1)=max(tmp1(ixO^S)+csoundR(ixO^S),zero)
-        cmin(ixO^S,1)=min(tmp1(ixO^S)-csoundR(ixO^S),zero)
+       {do ix^DB=ixOmin^DB,ixOmax^DB\}
+          cmax(ix^D,1)=max(wmean(ix^D,mom(idim))+csoundR(ix^D),zero)
+          cmin(ix^D,1)=min(wmean(ix^D,mom(idim))-csoundR(ix^D),zero)
+       {end do\}
         if(H_correction) then
           {do ix^DB=ixOmin^DB,ixOmax^DB\}
             cmin(ix^D,1)=sign(one,cmin(ix^D,1))*max(abs(cmin(ix^D,1)),Hspeed(ix^D,1))
@@ -2929,16 +2979,18 @@ contains
           {end do\}
         end if
       else
-        cmax(ixO^S,1)=abs(tmp1(ixO^S))+csoundR(ixO^S)
+        cmax(ixO^S,1)=abs(wmean(ixO^S,mom(idim)))+csoundR(ixO^S)
       end if
     case (3)
       ! Miyoshi 2005 JCP 208, 315 equation (67)
       call mhd_get_csound_prim(wLp,x,ixI^L,ixO^L,idim,csoundL)
       call mhd_get_csound_prim(wRp,x,ixI^L,ixO^L,idim,csoundR)
-      csoundL(ixO^S)=max(csoundL(ixO^S),csoundR(ixO^S))
       if(present(cmin)) then
-        cmin(ixO^S,1)=min(wLp(ixO^S,mom(idim)),wRp(ixO^S,mom(idim)))-csoundL(ixO^S)
-        cmax(ixO^S,1)=max(wLp(ixO^S,mom(idim)),wRp(ixO^S,mom(idim)))+csoundL(ixO^S)
+       {do ix^DB=ixOmin^DB,ixOmax^DB\}
+          csoundL(ix^D)=max(csoundL(ix^D),csoundR(ix^D))
+          cmin(ix^D,1)=min(wLp(ix^D,mom(idim)),wRp(ix^D,mom(idim)))-csoundL(ix^D)
+          cmax(ix^D,1)=max(wLp(ix^D,mom(idim)),wRp(ix^D,mom(idim)))+csoundL(ix^D)
+       {end do\}
         if(H_correction) then
           {do ix^DB=ixOmin^DB,ixOmax^DB\}
             cmin(ix^D,1)=sign(one,cmin(ix^D,1))*max(abs(cmin(ix^D,1)),Hspeed(ix^D,1))
@@ -2946,7 +2998,10 @@ contains
           {end do\}
         end if
       else
-        cmax(ixO^S,1)=max(wLp(ixO^S,mom(idim)),wRp(ixO^S,mom(idim)))+csoundL(ixO^S)
+       {do ix^DB=ixOmin^DB,ixOmax^DB\}
+          csoundL(ix^D)=max(csoundL(ix^D),csoundR(ix^D))
+          cmax(ix^D,1)=max(wLp(ix^D,mom(idim)),wRp(ix^D,mom(idim)))+csoundL(ix^D)
+       {end do\}
       end if
     end select
 
@@ -3012,43 +3067,60 @@ contains
     integer, intent(in)          :: ixI^L, ixO^L, idim
     double precision, intent(in) :: w(ixI^S, nw), x(ixI^S,1:ndim)
     double precision, intent(out):: csound(ixI^S)
-    double precision :: cfast2(ixI^S), AvMinCs2(ixI^S), b2(ixI^S), kmax
-    double precision :: inv_rho(ixO^S)
 
+    integer :: ix^D
+    double precision :: inv_rho, cfast2, AvMinCs2, b2, kmax
+    double precision :: rho(ixO^S)
+
+    if(MHD_Hall) kmax = dpi/min({dxlevel(^D)},bigdouble)*half
     if(has_equi_rho0) then
-      inv_rho(ixO^S) = 1d0/(w(ixO^S,rho_) + block%equi_vars(ixO^S,equi_rho0_,b0i))
+      rho(ixO^S) = (w(ixO^S,rho_) + block%equi_vars(ixO^S,equi_rho0_,b0i))
     else
-      inv_rho(ixO^S) = 1d0/w(ixO^S,rho_)
-    endif
+      rho(ixO^S) = w(ixO^S,rho_)
+    end if
 
-    call mhd_get_csound2(w,x,ixI^L,ixO^L,csound)
-
-    ! store |B|^2 in v
-    b2(ixO^S) = mhd_mag_en_all(w,ixI^L,ixO^L)
-
-    cfast2(ixO^S)   = b2(ixO^S) * inv_rho+csound(ixO^S)
-    AvMinCs2(ixO^S) = cfast2(ixO^S)**2-4.0d0*csound(ixO^S) &
-         * mhd_mag_i_all(w,ixI^L,ixO^L,idim)**2 * inv_rho
-
-    where(AvMinCs2(ixO^S)<zero)
-       AvMinCs2(ixO^S)=zero
-    end where
-
-    AvMinCs2(ixO^S)=sqrt(AvMinCs2(ixO^S))
-
-    if (.not. MHD_Hall) then
-       csound(ixO^S) = sqrt(half*(cfast2(ixO^S)+AvMinCs2(ixO^S)))
-       if (mhd_boris_simplification) then
-          ! equation (88)
-          csound(ixO^S) = mhd_gamma_alfven(w, ixI^L,ixO^L) * csound(ixO^S)
-       end if
+    if(mhd_energy) then
+      call mhd_get_pthermal(w,x,ixI^L,ixO^L,csound)
+      csound(ixO^S)=mhd_gamma*csound(ixO^S)/rho(ixO^S)
     else
-       ! take the Hall velocity into account:
-       ! most simple estimate, high k limit:
-       ! largest wavenumber supported by grid: Nyquist (in practise can reduce by some factor)
-       kmax = dpi/min({dxlevel(^D)},bigdouble)*half
-       csound(ixO^S) = max(sqrt(half*(cfast2(ixO^S)+AvMinCs2(ixO^S))), &
-            mhd_etah * sqrt(b2(ixO^S))*inv_rho*kmax)
+      csound(ixO^S)=mhd_gamma*mhd_adiab*rho(ixO^S)**gamma_1
+    end if
+
+    if(B0field) then
+     {do ix^DB=ixOmin^DB,ixOmax^DB \}
+        inv_rho=1.d0/rho(ix^D)
+        ! store |B|^2 in v
+        b2=sum((w(ix^D, mag(:))+block%B0(ix^D,:,b0i))**2)
+        cfast2=b2*inv_rho+csound(ix^D)
+        AvMinCs2=cfast2**2-4.0d0*csound(ix^D)*(w(ix^D,mag(idim))+block%B0(ix^D,idim,b0i))**2*inv_rho
+        if(AvMinCs2<zero) AvMinCs2=zero
+        csound(ix^D)=sqrt(half*(cfast2+sqrt(AvMinCs2)))
+        if(MHD_Hall) then
+          ! take the Hall velocity into account: most simple estimate, high k limit:
+          ! largest wavenumber supported by grid: Nyquist (in practise can reduce by some factor)
+          csound(ix^D)=max(csound(ix^D),mhd_etah*sqrt(b2)*inv_rho*kmax)
+        end if
+     {end do\}
+    else
+     {do ix^DB=ixOmin^DB,ixOmax^DB \}
+        inv_rho=1.d0/rho(ix^D)
+        ! store |B|^2 in v
+        b2=sum(w(ix^D, mag(1:ndir))**2)
+        cfast2=b2*inv_rho+csound(ix^D)
+        AvMinCs2=cfast2**2-4.0d0*csound(ix^D)*w(ix^D,mag(idim))**2*inv_rho
+        if(AvMinCs2<zero) AvMinCs2=zero
+        csound(ix^D)=sqrt(half*(cfast2+sqrt(AvMinCs2)))
+        if(MHD_Hall) then
+          ! take the Hall velocity into account: most simple estimate, high k limit:
+          ! largest wavenumber supported by grid: Nyquist (in practise can reduce by some factor)
+          csound(ix^D)=max(csound(ix^D),mhd_etah*sqrt(b2)*inv_rho*kmax)
+        end if
+     {end do\}
+    end if
+
+    if(mhd_boris_simplification) then
+      ! equation (88)
+      csound(ixO^S) = mhd_gamma_alfven(w, ixI^L,ixO^L) * csound(ixO^S)
     end if
 
   end subroutine mhd_get_csound
@@ -3059,51 +3131,60 @@ contains
 
     integer, intent(in)          :: ixI^L, ixO^L, idim
     double precision, intent(in) :: w(ixI^S, nw), x(ixI^S,1:ndim)
-    double precision, intent(out):: csound(ixI^S)
-    double precision :: cfast2(ixI^S), AvMinCs2(ixI^S), b2(ixI^S), kmax
-    double precision :: inv_rho(ixO^S)
-    double precision :: tmp(ixI^S)
+    double precision, intent(out):: csound(ixO^S)
 
-    call mhd_get_rho(w,x,ixI^L,ixO^L,tmp)
-    inv_rho(ixO^S) = 1d0/tmp(ixO^S)
+    integer :: ix^D
+    double precision :: inv_rho, cfast2, AvMinCs2, b2, kmax
+    double precision :: rho(ixO^S)
 
+    if(MHD_Hall) kmax = dpi/min({dxlevel(^D)},bigdouble)*half
+    if(has_equi_rho0) then
+      rho(ixO^S) = (w(ixO^S,rho_) + block%equi_vars(ixO^S,equi_rho0_,b0i))
+    else
+      rho(ixO^S) = w(ixO^S,rho_)
+    end if
 
     if(mhd_energy) then
       if(has_equi_pe0) then
-        csound(ixO^S) = w(ixO^S,e_) + block%equi_vars(ixO^S,equi_pe0_,b0i)
+        csound(ixO^S)=mhd_gamma*(w(ixO^S,e_)+block%equi_vars(ixO^S,equi_pe0_,b0i))/rho(ixO^S)
       else
-        csound(ixO^S) = w(ixO^S,e_)
+        csound(ixO^S)=mhd_gamma*w(ixO^S,e_)/rho(ixO^S)
       endif
-      csound(ixO^S)=mhd_gamma*csound(ixO^S)*inv_rho
     else
-      csound(ixO^S)=mhd_gamma*mhd_adiab*tmp(ixO^S)**gamma_1
+      csound(ixO^S)=mhd_gamma*mhd_adiab*rho(ixO^S)**gamma_1
     end if
 
     ! store |B|^2 in v
-    b2(ixO^S)        = mhd_mag_en_all(w,ixI^L,ixO^L)
-    cfast2(ixO^S)   = b2(ixO^S) * inv_rho+csound(ixO^S)
-    AvMinCs2(ixO^S) = cfast2(ixO^S)**2-4.0d0*csound(ixO^S) &
-         * mhd_mag_i_all(w,ixI^L,ixO^L,idim)**2 * inv_rho
-
-    where(AvMinCs2(ixO^S)<zero)
-       AvMinCs2(ixO^S)=zero
-    end where
-
-    AvMinCs2(ixO^S)=sqrt(AvMinCs2(ixO^S))
-
-    if (.not. MHD_Hall) then
-       csound(ixO^S) = sqrt(half*(cfast2(ixO^S)+AvMinCs2(ixO^S)))
-       if (mhd_boris_simplification) then
-          ! equation (88)
-          csound(ixO^S) = mhd_gamma_alfven(w, ixI^L,ixO^L) * csound(ixO^S)
-       end if
+    if(B0field) then
+     {do ix^DB=ixOmin^DB,ixOmax^DB \}
+        inv_rho=1.d0/rho(ix^D)
+        b2=sum((w(ix^D, mag(1:ndir))+block%B0(ix^D,1:ndir,b0i))**2)
+        cfast2=b2*inv_rho+csound(ix^D)
+        AvMinCs2=cfast2**2-4.0d0*csound(ix^D)*(w(ix^D,mag(idim))+&
+         block%B0(ix^D,idim,b0i))**2*inv_rho
+        if(AvMinCs2<zero) AvMinCs2=zero
+        csound(ix^D)=sqrt(half*(cfast2+sqrt(AvMinCs2)))
+        if(MHD_Hall) then
+          csound(ix^D)=max(csound(ix^D),mhd_etah*sqrt(b2)*inv_rho*kmax)
+        end if
+     {end do\}
     else
-       ! take the Hall velocity into account:
-       ! most simple estimate, high k limit:
-       ! largest wavenumber supported by grid: Nyquist (in practise can reduce by some factor)
-       kmax = dpi/min({dxlevel(^D)},bigdouble)*half
-       csound(ixO^S) = max(sqrt(half*(cfast2(ixO^S)+AvMinCs2(ixO^S))), &
-            mhd_etah * sqrt(b2(ixO^S))*inv_rho*kmax)
+     {do ix^DB=ixOmin^DB,ixOmax^DB \}
+        inv_rho=1.d0/rho(ix^D)
+        b2=sum(w(ix^D, mag(1:ndir))**2)
+        cfast2=b2*inv_rho+csound(ix^D)
+        AvMinCs2=cfast2**2-4.0d0*csound(ix^D)*w(ix^D,mag(idim))**2*inv_rho
+        if(AvMinCs2<zero) AvMinCs2=zero
+        csound(ix^D)=sqrt(half*(cfast2+sqrt(AvMinCs2)))
+        if(MHD_Hall) then
+          csound(ix^D)=max(csound(ix^D),mhd_etah*sqrt(b2)*inv_rho*kmax)
+        end if
+     {end do\}
+    end if
+
+    if(mhd_boris_simplification) then
+      ! equation (88)
+      csound(ixO^S) = mhd_gamma_alfven(w,ixI^L,ixO^L) * csound(ixO^S)
     end if
 
   end subroutine mhd_get_csound_prim
@@ -3116,46 +3197,54 @@ contains
     ! here w is primitive variables
     double precision, intent(in) :: w(ixI^S, nw), x(ixI^S,1:ndim)
     double precision, intent(out):: csound(ixO^S), gamma2(ixO^S)
-    double precision :: AvMinCs2(ixO^S), kmax
-    double precision :: inv_rho(ixO^S), Alfven_speed2(ixO^S), idim_Alfven_speed2(ixO^S),B(ixO^S,1:ndir)
 
     integer :: ix^D
+    double precision :: AvMinCs2, kmax, inv_rho, Alfven_speed2, idim_Alfven_speed2
+    double precision :: B(ixO^S,1:ndir)
 
     if(B0field) then
-      B(ixO^S,1:ndir)=w(ixO^S,mag(1:ndir))+block%B0(ixO^S,1:ndir,b0i)
+     {do ix^DB=ixOmin^DB,ixOmax^DB\}
+        inv_rho = 1.d0/w(ix^D,rho_)
+        ! squared sound speed
+        if(mhd_energy) then
+          csound(ix^D)=mhd_gamma*w(ix^D,p_)*inv_rho
+        else
+          csound(ix^D)=mhd_gamma*mhd_adiab*w(ix^D,rho_)**gamma_1
+        end if
+        Alfven_speed2=sum((w(ix^D,mag(1:ndir))+block%B0(ix^D,1:ndir,b0i))**2)*inv_rho
+        gamma2(ix^D) = 1.0d0/(1.d0+Alfven_speed2*inv_squared_c)
+        AvMinCs2=1.d0-gamma2(ix^D)*w(ix^D,mom(idim))**2*inv_squared_c
+        idim_Alfven_speed2=(w(ix^D,mag(idim))+block%B0(ix^D,idim,b0i))**2*inv_rho
+        ! Va_hat^2+a_hat^2 equation (57)
+        ! equation (69)
+        Alfven_speed2=Alfven_speed2*AvMinCs2+csound(ix^D)*(1.d0+idim_Alfven_speed2*inv_squared_c)
+        AvMinCs2=(gamma2(ix^D)*Alfven_speed2)**2-4.0d0*gamma2(ix^D)*csound(ix^D)*idim_Alfven_speed2*AvMinCs2
+        if(AvMinCs2<zero) AvMinCs2=zero
+        ! equation (68) fast magnetosonic speed
+        csound(ix^D) = sqrt(half*(gamma2(ix^D)*Alfven_speed2+sqrt(AvMinCs2)))
+      {end do\}
     else
-      B(ixO^S,1:ndir)=w(ixO^S,mag(1:ndir))
+     {do ix^DB=ixOmin^DB,ixOmax^DB\}
+        inv_rho = 1.d0/w(ix^D,rho_)
+        ! squared sound speed
+        if(mhd_energy) then
+          csound(ix^D)=mhd_gamma*w(ix^D,p_)*inv_rho
+        else
+          csound(ix^D)=mhd_gamma*mhd_adiab*w(ix^D,rho_)**gamma_1
+        end if
+        Alfven_speed2=sum(w(ix^D,mag(:))**2)*inv_rho
+        gamma2(ix^D) = 1.0d0/(1.d0+Alfven_speed2*inv_squared_c)
+        AvMinCs2=1.d0-gamma2(ix^D)*w(ix^D,mom(idim))**2*inv_squared_c
+        idim_Alfven_speed2=w(ix^D,mag(idim))**2*inv_rho
+        ! Va_hat^2+a_hat^2 equation (57)
+        ! equation (69)
+        Alfven_speed2=Alfven_speed2*AvMinCs2+csound(ix^D)*(1.d0+idim_Alfven_speed2*inv_squared_c)
+        AvMinCs2=(gamma2(ix^D)*Alfven_speed2)**2-4.0d0*gamma2(ix^D)*csound(ix^D)*idim_Alfven_speed2*AvMinCs2
+        if(AvMinCs2<zero) AvMinCs2=zero
+        ! equation (68) fast magnetosonic speed
+        csound(ix^D) = sqrt(half*(gamma2(ix^D)*Alfven_speed2+sqrt(AvMinCs2)))
+      {end do\}
     end if
-
-    inv_rho = 1.d0/w(ixO^S,rho_)
-
-    Alfven_speed2=sum(B(ixO^S,:)**2,dim=ndim+1)*inv_rho
-    gamma2 = 1.0d0/(1.d0+Alfven_speed2*inv_squared_c)
-
-    AvMinCs2=1.d0-gamma2*w(ixO^S,mom(idim))**2*inv_squared_c
-    ! equatoin (69)
-    Alfven_speed2=Alfven_speed2*AvMinCs2
-
-    ! squared sound speed
-    if(mhd_energy) then
-      csound(ixO^S)=mhd_gamma*w(ixO^S,p_)*inv_rho
-    else
-      csound(ixO^S)=mhd_gamma*mhd_adiab*w(ixO^S,rho_)**gamma_1
-    end if
-
-    idim_Alfven_speed2=B(ixO^S,idim)**2*inv_rho
-
-    ! Va_hat^2+a_hat^2 equation (57)
-    Alfven_speed2=Alfven_speed2+csound(ixO^S)*(1.d0+idim_Alfven_speed2*inv_squared_c)
-
-    AvMinCs2=(gamma2*Alfven_speed2)**2-4.0d0*gamma2*csound(ixO^S)*idim_Alfven_speed2*AvMinCs2
-
-    where(AvMinCs2<zero)
-       AvMinCs2=zero
-    end where
-
-    ! equation (68) fast magnetosonic speed
-    csound(ixO^S) = sqrt(half*(gamma2*Alfven_speed2+sqrt(AvMinCs2)))
 
   end subroutine mhd_get_csound_semirelati
 
@@ -3493,7 +3582,7 @@ contains
     double precision             :: ptotal(ixO^S)
     double precision             :: tmp(ixI^S)
     double precision             :: vHall(ixI^S,1:ndir)
-    integer                      :: idirmin, iw, idir, jdir, kdir
+    integer                      :: idirmin, iw, idir, jdir, kdir,ix^D
     double precision, allocatable, dimension(:^D&,:) :: Jambi, btot
     double precision, allocatable, dimension(:^D&) :: tmp2, tmp3
 
@@ -3510,28 +3599,39 @@ contains
       call mhd_getv_Hall(w,x,ixI^L,ixO^L,vHall)
     end if
 
-    ! Get flux of tracer
-    do iw=1,mhd_n_tracer
-      f(ixO^S,tracer(iw))=w(ixO^S,mom(idim))*w(ixO^S,tracer(iw))
-    end do
-
-    ! Get flux of momentum
-    ! f_i[m_k]=v_i*m_k-b_k*b_i [+ptotal if i==k]
+    ! Get flux of momentum and magnetic field
     do idir=1,ndir
       if(idim==idir) then
+        ! f_i[m_k]=v_i*m_k-b_k*b_i+ptotal if i==k
         f(ixO^S,mom(idir))=wC(ixO^S,mom(idir))*w(ixO^S,mom(idim))+ptotal(ixO^S)-&
                             w(ixO^S,mag(idir))*w(ixO^S,mag(idim))
+        ! f_i[b_i] should be exactly 0, so we do not use the transport flux
+        if(mhd_glm) then
+          f(ixO^S,mag(idir))=w(ixO^S,psi_)
+        else
+          f(ixO^S,mag(idir))=zero
+        end if
       else
-        f(ixO^S,mom(idir))=wC(ixO^S,mom(idir))*w(ixO^S,mom(idim))-&
-                            w(ixO^S,mag(idir))*w(ixO^S,mag(idim))
+       {do ix^DB=ixOmin^DB,ixOmax^DB\}
+          ! f_i[m_k]=v_i*m_k-b_k*b_i
+          f(ix^D,mom(idir))=wC(ix^D,mom(idir))*w(ix^D,mom(idim))-w(ix^D,mag(idir))*w(ix^D,mag(idim))
+          ! f_i[b_k]=v_i*b_k-v_k*b_i
+          f(ix^D,mag(idir))=w(ix^D,mom(idim))*w(ix^D,mag(idir))-w(ix^D,mag(idim))*w(ix^D,mom(idir))
+       {end do\}
+        if (mhd_Hall) then
+          ! f_i[b_k] = f_i[b_k] + vHall_i*b_k - vHall_k*b_i
+          f(ixO^S,mag(idir)) = f(ixO^S,mag(idir)) &
+               - vHall(ixO^S,idir)*w(ixO^S,mag(idim)) &
+               + vHall(ixO^S,idim)*w(ixO^S,mag(idir))
+        end if
       end if
     end do
 
     ! Get flux of energy
     ! f_i[e]=v_i*e+v_i*ptotal-b_i*(b_k*v_k)
     if(mhd_energy) then
-      if (mhd_internal_e) then
-         f(ixO^S,e_)=w(ixO^S,mom(idim))*wC(ixO^S,e_)
+      if(mhd_internal_e) then
+        f(ixO^S,e_)=w(ixO^S,mom(idim))*wC(ixO^S,e_)
       else
         f(ixO^S,e_)=w(ixO^S,mom(idim))*(wC(ixO^S,e_)+ptotal(ixO^S))&
            -w(ixO^S,mag(idim))*sum(w(ixO^S,mag(:))*w(ixO^S,mom(:)),dim=ndim+1)
@@ -3544,30 +3644,9 @@ contains
       end if
     end if
 
-    ! compute flux of magnetic field
-    ! f_i[b_k]=v_i*b_k-v_k*b_i
-    do idir=1,ndir
-      if (idim==idir) then
-        ! f_i[b_i] should be exactly 0, so we do not use the transport flux
-        if (mhd_glm) then
-           f(ixO^S,mag(idir))=w(ixO^S,psi_)
-        else
-           f(ixO^S,mag(idir))=zero
-        end if
-      else
-        f(ixO^S,mag(idir))=w(ixO^S,mom(idim))*w(ixO^S,mag(idir))-w(ixO^S,mag(idim))*w(ixO^S,mom(idir))
-        if (mhd_Hall) then
-          ! f_i[b_k] = f_i[b_k] + vHall_i*b_k - vHall_k*b_i
-          f(ixO^S,mag(idir)) = f(ixO^S,mag(idir)) &
-               - vHall(ixO^S,idir)*w(ixO^S,mag(idim)) &
-               + vHall(ixO^S,idim)*w(ixO^S,mag(idir))
-        end if
-      end if
-    end do
-
-    if (mhd_glm) then
+    if(mhd_glm) then
       !f_i[psi]=Ch^2*b_{i} Eq. 24e and Eq. 38c Dedner et al 2002 JCP, 175, 645
-      f(ixO^S,psi_)  = cmax_global**2*w(ixO^S,mag(idim))
+      f(ixO^S,psi_) = cmax_global**2*w(ixO^S,mag(idim))
     end if
 
     if(mhd_hyperbolic_thermal_conduction) then
@@ -3617,11 +3696,16 @@ contains
 
       if(mhd_energy .and. .not. mhd_internal_e) then
         f(ixO^S,e_) = f(ixO^S,e_) + tmp2(ixO^S) *  tmp(ixO^S)
-      endif
+      end if
 
 
       deallocate(Jambi,btot,tmp2,tmp3)
-    endif
+    end if
+
+    ! Get flux of tracer
+    do iw=1,mhd_n_tracer
+      f(ixO^S,tracer(iw))=w(ixO^S,mom(idim))*w(ixO^S,tracer(iw))
+    end do
 
   end subroutine mhd_get_flux
 

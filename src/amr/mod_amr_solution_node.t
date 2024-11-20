@@ -699,7 +699,7 @@ contains
       if(nw_extra>0) deallocate(s%wextra)
       ! deallocate coordinates
       deallocate(s%x)
-      deallocate(s%dx,s%ds,s%dsC)
+      deallocate(s%dx,s%dt,s%ds,s%dsC)
       deallocate(s%dvolume)
       deallocate(s%surfaceC,s%surface)
       deallocate(s%is_physical_boundary)
@@ -710,15 +710,18 @@ contains
       if(number_equi_vars > 0) then
         deallocate(s%equi_vars)
       end if
-    else
-      nullify(s%x,s%dx,s%ds,s%dsC,s%dvolume,s%surfaceC,s%surface)
-      nullify(s%is_physical_boundary)
-      if(B0field) nullify(s%B0,s%J0)
-      if(number_equi_vars > 0) then
-        nullify(s%equi_vars)
+      if(phys_trac) then
+        deallocate(s%special_values)
       end if
-      if(nw_extra>0) nullify(s%wextra)
     end if
+    nullify(s%x,s%dx,s%dt,s%ds,s%dsC,s%dvolume,s%surfaceC,s%surface)
+    nullify(s%is_physical_boundary)
+    if(B0field) nullify(s%B0,s%J0)
+    if(number_equi_vars > 0) then
+      nullify(s%equi_vars)
+    end if
+    if(nw_extra>0) nullify(s%wextra)
+    if(phys_trac) nullify(s%special_values)
   end subroutine dealloc_state
   
   subroutine dealloc_state_coarse(igrid, s)
@@ -735,10 +738,11 @@ contains
     end if
     ! deallocate coordinates
     deallocate(s%x)
-    deallocate(s%dx,s%ds,s%dsC)
+    deallocate(s%dx,s%dt,s%ds,s%dsC)
     deallocate(s%dvolume)
     deallocate(s%surfaceC,s%surface)
-    deallocate(s%is_physical_boundary)
+    nullify(s%x,s%dx,s%dt,s%ds,s%dsC,s%dvolume,s%surfaceC,s%surface)
+    nullify(s%is_physical_boundary)
   end subroutine dealloc_state_coarse
   
   subroutine dealloc_node(igrid)
