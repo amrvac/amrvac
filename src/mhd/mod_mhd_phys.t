@@ -3608,12 +3608,13 @@ contains
       f(ix^D,mom(1:ndir))=0.d0
       if(B0field) then
         Btotal(1:ndir)=w(ix^D,mag(1:ndir))+block%B0(ix^D,1:ndir,idim)
-        f(ix^D,mom(idim))=ptotal+sum(w(ix^D,mag(1:ndir))*block%B0(ix^D,1:ndir,idim))
+        ptotal=ptotal+sum(w(ix^D,mag(1:ndir))*block%B0(ix^D,1:ndir,idim))
+        f(ix^D,mom(idim))=ptotal
         ! Get flux of momentum and magnetic field
         do idir=1,ndir
           ! f_i[m_k]=v_i*m_k-b_k*b_i
           f(ix^D,mom(idir))=f(ix^D,mom(idir))+wC(ix^D,mom(idim))*w(ix^D,mom(idir))-&
-                            w(ix^D,mag(idim))*Btotal(idir)-block%B0(ix^D,idim,idim)*w(ix^D,mag(idir))
+                            Btotal(idim)*w(ix^D,mag(idir))-w(ix^D,mag(idim))*block%B0(ix^D,idir,idim)
           ! f_i[b_k]=v_i*b_k-v_k*b_i
           f(ix^D,mag(idir))=w(ix^D,mom(idim))*Btotal(idir)-Btotal(idim)*w(ix^D,mom(idir))
           if (mhd_Hall) then
@@ -3624,6 +3625,7 @@ contains
           end if
         end do
       else
+        Btotal(1:ndir)=w(ix^D,mag(1:ndir))
         f(ix^D,mom(idim))=ptotal
         ! Get flux of momentum and magnetic field
         do idir=1,ndir
@@ -3652,12 +3654,12 @@ contains
           f(ix^D,e_)=w(ix^D,mom(idim))*wC(ix^D,e_)
         else
           f(ix^D,e_)=w(ix^D,mom(idim))*(wC(ix^D,e_)+ptotal)&
-             -w(ix^D,mag(idim))*sum(w(ix^D,mag(1:ndir))*w(ix^D,mom(1:ndir)))
+             -Btotal(idim)*sum(w(ix^D,mag(1:ndir))*w(ix^D,mom(1:ndir)))
           if(mhd_Hall) then
           ! f_i[e]= f_i[e] + vHall_i*(b_k*b_k) - b_i*(vHall_k*b_k)
             f(ix^D,e_) = f(ix^D,e_) + vHall(ix^D,idim) * &
-               sum(w(ix^D, mag(1:ndir))**2) &
-               - w(ix^D,mag(idim)) * sum(vHall(ix^D,1:ndir)*w(ix^D,mag(1:ndir)))
+               sum(w(ix^D, mag(1:ndir))*Btotal(1:ndir)) &
+               - Btotal(idim) * sum(vHall(ix^D,1:ndir)*w(ix^D,mag(1:ndir)))
           end if
         end if
       end if
