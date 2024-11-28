@@ -215,7 +215,6 @@ module mod_mhd_phys
   procedure(sub_get_pthermal), pointer :: mhd_get_pthermal  => null()
   procedure(sub_get_pthermal), pointer :: mhd_get_Rfactor   => null()
   procedure(sub_get_pthermal), pointer :: mhd_get_temperature=> null()
-  procedure(sub_get_v), pointer        :: mhd_get_v         => null()
   ! Public methods
   public :: usr_mask_ambipolar
   public :: mhd_phys_init
@@ -657,8 +656,7 @@ contains
         phys_get_flux            => mhd_get_flux_noe
       end if
     end if
-    phys_get_v                 => mhd_get_v_origin
-    mhd_get_v                  => mhd_get_v_origin
+    phys_get_v                 => mhd_get_v
     if(B0field.or.has_equi_rho0) then
       phys_add_source_geom     => mhd_add_source_geom_split
     else
@@ -2478,7 +2476,7 @@ contains
   end subroutine mhd_handle_small_values_hde
 
   !> Calculate v vector
-  subroutine mhd_get_v_origin(w,x,ixI^L,ixO^L,v)
+  subroutine mhd_get_v(w,x,ixI^L,ixO^L,v)
     use mod_global_parameters
 
     integer, intent(in)           :: ixI^L, ixO^L
@@ -2496,7 +2494,7 @@ contains
        v(ixO^S, idir) = w(ixO^S, mom(idir))*rho(ixO^S)
     end do
 
-  end subroutine mhd_get_v_origin
+  end subroutine mhd_get_v
 
   !> Calculate cmax_idim=csound+abs(v_idim) within ixO^L
   subroutine mhd_get_cmax_origin(w,x,ixI^L,ixO^L,idim,cmax)
@@ -4644,7 +4642,7 @@ contains
       else
         if(has_equi_pe0) then
           active = .true.
-          call add_pe0_divv(qdt,dtfactor,ixI^L,ixO^L,wCT,w,x)
+          call add_pe0_divv(qdt,dtfactor,ixI^L,ixO^L,wCTprim,w,x)
         end if
       end if
 
@@ -4655,7 +4653,7 @@ contains
       ! Source for B0 splitting
       if (B0field) then
         active = .true.
-        call add_source_B0split(qdt,dtfactor,ixI^L,ixO^L,wCT,w,x)
+        call add_source_B0split(qdt,dtfactor,ixI^L,ixO^L,wCTprim,w,x)
       end if
 
       ! Sources for resistivity in eqs. for e, B1, B2 and B3
@@ -4694,18 +4692,18 @@ contains
         call add_source_glm(qdt,ixI^L,ixO^L,wCT,w,x)
       case (divb_powel)
         active = .true.
-        call add_source_powel(qdt,ixI^L,ixO^L,wCT,w,x)
+        call add_source_powel(qdt,ixI^L,ixO^L,wCTprim,w,x)
       case (divb_janhunen)
         active = .true.
-        call add_source_janhunen(qdt,ixI^L,ixO^L,wCT,w,x)
+        call add_source_janhunen(qdt,ixI^L,ixO^L,wCTprim,w,x)
       case (divb_lindejanhunen)
         active = .true.
         call add_source_linde(qdt,ixI^L,ixO^L,wCT,w,x)
-        call add_source_janhunen(qdt,ixI^L,ixO^L,wCT,w,x)
+        call add_source_janhunen(qdt,ixI^L,ixO^L,wCTprim,w,x)
       case (divb_lindepowel)
         active = .true.
         call add_source_linde(qdt,ixI^L,ixO^L,wCT,w,x)
-        call add_source_powel(qdt,ixI^L,ixO^L,wCT,w,x)
+        call add_source_powel(qdt,ixI^L,ixO^L,wCTprim,w,x)
       case (divb_lindeglm)
         active = .true.
         call add_source_linde(qdt,ixI^L,ixO^L,wCT,w,x)
@@ -4757,25 +4755,24 @@ contains
     double precision, intent(in)    :: qdt,dtfactor
     double precision, intent(in)    :: wCT(ixI^S,1:nw), x(ixI^S,1:ndim)
     double precision, intent(inout) :: w(ixI^S,1:nw)
-    double precision                :: v(ixI^S,1:ndir)
-    double precision                :: divv(ixI^S)
 
-    call mhd_get_v(wCT,x,ixI^L,ixI^L,v)
+    double precision                :: divv(ixI^S)
 
     if(slab_uniform) then
       if(nghostcells .gt. 2) then
-        call divvector(v,ixI^L,ixO^L,divv,sixthorder=.true.)
+        call divvector(wCT(ixI^S,mom(1:ndir)),ixI^L,ixO^L,divv,sixthorder=.true.)
       else
-        call divvector(v,ixI^L,ixO^L,divv,fourthorder=.true.)
+        call divvector(wCT(ixI^S,mom(1:ndir)),ixI^L,ixO^L,divv,fourthorder=.true.)
       end if
     else
-     call divvector(v,ixI^L,ixO^L,divv)
+     call divvector(wCT(ixI^S,mom(1:ndir)),ixI^L,ixO^L,divv)
     end if
     if(local_timestep) then
       w(ixO^S,e_)=w(ixO^S,e_)-dtfactor*block%dt(ixO^S)*block%equi_vars(ixO^S,equi_pe0_,0)*divv(ixO^S)
     else
       w(ixO^S,e_)=w(ixO^S,e_)-qdt*block%equi_vars(ixO^S,equi_pe0_,0)*divv(ixO^S)
-    endif
+    end if
+
   end subroutine add_pe0_divv
 
   subroutine get_tau(ixI^L,ixO^L,w,Te,tau,sigT5)
@@ -5033,7 +5030,8 @@ contains
       ! store full magnetic field B0+B1 in b
       if(.not.B0field_forcefree) b(ixO^S,:)=b(ixO^S,:)+block%B0(ixO^S,:,0)
       ! store velocity in a
-      call mhd_get_v(wCT,x,ixI^L,ixO^L,a(ixI^S,1:ndir))
+      a(ixI^S,1:ndir)=wCT(ixI^S,mom(1:ndir))
+      ! -E = a x b
       call cross_product(ixI^L,ixO^L,a,b,axb)
       if(local_timestep) then
         do idir=1,3
@@ -5123,7 +5121,8 @@ contains
     double precision, intent(inout) :: w(ixI^S,1:nw)
     double precision, intent(in)    :: wCTprim(ixI^S,1:nw)
 
-    double precision                :: divv(ixI^S)
+    double precision                :: divv(ixI^S), tmp
+    integer :: ix^D
 
     if(slab_uniform) then
       if(nghostcells .gt. 2) then
@@ -5134,11 +5133,13 @@ contains
     else
       call divvector(wCTprim(ixI^S,mom(:)),ixI^L,ixO^L,divv)
     end if
-    divv(ixO^S)=qdt*wCTprim(ixO^S,p_)*divv(ixO^S)
-    where(w(ixO^S,e_)-divv(ixO^S)>small_e)
-      w(ixO^S,e_)=w(ixO^S,e_)-divv(ixO^S)
-    end where
-    !w(ixO^S,e_)=w(ixO^S,e_)-qdt*wCTprim(ixO^S,p_)*divv(ixO^S)
+   {do ix^DB=ixOmin^DB,ixOmax^DB\}
+      tmp=w(ix^D,e_)
+      w(ix^D,e_)=w(ix^D,e_)-qdt*wCTprim(ix^D,p_)*divv(ix^D)
+      if(w(ix^D,e_)<small_e) then
+        w(ix^D,e_)=tmp
+      end if
+   {end do\}
     if(mhd_ambipolar)then
       call add_source_ambipolar_internal_energy(qdt,ixI^L,ixO^L,wCT,w,x,e_)
     end if
@@ -5562,7 +5563,7 @@ contains
     double precision, intent(in)    :: qdt,   wCT(ixI^S,1:nw), x(ixI^S,1:ndim)
     double precision, intent(inout) :: w(ixI^S,1:nw)
 
-    double precision                :: divb(ixI^S),inv_rho,v(1:ndir), Ba(1:ndir)
+    double precision                :: divb(ixI^S), Ba(1:ndir)
     integer                         :: idir, ix^D
 
     ! calculate div B
@@ -5574,22 +5575,16 @@ contains
       else
         Ba(1:ndir)=wCT(ix^D,mag(1:ndir))
       end if
-      if(has_equi_rho0) then
-        inv_rho=1.d0/(wCT(ix^D,rho_)+block%equi_vars(ix^D,equi_rho0_,b0i))
-      else
-        inv_rho=1.d0/wCT(ix^D,rho_)
-      end if
       do idir=1,ndir
-        v(idir)=wCT(ix^D,mom(idir))*inv_rho
         ! b = b - qdt v * div b
-        w(ix^D,mag(idir))=w(ix^D,mag(idir))-qdt*v(idir)*divb(ix^D)
+        w(ix^D,mag(idir))=w(ix^D,mag(idir))-qdt*wCT(ix^D,mom(idir))*divb(ix^D)
         ! m = m - qdt b div b
         w(ix^D,mom(idir))=w(ix^D,mom(idir))-qdt*Ba(idir)*divb(ix^D)
       end do
 
       if (total_energy) then
         ! e = e - qdt (v . b) * div b
-        w(ix^D,e_)=w(ix^D,e_)-qdt*sum(v(1:ndir)*Ba(1:ndir))*divb(ix^D)
+        w(ix^D,e_)=w(ix^D,e_)-qdt*sum(wCT(ix^D,mom(1:ndir))*Ba(1:ndir))*divb(ix^D)
       end if
    {end do\}
 
@@ -5606,22 +5601,16 @@ contains
     double precision, intent(in)    :: qdt,   wCT(ixI^S,1:nw), x(ixI^S,1:ndim)
     double precision, intent(inout) :: w(ixI^S,1:nw)
 
-    double precision                :: divb(ixI^S),inv_rho,v(1:ndir)
+    double precision                :: divb(ixI^S)
     integer                         :: idir, ix^D
 
     ! calculate div B
     call get_divb(wCT,ixI^L,ixO^L,divb, mhd_divb_4thorder)
 
    {do ix^DB=ixOmin^DB,ixOmax^DB\}
-      if(has_equi_rho0) then
-        inv_rho=1.d0/(wCT(ix^D,rho_)+block%equi_vars(ix^D,equi_rho0_,b0i))
-      else
-        inv_rho=1.d0/wCT(ix^D,rho_)
-      end if
       do idir=1,ndir
-        v(idir)=wCT(ix^D,mom(idir))*inv_rho
         ! b = b - qdt v * div b
-        w(ix^D,mag(idir))=w(ix^D,mag(idir))-qdt*v(idir)*divb(ix^D)
+        w(ix^D,mag(idir))=w(ix^D,mag(idir))-qdt*wCT(ix^D,mom(idir))*divb(ix^D)
       end do
    {end do\}
 
