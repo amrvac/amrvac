@@ -5,7 +5,7 @@
  &filelist
         autoconvert   = .true.
         saveprim      = .true.
-        base_filename ='./wsa2015_10days/wsaauto_2015_wsa_10daysrel'
+        base_filename ='icarus_testcase'
         convert_type  = 'vtuBCCmpi'
         slice_type    = 'csv'
         nocartesian   = .true.
@@ -17,13 +17,13 @@
  &savelist
         itsave(1,1)   = 0
         itsave(1,2)   = 0
-  !      tsavestart(2) = 336.0
+        tsavestart(2) = 336.0
         dtsave_dat    = 3.0
 /
 
 
  &stoplist
-        time_max      = 744.0d0
+        time_max      = 576.0d0
  /
 
  &methodlist
@@ -47,7 +47,7 @@
        mhd_rotating_frame = .true.
        mhd_n_tracer = 1
        SI_unit = .false.
-       mhd_particles = .false.
+       mhd_particles = .true.
  /
 
  &particles_list
@@ -61,8 +61,6 @@
 
  &boundlist
         typeboundary_min1 = 'bc_icarus', 'bc_icarus', 'asymm', 'asymm', 'bc_icarus', 'bc_icarus', 'asymm', 'asymm'
-  !      typeboundary_min1 = 'special', 'special', 'cont', 'cont', 'special', 'special', 'cont', 'cont'
-  !      typeboundary_min1 =8*'special'
         typeboundary_max1 =8*'cont'
         typeboundary_min2 =8*'symm'
         typeboundary_max2 =8*'symm'
@@ -72,17 +70,17 @@
  /
 
  &meshlist
-        stretch_dim(1)='uni'
-        stretch_uncentered = .false.
-        refine_criterion=0
-        refine_max_level = 2
+!        stretch_dim(1)='uni'
+!        stretch_uncentered = .false.
+        refine_criterion=1
+        refine_max_level = 1
         nbufferx1=0
         nbufferx2=0
         nbufferx3=0
-        block_nx1=6
+        block_nx1=30
         block_nx2=8
         block_nx3=12
-        domain_nx1= 60
+        domain_nx1= 300
         domain_nx2= 32
         domain_nx3= 96
         xprobmin1=21.5
@@ -104,17 +102,18 @@
         omega_frame= 0.010692d0
 /
 &bd_list
-  boundary_data_file_name="solar_wind_6h_2015case.vtk"
-  interp_phy_first_row=.false.
-  boundary_data_primitive=.true.
+        boundary_data_file_name="paper_testcase_innerBCs.vtk"
+        interp_phy_first_row=.false.
+        boundary_data_primitive=.true.
 /
 
 &icarus_list
         amr_criterion = 'tracing'
         cme_flag =1
         num_cmes = 5
-        relaxation = 14
-        cme_insertion = 7
+        relaxation = 10
+        cme_insertion = 0
         cme_parameter_file = 'cme_euhforia_formatted.in'
-        boundary_file = 'solar_wind_bc_used_in_paper.in'
+        magnetogram_time = '2015-06-25T01:04:00'
+        delta_phi =-1.2040994899278814 
 /

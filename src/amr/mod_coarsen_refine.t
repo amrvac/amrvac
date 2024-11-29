@@ -32,9 +32,7 @@ contains
     use mod_refine, only: refine_grids
 
 
-    {^NOONED
     use mod_multigrid_coupling
-    }
 
     integer :: iigrid, igrid, ipe, igridCo, ipeCo, level, ic^D
     integer, dimension(2^D&) :: igridFi, ipeFi
@@ -175,9 +173,7 @@ contains
        call getbc(global_time,0.d0,ps,iwstart,nwgc)
     end if
 
-    {^NOONED
     if (use_multigrid) call mg_update_refinement(n_coarsen, n_refine)
-    }
 
     if (associated(usr_after_refine)) then
        call usr_after_refine(n_coarsen, n_refine)

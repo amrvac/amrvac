@@ -553,9 +553,13 @@ contains
     vector=zero
 
     field=zero
-    if (ftype=='Bfield') then
-      if (B0field) then
-        vector(ixO^S,1:ndir)=ps(igrid)%w(ixO^S,iw_mag(1:ndir))+ps(igrid)%B0(ixO^S,1:ndir,0)
+    if(ftype=='Bfield') then
+      if(B0field) then
+        if(allocated(iw_mag)) then
+          vector(ixO^S,1:ndir)=ps(igrid)%w(ixO^S,iw_mag(1:ndir))+ps(igrid)%B0(ixO^S,1:ndir,0)
+        else
+          vector(ixO^S,1:ndir)=ps(igrid)%B0(ixO^S,1:ndir,0)
+        endif
       else
         vector(ixO^S,1:ndir)=ps(igrid)%w(ixO^S,iw_mag(1:ndir))
       endif

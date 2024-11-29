@@ -60,12 +60,14 @@ module mod_physics
   procedure(sub_modify_wLR), pointer      :: phys_modify_wLR             => null()
   procedure(sub_get_cmax), pointer        :: phys_get_cmax               => null()
   procedure(sub_get_a2max), pointer       :: phys_get_a2max              => null()
+  procedure(sub_get_cs2max), pointer      :: phys_get_cs2max             => null()
   procedure(sub_get_tcutoff), pointer     :: phys_get_tcutoff            => null()
   procedure(sub_trac_after_setdt), pointer:: phys_trac_after_setdt       => null()
   procedure(sub_get_H_speed), pointer     :: phys_get_H_speed            => null()
   procedure(sub_get_cbounds), pointer     :: phys_get_cbounds            => null()
   procedure(sub_get_flux), pointer        :: phys_get_flux               => null()
   procedure(sub_get_v), pointer           :: phys_get_v                  => null()
+  procedure(sub_get_rho), pointer         :: phys_get_rho                => null()
   procedure(sub_get_dt), pointer          :: phys_get_dt                 => null()
   procedure(sub_add_source_geom), pointer :: phys_add_source_geom        => null()
   procedure(sub_add_source), pointer      :: phys_add_source             => null()
@@ -139,6 +141,13 @@ module mod_physics
        double precision, intent(inout) :: a2max(ndim)
      end subroutine sub_get_a2max
 
+     subroutine sub_get_cs2max(w, x, ixI^L, ixO^L, cs2max)
+       use mod_global_parameters
+       integer, intent(in)             :: ixI^L, ixO^L
+       double precision, intent(in)    :: w(ixI^S, nw), x(ixI^S, 1:^ND)
+       double precision, intent(inout) :: cs2max
+     end subroutine sub_get_cs2max
+
      subroutine sub_get_tcutoff(ixI^L,ixO^L,w,x,tco_local,Tmax_local)
        use mod_global_parameters
        integer, intent(in)             :: ixI^L, ixO^L
@@ -153,12 +162,17 @@ module mod_physics
 
      subroutine sub_get_v(w,x,ixI^L,ixO^L,v)
        use mod_global_parameters
-
        integer, intent(in)           :: ixI^L, ixO^L
        double precision, intent(in)  :: w(ixI^S,nw), x(ixI^S,1:^ND)
        double precision, intent(out) :: v(ixI^S,1:ndir)
-
      end subroutine sub_get_v
+
+     subroutine sub_get_rho(w,x,ixI^L,ixO^L,rho)
+       use mod_global_parameters
+       integer, intent(in)           :: ixI^L, ixO^L
+       double precision, intent(in)  :: w(ixI^S,nw), x(ixI^S,1:^ND)
+       double precision, intent(out) :: rho(ixI^S)
+     end subroutine sub_get_rho
 
      subroutine sub_get_H_speed(wprim,x,ixI^L,ixO^L,idim,Hspeed)
        use mod_global_parameters
@@ -395,6 +409,9 @@ contains
     if (.not. associated(phys_get_a2max)) &
          phys_get_a2max => dummy_get_a2max
 
+    if (.not. associated(phys_get_cs2max)) &
+         phys_get_cs2max => dummy_get_cs2max
+
     if (.not. associated(phys_get_H_speed)) &
          phys_get_H_speed => dummy_get_H_speed
 
@@ -480,6 +497,15 @@ contains
        double precision, intent(inout) :: a2max(ndim)
        call mpistop("Error: entered dummy_get_a2max")
   end subroutine dummy_get_a2max
+
+  subroutine dummy_get_cs2max(w, x, ixI^L, ixO^L, cs2max)
+       use mod_global_parameters
+       use mod_comm_lib, only: mpistop
+       integer, intent(in)             :: ixI^L, ixO^L
+       double precision, intent(in)    :: w(ixI^S, nw), x(ixI^S, 1:^ND)
+       double precision, intent(inout) :: cs2max
+       call mpistop("Error: entered dummy_get_cs2max")
+  end subroutine dummy_get_cs2max
 
   subroutine dummy_add_source_geom(qdt, dtfactor, ixI^L, ixO^L, wCT, w, x)
     use mod_global_parameters

@@ -9,16 +9,15 @@ module mod_solar_atmosphere
   implicit none
 
   integer :: n_valc,n_hong,n_fontenla,n_alc7
+  double precision, parameter :: solar_gravity=2.74d4 ! cm s^-2
   double precision :: h_valc(1:52),T_valc(1:52)
   double precision :: h_hong(1:300),T_hong(1:300)
   double precision :: h_fontenla(1:56),T_fontenla(1:56)
-  double precision :: h_alc7(1:140),T_alc7(1:140)
+  double precision :: h_alc7(1:120),T_alc7(1:120)
 
-  data n_alc7 / 140 /
+  data n_alc7 / 120 /
 
-  data h_alc7 /  -100.0,   -90.0,   -80.0,   -70.0,   -60.0, & 
-                  -50.0,   -40.0,   -30.0,   -20.0,   -10.0, &
-                    0.0,    10.0,    20.0,    35.0,    50.0, &
+  data h_alc7 /     0.0,    10.0,    20.0,    35.0,    50.0, &
                    75.0,   100.0,   125.0,   150.0,   175.0, &
                   200.0,   250.0,   300.0,   350.0,   400.0, &
                   450.0,   490.0,   525.0,   560.0,   615.0, &
@@ -41,13 +40,9 @@ module mod_solar_atmosphere
                  2294.4,  2308.6,  2325.8,  2346.1,  2378.2, &
                  2418.7,  2457.9,  2495.6,  2535.5,  2578.2, &
                  2628.3,  2688.1,  2761.5,  2844.4,  2970.8, &
-                 3133.8,  3425.0,  3752.7,  4295.9,  4968.6, &
-                 5762.8,  7360.8,  8974.2, 11596.2, 15392.0, &
-                21133.1, 26676.6, 36079.5, 47009.3, 68084.4 /
+                 3133.8,  3425.0,  3752.7,  4295.9,  4968.6/
 
-  data T_alc7 /    9380,    9120,    8850,    8540,    8220, &
-                   7900,    7590,    7280,    7020,    6780, &
-                   6583,    6397,    6231,    6006,    5826, &
+  data T_alc7 /    6583,    6397,    6231,    6006,    5826, &
                    5607,    5431,    5288,    5165,    5080, &
                    5010,    4907,    4805,    4700,    4590, &
                    4485,    4435,    4410,    4400,    4435, &
@@ -70,9 +65,7 @@ module mod_solar_atmosphere
                  172600,  180100,  188600,  198100,  212000, &
                  227800,  241900,  254400,  266700,  279000, &
                  292500,  307300,  324000,  341300,  365000, &
-                 392000,  432900,  471600,  524300,  577400, &
-                 629300,  711700,  778300,  865000,  996370, &
-                1080000, 1170000, 1294000, 1410000, 1586000 / 
+                 392000,  432900,  471600,  524300,  577400/
 
 
 
@@ -355,9 +348,10 @@ contains
     n_table=n_alc7
     h_table=h_alc7*unit_h
     T_table=T_alc7*unit_T
-    htra=2196.52*unit_h
-    Ttra=1.023d5
-    dTdh=(T_table(2)-T_table(1))/(h_table(2)-h_table(1))
+    htra=4968.6d0*unit_h
+    Ttra=577400.d0
+    ! adiabatic temperature gradient below solar surface (Toriumi and Takasao 2017 ApJ 850 39)
+    dTdh=-0.4d0*mH_cgs*solar_gravity/kB_cgs
 
     do ih=1,nh
       if (h(ih)>h_table(n_table)) then
@@ -370,7 +364,6 @@ contains
         Te(ih)=(h(ih)-h_table(1))*dTdh+T_table(1)
       endif
     enddo
-
 
     ! inside the table
     imin=nh

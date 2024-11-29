@@ -572,7 +572,7 @@ contains
     endif  
 
     ! set number of variables which need update ghostcells
-    nwgc=nwflux
+    nwgc=nwflux+nwaux
 
     ! determine number of stagger variables
     nws=ndim

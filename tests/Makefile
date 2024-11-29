@@ -35,20 +35,22 @@ multigrid/field_loop_2d multigrid/implicit_diffusion #Anisotropic diffusion???
 
 RD_DIRS := rd/schnakenberg_2d rd/test_suite_2d
 
+FFHD_DIRS := ffhd/solar_atmosphere_2D
+
 ARD_DIRS := ard/schnakenberg_2d
 
 MF_DIRS := mf/Mackay_bipole_Cartesian_3D mf/sheared_arcade_Antiochos_3D
 
 TWOFL_DIRS := twofl/Alfven_wave_1D twofl/Riemann_1D twofl/KHI_2D
 
-TEST_DIRS := $(RHO_DIRS) $(HD_DIRS) $(RHD_DIRS) $(MHD_DIRS) $(MG_DIRS) $(RD_DIRS) $(ARD_DIRS)  $(MF_DIRS) $(TWOFL_DIRS)
+TEST_DIRS := $(RHO_DIRS) $(HD_DIRS) $(RHD_DIRS) $(MHD_DIRS) $(MG_DIRS) $(RD_DIRS) $(ARD_DIRS)  $(MF_DIRS) $(TWOFL_DIRS) $(FFHD_DIRS)
 
 # Directories with altered names (useful for cleaning)
 CLEAN_TEST := $(TEST_DIRS:%=clean-%)
 
 .PHONY: all rho hd mhd mg rd mf twofl clean $(TEST_DIRS) $(CLEAN_TEST)
 
-all: rho hd rhd mhd mg rd ard mf twofl
+all: rho hd rhd mhd mg rd ard mf twofl ffhd
 rho: $(RHO_DIRS)
 hd: $(HD_DIRS)
 rhd: $(RHD_DIRS)
@@ -58,6 +60,7 @@ rd: $(RD_DIRS)
 ard: $(ARD_DIRS)
 mf: $(MF_DIRS)
 twofl: $(TWOFL_DIRS)
+ffhd: $(FFHD_DIRS)
 
 $(TEST_DIRS):
 	@$(MAKE) -C $@ -f test.make

@@ -1,19 +1,13 @@
 module mod_b0
-
   implicit none
   private
-
-
   public :: set_B0_grid
 
 contains
 
-
   subroutine set_B0_grid(igrid)
     use mod_global_parameters
-  
     integer, intent(in) :: igrid
-  
     integer :: ixCoG^L
   
     ixCoGmin^D=1;
@@ -23,7 +17,6 @@ contains
     if(B0fieldAllocCoarse) call set_B0_cell(psc(igrid)%B0(ixCoG^S,:,0),psc(igrid)%x,ixCoG^L,ixCoG^L)
     call set_J0_cell(igrid,ps(igrid)%J0,ixG^LL,ixM^LL^LADD1)
     call set_B0_face(igrid,ps(igrid)%x,ixG^LL,ixM^LL)
-  
   end subroutine set_B0_grid
   
   subroutine set_B0_cell(wB0,x,ixI^L,ix^L)
@@ -33,7 +26,7 @@ contains
     
     integer, intent(in):: ixI^L,ix^L
     double precision, intent(inout) :: wB0(ixI^S,1:ndir)
-    double precision, intent(in) :: x(ixI^S,1:ndim)
+    double precision, intent(in)    :: x(ixI^S,1:ndim)
   
     wB0(ix^S,1:ndir)=zero
   
@@ -61,9 +54,7 @@ contains
        end if
        }
     end select
-    
     if (associated(usr_set_B0)) call usr_set_B0(ixI^L,ix^L,x,wB0)
-  
   end subroutine set_B0_cell
   
   subroutine set_J0_cell(igrid,wJ0,ixI^L,ix^L)
@@ -81,7 +72,6 @@ contains
       idirmin0 = 7-2*ndir
       call curlvector(ps(igrid)%B0(ixI^S,:,0),ixI^L,ix^L,wJ0,idirmin,idirmin0,ndir)
     end if
-  
   end subroutine set_J0_cell
   
   subroutine set_B0_face(igrid,x,ixI^L,ixO^L)
@@ -100,7 +90,6 @@ contains
       ! for all non-cartesian and stretched cartesian coordinates
       delx(ixI^S,1:ndim)=ps(igrid)%dx(ixI^S,1:ndim)
     endif
-  
   
     do idims=1,ndim
       hxO^L=ixO^L-kr(idims,^D);
@@ -125,9 +114,6 @@ contains
       end do
       call set_B0_cell(ps(igrid)%B0(ixI^S,:,idims),xC,ixI^L,ixC^L)
     end do
-  
   end subroutine set_B0_face
-
-
 end module mod_b0
 

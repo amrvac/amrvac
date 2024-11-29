@@ -1,0 +1,61 @@
+ -----------------------------------------------------------------------------
+ -----------------------------------------------------------------------------
+ |         __  __ ____ ___        _    __  __ ______     ___    ____         |
+ |        |  \/  |  _ \_ _|      / \  |  \/  |  _ \ \   / / \  / ___|        |
+ |        | |\/| | |_) | |_____ / _ \ | |\/| | |_) \ \ / / _ \| |            |
+ |        | |  | |  __/| |_____/ ___ \| |  | |  _ < \ V / ___ \ |___         |
+ |        |_|  |_|_|  |___|   /_/   \_\_|  |_|_| \_\ \_/_/   \_\____|        |
+ -----------------------------------------------------------------------------
+ -----------------------------------------------------------------------------
+ WARNING: turn off parabolic TC when using hyperbolic TC
+ Use Colgan & Feldman (2008) cooling curve
+ This version only till 10000 K, beware for floor T treatment
+ Reading solar_atm_ffhdver.par
+ Reading ../../schemes/3step_hll_vl.par
+ 
+ Output type | tsavestart |  dtsave   | ditsave | itsave(1) | tsave(1)
+         log | 0.000E+00  | ********* |      1  | ******    | *********
+      normal | 0.000E+00  | ********* | ******  | ******    | *********
+       slice | 0.000E+00  | ********* | ******  | ******    | *********
+   collapsed | 0.000E+00  | ********* | ******  | ******    | *********
+    analysis | 0.000E+00  | ********* | ******  | ******    | *********
+ 
+         Domain size (cells): 960 768 
+                Level one dx: 0.104E-01 0.104E-01 
+           Refine estimation: Lohner's scheme
+           restart_from_file:  undefined
+                  converting: F
+
+ -------------------------------------------------------------------------------
+ Startup phase took :             6.444 sec
+ -------------------------------------------------------------------------------
+ Start integrating, print status every  3.00E+01 seconds
+   #        it        time          dt  wc-time(s)
+   #         0  0.0000E+00  7.4080E-04  4.5280E-02
+ Total timeloop took        :       12.871 sec
+ Time spent on AMR          :        0.000 sec
+                  Percentage:         0.00 %
+ Time spent on IO in loop   :        0.191 sec
+                  Percentage:         1.49 %
+ Time spent on ghost cells  :        0.421 sec
+                  Percentage:         3.27 %
+ Time spent on computing    :       12.259 sec
+                  Percentage:        95.24 %
+ Cells updated / proc / sec :    8.592E+05
+ -------------------------------------------------------------------------------
+ Saving visual data. Coordinate directions and variable names are:
+           1 X               
+           2 Y               
+           3 rho             
+           4 v1              
+           5 p               
+           6 q               
+           7 Te              
+ time =   2.7873835330762077E-002
+ -------------------------------------------------------------------------------
+ Total time spent on IO     :        9.963 sec
+ Total timeintegration took :       22.643 sec
+   #        10   2.787E-02   3.898E-03   1.287E+01
+ -------------------------------------------------------------------------------
+ Finished AMRVAC in :            29.087 sec
+ -------------------------------------------------------------------------------

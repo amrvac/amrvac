@@ -380,6 +380,7 @@ module mod_global_parameters
   !> Use TRAC (Johnston 2019 ApJL, 873, L22) for MHD or 1D HD
   logical :: phys_trac=.false.
   integer :: phys_trac_type=1
+  integer  :: phys_trac_finegrid=4
   double precision :: phys_trac_mask
 
   !> Use particles module or not
@@ -615,6 +616,7 @@ module mod_global_parameters
   integer                       :: nxdiffusehllc
   double precision, allocatable :: entropycoef(:)
   double precision              :: tvdlfeps
+  logical                       :: flux_adaptive_diffusion
   logical, allocatable          :: loglimit(:), logflag(:)
   logical                       :: flathllc,flatcd,flatsh
   !> Use split or unsplit way to add user's source terms, default: unsplit
@@ -658,12 +660,18 @@ module mod_global_parameters
   !> global largest a2 for schmid scheme
   double precision :: a2max_global(ndim)
 
+  !> global largest cs2 for hyperbolic thermal conduction
+  double precision :: cs2max_global
+
   !> need global maximal wave speed
   logical :: need_global_cmax=.false.
 
   !> global value for schmid scheme
   logical :: need_global_a2max=.false.
 
+  !> global value for csound speed
+  logical :: need_global_cs2max=.false.
+  
   ! Boundary region parameters
 
   !> True for dimensions with periodic boundaries

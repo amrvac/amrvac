@@ -24,9 +24,6 @@ contains
 
     if (initialized_already) return
 
-    ! add auxiliary variable(s) to update boundary ghost cells
-    nwgc=nwgc+nwaux
-
     ! Check whether the user has loaded a physics module
     call phys_check()
 

@@ -10,9 +10,7 @@ program amrvac
   use mod_usr
   use mod_initialize
   use mod_initialize_amr, only: initlevelone, modify_IC
-  {^NOONED
   use mod_initialize_amr, only: improve_initial_condition
-  }
   use mod_selectgrids, only: selectgrids
   use mod_particles
   use mod_fix_conserve
@@ -69,6 +67,12 @@ program amrvac
        it           = it_init
      end if
 
+     ! allow use to read extra data before filling boundary condition
+     if (associated(usr_process_grid) .or. &
+          associated(usr_process_global)) then
+        call process(it,global_time)
+     end if
+
      ! modify initial condition
      if (firstprocess) then
        ! update ghost cells for all need-boundary variables before modification
@@ -120,12 +124,6 @@ program amrvac
             call mpistop("non-mpi conversion only uses 1 cpu")
        if(mype==0.and.level_io>0) write(unitterm,*)'reset tree to fixed level=',level_io
 
-       ! Optionally call a user method that can modify the grid variables
-       ! before saving the converted data
-       if (associated(usr_process_grid) .or. &
-            associated(usr_process_global)) then
-          call process(it,global_time)
-       end if
        !here requires -1 snapshot
        if (autoconvert .or. snapshotnext>0) snapshotnext = snapshotnext - 1
 
@@ -149,10 +147,8 @@ program amrvac
 
      if (use_multigrid) call mg_setup_multigrid()
 
-     {^NOONED
      ! improve initial condition
      call improve_initial_condition()
-     }
 
      ! select active grids
      call selectgrids
@@ -289,7 +285,6 @@ contains
            end if
          end do
        end if
-
 
        ! output a snapshot when user write a file named 'savenow' in the same
        ! folder as the executable amrvac

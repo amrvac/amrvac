@@ -301,8 +301,10 @@ contains
        case(fastRW_)
           ! These quantities will be used for all the fast and slow waves
           ! Calculate soundspeed**2 and cs**2+ca**2.
-          call mhd_get_csound2(wL,x,ixG^LL,ix^L,cs2L)
-          call mhd_get_csound2(wR,x,ixG^LL,ix^L,cs2R)
+          call mhd_get_pthermal(wL,x,ixG^LL,ix^L,cs2L)
+          cs2L(ix^S)=mhd_gamma*cs2L(ix^S)/wL(ix^S,rho_)
+          call mhd_get_pthermal(wR,x,ixG^LL,ix^L,cs2R)
+          cs2R(ix^S)=mhd_gamma*cs2R(ix^S)/wL(ix^S,rho_)
           cs2ca2L(ix^S)=cs2L(ix^S)+sum(wL(ix^S,mag(:))**2,dim=ndim+1)/wL(ix^S,rho_)
           cs2ca2R(ix^S)=cs2R(ix^S)+sum(wR(ix^S,mag(:))**2,dim=ndim+1)/wR(ix^S,rho_)
           ! Save the discriminants into cs2L and cs2R

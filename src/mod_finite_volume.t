@@ -44,6 +44,8 @@ contains
     if (ixI^L^LTix^L|.or.|.or.) &
          call mpistop("Error in Hancock: Nonconforming input limits")
 
+    wRp=0.d0
+    wLp=0.d0
     wprim=wCT
     call phys_to_primitive(ixI^L,ixI^L,wprim,x)
 
@@ -130,6 +132,9 @@ contains
     double precision, dimension(ixI^S,sdim:3)             :: fE
 
     ! primitive w at cell center
+    logical :: active
+    integer :: idims, iw, ix^D, hx^D, ix^L, hxO^L, ixC^L, ixCR^L, kxC^L, kxR^L, ii
+    integer, dimension(ixI^S)               :: patchf
     double precision, dimension(ixI^S,1:nw) :: wprim
     ! left and right constructed status in conservative form
     double precision, dimension(ixI^S,1:nw) :: wLC, wRC
@@ -141,9 +146,6 @@ contains
     double precision, dimension(ixI^S)      :: Hspeed
     double precision, dimension(ixO^S)      :: inv_volume
     double precision, dimension(1:ndim)     :: dxinv
-    integer, dimension(ixI^S)               :: patchf
-    integer :: idims, iw, ix^L, hxO^L, ixC^L, ixCR^L, kxC^L, kxR^L, ii
-    logical :: active
     type(ct_velocity) :: vcts
 
     associate(wCT=>sCT%w, wnew=>snew%w)
@@ -151,6 +153,8 @@ contains
     fC=0.d0
     fLC=0.d0
     fRC=0.d0
+    wLp=0.d0
+    wRp=0.d0
 
     ! The flux calculation contracts by one in the idims direction it is applied.
     ! The limiter contracts the same directions by one more, so expand ixO by 2.
@@ -192,7 +196,6 @@ contains
        ! Determine stencil size
        {ixCRmin^D = max(ixCmin^D - phys_wider_stencil,ixGlo^D)\}
        {ixCRmax^D = min(ixCmax^D + phys_wider_stencil,ixGhi^D)\}
-
        ! apply limited reconstruction for left and right status at cell interfaces
        call reconstruct_LR(ixI^L,ixCR^L,ixCR^L,idims,wprim,wLC,wRC,wLp,wRp,x,dxs(idims))
 
@@ -248,51 +251,73 @@ contains
     b0i=0
     if(stagger_grid) call phys_update_faces(ixI^L,ixO^L,qt,qdt,wprim,fC,fE,sCT,snew,vcts)
     if(slab_uniform) then
-      dxinv=-qdt/dxs
-      do idims= idims^LIM
-        hxO^L=ixO^L-kr(idims,^D);
-        ! TODO maybe put if outside loop idims: but too much code is copy pasted
-        ! this is also done in hancock and fd, centdiff in mod_finite_difference
-        if(local_timestep) then
+      if(local_timestep) then
+        dxinv(1:ndim)=-dtfactor/dxs(1:ndim)
+        do idims= idims^LIM
+          hxOmin^D=ixOmin^D-kr(idims,^D)\
           do iw=iwstart,nwflux
-            fC(ixI^S,iw,idims)=-block%dt(ixI^S)*dtfactor/dxs(idims)*fC(ixI^S,iw,idims)
+           {do ix^DB=hxOmin^DB,ixOmax^DB\}
+              fC(ix^D,iw,idims)=block%dt(ix^D)*dxinv(idims)*fC(ix^D,iw,idims)
+           {end do\}
+           {do ix^DB=ixOmin^DB,ixOmax^DB\}
+              hx^D=ix^D-kr(idims,^D)\
+              wnew(ix^D,iw)=wnew(ix^D,iw)+fC(ix^D,iw,idims)-fC(hx^D,iw,idims)
+           {end do\}
           end do
-        else
-          ! Multiply the fluxes by -dt/dx since Flux fixing expects this
-          fC(ixI^S,1:nwflux,idims)=dxinv(idims)*fC(ixI^S,1:nwflux,idims)
-        end if
-
-        wnew(ixO^S,iwstart:nwflux)=wnew(ixO^S,iwstart:nwflux)+&
-            (fC(ixO^S,iwstart:nwflux,idims)-fC(hxO^S,iwstart:nwflux,idims))
-
-        ! For the MUSCL scheme apply the characteristic based limiter
-        if(method==fs_tvdmu) &
-           call tvdlimit2(method,qdt,ixI^L,ixC^L,ixO^L,idims,wLC,wRC,wnew,x,fC,dxs)
-
-      end do ! Next idims
-    else
-      inv_volume = 1.d0/block%dvolume(ixO^S)
-      do idims= idims^LIM
-        hxO^L=ixO^L-kr(idims,^D);
-
-        if(local_timestep) then
-          do iw=iwstart,nwflux
-            fC(ixI^S,iw,idims)=-block%dt(ixI^S)*dtfactor*fC(ixI^S,iw,idims)*block%surfaceC(ixI^S,idims)
-            wnew(ixO^S,iw)=wnew(ixO^S,iw) + (fC(ixO^S,iw,idims)-fC(hxO^S,iw,idims)) * &
-                inv_volume
-          end do
-        else
-          do iw=iwstart,nwflux
-            fC(ixI^S,iw,idims)=-qdt*fC(ixI^S,iw,idims)*block%surfaceC(ixI^S,idims)
-            wnew(ixO^S,iw)=wnew(ixO^S,iw) + (fC(ixO^S,iw,idims)-fC(hxO^S,iw,idims)) * &
-                inv_volume
-          end do
-        end if 
-        ! For the MUSCL scheme apply the characteristic based limiter
-        if (method==fs_tvdmu) &
+          ! For the MUSCL scheme apply the characteristic based limiter
+          if(method==fs_tvdmu) &
              call tvdlimit2(method,qdt,ixI^L,ixC^L,ixO^L,idims,wLC,wRC,wnew,x,fC,dxs)
-
-      end do ! Next idims
+        end do
+      else
+        dxinv(1:ndim)=-qdt/dxs(1:ndim)
+        do idims= idims^LIM
+          hxOmin^D=ixOmin^D-kr(idims,^D)\
+          do iw=iwstart,nwflux
+           {do ix^DB=hxOmin^DB,ixOmax^DB\}
+              fC(ix^D,iw,idims)=dxinv(idims)*fC(ix^D,iw,idims)
+           {end do\}
+           {do ix^DB=ixOmin^DB,ixOmax^DB\}
+              hx^D=ix^D-kr(idims,^D)\
+              wnew(ix^D,iw)=wnew(ix^D,iw)+fC(ix^D,iw,idims)-fC(hx^D,iw,idims)
+           {end do\}
+          end do
+          ! For the MUSCL scheme apply the characteristic based limiter
+          if(method==fs_tvdmu) &
+             call tvdlimit2(method,qdt,ixI^L,ixC^L,ixO^L,idims,wLC,wRC,wnew,x,fC,dxs)
+        end do
+      end if
+    else
+      inv_volume(ixO^S) = 1.d0/block%dvolume(ixO^S)
+      if(local_timestep) then
+        do idims= idims^LIM
+          hxOmin^D=ixOmin^D-kr(idims,^D)\
+          do iw=iwstart,nwflux
+           {do ix^DB=hxOmin^DB,ixOmax^DB\}
+              fC(ix^D,iw,idims)=-block%dt(ix^D)*dtfactor*fC(ix^D,iw,idims)*block%surfaceC(ix^D,idims)
+           {end do\}
+           {do ix^DB=ixOmin^DB,ixOmax^DB\}
+              hx^D=ix^D-kr(idims,^D)\
+              wnew(ix^D,iw)=wnew(ix^D,iw)+(fC(ix^D,iw,idims)-fC(hx^D,iw,idims))*inv_volume(ix^D)
+           {end do\}
+          end do
+          ! For the MUSCL scheme apply the characteristic based limiter
+          if (method==fs_tvdmu) &
+               call tvdlimit2(method,qdt,ixI^L,ixC^L,ixO^L,idims,wLC,wRC,wnew,x,fC,dxs)
+        end do
+      else
+        do idims= idims^LIM
+          hxOmin^D=ixOmin^D-kr(idims,^D)\
+          do iw=iwstart,nwflux
+           {do ix^DB=hxOmin^DB,ixOmax^DB\}
+             fC(ix^D,iw,idims)=-qdt*fC(ix^D,iw,idims)*block%surfaceC(ix^D,idims)
+           {end do\}
+           {do ix^DB=ixOmin^DB,ixOmax^DB\}
+              hx^D=ix^D-kr(idims,^D)\
+              wnew(ix^D,iw)=wnew(ix^D,iw)+(fC(ix^D,iw,idims)-fC(hx^D,iw,idims))*inv_volume(ix^D)
+           {end do\}
+          end do
+        end do
+      end if
     end if
 
     if (.not.slab.and.idimsmin==1) &
@@ -319,33 +344,47 @@ contains
 
     subroutine get_Riemann_flux_tvdmu()
       do iw=iwstart,nwflux
-         ! To save memory we use fLC to store (F_L+F_R)/2=half*(fLC+fRC)
-         fLC(ixC^S, iw)=half*(fLC(ixC^S, iw)+fRC(ixC^S, iw))
-         fC(ixC^S,iw,idims)=fLC(ixC^S, iw)
+        fC(ixC^S,iw,idims)=half*(fLC(ixC^S,iw)+fRC(ixC^S,iw))
       end do
     end subroutine get_Riemann_flux_tvdmu
 
     subroutine get_Riemann_flux_tvdlf(iws,iwe)
       integer, intent(in) :: iws,iwe
-      double precision :: fac(ixC^S)
+
+      integer :: ix^D,jx^D
+      double precision :: fac(ixC^S),phi
 
       fac(ixC^S) = -0.5d0*tvdlfeps*cmaxC(ixC^S,ii)
-      ! Calculate fLC=f(uL_j+1/2) and fRC=f(uR_j+1/2) for each iw
       do iw=iws,iwe
-         ! To save memory we use fLC to store (F_L+F_R)/2=half*(fLC+fRC)
-         fLC(ixC^S, iw)=0.5d0*(fLC(ixC^S, iw)+fRC(ixC^S, iw))
+         fC(ixC^S,iw,idims)=0.5d0*(fLC(ixC^S, iw)+fRC(ixC^S, iw))
          ! Add TVDLF dissipation to the flux
-         if (flux_type(idims, iw) /= flux_no_dissipation) then
-            fLC(ixC^S, iw)=fLC(ixC^S, iw) + fac(ixC^S)*(wRC(ixC^S,iw)-wLC(ixC^S,iw))
+         if(flux_type(idims, iw) /= flux_no_dissipation) then
+           if(flux_adaptive_diffusion) then
+            {do ix^DB=ixCmin^DB,ixCmax^DB\}
+               jx^D=ix^D+kr(idims,^D)\
+               !> adaptive diffusion from Rempel et al. 2009, see also Rempel et al. 2014
+               !> the previous version is adopt
+               if(((wRC(ix^D,iw)-wLC(ix^D,iw))*(sCT%w(jx^D,iw)-sCT%w(ix^D,iw))) .gt. 1.e-18) then
+                 phi=min((wRC(ix^D,iw)-wLC(ix^D,iw))**2/((sCT%w(jx^D,iw)-sCT%w(ix^D,iw))**2+1.e-18),one)
+               else
+                 phi=1.d0
+               end if
+               fC(ix^D,iw,idims)=fC(ix^D,iw,idims)+fac(ix^D)*(wRC(ix^D,iw)-wLC(ix^D,iw))*phi
+            {end do\}
+           else
+            {do ix^DB=ixCmin^DB,ixCmax^DB\}
+               fC(ix^D,iw,idims)=fC(ix^D,iw,idims)+fac(ix^D)*(wRC(ix^D,iw)-wLC(ix^D,iw))
+            {end do\}
+           end if
          end if
-         fC(ixC^S,iw,idims)=fLC(ixC^S, iw)
-      end do ! Next iw
+      end do
 
     end subroutine get_Riemann_flux_tvdlf
 
     subroutine get_Riemann_flux_hll(iws,iwe)
       integer, intent(in) :: iws,iwe
       integer :: ix^D
+      double precision :: phi
 
       do iw=iws,iwe
         if(flux_type(idims, iw) == flux_tvdlf) then
@@ -354,21 +393,35 @@ contains
           fC(ixC^S,iw,idims) = -tvdlfeps*half*max(cmaxC(ixC^S,ii),dabs(cminC(ixC^S,ii))) * &
                (wRC(ixC^S,iw)-wLC(ixC^S,iw))
         else
-         {do ix^DB=ixCmin^DB,ixCmax^DB\}
-           if(cminC(ix^D,ii) >= zero) then
-             fC(ix^D,iw,idims)=fLC(ix^D,iw)
-           else if(cmaxC(ix^D,ii) <= zero) then
-             fC(ix^D,iw,idims)=fRC(ix^D,iw)
-           else
-             ! Add hll dissipation to the flux
-             fC(ix^D,iw,idims)=(cmaxC(ix^D,ii)*fLC(ix^D, iw)-cminC(ix^D,ii)*fRC(ix^D,iw)&
-                   +cminC(ix^D,ii)*cmaxC(ix^D,ii)*(wRC(ix^D,iw)-wLC(ix^D,iw)))&
-                   /(cmaxC(ix^D,ii)-cminC(ix^D,ii))
-           end if
-         {end do\}
-       endif 
+          if(flux_adaptive_diffusion) then
+           {do ix^DB=ixCmin^DB,ixCmax^DB\}
+              if(cminC(ix^D,ii) >= zero) then
+                fC(ix^D,iw,idims)=fLC(ix^D,iw)
+              else if(cmaxC(ix^D,ii) <= zero) then
+                fC(ix^D,iw,idims)=fRC(ix^D,iw)
+              else
+                !> reduced diffusion is from Wang et al. 2024
+                phi=max(abs(cmaxC(ix^D,ii)),abs(cminC(ix^D,ii)))/(cmaxC(ix^D,ii)-cminC(ix^D,ii))
+                fC(ix^D,iw,idims)=(cmaxC(ix^D,ii)*fLC(ix^D, iw)-cminC(ix^D,ii)*fRC(ix^D,iw)&
+                      +phi*cminC(ix^D,ii)*cmaxC(ix^D,ii)*(wRC(ix^D,iw)-wLC(ix^D,iw)))&
+                      /(cmaxC(ix^D,ii)-cminC(ix^D,ii))
+              end if
+           {end do\}
+          else
+           {do ix^DB=ixCmin^DB,ixCmax^DB\}
+              if(cminC(ix^D,ii) >= zero) then
+                fC(ix^D,iw,idims)=fLC(ix^D,iw)
+              else if(cmaxC(ix^D,ii) <= zero) then
+                fC(ix^D,iw,idims)=fRC(ix^D,iw)
+              else
+                fC(ix^D,iw,idims)=(cmaxC(ix^D,ii)*fLC(ix^D, iw)-cminC(ix^D,ii)*fRC(ix^D,iw)&
+                      +cminC(ix^D,ii)*cmaxC(ix^D,ii)*(wRC(ix^D,iw)-wLC(ix^D,iw)))&
+                      /(cmaxC(ix^D,ii)-cminC(ix^D,ii))
+              end if
+           {end do\}
+          end if
+        end if
       end do
-
     end subroutine get_Riemann_flux_hll
 
     subroutine get_Riemann_flux_hllc(iws,iwe)
@@ -459,14 +512,14 @@ contains
       e_ = iw_e 
       p_ = e_
 
-      f1R=0.d0
-      f1L=0.d0
-      f2R=0.d0
-      f2L=0.d0
-      w1L=0.d0
-      w1R=0.d0
-      w2L=0.d0
-      w2R=0.d0
+      !f1R=0.d0
+      !f1L=0.d0
+      !f2R=0.d0
+      !f2L=0.d0
+      !w1L=0.d0
+      !w1R=0.d0
+      !w2L=0.d0
+      !w2R=0.d0
       ip1=idims
       ip3=3
       vRC(ixC^S,:)=wRp(ixC^S,mom(:))

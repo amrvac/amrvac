@@ -60,11 +60,15 @@ module mod_variables
   !> Index of the radiation energy density
   integer :: iw_r_e = -1
 
+  !> Index of heat flux
+  integer :: iw_q = -1
+
   !> Indices of the magnetic field components
   integer, allocatable, protected :: iw_mag(:)
 
   !> Index of the cutoff temperature for the TRAC method
-  integer :: iw_tcoff = -1
+  integer :: iw_Tcoff = -1
+  integer :: iw_Tweight= -1
 
   !> number of species: each species has different characterictic speeds and should
   !> be used accordingly in mod_finite_volume and mod_finite_difference
@@ -223,6 +227,18 @@ contains
     cons_wnames(nwflux) = 'e'
     prim_wnames(nwflux) = 'p'
   end function var_set_energy
+
+  function var_set_q() result(iw)
+    integer :: iw
+
+    nwflux              = nwflux + 1
+    nwfluxbc            = nwfluxbc + 1
+    nw                  = nw + 1
+    iw_q                = nwflux
+    iw                  = nwflux
+    prim_wnames(nwflux) = 'q'
+    cons_wnames(nwflux) = 'q'
+  end function var_set_q
 
   function var_set_radiation_energy() result(iw)
     integer :: iw
