@@ -225,6 +225,8 @@ contains
     write_individual          = .true.
     write_ensemble            = .true.
     write_snapshot            = .true.
+    ! avoid writing by default .dat particle files if running in static fields
+    if (.not. time_advance) write_snapshot = .false. 
     downsample_particles      = 1
     relativistic              = .false.
     particles_eta             = -1.d0
@@ -562,6 +564,7 @@ contains
         tpartc_io_0 = MPI_WTIME()
         if (mype .eq. 0 .and. (.not. time_advance)) print*, "Writing particle output at time",t_next_output
         call write_particle_output()
+        if (.not. time_advance) call write_particles_snapshot()
         timeio_tot  = timeio_tot+(MPI_WTIME()-tpartc_io_0)
         tpartc_io   = tpartc_io+(MPI_WTIME()-tpartc_io_0)
 
@@ -1083,14 +1086,21 @@ contains
     integer,dimension(0:npe-1)      :: receive_n_particles_for_output_from_ipe
     integer                         :: ipe, ipart, iipart, send_n_particles_for_output
     logical,save                    :: file_exists=.false.
+    integer                         :: snapshotnumber
 
     if (.not. write_snapshot) return
+    
+    if (time_advance) then
+      snapshotnumber = snapshotnext
+    else
+      snapshotnumber = nint(t_next_output/dtsave_particles)
+    end if 
 
     receive_n_particles_for_output_from_ipe(:) = 0
 
     ! open the snapshot file on the headnode
     if (mype .eq. 0) then
-      write(filename,"(a,a,i4.4,a)") trim(base_filename),'_particles',snapshotnext,'.dat'
+      write(filename,"(a,a,i4.4,a)") trim(base_filename),'_particles',snapshotnumber,'.dat'
       INQUIRE(FILE=filename, EXIST=file_exists)
       if (.not. file_exists) then
         open(unit=unitparticles,file=filename,form='unformatted',status='new',access='stream')
