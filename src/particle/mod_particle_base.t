@@ -6,6 +6,8 @@ module mod_particle_base
   use mod_constants
   use mod_comm_lib, only: mpistop
 
+  !> String describing the particle interpolation type
+  character(len=name_len) :: interp_type_particles = ""
   !> String describing the particle physics type
   character(len=name_len) :: physics_type_particles = ""
   !> String describing the particle integrator type
@@ -191,7 +193,8 @@ contains
                               downsample_particles, dtsave_particles, tmax_particles, &
                               num_particles, ndefpayload, nusrpayload, &
                               losses, const_dt_particles, particles_cfl, dtheta, &
-                              relativistic, integrator_type_particles, particles_eta, particles_etah
+                              relativistic, integrator_type_particles, particles_eta, particles_etah, &
+                              interp_type_particles
 
     do n = 1, size(files)
       open(unitpar, file=trim(files(n)), status="old")
@@ -222,6 +225,8 @@ contains
     write_individual          = .true.
     write_ensemble            = .true.
     write_snapshot            = .true.
+    ! avoid writing by default .dat particle files if running in static fields
+    if (.not. time_advance) write_snapshot = .false. 
     downsample_particles      = 1
     relativistic              = .false.
     particles_eta             = -1.d0
@@ -236,6 +241,7 @@ contains
     nparticles_active_on_mype = 0
     integrator_velocity_factor(:) = 1.0d0
     integrator_type_particles = 'Boris'
+    interp_type_particles = 'default'
 
     call particles_params_read(par_files)
 
@@ -558,6 +564,7 @@ contains
         tpartc_io_0 = MPI_WTIME()
         if (mype .eq. 0 .and. (.not. time_advance)) print*, "Writing particle output at time",t_next_output
         call write_particle_output()
+        if (.not. time_advance) call write_particles_snapshot()
         timeio_tot  = timeio_tot+(MPI_WTIME()-tpartc_io_0)
         tpartc_io   = tpartc_io+(MPI_WTIME()-tpartc_io_0)
 
@@ -644,7 +651,7 @@ contains
     double precision, intent(in)                       :: tloc
     double precision,dimension(ndir), intent(out)      :: vec
     double precision,dimension(ndir)                   :: vec1, vec2
-    double precision                                   :: td
+    double precision                                   :: td, bb
     integer                                            :: ic^D,idir
 
     if (associated(usr_particle_analytic)) then
@@ -654,19 +661,40 @@ contains
         call interpolate_var(igrid,ixG^LL,ixM^LL,gridvars(igrid)%w(ixG^T,ix(idir)), &
              ps(igrid)%x(ixG^T,1:ndim),x,vec(idir))
       end do
+
       if (time_advance) then
         do idir=1,ndir
           call interpolate_var(igrid,ixG^LL,ixM^LL,gridvars(igrid)%wold(ixG^T,ix(idir)), &
                ps(igrid)%x(ixG^T,1:ndim),x,vec2(idir))
         end do
+
+        ! Interpolate in time
         td = (tloc - global_time) / dt
-        vec(:) = vec(:) * (1.0d0 - td) + vec2(:) * td
+        vec(:) = vec2(:) * (1.0d0 - td) + vec(:) * td
+      end if
+
+      ! Fabio June 2024: Renormalize vector by its grid-evaluated norm
+      if (interp_type_particles=='renormalized') then
+        if (time_advance) then
+          if (sqrt(sum(vec(:)**2)) .gt. 0.d0) then
+            call interpolate_var(igrid,ixG^LL,ixM^LL, &
+                                 sum(gridvars(igrid)%w(ixG^T,ix(:))**2,dim=ndim+1)*td &
+                                 +sum(gridvars(igrid)%wold(ixG^T,ix(:))**2,dim=ndim+1)*(1.d0-td), &
+                                 ps(igrid)%x(ixG^T,1:ndim),x,bb)
+          end if
+        else
+          if (sqrt(sum(vec(:)**2)) .gt. 0.d0) then
+            call interpolate_var(igrid,ixG^LL,ixM^LL, &
+                                 sum(gridvars(igrid)%w(ixG^T,ix(:))**2,dim=ndim+1), &
+                                 ps(igrid)%x(ixG^T,1:ndim),x,bb)
+          end if
+          vec = vec/sqrt(sum(vec(:)**2))*sqrt(bb)
+        end if
       end if
     end if
 
   end subroutine get_vec
 
-  ! Shorthand for getting specifically the B field at the particle position
   subroutine get_bfield(igrid,x,tloc,b)
     use mod_global_parameters
     use mod_usr_methods, only: usr_particle_analytic, usr_particle_fields
@@ -676,7 +704,7 @@ contains
     double precision, intent(in)                       :: tloc
     double precision,dimension(ndir), intent(out)      :: b
     double precision,dimension(ndir)                   :: vec1, vec2, vec
-    double precision                                   :: td
+    double precision                                   :: td, bb
     integer                                            :: ic^D,idir
 
     if (associated(usr_particle_analytic)) then
@@ -688,14 +716,37 @@ contains
         call interpolate_var(igrid,ixG^LL,ixM^LL,gridvars(igrid)%w(ixG^T,bp(idir)), &
              ps(igrid)%x(ixG^T,1:ndim),x,vec(idir))
       end do
+
       if (time_advance) then
         do idir=1,ndir
           call interpolate_var(igrid,ixG^LL,ixM^LL,gridvars(igrid)%wold(ixG^T,bp(idir)), &
                ps(igrid)%x(ixG^T,1:ndim),x,vec2(idir))
         end do
+
+        ! Interpolate in time
         td = (tloc - global_time) / dt
-        vec(:) = vec(:) * (1.0d0 - td) + vec2(:) * td
+        vec(:) = vec2(:) * (1.0d0 - td) + vec(:) * td
       end if
+
+      ! Fabio June 2024: Renormalize vector by its grid-evaluated norm
+      if (interp_type_particles=='renormalized') then
+        if (time_advance) then
+          if (sqrt(sum(vec(:)**2)) .gt. 0.d0) then
+            call interpolate_var(igrid,ixG^LL,ixM^LL, &
+                                 sum(gridvars(igrid)%w(ixG^T,bp(:))**2,dim=ndim+1)*td &
+                                 +sum(gridvars(igrid)%wold(ixG^T,bp(:))**2,dim=ndim+1)*(1.d0-td), &
+                                 ps(igrid)%x(ixG^T,1:ndim),x,bb)
+          end if
+        else
+          if (sqrt(sum(vec(:)**2)) .gt. 0.d0) then
+            call interpolate_var(igrid,ixG^LL,ixM^LL, &
+                                 sum(gridvars(igrid)%w(ixG^T,bp(:))**2,dim=ndim+1), &
+                                 ps(igrid)%x(ixG^T,1:ndim),x,bb)
+          end if
+          vec = vec/sqrt(sum(vec(:)**2))*sqrt(bb)
+        end if
+      end if
+
     end if
 
     b(:) = vec(:)
@@ -736,7 +787,7 @@ contains
         if (time_advance) then
           call interpolate_var(igrid,ixG^LL,ixM^LL,gridvars(igrid)%wold(ixG^T,rhop),ps(igrid)%x(ixG^T,1:ndim),x,rho2)
           td = (tloc - global_time) / dt
-          rho = rho * (1.0d0 - td) + rho2 * td
+          rho = rho2 * (1.0d0 - td) + rho * td
         end if
       end if
 
@@ -1035,14 +1086,21 @@ contains
     integer,dimension(0:npe-1)      :: receive_n_particles_for_output_from_ipe
     integer                         :: ipe, ipart, iipart, send_n_particles_for_output
     logical,save                    :: file_exists=.false.
+    integer                         :: snapshotnumber
 
     if (.not. write_snapshot) return
+    
+    if (time_advance) then
+      snapshotnumber = snapshotnext
+    else
+      snapshotnumber = nint(t_next_output/dtsave_particles)
+    end if 
 
     receive_n_particles_for_output_from_ipe(:) = 0
 
     ! open the snapshot file on the headnode
     if (mype .eq. 0) then
-      write(filename,"(a,a,i4.4,a)") trim(base_filename),'_particles',snapshotnext,'.dat'
+      write(filename,"(a,a,i4.4,a)") trim(base_filename),'_particles',snapshotnumber,'.dat'
       INQUIRE(FILE=filename, EXIST=file_exists)
       if (.not. file_exists) then
         open(unit=unitparticles,file=filename,form='unformatted',status='new',access='stream')
