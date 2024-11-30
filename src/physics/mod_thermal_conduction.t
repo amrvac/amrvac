@@ -318,14 +318,13 @@ contains
     type(tc_fluid), intent(in) :: fl
 
     !! qd store the heat conduction energy changing rate
-    double precision :: qd(ixI^S)
+    double precision :: qd(ixO^S)
     double precision :: rho(ixI^S),Te(ixI^S)
     double precision :: qvec(ixI^S,1:ndim)
-    double precision, allocatable, dimension(:^D&,:) :: qvec_equi
-
-    double precision, allocatable, dimension(:^D&,:,:) :: fluxall
+    double precision :: fluxall(ixI^S,1,1:ndim)
     double precision :: alpha,dxinv(ndim)
-    integer :: idims,idir,ix^D,ix^L,ixC^L,ixA^L,ixB^L
+    double precision, allocatable, dimension(:^D&,:) :: qvec_equi
+    integer :: idims,ixA^L
 
     ! coefficient of limiting on normal component
     if(ndim<3) then
@@ -333,7 +332,6 @@ contains
     else
       alpha=0.85d0
     end if
-    ix^L=ixO^L^LADD1;
 
     dxinv=1.d0/dxlevel
 
@@ -346,32 +344,43 @@ contains
       call fl%get_rho_equi(w, x, ixI^L, ixI^L, rho)  !calculate rho in whole domain (+ghosts)
       call set_source_tc_mhd(ixI^L,ixO^L,w,x,fl,qvec_equi,rho,Te,alpha)
       do idims=1,ndim
-        qvec(ix^S,idims)=qvec(ix^S,idims) - qvec_equi(ix^S,idims)
+        ixAmax^D=ixOmax^D; ixAmin^D=ixOmin^D-kr(idims,^D);
+        qvec(ixA^S,idims)=qvec(ixA^S,idims)-qvec_equi(ixA^S,idims)
       end do
       deallocate(qvec_equi)
-    endif
+    end if
 
-    qd=0.d0
     if(slab_uniform) then
       do idims=1,ndim
-        qvec(ix^S,idims)=dxinv(idims)*qvec(ix^S,idims)
-        ixB^L=ixO^L-kr(idims,^D);
-        qd(ixO^S)=qd(ixO^S)+qvec(ixO^S,idims)-qvec(ixB^S,idims)
+        ixAmax^D=ixOmax^D; ixAmin^D=ixOmin^D-kr(idims,^D);
+        qvec(ixA^S,idims)=dxinv(idims)*qvec(ixA^S,idims)
+        ixA^L=ixO^L-kr(idims,^D);
+        if(idims==1) then
+          qd(ixO^S)=qvec(ixO^S,idims)-qvec(ixA^S,idims)
+        else
+          qd(ixO^S)=qd(ixO^S)+qvec(ixO^S,idims)-qvec(ixA^S,idims)
+        end if
       end do
     else
       do idims=1,ndim
-        qvec(ix^S,idims)=qvec(ix^S,idims)*block%surfaceC(ix^S,idims)
-        ixB^L=ixO^L-kr(idims,^D);
-        qd(ixO^S)=qd(ixO^S)+qvec(ixO^S,idims)-qvec(ixB^S,idims)
+        ixAmax^D=ixOmax^D; ixAmin^D=ixOmin^D-kr(idims,^D);
+        qvec(ixA^S,idims)=qvec(ixA^S,idims)*block%surfaceC(ixA^S,idims)
+        ixA^L=ixO^L-kr(idims,^D);
+        if(idims==1) then
+          qd(ixO^S)=qvec(ixO^S,idims)-qvec(ixA^S,idims)
+        else
+          qd(ixO^S)=qd(ixO^S)+qvec(ixO^S,idims)-qvec(ixA^S,idims)
+        end if
       end do
       qd(ixO^S)=qd(ixO^S)/block%dvolume(ixO^S)
     end if
 
     if(fix_conserve_at_step) then
-      allocate(fluxall(ixI^S,1,1:ndim))
-      fluxall(ixI^S,1,1:ndim)=my_dt*qvec(ixI^S,1:ndim)
+      do idims=1,ndim
+        ixAmax^D=ixOmax^D; ixAmin^D=ixOmin^D-kr(idims,^D);
+        fluxall(ixA^S,1,idims)=my_dt*qvec(ixA^S,idims)
+      end do
       call store_flux(igrid,fluxall,1,ndim,nflux)
-      deallocate(fluxall)
     end if
 
     wres(ixO^S,fl%e_)=qd(ixO^S)
@@ -386,51 +395,61 @@ contains
     double precision, intent(in) :: rho(ixI^S),Te(ixI^S)
     double precision, intent(in) :: alpha
     double precision, intent(out) :: qvec(ixI^S,1:ndim)
-    !! qd store the heat conduction energy changing rate
-    double precision :: qd(ixI^S)
-    double precision, dimension(ixI^S,1:ndim) :: mf,Bc,Bcf
-    double precision, dimension(ixI^S,1:ndim) :: gradT
-    double precision, dimension(ixI^S) :: ka,kaf,ke,kef,qdd,qe,Binv,minq,maxq,Bnorm
-    double precision, allocatable, dimension(:^D&,:,:) :: fluxall
-    integer, dimension(ndim) :: lowindex
+
+    !! qdd store the heat conduction energy changing rate
+    double precision, dimension(ixI^S,1:ndim) :: mf,Bc,Bcf,gradT
+    double precision, dimension(ixI^S) :: ka,kaf,ke,kef,qdd,Bnorm
+    double precision :: minq,maxq,qd(2**(ndim-1))
     integer :: idims,idir,ix^D,ix^L,ixC^L,ixA^L,ixB^L
 
     ix^L=ixO^L^LADD1;
 
     ! T gradient at cell faces
     ! B vector
-    if(B0field) then
-      mf(ixI^S,1:ndim)=w(ixI^S,iw_mag(1:ndim))+block%B0(ixI^S,1:ndim,0)
-    else
-      mf(ixI^S,1:ndim)=w(ixI^S,iw_mag(1:ndim))
-    end if
-    ! |B|
-    Binv(ix^S)=dsqrt(sum(mf(ix^S,1:ndim)**2,dim=ndim+1))
-    where(Binv(ix^S)/=0.d0)
-      Binv(ix^S)=1.d0/Binv(ix^S)
-    elsewhere
-      Binv(ix^S)=bigdouble
-    end where
-    ! b unit vector: magnetic field direction vector
-    do idims=1,ndim
-      mf(ix^S,idims)=mf(ix^S,idims)*Binv(ix^S)
-    end do
+   {do ix^DB=ixmin^DB,ixmax^DB\}
+      if(B0field) then
+        mf(ix^D,1:ndim)=w(ix^D,iw_mag(1:ndim))+block%B0(ix^D,1:ndim,0)
+      else
+        mf(ix^D,1:ndim)=w(ix^D,iw_mag(1:ndim))
+      end if
+      ! |B|
+      Bnorm(ix^D)=dsqrt(sum(mf(ix^D,1:ndim)**2))
+      if(Bnorm(ix^D)/=0.d0) then
+        Bnorm(ix^D)=1.d0/Bnorm(ix^D)
+      else
+        Bnorm(ix^D)=bigdouble
+      end if
+      ! b unit vector: magnetic field direction vector
+      do idims=1,ndim
+        mf(ix^D,idims)=mf(ix^D,idims)*Bnorm(ix^D)
+      end do
+   {end do\}
     ! ixC is cell-corner index
     ixCmax^D=ixOmax^D; ixCmin^D=ixOmin^D-1;
     ! b unit vector at cell corner
-    Bc=0.d0
-    {do ix^DB=0,1\}
-      ixAmin^D=ixCmin^D+ix^D;
-      ixAmax^D=ixCmax^D+ix^D;
-      Bc(ixC^S,1:ndim)=Bc(ixC^S,1:ndim)+mf(ixA^S,1:ndim)
-    {end do\}
-    Bc(ixC^S,1:ndim)=Bc(ixC^S,1:ndim)*0.5d0**ndim
+   {^IFTHREED
+    do idims=1,3
+   {do ix^DB=ixCmin^DB,ixCmax^DB\}
+      Bc(ix^D,idims)=0.125d0*(mf(ix1,ix2,ix3,idims)+mf(ix1+1,ix2,ix3,idims)&
+                     +mf(ix1,ix2+1,ix3,idims)+mf(ix1+1,ix2+1,ix3,idims)&
+                     +mf(ix1,ix2,ix3+1,idims)+mf(ix1+1,ix2,ix3+1,idims)&
+                     +mf(ix1,ix2+1,ix3+1,idims)+mf(ix1+1,ix2+1,ix3+1,idims))
+   {end do\}
+    end do
+   }
+   {^IFTWOD
+    do idims=1,2
+   {do ix^DB=ixCmin^DB,ixCmax^DB\}
+      Bc(ix^D,idims)=0.25d0*(mf(ix1,ix2,idims)+mf(ix1+1,ix2,idims)&
+                     +mf(ix1,ix2+1,idims)+mf(ix1+1,ix2+1,idims))
+   {end do\}
+    end do
+   }
     ! T gradient at cell faces
     do idims=1,ndim
       ixBmin^D=ixmin^D;
       ixBmax^D=ixmax^D-kr(idims,^D);
-      call gradientC(Te,ixI^L,ixB^L,idims,minq)
-      gradT(ixB^S,idims)=minq(ixB^S)
+      call gradientC(Te,ixI^L,ixB^L,idims,gradT(ixI^S,idims))
     end do
     if(fl%tc_constant) then
       if(fl%tc_perpendicular) then
@@ -442,61 +461,82 @@ contains
     else
       ! conductivity at cell center
       if(phys_trac) then
-        minq(ix^S)=Te(ix^S)
-        where(minq(ix^S) < block%wextra(ix^S,fl%Tcoff_))
-          minq(ix^S)=block%wextra(ix^S,fl%Tcoff_)
-        end where
-        minq(ix^S)=fl%tc_k_para*sqrt(minq(ix^S)**5)
+       {do ix^DB=ixmin^DB,ixmax^DB\}
+          if(Te(ix^D) < block%wextra(ix^D,fl%Tcoff_)) then
+            qdd(ix^D)=fl%tc_k_para*sqrt(block%wextra(ix^D,fl%Tcoff_)**5)
+          else
+            qdd(ix^D)=fl%tc_k_para*sqrt(Te(ix^D)**5)
+          end if
+       {end do\}
       else
-        minq(ix^S)=fl%tc_k_para*sqrt(Te(ix^S)**5)
+        qdd(ix^S)=fl%tc_k_para*sqrt(Te(ix^S)**5)
       end if
-      ka=0.d0
-      {do ix^DB=0,1\}
-        ixBmin^D=ixCmin^D+ix^D;
-        ixBmax^D=ixCmax^D+ix^D;
-        ka(ixC^S)=ka(ixC^S)+minq(ixB^S)
-      {end do\}
-      ! cell corner conductivity
-      ka(ixC^S)=0.5d0**ndim*ka(ixC^S)
+     ! cell corner parallel conductivity in ka
+     {^IFTHREED
+     {do ix^DB=ixCmin^DB,ixCmax^DB\}
+        ka(ix^D)=0.125d0*(qdd(ix1,ix2,ix3)+qdd(ix1+1,ix2,ix3)&
+                       +qdd(ix1,ix2+1,ix3)+qdd(ix1+1,ix2+1,ix3)&
+                       +qdd(ix1,ix2,ix3+1)+qdd(ix1+1,ix2,ix3+1)&
+                       +qdd(ix1,ix2+1,ix3+1)+qdd(ix1+1,ix2+1,ix3+1))
+     {end do\}
+     }
+     {^IFTWOD
+     {do ix^DB=ixCmin^DB,ixCmax^DB\}
+        ka(ix^D)=0.25d0*(qdd(ix1,ix2)+qdd(ix1+1,ix2)&
+                       +qdd(ix1,ix2+1)+qdd(ix1+1,ix2+1))
+     {end do\}
+     }
       ! compensate with perpendicular conductivity
       if(fl%tc_perpendicular) then
-        minq(ix^S)=fl%tc_k_perp*rho(ix^S)**2*Binv(ix^S)**2/dsqrt(Te(ix^S))
-        ke=0.d0
-        {do ix^DB=0,1\}
-          ixBmin^D=ixCmin^D+ix^D;
-          ixBmax^D=ixCmax^D+ix^D;
-          ke(ixC^S)=ke(ixC^S)+minq(ixB^S)
-        {end do\}
-        ! cell corner conductivity: k_parallel-k_perpendicular
-        ke(ixC^S)=0.5d0**ndim*ke(ixC^S)
-        where(ke(ixC^S)<ka(ixC^S))
-          ka(ixC^S)=ka(ixC^S)-ke(ixC^S)
-        elsewhere
-          ke(ixC^S)=ka(ixC^S)
-          ka(ixC^S)=0.d0
-        end where
+        qdd(ix^S)=fl%tc_k_perp*rho(ix^S)**2*Bnorm(ix^S)**2/dsqrt(Te(ix^S))
+       {^IFTHREED
+       {do ix^DB=ixCmin^DB,ixCmax^DB\}
+          ke(ix^D)=0.125d0*(qdd(ix1,ix2,ix3)+qdd(ix1+1,ix2,ix3)&
+                         +qdd(ix1,ix2+1,ix3)+qdd(ix1+1,ix2+1,ix3)&
+                         +qdd(ix1,ix2,ix3+1)+qdd(ix1+1,ix2,ix3+1)&
+                         +qdd(ix1,ix2+1,ix3+1)+qdd(ix1+1,ix2+1,ix3+1))
+          if(ke(ix^D)<ka(ix^D)) then
+            ka(ix^D)=ka(ix^D)-ke(ix^D)
+          else
+            ke(ix^D)=ka(ix^D)
+            ka(ix^D)=0.d0
+          end if
+       {end do\}
+       }
+       {^IFTWOD
+       {do ix^DB=ixCmin^DB,ixCmax^DB\}
+          ke(ix^D)=0.25d0*(qdd(ix1,ix2)+qdd(ix1+1,ix2)&
+                         +qdd(ix1,ix2+1)+qdd(ix1+1,ix2+1))
+          if(ke(ix^D)<ka(ix^D)) then
+            ka(ix^D)=ka(ix^D)-ke(ix^D)
+          else
+            ke(ix^D)=ka(ix^D)
+            ka(ix^D)=0.d0
+          end if
+       {end do\}
+       }
       end if
     end if
     if(fl%tc_slope_limiter==0) then
       ! calculate thermal conduction flux with symmetric scheme
       do idims=1,ndim
-        !qd corner values
-        qd=0.d0
+        !qdd corner values
+        qdd=0.d0
         {do ix^DB=0,1 \}
            if({ ix^D==0 .and. ^D==idims | .or.}) then
              ixBmin^D=ixCmin^D+ix^D;
              ixBmax^D=ixCmax^D+ix^D;
-             qd(ixC^S)=qd(ixC^S)+gradT(ixB^S,idims)
+             qdd(ixC^S)=qdd(ixC^S)+gradT(ixB^S,idims)
            end if
         {end do\}
         ! temperature gradient at cell corner
-        qvec(ixC^S,idims)=qd(ixC^S)*0.5d0**(ndim-1)
+        qvec(ixC^S,idims)=qdd(ixC^S)*0.5d0**(ndim-1)
       end do
       ! b grad T at cell corner
-      qd(ixC^S)=sum(qvec(ixC^S,1:ndim)*Bc(ixC^S,1:ndim),dim=ndim+1)
+      qdd(ixC^S)=sum(qvec(ixC^S,1:ndim)*Bc(ixC^S,1:ndim),dim=ndim+1)
       do idims=1,ndim
         ! TC flux at cell corner
-        gradT(ixC^S,idims)=ka(ixC^S)*Bc(ixC^S,idims)*qd(ixC^S)
+        gradT(ixC^S,idims)=ka(ixC^S)*Bc(ixC^S,idims)*qdd(ixC^S)
         if(fl%tc_perpendicular) gradT(ixC^S,idims)=gradT(ixC^S,idims)+ke(ixC^S)*qvec(ixC^S,idims)
       end do
       ! TC flux at cell face
@@ -526,94 +566,283 @@ contains
           ! averaged b at face centers
           Bcf(ixA^S,idims)=Bcf(ixA^S,idims)*0.5d0**(ndim-1)
           ixB^L=ixA^L+kr(idims,^D);
-          qd(ixA^S)=2.75d0*(rho(ixA^S)+rho(ixB^S))*dsqrt(0.5d0*(Te(ixA^S)+Te(ixB^S)))**3*dabs(Bcf(ixA^S,idims))
+          qdd(ixA^S)=2.75d0*(rho(ixA^S)+rho(ixB^S))*dsqrt(0.5d0*(Te(ixA^S)+Te(ixB^S)))**3*dabs(Bcf(ixA^S,idims))
          {do ix^DB=ixAmin^DB,ixAmax^DB\}
-            if(dabs(qvec(ix^D,idims))>qd(ix^D)) then
-              qvec(ix^D,idims)=sign(1.d0,qvec(ix^D,idims))*qd(ix^D)
+            if(dabs(qvec(ix^D,idims))>qdd(ix^D)) then
+              qvec(ix^D,idims)=sign(1.d0,qvec(ix^D,idims))*qdd(ix^D)
             end if
          {end do\}
         end if
       end do
     else
       ! calculate thermal conduction flux with slope-limited symmetric scheme
-      qvec=0.d0
       do idims=1,ndim
-        ixB^L=ixO^L-kr(idims,^D);
-        ixAmax^D=ixOmax^D; ixAmin^D=ixBmin^D;
+        ixAmax^D=ixOmax^D; ixAmin^D=ixOmin^D-kr(idims,^D);
+       {^IFTHREED
+        if(idims==1) then
+         {do ix^DB=ixAmin^DB,ixAmax^DB\}
+            ! averaged b at face centers
+            Bcf(ix^D,1:ndim)=0.25d0*(Bc(ix1,ix2,ix3,1:ndim)+Bc(ix1,ix2-1,ix3,1:ndim)&
+                           +Bc(ix1,ix2,ix3-1,1:ndim)+Bc(ix1,ix2-1,ix3-1,1:ndim))
+            kaf(ix^D)=0.25d0*(ka(ix1,ix2,ix3)+ka(ix1,ix2-1,ix3)&
+                           +ka(ix1,ix2,ix3-1)+ka(ix1,ix2-1,ix3-1))
+            ! averaged thermal conductivity at face centers
+            if(fl%tc_perpendicular) &
+            kef(ix^D)=0.25d0*(ke(ix1,ix2,ix3)+ke(ix1,ix2-1,ix3)&
+                           +ke(ix1,ix2,ix3-1)+ke(ix1,ix2-1,ix3-1))
+         {end do\}
+        else if(idims==2) then
+         {do ix^DB=ixAmin^DB,ixAmax^DB\}
+            Bcf(ix^D,1:ndim)=0.25d0*(Bc(ix1,ix2,ix3,1:ndim)+Bc(ix1-1,ix2,ix3,1:ndim)&
+                           +Bc(ix1,ix2,ix3-1,1:ndim)+Bc(ix1-1,ix2,ix3-1,1:ndim))
+            kaf(ix^D)=0.25d0*(ka(ix1,ix2,ix3)+ka(ix1-1,ix2,ix3)&
+                           +ka(ix1,ix2,ix3-1)+ka(ix1-1,ix2,ix3-1))
+            if(fl%tc_perpendicular) &
+            kef(ix^D)=0.25d0*(ke(ix1,ix2,ix3)+ke(ix1-1,ix2,ix3)&
+                           +ke(ix1,ix2,ix3-1)+ke(ix1-1,ix2,ix3-1))
+         {end do\}
+        else
+         {do ix^DB=ixAmin^DB,ixAmax^DB\}
+            Bcf(ix^D,1:ndim)=0.25d0*(Bc(ix1,ix2,ix3,1:ndim)+Bc(ix1,ix2-1,ix3,1:ndim)&
+                           +Bc(ix1-1,ix2,ix3,1:ndim)+Bc(ix1-1,ix2-1,ix3,1:ndim))
+            kaf(ix^D)=0.25d0*(ka(ix1,ix2,ix3)+ka(ix1,ix2-1,ix3)&
+                           +ka(ix1-1,ix2,ix3)+ka(ix1-1,ix2-1,ix3))
+            if(fl%tc_perpendicular) &
+            kef(ix^D)=0.25d0*(ke(ix1,ix2,ix3)+ke(ix1,ix2-1,ix3)&
+                           +ke(ix1-1,ix2,ix3)+ke(ix1-1,ix2-1,ix3))
+         {end do\}
+        end if
+       }
+       {^IFTWOD
+        if(idims==1) then
+         {do ix^DB=ixAmin^DB,ixAmax^DB\}
+            Bcf(ix^D,1:ndim)=0.5d0*(Bc(ix1,ix2,1:ndim)+Bc(ix1,ix2-1,1:ndim))
+            kaf(ix^D)=0.5d0*(ka(ix1,ix2)+ka(ix1,ix2-1))
+            if(fl%tc_perpendicular) &
+            kef(ix^D)=0.5d0*(ke(ix1,ix2)+ke(ix1,ix2-1))
+         {end do\}
+        else
+         {do ix^DB=ixAmin^DB,ixAmax^DB\}
+            Bcf(ix^D,1:ndim)=0.5d0*(Bc(ix1,ix2,1:ndim)+Bc(ix1-1,ix2,1:ndim))
+            kaf(ix^D)=0.5d0*(ka(ix1,ix2)+ka(ix1-1,ix2))
+            if(fl%tc_perpendicular) &
+            kef(ix^D)=0.5d0*(ke(ix1,ix2)+ke(ix1-1,ix2))
+         {end do\}
+        end if
+       }
+        ! eq (19)
+        ! temperature gradient at cell corner
+       {^IFTHREED
+        if(idims==1) then
+         {do ix^DB=ixCmin^DB,ixCmax^DB\}
+            qdd(ix^D)=0.25d0*(gradT(ix1,ix2,ix3,idims)+gradT(ix1,ix2+1,ix3,idims)&
+                           +gradT(ix1,ix2,ix3+1,idims)+gradT(ix1,ix2+1,ix3+1,idims))
+         {end do\}
+        else if(idims==2) then
+         {do ix^DB=ixCmin^DB,ixCmax^DB\}
+            qdd(ix^D)=0.25d0*(gradT(ix1,ix2,ix3,idims)+gradT(ix1+1,ix2,ix3,idims)&
+                           +gradT(ix1,ix2,ix3+1,idims)+gradT(ix1+1,ix2,ix3+1,idims))
+         {end do\}
+        else
+         {do ix^DB=ixCmin^DB,ixCmax^DB\}
+            qdd(ix^D)=0.25d0*(gradT(ix1,ix2,ix3,idims)+gradT(ix1+1,ix2,ix3,idims)&
+                           +gradT(ix1,ix2+1,ix3,idims)+gradT(ix1+1,ix2+1,ix3,idims))
+         {end do\}
+        end if
+       }
+       {^IFTWOD
+        if(idims==1) then
+         {do ix^DB=ixCmin^DB,ixCmax^DB\}
+            qdd(ix^D)=0.5d0*(gradT(ix1,ix2,idims)+gradT(ix1,ix2+1,idims))
+         {end do\}
+        else
+         {do ix^DB=ixCmin^DB,ixCmax^DB\}
+            qdd(ix^D)=0.5d0*(gradT(ix1,ix2,idims)+gradT(ix1+1,ix2,idims))
+         {end do\}
+        end if
+       }
+        ! eq (21)
+       {^IFTHREED
+        if(idims==1) then
+         {do ix^DB=ixAmin^DB,ixAmax^DB\}
+            minq=min(alpha*gradT(ix^D,idims),gradT(ix^D,idims)/alpha)
+            maxq=max(alpha*gradT(ix^D,idims),gradT(ix^D,idims)/alpha)
+            if(qdd(ix^D)<minq) then
+              qd(1)=minq
+            else if(qdd(ix^D)>maxq) then
+              qd(1)=maxq
+            else
+              qd(1)=qdd(ix^D)
+            end if
+            if(qdd(ix1,ix2-1,ix3)<minq) then
+              qd(2)=minq
+            else if(qdd(ix1,ix2-1,ix3)>maxq) then
+              qd(2)=maxq
+            else
+              qd(2)=qdd(ix1,ix2-1,ix3)
+            end if
+            if(qdd(ix1,ix2,ix3-1)<minq) then
+              qd(3)=minq
+            else if(qdd(ix1,ix2,ix3-1)>maxq) then
+              qd(3)=maxq
+            else
+              qd(3)=qdd(ix1,ix2,ix3-1)
+            end if
+            if(qdd(ix1,ix2-1,ix3-1)<minq) then
+              qd(4)=minq
+            else if(qdd(ix1,ix2-1,ix3-1)>maxq) then
+              qd(4)=maxq
+            else
+              qd(4)=qdd(ix1,ix2-1,ix3-1)
+            end if
+            qvec(ix^D,idims)=kaf(ix^D)*0.25d0*(Bc(ix^D,idims)**2*qd(1)+Bc(ix1,ix2-1,ix3,idims)**2*qd(2)&
+                           +Bc(ix1,ix2,ix3-1,idims)**2*qd(3)+Bc(ix1,ix2-1,ix3-1,idims)**2*qd(4))
+            if(fl%tc_perpendicular) &
+            qvec(ix^D,idims)=qvec(ix^D,idims)+kef(ix^D)*0.25d0*sum(qd(1:4))
+         {end do\}
+        else if(idims==2) then
+         {do ix^DB=ixAmin^DB,ixAmax^DB\}
+            minq=min(alpha*gradT(ix^D,idims),gradT(ix^D,idims)/alpha)
+            maxq=max(alpha*gradT(ix^D,idims),gradT(ix^D,idims)/alpha)
+            if(qdd(ix^D)<minq) then
+              qd(1)=minq
+            else if(qdd(ix^D)>maxq) then
+              qd(1)=maxq
+            else
+              qd(1)=qdd(ix^D)
+            end if
+            if(qdd(ix1-1,ix2,ix3)<minq) then
+              qd(2)=minq
+            else if(qdd(ix1-1,ix2,ix3)>maxq) then
+              qd(2)=maxq
+            else
+              qd(2)=qdd(ix1-1,ix2,ix3)
+            end if
+            if(qdd(ix1,ix2,ix3-1)<minq) then
+              qd(3)=minq
+            else if(qdd(ix1,ix2,ix3-1)>maxq) then
+              qd(3)=maxq
+            else
+              qd(3)=qdd(ix1,ix2,ix3-1)
+            end if
+            if(qdd(ix1-1,ix2,ix3-1)<minq) then
+              qd(4)=minq
+            else if(qdd(ix1-1,ix2,ix3-1)>maxq) then
+              qd(4)=maxq
+            else
+              qd(4)=qdd(ix1-1,ix2,ix3-1)
+            end if
+            qvec(ix^D,idims)=kaf(ix^D)*0.25d0*(Bc(ix^D,idims)**2*qd(1)+Bc(ix1-1,ix2,ix3,idims)**2*qd(2)&
+                           +Bc(ix1,ix2,ix3-1,idims)**2*qd(3)+Bc(ix1-1,ix2,ix3-1,idims)**2*qd(4))
+            if(fl%tc_perpendicular) &
+            qvec(ix^D,idims)=qvec(ix^D,idims)+kef(ix^D)*0.25d0*sum(qd(1:4))
+         {end do\}
+        else
+         {do ix^DB=ixAmin^DB,ixAmax^DB\}
+            minq=min(alpha*gradT(ix^D,idims),gradT(ix^D,idims)/alpha)
+            maxq=max(alpha*gradT(ix^D,idims),gradT(ix^D,idims)/alpha)
+            if(qdd(ix^D)<minq) then
+              qd(1)=minq
+            else if(qdd(ix^D)>maxq) then
+              qd(1)=maxq
+            else
+              qd(1)=qdd(ix^D)
+            end if
+            if(qdd(ix1-1,ix2,ix3)<minq) then
+              qd(2)=minq
+            else if(qdd(ix1-1,ix2,ix3)>maxq) then
+              qd(2)=maxq
+            else
+              qd(2)=qdd(ix1-1,ix2,ix3)
+            end if
+            if(qdd(ix1,ix2-1,ix3)<minq) then
+              qd(3)=minq
+            else if(qdd(ix1,ix2-1,ix3)>maxq) then
+              qd(3)=maxq
+            else
+              qd(3)=qdd(ix1,ix2-1,ix3)
+            end if
+            if(qdd(ix1-1,ix2-1,ix3)<minq) then
+              qd(4)=minq
+            else if(qdd(ix1-1,ix2-1,ix3)>maxq) then
+              qd(4)=maxq
+            else
+              qd(4)=qdd(ix1-1,ix2-1,ix3)
+            end if
+            qvec(ix^D,idims)=kaf(ix^D)*0.25d0*(Bc(ix^D,idims)**2*qd(1)+Bc(ix1-1,ix2,ix3,idims)**2*qd(2)&
+                           +Bc(ix1,ix2-1,ix3,idims)**2*qd(3)+Bc(ix1-1,ix2-1,ix3,idims)**2*qd(4))
+            if(fl%tc_perpendicular) &
+            qvec(ix^D,idims)=qvec(ix^D,idims)+kef(ix^D)*0.25d0*sum(qd(1:4))
+         {end do\}
+        end if
+       }
+       {^IFTWOD
+        if(idims==1) then
+         {do ix^DB=ixAmin^DB,ixAmax^DB\}
+            minq=min(alpha*gradT(ix^D,idims),gradT(ix^D,idims)/alpha)
+            maxq=max(alpha*gradT(ix^D,idims),gradT(ix^D,idims)/alpha)
+            if(qdd(ix^D)<minq) then
+              qd(1)=minq
+            else if(qdd(ix^D)>maxq) then
+              qd(1)=maxq
+            else
+              qd(1)=qdd(ix^D)
+            end if
+            if(qdd(ix1,ix2-1)<minq) then
+              qd(2)=minq
+            else if(qdd(ix1,ix2-1)>maxq) then
+              qd(2)=maxq
+            else
+              qd(2)=qdd(ix1,ix2-1)
+            end if
+            qvec(ix^D,idims)=kaf(ix^D)*0.5d0*(Bc(ix1,ix2,idims)**2*qd(1)+Bc(ix1,ix2-1,idims)**2*qd(2))
+            if(fl%tc_perpendicular) &
+            qvec(ix^D,idims)=qvec(ix^D,idims)+kef(ix^D)*0.5d0*(qd(1)+qd(2))
+         {end do\}
+        else
+         {do ix^DB=ixAmin^DB,ixAmax^DB\}
+            minq=min(alpha*gradT(ix^D,idims),gradT(ix^D,idims)/alpha)
+            maxq=max(alpha*gradT(ix^D,idims),gradT(ix^D,idims)/alpha)
+            if(qdd(ix^D)<minq) then
+              qd(1)=minq
+            else if(qdd(ix^D)>maxq) then
+              qd(1)=maxq
+            else
+              qd(1)=qdd(ix^D)
+            end if
+            if(qdd(ix1-1,ix2)<minq) then
+              qd(2)=minq
+            else if(qdd(ix1-1,ix2)>maxq) then
+              qd(2)=maxq
+            else
+              qd(2)=qdd(ix1-1,ix2)
+            end if
+            qvec(ix^D,idims)=kaf(ix^D)*0.5d0*(Bc(ix1,ix2,idims)**2*qd(1)+Bc(ix1-1,ix2,idims)**2*qd(2))
+            if(fl%tc_perpendicular) &
+            qvec(ix^D,idims)=qvec(ix^D,idims)+kef(ix^D)*0.5d0*(qd(1)+qd(2))
+         {end do\}
+        end if
+       }
         ! calculate normal of magnetic field
         ixB^L=ixA^L+kr(idims,^D);
         Bnorm(ixA^S)=0.5d0*(mf(ixA^S,idims)+mf(ixB^S,idims))
-        Bcf=0.d0
-        kaf=0.d0
-        kef=0.d0
-        {do ix^DB=0,1 \}
-           if({ ix^D==0 .and. ^D==idims | .or.}) then
-             ixBmin^D=ixAmin^D-ix^D;
-             ixBmax^D=ixAmax^D-ix^D;
-             Bcf(ixA^S,1:ndim)=Bcf(ixA^S,1:ndim)+Bc(ixB^S,1:ndim)
-             kaf(ixA^S)=kaf(ixA^S)+ka(ixB^S)
-             if(fl%tc_perpendicular) kef(ixA^S)=kef(ixA^S)+ke(ixB^S)
-           end if
-        {end do\}
-        ! averaged b at face centers
-        Bcf(ixA^S,1:ndim)=Bcf(ixA^S,1:ndim)*0.5d0**(ndim-1)
-        ! averaged thermal conductivity at face centers
-        kaf(ixA^S)=kaf(ixA^S)*0.5d0**(ndim-1)
-        if(fl%tc_perpendicular) kef(ixA^S)=kef(ixA^S)*0.5d0**(ndim-1)
-        ! limited normal component
-        minq(ixA^S)=min(alpha*gradT(ixA^S,idims),gradT(ixA^S,idims)/alpha)
-        maxq(ixA^S)=max(alpha*gradT(ixA^S,idims),gradT(ixA^S,idims)/alpha)
-        ! eq (19)
-        !corner values of gradT
-        qdd=0.d0
-        {do ix^DB=0,1 \}
-           if({ ix^D==0 .and. ^D==idims | .or.}) then
-             ixBmin^D=ixCmin^D+ix^D;
-             ixBmax^D=ixCmax^D+ix^D;
-             qdd(ixC^S)=qdd(ixC^S)+gradT(ixB^S,idims)
-           end if
-        {end do\}
-        ! temperature gradient at cell corner
-        qdd(ixC^S)=qdd(ixC^S)*0.5d0**(ndim-1)
-        ! eq (21)
-        qe=0.d0
-        {do ix^DB=0,1 \}
-           qd(ixC^S)=qdd(ixC^S)
-           if({ ix^D==0 .and. ^D==idims | .or.}) then
-             ixBmin^D=ixAmin^D-ix^D;
-             ixBmax^D=ixAmax^D-ix^D;
-             where(qd(ixB^S)<=minq(ixA^S))
-               qd(ixB^S)=minq(ixA^S)
-             elsewhere(qd(ixB^S)>=maxq(ixA^S))
-               qd(ixB^S)=maxq(ixA^S)
-             end where
-             qvec(ixA^S,idims)=qvec(ixA^S,idims)+Bc(ixB^S,idims)**2*qd(ixB^S)
-             if(fl%tc_perpendicular) qe(ixA^S)=qe(ixA^S)+qd(ixB^S)
-           end if
-        {end do\}
-        qvec(ixA^S,idims)=kaf(ixA^S)*qvec(ixA^S,idims)*0.5d0**(ndim-1)
-        ! add normal flux from perpendicular conduction
-        if(fl%tc_perpendicular) qvec(ixA^S,idims)=qvec(ixA^S,idims)+kef(ixA^S)*qe(ixA^S)*0.5d0**(ndim-1)
         ! limited transverse component, eq (17)
         ixBmin^D=ixAmin^D;
         ixBmax^D=ixAmax^D+kr(idims,^D);
         do idir=1,ndim
           if(idir==idims) cycle
-          qd(ixI^S)=slope_limiter(gradT(ixI^S,idir),ixI^L,ixB^L,idir,-1,fl%tc_slope_limiter)
-          qd(ixI^S)=slope_limiter(qd,ixI^L,ixA^L,idims,1,fl%tc_slope_limiter)
-          qvec(ixA^S,idims)=qvec(ixA^S,idims)+kaf(ixA^S)*Bnorm(ixA^S)*Bcf(ixA^S,idir)*qd(ixA^S)
+          qdd(ixI^S)=slope_limiter(gradT(ixI^S,idir),ixI^L,ixB^L,idir,-1,fl%tc_slope_limiter)
+          qdd(ixI^S)=slope_limiter(qdd,ixI^L,ixA^L,idims,1,fl%tc_slope_limiter)
+          qvec(ixA^S,idims)=qvec(ixA^S,idims)+kaf(ixA^S)*Bnorm(ixA^S)*Bcf(ixA^S,idir)*qdd(ixA^S)
         end do
-
         if(fl%tc_saturate) then
           ! consider saturation (Cowie and Mckee 1977 ApJ, 211, 135)
           ! unsigned saturated TC flux = 5 phi rho c**3, c=sqrt(p/rho) is isothermal sound speed, phi=1.1
           ixB^L=ixA^L+kr(idims,^D);
-          qd(ixA^S)=2.75d0*(rho(ixA^S)+rho(ixB^S))*dsqrt(0.5d0*(Te(ixA^S)+Te(ixB^S)))**3*dabs(Bnorm(ixA^S))
+          qdd(ixA^S)=2.75d0*(rho(ixA^S)+rho(ixB^S))*dsqrt(0.5d0*(Te(ixA^S)+Te(ixB^S)))**3*dabs(Bnorm(ixA^S))
          {do ix^DB=ixAmin^DB,ixAmax^DB\}
-            if(dabs(qvec(ix^D,idims))>qd(ix^D)) then
-              !write(*,*) 'it',it,qvec(ix^D,idims),qd(ix^D),' TC saturated at ',&
-              !x(ix^D,:),' rho',rho(ix^D),' Te',Te(ix^D)
-              qvec(ix^D,idims)=sign(1.d0,qvec(ix^D,idims))*qd(ix^D)
+            if(dabs(qvec(ix^D,idims))>qdd(ix^D)) then
+              qvec(ix^D,idims)=sign(1.d0,qvec(ix^D,idims))*qdd(ix^D)
             end if
          {end do\}
         end if
