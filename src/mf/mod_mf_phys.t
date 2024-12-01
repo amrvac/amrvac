@@ -1216,16 +1216,16 @@ contains
   end subroutine mf_get_dt
 
   ! Add geometrical source terms to w
-  subroutine mf_add_source_geom(qdt,dtfactor, ixI^L,ixO^L,wCT,w,x)
+  subroutine mf_add_source_geom(qdt,dtfactor, ixI^L,ixO^L,wCT,wprim,w,x)
     use mod_global_parameters
     use mod_geometry
 
     integer, intent(in)             :: ixI^L, ixO^L
     double precision, intent(in)    :: qdt, dtfactor, x(ixI^S,1:ndim)
-    double precision, intent(inout) :: wCT(ixI^S,1:nw), w(ixI^S,1:nw)
+    double precision, intent(inout) :: wCT(ixI^S,1:nw), wprim(ixI^S,1:nw), w(ixI^S,1:nw)
 
-    integer          :: iw,idir
-    double precision :: tmp(ixI^S)
+    double precision :: tmp,invr,cs2
+    integer          :: iw,idir,ix^D
 
     integer :: mr_,mphi_ ! Polar var. names
     integer :: br_,bphi_
@@ -1235,45 +1235,57 @@ contains
 
     select case (coordinate)
     case (cylindrical)
-      call mf_get_p_total(wCT,x,ixI^L,ixO^L,tmp)
       if(phi_>0) then
         if(.not.stagger_grid) then
-          w(ixO^S,bphi_)=w(ixO^S,bphi_)+qdt/x(ixO^S,1)*&
-                   (wCT(ixO^S,bphi_)*wCT(ixO^S,mr_) &
-                   -wCT(ixO^S,br_)*wCT(ixO^S,mphi_))
+         {do ix^DB=ixOmin^DB,ixOmax^DB\}
+            w(ix^D,bphi_)=w(ix^D,bphi_)+qdt/x(ix^D,1)*&
+                     (wCT(ix^D,bphi_)*wCT(ix^D,mr_) &
+                     -wCT(ix^D,br_)*wCT(ix^D,mphi_))
+         {end do\}
         end if
       end if
       if(mf_glm) w(ixO^S,br_)=w(ixO^S,br_)+qdt*wCT(ixO^S,psi_)/x(ixO^S,1)
     case (spherical)
-       ! b1
-       if(mf_glm) then
-         w(ixO^S,mag(1))=w(ixO^S,mag(1))+qdt/x(ixO^S,1)*2.0d0*wCT(ixO^S,psi_)
-       end if
-
-       {^NOONED
-       ! b2
-       if(.not.stagger_grid) then
-         tmp(ixO^S)=wCT(ixO^S,mom(1))*wCT(ixO^S,mag(2)) &
-              -wCT(ixO^S,mom(2))*wCT(ixO^S,mag(1))
+       {do ix^DB=ixOmin^DB,ixOmax^DB\}
+          invr=qdt/x(ix^D,1)
+         ! b1
          if(mf_glm) then
-           tmp(ixO^S)=tmp(ixO^S) &
-                + dcos(x(ixO^S,2))/dsin(x(ixO^S,2))*wCT(ixO^S,psi_)
+           w(ix^D,mag(1))=w(ix^D,mag(1))+invr*2.0d0*wCT(ix^D,psi_)
          end if
-         w(ixO^S,mag(2))=w(ixO^S,mag(2))+qdt*tmp(ixO^S)/x(ixO^S,1)
-       end if
-       }
 
-       if(ndir==3) then
-         ! b3
+         {^NOONED
+         ! b2
          if(.not.stagger_grid) then
-           tmp(ixO^S)=(wCT(ixO^S,mom(1))*wCT(ixO^S,mag(3)) &
-                -wCT(ixO^S,mom(3))*wCT(ixO^S,mag(1))) {^NOONED &
-                -(wCT(ixO^S,mom(3))*wCT(ixO^S,mag(2)) &
-                -wCT(ixO^S,mom(2))*wCT(ixO^S,mag(3)))*dcos(x(ixO^S,2)) &
-                /dsin(x(ixO^S,2)) }
-           w(ixO^S,mag(3))=w(ixO^S,mag(3))+qdt*tmp(ixO^S)/x(ixO^S,1)
+           tmp=wCT(ix^D,mom(1))*wCT(ix^D,mag(2))-wCT(ix^D,mom(2))*wCT(ix^D,mag(1))
+           cs2=1.d0/tan(x(ix^D,2))
+           if(mf_glm) then
+             tmp=tmp+cs2*wCT(ix^D,psi_)
+           end if
+           w(ix^D,mag(2))=w(ix^D,mag(2))+tmp*invr
          end if
-       end if
+         }
+
+         if(ndir==3) then
+          {^IFONED
+          ! b3
+          if(.not.stagger_grid) then
+            w(ix^D,mag(3))=w(ix^D,mag(3))+invr*&
+               (wCT(ix^D,mom(1))*wCT(ix^D,mag(3)) &
+               -wCT(ix^D,mom(3))*wCT(ix^D,mag(1)))
+          end if
+          }
+          {^NOONED
+          ! b3
+          if(.not.stagger_grid) then
+            w(ix^D,mag(3))=w(ix^D,mag(3))+invr*&
+               (wCT(ix^D,mom(1))*wCT(ix^D,mag(3)) &
+               -wCT(ix^D,mom(3))*wCT(ix^D,mag(1)) &
+              -(wCT(ix^D,mom(3))*wCT(ix^D,mag(2)) &
+               -wCT(ix^D,mom(2))*wCT(ix^D,mag(3)))*cs2)
+          end if
+          }
+         end if
+       {end do\}
     end select
 
   end subroutine mf_add_source_geom

@@ -453,7 +453,7 @@ contains
 
   end subroutine ard_get_flux
 
-  subroutine ard_add_source_geom(qdt, dtfactor, ixI^L, ixO^L, wCT, w, x)
+  subroutine ard_add_source_geom(qdt, dtfactor, ixI^L, ixO^L, wCT, wprim,w, x)
 
     ! Add geometrical source terms
     ! There are no geometrical source terms 
@@ -462,7 +462,7 @@ contains
 
     integer, intent(in) :: ixI^L, ixO^L
     double precision, intent(in) :: qdt, dtfactor, x(ixI^S, 1:^ND)
-    double precision, intent(inout) :: wCT(ixI^S, 1:nw), w(ixI^S, 1:nw)
+    double precision, intent(inout) :: wCT(ixI^S, 1:nw), wprim(ixI^S,1:nw),w(ixI^S, 1:nw)
 
   end subroutine ard_add_source_geom
 

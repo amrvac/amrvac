@@ -99,7 +99,7 @@ contains
     end do ! next idims
     b0i=0
 
-    if (.not.slab.and.idimsmin==1) call phys_add_source_geom(qdt,dtfactor,ixI^L,ixO^L,wCT,wnew,x)
+    if (.not.slab.and.idimsmin==1) call phys_add_source_geom(qdt,dtfactor,ixI^L,ixO^L,wCT,wprim,wnew,x)
 
     call addsource2(qdt*dble(idimsmax-idimsmin+1)/dble(ndim), &
           dtfactor*dble(idimsmax-idimsmin+1)/dble(ndim),& 
@@ -321,7 +321,7 @@ contains
     end if
 
     if (.not.slab.and.idimsmin==1) &
-         call phys_add_source_geom(qdt,dtfactor,ixI^L,ixO^L,wCT,wnew,x)
+         call phys_add_source_geom(qdt,dtfactor,ixI^L,ixO^L,wCT,wprim,wnew,x)
 
     if(stagger_grid) call phys_face_to_center(ixO^L,snew)
 

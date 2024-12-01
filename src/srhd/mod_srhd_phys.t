@@ -822,17 +822,17 @@ contains
   end subroutine srhd_get_flux
 
   !> Add geometrical source terms to w
-  subroutine srhd_add_source_geom(qdt, dtfactor, ixI^L, ixO^L, wCT, w, x)
+  subroutine srhd_add_source_geom(qdt, dtfactor, ixI^L, ixO^L, wCT, wprim, w, x)
     use mod_global_parameters
     use mod_usr_methods, only: usr_set_surface
     use mod_geometry
     integer, intent(in)             :: ixI^L, ixO^L
     double precision, intent(in)    :: qdt, dtfactor, x(ixI^S, 1:ndim)
-    double precision, intent(inout) :: wCT(ixI^S, 1:nw), w(ixI^S, 1:nw)
+    double precision, intent(inout) :: wCT(ixI^S, 1:nw), wprim(ixI^S, 1:nw), w(ixI^S, 1:nw)
 
     double precision :: pth(ixI^S), source(ixI^S), v(ixI^S,1:ndir)
     integer                         :: idir, h1x^L{^NOONED, h2x^L}
-    integer :: mr_,mphi_,vr_,vphi_,vtheta_ ! Polar var. names
+    integer :: mr_,mphi_ ! Polar var. names
     double precision :: exp_factor(ixI^S), del_exp_factor(ixI^S), exp_factor_primitive(ixI^S)
 
     select case (coordinate)
@@ -854,12 +854,9 @@ contains
           call srhd_get_pthermal(wCT, x, ixI^L, ixO^L, source)
           if (phi_ > 0) then
              mphi_ = mom(phi_)
-             vphi_ = mom(phi_)-1
-             vr_   = mom(r_)-1
-             call srhd_get_v(wCT,x,ixI^L,ixO^L,v)
-             source(ixO^S) = source(ixO^S) + wCT(ixO^S, mphi_)*v(ixO^S,vphi_)
+             source(ixO^S) = source(ixO^S) + wCT(ixO^S, mphi_)*wprim(ixO^S,mom(phi_))
              w(ixO^S, mr_) = w(ixO^S, mr_) + qdt * source(ixO^S) / x(ixO^S, r_)
-             source(ixO^S) = -wCT(ixO^S, mphi_) * v(ixO^S,vr_)
+             source(ixO^S) = -wCT(ixO^S, mphi_) * wprim(ixO^S,mom(r_))
              w(ixO^S, mphi_) = w(ixO^S, mphi_) + qdt * source(ixO^S) / x(ixO^S, r_)
           else
              w(ixO^S, mr_) = w(ixO^S, mr_) + qdt * source(ixO^S) / x(ixO^S, r_)
@@ -876,15 +873,13 @@ contains
             *(block%surfaceC(ixO^S, 1) - block%surfaceC(h1x^S, 1)) &
             /block%dvolume(ixO^S)
        if (ndir > 1) then
-         call srhd_get_v(wCT,x,ixI^L,ixO^L,v)
          do idir = 2, ndir
-           source(ixO^S) = source(ixO^S) + wCT(ixO^S, mom(idir))*v(ixO^S,idir)
+           source(ixO^S) = source(ixO^S) + wCT(ixO^S, mom(idir))*wprim(ixO^S,mom(idir))
          end do
        end if
        w(ixO^S, mr_) = w(ixO^S, mr_) + qdt * source(ixO^S) / x(ixO^S, 1)
 
        {^NOONED
-       vr_   = mom(r_)-1
        ! s[mtheta]=-(stheta*vr)/r+cot(theta)*(sphi*vphi+p)/r
        source(ixO^S) = pth(ixO^S) * x(ixO^S, 1) &
             * (block%surfaceC(ixO^S, 2) - block%surfaceC(h2x^S, 2)) &
@@ -892,14 +887,13 @@ contains
        if (ndir == 3) then
           source(ixO^S) = source(ixO^S) + (wCT(ixO^S, mom(3))*v(ixO^S,ndir)) / dtan(x(ixO^S, 2))
        end if
-       source(ixO^S) = source(ixO^S) - (wCT(ixO^S, mom(2)) * v(ixO^S, vr_)) 
+       source(ixO^S) = source(ixO^S) - wCT(ixO^S, mom(2)) * wprim(ixO^S, mom(1))
        w(ixO^S, mom(2)) = w(ixO^S, mom(2)) + qdt * source(ixO^S) / x(ixO^S, 1)
 
        if (ndir == 3) then
-         vtheta_   = mom(2)-1
          ! s[mphi]=-(sphi*vr)/r-cot(theta)*(sphi*vtheta)/r
-         source(ixO^S) = -(wCT(ixO^S, mom(3)) * v(ixO^S, vr_)) &
-                        - (wCT(ixO^S, mom(3)) * v(ixO^S, vtheta_)) / dtan(x(ixO^S, 2))
+         source(ixO^S) = -(wCT(ixO^S, mom(3)) * wprim(ixO^S, mom(1))) &
+                        - (wCT(ixO^S, mom(3)) * wprim(ixO^S, mom(2))) / dtan(x(ixO^S, 2))
          w(ixO^S, mom(3)) = w(ixO^S, mom(3)) + qdt * source(ixO^S) / x(ixO^S, 1)
        end if
        }

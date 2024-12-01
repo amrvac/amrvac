@@ -333,7 +333,7 @@ contains
     f(ixO^S, rho_) = w(ixO^S, rho_) * v(ixO^S)
   end subroutine rho_get_flux
 
-  subroutine rho_add_source_geom(qdt, dtfactor, ixI^L, ixO^L, wCT, w, x)
+  subroutine rho_add_source_geom(qdt, dtfactor, ixI^L, ixO^L, wCT,wprim, w, x)
 
     ! Add geometrical source terms to w
     ! There are no geometrical source terms in the transport equation
@@ -342,7 +342,7 @@ contains
 
     integer, intent(in) :: ixI^L, ixO^L
     double precision, intent(in) :: qdt, dtfactor, x(ixI^S, 1:^ND)
-    double precision, intent(inout) :: wCT(ixI^S, 1:nw), w(ixI^S, 1:nw)
+    double precision, intent(inout) :: wCT(ixI^S, 1:nw),wprim(ixI^S,1:nw), w(ixI^S, 1:nw)
 
   end subroutine rho_add_source_geom
 

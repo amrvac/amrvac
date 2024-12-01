@@ -62,7 +62,7 @@ contains
       rotating_terms(ixO^S) = omega_frame**2 * x(ixO^S,r_) * wCT(ixO^S,iw_rho)
 
       if (phi_ > 0) then
-        rotating_terms(ixO^S) = rotating_terms(ixO^S) + 2.d0 * omega_frame *wCT(ixO^S,iw_mom(phi_))
+        rotating_terms(ixO^S) = rotating_terms(ixO^S) + 2.d0 * omega_frame *wCT(ixO^S,iw_mom(phi_))*wCT(ixO^S,iw_rho)
       end if
 
       if(local_timestep) then
@@ -72,7 +72,7 @@ contains
       endif
       ! S[mphi] = -2*mrad*Omegaframe
       if (phi_ > 0) then
-        rotating_terms(ixO^S) = - 2.0d0*omega_frame * wCT(ixO^S,iw_mom(r_))
+        rotating_terms(ixO^S) = - 2.0d0*omega_frame * wCT(ixO^S,iw_mom(r_))*wCT(ixO^S,iw_rho)
         if(local_timestep) then
           w(ixO^S, iw_mom(phi_)) = w(ixO^S, iw_mom(phi_)) + block%dt(ixO^S)*dtfactor * rotating_terms(ixO^S)
         else
@@ -83,9 +83,9 @@ contains
       ! S[etot] = mrad*r*Omegaframe**2
       if (phys_energy .and. (.not.phys_internal_e)) then
         if(local_timestep) then
-          w(ixO^S, iw_e) = w(ixO^S, iw_e) + block%dt(ixO^S) *dtfactor * omega_frame**2 * x(ixO^S,r_) * wCT(ixO^S,iw_mom(r_))
+          w(ixO^S, iw_e) = w(ixO^S, iw_e) + block%dt(ixO^S) *dtfactor * omega_frame**2 * x(ixO^S,r_) * wCT(ixO^S,iw_mom(r_))*wCT(ixO^S,iw_rho)
         else
-          w(ixO^S, iw_e) = w(ixO^S, iw_e) + qdt * omega_frame**2 * x(ixO^S,r_) * wCT(ixO^S,iw_mom(r_))
+          w(ixO^S, iw_e) = w(ixO^S, iw_e) + qdt * omega_frame**2 * x(ixO^S,r_) * wCT(ixO^S,iw_mom(r_))*wCT(ixO^S,iw_rho)
         endif
       endif
 
@@ -97,7 +97,7 @@ contains
 
        if (phi_ > 0) then
          rotating_terms(ixO^S) = rotating_terms(ixO^S) + &
-                2.d0 * frame_omega(ixO^S) * wCT(ixO^S,iw_mom(phi_))
+                2.d0 * frame_omega(ixO^S) * wCT(ixO^S,iw_mom(phi_))*wCT(ixO^S,iw_rho)
        end if
         if(local_timestep) then
           w(ixO^S, iw_mom(r_)) = w(ixO^S, iw_mom(r_)) + block%dt(ixO^S)*dtfactor * rotating_terms(ixO^S)
@@ -113,8 +113,8 @@ contains
         endif
        ! S[mphi] = -2*Omegaframe * (mrad + cot(theta)*mtheta)
        if (phi_ > 0) then
-         rotating_terms(ixO^S) = -2.d0*frame_omega(ixO^S)* wCT(ixO^S, iw_mom(r_))&
-               - 2.d0*wCT(ixO^S, iw_mom(2)) * frame_omega(ixO^S)/ tan(x(ixO^S, 2))
+         rotating_terms(ixO^S) = -2.d0*frame_omega(ixO^S)* wCT(ixO^S, iw_mom(r_))*wCT(ixO^S,iw_rho)&
+               - 2.d0*wCT(ixO^S, iw_mom(2))*wCT(ixO^S,iw_rho) * frame_omega(ixO^S)/ tan(x(ixO^S, 2))
         if(local_timestep) then
           w(ixO^S, iw_mom(3)) = w(ixO^S, iw_mom(3)) + block%dt(ixO^S)*dtfactor * rotating_terms(ixO^S)
         else
@@ -125,9 +125,9 @@ contains
 
        ! S[etot] = r*Omegaframe**2 * (mrad + cot(theta)*mtheta)
        if (phys_energy .and. (.not.phys_internal_e)) then
-         work(ixO^S) = frame_omega(ixO^S)**2 * x(ixO^S,r_) * wCT(ixO^S,iw_mom(r_))
+         work(ixO^S) = frame_omega(ixO^S)**2 * x(ixO^S,r_) * wCT(ixO^S,iw_mom(r_))*wCT(ixO^S,iw_rho)
          {^NOONED
-         work(ixO^S) = work(ixO^S) + frame_omega(ixO^S)**2 * x(ixO^S,r_) * wCT(ixO^S, iw_mom(2))/ tan(x(ixO^S, 2))
+         work(ixO^S) = work(ixO^S) + frame_omega(ixO^S)**2 * x(ixO^S,r_) * wCT(ixO^S, iw_mom(2))*wCT(ixO^S,iw_rho)/ tan(x(ixO^S, 2))
          }
           if(local_timestep) then
             w(ixO^S, iw_e) = w(ixO^S, iw_e) + block%dt(ixO^S)*dtfactor* work(ixO^S)

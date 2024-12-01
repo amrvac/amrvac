@@ -1187,16 +1187,16 @@ contains
   !>
   !> Ileyk : to do :
   !>     - address the source term for the dust in case (coordinate == spherical)
-  subroutine hd_add_source_geom(qdt, dtfactor, ixI^L, ixO^L, wCT, w, x)
+  subroutine hd_add_source_geom(qdt, dtfactor, ixI^L, ixO^L, wCT, wprim, w, x)
     use mod_global_parameters
-    use mod_usr_methods, only: usr_set_surface
+    use mod_usr_methods, only: usr_set_surface, usr_set_pthermal
     use mod_viscosity, only: visc_add_source_geom ! viscInDiv
     use mod_rotating_frame, only: rotating_frame_add_source
     use mod_dust, only: dust_n_species, dust_mom, dust_rho
     use mod_geometry
     integer, intent(in)             :: ixI^L, ixO^L
     double precision, intent(in)    :: qdt, dtfactor, x(ixI^S, 1:ndim)
-    double precision, intent(inout) :: wCT(ixI^S, 1:nw), w(ixI^S, 1:nw)
+    double precision, intent(inout) :: wCT(ixI^S, 1:nw), wprim(ixI^S,1:nw),w(ixI^S, 1:nw)
     ! to change and to set as a parameter in the parfile once the possibility to
     ! solve the equations in an angular momentum conserving form has been
     ! implemented (change tvdlf.t eg)
@@ -1217,7 +1217,15 @@ contains
     case(Cartesian_expansion)
       !the user provides the functions of exp_factor and del_exp_factor
       if(associated(usr_set_surface)) call usr_set_surface(ixI^L,x,block%dx,exp_factor,del_exp_factor,exp_factor_primitive)
-      call hd_get_pthermal(wCT, x, ixI^L, ixO^L, source)
+      if(hd_energy) then
+        source(ixO^S)=wprim(ixO^S, p_)
+      else
+        if(.not. associated(usr_set_pthermal)) then
+          source(ixO^S)=hd_adiab * wprim(ixO^S, rho_)**hd_gamma
+        else
+          call usr_set_pthermal(wCT,x,ixI^L,ixO^L,source)
+        end if
+      end if
       source(ixO^S) = source(ixO^S)*del_exp_factor(ixO^S)/exp_factor(ixO^S)
       w(ixO^S,mom(1)) = w(ixO^S,mom(1)) + qdt*source(ixO^S)
 
@@ -1225,33 +1233,41 @@ contains
        do ifluid = 0, n_fluids-1
           ! s[mr]=(pthermal+mphi**2/rho)/radius
           if (ifluid == 0) then
-             ! gas
-             irho  = rho_
-             mr_   = mom(r_)
-             if(phi_>0) mphi_ = mom(phi_)
-             call hd_get_pthermal(wCT, x, ixI^L, ixO^L, source)
-             minrho = 0.0d0
+            ! gas
+            irho  = rho_
+            mr_   = mom(r_)
+            if(phi_>0) mphi_ = mom(phi_)
+            if(hd_energy) then
+              source(ixO^S)=wprim(ixO^S, p_)
+            else
+              if(.not. associated(usr_set_pthermal)) then
+                source(ixO^S)=hd_adiab * wprim(ixO^S, rho_)**hd_gamma
+              else
+                call usr_set_pthermal(wCT,x,ixI^L,ixO^L,source)
+              end if
+            end if
+            minrho = 0.0d0
           else
-             ! dust : no pressure
-             irho  = dust_rho(ifluid)
-             mr_   = dust_mom(r_, ifluid)
-             if(phi_>0) mphi_ = dust_mom(phi_, ifluid)
-             source(ixI^S) = zero
-             minrho = 0.0d0
+            ! dust : no pressure
+            irho  = dust_rho(ifluid)
+            mr_   = dust_mom(r_, ifluid)
+            if(phi_>0) mphi_ = dust_mom(phi_, ifluid)
+            source(ixI^S) = zero
+            minrho = 0.0d0
           end if
-          if (phi_ > 0) then
-             where (wCT(ixO^S, irho) > minrho)
-                source(ixO^S) = source(ixO^S) + wCT(ixO^S, mphi_)**2 / wCT(ixO^S, irho)
-                w(ixO^S, mr_) = w(ixO^S, mr_) + qdt * source(ixO^S) / x(ixO^S, r_)
-             end where
-             ! s[mphi]=(-mphi*mr/rho)/radius
-             where (wCT(ixO^S, irho) > minrho)
-                source(ixO^S) = -wCT(ixO^S, mphi_) * wCT(ixO^S, mr_) / wCT(ixO^S, irho)
-                w(ixO^S, mphi_) = w(ixO^S, mphi_) + qdt * source(ixO^S) / x(ixO^S, r_)
-             end where
+          if(phi_ > 0) then
+            where (wCT(ixO^S, irho) > minrho)
+              source(ixO^S) = source(ixO^S) + wCT(ixO^S,mphi_)*wprim(ixO^S,mphi_)
+              w(ixO^S, mr_) = w(ixO^S, mr_) + qdt*source(ixO^S)/x(ixO^S,r_)
+            end where
+            ! s[mphi]=(-mphi*vr)/radius
+            where (wCT(ixO^S, irho) > minrho)
+              source(ixO^S) = -wCT(ixO^S, mphi_) * wprim(ixO^S, mr_)
+              w(ixO^S, mphi_) = w(ixO^S, mphi_) + qdt * source(ixO^S) / x(ixO^S, r_)
+            end where
           else
-             ! s[mr]=2pthermal/radius
-             w(ixO^S, mr_) = w(ixO^S, mr_) + qdt * source(ixO^S) / x(ixO^S, r_)
+            ! s[mr]=2pthermal/radius
+            w(ixO^S, mr_) = w(ixO^S, mr_) + qdt * source(ixO^S) / x(ixO^S, r_)
           end if
        end do
     case (spherical)
@@ -1261,45 +1277,51 @@ contains
        mr_   = mom(r_)
        if(phi_>0) mphi_ = mom(phi_)
        h1x^L=ixO^L-kr(1,^D); {^NOONED h2x^L=ixO^L-kr(2,^D);}
-       ! s[mr]=((mtheta**2+mphi**2)/rho+2*p)/r
-       call hd_get_pthermal(wCT, x, ixI^L, ixO^L, pth)
+       ! s[mr]=((vtheta**2+vphi**2)*rho+2*p)/r
+       if(hd_energy) then
+         source(ixO^S)=wprim(ixO^S, p_)
+       else
+         if(.not. associated(usr_set_pthermal)) then
+           source(ixO^S)=hd_adiab * wprim(ixO^S, rho_)**hd_gamma
+         else
+           call usr_set_pthermal(wCT,x,ixI^L,ixO^L,source)
+         end if
+       end if
        source(ixO^S) = pth(ixO^S) * x(ixO^S, 1) &
             *(block%surfaceC(ixO^S, 1) - block%surfaceC(h1x^S, 1)) &
             /block%dvolume(ixO^S)
-       if (ndir > 1) then
-         do idir = 2, ndir
-           source(ixO^S) = source(ixO^S) + wCT(ixO^S, mom(idir))**2 / wCT(ixO^S, rho_)
-         end do
-       end if
+       do idir = 2, ndir
+         source(ixO^S) = source(ixO^S) + wprim(ixO^S, mom(idir))**2 * wprim(ixO^S, rho_)
+       end do
        w(ixO^S, mr_) = w(ixO^S, mr_) + qdt * source(ixO^S) / x(ixO^S, 1)
 
        {^NOONED
-       ! s[mtheta]=-(mr*mtheta/rho)/r+cot(theta)*(mphi**2/rho+p)/r
+       ! s[mtheta]=-(vr*vtheta*rho)/r+cot(theta)*(vphi**2*rho+p)/r
        source(ixO^S) = pth(ixO^S) * x(ixO^S, 1) &
             * (block%surfaceC(ixO^S, 2) - block%surfaceC(h2x^S, 2)) &
             / block%dvolume(ixO^S)
        if (ndir == 3) then
-          source(ixO^S) = source(ixO^S) + (wCT(ixO^S, mom(3))**2 / wCT(ixO^S, rho_)) / tan(x(ixO^S, 2))
+         source(ixO^S) = source(ixO^S) + (wprim(ixO^S, mom(3))**2 * wprim(ixO^S, rho_)) / tan(x(ixO^S, 2))
        end if
-       source(ixO^S) = source(ixO^S) - (wCT(ixO^S, mom(2)) * wCT(ixO^S, mr_)) / wCT(ixO^S, rho_)
+       source(ixO^S) = source(ixO^S) - (wprim(ixO^S, mom(2)) * wprim(ixO^S, mr_)) * wprim(ixO^S, rho_)
        w(ixO^S, mom(2)) = w(ixO^S, mom(2)) + qdt * source(ixO^S) / x(ixO^S, 1)
 
        if (ndir == 3) then
-         ! s[mphi]=-(mphi*mr/rho)/r-cot(theta)*(mtheta*mphi/rho)/r
-         source(ixO^S) = -(wCT(ixO^S, mom(3)) * wCT(ixO^S, mr_)) / wCT(ixO^S, rho_)&
-                        - (wCT(ixO^S, mom(2)) * wCT(ixO^S, mom(3))) / wCT(ixO^S, rho_) / tan(x(ixO^S, 2))
+         ! s[mphi]=-(vphi*vr/rho)/r-cot(theta)*(vtheta*vphi/rho)/r
+         source(ixO^S) = -(wprim(ixO^S, mom(3)) * wprim(ixO^S, mr_)) * wprim(ixO^S, rho_)&
+                        - (wprim(ixO^S, mom(2)) * wprim(ixO^S, mom(3))) * wprim(ixO^S, rho_) / tan(x(ixO^S, 2))
          w(ixO^S, mom(3)) = w(ixO^S, mom(3)) + qdt * source(ixO^S) / x(ixO^S, 1)
        end if
        }
     end select
 
-    if (hd_viscosity) call visc_add_source_geom(qdt,ixI^L,ixO^L,wCT,w,x)
+    if (hd_viscosity) call visc_add_source_geom(qdt,ixI^L,ixO^L,wprim,w,x)
 
     if (hd_rotating_frame) then
        if (hd_dust) then
           call mpistop("Rotating frame not implemented yet with dust")
        else
-          call rotating_frame_add_source(qdt,dtfactor,ixI^L,ixO^L,wCT,w,x)
+          call rotating_frame_add_source(qdt,dtfactor,ixI^L,ixO^L,wprim,w,x)
        end if
     end if
 
