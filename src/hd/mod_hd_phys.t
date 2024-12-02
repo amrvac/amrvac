@@ -1277,16 +1277,16 @@ contains
        mr_   = mom(r_)
        if(phi_>0) mphi_ = mom(phi_)
        h1x^L=ixO^L-kr(1,^D); {^NOONED h2x^L=ixO^L-kr(2,^D);}
-       ! s[mr]=((vtheta**2+vphi**2)*rho+2*p)/r
        if(hd_energy) then
-         source(ixO^S)=wprim(ixO^S, p_)
+         pth(ixO^S)=wprim(ixO^S, p_)
        else
          if(.not. associated(usr_set_pthermal)) then
-           source(ixO^S)=hd_adiab * wprim(ixO^S, rho_)**hd_gamma
+           pth(ixO^S)=hd_adiab * wprim(ixO^S, rho_)**hd_gamma
          else
-           call usr_set_pthermal(wCT,x,ixI^L,ixO^L,source)
+           call usr_set_pthermal(wCT,x,ixI^L,ixO^L,pth)
          end if
        end if
+       ! s[mr]=((vtheta**2+vphi**2)*rho+2*p)/r
        source(ixO^S) = pth(ixO^S) * x(ixO^S, 1) &
             *(block%surfaceC(ixO^S, 1) - block%surfaceC(h1x^S, 1)) &
             /block%dvolume(ixO^S)
