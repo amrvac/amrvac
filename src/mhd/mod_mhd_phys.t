@@ -657,7 +657,9 @@ contains
       end if
     end if
     phys_get_v                 => mhd_get_v
-    if(B0field.or.has_equi_rho0) then
+    if(mhd_semirelativistic) then
+      phys_add_source_geom     => mhd_add_source_geom_semirelati
+    else if(B0field.or.has_equi_rho0) then
       phys_add_source_geom     => mhd_add_source_geom_split
     else
       phys_add_source_geom     => mhd_add_source_geom
@@ -5980,6 +5982,173 @@ contains
     end if
 
   end subroutine mhd_add_source_geom
+
+  ! Add geometrical source terms to w
+  subroutine mhd_add_source_geom_semirelati(qdt,dtfactor,ixI^L,ixO^L,wCT,wprim,w,x)
+    use mod_global_parameters
+    use mod_geometry
+    use mod_rotating_frame, only: rotating_frame_add_source
+
+    integer, intent(in)             :: ixI^L, ixO^L
+    double precision, intent(in)    :: qdt, dtfactor,x(ixI^S,1:ndim)
+    double precision, intent(inout) :: wCT(ixI^S,1:nw),wprim(ixI^S,1:nw),w(ixI^S,1:nw)
+
+    double precision :: tmp,tmp1,invr,cot,E(3)
+    integer          :: iw,ix^D,idir
+    integer :: mr_,mphi_ ! Polar var. names
+    integer :: br_,bphi_
+
+    mr_=mom(1); mphi_=mom(1)-1+phi_  ! Polar var. names
+    br_=mag(1); bphi_=mag(1)-1+phi_
+
+
+    select case (coordinate)
+    case (cylindrical)
+     {do ix^DB=ixOmin^DB,ixOmax^DB\}
+        ! include dt in invr, invr is always used with qdt
+        if(local_timestep) then
+          invr=block%dt(ix^D) * dtfactor/x(ix^D,1)
+        else
+          invr=qdt/x(ix^D,1)
+        end if
+        if(mhd_energy) then
+          tmp=wprim(ix^D,p_)
+        else
+          tmp=mhd_adiab*wprim(ix^D,rho_)**mhd_gamma
+        end if
+        ! E=Bxv
+        {^IFTHREED
+        E(1)=wprim(ix^D,mag(2))*wprim(ix^D,mom(3))-wprim(ix^D,mag(3))*wprim(ix^D,mom(2))
+        E(2)=wprim(ix^D,mag(3))*wprim(ix^D,mom(1))-wprim(ix^D,mag(1))*wprim(ix^D,mom(3))
+        E(3)=wprim(ix^D,mag(1))*wprim(ix^D,mom(2))-wprim(ix^D,mag(2))*wprim(ix^D,mom(1))
+        }
+        {^NOTHREED
+        if(ndir==3) then
+          E(1)=wprim(ix^D,mag(2))*wprim(ix^D,mom(3))-wprim(ix^D,mag(3))*wprim(ix^D,mom(2))
+          E(2)=wprim(ix^D,mag(3))*wprim(ix^D,mom(1))-wprim(ix^D,mag(1))*wprim(ix^D,mom(3))
+        else
+          E(1:2)=zero
+        end if
+        E(3)=wprim(ix^D,mag(1))*wprim(ix^D,mom(2))-wprim(ix^D,mag(2))*wprim(ix^D,mom(1))
+        }
+        if(phi_>0) then
+          w(ix^D,mr_)=w(ix^D,mr_)+invr*(tmp+&
+           half*(sum(wprim(ix^D,mag(1:ndir))**2)+sum(E(1:3)**2)*inv_squared_c) -&
+                    wprim(ix^D,bphi_)**2+wprim(ix^D,rho_)*wprim(ix^D,mphi_)**2)
+          w(ix^D,mphi_)=w(ix^D,mphi_)+invr*(&
+                   -wprim(ix^D,rho_)*wprim(ix^D,mphi_)*wprim(ix^D,mr_) &
+                   +wprim(ix^D,bphi_)*wprim(ix^D,br_)+E(phi_)*E(1)*inv_squared_c)
+          if(.not.stagger_grid) then
+            w(ix^D,bphi_)=w(ix^D,bphi_)+invr*&
+                     (wprim(ix^D,bphi_)*wprim(ix^D,mr_) &
+                     -wprim(ix^D,br_)*wprim(ix^D,mphi_))
+          end if
+        else
+          w(ix^D,mr_)=w(ix^D,mr_)+invr*(tmp+half*(sum(wprim(ix^D,mag(1:ndir))**2)+&
+             sum(E(1:3)**2)*inv_squared_c))
+        end if
+        if(mhd_glm) w(ix^D,br_)=w(ix^D,br_)+wprim(ix^D,psi_)*invr
+     {end do\}
+    case (spherical)
+     {do ix^DB=ixOmin^DB,ixOmax^DB\}
+        ! include dt in invr, invr is always used with qdt
+        if(local_timestep) then
+          invr=block%dt(ix^D) * dtfactor/x(ix^D,1)
+        else
+          invr=qdt/x(ix^D,1)
+        end if
+        if(mhd_energy) then
+          tmp1=two*wprim(ix^D,p_)
+        else
+          tmp1=two*mhd_adiab*wprim(ix^D,rho_)**mhd_gamma
+        end if
+        ! E=Bxv
+        {^IFTHREED
+        E(1)=wprim(ix^D,mag(2))*wprim(ix^D,mom(3))-wprim(ix^D,mag(3))*wprim(ix^D,mom(2))
+        E(2)=wprim(ix^D,mag(3))*wprim(ix^D,mom(1))-wprim(ix^D,mag(1))*wprim(ix^D,mom(3))
+        E(3)=wprim(ix^D,mag(1))*wprim(ix^D,mom(2))-wprim(ix^D,mag(2))*wprim(ix^D,mom(1))
+        }
+        {^NOTHREED
+        if(ndir==3) then
+          E(1)=wprim(ix^D,mag(2))*wprim(ix^D,mom(3))-wprim(ix^D,mag(3))*wprim(ix^D,mom(2))
+          E(2)=wprim(ix^D,mag(3))*wprim(ix^D,mom(1))-wprim(ix^D,mag(1))*wprim(ix^D,mom(3))
+        else
+          E(1:2)=zero
+        end if
+        E(3)=wprim(ix^D,mag(1))*wprim(ix^D,mom(2))-wprim(ix^D,mag(2))*wprim(ix^D,mom(1))
+        }
+        ! m1
+        tmp=tmp1+sum(wprim(ix^D,mag(1:ndir))**2)+sum(E(1:3)**2)*inv_squared_c
+        do idir=2,ndir
+          tmp=tmp+wprim(ix^D,rho_)*wprim(ix^D,mom(idir))**2-wprim(ix^D,mag(idir))**2-E(idir)**2*inv_squared_c
+        end do
+        w(ix^D,mom(1))=w(ix^D,mom(1))+tmp*invr
+        ! b1
+        if(mhd_glm) then
+          w(ix^D,mag(1))=w(ix^D,mag(1))+invr*2.0d0*wprim(ix^D,psi_)
+        end if
+
+        {^NOONED
+        ! m2
+        tmp=-wprim(ix^D,rho_)*wprim(ix^D,mom(1))*wprim(ix^D,mom(2)) &
+            +wprim(ix^D,mag(1))*wprim(ix^D,mag(2))&
+            +E(1)*E(2)*inv_squared_c
+        if(ndir==3) then
+          cot=1.d0/tan(x(ix^D,2))
+          tmp=tmp+(wprim(ix^D,rho_)*wprim(ix^D,mom(3))**2&
+            -wprim(ix^D,mag(3))**2-E(3)**2*inv_squared_c)*cot
+        end if
+        w(ix^D,mom(2))=w(ix^D,mom(2))+tmp*invr
+        ! b2
+        if(.not.stagger_grid) then
+          tmp=wprim(ix^D,mom(1))*wprim(ix^D,mag(2))-wprim(ix^D,mom(2))*wprim(ix^D,mag(1))
+          if(mhd_glm) then
+            tmp=tmp+wprim(ix^D,psi_)/tan(x(ix^D,2))
+          end if
+          w(ix^D,mag(2))=w(ix^D,mag(2))+tmp*invr
+        end if
+        }
+
+        if(ndir==3) then
+          {^IFONED
+          ! m3
+          w(ix^D,mom(3))=w(ix^D,mom(3))-invr*&
+               (wprim(ix^D,mom(3))*wprim(ix^D,mom(1))*wprim(ix^D,rho_) &
+               -wprim(ix^D,mag(3))*wprim(ix^D,mag(1)))
+          ! b3
+          if(.not.stagger_grid) then
+            w(ix^D,mag(3))=w(ix^D,mag(3))+invr*&
+               (wprim(ix^D,mom(1))*wprim(ix^D,mag(3)) &
+               -wprim(ix^D,mom(3))*wprim(ix^D,mag(1)))
+          end if
+          }
+          {^NOONED
+          ! m3
+          w(ix^D,mom(3))=w(ix^D,mom(3))+invr*&
+              (-wprim(ix^D,mom(3))*wprim(ix^D,mom(1))*wprim(ix^D,rho_) &
+               +wprim(ix^D,mag(3))*wprim(ix^D,mag(1)) &
+               +E(3)*E(1)*inv_squared_c&
+             +(-wprim(ix^D,mom(2))*wprim(ix^D,mom(3))*wprim(ix^D,rho_) &
+               +wprim(ix^D,mag(2))*wprim(ix^D,mag(3))&
+               +E(2)*E(3)*inv_squared_c)*cot)
+          ! b3
+          if(.not.stagger_grid) then
+            w(ix^D,mag(3))=w(ix^D,mag(3))+invr*&
+               (wprim(ix^D,mom(1))*wprim(ix^D,mag(3)) &
+               -wprim(ix^D,mom(3))*wprim(ix^D,mag(1)) &
+              -(wprim(ix^D,mom(3))*wprim(ix^D,mag(2)) &
+               -wprim(ix^D,mom(2))*wprim(ix^D,mag(3)))*cot)
+          end if
+          }
+        end if
+     {end do\}
+    end select
+
+    if (mhd_rotating_frame) then
+       call rotating_frame_add_source(qdt,dtfactor,ixI^L,ixO^L,wprim,w,x)
+    end if
+
+  end subroutine mhd_add_source_geom_semirelati
 
   ! Add geometrical source terms to w
   subroutine mhd_add_source_geom_split(qdt,dtfactor, ixI^L,ixO^L,wCT,wprim,w,x)
