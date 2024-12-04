@@ -5993,7 +5993,7 @@ contains
     double precision, intent(in)    :: qdt, dtfactor,x(ixI^S,1:ndim)
     double precision, intent(inout) :: wCT(ixI^S,1:nw),wprim(ixI^S,1:nw),w(ixI^S,1:nw)
 
-    double precision :: tmp,tmp1,invr,cot,E(3)
+    double precision :: tmp,tmp1,tmp2,invr,cot,E(3)
     integer          :: iw,ix^D,idir
     integer :: mr_,mphi_ ! Polar var. names
     integer :: br_,bphi_
@@ -6058,9 +6058,9 @@ contains
           invr=qdt/x(ix^D,1)
         end if
         if(mhd_energy) then
-          tmp1=two*wprim(ix^D,p_)
+          tmp1=wprim(ix^D,p_)
         else
-          tmp1=two*mhd_adiab*wprim(ix^D,rho_)**mhd_gamma
+          tmp1=mhd_adiab*wprim(ix^D,rho_)**mhd_gamma
         end if
         ! E=Bxv
         {^IFTHREED
@@ -6078,7 +6078,10 @@ contains
         E(3)=wprim(ix^D,mag(1))*wprim(ix^D,mom(2))-wprim(ix^D,mag(2))*wprim(ix^D,mom(1))
         }
         ! m1
-        tmp=tmp1+sum(wprim(ix^D,mag(1:ndir))**2)+sum(E(1:3)**2)*inv_squared_c
+        tmp=two*tmp1+sum(wprim(ix^D,mag(1:ndir))**2)+sum(E(1:3)**2)*inv_squared_c
+        {^NOONED
+        if(ndir==3) tmp2=half*tmp
+        }
         do idir=2,ndir
           tmp=tmp+wprim(ix^D,rho_)*wprim(ix^D,mom(idir))**2-wprim(ix^D,mag(idir))**2-E(idir)**2*inv_squared_c
         end do
@@ -6095,7 +6098,7 @@ contains
             +E(1)*E(2)*inv_squared_c
         if(ndir==3) then
           cot=1.d0/tan(x(ix^D,2))
-          tmp=tmp+(wprim(ix^D,rho_)*wprim(ix^D,mom(3))**2&
+          tmp=tmp+(tmp2+wprim(ix^D,rho_)*wprim(ix^D,mom(3))**2&
             -wprim(ix^D,mag(3))**2-E(3)**2*inv_squared_c)*cot
         end if
         w(ix^D,mom(2))=w(ix^D,mom(2))+tmp*invr
