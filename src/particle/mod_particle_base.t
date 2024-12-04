@@ -6,16 +6,25 @@ module mod_particle_base
   use mod_constants
   use mod_comm_lib, only: mpistop
 
-  !> String describing the particle interpolation type
-  character(len=name_len) :: interp_type_particles = ""
-  !> String describing the particle physics type
-  character(len=name_len) :: physics_type_particles = ""
-  !> String describing the particle integrator type
-  character(len=name_len) :: integrator_type_particles = ""
-  !> Header string used in CSV files
-  character(len=400)      :: csv_header
-  !> Format string used in CSV files
-  character(len=60)       :: csv_format
+  !> Normalization factor for velocity in the integrator
+  double precision                        :: integrator_velocity_factor(3)
+  !> Time limit of particles
+  double precision        :: tmax_particles
+  !> Minimum time of all particles
+  double precision        :: min_particle_time
+  !> Time interval to save particles
+  double precision        :: dtsave_particles
+  !> If positive, a constant time step for the particles
+  double precision        :: const_dt_particles
+  !> Particle CFL safety factor
+  double precision        :: particles_cfl
+  !> Time to write next particle output
+  double precision        :: t_next_output
+  !> Resistivity
+  double precision        :: particles_eta, particles_etah
+  double precision        :: dtheta
+  !> Particle downsampling factor in CSV output
+  integer                 :: downsample_particles
   !> Maximum number of particles
   integer                 :: nparticleshi
   !> Maximum number of particles in one processor
@@ -30,32 +39,6 @@ module mod_particle_base
   integer                 :: ngridvars
   !> Number of particles
   integer                 :: num_particles
-  !> Time limit of particles
-  double precision        :: tmax_particles
-  !> Minimum time of all particles
-  double precision        :: min_particle_time
-  !> Time interval to save particles
-  double precision        :: dtsave_particles
-  !> If positive, a constant time step for the particles
-  double precision        :: const_dt_particles
-  !> Particle CFL safety factor
-  double precision        :: particles_cfl
-  !> Time to write next particle output
-  double precision        :: t_next_output
-  !> Whether to write individual particle output (followed particles)
-  logical                 :: write_individual
-  !> Whether to write ensemble output
-  logical                 :: write_ensemble
-  !> Whether to write particle snapshots
-  logical                 :: write_snapshot
-  !> Particle downsampling factor in CSV output
-  integer                 :: downsample_particles
-  !> Use a relativistic particle mover?
-  logical                 :: relativistic
-  !> Resistivity
-  double precision        :: particles_eta, particles_etah
-  double precision        :: dtheta
-  logical                 :: losses
   !> Identity number and total number of particles
   integer                 :: nparticles
   !> Iteration number of paritcles
@@ -83,8 +66,6 @@ module mod_particle_base
   integer                                 :: nparticles_on_mype
   !> Number of active particles in current processor
   integer                                 :: nparticles_active_on_mype
-  !> Normalization factor for velocity in the integrator
-  double precision                        :: integrator_velocity_factor(3)
   !> Integrator to be used for particles
   integer                                 :: integrator
 
@@ -98,6 +79,25 @@ module mod_particle_base
   integer, allocatable :: jp(:)
   !> Variable index for density
   integer :: rhop
+  !> Use a relativistic particle mover?
+  logical                 :: relativistic
+  !> Whether to write individual particle output (followed particles)
+  logical                 :: write_individual
+  !> Whether to write ensemble output
+  logical                 :: write_ensemble
+  !> Whether to write particle snapshots
+  logical                 :: write_snapshot
+  logical                 :: losses
+  !> String describing the particle interpolation type
+  character(len=name_len) :: interp_type_particles = ""
+  !> String describing the particle physics type
+  character(len=name_len) :: physics_type_particles = ""
+  !> String describing the particle integrator type
+  character(len=name_len) :: integrator_type_particles = ""
+  !> Header string used in CSV files
+  character(len=400)      :: csv_header
+  !> Format string used in CSV files
+  character(len=60)       :: csv_format
 
   type particle_ptr
     type(particle_t), pointer         :: self
@@ -207,9 +207,10 @@ contains
   !> Give initial values to parameters
   subroutine particle_base_init()
     use mod_global_parameters
-    integer            :: n, idir
+    integer            :: n
     integer, parameter :: i8 = selected_int_kind(18)
     integer(i8)        :: seed(2)
+    integer            :: idir
     character(len=20)  :: strdata
 
     physics_type_particles    = 'advect'
@@ -382,9 +383,9 @@ contains
     use mod_global_parameters
     use mod_usr_methods, only: usr_particle_fields
 
-    integer :: igrid, iigrid
     double precision :: E(ixG^T, ndir)
     double precision :: B(ixG^T, ndir)
+    integer :: igrid, iigrid
 
     do iigrid=1,igridstail; igrid=igrids(iigrid);
       if (associated(usr_particle_fields)) then ! FILL ONLY E AND B
@@ -405,9 +406,10 @@ contains
     integer, intent(in)             :: igrid
     double precision, intent(in)    :: w_mhd(ixG^T,nw)
     double precision, intent(inout) :: w_part(ixG^T,ngridvars)
-    integer                         :: idirmin, idir
+
     double precision                :: current(ixG^T,7-2*ndir:3)
     double precision                :: w(ixG^T,1:nw)
+    integer                         :: idirmin, idir
 
     ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
 
@@ -489,12 +491,12 @@ contains
     use mod_global_parameters
     use mod_geometry
 
-    integer :: idirmin0
     integer :: ixO^L, idirmin, ixI^L
     double precision :: w(ixI^S,1:nw)
-    integer :: idir
     ! For ndir=2 only 3rd component of J can exist, ndir=1 is impossible for MHD
     double precision :: current(ixI^S,7-2*ndir:3),bvec(ixI^S,1:ndir)
+    integer :: idir
+    integer :: idirmin0
 
     idirmin0 = 7-2*ndir
 
@@ -1182,9 +1184,9 @@ contains
   subroutine init_particles_output()
     use mod_global_parameters
 
+    integer                           :: iipart, ipart, icomp
     character(len=std_len)            :: filename
     character(len=1024)               :: line, strdata
-    integer                           :: iipart, ipart, icomp
 
     do iipart=1,nparticles_on_mype;ipart=particles_on_mype(iipart);
       if (particle(ipart)%self%follow) then
@@ -1206,9 +1208,9 @@ contains
     use mod_global_parameters
     double precision, intent(in) :: end_time
 
+    double precision :: t_min_mype
     integer          :: ipart, iipart
     logical          :: activate
-    double precision :: t_min_mype
 
     t_min_mype = bigdouble
     nparticles_active_on_mype = 0
@@ -1237,8 +1239,8 @@ contains
     integer, intent(in)                            :: index
     integer, intent(out)                           :: igrid_particle, ipe_particle
     integer                                        :: iipart,ipart,ipe_has_particle,ipe
-    logical                                        :: has_particle(0:npe-1)
     integer,dimension(0:1)                         :: buff
+    logical                                        :: has_particle(0:npe-1)
 
     has_particle(:) = .false.
     do iipart=1,nparticles_on_mype;ipart=particles_on_mype(iipart);
@@ -1418,14 +1420,14 @@ contains
     use mod_global_parameters
 
     character(len=std_len) :: filename
-    integer                         :: ipart,iipart
 !    type(particle_t), dimension(nparticles_per_cpu_hi)  :: send_particles
 !    double precision, dimension(npayload,nparticles_per_cpu_hi)  :: send_payload
     type(particle_t), allocatable, dimension(:)   :: send_particles
     double precision, allocatable, dimension(:,:) :: send_payload
+    double precision                :: tout
     integer                         :: send_n_particles_for_output, cc
     integer                         :: nout
-    double precision                :: tout
+    integer                         :: ipart,iipart
 
     if (write_individual) then
       call output_individual()
@@ -1831,11 +1833,11 @@ contains
     integer, allocatable, dimension(:,:)      :: particle_index_to_be_sent_to_ipe
     integer, dimension(nparticles_per_cpu_hi) :: particle_index_to_be_destroyed
     integer                                   :: destroy_n_particles_mype
-    logical                                   :: BC_applied
     integer, allocatable, dimension(:)        :: sndrqst, rcvrqst
     integer, allocatable, dimension(:)        :: sndrqst_payload, rcvrqst_payload
     integer                                   :: isnd, ircv
     integer, parameter                        :: maxneighbors=56 ! maximum case: coarse-fine in 3D
+    logical                                   :: BC_applied
     !-----------------------------------------------------------------------------
 
     send_n_particles_to_ipe(:)      = 0
@@ -2014,9 +2016,9 @@ contains
     double precision, allocatable, dimension(:,:)  :: send_payload
     double precision, allocatable, dimension(:,:)  :: receive_payload
     integer, allocatable, dimension(:,:)      :: particle_index_to_be_sent_to_ipe
-    logical                                   :: BC_applied
     integer, allocatable, dimension(:)        :: sndrqst, rcvrqst
     integer                                   :: isnd, ircv
+    logical                                   :: BC_applied
     !-----------------------------------------------------------------------------
     send_n_particles_to_ipe(:)      = 0
     receive_n_particles_from_ipe(:) = 0

@@ -36,8 +36,8 @@ use mod_slice, only:alloc_subnode, dealloc_subnode
 use mod_global_parameters
 integer, intent(in)                               :: dir
 ! .. local ..
-integer                                           :: jgrid, igrid, Morton_no
 double precision,dimension(0:nw+nwauxio)          :: normconv 
+integer                                           :: jgrid, igrid, Morton_no
 !-----------------------------------------------------------------------------
 if(.not.slab) call mpistop("collapse only for slab cartesian cases")
 
@@ -86,15 +86,16 @@ use mod_global_parameters
 use mod_calculate_xw
 integer, intent(in)                               :: dir
 double precision,dimension(0:nw+nwauxio),intent(in):: normconv 
-character(len=1024) :: filename, outfilehead, line
-logical             :: fileopen
-integer                                           :: iw
-character(len=name_len) :: wnamei(1:nw+nwauxio),xandwnamei(1:ndim+nw+nwauxio)
-integer, dimension(ndim)                          :: myshape
+
 {^NOONED
-integer                                           :: ix^DM
 double precision                                  :: dxdim^DM, xdim^LIM^DM
+integer                                           :: ix^DM
 }
+integer                                           :: iw
+integer, dimension(ndim)                          :: myshape
+logical             :: fileopen
+character(len=name_len) :: wnamei(1:nw+nwauxio),xandwnamei(1:ndim+nw+nwauxio)
+character(len=1024) :: filename, outfilehead, line
 !-----------------------------------------------------------------------------
 
 if (mype==0) then
@@ -175,18 +176,19 @@ use mod_global_parameters
 use mod_calculate_xw
 integer, intent(in)                               :: dir
 double precision,dimension(0:nw+nwauxio),intent(in):: normconv 
-character(len=1024) :: filename, outfilehead, line
-logical             :: fileopen
-integer                                           :: iw
-character(len=name_len) :: wnamei(1:nw+nwauxio),xandwnamei(1:ndim+nw+nwauxio)
-integer, dimension(ndim)                          :: myshape
+
 {^NOONED
-integer                                           :: ix^DM
 double precision                                  :: dxdim^DM, xdim^LIM^DM
+integer                                           :: ix^DM
 }
 double precision                                  :: origin(1:3), spacing(1:3)
-integer                                           :: wholeExtent(1:6), size_single, length, size_length
 integer*8                                         :: offset
+integer                                           :: wholeExtent(1:6), size_single, length, size_length
+integer                                           :: iw
+integer, dimension(ndim)                          :: myshape
+logical             :: fileopen
+character(len=1024) :: filename, outfilehead, line
+character(len=name_len) :: wnamei(1:nw+nwauxio),xandwnamei(1:ndim+nw+nwauxio)
 character                                         :: buf
 !-----------------------------------------------------------------------------
 if (mype==0) then
@@ -495,13 +497,13 @@ subroutine collapse_subnode(igrid,jgrid,dir,normconv)
 integer, intent(in) :: igrid, jgrid, dir
 double precision,dimension(0:nw+nwauxio),intent(out)       :: normconv 
 ! .. local ..
-integer                :: ix, iw
 double precision       :: dx^D
 double precision, dimension(ixMlo^D-1:ixMhi^D,ndim)       :: xC_TMP, xC
 double precision, dimension(ixMlo^D:ixMhi^D,ndim)         :: xCC_TMP, xCC
 double precision, dimension(ixMlo^D-1:ixMhi^D,nw+nwauxio) :: wC_TMP
 double precision, dimension(ixMlo^D:ixMhi^D,nw+nwauxio)   :: wCC_TMP
 integer                :: ixC^L, ixCC^L
+integer                :: ix, iw
 !-----------------------------------------------------------------------------
 ps_sub(jgrid)%w=zero
 dx^D=rnode(rpdx^D_,igrid);

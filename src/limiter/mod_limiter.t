@@ -140,7 +140,6 @@ contains
     double precision, intent(in), optional :: a2max
 
     double precision :: tmp(ixI^S), tmp2(ixI^S)
-    integer :: ixO^L, hxO^L
     double precision, parameter :: qsmall=1.d-12, qsmall2=2.d-12
     double precision, parameter :: eps = sqrt(epsilon(1.0d0))
 
@@ -152,7 +151,7 @@ contains
     double precision :: rdelinv
     double precision :: ldwA(ixI^S),ldwB(ixI^S),tmpeta(ixI^S)
     double precision, parameter :: cadepsilon=1.d-14, invcadepsilon=1.d14,cada3_radius=0.1d0
-    integer :: ix^D
+    integer :: ixO^L, hxO^L, ix^D
     !-----------------------------------------------------------------------------
 
     ! Contract indices in idim for output.

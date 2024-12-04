@@ -55,7 +55,6 @@ contains
     use mod_global_parameters
     use mod_usr_methods, only: usr_create_particles, usr_update_payload, usr_check_particle
 
-    integer          :: n, idir, igrid, ipe_particle, nparticles_local
     double precision :: x(3, num_particles)
     double precision :: v(3, num_particles)
     double precision :: q(num_particles)
@@ -64,6 +63,7 @@ contains
     double precision :: w(ixG^T,1:nw)
     double precision :: defpayload(ndefpayload)
     double precision :: usrpayload(nusrpayload)
+    integer          :: n, idir, igrid, ipe_particle, nparticles_local
     logical          :: follow(num_particles), check
 
     follow = .false.
@@ -145,8 +145,8 @@ contains
   subroutine advect_fill_gridvars
     use mod_global_parameters
 
-    integer                                   :: igrid, iigrid, idir
     double precision, dimension(ixG^T,1:nw)   :: w
+    integer                                   :: igrid, iigrid, idir
 
     ! Fill fluid velocity only
     do iigrid=1,igridstail; igrid=igrids(iigrid);
@@ -292,8 +292,8 @@ contains
     type(particle_ptr), intent(in) :: partp
     double precision, intent(in)   :: end_time
     double precision               :: dt_p
-    integer                        :: ipart, iipart, idims
     double precision               :: v(1:ndir),dtdims(1:ndim)
+    integer                        :: ipart, iipart, idims
 
     if (const_dt_particles > 0) then
       dt_p = const_dt_particles
@@ -321,8 +321,8 @@ contains
     double precision, intent(in)                         :: tloc
     double precision,dimension(iend-ibeg+1), intent(out) :: var
     double precision,dimension(iend-ibeg+1)              :: e1, e2
-    integer                                              :: ivar, iloc
     double precision                                     :: td
+    integer                                              :: ivar, iloc
 
     if(.not.time_advance) then
       do ivar=ibeg,iend

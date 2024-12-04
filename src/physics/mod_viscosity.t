@@ -14,6 +14,15 @@ module mod_viscosity
   !> Viscosity coefficient
   double precision, public :: vc_mu = 1.d0
 
+  !> Index of the density (in the w array)
+  integer, private, parameter              :: rho_ = 1
+
+  !> Indices of the momentum density
+  integer, allocatable, private, protected :: mom(:)
+
+  !> Index of the energy density (-1 if not present)
+  integer, private, protected              :: e_
+
   !> fourth order
   logical :: vc_4th_order = .false.
 
@@ -24,14 +33,6 @@ module mod_viscosity
   !> fluxes (ie in the div on the LHS), or not (by default)
   logical :: viscInDiv= .false.
 
-  !> Index of the density (in the w array)
-  integer, private, parameter              :: rho_ = 1
-
-  !> Indices of the momentum density
-  integer, allocatable, private, protected :: mom(:)
-
-  !> Index of the energy density (-1 if not present)
-  integer, private, protected              :: e_
 
   ! Public methods
   public :: visc_get_flux_prim
@@ -98,8 +99,8 @@ contains
     logical, intent(in) :: energy,qsourcesplit
     logical, intent(inout) :: active
 
-    integer:: ix^L,idim,idir,jdir,iw
     double precision:: lambda(ixI^S,ndir,ndir),tmp(ixI^S),tmp2(ixI^S),v(ixI^S,ndir),vlambda(ixI^S,ndir)
+    integer:: ix^L,idim,idir,jdir,iw
 
     if (viscInDiv) return
 
@@ -312,8 +313,9 @@ contains
     integer, intent(in)             :: ixI^L, ixO^L, idim
     double precision, intent(in)    :: w(ixI^S, 1:nw), x(ixI^S, 1:ndim)
     double precision, intent(out)   :: cross(ixI^S,ndir)
-    integer :: idir
+
     double precision :: tmp(ixI^S), v(ixI^S)
+    integer :: idir
 
     if (ndir/=ndim) call mpistop("This formula are probably wrong for ndim/=ndir")
     ! Beware also, we work w/ the angle as the 3rd component in cylindrical
@@ -464,8 +466,9 @@ contains
     integer, intent(in)             :: ixI^L, ixO^L, idim
     double precision, intent(in)    :: w(ixI^S, 1:nw), x(ixI^S, 1:^ND)
     double precision, intent(out)   :: cross(ixI^S,ndir)
-    integer :: idir
+
     double precision :: tmp(ixI^S), v(ixI^S)
+    integer :: idir
 
     v(ixI^S)=w(ixI^S,mom(idim))
     do idir=1,ndir

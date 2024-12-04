@@ -21,8 +21,6 @@ contains
     double precision, intent(in)    :: w(ixI^S,1:nw)
     double precision, intent(inout) :: wRC(ixI^S,1:nw),wLC(ixI^S,1:nw) 
     !> local
-    integer                         :: iM^L, iMm^L, iMp^L
-    integer                         :: iLm^L, iLp^L, iLpp^L
     double precision                :: wmax(ixI^S,1:nw),wmin(ixI^S,1:nw)
     double precision                :: westp(ixI^S,1:nw),westm(ixI^S,1:nw)
     double precision                :: phi1(ixI^S,1:nw),phi2(ixI^S,1:nw)
@@ -32,6 +30,8 @@ contains
     double precision                :: eps2
     double precision, parameter     :: venk_omega = 1.d-12
     double precision, parameter     :: venk_k = 0.3d0
+    integer                         :: iM^L, iMm^L, iMp^L
+    integer                         :: iLm^L, iLp^L, iLpp^L
 
     iM^L=iL^L;
     iMmax^D=iLmax^D+kr(idims,^D);

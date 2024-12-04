@@ -4,11 +4,11 @@ module mod_slice
   use mod_comm_lib, only: mpistop
   implicit none
 
+  !> Slice coordinates, see @ref slices.md
+  double precision :: slicecoord(1000)
+
   !> Maximum number of slices
   integer, parameter :: nslicemax=1000
-
-  !> Slice coordinates, see @ref slices.md
-  double precision :: slicecoord(nslicemax)
 
   !> the file number of slices
   integer :: slicenext
@@ -19,11 +19,11 @@ module mod_slice
   !> The slice direction for each slice
   integer :: slicedir(nslicemax)
 
-  !> choose data type of slice: vtu, vtuCC, dat, or csv
-  character(len=std_len) :: slice_type
-
   !> tag for MPI message
   integer, private :: itag
+
+  !> choose data type of slice: vtu, vtuCC, dat, or csv
+  character(len=std_len) :: slice_type
 
 contains
 
@@ -55,13 +55,13 @@ contains
     integer, intent(in) :: dir
     double precision, intent(in) :: xslice
     ! .. local ..
+    double precision,dimension(0:nw+nwauxio) :: normconv 
     integer :: Njgrid, jgrid
     integer, dimension(ndim-1) :: ixsubGlo, ixsubGhi
     integer, dimension(ndim-1) :: ixsubMlo, ixsubMhi
     integer :: size_subblock_io, nx^D, slice_fh, nwexpand
     integer :: type_subblock_io, type_subblockC_io, type_subblock_x_io, type_subblockC_x_io
     integer, dimension(ndim) :: sizes, subsizes, start
-    double precision,dimension(0:nw+nwauxio)          :: normconv 
   
     ! Preamble: 
     nx^D=ixMhi^D-ixMlo^D+1;
@@ -215,12 +215,12 @@ contains
     subroutine put_slice_vtu
 
       use mod_calculate_xw
+      integer :: status(MPI_STATUS_SIZE), ipe
+      logical             :: fileopen
       character(len=1024) :: filename, xlabel
       character(len=79)   :: xxlabel
-      logical             :: fileopen
       character(len=name_len) :: wnamei(1:nw+nwauxio),xandwnamei(1:ndim+nw+nwauxio)
       character(len=1024) :: outfilehead
-      integer :: status(MPI_STATUS_SIZE), ipe
 
       if (mype==0) then
 
@@ -308,11 +308,11 @@ contains
       ! This remainder part only for more than 1D, but nesting with NOONED gives problems 
       {#IFNDEF D1
       ! .. local ..
+      double precision              :: x_VTK(1:3)
+      double precision, parameter   :: minvalue = 1.0d-99, maxvalue = 1.0d+99
       integer                       :: ixC^L, ixCC^L, nc, np, iw
       integer                       :: nx^DM, nxC^DM, icell, ix^DM
-      double precision              :: x_VTK(1:3)
       integer                       :: VTK_type
-      double precision, parameter   :: minvalue = 1.0d-99, maxvalue = 1.0d+99
 
       {^DM&ixCCmin^DM = ixsubMlo(^DM);}
       {^DM&ixCCmax^DM = ixsubMhi(^DM);}
@@ -430,14 +430,14 @@ contains
     subroutine put_slice_csv
 
       use mod_calculate_xw
+      integer                       :: iw, ipe, itag
+      integer                       :: status(MPI_STATUS_SIZE)
+      logical                       :: fileopen
       character(len=1024)           :: filename, xlabel
       character(len=79)             :: xxlabel
-      logical                       :: fileopen
       character(len=name_len)       :: wnamei(1:nw+nwauxio),xandwnamei(1:ndim+nw+nwauxio)
       character(len=1024)           :: outfilehead
-      integer                       :: iw, ipe, itag
       character(len=1024)           :: line
-      integer                       :: status(MPI_STATUS_SIZE)
 
       if (mype==0) then
          inquire(slice_fh,opened=fileopen)
@@ -499,9 +499,9 @@ contains
     subroutine put_slice_line(jout,file_handle)
       integer, intent(in) :: jout, file_handle
       ! .. local ..
-      character(len=1024) ::line, data
-      integer :: ix^D,idir,iw
       double precision, parameter :: minvalue = 1.0d-99, maxvalue = 1.0d+99
+      integer :: ix^D,idir,iw
+      character(len=1024) ::line, data
 
       {^IFTHREED
       do ix2=ixsubMlo(2),ixsubMhi(2)
@@ -561,9 +561,9 @@ contains
       integer, dimension(MPI_STATUS_SIZE,max_blocks) :: iostatus
       integer(kind=MPI_OFFSET_KIND) :: offset
       integer :: nsubleafs
+      integer :: amode, status(MPI_STATUS_SIZE), iwrite
       character(len=1024) :: filename, xlabel
       character(len=79)   :: xxlabel
-      integer :: amode, status(MPI_STATUS_SIZE), iwrite
 
       nsubleafs=Morton_sub_stop(npe-1)
       ! generate filename
@@ -624,13 +624,13 @@ contains
 
       use mod_calculate_xw
       integer::  iw
+      integer :: amode, iwrite, status(MPI_STATUS_SIZE)
+      logical, save :: opened=.false.
       character(len=name_len) :: wnamei(1:nw+nwauxio),xandwnamei(1:ndim+nw+nwauxio)
       character(len=1024) :: outfilehead
-      logical, save :: opened=.false.
       character(len=1024) ::line, data
       character(len=1024) :: filename, xlabel
       character(len=79)   :: xxlabel
-      integer :: amode, iwrite, status(MPI_STATUS_SIZE)
 
       {^IFONED
       ! generate filename: 
@@ -1111,8 +1111,8 @@ contains
     double precision, intent(in) :: x
     integer, dimension(nlevelshi), intent(out) :: igslice
     ! .. local ..
-    integer :: level
     double precision :: distance
+    integer :: level
     !double precision :: xsgrid(ndim,nlevelshi),qs(ndim),xmgrid(ndim,3),xnew,xlgrid(ndim,3)
     !integer :: nbefore
 

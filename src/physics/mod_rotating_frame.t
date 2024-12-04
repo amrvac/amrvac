@@ -49,11 +49,11 @@ contains
     double precision, intent(in)    :: qdt, dtfactor,x(ixI^S,1:ndim)
     double precision, intent(in)    :: wCT(ixI^S,1:nw)
     double precision, intent(inout) :: w(ixI^S,1:nw)
-    integer                         :: idir
 
     ! .. local ..
     double precision :: rotating_terms(ixI^S), frame_omega(ixI^S)
     double precision :: work(ixI^S)
+    integer                         :: idir
 
     select case (coordinate)
     case (cylindrical)

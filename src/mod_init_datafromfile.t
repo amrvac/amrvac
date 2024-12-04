@@ -9,12 +9,12 @@ module mod_init_datafromfile
   integer, parameter :: max_valuesfromfile = 10
 
   type read_data_values
-     integer                        :: n_variables
      double precision               :: origin(3)
      double precision               :: dx(3)
+     double precision, allocatable  :: values(:, :, :, :)
+     integer                        :: n_variables
      integer                        :: n_points(3)
      character(len=40), allocatable :: names(:)
-     double precision, allocatable  :: values(:, :, :, :)
   end type read_data_values
 
   type(LT_t)  :: lt_1d(max_valuesfromfile)
@@ -32,8 +32,8 @@ contains
   subroutine read_data_init()
     use mod_global_parameters
 
-    integer                :: ivar
     double precision       :: xmax(3)
+    integer                :: ivar
     type(read_data_values) :: bc
 
     if(usr_filename/='')then
@@ -123,12 +123,12 @@ contains
     type(read_data_values), intent(out)  :: bc
     double precision, allocatable :: tmp_data(:, :, :, :)
     integer, parameter            :: max_variables = 10
-    character(len=40)             :: tmp_names(max_variables)
-    character(len=256)            :: line
-    character(len=40)             :: word, typename
     integer, parameter            :: my_unit = 123
     integer                       :: n, n_points_total
     integer                       :: n_components
+    character(len=40)             :: tmp_names(max_variables)
+    character(len=256)            :: line
+    character(len=40)             :: word, typename
 
     open(my_unit, file=trim(fname), status="old", action="read")
 

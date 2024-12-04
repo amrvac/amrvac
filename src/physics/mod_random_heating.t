@@ -148,8 +148,8 @@ contains
     integer, intent(in)          :: vtim,vlim,mnx,num
     double precision, intent(in) :: periods,variation,si
     integer                      :: i,vx,j
-    character(len=100)           :: filename
     logical                      :: alive
+    character(len=100)           :: filename
 
     ! generate random T, typically 300s +/- 75s   
 
@@ -242,8 +242,8 @@ contains
     double precision, intent(in)    :: periods,variation
     double precision, intent(inout) :: tb(:)
     character(len=100), intent(in)  :: filename
-    integer                         :: i
     double precision                :: tt1,tt,mm
+    integer                         :: i
 
     ! generate random T, typically 300s +/- 75s    
  

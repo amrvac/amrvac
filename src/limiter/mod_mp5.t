@@ -22,14 +22,14 @@ contains
 
     double precision, intent(inout) :: wRC(ixI^S,1:nw),wLC(ixI^S,1:nw) 
     ! .. local ..
-    integer                         :: iLm^L, iLmm^L, iLp^L, iLpp^L, iLppp^L
-    integer                         :: id^L, idp^L, idpp^L, idm^L, ie^L, iem^L, iep^L, iepp^L
-    integer                         :: iw
     double precision, dimension(ixI^S,1:nw)  :: f, fmp, fmin, fmax, ful, dm4, d, fmd, flc, flim
     double precision, dimension(ixI^S,1:nw)  :: wRCtmp, wLCtmp
     double precision, dimension(ixI^S) :: tmp, tmp2, tmp3, a, b, c
     double precision, parameter     :: eps=0.d0, alpha=4.0d0
     !double precision                :: alpha
+    integer                         :: iLm^L, iLmm^L, iLp^L, iLpp^L, iLppp^L
+    integer                         :: id^L, idp^L, idpp^L, idm^L, ie^L, iem^L, iep^L, iepp^L
+    integer                         :: iw
     !----------------------------------------------------------------------------
 
     ! Variable alpha:
@@ -209,14 +209,14 @@ contains
 
     double precision, intent(inout) :: wLC(ixI^S,1:nw) 
     ! .. local ..
-    integer                         :: iLm^L, iLmm^L, iLp^L, iLpp^L
-    integer                         :: id^L, idp^L, idpp^L, idm^L, ie^L, iem^L, iep^L, iepp^L
-    integer                         :: iw
     double precision, dimension(ixI^S,1:nw)  :: f, fmp, fmin, fmax, ful, dm4, d, fmd, flc, flim
     double precision, dimension(ixI^S) :: tmp, tmp2, tmp3, a, b, c
     double precision, parameter     :: eps=0.d0, alpha=4.0d0
     !double precision                :: alpha
     !double precision, dimension(ixI^S,1:nw)  :: wLCtmp
+    integer                         :: iLm^L, iLmm^L, iLp^L, iLpp^L
+    integer                         :: id^L, idp^L, idpp^L, idm^L, ie^L, iem^L, iep^L, iepp^L
+    integer                         :: iw
 
     ! Variable alpha:
     !alpha = float(nstep)/courantpar - one
@@ -306,12 +306,12 @@ contains
 
     double precision, intent(inout) :: wRC(ixI^S,1:nw)
     ! .. local ..
-    integer                         :: iLm^L, iLp^L, iLpp^L, iLppp^L
-    integer                         :: id^L, idp^L, idpp^L, idm^L, ie^L, iem^L, iep^L, iepp^L
-    integer                         :: iw
     double precision, dimension(ixI^S,1:nw)  :: f, fmp, fmin, fmax, ful, dm4, d, fmd, flc, flim
     double precision, dimension(ixI^S) :: tmp, tmp2, tmp3, a, b, c
     double precision, parameter     :: eps=0.d0, alpha=4.0d0
+    integer                         :: iLm^L, iLp^L, iLpp^L, iLppp^L
+    integer                         :: id^L, idp^L, idpp^L, idm^L, ie^L, iem^L, iep^L, iepp^L
+    integer                         :: iw
     !double precision                :: alpha
     !double precision, dimension(ixI^S,1:nw)  :: wRCtmp
 
@@ -442,13 +442,13 @@ contains
     double precision, intent(in)    :: w(ixI^S)
     double precision, intent(inout) :: wRC(ixI^S),wLC(ixI^S) 
 
-    integer                         :: iLm^L, iLmm^L, iLp^L, iLpp^L, iLppp^L
-    integer                         :: id^L, idp^L, idpp^L, idm^L, ie^L, iem^L, iep^L, iepp^L
     double precision, dimension(ixI^S)  :: f, fmp, fmin, fmax, ful, dm4, d, fmd, flc, flim
     double precision, dimension(ixI^S)  :: wRCtmp, wLCtmp
     double precision, dimension(ixI^S) :: tmp, tmp2, tmp3, a, b, c
     double precision, parameter     :: eps=0.0d0, alpha=4.0d0
     !double precision                :: alpha
+    integer                         :: iLm^L, iLmm^L, iLp^L, iLpp^L, iLppp^L
+    integer                         :: id^L, idp^L, idpp^L, idm^L, ie^L, iem^L, iep^L, iepp^L
 
     ! Variable alpha:
     !alpha = float(nstep)/courantpar - one

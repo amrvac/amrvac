@@ -67,15 +67,15 @@ contains
  
     integer, intent(in) :: igrid
   
-    integer :: level, ig^D, ign^D, ixCoG^L, ix, i^D
-    integer :: imin, imax, index, igCo^D, ixshift, offset, ifirst
-    integer :: icase, ixGext^L
     double precision :: dx^D, summeddx, sizeuniformpart^D
     double precision :: xext(ixGlo^D-1:ixGhi^D+1,1:ndim)
     double precision :: delx_ext(ixGlo1-1:ixGhi1+1)
     double precision :: exp_factor_ext(ixGlo1-1:ixGhi1+1),del_exp_factor_ext(ixGlo1-1:ixGhi1+1),exp_factor_primitive_ext(ixGlo1-1:ixGhi1+1)
     double precision :: xc(ixGlo1:ixGhi1),delxc(ixGlo1:ixGhi1)
     double precision :: exp_factor_coarse(ixGlo1:ixGhi1),del_exp_factor_coarse(ixGlo1:ixGhi1),exp_factor_primitive_coarse(ixGlo1:ixGhi1)
+    integer :: level, ig^D, ign^D, ixCoG^L, ix, i^D
+    integer :: imin, imax, index, igCo^D, ixshift, offset, ifirst
+    integer :: icase, ixGext^L
   
     ixCoGmin^D=1;
     ixCoGmax^D=(ixGhi^D-2*nghostcells)/2+2*nghostcells;

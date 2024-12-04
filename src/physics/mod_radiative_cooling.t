@@ -48,43 +48,6 @@ module mod_radiative_cooling
 
   type rc_fluid
 
-    ! these are to be set directly
-    logical :: has_equi = .false.
-    procedure (get_subr1), pointer, nopass :: get_rho => null()
-    procedure (get_subr1), pointer, nopass :: get_rho_equi => null()
-    procedure (get_subr1), pointer, nopass :: get_pthermal => null()
-    procedure (get_subr1), pointer, nopass :: get_pthermal_equi => null()
-    procedure (get_subr1), pointer, nopass :: get_var_Rfactor => null()
-
-    !> Index of the energy density
-    integer              :: e_
-    !> Index of cut off temperature for TRAC
-    integer              :: Tcoff_
-
-    ! these are set as parameters
-    !> Resolution of temperature in interpolated tables
-    integer :: ncool
-
-    !> Coefficent of cooling time step
-    double precision   :: cfrac
-
-    !> Name of cooling curve
-    character(len=std_len)  :: coolcurve
-
-    !> Name of cooling method
-    character(len=std_len)  :: coolmethod
-
-    !> Fixed temperature not lower than tlow
-    logical   :: Tfix
-
-    !> Lower limit of temperature
-    double precision   :: tlow
-
-    !> Add cooling source in a split way (.true.) or un-split way (.false.)
-    logical    :: rc_split
-
-    !> cutoff radiative cooling below rad_cut_hgt
-    logical :: rad_cut
     double precision :: rad_cut_hgt
     double precision :: rad_cut_dey
 
@@ -98,13 +61,49 @@ module mod_radiative_cooling
     ! x_* en t_* are given as log_10
     double precision, allocatable :: y_PPL(:), t_PPL(:), l_PPL(:), a_PPL(:)
 
+    !> Lower limit of temperature
+    double precision   :: tlow
+
+    !> Coefficent of cooling time step
+    double precision   :: cfrac
+
+    !> Index of the energy density
+    integer              :: e_
+    !> Index of cut off temperature for TRAC
+    integer              :: Tcoff_
+
+    ! these are set as parameters
+    !> Resolution of temperature in interpolated tables
+    integer :: ncool
+
     integer :: n_PPL
+
+    !> Fixed temperature not lower than tlow
+    logical   :: Tfix
+
+    !> Add cooling source in a split way (.true.) or un-split way (.false.)
+    logical    :: rc_split
 
     logical :: isPPL = .false.
 
-  end type rc_fluid
+    !> cutoff radiative cooling below rad_cut_hgt
+    logical :: rad_cut
+    ! these are to be set directly
+    logical :: has_equi = .false.
 
-  integer          :: n_Hildner, n_FM, n_Rosner, n_Klimchuk, n_SPEX_DM_rough, n_SPEX_DM_fine
+    !> Name of cooling curve
+    character(len=std_len)  :: coolcurve
+
+    !> Name of cooling method
+    character(len=std_len)  :: coolmethod
+
+    procedure (get_subr1), pointer, nopass :: get_rho => null()
+    procedure (get_subr1), pointer, nopass :: get_rho_equi => null()
+    procedure (get_subr1), pointer, nopass :: get_pthermal => null()
+    procedure (get_subr1), pointer, nopass :: get_pthermal_equi => null()
+    procedure (get_subr1), pointer, nopass :: get_var_Rfactor => null()
+
+  end type rc_fluid
 
   double precision :: t_Hildner(1:6), t_FM(1:5), t_Rosner(1:10), t_Klimchuk(1:8), &
                       t_SPEX_DM_rough(1:8), t_SPEX_DM_fine(1:15)
@@ -114,6 +113,8 @@ module mod_radiative_cooling
 
   double precision :: a_Hildner(1:5), a_FM(1:4), a_Rosner(1:9), a_Klimchuk(1:7), &
                       a_SPEX_DM_rough(1:7), a_SPEX_DM_fine(1:14)
+
+  integer          :: n_Hildner, n_FM, n_Rosner, n_Klimchuk, n_SPEX_DM_rough, n_SPEX_DM_fine
 
   data   n_Hildner / 5 /
  
@@ -171,10 +172,6 @@ module mod_radiative_cooling
                          -3.784, -1.061, -0.406, -1.992,  0.020, -0.706, 0.321  /
 
   ! Interpolatable tables
-  integer          :: n_DM      , n_MB      , n_MLcosmol &
-                    , n_MLwc    , n_MLsolar1, n_SPEX     &
-                    , n_JCcorona, n_cl_ism  , n_cl_solar &
-                    , n_DM_2    , n_Dere    , n_Colgan
 
   double precision :: t_DM(1:71),       t_MB(1:51),       t_MLcosmol(1:71) &
                     , t_MLwc(1:71),     t_MLsolar1(1:71), t_SPEX(1:110)    &
@@ -188,6 +185,11 @@ module mod_radiative_cooling
                     , l_Colgan(1:55)
 
   double precision :: nenh_SPEX(1:110)
+
+  integer          :: n_DM      , n_MB      , n_MLcosmol &
+                    , n_MLwc    , n_MLsolar1, n_SPEX     &
+                    , n_JCcorona, n_cl_ism  , n_cl_solar &
+                    , n_DM_2    , n_Dere    , n_Colgan
 
   data    n_JCcorona / 45 /
 
@@ -1209,8 +1211,8 @@ module mod_radiative_cooling
     !  In correspondence with eq. A6 of Townsend (2009)
       use mod_global_parameters
       type(rc_fluid) :: fl
-      integer :: i
       double precision :: y_extra, factor
+      integer :: i
 
       allocate(fl%y_PPL(1:fl%n_PPL+1))
 
@@ -1770,8 +1772,8 @@ module mod_radiative_cooling
       double precision :: Ltemp,Tnew,f1,f2,pth(ixI^S), pnew(ixI^S), rho(ixI^S), Rfactor(ixI^S)
       double precision :: elocal, Te(ixI^S)
       double precision :: emin, Lmax, eold, enew, estep
-      integer, parameter :: maxiter = 100
       double precision, parameter :: e_error = 1.0D-6
+      integer, parameter :: maxiter = 100
       integer :: ix^D, j
 
       call fl%get_pthermal(wCT,x,ixI^L,ixO^L,pth)

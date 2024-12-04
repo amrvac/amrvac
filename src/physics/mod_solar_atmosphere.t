@@ -8,12 +8,12 @@ module mod_solar_atmosphere
   use mod_comm_lib, only: mpistop
   implicit none
 
-  integer :: n_valc,n_hong,n_fontenla,n_alc7
   double precision, parameter :: solar_gravity=2.74d4 ! cm s^-2
   double precision :: h_valc(1:52),T_valc(1:52)
   double precision :: h_hong(1:300),T_hong(1:300)
   double precision :: h_fontenla(1:56),T_fontenla(1:56)
   double precision :: h_alc7(1:120),T_alc7(1:120)
+  integer :: n_valc,n_hong,n_fontenla,n_alc7
 
   data n_alc7 / 120 /
 
@@ -269,8 +269,8 @@ contains
     character(*) :: Tcurve
 
     double precision :: h_cgs(nh),Te_cgs(nh),Te(nh)
-    integer :: j
     double precision :: invT,dh,rhot,dht,ratio
+    integer :: j
 
     h_cgs=h*unit_length
 
@@ -395,12 +395,12 @@ contains
     integer :: nh
     double precision :: h(nh),Te(nh)
 
-    integer :: ih,j,imin,imax,n_table
     double precision :: h_table(n_fontenla),T_table(n_fontenla)
     double precision :: unit_h,unit_T,dTdh
     double precision :: h1,h2,h3
     double precision :: Tpho,Ttop,htanh,wtra
     double precision :: htra,Ttra,Fc,kappa
+    integer :: ih,j,imin,imax,n_table
 
     unit_h=1.d5 !  km -> cm
     unit_T=1.0  !  K -> K
@@ -478,9 +478,9 @@ contains
     integer :: nh
     double precision :: h(nh),Te(nh)
 
-    integer :: ih,j,imin,imax,n_table
     double precision :: h_table(n_valc),T_table(n_valc)
     double precision :: unit_h,unit_T,htra,Ttra,Fc,kappa,dTdh
+    integer :: ih,j,imin,imax,n_table
 
     ! temperature profile
     unit_h=1.d5 !  km -> cm
@@ -538,10 +538,10 @@ contains
     integer :: nh
     double precision :: h(nh),Te(nh)
 
-    integer :: ih,j,imin,imax,n_table
     double precision :: h_table(n_hong),T_table(n_hong)
     double precision :: dTdh
     double precision :: htra,Ttra,Fc,kappa
+    integer :: ih,j,imin,imax,n_table
 
     n_table=n_hong
     h_table=h_hong

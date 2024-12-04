@@ -9,24 +9,25 @@ module mod_connectivity
    integer, parameter :: neighbor_sibling = 3
    integer, parameter :: neighbor_fine = 4
 
+   ! number of grids on current processor
+   integer :: igridstail
+   integer :: igridstail_active
+   integer :: igridstail_passive
+
    integer, dimension(:,:^D&,:), allocatable :: neighbor
    integer, dimension(:,:^D&,:), allocatable :: neighbor_child
    integer, dimension(:^D&,:), allocatable :: neighbor_type
-   logical, dimension(:^D&,:), allocatable :: neighbor_active
    integer, dimension(:^D&,:), allocatable :: neighbor_pole
 
    ! grid number array per processor
    integer, dimension(:), allocatable :: igrids
    integer, dimension(:), allocatable :: igrids_active
    integer, dimension(:), allocatable :: igrids_passive
-   ! number of grids on current processor
-   integer :: igridstail
-   integer :: igridstail_active
-   integer :: igridstail_passive
 
    integer, dimension(^ND) :: nrecv_fc, nsend_fc
    ! cc for corner coarse
    integer, dimension(^ND) :: nrecv_cc, nsend_cc
 
+   logical, dimension(:^D&,:), allocatable :: neighbor_active
 
 end module mod_connectivity

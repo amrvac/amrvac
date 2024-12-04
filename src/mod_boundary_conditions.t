@@ -21,9 +21,9 @@ contains
     type(state), intent(inout) :: s
     double precision :: wtmp(ixG^S,1:nwflux)
 
+    double precision :: Q(ixG^S),Qp(ixG^S) 
     integer :: idir, is
     integer :: ixOs^L,hxO^L,jxO^L
-    double precision :: Q(ixG^S),Qp(ixG^S) 
     integer :: iw, iB, ix^D, ixO^L, ixM^L, nghostcellsi,iib^D
     logical  :: isphysbound
 

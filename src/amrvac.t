@@ -197,10 +197,10 @@ contains
     use mod_dt, only: setdt
 
 
-    integer :: level, ifile, fixcount, ncells_block, igrid, iigrid
-    integer(kind=8) ncells_update
-    logical :: crashall
     double precision :: time_last_print, time_write0, time_write, time_before_advance, dt_loop
+    integer(kind=8) ncells_update
+    integer :: level, ifile, fixcount, ncells_block, igrid, iigrid
+    logical :: crashall
 
     time_in=MPI_WTIME()
     time_last_print = -bigdouble

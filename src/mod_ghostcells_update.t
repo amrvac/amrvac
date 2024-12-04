@@ -2,13 +2,6 @@
 module mod_ghostcells_update
 
   implicit none
-  ! Special buffer for pole copy
-  type wbuffer
-    double precision, dimension(:^D&,:), allocatable :: w
-  end type wbuffer
-
-  ! A switch of update physical boundary or not
-  logical, public :: bcphys=.true.
 
   integer :: ixM^L, ixCoG^L, ixCoM^L, ixCoGs^L
 
@@ -115,6 +108,13 @@ module mod_ghostcells_update
   integer, dimension(-1:1^D&, 0:3^D&), target :: type_recv_r_p2, type_send_p_p2, type_recv_p_p2
   integer, dimension(:^D&,:^D&), pointer :: type_send_srl, type_recv_srl, type_send_r
   integer, dimension(:^D&,:^D&), pointer :: type_recv_r, type_send_p, type_recv_p
+
+  ! A switch of update physical boundary or not
+  logical, public :: bcphys=.true.
+  ! Special buffer for pole copy
+  type wbuffer
+    double precision, dimension(:^D&,:), allocatable :: w
+  end type wbuffer
 
 contains
 
@@ -1464,9 +1464,9 @@ contains
       subroutine bc_prolong(igrid,i^D,iib^D)
         use mod_physics, only: phys_to_primitive, phys_to_conserved
 
+        double precision :: dxFi^D, dxCo^D, xFimin^D, xComin^D, invdxCo^D
         integer :: i^D,iib^D,igrid
         integer :: ixFi^L,ixCo^L,ii^D, idims,iside,ixB^L
-        double precision :: dxFi^D, dxCo^D, xFimin^D, xComin^D, invdxCo^D
 
         ixFi^L=ixR_srl_^L(iib^D,i^D);
         dxFi^D=rnode(rpdx^D_,igrid);
@@ -1543,11 +1543,11 @@ contains
 
       subroutine bc_prolong_stg(igrid,i^D,iib^D,NeedProlong)
         use mod_amr_fct
+        double precision           :: dxFi^D,dxCo^D,xFimin^D,xComin^D,invdxCo^D
         integer                    :: igrid,i^D,iib^D
+        integer                    :: ixFi^L,ixCo^L
         logical,dimension(-1:1^D&) :: NeedProlong
         logical                    :: fine_^Lin
-        integer                    :: ixFi^L,ixCo^L
-        double precision           :: dxFi^D,dxCo^D,xFimin^D,xComin^D,invdxCo^D
         ! Check what is already at the desired level
         fine_^Lin=.false.;
         {
@@ -1587,12 +1587,12 @@ contains
         integer, intent(in) :: igrid, ixFi^L
         double precision, intent(in) :: dxFi^D, xFimin^D,dxCo^D, invdxCo^D, xComin^D
 
-        integer :: ixCo^D, jxCo^D, hxCo^D, ixFi^D, ix^D, iw, idims, nwmin,nwmax
         double precision :: xCo^D, xFi^D, eta^D
         double precision :: slopeL, slopeR, slopeC, signC, signR
         double precision :: slope(1:nw,ndim)
         !!double precision :: local_invdxCo^D
         double precision :: signedfactorhalf^D
+        integer :: ixCo^D, jxCo^D, hxCo^D, ixFi^D, ix^D, iw, idims, nwmin,nwmax
         !integer :: ixshift^D, icase
 
         !icase=mod(nghostcells,2)
@@ -1733,8 +1733,8 @@ contains
         integer, intent(in) :: igrid, ixFi^L
         double precision, intent(in) :: dxFi^D, xFimin^D,dxCo^D, invdxCo^D, xComin^D
 
-        integer :: ixCo^D, ixFi^D, nwmin,nwmax
         double precision :: xFi^D
+        integer :: ixCo^D, ixFi^D, nwmin,nwmax
 
         if(prolongprimitive) then
           nwmin=1

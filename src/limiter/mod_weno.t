@@ -170,14 +170,12 @@ contains
     double precision, intent(in)    :: w(ixI^S,1:nw)
     double precision, intent(inout) :: wRC(ixI^S,1:nw),wLC(ixI^S,1:nw) 
     !> local
-    integer                         :: iLm^L, iLp^L, iLpp^L
     double precision                :: f_array(ixI^S,1:nw,2), d_array(2)
     double precision                :: beta(ixI^S,1:nw,2),tau(ixI^S,1:nw)
     double precision                :: u1_coeff(2), u2_coeff(2)
     double precision                :: alpha_array(ixI^S,1:nw,2), alpha_sum(ixI^S,1:nw), flux(ixI^S,1:nw)
-    integer                         :: i
-
     double precision, dimension(ixI^S,1:nw)  :: wRCtmp, wLCtmp
+    integer                         :: iLm^L, iLp^L, iLpp^L, i
 
     ! iL^L holds the indices of interfaces to reconstruct to.  Convention is that a center index holds the _right-side_ interface.  
     iLm^L=iL^L-kr(idims,^D);
@@ -261,16 +259,14 @@ contains
     double precision, intent(in)    :: w(ixI^S,1:nw)
     double precision, intent(inout) :: wRC(ixI^S,1:nw),wLC(ixI^S,1:nw) 
     !> local
-    integer                         :: iLm^L, iLmm^L, iLp^L, iLpp^L, iLppp^L
     double precision                :: f_array(ixI^S,1:nw,3), d_array(3)
     double precision                :: beta(ixI^S,1:nw,3), beta_coeff(2)
     double precision                :: tau(ixI^S,1:nw), tmp(ixI^S,1:nw)
     double precision                :: u1_coeff(3), u2_coeff(3), u3_coeff(3)
     double precision                :: alpha_array(ixI^S,1:nw,3), alpha_sum(ixI^S,1:nw), flux(ixI^S,1:nw)
-    integer                         :: i
     double precision                :: lambda
-
     double precision, dimension(ixI^S,1:nw)  :: wRCtmp, wLCtmp
+    integer                         :: iLm^L, iLmm^L, iLp^L, iLpp^L, iLppp^L, i
 
     iLm^L=iL^L-kr(idims,^D);
     iLmm^L=iLm^L-kr(idims,^D);
@@ -387,17 +383,15 @@ contains
     double precision, intent(in)    :: w(ixI^S,1:nw)
     double precision, intent(inout) :: wRC(ixI^S,1:nw),wLC(ixI^S,1:nw) 
     !> local
-    integer                         :: iLm^L, iLmm^L, iLp^L, iLpp^L, iLppp^L
     double precision                :: f_array(ixI^S,1:nw,3), d_array(3)
     double precision                :: beta(ixI^S,1:nw,3), beta_coeff(2)
     double precision                :: u1_coeff(3), u2_coeff(3), u3_coeff(3)
     double precision                :: gam_sum(ixI^S,1:nw),tau(ixI^S,1:nw),delta_sum(ixI^S,1:nw)
     double precision                :: gam(ixI^S,1:nw,3), kai(ixI^S,1:nw,3), delta(ixI^S,1:nw,3)
     double precision                :: flux(ixI^S,1:nw), kai1(ixI^S,1:nw,3), theta(ixI^S,1:nw)
-    integer                         :: marray(ixI^S,1:nw)
-    integer                         :: i
-
     double precision, dimension(ixI^S,1:nw)  :: wRCtmp, wLCtmp
+    integer                         :: marray(ixI^S,1:nw)
+    integer                         :: iLm^L, iLmm^L, iLp^L, iLpp^L, iLppp^L, i
 
     iLm^L=iL^L-kr(idims,^D);
     iLmm^L=iLm^L-kr(idims,^D);
@@ -505,18 +499,17 @@ contains
     double precision, intent(in) :: w(ixI^S,1:nw)
     double precision, intent(inout) :: wRC(ixI^S,1:nw),wLC(ixI^S,1:nw) 
     !> local
-    integer                         :: iLm^L, iLmm^L, iLp^L, iLpp^L, iLppp^L
-    integer                         :: iM^L, iMp^L
     double precision                :: f_array(ixI^S,1:nw,3), d_array(3)
     double precision                :: beta(ixI^S,1:nw,3), beta_coeff(2)
     double precision                :: tau(ixI^S,1:nw), tmp(ixI^S,1:nw)
     double precision                :: u1_coeff(3), u2_coeff(3), u3_coeff(3)
     double precision                :: alpha_array(ixI^S,1:nw,3), alpha_sum(ixI^S,1:nw), flux(ixI^S,1:nw)
     double precision                :: wc(ixI^S,1:nw), wd(ixI^S,1:nw), we(ixI^S,1:nw)
-    integer                         :: i,j
     double precision                :: lambda(ixI^S)
-
     double precision, dimension(ixI^S,1:nw)  :: wRCtmp, wLCtmp
+    integer                         :: iLm^L, iLmm^L, iLp^L, iLpp^L, iLppp^L
+    integer                         :: iM^L, iMp^L
+    integer                         :: i,j
 
     iLm^L=iL^L-kr(idims,^D);
     iLmm^L=iLm^L-kr(idims,^D);
@@ -636,16 +629,15 @@ contains
     double precision, intent(in)    :: w(ixI^S,1:nw)
     double precision, intent(inout) :: wLC(ixI^S,1:nw) 
     !> local
-    integer                         :: iLm^L, iLmm^L, iLp^L, iLpp^L, iLppp^L
     double precision                :: f_array(ixI^S,1:nw,3), d_array(3)
     double precision                :: beta(ixI^S,1:nw,3), beta_coeff(2)
     double precision                :: tau(ixI^S,1:nw), tmp(ixI^S,1:nw)
     double precision                :: u1_coeff(3), u2_coeff(3), u3_coeff(3)
     double precision                :: alpha_array(ixI^S,1:nw,3), alpha_sum(ixI^S,1:nw), flux(ixI^S,1:nw)
-    integer                         :: i,j
     double precision                :: lambda(ixI^S)
-
     double precision, dimension(ixI^S,1:nw)  :: wLCtmp
+    integer                         :: iLm^L, iLmm^L, iLp^L, iLpp^L, iLppp^L
+    integer                         :: i,j
 
     iLm^L=iL^L-kr(idims,^D);
     iLmm^L=iLm^L-kr(idims,^D);
@@ -721,16 +713,15 @@ contains
     double precision, intent(in)    :: w(ixI^S,1:nw)
     double precision, intent(inout) :: wRC(ixI^S,1:nw)
     !> local
-    integer                         :: iLm^L, iLmm^L, iLp^L, iLpp^L, iLppp^L
     double precision                :: f_array(ixI^S,1:nw,3), d_array(3)
     double precision                :: beta(ixI^S,1:nw,3), beta_coeff(2)
     double precision                :: tau(ixI^S,1:nw), tmp(ixI^S,1:nw)
     double precision                :: u1_coeff(3), u2_coeff(3), u3_coeff(3)
     double precision                :: alpha_array(ixI^S,1:nw,3), alpha_sum(ixI^S,1:nw), flux(ixI^S,1:nw)
-    integer                         :: i,j
     double precision                :: lambda(ixI^S)
-
     double precision, dimension(ixI^S,1:nw)  :: wRCtmp
+    integer                         :: iLm^L, iLmm^L, iLp^L, iLpp^L, iLppp^L
+    integer                         :: i,j
 
     iLm^L=iL^L-kr(idims,^D);
     iLp^L=iL^L+kr(idims,^D);
@@ -804,18 +795,17 @@ contains
     double precision, intent(in) :: w(ixI^S,1:nw)
     double precision, intent(inout) :: wLC(ixI^S,1:nw) 
     !> local
-    integer                         :: iLm^L, iLmm^L, iLp^L, iLpp^L
-    integer                         :: iM^L, iMp^L
     double precision                :: f_array(ixI^S,1:nw,3), d_array(3)
     double precision                :: beta(ixI^S,1:nw,3), beta_coeff(2)
     double precision                :: tau(ixI^S,1:nw), tmp(ixI^S,1:nw)
     double precision                :: u1_coeff(3), u2_coeff(3), u3_coeff(3)
     double precision                :: alpha_array(ixI^S,1:nw,3), alpha_sum(ixI^S,1:nw), flux(ixI^S,1:nw)
     double precision                :: wc(ixI^S,1:nw), wd(ixI^S,1:nw)
-    integer                         :: i,j
     double precision                :: lambda(ixI^S)
-
     double precision, dimension(ixI^S,1:nw)  :: wLCtmp
+    integer                         :: iLm^L, iLmm^L, iLp^L, iLpp^L
+    integer                         :: iM^L, iMp^L
+    integer                         :: i,j
 
     iLm^L=iL^L-kr(idims,^D);
     iLmm^L=iLm^L-kr(idims,^D);
@@ -888,18 +878,17 @@ contains
     double precision, intent(in) :: w(ixI^S,1:nw)
     double precision, intent(inout) :: wRC(ixI^S,1:nw)
     !> local
-    integer                         :: iLm^L,iLp^L,iLpp^L,iLppp^L
-    integer                         :: iM^L, iMp^L
     double precision                :: f_array(ixI^S,1:nw,3), d_array(3)
     double precision                :: beta(ixI^S,1:nw,3), beta_coeff(2)
     double precision                :: tau(ixI^S,1:nw), tmp(ixI^S,1:nw)
     double precision                :: u1_coeff(3), u2_coeff(3), u3_coeff(3)
     double precision                :: alpha_array(ixI^S,1:nw,3), alpha_sum(ixI^S,1:nw), flux(ixI^S,1:nw)
     double precision                :: wc(ixI^S,1:nw), we(ixI^S,1:nw)
-    integer                         :: i,j
     double precision                :: lambda(ixI^S)
-
     double precision, dimension(ixI^S,1:nw)  :: wRCtmp
+    integer                         :: iLm^L,iLp^L,iLpp^L,iLppp^L
+    integer                         :: iM^L, iMp^L
+    integer                         :: i,j
 
     iLm^L=iL^L-kr(idims,^D);
     iLp^L=iL^L+kr(idims,^D);
@@ -972,16 +961,15 @@ contains
     double precision, intent(in) :: w(ixI^S,1:nw)
     double precision, intent(inout) :: wRC(ixI^S,1:nw),wLC(ixI^S,1:nw) 
     !> local
-    integer :: iLm^L, iLmm^L, iLp^L, iLpp^L, iLppp^L
     double precision :: f_array(ixI^S,1:nw,3), d_array(3)
     double precision :: beta(ixI^S,1:nw,3), beta_coeff(2)
     double precision :: u1_coeff(3), u2_coeff(3), u3_coeff(3)
     double precision :: alpha_array(ixI^S,1:nw,3), alpha_sum(ixI^S,1:nw)
     double precision :: theta2(ixI^S,1:nw)
-    integer :: i
     double precision, parameter :: theta_limit=0.7d0
-
     double precision, dimension(ixI^S,1:nw)  :: wRCtmp, wLCtmp
+    integer :: iLm^L, iLmm^L, iLp^L, iLpp^L, iLppp^L
+    integer :: i
 
     iLm^L=iL^L-kr(idims,^D);
     iLmm^L=iLm^L-kr(idims,^D);
@@ -1066,19 +1054,17 @@ contains
     double precision, intent(in)    :: w(ixI^S,1:nw)
     double precision, intent(inout) :: wRC(ixI^S,1:nw),wLC(ixI^S,1:nw) 
     !> local
-    integer                         :: iLm^L, iLmm^L, iLmmm^L
-    integer                         :: iLp^L, iLpp^L, iLppp^L, iLpppp^L
-    integer                         :: id^L, idp^L, idpp^L, idm^L, ie^L, iem^L, iep^L, iepp^L
-
     double precision, dimension(4)  :: d_array, u1_coeff, u2_coeff, u3_coeff, u4_coeff
     double precision, dimension(ixI^S,1:nw,4)  :: f_array, beta, alpha_array
     double precision, dimension(ixI^S)         :: a, b, c, tmp, tmp2, tmp3
     double precision, dimension(ixI^S,1:nw)    :: alpha_sum, d, dm4
     double precision, dimension(ixI^S,1:nw)    :: flux, flux_min, flux_max, flux_ul, flux_md, flux_lc
-    integer                         :: i,iw
     double precision, parameter     :: mpalpha = 2.d0, mpbeta = 4.d0
-
     double precision, dimension(ixI^S,1:nw)  :: wRCtmp, wLCtmp
+    integer                         :: iLm^L, iLmm^L, iLmmm^L
+    integer                         :: iLp^L, iLpp^L, iLppp^L, iLpppp^L
+    integer                         :: id^L, idp^L, idpp^L, idm^L, ie^L, iem^L, iep^L, iepp^L
+    integer                         :: i,iw
 
     iLm^L=iL^L-kr(idims,^D);
     iLmm^L=iLm^L-kr(idims,^D);

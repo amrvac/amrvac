@@ -273,10 +273,10 @@ contains
     use mod_global_parameters
     integer, intent(in)                 :: fh
 
+    integer                             :: er
     integer, parameter                  :: n_par = 1
     double precision                    :: values(n_par)
     integer, dimension(MPI_STATUS_SIZE) :: st
-    integer                             :: er
     character(len=name_len)             :: names(n_par)
 
     call MPI_FILE_WRITE(fh, n_par, 1, MPI_INTEGER, st, er)
@@ -6847,14 +6847,15 @@ contains
     double precision, intent(in) :: qt     !< Current time
     logical, intent(inout)       :: active !< Output if the source is active
 
+    integer                      :: id
+    integer, parameter           :: max_its      = 50
+    double precision             :: residual_it(max_its), max_divb
     double precision             :: tmp(ixG^T), grad(ixG^T, ndim)
     double precision             :: res
     double precision, parameter  :: max_residual = 1d-3
     double precision, parameter  :: residual_reduction = 1d-10
-    integer                      :: iigrid, igrid, id
+    integer                      :: iigrid, igrid
     integer                      :: n, nc, lvl, ix^L, ixC^L, idim
-    integer, parameter           :: max_its      = 50
-    double precision             :: residual_it(max_its), max_divb
     type(tree_node), pointer     :: pnode
 
     mg%operator_type = mg_laplacian

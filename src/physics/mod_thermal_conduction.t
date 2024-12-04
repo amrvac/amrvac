@@ -62,18 +62,6 @@ module mod_thermal_conduction
 
   type tc_fluid
 
-    procedure (get_var_subr), pointer, nopass :: get_rho => null()
-    procedure (get_var_subr), pointer, nopass :: get_rho_equi => null()
-    procedure(get_var_subr), pointer,nopass :: get_temperature_from_eint => null()
-    procedure(get_var_subr), pointer,nopass :: get_temperature_from_conserved => null()
-    procedure(get_var_subr), pointer,nopass :: get_temperature_equi => null()
-     !> Indices of the variables
-    integer :: e_=-1
-    !> Index of cut off temperature for TRAC
-    integer :: Tcoff_
-    ! if has_equi = .true. get_temperature_equi and get_rho_equi have to be set
-    logical :: has_equi=.false.
-
     ! BEGIN the following are read from param file or set in tc_read_hd_params or tc_read_mhd_params
     !> Coefficient of thermal conductivity (parallel to magnetic field)
     double precision :: tc_k_para
@@ -81,8 +69,15 @@ module mod_thermal_conduction
     !> Coefficient of thermal conductivity perpendicular to magnetic field
     double precision :: tc_k_perp
 
+     !> Indices of the variables
+    integer :: e_=-1
+    !> Index of cut off temperature for TRAC
+    integer :: Tcoff_
     !> Name of slope limiter for transverse component of thermal flux
     integer :: tc_slope_limiter
+
+    ! if has_equi = .true. get_temperature_equi and get_rho_equi have to be set
+    logical :: has_equi=.false.
 
     !> Logical switch for test constant conductivity
     logical :: tc_constant=.false.
@@ -93,6 +88,11 @@ module mod_thermal_conduction
     !> Consider thermal conduction saturation effect (.true.) or not (.false.)
     logical :: tc_saturate=.false.
     ! END the following are read from param file or set in tc_read_hd_params or tc_read_mhd_params
+    procedure (get_var_subr), pointer, nopass :: get_rho => null()
+    procedure (get_var_subr), pointer, nopass :: get_rho_equi => null()
+    procedure(get_var_subr), pointer,nopass :: get_temperature_from_eint => null()
+    procedure(get_var_subr), pointer,nopass :: get_temperature_from_conserved => null()
+    procedure(get_var_subr), pointer,nopass :: get_temperature_equi => null()
   end type tc_fluid
 
 

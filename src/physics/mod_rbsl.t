@@ -32,9 +32,9 @@ contains
     double precision   :: AIx(ixI^S,1:ndim)
     ! vector potential for axial magnetic field
     double precision   :: AFx(ixI^S,1:ndim)
-    integer :: ix^D, ixp, idirmin
     double precision :: r_mag, KIr, KFr, dl, re_pi, sqrt1r, f52r,fsqrt6
     double precision :: Rpl(1:ndim), r_vec(1:ndim), Rcr(1:ndim)
+    integer :: ix^D, ixp, idirmin
 
     if(positive_helicity) then
       I_cur = 5.d0*sqrt(2.d0)*F_flx/(3.d0*4.d0*dpi*a)

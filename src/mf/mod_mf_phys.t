@@ -17,31 +17,9 @@ module mod_mf_phys
   !> decay scale of frictional velocity near boundaries
   double precision, public                :: mf_decay_scale(2*^ND)=0.d0
 
-  !> Whether particles module is added
-  logical, public, protected              :: mf_particles = .false.
-
-  !> Whether GLM-MHD is used
-  logical, public, protected              :: mf_glm = .false.
-
-  !> Whether divB cleaning sources are added splitting from fluid solver
-  logical, public, protected              :: source_split_divb = .false.
-
   !> GLM-MHD parameter: ratio of the diffusive and advective time scales for div b
   !> taking values within [0, 1]
   double precision, public                :: mf_glm_alpha = 0.5d0
-
-  !> MHD fourth order
-  logical, public, protected              :: mf_4th_order = .false.
-
-  !> set to true if need to record electric field on cell edges
-  logical, public, protected              :: mf_record_electric_field = .false.
-
-  !> Indices of the momentum density
-  integer, allocatable, public, protected :: mom(:)
-
-
-  !> Indices of the GLM psi
-  integer, public, protected :: psi_
 
   !> The resistivity
   double precision, public                :: mf_eta = 0.0d0
@@ -49,41 +27,23 @@ module mod_mf_phys
   !> The hyper-resistivity
   double precision, public                :: mf_eta_hyper = 0.0d0
 
-  !> Method type to clean divergence of B
-  character(len=std_len), public, protected :: typedivbfix  = 'ct'
-
-  !> Method type of constrained transport
-  character(len=std_len), public, protected :: type_ct  = 'average'
-
-  !> Whether divB is computed with a fourth order approximation
-  logical, public, protected :: mf_divb_4thorder = .false.
-
-  !> Method type in a integer for good performance
-  integer :: type_divb
-
   !> Coefficient of diffusive divB cleaning
   double precision :: divbdiff     = 0.8d0
-
-  !> Update all equations due to divB cleaning
-  character(len=std_len) ::    typedivbdiff = 'all'
-
-  !> Use a compact way to add resistivity
-  logical :: compactres   = .false.
-
-  !> Add divB wave in Roe solver
-  logical, public :: divbwave     = .true.
 
   !> Helium abundance over Hydrogen
   double precision, public, protected  :: He_abundance=0.1d0
 
-  !> To control divB=0 fix for boundary
-  logical, public, protected :: boundary_divbfix(2*^ND)=.true.
+  !> Method type in a integer for good performance
+  integer :: type_divb
+
+  !> Indices of the momentum density
+  integer, allocatable, public, protected :: mom(:)
+
+  !> Indices of the GLM psi
+  integer, public, protected :: psi_
 
   !> To skip * layer of ghost cells during divB=0 fix for boundary
   integer, public, protected :: boundary_divbfix_skip(2*^ND)=0
-
-  !> clean divb in the initial condition
-  logical, public, protected :: clean_initial_divb=.false.
 
   ! DivB cleaning methods
   integer, parameter :: divb_none          = 0
@@ -96,6 +56,45 @@ module mod_mf_phys
   integer, parameter :: divb_lindepowel    = 6
   integer, parameter :: divb_lindeglm      = 7
   integer, parameter :: divb_ct            = 8
+
+  !> Whether particles module is added
+  logical, public, protected              :: mf_particles = .false.
+
+  !> Whether GLM-MHD is used
+  logical, public, protected              :: mf_glm = .false.
+
+  !> Whether divB cleaning sources are added splitting from fluid solver
+  logical, public, protected              :: source_split_divb = .false.
+
+  !> MHD fourth order
+  logical, public, protected              :: mf_4th_order = .false.
+
+  !> set to true if need to record electric field on cell edges
+  logical, public, protected              :: mf_record_electric_field = .false.
+
+  !> Whether divB is computed with a fourth order approximation
+  logical, public, protected :: mf_divb_4thorder = .false.
+
+  !> To control divB=0 fix for boundary
+  logical, public, protected :: boundary_divbfix(2*^ND)=.true.
+
+  !> Use a compact way to add resistivity
+  logical :: compactres   = .false.
+
+  !> Add divB wave in Roe solver
+  logical, public :: divbwave     = .true.
+
+  !> clean divb in the initial condition
+  logical, public, protected :: clean_initial_divb=.false.
+
+  !> Method type to clean divergence of B
+  character(len=std_len), public, protected :: typedivbfix  = 'ct'
+
+  !> Method type of constrained transport
+  character(len=std_len), public, protected :: type_ct  = 'average'
+
+  !> Update all equations due to divB cleaning
+  character(len=std_len) ::    typedivbdiff = 'all'
 
 
   ! Public methods
@@ -775,14 +774,13 @@ contains
     double precision, intent(in)    :: qdt
     double precision, intent(in) :: wCT(ixI^S,1:nw), x(ixI^S,1:ndim)
     double precision, intent(inout) :: w(ixI^S,1:nw)
-    integer :: ixA^L,idir,jdir,kdir,idirmin,idim,jxO^L,hxO^L,ix
-    integer :: lxO^L, kxO^L
-
-    double precision :: tmp(ixI^S),tmp2(ixI^S)
 
     ! For ndir=2 only 3rd component of J can exist, ndir=1 is impossible for MHD
     double precision :: current(ixI^S,7-2*ndir:3),eta(ixI^S)
     double precision :: gradeta(ixI^S,1:ndim), Bf(ixI^S,1:ndir)
+    double precision :: tmp(ixI^S),tmp2(ixI^S)
+    integer :: ixA^L,idir,jdir,kdir,idirmin,idim,jxO^L,hxO^L,ix
+    integer :: lxO^L, kxO^L
 
     ! Calculating resistive sources involve one extra layer
     if (mf_4th_order) then
@@ -967,8 +965,8 @@ contains
     double precision, intent(in) :: qdt, wCT(ixI^S,1:nw), x(ixI^S,1:ndim)
     double precision, intent(inout) :: w(ixI^S,1:nw)
     double precision:: divb(ixI^S)
-    integer          :: idim,idir
     double precision :: gradPsi(ixI^S)
+    integer          :: idim,idir
 
     ! We calculate now div B
     call get_divb(wCT,ixI^L,ixO^L,divb, mf_divb_4thorder)
@@ -1053,8 +1051,8 @@ contains
     integer, intent(in)             :: ixI^L, ixO^L
     double precision, intent(in)    :: qdt, wCT(ixI^S,1:nw), x(ixI^S,1:ndim)
     double precision, intent(inout) :: w(ixI^S,1:nw)
-    integer :: idim, idir, ixp^L, i^D, iside
     double precision :: divb(ixI^S),graddivb(ixI^S)
+    integer :: idim, idir, ixp^L, i^D, iside
     logical, dimension(-1:1^D&) :: leveljump
 
     ! Calculate div B
@@ -1156,10 +1154,10 @@ contains
     double precision, intent(in) :: w(ixI^S,1:nw)
     integer, intent(out) :: idirmin
     logical, intent(in), optional :: fourthorder
-    integer :: idir, idirmin0
 
     ! For ndir=2 only 3rd component of J can exist, ndir=1 is impossible for MHD
     double precision :: current(ixI^S,7-2*ndir:3)
+    integer :: idir, idirmin0
 
     idirmin0 = 7-2*ndir
 
@@ -1182,9 +1180,9 @@ contains
     double precision, intent(in)    :: w(ixI^S,1:nw)
     double precision, intent(in)    :: x(ixI^S,1:ndim)
 
-    integer                       :: idirmin,idim
     double precision              :: dxarr(ndim)
     double precision              :: current(ixI^S,7-2*ndir:3),eta(ixI^S)
+    integer                       :: idirmin,idim
 
     dtnew = bigdouble
 
@@ -1764,15 +1762,17 @@ contains
     double precision, intent(in) :: qdt    !< Current time step
     double precision, intent(in) :: qt     !< Current time
     logical, intent(inout)       :: active !< Output if the source is active
-    integer                      :: iigrid, igrid, id
-    integer                      :: n, nc, lvl, ix^L, ixC^L, idim
-    type(tree_node), pointer     :: pnode
+
     double precision             :: tmp(ixG^T), grad(ixG^T, ndim)
     double precision             :: res
     double precision, parameter  :: max_residual = 1d-3
     double precision, parameter  :: residual_reduction = 1d-10
+    integer                      :: id
     integer, parameter           :: max_its      = 50
     double precision             :: residual_it(max_its), max_divb
+    integer                      :: iigrid, igrid
+    integer                      :: n, nc, lvl, ix^L, ixC^L, idim
+    type(tree_node), pointer     :: pnode
 
     mg%operator_type = mg_laplacian
 
@@ -1929,11 +1929,11 @@ contains
     double precision, intent(in)       :: fC(ixI^S,1:nwflux,1:ndim)
     double precision, intent(inout)    :: fE(ixI^S,sdim:3)
 
-    integer                            :: hxC^L,ixC^L,jxC^L,ixCm^L
-    integer                            :: idim1,idim2,idir,iwdim1,iwdim2
     double precision                   :: circ(ixI^S,1:ndim)
     ! current on cell edges
     double precision :: jce(ixI^S,sdim:3)
+    integer                            :: hxC^L,ixC^L,jxC^L,ixCm^L
+    integer                            :: idim1,idim2,idir,iwdim1,iwdim2
 
     associate(bfaces=>s%ws,x=>s%x)
 
@@ -2467,10 +2467,10 @@ contains
     integer :: iigrid, igrid, ix^D
     integer :: amode, istatus(MPI_STATUS_SIZE)
     integer, save :: fhmf
-    character(len=800) :: filename,filehead
-    character(len=800) :: line,datastr
     logical :: patchwi(ixG^T)
     logical, save :: logmfopened=.false.
+    character(len=800) :: filename,filehead
+    character(len=800) :: line,datastr
 
     sum_jbb_ipe = 0.d0
     sum_j_ipe = 0.d0

@@ -130,8 +130,8 @@ contains
   
     type(tree_node_ptr) :: tree
   
-    logical, dimension(ndim) :: pole
     integer :: my_neighbor_type, i^D, iside
+    logical, dimension(ndim) :: pole
     type(tree_node_ptr) :: my_neighbor
   
     {do iside=1,2

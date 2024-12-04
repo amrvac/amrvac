@@ -49,8 +49,9 @@ contains
     double precision, intent(inout) :: w(ixI^S,1:nw)
     logical, intent(in)             :: energy,rhov,qsourcesplit
     logical, intent(inout)          :: active
-    integer                         :: idim
+
     double precision                :: gravity_field(ixI^S,ndim)
+    integer                         :: idim
 
     if(qsourcesplit .eqv. grav_split) then
       active = .true.
@@ -89,9 +90,10 @@ contains
     integer, intent(in)             :: ixI^L, ixO^L
     double precision, intent(in)    :: dx^D, x(ixI^S,1:ndim), w(ixI^S,1:nw)
     double precision, intent(inout) :: dtnew
+
     double precision                :: dxinv(1:ndim), max_grav
-    integer                         :: idim
     double precision :: gravity_field(ixI^S,ndim)
+    integer                         :: idim
 
     ^D&dxinv(^D)=one/dx^D;
     call usr_gravity(ixI^L,ixO^L,w,x,gravity_field)

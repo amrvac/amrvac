@@ -60,15 +60,14 @@ module mod_functions_connectivity
   
     integer :: iigrid, igrid, i^D, my_neighbor_type
     integer :: iside, idim, ic^D, inc^D, ih^D, icdim
-    type(tree_node_ptr) :: tree, my_neighbor, child
-    logical, dimension(^ND) :: pole
-    logical :: nopole
     ! Variables to detect special corners for stagger grid
     integer :: idir,pi^D, mi^D, ph^D, mh^D, ipe_neighbor
     integer :: nrecvs,nsends
-  
     ! total size of buffer arrays
     integer :: nbuff_bc_recv_srl, nbuff_bc_send_srl, nbuff_bc_recv_r, nbuff_bc_send_r, nbuff_bc_recv_p, nbuff_bc_send_p
+    logical, dimension(^ND) :: pole
+    logical :: nopole
+    type(tree_node_ptr) :: tree, my_neighbor, child
   
     nrecv_bc_srl=0; nsend_bc_srl=0
     nrecv_bc_r=0; nsend_bc_r=0

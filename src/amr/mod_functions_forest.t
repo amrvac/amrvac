@@ -378,8 +378,8 @@ contains
         type(tree_node_ptr) :: tree
         integer, intent(in) :: ig^D, level
   
-        logical :: leaf
         integer :: ic^D, child_ig^D, child_level
+        logical :: leaf
   
         if (mype==0) then
           call MPI_FILE_READ(file_handle,leaf,1,MPI_LOGICAL, &
