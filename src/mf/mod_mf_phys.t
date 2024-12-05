@@ -1930,9 +1930,8 @@ contains
     double precision, intent(inout)    :: fE(ixI^S,sdim:3)
 
     double precision                   :: circ(ixI^S,1:ndim)
-    ! current on cell edges
-    double precision :: jce(ixI^S,sdim:3)
-    integer                            :: hxC^L,ixC^L,jxC^L,ixCm^L
+    double precision                   :: E_resi(ixI^S,sdim:3)
+    integer                            :: ix^D,ixC^L,ixA^L,i1kr^D,i2kr^D
     integer                            :: idim1,idim2,idir,iwdim1,iwdim2
 
     associate(bfaces=>s%ws,x=>s%x)
@@ -1942,31 +1941,30 @@ contains
     ! electric field in the positive idir direction.
 
     ! if there is resistivity, get eta J
-    if(mf_eta/=zero) call get_resistive_electric_field(ixI^L,ixO^L,sCT,s,jce)
+    if(mf_eta/=zero) call get_resistive_electric_field(ixI^L,ixO^L,sCT,s,E_resi)
 
     do idim1=1,ndim 
       iwdim1 = mag(idim1)
+      i1kr^D=kr(idim1,^D);
       do idim2=1,ndim
         iwdim2 = mag(idim2)
+        i2kr^D=kr(idim2,^D);
         do idir=sdim,3! Direction of line integral
           ! Allow only even permutations
           if (lvc(idim1,idim2,idir)==1) then
             ixCmax^D=ixOmax^D;
             ixCmin^D=ixOmin^D+kr(idir,^D)-1;
-            ! Assemble indices
-            jxC^L=ixC^L+kr(idim1,^D);
-            hxC^L=ixC^L+kr(idim2,^D);
-            ! Interpolate to edges
-            fE(ixC^S,idir)=quarter*(fC(ixC^S,iwdim1,idim2)+fC(jxC^S,iwdim1,idim2)&
-                                   -fC(ixC^S,iwdim2,idim1)-fC(hxC^S,iwdim2,idim1))
-
-            ! add current component of electric field at cell edges E=-vxB+eta J
-            if(mf_eta/=zero) fE(ixC^S,idir)=fE(ixC^S,idir)+jce(ixC^S,idir)
-
-            if(record_electric_field) s%we(ixC^S,idir)=fE(ixC^S,idir)
-            ! times time step and edge length 
-            fE(ixC^S,idir)=qdt*s%dsC(ixC^S,idir)*fE(ixC^S,idir)
-
+            ! average cell-face electric field to cell edges
+           {do ix^DB=ixCmin^DB,ixCmax^DB\}
+              fE(ix^D,idir)=quarter*&
+                (fC(ix^D,iwdim1,idim2)+fC({ix^D+i1kr^D},iwdim1,idim2)&
+                -fC(ix^D,iwdim2,idim1)-fC({ix^D+i2kr^D},iwdim2,idim1))
+              ! add resistive electric field at cell edges E=-vxB+eta J
+              if(mf_eta/=zero) fE(ix^D,idir)=fE(ix^D,idir)+E_resi(ix^D,idir)
+              if(record_electric_field) s%we(ix^D,idir)=fE(ix^D,idir)
+              ! times time step and edge length
+              fE(ix^D,idir)=fE(ix^D,idir)*qdt*s%dsC(ix^D,idir)
+           {end do\}
           end if
         end do
       end do
@@ -1984,15 +1982,19 @@ contains
       ixCmax^D=ixOmax^D;
       ixCmin^D=ixOmin^D-kr(idim1,^D);
       do idim2=1,ndim
+        ixA^L=ixC^L-kr(idim2,^D);
         do idir=sdim,3 ! Direction of line integral
           ! Assemble indices
-          if(lvc(idim1,idim2,idir)/=0) then
-            hxC^L=ixC^L-kr(idim2,^D);
+          if(lvc(idim1,idim2,idir)==1) then
             ! Add line integrals in direction idir
             circ(ixC^S,idim1)=circ(ixC^S,idim1)&
-                             +lvc(idim1,idim2,idir)&
-                             *(fE(ixC^S,idir)&
-                              -fE(hxC^S,idir))
+                             +(fE(ixC^S,idir)&
+                              -fE(ixA^S,idir))
+          else if(lvc(idim1,idim2,idir)==-1) then
+            ! Add line integrals in direction idir
+            circ(ixC^S,idim1)=circ(ixC^S,idim1)&
+                             -(fE(ixC^S,idir)&
+                              -fE(ixA^S,idir))
           end if
         end do
       end do

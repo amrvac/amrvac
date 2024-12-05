@@ -7029,7 +7029,7 @@ contains
     double precision                   :: circ(ixI^S,1:ndim)
     ! non-ideal electric field on cell edges
     double precision, dimension(ixI^S,sdim:3) :: E_resi, E_ambi
-    integer                            :: hxC^L,ixC^L,jxC^L,ixCm^L
+    integer                            :: ix^D,ixC^L,ixA^L,i1kr^D,i2kr^D
     integer                            :: idim1,idim2,idir,iwdim1,iwdim2
 
     associate(bfaces=>s%ws,x=>s%x)
@@ -7046,32 +7046,28 @@ contains
 
     do idim1=1,ndim
       iwdim1 = mag(idim1)
+      i1kr^D=kr(idim1,^D);
       do idim2=1,ndim
         iwdim2 = mag(idim2)
+        i2kr^D=kr(idim2,^D);
         do idir=sdim,3! Direction of line integral
           ! Allow only even permutations
           if (lvc(idim1,idim2,idir)==1) then
             ixCmax^D=ixOmax^D;
             ixCmin^D=ixOmin^D+kr(idir,^D)-1;
-            ! Assemble indices
-            jxC^L=ixC^L+kr(idim1,^D);
-            hxC^L=ixC^L+kr(idim2,^D);
-            ! Interpolate to edges
-            fE(ixC^S,idir)=quarter*(fC(ixC^S,iwdim1,idim2)+fC(jxC^S,iwdim1,idim2)&
-                                   -fC(ixC^S,iwdim2,idim1)-fC(hxC^S,iwdim2,idim1))
+            ! average cell-face electric field to cell edges
+           {do ix^DB=ixCmin^DB,ixCmax^DB\}
+              fE(ix^D,idir)=quarter*&
+                (fC(ix^D,iwdim1,idim2)+fC({ix^D+i1kr^D},iwdim1,idim2)&
+                -fC(ix^D,iwdim2,idim1)-fC({ix^D+i2kr^D},iwdim2,idim1))
+              ! add resistive electric field at cell edges E=-vxB+eta J
+              if(mhd_eta/=zero) fE(ix^D,idir)=fE(ix^D,idir)+E_resi(ix^D,idir)
+              ! add ambipolar electric field
+              if(mhd_ambipolar_exp) fE(ix^D,idir)=fE(ix^D,idir)+E_ambi(ix^D,idir)
 
-            ! add resistive electric field at cell edges E=-vxB+eta J
-            if(mhd_eta/=zero) fE(ixC^S,idir)=fE(ixC^S,idir)+E_resi(ixC^S,idir)
-            ! add ambipolar electric field
-            if(mhd_ambipolar_exp) fE(ixC^S,idir)=fE(ixC^S,idir)+E_ambi(ixC^S,idir)
-
-            fE(ixC^S,idir)=qdt*s%dsC(ixC^S,idir)*fE(ixC^S,idir)
-
-            if (.not.slab) then
-              where(abs(x(ixC^S,r_)+half*dxlevel(r_))<1.0d-9)
-                fE(ixC^S,idir)=zero
-              end where
-            end if
+              ! times time step and edge length
+              fE(ix^D,idir)=fE(ix^D,idir)*qdt*s%dsC(ix^D,idir)
+           {end do\}
           end if
         end do
       end do
@@ -7088,15 +7084,19 @@ contains
       ixCmax^D=ixOmax^D;
       ixCmin^D=ixOmin^D-kr(idim1,^D);
       do idim2=1,ndim
+        ixA^L=ixC^L-kr(idim2,^D);
         do idir=sdim,3 ! Direction of line integral
           ! Assemble indices
-          if(lvc(idim1,idim2,idir)/=0) then
-            hxC^L=ixC^L-kr(idim2,^D);
+          if(lvc(idim1,idim2,idir)==1) then
             ! Add line integrals in direction idir
             circ(ixC^S,idim1)=circ(ixC^S,idim1)&
-                             +lvc(idim1,idim2,idir)&
-                             *(fE(ixC^S,idir)&
-                              -fE(hxC^S,idir))
+                             +(fE(ixC^S,idir)&
+                              -fE(ixA^S,idir))
+          else if(lvc(idim1,idim2,idir)==-1) then
+            ! Add line integrals in direction idir
+            circ(ixC^S,idim1)=circ(ixC^S,idim1)&
+                             -(fE(ixC^S,idir)&
+                              -fE(ixA^S,idir))
           end if
         end do
       end do
@@ -7136,35 +7136,20 @@ contains
     ! gradient of E at left and right side of a cell face
     double precision                   :: EL(ixI^S),ER(ixI^S)
     ! gradient of E at left and right side of a cell corner
-    double precision                   :: ELC(ixI^S),ERC(ixI^S)
+    double precision                   :: ELC,ERC
     ! non-ideal electric field on cell edges
     double precision, dimension(ixI^S,sdim:3) :: E_resi, E_ambi
     ! total magnetic field at cell centers
-    double precision                   :: Btot(ixI^S,1:ndim)
+    double precision                   :: Btot(1:ndir)
     ! current on cell edges
     double precision :: jce(ixI^S,sdim:3)
     ! location at cell faces
     double precision :: xs(ixGs^T,1:ndim)
     double precision :: gradi(ixGs^T)
-    integer                            :: hxC^L,ixC^L,jxC^L,ixA^L,ixB^L
-    integer                            :: idim1,idim2,idir,iwdim1,iwdim2,ix^D
+    integer :: ixC^L,ixA^L
+    integer :: idim1,idim2,idir,iwdim1,iwdim2,ix^D,i1kr^D,i2kr^D
 
     associate(bfaces=>s%ws,x=>s%x,w=>s%w,vnorm=>vcts%vnorm,wCTs=>sCT%ws)
-
-    if(B0field) then
-      Btot(ixI^S,1:ndim)=wp(ixI^S,mag(1:ndim))+block%B0(ixI^S,1:ndim,0)
-    else
-      Btot(ixI^S,1:ndim)=wp(ixI^S,mag(1:ndim))
-    end if
-    ECC=0.d0
-    ! Calculate electric field at cell centers
-    do idim1=1,ndim; do idim2=1,ndim; do idir=sdim,3
-      if(lvc(idim1,idim2,idir)==1)then
-         ECC(ixI^S,idir)=ECC(ixI^S,idir)+Btot(ixI^S,idim1)*wp(ixI^S,mom(idim2))
-      else if(lvc(idim1,idim2,idir)==-1) then
-         ECC(ixI^S,idir)=ECC(ixI^S,idir)-Btot(ixI^S,idim1)*wp(ixI^S,mom(idim2))
-      endif
-    enddo; enddo; enddo
 
     ! if there is resistivity, get eta J
     if(mhd_eta/=zero) call get_resistive_electric_field(ixI^L,ixO^L,sCT,s,E_resi)
@@ -7172,83 +7157,104 @@ contains
     ! if there is ambipolar diffusion, get E_ambi
     if(mhd_ambipolar_exp) call get_ambipolar_electric_field(ixI^L,ixO^L,sCT%w,x,E_ambi)
 
+   {do ix^DB=ixImin^DB,ixImax^DB\}
+      if(B0field) then
+        Btot(1:ndim)=wp(ix^D,mag(1:ndim))+block%B0(ix^D,1:ndim,0)
+      else
+        Btot(1:ndim)=wp(ix^D,mag(1:ndim))
+      end if
+      ! Calculate electric field at cell centers
+     {^IFTHREED
+      ECC(ix^D,1)=Btot(2)*wp(ix^D,mom(3))-Btot(3)*wp(ix^D,mom(2))
+      ECC(ix^D,2)=Btot(3)*wp(ix^D,mom(1))-Btot(1)*wp(ix^D,mom(3))
+      ECC(ix^D,3)=Btot(1)*wp(ix^D,mom(2))-Btot(2)*wp(ix^D,mom(1))
+     }
+     {^NOTHREED
+      ECC(ix^D,3)=Btot(1)*wp(ix^D,mom(2))-Btot(2)*wp(ix^D,mom(1))
+     }
+   {end do\}
+
     ! Calculate contribution to FEM of each edge,
     ! that is, estimate value of line integral of
     ! electric field in the positive idir direction.
     ! evaluate electric field along cell edges according to equation (41)
     do idim1=1,ndim
       iwdim1 = mag(idim1)
+      i1kr^D=kr(idim1,^D);
       do idim2=1,ndim
         iwdim2 = mag(idim2)
+        i2kr^D=kr(idim2,^D);
         do idir=sdim,3 ! Direction of line integral
           ! Allow only even permutations
           if (lvc(idim1,idim2,idir)==1) then
             ixCmax^D=ixOmax^D;
             ixCmin^D=ixOmin^D+kr(idir,^D)-1;
             ! Assemble indices
-            jxC^L=ixC^L+kr(idim1,^D);
-            hxC^L=ixC^L+kr(idim2,^D);
             ! average cell-face electric field to cell edges
-            fE(ixC^S,idir)=quarter*&
-            (fC(ixC^S,iwdim1,idim2)+fC(jxC^S,iwdim1,idim2)&
-            -fC(ixC^S,iwdim2,idim1)-fC(hxC^S,iwdim2,idim1))
-            if(partial_energy) Ein(ixC^S,idir)=fE(ixC^S,idir)
-
+           {do ix^DB=ixCmin^DB,ixCmax^DB\}
+              fE(ix^D,idir)=quarter*&
+              (fC(ix^D,iwdim1,idim2)+fC({ix^D+i1kr^D},iwdim1,idim2)&
+              -fC(ix^D,iwdim2,idim1)-fC({ix^D+i2kr^D},iwdim2,idim1))
+              if(partial_energy) Ein(ix^D,idir)=fE(ix^D,idir)
+           {end do\}
             ! add slope in idim2 direction from equation (50)
             ixAmin^D=ixCmin^D;
-            ixAmax^D=ixCmax^D+kr(idim1,^D);
-            EL(ixA^S)=fC(ixA^S,iwdim1,idim2)-ECC(ixA^S,idir)
-            hxC^L=ixA^L+kr(idim2,^D);
-            ER(ixA^S)=fC(ixA^S,iwdim1,idim2)-ECC(hxC^S,idir)
-            where(vnorm(ixC^S,idim1)>0.d0)
-              ELC(ixC^S)=EL(ixC^S)
-            else where(vnorm(ixC^S,idim1)<0.d0)
-              ELC(ixC^S)=EL(jxC^S)
-            else where
-              ELC(ixC^S)=0.5d0*(EL(ixC^S)+EL(jxC^S))
-            end where
-            hxC^L=ixC^L+kr(idim2,^D);
-            where(vnorm(hxC^S,idim1)>0.d0)
-              ERC(ixC^S)=ER(ixC^S)
-            else where(vnorm(hxC^S,idim1)<0.d0)
-              ERC(ixC^S)=ER(jxC^S)
-            else where
-              ERC(ixC^S)=0.5d0*(ER(ixC^S)+ER(jxC^S))
-            end where
-            fE(ixC^S,idir)=fE(ixC^S,idir)+0.25d0*(ELC(ixC^S)+ERC(ixC^S))
+            ixAmax^D=ixCmax^D+i1kr^D;
+           {do ix^DB=ixAmin^DB,ixAmax^DB\}
+              EL(ix^D)=fC(ix^D,iwdim1,idim2)-ECC(ix^D,idir)
+              ER(ix^D)=fC(ix^D,iwdim1,idim2)-ECC({ix^D+i2kr^D},idir)
+           {end do\}
+           {do ix^DB=ixCmin^DB,ixCmax^DB\}
+              if(vnorm(ix^D,idim1)>0.d0) then
+                ELC=EL(ix^D)
+              else if(vnorm(ix^D,idim1)<0.d0) then
+                ELC=EL({ix^D+i1kr^D})
+              else
+                ELC=0.5d0*(EL(ix^D)+EL({ix^D+i1kr^D}))
+              end if
+              if(vnorm({ix^D+i2kr^D},idim1)>0.d0) then
+                ERC=ER(ix^D)
+              else if(vnorm({ix^D+i2kr^D},idim1)<0.d0) then
+                ERC=ER({ix^D+i1kr^D})
+              else
+                ERC=0.5d0*(ER(ix^D)+ER({ix^D+i1kr^D}))
+              end if
+              fE(ix^D,idir)=fE(ix^D,idir)+0.25d0*(ELC+ERC)
+           {end do\}
 
             ! add slope in idim1 direction from equation (50)
-            jxC^L=ixC^L+kr(idim2,^D);
             ixAmin^D=ixCmin^D;
-            ixAmax^D=ixCmax^D+kr(idim2,^D);
-            EL(ixA^S)=-fC(ixA^S,iwdim2,idim1)-ECC(ixA^S,idir)
-            hxC^L=ixA^L+kr(idim1,^D);
-            ER(ixA^S)=-fC(ixA^S,iwdim2,idim1)-ECC(hxC^S,idir)
-            where(vnorm(ixC^S,idim2)>0.d0)
-              ELC(ixC^S)=EL(ixC^S)
-            else where(vnorm(ixC^S,idim2)<0.d0)
-              ELC(ixC^S)=EL(jxC^S)
-            else where
-              ELC(ixC^S)=0.5d0*(EL(ixC^S)+EL(jxC^S))
-            end where
-            hxC^L=ixC^L+kr(idim1,^D);
-            where(vnorm(hxC^S,idim2)>0.d0)
-              ERC(ixC^S)=ER(ixC^S)
-            else where(vnorm(hxC^S,idim2)<0.d0)
-              ERC(ixC^S)=ER(jxC^S)
-            else where
-              ERC(ixC^S)=0.5d0*(ER(ixC^S)+ER(jxC^S))
-            end where
-            fE(ixC^S,idir)=fE(ixC^S,idir)+0.25d0*(ELC(ixC^S)+ERC(ixC^S))
-            ! difference between average and upwind interpolated E
-            if(partial_energy) Ein(ixC^S,idir)=fE(ixC^S,idir)-Ein(ixC^S,idir)
-            ! add resistive electric field at cell edges E=-vxB+eta J
-            if(mhd_eta/=zero) fE(ixC^S,idir)=fE(ixC^S,idir)+E_resi(ixC^S,idir)
-            ! add ambipolar electric field
-            if(mhd_ambipolar_exp) fE(ixC^S,idir)=fE(ixC^S,idir)+E_ambi(ixC^S,idir)
+            ixAmax^D=ixCmax^D+i2kr^D;
+           {do ix^DB=ixAmin^DB,ixAmax^DB\}
+              EL(ix^D)=-fC(ix^D,iwdim2,idim1)-ECC(ix^D,idir)
+              ER(ix^D)=-fC(ix^D,iwdim2,idim1)-ECC({ix^D+i1kr^D},idir)
+           {end do\}
+           {do ix^DB=ixCmin^DB,ixCmax^DB\}
+              if(vnorm(ix^D,idim2)>0.d0) then
+                ELC=EL(ix^D)
+              else if(vnorm(ix^D,idim2)<0.d0) then
+                ELC=EL({ix^D+i2kr^D})
+              else
+                ELC=0.5d0*(EL(ix^D)+EL({ix^D+i2kr^D}))
+              end if
+              if(vnorm({ix^D+i1kr^D},idim2)>0.d0) then
+                ERC=ER(ix^D)
+              else if(vnorm({ix^D+i1kr^D},idim2)<0.d0) then
+                ERC=ER({ix^D+i2kr^D})
+              else
+                ERC=0.5d0*(ER(ix^D)+ER({ix^D+i2kr^D}))
+              end if
+              fE(ix^D,idir)=fE(ix^D,idir)+0.25d0*(ELC+ERC)
+              ! difference between average and upwind interpolated E
+              if(partial_energy) Ein(ix^D,idir)=fE(ix^D,idir)-Ein(ix^D,idir)
+              ! add resistive electric field at cell edges E=-vxB+eta J
+              if(mhd_eta/=zero) fE(ix^D,idir)=fE(ix^D,idir)+E_resi(ix^D,idir)
+              ! add ambipolar electric field
+              if(mhd_ambipolar_exp) fE(ix^D,idir)=fE(ix^D,idir)+E_ambi(ix^D,idir)
 
-            ! times time step and edge length
-            fE(ixC^S,idir)=fE(ixC^S,idir)*qdt*s%dsC(ixC^S,idir)
+              ! times time step and edge length
+              fE(ix^D,idir)=fE(ix^D,idir)*qdt*s%dsC(ix^D,idir)
+           {end do\}
           end if
         end do
       end do
@@ -7264,11 +7270,11 @@ contains
             if (lvc(idim1,idim2,idir)==0) cycle
             ixCmax^D=ixOmax^D;
             ixCmin^D=ixOmin^D+kr(idir,^D)-1;
-            ixBmax^D=ixCmax^D-kr(idir,^D)+1;
-            ixBmin^D=ixCmin^D;
+            ixAmax^D=ixCmax^D-kr(idir,^D)+1;
+            ixAmin^D=ixCmin^D;
             ! current at transverse faces
-            xs(ixB^S,:)=x(ixB^S,:)
-            xs(ixB^S,idim2)=x(ixB^S,idim2)+half*s%dx(ixB^S,idim2)
+            xs(ixA^S,:)=x(ixA^S,:)
+            xs(ixA^S,idim2)=x(ixA^S,idim2)+half*s%dx(ixA^S,idim2)
             call gradientx(wCTs(ixGs^T,idim2),xs,ixGs^LL,ixC^L,idim1,gradi,.false.)
             if (lvc(idim1,idim2,idir)==1) then
               jce(ixC^S,idir)=jce(ixC^S,idir)+gradi(ixC^S)
@@ -7278,26 +7284,49 @@ contains
           end do
         end do
       end do
-      if(nwextra>0) block%w(ixO^S,nw)=0.d0
       do idir=sdim,3
         ixCmax^D=ixOmax^D;
         ixCmin^D=ixOmin^D+kr(idir,^D)-1;
         ! E dot J on cell edges
         Ein(ixC^S,idir)=Ein(ixC^S,idir)*jce(ixC^S,idir)
         ! average from cell edge to cell center
-        jce(ixI^S,idir)=0.d0
-        {do ix^DB=-1,0\}
-           if({ ix^D==-1 .and. ^D==idir | .or.}) cycle
-           ixAmin^D=ixOmin^D+ix^D;
-           ixAmax^D=ixOmax^D+ix^D;
-           jce(ixO^S,idir)=jce(ixO^S,idir)+Ein(ixA^S,idir)
-        {end do\}
-        where(jce(ixO^S,idir)<0.d0)
-          jce(ixO^S,idir)=0.d0
-        end where
+       {^IFTHREED
+        if(idir==1) then
+         {do ix^DB=ixOmin^DB,ixOmax^DB\}
+            jce(ix^D,idir)=0.25d0*(Ein(ix^D,idir)+Ein(ix1,ix2-1,ix3,idir)+Ein(ix1,ix2,ix3-1,idir)&
+                          +Ein(ix1,ix2-1,ix3-1,idir))
+            if(jce(ix^D,idir)<0.d0) jce(ix^D,idir)=0.d0
+            w(ix^D,e_)=w(ix^D,e_)+qdt*jce(ix^D,idir)
+         {end do\}
+        else if(idir==2) then
+         {do ix^DB=ixOmin^DB,ixOmax^DB\}
+            jce(ix^D,idir)=0.25d0*(Ein(ix^D,idir)+Ein(ix1-1,ix2,ix3,idir)+Ein(ix1,ix2,ix3-1,idir)&
+                          +Ein(ix1-1,ix2,ix3-1,idir))
+            if(jce(ix^D,idir)<0.d0) jce(ix^D,idir)=0.d0
+            w(ix^D,e_)=w(ix^D,e_)+qdt*jce(ix^D,idir)
+         {end do\}
+        else
+         {do ix^DB=ixOmin^DB,ixOmax^DB\}
+            jce(ix^D,idir)=0.25d0*(Ein(ix^D,idir)+Ein(ix1-1,ix2,ix3,idir)+Ein(ix1,ix2-1,ix3,idir)&
+                          +Ein(ix1-1,ix2-1,ix3,idir))
+            if(jce(ix^D,idir)<0.d0) jce(ix^D,idir)=0.d0
+            w(ix^D,e_)=w(ix^D,e_)+qdt*jce(ix^D,idir)
+         {end do\}
+        end if
+       }
+       {^IFTWOD
+        !idir=3
+       {do ix^DB=ixOmin^DB,ixOmax^DB\}
+          jce(ix^D,idir)=0.25d0*(Ein(ix^D,idir)+Ein(ix1-1,ix2,idir)+Ein(ix1,ix2-1,idir)&
+                        +Ein(ix1-1,ix2-1,idir))
+          if(jce(ix^D,idir)<0.d0) jce(ix^D,idir)=0.d0
+          w(ix^D,e_)=w(ix^D,e_)+qdt*jce(ix^D,idir)
+       {end do\}
+       }
         ! save additional numerical resistive heating to an extra variable
-        if(nwextra>0) block%w(ixO^S,nw)=block%w(ixO^S,nw)+0.25d0*jce(ixO^S,idir)
-        w(ixO^S,e_)=w(ixO^S,e_)+qdt*0.25d0*jce(ixO^S,idir)
+        if(nwextra>0) then
+          block%w(ixO^S,nw)=block%w(ixO^S,nw)+jce(ixO^S,idir)
+        end if
       end do
     end if
 
@@ -7312,15 +7341,19 @@ contains
       ixCmax^D=ixOmax^D;
       ixCmin^D=ixOmin^D-kr(idim1,^D);
       do idim2=1,ndim
+        ixA^L=ixC^L-kr(idim2,^D);
         do idir=sdim,3 ! Direction of line integral
           ! Assemble indices
-          if(lvc(idim1,idim2,idir)/=0) then
-            hxC^L=ixC^L-kr(idim2,^D);
+          if(lvc(idim1,idim2,idir)==1) then
             ! Add line integrals in direction idir
             circ(ixC^S,idim1)=circ(ixC^S,idim1)&
-                             +lvc(idim1,idim2,idir)&
-                             *(fE(ixC^S,idir)&
-                              -fE(hxC^S,idir))
+                             +(fE(ixC^S,idir)&
+                              -fE(ixA^S,idir))
+          else if(lvc(idim1,idim2,idir)==-1) then
+            ! Add line integrals in direction idir
+            circ(ixC^S,idim1)=circ(ixC^S,idim1)&
+                             -(fE(ixC^S,idir)&
+                              -fE(ixA^S,idir))
           end if
         end do
       end do
