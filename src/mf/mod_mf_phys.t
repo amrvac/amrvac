@@ -538,29 +538,23 @@ contains
     double precision, intent(in) :: x(ixI^S,1:ndim)
     double precision,intent(out) :: f(ixI^S,nwflux)
 
-    integer                      :: idir
+    integer                      :: idir, ix^D
 
-    ! flux of velocity field is zero, frictional velocity is given in addsource2
-    f(ixO^S,mom(:))=0.d0
-
-    ! compute flux of magnetic field
-    ! f_i[b_k]=v_i*b_k-v_k*b_i
     do idir=1,ndir
-      if (idim==idir) then
-        ! f_i[b_i] should be exactly 0, so we do not use the transport flux
-        if (mf_glm) then
-           f(ixO^S,mag(idir))=w(ixO^S,psi_)
-        else
-           f(ixO^S,mag(idir))=zero
-        end if
-      else
-        f(ixO^S,mag(idir))=w(ixO^S,mom(idim))*w(ixO^S,mag(idir))-w(ixO^S,mag(idim))*w(ixO^S,mom(idir))
-      end if
+     {do ix^DB=ixOmin^DB,ixOmax^DB\}
+        ! flux of velocity field is zero, frictional velocity is given in addsource2
+        f(ix^D,mom(idir))=0.d0
+        ! compute flux of magnetic field
+        ! f_i[b_k]=v_i*b_k-v_k*b_i
+        f(ix^D,mag(idir))=w(ix^D,mom(idim))*w(ix^D,mag(idir))-w(ix^D,mag(idim))*w(ix^D,mom(idir))
+     {end do\}
     end do
-
-    if (mf_glm) then
-      !f_i[psi]=Ch^2*b_{i} Eq. 24e and Eq. 38c Dedner et al 2002 JCP, 175, 645
-      f(ixO^S,psi_)  = cmax_global**2*w(ixO^S,mag(idim))
+    if(mf_glm) then
+     {do ix^DB=ixOmin^DB,ixOmax^DB\}
+        f(ix^D,mag(idim))=w(ix^D,psi_)
+        !f_i[psi]=Ch^2*b_{i} Eq. 24e and Eq. 38c Dedner et al 2002 JCP, 175, 645
+        f(ix^D,psi_)=cmax_global**2*w(ix^D,mag(idim))
+     {end do\}
     end if
 
   end subroutine mf_get_flux
