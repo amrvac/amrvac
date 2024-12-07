@@ -33,6 +33,7 @@ contains
 
     if (.not.crash) then
       do iw=1,nw
+       !dir$ ivdep
        {do ix^DB= ixO^LIM^DB\}
           if(w_flag(ix^D,iw)) then
             write(*,*) "Error: small value of ", trim(prim_wnames(iw)),wprim(ix^D,iw),&

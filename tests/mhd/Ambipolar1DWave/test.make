@@ -1,4 +1,4 @@
-SETUP_FLAGS := -d=1
+SETUP_FLAGS := -d=1 -v=3
 TESTS := ambi.log \
 
 ambi.log: amrvac.par

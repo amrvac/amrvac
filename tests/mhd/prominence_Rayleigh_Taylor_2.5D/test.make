@@ -1,4 +1,4 @@
-SETUP_FLAGS := -d=2
+SETUP_FLAGS := -d=2 -v=3
 SCHEME_DIR := ../../schemes
 TESTS := promRT_25D.log
 

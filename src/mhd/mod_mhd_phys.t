@@ -67,8 +67,12 @@ module mod_mhd_phys
   integer, public, protected              :: rho_
   !> Indices of the momentum density
   integer, allocatable, public, protected :: mom(:)
+  !> Indices of the momentum density for the form of better vectorization
+  integer, public, protected              :: ^C&m^C_
   !> Index of the energy density (-1 if not present)
   integer, public, protected              :: e_
+  !> Indices of the momentum density for the form of better vectorization
+  integer, public, protected              :: ^C&b^C_
   !> Index of the gas pressure (-1 if not present) should equal e_
   integer, public, protected              :: p_
   !> Index of the heat flux q
@@ -459,6 +463,7 @@ contains
 
     allocate(mom(ndir))
     mom(:) = var_set_momentum(ndir)
+    m^C_=mom(^C);
 
     ! Set index of energy variable
     if (mhd_energy) then
@@ -473,6 +478,7 @@ contains
 
     allocate(mag(ndir))
     mag(:) = var_set_bfield(ndir)
+    b^C_=mag(^C);
 
     if (mhd_glm) then
       psi_ = var_set_fluxvar('psi', 'psi', need_bc=.false.)
@@ -3821,60 +3827,81 @@ contains
     double precision             :: ptotal
     integer                      :: idir, ix^D
 
-    if (mhd_Hall) then
-      call mhd_getv_Hall(w,x,ixI^L,ixO^L,vHall)
-    end if
-
-   {do ix^DB=ixOmin^DB,ixOmax^DB\}
-      ! Get flux of density
-      f(ix^D,rho_)=w(ix^D,mom(idim))*w(ix^D,rho_)
-      ptotal=w(ix^D,p_)+half*sum(w(ix^D,mag(1:ndir))**2)
-      f(ix^D,mom(1:ndir))=0.d0
-      f(ix^D,mom(idim))=ptotal
+    do idir=1,ndir
+      {!dir$ vector aligned
+      do ix^DB=ixOmin^DB,ixOmax^DB\}
       ! Get flux of momentum and magnetic field
-      do idir=1,ndir
         ! f_i[m_k]=v_i*m_k-b_k*b_i
-        f(ix^D,mom(idir))=f(ix^D,mom(idir))+wC(ix^D,mom(idim))*w(ix^D,mom(idir))-w(ix^D,mag(idim))*w(ix^D,mag(idir))
+        f(ix^D,mom(idir))=wC(ix^D,mom(idim))*w(ix^D,mom(idir))-w(ix^D,mag(idim))*w(ix^D,mag(idir))
         ! f_i[b_k]=v_i*b_k-v_k*b_i
         f(ix^D,mag(idir))=w(ix^D,mom(idim))*w(ix^D,mag(idir))-w(ix^D,mag(idim))*w(ix^D,mom(idir))
-        if (mhd_Hall) then
+     {end do\}
+    end do
+    if(mhd_internal_e) then
+     {!dir$ vector aligned
+      do ix^DB=ixOmin^DB,ixOmax^DB\}
+        ! Get flux of density
+        f(ix^D,rho_)=w(ix^D,mom(idim))*w(ix^D,rho_)
+        ! normal one includes total pressure
+        f(ix^D,mom(idim))=f(ix^D,mom(idim))+w(ix^D,p_)+half*(^C&w(ix^D,b^C_)**2+)
+        ! Get flux of internal energy
+        f(ix^D,e_)=w(ix^D,mom(idim))*wC(ix^D,e_)
+     {end do\}
+    else
+     {!dir$ vector aligned
+      do ix^DB=ixOmin^DB,ixOmax^DB\}
+        ! Get flux of density
+        f(ix^D,rho_)=w(ix^D,mom(idim))*w(ix^D,rho_)
+        ptotal=w(ix^D,p_)+half*(^C&w(ix^D,b^C_)**2+)
+        ! normal one includes total pressure
+        f(ix^D,mom(idim))=f(ix^D,mom(idim))+ptotal
+        ! Get flux of total energy
+        ! f_i[e]=v_i*e+v_i*ptotal-b_i*(b_k*v_k)
+        f(ix^D,e_)=w(ix^D,mom(idim))*(wC(ix^D,e_)+ptotal)&
+           -w(ix^D,mag(idim))*(^C&w(ix^D,b^C_)*w(ix^D,m^C_)+)
+     {end do\}
+    end if
+    if(mhd_Hall) then
+      call mhd_getv_Hall(w,x,ixI^L,ixO^L,vHall)
+      do idir=1,ndir
+        {!dir$ vector aligned
+        do ix^DB=ixOmin^DB,ixOmax^DB\}
+          if(.not.mhd_internal_e) then
+            ! f_i[e]= f_i[e] + vHall_i*(b_k*b_k) - b_i*(vHall_k*b_k)
+            f(ix^D,e_) = f(ix^D,e_) + vHall(ix^D,idim) * &
+               (^C&w(ix^D,b^C_)**2+) &
+               - w(ix^D,mag(idim)) *(^C&vHall(ix^D,^C)*w(ix^D,b^C_)+)
+          end if
           ! f_i[b_k] = f_i[b_k] + vHall_i*b_k - vHall_k*b_i
           f(ix^D,mag(idir)) = f(ix^D,mag(idir)) &
                + vHall(ix^D,idim)*w(ix^D,mag(idir)) &
                - vHall(ix^D,idir)*w(ix^D,mag(idim))
-        end if
+       {end do\}
       end do
-      if(mhd_glm) then
+    end if
+    if(mhd_glm) then
+      {!dir$ vector aligned
+      do ix^DB=ixOmin^DB,ixOmax^DB\}
         f(ix^D,mag(idim))=w(ix^D,psi_)
         !f_i[psi]=Ch^2*b_{i} Eq. 24e and Eq. 38c Dedner et al 2002 JCP, 175, 645
         f(ix^D,psi_) = cmax_global**2*w(ix^D,mag(idim))
-      end if
-
-      ! Get flux of energy
-      ! f_i[e]=v_i*e+v_i*ptotal-b_i*(b_k*v_k)
-      if(mhd_internal_e) then
-        f(ix^D,e_)=w(ix^D,mom(idim))*wC(ix^D,e_)
-      else
-        f(ix^D,e_)=w(ix^D,mom(idim))*(wC(ix^D,e_)+ptotal)&
-           -w(ix^D,mag(idim))*sum(w(ix^D,mag(1:ndir))*w(ix^D,mom(1:ndir)))
-        if(mhd_Hall) then
-        ! f_i[e]= f_i[e] + vHall_i*(b_k*b_k) - b_i*(vHall_k*b_k)
-          f(ix^D,e_) = f(ix^D,e_) + vHall(ix^D,idim) * &
-             sum(w(ix^D, mag(1:ndir))**2) &
-             - w(ix^D,mag(idim)) * sum(vHall(ix^D,1:ndir)*w(ix^D,mag(1:ndir)))
-        end if
-      end if
-
-      if(mhd_hyperbolic_thermal_conduction) then
-        f(ix^D,e_)=f(ix^D,e_)+w(ix^D,q_)*w(ix^D,mag(idim))/(dsqrt(sum(w(ix^D,mag(1:ndim))**2))+smalldouble)
-        f(ix^D,q_)=zero
-      end if
-
-      ! Get flux of tracer
-      do idir=1,mhd_n_tracer
+     {end do\}
+    end if
+    ! Get flux of tracer
+    do idir=1,mhd_n_tracer
+      {!dir$ vector aligned
+      do ix^DB=ixOmin^DB,ixOmax^DB\}
         f(ix^D,tracer(idir))=w(ix^D,mom(idim))*w(ix^D,tracer(idir))
-      end do
-   {end do\}
+     {end do\}
+    end do
+
+    if(mhd_hyperbolic_thermal_conduction) then
+      {!dir$ vector aligned
+      do ix^DB=ixOmin^DB,ixOmax^DB\}
+        f(ix^D,e_)=f(ix^D,e_)+w(ix^D,q_)*w(ix^D,mag(idim))/(dsqrt(^D&w({ix^D},b^D_)**2+)+smalldouble)
+        f(ix^D,q_)=zero
+     {end do\}
+    end if
 
   end subroutine mhd_get_flux
 
@@ -3898,34 +3925,49 @@ contains
       call mhd_getv_Hall(w,x,ixI^L,ixO^L,vHall)
     end if
 
-   {do ix^DB=ixOmin^DB,ixOmax^DB\}
-      ! Get flux of density
-      f(ix^D,rho_)=w(ix^D,mom(idim))*w(ix^D,rho_)
-      f(ix^D,mom(1:ndir))=0.d0
-      f(ix^D,mom(idim))=mhd_adiab*w(ix^D,rho_)**mhd_gamma+half*sum(w(ix^D,mag(1:ndir))**2)
+    do idir=1,ndir
+      {!dir$ vector aligned
+      do ix^DB=ixOmin^DB,ixOmax^DB\}
       ! Get flux of momentum and magnetic field
-      do idir=1,ndir
         ! f_i[m_k]=v_i*m_k-b_k*b_i
-        f(ix^D,mom(idir))=f(ix^D,mom(idir))+wC(ix^D,mom(idim))*w(ix^D,mom(idir))-w(ix^D,mag(idim))*w(ix^D,mag(idir))
+        f(ix^D,mom(idir))=wC(ix^D,mom(idim))*w(ix^D,mom(idir))-w(ix^D,mag(idim))*w(ix^D,mag(idir))
         ! f_i[b_k]=v_i*b_k-v_k*b_i
         f(ix^D,mag(idir))=w(ix^D,mom(idim))*w(ix^D,mag(idir))-w(ix^D,mag(idim))*w(ix^D,mom(idir))
-        if (mhd_Hall) then
+     {end do\}
+    end do
+   {!dir$ vector aligned
+    do ix^DB=ixOmin^DB,ixOmax^DB\}
+      ! Get flux of density
+      f(ix^D,rho_)=w(ix^D,mom(idim))*w(ix^D,rho_)
+      ! normal one includes total pressure
+      f(ix^D,mom(idim))=f(ix^D,mom(idim))+mhd_adiab*w(ix^D,rho_)**mhd_gamma+half*(^C&w(ix^D,b^C_)**2+)
+   {end do\}
+    if(mhd_Hall) then
+      do idir=1,ndir
+        {!dir$ vector aligned
+        do ix^DB=ixOmin^DB,ixOmax^DB\}
           ! f_i[b_k] = f_i[b_k] + vHall_i*b_k - vHall_k*b_i
           f(ix^D,mag(idir)) = f(ix^D,mag(idir)) &
                + vHall(ix^D,idim)*w(ix^D,mag(idir)) &
                - vHall(ix^D,idir)*w(ix^D,mag(idim))
-        end if
+       {end do\}
       end do
-      if(mhd_glm) then
+    end if
+    if(mhd_glm) then
+      {!dir$ vector aligned
+      do ix^DB=ixOmin^DB,ixOmax^DB\}
         f(ix^D,mag(idim))=w(ix^D,psi_)
         !f_i[psi]=Ch^2*b_{i} Eq. 24e and Eq. 38c Dedner et al 2002 JCP, 175, 645
         f(ix^D,psi_) = cmax_global**2*w(ix^D,mag(idim))
-      end if
-      ! Get flux of tracer
-      do idir=1,mhd_n_tracer
+     {end do\}
+    end if
+    ! Get flux of tracer
+    do idir=1,mhd_n_tracer
+      {!dir$ vector aligned
+      do ix^DB=ixOmin^DB,ixOmax^DB\}
         f(ix^D,tracer(idir))=w(ix^D,mom(idim))*w(ix^D,tracer(idir))
-      end do
-   {end do\}
+     {end do\}
+    end do
 
   end subroutine mhd_get_flux_noe
 
@@ -3949,45 +3991,59 @@ contains
       call mhd_getv_Hall(w,x,ixI^L,ixO^L,vHall)
     end if
 
-   {do ix^DB=ixOmin^DB,ixOmax^DB\}
-      ! Get flux of density
-      f(ix^D,rho_)=w(ix^D,mom(idim))*w(ix^D,rho_)
-
-      f(ix^D,mom(1:ndir))=0.d0
-      f(ix^D,mom(idim))=w(ix^D,p_)+half*sum(w(ix^D,mag(1:ndir))**2)
+    do idir=1,ndir
+      {!dir$ vector aligned
+      do ix^DB=ixOmin^DB,ixOmax^DB\}
       ! Get flux of momentum and magnetic field
-      do idir=1,ndir
         ! f_i[m_k]=v_i*m_k-b_k*b_i
-        f(ix^D,mom(idir))=f(ix^D,mom(idir))+wC(ix^D,mom(idim))*w(ix^D,mom(idir))-w(ix^D,mag(idim))*w(ix^D,mag(idir))
+        f(ix^D,mom(idir))=wC(ix^D,mom(idim))*w(ix^D,mom(idir))-w(ix^D,mag(idim))*w(ix^D,mag(idir))
         ! f_i[b_k]=v_i*b_k-v_k*b_i
         f(ix^D,mag(idir))=w(ix^D,mom(idim))*w(ix^D,mag(idir))-w(ix^D,mag(idim))*w(ix^D,mom(idir))
-        if (mhd_Hall) then
+     {end do\}
+    end do
+   {!dir$ vector aligned
+    do ix^DB=ixOmin^DB,ixOmax^DB\}
+      ! Get flux of density
+      f(ix^D,rho_)=w(ix^D,mom(idim))*w(ix^D,rho_)
+      ! normal one includes total pressure
+      f(ix^D,mom(idim))=f(ix^D,mom(idim))+w(ix^D,p_)+half*(^C&w(ix^D,b^C_)**2+)
+      ! Get flux of energy
+      f(ix^D,e_)=w(ix^D,mom(idim))*(wC(ix^D,e_)+w(ix^D,p_))
+   {end do\}
+    if(mhd_Hall) then
+      do idir=1,ndir
+        {!dir$ vector aligned
+        do ix^DB=ixOmin^DB,ixOmax^DB\}
           ! f_i[b_k] = f_i[b_k] + vHall_i*b_k - vHall_k*b_i
           f(ix^D,mag(idir)) = f(ix^D,mag(idir)) &
                + vHall(ix^D,idim)*w(ix^D,mag(idir)) &
                - vHall(ix^D,idir)*w(ix^D,mag(idim))
-        end if
+       {end do\}
       end do
-
-      if(mhd_glm) then
-        !f_i[psi]=Ch^2*b_{i} Eq. 24e and Eq. 38c Dedner et al 2002 JCP, 175, 645
+    end if
+    if(mhd_glm) then
+      {!dir$ vector aligned
+      do ix^DB=ixOmin^DB,ixOmax^DB\}
         f(ix^D,mag(idim))=w(ix^D,psi_)
+        !f_i[psi]=Ch^2*b_{i} Eq. 24e and Eq. 38c Dedner et al 2002 JCP, 175, 645
         f(ix^D,psi_) = cmax_global**2*w(ix^D,mag(idim))
-      end if
-
-      ! Get flux of energy
-      f(ix^D,e_)=w(ix^D,mom(idim))*(wC(ix^D,e_)+w(ix^D,p_))
-
-      if(mhd_hyperbolic_thermal_conduction) then
-        f(ix^D,e_)=f(ix^D,e_)+w(ix^D,q_)*w(ix^D,mag(idim))/(dsqrt(sum(w(ix^D,mag(1:ndim))**2))+smalldouble)
-        f(ix^D,q_)=zero
-      end if
-
-      ! Get flux of tracer
-      do idir=1,mhd_n_tracer
+     {end do\}
+    end if
+    ! Get flux of tracer
+    do idir=1,mhd_n_tracer
+      {!dir$ vector aligned
+      do ix^DB=ixOmin^DB,ixOmax^DB\}
         f(ix^D,tracer(idir))=w(ix^D,mom(idim))*w(ix^D,tracer(idir))
-      end do
-   {end do\}
+     {end do\}
+    end do
+
+    if(mhd_hyperbolic_thermal_conduction) then
+      {!dir$ vector aligned
+      do ix^DB=ixOmin^DB,ixOmax^DB\}
+        f(ix^D,e_)=f(ix^D,e_)+w(ix^D,q_)*w(ix^D,mag(idim))/(dsqrt(^D&w({ix^D},b^D_)**2+)+smalldouble)
+        f(ix^D,q_)=zero
+     {end do\}
+    end if
 
   end subroutine mhd_get_flux_hde
 
@@ -4118,93 +4174,140 @@ contains
     double precision, intent(in) :: x(ixI^S,1:ndim)
     double precision,intent(out) :: f(ixI^S,nwflux)
 
-    double precision             :: SA(1:3), E(1:3), B(1:ndir)
+    double precision             :: SA(1:3), E(ixO^S,1:3), B(ixO^S,1:ndir)
     integer                      :: iw, idir, ix^D
 
-   {do ix^DB=ixOmin^DB,ixOmax^DB\}
-      if(B0field) then
-        B(1:ndir)=w(ix^D,mag(1:ndir))+block%B0(ix^D,1:ndir,idim)
-      else
-        B(1:ndir)=w(ix^D,mag(1:ndir))
-      end if
-      ! E=Bxv
-      {^IFTHREED
-      E(1)=B(2)*w(ix^D,mom(3))-B(3)*w(ix^D,mom(2))
-      E(2)=B(3)*w(ix^D,mom(1))-B(1)*w(ix^D,mom(3))
-      E(3)=B(1)*w(ix^D,mom(2))-B(2)*w(ix^D,mom(1))
-      }
-      {^NOTHREED
-      if(ndir==3) then
-        E(1)=B(2)*w(ix^D,mom(3))-B(3)*w(ix^D,mom(2))
-        E(2)=B(3)*w(ix^D,mom(1))-B(1)*w(ix^D,mom(3))
-      else
-        E(1:2)=zero
-      end if
-      E(3)=B(1)*w(ix^D,mom(2))-B(2)*w(ix^D,mom(1))
-      }
-      ! Get flux of total energy
-      if(mhd_internal_e) then
-        ! Get flux of internal energy
-        f(ix^D,e_)=w(ix^D,mom(idim))*wC(ix^D,e_)
-      else
-        ! S=ExB
+    if(mhd_internal_e) then
+     {!dir$ vector aligned
+      do ix^DB=ixOmin^DB,ixOmax^DB\}
+        if(B0field) then
+          ^C&b(ix^D,^C)=w(ix^D,b^C_)+block%B0(ix^D,^C,idim)\
+        else
+          ^C&b(ix^D,^C)=w(ix^D,b^C_)\
+        end if
+        ! E=Bxv
         {^IFTHREED
-        SA(1)=E(2)*w(ix^D,mag(3))-E(3)*w(ix^D,mag(2))
-        SA(2)=E(3)*w(ix^D,mag(1))-E(1)*w(ix^D,mag(3))
-        SA(3)=E(1)*w(ix^D,mag(2))-E(2)*w(ix^D,mag(1))
+        E(ix^D,1)=B(ix^D,2)*w(ix^D,mom(3))-B(ix^D,3)*w(ix^D,mom(2))
+        E(ix^D,2)=B(ix^D,3)*w(ix^D,mom(1))-B(ix^D,1)*w(ix^D,mom(3))
+        E(ix^D,3)=B(ix^D,1)*w(ix^D,mom(2))-B(ix^D,2)*w(ix^D,mom(1))
         }
         {^NOTHREED
         if(ndir==3) then
-          SA(1)=E(2)*w(ix^D,mag(3))-E(3)*w(ix^D,mag(2))
-          SA(2)=E(3)*w(ix^D,mag(1))-E(1)*w(ix^D,mag(3))
+          E(ix^D,1)=B(ix^D,2)*w(ix^D,mom(3))-B(ix^D,3)*w(ix^D,mom(2))
+          E(ix^D,2)=B(ix^D,3)*w(ix^D,mom(1))-B(ix^D,1)*w(ix^D,mom(3))
         else
-          SA(1:2)=zero
+          E(ix^D,1)=zero
+          E(ix^D,2)=zero
         end if
-        SA(3)=E(1)*w(ix^D,mag(2))-E(2)*w(ix^D,mag(1))
+        E(ix^D,3)=B(ix^D,1)*w(ix^D,mom(2))-B(ix^D,2)*w(ix^D,mom(1))
         }
-        f(ix^D,e_)=w(ix^D,mom(idim))*(half*w(ix^D,rho_)*sum(w(ix^D,mom(1:ndir))**2)+&
+        ! Get flux of internal energy
+        f(ix^D,e_)=w(ix^D,mom(idim))*wC(ix^D,e_)
+        ! Get flux of density
+        f(ix^D,rho_)=w(ix^D,mom(idim))*w(ix^D,rho_)
+     {end do\}
+    else
+     {!dir$ vector aligned
+      do ix^DB=ixOmin^DB,ixOmax^DB\}
+        if(B0field) then
+          ^C&b(ix^D,^C)=w(ix^D,b^C_)+block%B0(ix^D,^C,idim)\
+        else
+          ^C&b(ix^D,^C)=w(ix^D,b^C_)\
+        end if
+        ! E=Bxv
+        {^IFTHREED
+        E(ix^D,1)=B(ix^D,2)*w(ix^D,mom(3))-B(ix^D,3)*w(ix^D,mom(2))
+        E(ix^D,2)=B(ix^D,3)*w(ix^D,mom(1))-B(ix^D,1)*w(ix^D,mom(3))
+        E(ix^D,3)=B(ix^D,1)*w(ix^D,mom(2))-B(ix^D,2)*w(ix^D,mom(1))
+        }
+        {^NOTHREED
+        if(ndir==3) then
+          E(ix^D,1)=B(ix^D,2)*w(ix^D,mom(3))-B(ix^D,3)*w(ix^D,mom(2))
+          E(ix^D,2)=B(ix^D,3)*w(ix^D,mom(1))-B(ix^D,1)*w(ix^D,mom(3))
+        else
+          E(ix^D,1)=zero
+          E(ix^D,2)=zero
+        end if
+        E(ix^D,3)=B(ix^D,1)*w(ix^D,mom(2))-B(ix^D,2)*w(ix^D,mom(1))
+        }
+        ! S=ExB
+        {^IFTHREED
+        SA(1)=E(ix^D,2)*w(ix^D,mag(3))-E(ix^D,3)*w(ix^D,mag(2))
+        SA(2)=E(ix^D,3)*w(ix^D,mag(1))-E(ix^D,1)*w(ix^D,mag(3))
+        SA(3)=E(ix^D,1)*w(ix^D,mag(2))-E(ix^D,2)*w(ix^D,mag(1))
+        }
+        {^NOTHREED
+        if(ndir==3) then
+          SA(1)=E(ix^D,2)*w(ix^D,mag(3))-E(ix^D,3)*w(ix^D,mag(2))
+          SA(2)=E(ix^D,3)*w(ix^D,mag(1))-E(ix^D,1)*w(ix^D,mag(3))
+        else
+          SA(1)=zero
+          SA(2)=zero
+        end if
+        SA(3)=E(ix^D,1)*w(ix^D,mag(2))-E(ix^D,2)*w(ix^D,mag(1))
+        }
+        ! Get flux of total energy
+        f(ix^D,e_)=w(ix^D,mom(idim))*(half*w(ix^D,rho_)*(^C&w(ix^D,m^C_)**2+)+&
                     mhd_gamma*w(ix^D,p_)*inv_gamma_1)+SA(idim)
-      end if
+        ! Get flux of density
+        f(ix^D,rho_)=w(ix^D,mom(idim))*w(ix^D,rho_)
+     {end do\}
+    end if
 
-      ! Get flux of density
-      f(ix^D,rho_)=w(ix^D,mom(idim))*w(ix^D,rho_)
-
-      ! Get flux of momentum
-      f(ix^D,mom(1:3))=0.d0
-      if(B0field) then
-        ! gas pressure + magnetic pressure + electric pressure
-        f(ix^D,mom(idim))=w(ix^D,p_)+half*(sum(w(ix^D,mag(1:ndir))**2)+&
-                 sum(E(1:3)**2)*inv_squared_c)+sum(w(ix^D,mag(1:ndir))*block%B0(ix^D,1:ndir,idim))
-        do idir=1,ndir
-          f(ix^D,mom(idir))=f(ix^D,mom(idir))+w(ix^D,rho_)*w(ix^D,mom(idim))*w(ix^D,mom(idir))&
-           -w(ix^D,mag(idim))*B(idir)-E(idim)*E(idir)*inv_squared_c&
-           -block%B0(ix^D,idim,idim)*w(ix^D,mag(idir))
-        end do
-      else
-        ! gas pressure + magnetic pressure + electric pressure
-        f(ix^D,mom(idim))=w(ix^D,p_)+half*(sum(w(ix^D,mag(1:ndir))**2)+&
-                 sum(E(1:3)**2)*inv_squared_c)
-        do idir=1,ndir
-          f(ix^D,mom(idir))=f(ix^D,mom(idir))+w(ix^D,rho_)*w(ix^D,mom(idim))*w(ix^D,mom(idir))&
-           -w(ix^D,mag(idim))*w(ix^D,mag(idir))-E(idim)*E(idir)*inv_squared_c
-        end do
-      end if
-
-      ! compute flux of magnetic field
-      ! f_i[b_k]=v_i*b_k-v_k*b_i
+    if(B0field) then
       do idir=1,ndir
-        f(ix^D,mag(idir))=w(ix^D,mom(idim))*B(idir)-B(idim)*w(ix^D,mom(idir))
+       {!dir$ vector aligned
+        do ix^DB=ixOmin^DB,ixOmax^DB\}
+          ! Get flux of momentum
+          f(ix^D,mom(idir))=w(ix^D,rho_)*w(ix^D,mom(idim))*w(ix^D,mom(idir))&
+           -w(ix^D,mag(idim))*B(ix^D,idir)-E(ix^D,idim)*E(ix^D,idir)*inv_squared_c&
+           -block%B0(ix^D,idim,idim)*w(ix^D,mag(idir))
+          ! compute flux of magnetic field
+          ! f_i[b_k]=v_i*b_k-v_k*b_i
+          f(ix^D,mag(idir))=w(ix^D,mom(idim))*B(ix^D,idir)-B(ix^D,idim)*w(ix^D,mom(idir))
+       {end do\}
       end do
-      if(mhd_glm) then
+     {!dir$ vector aligned
+      do ix^DB=ixOmin^DB,ixOmax^DB\}
+        ! gas pressure + magnetic pressure + electric pressure
+        f(ix^D,mom(idim))=f(ix^D,mom(idim))+w(ix^D,p_)+half*((^C&w(ix^D,b^C_)**2+)+&
+                 (^C&e(ix^D,^C)**2+)*inv_squared_c)+(^C&w(ix^D,b^C_)*block%B0(ix^D,^C,idim)+)
+     {end do\}
+    else
+      do idir=1,ndir
+       {!dir$ vector aligned
+        do ix^DB=ixOmin^DB,ixOmax^DB\}
+          ! Get flux of momentum
+          f(ix^D,mom(idir))=w(ix^D,rho_)*w(ix^D,mom(idim))*w(ix^D,mom(idir))&
+           -w(ix^D,mag(idim))*w(ix^D,mag(idir))-E(ix^D,idim)*E(ix^D,idir)*inv_squared_c
+          ! compute flux of magnetic field
+          ! f_i[b_k]=v_i*b_k-v_k*b_i
+          f(ix^D,mag(idir))=w(ix^D,mom(idim))*B(ix^D,idir)-B(ix^D,idim)*w(ix^D,mom(idir))
+       {end do\}
+      end do
+     {!dir$ vector aligned
+      do ix^DB=ixOmin^DB,ixOmax^DB\}
+        ! gas pressure + magnetic pressure + electric pressure
+        f(ix^D,mom(idim))=f(ix^D,mom(idim))+w(ix^D,p_)+half*((^C&b(ix^D,^C)**2+)+&
+                 (^C&e(ix^D,^C)**2+)*inv_squared_c)
+     {end do\}
+    end if
+
+    if(mhd_glm) then
+     {!dir$ vector aligned
+      do ix^DB=ixOmin^DB,ixOmax^DB\}
         f(ix^D,mag(idim))=w(ix^D,psi_)
         !f_i[psi]=Ch^2*b_{i} Eq. 24e and Eq. 38c Dedner et al 2002 JCP, 175, 645
         f(ix^D,psi_)=cmax_global**2*w(ix^D,mag(idim))
-      end if
+     {end do\}
+    end if
       ! Get flux of tracer
-      do iw=1,mhd_n_tracer
+    do iw=1,mhd_n_tracer
+     {!dir$ vector aligned
+      do ix^DB=ixOmin^DB,ixOmax^DB\}
         f(ix^D,tracer(iw))=w(ix^D,mom(idim))*w(ix^D,tracer(iw))
-      end do
-   {end do\}
+     {end do\}
+    end do
 
   end subroutine mhd_get_flux_semirelati
 
@@ -6329,15 +6432,16 @@ contains
 
     double precision :: current(ixI^S,7-2*ndir:3)
     double precision :: rho(ixI^S)
-    integer          :: idir, idirmin
+    integer          :: idir, idirmin, ix^D
 
     call mhd_get_rho(w,x,ixI^L,ixO^L,rho)
     ! Calculate current density and idirmin
     call get_current(w,ixI^L,ixO^L,idirmin,current)
-    vHall(ixO^S,1:3) = zero
-    vHall(ixO^S,idirmin:3) = - mhd_etah*current(ixO^S,idirmin:3)
     do idir = idirmin, 3
-       vHall(ixO^S,idir) = vHall(ixO^S,idir)/rho(ixO^S)
+      {!dir$ vector aligned
+       do ix^DB=ixOmin^DB,ixOmax^DB\}
+         vHall(ix^D,idir)=-mhd_etah*current(ix^D,idir)/rho(ix^D)
+      {end do\}
     end do
 
   end subroutine mhd_getv_Hall

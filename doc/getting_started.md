@@ -21,7 +21,7 @@ In the vac test folder, run the setup script with:
 
 This will copy a makefile to the current folder, set the problem dimension
 to two, and use the default compiler settings, which is mpif90 (gfortran with openMPI).
-To select different compiler settings (present in `amrvac/arch/`)
+To select different compiler settings, check files in `amrvac/arch/`.
 
 Then, to compile the code according to the makefile:
 
