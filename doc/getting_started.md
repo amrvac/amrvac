@@ -23,7 +23,7 @@ This will copy a makefile to the current folder, set the problem dimension
 to two, and use the default compiler settings, which is mpif90 (gfortran with openMPI).
 To select different compiler settings, check files in `amrvac/arch/`.
 
-Then, to compile the code according to the makefile:
+Then, to compile the code according to the makefile with 4 processors:
 
     make -j4
 

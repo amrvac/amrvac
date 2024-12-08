@@ -50,7 +50,7 @@ In the call set_coordinate_system, the argument "Cartesian_2.5D" means using 2-d
 If "Cartesian_1D", 1-dimension 1-vector-component Cartesian.  
 If "Cartesian_2D", 2-dimension 2-vector-component Cartesian.  
 If "Cartesian_3D", 3-dimension 3-vector-component Cartesian.  
-IF number of vector components is larger than dimension number, -v= flag should be set
+If number of vector components is larger than dimension number, -v flag should be set
 consistently during setup.
 
 ## Special boundary {#user_specialbound}
