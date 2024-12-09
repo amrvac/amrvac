@@ -37,7 +37,8 @@ contains
     w(ixO^S,rho_)=1.d0
     w(ixO^S,p_)=1.d0
     xc1=(xprobmin1+xprobmax1)*0.5d0
-    xc2=(xprobmin2+xprobmax2)*0.5d0
+    !xc2=(xprobmin2+xprobmax2)*0.5d0
+    xc2=xprobmin2+(xprobmax2-xprobmin2)*0.1d0
     xc3=(xprobmin3+xprobmax3)*0.5d0
     xcc1=xc1*dsin(xc2)*dcos(xc3)
     xcc2=xc1*dsin(xc2)*dsin(xc3)

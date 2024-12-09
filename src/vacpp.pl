@@ -190,6 +190,8 @@ sub definepatterns{
    &patdef('C'	,$ndir	,1	,2	,3	);
    &patdef('C&'	,$ndir				);
    &patdef('CC'	,$ndir	,'^C'	,'^C'	,'^C'	);
+   &patdef('CE' ,$ndir-1,2      ,3              );
+   &patdef('CE&',$ndir-1                        );
 
    &patdef('LIM'	,2	,'min'	,'max'	);
    &patdef('LLIM'	,2	,'lo'	,'hi'	);
@@ -204,6 +206,11 @@ sub definepatterns{
    &patdef('IFTHREED'	,$ndim==3		);
    &patdef('NOONED'	,$ndim!=1		);
    &patdef('NOTHREED'	,$ndim!=3		);
+   &patdef('IFONEC'     ,$ndir==1               );
+   &patdef('IFTWOC'	,$ndir==2		);
+   &patdef('IFTHREEC'	,$ndir==3		);
+   &patdef('NOONEC'     ,$ndir!=1               );
+   &patdef('NOTHREEC'	,$ndir!=3		);
 }
 #============================================================================
 sub patdef{

@@ -5809,8 +5809,8 @@ contains
     double precision, intent(in)    :: qdt, dtfactor,x(ixI^S,1:ndim)
     double precision, intent(inout) :: wCT(ixI^S,1:nw),wprim(ixI^S,1:nw),w(ixI^S,1:nw)
 
-    double precision :: tmp,tmp1,invr,cs2
-    integer          :: iw,ix^D,idir, h1x^D{^NOONED, h2x^D}
+    double precision :: tmp,tmp1,invr,cot
+    integer          :: ix^D
     integer :: mr_,mphi_ ! Polar var. names
     integer :: br_,bphi_
 
@@ -5828,9 +5828,9 @@ contains
           invr=qdt/x(ix^D,1)
         end if
         if(mhd_energy) then
-          tmp=wprim(ix^D,p_)+half*(sum(wprim(ix^D,mag(1:ndir))**2))
+          tmp=wprim(ix^D,p_)+half*(^C&wprim(ix^D,b^C_)**2+)
         else
-          tmp=mhd_adiab*wprim(ix^D,rho_)**mhd_gamma+half*(sum(wprim(ix^D,mag(1:ndir))**2))
+          tmp=mhd_adiab*wprim(ix^D,rho_)**mhd_gamma+half*(^C&wprim(ix^D,b^C_)**2+)
         end if
         if(phi_>0) then
           w(ix^D,mr_)=w(ix^D,mr_)+invr*(tmp-&
@@ -5857,103 +5857,69 @@ contains
           invr=qdt/x(ix^D,1)
         end if
         if(mhd_energy) then
-          tmp1=wprim(ix^D,p_)+half*(sum(wprim(ix^D,mag(1:ndir))**2))
+          tmp1=wprim(ix^D,p_)+half*(^C&wprim(ix^D,b^C_)**2+)
         else
-          tmp1=mhd_adiab*wprim(ix^D,rho_)**mhd_gamma+half*(sum(wprim(ix^D,mag(1:ndir))**2))
+          tmp1=mhd_adiab*wprim(ix^D,rho_)**mhd_gamma+half*(^C&wprim(ix^D,b^C_)**2+)
         end if
         ! m1
-        tmp=tmp1*x(ix^D,1) &
-                   *(block%surfaceC(ix^D,1)-block%surfaceC(ix1-1^%1ix^D,1))/block%dvolume(ix^D)
-        do idir=2,ndir
-          tmp=tmp+wprim(ix^D,mom(idir))*wCT(ix^D,mom(idir))-wprim(ix^D,mag(idir))**2
-        end do
-        w(ix^D,mom(1))=w(ix^D,mom(1))+tmp*invr
+        {^IFONEC
+        w(ix^D,mom(1))=w(ix^D,mom(1))+two*tmp1*invr
+        }
+        {^NOONEC
+        w(ix^D,mom(1))=w(ix^D,mom(1))+invr*&
+         (two*tmp1+(^CE&wprim(ix^D,m^CE_)*wCT(ix^D,m^CE_)-wprim(ix^D,b^CE_)**2+))
+        }
         ! b1
         if(mhd_glm) then
           w(ix^D,mag(1))=w(ix^D,mag(1))+invr*2.0d0*wprim(ix^D,psi_)
         end if
-
-        {^IFTHREED
+        {^IFONED
+        cot=0.d0
+        }
+        {^NOONED
+        cot=1.d0/tan(x(ix^D,2))
+        }
+        {^IFTWOC
         ! m2
-        ! This will make hydrostatic p=const an exact solution
-        if(local_timestep) then
-          tmp = block%dt(ix^D) * tmp1
-        else
-          tmp = qdt * tmp1
-        end if
-        w(ix^D,mom(2))=w(ix^D,mom(2))+tmp*(block%surfaceC(ix^D,2)-block%surfaceC(ix1,ix2-1,ix3,2))/block%dvolume(ix^D)
-        tmp=-(wprim(ix^D,mom(1))*wCT(ix^D,mom(2)) &
-             -wprim(ix^D,mag(1))*wprim(ix^D,mag(2)))
-        if(ndir==3) then
-          cs2=1.d0/tan(x(ix^D,2))
-          tmp=tmp+(wprim(ix^D,mom(3))*wCT(ix^D,mom(3))-wprim(ix^D,mag(3))**2)*cs2
-        end if
-        w(ix^D,mom(2))=w(ix^D,mom(2))+tmp*invr
+        w(ix^D,mom(2))=w(ix^D,mom(2))+invr*(tmp1*cot-wprim(ix^D,m1_)*wCT(ix^D,m2_)&
+          +wprim(ix^D,b1_)*wprim(ix^D,b2_))
         ! b2
         if(.not.stagger_grid) then
-          tmp=wprim(ix^D,mom(1))*wprim(ix^D,mag(2))-wprim(ix^D,mom(2))*wprim(ix^D,mag(1))
+          tmp=wprim(ix^D,m1_)*wprim(ix^D,b2_)-wprim(ix^D,m2_)*wprim(ix^D,b1_)
           if(mhd_glm) then
-            tmp=tmp+wprim(ix^D,psi_)/tan(x(ix^D,2))
+            tmp=tmp+wprim(ix^D,psi_)*cot
           end if
           w(ix^D,mag(2))=w(ix^D,mag(2))+tmp*invr
         end if
         }
-        {^IFTWOD
+        {^IFTHREEC
         ! m2
-        ! This will make hydrostatic p=const an exact solution
-        if(local_timestep) then
-          tmp = block%dt(ix^D) * tmp1
-        else
-          tmp = qdt * tmp1
-        end if
-        w(ix^D,mom(2))=w(ix^D,mom(2))+tmp*(block%surfaceC(ix^D,2)-block%surfaceC(ix1,ix2-1,2))/block%dvolume(ix^D)
-        tmp=-(wprim(ix^D,mom(1))*wCT(ix^D,mom(2)) &
-             -wprim(ix^D,mag(1))*wprim(ix^D,mag(2)))
-        if(ndir==3) then
-          cs2=dcos(x(ix^D,2))/dsin(x(ix^D,2))
-          tmp=tmp+(wprim(ix^D,mom(3))*wCT(ix^D,mom(3))-wprim(ix^D,mag(3))**2)*cs2
-        end if
-        w(ix^D,mom(2))=w(ix^D,mom(2))+tmp*invr
+        w(ix^D,mom(2))=w(ix^D,mom(2))+invr*(tmp1*cot-wprim(ix^D,m1_)*wCT(ix^D,m2_)&
+          +wprim(ix^D,b1_)*wprim(ix^D,b2_)&
+          +(wprim(ix^D,m3_)*wCT(ix^D,m3_)-wprim(ix^D,b3_)**2)*cot)
         ! b2
         if(.not.stagger_grid) then
-          tmp=wprim(ix^D,mom(1))*wprim(ix^D,mag(2))-wprim(ix^D,mom(2))*wprim(ix^D,mag(1))
+          tmp=wprim(ix^D,m1_)*wprim(ix^D,b2_)-wprim(ix^D,m2_)*wprim(ix^D,b1_)
           if(mhd_glm) then
-            tmp=tmp+wprim(ix^D,psi_)/tan(x(ix^D,2))
+            tmp=tmp+wprim(ix^D,psi_)*cot
           end if
           w(ix^D,mag(2))=w(ix^D,mag(2))+tmp*invr
         end if
-        }
-
-        if(ndir==3) then
-          {^IFONED
-          ! m3
-          w(ix^D,mom(3))=w(ix^D,mom(3))-invr*&
-               (wprim(ix^D,mom(3))*wCT(ix^D,mom(1)) &
-               -wprim(ix^D,mag(3))*wprim(ix^D,mag(1)))
-          ! b3
-          if(.not.stagger_grid) then
-            w(ix^D,mag(3))=w(ix^D,mag(3))+invr*&
-               (wprim(ix^D,mom(1))*wprim(ix^D,mag(3)) &
-               -wprim(ix^D,mom(3))*wprim(ix^D,mag(1)))
-          end if
-          }
-          {^NOONED
-          ! m3
-          w(ix^D,mom(3))=w(ix^D,mom(3))-invr*&
-               (wprim(ix^D,mom(3))*wCT(ix^D,mom(1)) &
-               -wprim(ix^D,mag(3))*wprim(ix^D,mag(1)) &
-              +(wprim(ix^D,mom(2))*wCT(ix^D,mom(3)) &
-               -wprim(ix^D,mag(2))*wprim(ix^D,mag(3)))*cs2)
-          ! b3
-          if(.not.stagger_grid) then
-            w(ix^D,mag(3))=w(ix^D,mag(3))+invr*&
-               (wprim(ix^D,mom(1))*wprim(ix^D,mag(3)) &
-               -wprim(ix^D,mom(3))*wprim(ix^D,mag(1)) &
-              -(wprim(ix^D,mom(3))*wprim(ix^D,mag(2)) &
-               -wprim(ix^D,mom(2))*wprim(ix^D,mag(3)))*cs2)
-          end if
-          }
+        ! m3
+        w(ix^D,mom(3))=w(ix^D,mom(3))-invr*&
+             (wprim(ix^D,m3_)*wCT(ix^D,m1_) &
+             -wprim(ix^D,b3_)*wprim(ix^D,b1_) &
+            +(wprim(ix^D,m2_)*wCT(ix^D,m3_) &
+             -wprim(ix^D,b2_)*wprim(ix^D,b3_))*cot)
+        ! b3
+        if(.not.stagger_grid) then
+          w(ix^D,mag(3))=w(ix^D,mag(3))+invr*&
+             (wprim(ix^D,m1_)*wprim(ix^D,b3_) &
+             -wprim(ix^D,m3_)*wprim(ix^D,b1_) &
+            -(wprim(ix^D,m3_)*wprim(ix^D,b2_) &
+             -wprim(ix^D,m2_)*wprim(ix^D,b3_))*cot)
         end if
+        }
      {end do\}
     end select
 
@@ -5973,8 +5939,8 @@ contains
     double precision, intent(in)    :: qdt, dtfactor,x(ixI^S,1:ndim)
     double precision, intent(inout) :: wCT(ixI^S,1:nw),wprim(ixI^S,1:nw),w(ixI^S,1:nw)
 
-    double precision :: tmp,tmp1,tmp2,invr,cot,E(3)
-    integer          :: iw,ix^D,idir
+    double precision :: tmp,tmp1,tmp2,invr,cot,E(1:ndir)
+    integer          :: ix^D
     integer :: mr_,mphi_ ! Polar var. names
     integer :: br_,bphi_
 
@@ -5997,23 +5963,22 @@ contains
           tmp=mhd_adiab*wprim(ix^D,rho_)**mhd_gamma
         end if
         ! E=Bxv
-        {^IFTHREED
-        E(1)=wprim(ix^D,mag(2))*wprim(ix^D,mom(3))-wprim(ix^D,mag(3))*wprim(ix^D,mom(2))
-        E(2)=wprim(ix^D,mag(3))*wprim(ix^D,mom(1))-wprim(ix^D,mag(1))*wprim(ix^D,mom(3))
-        E(3)=wprim(ix^D,mag(1))*wprim(ix^D,mom(2))-wprim(ix^D,mag(2))*wprim(ix^D,mom(1))
+        {^IFTHREEC
+        E(1)=wprim(ix^D,b2_)*wprim(ix^D,m3_)-wprim(ix^D,b3_)*wprim(ix^D,m2_)
+        E(2)=wprim(ix^D,b3_)*wprim(ix^D,m1_)-wprim(ix^D,b1_)*wprim(ix^D,m3_)
+        E(3)=wprim(ix^D,b1_)*wprim(ix^D,m2_)-wprim(ix^D,b2_)*wprim(ix^D,m1_)
         }
-        {^NOTHREED
-        if(ndir==3) then
-          E(1)=wprim(ix^D,mag(2))*wprim(ix^D,mom(3))-wprim(ix^D,mag(3))*wprim(ix^D,mom(2))
-          E(2)=wprim(ix^D,mag(3))*wprim(ix^D,mom(1))-wprim(ix^D,mag(1))*wprim(ix^D,mom(3))
-        else
-          E(1:2)=zero
-        end if
-        E(3)=wprim(ix^D,mag(1))*wprim(ix^D,mom(2))-wprim(ix^D,mag(2))*wprim(ix^D,mom(1))
+        {^IFTWOC
+        E(1)=zero
+        ! store e3 in e2 to count e3 when ^C is from 1 to 2
+        E(2)=wprim(ix^D,b1_)*wprim(ix^D,m2_)-wprim(ix^D,b2_)*wprim(ix^D,m1_)
+        }
+        {^IFONEC
+        E(1)=zero
         }
         if(phi_>0) then
           w(ix^D,mr_)=w(ix^D,mr_)+invr*(tmp+&
-           half*(sum(wprim(ix^D,mag(1:ndir))**2)+sum(E(1:3)**2)*inv_squared_c) -&
+           half*((^C&wprim(ix^D,b^C_)**2+)+(^C&e(^C)**2+)*inv_squared_c) -&
                     wprim(ix^D,bphi_)**2+wprim(ix^D,rho_)*wprim(ix^D,mphi_)**2)
           w(ix^D,mphi_)=w(ix^D,mphi_)+invr*(&
                    -wprim(ix^D,rho_)*wprim(ix^D,mphi_)*wprim(ix^D,mr_) &
@@ -6024,8 +5989,8 @@ contains
                      -wprim(ix^D,br_)*wprim(ix^D,mphi_))
           end if
         else
-          w(ix^D,mr_)=w(ix^D,mr_)+invr*(tmp+half*(sum(wprim(ix^D,mag(1:ndir))**2)+&
-             sum(E(1:3)**2)*inv_squared_c))
+          w(ix^D,mr_)=w(ix^D,mr_)+invr*(tmp+half*((^C&wprim(ix^D,b^C_)**2+)+&
+             (^C&e(^C)**2+)*inv_squared_c))
         end if
         if(mhd_glm) w(ix^D,br_)=w(ix^D,br_)+wprim(ix^D,psi_)*invr
      {end do\}
@@ -6033,97 +5998,93 @@ contains
      {do ix^DB=ixOmin^DB,ixOmax^DB\}
         ! include dt in invr, invr is always used with qdt
         if(local_timestep) then
-          invr=block%dt(ix^D) * dtfactor/x(ix^D,1)
+          invr=block%dt(ix^D)*dtfactor/x(ix^D,1)
         else
           invr=qdt/x(ix^D,1)
         end if
-        if(mhd_energy) then
-          tmp1=wprim(ix^D,p_)
-        else
-          tmp1=mhd_adiab*wprim(ix^D,rho_)**mhd_gamma
-        end if
         ! E=Bxv
-        {^IFTHREED
-        E(1)=wprim(ix^D,mag(2))*wprim(ix^D,mom(3))-wprim(ix^D,mag(3))*wprim(ix^D,mom(2))
-        E(2)=wprim(ix^D,mag(3))*wprim(ix^D,mom(1))-wprim(ix^D,mag(1))*wprim(ix^D,mom(3))
-        E(3)=wprim(ix^D,mag(1))*wprim(ix^D,mom(2))-wprim(ix^D,mag(2))*wprim(ix^D,mom(1))
+        {^IFTHREEC
+        E(1)=wprim(ix^D,b2_)*wprim(ix^D,m3_)-wprim(ix^D,b3_)*wprim(ix^D,m2_)
+        E(2)=wprim(ix^D,b3_)*wprim(ix^D,m1_)-wprim(ix^D,b1_)*wprim(ix^D,m3_)
+        E(3)=wprim(ix^D,b1_)*wprim(ix^D,m2_)-wprim(ix^D,b2_)*wprim(ix^D,m1_)
         }
-        {^NOTHREED
-        if(ndir==3) then
-          E(1)=wprim(ix^D,mag(2))*wprim(ix^D,mom(3))-wprim(ix^D,mag(3))*wprim(ix^D,mom(2))
-          E(2)=wprim(ix^D,mag(3))*wprim(ix^D,mom(1))-wprim(ix^D,mag(1))*wprim(ix^D,mom(3))
+        {^IFTWOC
+        ! store e3 in e1 to count e3 when ^C is from 1 to 2
+        E(1)=wprim(ix^D,b1_)*wprim(ix^D,m2_)-wprim(ix^D,b2_)*wprim(ix^D,m1_)
+        E(2)=zero
+        }
+        {^IFONEC
+        E(1)=zero
+        }
+        if(mhd_energy) then
+          tmp1=wprim(ix^D,p_)+half*((^C&wprim(ix^D,b^C_)**2+)+(^C&e(^C)**2+)*inv_squared_c)
         else
-          E(1:2)=zero
+          tmp1=mhd_adiab*wprim(ix^D,rho_)**mhd_gamma+half*((^C&wprim(ix^D,b^C_)**2+)+(^C&e(^C)**2+)*inv_squared_c)
         end if
-        E(3)=wprim(ix^D,mag(1))*wprim(ix^D,mom(2))-wprim(ix^D,mag(2))*wprim(ix^D,mom(1))
-        }
         ! m1
-        tmp=two*tmp1+sum(wprim(ix^D,mag(1:ndir))**2)+sum(E(1:3)**2)*inv_squared_c
-        {^NOONED
-        if(ndir==3) tmp2=half*tmp
+        {^IFONEC
+        w(ix^D,mom(1))=w(ix^D,mom(1))+two*tmp1*invr
         }
-        do idir=2,ndir
-          tmp=tmp+wprim(ix^D,rho_)*wprim(ix^D,mom(idir))**2-wprim(ix^D,mag(idir))**2-E(idir)**2*inv_squared_c
-        end do
-        w(ix^D,mom(1))=w(ix^D,mom(1))+tmp*invr
+        {^NOONEC
+        w(ix^D,mom(1))=w(ix^D,mom(1))+invr*&
+           (two*tmp1+(^CE&wprim(ix^D,rho_)*wprim(ix^D,m^CE_)**2-&
+            wprim(ix^D,b^CE_)**2-E(^CE)**2*inv_squared_c+))
+        }
         ! b1
         if(mhd_glm) then
           w(ix^D,mag(1))=w(ix^D,mag(1))+invr*2.0d0*wprim(ix^D,psi_)
         end if
-
+        {^IFONED
+        cot=0.d0
+        }
         {^NOONED
+        cot=1.d0/tan(x(ix^D,2))
+        }
+        {^IFTWOC
         ! m2
-        tmp=-wprim(ix^D,rho_)*wprim(ix^D,mom(1))*wprim(ix^D,mom(2)) &
-            +wprim(ix^D,mag(1))*wprim(ix^D,mag(2))&
-            +E(1)*E(2)*inv_squared_c
-        if(ndir==3) then
-          cot=1.d0/tan(x(ix^D,2))
-          tmp=tmp+(tmp2+wprim(ix^D,rho_)*wprim(ix^D,mom(3))**2&
-            -wprim(ix^D,mag(3))**2-E(3)**2*inv_squared_c)*cot
-        end if
-        w(ix^D,mom(2))=w(ix^D,mom(2))+tmp*invr
+        w(ix^D,mom(2))=w(ix^D,mom(2))+invr*(tmp1*cot-wprim(ix^D,rho_)*wprim(ix^D,m1_)*wprim(ix^D,m2_)&
+            +wprim(ix^D,b1_)*wprim(ix^D,b2_)+E(1)*E(2)*inv_squared_c)
         ! b2
         if(.not.stagger_grid) then
-          tmp=wprim(ix^D,mom(1))*wprim(ix^D,mag(2))-wprim(ix^D,mom(2))*wprim(ix^D,mag(1))
+          tmp=wprim(ix^D,m1_)*wprim(ix^D,b2_)-wprim(ix^D,m2_)*wprim(ix^D,b1_)
           if(mhd_glm) then
-            tmp=tmp+wprim(ix^D,psi_)/tan(x(ix^D,2))
+            tmp=tmp+wprim(ix^D,psi_)*cot
           end if
           w(ix^D,mag(2))=w(ix^D,mag(2))+tmp*invr
         end if
         }
 
-        if(ndir==3) then
-          {^IFONED
-          ! m3
-          w(ix^D,mom(3))=w(ix^D,mom(3))-invr*&
-               (wprim(ix^D,mom(3))*wprim(ix^D,mom(1))*wprim(ix^D,rho_) &
-               -wprim(ix^D,mag(3))*wprim(ix^D,mag(1)))
-          ! b3
-          if(.not.stagger_grid) then
-            w(ix^D,mag(3))=w(ix^D,mag(3))+invr*&
-               (wprim(ix^D,mom(1))*wprim(ix^D,mag(3)) &
-               -wprim(ix^D,mom(3))*wprim(ix^D,mag(1)))
+        {^IFTHREEC
+        ! m2
+        w(ix^D,mom(2))=w(ix^D,mom(2))+invr*(tmp1*cot-wprim(ix^D,rho_)*wprim(ix^D,m1_)*wprim(ix^D,m2_) &
+            +wprim(ix^D,b1_)*wprim(ix^D,b2_)+E(1)*E(2)*inv_squared_c&
+            +(wprim(ix^D,rho_)*wprim(ix^D,m3_)**2&
+            -wprim(ix^D,b3_)**2-E(3)**2*inv_squared_c)*cot)
+        ! b2
+        if(.not.stagger_grid) then
+          tmp=wprim(ix^D,m1_)*wprim(ix^D,b2_)-wprim(ix^D,m2_)*wprim(ix^D,b1_)
+          if(mhd_glm) then
+            tmp=tmp+wprim(ix^D,psi_)*cot
           end if
-          }
-          {^NOONED
-          ! m3
-          w(ix^D,mom(3))=w(ix^D,mom(3))+invr*&
-              (-wprim(ix^D,mom(3))*wprim(ix^D,mom(1))*wprim(ix^D,rho_) &
-               +wprim(ix^D,mag(3))*wprim(ix^D,mag(1)) &
-               +E(3)*E(1)*inv_squared_c&
-             +(-wprim(ix^D,mom(2))*wprim(ix^D,mom(3))*wprim(ix^D,rho_) &
-               +wprim(ix^D,mag(2))*wprim(ix^D,mag(3))&
-               +E(2)*E(3)*inv_squared_c)*cot)
-          ! b3
-          if(.not.stagger_grid) then
-            w(ix^D,mag(3))=w(ix^D,mag(3))+invr*&
-               (wprim(ix^D,mom(1))*wprim(ix^D,mag(3)) &
-               -wprim(ix^D,mom(3))*wprim(ix^D,mag(1)) &
-              -(wprim(ix^D,mom(3))*wprim(ix^D,mag(2)) &
-               -wprim(ix^D,mom(2))*wprim(ix^D,mag(3)))*cot)
-          end if
-          }
+          w(ix^D,mag(2))=w(ix^D,mag(2))+tmp*invr
         end if
+        ! m3
+        w(ix^D,mom(3))=w(ix^D,mom(3))+invr*&
+            (-wprim(ix^D,m3_)*wprim(ix^D,m1_)*wprim(ix^D,rho_) &
+             +wprim(ix^D,b3_)*wprim(ix^D,b1_) &
+             +E(3)*E(1)*inv_squared_c&
+           +(-wprim(ix^D,m2_)*wprim(ix^D,m3_)*wprim(ix^D,rho_) &
+             +wprim(ix^D,b2_)*wprim(ix^D,b3_)&
+             +E(2)*E(3)*inv_squared_c)*cot)
+        ! b3
+        if(.not.stagger_grid) then
+          w(ix^D,mag(3))=w(ix^D,mag(3))+invr*&
+             (wprim(ix^D,m1_)*wprim(ix^D,b3_) &
+             -wprim(ix^D,m3_)*wprim(ix^D,b1_) &
+            -(wprim(ix^D,m3_)*wprim(ix^D,b2_) &
+             -wprim(ix^D,m2_)*wprim(ix^D,b3_))*cot)
+        end if
+        }
      {end do\}
     end select
 
