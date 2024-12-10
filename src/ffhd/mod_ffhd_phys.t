@@ -796,14 +796,17 @@ contains
   subroutine ffhd_get_cmax_origin(w,x,ixI^L,ixO^L,idim,cmax)
     use mod_global_parameters
     integer, intent(in)          :: ixI^L, ixO^L, idim
+    ! w in primitive form
     double precision, intent(in) :: w(ixI^S, nw), x(ixI^S,1:ndim)
     double precision, intent(inout) :: cmax(ixI^S)
-    double precision :: vel(ixI^S)
 
-    call ffhd_get_csound(w,x,ixI^L,ixO^L,idim,cmax)
-    call ffhd_get_v_idim(w,x,ixI^L,ixO^L,idim,vel)
+    if(ffhd_energy) then
+      cmax(ixO^S)=sqrt(ffhd_gamma*w(ixO^S,p_)/w(ixO^S,rho_))*abs(block%B0(ixO^S,idim,idim))
+    else
+      cmax(ixO^S)=sqrt(ffhd_gamma*ffhd_adiab*w(ixO^S,rho_)**gamma_1)*abs(block%B0(ixO^S,idim,idim))
+    end if
+    cmax(ixO^S)=abs(w(ixO^S,mom(1))*block%B0(ixO^S,idim,0))+cmax(ixO^S)
 
-    cmax(ixO^S)=abs(vel(ixO^S))+cmax(ixO^S)
   end subroutine ffhd_get_cmax_origin
 
   subroutine ffhd_get_cs2max(w,x,ixI^L,ixO^L,cs2max)

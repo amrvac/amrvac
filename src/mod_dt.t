@@ -163,18 +163,18 @@ contains
       subroutine getdt_courant(w,ixI^L,ixO^L,dtnew,dx^D,x,cmax_mype,a2max_mype,cs2max_mype)
         use mod_global_parameters
         use mod_physics, only: phys_get_cmax,phys_get_a2max, phys_get_cs2max,&
-                               phys_get_tcutoff,phys_get_auxiliary
+                               phys_get_tcutoff,phys_get_auxiliary, phys_to_primitive
   
         integer, intent(in) :: ixI^L, ixO^L
         double precision, intent(in) :: x(ixI^S,1:ndim)
         double precision, intent(in)    :: dx^D
         double precision, intent(inout) :: w(ixI^S,1:nw), dtnew, cmax_mype, a2max_mype(ndim),cs2max_mype
   
+        double precision :: courantmax, dxinv(1:ndim), courantmaxtot, courantmaxtots
+        double precision :: cmax(ixI^S), cmaxtot(ixI^S), wprim(ixI^S,1:nw)
+        double precision :: a2max(ndim), cs2max, tco_local, Tmax_local
         integer :: idims
         integer :: hxO^L
-        double precision :: courantmax, dxinv(1:ndim), courantmaxtot, courantmaxtots
-        double precision :: cmax(ixI^S), cmaxtot(ixI^S)
-        double precision :: a2max(ndim), cs2max, tco_local, Tmax_local
   
         dtnew=bigdouble
   
@@ -189,6 +189,10 @@ contains
           hxOmax^D=ixOmax^D; 
         end if
   
+        ! use primitive variables to get sound speed faster
+        wprim=w
+        call phys_to_primitive(ixI^L,ixI^L,wprim,x)
+
         if(need_global_a2max) then
           call phys_get_a2max(w,x,ixI^L,ixO^L,a2max)
           do idims=1,ndim
@@ -201,7 +205,7 @@ contains
         end if
 
         if(phys_trac) then
-          call phys_get_tcutoff(ixI^L,ixO^L,w,x,tco_local,Tmax_local)
+          call phys_get_tcutoff(ixI^L,ixO^L,wprim,x,tco_local,Tmax_local)
           {^IFONED tco_mype=max(tco_mype,tco_local) }
           Tmax_mype=max(Tmax_mype,Tmax_local)
         end if
@@ -214,7 +218,7 @@ contains
           if(slab_uniform) then
             ^D&dxinv(^D)=one/dx^D;
             do idims=1,ndim
-              call phys_get_cmax(w,x,ixI^L,hxO^L,idims,cmax)
+              call phys_get_cmax(wprim,x,ixI^L,hxO^L,idims,cmax)
               if(need_global_cmax) cmax_mype = max(cmax_mype,maxval(cmax(ixO^S)))
               if(idims==1) then
                 cmaxtot(hxO^S)=cmax(hxO^S)*dxinv(idims)
@@ -224,7 +228,7 @@ contains
             end do
           else
             do idims=1,ndim
-              call phys_get_cmax(w,x,ixI^L,hxO^L,idims,cmax)
+              call phys_get_cmax(wprim,x,ixI^L,hxO^L,idims,cmax)
               if(need_global_cmax) cmax_mype = max(cmax_mype,maxval(cmax(ixO^S)))
               if(idims==1) then
                 cmaxtot(hxO^S)=cmax(hxO^S)/block%ds(hxO^S,idims)
@@ -250,14 +254,14 @@ contains
           if(slab_uniform) then
             ^D&dxinv(^D)=one/dx^D;
             do idims=1,ndim
-              call phys_get_cmax(w,x,ixI^L,ixO^L,idims,cmax)
+              call phys_get_cmax(wprim,x,ixI^L,ixO^L,idims,cmax)
               if(need_global_cmax) cmax_mype = max(cmax_mype,maxval(cmax(ixO^S)))
               courantmax=max(courantmax,maxval(cmax(ixO^S)*dxinv(idims)))
               courantmaxtot=courantmaxtot+courantmax
             end do
           else
             do idims=1,ndim
-              call phys_get_cmax(w,x,ixI^L,ixO^L,idims,cmax)
+              call phys_get_cmax(wprim,x,ixI^L,ixO^L,idims,cmax)
               if(need_global_cmax) cmax_mype = max(cmax_mype,maxval(cmax(ixO^S)))
               courantmax=max(courantmax,maxval(cmax(ixO^S)/block%ds(ixO^S,idims)))
               courantmaxtot=courantmaxtot+courantmax
@@ -273,13 +277,13 @@ contains
           if(slab_uniform) then
             ^D&dxinv(^D)=one/dx^D;
             do idims=1,ndim
-              call phys_get_cmax(w,x,ixI^L,ixO^L,idims,cmax)
+              call phys_get_cmax(wprim,x,ixI^L,ixO^L,idims,cmax)
               if(need_global_cmax) cmax_mype = max(cmax_mype,maxval(cmax(ixO^S)))
               courantmax=max(courantmax,maxval(cmax(ixO^S)*dxinv(idims)))
             end do
           else
             do idims=1,ndim
-              call phys_get_cmax(w,x,ixI^L,ixO^L,idims,cmax)
+              call phys_get_cmax(wprim,x,ixI^L,ixO^L,idims,cmax)
               if(need_global_cmax) cmax_mype = max(cmax_mype,maxval(cmax(ixO^S)))
               courantmax=max(courantmax,maxval(cmax(ixO^S)/block%ds(ixO^S,idims)))
             end do

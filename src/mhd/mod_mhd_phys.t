@@ -2490,9 +2490,7 @@ contains
         end if
         inv_rho=1.d0/rho
         ! sound speed**2 
-        cmax(ix^D)=mhd_gamma*gamma_1*(w(ix^D,e_)&
-                  -half*((^C&w(ix^D,m^C_)**2+)*inv_rho&
-                    +(^C&w(ix^D,b^C_)**2+)))*inv_rho
+        cmax(ix^D)=mhd_gamma*w(ix^D,p_)*inv_rho
         ! store |B|^2 in v
         b2=(^C&(w(ix^D,b^C_)+block%B0(ix^D,^C,b0i))**2+)
         cfast2=b2*inv_rho+cmax(ix^D)
@@ -2504,7 +2502,7 @@ contains
           ! largest wavenumber supported by grid: Nyquist (in practise can reduce by some factor)
           cmax(ix^D)=max(cmax(ix^D),mhd_etah*sqrt(b2)*inv_rho*kmax)
         end if
-        cmax(ix^D)=abs(w(ix^D,mom(idim)))*inv_rho+cmax(ix^D)
+        cmax(ix^D)=abs(w(ix^D,mom(idim)))+cmax(ix^D)
      {end do\}
     else
      {do ix^DB=ixOmin^DB,ixOmax^DB \}
@@ -2515,9 +2513,7 @@ contains
         end if
         inv_rho=1.d0/rho
         ! sound speed**2 
-        cmax(ix^D)=mhd_gamma*gamma_1*(w(ix^D,e_)&
-                  -half*((^C&w(ix^D,m^C_)**2+)*inv_rho&
-                    +(^C&w(ix^D,b^C_)**2+)))*inv_rho
+        cmax(ix^D)=mhd_gamma*w(ix^D,p_)*inv_rho
         ! store |B|^2 in v
         b2=(^C&w(ix^D,b^C_)**2+)
         cfast2=b2*inv_rho+cmax(ix^D)
@@ -2529,7 +2525,7 @@ contains
           ! largest wavenumber supported by grid: Nyquist (in practise can reduce by some factor)
           cmax(ix^D)=max(cmax(ix^D),mhd_etah*sqrt(b2)*inv_rho*kmax)
         end if
-        cmax(ix^D)=abs(w(ix^D,mom(idim)))*inv_rho+cmax(ix^D)
+        cmax(ix^D)=abs(w(ix^D,mom(idim)))+cmax(ix^D)
      {end do\}
     end if
 
@@ -2569,7 +2565,7 @@ contains
           ! largest wavenumber supported by grid: Nyquist (in practise can reduce by some factor)
           cmax(ix^D)=max(cmax(ix^D),mhd_etah*sqrt(b2)*inv_rho*kmax)
         end if
-        cmax(ix^D)=abs(w(ix^D,mom(idim)))*inv_rho+cmax(ix^D)
+        cmax(ix^D)=abs(w(ix^D,mom(idim)))+cmax(ix^D)
      {end do\}
     else
      {do ix^DB=ixOmin^DB,ixOmax^DB \}
@@ -2592,7 +2588,7 @@ contains
           ! largest wavenumber supported by grid: Nyquist (in practise can reduce by some factor)
           cmax(ix^D)=max(cmax(ix^D),mhd_etah*sqrt(b2)*inv_rho*kmax)
         end if
-        cmax(ix^D)=abs(w(ix^D,mom(idim)))*inv_rho+cmax(ix^D)
+        cmax(ix^D)=abs(w(ix^D,mom(idim)))+cmax(ix^D)
      {end do\}
     end if
 
@@ -2606,21 +2602,18 @@ contains
     double precision, intent(in) :: w(ixI^S, nw), x(ixI^S,1:ndim)
     double precision, intent(inout):: cmax(ixI^S)
 
-    double precision :: wprim(ixI^S,nw)
     double precision :: csound, AvMinCs2, idim_Alfven_speed2
     double precision :: inv_rho, Alfven_speed2, gamma2
     integer :: ix^D
 
-    wprim=w
-    call mhd_to_primitive(ixI^L,ixO^L,wprim,x)
     if(B0field) then
      {do ix^DB=ixOmin^DB,ixOmax^DB \}
         inv_rho=1.d0/w(ix^D,rho_)
         Alfven_speed2=(^C&(w(ix^D,b^C_)+block%B0(ix^D,^C,b0i))**2+)*inv_rho
         gamma2=1.0d0/(1.d0+Alfven_speed2*inv_squared_c)
-        cmax(ix^D)=1.d0-gamma2*wprim(ix^D,mom(idim))**2*inv_squared_c
+        cmax(ix^D)=1.d0-gamma2*w(ix^D,mom(idim))**2*inv_squared_c
         ! squared sound speed
-        csound=mhd_gamma*wprim(ix^D,p_)*inv_rho
+        csound=mhd_gamma*w(ix^D,p_)*inv_rho
         idim_Alfven_speed2=(w(ix^D,mag(idim))+block%B0(ix^D,idim,b0i))**2*inv_rho
         ! Va_hat^2+a_hat^2 equation (57)
         ! equation (69)
@@ -2629,16 +2622,16 @@ contains
         if(AvMinCs2<zero) AvMinCs2=zero
         ! equation (68) fast magnetosonic wave speed
         csound = sqrt(half*(gamma2*Alfven_speed2+sqrt(AvMinCs2)))
-        cmax(ix^D)=gamma2*abs(wprim(ix^D,mom(idim)))+csound
+        cmax(ix^D)=gamma2*abs(w(ix^D,mom(idim)))+csound
       {end do\}
     else
      {do ix^DB=ixOmin^DB,ixOmax^DB \}
         inv_rho=1.d0/w(ix^D,rho_)
         Alfven_speed2=(^C&w(ix^D,b^C_)**2+)*inv_rho
         gamma2=1.0d0/(1.d0+Alfven_speed2*inv_squared_c)
-        cmax(ix^D)=1.d0-gamma2*wprim(ix^D,mom(idim))**2*inv_squared_c
+        cmax(ix^D)=1.d0-gamma2*w(ix^D,mom(idim))**2*inv_squared_c
         ! squared sound speed
-        csound=mhd_gamma*wprim(ix^D,p_)*inv_rho
+        csound=mhd_gamma*w(ix^D,p_)*inv_rho
         idim_Alfven_speed2=w(ix^D,mag(idim))**2*inv_rho
         ! Va_hat^2+a_hat^2 equation (57)
         ! equation (69)
@@ -2647,7 +2640,7 @@ contains
         if(AvMinCs2<zero) AvMinCs2=zero
         ! equation (68) fast magnetosonic wave speed
         csound = sqrt(half*(gamma2*Alfven_speed2+sqrt(AvMinCs2)))
-        cmax(ix^D)=gamma2*abs(wprim(ix^D,mom(idim)))+csound
+        cmax(ix^D)=gamma2*abs(w(ix^D,mom(idim)))+csound
       {end do\}
     end if
 
@@ -2661,19 +2654,16 @@ contains
     double precision, intent(in) :: w(ixI^S, nw), x(ixI^S,1:ndim)
     double precision, intent(inout):: cmax(ixI^S)
 
-    double precision :: wprim(ixI^S,nw)
     double precision :: csound, AvMinCs2, idim_Alfven_speed2
     double precision :: inv_rho, Alfven_speed2, gamma2
     integer :: ix^D
 
-    wprim=w
-    call mhd_to_primitive(ixI^L,ixO^L,wprim,x)
     if(B0field) then
      {do ix^DB=ixOmin^DB,ixOmax^DB \}
         inv_rho=1.d0/w(ix^D,rho_)
         Alfven_speed2=(^C&(w(ix^D,b^C_)+block%B0(ix^D,^C,b0i))**2+)*inv_rho
         gamma2=1.0d0/(1.d0+Alfven_speed2*inv_squared_c)
-        cmax(ix^D)=1.d0-gamma2*wprim(ix^D,mom(idim))**2*inv_squared_c
+        cmax(ix^D)=1.d0-gamma2*w(ix^D,mom(idim))**2*inv_squared_c
         csound=mhd_gamma*mhd_adiab*w(ix^D,rho_)**gamma_1
         idim_Alfven_speed2=(w(ix^D,mag(idim))+block%B0(ix^D,idim,b0i))**2*inv_rho
         ! Va_hat^2+a_hat^2 equation (57)
@@ -2683,14 +2673,14 @@ contains
         if(AvMinCs2<zero) AvMinCs2=zero
         ! equation (68) fast magnetosonic wave speed
         csound = sqrt(half*(gamma2*Alfven_speed2+sqrt(AvMinCs2)))
-        cmax(ix^D)=gamma2*abs(wprim(ix^D,mom(idim)))+csound
+        cmax(ix^D)=gamma2*abs(w(ix^D,mom(idim)))+csound
       {end do\}
     else
      {do ix^DB=ixOmin^DB,ixOmax^DB \}
         inv_rho=1.d0/w(ix^D,rho_)
         Alfven_speed2=(^C&w(ix^D,b^C_)**2+)*inv_rho
         gamma2=1.0d0/(1.d0+Alfven_speed2*inv_squared_c)
-        cmax(ix^D)=1.d0-gamma2*wprim(ix^D,mom(idim))**2*inv_squared_c
+        cmax(ix^D)=1.d0-gamma2*w(ix^D,mom(idim))**2*inv_squared_c
         csound=mhd_gamma*mhd_adiab*w(ix^D,rho_)**gamma_1
         idim_Alfven_speed2=w(ix^D,mag(idim))**2*inv_rho
         ! Va_hat^2+a_hat^2 equation (57)
@@ -2700,7 +2690,7 @@ contains
         if(AvMinCs2<zero) AvMinCs2=zero
         ! equation (68) fast magnetosonic wave speed
         csound = sqrt(half*(gamma2*Alfven_speed2+sqrt(AvMinCs2)))
-        cmax(ix^D)=gamma2*abs(wprim(ix^D,mom(idim)))+csound
+        cmax(ix^D)=gamma2*abs(w(ix^D,mom(idim)))+csound
       {end do\}
     end if
 
@@ -2734,6 +2724,7 @@ contains
     use mod_geometry
     integer, intent(in) :: ixI^L,ixO^L
     double precision, intent(in) :: x(ixI^S,1:ndim)
+    ! in primitive form
     double precision, intent(inout) :: w(ixI^S,1:nw)
     double precision, intent(out) :: Tco_local,Tmax_local
 
@@ -2747,7 +2738,12 @@ contains
     integer :: jxP^L,hxP^L,ixP^L,ixQ^L
     logical :: lrlt(ixI^S)
 
-    call mhd_get_temperature(w,x,ixI^L,ixI^L,Te)
+    if(mhd_partial_ionization) then
+      call mhd_get_temperature_from_Te(w,x,ixI^L,ixI^L,Te)
+    else
+      call mhd_get_Rfactor(w,x,ixI^L,ixI^L,Te)
+      Te(ixI^S)=w(ixI^S,p_)/(Te(ixI^S)*w(ixI^S,rho_))
+    end if
     Tco_local=zero
     Tmax_local=maxval(Te(ixO^S))
 

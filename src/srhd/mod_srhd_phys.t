@@ -606,6 +606,7 @@ contains
     double precision, intent(in)              :: w(ixI^S, nw), x(ixI^S, 1:ndim)
     double precision, intent(inout)           :: cmax(ixI^S)
 
+    double precision :: wc(ixI^S,nw)
     double precision, dimension(ixO^S)        :: csound2,tmp1,tmp2,v2
     double precision, dimension(ixI^S)        :: vidim, cmin
 
@@ -613,11 +614,14 @@ contains
 
     !!call srhd_check_w_aux(ixI^L, ixO^L, w, flag)
 
+    ! input w is in primitive form TODO use it
+    wc=w
+    call srhd_to_conserved(ixI^L, ixO^L, wc, x)
     ! auxiliaries are filled here
-    tmp1(ixO^S)=w(ixO^S,xi_)/w(ixO^S,lfac_)**2.0d0
-    v2(ixO^S)=1.0d0-1.0d0/w(ixO^S,lfac_)**2
-    call srhd_get_csound2_rhoh(w,x,ixI^L,ixO^L,tmp1,csound2)
-    vidim(ixO^S) = w(ixO^S, mom(idim))/w(ixO^S, xi_)
+    tmp1(ixO^S)=wc(ixO^S,xi_)/wc(ixO^S,lfac_)**2.0d0
+    v2(ixO^S)=1.0d0-1.0d0/wc(ixO^S,lfac_)**2
+    call srhd_get_csound2_rhoh(wc,x,ixI^L,ixO^L,tmp1,csound2)
+    vidim(ixO^S) = wc(ixO^S, mom(idim))/wc(ixO^S, xi_)
     tmp2(ixO^S)=vidim(ixO^S)**2.0d0
     tmp1(ixO^S)=1.0d0-v2(ixO^S)*csound2(ixO^S) &
                         -tmp2(ixO^S)*(1.0d0-csound2(ixO^S))

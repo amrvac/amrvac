@@ -789,22 +789,27 @@ contains
   !> Calculate cmax_idim = csound + abs(v_idim) within ixO^L
   subroutine hd_get_cmax(w, x, ixI^L, ixO^L, idim, cmax)
     use mod_global_parameters
-    use mod_dust, only: dust_get_cmax
+    use mod_dust, only: dust_get_cmax_prim
+    use mod_usr_methods, only: usr_set_pthermal
 
     integer, intent(in)                       :: ixI^L, ixO^L, idim
+    ! w in primitive form
     double precision, intent(in)              :: w(ixI^S, nw), x(ixI^S, 1:ndim)
     double precision, intent(inout)           :: cmax(ixI^S)
-    double precision                          :: csound(ixI^S)
-    double precision                          :: v(ixI^S)
 
-    call hd_get_v_idim(w, x, ixI^L, ixO^L, idim, v)
-    call hd_get_csound2(w,x,ixI^L,ixO^L,csound)
-    csound(ixO^S) = dsqrt(csound(ixO^S))
-
-    cmax(ixO^S) = dabs(v(ixO^S))+csound(ixO^S)
+    if(hd_energy) then
+      cmax(ixO^S)=dabs(w(ixO^S,mom(idim)))+dsqrt(hd_gamma*w(ixO^S,p_)/w(ixO^S,rho_))
+    else
+      if (.not. associated(usr_set_pthermal)) then
+        cmax(ixO^S) = hd_adiab * w(ixO^S, rho_)**hd_gamma
+      else
+        call usr_set_pthermal(w,x,ixI^L,ixO^L,cmax)
+      end if
+      cmax(ixO^S)=dabs(w(ixO^S,mom(idim)))+dsqrt(hd_gamma*cmax(ixO^S)/w(ixO^S,rho_))
+    end if
 
     if (hd_dust) then
-      call dust_get_cmax(w, x, ixI^L, ixO^L, idim, cmax)
+      call dust_get_cmax_prim(w, x, ixI^L, ixO^L, idim, cmax)
     end if
   end subroutine hd_get_cmax
 
@@ -835,6 +840,7 @@ contains
     use mod_global_parameters
     integer, intent(in) :: ixI^L,ixO^L
     double precision, intent(in) :: x(ixI^S,1:ndim)
+    ! in primitive form
     double precision, intent(inout) :: w(ixI^S,1:nw)
     double precision, intent(out) :: tco_local, Tmax_local
 
@@ -846,7 +852,8 @@ contains
     logical :: lrlt(ixI^S)
 
     {^IFONED
-    call hd_get_temperature_from_etot(w,x,ixI^L,ixI^L,Te)
+    call hd_get_Rfactor(w,x,ixI^L,ixI^L,Te)
+    Te(ixI^S)=w(ixI^S,p_)/(Te(ixI^S)*w(ixI^S,rho_))
 
     Tco_local=zero
     Tmax_local=maxval(Te(ixO^S))

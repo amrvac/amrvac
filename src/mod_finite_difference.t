@@ -393,8 +393,8 @@ contains
        end if
 
        ! Calculate velocities from upwinded values
-       call phys_get_cmax(wLC,x,ixG^LL,ixC^L,idims,cmaxLC)
-       call phys_get_cmax(wRC,x,ixG^LL,ixC^L,idims,cmaxRC)
+       call phys_get_cmax(wLp,x,ixG^LL,ixC^L,idims,cmaxLC)
+       call phys_get_cmax(wRp,x,ixG^LL,ixC^L,idims,cmaxRC)
        ! now take the maximum of left and right states
        vLC(ixC^S)=max(cmaxRC(ixC^S),cmaxLC(ixC^S))
 

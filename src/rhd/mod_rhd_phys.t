@@ -883,22 +883,37 @@ contains
   !> Calculate cmax_idim = csound + abs(v_idim) within ixO^L
   subroutine rhd_get_cmax(w, x, ixI^L, ixO^L, idim, cmax)
     use mod_global_parameters
-    use mod_dust, only: dust_get_cmax
+    use mod_usr_methods, only: usr_set_pthermal
+    use mod_dust, only: dust_get_cmax_prim
 
     integer, intent(in)                       :: ixI^L, ixO^L, idim
+    ! w in primitive form
     double precision, intent(in)              :: w(ixI^S, nw), x(ixI^S, 1:ndim)
     double precision, intent(inout)           :: cmax(ixI^S)
-    double precision                          :: csound(ixI^S)
-    double precision                          :: v(ixI^S)
 
-    call rhd_get_v(w, x, ixI^L, ixO^L, idim, v)
-    call rhd_get_csound2(w,x,ixI^L,ixO^L,csound)
-    csound(ixO^S) = dsqrt(csound(ixO^S))
-
-    cmax(ixO^S) = dabs(v(ixO^S))+csound(ixO^S)
+    if(rhd_energy) then
+      cmax(ixO^S)=dabs(w(ixO^S,mom(idim)))+dsqrt(rhd_gamma*w(ixO^S,p_)/w(ixO^S,rho_))
+    else
+      if (.not. associated(usr_set_pthermal)) then
+        select case (rhd_pressure)
+         case ('Trad')
+          cmax(ixO^S) = (w(ixO^S,r_e)*unit_pressure/const_rad_a)**0.25d0&
+          /unit_temperature*w(ixO^S, rho_)
+         case ('adiabatic')
+          cmax(ixO^S) = rhd_adiab * w(ixO^S, rho_)**rhd_gamma
+         case ('Tcond') !> Thermal conduction?!
+          cmax(ixO^S) = (rhd_gamma-1.d0)*w(ixO^S,r_e)
+         case default
+          call mpistop('rhd_pressure unknown, use Trad or adiabatic')
+         end select
+      else
+         call usr_set_pthermal(w,x,ixI^L,ixO^L,cmax)
+      end if
+      cmax(ixO^S)=dabs(w(ixO^S,mom(idim)))+dsqrt(rhd_gamma*cmax(ixO^S)/w(ixO^S,rho_))
+    end if
 
     if (rhd_dust) then
-      call dust_get_cmax(w, x, ixI^L, ixO^L, idim, cmax)
+      call dust_get_cmax_prim(w, x, ixI^L, ixO^L, idim, cmax)
     end if
   end subroutine rhd_get_cmax
 
