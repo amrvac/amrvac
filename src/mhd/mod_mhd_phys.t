@@ -6313,13 +6313,16 @@ contains
     double precision, intent(inout) :: wLp(ixI^S,1:nw), wRp(ixI^S,1:nw)
     type(state)                     :: s
 
-    double precision                :: dB(ixI^S), dPsi(ixI^S)
+    double precision                :: dB(ixO^S), dPsi(ixO^S)
+    integer :: ix^D
 
     if(stagger_grid) then
-      wLC(ixO^S,mag(idir))=s%ws(ixO^S,idir)
-      wRC(ixO^S,mag(idir))=s%ws(ixO^S,idir)
-      wLp(ixO^S,mag(idir))=s%ws(ixO^S,idir)
-      wRp(ixO^S,mag(idir))=s%ws(ixO^S,idir)
+     {do ix^DB=ixOmin^DB,ixOmax^DB\}
+        wLC(ix^D,mag(idir))=s%ws(ix^D,idir)
+        wRC(ix^D,mag(idir))=s%ws(ix^D,idir)
+        wLp(ix^D,mag(idir))=s%ws(ix^D,idir)
+        wRp(ix^D,mag(idir))=s%ws(ix^D,idir)
+     {end do\}
     else
       ! Solve the Riemann problem for the linear 2x2 system for normal
       ! B-field and GLM_Psi according to Dedner 2002:
@@ -6327,30 +6330,27 @@ contains
       ! Gives the Riemann solution on the interface
       ! for the normal B component and Psi in the GLM-MHD system.
       ! 23/04/2013 Oliver Porth
-      dB(ixO^S)   = wRp(ixO^S,mag(idir)) - wLp(ixO^S,mag(idir))
-      dPsi(ixO^S) = wRp(ixO^S,psi_) - wLp(ixO^S,psi_)
-
-      wLp(ixO^S,mag(idir))   = 0.5d0 * (wRp(ixO^S,mag(idir)) + wLp(ixO^S,mag(idir))) &
-           - 0.5d0/cmax_global * dPsi(ixO^S)
-      wLp(ixO^S,psi_)       = 0.5d0 * (wRp(ixO^S,psi_) + wLp(ixO^S,psi_)) &
-           - 0.5d0*cmax_global * dB(ixO^S)
-
-      wRp(ixO^S,mag(idir)) = wLp(ixO^S,mag(idir))
-      wRp(ixO^S,psi_) = wLp(ixO^S,psi_)
-
-      if(total_energy) then
-        wRC(ixO^S,e_)=wRC(ixO^S,e_)-half*wRC(ixO^S,mag(idir))**2
-        wLC(ixO^S,e_)=wLC(ixO^S,e_)-half*wLC(ixO^S,mag(idir))**2
-      end if
-      wRC(ixO^S,mag(idir)) = wLp(ixO^S,mag(idir))
-      wRC(ixO^S,psi_) = wLp(ixO^S,psi_)
-      wLC(ixO^S,mag(idir)) = wLp(ixO^S,mag(idir))
-      wLC(ixO^S,psi_) = wLp(ixO^S,psi_)
-      ! modify total energy according to the change of magnetic field
-      if(total_energy) then
-        wRC(ixO^S,e_)=wRC(ixO^S,e_)+half*wRC(ixO^S,mag(idir))**2
-        wLC(ixO^S,e_)=wLC(ixO^S,e_)+half*wLC(ixO^S,mag(idir))**2
-      end if
+     {do ix^DB=ixOmin^DB,ixOmax^DB\}
+        dB(ix^D)=wRp(ix^D,mag(idir))-wLp(ix^D,mag(idir))
+        dPsi(ix^D)=wRp(ix^D,psi_)-wLp(ix^D,psi_)
+        wLp(ix^D,mag(idir))=half*(wRp(ix^D,mag(idir))+wLp(ix^D,mag(idir))-dPsi(ix^D)/cmax_global)
+        wLp(ix^D,psi_)=half*(wRp(ix^D,psi_)+wLp(ix^D,psi_)-dB(ix^D)*cmax_global)
+        wRp(ix^D,mag(idir))=wLp(ix^D,mag(idir))
+        wRp(ix^D,psi_)=wLp(ix^D,psi_)
+        if(total_energy) then
+          wRC(ix^D,e_)=wRC(ix^D,e_)-half*wRC(ix^D,mag(idir))**2
+          wLC(ix^D,e_)=wLC(ix^D,e_)-half*wLC(ix^D,mag(idir))**2
+        end if
+        wRC(ix^D,mag(idir))=wLp(ix^D,mag(idir))
+        wRC(ix^D,psi_)=wLp(ix^D,psi_)
+        wLC(ix^D,mag(idir))=wLp(ix^D,mag(idir))
+        wLC(ix^D,psi_)=wLp(ix^D,psi_)
+        ! modify total energy according to the change of magnetic field
+        if(total_energy) then
+          wRC(ix^D,e_)=wRC(ix^D,e_)+half*wRC(ix^D,mag(idir))**2
+          wLC(ix^D,e_)=wLC(ix^D,e_)+half*wLC(ix^D,mag(idir))**2
+        end if
+     {end do\}
     end if
 
     if(associated(usr_set_wLR)) call usr_set_wLR(ixI^L,ixO^L,qt,wLC,wRC,wLp,wRp,s,idir)
@@ -7097,9 +7097,9 @@ contains
 
    {do ix^DB=ixImin^DB,ixImax^DB\}
       if(B0field) then
-        Btot(1:ndim)=wp(ix^D,mag(1:ndim))+block%B0(ix^D,1:ndim,0)
+        ^D&btot(^D)=wp({ix^D},b^D_)+block%B0({ix^D},^D,0)\
       else
-        Btot(1:ndim)=wp(ix^D,mag(1:ndim))
+        ^D&btot(^D)=wp({ix^D},b^D_)\
       end if
       ! Calculate electric field at cell centers
      {^IFTHREED

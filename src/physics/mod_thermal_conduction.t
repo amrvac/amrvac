@@ -231,32 +231,33 @@ contains
     double precision, intent(in) :: w(ixI^S,1:nw)
     double precision :: dtnew
 
-    double precision :: mf(ixO^S,1:ndim),Te(ixI^S),B2(ixI^S),gradT(ixI^S)
-    double precision :: tmp2(ixO^S),tmp(ixO^S),hfs(ixO^S)
+    double precision :: mf(ixO^S,1:ndim),Te(ixI^S),rho(ixI^S),gradT(ixI^S)
+    double precision :: tmp(ixO^S),hfs(ixO^S)
     double precision :: dtdiff_tcond,maxtmp2
-    integer          :: idims
+    integer          :: idims,ix^D
 
     !temperature
     call fl%get_temperature_from_conserved(w,x,ixI^L,ixI^L,Te)
 
     ! B
-    if(B0field) then
-      mf(ixO^S,1:ndim)=w(ixO^S,iw_mag(1:ndim))+block%B0(ixO^S,1:ndim,0)
-    else
-      mf(ixO^S,1:ndim)=w(ixO^S,iw_mag(1:ndim))
-    end if
-    ! Bsquared
-    B2(ixO^S)=sum(mf(ixO^S,1:ndim)**2,dim=ndim+1)
-    ! B_i**2/B**2
-    where(B2(ixO^S)/=0.d0)
-      ^D&mf(ixO^S,^D)=mf(ixO^S,^D)**2/B2(ixO^S);
-    elsewhere
-      ^D&mf(ixO^S,^D)=1.d0;
-    end where
+   {do ix^DB=ixOmin^DB,ixOmax^DB\}
+      if(B0field) then
+        ^D&mf({ix^D},^D)=w({ix^D},iw_mag(^D))+block%B0({ix^D},^D,0)\
+      else
+        ^D&mf({ix^D},^D)=w({ix^D},iw_mag(^D))\
+      end if
+      ! Bsquared
+      tmp(ix^D)=(^D&mf({ix^D},^D)**2+)
+      ! B_i**2/B**2
+      if(tmp(ix^D)/=0.d0) then
+        ^D&mf({ix^D},^D)=mf({ix^D},^D)**2/tmp({ix^D})\
+      else
+        ^D&mf({ix^D},^D)=1.d0\
+      end if
+   {end do\}
 
     dtnew=bigdouble
-    ! B2 is now density
-    call fl%get_rho(w,x,ixI^L,ixO^L,B2)
+    call fl%get_rho(w,x,ixI^L,ixO^L,rho)
 
     !tc_k_para_i
     if(fl%tc_constant) then
@@ -266,14 +267,17 @@ contains
         ! Kannan 2016 MN 458, 410
         ! 3^1.5*kB^2/(4*sqrt(pi)*e^4)
         ! l_mfpe=3.d0**1.5d0*kB_cgs**2/(4.d0*sqrt(dpi)*e_cgs**4*37.d0)=7093.9239487765044d0
-        tmp2(ixO^S)=Te(ixO^S)**2/B2(ixO^S)*7093.9239487765044d0*unit_temperature**2/(unit_numberdensity*unit_length)
-        hfs=0.d0
+        tmp(ixO^S)=Te(ixO^S)**2/rho(ixO^S)*7093.9239487765044d0*unit_temperature**2/(unit_numberdensity*unit_length)
         do idims=1,ndim
           call gradient(Te,ixI^L,ixO^L,idims,gradT)
-          hfs(ixO^S)=hfs(ixO^S)+gradT(ixO^S)*sqrt(mf(ixO^S,idims))
+          if(idims==1) then
+            hfs(ixO^S)=gradT(ixO^S)*sqrt(mf(ixO^S,idims))
+          else
+            hfs(ixO^S)=hfs(ixO^S)+gradT(ixO^S)*sqrt(mf(ixO^S,idims))
+          end if
         end do
         ! kappa=kappa_Spizer/(1+4.2*l_mfpe/(T/|gradT.b|))
-        tmp(ixO^S)=fl%tc_k_para*dsqrt(Te(ixO^S)**5)/(1.d0+4.2d0*tmp2(ixO^S)*dabs(hfs(ixO^S))/Te(ixO^S))
+        tmp(ixO^S)=fl%tc_k_para*dsqrt(Te(ixO^S)**5)/(1.d0+4.2d0*tmp(ixO^S)*dabs(hfs(ixO^S))/Te(ixO^S))
       else
         ! kappa=kappa_Spizer
         tmp(ixO^S)=fl%tc_k_para*dsqrt(Te(ixO^S)**5)
@@ -283,8 +287,7 @@ contains
     if(slab_uniform) then
       do idims=1,ndim
         ! approximate thermal conduction flux: tc_k_para_i/rho/dx*B_i**2/B**2
-        tmp2(ixO^S)=tmp(ixO^S)*mf(ixO^S,idims)/(B2(ixO^S)*dxlevel(idims))
-        maxtmp2=maxval(tmp2(ixO^S))
+        maxtmp2=maxval(tmp(ixO^S)*mf(ixO^S,idims)/(rho(ixO^S)*dxlevel(idims)))
         ! dt< dx_idim**2/((gamma-1)*tc_k_para_i/rho*B_i**2/B**2)
         dtdiff_tcond=dxlevel(idims)/(tc_gamma_1*maxtmp2+smalldouble)
         ! limit the time step
@@ -293,8 +296,7 @@ contains
     else
       do idims=1,ndim
         ! approximate thermal conduction flux: tc_k_para_i/rho/dx*B_i**2/B**2
-        tmp2(ixO^S)=tmp(ixO^S)*mf(ixO^S,idims)/(B2(ixO^S)*block%ds(ixO^S,idims))
-        maxtmp2=maxval(tmp2(ixO^S)/block%ds(ixO^S,idims))
+        maxtmp2=maxval(tmp(ixO^S)*mf(ixO^S,idims)/(rho(ixO^S)*block%ds(ixO^S,idims)**2))
         ! dt< dx_idim**2/((gamma-1)*tc_k_para_i/rho*B_i**2/B**2)
         dtdiff_tcond=1.d0/(tc_gamma_1*maxtmp2+smalldouble)
         ! limit the time step
@@ -408,21 +410,19 @@ contains
     ! B vector
    {do ix^DB=ixmin^DB,ixmax^DB\}
       if(B0field) then
-        mf(ix^D,1:ndim)=w(ix^D,iw_mag(1:ndim))+block%B0(ix^D,1:ndim,0)
+        ^D&mf({ix^D},^D)=w({ix^D},iw_mag(^D))+block%B0({ix^D},^D,0)\
       else
-        mf(ix^D,1:ndim)=w(ix^D,iw_mag(1:ndim))
+        ^D&mf({ix^D},^D)=w({ix^D},iw_mag(^D))\
       end if
       ! |B|
-      Bnorm(ix^D)=dsqrt(sum(mf(ix^D,1:ndim)**2))
+      Bnorm(ix^D)=dsqrt(^D&mf({ix^D},^D)**2+)
       if(Bnorm(ix^D)/=0.d0) then
         Bnorm(ix^D)=1.d0/Bnorm(ix^D)
       else
         Bnorm(ix^D)=bigdouble
       end if
       ! b unit vector: magnetic field direction vector
-      do idims=1,ndim
-        mf(ix^D,idims)=mf(ix^D,idims)*Bnorm(ix^D)
-      end do
+      ^D&mf({ix^D},^D)=mf({ix^D},^D)*Bnorm({ix^D})\
    {end do\}
     ! ixC is cell-corner index
     ixCmax^D=ixOmax^D; ixCmin^D=ixOmin^D-1;
@@ -698,7 +698,7 @@ contains
             qvec(ix^D,idims)=kaf(ix^D)*0.25d0*(Bc(ix^D,idims)**2*qd(1)+Bc(ix1,ix2-1,ix3,idims)**2*qd(2)&
                            +Bc(ix1,ix2,ix3-1,idims)**2*qd(3)+Bc(ix1,ix2-1,ix3-1,idims)**2*qd(4))
             if(fl%tc_perpendicular) &
-            qvec(ix^D,idims)=qvec(ix^D,idims)+kef(ix^D)*0.25d0*sum(qd(1:4))
+            qvec(ix^D,idims)=qvec(ix^D,idims)+kef(ix^D)*0.25d0*(qd(1)+qd(2)+qd(3)+qd(4))
          {end do\}
         else if(idims==2) then
          {do ix^DB=ixAmin^DB,ixAmax^DB\}
@@ -735,7 +735,7 @@ contains
             qvec(ix^D,idims)=kaf(ix^D)*0.25d0*(Bc(ix^D,idims)**2*qd(1)+Bc(ix1-1,ix2,ix3,idims)**2*qd(2)&
                            +Bc(ix1,ix2,ix3-1,idims)**2*qd(3)+Bc(ix1-1,ix2,ix3-1,idims)**2*qd(4))
             if(fl%tc_perpendicular) &
-            qvec(ix^D,idims)=qvec(ix^D,idims)+kef(ix^D)*0.25d0*sum(qd(1:4))
+            qvec(ix^D,idims)=qvec(ix^D,idims)+kef(ix^D)*0.25d0*(qd(1)+qd(2)+qd(3)+qd(4))
          {end do\}
         else
          {do ix^DB=ixAmin^DB,ixAmax^DB\}
@@ -772,7 +772,7 @@ contains
             qvec(ix^D,idims)=kaf(ix^D)*0.25d0*(Bc(ix^D,idims)**2*qd(1)+Bc(ix1-1,ix2,ix3,idims)**2*qd(2)&
                            +Bc(ix1,ix2-1,ix3,idims)**2*qd(3)+Bc(ix1-1,ix2-1,ix3,idims)**2*qd(4))
             if(fl%tc_perpendicular) &
-            qvec(ix^D,idims)=qvec(ix^D,idims)+kef(ix^D)*0.25d0*sum(qd(1:4))
+            qvec(ix^D,idims)=qvec(ix^D,idims)+kef(ix^D)*0.25d0*(qd(1)+qd(2)+qd(3)+qd(4))
          {end do\}
         end if
        }
@@ -1159,7 +1159,7 @@ contains
     double precision, intent(in) :: dx^D, x(ixI^S,1:ndim)
     double precision, intent(in) :: w(ixI^S,1:nw)
     double precision :: dtnew
-    double precision :: mf(ixO^S,1:ndim),Te(ixI^S),B2(ixI^S),gradT(ixI^S)
+    double precision :: mf(ixO^S,1:ndim),Te(ixI^S),rho(ixI^S),gradT(ixI^S)
     double precision :: tmp2(ixO^S),tmp(ixO^S),hfs(ixO^S)
     double precision :: dtdiff_tcond,maxtmp2
     integer          :: idims
@@ -1169,8 +1169,7 @@ contains
     mf(ixO^S,1:ndim)=(block%B0(ixO^S,1:ndim,0))**2
 
     dtnew=bigdouble
-    ! B2 is now density
-    call fl%get_rho(w,x,ixI^L,ixO^L,B2)
+    call fl%get_rho(w,x,ixI^L,ixO^L,rho)
 
     !tc_k_para_i
     if(fl%tc_constant) then
@@ -1180,7 +1179,7 @@ contains
         ! Kannan 2016 MN 458, 410
         ! 3^1.5*kB^2/(4*sqrt(pi)*e^4)
         ! l_mfpe=3.d0**1.5d0*kB_cgs**2/(4.d0*sqrt(dpi)*e_cgs**4*37.d0)=7093.9239487765044d0
-        tmp2(ixO^S)=Te(ixO^S)**2/B2(ixO^S)*7093.9239487765044d0*unit_temperature**2/(unit_numberdensity*unit_length)
+        tmp2(ixO^S)=Te(ixO^S)**2/rho(ixO^S)*7093.9239487765044d0*unit_temperature**2/(unit_numberdensity*unit_length)
         hfs=0.d0
         do idims=1,ndim
           call gradient(Te,ixI^L,ixO^L,idims,gradT)
@@ -1197,7 +1196,7 @@ contains
     if(slab_uniform) then
       do idims=1,ndim
         ! approximate thermal conduction flux: tc_k_para_i/rho/dx*B_i**2/B**2
-        tmp2(ixO^S)=tmp(ixO^S)*mf(ixO^S,idims)/(B2(ixO^S)*dxlevel(idims))
+        tmp2(ixO^S)=tmp(ixO^S)*mf(ixO^S,idims)/(rho(ixO^S)*dxlevel(idims))
         maxtmp2=maxval(tmp2(ixO^S))
         ! dt< dx_idim**2/((gamma-1)*tc_k_para_i/rho*B_i**2/B**2)
         dtdiff_tcond=dxlevel(idims)/(tc_gamma_1*maxtmp2+smalldouble)
@@ -1207,7 +1206,7 @@ contains
     else
       do idims=1,ndim
         ! approximate thermal conduction flux: tc_k_para_i/rho/dx*B_i**2/B**2
-        tmp2(ixO^S)=tmp(ixO^S)*mf(ixO^S,idims)/(B2(ixO^S)*block%ds(ixO^S,idims))
+        tmp2(ixO^S)=tmp(ixO^S)*mf(ixO^S,idims)/(rho(ixO^S)*block%ds(ixO^S,idims))
         maxtmp2=maxval(tmp2(ixO^S)/block%ds(ixO^S,idims))
         ! dt< dx_idim**2/((gamma-1)*tc_k_para_i/rho*B_i**2/B**2)
         dtdiff_tcond=1.d0/(tc_gamma_1*maxtmp2+smalldouble)
