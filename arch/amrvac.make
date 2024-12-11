@@ -62,7 +62,8 @@ clean:
 	$(RM) amrvac amrvac.o mod_usr.o mod_usr.mod
 
 # Also clean the library
-allclean: clean
+allclean:
+	$(RM) amrvac amrvac.o mod_usr.o mod_usr.f mod_usr.mod
 	@echo 'Cleaning libamrvac'
 	@mkdir -p $(LIB_DIR)	# Prevent error message
 	$(MAKE) -C $(LIB_DIR) -f $(LIB_MAKE) clean
