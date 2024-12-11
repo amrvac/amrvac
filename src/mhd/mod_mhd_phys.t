@@ -2734,7 +2734,7 @@ contains
     double precision, dimension(ixI^S,1:ndim) :: gradT
     double precision :: Bdir(ndim)
     double precision :: ltrc,ltrp,altr(ixI^S)
-    integer :: idims,jxO^L,hxO^L,ixA^D,ixB^D
+    integer :: idims,jxO^L,hxO^L,ixA^D,ixB^D,ix^D
     integer :: jxP^L,hxP^L,ixP^L,ixQ^L
     logical :: lrlt(ixI^S)
 
@@ -2860,33 +2860,36 @@ contains
         call gradientq(Te,x,ixI^L,jxP^L,idims,gradT(ixI^S,idims))
       end do
       ! B vector
-      if(B0field) then
-        bunitvec(ixP^S,:)=w(ixP^S,iw_mag(:))+block%B0(ixP^S,:,0)
-      else
-        bunitvec(ixP^S,:)=w(ixP^S,iw_mag(:))
-      end if
-      tmp1(ixP^S)=1.d0/(dsqrt(sum(bunitvec(ixP^S,:)**2,dim=ndim+1))+smalldouble)
-      ! b unit vector: magnetic field direction vector
-      do idims=1,ndim
-        bunitvec(ixP^S,idims)=bunitvec(ixP^S,idims)*tmp1(ixP^S)
-      end do
-      ! temperature length scale inversed
-      lts(ixP^S)=abs(sum(gradT(ixP^S,1:ndim)*bunitvec(ixP^S,1:ndim),dim=ndim+1))/Te(ixP^S)
-      ! fraction of cells size to temperature length scale
-      if(slab_uniform) then
-        lts(ixP^S)=minval(dxlevel)*lts(ixP^S)
-      else
-        lts(ixP^S)=minval(block%ds(ixP^S,:),dim=ndim+1)*lts(ixP^S)
-      end if
-      lts(ixP^S)=max(one, (exp(lts(ixP^S))/ltrc)**ltrp)
+     {do ix^DB=ixPmin^DB,ixPmax^DB\}
+        if(B0field) then
+          ^C&bunitvec(ix^D,^C)=w(ix^D,iw_mag(^C))+block%B0(ix^D,^C,0)\
+        else
+          ^C&bunitvec(ix^D,^C)=w(ix^D,iw_mag(^C))\
+        end if
+        tmp1(ix^D)=1.d0/(dsqrt(^C&bunitvec(ix^D,^C)**2+)+smalldouble)
+        ! b unit vector: magnetic field direction vector
+        ^D&bunitvec({ix^D},^D)=bunitvec({ix^D},^D)*tmp1({ix^D})\
+        ! temperature length scale inversed
+        lts(ix^D)=abs(^D&gradT({ix^D},^D)*bunitvec({ix^D},^D)+)/Te(ix^D)
+        ! fraction of cells size to temperature length scale
+        if(slab_uniform) then
+          lts(ix^D)=min(^D&dxlevel(^D))*lts(ix^D)
+        else
+          lts(ix^D)=min(^D&block%ds({ix^D},^D))*lts(ix^D)
+        end if
+        lts(ix^D)=max(one,(exp(lts(ix^D))/ltrc)**ltrp)
+     {end do\}
   
-      altr=zero
       ! need one ghost layer for thermal conductivity
       ixP^L=ixO^L^LADD1;
       do idims=1,ndim
         hxO^L=ixP^L-kr(idims,^D);
         jxO^L=ixP^L+kr(idims,^D);
-        altr(ixP^S)=altr(ixP^S)+0.25d0*(lts(hxO^S)+two*lts(ixP^S)+lts(jxO^S))*bunitvec(ixP^S,idims)**2
+        if(idims==1) then
+          altr(ixP^S)=0.25d0*(lts(hxO^S)+two*lts(ixP^S)+lts(jxO^S))*bunitvec(ixP^S,idims)**2
+        else
+          altr(ixP^S)=altr(ixP^S)+0.25d0*(lts(hxO^S)+two*lts(ixP^S)+lts(jxO^S))*bunitvec(ixP^S,idims)**2
+        end if
       end do
       block%wextra(ixP^S,Tcoff_)=Te(ixP^S)*altr(ixP^S)**0.4d0
     case(3,5)
