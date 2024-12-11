@@ -676,6 +676,7 @@ mod_twofl_roe.o: mod_physics_roe.mod
 mod_twofl_roe.o: mod_tvd.mod
 mod_twofl_roe.o: mod_twofl_phys.mod
 mod_usr_methods.o: mod_global_parameters.mod
+mod_usr_template.o: mod_mhd.mod
 mod_variables.o: mod_basic_types.mod
 mod_venk.o: mod_global_parameters.mod
 mod_viscosity.o: mod_comm_lib.mod
