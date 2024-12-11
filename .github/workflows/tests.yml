@@ -17,7 +17,7 @@ jobs:
         include:
           - os: ubuntu-20.04
             compiler: gfortran-8  # not longer supported for ubuntu-22
-          - os: macos-12
+          - os: macos-14
             compiler: gfortran-11
             gcc_name: gcc@11
 
