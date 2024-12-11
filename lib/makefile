@@ -43,5 +43,5 @@ endif
 
 # Remove everything
 clean:
-	$(RM) -r 1d1_* 1d2_* 1d3_* 2d2_* 2d3_* 3d3_*
+	$(RM) -r 1d1_* 1d2_* 1d3_* 2d2_* 2d3_* 3d3_* 1d*_ 2d*_ 3d*_
 

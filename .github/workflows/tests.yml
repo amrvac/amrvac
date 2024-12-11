@@ -56,7 +56,7 @@ jobs:
       - name: compile 1D
         run: |
           cd lib
-          make 1d ARCH=debug -j 4 || exit 1
+          make 1d1 ARCH=debug -j 4 || exit 1
       - name: run 1D rho test
         run: |
           cd tests
@@ -112,7 +112,7 @@ jobs:
     name: compile / Intel
 
     env:
-      FC: ifort
+      FC: ifx
       CC: icc
       AMRVAC_DIR: ${GITHUB_WORKSPACE}
 
@@ -149,12 +149,12 @@ jobs:
       - name: compile 1D
         run: |
           cd lib
-          make 1d -j 4 ARCH=inteldebug
+          make 1d1 -j 4 ARCH=ifxdebug
       - name: compile 2D
         run: |
           cd lib
-          make 2d -j 4 ARCH=inteldebug
+          make 2d2 -j 4 ARCH=ifxdebug
       - name: compile 3D
         run: |
           cd lib
-          make 3d -j 4 ARCH=inteldebug
+          make 3d3 -j 4 ARCH=ifxdebug
