@@ -17,9 +17,6 @@ jobs:
         include:
           - os: ubuntu-20.04
             compiler: gfortran-8  # not longer supported for ubuntu-22
-          - os: macos-14
-            compiler: gfortran-13
-            gcc_name: gcc@13
 
     env:
       FC: ${{ matrix.compiler }}
@@ -37,10 +34,6 @@ jobs:
             sudo apt-get update
             sudo apt-get install ${{ matrix.compiler }}
             sudo apt-get install openmpi-bin libopenmpi-dev
-          else
-            brew install ${{ matrix.gcc_name }}
-            brew install open-mpi
-            ln -s /usr/local/bin/${{ matrix.compiler }} /usr/local/bin/gfortran
           fi
       - name: check compiler versions
         run: |
