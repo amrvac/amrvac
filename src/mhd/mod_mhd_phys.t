@@ -181,7 +181,7 @@ module mod_mhd_phys
   !> Whether an total energy equation is used
   logical :: total_energy = .true.
   !> Whether an internal or hydrodynamic energy equation is used
-  logical :: partial_energy = .false.
+  logical, public :: partial_energy = .false.
   !> Whether gravity work is included in energy equation
   logical :: gravity_energy
   !> gravity work is calculated use density times velocity or conservative momentum
@@ -1154,27 +1154,29 @@ contains
     double precision, intent(in)    :: w(ixI^S, 1:nw)
     double precision, intent(in)    :: x(ixI^S,1:ndim)
     double precision   :: wnew(ixO^S, 1:nwc)
-    double precision   :: rho(ixI^S)
 
-    call  mhd_get_rho(w,x,ixI^L,ixO^L,rho)
-    wnew(ixO^S,rho_) = rho(ixO^S)
-    wnew(ixO^S,mom(:)) =  w(ixO^S,mom(:))
+    if(has_equi_rho0) then
+      wnew(ixO^S,rho_)=w(ixO^S,rho_)+block%equi_vars(ixO^S,equi_rho0_,0)
+    else
+      wnew(ixO^S,rho_)=w(ixO^S,rho_)
+    endif
+    wnew(ixO^S,mom(:))=w(ixO^S,mom(:))
 
     if (B0field) then
       ! add background magnetic field B0 to B
-      wnew(ixO^S,mag(:))=w(ixO^S,mag(:))+block%B0(ixO^S,:,0)
+      wnew(ixO^S,mag(1:ndir))=w(ixO^S,mag(1:ndir))+block%B0(ixO^S,1:ndir,0)
     else
-      wnew(ixO^S,mag(:))=w(ixO^S,mag(:))
+      wnew(ixO^S,mag(1:ndir))=w(ixO^S,mag(1:ndir))
     end if
 
     if(mhd_energy) then
-      wnew(ixO^S,e_) = w(ixO^S,e_)
+      wnew(ixO^S,e_)=w(ixO^S,e_)
       if(has_equi_pe0) then
-        wnew(ixO^S,e_) = wnew(ixO^S,e_) + block%equi_vars(ixO^S,equi_pe0_,0)* inv_gamma_1
+        wnew(ixO^S,e_)=wnew(ixO^S,e_)+block%equi_vars(ixO^S,equi_pe0_,0)*inv_gamma_1
       end if
-      if(B0field .and. .not. mhd_internal_e) then
-          wnew(ixO^S,e_)=wnew(ixO^S,e_)+0.5d0*sum(block%B0(ixO^S,:,0)**2,dim=ndim+1) &
-              + sum(w(ixO^S,mag(:))*block%B0(ixO^S,:,0),dim=ndim+1)
+      if(B0field .and. total_energy) then
+        wnew(ixO^S,e_)=wnew(ixO^S,e_)+0.5d0*sum(block%B0(ixO^S,:,0)**2,dim=ndim+1) &
+            + sum(w(ixO^S,mag(:))*block%B0(ixO^S,:,0),dim=ndim+1)
       end if
     end if
 
@@ -1296,8 +1298,8 @@ contains
     integer, intent(in) :: ixI^L, ixO^L
     double precision, intent(in) :: w(ixI^S,nw)
 
-    double precision :: tmp,b2,b(1:ndir),Ba(1:ndir)
-    double precision :: v(1:ndir),gamma2,inv_rho
+    double precision :: tmp,b2,b(ixO^S,1:ndir)
+    double precision :: v(ixO^S,1:ndir),gamma2,inv_rho
     integer :: ix^D
 
     flag=.false.
@@ -1313,46 +1315,38 @@ contains
          {end do\}
         else
          {do ix^DB=ixOmin^DB,ixOmax^DB \}
-            if(B0field) then
-              ^C&ba(^C)=w(ix^D,b^C_)+block%B0(ix^D,^C,b0i)\
-            else
-              ^C&ba(^C)=w(ix^D,b^C_)\
-            end if
-            b2=(^C&ba(^C)**2+)
+            b2=(^C&w(ix^D,b^C_)**2+)
             if(b2>smalldouble) then
               tmp=1.d0/sqrt(b2)
             else 
               tmp=0.d0
             end if
-            ^C&b(^C)=Ba(^C)*tmp\
-            tmp=(^C&b(^C)*w(ix^D,m^C_)+)
+            ^C&b(ix^D,^C)=w(ix^D,b^C_)*tmp\
+            tmp=(^C&b(ix^D,^C)*w(ix^D,m^C_)+)
             inv_rho = 1d0/w(ix^D,rho_)
             ! Va^2/c^2
             b2=b2*inv_rho*inv_squared_c
             ! equation (15)
             gamma2=1.d0/(1.d0+b2)
             ! Convert momentum to velocity
-            ^C&v(^C)=gamma2*(w(ix^D,m^C_)+b2*b(^C)*tmp*inv_rho)\
+            ^C&v(ix^D,^C)=gamma2*(w(ix^D,m^C_)+b2*b(ix^D,^C)*tmp*inv_rho)\
             ! E=Bxv
-            {^IFTHREED
-            b(1)=Ba(2)*v(3)-Ba(3)*v(2)
-            b(2)=Ba(3)*v(1)-Ba(1)*v(3)
-            b(3)=Ba(1)*v(2)-Ba(2)*v(1)
+            {^IFTHREEC
+            b(ix^D,1)=w(ix^D,b2_)*v(ix^D,3)-w(ix^D,b3_)*v(ix^D,2)
+            b(ix^D,2)=w(ix^D,b3_)*v(ix^D,1)-w(ix^D,b1_)*v(ix^D,3)
+            b(ix^D,3)=w(ix^D,b1_)*v(ix^D,2)-w(ix^D,b2_)*v(ix^D,1)
             }
-            {^NOTHREED
-            if(ndir==3) then
-              b(1)=Ba(2)*v(3)-Ba(3)*v(2)
-              b(2)=Ba(3)*v(1)-Ba(1)*v(3)
-              b(3)=Ba(1)*v(2)-Ba(2)*v(1)
-            else
-              b(1)=zero
-              ! switch 3 with 2 to allow ^C from 1 to 2
-              b(2)=Ba(1)*v(2)-Ba(2)*v(1)
-            end if
+            {^IFTWOC
+            b(ix^D,1)=zero
+            ! switch 3 with 2 to allow ^C from 1 to 2
+            b(ix^D,2)=w(ix^D,b1_)*v(ix^D,2)-w(ix^D,b2_)*v(ix^D,1)
+            }
+            {^IFONEC
+            b(ix^D,1)=zero
             }
             ! Calculate internal e = e-eK-eB-eE
-            tmp=w(ix^D,e_)-half*((^C&v(^C)**2+)*w(ix^D,rho_)&
-               +(^C&w(ix^D,b^C_)**2+)+(^C&b(^C)**2+)*inv_squared_c)
+            tmp=w(ix^D,e_)-half*((^C&v(ix^D,^C)**2+)*w(ix^D,rho_)&
+               +(^C&w(ix^D,b^C_)**2+)+(^C&b(ix^D,^C)**2+)*inv_squared_c)
             if(tmp<small_e) flag(ix^D,e_)=.true.
          {end do\}
         end if
@@ -1577,46 +1571,29 @@ contains
     double precision, intent(inout) :: w(ixI^S, nw)
     double precision, intent(in)    :: x(ixI^S, 1:ndim)
 
-    double precision :: E(1:ndir), B(1:ndir), S(1:ndir)
+    double precision :: E(ixO^S,1:ndir), S(ixO^S,1:ndir)
     integer :: ix^D
 
-   {do ix^DB=ixOmin^DB,ixOmax^DB\}
-      if(B0field) then
-        ^C&b(^C)=w(ix^D,b^C_)+block%B0(ix^D,^C,b0i)\
-      else
-        ^C&b(^C)=w(ix^D,b^C_)\
-      end if
-      {^IFTHREED
-      E(1)=B(2)*w(ix^D,mom(3))-B(3)*w(ix^D,mom(2))
-      E(2)=B(3)*w(ix^D,mom(1))-B(1)*w(ix^D,mom(3))
-      E(3)=B(1)*w(ix^D,mom(2))-B(2)*w(ix^D,mom(1))
+   {!dir$ vector aligned
+   do ix^DB=ixOmin^DB,ixOmax^DB\}
+      {^IFTHREEC
+      E(ix^D,1)=w(ix^D,b2_)*w(ix^D,m3_)-w(ix^D,b3_)*w(ix^D,m2_)
+      E(ix^D,2)=w(ix^D,b3_)*w(ix^D,m1_)-w(ix^D,b1_)*w(ix^D,m3_)
+      E(ix^D,3)=w(ix^D,b1_)*w(ix^D,m2_)-w(ix^D,b2_)*w(ix^D,m1_)
+      S(ix^D,1)=E(ix^D,2)*w(ix^D,b3_)-E(ix^D,3)*w(ix^D,b2_)
+      S(ix^D,2)=E(ix^D,3)*w(ix^D,b1_)-E(ix^D,1)*w(ix^D,b3_)
+      S(ix^D,3)=E(ix^D,1)*w(ix^D,b2_)-E(ix^D,2)*w(ix^D,b1_)
       }
-      {^NOTHREED
-      if(ndir==3) then
-        E(1)=B(2)*w(ix^D,mom(3))-B(3)*w(ix^D,mom(2))
-        E(2)=B(3)*w(ix^D,mom(1))-B(1)*w(ix^D,mom(3))
-        E(3)=B(1)*w(ix^D,mom(2))-B(2)*w(ix^D,mom(1))
-      else
-        E(1)=zero
-        ! switch 3 with 2 to add 3 when ^C from 1 to 2
-        E(2)=B(1)*w(ix^D,mom(2))-B(2)*w(ix^D,mom(1))
-      end if
+      {^IFTWOC
+      E(ix^D,1)=zero
+      ! switch 3 with 2 to add 3 when ^C from 1 to 2
+      E(ix^D,2)=w(ix^D,b1_)*w(ix^D,m2_)-w(ix^D,b2_)*w(ix^D,m1_)
+      S(ix^D,1)=-E(ix^D,2)*w(ix^D,b2_)
+      S(ix^D,2)=E(ix^D,2)*w(ix^D,b1_)
       }
-      ! equation (5) Poynting vector
-      {^IFTHREED
-      S(1)=E(2)*B(3)-E(3)*B(2)
-      S(2)=E(3)*B(1)-E(1)*B(3)
-      S(3)=E(1)*B(2)-E(2)*B(1)
-      }
-      {^NOTHREED
-      if(ndir==3) then
-        S(1)=E(2)*B(3)-E(3)*B(2)
-        S(2)=E(3)*B(1)-E(1)*B(3)
-        S(3)=E(1)*B(2)-E(2)*B(1)
-      else
-        S(1)=-E(2)*B(2)
-        S(2)=E(2)*B(1)
-      end if
+      {^IFONEC
+      E(ix^D,1)=zero
+      S(ix^D,1)=zero
       }
       if(mhd_internal_e) then
         ! internal energy
@@ -1627,66 +1604,47 @@ contains
         w(ix^D,e_)=w(ix^D,p_)*inv_gamma_1&
                    +half*((^C&w(ix^D,m^C_)**2+)*w(ix^D,rho_)&
                    +(^C&w(ix^D,b^C_)**2+)&
-                   +(^C&e(^C)**2+)*inv_squared_c)
+                   +(^C&e(ix^D,^C)**2+)*inv_squared_c)
       end if
 
       ! Convert velocity to momentum, equation (9)
-      ^C&w(ix^D,m^C_)=w(ix^D,rho_)*w(ix^D,m^C_)+S(^C)*inv_squared_c\
+      ^C&w(ix^D,m^C_)=w(ix^D,rho_)*w(ix^D,m^C_)+S(ix^D,^C)*inv_squared_c\
 
    {end do\}
 
   end subroutine mhd_to_conserved_semirelati
 
-  !> Transform primitive variables into conservative ones
   subroutine mhd_to_conserved_semirelati_noe(ixI^L,ixO^L,w,x)
     use mod_global_parameters
     integer, intent(in)             :: ixI^L, ixO^L
     double precision, intent(inout) :: w(ixI^S, nw)
     double precision, intent(in)    :: x(ixI^S, 1:ndim)
 
-    double precision :: E(1:ndir), B(1:ndir), S(1:ndir)
+    double precision :: E(ixO^S,1:ndir), S(ixO^S,1:ndir)
     integer :: ix^D
 
-   {do ix^DB=ixOmin^DB,ixOmax^DB\}
-      if(B0field) then
-        ^C&b(^C)=w(ix^D,b^C_)+block%B0(ix^D,^C,b0i)\
-      else
-        ^C&b(^C)=w(ix^D,b^C_)\
-      end if
-      {^IFTHREED
-      E(1)=B(2)*w(ix^D,mom(3))-B(3)*w(ix^D,mom(2))
-      E(2)=B(3)*w(ix^D,mom(1))-B(1)*w(ix^D,mom(3))
-      E(3)=B(1)*w(ix^D,mom(2))-B(2)*w(ix^D,mom(1))
+   {!dir$ vector aligned
+   do ix^DB=ixOmin^DB,ixOmax^DB\}
+      {^IFTHREEC
+      E(ix^D,1)=w(ix^D,b2_)*w(ix^D,m3_)-w(ix^D,b3_)*w(ix^D,m2_)
+      E(ix^D,2)=w(ix^D,b3_)*w(ix^D,m1_)-w(ix^D,b1_)*w(ix^D,m3_)
+      E(ix^D,3)=w(ix^D,b1_)*w(ix^D,m2_)-w(ix^D,b2_)*w(ix^D,m1_)
+      S(ix^D,1)=E(ix^D,2)*w(ix^D,b3_)-E(ix^D,3)*w(ix^D,b2_)
+      S(ix^D,2)=E(ix^D,3)*w(ix^D,b1_)-E(ix^D,1)*w(ix^D,b3_)
+      S(ix^D,3)=E(ix^D,1)*w(ix^D,b2_)-E(ix^D,2)*w(ix^D,b1_)
       }
-      {^NOTHREED
-      if(ndir==3) then
-        E(1)=B(2)*w(ix^D,mom(3))-B(3)*w(ix^D,mom(2))
-        E(2)=B(3)*w(ix^D,mom(1))-B(1)*w(ix^D,mom(3))
-        E(3)=B(1)*w(ix^D,mom(2))-B(2)*w(ix^D,mom(1))
-      else
-        E(1)=zero
-        ! switch 3 with 2 to add 3 when ^C from 1 to 2
-        E(2)=B(1)*w(ix^D,mom(2))-B(2)*w(ix^D,mom(1))
-      end if
+      {^IFTWOC
+      E(ix^D,1)=zero
+      ! switch 3 with 2 to add 3 when ^C from 1 to 2
+      E(ix^D,2)=w(ix^D,b1_)*w(ix^D,m2_)-w(ix^D,b2_)*w(ix^D,m1_)
+      S(ix^D,1)=-E(ix^D,2)*w(ix^D,b2_)
+      S(ix^D,2)=E(ix^D,2)*w(ix^D,b1_)
       }
-      ! equation (5) Poynting vector
-      {^IFTHREED
-      S(1)=E(2)*B(3)-E(3)*B(2)
-      S(2)=E(3)*B(1)-E(1)*B(3)
-      S(3)=E(1)*B(2)-E(2)*B(1)
-      }
-      {^NOTHREED
-      if(ndir==3) then
-        S(1)=E(2)*B(3)-E(3)*B(2)
-        S(2)=E(3)*B(1)-E(1)*B(3)
-        S(3)=E(1)*B(2)-E(2)*B(1)
-      else
-        S(1)=-E(2)*B(2)
-        S(2)=E(2)*B(1)
-      end if
+      {^IFONEC
+      S(ix^D,1)=zero
       }
       ! Convert velocity to momentum, equation (9)
-      ^C&w(ix^D,m^C_)=w(ix^D,rho_)*w(ix^D,m^C_)+S(^C)*inv_squared_c\
+      ^C&w(ix^D,m^C_)=w(ix^D,rho_)*w(ix^D,m^C_)+S(ix^D,^C)*inv_squared_c\
 
    {end do\}
 
@@ -1826,7 +1784,7 @@ contains
     double precision, intent(inout) :: w(ixI^S, nw)
     double precision, intent(in)    :: x(ixI^S, 1:ndim)
 
-    double precision :: b(1:ndir), Ba(1:ndir), tmp, b2, gamma2, inv_rho
+    double precision :: b(ixO^S,1:ndir), tmp, b2, gamma2, inv_rho
     integer :: ix^D
 
     if (fix_small_values) then
@@ -1834,20 +1792,16 @@ contains
       call mhd_handle_small_values_semirelati(.false., w, x, ixI^L, ixO^L, 'mhd_to_primitive_semirelati')
     end if
 
-   {do ix^DB=ixOmin^DB,ixOmax^DB\}
-      if(B0field) then
-        ^C&ba(^C)=w(ix^D,b^C_)+block%B0(ix^D,^C,b0i)\
-      else
-        ^C&ba(^C)=w(ix^D,b^C_)\
-      end if
-      b2=(^C&ba(^C)**2+)
+   {!dir$ vector aligned
+    do ix^DB=ixOmin^DB,ixOmax^DB\}
+      b2=(^C&w(ix^D,b^C_)**2+)
       if(b2>smalldouble) then
         tmp=1.d0/sqrt(b2)
       else
         tmp=0.d0
       end if
-      ^C&b(^C)=ba(^C)*tmp\
-      tmp=(^C&b(^C)*w(ix^D,m^C_)+)
+      ^C&b(ix^D,^C)=w(ix^D,b^C_)*tmp\
+      tmp=(^C&b(ix^D,^C)*w(ix^D,m^C_)+)
 
       inv_rho=1.d0/w(ix^D,rho_)
       ! Va^2/c^2
@@ -1855,33 +1809,30 @@ contains
       ! equation (15)
       gamma2=1.d0/(1.d0+b2)
       ! Convert momentum to velocity
-      ^C&w(ix^D,m^C_)=gamma2*(w(ix^D,m^C_)+b2*b(^C)*tmp)*inv_rho\
+      ^C&w(ix^D,m^C_)=gamma2*(w(ix^D,m^C_)+b2*b(ix^D,^C)*tmp)*inv_rho\
 
       if(mhd_internal_e) then
         ! internal energy to pressure
         w(ix^D,p_)=gamma_1*w(ix^D,e_)
       else
         ! E=Bxv
-        {^IFTHREED
-        b(1)=Ba(2)*w(ix^D,mom(3))-Ba(3)*w(ix^D,mom(2))
-        b(2)=Ba(3)*w(ix^D,mom(1))-Ba(1)*w(ix^D,mom(3))
-        b(3)=Ba(1)*w(ix^D,mom(2))-Ba(2)*w(ix^D,mom(1))
+        {^IFTHREEC
+        b(ix^D,1)=w(ix^D,b2_)*w(ix^D,m3_)-w(ix^D,b3_)*w(ix^D,m2_)
+        b(ix^D,2)=w(ix^D,b3_)*w(ix^D,m1_)-w(ix^D,b1_)*w(ix^D,m3_)
+        b(ix^D,3)=w(ix^D,b1_)*w(ix^D,m2_)-w(ix^D,b2_)*w(ix^D,m1_)
         }
-        {^NOTHREED
-        if(ndir==3) then
-          b(1)=Ba(2)*w(ix^D,mom(3))-Ba(3)*w(ix^D,mom(2))
-          b(2)=Ba(3)*w(ix^D,mom(1))-Ba(1)*w(ix^D,mom(3))
-          b(3)=Ba(1)*w(ix^D,mom(2))-Ba(2)*w(ix^D,mom(1))
-        else
-          b(1)=zero
-          b(2)=Ba(1)*w(ix^D,mom(2))-Ba(2)*w(ix^D,mom(1))
-        end if
+        {^IFTWOC
+        b(ix^D,1)=zero
+        b(ix^D,2)=w(ix^D,b1_)*w(ix^D,m2_)-w(ix^D,b2_)*w(ix^D,m1_)
+        }
+        {^IFONEC
+        b(ix^D,1)=zero
         }
         ! Calculate pressure = (gamma-1) * (e-eK-eB-eE)
         w(ix^D,p_)=gamma_1*(w(ix^D,e_)&
                    -half*((^C&w(ix^D,m^C_)**2+)*w(ix^D,rho_)&
                    +(^C&w(ix^D,b^C_)**2+)&
-                   +(^C&b(^C)**2+)*inv_squared_c))
+                   +(^C&b(ix^D,^C)**2+)*inv_squared_c))
       end if
    {end do\}
 
@@ -1894,7 +1845,7 @@ contains
     double precision, intent(inout) :: w(ixI^S, nw)
     double precision, intent(in)    :: x(ixI^S, 1:ndim)
 
-    double precision :: b(1:ndir), Ba(1:ndir), tmp, b2, gamma2, inv_rho
+    double precision :: b(ixO^S,1:ndir),tmp,b2,gamma2,inv_rho
     integer :: ix^D, idir
 
     if (fix_small_values) then
@@ -1903,19 +1854,14 @@ contains
     end if
 
    {do ix^DB=ixOmin^DB,ixOmax^DB\}
-      if(B0field) then
-        ^C&b(^C)=w(ix^D,b^C_)+block%B0(ix^D,^C,b0i)\
-      else
-        ^C&b(^C)=w(ix^D,b^C_)\
-      end if
-      b2=(^C&ba(^C)**2+)
+      b2=(^C&w(ix^D,b^C_)**2+)
       if(b2>smalldouble) then
         tmp=1.d0/sqrt(b2)
       else
         tmp=0.d0
       end if
-      ^C&b(^C)=ba(^C)*tmp\
-      tmp=(^C&b(^C)*w(ix^D,m^C_)+)
+      ^C&b(ix^D,^C)=w(ix^D,b^C_)*tmp\
+      tmp=(^C&b(ix^D,^C)*w(ix^D,m^C_)+)
 
       inv_rho=1.d0/w(ix^D,rho_)
       ! Va^2/c^2
@@ -1923,7 +1869,7 @@ contains
       ! equation (15)
       gamma2=1.d0/(1.d0+b2)
       ! Convert momentum to velocity
-      ^C&w(ix^D,m^C_)=gamma2*(w(ix^D,m^C_)+b2*b(^C)*tmp)*inv_rho\
+      ^C&w(ix^D,m^C_)=gamma2*(w(ix^D,m^C_)+b2*b(ix^D,^C)*tmp)*inv_rho\
    {end do\}
 
   end subroutine mhd_to_primitive_semirelati_noe
@@ -2078,7 +2024,7 @@ contains
     character(len=*), intent(in)    :: subname
 
     double precision :: b(ixI^S,1:ndir), pressure(ixI^S), v(ixI^S,1:ndir)
-    double precision :: Ba(1:ndir), tmp, b2, gamma2, inv_rho
+    double precision :: tmp, b2, gamma2, inv_rho
     integer :: ix^D
     logical :: flag(ixI^S,1:nw)
 
@@ -2089,19 +2035,15 @@ contains
       if(primitive) then
         where(w(ixO^S,p_) < small_pressure) flag(ixO^S,e_) = .true.
       else
-       {do ix^DB=ixImin^DB,ixImax^DB\}
-          if(B0field) then
-            ^C&ba(^C)=w(ix^D,b^C_)+block%B0(ix^D,^C,b0i)\
-          else
-            ^C&ba(^C)=w(ix^D,b^C_)\
-          end if
-          b2=(^C&ba(^C)**2+)
+       {!dir$ vector aligned
+        do ix^DB=ixImin^DB,ixImax^DB\}
+          b2=(^C&w(ix^D,b^C_)**2+)
           if(b2>smalldouble) then
             tmp=1.d0/sqrt(b2)
           else
             tmp=0.d0
           end if
-          ^C&b(ix^D,^C)=ba(^C)*tmp\
+          ^C&b(ix^D,^C)=w(ix^D,b^C_)*tmp\
           tmp=(^C&b(ix^D,^C)*w(ix^D,m^C_)+)
           inv_rho=1.d0/w(ix^D,rho_)
           ! Va^2/c^2
@@ -2111,20 +2053,17 @@ contains
           ! Convert momentum to velocity
           ^C&v(ix^D,^C)=gamma2*(w(ix^D,m^C_)+b2*b(ix^D,^C)*tmp)*inv_rho\
           ! E=Bxv
-          {^IFTHREED
-          b(ix^D,1)=Ba(2)*v(ix^D,3)-Ba(3)*v(ix^D,2)
-          b(ix^D,2)=Ba(3)*v(ix^D,1)-Ba(1)*v(ix^D,3)
-          b(ix^D,3)=Ba(1)*v(ix^D,2)-Ba(2)*v(ix^D,1)
+          {^IFTHREEC
+          b(ix^D,1)=w(ix^D,b2_)*v(ix^D,3)-w(ix^D,b3_)*v(ix^D,2)
+          b(ix^D,2)=w(ix^D,b3_)*v(ix^D,1)-w(ix^D,b1_)*v(ix^D,3)
+          b(ix^D,3)=w(ix^D,b1_)*v(ix^D,2)-w(ix^D,b2_)*v(ix^D,1)
           }
-          {^NOTHREED
-          if(ndir==3) then
-            b(ix^D,1)=Ba(2)*v(ix^D,3)-Ba(3)*v(ix^D,2)
-            b(ix^D,2)=Ba(3)*v(ix^D,1)-Ba(1)*v(ix^D,3)
-            b(ix^D,3)=Ba(1)*v(ix^D,2)-Ba(2)*v(ix^D,1)
-          else
-            b(ix^D,1)=zero
-            b(ix^D,2)=Ba(1)*v(ix^D,2)-Ba(2)*v(ix^D,1)
-          end if
+          {^IFTWOC
+          b(ix^D,1)=zero
+          b(ix^D,2)=w(ix^D,b1_)*v(ix^D,2)-w(ix^D,b2_)*v(ix^D,1)
+          }
+          {^IFONEC
+          b(ix^D,1)=zero
           }
           ! Calculate pressure = (gamma-1) * (e-eK-eB-eE)
           pressure(ix^D)=gamma_1*(w(ix^D,e_)&
@@ -2606,43 +2545,24 @@ contains
     double precision :: inv_rho, Alfven_speed2, gamma2
     integer :: ix^D
 
-    if(B0field) then
-     {do ix^DB=ixOmin^DB,ixOmax^DB \}
-        inv_rho=1.d0/w(ix^D,rho_)
-        Alfven_speed2=(^C&(w(ix^D,b^C_)+block%B0(ix^D,^C,b0i))**2+)*inv_rho
-        gamma2=1.0d0/(1.d0+Alfven_speed2*inv_squared_c)
-        cmax(ix^D)=1.d0-gamma2*w(ix^D,mom(idim))**2*inv_squared_c
-        ! squared sound speed
-        csound=mhd_gamma*w(ix^D,p_)*inv_rho
-        idim_Alfven_speed2=(w(ix^D,mag(idim))+block%B0(ix^D,idim,b0i))**2*inv_rho
-        ! Va_hat^2+a_hat^2 equation (57)
-        ! equation (69)
-        Alfven_speed2=Alfven_speed2*cmax(ix^D)+csound*(1.d0+idim_Alfven_speed2*inv_squared_c)
-        AvMinCs2=(gamma2*Alfven_speed2)**2-4.0d0*gamma2*csound*idim_Alfven_speed2*cmax(ix^D)
-        if(AvMinCs2<zero) AvMinCs2=zero
-        ! equation (68) fast magnetosonic wave speed
-        csound = sqrt(half*(gamma2*Alfven_speed2+sqrt(AvMinCs2)))
-        cmax(ix^D)=gamma2*abs(w(ix^D,mom(idim)))+csound
-      {end do\}
-    else
-     {do ix^DB=ixOmin^DB,ixOmax^DB \}
-        inv_rho=1.d0/w(ix^D,rho_)
-        Alfven_speed2=(^C&w(ix^D,b^C_)**2+)*inv_rho
-        gamma2=1.0d0/(1.d0+Alfven_speed2*inv_squared_c)
-        cmax(ix^D)=1.d0-gamma2*w(ix^D,mom(idim))**2*inv_squared_c
-        ! squared sound speed
-        csound=mhd_gamma*w(ix^D,p_)*inv_rho
-        idim_Alfven_speed2=w(ix^D,mag(idim))**2*inv_rho
-        ! Va_hat^2+a_hat^2 equation (57)
-        ! equation (69)
-        Alfven_speed2=Alfven_speed2*cmax(ix^D)+csound*(1.d0+idim_Alfven_speed2*inv_squared_c)
-        AvMinCs2=(gamma2*Alfven_speed2)**2-4.0d0*gamma2*csound*idim_Alfven_speed2*cmax(ix^D)
-        if(AvMinCs2<zero) AvMinCs2=zero
-        ! equation (68) fast magnetosonic wave speed
-        csound = sqrt(half*(gamma2*Alfven_speed2+sqrt(AvMinCs2)))
-        cmax(ix^D)=gamma2*abs(w(ix^D,mom(idim)))+csound
-      {end do\}
-    end if
+   {!dir$ vector aligned
+    do ix^DB=ixOmin^DB,ixOmax^DB \}
+      inv_rho=1.d0/w(ix^D,rho_)
+      Alfven_speed2=(^C&w(ix^D,b^C_)**2+)*inv_rho
+      gamma2=1.0d0/(1.d0+Alfven_speed2*inv_squared_c)
+      cmax(ix^D)=1.d0-gamma2*w(ix^D,mom(idim))**2*inv_squared_c
+      ! squared sound speed
+      csound=mhd_gamma*w(ix^D,p_)*inv_rho
+      idim_Alfven_speed2=w(ix^D,mag(idim))**2*inv_rho
+      ! Va_hat^2+a_hat^2 equation (57)
+      ! equation (69)
+      Alfven_speed2=Alfven_speed2*cmax(ix^D)+csound*(1.d0+idim_Alfven_speed2*inv_squared_c)
+      AvMinCs2=(gamma2*Alfven_speed2)**2-4.0d0*gamma2*csound*idim_Alfven_speed2*cmax(ix^D)
+      if(AvMinCs2<zero) AvMinCs2=zero
+      ! equation (68) fast magnetosonic wave speed
+      csound = sqrt(half*(gamma2*Alfven_speed2+sqrt(AvMinCs2)))
+      cmax(ix^D)=gamma2*abs(w(ix^D,mom(idim)))+csound
+   {end do\}
 
   end subroutine mhd_get_cmax_semirelati
 
@@ -2658,41 +2578,23 @@ contains
     double precision :: inv_rho, Alfven_speed2, gamma2
     integer :: ix^D
 
-    if(B0field) then
-     {do ix^DB=ixOmin^DB,ixOmax^DB \}
-        inv_rho=1.d0/w(ix^D,rho_)
-        Alfven_speed2=(^C&(w(ix^D,b^C_)+block%B0(ix^D,^C,b0i))**2+)*inv_rho
-        gamma2=1.0d0/(1.d0+Alfven_speed2*inv_squared_c)
-        cmax(ix^D)=1.d0-gamma2*w(ix^D,mom(idim))**2*inv_squared_c
-        csound=mhd_gamma*mhd_adiab*w(ix^D,rho_)**gamma_1
-        idim_Alfven_speed2=(w(ix^D,mag(idim))+block%B0(ix^D,idim,b0i))**2*inv_rho
-        ! Va_hat^2+a_hat^2 equation (57)
-        ! equation (69)
-        Alfven_speed2=Alfven_speed2*cmax(ix^D)+csound*(1.d0+idim_Alfven_speed2*inv_squared_c)
-        AvMinCs2=(gamma2*Alfven_speed2)**2-4.0d0*gamma2*csound*idim_Alfven_speed2*cmax(ix^D)
-        if(AvMinCs2<zero) AvMinCs2=zero
-        ! equation (68) fast magnetosonic wave speed
-        csound = sqrt(half*(gamma2*Alfven_speed2+sqrt(AvMinCs2)))
-        cmax(ix^D)=gamma2*abs(w(ix^D,mom(idim)))+csound
-      {end do\}
-    else
-     {do ix^DB=ixOmin^DB,ixOmax^DB \}
-        inv_rho=1.d0/w(ix^D,rho_)
-        Alfven_speed2=(^C&w(ix^D,b^C_)**2+)*inv_rho
-        gamma2=1.0d0/(1.d0+Alfven_speed2*inv_squared_c)
-        cmax(ix^D)=1.d0-gamma2*w(ix^D,mom(idim))**2*inv_squared_c
-        csound=mhd_gamma*mhd_adiab*w(ix^D,rho_)**gamma_1
-        idim_Alfven_speed2=w(ix^D,mag(idim))**2*inv_rho
-        ! Va_hat^2+a_hat^2 equation (57)
-        ! equation (69)
-        Alfven_speed2=Alfven_speed2*cmax(ix^D)+csound*(1.d0+idim_Alfven_speed2*inv_squared_c)
-        AvMinCs2=(gamma2*Alfven_speed2)**2-4.0d0*gamma2*csound*idim_Alfven_speed2*cmax(ix^D)
-        if(AvMinCs2<zero) AvMinCs2=zero
-        ! equation (68) fast magnetosonic wave speed
-        csound = sqrt(half*(gamma2*Alfven_speed2+sqrt(AvMinCs2)))
-        cmax(ix^D)=gamma2*abs(w(ix^D,mom(idim)))+csound
-      {end do\}
-    end if
+   {!dir$ vector aligned
+    do ix^DB=ixOmin^DB,ixOmax^DB \}
+      inv_rho=1.d0/w(ix^D,rho_)
+      Alfven_speed2=(^C&w(ix^D,b^C_)**2+)*inv_rho
+      gamma2=1.0d0/(1.d0+Alfven_speed2*inv_squared_c)
+      cmax(ix^D)=1.d0-gamma2*w(ix^D,mom(idim))**2*inv_squared_c
+      csound=mhd_gamma*mhd_adiab*w(ix^D,rho_)**gamma_1
+      idim_Alfven_speed2=w(ix^D,mag(idim))**2*inv_rho
+      ! Va_hat^2+a_hat^2 equation (57)
+      ! equation (69)
+      Alfven_speed2=Alfven_speed2*cmax(ix^D)+csound*(1.d0+idim_Alfven_speed2*inv_squared_c)
+      AvMinCs2=(gamma2*Alfven_speed2)**2-4.0d0*gamma2*csound*idim_Alfven_speed2*cmax(ix^D)
+      if(AvMinCs2<zero) AvMinCs2=zero
+      ! equation (68) fast magnetosonic wave speed
+      csound = sqrt(half*(gamma2*Alfven_speed2+sqrt(AvMinCs2)))
+      cmax(ix^D)=gamma2*abs(w(ix^D,mom(idim)))+csound
+   {end do\}
 
   end subroutine mhd_get_cmax_semirelati_noe
 
@@ -3066,13 +2968,15 @@ contains
       call mhd_get_csound_semirelati_noe(wRp,x,ixI^L,ixO^L,idim,csoundR,gamma2R)
     end if
     if(present(cmin)) then
-     {do ix^DB=ixOmin^DB,ixOmax^DB\}
+     {!dir$ vector aligned
+      do ix^DB=ixOmin^DB,ixOmax^DB\}
         csoundL(ix^D)=max(csoundL(ix^D),csoundR(ix^D))
         cmin(ix^D,1)=min(gamma2L(ix^D)*wLp(ix^D,mom(idim)),gamma2R(ix^D)*wRp(ix^D,mom(idim)))-csoundL(ix^D)
         cmax(ix^D,1)=max(gamma2L(ix^D)*wLp(ix^D,mom(idim)),gamma2R(ix^D)*wRp(ix^D,mom(idim)))+csoundL(ix^D)
      {end do\}
     else
-     {do ix^DB=ixOmin^DB,ixOmax^DB\}
+     {!dir$ vector aligned
+      do ix^DB=ixOmin^DB,ixOmax^DB\}
         csoundL(ix^D)=max(csoundL(ix^D),csoundR(ix^D))
         cmax(ix^D,1)=max(gamma2L(ix^D)*wLp(ix^D,mom(idim)),gamma2R(ix^D)*wRp(ix^D,mom(idim)))+csoundL(ix^D)
      {end do\}
@@ -3342,41 +3246,23 @@ contains
     double precision :: AvMinCs2, inv_rho, Alfven_speed2, idim_Alfven_speed2
     integer :: ix^D
 
-    if(B0field) then
-     {do ix^DB=ixOmin^DB,ixOmax^DB\}
-        inv_rho = 1.d0/w(ix^D,rho_)
-        ! squared sound speed
-        csound(ix^D)=mhd_gamma*w(ix^D,p_)*inv_rho
-        Alfven_speed2=(^C&(w(ix^D,b^C_)+block%B0(ix^D,^C,b0i))**2+)*inv_rho
-        gamma2(ix^D) = 1.0d0/(1.d0+Alfven_speed2*inv_squared_c)
-        AvMinCs2=1.d0-gamma2(ix^D)*w(ix^D,mom(idim))**2*inv_squared_c
-        idim_Alfven_speed2=(w(ix^D,mag(idim))+block%B0(ix^D,idim,b0i))**2*inv_rho
-        ! Va_hat^2+a_hat^2 equation (57)
-        ! equation (69)
-        Alfven_speed2=Alfven_speed2*AvMinCs2+csound(ix^D)*(1.d0+idim_Alfven_speed2*inv_squared_c)
-        AvMinCs2=(gamma2(ix^D)*Alfven_speed2)**2-4.0d0*gamma2(ix^D)*csound(ix^D)*idim_Alfven_speed2*AvMinCs2
-        if(AvMinCs2<zero) AvMinCs2=zero
-        ! equation (68) fast magnetosonic speed
-        csound(ix^D) = sqrt(half*(gamma2(ix^D)*Alfven_speed2+sqrt(AvMinCs2)))
-      {end do\}
-    else
-     {do ix^DB=ixOmin^DB,ixOmax^DB\}
-        inv_rho = 1.d0/w(ix^D,rho_)
-        ! squared sound speed
-        csound(ix^D)=mhd_gamma*w(ix^D,p_)*inv_rho
-        Alfven_speed2=(^C&w(ix^D,b^C_)**2+)*inv_rho
-        gamma2(ix^D) = 1.0d0/(1.d0+Alfven_speed2*inv_squared_c)
-        AvMinCs2=1.d0-gamma2(ix^D)*w(ix^D,mom(idim))**2*inv_squared_c
-        idim_Alfven_speed2=w(ix^D,mag(idim))**2*inv_rho
-        ! Va_hat^2+a_hat^2 equation (57)
-        ! equation (69)
-        Alfven_speed2=Alfven_speed2*AvMinCs2+csound(ix^D)*(1.d0+idim_Alfven_speed2*inv_squared_c)
-        AvMinCs2=(gamma2(ix^D)*Alfven_speed2)**2-4.0d0*gamma2(ix^D)*csound(ix^D)*idim_Alfven_speed2*AvMinCs2
-        if(AvMinCs2<zero) AvMinCs2=zero
-        ! equation (68) fast magnetosonic speed
-        csound(ix^D) = sqrt(half*(gamma2(ix^D)*Alfven_speed2+sqrt(AvMinCs2)))
-      {end do\}
-    end if
+   {!dir$ vector aligned
+    do ix^DB=ixOmin^DB,ixOmax^DB\}
+      inv_rho = 1.d0/w(ix^D,rho_)
+      ! squared sound speed
+      csound(ix^D)=mhd_gamma*w(ix^D,p_)*inv_rho
+      Alfven_speed2=(^C&w(ix^D,b^C_)**2+)*inv_rho
+      gamma2(ix^D) = 1.0d0/(1.d0+Alfven_speed2*inv_squared_c)
+      AvMinCs2=1.d0-gamma2(ix^D)*w(ix^D,mom(idim))**2*inv_squared_c
+      idim_Alfven_speed2=w(ix^D,mag(idim))**2*inv_rho
+      ! Va_hat^2+a_hat^2 equation (57)
+      ! equation (69)
+      Alfven_speed2=Alfven_speed2*AvMinCs2+csound(ix^D)*(1.d0+idim_Alfven_speed2*inv_squared_c)
+      AvMinCs2=(gamma2(ix^D)*Alfven_speed2)**2-4.0d0*gamma2(ix^D)*csound(ix^D)*idim_Alfven_speed2*AvMinCs2
+      if(AvMinCs2<zero) AvMinCs2=zero
+      ! equation (68) fast magnetosonic speed
+      csound(ix^D) = sqrt(half*(gamma2(ix^D)*Alfven_speed2+sqrt(AvMinCs2)))
+   {end do\}
 
   end subroutine mhd_get_csound_semirelati
 
@@ -3392,41 +3278,23 @@ contains
     double precision :: AvMinCs2, inv_rho, Alfven_speed2, idim_Alfven_speed2
     integer :: ix^D
 
-    if(B0field) then
-     {do ix^DB=ixOmin^DB,ixOmax^DB\}
-        inv_rho = 1.d0/w(ix^D,rho_)
-        ! squared sound speed
-        csound(ix^D)=mhd_gamma*mhd_adiab*w(ix^D,rho_)**gamma_1
-        Alfven_speed2=(^C&(w(ix^D,b^C_)+block%B0(ix^D,^C,b0i))**2+)*inv_rho
-        gamma2(ix^D) = 1.0d0/(1.d0+Alfven_speed2*inv_squared_c)
-        AvMinCs2=1.d0-gamma2(ix^D)*w(ix^D,mom(idim))**2*inv_squared_c
-        idim_Alfven_speed2=(w(ix^D,mag(idim))+block%B0(ix^D,idim,b0i))**2*inv_rho
-        ! Va_hat^2+a_hat^2 equation (57)
-        ! equation (69)
-        Alfven_speed2=Alfven_speed2*AvMinCs2+csound(ix^D)*(1.d0+idim_Alfven_speed2*inv_squared_c)
-        AvMinCs2=(gamma2(ix^D)*Alfven_speed2)**2-4.0d0*gamma2(ix^D)*csound(ix^D)*idim_Alfven_speed2*AvMinCs2
-        if(AvMinCs2<zero) AvMinCs2=zero
-        ! equation (68) fast magnetosonic speed
-        csound(ix^D) = sqrt(half*(gamma2(ix^D)*Alfven_speed2+sqrt(AvMinCs2)))
-      {end do\}
-    else
-     {do ix^DB=ixOmin^DB,ixOmax^DB\}
-        inv_rho = 1.d0/w(ix^D,rho_)
-        ! squared sound speed
-        csound(ix^D)=mhd_gamma*mhd_adiab*w(ix^D,rho_)**gamma_1
-        Alfven_speed2=(^C&w(ix^D,b^C_)**2+)*inv_rho
-        gamma2(ix^D) = 1.0d0/(1.d0+Alfven_speed2*inv_squared_c)
-        AvMinCs2=1.d0-gamma2(ix^D)*w(ix^D,mom(idim))**2*inv_squared_c
-        idim_Alfven_speed2=w(ix^D,mag(idim))**2*inv_rho
-        ! Va_hat^2+a_hat^2 equation (57)
-        ! equation (69)
-        Alfven_speed2=Alfven_speed2*AvMinCs2+csound(ix^D)*(1.d0+idim_Alfven_speed2*inv_squared_c)
-        AvMinCs2=(gamma2(ix^D)*Alfven_speed2)**2-4.0d0*gamma2(ix^D)*csound(ix^D)*idim_Alfven_speed2*AvMinCs2
-        if(AvMinCs2<zero) AvMinCs2=zero
-        ! equation (68) fast magnetosonic speed
-        csound(ix^D) = sqrt(half*(gamma2(ix^D)*Alfven_speed2+sqrt(AvMinCs2)))
-      {end do\}
-    end if
+   {!dir$ vector aligned
+    do ix^DB=ixOmin^DB,ixOmax^DB\}
+      inv_rho = 1.d0/w(ix^D,rho_)
+      ! squared sound speed
+      csound(ix^D)=mhd_gamma*mhd_adiab*w(ix^D,rho_)**gamma_1
+      Alfven_speed2=(^C&w(ix^D,b^C_)**2+)*inv_rho
+      gamma2(ix^D) = 1.0d0/(1.d0+Alfven_speed2*inv_squared_c)
+      AvMinCs2=1.d0-gamma2(ix^D)*w(ix^D,mom(idim))**2*inv_squared_c
+      idim_Alfven_speed2=w(ix^D,mag(idim))**2*inv_rho
+      ! Va_hat^2+a_hat^2 equation (57)
+      ! equation (69)
+      Alfven_speed2=Alfven_speed2*AvMinCs2+csound(ix^D)*(1.d0+idim_Alfven_speed2*inv_squared_c)
+      AvMinCs2=(gamma2(ix^D)*Alfven_speed2)**2-4.0d0*gamma2(ix^D)*csound(ix^D)*idim_Alfven_speed2*AvMinCs2
+      if(AvMinCs2<zero) AvMinCs2=zero
+      ! equation (68) fast magnetosonic speed
+      csound(ix^D) = sqrt(half*(gamma2(ix^D)*Alfven_speed2+sqrt(AvMinCs2)))
+   {end do\}
 
   end subroutine mhd_get_csound_semirelati_noe
 
@@ -3459,18 +3327,19 @@ contains
 
     integer :: iw, ix^D
 
-    {do ix^DB= ixOmin^DB,ixOmax^DB\}
+   {!dir$ vector aligned
+    do ix^DB= ixOmin^DB,ixOmax^DB\}
       if(has_equi_pe0) then
         pth(ix^D)=gamma_1*w(ix^D,e_)+block%equi_vars(ix^D,equi_pe0_,0)
       else
         pth(ix^D)=gamma_1*w(ix^D,e_)
       end if
+      if(fix_small_values.and.pth(ix^D)<small_pressure) pth(ix^D)=small_pressure
+   {end do\}
 
-      if(fix_small_values) then
-        if(pth(ix^D)<small_pressure) then
-           pth(ix^D)=small_pressure
-        end if
-      else if(check_small_values) then
+    if(check_small_values.and..not.fix_small_values) then
+     {!dir$ vector aligned
+      do ix^DB= ixOmin^DB,ixOmax^DB\}
         if(pth(ix^D)<small_pressure) then
           write(*,*) "Error: small value of gas pressure",pth(ix^D),&
                " encountered when call mhd_get_pthermal_inte"
@@ -3485,8 +3354,8 @@ contains
           write(*,*) "Saving status at the previous time step"
           crash=.true.
         end if
-      end if
-    {end do\}
+     {end do\}
+    end if
 
   end subroutine mhd_get_pthermal_inte
 
@@ -3502,7 +3371,8 @@ contains
 
     integer :: iw, ix^D
 
-    {do ix^DB= ixOmin^DB,ixOmax^DB\}
+   {!dir$ vector aligned
+    do ix^DB=ixOmin^DB,ixOmax^DB\}
       if(has_equi_rho0) then
         pth(ix^D)=gamma_1*(w(ix^D,e_)-half*((^C&w(ix^D,m^C_)**2+)/(w(ix^D,rho_)+block%equi_vars(ix^D,equi_rho0_,0))&
              +(^C&w(ix^D,b^C_)**2+)))+block%equi_vars(ix^D,equi_pe0_,0)
@@ -3510,12 +3380,12 @@ contains
         pth(ix^D)=gamma_1*(w(ix^D,e_)-half*((^C&w(ix^D,m^C_)**2+)/w(ix^D,rho_)&
              +(^C&w(ix^D,b^C_)**2+)))
       end if
+      if(fix_small_values.and.pth(ix^D)<small_pressure) pth(ix^D)=small_pressure
+   {end do\}
 
-      if(fix_small_values) then
-        if(pth(ix^D)<small_pressure) then
-           pth(ix^D)=small_pressure
-        end if
-      else if(check_small_values) then
+    if(check_small_values.and..not.fix_small_values) then
+     {!dir$ vector aligned
+      do ix^DB=ixOmin^DB,ixOmax^DB\}
         if(pth(ix^D)<small_pressure) then
           write(*,*) "Error: small value of gas pressure",pth(ix^D),&
                " encountered when call mhd_get_pthermal"
@@ -3530,8 +3400,8 @@ contains
           write(*,*) "Saving status at the previous time step"
           crash=.true.
         end if
-      end if
-    {end do\}
+     {end do\}
+    end if
 
   end subroutine mhd_get_pthermal_origin
 
@@ -3545,23 +3415,19 @@ contains
     double precision, intent(in) :: x(ixI^S,1:ndim)
     double precision, intent(out):: pth(ixI^S)
 
-    double precision :: b(1:ndir), Ba(1:ndir), v(1:ndir), tmp, b2, gamma2, inv_rho
+    double precision :: b(ixO^S,1:ndir), v(ixO^S,1:ndir), tmp, b2, gamma2, inv_rho
     integer :: iw, ix^D
 
-   {do ix^DB=ixOmin^DB,ixOmax^DB\}
-      if(B0field) then
-        ^C&ba(^C)=w(ix^D,b^C_)+block%B0(ix^D,^C,b0i)\
-      else
-        ^C&ba(^C)=w(ix^D,b^C_)\
-      end if
-      b2=(^C&ba(^C)**2+)
+   {!dir$ vector aligned
+    do ix^DB=ixOmin^DB,ixOmax^DB\}
+      b2=(^C&w(ix^D,b^C_)**2+)
       if(b2>smalldouble) then
         tmp=1.d0/sqrt(b2)
       else
         tmp=0.d0
       end if
-      ^C&b(^C)=ba(^C)*tmp\
-      tmp=(^C&b(^C)*w(ix^D,m^C_)+)
+      ^C&b(ix^D,^C)=w(ix^D,b^C_)*tmp\
+      tmp=(^C&b(ix^D,^C)*w(ix^D,m^C_)+)
 
       inv_rho=1.d0/w(ix^D,rho_)
       ! Va^2/c^2
@@ -3569,35 +3435,32 @@ contains
       ! equation (15)
       gamma2=1.d0/(1.d0+b2)
       ! Convert momentum to velocity
-      ^C&v(^C)=gamma2*(w(ix^D,m^C_)+b2*b(^C)*tmp)*inv_rho\
+      ^C&v(ix^D,^C)=gamma2*(w(ix^D,m^C_)+b2*b(ix^D,^C)*tmp)*inv_rho\
 
       ! E=Bxv
-      {^IFTHREED
-      b(1)=Ba(2)*v(3)-Ba(3)*v(2)
-      b(2)=Ba(3)*v(1)-Ba(1)*v(3)
-      b(3)=Ba(1)*v(2)-Ba(2)*v(1)
+      {^IFTHREEC
+      b(ix^D,1)=w(ix^D,b2_)*v(ix^D,3)-w(ix^D,b3_)*v(ix^D,2)
+      b(ix^D,2)=w(ix^D,b3_)*v(ix^D,1)-w(ix^D,b1_)*v(ix^D,3)
+      b(ix^D,3)=w(ix^D,b1_)*v(ix^D,2)-w(ix^D,b2_)*v(ix^D,1)
       }
-      {^NOTHREED
-      if(ndir==3) then
-        b(1)=Ba(2)*v(3)-Ba(3)*v(2)
-        b(2)=Ba(3)*v(1)-Ba(1)*v(3)
-        b(3)=Ba(1)*v(2)-Ba(2)*v(1)
-      else
-        b(1)=zero
-        b(2)=Ba(1)*v(2)-Ba(2)*v(1)
-      end if
+      {^IFTWOC
+      b(ix^D,1)=zero
+      b(ix^D,2)=w(ix^D,b1_)*v(ix^D,2)-w(ix^D,b2_)*v(ix^D,1)
+      }
+      {^IFONEC
+      b(ix^D,1)=zero
       }
       ! Calculate pressure = (gamma-1) * (e-eK-eB-eE)
       pth(ix^D)=gamma_1*(w(ix^D,e_)&
-                 -half*((^C&v(^C)**2+)*w(ix^D,rho_)&
+                 -half*((^C&v(ix^D,^C)**2+)*w(ix^D,rho_)&
                  +(^C&w(ix^D,b^C_)**2+)&
-                 +(^C&b(^C)**2+)*inv_squared_c))
+                 +(^C&b(ix^D,^C)**2+)*inv_squared_c))
+      if(fix_small_values.and.pth(ix^D)<small_pressure) pth(ix^D)=small_pressure
+   {end do\}
 
-      if(fix_small_values) then
-        if(pth(ix^D)<small_pressure) then
-           pth(ix^D)=small_pressure
-        end if
-      else if(check_small_values) then
+    if(check_small_values.and..not.fix_small_values) then
+     {!dir$ vector aligned
+      do ix^DB=ixOmin^DB,ixOmax^DB\}
         if(pth(ix^D)<small_pressure) then
           write(*,*) "Error: small value of gas pressure",pth(ix^D),&
                " encountered when call mhd_get_pthermal_semirelati"
@@ -3612,8 +3475,8 @@ contains
           write(*,*) "Saving status at the previous time step"
           crash=.true.
         end if
-      end if
-   {end do\}
+     {end do\}
+    end if
 
   end subroutine mhd_get_pthermal_semirelati
 
@@ -3629,13 +3492,14 @@ contains
 
     integer :: iw, ix^D
 
-    {do ix^DB= ixOmin^DB,ixOmax^DB\}
+    {!dir$ vector aligned
+    do ix^DB= ixOmin^DB,ixOmax^DB\}
       pth(ix^D)=gamma_1*(w(ix^D,e_)-half*((^C&w(ix^D,m^C_)**2+)/w(ix^D,rho_)))
-      if(fix_small_values) then
-        if(pth(ix^D)<small_pressure) then
-           pth(ix^D)=small_pressure
-        end if
-      else if(check_small_values) then
+      if(fix_small_values.and.pth(ix^D)<small_pressure) pth(ix^D)=small_pressure
+   {end do\}
+    if(check_small_values.and..not.fix_small_values) then
+      {!dir$ vector aligned
+       do ix^DB= ixOmin^DB,ixOmax^DB\}
         if(pth(ix^D)<small_pressure) then
           write(*,*) "Error: small value of gas pressure",pth(ix^D),&
                " encountered when call mhd_get_pthermal_hde"
@@ -3650,8 +3514,8 @@ contains
           write(*,*) "Saving status at the previous time step"
           crash=.true.
         end if
-      end if
-    {end do\}
+     {end do\}
+    end if
 
   end subroutine mhd_get_pthermal_hde
 
@@ -4092,79 +3956,59 @@ contains
     double precision, intent(in) :: x(ixI^S,1:ndim)
     double precision,intent(out) :: f(ixI^S,nwflux)
 
-    double precision             :: SA(1:ndir), E(1:ndir), B(1:ndir), e2
+    double precision             :: SA(ixO^S,1:ndir),E(ixO^S,1:ndir),e2
     integer                      :: iw, ix^D
 
    {!dir$ vector aligned
     do ix^DB=ixOmin^DB,ixOmax^DB\}
       ! Get flux of density
       f(ix^D,rho_)=w(ix^D,mom(idim))*w(ix^D,rho_)
-      if(B0field) then
-        ^C&b(^C)=w(ix^D,b^C_)+block%B0(ix^D,^C,idim)\
-      else
-        ^C&b(^C)=w(ix^D,b^C_)\
-      end if
       ! E=Bxv
-      {^IFTHREED
-      E(1)=B(2)*w(ix^D,mom(3))-B(3)*w(ix^D,mom(2))
-      E(2)=B(3)*w(ix^D,mom(1))-B(1)*w(ix^D,mom(3))
-      E(3)=B(1)*w(ix^D,mom(2))-B(2)*w(ix^D,mom(1))
+      {^IFTHREEC
+      E(ix^D,1)=w(ix^D,b2_)*w(ix^D,m3_)-w(ix^D,b3_)*w(ix^D,m2_)
+      E(ix^D,2)=w(ix^D,b3_)*w(ix^D,m1_)-w(ix^D,b1_)*w(ix^D,m3_)
+      E(ix^D,3)=w(ix^D,b1_)*w(ix^D,m2_)-w(ix^D,b2_)*w(ix^D,m1_)
       }
-      {^NOTHREED
-      if(ndir==3) then
-        E(1)=B(2)*w(ix^D,mom(3))-B(3)*w(ix^D,mom(2))
-        E(2)=B(3)*w(ix^D,mom(1))-B(1)*w(ix^D,mom(3))
-        E(3)=B(1)*w(ix^D,mom(2))-B(2)*w(ix^D,mom(1))
-      else
-        E(1)=zero
-        ! switch 2 and 3 to add 3 when ^C is from 1 to 2
-        E(2)=B(1)*w(ix^D,mom(2))-B(2)*w(ix^D,mom(1))
-      end if
+      {^IFTWOC
+      E(ix^D,1)=zero
+      ! switch 2 and 3 to add 3 when ^C is from 1 to 2
+      E(ix^D,2)=w(ix^D,b1_)*w(ix^D,m2_)-w(ix^D,b2_)*w(ix^D,m1_)
       }
-      e2=(^C&e(^C)**2+)
+      {^IFONEC
+      E(ix^D,1)=zero
+      }
+      e2=(^C&e(ix^D,^C)**2+)
       if(mhd_internal_e) then
         ! Get flux of internal energy
         f(ix^D,e_)=w(ix^D,mom(idim))*wC(ix^D,e_)
       else
         ! S=ExB
-        {^IFTHREED
-        SA(1)=E(2)*w(ix^D,mag(3))-E(3)*w(ix^D,mag(2))
-        SA(2)=E(3)*w(ix^D,mag(1))-E(1)*w(ix^D,mag(3))
-        SA(3)=E(1)*w(ix^D,mag(2))-E(2)*w(ix^D,mag(1))
+        {^IFTHREEC
+        SA(ix^D,1)=E(ix^D,2)*w(ix^D,b3_)-E(ix^D,3)*w(ix^D,b2_)
+        SA(ix^D,2)=E(ix^D,3)*w(ix^D,b1_)-E(ix^D,1)*w(ix^D,b3_)
+        SA(ix^D,3)=E(ix^D,1)*w(ix^D,b2_)-E(ix^D,2)*w(ix^D,b1_)
         }
-        {^NOTHREED
-        if(ndir==3) then
-          SA(1)=E(2)*w(ix^D,mag(3))-E(3)*w(ix^D,mag(2))
-          SA(2)=E(3)*w(ix^D,mag(1))-E(1)*w(ix^D,mag(3))
-          SA(3)=E(1)*w(ix^D,mag(2))-E(2)*w(ix^D,mag(1))
-        else
-          SA(1)=-E(2)*w(ix^D,mag(2))
-          SA(2)=E(2)*w(ix^D,mag(1))
-          ! set E2 back to 0, after e^2 is stored
-          E(2)=0.d0
-        end if
+        {^IFTWOC
+        SA(ix^D,1)=-E(ix^D,2)*w(ix^D,b2_)
+        SA(ix^D,2)=E(ix^D,2)*w(ix^D,b1_)
+        ! set E2 back to 0, after e^2 is stored
+        E(ix^D,2)=zero
+        }
+        {^IFONEC
+        SA(ix^D,1)=zero
         }
         ! Get flux of total energy
         f(ix^D,e_)=w(ix^D,mom(idim))*(half*w(ix^D,rho_)*(^C&w(ix^D,m^C_)**2+)+&
-                    mhd_gamma*w(ix^D,p_)*inv_gamma_1)+SA(idim)
+                    mhd_gamma*w(ix^D,p_)*inv_gamma_1)+SA(ix^D,idim)
       end if
-      if(B0field) then
-        ! Get flux of momentum
-        ^C&f(ix^D,m^C_)=w(ix^D,rho_)*w(ix^D,mom(idim))*w(ix^D,m^C_)&
-         -w(ix^D,mag(idim))*B(^C)-E(idim)*E(^C)*inv_squared_c-block%B0(ix^D,idim,idim)*w(ix^D,b^C_)\
-        ! gas pressure + magnetic pressure + electric pressure
-        f(ix^D,mom(idim))=f(ix^D,mom(idim))+w(ix^D,p_)+half*((^C&w(ix^D,b^C_)**2+)+&
-                 e2*inv_squared_c)+(^C&w(ix^D,b^C_)*block%B0(ix^D,^C,idim)+)
-      else
-        ! Get flux of momentum
-        ^C&f(ix^D,m^C_)=w(ix^D,rho_)*w(ix^D,mom(idim))*w(ix^D,m^C_)&
-         -w(ix^D,mag(idim))*B(^C)-E(idim)*E(^C)*inv_squared_c\
-        ! gas pressure + magnetic pressure + electric pressure
-        f(ix^D,mom(idim))=f(ix^D,mom(idim))+w(ix^D,p_)+half*((^C&b(^C)**2+)+e2*inv_squared_c)
-      end if
+      ! Get flux of momentum
+      ^C&f(ix^D,m^C_)=w(ix^D,rho_)*w(ix^D,mom(idim))*w(ix^D,m^C_)&
+       -w(ix^D,mag(idim))*w(ix^D,b^C_)-E(ix^D,idim)*E(ix^D,^C)*inv_squared_c\
+      ! gas pressure + magnetic pressure + electric pressure
+      f(ix^D,mom(idim))=f(ix^D,mom(idim))+w(ix^D,p_)+half*((^C&w(ix^D,b^C_)**2+)+e2*inv_squared_c)
       ! compute flux of magnetic field
       ! f_i[b_k]=v_i*b_k-v_k*b_i
-      ^C&f(ix^D,b^C_)=w(ix^D,mom(idim))*B(^C)-B(idim)*w(ix^D,m^C_)\
+      ^C&f(ix^D,b^C_)=w(ix^D,mom(idim))*w(ix^D,b^C_)-w(ix^D,mag(idim))*w(ix^D,m^C_)\
    {end do\}
 
     if(mhd_glm) then
@@ -4185,7 +4029,6 @@ contains
 
   end subroutine mhd_get_flux_semirelati
 
-  !> Calculate semirelativistic fluxes within ixO^L without any splitting
   subroutine mhd_get_flux_semirelati_noe(wC,w,x,ixI^L,ixO^L,idim,f)
     use mod_global_parameters
     use mod_geometry
@@ -4198,56 +4041,38 @@ contains
     double precision, intent(in) :: x(ixI^S,1:ndim)
     double precision,intent(out) :: f(ixI^S,nwflux)
 
-    double precision             :: E(1:ndir), B(1:ndir), e2
+    double precision             :: E(ixO^S,1:ndir),e2
     integer                      :: iw, ix^D
 
    {!dir$ vector aligned
     do ix^DB=ixOmin^DB,ixOmax^DB\}
       ! Get flux of density
       f(ix^D,rho_)=w(ix^D,mom(idim))*w(ix^D,rho_)
-      if(B0field) then
-        ^C&b(^C)=w(ix^D,b^C_)+block%B0(ix^D,^C,idim)\
-      else
-        ^C&b(^C)=w(ix^D,b^C_)\
-      end if
       ! E=Bxv
-      {^IFTHREED
-      E(1)=B(2)*w(ix^D,mom(3))-B(3)*w(ix^D,mom(2))
-      E(2)=B(3)*w(ix^D,mom(1))-B(1)*w(ix^D,mom(3))
-      E(3)=B(1)*w(ix^D,mom(2))-B(2)*w(ix^D,mom(1))
-      e2=(^C&e(^C)**2+)
+      {^IFTHREEC
+      E(ix^D,1)=w(ix^D,b2_)*w(ix^D,m3_)-w(ix^D,b3_)*w(ix^D,m2_)
+      E(ix^D,2)=w(ix^D,b3_)*w(ix^D,m1_)-w(ix^D,b1_)*w(ix^D,m3_)
+      E(ix^D,3)=w(ix^D,b1_)*w(ix^D,m2_)-w(ix^D,b2_)*w(ix^D,m1_)
+      e2=(^C&e(ix^D,^C)**2+)
       }
-      {^NOTHREED
-      if(ndir==3) then
-        E(1)=B(2)*w(ix^D,mom(3))-B(3)*w(ix^D,mom(2))
-        E(2)=B(3)*w(ix^D,mom(1))-B(1)*w(ix^D,mom(3))
-        E(3)=B(1)*w(ix^D,mom(2))-B(2)*w(ix^D,mom(1))
-        e2=(^C&e(^C)**2+)
-      else
-        E(1)=zero
-        ! switch 2 and 3 to add 3 when ^C is from 1 to 2
-        E(2)=B(1)*w(ix^D,mom(2))-B(2)*w(ix^D,mom(1))
-        e2=E(2)**2
-        E(2)=zero
-      end if
+      {^IFTWOC
+      E(ix^D,1)=zero
+      ! switch 2 and 3 to add 3 when ^C is from 1 to 2
+      E(ix^D,2)=w(ix^D,b1_)*w(ix^D,m2_)-w(ix^D,b2_)*w(ix^D,m1_)
+      e2=E(ix^D,2)**2
+      E(ix^D,2)=zero
       }
-      if(B0field) then
-        ! Get flux of momentum
-        ^C&f(ix^D,m^C_)=w(ix^D,rho_)*w(ix^D,mom(idim))*w(ix^D,m^C_)&
-         -w(ix^D,mag(idim))*B(^C)-E(idim)*E(^C)*inv_squared_c-block%B0(ix^D,idim,idim)*w(ix^D,b^C_)\
-        ! gas pressure + magnetic pressure + electric pressure
-        f(ix^D,mom(idim))=f(ix^D,mom(idim))+mhd_adiab*w(ix^D,rho_)**mhd_gamma+half*((^C&w(ix^D,b^C_)**2+)+&
-                 e2*inv_squared_c)+(^C&w(ix^D,b^C_)*block%B0(ix^D,^C,idim)+)
-      else
-        ! Get flux of momentum
-        ^C&f(ix^D,m^C_)=w(ix^D,rho_)*w(ix^D,mom(idim))*w(ix^D,m^C_)&
-         -w(ix^D,mag(idim))*B(^C)-E(idim)*E(^C)*inv_squared_c\
-        ! gas pressure + magnetic pressure + electric pressure
-        f(ix^D,mom(idim))=f(ix^D,mom(idim))+mhd_adiab*w(ix^D,rho_)**mhd_gamma+half*((^C&b(^C)**2+)+e2*inv_squared_c)
-      end if
+      {^IFONEC
+      E(ix^D,1)=zero
+      }
+      ! Get flux of momentum
+      ^C&f(ix^D,m^C_)=w(ix^D,rho_)*w(ix^D,mom(idim))*w(ix^D,m^C_)&
+       -w(ix^D,mag(idim))*w(ix^D,b^C_)-E(ix^D,idim)*E(ix^D,^C)*inv_squared_c\
+      ! gas pressure + magnetic pressure + electric pressure
+      f(ix^D,mom(idim))=f(ix^D,mom(idim))+w(ix^D,p_)+half*((^C&w(ix^D,b^C_)**2+)+e2*inv_squared_c)
       ! compute flux of magnetic field
       ! f_i[b_k]=v_i*b_k-v_k*b_i
-      ^C&f(ix^D,b^C_)=w(ix^D,mom(idim))*B(^C)-B(idim)*w(ix^D,m^C_)\
+      ^C&f(ix^D,b^C_)=w(ix^D,mom(idim))*w(ix^D,b^C_)-w(ix^D,mag(idim))*w(ix^D,m^C_)\
    {end do\}
 
     if(mhd_glm) then
@@ -5050,44 +4875,40 @@ contains
     double precision, intent(inout) :: w(ixI^S,1:nw)
     double precision, intent(in), optional :: wCTprim(ixI^S,1:nw)
 
-    double precision :: B(ixI^S,1:3), v(ixI^S,1:3), E(ixI^S,1:3), divE(ixI^S)
+    double precision :: v(ixI^S,1:3),E(ixI^S,1:3),curlE(ixI^S,1:3),divE(ixI^S)
     integer :: idir, idirmin, ix^D
 
-   {do ix^DB=ixImin^DB,ixImax^DB\}
-      if(B0field) then
-       ^C&b(ix^D,^C)=w(ix^D,b^C_)+block%B0(ix^D,^C,0)\
-      else
-       ^C&b(ix^D,^C)=w(ix^D,b^C_)\
-      end if
+   {!dir$ vector aligned
+    do ix^DB=ixImin^DB,ixImax^DB\}
       ! E=Bxv
-      {^IFTHREED
-      E(ix^D,1)=B(ix^D,2)*wCTprim(ix^D,mom(3))-B(ix^D,3)*wCTprim(ix^D,mom(2))
-      E(ix^D,2)=B(ix^D,3)*wCTprim(ix^D,mom(1))-B(ix^D,1)*wCTprim(ix^D,mom(3))
-      E(ix^D,3)=B(ix^D,1)*wCTprim(ix^D,mom(2))-B(ix^D,2)*wCTprim(ix^D,mom(1))
+      {^IFTHREEC
+      E(ix^D,1)=w(ix^D,b2_)*wCTprim(ix^D,m3_)-w(ix^D,b3_)*wCTprim(ix^D,m2_)
+      E(ix^D,2)=w(ix^D,b3_)*wCTprim(ix^D,m1_)-w(ix^D,b1_)*wCTprim(ix^D,m3_)
+      E(ix^D,3)=w(ix^D,b1_)*wCTprim(ix^D,m2_)-w(ix^D,b2_)*wCTprim(ix^D,m1_)
       }
-      {^NOTHREED
-      if(ndir==3) then
-        E(ix^D,1)=B(ix^D,2)*wCTprim(ix^D,mom(3))-B(ix^D,3)*wCTprim(ix^D,mom(2))
-        E(ix^D,2)=B(ix^D,3)*wCTprim(ix^D,mom(1))-B(ix^D,1)*wCTprim(ix^D,mom(3))
-        E(ix^D,3)=B(ix^D,1)*wCTprim(ix^D,mom(2))-B(ix^D,2)*wCTprim(ix^D,mom(1))
-      else
-        E(ix^D,1)=zero
-        E(ix^D,2)=zero
-        E(ix^D,3)=B(ix^D,1)*wCTprim(ix^D,mom(2))-B(ix^D,2)*wCTprim(ix^D,mom(1))
-      end if
+      {^IFTWOC
+      E(ix^D,1)=zero
+      E(ix^D,2)=zero
+      E(ix^D,3)=w(ix^D,b1_)*wCTprim(ix^D,m2_)-w(ix^D,b2_)*wCTprim(ix^D,m1_)
+      }
+      {^IFONEC
+      E(ix^D,1)=zero
+      E(ix^D,2)=zero
+      E(ix^D,3)=zero
       }
    {end do\}
     call divvector(E,ixI^L,ixO^L,divE)
-    ! curl E => B
-    call curlvector(E,ixI^L,ixO^L,B,idirmin,1,3)
+    ! curl E
+    call curlvector(E,ixI^L,ixO^L,curlE,idirmin,1,3)
     ! E x (curl E) => v
-    call cross_product(ixI^L,ixO^L,E,B,v)
+    call cross_product(ixI^L,ixO^L,E,curlE,v)
     ! add source term in momentum equations (1/c0^2-1/c^2)(E dot divE - E x curlE)
     ! equation (26) and (27)
-    do idir=1,ndir
-      w(ixO^S,mom(idir))=w(ixO^S,mom(idir))+qdt*(inv_squared_c0-inv_squared_c)*&
-        (E(ixO^S,idir)*divE(ixO^S)-v(ixO^S,idir))
-    end do
+   {!dir$ vector aligned
+    do ix^DB=ixOmin^DB,ixOmax^DB\}
+      ^C&w(ix^D,m^C_)=w(ix^D,m^C_)+qdt*(inv_squared_c0-inv_squared_c)*&
+        (E(ix^D,^C)*divE(ix^D)-v(ix^D,^C))\
+   {end do\}
 
   end subroutine add_source_semirelativistic
 
@@ -5114,7 +4935,8 @@ contains
     else
       call divvector(wCTprim(ixI^S,mom(:)),ixI^L,ixO^L,divv)
     end if
-   {do ix^DB=ixOmin^DB,ixOmax^DB\}
+   {!dir$ vector aligned
+    do ix^DB=ixOmin^DB,ixOmax^DB\}
       tmp=w(ix^D,e_)
       w(ix^D,e_)=w(ix^D,e_)-qdt*wCTprim(ix^D,p_)*divv(ix^D)
       if(w(ix^D,e_)<small_e) then
@@ -5550,24 +5372,31 @@ contains
     ! calculate div B
     call get_divb(wCT,ixI^L,ixO^L,divb, mhd_divb_4thorder)
 
-   {do ix^DB=ixOmin^DB,ixOmax^DB\}
-      if(B0field) then
-        Ba(1:ndir)=wCT(ix^D,mag(1:ndir))+block%B0(ix^D,1:ndir,0)
-      else
-        Ba(1:ndir)=wCT(ix^D,mag(1:ndir))
-      end if
-      do idir=1,ndir
+    if(B0field) then
+     {!dir$ vector aligned
+      do ix^DB=ixOmin^DB,ixOmax^DB\}
         ! b = b - qdt v * div b
-        w(ix^D,mag(idir))=w(ix^D,mag(idir))-qdt*wCT(ix^D,mom(idir))*divb(ix^D)
+        ^C&w(ix^D,b^C_)=w(ix^D,b^C_)-qdt*wCT(ix^D,m^C_)*divb(ix^D)\
         ! m = m - qdt b div b
-        w(ix^D,mom(idir))=w(ix^D,mom(idir))-qdt*Ba(idir)*divb(ix^D)
-      end do
-
-      if (total_energy) then
-        ! e = e - qdt (v . b) * div b
-        w(ix^D,e_)=w(ix^D,e_)-qdt*sum(wCT(ix^D,mom(1:ndir))*Ba(1:ndir))*divb(ix^D)
-      end if
-   {end do\}
+        ^C&w(ix^D,m^C_)=w(ix^D,m^C_)-qdt*(wCT(ix^D,b^C_)+block%B0(ix^D,^C,0))*divb(ix^D)\
+        if (total_energy) then
+          ! e = e - qdt (v . b) * div b
+          w(ix^D,e_)=w(ix^D,e_)-qdt*(^C&wCT(ix^D,m^C_)*(wCT(ix^D,b^C_)+block%B0(ix^D,^C,0))+)*divb(ix^D)
+        end if
+     {end do\}
+    else
+     {!dir$ vector aligned
+      do ix^DB=ixOmin^DB,ixOmax^DB\}
+        ! b = b - qdt v * div b
+        ^C&w(ix^D,b^C_)=w(ix^D,b^C_)-qdt*wCT(ix^D,m^C_)*divb(ix^D)\
+        ! m = m - qdt b div b
+        ^C&w(ix^D,m^C_)=w(ix^D,m^C_)-qdt*wCT(ix^D,b^C_)*divb(ix^D)\
+        if (total_energy) then
+          ! e = e - qdt (v . b) * div b
+          w(ix^D,e_)=w(ix^D,e_)-qdt*(^C&wCT(ix^D,m^C_)*wCT(ix^D,b^C_)+)*divb(ix^D)
+        end if
+     {end do\}
+    end if
 
     if (fix_small_values) call mhd_handle_small_values(.false.,w,x,ixI^L,ixO^L,'add_source_powel')
 
@@ -5588,11 +5417,10 @@ contains
     ! calculate div B
     call get_divb(wCT,ixI^L,ixO^L,divb, mhd_divb_4thorder)
 
-   {do ix^DB=ixOmin^DB,ixOmax^DB\}
-      do idir=1,ndir
-        ! b = b - qdt v * div b
-        w(ix^D,mag(idir))=w(ix^D,mag(idir))-qdt*wCT(ix^D,mom(idir))*divb(ix^D)
-      end do
+   {!dir$ vector aligned
+    do ix^DB=ixOmin^DB,ixOmax^DB\}
+      ! b = b - qdt v * div b
+      ^C&w(ix^D,b^C_)=w(ix^D,b^C_)-qdt*wCT(ix^D,m^C_)*divb(ix^D)\
    {end do\}
 
     if (fix_small_values) call mhd_handle_small_values(.false.,w,x,ixI^L,ixO^L,'add_source_janhunen')
@@ -5819,7 +5647,8 @@ contains
 
     select case (coordinate)
     case (cylindrical)
-     {do ix^DB=ixOmin^DB,ixOmax^DB\}
+     {!dir$ vector aligned
+      do ix^DB=ixOmin^DB,ixOmax^DB\}
         ! include dt in invr, invr is always used with qdt
         if(local_timestep) then
           invr=block%dt(ix^D) * dtfactor/x(ix^D,1)
@@ -5848,7 +5677,8 @@ contains
         if(mhd_glm) w(ix^D,br_)=w(ix^D,br_)+wprim(ix^D,psi_)*invr
      {end do\}
     case (spherical)
-     {do ix^DB=ixOmin^DB,ixOmax^DB\}
+     {!dir$ vector aligned
+      do ix^DB=ixOmin^DB,ixOmax^DB\}
         ! include dt in invr, invr is always used with qdt
         if(local_timestep) then
           invr=block%dt(ix^D) * dtfactor/x(ix^D,1)
@@ -5938,7 +5768,7 @@ contains
     double precision, intent(in)    :: qdt, dtfactor,x(ixI^S,1:ndim)
     double precision, intent(inout) :: wCT(ixI^S,1:nw),wprim(ixI^S,1:nw),w(ixI^S,1:nw)
 
-    double precision :: tmp,tmp1,tmp2,invr,cot,E(1:ndir)
+    double precision :: tmp,tmp1,tmp2,invr,cot,E(ixO^S,1:ndir)
     integer          :: ix^D
     integer :: mr_,mphi_ ! Polar var. names
     integer :: br_,bphi_
@@ -5963,25 +5793,25 @@ contains
         end if
         ! E=Bxv
         {^IFTHREEC
-        E(1)=wprim(ix^D,b2_)*wprim(ix^D,m3_)-wprim(ix^D,b3_)*wprim(ix^D,m2_)
-        E(2)=wprim(ix^D,b3_)*wprim(ix^D,m1_)-wprim(ix^D,b1_)*wprim(ix^D,m3_)
-        E(3)=wprim(ix^D,b1_)*wprim(ix^D,m2_)-wprim(ix^D,b2_)*wprim(ix^D,m1_)
+        E(ix^D,1)=wprim(ix^D,b2_)*wprim(ix^D,m3_)-wprim(ix^D,b3_)*wprim(ix^D,m2_)
+        E(ix^D,2)=wprim(ix^D,b3_)*wprim(ix^D,m1_)-wprim(ix^D,b1_)*wprim(ix^D,m3_)
+        E(ix^D,3)=wprim(ix^D,b1_)*wprim(ix^D,m2_)-wprim(ix^D,b2_)*wprim(ix^D,m1_)
         }
         {^IFTWOC
-        E(1)=zero
+        E(ix^D,1)=zero
         ! store e3 in e2 to count e3 when ^C is from 1 to 2
-        E(2)=wprim(ix^D,b1_)*wprim(ix^D,m2_)-wprim(ix^D,b2_)*wprim(ix^D,m1_)
+        E(ix^D,2)=wprim(ix^D,b1_)*wprim(ix^D,m2_)-wprim(ix^D,b2_)*wprim(ix^D,m1_)
         }
         {^IFONEC
-        E(1)=zero
+        E(ix^D,1)=zero
         }
         if(phi_>0) then
           w(ix^D,mr_)=w(ix^D,mr_)+invr*(tmp+&
-           half*((^C&wprim(ix^D,b^C_)**2+)+(^C&e(^C)**2+)*inv_squared_c) -&
+           half*((^C&wprim(ix^D,b^C_)**2+)+(^C&e(ix^D,^C)**2+)*inv_squared_c) -&
                     wprim(ix^D,bphi_)**2+wprim(ix^D,rho_)*wprim(ix^D,mphi_)**2)
           w(ix^D,mphi_)=w(ix^D,mphi_)+invr*(&
                    -wprim(ix^D,rho_)*wprim(ix^D,mphi_)*wprim(ix^D,mr_) &
-                   +wprim(ix^D,bphi_)*wprim(ix^D,br_)+E(phi_)*E(1)*inv_squared_c)
+                   +wprim(ix^D,bphi_)*wprim(ix^D,br_)+E(ix^D,phi_)*E(ix^D,1)*inv_squared_c)
           if(.not.stagger_grid) then
             w(ix^D,bphi_)=w(ix^D,bphi_)+invr*&
                      (wprim(ix^D,bphi_)*wprim(ix^D,mr_) &
@@ -5989,12 +5819,13 @@ contains
           end if
         else
           w(ix^D,mr_)=w(ix^D,mr_)+invr*(tmp+half*((^C&wprim(ix^D,b^C_)**2+)+&
-             (^C&e(^C)**2+)*inv_squared_c))
+             (^C&e(ix^D,^C)**2+)*inv_squared_c))
         end if
         if(mhd_glm) w(ix^D,br_)=w(ix^D,br_)+wprim(ix^D,psi_)*invr
      {end do\}
     case (spherical)
-     {do ix^DB=ixOmin^DB,ixOmax^DB\}
+     {!dir$ vector aligned
+      do ix^DB=ixOmin^DB,ixOmax^DB\}
         ! include dt in invr, invr is always used with qdt
         if(local_timestep) then
           invr=block%dt(ix^D)*dtfactor/x(ix^D,1)
@@ -6003,35 +5834,35 @@ contains
         end if
         ! E=Bxv
         {^IFTHREEC
-        E(1)=wprim(ix^D,b2_)*wprim(ix^D,m3_)-wprim(ix^D,b3_)*wprim(ix^D,m2_)
-        E(2)=wprim(ix^D,b3_)*wprim(ix^D,m1_)-wprim(ix^D,b1_)*wprim(ix^D,m3_)
-        E(3)=wprim(ix^D,b1_)*wprim(ix^D,m2_)-wprim(ix^D,b2_)*wprim(ix^D,m1_)
+        E(ix^D,1)=wprim(ix^D,b2_)*wprim(ix^D,m3_)-wprim(ix^D,b3_)*wprim(ix^D,m2_)
+        E(ix^D,2)=wprim(ix^D,b3_)*wprim(ix^D,m1_)-wprim(ix^D,b1_)*wprim(ix^D,m3_)
+        E(ix^D,3)=wprim(ix^D,b1_)*wprim(ix^D,m2_)-wprim(ix^D,b2_)*wprim(ix^D,m1_)
         }
         {^IFTWOC
         ! store e3 in e1 to count e3 when ^C is from 1 to 2
-        E(1)=wprim(ix^D,b1_)*wprim(ix^D,m2_)-wprim(ix^D,b2_)*wprim(ix^D,m1_)
-        E(2)=zero
+        E(ix^D,1)=wprim(ix^D,b1_)*wprim(ix^D,m2_)-wprim(ix^D,b2_)*wprim(ix^D,m1_)
+        E(ix^D,2)=zero
         }
         {^IFONEC
-        E(1)=zero
+        E(ix^D,1)=zero
         }
         if(mhd_energy) then
-          tmp1=wprim(ix^D,p_)+half*((^C&wprim(ix^D,b^C_)**2+)+(^C&e(^C)**2+)*inv_squared_c)
+          tmp1=wprim(ix^D,p_)+half*((^C&wprim(ix^D,b^C_)**2+)+(^C&e(ix^D,^C)**2+)*inv_squared_c)
         else
-          tmp1=mhd_adiab*wprim(ix^D,rho_)**mhd_gamma+half*((^C&wprim(ix^D,b^C_)**2+)+(^C&e(^C)**2+)*inv_squared_c)
+          tmp1=mhd_adiab*wprim(ix^D,rho_)**mhd_gamma+half*((^C&wprim(ix^D,b^C_)**2+)+(^C&e(ix^D,^C)**2+)*inv_squared_c)
         end if
         ! m1
         {^IFONEC
-        w(ix^D,mom(1))=w(ix^D,mom(1))+two*tmp1*invr
+        w(ix^D,m1_)=w(ix^D,m1_)+two*tmp1*invr
         }
         {^NOONEC
-        w(ix^D,mom(1))=w(ix^D,mom(1))+invr*&
+        w(ix^D,m1_)=w(ix^D,m1_)+invr*&
            (two*tmp1+(^CE&wprim(ix^D,rho_)*wprim(ix^D,m^CE_)**2-&
-            wprim(ix^D,b^CE_)**2-E(^CE)**2*inv_squared_c+))
+            wprim(ix^D,b^CE_)**2-E(ix^D,^CE)**2*inv_squared_c+))
         }
         ! b1
         if(mhd_glm) then
-          w(ix^D,mag(1))=w(ix^D,mag(1))+invr*2.0d0*wprim(ix^D,psi_)
+          w(ix^D,b1_)=w(ix^D,b1_)+invr*2.0d0*wprim(ix^D,psi_)
         end if
         {^IFONED
         cot=0.d0
@@ -6041,43 +5872,43 @@ contains
         }
         {^IFTWOC
         ! m2
-        w(ix^D,mom(2))=w(ix^D,mom(2))+invr*(tmp1*cot-wprim(ix^D,rho_)*wprim(ix^D,m1_)*wprim(ix^D,m2_)&
-            +wprim(ix^D,b1_)*wprim(ix^D,b2_)+E(1)*E(2)*inv_squared_c)
+        w(ix^D,m2_)=w(ix^D,m2_)+invr*(tmp1*cot-wprim(ix^D,rho_)*wprim(ix^D,m1_)*wprim(ix^D,m2_)&
+            +wprim(ix^D,b1_)*wprim(ix^D,b2_)+E(ix^D,1)*E(ix^D,2)*inv_squared_c)
         ! b2
         if(.not.stagger_grid) then
           tmp=wprim(ix^D,m1_)*wprim(ix^D,b2_)-wprim(ix^D,m2_)*wprim(ix^D,b1_)
           if(mhd_glm) then
             tmp=tmp+wprim(ix^D,psi_)*cot
           end if
-          w(ix^D,mag(2))=w(ix^D,mag(2))+tmp*invr
+          w(ix^D,b2_)=w(ix^D,b2_)+tmp*invr
         end if
         }
 
         {^IFTHREEC
         ! m2
-        w(ix^D,mom(2))=w(ix^D,mom(2))+invr*(tmp1*cot-wprim(ix^D,rho_)*wprim(ix^D,m1_)*wprim(ix^D,m2_) &
-            +wprim(ix^D,b1_)*wprim(ix^D,b2_)+E(1)*E(2)*inv_squared_c&
+        w(ix^D,m2_)=w(ix^D,m2_)+invr*(tmp1*cot-wprim(ix^D,rho_)*wprim(ix^D,m1_)*wprim(ix^D,m2_) &
+            +wprim(ix^D,b1_)*wprim(ix^D,b2_)+E(ix^D,1)*E(ix^D,2)*inv_squared_c&
             +(wprim(ix^D,rho_)*wprim(ix^D,m3_)**2&
-            -wprim(ix^D,b3_)**2-E(3)**2*inv_squared_c)*cot)
+            -wprim(ix^D,b3_)**2-E(ix^D,3)**2*inv_squared_c)*cot)
         ! b2
         if(.not.stagger_grid) then
           tmp=wprim(ix^D,m1_)*wprim(ix^D,b2_)-wprim(ix^D,m2_)*wprim(ix^D,b1_)
           if(mhd_glm) then
             tmp=tmp+wprim(ix^D,psi_)*cot
           end if
-          w(ix^D,mag(2))=w(ix^D,mag(2))+tmp*invr
+          w(ix^D,b2_)=w(ix^D,b2_)+tmp*invr
         end if
         ! m3
-        w(ix^D,mom(3))=w(ix^D,mom(3))+invr*&
+        w(ix^D,m3_)=w(ix^D,m3_)+invr*&
             (-wprim(ix^D,m3_)*wprim(ix^D,m1_)*wprim(ix^D,rho_) &
              +wprim(ix^D,b3_)*wprim(ix^D,b1_) &
-             +E(3)*E(1)*inv_squared_c&
+             +E(ix^D,3)*E(ix^D,1)*inv_squared_c&
            +(-wprim(ix^D,m2_)*wprim(ix^D,m3_)*wprim(ix^D,rho_) &
              +wprim(ix^D,b2_)*wprim(ix^D,b3_)&
-             +E(2)*E(3)*inv_squared_c)*cot)
+             +E(ix^D,2)*E(ix^D,3)*inv_squared_c)*cot)
         ! b3
         if(.not.stagger_grid) then
-          w(ix^D,mag(3))=w(ix^D,mag(3))+invr*&
+          w(ix^D,b3_)=w(ix^D,b3_)+invr*&
              (wprim(ix^D,m1_)*wprim(ix^D,b3_) &
              -wprim(ix^D,m3_)*wprim(ix^D,b1_) &
             -(wprim(ix^D,m3_)*wprim(ix^D,b2_) &
@@ -7080,8 +6911,6 @@ contains
     double precision                   :: ELC,ERC
     ! non-ideal electric field on cell edges
     double precision, dimension(ixI^S,sdim:3) :: E_resi, E_ambi
-    ! total magnetic field at cell centers
-    double precision                   :: Btot(1:ndir)
     ! current on cell edges
     double precision :: jce(ixI^S,sdim:3)
     ! location at cell faces
@@ -7098,22 +6927,39 @@ contains
     ! if there is ambipolar diffusion, get E_ambi
     if(mhd_ambipolar_exp) call get_ambipolar_electric_field(ixI^L,ixO^L,sCT%w,x,E_ambi)
 
-   {do ix^DB=ixImin^DB,ixImax^DB\}
-      if(B0field) then
-        ^D&btot(^D)=wp({ix^D},b^D_)+block%B0({ix^D},^D,0)\
-      else
-        ^D&btot(^D)=wp({ix^D},b^D_)\
-      end if
-      ! Calculate electric field at cell centers
-     {^IFTHREED
-      ECC(ix^D,1)=Btot(2)*wp(ix^D,mom(3))-Btot(3)*wp(ix^D,mom(2))
-      ECC(ix^D,2)=Btot(3)*wp(ix^D,mom(1))-Btot(1)*wp(ix^D,mom(3))
-      ECC(ix^D,3)=Btot(1)*wp(ix^D,mom(2))-Btot(2)*wp(ix^D,mom(1))
-     }
-     {^NOTHREED
-      ECC(ix^D,3)=Btot(1)*wp(ix^D,mom(2))-Btot(2)*wp(ix^D,mom(1))
-     }
-   {end do\}
+    if(B0field) then
+     {!dir$ vector aligned
+      do ix^DB=ixImin^DB,ixImax^DB\}
+        ! Calculate electric field at cell centers
+       {^IFTHREED
+        ECC(ix^D,1)=(wp(ix^D,b2_)+block%B0(ix^D,2,0))*wp(ix^D,m3_)-(wp(ix^D,b3_)+block%B0(ix^D,3,0))*wp(ix^D,m2_)
+        ECC(ix^D,2)=(wp(ix^D,b3_)+block%B0(ix^D,3,0))*wp(ix^D,m1_)-(wp(ix^D,b1_)+block%B0(ix^D,1,0))*wp(ix^D,m3_)
+        ECC(ix^D,3)=(wp(ix^D,b1_)+block%B0(ix^D,1,0))*wp(ix^D,m2_)-(wp(ix^D,b2_)+block%B0(ix^D,2,0))*wp(ix^D,m1_)
+       }
+       {^IFTWOD
+        ECC(ix^D,3)=wp(ix^D,b1_)*wp(ix^D,m2_)-wp(ix^D,b2_)*wp(ix^D,m1_)
+       }
+       {^IFONED
+        ECC(ix^D,3)=0.d0
+       }
+     {end do\}
+    else
+     {!dir$ vector aligned
+      do ix^DB=ixImin^DB,ixImax^DB\}
+        ! Calculate electric field at cell centers
+       {^IFTHREED
+        ECC(ix^D,1)=wp(ix^D,b2_)*wp(ix^D,m3_)-wp(ix^D,b3_)*wp(ix^D,m2_)
+        ECC(ix^D,2)=wp(ix^D,b3_)*wp(ix^D,m1_)-wp(ix^D,b1_)*wp(ix^D,m3_)
+        ECC(ix^D,3)=wp(ix^D,b1_)*wp(ix^D,m2_)-wp(ix^D,b2_)*wp(ix^D,m1_)
+       }
+       {^IFTWOD
+        ECC(ix^D,3)=wp(ix^D,b1_)*wp(ix^D,m2_)-wp(ix^D,b2_)*wp(ix^D,m1_)
+       }
+       {^IFONED
+        ECC(ix^D,3)=0.d0
+       }
+     {end do\}
+    end if
 
     ! Calculate contribution to FEM of each edge,
     ! that is, estimate value of line integral of
@@ -7132,7 +6978,8 @@ contains
             ixCmin^D=ixOmin^D+kr(idir,^D)-1;
             ! Assemble indices
             ! average cell-face electric field to cell edges
-           {do ix^DB=ixCmin^DB,ixCmax^DB\}
+           {!dir$ vector aligned
+            do ix^DB=ixCmin^DB,ixCmax^DB\}
               fE(ix^D,idir)=quarter*&
               (fC(ix^D,iwdim1,idim2)+fC({ix^D+i1kr^D},iwdim1,idim2)&
               -fC(ix^D,iwdim2,idim1)-fC({ix^D+i2kr^D},iwdim2,idim1))
@@ -7141,11 +6988,13 @@ contains
             ! add slope in idim2 direction from equation (50)
             ixAmin^D=ixCmin^D;
             ixAmax^D=ixCmax^D+i1kr^D;
-           {do ix^DB=ixAmin^DB,ixAmax^DB\}
+           {!dir$ vector aligned
+            do ix^DB=ixAmin^DB,ixAmax^DB\}
               EL(ix^D)=fC(ix^D,iwdim1,idim2)-ECC(ix^D,idir)
               ER(ix^D)=fC(ix^D,iwdim1,idim2)-ECC({ix^D+i2kr^D},idir)
            {end do\}
-           {do ix^DB=ixCmin^DB,ixCmax^DB\}
+           {!dir$ ivdep
+            do ix^DB=ixCmin^DB,ixCmax^DB\}
               if(vnorm(ix^D,idim1)>0.d0) then
                 ELC=EL(ix^D)
               else if(vnorm(ix^D,idim1)<0.d0) then
@@ -7166,11 +7015,13 @@ contains
             ! add slope in idim1 direction from equation (50)
             ixAmin^D=ixCmin^D;
             ixAmax^D=ixCmax^D+i2kr^D;
-           {do ix^DB=ixAmin^DB,ixAmax^DB\}
+           {!dir$ vector aligned
+            do ix^DB=ixAmin^DB,ixAmax^DB\}
               EL(ix^D)=-fC(ix^D,iwdim2,idim1)-ECC(ix^D,idir)
               ER(ix^D)=-fC(ix^D,iwdim2,idim1)-ECC({ix^D+i1kr^D},idir)
            {end do\}
-           {do ix^DB=ixCmin^DB,ixCmax^DB\}
+           {!dir$ ivdep
+            do ix^DB=ixCmin^DB,ixCmax^DB\}
               if(vnorm(ix^D,idim2)>0.d0) then
                 ELC=EL(ix^D)
               else if(vnorm(ix^D,idim2)<0.d0) then
@@ -7233,21 +7084,24 @@ contains
         ! average from cell edge to cell center
        {^IFTHREED
         if(idir==1) then
-         {do ix^DB=ixOmin^DB,ixOmax^DB\}
+         {!dir$ vector aligned
+          do ix^DB=ixOmin^DB,ixOmax^DB\}
             jce(ix^D,idir)=0.25d0*(Ein(ix^D,idir)+Ein(ix1,ix2-1,ix3,idir)+Ein(ix1,ix2,ix3-1,idir)&
                           +Ein(ix1,ix2-1,ix3-1,idir))
             if(jce(ix^D,idir)<0.d0) jce(ix^D,idir)=0.d0
             w(ix^D,e_)=w(ix^D,e_)+qdt*jce(ix^D,idir)
          {end do\}
         else if(idir==2) then
-         {do ix^DB=ixOmin^DB,ixOmax^DB\}
+         {!dir$ vector aligned
+          do ix^DB=ixOmin^DB,ixOmax^DB\}
             jce(ix^D,idir)=0.25d0*(Ein(ix^D,idir)+Ein(ix1-1,ix2,ix3,idir)+Ein(ix1,ix2,ix3-1,idir)&
                           +Ein(ix1-1,ix2,ix3-1,idir))
             if(jce(ix^D,idir)<0.d0) jce(ix^D,idir)=0.d0
             w(ix^D,e_)=w(ix^D,e_)+qdt*jce(ix^D,idir)
          {end do\}
         else
-         {do ix^DB=ixOmin^DB,ixOmax^DB\}
+         {!dir$ vector aligned
+          do ix^DB=ixOmin^DB,ixOmax^DB\}
             jce(ix^D,idir)=0.25d0*(Ein(ix^D,idir)+Ein(ix1-1,ix2,ix3,idir)+Ein(ix1,ix2-1,ix3,idir)&
                           +Ein(ix1-1,ix2-1,ix3,idir))
             if(jce(ix^D,idir)<0.d0) jce(ix^D,idir)=0.d0
@@ -7257,7 +7111,8 @@ contains
        }
        {^IFTWOD
         !idir=3
-       {do ix^DB=ixOmin^DB,ixOmax^DB\}
+       {!dir$ vector aligned
+        do ix^DB=ixOmin^DB,ixOmax^DB\}
           jce(ix^D,idir)=0.25d0*(Ein(ix^D,idir)+Ein(ix1-1,ix2,idir)+Ein(ix1,ix2-1,idir)&
                         +Ein(ix1-1,ix2-1,idir))
           if(jce(ix^D,idir)<0.d0) jce(ix^D,idir)=0.d0
@@ -7575,25 +7430,32 @@ contains
   subroutine mhd_face_to_center(ixO^L,s)
     use mod_global_parameters
     ! Non-staggered interpolation range
-    integer, intent(in)                :: ixO^L
-    type(state)                        :: s
+    integer, intent(in) :: ixO^L
+    type(state) :: s
 
-    integer                            :: fxO^L, gxO^L, hxO^L, jxO^L, kxO^L, idim
-
-    associate(w=>s%w, ws=>s%ws)
+    integer :: ix^D
 
     ! calculate cell-center values from face-center values in 2nd order
-    do idim=1,ndim
-      ! Displace index to the left
-      ! Even if ixI^L is the full size of the w arrays, this is ok
-      ! because the staggered arrays have an additional place to the left.
-      hxO^L=ixO^L-kr(idim,^D);
-      ! Interpolate to cell barycentre using arithmetic average
-      ! This might be done better later, to make the method less diffusive.
-      w(ixO^S,mag(idim))=half/s%surface(ixO^S,idim)*&
-        (ws(ixO^S,idim)*s%surfaceC(ixO^S,idim)&
-        +ws(hxO^S,idim)*s%surfaceC(hxO^S,idim))
-    end do
+    ! because the staggered arrays have an additional place to the left.
+    ! Interpolate to cell barycentre using arithmetic average
+    ! This might be done better later, to make the method less diffusive.
+   {!dir$ ivdep
+    do ix^DB=ixOmin^DB,ixOmax^DB\}
+      {^IFTHREED
+      s%w(ix^D,b1_)=half/s%surface(ix^D,1)*(s%ws(ix^D,1)*s%surfaceC(ix^D,1)&
+        +s%ws(ix1-1,ix2,ix3,1)*s%surfaceC(ix1-1,ix2,ix3,1))
+      s%w(ix^D,b2_)=half/s%surface(ix^D,2)*(s%ws(ix^D,2)*s%surfaceC(ix^D,2)&
+        +s%ws(ix1,ix2-1,ix3,2)*s%surfaceC(ix1,ix2-1,ix3,2))
+      s%w(ix^D,b3_)=half/s%surface(ix^D,3)*(s%ws(ix^D,3)*s%surfaceC(ix^D,3)&
+        +s%ws(ix1,ix2,ix3-1,3)*s%surfaceC(ix1,ix2,ix3-1,3))
+      }
+      {^IFTWOD
+      s%w(ix^D,b1_)=half/s%surface(ix^D,1)*(s%ws(ix^D,1)*s%surfaceC(ix^D,1)&
+        +s%ws(ix1-1,ix2,1)*s%surfaceC(ix1-1,ix2,1))
+      s%w(ix^D,b2_)=half/s%surface(ix^D,2)*(s%ws(ix^D,2)*s%surfaceC(ix^D,2)&
+        +s%ws(ix1,ix2-1,2)*s%surfaceC(ix1,ix2-1,2))
+      }
+   {end do\}
 
     ! calculate cell-center values from face-center values in 4th order
     !do idim=1,ndim
@@ -7626,8 +7488,6 @@ contains
     !       -25.0d0*ws(jxO^S,idim)*s%surfaceC(jxO^S,idim) &
     !        +3.0d0*ws(kxO^S,idim)*s%surfaceC(kxO^S,idim) )
     !end do
-
-    end associate
 
   end subroutine mhd_face_to_center
 
