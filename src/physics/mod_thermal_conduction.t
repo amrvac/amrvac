@@ -409,8 +409,7 @@ contains
     ! T gradient at cell faces
     ! B vector
     if(B0field) then
-     {!dir$ vector aligned
-      do ix^DB=ixmin^DB,ixmax^DB\}
+     {do ix^DB=ixmin^DB,ixmax^DB\}
         ^D&mf({ix^D},^D)=w({ix^D},iw_mag(^D))+block%B0({ix^D},^D,0)\
         ! |B|
         Bnorm(ix^D)=dsqrt(^D&mf({ix^D},^D)**2+)
@@ -423,8 +422,7 @@ contains
         ^D&mf({ix^D},^D)=mf({ix^D},^D)*Bnorm({ix^D})\
      {end do\}
     else
-     {!dir$ vector aligned
-      do ix^DB=ixmin^DB,ixmax^DB\}
+     {do ix^DB=ixmin^DB,ixmax^DB\}
         ! |B|
         Bnorm(ix^D)=dsqrt(^D&w({ix^D},iw_mag(^D))**2+)
         if(Bnorm(ix^D)/=0.d0) then
@@ -441,8 +439,7 @@ contains
     ! b unit vector at cell corner
    {^IFTHREED
     do idims=1,3
-   {!dir$ vector aligned
-    do ix^DB=ixCmin^DB,ixCmax^DB\}
+   {do ix^DB=ixCmin^DB,ixCmax^DB\}
       Bc(ix^D,idims)=0.125d0*(mf(ix1,ix2,ix3,idims)+mf(ix1+1,ix2,ix3,idims)&
                      +mf(ix1,ix2+1,ix3,idims)+mf(ix1+1,ix2+1,ix3,idims)&
                      +mf(ix1,ix2,ix3+1,idims)+mf(ix1+1,ix2,ix3+1,idims)&
@@ -452,8 +449,7 @@ contains
    }
    {^IFTWOD
     do idims=1,2
-   {!dir$ vector aligned
-    do ix^DB=ixCmin^DB,ixCmax^DB\}
+   {do ix^DB=ixCmin^DB,ixCmax^DB\}
       Bc(ix^D,idims)=0.25d0*(mf(ix1,ix2,idims)+mf(ix1+1,ix2,idims)&
                      +mf(ix1,ix2+1,idims)+mf(ix1+1,ix2+1,idims))
    {end do\}
@@ -475,8 +471,7 @@ contains
     else
       ! conductivity at cell center
       if(phys_trac) then
-       {!dir$ vector aligned
-        do ix^DB=ixmin^DB,ixmax^DB\}
+       {do ix^DB=ixmin^DB,ixmax^DB\}
           if(Te(ix^D) < block%wextra(ix^D,fl%Tcoff_)) then
             qdd(ix^D)=fl%tc_k_para*sqrt(block%wextra(ix^D,fl%Tcoff_)**5)
           else
@@ -488,8 +483,7 @@ contains
       end if
      ! cell corner parallel conductivity in ka
      {^IFTHREED
-     {!dir$ vector aligned
-      do ix^DB=ixCmin^DB,ixCmax^DB\}
+     {do ix^DB=ixCmin^DB,ixCmax^DB\}
         ka(ix^D)=0.125d0*(qdd(ix1,ix2,ix3)+qdd(ix1+1,ix2,ix3)&
                        +qdd(ix1,ix2+1,ix3)+qdd(ix1+1,ix2+1,ix3)&
                        +qdd(ix1,ix2,ix3+1)+qdd(ix1+1,ix2,ix3+1)&
@@ -497,8 +491,7 @@ contains
      {end do\}
      }
      {^IFTWOD
-     {!dir$ vector aligned
-      do ix^DB=ixCmin^DB,ixCmax^DB\}
+     {do ix^DB=ixCmin^DB,ixCmax^DB\}
         ka(ix^D)=0.25d0*(qdd(ix1,ix2)+qdd(ix1+1,ix2)&
                        +qdd(ix1,ix2+1)+qdd(ix1+1,ix2+1))
      {end do\}
@@ -507,8 +500,7 @@ contains
       if(fl%tc_perpendicular) then
         qdd(ix^S)=fl%tc_k_perp*rho(ix^S)**2*Bnorm(ix^S)**2/dsqrt(Te(ix^S))
        {^IFTHREED
-       {!dir$ vector aligned
-        do ix^DB=ixCmin^DB,ixCmax^DB\}
+       {do ix^DB=ixCmin^DB,ixCmax^DB\}
           ke(ix^D)=0.125d0*(qdd(ix1,ix2,ix3)+qdd(ix1+1,ix2,ix3)&
                          +qdd(ix1,ix2+1,ix3)+qdd(ix1+1,ix2+1,ix3)&
                          +qdd(ix1,ix2,ix3+1)+qdd(ix1+1,ix2,ix3+1)&
@@ -522,8 +514,7 @@ contains
        {end do\}
        }
        {^IFTWOD
-       {!dir$ vector aligned
-        do ix^DB=ixCmin^DB,ixCmax^DB\}
+       {do ix^DB=ixCmin^DB,ixCmax^DB\}
           ke(ix^D)=0.25d0*(qdd(ix1,ix2)+qdd(ix1+1,ix2)&
                          +qdd(ix1,ix2+1)+qdd(ix1+1,ix2+1))
           if(ke(ix^D)<ka(ix^D)) then
@@ -599,8 +590,7 @@ contains
         ixAmax^D=ixOmax^D; ixAmin^D=ixOmin^D-kr(idims,^D);
        {^IFTHREED
         if(idims==1) then
-         {!dir$ vector aligned
-          do ix^DB=ixAmin^DB,ixAmax^DB\}
+         {do ix^DB=ixAmin^DB,ixAmax^DB\}
             ! averaged b at face centers
             ^D&bcf({ix^D},^D)=0.25d0*(Bc({ix^D},^D)+Bc(ix1,ix2-1,ix3,^D)&
                            +Bc(ix1,ix2,ix3-1,^D)+Bc(ix1,ix2-1,ix3-1,^D))\
@@ -612,8 +602,7 @@ contains
                            +ke(ix1,ix2,ix3-1)+ke(ix1,ix2-1,ix3-1))
          {end do\}
         else if(idims==2) then
-         {!dir$ vector aligned
-          do ix^DB=ixAmin^DB,ixAmax^DB\}
+         {do ix^DB=ixAmin^DB,ixAmax^DB\}
             ^D&bcf({ix^D},^D)=0.25d0*(Bc({ix^D},^D)+Bc(ix1-1,ix2,ix3,^D)&
                            +Bc(ix1,ix2,ix3-1,^D)+Bc(ix1-1,ix2,ix3-1,^D))\
             kaf(ix^D)=0.25d0*(ka(ix1,ix2,ix3)+ka(ix1-1,ix2,ix3)&
@@ -623,8 +612,7 @@ contains
                            +ke(ix1,ix2,ix3-1)+ke(ix1-1,ix2,ix3-1))
          {end do\}
         else
-         {!dir$ vector aligned
-          do ix^DB=ixAmin^DB,ixAmax^DB\}
+         {do ix^DB=ixAmin^DB,ixAmax^DB\}
             ^D&bcf({ix^D},^D)=0.25d0*(Bc({ix^D},^D)+Bc(ix1,ix2-1,ix3,^D)&
                            +Bc(ix1-1,ix2,ix3,^D)+Bc(ix1-1,ix2-1,ix3,^D))\
             kaf(ix^D)=0.25d0*(ka(ix1,ix2,ix3)+ka(ix1,ix2-1,ix3)&
@@ -637,16 +625,14 @@ contains
        }
        {^IFTWOD
         if(idims==1) then
-         {!dir$ vector aligned
-          do ix^DB=ixAmin^DB,ixAmax^DB\}
+         {do ix^DB=ixAmin^DB,ixAmax^DB\}
             ^D&bcf({ix^D},^D)=0.5d0*(Bc(ix1,ix2,^D)+Bc(ix1,ix2-1,^D))\
             kaf(ix^D)=0.5d0*(ka(ix1,ix2)+ka(ix1,ix2-1))
             if(fl%tc_perpendicular) &
             kef(ix^D)=0.5d0*(ke(ix1,ix2)+ke(ix1,ix2-1))
          {end do\}
         else
-         {!dir$ vector aligned
-          do ix^DB=ixAmin^DB,ixAmax^DB\}
+         {do ix^DB=ixAmin^DB,ixAmax^DB\}
             ^D&bcf({ix^D},^D)=0.5d0*(Bc(ix1,ix2,^D)+Bc(ix1-1,ix2,^D))\
             kaf(ix^D)=0.5d0*(ka(ix1,ix2)+ka(ix1-1,ix2))
             if(fl%tc_perpendicular) &
@@ -658,20 +644,17 @@ contains
         ! temperature gradient at cell corner
        {^IFTHREED
         if(idims==1) then
-         {!dir$ vector aligned
-          do ix^DB=ixCmin^DB,ixCmax^DB\}
+         {do ix^DB=ixCmin^DB,ixCmax^DB\}
             qdd(ix^D)=0.25d0*(gradT(ix1,ix2,ix3,idims)+gradT(ix1,ix2+1,ix3,idims)&
                            +gradT(ix1,ix2,ix3+1,idims)+gradT(ix1,ix2+1,ix3+1,idims))
          {end do\}
         else if(idims==2) then
-         {!dir$ vector aligned
-          do ix^DB=ixCmin^DB,ixCmax^DB\}
+         {do ix^DB=ixCmin^DB,ixCmax^DB\}
             qdd(ix^D)=0.25d0*(gradT(ix1,ix2,ix3,idims)+gradT(ix1+1,ix2,ix3,idims)&
                            +gradT(ix1,ix2,ix3+1,idims)+gradT(ix1+1,ix2,ix3+1,idims))
          {end do\}
         else
-         {!dir$ vector aligned
-          do ix^DB=ixCmin^DB,ixCmax^DB\}
+         {do ix^DB=ixCmin^DB,ixCmax^DB\}
             qdd(ix^D)=0.25d0*(gradT(ix1,ix2,ix3,idims)+gradT(ix1+1,ix2,ix3,idims)&
                            +gradT(ix1,ix2+1,ix3,idims)+gradT(ix1+1,ix2+1,ix3,idims))
          {end do\}
@@ -679,13 +662,11 @@ contains
        }
        {^IFTWOD
         if(idims==1) then
-         {!dir$ vector aligned
-          do ix^DB=ixCmin^DB,ixCmax^DB\}
+         {do ix^DB=ixCmin^DB,ixCmax^DB\}
             qdd(ix^D)=0.5d0*(gradT(ix1,ix2,idims)+gradT(ix1,ix2+1,idims))
          {end do\}
         else
-         {!dir$ vector aligned
-          do ix^DB=ixCmin^DB,ixCmax^DB\}
+         {do ix^DB=ixCmin^DB,ixCmax^DB\}
             qdd(ix^D)=0.5d0*(gradT(ix1,ix2,idims)+gradT(ix1+1,ix2,idims))
          {end do\}
         end if
@@ -693,8 +674,7 @@ contains
         ! eq (21)
        {^IFTHREED
         if(idims==1) then
-         {!dir$ vector aligned
-          do ix^DB=ixAmin^DB,ixAmax^DB\}
+         {do ix^DB=ixAmin^DB,ixAmax^DB\}
             minq=min(alpha*gradT(ix^D,idims),gradT(ix^D,idims)/alpha)
             maxq=max(alpha*gradT(ix^D,idims),gradT(ix^D,idims)/alpha)
             if(qdd(ix^D)<minq) then
@@ -731,8 +711,7 @@ contains
             qvec(ix^D,idims)=qvec(ix^D,idims)+kef(ix^D)*0.25d0*(qd(ix^D,1)+qd(ix^D,2)+qd(ix^D,3)+qd(ix^D,4))
          {end do\}
         else if(idims==2) then
-         {!dir$ vector aligned
-          do ix^DB=ixAmin^DB,ixAmax^DB\}
+         {do ix^DB=ixAmin^DB,ixAmax^DB\}
             minq=min(alpha*gradT(ix^D,idims),gradT(ix^D,idims)/alpha)
             maxq=max(alpha*gradT(ix^D,idims),gradT(ix^D,idims)/alpha)
             if(qdd(ix^D)<minq) then
@@ -769,8 +748,7 @@ contains
             qvec(ix^D,idims)=qvec(ix^D,idims)+kef(ix^D)*0.25d0*(qd(ix^D,1)+qd(ix^D,2)+qd(ix^D,3)+qd(ix^D,4))
          {end do\}
         else
-         {!dir$ vector aligned
-          do ix^DB=ixAmin^DB,ixAmax^DB\}
+         {do ix^DB=ixAmin^DB,ixAmax^DB\}
             minq=min(alpha*gradT(ix^D,idims),gradT(ix^D,idims)/alpha)
             maxq=max(alpha*gradT(ix^D,idims),gradT(ix^D,idims)/alpha)
             if(qdd(ix^D)<minq) then
@@ -810,8 +788,7 @@ contains
        }
        {^IFTWOD
         if(idims==1) then
-         {!dir$ vector aligned
-          do ix^DB=ixAmin^DB,ixAmax^DB\}
+         {do ix^DB=ixAmin^DB,ixAmax^DB\}
             minq=min(alpha*gradT(ix^D,idims),gradT(ix^D,idims)/alpha)
             maxq=max(alpha*gradT(ix^D,idims),gradT(ix^D,idims)/alpha)
             if(qdd(ix^D)<minq) then
@@ -833,8 +810,7 @@ contains
             qvec(ix^D,idims)=qvec(ix^D,idims)+kef(ix^D)*0.5d0*(qd(ix^D,1)+qd(ix^D,2))
          {end do\}
         else
-         {!dir$ vector aligned
-          do ix^DB=ixAmin^DB,ixAmax^DB\}
+         {do ix^DB=ixAmin^DB,ixAmax^DB\}
             minq=min(alpha*gradT(ix^D,idims),gradT(ix^D,idims)/alpha)
             maxq=max(alpha*gradT(ix^D,idims),gradT(ix^D,idims)/alpha)
             if(qdd(ix^D)<minq) then
@@ -874,8 +850,7 @@ contains
           ! unsigned saturated TC flux = 5 phi rho c**3, c=sqrt(p/rho) is isothermal sound speed, phi=1.1
           ixB^L=ixA^L+kr(idims,^D);
           qdd(ixA^S)=2.75d0*(rho(ixA^S)+rho(ixB^S))*dsqrt(0.5d0*(Te(ixA^S)+Te(ixB^S)))**3*dabs(Bnorm(ixA^S))
-         {!dir$ vector aligned
-          do ix^DB=ixAmin^DB,ixAmax^DB\}
+         {do ix^DB=ixAmin^DB,ixAmax^DB\}
             if(dabs(qvec(ix^D,idims))>qdd(ix^D)) then
               qvec(ix^D,idims)=sign(1.d0,qvec(ix^D,idims))*qdd(ix^D)
             end if

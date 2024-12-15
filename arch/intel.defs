@@ -1,4 +1,4 @@
 F90=mpiifort
 FFLAGS = -c
-F90FLAGS = -fpp -free -implicitnone -O3 -align array64byte -qopt-report=2 -qopt-report-phase=vec
+F90FLAGS = -fpp -free -implicitnone -O3
 LINK= $(F90)  $(F90FLAGS) 

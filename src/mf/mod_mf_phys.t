@@ -541,10 +541,7 @@ contains
     integer                      :: idir, ix^D
 
     do idir=1,ndir
-     {!dir$ vector aligned
-      do ix^DB=ixOmin^DB,ixOmax^DB\}
-        ! flux of velocity field is zero, frictional velocity is given in addsource2
-        f(ix^D,mom(idir))=0.d0
+     {do ix^DB=ixOmin^DB,ixOmax^DB\}
         ! compute flux of magnetic field
         ! f_i[b_k]=v_i*b_k-v_k*b_i
         f(ix^D,mag(idir))=w(ix^D,mom(idim))*w(ix^D,mag(idir))-w(ix^D,mag(idim))*w(ix^D,mom(idir))

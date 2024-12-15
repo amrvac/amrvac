@@ -1574,8 +1574,7 @@ contains
     double precision :: E(ixO^S,1:ndir), S(ixO^S,1:ndir)
     integer :: ix^D
 
-   {!dir$ vector aligned
-   do ix^DB=ixOmin^DB,ixOmax^DB\}
+   {do ix^DB=ixOmin^DB,ixOmax^DB\}
       {^IFTHREEC
       E(ix^D,1)=w(ix^D,b2_)*w(ix^D,m3_)-w(ix^D,b3_)*w(ix^D,m2_)
       E(ix^D,2)=w(ix^D,b3_)*w(ix^D,m1_)-w(ix^D,b1_)*w(ix^D,m3_)
@@ -1623,8 +1622,7 @@ contains
     double precision :: E(ixO^S,1:ndir), S(ixO^S,1:ndir)
     integer :: ix^D
 
-   {!dir$ vector aligned
-   do ix^DB=ixOmin^DB,ixOmax^DB\}
+   {do ix^DB=ixOmin^DB,ixOmax^DB\}
       {^IFTHREEC
       E(ix^D,1)=w(ix^D,b2_)*w(ix^D,m3_)-w(ix^D,b3_)*w(ix^D,m2_)
       E(ix^D,2)=w(ix^D,b3_)*w(ix^D,m1_)-w(ix^D,b1_)*w(ix^D,m3_)
@@ -1792,8 +1790,7 @@ contains
       call mhd_handle_small_values_semirelati(.false., w, x, ixI^L, ixO^L, 'mhd_to_primitive_semirelati')
     end if
 
-   {!dir$ vector aligned
-    do ix^DB=ixOmin^DB,ixOmax^DB\}
+   {do ix^DB=ixOmin^DB,ixOmax^DB\}
       b2=(^C&w(ix^D,b^C_)**2+)
       if(b2>smalldouble) then
         tmp=1.d0/sqrt(b2)
@@ -2035,8 +2032,7 @@ contains
       if(primitive) then
         where(w(ixO^S,p_) < small_pressure) flag(ixO^S,e_) = .true.
       else
-       {!dir$ vector aligned
-        do ix^DB=ixImin^DB,ixImax^DB\}
+       {do ix^DB=ixImin^DB,ixImax^DB\}
           b2=(^C&w(ix^D,b^C_)**2+)
           if(b2>smalldouble) then
             tmp=1.d0/sqrt(b2)
@@ -2545,8 +2541,7 @@ contains
     double precision :: inv_rho, Alfven_speed2, gamma2
     integer :: ix^D
 
-   {!dir$ vector aligned
-    do ix^DB=ixOmin^DB,ixOmax^DB \}
+   {do ix^DB=ixOmin^DB,ixOmax^DB \}
       inv_rho=1.d0/w(ix^D,rho_)
       Alfven_speed2=(^C&w(ix^D,b^C_)**2+)*inv_rho
       gamma2=1.0d0/(1.d0+Alfven_speed2*inv_squared_c)
@@ -2578,8 +2573,7 @@ contains
     double precision :: inv_rho, Alfven_speed2, gamma2
     integer :: ix^D
 
-   {!dir$ vector aligned
-    do ix^DB=ixOmin^DB,ixOmax^DB \}
+   {do ix^DB=ixOmin^DB,ixOmax^DB \}
       inv_rho=1.d0/w(ix^D,rho_)
       Alfven_speed2=(^C&w(ix^D,b^C_)**2+)*inv_rho
       gamma2=1.0d0/(1.d0+Alfven_speed2*inv_squared_c)
@@ -2968,15 +2962,13 @@ contains
       call mhd_get_csound_semirelati_noe(wRp,x,ixI^L,ixO^L,idim,csoundR,gamma2R)
     end if
     if(present(cmin)) then
-     {!dir$ vector aligned
-      do ix^DB=ixOmin^DB,ixOmax^DB\}
+     {do ix^DB=ixOmin^DB,ixOmax^DB\}
         csoundL(ix^D)=max(csoundL(ix^D),csoundR(ix^D))
         cmin(ix^D,1)=min(gamma2L(ix^D)*wLp(ix^D,mom(idim)),gamma2R(ix^D)*wRp(ix^D,mom(idim)))-csoundL(ix^D)
         cmax(ix^D,1)=max(gamma2L(ix^D)*wLp(ix^D,mom(idim)),gamma2R(ix^D)*wRp(ix^D,mom(idim)))+csoundL(ix^D)
      {end do\}
     else
-     {!dir$ vector aligned
-      do ix^DB=ixOmin^DB,ixOmax^DB\}
+     {do ix^DB=ixOmin^DB,ixOmax^DB\}
         csoundL(ix^D)=max(csoundL(ix^D),csoundR(ix^D))
         cmax(ix^D,1)=max(gamma2L(ix^D)*wLp(ix^D,mom(idim)),gamma2R(ix^D)*wRp(ix^D,mom(idim)))+csoundL(ix^D)
      {end do\}
@@ -3246,8 +3238,7 @@ contains
     double precision :: AvMinCs2, inv_rho, Alfven_speed2, idim_Alfven_speed2
     integer :: ix^D
 
-   {!dir$ vector aligned
-    do ix^DB=ixOmin^DB,ixOmax^DB\}
+   {do ix^DB=ixOmin^DB,ixOmax^DB\}
       inv_rho = 1.d0/w(ix^D,rho_)
       ! squared sound speed
       csound(ix^D)=mhd_gamma*w(ix^D,p_)*inv_rho
@@ -3278,8 +3269,7 @@ contains
     double precision :: AvMinCs2, inv_rho, Alfven_speed2, idim_Alfven_speed2
     integer :: ix^D
 
-   {!dir$ vector aligned
-    do ix^DB=ixOmin^DB,ixOmax^DB\}
+   {do ix^DB=ixOmin^DB,ixOmax^DB\}
       inv_rho = 1.d0/w(ix^D,rho_)
       ! squared sound speed
       csound(ix^D)=mhd_gamma*mhd_adiab*w(ix^D,rho_)**gamma_1
@@ -3327,8 +3317,7 @@ contains
 
     integer :: iw, ix^D
 
-   {!dir$ vector aligned
-    do ix^DB= ixOmin^DB,ixOmax^DB\}
+   {do ix^DB= ixOmin^DB,ixOmax^DB\}
       if(has_equi_pe0) then
         pth(ix^D)=gamma_1*w(ix^D,e_)+block%equi_vars(ix^D,equi_pe0_,0)
       else
@@ -3338,8 +3327,7 @@ contains
    {end do\}
 
     if(check_small_values.and..not.fix_small_values) then
-     {!dir$ vector aligned
-      do ix^DB= ixOmin^DB,ixOmax^DB\}
+     {do ix^DB= ixOmin^DB,ixOmax^DB\}
         if(pth(ix^D)<small_pressure) then
           write(*,*) "Error: small value of gas pressure",pth(ix^D),&
                " encountered when call mhd_get_pthermal_inte"
@@ -3371,8 +3359,7 @@ contains
 
     integer :: iw, ix^D
 
-   {!dir$ vector aligned
-    do ix^DB=ixOmin^DB,ixOmax^DB\}
+   {do ix^DB=ixOmin^DB,ixOmax^DB\}
       if(has_equi_rho0) then
         pth(ix^D)=gamma_1*(w(ix^D,e_)-half*((^C&w(ix^D,m^C_)**2+)/(w(ix^D,rho_)+block%equi_vars(ix^D,equi_rho0_,0))&
              +(^C&w(ix^D,b^C_)**2+)))+block%equi_vars(ix^D,equi_pe0_,0)
@@ -3384,8 +3371,7 @@ contains
    {end do\}
 
     if(check_small_values.and..not.fix_small_values) then
-     {!dir$ vector aligned
-      do ix^DB=ixOmin^DB,ixOmax^DB\}
+     {do ix^DB=ixOmin^DB,ixOmax^DB\}
         if(pth(ix^D)<small_pressure) then
           write(*,*) "Error: small value of gas pressure",pth(ix^D),&
                " encountered when call mhd_get_pthermal"
@@ -3418,8 +3404,7 @@ contains
     double precision :: b(ixO^S,1:ndir), v(ixO^S,1:ndir), tmp, b2, gamma2, inv_rho
     integer :: iw, ix^D
 
-   {!dir$ vector aligned
-    do ix^DB=ixOmin^DB,ixOmax^DB\}
+   {do ix^DB=ixOmin^DB,ixOmax^DB\}
       b2=(^C&w(ix^D,b^C_)**2+)
       if(b2>smalldouble) then
         tmp=1.d0/sqrt(b2)
@@ -3459,8 +3444,7 @@ contains
    {end do\}
 
     if(check_small_values.and..not.fix_small_values) then
-     {!dir$ vector aligned
-      do ix^DB=ixOmin^DB,ixOmax^DB\}
+     {do ix^DB=ixOmin^DB,ixOmax^DB\}
         if(pth(ix^D)<small_pressure) then
           write(*,*) "Error: small value of gas pressure",pth(ix^D),&
                " encountered when call mhd_get_pthermal_semirelati"
@@ -3492,14 +3476,12 @@ contains
 
     integer :: iw, ix^D
 
-    {!dir$ vector aligned
-    do ix^DB= ixOmin^DB,ixOmax^DB\}
+   {do ix^DB= ixOmin^DB,ixOmax^DB\}
       pth(ix^D)=gamma_1*(w(ix^D,e_)-half*((^C&w(ix^D,m^C_)**2+)/w(ix^D,rho_)))
       if(fix_small_values.and.pth(ix^D)<small_pressure) pth(ix^D)=small_pressure
    {end do\}
     if(check_small_values.and..not.fix_small_values) then
-      {!dir$ vector aligned
-       do ix^DB= ixOmin^DB,ixOmax^DB\}
+      {do ix^DB= ixOmin^DB,ixOmax^DB\}
         if(pth(ix^D)<small_pressure) then
           write(*,*) "Error: small value of gas pressure",pth(ix^D),&
                " encountered when call mhd_get_pthermal_hde"
@@ -3654,8 +3636,7 @@ contains
     integer                      :: iw, ix^D
 
     if(mhd_internal_e) then
-     {!dir$ vector aligned
-      do ix^DB=ixOmin^DB,ixOmax^DB\}
+     {do ix^DB=ixOmin^DB,ixOmax^DB\}
         ! Get flux of density
         f(ix^D,rho_)=w(ix^D,mom(idim))*w(ix^D,rho_)
         ! f_i[m_k]=v_i*m_k-b_k*b_i
@@ -3668,8 +3649,7 @@ contains
         ^C&f(ix^D,b^C_)=w(ix^D,mom(idim))*w(ix^D,b^C_)-w(ix^D,mag(idim))*w(ix^D,m^C_)\
      {end do\}
     else
-     {!dir$ vector aligned
-      do ix^DB=ixOmin^DB,ixOmax^DB\}
+     {do ix^DB=ixOmin^DB,ixOmax^DB\}
         ! Get flux of density
         f(ix^D,rho_)=w(ix^D,mom(idim))*w(ix^D,rho_)
         ! f_i[m_k]=v_i*m_k-b_k*b_i
@@ -3687,8 +3667,7 @@ contains
     end if
     if(mhd_Hall) then
       call mhd_getv_Hall(w,x,ixI^L,ixO^L,vHall)
-      {!dir$ vector aligned
-      do ix^DB=ixOmin^DB,ixOmax^DB\}
+     {do ix^DB=ixOmin^DB,ixOmax^DB\}
         if(total_energy) then
           ! f_i[e]= f_i[e] + vHall_i*(b_k*b_k) - b_i*(vHall_k*b_k)
           f(ix^D,e_)=f(ix^D,e_)+vHall(ix^D,idim)*(^C&w(ix^D,b^C_)**2+)&
@@ -3699,8 +3678,7 @@ contains
      {end do\}
     end if
     if(mhd_glm) then
-      {!dir$ vector aligned
-      do ix^DB=ixOmin^DB,ixOmax^DB\}
+     {do ix^DB=ixOmin^DB,ixOmax^DB\}
         f(ix^D,mag(idim))=w(ix^D,psi_)
         !f_i[psi]=Ch^2*b_{i} Eq. 24e and Eq. 38c Dedner et al 2002 JCP, 175, 645
         f(ix^D,psi_) = cmax_global**2*w(ix^D,mag(idim))
@@ -3708,15 +3686,13 @@ contains
     end if
     ! Get flux of tracer
     do iw=1,mhd_n_tracer
-      {!dir$ vector aligned
-      do ix^DB=ixOmin^DB,ixOmax^DB\}
+     {do ix^DB=ixOmin^DB,ixOmax^DB\}
         f(ix^D,tracer(iw))=w(ix^D,mom(idim))*w(ix^D,tracer(iw))
      {end do\}
     end do
 
     if(mhd_hyperbolic_thermal_conduction) then
-      {!dir$ vector aligned
-      do ix^DB=ixOmin^DB,ixOmax^DB\}
+     {do ix^DB=ixOmin^DB,ixOmax^DB\}
         f(ix^D,e_)=f(ix^D,e_)+w(ix^D,q_)*w(ix^D,mag(idim))/(dsqrt(^D&w({ix^D},b^D_)**2+)+smalldouble)
         f(ix^D,q_)=zero
      {end do\}
@@ -3740,8 +3716,7 @@ contains
     double precision             :: vHall(ixI^S,1:ndir)
     integer                      :: iw, ix^D
 
-   {!dir$ vector aligned
-    do ix^DB=ixOmin^DB,ixOmax^DB\}
+   {do ix^DB=ixOmin^DB,ixOmax^DB\}
       ! Get flux of density
       f(ix^D,rho_)=w(ix^D,mom(idim))*w(ix^D,rho_)
       ! f_i[m_k]=v_i*m_k-b_k*b_i
@@ -3753,15 +3728,13 @@ contains
    {end do\}
     if(mhd_Hall) then
       call mhd_getv_Hall(w,x,ixI^L,ixO^L,vHall)
-      {!dir$ vector aligned
-      do ix^DB=ixOmin^DB,ixOmax^DB\}
+     {do ix^DB=ixOmin^DB,ixOmax^DB\}
         ! f_i[b_k] = f_i[b_k] + vHall_i*b_k - vHall_k*b_i
         ^C&f(ix^D,b^C_)=f(ix^D,b^C_)+vHall(ix^D,idim)*w(ix^D,b^C_)-vHall(ix^D,^C)*w(ix^D,mag(idim))\
      {end do\}
     end if
     if(mhd_glm) then
-      {!dir$ vector aligned
-      do ix^DB=ixOmin^DB,ixOmax^DB\}
+     {do ix^DB=ixOmin^DB,ixOmax^DB\}
         f(ix^D,mag(idim))=w(ix^D,psi_)
         !f_i[psi]=Ch^2*b_{i} Eq. 24e and Eq. 38c Dedner et al 2002 JCP, 175, 645
         f(ix^D,psi_) = cmax_global**2*w(ix^D,mag(idim))
@@ -3769,8 +3742,7 @@ contains
     end if
     ! Get flux of tracer
     do iw=1,mhd_n_tracer
-      {!dir$ vector aligned
-      do ix^DB=ixOmin^DB,ixOmax^DB\}
+     {do ix^DB=ixOmin^DB,ixOmax^DB\}
         f(ix^D,tracer(iw))=w(ix^D,mom(idim))*w(ix^D,tracer(iw))
      {end do\}
     end do
@@ -3793,8 +3765,7 @@ contains
     double precision             :: vHall(ixI^S,1:ndir)
     integer                      :: iw, ix^D
 
-   {!dir$ vector aligned
-    do ix^DB=ixOmin^DB,ixOmax^DB\}
+    {do ix^DB=ixOmin^DB,ixOmax^DB\}
       ! Get flux of density
       f(ix^D,rho_)=w(ix^D,mom(idim))*w(ix^D,rho_)
       ! f_i[m_k]=v_i*m_k-b_k*b_i
@@ -3808,15 +3779,13 @@ contains
    {end do\}
     if(mhd_Hall) then
       call mhd_getv_Hall(w,x,ixI^L,ixO^L,vHall)
-      {!dir$ vector aligned
-      do ix^DB=ixOmin^DB,ixOmax^DB\}
+     {do ix^DB=ixOmin^DB,ixOmax^DB\}
         ! f_i[b_k] = f_i[b_k] + vHall_i*b_k - vHall_k*b_i
         ^C&f(ix^D,b^C_)=f(ix^D,b^C_)+vHall(ix^D,idim)*w(ix^D,b^C_)-vHall(ix^D,^C)*w(ix^D,mag(idim))\
      {end do\}
     end if
     if(mhd_glm) then
-      {!dir$ vector aligned
-      do ix^DB=ixOmin^DB,ixOmax^DB\}
+     {do ix^DB=ixOmin^DB,ixOmax^DB\}
         f(ix^D,mag(idim))=w(ix^D,psi_)
         !f_i[psi]=Ch^2*b_{i} Eq. 24e and Eq. 38c Dedner et al 2002 JCP, 175, 645
         f(ix^D,psi_) = cmax_global**2*w(ix^D,mag(idim))
@@ -3824,15 +3793,13 @@ contains
     end if
     ! Get flux of tracer
     do iw=1,mhd_n_tracer
-      {!dir$ vector aligned
-      do ix^DB=ixOmin^DB,ixOmax^DB\}
+     {do ix^DB=ixOmin^DB,ixOmax^DB\}
         f(ix^D,tracer(iw))=w(ix^D,mom(idim))*w(ix^D,tracer(iw))
      {end do\}
     end do
 
     if(mhd_hyperbolic_thermal_conduction) then
-      {!dir$ vector aligned
-      do ix^DB=ixOmin^DB,ixOmax^DB\}
+     {do ix^DB=ixOmin^DB,ixOmax^DB\}
         f(ix^D,e_)=f(ix^D,e_)+w(ix^D,q_)*w(ix^D,mag(idim))/(dsqrt(^D&w({ix^D},b^D_)**2+)+smalldouble)
         f(ix^D,q_)=zero
      {end do\}
@@ -3905,8 +3872,7 @@ contains
 
    {end do\}
     if(mhd_glm) then
-      {!dir$ vector aligned
-      do ix^DB=ixOmin^DB,ixOmax^DB\}
+     {do ix^DB=ixOmin^DB,ixOmax^DB\}
         f(ix^D,mag(idim))=w(ix^D,psi_)
         !f_i[psi]=Ch^2*b_{i} Eq. 24e and Eq. 38c Dedner et al 2002 JCP, 175, 645
         f(ix^D,psi_) = cmax_global**2*w(ix^D,mag(idim))
@@ -3915,8 +3881,7 @@ contains
 
     if(mhd_Hall) then
       call mhd_getv_Hall(w,x,ixI^L,ixO^L,vHall)
-      {!dir$ vector aligned
-      do ix^DB=ixOmin^DB,ixOmax^DB\}
+     {do ix^DB=ixOmin^DB,ixOmax^DB\}
         ! f_i[b_k] = f_i[b_k] + vHall_i*b_k - vHall_k*b_i
         ^C&f(ix^D,b^C_)=f(ix^D,b^C_)+vHall(ix^D,idim)*w(ix^D,b^C_)-vHall(ix^D,^C)*w(ix^D,mag(idim))\
         if(total_energy) then
@@ -3928,14 +3893,12 @@ contains
     end if
     ! Get flux of tracer
     do iw=1,mhd_n_tracer
-      {!dir$ vector aligned
-      do ix^DB=ixOmin^DB,ixOmax^DB\}
+     {do ix^DB=ixOmin^DB,ixOmax^DB\}
         f(ix^D,tracer(iw))=w(ix^D,mom(idim))*w(ix^D,tracer(iw))
      {end do\}
     end do
     if(mhd_hyperbolic_thermal_conduction) then
-      {!dir$ vector aligned
-      do ix^DB=ixOmin^DB,ixOmax^DB\}
+     {do ix^DB=ixOmin^DB,ixOmax^DB\}
         f(ix^D,e_)=f(ix^D,e_)+w(ix^D,q_)*Btotal(ix^D,idim)/(dsqrt(^C&btotal(ix^D,^C)**2+)+smalldouble)
         f(ix^D,q_)=zero
      {end do\}
@@ -3959,8 +3922,7 @@ contains
     double precision             :: SA(ixO^S,1:ndir),E(ixO^S,1:ndir),e2
     integer                      :: iw, ix^D
 
-   {!dir$ vector aligned
-    do ix^DB=ixOmin^DB,ixOmax^DB\}
+   {do ix^DB=ixOmin^DB,ixOmax^DB\}
       ! Get flux of density
       f(ix^D,rho_)=w(ix^D,mom(idim))*w(ix^D,rho_)
       ! E=Bxv
@@ -4012,8 +3974,7 @@ contains
    {end do\}
 
     if(mhd_glm) then
-     {!dir$ vector aligned
-      do ix^DB=ixOmin^DB,ixOmax^DB\}
+     {do ix^DB=ixOmin^DB,ixOmax^DB\}
         f(ix^D,mag(idim))=w(ix^D,psi_)
         !f_i[psi]=Ch^2*b_{i} Eq. 24e and Eq. 38c Dedner et al 2002 JCP, 175, 645
         f(ix^D,psi_)=cmax_global**2*w(ix^D,mag(idim))
@@ -4021,8 +3982,7 @@ contains
     end if
       ! Get flux of tracer
     do iw=1,mhd_n_tracer
-     {!dir$ vector aligned
-      do ix^DB=ixOmin^DB,ixOmax^DB\}
+     {do ix^DB=ixOmin^DB,ixOmax^DB\}
         f(ix^D,tracer(iw))=w(ix^D,mom(idim))*w(ix^D,tracer(iw))
      {end do\}
     end do
@@ -4044,8 +4004,7 @@ contains
     double precision             :: E(ixO^S,1:ndir),e2
     integer                      :: iw, ix^D
 
-   {!dir$ vector aligned
-    do ix^DB=ixOmin^DB,ixOmax^DB\}
+   {do ix^DB=ixOmin^DB,ixOmax^DB\}
       ! Get flux of density
       f(ix^D,rho_)=w(ix^D,mom(idim))*w(ix^D,rho_)
       ! E=Bxv
@@ -4076,8 +4035,7 @@ contains
    {end do\}
 
     if(mhd_glm) then
-     {!dir$ vector aligned
-      do ix^DB=ixOmin^DB,ixOmax^DB\}
+     {do ix^DB=ixOmin^DB,ixOmax^DB\}
         f(ix^D,mag(idim))=w(ix^D,psi_)
         !f_i[psi]=Ch^2*b_{i} Eq. 24e and Eq. 38c Dedner et al 2002 JCP, 175, 645
         f(ix^D,psi_)=cmax_global**2*w(ix^D,mag(idim))
@@ -4085,8 +4043,7 @@ contains
     end if
       ! Get flux of tracer
     do iw=1,mhd_n_tracer
-     {!dir$ vector aligned
-      do ix^DB=ixOmin^DB,ixOmax^DB\}
+     {do ix^DB=ixOmin^DB,ixOmax^DB\}
         f(ix^D,tracer(iw))=w(ix^D,mom(idim))*w(ix^D,tracer(iw))
      {end do\}
     end do
@@ -4878,8 +4835,7 @@ contains
     double precision :: v(ixI^S,1:3),E(ixI^S,1:3),curlE(ixI^S,1:3),divE(ixI^S)
     integer :: idir, idirmin, ix^D
 
-   {!dir$ vector aligned
-    do ix^DB=ixImin^DB,ixImax^DB\}
+   {do ix^DB=ixImin^DB,ixImax^DB\}
       ! E=Bxv
       {^IFTHREEC
       E(ix^D,1)=w(ix^D,b2_)*wCTprim(ix^D,m3_)-w(ix^D,b3_)*wCTprim(ix^D,m2_)
@@ -4904,8 +4860,7 @@ contains
     call cross_product(ixI^L,ixO^L,E,curlE,v)
     ! add source term in momentum equations (1/c0^2-1/c^2)(E dot divE - E x curlE)
     ! equation (26) and (27)
-   {!dir$ vector aligned
-    do ix^DB=ixOmin^DB,ixOmax^DB\}
+   {do ix^DB=ixOmin^DB,ixOmax^DB\}
       ^C&w(ix^D,m^C_)=w(ix^D,m^C_)+qdt*(inv_squared_c0-inv_squared_c)*&
         (E(ix^D,^C)*divE(ix^D)-v(ix^D,^C))\
    {end do\}
@@ -4935,8 +4890,7 @@ contains
     else
       call divvector(wCTprim(ixI^S,mom(:)),ixI^L,ixO^L,divv)
     end if
-   {!dir$ vector aligned
-    do ix^DB=ixOmin^DB,ixOmax^DB\}
+   {do ix^DB=ixOmin^DB,ixOmax^DB\}
       tmp=w(ix^D,e_)
       w(ix^D,e_)=w(ix^D,e_)-qdt*wCTprim(ix^D,p_)*divv(ix^D)
       if(w(ix^D,e_)<small_e) then
@@ -5373,8 +5327,7 @@ contains
     call get_divb(wCT,ixI^L,ixO^L,divb, mhd_divb_4thorder)
 
     if(B0field) then
-     {!dir$ vector aligned
-      do ix^DB=ixOmin^DB,ixOmax^DB\}
+     {do ix^DB=ixOmin^DB,ixOmax^DB\}
         ! b = b - qdt v * div b
         ^C&w(ix^D,b^C_)=w(ix^D,b^C_)-qdt*wCT(ix^D,m^C_)*divb(ix^D)\
         ! m = m - qdt b div b
@@ -5385,8 +5338,7 @@ contains
         end if
      {end do\}
     else
-     {!dir$ vector aligned
-      do ix^DB=ixOmin^DB,ixOmax^DB\}
+     {do ix^DB=ixOmin^DB,ixOmax^DB\}
         ! b = b - qdt v * div b
         ^C&w(ix^D,b^C_)=w(ix^D,b^C_)-qdt*wCT(ix^D,m^C_)*divb(ix^D)\
         ! m = m - qdt b div b
@@ -5417,8 +5369,7 @@ contains
     ! calculate div B
     call get_divb(wCT,ixI^L,ixO^L,divb, mhd_divb_4thorder)
 
-   {!dir$ vector aligned
-    do ix^DB=ixOmin^DB,ixOmax^DB\}
+   {do ix^DB=ixOmin^DB,ixOmax^DB\}
       ! b = b - qdt v * div b
       ^C&w(ix^D,b^C_)=w(ix^D,b^C_)-qdt*wCT(ix^D,m^C_)*divb(ix^D)\
    {end do\}
@@ -5647,8 +5598,7 @@ contains
 
     select case (coordinate)
     case (cylindrical)
-     {!dir$ vector aligned
-      do ix^DB=ixOmin^DB,ixOmax^DB\}
+     {do ix^DB=ixOmin^DB,ixOmax^DB\}
         ! include dt in invr, invr is always used with qdt
         if(local_timestep) then
           invr=block%dt(ix^D) * dtfactor/x(ix^D,1)
@@ -5677,8 +5627,7 @@ contains
         if(mhd_glm) w(ix^D,br_)=w(ix^D,br_)+wprim(ix^D,psi_)*invr
      {end do\}
     case (spherical)
-     {!dir$ vector aligned
-      do ix^DB=ixOmin^DB,ixOmax^DB\}
+     {do ix^DB=ixOmin^DB,ixOmax^DB\}
         ! include dt in invr, invr is always used with qdt
         if(local_timestep) then
           invr=block%dt(ix^D) * dtfactor/x(ix^D,1)
@@ -5824,8 +5773,7 @@ contains
         if(mhd_glm) w(ix^D,br_)=w(ix^D,br_)+wprim(ix^D,psi_)*invr
      {end do\}
     case (spherical)
-     {!dir$ vector aligned
-      do ix^DB=ixOmin^DB,ixOmax^DB\}
+     {do ix^DB=ixOmin^DB,ixOmax^DB\}
         ! include dt in invr, invr is always used with qdt
         if(local_timestep) then
           invr=block%dt(ix^D)*dtfactor/x(ix^D,1)
@@ -6106,8 +6054,7 @@ contains
     ! Calculate current density and idirmin
     call get_current(w,ixI^L,ixO^L,idirmin,current)
     do idir = idirmin, 3
-      {!dir$ vector aligned
-       do ix^DB=ixOmin^DB,ixOmax^DB\}
+      {do ix^DB=ixOmin^DB,ixOmax^DB\}
          vHall(ix^D,idir)=-mhd_etah*current(ix^D,idir)/rho(ix^D)
       {end do\}
     end do
@@ -6928,8 +6875,7 @@ contains
     if(mhd_ambipolar_exp) call get_ambipolar_electric_field(ixI^L,ixO^L,sCT%w,x,E_ambi)
 
     if(B0field) then
-     {!dir$ vector aligned
-      do ix^DB=ixImin^DB,ixImax^DB\}
+     {do ix^DB=ixImin^DB,ixImax^DB\}
         ! Calculate electric field at cell centers
        {^IFTHREED
         ECC(ix^D,1)=(wp(ix^D,b2_)+block%B0(ix^D,2,0))*wp(ix^D,m3_)-(wp(ix^D,b3_)+block%B0(ix^D,3,0))*wp(ix^D,m2_)
@@ -6944,8 +6890,7 @@ contains
        }
      {end do\}
     else
-     {!dir$ vector aligned
-      do ix^DB=ixImin^DB,ixImax^DB\}
+     {do ix^DB=ixImin^DB,ixImax^DB\}
         ! Calculate electric field at cell centers
        {^IFTHREED
         ECC(ix^D,1)=wp(ix^D,b2_)*wp(ix^D,m3_)-wp(ix^D,b3_)*wp(ix^D,m2_)
@@ -6978,8 +6923,7 @@ contains
             ixCmin^D=ixOmin^D+kr(idir,^D)-1;
             ! Assemble indices
             ! average cell-face electric field to cell edges
-           {!dir$ vector aligned
-            do ix^DB=ixCmin^DB,ixCmax^DB\}
+           {do ix^DB=ixCmin^DB,ixCmax^DB\}
               fE(ix^D,idir)=quarter*&
               (fC(ix^D,iwdim1,idim2)+fC({ix^D+i1kr^D},iwdim1,idim2)&
               -fC(ix^D,iwdim2,idim1)-fC({ix^D+i2kr^D},iwdim2,idim1))
@@ -6988,8 +6932,7 @@ contains
             ! add slope in idim2 direction from equation (50)
             ixAmin^D=ixCmin^D;
             ixAmax^D=ixCmax^D+i1kr^D;
-           {!dir$ vector aligned
-            do ix^DB=ixAmin^DB,ixAmax^DB\}
+           {do ix^DB=ixAmin^DB,ixAmax^DB\}
               EL(ix^D)=fC(ix^D,iwdim1,idim2)-ECC(ix^D,idir)
               ER(ix^D)=fC(ix^D,iwdim1,idim2)-ECC({ix^D+i2kr^D},idir)
            {end do\}
@@ -7015,8 +6958,7 @@ contains
             ! add slope in idim1 direction from equation (50)
             ixAmin^D=ixCmin^D;
             ixAmax^D=ixCmax^D+i2kr^D;
-           {!dir$ vector aligned
-            do ix^DB=ixAmin^DB,ixAmax^DB\}
+           {do ix^DB=ixAmin^DB,ixAmax^DB\}
               EL(ix^D)=-fC(ix^D,iwdim2,idim1)-ECC(ix^D,idir)
               ER(ix^D)=-fC(ix^D,iwdim2,idim1)-ECC({ix^D+i1kr^D},idir)
            {end do\}
@@ -7084,24 +7026,21 @@ contains
         ! average from cell edge to cell center
        {^IFTHREED
         if(idir==1) then
-         {!dir$ vector aligned
-          do ix^DB=ixOmin^DB,ixOmax^DB\}
+         {do ix^DB=ixOmin^DB,ixOmax^DB\}
             jce(ix^D,idir)=0.25d0*(Ein(ix^D,idir)+Ein(ix1,ix2-1,ix3,idir)+Ein(ix1,ix2,ix3-1,idir)&
                           +Ein(ix1,ix2-1,ix3-1,idir))
             if(jce(ix^D,idir)<0.d0) jce(ix^D,idir)=0.d0
             w(ix^D,e_)=w(ix^D,e_)+qdt*jce(ix^D,idir)
          {end do\}
         else if(idir==2) then
-         {!dir$ vector aligned
-          do ix^DB=ixOmin^DB,ixOmax^DB\}
+         {do ix^DB=ixOmin^DB,ixOmax^DB\}
             jce(ix^D,idir)=0.25d0*(Ein(ix^D,idir)+Ein(ix1-1,ix2,ix3,idir)+Ein(ix1,ix2,ix3-1,idir)&
                           +Ein(ix1-1,ix2,ix3-1,idir))
             if(jce(ix^D,idir)<0.d0) jce(ix^D,idir)=0.d0
             w(ix^D,e_)=w(ix^D,e_)+qdt*jce(ix^D,idir)
          {end do\}
         else
-         {!dir$ vector aligned
-          do ix^DB=ixOmin^DB,ixOmax^DB\}
+         {do ix^DB=ixOmin^DB,ixOmax^DB\}
             jce(ix^D,idir)=0.25d0*(Ein(ix^D,idir)+Ein(ix1-1,ix2,ix3,idir)+Ein(ix1,ix2-1,ix3,idir)&
                           +Ein(ix1-1,ix2-1,ix3,idir))
             if(jce(ix^D,idir)<0.d0) jce(ix^D,idir)=0.d0
@@ -7111,8 +7050,7 @@ contains
        }
        {^IFTWOD
         !idir=3
-       {!dir$ vector aligned
-        do ix^DB=ixOmin^DB,ixOmax^DB\}
+       {do ix^DB=ixOmin^DB,ixOmax^DB\}
           jce(ix^D,idir)=0.25d0*(Ein(ix^D,idir)+Ein(ix1-1,ix2,idir)+Ein(ix1,ix2-1,idir)&
                         +Ein(ix1-1,ix2-1,idir))
           if(jce(ix^D,idir)<0.d0) jce(ix^D,idir)=0.d0
