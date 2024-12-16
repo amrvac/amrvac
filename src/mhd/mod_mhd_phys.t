@@ -1787,7 +1787,7 @@ contains
 
     if (fix_small_values) then
       ! fix small values preventing NaN numbers in the following converting
-      call mhd_handle_small_values_semirelati(.false., w, x, ixI^L, ixO^L, 'mhd_to_primitive_semirelati')
+      call mhd_handle_small_values(.false., w, x, ixI^L, ixO^L, 'mhd_to_primitive_semirelati')
     end if
 
    {do ix^DB=ixOmin^DB,ixOmax^DB\}
@@ -1847,7 +1847,7 @@ contains
 
     if (fix_small_values) then
       ! fix small values preventing NaN numbers in the following converting
-      call mhd_handle_small_values_semirelati(.false., w, x, ixI^L, ixO^L, 'mhd_to_primitive_semirelati_noe')
+      call mhd_handle_small_values(.false., w, x, ixI^L, ixO^L, 'mhd_to_primitive_semirelati_noe')
     end if
 
    {do ix^DB=ixOmin^DB,ixOmax^DB\}
