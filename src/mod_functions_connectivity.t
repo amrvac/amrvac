@@ -269,8 +269,10 @@ module mod_functions_connectivity
     ! allocate space for mpi recieve for siblings and restrict ghost cell filling
     nrecvs=nrecv_bc_srl+nrecv_bc_r
     if (allocated(recvstatus_c_sr)) then
-      deallocate(recvstatus_c_sr,recvrequest_c_sr)
-      allocate(recvstatus_c_sr(MPI_STATUS_SIZE,nrecvs),recvrequest_c_sr(nrecvs))
+      if(nrecvs > size(recvrequest_c_sr)) then
+        deallocate(recvstatus_c_sr,recvrequest_c_sr)
+        allocate(recvstatus_c_sr(MPI_STATUS_SIZE,nrecvs),recvrequest_c_sr(nrecvs))
+      end if
     else
       allocate(recvstatus_c_sr(MPI_STATUS_SIZE,nrecvs),recvrequest_c_sr(nrecvs))
     end if
@@ -279,17 +281,21 @@ module mod_functions_connectivity
     ! allocate space for mpi send for siblings and restrict ghost cell filling
     nsends=nsend_bc_srl+nsend_bc_r
     if (allocated(sendstatus_c_sr)) then
-      deallocate(sendstatus_c_sr,sendrequest_c_sr)
-      allocate(sendstatus_c_sr(MPI_STATUS_SIZE,nsends),sendrequest_c_sr(nsends))
+      if(nsends > size(sendrequest_c_sr)) then
+        deallocate(sendstatus_c_sr,sendrequest_c_sr)
+        allocate(sendstatus_c_sr(MPI_STATUS_SIZE,nsends),sendrequest_c_sr(nsends))
+      end if
     else
       allocate(sendstatus_c_sr(MPI_STATUS_SIZE,nsends),sendrequest_c_sr(nsends))
     end if
     sendrequest_c_sr=MPI_REQUEST_NULL
   
-    ! allocate space for mpi recieve for prolongation ghost cell filling
+    ! allocate space for mpi receive for prolongation ghost cell filling
     if (allocated(recvstatus_c_p)) then
-      deallocate(recvstatus_c_p,recvrequest_c_p)
-      allocate(recvstatus_c_p(MPI_STATUS_SIZE,nrecv_bc_p),recvrequest_c_p(nrecv_bc_p))
+      if(nrecv_bc_p > size(recvrequest_c_p)) then
+        deallocate(recvstatus_c_p,recvrequest_c_p)
+        allocate(recvstatus_c_p(MPI_STATUS_SIZE,nrecv_bc_p),recvrequest_c_p(nrecv_bc_p))
+      end if
     else
       allocate(recvstatus_c_p(MPI_STATUS_SIZE,nrecv_bc_p),recvrequest_c_p(nrecv_bc_p))
     end if
@@ -297,17 +303,19 @@ module mod_functions_connectivity
   
     ! allocate space for mpi send for prolongation ghost cell filling
     if (allocated(sendstatus_c_p)) then
-      deallocate(sendstatus_c_p,sendrequest_c_p)
-      allocate(sendstatus_c_p(MPI_STATUS_SIZE,nsend_bc_p),sendrequest_c_p(nsend_bc_p))
+      if(nsend_bc_p > size(sendrequest_c_p)) then
+        deallocate(sendstatus_c_p,sendrequest_c_p)
+        allocate(sendstatus_c_p(MPI_STATUS_SIZE,nsend_bc_p),sendrequest_c_p(nsend_bc_p))
+      end if
     else
       allocate(sendstatus_c_p(MPI_STATUS_SIZE,nsend_bc_p),sendrequest_c_p(nsend_bc_p))
     end if
     sendrequest_c_p=MPI_REQUEST_NULL
   
     if(stagger_grid) then
-      ! allocate space for recieve buffer for siblings ghost cell filling
+      ! allocate space for receive buffer for siblings ghost cell filling
       if (allocated(recvbuffer_srl)) then
-        if (nbuff_bc_recv_srl /= size(recvbuffer_srl)) then
+        if (nbuff_bc_recv_srl > size(recvbuffer_srl)) then
           deallocate(recvbuffer_srl)
           allocate(recvbuffer_srl(nbuff_bc_recv_srl))
         end if
@@ -315,8 +323,10 @@ module mod_functions_connectivity
         allocate(recvbuffer_srl(nbuff_bc_recv_srl))
       end if
       if (allocated(recvstatus_srl)) then
-        deallocate(recvstatus_srl,recvrequest_srl)
-        allocate(recvstatus_srl(MPI_STATUS_SIZE,nrecv_bc_srl),recvrequest_srl(nrecv_bc_srl))
+        if(nrecv_bc_srl>size(recvrequest_srl)) then
+          deallocate(recvstatus_srl,recvrequest_srl)
+          allocate(recvstatus_srl(MPI_STATUS_SIZE,nrecv_bc_srl),recvrequest_srl(nrecv_bc_srl))
+        end if
       else
         allocate(recvstatus_srl(MPI_STATUS_SIZE,nrecv_bc_srl),recvrequest_srl(nrecv_bc_srl))
       end if
@@ -324,7 +334,7 @@ module mod_functions_connectivity
   
       ! allocate space for send buffer for siblings ghost cell filling
       if (allocated(sendbuffer_srl)) then
-        if (nbuff_bc_send_srl /= size(sendbuffer_srl)) then
+        if (nbuff_bc_send_srl > size(sendbuffer_srl)) then
           deallocate(sendbuffer_srl)
           allocate(sendbuffer_srl(nbuff_bc_send_srl))
         end if
@@ -332,8 +342,10 @@ module mod_functions_connectivity
         allocate(sendbuffer_srl(nbuff_bc_send_srl))
       end if
       if (allocated(sendstatus_srl)) then
-        deallocate(sendstatus_srl,sendrequest_srl)
-        allocate(sendstatus_srl(MPI_STATUS_SIZE,nsend_bc_srl),sendrequest_srl(nsend_bc_srl))
+        if(nsend_bc_srl>size(sendrequest_srl)) then
+          deallocate(sendstatus_srl,sendrequest_srl)
+          allocate(sendstatus_srl(MPI_STATUS_SIZE,nsend_bc_srl),sendrequest_srl(nsend_bc_srl))
+        end if
       else
         allocate(sendstatus_srl(MPI_STATUS_SIZE,nsend_bc_srl),sendrequest_srl(nsend_bc_srl))
       end if
@@ -341,7 +353,7 @@ module mod_functions_connectivity
   
       ! allocate space for recieve buffer for restrict ghost cell filling
       if (allocated(recvbuffer_r)) then
-        if (nbuff_bc_recv_r /= size(recvbuffer_r)) then
+        if (nbuff_bc_recv_r > size(recvbuffer_r)) then
           deallocate(recvbuffer_r)
           allocate(recvbuffer_r(nbuff_bc_recv_r))
         end if
@@ -349,8 +361,10 @@ module mod_functions_connectivity
         allocate(recvbuffer_r(nbuff_bc_recv_r))
       end if
       if (allocated(recvstatus_r)) then
-        deallocate(recvstatus_r,recvrequest_r)
-        allocate(recvstatus_r(MPI_STATUS_SIZE,nrecv_bc_r),recvrequest_r(nrecv_bc_r))
+        if(nrecv_bc_r>size(recvrequest_r)) then
+          deallocate(recvstatus_r,recvrequest_r)
+          allocate(recvstatus_r(MPI_STATUS_SIZE,nrecv_bc_r),recvrequest_r(nrecv_bc_r))
+        end if
       else
         allocate(recvstatus_r(MPI_STATUS_SIZE,nrecv_bc_r),recvrequest_r(nrecv_bc_r))
       end if
@@ -358,7 +372,7 @@ module mod_functions_connectivity
   
       ! allocate space for send buffer for restrict ghost cell filling
       if (allocated(sendbuffer_r)) then
-        if (nbuff_bc_send_r /= size(sendbuffer_r)) then
+        if (nbuff_bc_send_r > size(sendbuffer_r)) then
           deallocate(sendbuffer_r)
           allocate(sendbuffer_r(nbuff_bc_send_r))
         end if
@@ -366,8 +380,10 @@ module mod_functions_connectivity
         allocate(sendbuffer_r(nbuff_bc_send_r))
       end if
       if (allocated(sendstatus_r)) then
-        deallocate(sendstatus_r,sendrequest_r)
-        allocate(sendstatus_r(MPI_STATUS_SIZE,nsend_bc_r),sendrequest_r(nsend_bc_r))
+        if(nsend_bc_r>size(sendrequest_r)) then
+          deallocate(sendstatus_r,sendrequest_r)
+          allocate(sendstatus_r(MPI_STATUS_SIZE,nsend_bc_r),sendrequest_r(nsend_bc_r))
+        end if
       else
         allocate(sendstatus_r(MPI_STATUS_SIZE,nsend_bc_r),sendrequest_r(nsend_bc_r))
       end if
@@ -375,7 +391,7 @@ module mod_functions_connectivity
   
       ! allocate space for recieve buffer for prolong ghost cell filling
       if (allocated(recvbuffer_p)) then
-        if (nbuff_bc_recv_p /= size(recvbuffer_p)) then
+        if (nbuff_bc_recv_p > size(recvbuffer_p)) then
           deallocate(recvbuffer_p)
           allocate(recvbuffer_p(nbuff_bc_recv_p))
         end if
@@ -383,8 +399,10 @@ module mod_functions_connectivity
         allocate(recvbuffer_p(nbuff_bc_recv_p))
       end if
       if (allocated(recvstatus_p)) then
-        deallocate(recvstatus_p,recvrequest_p)
-        allocate(recvstatus_p(MPI_STATUS_SIZE,nrecv_bc_p),recvrequest_p(nrecv_bc_p))
+        if(nrecv_bc_p>size(recvrequest_p)) then
+          deallocate(recvstatus_p,recvrequest_p)
+          allocate(recvstatus_p(MPI_STATUS_SIZE,nrecv_bc_p),recvrequest_p(nrecv_bc_p))
+        end if
       else
         allocate(recvstatus_p(MPI_STATUS_SIZE,nrecv_bc_p),recvrequest_p(nrecv_bc_p))
       end if
@@ -392,7 +410,7 @@ module mod_functions_connectivity
   
       ! allocate space for send buffer for restrict ghost cell filling
       if (allocated(sendbuffer_p)) then
-        if (nbuff_bc_send_p /= size(sendbuffer_p)) then
+        if (nbuff_bc_send_p > size(sendbuffer_p)) then
           deallocate(sendbuffer_p)
           allocate(sendbuffer_p(nbuff_bc_send_p))
         end if
@@ -400,8 +418,10 @@ module mod_functions_connectivity
         allocate(sendbuffer_p(nbuff_bc_send_p))
       end if
       if (allocated(sendstatus_p)) then
-        deallocate(sendstatus_p,sendrequest_p)
-        allocate(sendstatus_p(MPI_STATUS_SIZE,nsend_bc_p),sendrequest_p(nsend_bc_p))
+        if(nsend_bc_p>size(sendrequest_p)) then
+          deallocate(sendstatus_p,sendrequest_p)
+          allocate(sendstatus_p(MPI_STATUS_SIZE,nsend_bc_p),sendrequest_p(nsend_bc_p))
+        end if
       else
         allocate(sendstatus_p(MPI_STATUS_SIZE,nsend_bc_p),sendrequest_p(nsend_bc_p))
       end if
