@@ -57,12 +57,12 @@ contains
 
     ! collect all failures
     flag(iL^S)=.false.
-    do iw=1,nwflux
+    do iw=1,nw_recon
        flag(iL^S)=flag(iL^S).or.(flagC(iL^S,iw))
     end do
     ! only use WENO reconstructions when no field failed
     ! in other places: do not modify the initial state in wCout
-    do iw=1,nwflux
+    do iw=1,nw_recon
        where (flag(iL^S) .eqv. .false.)
           wCout(iL^S,iw)=wCin(iL^S,iw)
        end where
@@ -89,7 +89,7 @@ contains
 
     ! only use WENO reconstructions when no field failed
     ! in other places: do not modify the initial state in wCout
-    do iw=1,nwflux
+    do iw=1,nw_recon
        where (flagC(iL^S,iw) .eqv. .false.)
           wCout(iL^S,iw)=wCin(iL^S,iw)
        end where
@@ -118,12 +118,12 @@ contains
 
     ! collect all failures
     flag(iL^S)=.false.
-    do iw=1,nwflux
+    do iw=1,nw_recon
        flag(iL^S)=flag(iL^S).or.(flagL(iL^S,iw).or.flagR(iL^S,iw))
     end do
     ! only use WENO reconstructions L and R when no neighbour field failed
     ! in other places: do not modify the initial state in wLCout/wRCout
-    do iw=1,nwflux
+    do iw=1,nw_recon
        where (flag(iL^S) .eqv. .false.)
           wLCout(iL^S,iw)=wLCin(iL^S,iw)
           wRCout(iL^S,iw)=wRCin(iL^S,iw)
@@ -153,7 +153,7 @@ contains
 
     ! only use WENO reconstructions L and R when no neighbour field failed
     ! in other places: do not modify the initial state in wLCout/wRCout
-    do iw=1,nwflux
+    do iw=1,nw_recon
        where ((flagL(iL^S,iw) .eqv. .false.) .and. (flagR(iL^S,iw) .eqv. .false.))
           wLCout(iL^S,iw)=wLCin(iL^S,iw)
           wRCout(iL^S,iw)=wRCin(iL^S,iw)
@@ -186,66 +186,66 @@ contains
     u2_coeff(1:2) = (/ 1.d0/2.d0, 1.d0/2.d0 /)
     
     !> left side
-    f_array(iL^S,1:nwflux,1) = u1_coeff(1) * w(iLm^S,1:nwflux) + u1_coeff(2) * w(iL^S,1:nwflux)
-    f_array(iL^S,1:nwflux,2) = u2_coeff(1) * w(iL^S,1:nwflux)  + u2_coeff(2) * w(iLp^S,1:nwflux)
+    f_array(iL^S,1:nw_recon,1) = u1_coeff(1) * w(iLm^S,1:nw_recon) + u1_coeff(2) * w(iL^S,1:nw_recon)
+    f_array(iL^S,1:nw_recon,2) = u2_coeff(1) * w(iL^S,1:nw_recon)  + u2_coeff(2) * w(iLp^S,1:nw_recon)
   
-    beta(iL^S,1:nwflux,1) = (w(iL^S,1:nwflux) - w(iLm^S,1:nwflux))**2
-    beta(iL^S,1:nwflux,2) = (w(iLp^S,1:nwflux) - w(iL^S,1:nwflux))**2
+    beta(iL^S,1:nw_recon,1) = (w(iL^S,1:nw_recon) - w(iLm^S,1:nw_recon))**2
+    beta(iL^S,1:nw_recon,2) = (w(iLp^S,1:nw_recon) - w(iL^S,1:nw_recon))**2
   
-    alpha_sum(iL^S,1:nwflux) = 0.0d0 
+    alpha_sum(iL^S,1:nw_recon) = 0.0d0 
     select case(var)
     case(1)
       do i = 1,2
-        alpha_array(iL^S,1:nwflux,i) = d_array(i)/(beta(iL^S,1:nwflux,i) + weno_eps_machine)**2
-        alpha_sum(iL^S,1:nwflux) = alpha_sum(iL^S,1:nwflux) + alpha_array(iL^S,1:nwflux,i)
+        alpha_array(iL^S,1:nw_recon,i) = d_array(i)/(beta(iL^S,1:nw_recon,i) + weno_eps_machine)**2
+        alpha_sum(iL^S,1:nw_recon) = alpha_sum(iL^S,1:nw_recon) + alpha_array(iL^S,1:nw_recon,i)
       end do
     case(2)
-      tau(iL^S,1:nwflux) = abs(beta(iL^S,1:nwflux,2) - beta(iL^S,1:nwflux,1))
+      tau(iL^S,1:nw_recon) = abs(beta(iL^S,1:nw_recon,2) - beta(iL^S,1:nw_recon,1))
       do i = 1,2
-        alpha_array(iL^S,1:nwflux,i) = d_array(i) * (1.d0 + (tau(iL^S,1:nwflux) / &
-                                      (beta(iL^S,1:nwflux,i) + dxdim**2)))
-        alpha_sum(iL^S,1:nwflux) = alpha_sum(iL^S,1:nwflux) + alpha_array(iL^S,1:nwflux,i)
+        alpha_array(iL^S,1:nw_recon,i) = d_array(i) * (1.d0 + (tau(iL^S,1:nw_recon) / &
+                                      (beta(iL^S,1:nw_recon,i) + dxdim**2)))
+        alpha_sum(iL^S,1:nw_recon) = alpha_sum(iL^S,1:nw_recon) + alpha_array(iL^S,1:nw_recon,i)
       end do
     end select
 
-    flux(iL^S,1:nwflux) = 0.0d0
+    flux(iL^S,1:nw_recon) = 0.0d0
     do i = 1,2
-      flux(iL^S,1:nwflux) = flux(iL^S,1:nwflux) + f_array(iL^S,1:nwflux,i) * alpha_array(iL^S,1:nwflux,i)/(alpha_sum(iL^S,1:nwflux))
+      flux(iL^S,1:nw_recon) = flux(iL^S,1:nw_recon) + f_array(iL^S,1:nw_recon,i) * alpha_array(iL^S,1:nw_recon,i)/(alpha_sum(iL^S,1:nw_recon))
     end do
   
     !> left value at right interface
-    wLCtmp(iL^S,1:nwflux) = flux(iL^S,1:nwflux)
+    wLCtmp(iL^S,1:nw_recon) = flux(iL^S,1:nw_recon)
   
     !> right side
-    f_array(iL^S,1:nwflux,1) = u1_coeff(1) * w(iLpp^S,1:nwflux) + u1_coeff(2) * w(iLp^S,1:nwflux)
-    f_array(iL^S,1:nwflux,2) = u2_coeff(1) * w(iLp^S,1:nwflux)  + u2_coeff(2) * w(iL^S,1:nwflux)
+    f_array(iL^S,1:nw_recon,1) = u1_coeff(1) * w(iLpp^S,1:nw_recon) + u1_coeff(2) * w(iLp^S,1:nw_recon)
+    f_array(iL^S,1:nw_recon,2) = u2_coeff(1) * w(iLp^S,1:nw_recon)  + u2_coeff(2) * w(iL^S,1:nw_recon)
   
-    beta(iL^S,1:nwflux,1) = (w(iLpp^S,1:nwflux) - w(iLp^S,1:nwflux))**2
-    beta(iL^S,1:nwflux,2) = (w(iLp^S,1:nwflux) - w(iL^S,1:nwflux))**2
+    beta(iL^S,1:nw_recon,1) = (w(iLpp^S,1:nw_recon) - w(iLp^S,1:nw_recon))**2
+    beta(iL^S,1:nw_recon,2) = (w(iLp^S,1:nw_recon) - w(iL^S,1:nw_recon))**2
   
-    alpha_sum(iL^S,1:nwflux) = 0.0d0 
+    alpha_sum(iL^S,1:nw_recon) = 0.0d0 
     select case(var)
     case(1)
       do i = 1,2
-       alpha_array(iL^S,1:nwflux,i) = d_array(i)/(beta(iL^S,1:nwflux,i) + weno_eps_machine)**2
-       alpha_sum(iL^S,1:nwflux) = alpha_sum(iL^S,1:nwflux) + alpha_array(iL^S,1:nwflux,i)
+       alpha_array(iL^S,1:nw_recon,i) = d_array(i)/(beta(iL^S,1:nw_recon,i) + weno_eps_machine)**2
+       alpha_sum(iL^S,1:nw_recon) = alpha_sum(iL^S,1:nw_recon) + alpha_array(iL^S,1:nw_recon,i)
       end do
     case(2)
-      tau(iL^S,1:nwflux) = abs(beta(iL^S,1:nwflux,2) - beta(iL^S,1:nwflux,1))
+      tau(iL^S,1:nw_recon) = abs(beta(iL^S,1:nw_recon,2) - beta(iL^S,1:nw_recon,1))
       do i = 1,2
-        alpha_array(iL^S,1:nwflux,i) = d_array(i) * (1.d0 + (tau(iL^S,1:nwflux) / &
-                                      (beta(iL^S,1:nwflux,i) + dxdim**2)))
-        alpha_sum(iL^S,1:nwflux) = alpha_sum(iL^S,1:nwflux) + alpha_array(iL^S,1:nwflux,i)
+        alpha_array(iL^S,1:nw_recon,i) = d_array(i) * (1.d0 + (tau(iL^S,1:nw_recon) / &
+                                      (beta(iL^S,1:nw_recon,i) + dxdim**2)))
+        alpha_sum(iL^S,1:nw_recon) = alpha_sum(iL^S,1:nw_recon) + alpha_array(iL^S,1:nw_recon,i)
       end do
     end select
 
-    flux(iL^S,1:nwflux) = 0.0d0
+    flux(iL^S,1:nw_recon) = 0.0d0
     do i = 1,2
-       flux(iL^S,1:nwflux) = flux(iL^S,1:nwflux) + f_array(iL^S,1:nwflux,i) * alpha_array(iL^S,1:nwflux,i)/(alpha_sum(iL^S,1:nwflux))
+       flux(iL^S,1:nw_recon) = flux(iL^S,1:nw_recon) + f_array(iL^S,1:nw_recon,i) * alpha_array(iL^S,1:nw_recon,i)/(alpha_sum(iL^S,1:nw_recon))
     end do
   
     !> right value at right interface
-    wRCtmp(iL^S,1:nwflux) = flux(iL^S,1:nwflux)
+    wRCtmp(iL^S,1:nw_recon) = flux(iL^S,1:nw_recon)
 
     call fix_limiter(ixI^L,iL^L,wLCtmp,wRCtmp,wLC,wRC)
 
@@ -287,90 +287,90 @@ contains
 !    u3_coeff(1:3) = (/ 3.d0/8.d0, 6.d0/8.d0, -1.d0/8.d0 /)
     
     !> left side
-    f_array(iL^S,1:nwflux,1) = u1_coeff(1) * w(iLmm^S,1:nwflux) + u1_coeff(2) * w(iLm^S,1:nwflux) + u1_coeff(3) * w(iL^S,1:nwflux)
-    f_array(iL^S,1:nwflux,2) = u2_coeff(1) * w(iLm^S,1:nwflux)  + u2_coeff(2) * w(iL^S,1:nwflux)  + u2_coeff(3) * w(iLp^S,1:nwflux)
-    f_array(iL^S,1:nwflux,3) = u3_coeff(1) * w(iL^S,1:nwflux)   + u3_coeff(2) * w(iLp^S,1:nwflux) + u3_coeff(3) * w(iLpp^S,1:nwflux)  
+    f_array(iL^S,1:nw_recon,1) = u1_coeff(1) * w(iLmm^S,1:nw_recon) + u1_coeff(2) * w(iLm^S,1:nw_recon) + u1_coeff(3) * w(iL^S,1:nw_recon)
+    f_array(iL^S,1:nw_recon,2) = u2_coeff(1) * w(iLm^S,1:nw_recon)  + u2_coeff(2) * w(iL^S,1:nw_recon)  + u2_coeff(3) * w(iLp^S,1:nw_recon)
+    f_array(iL^S,1:nw_recon,3) = u3_coeff(1) * w(iL^S,1:nw_recon)   + u3_coeff(2) * w(iLp^S,1:nw_recon) + u3_coeff(3) * w(iLpp^S,1:nw_recon)  
   
-    beta(iL^S,1:nwflux,1) = beta_coeff(1) * (w(iLmm^S,1:nwflux) + w(iL^S,1:nwflux) - 2.0d0*w(iLm^S,1:nwflux))**2 &
-         + beta_coeff(2) * (w(iLmm^S,1:nwflux) - 4.0d0 * w(iLm^S,1:nwflux) + 3.0d0*w(iL^S,1:nwflux))**2
-    beta(iL^S,1:nwflux,2) = beta_coeff(1) * (w(iLm^S,1:nwflux) + w(iLp^S,1:nwflux) - 2.0d0 * w(iL^S,1:nwflux))**2 &
-         + beta_coeff(2) * (w(iLm^S,1:nwflux) - w(iLp^S,1:nwflux))**2
-    beta(iL^S,1:nwflux,3) = beta_coeff(1) * (w(iL^S,1:nwflux) + w(iLpp^S,1:nwflux) - 2.0d0 * w(iLp^S,1:nwflux))**2 &
-         + beta_coeff(2) * (3.0d0 * w(iL^S, 1:nwflux) - 4.0d0 * w(iLp^S,1:nwflux) + w(iLpp^S,1:nwflux))**2
+    beta(iL^S,1:nw_recon,1) = beta_coeff(1) * (w(iLmm^S,1:nw_recon) + w(iL^S,1:nw_recon) - 2.0d0*w(iLm^S,1:nw_recon))**2 &
+         + beta_coeff(2) * (w(iLmm^S,1:nw_recon) - 4.0d0 * w(iLm^S,1:nw_recon) + 3.0d0*w(iL^S,1:nw_recon))**2
+    beta(iL^S,1:nw_recon,2) = beta_coeff(1) * (w(iLm^S,1:nw_recon) + w(iLp^S,1:nw_recon) - 2.0d0 * w(iL^S,1:nw_recon))**2 &
+         + beta_coeff(2) * (w(iLm^S,1:nw_recon) - w(iLp^S,1:nw_recon))**2
+    beta(iL^S,1:nw_recon,3) = beta_coeff(1) * (w(iL^S,1:nw_recon) + w(iLpp^S,1:nw_recon) - 2.0d0 * w(iLp^S,1:nw_recon))**2 &
+         + beta_coeff(2) * (3.0d0 * w(iL^S, 1:nw_recon) - 4.0d0 * w(iLp^S,1:nw_recon) + w(iLpp^S,1:nw_recon))**2
  
     select case(var)
     ! case1 for wenojs, case2 for wenoz, case3 for wenoz+ 
     case(1)
       do i = 1,3
-        alpha_array(iL^S,1:nwflux,i) = d_array(i)/(beta(iL^S,1:nwflux,i) + weno_eps_machine)**2
+        alpha_array(iL^S,1:nw_recon,i) = d_array(i)/(beta(iL^S,1:nw_recon,i) + weno_eps_machine)**2
       end do
     case(2)
-      tau(iL^S,1:nwflux) = abs(beta(iL^S,1:nwflux,1) - beta(iL^S,1:nwflux,3))
+      tau(iL^S,1:nw_recon) = abs(beta(iL^S,1:nw_recon,1) - beta(iL^S,1:nw_recon,3))
       do i = 1,3
-        alpha_array(iL^S,1:nwflux,i) = d_array(i) * (1.d0 + (tau(iL^S,1:nwflux) / &
-                                      (beta(iL^S,1:nwflux,i) + weno_eps_machine))**2)
+        alpha_array(iL^S,1:nw_recon,i) = d_array(i) * (1.d0 + (tau(iL^S,1:nw_recon) / &
+                                      (beta(iL^S,1:nw_recon,i) + weno_eps_machine))**2)
       end do
     case(3)
-      tau(iL^S,1:nwflux) = abs(beta(iL^S,1:nwflux,1) - beta(iL^S,1:nwflux,3))
+      tau(iL^S,1:nw_recon) = abs(beta(iL^S,1:nw_recon,1) - beta(iL^S,1:nw_recon,3))
       do i = 1,3
-        tmp(iL^S,1:nwflux) = (tau(iL^S,1:nwflux) + weno_eps_machine) / (beta(iL^S,1:nwflux,i) + weno_eps_machine)
-        alpha_array(iL^S,1:nwflux,i) = d_array(i) * (1.0d0 + tmp(iL^S,1:nwflux)**2 + lambda/tmp(iL^S,1:nwflux))
+        tmp(iL^S,1:nw_recon) = (tau(iL^S,1:nw_recon) + weno_eps_machine) / (beta(iL^S,1:nw_recon,i) + weno_eps_machine)
+        alpha_array(iL^S,1:nw_recon,i) = d_array(i) * (1.0d0 + tmp(iL^S,1:nw_recon)**2 + lambda/tmp(iL^S,1:nw_recon))
       end do
     end select
 
-    alpha_sum(iL^S,1:nwflux) = 0.0d0 
+    alpha_sum(iL^S,1:nw_recon) = 0.0d0 
     do i = 1,3
-       alpha_sum(iL^S,1:nwflux) = alpha_sum(iL^S,1:nwflux) + alpha_array(iL^S,1:nwflux,i)
+       alpha_sum(iL^S,1:nw_recon) = alpha_sum(iL^S,1:nw_recon) + alpha_array(iL^S,1:nw_recon,i)
     end do
-    flux(iL^S,1:nwflux) = 0.0d0
+    flux(iL^S,1:nw_recon) = 0.0d0
     do i = 1,3
-       flux(iL^S,1:nwflux) = flux(iL^S,1:nwflux) + f_array(iL^S,1:nwflux,i) &
-                             *alpha_array(iL^S,1:nwflux,i)/(alpha_sum(iL^S,1:nwflux))
+       flux(iL^S,1:nw_recon) = flux(iL^S,1:nw_recon) + f_array(iL^S,1:nw_recon,i) &
+                             *alpha_array(iL^S,1:nw_recon,i)/(alpha_sum(iL^S,1:nw_recon))
     end do
-    wLCtmp(iL^S,1:nwflux) = flux(iL^S,1:nwflux)
+    wLCtmp(iL^S,1:nw_recon) = flux(iL^S,1:nw_recon)
 
     !> right side
-    f_array(iL^S,1:nwflux,1) = u1_coeff(1) * w(iLppp^S,1:nwflux) + u1_coeff(2) * w(iLpp^S,1:nwflux) + u1_coeff(3) * w(iLp^S,1:nwflux)
-    f_array(iL^S,1:nwflux,2) = u2_coeff(1) * w(iLpp^S,1:nwflux)  + u2_coeff(2) * w(iLp^S,1:nwflux)  + u2_coeff(3) * w(iL^S,1:nwflux)
-    f_array(iL^S,1:nwflux,3) = u3_coeff(1) * w(iLp^S,1:nwflux)   + u3_coeff(2) * w(iL^S,1:nwflux)   + u3_coeff(3) * w(iLm^S,1:nwflux)  
+    f_array(iL^S,1:nw_recon,1) = u1_coeff(1) * w(iLppp^S,1:nw_recon) + u1_coeff(2) * w(iLpp^S,1:nw_recon) + u1_coeff(3) * w(iLp^S,1:nw_recon)
+    f_array(iL^S,1:nw_recon,2) = u2_coeff(1) * w(iLpp^S,1:nw_recon)  + u2_coeff(2) * w(iLp^S,1:nw_recon)  + u2_coeff(3) * w(iL^S,1:nw_recon)
+    f_array(iL^S,1:nw_recon,3) = u3_coeff(1) * w(iLp^S,1:nw_recon)   + u3_coeff(2) * w(iL^S,1:nw_recon)   + u3_coeff(3) * w(iLm^S,1:nw_recon)  
   
-    beta(iL^S,1:nwflux,1) = beta_coeff(1) * (w(iLppp^S,1:nwflux) + w(iLp^S,1:nwflux) - 2.0d0*w(iLpp^S,1:nwflux))**2 &
-         + beta_coeff(2) * (w(iLppp^S,1:nwflux) - 4.0d0 * w(iLpp^S,1:nwflux) + 3.0d0*w(iLp^S,1:nwflux))**2
-    beta(iL^S,1:nwflux,2) = beta_coeff(1) * (w(iLpp^S,1:nwflux) + w(iL^S,1:nwflux) - 2.0d0 * w(iLp^S,1:nwflux))**2 &
-         + beta_coeff(2) * (w(iLpp^S,1:nwflux) - w(iL^S,1:nwflux))**2
-    beta(iL^S,1:nwflux,3) = beta_coeff(1) * (w(iLp^S,1:nwflux) + w(iLm^S,1:nwflux) - 2.0d0 * w(iL^S,1:nwflux))**2 &
-         + beta_coeff(2) * (3.0d0 * w(iLp^S, 1:nwflux) - 4.0d0 * w(iL^S,1:nwflux) + w(iLm^S,1:nwflux))**2
+    beta(iL^S,1:nw_recon,1) = beta_coeff(1) * (w(iLppp^S,1:nw_recon) + w(iLp^S,1:nw_recon) - 2.0d0*w(iLpp^S,1:nw_recon))**2 &
+         + beta_coeff(2) * (w(iLppp^S,1:nw_recon) - 4.0d0 * w(iLpp^S,1:nw_recon) + 3.0d0*w(iLp^S,1:nw_recon))**2
+    beta(iL^S,1:nw_recon,2) = beta_coeff(1) * (w(iLpp^S,1:nw_recon) + w(iL^S,1:nw_recon) - 2.0d0 * w(iLp^S,1:nw_recon))**2 &
+         + beta_coeff(2) * (w(iLpp^S,1:nw_recon) - w(iL^S,1:nw_recon))**2
+    beta(iL^S,1:nw_recon,3) = beta_coeff(1) * (w(iLp^S,1:nw_recon) + w(iLm^S,1:nw_recon) - 2.0d0 * w(iL^S,1:nw_recon))**2 &
+         + beta_coeff(2) * (3.0d0 * w(iLp^S, 1:nw_recon) - 4.0d0 * w(iL^S,1:nw_recon) + w(iLm^S,1:nw_recon))**2
   
     select case(var)
     case(1)
       do i = 1,3
-        alpha_array(iL^S,1:nwflux,i) = d_array(i)/(beta(iL^S,1:nwflux,i) + weno_eps_machine)**2
+        alpha_array(iL^S,1:nw_recon,i) = d_array(i)/(beta(iL^S,1:nw_recon,i) + weno_eps_machine)**2
       end do
     case(2) 
-      tau(iL^S,1:nwflux) = abs(beta(iL^S,1:nwflux,1) - beta(iL^S,1:nwflux,3))
+      tau(iL^S,1:nw_recon) = abs(beta(iL^S,1:nw_recon,1) - beta(iL^S,1:nw_recon,3))
       do i = 1,3
-        alpha_array(iL^S,1:nwflux,i) = d_array(i) * (1.d0 + (tau(iL^S,1:nwflux) / &
-                                      (beta(iL^S,1:nwflux,i) + weno_eps_machine))**2)
+        alpha_array(iL^S,1:nw_recon,i) = d_array(i) * (1.d0 + (tau(iL^S,1:nw_recon) / &
+                                      (beta(iL^S,1:nw_recon,i) + weno_eps_machine))**2)
       end do
     case(3)
-      tau(iL^S,1:nwflux) = abs(beta(iL^S,1:nwflux,1) - beta(iL^S,1:nwflux,3))
+      tau(iL^S,1:nw_recon) = abs(beta(iL^S,1:nw_recon,1) - beta(iL^S,1:nw_recon,3))
       do i = 1,3
-        tmp(iL^S,1:nwflux) = (tau(iL^S,1:nwflux) + weno_eps_machine) / (beta(iL^S,1:nwflux,i) + weno_eps_machine)
-        alpha_array(iL^S,1:nwflux,i) = d_array(i) * (1.0d0 + tmp(iL^S,1:nwflux)**2 + lambda/tmp(iL^S,1:nwflux))
+        tmp(iL^S,1:nw_recon) = (tau(iL^S,1:nw_recon) + weno_eps_machine) / (beta(iL^S,1:nw_recon,i) + weno_eps_machine)
+        alpha_array(iL^S,1:nw_recon,i) = d_array(i) * (1.0d0 + tmp(iL^S,1:nw_recon)**2 + lambda/tmp(iL^S,1:nw_recon))
       end do
     end select
   
-    alpha_sum(iL^S,1:nwflux) = 0.0d0 
+    alpha_sum(iL^S,1:nw_recon) = 0.0d0 
     ! do nothing, normal case
     do i = 1,3
-       alpha_sum(iL^S,1:nwflux) = alpha_sum(iL^S,1:nwflux) + alpha_array(iL^S,1:nwflux,i)
+       alpha_sum(iL^S,1:nw_recon) = alpha_sum(iL^S,1:nw_recon) + alpha_array(iL^S,1:nw_recon,i)
     end do
-    flux(iL^S,1:nwflux) = 0.0d0
+    flux(iL^S,1:nw_recon) = 0.0d0
     do i = 1,3
-       flux(iL^S,1:nwflux) = flux(iL^S,1:nwflux) + f_array(iL^S,1:nwflux,i) &
-                             *alpha_array(iL^S,1:nwflux,i)/(alpha_sum(iL^S,1:nwflux))
+       flux(iL^S,1:nw_recon) = flux(iL^S,1:nw_recon) + f_array(iL^S,1:nw_recon,i) &
+                             *alpha_array(iL^S,1:nw_recon,i)/(alpha_sum(iL^S,1:nw_recon))
     end do
-    wRCtmp(iL^S,1:nwflux) = flux(iL^S,1:nwflux)
+    wRCtmp(iL^S,1:nw_recon) = flux(iL^S,1:nw_recon)
     
     call fix_limiter(ixI^L,iL^L,wLCtmp,wRCtmp,wLC,wRC)
 
@@ -405,87 +405,87 @@ contains
     u3_coeff(1:3) = (/ 1.d0/3.d0, 5.d0/6.d0, -1.d0/6.d0 /)
     
     !> left side
-    f_array(iL^S,1:nwflux,1) = u1_coeff(1) * w(iLmm^S,1:nwflux) + u1_coeff(2) * w(iLm^S,1:nwflux) + u1_coeff(3) * w(iL^S,1:nwflux)
-    f_array(iL^S,1:nwflux,2) = u2_coeff(1) * w(iLm^S,1:nwflux)  + u2_coeff(2) * w(iL^S,1:nwflux)  + u2_coeff(3) * w(iLp^S,1:nwflux)
-    f_array(iL^S,1:nwflux,3) = u3_coeff(1) * w(iL^S,1:nwflux)   + u3_coeff(2) * w(iLp^S,1:nwflux) + u3_coeff(3) * w(iLpp^S,1:nwflux)  
+    f_array(iL^S,1:nw_recon,1) = u1_coeff(1) * w(iLmm^S,1:nw_recon) + u1_coeff(2) * w(iLm^S,1:nw_recon) + u1_coeff(3) * w(iL^S,1:nw_recon)
+    f_array(iL^S,1:nw_recon,2) = u2_coeff(1) * w(iLm^S,1:nw_recon)  + u2_coeff(2) * w(iL^S,1:nw_recon)  + u2_coeff(3) * w(iLp^S,1:nw_recon)
+    f_array(iL^S,1:nw_recon,3) = u3_coeff(1) * w(iL^S,1:nw_recon)   + u3_coeff(2) * w(iLp^S,1:nw_recon) + u3_coeff(3) * w(iLpp^S,1:nw_recon)  
   
-    beta(iL^S,1:nwflux,1) = beta_coeff(1) * (w(iLmm^S,1:nwflux) + w(iL^S,1:nwflux) - 2.0d0*w(iLm^S,1:nwflux))**2 &
-         + beta_coeff(2) * (w(iLmm^S,1:nwflux) - 4.0d0 * w(iLm^S,1:nwflux) + 3.0d0*w(iL^S,1:nwflux))**2
-    beta(iL^S,1:nwflux,2) = beta_coeff(1) * (w(iLm^S,1:nwflux) + w(iLp^S,1:nwflux) - 2.0d0 * w(iL^S,1:nwflux))**2 &
-         + beta_coeff(2) * (w(iLm^S,1:nwflux) - w(iLp^S,1:nwflux))**2
-    beta(iL^S,1:nwflux,3) = beta_coeff(1) * (w(iL^S,1:nwflux) + w(iLpp^S,1:nwflux) - 2.0d0 * w(iLp^S,1:nwflux))**2 &
-         + beta_coeff(2) * (3.0d0 * w(iL^S, 1:nwflux) - 4.0d0 * w(iLp^S,1:nwflux) + w(iLpp^S,1:nwflux))**2
+    beta(iL^S,1:nw_recon,1) = beta_coeff(1) * (w(iLmm^S,1:nw_recon) + w(iL^S,1:nw_recon) - 2.0d0*w(iLm^S,1:nw_recon))**2 &
+         + beta_coeff(2) * (w(iLmm^S,1:nw_recon) - 4.0d0 * w(iLm^S,1:nw_recon) + 3.0d0*w(iL^S,1:nw_recon))**2
+    beta(iL^S,1:nw_recon,2) = beta_coeff(1) * (w(iLm^S,1:nw_recon) + w(iLp^S,1:nw_recon) - 2.0d0 * w(iL^S,1:nw_recon))**2 &
+         + beta_coeff(2) * (w(iLm^S,1:nw_recon) - w(iLp^S,1:nw_recon))**2
+    beta(iL^S,1:nw_recon,3) = beta_coeff(1) * (w(iL^S,1:nw_recon) + w(iLpp^S,1:nw_recon) - 2.0d0 * w(iLp^S,1:nw_recon))**2 &
+         + beta_coeff(2) * (3.0d0 * w(iL^S, 1:nw_recon) - 4.0d0 * w(iLp^S,1:nw_recon) + w(iLpp^S,1:nw_recon))**2
  
-    gam_sum(iL^S,1:nwflux) = 0.0d0
-    tau(iL^S,1:nwflux) = abs(beta(iL^S,1:nwflux,1) - beta(iL^S,1:nwflux,3))
+    gam_sum(iL^S,1:nw_recon) = 0.0d0
+    tau(iL^S,1:nw_recon) = abs(beta(iL^S,1:nw_recon,1) - beta(iL^S,1:nw_recon,3))
     do i = 1,3
-      kai1(iL^S,1:nwflux,i) = (tau(iL^S,1:nwflux) / (beta(iL^S,1:nwflux,i) + weno_eps_machine))
-      gam(iL^S,1:nwflux,i) = (1.d0 + kai1(iL^S,1:nwflux,i))**2
-      gam_sum(iL^S,1:nwflux) = gam_sum(iL^S,1:nwflux) + gam(iL^S,1:nwflux,i)
+      kai1(iL^S,1:nw_recon,i) = (tau(iL^S,1:nw_recon) / (beta(iL^S,1:nw_recon,i) + weno_eps_machine))
+      gam(iL^S,1:nw_recon,i) = (1.d0 + kai1(iL^S,1:nw_recon,i))**2
+      gam_sum(iL^S,1:nw_recon) = gam_sum(iL^S,1:nw_recon) + gam(iL^S,1:nw_recon,i)
     end do
-    theta(iL^S,1:nwflux) = one / (one + maxval(kai1(iL^S,1:nwflux,1:3)/10.d0, dim=ndim+2))
-    marray(iL^S,1:nwflux)=-floor(4.d0 + theta(iL^S,1:nwflux)*6.d0)
+    theta(iL^S,1:nw_recon) = one / (one + maxval(kai1(iL^S,1:nw_recon,1:3)/10.d0, dim=ndim+2))
+    marray(iL^S,1:nw_recon)=-floor(4.d0 + theta(iL^S,1:nw_recon)*6.d0)
     do i = 1,3    
-      kai(iL^S,1:nwflux,i) = gam(iL^S,1:nwflux,i) / gam_sum(iL^S,1:nwflux)
-      where(kai(iL^S,1:nwflux,i) .lt. 10**marray(iL^S,1:nwflux))
-        delta(iL^S,1:nwflux,i)=zero
+      kai(iL^S,1:nw_recon,i) = gam(iL^S,1:nw_recon,i) / gam_sum(iL^S,1:nw_recon)
+      where(kai(iL^S,1:nw_recon,i) .lt. 10**marray(iL^S,1:nw_recon))
+        delta(iL^S,1:nw_recon,i)=zero
       else where
-        delta(iL^S,1:nwflux,i)=one
+        delta(iL^S,1:nw_recon,i)=one
       end where
     end do
     delta_sum=zero
     do i = 1,3
-      delta_sum(iL^S,1:nwflux)=delta_sum(iL^S,1:nwflux)+delta(iL^S,1:nwflux,i)*d_array(i)
+      delta_sum(iL^S,1:nw_recon)=delta_sum(iL^S,1:nw_recon)+delta(iL^S,1:nw_recon,i)*d_array(i)
     end do
-    flux(iL^S,1:nwflux)=0.0d0
+    flux(iL^S,1:nw_recon)=0.0d0
     do i = 1,3
-      flux(iL^S,1:nwflux)=flux(iL^S,1:nwflux)+f_array(iL^S,1:nwflux,i)*delta(iL^S,1:nwflux,i)*d_array(i)/(delta_sum(iL^S,1:nwflux))
+      flux(iL^S,1:nw_recon)=flux(iL^S,1:nw_recon)+f_array(iL^S,1:nw_recon,i)*delta(iL^S,1:nw_recon,i)*d_array(i)/(delta_sum(iL^S,1:nw_recon))
     end do
   
     !> left value at right interface
-    wLCtmp(iL^S,1:nwflux) = flux(iL^S,1:nwflux)
+    wLCtmp(iL^S,1:nw_recon) = flux(iL^S,1:nw_recon)
   
     !> right side
-    f_array(iL^S,1:nwflux,1) = u1_coeff(1) * w(iLppp^S,1:nwflux) + u1_coeff(2) * w(iLpp^S,1:nwflux) + u1_coeff(3) * w(iLp^S,1:nwflux)
-    f_array(iL^S,1:nwflux,2) = u2_coeff(1) * w(iLpp^S,1:nwflux)  + u2_coeff(2) * w(iLp^S,1:nwflux)  + u2_coeff(3) * w(iL^S,1:nwflux)
-    f_array(iL^S,1:nwflux,3) = u3_coeff(1) * w(iLp^S,1:nwflux)   + u3_coeff(2) * w(iL^S,1:nwflux)   + u3_coeff(3) * w(iLm^S,1:nwflux)  
+    f_array(iL^S,1:nw_recon,1) = u1_coeff(1) * w(iLppp^S,1:nw_recon) + u1_coeff(2) * w(iLpp^S,1:nw_recon) + u1_coeff(3) * w(iLp^S,1:nw_recon)
+    f_array(iL^S,1:nw_recon,2) = u2_coeff(1) * w(iLpp^S,1:nw_recon)  + u2_coeff(2) * w(iLp^S,1:nw_recon)  + u2_coeff(3) * w(iL^S,1:nw_recon)
+    f_array(iL^S,1:nw_recon,3) = u3_coeff(1) * w(iLp^S,1:nw_recon)   + u3_coeff(2) * w(iL^S,1:nw_recon)   + u3_coeff(3) * w(iLm^S,1:nw_recon)  
   
-    beta(iL^S,1:nwflux,1) = beta_coeff(1) * (w(iLppp^S,1:nwflux) + w(iLp^S,1:nwflux) - 2.0d0*w(iLpp^S,1:nwflux))**2 &
-         + beta_coeff(2) * (w(iLppp^S,1:nwflux) - 4.0d0 * w(iLpp^S,1:nwflux) + 3.0d0*w(iLp^S,1:nwflux))**2
-    beta(iL^S,1:nwflux,2) = beta_coeff(1) * (w(iLpp^S,1:nwflux) + w(iL^S,1:nwflux) - 2.0d0 * w(iLp^S,1:nwflux))**2 &
-         + beta_coeff(2) * (w(iLpp^S,1:nwflux) - w(iL^S,1:nwflux))**2
-    beta(iL^S,1:nwflux,3) = beta_coeff(1) * (w(iLp^S,1:nwflux) + w(iLm^S,1:nwflux) - 2.0d0 * w(iL^S,1:nwflux))**2 &
-         + beta_coeff(2) * (3.0d0 * w(iLp^S, 1:nwflux) - 4.0d0 * w(iL^S,1:nwflux) + w(iLm^S,1:nwflux))**2
+    beta(iL^S,1:nw_recon,1) = beta_coeff(1) * (w(iLppp^S,1:nw_recon) + w(iLp^S,1:nw_recon) - 2.0d0*w(iLpp^S,1:nw_recon))**2 &
+         + beta_coeff(2) * (w(iLppp^S,1:nw_recon) - 4.0d0 * w(iLpp^S,1:nw_recon) + 3.0d0*w(iLp^S,1:nw_recon))**2
+    beta(iL^S,1:nw_recon,2) = beta_coeff(1) * (w(iLpp^S,1:nw_recon) + w(iL^S,1:nw_recon) - 2.0d0 * w(iLp^S,1:nw_recon))**2 &
+         + beta_coeff(2) * (w(iLpp^S,1:nw_recon) - w(iL^S,1:nw_recon))**2
+    beta(iL^S,1:nw_recon,3) = beta_coeff(1) * (w(iLp^S,1:nw_recon) + w(iLm^S,1:nw_recon) - 2.0d0 * w(iL^S,1:nw_recon))**2 &
+         + beta_coeff(2) * (3.0d0 * w(iLp^S, 1:nw_recon) - 4.0d0 * w(iL^S,1:nw_recon) + w(iLm^S,1:nw_recon))**2
  
 
-    gam_sum(iL^S,1:nwflux)=0.0d0
-    tau(iL^S,1:nwflux)=abs(beta(iL^S,1:nwflux,1)-beta(iL^S,1:nwflux,3))
+    gam_sum(iL^S,1:nw_recon)=0.0d0
+    tau(iL^S,1:nw_recon)=abs(beta(iL^S,1:nw_recon,1)-beta(iL^S,1:nw_recon,3))
     do i=1,3
-      kai1(iL^S,1:nwflux,i)=(tau(iL^S,1:nwflux)/(beta(iL^S,1:nwflux,i)+weno_eps_machine))
-      gam(iL^S,1:nwflux,i)=(1.d0+kai1(iL^S,1:nwflux,i))**6
-      gam_sum(iL^S,1:nwflux)=gam_sum(iL^S,1:nwflux)+gam(iL^S,1:nwflux,i)
+      kai1(iL^S,1:nw_recon,i)=(tau(iL^S,1:nw_recon)/(beta(iL^S,1:nw_recon,i)+weno_eps_machine))
+      gam(iL^S,1:nw_recon,i)=(1.d0+kai1(iL^S,1:nw_recon,i))**6
+      gam_sum(iL^S,1:nw_recon)=gam_sum(iL^S,1:nw_recon)+gam(iL^S,1:nw_recon,i)
     end do
-    theta(iL^S,1:nwflux)=one/(one+maxval(kai1(iL^S,1:nwflux,1:3)/10.d0,dim=ndim+2))
-    marray(iL^S,1:nwflux)=-floor(4.d0+theta(iL^S,1:nwflux)*6.d0)
+    theta(iL^S,1:nw_recon)=one/(one+maxval(kai1(iL^S,1:nw_recon,1:3)/10.d0,dim=ndim+2))
+    marray(iL^S,1:nw_recon)=-floor(4.d0+theta(iL^S,1:nw_recon)*6.d0)
     do i=1,3    
-      kai(iL^S,1:nwflux,i) = gam(iL^S,1:nwflux,i)/gam_sum(iL^S,1:nwflux)
-      where(kai(iL^S,1:nwflux,i) .lt. 10**marray(iL^S,1:nwflux))
-        delta(iL^S,1:nwflux,i)=zero
+      kai(iL^S,1:nw_recon,i) = gam(iL^S,1:nw_recon,i)/gam_sum(iL^S,1:nw_recon)
+      where(kai(iL^S,1:nw_recon,i) .lt. 10**marray(iL^S,1:nw_recon))
+        delta(iL^S,1:nw_recon,i)=zero
       else where
-        delta(iL^S,1:nwflux,i)=one
+        delta(iL^S,1:nw_recon,i)=one
       end where
     end do
     delta_sum=zero
     do i = 1,3
-      delta_sum(iL^S,1:nwflux)=delta_sum(iL^S,1:nwflux)+delta(iL^S,1:nwflux,i)*d_array(i)
+      delta_sum(iL^S,1:nw_recon)=delta_sum(iL^S,1:nw_recon)+delta(iL^S,1:nw_recon,i)*d_array(i)
     end do
-    flux(iL^S,1:nwflux)=0.0d0
+    flux(iL^S,1:nw_recon)=0.0d0
     do i = 1,3
-      flux(iL^S,1:nwflux)=flux(iL^S,1:nwflux)+f_array(iL^S,1:nwflux,i)*delta(iL^S,1:nwflux,i)*d_array(i)/(delta_sum(iL^S,1:nwflux))
+      flux(iL^S,1:nw_recon)=flux(iL^S,1:nw_recon)+f_array(iL^S,1:nw_recon,i)*delta(iL^S,1:nw_recon,i)*d_array(i)/(delta_sum(iL^S,1:nw_recon))
     end do
 
     !> right value at right interface
-    wRCtmp(iL^S,1:nwflux)=flux(iL^S,1:nwflux)
+    wRCtmp(iL^S,1:nw_recon)=flux(iL^S,1:nw_recon)
 
     call fix_limiter(ixI^L,iL^L,wLCtmp,wRCtmp,wLC,wRC)
 
@@ -525,7 +525,7 @@ contains
     u1_coeff(1:3) = (/ -2.d0/3.d0, -1.d0/3.d0, 2.d0 /)
     u2_coeff(1:3) = (/ -1.d0/3.d0, 2.d0/3.d0, 2.d0/3.d0 /)
     u3_coeff(1:3) = (/ 2.d0/3.d0, 2.d0/3.d0, -1.d0/3.d0 /)
-    do i = 1, nwflux
+    do i = 1, nw_recon
       wc(iM^S,i) = (block%dx(iMp^S,idims) * w(iM^S,i) + block%dx(iM^S,idims) *  w(iMp^S,i)) / &
                    (block%dx(iMp^S,idims) + block%dx(iM^S,idims))
       wd(iL^S,i) = ((2.d0 * block%dx(iLm^S,idims) + block%dx(iLmm^S,idims)) * w(iLm^S,i) - block%dx(iLm^S,idims) * w(iLmm^S,i)) / &
@@ -534,88 +534,88 @@ contains
                    (block%dx(iLppp^S,idims) + block%dx(iLpp^S,idims))
     enddo
     !> left side
-    f_array(iL^S,1:nwflux,1) = u1_coeff(1) * wd(iL^S,1:nwflux)   + u1_coeff(2) * wc(iLm^S,1:nwflux)+ u1_coeff(3) * w(iL^S,1:nwflux)
-    f_array(iL^S,1:nwflux,2) = u2_coeff(1) * wc(iLm^S,1:nwflux)  + u2_coeff(2) * w(iL^S,1:nwflux)  + u2_coeff(3) * wc(iL^S,1:nwflux)
-    f_array(iL^S,1:nwflux,3) = u3_coeff(1) * wc(iL^S,1:nwflux)   + u3_coeff(2) * w(iLp^S,1:nwflux) + u3_coeff(3) * wc(iLp^S,1:nwflux)  
+    f_array(iL^S,1:nw_recon,1) = u1_coeff(1) * wd(iL^S,1:nw_recon)   + u1_coeff(2) * wc(iLm^S,1:nw_recon)+ u1_coeff(3) * w(iL^S,1:nw_recon)
+    f_array(iL^S,1:nw_recon,2) = u2_coeff(1) * wc(iLm^S,1:nw_recon)  + u2_coeff(2) * w(iL^S,1:nw_recon)  + u2_coeff(3) * wc(iL^S,1:nw_recon)
+    f_array(iL^S,1:nw_recon,3) = u3_coeff(1) * wc(iL^S,1:nw_recon)   + u3_coeff(2) * w(iLp^S,1:nw_recon) + u3_coeff(3) * wc(iLp^S,1:nw_recon)  
   
-    beta(iL^S,1:nwflux,1) = beta_coeff(1) * (wc(iLm^S,1:nwflux) - wd(iL^S,1:nwflux))**2 &
-         + beta_coeff(2) * (2.d0 * w(iL^S,1:nwflux) - wc(iLm^S,1:nwflux) - wd(iL^S,1:nwflux))**2
-    beta(iL^S,1:nwflux,2) = beta_coeff(1) * (wc(iLm^S,1:nwflux) + wc(iL^S,1:nwflux) - 2.0d0 * w(iL^S,1:nwflux))**2 &
-         + beta_coeff(2) * (wc(iLm^S,1:nwflux) - wc(iL^S,1:nwflux))**2
-    beta(iL^S,1:nwflux,3) = beta_coeff(1) * (wc(iL^S,1:nwflux) + wc(iLp^S,1:nwflux) - 2.0d0 * w(iLp^S,1:nwflux))**2 &
-         + beta_coeff(2) * (3.0d0 * wc(iL^S, 1:nwflux) - 4.0d0 * w(iLp^S,1:nwflux) + wc(iLp^S,1:nwflux))**2
-    alpha_sum(iL^S,1:nwflux) = 0.0d0 
+    beta(iL^S,1:nw_recon,1) = beta_coeff(1) * (wc(iLm^S,1:nw_recon) - wd(iL^S,1:nw_recon))**2 &
+         + beta_coeff(2) * (2.d0 * w(iL^S,1:nw_recon) - wc(iLm^S,1:nw_recon) - wd(iL^S,1:nw_recon))**2
+    beta(iL^S,1:nw_recon,2) = beta_coeff(1) * (wc(iLm^S,1:nw_recon) + wc(iL^S,1:nw_recon) - 2.0d0 * w(iL^S,1:nw_recon))**2 &
+         + beta_coeff(2) * (wc(iLm^S,1:nw_recon) - wc(iL^S,1:nw_recon))**2
+    beta(iL^S,1:nw_recon,3) = beta_coeff(1) * (wc(iL^S,1:nw_recon) + wc(iLp^S,1:nw_recon) - 2.0d0 * w(iLp^S,1:nw_recon))**2 &
+         + beta_coeff(2) * (3.0d0 * wc(iL^S, 1:nw_recon) - 4.0d0 * w(iLp^S,1:nw_recon) + wc(iLp^S,1:nw_recon))**2
+    alpha_sum(iL^S,1:nw_recon) = 0.0d0 
     select case(var)
     ! case1 for wenojs, case2 for wenoz, case3 for wenoz+ 
     case(1)
       do i = 1,3
-         alpha_array(iL^S,1:nwflux,i) = d_array(i)/(4.d0 * beta(iL^S,1:nwflux,i) + weno_eps_machine)**2
-         alpha_sum(iL^S,1:nwflux) = alpha_sum(iL^S,1:nwflux) + alpha_array(iL^S,1:nwflux,i)
+         alpha_array(iL^S,1:nw_recon,i) = d_array(i)/(4.d0 * beta(iL^S,1:nw_recon,i) + weno_eps_machine)**2
+         alpha_sum(iL^S,1:nw_recon) = alpha_sum(iL^S,1:nw_recon) + alpha_array(iL^S,1:nw_recon,i)
       end do
     case(2)
-      tau(iL^S,1:nwflux) = abs(beta(iL^S,1:nwflux,1) - beta(iL^S,1:nwflux,3)) * 4.d0
+      tau(iL^S,1:nw_recon) = abs(beta(iL^S,1:nw_recon,1) - beta(iL^S,1:nw_recon,3)) * 4.d0
       do i = 1,3
-        alpha_array(iL^S,1:nwflux,i) = d_array(i) * (1.d0 + (tau(iL^S,1:nwflux) / &
-                                      (4.d0 * beta(iL^S,1:nwflux,i) + weno_eps_machine))**2)
-        alpha_sum(iL^S,1:nwflux) = alpha_sum(iL^S,1:nwflux) + alpha_array(iL^S,1:nwflux,i)
+        alpha_array(iL^S,1:nw_recon,i) = d_array(i) * (1.d0 + (tau(iL^S,1:nw_recon) / &
+                                      (4.d0 * beta(iL^S,1:nw_recon,i) + weno_eps_machine))**2)
+        alpha_sum(iL^S,1:nw_recon) = alpha_sum(iL^S,1:nw_recon) + alpha_array(iL^S,1:nw_recon,i)
       end do
     case(3)
-      tau(iL^S,1:nwflux) = abs(beta(iL^S,1:nwflux,1) - beta(iL^S,1:nwflux,3)) * 4.d0
+      tau(iL^S,1:nw_recon) = abs(beta(iL^S,1:nw_recon,1) - beta(iL^S,1:nw_recon,3)) * 4.d0
       do i=1,3
-        do j=1,nwflux
+        do j=1,nw_recon
           tmp(iL^S,j) = (tau(iL^S,j) + weno_eps_machine) / (4.d0 * beta(iL^S,j,i) + weno_eps_machine)
           alpha_array(iL^S,j,i) = d_array(i) * (1.0d0 + tmp(iL^S,j)**2 + lambda(iL^S)/tmp(iL^S,j))
           alpha_sum(iL^S,j) = alpha_sum(iL^S,j) + alpha_array(iL^S,j,i)
         end do
       end do
     end select
-    flux(iL^S,1:nwflux) = 0.0d0
+    flux(iL^S,1:nw_recon) = 0.0d0
     do i = 1,3
-      flux(iL^S,1:nwflux) = flux(iL^S,1:nwflux) + f_array(iL^S,1:nwflux,i) * alpha_array(iL^S,1:nwflux,i)/(alpha_sum(iL^S,1:nwflux))
+      flux(iL^S,1:nw_recon) = flux(iL^S,1:nw_recon) + f_array(iL^S,1:nw_recon,i) * alpha_array(iL^S,1:nw_recon,i)/(alpha_sum(iL^S,1:nw_recon))
     end do
     !> left value at right interface
-    wLCtmp(iL^S,1:nwflux) = flux(iL^S,1:nwflux)
+    wLCtmp(iL^S,1:nw_recon) = flux(iL^S,1:nw_recon)
 
     !> right side
-    f_array(iL^S,1:nwflux,1) = u1_coeff(1) * we(iL^S,1:nwflux)  + u1_coeff(2) * wc(iLp^S,1:nwflux) + u1_coeff(3) * w(iLp^S,1:nwflux)
-    f_array(iL^S,1:nwflux,2) = u2_coeff(1) * wc(iLp^S,1:nwflux) + u2_coeff(2) * w(iLp^S,1:nwflux) + u2_coeff(3) * wc(iL^S,1:nwflux)
-    f_array(iL^S,1:nwflux,3) = u3_coeff(1) * wc(iL^S,1:nwflux)  + u3_coeff(2) * w(iL^S,1:nwflux)  + u3_coeff(3) * wc(iLm^S,1:nwflux)  
-    beta(iL^S,1:nwflux,1) = beta_coeff(1) * (wc(iLp^S,1:nwflux) - we(iL^S,1:nwflux))**2 &
-         + beta_coeff(2) * (2.d0 * w(iLp^S,1:nwflux) - wc(iLp^S,1:nwflux) - we(iL^S,1:nwflux))**2
-    beta(iL^S,1:nwflux,2) = beta_coeff(1) * (wc(iLp^S,1:nwflux) + wc(iL^S,1:nwflux) - 2.0d0 * w(iLp^S,1:nwflux))**2 &
-         + beta_coeff(2) * (wc(iLp^S,1:nwflux) - wc(iL^S,1:nwflux))**2
-    beta(iL^S,1:nwflux,3) = beta_coeff(1) * (wc(iL^S,1:nwflux) + wc(iLm^S,1:nwflux) - 2.0d0 * w(iL^S,1:nwflux))**2 &
-         + beta_coeff(2) * (3.0d0 * wc(iL^S, 1:nwflux) - 4.0d0 * w(iL^S,1:nwflux) + wc(iLm^S,1:nwflux))**2
-    alpha_sum(iL^S,1:nwflux) = 0.0d0 
+    f_array(iL^S,1:nw_recon,1) = u1_coeff(1) * we(iL^S,1:nw_recon)  + u1_coeff(2) * wc(iLp^S,1:nw_recon) + u1_coeff(3) * w(iLp^S,1:nw_recon)
+    f_array(iL^S,1:nw_recon,2) = u2_coeff(1) * wc(iLp^S,1:nw_recon) + u2_coeff(2) * w(iLp^S,1:nw_recon) + u2_coeff(3) * wc(iL^S,1:nw_recon)
+    f_array(iL^S,1:nw_recon,3) = u3_coeff(1) * wc(iL^S,1:nw_recon)  + u3_coeff(2) * w(iL^S,1:nw_recon)  + u3_coeff(3) * wc(iLm^S,1:nw_recon)  
+    beta(iL^S,1:nw_recon,1) = beta_coeff(1) * (wc(iLp^S,1:nw_recon) - we(iL^S,1:nw_recon))**2 &
+         + beta_coeff(2) * (2.d0 * w(iLp^S,1:nw_recon) - wc(iLp^S,1:nw_recon) - we(iL^S,1:nw_recon))**2
+    beta(iL^S,1:nw_recon,2) = beta_coeff(1) * (wc(iLp^S,1:nw_recon) + wc(iL^S,1:nw_recon) - 2.0d0 * w(iLp^S,1:nw_recon))**2 &
+         + beta_coeff(2) * (wc(iLp^S,1:nw_recon) - wc(iL^S,1:nw_recon))**2
+    beta(iL^S,1:nw_recon,3) = beta_coeff(1) * (wc(iL^S,1:nw_recon) + wc(iLm^S,1:nw_recon) - 2.0d0 * w(iL^S,1:nw_recon))**2 &
+         + beta_coeff(2) * (3.0d0 * wc(iL^S, 1:nw_recon) - 4.0d0 * w(iL^S,1:nw_recon) + wc(iLm^S,1:nw_recon))**2
+    alpha_sum(iL^S,1:nw_recon) = 0.0d0 
     select case(var)
     case(1)
       do i = 1,3
-        alpha_array(iL^S,1:nwflux,i) = d_array(i)/(4.d0 * beta(iL^S,1:nwflux,i) + weno_eps_machine)**2
-        alpha_sum(iL^S,1:nwflux) = alpha_sum(iL^S,1:nwflux) + alpha_array(iL^S,1:nwflux,i)
+        alpha_array(iL^S,1:nw_recon,i) = d_array(i)/(4.d0 * beta(iL^S,1:nw_recon,i) + weno_eps_machine)**2
+        alpha_sum(iL^S,1:nw_recon) = alpha_sum(iL^S,1:nw_recon) + alpha_array(iL^S,1:nw_recon,i)
       end do
     case(2) 
-      tau(iL^S,1:nwflux) = abs(beta(iL^S,1:nwflux,1) - beta(iL^S,1:nwflux,3)) * 4.d0
+      tau(iL^S,1:nw_recon) = abs(beta(iL^S,1:nw_recon,1) - beta(iL^S,1:nw_recon,3)) * 4.d0
       do i = 1,3
-        alpha_array(iL^S,1:nwflux,i) = d_array(i) * (1.d0 + (tau(iL^S,1:nwflux) / &
-                                      (4.d0 * beta(iL^S,1:nwflux,i) + weno_eps_machine))**2)
-        alpha_sum(iL^S,1:nwflux) = alpha_sum(iL^S,1:nwflux) + alpha_array(iL^S,1:nwflux,i)
+        alpha_array(iL^S,1:nw_recon,i) = d_array(i) * (1.d0 + (tau(iL^S,1:nw_recon) / &
+                                      (4.d0 * beta(iL^S,1:nw_recon,i) + weno_eps_machine))**2)
+        alpha_sum(iL^S,1:nw_recon) = alpha_sum(iL^S,1:nw_recon) + alpha_array(iL^S,1:nw_recon,i)
       end do
     case(3)
-      tau(iL^S,1:nwflux) = abs(beta(iL^S,1:nwflux,1) - beta(iL^S,1:nwflux,3)) * 4.d0
+      tau(iL^S,1:nw_recon) = abs(beta(iL^S,1:nw_recon,1) - beta(iL^S,1:nw_recon,3)) * 4.d0
       do i = 1,3
-        do j = 1,nwflux
+        do j = 1,nw_recon
           tmp(iL^S,j) = (tau(iL^S,j) + weno_eps_machine) / (4.d0 * beta(iL^S,j,i) + weno_eps_machine)
           alpha_array(iL^S,j,i) = d_array(i) * (1.0d0 + tmp(iL^S,j)**2 + lambda(iL^S)/tmp(iL^S,j))
           alpha_sum(iL^S,j) = alpha_sum(iL^S,j) + alpha_array(iL^S,j,i)
         end do
       end do
     end select
-    flux(iL^S,1:nwflux) = 0.0d0
+    flux(iL^S,1:nw_recon) = 0.0d0
     do i = 1,3
-      flux(iL^S,1:nwflux) = flux(iL^S,1:nwflux) + f_array(iL^S,1:nwflux,i) * alpha_array(iL^S,1:nwflux,i)/(alpha_sum(iL^S,1:nwflux))
+      flux(iL^S,1:nw_recon) = flux(iL^S,1:nw_recon) + f_array(iL^S,1:nw_recon,i) * alpha_array(iL^S,1:nw_recon,i)/(alpha_sum(iL^S,1:nw_recon))
     end do
     !> right value at right interface
-    wRCtmp(iL^S,1:nwflux) = flux(iL^S,1:nwflux)
+    wRCtmp(iL^S,1:nw_recon) = flux(iL^S,1:nw_recon)
 
     call fix_limiter(ixI^L,iL^L,wLCtmp,wRCtmp,wLC,wRC)
 
@@ -657,49 +657,49 @@ contains
 !    u3_coeff(1:3) = (/ 3.d0/8.d0, 6.d0/8.d0, -1.d0/8.d0 /)
     
     !> left side
-    f_array(iL^S,1:nwflux,1) = u1_coeff(1) * w(iLmm^S,1:nwflux) + u1_coeff(2) * w(iLm^S,1:nwflux) + u1_coeff(3) * w(iL^S,1:nwflux)
-    f_array(iL^S,1:nwflux,2) = u2_coeff(1) * w(iLm^S,1:nwflux)  + u2_coeff(2) * w(iL^S,1:nwflux)  + u2_coeff(3) * w(iLp^S,1:nwflux)
-    f_array(iL^S,1:nwflux,3) = u3_coeff(1) * w(iL^S,1:nwflux)   + u3_coeff(2) * w(iLp^S,1:nwflux) + u3_coeff(3) * w(iLpp^S,1:nwflux)  
+    f_array(iL^S,1:nw_recon,1) = u1_coeff(1) * w(iLmm^S,1:nw_recon) + u1_coeff(2) * w(iLm^S,1:nw_recon) + u1_coeff(3) * w(iL^S,1:nw_recon)
+    f_array(iL^S,1:nw_recon,2) = u2_coeff(1) * w(iLm^S,1:nw_recon)  + u2_coeff(2) * w(iL^S,1:nw_recon)  + u2_coeff(3) * w(iLp^S,1:nw_recon)
+    f_array(iL^S,1:nw_recon,3) = u3_coeff(1) * w(iL^S,1:nw_recon)   + u3_coeff(2) * w(iLp^S,1:nw_recon) + u3_coeff(3) * w(iLpp^S,1:nw_recon)  
   
-    beta(iL^S,1:nwflux,1) = beta_coeff(1) * (w(iLmm^S,1:nwflux) + w(iL^S,1:nwflux) - 2.0d0*w(iLm^S,1:nwflux))**2 &
-         + beta_coeff(2) * (w(iLmm^S,1:nwflux) - 4.0d0 * w(iLm^S,1:nwflux) + 3.0d0*w(iL^S,1:nwflux))**2
-    beta(iL^S,1:nwflux,2) = beta_coeff(1) * (w(iLm^S,1:nwflux) + w(iLp^S,1:nwflux) - 2.0d0 * w(iL^S,1:nwflux))**2 &
-         + beta_coeff(2) * (w(iLm^S,1:nwflux) - w(iLp^S,1:nwflux))**2
-    beta(iL^S,1:nwflux,3) = beta_coeff(1) * (w(iL^S,1:nwflux) + w(iLpp^S,1:nwflux) - 2.0d0 * w(iLp^S,1:nwflux))**2 &
-         + beta_coeff(2) * (3.0d0 * w(iL^S, 1:nwflux) - 4.0d0 * w(iLp^S,1:nwflux) + w(iLpp^S,1:nwflux))**2
+    beta(iL^S,1:nw_recon,1) = beta_coeff(1) * (w(iLmm^S,1:nw_recon) + w(iL^S,1:nw_recon) - 2.0d0*w(iLm^S,1:nw_recon))**2 &
+         + beta_coeff(2) * (w(iLmm^S,1:nw_recon) - 4.0d0 * w(iLm^S,1:nw_recon) + 3.0d0*w(iL^S,1:nw_recon))**2
+    beta(iL^S,1:nw_recon,2) = beta_coeff(1) * (w(iLm^S,1:nw_recon) + w(iLp^S,1:nw_recon) - 2.0d0 * w(iL^S,1:nw_recon))**2 &
+         + beta_coeff(2) * (w(iLm^S,1:nw_recon) - w(iLp^S,1:nw_recon))**2
+    beta(iL^S,1:nw_recon,3) = beta_coeff(1) * (w(iL^S,1:nw_recon) + w(iLpp^S,1:nw_recon) - 2.0d0 * w(iLp^S,1:nw_recon))**2 &
+         + beta_coeff(2) * (3.0d0 * w(iL^S, 1:nw_recon) - 4.0d0 * w(iLp^S,1:nw_recon) + w(iLpp^S,1:nw_recon))**2
  
-    alpha_sum(iL^S,1:nwflux) = 0.0d0 
+    alpha_sum(iL^S,1:nw_recon) = 0.0d0 
     select case(var)
     ! case1 for wenojs, case2 for wenoz
     case(1)
       do i = 1,3
-         alpha_array(iL^S,1:nwflux,i) = d_array(i)/(beta(iL^S,1:nwflux,i) + weno_eps_machine)**2
-         alpha_sum(iL^S,1:nwflux) = alpha_sum(iL^S,1:nwflux) + alpha_array(iL^S,1:nwflux,i)
+         alpha_array(iL^S,1:nw_recon,i) = d_array(i)/(beta(iL^S,1:nw_recon,i) + weno_eps_machine)**2
+         alpha_sum(iL^S,1:nw_recon) = alpha_sum(iL^S,1:nw_recon) + alpha_array(iL^S,1:nw_recon,i)
       end do
     case(2)
-      tau(iL^S,1:nwflux) = abs(beta(iL^S,1:nwflux,1) - beta(iL^S,1:nwflux,3))
+      tau(iL^S,1:nw_recon) = abs(beta(iL^S,1:nw_recon,1) - beta(iL^S,1:nw_recon,3))
       do i = 1,3
-        alpha_array(iL^S,1:nwflux,i) = d_array(i) * (1.d0 + (tau(iL^S,1:nwflux) / &
-                                      (beta(iL^S,1:nwflux,i) + weno_eps_machine))**2)
-        alpha_sum(iL^S,1:nwflux) = alpha_sum(iL^S,1:nwflux) + alpha_array(iL^S,1:nwflux,i)
+        alpha_array(iL^S,1:nw_recon,i) = d_array(i) * (1.d0 + (tau(iL^S,1:nw_recon) / &
+                                      (beta(iL^S,1:nw_recon,i) + weno_eps_machine))**2)
+        alpha_sum(iL^S,1:nw_recon) = alpha_sum(iL^S,1:nw_recon) + alpha_array(iL^S,1:nw_recon,i)
       end do
     case(3)
-      tau(iL^S,1:nwflux) = abs(beta(iL^S,1:nwflux,1) - beta(iL^S,1:nwflux,3)) * 4.d0
+      tau(iL^S,1:nw_recon) = abs(beta(iL^S,1:nw_recon,1) - beta(iL^S,1:nw_recon,3)) * 4.d0
       do i=1,3
-        do j=1,nwflux
+        do j=1,nw_recon
           tmp(iL^S,j) = (tau(iL^S,j) + weno_eps_machine) / (4.d0 * beta(iL^S,j,i) + weno_eps_machine)
           alpha_array(iL^S,j,i) = d_array(i) * (1.0d0 + tmp(iL^S,j)**2 + lambda(iL^S)/tmp(iL^S,j))
           alpha_sum(iL^S,j) = alpha_sum(iL^S,j) + alpha_array(iL^S,j,i)
         end do
       end do
     end select
-    flux(iL^S,1:nwflux) = 0.0d0
+    flux(iL^S,1:nw_recon) = 0.0d0
     do i = 1,3
-      flux(iL^S,1:nwflux) = flux(iL^S,1:nwflux) + f_array(iL^S,1:nwflux,i) * alpha_array(iL^S,1:nwflux,i)/(alpha_sum(iL^S,1:nwflux))
+      flux(iL^S,1:nw_recon) = flux(iL^S,1:nw_recon) + f_array(iL^S,1:nw_recon,i) * alpha_array(iL^S,1:nw_recon,i)/(alpha_sum(iL^S,1:nw_recon))
     end do
   
     !> left value at right interface
-    wLCtmp(iL^S,1:nwflux) = flux(iL^S,1:nwflux)
+    wLCtmp(iL^S,1:nw_recon) = flux(iL^S,1:nw_recon)
   
     call fix_onelimiter(ixI^L,iL^L,wLCtmp,wLC)
 
@@ -741,48 +741,48 @@ contains
 !    u3_coeff(1:3) = (/ 3.d0/8.d0, 6.d0/8.d0, -1.d0/8.d0 /)
     
     !> right side
-    f_array(iL^S,1:nwflux,1) = u1_coeff(1) * w(iLppp^S,1:nwflux) + u1_coeff(2) * w(iLpp^S,1:nwflux) + u1_coeff(3) * w(iLp^S,1:nwflux)
-    f_array(iL^S,1:nwflux,2) = u2_coeff(1) * w(iLpp^S,1:nwflux)  + u2_coeff(2) * w(iLp^S,1:nwflux)  + u2_coeff(3) * w(iL^S,1:nwflux)
-    f_array(iL^S,1:nwflux,3) = u3_coeff(1) * w(iLp^S,1:nwflux)   + u3_coeff(2) * w(iL^S,1:nwflux)   + u3_coeff(3) * w(iLm^S,1:nwflux)  
+    f_array(iL^S,1:nw_recon,1) = u1_coeff(1) * w(iLppp^S,1:nw_recon) + u1_coeff(2) * w(iLpp^S,1:nw_recon) + u1_coeff(3) * w(iLp^S,1:nw_recon)
+    f_array(iL^S,1:nw_recon,2) = u2_coeff(1) * w(iLpp^S,1:nw_recon)  + u2_coeff(2) * w(iLp^S,1:nw_recon)  + u2_coeff(3) * w(iL^S,1:nw_recon)
+    f_array(iL^S,1:nw_recon,3) = u3_coeff(1) * w(iLp^S,1:nw_recon)   + u3_coeff(2) * w(iL^S,1:nw_recon)   + u3_coeff(3) * w(iLm^S,1:nw_recon)  
   
-    beta(iL^S,1:nwflux,1) = beta_coeff(1) * (w(iLppp^S,1:nwflux) + w(iLp^S,1:nwflux) - 2.0d0*w(iLpp^S,1:nwflux))**2 &
-         + beta_coeff(2) * (w(iLppp^S,1:nwflux) - 4.0d0 * w(iLpp^S,1:nwflux) + 3.0d0*w(iLp^S,1:nwflux))**2
-    beta(iL^S,1:nwflux,2) = beta_coeff(1) * (w(iLpp^S,1:nwflux) + w(iL^S,1:nwflux) - 2.0d0 * w(iLp^S,1:nwflux))**2 &
-         + beta_coeff(2) * (w(iLpp^S,1:nwflux) - w(iL^S,1:nwflux))**2
-    beta(iL^S,1:nwflux,3) = beta_coeff(1) * (w(iLp^S,1:nwflux) + w(iLm^S,1:nwflux) - 2.0d0 * w(iL^S,1:nwflux))**2 &
-         + beta_coeff(2) * (3.0d0 * w(iLp^S, 1:nwflux) - 4.0d0 * w(iL^S,1:nwflux) + w(iLm^S,1:nwflux))**2
+    beta(iL^S,1:nw_recon,1) = beta_coeff(1) * (w(iLppp^S,1:nw_recon) + w(iLp^S,1:nw_recon) - 2.0d0*w(iLpp^S,1:nw_recon))**2 &
+         + beta_coeff(2) * (w(iLppp^S,1:nw_recon) - 4.0d0 * w(iLpp^S,1:nw_recon) + 3.0d0*w(iLp^S,1:nw_recon))**2
+    beta(iL^S,1:nw_recon,2) = beta_coeff(1) * (w(iLpp^S,1:nw_recon) + w(iL^S,1:nw_recon) - 2.0d0 * w(iLp^S,1:nw_recon))**2 &
+         + beta_coeff(2) * (w(iLpp^S,1:nw_recon) - w(iL^S,1:nw_recon))**2
+    beta(iL^S,1:nw_recon,3) = beta_coeff(1) * (w(iLp^S,1:nw_recon) + w(iLm^S,1:nw_recon) - 2.0d0 * w(iL^S,1:nw_recon))**2 &
+         + beta_coeff(2) * (3.0d0 * w(iLp^S, 1:nw_recon) - 4.0d0 * w(iL^S,1:nw_recon) + w(iLm^S,1:nw_recon))**2
   
-    alpha_sum(iL^S,1:nwflux) = 0.0d0 
+    alpha_sum(iL^S,1:nw_recon) = 0.0d0 
     select case(var)
     case(1)
       do i = 1,3
-        alpha_array(iL^S,1:nwflux,i) = d_array(i)/(beta(iL^S,1:nwflux,i) + weno_eps_machine)**2
-        alpha_sum(iL^S,1:nwflux) = alpha_sum(iL^S,1:nwflux) + alpha_array(iL^S,1:nwflux,i)
+        alpha_array(iL^S,1:nw_recon,i) = d_array(i)/(beta(iL^S,1:nw_recon,i) + weno_eps_machine)**2
+        alpha_sum(iL^S,1:nw_recon) = alpha_sum(iL^S,1:nw_recon) + alpha_array(iL^S,1:nw_recon,i)
       end do
     case(2) 
-      tau(iL^S,1:nwflux) = abs(beta(iL^S,1:nwflux,1) - beta(iL^S,1:nwflux,3))
+      tau(iL^S,1:nw_recon) = abs(beta(iL^S,1:nw_recon,1) - beta(iL^S,1:nw_recon,3))
       do i = 1,3
-        alpha_array(iL^S,1:nwflux,i) = d_array(i) * (1.d0 + (tau(iL^S,1:nwflux) / &
-                                      (beta(iL^S,1:nwflux,i) + weno_eps_machine))**2)
-        alpha_sum(iL^S,1:nwflux) = alpha_sum(iL^S,1:nwflux) + alpha_array(iL^S,1:nwflux,i)
+        alpha_array(iL^S,1:nw_recon,i) = d_array(i) * (1.d0 + (tau(iL^S,1:nw_recon) / &
+                                      (beta(iL^S,1:nw_recon,i) + weno_eps_machine))**2)
+        alpha_sum(iL^S,1:nw_recon) = alpha_sum(iL^S,1:nw_recon) + alpha_array(iL^S,1:nw_recon,i)
       end do
     case(3)
-      tau(iL^S,1:nwflux) = abs(beta(iL^S,1:nwflux,1) - beta(iL^S,1:nwflux,3)) * 4.d0
+      tau(iL^S,1:nw_recon) = abs(beta(iL^S,1:nw_recon,1) - beta(iL^S,1:nw_recon,3)) * 4.d0
       do i = 1,3
-        do j = 1,nwflux
+        do j = 1,nw_recon
           tmp(iL^S,j) = (tau(iL^S,j) + weno_eps_machine) / (4.d0 * beta(iL^S,j,i) + weno_eps_machine)
           alpha_array(iL^S,j,i) = d_array(i) * (1.0d0 + tmp(iL^S,j)**2 + lambda(iL^S)/tmp(iL^S,j))
           alpha_sum(iL^S,j) = alpha_sum(iL^S,j) + alpha_array(iL^S,j,i)
         end do
       end do
     end select
-    flux(iL^S,1:nwflux) = 0.0d0
+    flux(iL^S,1:nw_recon) = 0.0d0
     do i = 1,3
-      flux(iL^S,1:nwflux) = flux(iL^S,1:nwflux) + f_array(iL^S,1:nwflux,i) * alpha_array(iL^S,1:nwflux,i)/(alpha_sum(iL^S,1:nwflux))
+      flux(iL^S,1:nw_recon) = flux(iL^S,1:nw_recon) + f_array(iL^S,1:nw_recon,i) * alpha_array(iL^S,1:nw_recon,i)/(alpha_sum(iL^S,1:nw_recon))
     end do
   
     !> right value at right interface
-    wRCtmp(iL^S,1:nwflux) = flux(iL^S,1:nwflux)
+    wRCtmp(iL^S,1:nw_recon) = flux(iL^S,1:nw_recon)
 
     call fix_onelimiter(ixI^L,iL^L,wRCtmp,wRC)
 
@@ -820,52 +820,52 @@ contains
     u1_coeff(1:3) = (/ -2.d0/3.d0, -1.d0/3.d0, 2.d0 /)
     u2_coeff(1:3) = (/ -1.d0/3.d0, 2.d0/3.d0, 2.d0/3.d0 /)
     u3_coeff(1:3) = (/ 2.d0/3.d0, 2.d0/3.d0, -1.d0/3.d0 /)
-    do i = 1, nwflux
+    do i = 1, nw_recon
       wc(iM^S,i) = (block%dx(iMp^S,idims) * w(iM^S,i) + block%dx(iM^S,idims) * w(iMp^S,i)) / &
                    (block%dx(iMp^S,idims) + block%dx(iM^S,idims))
       wd(iL^S,i) = ((2.d0 * block%dx(iLm^S,idims) + block%dx(iLmm^S,idims)) * w(iLm^S,i) - block%dx(iLm^S,idims) * w(iLmm^S,i)) / &
                    (block%dx(iLmm^S,idims) + block%dx(iLm^S,idims))
     enddo
-    f_array(iL^S,1:nwflux,1) = u1_coeff(1) * wd(iL^S,1:nwflux)   + u1_coeff(2) * wc(iLm^S,1:nwflux)+ u1_coeff(3) * w(iL^S,1:nwflux)
-    f_array(iL^S,1:nwflux,2) = u2_coeff(1) * wc(iLm^S,1:nwflux)  + u2_coeff(2) * w(iL^S,1:nwflux)  + u2_coeff(3) * wc(iL^S,1:nwflux)
-    f_array(iL^S,1:nwflux,3) = u3_coeff(1) * wc(iL^S,1:nwflux)   + u3_coeff(2) * w(iLp^S,1:nwflux) + u3_coeff(3) * wc(iLp^S,1:nwflux)  
-    beta(iL^S,1:nwflux,1) = beta_coeff(1) * (wc(iLm^S,1:nwflux) - wd(iL^S,1:nwflux))**2 &
-         + beta_coeff(2) * (2.d0 * w(iL^S,1:nwflux) - wc(iLm^S,1:nwflux) - wd(iL^S,1:nwflux))**2
-    beta(iL^S,1:nwflux,2) = beta_coeff(1) * (wc(iLm^S,1:nwflux) + wc(iL^S,1:nwflux) - 2.0d0 * w(iL^S,1:nwflux))**2 &
-         + beta_coeff(2) * (wc(iLm^S,1:nwflux) - wc(iL^S,1:nwflux))**2
-    beta(iL^S,1:nwflux,3) = beta_coeff(1) * (wc(iL^S,1:nwflux) + wc(iLp^S,1:nwflux) - 2.0d0 * w(iLp^S,1:nwflux))**2 &
-         + beta_coeff(2) * (3.0d0 * wc(iL^S, 1:nwflux) - 4.0d0 * w(iLp^S,1:nwflux) + wc(iLp^S,1:nwflux))**2
-    alpha_sum(iL^S,1:nwflux) = 0.0d0 
+    f_array(iL^S,1:nw_recon,1) = u1_coeff(1) * wd(iL^S,1:nw_recon)   + u1_coeff(2) * wc(iLm^S,1:nw_recon)+ u1_coeff(3) * w(iL^S,1:nw_recon)
+    f_array(iL^S,1:nw_recon,2) = u2_coeff(1) * wc(iLm^S,1:nw_recon)  + u2_coeff(2) * w(iL^S,1:nw_recon)  + u2_coeff(3) * wc(iL^S,1:nw_recon)
+    f_array(iL^S,1:nw_recon,3) = u3_coeff(1) * wc(iL^S,1:nw_recon)   + u3_coeff(2) * w(iLp^S,1:nw_recon) + u3_coeff(3) * wc(iLp^S,1:nw_recon)  
+    beta(iL^S,1:nw_recon,1) = beta_coeff(1) * (wc(iLm^S,1:nw_recon) - wd(iL^S,1:nw_recon))**2 &
+         + beta_coeff(2) * (2.d0 * w(iL^S,1:nw_recon) - wc(iLm^S,1:nw_recon) - wd(iL^S,1:nw_recon))**2
+    beta(iL^S,1:nw_recon,2) = beta_coeff(1) * (wc(iLm^S,1:nw_recon) + wc(iL^S,1:nw_recon) - 2.0d0 * w(iL^S,1:nw_recon))**2 &
+         + beta_coeff(2) * (wc(iLm^S,1:nw_recon) - wc(iL^S,1:nw_recon))**2
+    beta(iL^S,1:nw_recon,3) = beta_coeff(1) * (wc(iL^S,1:nw_recon) + wc(iLp^S,1:nw_recon) - 2.0d0 * w(iLp^S,1:nw_recon))**2 &
+         + beta_coeff(2) * (3.0d0 * wc(iL^S, 1:nw_recon) - 4.0d0 * w(iLp^S,1:nw_recon) + wc(iLp^S,1:nw_recon))**2
+    alpha_sum(iL^S,1:nw_recon) = 0.0d0 
     select case(var)
     ! case1 for wenojs, case2 for wenoz, case3 for wenoz+ 
     case(1)
       do i = 1,3
-         alpha_array(iL^S,1:nwflux,i) = d_array(i)/(4.d0 * beta(iL^S,1:nwflux,i) + weno_eps_machine)**2
-         alpha_sum(iL^S,1:nwflux) = alpha_sum(iL^S,1:nwflux) + alpha_array(iL^S,1:nwflux,i)
+         alpha_array(iL^S,1:nw_recon,i) = d_array(i)/(4.d0 * beta(iL^S,1:nw_recon,i) + weno_eps_machine)**2
+         alpha_sum(iL^S,1:nw_recon) = alpha_sum(iL^S,1:nw_recon) + alpha_array(iL^S,1:nw_recon,i)
       end do
     case(2)
-      tau(iL^S,1:nwflux) = abs(beta(iL^S,1:nwflux,1) - beta(iL^S,1:nwflux,3)) * 4.d0
+      tau(iL^S,1:nw_recon) = abs(beta(iL^S,1:nw_recon,1) - beta(iL^S,1:nw_recon,3)) * 4.d0
       do i = 1,3
-        alpha_array(iL^S,1:nwflux,i) = d_array(i) * (1.d0 + (tau(iL^S,1:nwflux) / &
-                                      (4.d0 * beta(iL^S,1:nwflux,i) + weno_eps_machine))**2)
-        alpha_sum(iL^S,1:nwflux) = alpha_sum(iL^S,1:nwflux) + alpha_array(iL^S,1:nwflux,i)
+        alpha_array(iL^S,1:nw_recon,i) = d_array(i) * (1.d0 + (tau(iL^S,1:nw_recon) / &
+                                      (4.d0 * beta(iL^S,1:nw_recon,i) + weno_eps_machine))**2)
+        alpha_sum(iL^S,1:nw_recon) = alpha_sum(iL^S,1:nw_recon) + alpha_array(iL^S,1:nw_recon,i)
       end do
     case(3)
-      tau(iL^S,1:nwflux) = abs(beta(iL^S,1:nwflux,1) - beta(iL^S,1:nwflux,3)) * 4.d0
+      tau(iL^S,1:nw_recon) = abs(beta(iL^S,1:nw_recon,1) - beta(iL^S,1:nw_recon,3)) * 4.d0
       do i=1,3
-        do j=1,nwflux
+        do j=1,nw_recon
           tmp(iL^S,j) = (tau(iL^S,j) + weno_eps_machine) / (4.d0 * beta(iL^S,j,i) + weno_eps_machine)
           alpha_array(iL^S,j,i) = d_array(i) * (1.0d0 + tmp(iL^S,j)**2 + lambda(iL^S)/tmp(iL^S,j))
           alpha_sum(iL^S,j) = alpha_sum(iL^S,j) + alpha_array(iL^S,j,i)
         end do
       end do
     end select
-    flux(iL^S,1:nwflux) = 0.0d0
+    flux(iL^S,1:nw_recon) = 0.0d0
     do i = 1,3
-      flux(iL^S,1:nwflux) = flux(iL^S,1:nwflux) + f_array(iL^S,1:nwflux,i) * alpha_array(iL^S,1:nwflux,i)/(alpha_sum(iL^S,1:nwflux))
+      flux(iL^S,1:nw_recon) = flux(iL^S,1:nw_recon) + f_array(iL^S,1:nw_recon,i) * alpha_array(iL^S,1:nw_recon,i)/(alpha_sum(iL^S,1:nw_recon))
     end do
     !> left value at right interface
-    wLCtmp(iL^S,1:nwflux) = flux(iL^S,1:nwflux)
+    wLCtmp(iL^S,1:nw_recon) = flux(iL^S,1:nw_recon)
 
     call fix_onelimiter(ixI^L,iL^L,wLCtmp,wLC)
 
@@ -903,52 +903,52 @@ contains
     u1_coeff(1:3) = (/ -2.d0/3.d0, -1.d0/3.d0, 2.d0 /)
     u2_coeff(1:3) = (/ -1.d0/3.d0, 2.d0/3.d0, 2.d0/3.d0 /)
     u3_coeff(1:3) = (/ 2.d0/3.d0, 2.d0/3.d0, -1.d0/3.d0 /)
-    do i = 1, nwflux
+    do i = 1, nw_recon
       wc(iM^S,i) = (block%dx(iMp^S,idims) * w(iM^S,i) + block%dx(iM^S,idims) * w(iMp^S,i)) / &
                    (block%dx(iMp^S,idims) + block%dx(iM^S,idims))
       we(iL^S,i) = ((2.d0 * block%dx(iLpp^S,idims) + block%dx(iLppp^S,idims)) * w(iLpp^S,i) - block%dx(iLpp^S,idims) * w(iLppp^S,i)) / &
                    (block%dx(iLppp^S,idims) + block%dx(iLpp^S,idims))
     enddo
     !> right side
-    f_array(iL^S,1:nwflux,1) = u1_coeff(1) * we(iL^S,1:nwflux)  + u1_coeff(2) * wc(iLp^S,1:nwflux) + u1_coeff(3) * w(iLp^S,1:nwflux)
-    f_array(iL^S,1:nwflux,2) = u2_coeff(1) * wc(iLp^S,1:nwflux) + u2_coeff(2) * w(iLp^S,1:nwflux) + u2_coeff(3) * wc(iL^S,1:nwflux)
-    f_array(iL^S,1:nwflux,3) = u3_coeff(1) * wc(iL^S,1:nwflux)  + u3_coeff(2) * w(iL^S,1:nwflux)  + u3_coeff(3) * wc(iLm^S,1:nwflux)  
-    beta(iL^S,1:nwflux,1) = beta_coeff(1) * (wc(iLp^S,1:nwflux) - we(iL^S,1:nwflux))**2 &
-         + beta_coeff(2) * (2.d0 * w(iLp^S,1:nwflux) - wc(iLp^S,1:nwflux) - we(iL^S,1:nwflux))**2
-    beta(iL^S,1:nwflux,2) = beta_coeff(1) * (wc(iLp^S,1:nwflux) + wc(iL^S,1:nwflux) - 2.0d0 * w(iLp^S,1:nwflux))**2 &
-         + beta_coeff(2) * (wc(iLp^S,1:nwflux) - wc(iL^S,1:nwflux))**2
-    beta(iL^S,1:nwflux,3) = beta_coeff(1) * (wc(iL^S,1:nwflux) + wc(iLm^S,1:nwflux) - 2.0d0 * w(iL^S,1:nwflux))**2 &
-         + beta_coeff(2) * (3.0d0 * wc(iL^S, 1:nwflux) - 4.0d0 * w(iL^S,1:nwflux) + wc(iLm^S,1:nwflux))**2
-    alpha_sum(iL^S,1:nwflux) = 0.0d0 
+    f_array(iL^S,1:nw_recon,1) = u1_coeff(1) * we(iL^S,1:nw_recon)  + u1_coeff(2) * wc(iLp^S,1:nw_recon) + u1_coeff(3) * w(iLp^S,1:nw_recon)
+    f_array(iL^S,1:nw_recon,2) = u2_coeff(1) * wc(iLp^S,1:nw_recon) + u2_coeff(2) * w(iLp^S,1:nw_recon) + u2_coeff(3) * wc(iL^S,1:nw_recon)
+    f_array(iL^S,1:nw_recon,3) = u3_coeff(1) * wc(iL^S,1:nw_recon)  + u3_coeff(2) * w(iL^S,1:nw_recon)  + u3_coeff(3) * wc(iLm^S,1:nw_recon)  
+    beta(iL^S,1:nw_recon,1) = beta_coeff(1) * (wc(iLp^S,1:nw_recon) - we(iL^S,1:nw_recon))**2 &
+         + beta_coeff(2) * (2.d0 * w(iLp^S,1:nw_recon) - wc(iLp^S,1:nw_recon) - we(iL^S,1:nw_recon))**2
+    beta(iL^S,1:nw_recon,2) = beta_coeff(1) * (wc(iLp^S,1:nw_recon) + wc(iL^S,1:nw_recon) - 2.0d0 * w(iLp^S,1:nw_recon))**2 &
+         + beta_coeff(2) * (wc(iLp^S,1:nw_recon) - wc(iL^S,1:nw_recon))**2
+    beta(iL^S,1:nw_recon,3) = beta_coeff(1) * (wc(iL^S,1:nw_recon) + wc(iLm^S,1:nw_recon) - 2.0d0 * w(iL^S,1:nw_recon))**2 &
+         + beta_coeff(2) * (3.0d0 * wc(iL^S, 1:nw_recon) - 4.0d0 * w(iL^S,1:nw_recon) + wc(iLm^S,1:nw_recon))**2
+    alpha_sum(iL^S,1:nw_recon) = 0.0d0 
     select case(var)
     case(1)
       do i = 1,3
-        alpha_array(iL^S,1:nwflux,i) = d_array(i)/(4.d0 * beta(iL^S,1:nwflux,i) + weno_eps_machine)**2
-        alpha_sum(iL^S,1:nwflux) = alpha_sum(iL^S,1:nwflux) + alpha_array(iL^S,1:nwflux,i)
+        alpha_array(iL^S,1:nw_recon,i) = d_array(i)/(4.d0 * beta(iL^S,1:nw_recon,i) + weno_eps_machine)**2
+        alpha_sum(iL^S,1:nw_recon) = alpha_sum(iL^S,1:nw_recon) + alpha_array(iL^S,1:nw_recon,i)
       end do
     case(2) 
-      tau(iL^S,1:nwflux) = abs(beta(iL^S,1:nwflux,1) - beta(iL^S,1:nwflux,3)) * 4.d0
+      tau(iL^S,1:nw_recon) = abs(beta(iL^S,1:nw_recon,1) - beta(iL^S,1:nw_recon,3)) * 4.d0
       do i = 1,3
-        alpha_array(iL^S,1:nwflux,i) = d_array(i) * (1.d0 + (tau(iL^S,1:nwflux) / &
-                                      (4.d0 * beta(iL^S,1:nwflux,i) + weno_eps_machine))**2)
-        alpha_sum(iL^S,1:nwflux) = alpha_sum(iL^S,1:nwflux) + alpha_array(iL^S,1:nwflux,i)
+        alpha_array(iL^S,1:nw_recon,i) = d_array(i) * (1.d0 + (tau(iL^S,1:nw_recon) / &
+                                      (4.d0 * beta(iL^S,1:nw_recon,i) + weno_eps_machine))**2)
+        alpha_sum(iL^S,1:nw_recon) = alpha_sum(iL^S,1:nw_recon) + alpha_array(iL^S,1:nw_recon,i)
       end do
     case(3)
-      tau(iL^S,1:nwflux) = abs(beta(iL^S,1:nwflux,1) - beta(iL^S,1:nwflux,3)) * 4.d0
+      tau(iL^S,1:nw_recon) = abs(beta(iL^S,1:nw_recon,1) - beta(iL^S,1:nw_recon,3)) * 4.d0
       do i = 1,3
-        do j = 1,nwflux
+        do j = 1,nw_recon
           tmp(iL^S,j) = (tau(iL^S,j) + weno_eps_machine) / (4.d0 * beta(iL^S,j,i) + weno_eps_machine)
           alpha_array(iL^S,j,i) = d_array(i) * (1.0d0 + tmp(iL^S,j)**2 + lambda(iL^S)/tmp(iL^S,j))
           alpha_sum(iL^S,j) = alpha_sum(iL^S,j) + alpha_array(iL^S,j,i)
         end do
       end do
     end select
-    flux(iL^S,1:nwflux) = 0.0d0
+    flux(iL^S,1:nw_recon) = 0.0d0
     do i = 1,3
-      flux(iL^S,1:nwflux) = flux(iL^S,1:nwflux) + f_array(iL^S,1:nwflux,i) * alpha_array(iL^S,1:nwflux,i)/(alpha_sum(iL^S,1:nwflux))
+      flux(iL^S,1:nw_recon) = flux(iL^S,1:nw_recon) + f_array(iL^S,1:nw_recon,i) * alpha_array(iL^S,1:nw_recon,i)/(alpha_sum(iL^S,1:nw_recon))
     end do
     !> right value at right interface
-    wRCtmp(iL^S,1:nwflux) = flux(iL^S,1:nwflux)
+    wRCtmp(iL^S,1:nw_recon) = flux(iL^S,1:nw_recon)
 
     call fix_onelimiter(ixI^L,iL^L,wRCtmp,wRC)
 
@@ -984,63 +984,63 @@ contains
     u3_coeff(1:3) = (/ 1.d0/3.d0, 5.d0/6.d0, -1.d0/6.d0 /)
     
     !> left side
-    beta(iL^S,1:nwflux,1)=beta_coeff(1)*(w(iLmm^S,1:nwflux)+w(iL^S,1:nwflux)-2.0d0*w(iLm^S,1:nwflux))**2&
-        +beta_coeff(2)*(w(iLmm^S,1:nwflux)-4.0d0*w(iLm^S,1:nwflux)+3.0d0*w(iL^S,1:nwflux))**2
-    beta(iL^S,1:nwflux,2)=beta_coeff(1)*(w(iLm^S,1:nwflux)+w(iLp^S,1:nwflux)-2.0d0*w(iL^S,1:nwflux))**2&
-        +beta_coeff(2)*(w(iLm^S,1:nwflux)-w(iLp^S,1:nwflux))**2
-    beta(iL^S,1:nwflux,3)=beta_coeff(1)*(w(iL^S,1:nwflux)+w(iLpp^S,1:nwflux)-2.0d0*w(iLp^S,1:nwflux))**2&
-        +beta_coeff(2)*(3.0d0*w(iL^S,1:nwflux)-4.0d0*w(iLp^S,1:nwflux)+w(iLpp^S,1:nwflux))**2
-    alpha_sum(iL^S,1:nwflux)=zero
+    beta(iL^S,1:nw_recon,1)=beta_coeff(1)*(w(iLmm^S,1:nw_recon)+w(iL^S,1:nw_recon)-2.0d0*w(iLm^S,1:nw_recon))**2&
+        +beta_coeff(2)*(w(iLmm^S,1:nw_recon)-4.0d0*w(iLm^S,1:nw_recon)+3.0d0*w(iL^S,1:nw_recon))**2
+    beta(iL^S,1:nw_recon,2)=beta_coeff(1)*(w(iLm^S,1:nw_recon)+w(iLp^S,1:nw_recon)-2.0d0*w(iL^S,1:nw_recon))**2&
+        +beta_coeff(2)*(w(iLm^S,1:nw_recon)-w(iLp^S,1:nw_recon))**2
+    beta(iL^S,1:nw_recon,3)=beta_coeff(1)*(w(iL^S,1:nw_recon)+w(iLpp^S,1:nw_recon)-2.0d0*w(iLp^S,1:nw_recon))**2&
+        +beta_coeff(2)*(3.0d0*w(iL^S,1:nw_recon)-4.0d0*w(iLp^S,1:nw_recon)+w(iLpp^S,1:nw_recon))**2
+    alpha_sum(iL^S,1:nw_recon)=zero
     do i=1,3
-      alpha_array(iL^S,1:nwflux,i)=d_array(i)/(beta(iL^S,1:nwflux,i)+weno_eps_machine)**2
-      alpha_sum(iL^S,1:nwflux)=alpha_sum(iL^S,1:nwflux)+alpha_array(iL^S,1:nwflux,i)
+      alpha_array(iL^S,1:nw_recon,i)=d_array(i)/(beta(iL^S,1:nw_recon,i)+weno_eps_machine)**2
+      alpha_sum(iL^S,1:nw_recon)=alpha_sum(iL^S,1:nw_recon)+alpha_array(iL^S,1:nw_recon,i)
     end do
     do i=1,3
-      alpha_array(iL^S,1:nwflux,i)=alpha_array(iL^S,1:nwflux,i)/alpha_sum(iL^S,1:nwflux)
+      alpha_array(iL^S,1:nw_recon,i)=alpha_array(iL^S,1:nw_recon,i)/alpha_sum(iL^S,1:nw_recon)
     end do
-    theta2(iL^S,1:nwflux)=((alpha_array(iL^S,1:nwflux,1)/d_array(1)-1.d0)**2&
-                          +(alpha_array(iL^S,1:nwflux,2)/d_array(2)-1.d0)**2&
-                          +(alpha_array(iL^S,1:nwflux,3)/d_array(3)-1.d0)**2)/83.d0
-    where(theta2(iL^S,1:nwflux) .gt. theta_limit)
-      f_array(iL^S,1:nwflux,1)=u1_coeff(1)*w(iLmm^S,1:nwflux)+u1_coeff(2)*w(iLm^S,1:nwflux)+u1_coeff(3)*w(iL^S,1:nwflux)
-      f_array(iL^S,1:nwflux,2)=u2_coeff(1)*w(iLm^S,1:nwflux)+u2_coeff(2)*w(iL^S,1:nwflux)+u2_coeff(3)*w(iLp^S,1:nwflux)
-      f_array(iL^S,1:nwflux,3)=u3_coeff(1)*w(iL^S,1:nwflux)+u3_coeff(2)*w(iLp^S,1:nwflux)+u3_coeff(3)*w(iLpp^S,1:nwflux)  
-      wLCtmp(iL^S,1:nwflux)=f_array(iL^S,1:nwflux,1)*alpha_array(iL^S,1:nwflux,1)&
-                        +f_array(iL^S,1:nwflux,2)*alpha_array(iL^S,1:nwflux,2)&
-                        +f_array(iL^S,1:nwflux,3)*alpha_array(iL^S,1:nwflux,3)
+    theta2(iL^S,1:nw_recon)=((alpha_array(iL^S,1:nw_recon,1)/d_array(1)-1.d0)**2&
+                          +(alpha_array(iL^S,1:nw_recon,2)/d_array(2)-1.d0)**2&
+                          +(alpha_array(iL^S,1:nw_recon,3)/d_array(3)-1.d0)**2)/83.d0
+    where(theta2(iL^S,1:nw_recon) .gt. theta_limit)
+      f_array(iL^S,1:nw_recon,1)=u1_coeff(1)*w(iLmm^S,1:nw_recon)+u1_coeff(2)*w(iLm^S,1:nw_recon)+u1_coeff(3)*w(iL^S,1:nw_recon)
+      f_array(iL^S,1:nw_recon,2)=u2_coeff(1)*w(iLm^S,1:nw_recon)+u2_coeff(2)*w(iL^S,1:nw_recon)+u2_coeff(3)*w(iLp^S,1:nw_recon)
+      f_array(iL^S,1:nw_recon,3)=u3_coeff(1)*w(iL^S,1:nw_recon)+u3_coeff(2)*w(iLp^S,1:nw_recon)+u3_coeff(3)*w(iLpp^S,1:nw_recon)  
+      wLCtmp(iL^S,1:nw_recon)=f_array(iL^S,1:nw_recon,1)*alpha_array(iL^S,1:nw_recon,1)&
+                        +f_array(iL^S,1:nw_recon,2)*alpha_array(iL^S,1:nw_recon,2)&
+                        +f_array(iL^S,1:nw_recon,3)*alpha_array(iL^S,1:nw_recon,3)
     else where
-      wLCtmp(iL^S,1:nwflux)=1.d0/60.d0*(w(iLmm^S,1:nwflux)-8.d0*w(iLm^S,1:nwflux)+37.d0*w(iL^S,1:nwflux)&
-                         +37.d0*w(iLp^S,1:nwflux)-8.d0*w(iLpp^S,1:nwflux)+w(iLppp^S,1:nwflux))
+      wLCtmp(iL^S,1:nw_recon)=1.d0/60.d0*(w(iLmm^S,1:nw_recon)-8.d0*w(iLm^S,1:nw_recon)+37.d0*w(iL^S,1:nw_recon)&
+                         +37.d0*w(iLp^S,1:nw_recon)-8.d0*w(iLpp^S,1:nw_recon)+w(iLppp^S,1:nw_recon))
     end where
   
     !> right side
-    beta(iL^S,1:nwflux,1)=beta_coeff(1)*(w(iLppp^S,1:nwflux)+w(iLp^S,1:nwflux)-2.0d0*w(iLpp^S,1:nwflux))**2&
-         +beta_coeff(2)*(w(iLppp^S,1:nwflux)-4.0d0*w(iLpp^S,1:nwflux)+3.0d0*w(iLp^S,1:nwflux))**2
-    beta(iL^S,1:nwflux,2)=beta_coeff(1)*(w(iLpp^S,1:nwflux)+w(iL^S,1:nwflux)-2.0d0*w(iLp^S,1:nwflux))**2&
-         +beta_coeff(2)*(w(iLpp^S,1:nwflux)-w(iL^S,1:nwflux))**2
-    beta(iL^S,1:nwflux,3)=beta_coeff(1)*(w(iLp^S,1:nwflux)+w(iLm^S,1:nwflux)-2.0d0*w(iL^S,1:nwflux))**2&
-         +beta_coeff(2)*(3.0d0*w(iLp^S,1:nwflux)-4.0d0*w(iL^S,1:nwflux)+w(iLm^S,1:nwflux))**2
-    alpha_sum(iL^S,1:nwflux)=zero
+    beta(iL^S,1:nw_recon,1)=beta_coeff(1)*(w(iLppp^S,1:nw_recon)+w(iLp^S,1:nw_recon)-2.0d0*w(iLpp^S,1:nw_recon))**2&
+         +beta_coeff(2)*(w(iLppp^S,1:nw_recon)-4.0d0*w(iLpp^S,1:nw_recon)+3.0d0*w(iLp^S,1:nw_recon))**2
+    beta(iL^S,1:nw_recon,2)=beta_coeff(1)*(w(iLpp^S,1:nw_recon)+w(iL^S,1:nw_recon)-2.0d0*w(iLp^S,1:nw_recon))**2&
+         +beta_coeff(2)*(w(iLpp^S,1:nw_recon)-w(iL^S,1:nw_recon))**2
+    beta(iL^S,1:nw_recon,3)=beta_coeff(1)*(w(iLp^S,1:nw_recon)+w(iLm^S,1:nw_recon)-2.0d0*w(iL^S,1:nw_recon))**2&
+         +beta_coeff(2)*(3.0d0*w(iLp^S,1:nw_recon)-4.0d0*w(iL^S,1:nw_recon)+w(iLm^S,1:nw_recon))**2
+    alpha_sum(iL^S,1:nw_recon)=zero
     do i=1,3
-      alpha_array(iL^S,1:nwflux,i)=d_array(i)/(beta(iL^S,1:nwflux,i)+weno_eps_machine)**2
-      alpha_sum(iL^S,1:nwflux)=alpha_sum(iL^S,1:nwflux)+alpha_array(iL^S,1:nwflux,i)
+      alpha_array(iL^S,1:nw_recon,i)=d_array(i)/(beta(iL^S,1:nw_recon,i)+weno_eps_machine)**2
+      alpha_sum(iL^S,1:nw_recon)=alpha_sum(iL^S,1:nw_recon)+alpha_array(iL^S,1:nw_recon,i)
     end do
     do i=1,3
-      alpha_array(iL^S,1:nwflux,i)=alpha_array(iL^S,1:nwflux,i)/alpha_sum(iL^S,1:nwflux)
+      alpha_array(iL^S,1:nw_recon,i)=alpha_array(iL^S,1:nw_recon,i)/alpha_sum(iL^S,1:nw_recon)
     end do
-    theta2(iL^S,1:nwflux)=((alpha_array(iL^S,1:nwflux,1)/d_array(1)-1.d0)**2&
-                          +(alpha_array(iL^S,1:nwflux,2)/d_array(2)-1.d0)**2&
-                          +(alpha_array(iL^S,1:nwflux,3)/d_array(3)-1.d0)**2)/83.d0
-    where(theta2(iL^S,1:nwflux) .gt. theta_limit)
-      f_array(iL^S,1:nwflux,1)=u1_coeff(1)*w(iLppp^S,1:nwflux)+u1_coeff(2)*w(iLpp^S,1:nwflux)+u1_coeff(3)*w(iLp^S,1:nwflux)
-      f_array(iL^S,1:nwflux,2)=u2_coeff(1)*w(iLpp^S,1:nwflux)+u2_coeff(2)*w(iLp^S,1:nwflux)+u2_coeff(3)*w(iL^S,1:nwflux)
-      f_array(iL^S,1:nwflux,3)=u3_coeff(1)*w(iLp^S,1:nwflux)+u3_coeff(2)*w(iL^S,1:nwflux)+u3_coeff(3)*w(iLm^S,1:nwflux)  
-      wRCtmp(iL^S,1:nwflux)=f_array(iL^S,1:nwflux,1)*alpha_array(iL^S,1:nwflux,1)&
-                        +f_array(iL^S,1:nwflux,2)*alpha_array(iL^S,1:nwflux,2)&
-                        +f_array(iL^S,1:nwflux,3)*alpha_array(iL^S,1:nwflux,3)
+    theta2(iL^S,1:nw_recon)=((alpha_array(iL^S,1:nw_recon,1)/d_array(1)-1.d0)**2&
+                          +(alpha_array(iL^S,1:nw_recon,2)/d_array(2)-1.d0)**2&
+                          +(alpha_array(iL^S,1:nw_recon,3)/d_array(3)-1.d0)**2)/83.d0
+    where(theta2(iL^S,1:nw_recon) .gt. theta_limit)
+      f_array(iL^S,1:nw_recon,1)=u1_coeff(1)*w(iLppp^S,1:nw_recon)+u1_coeff(2)*w(iLpp^S,1:nw_recon)+u1_coeff(3)*w(iLp^S,1:nw_recon)
+      f_array(iL^S,1:nw_recon,2)=u2_coeff(1)*w(iLpp^S,1:nw_recon)+u2_coeff(2)*w(iLp^S,1:nw_recon)+u2_coeff(3)*w(iL^S,1:nw_recon)
+      f_array(iL^S,1:nw_recon,3)=u3_coeff(1)*w(iLp^S,1:nw_recon)+u3_coeff(2)*w(iL^S,1:nw_recon)+u3_coeff(3)*w(iLm^S,1:nw_recon)  
+      wRCtmp(iL^S,1:nw_recon)=f_array(iL^S,1:nw_recon,1)*alpha_array(iL^S,1:nw_recon,1)&
+                        +f_array(iL^S,1:nw_recon,2)*alpha_array(iL^S,1:nw_recon,2)&
+                        +f_array(iL^S,1:nw_recon,3)*alpha_array(iL^S,1:nw_recon,3)
     else where
-      wRCtmp(iL^S,1:nwflux)=1.d0/60.d0*(w(iLppp^S,1:nwflux)-8.d0*w(iLpp^S,1:nwflux)+37.d0*w(iLp^S,1:nwflux)&
-                        +37.d0*w(iL^S,1:nwflux)-8.d0*w(iLm^S,1:nwflux)+w(iLmm^S,1:nwflux))
+      wRCtmp(iL^S,1:nw_recon)=1.d0/60.d0*(w(iLppp^S,1:nw_recon)-8.d0*w(iLpp^S,1:nw_recon)+37.d0*w(iLp^S,1:nw_recon)&
+                        +37.d0*w(iL^S,1:nw_recon)-8.d0*w(iLm^S,1:nw_recon)+w(iLmm^S,1:nw_recon))
     end where
 
     call fix_limiter(ixI^L,iL^L,wLCtmp,wRCtmp,wLC,wRC)
@@ -1081,47 +1081,47 @@ contains
     u4_coeff(1:4) = (/ 1.d0/4.d0, 13.d0/12.d0, -5.d0/12.d0, 1.d0/12.d0 /)
     
     !> left side
-    f_array(iL^S,1:nwflux,1) = u1_coeff(1) * w(iLmmm^S,1:nwflux) + u1_coeff(2) * w(iLmm^S,1:nwflux) + u1_coeff(3) * w(iLm^S,1:nwflux) &
-                             + u1_coeff(4) * w(iL^S,1:nwflux)
-    f_array(iL^S,1:nwflux,2) = u2_coeff(1) * w(iLmm^S,1:nwflux)  + u2_coeff(2) * w(iLm^S,1:nwflux)  + u2_coeff(3) * w(iL^S,1:nwflux)  &
-                             + u2_coeff(4) * w(iLp^S,1:nwflux)
-    f_array(iL^S,1:nwflux,3) = u3_coeff(1) * w(iLm^S,1:nwflux)   + u3_coeff(2) * w(iL^S,1:nwflux)   + u3_coeff(3) * w(iLp^S,1:nwflux)   &
-                             + u3_coeff(4) * w(iLpp^S,1:nwflux)
-    f_array(iL^S,1:nwflux,4) = u4_coeff(1) * w(iL^S,1:nwflux)    + u4_coeff(2) * w(iLp^S,1:nwflux)    + u4_coeff(3) * w(iLpp^S,1:nwflux)  &
-                             + u4_coeff(4) * w(iLppp^S,1:nwflux)
+    f_array(iL^S,1:nw_recon,1) = u1_coeff(1) * w(iLmmm^S,1:nw_recon) + u1_coeff(2) * w(iLmm^S,1:nw_recon) + u1_coeff(3) * w(iLm^S,1:nw_recon) &
+                             + u1_coeff(4) * w(iL^S,1:nw_recon)
+    f_array(iL^S,1:nw_recon,2) = u2_coeff(1) * w(iLmm^S,1:nw_recon)  + u2_coeff(2) * w(iLm^S,1:nw_recon)  + u2_coeff(3) * w(iL^S,1:nw_recon)  &
+                             + u2_coeff(4) * w(iLp^S,1:nw_recon)
+    f_array(iL^S,1:nw_recon,3) = u3_coeff(1) * w(iLm^S,1:nw_recon)   + u3_coeff(2) * w(iL^S,1:nw_recon)   + u3_coeff(3) * w(iLp^S,1:nw_recon)   &
+                             + u3_coeff(4) * w(iLpp^S,1:nw_recon)
+    f_array(iL^S,1:nw_recon,4) = u4_coeff(1) * w(iL^S,1:nw_recon)    + u4_coeff(2) * w(iLp^S,1:nw_recon)    + u4_coeff(3) * w(iLpp^S,1:nw_recon)  &
+                             + u4_coeff(4) * w(iLppp^S,1:nw_recon)
   
-    beta(iL^S,1:nwflux,1) = w(iLmmm^S,1:nwflux) * (547.d0 * w(iLmmm^S,1:nwflux) - 3882.d0 * w(iLmm^S,1:nwflux) + 4642.d0 * w(iLm^S,1:nwflux) &
-                          - 1854.d0 * w(iL^S,1:nwflux)) &
-                          + w(iLmm^S,1:nwflux) * (7043.d0 * w(iLmm^S,1:nwflux) - 17246.d0 * w(iLm^S,1:nwflux) + 7042.d0 * w(iL^S,1:nwflux)) &
-                          + w(iLm^S,1:nwflux) * (11003.d0 * w(iLm^S,1:nwflux) - 9402.d0 * w(iL^S,1:nwflux)) + 2107.d0 * w(iL^S,1:nwflux)**2
-    beta(iL^S,1:nwflux,2) = w(iLmm^S,1:nwflux) * (267.d0 * w(iLmm^S,1:nwflux) - 1642.d0 * w(iLm^S,1:nwflux) + 1602.d0 * w(iL^S,1:nwflux) &
-                          - 494.d0 * w(iLp^S,1:nwflux))  &
-                          + w(iLm^S,1:nwflux) * (2843.d0 * w(iLm^S,1:nwflux) - 5966.d0 * w(iL^S,1:nwflux) + 1922.d0 * w(iLp^S,1:nwflux)) &
-                          + w(iL^S,1:nwflux) * (3443.d0 * w(iL^S,1:nwflux) - 2522.d0 * w(iLp^S,1:nwflux)) + 547.d0 * w(iLp^S,1:nwflux) ** 2
-    beta(iL^S,1:nwflux,3) = w(iLm^S,1:nwflux) * (547.d0 * w(iLm^S,1:nwflux) - 2522.d0 * w(iL^S,1:nwflux) + 1922.d0 * w(iLp^S,1:nwflux) &
-                          - 494.d0 * w(iLpp^S,1:nwflux))  &
-                          + w(iL^S,1:nwflux) * (3443.d0 * w(iL^S,1:nwflux) - 5966.d0 * w(iLp^S,1:nwflux) + 1602.d0 * w(iLpp^S,1:nwflux)) &
-                          + w(iLp^S,1:nwflux) * (2843.d0 * w(iLp^S,1:nwflux) - 1642.d0 * w(iLpp^S,1:nwflux)) + 267.d0 * w(iLpp^S,1:nwflux) ** 2
-    beta(iL^S,1:nwflux,4) = w(iL^S,1:nwflux) * (2107.d0 * w(iL^S,1:nwflux) - 9402.d0 * w(iLp^S,1:nwflux) + 7042.d0 * w(iLpp^S,1:nwflux) &
-                          - 1854.d0 * w(iLppp^S,1:nwflux))  &
-                          + w(iLp^S,1:nwflux) * (11003.d0 * w(iLp^S,1:nwflux) - 17246.d0 * w(iLpp^S,1:nwflux) + 4642.d0 * w(iLppp^S,1:nwflux)) &
-                          + w(iLpp^S,1:nwflux) * (7043.d0 * w(iLpp^S,1:nwflux) - 3882.d0 * w(iLppp^S,1:nwflux)) &
-                          + 547.d0 * w(iLppp^S,1:nwflux) ** 2
+    beta(iL^S,1:nw_recon,1) = w(iLmmm^S,1:nw_recon) * (547.d0 * w(iLmmm^S,1:nw_recon) - 3882.d0 * w(iLmm^S,1:nw_recon) + 4642.d0 * w(iLm^S,1:nw_recon) &
+                          - 1854.d0 * w(iL^S,1:nw_recon)) &
+                          + w(iLmm^S,1:nw_recon) * (7043.d0 * w(iLmm^S,1:nw_recon) - 17246.d0 * w(iLm^S,1:nw_recon) + 7042.d0 * w(iL^S,1:nw_recon)) &
+                          + w(iLm^S,1:nw_recon) * (11003.d0 * w(iLm^S,1:nw_recon) - 9402.d0 * w(iL^S,1:nw_recon)) + 2107.d0 * w(iL^S,1:nw_recon)**2
+    beta(iL^S,1:nw_recon,2) = w(iLmm^S,1:nw_recon) * (267.d0 * w(iLmm^S,1:nw_recon) - 1642.d0 * w(iLm^S,1:nw_recon) + 1602.d0 * w(iL^S,1:nw_recon) &
+                          - 494.d0 * w(iLp^S,1:nw_recon))  &
+                          + w(iLm^S,1:nw_recon) * (2843.d0 * w(iLm^S,1:nw_recon) - 5966.d0 * w(iL^S,1:nw_recon) + 1922.d0 * w(iLp^S,1:nw_recon)) &
+                          + w(iL^S,1:nw_recon) * (3443.d0 * w(iL^S,1:nw_recon) - 2522.d0 * w(iLp^S,1:nw_recon)) + 547.d0 * w(iLp^S,1:nw_recon) ** 2
+    beta(iL^S,1:nw_recon,3) = w(iLm^S,1:nw_recon) * (547.d0 * w(iLm^S,1:nw_recon) - 2522.d0 * w(iL^S,1:nw_recon) + 1922.d0 * w(iLp^S,1:nw_recon) &
+                          - 494.d0 * w(iLpp^S,1:nw_recon))  &
+                          + w(iL^S,1:nw_recon) * (3443.d0 * w(iL^S,1:nw_recon) - 5966.d0 * w(iLp^S,1:nw_recon) + 1602.d0 * w(iLpp^S,1:nw_recon)) &
+                          + w(iLp^S,1:nw_recon) * (2843.d0 * w(iLp^S,1:nw_recon) - 1642.d0 * w(iLpp^S,1:nw_recon)) + 267.d0 * w(iLpp^S,1:nw_recon) ** 2
+    beta(iL^S,1:nw_recon,4) = w(iL^S,1:nw_recon) * (2107.d0 * w(iL^S,1:nw_recon) - 9402.d0 * w(iLp^S,1:nw_recon) + 7042.d0 * w(iLpp^S,1:nw_recon) &
+                          - 1854.d0 * w(iLppp^S,1:nw_recon))  &
+                          + w(iLp^S,1:nw_recon) * (11003.d0 * w(iLp^S,1:nw_recon) - 17246.d0 * w(iLpp^S,1:nw_recon) + 4642.d0 * w(iLppp^S,1:nw_recon)) &
+                          + w(iLpp^S,1:nw_recon) * (7043.d0 * w(iLpp^S,1:nw_recon) - 3882.d0 * w(iLppp^S,1:nw_recon)) &
+                          + 547.d0 * w(iLppp^S,1:nw_recon) ** 2
 
-    alpha_sum(iL^S,1:nwflux) = 0.0d0 
+    alpha_sum(iL^S,1:nw_recon) = 0.0d0 
     do i = 1,4
-       alpha_array(iL^S,1:nwflux,i) = d_array(i)/(beta(iL^S,1:nwflux,i) + weno_eps_machine)**2
-       alpha_sum(iL^S,1:nwflux) = alpha_sum(iL^S,1:nwflux) + alpha_array(iL^S,1:nwflux,i)
+       alpha_array(iL^S,1:nw_recon,i) = d_array(i)/(beta(iL^S,1:nw_recon,i) + weno_eps_machine)**2
+       alpha_sum(iL^S,1:nw_recon) = alpha_sum(iL^S,1:nw_recon) + alpha_array(iL^S,1:nw_recon,i)
     end do
-    flux(iL^S,1:nwflux) = 0.0d0
+    flux(iL^S,1:nw_recon) = 0.0d0
     do i = 1,4
-       flux(iL^S,1:nwflux) = flux(iL^S,1:nwflux) + f_array(iL^S,1:nwflux,i) * alpha_array(iL^S,1:nwflux,i)/(alpha_sum(iL^S,1:nwflux))
+       flux(iL^S,1:nw_recon) = flux(iL^S,1:nw_recon) + f_array(iL^S,1:nw_recon,i) * alpha_array(iL^S,1:nw_recon,i)/(alpha_sum(iL^S,1:nw_recon))
     end do
     
     select case(var)
     ! case1 for wenojs, case2 for mpweno
     case(1) 
-      wLCtmp(iL^S,1:nwflux) = flux(iL^S,1:nwflux)
+      wLCtmp(iL^S,1:nw_recon) = flux(iL^S,1:nw_recon)
     case(2)
       idmax^D=iLmax^D; idmin^D=iLmin^D-kr(idims,^D);
       idm^L=id^L-kr(idims,^D);
@@ -1131,9 +1131,9 @@ contains
       iem^L=ie^L-kr(idims,^D);
       iep^L=ie^L+kr(idims,^D);
   
-      d(ie^S,1:nwflux) = w(iep^S,1:nwflux)-2.0d0*w(ie^S,1:nwflux)+w(iem^S,1:nwflux)
+      d(ie^S,1:nw_recon) = w(iep^S,1:nw_recon)-2.0d0*w(ie^S,1:nw_recon)+w(iem^S,1:nw_recon)
   
-      do iw=1,nwflux
+      do iw=1,nw_recon
          a(id^S) = 4.0d0*d(id^S,iw)-d(idp^S,iw)
          b(id^S) = 4.0d0*d(idp^S,iw)-d(id^S,iw)
          call minmod(ixI^L,id^L,a,b,tmp)
@@ -1144,16 +1144,16 @@ contains
          dm4(id^S,iw) = tmp3(id^S)
       end do
 
-      flux_ul(iL^S,1:nwflux) = w(iL^S,1:nwflux) + mpalpha * (w(iL^S,1:nwflux) - w(iLm^S,1:nwflux))
-      flux_md(iL^S,1:nwflux) = half * (w(iL^S,1:nwflux) + w(iLp^S,1:nwflux) - dm4(iL^S,1:nwflux))
-      flux_lc(iL^S,1:nwflux) = half * (3.d0 * w(iL^S,1:nwflux) - w(iLm^S,1:nwflux)) + mpbeta / 3.d0 * dm4(iLm^S,1:nwflux)
+      flux_ul(iL^S,1:nw_recon) = w(iL^S,1:nw_recon) + mpalpha * (w(iL^S,1:nw_recon) - w(iLm^S,1:nw_recon))
+      flux_md(iL^S,1:nw_recon) = half * (w(iL^S,1:nw_recon) + w(iLp^S,1:nw_recon) - dm4(iL^S,1:nw_recon))
+      flux_lc(iL^S,1:nw_recon) = half * (3.d0 * w(iL^S,1:nw_recon) - w(iLm^S,1:nw_recon)) + mpbeta / 3.d0 * dm4(iLm^S,1:nw_recon)
     
-      flux_min(iL^S,1:nwflux) = max(min(w(iL^S,1:nwflux), w(iLp^S,1:nwflux), flux_md(iL^S,1:nwflux)), &
-                                min(w(iL^S,1:nwflux), flux_ul(iL^S,1:nwflux),flux_lc(iL^S,1:nwflux)))
+      flux_min(iL^S,1:nw_recon) = max(min(w(iL^S,1:nw_recon), w(iLp^S,1:nw_recon), flux_md(iL^S,1:nw_recon)), &
+                                min(w(iL^S,1:nw_recon), flux_ul(iL^S,1:nw_recon),flux_lc(iL^S,1:nw_recon)))
   
-      flux_max(iL^S,1:nwflux) = min(max(w(iL^S,1:nwflux), w(iLp^S,1:nwflux), flux_md(iL^S,1:nwflux)), &
-                                max(w(iL^S,1:nwflux), flux_ul(iL^S,1:nwflux),flux_lc(iL^S,1:nwflux)))
-      do iw=1,nwflux
+      flux_max(iL^S,1:nw_recon) = min(max(w(iL^S,1:nw_recon), w(iLp^S,1:nw_recon), flux_md(iL^S,1:nw_recon)), &
+                                max(w(iL^S,1:nw_recon), flux_ul(iL^S,1:nw_recon),flux_lc(iL^S,1:nw_recon)))
+      do iw=1,nw_recon
         a(iL^S) = flux(iL^S,iw)
         b(iL^S) = flux_min(iL^S,iw)
         c(iL^S) = flux_max(iL^S,iw)
@@ -1170,45 +1170,45 @@ contains
     !>> p   -> 0
     !>> pp  -> m
     !>> ppp -> mm
-    f_array(iL^S,1:nwflux,1) = u1_coeff(1) * w(iLpppp^S,1:nwflux) + u1_coeff(2) * w(iLppp^S,1:nwflux) + u1_coeff(3) * w(iLpp^S,1:nwflux) &
-                             + u1_coeff(4) * w(iLp^S,1:nwflux)
-    f_array(iL^S,1:nwflux,2) = u2_coeff(1) * w(iLppp^S,1:nwflux)  + u2_coeff(2) * w(iLpp^S,1:nwflux)  + u2_coeff(3) * w(iLp^S,1:nwflux)  &
-                             + u2_coeff(4) * w(iL^S,1:nwflux)
-    f_array(iL^S,1:nwflux,3) = u3_coeff(1) * w(iLpp^S,1:nwflux)   + u3_coeff(2) * w(iLp^S,1:nwflux)   + u3_coeff(3) * w(iL^S,1:nwflux)   &
-                             + u3_coeff(4) * w(iLm^S,1:nwflux)
-    f_array(iL^S,1:nwflux,4) = u4_coeff(1) * w(iLp^S,1:nwflux)    + u4_coeff(2) * w(iL^S,1:nwflux)    + u4_coeff(3) * w(iLm^S,1:nwflux)  &
-                             + u4_coeff(4) * w(iLmm^S,1:nwflux)
+    f_array(iL^S,1:nw_recon,1) = u1_coeff(1) * w(iLpppp^S,1:nw_recon) + u1_coeff(2) * w(iLppp^S,1:nw_recon) + u1_coeff(3) * w(iLpp^S,1:nw_recon) &
+                             + u1_coeff(4) * w(iLp^S,1:nw_recon)
+    f_array(iL^S,1:nw_recon,2) = u2_coeff(1) * w(iLppp^S,1:nw_recon)  + u2_coeff(2) * w(iLpp^S,1:nw_recon)  + u2_coeff(3) * w(iLp^S,1:nw_recon)  &
+                             + u2_coeff(4) * w(iL^S,1:nw_recon)
+    f_array(iL^S,1:nw_recon,3) = u3_coeff(1) * w(iLpp^S,1:nw_recon)   + u3_coeff(2) * w(iLp^S,1:nw_recon)   + u3_coeff(3) * w(iL^S,1:nw_recon)   &
+                             + u3_coeff(4) * w(iLm^S,1:nw_recon)
+    f_array(iL^S,1:nw_recon,4) = u4_coeff(1) * w(iLp^S,1:nw_recon)    + u4_coeff(2) * w(iL^S,1:nw_recon)    + u4_coeff(3) * w(iLm^S,1:nw_recon)  &
+                             + u4_coeff(4) * w(iLmm^S,1:nw_recon)
 
-    beta(iL^S,1:nwflux,1) = w(iLpppp^S,1:nwflux) * (547.d0 * w(iLpppp^S,1:nwflux) - 3882.d0 * w(iLppp^S,1:nwflux) + 4642.d0 * w(iLpp^S,1:nwflux) &
-                          - 1854.d0 * w(iLp^S,1:nwflux)) &
-                          + w(iLppp^S,1:nwflux) * (7043.d0 * w(iLppp^S,1:nwflux) - 17246.d0 * w(iLpp^S,1:nwflux) + 7042.d0 * w(iLp^S,1:nwflux)) &
-                          + w(iLpp^S,1:nwflux) * (11003.d0 * w(iLpp^S,1:nwflux) - 9402.d0 * w(iLp^S,1:nwflux)) + 2107.d0 * w(iLp^S,1:nwflux)**2
-    beta(iL^S,1:nwflux,2) = w(iLppp^S,1:nwflux) * (267.d0 * w(iLppp^S,1:nwflux) - 1642.d0 * w(iLpp^S,1:nwflux) + 1602.d0 * w(iLp^S,1:nwflux) &
-                          - 494.d0 * w(iL^S,1:nwflux))  &
-                          + w(iLpp^S,1:nwflux) * (2843.d0 * w(iLpp^S,1:nwflux) - 5966.d0 * w(iLp^S,1:nwflux) + 1922.d0 * w(iL^S,1:nwflux)) &
-                          + w(iLp^S,1:nwflux) * (3443.d0 * w(iLp^S,1:nwflux) - 2522.d0 * w(iL^S,1:nwflux)) + 547.d0 * w(iL^S,1:nwflux) ** 2
-    beta(iL^S,1:nwflux,3) = w(iLpp^S,1:nwflux) * (547.d0 * w(iLpp^S,1:nwflux) - 2522.d0 * w(iLp^S,1:nwflux) + 1922.d0 * w(iL^S,1:nwflux) &
-                          - 494.d0 * w(iLm^S,1:nwflux))  &
-                          + w(iLp^S,1:nwflux) * (3443.d0 * w(iLp^S,1:nwflux) - 5966.d0 * w(iL^S,1:nwflux) + 1602.d0 * w(iLm^S,1:nwflux)) &
-                          + w(iL^S,1:nwflux) * (2843.d0 * w(iL^S,1:nwflux) - 1642.d0 * w(iLm^S,1:nwflux)) + 267.d0 * w(iLm^S,1:nwflux) ** 2
-    beta(iL^S,1:nwflux,4) = w(iLp^S,1:nwflux) * (2107.d0 * w(iLp^S,1:nwflux) - 9402.d0 * w(iL^S,1:nwflux) + 7042.d0 * w(iLm^S,1:nwflux) &
-                          - 1854.d0 * w(iLmm^S,1:nwflux))  &
-                          + w(iL^S,1:nwflux) * (11003.d0 * w(iL^S,1:nwflux) - 17246.d0 * w(iLm^S,1:nwflux) + 4642.d0 * w(iLmm^S,1:nwflux)) &
-                          + w(iLm^S,1:nwflux) * (7043.d0 * w(iLm^S,1:nwflux) - 3882.d0 * w(iLmm^S,1:nwflux)) + 547.d0 * w(iLmm^S,1:nwflux) ** 2
+    beta(iL^S,1:nw_recon,1) = w(iLpppp^S,1:nw_recon) * (547.d0 * w(iLpppp^S,1:nw_recon) - 3882.d0 * w(iLppp^S,1:nw_recon) + 4642.d0 * w(iLpp^S,1:nw_recon) &
+                          - 1854.d0 * w(iLp^S,1:nw_recon)) &
+                          + w(iLppp^S,1:nw_recon) * (7043.d0 * w(iLppp^S,1:nw_recon) - 17246.d0 * w(iLpp^S,1:nw_recon) + 7042.d0 * w(iLp^S,1:nw_recon)) &
+                          + w(iLpp^S,1:nw_recon) * (11003.d0 * w(iLpp^S,1:nw_recon) - 9402.d0 * w(iLp^S,1:nw_recon)) + 2107.d0 * w(iLp^S,1:nw_recon)**2
+    beta(iL^S,1:nw_recon,2) = w(iLppp^S,1:nw_recon) * (267.d0 * w(iLppp^S,1:nw_recon) - 1642.d0 * w(iLpp^S,1:nw_recon) + 1602.d0 * w(iLp^S,1:nw_recon) &
+                          - 494.d0 * w(iL^S,1:nw_recon))  &
+                          + w(iLpp^S,1:nw_recon) * (2843.d0 * w(iLpp^S,1:nw_recon) - 5966.d0 * w(iLp^S,1:nw_recon) + 1922.d0 * w(iL^S,1:nw_recon)) &
+                          + w(iLp^S,1:nw_recon) * (3443.d0 * w(iLp^S,1:nw_recon) - 2522.d0 * w(iL^S,1:nw_recon)) + 547.d0 * w(iL^S,1:nw_recon) ** 2
+    beta(iL^S,1:nw_recon,3) = w(iLpp^S,1:nw_recon) * (547.d0 * w(iLpp^S,1:nw_recon) - 2522.d0 * w(iLp^S,1:nw_recon) + 1922.d0 * w(iL^S,1:nw_recon) &
+                          - 494.d0 * w(iLm^S,1:nw_recon))  &
+                          + w(iLp^S,1:nw_recon) * (3443.d0 * w(iLp^S,1:nw_recon) - 5966.d0 * w(iL^S,1:nw_recon) + 1602.d0 * w(iLm^S,1:nw_recon)) &
+                          + w(iL^S,1:nw_recon) * (2843.d0 * w(iL^S,1:nw_recon) - 1642.d0 * w(iLm^S,1:nw_recon)) + 267.d0 * w(iLm^S,1:nw_recon) ** 2
+    beta(iL^S,1:nw_recon,4) = w(iLp^S,1:nw_recon) * (2107.d0 * w(iLp^S,1:nw_recon) - 9402.d0 * w(iL^S,1:nw_recon) + 7042.d0 * w(iLm^S,1:nw_recon) &
+                          - 1854.d0 * w(iLmm^S,1:nw_recon))  &
+                          + w(iL^S,1:nw_recon) * (11003.d0 * w(iL^S,1:nw_recon) - 17246.d0 * w(iLm^S,1:nw_recon) + 4642.d0 * w(iLmm^S,1:nw_recon)) &
+                          + w(iLm^S,1:nw_recon) * (7043.d0 * w(iLm^S,1:nw_recon) - 3882.d0 * w(iLmm^S,1:nw_recon)) + 547.d0 * w(iLmm^S,1:nw_recon) ** 2
 
-    alpha_sum(iL^S,1:nwflux) = 0.0d0 
+    alpha_sum(iL^S,1:nw_recon) = 0.0d0 
     do i = 1,4
-       alpha_array(iL^S,1:nwflux,i) = d_array(i)/(beta(iL^S,1:nwflux,i) + weno_eps_machine)**2
-       alpha_sum(iL^S,1:nwflux) = alpha_sum(iL^S,1:nwflux) + alpha_array(iL^S,1:nwflux,i)
+       alpha_array(iL^S,1:nw_recon,i) = d_array(i)/(beta(iL^S,1:nw_recon,i) + weno_eps_machine)**2
+       alpha_sum(iL^S,1:nw_recon) = alpha_sum(iL^S,1:nw_recon) + alpha_array(iL^S,1:nw_recon,i)
     end do
-    flux(iL^S,1:nwflux) = 0.0d0
+    flux(iL^S,1:nw_recon) = 0.0d0
     do i = 1,4
-       flux(iL^S,1:nwflux) = flux(iL^S,1:nwflux) + f_array(iL^S,1:nwflux,i) * alpha_array(iL^S,1:nwflux,i)/(alpha_sum(iL^S,1:nwflux))
+       flux(iL^S,1:nw_recon) = flux(iL^S,1:nw_recon) + f_array(iL^S,1:nw_recon,i) * alpha_array(iL^S,1:nw_recon,i)/(alpha_sum(iL^S,1:nw_recon))
     end do
 
     select case(var)
     case(1)
-      wRCtmp(iL^S,1:nwflux) = flux(iL^S,1:nwflux)
+      wRCtmp(iL^S,1:nw_recon) = flux(iL^S,1:nw_recon)
     case(2)
       idmax^D=iLmax^D+kr(idims,^D); idmin^D=iLmin^D;
       idm^L=id^L-kr(idims,^D);
@@ -1219,9 +1219,9 @@ contains
       iep^L=ie^L+kr(idims,^D);
       iepp^L=iep^L+kr(idims,^D);
   
-      d(ie^S,1:nwflux) = w(ie^S,1:nwflux)-2.0d0*w(iep^S,1:nwflux)+w(iepp^S,1:nwflux)
+      d(ie^S,1:nw_recon) = w(ie^S,1:nw_recon)-2.0d0*w(iep^S,1:nw_recon)+w(iepp^S,1:nw_recon)
   
-      do iw = 1,nwflux
+      do iw = 1,nw_recon
         a(id^S) = 4.0d0*d(id^S,iw)-d(idm^S,iw)
         b(id^S) = 4.0d0*d(idm^S,iw)-d(id^S,iw)
         call minmod(ixI^L,id^L,a,b,tmp)
@@ -1232,16 +1232,16 @@ contains
         dm4(id^S,iw) = tmp3(id^S)
       end do
    
-      flux_ul(iL^S,1:nwflux) = w(iLp^S,1:nwflux) + mpalpha * (w(iLp^S,1:nwflux) - w(iLpp^S,1:nwflux))
-      flux_md(iL^S,1:nwflux) = half * (w(iL^S,1:nwflux) + w(iLp^S,1:nwflux) - dm4(iL^S,1:nwflux))
-      flux_lc(iL^S,1:nwflux) = half * (3.d0 * w(iLp^S,1:nwflux) - w(iLpp^S,1:nwflux)) + mpbeta / 3.d0 * dm4(iLp^S,1:nwflux)
+      flux_ul(iL^S,1:nw_recon) = w(iLp^S,1:nw_recon) + mpalpha * (w(iLp^S,1:nw_recon) - w(iLpp^S,1:nw_recon))
+      flux_md(iL^S,1:nw_recon) = half * (w(iL^S,1:nw_recon) + w(iLp^S,1:nw_recon) - dm4(iL^S,1:nw_recon))
+      flux_lc(iL^S,1:nw_recon) = half * (3.d0 * w(iLp^S,1:nw_recon) - w(iLpp^S,1:nw_recon)) + mpbeta / 3.d0 * dm4(iLp^S,1:nw_recon)
     
-      flux_min(iL^S,1:nwflux) = max(min(w(iLp^S,1:nwflux), w(iL^S,1:nwflux), flux_md(iL^S,1:nwflux)), &
-                                min(w(iLp^S,1:nwflux), flux_ul(iL^S,1:nwflux),flux_lc(iL^S,1:nwflux)))
+      flux_min(iL^S,1:nw_recon) = max(min(w(iLp^S,1:nw_recon), w(iL^S,1:nw_recon), flux_md(iL^S,1:nw_recon)), &
+                                min(w(iLp^S,1:nw_recon), flux_ul(iL^S,1:nw_recon),flux_lc(iL^S,1:nw_recon)))
   
-      flux_max(iL^S,1:nwflux) = min(max(w(iLp^S,1:nwflux), w(iL^S,1:nwflux), flux_md(iL^S,1:nwflux)), &
-                                max(w(iLp^S,1:nwflux), flux_ul(iL^S,1:nwflux),flux_lc(iL^S,1:nwflux)))
-      do iw=1,nwflux
+      flux_max(iL^S,1:nw_recon) = min(max(w(iLp^S,1:nw_recon), w(iL^S,1:nw_recon), flux_md(iL^S,1:nw_recon)), &
+                                max(w(iLp^S,1:nw_recon), flux_ul(iL^S,1:nw_recon),flux_lc(iL^S,1:nw_recon)))
+      do iw=1,nw_recon
         a(iL^S) = flux(iL^S,iw)
         b(iL^S) = flux_min(iL^S,iw)
         c(iL^S) = flux_max(iL^S,iw)

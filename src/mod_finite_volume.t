@@ -58,8 +58,8 @@ contains
       ! wLC is to the left of ixO, wRC is to the right of wCT.
       hxO^L=ixO^L-kr(idims,^D);
 
-      wRp(hxO^S,1:nwflux)=wprim(ixO^S,1:nwflux)
-      wLp(ixO^S,1:nwflux)=wprim(ixO^S,1:nwflux)
+      wRp(hxO^S,1:nw_recon)=wprim(ixO^S,1:nw_recon)
+      wLp(ixO^S,1:nw_recon)=wprim(ixO^S,1:nw_recon)
 
       ! apply limited reconstruction for left and right status at cell interfaces
       call reconstruct_LR(ixI^L,ixO^L,hxO^L,idims,wprim,wLC,wRC,wLp,wRp,x,dxs(idims))
@@ -127,34 +127,27 @@ contains
     double precision, intent(in)                          :: qdt, dtfactor, qtC, qt, dxs(ndim)
     integer, intent(in)                                   :: ixI^L, ixO^L, idims^LIM
     double precision, dimension(ixI^S,1:ndim), intent(in) :: x
-    type(state)                                           :: sCT, snew
     double precision, dimension(ixI^S,1:nwflux,1:ndim)    :: fC
     double precision, dimension(ixI^S,sdim:3)             :: fE
+    type(state)                                           :: sCT, snew
 
     ! primitive w at cell center
-    logical :: active
-    integer :: idims, iw, ix^D, hx^D, ix^L, hxO^L, ixC^L, ixCR^L, kxC^L, kxR^L, ii
-    integer, dimension(ixI^S)               :: patchf
     double precision, dimension(ixI^S,1:nw) :: wprim
     ! left and right constructed status in conservative form
     double precision, dimension(ixI^S,1:nw) :: wLC, wRC
     ! left and right constructed status in primitive form, needed for better performance
     double precision, dimension(ixI^S,1:nw) :: wLp, wRp
     double precision, dimension(ixI^S,1:nwflux) :: fLC, fRC
-    double precision, dimension(ixI^S,1:number_species)      :: cmaxC
-    double precision, dimension(ixI^S,1:number_species)      :: cminC
-    double precision, dimension(ixI^S)      :: Hspeed
-    double precision, dimension(ixO^S)      :: inv_volume
-    double precision, dimension(1:ndim)     :: dxinv
+    double precision, dimension(ixI^S,1:number_species) :: cmaxC
+    double precision, dimension(ixI^S,1:number_species) :: cminC
+    double precision, dimension(ixI^S) :: Hspeed
+    double precision, dimension(ixO^S) :: inv_volume
+    double precision, dimension(1:ndim) :: dxinv
+    integer :: idims, iw, ix^D, hx^D, ix^L, hxO^L, ixC^L, ixCR^L, kxC^L, kxR^L, ii
+    logical :: active
     type(ct_velocity) :: vcts
 
     associate(wCT=>sCT%w, wnew=>snew%w)
-
-    fC=0.d0
-    fLC=0.d0
-    fRC=0.d0
-    wLp=0.d0
-    wRp=0.d0
 
     ! The flux calculation contracts by one in the idims direction it is applied.
     ! The limiter contracts the same directions by one more, so expand ixO by 2.
@@ -254,14 +247,14 @@ contains
       if(local_timestep) then
         dxinv(1:ndim)=-dtfactor/dxs(1:ndim)
         do idims= idims^LIM
-          hxOmin^D=ixOmin^D-kr(idims,^D)\
+          hx^D=kr(idims,^D)\
+          hxOmin^D=ixOmin^D-hx^D\
           do iw=iwstart,nwflux
            {do ix^DB=hxOmin^DB,ixOmax^DB\}
               fC(ix^D,iw,idims)=block%dt(ix^D)*dxinv(idims)*fC(ix^D,iw,idims)
            {end do\}
            {do ix^DB=ixOmin^DB,ixOmax^DB\}
-              hx^D=ix^D-kr(idims,^D)\
-              wnew(ix^D,iw)=wnew(ix^D,iw)+fC(ix^D,iw,idims)-fC(hx^D,iw,idims)
+              wnew(ix^D,iw)=wnew(ix^D,iw)+fC(ix^D,iw,idims)-fC(ix^D-hx^D,iw,idims)
            {end do\}
           end do
           ! For the MUSCL scheme apply the characteristic based limiter
@@ -271,14 +264,14 @@ contains
       else
         dxinv(1:ndim)=-qdt/dxs(1:ndim)
         do idims= idims^LIM
-          hxOmin^D=ixOmin^D-kr(idims,^D)\
+          hx^D=kr(idims,^D)\
+          hxOmin^D=ixOmin^D-hx^D\
           do iw=iwstart,nwflux
            {do ix^DB=hxOmin^DB,ixOmax^DB\}
               fC(ix^D,iw,idims)=dxinv(idims)*fC(ix^D,iw,idims)
            {end do\}
            {do ix^DB=ixOmin^DB,ixOmax^DB\}
-              hx^D=ix^D-kr(idims,^D)\
-              wnew(ix^D,iw)=wnew(ix^D,iw)+fC(ix^D,iw,idims)-fC(hx^D,iw,idims)
+              wnew(ix^D,iw)=wnew(ix^D,iw)+fC(ix^D,iw,idims)-fC(ix^D-hx^D,iw,idims)
            {end do\}
           end do
           ! For the MUSCL scheme apply the characteristic based limiter
@@ -290,14 +283,14 @@ contains
       inv_volume(ixO^S) = 1.d0/block%dvolume(ixO^S)
       if(local_timestep) then
         do idims= idims^LIM
-          hxOmin^D=ixOmin^D-kr(idims,^D)\
+          hx^D=kr(idims,^D)\
+          hxOmin^D=ixOmin^D-hx^D\
           do iw=iwstart,nwflux
            {do ix^DB=hxOmin^DB,ixOmax^DB\}
               fC(ix^D,iw,idims)=-block%dt(ix^D)*dtfactor*fC(ix^D,iw,idims)*block%surfaceC(ix^D,idims)
            {end do\}
            {do ix^DB=ixOmin^DB,ixOmax^DB\}
-              hx^D=ix^D-kr(idims,^D)\
-              wnew(ix^D,iw)=wnew(ix^D,iw)+(fC(ix^D,iw,idims)-fC(hx^D,iw,idims))*inv_volume(ix^D)
+              wnew(ix^D,iw)=wnew(ix^D,iw)+(fC(ix^D,iw,idims)-fC(ix^D-hx^D,iw,idims))*inv_volume(ix^D)
            {end do\}
           end do
           ! For the MUSCL scheme apply the characteristic based limiter
@@ -306,14 +299,14 @@ contains
         end do
       else
         do idims= idims^LIM
-          hxOmin^D=ixOmin^D-kr(idims,^D)\
+          hx^D=kr(idims,^D)\
+          hxOmin^D=ixOmin^D-hx^D\
           do iw=iwstart,nwflux
            {do ix^DB=hxOmin^DB,ixOmax^DB\}
              fC(ix^D,iw,idims)=-qdt*fC(ix^D,iw,idims)*block%surfaceC(ix^D,idims)
            {end do\}
            {do ix^DB=ixOmin^DB,ixOmax^DB\}
-              hx^D=ix^D-kr(idims,^D)\
-              wnew(ix^D,iw)=wnew(ix^D,iw)+(fC(ix^D,iw,idims)-fC(hx^D,iw,idims))*inv_volume(ix^D)
+              wnew(ix^D,iw)=wnew(ix^D,iw)+(fC(ix^D,iw,idims)-fC(ix^D-hx^D,iw,idims))*inv_volume(ix^D)
            {end do\}
           end do
         end do
@@ -386,14 +379,17 @@ contains
       integer :: ix^D
       double precision :: phi
 
-      do iw=iws,iwe
-        if(flux_type(idims, iw) == flux_tvdlf) then
-          ! CT MHD does not need normal B flux
-          if(stagger_grid) cycle
-          fC(ixC^S,iw,idims) = -tvdlfeps*half*max(cmaxC(ixC^S,ii),dabs(cminC(ixC^S,ii))) * &
-               (wRC(ixC^S,iw)-wLC(ixC^S,iw))
-        else
-          if(flux_adaptive_diffusion) then
+      if(flux_adaptive_diffusion) then
+        do iw=iws,iwe
+          if(flux_type(idims, iw) == flux_tvdlf) then
+            if(stagger_grid) then
+              ! CT MHD set zero normal B flux
+              fC(ixC^S,iw,idims)=0.d0
+            else
+              fC(ixC^S,iw,idims)=-tvdlfeps*half*max(cmaxC(ixC^S,ii),dabs(cminC(ixC^S,ii)))*&
+                   (wRC(ixC^S,iw)-wLC(ixC^S,iw))
+            end if
+          else
            {do ix^DB=ixCmin^DB,ixCmax^DB\}
               if(cminC(ix^D,ii) >= zero) then
                 fC(ix^D,iw,idims)=fLC(ix^D,iw)
@@ -407,6 +403,18 @@ contains
                       /(cmaxC(ix^D,ii)-cminC(ix^D,ii))
               end if
            {end do\}
+          end if
+        end do
+      else
+        do iw=iws,iwe
+          if(flux_type(idims, iw) == flux_tvdlf) then
+            if(stagger_grid) then
+              ! CT MHD set zero normal B flux
+              fC(ixC^S,iw,idims)=0.d0
+            else
+              fC(ixC^S,iw,idims)=-tvdlfeps*half*max(cmaxC(ixC^S,ii),dabs(cminC(ixC^S,ii)))*&
+                   (wRC(ixC^S,iw)-wLC(ixC^S,iw))
+            end if
           else
            {do ix^DB=ixCmin^DB,ixCmax^DB\}
               if(cminC(ix^D,ii) >= zero) then
@@ -420,8 +428,8 @@ contains
               end if
            {end do\}
           end if
-        end if
-      end do
+        end do
+      end if
     end subroutine get_Riemann_flux_hll
 
     subroutine get_Riemann_flux_hllc(iws,iwe)
@@ -429,6 +437,7 @@ contains
       double precision, dimension(ixI^S,1:nwflux)     :: whll, Fhll, fCD
       double precision, dimension(ixI^S)              :: lambdaCD
 
+      integer, dimension(ixI^S) :: patchf
       integer  :: rho_, p_, e_, mom(1:ndir)
 
       rho_ = iw_rho
@@ -512,14 +521,6 @@ contains
       e_ = iw_e 
       p_ = e_
 
-      !f1R=0.d0
-      !f1L=0.d0
-      !f2R=0.d0
-      !f2L=0.d0
-      !w1L=0.d0
-      !w1R=0.d0
-      !w2L=0.d0
-      !w2R=0.d0
       ip1=idims
       ip3=3
       vRC(ixC^S,:)=wRp(ixC^S,mom(:))
@@ -752,11 +753,10 @@ contains
 
     !> HLLD Riemann flux from Miyoshi 2005 JCP, 208, 315 and Guo 2016 JCP, 327, 543
     !> https://arxiv.org/pdf/2108.04991.pdf
-    subroutine get_Riemann_flux_hlld_mag2()
-      !use mod_mhd_phys
-      use mod_variables
-      use mod_physics
+    subroutine get_Riemann_flux_hlld_mag2(iws,iwe)
       implicit none
+      integer, intent(in) :: iws, iwe
+
       double precision, dimension(ixI^S,1:nwflux) :: w1R,w1L,f1R,f1L,f2R,f2L
       double precision, dimension(ixI^S,1:nwflux) :: w2R,w2L
       double precision, dimension(ixI^S) :: sm,s1R,s1L,suR,suL,Bx
@@ -1031,7 +1031,7 @@ contains
       end do
 
       ! get fluxes of intermedate states
-      do iw=1,nwflux
+      do iw=iws,iwe
         ! CT MHD does not need normal B flux
         if(stagger_grid .and. flux_type(idims, iw) == flux_tvdlf) cycle
         if(flux_type(idims, iw) == flux_special) then
@@ -1058,17 +1058,17 @@ contains
       ! Miyoshi equation (66) and Guo equation (46)
      {do ix^DB=ixCmin^DB,ixCmax^DB\}
         if(sL(ix^D,index_v_mag)>0.d0) then
-          fC(ix^D,1:nwflux,ip1)=fLC(ix^D,1:nwflux)
+          fC(ix^D,iws:iwe,ip1)=fLC(ix^D,iws:iwe)
         else if(s1L(ix^D)>=0.d0) then
-          fC(ix^D,1:nwflux,ip1)=f1L(ix^D,1:nwflux)
+          fC(ix^D,iws:iwe,ip1)=f1L(ix^D,iws:iwe)
         else if(sm(ix^D)>=0.d0) then
-          fC(ix^D,1:nwflux,ip1)=f2L(ix^D,1:nwflux)
+          fC(ix^D,iws:iwe,ip1)=f2L(ix^D,iws:iwe)
         else if(s1R(ix^D)>=0.d0) then
-          fC(ix^D,1:nwflux,ip1)=f2R(ix^D,1:nwflux)
+          fC(ix^D,iws:iwe,ip1)=f2R(ix^D,iws:iwe)
         else if(sR(ix^D,index_v_mag)>=0.d0) then
-          fC(ix^D,1:nwflux,ip1)=f1R(ix^D,1:nwflux)
+          fC(ix^D,iws:iwe,ip1)=f1R(ix^D,iws:iwe)
         else if(sR(ix^D,index_v_mag)<0.d0) then
-          fC(ix^D,1:nwflux,ip1)=fRC(ix^D,1:nwflux)
+          fC(ix^D,iws:iwe,ip1)=fRC(ix^D,iws:iwe)
         end if
      {end do\}
 
@@ -1194,7 +1194,7 @@ contains
        jxR^L=ixR^L+kr(idims,^D);
        ixCmax^D=jxRmax^D; ixCmin^D=ixLmin^D-kr(idims,^D);
        jxC^L=ixC^L+kr(idims,^D);
-       do iw=1,nwflux
+       do iw=1,nw_recon
           if (loglimit(iw)) then
              w(ixCmin^D:jxCmax^D,iw)=dlog10(w(ixCmin^D:jxCmax^D,iw))
              wLp(ixL^S,iw)=dlog10(wLp(ixL^S,iw))
@@ -1238,13 +1238,13 @@ contains
        end if
     end select
 
-   wLC(ixL^S,1:nwflux) = wLp(ixL^S,1:nwflux)
-   wRC(ixR^S,1:nwflux) = wRp(ixR^S,1:nwflux)
+   wLC(ixL^S,1:nw_recon)=wLp(ixL^S,1:nw_recon)
+   wRC(ixR^S,1:nw_recon)=wRp(ixR^S,1:nw_recon)
    call phys_to_conserved(ixI^L,ixL^L,wLC,x)
    call phys_to_conserved(ixI^L,ixR^L,wRC,x)
    if(nwaux>0)then
-      wLp(ixL^S,nwflux+1:nwflux+nwaux) = wLC(ixL^S,nwflux+1:nwflux+nwaux)
-      wRp(ixR^S,nwflux+1:nwflux+nwaux) = wRC(ixR^S,nwflux+1:nwflux+nwaux)
+      wLp(ixL^S,nw_recon+1:nw_recon+nwaux)=wLC(ixL^S,nw_recon+1:nw_recon+nwaux)
+      wRp(ixR^S,nw_recon+1:nw_recon+nwaux)=wRC(ixR^S,nw_recon+1:nw_recon+nwaux)
    endif
 
   end subroutine reconstruct_LR

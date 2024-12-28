@@ -188,6 +188,9 @@ contains
 
     ! set the index of the last flux variable for species 1
     stop_indices(1)=nwflux
+  
+    !  Number of variables need reconstruction in w
+    nw_recon=nwflux
 
     ! Disable flux conservation near AMR boundaries, since we have no fluxes
     fix_conserve_global = .false.

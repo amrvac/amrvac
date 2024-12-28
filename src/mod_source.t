@@ -63,7 +63,7 @@ contains
       ! add normal split source terms
       select case (sourcesplit)
       case (sourcesplit_sfs)
-        !$OMP PARALLEL DO PRIVATE(igrid)
+        !$OMP PARALLEL DO PRIVATE(igrid,w1)
         do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
            block=>ps(igrid)
            ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
@@ -74,7 +74,7 @@ contains
         end do
         !$OMP END PARALLEL DO
       case (sourcesplit_sf)
-        !$OMP PARALLEL DO PRIVATE(igrid)
+        !$OMP PARALLEL DO PRIVATE(igrid,w1)
         do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
            block=>ps(igrid)
            ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
@@ -85,7 +85,7 @@ contains
         end do
         !$OMP END PARALLEL DO
       case (sourcesplit_ssf)
-        !$OMP PARALLEL DO PRIVATE(igrid)
+        !$OMP PARALLEL DO PRIVATE(igrid,w1)
         do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
            block=>ps(igrid)
            ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
@@ -98,7 +98,7 @@ contains
         end do
         !$OMP END PARALLEL DO
       case (sourcesplit_ssfss)
-        !$OMP PARALLEL DO PRIVATE(igrid)
+        !$OMP PARALLEL DO PRIVATE(igrid,w1)
         do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
            block=>ps(igrid)
            ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);

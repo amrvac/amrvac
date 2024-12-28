@@ -278,6 +278,9 @@ contains
     ! set the index of the last flux variable for species 1
     stop_indices(1)=nwflux
 
+    !  Number of variables need reconstruction in w
+    nw_recon=nwflux
+
     !  set temperature as an auxiliary variable to get ionization degree
     if(hd_partial_ionization) then
       Te_ = var_set_auxvar('Te','Te')

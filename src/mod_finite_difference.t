@@ -378,8 +378,8 @@ contains
 
        kkxCmin^D=ixImin^D; kkxCmax^D=ixImax^D-kr(idims,^D);
        kkxR^L=kkxC^L+kr(idims,^D);
-       wRp(kkxC^S,1:nwflux)=wprim(kkxR^S,1:nwflux)
-       wLp(kkxC^S,1:nwflux)=wprim(kkxC^S,1:nwflux)
+       wRp(kkxC^S,1:nw_recon)=wprim(kkxR^S,1:nw_recon)
+       wLp(kkxC^S,1:nw_recon)=wprim(kkxC^S,1:nw_recon)
 
        ! apply limited reconstruction for left and right status at cell interfaces
        call reconstruct_LR(ixI^L,ixC^L,ixC^L,idims,wprim,wLC,wRC,wLp,wRp,x,dxs(idims))

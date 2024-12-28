@@ -317,7 +317,7 @@ contains
     typeboundary_max^D = undefined
     }
 
-    allocate(typeboundary(nwflux+nwaux,2*ndim))
+    allocate(typeboundary(nw_recon+nwaux,2*ndim))
     typeboundary=0
 
     ! not save physical boundary in dat files by default
@@ -1310,14 +1310,14 @@ contains
     }
 
     ! psi, tracers take the same boundary type as the first variable
-    if (nwfluxbc<nwflux) then
-      do iw = nwfluxbc+1, nwflux
+    if (nwfluxbc<nw_recon) then
+      do iw=nwfluxbc+1,nw_recon
         typeboundary(iw,:) = typeboundary(1, :)
       end do
     end if
     ! auxiliary variables take the same boundary type as the first variable
     if (nwaux>0) then
-      do iw = nwflux+1, nwflux+nwaux
+      do iw=nw_recon+1, nw_recon+nwaux
         typeboundary(iw,:) = typeboundary(1, :)
       end do
     end if
@@ -1330,7 +1330,7 @@ contains
        periodB(idim)=(any(typeboundary(:,2*idim-1:2*idim)==bc_periodic))
        aperiodB(idim)=(any(typeboundary(:,2*idim-1:2*idim)==bc_aperiodic))
        if (periodB(idim).or.aperiodB(idim)) then
-          do iw=1,nwflux
+          do iw=1,nw_recon
              if (typeboundary(iw,2*idim-1) .ne. typeboundary(iw,2*idim)) &
                   call mpistop("Wrong counterpart in periodic boundary")
 

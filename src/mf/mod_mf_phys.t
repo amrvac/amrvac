@@ -99,8 +99,6 @@ module mod_mf_phys
 
   ! Public methods
   public :: mf_phys_init
-  public :: mf_get_v
-  public :: mf_get_v_idim
   public :: mf_to_conserved
   public :: mf_to_primitive
   public :: mf_face_to_center
@@ -108,7 +106,6 @@ module mod_mf_phys
   public :: get_current
   public :: get_normalized_divb
   public :: b_from_vector_potential
-  public :: mf_mag_en_all
   public :: record_force_free_metrics
   {^NOONED
   public :: mf_clean_divb_multigrid
@@ -212,10 +209,6 @@ contains
     ! Whether diagonal ghost cells are required for the physics
     if(type_divb < divb_linde) phys_req_diagonal = .false.
 
-    ! set velocity field as flux variables
-    allocate(mom(ndir))
-    mom(:) = var_set_momentum(ndir)
-
     ! set magnetic field as flux variables
     allocate(mag(ndir))
     mag(:) = var_set_bfield(ndir)
@@ -232,8 +225,18 @@ contains
       psi_ = -1
     end if
 
+    ! set velocity field as flux variables
+    allocate(mom(ndir))
+    mom(:) = var_set_momentum(ndir)
+  
+    ! Number of variables need reconstruction in w
+    nw_recon=nwflux
+
     ! set number of variables which need update ghostcells
     nwgc=nwflux-ndir
+
+    ! remove velocity field from flux variables
+    nwflux=nwflux-ndir
 
     ! set the index of the last flux variable for species 1
     stop_indices(1)=nwflux
@@ -262,7 +265,6 @@ contains
     phys_get_cmax            => mf_get_cmax
     phys_get_cbounds         => mf_get_cbounds
     phys_get_flux            => mf_get_flux
-    phys_get_v               => mf_get_v
     phys_add_source_geom     => mf_add_source_geom
     phys_add_source          => mf_add_source
     phys_to_conserved        => mf_to_conserved
@@ -393,34 +395,6 @@ contains
     ! nothing to do for mf
   end subroutine mf_to_primitive
 
-  !> Calculate v vector
-  subroutine mf_get_v(w,x,ixI^L,ixO^L,v)
-    use mod_global_parameters
-
-    integer, intent(in)           :: ixI^L, ixO^L
-    double precision, intent(in)  :: w(ixI^S,nw), x(ixI^S,1:ndim)
-    double precision, intent(out) :: v(ixI^S,ndir)
-
-    integer :: idir
-
-    do idir=1,ndir
-      v(ixO^S,idir) = w(ixO^S, mom(idir))
-    end do
-
-  end subroutine mf_get_v
-
-  !> Calculate v component
-  subroutine mf_get_v_idim(w,x,ixI^L,ixO^L,idim,v)
-    use mod_global_parameters
-
-    integer, intent(in)           :: ixI^L, ixO^L, idim
-    double precision, intent(in)  :: w(ixI^S,nw), x(ixI^S,1:ndim)
-    double precision, intent(out) :: v(ixI^S)
-
-    v(ixO^S) = w(ixO^S, mom(idim))
-
-  end subroutine mf_get_v_idim
-
   !> Calculate cmax_idim=csound+abs(v_idim) within ixO^L
   subroutine mf_get_cmax(w,x,ixI^L,ixO^L,idim,cmax)
     use mod_global_parameters
@@ -511,19 +485,6 @@ contains
 
   end subroutine mf_get_ct_velocity
 
-  !> Calculate total pressure within ixO^L including magnetic pressure
-  subroutine mf_get_p_total(w,x,ixI^L,ixO^L,p)
-    use mod_global_parameters
-
-    integer, intent(in)             :: ixI^L, ixO^L
-    double precision, intent(in)    :: w(ixI^S,nw)
-    double precision, intent(in)    :: x(ixI^S,1:ndim)
-    double precision, intent(out)   :: p(ixI^S)
-
-    p(ixO^S) = 0.5d0 * sum(w(ixO^S, mag(:))**2, dim=ndim+1)
-
-  end subroutine mf_get_p_total
-
   !> Calculate fluxes within ixO^L.
   subroutine mf_get_flux(wC,w,x,ixI^L,ixO^L,idim,f)
     use mod_global_parameters
@@ -595,8 +556,8 @@ contains
     type_recv_r=>type_recv_r_p1
     type_send_p=>type_send_p_p1
     type_recv_p=>type_recv_p_p1
-    bcphys=.false.
     stagger_grid=.false.
+    bcphys=.false.
     call getbc(qt,0.d0,psa,mom(1),ndir,.true.)
     bcphys=.true.
     type_send_srl=>type_send_srl_f
@@ -995,18 +956,16 @@ contains
     integer, intent(in)             :: ixI^L, ixO^L
     double precision, intent(in)    :: qdt,   wCT(ixI^S,1:nw), x(ixI^S,1:ndim)
     double precision, intent(inout) :: w(ixI^S,1:nw)
-    double precision                :: divb(ixI^S),v(ixI^S,1:ndir)
+
+    double precision                :: divb(ixI^S)
     integer                         :: idir
 
     ! We calculate now div B
     call get_divb(wCT,ixI^L,ixO^L,divb, mf_divb_4thorder)
 
-    ! calculate velocity
-    call mf_get_v(wCT,x,ixI^L,ixO^L,v)
-
     ! b = b - qdt v * div b
     do idir=1,ndir
-      w(ixO^S,mag(idir))=w(ixO^S,mag(idir))-qdt*v(ixO^S,idir)*divb(ixO^S)
+      w(ixO^S,mag(idir))=w(ixO^S,mag(idir))-qdt*wCT(ixO^S,mom(idir))*divb(ixO^S)
     end do
 
   end subroutine add_source_powel
@@ -1019,18 +978,15 @@ contains
     integer, intent(in)             :: ixI^L, ixO^L
     double precision, intent(in)    :: qdt,   wCT(ixI^S,1:nw), x(ixI^S,1:ndim)
     double precision, intent(inout) :: w(ixI^S,1:nw)
-    double precision                :: divb(ixI^S),v(ixI^S,1:ndir)
+    double precision                :: divb(ixI^S)
     integer                         :: idir
 
     ! We calculate now div B
     call get_divb(wCT,ixI^L,ixO^L,divb, mf_divb_4thorder)
 
-    ! calculate velocity
-    call mf_get_v(wCT,x,ixI^L,ixO^L,v)
-
     ! b = b - qdt v * div b
     do idir=1,ndir
-      w(ixO^S,mag(idir))=w(ixO^S,mag(idir))-qdt*v(ixO^S,idir)*divb(ixO^S)
+      w(ixO^S,mag(idir))=w(ixO^S,mag(idir))-qdt*wCT(ixO^S,mom(idir))*divb(ixO^S)
     end do
 
   end subroutine add_source_janhunen
@@ -1116,7 +1072,7 @@ contains
     integer :: ixA^L,idims
 
     call get_divb(w,ixI^L,ixO^L,divb)
-    invB(ixO^S)=sqrt(mf_mag_en_all(w,ixI^L,ixO^L))
+    invB(ixO^S)=sqrt(sum(w(ixO^S, mag(:))**2, dim=ndim+1))
     where(invB(ixO^S)/=0.d0)
       invB(ixO^S)=1.d0/invB(ixO^S)
     end where
@@ -1279,36 +1235,6 @@ contains
     end select
 
   end subroutine mf_add_source_geom
-
-  !> Compute 2 times total magnetic energy
-  function mf_mag_en_all(w, ixI^L, ixO^L) result(mge)
-    use mod_global_parameters
-    integer, intent(in)           :: ixI^L, ixO^L
-    double precision, intent(in)  :: w(ixI^S, nw)
-    double precision              :: mge(ixO^S)
-
-    mge = sum(w(ixO^S, mag(:))**2, dim=ndim+1)
-  end function mf_mag_en_all
-
-  !> Compute full magnetic field by direction
-  function mf_mag_i_all(w, ixI^L, ixO^L,idir) result(mgf)
-    use mod_global_parameters
-    integer, intent(in)           :: ixI^L, ixO^L, idir
-    double precision, intent(in)  :: w(ixI^S, nw)
-    double precision              :: mgf(ixO^S)
-
-    mgf = w(ixO^S, mag(idir))
-  end function mf_mag_i_all
-
-  !> Compute evolving magnetic energy
-  function mf_mag_en(w, ixI^L, ixO^L) result(mge)
-    use mod_global_parameters, only: nw, ndim
-    integer, intent(in)           :: ixI^L, ixO^L
-    double precision, intent(in)  :: w(ixI^S, nw)
-    double precision              :: mge(ixO^S)
-
-    mge = 0.5d0 * sum(w(ixO^S, mag(:))**2, dim=ndim+1)
-  end function mf_mag_en
 
   subroutine mf_modify_wLR(ixI^L,ixO^L,qt,wLC,wRC,wLp,wRp,s,idir)
     use mod_global_parameters
@@ -2385,22 +2311,26 @@ contains
     integer, intent(in)                :: ixO^L
     type(state)                        :: s
 
-    integer                            :: fxO^L, gxO^L, hxO^L, jxO^L, kxO^L, idim
-
-    associate(w=>s%w, ws=>s%ws)
+    integer :: ix^D
 
     ! calculate cell-center values from face-center values in 2nd order
-    do idim=1,ndim
-      ! Displace index to the left
-      ! Even if ixI^L is the full size of the w arrays, this is ok
-      ! because the staggered arrays have an additional place to the left.
-      hxO^L=ixO^L-kr(idim,^D);
-      ! Interpolate to cell barycentre using arithmetic average
-      ! This might be done better later, to make the method less diffusive.
-      w(ixO^S,mag(idim))=half/s%surface(ixO^S,idim)*&
-        (ws(ixO^S,idim)*s%surfaceC(ixO^S,idim)&
-        +ws(hxO^S,idim)*s%surfaceC(hxO^S,idim))
-    end do
+   {!dir$ ivdep
+    do ix^DB=ixOmin^DB,ixOmax^DB\}
+      {^IFTHREED
+      s%w(ix^D,mag(1))=half/s%surface(ix^D,1)*(s%ws(ix^D,1)*s%surfaceC(ix^D,1)&
+        +s%ws(ix1-1,ix2,ix3,1)*s%surfaceC(ix1-1,ix2,ix3,1))
+      s%w(ix^D,mag(2))=half/s%surface(ix^D,2)*(s%ws(ix^D,2)*s%surfaceC(ix^D,2)&
+        +s%ws(ix1,ix2-1,ix3,2)*s%surfaceC(ix1,ix2-1,ix3,2))
+      s%w(ix^D,mag(3))=half/s%surface(ix^D,3)*(s%ws(ix^D,3)*s%surfaceC(ix^D,3)&
+        +s%ws(ix1,ix2,ix3-1,3)*s%surfaceC(ix1,ix2,ix3-1,3))
+      }
+      {^IFTWOD
+      s%w(ix^D,mag(1))=half/s%surface(ix^D,1)*(s%ws(ix^D,1)*s%surfaceC(ix^D,1)&
+        +s%ws(ix1-1,ix2,1)*s%surfaceC(ix1-1,ix2,1))
+      s%w(ix^D,mag(2))=half/s%surface(ix^D,2)*(s%ws(ix^D,2)*s%surfaceC(ix^D,2)&
+        +s%ws(ix1,ix2-1,2)*s%surfaceC(ix1,ix2-1,2))
+      }
+   {end do\}
 
     ! calculate cell-center values from face-center values in 4th order
     !do idim=1,ndim
@@ -2433,8 +2363,6 @@ contains
     !       -25.0d0*ws(jxO^S,idim)*s%surfaceC(jxO^S,idim) &
     !        +3.0d0*ws(kxO^S,idim)*s%surfaceC(kxO^S,idim) )
     !end do
-
-    end associate
 
   end subroutine mf_face_to_center
 

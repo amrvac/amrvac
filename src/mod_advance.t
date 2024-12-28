@@ -625,10 +625,6 @@ contains
     double precision, intent(in) :: qt
     integer, intent(in) :: method(nlevelshi)
 
-    ! cell face flux
-    double precision :: fC(ixG^T,1:nwflux,1:ndim)
-    ! cell edge flux
-    double precision :: fE(ixG^T,sdim:3)
     double precision :: qdt
     integer :: iigrid, igrid
 
@@ -644,21 +640,8 @@ contains
     do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
       block=>ps(igrid)
       ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
-
-      call advect1_grid(method(block%level),qdt,dtfactor,ixG^LL,idim^LIM,&
-        qtC,psa(igrid),qt,psb(igrid),fC,fE,rnode(rpdx1_:rnodehi,igrid),ps(igrid)%x)
-
-      ! opedit: Obviously, flux is stored only for active grids.
-      ! but we know in fix_conserve wether there is a passive neighbor
-      ! but we know in conserve_fix wether there is a passive neighbor
-      ! via neighbor_active(i^D,igrid) thus we skip the correction for those.
-      ! This violates strict conservation when the active/passive interface
-      ! coincides with a coarse/fine interface.
-      if (fix_conserve_global .and. fix_conserve_at_step) then
-        call store_flux(igrid,fC,idim^LIM,nwflux)
-        if(stagger_grid) call store_edge(igrid,ixG^LL,fE,idim^LIM)
-      end if
-
+      call advect1_grid(igrid,method(block%level),qdt,dtfactor,ixG^LL,idim^LIM,&
+        qtC,psa(igrid),qt,psb(igrid),rnode(rpdx1_:rnodehi,igrid),ps(igrid)%x)
     end do
     !$OMP END PARALLEL DO
 
@@ -686,7 +669,7 @@ contains
   end subroutine advect1
 
   !> Advance a single grid over one partial time step
-  subroutine advect1_grid(method,qdt,dtfactor,ixI^L,idim^LIM,qtC,sCT,qt,s,fC,fE,dxs,x)
+  subroutine advect1_grid(igrid,method,qdt,dtfactor,ixI^L,idim^LIM,qtC,sCT,qt,s,dxs,x)
 
     !  integrate one grid by one partial step
     use mod_finite_volume
@@ -696,14 +679,18 @@ contains
     use mod_physics, only: phys_to_primitive
     use mod_global_parameters
     use mod_comm_lib, only: mpistop
+    use mod_fix_conserve
 
-    integer, intent(in) :: method
+    integer, intent(in) :: igrid,method
     integer, intent(in) :: ixI^L, idim^LIM
     double precision, intent(in) :: qdt, dtfactor, qtC, qt, dxs(ndim), x(ixI^S,1:ndim)
     type(state), target          :: sCT, s
-    double precision :: fC(ixI^S,1:nwflux,1:ndim), wprim(ixI^S,1:nw)
-    double precision :: fE(ixI^S,sdim:3)
 
+    ! cell face flux
+    double precision :: fC(ixI^S,1:nwflux,1:ndim)
+    ! cell edge flux
+    double precision :: fE(ixI^S,sdim:3)
+    double precision :: wprim(ixI^S,1:nw)
     integer :: ixO^L
 
     ixO^L=ixI^L^LSUBnghostcells;
@@ -730,6 +717,17 @@ contains
     case default
        call mpistop("unknown flux scheme in advect1_grid")
     end select
+
+    ! opedit: Obviously, flux is stored only for active grids.
+    ! but we know in fix_conserve wether there is a passive neighbor
+    ! but we know in conserve_fix wether there is a passive neighbor
+    ! via neighbor_active(i^D,igrid) thus we skip the correction for those.
+    ! This violates strict conservation when the active/passive interface
+    ! coincides with a coarse/fine interface.
+    if (fix_conserve_global .and. fix_conserve_at_step) then
+      call store_flux(igrid,fC,idim^LIM,nwflux)
+      if(stagger_grid) call store_edge(igrid,ixG^LL,fE,idim^LIM)
+    end if
 
   end subroutine advect1_grid
 

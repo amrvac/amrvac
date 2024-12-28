@@ -19,6 +19,9 @@ module mod_variables
   !> Number of extra variables in wextra seperated from w
   integer           :: nw_extra = 0
 
+  !> Number of variables need reconstruction in w
+  integer           :: nw_recon = 0
+
   !> Total number of variables
   integer           :: nw = 0
 
