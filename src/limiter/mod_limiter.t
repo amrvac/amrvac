@@ -151,12 +151,13 @@ contains
     double precision :: rdelinv
     double precision :: ldwA(ixI^S),ldwB(ixI^S),tmpeta(ixI^S)
     double precision, parameter :: cadepsilon=1.d-14, invcadepsilon=1.d14,cada3_radius=0.1d0
-    integer :: ixO^L, hxO^L, ix^D
+    integer :: ixO^L, hxO^L, ix^D, hx^D
     !-----------------------------------------------------------------------------
 
     ! Contract indices in idim for output.
     ixOmin^D=ixCmin^D+kr(idims,^D); ixOmax^D=ixCmax^D;
     hxO^L=ixO^L-kr(idims,^D);
+    hx^D=kr(idims,^D);
 
     ! About the notation: the conventional argument theta (the ratio of slopes)
     ! would be given by dwC(ixO^S)/dwC(hxO^S). However, in the end one
@@ -251,44 +252,42 @@ contains
        end if
     case (limiter_cada3)
        rdelinv=one/(cada3_radius*dxlevel(idims))**2
-       tmpeta(ixO^S)=(dwC(ixO^S)**2+dwC(hxO^S)**2)*rdelinv
-       if (present(ldw)) then
-          tmp(ixO^S)=dwC(hxO^S)/(dwC(ixO^S) + sign(eps, dwC(ixO^S)))
-          ldwA(ixO^S)=(two+tmp(ixO^S))*third
-          where(tmpeta(ixO^S)<=one-cadepsilon)
-             ldw(ixO^S)=ldwA(ixO^S)
-          elsewhere(tmpeta(ixO^S)>=one+cadepsilon)
-             ldwB(ixO^S)= max(zero,min(ldwA(ixO^S), max(-cadalfa*tmp(ixO^S), &
-               min(cadbeta*tmp(ixO^S), ldwA(ixO^S), cadgamma))))
-             ldw(ixO^S)=ldwB(ixO^S)
-          elsewhere
-             ldwB(ixO^S)= max(zero,min(ldwA(ixO^S), max(-cadalfa*tmp(ixO^S), &
-               min(cadbeta*tmp(ixO^S), ldwA(ixO^S), cadgamma))))
-             tmp2(ixO^S)=(tmpeta(ixO^S)-one)*invcadepsilon
-             ldw(ixO^S)=half*( (one-tmp2(ixO^S))*ldwA(ixO^S) &
-                  +(one+tmp2(ixO^S))*ldwB(ixO^S))
-          endwhere
-          ldw(ixO^S)=ldw(ixO^S) * dwC(ixO^S)
-       end if
-
-       if (present(rdw)) then
-          tmp(ixO^S)=dwC(ixO^S)/(dwC(hxO^S) + sign(eps, dwC(hxO^S)))
-          ldwA(ixO^S)=(two+tmp(ixO^S))*third
-          where(tmpeta(ixO^S)<=one-cadepsilon)
-             rdw(ixO^S)=ldwA(ixO^S)
-          elsewhere(tmpeta(ixO^S)>=one+cadepsilon)
-             ldwB(ixO^S)= max(zero,min(ldwA(ixO^S), max(-cadalfa*tmp(ixO^S), &
-               min(cadbeta*tmp(ixO^S), ldwA(ixO^S), cadgamma))))
-             rdw(ixO^S)=ldwB(ixO^S)
-          elsewhere
-             ldwB(ixO^S)= max(zero,min(ldwA(ixO^S), max(-cadalfa*tmp(ixO^S), &
-               min(cadbeta*tmp(ixO^S), ldwA(ixO^S), cadgamma))))
-             tmp2(ixO^S)=(tmpeta(ixO^S)-one)*invcadepsilon
-             rdw(ixO^S)=half*( (one-tmp2(ixO^S))*ldwA(ixO^S) &
-                  +(one+tmp2(ixO^S))*ldwB(ixO^S))
-          endwhere
-          rdw(ixO^S)=rdw(ixO^S) * dwC(hxO^S)
-       end if
+      {!DEC$ VECTOR ALWAYS
+       do ix^DB=ixOmin^DB,ixOmax^DB\}
+         tmpeta(ix^D)=(dwC(ix^D)**2+dwC(ix^D-hx^D)**2)*rdelinv
+         if (present(ldw)) then
+            tmp(ix^D)=dwC(ix^D-hx^D)/(dwC(ix^D)+sign(eps,dwC(ix^D)))
+            ldwA(ix^D)=(two+tmp(ix^D))*third
+            if(tmpeta(ix^D)<=one-cadepsilon) then
+              ldw(ix^D)=ldwA(ix^D)
+            else if(tmpeta(ix^D)>=one+cadepsilon) then
+              ldw(ix^D)=max(zero,min(ldwA(ix^D),max(-cadalfa*tmp(ix^D),&
+                min(cadbeta*tmp(ix^D),ldwA(ix^D),cadgamma))))
+            else
+              tmp2(ix^D)=(tmpeta(ix^D)-one)*invcadepsilon
+              ldw(ix^D)=half*((one-tmp2(ix^D))*ldwA(ix^D)+(one+tmp2(ix^D))*&
+                max(zero,min(ldwA(ix^D),max(-cadalfa*tmp(ix^D),&
+                  min(cadbeta*tmp(ix^D),ldwA(ix^D),cadgamma)))))
+            end if
+            ldw(ix^D)=ldw(ix^D)*dwC(ix^D)
+         end if
+         if (present(rdw)) then
+            tmp(ix^D)=dwC(ix^D)/(dwC(ix^D-hx^D)+sign(eps,dwC(ix^D-hx^D)))
+            ldwA(ix^D)=(two+tmp(ix^D))*third
+            if(tmpeta(ix^D)<=one-cadepsilon) then
+              rdw(ix^D)=ldwA(ix^D)
+            else if(tmpeta(ix^D)>=one+cadepsilon) then
+              rdw(ix^D)=max(zero,min(ldwA(ix^D),max(-cadalfa*tmp(ix^D),&
+                min(cadbeta*tmp(ix^D),ldwA(ix^D),cadgamma))))
+            else
+              tmp2(ix^D)=(tmpeta(ix^D)-one)*invcadepsilon
+              rdw(ix^D)=half*((one-tmp2(ix^D))*ldwA(ix^D)+(one+tmp2(ix^D))*&
+                max(zero,min(ldwA(ix^D),max(-cadalfa*tmp(ix^D),&
+                  min(cadbeta*tmp(ix^D),ldwA(ix^D),cadgamma)))))
+            end if
+            rdw(ix^D)=rdw(ix^D)*dwC(ix^D-hx^D)
+         end if
+      {end do\}
     case(limiter_schmid)
       tmpeta(ixO^S)=(sqrt(0.4d0*(dwC(ixO^S)**2+dwC(hxO^S)**2)))&
         /((a2max+cadepsilon)*dxlevel(idims)**2)
