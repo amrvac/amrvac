@@ -166,6 +166,7 @@ module mod_global_parameters
 
   !> Corner coordinates
   double precision, allocatable :: rnode(:,:)
+  !$acc declare create(rnode)
   double precision, allocatable :: rnode_sub(:,:)
 
   double precision, allocatable :: dx(:,:)

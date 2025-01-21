@@ -71,7 +71,7 @@ contains
       double precision                          :: dxs(ndim)
       !$acc declare create(dxs,dxinv)
 
-      !$acc parallel loop private(wCT, wnew, fC, fLC, fRC, wprim, x, wRp, wLp, wLC, wRC, cmaxC, cminC, Hspeed, dxinv, dxs)
+      !$acc parallel loop private(fC, fLC, fRC, wprim, x, wRp, wLp, wLC, wRC, cmaxC, cminC, Hspeed, dxinv, dxs)
       do iigrid = 1, igridstail_active
          igrid = igrids_active(iigrid)
 

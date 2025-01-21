@@ -77,8 +77,8 @@ contains
     fix_conserve_at_step = time_advance .and. levmax>levmin
     
     ! OpenACC data region to manage data movement
-    !$acc update device(bg(1)%w, bg(2)%w)
-    print*,'bg start', bg(1)%w(28,41,3,1), '  *** ', bg(2)%w(28,41,3,1), ' *** ', bg(3)%w(28,41,3,1)
+!    !$acc update device(bg(1)%w, bg(2)%w)
+!    print*,'bg start', bg(1)%w(28,41,3,1), '  *** ', bg(2)%w(28,41,3,1), ' *** ', bg(3)%w(28,41,3,1)
 
     ! copy w instead of wold because of potential use of dimsplit or sourcesplit
     !$OMP PARALLEL DO PRIVATE(igrid)
@@ -97,7 +97,7 @@ contains
     end do
     !$OMP END PARALLEL DO
 
-    !$acc update self(bg(1)%w, bg(2)%w)
+!    !$acc update self(bg(1)%w, bg(2)%w)
     istep = 0
 
      select case (t_stepper)
@@ -110,7 +110,7 @@ contains
          
           ! TODO call advect1 with bg(2) instead of ps1 ??? 
           call advect1(flux_method,rk_beta11, idim^LIM,global_time,ps,bg(1),global_time,ps1,bg(2))
-         !$acc update device(bg(1)%w, bg(2)%w, bg(3)%w)
+!         !$acc update device(bg(1)%w, bg(2)%w, bg(3)%w)
           !$OMP PARALLEL DO PRIVATE(igrid)
            do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
               !$acc parallel loop collapse(ndim+1) present(bg)
@@ -122,12 +122,12 @@ contains
               if(stagger_grid) ps2(igrid)%ws=rk_alfa21*ps(igrid)%ws+rk_alfa22*ps1(igrid)%ws
            end do
           !$OMP END PARALLEL DO
-          !$acc update self(bg(1)%w, bg(2)%w, bg(3)%w)
+!          !$acc update self(bg(1)%w, bg(2)%w, bg(3)%w)
 
           ! TODO call advect1 with bg(3) instead of ps2 ??? 
           call advect1(flux_method,rk_beta22, idim^LIM,global_time+rk_c2*dt,ps1,bg(2),global_time+rk_alfa22*rk_c2*dt,ps2,bg(3))
 
-          !$acc update device(bg(1)%w, bg(2)%w, bg(3)%w)
+!          !$acc update device(bg(1)%w, bg(2)%w, bg(3)%w)
           !$OMP PARALLEL DO PRIVATE(igrid)
            do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
               !$acc parallel loop collapse(ndim+1) present(bg)
@@ -139,13 +139,13 @@ contains
               if(stagger_grid) ps(igrid)%ws=rk_alfa31*ps(igrid)%ws+rk_alfa33*ps2(igrid)%ws
            end do
           !$OMP END PARALLEL DO
-          !$acc update self(bg(1)%w, bg(2)%w, bg(3)%w)
+!          !$acc update self(bg(1)%w, bg(2)%w, bg(3)%w)
 
           ! TODO call advect1 with bg(1) instead of ps ??? 
           call advect1(flux_method,rk_beta33, &
                 idim^LIM,global_time+rk_c3*dt,ps2,bg(3),global_time+(1.0d0-rk_beta33)*dt,ps,bg(1))
-          !$acc update host(bg(1)%w, bg(2)%w, bg(3)%w)
-          print*, 'advect, 6. called afvect1 with bg(3) and bg(1)', bg(1)%w(28,41,3,1), bg(2)%w(28,41,3,1), bg(3)%w(28,41,3,1)
+!          !$acc update host(bg(1)%w, bg(2)%w, bg(3)%w)
+!          print*, 'advect, 6. called afvect1 with bg(3) and bg(1)', bg(1)%w(28,41,3,1), bg(2)%w(28,41,3,1), bg(3)%w(28,41,3,1)
   
         case default
            call mpistop("unkown threestep time_integrator in advect")

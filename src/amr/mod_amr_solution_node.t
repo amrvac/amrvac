@@ -161,7 +161,7 @@ contains
     ! set dx information
     ^D&rnode(rpdx^D_,igrid)=dx(^D,level)\
     dxlevel(:)=dx(:,level)
-    !$acc update device(^D&rnode(rpdx^D_,igrid))
+    !$acc update device(^D&rnode(rpdx^D_,igrid), dxlevel)
   
     ! uniform cartesian case as well as all unstretched coordinates
     ! determine the minimal and maximal corners
