@@ -23,6 +23,8 @@ contains
     use mod_amr_solution_node, only: alloc_node
  
     integer :: iigrid, igrid{#IFDEF EVOLVINGBOUNDARY , Morton_no}
+    !opedit: debug
+    integer :: idebg
   
     levmin=1
     levmax=1
@@ -34,9 +36,25 @@ contains
   
     ! fill solution space of all root grids
     do iigrid=1,igridstail; igrid=igrids(iigrid);
+
+       do idebg=1,igrid-1
+          print *, 'initlevelone pre-alloc_node', idebg, ps(idebg)%w(4,4,1), bg(1)%w(4,4,1,idebg)
+       end do
+
        call alloc_node(igrid)
+
+       do idebg=1,igrid
+          print *, 'initlevelone post-alloc_node', idebg, ps(idebg)%w(4,4,1), bg(1)%w(4,4,1,idebg)
+       end do
+
        ! in case gradient routine used in initial condition, ensure geometry known
        call initial_condition(igrid)
+       print *, 'initlevelone current igrid', igrid, ps(igrid)%w(4,4,1), bg(1)%w(4,4,1,igrid)
+
+       do idebg=1,igrid
+          print *, 'initlevelone', idebg, ps(idebg)%w(4,4,1), bg(1)%w(4,4,1,idebg)
+       end do
+       
     end do
     {#IFDEF EVOLVINGBOUNDARY
     ! mark physical-boundary blocks on space-filling curve
@@ -48,9 +66,17 @@ contains
                        MPI_SUM,icomm,ierrmpi)
     }
   
+    print *, 'initlevelone pre-getbc', 1, ps(1)%w(4,4,1), bg(1)%w(4,4,1,1)
+    print *, 'initlevelone pre-getbc', 2, ps(2)%w(4,4,1), bg(1)%w(4,4,1,2)
+    print *, 'initlevelone pre-getbc', 3, ps(3)%w(4,4,1), bg(1)%w(4,4,1,3)
+    print *, 'initlevelone pre-getbc', 4, ps(4)%w(4,4,1), bg(1)%w(4,4,1,4)
     ! update ghost cells
     call getbc(global_time,0.d0,ps,iwstart,nwgc)
-  
+    print *, 'initlevelone getbc', 1, ps(1)%w(4,4,1), bg(1)%w(4,4,1,1)
+    print *, 'initlevelone getbc', 2, ps(2)%w(4,4,1), bg(1)%w(4,4,1,2)
+    print *, 'initlevelone getbc', 3, ps(3)%w(4,4,1), bg(1)%w(4,4,1,3)
+    print *, 'initlevelone getbc', 4, ps(4)%w(4,4,1), bg(1)%w(4,4,1,4)
+    
   end subroutine initlevelone
   
   !> fill in initial condition

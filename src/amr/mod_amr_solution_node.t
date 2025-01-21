@@ -16,8 +16,6 @@ contains
     use mod_forest, only: igrid_inuse
     use mod_global_parameters
 
-    !$acc declare present(node)
-
     integer, intent(in) :: ipe
     integer :: igrid, igrid_available
   
@@ -69,8 +67,6 @@ contains
     use mod_physics, only: phys_set_equi_vars
     use mod_b0, only: set_B0_grid 
     
-    !$acc declare present(node)
-
     integer, intent(in) :: igrid
   
     integer :: level, ig^D, ign^D, ixCoG^L, ix, i^D
@@ -82,7 +78,10 @@ contains
     double precision :: exp_factor_ext(ixGlo1-1:ixGhi1+1),del_exp_factor_ext(ixGlo1-1:ixGhi1+1),exp_factor_primitive_ext(ixGlo1-1:ixGhi1+1)
     double precision :: xc(ixGlo1:ixGhi1),delxc(ixGlo1:ixGhi1)
     double precision :: exp_factor_coarse(ixGlo1:ixGhi1),del_exp_factor_coarse(ixGlo1:ixGhi1),exp_factor_primitive_coarse(ixGlo1:ixGhi1)
-  
+
+    !opedit: debug:
+    integer     :: idbg
+    
     ixCoGmin^D=1;
     ixCoGmax^D=(ixGhi^D-2*nghostcells)/2+2*nghostcells;
   
@@ -106,7 +105,13 @@ contains
     if(.not. associated(ps(igrid)%w)) then
        
        ! allocate arrays for solution and space
+       do idbg=1,igrid-1
+          print *, 'alloc_node pre  alloc_state', igrid, idbg, ps(idbg)%w(4,4,1), bg(1)%w(4,4,1,idbg)
+       end do
        call alloc_state(igrid, ps(igrid), ixG^LL, ixGext^L, .true.)
+       do idbg=1,igrid
+          print *, 'alloc_node post alloc_state', igrid, idbg, ps(idbg)%w(4,4,1), bg(1)%w(4,4,1,idbg)
+       end do
        ! allocate arrays for one level coarser solution
        call alloc_state_coarse(igrid, psc(igrid), ixCoG^L, ixCoG^L)
        if(.not.convert) then
@@ -592,12 +597,20 @@ contains
     integer, intent(in) :: igrid, ixG^L, ixGext^L
     logical, intent(in) :: alloc_once_for_ps
     integer             :: ixGs^L
+    !opedit: debug:
+    integer             :: idbg
   
     !allocate(s%w(ixG^S,1:nw))
+    do idbg=1,igrid-1
+       print *, 'alloc_state A', s%istep, igrid, idbg, bg(s%istep)%w(4,4,1,idbg), ps(idbg)%w(4,4,1), associated(s%w)
+    end do
     s%w => bg(s%istep)%w(:^D&,:,igrid)
     s%igrid=igrid
     s%w=0.d0
     s%ixG^L=ixG^L;
+    do idbg=1,igrid
+       print *, 'alloc_state B', s%istep, igrid, idbg, bg(s%istep)%w(4,4,1,idbg), ps(idbg)%w(4,4,1), s%w(4,4,1)
+    end do
     {^D& ixGsmin^D = ixGmin^D-1; ixGsmax^D = ixGmax^D|;}
     if(stagger_grid) then
       allocate(s%ws(ixGs^S,1:nws))

@@ -162,9 +162,6 @@ contains
 
             end do ! Next idims
 
-            call addsource2(qdt*dble(idimsmax - idimsmin + 1)/dble(ndim), &
-                            dtfactor*dble(idimsmax - idimsmin + 1)/dble(ndim), &
-                            ixI^L, ixO^L, 1, nw, qtC, wCT, wprim, qt, wnew, x, .false., active)
          end associate
       end do   ! igrid
 
@@ -179,7 +176,6 @@ contains
       use mod_comm_lib, only: mpistop
       use mod_hd_phys, only: hd_to_conserved_gpu
 
-      !$acc declare present(node)
       !$acc routine
 
       integer, value, intent(in) :: ixI^L, ixL^L, ixR^L, idims, igrid

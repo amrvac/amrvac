@@ -24,9 +24,9 @@ module mod_physicaldata
      !> If it face a physical boundary
      logical, dimension(:), pointer :: is_physical_boundary(:) =>Null()
      !> Variables, normally cell center conservative values
-     double precision, dimension(:^D&,:), pointer, contiguous :: w => Null()
+     double precision, dimension(:^D&,:), pointer :: w => Null()
      !> Variables, cell face values
-     double precision, dimension(:^D&,:), pointer, contiguous :: ws => Null()
+     double precision, dimension(:^D&,:), pointer :: ws => Null()
      !> Variables, cell edge values
      double precision, dimension(:^D&,:), allocatable :: we
      !> Variables, cell corner values

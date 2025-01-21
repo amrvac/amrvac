@@ -19,10 +19,13 @@ module mod_connectivity
    integer, dimension(:), allocatable :: igrids
    integer, dimension(:), allocatable :: igrids_active
    integer, dimension(:), allocatable :: igrids_passive
+   !$acc declare create(igrids, igrids_active, igrids_passive)
+   
    ! number of grids on current processor
    integer :: igridstail
    integer :: igridstail_active
    integer :: igridstail_passive
+   !$acc declare create(igridstail, igridstail_active, igridstail_passive)
 
    integer, dimension(^ND) :: nrecv_fc, nsend_fc
    ! cc for corner coarse
