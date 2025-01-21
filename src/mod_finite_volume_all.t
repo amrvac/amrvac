@@ -69,12 +69,11 @@ contains
 
       double precision, dimension(ixI^S, 1:ndim) :: x
       double precision                          :: dxs(ndim)
+      !$acc declare create(dxs,dxinv)
 
-      !$acc parallel loop private(block)
+      !$acc parallel loop private(wCT, wnew, fC, fLC, fRC, wprim, x, wRp, wLp, wLC, wRC, cmaxC, cminC, Hspeed, dxinv, dxs)
       do iigrid = 1, igridstail_active
          igrid = igrids_active(iigrid)
-         block => ps(igrid)
-         !$acc enter data attach(block)
 
          x = ps(igrid)%x
          dxs = rnode(rpdx1_:rnodehi, igrid)
@@ -167,7 +166,6 @@ contains
                             dtfactor*dble(idimsmax - idimsmin + 1)/dble(ndim), &
                             ixI^L, ixO^L, 1, nw, qtC, wCT, wprim, qt, wnew, x, .false., active)
          end associate
-         !$acc exit data detach(block)
       end do   ! igrid
 
    end subroutine finite_volume_all

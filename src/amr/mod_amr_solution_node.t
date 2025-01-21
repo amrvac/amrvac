@@ -42,8 +42,9 @@ contains
     if (ipe==mype) then
        ! initialize node on host and device
        node(1:nodehi,getnode) = 0
-       !$acc update host(node(1:nodehi,getnode))
+       !$acc update device(node(1:nodehi,getnode))
        rnode(1:rnodehi,getnode) = zero
+       !$acc update device(rnode(1:rnodehi,getnode))
     end if
   
   end function getnode
@@ -156,18 +157,20 @@ contains
     node(plevel_,igrid)=level
     ^D&node(pig^D_,igrid)=ig^D\
     !$acc update device(node(plevel_,igrid),^D&node(pig^D_,igrid))
-    !$acc update host(node(plevel_,igrid),^D&node(pig^D_,igrid))
     
     ! set dx information
     ^D&rnode(rpdx^D_,igrid)=dx(^D,level)\
     dxlevel(:)=dx(:,level)
+    !$acc update device(^D&rnode(rpdx^D_,igrid))
   
     ! uniform cartesian case as well as all unstretched coordinates
     ! determine the minimal and maximal corners
     ^D&rnode(rpxmin^D_,igrid)=xprobmin^D+dble(ig^D-1)*dg^D(level)\
     ^D&rnode(rpxmax^D_,igrid)=xprobmin^D+dble(ig^D)*dg^D(level)\
    {if(rnode(rpxmax^D_,igrid)>xprobmax^D) rnode(rpxmax^D_,igrid)=xprobmax^D\}
-  
+
+    !$acc update device( ^D&rnode(rpxmax^D_,igrid), ^D&rnode(rpxmin^D_,igrid) )
+   
     ^D&dx^D=rnode(rpdx^D_,igrid)\
    {do ix=ixGlo^D,ixMhi^D-nghostcells
       ps(igrid)%x(ix^D%ixG^T,^D)=rnode(rpxmin^D_,igrid)+(dble(ix-nghostcells)-half)*dx^D
