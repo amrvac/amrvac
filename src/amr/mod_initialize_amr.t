@@ -66,16 +66,8 @@ contains
                        MPI_SUM,icomm,ierrmpi)
     }
   
-    print *, 'initlevelone pre-getbc', 1, ps(1)%w(4,4,1), bg(1)%w(4,4,1,1)
-    print *, 'initlevelone pre-getbc', 2, ps(2)%w(4,4,1), bg(1)%w(4,4,1,2)
-    print *, 'initlevelone pre-getbc', 3, ps(3)%w(4,4,1), bg(1)%w(4,4,1,3)
-    print *, 'initlevelone pre-getbc', 4, ps(4)%w(4,4,1), bg(1)%w(4,4,1,4)
     ! update ghost cells
     call getbc(global_time,0.d0,ps,iwstart,nwgc)
-    print *, 'initlevelone getbc', 1, ps(1)%w(4,4,1), bg(1)%w(4,4,1,1)
-    print *, 'initlevelone getbc', 2, ps(2)%w(4,4,1), bg(1)%w(4,4,1,2)
-    print *, 'initlevelone getbc', 3, ps(3)%w(4,4,1), bg(1)%w(4,4,1,3)
-    print *, 'initlevelone getbc', 4, ps(4)%w(4,4,1), bg(1)%w(4,4,1,4)
     
   end subroutine initlevelone
   

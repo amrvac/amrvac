@@ -31,7 +31,7 @@ contains
       use mod_source, only: addsource2
       use mod_usr_methods
       use mod_comm_lib, only: mpistop
-      use mod_hd_phys, only: hd_get_flux_gpu, hd_to_primitive_gpu, hd_get_cbounds_gpu, hd_to_conserved_gpu
+      use mod_hd_phys!, only: hd_get_flux_gpu, hd_to_primitive_gpu, hd_get_cbounds_gpu, hd_to_conserved_gpu
 
       integer, intent(in)                                   :: method
       double precision, intent(in)                          :: qdt, dtfactor, qtC, qt
@@ -54,7 +54,7 @@ contains
       !$acc declare create(fLC, fRC)
       double precision, dimension(ixI^S, 1:number_species)      :: cmaxC
       double precision, dimension(ixI^S, 1:number_species)      :: cminC
-      double precision, dimension(ixI^S)      :: Hspeed
+      double precision, dimension(ixI^S, 1:number_species)      :: Hspeed
       !$acc declare create(cmaxC, cminC, Hspeed)
       double precision, dimension(ixO^S)      :: inv_volume
       double precision, dimension(1:ndim)     :: dxinv
@@ -65,11 +65,13 @@ contains
       integer :: ix^D
       double precision, dimension(ixI^S, 1:nwflux)     :: whll, Fhll, fCD
       double precision, dimension(ixI^S)              :: lambdaCD
-      integer  :: rho_, p_, e_, mom(1:ndir), igrid, iigrid
+      integer  :: igrid, iigrid
 
       double precision, dimension(ixI^S, 1:ndim) :: x
       double precision                          :: dxs(ndim)
       !$acc declare create(dxs,dxinv)
+      !opedit debug:
+      integer         :: idbg^D
 
       !$acc parallel loop private(fC, fLC, fRC, wprim, x, wRp, wLp, wLC, wRC, cmaxC, cminC, Hspeed, dxinv, dxs)
       do iigrid = 1, igridstail_active
@@ -78,8 +80,27 @@ contains
          x = ps(igrid)%x
          dxs = rnode(rpdx1_:rnodehi, igrid)
 
-         ! TODO wCT and therefor wprim references need same treatment as sCT%w
          associate (wCT => bga%w(:^D&, :, igrid), wnew => bgb%w(:^D&, :, igrid))
+
+           print *, 'fvolume_all A:', igrid, maxval(wnew(:,:,1)), maxval(wCT(:,:,1))
+            ! if (any(wnew(:,:,1) .ne. wnew(:,:,1)) ) then
+            !    print *, 'NaN found in wnew A'
+            !    do idbg2=ixImin2,ixImax2
+            !       do idbg1=ixImin1,ixImax1
+            !          print *, idbg1, idbg2, wnew(idbg1,idbg2,1)
+            !       end do
+            !    end do
+            ! end if
+            if (any(wnew(:,:,1) .ne. wnew(:,:,1)) ) then
+            print *, 'NaN found in wnew A'
+            print *, igrid, 'wnew A',ixImin1,ixImax1,ixImin2,ixImax2
+               do idbg2=ixImin2,ixImax2
+                  do idbg1=ixImin1,ixImax1
+                     print *, igrid, idbg1, idbg2, wnew(idbg1,idbg2,1)
+                  end do
+               end do
+            end if
+           
             ! The flux calculation contracts by one in the idims direction it is applied.
             ! The limiter contracts the same directions by one more, so expand ixO by 2.
             ix^L=ixO^L; 
@@ -99,6 +120,29 @@ contains
             ! no longer !$acc end kernels
 
             call hd_to_primitive_gpu(ixI^L, ixI^L, wprim, x)
+            print *, 'hd_gamma:', igrid, hd_gamma
+            
+            if (any(wprim(ixI^S,p_) .le. 0.0d0) ) then
+               print *, igrid, 'negative pressure found A-2'
+               do idbg2=ixImin2,ixImax2
+                  do idbg1=ixImin1,ixImax1
+                     if (wprim(idbg1,idbg2,p_) .lt. 0) then
+                        write(*,*), 'wprim p', igrid, idbg1, idbg2, wprim(idbg1,idbg2,p_)
+                     end if
+                  end do
+               end do
+            end if
+
+            if (any(wprim(ixI^S,1) .ne. wprim(ixI^S,1)) ) then
+               print *, igrid, 'NaN found in wprim'
+               do idbg2=ixImin2,ixImax2
+                  do idbg1=ixImin1,ixImax1
+                     if (wprim(idbg1,idbg2,1) .ne. wprim(idbg1,idbg2,1)) then
+                        write(*,*), 'wp', igrid, idbg1, idbg2, wprim(idbg1,idbg2,1)
+                     end if
+                  end do
+               end do
+            end if
 
             do idims = idims^LIM
                ! use interface value of w0 at idims
@@ -118,6 +162,20 @@ contains
                wRp(kxC^S,1:nw)=wprim(kxR^S,1:nw)
                wLp(kxC^S,1:nw)=wprim(kxC^S,1:nw)
 
+               
+               if (any(wRp(kxC^S,p_) .le. 0.0d0) .or. any(wLp(kxC^S,p_) .le. 0.0d0)) then
+                  print *, igrid, 'negative pressure found A-1'
+                  do idbg2=kxCmin2,kxCmax2
+                     do idbg1=kxCmin1,kxCmax1
+                        if (wRp(idbg1,idbg2,p_) .le. 0.0d0 .or. wLp(idbg1,idbg2,p_) .le. 0.0d0) then
+                           write(*,*), 'pR', igrid, idbg1, idbg2, wRp(idbg1,idbg2,p_)
+                           write(*,*), 'pL', igrid, idbg1, idbg2, wLp(idbg1,idbg2,p_)
+                        end if
+                     end do
+                  end do
+               end if
+
+               
                ! Determine stencil size
                ! FIXME: here `phys_wider_stencil` is an integer, not a function pointer
                {ixCRmin^D = max(ixCmin^D - phys_wider_stencil,ixGlo^D) \}
@@ -125,13 +183,107 @@ contains
 
                ! apply limited reconstruction for left and right status at cell interfaces
                call reconstruct_LR_gpu(ixI^L, ixCR^L, ixCR^L, idims, wprim, wLC, wRC, wLp, wRp, x, dxs(idims), igrid)
+               
+               if (any(wLC(ixCR^S,1) .ne. wLC(ixCR^S,1)) .or. any(wLp(ixCR^S,1) .ne. wLp(ixCR^S,1)) ) then
+                  print *, igrid, 'NaN found in wLC'
+                  do idbg2=ixCRmin2,ixCRmax2
+                     do idbg1=ixCRmin1,ixCRmax1
+                        if (wLC(idbg1,idbg2,1) .ne. wLC(idbg1,idbg2,1) .or. wLp(idbg1,idbg2,1) .ne. wLp(idbg1,idbg2,1) ) then
+                           write(*,*), 'wLC', igrid, idbg1, idbg2, wLC(idbg1,idbg2,1)
+                           write(*,*), 'wLp', igrid, idbg1, idbg2, wLp(idbg1,idbg2,1)
+                        end if
+                     end do
+                  end do
+               end if
+               
+               if (any(wRC(ixCR^S,1) .ne. wRC(ixCR^S,1)) .or. any(wRp(ixCR^S,1) .ne. wRp(ixCR^S,1))) then
+                  print *, igrid, 'NaN found in wRC'
+                  do idbg2=ixCRmin2,ixCRmax2
+                     do idbg1=ixCRmin1,ixCRmax1
+                        if (wRC(idbg1,idbg2,1) .ne. wRC(idbg1,idbg2,1) .or. wRp(idbg1,idbg2,1) .ne. wRp(idbg1,idbg2,1) ) then
+                           write(*,*), 'wRC', igrid, idbg1, idbg2, wRC(idbg1,idbg2,1)
+                           write(*,*), 'wRp', igrid, idbg1, idbg2, wRp(idbg1,idbg2,1)
+                        end if
+                     end do
+                  end do
+               end if
+
+               
+               if (any(wRp(ixCR^S,p_) .le. 0.0d0) .or. any(wLp(ixCR^S,p_) .le. 0.0d0)) then
+                  print *, igrid, 'negative pressure found A'
+                  do idbg2=ixCRmin2,ixCRmax2
+                     do idbg1=ixCRmin1,ixCRmax1
+                        if (wRp(idbg1,idbg2,p_) .le. 0.0d0 .or. wLp(idbg1,idbg2,p_) .le. 0.0d0) then
+                           write(*,*), 'pR', igrid, idbg1, idbg2, wRp(idbg1,idbg2,p_)
+                           write(*,*), 'pL', igrid, idbg1, idbg2, wLp(idbg1,idbg2,p_)
+                        end if
+                     end do
+                  end do
+               end if
 
                ! evaluate physical fluxes according to reconstructed status
                call hd_get_flux_gpu(wLC, wLp, x, ixI^L, ixC^L, idims, fLC)
-               call hd_get_flux_gpu(wRC, wRp, x, ixI^L, ixC^L, idims, fRC)
 
+               if (any(fLC(ixC^S,1) .ne. fLC(ixC^S,1)) ) then
+                  print *, 'NaN found in fLC', idims
+                  do idbg2=ixCmin2,ixCmax2
+                     do idbg1=ixCmin1,ixCmax1
+                        if (fLC(idbg1,idbg2,1) .ne. fLC(idbg1,idbg2,1)) then
+                           write(*,*), 'FLC', igrid, idbg1, idbg2, fLC(idbg1,idbg2,1)
+                        end if
+                     end do
+                  end do
+               end if
+
+               call hd_get_flux_gpu(wRC, wRp, x, ixI^L, ixC^L, idims, fRC)
+               
+               if (any(fRC(ixC^S,1) .ne. fRC(ixC^S,1)) ) then
+                  print *, 'NaN found in fRC', idims
+                  do idbg2=ixCmin2,ixCmax2
+                     do idbg1=ixCmin1,ixCmax1
+                        if (fRC(idbg1,idbg2,1) .ne. fRC(idbg1,idbg2,1)) then
+                           write(*,*), 'FRC', igrid, idbg1, idbg2, fRC(idbg1,idbg2,1)
+                        end if
+                     end do
+                  end do
+               end if
+               
+               if (any(wRp(ixCR^S,p_) .le. 0.0d0) .or. any(wLp(ixCR^S,p_) .le. 0.0d0)) then
+                  print *, igrid, 'negative pressure found B'
+                  do idbg2=ixCRmin2,ixCRmax2
+                     do idbg1=ixCRmin1,ixCRmax1
+                        if (wRp(idbg1,idbg2,p_) .le. 0.0d0 .or. wLp(idbg1,idbg2,p_) .le. 0.0d0) then
+                           write(*,*), 'pR', igrid, idbg1, idbg2, wRp(idbg1,idbg2,p_)
+                           write(*,*), 'pL', igrid, idbg1, idbg2, wLp(idbg1,idbg2,p_)
+                        end if
+                     end do
+                  end do
+               end if
+               
                call hd_get_cbounds_gpu(wLC, wRC, wLp, wRp, x, ixI^L, ixC^L, idims, Hspeed, cmaxC, cminC)
 
+               if (any(cmaxC(ixC^S,1) .ne. cmaxC(ixC^S,1)) ) then
+                  print *, 'NaN found in cmaxC', idims
+                  do idbg2=ixCmin2,ixCmax2
+                     do idbg1=ixCmin1,ixCmax1
+                        if (cmaxC(idbg1,idbg2,1) .ne. cmaxC(idbg1,idbg2,1)) then
+                           write(*,*), 'cmax', igrid, idbg1, idbg2, cmaxC(idbg1,idbg2,1)
+                        end if
+                     end do
+                  end do
+               end if
+               
+               if (any(cminC(ixC^S,1) .ne. cminC(ixC^S,1)) ) then
+                  print *, 'NaN found in cminC', idims
+                  do idbg2=ixCmin2,ixCmax2
+                     do idbg1=ixCmin1,ixCmax1
+                        if (cminC(idbg1,idbg2,1) .ne. cminC(idbg1,idbg2,1)) then
+                           write(*,*), 'cmin', igrid, idbg1, idbg2, cminC(idbg1,idbg2,1)
+                        end if
+                     end do
+                  end do
+               end if
+               
                ! use approximate Riemann solver to get flux at interfaces
                do ii = 1, number_species
                   do iw = start_indices(ii), stop_indices(ii)
@@ -149,6 +301,21 @@ contains
                      {end do\}
                   end do
                end do
+
+               
+            if (any(fC(ixC^S,1,idims) .ne. fc(ixC^S,1,idims)) ) then
+               print *, 'NaN found in fC A', idims
+               do idbg2=ixCmin2,ixCmax2
+                  do idbg1=ixCmin1,ixCmax1
+                     if (fC(idbg1,idbg2,1,idims) .ne. fC(idbg1,idbg2,1,idims)) then
+                        write(*,*), 'F', igrid, idbg1, idbg2, fC(idbg1,idbg2,1,idims)
+                        write(*,*), 'A', igrid, idbg1, idbg2, cmaxC(idbg1,idbg2,1)
+                        write(*,*), 'I', igrid, idbg1, idbg2, cminC(idbg1,idbg2,1)
+                     end if
+                  end do
+               end do
+            end if
+               
             end do ! Next idims
 
             b0i = 0
@@ -156,11 +323,32 @@ contains
             do idims = idims^LIM
                hxO^L=ixO^L-kr(idims,^D); 
                fC(ixI^S, 1:nwflux, idims)=dxinv(idims)*fC(ixI^S, 1:nwflux, idims)
+
+               
+            ! if (any(fC(ixI^S,1,idims) .ne. fc(ixI^S,1,idims)) ) then
+            !    print *, 'NaN found in fC B', idims
+            !    do idbg2=ixImin2,ixImax2
+            !       do idbg1=ixImin1,ixImax1
+            !          print *, igrid, idbg1, idbg2, fC(idbg1,idbg2,1,idims)
+            !       end do
+            !    end do
+            ! end if
+               
                !            end if
                wnew(ixO^S, iwstart:nwflux)=wnew(ixO^S, iwstart:nwflux) + &
                                              (fC(ixO^S, iwstart:nwflux, idims) - fC(hxO^S, iwstart:nwflux, idims))
 
             end do ! Next idims
+
+            print *, 'fvolume_all B:', igrid, maxval(wnew(:,:,1)), maxval(wCT(:,:,1))
+            if (any(wnew(:,:,1) .ne. wnew(:,:,1)) ) then
+               print *, 'NaN found in wnew B'
+               do idbg2=ixImin2,ixImax2
+                  do idbg1=ixImin1,ixImax1
+                     print *, idbg1, idbg2, wnew(idbg1,idbg2,1)
+                  end do
+               end do
+            end if
 
          end associate
       end do   ! igrid

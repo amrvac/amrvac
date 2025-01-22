@@ -448,7 +448,7 @@ contains
     integer :: ipole, nwhead, nwtail
     integer :: iigrid, igrid, ineighbor, ipe_neighbor, isizes
     integer :: ixR^L, ixS^L
-    integer :: i^D, n_i^D, ic^D, inc^D, n_inc^D, iib^D, idir
+    integer :: i^D, n_i^D, ic^D, inc^D, n_inc^D, iib^D, idir, istage
     ! store physical boundary indicating index
     integer :: idphyb(ndim,max_blocks)
     integer :: isend_buf(npwbuf), ipwbuf, nghostcellsco
@@ -923,12 +923,28 @@ contains
             ! end if
 
             !opedit: this seems to be working, keeping the other variants (also working) commented just in case:
-            !$acc enter data copyin(psb(igrid)%w, psb(ineighbor)%w)
-            !$acc kernels present(psb(igrid)%w, psb(ineighbor)%w)
-            psb(ineighbor)%w(ixR^S,nwhead:nwtail)=&
-                 psb(igrid)%w(ixS^S,nwhead:nwtail)
+            istage = psb(ineighbor)%istep
+            print *, 'istage:', istage, ineighbor, igrid
+            !$acc enter data copyin(bg(istage)%w)
+            
+            !$acc update host(bg(istage)%w)
+            print *, 'pre GC, istage:', istage
+            print *, 'ineighbor', ineighbor, bg(istage)%w(ixR^S,1,ineighbor)
+            print *, 'igrid', igrid, bg(istage)%w(ixS^S,1,igrid)
+            
+            !$acc kernels present(bg(istage)%w)
+            bg(istage)%w(ixR^S,nwhead:nwtail,ineighbor)=&
+                 bg(istage)%w(ixS^S,nwhead:nwtail,igrid)
+            
+!            psb(ineighbor)%w(ixR^S,nwhead:nwtail)=&
+!                 psb(igrid)%w(ixS^S,nwhead:nwtail)
             !$acc end kernels
-            !$acc exit data delete(psb(igrid)%w) copyout(psb(ineighbor)%w)
+
+            !$acc update host(bg(istage)%w)
+            print *, 'post GC, istage:', istage, bg(istage)%w(ixR^S,1,ineighbor)
+
+            !$acc exit data copyout(bg(istage)%w)
+
 
             
             if(stagger_grid) then
