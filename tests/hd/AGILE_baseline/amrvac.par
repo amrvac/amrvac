@@ -2,7 +2,7 @@
  &filelist
    base_filename    = 'kh_2d'
    autoconvert      = T
-   convert_type     = 'vtuBmpi'
+   convert_type     = 'vtuBCCmpi'
    saveprim         = T
  /
 

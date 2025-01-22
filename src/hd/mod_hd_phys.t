@@ -307,9 +307,7 @@ contains
     phys_handle_small_values => hd_handle_small_values
 
     ! Whether diagonal ghost cells are required for the physics
-    !opedit: debug corner issue
-!    phys_req_diagonal = .false.
-    phys_req_diagonal = .true.
+    phys_req_diagonal = .false.
 
     ! derive units from basic units
     call hd_physical_units()
