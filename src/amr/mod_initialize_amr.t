@@ -37,23 +37,10 @@ contains
     ! fill solution space of all root grids
     do iigrid=1,igridstail; igrid=igrids(iigrid);
 
-       do idebg=1,igrid-1
-          print *, 'initlevelone pre-alloc_node', idebg, ps(idebg)%w(4,4,1), bg(1)%w(4,4,1,idebg)
-       end do
-
        call alloc_node(igrid)
-
-       do idebg=1,igrid
-          print *, 'initlevelone post-alloc_node', idebg, ps(idebg)%w(4,4,1), bg(1)%w(4,4,1,idebg)
-       end do
 
        ! in case gradient routine used in initial condition, ensure geometry known
        call initial_condition(igrid)
-       print *, 'initlevelone current igrid', igrid, ps(igrid)%w(4,4,1), bg(1)%w(4,4,1,igrid)
-
-       do idebg=1,igrid
-          print *, 'initlevelone', idebg, ps(idebg)%w(4,4,1), bg(1)%w(4,4,1,idebg)
-       end do
        
     end do
     {#IFDEF EVOLVINGBOUNDARY

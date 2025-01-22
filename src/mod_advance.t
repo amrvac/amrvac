@@ -247,10 +247,8 @@ contains
         qdt, dtfactor, &                ! some scalars related to time stepping
         ixG^LL,ixO^L, idim^LIM, &      ! bounds for some arrays
         qtC, &                          ! scalar related to time stepping
-        psa, &
         bga, &                          ! first block grid
         qt,  &                          ! scalar related to time stepping
-        psb, &
         bgb, &                          ! second block grid
         fC, fE &                        ! fluxes
     )

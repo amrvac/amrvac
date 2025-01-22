@@ -9,12 +9,12 @@
  &savelist
    itsave(1,1)      = 0
    itsave(1,2)      = 0
-   ditsave_log      = 1
-   ditsave_dat      = 1
+   ditsave_log      = 10
+   dtsave_dat       = 1
  /
 
  &stoplist
-   it_max = 10
+   it_max = 10000
  /
 
  &methodlist
@@ -31,12 +31,12 @@
  /
 
  &meshlist
-   max_blocks         = 4
+   max_blocks         = 1024
    refine_max_level   = 1
-   block_nx1          = 64
-   block_nx2          = 64
-   domain_nx1         = 128
-   domain_nx2         = 128
+   block_nx1          = 16
+   block_nx2          = 16
+   domain_nx1         = 512
+   domain_nx2         = 512
    xprobmin1       = 0.0d0
    xprobmax1       = 1.0d0
    xprobmin2       = 0.0d0
