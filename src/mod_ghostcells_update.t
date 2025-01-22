@@ -891,17 +891,28 @@ contains
             ixS^L=ixS_srl_^L(iib^D,i^D);
             ixR^L=ixR_srl_^L(iib^D,n_i^D);
 
-            istage = psb(ineighbor)%istep
-            ! Copyin since this is also called on the host.
-            ! That should not do anything if the data is already on device.
-            !$acc enter data copyin(bg(istage)%w)
-            !$acc kernels present(bg(istage)%w)
-            bg(istage)%w(ixR^S,nwhead:nwtail,ineighbor)=&
-                 bg(istage)%w(ixS^S,nwhead:nwtail,igrid)
-            !$acc end kernels
-            ! See above, should not do anything if data was already on device /I think/
-            !$acc exit data copyout(bg(istage)%w)
+            ! Debugging corner issues. Does this cause it?
+            ! istage = psb(ineighbor)%istep
+            ! ! Copyin since this is also called on the host.
+            ! ! That should not do anything if the data is already on device.
+            ! !$acc enter data copyin(bg(istage)%w)
+            ! !$acc kernels present(bg(istage)%w)
+            ! bg(istage)%w(ixR^S,nwhead:nwtail,ineighbor)=&
+            !      bg(istage)%w(ixS^S,nwhead:nwtail,igrid)
+            ! !$acc end kernels
+            ! ! See above, should not do anything if data was already on device /I think/
+            ! !$acc exit data copyout(bg(istage)%w)
 
+            !opedit: this seems to be working, keeping the other variants (also working) commented just in case:
+            !$acc enter data copyin(psb(igrid)%w, psb(ineighbor)%w)
+            !$acc kernels present(psb(igrid)%w, psb(ineighbor)%w)
+            psb(ineighbor)%w(ixR^S,nwhead:nwtail)=&
+                 psb(igrid)%w(ixS^S,nwhead:nwtail)
+            !$acc end kernels
+            !$acc exit data delete(psb(igrid)%w) copyout(psb(ineighbor)%w)
+
+
+            
             if(stagger_grid) then
               do idir=1,ndim
                 ixS^L=ixS_srl_stg_^L(idir,i^D);
