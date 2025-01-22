@@ -2130,7 +2130,7 @@ contains
     integer :: idir, ix^D
     logical :: flag(ixI^S,1:nw)
 
-    call phys_check_w(primitive, ixI^L, ixI^L, w, flag)
+    call phys_check_w(primitive, ixI^L, ixO^L, w, flag)
 
     if(any(flag)) then
       select case (small_values_method)
@@ -2196,7 +2196,6 @@ contains
       case default
         if(.not.primitive) then
           !convert w to primitive
-          ! do averaging of internal energy
          {do ix^DB=ixImin^DB,ixImax^DB\}
             if(has_equi_rho0) then
               rho=w(ix^D,rho_)+block%equi_vars(ix^D,equi_rho0_,0)
@@ -2205,7 +2204,7 @@ contains
             end if
             ^C&w(ix^D,m^C_)=w(ix^D,m^C_)/rho\
             w(ix^D,p_)=gamma_1*(w(ix^D,e_)&
-                -half*((^C&w(ix^D,m^C_)**2+)/rho+(^C&w(ix^D,b^C_)**2+)))
+                -half*((^C&w(ix^D,m^C_)**2+)*rho+(^C&w(ix^D,b^C_)**2+)))
          {end do\}
         end if
         call small_values_error(w, x, ixI^L, ixO^L, flag, subname)
