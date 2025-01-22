@@ -65,13 +65,15 @@ contains
       integer :: ix^D
       double precision, dimension(ixI^S, 1:nwflux)     :: whll, Fhll, fCD
       double precision, dimension(ixI^S)              :: lambdaCD
-      integer  :: igrid, iigrid
+      integer  :: igrid, iigrid, ia, ib
 
       double precision, dimension(ixI^S, 1:ndim) :: x
       double precision                          :: dxs(ndim)
       !$acc declare create(dxs,dxinv)
       !opedit debug:
       integer         :: idbg^D
+
+      ia = bga%istep; ib = bgb%istep ! remember, old names map as: wCT => bga, wnew => bgb
 
       !$acc parallel loop private(fC, fLC, fRC, wprim, x, wRp, wLp, wLC, wRC, cmaxC, cminC, Hspeed, dxinv, dxs)
       do iigrid = 1, igridstail_active
@@ -80,9 +82,9 @@ contains
          x = ps(igrid)%x
          dxs = rnode(rpdx1_:rnodehi, igrid)
 
-         associate (wCT => bga%w(:^D&, :, igrid), wnew => bgb%w(:^D&, :, igrid))
-
-           print *, 'fvolume_all A:', igrid, maxval(wnew(:,:,1)), maxval(wCT(:,:,1))
+!         associate (wCT => bga%w(:^D&, :, igrid), wnew => bgb%w(:^D&, :, igrid))
+           
+           print *, 'fvolume_all A:', igrid, maxval(bg(ib)%w(:,:,1,igrid)), maxval(bg(ia)%w(:,:,1,igrid))
             ! if (any(wnew(:,:,1) .ne. wnew(:,:,1)) ) then
             !    print *, 'NaN found in wnew A'
             !    do idbg2=ixImin2,ixImax2
@@ -91,12 +93,12 @@ contains
             !       end do
             !    end do
             ! end if
-            if (any(wnew(:,:,1) .ne. wnew(:,:,1)) ) then
+            if (any(bg(ib)%w(:,:,1,igrid) .ne. bg(ib)%w(:,:,1,igrid)) )  then
             print *, 'NaN found in wnew A'
             print *, igrid, 'wnew A',ixImin1,ixImax1,ixImin2,ixImax2
                do idbg2=ixImin2,ixImax2
                   do idbg1=ixImin1,ixImax1
-                     print *, igrid, idbg1, idbg2, wnew(idbg1,idbg2,1)
+                     print *, igrid, idbg1, idbg2, bg(ib)%w(idbg1,idbg2,1,igrid)
                   end do
                end do
             end if
@@ -116,7 +118,7 @@ contains
             fLC = 0.d0
             fRC = 0.d0
 
-            wprim = wCT
+            wprim = bg(ia)%w(:^D&, :, igrid)
             ! no longer !$acc end kernels
 
             call hd_to_primitive_gpu(ixI^L, ixI^L, wprim, x)
@@ -335,22 +337,22 @@ contains
             ! end if
                
                !            end if
-               wnew(ixO^S, iwstart:nwflux)=wnew(ixO^S, iwstart:nwflux) + &
+               bg(ib)%w(ixO^S, iwstart:nwflux, igrid) = bg(ib)%w(ixO^S, iwstart:nwflux, igrid) + &
                                              (fC(ixO^S, iwstart:nwflux, idims) - fC(hxO^S, iwstart:nwflux, idims))
 
             end do ! Next idims
 
-            print *, 'fvolume_all B:', igrid, maxval(wnew(:,:,1)), maxval(wCT(:,:,1))
-            if (any(wnew(:,:,1) .ne. wnew(:,:,1)) ) then
+            print *, 'fvolume_all B:', igrid, maxval(bg(ib)%w(:,:,1,igrid)), maxval(bg(ia)%w(:,:,1,igrid))
+            if (any(bg(ib)%w(:,:,1,igrid) .ne. bg(ib)%w(:,:,1,igrid)) ) then
                print *, 'NaN found in wnew B'
                do idbg2=ixImin2,ixImax2
                   do idbg1=ixImin1,ixImax1
-                     print *, idbg1, idbg2, wnew(idbg1,idbg2,1)
+                     print *, idbg1, idbg2, bg(ib)%w(idbg1,idbg2,1,igrid)
                   end do
                end do
             end if
 
-         end associate
+!         end associate
       end do   ! igrid
 
    end subroutine finite_volume_all
