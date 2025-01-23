@@ -55,10 +55,9 @@ contains
   end subroutine vc_params_read
 
   !> Initialize the module
-  subroutine viscosity_init(phys_wider_stencil,phys_req_diagonal)
+  subroutine viscosity_init(phys_wider_stencil)
     use mod_global_parameters
     integer, intent(inout) :: phys_wider_stencil
-    logical, intent(inout) :: phys_req_diagonal
     integer :: nwx,idir
 
     call vc_params_read(par_files)
@@ -80,7 +79,6 @@ contains
     if (viscInDiv) then
       ! to compute the derivatives from left and right upwinded values
       phys_wider_stencil = 1
-      phys_req_diagonal = .true.  ! viscInDiv
     end if
 
   end subroutine viscosity_init

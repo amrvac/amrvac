@@ -380,8 +380,6 @@ contains
 
     ! initialize thermal conduction module
     if(ffhd_thermal_conduction) then
-      phys_req_diagonal = .true.
-
       call sts_init()
       call tc_init_params(ffhd_gamma)
 
@@ -417,7 +415,7 @@ contains
     phys_te_images => ffhd_te_images
 }
     ! Initialize viscosity module
-    if(ffhd_viscosity) call viscosity_init(phys_wider_stencil,phys_req_diagonal)
+    if(ffhd_viscosity) call viscosity_init(phys_wider_stencil)
 
     ! Initialize gravity module
     if(ffhd_gravity) then

@@ -767,9 +767,6 @@ contains
     if(clean_initial_divb) phys_clean_divb => mhd_clean_divb_multigrid
     }
 
-    ! Whether diagonal ghost cells are required for the physics
-    if(type_divb < divb_linde) phys_req_diagonal = .false.
-
     ! derive units from basic units
     call mhd_physical_units()
 
@@ -786,13 +783,8 @@ contains
       call mpistop("radiative cooling needs mhd_energy=T")
     end if
 
-    ! resistive MHD needs diagonal ghost cells
-    if(mhd_eta/=0.d0) phys_req_diagonal = .true.
-
     ! initialize thermal conduction module
     if (mhd_thermal_conduction) then
-      phys_req_diagonal = .true.
-
       call sts_init()
       call tc_init_params(mhd_gamma)
 
@@ -865,7 +857,7 @@ contains
     phys_te_images => mhd_te_images
 }
     ! Initialize viscosity module
-    if (mhd_viscosity) call viscosity_init(phys_wider_stencil,phys_req_diagonal)
+    if (mhd_viscosity) call viscosity_init(phys_wider_stencil)
 
     ! Initialize gravity module
     if(mhd_gravity) then
@@ -880,7 +872,6 @@ contains
       call particles_init()
       if (particles_eta  < zero) particles_eta = mhd_eta
       if (particles_etah < zero) particles_eta = mhd_etah
-      phys_req_diagonal = .true.
       if(mype==0) then
          write(*,*) '*****Using particles:        with mhd_eta, mhd_etah :', mhd_eta, mhd_etah
          write(*,*) '*****Using particles: particles_eta, particles_etah :', particles_eta, particles_etah
@@ -889,7 +880,6 @@ contains
 
     ! initialize magnetofriction module
     if(mhd_magnetofriction) then
-      phys_req_diagonal = .true.
       call magnetofriction_init()
     end if
 
@@ -897,7 +887,6 @@ contains
     ! in mhd_get_flux: assuming one additional ghost layer (two for FOURTHORDER) was
     ! added in nghostcells.
     if(mhd_hall) then
-      phys_req_diagonal = .true.
       if(mhd_4th_order) then
         phys_wider_stencil = 2
       else
@@ -906,7 +895,6 @@ contains
     end if
 
     if(mhd_ambipolar) then
-      phys_req_diagonal = .true.
       if(mhd_ambipolar_sts) then
         call sts_init()
         if(mhd_internal_e) then

@@ -115,7 +115,7 @@ contains
 
   subroutine init_bc()
     use mod_global_parameters
-    use mod_physics, only: phys_req_diagonal, physics_type
+    use mod_physics, only: physics_type
     use mod_comm_lib, only: mpistop
 
     integer :: nghostcellsCo, interpolation_order
@@ -186,14 +186,6 @@ contains
     ixS_p_max^D(2)=ixMmax^D+(interpolation_order-1)
     ixS_p_max^D(3)=ixMmax^D+(interpolation_order-1)
 
-    if(.not.phys_req_diagonal) then
-      ! exclude ghost-cell region when diagonal cells are unknown
-      ixS_p_min^D(0)=ixMmin^D
-      ixS_p_max^D(3)=ixMmax^D
-      ixS_p_max^D(1)=ixMmin^D-1+nxCo^D+(interpolation_order-1)
-      ixS_p_min^D(2)=ixMmin^D+nxCo^D-(interpolation_order-1)
-    end if
-
     ixR_p_min^D(0)=ixCoMmin^D-nghostcellsCo-(interpolation_order-1)
     ixR_p_min^D(1)=ixCoMmin^D-(interpolation_order-1)
     ixR_p_min^D(2)=ixCoMmin^D-nghostcellsCo-(interpolation_order-1)
@@ -202,13 +194,6 @@ contains
     ixR_p_max^D(1)=ixCoMmax^D+nghostcellsCo+(interpolation_order-1)
     ixR_p_max^D(2)=ixCoMmax^D+(interpolation_order-1)
     ixR_p_max^D(3)=ixCoMmax^D+nghostcellsCo+(interpolation_order-1)
-
-    if(.not.phys_req_diagonal) then
-      ixR_p_max^D(0)=nghostcells
-      ixR_p_min^D(3)=ixCoMmax^D+1
-      ixR_p_max^D(1)=ixCoMmax^D+(interpolation_order-1)
-      ixR_p_min^D(2)=ixCoMmin^D-(interpolation_order-1)
-    end if
 
     \}
 
@@ -362,7 +347,7 @@ contains
   end subroutine get_bc_comm_type
 
   !> do update ghost cells of all blocks including physical boundaries
-  subroutine getbc(time,qdt,psb,nwstart,nwbc,req_diag)
+  subroutine getbc(time,qdt,psb,nwstart,nwbc)
     use mod_global_parameters
     use mod_physics
     use mod_coarsen, only: coarsen_grid
@@ -373,7 +358,6 @@ contains
     type(state), target               :: psb(max_blocks)
     integer, intent(in)               :: nwstart ! Fill from nwstart
     integer, intent(in)               :: nwbc    ! Number of variables to fill
-    logical, intent(in), optional     :: req_diag ! If false, skip diagonal ghost cells
 
     double precision :: time_bcin
     integer :: ipole, nwhead, nwtail
@@ -385,16 +369,12 @@ contains
     integer :: ibuf_start, ibuf_next
     ! shapes of reshape
     integer, dimension(1) :: shapes
-    logical  :: req_diagonal
     type(wbuffer) :: pwbuf(npwbuf)
 
     time_bcin=MPI_WTIME()
 
     nwhead=nwstart
     nwtail=nwstart+nwbc-1
-
-    req_diagonal = .true.
-    if (present(req_diag)) req_diagonal = req_diag
 
     ! fill internal physical boundary
     if (internalboundary) then 
@@ -586,8 +566,6 @@ contains
         integer, intent(in) :: dir(^ND)
 
         if (all(dir == 0)) then
-           skip_direction = .true.
-        else if (.not. req_diagonal .and. count(dir /= 0) > 1) then
            skip_direction = .true.
         else
            skip_direction = .false.

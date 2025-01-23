@@ -123,11 +123,11 @@ contains
   
     end if
   
-    ! avoid dividing by zero rho in skipped corner ghostcells when phys_req_diagonal=F
+    ! avoid dividing by zero rho
     ps(igrid)%w(:^D&,1)=1.d0
     ps(igrid)%level=level
     psc(igrid)%level=level-1
-    ! avoid dividing by zero rho in skipped corner ghostcells when phys_req_diagonal=F
+    ! avoid dividing by zero rho
     psc(igrid)%w(:^D&,1)=1.d0
     if(phys_trac) ps(igrid)%special_values=0.d0
     if(.not.convert) then

@@ -22,6 +22,7 @@
         limiter= 20*'koren'
         small_pressure=1.0d-14
         small_density=1.0d-14
+        fix_small_values=.true.
  /
 
  &boundlist

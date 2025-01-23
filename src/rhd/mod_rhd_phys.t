@@ -87,9 +87,6 @@ module mod_rhd_phys
   logical, public, protected              :: rhd_trac = .false.
   integer, public, protected              :: rhd_trac_type = 1
 
-  !> Allows overruling default corner filling (for debug mode, since otherwise corner primitives fail)
-  logical, public, protected              :: rhd_force_diagonal = .false.
-
   !> Helium abundance over Hydrogen
   double precision, public, protected  :: He_abundance=0.1d0
 
@@ -170,7 +167,7 @@ contains
     rhd_dust, rhd_thermal_conduction, rhd_radiative_cooling, rhd_viscosity, &
     rhd_gravity, He_abundance, H_ion_fr, He_ion_fr, He_ion_fr2, eq_state_units, &
     SI_unit, rhd_particles, rhd_rotating_frame, rhd_trac, &
-    rhd_force_diagonal, rhd_trac_type, rhd_radiation_formalism, &
+    rhd_trac_type, rhd_radiation_formalism, &
     rhd_radiation_force, rhd_energy_interact, rhd_radiation_diffusion, &
     rhd_radiation_advection, radio_acoustic_filter, size_ra_filter, dt_c, rhd_partial_ionization
 
@@ -309,9 +306,6 @@ contains
     phys_get_trad            => rhd_get_trad
     phys_get_tgas            => rhd_get_tgas
 
-    ! Whether diagonal ghost cells are required for the physics
-    phys_req_diagonal = .false.
-
     ! derive units from basic units
     call rhd_physical_units()
 
@@ -328,12 +322,6 @@ contains
     case default
       call mpistop('Radiation formalism unknown')
     end select
-
-    if (rhd_force_diagonal) then
-       ! ensure corners are filled, otherwise divide by zero when getting primitives
-       !  --> only for debug purposes
-       phys_req_diagonal = .true.
-    endif
 
     allocate(tracer(rhd_n_tracer))
 
@@ -372,7 +360,6 @@ contains
     if (rhd_thermal_conduction) then
       if (.not. rhd_energy) &
            call mpistop("thermal conduction needs rhd_energy=T")
-      phys_req_diagonal = .true.
 
       call sts_init()
       call tc_init_params(rhd_gamma)
@@ -409,7 +396,7 @@ contains
     phys_te_images => rhd_te_images
 }
     ! Initialize viscosity module
-    if (rhd_viscosity) call viscosity_init(phys_wider_stencil,phys_req_diagonal)
+    if (rhd_viscosity) call viscosity_init(phys_wider_stencil)
 
     ! Initialize gravity module
     if (rhd_gravity) call gravity_init()
@@ -420,7 +407,6 @@ contains
     ! Initialize particles module
     if (rhd_particles) then
        call particles_init()
-       phys_req_diagonal = .true.
     end if
 
     ! Check whether custom flux types have been defined

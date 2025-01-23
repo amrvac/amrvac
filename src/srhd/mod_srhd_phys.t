@@ -45,9 +45,6 @@ module mod_srhd_phys
   !> The smallest allowed inertia
   double precision, public             :: small_xi
 
-  !> Allows overruling default corner filling (for debug mode, otherwise corner primitives fail)
-  logical, public, protected              :: srhd_force_diagonal = .false.
-
   !> Helium abundance over Hydrogen
   double precision, public, protected  :: He_abundance=0.0d0
 
@@ -80,7 +77,7 @@ contains
     integer                      :: n
 
     namelist /srhd_list/ srhd_n_tracer, srhd_eos, srhd_gamma, &
-                    srhd_particles, srhd_force_diagonal, &
+                    srhd_particles, &
                     SI_unit, He_abundance
 
     do n = 1, size(files)
@@ -146,17 +143,8 @@ contains
     e_ = var_set_energy()
     p_ = e_
 
-    ! Whether diagonal ghost cells are required for the physics
-    phys_req_diagonal = .false.
-
     ! derive units from basic units
     call srhd_physical_units()
-
-    if (srhd_force_diagonal) then
-       ! ensure corners are filled, otherwise divide by zero when getting primitives
-       !  --> only for debug purposes
-       phys_req_diagonal = .true.
-    endif
 
     allocate(tracer(srhd_n_tracer))
 
@@ -217,7 +205,6 @@ contains
     ! Initialize particles module
     if (srhd_particles) then
        call particles_init()
-       phys_req_diagonal = .true.
     end if
 
   end subroutine srhd_phys_init

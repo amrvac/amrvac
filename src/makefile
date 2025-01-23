@@ -301,7 +301,6 @@ mod_hd_roe.o: mod_physics_roe.mod
 mod_hd_roe.o: mod_tvd.mod
 mod_hyperdiffusivity.o: mod_geometry.mod
 mod_hyperdiffusivity.o: mod_global_parameters.mod
-mod_hyperdiffusivity.o: mod_physics.mod
 mod_init_datafromfile.o: mod_global_parameters.mod
 mod_init_datafromfile.o: mod_lookup_table.mod
 mod_initialize.o: mod_amr_fct.mod

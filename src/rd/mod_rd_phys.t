@@ -168,7 +168,6 @@ contains
 
     physics_type = "rd"
     phys_energy  = .false.
-    phys_req_diagonal = .false.
     use_particles = rd_particles
 
     allocate(start_indices(number_species),stop_indices(number_species))
@@ -210,7 +209,6 @@ contains
     ! Initialize particles module
     if (rd_particles) then
        call particles_init()
-       phys_req_diagonal = .true.
     end if
 
   end subroutine rd_phys_init

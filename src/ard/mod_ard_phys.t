@@ -183,8 +183,6 @@ contains
 
     physics_type = "ard"
     phys_energy  = .false.
-    ! Whether diagonal ghost cells are required for the physics
-    phys_req_diagonal = .false.
     use_particles = ard_particles
 
     allocate(start_indices(number_species),stop_indices(number_species))
@@ -231,7 +229,6 @@ contains
     ! Initialize particles module
     if (ard_particles) then
        call particles_init()
-       phys_req_diagonal = .true.
     end if
 
   end subroutine ard_phys_init

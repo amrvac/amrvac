@@ -57,7 +57,6 @@ contains
     use mod_global_parameters
     use mod_fix_conserve
     use mod_ghostcells_update
-    use mod_physics, only: phys_req_diagonal
     use mod_comm_lib, only: mpistop
 
     integer, intent(in) :: idim^LIM
@@ -171,7 +170,7 @@ contains
              if(stagger_grid) ps(igrid)%ws = ps2(igrid)%ws+half*dt*ps(igrid)%ws
           end do
           !$OMP END PARALLEL DO
-          call getbc(global_time+dt,dt,ps1,iwstart,nwgc,phys_req_diagonal)
+          call getbc(global_time+dt,dt,ps1,iwstart,nwgc)
           call global_implicit_update(half,dt,global_time+dt,ps2,ps1)
           !$OMP PARALLEL DO PRIVATE(igrid)
           do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
@@ -221,7 +220,7 @@ contains
              if(stagger_grid) ps1(igrid)%ws = ps1(igrid)%ws + (1.0d0 - 2.0d0*imex222_lambda)*ps2(igrid)%ws
           end do
           !$OMP END PARALLEL DO
-          call getbc(global_time+dt,dt,ps1,iwstart,nwgc,phys_req_diagonal)
+          call getbc(global_time+dt,dt,ps1,iwstart,nwgc)
 
           ! Preallocate ps2 as xi1 for the implicit update (is at t^n)
           !$OMP PARALLEL DO PRIVATE(igrid)
@@ -363,7 +362,7 @@ contains
              if(stagger_grid) ps1(igrid)%ws=ps1(igrid)%ws+imex_ha21*dt*ps3(igrid)%ws
           end do
           !$OMP END PARALLEL DO
-          call getbc(global_time+imex_a21*dt,dt,ps1,iwstart,nwgc,phys_req_diagonal)
+          call getbc(global_time+imex_a21*dt,dt,ps1,iwstart,nwgc)
           call global_implicit_update(imex_ha22,dt,global_time+imex_c2*dt,ps2,ps1)
           !$OMP PARALLEL DO PRIVATE(igrid)
           do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
@@ -571,7 +570,7 @@ contains
   subroutine global_implicit_update(dtfactor,qdt,qtC,psa,psb)
     use mod_global_parameters
     use mod_ghostcells_update
-    use mod_physics, only: phys_implicit_update, phys_req_diagonal
+    use mod_physics, only: phys_implicit_update
 
     type(state), target :: psa(max_blocks)   !< Compute implicit part from this state and update it
     type(state), target :: psb(max_blocks)   !< Will be unchanged, as on entry
@@ -592,7 +591,7 @@ contains
     end if
 
     ! enforce boundary conditions for psa
-    call getbc(qtC,0.d0,psa,iwstart,nwgc,phys_req_diagonal)
+    call getbc(qtC,0.d0,psa,iwstart,nwgc)
 
   end subroutine global_implicit_update
 
@@ -664,7 +663,7 @@ contains
     end if
 
     ! For all grids: fill ghost cells
-    call getbc(qt+qdt,qdt,psb,iwstart,nwgc,phys_req_diagonal)
+    call getbc(qt+qdt,qdt,psb,iwstart,nwgc)
 
   end subroutine advect1
 
@@ -738,7 +737,6 @@ contains
     use mod_usr_methods, only: usr_process_grid, usr_process_global
     use mod_global_parameters
     use mod_ghostcells_update
-    use mod_physics, only: phys_req_diagonal
     ! .. scalars ..
     integer,intent(in)          :: iit
     double precision, intent(in):: qt
@@ -759,7 +757,7 @@ contains
               qt,ps(igrid)%w,ps(igrid)%x)
       end do
       !$OMP END PARALLEL DO
-      call getbc(qt,dt,ps,iwstart,nwgc,phys_req_diagonal)
+      call getbc(qt,dt,ps,iwstart,nwgc)
     end if
   end subroutine process
 
@@ -772,7 +770,6 @@ contains
                                usr_process_adv_global
     use mod_global_parameters
     use mod_ghostcells_update
-    use mod_physics, only: phys_req_diagonal
     ! .. scalars ..
     integer,intent(in)          :: iit
     double precision, intent(in):: qt
@@ -794,7 +791,7 @@ contains
               qt,ps(igrid)%w,ps(igrid)%x)
       end do
       !$OMP END PARALLEL DO
-      call getbc(qt,dt,ps,iwstart,nwgc,phys_req_diagonal)
+      call getbc(qt,dt,ps,iwstart,nwgc)
     end if
   end subroutine process_advanced
 

@@ -206,9 +206,6 @@ contains
       call mpistop('Unknown divB fix')
     end select
 
-    ! Whether diagonal ghost cells are required for the physics
-    if(type_divb < divb_linde) phys_req_diagonal = .false.
-
     ! set magnetic field as flux variables
     allocate(mag(ndir))
     mag(:) = var_set_bfield(ndir)
@@ -283,7 +280,6 @@ contains
     ! Initialize particles module
     if(mf_particles) then
       call particles_init()
-      phys_req_diagonal = .true.
       ! never allow Hall effects in particles when doing magnetofrictional
       particles_etah=0.0d0
       if(mype==0) then
@@ -558,7 +554,7 @@ contains
     type_recv_p=>type_recv_p_p1
     stagger_grid=.false.
     bcphys=.false.
-    call getbc(qt,0.d0,psa,mom(1),ndir,.true.)
+    call getbc(qt,0.d0,psa,mom(1),ndir)
     bcphys=.true.
     type_send_srl=>type_send_srl_f
     type_recv_srl=>type_recv_srl_f

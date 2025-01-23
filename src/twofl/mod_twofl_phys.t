@@ -647,9 +647,6 @@ contains
     if(clean_initial_divb) phys_clean_divb => twofl_clean_divb_multigrid
     }
 
-    ! Whether diagonal ghost cells are required for the physics
-    if(type_divb < divb_linde) phys_req_diagonal = .false.
-
     ! derive units from basic units
     call twofl_physical_units()
 
@@ -661,7 +658,6 @@ contains
     ! initialize thermal conduction module
     if (twofl_thermal_conduction_c &
         .or. twofl_thermal_conduction_n) then
-      phys_req_diagonal = .true.
       call sts_init()
       call tc_init_params(twofl_gamma)
     endif
@@ -791,7 +787,7 @@ contains
 
     ! Initialize viscosity module
     !!TODO
-    !if (twofl_viscosity) call viscosity_init(phys_wider_stencil,phys_req_diagonal)
+    !if (twofl_viscosity) call viscosity_init(phys_wider_stencil)
 
     ! Initialize gravity module
     if(twofl_gravity) then
@@ -804,7 +800,6 @@ contains
     ! in getflux: assuming one additional ghost layer (two for FOURTHORDER) was
     ! added in nghostcells.
     if (twofl_hall) then
-       phys_req_diagonal = .true.
        if (twofl_4th_order) then
           phys_wider_stencil = 2
        else

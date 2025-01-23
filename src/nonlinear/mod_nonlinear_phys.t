@@ -67,8 +67,6 @@ contains
 
     physics_type = "nonlinear"
     phys_energy  = .false.
-    ! Whether diagonal ghost cells are required for the physics
-    phys_req_diagonal = .false.
     use_particles = nonlinear_particles
 
     allocate(start_indices(number_species),stop_indices(number_species))
@@ -108,7 +106,6 @@ contains
     ! Initialize particles module
     if (nonlinear_particles) then
        call particles_init()
-       phys_req_diagonal = .true.
     end if
 
   end subroutine nonlinear_phys_init

@@ -62,7 +62,6 @@ contains
 
     physics_type = "rho"
     phys_energy  = .false.
-    phys_req_diagonal = .false.
     use_particles = rho_particles
 
     allocate(start_indices(number_species),stop_indices(number_species))
@@ -99,7 +98,6 @@ contains
     ! Initialize particles module
     if (rho_particles) then
        call particles_init()
-       phys_req_diagonal = .true.
     end if
 
   end subroutine rho_phys_init

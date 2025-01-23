@@ -78,9 +78,6 @@ module mod_hd_phys
   logical, public, protected              :: hd_trac = .false.
   integer, public, protected              :: hd_trac_type = 1
 
-  !> Allows overruling default corner filling (for debug mode, since otherwise corner primitives fail)
-  logical, public, protected              :: hd_force_diagonal = .false.
-
   !> Helium abundance over Hydrogen
   double precision, public, protected  :: He_abundance=0.1d0
   !> Ionization fraction of H
@@ -124,7 +121,7 @@ contains
     hd_dust, hd_thermal_conduction, hd_radiative_cooling, hd_viscosity, &
     hd_gravity, He_abundance,H_ion_fr, He_ion_fr, He_ion_fr2, eq_state_units, &
     SI_unit, hd_particles, hd_rotating_frame, hd_trac, &
-    hd_force_diagonal, hd_trac_type, hd_cak_force, hd_partial_ionization
+    hd_trac_type, hd_cak_force, hd_partial_ionization
 
     do n = 1, size(files)
        open(unitpar, file=trim(files(n)), status="old")
@@ -249,20 +246,11 @@ contains
     phys_write_info          => hd_write_info
     phys_handle_small_values => hd_handle_small_values
 
-    ! Whether diagonal ghost cells are required for the physics
-    phys_req_diagonal = .false.
-
     ! derive units from basic units
     call hd_physical_units()
 
     if (hd_dust) then
         call dust_init(rho_, mom(:), e_)
-    endif
-
-    if (hd_force_diagonal) then
-       ! ensure corners are filled, otherwise divide by zero when getting primitives
-       !  --> only for debug purposes
-       phys_req_diagonal = .true.
     endif
 
     allocate(tracer(hd_n_tracer))
@@ -309,7 +297,6 @@ contains
     if (hd_thermal_conduction) then
       if (.not. hd_energy) &
            call mpistop("thermal conduction needs hd_energy=T")
-      phys_req_diagonal = .true.
 
       call sts_init()
       call tc_init_params(hd_gamma)
@@ -346,7 +333,7 @@ contains
     phys_te_images => hd_te_images
 }
     ! Initialize viscosity module
-    if (hd_viscosity) call viscosity_init(phys_wider_stencil,phys_req_diagonal)
+    if (hd_viscosity) call viscosity_init(phys_wider_stencil)
 
     ! Initialize gravity module
     if (hd_gravity) call gravity_init()
@@ -360,7 +347,6 @@ contains
     ! Initialize particles module
     if (hd_particles) then
        call particles_init()
-       phys_req_diagonal = .true.
     end if
 
     ! Check whether custom flux types have been defined

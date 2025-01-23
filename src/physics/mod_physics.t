@@ -31,10 +31,6 @@ module mod_physics
   !> Indicates the flux should be treated with hll
   integer, parameter   :: flux_hll        = 4
 
-  !> Whether the physics routines require diagonal ghost cells, for example for
-  !> computing a curl.
-  logical :: phys_req_diagonal = .true.
-
   !> Solve energy equation or not
   logical :: phys_energy=.false.
 

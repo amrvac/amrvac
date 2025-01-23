@@ -19,7 +19,7 @@ contains
   subroutine add_split_source(prior)
     use mod_global_parameters
     use mod_ghostcells_update
-    use mod_physics, only: phys_req_diagonal, phys_global_source_after, phys_to_primitive
+    use mod_physics, only: phys_global_source_after, phys_to_primitive
     use mod_supertimestepping, only: is_sts_initialized, sts_add_source,sourcetype_sts,&
                                       sourcetype_sts_prior, sourcetype_sts_after, sourcetype_sts_split   
     use mod_comm_lib, only: mpistop
@@ -121,7 +121,7 @@ contains
     end if
 
     if (src_active) then
-       call getbc(qt,0.d0,ps,iwstart,nwgc,phys_req_diagonal)
+       call getbc(qt,0.d0,ps,iwstart,nwgc)
     end if
 
   end subroutine add_split_source
