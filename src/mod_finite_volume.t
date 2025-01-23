@@ -165,11 +165,22 @@ contains
        ! use interface value of w0 at idims
        b0i=idims
 
-       hxO^L=ixO^L-kr(idims,^D);
-
        kxCmin^D=ixImin^D; kxCmax^D=ixImax^D-kr(idims,^D);
        kxR^L=kxC^L+kr(idims,^D);
+       ! wRp and wLp are defined at the same locations, and will correspond to
+       ! the left and right reconstructed values at a cell face. Their indexing
+       ! is similar to cell-centered values, but in direction idims they are
+       ! shifted half a cell towards the 'lower' direction.
+       do iw=1,nw_recon
+        {do ix^DB=ixImin^DB,ixImax^DB\}
+           ! fill all cells for averaging to fix small values
+           wRp(ix^D,iw)=wprim(ix^D,iw)
+           wLp(ix^D,iw)=wprim(ix^D,iw)
+        {end do\}
+       end do
+       wRp(kxC^S,1:nw_recon)=wprim(kxR^S,1:nw_recon)
 
+       hxO^L=ixO^L-kr(idims,^D);
        if(stagger_grid) then
          ! ct needs all transverse cells
          ixCmax^D=ixOmax^D+nghostcells-nghostcells*kr(idims,^D);
@@ -179,16 +190,10 @@ contains
          ixCmax^D=ixOmax^D; ixCmin^D=hxOmin^D;
        end if
 
-       ! wRp and wLp are defined at the same locations, and will correspond to
-       ! the left and right reconstructed values at a cell face. Their indexing
-       ! is similar to cell-centered values, but in direction idims they are
-       ! shifted half a cell towards the 'lower' direction.
-       wRp(kxC^S,1:nw)=wprim(kxR^S,1:nw)
-       wLp(kxC^S,1:nw)=wprim(kxC^S,1:nw)
-
        ! Determine stencil size
        {ixCRmin^D = max(ixCmin^D - phys_wider_stencil,ixGlo^D)\}
        {ixCRmax^D = min(ixCmax^D + phys_wider_stencil,ixGhi^D)\}
+
        ! apply limited reconstruction for left and right status at cell interfaces
        call reconstruct_LR(ixI^L,ixCR^L,ixCR^L,idims,wprim,wLC,wRC,wLp,wRp,x,dxs(idims))
 
