@@ -61,8 +61,8 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest]
-        FC_compiler: [gfortran-9]
-        CC_compiler: [gcc-9]
+        FC_compiler: [gfortran]
+        CC_compiler: [gcc]
         suite: [rho, hd, rhd, mhd, rd, ard, mg, twofl]
 
     env:
