@@ -239,11 +239,11 @@ contains
     select case (iB)
     case(1)
 
-      call hd_to_primitive(ixI^L,ixI^L,w,x)
-
       w(ixB^S,rho_) = drhobound
 
       ! Radial velocity (constant slope extrapolation)
+      w(ixBmax1+1^%1ixB^S,mom(1))=w(ixBmax1+1^%1ixB^S,mom(1))/w(ixBmax1+1^%1ixB^S,rho_)
+      w(ixBmax1+2^%1ixB^S,mom(1))=w(ixBmax1+2^%1ixB^S,mom(1))/w(ixBmax1+2^%1ixB^S,rho_)
       do ir = ixBmax1,ixBmin1,-1
         w(ir^%1ixB^S,mom(1)) = w(ir+1^%1ixB^S,mom(1)) &
                                - (w(ir+2^%1ixB^S,mom(1)) - w(ir+1^%1ixB^S,mom(1))) &
@@ -268,8 +268,10 @@ contains
       if (hd_energy) then
         w(ixB^S,p_) = dasound**2.0 * drhobound * (w(ixB^S,rho_)/drhobound)**hd_gamma
       endif
+      w(ixBmax1+1^%1ixB^S,mom(1))=w(ixBmax1+1^%1ixB^S,mom(1))*w(ixBmax1+1^%1ixB^S,rho_)
+      w(ixBmax1+2^%1ixB^S,mom(1))=w(ixBmax1+2^%1ixB^S,mom(1))*w(ixBmax1+2^%1ixB^S,rho_)
 
-      call hd_to_conserved(ixI^L,ixI^L,w,x)
+      call hd_to_conserved(ixI^L,ixB^L,w,x)
 
     case default
       call mpistop("BC not specified")

@@ -177,8 +177,8 @@ contains
            wRp(ix^D,iw)=wprim(ix^D,iw)
            wLp(ix^D,iw)=wprim(ix^D,iw)
         {end do\}
+         wRp(kxC^S,iw)=wprim(kxR^S,iw)
        end do
-       wRp(kxC^S,1:nw_recon)=wprim(kxR^S,1:nw_recon)
 
        hxO^L=ixO^L-kr(idims,^D);
        if(stagger_grid) then
