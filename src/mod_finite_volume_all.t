@@ -88,7 +88,6 @@ contains
 
          do idims = idims^LIM
             ! use interface value of w0 at idims
-            b0i = idims
 
             hxO^L=ixO^L-kr(idims,^D); 
             kxCmin^D=ixImin^D;kxCmax^D=ixImax^D-kr(idims,^D); 
@@ -140,7 +139,6 @@ contains
 
          end do ! Next idims
 
-         b0i = 0
          dxinv = -qdt/dxs
          do idims = idims^LIM
             hxO^L=ixO^L-kr(idims,^D); 
