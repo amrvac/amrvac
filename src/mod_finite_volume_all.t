@@ -22,54 +22,45 @@ contains
    !AGILE
    !> finite volume method computing all blocks
    subroutine finite_volume_all(method, qdt, dtfactor, ixI^L, ixO^L, idims^LIM, &
-                                qtC, psa, bga, qt, psb, bgb, fC, fE)
+                                qtC, bga, qt, bgb, fC, fE)
       use mod_physics
       use mod_variables
       use mod_global_parameters
-      !opedit: FIXME has internal procedure pointers, used for roe solvers, not implemented:
-!    use mod_tvd, only:tvdlimit2
       use mod_source, only: addsource2
       use mod_usr_methods
       use mod_comm_lib, only: mpistop
-      use mod_hd_phys, only: hd_get_flux_gpu, hd_to_primitive_gpu, hd_get_cbounds_gpu, hd_to_conserved_gpu
+      use mod_hd_phys
 
       integer, intent(in)                                   :: method
       double precision, intent(in)                          :: qdt, dtfactor, qtC, qt
       integer, intent(in)                                   :: ixI^L, ixO^L, idims^LIM
-      type(state), target                                   :: psa(max_blocks)
-      type(state), target                                   :: psb(max_blocks)
-      type(block_grid_t)                            :: bga
-      type(block_grid_t)                            :: bgb
-      double precision, dimension(ixI^S, 1:nwflux, 1:ndim)    :: fC
-      double precision, dimension(ixI^S, sdim:3)             :: fE
+      type(block_grid_t)                                    :: bga
+      type(block_grid_t)                                    :: bgb
+      double precision, dimension(ixI^S, 1:nwflux, 1:ndim)  :: fC
+      double precision, dimension(ixI^S, sdim:3)            :: fE
 
       ! primitive w at cell center
-      double precision, dimension(ixI^S, 1:nw) :: wprim
+      double precision, dimension(ixI^S, 1:nw)       :: wprim
       ! left and right constructed status in conservative form
-      double precision, dimension(ixI^S, 1:nw) :: wLC, wRC
+      double precision, dimension(ixI^S, 1:nw)       :: wLC, wRC
       ! left and right constructed status in primitive form, needed for better performance
-      double precision, dimension(ixI^S, 1:nw) :: wLp, wRp
+      double precision, dimension(ixI^S, 1:nw)       :: wLp, wRp
       !$acc declare create(wprim, wLC, wRC, wLp, wRp)
-      double precision, dimension(ixI^S, 1:nwflux) :: fLC, fRC
+      double precision, dimension(ixI^S, 1:nwflux)   :: fLC, fRC
       !$acc declare create(fLC, fRC)
       double precision, dimension(ixI^S, 1:number_species)      :: cmaxC
       double precision, dimension(ixI^S, 1:number_species)      :: cminC
-      double precision, dimension(ixI^S)      :: Hspeed
+      double precision, dimension(ixI^S, 1:number_species)      :: Hspeed
       !$acc declare create(cmaxC, cminC, Hspeed)
-      double precision, dimension(ixO^S)      :: inv_volume
-      double precision, dimension(1:ndim)     :: dxinv
-      integer, dimension(ixI^S)               :: patchf
-      integer :: idims, iw, ix^L, hxO^L, ixC^L, ixCR^L, kxC^L, kxR^L, ii
-      logical :: active
-      type(ct_velocity) :: vcts
-      integer :: ix^D
-      double precision, dimension(ixI^S, 1:nwflux)     :: whll, Fhll, fCD
-      double precision, dimension(ixI^S)              :: lambdaCD
-      integer  :: rho_, p_, e_, mom(1:ndir), igrid, iigrid
-
+      double precision, dimension(1:ndim)        :: dxinv
+      integer                                    :: idims, iw, ix^L, hxO^L, ixC^L, ixCR^L, kxC^L, kxR^L, ii
+      integer                                    :: ix^D
+      integer                                    :: igrid, iigrid, ia, ib
       double precision, dimension(ixI^S, 1:ndim) :: x
-      double precision                          :: dxs(ndim)
+      double precision                           :: dxs(ndim)
       !$acc declare create(dxs,dxinv)
+
+      ia = bga%istep; ib = bgb%istep ! remember, old names map as: wCT => bga, wnew => bgb
 
       !$acc parallel loop private(fC, fLC, fRC, wprim, x, wRp, wLp, wLC, wRC, cmaxC, cminC, Hspeed, dxinv, dxs)
       do iigrid = 1, igridstail_active
@@ -78,100 +69,94 @@ contains
          x = ps(igrid)%x
          dxs = rnode(rpdx1_:rnodehi, igrid)
 
-         ! TODO wCT and therefor wprim references need same treatment as sCT%w
-         associate (wCT => bga%w(:^D&, :, igrid), wnew => bgb%w(:^D&, :, igrid))
-            ! The flux calculation contracts by one in the idims direction it is applied.
-            ! The limiter contracts the same directions by one more, so expand ixO by 2.
-            ix^L=ixO^L; 
-            do idims = idims^LIM
-               ix^L=ix^L^LADD2*kr(idims,^D); 
-            end do
-            if (ixI^L^LTix^L|.or.|.or.) &
-               call mpistop("Error in fv : Nonconforming input limits")
+         ! The flux calculation contracts by one in the idims direction it is applied.
+         ! The limiter contracts the same directions by one more, so expand ixO by 2.
+         ix^L=ixO^L; 
+         do idims = idims^LIM
+            ix^L=ix^L^LADD2*kr(idims,^D); 
+         end do
+         if (ixI^L^LTix^L|.or.|.or.) &
+              call mpistop("Error in fv : Nonconforming input limits")
 
-            ! no longer !$acc kernels present(fC, wCT)
-            fC = 0.d0     ! this is updated every loop iteration (eg l293),
-            ! how to then parallelize?
-            fLC = 0.d0
-            fRC = 0.d0
+         fC = 0.d0     
+         fLC = 0.d0
+         fRC = 0.d0
 
-            wprim = wCT
-            ! no longer !$acc end kernels
+         wprim = bg(ia)%w(:^D&, :, igrid)
 
-            call hd_to_primitive_gpu(ixI^L, ixI^L, wprim, x)
+         call hd_to_primitive_gpu(ixI^L, ixI^L, wprim, x)
 
-            do idims = idims^LIM
-               ! use interface value of w0 at idims
-               b0i = idims
+         do idims = idims^LIM
+            ! use interface value of w0 at idims
+            b0i = idims
 
-               hxO^L=ixO^L-kr(idims,^D); 
-               kxCmin^D=ixImin^D;kxCmax^D=ixImax^D-kr(idims,^D); 
-               kxR^L=kxC^L+kr(idims,^D); 
-               ! ixC is centered index in the idims direction from ixOmin-1/2 to ixOmax+1/2
-               ixCmax^D=ixOmax^D;ixCmin^D=hxOmin^D; 
+            hxO^L=ixO^L-kr(idims,^D); 
+            kxCmin^D=ixImin^D;kxCmax^D=ixImax^D-kr(idims,^D); 
+            kxR^L=kxC^L+kr(idims,^D); 
+            ! ixC is centered index in the idims direction from ixOmin-1/2 to ixOmax+1/2
+            ixCmax^D=ixOmax^D;ixCmin^D=hxOmin^D; 
 
-               ! wRp and wLp are defined at the same locations, and will correspond to
-               ! the left and right reconstructed values at a cell face. Their indexing
-               ! is similar to cell-centered values, but in direction idims they are
-               ! shifted half a cell towards the 'lower' direction.
+            ! wRp and wLp are defined at the same locations, and will correspond to
+            ! the left and right reconstructed values at a cell face. Their indexing
+            ! is similar to cell-centered values, but in direction idims they are
+            ! shifted half a cell towards the 'lower' direction.
 
-               wRp(kxC^S,1:nw)=wprim(kxR^S,1:nw)
-               wLp(kxC^S,1:nw)=wprim(kxC^S,1:nw)
+            wRp(kxC^S,1:nw)=wprim(kxR^S,1:nw)
+            wLp(kxC^S,1:nw)=wprim(kxC^S,1:nw)
 
-               ! Determine stencil size
-               ! FIXME: here `phys_wider_stencil` is an integer, not a function pointer
-               {ixCRmin^D = max(ixCmin^D - phys_wider_stencil,ixGlo^D) \}
-               {ixCRmax^D = min(ixCmax^D + phys_wider_stencil,ixGhi^D) \}
 
-               ! apply limited reconstruction for left and right status at cell interfaces
-               call reconstruct_LR_gpu(ixI^L, ixCR^L, ixCR^L, idims, wprim, wLC, wRC, wLp, wRp, x, dxs(idims), igrid)
+            ! Determine stencil size
+            {ixCRmin^D = max(ixCmin^D - phys_wider_stencil,ixGlo^D) \}
+            {ixCRmax^D = min(ixCmax^D + phys_wider_stencil,ixGhi^D) \}
 
-               ! evaluate physical fluxes according to reconstructed status
-               call hd_get_flux_gpu(wLC, wLp, x, ixI^L, ixC^L, idims, fLC)
-               call hd_get_flux_gpu(wRC, wRp, x, ixI^L, ixC^L, idims, fRC)
+            ! apply limited reconstruction for left and right status at cell interfaces
+            call reconstruct_LR_gpu(ixI^L, ixCR^L, ixCR^L, idims, wprim, wLC, wRC, wLp, wRp, x, dxs(idims), igrid)
 
-               call hd_get_cbounds_gpu(wLC, wRC, wLp, wRp, x, ixI^L, ixC^L, idims, Hspeed, cmaxC, cminC)
+            ! evaluate physical fluxes according to reconstructed status
+            call hd_get_flux_gpu(wLC, wLp, x, ixI^L, ixC^L, idims, fLC)
+            call hd_get_flux_gpu(wRC, wRp, x, ixI^L, ixC^L, idims, fRC)
 
-               ! use approximate Riemann solver to get flux at interfaces
-               do ii = 1, number_species
-                  do iw = start_indices(ii), stop_indices(ii)
-                     {do ix^DB = ixCmin^DB, ixCmax^DB\}
-                     if (cminC(ix^D, ii) >= zero) then
-                        fC(ix^D, iw, idims) = fLC(ix^D, iw)
-                     else if (cmaxC(ix^D, ii) <= zero) then
-                        fC(ix^D, iw, idims) = fRC(ix^D, iw)
-                     else
-                        ! Add hll dissipation to the flux
-                        fC(ix^D, iw, idims) = (cmaxC(ix^D, ii)*fLC(ix^D, iw) - cminC(ix^D, ii)*fRC(ix^D, iw) &
-                                               + cminC(ix^D, ii)*cmaxC(ix^D, ii)*(wRC(ix^D, iw) - wLC(ix^D, iw))) &
-                                              /(cmaxC(ix^D, ii) - cminC(ix^D, ii))
-                     end if
-                     {end do\}
-                  end do
+            ! get the min and max characteristic velocities
+            call hd_get_cbounds_gpu(wLC, wRC, wLp, wRp, x, ixI^L, ixC^L, idims, Hspeed, cmaxC, cminC)
+
+            ! use approximate Riemann solver to get flux at interfaces
+            do ii = 1, number_species
+               do iw = start_indices(ii), stop_indices(ii)
+                  {do ix^DB = ixCmin^DB, ixCmax^DB\}
+                  if (cminC(ix^D, ii) >= zero) then
+                     fC(ix^D, iw, idims) = fLC(ix^D, iw)
+                  else if (cmaxC(ix^D, ii) <= zero) then
+                     fC(ix^D, iw, idims) = fRC(ix^D, iw)
+                  else
+                     ! Add hll dissipation to the flux
+                     fC(ix^D, iw, idims) = (cmaxC(ix^D, ii)*fLC(ix^D, iw) - cminC(ix^D, ii)*fRC(ix^D, iw) &
+                          + cminC(ix^D, ii)*cmaxC(ix^D, ii)*(wRC(ix^D, iw) - wLC(ix^D, iw))) &
+                          /(cmaxC(ix^D, ii) - cminC(ix^D, ii))
+                  end if
+                  {end do\}
                end do
-            end do ! Next idims
+            end do
 
-            b0i = 0
-            dxinv = -qdt/dxs
-            do idims = idims^LIM
-               hxO^L=ixO^L-kr(idims,^D); 
-               fC(ixI^S, 1:nwflux, idims)=dxinv(idims)*fC(ixI^S, 1:nwflux, idims)
-               !            end if
-               wnew(ixO^S, iwstart:nwflux)=wnew(ixO^S, iwstart:nwflux) + &
-                                             (fC(ixO^S, iwstart:nwflux, idims) - fC(hxO^S, iwstart:nwflux, idims))
 
-            end do ! Next idims
+         end do ! Next idims
 
-            call addsource2(qdt*dble(idimsmax - idimsmin + 1)/dble(ndim), &
-                            dtfactor*dble(idimsmax - idimsmin + 1)/dble(ndim), &
-                            ixI^L, ixO^L, 1, nw, qtC, wCT, wprim, qt, wnew, x, .false., active)
-         end associate
+         b0i = 0
+         dxinv = -qdt/dxs
+         do idims = idims^LIM
+            hxO^L=ixO^L-kr(idims,^D); 
+            fC(ixI^S, 1:nwflux, idims)=dxinv(idims)*fC(ixI^S, 1:nwflux, idims)
+
+            bg(ib)%w(ixO^S, iwstart:nwflux, igrid) = bg(ib)%w(ixO^S, iwstart:nwflux, igrid) + &
+                 (fC(ixO^S, iwstart:nwflux, idims) - fC(hxO^S, iwstart:nwflux, idims))
+
+         end do ! Next idims
+
       end do   ! igrid
 
-   end subroutine finite_volume_all
+    end subroutine finite_volume_all
 
-   !> Determine the upwinded wLC(ixL) and wRC(ixR) from w.
-   !> the wCT is only used when PPM is exploited.
+    !> Determine the upwinded wLC(ixL) and wRC(ixR) from w.
+    !> the wCT is only used when PPM is exploited.
    subroutine reconstruct_LR_gpu(ixI^L, ixL^L, ixR^L, idims, w, wLC, wRC, wLp, wRp, x, dxdim, igrid)
       use mod_physics
       use mod_global_parameters
@@ -179,7 +164,6 @@ contains
       use mod_comm_lib, only: mpistop
       use mod_hd_phys, only: hd_to_conserved_gpu
 
-      !$acc declare present(node)
       !$acc routine
 
       integer, value, intent(in) :: ixI^L, ixL^L, ixR^L, idims, igrid

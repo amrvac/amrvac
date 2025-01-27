@@ -3,7 +3,7 @@
    base_filename    = 'khi'
    typefilelog      = 'regression_test'
    autoconvert      = T
-   convert_type     = 'vtuBmpi'
+   convert_type     = 'vtuBCCmpi'
    saveprim         = T
  /
 

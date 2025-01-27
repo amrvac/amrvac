@@ -2,18 +2,19 @@
  &filelist
    base_filename    = 'kh_2d'
    autoconvert      = T
-   convert_type     = 'vtuBmpi'
+   convert_type     = 'vtuBCCmpi'
    saveprim         = T
  /
 
  &savelist
    itsave(1,1)      = 0
+   itsave(1,2)      = 0
    ditsave_log      = 10
-   ditsave_dat      = 10
+   dtsave_dat       = 1
  /
 
  &stoplist
-   it_max = 100
+   it_max = 10000
  /
 
  &methodlist
@@ -30,10 +31,10 @@
  /
 
  &meshlist
-   max_blocks         = 1
+   max_blocks         = 1024
    refine_max_level   = 1
-   block_nx1          = 128
-   block_nx2          = 128
+   block_nx1          = 16
+   block_nx2          = 16
    domain_nx1         = 128
    domain_nx2         = 128
    xprobmin1       = 0.0d0

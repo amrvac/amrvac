@@ -49,6 +49,7 @@ module mod_functions_connectivity
     end do
   
     igridstail=iigrid
+    !$acc update device(igrids, igridstail)
   
   end subroutine getigrids
   

@@ -23,6 +23,8 @@ contains
     use mod_amr_solution_node, only: alloc_node
  
     integer :: iigrid, igrid{#IFDEF EVOLVINGBOUNDARY , Morton_no}
+    !opedit: debug
+    integer :: idebg
   
     levmin=1
     levmax=1
@@ -34,9 +36,12 @@ contains
   
     ! fill solution space of all root grids
     do iigrid=1,igridstail; igrid=igrids(iigrid);
+
        call alloc_node(igrid)
+
        ! in case gradient routine used in initial condition, ensure geometry known
        call initial_condition(igrid)
+       
     end do
     {#IFDEF EVOLVINGBOUNDARY
     ! mark physical-boundary blocks on space-filling curve
@@ -50,7 +55,7 @@ contains
   
     ! update ghost cells
     call getbc(global_time,0.d0,ps,iwstart,nwgc)
-  
+    
   end subroutine initlevelone
   
   !> fill in initial condition

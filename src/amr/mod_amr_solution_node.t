@@ -16,8 +16,6 @@ contains
     use mod_forest, only: igrid_inuse
     use mod_global_parameters
 
-    !$acc declare present(node)
-
     integer, intent(in) :: ipe
     integer :: igrid, igrid_available
   
@@ -69,8 +67,6 @@ contains
     use mod_physics, only: phys_set_equi_vars
     use mod_b0, only: set_B0_grid 
     
-    !$acc declare present(node)
-
     integer, intent(in) :: igrid
   
     integer :: level, ig^D, ign^D, ixCoG^L, ix, i^D
@@ -82,7 +78,7 @@ contains
     double precision :: exp_factor_ext(ixGlo1-1:ixGhi1+1),del_exp_factor_ext(ixGlo1-1:ixGhi1+1),exp_factor_primitive_ext(ixGlo1-1:ixGhi1+1)
     double precision :: xc(ixGlo1:ixGhi1),delxc(ixGlo1:ixGhi1)
     double precision :: exp_factor_coarse(ixGlo1:ixGhi1),del_exp_factor_coarse(ixGlo1:ixGhi1),exp_factor_primitive_coarse(ixGlo1:ixGhi1)
-  
+
     ixCoGmin^D=1;
     ixCoGmax^D=(ixGhi^D-2*nghostcells)/2+2*nghostcells;
   
@@ -592,6 +588,8 @@ contains
     integer, intent(in) :: igrid, ixG^L, ixGext^L
     logical, intent(in) :: alloc_once_for_ps
     integer             :: ixGs^L
+    !opedit: debug:
+    integer             :: idbg
   
     !allocate(s%w(ixG^S,1:nw))
     s%w => bg(s%istep)%w(:^D&,:,igrid)

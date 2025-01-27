@@ -1146,7 +1146,7 @@ contains
   end subroutine hd_get_cbounds
 
   subroutine hd_get_cbounds_gpu(wLC, wRC, wLp, wRp, x, ixI^L, ixO^L, idim, Hspeed, cmax, cmin)
-    !$acc routine
+    !$acc routine seq
     use mod_global_parameters
     use mod_variables
 
@@ -1163,6 +1163,8 @@ contains
     double precision, dimension(ixI^S) :: umean, dmean, csoundL, csoundR, tmp1,tmp2,tmp3
     !!!$acc declare create(umean, dmean, csoundL, csoundR, tmp1, tmp2, tmp3)
     integer :: ix^D
+    !opedit: debug
+    integer :: idbg^D
 
     ! This implements formula (10.52) from "Riemann Solvers and Numerical
     ! Methods for Fluid Dynamics" by Toro.
@@ -1172,15 +1174,52 @@ contains
     tmp3(ixO^S)=1.d0/(dsqrt(wLp(ixO^S, rho_))+dsqrt(wRp(ixO^S, rho_)))
     umean(ixO^S)=(wLp(ixO^S, mom(idim))*tmp1(ixO^S)+wRp(ixO^S, mom(idim))*tmp2(ixO^S))*tmp3(ixO^S)
 
+    if (any(umean(ixO^S).ne.umean(ixO^S))) then
+       print *, 'NaN found in umean', idim
+    end if
+
     csoundL(ixO^S)=hd_gamma*wLp(ixO^S,p_)/wLp(ixO^S,rho_)
     csoundR(ixO^S)=hd_gamma*wRp(ixO^S,p_)/wRp(ixO^S,rho_)
 
+    if (any(csoundL(ixO^S).ne.csoundL(ixO^S))) then
+       print *, 'NaN found in csoundL', idim
+    end if
+
+    if (any(csoundR(ixO^S).ne.csoundR(ixO^S))) then
+       print *, 'NaN found in csoundR', idim
+    end if
+    
     dmean(ixO^S) = (tmp1(ixO^S)*csoundL(ixO^S)+tmp2(ixO^S)*csoundR(ixO^S)) * &
          tmp3(ixO^S) + 0.5d0*tmp1(ixO^S)*tmp2(ixO^S)*tmp3(ixO^S)**2 * &
          (wRp(ixO^S,mom(idim))-wLp(ixO^S, mom(idim)))**2
 
+    if (any(dmean(ixO^S).ne.dmean(ixO^S))) then
+       print *, 'NaN found in dmean 1', idim
+    end if
+    
     dmean(ixO^S)=dsqrt(dmean(ixO^S))
     cmax(ixO^S,1)=dabs(umean(ixO^S))+dmean(ixO^S)
+
+    if (any(dmean(ixO^S).ne.dmean(ixO^S))) then
+       print *, 'NaN found in dmean 2', idim
+
+       do idbg2=ixOmin2,ixOmax2
+          do idbg1=ixOmin1,ixOmax1
+             if (dmean(idbg1,idbg2) .ne. dmean(idbg1,idbg2)) then
+                write(*,*), 'dmean', idbg1, idbg2, dmean(idbg1,idbg2)
+                write(*,*), 'plp', idbg1, idbg2, wLp(idbg1,idbg2,p_)
+                write(*,*), 'prp', idbg1, idbg2, wRp(idbg1,idbg2,p_)
+             end if
+          end do
+       end do
+       
+    end if
+
+    if (any(cmax(ixO^S,1).ne.cmax(ixO^S,1))) then
+       print *, 'NaN found in cmax', idim
+    end if
+    
+    
     
     if(present(cmin)) then
        cmin(ixO^S,1)=umean(ixO^S)-dmean(ixO^S)
