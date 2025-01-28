@@ -68,7 +68,7 @@ contains
                call muscl_flux_euler_prim(tmp, 2, fy)
 
                ! Update the wnew array
-               bg(ib)%w(i, j, :, n) = bg(ib)%w(i, j, :, n) - qdt * &
+               bg(ib)%w(i, j, :, n) = bg(ib)%w(i, j, :, n) + qdt * &
                     ((fx(:, 1) - fx(:, 2)) * inv_dr(1) + &
                     (fy(:, 1) - fy(:, 2)) * inv_dr(2))
             end do
@@ -80,7 +80,6 @@ contains
     pure subroutine to_primitive(u)
       !$acc routine seq
       real(dp), intent(inout) :: u(nw)
-      integer :: idim
 
       u(iw_mom(1)) = u(iw_mom(1))/u(iw_rho)
       u(iw_mom(2)) = u(iw_mom(2))/u(iw_rho)
@@ -124,7 +123,7 @@ contains
 
     call to_conservative(uL)
     call to_conservative(uR)
-    flux(:, 1) = 0.5_dp * (flux_l + flux_r - wmax * (uR - uL))
+    flux(:, 1) = 0.5_dp * ((flux_l + flux_r) - wmax * (uR - uL))
 
     ! Construct uL, uR for second cell face
     uL = u(3, :) + 0.5_dp * vanleer(u(3, :) - u(2, :), u(4, :) - u(3, :))
@@ -136,16 +135,16 @@ contains
 
     call to_conservative(uL)
     call to_conservative(uR)
-    flux(:, 2) = 0.5_dp * (flux_l + flux_r - wmax * (uR - uL))
+    flux(:, 2) = 0.5_dp * ((flux_l + flux_r) - wmax * (uR - uL))
 
   end subroutine muscl_flux_euler_prim
 
-  subroutine euler_flux(u, flux_dim, flux, w)
+  subroutine euler_flux(u, flux_dim, flux, wC)
     !$acc routine seq
     real(dp), intent(in)  :: u(nw)
     integer, intent(in)   :: flux_dim
     real(dp), intent(out) :: flux(nw)
-    real(dp), intent(out) :: w
+    real(dp), intent(out) :: wC
     real(dp)              :: inv_gamma_m1
     
     inv_gamma_m1 = 1.0d0/(hd_gamma - 1.0_dp)
@@ -162,9 +161,8 @@ contains
     flux(iw_e) = u(iw_mom(flux_dim)) * (u(iw_e) * inv_gamma_m1 + &
          0.5_dp * u(iw_rho) * (u(iw_mom(1))**2 + u(iw_mom(2))**2) + u(iw_e))
 
-    w = sqrt(hd_gamma * u(iw_e) / u(iw_rho)) + abs(u(iw_mom(flux_dim)))
+    wC = sqrt(hd_gamma * u(iw_e) / u(iw_rho)) + abs(u(iw_mom(flux_dim)))
 
-    print *, w, hd_gamma, u(iw_rho)
   end subroutine euler_flux
 
   elemental pure real(dp) function vanleer(a, b) result(phi)
