@@ -1,22 +1,189 @@
 ! - [x] Remove everything we don't use
-! - [ ] Remove psa, and psb from finite_volume (ps, bga and bgb should be enough)
-! - [ ] Test for correctness
-! - [ ] Replace block with ps(igrid), pass igrid to functions that need it
+! - [x] Remove psa, and psb from finite_volume (ps, bga and bgb should be enough)
+! - [x] Test for correctness
+! - [x] Replace block with ps(igrid), pass igrid to functions that need it
+! - [ ] Implement local update alternative from Jannis toycode
 !> Module with finite volume methods for fluxes
 module mod_finite_volume_all
 #include "amrvac.h"
-   implicit none
-   private
+  use mod_variables
+  use mod_hd_phys, only: hd_gamma
+  implicit none
 
-   public :: finite_volume_all
-   public :: reconstruct_LR_gpu
+  private
+
+  public :: finite_volume_all
+  public :: finite_volume_local
+  public :: reconstruct_LR_gpu
+
+  integer, parameter :: dp = kind(0.0d0)
 
 contains
 
-   !> The non-conservative Hancock predictor for TVDLF
-   !>
-   !> on entry:
-   !> input available on ixI^L=ixG^L asks for output on ixO^L=ixG^L^LSUBnghostcells
+  subroutine finite_volume_local(method, qdt, dtfactor, ixI^L, ixO^L, idims^LIM, &
+                                qtC, bga, qt, bgb, fC, fE)
+      use mod_global_parameters
+
+      integer, intent(in)                                                :: method
+      double precision, intent(in)                                       :: qdt, dtfactor, qtC, qt
+      integer, intent(in)                                                :: ixI^L, ixO^L, idims^LIM
+      type(block_grid_t)                                     :: bga
+      type(block_grid_t)                                     :: bgb
+      double precision, dimension(ixI^S, 1:nwflux, 1:ndim)  :: fC ! not yet provided
+      double precision, dimension(ixI^S, sdim:3)            :: fE ! not yet provided
+      ! .. local ..
+      integer                :: ia, ib, n, i, j
+      double precision       :: w(1:nw)
+      double precision       :: uprim(ixI^S,1:nw)
+      real(dp)               :: tmp(5, nw), u(nw)
+      real(dp)               :: fx(nw, 2), fy(nw, 2)
+      real(dp)               :: inv_dr(2)
+      !-----------------------------------------------------------------------------
+      
+      ia = bga%istep; ib = bgb%istep ! remember, old names map as: wCT => bga, wnew => bgb
+
+      !$acc parallel loop private(uprim, inv_dr)
+      do n = 1, igridstail_active
+
+         inv_dr = 1/rnode(rpdx1_:rnodehi, n)
+
+         !$acc loop collapse(2), private(w)
+         do j = ixImin2, ixImax2
+            do i = ixImin1, ixImax1
+               ! Convert to primitive
+               w = bg(ia)%w(i, j, :, n)
+               call to_primitive(w)
+               uprim(i, j, :) = w
+            end do
+         end do
+
+         !$acc loop collapse(2), private(fx, fy, tmp)
+         do j = ixOmin2, ixOmax2
+            do i = ixOmin1, ixOmax1
+               ! Compute x and y fluxes
+               tmp = uprim(i-2:i+2, j, :)
+               call muscl_flux_euler_prim(tmp, 1, fx)
+
+               tmp = uprim(i, j-2:j+2, :)
+               call muscl_flux_euler_prim(tmp, 2, fy)
+
+               ! Update the wnew array
+               bg(ib)%w(i, j, :, n) = bg(ib)%w(i, j, :, n) - qdt * &
+                    ((fx(:, 1) - fx(:, 2)) * inv_dr(1) + &
+                    (fy(:, 1) - fy(:, 2)) * inv_dr(2))
+            end do
+         end do
+      end do
+
+    end subroutine finite_volume_local
+
+    pure subroutine to_primitive(u)
+      !$acc routine seq
+      real(dp), intent(inout) :: u(nw)
+      integer :: idim
+
+      u(iw_mom(1)) = u(iw_mom(1))/u(iw_rho)
+      u(iw_mom(2)) = u(iw_mom(2))/u(iw_rho)
+
+      u(iw_e) = (hd_gamma-1.0_dp) * (u(iw_e) - &
+           0.5_dp * u(iw_rho)* (u(iw_mom(1))**2 + u(iw_mom(2))**2))
+      
+    end subroutine to_primitive
+    
+    pure subroutine to_conservative(u)
+      !$acc routine seq
+      real(dp), intent(inout) :: u(nw)
+      real(dp)                :: inv_gamma_m1
+
+      inv_gamma_m1 = 1.0d0/(hd_gamma - 1.0_dp)
+
+      ! Compute energy from pressure and kinetic energy
+      u(iw_e) = u(iw_e) * inv_gamma_m1 + &
+           0.5_dp * u(iw_rho) * (u(iw_mom(1))**2 + u(iw_mom(2))**2)
+
+      ! Compute momentum from density and velocity components
+      u(iw_mom(1)) = u(iw_rho) * u(iw_mom(1))
+      u(iw_mom(2)) = u(iw_rho) * u(iw_mom(2))
+    end subroutine to_conservative
+
+  subroutine muscl_flux_euler_prim(u, flux_dim, flux)
+    !$acc routine seq
+    real(dp), intent(in)  :: u(5, nw)
+    integer, intent(in)   :: flux_dim
+    real(dp), intent(out) :: flux(nw, 2)
+    real(dp)              :: uL(nw), uR(nw), wL, wR, wmax
+    real(dp)              :: flux_l(nw), flux_r(nw)
+
+    ! Construct uL, uR for first cell face
+    uL = u(2, :) + 0.5_dp * vanleer(u(2, :) - u(1, :), u(3, :) - u(2, :))
+    uR = u(3, :) - 0.5_dp * vanleer(u(3, :) - u(2, :), u(4, :) - u(3, :))
+
+    call euler_flux(uL, flux_dim, flux_l, wL)
+    call euler_flux(uR, flux_dim, flux_r, wR)
+    wmax = max(wL, wR)
+
+    call to_conservative(uL)
+    call to_conservative(uR)
+    flux(:, 1) = 0.5_dp * (flux_l + flux_r - wmax * (uR - uL))
+
+    ! Construct uL, uR for second cell face
+    uL = u(3, :) + 0.5_dp * vanleer(u(3, :) - u(2, :), u(4, :) - u(3, :))
+    uR = u(4, :) - 0.5_dp * vanleer(u(4, :) - u(3, :), u(5, :) - u(4, :))
+
+    call euler_flux(uL, flux_dim, flux_l, wL)
+    call euler_flux(uR, flux_dim, flux_r, wR)
+    wmax = max(wL, wR)
+
+    call to_conservative(uL)
+    call to_conservative(uR)
+    flux(:, 2) = 0.5_dp * (flux_l + flux_r - wmax * (uR - uL))
+
+  end subroutine muscl_flux_euler_prim
+
+  subroutine euler_flux(u, flux_dim, flux, w)
+    !$acc routine seq
+    real(dp), intent(in)  :: u(nw)
+    integer, intent(in)   :: flux_dim
+    real(dp), intent(out) :: flux(nw)
+    real(dp), intent(out) :: w
+    real(dp)              :: inv_gamma_m1
+    
+    inv_gamma_m1 = 1.0d0/(hd_gamma - 1.0_dp)
+
+    ! Density flux
+    flux(iw_rho) = u(iw_rho) * u(iw_mom(flux_dim))
+
+    ! Momentum flux with pressure term
+    flux(iw_mom(1)) = u(iw_rho) * u(iw_mom(1)) * u(iw_mom(flux_dim))
+    flux(iw_mom(2)) = u(iw_rho) * u(iw_mom(2)) * u(iw_mom(flux_dim))
+    flux(iw_mom(flux_dim)) = flux(iw_mom(flux_dim)) + u(iw_e)
+
+    ! Energy flux
+    flux(iw_e) = u(iw_mom(flux_dim)) * (u(iw_e) * inv_gamma_m1 + &
+         0.5_dp * u(iw_rho) * (u(iw_mom(1))**2 + u(iw_mom(2))**2) + u(iw_e))
+
+    w = sqrt(hd_gamma * u(iw_e) / u(iw_rho)) + abs(u(iw_mom(flux_dim)))
+
+    print *, w, hd_gamma, u(iw_rho)
+  end subroutine euler_flux
+
+  elemental pure real(dp) function vanleer(a, b) result(phi)
+    real(dp), intent(in) :: a, b
+    real(dp)             :: ab
+
+    ab = a * b
+    if (ab > 0) then
+       phi = 2 * ab / (a + b)
+    else
+       phi = 0
+    end if
+  end function vanleer
+
+  
+    !> The non-conservative Hancock predictor for TVDLF
+    !>
+    !> on entry:
+    !> input available on ixI^L=ixG^L asks for output on ixO^L=ixG^L^LSUBnghostcells
    !> one entry: (predictor): wCT -- w_n        wnew -- w_n   qdt=dt/2
    !> on exit :  (predictor): wCT -- w_n        wnew -- w_n+1/2
    !AGILE
