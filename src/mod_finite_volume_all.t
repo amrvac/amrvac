@@ -47,17 +47,17 @@ contains
 
          inv_dr = 1/rnode(rpdx1_:rnodehi, n)
 
-         !$acc loop collapse(2), private(w)
+         !$acc loop collapse(2), private(w), vector, independent
          do j = ixImin2, ixImax2
             do i = ixImin1, ixImax1
                ! Convert to primitive
-               w = bg(ia)%w(i, j, :, n)
+               w = bga%w(i, j, :, n)
                call to_primitive(w)
                uprim(i, j, :) = w
             end do
          end do
 
-         !$acc loop collapse(2), private(fx, fy, tmp)
+         !$acc loop collapse(2), private(fx, fy, tmp), vector, independent
          do j = ixOmin2, ixOmax2
             do i = ixOmin1, ixOmax1
                ! Compute x and y fluxes
@@ -68,7 +68,7 @@ contains
                call muscl_flux_euler_prim(tmp, 2, fy)
 
                ! Update the wnew array
-               bg(ib)%w(i, j, :, n) = bg(ib)%w(i, j, :, n) + qdt * &
+               bgb%w(i, j, :, n) = bgb%w(i, j, :, n) + qdt * &
                     ((fx(:, 1) - fx(:, 2)) * inv_dr(1) + &
                     (fy(:, 1) - fy(:, 2)) * inv_dr(2))
             end do
