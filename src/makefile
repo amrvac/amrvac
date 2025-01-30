@@ -51,6 +51,7 @@ mod_advance.o: mod_ghostcells_update.mod
 mod_advance.o: mod_global_parameters.mod
 mod_advance.o: mod_particles.mod
 mod_advance.o: mod_physics.mod
+mod_advance.o: mod_physicaldata.mod
 mod_advance.o: mod_source.mod
 mod_advance.o: mod_tvd.mod
 mod_advance.o: mod_usr_methods.mod
@@ -212,7 +213,6 @@ mod_finite_volume_all.o: mod_hd_phys.mod
 mod_finite_volume_all.o: mod_limiter.mod
 mod_finite_volume_all.o: mod_physics.mod
 mod_finite_volume_all.o: mod_source.mod
-mod_finite_volume_all.o: mod_tvd.mod
 mod_finite_volume_all.o: mod_usr_methods.mod
 mod_finite_volume_all.o: mod_variables.mod
 mod_fix_conserve.o: mod_global_parameters.mod
