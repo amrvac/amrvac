@@ -50,8 +50,8 @@ mod_advance.o: mod_fix_conserve.mod
 mod_advance.o: mod_ghostcells_update.mod
 mod_advance.o: mod_global_parameters.mod
 mod_advance.o: mod_particles.mod
-mod_advance.o: mod_physics.mod
 mod_advance.o: mod_physicaldata.mod
+mod_advance.o: mod_physics.mod
 mod_advance.o: mod_source.mod
 mod_advance.o: mod_tvd.mod
 mod_advance.o: mod_usr_methods.mod
