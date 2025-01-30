@@ -3,5 +3,5 @@ FFLAGS = -c
 # should already be in $LIBRARY_PATH (not $LD_LIBRARY_PATH):
 #LIB_DIRS += /opt/nvidia/hpc_sdk/Linux_x86_64/2024/cuda/lib64/
 LIBS += nvToolsExt
-F90FLAGS = -Wall -O3 -fast -acc -Minfo=accel
+F90FLAGS = -Wall -fast -acc=gpu -Minfo=all -Mvect=levels:5 -Minline -g
 LINK= $(F90)  $(F90FLAGS)

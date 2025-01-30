@@ -206,7 +206,7 @@ contains
     use mod_ghostcells_update
     use mod_fix_conserve
     use mod_physics
-    use mod_finite_volume_all, only: finite_volume_all
+    use mod_finite_volume_all, only: finite_volume_all, finite_volume_local
 
     integer, intent(in) :: idim^LIM
     integer :: ixO^L
@@ -242,7 +242,7 @@ contains
     ! some logic to select the desired method.
 
     ixO^L=ixG^LL^LSUBnghostcells;
-    call finite_volume_all( &
+    call finite_volume_local( &
         fs_hll, &          ! fs_hll
         qdt, dtfactor, &                ! some scalars related to time stepping
         ixG^LL,ixO^L, idim^LIM, &      ! bounds for some arrays
