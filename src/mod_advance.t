@@ -76,31 +76,36 @@ contains
     call init_comm_fix_conserve(idim^LIM,nwflux)
     fix_conserve_at_step = time_advance .and. levmax>levmin
     
-    ! OpenACC data region to manage data movement
-!    !$acc update device(bg(1)%w, bg(2)%w)
-!    print*,'bg start', bg(1)%w(28,41,3,1), '  *** ', bg(2)%w(28,41,3,1), ' *** ', bg(3)%w(28,41,3,1)
-
     ! copy w instead of wold because of potential use of dimsplit or sourcesplit
     !$OMP PARALLEL DO PRIVATE(igrid)
+    !$acc parallel loop present(bg, bg(1), bg(2)) private(igrid)
     do iigrid=1,igridstail; igrid=igrids(iigrid);
-       !$acc parallel loop collapse(ndim+1) present(bg)
+       !$acc loop collapse(ndim+1)
        do iw = 1, nw
           {^D& do ix^DB = ixGlo^DB, ixGhi^DB \}
           bg(2)%w(ix^D,iw,igrid) = bg(1)%w(ix^D,iw,igrid)
           {^D& end do \}
        end do
-          if(stagger_grid) then
-             !$acc kernels
-             ps1(igrid)%ws=ps(igrid)%ws
-             !$acc end kernels
-          end if
     end do
     !$OMP END PARALLEL DO
+    
+    if(stagger_grid) then
+       !$OMP PARALLEL DO PRIVATE(igrid)
+       !$acc parallel loop present(ps1, ps) private(igrid)
+       do iigrid=1,igridstail; igrid=igrids(iigrid);
+          !$acc loop collapse(ndim+1)
+          do iw = 1, nws
+             {^D& do ix^DB = ps(igrid)%ixGsmin^DB, ps(igrid)%ixGsmax^DB \}
+             ps1(igrid)%ws(ix^D,iw) = ps(igrid)%ws(ix^D,iw)
+             {^D& end do \}
+          end do
+       end do
+    end if
+    !$OMP END PARALLEL DO
 
-!    !$acc update self(bg(1)%w, bg(2)%w)
-    istep = 0
+ istep = 0
 
-     select case (t_stepper)
+ select case (t_stepper)
   
     case (threestep)
        select case (t_integrator)
@@ -108,12 +113,12 @@ contains
        case (ssprk3)
           ! this is SSPRK(3,3) Gottlieb-Shu 1998 or SSP(3,2) depending on ssprk_order (3 vs 2)
          
-          ! TODO call advect1 with bg(2) instead of ps1 ??? 
           call advect1(flux_method,rk_beta11, idim^LIM,global_time,ps,bg(1),global_time,ps1,bg(2))
-!         !$acc update device(bg(1)%w, bg(2)%w, bg(3)%w)
+
           !$OMP PARALLEL DO PRIVATE(igrid)
+          !$acc parallel loop present(bg, ps2, ps1, ps) private(igrid)
            do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
-              !$acc parallel loop collapse(ndim+1) present(bg)
+              !$acc loop collapse(ndim+1)
               do iw = 1, nw
                  {^D& do ix^DB = ixGlo^DB, ixGhi^DB \}
                  bg(3)%w(ix^D,iw,igrid) = rk_alfa21 * bg(1)%w(ix^D,iw,igrid) + rk_alfa22 * bg(2)%w(ix^D,iw,igrid)
@@ -122,15 +127,13 @@ contains
               if(stagger_grid) ps2(igrid)%ws=rk_alfa21*ps(igrid)%ws+rk_alfa22*ps1(igrid)%ws
            end do
           !$OMP END PARALLEL DO
-!          !$acc update self(bg(1)%w, bg(2)%w, bg(3)%w)
 
-          ! TODO call advect1 with bg(3) instead of ps2 ??? 
           call advect1(flux_method,rk_beta22, idim^LIM,global_time+rk_c2*dt,ps1,bg(2),global_time+rk_alfa22*rk_c2*dt,ps2,bg(3))
 
-!          !$acc update device(bg(1)%w, bg(2)%w, bg(3)%w)
           !$OMP PARALLEL DO PRIVATE(igrid)
+          !$acc parallel loop present(bg, ps2, ps) private(igrid)
            do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
-              !$acc parallel loop collapse(ndim+1) present(bg)
+              !$acc loop collapse(ndim+1)
               do iw = 1, nw
                  {^D& do ix^DB = ixGlo^DB, ixGhi^DB \}
                  bg(1)%w(ix^D,iw,igrid) = rk_alfa31 * bg(1)%w(ix^D,iw,igrid) + rk_alfa33 * bg(3)%w(ix^D,iw,igrid)
@@ -139,13 +142,9 @@ contains
               if(stagger_grid) ps(igrid)%ws=rk_alfa31*ps(igrid)%ws+rk_alfa33*ps2(igrid)%ws
            end do
           !$OMP END PARALLEL DO
-!          !$acc update self(bg(1)%w, bg(2)%w, bg(3)%w)
 
-          ! TODO call advect1 with bg(1) instead of ps ??? 
           call advect1(flux_method,rk_beta33, &
                 idim^LIM,global_time+rk_c3*dt,ps2,bg(3),global_time+(1.0d0-rk_beta33)*dt,ps,bg(1))
-!          !$acc update host(bg(1)%w, bg(2)%w, bg(3)%w)
-!          print*, 'advect, 6. called afvect1 with bg(3) and bg(1)', bg(1)%w(28,41,3,1), bg(2)%w(28,41,3,1), bg(3)%w(28,41,3,1)
   
         case default
            call mpistop("unkown threestep time_integrator in advect")
@@ -251,8 +250,8 @@ contains
         qt,  &                          ! scalar related to time stepping
         bgb, &                          ! second block grid
         fC, fE &                        ! fluxes
-    )
-    !print*,'advect1, call fva', bg(1)%w(28,41,3,1)
+        )
+    
     if (fix_conserve_global .and. fix_conserve_at_step) then
       call recvflux(idim^LIM)
       call sendflux(idim^LIM)
@@ -269,13 +268,7 @@ contains
     end if
 
     ! For all grids: fill ghost cells
-!    do iigrid=1,igridstail; igrid=igrids(iigrid);
-!       !$acc update self(psb(igrid)%w)
-!    end do
     call getbc(qt+qdt,qdt,psb,iwstart,nwgc,phys_req_diagonal)
-!    do iigrid=1,igridstail; igrid=igrids(iigrid);
-!       !$acc update device(psb(igrid)%w)
-!    end do
 
   end subroutine advect1
 
