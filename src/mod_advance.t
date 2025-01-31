@@ -208,24 +208,24 @@ contains
     use mod_physics
     use mod_finite_volume_all, only: finite_volume_all, finite_volume_local
 
-    integer, intent(in) :: idim^LIM
+    integer, intent(in)          :: idim^LIM
     integer :: ixO^L
-    type(state), target :: psa(max_blocks) !< Compute fluxes based on this state
-    type(state), target :: psb(max_blocks) !< Update solution on this state
-    type(block_grid_t), target :: bga !< Compute fluxes based on this state
-    type(block_grid_t), target :: bgb !< Update solution on this state
+    type(state), target          :: psa(max_blocks) !< Compute fluxes based on this state
+    type(state), target          :: psb(max_blocks) !< Update solution on this state
+    type(block_grid_t)           :: bga !< Compute fluxes based on this state
+    type(block_grid_t)           :: bgb !< Update solution on this state
     double precision, intent(in) :: dtfactor !< Advance over dtfactor * dt
     double precision, intent(in) :: qtC
     double precision, intent(in) :: qt
-    integer, intent(in) :: method(nlevelshi)
+    integer, intent(in)          :: method(nlevelshi)
 
     ! cell face flux
-    double precision :: fC(ixG^T,1:nwflux,1:ndim)
+    double precision             :: fC(ixG^T,1:nwflux,1:ndim)
     ! cell edge flux
-    double precision :: fE(ixG^T,sdim:3)
+    double precision             :: fE(ixG^T,sdim:3)
     !$acc declare create(fC,fE)
-    double precision :: qdt
-    integer :: iigrid, igrid
+    double precision             :: qdt
+    integer                      :: iigrid, igrid
 
     istep = istep+1
 
