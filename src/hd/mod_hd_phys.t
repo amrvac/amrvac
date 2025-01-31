@@ -152,6 +152,8 @@ module mod_hd_phys
   public :: hd_get_flux_gpu
   public :: hd_to_primitive_gpu
   public :: hd_to_conserved_gpu
+  public :: hd_get_cmax
+  public :: hd_get_cmax_scalar
 
 contains
 
@@ -792,16 +794,18 @@ contains
     end if
 
   end subroutine hd_to_primitive
+
   
   !> Transform conservative variables into primitive ones
   subroutine hd_to_primitive_gpu(ixI^L, ixO^L, w, x)
-    !$acc routine
+    !$acc routine vector
     use mod_global_parameters
     integer, intent(in)             :: ixI^L, ixO^L
     double precision, intent(inout) :: w(ixI^S, nw)
     double precision, intent(in)    :: x(ixI^S, 1:ndim)
     integer                         :: idir, ix^D
 
+    !$acc loop collapse(ndim)
     {^D& do ix^DB=ixOmin^DB,ixOmax^DB\}
     ! Compute pressure
     w(ix^D, e_) = (hd_gamma - 1.0d0) * (w(ix^D, e_) - &     
@@ -872,7 +876,8 @@ contains
   end subroutine rhos_to_e
 
   !> Calculate v_i = m_i / rho within ixO^L
-  subroutine hd_get_v_idim(w, x, ixI^L, ixO^L, idim, v)
+  pure subroutine hd_get_v_idim(w, x, ixI^L, ixO^L, idim, v)
+    !$acc routine seq
     use mod_global_parameters
     integer, intent(in)           :: ixI^L, ixO^L, idim
     double precision, intent(in)  :: w(ixI^S, nw), x(ixI^S, 1:ndim)
@@ -912,9 +917,10 @@ contains
   end subroutine hd_get_v
 
   !> Calculate cmax_idim = csound + abs(v_idim) within ixO^L
-  subroutine hd_get_cmax(w, x, ixI^L, ixO^L, idim, cmax)
+  pure subroutine hd_get_cmax(w, x, ixI^L, ixO^L, idim, cmax)
+    !$acc routine seq
     use mod_global_parameters
-    use mod_dust, only: dust_get_cmax
+!    use mod_dust, only: dust_get_cmax
 
     integer, intent(in)                       :: ixI^L, ixO^L, idim
     double precision, intent(in)              :: w(ixI^S, nw), x(ixI^S, 1:ndim)
@@ -928,12 +934,34 @@ contains
 
     cmax(ixO^S) = dabs(v(ixO^S))+csound(ixO^S)
     
-    if (hd_dust) then
-      call dust_get_cmax(w, x, ixI^L, ixO^L, idim, cmax)
-   end if
+!    if (hd_dust) then
+!      call dust_get_cmax(w, x, ixI^L, ixO^L, idim, cmax)
+!   end if
 
   end subroutine hd_get_cmax
 
+  pure subroutine hd_get_cmax_scalar(w, idim, cmax)
+    !$acc routine seq
+
+    integer, intent(in)                       :: idim
+    double precision, intent(in)              :: w(:)
+    double precision, intent(out)             :: cmax
+    double precision                          :: csound
+    double precision                          :: v
+
+    v = w(mom(idim)) / w(rho_)
+
+    csound = (hd_gamma - 1.0d0) * (w(e_) - &     
+         0.5d0 * ({^D& w(mom(^D))**2|+}) / w(rho_) ) ! p
+    
+    csound = hd_gamma * csound / w(rho_) ! cs**2
+    csound = sqrt(csound)
+
+    cmax = abs(v) + csound
+    
+  end subroutine hd_get_cmax_scalar
+
+  
   subroutine hd_get_cmax_gpu(w, x, ixI^L, ixO^L, idim, cmax)
     use mod_global_parameters
 
@@ -1230,7 +1258,8 @@ contains
   
   !> Calculate the square of the thermal sound speed csound2 within ixO^L.
   !> csound2=gamma*p/rho
-  subroutine hd_get_csound2(w,x,ixI^L,ixO^L,csound2)
+  pure subroutine hd_get_csound2(w,x,ixI^L,ixO^L,csound2)
+    !$acc routine seq
     use mod_global_parameters
     integer, intent(in)             :: ixI^L, ixO^L
     double precision, intent(in)    :: w(ixI^S,nw)
@@ -1268,7 +1297,7 @@ contains
   end subroutine hd_get_csound2_gpu
   
   !> Calculate thermal pressure=(gamma-1)*(e-0.5*m**2/rho) within ixO^L
-  subroutine hd_get_pthermal(w, x, ixI^L, ixO^L, pth)
+  pure subroutine hd_get_pthermal(w, x, ixI^L, ixO^L, pth)
     use mod_global_parameters
     use mod_usr_methods, only: usr_set_pthermal
     use mod_small_values, only: trace_small_values
@@ -1721,7 +1750,7 @@ contains
 
   end subroutine hd_get_dt
 
-  function hd_kin_en(w, ixI^L, ixO^L, inv_rho) result(ke)
+  pure function hd_kin_en(w, ixI^L, ixO^L, inv_rho) result(ke)
     !$acc routine
     use mod_global_parameters, only: nw, ndim
     integer, intent(in)                    :: ixI^L, ixO^L

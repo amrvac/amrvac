@@ -432,6 +432,7 @@ contains
 
   !> do update ghost cells of all blocks including physical boundaries
   subroutine getbc(time,qdt,psb,nwstart,nwbc,req_diag)
+    use mod_nvtx
     use mod_global_parameters
     use mod_physics
     use mod_coarsen, only: coarsen_grid
@@ -460,6 +461,8 @@ contains
     type(wbuffer) :: pwbuf(npwbuf)
 
     time_bcin=MPI_WTIME()
+    
+    call nvtxStartRange("getbc",2)
 
     nwhead=nwstart
     nwtail=nwstart+nwbc-1
@@ -673,7 +676,8 @@ contains
     end if
 
     time_bc=time_bc+(MPI_WTIME()-time_bcin)
-    
+    call nvtxEndRange
+
     contains
 
       logical function skip_direction(dir)
@@ -1856,6 +1860,7 @@ contains
       
       end subroutine pole_buffer
 
+      
   end subroutine getbc
 
   subroutine identifyphysbound(s,iib^D)

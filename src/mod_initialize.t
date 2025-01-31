@@ -110,6 +110,7 @@ contains
        call mpistop("mesh widths must give even number grid points")
     end if
     ixM^LL=ixG^LL^LSUBnghostcells;
+    !$acc update device(ixM^LL)
 
     if (nbufferx^D>(ixMhi^D-ixMlo^D+1)|.or.) then
        write(unitterm,*) "nbufferx^D bigger than mesh size makes no sense."
@@ -121,7 +122,7 @@ contains
     do level=2,refine_max_level
        {dx(^D,level) = dx(^D,level-1) * half\}  ! refine ratio 2
     end do
-
+    
     ! domain decomposition
     ! physical extent of a grid block at level 1, per dimension
     ^D&dg^D(1)=dx(^D,1)*dble(block_nx^D)\
