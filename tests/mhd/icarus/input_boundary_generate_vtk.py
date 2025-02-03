@@ -15,11 +15,11 @@ from datetime import datetime
 ######################## User Defined Variables ##########################
 
 
-dataset =  sorted(glob.glob('solar_wind_bc_used_in_paper.in'))
+dataset =  sorted(glob.glob('./solar_wind_bc_used_in_paper.in'))
 
-filename_boundary_output = './test_python_script/solar_wind_2015_input.vtk'
+filename_boundary_output = './solar_wind_2015_single_gong.vtk'
 generated_boundary_images_flag = 'yes'
-generated_boundary_images_directory ='./test_python_script/'
+generated_boundary_images_directory ='./'
 
 ######################## Units for AMPRVAC ##########################
 
@@ -160,13 +160,13 @@ for i, data in enumerate(dataset):
     lons_original = lons.astype(np.float64)
     clts_original=clts.astype(np.float64)
 
-
+    print (time_step, current_magnetgoram)
     clts = np.linspace(1.745329251994309772e-02, 3.124139361069850018e+00, len(clts))
     clt_min = 8.14606741573e-2*np.pi*2.0
     clt_max = 4.18539325843e-1*np.pi*2.0
     lon_correct = abs(float(lons_original[0]))
     lons = np.linspace(float(lons_original[0]) + lon_correct, float(lons_original[-1])+lon_correct, len(lons))
-    delta_lon=-time_step*average_cadence*np.pi/(24.47*24)
+    delta_lon=-time_step*2.*np.pi/(24.47*24)
     shift_accumulated+=delta_lon
 
 

@@ -19,7 +19,8 @@ module mod_usr
   real(kind=8), allocatable                      :: coord_grid_init(:,:,:),variables_init(:,:,:)
   type(satellite_pos), dimension(:), allocatable :: positions_list
   character(len=250), dimension(8)               :: trajectory_list
-  integer, dimension(8)                          :: which_satellite = (/1, 1,1, 1, 1, 1, 0, 0/)     ! intended order: earth, mars, mercury, venus, sta, stb, psp, solo
+  !integer, dimension(8)                          :: which_satellite = (/1, 1,1, 1, 1, 1, 0, 0/)     ! intended order: earth, mars, mercury, venus, sta, stb, psp, solo
+  integer, dimension(8)                          :: which_satellite = (/0, 0, 0, 0, 0, 0, 0, 0/)     ! intended order: earth, mars, mercury, venus, sta, stb, psp, solo
   integer, dimension(8)                          :: sat_indx = (/0, 0, 0, 0, 0, 0, 0, 0/)     ! intended order: earth, mars, mercury, venus, sta, stb, psp, solo
   integer                                        :: sat_count=0, zero_count=0
   double precision, dimension(8)                 :: last = (/0, 0, 0, 0, 0, 0, 0, 0/)        ! intended order: earth, mars, mercury, venus, sta, stb, psp, solo
@@ -39,7 +40,7 @@ module mod_usr
   double precision, dimension(:), allocatable    :: lon_updated, lon_original
   integer             :: magnetogram_timestamp(6)
   character(len=20)   :: magnetogram_time
-  
+
   integer             :: cme_exists
       public :: bc_data_get_3d
 
@@ -170,7 +171,7 @@ contains
 
      ! delta_phi=1.19 ! If input from WSA
 
-    
+
       ! read in cme parameters
       if (num_cmes == 0) then
         ALLOCATE(timestamp(1))
@@ -198,21 +199,9 @@ contains
        end if
 
 
-
-        earth_trajectory = "orbit/2015_june_earth_ext.unf"
-        mars_trajectory = "orbit/2015_june_mars_ext.unf"
-        venus_trajectory = "orbit/2015_june_venus_ext.unf"
-        mercury_trajectory = "orbit/2015_june_mercury_ext.unf"
-        sta_trajectory = "orbit/2015_june_sta_ext.unf"
-        stb_trajectory = "orbit/2015_june_stb_ext.unf"
-
-
-        trajectory_list(1) = earth_trajectory
-        trajectory_list(2) = mars_trajectory
-        trajectory_list(4) = venus_trajectory
-        trajectory_list(3) = mercury_trajectory
-        trajectory_list(5) = sta_trajectory
-        trajectory_list(6) = stb_trajectory
+        do i=1, 8
+            call find_trajectory_file(i, path_satellite_trajectories)
+        end do
 
         ALLOCATE(positions_list(8), STAT=AllocateStatus)
 
@@ -979,10 +968,10 @@ contains
       read(iUnit,*) cme_type(i), cme_date(i), clt_cme(i), lon_cme(i), w_half(i),  vr_cme(i), rho_cme(i), temperature_cme(i)
       w_half(i) = w_half(i) * dpi/180.0
       clt_cme(i) = (-clt_cme(i) + 90.0) * dpi/180.0
-      lon_cme(i) = lon_cme(i)*dpi/180.0+delta_phi 
+      lon_cme(i) = lon_cme(i)*dpi/180.0+delta_phi
       vr_cme(i) = vr_cme(i)*1000.0
     end do
- 
+
     close(iUnit)
     do i=1, num_cmes
       read (cme_date(i)(1:4),*) cme_year(i)

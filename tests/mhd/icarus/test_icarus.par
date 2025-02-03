@@ -111,7 +111,7 @@
         amr_criterion = 'tracing'
         cme_flag =1
         num_cmes = 5
-        relaxation = 10
+        relaxation = 14
         cme_insertion = 0
         cme_parameter_file = 'cme_euhforia_formatted.in'
         magnetogram_time = '2015-06-25T01:04:00'
