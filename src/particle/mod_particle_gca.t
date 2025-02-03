@@ -114,8 +114,6 @@ contains
 
     double precision :: b(ndir), u(ndir), magmom
     double precision :: bnorm, lfac, vnorm, vperp, vpar
-    integer          :: igrid, ipe_particle
-    integer          :: n, idir, nparticles_local
     double precision :: x(3, num_particles)
     double precision :: v(3, num_particles)
     double precision :: q(num_particles)
@@ -123,6 +121,8 @@ contains
     double precision :: rrd(num_particles,ndir)
     double precision :: defpayload(ndefpayload)
     double precision :: usrpayload(nusrpayload)
+    integer          :: igrid, ipe_particle
+    integer          :: n, idir, nparticles_local
     logical          :: follow(num_particles), check
 
     if (mype==0) then
@@ -219,13 +219,13 @@ contains
     use mod_usr_methods, only: usr_particle_fields
     use mod_geometry
 
-    integer                                   :: igrid, iigrid, idir, idim
     double precision, dimension(ixG^T,1:ndir) :: beta
     double precision, dimension(ixG^T,1:nw)   :: w,wold
     double precision                          :: current(ixG^T,7-2*ndir:3)
-    integer                                   :: idirmin
     double precision, dimension(ixG^T,1:ndir) :: vE, bhat
     double precision, dimension(ixG^T)        :: kappa, kappa_B, absB, tmp
+    integer                                   :: igrid, iigrid, idir, idim
+    integer                                   :: idirmin
 
     call fill_gridvars_default()
 

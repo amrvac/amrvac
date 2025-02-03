@@ -6,6 +6,7 @@ module mod_ionization_degree
   double precision, dimension(:), allocatable :: Te_H_table
   double precision, dimension(:), allocatable :: iz_H_table
   double precision :: Te_table_min, Te_table_max, Te_table_step, inv_Te_table_step
+  double precision :: Te_low_iz_He=5413.d0
   ! Carlsson, M., & Leenaarts, J. 2012, A&A, 539, A39
   data Te_H_CL /2.1000005d+03, 2.2349495d+03, 2.3785708d+03, 2.5314199d+03, 2.6940928d+03, &
                 2.8672190d+03, 3.0514692d+03, 3.2475613d+03, 3.4562544d+03, 3.6783584d+03, &
@@ -49,7 +50,6 @@ module mod_ionization_degree
                 1.4264889d-07, 1.2616209d-07, 1.1193421d-07, 9.9408616d-08, 8.8335305d-08, &
                 7.8593857d-08, 7.0042269d-08, 6.2532941d-08, 5.5898361d-08, 5.0049657d-08, &
                 4.4888207d-08, 4.0317172d-08, 3.6192560d-08, 3.2330732d-08, 2.9387850d-08  /
-    double precision :: Te_low_iz_He=5413.d0
   contains
 
     subroutine ionization_degree_init()

@@ -3,16 +3,6 @@ module mod_physicaldata
   save
 
   type state
-     !> ID of a grid block
-     integer :: igrid=-1
-     !> index range of block array in cell centers
-     integer :: ixG^L
-     !> index range of block array in cell faces
-     integer :: ixGs^L
-     !> level of AMR
-     integer :: level
-     !> If it face a physical boundary
-     logical, dimension(:), pointer :: is_physical_boundary(:) =>Null()
      !> Variables, normally cell center conservative values
      double precision, dimension(:^D&,:), allocatable :: w
      !> Variables, cell face values
@@ -47,12 +37,20 @@ module mod_physicaldata
      double precision, dimension(:^D&,:), pointer :: surfaceC=>Null()
      !> special values for a block
      double precision, dimension(:), pointer :: special_values=>Null()
+     !> ID of a grid block
+     integer :: igrid=-1
+     !> index range of block array in cell centers
+     integer :: ixG^L
+     !> index range of block array in cell faces
+     integer :: ixGs^L
+     !> level of AMR
+     integer :: level
+     !> If it face a physical boundary
+     logical, dimension(:), pointer :: is_physical_boundary(:) =>Null()
   end type state
 
 {^NOONED
   type state_sub
-     !> ID of a grid block
-     integer :: igrid=-1
      !> Variables, normally center
      double precision, dimension(:^DE&,:), allocatable :: w
      !> Variables for the cornerpositions on the slice 
@@ -79,12 +77,12 @@ module mod_physicaldata
      double precision, dimension(:^DE&,:), allocatable :: surface
      !> Areas of cell-face surfaces
      double precision, dimension(:^DE&,:), allocatable :: surfaceC
+     !> ID of a grid block
+     integer :: igrid=-1
   end type state_sub
 }
 {^IFONED
   type state_sub
-     !> ID of a grid block
-     integer :: igrid=-1
      !> Variables, normally center
      double precision, dimension(:), allocatable :: w
      !> Variables for the cornerpositions on the slice 
@@ -97,6 +95,8 @@ module mod_physicaldata
      double precision, dimension(:), allocatable :: xC
      !> Cell-center positions, one level coarser representative
      double precision, dimension(:), allocatable :: xcoarse
+     !> ID of a grid block
+     integer :: igrid=-1
   end type state_sub
 }
   type grid_field

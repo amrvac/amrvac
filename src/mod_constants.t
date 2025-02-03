@@ -10,9 +10,6 @@ module mod_constants
   !> A very large real number
   double precision, parameter :: bigdouble = 1.D+99
 
-  !> A very large integer
-  integer, parameter :: biginteger = 10000000
-
   !> some frequently used numbers
   double precision, parameter :: zero    = 0.0d0
   double precision, parameter :: one     = 1.0d0
@@ -66,5 +63,8 @@ module mod_constants
   double precision, PARAMETER :: const_Tera  = 1.d12           ! -                 ; Tera
   double precision, PARAMETER :: const_Peta  = 1.d15           ! -                 ; Peta
   double precision, PARAMETER :: const_years = 3.1536d7        ! s year^-1         ; seconds in a year
+
+  !> A very large integer
+  integer, parameter :: biginteger = 10000000
 
 end module mod_constants

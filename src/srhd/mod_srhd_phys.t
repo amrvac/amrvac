@@ -45,9 +45,6 @@ module mod_srhd_phys
   !> The smallest allowed inertia
   double precision, public             :: small_xi
 
-  !> Allows overruling default corner filling (for debug mode, otherwise corner primitives fail)
-  logical, public, protected              :: srhd_force_diagonal = .false.
-
   !> Helium abundance over Hydrogen
   double precision, public, protected  :: He_abundance=0.0d0
 
@@ -80,7 +77,7 @@ contains
     integer                      :: n
 
     namelist /srhd_list/ srhd_n_tracer, srhd_eos, srhd_gamma, &
-                    srhd_particles, srhd_force_diagonal, &
+                    srhd_particles, &
                     SI_unit, He_abundance
 
     do n = 1, size(files)
@@ -146,17 +143,8 @@ contains
     e_ = var_set_energy()
     p_ = e_
 
-    ! Whether diagonal ghost cells are required for the physics
-    phys_req_diagonal = .false.
-
     ! derive units from basic units
     call srhd_physical_units()
-
-    if (srhd_force_diagonal) then
-       ! ensure corners are filled, otherwise divide by zero when getting primitives
-       !  --> only for debug purposes
-       phys_req_diagonal = .true.
-    endif
 
     allocate(tracer(srhd_n_tracer))
 
@@ -175,6 +163,9 @@ contains
 
     ! set the index of the last flux variable for species 1
     stop_indices(1)=nwflux
+  
+    !  Number of variables need reconstruction in w
+    nw_recon=nwflux
 
     ! Check whether custom flux types have been defined
     if (.not. allocated(flux_type)) then
@@ -214,7 +205,6 @@ contains
     ! Initialize particles module
     if (srhd_particles) then
        call particles_init()
-       phys_req_diagonal = .true.
     end if
 
   end subroutine srhd_phys_init
@@ -606,6 +596,7 @@ contains
     double precision, intent(in)              :: w(ixI^S, nw), x(ixI^S, 1:ndim)
     double precision, intent(inout)           :: cmax(ixI^S)
 
+    double precision :: wc(ixI^S,nw)
     double precision, dimension(ixO^S)        :: csound2,tmp1,tmp2,v2
     double precision, dimension(ixI^S)        :: vidim, cmin
 
@@ -613,11 +604,14 @@ contains
 
     !!call srhd_check_w_aux(ixI^L, ixO^L, w, flag)
 
+    ! input w is in primitive form TODO use it
+    wc=w
+    call srhd_to_conserved(ixI^L, ixO^L, wc, x)
     ! auxiliaries are filled here
-    tmp1(ixO^S)=w(ixO^S,xi_)/w(ixO^S,lfac_)**2.0d0
-    v2(ixO^S)=1.0d0-1.0d0/w(ixO^S,lfac_)**2
-    call srhd_get_csound2_rhoh(w,x,ixI^L,ixO^L,tmp1,csound2)
-    vidim(ixO^S) = w(ixO^S, mom(idim))/w(ixO^S, xi_)
+    tmp1(ixO^S)=wc(ixO^S,xi_)/wc(ixO^S,lfac_)**2.0d0
+    v2(ixO^S)=1.0d0-1.0d0/wc(ixO^S,lfac_)**2
+    call srhd_get_csound2_rhoh(wc,x,ixI^L,ixO^L,tmp1,csound2)
+    vidim(ixO^S) = wc(ixO^S, mom(idim))/wc(ixO^S, xi_)
     tmp2(ixO^S)=vidim(ixO^S)**2.0d0
     tmp1(ixO^S)=1.0d0-v2(ixO^S)*csound2(ixO^S) &
                         -tmp2(ixO^S)*(1.0d0-csound2(ixO^S))
@@ -822,17 +816,17 @@ contains
   end subroutine srhd_get_flux
 
   !> Add geometrical source terms to w
-  subroutine srhd_add_source_geom(qdt, dtfactor, ixI^L, ixO^L, wCT, w, x)
+  subroutine srhd_add_source_geom(qdt, dtfactor, ixI^L, ixO^L, wCT, wprim, w, x)
     use mod_global_parameters
     use mod_usr_methods, only: usr_set_surface
     use mod_geometry
     integer, intent(in)             :: ixI^L, ixO^L
     double precision, intent(in)    :: qdt, dtfactor, x(ixI^S, 1:ndim)
-    double precision, intent(inout) :: wCT(ixI^S, 1:nw), w(ixI^S, 1:nw)
+    double precision, intent(inout) :: wCT(ixI^S, 1:nw), wprim(ixI^S, 1:nw), w(ixI^S, 1:nw)
 
     double precision :: pth(ixI^S), source(ixI^S), v(ixI^S,1:ndir)
     integer                         :: idir, h1x^L{^NOONED, h2x^L}
-    integer :: mr_,mphi_,vr_,vphi_,vtheta_ ! Polar var. names
+    integer :: mr_,mphi_ ! Polar var. names
     double precision :: exp_factor(ixI^S), del_exp_factor(ixI^S), exp_factor_primitive(ixI^S)
 
     select case (coordinate)
@@ -854,12 +848,9 @@ contains
           call srhd_get_pthermal(wCT, x, ixI^L, ixO^L, source)
           if (phi_ > 0) then
              mphi_ = mom(phi_)
-             vphi_ = mom(phi_)-1
-             vr_   = mom(r_)-1
-             call srhd_get_v(wCT,x,ixI^L,ixO^L,v)
-             source(ixO^S) = source(ixO^S) + wCT(ixO^S, mphi_)*v(ixO^S,vphi_)
+             source(ixO^S) = source(ixO^S) + wCT(ixO^S, mphi_)*wprim(ixO^S,mom(phi_))
              w(ixO^S, mr_) = w(ixO^S, mr_) + qdt * source(ixO^S) / x(ixO^S, r_)
-             source(ixO^S) = -wCT(ixO^S, mphi_) * v(ixO^S,vr_)
+             source(ixO^S) = -wCT(ixO^S, mphi_) * wprim(ixO^S,mom(r_))
              w(ixO^S, mphi_) = w(ixO^S, mphi_) + qdt * source(ixO^S) / x(ixO^S, r_)
           else
              w(ixO^S, mr_) = w(ixO^S, mr_) + qdt * source(ixO^S) / x(ixO^S, r_)
@@ -876,15 +867,13 @@ contains
             *(block%surfaceC(ixO^S, 1) - block%surfaceC(h1x^S, 1)) &
             /block%dvolume(ixO^S)
        if (ndir > 1) then
-         call srhd_get_v(wCT,x,ixI^L,ixO^L,v)
          do idir = 2, ndir
-           source(ixO^S) = source(ixO^S) + wCT(ixO^S, mom(idir))*v(ixO^S,idir)
+           source(ixO^S) = source(ixO^S) + wCT(ixO^S, mom(idir))*wprim(ixO^S,mom(idir))
          end do
        end if
        w(ixO^S, mr_) = w(ixO^S, mr_) + qdt * source(ixO^S) / x(ixO^S, 1)
 
        {^NOONED
-       vr_   = mom(r_)-1
        ! s[mtheta]=-(stheta*vr)/r+cot(theta)*(sphi*vphi+p)/r
        source(ixO^S) = pth(ixO^S) * x(ixO^S, 1) &
             * (block%surfaceC(ixO^S, 2) - block%surfaceC(h2x^S, 2)) &
@@ -892,14 +881,13 @@ contains
        if (ndir == 3) then
           source(ixO^S) = source(ixO^S) + (wCT(ixO^S, mom(3))*v(ixO^S,ndir)) / dtan(x(ixO^S, 2))
        end if
-       source(ixO^S) = source(ixO^S) - (wCT(ixO^S, mom(2)) * v(ixO^S, vr_)) 
+       source(ixO^S) = source(ixO^S) - wCT(ixO^S, mom(2)) * wprim(ixO^S, mom(1))
        w(ixO^S, mom(2)) = w(ixO^S, mom(2)) + qdt * source(ixO^S) / x(ixO^S, 1)
 
        if (ndir == 3) then
-         vtheta_   = mom(2)-1
          ! s[mphi]=-(sphi*vr)/r-cot(theta)*(sphi*vtheta)/r
-         source(ixO^S) = -(wCT(ixO^S, mom(3)) * v(ixO^S, vr_)) &
-                        - (wCT(ixO^S, mom(3)) * v(ixO^S, vtheta_)) / dtan(x(ixO^S, 2))
+         source(ixO^S) = -(wCT(ixO^S, mom(3)) * wprim(ixO^S, mom(1))) &
+                        - (wCT(ixO^S, mom(3)) * wprim(ixO^S, mom(2))) / dtan(x(ixO^S, 2))
          w(ixO^S, mom(3)) = w(ixO^S, mom(3)) + qdt * source(ixO^S) / x(ixO^S, 1)
        end if
        }

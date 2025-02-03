@@ -19,6 +19,9 @@ module mod_variables
   !> Number of extra variables in wextra seperated from w
   integer           :: nw_extra = 0
 
+  !> Number of variables need reconstruction in w
+  integer           :: nw_recon = 0
+
   !> Total number of variables
   integer           :: nw = 0
 
@@ -39,12 +42,6 @@ module mod_variables
 
   !> Maximum number of variables
   integer, parameter :: max_nw = 50
-
-  !> Primitive variable names
-  character(len=name_len) :: prim_wnames(max_nw)
-
-  !> Conservative variable names
-  character(len=name_len) :: cons_wnames(max_nw)
 
   ! Global indices of variables that are often used
 
@@ -91,6 +88,12 @@ module mod_variables
   ! these are needed for hlld solver, TODO: consider moving in a separate file
   integer :: iw_equi_rho = -1
   integer :: iw_equi_p = -1
+
+  !> Primitive variable names
+  character(len=name_len) :: prim_wnames(max_nw)
+
+  !> Conservative variable names
+  character(len=name_len) :: cons_wnames(max_nw)
 
 contains
 

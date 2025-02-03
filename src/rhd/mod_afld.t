@@ -744,7 +744,7 @@ module mod_afld
 !     use mod_forest
 !     use mod_ghostcells_update
 !     use mod_multigrid_coupling
-!     use mod_physics, only: phys_set_mg_bounds, phys_req_diagonal
+!     use mod_physics, only: phys_set_mg_bounds
 !
 !     type(state), target :: psa(max_blocks)
 !     type(state), target :: psb(max_blocks)
@@ -1062,7 +1062,7 @@ module mod_afld
 !     end do
 !
 !     ! enforce boundary conditions for psa
-! 0888 call getbc(qtC,0.d0,psa,1,nwflux+nwaux,phys_req_diagonal)
+! 0888 call getbc(qtC,0.d0,psa,1,nwflux+nwaux)
 !
 !   end subroutine Diffuse_E_rad_mg
 
@@ -1073,7 +1073,7 @@ subroutine Diffuse_E_rad_mg(dtfactor,qdt,qtC,psa,psb)
   use mod_forest
   use mod_ghostcells_update
   use mod_multigrid_coupling
-  use mod_physics, only: phys_set_mg_bounds, phys_req_diagonal
+  use mod_physics, only: phys_set_mg_bounds
 
   type(state), target :: psa(max_blocks)
   type(state), target :: psb(max_blocks)
@@ -1196,7 +1196,7 @@ subroutine Diffuse_E_rad_mg(dtfactor,qdt,qtC,psa,psb)
   call mg_copy_from_tree_gc(mg_iphi, iw_r_e, state_to=psa)
 !
 !   ! enforce boundary conditions for psa
-! 0888 call getbc(qtC,0.d0,psa,1,nwflux+nwaux,phys_req_diagonal)
+! 0888 call getbc(qtC,0.d0,psa,1,nwflux+nwaux)
 
 end subroutine Diffuse_E_rad_mg
 
@@ -1205,7 +1205,6 @@ end subroutine Diffuse_E_rad_mg
   subroutine Evaluate_E_rad_mg(qtC,psa)
     use mod_global_parameters
     use mod_ghostcells_update
-    use mod_physics, only: phys_req_diagonal
 
     type(state), target :: psa(max_blocks)
     double precision, intent(in) :: qtC
@@ -1225,7 +1224,7 @@ end subroutine Diffuse_E_rad_mg
     !$OMP END PARALLEL DO
 
     ! enforce boundary conditions for psa
-    call getbc(qtC,0.d0,psa,1,nwflux+nwaux,phys_req_diagonal)
+    call getbc(qtC,0.d0,psa,1,nwflux+nwaux)
 
   end subroutine Evaluate_E_rad_mg
 

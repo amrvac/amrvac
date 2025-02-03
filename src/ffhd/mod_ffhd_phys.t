@@ -281,6 +281,9 @@ contains
     ! set the index of the last flux variable for species 1
     stop_indices(1)=nwflux
 
+    !  Number of variables need reconstruction in w
+    nw_recon=nwflux
+
     !  set temperature as an auxiliary variable to get ionization degree
     if(ffhd_partial_ionization) then
       Te_ = var_set_auxvar('Te','Te')
@@ -377,8 +380,6 @@ contains
 
     ! initialize thermal conduction module
     if(ffhd_thermal_conduction) then
-      phys_req_diagonal = .true.
-
       call sts_init()
       call tc_init_params(ffhd_gamma)
 
@@ -414,7 +415,7 @@ contains
     phys_te_images => ffhd_te_images
 }
     ! Initialize viscosity module
-    if(ffhd_viscosity) call viscosity_init(phys_wider_stencil,phys_req_diagonal)
+    if(ffhd_viscosity) call viscosity_init(phys_wider_stencil)
 
     ! Initialize gravity module
     if(ffhd_gravity) then
@@ -796,14 +797,17 @@ contains
   subroutine ffhd_get_cmax_origin(w,x,ixI^L,ixO^L,idim,cmax)
     use mod_global_parameters
     integer, intent(in)          :: ixI^L, ixO^L, idim
+    ! w in primitive form
     double precision, intent(in) :: w(ixI^S, nw), x(ixI^S,1:ndim)
     double precision, intent(inout) :: cmax(ixI^S)
-    double precision :: vel(ixI^S)
 
-    call ffhd_get_csound(w,x,ixI^L,ixO^L,idim,cmax)
-    call ffhd_get_v_idim(w,x,ixI^L,ixO^L,idim,vel)
+    if(ffhd_energy) then
+      cmax(ixO^S)=sqrt(ffhd_gamma*w(ixO^S,p_)/w(ixO^S,rho_))*abs(block%B0(ixO^S,idim,idim))
+    else
+      cmax(ixO^S)=sqrt(ffhd_gamma*ffhd_adiab*w(ixO^S,rho_)**gamma_1)*abs(block%B0(ixO^S,idim,idim))
+    end if
+    cmax(ixO^S)=abs(w(ixO^S,mom(1))*block%B0(ixO^S,idim,0))+cmax(ixO^S)
 
-    cmax(ixO^S)=abs(vel(ixO^S))+cmax(ixO^S)
   end subroutine ffhd_get_cmax_origin
 
   subroutine ffhd_get_cs2max(w,x,ixI^L,ixO^L,cs2max)

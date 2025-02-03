@@ -77,8 +77,8 @@ contains
     double precision             :: fE(ixI^S,sdim:3)
     double precision             :: dx^D
 
-    integer                            :: ixIs^L,ixO^L,idir
     double precision                   :: A(s%ixGs^S,1:3)
+    integer                            :: ixIs^L,ixO^L,idir
 
     associate(ws=>s%ws,x=>s%x)
 
@@ -108,9 +108,9 @@ contains
     double precision, intent(inout)    :: ws(ixIs^S,1:nws),A(ixIs^S,1:3)
     double precision, intent(in)       :: x(ixI^S,1:ndim)
 
-    integer                            :: ixC^L, hxC^L, idim1, idim2, idir
     double precision                   :: xC(ixIs^S,1:ndim),xCC(ixIs^S,1:ndim)
     double precision                   :: circ(ixIs^S,1:ndim)
+    integer                            :: ixC^L, hxC^L, idim1, idim2, idir
 
     A=zero
     ! extend one layer of cell center locations in xCC

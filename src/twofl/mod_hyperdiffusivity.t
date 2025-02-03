@@ -14,7 +14,6 @@ contains
   subroutine hyperdiffusivity_init()
     use mod_global_parameters
     use mod_geometry
-    use mod_physics, only: phys_req_diagonal
 
     !print*, slab_uniform !!THIS IS FALSE, why??
 
@@ -24,7 +23,6 @@ contains
     endif
 
     nghostcells = max(nghostcells,3)
-    phys_req_diagonal = .true.
 
   end subroutine hyperdiffusivity_init
 

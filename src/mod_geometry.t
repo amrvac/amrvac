@@ -519,12 +519,13 @@ contains
     double precision, intent(inout) :: divq(ixI^S)
     logical, intent(in), optional   :: fourthorder !< Default: false
     logical, intent(in), optional   :: sixthorder !< Default: false
-    logical                         :: use_4th_order
-    logical                         :: use_6th_order
+
     double precision                :: qC(ixI^S), invdx(1:ndim)
     integer                         :: jxO^L, hxO^L, ixC^L, jxC^L
     integer                         :: idims, ix^L, gxO^L, kxO^L
     integer                         :: lxO^L, fxO^L
+    logical                         :: use_4th_order
+    logical                         :: use_6th_order
 
     use_4th_order = .false.
     use_6th_order = .false.
@@ -669,9 +670,9 @@ contains
     double precision, intent(inout) :: curlvec(ixI^S,idirmin0:3)
     logical, intent(in), optional   :: fourthorder !< Default: false
 
-    integer          :: ixA^L,ixC^L,jxC^L,idir,jdir,kdir,hxO^L,jxO^L,kxO^L,gxO^L
     double precision :: invdx(1:ndim)
     double precision :: tmp(ixI^S),tmp2(ixI^S),xC(ixI^S),surface(ixI^S)
+    integer          :: ixA^L,ixC^L,jxC^L,idir,jdir,kdir,hxO^L,jxO^L,kxO^L,gxO^L
     logical          :: use_4th_order
 
     ! Calculate curl within ixL: CurlV_i=eps_ijk*d_j V_k
@@ -1137,9 +1138,9 @@ contains
     double precision, intent(in)    :: qvec(ixI^S,1:ndir0),qvecc(ixI^S,1:ndir0)
     double precision, intent(inout) :: curlvec(ixI^S,idirmin0:3)
 
-    integer          :: ixA^L,ixC^L,jxC^L,idir,jdir,kdir,hxO^L,jxO^L
     double precision :: invdx(1:ndim)
     double precision :: tmp(ixI^S),tmp2(ixI^S),xC(ixI^S),surface(ixI^S)
+    integer          :: ixA^L,ixC^L,jxC^L,idir,jdir,kdir,hxO^L,jxO^L
 
     ! Calculate curl within ixL: CurlV_i=eps_ijk*d_j V_k
     ! Curl can have components (idirmin:3)

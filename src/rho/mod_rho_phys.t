@@ -62,7 +62,6 @@ contains
 
     physics_type = "rho"
     phys_energy  = .false.
-    phys_req_diagonal = .false.
     use_particles = rho_particles
 
     allocate(start_indices(number_species),stop_indices(number_species))
@@ -75,6 +74,9 @@ contains
 
     ! set the index of the last flux variable for species 1
     stop_indices(1)=nwflux
+  
+    !  Number of variables need reconstruction in w
+    nw_recon=nwflux
 
     ! Check whether custom flux types have been defined
     if (.not. allocated(flux_type)) then
@@ -96,7 +98,6 @@ contains
     ! Initialize particles module
     if (rho_particles) then
        call particles_init()
-       phys_req_diagonal = .true.
     end if
 
   end subroutine rho_phys_init
@@ -333,7 +334,7 @@ contains
     f(ixO^S, rho_) = w(ixO^S, rho_) * v(ixO^S)
   end subroutine rho_get_flux
 
-  subroutine rho_add_source_geom(qdt, dtfactor, ixI^L, ixO^L, wCT, w, x)
+  subroutine rho_add_source_geom(qdt, dtfactor, ixI^L, ixO^L, wCT,wprim, w, x)
 
     ! Add geometrical source terms to w
     ! There are no geometrical source terms in the transport equation
@@ -342,7 +343,7 @@ contains
 
     integer, intent(in) :: ixI^L, ixO^L
     double precision, intent(in) :: qdt, dtfactor, x(ixI^S, 1:^ND)
-    double precision, intent(inout) :: wCT(ixI^S, 1:nw), w(ixI^S, 1:nw)
+    double precision, intent(inout) :: wCT(ixI^S, 1:nw),wprim(ixI^S,1:nw), w(ixI^S, 1:nw)
 
   end subroutine rho_add_source_geom
 

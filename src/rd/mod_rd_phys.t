@@ -168,7 +168,6 @@ contains
 
     physics_type = "rd"
     phys_energy  = .false.
-    phys_req_diagonal = .false.
     use_particles = rd_particles
 
     allocate(start_indices(number_species),stop_indices(number_species))
@@ -188,6 +187,9 @@ contains
 
     ! set the index of the last flux variable for species 1
     stop_indices(1)=nwflux
+  
+    !  Number of variables need reconstruction in w
+    nw_recon=nwflux
 
     ! Disable flux conservation near AMR boundaries, since we have no fluxes
     fix_conserve_global = .false.
@@ -207,7 +209,6 @@ contains
     ! Initialize particles module
     if (rd_particles) then
        call particles_init()
-       phys_req_diagonal = .true.
     end if
 
   end subroutine rd_phys_init

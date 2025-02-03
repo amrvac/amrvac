@@ -21,12 +21,18 @@ new 1D/2D/3D setup, run one of these commands:
     setup.pl -d=2
     setup.pl -d=3
 
-This will copy an AMRVAC makefile and specify the problem dimension in it. If no
+For 1D problems, you can choose 2 or 3 components for velocity and magnetic field 
+vectors by adding -v flag like setup.pl -d=1 -v=2 or setup.pl -d=1 -v=3. 
+For 2D problems, you can choose 3 components for velocity and magnetic field 
+vectors by adding -v flag like setup.pl -d=2 -v=3.
+
+This setup will copy an AMRVAC makefile and specify the problem dimension and
+vector components in it. If no
 user code is found, it will ask whether you want to copy the default template.
 Alternatively, you can look for an existing problem (look in `tests/`) and
-customize its `mod_usr.t` or `mod_usr.f` file to get started. To create a normal
+customize its `mod_usr.t` file to get started. To create a normal
 Fortran file from `mod_usr.t`, you can type `make mod_usr.f`.
-Specify other user routines, for a list see mod_usr_methods.t
+Specify other user routines, for a list see `src/mod_usr_methods.t`
 WARNING: If you have compiled your code in n dimension, e.g., -d=3, and want 
 switch to another dimension with the same mod_usr.t file, e.g., -d=2, You need to 
 remove the mod_usr.f file before make to compile because the mod_usr.f will not 
@@ -36,6 +42,16 @@ n-dimension form.
 # Structure of mod_usr.t {#user_structure}
 
 \include mod_usr_template.t
+
+In the call set_coordinate_system, the argument "Cartesian_2.5D" means using 2-dimension
+3-vector-component Cartesian coordinates. 
+"Cartesian_1.5D" means 1-dimension 2-vector-component Cartesian, and 
+"Cartesian_1.75D" means 1-dimension 3-vector-component Cartesian. 
+If "Cartesian_1D", 1-dimension 1-vector-component Cartesian.  
+If "Cartesian_2D", 2-dimension 2-vector-component Cartesian.  
+If "Cartesian_3D", 3-dimension 3-vector-component Cartesian.  
+If number of vector components is larger than dimension number, -v flag should be set
+consistently during setup.
 
 ## Special boundary {#user_specialbound}
 

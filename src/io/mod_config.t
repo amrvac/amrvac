@@ -14,12 +14,12 @@ module mod_config
   integer, parameter :: CFG_logic_type   = 4 !< Boolean/logical type
   integer, parameter :: CFG_unknown_type = 0 !< Used before a variable is created
 
+  integer, parameter :: CFG_name_len   = 80  !< Maximum length of variable names
+  integer, parameter :: CFG_string_len = 200 !< Fixed length of string type
+
   !> Names of the types
   character(len=10), parameter :: CFG_type_names(0:CFG_num_types) = &
        [character(len=10) :: "storage", "integer", "real", "string ", "logical"]
-
-  integer, parameter :: CFG_name_len   = 80  !< Maximum length of variable names
-  integer, parameter :: CFG_string_len = 200 !< Fixed length of string type
 
   !> Maximum number of entries in a variable (if it's an array)
   integer, parameter :: CFG_max_array_size = 20
@@ -33,10 +33,6 @@ module mod_config
   !> The type of a configuration variable
   type CFG_var_t
      private
-     !> Name of the variable
-     character(len=CFG_name_len)   :: var_name
-     !> Description of variable
-     character(len=CFG_string_len) :: description
      !> Type of variable
      integer                       :: var_type
      !> Size of variable, 1 means scalar, > 1 means array
@@ -47,6 +43,10 @@ module mod_config
      logical                       :: used
      !> Data that has been read in for this variable
      character(len=CFG_string_len) :: stored_data
+     !> Name of the variable
+     character(len=CFG_name_len)   :: var_name
+     !> Description of variable
+     character(len=CFG_string_len) :: description
 
      ! These are the arrays used for storage. In the future, a "pointer" based
      ! approach could be used.
@@ -58,8 +58,8 @@ module mod_config
 
   !> The configuration that contains all the variables
   type CFG_t
-     logical                      :: sorted = .false.
      integer                      :: num_vars = 0
+     logical                      :: sorted = .false.
      type(CFG_var_t), allocatable :: vars(:)
   end type CFG_t
 
@@ -289,8 +289,8 @@ contains
   subroutine trim_comment(line, comment_chars)
     character(len=*), intent(inout) :: line
     character(len=*), intent(in)    :: comment_chars
-    character                       :: current_char, need_char
     integer                         :: n
+    character                       :: current_char, need_char
 
     ! Strip comments, but only outside quoted strings (so that var = '#yolo' is
     ! valid when # is a comment char)
@@ -336,9 +336,10 @@ contains
     type(CFG_t), intent(in)       :: cfg_in
     character(len=*), intent(in)  :: filename
     logical, intent(in), optional :: hide_unused
-    logical                       :: hide_not_used
+
     type(CFG_t)                   :: cfg
     integer                       :: i, j, io_state, myUnit
+    logical                       :: hide_not_used
     character(len=CFG_name_len)   :: name_format, var_name
     character(len=CFG_name_len)   :: category, prev_category
     character(len=CFG_string_len) :: err_string
@@ -435,9 +436,10 @@ contains
     type(CFG_t), intent(in)       :: cfg_in
     character(len=*), intent(in)  :: filename
     logical, intent(in), optional :: hide_unused
-    logical                       :: hide_not_used
-    integer                       :: i, j, io_state, myUnit
+
     type(CFG_t)                   :: cfg
+    integer                       :: i, j, io_state, myUnit
+    logical                       :: hide_not_used
     character(len=CFG_name_len)   :: name_format, var_name
     character(len=CFG_name_len)   :: category, prev_category
     character(len=CFG_string_len) :: err_string

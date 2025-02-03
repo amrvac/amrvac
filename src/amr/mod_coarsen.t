@@ -16,9 +16,9 @@ contains
     type(state), intent(inout)      :: sFi, sCo
     integer, intent(in) :: ixFiG^L, ixFi^L, ixCoG^L, ixCo^L
   
-    integer :: ixCo^D, ixFi^D, iw
     double precision :: CoFiratio
     double precision :: B_energy_change(ixCoG^S)
+    integer :: ixCo^D, ixFi^D, iw
   
     associate(wFi=>sFi%w(ixFiG^S,1:nw), wCo=>sCo%w(ixCoG^S,1:nw))
     staggered: associate(wFis=>sFi%ws,wCos=>sCo%ws)

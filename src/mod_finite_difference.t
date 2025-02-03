@@ -137,7 +137,7 @@ contains
       end do ! Next idims
     end if
 
-    if (.not.slab.and.idimsmin==1) call phys_add_source_geom(qdt,dtfactor,ixI^L,ixO^L,wCT,wnew,x)
+    if (.not.slab.and.idimsmin==1) call phys_add_source_geom(qdt,dtfactor,ixI^L,ixO^L,wCT,wprim,wnew,x)
 
     if(stagger_grid) call phys_face_to_center(ixO^L,snew)
 
@@ -378,8 +378,8 @@ contains
 
        kkxCmin^D=ixImin^D; kkxCmax^D=ixImax^D-kr(idims,^D);
        kkxR^L=kkxC^L+kr(idims,^D);
-       wRp(kkxC^S,1:nwflux)=wprim(kkxR^S,1:nwflux)
-       wLp(kkxC^S,1:nwflux)=wprim(kkxC^S,1:nwflux)
+       wRp(kkxC^S,1:nw_recon)=wprim(kkxR^S,1:nw_recon)
+       wLp(kkxC^S,1:nw_recon)=wprim(kkxC^S,1:nw_recon)
 
        ! apply limited reconstruction for left and right status at cell interfaces
        call reconstruct_LR(ixI^L,ixC^L,ixC^L,idims,wprim,wLC,wRC,wLp,wRp,x,dxs(idims))
@@ -393,8 +393,8 @@ contains
        end if
 
        ! Calculate velocities from upwinded values
-       call phys_get_cmax(wLC,x,ixG^LL,ixC^L,idims,cmaxLC)
-       call phys_get_cmax(wRC,x,ixG^LL,ixC^L,idims,cmaxRC)
+       call phys_get_cmax(wLp,x,ixG^LL,ixC^L,idims,cmaxLC)
+       call phys_get_cmax(wRp,x,ixG^LL,ixC^L,idims,cmaxRC)
        ! now take the maximum of left and right states
        vLC(ixC^S)=max(cmaxRC(ixC^S),cmaxLC(ixC^S))
 
@@ -458,7 +458,7 @@ contains
       end do ! Next idims
     end if
 
-    if (.not.slab.and.idimsmin==1) call phys_add_source_geom(qdt,dtfactor,ixI^L,ixO^L,wCT,w,x)
+    if (.not.slab.and.idimsmin==1) call phys_add_source_geom(qdt,dtfactor,ixI^L,ixO^L,wCT,wprim,w,x)
 
     if(stagger_grid) call phys_face_to_center(ixO^L,s)
 

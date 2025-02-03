@@ -726,7 +726,7 @@ module mod_fld
     use mod_forest
     ! use mod_ghostcells_update
     use mod_multigrid_coupling
-    ! use mod_physics, only: phys_set_mg_bounds, phys_req_diagonal
+    ! use mod_physics, only: phys_set_mg_bounds
 
     type(state), target :: psa(max_blocks) !< Advance psa=psb+dtfactor*qdt*F_im(psa)
     type(state), target :: psb(max_blocks)
@@ -965,7 +965,6 @@ module mod_fld
   subroutine Evaluate_E_rad_mg(qtC,psa)
     use mod_global_parameters
     use mod_ghostcells_update
-    use mod_physics, only: phys_req_diagonal
 
     type(state), target :: psa(max_blocks)
     double precision, intent(in) :: qtC
@@ -985,7 +984,7 @@ module mod_fld
     !$OMP END PARALLEL DO
 
     ! enforce boundary conditions for psa
-    call getbc(qtC,0.d0,psa,1,nwflux+nwaux,phys_req_diagonal)
+    call getbc(qtC,0.d0,psa,1,nwflux+nwaux)
 
   end subroutine Evaluate_E_rad_mg
 

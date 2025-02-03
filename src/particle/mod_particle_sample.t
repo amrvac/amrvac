@@ -32,7 +32,6 @@ contains
     use mod_usr_methods, only: usr_create_particles, usr_update_payload, &
                                usr_check_particle, usr_particle_position
 
-    integer          :: n, idir, igrid, ipe_particle, nparticles_local
     double precision :: x(3, num_particles)
     double precision :: v(3, num_particles)
     double precision :: q(num_particles)
@@ -41,6 +40,7 @@ contains
     double precision :: w(ixG^T,1:nw)
     double precision :: defpayload(ndefpayload)
     double precision :: usrpayload(nusrpayload) 
+    integer          :: n, idir, igrid, ipe_particle, nparticles_local
     logical          :: follow(num_particles), check
 
     follow = .false.
@@ -112,8 +112,8 @@ contains
   subroutine sample_fill_gridvars
     use mod_global_parameters
 
-    integer                                   :: igrid, iigrid, idir
     double precision, dimension(ixG^T,1:nw)   :: w
+    integer                                   :: igrid, iigrid, idir
 
     do iigrid=1,igridstail; igrid=igrids(iigrid);
 
@@ -211,9 +211,9 @@ contains
     type(particle_ptr), intent(in) :: partp
     double precision, intent(in)   :: end_time
     double precision               :: dt_p
-    integer                        :: ipart, iipart, nout, id
     double precision               :: tout, dt_cfl
     double precision               :: v(1:ndir), xp(3), told, tnew
+    integer                        :: ipart, iipart, nout, id
 
     if (const_dt_particles > 0) then
       dt_p = const_dt_particles

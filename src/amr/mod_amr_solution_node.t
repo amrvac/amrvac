@@ -67,15 +67,15 @@ contains
  
     integer, intent(in) :: igrid
   
-    integer :: level, ig^D, ign^D, ixCoG^L, ix, i^D
-    integer :: imin, imax, index, igCo^D, ixshift, offset, ifirst
-    integer :: icase, ixGext^L
     double precision :: dx^D, summeddx, sizeuniformpart^D
     double precision :: xext(ixGlo^D-1:ixGhi^D+1,1:ndim)
     double precision :: delx_ext(ixGlo1-1:ixGhi1+1)
     double precision :: exp_factor_ext(ixGlo1-1:ixGhi1+1),del_exp_factor_ext(ixGlo1-1:ixGhi1+1),exp_factor_primitive_ext(ixGlo1-1:ixGhi1+1)
     double precision :: xc(ixGlo1:ixGhi1),delxc(ixGlo1:ixGhi1)
     double precision :: exp_factor_coarse(ixGlo1:ixGhi1),del_exp_factor_coarse(ixGlo1:ixGhi1),exp_factor_primitive_coarse(ixGlo1:ixGhi1)
+    integer :: level, ig^D, ign^D, ixCoG^L, ix, i^D
+    integer :: imin, imax, index, igCo^D, ixshift, offset, ifirst
+    integer :: icase, ixGext^L
   
     ixCoGmin^D=1;
     ixCoGmax^D=(ixGhi^D-2*nghostcells)/2+2*nghostcells;
@@ -123,12 +123,8 @@ contains
   
     end if
   
-    ! avoid dividing by zero rho in skipped corner ghostcells when phys_req_diagonal=F
-    ps(igrid)%w(:^D&,1)=1.d0
     ps(igrid)%level=level
     psc(igrid)%level=level-1
-    ! avoid dividing by zero rho in skipped corner ghostcells when phys_req_diagonal=F
-    psc(igrid)%w(:^D&,1)=1.d0
     if(phys_trac) ps(igrid)%special_values=0.d0
     if(.not.convert) then
       ps1(igrid)%level=level
@@ -699,7 +695,7 @@ contains
       if(nw_extra>0) deallocate(s%wextra)
       ! deallocate coordinates
       deallocate(s%x)
-      deallocate(s%dx,s%ds,s%dsC)
+      deallocate(s%dx,s%dt,s%ds,s%dsC)
       deallocate(s%dvolume)
       deallocate(s%surfaceC,s%surface)
       deallocate(s%is_physical_boundary)
@@ -710,15 +706,18 @@ contains
       if(number_equi_vars > 0) then
         deallocate(s%equi_vars)
       end if
-    else
-      nullify(s%x,s%dx,s%ds,s%dsC,s%dvolume,s%surfaceC,s%surface)
-      nullify(s%is_physical_boundary)
-      if(B0field) nullify(s%B0,s%J0)
-      if(number_equi_vars > 0) then
-        nullify(s%equi_vars)
+      if(phys_trac) then
+        deallocate(s%special_values)
       end if
-      if(nw_extra>0) nullify(s%wextra)
     end if
+    nullify(s%x,s%dx,s%dt,s%ds,s%dsC,s%dvolume,s%surfaceC,s%surface)
+    nullify(s%is_physical_boundary)
+    if(B0field) nullify(s%B0,s%J0)
+    if(number_equi_vars > 0) then
+      nullify(s%equi_vars)
+    end if
+    if(nw_extra>0) nullify(s%wextra)
+    if(phys_trac) nullify(s%special_values)
   end subroutine dealloc_state
   
   subroutine dealloc_state_coarse(igrid, s)
@@ -735,10 +734,11 @@ contains
     end if
     ! deallocate coordinates
     deallocate(s%x)
-    deallocate(s%dx,s%ds,s%dsC)
+    deallocate(s%dx,s%dt,s%ds,s%dsC)
     deallocate(s%dvolume)
     deallocate(s%surfaceC,s%surface)
-    deallocate(s%is_physical_boundary)
+    nullify(s%x,s%dx,s%dt,s%ds,s%dsC,s%dvolume,s%surfaceC,s%surface)
+    nullify(s%is_physical_boundary)
   end subroutine dealloc_state_coarse
   
   subroutine dealloc_node(igrid)

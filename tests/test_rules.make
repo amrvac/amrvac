@@ -36,12 +36,6 @@ hdr:
 ifeq ("$(wildcard amrvac.h)","")
 	touch amrvac.h
 endif
-	@mkdir -p $(AMRVAC_DIR)/lib/1d_$(ARCH)	# Prevent error message
-	rsync -c amrvac.h $(AMRVAC_DIR)/lib/1d_$(ARCH)/amrvac.h
-	@mkdir -p $(AMRVAC_DIR)/lib/2d_$(ARCH)	# Prevent error message
-	rsync -c amrvac.h $(AMRVAC_DIR)/lib/2d_$(ARCH)/amrvac.h
-	@mkdir -p $(AMRVAC_DIR)/lib/3d_$(ARCH)	# Prevent error message
-	rsync -c amrvac.h $(AMRVAC_DIR)/lib/3d_$(ARCH)/amrvac.h
 
 %.log: hdr $(LOG_CMP)  amrvac force
 	@$(RM) $@		# Remove log to prevent pass when aborted

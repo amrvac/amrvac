@@ -158,16 +158,16 @@ contains
     use mod_global_parameters
     use mod_geometry
 
-    integer :: ix^L, ix^D, idim, iw, ivector, iw0
-    integer, dimension(nw) :: vectoriw
-    double precision :: x_TEC(ndim), w_TEC(nw+nwauxio)
-    double precision, dimension(ndim,ndim) :: normal
-
     double precision, dimension(ix^S,ndim) :: xC
     double precision, dimension(ix^S,nw+nwauxio)   :: wC
-
     double precision, dimension(ix^S,ndim) :: x_TMP
     double precision, dimension(ix^S,nw+nwauxio)   :: w_TMP
+    integer :: ix^L
+
+    double precision :: x_TEC(ndim), w_TEC(nw+nwauxio)
+    double precision, dimension(ndim,ndim) :: normal
+    integer, dimension(nw) :: vectoriw
+    integer :: ix^D, idim, iw, ivector, iw0
 
     iw0=0
     vectoriw=-1
@@ -305,11 +305,10 @@ contains
     character(len=1024) :: outfilehead
 
     integer::  space_position,iw,ind
+    logical, save:: first=.true.
     character(len=name_len)::  wname
     character(len=std_len):: aux_variable_names
     character(len=std_len)::  scanstring
-
-    logical, save:: first=.true.
 
     ! in case additional variables are computed and stored for output
     if (nwauxio>0) then

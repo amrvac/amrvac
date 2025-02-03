@@ -31,6 +31,9 @@ module mod_supertimestepping
   ! input parameters from parameter file
   !> the coefficient that multiplies the sts dt
   double precision :: sts_dtpar=0.8d0
+
+  !The following is used only for method 2, not input parameter TODO check if we want as input parameter
+  double precision,parameter :: nu_sts = 0.5d0
   !> the maximum number of subcycles
   integer :: sts_ncycles=1000
   integer :: sts_method = 1
@@ -38,9 +41,6 @@ module mod_supertimestepping
   integer, parameter :: sourcetype_sts_after =1
   integer, parameter :: sourcetype_sts_split =2
   integer :: sourcetype_sts = sourcetype_sts_split
-
-  !The following is used only for method 2, not input parameter TODO check if we want as input parameter
-  double precision,parameter :: nu_sts = 0.5d0
   !> Whether to conserve fluxes at the current partial step
   logical :: fix_conserve_at_step = .true.
   logical :: sts_initialized = .false.
@@ -103,26 +103,19 @@ module mod_supertimestepping
 
   type sts_term
 
-    procedure (subr1), pointer, nopass :: sts_set_sources
-    procedure (subr2), pointer, nopass :: sts_getdt
-    procedure (subr5), pointer, nopass :: sts_before_first_cycle, sts_after_last_cycle
-    procedure (subr_e), pointer, nopass :: sts_handle_errors
-    type(sts_term), pointer :: next
     double precision :: dt_expl
     integer, public :: s
-    logical :: types_initialized
-    logical :: evolve_magnetic_field
 
     !>types used for send/recv ghosts, see mod_ghostcells_update
-    integer, dimension(-1:2^D&,-1:1^D&) :: type_send_srl_sts_1, type_recv_srl_sts_1
-    integer, dimension(-1:1^D&,-1:1^D&) :: type_send_r_sts_1
-    integer, dimension(-1:1^D&, 0:3^D&) :: type_recv_r_sts_1
-    integer, dimension(-1:1^D&, 0:3^D&) :: type_recv_p_sts_1, type_send_p_sts_1
+    integer, dimension(-1:1^D&) :: type_send_srl_sts_1, type_recv_srl_sts_1
+    integer, dimension(-1:1^D&) :: type_send_r_sts_1
+    integer, dimension( 0:3^D&) :: type_recv_r_sts_1
+    integer, dimension( 0:3^D&) :: type_recv_p_sts_1, type_send_p_sts_1
 
-    integer, dimension(-1:2^D&,-1:1^D&) :: type_send_srl_sts_2, type_recv_srl_sts_2
-    integer, dimension(-1:1^D&,-1:1^D&) :: type_send_r_sts_2
-    integer, dimension(-1:1^D&, 0:3^D&) :: type_recv_r_sts_2
-    integer, dimension(-1:1^D&, 0:3^D&) :: type_recv_p_sts_2, type_send_p_sts_2
+    integer, dimension(-1:1^D&) :: type_send_srl_sts_2, type_recv_srl_sts_2
+    integer, dimension(-1:1^D&) :: type_send_r_sts_2
+    integer, dimension( 0:3^D&) :: type_recv_r_sts_2
+    integer, dimension( 0:3^D&) :: type_recv_p_sts_2, type_send_p_sts_2
 
     integer :: startVar
     integer :: endVar
@@ -130,6 +123,13 @@ module mod_supertimestepping
     integer :: nflux
     integer :: startwbc
     integer :: nwbc
+    logical :: types_initialized
+    logical :: evolve_magnetic_field
+    procedure (subr1), pointer, nopass :: sts_set_sources
+    procedure (subr2), pointer, nopass :: sts_getdt
+    procedure (subr5), pointer, nopass :: sts_before_first_cycle, sts_after_last_cycle
+    procedure (subr_e), pointer, nopass :: sts_handle_errors
+    type(sts_term), pointer :: next
 
   end type sts_term
 
@@ -349,9 +349,9 @@ contains
     double precision :: my_dt1
     logical :: dt_modified, dt_modified1, dt_modified2
 
-    integer:: iigrid, igrid, ncycles
     double precision :: dtnew,dtmin_mype
     double precision    :: dx^D, ss
+    integer:: iigrid, igrid, ncycles
     type(sts_term), pointer  :: temp,oldTemp
     nullify(oldTemp)
     temp => head_sts_terms

@@ -21,7 +21,7 @@ m_%.mod: m_%.f m_%.o
 
 # How to translate .t source files to normal Fortran
 %.f: %.t
-	$(VACPP) $(PPFLAGS) -d=$(NDIM) $< > $(@)
+	$(VACPP) -d=$(NDIM) -v=$(NDIR) $< > $(@)
 
 # How to generate executables
 %: %.o

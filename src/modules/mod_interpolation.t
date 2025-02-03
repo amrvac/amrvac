@@ -140,8 +140,8 @@ contains
     ! multi-D method
    
     double precision :: xc(0:1^D&,1:ndim),xp(1:ndim),factor(0:1^D&)
-    integer :: ix^D
     double precision :: dxc^D,xd^D
+    integer :: ix^D
 
     ^D&dxc^D=xc(1^DD&,^D)-xc(0^DD&,^D)\
     ^D&xd^D=(xp(^D)-xc(0^DD&,^D))/dxc^D\
@@ -160,8 +160,8 @@ contains
     double precision :: xc(0:1^D&,1:ndim),xp(1:ndim)
     double precision :: wc(0:1^D&,1:nwc),wp(1:nwc)
 
-    integer :: ix^D,iw
     double precision :: factor(0:1^D&)
+    integer :: ix^D,iw
 
     call get_interp_factor_linear(xc,xp,factor)    
 
@@ -182,9 +182,9 @@ contains
     double precision :: xp(1:ndim),wp(1:nw)
 
     double precision :: dxb^D,xb^L
+    double precision :: xc(0:1^D&,1:ndim),wc(0:1^D&,nw)
     integer :: inblock,ixO^L,j
     integer :: ixb^D,ixi^D
-    double precision :: xc(0:1^D&,1:ndim),wc(0:1^D&,nw)
 
     ! block/grid boundaries
     ^D&xbmin^D=rnode(rpxmin^D_,igrid)\

@@ -1,4 +1,4 @@
-SETUP_FLAGS := -d=1
+SETUP_FLAGS := -d=1 -v=3
 TESTS := implicit_coupled.log explicit_uncoupled.log 
 
 include ../../test_rules.make

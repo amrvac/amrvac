@@ -31,27 +31,6 @@ module mod_cak_force
   !> Line-ensemble parameters in the Gayley (1995) formalism
   real(8), public :: cak_alpha, gayley_qbar, gayley_q0
 
-  !> Switch to choose between the 1-D CAK line force options
-  integer :: cak_1d_opt
-
-  ! Avoid magic numbers in code for 1-D CAK line force option
-  integer, parameter, private :: radstream=0, fdisc=1, fdisc_cutoff=2
-
-  !> To treat source term in split or unsplit (default) fashion
-  logical :: cak_split=.false.
-
-  !> To activate the original CAK 1-D line force computation
-  logical :: cak_1d_force=.false.
-
-  !> To activate the vector CAK line force computation
-  logical :: cak_vector_force=.false.
-
-  !> To activate the pure radial vector CAK line force computation
-  logical :: fix_vector_force_1d=.false.
-
-  !> Amount of rays in radiation polar and radiation azimuthal direction
-  integer :: nthetaray, nphiray
-
   !> Ray positions + weights for impact parameter and azimuthal radiation angle
   real(8), allocatable, private :: ay(:), wy(:), aphi(:), wphi(:)
 
@@ -64,8 +43,29 @@ module mod_cak_force
   !> To enforce a floor temperature when doing adiabatic (M)HD
   real(8), private :: tfloor
 
+  !> Switch to choose between the 1-D CAK line force options
+  integer :: cak_1d_opt
+
+  ! Avoid magic numbers in code for 1-D CAK line force option
+  integer, parameter, private :: radstream=0, fdisc=1, fdisc_cutoff=2
+
+  !> Amount of rays in radiation polar and radiation azimuthal direction
+  integer :: nthetaray, nphiray
+
   !> Extra slots to store quantities in w-array
   integer :: gcak1_, gcak2_, gcak3_, fdf_
+
+  !> To treat source term in split or unsplit (default) fashion
+  logical :: cak_split=.false.
+
+  !> To activate the original CAK 1-D line force computation
+  logical :: cak_1d_force=.false.
+
+  !> To activate the vector CAK line force computation
+  logical :: cak_vector_force=.false.
+
+  !> To activate the pure radial vector CAK line force computation
+  logical :: fix_vector_force_1d=.false.
 
   !> Public method
   public :: set_cak_force_norm
@@ -167,8 +167,8 @@ contains
     logical, intent(inout) :: active
 
     ! Local variables
-    integer :: idir
     real(8) :: gl(ixO^S,1:3), ge(ixO^S), ptherm(ixI^S), pmin(ixI^S)
+    integer :: idir
 
     ! By default add source in unsplit fashion together with the fluxes
     if (qsourcesplit .eqv. cak_split) then
@@ -300,7 +300,6 @@ contains
     real(8), intent(inout) :: gcak(ixO^S,1:3)
 
     ! Local variables
-    integer :: ix^D, itray, ipray
     real(8) :: a1, a2, a3, wyray, y, wpray, phiray, wtot, mustar, dvndn
     real(8) :: costp, costp2, sintp, cospp, sinpp, cott0
     real(8) :: vr(ixI^S), vt(ixI^S), vp(ixI^S)
@@ -308,6 +307,7 @@ contains
     real(8) :: dvrdr(ixO^S), dvtdr(ixO^S), dvpdr(ixO^S)
     real(8) :: dvrdt(ixO^S), dvtdt(ixO^S), dvpdt(ixO^S)
     real(8) :: dvrdp(ixO^S), dvtdp(ixO^S), dvpdp(ixO^S)
+    integer :: ix^D, itray, ipray
     
     ! Initialisation to have full velocity strain tensor expression at all times
     vt(ixO^S) = 0.0d0; vtr(ixO^S) = 0.0d0
@@ -642,9 +642,9 @@ contains
     real(8), intent(out) :: x(n), w(n)
 
     ! Local variables
-    integer :: i, j, m
     real(8) :: p1, p2, p3, pp, xl, xm, z, z1
     real(8), parameter :: error=3.0d-14
+    integer :: i, j, m
 
     m = (n + 1)/2
     xm = 0.5d0*(xhi + xlow)

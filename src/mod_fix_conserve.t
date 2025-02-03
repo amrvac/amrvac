@@ -10,16 +10,16 @@ module mod_fix_conserve
   !> store flux to fix conservation
   type(fluxalloc), dimension(:,:,:), allocatable, public :: pflux
 
-  integer, save                        :: nrecv, nsend
   double precision, allocatable, save  :: recvbuffer(:), sendbuffer(:)
+  ! buffer for corner coarse
+  double precision, allocatable, save  :: recvbuffer_cc(:), sendbuffer_cc(:)
   integer, dimension(:), allocatable   :: fc_recvreq, fc_sendreq
   integer, dimension(:,:), allocatable :: fc_recvstat, fc_sendstat
   integer, dimension(^ND), save        :: isize
+  integer, save                        :: nrecv, nsend
   integer                              :: ibuf, ibuf_send
   ! ct for corner total
   integer, save                        :: nrecv_ct, nsend_ct
-  ! buffer for corner coarse
-  double precision, allocatable, save  :: recvbuffer_cc(:), sendbuffer_cc(:)
   integer, dimension(:), allocatable   :: cc_recvreq, cc_sendreq
   integer, dimension(:,:), allocatable :: cc_recvstat, cc_sendstat
   integer, dimension(^ND), save        :: isize_stg
@@ -1110,10 +1110,10 @@ module mod_fix_conserve
      double precision   :: edge(ixtE^S,1:ndim-1)
      logical,intent(in) :: add
 
-     integer            :: idim1,idim2,idir,middle^D
-     integer            :: ixfEC^L,ixEC^L
      double precision   :: fE(ixG^T,sdim:3)
      double precision   :: circ(ixG^T,1:ndim)
+     integer            :: idim1,idim2,idir,middle^D
+     integer            :: ixfEC^L,ixEC^L
      integer            :: ix^L,hx^L,ixC^L,hxC^L ! Indices for edges
 
      ! ixF -> Indices for the faces, depends on the field component

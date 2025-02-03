@@ -547,6 +547,9 @@ contains
     end if
 
     stop_indices(number_species)=nwflux
+  
+    !  Number of variables need reconstruction in w
+    nw_recon=nwflux
 
     ! set indices of equi vars and update number_equi_vars
     number_equi_vars = 0
@@ -644,9 +647,6 @@ contains
     if(clean_initial_divb) phys_clean_divb => twofl_clean_divb_multigrid
     }
 
-    ! Whether diagonal ghost cells are required for the physics
-    if(type_divb < divb_linde) phys_req_diagonal = .false.
-
     ! derive units from basic units
     call twofl_physical_units()
 
@@ -658,7 +658,6 @@ contains
     ! initialize thermal conduction module
     if (twofl_thermal_conduction_c &
         .or. twofl_thermal_conduction_n) then
-      phys_req_diagonal = .true.
       call sts_init()
       call tc_init_params(twofl_gamma)
     endif
@@ -788,7 +787,7 @@ contains
 
     ! Initialize viscosity module
     !!TODO
-    !if (twofl_viscosity) call viscosity_init(phys_wider_stencil,phys_req_diagonal)
+    !if (twofl_viscosity) call viscosity_init(phys_wider_stencil)
 
     ! Initialize gravity module
     if(twofl_gravity) then
@@ -801,7 +800,6 @@ contains
     ! in getflux: assuming one additional ghost layer (two for FOURTHORDER) was
     ! added in nghostcells.
     if (twofl_hall) then
-       phys_req_diagonal = .true.
        if (twofl_4th_order) then
           phys_wider_stencil = 2
        else
@@ -1760,19 +1758,26 @@ contains
     use mod_global_parameters
 
     integer, intent(in)          :: ixI^L, ixO^L, idim
+    ! w in primitive form
     double precision, intent(in) :: w(ixI^S, nw), x(ixI^S,1:ndim)
     double precision, intent(inout) :: cmax(ixI^S)
-    double precision                :: vc(ixI^S)
-    double precision                :: cmax2(ixI^S)
-    double precision                :: vn(ixI^S)
+    double precision                :: cmax2(ixI^S),rhon(ixI^S)
 
     call twofl_get_csound_c_idim(w,x,ixI^L,ixO^L,idim,cmax)
-    call twofl_get_v_c_idim(w,x,ixI^L,ixO^L,idim,vc)
-    call twofl_get_v_n_idim(w,x,ixI^L,ixO^L,idim,vn)
-    call twofl_get_csound_n(w,x,ixI^L,ixO^L,cmax2)
-    cmax(ixO^S)=max(abs(vn(ixO^S))+cmax2(ixO^S),& 
-            abs(vc(ixO^S))+cmax(ixO^S))
-        
+    call get_rhon_tot(w,x,ixI^L,ixO^L,rhon)
+    if(phys_energy) then
+      if(has_equi_pe_n0) then
+        cmax2(ixO^S)=sqrt(twofl_gamma*(w(ixO^S,e_n_)+&
+            block%equi_vars(ixO^S,equi_pe_n0_,b0i))/rhon(ixO^S))
+      else
+        cmax2(ixO^S)=sqrt(twofl_gamma*w(ixO^S,e_n_)/rhon(ixO^S))
+      end if
+    else
+      cmax2(ixO^S)=sqrt(twofl_gamma*twofl_adiab*rhon(ixO^S)**gamma_1)
+    end if
+    cmax(ixO^S)=max(abs(w(ixO^S,mom_n(idim)))+cmax2(ixO^S),& 
+            abs(w(ixO^S,mom_c(idim)))+cmax(ixO^S))
+
   end subroutine twofl_get_cmax
 
   subroutine twofl_get_a2max(w,x,ixI^L,ixO^L,a2max)
@@ -2406,11 +2411,9 @@ contains
 
     case (2)
     ! typeboundspeed=='cmaxmean'
-      wmean(ixO^S,1:nwflux)=0.5d0*(wLC(ixO^S,1:nwflux)+wRC(ixO^S,1:nwflux))
+      wmean(ixO^S,1:nwflux)=0.5d0*(wLp(ixO^S,1:nwflux)+wRp(ixO^S,1:nwflux))
      ! charges 
-
-      call get_rhoc_tot(wmean,x,ixI^L,ixO^L,rho)
-      tmp1(ixO^S)=wmean(ixO^S,mom_c(idim))/rho(ixO^S)
+      tmp1(ixO^S)=wmean(ixO^S,mom_c(idim))
       call twofl_get_csound_c_idim(wmean,x,ixI^L,ixO^L,idim,csoundR)
       if(present(cmin)) then
         cmax(ixO^S,1)=max(abs(tmp1(ixO^S))+csoundR(ixO^S),zero)
@@ -2426,8 +2429,7 @@ contains
       end if
       !neutrals
       
-      call get_rhon_tot(wmean,x,ixI^L,ixO^L,rho)
-      tmp1(ixO^S)=wmean(ixO^S,mom_n(idim))/rho(ixO^S)
+      tmp1(ixO^S)=wmean(ixO^S,mom_n(idim))
       call twofl_get_csound_n(wmean,x,ixI^L,ixO^L,csoundR)
       if(present(cmin)) then
         cmax(ixO^S,2)=max(abs(tmp1(ixO^S))+csoundR(ixO^S),zero)
@@ -2535,6 +2537,7 @@ contains
     use mod_global_parameters
 
     integer, intent(in)          :: ixI^L, ixO^L, idim
+    ! w in primitive form
     double precision, intent(in) :: w(ixI^S, nw), x(ixI^S,1:ndim)
     double precision, intent(out):: csound(ixI^S)
     double precision :: cfast2(ixI^S), AvMinCs2(ixI^S), b2(ixI^S), kmax
@@ -2551,7 +2554,11 @@ contains
     inv_rho(ixO^S)=1.d0/tmp(ixO^S)
 #endif
 
-    call twofl_get_csound2_c_from_conserved(w,x,ixI^L,ixO^L,csound)
+    if(phys_energy) then 
+      csound(ixO^S)=twofl_gamma*w(ixO^S,e_c_)*inv_rho(ixO^S)
+    else
+      csound(ixO^S)=twofl_gamma*twofl_adiab*tmp(ixO^S)**gamma_1
+    end if
 
     ! store |B|^2 in v
     b2(ixO^S) = twofl_mag_en_all(w,ixI^L,ixO^L)
@@ -4553,13 +4560,13 @@ contains
   end subroutine coll_get_dt
 
   ! Add geometrical source terms to w
-  subroutine twofl_add_source_geom(qdt,dtfactor,ixI^L,ixO^L,wCT,w,x)
+  subroutine twofl_add_source_geom(qdt,dtfactor,ixI^L,ixO^L,wCT,wprim,w,x)
     use mod_global_parameters
     use mod_geometry
 
     integer, intent(in)             :: ixI^L, ixO^L
     double precision, intent(in)    :: qdt, dtfactor,x(ixI^S,1:ndim)
-    double precision, intent(inout) :: wCT(ixI^S,1:nw), w(ixI^S,1:nw)
+    double precision, intent(inout) :: wCT(ixI^S,1:nw), wprim(ixI^S,1:nw), w(ixI^S,1:nw)
 
     integer          :: iw,idir, h1x^L{^NOONED, h2x^L}
     double precision :: tmp(ixI^S),tmp1(ixI^S),tmp2(ixI^S),rho(ixI^S)

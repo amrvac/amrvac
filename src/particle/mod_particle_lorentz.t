@@ -80,7 +80,6 @@ contains
     use mod_global_parameters
     use mod_usr_methods, only: usr_create_particles, usr_update_payload, usr_check_particle
 
-    integer          :: n, idir, igrid, ipe_particle, nparticles_local
     double precision :: lfac
     double precision :: x(3, num_particles)
     double precision :: v(3, num_particles)
@@ -89,6 +88,7 @@ contains
     double precision :: rrd(num_particles,ndir)
     double precision :: defpayload(ndefpayload)
     double precision :: usrpayload(nusrpayload)
+    integer          :: n, idir, igrid, ipe_particle, nparticles_local
     logical          :: follow(num_particles), check
 
     follow = .false.
@@ -170,13 +170,13 @@ contains
     use mod_usr_methods, only: usr_particle_fields
     use mod_geometry
 
-    integer                                   :: igrid, iigrid, idir, idim
     double precision, dimension(ixG^T,1:ndir) :: beta
     double precision, dimension(ixG^T,1:nw)   :: w,wold
     double precision                          :: current(ixG^T,7-2*ndir:3)
-    integer                                   :: idirmin
     double precision, dimension(ixG^T,1:ndir) :: vE, bhat
     double precision, dimension(ixG^T)        :: kappa, kappa_B, absB, tmp
+    integer                                   :: igrid, iigrid, idir, idim
+    integer                                   :: idirmin
 
     ! Fill electromagnetic quantities
     call fill_gridvars_default()
@@ -191,12 +191,12 @@ contains
     double precision, intent(in)      :: end_time
     double precision                  :: defpayload(ndefpayload)
     double precision                  :: usrpayload(nusrpayload)
-    integer                           :: ipart, iipart, igrid
     double precision                  :: lfac, q, m, dt_p
     double precision                  :: xp(ndir), xpm(ndir), xpc(ndir), xpcm(ndir)
     double precision                  :: up(ndir), upc(ndir), tp
     double precision, dimension(ndir) :: b, e, bc, ec, vfluid, current
     double precision                  :: rho, rhoold, td
+    integer                           :: ipart, iipart, igrid
 
     do iipart=1,nparticles_active_on_mype
       ipart = particles_active_on_mype(iipart);
@@ -521,11 +521,11 @@ contains
     type(particle_ptr), intent(in)   :: partp
     double precision, intent(in)     :: end_time
     double precision                 :: dt_p
-    integer                          :: ipart, iipart, nout
     double precision,dimension(ndir) :: b,v
     double precision                 :: lfac,absb,dt_cfl
     double precision                 :: tout
     double precision, parameter      :: cfl = 0.5d0
+    integer                          :: ipart, iipart, nout
 
     if (const_dt_particles > 0) then
       dt_p = const_dt_particles

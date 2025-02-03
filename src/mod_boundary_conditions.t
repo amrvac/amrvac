@@ -9,23 +9,20 @@ module mod_boundary_conditions
 contains
 
   !> fill ghost cells at a physical boundary
-  subroutine bc_phys(iside,idims,time,qdt,s,ixG^L,ixB^L)
+  subroutine bc_phys(iside,idims,time,qdt,s,ixG^L,ixB^L,nwhead,nwtail)
     use mod_usr_methods, only: usr_special_bc
     use mod_bc_data, only: bc_data_set
     use mod_global_parameters
     use mod_physics
     use mod_functions_bfield, only: get_divb
 
-    integer, intent(in) :: iside, idims, ixG^L,ixB^L
+    integer, intent(in) :: iside, idims, ixG^L,ixB^L,nwhead,nwtail
     double precision, intent(in) :: time,qdt
     type(state), intent(inout) :: s
-    double precision :: wtmp(ixG^S,1:nwflux)
 
-    integer :: idir, is
-    integer :: ixOs^L,hxO^L,jxO^L
     double precision :: Q(ixG^S),Qp(ixG^S) 
-    integer :: iw, iB, ix^D, ixO^L, ixM^L, nghostcellsi,iib^D
-    logical  :: isphysbound
+    integer :: idir, ixOs^L,hxO^L,jxO^L
+    integer :: iw, iB, ix^D, ixO^L
 
     associate(x=>s%x,w=>s%w,ws=>s%ws)
     select case (idims)
@@ -36,7 +33,7 @@ contains
           ixOmin^DD=ixBmax^D+1-nghostcells^D%ixOmin^DD=ixBmin^DD;
           ixOmax^DD=ixBmax^DD;
           ! cont/symm/asymm types
-          do iw=1,nwflux+nwaux
+          do iw=nwhead,nwtail
              select case (typeboundary(iw,iB))
              case (bc_special)
                 ! skip it here, do AFTER all normal type boundaries are set
@@ -141,7 +138,7 @@ contains
           ixOmin^DD=ixBmin^DD;
           ixOmax^DD=ixBmin^D-1+nghostcells^D%ixOmax^DD=ixBmax^DD;
           ! cont/symm/asymm types
-          do iw=1,nwflux+nwaux
+          do iw=nwhead,nwtail
              select case (typeboundary(iw,iB))
              case (bc_special)
                 ! skip it here, do AFTER all normal type boundaries are set

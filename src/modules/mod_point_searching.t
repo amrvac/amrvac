@@ -14,9 +14,9 @@ contains
     integer, intent(in) :: igrid
 
     double precision :: dxb^D,xd^D,xb^L,temp
+    double precision :: factor(0:1^D&)
     integer :: ixI^L,ixO^L
     integer :: ixbl^D,ix^D,ixA^L,j,ingrid
-    double precision :: factor(0:1^D&)
 
     ixI^L=ixG^LL;
     ixO^L=ixM^LL;

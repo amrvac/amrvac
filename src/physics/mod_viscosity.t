@@ -14,6 +14,15 @@ module mod_viscosity
   !> Viscosity coefficient
   double precision, public :: vc_mu = 1.d0
 
+  !> Index of the density (in the w array)
+  integer, private, parameter              :: rho_ = 1
+
+  !> Indices of the momentum density
+  integer, allocatable, private, protected :: mom(:)
+
+  !> Index of the energy density (-1 if not present)
+  integer, private, protected              :: e_
+
   !> fourth order
   logical :: vc_4th_order = .false.
 
@@ -24,14 +33,6 @@ module mod_viscosity
   !> fluxes (ie in the div on the LHS), or not (by default)
   logical :: viscInDiv= .false.
 
-  !> Index of the density (in the w array)
-  integer, private, parameter              :: rho_ = 1
-
-  !> Indices of the momentum density
-  integer, allocatable, private, protected :: mom(:)
-
-  !> Index of the energy density (-1 if not present)
-  integer, private, protected              :: e_
 
   ! Public methods
   public :: visc_get_flux_prim
@@ -54,10 +55,9 @@ contains
   end subroutine vc_params_read
 
   !> Initialize the module
-  subroutine viscosity_init(phys_wider_stencil,phys_req_diagonal)
+  subroutine viscosity_init(phys_wider_stencil)
     use mod_global_parameters
     integer, intent(inout) :: phys_wider_stencil
-    logical, intent(inout) :: phys_req_diagonal
     integer :: nwx,idir
 
     call vc_params_read(par_files)
@@ -79,7 +79,6 @@ contains
     if (viscInDiv) then
       ! to compute the derivatives from left and right upwinded values
       phys_wider_stencil = 1
-      phys_req_diagonal = .true.  ! viscInDiv
     end if
 
   end subroutine viscosity_init
@@ -98,8 +97,8 @@ contains
     logical, intent(in) :: energy,qsourcesplit
     logical, intent(inout) :: active
 
-    integer:: ix^L,idim,idir,jdir,iw
     double precision:: lambda(ixI^S,ndir,ndir),tmp(ixI^S),tmp2(ixI^S),v(ixI^S,ndir),vlambda(ixI^S,ndir)
+    integer:: ix^L,idim,idir,jdir,iw
 
     if (viscInDiv) return
 
@@ -312,8 +311,9 @@ contains
     integer, intent(in)             :: ixI^L, ixO^L, idim
     double precision, intent(in)    :: w(ixI^S, 1:nw), x(ixI^S, 1:ndim)
     double precision, intent(out)   :: cross(ixI^S,ndir)
-    integer :: idir
+
     double precision :: tmp(ixI^S), v(ixI^S)
+    integer :: idir
 
     if (ndir/=ndim) call mpistop("This formula are probably wrong for ndim/=ndir")
     ! Beware also, we work w/ the angle as the 3rd component in cylindrical
@@ -464,8 +464,9 @@ contains
     integer, intent(in)             :: ixI^L, ixO^L, idim
     double precision, intent(in)    :: w(ixI^S, 1:nw), x(ixI^S, 1:^ND)
     double precision, intent(out)   :: cross(ixI^S,ndir)
-    integer :: idir
+
     double precision :: tmp(ixI^S), v(ixI^S)
+    integer :: idir
 
     v(ixI^S)=w(ixI^S,mom(idim))
     do idir=1,ndir
@@ -490,7 +491,7 @@ contains
     ! to change and to set as a parameter in the parfile once the possibility to
     ! solve the equations in an angular momentum conserving form has been
     ! implemented (change tvdlf.t eg)
-    double precision :: v(ixI^S,1:ndir), vv(ixI^S), divergence(ixI^S)
+    double precision :: vv(ixI^S), divergence(ixI^S)
     double precision :: tmp(ixI^S),tmp1(ixI^S)
     integer          :: i
 
@@ -498,54 +499,41 @@ contains
 
     select case (coordinate)
     case (cylindrical)
-      ! get the velocity components
-      do i=1,ndir
-       v(ixI^S,i)=wCT(ixI^S,mom(i))/wCT(ixI^S,rho_)
-      enddo
       ! thth tensor term - - -
         ! 1st the cross grad term
 {^NOONED
-      vv(ixI^S)=v(ixI^S,2) ! v_th
-      call gradient(vv,ixI^L,ixO^L,2,tmp1) ! d_th
-      tmp(ixO^S)=two*(tmp1(ixO^S)+v(ixI^S,1)/x(ixO^S,1)) ! 2 ( d_th v_th / r + vr/r )
+      call gradient(wCT(ixI^S,mom(2)),ixI^L,ixO^L,2,tmp1) ! d_th
+      tmp(ixO^S)=two*(tmp1(ixO^S)+wCT(ixO^S,mom(1))/x(ixO^S,1)) ! 2 ( d_th v_th / r + vr/r )
         ! 2nd the divergence
-      call divvector(v,ixI^L,ixO^L,divergence)
+      call divvector(wCT(ixI^S,mom(1:ndir)),ixI^L,ixO^L,divergence)
       tmp(ixO^S) = tmp(ixO^S) - (2.d0/3.d0) * divergence(ixO^S)
       ! s[mr]=-thth/radius
       w(ixO^S,mom(1))=w(ixO^S,mom(1))-qdt*vc_mu*tmp(ixO^S)/x(ixO^S,1)
       ! rth tensor term - - -
-      vv(ixI^S)=v(ixI^S,1) ! v_r
-      call gradient(vv,ixI^L,ixO^L,2,tmp1) ! d_th
-      tmp(ixO^S)=tmp1(ixO^S)
-      vv(ixI^S)=v(ixI^S,2)/x(ixI^S,1)  ! v_th / r
+      call gradient(wCT(ixI^S,mom(1)),ixI^L,ixO^L,2,tmp) ! d_th
+      vv(ixI^S)=wCT(ixI^S,mom(2))/x(ixI^S,1)  ! v_th / r
       call gradient(vv,ixI^L,ixO^L,1,tmp1) ! d_r
       tmp(ixO^S)=tmp(ixO^S)+tmp1(ixO^S)*x(ixO^S,1)
       ! s[mphi]=+rth/radius
       w(ixO^S,mom(2))=w(ixO^S,mom(2))+qdt*vc_mu*tmp(ixO^S)/x(ixO^S,1)
 }
     case (spherical)
-      ! get the velocity components
-      do i=1,ndir
-       v(ixI^S,i)=wCT(ixI^S,mom(i))/wCT(ixI^S,rho_)
-      enddo
       ! thth tensor term - - -
       ! 1st the cross grad term
-      vv(ixI^S)=v(ixI^S,2) ! v_th
 {^NOONED
-      call gradient(vv,ixI^L,ixO^L,2,tmp1) ! d_th
-      tmp(ixO^S)=two*(tmp1(ixO^S)+v(ixO^S,1)/x(ixO^S,1)) ! 2 ( 1/r * d_th v_th + vr/r )
+      call gradient(wCT(ixI^S,mom(2)),ixI^L,ixO^L,2,tmp1) ! d_th
+      tmp(ixO^S)=two*(tmp1(ixO^S)+wCT(ixO^S,mom(1))/x(ixO^S,1)) ! 2 ( 1/r * d_th v_th + vr/r )
       ! 2nd the divergence
-      call divvector(v,ixI^L,ixO^L,divergence)
+      call divvector(wCT(ixI^S,mom(1:ndir)),ixI^L,ixO^L,divergence)
       tmp(ixO^S) = tmp(ixO^S) - (2.d0/3.d0) * divergence(ixO^S)
       ! s[mr]=-thth/radius
       w(ixO^S,mom(1))=w(ixO^S,mom(1))-qdt*vc_mu*tmp(ixO^S)/x(ixO^S,1)
 }
       ! phiphi tensor term - - -
       ! 1st the cross grad term
-      vv(ixI^S)=v(ixI^S,3) ! v_ph
 {^IFTHREED
-      call gradient(vv,ixI^L,ixO^L,3,tmp1) ! d_phi
-      tmp(ixO^S)=two*(tmp1(ixO^S)+v(ixO^S,1)/x(ixO^S,1)+v(ixO^S,2)/(x(ixO^S,1)*dtan(x(ixO^S,2)))) ! 2 ( 1/rsinth * d_ph v_ph + vr/r + vth/rtanth )
+      call gradient(wCT(ixI^S,mom(3)),ixI^L,ixO^L,3,tmp1) ! d_phi
+      tmp(ixO^S)=two*(tmp1(ixO^S)+wCT(ixO^S,mom(1))/x(ixO^S,1)+wCT(ixO^S,mom(2))/(x(ixO^S,1)*dtan(x(ixO^S,2)))) ! 2 ( 1/rsinth * d_ph v_ph + vr/r + vth/rtanth )
 }
       ! 2nd the divergence
       tmp(ixO^S) = tmp(ixO^S) - (2.d0/3.d0) * divergence(ixO^S)
@@ -556,30 +544,27 @@ contains
       w(ixO^S,mom(2))=w(ixO^S,mom(2))-qdt*vc_mu*tmp(ixO^S)/(x(ixO^S,1)*dtan(x(ixO^S,2)))
 }
       ! rth tensor term - - -
-      vv(ixI^S)=v(ixI^S,1) ! v_r
-      call gradient(vv,ixI^L,ixO^L,2,tmp) ! d_th (rq : already contains 1/r)
-      vv(ixI^S)=v(ixI^S,2)/x(ixI^S,1)  ! v_th / r
+      call gradient(wCT(ixI^S,mom(1)),ixI^L,ixO^L,2,tmp) ! d_th (rq : already contains 1/r)
+      vv(ixI^S)=wCT(ixI^S,mom(2))/x(ixI^S,1)  ! v_th / r
       call gradient(vv,ixI^L,ixO^L,1,tmp1) ! d_r
       tmp(ixO^S)=tmp(ixO^S)+tmp1(ixO^S)*x(ixO^S,1)
       ! s[mth]=+rth/radius
       w(ixO^S,mom(2))=w(ixO^S,mom(2))+qdt*vc_mu*tmp(ixO^S)/x(ixO^S,1)
       ! rphi tensor term - - -
-      vv(ixI^S)=v(ixI^S,1) ! v_r
 {^IFTHREED
-      call gradient(vv,ixI^L,ixO^L,3,tmp) ! d_phi (rq : contains 1/rsin(th))
+      call gradient(wCT(ixI^S,mom(1)),ixI^L,ixO^L,3,tmp) ! d_phi (rq : contains 1/rsin(th))
 }
-      vv(ixI^S)=v(ixI^S,3)/x(ixI^S,1) ! v_phi / r
+      vv(ixI^S)=wCT(ixI^S,mom(3))/x(ixI^S,1) ! v_phi / r
       call gradient(vv,ixI^L,ixO^L,1,tmp1) ! d_r
       tmp(ixO^S)=tmp(ixO^S)+tmp1(ixO^S)*x(ixO^S,1)
       ! s[mphi]=+rphi/radius
       w(ixO^S,mom(3))=w(ixO^S,mom(3))+qdt*vc_mu*tmp(ixO^S)/x(ixO^S,1)
       ! phith tensor term - - -
-      vv(ixI^S)=v(ixI^S,2) ! v_th
 {^IFTHREED
-      call gradient(vv,ixI^L,ixO^L,3,tmp) ! d_phi
+      call gradient(wCT(ixI^S,mom(2)),ixI^L,ixO^L,3,tmp) ! d_phi
 }
 {^NOONED
-      vv(ixI^S)=v(ixI^S,3)/dsin(x(ixI^S,2)) ! v_ph / sin(th)
+      vv(ixI^S)=wCT(ixI^S,mom(3))/dsin(x(ixI^S,2)) ! v_ph / sin(th)
       call gradient(vv,ixI^L,ixO^L,2,tmp1) ! d_th
       tmp(ixO^S)=tmp(ixO^S)+tmp1(ixO^S)*dsin(x(ixO^S,2))
       ! s[mphi]=+cotanth*phith/radius

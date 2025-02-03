@@ -17,9 +17,6 @@ jobs:
         include:
           - os: ubuntu-20.04
             compiler: gfortran-8  # not longer supported for ubuntu-22
-          - os: macos-12
-            compiler: gfortran-11
-            gcc_name: gcc@11
 
     env:
       FC: ${{ matrix.compiler }}
@@ -37,10 +34,6 @@ jobs:
             sudo apt-get update
             sudo apt-get install ${{ matrix.compiler }}
             sudo apt-get install openmpi-bin libopenmpi-dev
-          else
-            brew install ${{ matrix.gcc_name }}
-            brew install open-mpi
-            ln -s /usr/local/bin/${{ matrix.compiler }} /usr/local/bin/gfortran
           fi
       - name: check compiler versions
         run: |
@@ -56,7 +49,7 @@ jobs:
       - name: compile 1D
         run: |
           cd lib
-          make 1d ARCH=debug -j 4 || exit 1
+          make 1d1 ARCH=debug -j 4 || exit 1
       - name: run 1D rho test
         run: |
           cd tests
@@ -68,8 +61,8 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest]
-        FC_compiler: [gfortran-9]
-        CC_compiler: [gcc-9]
+        FC_compiler: [gfortran]
+        CC_compiler: [gcc]
         suite: [rho, hd, rhd, mhd, rd, ard, mg, twofl]
 
     env:
@@ -112,7 +105,7 @@ jobs:
     name: compile / Intel
 
     env:
-      FC: ifort
+      FC: ifx
       CC: icc
       AMRVAC_DIR: ${GITHUB_WORKSPACE}
 
@@ -149,12 +142,12 @@ jobs:
       - name: compile 1D
         run: |
           cd lib
-          make 1d -j 4 ARCH=inteldebug
+          make 1d1 -j 4 ARCH=ifxdebug
       - name: compile 2D
         run: |
           cd lib
-          make 2d -j 4 ARCH=inteldebug
+          make 2d2 -j 4 ARCH=ifxdebug
       - name: compile 3D
         run: |
           cd lib
-          make 3d -j 4 ARCH=inteldebug
+          make 3d3 -j 4 ARCH=ifxdebug

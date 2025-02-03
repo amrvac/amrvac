@@ -58,9 +58,9 @@ contains
   integer(kind=8) function mortonEncode(ig^D,ndim)
     use iso_fortran_env, only : int64
     implicit none
+    integer(kind=8) :: answer, lg^D
     integer(kind=4), intent(in) :: ig^D,ndim
     integer(kind=4) :: i
-    integer(kind=8) :: answer, lg^D
 
     ! Create a 64-bit version of ig^D
     lg^D=ig^D;
