@@ -547,20 +547,40 @@ contains
     end do
 
     ! fill ghost-cell values of sibling blocks and coarser neighbors in the same processor
+    block
+    integer :: ipe_neighbor,ineighbor,ipole,n_i^D,ixS^L,ixR^L
     !$OMP PARALLEL DO SCHEDULE(dynamic) PRIVATE(igrid,iib^D)
+    !$acc parallel loop default(present) copyin(req_diagonal,idphyb,neighbor,neighbor_type,neighbor_pole,ixS_srl_^L,ixR_srl_^L) private(igrid,iib^D,ipe_neighbor,ineighbor,ipole)
     do iigrid=1,igridstail; igrid=igrids(iigrid);
       ^D&iib^D=idphyb(^D,igrid);
       {do i^DB=-1,1\}
-        if(skip_direction([ i^D ])) cycle
+         ! next line is inlined version of skip_direction
+         if ((all([ i^D ] == 0)) .or. (.not. req_diagonal .and. count([ i^D ] /= 0) > 1)) cycle
          select case (neighbor_type(i^D,igrid))
          case(neighbor_sibling)
-           call bc_fill_srl(igrid,i^D,iib^D)
+          !  call bc_fill_srl(igrid,i^D,iib^D,psb,nwhead,nwtail)
+          ipe_neighbor=neighbor(2,i^D,igrid)
+          if(ipe_neighbor==mype) then
+            ineighbor=neighbor(1,i^D,igrid)
+            ipole=neighbor_pole(i^D,igrid)
+            if(ipole==0) then
+              n_i^D=-i^D;
+              ixS^L=ixS_srl_^L(iib^D,i^D);
+              ixR^L=ixR_srl_^L(iib^D,n_i^D);
+              ! ToDo: Can we avoid copyin here? Do this once before the acc loop?
+              !$acc enter data copyin(psb(igrid)%w, psb(ineighbor)%w)
+              psb(ineighbor)%w(ixR^S,nwhead:nwtail) = psb(igrid)%w(ixS^S,nwhead:nwtail)
+              !$acc exit data delete(psb(igrid)%w) copyout(psb(ineighbor)%w)
+            end if
+          end if
+          ! ToDo: move rest of bc_fill_srl here
          case(neighbor_coarse)
-           call bc_fill_restrict(igrid,i^D,iib^D)
+           ! call bc_fill_restrict(igrid,i^D,iib^D)
          end select
       {end do\}
     end do
     !$OMP END PARALLEL DO
+    end block
 
     call MPI_WAITALL(irecv_c,recvrequest_c_sr,recvstatus_c_sr,ierrmpi)
     call MPI_WAITALL(isend_c,sendrequest_c_sr,sendstatus_c_sr,ierrmpi)
