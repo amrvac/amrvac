@@ -975,9 +975,9 @@ contains
     ALLOCATE(lon_cme(num_cmes))
     ALLOCATE(rho_cme(num_cmes))
     ALLOCATE(temperature_cme(num_cmes))
-    ALLOCATE(cme_index(8,num_cmes))
-    ALLOCATE(starting_index(8, num_cmes))
-    ALLOCATE(time_difference_cme_magn(8, num_cmes))
+    ALLOCATE(cme_index(10,num_cmes))
+    ALLOCATE(starting_index(10, num_cmes))
+    ALLOCATE(time_difference_cme_magn(10, num_cmes))
     ALLOCATE(longitudes_fix(num_cmes))
 
     do i=1, num_cmes
