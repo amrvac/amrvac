@@ -18,17 +18,16 @@ module mod_usr
   !Shared over subroutines
   real(kind=8), allocatable                      :: coord_grid_init(:,:,:),variables_init(:,:,:)
   type(satellite_pos), dimension(:), allocatable :: positions_list
-  character(len=250), dimension(8)               :: trajectory_list
-  !integer, dimension(8)                          :: which_satellite = (/1, 1,1, 1, 1, 1, 0, 0/)     ! intended order: earth, mars, mercury, venus, sta, stb, psp, solo
-  integer, dimension(8)                          :: which_satellite = (/0, 0, 0, 0, 0, 0, 0, 0/)     ! intended order: earth, mars, mercury, venus, sta, stb, psp, solo
-  integer, dimension(8)                          :: sat_indx = (/0, 0, 0, 0, 0, 0, 0, 0/)     ! intended order: earth, mars, mercury, venus, sta, stb, psp, solo
+  character(len=250), dimension(10)               :: trajectory_list
+  integer, dimension(10)                          :: which_satellite = (/0, 0, 0, 0, 0, 0, 0, 0, 0, 0/)     ! intended order: earth, mars, mercury, venus, sta, stb, psp, solo, bepi, juno
+  integer, dimension(10)                          :: sat_indx = (/0, 0, 0, 0, 0, 0, 0, 0, 0, 0/)     ! intended order: earth, mars, mercury, venus, sta, stb, psp, solo, bepi, juno
   integer                                        :: sat_count=0, zero_count=0
-  double precision, dimension(8)                 :: last = (/0, 0, 0, 0, 0, 0, 0, 0/)        ! intended order: earth, mars, mercury, venus, sta, stb, psp, solo
-  integer, dimension(8)                          :: last_index = (/0, 0, 0, 0, 0, 0, 0, 0/)  ! intended order: earth, mars, mercury, venus, sta, stb, psp, solo
-  integer, dimension(8)                          :: last_index_s = (/0, 0, 0, 0, 0, 0, 0, 0/)
+
+  integer, dimension(10)                          :: last_index = (/0, 0, 0, 0, 0, 0, 0, 0, 0, 0/)  ! intended order: earth, mars, mercury, venus, sta, stb, psp, solo, bepi, juno
+  integer, dimension(10)                          :: last_index_s = (/0, 0, 0, 0, 0, 0, 0, 0, 0, 0/)
   double precision                               :: delta_phi
   integer, dimension(:,:), allocatable           :: starting_index, cme_index    ! first coordinate: satellite index; second coordinate: cme index
-  integer, dimension(8)                          :: magnetogram_index = (/0, 0, 0, 0, 0, 0, 0, 0/)
+  integer, dimension(10)                          :: magnetogram_index = (/0, 0, 0, 0, 0, 0, 0, 0,0,0/)
 
   ! CME parameters and simulation details from the parameter file
   ! define my cme parameters here
@@ -175,23 +174,23 @@ contains
       ! read in cme parameters
       if (num_cmes == 0) then
         ALLOCATE(timestamp(1))
-        ALLOCATE(cme_index(8,1))
-        ALLOCATE(starting_index(8, 1))
-        ALLOCATE(time_difference_cme_magn(8, 1))
+        ALLOCATE(cme_index(10,1))
+        ALLOCATE(starting_index(10, 1))
+        ALLOCATE(time_difference_cme_magn(10, 1))
       else
         call read_cme_parameters(cme_parameter_file)
       end if
       ! Initialize cme starting index in the trajectory file, cme index in the trajectory file and the time difference between the start and cme indexes
       if (num_cmes > 0) then
         do n = 1, num_cmes
-          do i = 1, 8
+          do i = 1, 10
             cme_index(i, n) = 0
             starting_index(i, n) = 0
             time_difference_cme_magn(i, n) = 0
           end do
         end do
         else
-          do i = 1, 8
+          do i = 1, 10
             cme_index(i, 1) = 0
             starting_index(i, 1) = 0
             time_difference_cme_magn(i, 1) = 0
@@ -199,23 +198,28 @@ contains
        end if
 
 
-        do i=1, 8
+        do i=1, 10
             call find_trajectory_file(i, path_satellite_trajectories)
         end do
 
-        ALLOCATE(positions_list(8), STAT=AllocateStatus)
+        ALLOCATE(positions_list(10), STAT=AllocateStatus)
 
       ! for each satellite, read the trajectory data and save in the arrays of time and locations
-      do i = 1, 8
+      do i = 1, 10
         if (which_satellite(i)==1) then
           sat_indx(i-zero_count) = i
           sat_count = sat_count+1
           call read_satellite_trajectory(trajectory_list(i), i)
+          !print *, i, positions_list(i)%positions(1,1)
         end if
          if (which_satellite(i) == 0) then
           zero_count = zero_count+1
          end if
       end do
+
+
+
+
 
       ! calculate timestamp for cme insertion
       timestamp(:) = relaxation*24.0+cme_insertion*24.0
@@ -269,7 +273,7 @@ contains
     double precision, intent(out)      :: x(3)
     integer, intent(in)                :: satellite_index
     integer                            :: n_particles
-    double precision, dimension(8)     :: orbital_period = (/365.24, 686.98, 87.969, 224.7, 346.0, 388.0, 88.0, 168.0/)    ! earth, mars, mercury, venus, sta, stb, psp, solo
+    double precision, dimension(10)     :: orbital_period = (/365.24, 686.98, 87.969, 224.7, 346.0, 388.0, 88.0, 168.0, 87.969, 1590.0/)    ! earth, mars, mercury, venus, sta, stb, psp, solo
     double precision                   :: phi_satellite, before_cme
 
 
@@ -296,7 +300,7 @@ contains
     integer, intent(in)             :: satellite_index
 
     double precision                :: phi_satellite, before_cme, delta_lon, lon_old, lon_new
-    double precision, dimension(8)     :: orbital_period = (/365.24, 686.98, 87.969, 224.7, 346.0, 388.0, 88.0, 168.0/)    ! earth, mars, mercury, venus, sta, stb, psp, solo
+    double precision, dimension(10)     :: orbital_period = (/365.24, 686.98, 87.969, 224.7, 346.0, 388.0, 88.0, 168.0, 87.969, 1590.0/)    ! earth, mars, mercury, venus, sta, stb, psp, solo
     double precision                :: curr_lon, final_fix
 
     last_index_s(satellite_index) = starting_index(satellite_index, 1) + floor(tnew*60.0)
@@ -748,11 +752,15 @@ contains
     character(len=10), dimension(3) :: psp_end_dates = (/'2020_04_04', '2023_04_05', '2025_08_30'/)
     character(len=10), dimension(4) :: solo_begin_dates = (/'2020_02_11', '2022_10_07', '2025_10_07', '2028_10_07'/)
     character(len=10), dimension(4) :: solo_end_dates = (/'2023_04_05', '2026_04_05', '2029_04_05', '2030_11_17'/)
+    character(len=10), dimension(3) :: bepi_begin_dates = (/'2018_10_21', '2019_10_03', '2022_10_02'/)
+    character(len=10), dimension(3) :: bepi_end_dates = (/'2020_03_31', '2023_03_31', '2025_11_01'/)
+    character(len=10), dimension(3) :: juno_begin_dates = (/'2011_08_06', '2013_10_03', '2016_10_03'/)
+    character(len=10), dimension(3) :: juno_end_dates = (/'2014_04_01', '2017_04_01', '2019_06_19'/)
     character(len=10), dimension(:), allocatable :: begin_dates, end_dates
 
-    character(len=11), dimension(8) :: satellite_list = (/'earth      ', 'mars       ', 'mercury    ', 'venus      ', 'sta        ', 'stb        ', 'psp_nom_R02', 'SolO       '/)
+    character(len=11), dimension(10) :: satellite_list = (/'earth      ', 'mars       ', 'mercury    ', 'venus      ', 'sta        ', 'stb        ', 'psp_nom_R02', 'SolO       ', 'mpo        ', 'juno       '/)
 
-    integer, dimension(8)           :: dates_lengths = (/20, 20, 20, 20, 9, 4, 3, 4/)
+    integer, dimension(10)           :: dates_lengths = (/20, 20, 20, 20, 9, 4, 3, 4, 3, 3/)
     integer :: begin_year, begin_month, begin_day, begin_year_previous, begin_month_previous
     integer :: first_year, first_month, first_day
     integer :: last_year, last_month, last_day
@@ -776,10 +784,19 @@ contains
     else if (satellite_index == 7) then
       begin_dates = psp_begin_dates
       end_dates = psp_end_dates
-    else
+    else if (satellite_index == 8) then
       begin_dates = solo_begin_dates
       end_dates = solo_end_dates
+    else if (satellite_index == 9) then
+      begin_dates = bepi_begin_dates
+      end_dates = bepi_end_dates
+    else
+      begin_dates = juno_begin_dates
+      end_dates = juno_end_dates
     end if
+
+
+
 
     read(begin_dates(1)(1:4), '(i4)') first_year
     read(begin_dates(1)(6:7), '(i2)') first_month
@@ -880,15 +897,12 @@ contains
     positions_list(index)%positions(9,:) = longitudes
 
     delta_time = 0.25d0
-    ! delta_steps = int(timestamp*60)
-
     if (magnetogram_index(index) .eq. 0) then
       do j_date = 1, size(year)
         if ((year(j_date) == magnetogram_timestamp(1)) .and.  (month(j_date) == magnetogram_timestamp(2))) then
           if ((day(j_date) == magnetogram_timestamp(3)) .and. (hour(j_date) == magnetogram_timestamp(4))) then
             if (minute(j_date) == magnetogram_timestamp(5)) then
               magnetogram_index(index) = j_date
-
               exit
             end if
           end if
@@ -898,9 +912,9 @@ contains
 
     if (starting_index(index, 1) .eq. 0 .and. (num_cmes == 0)) then
       starting_index(index, 1) = magnetogram_index(index)
-      !time_difference_cme_magn(index, 1) = 0.0
       cme_index(index,1) = magnetogram_index(index)
     end if
+
 
     if (starting_index(index, 1) .eq. 0 .and. (num_cmes > 0)) then
       do n = 1, num_cmes
@@ -910,6 +924,7 @@ contains
               if (minute(i_date) == cme_minute(n)) then
                 cme_index(index, n) = i_date
                 time_difference_cme_magn(index, n) = (cme_index(index, n) - magnetogram_index(index))/60.0 !hours
+
                 delta_steps = int((relaxation*24.0+cme_insertion*24.0+time_difference_cme_magn(index, n))*60)
                 starting_index(index, n) = i_date - delta_steps
 
@@ -930,6 +945,7 @@ contains
     DEALLOCATE(radii, STAT = DEAllocateStatus)
     DEALLOCATE(latitudes, STAT = DEAllocateStatus)
     DEALLOCATE(longitudes, STAT = DEAllocateStatus)
+
 
   end subroutine read_satellite_trajectory
 
