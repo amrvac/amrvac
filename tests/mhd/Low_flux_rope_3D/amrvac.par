@@ -1,10 +1,10 @@
 !setup.pl -d=3
  &filelist
-        base_filename='lfr_3dc'
+        base_filename='lfr_3db'
         saveprim=.true.
-        convert_type='vtuBmpi'
+        convert_type='vtuBCCmpi'
         autoconvert=.true.
-        nwauxio=9
+        nwauxio=10
  /
 
  &savelist
@@ -63,5 +63,5 @@
 
  &mhd_list
         Busr=10.d0
-        B0field=.false.
+        B0field=.true.
  /
