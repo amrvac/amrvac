@@ -384,7 +384,7 @@ contains
       call tc_init_params(ffhd_gamma)
 
       allocate(tc_fl)
-      call tc_get_ffhd_params(tc_fl,tc_params_read_ffhd)
+      call tc_get_hd_params(tc_fl,tc_params_read_ffhd)
       call add_sts_method(ffhd_get_tc_dt_ffhd,ffhd_sts_set_source_tc_ffhd,e_,1,e_,1,.false.)
       tc_fl%get_temperature_from_conserved => ffhd_get_temperature_from_etot
       tc_fl%get_temperature_from_eint => ffhd_get_temperature_from_eint
@@ -449,13 +449,13 @@ contains
   subroutine  ffhd_sts_set_source_tc_ffhd(ixI^L,ixO^L,w,x,wres,fix_conserve_at_step,my_dt,igrid,nflux)
     use mod_global_parameters
     use mod_fix_conserve
-    use mod_thermal_conduction, only: sts_set_source_tc_ffhd
+    use mod_thermal_conduction, only: sts_set_source_tc_mhd
     integer, intent(in) :: ixI^L, ixO^L, igrid, nflux
     double precision, intent(in) ::  x(ixI^S,1:ndim)
     double precision, intent(inout) ::  wres(ixI^S,1:nw), w(ixI^S,1:nw)
     double precision, intent(in) :: my_dt
     logical, intent(in) :: fix_conserve_at_step
-    call sts_set_source_tc_ffhd(ixI^L,ixO^L,w,x,wres,fix_conserve_at_step,my_dt,igrid,nflux,tc_fl)
+    call sts_set_source_tc_mhd(ixI^L,ixO^L,w,x,wres,fix_conserve_at_step,my_dt,igrid,nflux,tc_fl)
   end subroutine ffhd_sts_set_source_tc_ffhd
 
   function ffhd_get_tc_dt_ffhd(w,ixI^L,ixO^L,dx^D,x) result(dtnew)
@@ -463,14 +463,14 @@ contains
     !where                      tc_k_para_i=tc_k_para*B_i**2/B**2
     !and                        T=p/rho
     use mod_global_parameters
-    use mod_thermal_conduction, only: get_tc_dt_ffhd
+    use mod_thermal_conduction, only: get_tc_dt_mhd
  
     integer, intent(in) :: ixI^L, ixO^L
     double precision, intent(in) :: dx^D, x(ixI^S,1:ndim)
     double precision, intent(in) :: w(ixI^S,1:nw)
     double precision :: dtnew
 
-    dtnew=get_tc_dt_ffhd(w,ixI^L,ixO^L,dx^D,x,tc_fl)
+    dtnew=get_tc_dt_mhd(w,ixI^L,ixO^L,dx^D,x,tc_fl)
   end function ffhd_get_tc_dt_ffhd
 
   subroutine ffhd_tc_handle_small_e(w, x, ixI^L, ixO^L, step)
@@ -970,8 +970,8 @@ contains
           \}
         end select
         call gradient(Te,ixI^L,ixQ^L,idims,gradT(ixI^S,idims))
-        call gradientx(Te,x,ixI^L,hxP^L,idims,gradT(ixI^S,idims),.false.)
-        call gradientq(Te,x,ixI^L,jxP^L,idims,gradT(ixI^S,idims))
+        call gradientF(Te,x,ixI^L,hxP^L,idims,gradT(ixI^S,idims),nghostcells,.true.)
+        call gradientF(Te,x,ixI^L,jxP^L,idims,gradT(ixI^S,idims),nghostcells,.false.)
       end do
       bunitvec(ixP^S,:)=block%B0(ixP^S,:,0)
       lts(ixP^S)=abs(sum(gradT(ixP^S,1:ndim)*bunitvec(ixP^S,1:ndim),dim=ndim+1))/Te(ixP^S)

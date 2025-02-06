@@ -160,11 +160,11 @@ contains
     end select
 
     ! output divB second order
-    call get_divb(w,ixI^L,ixO^L,divb, .false.)
+    call get_divb(w,ixI^L,ixO^L,divb,1)
     w(ixO^S,i_divb_2)=divb(ixO^S)
 
     ! output divB fourth order
-    call get_divb(w,ixI^L,ixO^L,divb, .true.)
+    call get_divb(w,ixI^L,ixO^L,divb,2)
     w(ixO^S,i_divb_4)=divb(ixO^S)
 
     if(stagger_grid) then

@@ -3,7 +3,6 @@
 !> and temperature (T), which are also both given in base 10 logarithm.
 
 module mod_opal_opacity
-  
   implicit none
 
   !> min and max indices for R,T-range in opacity table
@@ -26,13 +25,12 @@ contains
     character(len=*), intent(in) :: tablename
 
     ! Local variables
-    character(len=:), allocatable :: AMRVAC_DIR, path_table_dir
+    character(len=256) :: AMRVAC_DIR, path_table_dir
     
     call get_environment_variable("AMRVAC_DIR", AMRVAC_DIR)
         
     ! Absolute path to OPAL table location
-    path_table_dir = trim(AMRVAC_DIR)//"/src/rhd/OPAL_tables/"//trim(tablename)
-    
+    path_table_dir = trim(AMRVAC_DIR)//"src/tables/OPAL_tables/"//trim(tablename)
     ! Read in the OPAL table
     call read_table(logR_list, logT_list, Kappa_vals, path_table_dir)
 
@@ -41,10 +39,8 @@ contains
   !> This subroutine calculates the opacity for a given temperature-density
   !> structure. Opacities are read from a table with given metalicity.
   subroutine set_opal_opacity(rho, temp, kappa)
-        
     double precision, intent(in)  :: rho, temp
     double precision, intent(out) :: kappa
-
     ! Local variables
     double precision :: logR_in, logT_in, logKappa_out
 
@@ -68,7 +64,6 @@ contains
 
     ! Convert OPAL opacity for output
     kappa = 10d0**logKappa_out
-
   end subroutine set_opal_opacity
 
   !> This routine reads in 1-D (rho,T) values from an opacity table and gives

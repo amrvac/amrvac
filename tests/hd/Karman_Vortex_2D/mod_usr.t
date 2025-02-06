@@ -201,7 +201,7 @@ contains
           case("central")
            call gradient(wlocal(ixI^S,rho_),ixI^L,ixO^L,idims,drho)
           case("limited")
-           call gradientS(wlocal(ixI^S,rho_),ixI^L,ixO^L,idims,drho)
+           call gradientL(wlocal(ixI^S,rho_),ixI^L,ixO^L,idims,drho)
        end select
        gradrho(ixO^S)=gradrho(ixO^S)+drho(ixO^S)**2.0d0
     enddo

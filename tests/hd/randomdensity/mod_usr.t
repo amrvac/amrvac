@@ -145,7 +145,7 @@ do idims=1,ndim
    case("central")
      call gradient(rho,ixI^L,ixO^L,idims,drho)
    case("limited")
-     call gradientS(rho,ixI^L,ixO^L,idims,drho)
+     call gradientL(rho,ixI^L,ixO^L,idims,drho)
    end select
    gradrho(ixO^S)=gradrho(ixO^S)+drho(ixO^S)**2.0d0
 enddo

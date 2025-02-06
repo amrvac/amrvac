@@ -170,7 +170,7 @@ module mod_twofl_phys
   character(len=std_len), public, protected :: type_ct  = 'uct_contact'
 
   !> Whether divB is computed with a fourth order approximation
-  logical, public, protected :: twofl_divb_4thorder = .false.
+  integer, public, protected :: twofl_divb_nth = 1
 
   !> Method type in a integer for good performance
   integer :: type_divb
@@ -296,7 +296,7 @@ contains
       twofl_coll_inc_te, twofl_coll_inc_ionrec,&
       twofl_equi_thermal_n,dtcollpar,&
       twofl_dump_coll_terms,twofl_implicit_calc_mult_method,&
-      boundary_divbfix, boundary_divbfix_skip, twofl_divb_4thorder, &
+      boundary_divbfix, boundary_divbfix_skip, twofl_divb_nth, &
       clean_initial_divb,  &
       twofl_trac, twofl_trac_type, twofl_trac_mask,twofl_cbounds_species 
 
@@ -3412,7 +3412,6 @@ contains
   subroutine add_geom_PdivV(qdt,ixI^L,ixO^L,v,p,w,x,ind)
     use mod_global_parameters
     use mod_geometry
-
     integer, intent(in)             :: ixI^L, ixO^L,ind
     double precision, intent(in)    :: qdt
     double precision, intent(in)    :: p(ixI^S), v(ixI^S,1:ndir), x(ixI^S,1:ndim)
@@ -3421,9 +3420,9 @@ contains
 
     if(slab_uniform) then
       if(nghostcells .gt. 2) then
-        call divvector(v,ixI^L,ixO^L,divv,sixthorder=.true.)
+        call divvector(v,ixI^L,ixO^L,divv,3)
       else
-        call divvector(v,ixI^L,ixO^L,divv,fourthorder=.true.)
+        call divvector(v,ixI^L,ixO^L,divv,2)
       end if
     else
      call divvector(v,ixI^L,ixO^L,divv)
@@ -4137,7 +4136,7 @@ contains
     double precision :: gradPsi(ixI^S)
 
     ! We calculate now div B
-    call get_divb(wCT,ixI^L,ixO^L,divb, twofl_divb_4thorder)
+    call get_divb(wCT,ixI^L,ixO^L,divb, twofl_divb_nth)
 
     ! dPsi/dt =  - Ch^2/Cp^2 Psi
     if (twofl_glm_alpha < zero) then
@@ -4158,7 +4157,7 @@ contains
        case("central")
           call gradient(wCT(ixI^S,psi_),ixI^L,ixO^L,idim,gradPsi)
        case("limited")
-          call gradientS(wCT(ixI^S,psi_),ixI^L,ixO^L,idim,gradPsi)
+          call gradientL(wCT(ixI^S,psi_),ixI^L,ixO^L,idim,gradPsi)
        end select
        if (phys_total_energy) then
        ! e  = e  -qdt (b . grad(Psi))
@@ -4186,7 +4185,7 @@ contains
     integer                         :: idir
 
     ! We calculate now div B
-    call get_divb(wCT,ixI^L,ixO^L,divb, twofl_divb_4thorder)
+    call get_divb(wCT,ixI^L,ixO^L,divb, twofl_divb_nth)
 
     ! calculate velocity
     call twofl_get_v_c(wCT,x,ixI^L,ixO^L,v)
@@ -4223,7 +4222,7 @@ contains
     integer                         :: idir
 
     ! We calculate now div B
-    call get_divb(wCT,ixI^L,ixO^L,divb, twofl_divb_4thorder)
+    call get_divb(wCT,ixI^L,ixO^L,divb, twofl_divb_nth)
 
     ! b = b - qdt v * div b
     do idir=1,ndir
@@ -4249,7 +4248,7 @@ contains
 
     ! Calculate div B
     ixp^L=ixO^L^LADD1;
-    call get_divb(wCT,ixI^L,ixp^L,divb, twofl_divb_4thorder)
+    call get_divb(wCT,ixI^L,ixp^L,divb, twofl_divb_nth)
 
     ! for AMR stability, retreat one cell layer from the boarders of level jump
     {do i^DB=-1,1\}
@@ -4286,7 +4285,7 @@ contains
        case("central")
          call gradient(divb,ixI^L,ixp^L,idim,graddivb)
        case("limited")
-         call gradientS(divb,ixI^L,ixp^L,idim,graddivb)
+         call gradientL(divb,ixI^L,ixp^L,idim,graddivb)
        end select
 
        ! Multiply by Linde's eta*dt = divbdiff*(c_max*dx)*dt = divbdiff*dx**2
@@ -5476,7 +5475,7 @@ contains
        ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
 
        call get_divb(ps(igrid)%w(ixG^T, 1:nw), ixG^LL, ixM^LL, tmp, &
-            twofl_divb_4thorder)
+            twofl_divb_nth)
        mg%boxes(id)%cc({1:nc}, mg_irhs) = tmp(ixM^T)
        max_divb = max(max_divb, maxval(abs(tmp(ixM^T))))
     end do
@@ -5529,7 +5528,7 @@ contains
          do idim =1, ndim
            ixCmin^D=ixMlo^D-kr(idim,^D);
            ixCmax^D=ixMhi^D;
-           call gradientx(tmp,ps(igrid)%x,ixG^LL,ixC^L,idim,grad(ixG^T,idim),.false.)
+           call gradientF(tmp,ps(igrid)%x,ixG^LL,ixC^L,idim,grad(ixG^T,idim))
            ! Apply the correction B* = B - gradient(phi)
            ps(igrid)%ws(ixC^S,idim)=ps(igrid)%ws(ixC^S,idim)-grad(ixC^S,idim)
          end do
@@ -6041,7 +6040,7 @@ contains
           ! current at transverse faces
           xs(ixB^S,:)=x(ixB^S,:)
           xs(ixB^S,idim2)=x(ixB^S,idim2)+half*dx(ixB^S,idim2)
-          call gradientx(wCTs(ixGs^T,idim2),xs,ixGs^LL,ixC^L,idim1,gradi,.true.)
+          call gradientF(wCTs(ixGs^T,idim2),xs,ixGs^LL,ixC^L,idim1,gradi,2)
           if (lvc(idim1,idim2,idir)==1) then
             jce(ixC^S,idir)=jce(ixC^S,idir)+gradi(ixC^S)
           else

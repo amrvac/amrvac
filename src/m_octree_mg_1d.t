@@ -599,11 +599,14 @@ contains
     integer                :: n, ierr
     real(dp)               :: tmin(mg%n_timers)
     real(dp)               :: tmax(mg%n_timers)
+    real(dp), allocatable  :: t_array(:)
 
-    call mpi_reduce(mg%timers(1:mg%n_timers)%t, tmin, mg%n_timers, &
-         mpi_double, mpi_min, 0, mg%comm, ierr)
-    call mpi_reduce(mg%timers(1:mg%n_timers)%t, tmax, mg%n_timers, &
-         mpi_double, mpi_max, 0, mg%comm, ierr)
+    allocate(t_array(mg%n_timers))
+    do n = 1, mg%n_timers
+      t_array(n) = mg%timers(n)%t
+    enddo
+    call mpi_reduce(t_array, tmin, mg%n_timers, mpi_double, mpi_min, 0, mg%comm, ierr)
+    call mpi_reduce(t_array, tmax, mg%n_timers, mpi_double, mpi_max, 0, mg%comm, ierr)
 
     if (mg%my_rank == 0) then
        write(*, "(A20,2A16)") "name                ", "min(s)", "max(s)"
@@ -1600,11 +1603,12 @@ contains
   !> children.
   subroutine mg_load_balance_parents(mg)
     type(mg_t), intent(inout) :: mg
-    integer                   :: i, id, lvl
-    integer                   :: c_ids(mg_num_children)
-    integer                   :: c_ranks(mg_num_children)
-    integer                   :: single_cpu_lvl, coarse_rank
-    integer                   :: my_work(0:mg%n_cpu), i_cpu
+    integer :: i, id, lvl, j, jd
+    integer :: c_ids(mg_num_children)
+    integer :: c_ranks(mg_num_children)
+    integer :: single_cpu_lvl, coarse_rank
+    integer :: my_work(0:mg%n_cpu), i_cpu
+    integer, allocatable :: rank_array(:)
 
     ! Up to this level, all boxes have to be on a single processor because they
     ! have a different size and the communication routines do not support this
@@ -1632,10 +1636,24 @@ contains
 
     end do
 
-    ! Determine most popular CPU for coarse grids
-    if (single_cpu_lvl < mg%highest_lvl) then
-       coarse_rank = most_popular(mg%boxes(&
-            mg%lvls(single_cpu_lvl+1)%ids)%rank, my_work, mg%n_cpu)
+!> comment out by nanami to avoid Fortran runtime warning: 
+!> An array temporary was created
+!    ! Determine most popular CPU for coarse grids
+!    if (single_cpu_lvl < mg%highest_lvl) then
+!       coarse_rank = most_popular(mg%boxes(&
+!            mg%lvls(single_cpu_lvl+1)%ids)%rank, my_work, mg%n_cpu)
+!    else
+!       coarse_rank = 0
+!    end if
+
+    if(single_cpu_lvl < mg%highest_lvl) then
+      allocate(rank_array(size(mg%lvls(single_cpu_lvl+1)%ids)))
+      do j = 1, size(mg%lvls(single_cpu_lvl+1)%ids)
+        jd = mg%lvls(single_cpu_lvl+1)%ids(j)
+        rank_array(j) = mg%boxes(jd)%rank
+      enddo
+      coarse_rank = most_popular(rank_array, my_work, mg%n_cpu)
+      deallocate(rank_array)
     else
        coarse_rank = 0
     end if

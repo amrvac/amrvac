@@ -122,7 +122,7 @@ contains
   !>
   !> Note that this subroutine is called from upwindLR (hence from methods
   !> like tvdlf, hancock, hll(c) etc) or directly from tvd.t,
-  !> but also from the gradientS and divvectorS subroutines in geometry.t
+  !> but also from the gradientL and divvectorS subroutines in geometry.t
   !> Accordingly, the typelim here corresponds to one of limiter
   !> or one of gradient_limiter.
   subroutine dwlimiter2(dwC,ixI^L,ixC^L,idims,typelim,ldw,rdw,a2max)

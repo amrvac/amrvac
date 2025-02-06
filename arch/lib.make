@@ -10,7 +10,7 @@ ifndef NDIM
 $(error build.make: NDIM is not set)
 endif
 
-SRC_DIRS := . modules amr io limiter physics rho hd ffhd mhd rhd particle nonlinear rd mf twofl ard srhd
+SRC_DIRS := . modules amr io limiter physics rho hd ffhd mhd rhd rmhd particle nonlinear rd mf twofl ard srhd
 SRC_DIRS := $(addprefix $(AMRVAC_DIR)/src/, $(SRC_DIRS))
 LIB_AMRVAC := libamrvac.a
 PPFLAGS :=

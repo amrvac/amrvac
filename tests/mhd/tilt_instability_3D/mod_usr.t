@@ -76,7 +76,7 @@ contains
         case("central")
          call gradient(phi0,ixG^L,ix^L,idims,tmp)
         case("limited")
-         call gradientS(phi0,ixG^L,ix^L,idims,tmp)
+         call gradientL(phi0,ixG^L,ix^L,idims,tmp)
     end select
     w(ix^S,mom(1))=tmp(ix^S)*dsin(xkz*x(ix^S,3))
     ! compute dphi0/dx
@@ -85,7 +85,7 @@ contains
          case("central")
           call gradient(phi0,ixG^L,ix^L,idims,tmp)
          case("limited")
-          call gradientS(phi0,ixG^L,ix^L,idims,tmp)
+          call gradientL(phi0,ixG^L,ix^L,idims,tmp)
     end select
     w(ix^S,mom(2))=-tmp(ix^S)*dsin(xkz*x(ix^S,3))
     w(ix^S,mom(3))=zero
@@ -102,7 +102,7 @@ contains
         case("central")
          call gradient(psi0,ixG^L,ix^L,idims,tmp)
         case("limited")
-         call gradientS(psi0,ixG^L,ix^L,idims,tmp)
+         call gradientL(psi0,ixG^L,ix^L,idims,tmp)
     end select
     w(ix^S,mag(1))=tmp(ix^S)
     ! compute dpsi0/dx
@@ -111,7 +111,7 @@ contains
          case("central")
           call gradient(psi0,ixG^L,ix^L,idims,tmp)
          case("limited")
-          call gradientS(psi0,ixG^L,ix^L,idims,tmp)
+          call gradientL(psi0,ixG^L,ix^L,idims,tmp)
     end select
     w(ix^S,mag(2))=-tmp(ix^S)
     

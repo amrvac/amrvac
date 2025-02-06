@@ -73,7 +73,7 @@ module mod_mf_phys
   logical, public, protected              :: mf_record_electric_field = .false.
 
   !> Whether divB is computed with a fourth order approximation
-  logical, public, protected :: mf_divb_4thorder = .false.
+  integer, public, protected :: mf_divb_nth = 1
 
   !> To control divB=0 fix for boundary
   logical, public, protected :: boundary_divbfix(2*^ND)=.true.
@@ -126,7 +126,7 @@ contains
       mf_4th_order, typedivbfix, source_split_divb, divbdiff,&
       typedivbdiff, type_ct, compactres, divbwave, He_abundance, SI_unit, &
       Bdip, Bquad, Boct, Busr, clean_initial_divb, &
-      boundary_divbfix, boundary_divbfix_skip, mf_divb_4thorder
+      boundary_divbfix, boundary_divbfix_skip, mf_divb_nth
 
     do n = 1, size(files)
        open(unitpar, file=trim(files(n)), status="old")
@@ -918,7 +918,7 @@ contains
     integer          :: idim,idir
 
     ! We calculate now div B
-    call get_divb(wCT,ixI^L,ixO^L,divb, mf_divb_4thorder)
+    call get_divb(wCT,ixI^L,ixO^L,divb,mf_divb_nth)
 
     ! dPsi/dt =  - Ch^2/Cp^2 Psi
     if (mf_glm_alpha < zero) then
@@ -939,10 +939,9 @@ contains
        case("central")
           call gradient(wCT(ixI^S,psi_),ixI^L,ixO^L,idim,gradPsi)
        case("limited")
-          call gradientS(wCT(ixI^S,psi_),ixI^L,ixO^L,idim,gradPsi)
+          call gradientL(wCT(ixI^S,psi_),ixI^L,ixO^L,idim,gradPsi)
        end select
     end do
-
   end subroutine add_source_glm
 
   !> Add divB related sources to w within ixO corresponding to Powel
@@ -957,7 +956,7 @@ contains
     integer                         :: idir
 
     ! We calculate now div B
-    call get_divb(wCT,ixI^L,ixO^L,divb, mf_divb_4thorder)
+    call get_divb(wCT,ixI^L,ixO^L,divb,mf_divb_nth)
 
     ! b = b - qdt v * div b
     do idir=1,ndir
@@ -978,7 +977,7 @@ contains
     integer                         :: idir
 
     ! We calculate now div B
-    call get_divb(wCT,ixI^L,ixO^L,divb, mf_divb_4thorder)
+    call get_divb(wCT,ixI^L,ixO^L,divb,mf_divb_nth)
 
     ! b = b - qdt v * div b
     do idir=1,ndir
@@ -1001,7 +1000,7 @@ contains
 
     ! Calculate div B
     ixp^L=ixO^L^LADD1;
-    call get_divb(wCT,ixI^L,ixp^L,divb, mf_divb_4thorder)
+    call get_divb(wCT,ixI^L,ixp^L,divb,mf_divb_nth)
 
     ! for AMR stability, retreat one cell layer from the boarders of level jump
     {do i^DB=-1,1\}
@@ -1038,7 +1037,7 @@ contains
        case("central")
          call gradient(divb,ixI^L,ixp^L,idim,graddivb)
        case("limited")
-         call gradientS(divb,ixI^L,ixp^L,idim,graddivb)
+         call gradientL(divb,ixI^L,ixp^L,idim,graddivb)
        end select
 
        ! Multiply by Linde's eta*dt = divbdiff*(c_max*dx)*dt = divbdiff*dx**2
@@ -1734,7 +1733,7 @@ contains
        ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
 
        call get_divb(ps(igrid)%w(ixG^T, 1:nw), ixG^LL, ixM^LL, tmp, &
-            mf_divb_4thorder)
+            mf_divb_nth)
        mg%boxes(id)%cc({1:nc}, mg_irhs) = tmp(ixM^T)
        max_divb = max(max_divb, maxval(abs(tmp(ixM^T))))
     end do
@@ -1787,7 +1786,7 @@ contains
          do idim =1, ndim
            ixCmin^D=ixMlo^D-kr(idim,^D);
            ixCmax^D=ixMhi^D;
-           call gradientx(tmp,ps(igrid)%x,ixG^LL,ixC^L,idim,grad(ixG^T,idim),.false.)
+           call gradientF(tmp,ps(igrid)%x,ixG^LL,ixC^L,idim,grad(ixG^T,idim))
            ps(igrid)%ws(ixC^S,idim)=ps(igrid)%ws(ixC^S,idim)-grad(ixC^S,idim)
          end do
          call mf_face_to_center(ixM^LL,ps(igrid))
@@ -2265,7 +2264,7 @@ contains
           ! current at transverse faces
           xs(ixB^S,:)=x(ixB^S,:)
           xs(ixB^S,idim2)=x(ixB^S,idim2)+half*dx(ixB^S,idim2)
-          call gradientx(wCTs(ixGs^T,idim2),xs,ixGs^LL,ixC^L,idim1,gradi,.false.)
+          call gradientF(wCTs(ixGs^T,idim2),xs,ixGs^LL,ixC^L,idim1,gradi)
           if (lvc(idim1,idim2,idir)==1) then
             jce(ixC^S,idir)=jce(ixC^S,idir)+gradi(ixC^S)
           else

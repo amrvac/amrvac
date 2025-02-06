@@ -581,7 +581,7 @@ contains
     integer, intent(in) :: igrid, ixG^L, ixGext^L
     logical, intent(in) :: alloc_once_for_ps
     integer             :: ixGs^L
-  
+
     allocate(s%w(ixG^S,1:nw))
     s%igrid=igrid
     s%w=0.d0

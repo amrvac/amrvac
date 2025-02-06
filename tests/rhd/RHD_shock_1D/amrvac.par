@@ -5,9 +5,8 @@
 &filelist
   base_filename='./output/rhd_shock'
   saveprim         = F
-  autoconvert      = F
-  convert_type     = 'oneblock'
-  level_io         = 1
+  autoconvert      = T
+  convert_type     = 'vtuBCCmpi'
 /
 
  &savelist

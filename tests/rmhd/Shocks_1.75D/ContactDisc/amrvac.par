@@ -1,0 +1,101 @@
+&testlist
+    teststr=''
+/
+
+&filelist
+  base_filename='./output/rhd_shock'
+  saveprim         = T
+  autoconvert      = T
+  convert_type = 'vtuBCCmpi'
+  nwauxio=2
+/
+
+&savelist
+   itsave(1,1)     = 0
+   itsave(1,2)     = 0
+   dtsave_dat     = 1.d0
+   dtsave_log     = 1.d0
+/
+
+&stoplist
+   time_max = 20.d0
+   dtmin = 1.0d-20
+/
+
+ &methodlist
+   time_stepper = 'threestep'
+   time_integrator = 'IMEX_ARS3'
+   check_small_values=.false
+   flux_scheme     = 20*'hll'
+   limiter         = 20*'koren'
+   source_split_usr = .false.
+   typesourcesplit = 'sfs'
+   small_values_method = 'replace'
+   small_pressure = 1.d-12
+   small_density = 1.d-12
+/
+
+&boundlist
+  typeboundary_min1 = 9*'cont'
+  typeboundary_max1 = 9*'cont'
+  internalboundary = F
+/
+
+ &meshlist
+   refine_max_level   = 5
+   refine_criterion   = 3
+   domain_nx1         = 256
+   block_nx1          = 16
+   xprobmin1       = -1.0d0
+   xprobmax1       = 1.0d0
+   refine_threshold   = 20*0.5d0
+   derefine_ratio     = 20*1.d0/2.d0
+ /
+
+ &paramlist
+  courantpar       = 0.6d0
+  slowsteps = 200
+ /
+
+ &rmhd_list
+  He_abundance = 0.d0 
+  rmhd_gravity = .false.
+  rmhd_energy = .true.
+  rmhd_gamma = 1.6666666666667d0
+  radio_acoustic_filter = .false.
+  rmhd_radiation_formalism = 'fld'
+  rmhd_radiation_force = .true.
+  rmhd_energy_interact = .true.
+  rmhd_radiation_diffusion = .true.
+  rmhd_radiation_advection = .true.
+ /
+
+ &fld_list
+  fld_Eint_split = .false.
+  fld_Radforce_split = .false.
+  fld_opacity_law = 'const'
+  fld_kappa0 = 0.4d0
+  fld_diff_scheme = 'mg'
+  fld_interaction_method = 'Halley'
+  fld_fluxlimiter = 'Diffusion'
+  fld_diff_tol = 1.d-7
+  /
+
+  &shock_list
+   rho1 = 1.0d-4
+   rho2 = 5.0d-5
+   v1 = 0.0d0
+   v2 = 0.0d0
+   T1 = 1.0889904411594d6
+   T2 = 1.407734300031d6
+   B1 = 0.0d0  
+   B2 = 0.0d0  
+   vy1 = 0.0d0 
+   vz1 = 0.0d0 
+   By1 = 0.0d0 
+   Bz1 = 0.0d0 
+   vy2 = 0.0d0 
+   vz2 = 0.0d0 
+   By2 = 0.0d0 
+   Bz2 = 0.0d0 
+   /

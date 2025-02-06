@@ -459,7 +459,7 @@ contains
         endif
       else
         !> Local flux
-        call fld_get_radflux(wCT, x, ixI^L, ixO^L, rad_flux)
+        call fld_get_radflux(wCT, x, ixI^L, ixO^L, rad_flux, 1)
         w(ixO^S,mom(1)) = w(ixO^S,mom(1)) &
           + qdt*wCT(ixO^S,rho_)*rad_flux(ixO^S,1)/const_c*k_cak(ixO^S)*unit_velocity
         if (rhd_energy) then
@@ -494,7 +494,7 @@ contains
       -const_G*mass/radius(ixI^S)**2*(unit_time**2/unit_length))))
     else
       !> Local flux
-      call fld_get_radflux(w, x, ixI^L, ixO^L, rad_flux)
+      call fld_get_radflux(w, x, ixI^L, ixO^L, rad_flux,1)
       dt_cak = courantpar*minval(dsqrt(dxlevel(1)/abs(rad_flux(ixO^S,1)/const_c*k_cak(ixO^S)*unit_velocity &
       -const_G*mass/radius(ixI^S)**2*(unit_time**2/unit_length))))
     endif
@@ -543,7 +543,7 @@ contains
 
     !> dEr/dt = -2 (E v_r + F_r)/r
     if (rhd_radiation_diffusion) then
-      call fld_get_radflux(w, x, ixI^L, ixO^L, rad_flux)
+      call fld_get_radflux(w, x, ixI^L, ixO^L, rad_flux, 1)
       source(ixO^S,r_e) = source(ixO^S,r_e) - two*rad_flux(ixO^S,rdir)/radius(ixO^S)
     endif
 
@@ -553,7 +553,7 @@ contains
 
     ! Not sure about this one
     if (rhd_radiation_force) then
-      call fld_get_eddington(w, x, ixI^L, ixO^L, edd)
+      call fld_get_eddington(w, x, ixI^L, ixO^L, edd, nghostcells)
       source(ixO^S,r_e) = source(ixO^S,r_e) + two*v(ixO^S,rdir)*w(ixO^S,r_e)*edd(ixO^S,1,1)/radius(ixO^S)
     endif
 
@@ -648,7 +648,6 @@ contains
     !> Get CAK opacities from gradient in v_r (This is maybe a weird approximation)
     !> Need diffusion coefficient depending on direction?
     vel(ixI^S) = w(ixI^S,mom(1))/w(ixI^S,rho_)
-    ! call gradientO(vel,x,ixI^L,ixO^L,1,gradv,nghostcells)
 
     call gradient(vel,ixI^L,ixO^L,1,gradvI)
     gradv(ixO^S) = gradvI(ixO^S)
@@ -696,7 +695,6 @@ contains
     !> Get CAK opacities from gradient in v_r (This is maybe a weird approximation)
     !> Need diffusion coefficient depending on direction?
     vel(ixI^S) = w(ixI^S,mom(1))/w(ixI^S,rho_)
-    ! call gradientO(vel,x,ixI^L,ixO^L,1,gradv,nghostcells)
 
     call gradient(vel,ixI^L,ixO^L,1,gradvI)
     gradv(ixO^S) = gradvI(ixO^S)
@@ -716,7 +714,7 @@ contains
         Temp0 = Temp(ix^D)*unit_temperature
         Temp0 = max(Temp0,1.d4)
         gradv0 = gradv(ix^D)*(unit_velocity/unit_length)
-        call set_cak_opacity(rho0,Temp0,gradv0,alpha, Qbar, Q0, kappa_e_t)
+        call set_cak_opacity(rho0,Temp0,alpha,Qbar,Q0,kappa_e_t)
 
         tau = (kappa_e*unit_opacity)*rho0*const_c/gradv0
         M_t = Qbar/(1-alpha)*((1+Q0*tau)**(1-alpha) - 1)/(Q0*tau)
@@ -797,7 +795,7 @@ contains
     mass = M_star*(unit_density*unit_length**3.d0)
 
     call fld_get_opacity(w, x, ixI^L, ixO^L, kappa)
-    call fld_get_radflux(w, x, ixI^L, ixO^L, rad_flux)
+    call fld_get_radflux(w, x, ixI^L, ixO^L, rad_flux, 1)
 
     call rhd_get_tgas(w, x, ixI^L, ixO^L, Tgas)
     call rhd_get_trad(w, x, ixI^L, ixO^L, Trad)
@@ -815,7 +813,7 @@ contains
 
     pp_rf(ixO^S) = two*rad_flux(ixO^S,1)/x(ixO^S,1)*dt
 
-    call fld_get_fluxlimiter(w, x, ixI^L, ixO^L, lambda, fld_R)
+    call fld_get_fluxlimiter(w, x, ixI^L, ixO^L, lambda, fld_R, nghostcells)
 
     Lum(ixO^S) = 4*dpi*rad_flux(ixO^S,1)*(x(ixO^S,1)*unit_length)**2*unit_radflux/L_sun
 

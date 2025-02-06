@@ -316,7 +316,7 @@ contains
     !> Initiate radiation-closure module
     select case (rhd_radiation_formalism)
     case('fld')
-      call fld_init(He_abundance, rhd_radiation_diffusion, rhd_gamma)
+      call fld_init(He_abundance, rhd_radiation_diffusion, rhd_energy_interact, rhd_gamma)
     case('afld')
       call afld_init(He_abundance, rhd_radiation_diffusion, rhd_gamma)
     case default
@@ -425,7 +425,6 @@ contains
     kbmpmua4 = unit_pressure**(-3.d0/4.d0)*unit_density*const_kB/(const_mp*fld_mu)*const_rad_a**(-1.d0/4.d0)
     ! initialize ionization degree table
     if(rhd_partial_ionization) call ionization_degree_init()
-
   end subroutine rhd_phys_init
 
 {^IFTHREED
@@ -1194,9 +1193,9 @@ contains
 
     select case (rhd_radiation_formalism)
     case('fld')
-      call fld_get_radpress(w, x, ixI^L, ixO^L, prad)
+      call fld_get_radpress(w, x, ixI^L, ixO^L, prad, nghostcells)
     case('afld')
-      call afld_get_radpress(w, x, ixI^L, ixO^L, prad)
+      call afld_get_radpress(w, x, ixI^L, ixO^L, prad, nghostcells)
     case default
       call mpistop('Radiation formalism unknown')
     end select
@@ -1677,41 +1676,24 @@ contains
     logical, intent(inout) :: active
     double precision :: cmax(ixI^S)
 
-
     select case(rhd_radiation_formalism)
     case('fld')
-
-      if (fld_diff_scheme .eq. 'mg') call fld_get_diffcoef_central(w, wCT, x, ixI^L, ixO^L)
-      ! if (fld_diff_scheme .eq. 'mg') call set_mg_bounds(wCT, x, ixI^L, ixO^L)
-
+      if(fld_diff_scheme .eq. 'mg') call fld_get_diffcoef_central(w, wCT, x, ixI^L, ixO^L)
       !> radiation force
-      if (rhd_radiation_force) call get_fld_rad_force(qdt,ixI^L,ixO^L,wCT,w,x,&
+      if(rhd_radiation_force) call get_fld_rad_force(qdt,ixI^L,ixO^L,wCT,w,x,&
         rhd_energy,qsourcesplit,active)
-
       call rhd_handle_small_values(.true., w, x, ixI^L, ixO^L, 'fld_e_interact')
-
-      !> photon tiring, heating and cooling
-      if (rhd_energy) then
-      if (rhd_energy_interact) call get_fld_energy_interact(qdt,ixI^L,ixO^L,wCT,w,x,&
-        rhd_energy,qsourcesplit,active)
-      endif
-
     case('afld')
-
       if (fld_diff_scheme .eq. 'mg') call afld_get_diffcoef_central(w, wCT, x, ixI^L, ixO^L)
-
       !> radiation force
       if (rhd_radiation_force) call get_afld_rad_force(qdt,ixI^L,ixO^L,wCT,w,x,&
         rhd_energy,qsourcesplit,active)
-
       call rhd_handle_small_values(.true., w, x, ixI^L, ixO^L, 'fld_e_interact')
-
       !> photon tiring, heating and cooling
       if (rhd_energy) then
       if (rhd_energy_interact) call get_afld_energy_interact(qdt,ixI^L,ixO^L,wCT,w,x,&
         rhd_energy,qsourcesplit,active)
       endif
-
     case default
       call mpistop('Radiation formalism unknown')
     end select
@@ -1719,7 +1701,6 @@ contains
     ! ! !>  NOT necessary for calculation, just want to know the grid-dependent-timestep
     ! call rhd_get_cmax(w, x, ixI^L, ixO^L, 2, cmax)
     ! w(ixI^S,i_test) = cmax(ixI^S)
-
   end subroutine rhd_add_radiation_source
 
   subroutine rhd_get_dt(w, ixI^L, ixO^L, dtnew, dx^D, x)

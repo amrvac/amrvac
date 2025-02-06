@@ -337,7 +337,7 @@ contains
           case("central")
             call gradient(psi,ixI^L,ixO^L,idims,tmp)
           case("limited")
-            call gradientS(psi,ixI^L,ixO^L,idims,tmp)
+            call gradientL(psi,ixI^L,ixO^L,idims,tmp)
         end select
         w(ixO^S,mom(1))=w(ixO^S,mom(1))-tmp(ixO^S)
         ! compute dpsi/dx
@@ -346,7 +346,7 @@ contains
           case("central")
             call gradient(psi,ixI^L,ixO^L,idims,tmp)
           case("limited")
-            call gradientS(psi,ixI^L,ixO^L,idims,tmp)
+            call gradientL(psi,ixI^L,ixO^L,idims,tmp)
         end select
         w(ixO^S,mom(2))=w(ixO^S,mom(2))+tmp(ixO^S)
       endif

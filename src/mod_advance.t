@@ -26,8 +26,8 @@ contains
     ! split source addition
     call add_split_source(prior=.true.)
 
-    if (dimsplit) then
-       if ((iit/2)*2==iit .or. typedimsplit=='xy') then
+    if(dimsplit) then
+       if((iit/2)*2==iit .or. typedimsplit=='xy') then
           ! do the sweeps in order of increasing idim,
           do idimsplit=1,ndim
              call advect(idimsplit,idimsplit)
@@ -599,14 +599,12 @@ contains
   subroutine evaluate_implicit(qtC,psa)
     use mod_global_parameters
     use mod_physics, only: phys_evaluate_implicit
-
     type(state), target :: psa(max_blocks)   !< Compute implicit part from this state and update it
     double precision, intent(in) :: qtC      !< psa at this time level
 
     if (associated(phys_evaluate_implicit)) then
        call phys_evaluate_implicit(qtC,psa)
     end if
-
   end subroutine evaluate_implicit
 
   !> Integrate all grids by one partial step

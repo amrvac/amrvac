@@ -160,7 +160,6 @@ contains
 
     wprim=wCT
     call phys_to_primitive(ixI^L,ixI^L,wprim,x)
-
     do idims= idims^LIM
        ! use interface value of w0 at idims
        b0i=idims
@@ -203,7 +202,6 @@ contains
        ! evaluate physical fluxes according to reconstructed status
        call phys_get_flux(wLC,wLp,x,ixI^L,ixC^L,idims,fLC)
        call phys_get_flux(wRC,wRp,x,ixI^L,ixC^L,idims,fRC)
-
        if(H_correction) then
          call phys_get_H_speed(wprim,x,ixI^L,ixO^L,idims,Hspeed)
        end if
@@ -859,7 +857,6 @@ contains
      thetaSM = maxval(cmaxC(ixO^S,1)) 
        
      thetaSM = (min(1d0, (thetaSM-du)/(thetaSM-min(dv,dw))))**aParam
-     !print*, "HLLD2 ", du,dv,dw, thetaSM, phiPres 
 
       if(B0field) then
         BR(ixC^S,:)=wRC(ixC^S,mag(:))+block%B0(ixC^S,:,ip1)

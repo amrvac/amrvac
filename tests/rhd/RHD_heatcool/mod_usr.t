@@ -29,9 +29,6 @@ contains
     ! A routine for initial conditions is always required
     usr_init_one_grid => initial_conditions
 
-    ! Write out energy levels and temperature
-    usr_write_analysis => output_energy
-
     ! Active the physics module
     call rhd_activate()
 
@@ -113,36 +110,6 @@ end subroutine usr_params_read
     print*, '================================================================'
 
   end subroutine initial_conditions
-
-
-  subroutine output_energy()
-    use mod_constants
-    
-    double precision :: tmp_g, tmp_r, e_max, Er_max, rho_e_max
-    double precision :: Tgas, Trad, tmp_T
-    integer          :: iigrid, igrid, ierrmpi
-
-    do iigrid = 1, igridstail
-      igrid = igrids(iigrid)
-      tmp_g = maxval(ps(igrid)%w(ixM^T, e_))
-      tmp_r = maxval(ps(igrid)%w(ixM^T, r_e))
-      tmp_T = maxval(ps(igrid)%w(ixM^T, e_)/ps(igrid)%w(ixM^T, rho_))
-    end do
-
-    call mpi_allreduce([tmp_g,tmp_r,tmp_T], [e_max,Er_max,rho_e_max], 3, &
-         mpi_double_precision, mpi_max, icomm, ierrmpi)
-
-    Tgas = tmp_T*(rhd_gamma - 1)*mp_cgs*fld_mu/kb_cgs*unit_temperature
-    Trad = (tmp_r/const_rad_a)**0.25d0*unit_temperature
-
-    if (mype==0) then
-      if (it .eq. 1) open(1,file = 'Instant1_1.d2',status = 'new')
-      write(1,*) global_time*unit_time, tmp_g, &
-      tmp_r, e_eq, Tgas, Trad
-      if (global_time .ge. time_max - dt) close(1)
-    endif
-
-  end subroutine output_energy
 
 end module mod_usr
 
