@@ -1010,6 +1010,7 @@ contains
 
   ! Note that cmax and cmin are assumed to be initialized
   subroutine dust_get_cmax(w, x, ixI^L, ixO^L, idim, cmax, cmin)
+    !$acc routine seq
     use mod_global_parameters
     use mod_variables
 

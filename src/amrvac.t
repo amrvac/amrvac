@@ -225,7 +225,6 @@ contains
        end if
     end do
 
-!    !$acc update device(bg%w)
     !$acc enter data copyin(bg)
     do itimelevel = 1, nstep
        !$acc enter data copyin( bg(itimelevel)%w )
@@ -233,11 +232,6 @@ contains
     do iigrid=1,igridstail; igrid=igrids(iigrid);
        !$acc enter data copyin(ps(igrid)%x) attach(ps(igrid)%w, ps1(igrid)%w, ps2(igrid)%w)
     end do
-    
-!    !$acc update device(ps(1:max_blocks))
-!    do iigrid=1,igridstail; igrid=igrids(iigrid);
-!       !$acc enter data copyin(ps(igrid)%w, ps(igrid)%x) create(ps1(igrid)%w, ps2(igrid)%w)
-!    end do
 
     ! the next two are used to keep track of the performance during runtime:
     itTimeLast=it
