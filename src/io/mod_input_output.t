@@ -1731,8 +1731,15 @@ contains
     use mod_slice, only: write_slice
     use mod_collapse, only: write_collapsed
     use mod_convert_files, only: generate_plotfile
+    use mod_physics, only: phys_req_diagonal
+    use mod_ghostcells_update
     integer:: ifile, iigrid, igrid
 
+    ! update (diagonal) ghostcells before moving to host:
+    if(.not. phys_req_diagonal) then
+      call getbc(global_time,0.d0,ps,iwstart,nwgc)
+    end if
+    
     do iigrid=1,igridstail; igrid=igrids(iigrid);
        !$acc update host(ps(igrid)%w)
     end do

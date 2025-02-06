@@ -229,7 +229,7 @@ contains
     do itimelevel = 1, nstep
        !$acc enter data copyin( bg(itimelevel)%w )
     end do
-    do iigrid=1,igridstail; igrid=igrids(iigrid);
+    do igrid = 1, max_blocks
        !$acc enter data copyin(ps(igrid)%x) attach(ps(igrid)%w, ps1(igrid)%w, ps2(igrid)%w)
     end do
 
