@@ -549,6 +549,12 @@ contains
     ! fill ghost-cell values of sibling blocks and coarser neighbors in the same processor
     block
     integer :: ipe_neighbor,ineighbor,ipole,n_i^D,ixS^L,ixR^L
+
+    ! Copy psb data to device
+    do iigrid=1,igridstail; igrid=igrids(iigrid);
+      !$acc enter data copyin(psb(igrid)%w)
+    end do
+
     !$OMP PARALLEL DO SCHEDULE(dynamic) PRIVATE(igrid,iib^D)
     !$acc parallel loop default(present) copyin(req_diagonal,idphyb,neighbor,neighbor_type,neighbor_pole,ixS_srl_^L,ixR_srl_^L) private(igrid,iib^D,ipe_neighbor,ineighbor,ipole)
     do iigrid=1,igridstail; igrid=igrids(iigrid);
@@ -558,7 +564,6 @@ contains
          if ((all([ i^D ] == 0)) .or. (.not. req_diagonal .and. count([ i^D ] /= 0) > 1)) cycle
          select case (neighbor_type(i^D,igrid))
          case(neighbor_sibling)
-          !  call bc_fill_srl(igrid,i^D,iib^D,psb,nwhead,nwtail)
           ipe_neighbor=neighbor(2,i^D,igrid)
           if(ipe_neighbor==mype) then
             ineighbor=neighbor(1,i^D,igrid)
@@ -567,10 +572,7 @@ contains
               n_i^D=-i^D;
               ixS^L=ixS_srl_^L(iib^D,i^D);
               ixR^L=ixR_srl_^L(iib^D,n_i^D);
-              ! ToDo: Can we avoid copyin here? Do this once before the acc loop?
-              !$acc enter data copyin(psb(igrid)%w, psb(ineighbor)%w)
               psb(ineighbor)%w(ixR^S,nwhead:nwtail) = psb(igrid)%w(ixS^S,nwhead:nwtail)
-              !$acc exit data delete(psb(igrid)%w) copyout(psb(ineighbor)%w)
             end if
           end if
           ! ToDo: move rest of bc_fill_srl here
@@ -580,6 +582,11 @@ contains
       {end do\}
     end do
     !$OMP END PARALLEL DO
+
+    do iigrid=1,igridstail; igrid=igrids(iigrid);
+      !$acc exit data copyout(psb(igrid)%w)
+    end do
+
     end block
 
     call MPI_WAITALL(irecv_c,recvrequest_c_sr,recvstatus_c_sr,ierrmpi)
