@@ -556,7 +556,7 @@ contains
     end do
 
     !$OMP PARALLEL DO SCHEDULE(dynamic) PRIVATE(igrid,iib^D)
-    !$acc parallel loop default(present) copyin(req_diagonal,idphyb,neighbor,neighbor_type,neighbor_pole,ixS_srl_^L,ixR_srl_^L) private(igrid,iib^D,ipe_neighbor,ineighbor,ipole)
+    !$acc parallel loop default(present) copyin(req_diagonal,idphyb,neighbor,neighbor_type,neighbor_pole,ixS_srl_^L,ixR_srl_^L,ixS_srl_stg_^L, ixR_srl_stg_^L) private(igrid,iib^D,ipe_neighbor,ineighbor,ipole)
     do iigrid=1,igridstail; igrid=igrids(iigrid);
       ^D&iib^D=idphyb(^D,igrid);
       {do i^DB=-1,1\}
@@ -573,6 +573,29 @@ contains
               ixS^L=ixS_srl_^L(iib^D,i^D);
               ixR^L=ixR_srl_^L(iib^D,n_i^D);
               psb(ineighbor)%w(ixR^S,nwhead:nwtail) = psb(igrid)%w(ixS^S,nwhead:nwtail)
+
+              if(stagger_grid) then
+                do idir=1,ndim
+                  ixS^L=ixS_srl_stg_^L(idir,i^D);
+                  ixR^L=ixR_srl_stg_^L(idir,n_i^D);
+                  psb(ineighbor)%ws(ixR^S,idir)=psb(igrid)%ws(ixS^S,idir)
+                end do
+              end if
+            else
+              ixS^L=ixS_srl_^L(iib^D,i^D);
+              select case (ipole)
+              {case (^D)
+                n_i^D=i^D^D%n_i^DD=-i^DD;\}
+              end select
+              ixR^L=ixR_srl_^L(iib^D,n_i^D);
+              !call pole_copy(psb(ineighbor)%w,ixG^LL,ixR^L,psb(igrid)%w,ixG^LL,ixS^L,ipole)
+              if(stagger_grid) then
+                do idir=1,ndim
+                  ixS^L=ixS_srl_stg_^L(idir,i^D);
+                  ixR^L=ixR_srl_stg_^L(idir,n_i^D);
+                  !call pole_copy_stg(psb(ineighbor)%ws,ixGs^LL,ixR^L,psb(igrid)%ws,ixGs^LL,ixS^L,idir,ipole)
+                end do
+              end if
             end if
           end if
           ! ToDo: move rest of bc_fill_srl here
