@@ -47,7 +47,11 @@ program amrvac
 
   call initialize_amrvac()
 
-  if (restart_from_file /= undefined) then
+  if (restart_from_file /= undefined) then 
+  !AGILE: not yet implemented, data movement needs to happen here
+#ifdef _OPENACC
+     call mpistop("restart or convert on GPU not yet implemented")
+#endif
      ! restart from previous file or dat file conversion
      ! get input data from previous AMRVAC run
 
@@ -223,14 +227,6 @@ contains
          tsavelast(ifile)=global_time
          itsavelast(ifile)=it
        end if
-    end do
-
-    !$acc enter data copyin(bg)
-    do itimelevel = 1, nstep
-       !$acc enter data copyin( bg(itimelevel)%w )
-    end do
-    do igrid = 1, max_blocks
-       !$acc enter data copyin(ps(igrid)%x) attach(ps(igrid)%w, ps1(igrid)%w, ps2(igrid)%w)
     end do
 
     ! the next two are used to keep track of the performance during runtime:

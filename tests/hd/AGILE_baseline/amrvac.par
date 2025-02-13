@@ -9,12 +9,12 @@
  &savelist
    itsave(1,1)      = 0
    itsave(1,2)      = 0
-   ditsave_log      = 10
-   ditsave_dat      = 10
+   ditsave_log      = 100
+   ditsave_dat      = 100
  /
 
  &stoplist
-   it_max = 10
+   it_max = 100
  /
 
  &methodlist

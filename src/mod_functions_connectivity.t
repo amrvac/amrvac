@@ -409,7 +409,11 @@ module mod_functions_connectivity
       end if
       sendrequest_p=MPI_REQUEST_NULL
     end if
-  
+
+
+    !update the neighbor information on the device
+    !$acc update device(neighbor, neighbor_type, neighbor_pole, neighbor_child)
+    
   end subroutine build_connectivity
 
 end module mod_functions_connectivity

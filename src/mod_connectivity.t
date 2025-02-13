@@ -14,6 +14,7 @@ module mod_connectivity
    integer, dimension(:^D&,:), allocatable :: neighbor_type
    logical, dimension(:^D&,:), allocatable :: neighbor_active
    integer, dimension(:^D&,:), allocatable :: neighbor_pole
+   !$acc declare create(neighbor, neighbor_type, neighbor_pole, neighbor_child)
 
    ! grid number array per processor
    integer, dimension(:), allocatable :: igrids
