@@ -35,25 +35,23 @@ contains
     double precision, dimension(ixI^S, sdim:3)            :: fE ! not yet provided
     ! .. local ..
     integer                :: n, i, j
-    double precision       :: w(1:nw_euler)
-    double precision       :: uprim(ixI^S,1:nw_euler)
-    real(dp)               :: tmp(5, nw_euler), u(nw_euler)
+    double precision       :: uprim(nw_euler,ixI^S)
+    real(dp)               :: tmp(nw_euler,5), u(nw_euler)
     real(dp)               :: fx(nw_euler, 2), fy(nw_euler, 2)
     real(dp)               :: inv_dr(2)
     !-----------------------------------------------------------------------------
 
-    !$acc parallel loop, private(w, uprim, inv_dr)
+    !$acc parallel loop, private(uprim, inv_dr)
     do n = 1, igridstail_active
 
        inv_dr = 1/rnode(rpdx1_:rnodehi, n)
 
-       !$acc loop collapse(2), private(w), vector
+       !$acc loop collapse(2), vector
        do j = ixImin2, ixImax2
           do i = ixImin1, ixImax1
              ! Convert to primitive
-             w = bga%w(i, j, :, n)
-             call to_primitive(w)
-             uprim(i, j, :) = w
+             uprim(:, i, j) = bga%w(i, j, :, n)
+             call to_primitive(uprim(:, i, j))
           end do
        end do
 
@@ -61,10 +59,10 @@ contains
        do j = ixOmin2, ixOmax2
           do i = ixOmin1, ixOmax1
              ! Compute x and y fluxes
-             tmp = uprim(i-2:i+2, j, :)
+             tmp = uprim(:, i-2:i+2, j)
              call muscl_flux_euler_prim(tmp, 1, fx)
 
-             tmp = uprim(i, j-2:j+2, :)
+             tmp = uprim(:, i, j-2:j+2)
              call muscl_flux_euler_prim(tmp, 2, fy)
 
              ! Update the wnew array
@@ -107,15 +105,15 @@ contains
 
   subroutine muscl_flux_euler_prim(u, flux_dim, flux)
     !$acc routine seq
-    real(dp), intent(in)  :: u(5, nw_euler)
+    real(dp), intent(in)  :: u(nw_euler, 5)
     integer, intent(in)   :: flux_dim
     real(dp), intent(out) :: flux(nw_euler, 2)
     real(dp)              :: uL(nw_euler), uR(nw_euler), wL, wR, wmax
     real(dp)              :: flux_l(nw_euler), flux_r(nw_euler)
 
     ! Construct uL, uR for first cell face
-    uL = u(2, :) + 0.5_dp * vanleer(u(2, :) - u(1, :), u(3, :) - u(2, :))
-    uR = u(3, :) - 0.5_dp * vanleer(u(3, :) - u(2, :), u(4, :) - u(3, :))
+    uL = u(:, 2) + 0.5_dp * vanleer(u(:, 2) - u(:, 1), u(:, 3) - u(:, 2))
+    uR = u(:, 3) - 0.5_dp * vanleer(u(:, 3) - u(:, 2), u(:, 4) - u(:, 3))
 
     call euler_flux(uL, flux_dim, flux_l)
     call euler_flux(uR, flux_dim, flux_r)
@@ -129,8 +127,8 @@ contains
     flux(:, 1) = 0.5_dp * ((flux_l + flux_r) - wmax * (uR - uL))
 
     ! Construct uL, uR for second cell face
-    uL = u(3, :) + 0.5_dp * vanleer(u(3, :) - u(2, :), u(4, :) - u(3, :))
-    uR = u(4, :) - 0.5_dp * vanleer(u(4, :) - u(3, :), u(5, :) - u(4, :))
+    uL = u(:, 3) + 0.5_dp * vanleer(u(:, 3) - u(:, 2), u(:, 4) - u(:, 3))
+    uR = u(:, 4) - 0.5_dp * vanleer(u(:, 4) - u(:, 3), u(:, 5) - u(:, 4))
 
     call euler_flux(uL, flux_dim, flux_l)
     call euler_flux(uR, flux_dim, flux_r)
