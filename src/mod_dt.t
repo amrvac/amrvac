@@ -23,12 +23,10 @@ contains
     integer :: iigrid, igrid, ncycle, ncycle2, ifile, idims, ix^D
     double precision :: dtnew, qdtnew, dtmin_mype, factor, dx^D, dxmin^D
 
-    double precision :: dtmax, dxmin, cmax_mype, w(nw)
+    double precision :: dtmax, dxmin, cmax_mype, w(nw,ixM^T)
     double precision :: a2max_mype(ndim), tco_mype, tco_global, Tmax_mype, T_peak
     double precision :: trac_alfa, trac_dmax, trac_tau, T_bott, cmax
     double precision :: dxinv(1:ndim), courantmaxtots, cmaxtot
-!    double precision :: w_arr(ixMlo1:ixMhi1,1:1,nw), cmaxtot_arr(ixMlo1:ixMhi1,1:1), cmax_arr(ixMlo1:ixMhi1,1:1)
-!    double precision :: x_arr(ixMlo1:ixMhi1,1:1,ndim)
 
     integer, parameter :: niter_print = 2000
 
@@ -40,7 +38,7 @@ contains
        Tmax_mype = zero
 
        !$OMP PARALLEL DO PRIVATE(igrid,qdtnew,dtnew,dx^D) REDUCTION(min:dtmin_mype) REDUCTION(max:cmax_mype,a2max_mype)
-       !$acc parallel loop PRIVATE(igrid,dtnew,dx^D,dxinv) firstprivate(dtmin_mype) REDUCTION(min:dtmin_mype) gang
+       !$acc parallel loop PRIVATE(igrid,dtnew,dx^D,dxinv,w) firstprivate(dtmin_mype) REDUCTION(min:dtmin_mype) gang
        do iigrid=1,igridstail_active; igrid=igrids_active(iigrid)
           
           dtnew=bigdouble
@@ -50,38 +48,15 @@ contains
           
           ^D&dxinv(^D)=one/dx^D;
           courantmaxtots=zero
-          ! works at 42ms :
-          ! it is very hard to re-purpose the existing routines that act on blocks within a kernel
-          ! I've tried various approaches, performance has always been bad
-          ! !$acc loop vector reduction(max:courantmaxtots) private(cmax, cmaxtot, w_arr, x_arr)
-          ! do ix2 = ixMlo2, ixMhi2
-          !    w_arr = bg(1)%w(ixMlo1:ixMhi1,ix2:ix2,1:nw,igrid)
-          !    x_arr = ps(igrid)%x(ixMlo1:ixMhi1,ix2:ix2,1:ndim)
-          !    cmaxtot = 0.0d0
-          !    !$acc loop seq
-          !    do idims=1,ndim
-          !       call hd_get_cmax(w_arr, &
-          !            x_arr, &
-          !            ixMlo1, ix2, ixMhi1, ix2, &
-          !            ixMlo1, ix2, ixMhi1, ix2, &
-          !            idims, cmax_arr)
-
-          !       cmaxtot_arr(ixMlo1:ixMhi1,1:1) = cmaxtot_arr(ixMlo1:ixMhi1,1:1) + cmax_arr(ixMlo1:ixMhi1,1:1) * dxinv(idims)
-          !    end do
-
-          !    courantmaxtots = max( courantmaxtots, maxval(cmaxtot_arr) )
-          !    end do
-
           
-          ! works at ~200mus :
-          !$acc loop vector collapse(2) reduction(max:courantmaxtots) private(cmax, cmaxtot, w)
+          !$acc loop vector collapse(2) reduction(max:courantmaxtots) private(cmax, cmaxtot)
           do ix2 = ixMlo2, ixMhi2
              do ix1 = ixMlo1, ixMhi1
-                w = bg(1)%w(ix1,ix2,1:nw,igrid)
+                w(1:nw,ix1,ix2) = bg(1)%w(ix1,ix2,1:nw,igrid)
                 cmaxtot = 0.0d0
                 !$acc loop seq
                 do idims = 1, ndim
-                   call hd_get_cmax_scalar( w, idims, cmax )
+                   call hd_get_cmax_scalar( w(:,ix1,ix2), idims, cmax )
                    cmaxtot = cmaxtot + cmax * dxinv(idims)
                 end do
                 courantmaxtots = max( courantmaxtots, cmaxtot )

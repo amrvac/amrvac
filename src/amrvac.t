@@ -385,7 +385,7 @@ contains
        write(*,'(a,f12.2,a)')'                  Percentage: ',100.0*time_bc/timeloop,' %'
        write(*,'(a,f12.3,a)')' Time spent on computing    : ',timeloop-timeio_tot-timegr_tot-time_bc,' sec'
        write(*,'(a,f12.2,a)')'                  Percentage: ',100.0*(timeloop-timeio_tot-timegr_tot-time_bc)/timeloop,' %'
-       write(*,'(a,es12.3 )')' Cells updated / proc / sec : ',dble(ncells_update)*dble(nstep)/dble(npe)/timeloop
+       write(*,'(a,es12.3 )')' Cells updated / proc / sec : ',dble(ncells_update)*dble(nstep)/dble(npe)/(timeloop-timeio_tot-timegr_tot-time_bc)
     end if
 
     ! output end state
