@@ -34,15 +34,16 @@ contains
     double precision, dimension(ixI^S, 1:nwflux, 1:ndim)  :: fC ! not yet provided
     double precision, dimension(ixI^S, sdim:3)            :: fE ! not yet provided
     ! .. local ..
-    integer                :: n, i, j
-    double precision       :: uprim(nw_euler,ixI^S)
-    real(dp)               :: tmp(nw_euler,5), u(nw_euler)
+    integer                :: n, i, j, iigrid
+    double precision       :: uprim(nw, ixI^S)
+    real(dp)               :: tmp(nw_euler,5)
     real(dp)               :: fx(nw_euler, 2), fy(nw_euler, 2)
     real(dp)               :: inv_dr(2)
     !-----------------------------------------------------------------------------
 
-    !$acc parallel loop, private(uprim, inv_dr)
-    do n = 1, igridstail_active
+    !$acc parallel loop, private(n, uprim, inv_dr) firstprivate(ixI^L, ixO^L) present(bga, bgb, bga%w, bgb%w)
+    do iigrid = 1, igridstail_active
+       n = igrids_active(iigrid)
 
        inv_dr = 1/rnode(rpdx1_:rnodehi, n)
 
@@ -55,7 +56,7 @@ contains
           end do
        end do
 
-       !$acc loop collapse(2), private(fx, fy, tmp), vector
+       !$acc loop collapse(2) private(fx, fy, tmp) vector
        do j = ixOmin2, ixOmax2
           do i = ixOmin1, ixOmax1
              ! Compute x and y fluxes
