@@ -38,7 +38,7 @@ contains
        Tmax_mype = zero
 
        !$OMP PARALLEL DO PRIVATE(igrid,qdtnew,dtnew,dx^D) REDUCTION(min:dtmin_mype) REDUCTION(max:cmax_mype,a2max_mype)
-       !$acc parallel loop PRIVATE(igrid,dtnew,dx^D,dxinv,w) firstprivate(dtmin_mype) REDUCTION(min:dtmin_mype) gang
+       !$acc parallel loop PRIVATE(igrid,dx^D,dxinv,w) REDUCTION(min:dtmin_mype) gang
        do iigrid=1,igridstail_active; igrid=igrids_active(iigrid)
           
           dtnew=bigdouble
@@ -61,10 +61,7 @@ contains
                 courantmaxtots = max( courantmaxtots, cmaxtot )
              {^D& end do\}
           
-          if (courantmaxtots>smalldouble) dtnew = min( dtnew , courantpar / courantmaxtots )
-
-          dtmin_mype  = min(dtmin_mype,dtnew)
-
+          dtmin_mype  = min(dtmin_mype,courantpar / courantmaxtots)
 
 #else
 
@@ -90,8 +87,8 @@ contains
          
 #endif
       end do
-
       !$OMP END PARALLEL DO
+
    else
          dtmin_mype=dtpar
       end if

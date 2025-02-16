@@ -16,7 +16,7 @@
  /
 
  &stoplist
-   it_max           = 10000
+   it_max           = 100
  /
 
  &methodlist
