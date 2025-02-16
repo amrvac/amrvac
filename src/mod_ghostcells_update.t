@@ -554,7 +554,6 @@ contains
     ! fill ghost-cell values of sibling blocks and coarser neighbors in the same processor
 
     !$OMP PARALLEL DO SCHEDULE(dynamic) PRIVATE(igrid,iib^D)
-!    !$acc parallel loop default(present) copyin(req_diagonal,idphyb,neighbor,neighbor_type,neighbor_pole,ixS_srl_^L,ixR_srl_^L,ixS_srl_stg_^L, ixR_srl_stg_^L) private(igrid,iib^D,ipe_neighbor,ineighbor,ipole)
     !$acc parallel loop default(present) copyin(idphyb,ixS_srl_^L,ixR_srl_^L) private(igrid,iib^D,ineighbor,n_i^D,ixS^L,ixR^L,iw,ix^D) firstprivate(nwhead,nwtail)
     do iigrid=1,igridstail; igrid=igrids(iigrid);
        ^D&iib^D=idphyb(^D,igrid);
@@ -562,13 +561,13 @@ contains
       {do i^DB=-1,1\}
          ! next line is inlined version of skip_direction
          if ((all([ i^D ] == 0)) .or. (.not. req_diagonal .and. count([ i^D ] /= 0) > 1)) cycle
-!         select case (neighbor_type(i^D,igrid))
-!         case(neighbor_sibling)
-!          ipe_neighbor=neighbor(2,i^D,igrid)
-!          if(ipe_neighbor==mype) then
+         select case (neighbor_type(i^D,igrid))
+         case(neighbor_sibling)
+          ipe_neighbor=neighbor(2,i^D,igrid)
+          if(ipe_neighbor==mype) then
             ineighbor=neighbor(1,i^D,igrid)
-!            ipole=neighbor_pole(i^D,igrid)
-!            if(ipole==0) then
+            ipole=neighbor_pole(i^D,igrid)
+            if(ipole==0) then
               n_i^D=-i^D;
               ixS^L=ixS_srl_^L(iib^D,i^D);
               ixR^L=ixR_srl_^L(iib^D,n_i^D);
@@ -601,12 +600,12 @@ contains
             !       !call pole_copy_stg(psb(ineighbor)%ws,ixGs^LL,ixR^L,psb(igrid)%ws,ixGs^LL,ixS^L,idir,ipole)
             !     end do
             !   end if
-!           end if
-!           end if
+           end if
+           end if
           ! ToDo: move rest of bc_fill_srl here
 !         case(neighbor_coarse)
            ! call bc_fill_restrict(igrid,i^D,iib^D)
-!         end select
+         end select
       {end do\}
    end do
 
