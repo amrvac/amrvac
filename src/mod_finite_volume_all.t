@@ -8,6 +8,7 @@ module mod_finite_volume_all
 #include "amrvac.h"
   use mod_variables
   use mod_hd_phys, only: hd_gamma
+  use mod_global_parameters, only: ndim
   use mod_physicaldata
   implicit none
 
@@ -17,7 +18,7 @@ module mod_finite_volume_all
   public :: finite_volume_local
   public :: reconstruct_LR_gpu
 
-  integer, parameter :: dp = kind(0.0d0), nw_euler=4
+  integer, parameter :: dp = kind(0.0d0), nw_euler=2+ndim
 
 contains
 
@@ -34,11 +35,11 @@ contains
     double precision, dimension(ixI^S, 1:nwflux, 1:ndim)  :: fC ! not yet provided
     double precision, dimension(ixI^S, sdim:3)            :: fE ! not yet provided
     ! .. local ..
-    integer                :: n, i, j, iigrid
+    integer                :: n, iigrid, ix^D
     double precision       :: uprim(nw, ixI^S)
     real(dp)               :: tmp(nw_euler,5)
-    real(dp)               :: fx(nw_euler, 2), fy(nw_euler, 2)
-    real(dp)               :: inv_dr(2)
+    real(dp)               :: f(nw_euler, 2)
+    real(dp)               :: inv_dr(ndim)
     !-----------------------------------------------------------------------------
 
     !$acc parallel loop, private(n, uprim, inv_dr) firstprivate(ixI^L, ixO^L) present(bga, bgb, bga%w, bgb%w)
@@ -47,31 +48,53 @@ contains
 
        inv_dr = 1/rnode(rpdx1_:rnodehi, n)
 
-       !$acc loop collapse(2), vector
-       do j = ixImin2, ixImax2
-          do i = ixImin1, ixImax1
+       !$acc loop collapse(ndim) vector
+       {^D& do ix^DB=ixImin^DB,ixImax^DB \}
              ! Convert to primitive
-             uprim(:, i, j) = bga%w(i, j, :, n)
-             call to_primitive(uprim(:, i, j))
-          end do
-       end do
+             uprim(:, ix^D) = bga%w(ix^D, :, n)
+             call to_primitive(uprim(:, ix^D))
+       {^D& end do \}
 
-       !$acc loop collapse(2) private(fx, fy, tmp) vector
-       do j = ixOmin2, ixOmax2
-          do i = ixOmin1, ixOmax1
-             ! Compute x and y fluxes
-             tmp = uprim(:, i-2:i+2, j)
-             call muscl_flux_euler_prim(tmp, 1, fx)
+       !$acc loop collapse(ndim) private(f, tmp) vector
+       {^D& do ix^DB=ixOmin^DB,ixOmax^DB \}
+             ! Compute fluxes in all dimensions
 
-             tmp = uprim(:, i, j-2:j+2)
-             call muscl_flux_euler_prim(tmp, 2, fy)
-
+       {^IFONED
+             tmp = uprim(:, ix1-2:ix1+2)
+             call muscl_flux_euler_prim(tmp, 1, f)
              ! Update the wnew array
-             bgb%w(i, j, :, n) = bgb%w(i, j, :, n) + qdt * &
-                  ((fx(:, 1) - fx(:, 2)) * inv_dr(1) + &
-                  (fy(:, 1) - fy(:, 2)) * inv_dr(2))
-          end do
-       end do
+             bgb%w(ix1, n) = bgb%w(ix1, :, n) + qdt * &
+                  ( (f(:, 1) - f(:, 2)) * inv_dr(1) )
+       }
+       {^IFTWOD      
+             tmp = uprim(:, ix1-2:ix1+2, ix2)
+             call muscl_flux_euler_prim(tmp, 1, f)
+             bgb%w(ix1, ix2, :, n) = bgb%w(ix1, ix2, :, n) &
+                  + qdt * (f(:, 1) - f(:, 2)) * inv_dr(1)
+
+             tmp = uprim(:, ix1, ix2-2:ix2+2)
+             call muscl_flux_euler_prim(tmp, 2, f)
+             bgb%w(ix1, ix2, :, n) = bgb%w(ix1, ix2, :, n) &
+                  + qdt * (f(:, 1) - f(:, 2)) * inv_dr(2)
+       }
+       {^IFTHREED
+             tmp = uprim(:, ix1-2:ix1+2, ix2, ix3)
+             call muscl_flux_euler_prim(tmp, 1, f)
+             bgb%w(ix1, ix2, ix3, :, n) = bgb%w(ix1, ix2, ix3, :, n) &
+                  + qdt * (f(:, 1) - f(:, 2)) * inv_dr(1)
+
+             tmp = uprim(:, ix1, ix2-2:ix2+2, ix3)
+             call muscl_flux_euler_prim(tmp, 2, f)
+             bgb%w(ix1, ix2, ix3, :, n) = bgb%w(ix1, ix2, ix3, :, n) &
+                  + qdt * (f(:, 1) - f(:, 2)) * inv_dr(2)
+             
+             tmp = uprim(:, ix1, ix2, ix3-2:ix3+2)
+             call muscl_flux_euler_prim(tmp, 3, f)
+             bgb%w(ix1, ix2, ix3, :, n) = bgb%w(ix1, ix2, ix3, :, n) &
+                  + qdt * (f(:, 1) - f(:, 2)) * inv_dr(3)
+       }
+
+       {^D& end do \}
     end do
 
   end subroutine finite_volume_local
@@ -80,11 +103,12 @@ contains
     !$acc routine seq
     real(dp), intent(inout) :: u(nw_euler)
 
-    u(iw_mom(1)) = u(iw_mom(1))/u(iw_rho)
-    u(iw_mom(2)) = u(iw_mom(2))/u(iw_rho)
+    {^D&
+    u(iw_mom(^D)) = u(iw_mom(^D))/u(iw_rho)
+    \}
 
     u(iw_e) = (hd_gamma-1.0_dp) * (u(iw_e) - &
-         0.5_dp * u(iw_rho)* (u(iw_mom(1))**2 + u(iw_mom(2))**2))
+         0.5_dp * u(iw_rho) * sum(u(iw_mom(1:ndim))**2) )
 
   end subroutine to_primitive
 
@@ -97,11 +121,13 @@ contains
 
     ! Compute energy from pressure and kinetic energy
     u(iw_e) = u(iw_e) * inv_gamma_m1 + &
-         0.5_dp * u(iw_rho) * (u(iw_mom(1))**2 + u(iw_mom(2))**2)
+         0.5_dp * u(iw_rho) * sum(u(iw_mom(1:ndim))**2)
 
     ! Compute momentum from density and velocity components
-    u(iw_mom(1)) = u(iw_rho) * u(iw_mom(1))
-    u(iw_mom(2)) = u(iw_rho) * u(iw_mom(2))
+    {^D&
+    u(iw_mom(^D)) = u(iw_rho) * u(iw_mom(^D))
+    \}
+
   end subroutine to_conservative
 
   subroutine muscl_flux_euler_prim(u, flux_dim, flux)
@@ -157,13 +183,14 @@ contains
     flux(iw_rho) = u(iw_rho) * u(iw_mom(flux_dim))
 
     ! Momentum flux with pressure term
-    flux(iw_mom(1)) = u(iw_rho) * u(iw_mom(1)) * u(iw_mom(flux_dim))
-    flux(iw_mom(2)) = u(iw_rho) * u(iw_mom(2)) * u(iw_mom(flux_dim))
+    {^D&
+    flux(iw_mom(^D)) = u(iw_rho) * u(iw_mom(^D)) * u(iw_mom(flux_dim))
+    \}
     flux(iw_mom(flux_dim)) = flux(iw_mom(flux_dim)) + u(iw_e)
 
     ! Energy flux
     flux(iw_e) = u(iw_mom(flux_dim)) * (u(iw_e) * inv_gamma_m1 + &
-         0.5_dp * u(iw_rho) * (u(iw_mom(1))**2 + u(iw_mom(2))**2) + u(iw_e))
+         0.5_dp * u(iw_rho) * sum(u(iw_mom(1:ndim))**2) + u(iw_e))
 
   end subroutine euler_flux
 

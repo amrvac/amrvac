@@ -49,19 +49,17 @@ contains
           ^D&dxinv(^D)=one/dx^D;
           courantmaxtots=zero
           
-          !$acc loop vector collapse(2) reduction(max:courantmaxtots) private(cmax, cmaxtot)
-          do ix2 = ixMlo2, ixMhi2
-             do ix1 = ixMlo1, ixMhi1
-                w(1:nw,ix1,ix2) = bg(1)%w(ix1,ix2,1:nw,igrid)
+          !$acc loop vector collapse(ndim) reduction(max:courantmaxtots) private(cmax, cmaxtot)
+             {^D& do ix^DB=ixMlo^DB,ixMhi^DB \}
+                w(1:nw,ix^D) = bg(1)%w(ix^D,1:nw,igrid)
                 cmaxtot = 0.0d0
                 !$acc loop seq
                 do idims = 1, ndim
-                   call hd_get_cmax_scalar( w(:,ix1,ix2), idims, cmax )
+                   call hd_get_cmax_scalar( w(:,ix^D), idims, cmax )
                    cmaxtot = cmaxtot + cmax * dxinv(idims)
                 end do
                 courantmaxtots = max( courantmaxtots, cmaxtot )
-             end do
-          end do
+             {^D& end do\}
           
           if (courantmaxtots>smalldouble) dtnew = min( dtnew , courantpar / courantmaxtots )
 
