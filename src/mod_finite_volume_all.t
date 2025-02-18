@@ -9,7 +9,7 @@ module mod_finite_volume_all
   use mod_basic_types, only: dp
   use mod_physicaldata
   use mod_hd_phys, only: nw_euler, hd_to_primitive_cell, hd_to_conservative_cell, &
-       hd_flux_cell, hd_get_cmax_cell, hd_gamma
+       hd_flux_cell, hd_get_cmax_prim_cell, hd_gamma
   use mod_limiter, only: vanleer
   implicit none
 
