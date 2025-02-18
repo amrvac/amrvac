@@ -1,5 +1,6 @@
 !> Module with slope/flux limiters
 module mod_limiter
+  use mod_basic_types, only: dp
   use mod_ppm
   use mod_mp5
   use mod_weno
@@ -117,6 +118,21 @@ contains
        limiter_symmetric = .true.
     end select
   end function limiter_symmetric
+
+  
+  elemental real(dp) function vanleer(a, b) result(phi)
+    !$acc routine seq
+    real(dp), intent(in) :: a, b
+    real(dp)             :: ab
+
+    ab = a * b
+    if (ab > 0) then
+       phi = 2 * ab / (a + b)
+    else
+       phi = 0
+    end if
+  end function vanleer
+
 
   !> Limit the centered dwC differences within ixC for iw in direction idim.
   !> The limiter is chosen according to typelim.

@@ -5,9 +5,15 @@ module mod_hd_phys
   use mod_thermal_emission, only: te_fluid
   use mod_physics
   use mod_comm_lib, only: mpistop
+  use mod_basic_types, only: dp
+  use mod_global_parameters, only: ndim
+
   implicit none
   private
 
+  !> for fast GPU kernels, this needs to be known at compile-time:
+  integer, parameter, public :: nw_euler=2+ndim
+  
   !> Whether an energy equation is used
   logical, public, protected              :: hd_energy = .true.
   !$acc declare copyin(hd_energy)
@@ -84,7 +90,6 @@ module mod_hd_phys
   integer, public, protected              :: Tcoff_
   !$acc declare create(Tcoff_)
 
-
   !> The adiabatic index
   double precision, public                :: hd_gamma = 5.d0/3.0d0
   !$acc declare copyin(hd_gamma)
@@ -154,6 +159,10 @@ module mod_hd_phys
   public :: hd_to_conserved_gpu
   public :: hd_get_cmax
   public :: hd_get_cmax_scalar
+  public :: hd_flux_cell
+  public :: hd_get_cmax_prim_cell
+  public :: hd_to_primitive_cell
+  public :: hd_to_conservative_cell
 
 contains
 
@@ -440,6 +449,72 @@ contains
     
   end subroutine hd_phys_init
 
+  subroutine hd_flux_cell(u, flux_dim, flux)
+    !$acc routine seq
+    real(dp), intent(in)  :: u(nw_euler)
+    integer, intent(in)   :: flux_dim
+    real(dp), intent(out) :: flux(nw_euler)
+    real(dp)              :: inv_gamma_m1
+
+    inv_gamma_m1 = 1.0d0/(hd_gamma - 1.0_dp)
+
+    ! Density flux
+    flux(rho_) = u(rho_) * u(mom(flux_dim))
+
+    ! Momentum flux with pressure term
+    {^D&
+    flux(mom(^D)) = u(rho_) * u(mom(^D)) * u(mom(flux_dim))
+    \}
+    flux(mom(flux_dim)) = flux(mom(flux_dim)) + u(e_)
+
+    ! Energy flux
+    flux(e_) = u(mom(flux_dim)) * (u(e_) * inv_gamma_m1 + &
+         0.5_dp * u(rho_) * sum(u(mom(1:ndim))**2) + u(e_))
+
+  end subroutine hd_flux_cell
+
+  real(dp) function hd_get_cmax_prim_cell(u, flux_dim) result(wC)
+    !$acc routine seq
+    real(dp), intent(in)  :: u(nw_euler)
+    integer, intent(in)   :: flux_dim
+
+    wC = sqrt(hd_gamma * u(e_) / u(rho_)) + abs(u(mom(flux_dim)))
+
+  end function hd_get_cmax_prim_cell
+
+
+  subroutine hd_to_primitive_cell(u)
+    !$acc routine seq
+    real(dp), intent(inout) :: u(nw_euler)
+
+    {^D&
+    u(mom(^D)) = u(mom(^D))/u(rho_)
+    \}
+
+    u(e_) = (hd_gamma-1.0_dp) * (u(e_) - &
+         0.5_dp * u(rho_) * sum(u(mom(1:ndim))**2) )
+
+  end subroutine hd_to_primitive_cell
+
+  subroutine hd_to_conservative_cell(u)
+    !$acc routine seq
+    real(dp), intent(inout) :: u(nw_euler)
+    real(dp)                :: inv_gamma_m1
+
+    inv_gamma_m1 = 1.0d0/(hd_gamma - 1.0_dp)
+
+    ! Compute energy from pressure and kinetic energy
+    u(e_) = u(e_) * inv_gamma_m1 + &
+         0.5_dp * u(rho_) * sum(u(mom(1:ndim))**2)
+
+    ! Compute momentum from density and velocity components
+    {^D&
+    u(mom(^D)) = u(rho_) * u(mom(^D))
+    \}
+
+  end subroutine hd_to_conservative_cell
+  
+  
 {^IFTHREED
   subroutine hd_te_images
     use mod_global_parameters

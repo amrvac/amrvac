@@ -209,7 +209,7 @@ contains
     integer :: ix^L, hx^L, jx^L, ix^D
     double precision :: epsilon, threshold, wtol(1:nw), xtol(1:ndim)
     double precision, dimension(ixM^T) :: numerator, denominator, error
-    double precision, dimension(ixG^T) :: dp, dm, dref, tmp1
+    double precision, dimension(ixG^T) :: ddp, dm, dref, tmp1
     logical, dimension(ixG^T) :: refineflag, coarsenflag
 
     epsilon=1.0d-6
@@ -235,35 +235,35 @@ contains
           jx^L=ix^L+kr(^D,idims);
           if (iflag<=nw) then
             if (logflag(iflag)) then
-              dp(ix^S)=dlog10(ps(igrid)%w(jx^S,iflag))-dlog10(ps(igrid)%w(ix^S,iflag))
+              ddp(ix^S)=dlog10(ps(igrid)%w(jx^S,iflag))-dlog10(ps(igrid)%w(ix^S,iflag))
               dm(ix^S)=dlog10(ps(igrid)%w(ix^S,iflag))-dlog10(ps(igrid)%w(hx^S,iflag))
               dref(ixM^T)=dabs(dlog10(ps(igrid)%w(jx^S,iflag)))&
                          + 2.0d0 * dabs(dlog10(ps(igrid)%w(ixM^T,iflag))) &
                          + dabs(dlog10(ps(igrid)%w(hx^S,iflag)))
             else
-              dp(ix^S)=ps(igrid)%w(jx^S,iflag)-ps(igrid)%w(ix^S,iflag)
+              ddp(ix^S)=ps(igrid)%w(jx^S,iflag)-ps(igrid)%w(ix^S,iflag)
               dm(ix^S)=ps(igrid)%w(ix^S,iflag)-ps(igrid)%w(hx^S,iflag)
               dref(ixM^T)=dabs(ps(igrid)%w(jx^S,iflag))+2.0d0*dabs(ps(igrid)%w(ixM^T,iflag)) &
                           +dabs(ps(igrid)%w(hx^S,iflag))
             end if
           else
             if (logflag(iflag)) then
-              dp(ix^S)=dlog10(tmp1(jx^S))-dlog10(tmp1(ix^S))
+              ddp(ix^S)=dlog10(tmp1(jx^S))-dlog10(tmp1(ix^S))
               dm(ix^S)=dlog10(tmp1(ix^S))-dlog10(tmp1(hx^S))
               dref(ix^S)=dabs(dlog10(tmp1(jx^S)))&
                          + 2.0d0 * dabs(dlog10(tmp1(ix^S))) &
                          + dabs(dlog10(tmp1(hx^S)))
             else
-              dp(ix^S)=tmp1(jx^S)-tmp1(ix^S)
+              ddp(ix^S)=tmp1(jx^S)-tmp1(ix^S)
               dm(ix^S)=tmp1(ix^S)-tmp1(hx^S)
               dref(ix^S)=dabs(tmp1(jx^S))+2.0d0*dabs(tmp1(ix^S)) &
                           +dabs(tmp1(hx^S))
             end if
           end if
 
-          numerator(ixM^T)=numerator+(dp(ixM^T)-dm(ixM^T))**2
+          numerator(ixM^T)=numerator+(ddp(ixM^T)-dm(ixM^T))**2
           denominator(ixM^T)=denominator &
-               + (dabs(dp(ixM^T)) + dabs(dm(ixM^T)) + amr_wavefilter(level)*dref(ixM^T))**2
+               + (dabs(ddp(ixM^T)) + dabs(dm(ixM^T)) + amr_wavefilter(level)*dref(ixM^T))**2
   
        end do
        error=error+w_refine_weight(iflag)*dsqrt(numerator/max(denominator,epsilon))
