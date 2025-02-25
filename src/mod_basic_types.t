@@ -20,8 +20,5 @@ module mod_basic_types
 
   !> Default length for names (of e.g. variables)
   integer, parameter :: name_len = 16
-  
-  !> Double precision
-  integer, parameter :: dp = kind(0.0d0)
 
 end module mod_basic_types
