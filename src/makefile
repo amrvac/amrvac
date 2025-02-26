@@ -206,7 +206,6 @@ mod_finite_volume.o: mod_source.mod
 mod_finite_volume.o: mod_tvd.mod
 mod_finite_volume.o: mod_usr_methods.mod
 mod_finite_volume.o: mod_variables.mod
-mod_finite_volume_all.o: mod_basic_types.mod
 mod_finite_volume_all.o: mod_comm_lib.mod
 mod_finite_volume_all.o: mod_global_parameters.mod
 mod_finite_volume_all.o: mod_hd_phys.mod
@@ -369,7 +368,6 @@ mod_lfff.o: mod_forest.mod
 mod_lfff.o: mod_geometry.mod
 mod_lfff.o: mod_global_parameters.mod
 mod_lfff.o: mod_multigrid_coupling.mod
-mod_limiter.o: mod_basic_types.mod
 mod_limiter.o: mod_comm_lib.mod
 mod_limiter.o: mod_global_parameters.mod
 mod_limiter.o: mod_mp5.mod
