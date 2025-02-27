@@ -821,6 +821,7 @@ contains
     integer::  length,lengthcc,length_coords,length_conn,length_offsets
     character::  buf
     character(len=80)::  filename
+    character(len=19)::  offset_char
     character(len=name_len) :: wnamei(1:nw+nwauxio),xandwnamei(1:ndim+nw+nwauxio)
     character(len=1024) :: outfilehead
     logical ::   fileopen,cell_corner=.false.
@@ -918,16 +919,18 @@ contains
             if(iw<=nw) then 
               if(.not.w_write(iw)) cycle
             endif
-            write(qunit,'(a,a,a,i16,a)')&
+            write(offset_char,'(i19)') offset
+            write(qunit,'(a,a,a,a,a)')&
                 '<DataArray type="Float32" Name="',TRIM(wnamei(iw)), &
-                '" format="appended" offset="',offset,'">'
+                '" format="appended" offset="',trim(adjustl(offset_char)),'">'
             write(qunit,'(a)')'</DataArray>'
             offset=offset+length+size_int
           end do
           write(qunit,'(a)')'</PointData>'
           write(qunit,'(a)')'<Points>'
-          write(qunit,'(a,i16,a)') &
-          '<DataArray type="Float32" NumberOfComponents="3" format="appended" offset="',offset,'"/>'
+          write(offset_char,'(i19)') offset
+          write(qunit,'(a,a,a)') &
+          '<DataArray type="Float32" NumberOfComponents="3" format="appended" offset="',trim(adjustl(offset_char)),'"/>'
           ! write cell corner coordinates in a backward dimensional loop, always 3D output
           offset=offset+length_coords+size_int
           write(qunit,'(a)')'</Points>'
@@ -940,32 +943,37 @@ contains
             if(iw<=nw) then 
                if(.not.w_write(iw)) cycle
             end if
-            write(qunit,'(a,a,a,i16,a)')&
+            write(offset_char,'(i19)') offset
+            write(qunit,'(a,a,a,a,a)')&
                 '<DataArray type="Float32" Name="',TRIM(wnamei(iw)), &
-                '" format="appended" offset="',offset,'">'
+                '" format="appended" offset="',trim(adjustl(offset_char)),'">'
             write(qunit,'(a)')'</DataArray>'
             offset=offset+lengthcc+size_int
           end do
           write(qunit,'(a)')'</CellData>'
           write(qunit,'(a)')'<Points>'
-          write(qunit,'(a,i16,a)') &
-          '<DataArray type="Float32" NumberOfComponents="3" format="appended" offset="',offset,'"/>'
+          write(offset_char,'(i19)') offset
+          write(qunit,'(a,a,a)') &
+          '<DataArray type="Float32" NumberOfComponents="3" format="appended" offset="',trim(adjustl(offset_char)),'"/>'
           ! write cell corner coordinates in a backward dimensional loop, always 3D output
           offset=offset+length_coords+size_int
           write(qunit,'(a)')'</Points>'
         end if
         write(qunit,'(a)')'<Cells>'
         ! connectivity part
-        write(qunit,'(a,i16,a)')&
-          '<DataArray type="Int32" Name="connectivity" format="appended" offset="',offset,'"/>'
+        write(offset_char,'(i19)') offset
+        write(qunit,'(a,a,a)')&
+          '<DataArray type="Int32" Name="connectivity" format="appended" offset="',trim(adjustl(offset_char)),'"/>'
         offset=offset+length_conn+size_int    
         ! offsets data array
-        write(qunit,'(a,i16,a)') &
-          '<DataArray type="Int32" Name="offsets" format="appended" offset="',offset,'"/>'
+        write(offset_char,'(i19)') offset
+        write(qunit,'(a,a,a)') &
+          '<DataArray type="Int32" Name="offsets" format="appended" offset="',trim(adjustl(offset_char)),'"/>'
         offset=offset+length_offsets+size_int    
         ! VTK cell type data array
-        write(qunit,'(a,i16,a)') &
-          '<DataArray type="Int32" Name="types" format="appended" offset="',offset,'"/>' 
+        write(offset_char,'(i19)') offset
+        write(qunit,'(a,a,a)') &
+          '<DataArray type="Int32" Name="types" format="appended" offset="',trim(adjustl(offset_char)),'"/>' 
         offset=offset+size_int+nc*size_int
         write(qunit,'(a)')'</Cells>'
         write(qunit,'(a)')'</Piece>'
@@ -984,16 +992,18 @@ contains
                 if(iw<=nw) then 
                   if(.not.w_write(iw)) cycle
                 end if
-                write(qunit,'(a,a,a,i16,a)')&
+                write(offset_char,'(i19)') offset
+                write(qunit,'(a,a,a,a,a)')&
                     '<DataArray type="Float32" Name="',TRIM(wnamei(iw)), &
-                    '" format="appended" offset="',offset,'">'
+                    '" format="appended" offset="',trim(adjustl(offset_char)),'">'
                 write(qunit,'(a)')'</DataArray>'
                 offset=offset+length+size_int
               end do
               write(qunit,'(a)')'</PointData>'
               write(qunit,'(a)')'<Points>'
-              write(qunit,'(a,i16,a)') &
-              '<DataArray type="Float32" NumberOfComponents="3" format="appended" offset="',offset,'"/>'
+              write(offset_char,'(i19)') offset
+              write(qunit,'(a,a,a)') &
+              '<DataArray type="Float32" NumberOfComponents="3" format="appended" offset="',trim(adjustl(offset_char)),'"/>'
               ! write cell corner coordinates in a backward dimensional loop, always 3D output
               offset=offset+length_coords+size_int
               write(qunit,'(a)')'</Points>'
@@ -1006,32 +1016,37 @@ contains
                 if(iw<=nw) then 
                   if(.not.w_write(iw)) cycle
                 end if
-                write(qunit,'(a,a,a,i16,a)')&
+                write(offset_char,'(i19)') offset
+                write(qunit,'(a,a,a,a,a)')&
                     '<DataArray type="Float32" Name="',TRIM(wnamei(iw)), &
-                    '" format="appended" offset="',offset,'">'
+                    '" format="appended" offset="',trim(adjustl(offset_char)),'">'
                 write(qunit,'(a)')'</DataArray>'
                 offset=offset+lengthcc+size_int
               end do
               write(qunit,'(a)')'</CellData>'
               write(qunit,'(a)')'<Points>'
-              write(qunit,'(a,i16,a)') &
-              '<DataArray type="Float32" NumberOfComponents="3" format="appended" offset="',offset,'"/>'
+              write(offset_char,'(i19)') offset
+              write(qunit,'(a,a,a)') &
+              '<DataArray type="Float32" NumberOfComponents="3" format="appended" offset="',trim(adjustl(offset_char)),'"/>'
               ! write cell corner coordinates in a backward dimensional loop, always 3D output
               offset=offset+length_coords+size_int
               write(qunit,'(a)')'</Points>'
             end if
             write(qunit,'(a)')'<Cells>'
             ! connectivity part
-            write(qunit,'(a,i16,a)')&
-              '<DataArray type="Int32" Name="connectivity" format="appended" offset="',offset,'"/>'
+            write(offset_char,'(i19)') offset
+            write(qunit,'(a,a,a)')&
+              '<DataArray type="Int32" Name="connectivity" format="appended" offset="',trim(adjustl(offset_char)),'"/>'
             offset=offset+length_conn+size_int    
             ! offsets data array
-            write(qunit,'(a,i16,a)') &
-              '<DataArray type="Int32" Name="offsets" format="appended" offset="',offset,'"/>'
+            write(offset_char,'(i19)') offset
+            write(qunit,'(a,a,a)') &
+              '<DataArray type="Int32" Name="offsets" format="appended" offset="',trim(adjustl(offset_char)),'"/>'
             offset=offset+length_offsets+size_int    
             ! VTK cell type data array
-            write(qunit,'(a,i16,a)') &
-              '<DataArray type="Int32" Name="types" format="appended" offset="',offset,'"/>' 
+            write(offset_char,'(i19)') offset
+            write(qunit,'(a,a,a)') &
+              '<DataArray type="Int32" Name="types" format="appended" offset="',trim(adjustl(offset_char)),'"/>' 
             offset=offset+size_int+nc*size_int
             write(qunit,'(a)')'</Cells>'
             write(qunit,'(a)')'</Piece>'
