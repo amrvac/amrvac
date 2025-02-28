@@ -74,9 +74,6 @@ contains
 
     ! set the index of the last flux variable for species 1
     stop_indices(1)=nwflux
-  
-    !  Number of variables need reconstruction in w
-    nw_recon=nwflux
 
     ! Check whether custom flux types have been defined
     if (.not. allocated(flux_type)) then

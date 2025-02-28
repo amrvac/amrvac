@@ -58,8 +58,8 @@ contains
       ! wLC is to the left of ixO, wRC is to the right of wCT.
       hxO^L=ixO^L-kr(idims,^D);
 
-      wRp(hxO^S,1:nw_recon)=wprim(ixO^S,1:nw_recon)
-      wLp(ixO^S,1:nw_recon)=wprim(ixO^S,1:nw_recon)
+      wRp(hxO^S,1:nwflux)=wprim(ixO^S,1:nwflux)
+      wLp(ixO^S,1:nwflux)=wprim(ixO^S,1:nwflux)
 
       ! apply limited reconstruction for left and right status at cell interfaces
       call reconstruct_LR(ixI^L,ixO^L,hxO^L,idims,wprim,wLC,wRC,wLp,wRp,x,dxs(idims))
@@ -170,7 +170,7 @@ contains
        ! the left and right reconstructed values at a cell face. Their indexing
        ! is similar to cell-centered values, but in direction idims they are
        ! shifted half a cell towards the 'lower' direction.
-       do iw=1,nw_recon
+       do iw=1,nwflux
         {do ix^DB=ixImin^DB,ixImax^DB\}
            ! fill all cells for averaging to fix small values
            wRp(ix^D,iw)=wprim(ix^D,iw)
@@ -1169,7 +1169,7 @@ contains
        jxR^L=ixR^L+kr(idims,^D);
        ixCmax^D=jxRmax^D; ixCmin^D=ixLmin^D-kr(idims,^D);
        jxC^L=ixC^L+kr(idims,^D);
-       do iw=1,nw_recon
+       do iw=1,nwflux
           if (loglimit(iw)) then
              w(ixCmin^D:jxCmax^D,iw)=dlog10(w(ixCmin^D:jxCmax^D,iw))
              wLp(ixL^S,iw)=dlog10(wLp(ixL^S,iw))
@@ -1213,13 +1213,13 @@ contains
        end if
     end select
 
-   wLC(ixL^S,1:nw_recon)=wLp(ixL^S,1:nw_recon)
-   wRC(ixR^S,1:nw_recon)=wRp(ixR^S,1:nw_recon)
+   wLC(ixL^S,1:nwflux)=wLp(ixL^S,1:nwflux)
+   wRC(ixR^S,1:nwflux)=wRp(ixR^S,1:nwflux)
    call phys_to_conserved(ixI^L,ixL^L,wLC,x)
    call phys_to_conserved(ixI^L,ixR^L,wRC,x)
    if(nwaux>0)then
-      wLp(ixL^S,nw_recon+1:nw_recon+nwaux)=wLC(ixL^S,nw_recon+1:nw_recon+nwaux)
-      wRp(ixR^S,nw_recon+1:nw_recon+nwaux)=wRC(ixR^S,nw_recon+1:nw_recon+nwaux)
+      wLp(ixL^S,nwflux+1:nwflux+nwaux)=wLC(ixL^S,nwflux+1:nwflux+nwaux)
+      wRp(ixR^S,nwflux+1:nwflux+nwaux)=wRC(ixR^S,nwflux+1:nwflux+nwaux)
    endif
 
   end subroutine reconstruct_LR

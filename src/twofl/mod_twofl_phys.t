@@ -547,9 +547,6 @@ contains
     end if
 
     stop_indices(number_species)=nwflux
-  
-    !  Number of variables need reconstruction in w
-    nw_recon=nwflux
 
     ! set indices of equi vars and update number_equi_vars
     number_equi_vars = 0

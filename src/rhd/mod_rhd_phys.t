@@ -335,9 +335,6 @@ contains
 
     ! set the index of the last flux variable for species 1
     stop_indices(1)=nwflux
-  
-    !  Number of variables need reconstruction in w
-    nw_recon=nwflux
 
     if(rhd_trac) then
       Tcoff_ = var_set_wextra()

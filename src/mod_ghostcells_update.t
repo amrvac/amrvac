@@ -604,7 +604,7 @@ contains
             else 
               if (neighbor_type(i^D,igrid) /= neighbor_boundary) cycle
             end if
-            call bc_phys(iside,idims,time,qdt,psb(igrid),ixG^LL,ixB^L,nwhead,nwtail)
+            call bc_phys(iside,idims,time,qdt,psb(igrid),ixG^LL,ixB^L)
           end do
         end do
 
@@ -1276,7 +1276,7 @@ contains
                .or.( {(iside==2.and.idims==^D.and.ixComax^D>ixCoGmax^D-nghostcells)|.or. })) then
                 {ixBmin^D=merge(ixCoGmin^D,ixComin^D,idims==^D);}
                 {ixBmax^D=merge(ixCoGmax^D,ixComax^D,idims==^D);}
-                call bc_phys(iside,idims,time,0.d0,psc(igrid),ixCoG^L,ixB^L,nwhead,nwtail)
+                call bc_phys(iside,idims,time,0.d0,psc(igrid),ixCoG^L,ixB^L)
               end if
             end do
           end do

@@ -51,15 +51,15 @@ contains
     iLp^L=iL^L+kr(idims,^D);
     iLpp^L=iLp^L+kr(idims,^D);
 
-    f(iL^S,1:nw_recon) = 1.0d0/60.0d0 * (&
-         2.0d0* w(iLmm^S,1:nw_recon) &
-         - 13.0d0* w(iLm^S,1:nw_recon) &
-         + 47.0d0* w(iL^S,1:nw_recon) &
-         + 27.0d0* w(iLp^S,1:nw_recon) &
-         - 3.0d0*  w(iLpp^S,1:nw_recon))
+    f(iL^S,1:nwflux) = 1.0d0/60.0d0 * (&
+         2.0d0* w(iLmm^S,1:nwflux) &
+         - 13.0d0* w(iLm^S,1:nwflux) &
+         + 47.0d0* w(iL^S,1:nwflux) &
+         + 27.0d0* w(iLp^S,1:nwflux) &
+         - 3.0d0*  w(iLpp^S,1:nwflux))
 
     ! get fmp and ful:
-    do iw=1,nw_recon
+    do iw=1,nwflux
        a(iL^S) = w(iLp^S,iw)-w(iL^S,iw)
        b(iL^S) = alpha*(w(iL^S,iw)-w(iLm^S,iw))
        call minmod(ixI^L,iL^L,a,b,tmp)
@@ -76,9 +76,9 @@ contains
     iem^L=ie^L-kr(idims,^D);
     iep^L=ie^L+kr(idims,^D);
 
-    d(ie^S,1:nw_recon) = w(iep^S,1:nw_recon)-2.0d0*w(ie^S,1:nw_recon)+w(iem^S,1:nw_recon)
+    d(ie^S,1:nwflux) = w(iep^S,1:nwflux)-2.0d0*w(ie^S,1:nwflux)+w(iem^S,1:nwflux)
 
-    do iw=1,nw_recon
+    do iw=1,nwflux
        a(id^S) = 4.0d0*d(id^S,iw)-d(idp^S,iw)
        b(id^S) = 4.0d0*d(idp^S,iw)-d(id^S,iw)
        call minmod(ixI^L,id^L,a,b,tmp)
@@ -90,19 +90,19 @@ contains
     end do
 
     ! get fmd:
-    fmd(iL^S,1:nw_recon) = (w(iL^S,1:nw_recon)+w(iLp^S,1:nw_recon))/2.0d0-dm4(iL^S,1:nw_recon)/2.0d0
+    fmd(iL^S,1:nwflux) = (w(iL^S,1:nwflux)+w(iLp^S,1:nwflux))/2.0d0-dm4(iL^S,1:nwflux)/2.0d0
 
     !get flc: 
-    flc(iL^S,1:nw_recon) = half*(3.0d0*w(iL^S,1:nw_recon) &
-         - w(iLm^S,1:nw_recon)) + 4.0d0/3.0d0*dm4(iLm^S,1:nw_recon)
+    flc(iL^S,1:nwflux) = half*(3.0d0*w(iL^S,1:nwflux) &
+         - w(iLm^S,1:nwflux)) + 4.0d0/3.0d0*dm4(iLm^S,1:nwflux)
 
-    fmin(iL^S,1:nw_recon) = max(min(w(iL^S,1:nw_recon),w(iLp^S,1:nw_recon),fmd(iL^S,1:nw_recon)),&
-         min(w(iL^S,1:nw_recon),ful(iL^S,1:nw_recon),flc(iL^S,1:nw_recon)))
+    fmin(iL^S,1:nwflux) = max(min(w(iL^S,1:nwflux),w(iLp^S,1:nwflux),fmd(iL^S,1:nwflux)),&
+         min(w(iL^S,1:nwflux),ful(iL^S,1:nwflux),flc(iL^S,1:nwflux)))
 
-    fmax(iL^S,1:nw_recon) = min(max(w(iL^S,1:nw_recon),w(iLp^S,1:nw_recon),fmd(iL^S,1:nw_recon)),&
-         max(w(iL^S,1:nw_recon),ful(iL^S,1:nw_recon),flc(iL^S,1:nw_recon)))
+    fmax(iL^S,1:nwflux) = min(max(w(iL^S,1:nwflux),w(iLp^S,1:nwflux),fmd(iL^S,1:nwflux)),&
+         max(w(iL^S,1:nwflux),ful(iL^S,1:nwflux),flc(iL^S,1:nwflux)))
 
-    do iw=1,nw_recon
+    do iw=1,nwflux
        a(iL^S) = fmin(iL^S,iw)
        b(iL^S) = f(iL^S,iw)
        c(iL^S) = fmax(iL^S,iw)
@@ -111,10 +111,10 @@ contains
     end do
 
     ! check case
-    where ((f(iL^S,1:nw_recon)-w(iL^S,1:nw_recon))*(f(iL^S,1:nw_recon)-fmp(iL^S,1:nw_recon)) .le. eps)
-       wLCtmp(iL^S,1:nw_recon) = f(iL^S,1:nw_recon)
+    where ((f(iL^S,1:nwflux)-w(iL^S,1:nwflux))*(f(iL^S,1:nwflux)-fmp(iL^S,1:nwflux)) .le. eps)
+       wLCtmp(iL^S,1:nwflux) = f(iL^S,1:nwflux)
     elsewhere
-       wLCtmp(iL^S,1:nw_recon) = flim(iL^S,1:nw_recon)
+       wLCtmp(iL^S,1:nwflux) = flim(iL^S,1:nwflux)
     end where
 
     ! Right side:
@@ -129,15 +129,15 @@ contains
 
     iLppp^L=iLpp^L+kr(idims,^D);
 
-    f(iL^S,1:nw_recon) = 1.0d0/60.0d0 * (&
-         2.0d0* w(iLppp^S,1:nw_recon) &
-         - 13.0d0* w(iLpp^S,1:nw_recon) &
-         + 47.0d0* w(iLp^S,1:nw_recon) &
-         + 27.0d0* w(iL^S,1:nw_recon) &
-         - 3.0d0*  w(iLm^S,1:nw_recon))
+    f(iL^S,1:nwflux) = 1.0d0/60.0d0 * (&
+         2.0d0* w(iLppp^S,1:nwflux) &
+         - 13.0d0* w(iLpp^S,1:nwflux) &
+         + 47.0d0* w(iLp^S,1:nwflux) &
+         + 27.0d0* w(iL^S,1:nwflux) &
+         - 3.0d0*  w(iLm^S,1:nwflux))
 
     ! get fmp and ful:
-    do iw=1,nw_recon
+    do iw=1,nwflux
        a(iL^S) = w(iL^S,iw)-w(iLp^S,iw)
        b(iL^S) = alpha*(w(iLp^S,iw)-w(iLpp^S,iw))
        call minmod(ixI^L,iL^L,a,b,tmp)
@@ -155,9 +155,9 @@ contains
     iep^L=ie^L+kr(idims,^D);
     iepp^L=iep^L+kr(idims,^D);
 
-    d(ie^S,1:nw_recon) = w(ie^S,1:nw_recon)-2.0d0*w(iep^S,1:nw_recon)+w(iepp^S,1:nw_recon)
+    d(ie^S,1:nwflux) = w(ie^S,1:nwflux)-2.0d0*w(iep^S,1:nwflux)+w(iepp^S,1:nwflux)
 
-    do iw=1,nw_recon
+    do iw=1,nwflux
        a(id^S) = 4.0d0*d(id^S,iw)-d(idm^S,iw)
        b(id^S) = 4.0d0*d(idm^S,iw)-d(id^S,iw)
        call minmod(ixI^L,id^L,a,b,tmp)
@@ -169,19 +169,19 @@ contains
     end do
 
     ! get fmd:
-    fmd(iL^S,1:nw_recon) = (w(iL^S,1:nw_recon)+w(iLp^S,1:nw_recon))/2.0d0-dm4(iL^S,1:nw_recon)/2.0d0
+    fmd(iL^S,1:nwflux) = (w(iL^S,1:nwflux)+w(iLp^S,1:nwflux))/2.0d0-dm4(iL^S,1:nwflux)/2.0d0
 
     !get flc: 
-    flc(iL^S,1:nw_recon) = half*(3.0d0*w(iLp^S,1:nw_recon) &
-         - w(iLpp^S,1:nw_recon)) + 4.0d0/3.0d0*dm4(iLp^S,1:nw_recon)
+    flc(iL^S,1:nwflux) = half*(3.0d0*w(iLp^S,1:nwflux) &
+         - w(iLpp^S,1:nwflux)) + 4.0d0/3.0d0*dm4(iLp^S,1:nwflux)
 
-    fmin(iL^S,1:nw_recon) = max(min(w(iLp^S,1:nw_recon),w(iL^S,1:nw_recon),fmd(iL^S,1:nw_recon)),&
-         min(w(iLp^S,1:nw_recon),ful(iL^S,1:nw_recon),flc(iL^S,1:nw_recon)))
+    fmin(iL^S,1:nwflux) = max(min(w(iLp^S,1:nwflux),w(iL^S,1:nwflux),fmd(iL^S,1:nwflux)),&
+         min(w(iLp^S,1:nwflux),ful(iL^S,1:nwflux),flc(iL^S,1:nwflux)))
 
-    fmax(iL^S,1:nw_recon) = min(max(w(iLp^S,1:nw_recon),w(iL^S,1:nw_recon),fmd(iL^S,1:nw_recon)),&
-         max(w(iLp^S,1:nw_recon),ful(iL^S,1:nw_recon),flc(iL^S,1:nw_recon)))
+    fmax(iL^S,1:nwflux) = min(max(w(iLp^S,1:nwflux),w(iL^S,1:nwflux),fmd(iL^S,1:nwflux)),&
+         max(w(iLp^S,1:nwflux),ful(iL^S,1:nwflux),flc(iL^S,1:nwflux)))
 
-    do iw=1,nw_recon
+    do iw=1,nwflux
        a(iL^S) = fmin(iL^S,iw)
        b(iL^S) = f(iL^S,iw)
        c(iL^S) = fmax(iL^S,iw)
@@ -190,10 +190,10 @@ contains
     end do
 
     ! check case
-    where ((f(iL^S,1:nw_recon)-w(iLp^S,1:nw_recon))*(f(iL^S,1:nw_recon)-fmp(iL^S,1:nw_recon))  .le. eps)
-       wRCtmp(iL^S,1:nw_recon) = f(iL^S,1:nw_recon)
+    where ((f(iL^S,1:nwflux)-w(iLp^S,1:nwflux))*(f(iL^S,1:nwflux)-fmp(iL^S,1:nwflux))  .le. eps)
+       wRCtmp(iL^S,1:nwflux) = f(iL^S,1:nwflux)
     elsewhere
-       wRCtmp(iL^S,1:nw_recon) = flim(iL^S,1:nw_recon)
+       wRCtmp(iL^S,1:nwflux) = flim(iL^S,1:nwflux)
     end where
 
     call fix_limiter1(ixI^L,iL^L,wLCtmp,wRCtmp,wLC,wRC)
@@ -227,15 +227,15 @@ contains
     iLp^L=iL^L+kr(idims,^D);
     iLpp^L=iLp^L+kr(idims,^D);
 
-    f(iL^S,1:nw_recon) = 1.0d0/60.0d0 * (&
-         2.0d0* w(iLmm^S,1:nw_recon) &
-         - 13.0d0* w(iLm^S,1:nw_recon) &
-         + 47.0d0* w(iL^S,1:nw_recon) &
-         + 27.0d0* w(iLp^S,1:nw_recon) &
-         - 3.0d0*  w(iLpp^S,1:nw_recon))
+    f(iL^S,1:nwflux) = 1.0d0/60.0d0 * (&
+         2.0d0* w(iLmm^S,1:nwflux) &
+         - 13.0d0* w(iLm^S,1:nwflux) &
+         + 47.0d0* w(iL^S,1:nwflux) &
+         + 27.0d0* w(iLp^S,1:nwflux) &
+         - 3.0d0*  w(iLpp^S,1:nwflux))
 
     ! get fmp and ful:
-    do iw=1,nw_recon
+    do iw=1,nwflux
        a(iL^S) = w(iLp^S,iw)-w(iL^S,iw)
        b(iL^S) = alpha*(w(iL^S,iw)-w(iLm^S,iw))
        call minmod(ixI^L,iL^L,a,b,tmp)
@@ -252,9 +252,9 @@ contains
     iem^L=ie^L-kr(idims,^D);
     iep^L=ie^L+kr(idims,^D);
 
-    d(ie^S,1:nw_recon) = w(iep^S,1:nw_recon)-2.0d0*w(ie^S,1:nw_recon)+w(iem^S,1:nw_recon)
+    d(ie^S,1:nwflux) = w(iep^S,1:nwflux)-2.0d0*w(ie^S,1:nwflux)+w(iem^S,1:nwflux)
 
-    do iw=1,nw_recon
+    do iw=1,nwflux
        a(id^S) = 4.0d0*d(id^S,iw)-d(idp^S,iw)
        b(id^S) = 4.0d0*d(idp^S,iw)-d(id^S,iw)
        call minmod(ixI^L,id^L,a,b,tmp)
@@ -266,19 +266,19 @@ contains
     end do
 
     ! get fmd:
-    fmd(iL^S,1:nw_recon) = (w(iL^S,1:nw_recon)+w(iLp^S,1:nw_recon))/2.0d0-dm4(iL^S,1:nw_recon)/2.0d0
+    fmd(iL^S,1:nwflux) = (w(iL^S,1:nwflux)+w(iLp^S,1:nwflux))/2.0d0-dm4(iL^S,1:nwflux)/2.0d0
 
     !get flc: 
-    flc(iL^S,1:nw_recon) = half*(3.0d0*w(iL^S,1:nw_recon) &
-         - w(iLm^S,1:nw_recon)) + 4.0d0/3.0d0*dm4(iLm^S,1:nw_recon)
+    flc(iL^S,1:nwflux) = half*(3.0d0*w(iL^S,1:nwflux) &
+         - w(iLm^S,1:nwflux)) + 4.0d0/3.0d0*dm4(iLm^S,1:nwflux)
 
-    fmin(iL^S,1:nw_recon) = max(min(w(iL^S,1:nw_recon),w(iLp^S,1:nw_recon),fmd(iL^S,1:nw_recon)),&
-         min(w(iL^S,1:nw_recon),ful(iL^S,1:nw_recon),flc(iL^S,1:nw_recon)))
+    fmin(iL^S,1:nwflux) = max(min(w(iL^S,1:nwflux),w(iLp^S,1:nwflux),fmd(iL^S,1:nwflux)),&
+         min(w(iL^S,1:nwflux),ful(iL^S,1:nwflux),flc(iL^S,1:nwflux)))
 
-    fmax(iL^S,1:nw_recon) = min(max(w(iL^S,1:nw_recon),w(iLp^S,1:nw_recon),fmd(iL^S,1:nw_recon)),&
-         max(w(iL^S,1:nw_recon),ful(iL^S,1:nw_recon),flc(iL^S,1:nw_recon)))
+    fmax(iL^S,1:nwflux) = min(max(w(iL^S,1:nwflux),w(iLp^S,1:nwflux),fmd(iL^S,1:nwflux)),&
+         max(w(iL^S,1:nwflux),ful(iL^S,1:nwflux),flc(iL^S,1:nwflux)))
 
-    do iw=1,nw_recon
+    do iw=1,nwflux
        a(iL^S) = fmin(iL^S,iw)
        b(iL^S) = f(iL^S,iw)
        c(iL^S) = fmax(iL^S,iw)
@@ -287,10 +287,10 @@ contains
     end do
 
     ! check case
-    where ((f(iL^S,1:nw_recon)-w(iL^S,1:nw_recon))*(f(iL^S,1:nw_recon)-fmp(iL^S,1:nw_recon)) .le. eps)
-       wLC(iL^S,1:nw_recon) = f(iL^S,1:nw_recon)
+    where ((f(iL^S,1:nwflux)-w(iL^S,1:nwflux))*(f(iL^S,1:nwflux)-fmp(iL^S,1:nwflux)) .le. eps)
+       wLC(iL^S,1:nwflux) = f(iL^S,1:nwflux)
     elsewhere
-       wLC(iL^S,1:nw_recon) = flim(iL^S,1:nw_recon)
+       wLC(iL^S,1:nwflux) = flim(iL^S,1:nwflux)
     end where
 
     !call fix_onelimiter1(ixI^L,iL^L,wLCtmp,wLC)
@@ -330,15 +330,15 @@ contains
     iLpp^L=iLp^L+kr(idims,^D);
     iLppp^L=iLpp^L+kr(idims,^D);
 
-    f(iL^S,1:nw_recon) = 1.0d0/60.0d0 * (&
-         2.0d0* w(iLppp^S,1:nw_recon) &
-         - 13.0d0* w(iLpp^S,1:nw_recon) &
-         + 47.0d0* w(iLp^S,1:nw_recon) &
-         + 27.0d0* w(iL^S,1:nw_recon) &
-         - 3.0d0*  w(iLm^S,1:nw_recon))
+    f(iL^S,1:nwflux) = 1.0d0/60.0d0 * (&
+         2.0d0* w(iLppp^S,1:nwflux) &
+         - 13.0d0* w(iLpp^S,1:nwflux) &
+         + 47.0d0* w(iLp^S,1:nwflux) &
+         + 27.0d0* w(iL^S,1:nwflux) &
+         - 3.0d0*  w(iLm^S,1:nwflux))
 
     ! get fmp and ful:
-    do iw=1,nw_recon
+    do iw=1,nwflux
        a(iL^S) = w(iL^S,iw)-w(iLp^S,iw)
        b(iL^S) = alpha*(w(iLp^S,iw)-w(iLpp^S,iw))
        call minmod(ixI^L,iL^L,a,b,tmp)
@@ -356,9 +356,9 @@ contains
     iep^L=ie^L+kr(idims,^D);
     iepp^L=iep^L+kr(idims,^D);
 
-    d(ie^S,1:nw_recon) = w(ie^S,1:nw_recon)-2.0d0*w(iep^S,1:nw_recon)+w(iepp^S,1:nw_recon)
+    d(ie^S,1:nwflux) = w(ie^S,1:nwflux)-2.0d0*w(iep^S,1:nwflux)+w(iepp^S,1:nwflux)
 
-    do iw=1,nw_recon
+    do iw=1,nwflux
        a(id^S) = 4.0d0*d(id^S,iw)-d(idm^S,iw)
        b(id^S) = 4.0d0*d(idm^S,iw)-d(id^S,iw)
        call minmod(ixI^L,id^L,a,b,tmp)
@@ -370,19 +370,19 @@ contains
     end do
 
     ! get fmd:
-    fmd(iL^S,1:nw_recon) = (w(iL^S,1:nw_recon)+w(iLp^S,1:nw_recon))/2.0d0-dm4(iL^S,1:nw_recon)/2.0d0
+    fmd(iL^S,1:nwflux) = (w(iL^S,1:nwflux)+w(iLp^S,1:nwflux))/2.0d0-dm4(iL^S,1:nwflux)/2.0d0
 
     !get flc: 
-    flc(iL^S,1:nw_recon) = half*(3.0d0*w(iLp^S,1:nw_recon) &
-         - w(iLpp^S,1:nw_recon)) + 4.0d0/3.0d0*dm4(iLp^S,1:nw_recon)
+    flc(iL^S,1:nwflux) = half*(3.0d0*w(iLp^S,1:nwflux) &
+         - w(iLpp^S,1:nwflux)) + 4.0d0/3.0d0*dm4(iLp^S,1:nwflux)
 
-    fmin(iL^S,1:nw_recon) = max(min(w(iLp^S,1:nw_recon),w(iL^S,1:nw_recon),fmd(iL^S,1:nw_recon)),&
-         min(w(iLp^S,1:nw_recon),ful(iL^S,1:nw_recon),flc(iL^S,1:nw_recon)))
+    fmin(iL^S,1:nwflux) = max(min(w(iLp^S,1:nwflux),w(iL^S,1:nwflux),fmd(iL^S,1:nwflux)),&
+         min(w(iLp^S,1:nwflux),ful(iL^S,1:nwflux),flc(iL^S,1:nwflux)))
 
-    fmax(iL^S,1:nw_recon) = min(max(w(iLp^S,1:nw_recon),w(iL^S,1:nw_recon),fmd(iL^S,1:nw_recon)),&
-         max(w(iLp^S,1:nw_recon),ful(iL^S,1:nw_recon),flc(iL^S,1:nw_recon)))
+    fmax(iL^S,1:nwflux) = min(max(w(iLp^S,1:nwflux),w(iL^S,1:nwflux),fmd(iL^S,1:nwflux)),&
+         max(w(iLp^S,1:nwflux),ful(iL^S,1:nwflux),flc(iL^S,1:nwflux)))
 
-    do iw=1,nw_recon
+    do iw=1,nwflux
        a(iL^S) = fmin(iL^S,iw)
        b(iL^S) = f(iL^S,iw)
        c(iL^S) = fmax(iL^S,iw)
@@ -391,10 +391,10 @@ contains
     end do
 
     ! check case
-    where ((f(iL^S,1:nw_recon)-w(iLp^S,1:nw_recon))*(f(iL^S,1:nw_recon)-fmp(iL^S,1:nw_recon))  .le. eps)
-       wRC(iL^S,1:nw_recon) = f(iL^S,1:nw_recon)
+    where ((f(iL^S,1:nwflux)-w(iLp^S,1:nwflux))*(f(iL^S,1:nwflux)-fmp(iL^S,1:nwflux))  .le. eps)
+       wRC(iL^S,1:nwflux) = f(iL^S,1:nwflux)
     elsewhere
-       wRC(iL^S,1:nw_recon) = flim(iL^S,1:nw_recon)
+       wRC(iL^S,1:nwflux) = flim(iL^S,1:nwflux)
     end where
   
     !call fix_onelimiter1(ixI^L,iL^L,wRCtmp,wRC)

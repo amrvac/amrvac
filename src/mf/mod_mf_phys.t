@@ -206,6 +206,10 @@ contains
       call mpistop('Unknown divB fix')
     end select
 
+    ! set velocity field as flux variables
+    allocate(mom(ndir))
+    mom(:) = var_set_momentum(ndir)
+
     ! set magnetic field as flux variables
     allocate(mag(ndir))
     mag(:) = var_set_bfield(ndir)
@@ -222,18 +226,8 @@ contains
       psi_ = -1
     end if
 
-    ! set velocity field as flux variables
-    allocate(mom(ndir))
-    mom(:) = var_set_momentum(ndir)
-  
-    ! Number of variables need reconstruction in w
-    nw_recon=nwflux
-
     ! set number of variables which need update ghostcells
     nwgc=nwflux-ndir
-
-    ! remove velocity field from flux variables
-    nwflux=nwflux-ndir
 
     ! set the index of the last flux variable for species 1
     stop_indices(1)=nwflux

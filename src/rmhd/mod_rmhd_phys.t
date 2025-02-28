@@ -450,9 +450,6 @@ contains
 
     ! set the index of the last flux variable for species 1
     stop_indices(1)=nwflux
-  
-    !  Number of variables need reconstruction in w
-    nw_recon=nwflux
 
     ! set cutoff temperature when using the TRAC method, as well as an auxiliary weight
     Tweight_ = -1

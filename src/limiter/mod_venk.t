@@ -43,11 +43,11 @@ contains
 
     eps2 = (venk_k * dxdim) ** 3
 
-    wmax(iM^S,1:nw_recon) = max(w(iMm^S,1:nw_recon), w(iM^S,1:nw_recon), w(iMp^S,1:nw_recon))
-    wmin(iM^S,1:nw_recon) = min(w(iMm^S,1:nw_recon), w(iM^S,1:nw_recon), w(iMp^S,1:nw_recon))
+    wmax(iM^S,1:nwflux) = max(w(iMm^S,1:nwflux), w(iM^S,1:nwflux), w(iMp^S,1:nwflux))
+    wmin(iM^S,1:nwflux) = min(w(iMm^S,1:nwflux), w(iM^S,1:nwflux), w(iMp^S,1:nwflux))
     !> use central difference approximation as (eq.5) and take phi = 1
-    westp(iM^S,1:nw_recon) = w(iM^S,1:nw_recon) + (w(iMp^S,1:nw_recon) - w(iMm^S,1:nw_recon)) * 0.25d0
-    westm(iM^S,1:nw_recon) = w(iM^S,1:nw_recon) - (w(iMp^S,1:nw_recon) - w(iMm^S,1:nw_recon)) * 0.25d0
+    westp(iM^S,1:nwflux) = w(iM^S,1:nwflux) + (w(iMp^S,1:nwflux) - w(iMm^S,1:nwflux)) * 0.25d0
+    westm(iM^S,1:nwflux) = w(iM^S,1:nwflux) - (w(iMp^S,1:nwflux) - w(iMm^S,1:nwflux)) * 0.25d0
 
     !> (eq.30) & (eq.31)
     deltap = 0
@@ -55,22 +55,22 @@ contains
     phi1 = 0
     phi2 = 0
     phip = 1
-    where(westp(iM^S,1:nw_recon) .gt. w(iM^S,1:nw_recon))
-      deltap(iM^S,1:nw_recon) = wmax(iM^S,1:nw_recon) - w(iM^S,1:nw_recon)
-      deltam(iM^S,1:nw_recon) = westp(iM^S,1:nw_recon) - w(iM^S,1:nw_recon)
-      deltam(iM^S,1:nw_recon) = sign(dabs(deltam(iM^S,1:nw_recon)) + venk_omega, deltam(iM^S,1:nw_recon))
-      phi1(iM^S,1:nw_recon) = (deltap(iM^S,1:nw_recon)**2 + eps2) + 2.d0 * deltap(iM^S,1:nw_recon) * deltam(iM^S,1:nw_recon)
-      phi2(iM^S,1:nw_recon) = deltap(iM^S,1:nw_recon)**2 + 2.d0 * deltam(iM^S,1:nw_recon)**2 + deltap(iM^S,1:nw_recon) * deltam(iM^S,1:nw_recon) + eps2
-      phip(iM^S,1:nw_recon) = phi1(iM^S,1:nw_recon) / phi2(iM^S, 1:nw_recon)
-    elsewhere(westp(iM^S,1:nw_recon) .lt. w(iM^S,1:nw_recon))
-      deltap(iM^S,1:nw_recon) = wmin(iM^S,1:nw_recon) - w(iM^S,1:nw_recon)
-      deltam(iM^S,1:nw_recon) = westp(iM^S,1:nw_recon) - w(iM^S,1:nw_recon)
-      deltam(iM^S,1:nw_recon) = sign(dabs(deltam(iM^S,1:nw_recon)) + venk_omega, deltam(iM^S,1:nw_recon))
-      phi1(iM^S,1:nw_recon) = (deltap(iM^S,1:nw_recon)**2 + eps2) + 2.d0 * deltap(iM^S,1:nw_recon) * deltam(iM^S,1:nw_recon)
-      phi2(iM^S,1:nw_recon) = deltap(iM^S,1:nw_recon)**2 + 2.d0 * deltam(iM^S,1:nw_recon)**2 + deltap(iM^S,1:nw_recon) * deltam(iM^S,1:nw_recon) + eps2
-      phip(iM^S,1:nw_recon) = phi1(iM^S,1:nw_recon) / phi2(iM^S, 1:nw_recon)
+    where(westp(iM^S,1:nwflux) .gt. w(iM^S,1:nwflux))
+      deltap(iM^S,1:nwflux) = wmax(iM^S,1:nwflux) - w(iM^S,1:nwflux)
+      deltam(iM^S,1:nwflux) = westp(iM^S,1:nwflux) - w(iM^S,1:nwflux)
+      deltam(iM^S,1:nwflux) = sign(dabs(deltam(iM^S,1:nwflux)) + venk_omega, deltam(iM^S,1:nwflux))
+      phi1(iM^S,1:nwflux) = (deltap(iM^S,1:nwflux)**2 + eps2) + 2.d0 * deltap(iM^S,1:nwflux) * deltam(iM^S,1:nwflux)
+      phi2(iM^S,1:nwflux) = deltap(iM^S,1:nwflux)**2 + 2.d0 * deltam(iM^S,1:nwflux)**2 + deltap(iM^S,1:nwflux) * deltam(iM^S,1:nwflux) + eps2
+      phip(iM^S,1:nwflux) = phi1(iM^S,1:nwflux) / phi2(iM^S, 1:nwflux)
+    elsewhere(westp(iM^S,1:nwflux) .lt. w(iM^S,1:nwflux))
+      deltap(iM^S,1:nwflux) = wmin(iM^S,1:nwflux) - w(iM^S,1:nwflux)
+      deltam(iM^S,1:nwflux) = westp(iM^S,1:nwflux) - w(iM^S,1:nwflux)
+      deltam(iM^S,1:nwflux) = sign(dabs(deltam(iM^S,1:nwflux)) + venk_omega, deltam(iM^S,1:nwflux))
+      phi1(iM^S,1:nwflux) = (deltap(iM^S,1:nwflux)**2 + eps2) + 2.d0 * deltap(iM^S,1:nwflux) * deltam(iM^S,1:nwflux)
+      phi2(iM^S,1:nwflux) = deltap(iM^S,1:nwflux)**2 + 2.d0 * deltam(iM^S,1:nwflux)**2 + deltap(iM^S,1:nwflux) * deltam(iM^S,1:nwflux) + eps2
+      phip(iM^S,1:nwflux) = phi1(iM^S,1:nwflux) / phi2(iM^S, 1:nwflux)
     elsewhere
-      phip(iM^S,1:nw_recon) = one
+      phip(iM^S,1:nwflux) = one
    endwhere
 
     deltap = 0
@@ -78,28 +78,28 @@ contains
     phi3 = 0
     phi4 = 0
     phim = 0
-    where(westm(iM^S,1:nw_recon) .lt. w(iM^S,1:nw_recon))
-      deltap(iM^S,1:nw_recon) = - (wmax(iM^S,1:nw_recon) - w(iM^S,1:nw_recon))
-      deltam(iM^S,1:nw_recon) = westm(iM^S,1:nw_recon) - w(iM^S,1:nw_recon)
-      deltam(iM^S,1:nw_recon) = sign(dabs(deltam(iM^S,1:nw_recon)) + venk_omega, deltam(iM^S,1:nw_recon))
-      phi3(iM^S,1:nw_recon) = (deltap(iM^S,1:nw_recon)**2 + eps2) + 2.d0 * deltap(iM^S,1:nw_recon) * deltam(iM^S,1:nw_recon)
-      phi4(iM^S,1:nw_recon) = deltap(iM^S,1:nw_recon)**2 + 2.d0 * deltam(iM^S,1:nw_recon)**2 + deltap(iM^S,1:nw_recon) * deltam(iM^S,1:nw_recon) + eps2
-      phim(iM^S,1:nw_recon) = phi3(iM^S,1:nw_recon) / phi4(iM^S, 1:nw_recon)
-    elsewhere(westm(iM^S,1:nw_recon) .gt. w(iM^S,1:nw_recon))
-      deltap(iM^S,1:nw_recon) = - (wmin(iM^S,1:nw_recon) - w(iM^S,1:nw_recon))
-      deltam(iM^S,1:nw_recon) = westm(iM^S,1:nw_recon) - w(iM^S,1:nw_recon)
-      deltam(iM^S,1:nw_recon) = sign(dabs(deltam(iM^S,1:nw_recon)) + venk_omega, deltam(iM^S,1:nw_recon))
-      phi3(iM^S,1:nw_recon) = (deltap(iM^S,1:nw_recon)**2 + eps2) + 2.d0 * deltap(iM^S,1:nw_recon) * deltam(iM^S,1:nw_recon)
-      phi4(iM^S,1:nw_recon) = deltap(iM^S,1:nw_recon)**2 + 2.d0 * deltam(iM^S,1:nw_recon)**2 + deltap(iM^S,1:nw_recon) * deltam(iM^S,1:nw_recon) + eps2
-      phim(iM^S,1:nw_recon) = phi3(iM^S,1:nw_recon) / phi4(iM^S, 1:nw_recon)
+    where(westm(iM^S,1:nwflux) .lt. w(iM^S,1:nwflux))
+      deltap(iM^S,1:nwflux) = - (wmax(iM^S,1:nwflux) - w(iM^S,1:nwflux))
+      deltam(iM^S,1:nwflux) = westm(iM^S,1:nwflux) - w(iM^S,1:nwflux)
+      deltam(iM^S,1:nwflux) = sign(dabs(deltam(iM^S,1:nwflux)) + venk_omega, deltam(iM^S,1:nwflux))
+      phi3(iM^S,1:nwflux) = (deltap(iM^S,1:nwflux)**2 + eps2) + 2.d0 * deltap(iM^S,1:nwflux) * deltam(iM^S,1:nwflux)
+      phi4(iM^S,1:nwflux) = deltap(iM^S,1:nwflux)**2 + 2.d0 * deltam(iM^S,1:nwflux)**2 + deltap(iM^S,1:nwflux) * deltam(iM^S,1:nwflux) + eps2
+      phim(iM^S,1:nwflux) = phi3(iM^S,1:nwflux) / phi4(iM^S, 1:nwflux)
+    elsewhere(westm(iM^S,1:nwflux) .gt. w(iM^S,1:nwflux))
+      deltap(iM^S,1:nwflux) = - (wmin(iM^S,1:nwflux) - w(iM^S,1:nwflux))
+      deltam(iM^S,1:nwflux) = westm(iM^S,1:nwflux) - w(iM^S,1:nwflux)
+      deltam(iM^S,1:nwflux) = sign(dabs(deltam(iM^S,1:nwflux)) + venk_omega, deltam(iM^S,1:nwflux))
+      phi3(iM^S,1:nwflux) = (deltap(iM^S,1:nwflux)**2 + eps2) + 2.d0 * deltap(iM^S,1:nwflux) * deltam(iM^S,1:nwflux)
+      phi4(iM^S,1:nwflux) = deltap(iM^S,1:nwflux)**2 + 2.d0 * deltam(iM^S,1:nwflux)**2 + deltap(iM^S,1:nwflux) * deltam(iM^S,1:nwflux) + eps2
+      phim(iM^S,1:nwflux) = phi3(iM^S,1:nwflux) / phi4(iM^S, 1:nwflux)
     elsewhere
-      phim(iM^S,1:nw_recon) = one
+      phim(iM^S,1:nwflux) = one
     endwhere
     !> (eq.3)
-    phi(iM^S,1:nw_recon) = min(phim(iM^S,1:nw_recon),phip(iM^S,1:nw_recon))
+    phi(iM^S,1:nwflux) = min(phim(iM^S,1:nwflux),phip(iM^S,1:nwflux))
     !> (eq.5)
-    wLC(iL^S,1:nw_recon) = w(iL^S,1:nw_recon) + 0.25d0 * (w(iLp^S,1:nw_recon)-w(iLm^S,1:nw_recon)) * phi(iL^S,1:nw_recon)
-    wRC(iL^S,1:nw_recon) = w(iLp^S,1:nw_recon) - 0.25d0 * (w(iLpp^S,1:nw_recon)-w(iL^S,1:nw_recon)) * phi(iLp^S,1:nw_recon)
+    wLC(iL^S,1:nwflux) = w(iL^S,1:nwflux) + 0.25d0 * (w(iLp^S,1:nwflux)-w(iLm^S,1:nwflux)) * phi(iL^S,1:nwflux)
+    wRC(iL^S,1:nwflux) = w(iLp^S,1:nwflux) - 0.25d0 * (w(iLpp^S,1:nwflux)-w(iL^S,1:nwflux)) * phi(iLp^S,1:nwflux)
 
   end subroutine venklimiter
 

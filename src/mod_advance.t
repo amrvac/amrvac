@@ -690,6 +690,9 @@ contains
     double precision :: wprim(ixI^S,1:nw)
     integer :: ixO^L
 
+    ! for mf module
+    if(iwstart>1) fC=0.d0
+
     ixO^L=ixI^L^LSUBnghostcells;
     select case (method)
     case (fs_hll,fs_hllc,fs_hllcd,fs_hlld,fs_tvdlf,fs_tvdmu)
@@ -704,6 +707,8 @@ contains
        call centdiff(fs_cd,qdt,dtfactor,ixI^L,ixO^L,idim^LIM,qtC,sCT,qt,s,fC,fE,dxs,x)
        call tvdlimit(method,qdt,ixI^L,ixO^L,idim^LIM,sCT,qt+qdt,s,fC,dxs,x)
     case (fs_source)
+       fC=0.d0
+       fE=0.d0
        wprim=sCT%w
        call phys_to_primitive(ixI^L,ixI^L,wprim,x)
        call addsource2(qdt*dble(idimmax-idimmin+1)/dble(ndim),&
