@@ -2108,6 +2108,11 @@ contains
           end if
         end if
       case default
+        if(.not.primitive) then
+          ! change to primitive variables
+          w(ixI^S,mom(1:ndir))=v(ixI^S,1:ndir)
+          w(ixI^S,e_)=pressure(ixI^S)
+        end if
         call small_values_error(w, x, ixI^L, ixO^L, flag, subname)
       end select
     end if
