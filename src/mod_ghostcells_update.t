@@ -360,10 +360,8 @@ contains
     integer, intent(in)               :: nwbc    ! Number of variables to fill
 
     double precision :: time_bcin
-    integer :: ipole, nwhead, nwtail
-    integer :: iigrid, igrid, ineighbor, ipe_neighbor, isizes
-    integer :: ixR^L, ixS^L
-    integer :: i^D, n_i^D, ic^D, inc^D, n_inc^D, idir
+    integer :: nwhead, nwtail
+    integer :: iigrid, igrid, isizes, i^D
     integer :: isend_buf(npwbuf), ipwbuf, nghostcellsco
     ! index pointer for buffer arrays as a start for a segment
     integer :: ibuf_start, ibuf_next
@@ -391,7 +389,6 @@ contains
     !$OMP END PARALLEL DO
 
     ! default : no singular axis
-    ipole=0
     irecv_c=0
     isend_c=0
     isend_buf=0
@@ -412,15 +409,17 @@ contains
       isend_p=0
     end if
 
+    !$OMP PARALLEL SECTIONS PRIVATE(iigrid,igrid,i^D)
+    !$OMP SECTION
     ! MPI receive ghost-cell values from sibling blocks and finer neighbors in different processors
     do iigrid=1,igridstail; igrid=igrids(iigrid);
       {do i^DB=-1,1\}
          if (skip_direction([ i^D ])) cycle
          select case (neighbor_type(i^D,igrid))
          case (neighbor_sibling)
-            call bc_recv_srl
+            call bc_recv_srl(igrid,i^D)
          case (neighbor_fine)
-            call bc_recv_restrict
+            call bc_recv_restrict(igrid,i^D)
          end select
       {end do\}
     end do
@@ -431,15 +430,27 @@ contains
          if(skip_direction([ i^D ])) cycle
          select case (neighbor_type(i^D,igrid))
          case (neighbor_sibling)
-            call bc_send_srl
+            call bc_send_srl(igrid,i^D)
          case (neighbor_coarse)
-            call bc_send_restrict
+            call bc_send_restrict(igrid,i^D)
          end select
       {end do\}
     end do
 
+    call MPI_WAITALL(irecv_c,recvrequest_c_sr,recvstatus_c_sr,ierrmpi)
+    call MPI_WAITALL(isend_c,sendrequest_c_sr,sendstatus_c_sr,ierrmpi)
+    if(stagger_grid) then
+      call MPI_WAITALL(nrecv_bc_srl,recvrequest_srl,recvstatus_srl,ierrmpi)
+      call MPI_WAITALL(nsend_bc_srl,sendrequest_srl,sendstatus_srl,ierrmpi)
+      call MPI_WAITALL(nrecv_bc_r,recvrequest_r,recvstatus_r,ierrmpi)
+      call MPI_WAITALL(nsend_bc_r,sendrequest_r,sendstatus_r,ierrmpi)
+    end if
+
+    do ipwbuf=1,npwbuf
+       if (isend_buf(ipwbuf)/=0) deallocate(pwbuf(ipwbuf)%w)
+    end do
+    !$OMP SECTION
     ! fill ghost-cell values of sibling blocks and coarser neighbors in the same processor
-    !$OMP PARALLEL DO SCHEDULE(dynamic) PRIVATE(igrid)
     do iigrid=1,igridstail; igrid=igrids(iigrid);
       {do i^DB=-1,1\}
         if(skip_direction([ i^D ])) cycle
@@ -451,16 +462,9 @@ contains
          end select
       {end do\}
     end do
-    !$OMP END PARALLEL DO
-
-    call MPI_WAITALL(irecv_c,recvrequest_c_sr,recvstatus_c_sr,ierrmpi)
-    call MPI_WAITALL(isend_c,sendrequest_c_sr,sendstatus_c_sr,ierrmpi)
+    !$OMP END PARALLEL SECTIONS
 
     if(stagger_grid) then
-      call MPI_WAITALL(nrecv_bc_srl,recvrequest_srl,recvstatus_srl,ierrmpi)
-      call MPI_WAITALL(nsend_bc_srl,sendrequest_srl,sendstatus_srl,ierrmpi)
-      call MPI_WAITALL(nrecv_bc_r,recvrequest_r,recvstatus_r,ierrmpi)
-      call MPI_WAITALL(nsend_bc_r,sendrequest_r,sendstatus_r,ierrmpi)
       ! unpack the received data from sibling blocks and finer neighbors to fill ghost-cell staggered values
       ibuf_recv_srl=1
       ibuf_recv_r=1
@@ -469,47 +473,35 @@ contains
           if (skip_direction([ i^D ])) cycle
           select case (neighbor_type(i^D,igrid))
           case (neighbor_sibling)
-             call bc_fill_srl_stg
+             call bc_fill_srl_stg(igrid,i^D)
           case (neighbor_fine)
-             call bc_fill_restrict_stg
+             call bc_fill_restrict_stg(igrid,i^D)
           end select
        {end do\}
       end do
     end if
-
-    do ipwbuf=1,npwbuf
-       if (isend_buf(ipwbuf)/=0) deallocate(pwbuf(ipwbuf)%w)
-    end do
 
     irecv_c=0
     isend_c=0
     isend_buf=0
     ipwbuf=1
 
+    !$OMP PARALLEL SECTIONS PRIVATE(iigrid,igrid,i^D)
+    !$OMP SECTION
     ! MPI receive ghost-cell values from coarser neighbors in different processors
     do iigrid=1,igridstail; igrid=igrids(iigrid);
       {do i^DB=-1,1\}
          if (skip_direction([ i^D ])) cycle
-         if (neighbor_type(i^D,igrid)==neighbor_coarse) call bc_recv_prolong
+         if (neighbor_type(i^D,igrid)==neighbor_coarse) call bc_recv_prolong(igrid,i^D)
       {end do\}
     end do
     ! MPI send ghost-cell values to finer neighbors in different processors
     do iigrid=1,igridstail; igrid=igrids(iigrid);
       {do i^DB=-1,1\}
          if (skip_direction([ i^D ])) cycle
-         if (neighbor_type(i^D,igrid)==neighbor_fine) call bc_send_prolong
+         if (neighbor_type(i^D,igrid)==neighbor_fine) call bc_send_prolong(igrid,i^D)
       {end do\}
     end do
-
-    ! fill coarse ghost-cell values of finer neighbors in the same processor
-    !$OMP PARALLEL DO SCHEDULE(dynamic) PRIVATE(igrid)
-    do iigrid=1,igridstail; igrid=igrids(iigrid);
-      {do i^DB=-1,1\}
-         if (skip_direction([ i^D ])) cycle
-         if (neighbor_type(i^D,igrid)==neighbor_fine) call bc_fill_prolong(igrid,i^D)
-      {end do\}
-    end do
-    !$OMP END PARALLEL DO
 
     call MPI_WAITALL(irecv_c,recvrequest_c_p,recvstatus_c_p,ierrmpi)
     call MPI_WAITALL(isend_c,sendrequest_c_p,sendstatus_c_p,ierrmpi)
@@ -517,13 +509,29 @@ contains
     if(stagger_grid) then
       call MPI_WAITALL(nrecv_bc_p,recvrequest_p,recvstatus_p,ierrmpi)
       call MPI_WAITALL(nsend_bc_p,sendrequest_p,sendstatus_p,ierrmpi)
+    end if
 
+    do ipwbuf=1,npwbuf
+       if (isend_buf(ipwbuf)/=0) deallocate(pwbuf(ipwbuf)%w)
+    end do
+
+    !$OMP SECTION
+    ! fill coarse ghost-cell values of finer neighbors in the same processor
+    do iigrid=1,igridstail; igrid=igrids(iigrid);
+      {do i^DB=-1,1\}
+         if (skip_direction([ i^D ])) cycle
+         if (neighbor_type(i^D,igrid)==neighbor_fine) call bc_fill_prolong(igrid,i^D)
+      {end do\}
+    end do
+    !$OMP END PARALLEL SECTIONS
+
+    if(stagger_grid) then
       ! fill coarser representative ghost cells after receipt
       ibuf_recv_p=1
       do iigrid=1,igridstail; igrid=igrids(iigrid);
         {do i^DB=-1,1\}
            if (skip_direction([ i^D ])) cycle
-           if(neighbor_type(i^D,igrid)==neighbor_coarse) call bc_fill_prolong_stg
+           if(neighbor_type(i^D,igrid)==neighbor_coarse) call bc_fill_prolong_stg(igrid,i^D)
         {end do\}
       end do
     end if
@@ -533,10 +541,6 @@ contains
       call gc_prolong(igrid)
     end do
     !$OMP END PARALLEL DO
-
-    do ipwbuf=1,npwbuf
-       if (isend_buf(ipwbuf)/=0) deallocate(pwbuf(ipwbuf)%w)
-    end do
 
     ! fill physical boundary ghost cells after internal ghost-cell values exchange
     if(bcphys) then
@@ -610,8 +614,11 @@ contains
 
       end subroutine fill_boundary_after_gc
 
-      !> Receive from sibling at same refinement level
-      subroutine bc_recv_srl
+      !> MPI receive from sibling at same refinement level
+      subroutine bc_recv_srl(igrid,i^D)
+        integer, intent(in) :: igrid,i^D
+
+        integer :: ipe_neighbor
 
         ipe_neighbor=neighbor(2,i^D,igrid)
         if (ipe_neighbor/=mype) then
@@ -629,8 +636,11 @@ contains
 
       end subroutine bc_recv_srl
 
-      !> Receive from fine neighbor
-      subroutine bc_recv_restrict
+      !> MPI receive from fine neighbor
+      subroutine bc_recv_restrict(igrid,i^D)
+        integer, intent(in) :: igrid,i^D
+
+        integer :: ic^D,inc^D,ipe_neighbor
 
         {do ic^DB=1+int((1-i^DB)/2),2-int((1+i^DB)/2)
            inc^DB=2*i^DB+ic^DB\}
@@ -652,11 +662,13 @@ contains
 
       end subroutine bc_recv_restrict
 
-      !> Send to sibling at same refinement level
-      subroutine bc_send_srl
+      !> MPI send to sibling at same refinement level
+      subroutine bc_send_srl(igrid,i^D)
+        integer, intent(in) :: igrid,i^D
+
+        integer :: n_i^D,ipole,idir,ineighbor,ipe_neighbor,ixS^L
 
         ipe_neighbor=neighbor(2,i^D,igrid)
-
         if(ipe_neighbor/=mype) then
           ineighbor=neighbor(1,i^D,igrid)
           ipole=neighbor_pole(i^D,igrid)
@@ -693,7 +705,7 @@ contains
                deallocate(pwbuf(ipwbuf)%w)
             end if
             allocate(pwbuf(ipwbuf)%w(ixS^S,nwhead:nwtail))
-            call pole_buffer(pwbuf(ipwbuf)%w,ixS^L,ixS^L,psb(igrid)%w,ixG^LL,ixS^L)
+            call pole_buffer(pwbuf(ipwbuf)%w,ixS^L,ixS^L,psb(igrid)%w,ixG^LL,ixS^L,ipole)
             isend_c=isend_c+1
             isend_buf(ipwbuf)=isend_c
             itag=(3**^ND+4**^ND)*(ineighbor-1)+{(n_i^D+1)*3**(^D-1)+}
@@ -721,49 +733,11 @@ contains
 
       end subroutine bc_send_srl
 
-      subroutine bc_fill_srl(igrid,i^D)
+      !> MPI send to coarser neighbor's ghost cells
+      subroutine bc_send_restrict(igrid,i^D)
         integer, intent(in) :: igrid,i^D
-        integer :: ineighbor,ipe_neighbor,ipole,ixS^L,ixR^L,n_i^D,idir
 
-        ipe_neighbor=neighbor(2,i^D,igrid)
-        if(ipe_neighbor==mype) then
-          ineighbor=neighbor(1,i^D,igrid)
-          ipole=neighbor_pole(i^D,igrid)
-          if(ipole==0) then
-            n_i^D=-i^D;
-            ixS^L=ixS_srl_^L(i^D);
-            ixR^L=ixR_srl_^L(n_i^D);
-            psb(ineighbor)%w(ixR^S,nwhead:nwtail)=&
-                psb(igrid)%w(ixS^S,nwhead:nwtail)
-            if(stagger_grid) then
-              do idir=1,ndim
-                ixS^L=ixS_srl_stg_^L(idir,i^D);
-                ixR^L=ixR_srl_stg_^L(idir,n_i^D);
-                psb(ineighbor)%ws(ixR^S,idir)=psb(igrid)%ws(ixS^S,idir)
-              end do
-            end if
-          else
-            ixS^L=ixS_srl_^L(i^D);
-            select case (ipole)
-            {case (^D)
-              n_i^D=i^D^D%n_i^DD=-i^DD;\}
-            end select
-            ixR^L=ixR_srl_^L(n_i^D);
-            call pole_copy(psb(ineighbor)%w,ixG^LL,ixR^L,psb(igrid)%w,ixG^LL,ixS^L,ipole)
-            if(stagger_grid) then
-              do idir=1,ndim
-                ixS^L=ixS_srl_stg_^L(idir,i^D);
-                ixR^L=ixR_srl_stg_^L(idir,n_i^D);
-                call pole_copy_stg(psb(ineighbor)%ws,ixGs^LL,ixR^L,psb(igrid)%ws,ixGs^LL,ixS^L,idir,ipole)
-              end do
-            end if
-          end if
-        end if
-
-      end subroutine bc_fill_srl
-
-      !> Send to coarser neighbor
-      subroutine bc_send_restrict
+        integer :: ic^D,n_inc^D,ipole,idir,ineighbor,ipe_neighbor,ixS^L
 
         ipe_neighbor=neighbor(2,i^D,igrid)
         if(ipe_neighbor/=mype) then
@@ -805,7 +779,7 @@ contains
               deallocate(pwbuf(ipwbuf)%w)
             end if
             allocate(pwbuf(ipwbuf)%w(ixS^S,nwhead:nwtail))
-            call pole_buffer(pwbuf(ipwbuf)%w,ixS^L,ixS^L,psc(igrid)%w,ixCoG^L,ixS^L)
+            call pole_buffer(pwbuf(ipwbuf)%w,ixS^L,ixS^L,psc(igrid)%w,ixCoG^L,ixS^L,ipole)
             isend_c=isend_c+1
             isend_buf(ipwbuf)=isend_c
             itag=(3**^ND+4**^ND)*(ineighbor-1)+3**^ND+{n_inc^D*4**(^D-1)+}
@@ -834,7 +808,50 @@ contains
 
       end subroutine bc_send_restrict
 
-      !> fill coarser neighbor's ghost cells
+      !> fill same-level neighbor's ghost cells in the same processor
+      subroutine bc_fill_srl(igrid,i^D)
+        integer, intent(in) :: igrid,i^D
+
+        integer :: ineighbor,ipe_neighbor,ipole,ixS^L,ixR^L,n_i^D,idir
+
+        ipe_neighbor=neighbor(2,i^D,igrid)
+        if(ipe_neighbor==mype) then
+          ineighbor=neighbor(1,i^D,igrid)
+          ipole=neighbor_pole(i^D,igrid)
+          if(ipole==0) then
+            n_i^D=-i^D;
+            ixS^L=ixS_srl_^L(i^D);
+            ixR^L=ixR_srl_^L(n_i^D);
+            psb(ineighbor)%w(ixR^S,nwhead:nwtail)=&
+                psb(igrid)%w(ixS^S,nwhead:nwtail)
+            if(stagger_grid) then
+              do idir=1,ndim
+                ixS^L=ixS_srl_stg_^L(idir,i^D);
+                ixR^L=ixR_srl_stg_^L(idir,n_i^D);
+                psb(ineighbor)%ws(ixR^S,idir)=psb(igrid)%ws(ixS^S,idir)
+              end do
+            end if
+          else
+            ixS^L=ixS_srl_^L(i^D);
+            select case (ipole)
+            {case (^D)
+              n_i^D=i^D^D%n_i^DD=-i^DD;\}
+            end select
+            ixR^L=ixR_srl_^L(n_i^D);
+            call pole_copy(psb(ineighbor)%w,ixG^LL,ixR^L,psb(igrid)%w,ixG^LL,ixS^L,ipole)
+            if(stagger_grid) then
+              do idir=1,ndim
+                ixS^L=ixS_srl_stg_^L(idir,i^D);
+                ixR^L=ixR_srl_stg_^L(idir,n_i^D);
+                call pole_copy_stg(psb(ineighbor)%ws,ixGs^LL,ixR^L,psb(igrid)%ws,ixGs^LL,ixS^L,idir,ipole)
+              end do
+            end if
+          end if
+        end if
+
+      end subroutine bc_fill_srl
+
+      !> fill coarser neighbor's ghost cells in the same processor
       subroutine bc_fill_restrict(igrid,i^D)
         integer, intent(in) :: igrid,i^D
 
@@ -881,8 +898,10 @@ contains
       end subroutine bc_fill_restrict
 
       !> fill siblings ghost cells with received data
-      subroutine bc_fill_srl_stg
-        integer :: ixS^L,ixR^L,n_i^D,ixSsync^L,ixRsync^L,idir
+      subroutine bc_fill_srl_stg(igrid,i^D)
+        integer, intent(in) :: igrid,i^D
+
+        integer :: ixS^L,ixR^L,n_i^D,idir,ineighbor,ipe_neighbor,ipole
 
         ipe_neighbor=neighbor(2,i^D,igrid)
         if(ipe_neighbor/=mype) then
@@ -923,7 +942,10 @@ contains
       end subroutine bc_fill_srl_stg
 
       !> fill restricted ghost cells after receipt
-      subroutine bc_fill_restrict_stg
+      subroutine bc_fill_restrict_stg(igrid,i^D)
+        integer, intent(in) :: igrid,i^D
+
+        integer :: ipole,ic^D,inc^D,ineighbor,ipe_neighbor,ixS^L,ixR^L,n_i^D,idir
 
         ipole=neighbor_pole(i^D,igrid)
         if (ipole==0) then
@@ -973,7 +995,10 @@ contains
       end subroutine bc_fill_restrict_stg
 
       !> Receive from coarse neighbor
-      subroutine bc_recv_prolong
+      subroutine bc_recv_prolong(igrid,i^D)
+        integer, intent(in) :: igrid,i^D
+
+        integer :: ic^D,ipe_neighbor,inc^D
 
         ic^D=1+modulo(node(pig^D_,igrid)-1,2);
         if ({.not.(i^D==0.or.i^D==2*ic^D-3)|.or.}) return
@@ -997,8 +1022,10 @@ contains
       end subroutine bc_recv_prolong
 
       !> Send to finer neighbor
-      subroutine bc_send_prolong
-        integer :: ii^D
+      subroutine bc_send_prolong(igrid,i^D)
+        integer, intent(in) :: igrid,i^D
+
+        integer :: ic^D,inc^D,n_i^D,n_inc^D,ineighbor,ipe_neighbor,ixS^L,ipole,idir
 
         ipole=neighbor_pole(i^D,igrid)
 
@@ -1042,7 +1069,7 @@ contains
                  deallocate(pwbuf(ipwbuf)%w)
                end if
                allocate(pwbuf(ipwbuf)%w(ixS^S,nwhead:nwtail))
-               call pole_buffer(pwbuf(ipwbuf)%w,ixS^L,ixS^L,psb(igrid)%w,ixG^LL,ixS^L)
+               call pole_buffer(pwbuf(ipwbuf)%w,ixS^L,ixS^L,psb(igrid)%w,ixG^LL,ixS^L,ipole)
                isend_c=isend_c+1
                isend_buf(ipwbuf)=isend_c
                itag=(3**^ND+4**^ND)*(ineighbor-1)+3**^ND+{n_inc^D*4**(^D-1)+}
@@ -1076,7 +1103,7 @@ contains
       subroutine bc_fill_prolong(igrid,i^D)
         integer, intent(in) :: igrid,i^D
 
-        integer :: ipe_neighbor,ineighbor,ixS^L,ixR^L,ic^D,inc^D,ipole,idir
+        integer :: ipe_neighbor,ineighbor,ixS^L,ixR^L,ic^D,inc^D,n_i^D,n_inc^D,ipole,idir
 
         ipole=neighbor_pole(i^D,igrid)
 
@@ -1186,7 +1213,11 @@ contains
       end subroutine gc_prolong
 
       !> fill coarser representative with data from coarser neighbors
-      subroutine bc_fill_prolong_stg
+      subroutine bc_fill_prolong_stg(igrid,i^D)
+        integer, intent(in) :: igrid,i^D
+
+        integer :: ipe_neighbor,ineighbor,ipole,ixR^L,ic^D,inc^D,n_inc^D,idir
+
         ic^D=1+modulo(node(pig^D_,igrid)-1,2);
         if ({.not.(i^D==0.or.i^D==2*ic^D-3)|.or.}) return
 
@@ -1576,9 +1607,9 @@ contains
 
       end subroutine pole_copy_stg
 
-      subroutine pole_buffer(wrecv,ixIR^L,ixR^L,wsend,ixIS^L,ixS^L)
+      subroutine pole_buffer(wrecv,ixIR^L,ixR^L,wsend,ixIS^L,ixS^L,ipole)
       
-        integer, intent(in) :: ixIR^L,ixR^L,ixIS^L,ixS^L
+        integer, intent(in) :: ixIR^L,ixR^L,ixIS^L,ixS^L,ipole
         double precision :: wrecv(ixIR^S,nwhead:nwtail), wsend(ixIS^S,1:nw)
 
         integer :: iw, iside, iB
