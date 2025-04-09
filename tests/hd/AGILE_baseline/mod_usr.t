@@ -9,6 +9,7 @@ contains
 
     usr_init_one_grid => initonegrid_usr
 
+    call set_coordinate_system("Cartesian")
     call hd_activate()
 
   end subroutine usr_init
