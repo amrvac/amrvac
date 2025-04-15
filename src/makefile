@@ -249,7 +249,6 @@ mod_ghostcells_update.o: mod_boundary_conditions.mod
 mod_ghostcells_update.o: mod_coarsen.mod
 mod_ghostcells_update.o: mod_comm_lib.mod
 mod_ghostcells_update.o: mod_global_parameters.mod
-mod_ghostcells_update.o: mod_nvtx.mod
 mod_ghostcells_update.o: mod_physics.mod
 mod_global_parameters.o: mod_basic_types.mod
 mod_global_parameters.o: mod_connectivity.mod
