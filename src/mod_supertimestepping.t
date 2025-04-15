@@ -114,15 +114,15 @@ module mod_supertimestepping
     logical :: evolve_magnetic_field
 
     !>types used for send/recv ghosts, see mod_ghostcells_update
-    integer, dimension(-1:2^D&,-1:1^D&) :: type_send_srl_sts_1, type_recv_srl_sts_1
-    integer, dimension(-1:1^D&,-1:1^D&) :: type_send_r_sts_1
-    integer, dimension(-1:1^D&, 0:3^D&) :: type_recv_r_sts_1
-    integer, dimension(-1:1^D&, 0:3^D&) :: type_recv_p_sts_1, type_send_p_sts_1
+    integer, dimension(-1:1^D&) :: type_send_srl_sts_1, type_recv_srl_sts_1
+    integer, dimension(-1:1^D&) :: type_send_r_sts_1
+    integer, dimension( 0:3^D&) :: type_recv_r_sts_1
+    integer, dimension( 0:3^D&) :: type_recv_p_sts_1, type_send_p_sts_1
 
-    integer, dimension(-1:2^D&,-1:1^D&) :: type_send_srl_sts_2, type_recv_srl_sts_2
-    integer, dimension(-1:1^D&,-1:1^D&) :: type_send_r_sts_2
-    integer, dimension(-1:1^D&, 0:3^D&) :: type_recv_r_sts_2
-    integer, dimension(-1:1^D&, 0:3^D&) :: type_recv_p_sts_2, type_send_p_sts_2
+    integer, dimension(-1:1^D&) :: type_send_srl_sts_2, type_recv_srl_sts_2
+    integer, dimension(-1:1^D&) :: type_send_r_sts_2
+    integer, dimension( 0:3^D&) :: type_recv_r_sts_2
+    integer, dimension( 0:3^D&) :: type_recv_p_sts_2, type_send_p_sts_2
 
     integer :: startVar
     integer :: endVar
