@@ -6,6 +6,7 @@ module mod_source
   !> How to apply dimensional splitting to the source terms, see
   !> @ref discretization.md
   integer :: sourcesplit =-1
+  !$acc declare copyin(sourcesplit)
   integer, parameter :: sourcesplit_sfs    = 0
   integer, parameter :: sourcesplit_sf     = 1
   integer, parameter :: sourcesplit_ssf    = 2
@@ -129,8 +130,9 @@ contains
   !> Add source within ixO for iws: w=w+qdt*S[wCT]
   subroutine addsource2(qdt,dtfactor,ixI^L,ixO^L,iw^LIM,qtC,wCT,wCTprim,qt,&
        w,x,qsourcesplit,src_active)
+    !$acc routine
     use mod_global_parameters
-    use mod_physics, only: phys_add_source
+    use mod_hd_phys, only: hd_add_source
     use mod_usr_methods, only: usr_source
     ! differences with VAC is in iw^LIM and in declaration of ranges for wCT,w
 
@@ -144,19 +146,20 @@ contains
     logical                          :: tmp_active
 
     tmp_active = .false.
-
+!FIXME:
+#ifndef _OPENACC    
     ! user defined sources, typically explicitly added
     if ((qsourcesplit .eqv. source_split_usr) .and. associated(usr_source)) then
        tmp_active = .true.
        call usr_source(qdt,ixI^L,ixO^L,iw^LIM,qtC,wCT,qt,w,x)
     end if
-
+#endif
+    
     ! physics defined sources, typically explicitly added,
     ! along with geometrical source additions
-    call phys_add_source(qdt,dtfactor,ixI^L,ixO^L,wCT,wCTprim,w,x,qsourcesplit,tmp_active)
+    call hd_add_source(qdt,dtfactor,ixI^L,ixO^L,wCT,wCTprim,w,x,qsourcesplit,tmp_active)
 
     if (present(src_active)) src_active = src_active .or. tmp_active
 
   end subroutine addsource2
-
 end module mod_source

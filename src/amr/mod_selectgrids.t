@@ -7,7 +7,6 @@ module mod_selectgrids
  
 contains
 
-
   !=============================================================================
   subroutine selectgrids
   
@@ -51,7 +50,10 @@ contains
         igridstail_passive = kgrid
   
   !     Check if user wants to deactivate grids at all and return if not:
-        if (userflag == -1) return
+        if (userflag == -1) then
+           !$acc update device(igrids_active, igrids_passive, igridstail_active, igridstail_passive)
+           return
+        end if
   
   !     Got the passive grids. 
   !     Now, we re-activate a safety belt of radius nsafety blocks.
@@ -108,14 +110,9 @@ contains
               end if
            end do
         end do
-  
-  !     Just for output and testing: 
-  !      ixO^L=ixG^LL^LSUBnghostcells;      
-  !      do iigrid=1,igridstail; igrid=igrids(iigrid);        
-  !         ps(igrid)%w(ixO^S,flg_) = dble(isafety(igrid,mype))
-  !         ps(igrid)%w(ixO^S,cpu_) = dble(mype)
-  !      end do
-  
+
+        !$acc update device(igrids_active, igrids_passive, igridstail_active, igridstail_passive)
+        
         contains
   !=============================================================================
   subroutine set_neighbor_state(igrid)

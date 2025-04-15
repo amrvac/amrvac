@@ -23,6 +23,7 @@ contains
     allocate(i_mom(1:ndir))
 
     phys_hllc_init_species => twofl_hllc_init_species
+!    !$acc update device(phys_hllc_init_species)
 
   end subroutine twofl_hllc_init
 

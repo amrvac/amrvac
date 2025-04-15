@@ -1,4 +1,4 @@
-!> update ghost cells of all blocks including physical boundaries 
+!> update ghost cells of all blocks including physical boundaries
 module mod_ghostcells_update
 
   implicit none
@@ -26,16 +26,16 @@ module mod_ghostcells_update
   ! index ranges of staggered variables to send (S) to sibling blocks, receive (R) from sibling blocks
   integer, dimension(^ND,-1:1) :: ixS_srl_stg_^L, ixR_srl_stg_^L
 
-  ! index ranges to send (S) restricted (r) ghost cells to coarser blocks 
+  ! index ranges to send (S) restricted (r) ghost cells to coarser blocks
   integer, dimension(-1:1,-1:1) :: ixS_r_^L
 
-  ! index ranges of staggered variables to send (S) restricted (r) ghost cells to coarser blocks 
+  ! index ranges of staggered variables to send (S) restricted (r) ghost cells to coarser blocks
   integer, dimension(^ND,-1:1) :: ixS_r_stg_^L
 
-  ! index ranges to receive restriced ghost cells from finer blocks 
+  ! index ranges to receive restriced ghost cells from finer blocks
   integer, dimension(-1:1, 0:3) :: ixR_r_^L
 
-  ! index ranges of staggered variables to receive restriced ghost cells from finer blocks 
+  ! index ranges of staggered variables to receive restriced ghost cells from finer blocks
   integer, dimension(^ND,0:3)  :: ixR_r_stg_^L
 
   ! send prolongated (p) ghost cells to finer blocks, receive prolongated from coarser blocks
@@ -75,7 +75,7 @@ module mod_ghostcells_update
 
   integer, dimension(:), allocatable :: recvrequest_srl, sendrequest_srl
   integer, dimension(:,:), allocatable :: recvstatus_srl, sendstatus_srl
- 
+
   ! buffer arrays for send and receive of siblings, allocate in build_connectivity
   double precision, dimension(:), allocatable :: recvbuffer_srl, sendbuffer_srl
 
@@ -102,7 +102,7 @@ module mod_ghostcells_update
   integer, dimension(^ND,0:3^D&)  :: sizes_p_send_stg, sizes_p_recv_stg
 
   ! There are two variants, _f indicates that all flux variables are filled,
-  ! whereas _p means that part of the variables is filled 
+  ! whereas _p means that part of the variables is filled
   ! Furthermore _r_ stands for restrict, _p_ for prolongation.
   integer, dimension(-1:2^D&,-1:1^D&), target :: type_send_srl_f, type_recv_srl_f
   integer, dimension(-1:1^D&,-1:1^D&), target :: type_send_r_f
@@ -144,16 +144,16 @@ contains
        interpolation_order=2
     end if
     nghostcellsCo=int((nghostcells+1)/2)
-    
+
     if (nghostcellsCo+interpolation_order-1>nghostcells) then
        call mpistop("interpolation order for prolongation in getbc too high")
     end if
 
     ! (iib,i) index has following meanings: iib = 0 means it is not at any physical boundary
-    ! iib=-1 means it is at the minimum side of a physical boundary  
-    ! iib= 1 means it is at the maximum side of a physical boundary  
-    ! i=-1 means subregion prepared for the neighbor at its minimum side 
-    ! i= 1 means subregion prepared for the neighbor at its maximum side 
+    ! iib=-1 means it is at the minimum side of a physical boundary
+    ! iib= 1 means it is at the maximum side of a physical boundary
+    ! i=-1 means subregion prepared for the neighbor at its minimum side
+    ! i= 1 means subregion prepared for the neighbor at its maximum side
     {
     ixS_srl_min^D(:,-1)=ixMmin^D
     ixS_srl_min^D(:, 0)=ixMmin^D
@@ -161,21 +161,21 @@ contains
     ixS_srl_max^D(:,-1)=ixMmin^D-1+nghostcells
     ixS_srl_max^D(:, 0)=ixMmax^D
     ixS_srl_max^D(:, 1)=ixMmax^D
-     
+
     ixR_srl_min^D(:,-1)=1
     ixR_srl_min^D(:, 0)=ixMmin^D
     ixR_srl_min^D(:, 1)=ixMmax^D+1
     ixR_srl_max^D(:,-1)=nghostcells
     ixR_srl_max^D(:, 0)=ixMmax^D
     ixR_srl_max^D(:, 1)=ixGmax^D
-    
+
     ixS_r_min^D(:,-1)=ixCoMmin^D
     ixS_r_min^D(:, 0)=ixCoMmin^D
     ixS_r_min^D(:, 1)=ixCoMmax^D+1-nghostcells
     ixS_r_max^D(:,-1)=ixCoMmin^D-1+nghostcells
     ixS_r_max^D(:, 0)=ixCoMmax^D
     ixS_r_max^D(:, 1)=ixCoMmax^D
-    
+
     ixR_r_min^D(:, 0)=1
     ixR_r_min^D(:, 1)=ixMmin^D
     ixR_r_min^D(:, 2)=ixMmin^D+nxCo^D
@@ -230,7 +230,7 @@ contains
         ixS_srl_stg_max^D(idir,0) =ixMmax^D
         ixS_srl_stg_min^D(idir,1) =ixMmax^D-nghostcells+1-kr(idir,^D)
         ixS_srl_stg_max^D(idir,1) =ixMmax^D
-        
+
         ixR_srl_stg_min^D(idir,-1)=1-kr(idir,^D)
         ixR_srl_stg_max^D(idir,-1)=nghostcells
         ixR_srl_stg_min^D(idir,0) =ixMmin^D-kr(idir,^D)
@@ -244,7 +244,7 @@ contains
         ixS_r_stg_max^D(idir,0) =ixCoMmax^D
         ixS_r_stg_min^D(idir,1) =ixCoMmax^D+1-nghostcells-kr(idir,^D)
         ixS_r_stg_max^D(idir,1) =ixCoMmax^D
- 
+
         ixR_r_stg_min^D(idir,0)=1-kr(idir,^D)
         ixR_r_stg_max^D(idir,0)=nghostcells
         ixR_r_stg_min^D(idir,1)=ixMmin^D-kr(idir,^D)
@@ -257,9 +257,9 @@ contains
        {if (idir==^D) then
           ! Parallel components
           {
-          ixS_p_stg_min^D(idir,0)=ixMmin^D-1 ! -1 to make redundant 
+          ixS_p_stg_min^D(idir,0)=ixMmin^D-1 ! -1 to make redundant
           ixS_p_stg_max^D(idir,0)=ixMmin^D-1+nghostcellsCo
-          ixS_p_stg_min^D(idir,1)=ixMmin^D-1 ! -1 to make redundant 
+          ixS_p_stg_min^D(idir,1)=ixMmin^D-1 ! -1 to make redundant
           ixS_p_stg_max^D(idir,1)=ixMmin^D-1+nxCo^D+nghostcellsCo
           ixS_p_stg_min^D(idir,2)=ixMmax^D-nxCo^D-nghostcellsCo
           ixS_p_stg_max^D(idir,2)=ixMmax^D
@@ -268,11 +268,11 @@ contains
 
           ixR_p_stg_min^D(idir,0)=ixCoMmin^D-1-nghostcellsCo
           ixR_p_stg_max^D(idir,0)=ixCoMmin^D-1
-          ixR_p_stg_min^D(idir,1)=ixCoMmin^D-1 ! -1 to make redundant 
+          ixR_p_stg_min^D(idir,1)=ixCoMmin^D-1 ! -1 to make redundant
           ixR_p_stg_max^D(idir,1)=ixCoMmax^D+nghostcellsCo
           ixR_p_stg_min^D(idir,2)=ixCoMmin^D-1-nghostcellsCo
           ixR_p_stg_max^D(idir,2)=ixCoMmax^D
-          ixR_p_stg_min^D(idir,3)=ixCoMmax^D+1-1 ! -1 to make redundant 
+          ixR_p_stg_min^D(idir,3)=ixCoMmax^D+1-1 ! -1 to make redundant
           ixR_p_stg_max^D(idir,3)=ixCoMmax^D+nghostcellsCo
           \}
         else
@@ -286,7 +286,7 @@ contains
           ixS_p_stg_max^D(idir,2)=ixMmax^D
           ixS_p_stg_min^D(idir,3)=ixMmax^D+1-nghostcellsCo-(interpolation_order-1)
           ixS_p_stg_max^D(idir,3)=ixMmax^D
- 
+
           ixR_p_stg_min^D(idir,0)=ixCoMmin^D-nghostcellsCo-(interpolation_order-1)
           ixR_p_stg_max^D(idir,0)=ixCoMmin^D-1
           ixR_p_stg_min^D(idir,1)=ixCoMmin^D
@@ -333,19 +333,19 @@ contains
       ixS_srl_max^D(-1,0)=ixMmax^D
       ixS_srl_max^D( 1,0)=ixGmax^D
       ixS_srl_max^D( 2,0)=ixGmax^D
-       
+
       ixR_srl_min^D(-1,0)=1
       ixR_srl_min^D( 1,0)=ixMmin^D
       ixR_srl_min^D( 2,0)=1
       ixR_srl_max^D(-1,0)=ixMmax^D
       ixR_srl_max^D( 1,0)=ixGmax^D
       ixR_srl_max^D( 2,0)=ixGmax^D
-      
+
       ixS_r_min^D(-1,0)=1
       ixS_r_min^D( 1,0)=ixCoMmin^D
       ixS_r_max^D(-1,0)=ixCoMmax^D
       ixS_r_max^D( 1,0)=ixCoGmax^D
-      
+
       ixR_r_min^D(-1,1)=1
       ixR_r_max^D(-1,1)=ixMmin^D-1+nxCo^D
       ixR_r_min^D( 1,2)=ixMmin^D+nxCo^D
@@ -361,7 +361,7 @@ contains
 
   end subroutine init_bc
 
-  subroutine create_bc_mpi_datatype(nwstart,nwbc) 
+  subroutine create_bc_mpi_datatype(nwstart,nwbc)
     use mod_global_parameters
 
     integer, intent(in) :: nwstart, nwbc
@@ -382,15 +382,15 @@ contains
          {end do\}
       {end do\}
     {end do\}
-  
+
   end subroutine create_bc_mpi_datatype
 
   subroutine get_bc_comm_type(comm_type,ix^L,ixG^L,nwstart,nwbc)
     use mod_global_parameters
-  
+
     integer, intent(inout) :: comm_type
     integer, intent(in) :: ix^L, ixG^L, nwstart, nwbc
-    
+
     integer, dimension(ndim+1) :: fullsize, subsize, start
 
     ^D&fullsize(^D)=ixGmax^D;
@@ -399,16 +399,16 @@ contains
     subsize(ndim+1)=nwbc
     ^D&start(^D)=ixmin^D-1;
     start(ndim+1)=nwstart-1
-    
+
     call MPI_TYPE_CREATE_SUBARRAY(ndim+1,fullsize,subsize,start,MPI_ORDER_FORTRAN, &
                                   MPI_DOUBLE_PRECISION,comm_type,ierrmpi)
     call MPI_TYPE_COMMIT(comm_type,ierrmpi)
-    
+
   end subroutine get_bc_comm_type
 
   subroutine put_bc_comm_types()
     use mod_global_parameters
- 
+
     integer :: i^D, ic^D, inc^D, iib^D
 
     {do i^DB=-1,1\}
@@ -427,11 +427,12 @@ contains
            {end do\}
        {end do\}
     {end do\}
-  
+
   end subroutine put_bc_comm_types
 
   !> do update ghost cells of all blocks including physical boundaries
   subroutine getbc(time,qdt,psb,nwstart,nwbc,req_diag)
+    use mod_nvtx
     use mod_global_parameters
     use mod_physics
     use mod_coarsen, only: coarsen_grid
@@ -448,7 +449,7 @@ contains
     integer :: ipole, nwhead, nwtail
     integer :: iigrid, igrid, ineighbor, ipe_neighbor, isizes
     integer :: ixR^L, ixS^L
-    integer :: i^D, n_i^D, ic^D, inc^D, n_inc^D, iib^D, idir
+    integer :: i^D, n_i^D, ic^D, inc^D, n_inc^D, iib^D, idir, istage
     ! store physical boundary indicating index
     integer :: idphyb(ndim,max_blocks)
     integer :: isend_buf(npwbuf), ipwbuf, nghostcellsco
@@ -458,8 +459,12 @@ contains
     integer, dimension(1) :: shapes
     logical  :: req_diagonal
     type(wbuffer) :: pwbuf(npwbuf)
+    
+    integer :: ix^D, iw
 
     time_bcin=MPI_WTIME()
+    
+    call nvtxStartRange("getbc",2)
 
     nwhead=nwstart
     nwtail=nwstart+nwbc-1
@@ -468,7 +473,7 @@ contains
     if (present(req_diag)) req_diagonal = req_diag
 
     ! fill internal physical boundary
-    if (internalboundary) then 
+    if (internalboundary) then
        call getintbc(time,ixG^LL)
     end if
 
@@ -547,19 +552,63 @@ contains
     end do
 
     ! fill ghost-cell values of sibling blocks and coarser neighbors in the same processor
+
     !$OMP PARALLEL DO SCHEDULE(dynamic) PRIVATE(igrid,iib^D)
+    !$acc parallel loop default(present) copyin(idphyb,ixS_srl_^L,ixR_srl_^L) private(igrid,iib^D,ineighbor,n_i^D,ixS^L,ixR^L,iw,ix^D) firstprivate(nwhead,nwtail)
     do iigrid=1,igridstail; igrid=igrids(iigrid);
-      ^D&iib^D=idphyb(^D,igrid);
+       ^D&iib^D=idphyb(^D,igrid);
+      !$acc loop seq
       {do i^DB=-1,1\}
-        if(skip_direction([ i^D ])) cycle
+         ! next line is inlined version of skip_direction
+         if ((all([ i^D ] == 0)) .or. (.not. req_diagonal .and. count([ i^D ] /= 0) > 1)) cycle
          select case (neighbor_type(i^D,igrid))
          case(neighbor_sibling)
-           call bc_fill_srl(igrid,i^D,iib^D)
-         case(neighbor_coarse)
-           call bc_fill_restrict(igrid,i^D,iib^D)
+          ipe_neighbor=neighbor(2,i^D,igrid)
+          if(ipe_neighbor==mype) then
+            ineighbor=neighbor(1,i^D,igrid)
+            ipole=neighbor_pole(i^D,igrid)
+            if(ipole==0) then
+              n_i^D=-i^D;
+              ixS^L=ixS_srl_^L(iib^D,i^D);
+              ixR^L=ixR_srl_^L(iib^D,n_i^D);
+              !$acc loop collapse(ndim+1) independent vector
+              do iw = nwhead, nwtail
+              {^D& do ix^DB=1,ixSmax^DB-ixSmin^DB+1\}
+                 psb(ineighbor)%w({ixRmin^D+ix^D-1},iw) = psb(igrid)%w({ixSmin^D+ix^D-1},iw)
+              {^D& end do\}
+              end do
+
+!              if(stagger_grid) then
+!                do idir=1,ndim
+!                  ixS^L=ixS_srl_stg_^L(idir,i^D);
+!                  ixR^L=ixR_srl_stg_^L(idir,n_i^D);
+!                  psb(ineighbor)%ws(ixR^S,idir)=psb(igrid)%ws(ixS^S,idir)
+!                end do
+!              end if
+            ! else
+            !   ixS^L=ixS_srl_^L(iib^D,i^D);
+            !   select case (ipole)
+            !   {case (^D)
+            !     n_i^D=i^D^D%n_i^DD=-i^DD;\}
+            !   end select
+            !   ixR^L=ixR_srl_^L(iib^D,n_i^D);
+            !   !call pole_copy(psb(ineighbor)%w,ixG^LL,ixR^L,psb(igrid)%w,ixG^LL,ixS^L,ipole)
+            !   if(stagger_grid) then
+            !     do idir=1,ndim
+            !       ixS^L=ixS_srl_stg_^L(idir,i^D);
+            !       ixR^L=ixR_srl_stg_^L(idir,n_i^D);
+            !       !call pole_copy_stg(psb(ineighbor)%ws,ixGs^LL,ixR^L,psb(igrid)%ws,ixGs^LL,ixS^L,idir,ipole)
+            !     end do
+            !   end if
+           end if
+           end if
+          ! ToDo: move rest of bc_fill_srl here
+!         case(neighbor_coarse)
+           ! call bc_fill_restrict(igrid,i^D,iib^D)
          end select
       {end do\}
-    end do
+   end do
+
     !$OMP END PARALLEL DO
 
     call MPI_WAITALL(irecv_c,recvrequest_c_sr,recvstatus_c_sr,ierrmpi)
@@ -662,7 +711,7 @@ contains
       !$OMP END PARALLEL DO
     end if
 
-     ! modify normal component of magnetic field to fix divB=0 
+     ! modify normal component of magnetic field to fix divB=0
     if(bcphys.and.associated(phys_boundary_adjust)) then
       !$OMP PARALLEL DO SCHEDULE(dynamic) PRIVATE(igrid)
       do iigrid=1,igridstail; igrid=igrids(iigrid);
@@ -673,7 +722,8 @@ contains
     end if
 
     time_bc=time_bc+(MPI_WTIME()-time_bcin)
-    
+    call nvtxEndRange
+
     contains
 
       logical function skip_direction(dir)
@@ -755,10 +805,10 @@ contains
           ixBmax^D=ixGhi^D-kmax^D*nghostcells;
           do iside=1,2
             i^D=kr(^D,idims)*(2*iside-3);
-            if (aperiodB(idims)) then 
+            if (aperiodB(idims)) then
               if (neighbor_type(i^D,igrid) /= neighbor_boundary .and. &
                  .not. psb(igrid)%is_physical_boundary(2*idims-2+iside)) cycle
-            else 
+            else
               if (neighbor_type(i^D,igrid) /= neighbor_boundary) cycle
             end if
             call bc_phys(iside,idims,time,qdt,psb(igrid),ixG^LL,ixB^L)
@@ -890,8 +940,29 @@ contains
             n_i^D=-i^D;
             ixS^L=ixS_srl_^L(iib^D,i^D);
             ixR^L=ixR_srl_^L(iib^D,n_i^D);
+
+            ! Debugging corner issues. Does this cause it?
+            ! istage = psb(ineighbor)%istep
+            ! ! Copyin since this is also called on the host.
+            ! ! That should not do anything if the data is already on device.
+            ! !$acc enter data copyin(bg(istage)%w)
+            ! !$acc kernels present(bg(istage)%w)
+            ! bg(istage)%w(ixR^S,nwhead:nwtail,ineighbor)=&
+            !      bg(istage)%w(ixS^S,nwhead:nwtail,igrid)
+            ! !$acc end kernels
+            ! ! See above, should not do anything if data was already on device /I think/
+            ! !$acc exit data copyout(bg(istage)%w)
+
+            !opedit: this seems to be working, keeping the other variants (also working) commented just in case:
+            !$acc enter data copyin(psb(igrid)%w, psb(ineighbor)%w)
+            !$acc kernels present(psb(igrid)%w, psb(ineighbor)%w)
             psb(ineighbor)%w(ixR^S,nwhead:nwtail)=&
-                psb(igrid)%w(ixS^S,nwhead:nwtail)
+                 psb(igrid)%w(ixS^S,nwhead:nwtail)
+            !$acc end kernels
+            !$acc exit data delete(psb(igrid)%w) copyout(psb(ineighbor)%w)
+
+
+
             if(stagger_grid) then
               do idir=1,ndim
                 ixS^L=ixS_srl_stg_^L(idir,i^D);
@@ -978,7 +1049,7 @@ contains
             itag=(3**^ND+4**^ND)*(ineighbor-1)+3**^ND+{n_inc^D*4**(^D-1)+}
             call MPI_ISEND(psc(igrid)%w,1,type_send_r(iib^D,i^D), &
                            ipe_neighbor,itag,icomm,sendrequest_c_sr(isend_c),ierrmpi)
-            if(stagger_grid) then 
+            if(stagger_grid) then
               ibuf_start=ibuf_send_r
               do idir=1,ndim
                 ixS^L=ixS_r_stg_^L(idir,i^D);
@@ -1014,7 +1085,7 @@ contains
             call MPI_ISEND(pwbuf(ipwbuf)%w,isizes,MPI_DOUBLE_PRECISION, &
                            ipe_neighbor,itag,icomm,sendrequest_c_sr(isend_c),ierrmpi)
             ipwbuf=1+modulo(ipwbuf,npwbuf)
-            if(stagger_grid) then 
+            if(stagger_grid) then
               ibuf_start=ibuf_send_r
               do idir=1,ndim
                 ixS^L=ixS_r_stg_^L(idir,i^D);
@@ -1093,7 +1164,7 @@ contains
           ipole=neighbor_pole(i^D,igrid)
 
         !! Now the special treatment of the pole is done here, at the receive step
-          if (ipole==0) then    
+          if (ipole==0) then
             ixR^L=ixR_srl_^L(iib^D,i^D);
             !! Unpack the buffer and fill the ghost cells
             n_i^D=-i^D;
@@ -1101,7 +1172,7 @@ contains
               ixS^L=ixS_srl_stg_^L(idir,n_i^D);
               ixR^L=ixR_srl_stg_^L(idir,i^D);
               ibuf_next=ibuf_recv_srl+sizes_srl_recv_stg(idir,i^D)
-              tmp(ixS^S) = reshape(source=recvbuffer_srl(ibuf_recv_srl:ibuf_next-1),shape=shape(psb(igrid)%ws(ixS^S,idir)))       
+              tmp(ixS^S) = reshape(source=recvbuffer_srl(ibuf_recv_srl:ibuf_next-1),shape=shape(psb(igrid)%ws(ixS^S,idir)))
               psb(igrid)%ws(ixR^S,idir) = tmp(ixS^S)
               ibuf_recv_srl=ibuf_next
             end do
@@ -1129,10 +1200,10 @@ contains
         integer, intent(in)       :: i^D,idir
         integer, intent(inout)    :: ixR^L,ixS^L
         integer, intent(out)      :: ixRsync^L,ixSsync^L
-      
+
         ixRsync^L=ixR^L;
         ixSsync^L=ixS^L;
-        
+
         {
         if (i^D == -1 .and. idir == ^D) then
            ixRsyncmin^D = ixRmax^D
@@ -1215,10 +1286,10 @@ contains
            inc^D=ic^D+i^D;
            itag=(3**^ND+4**^ND)*(igrid-1)+3**^ND+{inc^D*4**(^D-1)+}
            call MPI_IRECV(psc(igrid)%w,1,type_recv_p(iib^D,inc^D), &
-                          ipe_neighbor,itag,icomm,recvrequest_c_p(irecv_c),ierrmpi)  
+                          ipe_neighbor,itag,icomm,recvrequest_c_p(irecv_c),ierrmpi)
            if(stagger_grid) then
              irecv_p=irecv_p+1
-             call MPI_IRECV(recvbuffer_p(ibuf_recv_p),sizes_p_recv_total(inc^D),& 
+             call MPI_IRECV(recvbuffer_p(ibuf_recv_p),sizes_p_recv_total(inc^D),&
                             MPI_DOUBLE_PRECISION,ipe_neighbor,itag,&
                             icomm,recvrequest_p(irecv_p),ierrmpi)
              ibuf_recv_p=ibuf_recv_p+sizes_p_recv_total(inc^D)
@@ -1246,14 +1317,14 @@ contains
                itag=(3**^ND+4**^ND)*(ineighbor-1)+3**^ND+{n_inc^D*4**(^D-1)+}
                call MPI_ISEND(psb(igrid)%w,1,type_send_p(iib^D,inc^D), &
                               ipe_neighbor,itag,icomm,sendrequest_c_p(isend_c),ierrmpi)
-               if(stagger_grid) then 
+               if(stagger_grid) then
                  ibuf_start=ibuf_send_p
                  do idir=1,ndim
                    ixS^L=ixS_p_stg_^L(idir,inc^D);
                    ibuf_next=ibuf_start+sizes_p_send_stg(idir,inc^D)
                    shapes=(/sizes_p_send_stg(idir,inc^D)/)
                    sendbuffer_p(ibuf_start:ibuf_next-1)=&
-                     reshape(psb(igrid)%ws(ixS^S,idir),shapes)   
+                     reshape(psb(igrid)%ws(ixS^S,idir),shapes)
                    ibuf_start=ibuf_next
                  end do
                  isend_p=isend_p+1
@@ -1281,14 +1352,14 @@ contains
                call MPI_ISEND(pwbuf(ipwbuf)%w,isizes,MPI_DOUBLE_PRECISION, &
                               ipe_neighbor,itag,icomm,sendrequest_c_p(isend_c),ierrmpi)
                ipwbuf=1+modulo(ipwbuf,npwbuf)
-               if(stagger_grid) then 
+               if(stagger_grid) then
                  ibuf_start=ibuf_send_p
                  do idir=1,ndim
                    ixS^L=ixS_p_stg_^L(idir,inc^D);
                    ibuf_next=ibuf_start+sizes_p_send_stg(idir,inc^D)
                    shapes=(/sizes_p_send_stg(idir,inc^D)/)
                    sendbuffer_p(ibuf_start:ibuf_next-1)=&
-                     reshape(psb(igrid)%ws(ixS^S,idir),shapes)   
+                     reshape(psb(igrid)%ws(ixS^S,idir),shapes)
                    ibuf_start=ibuf_next
                  end do
                  isend_p=isend_p+1
@@ -1429,7 +1500,7 @@ contains
           ineighbor=neighbor(1,i^D,igrid)
           ipole=neighbor_pole(i^D,igrid)
 
-          if (ipole==0) then   !! There is no pole 
+          if (ipole==0) then   !! There is no pole
             inc^D=ic^D+i^D;
             ixR^L=ixR_p_^L(iib^D,inc^D);
             do idir=1,ndim
@@ -1474,8 +1545,8 @@ contains
         invdxCo^D=1.d0/dxCo^D;
 
         ! compute the enlarged grid lower left corner coordinates
-        ! these are true coordinates for an equidistant grid, 
-        ! but we can temporarily also use them for getting indices 
+        ! these are true coordinates for an equidistant grid,
+        ! but we can temporarily also use them for getting indices
         ! in stretched grids
         xFimin^D=rnode(rpxmin^D_,igrid)-dble(nghostcells)*dxFi^D;
         xComin^D=rnode(rpxmin^D_,igrid)-dble(nghostcells)*dxCo^D;
@@ -1517,9 +1588,9 @@ contains
         end if
 
         if(prolongprimitive) then
-          ! following line again assumes equidistant grid, but 
+          ! following line again assumes equidistant grid, but
           ! just computes indices, so also ok for stretched case
-          ! reason for +1-1 and +1+1: the coarse representation has 
+          ! reason for +1-1 and +1+1: the coarse representation has
           ! also nghostcells at each side. During
           ! prolongation, we need cells to left and right, hence -1/+1
           block=>psc(igrid)
@@ -1577,7 +1648,7 @@ contains
         if(prolongprimitive) call phys_to_conserved(ixG^LL,ixFi^L,psb(igrid)%w,psb(igrid)%x)
 
         ! The current region has already been refined, so it does not need to be prolonged again
-        NeedProlong(i^D)=.false. 
+        NeedProlong(i^D)=.false.
 
       end subroutine bc_prolong_stg
 
@@ -1611,7 +1682,7 @@ contains
            xFi^DB=xFimin^DB+(dble(ixFi^DB)-half)*dxFi^DB
 
            ! indices of coarse cell which contains the fine cell
-           ! since we computed lower left corner earlier 
+           ! since we computed lower left corner earlier
            ! in equidistant fashion: also ok for stretched case
            ixCo^DB=int((xFi^DB-xComin^DB)*invdxCo^DB)+1
 
@@ -1641,11 +1712,11 @@ contains
              !if(ixshift^D>0.0d0)then
              !   ! oneven fine grid points
              !   eta^D=-0.5d0*(one-block%dvolume(ixFi^DD) &
-             !     /sum(block%dvolume(ixFi^D:ixFi^D+1^D%ixFi^DD))) 
+             !     /sum(block%dvolume(ixFi^D:ixFi^D+1^D%ixFi^DD)))
              !else
              !   ! even fine grid points
              !   eta^D=+0.5d0*(one-block%dvolume(ixFi^DD) &
-             !     /sum(block%dvolume(ixFi^D-1:ixFi^D^D%ixFi^DD))) 
+             !     /sum(block%dvolume(ixFi^D-1:ixFi^D^D%ixFi^DD)))
              !endif\}
              ! case(1)
              !{! here we assume an odd number of ghostcells!!!
@@ -1653,18 +1724,18 @@ contains
              !if(ixshift^D>0.0d0)then
              !   ! oneven fine grid points
              !   eta^D=+0.5d0*(one-block%dvolume(ixFi^DD) &
-             !     /sum(block%dvolume(ixFi^D-1:ixFi^D^D%ixFi^DD))) 
+             !     /sum(block%dvolume(ixFi^D-1:ixFi^D^D%ixFi^DD)))
              !else
              !   ! even fine grid points
              !   eta^D=-0.5d0*(one-block%dvolume(ixFi^DD) &
-             !     /sum(block%dvolume(ixFi^D:ixFi^D+1^D%ixFi^DD))) 
+             !     /sum(block%dvolume(ixFi^D:ixFi^D+1^D%ixFi^DD)))
              !endif\}
              ! case default
              !  call mpistop("no such case")
              !end select
-             ! the different cases for even/uneven number of ghost cells 
+             ! the different cases for even/uneven number of ghost cells
              ! are automatically handled using the relative index to ixMlo
-             ! as well as the pseudo-coordinates xFi and xCo 
+             ! as well as the pseudo-coordinates xFi and xCo
              ! these latter differ from actual cell centers when stretching is used
              ix^D=2*int((ixFi^D+ixMlo^D)/2)-ixMlo^D;
              {if(xFi^D>xCo^D) then
@@ -1747,22 +1818,22 @@ contains
         {do ixFi^DB = ixFi^LIM^DB
            ! cell-centered coordinates of fine grid point
            xFi^DB=xFimin^DB+(dble(ixFi^DB)-half)*dxFi^DB
-        
+
            ! indices of coarse cell which contains the fine cell
            ! note: this also works for stretched grids
            ixCo^DB=int((xFi^DB-xComin^DB)*invdxCo^DB)+1\}
-        
+
            ! Copy from coarse cell
            psb(igrid)%w(ixFi^D,nwmin:nwmax)=psc(igrid)%w(ixCo^D,nwmin:nwmax)
-        
+
         {end do\}
-        
+
         if(prolongprimitive) call phys_to_conserved(ixG^LL,ixFi^L,psb(igrid)%w,psb(igrid)%x)
-      
+
       end subroutine interpolation_copy
 
       subroutine pole_copy(wrecv,ixIR^L,ixR^L,wsend,ixIS^L,ixS^L,ipole)
-      
+
         integer, intent(in) :: ixIR^L,ixR^L,ixIS^L,ixS^L,ipole
         double precision :: wrecv(ixIR^S,1:nw), wsend(ixIS^S,1:nw)
 
@@ -1783,11 +1854,11 @@ contains
              end select
            end do \}
         end select
-      
+
       end subroutine pole_copy
 
       subroutine pole_copy_stg(wrecv,ixIR^L,ixR^L,wsend,ixIS^L,ixS^L,idirs,ipole)
-      
+
         integer, intent(in) :: ixIR^L,ixR^L,ixIS^L,ixS^L,idirs,ipole
 
         double precision :: wrecv(ixIR^S,1:nws), wsend(ixIS^S,1:nws)
@@ -1811,7 +1882,7 @@ contains
       end subroutine pole_copy_stg
 
       subroutine pole_buffer(wrecv,ixIR^L,ixR^L,wsend,ixIS^L,ixS^L)
-      
+
         integer, intent(in) :: ixIR^L,ixR^L,ixIS^L,ixS^L
         double precision :: wrecv(ixIR^S,nwhead:nwtail), wsend(ixIS^S,1:nw)
 
@@ -1832,9 +1903,10 @@ contains
              end select
            end do \}
         end select
-      
+
       end subroutine pole_buffer
 
+      
   end subroutine getbc
 
   subroutine identifyphysbound(s,iib^D)

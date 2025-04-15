@@ -10,15 +10,15 @@ ifndef NDIM
 $(error build.make: NDIM is not set)
 endif
 
-SRC_DIRS := . modules amr io limiter physics rho hd mhd rhd particle nonlinear rd mf twofl ard srhd
+SRC_DIRS := . modules amr io limiter physics hd particle
 SRC_DIRS := $(addprefix $(AMRVAC_DIR)/src/, $(SRC_DIRS))
 LIB_AMRVAC := libamrvac.a
 PPFLAGS :=
 
 .PHONY: libamrvac clean
-.PRECIOUS: %.f			# Don't remove intermediate .f files
+.PRECIOUS: %.F90			# Don't remove intermediate .F90 files
 
-libamrvac: $(LIB_AMRVAC) amrvac.f
+libamrvac: $(LIB_AMRVAC) amrvac.F90
 
 # Include makefiles, which define FOBJECTS and dependencies
 include $(addsuffix /makefile, $(SRC_DIRS))
@@ -37,4 +37,4 @@ $(LIB_AMRVAC): $(OBJECTS)
 	$(AR) rcs $@ $^
 
 clean:
-	$(RM) *.o *.mod *.f $(LIB_AMRVAC)
+	$(RM) *.o *.mod *.F90 $(LIB_AMRVAC)

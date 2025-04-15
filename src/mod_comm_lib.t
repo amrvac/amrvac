@@ -205,15 +205,21 @@ contains
 
   !> Exit MPI-AMRVAC with an error message
   subroutine mpistop(message)
+    !$acc routine
     use mod_global_parameters
   
     character(len=*), intent(in) :: message !< The error message
     integer                      :: ierrcode
   
     write(*, *) "ERROR for processor", mype, ":"
+
+#ifdef _OPENACC
+    write(*, *) message
+    STOP
+#else
     write(*, *) trim(message)
-  
     call MPI_ABORT(icomm, ierrcode, ierrmpi)
+#endif
   
   end subroutine mpistop
   

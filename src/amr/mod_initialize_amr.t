@@ -23,6 +23,7 @@ contains
     use mod_amr_solution_node, only: alloc_node
  
     integer :: iigrid, igrid{#IFDEF EVOLVINGBOUNDARY , Morton_no}
+    integer :: itimelevel
   
     levmin=1
     levmax=1
@@ -34,9 +35,12 @@ contains
   
     ! fill solution space of all root grids
     do iigrid=1,igridstail; igrid=igrids(iigrid);
+
        call alloc_node(igrid)
+
        ! in case gradient routine used in initial condition, ensure geometry known
        call initial_condition(igrid)
+       
     end do
     {#IFDEF EVOLVINGBOUNDARY
     ! mark physical-boundary blocks on space-filling curve
@@ -47,10 +51,20 @@ contains
     call MPI_ALLREDUCE(MPI_IN_PLACE,sfc_phybound,nleafs,MPI_INTEGER,&
                        MPI_SUM,icomm,ierrmpi)
     }
-  
+
+
+    !$acc enter data copyin(bg)
+    do itimelevel = 1, nstep
+       !$acc enter data copyin( bg(itimelevel)%w )
+    end do
+    do igrid = 1, max_blocks
+       !$acc update device(ps(igrid), ps1(igrid), ps2(igrid))
+       !$acc enter data copyin(ps(igrid)%x) attach(ps(igrid)%w, ps1(igrid)%w, ps2(igrid)%w)
+    end do
+
     ! update ghost cells
     call getbc(global_time,0.d0,ps,iwstart,nwgc)
-  
+    
   end subroutine initlevelone
   
   !> fill in initial condition

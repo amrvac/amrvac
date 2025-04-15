@@ -1268,7 +1268,7 @@ contains
     double precision    :: x(ndim), grid_rmin(ndim), grid_rmax(ndim)
 
     ! First check if the igrid is still there
-    if (.not. allocated(ps(igrid)%w)) then
+    if (.not. associated(ps(igrid)%w)) then
       particle_in_igrid = .false.
     else
       grid_rmin         = [ {rnode(rpxmin^D_,igrid)} ]

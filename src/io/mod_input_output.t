@@ -556,6 +556,7 @@ contains
           enddo
        enddo
     enddo
+    !$acc update device(kr,lvc)
 
     ! These are used to construct file and log names from multiple par files
     basename_full = ''
@@ -1452,7 +1453,8 @@ contains
     ! prolongation in AMR for constrained transport MHD needs even number ghosts
     if(stagger_grid .and. refine_max_level>1 .and. mod(nghostcells,2)/=0) then
       nghostcells=nghostcells+1
-    end if
+   end if
+   !$acc update device(nghostcells)
 
       select case (coordinate)
          {^NOONED
@@ -1665,6 +1667,11 @@ contains
 
     deallocate(flux_scheme)
 
+    !$acc update device(tvdlfeps,ixGhi^D,ixGshi^D,schmid_rad^D,cada3_radius)
+    !$acc update device(fix_small_values,H_correction,type_limiter, boundspeed)    
+    !$acc update device(rk_beta11,rk_beta22,rk_beta33,rk_beta44,rk_c2,rk_c3,rk_c4)
+    !$acc update device(rk_alfa21,rk_alfa22,rk_alfa31,rk_alfa33,rk_alfa41,rk_alfa44)
+    !$acc update device(rk_beta54,rk_beta55,rk_alfa53,rk_alfa54,rk_alfa55,rk_c5)
   end subroutine read_par_files
 
   !> Routine to find entries in a string
@@ -1724,7 +1731,18 @@ contains
     use mod_slice, only: write_slice
     use mod_collapse, only: write_collapsed
     use mod_convert_files, only: generate_plotfile
-    integer:: ifile
+    use mod_physics, only: phys_req_diagonal
+    use mod_ghostcells_update
+    integer:: ifile, iigrid, igrid
+
+    ! update (diagonal) ghostcells before moving to host:
+    if(.not. phys_req_diagonal) then
+      call getbc(global_time,0.d0,ps,iwstart,nwgc)
+    end if
+    
+    do iigrid=1,igridstail; igrid=igrids(iigrid);
+       !$acc update host(ps(igrid)%w)
+    end do
 
     select case (ifile)
     case (fileout_)

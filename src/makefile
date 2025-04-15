@@ -4,13 +4,13 @@ FOBJECTS = mod_global_parameters.t mod_usr_methods.t mod_variables.t	\
 mod_physicaldata.t mod_connectivity.t mod_constants.t \
 mod_basic_types.t \
 mod_advance.t mod_dt.t 		\
-mod_finite_volume.t mod_tvd.t mod_finite_difference.t \
+mod_finite_volume.t mod_finite_volume_all.t mod_tvd.t mod_finite_difference.t \
 mod_functions_connectivity.t mod_boundary_conditions.t mod_comm_lib.t 	\
 mod_geometry.t mod_ghostcells_update.t mod_small_values.t  \
 mod_fix_conserve.t mod_source.t mod_initialize.t  \
 mod_amrvac.t mod_bc_data.t mod_lookup_table.t    \
 mod_constrained_transport.t mod_multigrid_coupling.t \
-mod_supertimestepping.t mod_init_datafromfile.t
+mod_supertimestepping.t mod_init_datafromfile.t mod_nvtx.t
 FOBJECTS += m_octree_mg_$(NDIM)d.t
 # Add multigrid files and dependencies. Due to the m_ prefix, the
 # list_module_deps.sh script ignores these dependencies.
@@ -35,20 +35,22 @@ amrvac.o: mod_initialize_amr.mod
 amrvac.o: mod_input_output.mod
 amrvac.o: mod_input_output_helper.mod
 amrvac.o: mod_multigrid_coupling.mod
+amrvac.o: mod_nvtx.mod
 amrvac.o: mod_particles.mod
 amrvac.o: mod_physics.mod
 amrvac.o: mod_selectgrids.mod
 amrvac.o: mod_timing.mod
-amrvac.o: mod_trac.mod
 amrvac.o: mod_usr.mod
 amrvac.o: mod_usr_methods.mod
 mod_advance.o: mod_comm_lib.mod
 mod_advance.o: mod_finite_difference.mod
 mod_advance.o: mod_finite_volume.mod
+mod_advance.o: mod_finite_volume_all.mod
 mod_advance.o: mod_fix_conserve.mod
 mod_advance.o: mod_ghostcells_update.mod
 mod_advance.o: mod_global_parameters.mod
 mod_advance.o: mod_particles.mod
+mod_advance.o: mod_physicaldata.mod
 mod_advance.o: mod_physics.mod
 mod_advance.o: mod_source.mod
 mod_advance.o: mod_tvd.mod
@@ -164,7 +166,6 @@ mod_convert_files.o: mod_calculate_xw.mod
 mod_convert_files.o: mod_comm_lib.mod
 mod_convert_files.o: mod_convert.mod
 mod_convert_files.o: mod_forest.mod
-mod_convert_files.o: mod_ghostcells_update.mod
 mod_convert_files.o: mod_global_parameters.mod
 mod_convert_files.o: mod_physics.mod
 mod_convert_files.o: mod_thermal_emission.mod
@@ -173,6 +174,7 @@ mod_dipole.o: mod_comm_lib.mod
 mod_dipole.o: mod_global_parameters.mod
 mod_dt.o: mod_comm_lib.mod
 mod_dt.o: mod_global_parameters.mod
+mod_dt.o: mod_hd_phys.mod
 mod_dt.o: mod_physics.mod
 mod_dt.o: mod_supertimestepping.mod
 mod_dt.o: mod_usr_methods.mod
@@ -204,6 +206,31 @@ mod_finite_volume.o: mod_source.mod
 mod_finite_volume.o: mod_tvd.mod
 mod_finite_volume.o: mod_usr_methods.mod
 mod_finite_volume.o: mod_variables.mod
+mod_finite_volume_all.o: mod_comm_lib.mod
+mod_finite_volume_all.o: mod_global_parameters.mod
+mod_finite_volume_all.o: mod_hd_phys.mod
+mod_finite_volume_all.o: mod_limiter.mod
+mod_finite_volume_all.o: mod_physicaldata.mod
+mod_finite_volume_all.o: mod_physics.mod
+mod_finite_volume_all.o: mod_source.mod
+mod_finite_volume_all.o: mod_usr_methods.mod
+mod_finite_volume_all.o: mod_variables.mod
+mod_finite_volume_fast.o: mod_comm_lib.mod
+mod_finite_volume_fast.o: mod_global_parameters.mod
+mod_finite_volume_fast.o: mod_hd_phys.mod
+mod_finite_volume_fast.o: mod_limiter.mod
+mod_finite_volume_fast.o: mod_physics.mod
+mod_finite_volume_fast.o: mod_source.mod
+mod_finite_volume_fast.o: mod_usr_methods.mod
+mod_finite_volume_fast.o: mod_variables.mod
+mod_finite_volume_local.o: mod_comm_lib.mod
+mod_finite_volume_local.o: mod_global_parameters.mod
+mod_finite_volume_local.o: mod_hd_phys.mod
+mod_finite_volume_local.o: mod_limiter.mod
+mod_finite_volume_local.o: mod_physics.mod
+mod_finite_volume_local.o: mod_source.mod
+mod_finite_volume_local.o: mod_usr_methods.mod
+mod_finite_volume_local.o: mod_variables.mod
 mod_fix_conserve.o: mod_global_parameters.mod
 mod_fld.o: mod_comm_lib.mod
 mod_fld.o: mod_constants.mod
@@ -238,6 +265,7 @@ mod_ghostcells_update.o: mod_boundary_conditions.mod
 mod_ghostcells_update.o: mod_coarsen.mod
 mod_ghostcells_update.o: mod_comm_lib.mod
 mod_ghostcells_update.o: mod_global_parameters.mod
+mod_ghostcells_update.o: mod_nvtx.mod
 mod_ghostcells_update.o: mod_physics.mod
 mod_global_parameters.o: mod_basic_types.mod
 mod_global_parameters.o: mod_connectivity.mod
@@ -314,6 +342,7 @@ mod_input_output.o: mod_convert_files.mod
 mod_input_output.o: mod_forest.mod
 mod_input_output.o: mod_functions_forest.mod
 mod_input_output.o: mod_geometry.mod
+mod_input_output.o: mod_ghostcells_update.mod
 mod_input_output.o: mod_global_parameters.mod
 mod_input_output.o: mod_input_output_helper.mod
 mod_input_output.o: mod_limiter.mod
@@ -572,6 +601,7 @@ mod_solar_atmosphere.o: mod_physics.mod
 mod_source.o: mod_comm_lib.mod
 mod_source.o: mod_ghostcells_update.mod
 mod_source.o: mod_global_parameters.mod
+mod_source.o: mod_hd_phys.mod
 mod_source.o: mod_physics.mod
 mod_source.o: mod_supertimestepping.mod
 mod_source.o: mod_usr_methods.mod

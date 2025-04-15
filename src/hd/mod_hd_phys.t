@@ -10,96 +10,128 @@ module mod_hd_phys
 
   !> Whether an energy equation is used
   logical, public, protected              :: hd_energy = .true.
+  !$acc declare copyin(hd_energy)
 
   !> Whether thermal conduction is added
   logical, public, protected              :: hd_thermal_conduction = .false.
+  !$acc declare copyin(hd_thermal_conduction)
   type(tc_fluid), allocatable, public :: tc_fl
   type(te_fluid), allocatable, public :: te_fl_hd
+  !$acc declare create(tc_fl, te_fl_hd)
 
   !> Whether radiative cooling is added
   logical, public, protected              :: hd_radiative_cooling = .false.
+  !$acc declare copyin(hd_radiative_cooling)
   type(rc_fluid), allocatable, public :: rc_fl
 
   !> Whether dust is added
   logical, public, protected              :: hd_dust = .false.
+  !$acc declare copyin(hd_dust)
 
   !> Whether viscosity is added
   logical, public, protected              :: hd_viscosity = .false.
+  !$acc declare copyin(hd_viscosity)
 
   !> Whether gravity is added
   logical, public, protected              :: hd_gravity = .false.
+  !$acc declare copyin(hd_gravity)
 
   !> Whether particles module is added
   logical, public, protected              :: hd_particles = .false.
+  !$acc declare copyin(hd_particles)
 
   !> Whether rotating frame is activated
   logical, public, protected              :: hd_rotating_frame = .false.
+  !$acc declare copyin(hd_rotating_frame)
 
   !> Whether CAK radiation line force is activated
   logical, public, protected              :: hd_cak_force = .false.
-
+  !$acc declare copyin(hd_cak_force)
+  
   !> Number of tracer species
   integer, public, protected              :: hd_n_tracer = 0
+  !$acc declare copyin(hd_n_tracer)
 
   !> Whether plasma is partially ionized
   logical, public, protected              :: hd_partial_ionization = .false.
+  !$acc declare copyin(hd_partial_ionization)
 
   !> Index of the density (in the w array)
   integer, public, protected              :: rho_
+  !$acc declare create(rho_)
 
   !> Indices of the momentum density
   integer, allocatable, public, protected :: mom(:)
+  !$acc declare create(mom)
 
   !> Indices of the tracers
   integer, allocatable, public, protected :: tracer(:)
+  !$acc declare create(tracer)
 
   !> Index of the energy density (-1 if not present)
   integer, public, protected              :: e_
+  !$acc declare create(e_)
 
   !> Index of the gas pressure (-1 if not present) should equal e_
   integer, public, protected              :: p_
+  !$acc declare create(p_)
 
   !> Indices of temperature
   integer, public, protected :: Te_
+  !$acc declare create(Te_)
 
   !> Index of the cutoff temperature for the TRAC method
   integer, public, protected              :: Tcoff_
+  !$acc declare create(Tcoff_)
+
 
   !> The adiabatic index
   double precision, public                :: hd_gamma = 5.d0/3.0d0
+  !$acc declare copyin(hd_gamma)
 
   !> The adiabatic constant
   double precision, public                :: hd_adiab = 1.0d0
+  !$acc declare copyin(hd_adiab)
 
   !> The small_est allowed energy
   double precision, protected             :: small_e
+  !$acc declare create(small_e)
+
 
   !> Whether TRAC method is used
   logical, public, protected              :: hd_trac = .false.
   integer, public, protected              :: hd_trac_type = 1
+  !$acc declare copyin(hd_trac,hd_trac_type)
 
   !> Allows overruling default corner filling (for debug mode, since otherwise corner primitives fail)
   logical, public, protected              :: hd_force_diagonal = .false.
+  !$acc declare copyin(hd_force_diagonal)
 
   !> Helium abundance over Hydrogen
   double precision, public, protected  :: He_abundance=0.1d0
+  !$acc declare copyin(He_abundance)
   !> Ionization fraction of H
   !> H_ion_fr = H+/(H+ + H)
   double precision, public, protected  :: H_ion_fr=1d0
+  !$acc declare copyin(H_ion_fr)
   !> Ionization fraction of He
   !> He_ion_fr = (He2+ + He+)/(He2+ + He+ + He)
   double precision, public, protected  :: He_ion_fr=1d0
+  !$acc declare copyin(He_ion_fr)
   !> Ratio of number He2+ / number He+ + He2+
   !> He_ion_fr2 = He2+/(He2+ + He+)
   double precision, public, protected  :: He_ion_fr2=1d0
+  !$acc declare copyin(He_ion_fr2)
   ! used for eq of state when it is not defined by units,
   ! the units do not contain terms related to ionization fraction
   ! and it is p = RR * rho * T
   double precision, public, protected  :: RR=1d0
+  !$acc declare copyin(RR)
   ! remove the below flag  and assume default value = .false.
   ! when eq state properly implemented everywhere
   ! and not anymore through units
   logical, public, protected :: eq_state_units = .true.
+  !$acc declare copyin(eq_state_units)
 
   procedure(sub_get_pthermal), pointer :: hd_get_Rfactor   => null()
   ! Public methods
@@ -111,6 +143,17 @@ module mod_hd_phys
   public :: hd_to_primitive
   public :: hd_check_params
   public :: hd_check_w
+  public :: hd_add_source
+  public :: hd_get_flux
+  public :: hd_get_cbounds
+  public :: hd_get_cbounds_gpu
+  public :: hd_handle_small_values
+  public :: hd_add_source_geom
+  public :: hd_get_flux_gpu
+  public :: hd_to_primitive_gpu
+  public :: hd_to_conserved_gpu
+  public :: hd_get_cmax
+  public :: hd_get_cmax_scalar
 
 contains
 
@@ -132,6 +175,14 @@ contains
 111    close(unitpar)
     end do
 
+#ifdef _OPENACC
+    !$acc update device(hd_energy, hd_n_tracer, hd_gamma, hd_adiab, &
+    hd_dust, hd_thermal_conduction, hd_radiative_cooling, hd_viscosity, &
+    hd_gravity, He_abundance,H_ion_fr, He_ion_fr, He_ion_fr2, eq_state_units, &
+    SI_unit, hd_particles, hd_rotating_frame, hd_trac, &
+    hd_force_diagonal, hd_trac_type, hd_cak_force, hd_partial_ionization)
+#endif
+    
   end subroutine hd_read_params
 
   !> Write this module's parameters to a snapsoht
@@ -178,6 +229,7 @@ contains
     phys_internal_e = .false.
     phys_gamma = hd_gamma
     phys_partial_ionization=hd_partial_ionization
+    !$acc update device(physics_type, phys_energy, phys_total_energy, phys_internal_e, phys_gamma, phys_partial_ionization)
 
     phys_trac=hd_trac
     if(phys_trac) then
@@ -218,9 +270,11 @@ contains
     start_indices(1)=1
     ! Determine flux variables
     rho_ = var_set_rho()
+    !$acc update device(start_indices, stop_indices, rho_)
 
     allocate(mom(ndir))
     mom(:) = var_set_momentum(ndir)
+    !$acc update device(mom)
 
     ! Set index of energy variable
     if (hd_energy) then
@@ -230,17 +284,23 @@ contains
        e_ = -1
        p_ = -1
     end if
+    !$acc update device(e_,p_)
 
     phys_get_dt              => hd_get_dt
-    phys_get_cmax            => hd_get_cmax
+!    phys_get_cmax            => hd_get_cmax
+    phys_get_cmax            => hd_get_cmax_gpu
     phys_get_a2max           => hd_get_a2max
     phys_get_tcutoff         => hd_get_tcutoff
-    phys_get_cbounds         => hd_get_cbounds
-    phys_get_flux            => hd_get_flux
+!    phys_get_cbounds         => hd_get_cbounds
+    phys_get_cbounds         => hd_get_cbounds_gpu
+!    phys_get_flux            => hd_get_flux
+    phys_get_flux            => hd_get_flux_gpu
     phys_add_source_geom     => hd_add_source_geom
     phys_add_source          => hd_add_source
-    phys_to_conserved        => hd_to_conserved
-    phys_to_primitive        => hd_to_primitive
+!    phys_to_conserved        => hd_to_conserved
+    phys_to_conserved        => hd_to_conserved_gpu
+!    phys_to_primitive        => hd_to_primitive
+    phys_to_primitive        => hd_to_primitive_gpu
     phys_check_params        => hd_check_params
     phys_check_w             => hd_check_w
     phys_get_pthermal        => hd_get_pthermal
@@ -276,6 +336,7 @@ contains
 
     ! set the index of the last flux variable for species 1
     stop_indices(1)=nwflux
+    !$acc update device(nwgc, stop_indices(1))
 
     !  set temperature as an auxiliary variable to get ionization degree
     if(hd_partial_ionization) then
@@ -370,9 +431,13 @@ contains
     nvector      = 1 ! No. vector vars
     allocate(iw_vector(nvector))
     iw_vector(1) = mom(1) - 1
+    !$acc update device(nvector, iw_vector, flux_type)
     ! initialize ionization degree table
     if(hd_partial_ionization) call ionization_degree_init()
 
+
+    !$acc update device(phys_req_diagonal)
+    
   end subroutine hd_phys_init
 
 {^IFTHREED
@@ -487,8 +552,6 @@ contains
 
   end subroutine hd_get_rho
 
-!!end th cond
-!!rad cool
     subroutine rc_params_read(fl)
       use mod_global_parameters, only: unitpar,par_files
       use mod_constants, only: bigdouble
@@ -531,30 +594,31 @@ contains
       fl%rc_split=rc_split
       fl%cfrac=cfrac
     end subroutine rc_params_read
-!! end rad cool
 
-  subroutine hd_check_params
-    use mod_global_parameters
-    use mod_dust, only: dust_check_params, dust_implicit_update, dust_evaluate_implicit
+    subroutine hd_check_params
+      use mod_global_parameters
+      use mod_dust, only: dust_check_params, dust_implicit_update, dust_evaluate_implicit
 
-    if (.not. hd_energy) then
-       if (hd_gamma <= 0.0d0) call mpistop ("Error: hd_gamma <= 0")
-       if (hd_adiab < 0.0d0) call mpistop  ("Error: hd_adiab < 0")
-       small_pressure= hd_adiab*small_density**hd_gamma
-    else
-       if (hd_gamma <= 0.0d0 .or. hd_gamma == 1.0d0) &
-            call mpistop ("Error: hd_gamma <= 0 or hd_gamma == 1.0")
-       small_e = small_pressure/(hd_gamma - 1.0d0)
-    end if
+      if (.not. hd_energy) then
+         if (hd_gamma <= 0.0d0) call mpistop ("Error: hd_gamma <= 0")
+         if (hd_adiab < 0.0d0) call mpistop  ("Error: hd_adiab < 0")
+         small_pressure= hd_adiab*small_density**hd_gamma
+      else
+         if (hd_gamma <= 0.0d0 .or. hd_gamma == 1.0d0) &
+              call mpistop ("Error: hd_gamma <= 0 or hd_gamma == 1.0")
+         small_e = small_pressure/(hd_gamma - 1.0d0)
+      end if
+!FIXME:
+#ifndef _OPENACC      
+      if (hd_dust) call dust_check_params()
+      if(use_imex_scheme) then
+         ! implicit dust update
+         phys_implicit_update => dust_implicit_update
+         phys_evaluate_implicit => dust_evaluate_implicit
+      endif
+#endif
 
-    if (hd_dust) call dust_check_params()
-    if(use_imex_scheme) then
-        ! implicit dust update
-        phys_implicit_update => dust_implicit_update
-        phys_evaluate_implicit => dust_evaluate_implicit
-    endif  
-
-  end subroutine hd_check_params
+    end subroutine hd_check_params
 
   subroutine hd_physical_units
     use mod_global_parameters
@@ -632,9 +696,11 @@ contains
     end if
 
     where(w(ixO^S, rho_) < small_density) flag(ixO^S,rho_) = .true.
-
+!FIXME:
+#ifndef _OPENACC    
     if(hd_dust) call dust_check_w(ixI^L,ixO^L,w,flag)
-
+#endif
+    
   end subroutine hd_check_w
 
   !> Transform primitive variables into conservative ones
@@ -665,9 +731,35 @@ contains
 
     if (hd_dust) then
       call dust_to_conserved(ixI^L, ixO^L, w, x)
-    end if
+   end if
 
   end subroutine hd_to_conserved
+  
+  !> Transform primitive variables into conservative ones
+  subroutine hd_to_conserved_gpu(ixI^L, ixO^L, w, x)
+    !$acc routine
+    use mod_global_parameters
+    integer, intent(in)             :: ixI^L, ixO^L
+    double precision, intent(inout) :: w(ixI^S, nw)
+    double precision, intent(in)    :: x(ixI^S, 1:ndim)
+    double precision                :: invgam
+    integer                         :: idir, ix^D
+
+    invgam = 1.d0/(hd_gamma - 1.0d0)
+    {^D& do ix^DB=ixOmin^DB,ixOmax^DB\}
+    
+       ! Calculate total energy from pressure and kinetic energy
+       w(ix^D, e_) = w(ix^D, e_) * invgam + &
+            0.5d0 * ({^D& w(ix^DD,mom(^D))**2|+}) * w(ix^D, rho_)
+
+       ! Convert velocity to momentum
+       do idir = 1, ndir
+          w(ix^D, mom(idir)) = w(ix^D, rho_) * w(ix^D, mom(idir))
+       end do
+    
+    {^D& end do\}
+
+  end subroutine hd_to_conserved_gpu
 
   !> Transform conservative variables into primitive ones
   subroutine hd_to_primitive(ixI^L, ixO^L, w, x)
@@ -702,6 +794,30 @@ contains
     end if
 
   end subroutine hd_to_primitive
+
+  
+  !> Transform conservative variables into primitive ones
+  subroutine hd_to_primitive_gpu(ixI^L, ixO^L, w, x)
+    !$acc routine vector
+    use mod_global_parameters
+    integer, intent(in)             :: ixI^L, ixO^L
+    double precision, intent(inout) :: w(ixI^S, nw)
+    double precision, intent(in)    :: x(ixI^S, 1:ndim)
+    integer                         :: idir, ix^D
+
+    !$acc loop collapse(ndim)
+    {^D& do ix^DB=ixOmin^DB,ixOmax^DB\}
+    ! Compute pressure
+    w(ix^D, e_) = (hd_gamma - 1.0d0) * (w(ix^D, e_) - &     
+         0.5d0 * ({^D& w(ix^DD,mom(^D))**2|+}) / w(ix^D, rho_) )
+
+    ! Convert momentum to velocity
+    do idir = 1, ndir
+       w(ix^D, mom(idir)) = w(ix^D, mom(idir)) / w(ix^D, rho_)
+    end do
+    {^D& end do\}
+  
+  end subroutine hd_to_primitive_gpu
 
   !> Transform internal energy to total energy
   subroutine hd_ei_to_e(ixI^L,ixO^L,w,x)
@@ -760,7 +876,8 @@ contains
   end subroutine rhos_to_e
 
   !> Calculate v_i = m_i / rho within ixO^L
-  subroutine hd_get_v_idim(w, x, ixI^L, ixO^L, idim, v)
+  pure subroutine hd_get_v_idim(w, x, ixI^L, ixO^L, idim, v)
+    !$acc routine seq
     use mod_global_parameters
     integer, intent(in)           :: ixI^L, ixO^L, idim
     double precision, intent(in)  :: w(ixI^S, nw), x(ixI^S, 1:ndim)
@@ -769,6 +886,20 @@ contains
     v(ixO^S) = w(ixO^S, mom(idim)) / w(ixO^S, rho_)
   end subroutine hd_get_v_idim
 
+  !> Calculate v_i = m_i / rho within ixO^L
+  subroutine hd_get_v_idim_gpu(w, x, ixI^L, ixO^L, idim, v)
+    use mod_global_parameters
+    integer, intent(in)           :: ixI^L, ixO^L, idim
+    double precision, intent(in)  :: w(ixI^S, nw), x(ixI^S, 1:ndim)
+    double precision, intent(out) :: v(ixI^S)
+
+    !$acc kernels
+    v(ixO^S) = w(ixO^S, mom(idim)) / w(ixO^S, rho_)
+    !$acc end kernels
+    
+  end subroutine hd_get_v_idim_gpu
+
+  
   !> Calculate velocity vector v_i = m_i / rho within ixO^L
   subroutine hd_get_v(w,x,ixI^L,ixO^L,v)
     use mod_global_parameters
@@ -787,8 +918,9 @@ contains
 
   !> Calculate cmax_idim = csound + abs(v_idim) within ixO^L
   subroutine hd_get_cmax(w, x, ixI^L, ixO^L, idim, cmax)
+    !$acc routine seq
     use mod_global_parameters
-    use mod_dust, only: dust_get_cmax
+!    use mod_dust, only: dust_get_cmax
 
     integer, intent(in)                       :: ixI^L, ixO^L, idim
     double precision, intent(in)              :: w(ixI^S, nw), x(ixI^S, 1:ndim)
@@ -801,12 +933,56 @@ contains
     csound(ixO^S) = dsqrt(csound(ixO^S))
 
     cmax(ixO^S) = dabs(v(ixO^S))+csound(ixO^S)
+    
+!    if (hd_dust) then
+!      call dust_get_cmax(w, x, ixI^L, ixO^L, idim, cmax)
+!   end if
 
-    if (hd_dust) then
-      call dust_get_cmax(w, x, ixI^L, ixO^L, idim, cmax)
-    end if
   end subroutine hd_get_cmax
 
+  pure subroutine hd_get_cmax_scalar(w, idim, cmax)
+    !$acc routine seq
+
+    integer, intent(in)                       :: idim
+    double precision, intent(in)              :: w(:)
+    double precision, intent(out)             :: cmax
+    double precision                          :: csound
+    double precision                          :: v
+
+    v = w(mom(idim)) / w(rho_)
+
+    csound = (hd_gamma - 1.0d0) * (w(e_) - &     
+         0.5d0 * ({^D& w(mom(^D))**2|+}) / w(rho_) ) ! p
+    
+    csound = hd_gamma * csound / w(rho_) ! cs**2
+    csound = sqrt(csound)
+
+    cmax = abs(v) + csound
+    
+  end subroutine hd_get_cmax_scalar
+
+  
+  subroutine hd_get_cmax_gpu(w, x, ixI^L, ixO^L, idim, cmax)
+    use mod_global_parameters
+
+    integer, intent(in)                       :: ixI^L, ixO^L, idim
+    double precision, intent(in)              :: w(ixI^S, nw), x(ixI^S, 1:ndim)
+    double precision, intent(inout)           :: cmax(ixI^S)
+    double precision                          :: csound(ixI^S)
+    double precision                          :: v(ixI^S)
+    !$acc declare create(csound, v)
+
+    call hd_get_v_idim_gpu(w, x, ixI^L, ixO^L, idim, v)
+    call hd_get_csound2_gpu(w,x,ixI^L,ixO^L,csound)
+
+    !$acc kernels
+    csound(ixO^S) = dsqrt(csound(ixO^S))
+    cmax(ixO^S) = dabs(v(ixO^S))+csound(ixO^S)
+    !$acc end kernels
+
+  end subroutine hd_get_cmax_gpu
+
+  
   subroutine hd_get_a2max(w,x,ixI^L,ixO^L,a2max)
     use mod_global_parameters
 
@@ -937,11 +1113,11 @@ contains
       else
         cmax(ixO^S,1)=dabs(umean(ixO^S))+dmean(ixO^S)
       end if
-
+    
       if (hd_dust) then
         wmean(ixO^S,1:nwflux)=0.5d0*(wLC(ixO^S,1:nwflux)+wRC(ixO^S,1:nwflux))
         call dust_get_cmax(wmean, x, ixI^L, ixO^L, idim, cmax, cmin)
-      end if
+     end if
 
     case (2)
       wmean(ixO^S,1:nwflux)=0.5d0*(wLC(ixO^S,1:nwflux)+wRC(ixO^S,1:nwflux))
@@ -964,7 +1140,8 @@ contains
 
       if (hd_dust) then
         call dust_get_cmax(wmean, x, ixI^L, ixO^L, idim, cmax, cmin)
-      end if
+     end if
+     
     case (3)
       ! Miyoshi 2005 JCP 208, 315 equation (67)
       if(hd_energy) then
@@ -990,14 +1167,99 @@ contains
       if (hd_dust) then
         wmean(ixO^S,1:nwflux)=0.5d0*(wLC(ixO^S,1:nwflux)+wRC(ixO^S,1:nwflux))
         call dust_get_cmax(wmean, x, ixI^L, ixO^L, idim, cmax, cmin)
+        
       end if
     end select
 
   end subroutine hd_get_cbounds
 
+  subroutine hd_get_cbounds_gpu(wLC, wRC, wLp, wRp, x, ixI^L, ixO^L, idim, Hspeed, cmax, cmin)
+    !$acc routine seq
+    use mod_global_parameters
+    use mod_variables
+
+    integer, intent(in)             :: ixI^L, ixO^L, idim
+    ! conservative left and right status
+    double precision, intent(in)    :: wLC(ixI^S, nw), wRC(ixI^S, nw)
+    ! primitive left and right status
+    double precision, intent(in)    :: wLp(ixI^S, nw), wRp(ixI^S, nw)
+    double precision, intent(in)    :: x(ixI^S, 1:ndim)
+    double precision, intent(inout) :: cmax(ixI^S,1:number_species)
+    double precision, intent(inout), optional :: cmin(ixI^S,1:number_species)
+    double precision, intent(in)    :: Hspeed(ixI^S,1:number_species)
+
+    double precision, dimension(ixI^S) :: umean, dmean, csoundL, csoundR, tmp1,tmp2,tmp3
+    !!!$acc declare create(umean, dmean, csoundL, csoundR, tmp1, tmp2, tmp3)
+    integer :: ix^D
+    !opedit: debug
+    integer :: idbg^D
+
+    ! This implements formula (10.52) from "Riemann Solvers and Numerical
+    ! Methods for Fluid Dynamics" by Toro.
+
+    tmp1(ixO^S)=dsqrt(wLp(ixO^S,rho_))
+    tmp2(ixO^S)=dsqrt(wRp(ixO^S,rho_))
+    tmp3(ixO^S)=1.d0/(dsqrt(wLp(ixO^S, rho_))+dsqrt(wRp(ixO^S, rho_)))
+    umean(ixO^S)=(wLp(ixO^S, mom(idim))*tmp1(ixO^S)+wRp(ixO^S, mom(idim))*tmp2(ixO^S))*tmp3(ixO^S)
+
+    if (any(umean(ixO^S).ne.umean(ixO^S))) then
+       print *, 'NaN found in umean', idim
+    end if
+
+    csoundL(ixO^S)=hd_gamma*wLp(ixO^S,p_)/wLp(ixO^S,rho_)
+    csoundR(ixO^S)=hd_gamma*wRp(ixO^S,p_)/wRp(ixO^S,rho_)
+
+    if (any(csoundL(ixO^S).ne.csoundL(ixO^S))) then
+       print *, 'NaN found in csoundL', idim
+    end if
+
+    if (any(csoundR(ixO^S).ne.csoundR(ixO^S))) then
+       print *, 'NaN found in csoundR', idim
+    end if
+    
+    dmean(ixO^S) = (tmp1(ixO^S)*csoundL(ixO^S)+tmp2(ixO^S)*csoundR(ixO^S)) * &
+         tmp3(ixO^S) + 0.5d0*tmp1(ixO^S)*tmp2(ixO^S)*tmp3(ixO^S)**2 * &
+         (wRp(ixO^S,mom(idim))-wLp(ixO^S, mom(idim)))**2
+
+    if (any(dmean(ixO^S).ne.dmean(ixO^S))) then
+       print *, 'NaN found in dmean 1', idim
+    end if
+    
+    dmean(ixO^S)=dsqrt(dmean(ixO^S))
+    cmax(ixO^S,1)=dabs(umean(ixO^S))+dmean(ixO^S)
+
+    if (any(dmean(ixO^S).ne.dmean(ixO^S))) then
+       print *, 'NaN found in dmean 2', idim
+
+       do idbg2=ixOmin2,ixOmax2
+          do idbg1=ixOmin1,ixOmax1
+             if (dmean(idbg1,idbg2) .ne. dmean(idbg1,idbg2)) then
+                write(*,*), 'dmean', idbg1, idbg2, dmean(idbg1,idbg2)
+                write(*,*), 'plp', idbg1, idbg2, wLp(idbg1,idbg2,p_)
+                write(*,*), 'prp', idbg1, idbg2, wRp(idbg1,idbg2,p_)
+             end if
+          end do
+       end do
+       
+    end if
+
+    if (any(cmax(ixO^S,1).ne.cmax(ixO^S,1))) then
+       print *, 'NaN found in cmax', idim
+    end if
+    
+    
+    
+    if(present(cmin)) then
+       cmin(ixO^S,1)=umean(ixO^S)-dmean(ixO^S)
+       cmax(ixO^S,1)=umean(ixO^S)+dmean(ixO^S)
+    end if
+
+  end subroutine hd_get_cbounds_gpu
+  
   !> Calculate the square of the thermal sound speed csound2 within ixO^L.
   !> csound2=gamma*p/rho
   subroutine hd_get_csound2(w,x,ixI^L,ixO^L,csound2)
+    !$acc routine seq
     use mod_global_parameters
     integer, intent(in)             :: ixI^L, ixO^L
     double precision, intent(in)    :: w(ixI^S,nw)
@@ -1009,6 +1271,31 @@ contains
 
   end subroutine hd_get_csound2
 
+  !> Calculate the square of the thermal sound speed csound2 within ixO^L.
+  !> csound2=gamma*p/rho
+  subroutine hd_get_csound2_gpu(w,x,ixI^L,ixO^L,csound2)
+    use mod_global_parameters
+    integer, intent(in)             :: ixI^L, ixO^L
+    double precision, intent(in)    :: w(ixI^S,nw)
+    double precision, intent(in)    :: x(ixI^S,1:ndim)
+    double precision, intent(out)   :: csound2(ixI^S)
+
+    integer                         :: ix^D
+    double precision                :: p
+
+    !$acc parallel loop collapse(ndim) private(p)
+    {^D& do ix^DB=ixOmin^DB,ixOmax^DB\}
+
+    ! Compute pressure
+    p = (hd_gamma - 1.0d0) * (w(ix^D, e_) - &     
+         0.5d0 * ({^D& w(ix^DD,mom(^D))**2|+}) / w(ix^D, rho_) )
+
+    csound2(ix^D) = hd_gamma * p / w(ix^D,rho_)
+
+    {^D& end do\}
+    
+  end subroutine hd_get_csound2_gpu
+  
   !> Calculate thermal pressure=(gamma-1)*(e-0.5*m**2/rho) within ixO^L
   subroutine hd_get_pthermal(w, x, ixI^L, ixO^L, pth)
     use mod_global_parameters
@@ -1025,11 +1312,12 @@ contains
        pth(ixO^S) = (hd_gamma - 1.0d0) * (w(ixO^S, e_) - &
             hd_kin_en(w, ixI^L, ixO^L))
     else
-       if (.not. associated(usr_set_pthermal)) then
+!FIXME:          
+!       if (.not. associated(usr_set_pthermal)) then
           pth(ixO^S) = hd_adiab * w(ixO^S, rho_)**hd_gamma
-       else
-          call usr_set_pthermal(w,x,ixI^L,ixO^L,pth)
-       end if
+!       else
+!          call usr_set_pthermal(w,x,ixI^L,ixO^L,pth)
+!       end if
     end if
 
     if (fix_small_values) then
@@ -1040,18 +1328,22 @@ contains
       {enddo^D&\}
     else if (check_small_values) then
       {do ix^DB= ixO^LIM^DB\}
-         if(pth(ix^D)<small_pressure) then
+      if(pth(ix^D)<small_pressure) then
+!FIXME: many issues here, e.g. "Reference argument passing prevents parallelization"
+#ifndef _OPENACC
            write(*,*) "Error: small value of gas pressure",pth(ix^D),&
                 " encountered when call hd_get_pthermal"
            write(*,*) "Iteration: ", it, " Time: ", global_time
-           write(*,*) "Location: ", x(ix^D,:)
+           write(*,*) "Location: ", {^D& x(ix^DD,^D) |,}
            write(*,*) "Cell number: ", ix^D
            do iw=1,nw
              write(*,*) trim(cons_wnames(iw)),": ",w(ix^D,iw)
            end do
            ! use erroneous arithmetic operation to crash the run
+           
            if(trace_small_values) write(*,*) dsqrt(pth(ix^D)-bigdouble)
            write(*,*) "Saving status at the previous time step"
+#endif           
            crash=.true.
          end if
       {enddo^D&\}
@@ -1120,11 +1412,14 @@ contains
        f(ixO^S, tracer(itr)) = v(ixO^S) * w(ixO^S, tracer(itr))
     end do
 
+!FIXME:
+#ifndef _OPENACC  
     ! Dust fluxes
     if (hd_dust) then
       call dust_get_flux(w, x, ixI^L, ixO^L, idim, f)
     end if
-
+#endif
+    
   end subroutine hd_get_flux_cons
 
   ! Calculate flux f_idim[iw]
@@ -1170,7 +1465,7 @@ contains
     ! Dust fluxes
     if (hd_dust) then
       call dust_get_flux_prim(w, x, ixI^L, ixO^L, idim, f)
-    end if
+   end if
 
     ! Viscosity fluxes - viscInDiv
     if (hd_viscosity) then
@@ -1178,6 +1473,42 @@ contains
     endif
 
   end subroutine hd_get_flux
+
+  ! Calculate flux f_idim[iw]
+  subroutine hd_get_flux_gpu(wC, w, x, ixI^L, ixO^L, idim, f)
+    !$acc routine
+    use mod_global_parameters
+
+    integer, intent(in)             :: ixI^L, ixO^L, idim
+    ! conservative w
+    double precision, intent(in)    :: wC(ixI^S, 1:nw)
+    ! primitive w
+    double precision, intent(in)    :: w(ixI^S, 1:nw)
+    double precision, intent(in)    :: x(ixI^S, 1:ndim)
+    double precision, intent(out)   :: f(ixI^S, nwflux)
+    integer                         :: idir, itr, ix^D
+
+    {^D& do ix^DB=ixOmin^DB,ixOmax^DB\}
+    
+       f(ix^D, rho_) = w(ix^D, mom(idim)) * w(ix^D, rho_)
+
+       ! Momentum flux is v_i*m_i, +p in direction idim
+       do idir = 1, ndir
+          f(ix^D, mom(idir)) = w(ix^D,mom(idim)) * wC(ix^D, mom(idir))
+       end do
+       
+       f(ix^D, mom(idim)) = f(ix^D, mom(idim)) + w(ix^D, p_)
+       
+       ! Energy flux is v_i*(e + p)
+       f(ix^D, e_) = w(ix^D, mom(idim)) * (wC(ix^D, e_) + w(ix^D, p_))
+       
+       do itr = 1, hd_n_tracer
+          f(ix^D, tracer(itr)) = w(ix^D, mom(idim)) * w(ix^D, tracer(itr))
+       end do
+       
+    {^D& end do\}
+    
+  end subroutine hd_get_flux_gpu
 
   !> Add geometrical source terms to w
   !>
@@ -1214,8 +1545,11 @@ contains
     select case (coordinate)
 
     case(Cartesian_expansion)
-      !the user provides the functions of exp_factor and del_exp_factor
-      if(associated(usr_set_surface)) call usr_set_surface(ixI^L,x,block%dx,exp_factor,del_exp_factor,exp_factor_primitive)
+       !the user provides the functions of exp_factor and del_exp_factor
+!FIXME:       
+#ifndef _OPENACC
+       if(associated(usr_set_surface)) call usr_set_surface(ixI^L,x,block%dx,exp_factor,del_exp_factor,exp_factor_primitive)
+#endif
       call hd_get_pthermal(wCT, x, ixI^L, ixO^L, source)
       source(ixO^S) = source(ixO^S)*del_exp_factor(ixO^S)/exp_factor(ixO^S)
       w(ixO^S,mom(1)) = w(ixO^S,mom(1)) + qdt*source(ixO^S)
@@ -1291,7 +1625,8 @@ contains
        end if
        }
     end select
-
+!FIXME:
+#ifndef _OPENACC    
     if (hd_viscosity) call visc_add_source_geom(qdt,ixI^L,ixO^L,wCT,w,x)
 
     if (hd_rotating_frame) then
@@ -1301,11 +1636,13 @@ contains
           call rotating_frame_add_source(qdt,dtfactor,ixI^L,ixO^L,wCT,w,x)
        end if
     end if
-
+#endif
+    
   end subroutine hd_add_source_geom
 
   ! w[iw]= w[iw]+qdt*S[wCT, qtC, x] where S is the source based on wCT within ixO
   subroutine hd_add_source(qdt,dtfactor, ixI^L,ixO^L,wCT,wCTprim,w,x,qsourcesplit,active)
+    !$acc routine
     use mod_global_parameters
     use mod_radiative_cooling, only: radiative_cooling_add_source
     use mod_dust, only: dust_add_source, dust_mom, dust_rho, dust_n_species
@@ -1324,6 +1661,8 @@ contains
     double precision :: gravity_field(ixI^S, 1:ndim)
     integer :: idust, idim
 
+!FIXME:
+#ifndef _OPENACC    
     if(hd_dust .and. .not. use_imex_scheme) then
       call dust_add_source(qdt,ixI^L,ixO^L,wCT,w,x,qsourcesplit,active)
     end if
@@ -1332,7 +1671,10 @@ contains
       call radiative_cooling_add_source(qdt,ixI^L,ixO^L,wCT,wCTprim,w,x,&
            qsourcesplit,active, rc_fl)
     end if
-
+#endif
+    
+!FIXME:
+#ifndef _OPENACC
     if(hd_viscosity) then
       call viscosity_add_source(qdt,ixI^L,ixO^L,wCT,w,x,&
            hd_energy,qsourcesplit,active)
@@ -1365,7 +1707,7 @@ contains
         call hd_update_temperature(ixI^L,ixO^L,wCT,w,x)
       end if
     end if
-
+#endif
   end subroutine hd_add_source
 
   subroutine hd_get_dt(w, ixI^L, ixO^L, dtnew, dx^D, x)
@@ -1383,9 +1725,12 @@ contains
 
     dtnew = bigdouble
 
+!FIXME:
+#ifndef _OPENACC  
     if(hd_dust) then
       call dust_get_dt(w, ixI^L, ixO^L, dtnew, dx^D, x)
     end if
+#endif
 
     if(hd_radiative_cooling) then
       call cooling_get_dt(w,ixI^L,ixO^L,dtnew,dx^D,x,rc_fl)
@@ -1405,7 +1750,8 @@ contains
 
   end subroutine hd_get_dt
 
-  function hd_kin_en(w, ixI^L, ixO^L, inv_rho) result(ke)
+  pure function hd_kin_en(w, ixI^L, ixO^L, inv_rho) result(ke)
+    !$acc routine
     use mod_global_parameters, only: nw, ndim
     integer, intent(in)                    :: ixI^L, ixO^L
     double precision, intent(in)           :: w(ixI^S, nw)

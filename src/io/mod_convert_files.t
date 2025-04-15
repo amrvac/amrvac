@@ -9,17 +9,12 @@ contains
   subroutine generate_plotfile
     use mod_usr_methods, only: usr_special_convert
     use mod_global_parameters
-    use mod_ghostcells_update
-    use mod_physics, only: phys_req_diagonal,phys_te_images
+    use mod_physics, only: phys_te_images
     use mod_convert, only: convert_all
     use mod_thermal_emission
 
     character(len=std_len) :: convert_type_elem
     integer :: i
-
-    if(.not. phys_req_diagonal) then
-      call getbc(global_time,0.d0,ps,iwstart,nwgc)
-    end if
 
     select case(convert_type)
       case('tecplot','tecplotCC','tecline')

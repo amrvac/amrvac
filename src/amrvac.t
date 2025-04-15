@@ -21,7 +21,8 @@ program amrvac
   use mod_convert, only: init_convert
   use mod_physics
   use mod_amr_grid, only: resettree, settree, resettree_convert
-  use mod_trac, only: initialize_trac_after_settree
+!FIXME:  
+!  use mod_trac, only: initialize_trac_after_settree
   use mod_convert_files, only: generate_plotfile
   use mod_comm_lib, only: comm_start, comm_finalize,mpistop
 
@@ -46,7 +47,11 @@ program amrvac
 
   call initialize_amrvac()
 
-  if (restart_from_file /= undefined) then
+  if (restart_from_file /= undefined) then 
+  !AGILE: not yet implemented, data movement needs to happen here
+#ifdef _OPENACC
+     call mpistop("restart or convert on GPU not yet implemented")
+#endif
      ! restart from previous file or dat file conversion
      ! get input data from previous AMRVAC run
 
@@ -164,9 +169,10 @@ program amrvac
 
   end if
 
+!FIXME:  
   ! initialize something base on tree information
-  call initialize_trac_after_settree
-
+!  call initialize_trac_after_settree
+  
   if (mype==0) then
      print*,'-------------------------------------------------------------------------------'
      write(*,'(a,f17.3,a)')' Startup phase took : ',MPI_WTIME()-time0,' sec'
@@ -191,6 +197,7 @@ program amrvac
 contains
 
   subroutine timeintegration()
+    use mod_nvtx
     use mod_timing
     use mod_advance, only: advance, process, process_advanced
     use mod_forest, only: nleafs_active
@@ -201,7 +208,7 @@ contains
     use mod_dt, only: setdt
 
 
-    integer :: level, ifile, fixcount, ncells_block, igrid, iigrid
+    integer :: level, ifile, fixcount, ncells_block, igrid, iigrid, itimelevel
     integer(kind=8) ncells_update
     logical :: crashall
     double precision :: time_last_print, time_write0, time_write, time_before_advance, dt_loop
@@ -246,7 +253,7 @@ contains
 
        time_before_advance=MPI_WTIME()
        ! set time step
-       call setdt()
+       call nvtxStartRange("setdt");       call setdt();       call nvtxEndRange
 
        ! Optionally call a user method that can modify the grid variables at the
        ! beginning of a time step
@@ -313,14 +320,15 @@ contains
        ! solving equations
        call advance(it)
 
+       !opedit: FIXME, this seems to take a long time!
        ! if met unphysical values, output the last good status and stop the run
-       call MPI_ALLREDUCE(crash,crashall,1,MPI_LOGICAL,MPI_LOR,icomm,ierrmpi)
-       if (crashall) then
-         call saveamrfile(1)
-         call saveamrfile(2)
-         if(mype==0) write(*,*) "Error: small value encountered, run crash."
-         call MPI_ABORT(icomm, iigrid, ierrmpi)
-       end if
+       ! call MPI_ALLREDUCE(crash,crashall,1,MPI_LOGICAL,MPI_LOR,icomm,ierrmpi)
+       ! if (crashall) then
+       !   call saveamrfile(1)
+       !   call saveamrfile(2)
+       !   if(mype==0) write(*,*) "Error: small value encountered, run crash."
+       !   call MPI_ABORT(icomm, iigrid, ierrmpi)
+       ! end if
 
        ! Optionally call a user method that can modify the grid variables at the
        ! end of a time step: this is for two-way coupling to PIC, e.g.
@@ -377,7 +385,7 @@ contains
        write(*,'(a,f12.2,a)')'                  Percentage: ',100.0*time_bc/timeloop,' %'
        write(*,'(a,f12.3,a)')' Time spent on computing    : ',timeloop-timeio_tot-timegr_tot-time_bc,' sec'
        write(*,'(a,f12.2,a)')'                  Percentage: ',100.0*(timeloop-timeio_tot-timegr_tot-time_bc)/timeloop,' %'
-       write(*,'(a,es12.3 )')' Cells updated / proc / sec : ',dble(ncells_update)*dble(nstep)/dble(npe)/timeloop
+       write(*,'(a,es12.3 )')' Cells updated / proc / sec : ',dble(ncells_update)*dble(nstep)/dble(npe)/(timeloop-timeio_tot)
     end if
 
     ! output end state

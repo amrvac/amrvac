@@ -1,6 +1,7 @@
  !$AMRVAC_DIR/setup.pl -d=2
  &filelist
-   base_filename    = 'kh_2d'
+   base_filename    = 'khi'
+   typefilelog      = 'regression_test'
    autoconvert      = T
    convert_type     = 'vtuBCCmpi'
    saveprim         = T
@@ -8,13 +9,11 @@
 
  &savelist
    itsave(1,1)      = 0
-   itsave(1,2)      = 0
-   ditsave_log      = 100
-   ditsave_dat      = 100
+   ditsave_log      = 10
  /
 
  &stoplist
-   it_max = 10
+   it_max = 100
  /
 
  &methodlist
@@ -31,12 +30,12 @@
  /
 
  &meshlist
-   max_blocks         = 65536
+   max_blocks         = 1024
    refine_max_level   = 1
    block_nx1          = 16
    block_nx2          = 16
-   domain_nx1         = 4096
-   domain_nx2         = 4096
+   domain_nx1         = 128
+   domain_nx2         = 128
    xprobmin1       = 0.0d0
    xprobmax1       = 1.0d0
    xprobmin2       = 0.0d0
@@ -46,6 +45,6 @@
   
  &paramlist
    slowsteps        = 10
-   courantpar       = 0.5d0
+   courantpar       = 1.d0
    typecourant      = 'maxsum'
  /

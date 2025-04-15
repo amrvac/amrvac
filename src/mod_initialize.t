@@ -63,6 +63,8 @@ contains
     allocate(ps2(max_blocks))
     allocate(ps3(max_blocks))
     allocate(ps4(max_blocks))
+    
+       
     allocate(psc(max_blocks))
     allocate(ps_sub(max_blocks))
     allocate(neighbor(2,-1:1^D&,max_blocks),neighbor_child(2,0:3^D&,max_blocks))
@@ -72,6 +74,22 @@ contains
     allocate(rnode(rnodehi,max_blocks),rnode_sub(rnodehi,max_blocks))
     allocate(node(nodehi,max_blocks),node_sub(nodehi,max_blocks),phyboundblock(max_blocks))
     allocate(pflux(2,^ND,max_blocks))
+
+    allocate( bg(1:nstep) )
+    do istep = 1 , nstep
+       bg(istep)%istep = istep
+       allocate( bg(istep)%w(ixG^T, 1:nw, 1:max_blocks) )
+    end do
+
+    do igrid = 1, max_blocks
+       ps(igrid)%igrid  = igrid; ps(igrid)%istep  = 1
+       ps1(igrid)%igrid = igrid; ps1(igrid)%istep = 2
+       ps2(igrid)%igrid = igrid; ps2(igrid)%istep = 3
+       ps3(igrid)%igrid = igrid; ps3(igrid)%istep = 4
+       ps4(igrid)%igrid = igrid; ps4(igrid)%istep = 5
+    end do
+
+    
     ! allocate mesh for particles
     if(use_particles) allocate(gridvars(max_blocks))
     if(stagger_grid) then
@@ -92,6 +110,7 @@ contains
        call mpistop("mesh widths must give even number grid points")
     end if
     ixM^LL=ixG^LL^LSUBnghostcells;
+    !$acc update device(ixM^LL)
 
     if (nbufferx^D>(ixMhi^D-ixMlo^D+1)|.or.) then
        write(unitterm,*) "nbufferx^D bigger than mesh size makes no sense."
@@ -103,7 +122,7 @@ contains
     do level=2,refine_max_level
        {dx(^D,level) = dx(^D,level-1) * half\}  ! refine ratio 2
     end do
-
+    
     ! domain decomposition
     ! physical extent of a grid block at level 1, per dimension
     ^D&dg^D(1)=dx(^D,1)*dble(block_nx^D)\

@@ -17,6 +17,8 @@ contains
 
     call set_coordinate_system("Cartesian_3D")
 
+    usr_init_one_grid => initonegrid_usr
+
     call hd_activate()
 
   end subroutine usr_init

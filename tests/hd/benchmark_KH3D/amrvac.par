@@ -8,16 +8,19 @@
  /
 
  &savelist
-   dtsave_log       = 1e10
-   dtsave_dat       = 1e10
+   itsave(1,1)      = 0
+   itsave(1,2)      = 0
+   ditsave_log      = 100
+   ditsave_dat      = 100
+
  /
 
  &stoplist
-   time_max=0.3d0
+   it_max           = 100
  /
 
  &methodlist
-   time_stepper = 'twostep'
+   time_stepper    = 'threestep'
    flux_scheme     = 20*'tvdlf'
    limiter         = 20*'vanleer'
    small_values_method = 'ignore'
@@ -33,13 +36,14 @@
  /
 
  &meshlist
+   max_blocks         = 4096
    refine_max_level   = 1
    block_nx1          = 16
    block_nx2          = 16
    block_nx3          = 16
-   domain_nx1         = 64
-   domain_nx2         = 64
-   domain_nx3         = 64
+   domain_nx1         = 256
+   domain_nx2         = 256
+   domain_nx3         = 256
    xprobmin1       = 0.0d0
    xprobmax1       = 1.0d0
    xprobmin2       = 0.0d0

@@ -32,3 +32,6 @@ amrvac.h
 .idea/
 *.npy
 /src/new_makefile
+.*.swp
+mod_usr.F90
+

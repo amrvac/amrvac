@@ -7,6 +7,7 @@ module mod_physics_hllc
   procedure(sub_get_lCD), pointer         :: phys_get_lCD => null()
   procedure(sub_get_wCD), pointer         :: phys_get_wCD => null()
   procedure(sub_hllc_init_species), pointer       :: phys_hllc_init_species => null()
+  !$acc declare create(phys_hllc_init_species,phys_diffuse_hllcd,phys_get_lCD,phys_get_wCD)
 
   abstract interface
      subroutine sub_diffuse_hllcd(ixI^L,ixO^L,idims,wLC,wRC,fLC,fRC,patchf)
@@ -52,14 +53,17 @@ module mod_physics_hllc
 contains
 
   subroutine phys_hllc_check
-    if (.not. associated(phys_diffuse_hllcd)) &
-         phys_diffuse_hllcd => dummy_diffuse_hllcd
+    if (.not. associated(phys_diffuse_hllcd)) then
+       phys_diffuse_hllcd => dummy_diffuse_hllcd
+    end if
 
-    if (.not. associated(phys_get_lCD)) &
-         phys_get_lCD => dummy_get_lCD
+    if (.not. associated(phys_get_lCD)) then
+       phys_get_lCD => dummy_get_lCD
+    end if
 
-    if (.not. associated(phys_get_wCD)) &
-         phys_get_wCD => dummy_get_wCD
+    if (.not. associated(phys_get_wCD)) then
+       phys_get_wCD => dummy_get_wCD
+    end if
   end subroutine phys_hllc_check
 
   ! When method is hllcd or hllcd1 then: this subroutine is to impose enforce

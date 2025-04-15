@@ -15,7 +15,7 @@ contains
   integer function getnode(ipe)
     use mod_forest, only: igrid_inuse
     use mod_global_parameters
-  
+
     integer, intent(in) :: ipe
     integer :: igrid, igrid_available
   
@@ -38,9 +38,11 @@ contains
     end if
   
     if (ipe==mype) then
-       ! initialize nodal block
+       ! initialize node on host and device
        node(1:nodehi,getnode) = 0
+       !$acc update device(node(1:nodehi,getnode))
        rnode(1:rnodehi,getnode) = zero
+       !$acc update device(rnode(1:rnodehi,getnode))
     end if
   
   end function getnode
@@ -64,7 +66,7 @@ contains
     use mod_usr_methods, only: usr_set_surface
     use mod_physics, only: phys_set_equi_vars
     use mod_b0, only: set_B0_grid 
- 
+    
     integer, intent(in) :: igrid
   
     integer :: level, ig^D, ign^D, ixCoG^L, ix, i^D
@@ -76,7 +78,7 @@ contains
     double precision :: exp_factor_ext(ixGlo1-1:ixGhi1+1),del_exp_factor_ext(ixGlo1-1:ixGhi1+1),exp_factor_primitive_ext(ixGlo1-1:ixGhi1+1)
     double precision :: xc(ixGlo1:ixGhi1),delxc(ixGlo1:ixGhi1)
     double precision :: exp_factor_coarse(ixGlo1:ixGhi1),del_exp_factor_coarse(ixGlo1:ixGhi1),exp_factor_primitive_coarse(ixGlo1:ixGhi1)
-  
+
     ixCoGmin^D=1;
     ixCoGmax^D=(ixGhi^D-2*nghostcells)/2+2*nghostcells;
   
@@ -97,13 +99,13 @@ contains
     ! set level information
     level=igrid_to_node(igrid,mype)%node%level
   
-    if(.not. allocated(ps(igrid)%w)) then
-  
-      ! allocate arrays for solution and space
-      call alloc_state(igrid, ps(igrid), ixG^LL, ixGext^L, .true.)
-      ! allocate arrays for one level coarser solution
-      call alloc_state_coarse(igrid, psc(igrid), ixCoG^L, ixCoG^L)
-      if(.not.convert) then
+    if(.not. associated(ps(igrid)%w)) then
+       
+       ! allocate arrays for solution and space
+       call alloc_state(igrid, ps(igrid), ixG^LL, ixGext^L, .true.)
+       ! allocate arrays for one level coarser solution
+       call alloc_state_coarse(igrid, psc(igrid), ixCoG^L, ixCoG^L)
+       if(.not.convert) then
         ! allocate arrays for temp solution 1
         call alloc_state(igrid, ps1(igrid), ixG^LL, ixGext^L, .false.)
   
@@ -147,22 +149,24 @@ contains
   
     ! block pointer to current block
     block=>ps(igrid)
-  
     ig^D=igrid_to_node(igrid,mype)%node%ig^D;
-  
     node(plevel_,igrid)=level
     ^D&node(pig^D_,igrid)=ig^D\
-  
+    !$acc update device(node(plevel_,igrid),^D&node(pig^D_,igrid))
+    
     ! set dx information
     ^D&rnode(rpdx^D_,igrid)=dx(^D,level)\
     dxlevel(:)=dx(:,level)
+    !$acc update device(^D&rnode(rpdx^D_,igrid), dxlevel)
   
     ! uniform cartesian case as well as all unstretched coordinates
     ! determine the minimal and maximal corners
     ^D&rnode(rpxmin^D_,igrid)=xprobmin^D+dble(ig^D-1)*dg^D(level)\
     ^D&rnode(rpxmax^D_,igrid)=xprobmin^D+dble(ig^D)*dg^D(level)\
    {if(rnode(rpxmax^D_,igrid)>xprobmax^D) rnode(rpxmax^D_,igrid)=xprobmax^D\}
-  
+
+    !$acc update device( ^D&rnode(rpxmax^D_,igrid), ^D&rnode(rpxmin^D_,igrid) )
+   
     ^D&dx^D=rnode(rpdx^D_,igrid)\
    {do ix=ixGlo^D,ixMhi^D-nghostcells
       ps(igrid)%x(ix^D%ixG^T,^D)=rnode(rpxmin^D_,igrid)+(dble(ix-nghostcells)-half)*dx^D
@@ -575,7 +579,6 @@ contains
     else
       phyboundblock(igrid)=.false.
     end if
-  
   end subroutine alloc_node
   
   !> allocate memory to physical state of igrid node
@@ -585,8 +588,11 @@ contains
     integer, intent(in) :: igrid, ixG^L, ixGext^L
     logical, intent(in) :: alloc_once_for_ps
     integer             :: ixGs^L
+    !opedit: debug:
+    integer             :: idbg
   
-    allocate(s%w(ixG^S,1:nw))
+    !allocate(s%w(ixG^S,1:nw))
+    s%w => bg(s%istep)%w(:^D&,:,igrid)
     s%igrid=igrid
     s%w=0.d0
     s%ixG^L=ixG^L;
