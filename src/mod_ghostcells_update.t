@@ -959,7 +959,7 @@ contains
             psb(ineighbor)%w(ixR^S,nwhead:nwtail)=&
                  psb(igrid)%w(ixS^S,nwhead:nwtail)
             !$acc end kernels
-            !$acc exit data delete(psb(igrid)%w) copyout(psb(ineighbor)%w)
+            !$acc exit data copyout(psb(ineighbor)%w)
 
 
 
