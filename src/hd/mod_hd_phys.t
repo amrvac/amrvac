@@ -1231,12 +1231,13 @@ contains
     if (any(dmean(ixO^S).ne.dmean(ixO^S))) then
        print *, 'NaN found in dmean 2', idim
 
-       do idbg2=ixOmin2,ixOmax2
-          do idbg1=ixOmin1,ixOmax1
-             if (dmean(idbg1,idbg2) .ne. dmean(idbg1,idbg2)) then
-                write(*,*), 'dmean', idbg1, idbg2, dmean(idbg1,idbg2)
-                write(*,*), 'plp', idbg1, idbg2, wLp(idbg1,idbg2,p_)
-                write(*,*), 'prp', idbg1, idbg2, wRp(idbg1,idbg2,p_)
+      {do idbg^DB=ixOmin^DB,ixOmax^DB\}
+          if (dmean(idbg^D) .ne. dmean(idbg^D)) then
+             write(*,*) 'dmean', idbg^D, dmean(idbg^D)
+             write(*,*) 'plp', idbg^D, wLp(idbg^D,p_)
+             write(*,*) 'prp', idbg^D, wRp(idbg^D,p_)
+          end if
+       {end do\}
              end if
           end do
        end do
