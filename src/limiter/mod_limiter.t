@@ -346,10 +346,14 @@ contains
   !> Accordingly, the typelim here corresponds to one of limiter
   !> or one of gradient_limiter.
   subroutine dwlimiter2_gpu(dwC,ixI^L,ixC^L,idims,typelim,ldw,rdw,a2max)
-    !$acc routine
+    !$acc routine seq
 
     use mod_global_parameters
+#if defined(_CRAYFTN) && defined(_OPENACC)
+    use mod_comm_lib, only: mpistop_gpu
+#else
     use mod_comm_lib, only: mpistop
+#endif
 
     integer, value, intent(in) :: ixI^L, ixC^L, idims
     double precision, intent(in) :: dwC(ixI^S)
@@ -563,7 +567,11 @@ contains
         rdw(ixO^S)=rdw(ixO^S)*dwC(hxO^S)
        end if
     case default
+#if defined(_CRAYFTN) && defined(_OPENACC)
+       call mpistop_gpu()
+#else
        call mpistop("Error in dwLimiter: unknown limiter")
+#endif
     end select
 
   end subroutine dwlimiter2_gpu
