@@ -9,7 +9,7 @@ module mod_physics_hllc
   procedure(sub_hllc_init_species), pointer       :: phys_hllc_init_species => null()
   !$acc declare create(phys_hllc_init_species,phys_diffuse_hllcd,phys_get_lCD,phys_get_wCD)
 
-  abstract interface
+  interface
      subroutine sub_diffuse_hllcd(ixI^L,ixO^L,idims,wLC,wRC,fLC,fRC,patchf)
        use mod_global_parameters
        integer, intent(in)                                    :: ixI^L,ixO^L,idims

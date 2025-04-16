@@ -108,7 +108,7 @@ module mod_usr_methods
   ! allow user to specify R factor in ideal gas law with partial ionization
   procedure(Rfactor), pointer :: usr_Rfactor => null()
 
-  abstract interface
+  interface
 
     subroutine p_no_args()
     end subroutine p_no_args

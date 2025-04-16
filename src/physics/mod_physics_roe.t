@@ -10,7 +10,7 @@ module mod_physics_roe
 
   integer :: nworkroe = -1
 
-  abstract interface
+  interface
      subroutine sub_average(wL, wR, x, ix^L, idim, wroe, workroe)
        use mod_global_parameters
        import

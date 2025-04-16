@@ -243,7 +243,7 @@ module mod_twofl_phys
   public :: twofl_clean_divb_multigrid
   }
 
-  abstract interface
+  interface
 
     subroutine implicit_mult_factor_subroutine(ixI^L, ixO^L, step_dt, JJ, res)
       integer, intent(in)                :: ixI^L, ixO^L

@@ -260,7 +260,7 @@ module mod_mhd_phys
   integer, parameter :: divb_ct            = 8
 
   !define the subroutine interface for the ambipolar mask
-  abstract interface
+  interface
 
     subroutine mask_subroutine(ixI^L,ixO^L,w,x,res)
       use mod_global_parameters

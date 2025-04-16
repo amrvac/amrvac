@@ -136,7 +136,7 @@ module mod_particle_base
   procedure(sub_integrate), pointer                  :: particles_integrate => null()
   procedure(fun_destroy), pointer                    :: usr_destroy_particle => null()
 
-  abstract interface
+  interface
 
     subroutine sub_fill_gridvars
     end subroutine sub_fill_gridvars
