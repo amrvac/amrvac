@@ -43,7 +43,7 @@ contains
     integer                :: typelim
     !-----------------------------------------------------------------------------
 
-    !$acc parallel loop, private(n, uprim, inv_dr) firstprivate(ixI^L, ixO^L) present(bga, bgb, bga%w, bgb%w)
+    !$acc parallel loop private(n, uprim, inv_dr) firstprivate(ixI^L, ixO^L) present(bga, bgb, bga%w, bgb%w)
     do iigrid = 1, igridstail_active
        n = igrids_active(iigrid)
 
@@ -396,7 +396,7 @@ contains
     use mod_comm_lib, only: mpistop
     use mod_hd_phys, only: hd_to_conserved_gpu
 
-    !$acc routine
+    !$acc routine seq
 
     integer, value, intent(in) :: ixI^L, ixL^L, ixR^L, idims, igrid
     double precision, intent(in) :: dxdim

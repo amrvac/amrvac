@@ -737,7 +737,7 @@ contains
   
   !> Transform primitive variables into conservative ones
   subroutine hd_to_conserved_gpu(ixI^L, ixO^L, w, x)
-    !$acc routine
+    !$acc routine seq
     use mod_global_parameters
     integer, intent(in)             :: ixI^L, ixO^L
     double precision, intent(inout) :: w(ixI^S, nw)
@@ -1474,7 +1474,7 @@ contains
 
   ! Calculate flux f_idim[iw]
   subroutine hd_get_flux_gpu(wC, w, x, ixI^L, ixO^L, idim, f)
-    !$acc routine
+    !$acc routine seq
     use mod_global_parameters
 
     integer, intent(in)             :: ixI^L, ixO^L, idim
@@ -1640,7 +1640,7 @@ contains
 
   ! w[iw]= w[iw]+qdt*S[wCT, qtC, x] where S is the source based on wCT within ixO
   subroutine hd_add_source(qdt,dtfactor, ixI^L,ixO^L,wCT,wCTprim,w,x,qsourcesplit,active)
-    !$acc routine
+    !$acc routine seq
     use mod_global_parameters
     use mod_radiative_cooling, only: radiative_cooling_add_source
     use mod_dust, only: dust_add_source, dust_mom, dust_rho, dust_n_species
@@ -1749,7 +1749,7 @@ contains
   end subroutine hd_get_dt
 
   pure function hd_kin_en(w, ixI^L, ixO^L, inv_rho) result(ke)
-    !$acc routine
+    !$acc routine seq
     use mod_global_parameters, only: nw, ndim
     integer, intent(in)                    :: ixI^L, ixO^L
     double precision, intent(in)           :: w(ixI^S, nw)
