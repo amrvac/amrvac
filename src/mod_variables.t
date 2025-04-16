@@ -38,7 +38,6 @@ module mod_variables
 
   !> Number of vector variables (used for writing output)
   integer           :: nvector = 0
-  !$acc declare copyin(nwflux,nwfluxbc,nwaux,nwextra,nw_extra,nw,nws,nwgc,nvector)
 
   !> Indices of vector variables
   integer, dimension(:), allocatable :: iw_vector
