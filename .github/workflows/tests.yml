@@ -14,9 +14,6 @@ jobs:
       matrix:
         os: [ubuntu-latest]
         compiler: [gfortran-9, gfortran-10, gfortran-11]
-        include:
-          - os: ubuntu-20.04
-            compiler: gfortran-8  # not longer supported for ubuntu-22
 
     env:
       FC: ${{ matrix.compiler }}
