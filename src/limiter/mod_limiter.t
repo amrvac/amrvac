@@ -150,7 +150,7 @@ contains
     ! full third order cada limiter
     double precision :: rdelinv
     double precision :: ldwA(ixI^S),ldwB(ixI^S),tmpeta(ixI^S)
-    double precision, parameter :: cadepsilon=1.d-14, invcadepsilon=1.d14,cada3_radius=0.1d0
+    double precision, parameter :: cadepsilon=1.d-14, invcadepsilon=1.d14
     integer :: ixO^L, hxO^L, ix^D, hx^D
     !-----------------------------------------------------------------------------
 

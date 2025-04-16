@@ -470,7 +470,7 @@ contains
     dimsplit        = .false.
     typedimsplit    = 'default'
     if(physics_type=='mhd') then
-      cada3_radius  = 0.5d0
+      cada3_radius  = 0.1d0
     else
       cada3_radius  = 0.1d0
     end if

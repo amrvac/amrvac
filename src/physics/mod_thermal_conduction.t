@@ -1013,36 +1013,72 @@ contains
       ixBmin^D=ixmin^D;
       ixBmax^D=ixmax^D-kr(idims,^D);
       call gradientF(Te,x,ixI^L,ixB^L,idims,ke)
-      qd=0.d0
-     {do ix^DB=0,1 \}
-        if({ix^D==0 .and. ^D==idims |.or. }) then
-          ixBmin^D=ixCmin^D+ix^D;
-          ixBmax^D=ixCmax^D+ix^D;
-          qd(ixC^S)=qd(ixC^S)+ke(ixB^S)
-        end if
-     {end do\}
-      ! temperature gradient at cell corner
-      qvec(ixC^S,idims)=qd(ixC^S)*0.5d0**(ndim-1)
+     {^IFTHREED
+      if(idims==1) then
+       {do ix^DB=ixCmin^DB,ixCmax^DB\}
+          qvec(ix^D,idims)=0.25d0*(ke(ix1,ix2,ix3)+ke(ix1,ix2+1,ix3)&
+                         +ke(ix1,ix2,ix3+1)+ke(ix1,ix2+1,ix3+1))
+       {end do\}
+      else if(idims==2) then
+       {do ix^DB=ixCmin^DB,ixCmax^DB\}
+          qvec(ix^D,idims)=0.25d0*(ke(ix1,ix2,ix3)+ke(ix1+1,ix2,ix3)&
+                         +ke(ix1,ix2,ix3+1)+ke(ix1+1,ix2,ix3+1))
+       {end do\}
+      else
+       {do ix^DB=ixCmin^DB,ixCmax^DB\}
+          qvec(ix^D,idims)=0.25d0*(ke(ix1,ix2,ix3)+ke(ix1+1,ix2,ix3)&
+                         +ke(ix1,ix2+1,ix3)+ke(ix1+1,ix2+1,ix3))
+       {end do\}
+      end if
+     }
+     {^IFTWOD
+      if(idims==1) then
+       {do ix^DB=ixCmin^DB,ixCmax^DB\}
+          qvec(ix^D,idims)=0.5d0*(ke(ix1,ix2)+ke(ix1,ix2+1))
+       {end do\}
+      else
+       {do ix^DB=ixCmin^DB,ixCmax^DB\}
+          qvec(ix^D,idims)=0.5d0*(ke(ix1,ix2)+ke(ix1+1,ix2))
+       {end do\}
+      end if
+     }
+     {^IFONED
+     do ix1=ixCmin1,ixCmax1
+       qvec(ix1,idims)=ke(ix1)
+     end do
+     }
     end do
     ! conductivity at cell center
     if(phys_trac) then
-      ! transition region adaptive conduction
-      where(Te(ix^S) < block%wextra(ix^S,fl%Tcoff_))
-        qd(ix^S)=fl%tc_k_para*dsqrt(block%wextra(ix^S,fl%Tcoff_))**5
-      else where
-        qd(ix^S)=fl%tc_k_para*dsqrt(Te(ix^S))**5
-      end where
+     {do ix^DB=ixmin^DB,ixmax^DB\}
+        if(Te(ix^D) < block%wextra(ix^D,fl%Tcoff_)) then
+          qd(ix^D)=fl%tc_k_para*sqrt(block%wextra(ix^D,fl%Tcoff_)**5)
+        else
+          qd(ix^D)=fl%tc_k_para*sqrt(Te(ix^D)**5)
+        end if
+     {end do\}
     else
-      qd(ix^S)=fl%tc_k_para*dsqrt(Te(ix^S))**5
+      qd(ix^S)=fl%tc_k_para*sqrt(Te(ix^S)**5)
     end if
-    ke=0.d0
-    {do ix^DB=0,1\}
-      ixBmin^D=ixCmin^D+ix^D;
-      ixBmax^D=ixCmax^D+ix^D;
-      ke(ixC^S)=ke(ixC^S)+qd(ixB^S)
+     ! conductivity at cell corner
+    {^IFTHREED
+    {do ix^DB=ixCmin^DB,ixCmax^DB\}
+       ke(ix^D)=0.125d0*(qd(ix1,ix2,ix3)+qd(ix1+1,ix2,ix3)&
+                      +qd(ix1,ix2+1,ix3)+qd(ix1+1,ix2+1,ix3)&
+                      +qd(ix1,ix2,ix3+1)+qd(ix1+1,ix2,ix3+1)&
+                      +qd(ix1,ix2+1,ix3+1)+qd(ix1+1,ix2+1,ix3+1))
     {end do\}
-    ! cell corner conductivity
-    ke(ixC^S)=0.5d0**ndim*ke(ixC^S)
+    }
+    {^IFTWOD
+    {do ix^DB=ixCmin^DB,ixCmax^DB\}
+       ke(ix^D)=0.25d0*(qd(ix1,ix2)+qd(ix1+1,ix2)+qd(ix1,ix2+1)+qd(ix1+1,ix2+1))
+    {end do\}
+    }
+    {^IFONED
+     do ix1=ixCmin1,ixCmax1
+       ke(ix1)=0.5d0*(qd(ix1)+qd(ix1+1))
+     end do
+    }
     ! cell corner conduction flux
     do idims=1,ndim
       gradT(ixC^S,idims)=ke(ixC^S)*qvec(ixC^S,idims)
@@ -1053,14 +1089,24 @@ contains
       ! saturation flux at cell center
       qd(ix^S)=5.5d0*rho(ix^S)*dsqrt(Te(ix^S)**3)
       !cell corner values of qd in ke
-      ke=0.d0
-      {do ix^DB=0,1\}
-        ixBmin^D=ixCmin^D+ix^D;
-        ixBmax^D=ixCmax^D+ix^D;
-        ke(ixC^S)=ke(ixC^S)+qd(ixB^S)
-      {end do\}
-      ! cell corner saturation flux
-      ke(ixC^S)=0.5d0**ndim*ke(ixC^S)
+      {^IFTHREED
+     {do ix^DB=ixCmin^DB,ixCmax^DB\}
+        ke(ix^D)=0.125d0*(qd(ix1,ix2,ix3)+qd(ix1+1,ix2,ix3)&
+                       +qd(ix1,ix2+1,ix3)+qd(ix1+1,ix2+1,ix3)&
+                       +qd(ix1,ix2,ix3+1)+qd(ix1+1,ix2,ix3+1)&
+                       +qd(ix1,ix2+1,ix3+1)+qd(ix1+1,ix2+1,ix3+1))
+     {end do\}
+     }
+     {^IFTWOD
+     {do ix^DB=ixCmin^DB,ixCmax^DB\}
+        ke(ix^D)=0.25d0*(qd(ix1,ix2)+qd(ix1+1,ix2)+qd(ix1,ix2+1)+qd(ix1+1,ix2+1))
+     {end do\}
+     }
+     {^IFONED
+      do ix1=ixCmin1,ixCmax1
+        ke(ix1)=0.5d0*(qd(ix1)+qd(ix1+1))
+      end do
+     }
       ! magnitude of cell corner conduction flux
       qd(ixC^S)=norm2(gradT(ixC^S,:),dim=ndim+1)
       {do ix^DB=ixCmin^DB,ixCmax^DB\}
@@ -1076,14 +1122,40 @@ contains
     do idims=1,ndim
       ixB^L=ixO^L-kr(idims,^D);
       ixAmax^D=ixOmax^D; ixAmin^D=ixBmin^D;
-      {do ix^DB=0,1 \}
-         if({ ix^D==0 .and. ^D==idims | .or.}) then
-           ixBmin^D=ixAmin^D-ix^D;
-           ixBmax^D=ixAmax^D-ix^D;
-           qvec(ixA^S,idims)=qvec(ixA^S,idims)+gradT(ixB^S,idims)
-         end if
-      {end do\}
-      qvec(ixA^S,idims)=qvec(ixA^S,idims)*0.5d0**(ndim-1)
+     {^IFTHREED
+      if(idims==1) then
+       {do ix^DB=ixAmin^DB,ixAmax^DB\}
+          qvec(ix^D,idims)=0.25d0*(gradT(ix1,ix2,ix3,idims)+gradT(ix1,ix2-1,ix3,idims)&
+                                +gradT(ix1,ix2,ix3-1,idims)+gradT(ix1,ix2-1,ix3-1,idims))
+       {end do\}
+      else if(idims==2) then
+       {do ix^DB=ixAmin^DB,ixAmax^DB\}
+          qvec(ix^D,idims)=0.25d0*(gradT(ix1,ix2,ix3,idims)+gradT(ix1-1,ix2,ix3,idims)&
+                                +gradT(ix1,ix2,ix3-1,idims)+gradT(ix1-1,ix2,ix3-1,idims))
+       {end do\}
+      else
+       {do ix^DB=ixAmin^DB,ixAmax^DB\}
+          qvec(ix^D,idims)=0.25d0*(gradT(ix1,ix2,ix3,idims)+gradT(ix1,ix2-1,ix3,idims)&
+                                +gradT(ix1-1,ix2,ix3,idims)+gradT(ix1-1,ix2-1,ix3,idims))
+       {end do\}
+      end if
+     }
+     {^IFTWOD
+      if(idims==1) then
+       {do ix^DB=ixAmin^DB,ixAmax^DB\}
+          qvec(ix^D,idims)=0.5d0*(gradT(ix1,ix2,idims)+gradT(ix1,ix2-1,idims))
+       {end do\}
+      else
+       {do ix^DB=ixAmin^DB,ixAmax^DB\}
+          qvec(ix^D,idims)=0.5d0*(gradT(ix1,ix2,idims)+gradT(ix1-1,ix2,idims))
+       {end do\}
+      end if
+     }
+     {^IFONED
+      do ix1=ixAmin1,ixAmax1
+        qvec(ix1,idims)=gradT(ix1,idims)
+      end do
+     }
     end do
   end subroutine set_source_tc_hd
 end module mod_thermal_conduction
