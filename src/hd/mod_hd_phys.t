@@ -1238,9 +1238,6 @@ contains
              write(*,*) 'prp', idbg^D, wRp(idbg^D,p_)
           end if
        {end do\}
-             end if
-          end do
-       end do
        
     end if
 
