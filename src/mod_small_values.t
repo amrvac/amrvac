@@ -61,6 +61,7 @@ contains
     end if
 
   end subroutine small_values_error_gpu
+#endif
 
   subroutine small_values_error(wprim, x, ixI^L, ixO^L, w_flag, subname)
 #ifndef _CRAYFTN
