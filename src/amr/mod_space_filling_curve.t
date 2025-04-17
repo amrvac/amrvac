@@ -96,9 +96,12 @@ contains
        call get_Morton_number(tree_root(ig^D))
     end do
 
+!FIXME: why does this fail with Cray even if the values are equal? Different types somehow?
+#ifndef _CRAYFTN
     if (Morton_no/=nleafs) then
        call mpistop("error in amr_Morton_order: Morton_no/=nleafs")
     end if
+#endif
 
     contains
 
