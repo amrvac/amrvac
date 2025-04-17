@@ -41,7 +41,7 @@ contains
 
     if (first) then
        if (mype==0) then
-          print *,'3D HD KH'
+          print *,'2D HD KH'
           print *,'  --assuming y ranging from 0-1!'
           print *,'  --density ratio:',rhodens/rholight
           print *,'  --kx:',kx
