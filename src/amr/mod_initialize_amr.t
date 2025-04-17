@@ -57,10 +57,19 @@ contains
     do itimelevel = 1, nstep
        !$acc enter data copyin( bg(itimelevel)%w )
     end do
+    ! Cray does a deepcopy, at least with update device, and is very slow with the loop
+    ! Nvfortran does a shallow copy but the loop performs ok
+#ifdef _CRAYFTN
+    !$acc update device(ps, ps1, ps2)
+    do igrid = 1, max_blocks
+        !$acc enter data attach(ps(igrid)%w, ps1(igrid)%w, ps2(igrid)%w)
+    end do
+#else
     do igrid = 1, max_blocks
        !$acc update device(ps(igrid), ps1(igrid), ps2(igrid))
        !$acc enter data copyin(ps(igrid)%x) attach(ps(igrid)%w, ps1(igrid)%w, ps2(igrid)%w)
     end do
+#endif
 
     ! update ghost cells
     call getbc(global_time,0.d0,ps,iwstart,nwgc)
