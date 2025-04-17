@@ -9,7 +9,7 @@
  &savelist
    itsave(1,1)      = 0
    itsave(1,2)      = 0
-   ditsave_log      = 100
+   ditsave_log      = 1
    ditsave_dat      = 100
  /
 
