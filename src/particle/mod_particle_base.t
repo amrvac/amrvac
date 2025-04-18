@@ -226,8 +226,6 @@ contains
     write_individual          = .true.
     write_ensemble            = .true.
     write_snapshot            = .true.
-    ! avoid writing by default .dat particle files if running in static fields
-    if (.not. time_advance) write_snapshot = .false. 
     downsample_particles      = 1
     relativistic              = .false.
     particles_eta             = -1.d0
@@ -566,7 +564,7 @@ contains
         tpartc_io_0 = MPI_WTIME()
         if (mype .eq. 0 .and. (.not. time_advance)) print*, "Writing particle output at time",t_next_output
         call write_particle_output()
-        if (.not. time_advance) call write_particles_snapshot()
+        if (.not. time_advance .and. write_snapshot) call write_particles_snapshot()
         timeio_tot  = timeio_tot+(MPI_WTIME()-tpartc_io_0)
         tpartc_io   = tpartc_io+(MPI_WTIME()-tpartc_io_0)
 
@@ -1090,8 +1088,6 @@ contains
     logical,save                    :: file_exists=.false.
     integer                         :: snapshotnumber
 
-    if (.not. write_snapshot) return
-    
     if (time_advance) then
       snapshotnumber = snapshotnext
     else
