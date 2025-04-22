@@ -290,7 +290,7 @@ contains
             dsurface(ixM^T)=dsurface(ixM^T)+block%surfaceC(hxM^T,idims)
           end do
           ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
-          call mask_inner(ixG^LL,ixM^LL,ps(igrid)%w,ps(igrid)%x)
+          call mask_inner(ixG^LL,ixM^LL,ps(igrid)%w,ps(igrid)%x, patchwi)
           sum_jbb_ipe = sum_jbb_ipe+integral_grid_mf(ixG^LL,ixM^LL,ps(igrid)%w,&
             ps(igrid)%x,1,patchwi)
           sum_j_ipe   = sum_j_ipe+integral_grid_mf(ixG^LL,ixM^LL,ps(igrid)%w,&
@@ -320,10 +320,11 @@ contains
         sum_l=sum_l/volume
       end subroutine metrics
 
-      subroutine mask_inner(ixI^L,ixO^L,w,x)
+      subroutine mask_inner(ixI^L,ixO^L,w,x,patchwi)
 
         integer, intent(in)         :: ixI^L,ixO^L
         double precision, intent(in):: w(ixI^S,nw),x(ixI^S,1:ndim)
+        logical, intent(out)        :: patchwi(ixG^T)
         double precision            :: xO^L
         integer                     :: ix^D
 

@@ -7,7 +7,7 @@
 #SBATCH --mem=0
 #SBATCH --job-name=NVHPC
 #SBATCH --mail-type=ALL
-#SBATCH --time=00-00:20:00
+#SBATCH --time=00-00:30:00
 #SBATCH -o out # STDOUT 
 #SBATCH -e err # STDERR
 
@@ -17,6 +17,7 @@ module load OpenMPI/4.1.5-NVHPC-24.5-CUDA-12.1.1
 
 
 $AMRVAC_DIR/setup.pl -d=3 -arch=nvidia_acc
+#make allclean
 make
 
 #export PGI_ACC_NOTIFY=16
