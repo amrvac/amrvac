@@ -51,6 +51,8 @@ module mod_hd_phys
   public :: hd_read_params
   public :: hd_add_source
   public :: hd_get_cmax_scalar
+  public :: hd_to_conserved
+  public :: hd_phys_init
   
 contains
 
@@ -110,7 +112,7 @@ contains
     cmax = abs(v) + csound
     
   end subroutine hd_get_cmax_scalar
-
+  
   !> Initialize the module
   subroutine hd_phys_init()
     use mod_global_parameters
@@ -172,6 +174,72 @@ contains
     !$acc update device(nvector, iw_vector, flux_type)
     !$acc update device(phys_req_diagonal)
     
+    phys_to_conserved        => hd_to_conserved
+    phys_to_primitive        => hd_to_primitive
+    phys_get_cmax            => hd_get_cmax
+
+    
   end subroutine hd_phys_init
+
+  !> Transform primitive variables into conservative ones
+  subroutine hd_to_conserved(ixI^L, ixO^L, w, x)
+    use mod_global_parameters
+    integer, intent(in)             :: ixI^L, ixO^L
+    double precision, intent(inout) :: w(ixI^S, nw)
+    double precision, intent(in)    :: x(ixI^S, 1:ndim)
+    double precision                :: invgam
+    integer                         :: idir, ix^D
+
+    invgam = 1.d0/(hd_gamma - 1.0d0)
+    {^D& do ix^DB=ixOmin^DB,ixOmax^DB\}
+    
+       ! Calculate total energy from pressure and kinetic energy
+       w(ix^D, e_) = w(ix^D, e_) * invgam + &
+            0.5d0 * ({^D& w(ix^DD,mom(^D))**2|+}) * w(ix^D, rho_)
+
+       ! Convert velocity to momentum
+       do idir = 1, ndir
+          w(ix^D, mom(idir)) = w(ix^D, rho_) * w(ix^D, mom(idir))
+       end do
+    
+    {^D& end do\}
+
+  end subroutine hd_to_conserved
+
+  !> Transform conservative variables into primitive ones
+  subroutine hd_to_primitive(ixI^L, ixO^L, w, x)
+    use mod_global_parameters
+    integer, intent(in)             :: ixI^L, ixO^L
+    double precision, intent(inout) :: w(ixI^S, nw)
+    double precision, intent(in)    :: x(ixI^S, 1:ndim)
+    integer                         :: idir, ix^D
+
+    {^D& do ix^DB=ixOmin^DB,ixOmax^DB\}
+    ! Compute pressure
+    w(ix^D, e_) = (hd_gamma - 1.0d0) * (w(ix^D, e_) - &     
+         0.5d0 * ({^D& w(ix^DD,mom(^D))**2|+}) / w(ix^D, rho_) )
+
+    ! Convert momentum to velocity
+    do idir = 1, ndir
+       w(ix^D, mom(idir)) = w(ix^D, mom(idir)) / w(ix^D, rho_)
+    end do
+    {^D& end do\}
+  
+  end subroutine hd_to_primitive
+
+  subroutine hd_get_cmax(w, x, ixI^L, ixO^L, idim, cmax)
+    use mod_global_parameters
+
+    integer, intent(in)                       :: ixI^L, ixO^L, idim
+    double precision, intent(in)              :: w(ixI^S, nw), x(ixI^S, 1:ndim)
+    double precision, intent(inout)           :: cmax(ixI^S)
+    integer                                   :: ix^D
+
+    {^D& do ix^DB=ixOmin^DB,ixOmax^DB\}
+       call hd_get_cmax_scalar(w(ix^D,:), idim, cmax(ix^D))
+    {^D& end do\}
+    
+  end subroutine hd_get_cmax
+
   
 end module mod_hd_phys

@@ -401,14 +401,14 @@ contains
     if (.not. associated(phys_get_H_speed)) &
          phys_get_H_speed => dummy_get_H_speed
 
-    if (.not. associated(phys_get_cbounds)) &
-         call mpistop("Error: no phys_get_cbounds not defined")
+!    if (.not. associated(phys_get_cbounds)) &
+!         call mpistop("Error: no phys_get_cbounds not defined")
 
-    if (.not. associated(phys_get_flux)) &
-         call mpistop("Error: no phys_get_flux not defined")
+!    if (.not. associated(phys_get_flux)) &
+!         call mpistop("Error: no phys_get_flux not defined")
 
-    if (.not. associated(phys_get_dt)) &
-         call mpistop("Error: no phys_get_dt not defined")
+!    if (.not. associated(phys_get_dt)) &
+!         call mpistop("Error: no phys_get_dt not defined")
 
     if (.not. associated(phys_add_source_geom)) &
          phys_add_source_geom => dummy_add_source_geom
