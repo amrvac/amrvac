@@ -1,7 +1,0 @@
- &filelist
-        base_filename  = '_mhd_boris_simplification'
- /
-
- &mhd_list
-        mhd_boris_simplification=.true.
- /

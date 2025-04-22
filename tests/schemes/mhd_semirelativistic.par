@@ -1,7 +1,0 @@
- &filelist
-        base_filename  = '_mhd_semirelativistic'
- /
-
- &mhd_list
-        mhd_semirelativistic=.true.
- /
