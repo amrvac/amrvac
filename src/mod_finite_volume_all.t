@@ -14,9 +14,7 @@ module mod_finite_volume_all
 
   private
 
-  public :: finite_volume_all
   public :: finite_volume_local
-  public :: reconstruct_LR_gpu
 
   integer, parameter :: dp = kind(0.0d0), nw_euler=2+ndim
 
