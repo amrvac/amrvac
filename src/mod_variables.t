@@ -38,7 +38,7 @@ module mod_variables
 
   !> Number of vector variables (used for writing output)
   integer           :: nvector = 0
-  !$acc declare copyin(nwflux,nwfluxbc,nwaux,nwextra,nw_extra,nw,nws,nwgc,nvector)
+  !$acc declare copyin(nvector)
 
   !> Indices of vector variables
   integer, dimension(:), allocatable :: iw_vector
@@ -54,11 +54,9 @@ module mod_variables
 
   !> Primitive variable names
   character(len=name_len) :: prim_wnames(max_nw)
-  !$acc declare create(prim_wnames)
 
   !> Conservative variable names
   character(len=name_len) :: cons_wnames(max_nw)
-  !$acc declare create(cons_wnames)
 
   ! Global indices of variables that are often used
 
@@ -145,7 +143,7 @@ contains
       write(prim_wnames(nwflux),"(A,I0)") name_prim, ix
    end if
 
-   !$acc update device(nwflux, nw, nwfluxbc, prim_wnames, cons_wnames)
+   !$acc update device(nwflux, nw, nwfluxbc)
   end function var_set_fluxvar
 
   !> Set extra variable in w, which is not advected and has no boundary conditions.
@@ -166,7 +164,7 @@ contains
       write(cons_wnames(iw),"(A,I0)") name_cons, ix
       write(prim_wnames(iw),"(A,I0)") name_prim, ix
    end if
-   !$acc update device(nwextra,nw, prim_wnames, cons_wnames)
+   !$acc update device(nwextra,nw)
   end function var_set_extravar
 
   !> Set extra variable in wextra, which is not advected and has no boundary conditions and not output in dat.
@@ -197,7 +195,7 @@ contains
       write(cons_wnames(iw),"(A,I0)") name_cons, ix
       write(prim_wnames(iw),"(A,I0)") name_prim, ix
    end if
-   !$acc update device(nwaux,nw, prim_wnames, cons_wnames)
+   !$acc update device(nwaux,nw)
   end function var_set_auxvar
 
   !> Set density variable
@@ -211,7 +209,7 @@ contains
     iw                  = nwflux
     prim_wnames(nwflux) = 'rho'
     cons_wnames(nwflux) = 'rho'
-    !$acc update device(nwflux,nw,nwfluxbc,iw_rho, prim_wnames, cons_wnames)
+    !$acc update device(nwflux,nw,nwfluxbc,iw_rho)
   end function var_set_rho
 
   ! THE INCLUDE files cannot use other modules
@@ -244,7 +242,7 @@ contains
       write(cons_wnames(nwflux),"(A1,I1)") "m", idir
       write(prim_wnames(nwflux),"(A1,I1)") "v", idir
     end do
-    !$acc update device(nwflux,nw,nwfluxbc,iw_mom, prim_wnames, cons_wnames)
+    !$acc update device(nwflux,nw,nwfluxbc,iw_mom)
   end function var_set_momentum
 
   !> Set energy variable
@@ -258,7 +256,7 @@ contains
     iw                  = nwflux
     cons_wnames(nwflux) = 'e'
     prim_wnames(nwflux) = 'p'
-    !$acc update device(nwflux,nw,nwfluxbc,iw_e, prim_wnames, cons_wnames)
+    !$acc update device(nwflux,nw,nwfluxbc,iw_e)
   end function var_set_energy
 
   function var_set_radiation_energy() result(iw)
@@ -271,7 +269,7 @@ contains
     iw                  = nwflux
     cons_wnames(nwflux) = 'r_e'
     prim_wnames(nwflux) = 'r_e'
-    !$acc update device(nwflux,nw,nwfluxbc,iw_r_e, prim_wnames, cons_wnames)
+    !$acc update device(nwflux,nw,nwfluxbc,iw_r_e)
   end function var_set_radiation_energy
 
   !> Set magnetic field variables
@@ -292,7 +290,7 @@ contains
       write(cons_wnames(nwflux),"(A1,I1)") "b", idir
       write(prim_wnames(nwflux),"(A1,I1)") "b", idir
    end do
-   !$acc update device(nwflux,nw,nwfluxbc,iw_mag, prim_wnames, cons_wnames)
+   !$acc update device(nwflux,nw,nwfluxbc,iw_mag)
   end function var_set_bfield
 
 end module mod_variables

@@ -367,7 +367,7 @@ module mod_thermal_emission
                 8.17917486d-32, 5.28280497d-32, 3.42357159d-32, 0.00000000d+00, &
                 0.00000000d+00, 0.00000000d+00, 0.00000000d+00, 0.00000000d+00 /
 
-  abstract interface
+  interface
     subroutine get_subr1(w,x,ixI^L,ixO^L,res)
       use mod_global_parameters
       integer, intent(in)          :: ixI^L, ixO^L

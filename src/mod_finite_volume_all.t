@@ -43,7 +43,7 @@ contains
     integer                :: typelim
     !-----------------------------------------------------------------------------
 
-    !$acc parallel loop, private(n, uprim, inv_dr) firstprivate(ixI^L, ixO^L) present(bga, bgb, bga%w, bgb%w)
+    !$acc parallel loop private(n, uprim, inv_dr, typelim) firstprivate(ixI^L, ixO^L) present(bga%w, bgb%w)
     do iigrid = 1, igridstail_active
        n = igrids_active(iigrid)
 
@@ -68,7 +68,7 @@ contains
              bgb%w(ix1, n) = bgb%w(ix1, :, n) + qdt * &
                   ( (f(:, 1) - f(:, 2)) * inv_dr(1) )
        }
-       {^IFTWOD      
+       {^IFTWOD
              tmp = uprim(:, ix1-2:ix1+2, ix2)
              call muscl_flux_euler_prim(tmp, 1, f, typelim)
              bgb%w(ix1, ix2, :, n) = bgb%w(ix1, ix2, :, n) &
@@ -89,7 +89,7 @@ contains
              call muscl_flux_euler_prim(tmp, 2, f, typelim)
              bgb%w(ix1, ix2, ix3, :, n) = bgb%w(ix1, ix2, ix3, :, n) &
                   + qdt * (f(:, 1) - f(:, 2)) * inv_dr(2)
-             
+
              tmp = uprim(:, ix1, ix2, ix3-2:ix3+2)
              call muscl_flux_euler_prim(tmp, 3, f, typelim)
              bgb%w(ix1, ix2, ix3, :, n) = bgb%w(ix1, ix2, ix3, :, n) &
@@ -136,7 +136,7 @@ contains
     !$acc routine seq
 
     use mod_limiter, only: limiter_minmod, limiter_vanleer
-    
+
     real(dp), intent(in)  :: u(nw_euler, 5)
     integer, intent(in)   :: flux_dim, typelim
     real(dp), intent(out) :: flux(nw_euler, 2)
