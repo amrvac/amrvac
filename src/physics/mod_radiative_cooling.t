@@ -36,7 +36,7 @@ module mod_radiative_cooling
   !> inverse of the adiabatic index minus 1
   double precision, private :: invgam
 
-  abstract interface
+  interface
     subroutine get_subr1(w,x,ixI^L,ixO^L,res)
       use mod_global_parameters
       integer, intent(in)          :: ixI^L, ixO^L

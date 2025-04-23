@@ -43,7 +43,7 @@ contains
     integer                :: typelim
     !-----------------------------------------------------------------------------
 
-    !$acc parallel loop, private(n, uprim, inv_dr) firstprivate(ixI^L, ixO^L) present(bga, bgb, bga%w, bgb%w)
+    !$acc parallel loop private(n, uprim, inv_dr, typelim) firstprivate(ixI^L, ixO^L) present(bga%w, bgb%w)
     do iigrid = 1, igridstail_active
        n = igrids_active(iigrid)
 
@@ -262,7 +262,11 @@ contains
     use mod_global_parameters
     use mod_source, only: addsource2
     use mod_usr_methods
+#if defined(_CRAYFTN) && defined(_OPENACC)
+    use mod_comm_lib, only: mpistop_gpu
+#else
     use mod_comm_lib, only: mpistop
+#endif
     use mod_hd_phys
 
     integer, intent(in)                                   :: method
@@ -310,7 +314,11 @@ contains
           ix^L=ix^L^LADD2*kr(idims,^D); 
        end do
        if (ixI^L^LTix^L|.or.|.or.) &
+#if defined(_CRAYFTN) && defined(_OPENACC)
+            call mpistop_gpu()
+#else
             call mpistop("Error in fv : Nonconforming input limits")
+#endif
 
        fC = 0.d0     
        fLC = 0.d0
@@ -390,13 +398,16 @@ contains
   !> Determine the upwinded wLC(ixL) and wRC(ixR) from w.
   !> the wCT is only used when PPM is exploited.
   subroutine reconstruct_LR_gpu(ixI^L, ixL^L, ixR^L, idims, w, wLC, wRC, wLp, wRp, x, dxdim, igrid)
-    use mod_physics
     use mod_global_parameters
     use mod_limiter
+#if defined(_CRAYFTN) && defined(_OPENACC)
+    use mod_comm_lib, only: mpistop_gpu
+#else
     use mod_comm_lib, only: mpistop
+#endif
     use mod_hd_phys, only: hd_to_conserved_gpu
 
-    !$acc routine
+    !$acc routine seq
 
     integer, value, intent(in) :: ixI^L, ixL^L, ixR^L, idims, igrid
     double precision, intent(in) :: dxdim
@@ -410,7 +421,6 @@ contains
 
     integer            :: jxR^L, ixC^L, jxC^L, iw
     double precision   :: ldw(ixI^S), rdw(ixI^S), dwC(ixI^S)
-!!!!$acc declare create(ldw, rdw, dwC)
     double precision   :: a2max
 
     select case (type_limiter(node(plevel_, igrid)))
@@ -441,7 +451,11 @@ contains
              case (3)
                 a2max = schmid_rad3}
              case default
+#if defined(_CRAYFTN) && defined(_OPENACC)
+                call mpistop_gpu()
+#else
                 call mpistop("idims is wrong in mod_limiter")
+#endif
              end select
           end if
 

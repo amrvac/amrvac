@@ -103,7 +103,7 @@ module mod_physics
   procedure(sub_get_auxiliary), pointer         :: phys_get_auxiliary         => null()
   procedure(sub_get_auxiliary_prim), pointer    :: phys_get_auxiliary_prim    => null()
   
-  abstract interface
+  interface
 
      subroutine sub_check_params
      end subroutine sub_check_params

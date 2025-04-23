@@ -46,7 +46,7 @@ module mod_thermal_conduction
     !> The adiabatic index
     double precision :: tc_gamma_1
 
-  abstract interface
+  interface
     subroutine get_var_subr(w,x,ixI^L,ixO^L,res)
       use mod_global_parameters
       integer, intent(in)          :: ixI^L, ixO^L

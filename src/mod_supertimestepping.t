@@ -45,7 +45,7 @@ module mod_supertimestepping
   logical :: fix_conserve_at_step = .true.
   logical :: sts_initialized = .false.
 
-  abstract interface
+  interface
 
     !>interface for setting sources in the derived type
     subroutine subr1(ixI^L,ixO^L,w,x,wres,fix_conserve_at_step,my_dt,igrid,nflux)

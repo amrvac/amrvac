@@ -1,0 +1,5 @@
+F90=ftn
+FFLAGS = -c
+# disabled ftn messages: 878=multiple includes of same module
+F90FLAGS = -ea -ef -eZ -ffree -eI -O3 -M878 -hnoomp -hacc
+LINK = $(F90) $(F90FLAGS)

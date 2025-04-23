@@ -6,7 +6,7 @@ module mod_convert
   implicit none
   public
 
-  abstract interface
+  interface
 
      function sub_convert_vars(ixI^L, ixO^L, w, x, nwc) result(wnew)
        use mod_global_parameters

@@ -115,7 +115,6 @@ contains
   !> The eigenvalues and the L=R**(-1) matrix is calculated from wroe. 
   !> jump(il)=Sum_il L(il,iw)*(wR(iw)-wL(iw))
   subroutine hd_get_eigenjump(wL,wR,wroe,x,ix^L,il,idim,smalla,a,jump,workroe)
-    !$acc routine
     use mod_global_parameters
 
     integer, intent(in) :: ix^L,il,idim

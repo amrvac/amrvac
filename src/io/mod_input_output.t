@@ -562,7 +562,20 @@ contains
     basename_full = ''
     basename_prev = ''
 
+    ! Cray compiler bug: setting values after reading the namelists fails
+    ! when reading files in a loop.
+    ! To avoid this, disallow reading more than one file for now
+#ifdef _CRAYFTN
+    if (size(par_files) > 1) then
+       write(err_msg, *) "Reading more than one par file is disallowed " // &
+             "when compiled with Cray to avoid a compiler bug"
+       call mpistop(trim(err_msg))
+    end if
+    if (size(par_files) > 0) then
+       i = 1
+#else
     do i = 1, size(par_files)
+#endif
        if (mype == 0) print *, "Reading " // trim(par_files(i))
 
        ! Check whether the file exists
@@ -608,7 +621,11 @@ contains
        if (base_filename /= basename_prev) &
             basename_full = trim(basename_full) // trim(base_filename)
        basename_prev = base_filename
+#ifdef _CRAYFTN
+    end if
+#else
     end do
+#endif
 
     base_filename = basename_full
 

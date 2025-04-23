@@ -8,6 +8,7 @@ module mod_comm_lib
   public :: comm_finalize
   public :: init_comm_types
   public :: mpistop
+  public :: mpistop_gpu
 
 contains
 
@@ -204,8 +205,11 @@ contains
   end subroutine init_comm_types
 
   !> Exit MPI-AMRVAC with an error message
+  ! cray does not allow char type on the GPU
   subroutine mpistop(message)
+#ifndef _CRAYFTN
     !$acc routine
+#endif
     use mod_global_parameters
   
     character(len=*), intent(in) :: message !< The error message
@@ -222,5 +226,16 @@ contains
 #endif
   
   end subroutine mpistop
+
+  subroutine mpistop_gpu()
+    !$acc routine seq
+    use mod_global_parameters
+
+    integer                      :: ierrcode
+
+    write(*, *) "ERROR for processor", mype
+    STOP
+  end subroutine mpistop_gpu
+        
   
 end module mod_comm_lib

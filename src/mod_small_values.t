@@ -26,8 +26,47 @@ module mod_small_values
 
 contains
 
+#if defined(_CRAYFTN) && defined(_OPENACC)
+  subroutine small_values_error_gpu(wprim, x, ixI^L, ixO^L, w_flag)
+    !$acc routine seq
+    use mod_global_parameters
+    integer, intent(in)          :: ixI^L, ixO^L
+    double precision, intent(in) :: wprim(ixI^S, 1:nw)
+    double precision, intent(in) :: x(ixI^S, 1:ndim)
+    logical, intent(in)          :: w_flag(ixI^S,1:nw)
+    integer                      :: iw,iiw,ix^D
+
+    if (.not.crash) then
+       do iw=1,nw          
+          {do ix^DB= ixO^LIM^DB\}
+          if(w_flag(ix^D,iw)) then
+!FIXME:
+#ifndef _OPENACC
+            write(*,*) "Error: small value of ", trim(prim_wnames(iw)),wprim(ix^D,iw),&
+                 " encountered"
+            write(*,*) "Iteration: ", it, " Time: ", global_time, "Processor: ",mype
+            write(*,*) "Location: ", x(ix^D,:)
+            write(*,*) "Cell number: ", ix^D
+            do iiw=1,nw
+              write(*,*) trim(prim_wnames(iiw)),": ",wprim(ix^D,iiw)
+            end do
+            ! use erroneous arithmetic operation to crash the run
+            if(trace_small_values) write(*,*) sqrt(wprim(ix^D,iw)-bigdouble)
+            write(*,*) "Saving status at the previous time step"
+#endif
+            crash=.true.
+          end if
+       {enddo^D&\}
+      end do
+    end if
+
+  end subroutine small_values_error_gpu
+#endif
+
   subroutine small_values_error(wprim, x, ixI^L, ixO^L, w_flag, subname)
+#ifndef _CRAYFTN
     !$acc routine
+#endif
     use mod_global_parameters
     integer, intent(in)          :: ixI^L, ixO^L
     double precision, intent(in) :: wprim(ixI^S, 1:nw)
@@ -63,7 +102,7 @@ contains
   end subroutine small_values_error
 
   subroutine small_values_average(ixI^L, ixO^L, w, x, w_flag, windex)
-    !$acc routine
+    !$acc routine seq
     use mod_global_parameters
     integer, intent(in)             :: ixI^L, ixO^L
     logical, intent(in)             :: w_flag(ixI^S,1:nw)
