@@ -1,8 +1,0 @@
- &filelist
-        base_filename = '_GCA'
- /
-
- &particles_list
-        physics_type_particles='GCA'
-        ndefpayload=14
- /

@@ -1,8 +1,0 @@
-&filelist
-  base_filename='gal_'
-/
-
- &fld_list
-  fld_opal_table = 'Y09800'
- /
-

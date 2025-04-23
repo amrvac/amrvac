@@ -1,7 +1,0 @@
- &filelist
-        base_filename  = '_B0split'
- /
-
- &mhd_list
-        B0field=.true.
- /

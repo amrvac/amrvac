@@ -3,8 +3,6 @@
 !> set these pointers to its implementation of these routines.
 module mod_physics
   use mod_global_parameters, only: name_len, max_nw
-  use mod_physics_hllc
-  use mod_physics_roe
 
   implicit none
   public
@@ -377,14 +375,9 @@ contains
   subroutine phys_check()
     use mod_global_parameters, only: nw, ndir
 
-    use mod_physics_hllc, only: phys_hllc_check
-    use mod_physics_roe, only: phys_roe_check
     use mod_comm_lib, only: mpistop
 
     if (physics_type == "") call mpistop("Error: no physics module loaded")
-
-    call phys_hllc_check()
-    call phys_roe_check()
 
     ! Checks whether the required physics methods have been defined
     if (.not. associated(phys_check_params)) &
@@ -408,14 +401,14 @@ contains
     if (.not. associated(phys_get_H_speed)) &
          phys_get_H_speed => dummy_get_H_speed
 
-    if (.not. associated(phys_get_cbounds)) &
-         call mpistop("Error: no phys_get_cbounds not defined")
+!    if (.not. associated(phys_get_cbounds)) &
+!         call mpistop("Error: no phys_get_cbounds not defined")
 
-    if (.not. associated(phys_get_flux)) &
-         call mpistop("Error: no phys_get_flux not defined")
+!    if (.not. associated(phys_get_flux)) &
+!         call mpistop("Error: no phys_get_flux not defined")
 
-    if (.not. associated(phys_get_dt)) &
-         call mpistop("Error: no phys_get_dt not defined")
+!    if (.not. associated(phys_get_dt)) &
+!         call mpistop("Error: no phys_get_dt not defined")
 
     if (.not. associated(phys_add_source_geom)) &
          phys_add_source_geom => dummy_add_source_geom

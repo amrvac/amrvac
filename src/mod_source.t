@@ -21,8 +21,6 @@ contains
     use mod_global_parameters
     use mod_ghostcells_update
     use mod_physics, only: phys_req_diagonal, phys_global_source_after, phys_to_primitive
-    use mod_supertimestepping, only: is_sts_initialized, sts_add_source,sourcetype_sts,&
-                                      sourcetype_sts_prior, sourcetype_sts_after, sourcetype_sts_split   
     use mod_comm_lib, only: mpistop
 
     logical, intent(in) :: prior
@@ -34,21 +32,6 @@ contains
     integer :: iigrid, igrid
     logical :: src_active
 
-    ! add stiff source terms via super time stepping
-    if(is_sts_initialized()) then
-        select case (sourcetype_sts)
-          case (sourcetype_sts_prior)
-            if(prior) then
-              call sts_add_source(dt)
-            end if
-          case (sourcetype_sts_after)
-            if(.not. prior) then
-              call sts_add_source(dt)
-            end if
-          case (sourcetype_sts_split)
-            call sts_add_source(0.5d0*dt)
-          end select
-    end if
     src_active = .false.
 
     if ((.not.prior).and.&

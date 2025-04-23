@@ -200,7 +200,7 @@ contains
     use mod_ghostcells_update
     use mod_fix_conserve
     use mod_physics
-    use mod_finite_volume_all, only: finite_volume_all, finite_volume_local
+    use mod_finite_volume_all, only: finite_volume_local
 
     integer, intent(in)          :: idim^LIM
     integer :: ixO^L
@@ -266,56 +266,6 @@ contains
     call getbc(qt+qdt,qdt,psb,iwstart,nwgc,phys_req_diagonal)
 
   end subroutine advect1
-
-  !> Advance a single grid over one partial time step
-  subroutine advect1_grid(method,qdt,dtfactor,ixI^L,idim^LIM,qtC,sCT,qt,s,fC,fE,dxs,x)
-
-    !  integrate one grid by one partial step
-    use mod_finite_volume_all
-    use mod_finite_volume
-    use mod_finite_difference
-    use mod_tvd
-    use mod_source, only: addsource2
-    use mod_physics, only: phys_to_primitive
-    use mod_global_parameters
-    use mod_comm_lib, only: mpistop
-
-    integer, intent(in) :: method
-    integer, intent(in) :: ixI^L, idim^LIM
-    double precision, intent(in) :: qdt, dtfactor, qtC, qt, dxs(ndim), x(ixI^S,1:ndim)
-    type(state), target          :: sCT, s
-    double precision :: fC(ixI^S,1:nwflux,1:ndim), wprim(ixI^S,1:nw)
-    double precision :: fE(ixI^S,sdim:3)
-
-    integer :: ixO^L
-
-    ixO^L=ixI^L^LSUBnghostcells;
-    
-    select case (method)
-    case (fs_hll,fs_hllc,fs_hllcd,fs_hlld,fs_tvdlf,fs_tvdmu)
-       call finite_volume(method,qdt,dtfactor,ixI^L,ixO^L,idim^LIM,qtC,sCT,qt,s,fC,fE,dxs,x)
-    case (fs_cd,fs_cd4)
-       call centdiff(method,qdt,dtfactor,ixI^L,ixO^L,idim^LIM,qtC,sCT,qt,s,fC,fE,dxs,x)
-    !case (fs_hancock)
-    !   call hancock(qdt,dtfactor,ixI^L,ixO^L,idim^LIM,qtC,sCT,qt,s,dxs,x)
-    case (fs_fd)
-       call fd(qdt,dtfactor,ixI^L,ixO^L,idim^LIM,qtC,sCT,qt,s,fC,fE,dxs,x)
-    case (fs_tvd)
-       call centdiff(fs_cd,qdt,dtfactor,ixI^L,ixO^L,idim^LIM,qtC,sCT,qt,s,fC,fE,dxs,x)
-       call tvdlimit(method,qdt,ixI^L,ixO^L,idim^LIM,sCT,qt+qdt,s,fC,dxs,x)
-    case (fs_source)
-       wprim=sCT%w
-       call phys_to_primitive(ixI^L,ixI^L,wprim,x)
-       call addsource2(qdt*dble(idimmax-idimmin+1)/dble(ndim),&
-            dtfactor*dble(idimmax-idimmin+1)/dble(ndim),&
-            ixI^L,ixO^L,1,nw,qtC,sCT%w,wprim,qt,s%w,x,.false.)
-    case (fs_nul)
-       ! There is nothing to do
-    case default
-       call mpistop("unknown flux scheme in advect1_grid")
-    end select
-
-  end subroutine advect1_grid
 
   !> process is a user entry in time loop, before output and advance
   !>         allows to modify solution, add extra variables, etc.
