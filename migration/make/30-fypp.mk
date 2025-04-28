@@ -1,3 +1,4 @@
+.RECIPEPREFIX = >
 ifdef OPENMP
 fypp_flags += -DOPENACC
 endif
@@ -6,13 +7,24 @@ ifdef DEBUG
 fypp_flags += -DDEBUG
 endif
 
-fypp_flags += -nn
+fypp_flags += -n
 
 $(info Fypp flags: $(fypp_flags))
 
-.PRECIOUS: $(build_dir)/f90/%.f90
-$(build_dir)/f90/%.f90: src/%.fypp
+source_files := $(shell find $(amrvac)/src -name '*.fpp') mod_usr.fpp
+f90_files := $(patsubst %.fpp, $(build_dir)/f90/%.f90, \
+	     $(patsubst $(amrvac)/src/%.fpp, $(build_dir)/f90/%.f90, \
+	     $(source_files)))
+
+.PRECIOUS: $(f90_files)
+
+$(build_dir)/f90/%.f90: $(amrvac)/src/%.fpp
 > @mkdir -p $(@D)
-> @echo -e "Preprocessing $(_green)$<$(_reset)"
-> @fypp $(fypp_flags) $< $@
+> @echo -e "Preprocessing $(_green)$^$(_reset)"
+> fypp $(fypp_flags) $^ $@
+
+$(build_dir)/f90/mod_usr.f90: mod_usr.fpp | $(build_dir)
+> @mkdir -p $(@D)
+> @echo -e "Preprocessing $(_green)$^$(_reset)"
+> fypp $(fypp_flags) $^ $@
 

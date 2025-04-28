@@ -1,0 +1,51 @@
+ !$AMRVAC_DIR/setup.pl -d=2
+ &filelist
+   base_filename    = 'kh_2d'
+   autoconvert      = T
+   convert_type     = 'vtuBCCmpi'
+   saveprim         = T
+ /
+
+ &savelist
+   itsave(1,1)      = 0
+   itsave(1,2)      = 0
+   ditsave_log      = 1
+   ditsave_dat      = 100
+ /
+
+ &stoplist
+   it_max = 10
+ /
+
+ &methodlist
+   time_stepper = 'threestep'
+   flux_scheme     = 20*'hll'
+   limiter         = 20*'vanleer'
+ /
+
+ &boundlist
+   typeboundary_min1 = 4*'periodic'
+   typeboundary_max1 = 4*'periodic'
+   typeboundary_min2 = 4*'periodic'
+   typeboundary_max2 = 4*'periodic'
+ /
+
+ &meshlist
+   max_blocks         = 65536
+   refine_max_level   = 1
+   block_nx1          = 16
+   block_nx2          = 16
+   domain_nx1         = 4096
+   domain_nx2         = 4096
+   xprobmin1       = 0.0d0
+   xprobmax1       = 1.0d0
+   xprobmin2       = 0.0d0
+   xprobmax2       = 1.0d0
+   iprob=1
+ /
+  
+ &paramlist
+   slowsteps        = 10
+   courantpar       = 0.5d0
+   typecourant      = 'maxsum'
+ /

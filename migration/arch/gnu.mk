@@ -1,4 +1,4 @@
-compile = gfortran
+compile = mpif90
 f90_flags += -ffree-form -fimplicit-none -Wall
 
 ifdef OPENMP
