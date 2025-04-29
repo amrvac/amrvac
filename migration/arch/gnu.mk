@@ -1,5 +1,8 @@
 compile = mpif90
-f90_flags += -ffree-form -fimplicit-none -Wall
+f90_flags += -ffree-form -fimplicit-none -Wall -cpp
+f90_flags += -Wno-unused-dummy-argument	\
+	     -Wno-unused-function -Wno-unused -Wno-uninitialized \
+	     -Wno-zerotrip -Wno-target-lifetime
 
 ifdef OPENMP
 $(info Enabling OpenMP)

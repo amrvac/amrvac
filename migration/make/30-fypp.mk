@@ -20,11 +20,11 @@ f90_files := $(patsubst %.fpp, $(build_dir)/f90/%.f90, \
 
 $(build_dir)/f90/%.f90: $(amrvac)/src/%.fpp
 > @mkdir -p $(@D)
-> @echo -e "Preprocessing $(_green)$^$(_reset)"
-> fypp $(fypp_flags) $^ $@
+> @echo -e "Preprocessing $(_magenta)$(^:$(amrvac)/%=%)$(_reset)"
+> @fypp $(fypp_flags) $^ $@
 
 $(build_dir)/f90/mod_usr.f90: mod_usr.fpp | $(build_dir)
 > @mkdir -p $(@D)
-> @echo -e "Preprocessing $(_green)$^$(_reset)"
-> fypp $(fypp_flags) $^ $@
+> @echo -e "Preprocessing $(_magenta)$^$(_reset)"
+> @fypp $(fypp_flags) $^ $@
 
