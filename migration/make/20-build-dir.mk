@@ -1,4 +1,3 @@
-.RECIPEPREFIX = >
 hash := $(shell printf '%s' "$(sort $(enabled))" | md5sum | cut -c1-8)
 build_dir = build/$(arch)-$(hash)
 

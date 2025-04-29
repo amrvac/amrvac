@@ -1,4 +1,3 @@
-.RECIPEPREFIX = >
 ifdef OPENMP
 fypp_flags += -DOPENACC
 endif
