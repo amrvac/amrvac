@@ -1,6 +1,9 @@
 hash := $(shell printf '%s' "$(sort $(enabled))" | md5sum | cut -c1-8)
 build_dir = build/$(arch)-$(hash)
 
+# TODO set central build dir 
+# TODO store command line flags
+
 $(info Build dir: $(build_dir))
 
 all: build/latest/arch.mk

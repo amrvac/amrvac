@@ -8,6 +8,8 @@ endif
 
 fypp_flags += -n
 
+# TODO flatten directory structure here instead of  compile step
+
 $(info Fypp flags: $(fypp_flags))
 
 source_files := $(shell find $(amrvac)/src -name '*.fpp') mod_usr.fpp

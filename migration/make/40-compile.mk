@@ -1,5 +1,6 @@
 # obj_files = $(patsubst %.f90, $(build_dir)/obj/%, $(notdir $(f90_files)))
 # TODO: get rid of amrvac.h?
+# TODO: set location of mod files, this location add to -I
 
 compile_flags += -I$(build_dir)/f90
 

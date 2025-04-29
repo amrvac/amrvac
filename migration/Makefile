@@ -16,5 +16,3 @@ src/%.fpp: $(src_dir)/%.t
 > $(vacpp) -d=3 $< > $@
 ## --> end of temporary part
 
-include make/*.mk
-
