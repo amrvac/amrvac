@@ -14,11 +14,11 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest]
-        compiler: [gfortran-9, gfortran-10, gfortran-11]
+        compiler: [gfortran-10, gfortran-11, gfortran-12]
         include:
           - os: macos-latest
-            compiler: gfortran-11
-            gcc_name: gcc@11
+            compiler: gfortran-12
+            gcc_name: gcc@12
 
     env:
       FC: ${{ matrix.compiler }}
@@ -63,8 +63,8 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest]
-        FC_compiler: [gfortran-9]
-        CC_compiler: [gcc-9]
+        FC_compiler: [gfortran-12]
+        CC_compiler: [gcc-12]
         suite: [hd]
 
     env:
