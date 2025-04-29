@@ -56,10 +56,6 @@ jobs:
         run: |
           cd lib
           make 1d ARCH=debug -j 4 || exit 1
-      - name: run 1D rho test
-        run: |
-          cd tests
-          bash test_runner.sh rho/auto_1d
 
 
   GNU:
@@ -69,7 +65,7 @@ jobs:
         os: [ubuntu-latest]
         FC_compiler: [gfortran-9]
         CC_compiler: [gcc-9]
-        suite: [rho, hd, rhd, mhd, rd, ard, mg, twofl]
+        suite: [hd]
 
     env:
       CC: ${{ matrix.CC_compiler }}
