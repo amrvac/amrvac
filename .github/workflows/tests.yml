@@ -107,7 +107,7 @@ jobs:
     name: compile / Intel
 
     env:
-      FC: ifort
+      FC: ifx
       CC: icc
       AMRVAC_DIR: ${GITHUB_WORKSPACE}
 
