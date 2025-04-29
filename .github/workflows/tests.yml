@@ -144,12 +144,12 @@ jobs:
       - name: compile 1D
         run: |
           cd lib
-          make 1d -j 4 ARCH=inteldebug
+          make 1d -j 4 ARCH=ifxdebug
       - name: compile 2D
         run: |
           cd lib
-          make 2d -j 4 ARCH=inteldebug
+          make 2d -j 4 ARCH=ifxdebug
       - name: compile 3D
         run: |
           cd lib
-          make 3d -j 4 ARCH=inteldebug
+          make 3d -j 4 ARCH=ifxdebug
