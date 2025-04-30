@@ -1,7 +1,7 @@
 # if there was a previous build, default to the same arch,
 # or use the default `gnu`
 ifndef arch
--include build/latest/arch.mk
+-include $(amrvac)/build/latest/arch.mk
 arch ?= gnu
 endif
 

@@ -7,3 +7,10 @@ _blue := "\\e[34m"
 _magenta := "\\e[35m"
 _cyan := "\\e[36m"
 _reset := "\\e[m"
+
+# Make sure that `all` is the primary target
+
+.PHONY: all
+
+all:
+

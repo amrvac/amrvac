@@ -1,4 +1,8 @@
  !$AMRVAC_DIR/setup.pl -d=2
+ &components
+   gravity = .true.
+ /
+
  &filelist
    base_filename    = 'kh_2d'
    autoconvert      = T
