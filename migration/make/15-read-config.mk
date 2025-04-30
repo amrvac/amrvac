@@ -25,5 +25,3 @@ $(info loading latest flags)
 include $(build)/latest/flags.mk
 endif
 
-# TODO add rule to write config.mk to $(build_dir)/config.mk
-# TODO amrvac.par file read (use f90nml to parse)
