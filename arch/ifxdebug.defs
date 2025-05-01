@@ -1,0 +1,4 @@
+F90=mpiifx
+FFLAGS = -c
+F90FLAGS = -fpp -free -implicitnone -O2 -traceback -check nooutput_conversion -g
+LINK= $(F90)  $(F90FLAGS) 

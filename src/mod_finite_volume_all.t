@@ -63,7 +63,7 @@ contains
              tmp = uprim(:, ix1-2:ix1+2)
              call muscl_flux_euler_prim(tmp, 1, f, typelim)
              ! Update the wnew array
-             bgb%w(ix1, n) = bgb%w(ix1, :, n) + qdt * &
+             bgb%w(ix1, :, n) = bgb%w(ix1, :, n) + qdt * &
                   ( (f(:, 1) - f(:, 2)) * inv_dr(1) )
        }
        {^IFTWOD
