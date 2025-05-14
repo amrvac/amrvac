@@ -562,9 +562,11 @@ contains
       if (tmax_particles >= t_next_output) then
         call advance_particles(t_next_output, steps_taken)
         tpartc_io_0 = MPI_WTIME()
-        if (mype .eq. 0 .and. (.not. time_advance)) print*, "Writing particle output at time",t_next_output
         call write_particle_output()
-        if (.not. time_advance .and. write_snapshot) call write_particles_snapshot()
+        if(convert .and. write_snapshot) then
+          if(mype==0) print*, "Writing particle output at time",t_next_output
+          call write_particles_snapshot()
+        end if
         timeio_tot  = timeio_tot+(MPI_WTIME()-tpartc_io_0)
         tpartc_io   = tpartc_io+(MPI_WTIME()-tpartc_io_0)
 
@@ -1039,6 +1041,8 @@ contains
     end do
 
     if (mype == 0) close(unit=unitparticles)
+
+    t_next_output=global_time+dtsave_particles
 
   end subroutine read_particles_snapshot
 

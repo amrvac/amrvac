@@ -107,6 +107,11 @@ contains
 
     call MPI_ALLREDUCE(nparticles_local,nparticles,1,MPI_INTEGER,MPI_SUM,icomm,ierrmpi)
 
+    ! write the first csv file of particles
+    t_next_output=global_time
+    call write_particle_output()
+    t_next_output=t_next_output+dtsave_particles
+
   end subroutine sample_create_particles
 
   subroutine sample_fill_gridvars
