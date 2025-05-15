@@ -1,0 +1,9 @@
+# This file sets what settings in amrvac.par are read as compile
+# time flags and whether they should affect the build hash.
+
+[components]
+[components.gravity]
+type = "flag"
+name = "GRAVITY"
+flags = ["fypp", "hash"]
+default = false

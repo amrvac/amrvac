@@ -1,3 +1,5 @@
+# TODO: link to amrvac.a for later linkage with mod_usr.o
+
 amrvac: $(build_dir)/obj/amrvac
 > @rm -f amrvac
 > @ln -s $< $@

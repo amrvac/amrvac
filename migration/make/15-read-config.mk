@@ -16,12 +16,11 @@
 
 config.mk: amrvac.par
 > @echo -e "Reading $(_magenta)amrvac.par$(_reset)"
-> @python $(amrvac)/make/munch.py < $< > $@
+> @python $(amrvac)/make/config_reader.py < $< > $@
 
 include config.mk
 
 ifneq ("$(wildcard $(build)/latest/flags.mk)","")
-$(info loading latest flags)
 include $(build)/latest/flags.mk
 endif
 
