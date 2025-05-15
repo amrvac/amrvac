@@ -1,5 +1,7 @@
 # if there was a previous build, default to the same arch,
 # or use the default `gnu`
+-include $(build)/latest/flags.mk
+
 ifndef arch
 -include $(amrvac)/build/latest/arch.mk
 arch ?= gnu

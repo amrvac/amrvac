@@ -18,6 +18,9 @@ endif
 ifdef OPENMP
 > @echo "OPENMP ?= $(OPENMP)" >> $@
 endif
+ifdef OPENACC
+> @echo "OPENACC ?= $(OPENACC)" >> $@
+endif
 
 $(build_dir)/config.mk: config.mk
 > @mkdir -p $(@D)

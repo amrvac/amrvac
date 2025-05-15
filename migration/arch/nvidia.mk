@@ -1,3 +1,5 @@
+arch := nvidia
+
 compile = mpif90
 f90_flags += -cpp -Mfree
 
@@ -8,7 +10,8 @@ f90_flags += -fopenmp
 endif
 
 ifdef OPENACC
-f90_flags = -Wall -acc=gpu -Minfo=all -Mvect=levels:5 -Minline
+$(info Enabling OpenACC)
+f90_flags += -Wall -acc=gpu -Minfo=all -Mvect=levels:5 -Minline
 enabled += OPENACC
 endif
 

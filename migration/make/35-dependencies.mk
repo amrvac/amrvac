@@ -1,3 +1,4 @@
+.RECIPEPREFIX = >
 # dep_files := $(f90_files:$(build_dir)/f90/%.f90=$(build_dir)/dep/%.dep)
 
 # TODO: is there alternative to  fortdepend without dependencies?

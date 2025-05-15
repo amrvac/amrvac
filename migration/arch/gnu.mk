@@ -1,3 +1,5 @@
+arch := gnu
+
 compile = mpif90
 f90_flags += -ffree-form -fimplicit-none -Wall -cpp
 f90_flags += -Wno-unused-dummy-argument	\

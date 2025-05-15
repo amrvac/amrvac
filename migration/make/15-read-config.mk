@@ -20,7 +20,3 @@ config.mk: amrvac.par
 
 include config.mk
 
-ifneq ("$(wildcard $(build)/latest/flags.mk)","")
-include $(build)/latest/flags.mk
-endif
-
