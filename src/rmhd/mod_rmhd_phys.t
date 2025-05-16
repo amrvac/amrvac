@@ -70,7 +70,7 @@ module mod_rmhd_phys
   integer, public, protected              :: e_
   !> Index of the radiation energy
   integer, public, protected              :: r_e
-  !> Indices of the momentum density for the form of better vectorization
+  !> Indices of the magnetic field for the form of better vectorization
   integer, public, protected              :: ^C&b^C_
   !> Index of the gas pressure (-1 if not present) should equal e_
   integer, public, protected              :: p_

@@ -39,6 +39,12 @@ module mod_mf_phys
   !> Indices of the momentum density
   integer, allocatable, public, protected :: mom(:)
 
+  !> Indices of the momentum density for the form of better vectorization
+  integer, public, protected              :: ^C&m^C_
+
+  !> Indices of the magnetic field for the form of better vectorization
+  integer, public, protected              :: ^C&b^C_
+
   !> Indices of the GLM psi
   integer, public, protected :: psi_
 
@@ -209,10 +215,12 @@ contains
     ! set velocity field as flux variables
     allocate(mom(ndir))
     mom(:) = var_set_momentum(ndir)
+    m^C_=mom(^C);
 
     ! set magnetic field as flux variables
     allocate(mag(ndir))
     mag(:) = var_set_bfield(ndir)
+    b^C_=mag(^C);
 
     ! start with magnetic field and skip velocity when update ghostcells
     iwstart=mag(1)
@@ -489,15 +497,13 @@ contains
     double precision, intent(in) :: x(ixI^S,1:ndim)
     double precision,intent(out) :: f(ixI^S,nwflux)
 
-    integer                      :: idir, ix^D
+    integer :: ix^D
 
-    do idir=1,ndir
-     {do ix^DB=ixOmin^DB,ixOmax^DB\}
-        ! compute flux of magnetic field
-        ! f_i[b_k]=v_i*b_k-v_k*b_i
-        f(ix^D,mag(idir))=w(ix^D,mom(idim))*w(ix^D,mag(idir))-w(ix^D,mag(idim))*w(ix^D,mom(idir))
-     {end do\}
-    end do
+   {do ix^DB=ixOmin^DB,ixOmax^DB\}
+      ! compute flux of magnetic field
+      ! f_i[b_k]=v_i*b_k-v_k*b_i
+      ^C&f(ix^D,b^C_)=w(ix^D,mom(idim))*w(ix^D,b^C_)-w(ix^D,mag(idim))*w(ix^D,m^C_)\
+   {end do\}
     if(mf_glm) then
      {do ix^DB=ixOmin^DB,ixOmax^DB\}
         f(ix^D,mag(idim))=w(ix^D,psi_)
