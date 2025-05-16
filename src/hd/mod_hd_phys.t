@@ -556,40 +556,62 @@ contains
       kB=kB_cgs
     end if
     if(eq_state_units) then
-      a = 1d0 + 4d0 * He_abundance
+      a=1d0+4d0*He_abundance
       if(hd_partial_ionization) then
-        b = 2.d0+3.d0*He_abundance
+        b=1d0+H_ion_fr+He_abundance*(He_ion_fr*(He_ion_fr2+1d0)+1d0)
       else
-        b = 1d0 + H_ion_fr + He_abundance*(He_ion_fr*(He_ion_fr2 + 1d0)+1d0)
+        b=2d0+3d0*He_abundance
       end if
-      RR = 1d0
+      RR=1d0
     else
-      a = 1d0
-      b = 1d0
-      RR = (1d0 + H_ion_fr + He_abundance*(He_ion_fr*(He_ion_fr2 + 1d0)+1d0))/(1d0 + 4d0 * He_abundance)
+      a=1d0
+      b=1d0
+      RR=(1d0+H_ion_fr+He_abundance*(He_ion_fr*(He_ion_fr2+1d0)+1d0))/(1d0+4d0*He_abundance)
     end if
-    if(unit_density/=1.d0) then
-      unit_numberdensity=unit_density/(a*mp)
-    else
-      ! unit of numberdensity is independent by default
-      unit_density=a*mp*unit_numberdensity
-    end if
-    if(unit_velocity/=1.d0) then
-      unit_pressure=unit_density*unit_velocity**2
-      unit_temperature=unit_pressure/(b*unit_numberdensity*kB)
+    ! assume unit_length is alway specified
+    if(unit_density/=1.d0 .or. unit_numberdensity/=1.d0) then
+      if(unit_density/=1.d0) then
+        unit_numberdensity=unit_density/(a*mp)
+      else if(unit_numberdensity/=1.d0) then
+        unit_density=a*mp*unit_numberdensity
+      end if
+      if(unit_temperature/=1.d0) then
+        unit_pressure=b*unit_numberdensity*kB*unit_temperature
+        unit_velocity=sqrt(unit_pressure/unit_density)
+        unit_time=unit_length/unit_velocity
+      else if(unit_pressure/=1.d0) then
+        unit_temperature=unit_pressure/(b*unit_numberdensity*kB)
+        unit_velocity=sqrt(unit_pressure/unit_density)
+        unit_time=unit_length/unit_velocity
+      else if(unit_velocity/=1.d0) then
+        unit_pressure=unit_density*unit_velocity**2
+        unit_temperature=unit_pressure/(b*unit_numberdensity*kB)
+        unit_time=unit_length/unit_velocity
+      else if(unit_time/=1.d0) then
+        unit_velocity=unit_length/unit_time
+        unit_pressure=unit_density*unit_velocity**2
+        unit_temperature=unit_pressure/(b*unit_numberdensity*kB)
+      end if
+    else if(unit_temperature/=1.d0) then
+      ! units of temperature and velocity are dependent
+      if(unit_pressure/=1.d0) then
+        unit_numberdensity=unit_pressure/(b*unit_temperature*kB)
+        unit_density=a*mp*unit_numberdensity
+        unit_velocity=sqrt(unit_pressure/unit_density)
+        unit_time=unit_length/unit_velocity
+      end if
     else if(unit_pressure/=1.d0) then
-      unit_temperature=unit_pressure/(b*unit_numberdensity*kB)
-      unit_velocity=sqrt(unit_pressure/unit_density)
-    else
-      ! unit of temperature is independent by default
-      unit_pressure=b*unit_numberdensity*kB*unit_temperature
-      unit_velocity=sqrt(unit_pressure/unit_density)
-    end if
-    if(unit_time/=1.d0) then
-      unit_length=unit_time*unit_velocity
-    else
-      ! unit of length is independent by default
-      unit_time=unit_length/unit_velocity
+      if(unit_velocity/=1.d0) then
+        unit_density=unit_pressure/unit_velocity**2
+        unit_numberdensity=unit_density/(a*mp)
+        unit_temperature=unit_pressure/(b*unit_numberdensity*kB)
+        unit_time=unit_length/unit_velocity
+      else if(unit_time/=0.d0) then
+        unit_velocity=unit_length/unit_time
+        unit_density=unit_pressure/unit_velocity**2
+        unit_numberdensity=unit_density/(a*mp)
+        unit_temperature=unit_pressure/(b*unit_numberdensity*kB)
+      end if
     end if
     unit_mass = unit_density * unit_length**3
 
