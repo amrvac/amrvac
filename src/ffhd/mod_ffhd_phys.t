@@ -615,7 +615,6 @@ contains
       b=1d0
       RR=(1d0+H_ion_fr+He_abundance*(He_ion_fr*(He_ion_fr2+1d0)+1d0))/(1d0+4d0*He_abundance)
     end if
-    ! assume unit_length is alway specified
     if(unit_density/=1.d0 .or. unit_numberdensity/=1.d0) then
       if(unit_density/=1.d0) then
         unit_numberdensity=unit_density/(a*mp)
@@ -625,15 +624,27 @@ contains
       if(unit_temperature/=1.d0) then
         unit_pressure=b*unit_numberdensity*kB*unit_temperature
         unit_velocity=sqrt(unit_pressure/unit_density)
-        unit_time=unit_length/unit_velocity
+        if(unit_length/=1.d0) then
+          unit_time=unit_length/unit_velocity
+        else if(unit_time/=1.d0) then
+          unit_length=unit_velocity*unit_time
+        end if
       else if(unit_pressure/=1.d0) then
         unit_temperature=unit_pressure/(b*unit_numberdensity*kB)
         unit_velocity=sqrt(unit_pressure/unit_density)
-        unit_time=unit_length/unit_velocity
+        if(unit_length/=1.d0) then
+          unit_time=unit_length/unit_velocity
+        else if(unit_time/=1.d0) then
+          unit_length=unit_velocity*unit_time
+        end if
       else if(unit_velocity/=1.d0) then
         unit_pressure=unit_density*unit_velocity**2
         unit_temperature=unit_pressure/(b*unit_numberdensity*kB)
-        unit_time=unit_length/unit_velocity
+        if(unit_length/=1.d0) then
+          unit_time=unit_length/unit_velocity
+        else if(unit_time/=1.d0) then
+          unit_length=unit_velocity*unit_time
+        end if
       else if(unit_time/=1.d0) then
         unit_velocity=unit_length/unit_time
         unit_pressure=unit_density*unit_velocity**2
@@ -645,14 +656,22 @@ contains
         unit_numberdensity=unit_pressure/(b*unit_temperature*kB)
         unit_density=a*mp*unit_numberdensity
         unit_velocity=sqrt(unit_pressure/unit_density)
-        unit_time=unit_length/unit_velocity
+        if(unit_length/=1.d0) then
+          unit_time=unit_length/unit_velocity
+        else if(unit_time/=1.d0) then
+          unit_length=unit_velocity*unit_time
+        end if
       end if
     else if(unit_pressure/=1.d0) then
       if(unit_velocity/=1.d0) then
         unit_density=unit_pressure/unit_velocity**2
         unit_numberdensity=unit_density/(a*mp)
         unit_temperature=unit_pressure/(b*unit_numberdensity*kB)
-        unit_time=unit_length/unit_velocity
+        if(unit_length/=1.d0) then
+          unit_time=unit_length/unit_velocity
+        else if(unit_time/=1.d0) then
+          unit_length=unit_velocity*unit_time
+        end if
       else if(unit_time/=0.d0) then
         unit_velocity=unit_length/unit_time
         unit_density=unit_pressure/unit_velocity**2
