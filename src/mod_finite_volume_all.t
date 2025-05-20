@@ -39,6 +39,8 @@ contains
     real(dp)               :: f(nw_euler, 2)
     real(dp)               :: inv_dr(ndim)
     integer                :: typelim
+    real(dp)               :: xloc(ndim)
+    real(dp)               :: wprim(nw_euler), wCT(nw_euler), wnew(nw_euler)
     !-----------------------------------------------------------------------------
 
     !$acc parallel loop private(n, uprim, inv_dr, typelim) firstprivate(ixI^L, ixO^L) present(bga%w, bgb%w)
@@ -55,7 +57,7 @@ contains
              call to_primitive(uprim(:, ix^D))
        {^D& end do \}
 
-       !$acc loop collapse(ndim) private(f, tmp) vector
+       !$acc loop collapse(ndim) private(f, tmp, wnew, wCT, xloc, wprim) vector
        {^D& do ix^DB=ixOmin^DB,ixOmax^DB \}
              ! Compute fluxes in all dimensions
 
@@ -63,7 +65,7 @@ contains
              tmp = uprim(:, ix1-2:ix1+2)
              call muscl_flux_euler_prim(tmp, 1, f, typelim)
              ! Update the wnew array
-             bgb%w(ix1, n) = bgb%w(ix1, :, n) + qdt * &
+             bgb%w(ix1, :, n) = bgb%w(ix1, :, n) + qdt * &
                   ( (f(:, 1) - f(:, 2)) * inv_dr(1) )
        }
        {^IFTWOD
@@ -92,13 +94,49 @@ contains
              call muscl_flux_euler_prim(tmp, 3, f, typelim)
              bgb%w(ix1, ix2, ix3, :, n) = bgb%w(ix1, ix2, ix3, :, n) &
                   + qdt * (f(:, 1) - f(:, 2)) * inv_dr(3)
-       }
 
+#:if defined('GRAVITY')
+             ! Add source terms:
+             xloc(1:ndim) = ps(n)%x(ix1, ix2, ix3, 1:ndim)
+             wprim        = uprim(1:nw_euler, ix1, ix2, ix3)
+             wCT          = bga%w(ix1, ix2, ix3, 1:nw_euler, n)
+             wnew         = bgb%w(ix1, ix2, ix3, 1:nw_euler, n)
+             call addsource_local(qdt*dble(idimsmax-idimsmin+1)/dble(ndim), &
+                  dtfactor*dble(idimsmax-idimsmin+1)/dble(ndim), & 
+                  qtC, wCT, wprim, qt, wnew, xloc, .false. )
+             bgb%w(ix1, ix2, ix3, :, n) = wnew(:)
+#:endif             
+       }
+       
        {^D& end do \}
     end do
 
   end subroutine finite_volume_local
 
+  subroutine addsource_local(qdt, dtfactor, qtC, wCT, wCTprim, qt, wnew, x, qsourcesplit)
+    !$acc routine seq
+#:if defined('GRAVITY')
+    use mod_usr, only: gravity_field
+#:endif    
+    real(dp), intent(in)     :: qdt, dtfactor, qtC, qt
+    real(dp), intent(in)     :: wCT(nw_euler), wCTprim(nw_euler)
+    real(dp), intent(in)     :: x(1:ndim)
+    real(dp), intent(inout)  :: wnew(nw_euler)
+    logical, intent(in)      :: qsourcesplit
+    ! .. local ..
+    integer                  :: idim
+    real(dp)                 :: field
+
+#:if defined('GRAVITY')
+    do idim = 1, ndim
+       field = gravity_field(wCT, x, idim)
+       wnew(iw_mom(idim)) = wnew(iw_mom(idim)) + qdt * field * wCT(iw_rho)
+       wnew(iw_e)         = wnew(iw_e) + qdt * field * wCT(iw_mom(idim))
+    end do
+#:endif  
+    
+  end subroutine addsource_local
+  
   pure subroutine to_primitive(u)
     !$acc routine seq
     real(dp), intent(inout) :: u(nw_euler)
