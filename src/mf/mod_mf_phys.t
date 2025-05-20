@@ -332,7 +332,6 @@ contains
     end if
     a=1.d0+4.d0*He_abundance
     b=2.d0+3.d0*He_abundance
-    ! assume unit_length is alway specified
     if(unit_density/=1.d0 .or. unit_numberdensity/=1.d0) then
       if(unit_density/=1.d0) then
         unit_numberdensity=unit_density/(a*mp)
@@ -343,22 +342,38 @@ contains
         unit_pressure=b*unit_numberdensity*kB*unit_temperature
         unit_velocity=sqrt(unit_pressure/unit_density)
         unit_magneticfield=sqrt(miu0*unit_pressure)
-        unit_time=unit_length/unit_velocity
+        if(unit_length/=1.d0) then
+          unit_time=unit_length/unit_velocity
+        else if(unit_time/=1.d0) then
+          unit_length=unit_velocity*unit_time
+        end if
       else if(unit_magneticfield/=1.d0) then
         unit_pressure=unit_magneticfield**2/miu0
         unit_temperature=unit_pressure/(b*unit_numberdensity*kB)
         unit_velocity=sqrt(unit_pressure/unit_density)
-        unit_time=unit_length/unit_velocity
+        if(unit_length/=1.d0) then
+          unit_time=unit_length/unit_velocity
+        else if(unit_time/=1.d0) then
+          unit_length=unit_velocity*unit_time
+        end if
       else if(unit_pressure/=1.d0) then
         unit_temperature=unit_pressure/(b*unit_numberdensity*kB)
         unit_velocity=sqrt(unit_pressure/unit_density)
         unit_magneticfield=sqrt(miu0*unit_pressure)
-        unit_time=unit_length/unit_velocity
+        if(unit_length/=1.d0) then
+          unit_time=unit_length/unit_velocity
+        else if(unit_time/=1.d0) then
+          unit_length=unit_velocity*unit_time
+        end if
       else if(unit_velocity/=1.d0) then
         unit_pressure=unit_density*unit_velocity**2
         unit_temperature=unit_pressure/(b*unit_numberdensity*kB)
         unit_magneticfield=sqrt(miu0*unit_pressure)
-        unit_time=unit_length/unit_velocity
+        if(unit_length/=1.d0) then
+          unit_time=unit_length/unit_velocity
+        else if(unit_time/=1.d0) then
+          unit_length=unit_velocity*unit_time
+        end if
       else if(unit_time/=1.d0) then
         unit_velocity=unit_length/unit_time
         unit_pressure=unit_density*unit_velocity**2
@@ -372,13 +387,21 @@ contains
         unit_numberdensity=unit_pressure/(b*unit_temperature*kB)
         unit_density=a*mp*unit_numberdensity
         unit_velocity=sqrt(unit_pressure/unit_density)
-        unit_time=unit_length/unit_velocity
+        if(unit_length/=1.d0) then
+          unit_time=unit_length/unit_velocity
+        else if(unit_time/=1.d0) then
+          unit_length=unit_velocity*unit_time
+        end if
       else if(unit_pressure/=1.d0) then
         unit_magneticfield=sqrt(miu0*unit_pressure)
         unit_numberdensity=unit_pressure/(b*unit_temperature*kB)
         unit_density=a*mp*unit_numberdensity
         unit_velocity=sqrt(unit_pressure/unit_density)
-        unit_time=unit_length/unit_velocity
+        if(unit_length/=1.d0) then
+          unit_time=unit_length/unit_velocity
+        else if(unit_time/=1.d0) then
+          unit_length=unit_velocity*unit_time
+        end if
       end if
     else if(unit_magneticfield/=1.d0) then
       ! units of magnetic field and pressure are dependent
@@ -387,7 +410,11 @@ contains
         unit_numberdensity=unit_pressure/(b*unit_temperature*kB)
         unit_density=a*mp*unit_numberdensity
         unit_temperature=unit_pressure/(b*unit_numberdensity*kB)
-        unit_time=unit_length/unit_velocity
+        if(unit_length/=1.d0) then
+          unit_time=unit_length/unit_velocity
+        else if(unit_time/=1.d0) then
+          unit_length=unit_velocity*unit_time
+        end if
       else if(unit_time/=0.d0) then
         unit_pressure=unit_magneticfield**2/miu0
         unit_velocity=unit_length/unit_time
@@ -401,7 +428,11 @@ contains
         unit_density=unit_pressure/unit_velocity**2
         unit_numberdensity=unit_density/(a*mp)
         unit_temperature=unit_pressure/(b*unit_numberdensity*kB)
-        unit_time=unit_length/unit_velocity
+        if(unit_length/=1.d0) then
+          unit_time=unit_length/unit_velocity
+        else if(unit_time/=1.d0) then
+          unit_length=unit_velocity*unit_time
+        end if
       else if(unit_time/=0.d0) then
         unit_magneticfield=sqrt(miu0*unit_pressure)
         unit_velocity=unit_length/unit_time
