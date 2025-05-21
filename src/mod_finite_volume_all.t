@@ -1,11 +1,9 @@
-! - [x] Remove everything we don't use
-! - [x] Remove psa, and psb from finite_volume (ps, bga and bgb should be enough)
-! - [x] Test for correctness
-! - [x] Replace block with ps(igrid), pass igrid to functions that need it
-! - [ ] Implement local update alternative from Jannis toycode
 !> Module with finite volume methods for fluxes
+
+#:include 'hd/mod_hd_templates.fpp'
+
 module mod_finite_volume_all
-#include "amrvac.h"
+
   use mod_variables
   use mod_hd_phys, only: hd_gamma
   use mod_global_parameters, only: ndim
@@ -19,6 +17,13 @@ module mod_finite_volume_all
   integer, parameter :: dp = kind(0.0d0), nw_euler=2+ndim
 
 contains
+
+! instantiate the templated functions here:
+@:addsource_local()
+@:to_primitive()
+@:to_conservative()
+@:get_cmax()
+@:get_flux()
 
   subroutine finite_volume_local(method, qdt, dtfactor, ixI^L, ixO^L, idims^LIM, &
        qtC, bga, qt, bgb, fC, fE)
@@ -63,35 +68,35 @@ contains
 
        {^IFONED
              tmp = uprim(:, ix1-2:ix1+2)
-             call muscl_flux_euler_prim(tmp, 1, f, typelim)
+             call muscl_flux_prim(tmp, 1, f, typelim)
              ! Update the wnew array
              bgb%w(ix1, :, n) = bgb%w(ix1, :, n) + qdt * &
                   ( (f(:, 1) - f(:, 2)) * inv_dr(1) )
        }
        {^IFTWOD
              tmp = uprim(:, ix1-2:ix1+2, ix2)
-             call muscl_flux_euler_prim(tmp, 1, f, typelim)
+             call muscl_flux_prim(tmp, 1, f, typelim)
              bgb%w(ix1, ix2, :, n) = bgb%w(ix1, ix2, :, n) &
                   + qdt * (f(:, 1) - f(:, 2)) * inv_dr(1)
 
              tmp = uprim(:, ix1, ix2-2:ix2+2)
-             call muscl_flux_euler_prim(tmp, 2, f, typelim)
+             call muscl_flux_prim(tmp, 2, f, typelim)
              bgb%w(ix1, ix2, :, n) = bgb%w(ix1, ix2, :, n) &
                   + qdt * (f(:, 1) - f(:, 2)) * inv_dr(2)
        }
        {^IFTHREED
              tmp = uprim(:, ix1-2:ix1+2, ix2, ix3)
-             call muscl_flux_euler_prim(tmp, 1, f, typelim)
+             call muscl_flux_prim(tmp, 1, f, typelim)
              bgb%w(ix1, ix2, ix3, :, n) = bgb%w(ix1, ix2, ix3, :, n) &
                   + qdt * (f(:, 1) - f(:, 2)) * inv_dr(1)
 
              tmp = uprim(:, ix1, ix2-2:ix2+2, ix3)
-             call muscl_flux_euler_prim(tmp, 2, f, typelim)
+             call muscl_flux_prim(tmp, 2, f, typelim)
              bgb%w(ix1, ix2, ix3, :, n) = bgb%w(ix1, ix2, ix3, :, n) &
                   + qdt * (f(:, 1) - f(:, 2)) * inv_dr(2)
 
              tmp = uprim(:, ix1, ix2, ix3-2:ix3+2)
-             call muscl_flux_euler_prim(tmp, 3, f, typelim)
+             call muscl_flux_prim(tmp, 3, f, typelim)
              bgb%w(ix1, ix2, ix3, :, n) = bgb%w(ix1, ix2, ix3, :, n) &
                   + qdt * (f(:, 1) - f(:, 2)) * inv_dr(3)
 
@@ -113,62 +118,7 @@ contains
 
   end subroutine finite_volume_local
 
-  subroutine addsource_local(qdt, dtfactor, qtC, wCT, wCTprim, qt, wnew, x, qsourcesplit)
-    !$acc routine seq
-#:if defined('GRAVITY')
-    use mod_usr, only: gravity_field
-#:endif    
-    real(dp), intent(in)     :: qdt, dtfactor, qtC, qt
-    real(dp), intent(in)     :: wCT(nw_euler), wCTprim(nw_euler)
-    real(dp), intent(in)     :: x(1:ndim)
-    real(dp), intent(inout)  :: wnew(nw_euler)
-    logical, intent(in)      :: qsourcesplit
-    ! .. local ..
-    integer                  :: idim
-    real(dp)                 :: field
-
-#:if defined('GRAVITY')
-    do idim = 1, ndim
-       field = gravity_field(wCT, x, idim)
-       wnew(iw_mom(idim)) = wnew(iw_mom(idim)) + qdt * field * wCT(iw_rho)
-       wnew(iw_e)         = wnew(iw_e) + qdt * field * wCT(iw_mom(idim))
-    end do
-#:endif  
-    
-  end subroutine addsource_local
-  
-  pure subroutine to_primitive(u)
-    !$acc routine seq
-    real(dp), intent(inout) :: u(nw_euler)
-
-    {^D&
-    u(iw_mom(^D)) = u(iw_mom(^D))/u(iw_rho)
-    \}
-
-    u(iw_e) = (hd_gamma-1.0_dp) * (u(iw_e) - &
-         0.5_dp * u(iw_rho) * sum(u(iw_mom(1:ndim))**2) )
-
-  end subroutine to_primitive
-
-  pure subroutine to_conservative(u)
-    !$acc routine seq
-    real(dp), intent(inout) :: u(nw_euler)
-    real(dp)                :: inv_gamma_m1
-
-    inv_gamma_m1 = 1.0d0/(hd_gamma - 1.0_dp)
-
-    ! Compute energy from pressure and kinetic energy
-    u(iw_e) = u(iw_e) * inv_gamma_m1 + &
-         0.5_dp * u(iw_rho) * sum(u(iw_mom(1:ndim))**2)
-
-    ! Compute momentum from density and velocity components
-    {^D&
-    u(iw_mom(^D)) = u(iw_rho) * u(iw_mom(^D))
-    \}
-
-  end subroutine to_conservative
-
-  subroutine muscl_flux_euler_prim(u, flux_dim, flux, typelim)
+  subroutine muscl_flux_prim(u, flux_dim, flux, typelim)
     !$acc routine seq
 
     use mod_limiter, only: limiter_minmod, limiter_vanleer
@@ -189,8 +139,8 @@ contains
        uR = u(:, 3) - 0.5_dp * vanleer(u(:, 3) - u(:, 2), u(:, 4) - u(:, 3))
     end select
 
-    call euler_flux(uL, flux_dim, flux_l)
-    call euler_flux(uR, flux_dim, flux_r)
+    call get_flux(uL, flux_dim, flux_l)
+    call get_flux(uR, flux_dim, flux_r)
 
     wL = get_cmax(uL, flux_dim)
     wR = get_cmax(uR, flux_dim)
@@ -210,8 +160,8 @@ contains
        uR = u(:, 4) - 0.5_dp * vanleer(u(:, 4) - u(:, 3), u(:, 5) - u(:, 4))
     end select
 
-    call euler_flux(uL, flux_dim, flux_l)
-    call euler_flux(uR, flux_dim, flux_r)
+    call get_flux(uL, flux_dim, flux_l)
+    call get_flux(uR, flux_dim, flux_r)
 
     wL = get_cmax(uL, flux_dim)
     wR = get_cmax(uR, flux_dim)
@@ -221,40 +171,7 @@ contains
     call to_conservative(uR)
     flux(:, 2) = 0.5_dp * ((flux_l + flux_r) - wmax * (uR - uL))
 
-  end subroutine muscl_flux_euler_prim
-
-  subroutine euler_flux(u, flux_dim, flux)
-    !$acc routine seq
-    real(dp), intent(in)  :: u(nw_euler)
-    integer, intent(in)   :: flux_dim
-    real(dp), intent(out) :: flux(nw_euler)
-    real(dp)              :: inv_gamma_m1
-
-    inv_gamma_m1 = 1.0d0/(hd_gamma - 1.0_dp)
-
-    ! Density flux
-    flux(iw_rho) = u(iw_rho) * u(iw_mom(flux_dim))
-
-    ! Momentum flux with pressure term
-    {^D&
-    flux(iw_mom(^D)) = u(iw_rho) * u(iw_mom(^D)) * u(iw_mom(flux_dim))
-    \}
-    flux(iw_mom(flux_dim)) = flux(iw_mom(flux_dim)) + u(iw_e)
-
-    ! Energy flux
-    flux(iw_e) = u(iw_mom(flux_dim)) * (u(iw_e) * inv_gamma_m1 + &
-         0.5_dp * u(iw_rho) * sum(u(iw_mom(1:ndim))**2) + u(iw_e))
-
-  end subroutine euler_flux
-
-  pure real(dp) function get_cmax(u, flux_dim) result(wC)
-    !$acc routine seq
-    real(dp), intent(in)  :: u(nw_euler)
-    integer, intent(in)   :: flux_dim
-
-    wC = sqrt(hd_gamma * u(iw_e) / u(iw_rho)) + abs(u(iw_mom(flux_dim)))
-
-  end function get_cmax
+  end subroutine muscl_flux_prim
 
   elemental pure real(dp) function vanleer(a, b) result(phi)
     !$acc routine seq

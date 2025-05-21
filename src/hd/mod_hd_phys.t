@@ -78,6 +78,7 @@ contains
 
   end subroutine hd_read_params
 
+
   ! w[iw]= w[iw]+qdt*S[wCT, qtC, x] where S is the source based on wCT within ixO
   subroutine hd_add_source(qdt,dtfactor, ixI^L,ixO^L,wCT,wCTprim,w,x,qsourcesplit,active)
     !$acc routine seq
