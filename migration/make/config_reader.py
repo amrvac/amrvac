@@ -41,7 +41,7 @@ class Option:
         if "hash" in self.flags:
             print(f"enabled += \"{self.name}={val}\"")
         if "fypp" in self.flags:
-            print(f"fypp_flags += -D{self.name}={val}")
+            print(f"fypp_flags += -D{self.name}=\\'{val}\\'")
 
 
 OPTION_TYPES = {
