@@ -193,46 +193,10 @@ contains
     qR(gxC^S) = q(hxC^S)
     qL(gxC^S) = q(gxC^S)
 
-    select case (type_limiter(block%level))
-    case (limiter_ppm)
-       ! the ordinary grid-index:
-       ixOmin^D=ixCmin^D+kr(idir,^D);
-       ixOmax^D=ixCmax^D;
-       call PPMlimitervar(ixI^L,ixO^L,idir,q,q,qL,qR)
-    case (limiter_mp5)
-       call MP5limitervar(ixI^L,ixC^L,idir,q,qL,qR)
-    case (limiter_weno3)
-       call WENO3limiter(ixI^L,ixC^L,idir,dxlevel(idir),q,qL,qR,1)
-    case (limiter_wenoyc3)
-       call WENO3limiter(ixI^L,ixC^L,idir,dxlevel(idir),q,qL,qR,2)
-    case (limiter_weno5)
-       call WENO5limiter(ixI^L,ixC^L,idir,dxlevel(idir),q,qL,qR,1)
-    case (limiter_weno5nm)
-       call WENO5NMlimiter(ixI^L,ixC^L,idir,dxlevel(idir),q,qL,qR,1)
-    case (limiter_wenoz5)
-       call WENO5limiter(ixI^L,ixC^L,idir,dxlevel(idir),q,qL,qR,2)
-    case (limiter_wenoz5nm)
-       call WENO5NMlimiter(ixI^L,ixC^L,idir,dxlevel(idir),q,qL,qR,2)
-    case (limiter_wenozp5)
-       call WENO5limiter(ixI^L,ixC^L,idir,dxlevel(idir),q,qL,qR,3)
-    case (limiter_wenozp5nm)
-       call WENO5NMlimiter(ixI^L,ixC^L,idir,dxlevel(idir),q,qL,qR,3)
-    case (limiter_weno5cu6)
-       call WENO5CU6limiter(ixI^L,ixC^L,idir,q,qL,qR)
-    case (limiter_teno5ad)
-       call TENO5ADlimiter(ixI^L,ixC^L,idir,dxlevel(idir),q,qL,qR)
-    case (limiter_weno7)
-       call WENO7limiter(ixI^L,ixC^L,idir,q,qL,qR,1)
-    case (limiter_mpweno7)
-       call WENO7limiter(ixI^L,ixC^L,idir,q,qL,qR,2)
-    case (limiter_venk)
-       call venklimiter(ixI^L,ixC^L,idir,dxlevel(idir),q,qL,qR)
-    case default
-       dqC(gxC^S)= qR(gxC^S)-qL(gxC^S)
-       call dwlimiter2(dqC,ixI^L,gxC^L,idir,type_limiter(block%level),ldq,rdq)
-       qL(ixC^S) = qL(ixC^S) + half*ldq(ixC^S)
-       qR(ixC^S) = qR(ixC^S) - half*rdq(jxC^S)
-    end select
+    dqC(gxC^S)= qR(gxC^S)-qL(gxC^S)
+    call dwlimiter2(dqC,ixI^L,gxC^L,idir,type_limiter(block%level),ldq,rdq)
+    qL(ixC^S) = qL(ixC^S) + half*ldq(ixC^S)
+    qR(ixC^S) = qR(ixC^S) - half*rdq(jxC^S)
 
   end subroutine reconstruct
 
