@@ -172,7 +172,7 @@ contains
     nvector      = 1 ! No. vector vars
     allocate(iw_vector(nvector))
     iw_vector(1) = mom(1) - 1
-    !$acc update device(nvector, iw_vector, flux_type)
+    !$acc update device(nvector, iw_vector)
     !$acc update device(phys_req_diagonal)
 
     phys_to_conserved        => hd_to_conserved
