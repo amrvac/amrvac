@@ -61,6 +61,8 @@ module mod_physics
   ! subroutine with no parameters which creates EUV images
   procedure(sub_check_params), pointer    :: phys_te_images              => null()
   procedure(sub_small_values), pointer    :: phys_handle_small_values    => null()
+  procedure(sub_face_to_center), pointer  :: phys_face_to_center         => null()
+  procedure(sub_write_info), pointer      :: phys_write_info             => null()
 
   interface
      
@@ -87,6 +89,16 @@ module mod_physics
        type(state), target :: psb(max_blocks)
      end subroutine sub_boundary_adjust
      
+     subroutine sub_face_to_center(ixO^L,s)
+       use mod_global_parameters
+       integer, intent(in)                :: ixO^L
+       type(state)                        :: s
+     end subroutine sub_face_to_center
+
+     subroutine sub_write_info(file_handle)
+       integer, intent(in) :: file_handle
+     end subroutine sub_write_info
+
      !> Add special advance in each advect step
      subroutine sub_special_advance(qt, psa)
        use mod_global_parameters
@@ -176,6 +188,12 @@ module mod_physics
     if (.not. associated(phys_handle_small_values)) &
          phys_handle_small_values => dummy_small_values
 
+    if (.not. associated(phys_face_to_center)) &
+         phys_face_to_center => dummy_face_to_center
+
+    if (.not. associated(phys_write_info)) &
+         phys_write_info => dummy_write_info
+
   end subroutine phys_check
     
   subroutine dummy_boundary_adjust(igrid,psb)
@@ -231,4 +249,22 @@ module mod_physics
   subroutine dummy_check_params
   end subroutine dummy_check_params
 
+  subroutine dummy_face_to_center(ixO^L,s)
+    use mod_global_parameters
+    integer, intent(in)                :: ixO^L
+    type(state)                        :: s
+  end subroutine dummy_face_to_center
+
+  subroutine dummy_write_info(fh)
+    use mod_global_parameters
+    integer, intent(in)                 :: fh !< File handle
+    integer, dimension(MPI_STATUS_SIZE) :: st
+    integer                             :: er
+
+    ! Number of physics parameters
+    integer, parameter                  :: n_par = 0
+
+    call MPI_FILE_WRITE(fh, n_par, 1, MPI_INTEGER, st, er)
+  end subroutine dummy_write_info
+  
 end module mod_physics
