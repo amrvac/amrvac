@@ -14,6 +14,7 @@ import tomllib
 import operator
 from functools import reduce
 
+
 @dataclass
 class Flag:
     name: str
@@ -28,8 +29,24 @@ class Flag:
                 print(f"fypp_flags += -D{self.name}")
 
 
+@dataclass
+class Option:
+    name: str
+    flags: list[str]
+    options: list[str]
+    default: str
+
+    def handle(self, val):
+        assert(val in self.options)
+        if "hash" in self.flags:
+            print(f"enabled += \"{self.name}={val}\"")
+        if "fypp" in self.flags:
+            print(f"fypp_flags += -D{self.name}={val}")
+
+
 OPTION_TYPES = {
-    "flag": Flag
+    "flag": Flag,
+    "option": Option
 }
 
 

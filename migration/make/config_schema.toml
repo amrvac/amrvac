@@ -7,3 +7,11 @@ type = "flag"
 name = "GRAVITY"
 flags = ["fypp", "hash"]
 default = false
+
+[methodlist]
+[methodlist.phys]
+type = "option"
+name = "PHYS"
+options = ["hd"]
+flags = ["fypp", "hash"]
+default = "hd"
