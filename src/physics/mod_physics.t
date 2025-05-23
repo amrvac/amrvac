@@ -3,8 +3,9 @@
 !> set these pointers to its implementation of these routines.
 
 
-$:inc.include(f"../../src/hd/mod_hd_templates.fpp")
-  
+!!!#:include '/home/oliver/code/AGILE-experimental/migration/build/nvidia-16cb975c/f90/mod_physics_templates.f90'
+!!!#:include '../hd/mod_hd_templates.fpp'
+
 module mod_physics
   use mod_global_parameters, only: name_len
 
@@ -157,8 +158,7 @@ module mod_physics
      
   end interface
 
-  contains
-
+contains
 
   subroutine phys_check()
 

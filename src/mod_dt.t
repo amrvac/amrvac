@@ -15,13 +15,13 @@ contains
   subroutine setdt()
     use mod_global_parameters
     use mod_comm_lib, only: mpistop
-    use mod_hd_phys, only: hd_get_cmax_scalar
+    use mod_hd_phys, only: to_primitive, get_cmax, nw_euler
 
     integer :: iigrid, igrid, idims, ix^D, ifile
     double precision :: dtnew, dtmin_mype, factor, dx^D, dtmax
 
     double precision :: w(nw,ixM^T)
-    double precision :: dxinv(1:ndim), courantmaxtots, cmaxtot, cmax
+    double precision :: dxinv(1:ndim), courantmaxtots, cmaxtot, cmax, u(1:nw_euler)
 
     if (dtpar<=zero) then
        dtmin_mype=bigdouble
@@ -36,13 +36,15 @@ contains
           ^D&dxinv(^D)=one/dx^D;
           courantmaxtots=zero
 
-          !$acc loop vector collapse(ndim) reduction(max:courantmaxtots) private(cmax, cmaxtot)
+          !$acc loop vector collapse(ndim) reduction(max:courantmaxtots) private(cmax, cmaxtot, u)
           {^D& do ix^DB=ixMlo^DB,ixMhi^DB \}
           w(1:nw,ix^D) = bg(1)%w(ix^D,1:nw,igrid)
           cmaxtot = 0.0d0
           !$acc loop seq
           do idims = 1, ndim
-             call hd_get_cmax_scalar( w(:,ix^D), idims, cmax )
+             u = w(:,ix^D)
+             call to_primitive(u)
+             cmax = get_cmax(u,idims)
              cmaxtot = cmaxtot + cmax * dxinv(idims)
           end do
           courantmaxtots = max( courantmaxtots, cmaxtot )

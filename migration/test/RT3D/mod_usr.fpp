@@ -3,7 +3,7 @@ module mod_usr
 
   implicit none
 
-  integer, parameter :: dp = kind(0.0d0), nw_euler=2+ndim
+  integer, parameter :: dp = kind(0.0d0)
 contains
 
   subroutine usr_init()
