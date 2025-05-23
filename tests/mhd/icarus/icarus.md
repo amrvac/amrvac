@@ -28,7 +28,7 @@ make -j 4
 you can run the testcase with
 
 ```
-mpirun –np 4 ./amrvac -i amrvac.par
+mpirun -np 4 ./amrvac -i amrvac.par
 ```
 Note* 4 here is number of CPUs, can be modified depending on the availability of CPUs.
 
