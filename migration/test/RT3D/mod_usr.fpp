@@ -1,9 +1,9 @@
 module mod_usr
-  use mod_hd
+  use mod_physics
+  use mod_amrvac
 
   implicit none
-
-  integer, parameter :: dp = kind(0.0d0)
+  
 contains
 
   subroutine usr_init()
@@ -12,13 +12,13 @@ contains
 
     usr_init_one_grid => initonegrid_usr
 
-    call hd_activate()
+    call phys_activate()
 
   end subroutine usr_init
 
   pure real(dp) function gravity_field(wCT, x, idim) result(field)
     !$acc routine seq
-    real(dp), intent(in)    :: wCT(nw_euler)
+    real(dp), intent(in)    :: wCT(nw_phys)
     real(dp), intent(in)    :: x(1:ndim)
     integer, value, intent(in)     :: idim
     real(dp)                :: field

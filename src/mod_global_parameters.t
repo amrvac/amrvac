@@ -328,7 +328,10 @@ module mod_global_parameters
   !> Save a snapshot before crash a run met unphysical values
   logical :: crash=.false.
   !$acc declare copyin(crash)
-
+  
+  !> type of physics to build
+  character(len=std_len) :: phys
+  
   ! Physics factors
 
   !> Physical scaling factor for length

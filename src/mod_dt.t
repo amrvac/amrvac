@@ -15,13 +15,13 @@ contains
   subroutine setdt()
     use mod_global_parameters
     use mod_comm_lib, only: mpistop
-    use mod_hd_phys, only: to_primitive, get_cmax, nw_euler
+    use mod_physics, only: to_primitive, get_cmax, nw_phys
 
     integer :: iigrid, igrid, idims, ix^D, ifile
     double precision :: dtnew, dtmin_mype, factor, dx^D, dtmax
 
     double precision :: w(nw,ixM^T)
-    double precision :: dxinv(1:ndim), courantmaxtots, cmaxtot, cmax, u(1:nw_euler)
+    double precision :: dxinv(1:ndim), courantmaxtots, cmaxtot, cmax, u(1:nw_phys)
 
     if (dtpar<=zero) then
        dtmin_mype=bigdouble

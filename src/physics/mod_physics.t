@@ -4,11 +4,16 @@
 
 
 !!!#:include '/home/oliver/code/AGILE-experimental/migration/build/nvidia-16cb975c/f90/mod_physics_templates.f90'
-!!!#:include '../hd/mod_hd_templates.fpp'
+
+!FIXME: needs to include (and fypp process) the relevant physics templates here:
+#:include '../hd/mod_hd_templates.fpp'
 
 module mod_physics
   use mod_global_parameters, only: name_len
-
+  use mod_variables
+  use mod_comm_lib, only: mpistop
+  use mod_global_parameters, only: ndim
+  
   implicit none
   public
 
@@ -18,7 +23,7 @@ module mod_physics
 
   !> String describing the physics type of the simulation
   character(len=name_len) :: physics_type = "${PHYS}$"
-  !$acc declare create(physics_type)
+  !$acc declare copyin(physics_type)
 
   !> To use wider stencils in flux calculations. A value of 1 will extend it by
   !> one cell in both directions, in any dimension
@@ -50,11 +55,10 @@ module mod_physics
   logical :: phys_equi_pe=.false.
   !$acc declare copyin(phys_equi_pe)
 
+  @:phys_vars()
+  
   
   procedure(sub_check_params), pointer    :: phys_check_params           => null()
-  procedure(sub_convert), pointer         :: phys_to_conserved           => null()
-  procedure(sub_convert), pointer         :: phys_to_primitive           => null()
-  procedure(sub_get_cmax), pointer        :: phys_get_cmax               => null()
   procedure(sub_boundary_adjust), pointer :: phys_boundary_adjust        => null()
   procedure(sub_global_source), pointer   :: phys_global_source_after    => null()
   procedure(sub_implicit_update), pointer :: phys_implicit_update        => null()
@@ -73,20 +77,6 @@ module mod_physics
      
      subroutine sub_check_params
      end subroutine sub_check_params
-
-     subroutine sub_convert(ixI^L, ixO^L, w, x)
-       use mod_global_parameters
-       integer, intent(in)             :: ixI^L, ixO^L
-       double precision, intent(inout) :: w(ixI^S, nw)
-       double precision, intent(in)    :: x(ixI^S, 1:^ND)
-     end subroutine sub_convert
-
-     subroutine sub_get_cmax(w, x, ixI^L, ixO^L, idim, cmax)
-       use mod_global_parameters
-       integer, intent(in)             :: ixI^L, ixO^L, idim
-       double precision, intent(in)    :: w(ixI^S, nw), x(ixI^S, 1:^ND)
-       double precision, intent(inout) :: cmax(ixI^S)
-     end subroutine sub_get_cmax
 
      subroutine sub_boundary_adjust(igrid,psb)
        use mod_global_parameters
@@ -160,6 +150,15 @@ module mod_physics
 
 contains
 
+  @:read_params()
+  @:phys_init()
+  @:phys_get_cmax()
+  @:to_primitive()
+  @:to_conservative()
+  @:get_flux()
+  @:get_cmax()
+  @:phys_activate()
+  
   subroutine phys_check()
 
     use mod_comm_lib, only: mpistop
@@ -170,16 +169,6 @@ contains
     if (.not. associated(phys_check_params)) &
          phys_check_params => dummy_check_params
     
-    ! Checks whether the required physics methods have been defined
-    if (.not. associated(phys_to_conserved)) &
-         call mpistop("Error: phys_to_conserved not defined")
-
-    if (.not. associated(phys_to_primitive)) &
-         call mpistop("Error: phys_to_primitive not defined")
-
-    if (.not. associated(phys_get_cmax)) &
-         call mpistop("Error: no phys_get_cmax not defined")
-
     if (.not. associated(phys_boundary_adjust)) &
          phys_boundary_adjust => dummy_boundary_adjust
 
@@ -199,7 +188,39 @@ contains
          phys_write_info => dummy_write_info
 
   end subroutine phys_check
+
+  !> Transform primitive variables into conservative ones
+  subroutine phys_to_conserved(ixI^L, ixO^L, w, x)
+    use mod_global_parameters
+    integer, intent(in)             :: ixI^L, ixO^L
+    double precision, intent(inout) :: w(ixI^S, nw_phys) 
+    double precision, intent(in)    :: x(ixI^S, 1:ndim)
+    integer                         :: ix^D
+
+    {^D& do ix^DB=ixOmin^DB,ixOmax^DB\}
+
+       call to_conservative(w(ix^D,:))
     
+    {^D& end do\}
+
+  end subroutine phys_to_conserved
+  
+  !> Transform conservative variables into primitive ones
+  subroutine phys_to_primitive(ixI^L, ixO^L, w, x)
+    use mod_global_parameters
+    integer, intent(in)             :: ixI^L, ixO^L
+    double precision, intent(inout) :: w(ixI^S, nw_phys)
+    double precision, intent(in)    :: x(ixI^S, 1:ndim)
+    integer                         :: ix^D
+
+    {^D& do ix^DB=ixOmin^DB,ixOmax^DB\}
+
+       call to_primitive(w(ix^D,:))
+    
+    {^D& end do\}
+
+  end subroutine phys_to_primitive
+  
   subroutine dummy_boundary_adjust(igrid,psb)
     use mod_global_parameters
     integer, intent(in) :: igrid
