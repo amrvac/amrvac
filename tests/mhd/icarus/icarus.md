@@ -100,8 +100,7 @@ The additional files are uploaded to generate necessary files for Icarus.
 
 - input_boundary_generate.vtk - this python script generates the input VTK file from the standard WSA output file. If you have multiple WSA standard boundary files, it can combine into the timedependent input file. The paths and information should be indicated correctly in the user definition segment of the script.
 - convert_output_euhforia_format.py - This python script converts the standard output .csv files which are the satellite to the standard EUHFORIA format with the corresponding satellite names in the filename.
-
-
+-download_trajectory_files.py - This script downloads the trajectory files if you wish to model another case at a time where trajectory files are not availble in the ~/orbit folder. The instructions how to run the code are given at the beginning of the code. The code was developed and the dataset was created by Luka Banović. If you wish to access data individually, you can do so at https://rdr.kuleuven.be/dataset.xhtml?persistentId=doi:10.48804/TVJAFE .
 
 The mangetogram timestamp should be indicated in the amrvac.par file in the icarus_list. When input_boundary_generate.vtk is run, it outputs in the terminal delta_phi value that should be adjusted in &icarus_list for variable delta_phi.
 
