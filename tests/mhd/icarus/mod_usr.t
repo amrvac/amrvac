@@ -301,19 +301,28 @@ contains
 
     double precision                :: phi_satellite, before_cme, delta_lon, lon_old, lon_new
     double precision, dimension(10)     :: orbital_period = (/365.24, 686.98, 87.969, 224.7, 346.0, 388.0, 88.0, 168.0, 87.969, 1590.0/)    ! earth, mars, mercury, venus, sta, stb, psp, solo
-    double precision                :: curr_lon, final_fix
+
+    double precision                :: curr_lon,prev_lon, final_fix, curr_lon_e
+    integer, dimension(8)           :: prev_index_s = (/0, 0, 0, 0, 0, 0, 0, 0/)
+
 
     last_index_s(satellite_index) = starting_index(satellite_index, 1) + floor(tnew*60.0)
     before_cme = (cme_index(1,1) - magnetogram_index(1))/60.0
 
+    curr_lon = positions_list(satellite_index)%positions(9, last_index_s(satellite_index))
+    prev_index_s(satellite_index) = starting_index(satellite_index, 1) + floor(told*60.0)
+    prev_lon = positions_list(satellite_index)%positions(9, prev_index_s(satellite_index))
+    delta_lon = curr_lon-prev_lon
+
+
     xf(1) = positions_list(satellite_index)%positions(7, last_index_s(satellite_index))
     xf(2) = dpi/2.0 - positions_list(satellite_index)%positions(8, last_index_s(satellite_index))
-    xf(3) = x(3) - (tnew-told)*(2.0*dpi)/24.0*(1/2.447d1-1/orbital_period(1))
+    xf(3) = x(3) + delta_lon- (tnew-told)*(2.0*dpi)/24.0*(1/2.447d1-1/orbital_period(1))
     last_index_s(satellite_index) = starting_index(satellite_index, 1) + ceiling(tnew*60.0)
 
     xc(1) = positions_list(satellite_index)%positions(7, last_index_s(satellite_index))
     xc(2) = dpi/2.0 - positions_list(satellite_index)%positions(8, last_index_s(satellite_index))
-    xc(3) = x(3) - (tnew-told)*(2.0*dpi)/24.0*(1/2.447d1-1/orbital_period(1))
+    xc(3) = x(3) +delta_lon- (tnew-told)*(2.0*dpi)/24.0*(1/2.447d1-1/orbital_period(1))
 
     if ((ceiling(tnew) - floor(tnew)) .gt. 0.0) then
       x(1) = xf(1) + (tnew - floor(tnew))*(xc(1)-xf(1))/(ceiling(tnew) - floor(tnew))
