@@ -15,6 +15,14 @@ import operator
 from functools import reduce
 
 
+class ConfigError(Exception):
+    def __init__(self, msg):
+        self.msg = msg
+
+    def __str__(self):
+        return f"Configuration error: {self.msg}"
+
+
 @dataclass
 class Flag:
     name: str
@@ -37,16 +45,43 @@ class Option:
     default: str
 
     def handle(self, val):
-        assert(val in self.options)
+        if val not in self.options:
+            raise ConfigError(f"Option parameter {self.name} should be one of {self.options}, got: {val}")
         if "hash" in self.flags:
             print(f"enabled += \"{self.name}={val}\"")
         if "fypp" in self.flags:
             print(f"fypp_flags += -D{self.name}=\\'{val}\\'")
 
 
+@dataclass
+class Value:
+    name: str
+    flags: list[str]
+    dtype: str
+    default: Any
+
+    def handle(self, val):
+        if (self.dtype == "int" and not isinstance(val, int)) or \
+           (self.dtype == "string" and not isinstance(val, string)):
+            raise(ConfigError(f"Value parameter {self.name} should be {self.dtype}, got {type(val)}"))
+        if self.dtype not in ["int", "string"]:
+            raise(ConfigError(f"Unknown value type {self.dtype}"))
+
+        if self.dtype == "string":
+            val_str = f"\\'{val}\\'"
+        else:
+            val_str = f"{val}"
+
+        if "hash" in self.flags:
+            print(f"enabled += \"{self.name}={val}\"")
+        if "fypp" in self.flags:
+            print(f"fypp_flags += -D{self.name}={val_str}")
+
+
 OPTION_TYPES = {
     "flag": Flag,
-    "option": Option
+    "option": Option,
+    "value": Value
 }
 
 
@@ -87,6 +122,10 @@ if __name__ == "__main__":
     schema = read_schema()
     cfg = f90nml.read(sys.stdin)
 
-    for path, option in schema.items():
-        apply_option(cfg, path, option)
+    try:
+        for path, option in schema.items():
+            apply_option(cfg, path, option)
+    except ConfigError as e:
+        print(e, file=sys.stderr)
+        sys.exit(1)
 

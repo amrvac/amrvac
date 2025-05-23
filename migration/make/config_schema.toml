@@ -12,6 +12,6 @@ default = false
 [methodlist.phys]
 type = "option"
 name = "PHYS"
-options = ["hd"]
+options = ["hd", "mhd"]
 flags = ["fypp", "hash"]
 default = "hd"
