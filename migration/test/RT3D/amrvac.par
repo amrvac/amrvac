@@ -5,7 +5,7 @@
 /
 
  &filelist
-   base_filename      = 'output/rthd_3d'
+   base_filename    = 'output/rthd_3d'
    autoconvert      = .true.
    convert_type     = 'vtuBCCmpi'
    saveprim         = .true.
@@ -22,8 +22,9 @@
 
  &methodlist
    time_stepper     = 'threestep'
-   flux_scheme       = 20*'tvdlf'
-   limiter    = 20*'vanleer'
+   flux_scheme      = 20*'tvdlf'
+   limiter          = 20*'vanleer'
+   phys             = 'hd'
 /
 
  &boundlist

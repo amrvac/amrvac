@@ -1,6 +1,10 @@
 !> This module defines the procedures of a physics module. It contains function
 !> pointers for the various supported routines. An actual physics module has to
 !> set these pointers to its implementation of these routines.
+
+
+$:inc.include(f"../../src/hd/mod_hd_templates.fpp")
+  
 module mod_physics
   use mod_global_parameters, only: name_len
 
@@ -12,7 +16,7 @@ module mod_physics
   !$acc declare copyin(phys_gamma)
 
   !> String describing the physics type of the simulation
-  character(len=name_len) :: physics_type = ""
+  character(len=name_len) :: physics_type = "${PHYS}$"
   !$acc declare create(physics_type)
 
   !> To use wider stencils in flux calculations. A value of 1 will extend it by
