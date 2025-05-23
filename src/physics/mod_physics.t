@@ -152,7 +152,6 @@ contains
 
   @:read_params()
   @:phys_init()
-  @:phys_get_cmax()
   @:to_primitive()
   @:to_conservative()
   @:get_flux()

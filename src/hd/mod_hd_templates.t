@@ -140,27 +140,6 @@
   end subroutine phys_init
 #:enddef
 
-#:def phys_get_cmax()
-  subroutine phys_get_cmax(w, x, ixI^L, ixO^L, idim, cmax)
-    use mod_global_parameters
-
-    integer, intent(in)                       :: ixI^L, ixO^L, idim
-    double precision, intent(in)              :: w(ixI^S, nw), x(ixI^S, 1:ndim)
-    double precision, intent(inout)           :: cmax(ixI^S)
-    integer                                   :: ix^D
-    double precision                          :: u(nw_phys)
-
-    {^D& do ix^DB=ixOmin^DB,ixOmax^DB\}
-
-       u = w(ix^D,:)
-       call to_primitive(u)
-       cmax(ix^D) = get_cmax(u,idim)
-
-    {^D& end do\}
-
-  end subroutine phys_get_cmax
-#:enddef
-  
 #:def addsource_local()
 subroutine addsource_local(qdt, dtfactor, qtC, wCT, wCTprim, qt, wnew, x, qsourcesplit)
   !$acc routine seq

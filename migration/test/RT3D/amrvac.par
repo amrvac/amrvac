@@ -24,7 +24,7 @@
    time_stepper     = 'threestep'
    flux_scheme      = 20*'tvdlf'
    limiter          = 20*'vanleer'
-!   phys             = 'hd'
+   phys             = 'hd'
 /
 
  &boundlist
