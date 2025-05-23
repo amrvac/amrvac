@@ -52,7 +52,7 @@
 
  &particles_list
        physics_type_particles='sample'
-       num_particles=8
+       num_particles=10
        dtsave_particles=0.225d0
        write_individual=.true.
        write_ensemble=.false.
@@ -113,7 +113,7 @@
         num_cmes = 5
         relaxation = 14
         cme_insertion = 0
-        cme_parameter_file = 'cme_euhforia_formatted.in'
-        magnetogram_time = '2015-06-25T01:04:00'
-        delta_phi =-1.2040994899278814 
+        cme_parameter_file ='cme_euhforia_formatted.in'
+        magnetogram_time = '2015-08-25T01:04:00'
+        delta_phi =-1.2040994899278814
 /
