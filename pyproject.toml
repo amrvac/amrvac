@@ -1,0 +1,9 @@
+[project]
+name = "migration"
+version = "0.1.0"
+requires-python = ">=3.13"
+dependencies = [
+    "f90nml>=1.4.5",
+    "fortdepend>=2.3.2",
+    "fypp>=3.2",
+]

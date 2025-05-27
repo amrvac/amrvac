@@ -1,4 +1,0 @@
-F90=ftn
-FFLAGS = -c
-F90FLAGS = -ea -ef -cpp -eZ -ffree -eI -O3 -M878
-LINK= $(F90)  $(F90FLAGS)
