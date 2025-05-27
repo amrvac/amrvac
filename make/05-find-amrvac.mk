@@ -1,7 +1,6 @@
 $(info AMRVAC Path: $(AMRVAC_DIR))
 
-#FIXME remove migration subdir once done
-amrvac := $(AMRVAC_DIR)/migration
+amrvac := $(AMRVAC_DIR)
 build := $(amrvac)/build
 
 ifeq ($(findstring help, $(MAKECMDGOALS)), help)
