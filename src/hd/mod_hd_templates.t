@@ -1,3 +1,4 @@
+#:if PHYS == 'hd'
 #:def phys_vars()
 
   integer, parameter :: dp = kind(0.0d0)
@@ -236,4 +237,5 @@ pure real(dp) function get_cmax(u, flux_dim) result(wC)
   wC = sqrt(hd_gamma * u(iw_e) / u(iw_rho)) + abs(u(iw_mom(flux_dim)))
 
 end function get_cmax
-#:enddef  
+#:enddef
+#:endif

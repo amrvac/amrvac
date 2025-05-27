@@ -12,8 +12,6 @@ endif
 
 fypp_flags += -n
 
-fypp_flags += -m inc
-
 fypp_flags += -M $(amrvac)/make
 
 $(info Fypp flags: $(fypp_flags))

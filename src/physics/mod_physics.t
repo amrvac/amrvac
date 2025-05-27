@@ -1,12 +1,9 @@
 !> This module defines the procedures of a physics module. It contains function
 !> pointers for the various supported routines. An actual physics module has to
 !> set these pointers to its implementation of these routines.
-
-
-!!!#:include '/home/oliver/code/AGILE-experimental/migration/build/nvidia-16cb975c/f90/mod_physics_templates.f90'
-
-!FIXME: needs to include (and fypp process) the relevant physics templates here:
+#:mute
 #:include '../hd/mod_hd_templates.fpp'
+#:endmute
 
 module mod_physics
   use mod_global_parameters, only: name_len
