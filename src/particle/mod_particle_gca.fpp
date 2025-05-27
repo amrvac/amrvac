@@ -1,0 +1,1116 @@
+!> Particle mover with Newtonian/relativistic Guiding Center Approximation (GCA)
+!> By Jannis Teunissen, Bart Ripperda, Oliver Porth, and Fabio Bacchini (2016-2020)
+module mod_particle_gca
+  use mod_particle_base
+
+  private
+
+  !> Variable index for gradient B, with relativistic correction 1/kappa
+  !> where kappa = 1/sqrt(1 - E_perp^2/B^2)
+  integer, protected, allocatable      :: grad_kappa_B(:)
+  !> Variable index for (B . grad)B (curvature B drift)
+  integer, protected, allocatable      :: b_dot_grad_b(:)
+
+  ! ExB related drifts (vE = ExB/B^2)
+  !> Variable index for curvature drift
+  integer, protected, allocatable      :: vE_dot_grad_b(:)
+  !> Variable index for polarization drift
+  integer, protected, allocatable      :: b_dot_grad_vE(:)
+  !> Variable index for polarization drift
+  integer, protected, allocatable      :: vE_dot_grad_vE(:)
+
+  public :: gca_init
+  public :: gca_create_particles
+  integer, parameter :: RK4=1, ARK4=2
+
+  ! Variables
+  public :: bp, ep, grad_kappa_B, b_dot_grad_b
+  public :: vE_dot_grad_b, b_dot_grad_vE, vE_dot_grad_vE
+  public :: vp, jp, rhop
+
+contains
+
+  subroutine gca_init()
+    use mod_global_parameters
+    integer :: idir, nwx
+
+    if (physics_type/='mhd') call mpistop(&
+       "GCA particles need magnetic field!")
+    if (ndir/=3) call mpistop("GCA particles need ndir=3!")
+
+    nwx = 0
+    allocate(bp(ndir))
+    do idir = 1, ndir
+      nwx = nwx + 1
+      bp(idir) = nwx
+    end do
+    allocate(ep(ndir))
+    do idir = 1, ndir
+      nwx = nwx + 1
+      ep(idir) = nwx
+    end do
+    allocate(grad_kappa_B(ndir))
+    do idir = 1, ndir
+      nwx = nwx + 1
+      grad_kappa_B(idir) = nwx
+    end do
+    allocate(b_dot_grad_b(ndir))
+    do idir = 1, ndir
+      nwx = nwx + 1
+      b_dot_grad_b(idir) = nwx
+    end do
+    allocate(vE_dot_grad_b(ndir))
+    do idir = 1, ndir
+      nwx = nwx + 1
+      vE_dot_grad_b(idir) = nwx
+    end do
+    allocate(b_dot_grad_vE(ndir))
+    do idir = 1, ndir
+      nwx = nwx + 1
+      b_dot_grad_vE(idir) = nwx
+    end do
+    allocate(vE_dot_grad_vE(ndir))
+    do idir = 1, ndir
+      nwx = nwx + 1
+      vE_dot_grad_vE(idir) = nwx
+    end do
+    allocate(vp(ndir))
+    do idir = 1, ndir
+      nwx = nwx + 1
+      vp(idir) = nwx
+    end do
+    allocate(jp(ndir))
+    do idir = 1, ndir
+      nwx = nwx + 1
+      jp(idir) = nwx
+    end do
+    nwx = nwx + 1 ! density
+    rhop = nwx
+
+    ngridvars=nwx
+
+    particles_fill_gridvars => gca_fill_gridvars
+
+    if (associated(particles_define_additional_gridvars)) then
+      call particles_define_additional_gridvars(ngridvars)
+    end if
+
+    select case(integrator_type_particles)
+    case('RK4','Rk4','rk4')
+      integrator = RK4
+    case('ARK4','ARk4','Ark4','ark4')
+      integrator = ARK4
+    case default
+      integrator = ARK4
+    end select
+
+    particles_integrate => gca_integrate_particles
+
+  end subroutine gca_init
+
+  subroutine gca_create_particles()
+    ! initialise the particles
+    use mod_global_parameters
+    use mod_usr_methods, only: usr_create_particles, usr_update_payload,&
+        usr_check_particle
+
+    double precision :: b(ndir), u(ndir), magmom
+    double precision :: bnorm, lfac, vnorm, vperp, vpar
+    integer          :: igrid, ipe_particle
+    integer          :: n, idir, nparticles_local
+    double precision :: x(3, num_particles)
+    double precision :: v(3, num_particles)
+    double precision :: q(num_particles)
+    double precision :: m(num_particles)
+    double precision :: rrd(num_particles,ndir)
+    double precision :: defpayload(ndefpayload)
+    double precision :: usrpayload(nusrpayload)
+    logical          :: follow(num_particles), check
+
+    if (mype==0) then
+      if (.not. associated(usr_create_particles)) then
+        ! Randomly distributed
+        do idir=1,ndir
+          do n = 1, num_particles
+            rrd(n,idir) = rng%unif_01()
+          end do
+        end do
+        do n=1, num_particles
+          x(1,n) = xprobmin1 + rrd(n+1,1) * (xprobmax1 - xprobmin1)
+          x(2,n) = xprobmin2 + rrd(n+1,2) * (xprobmax2 - xprobmin2)
+          x(3,n) = xprobmin3 + rrd(n+1,3) * (xprobmax3 - xprobmin3)
+        end do
+      else
+        call usr_create_particles(num_particles, x, v, q, m, follow)
+      end if
+    end if
+
+    call MPI_BCAST(x,3*num_particles,MPI_DOUBLE_PRECISION,0,icomm,ierrmpi)
+    call MPI_BCAST(v,3*num_particles,MPI_DOUBLE_PRECISION,0,icomm,ierrmpi)
+    call MPI_BCAST(q,num_particles,MPI_DOUBLE_PRECISION,0,icomm,ierrmpi)
+    call MPI_BCAST(m,num_particles,MPI_DOUBLE_PRECISION,0,icomm,ierrmpi)
+    call MPI_BCAST(follow,num_particles,MPI_LOGICAL,0,icomm,ierrmpi)
+
+    nparticles_local = 0
+
+    ! first find ipe and igrid responsible for particle
+    do n = 1, num_particles
+      call find_particle_ipe(x(:, n),igrid,ipe_particle)
+
+      particle(n)%igrid = igrid
+      particle(n)%ipe   = ipe_particle
+
+      if(ipe_particle == mype) then
+        check = .true.
+
+        ! Check for user-defined modifications or rejection conditions
+        if (associated(usr_check_particle)) call usr_check_particle(igrid, x(:,&
+           n), v(:,n), q(n), m(n), follow(n), check)
+        if (check) then
+          call push_particle_into_particles_on_mype(n)
+        else
+          cycle
+        end if
+
+        nparticles_local = nparticles_local + 1
+
+        call get_lfac_from_velocity(v(:, n), lfac)
+
+        allocate(particle(n)%self)
+        particle(n)%self%x      = x(:, n)
+        particle(n)%self%q      = q(n)
+        particle(n)%self%m      = m(n)
+        particle(n)%self%follow = follow(n)
+        particle(n)%self%index  = n
+        particle(n)%self%time   = global_time
+        particle(n)%self%dt     = 0.0d0
+
+        call get_vec(bp, igrid, x(:, n), particle(n)%self%time, b)
+
+        bnorm = norm2(b(:))
+        vnorm = norm2(v(:, n))
+        vpar  = sum(v(:, n) * b/bnorm)
+        vperp = sqrt(vnorm**2 - vpar**2)
+
+        ! The momentum vector u(1:3) is filled with the following components
+
+        ! parallel momentum component (gamma v||)
+        particle(n)%self%u(1) = lfac * vpar
+
+        ! Mr: the conserved magnetic moment
+        magmom = m(n) * (vperp * lfac)**2 / (2.0d0 * bnorm)
+        particle(n)%self%u(2) = magmom
+
+        ! Lorentz factor
+        particle(n)%self%u(3) = lfac
+
+        ! initialise payloads for GCA module
+        allocate(particle(n)%payload(npayload))
+        call gca_update_payload(igrid,x(:,n),particle(n)%self%u(:),q(n),m(n),&
+           defpayload,ndefpayload,0.d0)
+        particle(n)%payload(1:ndefpayload) = defpayload
+        if (associated(usr_update_payload)) then
+          call usr_update_payload(igrid,x(:,n),particle(n)%self%u(:),q(n),m(n),&
+             usrpayload,nusrpayload,0.d0)
+          particle(n)%payload(ndefpayload+1:npayload) = usrpayload
+        end if
+      end if
+    end do
+
+    call MPI_ALLREDUCE(nparticles_local,nparticles,1,MPI_INTEGER,MPI_SUM,icomm,&
+       ierrmpi)
+
+  end subroutine gca_create_particles
+
+  subroutine gca_fill_gridvars
+    use mod_global_parameters
+    use mod_usr_methods, only: usr_particle_fields
+    use mod_geometry
+
+    integer                                   :: igrid, iigrid, idir, idim
+    double precision, dimension(ixGlo1:ixGhi1,ixGlo2:ixGhi2,ixGlo3:ixGhi3,&
+       1:ndir) :: beta
+    double precision, dimension(ixGlo1:ixGhi1,ixGlo2:ixGhi2,ixGlo3:ixGhi3,&
+       1:nw)   :: w,wold
+    double precision                          :: current(ixGlo1:ixGhi1,&
+       ixGlo2:ixGhi2,ixGlo3:ixGhi3,7-2*ndir:3)
+    integer                                   :: idirmin
+    double precision, dimension(ixGlo1:ixGhi1,ixGlo2:ixGhi2,ixGlo3:ixGhi3,&
+       1:ndir) :: vE, bhat
+    double precision, dimension(ixGlo1:ixGhi1,ixGlo2:ixGhi2,&
+       ixGlo3:ixGhi3)        :: kappa, kappa_B, absB, tmp
+
+    call fill_gridvars_default()
+
+    do iigrid=1,igridstail; igrid=igrids(iigrid);
+      w(ixGlo1:ixGhi1,ixGlo2:ixGhi2,ixGlo3:ixGhi3,&
+         1:nw) = ps(igrid)%w(ixGlo1:ixGhi1,ixGlo2:ixGhi2,ixGlo3:ixGhi3,1:nw)
+      call phys_to_primitive(ixGlo1,ixGlo2,ixGlo3,ixGhi1,ixGhi2,ixGhi3,ixGlo1,&
+         ixGlo2,ixGlo3,ixGhi1,ixGhi2,ixGhi3,w,ps(igrid)%x)
+
+      ! grad(kappa B)
+      absB(ixGlo1:ixGhi1,ixGlo2:ixGhi2,ixGlo3:ixGhi3) = &
+         sqrt(sum(gridvars(igrid)%w(ixGlo1:ixGhi1,ixGlo2:ixGhi2,ixGlo3:ixGhi3,&
+         bp(:))**2,dim=ndim+1))
+      vE(ixGlo1:ixGhi1,ixGlo2:ixGhi2,ixGlo3:ixGhi3,&
+         1) = gridvars(igrid)%w(ixGlo1:ixGhi1,ixGlo2:ixGhi2,ixGlo3:ixGhi3,&
+         ep(2)) * gridvars(igrid)%w(ixGlo1:ixGhi1,ixGlo2:ixGhi2,ixGlo3:ixGhi3,&
+         bp(3)) - gridvars(igrid)%w(ixGlo1:ixGhi1,ixGlo2:ixGhi2,ixGlo3:ixGhi3,&
+         ep(3)) * gridvars(igrid)%w(ixGlo1:ixGhi1,ixGlo2:ixGhi2,ixGlo3:ixGhi3,&
+         bp(2))
+      vE(ixGlo1:ixGhi1,ixGlo2:ixGhi2,ixGlo3:ixGhi3,&
+         2) = gridvars(igrid)%w(ixGlo1:ixGhi1,ixGlo2:ixGhi2,ixGlo3:ixGhi3,&
+         ep(3)) * gridvars(igrid)%w(ixGlo1:ixGhi1,ixGlo2:ixGhi2,ixGlo3:ixGhi3,&
+         bp(1)) - gridvars(igrid)%w(ixGlo1:ixGhi1,ixGlo2:ixGhi2,ixGlo3:ixGhi3,&
+         ep(1)) * gridvars(igrid)%w(ixGlo1:ixGhi1,ixGlo2:ixGhi2,ixGlo3:ixGhi3,&
+         bp(3))
+      vE(ixGlo1:ixGhi1,ixGlo2:ixGhi2,ixGlo3:ixGhi3,&
+         3) = gridvars(igrid)%w(ixGlo1:ixGhi1,ixGlo2:ixGhi2,ixGlo3:ixGhi3,&
+         ep(1)) * gridvars(igrid)%w(ixGlo1:ixGhi1,ixGlo2:ixGhi2,ixGlo3:ixGhi3,&
+         bp(2)) - gridvars(igrid)%w(ixGlo1:ixGhi1,ixGlo2:ixGhi2,ixGlo3:ixGhi3,&
+         ep(2)) * gridvars(igrid)%w(ixGlo1:ixGhi1,ixGlo2:ixGhi2,ixGlo3:ixGhi3,&
+         bp(1))
+      do idir=1,ndir
+        where (absB(ixGlo1:ixGhi1,ixGlo2:ixGhi2,ixGlo3:ixGhi3) .gt. 0.d0)
+          vE(ixGlo1:ixGhi1,ixGlo2:ixGhi2,ixGlo3:ixGhi3,&
+             idir) = vE(ixGlo1:ixGhi1,ixGlo2:ixGhi2,ixGlo3:ixGhi3,&
+             idir) / absB(ixGlo1:ixGhi1,ixGlo2:ixGhi2,ixGlo3:ixGhi3)**2
+        elsewhere
+          vE(ixGlo1:ixGhi1,ixGlo2:ixGhi2,ixGlo3:ixGhi3,idir) = 0.d0
+        end where
+      end do
+      if (any(sum(vE(ixGlo1:ixGhi1,ixGlo2:ixGhi2,ixGlo3:ixGhi3,:)**2,&
+         dim=ndim+1) .ge. c_norm**2) .and. relativistic) then
+        call mpistop("GCA FILL GRIDVARS: vE>c! ABORTING...")
+      end if
+      if (any(vE .ne. vE)) then
+        call mpistop("GCA FILL GRIDVARS: NaNs IN vE! ABORTING...")
+      end if
+
+      if (relativistic) then
+        kappa(ixGlo1:ixGhi1,ixGlo2:ixGhi2,&
+           ixGlo3:ixGhi3) = 1.d0/sqrt(1.0d0 - sum(vE(ixGlo1:ixGhi1,&
+           ixGlo2:ixGhi2,ixGlo3:ixGhi3,:)**2,dim=ndim+1)/c_norm**2)
+      else
+        kappa(ixGlo1:ixGhi1,ixGlo2:ixGhi2,ixGlo3:ixGhi3) = 1.d0
+      end if
+      kappa_B(ixGlo1:ixGhi1,ixGlo2:ixGhi2,ixGlo3:ixGhi3) = absB(ixGlo1:ixGhi1,&
+         ixGlo2:ixGhi2,ixGlo3:ixGhi3) / kappa(ixGlo1:ixGhi1,ixGlo2:ixGhi2,&
+         ixGlo3:ixGhi3)
+
+      if (any(kappa_B .ne. kappa_B)) then
+        call mpistop("GCA FILL GRIDVARS: NaNs IN kappa_B! ABORTING...")
+      end if
+
+      tmp=0.d0
+      do idim=1,ndim
+        call gradient(kappa_B,ixGlo1,ixGlo2,ixGlo3,ixGhi1,ixGhi2,ixGhi3,&
+           ixGlo1+1,ixGlo2+1,ixGlo3+1,ixGhi1-1,ixGhi2-1,ixGhi3-1,idim,tmp)
+        gridvars(igrid)%w(ixGlo1:ixGhi1,ixGlo2:ixGhi2,ixGlo3:ixGhi3,&
+           grad_kappa_B(idim)) = tmp(ixGlo1:ixGhi1,ixGlo2:ixGhi2,&
+           ixGlo3:ixGhi3)
+      end do
+
+      ! bhat
+      do idir=1,ndir
+        where (absB(ixGlo1:ixGhi1,ixGlo2:ixGhi2,ixGlo3:ixGhi3) .gt. 0.d0)
+          bhat(ixGlo1:ixGhi1,ixGlo2:ixGhi2,ixGlo3:ixGhi3,&
+             idir) = gridvars(igrid)%w(ixGlo1:ixGhi1,ixGlo2:ixGhi2,&
+             ixGlo3:ixGhi3,bp(idir)) / absB(ixGlo1:ixGhi1,ixGlo2:ixGhi2,&
+             ixGlo3:ixGhi3)
+        elsewhere
+          bhat(ixGlo1:ixGhi1,ixGlo2:ixGhi2,ixGlo3:ixGhi3,idir) = 0.d0
+        end where
+      end do
+      if (any(bhat .ne. bhat)) then
+        call mpistop("GCA FILL GRIDVARS: NaNs IN bhat! ABORTING...")
+      end if
+
+      do idir=1,ndir
+        ! (b dot grad) b and the other directional derivatives
+        do idim=1,ndim
+          call gradient(bhat(ixGlo1:ixGhi1,ixGlo2:ixGhi2,ixGlo3:ixGhi3,idir),&
+             ixGlo1,ixGlo2,ixGlo3,ixGhi1,ixGhi2,ixGhi3,ixGlo1+1,ixGlo2+1,&
+             ixGlo3+1,ixGhi1-1,ixGhi2-1,ixGhi3-1,idim,tmp)
+          gridvars(igrid)%w(ixGlo1:ixGhi1,ixGlo2:ixGhi2,ixGlo3:ixGhi3,&
+             b_dot_grad_b(idir)) = gridvars(igrid)%w(ixGlo1:ixGhi1,&
+             ixGlo2:ixGhi2,ixGlo3:ixGhi3,&
+             b_dot_grad_b(idir)) + bhat(ixGlo1:ixGhi1,ixGlo2:ixGhi2,&
+             ixGlo3:ixGhi3,idim) * tmp(ixGlo1:ixGhi1,ixGlo2:ixGhi2,&
+             ixGlo3:ixGhi3)
+          gridvars(igrid)%w(ixGlo1:ixGhi1,ixGlo2:ixGhi2,ixGlo3:ixGhi3,&
+             vE_dot_grad_b(idir)) = gridvars(igrid)%w(ixGlo1:ixGhi1,&
+             ixGlo2:ixGhi2,ixGlo3:ixGhi3,&
+             vE_dot_grad_b(idir)) + vE(ixGlo1:ixGhi1,ixGlo2:ixGhi2,&
+             ixGlo3:ixGhi3,idim) * tmp(ixGlo1:ixGhi1,ixGlo2:ixGhi2,&
+             ixGlo3:ixGhi3)
+          call gradient(vE(ixGlo1:ixGhi1,ixGlo2:ixGhi2,ixGlo3:ixGhi3,idir),&
+             ixGlo1,ixGlo2,ixGlo3,ixGhi1,ixGhi2,ixGhi3,ixGlo1+1,ixGlo2+1,&
+             ixGlo3+1,ixGhi1-1,ixGhi2-1,ixGhi3-1,idim,tmp)
+          gridvars(igrid)%w(ixGlo1:ixGhi1,ixGlo2:ixGhi2,ixGlo3:ixGhi3,&
+             b_dot_grad_vE(idir)) = gridvars(igrid)%w(ixGlo1:ixGhi1,&
+             ixGlo2:ixGhi2,ixGlo3:ixGhi3,&
+             b_dot_grad_vE(idir)) + bhat(ixGlo1:ixGhi1,ixGlo2:ixGhi2,&
+             ixGlo3:ixGhi3,idim) * tmp(ixGlo1:ixGhi1,ixGlo2:ixGhi2,&
+             ixGlo3:ixGhi3)
+          gridvars(igrid)%w(ixGlo1:ixGhi1,ixGlo2:ixGhi2,ixGlo3:ixGhi3,&
+             vE_dot_grad_vE(idir)) = gridvars(igrid)%w(ixGlo1:ixGhi1,&
+             ixGlo2:ixGhi2,ixGlo3:ixGhi3,&
+             vE_dot_grad_vE(idir)) + vE(ixGlo1:ixGhi1,ixGlo2:ixGhi2,&
+             ixGlo3:ixGhi3,idim) * tmp(ixGlo1:ixGhi1,ixGlo2:ixGhi2,&
+             ixGlo3:ixGhi3)
+        end do
+      end do
+
+    end do
+
+  end subroutine gca_fill_gridvars
+
+  subroutine gca_integrate_particles(end_time)
+    use mod_odeint
+    use mod_global_parameters
+    use mod_usr_methods, only: usr_create_particles, usr_update_payload
+    double precision, intent(in)        :: end_time
+
+    double precision                    :: lfac, absS
+    double precision                    :: defpayload(ndefpayload)
+    double precision                    :: usrpayload(nusrpayload)
+    double precision                    :: dt_p, tloc, y(ndir+2),dydt(ndir+2),&
+       ytmp(ndir+2), euler_cfl, int_factor
+    double precision                    :: tk, k1(ndir+2),k2(ndir+2),&
+       k3(ndir+2),k4(ndir+2)
+    double precision, dimension(1:ndir) :: x, vE, e, b, bhat, x_new, vfluid,&
+        current
+    double precision, dimension(1:ndir) :: drift1, drift2
+    double precision, dimension(1:ndir) :: drift3, drift4, drift5, drift6,&
+        drift7
+    double precision, dimension(1:ndir) :: bdotgradb, vEdotgradb, gradkappaB
+    double precision, dimension(1:ndir) :: bdotgradvE, vEdotgradvE
+    double precision, dimension(1:ndir) :: gradBdrift, reldrift,&
+        bdotgradbdrift
+    double precision, dimension(1:ndir) :: vEdotgradbdrift, bdotgradvEdrift
+    double precision, dimension(1:ndir) :: vEdotgradvEdrift
+    double precision                    :: kappa, Mr, upar, m, absb, gamma, q,&
+        mompar, vpar, vEabs
+    double precision                    :: gradBdrift_abs, reldrift_abs, epar
+    double precision                    :: bdotgradbdrift_abs,&
+        vEdotgradbdrift_abs
+    double precision                    :: bdotgradvEdrift_abs,&
+        vEdotgradvEdrift_abs
+    double precision                    :: momentumpar1, momentumpar2,&
+        momentumpar3, momentumpar4
+    ! Precision of time-integration:
+    double precision,parameter          :: eps=1.0d-6
+    ! for odeint:
+    double precision                    :: h1, hmin, h_old
+    integer                             :: nok, nbad, ic11,ic12,ic13, ic21,&
+       ic22,ic23, ierror, nvar
+    integer                             :: ipart, iipart, seed, ic1,ic2,ic3,&
+       igrid_particle, ipe_particle, ipe_working
+    logical                             :: int_choice
+    logical                             :: BC_applied
+
+    nvar=ndir+2
+
+    do iipart=1,nparticles_active_on_mype
+      ipart                   = particles_active_on_mype(iipart)
+      int_choice              = .false.
+      dt_p                    = gca_get_particle_dt(particle(ipart), end_time)
+      particle(ipart)%self%dt = dt_p
+
+      igrid_working           = particle(ipart)%igrid
+      ipart_working           = particle(ipart)%self%index
+      tloc                    = particle(ipart)%self%time
+      x(1:ndir)               = particle(ipart)%self%x(1:ndir)
+
+      select case (integrator)
+      case (RK4)
+        ! Runge-Kutta order 4
+        tk = tloc
+        y(1:ndir) = x(1:ndir) ! position of guiding center
+        y(ndir+1) = particle(ipart)%self%u(1) !parallel momentum component (gamma v||)
+        y(ndir+2) = particle(ipart)%self%u(2) ! conserved magnetic moment Mr
+        call derivs_gca_rk(tk,y,k1)
+        tk = tloc + dt_p/2.d0
+        y(1:ndir) = x + dt_p*k1(1:ndir)/2.d0
+        y(ndir+1) = particle(ipart)%self%u(1) + dt_p*k1(ndir+1)/2.d0
+        call derivs_gca_rk(tk,y,k2)
+        tk = tloc + dt_p/2.d0
+        y(1:ndir) = x + dt_p*k2(1:ndir)/2.d0
+        y(ndir+1) = particle(ipart)%self%u(1) + dt_p*k2(ndir+1)/2.d0
+        call derivs_gca_rk(tk,y,k3)
+        tk = tloc + dt_p
+        y(1:ndir) = x + dt_p*k3(1:ndir)
+        y(ndir+1) = particle(ipart)%self%u(1) + dt_p*k3(ndir+1)
+        call derivs_gca_rk(tk,y,k4)
+        y(1:ndir) = x(1:ndir) ! position of guiding center
+        y(ndir+1) = particle(ipart)%self%u(1) !parallel momentum component (gamma v||)
+        y = y + dt_p/6.d0*(k1 + 2.d0*k2 + 2.d0*k3 + k4)
+        particle(ipart)%self%x(1:ndir) = y(1:ndir)
+        particle(ipart)%self%u(1)      = y(ndir+1)
+
+      case (ARK4)
+        ! Adaptive stepwidth RK4:
+        ! initial solution vector:
+        y(1:ndir) = x(1:ndir) ! position of guiding center
+        y(ndir+1) = particle(ipart)%self%u(1) !parallel momentum component (gamma v||)
+        y(ndir+2) = particle(ipart)%self%u(2) ! conserved magnetic moment Mr
+      ! y(ndir+3) = particle(ipart)%self%u(3) ! Lorentz factor of particle
+  
+        ! we temporarily save the solution vector, to replace the one from the euler
+        ! timestep after euler integration
+        ytmp=y
+  
+        call derivs_gca(particle(ipart)%self%time,y,dydt)
+  
+        ! make an Euler step with the proposed timestep:
+        ! factor to ensure we capture all particles near the internal ghost cells.
+        ! Can be adjusted during a run, after an interpolation error.
+        euler_cfl=2.5d0
+  
+        ! new solution vector:
+        y(1:ndir+2) = y(1:ndir+2) + euler_cfl * dt_p * dydt(1:ndir+2)
+        particle(ipart)%self%x(1:ndir) = y(1:ndir) !position of guiding center
+        particle(ipart)%self%u(1)      = y(ndir+1) !parallel momentum component(gamma v||)
+        particle(ipart)%self%u(2)      = y(ndir+2) ! conserved magnetic moment
+  
+        ! check if the particle is in the internal ghost cells
+        int_factor =1.0d0
+  
+        if(.not. particle_in_igrid(ipart_working,igrid_working)) then
+          ! if particle is not in the grid an euler timestep is taken instead of a RK4
+          ! timestep. Then based on that we do an interpolation and check how much further
+          ! the timestep for the RK4 has to be restricted.
+          ! factor to make integration more accurate for particles near the internal
+          ! ghost cells. This factor can be changed during integration after an
+          ! interpolation error. But one should be careful with timesteps for i/o
+  
+          ! flat interpolation:
+          ic1 = int((y(1)-rnode(rpxmin1_,igrid_working))/rnode(rpdx1_,&
+             igrid_working)) + 1 + nghostcells
+          ic2 = int((y(2)-rnode(rpxmin2_,igrid_working))/rnode(rpdx2_,&
+             igrid_working)) + 1 + nghostcells
+          ic3 = int((y(3)-rnode(rpxmin3_,igrid_working))/rnode(rpdx3_,&
+             igrid_working)) + 1 + nghostcells
+  
+          ! linear interpolation:
+          
+          if (ps(igrid_working)%x(ic1,ic2,ic3,1) .lt. y(1)) then
+             ic11 = ic1
+          else
+             ic11 = ic1 -1
+          end if
+          ic21 = ic11 + 1
+          
+          
+          if (ps(igrid_working)%x(ic1,ic2,ic3,2) .lt. y(2)) then
+             ic12 = ic2
+          else
+             ic12 = ic2 -1
+          end if
+          ic22 = ic12 + 1
+          
+          
+          if (ps(igrid_working)%x(ic1,ic2,ic3,3) .lt. y(3)) then
+             ic13 = ic3
+          else
+             ic13 = ic3 -1
+          end if
+          ic23 = ic13 + 1
+          
+  
+          int_factor =0.5d0
+  
+          
+          if (ic11 .le. ixGlo1-2 .or. ic21 .ge. ixGhi1+2) then
+            int_factor = 0.05d0
+          end if
+          
+          
+          if (ic12 .le. ixGlo2-2 .or. ic22 .ge. ixGhi2+2) then
+            int_factor = 0.05d0
+          end if
+          
+          
+          if (ic13 .le. ixGlo3-2 .or. ic23 .ge. ixGhi3+2) then
+            int_factor = 0.05d0
+          end if
+          
+  
+          
+          if (ic11 .eq. ixGlo1-1 .or. ic21 .eq. ixGhi1+1) then
+            int_factor = 0.1d0
+          end if
+          
+          
+          if (ic12 .eq. ixGlo2-1 .or. ic22 .eq. ixGhi2+1) then
+            int_factor = 0.1d0
+          end if
+          
+          
+          if (ic13 .eq. ixGlo3-1 .or. ic23 .eq. ixGhi3+1) then
+            int_factor = 0.1d0
+          end if
+          
+  
+          dt_p=int_factor*dt_p
+        end if
+  
+        ! replace the solution vector with the original as it was before the Euler timestep
+        y(1:ndir+2) = ytmp(1:ndir+2)
+  
+        particle(ipart)%self%x(1:ndir) = ytmp(1:ndir) !position of guiding center
+        particle(ipart)%self%u(1)      = ytmp(ndir+1) !parallel momentum component (gamma v||)
+        particle(ipart)%self%u(2)      = ytmp(ndir+2) !conserved magnetic moment
+  
+        ! specify a minimum step hmin. If the timestep reaches this minimum, multiply by
+        ! a factor 100 to make sure the RK integration doesn't crash
+        h1 = dt_p/2.0d0; hmin=1.0d-9; h_old=dt_p/2.0d0
+  
+        if(h1 .lt. hmin)then
+          h1=hmin
+          dt_p=2.0d0*h1
+        endif
+  
+        if (any(y .ne. y)) then
+          call mpistop&
+             ("NaNs DETECTED IN GCA_INTEGRATE BEFORE ODEINT CALL! ABORTING...")
+
+        end if
+  
+        ! RK4 integration with adaptive stepwidth
+        call odeint(y,nvar,tloc,tloc+dt_p,eps,h1,hmin,nok,nbad,derivs_gca_rk,&
+           rkqs,ierror)
+  
+        if (ierror /= 0) then
+           print *, "odeint returned error code", ierror
+           print *, "1 means hmin too small, 2 means MAXSTP exceeded"
+           print *, "Having a problem with particle", iipart
+        end if
+  
+        if (any(y .ne. y)) then
+          call mpistop&
+             ("NaNs DETECTED IN GCA_INTEGRATE AFTER ODEINT CALL! ABORTING...")
+        end if
+  
+        ! original RK integration without interpolation in ghost cells
+  !       call odeint(y,nvar,tloc,tloc+dt_p,eps,h1,hmin,nok,nbad,derivs_gca,rkqs)
+  
+        ! final solution vector after rk integration
+        particle(ipart)%self%x(1:ndir) = y(1:ndir)
+        particle(ipart)%self%u(1)      = y(ndir+1)
+        particle(ipart)%self%u(2)      = y(ndir+2)
+        !particle(ipart)%self%u(3)      = y(ndir+3)
+      end select
+
+      ! now calculate other quantities, mean Lorentz factor, drifts, perpendicular velocity:
+      call get_bfield(igrid_working, y(1:ndir), tloc+dt_p, b)
+      call get_efield(igrid_working, y(1:ndir), tloc+dt_p, e)
+!      call get_vec(bp, igrid_working,y(1:ndir),tloc+dt_p,b)
+!      call get_vec(vp, igrid_working,y(1:ndir),tloc+dt_p,vfluid)
+!      call get_vec(jp, igrid_working,y(1:ndir),tloc+dt_p,current)
+!      e(1) = -vfluid(2)*b(3)+vfluid(3)*b(2) + particles_eta*current(1)
+!      e(2) = vfluid(1)*b(3)-vfluid(3)*b(1) + particles_eta*current(2)
+!      e(3) = -vfluid(1)*b(2)+vfluid(2)*b(1) + particles_eta*current(3)
+
+      absb         = sqrt(sum(b(:)**2))
+      bhat(1:ndir) = b(1:ndir) / absb
+
+      epar         = sum(e(:)*bhat(:))
+
+      call cross(e,bhat,vE)
+
+      vE(1:ndir) = vE(1:ndir) / absb
+      vEabs = sqrt(sum(vE(:)**2))
+      if (relativistic) then
+        kappa = 1.d0/sqrt(1.0d0 - sum(vE(:)**2)/c_norm**2)
+      else
+        kappa = 1.d0
+      end if
+      Mr = y(ndir+2); upar = y(ndir+1); m=particle(ipart)%self%m
+      q=particle(ipart)%self%q
+      if (relativistic) then
+        gamma = sqrt(1.0d0+upar**2/c_norm**2+2.0d0*Mr*absb/m/c_norm**2)*kappa
+      else
+        gamma = 1.d0
+      end if
+
+      particle(ipart)%self%u(3) = gamma
+
+      ! Time update
+      particle(ipart)%self%time = particle(ipart)%self%time + dt_p
+
+      ! Update payload
+      call gca_update_payload(igrid_working,particle(ipart)%self%x,&
+         particle(ipart)%self%u,q,m,defpayload,ndefpayload,&
+         particle(ipart)%self%time)
+      particle(ipart)%payload(1:ndefpayload) = defpayload
+      if (associated(usr_update_payload)) then
+        call usr_update_payload(igrid_working,particle(ipart)%self%x,&
+           particle(ipart)%self%u,q,m,usrpayload,nusrpayload,&
+           particle(ipart)%self%time)
+        particle(ipart)%payload(ndefpayload+1:npayload) = usrpayload
+      end if
+
+    end do
+
+  end subroutine gca_integrate_particles
+
+  subroutine derivs_gca_rk(t_s,y,dydt)
+    use mod_global_parameters
+
+    double precision                :: t_s, y(ndir+2)
+    double precision                :: dydt(ndir+2)
+
+    double precision,dimension(ndir):: vE, b, e, x, bhat, bdotgradb,&
+        vEdotgradb, gradkappaB, vfluid, current
+    double precision,dimension(ndir):: bdotgradvE, vEdotgradvE, u, utmp1,&
+        utmp2, utmp3
+    double precision                :: upar, Mr, gamma, absb, q, m, epar,&
+        kappa
+    integer                         :: ic1,ic2,ic3
+
+    ! Here the terms in the guiding centre equations of motion are interpolated for
+    ! the RK integration. The interpolation is also done in the ghost cells such
+    ! that the RK integration does not give an error
+
+    q = particle(ipart_working)%self%q
+    m = particle(ipart_working)%self%m
+
+    x(1:ndir) = y(1:ndir)
+    upar      = y(ndir+1) ! gamma v||
+    Mr        = y(ndir+2)
+    !gamma     = y(ndir+3)
+
+    if (any(x .ne. x)) then
+      write(*,*) "ERROR IN DERIVS_GCA_RK: NaNs IN X OR Y!"
+      write(*,*) "x",x
+      write(*,*) "y",y(ndir+1:ndir+2)
+      call mpistop("ABORTING...")
+    end if
+
+    call get_bfield(igrid_working, x, t_s, b)
+    call get_efield(igrid_working, x, t_s, e)
+!    call get_vec(bp, igrid_working,x,t_s,b)
+!    call get_vec(vp, igrid_working,x,t_s,vfluid)
+!    call get_vec(jp, igrid_working,x,t_s,current)
+!    e(1) = -vfluid(2)*b(3)+vfluid(3)*b(2) + particles_eta*current(1)
+!    e(2) = vfluid(1)*b(3)-vfluid(3)*b(1) + particles_eta*current(2)
+!    e(3) = -vfluid(1)*b(2)+vfluid(2)*b(1) + particles_eta*current(3)
+    call get_vec(b_dot_grad_b, igrid_working,x,t_s,bdotgradb)
+    call get_vec(vE_dot_grad_b, igrid_working,x,t_s,vEdotgradb)
+    call get_vec(grad_kappa_B, igrid_working,x,t_s,gradkappaB)
+    call get_vec(b_dot_grad_vE, igrid_working,x,t_s,bdotgradvE)
+    call get_vec(vE_dot_grad_vE, igrid_working,x,t_s,vEdotgradvE)
+
+    if (any(b .ne. b) .or. any(e .ne. e) .or. any(bdotgradb .ne. bdotgradb) &
+       .or. any(vEdotgradb .ne. vEdotgradb) .or. any(gradkappaB .ne. &
+       gradkappaB) .or. any(bdotgradvE .ne. bdotgradvE) .or. any(vEdotgradvE &
+       .ne. vEdotgradvE)) then
+      write(*,*) "ERROR IN DERIVS_GCA_RK: NaNs IN FIELD QUANTITIES!"
+      write(*,*) "b",b
+      write(*,*) "e",e
+      write(*,*) "bdotgradb",bdotgradb
+      write(*,*) "vEdotgradb",vEdotgradb
+      write(*,*) "gradkappaB",gradkappaB
+      write(*,*) "bdotgradvE",bdotgradvE
+      write(*,*) "vEdotgradvE",vEdotgradvE
+      call mpistop("ABORTING...")
+    end if
+
+    absb  = sqrt(sum(b(:)**2))
+    if (absb .gt. 0.d0) then
+      bhat(1:ndir) = b(1:ndir) / absb
+    else
+      bhat = 0.d0
+    end if
+    epar = sum(e(:)*bhat(:))
+
+    call cross(e,bhat,vE)
+    if (absb .gt. 0.d0) then
+      vE(1:ndir) = vE(1:ndir) / absb
+    else
+      vE(1:ndir) = 0.d0
+    end if
+
+    if (relativistic) then
+      kappa = 1.d0/sqrt(1.0d0 - sum(vE(:)**2)/c_norm**2)
+      gamma = sqrt(1.0d0+upar**2/c_norm**2+2.0d0*Mr*absb/m/c_norm**2)*kappa
+    else
+      kappa = 1.d0
+      gamma = 1.d0
+    end if
+
+    if (absb .gt. 0.d0) then
+      utmp1(1:ndir) = bhat(1:ndir)/(absb/kappa**2)
+    else
+      utmp1 = 0.d0
+    end if
+    utmp2(1:ndir) = Mr/(gamma*q)*gradkappaB(1:ndir) + m/q* &
+       (upar**2/gamma*bdotgradb(1:ndir) + upar*vEdotgradb(1:ndir) + &
+       upar*bdotgradvE(1:ndir) + gamma*vEdotgradvE(1:ndir))
+    if (relativistic) then
+      utmp2(1:ndir) = utmp2(1:ndir) + upar*epar/(gamma)*vE(1:ndir)
+    end if
+
+    call cross(utmp1,utmp2,utmp3)
+    u(1:ndir) = vE(1:ndir) + utmp3(1:ndir)
+
+    ! done assembling the terms, now write rhs:
+    dydt(1:ndir) = ( u(1:ndir) + upar/gamma * bhat(1:ndir) )
+    dydt(ndir+1) = q/m*epar - Mr/(m*gamma) * sum(bhat(:)*gradkappaB(:)) + &
+       sum(vE(:)*(upar*bdotgradb(:)+gamma*vEdotgradb(:)))
+    dydt(ndir+2) = 0.0d0 ! magnetic moment is conserved
+
+  end subroutine derivs_gca_rk
+
+  subroutine derivs_gca(t_s,y,dydt)
+    use mod_global_parameters
+
+    double precision                :: t_s, y(ndir+2)
+    double precision                :: dydt(ndir+2)
+
+    double precision,dimension(ndir):: vE, b, e, x, bhat, bdotgradb,&
+        vEdotgradb, gradkappaB, vfluid, current
+    double precision,dimension(ndir):: bdotgradvE, vEdotgradvE, u, utmp1,&
+        utmp2, utmp3
+    double precision                :: upar, Mr, gamma, absb, q, m, epar,&
+        kappa
+
+    ! Here the normal interpolation is done for the terms in the GCA equations of motion
+
+    q = particle(ipart_working)%self%q
+    m = particle(ipart_working)%self%m
+
+    x(1:ndir) = y(1:ndir)
+    upar      = y(ndir+1) ! gamma v||
+    Mr        = y(ndir+2)
+    !gamma     = y(ndir+3)
+
+    if (any(x .ne. x)) then
+      call mpistop("ERROR IN DERIVS_GCA: NaNs IN X! ABORTING...")
+    end if
+
+    call get_bfield(igrid_working, x, t_s, b)
+    call get_efield(igrid_working, x, t_s, e)
+!    call get_vec(bp, igrid_working,x,t_s,b)
+!    call get_vec(vp, igrid_working,x,t_s,vfluid)
+!    call get_vec(jp, igrid_working,x,t_s,current)
+!    e(1) = -vfluid(2)*b(3)+vfluid(3)*b(2) + particles_eta*current(1)
+!    e(2) = vfluid(1)*b(3)-vfluid(3)*b(1) + particles_eta*current(2)
+!    e(3) = -vfluid(1)*b(2)+vfluid(2)*b(1) + particles_eta*current(3)
+    call get_vec(b_dot_grad_b, igrid_working,x,t_s,bdotgradb)
+    call get_vec(vE_dot_grad_b, igrid_working,x,t_s,vEdotgradb)
+    call get_vec(grad_kappa_B, igrid_working,x,t_s,gradkappaB)
+    call get_vec(b_dot_grad_vE, igrid_working,x,t_s,bdotgradvE)
+    call get_vec(vE_dot_grad_vE, igrid_working,x,t_s,vEdotgradvE)
+
+    absb         = sqrt(sum(b(:)**2))
+    if (absb .gt. 0.d0) then
+      bhat(1:ndir) = b(1:ndir) / absb
+    else
+      bhat = 0.d0
+    end if
+
+    epar         = sum(e(:)*bhat(:))
+    call cross(e,bhat,vE)
+    if (absb .gt. 0.d0) vE(1:ndir)   = vE(1:ndir) / absb
+
+    if (relativistic) then
+      kappa = 1.d0/sqrt(1.0d0 - sum(vE(:)**2)/c_norm**2)
+      gamma = sqrt(1.0d0+upar**2/c_norm**2+2.0d0*Mr*absb/m/c_norm**2)*kappa
+    else
+      kappa = 1.d0
+      gamma = 1.d0
+    end if
+    if (absb .gt. 0.d0) then
+      utmp1(1:ndir) = bhat(1:ndir)/(absb/kappa**2)
+    else
+      utmp1 = 0.d0
+    end if
+    utmp2(1:ndir) = Mr/(gamma*q)*gradkappaB(1:ndir) + m/q* &
+       (upar**2/gamma*bdotgradb(1:ndir) + upar*vEdotgradb(1:ndir) + &
+       upar*bdotgradvE(1:ndir) + gamma*vEdotgradvE(1:ndir))
+    if (relativistic) then
+      utmp2(1:ndir) = utmp2(1:ndir) + upar*epar/(gamma)*vE(1:ndir)
+    end if
+
+    call cross(utmp1,utmp2,utmp3)
+    u(1:ndir) = vE(1:ndir) + utmp3(1:ndir)
+
+    ! done assembling the terms, now write rhs:
+    dydt(1:ndir) = ( u(1:ndir) + upar/gamma * bhat(1:ndir) )
+    dydt(ndir+1) = q/m*epar - Mr/(m*gamma) * sum(bhat(:)*gradkappaB(:)) + &
+       sum(vE(:)*(upar*bdotgradb(:)+gamma*vEdotgradb(:)))
+    dydt(ndir+2) = 0.0d0 ! magnetic moment is conserved
+
+  end subroutine derivs_gca
+
+  !> Update payload subroutine
+  subroutine gca_update_payload(igrid,xpart,upart,qpart,mpart,mypayload,&
+     mynpayload,particle_time)
+    use mod_global_parameters
+    integer, intent(in)           :: igrid,mynpayload
+    double precision, intent(in)  :: xpart(1:ndir),upart(1:ndir),qpart,mpart,&
+       particle_time
+    double precision, intent(out) :: mypayload(mynpayload)
+    double precision, dimension(1:ndir) :: vE, e, b, bhat, vfluid, current
+    double precision, dimension(1:ndir) :: drift1, drift2
+    double precision, dimension(1:ndir) :: drift3, drift4, drift5, drift6,&
+        drift7
+    double precision, dimension(1:ndir) :: bdotgradb, vEdotgradb, gradkappaB
+    double precision, dimension(1:ndir) :: bdotgradvE, vEdotgradvE
+    double precision, dimension(1:ndir) :: gradBdrift, reldrift,&
+        bdotgradbdrift
+    double precision, dimension(1:ndir) :: vEdotgradbdrift, bdotgradvEdrift
+    double precision, dimension(1:ndir) :: vEdotgradvEdrift
+    double precision                    :: kappa, upar, absb, gamma, vpar,&
+        vEabs
+    double precision                    :: gradBdrift_abs, reldrift_abs, epar
+    double precision                    :: bdotgradbdrift_abs,&
+        vEdotgradbdrift_abs
+    double precision                    :: bdotgradvEdrift_abs,&
+        vEdotgradvEdrift_abs
+    double precision                    :: momentumpar1, momentumpar2,&
+        momentumpar3, momentumpar4
+
+    call get_bfield(igrid, xpart(1:ndir), particle_time, b)
+    call get_efield(igrid, xpart(1:ndir), particle_time, e)
+!    call get_vec(bp, igrid,xpart(1:ndir),particle_time,b)
+!    call get_vec(vp, igrid,xpart(1:ndir),particle_time,vfluid)
+!    call get_vec(jp, igrid,xpart(1:ndir),particle_time,current)
+!    e(1) = -vfluid(2)*b(3)+vfluid(3)*b(2) + particles_eta*current(1)
+!    e(2) = vfluid(1)*b(3)-vfluid(3)*b(1) + particles_eta*current(2)
+!    e(3) = -vfluid(1)*b(2)+vfluid(2)*b(1) + particles_eta*current(3)
+
+    absb         = sqrt(sum(b(:)**2))
+    bhat(1:ndir) = b(1:ndir) / absb
+    epar         = sum(e(:)*bhat(:))
+    call cross(e,bhat,vE)
+    vE(1:ndir)   = vE(1:ndir) / absb
+    vEabs = sqrt(sum(vE(:)**2))
+    if (relativistic) then
+      kappa = 1.d0/sqrt(1.0d0 - sum(vE(:)**2)/c_norm**2)
+    else
+      kappa = 1.d0
+    end if
+    vpar = upart(1)/upart(3)
+    upar = upart(1)
+
+    call get_vec(b_dot_grad_b, igrid,xpart(1:ndir),particle_time,bdotgradb)
+    call get_vec(vE_dot_grad_b, igrid,xpart(1:ndir),particle_time,vEdotgradb)
+    call get_vec(grad_kappa_B, igrid,xpart(1:ndir),particle_time,gradkappaB)
+    call get_vec(b_dot_grad_vE, igrid,xpart(1:ndir),particle_time,bdotgradvE)
+    call get_vec(vE_dot_grad_vE, igrid,xpart(1:ndir),particle_time,&
+       vEdotgradvE)
+
+    drift1(1:ndir) = bhat(1:ndir)/(absb/kappa**2)
+    drift2(1:ndir) = upart(2)/(upart(3)*qpart)*gradkappaB(1:ndir)
+
+    call cross(drift1,drift2,gradBdrift)
+    gradBdrift_abs = sqrt(sum(gradBdrift(:)**2))
+
+    drift3(1:ndir) = upar*epar/upart(3)*vE(1:ndir)
+    call cross(drift1,drift3,reldrift)
+    reldrift_abs = sqrt(sum(reldrift(:)**2))
+
+    drift4(1:ndir) = mpart/qpart* ( upar**2/upart(3)*bdotgradb(1:ndir))
+    call cross(drift1,drift4,bdotgradbdrift)
+    bdotgradbdrift_abs = sqrt(sum(bdotgradbdrift(:)**2))
+
+    drift5(1:ndir) = mpart/qpart* ( upar*vEdotgradb(1:ndir))
+    call cross(drift1,drift5,vEdotgradbdrift)
+    vEdotgradbdrift_abs = sqrt(sum(vEdotgradbdrift(:)**2))
+
+    drift6(1:ndir) = mpart/qpart* ( upar*bdotgradvE(1:ndir))
+    call cross(drift1,drift6,bdotgradvEdrift)
+    bdotgradvEdrift_abs = sqrt(sum(bdotgradvEdrift(:)**2))
+
+    drift7(1:ndir) = mpart/qpart* (upart(3)*vEdotgradvE(1:ndir))
+    call cross(drift1,drift7,vEdotgradvEdrift)
+    vEdotgradvEdrift_abs = sqrt(sum(vEdotgradvEdrift(:)**2))
+
+    momentumpar1 = qpart/mpart*epar
+    momentumpar2 = -(upart(2)/mpart/upart(3))*sum(bhat(:)*gradkappaB(:))
+    momentumpar3 = upar*sum(vE(:)*bdotgradb(:))
+    momentumpar4 = upart(3)*sum(vE(:)*vEdotgradb(:))
+
+    ! Payload update
+    if (mynpayload > 0) then
+      ! current gyroradius
+      mypayload(1) = sqrt(2.0d0*mpart*upart(2)*absb)/abs(qpart*absb)
+    end if
+    if (mynpayload > 1) then
+      ! pitch angle
+      mypayload(2) = atan2(sqrt((2.0d0*upart(2)*absb)/(mpart*upart(3)**2)),&
+         vpar)
+    end if
+    if (mynpayload > 2) then
+      ! particle v_perp
+      mypayload(3) = sqrt((2.0d0*upart(2)*absb)/(mpart*upart(3)**2))
+    end if
+    if (mynpayload > 3) then
+      ! particle parallel momentum term 1
+      mypayload(4) = momentumpar1
+    end if
+    if (mynpayload > 4) then
+      ! particle parallel momentum term 2
+      mypayload(5) = momentumpar2
+    end if
+    if (mynpayload > 5) then
+      ! particle parallel momentum term 3
+      mypayload(6) = momentumpar3
+    end if
+    if (mynpayload > 6) then
+      ! particle parallel momentum term 4
+      mypayload(7) = momentumpar4
+    end if
+    if (mynpayload > 7) then
+      ! particle ExB drift
+      mypayload(8) = vEabs
+    end if
+    if (mynpayload > 8) then
+      ! relativistic drift
+      mypayload(9) = gradBdrift_abs
+    end if
+    if (mynpayload > 9) then
+      ! gradB drift
+      mypayload(10) = reldrift_abs
+    end if
+    if (mynpayload > 10) then
+      ! bdotgradb drift
+      mypayload(11) = bdotgradbdrift_abs
+    end if
+    if (mynpayload > 11) then
+      ! vEdotgradb drift
+      mypayload(12) = vEdotgradbdrift_abs
+    end if
+    if (mynpayload > 12) then
+      ! bdotgradvE drift
+      mypayload(13) = bdotgradvEdrift_abs
+    end if
+    if (mynpayload > 13) then
+      ! vEdotgradvE drift
+      mypayload(14) = vEdotgradvEdrift_abs
+    end if
+
+  end subroutine gca_update_payload
+
+  function gca_get_particle_dt(partp, end_time) result(dt_p)
+    use mod_odeint
+    use mod_global_parameters
+    type(particle_ptr), intent(in) :: partp
+    double precision, intent(in)   :: end_time
+    double precision               :: dt_p
+
+    double precision            :: tout, dt_particles_mype, dt_cfl0, dt_cfl1,&
+        dt_a
+    double precision            :: dxmin, vp, a, gammap
+    double precision            :: v(ndir), y(ndir+2),ytmp(ndir+2),&
+        dydt(ndir+2), v0(ndir), v1(ndir), dydt1(ndir+2)
+    double precision            :: ap0, ap1, dt_cfl_ap0, dt_cfl_ap1, dt_cfl_ap
+    double precision            :: dt_euler, dt_tmp
+    ! make these particle cfl conditions more restrictive if you are interpolating out of the grid
+    double precision            :: cfl, uparcfl
+    double precision, parameter :: uparmin=1.0d-6*const_c
+    integer                     :: ipart, iipart, nout, ic1,ic2,ic3,&
+        igrid_particle, ipe_particle, ipe
+    logical                     :: BC_applied
+
+    if (const_dt_particles > 0) then
+      dt_p = const_dt_particles
+      return
+    end if
+
+    cfl = particles_cfl
+    uparcfl = particles_cfl
+
+    igrid_working = partp%igrid
+    ipart_working = partp%self%index
+    dt_tmp = (end_time - partp%self%time)
+    if(dt_tmp .le. 0.0d0) dt_tmp = smalldouble
+    ! make sure we step only one cell at a time, first check CFL at current location
+    ! then we make an Euler step to the new location and check the new CFL
+    ! we simply take the minimum of the two timesteps.
+    ! added safety factor cfl:
+    dxmin  = min(rnode(rpdx1_,igrid_working),rnode(rpdx2_,igrid_working),&
+       rnode(rpdx3_,igrid_working),bigdouble)*cfl
+    ! initial solution vector:
+    y(1:ndir) = partp%self%x(1:ndir) ! position of guiding center
+    y(ndir+1) = partp%self%u(1) ! parallel momentum component (gamma v||)
+    y(ndir+2) = partp%self%u(2) ! conserved magnetic moment
+    ytmp=y
+    !y(ndir+3) = partp%self%u(3) ! Lorentz factor of guiding centre
+
+    call derivs_gca(partp%self%time,y,dydt)
+    v0(1:ndir) = dydt(1:ndir)
+    ap0        = dydt(ndir+1)
+
+    ! guiding center velocity:
+    v(1:ndir) = abs(dydt(1:ndir))
+    vp = sqrt(sum(v(:)**2))
+
+    dt_cfl0    = dxmin / max(vp, smalldouble)
+    dt_cfl_ap0 = uparcfl * abs(max(abs(y(ndir+1)),uparmin) / max(abs(ap0),&
+        smalldouble))
+    !dt_cfl_ap0 = min(dt_cfl_ap0, uparcfl * sqrt(abs(unit_length*dxmin/(ap0+smalldouble))) )
+
+    ! make an Euler step with the proposed timestep:
+    ! new solution vector:
+    dt_euler = min(dt_tmp,dt_cfl0,dt_cfl_ap0)
+    y(1:ndir+2) = y(1:ndir+2) + dt_euler * dydt(1:ndir+2)
+
+    partp%self%x(1:ndir) = y(1:ndir) ! position of guiding center
+    partp%self%u(1)      = y(ndir+1) ! parallel momentum component (gamma v||)
+    partp%self%u(2)      = y(ndir+2) ! conserved magnetic moment
+
+    ! first check if the particle is outside the physical domain or in the ghost cells
+    if(.not. particle_in_igrid(ipart_working,igrid_working)) then
+      y(1:ndir+2) = ytmp(1:ndir+2)
+    end if
+
+    call derivs_gca_rk(partp%self%time+dt_euler,y,dydt)
+    !call derivs_gca(partp%self%time+dt_euler,y,dydt)
+
+    v1(1:ndir) = dydt(1:ndir)
+    ap1        = dydt(ndir+1)
+
+    ! guiding center velocity:
+    v(1:ndir) = abs(dydt(1:ndir))
+    vp = sqrt(sum(v(:)**2))
+
+    dt_cfl1    = dxmin / max(vp, smalldouble)
+    dt_cfl_ap1 = uparcfl * abs(max(abs(y(ndir+1)),uparmin) / max(abs(ap1),&
+        smalldouble))
+    !dt_cfl_ap1 = min(dt_cfl_ap1, uparcfl * sqrt(abs(unit_length*dxmin/(ap1+smalldouble))) )
+
+    dt_tmp = min(dt_euler, dt_cfl1, dt_cfl_ap1)
+
+    partp%self%x(1:ndir) = ytmp(1:ndir) ! position of guiding center
+    partp%self%u(1)      = ytmp(ndir+1) !parallel momentum component (gamma v||)
+    partp%self%u(2)      = ytmp(ndir+2) ! conserved magnetic moment
+    !dt_tmp = min(dt_cfl1, dt_cfl_ap1)
+
+    ! time step due to parallel acceleration:
+    ! The standard thing, dt=sqrt(dx/a) where we compute a from d(gamma v||)/dt and d(gamma)/dt
+    ! dt_ap = sqrt(abs(dxmin*unit_length*y(ndir+3)/( dydt(ndir+1) - y(ndir+1)/y(ndir+3)*dydt(ndir+3) ) ) )
+    ! vp = sqrt(sum(v(1:ndir)**))
+    ! gammap = sqrt(1.0d0/(1.0d0-(vp/const_c)**2))
+    ! ap = const_c**2/vp*gammap**(-3)*dydt(ndir+3)
+    ! dt_ap = sqrt(dxmin*unit_length/ap)
+
+    !dt_a = bigdouble
+    !if (dt_euler .gt. smalldouble) then
+    !   a = sqrt(sum((v1(1:ndir)-v0(1:ndir))**2))/dt_euler
+    !   dt_a = min(sqrt(dxmin/a),bigdouble)
+    !end if
+
+    !dt_p = min(dt_tmp , dt_a)
+    dt_p = dt_tmp
+
+    ! Make sure we do not advance beyond end_time
+    call limit_dt_endtime(end_time - partp%self%time, dt_p)
+
+  end function gca_get_particle_dt
+
+end module mod_particle_gca

@@ -1,5 +1,0 @@
-F90=mpif90
-FFLAGS = -c
-F90FLAGS = -cpp -ffree-form -fimplicit-none -O3 -Wall -Wno-unused-dummy-argument	\
--Wno-unused-function -Wno-unused -Wno-uninitialized -Wno-zerotrip -Wno-target-lifetime
-LINK= $(F90)  $(F90FLAGS)
