@@ -4890,38 +4890,31 @@ contains
     double precision, intent(inout) :: w(ixI^S,1:nw)
     double precision, intent(in), optional :: wCTprim(ixI^S,1:nw)
 
-    double precision :: v(ixI^S,1:3),E(ixI^S,1:3),curlE(ixI^S,1:3),divE(ixI^S)
+    double precision :: E(ixI^S,1:3),curlE(ixI^S,1:3),divE(ixI^S)
     integer :: idir, idirmin, ix^D
 
+   ! if ndir<3 the source is zero
+   {^IFTHREEC
    {do ix^DB=ixImin^DB,ixImax^DB\}
       ! E=Bxv
-      {^IFTHREEC
       E(ix^D,1)=w(ix^D,b2_)*wCTprim(ix^D,m3_)-w(ix^D,b3_)*wCTprim(ix^D,m2_)
       E(ix^D,2)=w(ix^D,b3_)*wCTprim(ix^D,m1_)-w(ix^D,b1_)*wCTprim(ix^D,m3_)
       E(ix^D,3)=w(ix^D,b1_)*wCTprim(ix^D,m2_)-w(ix^D,b2_)*wCTprim(ix^D,m1_)
-      }
-      {^IFTWOC
-      E(ix^D,1)=zero
-      E(ix^D,2)=zero
-      E(ix^D,3)=w(ix^D,b1_)*wCTprim(ix^D,m2_)-w(ix^D,b2_)*wCTprim(ix^D,m1_)
-      }
-      {^IFONEC
-      E(ix^D,1)=zero
-      E(ix^D,2)=zero
-      E(ix^D,3)=zero
-      }
    {end do\}
     call divvector(E,ixI^L,ixO^L,divE)
     ! curl E
     call curlvector(E,ixI^L,ixO^L,curlE,idirmin,1,3)
-    ! E x (curl E) => v
-    call cross_product(ixI^L,ixO^L,E,curlE,v)
     ! add source term in momentum equations (1/c0^2-1/c^2)(E dot divE - E x curlE)
     ! equation (26) and (27)
    {do ix^DB=ixOmin^DB,ixOmax^DB\}
-      ^C&w(ix^D,m^C_)=w(ix^D,m^C_)+qdt*(inv_squared_c0-inv_squared_c)*&
-        (E(ix^D,^C)*divE(ix^D)-v(ix^D,^C))\
+      w(ix^D,m1_)=w(ix^D,m1_)+qdt*(inv_squared_c0-inv_squared_c)*&
+       (E(ix^D,1)*divE(ix^D)-E(ix^D,2)*curlE(ix^D,3)+E(ix^D,3)*curlE(ix^D,2))
+      w(ix^D,m2_)=w(ix^D,m2_)+qdt*(inv_squared_c0-inv_squared_c)*&
+       (E(ix^D,2)*divE(ix^D)-E(ix^D,3)*curlE(ix^D,1)+E(ix^D,1)*curlE(ix^D,3))
+      w(ix^D,m3_)=w(ix^D,m3_)+qdt*(inv_squared_c0-inv_squared_c)*&
+       (E(ix^D,3)*divE(ix^D)-E(ix^D,1)*curlE(ix^D,2)+E(ix^D,2)*curlE(ix^D,1) )
    {end do\}
+   }
 
   end subroutine add_source_semirelativistic
 
@@ -5484,27 +5477,19 @@ contains
     ! Add Linde's diffusive terms
     do idim=1,ndim
        ! Calculate grad_idim(divb)
-       select case(typegrad)
-       case("central")
-         call gradient(divb,ixI^L,ixp^L,idim,graddivb)
-       case("limited")
-         call gradientL(divb,ixI^L,ixp^L,idim,graddivb)
-       end select
+       call gradient(divb,ixI^L,ixp^L,idim,graddivb)
 
-       ! Multiply by Linde's eta*dt = divbdiff*(c_max*dx)*dt = divbdiff*dx**2
-       if (slab_uniform) then
-          graddivb(ixp^S)=graddivb(ixp^S)*divbdiff/(^D&1.0d0/dxlevel(^D)**2+)
-       else
-          graddivb(ixp^S)=graddivb(ixp^S)*divbdiff &
-                          /(^D&1.0d0/block%ds(ixp^S,^D)**2+)
-       end if
+      {do i^DB=ixpmin^DB,ixpmax^DB\}
+         ! Multiply by Linde's eta*dt = divbdiff*(c_max*dx)*dt = divbdiff*dx**2
+         graddivb(i^D)=graddivb(i^D)*divbdiff/(^D&1.0d0/block%ds({i^D},^D)**2+)
 
-       w(ixp^S,mag(idim))=w(ixp^S,mag(idim))+graddivb(ixp^S)
+         w(i^D,mag(idim))=w(i^D,mag(idim))+graddivb(i^D)
 
-       if (typedivbdiff=='all' .and. total_energy) then
-         ! e += B_idim*eta*grad_idim(divb)
-         w(ixp^S,e_)=w(ixp^S,e_)+wCT(ixp^S,mag(idim))*graddivb(ixp^S)
-       end if
+         if (typedivbdiff=='all' .and. total_energy) then
+           ! e += B_idim*eta*grad_idim(divb)
+           w(i^D,e_)=w(i^D,e_)+wCT(i^D,mag(idim))*graddivb(i^D)
+         end if
+      {end do\}
     end do
 
     if (fix_small_values) call mhd_handle_small_values(.false.,w,x,ixI^L,ixO^L,'add_source_linde')
@@ -6130,7 +6115,7 @@ contains
     integer, intent(in)             :: ixI^L, ixO^L
     double precision, intent(in)    :: w(ixI^S,nw)
     double precision, intent(in)    :: x(ixI^S,1:ndim)
-    double precision, intent(inout) :: vHall(ixI^S,1:3)
+    double precision, intent(inout) :: vHall(ixI^S,1:ndir)
 
     double precision :: current(ixI^S,7-2*ndir:3)
     double precision :: rho(ixI^S)
@@ -6139,7 +6124,7 @@ contains
     call mhd_get_rho(w,x,ixI^L,ixO^L,rho)
     ! Calculate current density and idirmin
     call get_current(w,ixI^L,ixO^L,idirmin,current)
-    do idir = idirmin, 3
+    do idir = idirmin, ndir
       {do ix^DB=ixOmin^DB,ixOmax^DB\}
          vHall(ix^D,idir)=-mhd_etah*current(ix^D,idir)/rho(ix^D)
       {end do\}
@@ -6905,14 +6890,13 @@ contains
           end if
         end do
       end do
-      ! Divide by the area of the face to get dB/dt
-      where(s%surfaceC(ixC^S,idim1) > 1.0d-9*s%dvolume(ixC^S))
-        circ(ixC^S,idim1)=circ(ixC^S,idim1)/s%surfaceC(ixC^S,idim1)
-      elsewhere
-        circ(ixC^S,idim1)=zero
-      end where
-      ! Time update cell-face magnetic field component
-      bfaces(ixC^S,idim1)=bfaces(ixC^S,idim1)-circ(ixC^S,idim1)
+     {do ix^DB=ixCmin^DB,ixCmax^DB\}
+        ! Divide by the area of the face to get dB/dt
+        if(s%surfaceC(ix^D,idim1) > smalldouble) then
+          ! Time update cell-face magnetic field component
+          bfaces(ix^D,idim1)=bfaces(ix^D,idim1)-circ(ix^D,idim1)/s%surfaceC(ix^D,idim1)
+        end if
+     {end do\}
     end do
 
     end associate
@@ -7177,14 +7161,13 @@ contains
           end if
         end do
       end do
-      ! Divide by the area of the face to get dB/dt
-      where(s%surfaceC(ixC^S,idim1) > smalldouble)
-        circ(ixC^S,idim1)=circ(ixC^S,idim1)/s%surfaceC(ixC^S,idim1)
-      elsewhere
-        circ(ixC^S,idim1)=zero
-      end where
-      ! Time update cell-face magnetic field component
-      bfaces(ixC^S,idim1)=bfaces(ixC^S,idim1)-circ(ixC^S,idim1)
+     {do ix^DB=ixCmin^DB,ixCmax^DB\}
+        ! Divide by the area of the face to get dB/dt
+        if(s%surfaceC(ix^D,idim1) > smalldouble) then
+          ! Time update cell-face magnetic field component
+          bfaces(ix^D,idim1)=bfaces(ix^D,idim1)-circ(ix^D,idim1)/s%surfaceC(ix^D,idim1)
+        end if
+     {end do\}
     end do
 
     end associate
@@ -7214,7 +7197,7 @@ contains
     ! non-ideal electric field on cell edges
     double precision, dimension(ixI^S,sdim:3) :: E_resi, E_ambi
     integer                            :: hxC^L,ixC^L,ixCp^L,jxC^L,ixCm^L
-    integer                            :: idim1,idim2,idir
+    integer                            :: idim1,idim2,idir,ix^D
 
     associate(bfaces=>s%ws,bfacesCT=>sCT%ws,x=>s%x,vbarC=>vcts%vbarC,cbarmin=>vcts%cbarmin,&
       cbarmax=>vcts%cbarmax)
@@ -7335,14 +7318,13 @@ contains
           end if
         end do
       end do
-      ! Divide by the area of the face to get dB/dt
-      where(s%surfaceC(ixC^S,idim1) > 1.0d-9*s%dvolume(ixC^S))
-        circ(ixC^S,idim1)=circ(ixC^S,idim1)/s%surfaceC(ixC^S,idim1)
-      elsewhere
-        circ(ixC^S,idim1)=zero
-      end where
-      ! Time update cell-face magnetic field component
-      bfaces(ixC^S,idim1)=bfaces(ixC^S,idim1)-circ(ixC^S,idim1)
+     {do ix^DB=ixCmin^DB,ixCmax^DB\}
+        ! Divide by the area of the face to get dB/dt
+        if(s%surfaceC(ix^D,idim1) > smalldouble) then
+          ! Time update cell-face magnetic field component
+          bfaces(ix^D,idim1)=bfaces(ix^D,idim1)-circ(ix^D,idim1)/s%surfaceC(ix^D,idim1)
+        end if
+     {end do\}
     end do
 
     end associate
