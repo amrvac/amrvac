@@ -698,6 +698,10 @@ contains
       phys_handle_small_values => mhd_handle_small_values_semirelati
       mhd_handle_small_values  => mhd_handle_small_values_semirelati
       phys_check_w             => mhd_check_w_semirelati
+    else if(has_equi_rho0) then
+      phys_handle_small_values => mhd_handle_small_values_split
+      mhd_handle_small_values  => mhd_handle_small_values_split
+      phys_check_w             => mhd_check_w_split
     else if(mhd_energy) then
       phys_handle_small_values => mhd_handle_small_values_origin
       mhd_handle_small_values  => mhd_handle_small_values_origin
@@ -1443,34 +1447,45 @@ contains
     double precision, intent(in) :: w(ixI^S,nw)
     logical, intent(inout) :: flag(ixI^S,1:nw)
 
+    integer :: ix^D
+
+    flag=.false.
+   {do ix^DB=ixOmin^DB,ixOmax^DB\}
+      if(w(ix^D,rho_)<small_density) flag(ix^D,rho_) = .true.
+      if(primitive) then
+        if(w(ix^D,p_)<small_pressure) flag(ix^D,e_) = .true.
+      else
+        if(w(ix^D,e_)-half*((^C&w(ix^D,m^C_)**2+)/w(ix^D,rho_)+&
+          (^C&w(ix^D,b^C_)**2+))<small_e) flag(ix^D,e_) = .true.
+      end if
+   {end do\}
+
+  end subroutine mhd_check_w_origin
+
+  subroutine mhd_check_w_split(primitive,ixI^L,ixO^L,w,flag)
+    use mod_global_parameters
+
+    logical, intent(in) :: primitive
+    integer, intent(in) :: ixI^L, ixO^L
+    double precision, intent(in) :: w(ixI^S,nw)
+    logical, intent(inout) :: flag(ixI^S,1:nw)
+
     double precision :: tmp
     integer :: ix^D
 
     flag=.false.
    {do ix^DB=ixOmin^DB,ixOmax^DB\}
-      if(has_equi_rho0) then
-        tmp=w(ix^D,rho_)+block%equi_vars(ix^D,equi_rho0_,0)
-      else
-        tmp=w(ix^D,rho_)
-      end if
+      tmp=w(ix^D,rho_)+block%equi_vars(ix^D,equi_rho0_,0)
       if(tmp<small_density) flag(ix^D,rho_) = .true.
       if(primitive) then
-        if(has_equi_pe0) then
-          if(w(ix^D,p_)+block%equi_vars(ix^D,equi_pe0_,0)<small_pressure) flag(ix^D,e_) = .true.
-        else
-          if(w(ix^D,p_)<small_pressure) flag(ix^D,e_) = .true.
-        end if
+        if(w(ix^D,p_)+block%equi_vars(ix^D,equi_pe0_,0)<small_pressure) flag(ix^D,e_) = .true.
       else
         tmp=w(ix^D,e_)-half*((^C&w(ix^D,m^C_)**2+)/tmp+(^C&w(ix^D,b^C_)**2+))
-        if(has_equi_pe0) then
-          if(tmp+block%equi_vars(ix^D,equi_pe0_,0)*inv_gamma_1<small_e) flag(ix^D,e_) = .true.
-        else
-          if(tmp<small_e) flag(ix^D,e_) = .true.
-        end if
+        if(tmp+block%equi_vars(ix^D,equi_pe0_,0)*inv_gamma_1<small_e) flag(ix^D,e_) = .true.
       end if
    {end do\}
 
-  end subroutine mhd_check_w_origin
+  end subroutine mhd_check_w_split
 
   subroutine mhd_check_w_noe(primitive,ixI^L,ixO^L,w,flag)
     use mod_global_parameters
@@ -1484,11 +1499,7 @@ contains
 
     flag=.false.
    {do ix^DB=ixOmin^DB,ixOmax^DB\}
-      if(has_equi_rho0) then
-        if(w(ix^D,rho_)+block%equi_vars(ix^D,equi_rho0_,0)<small_density) flag(ix^D,rho_) = .true.
-      else
-        if(w(ix^D,rho_)<small_density) flag(ix^D,rho_) = .true.
-      end if
+      if(w(ix^D,rho_)<small_density) flag(ix^D,rho_) = .true.
    {end do\}
 
   end subroutine mhd_check_w_noe
@@ -1505,23 +1516,11 @@ contains
 
     flag=.false.
    {do ix^DB=ixOmin^DB,ixOmax^DB\}
-      if(has_equi_rho0) then
-        if(w(ix^D,rho_)+block%equi_vars(ix^D,equi_rho0_,0)<small_density) flag(ix^D,rho_) = .true.
-      else
-        if(w(ix^D,rho_)<small_density) flag(ix^D,rho_) = .true.
-      end if
+      if(w(ix^D,rho_)<small_density) flag(ix^D,rho_) = .true.
       if(primitive) then
-        if(has_equi_pe0) then
-          if(w(ix^D,p_)+block%equi_vars(ix^D,equi_pe0_,0)<small_pressure) flag(ix^D,e_) = .true.
-        else
-          if(w(ix^D,p_) < small_pressure) flag(ix^D,e_) = .true.
-        end if
+        if(w(ix^D,p_) < small_pressure) flag(ix^D,e_) = .true.
       else
-        if(has_equi_pe0) then
-          if(w(ix^D,e_)+block%equi_vars(ix^D,equi_pe0_,0)*inv_gamma_1<small_e) flag(ix^D,e_) = .true.
-        else
-          if(w(ix^D,e_)<small_e) flag(ix^D,e_) = .true.
-        end if
+        if(w(ix^D,e_)<small_e) flag(ix^D,e_) = .true.
       end if
    {end do\}
 
@@ -1988,20 +1987,11 @@ contains
 
     integer :: ix^D
 
-    if(has_equi_rho0) then
-     {do ix^DB=ixOmin^DB,ixOmax^DB\}
-        ! Calculate e = ei + ek
-        w(ix^D,e_)=w(ix^D,e_)&
-                  +half*((^C&w(ix^D,m^C_)**2+)/&
-         (w(ix^D,rho_)+block%equi_vars(ix^D,equi_rho0_,0)))
-     {end do\}
-    else
-     {do ix^DB=ixOmin^DB,ixOmax^DB\}
-        ! Calculate e = ei + ek
-        w(ix^D,e_)=w(ix^D,e_)&
-                  +half*(^C&w(ix^D,m^C_)**2+)/w(ix^D,rho_)
-     {end do\}
-    end if
+   {do ix^DB=ixOmin^DB,ixOmax^DB\}
+      ! Calculate e = ei + ek
+      w(ix^D,e_)=w(ix^D,e_)&
+                +half*(^C&w(ix^D,m^C_)**2+)/w(ix^D,rho_)
+   {end do\}
 
   end subroutine mhd_ei_to_e_hde
 
@@ -2058,20 +2048,11 @@ contains
 
     integer :: ix^D
 
-    if(has_equi_rho0) then
-     {do ix^DB=ixOmin^DB,ixOmax^DB\}
-        ! Calculate ei = e - ek
-        w(ix^D,e_)=w(ix^D,e_)&
-                  -half*(^C&w(ix^D,m^C_)**2+)/&
-         (w(ix^D,rho_)+block%equi_vars(ix^D,equi_rho0_,0))
-     {end do\}
-    else
-     {do ix^DB=ixOmin^DB,ixOmax^DB\}
-        ! Calculate ei = e - ek
-        w(ix^D,e_)=w(ix^D,e_)&
-                  -half*(^C&w(ix^D,m^C_)**2+)/w(ix^D,rho_)
-     {end do\}
-    end if
+   {do ix^DB=ixOmin^DB,ixOmax^DB\}
+      ! Calculate ei = e - ek
+      w(ix^D,e_)=w(ix^D,e_)&
+                -half*(^C&w(ix^D,m^C_)**2+)/w(ix^D,rho_)
+   {end do\}
 
     if(fix_small_values) then
       call mhd_handle_small_ei(w,x,ixI^L,ixI^L,e_,'mhd_e_to_ei_hde')
@@ -2154,24 +2135,22 @@ contains
     if(any(flag)) then
       select case (small_values_method)
       case ("replace")
-        where(flag(ixO^S,rho_)) w(ixO^S,rho_) = small_density
-       {
-        if(small_values_fix_iw(m^C_)) then
-          if(flag({ix^D},rho_)) w({ix^D},m^C_)=0.0d0
-        end if
-        \}
-        if(mhd_energy) then
-          if(primitive) then
-            where(flag(ixO^S,e_)) w(ixO^S,p_) = small_pressure
-          else
-            {do ix^DB=ixOmin^DB,ixOmax^DB\}
+       {do ix^DB=ixOmin^DB,ixOmax^DB\}
+          if(flag(ix^D,rho_)) then
+            w(ix^D,rho_) = small_density
+         ^C&w(ix^D,m^C_)=0.d0\
+          end if
+          if(mhd_energy) then
+            if(primitive) then
+              if(flag(ix^D,e_)) w(ix^D,p_) = small_pressure
+            else
               if(flag(ix^D,e_)) then
                 w(ix^D,e_)=small_pressure*inv_gamma_1+half*((^C&v(ix^D,^C)**2+)*w(ix^D,rho_)&
                            +(^C&w(ix^D,b^C_)**2+)+(^C&b(ix^D,^C)**2+)*inv_squared_c)
               end if
-            {end do\}
+            end if
           end if
-        end if
+       {end do\}
       case ("average")
         ! do averaging of density
         call small_values_average(ixI^L, ixO^L, w, x, flag, rho_)
@@ -2208,8 +2187,7 @@ contains
     double precision, intent(in)    :: x(ixI^S,1:ndim)
     character(len=*), intent(in)    :: subname
 
-    double precision :: rho
-    integer :: idir, ix^D
+    integer :: ix^D
     logical :: flag(ixI^S,1:nw)
 
     call phys_check_w(primitive, ixI^L, ixO^L, w, flag)
@@ -2218,33 +2196,17 @@ contains
       select case (small_values_method)
       case ("replace")
        {do ix^DB=ixOmin^DB,ixOmax^DB\}
-          if(has_equi_rho0) then
-            rho=w(ix^D,rho_)+block%equi_vars(ix^D,equi_rho0_,0)
-            if(flag(ix^D,rho_)) w(ix^D,rho_)=small_density-block%equi_vars(ix^D,equi_rho0_,0)
-          else
-            rho=w(ix^D,rho_)
-            if(flag(ix^D,rho_)) w(ix^D,rho_)=small_density
-          end if
+          if(flag(ix^D,rho_)) w(ix^D,rho_)=small_density
          {
           if(small_values_fix_iw(m^C_)) then
             if(flag({ix^D},rho_)) w({ix^D},m^C_)=0.0d0
           end if
           \}
           if(primitive) then
-            if(has_equi_pe0) then
-              if(flag(ix^D,e_)) w(ix^D,p_)=small_pressure-block%equi_vars(ix^D,equi_pe0_,0)
-            else
-              if(flag(ix^D,e_)) w(ix^D,p_)=small_pressure
-            end if
+            if(flag(ix^D,e_)) w(ix^D,p_)=small_pressure
           else
-            if(has_equi_pe0) then
-              if(flag(ix^D,e_)) &
-                w(ix^D,e_)=small_e+half*((^C&w(ix^D,m^C_)**2+)/rho+(^C&w(ix^D,b^C_)**2+))&
-                -block%equi_vars(ix^D,equi_pe0_,0)*inv_gamma_1
-            else
-              if(flag(ix^D,e_)) &
-                w(ix^D,e_)=small_e+half*((^C&w(ix^D,m^C_)**2+)/rho+(^C&w(ix^D,b^C_)**2+))
-            end if
+            if(flag(ix^D,e_)) &
+              w(ix^D,e_)=small_e+half*((^C&w(ix^D,m^C_)**2+)/w(ix^D,rho_)+(^C&w(ix^D,b^C_)**2+))
           end if
        {end do\}
       case ("average")
@@ -2255,38 +2217,23 @@ contains
         else
           ! do averaging of internal energy
          {do ix^DB=ixImin^DB,ixImax^DB\}
-            if(has_equi_rho0) then
-              rho=w(ix^D,rho_)+block%equi_vars(ix^D,equi_rho0_,0)
-            else
-              rho=w(ix^D,rho_)
-            end if
             w(ix^D,e_)=w(ix^D,e_)&
-                -half*((^C&w(ix^D,m^C_)**2+)/rho+(^C&w(ix^D,b^C_)**2+))
+                -half*((^C&w(ix^D,m^C_)**2+)/w(ix^D,rho_)+(^C&w(ix^D,b^C_)**2+))
          {end do\}
           call small_values_average(ixI^L, ixO^L, w, x, flag, e_)
           ! convert back
          {do ix^DB=ixImin^DB,ixImax^DB\}
-            if(has_equi_rho0) then
-              rho=w(ix^D,rho_)+block%equi_vars(ix^D,equi_rho0_,0)
-            else
-              rho=w(ix^D,rho_)
-            end if
             w(ix^D,e_)=w(ix^D,e_)&
-                +half*((^C&w(ix^D,m^C_)**2+)/rho+(^C&w(ix^D,b^C_)**2+))
+                +half*((^C&w(ix^D,m^C_)**2+)/w(ix^D,rho_)+(^C&w(ix^D,b^C_)**2+))
          {end do\}
         end if
       case default
         if(.not.primitive) then
           !convert w to primitive
-         {do ix^DB=ixImin^DB,ixImax^DB\}
-            if(has_equi_rho0) then
-              rho=w(ix^D,rho_)+block%equi_vars(ix^D,equi_rho0_,0)
-            else
-              rho=w(ix^D,rho_)
-            end if
-            ^C&w(ix^D,m^C_)=w(ix^D,m^C_)/rho\
+         {do ix^DB=ixOmin^DB,ixOmax^DB\}
+            ^C&w(ix^D,m^C_)=w(ix^D,m^C_)/w(ix^D,rho_)\
             w(ix^D,p_)=gamma_1*(w(ix^D,e_)&
-                -half*((^C&w(ix^D,m^C_)**2+)*rho+(^C&w(ix^D,b^C_)**2+)))
+                -half*((^C&w(ix^D,m^C_)**2+)*w(ix^D,rho_)+(^C&w(ix^D,b^C_)**2+)))
          {end do\}
         end if
         call small_values_error(w, x, ixI^L, ixO^L, flag, subname)
@@ -2295,7 +2242,7 @@ contains
 
   end subroutine mhd_handle_small_values_origin
 
-  subroutine mhd_handle_small_values_inte(primitive, w, x, ixI^L, ixO^L, subname)
+  subroutine mhd_handle_small_values_split(primitive, w, x, ixI^L, ixO^L, subname)
     use mod_global_parameters
     use mod_small_values
     logical, intent(in)             :: primitive
@@ -2308,36 +2255,89 @@ contains
     integer :: ix^D
     logical :: flag(ixI^S,1:nw)
 
-    call phys_check_w(primitive, ixI^L, ixI^L, w, flag)
+    call phys_check_w(primitive, ixI^L, ixO^L, w, flag)
 
     if(any(flag)) then
       select case (small_values_method)
       case ("replace")
        {do ix^DB=ixOmin^DB,ixOmax^DB\}
-          if(has_equi_rho0) then
-            if(flag(ix^D,rho_)) w(ix^D,rho_)=small_density-block%equi_vars(ix^D,equi_rho0_,0)
-          else
-            if(flag(ix^D,rho_)) w(ix^D,rho_)=small_density
-          end if
+          rho=w(ix^D,rho_)+block%equi_vars(ix^D,equi_rho0_,0)
+          if(flag(ix^D,rho_)) w(ix^D,rho_)=small_density-block%equi_vars(ix^D,equi_rho0_,0)
          {
           if(small_values_fix_iw(m^C_)) then
             if(flag({ix^D},rho_)) w({ix^D},m^C_)=0.0d0
           end if
           \}
           if(primitive) then
-            if(has_equi_pe0) then
-              if(flag(ix^D,e_)) w(ix^D,p_)=small_pressure-block%equi_vars(ix^D,equi_pe0_,0)
-            else
-              if(flag(ix^D,e_)) w(ix^D,p_)=small_pressure
-            end if
+            if(flag(ix^D,e_)) w(ix^D,p_)=small_pressure-block%equi_vars(ix^D,equi_pe0_,0)
           else
-            if(has_equi_pe0) then
-              if(flag(ix^D,e_)) &
-                w(ix^D,e_)=small_e-block%equi_vars(ix^D,equi_pe0_,0)*inv_gamma_1
-            else
-              if(flag(ix^D,e_)) &
-                w(ix^D,e_)=small_e
-            end if
+            if(flag(ix^D,e_)) &
+              w(ix^D,e_)=small_e+half*((^C&w(ix^D,m^C_)**2+)/rho+(^C&w(ix^D,b^C_)**2+))&
+              -block%equi_vars(ix^D,equi_pe0_,0)*inv_gamma_1
+          end if
+       {end do\}
+      case ("average")
+        ! do averaging of density
+        call small_values_average(ixI^L, ixO^L, w, x, flag, rho_)
+        if(primitive)then
+          call small_values_average(ixI^L, ixO^L, w, x, flag, p_)
+        else
+          ! do averaging of internal energy
+         {do ix^DB=ixImin^DB,ixImax^DB\}
+            rho=w(ix^D,rho_)+block%equi_vars(ix^D,equi_rho0_,0)
+            w(ix^D,e_)=w(ix^D,e_)&
+                -half*((^C&w(ix^D,m^C_)**2+)/rho+(^C&w(ix^D,b^C_)**2+))
+         {end do\}
+          call small_values_average(ixI^L, ixO^L, w, x, flag, e_)
+          ! convert back
+         {do ix^DB=ixImin^DB,ixImax^DB\}
+            rho=w(ix^D,rho_)+block%equi_vars(ix^D,equi_rho0_,0)
+            w(ix^D,e_)=w(ix^D,e_)&
+                +half*((^C&w(ix^D,m^C_)**2+)/rho+(^C&w(ix^D,b^C_)**2+))
+         {end do\}
+        end if
+      case default
+        if(.not.primitive) then
+          !convert w to primitive
+         {do ix^DB=ixOmin^DB,ixOmax^DB\}
+            rho=w(ix^D,rho_)+block%equi_vars(ix^D,equi_rho0_,0)
+         ^C&w(ix^D,m^C_)=w(ix^D,m^C_)/rho\
+            w(ix^D,p_)=gamma_1*(w(ix^D,e_)&
+                -half*((^C&w(ix^D,m^C_)**2+)*rho+(^C&w(ix^D,b^C_)**2+)))
+         {end do\}
+        end if
+        call small_values_error(w, x, ixI^L, ixO^L, flag, subname)
+      end select
+    end if
+
+  end subroutine mhd_handle_small_values_split
+
+  subroutine mhd_handle_small_values_inte(primitive, w, x, ixI^L, ixO^L, subname)
+    use mod_global_parameters
+    use mod_small_values
+    logical, intent(in)             :: primitive
+    integer, intent(in)             :: ixI^L,ixO^L
+    double precision, intent(inout) :: w(ixI^S,1:nw)
+    double precision, intent(in)    :: x(ixI^S,1:ndim)
+    character(len=*), intent(in)    :: subname
+
+    integer :: ix^D
+    logical :: flag(ixI^S,1:nw)
+
+    call phys_check_w(primitive, ixI^L, ixO^L, w, flag)
+
+    if(any(flag)) then
+      select case (small_values_method)
+      case ("replace")
+       {do ix^DB=ixOmin^DB,ixOmax^DB\}
+          if(flag(ix^D,rho_)) then
+            w(ix^D,rho_)=small_density
+            ^C&w(ix^D,m^C_)=0.d0\
+          end if
+          if(primitive) then
+            if(flag(ix^D,e_)) w(ix^D,p_)=small_pressure
+          else
+            if(flag(ix^D,e_)) w(ix^D,e_)=small_e
           end if
        {end do\}
       case ("average")
@@ -2348,13 +2348,8 @@ contains
       case default
         if(.not.primitive) then
           !convert w to primitive
-         {do ix^DB=ixImin^DB,ixImax^DB\}
-            if(has_equi_rho0) then
-              rho=w(ix^D,rho_)+block%equi_vars(ix^D,equi_rho0_,0)
-            else
-              rho=w(ix^D,rho_)
-            end if
-            ^C&w(ix^D,m^C_)=w(ix^D,m^C_)/rho\
+         {do ix^DB=ixOmin^DB,ixOmax^DB\}
+            ^C&w(ix^D,m^C_)=w(ix^D,m^C_)/w(ix^D,rho_)\
             w(ix^D,p_)=gamma_1*w(ix^D,e_)
          {end do\}
         end if
@@ -2373,7 +2368,7 @@ contains
     double precision, intent(in)    :: x(ixI^S,1:ndim)
     character(len=*), intent(in)    :: subname
 
-    integer :: idir
+    integer :: ix^D
     logical :: flag(ixI^S,1:nw)
 
     call phys_check_w(primitive, ixI^L, ixO^L, w, flag)
@@ -2381,33 +2376,23 @@ contains
     if(any(flag)) then
       select case (small_values_method)
       case ("replace")
-        if(has_equi_rho0) then
-          where(flag(ixO^S,rho_)) w(ixO^S,rho_) = &
-                    small_density-block%equi_vars(ixO^S,equi_rho0_,0)
-        else
-          where(flag(ixO^S,rho_)) w(ixO^S,rho_) = small_density
-        end if
-        do idir = 1, ndir
-          if(small_values_fix_iw(mom(idir))) then
-            where(flag(ixO^S,rho_)) w(ixO^S, mom(idir)) = 0.0d0
+       {do ix^DB=ixOmin^DB,ixOmax^DB\}
+          if(flag(ix^D,rho_)) w(ix^D,rho_)=small_density
+         {
+          if(small_values_fix_iw(m^C_)) then
+            if(flag({ix^D},rho_)) w({ix^D},m^C_)=0.0d0
           end if
-        end do
+          \}
+       {end do\}
       case ("average")
         ! do averaging of density
         call small_values_average(ixI^L, ixO^L, w, x, flag, rho_)
       case default
         if(.not.primitive) then
-          ! Convert momentum to velocity
-          if(has_equi_rho0) then
-            do idir = 1, ndir
-              w(ixO^S,mom(idir))=w(ixO^S,mom(idir))/(w(ixO^S,rho_)+&
-                block%equi_vars(ixO^S,equi_rho0_,0))
-            end do
-          else
-            do idir = 1, ndir
-              w(ixO^S,mom(idir))=w(ixO^S,mom(idir))/w(ixO^S,rho_)
-            end do
-          end if
+          !convert w to primitive
+         {do ix^DB=ixOmin^DB,ixOmax^DB\}
+            ^C&w(ix^D,m^C_)=w(ix^D,m^C_)/w(ix^D,rho_)\
+         {end do\}
         end if
         call small_values_error(w, x, ixI^L, ixO^L, flag, subname)
       end select
@@ -2424,7 +2409,7 @@ contains
     double precision, intent(in)    :: x(ixI^S,1:ndim)
     character(len=*), intent(in)    :: subname
 
-    integer :: idir
+    integer :: ix^D
     logical :: flag(ixI^S,1:nw)
 
     call phys_check_w(primitive, ixI^L, ixO^L, w, flag)
@@ -2432,19 +2417,17 @@ contains
     if(any(flag)) then
       select case (small_values_method)
       case ("replace")
-        where(flag(ixO^S,rho_)) w(ixO^S,rho_) = small_density
-        do idir = 1, ndir
-          if(small_values_fix_iw(mom(idir))) then
-            where(flag(ixO^S,rho_)) w(ixO^S, mom(idir)) = 0.0d0
+       {do ix^DB=ixOmin^DB,ixOmax^DB\}
+          if(flag(ix^D,rho_)) then
+            w(ix^D,rho_)=small_density
+         ^C&w(ix^D,m^C_)=0.d0\
           end if
-        end do
-        if(primitive) then
-          where(flag(ixO^S,e_)) w(ixO^S,p_) = small_pressure
-        else
-          where(flag(ixO^S,e_))
-            w(ixO^S,e_) = small_e+half*sum(w(ixO^S,mom(:))**2,dim=ndim+1)/w(ixO^S,rho_)
-          end where
-        end if
+          if(primitive) then
+            if(flag(ix^D,e_)) w(ix^D,p_)=small_pressure
+          else
+            if(flag(ix^D,e_)) w(ix^D,e_)=small_e+half*(^C&w(ix^D,m^C_)**2+)/w(ix^D,rho_)
+          end if
+       {end do\}
       case ("average")
         ! do averaging of density
         call small_values_average(ixI^L, ixO^L, w, x, flag, rho_)
@@ -2453,12 +2436,10 @@ contains
       case default
         if(.not.primitive) then
           !convert w to primitive
-          ! Calculate pressure = (gamma-1) * (e-ek)
-          w(ixO^S,p_)=gamma_1*(w(ixO^S,e_)-half*sum(w(ixO^S,mom(:))**2,dim=ndim+1)/w(ixO^S,rho_))
-          ! Convert momentum to velocity
-          do idir = 1, ndir
-            w(ixO^S, mom(idir))=w(ixO^S,mom(idir))/w(ixO^S,rho_)
-          end do
+         {do ix^DB=ixOmin^DB,ixOmax^DB\}
+         ^C&w(ix^D,m^C_)=w(ix^D,m^C_)/w(ix^D,rho_)\
+            w(ix^D,p_)=gamma_1*(w(ix^D,e_)-half*(^C&w(ix^D,m^C_)**2+)*w(ix^D,rho_))
+         {end do\}
         end if
         call small_values_error(w, x, ixI^L, ixO^L, flag, subname)
       end select
