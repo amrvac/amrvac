@@ -2093,7 +2093,7 @@ contains
       if(primitive) then
         where(w(ixO^S,p_) < small_pressure) flag(ixO^S,e_) = .true.
       else
-       {do ix^DB=ixImin^DB,ixImax^DB\}
+       {do ix^DB=ixOmin^DB,ixOmax^DB\}
           b2=(^C&w(ix^D,b^C_)**2+)
           if(b2>smalldouble) then
             tmp=1.d0/sqrt(b2)
@@ -2158,9 +2158,9 @@ contains
           if(primitive) then
             call small_values_average(ixI^L, ixO^L, w, x, flag, p_)
           else
-            w(ixI^S,e_)=pressure(ixI^S)
+            w(ixO^S,e_)=pressure(ixO^S)
             call small_values_average(ixI^L, ixO^L, w, x, flag, p_)
-            {do ix^DB=ixImin^DB,ixImax^DB\}
+            {do ix^DB=ixOmin^DB,ixOmax^DB\}
                w(ix^D,e_)=w(ix^D,p_)*inv_gamma_1+half*((^C&v(ix^D,^C)**2+)*w(ix^D,rho_)&
                           +(^C&w(ix^D,b^C_)**2+)+(^C&b(ix^D,^C)**2+)*inv_squared_c)
             {end do\}
@@ -2169,8 +2169,8 @@ contains
       case default
         if(.not.primitive) then
           ! change to primitive variables
-          w(ixI^S,mom(1:ndir))=v(ixI^S,1:ndir)
-          w(ixI^S,e_)=pressure(ixI^S)
+          w(ixO^S,mom(1:ndir))=v(ixO^S,1:ndir)
+          w(ixO^S,e_)=pressure(ixO^S)
         end if
         call small_values_error(w, x, ixI^L, ixO^L, flag, subname)
       end select
