@@ -21,7 +21,7 @@ contains
     real(dp), intent(in)    :: wCT(nw_phys)
     real(dp), intent(in)    :: x(1:ndim)
     integer, value, intent(in)     :: idim
-    real(dp)                :: field
+    ! real(dp)                :: field
 
     if (idim == 1) field =  0.0_dp
     if (idim == 2) field =  0.0_dp
