@@ -1,7 +1,11 @@
 # if there was a previous build, default to the same arch,
 # or use the default `gnu`
--include $(build)/latest/flags.mk
 
+# This line reads the flags from latest build, but this turns
+# out to be confusing
+# -include $(build)/latest/flags.mk
+
+# This selects the architecture from latest build if not given
 ifndef arch
 -include $(amrvac)/build/latest/arch.mk
 arch ?= gnu
