@@ -1,5 +1,6 @@
 module mod_usr
-  use mod_hd
+  use mod_amrvac
+  use mod_physics
 
   implicit none
 
@@ -19,7 +20,7 @@ contains
 
     usr_init_one_grid => initonegrid_usr
 
-    call hd_activate()
+    call phys_activate()
 
   end subroutine usr_init
 
@@ -97,7 +98,7 @@ contains
        ixGmin3:ixGmax3,2)-0.75d0)**2/sigma))
    
 
-    call hd_to_conserved(ixGmin1,ixGmin2,ixGmin3,ixGmax1,ixGmax2,ixGmax3,&
+    call phys_to_conserved(ixGmin1,ixGmin2,ixGmin3,ixGmax1,ixGmax2,ixGmax3,&
        ixmin1,ixmin2,ixmin3,ixmax1,ixmax2,ixmax3,w,x)
 
   end subroutine initonegrid_usr
