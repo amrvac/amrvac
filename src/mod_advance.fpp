@@ -224,7 +224,7 @@ contains
     use mod_ghostcells_update
     use mod_fix_conserve
     use mod_physics
-    use mod_finite_volume_all, only: finite_volume_local
+    use mod_finite_volume, only: finite_volume_local
 
     integer, intent(in)          :: idimmin,idimmax
     integer :: ixOmin1,ixOmin2,ixOmin3,ixOmax1,ixOmax2,ixOmax3
