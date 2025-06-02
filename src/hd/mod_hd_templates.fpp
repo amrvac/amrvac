@@ -1,27 +1,28 @@
 #:if PHYS == 'hd'
+  
 #:def phys_vars()
 
   integer, parameter :: dp = kind(0.0d0)
   integer, parameter, public              :: nw_phys=2+ndim
   
   !> Whether an energy equation is used
-  logical, public, protected              :: hd_energy = .true.
+  logical, public                         :: hd_energy = .true.
   !$acc declare copyin(hd_energy)
 
   !> Index of the density (in the w array)
-  integer, public, protected              :: rho_
+  integer, public                         :: rho_
   !$acc declare create(rho_)
 
   !> Indices of the momentum density
-  integer, allocatable, public, protected :: mom(:)
+  integer, allocatable, public            :: mom(:)
   !$acc declare create(mom)
 
   !> Index of the energy density (-1 if not present)
-  integer, public, protected              :: e_
+  integer, public                         :: e_
   !$acc declare create(e_)
 
   !> Index of the gas pressure (-1 if not present) should equal e_
-  integer, public, protected              :: p_
+  integer, public                         :: p_
   !$acc declare create(p_)
 
   !> The adiabatic index
@@ -33,15 +34,15 @@
   !$acc declare copyin(hd_adiab)
 
   !> Whether plasma is partially ionized
-  logical, public, protected              :: hd_partial_ionization = .false.
+  logical, public                         :: hd_partial_ionization = .false.
   !$acc declare copyin(hd_partial_ionization)
 
   !> Allows overruling default corner filling (for debug mode, since otherwise corner primitives fail)
-  logical, public, protected              :: hd_force_diagonal = .false.
+  logical, public                         :: hd_force_diagonal = .false.
   !$acc declare copyin(hd_force_diagonal)
 
   !> Whether particles module is added
-  logical, public, protected              :: hd_particles = .false.
+  logical, public                         :: hd_particles = .false.
   !$acc declare copyin(hd_particles)
 
 #:enddef
@@ -255,5 +256,5 @@ pure real(dp) function get_cmax(u, flux_dim) result(wC)
   wC = sqrt(hd_gamma * u(iw_e) / u(iw_rho)) + abs(u(iw_mom(flux_dim)))
 
 end function get_cmax
-#:enddef
+#:enddef  
 #:endif
