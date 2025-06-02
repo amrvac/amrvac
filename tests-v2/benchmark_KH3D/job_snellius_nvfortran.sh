@@ -16,9 +16,10 @@ module load 2023
 module load OpenMPI/4.1.5-NVHPC-24.5-CUDA-12.1.1
 
 
-$AMRVAC_DIR/setup.pl -d=3 -arch=nvidia_acc
-#make allclean
-make
+#make
+source $AMRVAC_DIR/.venv/bin/activate
+make clean
+make -j8 arch=nvidia OPENACC=1
 
 #export PGI_ACC_NOTIFY=16
 
