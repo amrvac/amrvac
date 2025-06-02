@@ -1,5 +1,4 @@
 module mod_usr
-  use mod_hd
 
   implicit none
 
