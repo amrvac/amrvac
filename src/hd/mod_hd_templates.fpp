@@ -141,6 +141,31 @@
   end subroutine phys_init
 #:enddef
 
+#:def phys_get_dt()
+  subroutine phys_get_dt(w, x, dx, dtnew)
+  !$acc routine seq
+#:if defined('GRAVITY')
+  use mod_usr, only: gravity_field
+#:endif    
+    real(dp), intent(in)   :: w(nw_phys), x(1:ndim), dx(1:ndim)
+    real(dp), intent(out)  :: dtnew
+    ! .. local ..
+    integer                :: idim
+    real(dp)               :: field
+
+    dtnew = huge(1_dp)
+    
+#:if defined('GRAVITY')
+    do idim = 1, ndim
+       field = gravity_field(w, x, idim)
+       field = max( abs(field), epsilon(1.0d0) )
+       dtnew = min( dtnew, 1_dp / sqrt( field/dx(idim) ) )
+    end do
+#:endif    
+    
+  end subroutine phys_get_dt
+#:enddef  
+
 #:def addsource_local()
 subroutine addsource_local(qdt, dtfactor, qtC, wCT, wCTprim, qt, wnew, x,&
     qsourcesplit)
