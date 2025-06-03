@@ -183,17 +183,14 @@ contains
     cons_wnames(nwflux) = 'rho'
   end function var_set_rho
 
-  ! THE INCLUDE files cannot use other modules
-  ! mpistop replaced by errormsg, should it exit?
   !> Exit MPI-AMRVAC with an error message
   subroutine errormsg(message)
-  
+
     character(len=*), intent(in) :: message !< The error message
-  
+
     write(*, *) "ERROR for processor"
     write(*, *) trim(message)
-  
-  
+
   end subroutine errormsg
   !> Set momentum variables
   function var_set_momentum(ndir) result(iw)

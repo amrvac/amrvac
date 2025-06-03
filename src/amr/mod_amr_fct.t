@@ -69,10 +69,6 @@ contains
     integer :: jihxFi^L,jijxFi^L,jjhxFi^L,jjjxFi^L,jhixFi^L,jjixFi^L,jhjxFi^L
     logical :: fine_^L
 
-    {^IFONED
-    call mpistop("CT prolongation not implemented in 1D. But CT is not needed.")
-    }
-
     {^NOONED
     ! Note on the indices:
     ! ixCo  Cells where 

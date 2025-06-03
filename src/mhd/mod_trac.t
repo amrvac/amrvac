@@ -1,6 +1,7 @@
 module mod_trac
   use mod_global_parameters
   use mod_physics
+  use mod_comm_lib, only: mpistop
   implicit none
   private
   ! common

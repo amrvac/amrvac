@@ -15,6 +15,7 @@ contains
     use mod_global_parameters
     use mod_physics
     use mod_functions_bfield, only: get_divb
+    use mod_comm_lib, only: mpistop
 
     integer, intent(in) :: iside, idims, ixG^L,ixB^L
     double precision, intent(in) :: time,qdt

@@ -18,6 +18,7 @@
 !> the error handling subroutine is called before setting BC
 module mod_supertimestepping
   use mod_geometry
+  use mod_comm_lib, only: mpistop
   implicit none
   private
 

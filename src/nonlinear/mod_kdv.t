@@ -40,6 +40,7 @@ contains
   subroutine kdv_add_source(qdt,ixI^L,ixO^L,wCT,w,x,qsourcesplit,active)
     use mod_global_parameters
     use mod_usr_methods
+    use mod_comm_lib, only: mpistop
 
     integer, intent(in)             :: ixI^L, ixO^L
     double precision, intent(in)    :: qdt, x(ixI^S,1:ndim)

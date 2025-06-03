@@ -1,5 +1,6 @@
 !> Module containing the physics routines for scalar nonlinear equation
 module mod_nonlinear_phys
+  use mod_comm_lib, only: mpistop
 
   implicit none
   private
