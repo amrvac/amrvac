@@ -2,11 +2,18 @@
 # time flags and whether they should affect the build hash.
 
 [components]
+[components.source_term]
+type = "flag"
+name = "SOURCE_TERM"
+flags = ["fypp"]
+default = false
+
 [components.gravity]
 type = "flag"
 name = "GRAVITY"
 flags = ["fypp", "hash"]
 default = false
+implies = ["components.source_term"]
 
 [methodlist]
 [methodlist.phys]

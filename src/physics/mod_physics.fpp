@@ -3,7 +3,7 @@
 !> set these pointers to its implementation of these routines.
 
 #:mute
-#:include '../hd/mod_hd_templates.fpp'
+#:include 'mod_physics_templates.fpp'
 #:endmute
 
 module mod_physics

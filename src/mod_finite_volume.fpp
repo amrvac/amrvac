@@ -1,6 +1,6 @@
 !> Module with finite volume methods for fluxes
 
-#:include 'hd/mod_hd_templates.fpp'
+#:include "physics/mod_physics_templates.fpp"
 
 module mod_finite_volume
 
@@ -96,7 +96,7 @@ contains
              bgb%w(ix1, ix2, ix3, :, n) = bgb%w(ix1, ix2, ix3, :,&
                  n) + qdt * (f(:, 1) - f(:, 2)) * inv_dr(3)
 
-#:if defined('GRAVITY')
+#:if defined('SOURCE_TERM')
              ! Add source terms:
              xloc(1:ndim) = ps(n)%x(ix1, ix2, ix3, 1:ndim)
              wprim        = uprim(1:nw_phys, ix1, ix2, ix3)
