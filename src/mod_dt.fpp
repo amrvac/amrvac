@@ -1,5 +1,5 @@
 
-#:include 'hd/mod_hd_templates.fpp'
+#:include "physics/mod_physics_templates.fpp"
 
 module mod_dt
 
