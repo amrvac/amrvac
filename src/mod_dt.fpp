@@ -1,65 +1,74 @@
+
+#:include "physics/mod_physics_templates.fpp"
+
 module mod_dt
 
+  use mod_variables
+  use mod_physics_vars
   implicit none
   private
-
 
   public :: setdt
 
 contains
 
+! instantiate here for inlining in kernels
+@:to_primitive()
+@:get_cmax()
+@:phys_get_dt()
 
   !>setdt  - set dt for all levels between levmin and levmax. 
   !>         dtpar>0  --> use fixed dtpar for all level
   !>         dtpar<=0 --> determine CFL limited timestep 
   subroutine setdt()
     use mod_global_parameters
-    use mod_comm_lib, only: mpistop
-    use mod_physics, only: to_primitive, get_cmax, nw_phys
 
     integer :: iigrid, igrid, idims, ix1,ix2,ix3, ifile
-    double precision :: dtnew, dtmin_mype, factor, dx1,dx2,dx3, dtmax
+    double precision :: dtmin_mype, factor, dx1,dx2,dx3, dtmax
 
     double precision :: w(nw,ixMlo1:ixMhi1,ixMlo2:ixMhi2,ixMlo3:ixMhi3)
-    double precision :: dxinv(1:ndim), courantmaxtots, cmaxtot, cmax,&
-        u(1:nw_phys)
+    double precision :: dxinv(1:ndim), cmaxtot, cmax, u(1:nw_phys)
+    double precision :: xloc(1:ndim), qdtnew
 
     if (dtpar<=zero) then
        dtmin_mype=bigdouble
-
- !$OMP PARALLEL DO PRIVATE(igrid,dtnew,dx1,dx2,dx3) REDUCTION(min:dtmin_mype) REDUCTION(max:cmax_mype,a2max_mype)
- !$acc parallel loop PRIVATE(igrid,dx1,dx2,dx3,dxinv,w) REDUCTION(min:dtmin_mype) gang
+       
+       !$acc parallel loop PRIVATE(igrid,dx1,dx2,dx3,dxinv,w) REDUCTION(min:dtmin_mype) gang
        do iigrid=1,igridstail_active; igrid=igrids_active(iigrid)
 
-          dtnew=bigdouble
           dx1=rnode(rpdx1_,igrid);dx2=rnode(rpdx2_,igrid)
           dx3=rnode(rpdx3_,igrid);
 
           dxinv(1)=one/dx1;dxinv(2)=one/dx2;dxinv(3)=one/dx3;
-          courantmaxtots=zero
 
- !$acc loop vector collapse(ndim) reduction(max:courantmaxtots) private(cmax, cmaxtot, u)
-           do ix3=ixMlo3,ixMhi3 
-            do ix2=ixMlo2,ixMhi2 
-            do ix1=ixMlo1,ixMhi1 
-          w(1:nw,ix1,ix2,ix3) = bg(1)%w(ix1,ix2,ix3,1:nw,igrid)
-          cmaxtot = 0.0d0
-          !$acc loop seq
-          do idims = 1, ndim
-             u = w(:,ix1,ix2,ix3)
-             call to_primitive(u)
-             cmax = get_cmax(u,idims)
-             cmaxtot = cmaxtot + cmax * dxinv(idims)
+          !$acc loop vector collapse(ndim) reduction(min:dtmin_mype) private(cmax, cmaxtot, u, xloc, dxinv, qdtnew)
+          do ix3=ixMlo3,ixMhi3 
+             do ix2=ixMlo2,ixMhi2 
+                do ix1=ixMlo1,ixMhi1 
+                   w(1:nw,ix1,ix2,ix3) = bg(1)%w(ix1,ix2,ix3,1:nw,igrid)
+                   cmaxtot = 0.0d0
+                   u = w(:,ix1,ix2,ix3)
+                   call to_primitive(u)
+                   
+                   !$acc loop seq
+                   do idims = 1, ndim
+                      cmax = get_cmax(u,idims)
+                      cmaxtot = cmaxtot + cmax * dxinv(idims)
+                   end do
+                   dtmin_mype     = min( dtmin_mype, courantpar / cmaxtot )
+                   
+#:if defined('GRAVITY')
+                   u            = w(:,ix1,ix2,ix3)
+                   xloc(1:ndim) = ps(igrid)%x(ix1, ix2, ix3, 1:ndim)
+                   call phys_get_dt(u, xloc, [dx1, dx2, dx3], qdtnew)
+                   dtmin_mype = min( dtmin_mype, qdtnew )
+#:endif    
+                end do
+             end do
           end do
-          courantmaxtots = max( courantmaxtots, cmaxtot )
-           end do
-            end do
-            end do
 
-          dtmin_mype  = min(dtmin_mype,courantpar / courantmaxtots)
 
        end do
-       !$OMP END PARALLEL DO
 
     else
        dtmin_mype=dtpar
