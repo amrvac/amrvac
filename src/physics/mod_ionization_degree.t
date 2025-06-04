@@ -137,7 +137,7 @@ module mod_ionization_degree
       Te_H_table=Te_H_table/unit_temperature
       Te_table_min=Te_H_table(1)
       Te_table_max=Te_H_table(n_interpolated_table)
-      inv_Te_table_step=unit_temperature/Te_table_step
+      inv_Te_table_step=dble(n_interpolated_table-1)/(Te_table_max-Te_table_min)
 
       ! transition temperature
       Te_low_iz_He=Te_low_iz_He/unit_temperature
@@ -155,7 +155,7 @@ module mod_ionization_degree
       {do ix^DB=ixOmin^DB,ixOmax^DB\}
         if(Te(ix^D)<Te_table_min) then
           iz_H(ix^D)=0.d0
-        else if (Te(ix^D)>Te_table_max) then
+        else if (Te(ix^D)>=Te_table_max) then
           iz_H(ix^D)=1.d0
         else
           i=int((Te(ix^D)-Te_table_min)*inv_Te_table_step)+1
@@ -183,7 +183,7 @@ module mod_ionization_degree
 
       if(Te<Te_table_min) then
         iz_H=0.d0
-      else if (Te>Te_table_max) then
+      else if (Te>=Te_table_max) then
         iz_H=1.d0
       else
         i=int((Te-Te_table_min)*inv_Te_table_step)+1
