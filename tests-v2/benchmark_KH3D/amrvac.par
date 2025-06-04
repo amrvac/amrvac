@@ -24,7 +24,7 @@
    flux_scheme     = 20*'tvdlf'
    limiter         = 20*'vanleer'
    small_values_method = 'ignore'
-   phys                = 'hd'
+ !  phys                = 'hd'
  /
 
  &boundlist
