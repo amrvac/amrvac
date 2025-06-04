@@ -14,3 +14,6 @@ _reset := "\\e[m"
 
 all:
 
+# An empty target used to force other targets to rebuild
+FORCE:
+
