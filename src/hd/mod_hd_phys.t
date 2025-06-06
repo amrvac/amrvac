@@ -50,6 +50,9 @@ module mod_hd_phys
   !> Indices of the momentum density
   integer, allocatable, public, protected :: mom(:)
 
+  !> Indices of the momentum density for the form of better vectorization
+  integer, public, protected              :: ^C&m^C_
+
   !> Indices of the tracers
   integer, allocatable, public, protected :: tracer(:)
 
@@ -67,6 +70,9 @@ module mod_hd_phys
 
   !> The adiabatic index
   double precision, public                :: hd_gamma = 5.d0/3.0d0
+
+  !> gamma minus one and its inverse
+  double precision :: gamma_1, inv_gamma_1
 
   !> The adiabatic constant
   double precision, public                :: hd_adiab = 1.0d0
@@ -218,6 +224,7 @@ contains
 
     allocate(mom(ndir))
     mom(:) = var_set_momentum(ndir)
+    m^C_=mom(^C);
 
     ! Set index of energy variable
     if (hd_energy) then
@@ -532,6 +539,7 @@ contains
        if (hd_gamma <= 0.0d0 .or. hd_gamma == 1.0d0) &
             call mpistop ("Error: hd_gamma <= 0 or hd_gamma == 1.0")
        small_e = small_pressure/(hd_gamma - 1.0d0)
+       inv_gamma_1=1.d0/(hd_gamma-1.d0)
     end if
 
     if (hd_dust) call dust_check_params()
@@ -653,8 +661,8 @@ contains
        if (primitive) then
           where(w(ixO^S, e_) < small_pressure) flag(ixO^S,e_) = .true.
        else
-          tmp(ixO^S) = (hd_gamma - 1.0d0)*(w(ixO^S, e_) - &
-               hd_kin_en(w, ixI^L, ixO^L))
+          tmp(ixO^S)=(hd_gamma-1.0d0)*(w(ixO^S,e_)-&
+           half*(^C&w(ixO^S,m^C_)**2+)/w(ixO^S,rho_))
           where(tmp(ixO^S) < small_pressure) flag(ixO^S,e_) = .true.
        endif
     end if
@@ -672,24 +680,18 @@ contains
     integer, intent(in)             :: ixI^L, ixO^L
     double precision, intent(inout) :: w(ixI^S, nw)
     double precision, intent(in)    :: x(ixI^S, 1:ndim)
-    double precision                :: invgam
-    integer                         :: idir, itr
 
-    !!if (fix_small_values) then
-    !!  call hd_handle_small_values(.true., w, x, ixI^L, ixO^L, 'hd_to_conserved')
-    !!end if
+    integer :: ix^D
 
-    if (hd_energy) then
-       invgam = 1.d0/(hd_gamma - 1.0d0)
-       ! Calculate total energy from pressure and kinetic energy
-       w(ixO^S, e_) = w(ixO^S, e_) * invgam + &
-            0.5d0 * sum(w(ixO^S, mom(:))**2, dim=ndim+1) * w(ixO^S, rho_)
-    end if
-
-    ! Convert velocity to momentum
-    do idir = 1, ndir
-       w(ixO^S, mom(idir)) = w(ixO^S, rho_) * w(ixO^S, mom(idir))
-    end do
+    {do ix^DB=ixOmin^DB,ixOmax^DB\}
+      if (hd_energy) then
+         ! Calculate total energy from pressure and kinetic energy
+         w(ix^D,e_)=w(ix^D, e_)*inv_gamma_1+&
+          half*(^C&w(ix^D,m^C_)**2+)*w(ix^D,rho_)
+      end if
+      ! Convert velocity to momentum
+      ^C&w(ix^D,m^C_)=w(ix^D,rho_)*w(ix^D,m^C_)\
+    {end do\}
 
     if (hd_dust) then
       call dust_to_conserved(ixI^L, ixO^L, w, x)
@@ -704,25 +706,25 @@ contains
     integer, intent(in)             :: ixI^L, ixO^L
     double precision, intent(inout) :: w(ixI^S, nw)
     double precision, intent(in)    :: x(ixI^S, 1:ndim)
-    integer                         :: itr, idir
-    double precision                :: inv_rho(ixO^S)
+
+    double precision                :: inv_rho
+    integer :: ix^D
 
     if (fix_small_values) then
       call hd_handle_small_values(.false., w, x, ixI^L, ixO^L, 'hd_to_primitive')
     end if
 
-    inv_rho = 1.0d0 / w(ixO^S, rho_)
-
-    if (hd_energy) then
-       ! Compute pressure
-       w(ixO^S, e_) = (hd_gamma - 1.0d0) * (w(ixO^S, e_) - &
-            hd_kin_en(w, ixI^L, ixO^L, inv_rho))
-    end if
-
-    ! Convert momentum to velocity
-    do idir = 1, ndir
-       w(ixO^S, mom(idir)) = w(ixO^S, mom(idir)) * inv_rho
-    end do
+   {do ix^DB=ixOmin^DB,ixOmax^DB\}
+      inv_rho = 1.d0/w(ix^D,rho_)
+      ! Convert momentum to velocity
+      ^C&w(ix^D,m^C_)=w(ix^D,m^C_)*inv_rho\
+      ! Calculate pressure = (gamma-1) * (e-ek)
+      if(hd_energy) then
+         ! Compute pressure
+        w(ix^D,p_)=(hd_gamma-1.d0)*(w(ix^D,e_)&
+                  -half*w(ix^D,rho_)*(^C&w(ix^D,m^C_)**2+))
+      end if
+   {end do\}
 
     ! Convert dust momentum to dust velocity
     if (hd_dust) then
@@ -739,8 +741,7 @@ contains
     double precision, intent(in)    :: x(ixI^S, 1:ndim)
 
     ! Calculate total energy from internal and kinetic energy
-    w(ixO^S,e_)=w(ixO^S,e_)&
-               +hd_kin_en(w,ixI^L,ixO^L)
+    w(ixO^S,e_)=w(ixO^S,e_)+half*(^C&w(ixO^S,m^C_)**2+)/w(ixO^S,rho_)
 
   end subroutine hd_ei_to_e
 
@@ -752,40 +753,9 @@ contains
     double precision, intent(in)    :: x(ixI^S, 1:ndim)
 
     ! Calculate ei = e - ek
-    w(ixO^S,e_)=w(ixO^S,e_)&
-                -hd_kin_en(w,ixI^L,ixO^L)
+    w(ixO^S,e_)=w(ixO^S,e_)-half*(^C&w(ixO^S,m^C_)**2+)/w(ixO^S,rho_)
 
   end subroutine hd_e_to_ei
-
-  subroutine e_to_rhos(ixI^L, ixO^L, w, x)
-    use mod_global_parameters
-
-    integer, intent(in)          :: ixI^L, ixO^L
-    double precision             :: w(ixI^S, nw)
-    double precision, intent(in) :: x(ixI^S, 1:ndim)
-
-    if (hd_energy) then
-       w(ixO^S, e_) = (hd_gamma - 1.0d0) * w(ixO^S, rho_)**(1.0d0 - hd_gamma) * &
-            (w(ixO^S, e_) - hd_kin_en(w, ixI^L, ixO^L))
-    else
-       call mpistop("energy from entropy can not be used with -eos = iso !")
-    end if
-  end subroutine e_to_rhos
-
-  subroutine rhos_to_e(ixI^L, ixO^L, w, x)
-    use mod_global_parameters
-
-    integer, intent(in)          :: ixI^L, ixO^L
-    double precision             :: w(ixI^S, nw)
-    double precision, intent(in) :: x(ixI^S, 1:ndim)
-
-    if (hd_energy) then
-       w(ixO^S, e_) = w(ixO^S, rho_)**(hd_gamma - 1.0d0) * w(ixO^S, e_) &
-            / (hd_gamma - 1.0d0) + hd_kin_en(w, ixI^L, ixO^L)
-    else
-       call mpistop("entropy from energy can not be used with -eos = iso !")
-    end if
-  end subroutine rhos_to_e
 
   !> Calculate v_i = m_i / rho within ixO^L
   subroutine hd_get_v_idim(w, x, ixI^L, ixO^L, idim, v)
@@ -1124,45 +1094,6 @@ contains
   end subroutine hd_get_temperature_from_eint
 
   ! Calculate flux f_idim[iw]
-  subroutine hd_get_flux_cons(w, x, ixI^L, ixO^L, idim, f)
-    use mod_global_parameters
-    use mod_dust, only: dust_get_flux
-
-    integer, intent(in)             :: ixI^L, ixO^L, idim
-    double precision, intent(in)    :: w(ixI^S, 1:nw), x(ixI^S, 1:ndim)
-    double precision, intent(out)   :: f(ixI^S, nwflux)
-    double precision                :: pth(ixI^S), v(ixI^S),frame_vel(ixI^S)
-    integer                         :: idir, itr
-
-    call hd_get_pthermal(w, x, ixI^L, ixO^L, pth)
-    call hd_get_v_idim(w, x, ixI^L, ixO^L, idim, v)
-
-    f(ixO^S, rho_) = v(ixO^S) * w(ixO^S, rho_)
-
-    ! Momentum flux is v_i*m_i, +p in direction idim
-    do idir = 1, ndir
-       f(ixO^S, mom(idir)) = v(ixO^S) * w(ixO^S, mom(idir))
-    end do
-
-    f(ixO^S, mom(idim)) = f(ixO^S, mom(idim)) + pth(ixO^S)
-
-    if(hd_energy) then
-      ! Energy flux is v_i*(e + p)
-      f(ixO^S, e_) = v(ixO^S) * (w(ixO^S, e_) + pth(ixO^S))
-    end if
-
-    do itr = 1, hd_n_tracer
-       f(ixO^S, tracer(itr)) = v(ixO^S) * w(ixO^S, tracer(itr))
-    end do
-
-    ! Dust fluxes
-    if (hd_dust) then
-      call dust_get_flux(w, x, ixI^L, ixO^L, idim, f)
-    end if
-
-  end subroutine hd_get_flux_cons
-
-  ! Calculate flux f_idim[iw]
   subroutine hd_get_flux(wC, w, x, ixI^L, ixO^L, idim, f)
     use mod_global_parameters
     use mod_dust, only: dust_get_flux_prim
@@ -1175,31 +1106,31 @@ contains
     double precision, intent(in)    :: w(ixI^S, 1:nw)
     double precision, intent(in)    :: x(ixI^S, 1:ndim)
     double precision, intent(out)   :: f(ixI^S, nwflux)
-    double precision                :: pth(ixI^S),frame_vel(ixI^S)
-    integer                         :: idir, itr
+
+    double precision                :: pth(ixI^S)
+    integer                         :: ix^DB
 
     if (hd_energy) then
-       pth(ixO^S) = w(ixO^S,p_)
+     {do ix^DB=ixOmin^DB,ixOmax^DB\}
+        f(ix^D,rho_)=w(ix^D,mom(idim))*w(ix^D,rho_)
+        ! Momentum flux is v_i*m_i, +p in direction idim
+        ^C&f(ix^D,m^C_)=w(ix^D,mom(idim))*wC(ix^D,m^C_)\
+        f(ix^D,mom(idim))=f(ix^D,mom(idim))+w(ix^D,p_)
+        ! Energy flux is v_i*(e + p)
+        f(ix^D,e_)=w(ix^D,mom(idim))*(wC(ix^D,e_)+w(ix^D,p_))
+     {end do\}
     else
-       call hd_get_pthermal(wC, x, ixI^L, ixO^L, pth)
+      call hd_get_pthermal(wC, x, ixI^L, ixO^L, pth)
+     {do ix^DB=ixOmin^DB,ixOmax^DB\}
+        f(ix^D,rho_)=w(ix^D,mom(idim))*w(ix^D,rho_)
+        ! Momentum flux is v_i*m_i, +p in direction idim
+        ^C&f(ix^D,m^C_)=w(ix^D,mom(idim))*wC(ix^D,m^C_)\
+        f(ix^D,mom(idim))=f(ix^D,mom(idim))+pth(ix^D)
+     {end do\}
     end if
 
-    f(ixO^S, rho_) = w(ixO^S,mom(idim)) * w(ixO^S, rho_)
-
-    ! Momentum flux is v_i*m_i, +p in direction idim
-    do idir = 1, ndir
-       f(ixO^S, mom(idir)) = w(ixO^S,mom(idim)) * wC(ixO^S, mom(idir))
-    end do
-
-    f(ixO^S, mom(idim)) = f(ixO^S, mom(idim)) + pth(ixO^S)
-
-    if(hd_energy) then
-      ! Energy flux is v_i*(e + p)
-      f(ixO^S, e_) = w(ixO^S,mom(idim)) * (wC(ixO^S, e_) + w(ixO^S,p_))
-    end if
-
-    do itr = 1, hd_n_tracer
-       f(ixO^S, tracer(itr)) = w(ixO^S,mom(idim)) * w(ixO^S, tracer(itr))
+    do ix1 = 1, hd_n_tracer
+       f(ixO^S, tracer(ix1)) = w(ixO^S,mom(idim)) * w(ixO^S, tracer(ix1))
     end do
 
     ! Dust fluxes

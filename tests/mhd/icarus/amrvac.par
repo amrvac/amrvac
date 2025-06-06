@@ -54,7 +54,7 @@
 
  &particles_list
        physics_type_particles='sample'
-       num_particles=8
+       num_particles=10
        dtsave_particles=0.225d0
        write_individual=.true.
        write_ensemble=.false.
