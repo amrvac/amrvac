@@ -27,6 +27,9 @@ module mod_ghostcells_update
   integer, dimension(-1:2,-1:1) :: ixS_srl_min1,ixS_srl_min2,ixS_srl_min3,&
      ixS_srl_max1,ixS_srl_max2,ixS_srl_max3, ixR_srl_min1,ixR_srl_min2,&
      ixR_srl_min3,ixR_srl_max1,ixR_srl_max2,ixR_srl_max3
+  !$acc declare create(ixS_srl_min1,ixS_srl_min2,ixS_srl_min3)
+  !$acc declare create(ixS_srl_max1,ixS_srl_max2,ixS_srl_max3, ixR_srl_min1,ixR_srl_min2)
+  !$acc declare create(ixR_srl_min3,ixR_srl_max1,ixR_srl_max2,ixR_srl_max3)
 
   ! index ranges of staggered variables to send (S) to sibling blocks, receive (R) from sibling blocks
   integer, dimension(3,-1:1) :: ixS_srl_stg_min1,ixS_srl_stg_min2,&
@@ -1068,6 +1071,10 @@ contains
       ixR_p_max3( 1,2)=ixCoGmax3
       
     end if
+    
+  !$acc update device(ixS_srl_min1,ixS_srl_min2,ixS_srl_min3)
+  !$acc update device(ixS_srl_max1,ixS_srl_max2,ixS_srl_max3, ixR_srl_min1,ixR_srl_min2)
+  !$acc update device(ixR_srl_min3,ixR_srl_max1,ixR_srl_max2,ixR_srl_max3)
 
   end subroutine init_bc
 
@@ -1350,56 +1357,7 @@ contains
             i1,i2,i3 ] /= 0) > 1)) cycle
          select case (neighbor_type(i1,i2,i3,igrid))
          case(neighbor_sibling)
-          ipe_neighbor=neighbor(2,i1,i2,i3,igrid)
-          if(ipe_neighbor==mype) then
-            ineighbor=neighbor(1,i1,i2,i3,igrid)
-            ipole=neighbor_pole(i1,i2,i3,igrid)
-            if(ipole==0) then
-              n_i1=-i1;n_i2=-i2;n_i3=-i3;
-              ixSmin1=ixS_srl_min1(iib1,i1);ixSmin2=ixS_srl_min2(iib2,i2)
-              ixSmin3=ixS_srl_min3(iib3,i3);ixSmax1=ixS_srl_max1(iib1,i1)
-              ixSmax2=ixS_srl_max2(iib2,i2);ixSmax3=ixS_srl_max3(iib3,i3);
-              ixRmin1=ixR_srl_min1(iib1,n_i1);ixRmin2=ixR_srl_min2(iib2,n_i2)
-              ixRmin3=ixR_srl_min3(iib3,n_i3);ixRmax1=ixR_srl_max1(iib1,n_i1)
-              ixRmax2=ixR_srl_max2(iib2,n_i2);ixRmax3=ixR_srl_max3(iib3,n_i3);
-              !$acc loop collapse(ndim+1) independent vector
-              do iw = nwhead, nwtail
-               do ix3=1,ixSmax3-ixSmin3+1
-                do ix2=1,ixSmax2-ixSmin2+1
-                do ix1=1,ixSmax1-ixSmin1+1
-                 psb(ineighbor)%w(ixRmin1+ix1-1,ixRmin2+ix2-1,ixRmin3+ix3-1,&
-                    iw) = psb(igrid)%w(ixSmin1+ix1-1,ixSmin2+ix2-1,&
-                    ixSmin3+ix3-1,iw)
-               end do
-                end do
-                end do
-              end do
-
-!              if(stagger_grid) then
-!                do idir=1,ndim
-!                  ixS^L=ixS_srl_stg_^L(idir,i^D);
-!                  ixR^L=ixR_srl_stg_^L(idir,n_i^D);
-!                  psb(ineighbor)%ws(ixR^S,idir)=psb(igrid)%ws(ixS^S,idir)
-!                end do
-!              end if
-            ! else
-            !   ixS^L=ixS_srl_^L(iib^D,i^D);
-            !   select case (ipole)
-            !   {case (^D)
-            !     n_i^D=i^D^D%n_i^DD=-i^DD;\}
-            !   end select
-            !   ixR^L=ixR_srl_^L(iib^D,n_i^D);
-            !   !call pole_copy(psb(ineighbor)%w,ixG^LL,ixR^L,psb(igrid)%w,ixG^LL,ixS^L,ipole)
-            !   if(stagger_grid) then
-            !     do idir=1,ndim
-            !       ixS^L=ixS_srl_stg_^L(idir,i^D);
-            !       ixR^L=ixR_srl_stg_^L(idir,n_i^D);
-            !       !call pole_copy_stg(psb(ineighbor)%ws,ixGs^LL,ixR^L,psb(igrid)%ws,ixGs^LL,ixS^L,idir,ipole)
-            !     end do
-            !   end if
-           end if
-           end if
-          ! ToDo: move rest of bc_fill_srl here
+            call bc_fill_srl(psb,igrid,nwhead,nwtail,i1,i2,i3,iib1,iib2,iib3)
 !         case(neighbor_coarse)
            ! call bc_fill_restrict(igrid,i^D,iib^D)
          end select
@@ -1730,141 +1688,19 @@ contains
         ipe_neighbor=neighbor(2,i1,i2,i3,igrid)
 
         if(ipe_neighbor/=mype) then
-           ineighbor=neighbor(1,i1,i2,i3,igrid)
-           ipole=neighbor_pole(i1,i2,i3,igrid)
-           if(ipole==0) then
-              n_i1=-i1;n_i2=-i2;n_i3=-i3;
-              isend_c=isend_c+1
-              itag=(3**3+4**3)*(ineighbor-1)+(n_i1+1)*3**(1-1)+(n_i2+1)*3**(2-1)+&
-                   (n_i3+1)*3**(3-1)
-              !$acc host_data use_device(psb(igrid)%w)
-              call MPI_ISEND(psb(igrid)%w,1,type_send_srl(iib1,iib2,iib3,i1,i2,&
-                   i3), ipe_neighbor,itag,icomm,sendrequest_c_sr(isend_c),ierrmpi)
-              !$acc end host_data
-              if(stagger_grid) then
-                 ibuf_start=ibuf_send_srl
-                 do idir=1,ndim
-                    ixSmin1=ixS_srl_stg_min1(idir,i1)
-                    ixSmin2=ixS_srl_stg_min2(idir,i2)
-                    ixSmin3=ixS_srl_stg_min3(idir,i3)
-                    ixSmax1=ixS_srl_stg_max1(idir,i1)
-                    ixSmax2=ixS_srl_stg_max2(idir,i2)
-                    ixSmax3=ixS_srl_stg_max3(idir,i3);
-                    ibuf_next=ibuf_start+sizes_srl_send_stg(idir,i1,i2,i3)
-                    shapes=(/sizes_srl_send_stg(idir,i1,i2,i3)/)
-                    sendbuffer_srl(ibuf_start:ibuf_next-&
-                         1)=reshape(psb(igrid)%ws(ixSmin1:ixSmax1,ixSmin2:ixSmax2,&
-                         ixSmin3:ixSmax3,idir),shapes)
-                    ibuf_start=ibuf_next
-                 end do
-                 isend_srl=isend_srl+1
-                 call MPI_ISEND(sendbuffer_srl(ibuf_send_srl),&
-                      sizes_srl_send_total(i1,i2,i3),MPI_DOUBLE_PRECISION,&
-                      ipe_neighbor,itag,icomm,sendrequest_srl(isend_srl),ierrmpi)
-                 ibuf_send_srl=ibuf_next
-              end if
-           else
-              ixSmin1=ixS_srl_min1(iib1,i1);ixSmin2=ixS_srl_min2(iib2,i2)
-              ixSmin3=ixS_srl_min3(iib3,i3);ixSmax1=ixS_srl_max1(iib1,i1)
-              ixSmax2=ixS_srl_max2(iib2,i2);ixSmax3=ixS_srl_max3(iib3,i3);
-              select case (ipole)
-              case (1)
-                 n_i1=i1;n_i2=-i2;n_i3=-i3;
-              case (2)
-                 n_i1=-i1;n_i2=i2;n_i3=-i3;
-              case (3)
-                 n_i1=-i1;n_i2=-i2;n_i3=i3;
-              end select
-              if (isend_buf(ipwbuf)/=0) then
-                 call MPI_WAIT(sendrequest_c_sr(isend_buf(ipwbuf)),&
-                      sendstatus_c_sr(:,isend_buf(ipwbuf)),ierrmpi)
-                 deallocate(pwbuf(ipwbuf)%w)
-              end if
-              allocate(pwbuf(ipwbuf)%w(ixSmin1:ixSmax1,ixSmin2:ixSmax2,&
-                   ixSmin3:ixSmax3,nwhead:nwtail))
-              call pole_buffer(pwbuf(ipwbuf)%w,ixSmin1,ixSmin2,ixSmin3,ixSmax1,&
-                   ixSmax2,ixSmax3,ixSmin1,ixSmin2,ixSmin3,ixSmax1,ixSmax2,ixSmax3,&
-                   psb(igrid)%w,ixGlo1,ixGlo2,ixGlo3,ixGhi1,ixGhi2,ixGhi3,ixSmin1,&
-                   ixSmin2,ixSmin3,ixSmax1,ixSmax2,ixSmax3)
-              isend_c=isend_c+1
-              isend_buf(ipwbuf)=isend_c
-              itag=(3**3+4**3)*(ineighbor-1)+(n_i1+1)*3**(1-1)+(n_i2+1)*3**(2-1)+&
-                   (n_i3+1)*3**(3-1)
-              isizes=(ixSmax1-ixSmin1+1)*(ixSmax2-ixSmin2+1)*(ixSmax3-ixSmin3+&
-                   1)*nwbc
-              call MPI_ISEND(pwbuf(ipwbuf)%w,isizes,MPI_DOUBLE_PRECISION,&
-                   ipe_neighbor,itag,icomm,sendrequest_c_sr(isend_c),ierrmpi)
-              ipwbuf=1+modulo(ipwbuf,npwbuf)
-              if(stagger_grid) then
-                 ibuf_start=ibuf_send_srl
-                 do idir=1,ndim
-                    ixSmin1=ixS_srl_stg_min1(idir,i1)
-                    ixSmin2=ixS_srl_stg_min2(idir,i2)
-                    ixSmin3=ixS_srl_stg_min3(idir,i3)
-                    ixSmax1=ixS_srl_stg_max1(idir,i1)
-                    ixSmax2=ixS_srl_stg_max2(idir,i2)
-                    ixSmax3=ixS_srl_stg_max3(idir,i3);
-                    ibuf_next=ibuf_start+sizes_srl_send_stg(idir,i1,i2,i3)
-                    shapes=(/sizes_srl_send_stg(idir,i1,i2,i3)/)
-                    sendbuffer_srl(ibuf_start:ibuf_next-&
-                         1)=reshape(psb(igrid)%ws(ixSmin1:ixSmax1,ixSmin2:ixSmax2,&
-                         ixSmin3:ixSmax3,idir),shapes)
-                    ibuf_start=ibuf_next
-                 end do
-                 isend_srl=isend_srl+1
-                 call MPI_ISEND(sendbuffer_srl(ibuf_send_srl),&
-                      sizes_srl_send_total(i1,i2,i3),MPI_DOUBLE_PRECISION,&
-                      ipe_neighbor,itag,icomm,sendrequest_srl(isend_srl),ierrmpi)
-                 ibuf_send_srl=ibuf_next
-              end if
-           end if
-        end if
-
-      end subroutine bc_send_srl
-
-      subroutine bc_fill_srl(igrid,i1,i2,i3,iib1,iib2,iib3)
-        integer, intent(in) :: igrid,i1,i2,i3,iib1,iib2,iib3
-        integer :: ineighbor,ipe_neighbor,ipole,ixSmin1,ixSmin2,ixSmin3,&
-           ixSmax1,ixSmax2,ixSmax3,ixRmin1,ixRmin2,ixRmin3,ixRmax1,ixRmax2,&
-           ixRmax3,n_i1,n_i2,n_i3,idir
-
-        ipe_neighbor=neighbor(2,i1,i2,i3,igrid)
-        if(ipe_neighbor==mype) then
           ineighbor=neighbor(1,i1,i2,i3,igrid)
           ipole=neighbor_pole(i1,i2,i3,igrid)
           if(ipole==0) then
             n_i1=-i1;n_i2=-i2;n_i3=-i3;
-            ixSmin1=ixS_srl_min1(iib1,i1);ixSmin2=ixS_srl_min2(iib2,i2)
-            ixSmin3=ixS_srl_min3(iib3,i3);ixSmax1=ixS_srl_max1(iib1,i1)
-            ixSmax2=ixS_srl_max2(iib2,i2);ixSmax3=ixS_srl_max3(iib3,i3);
-            ixRmin1=ixR_srl_min1(iib1,n_i1);ixRmin2=ixR_srl_min2(iib2,n_i2)
-            ixRmin3=ixR_srl_min3(iib3,n_i3);ixRmax1=ixR_srl_max1(iib1,n_i1)
-            ixRmax2=ixR_srl_max2(iib2,n_i2);ixRmax3=ixR_srl_max3(iib3,n_i3);
-
-            ! Debugging corner issues. Does this cause it?
-            ! istage = psb(ineighbor)%istep
-            ! ! Copyin since this is also called on the host.
-            ! ! That should not do anything if the data is already on device.
-            ! !$acc enter data copyin(bg(istage)%w)
-            ! !$acc kernels present(bg(istage)%w)
-            ! bg(istage)%w(ixR^S,nwhead:nwtail,ineighbor)=&
-            !      bg(istage)%w(ixS^S,nwhead:nwtail,igrid)
-            ! !$acc end kernels
-            ! ! See above, should not do anything if data was already on device /I think/
-            ! !$acc exit data copyout(bg(istage)%w)
-
-            !opedit: this seems to be working, keeping the other variants (also working) commented just in case:
-            !$acc enter data copyin(psb(igrid)%w, psb(ineighbor)%w)
-            !$acc kernels present(psb(igrid)%w, psb(ineighbor)%w)
-            psb(ineighbor)%w(ixRmin1:ixRmax1,ixRmin2:ixRmax2,ixRmin3:ixRmax3,&
-               nwhead:nwtail)=psb(igrid)%w(ixSmin1:ixSmax1,ixSmin2:ixSmax2,&
-               ixSmin3:ixSmax3,nwhead:nwtail)
-            !$acc end kernels
-            !$acc exit data copyout(psb(ineighbor)%w)
-
-
-
+            isend_c=isend_c+1
+            itag=(3**3+4**3)*(ineighbor-1)+(n_i1+1)*3**(1-1)+(n_i2+1)*3**(2-1)+&
+               (n_i3+1)*3**(3-1)
+           !$acc host_data use_device(psb(igrid)%w)
+            call MPI_ISEND(psb(igrid)%w,1,type_send_srl(iib1,iib2,iib3,i1,i2,&
+               i3), ipe_neighbor,itag,icomm,sendrequest_c_sr(isend_c),ierrmpi)
+            !$acc end host_data
             if(stagger_grid) then
+              ibuf_start=ibuf_send_srl
               do idir=1,ndim
                 ixSmin1=ixS_srl_stg_min1(idir,i1)
                 ixSmin2=ixS_srl_stg_min2(idir,i2)
@@ -1872,16 +1708,18 @@ contains
                 ixSmax1=ixS_srl_stg_max1(idir,i1)
                 ixSmax2=ixS_srl_stg_max2(idir,i2)
                 ixSmax3=ixS_srl_stg_max3(idir,i3);
-                ixRmin1=ixR_srl_stg_min1(idir,n_i1)
-                ixRmin2=ixR_srl_stg_min2(idir,n_i2)
-                ixRmin3=ixR_srl_stg_min3(idir,n_i3)
-                ixRmax1=ixR_srl_stg_max1(idir,n_i1)
-                ixRmax2=ixR_srl_stg_max2(idir,n_i2)
-                ixRmax3=ixR_srl_stg_max3(idir,n_i3);
-                psb(ineighbor)%ws(ixRmin1:ixRmax1,ixRmin2:ixRmax2,&
-                   ixRmin3:ixRmax3,idir)=psb(igrid)%ws(ixSmin1:ixSmax1,&
-                   ixSmin2:ixSmax2,ixSmin3:ixSmax3,idir)
+                ibuf_next=ibuf_start+sizes_srl_send_stg(idir,i1,i2,i3)
+                shapes=(/sizes_srl_send_stg(idir,i1,i2,i3)/)
+                sendbuffer_srl(ibuf_start:ibuf_next-&
+                   1)=reshape(psb(igrid)%ws(ixSmin1:ixSmax1,ixSmin2:ixSmax2,&
+                   ixSmin3:ixSmax3,idir),shapes)
+                ibuf_start=ibuf_next
               end do
+              isend_srl=isend_srl+1
+              call MPI_ISEND(sendbuffer_srl(ibuf_send_srl),&
+                 sizes_srl_send_total(i1,i2,i3),MPI_DOUBLE_PRECISION,&
+                  ipe_neighbor,itag,icomm,sendrequest_srl(isend_srl),ierrmpi)
+              ibuf_send_srl=ibuf_next
             end if
           else
             ixSmin1=ixS_srl_min1(iib1,i1);ixSmin2=ixS_srl_min2(iib2,i2)
@@ -1889,20 +1727,34 @@ contains
             ixSmax2=ixS_srl_max2(iib2,i2);ixSmax3=ixS_srl_max3(iib3,i3);
             select case (ipole)
             case (1)
-              n_i1=i1;n_i2=-i2;n_i3=-i3;
+               n_i1=i1;n_i2=-i2;n_i3=-i3;
             case (2)
-              n_i1=-i1;n_i2=i2;n_i3=-i3;
+               n_i1=-i1;n_i2=i2;n_i3=-i3;
             case (3)
-              n_i1=-i1;n_i2=-i2;n_i3=i3;
+               n_i1=-i1;n_i2=-i2;n_i3=i3;
             end select
-            ixRmin1=ixR_srl_min1(iib1,n_i1);ixRmin2=ixR_srl_min2(iib2,n_i2)
-            ixRmin3=ixR_srl_min3(iib3,n_i3);ixRmax1=ixR_srl_max1(iib1,n_i1)
-            ixRmax2=ixR_srl_max2(iib2,n_i2);ixRmax3=ixR_srl_max3(iib3,n_i3);
-            call pole_copy(psb(ineighbor)%w,ixGlo1,ixGlo2,ixGlo3,ixGhi1,ixGhi2,&
-               ixGhi3,ixRmin1,ixRmin2,ixRmin3,ixRmax1,ixRmax2,ixRmax3,&
+            if (isend_buf(ipwbuf)/=0) then
+               call MPI_WAIT(sendrequest_c_sr(isend_buf(ipwbuf)),&
+                   sendstatus_c_sr(:,isend_buf(ipwbuf)),ierrmpi)
+               deallocate(pwbuf(ipwbuf)%w)
+            end if
+            allocate(pwbuf(ipwbuf)%w(ixSmin1:ixSmax1,ixSmin2:ixSmax2,&
+               ixSmin3:ixSmax3,nwhead:nwtail))
+            call pole_buffer(pwbuf(ipwbuf)%w,ixSmin1,ixSmin2,ixSmin3,ixSmax1,&
+               ixSmax2,ixSmax3,ixSmin1,ixSmin2,ixSmin3,ixSmax1,ixSmax2,ixSmax3,&
                psb(igrid)%w,ixGlo1,ixGlo2,ixGlo3,ixGhi1,ixGhi2,ixGhi3,ixSmin1,&
-               ixSmin2,ixSmin3,ixSmax1,ixSmax2,ixSmax3,ipole)
+               ixSmin2,ixSmin3,ixSmax1,ixSmax2,ixSmax3)
+            isend_c=isend_c+1
+            isend_buf(ipwbuf)=isend_c
+            itag=(3**3+4**3)*(ineighbor-1)+(n_i1+1)*3**(1-1)+(n_i2+1)*3**(2-1)+&
+               (n_i3+1)*3**(3-1)
+            isizes=(ixSmax1-ixSmin1+1)*(ixSmax2-ixSmin2+1)*(ixSmax3-ixSmin3+&
+               1)*nwbc
+            call MPI_ISEND(pwbuf(ipwbuf)%w,isizes,MPI_DOUBLE_PRECISION,&
+                ipe_neighbor,itag,icomm,sendrequest_c_sr(isend_c),ierrmpi)
+            ipwbuf=1+modulo(ipwbuf,npwbuf)
             if(stagger_grid) then
+              ibuf_start=ibuf_send_srl
               do idir=1,ndim
                 ixSmin1=ixS_srl_stg_min1(idir,i1)
                 ixSmin2=ixS_srl_stg_min2(idir,i2)
@@ -1910,23 +1762,24 @@ contains
                 ixSmax1=ixS_srl_stg_max1(idir,i1)
                 ixSmax2=ixS_srl_stg_max2(idir,i2)
                 ixSmax3=ixS_srl_stg_max3(idir,i3);
-                ixRmin1=ixR_srl_stg_min1(idir,n_i1)
-                ixRmin2=ixR_srl_stg_min2(idir,n_i2)
-                ixRmin3=ixR_srl_stg_min3(idir,n_i3)
-                ixRmax1=ixR_srl_stg_max1(idir,n_i1)
-                ixRmax2=ixR_srl_stg_max2(idir,n_i2)
-                ixRmax3=ixR_srl_stg_max3(idir,n_i3);
-                call pole_copy_stg(psb(ineighbor)%ws,ixGslo1,ixGslo2,ixGslo3,&
-                   ixGshi1,ixGshi2,ixGshi3,ixRmin1,ixRmin2,ixRmin3,ixRmax1,&
-                   ixRmax2,ixRmax3,psb(igrid)%ws,ixGslo1,ixGslo2,ixGslo3,&
-                   ixGshi1,ixGshi2,ixGshi3,ixSmin1,ixSmin2,ixSmin3,ixSmax1,&
-                   ixSmax2,ixSmax3,idir,ipole)
+                ibuf_next=ibuf_start+sizes_srl_send_stg(idir,i1,i2,i3)
+                shapes=(/sizes_srl_send_stg(idir,i1,i2,i3)/)
+                sendbuffer_srl(ibuf_start:ibuf_next-&
+                   1)=reshape(psb(igrid)%ws(ixSmin1:ixSmax1,ixSmin2:ixSmax2,&
+                   ixSmin3:ixSmax3,idir),shapes)
+                ibuf_start=ibuf_next
               end do
+              isend_srl=isend_srl+1
+              call MPI_ISEND(sendbuffer_srl(ibuf_send_srl),&
+                 sizes_srl_send_total(i1,i2,i3),MPI_DOUBLE_PRECISION,&
+                  ipe_neighbor,itag,icomm,sendrequest_srl(isend_srl),ierrmpi)
+              ibuf_send_srl=ibuf_next
             end if
           end if
         end if
 
-      end subroutine bc_fill_srl
+      end subroutine bc_send_srl
+
 
       subroutine fill_coarse_boundary(igrid,i1,i2,i3)
         integer, intent(in) :: igrid,i1,i2,i3
@@ -3552,28 +3405,129 @@ contains
       end subroutine pole_buffer
 
       
-  end subroutine getbc
+    end subroutine getbc
 
-  subroutine identifyphysbound(s,iib1,iib2,iib3)
-    use mod_global_parameters
+    subroutine bc_fill_srl(psb,igrid,nwhead,nwtail,i1,i2,i3,iib1,iib2,iib3)
+      !$acc routine vector
+      use mod_physicaldata, only: state
+      use mod_global_parameters, only: max_blocks, mype, ndim
+      use mod_connectivity
+      integer, intent(in) :: igrid,i1,i2,i3,iib1,iib2,iib3,nwhead,nwtail
+      type(state), target :: psb(max_blocks)
+      integer :: ineighbor,ipe_neighbor,ipole,ixSmin1,ixSmin2,ixSmin3,&
+           ixSmax1,ixSmax2,ixSmax3,ixRmin1,ixRmin2,ixRmin3,ixRmax1,ixRmax2,&
+           ixRmax3,n_i1,n_i2,n_i3,idir,iw, ix1,ix2,ix3
 
-    type(state)          :: s
-    integer, intent(out) :: iib1,iib2,iib3
+      ipe_neighbor=neighbor(2,i1,i2,i3,igrid)
+      if(ipe_neighbor==mype) then
+         ineighbor=neighbor(1,i1,i2,i3,igrid)
+         ipole=neighbor_pole(i1,i2,i3,igrid)
+         if(ipole==0) then
+            n_i1=-i1;n_i2=-i2;n_i3=-i3;
+            ixSmin1=ixS_srl_min1(iib1,i1);ixSmin2=ixS_srl_min2(iib2,i2)
+            ixSmin3=ixS_srl_min3(iib3,i3);ixSmax1=ixS_srl_max1(iib1,i1)
+            ixSmax2=ixS_srl_max2(iib2,i2);ixSmax3=ixS_srl_max3(iib3,i3);
+            ixRmin1=ixR_srl_min1(iib1,n_i1);ixRmin2=ixR_srl_min2(iib2,n_i2)
+            ixRmin3=ixR_srl_min3(iib3,n_i3);ixRmax1=ixR_srl_max1(iib1,n_i1)
+            ixRmax2=ixR_srl_max2(iib2,n_i2);ixRmax3=ixR_srl_max3(iib3,n_i3);
 
-    
-    if(s%is_physical_boundary(2*1) .and. s%is_physical_boundary(2*1-1)) then
-      iib1=2
-    else if(s%is_physical_boundary(2*1-1)) then
-      iib1=-1
-    else if(s%is_physical_boundary(2*1)) then
-      iib1=1
-    else
-      iib1=0
-    end if
-    
-    
-    if(s%is_physical_boundary(2*2) .and. s%is_physical_boundary(2*2-1)) then
-      iib2=2
+            !$acc loop collapse(ndim+1) independent vector
+            do iw = nwhead, nwtail
+               do ix3=1,ixSmax3-ixSmin3+1
+                  do ix2=1,ixSmax2-ixSmin2+1
+                     do ix1=1,ixSmax1-ixSmin1+1
+                        psb(ineighbor)%w(ixRmin1+ix1-1,ixRmin2+ix2-1,ixRmin3+ix3-1,&
+                             iw) = psb(igrid)%w(ixSmin1+ix1-1,ixSmin2+ix2-1,&
+                             ixSmin3+ix3-1,iw)
+                     end do
+                  end do
+               end do
+            end do
+
+         !    if(stagger_grid) then
+         !       do idir=1,ndim
+         !          ixSmin1=ixS_srl_stg_min1(idir,i1)
+         !          ixSmin2=ixS_srl_stg_min2(idir,i2)
+         !          ixSmin3=ixS_srl_stg_min3(idir,i3)
+         !          ixSmax1=ixS_srl_stg_max1(idir,i1)
+         !          ixSmax2=ixS_srl_stg_max2(idir,i2)
+         !          ixSmax3=ixS_srl_stg_max3(idir,i3);
+         !          ixRmin1=ixR_srl_stg_min1(idir,n_i1)
+         !          ixRmin2=ixR_srl_stg_min2(idir,n_i2)
+         !          ixRmin3=ixR_srl_stg_min3(idir,n_i3)
+         !          ixRmax1=ixR_srl_stg_max1(idir,n_i1)
+         !          ixRmax2=ixR_srl_stg_max2(idir,n_i2)
+         !          ixRmax3=ixR_srl_stg_max3(idir,n_i3);
+         !          psb(ineighbor)%ws(ixRmin1:ixRmax1,ixRmin2:ixRmax2,&
+         !               ixRmin3:ixRmax3,idir)=psb(igrid)%ws(ixSmin1:ixSmax1,&
+         !               ixSmin2:ixSmax2,ixSmin3:ixSmax3,idir)
+         !       end do
+         !    end if
+         ! else
+         !    ixSmin1=ixS_srl_min1(iib1,i1);ixSmin2=ixS_srl_min2(iib2,i2)
+         !    ixSmin3=ixS_srl_min3(iib3,i3);ixSmax1=ixS_srl_max1(iib1,i1)
+         !    ixSmax2=ixS_srl_max2(iib2,i2);ixSmax3=ixS_srl_max3(iib3,i3);
+         !    select case (ipole)
+         !    case (1)
+         !       n_i1=i1;n_i2=-i2;n_i3=-i3;
+         !    case (2)
+         !       n_i1=-i1;n_i2=i2;n_i3=-i3;
+         !    case (3)
+         !       n_i1=-i1;n_i2=-i2;n_i3=i3;
+         !    end select
+         !    ixRmin1=ixR_srl_min1(iib1,n_i1);ixRmin2=ixR_srl_min2(iib2,n_i2)
+         !    ixRmin3=ixR_srl_min3(iib3,n_i3);ixRmax1=ixR_srl_max1(iib1,n_i1)
+         !    ixRmax2=ixR_srl_max2(iib2,n_i2);ixRmax3=ixR_srl_max3(iib3,n_i3);
+         !    call pole_copy(psb(ineighbor)%w,ixGlo1,ixGlo2,ixGlo3,ixGhi1,ixGhi2,&
+         !         ixGhi3,ixRmin1,ixRmin2,ixRmin3,ixRmax1,ixRmax2,ixRmax3,&
+         !         psb(igrid)%w,ixGlo1,ixGlo2,ixGlo3,ixGhi1,ixGhi2,ixGhi3,ixSmin1,&
+         !         ixSmin2,ixSmin3,ixSmax1,ixSmax2,ixSmax3,ipole)
+         !    if(stagger_grid) then
+         !       do idir=1,ndim
+         !          ixSmin1=ixS_srl_stg_min1(idir,i1)
+         !          ixSmin2=ixS_srl_stg_min2(idir,i2)
+         !          ixSmin3=ixS_srl_stg_min3(idir,i3)
+         !          ixSmax1=ixS_srl_stg_max1(idir,i1)
+         !          ixSmax2=ixS_srl_stg_max2(idir,i2)
+         !          ixSmax3=ixS_srl_stg_max3(idir,i3);
+         !          ixRmin1=ixR_srl_stg_min1(idir,n_i1)
+         !          ixRmin2=ixR_srl_stg_min2(idir,n_i2)
+         !          ixRmin3=ixR_srl_stg_min3(idir,n_i3)
+         !          ixRmax1=ixR_srl_stg_max1(idir,n_i1)
+         !          ixRmax2=ixR_srl_stg_max2(idir,n_i2)
+         !          ixRmax3=ixR_srl_stg_max3(idir,n_i3);
+         !          call pole_copy_stg(psb(ineighbor)%ws,ixGslo1,ixGslo2,ixGslo3,&
+         !               ixGshi1,ixGshi2,ixGshi3,ixRmin1,ixRmin2,ixRmin3,ixRmax1,&
+         !               ixRmax2,ixRmax3,psb(igrid)%ws,ixGslo1,ixGslo2,ixGslo3,&
+         !               ixGshi1,ixGshi2,ixGshi3,ixSmin1,ixSmin2,ixSmin3,ixSmax1,&
+         !               ixSmax2,ixSmax3,idir,ipole)
+         !       end do
+         !    end if
+         end if
+      end if
+
+    end subroutine bc_fill_srl
+
+    subroutine identifyphysbound(s,iib1,iib2,iib3)
+      use mod_global_parameters
+
+      type(state)          :: s
+      integer, intent(out) :: iib1,iib2,iib3
+
+
+      if(s%is_physical_boundary(2*1) .and. s%is_physical_boundary(2*1-1)) then
+         iib1=2
+      else if(s%is_physical_boundary(2*1-1)) then
+         iib1=-1
+      else if(s%is_physical_boundary(2*1)) then
+         iib1=1
+      else
+         iib1=0
+      end if
+
+
+      if(s%is_physical_boundary(2*2) .and. s%is_physical_boundary(2*2-1)) then
+         iib2=2
     else if(s%is_physical_boundary(2*2-1)) then
       iib2=-1
     else if(s%is_physical_boundary(2*2)) then
