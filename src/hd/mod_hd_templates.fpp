@@ -153,7 +153,7 @@
     integer                :: idim
     real(dp)               :: field
 
-    dtnew = huge(1_dp)
+    dtnew = huge(1.0d0)
     
 #:if defined('GRAVITY')
     do idim = 1, ndim
