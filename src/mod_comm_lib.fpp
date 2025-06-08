@@ -29,6 +29,8 @@ contains
   
     ! Store the number of processes
     call MPI_COMM_SIZE(MPI_COMM_WORLD,npe,ierrmpi)
+
+    !$acc update device(mype,npe)
   
     ! Use the default communicator, which contains all the processes
     icomm = MPI_COMM_WORLD
@@ -109,6 +111,11 @@ contains
     endif
 
     call acc_set_device_num(my_device, dev_type)
+
+    ! Print some debugging info for now
+    print *, 'mype, npe, num_devices:', mype, npe, num_devices
+    print *, 'mype, my_device', mype, acc_get_device_num(dev_type)
+    print *, 'mype, num_local_procs', mype, num_local_procs
 
   end subroutine set_openacc_device
 #endif

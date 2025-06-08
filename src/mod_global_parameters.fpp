@@ -17,6 +17,7 @@ module mod_global_parameters
 
   !> The number of MPI tasks
   integer :: npe
+  !$acc declare create(npe)
 
   !> The rank of the current MPI task
   integer :: mype
