@@ -24,10 +24,8 @@ Inside the `make` directory there are a set of make files that should be sourced
 To install this version, follow these steps:
 - install the uv package manager `pip install uv`
 - make sure `$AMRVAC_DIR` points to the repository root folder
-- go into the `migration` folder `cd migration`
 - install the required python packages `uv sync` and activate them `source .venv/bin/activate`
-- generate the fpp files for migration by running `make` once in the migration folder (generates src folder)
-- go into a test `cd test/benchmark_KH3D`
+- go into a test `cd test-v2/benchmark_KH3D`
 - to compile, load the appropriate modules, e.g. on snellius:
 ```
 module purge
