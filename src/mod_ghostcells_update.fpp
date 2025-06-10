@@ -3413,7 +3413,7 @@ contains
                     end subroutine pole_buffer
 
 
-                  end subroutine interpolation_linear
+                  end subroutine getbc
 
                   subroutine bc_fill_srl(psb,igrid,nwhead,nwtail,i1,i2,i3,iib1,iib2,iib3)
                     !$acc routine vector
