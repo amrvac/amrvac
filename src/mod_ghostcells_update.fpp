@@ -1352,7 +1352,7 @@ contains
     
     ! fill ghost-cell values of sibling blocks and coarser neighbors in the same processor
 
-    ! !$OMP PARALLEL DO SCHEDULE(dynamic) PRIVATE(igrid,iib1,iib2,iib3)
+    !$OMP PARALLEL DO SCHEDULE(dynamic) PRIVATE(igrid,iib1,iib2,iib3)
      !$acc parallel loop default(present) copyin(idphyb,ixS_srl_min1,ixS_srl_min2,ixS_srl_min3,ixS_srl_max1,ixS_srl_max2,ixS_srl_max3,ixR_srl_min1,ixR_srl_min2,ixR_srl_min3,ixR_srl_max1,ixR_srl_max2,ixR_srl_max3) private(igrid,iib1,iib2,iib3,ineighbor,n_i1,n_i2,n_i3,ixSmin1,ixSmin2,ixSmin3,ixSmax1,ixSmax2,ixSmax3,ixRmin1,ixRmin2,ixRmin3,ixRmax1,ixRmax2,ixRmax3,iw,ix1,ix2,ix3) firstprivate(nwhead,nwtail)
     do iigrid=1,igridstail; igrid=igrids(iigrid);
        iib1=idphyb(1,igrid);iib2=idphyb(2,igrid);iib3=idphyb(3,igrid);
@@ -1373,7 +1373,7 @@ contains
           end do
        end do
     end do
-    ! !$OMP END PARALLEL DO
+    !$OMP END PARALLEL DO
 
 !    do iigrid=1,igridstail; igrid=igrids(iigrid);
 !       !$acc update device(psb(igrid)%w)
@@ -1639,14 +1639,16 @@ contains
 
         !> Receive from sibling at same refinement level
         subroutine bc_recv_srl
+          integer                     :: istep
 
           ipe_neighbor=neighbor(2,i1,i2,i3,igrid)
           if (ipe_neighbor/=mype) then
              irecv_c=irecv_c+1
              itag=(3**3+4**3)*(igrid-1)+(i1+1)*3**(1-1)+(i2+1)*3**(2-1)+(i3+&
                   1)*3**(3-1)
-             !$acc host_data use_device(psb(igrid)%w)
-             call MPI_IRECV(psb(igrid)%w,1,type_recv_srl(iib1,iib2,iib3,i1,i2,&
+             istep = psb(igrid)%istep
+             !$acc host_data use_device(bg(istep)%w)
+             call MPI_IRECV(bg(istep)%w(:,:,:,:,igrid),1,type_recv_srl(iib1,iib2,iib3,i1,i2,&
                   i3), ipe_neighbor,itag,icomm,recvrequest_c_sr(irecv_c),ierrmpi)
              !$acc end host_data
              if(stagger_grid) then
@@ -1662,6 +1664,7 @@ contains
 
         !> Send to sibling at same refinement level
         subroutine bc_send_srl
+          integer                     :: istep
 
           ipe_neighbor=neighbor(2,i1,i2,i3,igrid)
 
@@ -1673,8 +1676,9 @@ contains
                 isend_c=isend_c+1
                 itag=(3**3+4**3)*(ineighbor-1)+(n_i1+1)*3**(1-1)+(n_i2+1)*3**(2-1)+&
                      (n_i3+1)*3**(3-1)
-                !$acc host_data use_device(psb(igrid)%w)
-                call MPI_ISEND(psb(igrid)%w,1,type_send_srl(iib1,iib2,iib3,i1,i2,&
+                istep = psb(igrid)%istep
+                !$acc host_data use_device(bg(istep)%w)
+                call MPI_ISEND(bg(istep)%w(:,:,:,:,igrid),1,type_send_srl(iib1,iib2,iib3,i1,i2,&
                      i3), ipe_neighbor,itag,icomm,sendrequest_c_sr(isend_c),ierrmpi)
                 !$acc end host_data
                 if(stagger_grid) then
