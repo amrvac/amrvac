@@ -1307,7 +1307,7 @@ contains
 
     ! MPI receive ghost-cell values from sibling blocks and finer neighbors in different processors
     do iigrid=1,igridstail; igrid=igrids(iigrid);
-!       !$acc update host(psb(igrid)%w)
+       !$acc update host(psb(igrid)%w)
        call identifyphysbound(ps(igrid),iib1,iib2,iib3)
        idphyb(1,igrid)=iib1;idphyb(2,igrid)=iib2;idphyb(3,igrid)=iib3;
        do i3=-1,1
@@ -1346,9 +1346,9 @@ contains
     call MPI_WAITALL(irecv_c,recvrequest_c_sr,recvstatus_c_sr,ierrmpi)
     call MPI_WAITALL(isend_c,sendrequest_c_sr,sendstatus_c_sr,ierrmpi)
     
-!    do iigrid=1,igridstail; igrid=igrids(iigrid);
-!       !$acc update device(psb(igrid)%w)
-!    end do
+    do iigrid=1,igridstail; igrid=igrids(iigrid);
+       !$acc update device(psb(igrid)%w)
+    end do
     
     ! fill ghost-cell values of sibling blocks and coarser neighbors in the same processor
 
@@ -1374,11 +1374,6 @@ contains
        end do
     end do
     !$OMP END PARALLEL DO
-
-!    do iigrid=1,igridstail; igrid=igrids(iigrid);
-!       !$acc update device(psb(igrid)%w)
-!    end do
-
 
     if(stagger_grid) then
        call MPI_WAITALL(nrecv_bc_srl,recvrequest_srl,recvstatus_srl,ierrmpi)
@@ -1647,10 +1642,10 @@ contains
              itag=(3**3+4**3)*(igrid-1)+(i1+1)*3**(1-1)+(i2+1)*3**(2-1)+(i3+&
                   1)*3**(3-1)
              istep = psb(igrid)%istep
-             !$acc host_data use_device(bg(istep)%w)
+!             !$acc host_data use_device(bg(istep)%w)
              call MPI_IRECV(bg(istep)%w(:,:,:,:,igrid),1,type_recv_srl(iib1,iib2,iib3,i1,i2,&
                   i3), ipe_neighbor,itag,icomm,recvrequest_c_sr(irecv_c),ierrmpi)
-             !$acc end host_data
+!             !$acc end host_data
              if(stagger_grid) then
                 irecv_srl=irecv_srl+1
                 call MPI_IRECV(recvbuffer_srl(ibuf_recv_srl),&
@@ -1677,10 +1672,10 @@ contains
                 itag=(3**3+4**3)*(ineighbor-1)+(n_i1+1)*3**(1-1)+(n_i2+1)*3**(2-1)+&
                      (n_i3+1)*3**(3-1)
                 istep = psb(igrid)%istep
-                !$acc host_data use_device(bg(istep)%w)
+!                !$acc host_data use_device(bg(istep)%w)
                 call MPI_ISEND(bg(istep)%w(:,:,:,:,igrid),1,type_send_srl(iib1,iib2,iib3,i1,i2,&
                      i3), ipe_neighbor,itag,icomm,sendrequest_c_sr(isend_c),ierrmpi)
-                !$acc end host_data
+!                !$acc end host_data
                 if(stagger_grid) then
                    ibuf_start=ibuf_send_srl
                    do idir=1,ndim
@@ -3422,7 +3417,7 @@ contains
                   subroutine bc_fill_srl(psb,igrid,nwhead,nwtail,i1,i2,i3,iib1,iib2,iib3)
                     !$acc routine vector
                     use mod_physicaldata, only: state
-                    use mod_global_parameters, only: max_blocks, mype, ndim
+                    use mod_global_parameters, only: max_blocks, mype, ndim, npe
                     use mod_connectivity
                     integer, intent(in) :: igrid,i1,i2,i3,iib1,iib2,iib3,nwhead,nwtail
                     type(state), target :: psb(max_blocks)
