@@ -1232,7 +1232,7 @@ contains
     integer :: ibuf_start, ibuf_next
     ! shapes of reshape
     integer, dimension(1) :: shapes
-    logical  :: req_diagonal
+    logical  :: req_diagonal, update
     type(wbuffer) :: pwbuf(npwbuf)
 
     integer :: ix1,ix2,ix3, iw
@@ -1307,7 +1307,6 @@ contains
 
     ! MPI receive ghost-cell values from sibling blocks and finer neighbors in different processors
     do iigrid=1,igridstail; igrid=igrids(iigrid);
-       !$acc update host(psb(igrid)%w)
        call identifyphysbound(ps(igrid),iib1,iib2,iib3)
        idphyb(1,igrid)=iib1;idphyb(2,igrid)=iib2;idphyb(3,igrid)=iib3;
        do i3=-1,1
@@ -1325,6 +1324,28 @@ contains
        end do
     end do
 
+#ifdef _OPENACC
+    ! update blocks on host prior to MPI send
+    do iigrid=1,igridstail; igrid=igrids(iigrid);
+       call identifyphysbound(ps(igrid),iib1,iib2,iib3)
+       idphyb(1,igrid)=iib1;idphyb(2,igrid)=iib2;idphyb(3,igrid)=iib3;
+       update = .false.
+       do i3=-1,1
+          do i2=-1,1
+             do i1=-1,1
+                if (skip_direction([ i1,i2,i3 ])) cycle
+                if (neighbor(2,i1,i2,i3,igrid) /= mype) then
+                   update = .true.
+                end if
+             end do
+          end do
+       end do
+       if (update) then
+          !$acc update host(psb(igrid)%w)
+       end if
+    end do
+#endif
+    
     ! MPI send ghost-cell values to sibling blocks and coarser neighbors in different processors
     do iigrid=1,igridstail; igrid=igrids(iigrid);
        iib1=idphyb(1,igrid);iib2=idphyb(2,igrid);iib3=idphyb(3,igrid);
@@ -1345,13 +1366,30 @@ contains
 
     call MPI_WAITALL(irecv_c,recvrequest_c_sr,recvstatus_c_sr,ierrmpi)
     call MPI_WAITALL(isend_c,sendrequest_c_sr,sendstatus_c_sr,ierrmpi)
-    
+
+#ifdef _OPENACC    
+    ! update blocks on device after MPI comm    
     do iigrid=1,igridstail; igrid=igrids(iigrid);
-       !$acc update device(psb(igrid)%w)
+       call identifyphysbound(ps(igrid),iib1,iib2,iib3)
+       idphyb(1,igrid)=iib1;idphyb(2,igrid)=iib2;idphyb(3,igrid)=iib3;
+       update = .false.
+       do i3=-1,1
+          do i2=-1,1
+             do i1=-1,1
+                if (skip_direction([ i1,i2,i3 ])) cycle
+                if (neighbor(2,i1,i2,i3,igrid) /= mype) then
+                   update = .true.
+                end if
+             end do
+          end do
+       end do
+       if (update) then
+          !$acc update device(psb(igrid)%w)
+       end if
     end do
+#endif
     
     ! fill ghost-cell values of sibling blocks and coarser neighbors in the same processor
-
     !$OMP PARALLEL DO SCHEDULE(dynamic) PRIVATE(igrid,iib1,iib2,iib3)
      !$acc parallel loop default(present) copyin(idphyb,ixS_srl_min1,ixS_srl_min2,ixS_srl_min3,ixS_srl_max1,ixS_srl_max2,ixS_srl_max3,ixR_srl_min1,ixR_srl_min2,ixR_srl_min3,ixR_srl_max1,ixR_srl_max2,ixR_srl_max3) private(igrid,iib1,iib2,iib3,ineighbor,n_i1,n_i2,n_i3,ixSmin1,ixSmin2,ixSmin3,ixSmax1,ixSmax2,ixSmax3,ixRmin1,ixRmin2,ixRmin3,ixRmax1,ixRmax2,ixRmax3,iw,ix1,ix2,ix3) firstprivate(nwhead,nwtail)
     do iigrid=1,igridstail; igrid=igrids(iigrid);
@@ -1374,7 +1412,7 @@ contains
        end do
     end do
     !$OMP END PARALLEL DO
-
+    
     if(stagger_grid) then
        call MPI_WAITALL(nrecv_bc_srl,recvrequest_srl,recvstatus_srl,ierrmpi)
        call MPI_WAITALL(nsend_bc_srl,sendrequest_srl,sendstatus_srl,ierrmpi)
