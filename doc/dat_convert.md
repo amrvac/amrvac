@@ -24,16 +24,18 @@ With this method an extra dat file is generated with new variables. (see `amrvac
               ...
         /
 
-2. Add a convert method in `usr_init` subroutine (`use mod_convert`):
+2. Add a call to the convert method in `usr_init` subroutine and link to relevant module:
 
+        use mod_convert
         call add_convert_method2(dump_vars, 4, "jx jy jz sxr", "_aux_") 
 
 or
 
+        use mod_convert
         call add_convert_method(dump_vars, 4, (/" jx", " jy", " jz", "sxr"/), "_aux_")
 
-The first way is preferred as because Fortran requires the strrings in an array to have the same length and extra spaces might be necessary for this.
-The last argument `_aux_` is the suffix added to `base_filename`  in order to generate  the name of the new dat file.
+The first way is preferred as because Fortran requires the strings in an array to have the same length and extra spaces might be necessary for this.
+The last argument `_aux_` is the suffix added to `base_filename`  in order to generate the name of the new dat file.
 
 3. Implement `dump_vars` function: 
 
