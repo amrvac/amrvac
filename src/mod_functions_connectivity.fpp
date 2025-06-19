@@ -81,6 +81,8 @@ module mod_functions_connectivity
     nbuff_bc_recv_r=0; nbuff_bc_send_r=0
     nbuff_bc_recv_p=0; nbuff_bc_send_p=0
     if(stagger_grid) nrecv_cc=0; nsend_cc=0
+    
+    call nbprocs_info%reset
   
     do iigrid=1,igridstail; igrid=igrids(iigrid);
        tree%node => igrid_to_node(igrid,mype)%node
@@ -128,14 +130,16 @@ module mod_functions_connectivity
                 neighbor(1,i1,i2,i3,igrid)=my_neighbor%node%igrid
                 neighbor(2,i1,i2,i3,igrid)=my_neighbor%node%ipe
                 if (my_neighbor%node%ipe/=mype) then
-                  nrecv_bc_srl=nrecv_bc_srl+1
-                  nsend_bc_srl=nsend_bc_srl+1
-                  nbuff_bc_send_srl=nbuff_bc_send_srl+sizes_srl_send_total(i1,&
-                     i2,i3)
-                  nbuff_bc_recv_srl=nbuff_bc_recv_srl+sizes_srl_recv_total(i1,&
-                     i2,i3)
+                   call nbprocs_info%add_ipe_to_srl_list(my_neighbor%node%ipe)
+                   call nbprocs_info%add_igrid_to_srl(my_neighbor%node%ipe, igrid, i1, i2, i3)
+                   nrecv_bc_srl=nrecv_bc_srl+1
+                   nsend_bc_srl=nsend_bc_srl+1
+                   nbuff_bc_send_srl=nbuff_bc_send_srl+sizes_srl_send_total(i1,&
+                        i2,i3)
+                   nbuff_bc_recv_srl=nbuff_bc_recv_srl+sizes_srl_recv_total(i1,&
+                        i2,i3)
                 end if
-             ! coarse-fine transition
+                ! coarse-fine transition
              case (neighbor_fine)
                 neighbor(1,i1,i2,i3,igrid)=0
                 neighbor(2,i1,i2,i3,igrid)=-1

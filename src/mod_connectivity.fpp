@@ -8,9 +8,6 @@ module mod_connectivity
    integer, parameter :: neighbor_sibling = 3
    integer, parameter :: neighbor_fine = 4
 
-   integer, private, parameter  :: nb_max=100 ! maximum number of neighbor processes
-   integer, private, parameter  :: igrids_nb_max=1000 ! maximum number of igrids bordering with particular neighbor ipe
-      
    integer, dimension(:,:,:,:,:), allocatable :: neighbor
    integer, dimension(:,:,:,:,:), allocatable :: neighbor_child
    integer, dimension(:,:,:,:), allocatable :: neighbor_type
@@ -36,24 +33,98 @@ module mod_connectivity
 
    ! srl neighbor info 
    type nbinfo_srl_t
-      integer, dimension(igrids_nb_max) :: igrid, i1, i2, i3
+      integer                            :: nigrids=0
+      integer                            :: iexpand=8   ! realloc with iexpand bigger arrays
+      integer, allocatable, dimension(:) :: igrid, i1, i2, i3
+    contains
+      procedure, non_overridable         :: init_srl
+      procedure, non_overridable         :: expand_srl
    end type nbinfo_srl_t
 
    ! neighbor cpu info structure
    type nbprocs_info_t
-      ! max ranges, can be replaced by dynamic allocation if bothersome
-      integer              :: nbprocs_srl=0  ! number of neighboring processes at srl
-      integer              :: nbprocs_srl_list(nb_max)=-1  ! list of neighboring ipe at srl
-      type(nbinfo_srl_t)   :: srl(nb_max)
+      integer              :: nbprocs=0            ! number of neighboring processes overall
+      integer              :: nbprocs_srl=0        ! number of neighboring processes at srl
+      integer, allocatable :: nbprocs_srl_list(:)  ! list of neighboring ipe at srl
+      type(nbinfo_srl_t), allocatable   :: srl(:)  ! list of the ipelist for each nbproc
     contains
       procedure, non_overridable :: add_ipe_to_srl_list
+      procedure, non_overridable :: init
+      procedure, non_overridable :: add_igrid_to_srl
+      procedure, non_overridable :: reset
    end type nbprocs_info_t
 
    type(nbprocs_info_t) :: nbprocs_info
+   !$acc declare create(nbprocs_info)
 
-   public :: nbprocs_info_t
+   public :: nbprocs_info_t, nbprocs_info
+   
    
  contains
+
+   subroutine expand_srl(self)
+     class(nbinfo_srl_t) :: self
+     type(nbinfo_srl_t)  :: tmp
+     
+        ! make a copy:
+        call tmp%init_srl( size( self%igrid ) )
+        tmp%nigrids  = self%nigrids
+        tmp%igrid    = self%igrid
+        tmp%i1       = self%i1
+        tmp%i2       = self%i2
+        tmp%i3       = self%i3
+
+        ! reallocate and copy back ( cumbersome in fortran :-( )
+        call self%init_srl( size(self%igrid) * self%iexpand )
+        self%nigrids = tmp%nigrids
+        self%igrid   = tmp%igrid
+        self%i1      = tmp%i1
+        self%i2      = tmp%i2
+        self%i3      = tmp%i3
+
+        print *, 'expanding storage:', self%nigrids
+        
+      end subroutine expand_srl
+   
+   subroutine init_srl(self, nigrids)
+     class(nbinfo_srl_t)   :: self
+     integer, intent(in)   :: nigrids
+
+     if ( allocated(self%igrid) ) then
+        deallocate(self%igrid, self%i1, self%i2, self%i3)
+     end if
+     allocate(self%igrid(nigrids), self%i1(nigrids), self%i2(nigrids), self%i3(nigrids))
+
+   end subroutine init_srl
+
+   subroutine reset(self)
+     class(nbprocs_info_t) :: self
+     integer               :: i
+
+     do i=1, self%nbprocs_srl
+        self%srl(i)%nigrids=0
+     end do
+
+     self%nbprocs = 0
+     self%nbprocs_srl = 0
+     
+   end subroutine reset
+   
+   subroutine init(self, nprocs, nigrids)
+     class(nbprocs_info_t) :: self
+     integer, intent(in)   :: nprocs, nigrids
+     integer               :: i
+
+     self%nbprocs = nprocs
+     
+     allocate(self%nbprocs_srl_list(nprocs), &
+          self%srl(nprocs))
+     
+     do i = 1, nprocs
+        call self%srl(i)%init_srl(nigrids)
+     end do
+     
+   end subroutine init     
 
    subroutine add_ipe_to_srl_list(self, ipe)
      class(nbprocs_info_t) :: self
@@ -70,20 +141,33 @@ module mod_connectivity
         end if
      end do
 
-     if (.not. already_there) then
-
-        if (self%nbprocs_srl == nb_max) then
-           print *, 'reached nb_max neighbors, enlarge limit'
-           stop
-        else        
-           ! enlarge counter
-           self%nbprocs_srl = self%nbprocs_srl + 1
-           ! add the process
-           self%nbprocs_srl_list(self%nbprocs_srl) = ipe
-        end if
-
+     if (.not. already_there) then 
+        ! enlarge counter
+        self%nbprocs_srl = self%nbprocs_srl + 1
+        ! add the process
+        self%nbprocs_srl_list(self%nbprocs_srl) = ipe
      end if
      
    end subroutine add_ipe_to_srl_list
+
+   subroutine add_igrid_to_srl(self, ipe, igrid, i1, i2, i3)
+     class(nbprocs_info_t) :: self
+     integer, intent(in)   :: ipe, igrid, i1, i2, i3
+
+     ! enlarge counter
+     self%srl(ipe)%nigrids = self%srl(ipe)%nigrids + 1
+
+     ! need to enlarge storage
+     if ( self%srl(ipe)%nigrids > size( self%srl(ipe)%igrid ) ) call self%srl(ipe)%expand_srl
+
+     ! add the data at the counter
+     self%srl(ipe)%igrid( self%srl(ipe)%nigrids ) = igrid
+     self%srl(ipe)%i1( self%srl(ipe)%nigrids )    = i1
+     self%srl(ipe)%i2( self%srl(ipe)%nigrids )    = i2
+     self%srl(ipe)%i3( self%srl(ipe)%nigrids )    = i3
+
+     print *, 'adding neighbor proc:', ipe, igrid, i1, i2, i3
+
+   end subroutine add_igrid_to_srl
    
 end module mod_connectivity

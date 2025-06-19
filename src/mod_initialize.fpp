@@ -21,6 +21,7 @@ contains
     use mod_bc_data, only: bc_data_init
     use mod_init_datafromfile, only: read_data_init
     use mod_comm_lib, only: init_comm_types
+    use mod_connectivity, only: nbprocs_info
 
     if (initialized_already) return
 
@@ -34,6 +35,8 @@ contains
     call read_par_files()
     call initialize_vars()
     call init_comm_types()
+    call nbprocs_info%init(nprocs=npe-1, nigrids=8)
+    !$acc update device(nbprocs_info)
 
     ! Possibly load boundary condition data or initial data
     call bc_data_init()
