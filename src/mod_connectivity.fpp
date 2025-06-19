@@ -52,6 +52,7 @@ module mod_connectivity
       procedure, non_overridable :: init
       procedure, non_overridable :: add_igrid_to_srl
       procedure, non_overridable :: reset
+      procedure, non_overridable :: ipe_to_inbpe_srl
    end type nbprocs_info_t
 
    type(nbprocs_info_t) :: nbprocs_info
@@ -65,27 +66,27 @@ module mod_connectivity
    subroutine expand_srl(self)
      class(nbinfo_srl_t) :: self
      type(nbinfo_srl_t)  :: tmp
-     
-        ! make a copy:
-        call tmp%init_srl( size( self%igrid ) )
-        tmp%nigrids  = self%nigrids
-        tmp%igrid    = self%igrid
-        tmp%i1       = self%i1
-        tmp%i2       = self%i2
-        tmp%i3       = self%i3
+     integer             :: size_old
 
-        ! reallocate and copy back ( cumbersome in fortran :-( )
-        call self%init_srl( size(self%igrid) * self%iexpand )
-        self%nigrids = tmp%nigrids
-        self%igrid   = tmp%igrid
-        self%i1      = tmp%i1
-        self%i2      = tmp%i2
-        self%i3      = tmp%i3
+     ! make a copy:
+     size_old = size( self%igrid )
+     call tmp%init_srl( size_old )
+     tmp%nigrids  = self%nigrids
+     tmp%igrid    = self%igrid
+     tmp%i1       = self%i1
+     tmp%i2       = self%i2
+     tmp%i3       = self%i3
 
-        print *, 'expanding storage:', self%nigrids
-        
-      end subroutine expand_srl
-   
+     ! reallocate and copy back ( cumbersome in fortran :-( )
+     call self%init_srl( size(self%igrid) * self%iexpand )
+     self%nigrids             = tmp%nigrids
+     self%igrid(1:size_old)   = tmp%igrid
+     self%i1(1:size_old)      = tmp%i1
+     self%i2(1:size_old)      = tmp%i2
+     self%i3(1:size_old)      = tmp%i3
+
+   end subroutine expand_srl
+
    subroutine init_srl(self, nigrids)
      class(nbinfo_srl_t)   :: self
      integer, intent(in)   :: nigrids
@@ -123,7 +124,7 @@ module mod_connectivity
      do i = 1, nprocs
         call self%srl(i)%init_srl(nigrids)
      end do
-     
+
    end subroutine init     
 
    subroutine add_ipe_to_srl_list(self, ipe)
@@ -150,23 +151,47 @@ module mod_connectivity
      
    end subroutine add_ipe_to_srl_list
 
+   subroutine ipe_to_inbpe_srl(self, ipe, inbpe)
+     class(nbprocs_info_t) :: self
+     integer, intent(in)   :: ipe
+     integer, intent(out)  :: inbpe
+     logical               :: ipe_not_in_list
+
+     ! ok if small
+     ipe_not_in_list = .true.
+     do inbpe = 1, self%nbprocs_srl
+        if (ipe == self%nbprocs_srl_list(inbpe)) then
+           ipe_not_in_list = .false.
+           exit
+        end if
+     end do
+
+     if (ipe_not_in_list) then
+        print *, 'ipe_to_inbpe_srl: neighbor not in list, error'
+        stop
+     end if
+
+   end subroutine ipe_to_inbpe_srl
+
    subroutine add_igrid_to_srl(self, ipe, igrid, i1, i2, i3)
      class(nbprocs_info_t) :: self
      integer, intent(in)   :: ipe, igrid, i1, i2, i3
+     integer               :: inbpe
 
+     ! translate to neighbor processor index for srl
+     call self%ipe_to_inbpe_srl(ipe, inbpe)
+     
      ! enlarge counter
-     self%srl(ipe)%nigrids = self%srl(ipe)%nigrids + 1
+     self%srl(inbpe)%nigrids = self%srl(inbpe)%nigrids + 1
 
      ! need to enlarge storage
-     if ( self%srl(ipe)%nigrids > size( self%srl(ipe)%igrid ) ) call self%srl(ipe)%expand_srl
+     if ( self%srl(inbpe)%nigrids > size( self%srl(inbpe)%igrid ) ) call self%srl(inbpe)%expand_srl
 
      ! add the data at the counter
-     self%srl(ipe)%igrid( self%srl(ipe)%nigrids ) = igrid
-     self%srl(ipe)%i1( self%srl(ipe)%nigrids )    = i1
-     self%srl(ipe)%i2( self%srl(ipe)%nigrids )    = i2
-     self%srl(ipe)%i3( self%srl(ipe)%nigrids )    = i3
-
-     print *, 'adding neighbor proc:', ipe, igrid, i1, i2, i3
+     self%srl(inbpe)%igrid( self%srl(inbpe)%nigrids ) = igrid
+     self%srl(inbpe)%i1( self%srl(inbpe)%nigrids )    = i1
+     self%srl(inbpe)%i2( self%srl(inbpe)%nigrids )    = i2
+     self%srl(inbpe)%i3( self%srl(inbpe)%nigrids )    = i3
 
    end subroutine add_igrid_to_srl
    
