@@ -995,7 +995,7 @@ contains
 
     logical,intent(out)             :: file_exists
     character(len=std_len)          :: filename
-    integer                         :: mynpayload, mynparticles, pos
+    integer                         :: mynpayload, mynparticles, pos, index_latest
 
     ! some initialisations:
     nparticles_on_mype = 0
@@ -1006,11 +1006,13 @@ contains
     ! open the snapshot file on the headnode
     file_exists=.false.
     if (mype == 0) then
-!      write(filename,"(a,a,i4.4,a)") trim(base_filename),'_particles',snapshotini,'.dat'
       ! Strip restart_from_filename of the ending 
       pos = scan(restart_from_file, '.dat', back=.true.)
-      write(filename,"(a,a,i4.4,a)") trim(restart_from_file(1:pos-8)),'_particles',snapshotini,'.dat'
-      INQUIRE(FILE=filename, EXIST=file_exists)
+      do index_latest=9999,0,-1
+        write(filename,"(a,a,i4.4,a)") trim(restart_from_file(1:pos-8)),'_particles',index_latest,'.dat'
+        INQUIRE(FILE=filename, EXIST=file_exists)
+        if(file_exists) exit 
+      end do
       if (.not. file_exists) then
         write(*,*) 'WARNING: File '//trim(filename)//' with particle data does not exist.'
         write(*,*) 'Initialising particles from user or default routines'
