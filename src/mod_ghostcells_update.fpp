@@ -104,6 +104,9 @@ module mod_ghostcells_update
   double precision, dimension(:), allocatable :: recvbuffer_srl,&
        sendbuffer_srl
 
+  ! buffers for send/receieve to specific neighbor process
+  double precision, dimension(:,:), allocatable :: send_srl_to, recv_srl_from
+
   integer, dimension(:), allocatable :: recvrequest_r, sendrequest_r
   integer, dimension(:,:), allocatable :: recvstatus_r, sendstatus_r
 
