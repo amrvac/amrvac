@@ -1338,8 +1338,6 @@ contains
 #ifdef _OPENACC
     ! update blocks on host prior to MPI send
     do iigrid=1,igridstail; igrid=igrids(iigrid);
-       call identifyphysbound(ps(igrid),iib1,iib2,iib3)
-       idphyb(1,igrid)=iib1;idphyb(2,igrid)=iib2;idphyb(3,igrid)=iib3;
        update = .false.
        do i3=-1,1
           do i2=-1,1
@@ -1368,8 +1366,8 @@ contains
           i3 = nbprocs_info%srl(inb)%i3(i)
 
           if (skip_direction([ i1,i2,i3 ])) cycle
-
           iib1=idphyb(1,igrid);iib2=idphyb(2,igrid);iib3=idphyb(3,igrid);
+          
 !          select case (neighbor_type(i1,i2,i3,igrid))
 !          case (neighbor_sibling)
              call bc_send_srl
@@ -1385,8 +1383,6 @@ contains
 #ifdef _OPENACC    
     ! update blocks on device after MPI comm    
     do iigrid=1,igridstail; igrid=igrids(iigrid);
-       call identifyphysbound(ps(igrid),iib1,iib2,iib3)
-       idphyb(1,igrid)=iib1;idphyb(2,igrid)=iib2;idphyb(3,igrid)=iib3;
        update = .false.
        do i3=-1,1
           do i2=-1,1
@@ -3484,7 +3480,6 @@ contains
                        ipole=neighbor_pole(i1,i2,i3,igrid)
                        if(ipole==0) then
                           n_i1=-i1;n_i2=-i2;n_i3=-i3;
-                          print *, i1,i2,i3, iib1, iib2, iib3
                           ixSmin1=ixS_srl_min1(iib1,i1);ixSmin2=ixS_srl_min2(iib2,i2)
                           ixSmin3=ixS_srl_min3(iib3,i3);ixSmax1=ixS_srl_max1(iib1,i1)
                           ixSmax2=ixS_srl_max2(iib2,i2);ixSmax3=ixS_srl_max3(iib3,i3);

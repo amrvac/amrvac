@@ -1,10 +1,10 @@
 #!/bin/bash
 #SBATCH -p gpu_h100
 #SBATCH -N 1
-#SBATCH --gpus-per-node 2
-#SBATCH --ntasks-per-node 2
+#SBATCH --gpus-per-node 4
+#SBATCH --ntasks-per-node 4
 #SBATCH --cpus-per-task 1
-#SBATCH --gpu-bind=map_gpu:0,1
+#SBATCH --gpu-bind=map_gpu:0,1,2,3
 #SBATCH -t 00:10:00
 #SBATCH -o mpi_local.out
 
