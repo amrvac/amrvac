@@ -114,3 +114,5 @@ The mangetogram timestamp should be indicated in the amrvac.par file in the icar
 - Multi spacecraft study: Application of the magnetized CME in Icarus - [Baratashvili et al. 2024b](https://ui.adsabs.harvard.edu/abs/2024A%26A...689A..98B/abstract)
 - Icarus coupling to COCONUT - [Baratashvili et al. 2024c](https://ui.adsabs.harvard.edu/abs/2024A%26A...690A.184B/abstract)
 - Old version of Icarus (for description of the domain, as it is the same) - [Verbeke et al. 2022](https://ui.adsabs.harvard.edu/abs/2022A%26A...662A..50V/abstract)
+
+Note* If you are further developing/modifying Icarus, please contact Tinatin Baratashvili at tinatin.baratashvili@kuleuven.be before publishing any new results. We expect co-authorship for the first paper, to avoid publishing any wrong results. 
