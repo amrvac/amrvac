@@ -107,10 +107,10 @@ The mangetogram timestamp should be indicated in the amrvac.par file in the icar
 
 
 # How to cite
+- Icarus - if you have installed with these instructions - [Baratashvili et al. 2025 ](https://ui.adsabs.harvard.edu/abs/2025A%26A...694A.306B/abstract)
 - AMR and grid stretching strategies in Icarus - [Baratashvili et al. 2022](https://ui.adsabs.harvard.edu/abs/2022A%26A...667A.133B/abstract)
 - Numerical methods and flux limiters in Icarus - [Baratashvili et al. 2023](https://ui.adsabs.harvard.edu/abs/2023SunGe..15...49B/abstract)
 - Magentized CME model in Icarus - [Baratashvili et al. 2024](https://ui.adsabs.harvard.edu/abs/2024A%26A...683A..81B/abstract)
 - Multi spacecraft study: Application of the magnetized CME in Icarus - [Baratashvili et al. 2024b](https://ui.adsabs.harvard.edu/abs/2024A%26A...689A..98B/abstract)
 - Icarus coupling to COCONUT - [Baratashvili et al. 2024c](https://ui.adsabs.harvard.edu/abs/2024A%26A...690A.184B/abstract)
 - Old version of Icarus (for description of the domain, as it is the same) - [Verbeke et al. 2022](https://ui.adsabs.harvard.edu/abs/2022A%26A...662A..50V/abstract)
-- Icarus - [Baratashvili et al. 2024d (submitted)]
