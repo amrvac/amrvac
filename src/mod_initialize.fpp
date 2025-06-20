@@ -35,7 +35,7 @@ contains
     call read_par_files()
     call initialize_vars()
     call init_comm_types()
-    call nbprocs_info%init(nprocs=npe-1, nigrids=8)
+    call nbprocs_info%init(npe=npe, nigrids=4)
     !$acc update device(nbprocs_info)
 
     ! Possibly load boundary condition data or initial data

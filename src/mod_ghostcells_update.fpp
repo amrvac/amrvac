@@ -1238,7 +1238,7 @@ contains
     logical  :: req_diagonal, update
     type(wbuffer) :: pwbuf(npwbuf)
 
-    integer :: ix1,ix2,ix3, iw
+    integer :: ix1,ix2,ix3, iw, inb, i
 
     time_bcin=MPI_WTIME()
 
@@ -1308,22 +1308,30 @@ contains
        isend_p=0
     end if
 
-    ! MPI receive ghost-cell values from sibling blocks and finer neighbors in different processors
     do iigrid=1,igridstail; igrid=igrids(iigrid);
        call identifyphysbound(ps(igrid),iib1,iib2,iib3)
        idphyb(1,igrid)=iib1;idphyb(2,igrid)=iib2;idphyb(3,igrid)=iib3;
-       do i3=-1,1
-          do i2=-1,1
-             do i1=-1,1
-                if (skip_direction([ i1,i2,i3 ])) cycle
-                select case (neighbor_type(i1,i2,i3,igrid))
-                case (neighbor_sibling)
-                   call bc_recv_srl
-                case (neighbor_fine)
-                   call bc_recv_restrict
-                end select
-             end do
-          end do
+    end do
+    
+    ! MPI receive ghost-cell values from sibling blocks and finer neighbors in different processors
+    ! go through the neighbors:
+    do inb = 1, nbprocs_info%nbprocs_srl
+       ! go through igrids with srl relation for each neighbor process
+       do i = 1, nbprocs_info%srl(inb)%nigrids
+          igrid = nbprocs_info%srl(inb)%igrid(i)
+          i1 = nbprocs_info%srl(inb)%i1(i)
+          i2 = nbprocs_info%srl(inb)%i2(i)
+          i3 = nbprocs_info%srl(inb)%i3(i)
+
+          if (skip_direction([ i1,i2,i3 ])) cycle
+          iib1=idphyb(1,igrid);iib2=idphyb(2,igrid);iib3=idphyb(3,igrid);
+
+!          select case (neighbor_type(i1,i2,i3,igrid))
+!          case (neighbor_sibling)
+             call bc_recv_srl
+!          case (neighbor_fine) ! will get a similar loop only over the fine neighbors in nbprocs_info structure
+!             call bc_recv_restrict
+!          end select
        end do
     end do
 
@@ -1350,20 +1358,24 @@ contains
 #endif
     
     ! MPI send ghost-cell values to sibling blocks and coarser neighbors in different processors
-    do iigrid=1,igridstail; igrid=igrids(iigrid);
-       iib1=idphyb(1,igrid);iib2=idphyb(2,igrid);iib3=idphyb(3,igrid);
-       do i3=-1,1
-          do i2=-1,1
-             do i1=-1,1
-                if(skip_direction([ i1,i2,i3 ])) cycle
-                select case (neighbor_type(i1,i2,i3,igrid))
-                case (neighbor_sibling)
-                   call bc_send_srl
-                case (neighbor_coarse)
-                   call bc_send_restrict
-                end select
-             end do
-          end do
+    ! go through the neighbors:
+    do inb = 1, nbprocs_info%nbprocs_srl
+       ! go through igrids with srl relation for each neighbor process
+       do i = 1, nbprocs_info%srl(inb)%nigrids
+          igrid = nbprocs_info%srl(inb)%igrid(i)
+          i1 = nbprocs_info%srl(inb)%i1(i)
+          i2 = nbprocs_info%srl(inb)%i2(i)
+          i3 = nbprocs_info%srl(inb)%i3(i)
+
+          if (skip_direction([ i1,i2,i3 ])) cycle
+
+          iib1=idphyb(1,igrid);iib2=idphyb(2,igrid);iib3=idphyb(3,igrid);
+!          select case (neighbor_type(i1,i2,i3,igrid))
+!          case (neighbor_sibling)
+             call bc_send_srl
+!          case (neighbor_coarse) ! will get a similar loop only over the fine neighbors in nbprocs_info structure
+!             call bc_send_restrict
+!          end select
        end do
     end do
 
@@ -3472,6 +3484,7 @@ contains
                        ipole=neighbor_pole(i1,i2,i3,igrid)
                        if(ipole==0) then
                           n_i1=-i1;n_i2=-i2;n_i3=-i3;
+                          print *, i1,i2,i3, iib1, iib2, iib3
                           ixSmin1=ixS_srl_min1(iib1,i1);ixSmin2=ixS_srl_min2(iib2,i2)
                           ixSmin3=ixS_srl_min3(iib3,i3);ixSmax1=ixS_srl_max1(iib1,i1)
                           ixSmax2=ixS_srl_max2(iib2,i2);ixSmax3=ixS_srl_max3(iib3,i3);

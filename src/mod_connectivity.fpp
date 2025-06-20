@@ -34,7 +34,7 @@ module mod_connectivity
    ! srl neighbor info 
    type nbinfo_srl_t
       integer                            :: nigrids=0
-      integer                            :: iexpand=8   ! realloc with iexpand bigger arrays
+      integer                            :: iexpand=4   ! realloc with iexpand bigger arrays
       integer, allocatable, dimension(:) :: igrid, i1, i2, i3
     contains
       procedure, non_overridable         :: init_srl
@@ -46,13 +46,13 @@ module mod_connectivity
       integer              :: nbprocs=0            ! number of neighboring processes overall
       integer              :: nbprocs_srl=0        ! number of neighboring processes at srl
       integer, allocatable :: nbprocs_srl_list(:)  ! list of neighboring ipe at srl
+      integer, allocatable :: ipe_to_inbpe_srl(:)  ! inverse to nbprocs_srl_list
       type(nbinfo_srl_t), allocatable   :: srl(:)  ! list of the ipelist for each nbproc
     contains
       procedure, non_overridable :: add_ipe_to_srl_list
       procedure, non_overridable :: init
       procedure, non_overridable :: add_igrid_to_srl
       procedure, non_overridable :: reset
-      procedure, non_overridable :: ipe_to_inbpe_srl
    end type nbprocs_info_t
 
    type(nbprocs_info_t) :: nbprocs_info
@@ -106,22 +106,26 @@ module mod_connectivity
         self%srl(i)%nigrids=0
      end do
 
-     self%nbprocs = 0
-     self%nbprocs_srl = 0
+     self%nbprocs             = 0
+     self%nbprocs_srl         = 0
+     self%ipe_to_inbpe_srl(:) = -1
      
    end subroutine reset
    
-   subroutine init(self, nprocs, nigrids)
+   subroutine init(self, npe, nigrids)
      class(nbprocs_info_t) :: self
-     integer, intent(in)   :: nprocs, nigrids
+     integer, intent(in)   :: npe, nigrids
      integer               :: i
 
-     self%nbprocs = nprocs
+     self%nbprocs = npe-1
      
-     allocate(self%nbprocs_srl_list(nprocs), &
-          self%srl(nprocs))
+     allocate(self%nbprocs_srl_list(npe-1), &
+          self%srl(npe-1))
+
+     allocate(self%ipe_to_inbpe_srl(0:npe-1))
+     self%ipe_to_inbpe_srl(:) = -1
      
-     do i = 1, nprocs
+     do i = 1, npe-1
         call self%srl(i)%init_srl(nigrids)
      end do
 
@@ -130,48 +134,19 @@ module mod_connectivity
    subroutine add_ipe_to_srl_list(self, ipe)
      class(nbprocs_info_t) :: self
      integer, intent(in)   :: ipe
-     integer               :: i
-     logical               :: already_there
 
-     ! ok as long as small loop
-     already_there = .false.
-     do i = 1, self%nbprocs_srl
-        if (self%nbprocs_srl_list(i) == ipe) then
-           already_there = .true.
-           exit ! already in list, get out
-        end if
-     end do
-
-     if (.not. already_there) then 
+     if (self%ipe_to_inbpe_srl(ipe) == -1) then
+     
         ! enlarge counter
         self%nbprocs_srl = self%nbprocs_srl + 1
         ! add the process
         self%nbprocs_srl_list(self%nbprocs_srl) = ipe
+        ! add to inverse list
+        self%ipe_to_inbpe_srl(ipe) = self%nbprocs_srl
+        
      end if
      
    end subroutine add_ipe_to_srl_list
-
-   subroutine ipe_to_inbpe_srl(self, ipe, inbpe)
-     class(nbprocs_info_t) :: self
-     integer, intent(in)   :: ipe
-     integer, intent(out)  :: inbpe
-     logical               :: ipe_not_in_list
-
-     ! ok if small
-     ipe_not_in_list = .true.
-     do inbpe = 1, self%nbprocs_srl
-        if (ipe == self%nbprocs_srl_list(inbpe)) then
-           ipe_not_in_list = .false.
-           exit
-        end if
-     end do
-
-     if (ipe_not_in_list) then
-        print *, 'ipe_to_inbpe_srl: neighbor not in list, error'
-        stop
-     end if
-
-   end subroutine ipe_to_inbpe_srl
 
    subroutine add_igrid_to_srl(self, ipe, igrid, i1, i2, i3)
      class(nbprocs_info_t) :: self
@@ -179,7 +154,7 @@ module mod_connectivity
      integer               :: inbpe
 
      ! translate to neighbor processor index for srl
-     call self%ipe_to_inbpe_srl(ipe, inbpe)
+     inbpe = self%ipe_to_inbpe_srl(ipe)
      
      ! enlarge counter
      self%srl(inbpe)%nigrids = self%srl(inbpe)%nigrids + 1
