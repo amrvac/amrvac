@@ -60,15 +60,14 @@ module mod_connectivity
 
    ! neighbor cpu info structure
    type nbprocs_info_t
-      integer              :: nbprocs=0            ! number of neighboring processes overall
-      integer              :: nbprocs_srl=0        ! number of neighboring processes at srl
-      integer, allocatable :: nbprocs_srl_list(:)  ! list of neighboring ipe at srl
-      integer, allocatable :: ipe_to_inbpe_srl(:)  ! inverse to nbprocs_srl_list
-      type(nbinfo_srl_t), allocatable   :: srl(:)  ! list of the ipelist for each nbproc
-      type(nbinfo_buffer_t), allocatable :: srl_send(:)  ! double precision send data. One for each nb proc
-      type(nbinfo_buffer_t), allocatable :: srl_rcv(:)  ! double precision receive data
-      type(nbinfo_buffer_i_t), allocatable :: srl_info_send(:) ! info package send
-      type(nbinfo_buffer_i_t), allocatable :: srl_info_rcv(:) ! info package receive
+      integer                              :: nbprocs_srl=0        ! number of neighboring processes at srl
+      integer, allocatable                 :: nbprocs_srl_list(:)  ! list of neighboring ipe at srl
+      integer, allocatable                 :: ipe_to_inbpe_srl(:)  ! inverse to nbprocs_srl_list
+      type(nbinfo_srl_t), allocatable      :: srl(:)               ! list of the ipelist for each nbproc
+      type(nbinfo_buffer_t), allocatable   :: srl_send(:)          ! double precision send data. One for each nb proc
+      type(nbinfo_buffer_t), allocatable   :: srl_rcv(:)           ! double precision receive data
+      type(nbinfo_buffer_i_t), allocatable :: srl_info_send(:)     ! info package send
+      type(nbinfo_buffer_i_t), allocatable :: srl_info_rcv(:)      ! info package receive
     contains
       procedure, non_overridable :: add_ipe_to_srl_list
       procedure, non_overridable :: init
@@ -82,8 +81,7 @@ module mod_connectivity
    !$acc declare create(nbprocs_info)
 
    public :: nbprocs_info_t, nbprocs_info
-   
-   
+     
  contains
 
    subroutine alloc_buffer(self, isize)
@@ -109,16 +107,13 @@ module mod_connectivity
    subroutine expand_srl(self)
      class(nbinfo_srl_t) :: self
      type(nbinfo_srl_t)  :: tmp
+     ! .. local ..
      integer             :: size_old
 
      ! make a copy:
      size_old = size( self%igrid )
      call tmp%init( size_old )
-     tmp%nigrids  = self%nigrids
-     tmp%igrid    = self%igrid
-     tmp%i1       = self%i1
-     tmp%i2       = self%i2
-     tmp%i3       = self%i3
+     tmp = self
 
      ! reallocate and copy back ( cumbersome in fortran :-( )
      call self%init( size(self%igrid) * self%iexpand )
@@ -143,13 +138,13 @@ module mod_connectivity
 
    subroutine reset(self)
      class(nbprocs_info_t) :: self
+     ! .. local ..
      integer               :: i
 
      do i=1, self%nbprocs_srl
         self%srl(i)%nigrids=0
      end do
 
-     self%nbprocs             = 0
      self%nbprocs_srl         = 0
      self%ipe_to_inbpe_srl(:) = -1
      
@@ -158,10 +153,9 @@ module mod_connectivity
    subroutine init(self, npe, nigrids)
      class(nbprocs_info_t) :: self
      integer, intent(in)   :: npe, nigrids
+     ! .. local ..
      integer               :: i
 
-     self%nbprocs = npe-1
-     
      allocate(self%nbprocs_srl_list(npe-1), &
           self%srl(npe-1))
 
@@ -203,6 +197,7 @@ module mod_connectivity
    subroutine add_igrid_to_srl(self, ipe, igrid, i1, i2, i3)
      class(nbprocs_info_t) :: self
      integer, intent(in)   :: ipe, igrid, i1, i2, i3
+     ! .. local ..
      integer               :: inbpe
 
      ! translate to neighbor processor index for srl
@@ -239,13 +234,14 @@ module mod_connectivity
          ixR_srl_min1, ixR_srl_max1, &
          ixR_srl_min2, ixR_srl_max2, &
          ixR_srl_min3, ixR_srl_max3
-     integer                             :: inb, igrid, isize_S, isize_R
-     integer                             :: n_i1, n_i2, n_i3, i1, i2, i3
-     integer                             :: ixSmin1, ixSmin2, ixSmin3
-     integer                             :: ixRmin1, ixRmin2, ixRmin3
-     integer                             :: ixSmax1, ixSmax2, ixSmax3
-     integer                             :: ixRmax1, ixRmax2, ixRmax3
-     integer                             :: iib1, iib2, iib3
+     ! .. local ..
+     integer         :: inb, igrid, isize_S, isize_R
+     integer         :: n_i1, n_i2, n_i3, i1, i2, i3
+     integer         :: ixSmin1, ixSmin2, ixSmin3
+     integer         :: ixRmin1, ixRmin2, ixRmin3
+     integer         :: ixSmax1, ixSmax2, ixSmax3
+     integer         :: ixRmax1, ixRmax2, ixRmax3
+     integer         :: iib1, iib2, iib3
 
      if (allocated(self%srl_send)) then
         deallocate( self%srl_send, self%srl_rcv, self%srl_info_send, self%srl_info_rcv )
