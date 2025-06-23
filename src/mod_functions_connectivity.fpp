@@ -375,7 +375,7 @@ module mod_functions_connectivity
     end do
 
     ! allocate with new nbstructure
-    call nbprocs_info%alloc_buffers_srl( &
+    call nbprocs_info%alloc_buffers_srl(nwgc, &
          ixS_srl_min1, ixS_srl_max1, &
          ixS_srl_min2, ixS_srl_max2, &
          ixS_srl_min3, ixS_srl_max3, &
@@ -548,7 +548,7 @@ module mod_functions_connectivity
 
 
     !update the neighbor information on the device
- !$acc update device(neighbor, neighbor_type, neighbor_pole, neighbor_child, idphyb)
+ !$acc update device(neighbor, neighbor_type, neighbor_pole, neighbor_child, idphyb, nbprocs_info)
     
   end subroutine build_connectivity
 

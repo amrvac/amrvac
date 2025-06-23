@@ -41,8 +41,8 @@ module mod_connectivity
       integer                            :: iexpand=4   ! realloc with iexpand bigger arrays
       integer, allocatable, dimension(:) :: igrid, i1, i2, i3
     contains
-      procedure, non_overridable         :: init_srl
-      procedure, non_overridable         :: expand_srl
+      procedure, non_overridable         :: init => init_srl
+      procedure, non_overridable         :: expand => expand_srl
    end type nbinfo_srl_t
 
    ! buffer
@@ -113,7 +113,7 @@ module mod_connectivity
 
      ! make a copy:
      size_old = size( self%igrid )
-     call tmp%init_srl( size_old )
+     call tmp%init( size_old )
      tmp%nigrids  = self%nigrids
      tmp%igrid    = self%igrid
      tmp%i1       = self%i1
@@ -121,7 +121,7 @@ module mod_connectivity
      tmp%i3       = self%i3
 
      ! reallocate and copy back ( cumbersome in fortran :-( )
-     call self%init_srl( size(self%igrid) * self%iexpand )
+     call self%init( size(self%igrid) * self%iexpand )
      self%nigrids             = tmp%nigrids
      self%igrid(1:size_old)   = tmp%igrid
      self%i1(1:size_old)      = tmp%i1
@@ -169,7 +169,7 @@ module mod_connectivity
      self%ipe_to_inbpe_srl(:) = -1
      
      do i = 1, npe-1
-        call self%srl(i)%init_srl(nigrids)
+        call self%srl(i)%init(nigrids)
      end do
 
    end subroutine init   
@@ -212,7 +212,7 @@ module mod_connectivity
      self%srl(inbpe)%nigrids = self%srl(inbpe)%nigrids + 1
 
      ! need to enlarge storage
-     if ( self%srl(inbpe)%nigrids > size( self%srl(inbpe)%igrid ) ) call self%srl(inbpe)%expand_srl
+     if ( self%srl(inbpe)%nigrids > size( self%srl(inbpe)%igrid ) ) call self%srl(inbpe)%expand
 
      ! add the data at the counter
      self%srl(inbpe)%igrid( self%srl(inbpe)%nigrids ) = igrid
@@ -222,7 +222,7 @@ module mod_connectivity
 
    end subroutine add_igrid_to_srl
 
-   subroutine alloc_buffers_srl(self, &
+   subroutine alloc_buffers_srl(self, nwgc, &
          ixS_srl_min1, ixS_srl_max1, &
          ixS_srl_min2, ixS_srl_max2, &
          ixS_srl_min3, ixS_srl_max3, &
@@ -230,15 +230,22 @@ module mod_connectivity
          ixR_srl_min2, ixR_srl_max2, &
          ixR_srl_min3, ixR_srl_max3)
      
-     class(nbprocs_info_t)               :: self
-     integer, dimension(-1:2,-1:1) :: &
+     class(nbprocs_info_t)                     :: self
+     integer, intent(in)                       :: nwgc
+     integer, dimension(-1:2,-1:1), intent(in) :: &
          ixS_srl_min1, ixS_srl_max1, &
          ixS_srl_min2, ixS_srl_max2, &
          ixS_srl_min3, ixS_srl_max3, &
          ixR_srl_min1, ixR_srl_max1, &
          ixR_srl_min2, ixR_srl_max2, &
          ixR_srl_min3, ixR_srl_max3
-     integer                             :: inb, isize
+     integer                             :: inb, igrid, isize_S, isize_R
+     integer                             :: n_i1, n_i2, n_i3, i1, i2, i3
+     integer                             :: ixSmin1, ixSmin2, ixSmin3
+     integer                             :: ixRmin1, ixRmin2, ixRmin3
+     integer                             :: ixSmax1, ixSmax2, ixSmax3
+     integer                             :: ixRmax1, ixRmax2, ixRmax3
+     integer                             :: iib1, iib2, iib3
 
      if (allocated(self%srl_send)) then
         deallocate( self%srl_send, self%srl_rcv, self%srl_info_send, self%srl_info_rcv )
@@ -250,13 +257,35 @@ module mod_connectivity
           self%srl_info_send(1:self%nbprocs_srl), &
           self%srl_info_rcv(1:self%nbprocs_srl) &
           )
-     
+
      do inb = 1, self%nbprocs_srl
-        isize = 0 !dummy yet, should be number of double precision values
-        call self%srl_send(inb)%alloc(isize)
-        call self%srl_rcv(inb)%alloc(isize)
+        call self%srl_info_send(inb)%alloc(4*self%srl(inb)%nigrids)
+        call self%srl_info_rcv(inb)%alloc(4*self%srl(inb)%nigrids) 
+        
+        isize_S = 0; isize_R = 0
+        do igrid = 1, self%srl(inb)%nigrids
+           iib1 = idphyb(1,self%srl(inb)%igrid(igrid))
+           iib2 = idphyb(2,self%srl(inb)%igrid(igrid))
+           iib3 = idphyb(3,self%srl(inb)%igrid(igrid))
+           
+           i1 = self%srl(inb)%i1(igrid); i2 = self%srl(inb)%i2(igrid); i3 = self%srl(inb)%i3(igrid)
+           n_i1=-i1; n_i2=-i2; n_i3=-i3
+           
+           ixSmin1=ixS_srl_min1(iib1,i1);ixSmin2=ixS_srl_min2(iib2,i2)
+           ixSmin3=ixS_srl_min3(iib3,i3);ixSmax1=ixS_srl_max1(iib1,i1)
+           ixSmax2=ixS_srl_max2(iib2,i2);ixSmax3=ixS_srl_max3(iib3,i3)
+           ixRmin1=ixR_srl_min1(iib1,n_i1);ixRmin2=ixR_srl_min2(iib2,n_i2)
+           ixRmin3=ixR_srl_min3(iib3,n_i3);ixRmax1=ixR_srl_max1(iib1,n_i1)
+           ixRmax2=ixR_srl_max2(iib2,n_i2);ixRmax3=ixR_srl_max3(iib3,n_i3)
+
+           isize_S = isize_S + (ixSmax1-ixSmin1+1) * (ixSmax2-ixSmin2+1) * (ixSmax3-ixSmin3+1)
+           isize_R = isize_R + (ixRmax1-ixRmin1+1) * (ixRmax2-ixRmin2+1) * (ixRmax3-ixRmin3+1)
+
+        end do
+        call self%srl_send(inb)%alloc(isize_S*nwgc)
+        call self%srl_rcv(inb)%alloc(isize_R*nwgc)
      end do
-     
+
    end subroutine alloc_buffers_srl
 
-   end module mod_connectivity
+ end module mod_connectivity
