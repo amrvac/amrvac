@@ -268,15 +268,10 @@ module mod_functions_connectivity
 
     ! Now all the neighbour information is known.
     ! already fill the idphyb structure
-    do i3=-1,1
-       do i2=-1,1
-          do i1=-1,1
-             call identifyphysbound_connectivity(igrid, i1, i2, i3)
-          end do
-       end do
-    end do
+    call identifyphysbound_connectivity(igrid)
 
-             if(stagger_grid) then
+
+    if(stagger_grid) then
        !Check if there are special corners that need to be communicated
        !To determine whether to send/receive, we must check three neighbours
         do i3=-1,1
@@ -380,7 +375,14 @@ module mod_functions_connectivity
     end do
 
     ! allocate with new nbstructure
-    call nbprocs_info%alloc_buffers_srl(sendbuffer_srl_nb, isendbuffer_srl_nb, recvbuffer_srl_nb, irecvbuffer_srl_nb)
+    call nbprocs_info%alloc_buffers_srl( &
+         ixS_srl_min1, ixS_srl_max1, &
+         ixS_srl_min2, ixS_srl_max2, &
+         ixS_srl_min3, ixS_srl_max3, &
+         ixR_srl_min1, ixR_srl_max1, &
+         ixR_srl_min2, ixR_srl_max2, &
+         ixR_srl_min3, ixR_srl_max3 &
+              )
   
     ! allocate space for mpi recieve for siblings and restrict ghost cell filling
     nrecvs=nrecv_bc_srl+nrecv_bc_r
@@ -546,7 +548,7 @@ module mod_functions_connectivity
 
 
     !update the neighbor information on the device
- !$acc update device(neighbor, neighbor_type, neighbor_pole, neighbor_child)
+ !$acc update device(neighbor, neighbor_type, neighbor_pole, neighbor_child, idphyb)
     
   end subroutine build_connectivity
 
@@ -583,7 +585,6 @@ module mod_functions_connectivity
     else
        idphyb(3,igrid) = 0
     end if
-
 
   end subroutine identifyphysbound_connectivity
 

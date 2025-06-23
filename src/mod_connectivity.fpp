@@ -23,6 +23,7 @@ module mod_connectivity
 
    ! phys boundary indices
    integer, dimension(:,:), allocatable :: idphyb
+   !$acc declare create(idphyb)
    
    ! number of grids on current processor
    integer :: igridstail
@@ -74,6 +75,7 @@ module mod_connectivity
       procedure, non_overridable :: add_igrid_to_srl
       procedure, non_overridable :: add_to_srl      
       procedure, non_overridable :: reset
+      procedure, non_overridable :: alloc_buffers_srl
    end type nbprocs_info_t
 
    type(nbprocs_info_t) :: nbprocs_info
@@ -220,10 +222,23 @@ module mod_connectivity
 
    end subroutine add_igrid_to_srl
 
-   subroutine alloc_buffers_srl(self, sizes_srl_send, sizes_srl_recv)
+   subroutine alloc_buffers_srl(self, &
+         ixS_srl_min1, ixS_srl_max1, &
+         ixS_srl_min2, ixS_srl_max2, &
+         ixS_srl_min3, ixS_srl_max3, &
+         ixR_srl_min1, ixR_srl_max1, &
+         ixR_srl_min2, ixR_srl_max2, &
+         ixR_srl_min3, ixR_srl_max3)
+     
      class(nbprocs_info_t)               :: self
-     integer, dimension(-1:1,-1:1,-1:1)  :: sizes_srl_send, sizes_srl_recv
-     integer                             :: inb
+     integer, dimension(-1:2,-1:1) :: &
+         ixS_srl_min1, ixS_srl_max1, &
+         ixS_srl_min2, ixS_srl_max2, &
+         ixS_srl_min3, ixS_srl_max3, &
+         ixR_srl_min1, ixR_srl_max1, &
+         ixR_srl_min2, ixR_srl_max2, &
+         ixR_srl_min3, ixR_srl_max3
+     integer                             :: inb, isize
 
      if (allocated(self%srl_send)) then
         deallocate( self%srl_send, self%srl_rcv, self%srl_info_send, self%srl_info_rcv )
@@ -237,8 +252,9 @@ module mod_connectivity
           )
      
      do inb = 1, self%nbprocs_srl
-        call self%srl_send(inb)%alloc()
-        call self%srl_rcv(inb)%alloc()
+        isize = 0 !dummy yet, should be number of double precision values
+        call self%srl_send(inb)%alloc(isize)
+        call self%srl_rcv(inb)%alloc(isize)
      end do
      
    end subroutine alloc_buffers_srl

@@ -107,9 +107,6 @@ module mod_ghostcells_update
   double precision, dimension(:), allocatable :: recvbuffer_srl,&
        sendbuffer_srl
 
-  ! buffers for send/receieve to specific neighbor process
-  double precision, dimension(:,:), allocatable :: send_srl_to, recv_srl_from
-
   integer, dimension(:), allocatable :: recvrequest_r, sendrequest_r
   integer, dimension(:,:), allocatable :: recvstatus_r, sendstatus_r
 
@@ -395,16 +392,6 @@ contains
        ixR_p_max3(:, 1)=ixCoMmax3+(interpolation_order-1)
        ixR_p_min3(:, 2)=ixCoMmin3-(interpolation_order-1)
     end if
-
-    
-    do i3=-1,1
-       do i2=-1,1
-          do i1=-1,1
-             sizes_srl_send(i1,i2,i3) = ixSmax1(
-          end do
-       end do
-    end do
-                
 
     if (stagger_grid) then
        allocate(pole_buf%ws(ixGslo1:ixGshi1,ixGslo2:ixGshi2,ixGslo3:ixGshi3,&
