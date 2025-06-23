@@ -85,6 +85,9 @@ module mod_ghostcells_update
   integer, dimension(-1:1,-1:1,-1:1) :: sizes_srl_send_total,&
        sizes_srl_recv_total
 
+  ! size of srl buffers (non-staggered)
+  integer, dimension(-1:1,-1:1,-1:1) :: sizes_srl_send, sizes_srl_recv
+
   ! sizes of buffer arrays for center-grid variable for siblings and restrict
   integer, dimension(:), allocatable :: recvrequest_c_sr, sendrequest_c_sr
   integer, dimension(:,:), allocatable :: recvstatus_c_sr, sendstatus_c_sr
@@ -393,7 +396,15 @@ contains
        ixR_p_min3(:, 2)=ixCoMmin3-(interpolation_order-1)
     end if
 
-
+    
+    do i3=-1,1
+       do i2=-1,1
+          do i1=-1,1
+             sizes_srl_send(i1,i2,i3) = ixSmax1(
+          end do
+       end do
+    end do
+                
 
     if (stagger_grid) then
        allocate(pole_buf%ws(ixGslo1:ixGshi1,ixGslo2:ixGshi2,ixGslo3:ixGshi3,&
@@ -1229,7 +1240,7 @@ contains
     integer :: i1,i2,i3, n_i1,n_i2,n_i3, ic1,ic2,ic3, inc1,inc2,inc3, n_inc1,&
          n_inc2,n_inc3, iib1,iib2,iib3, idir, istage
     ! store physical boundary indicating index
-    integer :: idphyb(ndim,max_blocks)
+!    integer :: idphyb(ndim,max_blocks)
     integer :: isend_buf(npwbuf), ipwbuf, nghostcellsco
     ! index pointer for buffer arrays as a start for a segment
     integer :: ibuf_start, ibuf_next
@@ -1308,10 +1319,10 @@ contains
        isend_p=0
     end if
 
-    do iigrid=1,igridstail; igrid=igrids(iigrid);
-       call identifyphysbound(ps(igrid),iib1,iib2,iib3)
-       idphyb(1,igrid)=iib1;idphyb(2,igrid)=iib2;idphyb(3,igrid)=iib3;
-    end do
+!    do iigrid=1,igridstail; igrid=igrids(iigrid);
+!       call identifyphysbound(ps(igrid),iib1,iib2,iib3)
+!       idphyb(1,igrid)=iib1;idphyb(2,igrid)=iib2;idphyb(3,igrid)=iib3;
+!    end do
     
     ! MPI receive ghost-cell values from sibling blocks and finer neighbors in different processors
     ! go through the neighbors:

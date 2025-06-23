@@ -20,6 +20,9 @@ module mod_connectivity
    integer, dimension(:), allocatable :: igrids_active
    integer, dimension(:), allocatable :: igrids_passive
    !$acc declare create(igrids, igrids_active, igrids_passive)
+
+   ! phys boundary indices
+   integer, dimension(:,:), allocatable :: idphyb
    
    ! number of grids on current processor
    integer :: igridstail
@@ -41,6 +44,19 @@ module mod_connectivity
       procedure, non_overridable         :: expand_srl
    end type nbinfo_srl_t
 
+   ! buffer
+   type nbinfo_buffer_t
+      double precision, allocatable, dimension(:) :: buffer
+    contains
+      procedure, non_overridable :: alloc => alloc_buffer
+   end type nbinfo_buffer_t
+   
+   type nbinfo_buffer_i_t
+      integer, allocatable, dimension(:) :: buffer
+    contains
+      procedure, non_overridable :: alloc => alloc_buffer_info
+   end type nbinfo_buffer_i_t
+
    ! neighbor cpu info structure
    type nbprocs_info_t
       integer              :: nbprocs=0            ! number of neighboring processes overall
@@ -48,10 +64,15 @@ module mod_connectivity
       integer, allocatable :: nbprocs_srl_list(:)  ! list of neighboring ipe at srl
       integer, allocatable :: ipe_to_inbpe_srl(:)  ! inverse to nbprocs_srl_list
       type(nbinfo_srl_t), allocatable   :: srl(:)  ! list of the ipelist for each nbproc
+      type(nbinfo_buffer_t), allocatable :: srl_send(:)  ! double precision send data. One for each nb proc
+      type(nbinfo_buffer_t), allocatable :: srl_rcv(:)  ! double precision receive data
+      type(nbinfo_buffer_i_t), allocatable :: srl_info_send(:) ! info package send
+      type(nbinfo_buffer_i_t), allocatable :: srl_info_rcv(:) ! info package receive
     contains
       procedure, non_overridable :: add_ipe_to_srl_list
       procedure, non_overridable :: init
       procedure, non_overridable :: add_igrid_to_srl
+      procedure, non_overridable :: add_to_srl      
       procedure, non_overridable :: reset
    end type nbprocs_info_t
 
@@ -62,6 +83,26 @@ module mod_connectivity
    
    
  contains
+
+   subroutine alloc_buffer(self, isize)
+     class(nbinfo_buffer_t) :: self
+     integer, intent(in)    :: isize
+
+     if (allocated(self%buffer)) deallocate(self%buffer)
+
+     allocate(self%buffer(1:isize))
+     
+   end subroutine alloc_buffer
+   
+   subroutine alloc_buffer_info(self, isize)
+     class(nbinfo_buffer_i_t) :: self
+     integer, intent(in)    :: isize
+
+     if (allocated(self%buffer)) deallocate(self%buffer)
+
+     allocate(self%buffer(1:isize))
+     
+   end subroutine alloc_buffer_info
 
    subroutine expand_srl(self)
      class(nbinfo_srl_t) :: self
@@ -129,7 +170,16 @@ module mod_connectivity
         call self%srl(i)%init_srl(nigrids)
      end do
 
-   end subroutine init     
+   end subroutine init   
+
+   subroutine add_to_srl(self, ipe, igrid, i1, i2, i3)
+     class(nbprocs_info_t) :: self
+     integer, intent(in)   :: ipe, igrid, i1, i2, i3
+
+     call self%add_ipe_to_srl_list(ipe)
+     call self%add_igrid_to_srl(ipe, igrid, i1, i2, i3)
+     
+   end subroutine add_to_srl
 
    subroutine add_ipe_to_srl_list(self, ipe)
      class(nbprocs_info_t) :: self
@@ -169,5 +219,28 @@ module mod_connectivity
      self%srl(inbpe)%i3( self%srl(inbpe)%nigrids )    = i3
 
    end subroutine add_igrid_to_srl
-   
-end module mod_connectivity
+
+   subroutine alloc_buffers_srl(self, sizes_srl_send, sizes_srl_recv)
+     class(nbprocs_info_t)               :: self
+     integer, dimension(-1:1,-1:1,-1:1)  :: sizes_srl_send, sizes_srl_recv
+     integer                             :: inb
+
+     if (allocated(self%srl_send)) then
+        deallocate( self%srl_send, self%srl_rcv, self%srl_info_send, self%srl_info_rcv )
+     end if
+     
+     allocate( &
+          self%srl_send(1:self%nbprocs_srl), &
+          self%srl_rcv(1:self%nbprocs_srl), &
+          self%srl_info_send(1:self%nbprocs_srl), &
+          self%srl_info_rcv(1:self%nbprocs_srl) &
+          )
+     
+     do inb = 1, self%nbprocs_srl
+        call self%srl_send(inb)%alloc()
+        call self%srl_rcv(inb)%alloc()
+     end do
+     
+   end subroutine alloc_buffers_srl
+
+   end module mod_connectivity

@@ -24,9 +24,9 @@ f90_files := $(patsubst %.fpp, $(build_dir)/f90/%.f90, \
 
 define fypp_rule
 $(patsubst %.fpp, $(build_dir)/f90/%.f90, $(notdir $(1))): $(1)
-> @mkdir -p $$(@D)
-> @echo -e "Precompiling $(_magenta)$$(<:$(amrvac)/src/%=%)$(_reset)"
-> @fypp $(fypp_flags) $$<  $$@
+	 @mkdir -p $$(@D)
+	 @echo -e "Precompiling $(_magenta)$$(<:$(amrvac)/src/%=%)$(_reset)"
+	 @fypp $(fypp_flags) $$<  $$@
 endef
 
 $(foreach f, $(source_files), $(eval $(call fypp_rule, $(f))))

@@ -130,8 +130,7 @@ module mod_functions_connectivity
                 neighbor(1,i1,i2,i3,igrid)=my_neighbor%node%igrid
                 neighbor(2,i1,i2,i3,igrid)=my_neighbor%node%ipe
                 if (my_neighbor%node%ipe/=mype) then
-                   call nbprocs_info%add_ipe_to_srl_list(my_neighbor%node%ipe)
-                   call nbprocs_info%add_igrid_to_srl(my_neighbor%node%ipe, igrid, i1, i2, i3)
+                   call nbprocs_info%add_to_srl(my_neighbor%node%ipe, igrid, i1, i2, i3)
                    nrecv_bc_srl=nrecv_bc_srl+1
                    nsend_bc_srl=nsend_bc_srl+1
                    nbuff_bc_send_srl=nbuff_bc_send_srl+sizes_srl_send_total(i1,&
@@ -265,10 +264,19 @@ module mod_functions_connectivity
           end if
        end do
        end do
+    end do
+
+    ! Now all the neighbour information is known.
+    ! already fill the idphyb structure
+    do i3=-1,1
+       do i2=-1,1
+          do i1=-1,1
+             call identifyphysbound_connectivity(igrid, i1, i2, i3)
+          end do
        end do
-  
-       if(stagger_grid) then
-       !Now all the neighbour information is known.
+    end do
+
+             if(stagger_grid) then
        !Check if there are special corners that need to be communicated
        !To determine whether to send/receive, we must check three neighbours
         do i3=-1,1
@@ -370,6 +378,9 @@ module mod_functions_connectivity
        end if
   
     end do
+
+    ! allocate with new nbstructure
+    call nbprocs_info%alloc_buffers_srl(sendbuffer_srl_nb, isendbuffer_srl_nb, recvbuffer_srl_nb, irecvbuffer_srl_nb)
   
     ! allocate space for mpi recieve for siblings and restrict ghost cell filling
     nrecvs=nrecv_bc_srl+nrecv_bc_r
@@ -538,5 +549,42 @@ module mod_functions_connectivity
  !$acc update device(neighbor, neighbor_type, neighbor_pole, neighbor_child)
     
   end subroutine build_connectivity
+
+  subroutine identifyphysbound_connectivity(igrid)
+    use mod_global_parameters
+    integer, intent(in) :: igrid
+
+    if (neighbor_type(-1,0,0,igrid) == neighbor_boundary .and. neighbor_type(+1,0,0,igrid) == neighbor_boundary ) then
+       idphyb(1,igrid) = 2
+    else if (neighbor_type(-1,0,0,igrid) == neighbor_boundary) then
+       idphyb(1,igrid) = -1
+    else if (neighbor_type(+1,0,0,igrid) == neighbor_boundary) then
+       idphyb(1,igrid) = +1
+    else
+       idphyb(1,igrid) = 0
+    end if
+
+    if (neighbor_type(0,-1,0,igrid) == neighbor_boundary .and. neighbor_type(0,+1,0,igrid) == neighbor_boundary ) then
+       idphyb(2,igrid) = 2
+    else if (neighbor_type(0,-1,0,igrid) == neighbor_boundary) then
+       idphyb(2,igrid) = -1
+    else if (neighbor_type(0,+1,0,igrid) == neighbor_boundary) then
+       idphyb(2,igrid) = +1
+    else
+       idphyb(2,igrid) = 0
+    end if
+
+    if (neighbor_type(0,0,-1,igrid) == neighbor_boundary .and. neighbor_type(0,0,+1,igrid) == neighbor_boundary ) then
+       idphyb(3,igrid) = 2
+    else if (neighbor_type(0,0,-1,igrid) == neighbor_boundary) then
+       idphyb(3,igrid) = -1
+    else if (neighbor_type(0,0,+1,igrid) == neighbor_boundary) then
+       idphyb(3,igrid) = +1
+    else
+       idphyb(3,igrid) = 0
+    end if
+
+
+  end subroutine identifyphysbound_connectivity
 
 end module mod_functions_connectivity
