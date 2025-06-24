@@ -1,46 +1,9 @@
 version = 1
-revision = 1
+revision = 2
 requires-python = ">=3.13"
 
 [[package]]
-name = "colorama"
-version = "0.4.6"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/d8/53/6f443c9a4a8358a93a6792e2acffb9d9d5cb0a5cfd8802644b7b1c9a02e4/colorama-0.4.6.tar.gz", hash = "sha256:08695f5cb7ed6e0531a20572697297273c47b8cae5a63ffc6d6ed5c201be6e44", size = 27697 }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/d1/d6/3965ed04c63042e047cb6a3e6ed1a63a35087b6a609aa3a15ed8ac56c221/colorama-0.4.6-py2.py3-none-any.whl", hash = "sha256:4f1d9991f5acc0ca119f9d443620b77f9d6b33703e51011c16baf57afb285fc6", size = 25335 },
-]
-
-[[package]]
-name = "f90nml"
-version = "1.4.5"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/25/03/8e228b3df0bc9564e847c53f6d45f68aafce3eeea36d185463cb633b071d/f90nml-1.4.5.tar.gz", hash = "sha256:132ed8d72543e121de4f154fd7f0052f567401901ef9e8a0992f044b9d21c907", size = 60813 }
-
-[[package]]
-name = "fortdepend"
-version = "2.3.2"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "colorama" },
-    { name = "pcpp" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/b6/56/a87a4418a0c298e1a200e650986ea9743974128cf1a66ce97a429226775e/fortdepend-2.3.2.tar.gz", hash = "sha256:dfd165659315c284ecff4669e8b84471c6a1580cf42f165bdb3b837ecd6e105c", size = 24295 }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/9d/79/bd987e02b66bf75bffe481e745d63538cd347cd876ef17120e257ae413e4/fortdepend-2.3.2-py3-none-any.whl", hash = "sha256:43d77f22e3ab8096bb5c475cd1dbe8e72921521fa6b0565b9b04b7bf5d6a32be", size = 12858 },
-]
-
-[[package]]
-name = "fypp"
-version = "3.2"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/01/35/0e2dfffc90201f17436d3416f8d5c8b00e2187e410ec899bb62cf2cea59b/fypp-3.2.tar.gz", hash = "sha256:05c20f71dd9a7206ffe2d8688032723f97b8c2984d472ba045819d7d2b513bce", size = 69307 }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/cd/14/d06b92997e66c7766e1f163f2c117248156e497f00ce6cee46ccc71c8d88/fypp-3.2-py3-none-any.whl", hash = "sha256:ec9d6fd0e54529e7873732be642ea9098e06cc7a1cbe0eb7faee31be6c2267fa", size = 29170 },
-]
-
-[[package]]
-name = "migration"
+name = "amrvac"
 version = "0.1.0"
 source = { virtual = "." }
 dependencies = [
@@ -57,10 +20,47 @@ requires-dist = [
 ]
 
 [[package]]
+name = "colorama"
+version = "0.4.6"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/d8/53/6f443c9a4a8358a93a6792e2acffb9d9d5cb0a5cfd8802644b7b1c9a02e4/colorama-0.4.6.tar.gz", hash = "sha256:08695f5cb7ed6e0531a20572697297273c47b8cae5a63ffc6d6ed5c201be6e44", size = 27697, upload-time = "2022-10-25T02:36:22.414Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/d1/d6/3965ed04c63042e047cb6a3e6ed1a63a35087b6a609aa3a15ed8ac56c221/colorama-0.4.6-py2.py3-none-any.whl", hash = "sha256:4f1d9991f5acc0ca119f9d443620b77f9d6b33703e51011c16baf57afb285fc6", size = 25335, upload-time = "2022-10-25T02:36:20.889Z" },
+]
+
+[[package]]
+name = "f90nml"
+version = "1.4.5"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/25/03/8e228b3df0bc9564e847c53f6d45f68aafce3eeea36d185463cb633b071d/f90nml-1.4.5.tar.gz", hash = "sha256:132ed8d72543e121de4f154fd7f0052f567401901ef9e8a0992f044b9d21c907", size = 60813, upload-time = "2025-04-10T15:12:35.621Z" }
+
+[[package]]
+name = "fortdepend"
+version = "2.3.2"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "colorama" },
+    { name = "pcpp" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/b6/56/a87a4418a0c298e1a200e650986ea9743974128cf1a66ce97a429226775e/fortdepend-2.3.2.tar.gz", hash = "sha256:dfd165659315c284ecff4669e8b84471c6a1580cf42f165bdb3b837ecd6e105c", size = 24295, upload-time = "2023-07-05T09:39:16.929Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/9d/79/bd987e02b66bf75bffe481e745d63538cd347cd876ef17120e257ae413e4/fortdepend-2.3.2-py3-none-any.whl", hash = "sha256:43d77f22e3ab8096bb5c475cd1dbe8e72921521fa6b0565b9b04b7bf5d6a32be", size = 12858, upload-time = "2023-07-05T09:39:15.647Z" },
+]
+
+[[package]]
+name = "fypp"
+version = "3.2"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/01/35/0e2dfffc90201f17436d3416f8d5c8b00e2187e410ec899bb62cf2cea59b/fypp-3.2.tar.gz", hash = "sha256:05c20f71dd9a7206ffe2d8688032723f97b8c2984d472ba045819d7d2b513bce", size = 69307, upload-time = "2023-08-22T08:25:26.014Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/cd/14/d06b92997e66c7766e1f163f2c117248156e497f00ce6cee46ccc71c8d88/fypp-3.2-py3-none-any.whl", hash = "sha256:ec9d6fd0e54529e7873732be642ea9098e06cc7a1cbe0eb7faee31be6c2267fa", size = 29170, upload-time = "2023-08-22T08:25:24.144Z" },
+]
+
+[[package]]
 name = "pcpp"
 version = "1.30"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/41/07/876153f611f2c610bdb8f706a5ab560d888c938ea9ea65ed18c374a9014a/pcpp-1.30.tar.gz", hash = "sha256:5af9fbce55f136d7931ae915fae03c34030a3b36c496e72d9636cedc8e2543a1", size = 94283 }
+sdist = { url = "https://files.pythonhosted.org/packages/41/07/876153f611f2c610bdb8f706a5ab560d888c938ea9ea65ed18c374a9014a/pcpp-1.30.tar.gz", hash = "sha256:5af9fbce55f136d7931ae915fae03c34030a3b36c496e72d9636cedc8e2543a1", size = 94283, upload-time = "2021-10-29T13:16:54.565Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/01/ca/ada7f39c5a0977893e0ef809b1617b259b2d76f6382a7abad00dd6d77904/pcpp-1.30-py2.py3-none-any.whl", hash = "sha256:05fe08292b6da57f385001c891a87f40d6aa7f46787b03e8ba326d20a3297c6e", size = 91085 },
+    { url = "https://files.pythonhosted.org/packages/01/ca/ada7f39c5a0977893e0ef809b1617b259b2d76f6382a7abad00dd6d77904/pcpp-1.30-py2.py3-none-any.whl", hash = "sha256:05fe08292b6da57f385001c891a87f40d6aa7f46787b03e8ba326d20a3297c6e", size = 91085, upload-time = "2021-10-29T13:16:51.846Z" },
 ]

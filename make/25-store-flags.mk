@@ -10,19 +10,19 @@
 all: $(build_dir)/flags.mk $(build_dir)/config.mk
 
 $(build_dir)/flags.mk:
-> @mkdir -p $(@D)
-> @echo "" > $@
+	@mkdir -p $(@D)
+	@echo "" > $@
 ifdef DEBUG
-> @echo "DEBUG ?= $(DEBUG)" >> $@
+	@echo "DEBUG ?= $(DEBUG)" >> $@
 endif
 ifdef OPENMP
-> @echo "OPENMP ?= $(OPENMP)" >> $@
+	@echo "OPENMP ?= $(OPENMP)" >> $@
 endif
 ifdef OPENACC
-> @echo "OPENACC ?= $(OPENACC)" >> $@
+	@echo "OPENACC ?= $(OPENACC)" >> $@
 endif
 
 $(build_dir)/config.mk: config.mk
-> @mkdir -p $(@D)
-> @cp $< $@
+	@mkdir -p $(@D)
+	@cp $< $@
 
