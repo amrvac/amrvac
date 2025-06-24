@@ -1,5 +1,3 @@
-.RECIPEPREFIX = >
-
 _red := "\\e[31m"
 _green := "\\e[32m"
 _yellow := "\\e[33m"

@@ -14,5 +14,5 @@ endif
 .PHONY: help
 
 help:
-> less $(amrvac)/make/README.md
+	less $(amrvac)/make/README.md
 

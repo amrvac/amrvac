@@ -15,8 +15,8 @@
 # simulation logs.
 
 config.mk: amrvac.par
-> @echo -e "Generating $(_magenta)amrvac.par$(_reset) -> $(_blue)config.mk$(_reset)"
-> @python $(amrvac)/make/config_reader.py < $< > $@
+	@echo -e "Generating $(_magenta)amrvac.par$(_reset) -> $(_blue)config.mk$(_reset)"
+	@python $(amrvac)/make/config_reader.py < $< > $@
 
 include config.mk
 
