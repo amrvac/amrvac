@@ -2,16 +2,16 @@
 
  &filelist
    base_filename    = 'output/kh3d'
-   autoconvert      = T
+   autoconvert      = F
    convert_type     = 'vtuBCCmpi'
    saveprim         = T
  /
 
  &savelist
    itsave(1,1)      = 0
-   itsave(1,2)      = 0
-   ditsave_log      = 100
-   ditsave_dat      = 100
+!   itsave(1,2)      = 0
+   ditsave_log      = 10
+!   ditsave_dat      = 100
 
  /
 
@@ -37,14 +37,14 @@
  /
 
  &meshlist
-   max_blocks         = 512
+   max_blocks         = 51200
    refine_max_level   = 1
    block_nx1          = 16
    block_nx2          = 16
    block_nx3          = 16
-   domain_nx1         = 128
-   domain_nx2         = 128
-   domain_nx3         = 128
+   domain_nx1         = 1024
+   domain_nx2         = 1024
+   domain_nx3         = 800
    xprobmin1       = 0.0d0
    xprobmax1       = 1.0d0
    xprobmin2       = 0.0d0

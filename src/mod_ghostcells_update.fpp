@@ -1315,18 +1315,18 @@ contains
     
     ! MPI receive SRL
     do inb = 1, nbprocs_info%nbprocs_srl
-       !$acc host_data use_device(nbprocs_info%srl_rcv(inb)%buffer, nbprocs_info%srl_info_rcv(inb)%buffer)
+!       !$acc host_data use_device(nbprocs_info%srl_rcv(inb)%buffer, nbprocs_info%srl_info_rcv(inb)%buffer)
        call MPI_IRECV(nbprocs_info%srl_rcv(inb)%buffer, &
             size(nbprocs_info%srl_rcv(inb)%buffer), &
             MPI_DOUBLE_PRECISION, nbprocs_info%nbprocs_srl_list(inb), 1, icomm, recv_srl_nb(inb), ierrmpi)
        call MPI_IRECV(nbprocs_info%srl_info_rcv(inb)%buffer, &
             size(nbprocs_info%srl_info_rcv(inb)%buffer), &
             MPI_INTEGER, nbprocs_info%nbprocs_srl_list(inb), 2, icomm, recv_srl_nb(nbprocs_info%nbprocs_srl + inb), ierrmpi)
-       !$acc end host_data
+!       !$acc end host_data
     end do
 
     ! fill the SRL send buffers on GPU
-    !$acc parallel loop 
+    !$acc parallel loop private(ibuf_start, ibuf_info_start)
     do inb = 1, nbprocs_info%nbprocs_srl
 
        ibuf_start=1; ibuf_info_start=1
@@ -1346,7 +1346,6 @@ contains
           Nx1=ixSmax1-ixSmin1+1; Nx2=ixSmax2-ixSmin2+1; Nx3=ixSmax3-ixSmin3+1
           
           ibuf_next = ibuf_start + nbprocs_info%srl(inb)%isize(i)
-          ! manually reshape as that is not supported on the GPU
           !$acc loop collapse(4) vector independent
           do iw = nwhead, nwtail
              do ix3 = ixSmin3, ixSmax3
@@ -1365,6 +1364,8 @@ contains
           end do
           ibuf_start = ibuf_next
 
+!          print *, 'sending', neighbor(1,i1,i2,i3,igrid), -i1, -i2, -i3
+          
           ibuf_info_next = ibuf_info_start + 4
           nbprocs_info%srl_info_send(inb)%buffer(ibuf_info_start:ibuf_info_next-1) = &
                [neighbor(1,i1,i2,i3,igrid), -i1, -i2, -i3]
@@ -1372,30 +1373,32 @@ contains
        end do
     end do
 
+    do inb = 1, nbprocs_info%nbprocs_srl
+       !$acc update host(nbprocs_info%srl_info_send(inb)%buffer)
+       !$acc update host(nbprocs_info%srl_send(inb)%buffer)
+    end do
+       
     ! MPI send SRL
     do inb = 1, nbprocs_info%nbprocs_srl
-       !$acc host_data use_device(nbprocs_info%srl_send(inb)%buffer, nbprocs_info%srl_info_send(inb)%buffer)
+!       !$acc host_data use_device(nbprocs_info%srl_send(inb)%buffer, nbprocs_info%srl_info_send(inb)%buffer)
        call MPI_ISEND(nbprocs_info%srl_send(inb)%buffer, &
             size(nbprocs_info%srl_send(inb)%buffer), &
             MPI_DOUBLE_PRECISION, nbprocs_info%nbprocs_srl_list(inb), 1, icomm, send_srl_nb(inb), ierrmpi)
        call MPI_ISEND(nbprocs_info%srl_info_send(inb)%buffer, &
             size(nbprocs_info%srl_info_send(inb)%buffer), &
             MPI_INTEGER, nbprocs_info%nbprocs_srl_list(inb), 2, icomm, send_srl_nb(nbprocs_info%nbprocs_srl + inb), ierrmpi)
-       !$acc end host_data
+!       !$acc end host_data
     end do
 
     ! fill ghost-cell values of sibling blocks and coarser neighbors in the same processor
     !$OMP PARALLEL DO SCHEDULE(dynamic) PRIVATE(igrid,iib1,iib2,iib3)
      !$acc parallel loop default(present) copyin(idphyb,ixS_srl_min1,ixS_srl_min2,ixS_srl_min3,ixS_srl_max1,ixS_srl_max2,ixS_srl_max3,ixR_srl_min1,ixR_srl_min2,ixR_srl_min3,ixR_srl_max1,ixR_srl_max2,ixR_srl_max3) private(igrid,iib1,iib2,iib3,ineighbor,n_i1,n_i2,n_i3,ixSmin1,ixSmin2,ixSmin3,ixSmax1,ixSmax2,ixSmax3,ixRmin1,ixRmin2,ixRmin3,ixRmax1,ixRmax2,ixRmax3,iw,ix1,ix2,ix3) firstprivate(nwhead,nwtail)
-    do iigrid=1,igridstail; igrid=igrids(iigrid);
-       iib1=idphyb(1,igrid);iib2=idphyb(2,igrid);iib3=idphyb(3,igrid);
+    do iigrid=1,igridstail; igrid=igrids(iigrid)
+       iib1=idphyb(1,igrid); iib2=idphyb(2,igrid); iib3=idphyb(3,igrid);
        !$acc loop seq
        do i3=-1,1
           do i2=-1,1
              do i1=-1,1
-                ! next line is inlined version of skip_direction
-                if ((all([ i1,i2,i3 ] == 0)) .or. (.not. req_diagonal .and. count([ &
-                     i1,i2,i3 ] /= 0) > 1)) cycle
                 select case (neighbor_type(i1,i2,i3,igrid))
                 case(neighbor_sibling)
                    call bc_fill_srl(psb,igrid,nwhead,nwtail,i1,i2,i3,iib1,iib2,iib3)
@@ -1411,12 +1414,17 @@ contains
     call MPI_WAITALL(nbprocs_info%nbprocs_srl*2, recv_srl_nb, recvstatus_srl_nb, ierrmpi)
     call MPI_WAITALL(nbprocs_info%nbprocs_srl*2, send_srl_nb, sendstatus_srl_nb, ierrmpi)
 
+    do inb = 1, nbprocs_info%nbprocs_srl
+       !$acc update device(nbprocs_info%srl_info_rcv(inb)%buffer)
+       !$acc update device(nbprocs_info%srl_rcv(inb)%buffer)
+    end do
+    
     ! unpack the MPI buffers
-    !$acc parallel loop
+    !$acc parallel loop private(ibuf_start, ibuf_info_start)
     do inb = 1, nbprocs_info%nbprocs_srl
        ibuf_start=1; ibuf_info_start=1
        ! go through igrids with srl relation for each neighbor process
-       !$acc loop seq
+       !$acc loop seq private(itmp)
        do i = 1, nbprocs_info%srl(inb)%nigrids
 
           ibuf_info_next = ibuf_info_start + 4
@@ -1424,6 +1432,8 @@ contains
           ibuf_info_start = ibuf_info_next
 
           igrid = itmp(1); i1 = itmp(2); i2 = itmp(3); i3 = itmp(4)
+
+!          print *, 'received:', igrid, i1, i2, i3
           
           iib1 = idphyb(1,igrid); iib2 = idphyb(2,igrid); iib3 = idphyb(3,igrid)
 
@@ -1433,7 +1443,7 @@ contains
           Nx1=ixRmax1-ixRmin1+1; Nx2=ixRmax2-ixRmin2+1; Nx3=ixRmax3-ixRmin3+1
           
           ibuf_next = ibuf_start + Nx1 * Nx2 * Nx3 * nwbc
-          ! manually reshape as that is not supported on the GPU
+
           !$acc loop collapse(4) vector independent
           do iw = nwhead, nwtail
              do ix3 = ixRmin3, ixRmax3
