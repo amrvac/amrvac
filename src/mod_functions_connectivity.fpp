@@ -382,7 +382,18 @@ module mod_functions_connectivity
          ixR_srl_min1, ixR_srl_max1, &
          ixR_srl_min2, ixR_srl_max2, &
          ixR_srl_min3, ixR_srl_max3 &
-              )
+         )
+
+    ! allocate nbstructure srl requests and status
+    if (allocated(recvstatus_srl_nb)) then
+       deallocate(recv_srl_nb, recvstatus_srl_nb)
+    end if
+    allocate(recv_srl_nb(nbprocs_info%nbprocs_srl*2), recvstatus_srl_nb(MPI_STATUS_SIZE,nbprocs_info%nbprocs_srl*2))
+    
+    if (allocated(sendstatus_srl_nb)) then
+       deallocate(send_srl_nb, sendstatus_srl_nb)
+    end if
+    allocate(send_srl_nb(nbprocs_info%nbprocs_srl*2), sendstatus_srl_nb(MPI_STATUS_SIZE,nbprocs_info%nbprocs_srl*2))
   
     ! allocate space for mpi recieve for siblings and restrict ghost cell filling
     nrecvs=nrecv_bc_srl+nrecv_bc_r

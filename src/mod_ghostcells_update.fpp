@@ -91,6 +91,10 @@ module mod_ghostcells_update
   ! sizes of buffer arrays for center-grid variable for siblings and restrict
   integer, dimension(:), allocatable :: recvrequest_c_sr, sendrequest_c_sr
   integer, dimension(:,:), allocatable :: recvstatus_c_sr, sendstatus_c_sr
+  
+  ! MPI requests and status for srl neighbor exchange, used with nprocs_info
+  integer, dimension(:), allocatable :: recv_srl_nb, send_srl_nb
+  integer, dimension(:,:), allocatable :: recvstatus_srl_nb, sendstatus_srl_nb
 
   ! sizes of buffer arrays for center-grid variable for prolongation
   integer, dimension(:), allocatable :: recvrequest_c_p, sendrequest_c_p
@@ -152,6 +156,7 @@ module mod_ghostcells_update
        type_send_r
   integer, dimension(:,:,:,:,:,:), pointer :: type_recv_r, type_send_p,&
        type_recv_p
+
 
 contains
 
@@ -1230,13 +1235,15 @@ contains
 !    integer :: idphyb(ndim,max_blocks)
     integer :: isend_buf(npwbuf), ipwbuf, nghostcellsco
     ! index pointer for buffer arrays as a start for a segment
-    integer :: ibuf_start, ibuf_next
+    integer :: ibuf_start, ibuf_next, ibuf_info_start, ibuf_info_next
     ! shapes of reshape
     integer, dimension(1) :: shapes
     logical  :: req_diagonal, update
     type(wbuffer) :: pwbuf(npwbuf)
 
-    integer :: ix1,ix2,ix3, iw, inb, i
+    integer :: ix1,ix2,ix3, iw, inb, i, isize
+    
+    integer :: itmp(4)
 
     time_bcin=MPI_WTIME()
 
@@ -1305,99 +1312,63 @@ contains
        isend_r=0
        isend_p=0
     end if
-
-!    do iigrid=1,igridstail; igrid=igrids(iigrid);
-!       call identifyphysbound(ps(igrid),iib1,iib2,iib3)
-!       idphyb(1,igrid)=iib1;idphyb(2,igrid)=iib2;idphyb(3,igrid)=iib3;
-!    end do
     
-    ! MPI receive ghost-cell values from sibling blocks and finer neighbors in different processors
-    ! go through the neighbors:
+    ! MPI receive SRL
     do inb = 1, nbprocs_info%nbprocs_srl
+       !$acc host_data use_device(nbprocs_info%srl_rcv(inb)%buffer, nbprocs_info%srl_info_rcv(inb)%buffer)
+       call MPI_IRECV(nbprocs_info%srl_rcv(inb)%buffer, &
+            size(nbprocs_info%srl_rcv(inb)%buffer), &
+            MPI_DOUBLE_PRECISION, nbprocs_info%nbprocs_srl_list(inb), 1, icomm, recv_srl_nb(inb), ierrmpi)
+       call MPI_IRECV(nbprocs_info%srl_info_rcv(inb)%buffer, &
+            size(nbprocs_info%srl_info_rcv(inb)%buffer), &
+            MPI_INTEGER, nbprocs_info%nbprocs_srl_list(inb), 2, icomm, recv_srl_nb(nbprocs_info%nbprocs_srl + inb), ierrmpi)
+       !$acc end host_data
+    end do
+
+    ! fill the SRL send buffers on GPU
+    !$acc parallel loop 
+    do inb = 1, nbprocs_info%nbprocs_srl
+
+       ibuf_start=1; ibuf_info_start=1
        ! go through igrids with srl relation for each neighbor process
        do i = 1, nbprocs_info%srl(inb)%nigrids
           igrid = nbprocs_info%srl(inb)%igrid(i)
           i1 = nbprocs_info%srl(inb)%i1(i)
           i2 = nbprocs_info%srl(inb)%i2(i)
           i3 = nbprocs_info%srl(inb)%i3(i)
-
-          if (skip_direction([ i1,i2,i3 ])) cycle
-          iib1=idphyb(1,igrid);iib2=idphyb(2,igrid);iib3=idphyb(3,igrid);
-
-!          select case (neighbor_type(i1,i2,i3,igrid))
-!          case (neighbor_sibling)
-             call bc_recv_srl
-!          case (neighbor_fine) ! will get a similar loop only over the fine neighbors in nbprocs_info structure
-!             call bc_recv_restrict
-!          end select
-       end do
-    end do
-
-#ifdef _OPENACC
-    ! update blocks on host prior to MPI send
-    do iigrid=1,igridstail; igrid=igrids(iigrid);
-       update = .false.
-       do i3=-1,1
-          do i2=-1,1
-             do i1=-1,1
-                if (skip_direction([ i1,i2,i3 ])) cycle
-                if (neighbor(2,i1,i2,i3,igrid) /= mype) then
-                   update = .true.
-                end if
-             end do
-          end do
-       end do
-       if (update) then
-          !$acc update host(psb(igrid)%w)
-       end if
-    end do
-#endif
-    
-    ! MPI send ghost-cell values to sibling blocks and coarser neighbors in different processors
-    ! go through the neighbors:
-    do inb = 1, nbprocs_info%nbprocs_srl
-       ! go through igrids with srl relation for each neighbor process
-       do i = 1, nbprocs_info%srl(inb)%nigrids
-          igrid = nbprocs_info%srl(inb)%igrid(i)
-          i1 = nbprocs_info%srl(inb)%i1(i)
-          i2 = nbprocs_info%srl(inb)%i2(i)
-          i3 = nbprocs_info%srl(inb)%i3(i)
-
-          if (skip_direction([ i1,i2,i3 ])) cycle
-          iib1=idphyb(1,igrid);iib2=idphyb(2,igrid);iib3=idphyb(3,igrid);
+          iib1=idphyb(1,igrid); iib2=idphyb(2,igrid); iib3=idphyb(3,igrid)
           
-!          select case (neighbor_type(i1,i2,i3,igrid))
-!          case (neighbor_sibling)
-             call bc_send_srl
-!          case (neighbor_coarse) ! will get a similar loop only over the fine neighbors in nbprocs_info structure
-!             call bc_send_restrict
-!          end select
+          ! now fill the data and info buffers
+          ibuf_next = ibuf_start + nbprocs_info%srl(inb)%isize(i)
+          shapes = [nbprocs_info%srl(inb)%isize(i)]
+          nbprocs_info%srl_send(inb)%buffer(ibuf_start:ibuf_next-1) = &
+               reshape(psb(igrid)%w( &
+               ixS_srl_min1(iib1,i1):ixS_srl_max1(iib1,i1), &
+               ixS_srl_min2(iib2,i2):ixS_srl_max2(iib2,i2), &
+               ixS_srl_min3(iib3,i3):ixS_srl_max3(iib3,i3), &
+               nwhead:nwtail), &
+               shapes )
+          ibuf_start = ibuf_next
+
+          ibuf_info_next = ibuf_info_start + 4
+          nbprocs_info%srl_info_send(inb)%buffer(ibuf_info_start:ibuf_info_next-1) = &
+               [neighbor(1,i1,i2,i3,igrid), -i1, -i2, -i3]
+          ibuf_info_start = ibuf_info_next
        end do
     end do
 
-    call MPI_WAITALL(irecv_c,recvrequest_c_sr,recvstatus_c_sr,ierrmpi)
-    call MPI_WAITALL(isend_c,sendrequest_c_sr,sendstatus_c_sr,ierrmpi)
-
-#ifdef _OPENACC    
-    ! update blocks on device after MPI comm    
-    do iigrid=1,igridstail; igrid=igrids(iigrid);
-       update = .false.
-       do i3=-1,1
-          do i2=-1,1
-             do i1=-1,1
-                if (skip_direction([ i1,i2,i3 ])) cycle
-                if (neighbor(2,i1,i2,i3,igrid) /= mype) then
-                   update = .true.
-                end if
-             end do
-          end do
-       end do
-       if (update) then
-          !$acc update device(psb(igrid)%w)
-       end if
+    ! MPI send SRL
+    do inb = 1, nbprocs_info%nbprocs_srl
+       !$acc host_data use_device(nbprocs_info%srl_send(inb)%buffer, nbprocs_info%srl_info_send(inb)%buffer)
+       call MPI_ISEND(nbprocs_info%srl_send(inb)%buffer, &
+            size(nbprocs_info%srl_send(inb)%buffer), &
+            MPI_DOUBLE_PRECISION, nbprocs_info%nbprocs_srl_list(inb), 1, icomm, send_srl_nb(inb), ierrmpi)
+       call MPI_ISEND(nbprocs_info%srl_info_send(inb)%buffer, &
+            size(nbprocs_info%srl_info_send(inb)%buffer), &
+            MPI_INTEGER, nbprocs_info%nbprocs_srl_list(inb), 2, icomm, send_srl_nb(nbprocs_info%nbprocs_srl + inb), ierrmpi)
+       !$acc end host_data
     end do
-#endif
-    
+
     ! fill ghost-cell values of sibling blocks and coarser neighbors in the same processor
     !$OMP PARALLEL DO SCHEDULE(dynamic) PRIVATE(igrid,iib1,iib2,iib3)
      !$acc parallel loop default(present) copyin(idphyb,ixS_srl_min1,ixS_srl_min2,ixS_srl_min3,ixS_srl_max1,ixS_srl_max2,ixS_srl_max3,ixR_srl_min1,ixR_srl_min2,ixR_srl_min3,ixR_srl_max1,ixR_srl_max2,ixR_srl_max3) private(igrid,iib1,iib2,iib3,ineighbor,n_i1,n_i2,n_i3,ixSmin1,ixSmin2,ixSmin3,ixSmax1,ixSmax2,ixSmax3,ixRmin1,ixRmin2,ixRmin3,ixRmax1,ixRmax2,ixRmax3,iw,ix1,ix2,ix3) firstprivate(nwhead,nwtail)
@@ -1421,6 +1392,54 @@ contains
        end do
     end do
     !$OMP END PARALLEL DO
+
+    call MPI_WAITALL(nbprocs_info%nbprocs_srl*2, recv_srl_nb, recvstatus_srl_nb, ierrmpi)
+    call MPI_WAITALL(nbprocs_info%nbprocs_srl*2, send_srl_nb, sendstatus_srl_nb, ierrmpi)
+
+    ! unpack the MPI buffers
+    ! go through the neighbors:
+    !$acc parallel loop
+    do inb = 1, nbprocs_info%nbprocs_srl
+       ibuf_start=1; ibuf_info_start=1
+       ! go through igrids with srl relation for each neighbor process
+       do i = 1, nbprocs_info%srl(inb)%nigrids
+
+          ibuf_info_next = ibuf_info_start + 4
+          itmp = nbprocs_info%srl_info_rcv(inb)%buffer(ibuf_info_start : ibuf_info_next - 1)
+          ibuf_info_start = ibuf_info_next
+
+          igrid = itmp(1); i1 = itmp(2); i2 = itmp(3); i3 = itmp(4)
+          
+          iib1 = idphyb(1,igrid);  iib2 = idphyb(2,igrid);  iib3 = idphyb(3,igrid)
+
+          ixRmin1=ixR_srl_min1(iib1,i1); ixRmin2=ixR_srl_min2(iib2,i2)
+          ixRmin3=ixR_srl_min3(iib3,i3); ixRmax1=ixR_srl_max1(iib1,i1)
+          ixRmax2=ixR_srl_max2(iib2,i2); ixRmax3=ixR_srl_max3(iib3,i3)
+          isize = (ixRmax1-ixRmin1+1) * (ixRmax2-ixRmin2+1) * (ixRmax3-ixRmin3+1) * nwbc
+
+          ibuf_next = ibuf_start + isize
+          ! next line is inlined version of skip_direction
+          if (.not. ((all([ i1,i2,i3 ] == 0)) .or. (.not. req_diagonal .and. count([ &
+               i1,i2,i3 ] /= 0) > 1))) then
+
+             psb(igrid)%w( &
+                  ixRmin1:ixRmax1, &
+                  ixRmin2:ixRmax2, &
+                  ixRmin3:ixRmax3, &
+                  nwhead:nwtail) &
+                  = &
+                  reshape(source=nbprocs_info%srl_rcv(inb)%buffer(ibuf_start:ibuf_next-1), &
+                  shape=shape(psb(igrid)%w( &
+                  ixRmin1:ixRmax1, &
+                  ixRmin2:ixRmax2, &
+                  ixRmin3:ixRmax3, &
+                  nwhead:nwtail)) &
+                  )
+          end if
+          ibuf_start = ibuf_next
+
+       end do
+    end do
     
     if(stagger_grid) then
        call MPI_WAITALL(nrecv_bc_srl,recvrequest_srl,recvstatus_srl,ierrmpi)

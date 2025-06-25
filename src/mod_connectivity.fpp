@@ -39,7 +39,7 @@ module mod_connectivity
    type nbinfo_srl_t
       integer                            :: nigrids=0
       integer                            :: iexpand=4   ! realloc with iexpand bigger arrays
-      integer, allocatable, dimension(:) :: igrid, i1, i2, i3
+      integer, allocatable, dimension(:) :: igrid, i1, i2, i3, isize
     contains
       procedure, non_overridable         :: init => init_srl
       procedure, non_overridable         :: expand => expand_srl
@@ -122,6 +122,7 @@ module mod_connectivity
      self%i1(1:size_old)      = tmp%i1
      self%i2(1:size_old)      = tmp%i2
      self%i3(1:size_old)      = tmp%i3
+     self%isize(1:size_old)   = tmp%isize
 
    end subroutine expand_srl
 
@@ -130,9 +131,9 @@ module mod_connectivity
      integer, intent(in)   :: nigrids
 
      if ( allocated(self%igrid) ) then
-        deallocate(self%igrid, self%i1, self%i2, self%i3)
+        deallocate(self%igrid, self%i1, self%i2, self%i3, self%isize)
      end if
-     allocate(self%igrid(nigrids), self%i1(nigrids), self%i2(nigrids), self%i3(nigrids))
+     allocate(self%igrid(nigrids), self%i1(nigrids), self%i2(nigrids), self%i3(nigrids), self%isize(nigrids))
 
    end subroutine init_srl
 
@@ -276,6 +277,8 @@ module mod_connectivity
 
            isize_S = isize_S + (ixSmax1-ixSmin1+1) * (ixSmax2-ixSmin2+1) * (ixSmax3-ixSmin3+1)
            isize_R = isize_R + (ixRmax1-ixRmin1+1) * (ixRmax2-ixRmin2+1) * (ixRmax3-ixRmin3+1)
+
+           self%srl(inb)%isize(igrid) = (ixSmax1-ixSmin1+1) * (ixSmax2-ixSmin2+1) * (ixSmax3-ixSmin3+1) * nwgc
 
         end do
         call self%srl_send(inb)%alloc(isize_S*nwgc)
