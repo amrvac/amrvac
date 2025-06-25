@@ -1241,7 +1241,7 @@ contains
     logical  :: req_diagonal, update
     type(wbuffer) :: pwbuf(npwbuf)
 
-    integer :: ix1,ix2,ix3, iw, inb, i, isize, Nx1, Nx2, Nx3
+    integer :: ix1,ix2,ix3, iw, inb, i, Nx1, Nx2, Nx3
     
     integer :: itmp(4)
 
@@ -1340,11 +1340,13 @@ contains
           iib1=idphyb(1,igrid); iib2=idphyb(2,igrid); iib3=idphyb(3,igrid)
           
           ! now fill the data and info buffers
+          ixSmin1=ixS_srl_min1(iib1,i1); ixSmax1=ixS_srl_max1(iib1,i1)
+          ixSmin2=ixS_srl_min2(iib2,i2); ixSmax2=ixS_srl_max2(iib2,i2)
+          ixSmin3=ixS_srl_min3(iib3,i3); ixSmax3=ixS_srl_max3(iib3,i3)
+          Nx1=ixSmax1-ixSmin1+1; Nx2=ixSmax2-ixSmin2+1; Nx3=ixSmax3-ixSmin3+1
+          
           ibuf_next = ibuf_start + nbprocs_info%srl(inb)%isize(i)
           ! manually reshape as that is not supported on the GPU
-          ixSmin1=ixS_srl_min1(iib1,i1); ixSmax1=ixS_srl_max1(iib1,i1); Nx1=ixSmax1-ixSmin1+1
-          ixSmin2=ixS_srl_min2(iib2,i2); ixSmax2=ixS_srl_max2(iib2,i2); Nx2=ixSmax2-ixSmin2+1
-          ixSmin3=ixS_srl_min3(iib3,i3); ixSmax3=ixS_srl_max3(iib3,i3); Nx3=ixSmax3-ixSmin3+1
           !$acc loop collapse(4) vector independent
           do iw = nwhead, nwtail
              do ix3 = ixSmin3, ixSmax3
@@ -1425,13 +1427,12 @@ contains
           
           iib1 = idphyb(1,igrid); iib2 = idphyb(2,igrid); iib3 = idphyb(3,igrid)
 
-          ixRmin1=ixR_srl_min1(iib1,i1); ixRmin2=ixR_srl_min2(iib2,i2); Nx1=ixRmax1-ixRmin1+1
-          ixRmin3=ixR_srl_min3(iib3,i3); ixRmax1=ixR_srl_max1(iib1,i1); Nx2=ixRmax2-ixRmin2+1
-          ixRmax2=ixR_srl_max2(iib2,i2); ixRmax3=ixR_srl_max3(iib3,i3); Nx3=ixRmax3-ixRmin3+1
-          isize = Nx1 * Nx2 * Nx3 * nwbc
-
-          ibuf_next = ibuf_start + isize
-
+          ixRmin1=ixR_srl_min1(iib1,i1); ixRmin2=ixR_srl_min2(iib2,i2) 
+          ixRmin3=ixR_srl_min3(iib3,i3); ixRmax1=ixR_srl_max1(iib1,i1) 
+          ixRmax2=ixR_srl_max2(iib2,i2); ixRmax3=ixR_srl_max3(iib3,i3)
+          Nx1=ixRmax1-ixRmin1+1; Nx2=ixRmax2-ixRmin2+1; Nx3=ixRmax3-ixRmin3+1
+          
+          ibuf_next = ibuf_start + Nx1 * Nx2 * Nx3 * nwbc
           ! manually reshape as that is not supported on the GPU
           !$acc loop collapse(4) vector independent
           do iw = nwhead, nwtail
@@ -1450,7 +1451,6 @@ contains
                 end do
              end do
           end do
-
           ibuf_start = ibuf_next
 
        end do
