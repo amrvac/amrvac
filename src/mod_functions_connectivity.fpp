@@ -562,15 +562,16 @@ module mod_functions_connectivity
     !$acc update device(neighbor, neighbor_type, neighbor_pole, neighbor_child, idphyb, nbprocs_info)
     !assuming cray already does deepcopy
 #ifndef _CRAYFTN
+    !$acc enter data copyin(nbprocs_info%srl_rcv, nbprocs_info%srl_send, nbprocs_info%srl, nbprocs_info%srl_info_rcv, nbprocs_info%srl_info_send)
     do ipe_neighbor = 1, nbprocs_info%nbprocs_srl
-       !$acc update device(nbprocs_info%srl_rcv(ipe_neighbor)%buffer, nbprocs_info%srl_info_rcv(ipe_neighbor)%buffer)
-       !$acc update device(nbprocs_info%srl_send(ipe_neighbor)%buffer, nbprocs_info%srl_info_send(ipe_neighbor)%buffer)
-       !$acc update device(nbprocs_info%srl(ipe_neighbor)%igrid)
-       !$acc update device(nbprocs_info%srl(ipe_neighbor)%i1)
-       !$acc update device(nbprocs_info%srl(ipe_neighbor)%i2)
-       !$acc update device(nbprocs_info%srl(ipe_neighbor)%i3)
-       !$acc update device(nbprocs_info%srl(ipe_neighbor)%isize)
-       !$acc update device(nbprocs_info%srl(ipe_neighbor)%nigrids)
+       !$acc enter data copyin(nbprocs_info%srl_rcv(ipe_neighbor)%buffer, nbprocs_info%srl_info_rcv(ipe_neighbor)%buffer)
+       !$acc enter data copyin(nbprocs_info%srl_send(ipe_neighbor)%buffer, nbprocs_info%srl_info_send(ipe_neighbor)%buffer)
+       !$acc enter data copyin(nbprocs_info%srl(ipe_neighbor)%igrid)
+       !$acc enter data copyin(nbprocs_info%srl(ipe_neighbor)%i1)
+       !$acc enter data copyin(nbprocs_info%srl(ipe_neighbor)%i2)
+       !$acc enter data copyin(nbprocs_info%srl(ipe_neighbor)%i3)
+       !$acc enter data copyin(nbprocs_info%srl(ipe_neighbor)%isize)
+       !$acc enter data copyin(nbprocs_info%srl(ipe_neighbor)%nigrids)
     end do
 #endif    
 
