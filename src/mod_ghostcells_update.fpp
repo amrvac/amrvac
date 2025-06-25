@@ -1241,7 +1241,7 @@ contains
     logical  :: req_diagonal, update
     type(wbuffer) :: pwbuf(npwbuf)
 
-    integer :: ix1,ix2,ix3, iw, inb, i, isize
+    integer :: ix1,ix2,ix3, iw, inb, i, isize, Nx1, Nx2, Nx3
     
     integer :: itmp(4)
 
@@ -1331,6 +1331,7 @@ contains
 
        ibuf_start=1; ibuf_info_start=1
        ! go through igrids with srl relation for each neighbor process
+       !$acc loop seq
        do i = 1, nbprocs_info%srl(inb)%nigrids
           igrid = nbprocs_info%srl(inb)%igrid(i)
           i1 = nbprocs_info%srl(inb)%i1(i)
@@ -1340,14 +1341,26 @@ contains
           
           ! now fill the data and info buffers
           ibuf_next = ibuf_start + nbprocs_info%srl(inb)%isize(i)
-          shapes = [nbprocs_info%srl(inb)%isize(i)]
-          nbprocs_info%srl_send(inb)%buffer(ibuf_start:ibuf_next-1) = &
-               reshape(psb(igrid)%w( &
-               ixS_srl_min1(iib1,i1):ixS_srl_max1(iib1,i1), &
-               ixS_srl_min2(iib2,i2):ixS_srl_max2(iib2,i2), &
-               ixS_srl_min3(iib3,i3):ixS_srl_max3(iib3,i3), &
-               nwhead:nwtail), &
-               shapes )
+          ! manually reshape as that is not supported on the GPU
+          ixSmin1=ixS_srl_min1(iib1,i1); ixSmax1=ixS_srl_max1(iib1,i1); Nx1=ixSmax1-ixSmin1+1
+          ixSmin2=ixS_srl_min2(iib2,i2); ixSmax2=ixS_srl_max2(iib2,i2); Nx2=ixSmax2-ixSmin2+1
+          ixSmin3=ixS_srl_min3(iib3,i3); ixSmax3=ixS_srl_max3(iib3,i3); Nx3=ixSmax3-ixSmin3+1
+          !$acc loop collapse(4) vector independent
+          do iw = nwhead, nwtail
+             do ix3 = ixSmin3, ixSmax3
+                do ix2 = ixSmin2, ixSmax2
+                   do ix1 = ixSmin1, ixSmax1
+                      nbprocs_info%srl_send(inb)%buffer( &
+                           ibuf_start &
+                           + (ix1-ixSmin1) &
+                           + Nx1 * (ix2-ixSmin2) &
+                           + Nx1*Nx2 * (ix3-ixSmin3) &
+                           + Nx1*Nx2*Nx3 * (iw-nwhead) &
+                           ) = psb(igrid)%w( ix1, ix2, ix3, iw )
+                   end do
+                end do
+             end do
+          end do
           ibuf_start = ibuf_next
 
           ibuf_info_next = ibuf_info_start + 4
@@ -1397,11 +1410,11 @@ contains
     call MPI_WAITALL(nbprocs_info%nbprocs_srl*2, send_srl_nb, sendstatus_srl_nb, ierrmpi)
 
     ! unpack the MPI buffers
-    ! go through the neighbors:
     !$acc parallel loop
     do inb = 1, nbprocs_info%nbprocs_srl
        ibuf_start=1; ibuf_info_start=1
        ! go through igrids with srl relation for each neighbor process
+       !$acc loop seq
        do i = 1, nbprocs_info%srl(inb)%nigrids
 
           ibuf_info_next = ibuf_info_start + 4
@@ -1410,45 +1423,47 @@ contains
 
           igrid = itmp(1); i1 = itmp(2); i2 = itmp(3); i3 = itmp(4)
           
-          iib1 = idphyb(1,igrid);  iib2 = idphyb(2,igrid);  iib3 = idphyb(3,igrid)
+          iib1 = idphyb(1,igrid); iib2 = idphyb(2,igrid); iib3 = idphyb(3,igrid)
 
-          ixRmin1=ixR_srl_min1(iib1,i1); ixRmin2=ixR_srl_min2(iib2,i2)
-          ixRmin3=ixR_srl_min3(iib3,i3); ixRmax1=ixR_srl_max1(iib1,i1)
-          ixRmax2=ixR_srl_max2(iib2,i2); ixRmax3=ixR_srl_max3(iib3,i3)
-          isize = (ixRmax1-ixRmin1+1) * (ixRmax2-ixRmin2+1) * (ixRmax3-ixRmin3+1) * nwbc
+          ixRmin1=ixR_srl_min1(iib1,i1); ixRmin2=ixR_srl_min2(iib2,i2); Nx1=ixRmax1-ixRmin1+1
+          ixRmin3=ixR_srl_min3(iib3,i3); ixRmax1=ixR_srl_max1(iib1,i1); Nx2=ixRmax2-ixRmin2+1
+          ixRmax2=ixR_srl_max2(iib2,i2); ixRmax3=ixR_srl_max3(iib3,i3); Nx3=ixRmax3-ixRmin3+1
+          isize = Nx1 * Nx2 * Nx3 * nwbc
 
           ibuf_next = ibuf_start + isize
-          ! next line is inlined version of skip_direction
-          if (.not. ((all([ i1,i2,i3 ] == 0)) .or. (.not. req_diagonal .and. count([ &
-               i1,i2,i3 ] /= 0) > 1))) then
 
-             psb(igrid)%w( &
-                  ixRmin1:ixRmax1, &
-                  ixRmin2:ixRmax2, &
-                  ixRmin3:ixRmax3, &
-                  nwhead:nwtail) &
-                  = &
-                  reshape(source=nbprocs_info%srl_rcv(inb)%buffer(ibuf_start:ibuf_next-1), &
-                  shape=shape(psb(igrid)%w( &
-                  ixRmin1:ixRmax1, &
-                  ixRmin2:ixRmax2, &
-                  ixRmin3:ixRmax3, &
-                  nwhead:nwtail)) &
-                  )
-          end if
+          ! manually reshape as that is not supported on the GPU
+          !$acc loop collapse(4) vector independent
+          do iw = nwhead, nwtail
+             do ix3 = ixRmin3, ixRmax3
+                do ix2 = ixRmin2, ixRmax2
+                   do ix1 = ixRmin1, ixRmax1
+                      psb(igrid)%w( ix1, ix2, ix3, iw ) &
+                           = nbprocs_info%srl_rcv(inb)%buffer( &
+                           ibuf_start &
+                           + (ix1-ixRmin1) &
+                           + Nx1 * (ix2-ixRmin2) &
+                           + Nx1*Nx2 * (ix3-ixRmin3) &
+                           + Nx1*Nx2*Nx3 * (iw-nwhead) &
+                           )
+                   end do
+                end do
+             end do
+          end do
+
           ibuf_start = ibuf_next
 
        end do
     end do
-    
+
     if(stagger_grid) then
        call MPI_WAITALL(nrecv_bc_srl,recvrequest_srl,recvstatus_srl,ierrmpi)
-       call MPI_WAITALL(nsend_bc_srl,sendrequest_srl,sendstatus_srl,ierrmpi)
-       call MPI_WAITALL(nrecv_bc_r,recvrequest_r,recvstatus_r,ierrmpi)
-       call MPI_WAITALL(nsend_bc_r,sendrequest_r,sendstatus_r,ierrmpi)
-       ! unpack the received data from sibling blocks and finer neighbors to fill ghost-cell staggered values
-       ibuf_recv_srl=1
-       ibuf_recv_r=1
+          call MPI_WAITALL(nsend_bc_srl,sendrequest_srl,sendstatus_srl,ierrmpi)
+          call MPI_WAITALL(nrecv_bc_r,recvrequest_r,recvstatus_r,ierrmpi)
+          call MPI_WAITALL(nsend_bc_r,sendrequest_r,sendstatus_r,ierrmpi)
+          ! unpack the received data from sibling blocks and finer neighbors to fill ghost-cell staggered values
+          ibuf_recv_srl=1
+          ibuf_recv_r=1
        do iigrid=1,igridstail; igrid=igrids(iigrid);
           iib1=idphyb(1,igrid);iib2=idphyb(2,igrid);iib3=idphyb(3,igrid);
           do i3=-1,1
