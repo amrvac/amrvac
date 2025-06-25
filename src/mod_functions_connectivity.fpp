@@ -559,7 +559,21 @@ module mod_functions_connectivity
 
 
     !update the neighbor information on the device
- !$acc update device(neighbor, neighbor_type, neighbor_pole, neighbor_child, idphyb, nbprocs_info)
+    !$acc update device(neighbor, neighbor_type, neighbor_pole, neighbor_child, idphyb, nbprocs_info)
+    !assuming cray already does deepcopy
+#ifndef _CRAYFTN
+    do ipe_neighbor = 1, nbprocs_info%nbprocs_srl
+       !$acc update device(nbprocs_info%srl_rcv(ipe_neighbor)%buffer, nbprocs_info%srl_info_rcv(ipe_neighbor)%buffer)
+       !$acc update device(nbprocs_info%srl_send(ipe_neighbor)%buffer, nbprocs_info%srl_info_send(ipe_neighbor)%buffer)
+       !$acc update device(nbprocs_info%srl(ipe_neighbor)%igrid)
+       !$acc update device(nbprocs_info%srl(ipe_neighbor)%i1)
+       !$acc update device(nbprocs_info%srl(ipe_neighbor)%i2)
+       !$acc update device(nbprocs_info%srl(ipe_neighbor)%i3)
+       !$acc update device(nbprocs_info%srl(ipe_neighbor)%isize)
+       !$acc update device(nbprocs_info%srl(ipe_neighbor)%nigrids)
+    end do
+#endif    
+
     
   end subroutine build_connectivity
 

@@ -13,7 +13,7 @@ module load NVHPC/24.5-CUDA-12.1.1 OpenMPI/4.1.5-NVHPC-24.5-CUDA-12.1.1 Nsight-S
 
 source $AMRVAC_DIR/.venv/bin/activate
 
-make clean
+#make clean
 make -j8 arch=nvidia OPENACC=1
 
 srun ./amrvac
