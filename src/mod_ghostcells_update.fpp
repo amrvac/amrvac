@@ -160,6 +160,22 @@ module mod_ghostcells_update
 
 contains
 
+  subroutine idecode(i1, i2, i3, i)
+    !$acc routine gang
+     integer, intent(in)                       :: i
+     integer, intent(out)                      :: i1, i2, i3
+     ! .. local ..
+     integer, parameter                        :: i1min=-1, i2min=-1, i3min=-1
+     integer                                   :: id, idd
+     
+     i3  = ceiling(dble(i)/9.0d0) - 1 + i3min
+     id  = i - 9 * (i3-i3min)
+     i2  = ceiling(dble(id)/3.0d0) -1 + i2min
+     idd = id - 3 * (i2-i2min)
+     i1  = idd + i1min - 1
+     
+   end subroutine idecode
+
   subroutine init_bc()
     use mod_global_parameters
     use mod_physics, only: phys_req_diagonal, physics_type
@@ -1235,16 +1251,14 @@ contains
 !    integer :: idphyb(ndim,max_blocks)
     integer :: isend_buf(npwbuf), ipwbuf, nghostcellsco
     ! index pointer for buffer arrays as a start for a segment
-    integer :: ibuf_start, ibuf_next, ibuf_info_start, ibuf_info_next
+    integer :: ibuf_start, ibuf_next
     ! shapes of reshape
     integer, dimension(1) :: shapes
     logical  :: req_diagonal, update
     type(wbuffer) :: pwbuf(npwbuf)
 
-    integer :: ix1,ix2,ix3, iw, inb, i, Nx1, Nx2, Nx3
+    integer :: ix1,ix2,ix3, iw, inb, i, Nx1, Nx2, Nx3, ienc, imaxigrids
     
-    integer :: itmp(4)
-
     time_bcin=MPI_WTIME()
 
     call nvtxStartRange("getbc",2)
@@ -1326,17 +1340,19 @@ contains
     end do
 
     ! fill the SRL send buffers on GPU
-    !$acc parallel loop private(ibuf_start, ibuf_info_start)
+    imaxigrids = 0
     do inb = 1, nbprocs_info%nbprocs_srl
-
-       ibuf_start=1; ibuf_info_start=1
-       ! go through igrids with srl relation for each neighbor process
-       !$acc loop seq
-       do i = 1, nbprocs_info%srl(inb)%nigrids
+       imaxigrids = max(nbprocs_info%srl(inb)%nigrids, imaxigrids)
+    end do
+    !$acc parallel loop gang collapse(2) independent
+    do inb = 1, nbprocs_info%nbprocs_srl
+       do i = 1, imaxigrids
+          if (imaxigrids > nbprocs_info%srl(inb)%nigrids) cycle
+          
           igrid = nbprocs_info%srl(inb)%igrid(i)
-          i1 = nbprocs_info%srl(inb)%i1(i)
-          i2 = nbprocs_info%srl(inb)%i2(i)
-          i3 = nbprocs_info%srl(inb)%i3(i)
+          ienc = nbprocs_info%srl(inb)%iencode(i)
+          ibuf_start = nbprocs_info%srl(inb)%ibuf_start(i)
+          call idecode( i1, i2, i3, ienc )
           iib1=idphyb(1,igrid); iib2=idphyb(2,igrid); iib3=idphyb(3,igrid)
           
           ! now fill the data and info buffers
@@ -1345,7 +1361,6 @@ contains
           ixSmin3=ixS_srl_min3(iib3,i3); ixSmax3=ixS_srl_max3(iib3,i3)
           Nx1=ixSmax1-ixSmin1+1; Nx2=ixSmax2-ixSmin2+1; Nx3=ixSmax3-ixSmin3+1
           
-          ibuf_next = ibuf_start + nbprocs_info%srl(inb)%isize(i)
           !$acc loop collapse(4) vector independent
           do iw = nwhead, nwtail
              do ix3 = ixSmin3, ixSmax3
@@ -1362,14 +1377,11 @@ contains
                 end do
              end do
           end do
-          ibuf_start = ibuf_next
 
 !          print *, 'sending', neighbor(1,i1,i2,i3,igrid), -i1, -i2, -i3
           
-          ibuf_info_next = ibuf_info_start + 4
-          nbprocs_info%srl_info_send(inb)%buffer(ibuf_info_start:ibuf_info_next-1) = &
-               [neighbor(1,i1,i2,i3,igrid), -i1, -i2, -i3]
-          ibuf_info_start = ibuf_info_next
+          nbprocs_info%srl_info_send(inb)%buffer( 1 + 3 * (i - 1) : 3 * i ) = &
+               [neighbor(1,i1,i2,i3,igrid), ienc, ibuf_start]
        end do
     end do
 
@@ -1420,18 +1432,17 @@ contains
     end do
     
     ! unpack the MPI buffers
-    !$acc parallel loop private(ibuf_start, ibuf_info_start)
+    !$acc parallel loop gang collapse(2) independent
     do inb = 1, nbprocs_info%nbprocs_srl
-       ibuf_start=1; ibuf_info_start=1
-       ! go through igrids with srl relation for each neighbor process
-       !$acc loop seq private(itmp)
-       do i = 1, nbprocs_info%srl(inb)%nigrids
+       do i = 1, imaxigrids
+          if (imaxigrids > nbprocs_info%srl(inb)%nigrids) cycle
 
-          ibuf_info_next = ibuf_info_start + 4
-          itmp = nbprocs_info%srl_info_rcv(inb)%buffer(ibuf_info_start : ibuf_info_next - 1)
-          ibuf_info_start = ibuf_info_next
-
-          igrid = itmp(1); i1 = itmp(2); i2 = itmp(3); i3 = itmp(4)
+          igrid       = nbprocs_info%srl_info_rcv(inb)%buffer( 3 * (i - 1) + 1 )
+          ienc        = nbprocs_info%srl_info_rcv(inb)%buffer( 3 * (i - 1) + 2 )
+          ibuf_start  = nbprocs_info%srl_info_rcv(inb)%buffer( 3 * (i - 1) + 3 )
+          
+          call idecode( i1, i2, i3, ienc )
+          i1 = -i1; i2 = -i2; i3=-i3
 
 !          print *, 'received:', igrid, i1, i2, i3
           
@@ -1442,8 +1453,6 @@ contains
           ixRmax2=ixR_srl_max2(iib2,i2); ixRmax3=ixR_srl_max3(iib3,i3)
           Nx1=ixRmax1-ixRmin1+1; Nx2=ixRmax2-ixRmin2+1; Nx3=ixRmax3-ixRmin3+1
           
-          ibuf_next = ibuf_start + Nx1 * Nx2 * Nx3 * nwbc
-
           !$acc loop collapse(4) vector independent
           do iw = nwhead, nwtail
              do ix3 = ixRmin3, ixRmax3
@@ -1461,7 +1470,6 @@ contains
                 end do
              end do
           end do
-          ibuf_start = ibuf_next
 
        end do
     end do

@@ -567,10 +567,9 @@ module mod_functions_connectivity
        !$acc enter data copyin(nbprocs_info%srl_rcv(ipe_neighbor)%buffer, nbprocs_info%srl_info_rcv(ipe_neighbor)%buffer)
        !$acc enter data copyin(nbprocs_info%srl_send(ipe_neighbor)%buffer, nbprocs_info%srl_info_send(ipe_neighbor)%buffer)
        !$acc enter data copyin(nbprocs_info%srl(ipe_neighbor)%igrid)
-       !$acc enter data copyin(nbprocs_info%srl(ipe_neighbor)%i1)
-       !$acc enter data copyin(nbprocs_info%srl(ipe_neighbor)%i2)
-       !$acc enter data copyin(nbprocs_info%srl(ipe_neighbor)%i3)
+       !$acc enter data copyin(nbprocs_info%srl(ipe_neighbor)%iencode)
        !$acc enter data copyin(nbprocs_info%srl(ipe_neighbor)%isize)
+       !$acc enter data copyin(nbprocs_info%srl(ipe_neighbor)%ibuf_start)
        !$acc enter data copyin(nbprocs_info%srl(ipe_neighbor)%nigrids)
     end do
 #endif    
