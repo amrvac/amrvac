@@ -1347,7 +1347,7 @@ contains
     !$acc parallel loop gang collapse(2) independent
     do inb = 1, nbprocs_info%nbprocs_srl
        do i = 1, imaxigrids
-          if (imaxigrids > nbprocs_info%srl(inb)%nigrids) cycle
+          if (i > nbprocs_info%srl(inb)%nigrids) cycle
           
           igrid = nbprocs_info%srl(inb)%igrid(i)
           ienc = nbprocs_info%srl(inb)%iencode(i)
@@ -1435,7 +1435,7 @@ contains
     !$acc parallel loop gang collapse(2) independent
     do inb = 1, nbprocs_info%nbprocs_srl
        do i = 1, imaxigrids
-          if (imaxigrids > nbprocs_info%srl(inb)%nigrids) cycle
+          if (i > nbprocs_info%srl(inb)%nigrids) cycle
 
           igrid       = nbprocs_info%srl_info_rcv(inb)%buffer( 3 * (i - 1) + 1 )
           ienc        = nbprocs_info%srl_info_rcv(inb)%buffer( 3 * (i - 1) + 2 )

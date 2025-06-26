@@ -15,7 +15,7 @@
  /
 
  &stoplist
-   it_max           = 2
+   it_max           = 100
  /
 
  &methodlist
@@ -36,7 +36,7 @@
  /
 
  &meshlist
-   max_blocks         = 2048
+   max_blocks         = 1024
    refine_max_level   = 1
    block_nx1          = 16
    block_nx2          = 16
