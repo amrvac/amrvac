@@ -1401,24 +1401,43 @@ contains
             MPI_INTEGER, nbprocs_info%nbprocs_srl_list(inb), 2, icomm, send_srl_nb(nbprocs_info%nbprocs_srl + inb), ierrmpi)
 !       !$acc end host_data
     end do
-
-    ! fill ghost-cell values of sibling blocks and coarser neighbors in the same processor
+    
+    ! fill ghost-cell values of sibling blocks
     !$OMP PARALLEL DO SCHEDULE(dynamic) PRIVATE(igrid,iib1,iib2,iib3)
-     !$acc parallel loop default(present) copyin(idphyb,ixS_srl_min1,ixS_srl_min2,ixS_srl_min3,ixS_srl_max1,ixS_srl_max2,ixS_srl_max3,ixR_srl_min1,ixR_srl_min2,ixR_srl_min3,ixR_srl_max1,ixR_srl_max2,ixR_srl_max3) private(igrid,iib1,iib2,iib3,ineighbor,n_i1,n_i2,n_i3,ixSmin1,ixSmin2,ixSmin3,ixSmax1,ixSmax2,ixSmax3,ixRmin1,ixRmin2,ixRmin3,ixRmax1,ixRmax2,ixRmax3,iw,ix1,ix2,ix3) firstprivate(nwhead,nwtail)
-    do iigrid=1,igridstail; igrid=igrids(iigrid)
-       iib1=idphyb(1,igrid); iib2=idphyb(2,igrid); iib3=idphyb(3,igrid);
-       !$acc loop seq
-       do i3=-1,1
-          do i2=-1,1
-             do i1=-1,1
-                select case (neighbor_type(i1,i2,i3,igrid))
-                case(neighbor_sibling)
-                   call bc_fill_srl(psb,igrid,nwhead,nwtail,i1,i2,i3,iib1,iib2,iib3)
-                   !         case(neighbor_coarse)
-                   ! call bc_fill_restrict(igrid,i^D,iib^D)
-                end select
+    !$acc parallel loop gang collapse(2) independent
+    do iigrid=1, igridstail
+       do i=1, 27
+          call idecode( i1, i2, i3, i)
+          igrid=igrids(iigrid)
+          ipe_neighbor=neighbor(2,i1,i2,i3,igrid)
+
+          if(ipe_neighbor==mype) then
+             ineighbor=neighbor(1,i1,i2,i3,igrid)
+
+             iib1=idphyb(1,igrid); iib2=idphyb(2,igrid); iib3=idphyb(3,igrid)
+             n_i1=-i1; n_i2=-i2; n_i3=-i3
+             ixSmin1=ixS_srl_min1(iib1,i1);   ixSmin2=ixS_srl_min2(iib2,i2)
+             ixSmin3=ixS_srl_min3(iib3,i3);   ixSmax1=ixS_srl_max1(iib1,i1)
+             ixSmax2=ixS_srl_max2(iib2,i2);   ixSmax3=ixS_srl_max3(iib3,i3)
+             ixRmin1=ixR_srl_min1(iib1,n_i1); ixRmin2=ixR_srl_min2(iib2,n_i2)
+             ixRmin3=ixR_srl_min3(iib3,n_i3); ixRmax1=ixR_srl_max1(iib1,n_i1)
+             ixRmax2=ixR_srl_max2(iib2,n_i2); ixRmax3=ixR_srl_max3(iib3,n_i3)
+
+             !$acc loop collapse(ndim+1) independent vector
+             do iw = nwhead, nwtail
+                do ix3=1,ixSmax3-ixSmin3+1
+                   do ix2=1,ixSmax2-ixSmin2+1
+                      do ix1=1,ixSmax1-ixSmin1+1
+                         psb(ineighbor)%w(ixRmin1+ix1-1,ixRmin2+ix2-1,ixRmin3+ix3-1,&
+                              iw) = psb(igrid)%w(ixSmin1+ix1-1,ixSmin2+ix2-1,&
+                              ixSmin3+ix3-1,iw)
+                      end do
+                   end do
+                end do
              end do
-          end do
+
+          end if
+
        end do
     end do
     !$OMP END PARALLEL DO
@@ -3513,22 +3532,23 @@ contains
 
                   end subroutine getbc
 
-                  subroutine bc_fill_srl(psb,igrid,nwhead,nwtail,i1,i2,i3,iib1,iib2,iib3)
+                  subroutine bc_fill_srl(psb,igrid,nwhead,nwtail,i1,i2,i3)
                     !$acc routine vector
                     use mod_physicaldata, only: state
                     use mod_global_parameters, only: max_blocks, mype, ndim, npe
                     use mod_connectivity
-                    integer, intent(in) :: igrid,i1,i2,i3,iib1,iib2,iib3,nwhead,nwtail
+                    integer, intent(in) :: igrid,i1,i2,i3,nwhead,nwtail
                     type(state), target :: psb(max_blocks)
                     integer :: ineighbor,ipe_neighbor,ipole,ixSmin1,ixSmin2,ixSmin3,&
                          ixSmax1,ixSmax2,ixSmax3,ixRmin1,ixRmin2,ixRmin3,ixRmax1,ixRmax2,&
-                         ixRmax3,n_i1,n_i2,n_i3,idir,iw, ix1,ix2,ix3
+                         ixRmax3,n_i1,n_i2,n_i3,idir,iw, ix1,ix2,ix3,iib1,iib2,iib3
 
                     ipe_neighbor=neighbor(2,i1,i2,i3,igrid)
                     if(ipe_neighbor==mype) then
                        ineighbor=neighbor(1,i1,i2,i3,igrid)
                        ipole=neighbor_pole(i1,i2,i3,igrid)
                        if(ipole==0) then
+                          iib1=idphyb(1,igrid); iib2=idphyb(2,igrid); iib3=idphyb(3,igrid)
                           n_i1=-i1;n_i2=-i2;n_i3=-i3;
                           ixSmin1=ixS_srl_min1(iib1,i1);ixSmin2=ixS_srl_min2(iib2,i2)
                           ixSmin3=ixS_srl_min3(iib3,i3);ixSmax1=ixS_srl_max1(iib1,i1)

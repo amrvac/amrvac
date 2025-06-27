@@ -53,8 +53,8 @@ contains
     real(dp)               :: xloc(ndim)
     real(dp)               :: wprim(nw_phys), wCT(nw_phys), wnew(nw_phys)
     !-----------------------------------------------------------------------------
-
- !$acc parallel loop private(n, uprim, inv_dr, typelim) firstprivate(ixImin1,ixImin2,ixImin3,ixImax1,ixImax2,ixImax3, ixOmin1,ixOmin2,ixOmin3,ixOmax1,ixOmax2,ixOmax3) present(bga%w, bgb%w)
+    
+    !$acc parallel loop private(n, uprim, inv_dr, typelim) firstprivate(ixImin1,ixImin2,ixImin3,ixImax1,ixImax2,ixImax3, ixOmin1,ixOmin2,ixOmin3,ixOmax1,ixOmax2,ixOmax3) present(bga%w, bgb%w)
     do iigrid = 1, igridstail_active
        n = igrids_active(iigrid)
 
@@ -62,56 +62,52 @@ contains
        typelim = type_limiter(node(plevel_, n))
 
        !$acc loop collapse(ndim) vector
-        do ix3=ixImin3,ixImax3 
-         do ix2=ixImin2,ixImax2 
-         do ix1=ixImin1,ixImax1 
-             ! Convert to primitive
-             uprim(:, ix1,ix2,ix3) = bga%w(ix1,ix2,ix3, :, n)
-             call to_primitive(uprim(:, ix1,ix2,ix3))
-        end do 
-         end do 
-         end do 
+       do ix3=ixImin3,ixImax3 
+          do ix2=ixImin2,ixImax2 
+             do ix1=ixImin1,ixImax1 
+                ! Convert to primitive
+                uprim(:, ix1,ix2,ix3) = bga%w(ix1,ix2,ix3, :, n)
+                call to_primitive(uprim(:, ix1,ix2,ix3))
+             end do
+          end do
+       end do
 
- !$acc loop collapse(ndim) private(f, tmp, wnew, wCT, xloc, wprim) vector
-        do ix3=ixOmin3,ixOmax3 
-         do ix2=ixOmin2,ixOmax2 
-         do ix1=ixOmin1,ixOmax1 
-             ! Compute fluxes in all dimensions
+       !$acc loop collapse(ndim) private(f, tmp #{if defined('SOURCE_TERM')}#, wnew, wCT, xloc, wprim #{endif}#) vector
+       do ix3=ixOmin3,ixOmax3 
+          do ix2=ixOmin2,ixOmax2 
+             do ix1=ixOmin1,ixOmax1 
+                ! Compute fluxes in all dimensions
 
-       
-       
-       
-             tmp = uprim(:, ix1-2:ix1+2, ix2, ix3)
-             call muscl_flux_prim(tmp, 1, f, typelim)
-             bgb%w(ix1, ix2, ix3, :, n) = bgb%w(ix1, ix2, ix3, :,&
-                 n) + qdt * (f(:, 1) - f(:, 2)) * inv_dr(1)
+                tmp = uprim(:, ix1-2:ix1+2, ix2, ix3)
+                call muscl_flux_prim(tmp, 1, f, typelim)
+                bgb%w(ix1, ix2, ix3, :, n) = bgb%w(ix1, ix2, ix3, :,&
+                     n) + qdt * (f(:, 1) - f(:, 2)) * inv_dr(1)
 
-             tmp = uprim(:, ix1, ix2-2:ix2+2, ix3)
-             call muscl_flux_prim(tmp, 2, f, typelim)
-             bgb%w(ix1, ix2, ix3, :, n) = bgb%w(ix1, ix2, ix3, :,&
-                 n) + qdt * (f(:, 1) - f(:, 2)) * inv_dr(2)
+                tmp = uprim(:, ix1, ix2-2:ix2+2, ix3)
+                call muscl_flux_prim(tmp, 2, f, typelim)
+                bgb%w(ix1, ix2, ix3, :, n) = bgb%w(ix1, ix2, ix3, :,&
+                     n) + qdt * (f(:, 1) - f(:, 2)) * inv_dr(2)
 
-             tmp = uprim(:, ix1, ix2, ix3-2:ix3+2)
-             call muscl_flux_prim(tmp, 3, f, typelim)
-             bgb%w(ix1, ix2, ix3, :, n) = bgb%w(ix1, ix2, ix3, :,&
-                 n) + qdt * (f(:, 1) - f(:, 2)) * inv_dr(3)
+                tmp = uprim(:, ix1, ix2, ix3-2:ix3+2)
+                call muscl_flux_prim(tmp, 3, f, typelim)
+                bgb%w(ix1, ix2, ix3, :, n) = bgb%w(ix1, ix2, ix3, :,&
+                     n) + qdt * (f(:, 1) - f(:, 2)) * inv_dr(3)
 
 #:if defined('SOURCE_TERM')
-             ! Add source terms:
-             xloc(1:ndim) = ps(n)%x(ix1, ix2, ix3, 1:ndim)
-             wprim        = uprim(1:nw_phys, ix1, ix2, ix3)
-             wCT          = bga%w(ix1, ix2, ix3, 1:nw_phys, n)
-             wnew         = bgb%w(ix1, ix2, ix3, 1:nw_phys, n)
-             call addsource_local(qdt*dble(idimsmax-idimsmin+1)/dble(ndim),&
-                 dtfactor*dble(idimsmax-idimsmin+1)/dble(ndim), qtC, wCT,&
-                 wprim, qt, wnew, xloc, .false. )
-             bgb%w(ix1, ix2, ix3, :, n) = wnew(:)
+                ! Add source terms:
+                xloc(1:ndim) = ps(n)%x(ix1, ix2, ix3, 1:ndim)
+                wprim        = uprim(1:nw_phys, ix1, ix2, ix3)
+                wCT          = bga%w(ix1, ix2, ix3, 1:nw_phys, n)
+                wnew         = bgb%w(ix1, ix2, ix3, 1:nw_phys, n)
+                call addsource_local(qdt*dble(idimsmax-idimsmin+1)/dble(ndim),&
+                     dtfactor*dble(idimsmax-idimsmin+1)/dble(ndim), qtC, wCT,&
+                     wprim, qt, wnew, xloc, .false. )
+                bgb%w(ix1, ix2, ix3, :, n) = wnew(:)
 #:endif             
-      
-       
-        end do 
-         end do 
-         end do 
+
+             end do
+          end do
+       end do
     end do
 
   end subroutine finite_volume_local
