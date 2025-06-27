@@ -14,11 +14,9 @@
 # Fortran code so that we can obtain git id and compile flags from
 # simulation logs.
 
-ifndef MAKE_RESTARTS
-config.mk: amrvac.par FORCE
-> @echo -e "Generating $(_magenta)amrvac.par$(_reset) -> $(_blue)config.mk$(_reset)"
-> @python $(amrvac)/make/config_reader.py < $< > $@
-endif
+config.mk: amrvac.par
+	@echo -e "Generating $(_magenta)amrvac.par$(_reset) -> $(_blue)config.mk$(_reset)"
+	@python $(amrvac)/make/config_reader.py < $< > $@
 
 include config.mk
 

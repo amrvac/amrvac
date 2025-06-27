@@ -174,6 +174,8 @@ def apply_option(schema, cfg, path, option, visited):
 
 if __name__ == "__main__":
     print("# Don't edit: this file was automatically generated")
+    print("CONFIG_READ = 1")
+
     schema = read_schema()
     visited = set()
     cfg = PathDict(f90nml.read(sys.stdin))
