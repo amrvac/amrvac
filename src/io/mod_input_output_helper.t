@@ -129,7 +129,6 @@ module mod_input_output_helper
     use mod_forest
     use mod_physics
     use mod_global_parameters
-    use mod_slice, only: slicenext
     integer, intent(in)                       :: fh           !< File handle
     integer(kind=MPI_OFFSET_KIND), intent(in) :: offset_tree  !< Offset of tree info
     integer(kind=MPI_OFFSET_KIND), intent(in) :: offset_block !< Offset of block data

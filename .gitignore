@@ -21,9 +21,7 @@ doc/html/*
 /tests/rhd/*/makefile
 /tools/fortran/compare_logs
 /tests/*/*/mod_usr.f
-/lib/1d_*
-/lib/2d_*
-/lib/3d_*
+/lib/[1-3]d[1-3]_*
 *~
 *\#
 *__pycache__/

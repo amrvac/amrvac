@@ -347,7 +347,6 @@ mod_input_output_helper.o: mod_comm_lib.mod
 mod_input_output_helper.o: mod_forest.mod
 mod_input_output_helper.o: mod_global_parameters.mod
 mod_input_output_helper.o: mod_physics.mod
-mod_input_output_helper.o: mod_slice.mod
 mod_interpolation.o: mod_comm_lib.mod
 mod_interpolation.o: mod_global_parameters.mod
 mod_ionization_degree.o: mod_global_parameters.mod
@@ -611,6 +610,8 @@ mod_slice.o: mod_calculate_xw.mod
 mod_slice.o: mod_comm_lib.mod
 mod_slice.o: mod_forest.mod
 mod_slice.o: mod_global_parameters.mod
+mod_slice.o: mod_input_output_helper.mod
+mod_slice.o: mod_physics.mod
 mod_small_values.o: mod_global_parameters.mod
 mod_solar_atmosphere.o: mod_comm_lib.mod
 mod_solar_atmosphere.o: mod_global_parameters.mod
