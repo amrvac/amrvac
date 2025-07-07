@@ -57,9 +57,11 @@ contains
   !     Got the passive grids. 
   !     Now, we re-activate a safety belt of radius nsafety blocks.
   
-  !     First communicate the current isafety buffer:
-        call MPI_ALLGATHER(isafety(:,mype),max_blocks,MPI_INTEGER,isafety,&
-           max_blocks,MPI_INTEGER,icomm,ierrmpi)
+        !     First communicate the current isafety buffer:
+        ! AGILE: avoid ice in 2024
+        call mpistop("AGILE: slectgrids not implemented (avoid ice in 2024)")
+!        call MPI_ALLGATHER(isafety(:,mype),max_blocks,MPI_INTEGER,isafety,&
+!           max_blocks,MPI_INTEGER,icomm,ierrmpi)
   
   !     Now check the distance of neighbors to the active zone:
         do isave = 1, nsafety
@@ -73,8 +75,8 @@ contains
            end do
            
   !     Communicate the incremented buffers:
-           call MPI_ALLGATHER(isafety(:,mype),max_blocks,MPI_INTEGER,isafety,&
-              max_blocks,MPI_INTEGER,icomm,ierrmpi)
+ !          call MPI_ALLGATHER(isafety(:,mype),max_blocks,MPI_INTEGER,isafety,&
+ !             max_blocks,MPI_INTEGER,icomm,ierrmpi)
         end do
   
   !     Update the active and passive arrays:
