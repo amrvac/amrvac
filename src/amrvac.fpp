@@ -17,7 +17,6 @@ program amrvac
   use mod_particles
   use mod_fix_conserve
   use mod_advance, only: process
-  use mod_multigrid_coupling
   use mod_convert, only: init_convert
   use mod_physics
   use mod_amr_grid, only: resettree, settree, resettree_convert
@@ -104,8 +103,6 @@ program amrvac
      if(firstprocess) call improve_initial_condition()
     
 
-     if (use_multigrid) call mg_setup_multigrid()
-
      if(use_particles) then
        call read_particles_snapshot(part_file_exists)
        call init_gridvars()
@@ -152,8 +149,6 @@ program amrvac
 
      ! set up and initialize finer level grids, if needed
      call settree
-
-     if (use_multigrid) call mg_setup_multigrid()
 
      
      ! improve initial condition
@@ -428,7 +423,6 @@ contains
 
     if(use_particles) call time_spent_on_particles
 
-    if (use_multigrid) call mg_timers_show(mg)
   end subroutine timeintegration
 
   !> Save times are defined by either tsave(isavet(ifile),ifile) or
