@@ -34,6 +34,8 @@ contains
 
 
     
+    use mod_multigrid_coupling
+   
 
     integer :: iigrid, igrid, ipe, igridCo, ipeCo, level, ic1,ic2,ic3
     integer, dimension(2,2,2) :: igridFi, ipeFi
@@ -191,6 +193,8 @@ contains
     end if
 
     
+    if (use_multigrid) call mg_update_refinement(n_coarsen, n_refine)
+   
 
     if (associated(usr_after_refine)) then
        call usr_after_refine(n_coarsen, n_refine)
