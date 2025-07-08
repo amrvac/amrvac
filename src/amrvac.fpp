@@ -17,7 +17,6 @@ program amrvac
   use mod_particles
   use mod_fix_conserve
   use mod_advance, only: process
-  use mod_convert, only: init_convert
   use mod_physics
   use mod_amr_grid, only: resettree, settree, resettree_convert
 !FIXME:  
@@ -39,8 +38,6 @@ program amrvac
   ! read command line arguments first
   call read_arguments()
 
-  ! init_convert is called before usr_init as user might associate a convert method
-  call init_convert()
   ! the user_init routine should load a physics module
   call usr_init()
 
