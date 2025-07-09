@@ -1593,7 +1593,8 @@ contains
       phyboundblock(igrid)=.true.
     else
       phyboundblock(igrid)=.false.
-    end if
+   end if
+   !$acc update device( phyboundblock(igrid) )
   end subroutine alloc_node
   
   !> allocate memory to physical state of igrid node

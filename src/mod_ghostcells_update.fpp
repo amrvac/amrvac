@@ -1277,9 +1277,10 @@ contains
     ! fill physical-boundary ghost cells before internal ghost-cell values exchange
     if(bcphys.and. .not.stagger_grid) then
        !$OMP PARALLEL DO SCHEDULE(dynamic) PRIVATE(igrid)
+       !$acc parallel loop gang
        do iigrid=1,igridstail; igrid=igrids(iigrid);
           if(.not.phyboundblock(igrid)) cycle
-          call fill_boundary_before_gc(igrid)
+          call fill_boundary_before_gc(psb(igrid),igrid,time,qdt)
        end do
        !$OMP END PARALLEL DO
     end if
@@ -1607,9 +1608,10 @@ contains
     ! fill physical boundary ghost cells after internal ghost-cell values exchange
     if(bcphys.and.stagger_grid) then
        !$OMP PARALLEL DO SCHEDULE(dynamic) PRIVATE(igrid)
+       !$acc parallel loop gang
        do iigrid=1,igridstail; igrid=igrids(iigrid);
           if(.not.phyboundblock(igrid)) cycle
-          call fill_boundary_after_gc(igrid)
+          call fill_boundary_after_gc(psb(igrid),igrid,time,qdt)
        end do
        !$OMP END PARALLEL DO
     end if
@@ -1641,114 +1643,6 @@ contains
       end if
     end function skip_direction
 
-    !> Physical boundary conditions
-    subroutine fill_boundary_before_gc(igrid)
-
-      integer, intent(in) :: igrid
-
-      integer :: idims,iside,i1,i2,i3,kmin1,kmin2,kmin3,kmax1,kmax2,kmax3,&
-           ixBmin1,ixBmin2,ixBmin3,ixBmax1,ixBmax2,ixBmax3
-
-      block=>psb(igrid)
-        dxlevel(1)=rnode(rpdx1_,igrid);dxlevel(2)=rnode(rpdx2_,igrid)
-        dxlevel(3)=rnode(rpdx3_,igrid);
-        do idims=1,ndim
-           ! to avoid using as yet unknown corner info in more than 1D, we
-           ! fill only interior mesh ranges of the ghost cell ranges at first,
-           ! and progressively enlarge the ranges to include corners later
-
-           kmin1=merge(0, 1, idims==1)
-           kmax1=merge(0, 1, idims==1)
-           ixBmin1=ixGlo1+kmin1*nghostcells
-           ixBmax1=ixGhi1-kmax1*nghostcells
-
-
-           kmin2=merge(0, 1, idims==2)
-           kmax2=merge(0, 1, idims==2)
-           ixBmin2=ixGlo2+kmin2*nghostcells
-           ixBmax2=ixGhi2-kmax2*nghostcells
-
-
-           kmin3=merge(0, 1, idims==3)
-           kmax3=merge(0, 1, idims==3)
-           ixBmin3=ixGlo3+kmin3*nghostcells
-           ixBmax3=ixGhi3-kmax3*nghostcells
-
-
-
-           if(idims > 1 .and. neighbor_type(-1,0,0,&
-                igrid)==neighbor_boundary) ixBmin1=ixGlo1
-           if(idims > 1 .and. neighbor_type( 1,0,0,&
-                igrid)==neighbor_boundary) ixBmax1=ixGhi1
-           if(idims > 2 .and. neighbor_type(0,-1,0,&
-                igrid)==neighbor_boundary) ixBmin2=ixGlo2
-           if(idims > 2 .and. neighbor_type(0, 1,0,&
-                igrid)==neighbor_boundary) ixBmax2=ixGhi2
-           do iside=1,2
-              i1=kr(1,idims)*(2*iside-3);i2=kr(2,idims)*(2*iside-3)
-              i3=kr(3,idims)*(2*iside-3);
-              if (aperiodB(idims)) then
-                 if (neighbor_type(i1,i2,i3,&
-                      igrid) /= neighbor_boundary .and. .not. &
-                      psb(igrid)%is_physical_boundary(2*idims-2+iside)) cycle
-              else
-                 if (neighbor_type(i1,i2,i3,igrid) /= neighbor_boundary) cycle
-              end if
-              call bc_phys(iside,idims,time,qdt,psb(igrid),ixGlo1,ixGlo2,ixGlo3,&
-                   ixGhi1,ixGhi2,ixGhi3,ixBmin1,ixBmin2,ixBmin3,ixBmax1,ixBmax2,&
-                   ixBmax3)
-           end do
-        end do
-
-      end subroutine fill_boundary_before_gc
-
-      !> Physical boundary conditions
-      subroutine fill_boundary_after_gc(igrid)
-
-        integer, intent(in) :: igrid
-
-        integer :: idims,iside,i1,i2,i3,kmin1,kmin2,kmin3,kmax1,kmax2,kmax3,&
-             ixBmin1,ixBmin2,ixBmin3,ixBmax1,ixBmax2,ixBmax3
-
-        block=>psb(igrid)
-          dxlevel(1)=rnode(rpdx1_,igrid);dxlevel(2)=rnode(rpdx2_,igrid)
-          dxlevel(3)=rnode(rpdx3_,igrid);
-          do idims=1,ndim
-             ! to avoid using as yet unknown corner info in more than 1D, we
-             ! fill only interior mesh ranges of the ghost cell ranges at first,
-             ! and progressively enlarge the ranges to include corners later
-             kmin1=0; kmax1=0;
-
-
-             kmin2=merge(1, 0, idims .lt. 2 .and. neighbor_type(0,-1,0,&
-                  igrid)==1)
-             kmax2=merge(1, 0, idims .lt. 2 .and. neighbor_type(0, 1,0,&
-                  igrid)==1)
-             kmin3=merge(1, 0, idims .lt. 3 .and. neighbor_type(0,0,-1,&
-                  igrid)==1)
-             kmax3=merge(1, 0, idims .lt. 3 .and. neighbor_type(0,0, 1,&
-                  igrid)==1)
-             ixBmin1=ixGlo1+kmin1*nghostcells;ixBmin2=ixGlo2+kmin2*nghostcells
-             ixBmin3=ixGlo3+kmin3*nghostcells;
-             ixBmax1=ixGhi1-kmax1*nghostcells;ixBmax2=ixGhi2-kmax2*nghostcells
-             ixBmax3=ixGhi3-kmax3*nghostcells;
-             do iside=1,2
-                i1=kr(1,idims)*(2*iside-3);i2=kr(2,idims)*(2*iside-3)
-                i3=kr(3,idims)*(2*iside-3);
-                if (aperiodB(idims)) then
-                   if (neighbor_type(i1,i2,i3,&
-                        igrid) /= neighbor_boundary .and. .not. &
-                        psb(igrid)%is_physical_boundary(2*idims-2+iside)) cycle
-                else
-                   if (neighbor_type(i1,i2,i3,igrid) /= neighbor_boundary) cycle
-                end if
-                call bc_phys(iside,idims,time,qdt,psb(igrid),ixGlo1,ixGlo2,ixGlo3,&
-                     ixGhi1,ixGhi2,ixGhi3,ixBmin1,ixBmin2,ixBmin3,ixBmax1,ixBmax2,&
-                     ixBmax3)
-             end do
-          end do
-
-        end subroutine fill_boundary_after_gc
 
         !> Receive from sibling at same refinement level
         subroutine bc_recv_srl
@@ -3529,151 +3423,161 @@ contains
 
                     end subroutine pole_buffer
 
-
                   end subroutine getbc
 
-                  subroutine bc_fill_srl(psb,igrid,nwhead,nwtail,i1,i2,i3)
-                    !$acc routine vector
-                    use mod_physicaldata, only: state
-                    use mod_global_parameters, only: max_blocks, mype, ndim, npe
-                    use mod_connectivity
-                    integer, intent(in) :: igrid,i1,i2,i3,nwhead,nwtail
-                    type(state), target :: psb(max_blocks)
-                    integer :: ineighbor,ipe_neighbor,ipole,ixSmin1,ixSmin2,ixSmin3,&
-                         ixSmax1,ixSmax2,ixSmax3,ixRmin1,ixRmin2,ixRmin3,ixRmax1,ixRmax2,&
-                         ixRmax3,n_i1,n_i2,n_i3,idir,iw, ix1,ix2,ix3,iib1,iib2,iib3
+    !> Physical boundary conditions
+    subroutine fill_boundary_before_gc(s,igrid,time,qdt)
+      !$acc routine vector
+      use mod_global_parameters
+      use mod_boundary_conditions, only: bc_phys
 
-                    ipe_neighbor=neighbor(2,i1,i2,i3,igrid)
-                    if(ipe_neighbor==mype) then
-                       ineighbor=neighbor(1,i1,i2,i3,igrid)
-                       ipole=neighbor_pole(i1,i2,i3,igrid)
-                       if(ipole==0) then
-                          iib1=idphyb(1,igrid); iib2=idphyb(2,igrid); iib3=idphyb(3,igrid)
-                          n_i1=-i1;n_i2=-i2;n_i3=-i3;
-                          ixSmin1=ixS_srl_min1(iib1,i1);ixSmin2=ixS_srl_min2(iib2,i2)
-                          ixSmin3=ixS_srl_min3(iib3,i3);ixSmax1=ixS_srl_max1(iib1,i1)
-                          ixSmax2=ixS_srl_max2(iib2,i2);ixSmax3=ixS_srl_max3(iib3,i3);
-                          ixRmin1=ixR_srl_min1(iib1,n_i1);ixRmin2=ixR_srl_min2(iib2,n_i2)
-                          ixRmin3=ixR_srl_min3(iib3,n_i3);ixRmax1=ixR_srl_max1(iib1,n_i1)
-                          ixRmax2=ixR_srl_max2(iib2,n_i2);ixRmax3=ixR_srl_max3(iib3,n_i3);
+      type(state), intent(inout) :: s
+      integer, intent(in) :: igrid
+      double precision, intent(in) :: time, qdt
 
-                          !$acc loop collapse(ndim+1) independent vector
-                          do iw = nwhead, nwtail
-                             do ix3=1,ixSmax3-ixSmin3+1
-                                do ix2=1,ixSmax2-ixSmin2+1
-                                   do ix1=1,ixSmax1-ixSmin1+1
-                                      psb(ineighbor)%w(ixRmin1+ix1-1,ixRmin2+ix2-1,ixRmin3+ix3-1,&
-                                           iw) = psb(igrid)%w(ixSmin1+ix1-1,ixSmin2+ix2-1,&
-                                           ixSmin3+ix3-1,iw)
-                                   end do
-                                end do
-                             end do
-                          end do
+      integer :: idims,iside,i1,i2,i3,kmin1,kmin2,kmin3,kmax1,kmax2,kmax3,&
+           ixBmin1,ixBmin2,ixBmin3,ixBmax1,ixBmax2,ixBmax3
 
-                          !    if(stagger_grid) then
-                          !       do idir=1,ndim
-                          !          ixSmin1=ixS_srl_stg_min1(idir,i1)
-                          !          ixSmin2=ixS_srl_stg_min2(idir,i2)
-                          !          ixSmin3=ixS_srl_stg_min3(idir,i3)
-                          !          ixSmax1=ixS_srl_stg_max1(idir,i1)
-                          !          ixSmax2=ixS_srl_stg_max2(idir,i2)
-                          !          ixSmax3=ixS_srl_stg_max3(idir,i3);
-                          !          ixRmin1=ixR_srl_stg_min1(idir,n_i1)
-                          !          ixRmin2=ixR_srl_stg_min2(idir,n_i2)
-                          !          ixRmin3=ixR_srl_stg_min3(idir,n_i3)
-                          !          ixRmax1=ixR_srl_stg_max1(idir,n_i1)
-                          !          ixRmax2=ixR_srl_stg_max2(idir,n_i2)
-                          !          ixRmax3=ixR_srl_stg_max3(idir,n_i3);
-                          !          psb(ineighbor)%ws(ixRmin1:ixRmax1,ixRmin2:ixRmax2,&
-                          !               ixRmin3:ixRmax3,idir)=psb(igrid)%ws(ixSmin1:ixSmax1,&
-                          !               ixSmin2:ixSmax2,ixSmin3:ixSmax3,idir)
-                          !       end do
-                          !    end if
-                          ! else
-                          !    ixSmin1=ixS_srl_min1(iib1,i1);ixSmin2=ixS_srl_min2(iib2,i2)
-                          !    ixSmin3=ixS_srl_min3(iib3,i3);ixSmax1=ixS_srl_max1(iib1,i1)
-                          !    ixSmax2=ixS_srl_max2(iib2,i2);ixSmax3=ixS_srl_max3(iib3,i3);
-                          !    select case (ipole)
-                          !    case (1)
-                          !       n_i1=i1;n_i2=-i2;n_i3=-i3;
-                          !    case (2)
-                          !       n_i1=-i1;n_i2=i2;n_i3=-i3;
-                          !    case (3)
-                          !       n_i1=-i1;n_i2=-i2;n_i3=i3;
-                          !    end select
-                          !    ixRmin1=ixR_srl_min1(iib1,n_i1);ixRmin2=ixR_srl_min2(iib2,n_i2)
-                          !    ixRmin3=ixR_srl_min3(iib3,n_i3);ixRmax1=ixR_srl_max1(iib1,n_i1)
-                          !    ixRmax2=ixR_srl_max2(iib2,n_i2);ixRmax3=ixR_srl_max3(iib3,n_i3);
-                          !    call pole_copy(psb(ineighbor)%w,ixGlo1,ixGlo2,ixGlo3,ixGhi1,ixGhi2,&
-                          !         ixGhi3,ixRmin1,ixRmin2,ixRmin3,ixRmax1,ixRmax2,ixRmax3,&
-                          !         psb(igrid)%w,ixGlo1,ixGlo2,ixGlo3,ixGhi1,ixGhi2,ixGhi3,ixSmin1,&
-                          !         ixSmin2,ixSmin3,ixSmax1,ixSmax2,ixSmax3,ipole)
-                          !    if(stagger_grid) then
-                          !       do idir=1,ndim
-                          !          ixSmin1=ixS_srl_stg_min1(idir,i1)
-                          !          ixSmin2=ixS_srl_stg_min2(idir,i2)
-                          !          ixSmin3=ixS_srl_stg_min3(idir,i3)
-                          !          ixSmax1=ixS_srl_stg_max1(idir,i1)
-                          !          ixSmax2=ixS_srl_stg_max2(idir,i2)
-                          !          ixSmax3=ixS_srl_stg_max3(idir,i3);
-                          !          ixRmin1=ixR_srl_stg_min1(idir,n_i1)
-                          !          ixRmin2=ixR_srl_stg_min2(idir,n_i2)
-                          !          ixRmin3=ixR_srl_stg_min3(idir,n_i3)
-                          !          ixRmax1=ixR_srl_stg_max1(idir,n_i1)
-                          !          ixRmax2=ixR_srl_stg_max2(idir,n_i2)
-                          !          ixRmax3=ixR_srl_stg_max3(idir,n_i3);
-                          !          call pole_copy_stg(psb(ineighbor)%ws,ixGslo1,ixGslo2,ixGslo3,&
-                          !               ixGshi1,ixGshi2,ixGshi3,ixRmin1,ixRmin2,ixRmin3,ixRmax1,&
-                          !               ixRmax2,ixRmax3,psb(igrid)%ws,ixGslo1,ixGslo2,ixGslo3,&
-                          !               ixGshi1,ixGshi2,ixGshi3,ixSmin1,ixSmin2,ixSmin3,ixSmax1,&
-                          !               ixSmax2,ixSmax3,idir,ipole)
-                          !       end do
-                          !    end if
-                       end if
-                    end if
+      do idims=1,ndim
+           ! to avoid using as yet unknown corner info in more than 1D, we
+           ! fill only interior mesh ranges of the ghost cell ranges at first,
+           ! and progressively enlarge the ranges to include corners later
 
-                  end subroutine bc_fill_srl
-
-                  subroutine identifyphysbound(s,iib1,iib2,iib3)
-                    use mod_global_parameters
-
-                    type(state)          :: s
-                    integer, intent(out) :: iib1,iib2,iib3
+           kmin1=merge(0, 1, idims==1)
+           kmax1=merge(0, 1, idims==1)
+           ixBmin1=ixGlo1+kmin1*nghostcells
+           ixBmax1=ixGhi1-kmax1*nghostcells
 
 
-                    if(s%is_physical_boundary(2*1) .and. s%is_physical_boundary(2*1-1)) then
-                       iib1=2
-                    else if(s%is_physical_boundary(2*1-1)) then
-                       iib1=-1
-                    else if(s%is_physical_boundary(2*1)) then
-                       iib1=1
-                    else
-                       iib1=0
-                    end if
+           kmin2=merge(0, 1, idims==2)
+           kmax2=merge(0, 1, idims==2)
+           ixBmin2=ixGlo2+kmin2*nghostcells
+           ixBmax2=ixGhi2-kmax2*nghostcells
 
 
-                    if(s%is_physical_boundary(2*2) .and. s%is_physical_boundary(2*2-1)) then
-                       iib2=2
-                    else if(s%is_physical_boundary(2*2-1)) then
-                       iib2=-1
-                    else if(s%is_physical_boundary(2*2)) then
-                       iib2=1
-                    else
-                       iib2=0
-                    end if
+           kmin3=merge(0, 1, idims==3)
+           kmax3=merge(0, 1, idims==3)
+           ixBmin3=ixGlo3+kmin3*nghostcells
+           ixBmax3=ixGhi3-kmax3*nghostcells
 
 
-                    if(s%is_physical_boundary(2*3) .and. s%is_physical_boundary(2*3-1)) then
-                       iib3=2
-                    else if(s%is_physical_boundary(2*3-1)) then
-                       iib3=-1
-                    else if(s%is_physical_boundary(2*3)) then
-                       iib3=1
-                    else
-                       iib3=0
-                    end if
+
+           if(idims > 1 .and. neighbor_type(-1,0,0,&
+                igrid)==neighbor_boundary) ixBmin1=ixGlo1
+           if(idims > 1 .and. neighbor_type( 1,0,0,&
+                igrid)==neighbor_boundary) ixBmax1=ixGhi1
+           if(idims > 2 .and. neighbor_type(0,-1,0,&
+                igrid)==neighbor_boundary) ixBmin2=ixGlo2
+           if(idims > 2 .and. neighbor_type(0, 1,0,&
+                igrid)==neighbor_boundary) ixBmax2=ixGhi2
+           do iside=1,2
+              i1=kr(1,idims)*(2*iside-3);i2=kr(2,idims)*(2*iside-3)
+              i3=kr(3,idims)*(2*iside-3);
+              if (aperiodB(idims)) then
+                 if (neighbor_type(i1,i2,i3,&
+                      igrid) /= neighbor_boundary .and. .not. &
+                      s%is_physical_boundary(2*idims-2+iside)) cycle
+              else
+                 if (neighbor_type(i1,i2,i3,igrid) /= neighbor_boundary) cycle
+              end if
+              call bc_phys(iside,idims,time,qdt,s,ixGlo1,ixGlo2,ixGlo3,&
+                   ixGhi1,ixGhi2,ixGhi3,ixBmin1,ixBmin2,ixBmin3,ixBmax1,ixBmax2,&
+                   ixBmax3)
+           end do
+        end do
+
+      end subroutine fill_boundary_before_gc
+
+      !> Physical boundary conditions
+      subroutine fill_boundary_after_gc(s,igrid,time,qdt)
+        !$acc routine vector
+        use mod_global_parameters
+        use mod_boundary_conditions, only: bc_phys
+
+        type(state), intent(inout) :: s
+        integer, intent(in) :: igrid
+        double precision, intent(in) :: time, qdt
+
+        integer :: idims,iside,i1,i2,i3,kmin1,kmin2,kmin3,kmax1,kmax2,kmax3,&
+             ixBmin1,ixBmin2,ixBmin3,ixBmax1,ixBmax2,ixBmax3
+
+          do idims=1,ndim
+             ! to avoid using as yet unknown corner info in more than 1D, we
+             ! fill only interior mesh ranges of the ghost cell ranges at first,
+             ! and progressively enlarge the ranges to include corners later
+             kmin1=0; kmax1=0;
 
 
-                  end subroutine identifyphysbound
+             kmin2=merge(1, 0, idims .lt. 2 .and. neighbor_type(0,-1,0,&
+                  igrid)==1)
+             kmax2=merge(1, 0, idims .lt. 2 .and. neighbor_type(0, 1,0,&
+                  igrid)==1)
+             kmin3=merge(1, 0, idims .lt. 3 .and. neighbor_type(0,0,-1,&
+                  igrid)==1)
+             kmax3=merge(1, 0, idims .lt. 3 .and. neighbor_type(0,0, 1,&
+                  igrid)==1)
+             ixBmin1=ixGlo1+kmin1*nghostcells;ixBmin2=ixGlo2+kmin2*nghostcells
+             ixBmin3=ixGlo3+kmin3*nghostcells;
+             ixBmax1=ixGhi1-kmax1*nghostcells;ixBmax2=ixGhi2-kmax2*nghostcells
+             ixBmax3=ixGhi3-kmax3*nghostcells;
+             do iside=1,2
+                i1=kr(1,idims)*(2*iside-3);i2=kr(2,idims)*(2*iside-3)
+                i3=kr(3,idims)*(2*iside-3);
+                if (aperiodB(idims)) then
+                   if (neighbor_type(i1,i2,i3,&
+                        igrid) /= neighbor_boundary .and. .not. &
+                        s%is_physical_boundary(2*idims-2+iside)) cycle
+                else
+                   if (neighbor_type(i1,i2,i3,igrid) /= neighbor_boundary) cycle
+                end if
+                call bc_phys(iside,idims,time,qdt,s,ixGlo1,ixGlo2,ixGlo3,&
+                     ixGhi1,ixGhi2,ixGhi3,ixBmin1,ixBmin2,ixBmin3,ixBmax1,ixBmax2,&
+                     ixBmax3)
+             end do
+          end do
 
-                end module mod_ghostcells_update
+        end subroutine fill_boundary_after_gc
+
+        subroutine identifyphysbound(s,iib1,iib2,iib3)
+          use mod_global_parameters
+
+          type(state)          :: s
+          integer, intent(out) :: iib1,iib2,iib3
+
+
+          if(s%is_physical_boundary(2*1) .and. s%is_physical_boundary(2*1-1)) then
+             iib1=2
+          else if(s%is_physical_boundary(2*1-1)) then
+             iib1=-1
+          else if(s%is_physical_boundary(2*1)) then
+             iib1=1
+          else
+             iib1=0
+          end if
+
+
+          if(s%is_physical_boundary(2*2) .and. s%is_physical_boundary(2*2-1)) then
+             iib2=2
+          else if(s%is_physical_boundary(2*2-1)) then
+             iib2=-1
+          else if(s%is_physical_boundary(2*2)) then
+             iib2=1
+          else
+             iib2=0
+          end if
+
+
+          if(s%is_physical_boundary(2*3) .and. s%is_physical_boundary(2*3-1)) then
+             iib3=2
+          else if(s%is_physical_boundary(2*3-1)) then
+             iib3=-1
+          else if(s%is_physical_boundary(2*3)) then
+             iib3=1
+          else
+             iib3=0
+          end if
+
+
+        end subroutine identifyphysbound
+
+      end module mod_ghostcells_update
