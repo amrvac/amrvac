@@ -53,17 +53,9 @@ contains
     usr_init_one_grid  => initial_conditions
     usr_special_bc     => special_bound
     usr_gravity        => stellar_gravity
-    
-    ! For cgs output in convert stage if wished for
-    ! if (convert .and. saveprim) then
-    !   w_convert_factor(rho_)   = unit_density
-    !   w_convert_factor(mom(:)) = unit_velocity
-    !   w_convert_factor(gcak1_) = unit_length / unit_time**2.0d0
-    !   if (hd_energy) w_convert_factor(p_) = unit_pressure
-    ! endif
 
     call HD_activate()
-    call set_cak_force_norm(rstar,twind)
+
   end subroutine usr_init
 
   !=============================================================================
@@ -108,6 +100,8 @@ contains
     vinf   = vesc * sqrt(cak_alpha/(1.0d0 - cak_alpha))
     mdot   = lstar/const_c**2.0d0 * cak_alpha/(1.0d0 - cak_alpha) &
                * (gayley_qbar * gammae/(1.0d0 - gammae))**((1.0d0 - cak_alpha)/cak_alpha)
+
+    call set_cak_force_norm(rstar,twind)
 
     if (mype == 0 .and. .not.convert) then
       print*, '======================'
@@ -162,6 +156,16 @@ contains
       print*, 'vinf     = ', vinf
       print*, 'Ggrav    = ', Ggrav
     endif
+
+    ! For cgs output in convert stage if wished for
+    ! if (convert .and. saveprim) then
+    !   w_convert_factor(rho_)   = unit_density
+    !   w_convert_factor(mom(:)) = unit_velocity
+    !   w_convert_factor(gcak1_) = unit_length / unit_time**2.0d0
+    !   if (hd_energy) w_convert_factor(p_) = unit_pressure
+    !   length_convert_factor    = unit_length
+    !   time_convert_factor      = unit_time
+    ! endif
 
   end subroutine initglobaldata_usr
 
