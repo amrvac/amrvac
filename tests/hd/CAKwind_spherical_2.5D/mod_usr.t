@@ -26,58 +26,44 @@ module mod_usr
   use mod_hd
   
   ! Get access to some CAK radiation functionality
-  use mod_cak_force, only: set_cak_force_norm, cak_alpha, gayley_qbar
+  use mod_cak_force, only: set_cak_force_norm, cak_alpha, gayley_qbar, &
+       gcak1_, gcak2_, gcak3_
 
   implicit none
 
   ! User input parameters
-  real(8) :: mstar, rstar, twind, rhobound, beta, Wrot
-
-  ! Extra parameters required in computation
-  real(8) :: asound, Ggrav, vrot
+  real(8) :: mstar_sol, rstar_sol, twind_cgs, rhobound_cgs, beta, Wrot
 
   ! Dimensionless variables needed throughout computations
-  real(8) :: dmstar, drstar, drhobound, dmdot, dvinf, dasound, dclight
-  real(8) :: dGgrav, dvrot
+  real(8) :: mstar, rstar, rhobound, mdot, vinf, asound, Ggrav, vrot
 
 contains
 
-  !=============================================================================
+  !============================================================================
   ! This routine should set user methods, and activate the physics module
-  !=============================================================================
+  !============================================================================
   subroutine usr_init()
 
     call set_coordinate_system("spherical_2.5D")
     call usr_params_read(par_files)
 
     ! Choose independent normalisation units:
-    unit_length      = rstar    ! cm
-    unit_temperature = twind    ! K
-    unit_density     = rhobound ! g cm^-3
+    unit_length      = rstar_sol * const_RSun ! cm
+    unit_temperature = twind_cgs              ! K
+    unit_density     = rhobound_cgs           ! g cm^-3
 
-    
     usr_set_parameters => initglobaldata_usr
     usr_init_one_grid  => initial_conditions
     usr_special_bc     => special_bound
     usr_gravity        => stellar_gravity
 
-    ! For cgs output in convert stage if wished for
-    ! if (convert .and. saveprim) then
-    !   w_convert_factor(rho_)   = unit_density
-    !   w_convert_factor(mom(:)) = unit_velocity
-    !   w_convert_factor(gcak1_) = unit_length / unit_time**2.0d0
-    !   w_convert_factor(gcak2_) = unit_length / unit_time**2.0d0
-    !   w_convert_factor(gcak3_) = unit_length / unit_time**2.0d0
-    !   if (hd_energy) w_convert_factor(p_) = unit_pressure
-    ! endif
     call HD_activate()
-    call set_cak_force_norm(rstar,twind)
     
   end subroutine usr_init
 
-  !=============================================================================
+  !============================================================================
   ! Read in the usr.par file with the problem specific list
-  !=============================================================================
+  !============================================================================
   subroutine usr_params_read(files)
 
     ! Subroutine argument
@@ -86,7 +72,8 @@ contains
     ! Local variable
     integer :: n
 
-    namelist /star_list/ mstar, rstar, twind, rhobound, beta, Wrot
+    namelist /star_list/ mstar_sol, rstar_sol, twind_cgs, rhobound_cgs, &
+         beta, Wrot
 
     do n = 1,size(files)
        open(unitpar, file=trim(files(n)), status="old")
@@ -94,35 +81,38 @@ contains
        111 close(unitpar)
     end do
 
-    ! Scale to cgs units
-    mstar = mstar * const_MSun
-    rstar = rstar * const_RSun
-
   end subroutine usr_params_read
 
-  !=============================================================================
+  !============================================================================
   ! Compute some quantities of interest (in CGS) before making unitless
-  !=============================================================================
+  !============================================================================
   subroutine initglobaldata_usr
-    real(8) :: lstar, mumol, vesc, gammae, logg, logge, heff, vrotc, vinf, mdot
+    real(8) :: mstar_cgs, rstar_cgs, lstar_cgs, mumol, vesc_cgs, gammae
+    real(8) :: logg_cgs, logge_cgs, heff_cgs, vrotc_cgs, vinf_cgs, asound_cgs
+    real(8) :: mdot_cgs, vrot_cgs, pthbound, twind
+
+    mstar_cgs = mstar_sol * const_MSun
+    rstar_cgs = rstar_sol * const_RSun
 
     ! Stellar structure
-    lstar  = 4.0d0*dpi * rstar**2.0d0 * const_sigma * twind**4.0d0
-    gammae = const_kappae * lstar/(4.0d0*dpi * const_G * mstar * const_c)
-    logg   = log10(const_G * mstar/rstar**2.0d0)
-    logge  = logg + log10(1.0d0 - gammae)
-    mumol  = (1.0d0 + 4.0d0*He_abundance)/(2.0d0 + 3.0d0*He_abundance)
-    asound = sqrt(twind * kB_cgs/(mumol * mp_cgs))
-    heff   = asound**2.0d0 / 10.0d0**logge
-    vrotc  = sqrt(const_G * mstar*(1.0d0 - gammae)/rstar)
-    vrot   = vrotc * Wrot
+    lstar_cgs  = 4.0d0*dpi * rstar_cgs**2.0d0 * const_sigma * twind_cgs**4.0d0
+    gammae     = const_kappae * lstar_cgs/(4.0d0*dpi * const_G * mstar_cgs * const_c)
+    logg_cgs   = log10(const_G * mstar_cgs/rstar_cgs**2.0d0)
+    logge_cgs  = logg_cgs + log10(1.0d0 - gammae)
+    mumol      = (1.0d0 + 4.0d0*He_abundance)/(2.0d0 + 3.0d0*He_abundance)
+    asound_cgs = sqrt(twind_cgs * kB_cgs/(mumol * mp_cgs))
+    heff_cgs   = asound_cgs**2.0d0 / 10.0d0**logge_cgs
+    vrotc_cgs  = sqrt(const_G * mstar_cgs*(1.0d0 - gammae)/rstar_cgs)
+    vrot_cgs      = vrotc_cgs * Wrot
 
     ! Wind quantities in CAK theory
-    vesc   = sqrt(2.0d0 * const_G * mstar * (1.0d0 - gammae)/rstar)
-    vinf   = vesc * sqrt(cak_alpha/(1.0d0 - cak_alpha))
-    mdot   = lstar/const_c**2.0d0 * cak_alpha/(1.0d0 - cak_alpha) &
-             * (gayley_qbar * gammae/(1.0d0 - gammae))**((1.0d0 - cak_alpha)/cak_alpha)
-    
+    vesc_cgs = sqrt(2.0d0 * const_G * mstar_cgs * (1.0d0 - gammae)/rstar_cgs)
+    vinf_cgs = vesc_cgs * sqrt(cak_alpha/(1.0d0 - cak_alpha))
+    mdot_cgs = lstar_cgs/const_c**2.0d0 * cak_alpha/(1.0d0 - cak_alpha) &
+               * (gayley_qbar * gammae/(1.0d0 - gammae))**((1.0d0 - cak_alpha)/cak_alpha)
+
+    call set_cak_force_norm(rstar_cgs,twind_cgs)
+
     if (mype == 0) then
       print*, '======================'
       print*, '   Unity quantities   '
@@ -137,56 +127,75 @@ contains
       print*, '==============================================='
       print*, '   Stellar and wind parameters in CGS units    '
       print*, '==============================================='
-      print*, 'L/Lsun                 = ', lstar/const_LSun
-      print*, 'M/Msun                 = ', mstar/const_MSun
-      print*, 'R/Rsun                 = ', rstar/const_RSun
-      print*, 'Twind                  = ', twind
+      print*, 'L/Lsun                 = ', lstar_cgs/const_LSun
+      print*, 'M/Msun                 = ', mstar_cgs/const_MSun
+      print*, 'R/Rsun                 = ', rstar_cgs/const_RSun
+      print*, 'Twind                  = ', twind_cgs
       print*, 'Mean molecular weight  = ', mumol
-      print*, 'log(g)                 = ', logg
-      print*, 'eff. log(g)            = ', logge
-      print*, 'heff/Rstar             = ', heff/rstar
+      print*, 'log(g)                 = ', logg_cgs
+      print*, 'eff. log(g)            = ', logge_cgs
+      print*, 'heff/Rstar             = ', heff_cgs/rstar_cgs
       print*, 'W (vrot/vrotc)         = ', Wrot
-      print*, 'critical vrot          = ', vrotc
-      print*, 'vrot                   = ', vrot
+      print*, 'critical vrot          = ', vrotc_cgs
+      print*, 'vrot                   = ', vrot_cgs
       print*, 'Eddington gamma        = ', gammae
-      print*, 'adiabatic gamma        = ', hd_gamma
-      print*, 'isothermal asound      = ', asound
-      print*, 'eff. vesc              = ', vesc
-      print*, 'CAK vinf               = ', vinf
-      print*, 'FD vinf                = ', 3.0d0 * vesc
-      print*, 'analytic Mdot CAK      = ', mdot * (const_years/const_MSun)
-      print*, '... with FD correction = ', mdot/(1.0d0 + cak_alpha)**(1.0d0/cak_alpha) * (const_years/const_MSun)
+      print*, 'isothermal asound      = ', asound_cgs
+      print*, 'eff. vesc              = ', vesc_cgs
+      print*, 'CAK vinf               = ', vinf_cgs
+      print*, 'FD vinf                = ', 3.0d0 * vesc_cgs
+      print*, 'analytic Mdot CAK      = ', mdot_cgs * (const_years/const_MSun)
+      print*, '... with FD correction = ', mdot_cgs/(1.0d0 + cak_alpha)**(1.0d0/cak_alpha) * (const_years/const_MSun)
     endif
 
     ! Make some variables needed for computations dimensionless
-    dmstar    = mstar/(unit_density * unit_length**3.0d0)
-    drstar    = rstar/unit_length
-    dasound   = asound/unit_velocity
-    drhobound = rhobound/unit_density
-    dvinf     = vinf/unit_velocity
-    dmdot     = mdot * unit_time/(unit_density * unit_length**3.0d0)
-    dGgrav    = const_G * unit_density * unit_time**2.0d0
-    dvrot     = vrot/unit_velocity
-    
+    mstar    = mstar_cgs / (unit_density * unit_length**3.0d0)
+    rstar    = rstar_cgs / unit_length
+    twind    = twind_cgs / unit_temperature
+    asound   = asound_cgs / unit_velocity
+    rhobound = rhobound_cgs / unit_density
+    pthbound = rhobound * twind
+    vinf     = vinf_cgs / unit_velocity
+    mdot     = mdot_cgs * unit_time / (unit_density * unit_length**3.0d0)
+    Ggrav    = const_G * unit_density * unit_time**2.0d0
+    vrot     = vrot_cgs / unit_velocity
+
+    ! Compute correct entropy
+    hd_adiab = pthbound / rhobound**hd_gamma
+   
     if (mype == 0) then
       print*, '========================================'
       print*, '  Dimensionless computation quantities  '
       print*, '========================================'
-      print*, 'Mstar    = ', dmstar
-      print*, 'Rstar    = ', drstar
-      print*, 'rhobound = ', drhobound
-      print*, 'Mdot CAK = ', dmdot
-      print*, 'asound   = ', dasound
-      print*, 'vinf     = ', dvinf
-      print*, 'vrot     = ', dvrot
-      print*, 'Ggrav    = ', dGgrav
+      print*, 'Mstar    = ', mstar
+      print*, 'Rstar    = ', rstar
+      print*, 'Twind    = ', twind
+      print*, 'rhobound = ', rhobound
+      print*, 'Mdot CAK = ', mdot
+      print*, 'asound   = ', asound
+      print*, 'vinf     = ', vinf
+      print*, 'vrot     = ', vrot
+      print*, 'Ggrav    = ', Ggrav
+      print*, 'hd_gamma = ', hd_gamma
+      print*, 'hd_adiab = ', hd_adiab
     endif
+
+    ! For cgs output in convert stage if wished for
+    ! if (convert .and. saveprim) then
+    !   w_convert_factor(rho_)   = unit_density
+    !   w_convert_factor(mom(:)) = unit_velocity
+    !   w_convert_factor(gcak1_) = unit_length / unit_time**2.0d0
+    !   w_convert_factor(gcak2_) = unit_length / unit_time**2.0d0
+    !   w_convert_factor(gcak3_) = unit_length / unit_time**2.0d0
+    !   if (hd_energy) w_convert_factor(p_) = unit_pressure
+    !   length_convert_factor    = unit_length
+    !   time_convert_factor      = unit_time
+    ! endif
 
   end subroutine initglobaldata_usr
   
-  !=============================================================================
+  !============================================================================
   ! Initial conditions start from spherically symmetric 1-D CAK beta-law wind
-  !=============================================================================
+  !============================================================================
   subroutine initial_conditions(ixI^L,ixO^L,w,x)
 
     ! Subroutine arguments
@@ -200,20 +209,19 @@ contains
     ! Small offset (~vtherm/vinf) to avoid starting at terminal wind speed
     sfac = 1.0d0 - 1.0d-3**(1.0d0/beta)
 
-    w(ixO^S,mom(1)) = dvinf * ( 1.0d0 - sfac * drstar/x(ixO^S,1) )**beta
-    w(ixO^S,rho_)   = dmdot / (4.0d0*dpi * x(ixO^S,1)**2.0d0 * w(ixO^S,mom(1)))
+    w(ixO^S,mom(1)) = vinf * ( 1.0d0 - sfac * rstar/x(ixO^S,1) )**beta
+    w(ixO^S,rho_)   = mdot / (4.0d0*dpi * x(ixO^S,1)**2.0d0 * w(ixO^S,mom(1)))
     w(ixO^S,mom(2)) = 0.0d0
     
     if (hd_rotating_frame) then
       w(ixO^S,mom(3)) = 0.0d0
     else
       ! Angular momentum conserving
-      w(ixO^S,mom(3)) = dvrot * sin(x(ixO^S,2)) * drstar**2.0d0/x(ixO^S,1)
+      w(ixO^S,mom(3)) = vrot * sin(x(ixO^S,2)) * rstar**2.0d0 / x(ixO^S,1)
     endif
 
-    if (hd_energy) then
-      w(ixO^S,p_) = dasound**2.0 * drhobound * (w(ixO^S,rho_)/drhobound)**hd_gamma
-    endif
+    ! Isothermal initial condition
+    if (hd_energy) w(ixO^S,p_) = w(ixO^S,rho_)
 
     call hd_to_conserved(ixI^L,ixO^L,w,x)
 
@@ -222,10 +230,10 @@ contains
 
   end subroutine initial_conditions
 
-  !=============================================================================
+  !============================================================================
   ! Special user boundary conditions at inner radial boundary:
   !   vr (extrapolated); rho, vtheta, vphi (fixed)
-  !=============================================================================
+  !============================================================================
   subroutine special_bound(qt,ixI^L,ixB^L,iB,w,x)
 
     ! Subroutine arguments
@@ -239,7 +247,7 @@ contains
     select case (iB)
     case(1)
 
-      w(ixB^S,rho_) = drhobound
+      w(ixB^S,rho_) = rhobound
 
       ! Radial velocity (constant slope extrapolation)
       w(ixBmax1+1^%1ixB^S,mom(1))=w(ixBmax1+1^%1ixB^S,mom(1))/w(ixBmax1+1^%1ixB^S,rho_)
@@ -258,16 +266,15 @@ contains
         w(ixB^S,mom(3)) = 0.0d0
       else
         ! Rigid body rotation of star
-        w(ixB^S,mom(3)) = dvrot * sin(x(ixB^S,2))
+        w(ixB^S,mom(3)) = vrot * sin(x(ixB^S,2))
       endif
 
       ! Avoid supersonic ghost cells, also avoid overloading too much
-      w(ixB^S,mom(1)) = min(w(ixB^S,mom(1)), dasound)
-      w(ixB^S,mom(1)) = max(w(ixB^S,mom(1)), -dasound)
+      w(ixB^S,mom(1)) = min(w(ixB^S,mom(1)), asound)
+      w(ixB^S,mom(1)) = max(w(ixB^S,mom(1)), -asound)
 
-      if (hd_energy) then
-        w(ixB^S,p_) = dasound**2.0 * drhobound * (w(ixB^S,rho_)/drhobound)**hd_gamma
-      endif
+      if (hd_energy) w(ixB^S,p_) = hd_adiab * w(ixB^S,rho_)**hd_gamma
+
       w(ixBmax1+1^%1ixB^S,mom(1))=w(ixBmax1+1^%1ixB^S,mom(1))*w(ixBmax1+1^%1ixB^S,rho_)
       w(ixBmax1+2^%1ixB^S,mom(1))=w(ixBmax1+2^%1ixB^S,mom(1))*w(ixBmax1+2^%1ixB^S,rho_)
 
@@ -279,9 +286,9 @@ contains
 
   end subroutine special_bound
 
-  !=============================================================================
+  !============================================================================
   ! Compute stellar gravity
-  !=============================================================================
+  !============================================================================
   subroutine stellar_gravity(ixI^L,ixO^L,wCT,x,gravity_field)
 
     ! Subroutine arguments
@@ -292,7 +299,7 @@ contains
     gravity_field(ixO^S,:) = 0.0d0
 
     ! Only in radial direction
-    gravity_field(ixO^S,1) = -dGgrav * dmstar/x(ixO^S,1)**2.0d0
+    gravity_field(ixO^S,1) = -Ggrav * mstar/x(ixO^S,1)**2.0d0
 
   end subroutine stellar_gravity
 
