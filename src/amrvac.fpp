@@ -3,6 +3,7 @@
 !> using adaptive mesh refinement.
 program amrvac
 
+
   use mod_global_parameters
   use mod_input_output
   use mod_usr_methods
@@ -10,9 +11,9 @@ program amrvac
   use mod_usr
   use mod_initialize
   use mod_initialize_amr, only: initlevelone, modify_IC
-  
+
   use mod_initialize_amr, only: improve_initial_condition
- 
+
   use mod_selectgrids, only: selectgrids
   use mod_particles
   use mod_fix_conserve
@@ -22,7 +23,7 @@ program amrvac
 
   use mod_physics
   use mod_amr_grid, only: resettree, settree, resettree_convert
-!FIXME:  
+!FIXME:
 !  use mod_trac, only: initialize_trac_after_settree
   use mod_convert_files, only: generate_plotfile
   use mod_comm_lib, only: comm_start, comm_finalize,mpistop
@@ -46,7 +47,7 @@ program amrvac
 
   call initialize_amrvac()
 
-  if (restart_from_file /= undefined) then 
+  if (restart_from_file /= undefined) then
   !AGILE: not yet implemented, data movement needs to happen here
 #ifdef _OPENACC
      call mpistop("restart or convert on GPU not yet implemented")
@@ -57,7 +58,7 @@ program amrvac
      ! read in dat file
      call read_snapshot()
 
-     ! rewrite it=0 snapshot when restart from it=0 state 
+     ! rewrite it=0 snapshot when restart from it=0 state
      if(it==0.and.itsave(1,2)==0) snapshotnext=snapshotnext-1
 
      if (reset_time) then
@@ -98,10 +99,10 @@ program amrvac
      if(convert .and. level_io>0 .or. level_io_min.ne.1 .or. &
         level_io_max.ne.nlevelshi) call resettree_convert
 
-     
+
      ! improve initial condition after restart and modification
      if(firstprocess) call improve_initial_condition()
-    
+
 
      if (use_multigrid) call mg_setup_multigrid()
 
@@ -154,10 +155,10 @@ program amrvac
 
      if (use_multigrid) call mg_setup_multigrid()
 
-     
+
      ! improve initial condition
      call improve_initial_condition()
-    
+
 
      ! select active grids
      call selectgrids
@@ -169,10 +170,10 @@ program amrvac
 
   end if
 
-!FIXME:  
+!FIXME:
   ! initialize something base on tree information
 !  call initialize_trac_after_settree
-  
+
   if (mype==0) then
      print*,'-------------------------------------------------------------------------------'
      write(*,'(a,f17.3,a)')' Startup phase took : ',MPI_WTIME()-time0,' sec'
@@ -423,7 +424,7 @@ contains
            timeio0 - time_in
     end if
 
-    
+
 
     if(use_particles) call time_spent_on_particles
 
