@@ -91,7 +91,7 @@ module mod_ghostcells_update
   ! sizes of buffer arrays for center-grid variable for siblings and restrict
   integer, dimension(:), allocatable :: recvrequest_c_sr, sendrequest_c_sr
   integer, dimension(:,:), allocatable :: recvstatus_c_sr, sendstatus_c_sr
-  
+
   ! MPI requests and status for srl neighbor exchange, used with nprocs_info
   integer, dimension(:), allocatable :: recv_srl_nb, send_srl_nb
   integer, dimension(:,:), allocatable :: recvstatus_srl_nb, sendstatus_srl_nb
@@ -167,13 +167,13 @@ contains
      ! .. local ..
      integer, parameter                        :: i1min=-1, i2min=-1, i3min=-1
      integer                                   :: id, idd
-     
+
      i3  = ceiling(dble(i)/9.0d0) - 1 + i3min
      id  = i - 9 * (i3-i3min)
      i2  = ceiling(dble(id)/3.0d0) -1 + i2min
      idd = id - 3 * (i2-i2min)
      i1  = idd + i1min - 1
-     
+
    end subroutine idecode
 
   subroutine init_bc()
@@ -1258,7 +1258,7 @@ contains
     type(wbuffer) :: pwbuf(npwbuf)
 
     integer :: ix1,ix2,ix3, iw, inb, i, Nx1, Nx2, Nx3, ienc, imaxigrids
-    
+
     time_bcin=MPI_WTIME()
 
     call nvtxStartRange("getbc",2)
@@ -1327,7 +1327,7 @@ contains
        isend_r=0
        isend_p=0
     end if
-    
+
     ! MPI receive SRL
     do inb = 1, nbprocs_info%nbprocs_srl
 !       !$acc host_data use_device(nbprocs_info%srl_rcv(inb)%buffer, nbprocs_info%srl_info_rcv(inb)%buffer)
@@ -1349,19 +1349,19 @@ contains
     do inb = 1, nbprocs_info%nbprocs_srl
        do i = 1, imaxigrids
           if (i > nbprocs_info%srl(inb)%nigrids) cycle
-          
+
           igrid = nbprocs_info%srl(inb)%igrid(i)
           ienc = nbprocs_info%srl(inb)%iencode(i)
           ibuf_start = nbprocs_info%srl(inb)%ibuf_start(i)
           call idecode( i1, i2, i3, ienc )
           iib1=idphyb(1,igrid); iib2=idphyb(2,igrid); iib3=idphyb(3,igrid)
-          
+
           ! now fill the data and info buffers
           ixSmin1=ixS_srl_min1(iib1,i1); ixSmax1=ixS_srl_max1(iib1,i1)
           ixSmin2=ixS_srl_min2(iib2,i2); ixSmax2=ixS_srl_max2(iib2,i2)
           ixSmin3=ixS_srl_min3(iib3,i3); ixSmax3=ixS_srl_max3(iib3,i3)
           Nx1=ixSmax1-ixSmin1+1; Nx2=ixSmax2-ixSmin2+1; Nx3=ixSmax3-ixSmin3+1
-          
+
           !$acc loop collapse(4) vector independent
           do iw = nwhead, nwtail
              do ix3 = ixSmin3, ixSmax3
@@ -1380,7 +1380,7 @@ contains
           end do
 
 !          print *, 'sending', neighbor(1,i1,i2,i3,igrid), -i1, -i2, -i3
-          
+
           nbprocs_info%srl_info_send(inb)%buffer( 1 + 3 * (i - 1) : 3 * i ) = &
                [neighbor(1,i1,i2,i3,igrid), ienc, ibuf_start]
        end do
@@ -1390,7 +1390,7 @@ contains
        !$acc update host(nbprocs_info%srl_info_send(inb)%buffer)
        !$acc update host(nbprocs_info%srl_send(inb)%buffer)
     end do
-       
+
     ! MPI send SRL
     do inb = 1, nbprocs_info%nbprocs_srl
 !       !$acc host_data use_device(nbprocs_info%srl_send(inb)%buffer, nbprocs_info%srl_info_send(inb)%buffer)
@@ -1402,7 +1402,7 @@ contains
             MPI_INTEGER, nbprocs_info%nbprocs_srl_list(inb), 2, icomm, send_srl_nb(nbprocs_info%nbprocs_srl + inb), ierrmpi)
 !       !$acc end host_data
     end do
-    
+
     ! fill ghost-cell values of sibling blocks
     !$OMP PARALLEL DO SCHEDULE(dynamic) PRIVATE(igrid,iib1,iib2,iib3)
     !$acc parallel loop gang collapse(2) independent
@@ -1450,7 +1450,7 @@ contains
        !$acc update device(nbprocs_info%srl_info_rcv(inb)%buffer)
        !$acc update device(nbprocs_info%srl_rcv(inb)%buffer)
     end do
-    
+
     ! unpack the MPI buffers
     !$acc parallel loop gang collapse(2) independent
     do inb = 1, nbprocs_info%nbprocs_srl
@@ -1460,19 +1460,19 @@ contains
           igrid       = nbprocs_info%srl_info_rcv(inb)%buffer( 3 * (i - 1) + 1 )
           ienc        = nbprocs_info%srl_info_rcv(inb)%buffer( 3 * (i - 1) + 2 )
           ibuf_start  = nbprocs_info%srl_info_rcv(inb)%buffer( 3 * (i - 1) + 3 )
-          
+
           call idecode( i1, i2, i3, ienc )
           i1 = -i1; i2 = -i2; i3=-i3
 
 !          print *, 'received:', igrid, i1, i2, i3
-          
+
           iib1 = idphyb(1,igrid); iib2 = idphyb(2,igrid); iib3 = idphyb(3,igrid)
 
-          ixRmin1=ixR_srl_min1(iib1,i1); ixRmin2=ixR_srl_min2(iib2,i2) 
-          ixRmin3=ixR_srl_min3(iib3,i3); ixRmax1=ixR_srl_max1(iib1,i1) 
+          ixRmin1=ixR_srl_min1(iib1,i1); ixRmin2=ixR_srl_min2(iib2,i2)
+          ixRmin3=ixR_srl_min3(iib3,i3); ixRmax1=ixR_srl_max1(iib1,i1)
           ixRmax2=ixR_srl_max2(iib2,i2); ixRmax3=ixR_srl_max3(iib3,i3)
           Nx1=ixRmax1-ixRmin1+1; Nx2=ixRmax2-ixRmin2+1; Nx3=ixRmax3-ixRmin3+1
-          
+
           !$acc loop collapse(4) vector independent
           do iw = nwhead, nwtail
              do ix3 = ixRmin3, ixRmax3
@@ -2992,7 +2992,7 @@ contains
 
                        ! cell-centered coordinates of coarse grid point
                        ! here we temporarily use an equidistant grid
-                       xCo3=xComin3+(dble(ixCo3)-half)*dxCo3 
+                       xCo3=xComin3+(dble(ixCo3)-half)*dxCo3
                        do ixFi2 = ixFimin2,ixFimax2
                           ! cell-centered coordinates of fine grid point
                           ! here we temporarily use an equidistant grid
@@ -3005,7 +3005,7 @@ contains
 
                           ! cell-centered coordinates of coarse grid point
                           ! here we temporarily use an equidistant grid
-                          xCo2=xComin2+(dble(ixCo2)-half)*dxCo2 
+                          xCo2=xComin2+(dble(ixCo2)-half)*dxCo2
                           do ixFi1 = ixFimin1,ixFimax1
                              ! cell-centered coordinates of fine grid point
                              ! here we temporarily use an equidistant grid
@@ -3018,7 +3018,7 @@ contains
 
                              ! cell-centered coordinates of coarse grid point
                              ! here we temporarily use an equidistant grid
-                             xCo1=xComin1+(dble(ixCo1)-half)*dxCo1 
+                             xCo1=xComin1+(dble(ixCo1)-half)*dxCo1
 
                              !if(.not.slab) then
                              !   ^D&local_invdxCo^D=1.d0/psc(igrid)%dx({ixCo^DD},^D)\
@@ -3077,21 +3077,21 @@ contains
                                    signedfactorhalf1=-0.5d0
                                 end if
                                 eta1=signedfactorhalf1*(one-psb(igrid)%dvolume(ixFi1,ixFi2,&
-                                     ixFi3) /sum(psb(igrid)%dvolume(ix1:ix1+1,ixFi2,ixFi3))) 
+                                     ixFi3) /sum(psb(igrid)%dvolume(ix1:ix1+1,ixFi2,ixFi3)))
                                 if(xFi2>xCo2) then
                                    signedfactorhalf2=0.5d0
                                 else
                                    signedfactorhalf2=-0.5d0
                                 end if
                                 eta2=signedfactorhalf2*(one-psb(igrid)%dvolume(ixFi1,ixFi2,&
-                                     ixFi3) /sum(psb(igrid)%dvolume(ixFi1,ix2:ix2+1,ixFi3))) 
+                                     ixFi3) /sum(psb(igrid)%dvolume(ixFi1,ix2:ix2+1,ixFi3)))
                                 if(xFi3>xCo3) then
                                    signedfactorhalf3=0.5d0
                                 else
                                    signedfactorhalf3=-0.5d0
                                 end if
                                 eta3=signedfactorhalf3*(one-psb(igrid)%dvolume(ixFi1,ixFi2,&
-                                     ixFi3) /sum(psb(igrid)%dvolume(ixFi1,ixFi2,ix3:ix3+1))) 
+                                     ixFi3) /sum(psb(igrid)%dvolume(ixFi1,ixFi2,ix3:ix3+1)))
                                 !{eta^D=(xFi^D-xCo^D)*invdxCo^D &
                                 !      *two*(one-block%dvolume(ixFi^DD) &
                                 !      /sum(block%dvolume(ix^D:ix^D+1^D%ixFi^DD))) \}
