@@ -1330,14 +1330,14 @@ contains
 
     ! MPI receive SRL
     do inb = 1, nbprocs_info%nbprocs_srl
-!       !$acc host_data use_device(nbprocs_info%srl_rcv(inb)%buffer, nbprocs_info%srl_info_rcv(inb)%buffer)
+      !$acc host_data use_device(nbprocs_info%srl_rcv(inb)%buffer, nbprocs_info%srl_info_rcv(inb)%buffer)
        call MPI_IRECV(nbprocs_info%srl_rcv(inb)%buffer, &
             size(nbprocs_info%srl_rcv(inb)%buffer), &
             MPI_DOUBLE_PRECISION, nbprocs_info%nbprocs_srl_list(inb), 1, icomm, recv_srl_nb(inb), ierrmpi)
        call MPI_IRECV(nbprocs_info%srl_info_rcv(inb)%buffer, &
             size(nbprocs_info%srl_info_rcv(inb)%buffer), &
             MPI_INTEGER, nbprocs_info%nbprocs_srl_list(inb), 2, icomm, recv_srl_nb(nbprocs_info%nbprocs_srl + inb), ierrmpi)
-!       !$acc end host_data
+      !$acc end host_data
     end do
 
     ! fill the SRL send buffers on GPU
@@ -1379,28 +1379,21 @@ contains
              end do
           end do
 
-!          print *, 'sending', neighbor(1,i1,i2,i3,igrid), -i1, -i2, -i3
-
           nbprocs_info%srl_info_send(inb)%buffer( 1 + 3 * (i - 1) : 3 * i ) = &
                [neighbor(1,i1,i2,i3,igrid), ienc, ibuf_start]
        end do
     end do
 
-    do inb = 1, nbprocs_info%nbprocs_srl
-       !$acc update host(nbprocs_info%srl_info_send(inb)%buffer)
-       !$acc update host(nbprocs_info%srl_send(inb)%buffer)
-    end do
-
     ! MPI send SRL
     do inb = 1, nbprocs_info%nbprocs_srl
-!       !$acc host_data use_device(nbprocs_info%srl_send(inb)%buffer, nbprocs_info%srl_info_send(inb)%buffer)
+      !$acc host_data use_device(nbprocs_info%srl_send(inb)%buffer, nbprocs_info%srl_info_send(inb)%buffer)
        call MPI_ISEND(nbprocs_info%srl_send(inb)%buffer, &
             size(nbprocs_info%srl_send(inb)%buffer), &
             MPI_DOUBLE_PRECISION, nbprocs_info%nbprocs_srl_list(inb), 1, icomm, send_srl_nb(inb), ierrmpi)
        call MPI_ISEND(nbprocs_info%srl_info_send(inb)%buffer, &
             size(nbprocs_info%srl_info_send(inb)%buffer), &
             MPI_INTEGER, nbprocs_info%nbprocs_srl_list(inb), 2, icomm, send_srl_nb(nbprocs_info%nbprocs_srl + inb), ierrmpi)
-!       !$acc end host_data
+      !$acc end host_data
     end do
 
     ! fill ghost-cell values of sibling blocks
@@ -1445,11 +1438,6 @@ contains
 
     call MPI_WAITALL(nbprocs_info%nbprocs_srl*2, recv_srl_nb, recvstatus_srl_nb, ierrmpi)
     call MPI_WAITALL(nbprocs_info%nbprocs_srl*2, send_srl_nb, sendstatus_srl_nb, ierrmpi)
-
-    do inb = 1, nbprocs_info%nbprocs_srl
-       !$acc update device(nbprocs_info%srl_info_rcv(inb)%buffer)
-       !$acc update device(nbprocs_info%srl_rcv(inb)%buffer)
-    end do
 
     ! unpack the MPI buffers
     !$acc parallel loop gang collapse(2) independent
@@ -1654,10 +1642,10 @@ contains
              itag=(3**3+4**3)*(igrid-1)+(i1+1)*3**(1-1)+(i2+1)*3**(2-1)+(i3+&
                   1)*3**(3-1)
              istep = psb(igrid)%istep
-!             !$acc host_data use_device(bg(istep)%w)
+            !$acc host_data use_device(bg(istep)%w)
              call MPI_IRECV(bg(istep)%w(:,:,:,:,igrid),1,type_recv_srl(iib1,iib2,iib3,i1,i2,&
                   i3), ipe_neighbor,itag,icomm,recvrequest_c_sr(irecv_c),ierrmpi)
-!             !$acc end host_data
+            !$acc end host_data
              if(stagger_grid) then
                 irecv_srl=irecv_srl+1
                 call MPI_IRECV(recvbuffer_srl(ibuf_recv_srl),&
@@ -1684,10 +1672,10 @@ contains
                 itag=(3**3+4**3)*(ineighbor-1)+(n_i1+1)*3**(1-1)+(n_i2+1)*3**(2-1)+&
                      (n_i3+1)*3**(3-1)
                 istep = psb(igrid)%istep
-!                !$acc host_data use_device(bg(istep)%w)
+               !$acc host_data use_device(bg(istep)%w)
                 call MPI_ISEND(bg(istep)%w(:,:,:,:,igrid),1,type_send_srl(iib1,iib2,iib3,i1,i2,&
                      i3), ipe_neighbor,itag,icomm,sendrequest_c_sr(isend_c),ierrmpi)
-!                !$acc end host_data
+               !$acc end host_data
                 if(stagger_grid) then
                    ibuf_start=ibuf_send_srl
                    do idir=1,ndim
