@@ -2,13 +2,15 @@
 !> \f$\vec{u}_t + \nabla_x \cdot \vec{f}(\vec{u}) = \vec{s}\f$
 !> using adaptive mesh refinement.
 program amrvac
-    ! Initialize MPI
-    call MPI_INIT(MPI_STATUS_IGNORE)
-   ! The OpenACC device must be set before any data is initialized on the GPU
+  use mpi
+  integer        :: ierror
+  ! Initialize MPI
+  call MPI_INIT(ierror)
+  ! The OpenACC device must be set before any data is initialized on the GPU
 #ifdef _OPENACC
-   call set_openacc_device()
+  call set_openacc_device()
 #endif
-   call main()
+  call main()
 
 contains
 
@@ -16,11 +18,11 @@ contains
   subroutine set_openacc_device
     use mpi
     use openacc
-    integer :: local_rank, comm_shared, my_device, num_devices
+    integer :: local_rank, comm_shared, my_device, num_devices, ierror
     integer(acc_device_kind) :: dev_type
 
-    call MPI_COMM_SPLIT_TYPE(MPI_COMM_WORLD, MPI_COMM_TYPE_SHARED, 0, MPI_INFO_NULL, comm_shared, MPI_STATUS_IGNORE)
-    call MPI_COMM_RANK(comm_shared, local_rank, MPI_STATUS_IGNORE)
+    call MPI_COMM_SPLIT_TYPE(MPI_COMM_WORLD, MPI_COMM_TYPE_SHARED, 0, MPI_INFO_NULL, comm_shared, ierror)
+    call MPI_COMM_RANK(comm_shared, local_rank, ierror)
 
     dev_type = ACC_DEVICE_DEFAULT
     num_devices = acc_get_num_devices(dev_type)
