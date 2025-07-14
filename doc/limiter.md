@@ -11,7 +11,7 @@ That might be why sometimes they are not so reliable.
 AMRVAC provides many limiters to reconstruct data at cell face.
 Most of them are applied for finite volume methods.
 Therefore, take care when using them in combination with finite difference schemes, especially for asymmetric ones.
-Most TVD limiters in mod_limiter.t could be found in Yee (1989).
+Most TVD limiters in mod_limiter.t can be found in [Yee (1989)](https://ntrs.nasa.gov/citations/19890016281).
 
 In the current version, limiters can be chosen from the following list.
 

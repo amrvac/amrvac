@@ -14,25 +14,25 @@ When active, the rotating_frame.t module adds these fictitious sources to the mo
 
 The extra fictitious sources added to the momentum equations:
 \f{eqnarray*}{
- S_{\rho v_r}    &=& 2\omega_0 v_\phi + \omega_0**2 r, \\
+ S_{\rho v_r}    &=& 2\omega_0 v_\phi + \omega_0^2 r, \\
  S_{\rho v_\phi} &=& -2\omega_0 v_r, 
 \f}
 and if doing non-isothermal simulations the fictitious work due to the centrifugal force will be added
 \f[
-S_e = \rho v_r r \omega_0**2.
+S_e = \rho v_r r \omega_0^2.
 \f]
 
 ## Spherical coordinates
 
 The extra fictitious sources added to the momentum equations:
 \f{eqnarray*}{
- S_{\rho v_r}  &=& 2\omega_0 v_\phi \sin \theta + r (\omega_0 \sin \theta)**2, \\
- S_{\rho v_\theta} &=& \cot \theta \left[ 2\omega_0 v_\phi \sin \theta + r (\omega_0 \sin \theta)**2 \right], \\
+ S_{\rho v_r}  &=& 2\omega_0 v_\phi \sin \theta + r (\omega_0 \sin \theta)^2, \\
+ S_{\rho v_\theta} &=& \cot \theta \left[ 2\omega_0 v_\phi \sin \theta + r (\omega_0 \sin \theta)^2 \right], \\
  S_{\rho v_\phi} &=& -2\omega_0 \sin \theta (v_r + v_\theta \cot \theta), 
 \f}
 and if doing non-isothermal simulations the fictitious work due to the centrifugal force will be added
 \f[
-S_e = \rho r (\omega_0 \sin \theta)**2 (v_r + v_\theta \cot \theta).
+S_e = \rho r (\omega_0 \sin \theta)^2 (v_r + v_\theta \cot \theta).
 \f]
 
 # Practical use
