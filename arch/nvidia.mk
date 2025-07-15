@@ -3,6 +3,13 @@ arch := nvidia
 compile = mpif90
 f90_flags += -cpp -Mfree
 
+ifdef NVTX
+$(info Enabling NVTX)
+enabled += NVTX
+f90_flags += -DNVTX
+link_flags += -lnvToolsExt
+endif
+
 ifdef OPENMP
 $(info Enabling OpenMP)
 enabled += OPENMP
@@ -13,6 +20,11 @@ ifdef OPENACC
 $(info Enabling OpenACC)
 f90_flags += -Wall -acc=gpu -Minfo=all -Mvect=levels:5 -Minline
 enabled += OPENACC
+ifdef NOGPUDIRECT
+$(info Disabling direct GPU-GPU copies)
+f90_flags += -DNOGPUDIRECT
+enabled += NOGPUDIRECT
+endif
 endif
 
 ifdef DEBUG
@@ -23,5 +35,4 @@ else
 f90_flags += -O3 -fast
 endif
 
-link_flags += $(f90_flags) -lnvToolsExt
-
+link_flags += $(f90_flags)
