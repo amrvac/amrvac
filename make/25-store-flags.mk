@@ -24,6 +24,9 @@ endif
 ifdef NOGPUDIRECT
 	@echo "NOGPUDIRECT ?= $(NOGPUDIRECT)" >> $@
 endif
+ifdef NVTX
+	@echo "NVTX ?= $(NVTX)" >> $@
+endif
 
 $(build_dir)/config.mk: config.mk
 	@mkdir -p $(@D)
