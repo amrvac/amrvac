@@ -13,6 +13,11 @@ ifdef OPENACC
 $(info Enabling OpenACC)
 f90_flags += -Wall -acc=gpu -Minfo=all -Mvect=levels:5 -Minline
 enabled += OPENACC
+ifdef NOGPUDIRECT
+$(info Disabling direct GPU-GPU copies)
+f90_flags += -DNOGPUDIRECT
+enabled += NOGPUDIRECT
+endif
 endif
 
 ifdef DEBUG
@@ -24,4 +29,3 @@ f90_flags += -O3 -fast
 endif
 
 link_flags += $(f90_flags) -lnvToolsExt
-

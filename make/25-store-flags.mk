@@ -1,6 +1,6 @@
 # When make is called with command-line overrides, we want to store
 # those for provenance. Also those overrides become defaults for
-# recurrent invocations to make. Currently this is done for 
+# recurrent invocations to make. Currently this is done for
 # DEBUG and OPENMP flags. In general, any flag that doesn't modify
 # the output of AMRVAC (so no physics, or anything meaningful),
 # but change the efficiency or amount of analysis done should go here:
@@ -21,8 +21,10 @@ endif
 ifdef OPENACC
 	@echo "OPENACC ?= $(OPENACC)" >> $@
 endif
+ifdef NOGPUDIRECT
+	@echo "NOGPUDIRECT ?= $(NOGPUDIRECT)" >> $@
+endif
 
 $(build_dir)/config.mk: config.mk
 	@mkdir -p $(@D)
 	@cp $< $@
-

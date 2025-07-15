@@ -1330,14 +1330,18 @@ contains
 
     ! MPI receive SRL
     do inb = 1, nbprocs_info%nbprocs_srl
+#ifndef NOGPUDIRECT
       !$acc host_data use_device(nbprocs_info%srl_rcv(inb)%buffer, nbprocs_info%srl_info_rcv(inb)%buffer)
+#endif
        call MPI_IRECV(nbprocs_info%srl_rcv(inb)%buffer, &
             size(nbprocs_info%srl_rcv(inb)%buffer), &
             MPI_DOUBLE_PRECISION, nbprocs_info%nbprocs_srl_list(inb), 1, icomm, recv_srl_nb(inb), ierrmpi)
        call MPI_IRECV(nbprocs_info%srl_info_rcv(inb)%buffer, &
             size(nbprocs_info%srl_info_rcv(inb)%buffer), &
             MPI_INTEGER, nbprocs_info%nbprocs_srl_list(inb), 2, icomm, recv_srl_nb(nbprocs_info%nbprocs_srl + inb), ierrmpi)
+#ifndef NOGPUDIRECT
       !$acc end host_data
+#endif
     end do
 
     ! fill the SRL send buffers on GPU
@@ -1384,16 +1388,27 @@ contains
        end do
     end do
 
+#ifdef NOGPUDIRECT
+    do inb = 1, nbprocs_info%nbprocs_srl
+      !$acc update host(nbprocs_info%srl_info_send(inb)%buffer)
+      !$acc update host(nbprocs_info%srl_send(inb)%buffer)
+    end do
+#endif
+
     ! MPI send SRL
     do inb = 1, nbprocs_info%nbprocs_srl
+#ifndef NOGPUDIRECT
       !$acc host_data use_device(nbprocs_info%srl_send(inb)%buffer, nbprocs_info%srl_info_send(inb)%buffer)
+#endif
        call MPI_ISEND(nbprocs_info%srl_send(inb)%buffer, &
             size(nbprocs_info%srl_send(inb)%buffer), &
             MPI_DOUBLE_PRECISION, nbprocs_info%nbprocs_srl_list(inb), 1, icomm, send_srl_nb(inb), ierrmpi)
        call MPI_ISEND(nbprocs_info%srl_info_send(inb)%buffer, &
             size(nbprocs_info%srl_info_send(inb)%buffer), &
             MPI_INTEGER, nbprocs_info%nbprocs_srl_list(inb), 2, icomm, send_srl_nb(nbprocs_info%nbprocs_srl + inb), ierrmpi)
+#ifndef NOGPUDIRECT
       !$acc end host_data
+#endif
     end do
 
     ! fill ghost-cell values of sibling blocks
@@ -1438,6 +1453,13 @@ contains
 
     call MPI_WAITALL(nbprocs_info%nbprocs_srl*2, recv_srl_nb, recvstatus_srl_nb, ierrmpi)
     call MPI_WAITALL(nbprocs_info%nbprocs_srl*2, send_srl_nb, sendstatus_srl_nb, ierrmpi)
+
+#ifdef NOGPUDIRECT
+    do inb = 1, nbprocs_info%nbprocs_srl
+      !$acc update device(nbprocs_info%srl_info_rcv(inb)%buffer)
+      !$acc update device(nbprocs_info%srl_rcv(inb)%buffer)
+    end do
+#endif
 
     ! unpack the MPI buffers
     !$acc parallel loop gang collapse(2) independent
