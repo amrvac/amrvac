@@ -161,7 +161,7 @@ module mod_ghostcells_update
 contains
 
   subroutine idecode(i1, i2, i3, i)
-    !$acc routine gang
+    !$acc routine seq
      integer, intent(in)                       :: i
      integer, intent(out)                      :: i1, i2, i3
      ! .. local ..

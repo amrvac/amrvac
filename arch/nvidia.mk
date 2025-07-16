@@ -18,13 +18,17 @@ endif
 
 ifdef OPENACC
 $(info Enabling OpenACC)
-f90_flags += -Wall -acc=gpu -Minfo=all -Mvect=levels:5 -Minline
+f90_flags += -Wall -acc=gpu -Mvect=levels:5 -Minline
 enabled += OPENACC
 ifdef NOGPUDIRECT
 $(info Disabling direct GPU-GPU copies)
 f90_flags += -DNOGPUDIRECT
 enabled += NOGPUDIRECT
 endif
+endif
+
+ifdef INFO
+f90_flags += -Minfo=all
 endif
 
 ifdef DEBUG
