@@ -54,6 +54,7 @@ jobs:
           uv sync
       - name: compile KH3D
         run: |
+          source .venv/bin/activate
           cd tests/hd/KH3D
           make ARCH=gnu
 
@@ -137,5 +138,6 @@ jobs:
           uv sync
       - name: compile
         run: |
+          source .venv/bin/activate
           cd tests/hd/KH3D
           make arch=ifx
