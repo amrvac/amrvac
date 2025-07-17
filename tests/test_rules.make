@@ -38,7 +38,7 @@ F90FLAGS := $(f90_flags)
 	@$(RM) $@		# Remove log to prevent pass when aborted
 # for Intel same machine
 # @mpirun -genv I_MPI_FABRICS shm  -np $(NUM_PROCS) ./amrvac -i $(filter %.par,$^) > run.log
-	@mpirun   -np $(NUM_PROCS) ./amrvac -i $(filter %.par,$^) > run.log
+	@mpirun --oversubscribe -np $(NUM_PROCS) ./amrvac -i $(filter %.par,$^) > run.log
 	@if $(LOG_CMP) 1.0e-5 1.0e-8 $@ correct_output/$@ ; \
 	then echo -e "$(_green)PASSED$(_reset) $@" ; \
 	else echo -e "$(_red)** FAILED **$(_reset) $@" ; \
