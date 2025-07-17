@@ -22,7 +22,7 @@ jobs:
 
     env:
       FC: ${{ matrix.compiler }}
-      AMRVAC_DIR: ${GITHUB_WORKSPACE}
+      AMRVAC_DIR: ${{ github.workspace }}
 
     runs-on: ${{ matrix.os }}
 
@@ -48,15 +48,15 @@ jobs:
           gfortran --version
           mpirun --version
           mpif90 --version
-      - name: check code dependencies
+      - name: create Python environment
         run: |
-          cd src
-          bash update_dependencies.sh --verbose || exit 1
-      - name: compile 1D
+          pip install uv
+          uv sync
+      - name: compile KH3D
         run: |
-          cd lib
-          make 1d ARCH=debug -j 4 || exit 1
-
+          source ${AMRVAC_DIR}/.venv/bin/activate
+          cd tests/hd/KH3D
+          make ARCH=gnu
 
   GNU:
     strategy:
@@ -70,7 +70,7 @@ jobs:
     env:
       CC: ${{ matrix.CC_compiler }}
       FC: ${{ matrix.FC_compiler }}
-      AMRVAC_DIR: ${GITHUB_WORKSPACE}
+      AMRVAC_DIR: ${{ github.workspace }}
 
     runs-on: ${{ matrix.os }}
     needs: COMPILE
@@ -88,19 +88,14 @@ jobs:
           ${FC} --version
           ${CC} --version
           mpirun --version
-      - name: check code dependencies
+      - name: create Python environment
         run: |
-          cd src
-          bash update_dependencies.sh --verbose || exit 1
-      - name: compile
-        run: |
-          cd lib
-          make clean
-          make -j 2 || exit 1
-      - name: run tests
+          pip install uv
+          uv sync
+      - name: compile and run tests
         run: |
           cd tests
-          bash test_runner.sh ${{ matrix.suite }}
+          ARCH=gnu ./test_runner.sh ${{ matrix.suite }}
 
   INTEL:
     runs-on: ubuntu-latest
@@ -109,7 +104,7 @@ jobs:
     env:
       FC: ifx
       CC: icc
-      AMRVAC_DIR: ${GITHUB_WORKSPACE}
+      AMRVAC_DIR: ${{ github.workspace }}
 
     steps:
       - uses: actions/checkout@v2
@@ -137,19 +132,12 @@ jobs:
           #${CC} --version
           mpirun --version
           mpiifx --version
-      - name: check code dependencies
+      - name: create Python environment
         run: |
-          cd src
-          bash update_dependencies.sh --verbose || exit 1
-      - name: compile 1D
+          pip install uv
+          uv sync
+      - name: compile
         run: |
-          cd lib
-          make 1d -j 4 ARCH=ifxdebug
-      - name: compile 2D
-        run: |
-          cd lib
-          make 2d -j 4 ARCH=ifxdebug
-      - name: compile 3D
-        run: |
-          cd lib
-          make 3d -j 4 ARCH=ifxdebug
+          source ${AMRVAC_DIR}/.venv/bin/activate
+          cd tests/hd/KH3D
+          make arch=ifx
