@@ -10,7 +10,7 @@ To install this version, follow these steps:
 - install the uv package manager `pip install uv`
 - make sure `$AMRVAC_DIR` points to the repository root folder
 - install the required python packages `uv sync` and activate them `source .venv/bin/activate`
-- go into a test `cd test/KH3D`
+- go into a test, e.g. `cd tests/hd/KH3D`
 - to compile, load the appropriate modules, e.g. on snellius:
 ```
 module purge
