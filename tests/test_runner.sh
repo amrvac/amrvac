@@ -20,7 +20,11 @@ if [ $cond1 != 0 ] ; then
     exit 1
 fi
 
-! grep "**FAILED**" $1.out
+if [ $(uname) == Darwin ] ; then
+    ! ggrep "**FAILED**" $1.out
+else
+    ! grep "**FAILED**" $1.out
+fi
 cond2=$? # second condition: no error detected while running tests
 
 if [ $cond2 != 0 ] ; then
