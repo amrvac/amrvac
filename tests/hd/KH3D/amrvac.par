@@ -1,17 +1,16 @@
- !$AMRVAC_DIR/setup.pl -d=3
 
  &filelist
    base_filename    = 'output/kh3d'
-   autoconvert      = T
+   autoconvert      = F
    convert_type     = 'vtuBCCmpi'
    saveprim         = T
  /
 
  &savelist
    itsave(1,1)      = 0
-   itsave(1,2)      = 0
-   ditsave_log      = 100
-   ditsave_dat      = 100
+!   itsave(1,2)      = 0
+!   ditsave_log      = 10
+!   ditsave_dat      = 100
 
  /
 
@@ -24,7 +23,7 @@
    flux_scheme     = 20*'tvdlf'
    limiter         = 20*'vanleer'
    small_values_method = 'ignore'
- !  phys                = 'hd'
+   phys                = 'hd'
  /
 
  &boundlist

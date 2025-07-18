@@ -17,7 +17,7 @@
 /
 
  &stoplist
-   it_max              = 10000
+   it_max              = 10
    time_max            = 2.d0
 /
 
@@ -43,8 +43,8 @@
    block_nx2        = 16
    block_nx3        = 16
    domain_nx1         = 256
-   domain_nx2         = 256 
-   domain_nx3         = 256 
+   domain_nx2         = 256
+   domain_nx3         = 256
    xprobmin1       = 0.0d0
    xprobmax1       = 1.0d0
    xprobmin2       = 0.0d0

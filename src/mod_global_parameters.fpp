@@ -17,6 +17,7 @@ module mod_global_parameters
 
   !> The number of MPI tasks
   integer :: npe
+  !$acc declare create(npe)
 
   !> The rank of the current MPI task
   integer :: mype
@@ -429,6 +430,7 @@ module mod_global_parameters
 
   !> The maximum number of grid blocks in a processor
   integer :: max_blocks
+  !$acc declare create(max_blocks)
 
   !> The maximum number of levels in the grid refinement
   integer, parameter :: nlevelshi = 20

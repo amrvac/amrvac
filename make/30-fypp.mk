@@ -1,7 +1,3 @@
-ifdef OPENMP
-fypp_flags += -DOPENACC
-endif
-
 ifdef DEBUG
 fypp_flags += -DDEBUG
 endif
@@ -30,4 +26,3 @@ $(patsubst %.fpp, $(build_dir)/f90/%.f90, $(notdir $(1))): $(1)
 endef
 
 $(foreach f, $(source_files), $(eval $(call fypp_rule, $(f))))
-

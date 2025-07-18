@@ -81,6 +81,8 @@ module mod_functions_connectivity
     nbuff_bc_recv_r=0; nbuff_bc_send_r=0
     nbuff_bc_recv_p=0; nbuff_bc_send_p=0
     if(stagger_grid) nrecv_cc=0; nsend_cc=0
+    
+    call nbprocs_info%reset
   
     do iigrid=1,igridstail; igrid=igrids(iigrid);
        tree%node => igrid_to_node(igrid,mype)%node
@@ -128,14 +130,15 @@ module mod_functions_connectivity
                 neighbor(1,i1,i2,i3,igrid)=my_neighbor%node%igrid
                 neighbor(2,i1,i2,i3,igrid)=my_neighbor%node%ipe
                 if (my_neighbor%node%ipe/=mype) then
-                  nrecv_bc_srl=nrecv_bc_srl+1
-                  nsend_bc_srl=nsend_bc_srl+1
-                  nbuff_bc_send_srl=nbuff_bc_send_srl+sizes_srl_send_total(i1,&
-                     i2,i3)
-                  nbuff_bc_recv_srl=nbuff_bc_recv_srl+sizes_srl_recv_total(i1,&
-                     i2,i3)
+                   call nbprocs_info%add_to_srl(my_neighbor%node%ipe, igrid, i1, i2, i3)
+                   nrecv_bc_srl=nrecv_bc_srl+1
+                   nsend_bc_srl=nsend_bc_srl+1
+                   nbuff_bc_send_srl=nbuff_bc_send_srl+sizes_srl_send_total(i1,&
+                        i2,i3)
+                   nbuff_bc_recv_srl=nbuff_bc_recv_srl+sizes_srl_recv_total(i1,&
+                        i2,i3)
                 end if
-             ! coarse-fine transition
+                ! coarse-fine transition
              case (neighbor_fine)
                 neighbor(1,i1,i2,i3,igrid)=0
                 neighbor(2,i1,i2,i3,igrid)=-1
@@ -261,10 +264,14 @@ module mod_functions_connectivity
           end if
        end do
        end do
-       end do
-  
-       if(stagger_grid) then
-       !Now all the neighbour information is known.
+    end do
+
+    ! Now all the neighbour information is known.
+    ! already fill the idphyb structure
+    call identifyphysbound_connectivity(igrid)
+
+
+    if(stagger_grid) then
        !Check if there are special corners that need to be communicated
        !To determine whether to send/receive, we must check three neighbours
         do i3=-1,1
@@ -366,6 +373,27 @@ module mod_functions_connectivity
        end if
   
     end do
+
+    ! allocate with new nbstructure
+    call nbprocs_info%alloc_buffers_srl(nwgc, &
+         ixS_srl_min1, ixS_srl_max1, &
+         ixS_srl_min2, ixS_srl_max2, &
+         ixS_srl_min3, ixS_srl_max3, &
+         ixR_srl_min1, ixR_srl_max1, &
+         ixR_srl_min2, ixR_srl_max2, &
+         ixR_srl_min3, ixR_srl_max3 &
+         )
+
+    ! allocate nbstructure srl requests and status
+    if (allocated(recvstatus_srl_nb)) then
+       deallocate(recv_srl_nb, recvstatus_srl_nb)
+    end if
+    allocate(recv_srl_nb(nbprocs_info%nbprocs_srl*2), recvstatus_srl_nb(MPI_STATUS_SIZE,nbprocs_info%nbprocs_srl*2))
+    
+    if (allocated(sendstatus_srl_nb)) then
+       deallocate(send_srl_nb, sendstatus_srl_nb)
+    end if
+    allocate(send_srl_nb(nbprocs_info%nbprocs_srl*2), sendstatus_srl_nb(MPI_STATUS_SIZE,nbprocs_info%nbprocs_srl*2))
   
     ! allocate space for mpi recieve for siblings and restrict ghost cell filling
     nrecvs=nrecv_bc_srl+nrecv_bc_r
@@ -531,8 +559,58 @@ module mod_functions_connectivity
 
 
     !update the neighbor information on the device
- !$acc update device(neighbor, neighbor_type, neighbor_pole, neighbor_child)
+    !$acc update device(neighbor, neighbor_type, neighbor_pole, neighbor_child, idphyb, nbprocs_info)
+    !assuming cray already does deepcopy
+#ifndef _CRAYFTN
+    !$acc enter data copyin(nbprocs_info%srl_rcv, nbprocs_info%srl_send, nbprocs_info%srl, nbprocs_info%srl_info_rcv, nbprocs_info%srl_info_send)
+    do ipe_neighbor = 1, nbprocs_info%nbprocs_srl
+       !$acc enter data copyin(nbprocs_info%srl_rcv(ipe_neighbor)%buffer, nbprocs_info%srl_info_rcv(ipe_neighbor)%buffer)
+       !$acc enter data copyin(nbprocs_info%srl_send(ipe_neighbor)%buffer, nbprocs_info%srl_info_send(ipe_neighbor)%buffer)
+       !$acc enter data copyin(nbprocs_info%srl(ipe_neighbor)%igrid)
+       !$acc enter data copyin(nbprocs_info%srl(ipe_neighbor)%iencode)
+       !$acc enter data copyin(nbprocs_info%srl(ipe_neighbor)%isize)
+       !$acc enter data copyin(nbprocs_info%srl(ipe_neighbor)%ibuf_start)
+       !$acc enter data copyin(nbprocs_info%srl(ipe_neighbor)%nigrids)
+    end do
+#endif    
+
     
   end subroutine build_connectivity
+
+  subroutine identifyphysbound_connectivity(igrid)
+    use mod_global_parameters
+    integer, intent(in) :: igrid
+
+    if (neighbor_type(-1,0,0,igrid) == neighbor_boundary .and. neighbor_type(+1,0,0,igrid) == neighbor_boundary ) then
+       idphyb(1,igrid) = 2
+    else if (neighbor_type(-1,0,0,igrid) == neighbor_boundary) then
+       idphyb(1,igrid) = -1
+    else if (neighbor_type(+1,0,0,igrid) == neighbor_boundary) then
+       idphyb(1,igrid) = +1
+    else
+       idphyb(1,igrid) = 0
+    end if
+
+    if (neighbor_type(0,-1,0,igrid) == neighbor_boundary .and. neighbor_type(0,+1,0,igrid) == neighbor_boundary ) then
+       idphyb(2,igrid) = 2
+    else if (neighbor_type(0,-1,0,igrid) == neighbor_boundary) then
+       idphyb(2,igrid) = -1
+    else if (neighbor_type(0,+1,0,igrid) == neighbor_boundary) then
+       idphyb(2,igrid) = +1
+    else
+       idphyb(2,igrid) = 0
+    end if
+
+    if (neighbor_type(0,0,-1,igrid) == neighbor_boundary .and. neighbor_type(0,0,+1,igrid) == neighbor_boundary ) then
+       idphyb(3,igrid) = 2
+    else if (neighbor_type(0,0,-1,igrid) == neighbor_boundary) then
+       idphyb(3,igrid) = -1
+    else if (neighbor_type(0,0,+1,igrid) == neighbor_boundary) then
+       idphyb(3,igrid) = +1
+    else
+       idphyb(3,igrid) = 0
+    end if
+
+  end subroutine identifyphysbound_connectivity
 
 end module mod_functions_connectivity
