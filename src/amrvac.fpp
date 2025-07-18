@@ -216,7 +216,7 @@ contains
     if (associated(usr_before_main_loop)) call usr_before_main_loop()
 
     ! do time integration of all grids on all levels
-    call timeintegration()
+    call timeintegration(time0)
 
     if (mype==0) then
        print*,'-------------------------------------------------------------------------------'
@@ -228,7 +228,7 @@ contains
 
   end subroutine main
 
-  subroutine timeintegration()
+  subroutine timeintegration(time0)
     use mod_nvtx
     use mod_timing
     use mod_advance, only: advance, process, process_advanced
@@ -243,6 +243,7 @@ contains
     use mod_particles
     use mod_usr_methods
 
+    double precision, intent(in) :: time0
 
     integer :: level, ifile, fixcount, ncells_block, igrid, iigrid, itimelevel
     integer(kind=8) ncells_update
