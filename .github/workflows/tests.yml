@@ -9,60 +9,11 @@ on:
 
 
 jobs:
-  COMPILE:
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-latest]
-        compiler: [gfortran-10, gfortran-11, gfortran-12]
-        include:
-          - os: macos-latest
-            compiler: gfortran-12
-            gcc_name: gcc@12
-
-    env:
-      FC: ${{ matrix.compiler }}
-      AMRVAC_DIR: ${GITHUB_WORKSPACE}
-
-    runs-on: ${{ matrix.os }}
-
-    name: compile / ${{ matrix.os }} / ${{ matrix.compiler }}
-
-    steps:
-      - uses: actions/checkout@v2
-      - name: install dependencies
-        run: |
-          if [[ $RUNNER_OS == "Linux" ]]; then
-            sudo apt-get update
-            sudo apt-get install ${{ matrix.compiler }}
-            sudo apt-get install openmpi-bin libopenmpi-dev
-          else
-            brew install ${{ matrix.gcc_name }}
-            brew install open-mpi
-            ln -s $(which ${{ matrix.compiler }}) /usr/local/bin/gfortran
-          fi
-      - name: check compiler versions
-        run: |
-          whereis ${FC}
-          ${FC} --version
-          gfortran --version
-          mpirun --version
-          mpif90 --version
-      - name: check code dependencies
-        run: |
-          cd src
-          bash update_dependencies.sh --verbose || exit 1
-      - name: compile 1D
-        run: |
-          cd lib
-          make 1d ARCH=debug -j 4 || exit 1
-
-
   GNU:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest]
+        os: [ubuntu-latest, macos-latest]
         FC_compiler: [gfortran-12]
         CC_compiler: [gcc-12]
         suite: [hd]
@@ -70,46 +21,55 @@ jobs:
     env:
       CC: ${{ matrix.CC_compiler }}
       FC: ${{ matrix.FC_compiler }}
-      AMRVAC_DIR: ${GITHUB_WORKSPACE}
+      AMRVAC_DIR: ${{ github.workspace }}
+      GCC_PACKAGE_NAME: gcc@12
 
     runs-on: ${{ matrix.os }}
-    needs: COMPILE
 
-    name: ${{ matrix.suite }}
+    name: ${{ matrix.os }} / ${{ matrix.FC_compiler }} / ${{ matrix.suite }}
 
     steps:
       - uses: actions/checkout@v2
       - name: install dependencies
         run: |
-          sudo apt-get update
-          sudo apt-get install openmpi-bin libopenmpi-dev
+          if [[ $RUNNER_OS == "Linux" ]]; then
+            sudo apt-get update
+            sudo apt-get install ${{ matrix.FC_compiler }}
+            sudo apt-get install openmpi-bin libopenmpi-dev
+          else
+            brew install ${{ env.GCC_PACKAGE_NAME }}
+            brew install open-mpi
+            brew install grep
+            ln -s $(which ${{ matrix.FC_compiler }}) /usr/local/bin/gfortran
+          fi
       - name: check compiler versions
         run: |
           ${FC} --version
           ${CC} --version
           mpirun --version
-      - name: check code dependencies
+      - name: create Python environment
         run: |
-          cd src
-          bash update_dependencies.sh --verbose || exit 1
-      - name: compile
-        run: |
-          cd lib
-          make clean
-          make -j 2 || exit 1
-      - name: run tests
+          pip install uv
+          uv sync
+      - name: compile and run tests
         run: |
           cd tests
-          bash test_runner.sh ${{ matrix.suite }}
+          ARCH=gnu ./test_runner.sh ${{ matrix.suite }}
 
   INTEL:
-    runs-on: ubuntu-latest
-    name: compile / Intel
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest]
+        suite: [hd]
+
+    runs-on: ${{ matrix.os }}
+    name: ${{ matrix.os }} / ifx / ${{ matrix.suite }}
 
     env:
       FC: ifx
       CC: icc
-      AMRVAC_DIR: ${GITHUB_WORKSPACE}
+      AMRVAC_DIR: ${{ github.workspace }}
 
     steps:
       - uses: actions/checkout@v2
@@ -123,9 +83,7 @@ jobs:
       - name: install Intel oneAPI
         run: |
           sudo apt update 
-          sudo apt-get -y upgrade 
           sudo apt-get install intel-oneapi-compiler-dpcpp-cpp-and-cpp-classic
-          #sudo apt-get install intel-oneapi-dpcpp-cpp
           sudo apt-get install intel-oneapi-compiler-fortran
           sudo apt-get install intel-oneapi-mpi
           sudo apt-get install intel-oneapi-mpi-devel
@@ -134,22 +92,13 @@ jobs:
       - name: check compiler versions
         run: |
           ${FC} --version
-          #${CC} --version
           mpirun --version
           mpiifx --version
-      - name: check code dependencies
+      - name: create Python environment
         run: |
-          cd src
-          bash update_dependencies.sh --verbose || exit 1
-      - name: compile 1D
+          pip install uv
+          uv sync
+      - name: compile
         run: |
-          cd lib
-          make 1d -j 4 ARCH=ifxdebug
-      - name: compile 2D
-        run: |
-          cd lib
-          make 2d -j 4 ARCH=ifxdebug
-      - name: compile 3D
-        run: |
-          cd lib
-          make 3d -j 4 ARCH=ifxdebug
+          cd tests
+          ARCH=ifx ./test_runner.sh ${{ matrix.suite }}
