@@ -7,7 +7,7 @@
 #
 # 3. You can hide the Entering/leaving directory messages with: -s
 
-HD_DIRS := hd/KH3D
+HD_DIRS := hd/KH3D hd/RT3D
 
 TEST_DIRS := $(HD_DIRS)
 
