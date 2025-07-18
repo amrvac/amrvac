@@ -81,9 +81,9 @@ contains
 
     if (restart_from_file /= undefined) then
     !AGILE: not yet implemented, data movement needs to happen here
-  #ifdef _OPENACC
+#ifdef _OPENACC
        call mpistop("restart or convert on GPU not yet implemented")
-  #endif
+#endif
        ! restart from previous file or dat file conversion
        ! get input data from previous AMRVAC run
 
