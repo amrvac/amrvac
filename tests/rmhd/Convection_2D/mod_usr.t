@@ -30,23 +30,26 @@ contains
     integer:: mpoly
     double precision:: zeta0,rhat,sigma,zz0,qchand
     double precision:: gamma, qchi, qmpoly, eta2
+    logical, save:: first=.true.
 
-    if (mype == 0) print *,"unit_numberdensity = ",unit_numberdensity
-    if (mype == 0) print *,"unit_temperature = ",unit_temperature
-    if (mype == 0) print *,"unit_length = ",unit_length
-    if (mype == 0) print *,"He_abundance = ",He_abundance
-    if (mype == 0) print *,"He_ion_fr = ",He_ion_fr
-    if (mype == 0) print *,"kB_cgs = ",kB_cgs
-    if (mype == 0) print *,"mp_cgs = ",mp_cgs
-    if (mype == 0) print *,"const_c = ",const_c
-    if (mype == 0) print *,"c_norm = ",c_norm
-    if (mype == 0) print *,"unit_density = ",unit_density
-    if (mype == 0) print *,"unit_pressure = ",unit_pressure
-    if (mype == 0) print *,"unit_velocity = ",unit_velocity
-    if (mype == 0) print *,"unit_time = ",unit_time
-    if (mype == 0) print *,"unit_magneticfield = ",unit_magneticfield
-    if (mype == 0) print *,"unit_radflux = ",unit_radflux
-    if (mype == 0) print *,"unit_opacity = ",unit_opacity
+    if (mype == 0.and.first)then
+     print *,"unit_numberdensity = ",unit_numberdensity
+     print *,"unit_temperature = ",unit_temperature
+     print *,"unit_length = ",unit_length
+     print *,"He_abundance = ",He_abundance
+     print *,"He_ion_fr = ",He_ion_fr
+     print *,"kB_cgs = ",kB_cgs
+     print *,"mp_cgs = ",mp_cgs
+     print *,"const_c = ",const_c
+     print *,"c_norm = ",c_norm
+     print *,"unit_density = ",unit_density
+     print *,"unit_pressure = ",unit_pressure
+     print *,"unit_velocity = ",unit_velocity
+     print *,"unit_time = ",unit_time
+     print *,"unit_magneticfield = ",unit_magneticfield
+     print *,"unit_radflux = ",unit_radflux
+     print *,"unit_opacity = ",unit_opacity
+    endif
 
     ! This setup relates to Hurlburt and Toomre
     ! and calculates the eqpar array from problem-specific input parameters
@@ -93,7 +96,7 @@ contains
     qmpoly=dble(mpoly)
     zz0=one/(qchi**(one/qmpoly)-one)
     
-    if (mype==0) then
+    if (mype==0.and.first) then
       write(*,*)'gamma, mpoly, qchi,qchand'
       write(*,*)gamma, mpoly, qchi, qchand
       write(*,*)'Deduced top dimensionless temperature z0=',zz0
@@ -108,7 +111,7 @@ contains
     rhat=1.0d5
     zeta0=0.25d0
     
-    if (mype==0) then
+    if (mype==0.and.first) then
       write(*,*) 'sigma,rhat,zeta0:'
       write(*,*) sigma,rhat,zeta0
     endif
@@ -118,7 +121,7 @@ contains
          (zeta0**2/(sigma*rhat))
     
     if(eta2<=smalldouble)then
-       if(mype==0) write(*,*) 'eta2=',eta2
+       if(mype==0.and.first) write(*,*) 'eta2=',eta2
        call mpistop("Negative or too small value for eta**2")
     endif
     
@@ -127,12 +130,13 @@ contains
     tc_fl%tc_k_para=(gamma/(gamma-one))*rmhd_eta/zeta0
     bstr=dsqrt(qchand*vc_mu*rmhd_eta)
     
-    if (mype==0) then
+    if (mype==0.and.first) then
       write(*,*)'dimensionless values for dissipative coefficients:'
       write(*,*)'resistivity          eta=',rmhd_eta
       write(*,*)'viscosity             mu=',vc_mu
       write(*,*)'thermal conduction tc_k_para=',tc_fl%tc_k_para
       write(*,*)'dimensionless magnetic field strength:',bstr
+      first=.false.
     endif
 
   end subroutine initglobaldata_usr
@@ -166,35 +170,39 @@ contains
          write(*,*) dvz,nkz
          }
       endif
-      first=.false.
     endif
     zz0=temptop
     qmpoly=-one-usr_grav
     w(ix^S,rho_)=((zz0+one-x(ix^S,2))/zz0)**qmpoly
     w(ix^S,mag(1))=zero
     w(ix^S,mag(2))=bstr
+    {^IFTHREED w(ix^S,mag(3))=zero }
     w(ix^S,p_)= zz0*(((zz0+one-x(ix^S,2))/zz0)**(qmpoly+one))
     w(ix^S,mom(1))=dvx*dsin(x(ix^S,1)*nkx)*dsin(x(ix^S,2)*nky){^IFTHREED *dsin(x(ix^S,3)*nkz)}
     w(ix^S,mom(2))=dvy*dsin(x(ix^S,1)*nkx)*dsin(x(ix^S,2)*nky){^IFTHREED *dsin(x(ix^S,3)*nkz)}
+    {^IFTHREED w(ix^S,mom(3))=zero }
     w(ix^S,r_e) = const_rad_a*((zz0+one-x(ix^S,2))*unit_temperature)**4.d0/unit_pressure 
     call rmhd_to_conserved(ixG^L,ix^L,w,x)
 
-    if(mype == 0) print *,"radn energy magnitude ~ ", const_rad_a*(unit_temperature)**4.d0/unit_pressure 
-    if(mype == 0) print *,"opacity magnitude ~ ", 0.4/unit_opacity 
-    if(mype == 0) print *,"unit_numberdensity = ",unit_numberdensity
-    if(mype == 0) print *,"unit_temperature = ",unit_temperature
-    if(mype == 0) print *,"unit_length = ",unit_length
-    if(mype == 0) print *,"unit_density = ",unit_density
-    if(mype == 0) print *,"unit_pressure = ",unit_pressure
-    if(mype == 0) print *,"unit_velocity = ",unit_velocity
-    if(mype == 0) print *,"unit_time = ",unit_time
-    if(mype == 0) print *,"unit_magneticfield = ",unit_magneticfield
-    if(mype == 0) print *,"unit_radflux = ",unit_radflux
-    if(mype == 0) print *,"unit_opacity = ",unit_opacity
-    if(mype == 0) print *,"He_abundance = ",He_abundance
-    if(mype == 0) print *,"eq_state_units = ",eq_state_units
-    if(mype == 0) print *,"H_ion_fr = ",H_ion_fr
-    if(mype == 0) print *,"He_ion_fr2 = ",He_ion_fr2
+    if(mype == 0.and.first)then
+       print *,"radn energy magnitude ~ ", const_rad_a*(unit_temperature)**4.d0/unit_pressure 
+       print *,"opacity magnitude ~ ", 0.4/unit_opacity 
+       print *,"unit_numberdensity = ",unit_numberdensity
+       print *,"unit_temperature = ",unit_temperature
+       print *,"unit_length = ",unit_length
+       print *,"unit_density = ",unit_density
+       print *,"unit_pressure = ",unit_pressure
+       print *,"unit_velocity = ",unit_velocity
+       print *,"unit_time = ",unit_time
+       print *,"unit_magneticfield = ",unit_magneticfield
+       print *,"unit_radflux = ",unit_radflux
+       print *,"unit_opacity = ",unit_opacity
+       print *,"He_abundance = ",He_abundance
+       print *,"eq_state_units = ",eq_state_units
+       print *,"H_ion_fr = ",H_ion_fr
+       print *,"He_ion_fr2 = ",He_ion_fr2
+       first=.false.
+    endif
   end subroutine initonegrid_usr
 
   subroutine specialbound_usr(qt,ixG^L,ixO^L,iB,w,x)

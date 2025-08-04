@@ -8,26 +8,25 @@
 !=====================================================
 
  &filelist
-        base_filename='output/convect_2d_'
-        saveprim=.true.
-        autoconvert=.true.
+        base_filename='Convection2d'
+        saveprim=T
+        autoconvert=T
+        typefilelog='regression_test'
         convert_type='vtuBCCmpi'
-        nwauxio=9 
-        snapshotnext=21
+        nwauxio=9
  /
 
  &savelist
         itsave(1,1)=0
         itsave(1,2)=0
-        itsave=10,50
+        ditsave_log=1
+        ditsave_dat=50
  /
-        dtsave=0.1d0,1.d0
 
  &stoplist
         dtmin=1.D-20    
         it_max=100
  /
-        time_max=60.d0
 
  &methodlist
         time_stepper = 'threestep'   

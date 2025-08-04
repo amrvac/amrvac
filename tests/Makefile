@@ -30,10 +30,10 @@ mhd/blast_wave_Cartesian_3D mhd/Ambipolar1DWave-B0split mhd/Ambipolar1DWave mhd/
 
 RHD_DIRS := rhd/RHD_wave_1D rhd/RHD_shock_1D
 
-RMHD_DIRS := rmhd/Brio_Wu_1.75D rmhd/Torrilhon_1.75D
+RMHD_DIRS := rmhd/Brio_Wu_1.75D rmhd/Torrilhon_1.75D rmhd/Convection_2D
 
 MG_DIRS := multigrid/convergence_2d multigrid/convergence_3d	\
-multigrid/field_loop_2d multigrid/implicit_diffusion #Anisotropic diffusion???
+multigrid/field_loop_2d multigrid/implicit_diffusion
 
 RD_DIRS := rd/schnakenberg_2d rd/test_suite_2d
 
@@ -50,7 +50,7 @@ TEST_DIRS := $(RHO_DIRS) $(HD_DIRS) $(RHD_DIRS) $(RMHD_DIRS) $(MHD_DIRS) $(MG_DI
 # Directories with altered names (useful for cleaning)
 CLEAN_TEST := $(TEST_DIRS:%=clean-%)
 
-.PHONY: all rho hd mhd mg rd mf twofl clean $(TEST_DIRS) $(CLEAN_TEST)
+.PHONY: all rho hd rhd rmhd mhd mg rd ard mf twofl ffhd clean $(TEST_DIRS) $(CLEAN_TEST)
 
 all: rho hd rhd rmhd mhd mg rd ard mf twofl ffhd
 rho: $(RHO_DIRS)
