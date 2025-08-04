@@ -20,12 +20,12 @@
         itsave(1,1)=0
         itsave(1,2)=0
         ditsave_log=1
-        ditsave_dat=50
+        ditsave_dat=5
  /
 
  &stoplist
         dtmin=1.D-20    
-        it_max=100
+        it_max=25
  /
 
  &methodlist
@@ -34,7 +34,7 @@
         flux_scheme=    20*'hll'
         limiter= 20*'cada3'
         typesourcesplit = 'sfs'
-        check_small_values=.false.
+        check_small_values=.true.
         small_values_method = 'replace'
         small_pressure = 1.d-12
         small_density = 1.d-12
@@ -47,12 +47,12 @@
         typeboundary_max2=7*'special' 
  /
 
- &meshlist
-        refine_criterion=3
-        refine_max_level=5
 	logflag(1) = T
 	logflag(4) = T
 	logflag(7) = T
+ &meshlist
+        refine_criterion=3
+        refine_max_level=5
         w_refine_weight(1)=0.3d0
 	w_refine_weight(4)=0.3d0
 	w_refine_weight(7)=0.4d0
