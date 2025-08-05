@@ -1401,12 +1401,11 @@ contains
     end if
   end subroutine ffhd_get_dt
 
-  subroutine ffhd_add_source_geom(qdt,dtfactor,ixI^L,ixO^L,wCT,w,x)
+  subroutine ffhd_add_source_geom(qdt,dtfactor,ixI^L,ixO^L,wCT,wprim,w,x)
     use mod_global_parameters
-    use mod_geometry
     integer, intent(in)             :: ixI^L, ixO^L
     double precision, intent(in)    :: qdt, dtfactor,x(ixI^S,1:ndim)
-    double precision, intent(inout) :: wCT(ixI^S,1:nw), w(ixI^S,1:nw)
+    double precision, intent(inout) :: wCT(ixI^S,1:nw), wprim(ixI^S,1:nw),w(ixI^S,1:nw)
 
     ! no geometric source terms needed for ffhd, no divergences of tensors
   end subroutine ffhd_add_source_geom
@@ -1510,7 +1509,7 @@ contains
         call gradient(Te,ixI^L,ixO^L,idims,gradT)
         htc_qsrc(ixO^S)=htc_qsrc(ixO^S)+sigT(ixO^S)*block%B0(ixO^S,idims,0)*gradT(ixO^S)
       end do
-    case (default)
+    case default
       ! Cartesian_stretched and Cartesian_expansion not dealt with here
       call mpistop("unknown geometry in add_hypertc_source")
     end select
