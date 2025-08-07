@@ -81,11 +81,9 @@ contains
     use mod_usr_methods, only: usr_aux_output
     use mod_physics
     use mod_calculate_xw
+    use mod_amr_solution_node, only: alloc_state_output
     integer, intent(in) :: qunit
 
-    double precision :: wval1,xval1
-    double precision, dimension({^D&1:1},1:nw+nwauxio)   :: wval
-    double precision, dimension({^D&1:1},1:ndim)         :: xval
     double precision:: normconv(0:nw+nwauxio)
     integer             :: Morton_no,igrid,ix^D,ig^D,level
     integer, pointer    :: ig_to_igrid(:^D&,:)
@@ -164,39 +162,29 @@ contains
     do iigrid=1,igridstail; igrid=igrids(iigrid)
       if(.not.writeblk(igrid)) cycle
       block=>ps(igrid)
-      if (nwauxio > 0) then
+      call alloc_state_output(igrid,ps1(igrid),ixG^LL)
+      ps1(igrid)%w(ixG^T,1:nw)=ps(igrid)%w(ixG^T,1:nw)
+      if(nwauxio > 0) then
         if (.not. associated(usr_aux_output)) then
           call mpistop("usr_aux_output not defined")
         else
-          call usr_aux_output(ixG^LL,ixM^LL^LADD1, &
-                ps(igrid)%w,ps(igrid)%x,normconv)
+          call usr_aux_output(ixG^LL,ixM^LL^LADD1,ps1(igrid)%w,ps(igrid)%x,normconv)
+        end if
+      end if
+      if(saveprim) then
+        call phys_to_primitive(ixG^LL,ixG^LL^LSUB2,ps1(igrid)%w,ps(igrid)%x)
+        if(B0field) ps1(igrid)%w(ixG^T,iw_mag(:))=ps1(igrid)%w(ixG^T,iw_mag(:))+ps(igrid)%B0(ixG^T,:,0)
+      else
+        if(B0field) then
+          ! add background magnetic field B0 to B
+          if(phys_total_energy) then
+            ps1(igrid)%w(ixG^T,iw_e)=ps1(igrid)%w(ixG^T,iw_e)+0.5d0*sum(ps(igrid)%B0(ixG^T,:,0)**2,dim=ndim+1) &
+                + sum(ps1(igrid)%w(ixG^T,iw_mag(:))*ps(igrid)%B0(ixG^T,:,0),dim=ndim+1)
+          end if
+          ps1(igrid)%w(ixG^T,iw_mag(:))=ps1(igrid)%w(ixG^T,iw_mag(:))+ps(igrid)%B0(ixG^T,:,0)
         end if
       end if
     end do
-
-    if (saveprim) then
-      do iigrid=1,igridstail; igrid=igrids(iigrid)
-        if (.not.writeblk(igrid)) cycle
-        block=>ps(igrid)
-        call phys_to_primitive(ixG^LL,ixG^LL^LSUB1,ps(igrid)%w,ps(igrid)%x)
-        if(B0field) then
-          ! add background magnetic field B0 to B
-          ps(igrid)%w(ixG^T,iw_mag(:))=ps(igrid)%w(ixG^T,iw_mag(:))+ps(igrid)%B0(ixG^T,:,0)
-        end if
-      end do
-    else
-      do iigrid=1,igridstail; igrid=igrids(iigrid)
-        if (.not.writeblk(igrid)) cycle
-        block=>ps(igrid)
-        if (B0field) then
-          ! add background magnetic field B0 to B
-          if(phys_energy) &
-            ps(igrid)%w(ixG^T,iw_e)=ps(igrid)%w(ixG^T,iw_e)+0.5d0*sum(ps(igrid)%B0(ixG^T,:,0)**2,dim=ndim+1) &
-                + sum(ps(igrid)%w(ixG^T,iw_mag(:))*ps(igrid)%B0(ixG^T,:,0),dim=ndim+1)
-          ps(igrid)%w(ixG^T,iw_mag(:))=ps(igrid)%w(ixG^T,iw_mag(:))+ps(igrid)%B0(ixG^T,:,0)
-        end if
-      end do
-    end if
 
     Master_cpu_open : if (mype == 0) then
      inquire(qunit,opened=fileopen)
@@ -237,10 +225,10 @@ contains
                    case("oneblock")
                      write(qunit,fmt="(100(e14.6))") &
                       ps(igrid)%x(ix^D,1:ndim)*normconv(0),&
-                      (ps(igrid)%w(ix^D,iwrite(iw))*normconv(iwrite(iw)),iw=1,writenw)
+                      (ps1(igrid)%w(ix^D,iwrite(iw))*normconv(iwrite(iw)),iw=1,writenw)
                    case("oneblockB")
                      write(qunit) real(ps(igrid)%x(ix^D,1:ndim)*normconv(0)),&
-                      (real(ps(igrid)%w(ix^D,iwrite(iw))*normconv(iwrite(iw))),iw=1,writenw)
+                      (real(ps1(igrid)%w(ix^D,iwrite(iw))*normconv(iwrite(iw))),iw=1,writenw)
                  end select
                end if Master_write
              end do

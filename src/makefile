@@ -161,6 +161,7 @@ mod_convert.o: mod_functions_forest.mod
 mod_convert.o: mod_global_parameters.mod
 mod_convert.o: mod_input_output_helper.mod
 mod_convert.o: mod_variables.mod
+mod_convert_files.o: mod_amr_solution_node.mod
 mod_convert_files.o: mod_calculate_xw.mod
 mod_convert_files.o: mod_comm_lib.mod
 mod_convert_files.o: mod_convert.mod
@@ -612,6 +613,7 @@ mod_slice.o: mod_forest.mod
 mod_slice.o: mod_global_parameters.mod
 mod_slice.o: mod_input_output_helper.mod
 mod_slice.o: mod_physics.mod
+mod_small_values.o: mod_geometry.mod
 mod_small_values.o: mod_global_parameters.mod
 mod_solar_atmosphere.o: mod_comm_lib.mod
 mod_solar_atmosphere.o: mod_global_parameters.mod
