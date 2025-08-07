@@ -53,10 +53,10 @@ contains
     D_input = log10(rho)
     T_input = log10(temp)
 
-    D_input = min(-7.d0-1.d-5, D_input)
-    D_input = max(-16.d0+1.d-5, D_input)
-    T_input = min(5d0-1.d-5, T_input)
-    T_input = max(4d0+1.d-5, T_input)
+    D_input = min(-5.d0 - 1.d-5, D_input)
+    D_input = max(-20.d0 + 1.d-5, D_input)
+    T_input = min(5.5d0 - 1.d-5, T_input)
+    T_input = max(4.d0 + 1.d-5, T_input)
 
     call get_val_comb(alpha_vals,Qbar_vals,Q0_vals,kappae_vals, &
                       logD_list, logT_list, D_input, T_input, &
