@@ -1,4 +1,4 @@
-TEST_DIRS := Brio_Wu_1.75D Torrilhon_1.75D
+TEST_DIRS := Brio_Wu_1.75D Torrilhon_1.75D Convection_2D
 
 # Directories with altered names (useful for cleaning)
 CLEAN_TEST := $(TEST_DIRS:%=clean-%)

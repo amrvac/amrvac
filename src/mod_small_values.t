@@ -24,22 +24,54 @@ contains
 
   subroutine small_values_error(wprim, x, ixI^L, ixO^L, w_flag, subname)
     use mod_global_parameters
+    use mod_geometry
     integer, intent(in)          :: ixI^L, ixO^L
     double precision, intent(in) :: wprim(ixI^S, 1:nw)
     double precision, intent(in) :: x(ixI^S, 1:ndim)
     logical, intent(in)          :: w_flag(ixI^S,1:nw)
     character(len=*), intent(in) :: subname
-    integer                      :: iw,iiw,ix^D
+
+    double precision :: x^D
+    integer :: iw,iiw,ix^D
 
     if (.not.crash) then
       do iw=1,nw
-       !dir$ ivdep
        {do ix^DB= ixO^LIM^DB\}
           if(w_flag(ix^D,iw)) then
             write(*,*) "Error: small value of ", trim(prim_wnames(iw)),wprim(ix^D,iw),&
                  " encountered when call ", subname
             write(*,*) "Iteration: ", it, " Time: ", global_time, "Processor: ",mype
             write(*,*) "Location: ", x(ix^D,:)
+            select case (coordinate)
+              case (Cartesian,Cartesian_stretched,Cartesian_expansion)
+              case (cylindrical)
+                {^IFONED
+                x1=x(ix^D,1)}
+                {^IFTWOD
+                select case (phi_)
+                case (2)
+                   x1=x(ix^D,1)*cos(x(ix^D,2))
+                   x2=x(ix^D,1)*sin(x(ix^D,2))
+                case default
+                   x1=x(ix^D,1)
+                   x2=x(ix^D,2)
+                end select}
+                {^IFTHREED
+                x1=x(ix^D,1)*cos(x(ix^D,phi_))
+                x2=x(ix^D,1)*sin(x(ix^D,phi_))
+                x3=x(ix^D,z_)}
+                write(*,*) "Cartesian location: ", x^D
+              case (spherical)
+                x1=x(ix^D,1){^NOONED*sin(x(ix^D,2))}{^IFTHREED*cos(x(ix^D,3))}
+                {^IFTWOD
+                x2=x(ix^D,1)*cos(x(ix^D,2))}
+                {^IFTHREED
+                x2=x(ix^D,1)*sin(x(ix^D,2))*sin(x(ix^D,3))
+                x3=x(ix^D,1)*cos(x(ix^D,2))}
+                write(*,*) "Cartesian location: ", x^D
+              case default
+                write(*,*) "No converter for coordinate=",coordinate
+            end select
             write(*,*) "Cell number: ", ix^D
             do iiw=1,nw
               write(*,*) trim(prim_wnames(iiw)),": ",wprim(ix^D,iiw)
@@ -49,7 +81,7 @@ contains
             write(*,*) "Saving status at the previous time step"
             crash=.true.
           end if
-       {enddo^D&\}
+       {end do^D&\}
       end do
     end if
   end subroutine small_values_error

@@ -5,7 +5,7 @@ module mod_amr_solution_node
   private
 
   public :: getnode, putnode
-  public :: alloc_node, alloc_state 
+  public :: alloc_node, alloc_state, alloc_state_output
   public :: dealloc_node 
  
 contains
@@ -610,7 +610,7 @@ contains
       allocate(s%is_physical_boundary(2*ndim))
       if(local_timestep) then
         allocate(s%dt(ixG^S))
-      endif
+      end if
   
       if(B0field) then
         allocate(s%B0(ixG^S,1:ndir,0:ndim))
@@ -679,6 +679,18 @@ contains
     ! allocate physical boundary flag
     allocate(s%is_physical_boundary(2*ndim))
   end subroutine alloc_state_coarse
+
+  !> allocate memory to physical state of igrid node for output with auxio
+  subroutine alloc_state_output(igrid, s, ixG^L)
+    use mod_global_parameters
+    type(state) :: s
+    integer, intent(in) :: igrid, ixG^L
+
+    allocate(s%w(ixG^S,1:nw+nwauxio))
+    s%igrid=igrid
+    s%w=0.d0
+    s%ixG^L=ixG^L;
+  end subroutine alloc_state_output
   
   subroutine dealloc_state(igrid, s,dealloc_x)
     use mod_global_parameters
@@ -695,10 +707,13 @@ contains
       if(nw_extra>0) deallocate(s%wextra)
       ! deallocate coordinates
       deallocate(s%x)
-      deallocate(s%dx,s%dt,s%ds,s%dsC)
+      deallocate(s%dx,s%ds,s%dsC)
       deallocate(s%dvolume)
       deallocate(s%surfaceC,s%surface)
       deallocate(s%is_physical_boundary)
+      if(local_timestep) then
+        deallocate(s%dt)
+      end if
       if(B0field) then
         deallocate(s%B0)
         deallocate(s%J0)
@@ -710,13 +725,14 @@ contains
         deallocate(s%special_values)
       end if
     end if
-    nullify(s%x,s%dx,s%dt,s%ds,s%dsC,s%dvolume,s%surfaceC,s%surface)
+    if(nw_extra>0) nullify(s%wextra)
+    nullify(s%x,s%dx,s%ds,s%dsC,s%dvolume,s%surfaceC,s%surface)
     nullify(s%is_physical_boundary)
+    if(local_timestep) nullify(s%dt)
     if(B0field) nullify(s%B0,s%J0)
     if(number_equi_vars > 0) then
       nullify(s%equi_vars)
     end if
-    if(nw_extra>0) nullify(s%wextra)
     if(phys_trac) nullify(s%special_values)
   end subroutine dealloc_state
   
@@ -734,11 +750,12 @@ contains
     end if
     ! deallocate coordinates
     deallocate(s%x)
-    deallocate(s%dx,s%dt,s%ds,s%dsC)
+    deallocate(s%dx,s%ds,s%dsC)
     deallocate(s%dvolume)
     deallocate(s%surfaceC,s%surface)
-    nullify(s%x,s%dx,s%dt,s%ds,s%dsC,s%dvolume,s%surfaceC,s%surface)
+    nullify(s%x,s%dx,s%ds,s%dsC,s%dvolume,s%surfaceC,s%surface)
     nullify(s%is_physical_boundary)
+    if(B0fieldAllocCoarse) nullify(s%B0)
   end subroutine dealloc_state_coarse
   
   subroutine dealloc_node(igrid)

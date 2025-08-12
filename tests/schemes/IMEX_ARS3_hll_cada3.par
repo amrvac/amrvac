@@ -1,0 +1,10 @@
+ &filelist
+ base_filename  = '_IMEX_ARS3_hll_cada3'
+ /
+
+ &methodlist
+        time_stepper = 'threestep'
+        time_integrator = 'IMEX_ARS3'
+        flux_scheme     = 20*'hll'
+        limiter         = 20*'cada3'
+ /
