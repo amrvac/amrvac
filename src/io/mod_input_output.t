@@ -1345,45 +1345,65 @@ contains
     do idim=1,ndim
       if(any(typeboundary(:,2*idim-1)==12)) then
         if(any(typeboundary(:,2*idim-1)/=12)) typeboundary(:,2*idim-1)=12
-        if(phys_energy) then
-          windex=2
-        else
-          windex=1
-        end if
-        typeboundary(:,2*idim-1)=bc_symm
-        if(physics_type/='rho') then
-          select case(coordinate)
-          case(cylindrical)
+        select case(physics_type)
+        case ('rho','ard','rd','nonlinear','ffhd')
+           ! all symmetric at pole
+           typeboundary(:,2*idim-1)=bc_symm
+           if(mype==0) print *,'symmetric minimal pole'
+        case ('hd','rhd','srhd','mhd','rmhd')
+           typeboundary(:,2*idim-1)=bc_symm
+           ! here we assume the ordering of variables is fixed to rho-mom-[e]-B
+           if(phys_energy) then
+            windex=2
+           else
+            windex=1
+           end if
+           select case(coordinate)
+           case(cylindrical)
             typeboundary(phi_+1,2*idim-1)=bc_asymm
-            if(physics_type=='mhd') typeboundary(ndir+windex+phi_,2*idim-1)=bc_asymm
-          case(spherical)
+            if(physics_type=='mhd'.or.physics_type=='rmhd') typeboundary(ndir+windex+phi_,2*idim-1)=bc_asymm
+           case(spherical)
             typeboundary(3:ndir+1,2*idim-1)=bc_asymm
-            if(physics_type=='mhd') typeboundary(ndir+windex+2:ndir+windex+ndir,2*idim-1)=bc_asymm
-          case default
+            if(physics_type=='mhd'.or.physics_type=='rmhd') typeboundary(ndir+windex+2:ndir+windex+ndir,2*idim-1)=bc_asymm
+           case default
             call mpistop('Pole is in cylindrical, polar, spherical coordinates!')
-          end select
-        end if
+           end select
+        case ('twofl','mf')
+           call mpistop('Pole treatment for twofl or mf not implemented yet')
+        case default
+           call mpistop('unknown physics type for setting minimal pole boundary treatment')
+        end select
       end if
       if(any(typeboundary(:,2*idim)==12)) then
         if(any(typeboundary(:,2*idim)/=12)) typeboundary(:,2*idim)=12
-        if(phys_energy) then
-          windex=2
-        else
-          windex=1
-        end if
-        typeboundary(:,2*idim)=bc_symm
-        if(physics_type/='rho') then
-        select case(coordinate)
-        case(cylindrical)
-          typeboundary(phi_+1,2*idim)=bc_asymm
-          if(physics_type=='mhd') typeboundary(ndir+windex+phi_,2*idim)=bc_asymm
-        case(spherical)
-          typeboundary(3:ndir+1,2*idim)=bc_asymm
-          if(physics_type=='mhd') typeboundary(ndir+windex+2:ndir+windex+ndir,2*idim)=bc_asymm
+        select case(physics_type)
+        case ('rho','ard','rd','nonlinear','ffhd')
+           ! all symmetric at pole
+           typeboundary(:,2*idim)=bc_symm
+           if(mype==0) print *,'symmetric maximal pole'
+        case ('hd','rhd','srhd','mhd','rmhd')
+           typeboundary(:,2*idim)=bc_symm
+           ! here we assume the ordering of variables is fixed to rho-mom-[e]-B
+           if(phys_energy) then
+            windex=2
+           else
+            windex=1
+           end if
+           select case(coordinate)
+           case(cylindrical)
+            typeboundary(phi_+1,2*idim)=bc_asymm
+            if(physics_type=='mhd'.or.physics_type=='rmhd') typeboundary(ndir+windex+phi_,2*idim)=bc_asymm
+           case(spherical)
+            typeboundary(3:ndir+1,2*idim)=bc_asymm
+            if(physics_type=='mhd'.or.physics_type=='rmhd') typeboundary(ndir+windex+2:ndir+windex+ndir,2*idim)=bc_asymm
+           case default
+            call mpistop('Pole is in cylindrical, polar, spherical coordinates!')
+           end select
+        case ('twofl','mf')
+           call mpistop('Pole treatment for twofl or mf not implemented yet')
         case default
-          call mpistop('Pole is in cylindrical, polar, spherical coordinates!')
+           call mpistop('unknown physics type for setting maximal pole boundary treatment')
         end select
-        end if
       end if
     end do
     }

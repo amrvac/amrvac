@@ -914,7 +914,7 @@ contains
 
       tmp1(ixO^S)=dsqrt(wLp(ixO^S,rho_))
       tmp2(ixO^S)=dsqrt(wRp(ixO^S,rho_))
-      tmp3(ixO^S)=1.d0/(dsqrt(wLp(ixO^S,rho_))+dsqrt(wRp(ixO^S,rho_)))
+      tmp3(ixO^S)=1.d0/(tmp1(ixO^S)+tmp2(ixO^S))
       umean(ixO^S)=(wLp(ixO^S,mom(idim))*tmp1(ixO^S)+wRp(ixO^S,mom(idim))*tmp2(ixO^S))*tmp3(ixO^S)
 
       if(hd_energy) then
