@@ -686,7 +686,7 @@ contains
       print *, ''//NEW_LINE('A')
       print *, '=================================================================='
       print *, '=================================================================='//NEW_LINE('A')
-      print *, 'EUHFORIA'//NEW_LINE('A')
+      print *, 'Icarus'//NEW_LINE('A')
     end if
   end subroutine print_initial_information
 
