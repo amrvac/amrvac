@@ -3642,14 +3642,11 @@ contains
 
     ! The parity of redblack_cntr determines which cells we use. If
     ! redblack_cntr is even, we use the even cells and vice versa.
-    associate (cc => mg%boxes(id)%cc, n => mg_iphi, &
-         i_eps1 => mg_iveps1, &
-         i_eps2 => mg_iveps2)
-
+    associate (cc => mg%boxes(id)%cc, n => mg_iphi, i_eps1 => mg_iveps1)
       if (redblack) i0 = 2 - iand(redblack_cntr, 1)
 
       do i = i0, nc, di
-         a0(1:2)     = cc(i, i_eps1)
+         a0(1:2) = cc(i, i_eps1)
          u(1:2) = cc(i-1:i+1:2, n)
          a(1:2) = cc(i-1:i+1:2, i_eps1)
          c(:)   = 2 * a0(:) * a(:) / (a0(:) + a(:)) * idr2
@@ -3674,9 +3671,7 @@ contains
     idr2(1:2*1:2) = 1/mg%dr(:, mg%boxes(id)%lvl)**2
     idr2(2:2*1:2) = idr2(1:2*1:2)
 
-    associate (cc => mg%boxes(id)%cc, n => mg_iphi, &
-         i_eps1 => mg_iveps1, &
-         i_eps2 => mg_iveps2)
+    associate (cc => mg%boxes(id)%cc, n => mg_iphi, i_eps1 => mg_iveps1)
       do i = 1, nc
          a0(1:2)     = cc(i, i_eps1)
          a(1:2) = cc(i-1:i+1:2, i_eps1)
