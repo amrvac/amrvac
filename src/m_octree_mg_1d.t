@@ -556,7 +556,7 @@ contains
     type(mg_box_t), intent(in) :: box
     integer, intent(in)        :: nb
     integer, intent(in)        :: nc
-    real(dp), intent(out)      :: x(2)
+    real(dp), intent(out)      :: x(1)
     integer                    :: nb_dim
     real(dp)                   :: rmin(1)
 
@@ -569,7 +569,6 @@ contains
     end if
 
     x(1) = rmin(1)
-    x(2) = rmin(1) + box%dr(1) * nc
   end subroutine mg_get_face_coords
 
   integer function mg_add_timer(mg, name)
@@ -1111,7 +1110,7 @@ contains
     real(dp), intent(in)      :: r_min(1)
     logical, intent(in)       :: periodic(1)
     integer, intent(in)       :: n_finer
-    integer                   :: i, lvl, n, id, nx(1)
+    integer                   :: i, lvl, n, id, nx(1), IJK_vec(1), idim
     integer                   :: boxes_per_dim(1, mg_lvl_lo:1)
     integer                   :: periodic_offset(1)
 
@@ -1190,36 +1189,25 @@ contains
        mg%boxes(n)%neighbors(:) = [n-1, n+1]
 
        ! Handle boundaries
-       if(i==1 .and. .not.periodic(1)) then
-         mg%boxes(n)%neighbors(1) = mg_physical_boundary
-       end if
-       if(i==1 .and. periodic(1)) then
-         mg%boxes(n)%neighbors(1) = n + periodic_offset(1)
-       end if
-       if(i==nx(1) .and. .not.periodic(1)) then
-         mg%boxes(n)%neighbors(2) = mg_physical_boundary
-       end if
-       if(i==nx(1) .and. periodic(1)) then
-         mg%boxes(n)%neighbors(2) = n - periodic_offset(1)
-       end if
-       !where ([i] == 1 .and. .not. periodic)
-       !   mg%boxes(n)%neighbors(1:mg_num_neighbors:2) = &
-       !        mg_physical_boundary
-       !end where
-       !where ([i] == 1 .and. periodic)
-       !   mg%boxes(n)%neighbors(1:mg_num_neighbors:2) = &
-       !        n + periodic_offset
-       !end where
+       IJK_vec = [i]
+       do idim = 1, 1
+          if (IJK_vec(idim) == 1) then
+             if (periodic(idim)) then
+                mg%boxes(n)%neighbors(2*idim-1) = n + periodic_offset(idim)
+             else
+                mg%boxes(n)%neighbors(2*idim-1) = mg_physical_boundary
+             end if
+          end if
 
-       !where ([i] == nx .and. .not. periodic)
-       !   mg%boxes(n)%neighbors(2:mg_num_neighbors:2) = &
-       !        mg_physical_boundary
-       !end where
-       !where ([i] == nx .and. periodic)
-       !   mg%boxes(n)%neighbors(2:mg_num_neighbors:2) = &
-       !        n - periodic_offset
-       !end where
-    end do
+          if (IJK_vec(idim) == nx(idim)) then
+             if (periodic(idim)) then
+                mg%boxes(n)%neighbors(2*idim) = n - periodic_offset(idim)
+             else
+                mg%boxes(n)%neighbors(2*idim) = mg_physical_boundary
+             end if
+          end if
+       end do
+    end do; 
 
     mg%lvls(mg%lowest_lvl)%ids = [(n, n=1, mg%n_boxes)]
 
