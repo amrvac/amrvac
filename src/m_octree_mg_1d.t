@@ -598,14 +598,15 @@ contains
     integer                :: n, ierr
     real(dp)               :: tmin(mg%n_timers)
     real(dp)               :: tmax(mg%n_timers)
-    real(dp), allocatable  :: t_array(:)
+    real(dp), allocatable  :: tmp_array(:)
 
-    allocate(t_array(mg%n_timers))
-    do n = 1, mg%n_timers
-      t_array(n) = mg%timers(n)%t
-    enddo
-    call mpi_reduce(t_array, tmin, mg%n_timers, mpi_double, mpi_min, 0, mg%comm, ierr)
-    call mpi_reduce(t_array, tmax, mg%n_timers, mpi_double, mpi_max, 0, mg%comm, ierr)
+    allocate(tmp_array(mg%n_timers))
+    tmp_array(:) = mg%timers(1:mg%n_timers)%t
+
+    call mpi_reduce(tmp_array, tmin, mg%n_timers, &
+         mpi_double, mpi_min, 0, mg%comm, ierr)
+    call mpi_reduce(tmp_array, tmax, mg%n_timers, &
+         mpi_double, mpi_max, 0, mg%comm, ierr)
 
     if (mg%my_rank == 0) then
        write(*, "(A20,2A16)") "name                ", "min(s)", "max(s)"

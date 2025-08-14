@@ -620,10 +620,14 @@ contains
     integer                :: n, ierr
     real(dp)               :: tmin(mg%n_timers)
     real(dp)               :: tmax(mg%n_timers)
+    real(dp), allocatable  :: tmp_array(:)
 
-    call mpi_reduce(mg%timers(1:mg%n_timers)%t, tmin, mg%n_timers, &
+    allocate(tmp_array(mg%n_timers))
+    tmp_array(:) = mg%timers(1:mg%n_timers)%t
+
+    call mpi_reduce(tmp_array, tmin, mg%n_timers, &
          mpi_double, mpi_min, 0, mg%comm, ierr)
-    call mpi_reduce(mg%timers(1:mg%n_timers)%t, tmax, mg%n_timers, &
+    call mpi_reduce(tmp_array, tmax, mg%n_timers, &
          mpi_double, mpi_max, 0, mg%comm, ierr)
 
     if (mg%my_rank == 0) then
