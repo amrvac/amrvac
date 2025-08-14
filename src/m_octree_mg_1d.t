@@ -1603,12 +1603,12 @@ contains
   !> children.
   subroutine mg_load_balance_parents(mg)
     type(mg_t), intent(inout) :: mg
-    integer :: i, id, lvl, j, jd
-    integer :: c_ids(mg_num_children)
-    integer :: c_ranks(mg_num_children)
-    integer :: single_cpu_lvl, coarse_rank
-    integer :: my_work(0:mg%n_cpu), i_cpu
-    integer, allocatable :: rank_array(:)
+    integer                   :: i, id, lvl, n_boxes
+    integer                   :: c_ids(mg_num_children)
+    integer                   :: c_ranks(mg_num_children)
+    integer                   :: single_cpu_lvl, coarse_rank
+    integer                   :: my_work(0:mg%n_cpu), i_cpu
+    integer, allocatable      :: ranks(:)
 
     ! Up to this level, all boxes have to be on a single processor because they
     ! have a different size and the communication routines do not support this
@@ -1636,24 +1636,15 @@ contains
 
     end do
 
-!> comment out by nanami to avoid Fortran runtime warning: 
-!> An array temporary was created
-!    ! Determine most popular CPU for coarse grids
-!    if (single_cpu_lvl < mg%highest_lvl) then
-!       coarse_rank = most_popular(mg%boxes(&
-!            mg%lvls(single_cpu_lvl+1)%ids)%rank, my_work, mg%n_cpu)
-!    else
-!       coarse_rank = 0
-!    end if
+    ! Determine most popular CPU for coarse grids
+    if (single_cpu_lvl < mg%highest_lvl) then
+       ! Get ranks of boxes at single_cpu_lvl+1
+       n_boxes = size(mg%lvls(single_cpu_lvl+1)%ids)
+       allocate(ranks(n_boxes))
+       ranks(:) = mg%boxes(mg%lvls(single_cpu_lvl+1)%ids)%rank
 
-    if(single_cpu_lvl < mg%highest_lvl) then
-      allocate(rank_array(size(mg%lvls(single_cpu_lvl+1)%ids)))
-      do j = 1, size(mg%lvls(single_cpu_lvl+1)%ids)
-        jd = mg%lvls(single_cpu_lvl+1)%ids(j)
-        rank_array(j) = mg%boxes(jd)%rank
-      enddo
-      coarse_rank = most_popular(rank_array, my_work, mg%n_cpu)
-      deallocate(rank_array)
+       coarse_rank = most_popular(ranks, my_work, mg%n_cpu)
+       deallocate(ranks)
     else
        coarse_rank = 0
     end if

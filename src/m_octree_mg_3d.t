@@ -1658,11 +1658,12 @@ contains
   !> children.
   subroutine mg_load_balance_parents(mg)
     type(mg_t), intent(inout) :: mg
-    integer                   :: i, id, lvl
+    integer                   :: i, id, lvl, n_boxes
     integer                   :: c_ids(mg_num_children)
     integer                   :: c_ranks(mg_num_children)
     integer                   :: single_cpu_lvl, coarse_rank
     integer                   :: my_work(0:mg%n_cpu), i_cpu
+    integer, allocatable      :: ranks(:)
 
     ! Up to this level, all boxes have to be on a single processor because they
     ! have a different size and the communication routines do not support this
@@ -1692,8 +1693,13 @@ contains
 
     ! Determine most popular CPU for coarse grids
     if (single_cpu_lvl < mg%highest_lvl) then
-       coarse_rank = most_popular(mg%boxes(&
-            mg%lvls(single_cpu_lvl+1)%ids)%rank, my_work, mg%n_cpu)
+       ! Get ranks of boxes at single_cpu_lvl+1
+       n_boxes = size(mg%lvls(single_cpu_lvl+1)%ids)
+       allocate(ranks(n_boxes))
+       ranks(:) = mg%boxes(mg%lvls(single_cpu_lvl+1)%ids)%rank
+
+       coarse_rank = most_popular(ranks, my_work, mg%n_cpu)
+       deallocate(ranks)
     else
        coarse_rank = 0
     end if
