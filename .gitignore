@@ -20,6 +20,7 @@ amrvac.h
 /tests/multigrid/*/makefile
 /tests/rd/*/makefile
 /tests/rhd/*/makefile
+/test-v2/*/*/*
 /tools/fortran/compare_logs
 /tests/*/*/mod_usr.f
 /lib/1d_*
@@ -36,3 +37,5 @@ amrvac.h
 mod_usr.F90
 build
 
+settings.json
+.vscode/*

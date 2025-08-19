@@ -19,6 +19,6 @@ implies = ["components.source_term"]
 [methodlist.phys]
 type = "option"
 name = "PHYS"
-options = ["hd", "mhd"]
+options = ["hd", "mhd", "ffhd"]
 flags = ["fypp", "hash"]
 default = "hd"
