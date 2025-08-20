@@ -556,7 +556,7 @@ contains
     type(mg_box_t), intent(in) :: box
     integer, intent(in)        :: nb
     integer, intent(in)        :: nc
-    real(dp), intent(out)      :: x(2)
+    real(dp), intent(out)      :: x(1)
     integer                    :: nb_dim
     real(dp)                   :: rmin(1)
 
@@ -569,7 +569,6 @@ contains
     end if
 
     x(1) = rmin(1)
-    x(2) = rmin(1) + box%dr(1) * nc
   end subroutine mg_get_face_coords
 
   integer function mg_add_timer(mg, name)
@@ -599,14 +598,15 @@ contains
     integer                :: n, ierr
     real(dp)               :: tmin(mg%n_timers)
     real(dp)               :: tmax(mg%n_timers)
-    real(dp), allocatable  :: t_array(:)
+    real(dp), allocatable  :: tmp_array(:)
 
-    allocate(t_array(mg%n_timers))
-    do n = 1, mg%n_timers
-      t_array(n) = mg%timers(n)%t
-    enddo
-    call mpi_reduce(t_array, tmin, mg%n_timers, mpi_double, mpi_min, 0, mg%comm, ierr)
-    call mpi_reduce(t_array, tmax, mg%n_timers, mpi_double, mpi_max, 0, mg%comm, ierr)
+    allocate(tmp_array(mg%n_timers))
+    tmp_array(:) = mg%timers(1:mg%n_timers)%t
+
+    call mpi_reduce(tmp_array, tmin, mg%n_timers, &
+         mpi_double, mpi_min, 0, mg%comm, ierr)
+    call mpi_reduce(tmp_array, tmax, mg%n_timers, &
+         mpi_double, mpi_max, 0, mg%comm, ierr)
 
     if (mg%my_rank == 0) then
        write(*, "(A20,2A16)") "name                ", "min(s)", "max(s)"
@@ -1111,7 +1111,7 @@ contains
     real(dp), intent(in)      :: r_min(1)
     logical, intent(in)       :: periodic(1)
     integer, intent(in)       :: n_finer
-    integer                   :: i, lvl, n, id, nx(1)
+    integer                   :: i, lvl, n, id, nx(1), IJK_vec(1), idim
     integer                   :: boxes_per_dim(1, mg_lvl_lo:1)
     integer                   :: periodic_offset(1)
 
@@ -1190,36 +1190,25 @@ contains
        mg%boxes(n)%neighbors(:) = [n-1, n+1]
 
        ! Handle boundaries
-       if(i==1 .and. .not.periodic(1)) then
-         mg%boxes(n)%neighbors(1) = mg_physical_boundary
-       end if
-       if(i==1 .and. periodic(1)) then
-         mg%boxes(n)%neighbors(1) = n + periodic_offset(1)
-       end if
-       if(i==nx(1) .and. .not.periodic(1)) then
-         mg%boxes(n)%neighbors(2) = mg_physical_boundary
-       end if
-       if(i==nx(1) .and. periodic(1)) then
-         mg%boxes(n)%neighbors(2) = n - periodic_offset(1)
-       end if
-       !where ([i] == 1 .and. .not. periodic)
-       !   mg%boxes(n)%neighbors(1:mg_num_neighbors:2) = &
-       !        mg_physical_boundary
-       !end where
-       !where ([i] == 1 .and. periodic)
-       !   mg%boxes(n)%neighbors(1:mg_num_neighbors:2) = &
-       !        n + periodic_offset
-       !end where
+       IJK_vec = [i]
+       do idim = 1, 1
+          if (IJK_vec(idim) == 1) then
+             if (periodic(idim)) then
+                mg%boxes(n)%neighbors(2*idim-1) = n + periodic_offset(idim)
+             else
+                mg%boxes(n)%neighbors(2*idim-1) = mg_physical_boundary
+             end if
+          end if
 
-       !where ([i] == nx .and. .not. periodic)
-       !   mg%boxes(n)%neighbors(2:mg_num_neighbors:2) = &
-       !        mg_physical_boundary
-       !end where
-       !where ([i] == nx .and. periodic)
-       !   mg%boxes(n)%neighbors(2:mg_num_neighbors:2) = &
-       !        n - periodic_offset
-       !end where
-    end do
+          if (IJK_vec(idim) == nx(idim)) then
+             if (periodic(idim)) then
+                mg%boxes(n)%neighbors(2*idim) = n - periodic_offset(idim)
+             else
+                mg%boxes(n)%neighbors(2*idim) = mg_physical_boundary
+             end if
+          end if
+       end do
+    end do; 
 
     mg%lvls(mg%lowest_lvl)%ids = [(n, n=1, mg%n_boxes)]
 
@@ -1603,12 +1592,12 @@ contains
   !> children.
   subroutine mg_load_balance_parents(mg)
     type(mg_t), intent(inout) :: mg
-    integer :: i, id, lvl, j, jd
-    integer :: c_ids(mg_num_children)
-    integer :: c_ranks(mg_num_children)
-    integer :: single_cpu_lvl, coarse_rank
-    integer :: my_work(0:mg%n_cpu), i_cpu
-    integer, allocatable :: rank_array(:)
+    integer                   :: i, id, lvl, n_boxes
+    integer                   :: c_ids(mg_num_children)
+    integer                   :: c_ranks(mg_num_children)
+    integer                   :: single_cpu_lvl, coarse_rank
+    integer                   :: my_work(0:mg%n_cpu), i_cpu
+    integer, allocatable      :: ranks(:)
 
     ! Up to this level, all boxes have to be on a single processor because they
     ! have a different size and the communication routines do not support this
@@ -1636,24 +1625,15 @@ contains
 
     end do
 
-!> comment out by nanami to avoid Fortran runtime warning: 
-!> An array temporary was created
-!    ! Determine most popular CPU for coarse grids
-!    if (single_cpu_lvl < mg%highest_lvl) then
-!       coarse_rank = most_popular(mg%boxes(&
-!            mg%lvls(single_cpu_lvl+1)%ids)%rank, my_work, mg%n_cpu)
-!    else
-!       coarse_rank = 0
-!    end if
+    ! Determine most popular CPU for coarse grids
+    if (single_cpu_lvl < mg%highest_lvl) then
+       ! Get ranks of boxes at single_cpu_lvl+1
+       n_boxes = size(mg%lvls(single_cpu_lvl+1)%ids)
+       allocate(ranks(n_boxes))
+       ranks(:) = mg%boxes(mg%lvls(single_cpu_lvl+1)%ids)%rank
 
-    if(single_cpu_lvl < mg%highest_lvl) then
-      allocate(rank_array(size(mg%lvls(single_cpu_lvl+1)%ids)))
-      do j = 1, size(mg%lvls(single_cpu_lvl+1)%ids)
-        jd = mg%lvls(single_cpu_lvl+1)%ids(j)
-        rank_array(j) = mg%boxes(jd)%rank
-      enddo
-      coarse_rank = most_popular(rank_array, my_work, mg%n_cpu)
-      deallocate(rank_array)
+       coarse_rank = most_popular(ranks, my_work, mg%n_cpu)
+       deallocate(ranks)
     else
        coarse_rank = 0
     end if
@@ -3662,14 +3642,11 @@ contains
 
     ! The parity of redblack_cntr determines which cells we use. If
     ! redblack_cntr is even, we use the even cells and vice versa.
-    associate (cc => mg%boxes(id)%cc, n => mg_iphi, &
-         i_eps1 => mg_iveps1, &
-         i_eps2 => mg_iveps2)
-
+    associate (cc => mg%boxes(id)%cc, n => mg_iphi, i_eps1 => mg_iveps1)
       if (redblack) i0 = 2 - iand(redblack_cntr, 1)
 
       do i = i0, nc, di
-         a0(1:2)     = cc(i, i_eps1)
+         a0(1:2) = cc(i, i_eps1)
          u(1:2) = cc(i-1:i+1:2, n)
          a(1:2) = cc(i-1:i+1:2, i_eps1)
          c(:)   = 2 * a0(:) * a(:) / (a0(:) + a(:)) * idr2
@@ -3694,9 +3671,7 @@ contains
     idr2(1:2*1:2) = 1/mg%dr(:, mg%boxes(id)%lvl)**2
     idr2(2:2*1:2) = idr2(1:2*1:2)
 
-    associate (cc => mg%boxes(id)%cc, n => mg_iphi, &
-         i_eps1 => mg_iveps1, &
-         i_eps2 => mg_iveps2)
+    associate (cc => mg%boxes(id)%cc, n => mg_iphi, i_eps1 => mg_iveps1)
       do i = 1, nc
          a0(1:2)     = cc(i, i_eps1)
          a(1:2) = cc(i-1:i+1:2, i_eps1)

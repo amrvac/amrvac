@@ -6,7 +6,7 @@ module mod_random_heating
   !> Li et al. (2022,ApJ,926,216). 
   !> Users can define the parameters "trelax,vtim,vlim,periods,variation,num,mnx" in the mod_usr.t file.
   !> Example for using this module please see tests/mhd/coronal_rain_2.5D
-  !trelax is the relaxization time for the simulation, if the relaxization is done seperately, then trelax=0.d0
+  !trelax is the relaxation time for the simulation, if the relaxation is done seperately, then trelax=0.d0
   !periods=300,variation=75  !The time durations of each heating episode is typically 300s +/- 75s
   !vtim = 100                !100 heating episodes, e.g., 500 min. Enough for the simulation
   !num = 1000                !1000 waves for each episode
@@ -301,6 +301,8 @@ contains
     open(unit=22,file=filename,form='formatted',status='new')
     write(22,'(es12.4)') va
     close(22)
+    deallocate(vm)
+    deallocate(vn)
 
   end subroutine randomV
 

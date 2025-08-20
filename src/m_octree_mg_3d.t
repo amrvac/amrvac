@@ -620,10 +620,14 @@ contains
     integer                :: n, ierr
     real(dp)               :: tmin(mg%n_timers)
     real(dp)               :: tmax(mg%n_timers)
+    real(dp), allocatable  :: tmp_array(:)
 
-    call mpi_reduce(mg%timers(1:mg%n_timers)%t, tmin, mg%n_timers, &
+    allocate(tmp_array(mg%n_timers))
+    tmp_array(:) = mg%timers(1:mg%n_timers)%t
+
+    call mpi_reduce(tmp_array, tmin, mg%n_timers, &
          mpi_double, mpi_min, 0, mg%comm, ierr)
-    call mpi_reduce(mg%timers(1:mg%n_timers)%t, tmax, mg%n_timers, &
+    call mpi_reduce(tmp_array, tmax, mg%n_timers, &
          mpi_double, mpi_max, 0, mg%comm, ierr)
 
     if (mg%my_rank == 0) then
@@ -1161,7 +1165,7 @@ contains
     real(dp), intent(in)      :: r_min(3)
     logical, intent(in)       :: periodic(3)
     integer, intent(in)       :: n_finer
-    integer                   :: i, j, k, lvl, n, id, nx(3), ib, nb(3)
+    integer                   :: i, j, k, lvl, n, id, nx(3), IJK_vec(3), idim
     integer                   :: boxes_per_dim(3, mg_lvl_lo:1)
     integer                   :: periodic_offset(3)
 
@@ -1242,38 +1246,24 @@ contains
             n-nx(1)*nx(2), n+nx(1)*nx(2)]
 
        ! Handle boundaries
-       nb=[i, j, k]
-       do ib=1,3
-         if(nb(ib)==1 .and. .not.periodic(ib)) then
-           mg%boxes(n)%neighbors(ib*2-1) = mg_physical_boundary
-         end if
-         if(nb(ib)==1 .and. periodic(ib)) then
-           mg%boxes(n)%neighbors(ib*2-1) = n + periodic_offset(ib)
-         end if
-         if(nb(ib)==nx(ib) .and. .not.periodic(ib)) then
-           mg%boxes(n)%neighbors(ib*2) = mg_physical_boundary
-         end if
-         if(nb(ib)==nx(ib) .and. periodic(ib)) then
-           mg%boxes(n)%neighbors(ib*2) = n - periodic_offset(ib)
-         end if
-       end do
-       !where ([i, j, k] == 1 .and. .not. periodic)
-       !   mg%boxes(n)%neighbors(1:mg_num_neighbors:2) = &
-       !        mg_physical_boundary
-       !end where
-       !where ([i, j, k] == 1 .and. periodic)
-       !   mg%boxes(n)%neighbors(1:mg_num_neighbors:2) = &
-       !        n + periodic_offset
-       !end where
+       IJK_vec = [i, j, k]
+       do idim = 1, 3
+          if (IJK_vec(idim) == 1) then
+             if (periodic(idim)) then
+                mg%boxes(n)%neighbors(2*idim-1) = n + periodic_offset(idim)
+             else
+                mg%boxes(n)%neighbors(2*idim-1) = mg_physical_boundary
+             end if
+          end if
 
-       !where ([i, j, k] == nx .and. .not. periodic)
-       !   mg%boxes(n)%neighbors(2:mg_num_neighbors:2) = &
-       !        mg_physical_boundary
-       !end where
-       !where ([i, j, k] == nx .and. periodic)
-       !   mg%boxes(n)%neighbors(2:mg_num_neighbors:2) = &
-       !        n - periodic_offset
-       !end where
+          if (IJK_vec(idim) == nx(idim)) then
+             if (periodic(idim)) then
+                mg%boxes(n)%neighbors(2*idim) = n - periodic_offset(idim)
+             else
+                mg%boxes(n)%neighbors(2*idim) = mg_physical_boundary
+             end if
+          end if
+       end do
     end do; end do; end do
 
     mg%lvls(mg%lowest_lvl)%ids = [(n, n=1, mg%n_boxes)]
@@ -1658,11 +1648,12 @@ contains
   !> children.
   subroutine mg_load_balance_parents(mg)
     type(mg_t), intent(inout) :: mg
-    integer                   :: i, id, lvl
+    integer                   :: i, id, lvl, n_boxes
     integer                   :: c_ids(mg_num_children)
     integer                   :: c_ranks(mg_num_children)
     integer                   :: single_cpu_lvl, coarse_rank
     integer                   :: my_work(0:mg%n_cpu), i_cpu
+    integer, allocatable      :: ranks(:)
 
     ! Up to this level, all boxes have to be on a single processor because they
     ! have a different size and the communication routines do not support this
@@ -1692,8 +1683,13 @@ contains
 
     ! Determine most popular CPU for coarse grids
     if (single_cpu_lvl < mg%highest_lvl) then
-       coarse_rank = most_popular(mg%boxes(&
-            mg%lvls(single_cpu_lvl+1)%ids)%rank, my_work, mg%n_cpu)
+       ! Get ranks of boxes at single_cpu_lvl+1
+       n_boxes = size(mg%lvls(single_cpu_lvl+1)%ids)
+       allocate(ranks(n_boxes))
+       ranks(:) = mg%boxes(mg%lvls(single_cpu_lvl+1)%ids)%rank
+
+       coarse_rank = most_popular(ranks, my_work, mg%n_cpu)
+       deallocate(ranks)
     else
        coarse_rank = 0
     end if
@@ -2917,7 +2913,6 @@ contains
     integer                   :: i, j, k, i0, di
     real(dp)                  :: idr2(3), fac
     logical                   :: redblack
-    real(dp), parameter       :: sixth = 1/6.0_dp
 
     idr2 = 1/mg%dr(:, mg%boxes(id)%lvl)**2
     fac = 1.0_dp / (2 * sum(idr2) + helmholtz_lambda)

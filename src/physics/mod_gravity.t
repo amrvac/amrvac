@@ -86,6 +86,7 @@ contains
   subroutine gravity_get_dt(w,ixI^L,ixO^L,dtnew,dx^D,x)
     use mod_global_parameters
     use mod_usr_methods
+    use mod_geometry
 
     integer, intent(in)             :: ixI^L, ixO^L
     double precision, intent(in)    :: dx^D, x(ixI^S,1:ndim), w(ixI^S,1:nw)
@@ -95,12 +96,20 @@ contains
     double precision :: gravity_field(ixI^S,ndim)
     integer                         :: idim
 
-    ^D&dxinv(^D)=one/dx^D;
     call usr_gravity(ixI^L,ixO^L,w,x,gravity_field)
-    do idim = 1, ndim
-      max_grav = maxval(abs(gravity_field(ixO^S,idim)))
-      max_grav = max(max_grav, epsilon(1.0d0))
-      dtnew = min(dtnew, 1.0d0 / sqrt(max_grav * dxinv(idim)))
-    end do
+    if(slab_uniform) then
+      ^D&dxinv(^D)=one/dx^D;
+      do idim = 1, ndim
+        max_grav = maxval(abs(gravity_field(ixO^S,idim)))
+        max_grav = max(max_grav, epsilon(1.0d0))
+        dtnew = min(dtnew, 1.0d0 / sqrt(max_grav * dxinv(idim)))
+      end do
+    else
+      do idim = 1, ndim
+        max_grav = maxval(abs(gravity_field(ixO^S,idim))/block%ds(ixO^S,idim))
+        max_grav = max(max_grav, epsilon(1.0d0))
+        dtnew = min(dtnew, 1.0d0 / sqrt(max_grav))
+      end do
+    endif
   end subroutine gravity_get_dt
 end module mod_gravity

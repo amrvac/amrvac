@@ -266,6 +266,7 @@ mod_global_parameters.o: mod_constants.mod
 mod_global_parameters.o: mod_physicaldata.mod
 mod_global_parameters.o: mod_variables.mod
 mod_gravity.o: mod_comm_lib.mod
+mod_gravity.o: mod_geometry.mod
 mod_gravity.o: mod_global_parameters.mod
 mod_gravity.o: mod_usr_methods.mod
 mod_hd.o: mod_amrvac.mod
@@ -510,6 +511,9 @@ mod_radiative_cooling.o: mod_global_parameters.mod
 mod_radiative_cooling.o: mod_physics.mod
 mod_random_heating.o: mod_comm_lib.mod
 mod_random_heating.o: mod_global_parameters.mod
+mod_random_heating_3D.o: mod_comm_lib.mod
+mod_random_heating_3D.o: mod_geometry.mod
+mod_random_heating_3D.o: mod_global_parameters.mod
 mod_rbsl.o: mod_geometry.mod
 mod_rbsl.o: mod_global_parameters.mod
 mod_rd.o: mod_amrvac.mod

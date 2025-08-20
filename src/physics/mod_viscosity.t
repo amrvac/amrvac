@@ -52,6 +52,7 @@ contains
 111    close(unitpar)
     end do
 
+
   end subroutine vc_params_read
 
   !> Initialize the module
@@ -242,6 +243,7 @@ contains
   subroutine viscosity_get_dt(w,ixI^L,ixO^L,dtnew,dx^D,x)
     ! Check diffusion time limit for dt < dtdiffpar * dx**2 / (mu/rho)
     use mod_global_parameters
+    use mod_geometry
 
     integer, intent(in) :: ixI^L, ixO^L
     double precision, intent(in) :: dx^D, x(ixI^S,1:ndim)
@@ -249,19 +251,29 @@ contains
     double precision, intent(inout) :: dtnew
 
     double precision :: tmp(ixI^S)
-    double precision:: dtdiff_visc, dxinv2(1:ndim)
+    double precision:: dtdiff_visc, dxinv2(1:ndim), max_mu
     integer:: idim
 
     ! Calculate the kinematic viscosity tmp=mu/rho
+    ! here vc_mu must be non-zero!!!
 
     tmp(ixO^S)=vc_mu/w(ixO^S,rho_)
 
-    ^D&dxinv2(^D)=one/dx^D**2;
-    do idim=1,ndim
-       dtdiff_visc=dtdiffpar/maxval(tmp(ixO^S)*dxinv2(idim))
-       ! limit the time step
-       dtnew=min(dtnew,dtdiff_visc)
-    enddo
+    if(slab_uniform)then
+      ^D&dxinv2(^D)=one/dx^D**2;
+      do idim=1,ndim
+         dtdiff_visc=dtdiffpar/maxval(tmp(ixO^S)*dxinv2(idim))
+         ! limit the time step
+         dtnew=min(dtnew,dtdiff_visc)
+      enddo
+    else
+      do idim=1,ndim
+         max_mu=maxval(tmp(ixO^S)/block%ds(ixO^S,idim)**2)
+         dtdiff_visc=dtdiffpar/max_mu
+         ! limit the time step
+         dtnew=min(dtnew,dtdiff_visc)
+      enddo
+    endif
 
   end subroutine viscosity_get_dt
 
