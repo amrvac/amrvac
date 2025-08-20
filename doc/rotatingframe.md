@@ -1,6 +1,6 @@
 # Rotating frame for HD/MHD/RHD
 
-An overview of how to activate the rotating frame module. This module works for cylindrical and spherical problems in 1-D, 2-D, and 3-D.
+An overview of how to activate the rotating frame module for Cartesian, cylindrical, and spherical problems in 1-D, 2-D, and 3-D.
 
 # Physics
 
@@ -10,29 +10,41 @@ When active, the rotating_frame.t module adds these fictitious sources to the mo
 
 **NOTE**: The user should be aware that the fictitious forces are **not** added in an angular momentum conserving fashion. The latter means that the azimuthal component of the Coriolis force is incorporated directly into the azimuthal flux computation within the conservative equations. Such angular momentum conserving formulation may be important for some applications, see for example [Kley (1998)](https://ui.adsabs.harvard.edu/abs/1998A%26A...338L..37K/abstract). The present implementation in MPI-AMRVAC adds all fictitious force components displayed below as source terms to the conservative equations.
 
+## Cartesian coordinates
+
+The extra fictitious forces (per unit mass) added to the momentum equations:
+\f{eqnarray*}{
+ F_{x} &=& 2\omega_0 v_y + \omega_0^2 x, \\
+ F_{y} &=& -2\omega_0 v_x + \omega_0^2 y,
+\f}
+and if doing adiabatic (R)(M)HD simulations the fictitious work due to the centrifugal force will be added
+\f[
+W = (x v_x + y v_y) \omega_0^2.
+\f]
+
 ## Cylindrical coordinates
 
-The extra fictitious sources added to the momentum equations:
+The extra fictitious forces (per unit mass) added to the momentum equations:
 \f{eqnarray*}{
- S_{\rho v_r}    &=& 2\omega_0 v_\phi + \omega_0^2 r, \\
- S_{\rho v_\phi} &=& -2\omega_0 v_r, 
+ F_{r}    &=& 2\omega_0 v_\phi + \omega_0^2 r, \\
+ F_{\phi} &=& -2\omega_0 v_r,
 \f}
-and if doing non-isothermal simulations the fictitious work due to the centrifugal force will be added
+and if doing adiabatic (R)(M)HD simulations the fictitious work due to the centrifugal force will be added
 \f[
-S_e = \rho v_r r \omega_0^2.
+W = v_r r \omega_0^2.
 \f]
 
 ## Spherical coordinates
 
-The extra fictitious sources added to the momentum equations:
+The extra fictitious forces (per unit mass) added to the momentum equations:
 \f{eqnarray*}{
- S_{\rho v_r}  &=& 2\omega_0 v_\phi \sin \theta + r (\omega_0 \sin \theta)^2, \\
- S_{\rho v_\theta} &=& \cot \theta \left[ 2\omega_0 v_\phi \sin \theta + r (\omega_0 \sin \theta)^2 \right], \\
- S_{\rho v_\phi} &=& -2\omega_0 \sin \theta (v_r + v_\theta \cot \theta), 
+ F_{r}  &=& 2\omega_0 v_\phi \sin \theta + r (\omega_0 \sin \theta)^2, \\
+ F_{\theta} &=& F_{r} \cot \theta, \\
+ F_{\phi} &=& -2\omega_0 \sin \theta (v_r + v_\theta \cot \theta),
 \f}
-and if doing non-isothermal simulations the fictitious work due to the centrifugal force will be added
+and if doing adiabatic (R)(M)HD simulations the fictitious work due to the centrifugal force will be added
 \f[
-S_e = \rho r (\omega_0 \sin \theta)^2 (v_r + v_\theta \cot \theta).
+W = r (\omega_0 \sin \theta)^2 (v_r + v_\theta \cot \theta).
 \f]
 
 # Practical use
