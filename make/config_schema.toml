@@ -8,6 +8,13 @@ name = "SOURCE_TERM"
 flags = ["fypp"]
 default = false
 
+[components.cooling]
+type = "flag"
+name = "COOLING"
+flags = ["fypp", "hash"]
+default = false
+implies = ["components.source_term"]
+
 [components.gravity]
 type = "flag"
 name = "GRAVITY"

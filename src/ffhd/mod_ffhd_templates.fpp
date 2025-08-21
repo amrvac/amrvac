@@ -2,13 +2,17 @@
   
 #:def phys_vars()
 
+  !> Radiative cooling fluid
+  #:if defined('COOLING')
+    use mod_radiative_cooling, only: rc_fluid
+  #:endif
+
   integer, parameter :: dp = kind(0.0d0)
   !> Only consider the hyperbolic thermal conduction situation
   integer, parameter, public              :: nw_phys=4
   
   !> Whether an energy equation is used
   logical, public                         :: ffhd_energy = .true.
-  !$acc declare copyin(ffhd_energy)
 
   !> Index of the density (in the w array)
   integer, public                         :: rho_
@@ -28,11 +32,9 @@
 
   !> The adiabatic index
   double precision, public                :: ffhd_gamma = 5.d0/3.0d0
-  !$acc declare copyin(ffhd_gamma)
 
   !> The adiabatic constant
   double precision, public                :: ffhd_adiab = 1.0d0
-  !$acc declare copyin(ffhd_adiab)
 
   !> The thermal conductivity kappa in hyperbolic thermal conduction
   double precision, public                :: hypertc_kappa
@@ -40,15 +42,12 @@
 
   !> Whether plasma is partially ionized
   logical, public                         :: ffhd_partial_ionization = .false.
-  !$acc declare copyin(ffhd_partial_ionization)
 
-  !> Allows overruling default corner filling (for debug mode, since otherwise corner primitives fail)
-  logical, public                         :: ffhd_force_diagonal = .false.
-  !$acc declare copyin(ffhd_force_diagonal)
-
-  !> Whether particles module is added
-  logical, public                         :: ffhd_particles = .false.
-  !$acc declare copyin(ffhd_particles)
+  #:if defined('COOLING')
+  !> Radiative cooling fluid
+  type(rc_fluid), public, allocatable :: rc_fl
+  !$acc declare create(rc_fl)
+  #:endif
 
 #:enddef
 
@@ -59,18 +58,13 @@
     character(len=*), intent(in) :: files(:)
     integer                      :: n
 
-    namelist /ffhd_list/ ffhd_energy, ffhd_gamma, ffhd_partial_ionization,&
-        ffhd_force_diagonal, ffhd_particles
+    namelist /ffhd_list/ ffhd_energy, ffhd_gamma, ffhd_partial_ionization
 
     do n = 1, size(files)
        open(unitpar, file=trim(files(n)), status="old")
        read(unitpar, ffhd_list, end=111)
 111    close(unitpar)
     end do
-
-#ifdef _OPENACC
- !$acc update device(ffhd_energy, ffhd_gamma, ffhd_adiab, ffhd_partial_ionization, ffhd_force_diagonal, ffhd_particles)
-#endif
 
   end subroutine read_params
 #:enddef
@@ -84,13 +78,17 @@
 #:def phys_init()
     !> Initialize the module
   subroutine phys_init()
+
+    #:if defined('COOLING')
+    use mod_radiative_cooling, only: radiative_cooling_init_params, radiative_cooling_init
+    #:endif
+
     use mod_global_parameters
-!    use mod_particles, only: particles_init
 
     call read_params(par_files)
 
     phys_energy  = ffhd_energy
-    phys_total_energy  = .false.
+    phys_total_energy  = ffhd_energy
     phys_internal_e = .false.
     phys_gamma = ffhd_gamma
     phys_partial_ionization=ffhd_partial_ionization
@@ -116,31 +114,18 @@
     end if
     !$acc update device(e_,p_)
 
-    ! Whether diagonal ghost cells are required for the physics
-    phys_req_diagonal = .false.
-
-    if (hd_force_diagonal) then
-       ! ensure corners are filled, otherwise divide by zero when getting primitives
-       !  --> only for debug purposes
-       phys_req_diagonal = .true.
-    endif
+    ! htc requried here
 
     ! set number of variables which need update ghostcells
     nwgc=nwflux
     !$acc update device(nwgc)
 
-! use cycle, needs to be dealt with:    
-!    ! Initialize particles module
-!    if (hd_particles) then
-!       call particles_init()
-!       phys_req_diagonal = .true.
-!    end if
-
-    nvector      = 1 ! No. vector vars
-    allocate(iw_vector(nvector))
-    iw_vector(1) = mom(1) - 1
-    !$acc update device(nvector, iw_vector)
-    !$acc update device(phys_req_diagonal)
+    #:if defined('COOLING')
+    allocate(rc_fl)
+    call radiative_cooling_init_params(phys_gamma,He_abundance)
+    call radiative_cooling_init(rc_fl)
+    !$acc update device(rc_fl)
+    #:endif
 
   end subroutine phys_init
 #:enddef
@@ -177,6 +162,10 @@ subroutine addsource_local(qdt, dtfactor, qtC, wCT, wCTprim, qt, wnew, x,&
 #:if defined('GRAVITY')
   use mod_usr, only: gravity_field
 #:endif    
+#:if defined('COOLING')
+  use mod_radiative_cooling, only: radiative_cooling_add_source
+#:endif
+
   real(dp), intent(in)     :: qdt, dtfactor, qtC, qt
   real(dp), intent(in)     :: wCT(nw_phys), wCTprim(nw_phys)
   real(dp), intent(in)     :: x(1:ndim)
@@ -193,6 +182,10 @@ subroutine addsource_local(qdt, dtfactor, qtC, wCT, wCTprim, qt, wnew, x,&
      wnew(iw_e)         = wnew(iw_e) + qdt * field * wCT(iw_mom(idim))
   end do
 #:endif  
+
+#:if defined('COOLING')
+  call radiative_cooling_add_source(qdt,wCT,wCTprim,wnew,x,rc_fl)
+#:endif
 
 end subroutine addsource_local
 #:enddef
@@ -287,4 +280,43 @@ pure real(dp) function get_cmax(u, flux_dim) result(wC)
 
 end function get_cmax
 #:enddef  
+#:endif
+
+#:def get_rho()
+pure real(dp) function get_rho(w, x) result(rho)
+  !$acc routine seq
+  real(dp), intent(in)  :: w(nw_phys)
+  real(dp), intent(in)  :: x(1:ndim)
+
+  rho = w(iw_rho)
+end function get_rho
+#:endif
+
+
+#:def get_pthermal()
+pure real(dp) function get_pthermal(w, x) result(pth)
+  !$acc routine seq
+  real(dp), intent(in)  :: w(nw_phys)
+  real(dp), intent(in)  :: x(1:ndim)
+
+  @:get_kin_en()
+  pth = phys_gamma*w(iw_e)-get_kin_en(w,x)
+end function get_pthermal
+#:endif
+
+#:def get_Rfactor()
+pure real(dp) function get_Rfactor() result(Rfactor)
+  !$acc routine seq
+  Rfactor = 1.0_dp
+end function get_Rfactor
+#:endif
+
+#:def get_kin_en()
+pure real(dp) function get_kin_en(w, x) result(kin_en)
+  !$acc routine seq
+  real(dp), intent(in)  :: w(nw_phys)
+  real(dp), intent(in)  :: x(1:ndim)
+
+  kin_en = 0.5d0*w(iw_rho)*w(iw_mom(1))**2/w(iw_rho)
+end function get_kin_en
 #:endif
