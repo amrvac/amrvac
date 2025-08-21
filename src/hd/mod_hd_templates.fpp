@@ -168,14 +168,14 @@
 
 #:def addsource_local()
 subroutine addsource_local(qdt, dtfactor, qtC, wCT, wCTprim, qt, wnew, x,&
-    qsourcesplit)
+    dx, gradT, qsourcesplit)
   !$acc routine seq
 #:if defined('GRAVITY')
   use mod_usr, only: gravity_field
 #:endif    
   real(dp), intent(in)     :: qdt, dtfactor, qtC, qt
   real(dp), intent(in)     :: wCT(nw_phys), wCTprim(nw_phys)
-  real(dp), intent(in)     :: x(1:ndim)
+  real(dp), intent(in)     :: x(1:ndim),dx(1:ndim),gradT(1:ndim)
   real(dp), intent(inout)  :: wnew(nw_phys)
   logical, intent(in)      :: qsourcesplit
   ! .. local ..
@@ -284,4 +284,21 @@ pure real(dp) function get_cmax(u, x, flux_dim) result(wC)
 
 end function get_cmax
 #:enddef  
+
+#:def get_gradientT()
+pure real(dp) function get_gradientT(u, x, grad_dim) result(gradT)
+  !$acc routine seq
+  real(dp), intent(in)  :: u(nw_phys, 5)
+  real(dp), intent(in)  :: x(1:ndim)
+  integer, intent(in)   :: grad_dim
+  real(dp) :: Te(5),Tface(2)
+
+  Te(1:5)=u(iw_e,1:5)/u(iw_rho,1:5)
+  Tface(1)=(7.0d0*(Te(2)+Te(3))-(Te(1)+Te(4)))/12.0d0
+  Tface(2)=(7.0d0*(Te(3)+Te(4))-(Te(2)+Te(5)))/12.0d0
+  gradT=Tface(2)-Tface(1)
+
+end function get_gradientT
+
+#:enddef
 #:endif

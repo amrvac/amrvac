@@ -182,7 +182,7 @@
 
 #:def addsource_local()
 subroutine addsource_local(qdt, dtfactor, qtC, wCT, wCTprim, qt, wnew, x,&
-    qsourcesplit)
+    dx, gradT, qsourcesplit)
   !$acc routine seq
 #:if defined('GRAVITY')
   use mod_usr, only: gravity_field
@@ -192,12 +192,14 @@ subroutine addsource_local(qdt, dtfactor, qtC, wCT, wCTprim, qt, wnew, x,&
 #:endif    
   real(dp), intent(in)     :: qdt, dtfactor, qtC, qt
   real(dp), intent(in)     :: wCT(nw_phys), wCTprim(nw_phys)
-  real(dp), intent(in)     :: x(1:ndim)
+  real(dp), intent(in)     :: x(1:ndim),dx(1:ndim)
+  real(dp), intent(in)     :: gradT(1:ndim)
   real(dp), intent(inout)  :: wnew(nw_phys)
   logical, intent(in)      :: qsourcesplit
   ! .. local ..
   integer                  :: idim
   real(dp)                 :: field, Bfield, divBfield
+  real(dp)                 :: Te,tau,htc_qrsc,sigT,invdx,taumin
 
 #:if defined('GRAVITY')
   do idim = 1, ndim
@@ -210,6 +212,21 @@ subroutine addsource_local(qdt, dtfactor, qtC, wCT, wCTprim, qt, wnew, x,&
 #:if defined('BFIELD')
   divBfield = magnetic_field_divergence(x)
   wnew(iw_mom(1)) = wnew(iw_mom(1)) + qdt * wCTprim(iw_e) * divBfield
+
+  Te=wCTprim(iw_e)/wCT(iw_rho)
+  sigT=hypertc_kappa*sqrt(Te**5)
+  taumin=0.4d0
+  ! following needs global dt and cs2max_global
+  tau=taumin
+  !!! tau=max(taumin*dt,sigT*Te*(ffhd_gamma-1.0d0)/wCTprim(iw_e)/cs2max_global)
+  htc_qrsc=0.0d0
+  do idim =1,ndim
+    Bfield = magnetic_field(x, idim)
+    invdx=1.0d0/dx(idim)
+    htc_qrsc=htc_qrsc+sigT*Bfield*gradT(idim)*invdx
+  enddo
+  htc_qrsc=(htc_qrsc+wCT(iw_q))/tau
+  wnew(iw_q)=wnew(iw_q)-qdt*htc_qrsc
 #:endif  
 
 end subroutine addsource_local
@@ -304,5 +321,23 @@ pure real(dp) function get_cmax(u, x, flux_dim) result(wC)
   wC = sqrt(ffhd_gamma * u(iw_e) / u(iw_rho)) + abs(u(iw_mom(1))*Bfield)
 
 end function get_cmax
+#:enddef  
+
+
+#:def get_gradientT()  
+pure real(dp) function get_gradientT(u, x, grad_dim) result(gradT)
+  !$acc routine seq
+  real(dp), intent(in)  :: u(nw_phys, 5)
+  real(dp), intent(in)  :: x(1:ndim)
+  integer, intent(in)   :: grad_dim
+  real(dp) :: Te(5),Tface(2)
+
+  Te(1:5)=u(iw_e,1:5)/u(iw_rho,1:5) 
+  Tface(1)=(7.0d0*(Te(2)+Te(3))-(Te(1)+Te(4)))/12.0d0
+  Tface(2)=(7.0d0*(Te(3)+Te(4))-(Te(2)+Te(5)))/12.0d0
+  gradT=Tface(2)-Tface(1)
+
+end function get_gradientT
+
 #:enddef  
 #:endif
