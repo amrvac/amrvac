@@ -75,7 +75,7 @@ contains
           end do
        end do
 
-       !$acc loop collapse(ndim) private(f, tmp #{if defined('SOURCE_TERM')}#, wnew, wCT, xloc, wprim #{endif}#) vector
+       !$acc loop collapse(ndim) private(f, tmp, xlocC #{if defined('SOURCE_TERM')}#, wnew, wCT, xloc, wprim #{endif}#) vector
        do ix3=ixOmin3,ixOmax3 
           do ix2=ixOmin2,ixOmax2 
              do ix1=ixOmin1,ixOmax1 
