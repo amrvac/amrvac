@@ -50,9 +50,10 @@ contains
                    u = w(:,ix1,ix2,ix3)
                    call to_primitive(u)
                    
+                   xloc(1:ndim) = ps(igrid)%x(ix1, ix2, ix3, 1:ndim)
                    !$acc loop seq
                    do idims = 1, ndim
-                      cmax = get_cmax(u,idims)
+                      cmax = get_cmax(u,xloc,idims)
                       cmaxtot = cmaxtot + cmax * dxinv(idims)
                    end do
                    dtmin_mype     = min( dtmin_mype, courantpar / cmaxtot )
