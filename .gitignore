@@ -37,5 +37,6 @@ amrvac.h
 mod_usr.F90
 build
 
+/tests/ffhd/*/*.mk
 settings.json
 .vscode/*

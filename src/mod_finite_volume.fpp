@@ -5,9 +5,13 @@
 module mod_finite_volume
 
   use mod_variables
-  use mod_physics_vars
+  use mod_physics
   use mod_global_parameters, only: ndim
   use mod_physicaldata
+  #:if defined('BFIELD')
+  use mod_usr, only: bfield
+  #:endif
+
   implicit none
 
   private
@@ -18,10 +22,10 @@ contains
 
 ! instantiate the templated functions here for inlining:
 @:addsource_local()
-@:to_primitive()
-@:to_conservative()
-@:get_cmax()
 @:get_flux()
+@:get_cmax()
+! @:to_primitive()
+! @:to_conservative()
 
   subroutine finite_volume_local(method, qdt, dtfactor, ixImin1,ixImin2,&
      ixImin3,ixImax1,ixImax2,ixImax3, ixOmin1,ixOmin2,ixOmin3,ixOmax1,ixOmax2,&
@@ -49,8 +53,10 @@ contains
     real(dp)               :: tmp(nw_phys,5)
     real(dp)               :: f(nw_phys, 2)
     real(dp)               :: inv_dr(ndim)
+    real(dp)               :: dr(ndim)
     integer                :: typelim
     real(dp)               :: xloc(ndim)
+    real(dp)               :: xlocC(ndim,2)
     real(dp)               :: wprim(nw_phys), wCT(nw_phys), wnew(nw_phys)
     !-----------------------------------------------------------------------------
     
@@ -58,7 +64,8 @@ contains
     do iigrid = 1, igridstail_active
        n = igrids_active(iigrid)
 
-       inv_dr  = 1/rnode(rpdx1_:rnodehi, n)
+       dr  = rnode(rpdx1_:rnodehi, n)
+       inv_dr  = 1.0_dp/dr
        typelim = type_limiter(node(plevel_, n))
 
        !$acc loop collapse(ndim) vector
@@ -72,24 +79,36 @@ contains
           end do
        end do
 
-       !$acc loop collapse(ndim) private(f, tmp #{if defined('SOURCE_TERM')}#, wnew, wCT, xloc, wprim #{endif}#) vector
+       !$acc loop collapse(ndim) private(f, tmp, xlocC #{if defined('SOURCE_TERM')}#, wnew, wCT, xloc, wprim #{endif}#) vector
        do ix3=ixOmin3,ixOmax3 
           do ix2=ixOmin2,ixOmax2 
              do ix1=ixOmin1,ixOmax1 
                 ! Compute fluxes in all dimensions
 
                 tmp = uprim(:, ix1-2:ix1+2, ix2, ix3)
-                call muscl_flux_prim(tmp, 1, f, typelim)
+                xlocC(1:ndim,1) = ps(n)%x(ix1, ix2, ix3, 1:ndim)
+                xlocC(1:ndim,2) = ps(n)%x(ix1, ix2, ix3, 1:ndim)
+                xlocC(1,1) = xlocC(1,1)-0.5_dp*dr(1)
+                xlocC(1,2) = xlocC(1,2)+0.5_dp*dr(1)
+                call muscl_flux_prim(tmp, xlocC, 1, f, typelim)
                 bgb%w(ix1, ix2, ix3, :, n) = bgb%w(ix1, ix2, ix3, :,&
                      n) + qdt * (f(:, 1) - f(:, 2)) * inv_dr(1)
 
                 tmp = uprim(:, ix1, ix2-2:ix2+2, ix3)
-                call muscl_flux_prim(tmp, 2, f, typelim)
+                xlocC(1:ndim,1) = ps(n)%x(ix1, ix2, ix3, 1:ndim)
+                xlocC(1:ndim,2) = ps(n)%x(ix1, ix2, ix3, 1:ndim)
+                xlocC(2,1) = xlocC(2,1)-0.5_dp*dr(2)
+                xlocC(2,2) = xlocC(2,2)+0.5_dp*dr(2)
+                call muscl_flux_prim(tmp, xlocC, 2, f, typelim)
                 bgb%w(ix1, ix2, ix3, :, n) = bgb%w(ix1, ix2, ix3, :,&
                      n) + qdt * (f(:, 1) - f(:, 2)) * inv_dr(2)
 
                 tmp = uprim(:, ix1, ix2, ix3-2:ix3+2)
-                call muscl_flux_prim(tmp, 3, f, typelim)
+                xlocC(1:ndim,1) = ps(n)%x(ix1, ix2, ix3, 1:ndim)
+                xlocC(1:ndim,2) = ps(n)%x(ix1, ix2, ix3, 1:ndim)
+                xlocC(3,1) = xlocC(3,1)-0.5_dp*dr(3)
+                xlocC(3,2) = xlocC(3,2)+0.5_dp*dr(3)
+                call muscl_flux_prim(tmp, xlocC, 3, f, typelim)
                 bgb%w(ix1, ix2, ix3, :, n) = bgb%w(ix1, ix2, ix3, :,&
                      n) + qdt * (f(:, 1) - f(:, 2)) * inv_dr(3)
 
@@ -112,16 +131,18 @@ contains
 
   end subroutine finite_volume_local
 
-  subroutine muscl_flux_prim(u, flux_dim, flux, typelim)
+  subroutine muscl_flux_prim(u, xlocC, flux_dim, flux, typelim)
     !$acc routine seq
 
     use mod_limiter, only: limiter_minmod, limiter_vanleer
 
     real(dp), intent(in)  :: u(nw_phys, 5)
+    real(dp), intent(in)  :: xlocC(1:ndim, 2)
     integer, intent(in)   :: flux_dim, typelim
     real(dp), intent(out) :: flux(nw_phys, 2)
     real(dp)              :: uL(nw_phys), uR(nw_phys), wL, wR, wmax
     real(dp)              :: flux_l(nw_phys), flux_r(nw_phys)
+    real(dp)              :: xC(ndim)
 
     ! Construct uL, uR for first cell face
     select case (typelim)
@@ -133,11 +154,12 @@ contains
        uR = u(:, 3) - 0.5_dp * vanleer(u(:, 3) - u(:, 2), u(:, 4) - u(:, 3))
     end select
 
-    call get_flux(uL, flux_dim, flux_l)
-    call get_flux(uR, flux_dim, flux_r)
+    xC=xlocC(:,1)
+    call get_flux(uL, xC, flux_dim, flux_l)    
+    call get_flux(uR, xC, flux_dim, flux_r)    
 
-    wL = get_cmax(uL, flux_dim)
-    wR = get_cmax(uR, flux_dim)
+    wL = get_cmax(uL, xC, flux_dim)
+    wR = get_cmax(uR, xC, flux_dim)
     wmax = max(wL, wR)
 
     call to_conservative(uL)
@@ -154,11 +176,12 @@ contains
        uR = u(:, 4) - 0.5_dp * vanleer(u(:, 4) - u(:, 3), u(:, 5) - u(:, 4))
     end select
 
-    call get_flux(uL, flux_dim, flux_l)
-    call get_flux(uR, flux_dim, flux_r)
+    xC=xlocC(:,2)
+    call get_flux(uL, xC, flux_dim, flux_l)
+    call get_flux(uR, xC, flux_dim, flux_r)
 
-    wL = get_cmax(uL, flux_dim)
-    wR = get_cmax(uR, flux_dim)
+    wL = get_cmax(uL, xC, flux_dim)
+    wR = get_cmax(uR, xC, flux_dim)
     wmax = max(wL, wR)
 
     call to_conservative(uL)

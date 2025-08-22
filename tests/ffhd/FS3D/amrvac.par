@@ -1,16 +1,21 @@
+ &components
+   gravity = .true.
+   bfield = .true.
+   cooling = .true.
+ /
 
  &filelist
-   base_filename    = 'output/fs3d'
-   autoconvert      = F
+   base_filename    = 'output/ffhd_3d'
+   autoconvert      = T
    convert_type     = 'vtuBCCmpi'
    saveprim         = T
  /
 
  &savelist
    itsave(1,1)      = 0
-!   itsave(1,2)      = 0
-!   ditsave_log      = 10
-!   ditsave_dat      = 100
+   itsave(1,2)      = 0
+   ditsave_log      = 1
+   ditsave_dat      = 10
 
  /
 
@@ -22,7 +27,6 @@
    time_stepper    = 'threestep'
    flux_scheme     = 20*'tvdlf'
    limiter         = 20*'vanleer'
-   small_values_method = 'ignore'
    phys                = 'ffhd'
  /
 
@@ -31,8 +35,8 @@
    typeboundary_max1 = 4*'periodic'
    typeboundary_min2 = 4*'periodic'
    typeboundary_max2 = 4*'periodic'
-   typeboundary_min3 = 4*'periodic'
-   typeboundary_max3 = 4*'periodic'
+   typeboundary_min3 = 'symm','asymm','symm','asymm'
+   typeboundary_max3 = 'symm','asymm','symm','asymm'
  /
 
  &meshlist
@@ -41,15 +45,15 @@
    block_nx1          = 16
    block_nx2          = 16
    block_nx3          = 16
-   domain_nx1         = 256
-   domain_nx2         = 256
-   domain_nx3         = 256
-   xprobmin1       = -9.0d0
-   xprobmax1       = -1.0d0
-   xprobmin2       = -4.0d0
-   xprobmax2       = 4.0d0
+   domain_nx1         = 128
+   domain_nx2         = 128
+   domain_nx3         = 128
+   xprobmin1       = 0.0d0
+   xprobmax1       = 1.0d0
+   xprobmin2       = 0.0d0
+   xprobmax2       = 1.0d0
    xprobmin3       = 0.0d0
-   xprobmax3       = 8.0d0
+   xprobmax3       = 1.0d0
    iprob=1
  /
 
@@ -57,4 +61,10 @@
    slowsteps        = 10
    courantpar       = 0.7d0
    typecourant      = 'maxsum'
+ /
+
+ &rc_list
+   ncool = 4000
+   coolmethod = 'exact'
+   coolcurve = 'Colgan_DM'
  /

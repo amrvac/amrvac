@@ -10,10 +10,20 @@ module mod_physics
   use mod_variables
   use mod_physics_vars
   use mod_comm_lib, only: mpistop
+
+  !> Radiative cooling fluid
+  #:if defined('COOLING')
+    use mod_radiative_cooling, only: rc_fluid
+  #:endif
   
   implicit none
   public
-  
+
+  #:if defined('COOLING')
+  !> Radiative cooling fluid
+  type(rc_fluid), public, allocatable :: rc_fl
+  !$acc declare create(rc_fl)
+  #:endif
   
   procedure(sub_check_params), pointer    :: phys_check_params           => &
      null()
@@ -130,8 +140,8 @@ contains
   @:phys_init()
   @:to_primitive()
   @:to_conservative()
-  @:get_flux()
-  @:get_cmax()
+  !@:get_flux()
+  !@:get_cmax()
   @:phys_activate()
   
   subroutine phys_check()

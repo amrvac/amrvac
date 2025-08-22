@@ -241,9 +241,10 @@ end subroutine to_conservative
 #:enddef
 
 #:def get_flux()
-subroutine get_flux(u, flux_dim, flux)
+subroutine get_flux(u, xC, flux_dim, flux)
   !$acc routine seq
   real(dp), intent(in)  :: u(nw_phys)
+  real(dp), intent(in)  :: xC(ndim)
   integer, intent(in)   :: flux_dim
   real(dp), intent(out) :: flux(nw_phys)
   real(dp)              :: inv_gamma_m1
@@ -273,9 +274,10 @@ end subroutine get_flux
 #:enddef
 
 #:def get_cmax()  
-pure real(dp) function get_cmax(u, flux_dim) result(wC)
+pure real(dp) function get_cmax(u, x, flux_dim) result(wC)
   !$acc routine seq
   real(dp), intent(in)  :: u(nw_phys)
+  real(dp), intent(in)  :: x(1:ndim)
   integer, intent(in)   :: flux_dim
 
   wC = sqrt(hd_gamma * u(iw_e) / u(iw_rho)) + abs(u(iw_mom(flux_dim)))

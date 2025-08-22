@@ -2,11 +2,6 @@
   
 #:def phys_vars()
 
-  !> Radiative cooling fluid
-  #:if defined('COOLING')
-    use mod_radiative_cooling, only: rc_fluid
-  #:endif
-
   integer, parameter :: dp = kind(0.0d0)
   !> Only consider the hyperbolic thermal conduction situation
   integer, parameter, public              :: nw_phys=4
@@ -30,11 +25,18 @@
   integer, public                         :: p_
   !$acc declare create(p_)
 
+    !> Index of the hyperbolic flux variable
+  integer, public                         :: q_
+  !$acc declare create(q_)
+
   !> The adiabatic index
   double precision, public                :: ffhd_gamma = 5.d0/3.0d0
 
   !> The adiabatic constant
   double precision, public                :: ffhd_adiab = 1.0d0
+
+  !> The helium abundance
+  double precision, public                :: He_abundance=0.1d0
 
   !> The thermal conductivity kappa in hyperbolic thermal conduction
   double precision, public                :: hypertc_kappa
@@ -42,12 +44,6 @@
 
   !> Whether plasma is partially ionized
   logical, public                         :: ffhd_partial_ionization = .false.
-
-  #:if defined('COOLING')
-  !> Radiative cooling fluid
-  type(rc_fluid), public, allocatable :: rc_fl
-  !$acc declare create(rc_fl)
-  #:endif
 
 #:enddef
 
@@ -94,8 +90,6 @@
     phys_partial_ionization=ffhd_partial_ionization
  !$acc update device(physics_type, phys_energy, phys_total_energy, phys_internal_e, phys_gamma, phys_partial_ionization)
 
-    use_particles = ffhd_particles
-
     ! Determine flux variables
     rho_ = var_set_rho()
     !$acc update device(rho_)
@@ -114,7 +108,9 @@
     end if
     !$acc update device(e_,p_)
 
-    ! htc requried here
+    ! Set index for heat flux
+    q_ = var_set_q()
+    !$acc update device(q_)
 
     ! set number of variables which need update ghostcells
     nwgc=nwflux
@@ -162,6 +158,9 @@ subroutine addsource_local(qdt, dtfactor, qtC, wCT, wCTprim, qt, wnew, x,&
 #:if defined('GRAVITY')
   use mod_usr, only: gravity_field
 #:endif    
+#:if defined('BFIELD')
+  use mod_usr, only: bfield
+#:endif    
 #:if defined('COOLING')
   use mod_radiative_cooling, only: radiative_cooling_add_source
 #:endif
@@ -173,14 +172,18 @@ subroutine addsource_local(qdt, dtfactor, qtC, wCT, wCTprim, qt, wnew, x,&
   logical, intent(in)      :: qsourcesplit
   ! .. local ..
   integer                  :: idim
-  real(dp)                 :: field
+  real(dp)                 :: field, mag
 
 #:if defined('GRAVITY')
   do idim = 1, ndim
      field = gravity_field(wCT, x, idim)
-     wnew(iw_mom(idim)) = wnew(iw_mom(idim)) + qdt * field * wCT(iw_rho)
-     wnew(iw_e)         = wnew(iw_e) + qdt * field * wCT(iw_mom(idim))
+     mag = bfield(x, idim)
+     wnew(iw_mom(1)) = wnew(iw_mom(1)) + qdt * field * wCT(iw_rho) * mag
+     wnew(iw_e)         = wnew(iw_e) + qdt * field * wCT(iw_mom(1)) * mag
   end do
+#:endif  
+#:if defined('BFIELD')
+!> p*divb to be added here
 #:endif  
 
 #:if defined('COOLING')
@@ -195,18 +198,10 @@ pure subroutine to_primitive(u)
   !$acc routine seq
   real(dp), intent(inout) :: u(nw_phys)
 
-  
-       u(iw_mom(1)) = u(iw_mom(1))/u(iw_rho)
-  
-  
-       u(iw_mom(2)) = u(iw_mom(2))/u(iw_rho)
-  
-  
-       u(iw_mom(3)) = u(iw_mom(3))/u(iw_rho)
-  
+  u(iw_mom(1)) = u(iw_mom(1))/u(iw_rho)
 
-  u(iw_e) = (hd_gamma-1.0_dp) * (u(iw_e) - 0.5_dp * u(iw_rho) * &
-     sum(u(iw_mom(1:ndim))**2) )
+  u(iw_e) = (phys_gamma-1.0_dp) * (u(iw_e) - 0.5_dp * u(iw_rho) * &
+     u(iw_mom(1))**2 )
 
 end subroutine to_primitive
 #:enddef
@@ -217,106 +212,101 @@ pure subroutine to_conservative(u)
   real(dp), intent(inout) :: u(nw_phys)
   real(dp)                :: inv_gamma_m1
 
-  inv_gamma_m1 = 1.0d0/(hd_gamma - 1.0_dp)
+  inv_gamma_m1 = 1.0d0/(phys_gamma - 1.0_dp)
 
   ! Compute energy from pressure and kinetic energy
   u(iw_e) = u(iw_e) * inv_gamma_m1 + 0.5_dp * u(iw_rho) * &
-     sum(u(iw_mom(1:ndim))**2)
+     u(iw_mom(1))**2
 
   ! Compute momentum from density and velocity components
+  u(iw_mom(1)) = u(iw_rho) * u(iw_mom(1))
   
-       u(iw_mom(1)) = u(iw_rho) * u(iw_mom(1))
-  
-  
-       u(iw_mom(2)) = u(iw_rho) * u(iw_mom(2))
-  
-  
-       u(iw_mom(3)) = u(iw_rho) * u(iw_mom(3))
-  
-
 end subroutine to_conservative
 #:enddef
 
 #:def get_flux()
-subroutine get_flux(u, flux_dim, flux)
+subroutine get_flux(u, xC, flux_dim, flux)
   !$acc routine seq
+#:if defined('BFIELD')
+  use mod_usr, only: bfield
+#:endif    
   real(dp), intent(in)  :: u(nw_phys)
+  real(dp), intent(in)  :: xC(1:ndim)
   integer, intent(in)   :: flux_dim
   real(dp), intent(out) :: flux(nw_phys)
   real(dp)              :: inv_gamma_m1
+  real(dp)              :: mag
 
-  inv_gamma_m1 = 1.0d0/(hd_gamma - 1.0_dp)
+  inv_gamma_m1 = 1.0d0/(phys_gamma - 1.0_dp)
+
+  mag = 1.0d0
+#:if defined('BFIELD')
+  mag = bfield(xC, flux_dim)
+#:endif    
 
   ! Density flux
-  flux(iw_rho) = u(iw_rho) * u(iw_mom(flux_dim))
+  flux(iw_rho) = u(iw_rho) * u(iw_mom(1)) * mag
 
   ! Momentum flux with pressure term
+  flux(iw_mom(1)) = (u(iw_rho) * u(iw_mom(1))**2 + u(iw_e)) * mag
   
-       flux(iw_mom(1)) = u(iw_rho) * u(iw_mom(1)) * u(iw_mom(flux_dim))
-  
-  
-       flux(iw_mom(2)) = u(iw_rho) * u(iw_mom(2)) * u(iw_mom(flux_dim))
-  
-  
-       flux(iw_mom(3)) = u(iw_rho) * u(iw_mom(3)) * u(iw_mom(flux_dim))
-  
-  flux(iw_mom(flux_dim)) = flux(iw_mom(flux_dim)) + u(iw_e)
+  ! Energy flux with hyperbolic conduction included
+  flux(iw_e) = ( u(iw_mom(1)) * (u(iw_e) * inv_gamma_m1 + 0.5_dp * &
+     u(iw_rho) * u(iw_mom(1))**2 + u(iw_e)) &
+              + u(iw_q)) * mag
 
-  ! Energy flux
-  flux(iw_e) = u(iw_mom(flux_dim)) * (u(iw_e) * inv_gamma_m1 + 0.5_dp * &
-     u(iw_rho) * sum(u(iw_mom(1:ndim))**2) + u(iw_e))
+  ! heat flux, to be added
+  flux(iw_q) = 0.0d0
 
 end subroutine get_flux
 #:enddef
 
 #:def get_cmax()  
-pure real(dp) function get_cmax(u, flux_dim) result(wC)
+pure real(dp) function get_cmax(u, x, flux_dim) result(wC)
   !$acc routine seq
+#:if defined('BFIELD')
+  use mod_usr, only: bfield
+#:endif    
   real(dp), intent(in)  :: u(nw_phys)
+  real(dp), intent(in)  :: x(1:ndim)
   integer, intent(in)   :: flux_dim
+  real(dp)              :: mag
 
+  mag = 1.0d0
+#:if defined('BFIELD')
+  mag = bfield(x, flux_dim)
+#:endif    
   
-  wC = sqrt(hd_gamma * u(iw_e) / u(iw_rho)) + abs(u(iw_mom(flux_dim)))
+  wC = sqrt(phys_gamma * u(iw_e) / u(iw_rho)) + abs(u(iw_mom(1))*mag)
 
 end function get_cmax
 #:enddef  
-#:endif
 
 #:def get_rho()
-pure real(dp) function get_rho(w, x) result(rho)
+pure double precision function get_rho(w, x) result(rho)
   !$acc routine seq
-  real(dp), intent(in)  :: w(nw_phys)
-  real(dp), intent(in)  :: x(1:ndim)
+  double precision, intent(in)  :: w(nwflux)
+  double precision, intent(in)  :: x(1:ndim)
 
   rho = w(iw_rho)
 end function get_rho
-#:endif
-
+#:enddef
 
 #:def get_pthermal()
-pure real(dp) function get_pthermal(w, x) result(pth)
+pure double precision function get_pthermal(w, x) result(pth)
   !$acc routine seq
-  real(dp), intent(in)  :: w(nw_phys)
-  real(dp), intent(in)  :: x(1:ndim)
+  double precision, intent(in)  :: w(nwflux)
+  double precision, intent(in)  :: x(1:ndim)
 
-  @:get_kin_en()
-  pth = phys_gamma*w(iw_e)-get_kin_en(w,x)
+  pth = phys_gamma*w(iw_e)-0.5_dp*w(iw_mom(1))**2/w(iw_rho)
 end function get_pthermal
-#:endif
+#:enddef
 
 #:def get_Rfactor()
-pure real(dp) function get_Rfactor() result(Rfactor)
+pure double precision function get_Rfactor() result(Rfactor)
   !$acc routine seq
-  Rfactor = 1.0_dp
+  Rfactor = 1.0d0
 end function get_Rfactor
-#:endif
+#:enddef
 
-#:def get_kin_en()
-pure real(dp) function get_kin_en(w, x) result(kin_en)
-  !$acc routine seq
-  real(dp), intent(in)  :: w(nw_phys)
-  real(dp), intent(in)  :: x(1:ndim)
-
-  kin_en = 0.5d0*w(iw_rho)*w(iw_mom(1))**2/w(iw_rho)
-end function get_kin_en
 #:endif

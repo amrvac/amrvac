@@ -22,6 +22,12 @@ flags = ["fypp", "hash"]
 default = false
 implies = ["components.source_term"]
 
+[components.bfield]
+type = "flag"
+name = "BFIELD"
+flags = ["fypp", "hash"]
+default = false
+
 [methodlist]
 [methodlist.phys]
 type = "option"

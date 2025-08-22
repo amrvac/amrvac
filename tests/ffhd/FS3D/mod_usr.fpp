@@ -24,83 +24,95 @@ contains
 
   end subroutine usr_init
 
-  subroutine initonegrid_usr(ixGmin1,ixGmin2,ixGmin3,ixGmax1,ixGmax2,ixGmax3,&
-     ixmin1,ixmin2,ixmin3,ixmax1,ixmax2,ixmax3,w,x)
-    integer, intent(in)             :: ixGmin1,ixGmin2,ixGmin3,ixGmax1,ixGmax2,&
-       ixGmax3, ixmin1,ixmin2,ixmin3,ixmax1,ixmax2,ixmax3
-    double precision, intent(in)    :: x(ixGmin1:ixGmax1,ixGmin2:ixGmax2,&
-       ixGmin3:ixGmax3,1:ndim)
-    double precision, intent(inout) :: w(ixGmin1:ixGmax1,ixGmin2:ixGmax2,&
-       ixGmin3:ixGmax3,1:nw)
-    double precision                :: vextra
+  subroutine initonegrid_usr(ixImin1,ixImin2,ixImin3,ixImax1,ixImax2,ixImax3,&
+    ixOmin1,ixOmin2,ixOmin3,ixOmax1,ixOmax2,ixOmax3,w,x)
+    integer, intent(in) :: ixImin1,ixImin2,ixImin3,ixImax1,ixImax2,ixImax3,&
+        ixOmin1,ixOmin2,ixOmin3,ixOmax1,ixOmax2,ixOmax3
+    double precision, intent(in) :: x(ixImin1:ixImax1,ixImin2:ixImax2,&
+      ixImin3:ixImax3,1:ndim)
+    double precision, intent(inout) :: w(ixImin1:ixImax1,ixImin2:ixImax2,&
+      ixImin3:ixImax3,1:nw)
 
-    select case(iprob)
-    case(1)
-      vextra=0.0d0
-    case(2)
-      vextra = 10.0d0
-    case(3)
-      vextra=100.0d0
-    case default
-      error stop "Unknown iprob"
-    endselect
+    integer :: ix1,ix2,ix3
 
-    where(x(ixGmin1:ixGmax1,ixGmin2:ixGmax2,ixGmin3:ixGmax3,&
-       2)<0.25d0.or.x(ixGmin1:ixGmax1,ixGmin2:ixGmax2,ixGmin3:ixGmax3,&
-       2)>0.75d0)
-      w(ixGmin1:ixGmax1,ixGmin2:ixGmax2,ixGmin3:ixGmax3,rho_)=rholight
+    double precision:: z0,epsilon,rhodens,rholight,kx,ky,pint
+    logical::          first
+    data first/.true./
+
+
+    ! the location of demarcation line`
+    z0=0.8d0
+
+    ! density of two types
+    rhodens=one
+    rholight=0.1d0
+
+    ! setup the perturbation
+    epsilon=0.1d0
+    ! kx=2 pi
+    kx=8.0d0*atan(one)
+    ! ky=8 pi
+    ky=4.0d0*8.0d0*atan(one)
+
+    ! print out the info
+    if (first .and. mype==0) then
+      print *,'ffHD test problem'
+      print *,'  --assuming z ranging from 0-1!'
+      print *,'  --interface z0-epsilon:',z0,epsilon
+      print *,'  --density ratio:',rhodens/rholight
+      print *,'  --kx:',kx
+      print *,'  --ky:',ky
+      first=.false.
+    end if
+
+    ! initialize the density
+    where(x(ixOmin1:ixOmax1,ixOmin2:ixOmax2,ixOmin3:ixOmax3,&
+      3)>z0+epsilon*sin(kx*x(ixOmin1:ixOmax1,ixOmin2:ixOmax2,ixOmin3:ixOmax3,&
+      1))*sin(ky*x(ixOmin1:ixOmax1,ixOmin2:ixOmax2,ixOmin3:ixOmax3,2)))
+      w(ixOmin1:ixOmax1,ixOmin2:ixOmax2,ixOmin3:ixOmax3,rho_)=rhodens
     elsewhere
-      w(ixGmin1:ixGmax1,ixGmin2:ixGmax2,ixGmin3:ixGmax3,rho_)=rhodens
+      w(ixOmin1:ixOmax1,ixOmin2:ixOmax2,ixOmin3:ixOmax3,rho_)=rholight
     endwhere
 
-    w(ixGmin1:ixGmax1,ixGmin2:ixGmax2,ixGmin3:ixGmax3,p_)=pint
+    ! set all velocity to zero
+    w(ixOmin1:ixOmax1,ixOmin2:ixOmax2,ixOmin3:ixOmax3, mom(1)) = zero
 
-    where((x(ixGmin1:ixGmax1,ixGmin2:ixGmax2,ixGmin3:ixGmax3,&
-       2)<=(0.25d0-dlin)).or.(x(ixGmin1:ixGmax1,ixGmin2:ixGmax2,&
-       ixGmin3:ixGmax3,2)>=(0.75d0+dlin)))
-      w(ixGmin1:ixGmax1,ixGmin2:ixGmax2,ixGmin3:ixGmax3,mom(1))=vextra-0.5d0
-    endwhere
-
-    where((x(ixGmin1:ixGmax1,ixGmin2:ixGmax2,ixGmin3:ixGmax3,&
-       2)>=(0.25d0+dlin)).and.(x(ixGmin1:ixGmax1,ixGmin2:ixGmax2,&
-       ixGmin3:ixGmax3,2)<=(0.75d0-dlin)))
-      w(ixGmin1:ixGmax1,ixGmin2:ixGmax2,ixGmin3:ixGmax3,mom(1))=vextra+0.5d0
-    endwhere
-
-    where((x(ixGmin1:ixGmax1,ixGmin2:ixGmax2,ixGmin3:ixGmax3,&
-       2)>(0.25d0-dlin)).and.(x(ixGmin1:ixGmax1,ixGmin2:ixGmax2,&
-       ixGmin3:ixGmax3,2)<(0.25d0+dlin)))
-      w(ixGmin1:ixGmax1,ixGmin2:ixGmax2,ixGmin3:ixGmax3,&
-         mom(1))=(x(ixGmin1:ixGmax1,ixGmin2:ixGmax2,ixGmin3:ixGmax3,&
-         2)-(0.25d0-dlin))* ((vextra+0.5d0)-(vextra-0.5d0))/(2.0d0*dlin)+&
-         (vextra-0.5d0)
-    endwhere
-
-    where((x(ixGmin1:ixGmax1,ixGmin2:ixGmax2,ixGmin3:ixGmax3,&
-       2)>(0.75d0-dlin)).and.(x(ixGmin1:ixGmax1,ixGmin2:ixGmax2,&
-       ixGmin3:ixGmax3,2)<(0.75d0+dlin)))
-      w(ixGmin1:ixGmax1,ixGmin2:ixGmax2,ixGmin3:ixGmax3,&
-         mom(1))=(x(ixGmin1:ixGmax1,ixGmin2:ixGmax2,ixGmin3:ixGmax3,&
-         2)-(0.75d0-dlin))* ((vextra-0.5d0)-(vextra+0.5d0))/(2.0d0*dlin)+&
-         (vextra+0.5d0)
-    endwhere
-
-    w(ixGmin1:ixGmax1,ixGmin2:ixGmax2,ixGmin3:ixGmax3,&
-       mom(2))=0.01d0*dsin(kx*x(ixGmin1:ixGmax1,ixGmin2:ixGmax2,&
-       ixGmin3:ixGmax3,1))* (dexp(-0.5d0*(x(ixGmin1:ixGmax1,ixGmin2:ixGmax2,&
-       ixGmin3:ixGmax3,2)-0.25d0)**2/sigma)+dexp(-0.5d0*(x(ixGmin1:ixGmax1,&
-       ixGmin2:ixGmax2,ixGmin3:ixGmax3,2)-0.75d0)**2/sigma))
-    
-    w(ixGmin1:ixGmax1,ixGmin2:ixGmax2,ixGmin3:ixGmax3,&
-       mom(3))=0.1d0*dsin(kz*x(ixGmin1:ixGmax1,ixGmin2:ixGmax2,ixGmin3:ixGmax3,&
-       3))* (dexp(-0.5d0*(x(ixGmin1:ixGmax1,ixGmin2:ixGmax2,ixGmin3:ixGmax3,&
-       2)-0.25d0)**2/sigma)+dexp(-0.5d0*(x(ixGmin1:ixGmax1,ixGmin2:ixGmax2,&
-       ixGmin3:ixGmax3,2)-0.75d0)**2/sigma))
-   
-
-    call phys_to_conserved(ixGmin1,ixGmin2,ixGmin3,ixGmax1,ixGmax2,ixGmax3,&
-       ixmin1,ixmin2,ixmin3,ixmax1,ixmax2,ixmax3,w,x)
-
+    ! pressure at interface
+    pint=one
+    if(ffhd_energy) then
+      w(ixOmin1:ixOmax1,ixOmin2:ixOmax2,ixOmin3:ixOmax3,&
+        e_)=pint-w(ixOmin1:ixOmax1,ixOmin2:ixOmax2,ixOmin3:ixOmax3,&
+        rho_)*(x(ixOmin1:ixOmax1,ixOmin2:ixOmax2,ixOmin3:ixOmax3,3)-z0)
+      w(ixOmin1:ixOmax1,ixOmin2:ixOmax2,ixOmin3:ixOmax3,e_)=w(ixOmin1:ixOmax1,&
+        ixOmin2:ixOmax2,ixOmin3:ixOmax3,e_)/(ffhd_gamma-one)
+    end if
+    w(ixOmin1:ixOmax1,ixOmin2:ixOmax2,ixOmin3:ixOmax3, q_) = zero
   end subroutine initonegrid_usr
+
+
+  pure real(dp) function gravity_field(wCT, x, idim) result(field)
+    !$acc routine seq
+    real(dp), intent(in)    :: wCT(nw_phys)
+    real(dp), intent(in)    :: x(1:ndim)
+    integer, value, intent(in)     :: idim
+    ! real(dp)                :: field
+
+    if (idim == 1) field =  0.0_dp
+    if (idim == 2) field =  0.0_dp
+    if (idim == 3) field = -1.0_dp
+
+  end function gravity_field
+
+  !> analytical fomula for the unit vectors along B
+  pure real(dp) function bfield(x, idim) result(field)
+    !>$acc routine seq
+    real(dp), intent(in)    :: x(1:ndim)
+    integer, value, intent(in)     :: idim
+
+    if (idim == 1) field =  0.0_dp
+    if (idim == 2) field =  0.0_dp
+    if (idim == 3) field = -1.0_dp
+
+  end function bfield
 
 end module mod_usr

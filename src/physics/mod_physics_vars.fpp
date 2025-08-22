@@ -1,5 +1,5 @@
 #:mute
-#:include '../hd/mod_hd_templates.fpp'
+#:include 'mod_physics_templates.fpp'
 #:endmute
 
 module mod_physics_vars

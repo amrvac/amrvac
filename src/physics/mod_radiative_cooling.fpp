@@ -1,7 +1,10 @@
 module mod_radiative_cooling
 
+  #:if defined('COOLING')
+
   #:mute
-  #:include "mod_physics_templates.fpp"
+  #:include "../hd/mod_hd_templates.fpp"
+  #:include "../ffhd/mod_ffhd_templates.fpp"
   #:endmute
 
 ! For the interpolatable tables: these tables contain log_10 temperature values and corresponding
@@ -13,15 +16,15 @@ module mod_radiative_cooling
 ! (Except for the SPEX curve, which is more complicated and therefore simply stops  
 ! at the official upper limit of log(T) = 8.16)
 
-  use mod_global_parameters, only: std_len
-  use mod_physics
+  use mod_global_parameters
+  use mod_physics_vars
   use mod_comm_lib, only: mpistop
 
   implicit none
 
   !> to be pushed to the device
   !> Helium abundance over Hydrogen
-  double precision, private    :: He_abundance
+  double precision, private    :: He_abundance_rc
 
   !> The adiabatic index
   double precision, private :: rc_gamma
@@ -32,7 +35,7 @@ module mod_radiative_cooling
   !> inverse of the adiabatic index minus 1
   double precision, private :: invgam
 
-  !$acc declare create(He_abundance, rc_gamma, rc_gamma_1, invgam)
+  !$acc declare create(rc_gamma_1, invgam)
 
   type rc_fluid
 
@@ -180,7 +183,7 @@ module mod_radiative_cooling
       double precision, intent(in) :: phys_gamma,He_abund
 
       rc_gamma=phys_gamma
-      He_abundance=He_abund
+      He_abundance_rc=He_abund
     end subroutine radiative_cooling_init_params
 
 
@@ -302,7 +305,7 @@ module mod_radiative_cooling
 
       ! Scale both T and Lambda
       fl%tcool(1:fl%ncool) = fl%tcool(1:fl%ncool) / unit_temperature
-      fl%Lcool(1:fl%ncool) = fl%Lcool(1:fl%ncool) * unit_numberdensity**2 * unit_time / unit_pressure * (1.d0+2.d0*He_abundance) 
+      fl%Lcool(1:fl%ncool) = fl%Lcool(1:fl%ncool) * unit_numberdensity**2 * unit_time / unit_pressure * (1.d0+2.d0*He_abundance_rc) 
 
       fl%tcoolmin       = fl%tcool(1)+smalldouble  ! avoid pointless interpolation
       ! smaller value for lowest temperatures from cooling table and user's choice
@@ -311,12 +314,6 @@ module mod_radiative_cooling
       fl%lgtcoolmin = dlog10(fl%tcoolmin)
       fl%lgtcoolmax = dlog10(fl%tcoolmax)
       fl%lgstep = (fl%lgtcoolmax-fl%lgtcoolmin) * 1.d0 / (fl%ncool-1)
-      fl%dLdtcool(1)     = (fl%Lcool(2)-fl%Lcool(1))/(fl%tcool(2)-fl%tcool(1))
-      fl%dLdtcool(fl%ncool) = (fl%Lcool(fl%ncool)-fl%Lcool(fl%ncool-1))/(fl%tcool(fl%ncool)-fl%tcool(fl%ncool-1))
-
-      do i=2,fl%ncool-1
-        fl%dLdtcool(i) = (fl%Lcool(i+1)-fl%Lcool(i-1))/(fl%tcool(i+1)-fl%tcool(i-1))
-      end do
 
       deallocate(t_table)
       deallocate(L_table)
@@ -337,7 +334,7 @@ module mod_radiative_cooling
 
       rc_gamma_1=rc_gamma-1.d0
       invgam = 1.d0/rc_gamma_1
-      !$acc update device(He_abundance, rc_gamma, rc_gamma_1, invgam)
+      !$acc update device(rc_gamma_1, invgam)
 
     contains
 
@@ -415,7 +412,6 @@ module mod_radiative_cooling
       double precision, intent(in)    :: x(1:ndim)
       type(rc_fluid), intent(in) :: fl
       double precision :: etherm, rho, emin, Rfactor
-      integer :: ix^D
 
       etherm = get_pthermal(wCT,x)  
       rho = get_rho(wCT,x)  
@@ -429,7 +425,7 @@ module mod_radiative_cooling
     subroutine cool_exact(qdt,wCT,wCTprim,wnew,x,fl)
     !  Cooling routine using exact integration method from Townsend 2009
       use mod_global_parameters
-      double precision, intent(in)    :: qdt, wCT(nw_phys), wCTprim(nw_phys)
+      double precision, intent(in)    :: qdt, wCT(nw_phys), wCTprim(nw_phys), x(1:ndim)
       double precision, intent(inout) :: wnew(nw_phys)
       type(rc_fluid), intent(in) :: fl
       double precision :: Y1, Y2
@@ -437,7 +433,6 @@ module mod_radiative_cooling
       double precision :: rho, Te, rhonew, Rfactor
       double precision :: emin, Lmax, fact
       double precision :: de, emax
-      integer :: ix^D
 
       rho = get_rho(wCT,x)
       Rfactor = get_Rfactor()
@@ -507,16 +502,11 @@ module mod_radiative_cooling
       double precision :: lgtp
       integer :: jl,jc,jh,i
 
-      if(fl%isPPL) then
-        i = maxloc(fl%t_PPL, dim=1, mask=fl%t_PPL<tpoint)
-        Lpoint = fl%l_PPL(i) * (tpoint / fl%t_PPL(i))**fl%a_PPL(i)
-      else
-        lgtp = dlog10(tpoint)
-        jl = int((lgtp - fl%lgtcoolmin) /fl%lgstep) + 1
-        Lpoint = fl%Lcool(jl)+ (tpoint-fl%tcool(jl)) &
-                  * (fl%Lcool(jl+1)-fl%Lcool(jl)) &
-                  / (fl%tcool(jl+1)-fl%tcool(jl))
-      end if
+      lgtp = dlog10(tpoint)
+      jl = int((lgtp - fl%lgtcoolmin) /fl%lgstep) + 1
+      Lpoint = fl%Lcool(jl)+ (tpoint-fl%tcool(jl)) &
+                * (fl%Lcool(jl+1)-fl%Lcool(jl)) &
+                / (fl%tcool(jl+1)-fl%tcool(jl))
 
     end subroutine findL
 
@@ -577,5 +567,7 @@ module mod_radiative_cooling
       end if
 
     end subroutine findT
+  
+  #:endif
 
 end module mod_radiative_cooling
