@@ -70,17 +70,100 @@
     call phys_init()
   end subroutine phys_activate
 #:enddef
+
+#:def phys_units()
+  subroutine phys_units()
+    use mod_global_parameters
+    double precision :: mp, kB
+    double precision :: a,b
+
+    !> here no SI_UNIT used by default, to be implemented
+    mp = mp_cgs
+    kB = kB_cgs
+    !> eq_state_units by default, to be implemented
+    a = 1.d0+4.d0*He_abundance
+    b = 2.d0+3.d0*He_abundance
+
+    if(unit_density/=1.d0 .or. unit_numberdensity/=1.d0) then
+      if(unit_density/=1.d0) then
+        unit_numberdensity=unit_density/(a*mp)
+      else if(unit_numberdensity/=1.d0) then
+        unit_density=a*mp*unit_numberdensity
+      end if
+      if(unit_temperature/=1.d0) then
+        unit_pressure=b*unit_numberdensity*kB*unit_temperature
+        unit_velocity=dsqrt(unit_pressure/unit_density)
+        if(unit_length/=1.d0) then
+          unit_time=unit_length/unit_velocity
+        else if(unit_time/=1.d0) then
+          unit_length=unit_velocity*unit_time
+        end if
+      else if(unit_pressure/=1.d0) then
+        unit_temperature=unit_pressure/(b*unit_numberdensity*kB)
+        unit_velocity=dsqrt(unit_pressure/unit_density)
+        if(unit_length/=1.d0) then
+          unit_time=unit_length/unit_velocity
+        else if(unit_time/=1.d0) then
+          unit_length=unit_velocity*unit_time
+        end if
+      else if(unit_velocity/=1.d0) then
+        unit_pressure=unit_density*unit_velocity**2
+        unit_temperature=unit_pressure/(b*unit_numberdensity*kB)
+        if(unit_length/=1.d0) then
+          unit_time=unit_length/unit_velocity
+        else if(unit_time/=1.d0) then
+          unit_length=unit_velocity*unit_time
+        end if
+      else if(unit_time/=1.d0) then
+        unit_velocity=unit_length/unit_time
+        unit_pressure=unit_density*unit_velocity**2
+        unit_temperature=unit_pressure/(b*unit_numberdensity*kB)
+      end if
+    else if(unit_temperature/=1.d0) then
+      ! units of temperature and velocity are dependent
+      if(unit_pressure/=1.d0) then
+        unit_numberdensity=unit_pressure/(b*unit_temperature*kB)
+        unit_density=a*mp*unit_numberdensity
+        unit_velocity=dsqrt(unit_pressure/unit_density)
+        if(unit_length/=1.d0) then
+          unit_time=unit_length/unit_velocity
+        else if(unit_time/=1.d0) then
+          unit_length=unit_velocity*unit_time
+        end if
+      end if
+    else if(unit_pressure/=1.d0) then
+      if(unit_velocity/=1.d0) then
+        unit_density=unit_pressure/unit_velocity**2
+        unit_numberdensity=unit_density/(a*mp)
+        unit_temperature=unit_pressure/(b*unit_numberdensity*kB)
+        if(unit_length/=1.d0) then
+          unit_time=unit_length/unit_velocity
+        else if(unit_time/=1.d0) then
+          unit_length=unit_velocity*unit_time
+        end if
+      else if(unit_time/=0.d0) then
+        unit_velocity=unit_length/unit_time
+        unit_density=unit_pressure/unit_velocity**2
+        unit_numberdensity=unit_density/(a*mp)
+        unit_temperature=unit_pressure/(b*unit_numberdensity*kB)
+      end if
+    end if
+    unit_mass=unit_density*unit_length**3
+
+    !$acc update device(unit_density, unit_numberdensity, unit_temperature, unit_pressure, unit_velocity, unit_length, unit_time, unit_mass)
+  end subroutine phys_units
+#:enddef
   
 #:def phys_init()
     !> Initialize the module
   subroutine phys_init()
 
+    use mod_global_parameters
     #:if defined('COOLING')
     use mod_radiative_cooling, only: radiative_cooling_init_params, radiative_cooling_init
     #:endif
 
-    use mod_global_parameters
-
+    call phys_units()
     call read_params(par_files)
 
     phys_energy  = ffhd_energy
@@ -248,12 +331,12 @@ subroutine get_flux(u, xC, flux_dim, flux)
   flux(iw_rho) = u(iw_rho) * u(iw_mom(1)) * mag
 
   ! Momentum flux with pressure term
-  flux(iw_mom(1)) = (u(iw_rho) * u(iw_mom(1))**2 + u(iw_e)) * mag
+  flux(iw_mom(1)) = (u(iw_rho)*u(iw_mom(1))**2 + u(iw_e)) * mag
   
   ! Energy flux with hyperbolic conduction included
-  flux(iw_e) = ( u(iw_mom(1)) * (u(iw_e) * inv_gamma_m1 + 0.5_dp * &
-     u(iw_rho) * u(iw_mom(1))**2 + u(iw_e)) &
-              + u(iw_q)) * mag
+  flux(iw_e) = ( u(iw_mom(1))*(u(iw_e)*inv_gamma_m1 + &
+               0.5_dp*u(iw_rho)*u(iw_mom(1))**2 + u(iw_e)) + &
+               u(iw_q)) * mag
 
   ! heat flux, to be added
   flux(iw_q) = 0.0d0
@@ -277,7 +360,7 @@ pure real(dp) function get_cmax(u, x, flux_dim) result(wC)
   mag = bfield(x, flux_dim)
 #:endif    
   
-  wC = sqrt(phys_gamma * u(iw_e) / u(iw_rho)) + abs(u(iw_mom(1))*mag)
+  wC = dsqrt(phys_gamma*u(iw_e)/u(iw_rho)) + abs(u(iw_mom(1))*mag)
 
 end function get_cmax
 #:enddef  
@@ -298,7 +381,7 @@ pure double precision function get_pthermal(w, x) result(pth)
   double precision, intent(in)  :: w(nwflux)
   double precision, intent(in)  :: x(1:ndim)
 
-  pth = phys_gamma*w(iw_e)-0.5_dp*w(iw_mom(1))**2/w(iw_rho)
+  pth = (phys_gamma-1.0_dp)*(w(iw_e)-0.5_dp*w(iw_mom(1))**2/w(iw_rho))
 end function get_pthermal
 #:enddef
 

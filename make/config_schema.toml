@@ -28,6 +28,12 @@ name = "BFIELD"
 flags = ["fypp", "hash"]
 default = false
 
+[components.usr_source]
+type = "flag"
+name = "USR_SOURCE"
+flags = ["fypp", "hash"]
+default = false
+
 [methodlist]
 [methodlist.phys]
 type = "option"

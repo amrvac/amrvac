@@ -138,11 +138,11 @@ contains
 
   @:read_params()
   @:phys_init()
+  @:phys_units()
   @:to_primitive()
   @:to_conservative()
-  !@:get_flux()
-  !@:get_cmax()
   @:phys_activate()
+
   
   subroutine phys_check()
 

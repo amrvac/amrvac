@@ -1,12 +1,13 @@
  &components
-   gravity = .true.
+   gravity = .false.
    bfield = .true.
    cooling = .true.
+   usr_source = .false.
  /
 
  &filelist
-   base_filename    = 'output/ffhd_3d'
-   autoconvert      = T
+   base_filename    = 'output/ti3d'
+   autoconvert      = F
    convert_type     = 'vtuBCCmpi'
    saveprim         = T
  /
@@ -14,20 +15,20 @@
  &savelist
    itsave(1,1)      = 0
    itsave(1,2)      = 0
-   ditsave_log      = 1
-   ditsave_dat      = 10
+   dtsave_log      = 0.01
+   dtsave_dat      = 0.1
 
  /
 
  &stoplist
-   it_max           = 100
+   time_max        = 10.d0
  /
 
  &methodlist
    time_stepper    = 'threestep'
    flux_scheme     = 20*'tvdlf'
    limiter         = 20*'vanleer'
-   phys                = 'ffhd'
+   phys            = 'ffhd'
  /
 
  &boundlist
@@ -35,16 +36,17 @@
    typeboundary_max1 = 4*'periodic'
    typeboundary_min2 = 4*'periodic'
    typeboundary_max2 = 4*'periodic'
+   typeboundary_min3 = 4*'periodic'
+   typeboundary_max3 = 4*'periodic'
+ /
    typeboundary_min3 = 'symm','asymm','symm','asymm'
    typeboundary_max3 = 'symm','asymm','symm','asymm'
- /
 
  &meshlist
-   max_blocks         = 4096
    refine_max_level   = 1
-   block_nx1          = 16
-   block_nx2          = 16
-   block_nx3          = 16
+   block_nx1          = 32
+   block_nx2          = 32
+   block_nx3          = 32
    domain_nx1         = 128
    domain_nx2         = 128
    domain_nx3         = 128
@@ -58,8 +60,8 @@
  /
 
  &paramlist
-   slowsteps        = 10
-   courantpar       = 0.7d0
+   slowsteps        = 50
+   courantpar       = 0.4d0
    typecourant      = 'maxsum'
  /
 
@@ -68,3 +70,9 @@
    coolmethod = 'exact'
    coolcurve = 'Colgan_DM'
  /
+
+ &usr_list
+  scale = 0.1d0
+  radius = 0.15d0
+ /
+

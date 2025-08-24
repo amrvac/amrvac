@@ -1,26 +1,30 @@
+ &components
+   gravity = .false.
+   cooling = .true.
+ /
 
  &filelist
-   base_filename    = 'test'
-   typefilelog      = 'regression_test'
-   autoconvert      = F
+   base_filename    = 'output/ti3d'
+   autoconvert      = T
    convert_type     = 'vtuBCCmpi'
    saveprim         = T
  /
 
  &savelist
-   dtsave_log       = 1e10
-   dtsave_dat       = 1e10
+   itsave(1,1)      = 0
+   itsave(1,2)      = 0
+   dtsave_log      = 0.01
+   dtsave_dat      = 0.5d0
  /
 
  &stoplist
-   time_max=0.1d0
+   time_max        = 10.d0
  /
 
  &methodlist
    time_stepper    = 'threestep'
    flux_scheme     = 20*'tvdlf'
    limiter         = 20*'vanleer'
-   small_values_method = 'ignore'
    phys                = 'hd'
  /
 
@@ -32,16 +36,17 @@
    typeboundary_min3 = 5*'periodic'
    typeboundary_max3 = 5*'periodic'
  /
+   typeboundary_min3 = 'symm','asymm','symm','asymm'
+   typeboundary_max3 = 'symm','asymm','symm','asymm'
 
  &meshlist
-   max_blocks         = 8
    refine_max_level   = 1
-   block_nx1          = 16
-   block_nx2          = 16
-   block_nx3          = 16
-   domain_nx1         = 32
-   domain_nx2         = 32
-   domain_nx3         = 32
+   block_nx1          = 32
+   block_nx2          = 32
+   block_nx3          = 32
+   domain_nx1         = 128
+   domain_nx2         = 128
+   domain_nx3         = 128
    xprobmin1       = 0.0d0
    xprobmax1       = 1.0d0
    xprobmin2       = 0.0d0
@@ -52,7 +57,19 @@
  /
 
  &paramlist
-   slowsteps        = 10
-   courantpar       = 0.7d0
+   slowsteps        = 50
+   courantpar       = 0.4d0
    typecourant      = 'maxsum'
  /
+
+ &rc_list
+   ncool = 4000
+   coolmethod = 'exact'
+   coolcurve = 'Colgan_DM'
+ /
+
+ &usr_list
+  scale = 0.1d0
+  radius = 0.15d0
+ /
+

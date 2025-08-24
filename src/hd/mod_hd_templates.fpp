@@ -33,6 +33,9 @@
   double precision, public                :: hd_adiab = 1.0d0
   !$acc declare copyin(hd_adiab)
 
+  !> Helium abundance over Hydrogen
+  double precision, public                :: He_abundance=0.1d0
+
   !> Whether plasma is partially ionized
   logical, public                         :: hd_partial_ionization = .false.
   !$acc declare copyin(hd_partial_ionization)
@@ -75,14 +78,100 @@
     call phys_init()
   end subroutine phys_activate
 #:enddef
+
+#:def phys_units()
+  subroutine phys_units()
+    use mod_global_parameters
+    double precision :: mp, kB
+    double precision :: a,b
+
+    !> here no SI_UNIT used by default, to be implemented
+    mp = mp_cgs
+    kB = kB_cgs
+    !> eq_state_units by default, to be implemented
+    a = 1.d0+4.d0*He_abundance
+    b = 2.d0+3.d0*He_abundance
+
+    if(unit_density/=1.d0 .or. unit_numberdensity/=1.d0) then
+      if(unit_density/=1.d0) then
+        unit_numberdensity=unit_density/(a*mp)
+      else if(unit_numberdensity/=1.d0) then
+        unit_density=a*mp*unit_numberdensity
+      end if
+      if(unit_temperature/=1.d0) then
+        unit_pressure=b*unit_numberdensity*kB*unit_temperature
+        unit_velocity=dsqrt(unit_pressure/unit_density)
+        if(unit_length/=1.d0) then
+          unit_time=unit_length/unit_velocity
+        else if(unit_time/=1.d0) then
+          unit_length=unit_velocity*unit_time
+        end if
+      else if(unit_pressure/=1.d0) then
+        unit_temperature=unit_pressure/(b*unit_numberdensity*kB)
+        unit_velocity=dsqrt(unit_pressure/unit_density)
+        if(unit_length/=1.d0) then
+          unit_time=unit_length/unit_velocity
+        else if(unit_time/=1.d0) then
+          unit_length=unit_velocity*unit_time
+        end if
+      else if(unit_velocity/=1.d0) then
+        unit_pressure=unit_density*unit_velocity**2
+        unit_temperature=unit_pressure/(b*unit_numberdensity*kB)
+        if(unit_length/=1.d0) then
+          unit_time=unit_length/unit_velocity
+        else if(unit_time/=1.d0) then
+          unit_length=unit_velocity*unit_time
+        end if
+      else if(unit_time/=1.d0) then
+        unit_velocity=unit_length/unit_time
+        unit_pressure=unit_density*unit_velocity**2
+        unit_temperature=unit_pressure/(b*unit_numberdensity*kB)
+      end if
+    else if(unit_temperature/=1.d0) then
+      ! units of temperature and velocity are dependent
+      if(unit_pressure/=1.d0) then
+        unit_numberdensity=unit_pressure/(b*unit_temperature*kB)
+        unit_density=a*mp*unit_numberdensity
+        unit_velocity=dsqrt(unit_pressure/unit_density)
+        if(unit_length/=1.d0) then
+          unit_time=unit_length/unit_velocity
+        else if(unit_time/=1.d0) then
+          unit_length=unit_velocity*unit_time
+        end if
+      end if
+    else if(unit_pressure/=1.d0) then
+      if(unit_velocity/=1.d0) then
+        unit_density=unit_pressure/unit_velocity**2
+        unit_numberdensity=unit_density/(a*mp)
+        unit_temperature=unit_pressure/(b*unit_numberdensity*kB)
+        if(unit_length/=1.d0) then
+          unit_time=unit_length/unit_velocity
+        else if(unit_time/=1.d0) then
+          unit_length=unit_velocity*unit_time
+        end if
+      else if(unit_time/=0.d0) then
+        unit_velocity=unit_length/unit_time
+        unit_density=unit_pressure/unit_velocity**2
+        unit_numberdensity=unit_density/(a*mp)
+        unit_temperature=unit_pressure/(b*unit_numberdensity*kB)
+      end if
+    end if
+    unit_mass=unit_density*unit_length**3
+
+    !$acc update device(unit_density, unit_numberdensity, unit_temperature, unit_pressure, unit_velocity, unit_length, unit_time, unit_mass)
+  end subroutine phys_units
+#:enddef
   
 #:def phys_init()
     !> Initialize the module
   subroutine phys_init()
     use mod_global_parameters
 !    use mod_particles, only: particles_init
+    #:if defined('COOLING')
+    use mod_radiative_cooling, only: radiative_cooling_init_params, radiative_cooling_init
+    #:endif
 
-
+    call phys_units()
     call read_params(par_files)
 
     phys_energy  = hd_energy
@@ -138,6 +227,13 @@
     !$acc update device(nvector, iw_vector)
     !$acc update device(phys_req_diagonal)
 
+    #:if defined('COOLING')
+    allocate(rc_fl)
+    call radiative_cooling_init_params(phys_gamma,He_abundance)
+    call radiative_cooling_init(rc_fl)
+    !$acc update device(rc_fl)
+    #:endif
+
   end subroutine phys_init
 #:enddef
 
@@ -173,6 +269,10 @@ subroutine addsource_local(qdt, dtfactor, qtC, wCT, wCTprim, qt, wnew, x,&
 #:if defined('GRAVITY')
   use mod_usr, only: gravity_field
 #:endif    
+#:if defined('COOLING')
+  use mod_radiative_cooling, only: radiative_cooling_add_source
+#:endif
+
   real(dp), intent(in)     :: qdt, dtfactor, qtC, qt
   real(dp), intent(in)     :: wCT(nw_phys), wCTprim(nw_phys)
   real(dp), intent(in)     :: x(1:ndim)
@@ -189,6 +289,10 @@ subroutine addsource_local(qdt, dtfactor, qtC, wCT, wCTprim, qt, wnew, x,&
      wnew(iw_e)         = wnew(iw_e) + qdt * field * wCT(iw_mom(idim))
   end do
 #:endif  
+
+#:if defined('COOLING')
+  call radiative_cooling_add_source(qdt,wCT,wCTprim,wnew,x,rc_fl)
+#:endif
 
 end subroutine addsource_local
 #:enddef
@@ -284,4 +388,32 @@ pure real(dp) function get_cmax(u, x, flux_dim) result(wC)
 
 end function get_cmax
 #:enddef  
+
+#:def get_rho()
+  pure real(dp) function get_rho(w, x) result(rho)
+    !$acc routine seq
+    real(dp), intent(in)  :: w(nw_phys)
+    real(dp), intent(in)  :: x(1:ndim)
+
+    rho = w(iw_rho)
+  end function get_rho
+#:enddef
+
+#:def get_pthermal()
+pure double precision function get_pthermal(w, x) result(pth)
+  !$acc routine seq
+  double precision, intent(in)  :: w(nwflux)
+  double precision, intent(in)  :: x(1:ndim)
+
+  pth = (phys_gamma-1.0_dp)*(w(iw_e)-0.5_dp*sum(w(iw_mom(:))**2)/w(iw_rho))
+end function get_pthermal
+#:enddef
+
+#:def get_Rfactor()
+pure double precision function get_Rfactor() result(Rfactor)
+  !$acc routine seq
+  Rfactor = 1.0d0
+end function get_Rfactor
+#:enddef
+
 #:endif

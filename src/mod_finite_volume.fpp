@@ -24,13 +24,14 @@ contains
 @:addsource_local()
 @:get_flux()
 @:get_cmax()
-! @:to_primitive()
-! @:to_conservative()
 
   subroutine finite_volume_local(method, qdt, dtfactor, ixImin1,ixImin2,&
      ixImin3,ixImax1,ixImax2,ixImax3, ixOmin1,ixOmin2,ixOmin3,ixOmax1,ixOmax2,&
      ixOmax3, idimsmin,idimsmax, qtC, bga, qt, bgb, fC, fE)
     use mod_global_parameters
+    #:if defined('USR_SOURCE')
+    use mod_usr, only: addsource_usr
+    #:endif
 
     integer, intent(in)                                                :: &
        method
@@ -123,6 +124,18 @@ contains
                      wprim, qt, wnew, xloc, .false. )
                 bgb%w(ix1, ix2, ix3, :, n) = wnew(:)
 #:endif             
+
+#:if defined('USR_SOURCE')
+                ! Add source terms:
+                xloc(1:ndim) = ps(n)%x(ix1, ix2, ix3, 1:ndim)
+                wprim        = uprim(1:nw_phys, ix1, ix2, ix3)
+                wCT          = bga%w(ix1, ix2, ix3, 1:nw_phys, n)
+                wnew         = bgb%w(ix1, ix2, ix3, 1:nw_phys, n)
+                call addsource_usr(qdt*dble(idimsmax-idimsmin+1)/dble(ndim),&
+                     dtfactor*dble(idimsmax-idimsmin+1)/dble(ndim), qtC, wCT,&
+                     wprim, qt, wnew, xloc, .false. )
+                bgb%w(ix1, ix2, ix3, :, n) = wnew(:)
+#:endif
 
              end do
           end do

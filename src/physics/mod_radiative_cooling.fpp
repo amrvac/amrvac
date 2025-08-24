@@ -567,7 +567,68 @@ module mod_radiative_cooling
       end if
 
     end subroutine findT
+
+    subroutine getvar_cooling_exact(qdt, wCT, w, x, coolrate, fl)
+      ! Calculates cooling rate using the exact cooling method,
+      ! for usage in eg. source_terms subroutine.
+      ! The TEF must be known, so this routine can only be used
+      ! together with the "exact" cooling method.
   
+      use mod_global_parameters
+      double precision, intent(in)    :: qdt, wCT(nw_phys), w(nw_phys), x(1:ndim)
+      double precision, intent(inout) :: coolrate
+      type(rc_fluid), intent(in) :: fl
+      double precision :: Y1, Y2
+      double precision :: L1, Tlocal2, pnew
+      double precision :: rho, pth, Te, rhonew, Rfactor
+      double precision :: emin, Lmax, fact
+      double precision :: de, emax
+
+      rho = get_rho(wCT,x)
+      pth = get_pthermal(wCT,x)
+      Rfactor = get_Rfactor()
+      Te=pth/(rho*Rfactor)
+      pnew = get_pthermal(wCT,x)
+      rhonew = get_rho(w,x)
+
+      fact = fl%lref*qdt/fl%tref
+
+      emin = rhonew*fl%tlow*Rfactor*invgam
+      Lmax = max(zero,pnew*invgam-emin)/qdt
+      emax = max(zero,pnew*invgam-emin)
+      !  Determine explicit cooling
+      !  If temperature is below floor level, no cooling.
+      !  Stop wasting time and go to next gridpoint.
+      !  If the temperature is higher than the maximum,
+      !  assume Bremsstrahlung
+      if( Te<=fl%tcoolmin ) then
+        de = zero
+      else if( Te>=fl%tcoolmax )then
+        call calc_l_extended(Te, L1, fl)
+        L1 = L1*rho**2
+
+        L1 = min(L1,Lmax)
+        if(slab_uniform .and. fl%rad_cut .and. x(ndim) .le. fl%rad_cut_hgt) then
+          L1 = L1*exp(-(x(ndim)-fl%rad_cut_hgt)**2/fl%rad_cut_dey**2)
+        end if
+        de = L1*qdt
+      else
+        call findY(Te,Y1,fl)
+        Y2 = Y1 + fact*rho*rc_gamma_1
+        call findT(Tlocal2,Y2,fl)
+        if(Tlocal2<=fl%tcoolmin) then
+          de = emax
+        else
+          de = (Te-Tlocal2)*rho*Rfactor*invgam
+        end if
+        de = min(de,emax)
+        if(slab_uniform .and. fl%rad_cut .and. x(ndim) .le. fl%rad_cut_hgt) then
+          de = de*exp(-(x(ndim)-fl%rad_cut_hgt)**2/fl%rad_cut_dey**2)
+        end if
+      end if
+      coolrate = de/qdt
+      end subroutine getvar_cooling_exact
+    
   #:endif
 
 end module mod_radiative_cooling

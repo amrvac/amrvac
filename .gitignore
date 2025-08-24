@@ -40,3 +40,6 @@ build
 /tests/ffhd/*/*.mk
 settings.json
 .vscode/*
+*.ipynb
+*.png
+*.mp4
