@@ -719,6 +719,10 @@ module mod_global_parameters
   double precision :: cmax_global
   !$acc declare create(cmax_global)
 
+  !> global fastest sound speed needed for htc
+  double precision :: cs2max_global
+  !$acc declare create(cs2max_global)
+
   !> global fastest flow speed needed in glm method
   double precision :: vmax_global
   !$acc declare create(vmax_global)

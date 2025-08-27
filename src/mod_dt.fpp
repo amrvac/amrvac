@@ -124,5 +124,6 @@ contains
        endif
     endif
 
+    !$acc update device(dt)
   end subroutine setdt
 end module mod_dt
