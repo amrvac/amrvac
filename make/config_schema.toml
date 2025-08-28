@@ -23,6 +23,14 @@ options = ["hd", "ffhd"]
 flags = ["fypp", "hash"]
 default = "hd"
 
+[hd_list]
+[hd_list.hd_gravity]
+type = "flag"
+name = "GRAVITY"
+flags = ["fypp", "hash"]
+default = false
+implies = ["components.source_local"]
+
 [ffhd_list]
 [ffhd_list.ffhd_hyperbolic_thermal_conduction]
 type = "flag"
