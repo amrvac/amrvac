@@ -8,7 +8,7 @@ module mod_finite_volume
   use mod_physics
   use mod_global_parameters, only: ndim
   use mod_physicaldata
-  #:if defined('BFIELD')
+  #:if PHYS == 'ffhd'
   use mod_usr, only: bfield
   #:endif
 
@@ -123,19 +123,20 @@ contains
                      dtfactor*dble(idimsmax-idimsmin+1)/dble(ndim), qtC, wCT,&
                      wprim, qt, wnew, xloc, .false. )
                 bgb%w(ix1, ix2, ix3, :, n) = wnew(:)
-#:endif             
 
-#:if defined('USR_SOURCE')
-                ! Add source terms:
-                xloc(1:ndim) = ps(n)%x(ix1, ix2, ix3, 1:ndim)
-                wprim        = uprim(1:nw_phys, ix1, ix2, ix3)
-                wCT          = bga%w(ix1, ix2, ix3, 1:nw_phys, n)
-                wnew         = bgb%w(ix1, ix2, ix3, 1:nw_phys, n)
-                call addsource_usr(qdt*dble(idimsmax-idimsmin+1)/dble(ndim),&
+         #:if defined('USR_SOURCE')
+               ! Add source terms:
+               xloc(1:ndim) = ps(n)%x(ix1, ix2, ix3, 1:ndim)
+               wprim        = uprim(1:nw_phys, ix1, ix2, ix3)
+               wCT          = bga%w(ix1, ix2, ix3, 1:nw_phys, n)
+               wnew         = bgb%w(ix1, ix2, ix3, 1:nw_phys, n)
+               call addsource_usr(qdt*dble(idimsmax-idimsmin+1)/dble(ndim),&
                      dtfactor*dble(idimsmax-idimsmin+1)/dble(ndim), qtC, wCT,&
                      wprim, qt, wnew, xloc, .false. )
-                bgb%w(ix1, ix2, ix3, :, n) = wnew(:)
-#:endif
+               bgb%w(ix1, ix2, ix3, :, n) = wnew(:)
+         #:endif
+#:endif             
+
 
              end do
           end do

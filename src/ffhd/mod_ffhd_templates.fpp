@@ -238,11 +238,9 @@
 subroutine addsource_local(qdt, dtfactor, qtC, wCT, wCTprim, qt, wnew, x,&
     qsourcesplit)
   !$acc routine seq
+  use mod_usr, only: bfield
 #:if defined('GRAVITY')
   use mod_usr, only: gravity_field
-#:endif    
-#:if defined('BFIELD')
-  use mod_usr, only: bfield
 #:endif    
 #:if defined('COOLING')
   use mod_radiative_cooling, only: radiative_cooling_add_source
@@ -265,9 +263,7 @@ subroutine addsource_local(qdt, dtfactor, qtC, wCT, wCTprim, qt, wnew, x,&
      wnew(iw_e)         = wnew(iw_e) + qdt * field * wCT(iw_mom(1)) * mag
   end do
 #:endif  
-#:if defined('BFIELD')
 !> p*divb to be added here
-#:endif  
 
 #:if defined('COOLING')
   call radiative_cooling_add_source(qdt,wCT,wCTprim,wnew,x,rc_fl)
@@ -310,9 +306,8 @@ end subroutine to_conservative
 #:def get_flux()
 subroutine get_flux(u, xC, flux_dim, flux)
   !$acc routine seq
-#:if defined('BFIELD')
   use mod_usr, only: bfield
-#:endif    
+
   real(dp), intent(in)  :: u(nw_phys)
   real(dp), intent(in)  :: xC(1:ndim)
   integer, intent(in)   :: flux_dim
@@ -322,10 +317,7 @@ subroutine get_flux(u, xC, flux_dim, flux)
 
   inv_gamma_m1 = 1.0d0/(phys_gamma - 1.0_dp)
 
-  mag = 1.0d0
-#:if defined('BFIELD')
   mag = bfield(xC, flux_dim)
-#:endif    
 
   ! Density flux
   flux(iw_rho) = u(iw_rho) * u(iw_mom(1)) * mag
@@ -347,18 +339,13 @@ end subroutine get_flux
 #:def get_cmax()  
 pure real(dp) function get_cmax(u, x, flux_dim) result(wC)
   !$acc routine seq
-#:if defined('BFIELD')
   use mod_usr, only: bfield
-#:endif    
   real(dp), intent(in)  :: u(nw_phys)
   real(dp), intent(in)  :: x(1:ndim)
   integer, intent(in)   :: flux_dim
   real(dp)              :: mag
 
-  mag = 1.0d0
-#:if defined('BFIELD')
   mag = bfield(x, flux_dim)
-#:endif    
   
   wC = dsqrt(phys_gamma*u(iw_e)/u(iw_rho)) + abs(u(iw_mom(1))*mag)
 

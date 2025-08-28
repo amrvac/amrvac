@@ -386,9 +386,9 @@ module mod_radiative_cooling
     end subroutine radiative_cooling_init
 
     subroutine radiative_cooling_add_source(qdt,wCT,wCTprim,wnew,x,fl)
+      !$acc routine seq
 
     ! w[iw]=w[iw]+qdt*S[wCT,x] where S is the source based on wCT within ixO
-      use mod_global_parameters
       double precision, intent(in) :: qdt, wCT(nw_phys), wCTprim(nw_phys)
       double precision, intent(inout) :: wnew(nw_phys)
       double precision, intent(in) :: x(1:ndim)
@@ -405,8 +405,8 @@ module mod_radiative_cooling
     end subroutine radiative_cooling_add_source
 
     subroutine floortemperature(qdt,wCT,wnew,x,fl)
+      !$acc routine seq
     !  Force minimum temperature to a fixed temperature
-      use mod_global_parameters
       double precision, intent(in)    :: qdt, wCT(nw_phys)
       double precision, intent(inout) :: wnew(nw_phys)
       double precision, intent(in)    :: x(1:ndim)
@@ -423,8 +423,8 @@ module mod_radiative_cooling
     end subroutine floortemperature
 
     subroutine cool_exact(qdt,wCT,wCTprim,wnew,x,fl)
+      !$acc routine seq
     !  Cooling routine using exact integration method from Townsend 2009
-      use mod_global_parameters
       double precision, intent(in)    :: qdt, wCT(nw_phys), wCTprim(nw_phys), x(1:ndim)
       double precision, intent(inout) :: wnew(nw_phys)
       type(rc_fluid), intent(in) :: fl
@@ -479,6 +479,7 @@ module mod_radiative_cooling
     end subroutine cool_exact
 
     subroutine calc_l_extended (tpoint, lpoint,fl)
+      !$acc routine seq
     !  Calculate l for t beyond tcoolmax
     !  Assumes Bremsstrahlung for the interpolated tables
     !  Uses the power law for piecewise power laws
@@ -493,7 +494,7 @@ module mod_radiative_cooling
     subroutine findL (tpoint,Lpoint,fl)
     !  Fast search option to find correct point 
     !  in cooling curve
-      use mod_global_parameters
+      !$acc routine seq
 
       double precision,intent(IN)   :: tpoint
       double precision, intent(OUT) :: Lpoint
@@ -512,7 +513,7 @@ module mod_radiative_cooling
 
     subroutine findY (tpoint,Ypoint,fl)
     !  Fast search option to find correct point in cooling time (TEF)
-      use mod_global_parameters
+      !$acc routine seq
 
       double precision,intent(IN)   :: tpoint
       double precision, intent(OUT) :: Ypoint
@@ -535,7 +536,7 @@ module mod_radiative_cooling
     !  from temporal evolution function. Only possible this way because T is a monotonously
     !  decreasing function for the interpolated tables
     !  Uses eq. A7 from Townsend 2009 for piecewise power laws
-      use mod_global_parameters
+      !$acc routine seq
 
       double precision,intent(OUT)   :: tpoint
       double precision, intent(IN) :: Ypoint
@@ -569,6 +570,7 @@ module mod_radiative_cooling
     end subroutine findT
 
     subroutine getvar_cooling_exact(qdt, wCT, w, x, coolrate, fl)
+      !$acc routine seq
       ! Calculates cooling rate using the exact cooling method,
       ! for usage in eg. source_terms subroutine.
       ! The TEF must be known, so this routine can only be used

@@ -1,6 +1,5 @@
  &components
    gravity = .false.
-   bfield = .true.
    cooling = .true.
    usr_source = .false.
  /
@@ -16,7 +15,7 @@
    itsave(1,1)      = 0
    itsave(1,2)      = 0
    dtsave_log      = 0.01
-   dtsave_dat      = 0.1
+   dtsave_dat      = 1.d0
 
  /
 

@@ -22,17 +22,12 @@ flags = ["fypp", "hash"]
 default = false
 implies = ["components.source_term"]
 
-[components.bfield]
-type = "flag"
-name = "BFIELD"
-flags = ["fypp", "hash"]
-default = false
-
 [components.usr_source]
 type = "flag"
 name = "USR_SOURCE"
 flags = ["fypp", "hash"]
 default = false
+implies = ["components.source_term"]
 
 [methodlist]
 [methodlist.phys]
