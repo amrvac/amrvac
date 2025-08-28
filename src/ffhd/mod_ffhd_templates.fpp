@@ -321,18 +321,6 @@ subroutine addsource_local(qdt, dtfactor, qtC, wCT, wCTprim, qt, wnew, x,&
   enddo
   htc_qrsc   = (htc_qrsc+wCT(iw_q))/tau
 
-  ! DEBUG:
-  !  print *, htc_qrsc, wCT(iw_q), tau!, sigT, Bfield, gradT(1), gradT(2), gradT(3), invdx
-  !                       NaN    0.000000000000000        7.4666059964304484E-005
-!  print *, sigT, Bfield, gradT(1)!, gradT(2), gradT(3), invdx
-  !  0.000000000000000        -1.000000000000000        2.4835457764401282E-017
-!  print *, htc_qrsc, tau, sigT
-!                       NaN   7.4666059964304484E-005   -320.8180818417385     
-!  print *, hypertc_kappa, sigT, Te
-!     7.9999999999999996E-007   2.5665446547339083E-004    10.05781250000000     
-print *, htc_qrsc, wCT(iw_q), tau
-!  NaN    0.000000000000000        1.0307533578767785E-004
-
   wnew(iw_q) = wnew(iw_q)-qdt*htc_qrsc
 #:endif  
 
