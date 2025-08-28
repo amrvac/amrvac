@@ -37,9 +37,13 @@
   !> The adiabatic constant
   double precision, public                :: ffhd_adiab = 1.0d0
   !$acc declare copyin(ffhd_adiab)
+  
+  !> The helium abundance
+  double precision, public                :: He_abundance=0.1d0
+  !$acc declare copyin(He_abundance)
 
   !> The thermal conductivity kappa in hyperbolic thermal conduction
-  double precision, public                :: hypertc_kappa
+  double precision, public                :: hypertc_kappa = -1.0d0
   !$acc declare copyin(hypertc_kappa)
 
   !> Whether plasma is partially ionized
@@ -91,6 +95,7 @@
     use mod_global_parameters
 !    use mod_particles, only: particles_init
 
+    call phys_units()
     call read_params(par_files)
 
     phys_energy  = ffhd_energy
@@ -98,7 +103,7 @@
     phys_internal_e = .false.
     phys_gamma = ffhd_gamma
     phys_partial_ionization=ffhd_partial_ionization
- !$acc update device(physics_type, phys_energy, phys_total_energy, phys_internal_e, phys_gamma, phys_partial_ionization)
+    !$acc update device(physics_type, phys_energy, phys_total_energy, phys_internal_e, phys_gamma, phys_partial_ionization)
 
     use_particles = ffhd_particles
 
@@ -152,9 +157,95 @@
 
 !! HERE: initialize radiative cooling module
 
+    hypertc_kappa=8.d-7*unit_temperature**3.5d0/unit_length/unit_density/unit_velocity**3
+    !$acc update device(hypertc_kappa)
+
   end subroutine phys_init
 #:enddef
 
+#:def phys_units()
+  subroutine phys_units()
+    use mod_global_parameters
+    double precision :: mp, kB
+    double precision :: a,b
+
+    !> here no SI_UNIT used by default, to be implemented
+    mp = mp_cgs
+    kB = kB_cgs
+    !> eq_state_units by default, to be implemented
+    a = 1.d0+4.d0*He_abundance
+    b = 2.d0+3.d0*He_abundance
+
+    if(unit_density/=1.d0 .or. unit_numberdensity/=1.d0) then
+      if(unit_density/=1.d0) then
+        unit_numberdensity=unit_density/(a*mp)
+      else if(unit_numberdensity/=1.d0) then
+        unit_density=a*mp*unit_numberdensity
+      end if
+      if(unit_temperature/=1.d0) then
+        unit_pressure=b*unit_numberdensity*kB*unit_temperature
+        unit_velocity=dsqrt(unit_pressure/unit_density)
+        if(unit_length/=1.d0) then
+          unit_time=unit_length/unit_velocity
+        else if(unit_time/=1.d0) then
+          unit_length=unit_velocity*unit_time
+        end if
+      else if(unit_pressure/=1.d0) then
+        unit_temperature=unit_pressure/(b*unit_numberdensity*kB)
+        unit_velocity=dsqrt(unit_pressure/unit_density)
+        if(unit_length/=1.d0) then
+          unit_time=unit_length/unit_velocity
+        else if(unit_time/=1.d0) then
+          unit_length=unit_velocity*unit_time
+        end if
+      else if(unit_velocity/=1.d0) then
+        unit_pressure=unit_density*unit_velocity**2
+        unit_temperature=unit_pressure/(b*unit_numberdensity*kB)
+        if(unit_length/=1.d0) then
+          unit_time=unit_length/unit_velocity
+        else if(unit_time/=1.d0) then
+          unit_length=unit_velocity*unit_time
+        end if
+      else if(unit_time/=1.d0) then
+        unit_velocity=unit_length/unit_time
+        unit_pressure=unit_density*unit_velocity**2
+        unit_temperature=unit_pressure/(b*unit_numberdensity*kB)
+      end if
+    else if(unit_temperature/=1.d0) then
+      ! units of temperature and velocity are dependent
+      if(unit_pressure/=1.d0) then
+        unit_numberdensity=unit_pressure/(b*unit_temperature*kB)
+        unit_density=a*mp*unit_numberdensity
+        unit_velocity=dsqrt(unit_pressure/unit_density)
+        if(unit_length/=1.d0) then
+          unit_time=unit_length/unit_velocity
+        else if(unit_time/=1.d0) then
+          unit_length=unit_velocity*unit_time
+        end if
+      end if
+    else if(unit_pressure/=1.d0) then
+      if(unit_velocity/=1.d0) then
+        unit_density=unit_pressure/unit_velocity**2
+        unit_numberdensity=unit_density/(a*mp)
+        unit_temperature=unit_pressure/(b*unit_numberdensity*kB)
+        if(unit_length/=1.d0) then
+          unit_time=unit_length/unit_velocity
+        else if(unit_time/=1.d0) then
+          unit_length=unit_velocity*unit_time
+        end if
+      else if(unit_time/=0.d0) then
+        unit_velocity=unit_length/unit_time
+        unit_density=unit_pressure/unit_velocity**2
+        unit_numberdensity=unit_density/(a*mp)
+        unit_temperature=unit_pressure/(b*unit_numberdensity*kB)
+      end if
+    end if
+    unit_mass=unit_density*unit_length**3
+
+    !$acc update device(unit_density, unit_numberdensity, unit_temperature, unit_pressure, unit_velocity, unit_length, unit_time, unit_mass)
+  end subroutine phys_units
+#:enddef
+  
 #:def phys_get_dt()
   subroutine phys_get_dt(w, x, dx, dtnew)
   !$acc routine seq
@@ -204,23 +295,24 @@ subroutine addsource_local(qdt, dtfactor, qtC, wCT, wCTprim, qt, wnew, x,&
 
 #:if defined('GRAVITY')
   do idim = 1, ndim
-     field = gravity_field(wCT, x, idim)
+     field  = gravity_field(wCT, x, idim)
      Bfield = magnetic_field(x, idim)
      wnew(iw_mom(1)) = wnew(iw_mom(1)) + qdt * field * wCT(iw_rho) * Bfield
      wnew(iw_e)      = wnew(iw_e) + qdt * field * wCT(iw_mom(1)) * Bfield
   end do
-#:endif  
+#:endif
+  
 #:if defined('BFIELD')
-  divBfield = magnetic_field_divergence(x)
+  divBfield       = magnetic_field_divergence(x)
   wnew(iw_mom(1)) = wnew(iw_mom(1)) + qdt * wCTprim(iw_e) * divBfield
 
   Te     = wCTprim(iw_e)/wCT(iw_rho)
   sigT   = hypertc_kappa*sqrt(Te**5)
   taumin = 0.4d0
-  ! following needs global dt and cs2max_global
+
   tau = taumin
-  tau = max(taumin*dt,sigT*Te*(ffhd_gamma-1.0d0)/wCTprim(iw_e)/cs2max_global)
-  
+  tau = max( taumin*dt, sigT*Te*(ffhd_gamma-1.0d0)/wCTprim(iw_e)/cs2max_global )
+
   htc_qrsc=0.0d0
   do idim = 1, ndim
     Bfield   = magnetic_field(x, idim)
@@ -228,6 +320,19 @@ subroutine addsource_local(qdt, dtfactor, qtC, wCT, wCTprim, qt, wnew, x,&
     htc_qrsc = htc_qrsc+sigT*Bfield*gradT(idim)*invdx
   enddo
   htc_qrsc   = (htc_qrsc+wCT(iw_q))/tau
+
+  ! DEBUG:
+  !  print *, htc_qrsc, wCT(iw_q), tau!, sigT, Bfield, gradT(1), gradT(2), gradT(3), invdx
+  !                       NaN    0.000000000000000        7.4666059964304484E-005
+!  print *, sigT, Bfield, gradT(1)!, gradT(2), gradT(3), invdx
+  !  0.000000000000000        -1.000000000000000        2.4835457764401282E-017
+!  print *, htc_qrsc, tau, sigT
+!                       NaN   7.4666059964304484E-005   -320.8180818417385     
+!  print *, hypertc_kappa, sigT, Te
+!     7.9999999999999996E-007   2.5665446547339083E-004    10.05781250000000     
+print *, htc_qrsc, wCT(iw_q), tau
+!  NaN    0.000000000000000        1.0307533578767785E-004
+
   wnew(iw_q) = wnew(iw_q)-qdt*htc_qrsc
 #:endif  
 

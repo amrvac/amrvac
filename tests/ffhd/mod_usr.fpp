@@ -11,6 +11,10 @@ contains
 
     call set_coordinate_system("Cartesian_3D")
 
+    unit_length = 1.d9 !< cm
+    unit_temperature   = 1.d6 !< K
+    unit_numberdensity = 1.d9 !< cm^-3
+    
     usr_init_one_grid => initonegrid_usr
 
     call phys_activate()
@@ -22,7 +26,6 @@ contains
     real(dp), intent(in)    :: wCT(nw_phys)
     real(dp), intent(in)    :: x(1:ndim)
     integer, value, intent(in)     :: idim
-    ! real(dp)                :: field
 
     if (idim == 1) field =  0.0_dp
     if (idim == 2) field =  0.0_dp

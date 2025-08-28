@@ -42,7 +42,7 @@ contains
 
           dxinv(1)=one/dx1;dxinv(2)=one/dx2;dxinv(3)=one/dx3;
 
-          !$acc loop vector collapse(ndim) reduction(min:dtmin_mype) reduction(max:cs2max_mype) private(cmax, cmaxtot, u, xloc, dxinv, qdtnew)
+          !$acc loop vector collapse(ndim) REDUCTION(min:dtmin_mype) private(cmax, cmaxtot, u, xloc, dxinv, qdtnew)
           do ix3=ixMlo3,ixMhi3 
              do ix2=ixMlo2,ixMhi2 
                 do ix1=ixMlo1,ixMhi1 
