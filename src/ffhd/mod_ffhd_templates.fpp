@@ -239,8 +239,7 @@ pure subroutine to_primitive(u)
   !$acc routine seq
   real(dp), intent(inout) :: u(nw_phys)
 
-  
-       u(iw_mom(1)) = u(iw_mom(1))/u(iw_rho)
+  u(iw_mom(1)) = u(iw_mom(1))/u(iw_rho)
   
   u(iw_e) = (ffhd_gamma-1.0_dp) * (u(iw_e) - 0.5_dp * u(iw_rho) * &
      u(iw_mom(1))**2 )
@@ -254,15 +253,14 @@ pure subroutine to_conservative(u)
   real(dp), intent(inout) :: u(nw_phys)
   real(dp)                :: inv_gamma_m1
 
-  inv_gamma_m1 = 1.0d0/(ffhd_gamma - 1.0_dp)
+  inv_gamma_m1 = 1.0_dp/(ffhd_gamma - 1.0_dp)
 
   ! Compute energy from pressure and kinetic energy
   u(iw_e) = u(iw_e) * inv_gamma_m1 + 0.5_dp * u(iw_rho) * &
      u(iw_mom(1))**2
 
   ! Compute momentum from density and velocity components
-  
-       u(iw_mom(1)) = u(iw_rho) * u(iw_mom(1))
+  u(iw_mom(1)) = u(iw_rho) * u(iw_mom(1))
   
 end subroutine to_conservative
 #:enddef
@@ -280,7 +278,7 @@ subroutine get_flux(u, xC, flux_dim, flux)
   real(dp)              :: inv_gamma_m1
   real(dp)              :: Bfield
 
-  inv_gamma_m1 = 1.0d0/(ffhd_gamma - 1.0_dp)
+  inv_gamma_m1 = 1.0_dp/(ffhd_gamma - 1.0_dp)
 
   Bfield = 1.0d0
 #:if defined('BFIELD')
