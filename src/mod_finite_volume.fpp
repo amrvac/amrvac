@@ -18,11 +18,11 @@ contains
 
 ! instantiate the templated functions here for inlining:
 @:addsource_local()
+@:addsource_nonlocal()
 @:to_primitive()
 @:to_conservative()
 @:get_cmax()
 @:get_flux()
-@:get_gradientT()
 
   subroutine finite_volume_local(method, qdt, dtfactor, ixImin1,ixImin2,&
      ixImin3,ixImax1,ixImax2,ixImax3, ixOmin1,ixOmin2,ixOmin3,ixOmax1,ixOmax2,&
@@ -76,7 +76,7 @@ contains
           end do
        end do
 
-       !$acc loop collapse(ndim) private(f, tmp, xlocC #{if defined('SOURCE_TERM')}#, wnew, wCT, xloc, wprim, gradT #{endif}#) vector
+       !$acc loop collapse(ndim) private(f, tmp, xlocC #{if defined('SOURCE_LOCAL')}#, wnew, wCT, xloc, wprim, gradT #{endif}#) vector
        do ix3=ixOmin3,ixOmax3 
           do ix2=ixOmin2,ixOmax2 
              do ix1=ixOmin1,ixOmax1 
@@ -109,23 +109,40 @@ contains
                 bgb%w(ix1, ix2, ix3, :, n) = bgb%w(ix1, ix2, ix3, :,&
                      n) + qdt * (f(:, 1) - f(:, 2)) * inv_dr(3)
 
-#:if defined('SOURCE_TERM')
-                ! Add source terms:
+#:if defined('SOURCE_LOCAL')
+                ! Add local source terms:
                 xloc(1:ndim) = ps(n)%x(ix1, ix2, ix3, 1:ndim)
                 wprim        = uprim(1:nw_phys, ix1, ix2, ix3)
                 wCT          = bga%w(ix1, ix2, ix3, 1:nw_phys, n)
                 wnew         = bgb%w(ix1, ix2, ix3, 1:nw_phys, n)
-                tmp = uprim(:, ix1-2:ix1+2, ix2, ix3)
-                gradT(1)=get_gradientT(tmp, xloc, 1)
-                tmp = uprim(:, ix1, ix2-2:ix2+2, ix3)
-                gradT(2)=get_gradientT(tmp, xloc, 2)
-                tmp = uprim(:, ix1, ix2, ix3-2:ix3+2)
-                gradT(3)=get_gradientT(tmp, xloc, 3)
                 call addsource_local(qdt*dble(idimsmax-idimsmin+1)/dble(ndim),&
                      dtfactor*dble(idimsmax-idimsmin+1)/dble(ndim), qtC, wCT,&
-                     wprim, qt, wnew, xloc, dr, gradT, .false. )
+                     wprim, qt, wnew, xloc, .false. )
                 bgb%w(ix1, ix2, ix3, :, n) = wnew(:)
-#:endif             
+#:endif
+
+#:if defined('SOURCE_NONLOCAL')
+                ! Add non-local (gradient) source terms:
+                xloc(1:ndim) = ps(n)%x(ix1, ix2, ix3, 1:ndim)
+                wnew         = bgb%w(ix1, ix2, ix3, 1:nw_phys, n)
+                
+                tmp = uprim(:, ix1-2:ix1+2, ix2, ix3)
+                call addsource_nonlocal(qdt*dble(idimsmax-idimsmin+1)/dble(ndim),&
+                     dtfactor*dble(idimsmax-idimsmin+1)/dble(ndim), qtC, tmp,&
+                     qt, wnew, xloc, dr, 1, .false. )
+
+                tmp = uprim(:, ix1, ix2-2:ix2+2, ix3)
+                call addsource_nonlocal(qdt*dble(idimsmax-idimsmin+1)/dble(ndim),&
+                     dtfactor*dble(idimsmax-idimsmin+1)/dble(ndim), qtC, tmp,&
+                     qt, wnew, xloc, dr, 2, .false. )
+
+                tmp = uprim(:, ix1, ix2, ix3-2:ix3+2)
+                call addsource_nonlocal(qdt*dble(idimsmax-idimsmin+1)/dble(ndim),&
+                     dtfactor*dble(idimsmax-idimsmin+1)/dble(ndim), qtC, tmp,&
+                     qt, wnew, xloc, dr, 3, .false. )
+                
+                bgb%w(ix1, ix2, ix3, :, n) = wnew(:)           
+#:endif                
 
              end do
           end do

@@ -1,4 +1,3 @@
-#:if defined('BFIELD')
 module mod_bfield
 
   use mod_global_parameters
@@ -37,4 +36,3 @@ contains
 
 
 end module mod_bfield
-#:endif

@@ -46,9 +46,17 @@
   double precision, public                :: hypertc_kappa = -1.0d0
   !$acc declare copyin(hypertc_kappa)
 
+  !> switch for hyperbolic thermal conduction
+  logical, public                         :: ffhd_hyperbolic_thermal_conduction = .false.
+  !$acc declare copyin(ffhd_hyperbolic_thermal_conduction)
+  
   !> Whether plasma is partially ionized
   logical, public                         :: ffhd_partial_ionization = .false.
   !$acc declare copyin(ffhd_partial_ionization)
+  
+  !> Whether to use gravity
+  logical, public                         :: ffhd_gravity = .false.
+  !$acc declare copyin(ffhd_gravity)
 
   !> Allows overruling default corner filling (for debug mode, since otherwise corner primitives fail)
   logical, public                         :: ffhd_force_diagonal = .false.
@@ -68,7 +76,7 @@
     integer                      :: n
 
     namelist /ffhd_list/ ffhd_energy, ffhd_gamma, ffhd_partial_ionization,&
-        ffhd_force_diagonal, ffhd_particles
+        ffhd_force_diagonal, ffhd_particles, ffhd_hyperbolic_thermal_conduction, ffhd_gravity
 
     do n = 1, size(files)
        open(unitpar, file=trim(files(n)), status="old")
@@ -77,7 +85,7 @@
     end do
 
 #ifdef _OPENACC
- !$acc update device(ffhd_energy, ffhd_gamma, ffhd_adiab, ffhd_partial_ionization, ffhd_force_diagonal, ffhd_particles)
+ !$acc update device(ffhd_energy, ffhd_gamma, ffhd_partial_ionization, ffhd_force_diagonal, ffhd_particles, ffhd_hyperbolic_thermal_conduction, ffhd_gravity)
 #endif
 
   end subroutine read_params
@@ -273,26 +281,21 @@
 
 #:def addsource_local()
 subroutine addsource_local(qdt, dtfactor, qtC, wCT, wCTprim, qt, wnew, x,&
-    dx, gradT, qsourcesplit)
+    qsourcesplit)
   !$acc routine seq
 #:if defined('GRAVITY')
   use mod_usr, only: gravity_field
 #:endif    
-#:if defined('BFIELD')
-  use mod_bfield, only: magnetic_field, magnetic_field_divergence
-#:endif
-  use mod_global_parameters, only: dt, cs2max_global
+  use mod_bfield, only: magnetic_field
   real(dp), intent(in)     :: qdt, dtfactor, qtC, qt
   real(dp), intent(in)     :: wCT(nw_phys), wCTprim(nw_phys)
-  real(dp), intent(in)     :: x(1:ndim),dx(1:ndim)
-  real(dp), intent(in)     :: gradT(1:ndim)
+  real(dp), intent(in)     :: x(1:ndim)
   real(dp), intent(inout)  :: wnew(nw_phys)
   logical, intent(in)      :: qsourcesplit
   ! .. local ..
+  real(dp)                 :: field, Bfield
   integer                  :: idim
-  real(dp)                 :: field, Bfield, divBfield
-  real(dp)                 :: Te,tau,htc_qrsc,sigT,invdx,taumin
-
+  
 #:if defined('GRAVITY')
   do idim = 1, ndim
      field  = gravity_field(wCT, x, idim)
@@ -302,29 +305,51 @@ subroutine addsource_local(qdt, dtfactor, qtC, wCT, wCTprim, qt, wnew, x,&
   end do
 #:endif
   
-#:if defined('BFIELD')
-  divBfield       = magnetic_field_divergence(x)
-  wnew(iw_mom(1)) = wnew(iw_mom(1)) + qdt * wCTprim(iw_e) * divBfield
+end subroutine addsource_local
+#:enddef
 
-  Te     = wCTprim(iw_e)/wCT(iw_rho)
-  sigT   = hypertc_kappa*sqrt(Te**5)
+#:def addsource_nonlocal()
+subroutine addsource_nonlocal(qdt, dtfactor, qtC, wCTprim, qt, wnew, x, dx, idir, &
+     qsourcesplit)
+  !$acc routine seq
+  use mod_bfield, only: magnetic_field, magnetic_field_divergence
+  use mod_global_parameters, only: dt, cs2max_global
+
+  real(dp), intent(in)     :: qdt, dtfactor, qtC, qt
+  real(dp), intent(in)     :: wCTprim(nw_phys,5)
+  real(dp), intent(in)     :: x(1:ndim), dx(1:ndim)
+  real(dp), intent(inout)  :: wnew(nw_phys)
+  integer, intent(in)      :: idir
+  logical, intent(in)      :: qsourcesplit
+  ! .. local ..
+  real(dp)                 :: field, Bfield, divBfield
+  real(dp)                 :: Te, tau, htc_qrsc, sigT, taumin
+  real(dp)                 :: T(1:5), gradT, Tface(2)
+
+  !> gradient of temperature:
+  T(1:5) = wCTprim(iw_e,1:5) / wCTprim(iw_rho,1:5)
+  
+  Tface(1) = (7.0d0*(T(2)+T(3))-(T(1)+T(4)))/12.0d0
+  Tface(2) = (7.0d0*(T(3)+T(4))-(T(2)+T(5)))/12.0d0
+  gradT    = (Tface(2)-Tface(1)) / dx(idir)
+  
+  divBfield       = magnetic_field_divergence(x)
+  wnew(iw_mom(1)) = wnew(iw_mom(1)) + qdt * wCTprim(iw_e,3) * divBfield
+
+  Te     = wCTprim(iw_e,3) / wCTprim(iw_rho,3)
+  sigT   = hypertc_kappa * sqrt(Te**5)
   taumin = 0.4d0
 
   tau = taumin
-  tau = max( taumin*dt, sigT*Te*(ffhd_gamma-1.0d0)/wCTprim(iw_e)/cs2max_global )
+  tau = max( taumin*dt, sigT * Te * (ffhd_gamma-1.0d0) / wCTprim(iw_e,3) / cs2max_global )
 
-  htc_qrsc=0.0d0
-  do idim = 1, ndim
-    Bfield   = magnetic_field(x, idim)
-    invdx    = 1.0d0/dx(idim)
-    htc_qrsc = htc_qrsc+sigT*Bfield*gradT(idim)*invdx
-  enddo
-  htc_qrsc   = (htc_qrsc+wCT(iw_q))/tau
+  Bfield   = magnetic_field(x, idir)
+  htc_qrsc = sigT * Bfield * gradT
+  htc_qrsc = ( htc_qrsc + wCTprim(iw_q,3) / 3.0_dp ) / tau
 
-  wnew(iw_q) = wnew(iw_q)-qdt*htc_qrsc
-#:endif  
+  wnew(iw_q) = wnew(iw_q) - qdt * htc_qrsc
 
-end subroutine addsource_local
+end subroutine addsource_nonlocal
 #:enddef
 
 #:def to_primitive()
@@ -361,9 +386,7 @@ end subroutine to_conservative
 #:def get_flux()
 subroutine get_flux(u, xC, flux_dim, flux)
   !$acc routine seq
-#:if defined('BFIELD')
   use mod_bfield, only: magnetic_field
-#:endif    
   real(dp), intent(in)  :: u(nw_phys)
   real(dp), intent(in)  :: xC(1:ndim)
   integer, intent(in)   :: flux_dim
@@ -374,9 +397,7 @@ subroutine get_flux(u, xC, flux_dim, flux)
   inv_gamma_m1 = 1.0_dp/(ffhd_gamma - 1.0_dp)
 
   Bfield = 1.0d0
-#:if defined('BFIELD')
   Bfield = magnetic_field(xC, flux_dim)
-#:endif    
 
   ! Density flux
   flux(iw_rho) = u(iw_rho) * u(iw_mom(1)) * Bfield
@@ -398,18 +419,14 @@ end subroutine get_flux
 #:def get_cmax()  
 pure real(dp) function get_cmax(u, x, flux_dim) result(wC)
   !$acc routine seq
-#:if defined('BFIELD')
   use mod_bfield, only: magnetic_field
-#:endif    
   real(dp), intent(in)  :: u(nw_phys)
   real(dp), intent(in)  :: x(1:ndim)
   integer, intent(in)   :: flux_dim
   real(dp)              :: Bfield
 
   Bfield = 1.0d0
-#:if defined('BFIELD')
   Bfield = magnetic_field(x, flux_dim)
-#:endif    
   
   wC = sqrt(ffhd_gamma * u(iw_e) / u(iw_rho)) + abs(u(iw_mom(1))*Bfield)
 
@@ -427,21 +444,4 @@ pure real(dp) function get_cs2(u) result(cs2)
 end function get_cs2
 #:enddef  
 
-
-#:def get_gradientT()  
-pure real(dp) function get_gradientT(u, x, grad_dim) result(gradT)
-  !$acc routine seq
-  real(dp), intent(in)  :: u(nw_phys, 5)
-  real(dp), intent(in)  :: x(1:ndim)
-  integer, intent(in)   :: grad_dim
-  real(dp) :: Te(5),Tface(2)
-
-  Te(1:5)=u(iw_e,1:5)/u(iw_rho,1:5) 
-  Tface(1)=(7.0d0*(Te(2)+Te(3))-(Te(1)+Te(4)))/12.0d0
-  Tface(2)=(7.0d0*(Te(3)+Te(4))-(Te(2)+Te(5)))/12.0d0
-  gradT=Tface(2)-Tface(1)
-
-end function get_gradientT
-
-#:enddef  
 #:endif

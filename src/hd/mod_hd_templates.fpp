@@ -168,14 +168,14 @@
 
 #:def addsource_local()
 subroutine addsource_local(qdt, dtfactor, qtC, wCT, wCTprim, qt, wnew, x,&
-    dx, gradT, qsourcesplit)
+    qsourcesplit)
   !$acc routine seq
 #:if defined('GRAVITY')
   use mod_usr, only: gravity_field
 #:endif    
   real(dp), intent(in)     :: qdt, dtfactor, qtC, qt
   real(dp), intent(in)     :: wCT(nw_phys), wCTprim(nw_phys)
-  real(dp), intent(in)     :: x(1:ndim),dx(1:ndim),gradT(1:ndim)
+  real(dp), intent(in)     :: x(1:ndim)
   real(dp), intent(inout)  :: wnew(nw_phys)
   logical, intent(in)      :: qsourcesplit
   ! .. local ..

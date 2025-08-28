@@ -1,10 +1,5 @@
 !setup.pl -d=3
 
- &components
- gravity           = .true.
- bfield           = .true.
-/
-
  &filelist
    base_filename    = 'output/ffhd_3d'
    autoconvert      = .true.
@@ -59,6 +54,11 @@
    xprobmin3       = 0.0d0
    xprobmax3       = 1.0d0
  /
+
+ &ffhd_list
+   ffhd_hyperbolic_thermal_conduction = .true.
+   ffhd_gravity                       = .true.
+/
 
  &paramlist
   slowsteps        = 10
