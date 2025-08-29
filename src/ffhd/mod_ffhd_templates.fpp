@@ -203,6 +203,7 @@
     call radiative_cooling_init_params(phys_gamma,He_abundance)
     call radiative_cooling_init(rc_fl)
     !$acc update device(rc_fl)
+    !$acc enter data copyin(rc_fl%tcool,rc_fl%Lcool, rc_fl%Yc)
     #:endif
 
   end subroutine phys_init
