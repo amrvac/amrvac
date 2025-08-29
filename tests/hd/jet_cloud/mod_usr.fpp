@@ -1,106 +1,208 @@
 module mod_usr
   use mod_amrvac
   use mod_physics
-
+  
   implicit none
-
-  double precision :: rhodens  = 10.0d0
-  double precision :: rholight = 1.0d0
-  double precision :: kx       = 4.0d0 * acos(-1.0d0)
-  double precision :: kz       = 32d0*atan(1.0d0)
-  double precision :: pint     = 2.5d0
-  double precision :: dlin     = 0.025d0
-  double precision :: sigma    = 0.00125d0
+  
+  double precision  :: beta, eta_jet, ca, mach, rc
 
 contains
 
   subroutine usr_init()
-
+  
     call set_coordinate_system("Cartesian_3D")
-
-    usr_init_one_grid => initonegrid_usr
+    
+    usr_set_parameters  => initglobaldata_usr
+    usr_init_one_grid   => initonegrid_usr
+    usr_aux_output      => extra_var_output
+    usr_add_aux_names   => extra_var_names_output
 
     call phys_activate()
 
   end subroutine usr_init
-
-  subroutine initonegrid_usr(ixGmin1,ixGmin2,ixGmin3,ixGmax1,ixGmax2,ixGmax3,&
-     ixmin1,ixmin2,ixmin3,ixmax1,ixmax2,ixmax3,w,x)
-    integer, intent(in)             :: ixGmin1,ixGmin2,ixGmin3,ixGmax1,ixGmax2,&
-       ixGmax3, ixmin1,ixmin2,ixmin3,ixmax1,ixmax2,ixmax3
-    double precision, intent(in)    :: x(ixGmin1:ixGmax1,ixGmin2:ixGmax2,&
-       ixGmin3:ixGmax3,1:ndim)
-    double precision, intent(inout) :: w(ixGmin1:ixGmax1,ixGmin2:ixGmax2,&
-       ixGmin3:ixGmax3,1:nw)
-    double precision                :: vextra
-
-    select case(iprob)
-    case(1)
-      vextra=0.0d0
-    case(2)
-      vextra = 10.0d0
-    case(3)
-      vextra=100.0d0
-    case default
-      error stop "Unknown iprob"
-    endselect
-
-    where(x(ixGmin1:ixGmax1,ixGmin2:ixGmax2,ixGmin3:ixGmax3,&
-       2)<0.25d0.or.x(ixGmin1:ixGmax1,ixGmin2:ixGmax2,ixGmin3:ixGmax3,&
-       2)>0.75d0)
-      w(ixGmin1:ixGmax1,ixGmin2:ixGmax2,ixGmin3:ixGmax3,rho_)=rholight
-    elsewhere
-      w(ixGmin1:ixGmax1,ixGmin2:ixGmax2,ixGmin3:ixGmax3,rho_)=rhodens
-    endwhere
-
-    w(ixGmin1:ixGmax1,ixGmin2:ixGmax2,ixGmin3:ixGmax3,p_)=pint
-
-    where((x(ixGmin1:ixGmax1,ixGmin2:ixGmax2,ixGmin3:ixGmax3,&
-       2)<=(0.25d0-dlin)).or.(x(ixGmin1:ixGmax1,ixGmin2:ixGmax2,&
-       ixGmin3:ixGmax3,2)>=(0.75d0+dlin)))
-      w(ixGmin1:ixGmax1,ixGmin2:ixGmax2,ixGmin3:ixGmax3,mom(1))=vextra-0.5d0
-    endwhere
-
-    where((x(ixGmin1:ixGmax1,ixGmin2:ixGmax2,ixGmin3:ixGmax3,&
-       2)>=(0.25d0+dlin)).and.(x(ixGmin1:ixGmax1,ixGmin2:ixGmax2,&
-       ixGmin3:ixGmax3,2)<=(0.75d0-dlin)))
-      w(ixGmin1:ixGmax1,ixGmin2:ixGmax2,ixGmin3:ixGmax3,mom(1))=vextra+0.5d0
-    endwhere
-
-    where((x(ixGmin1:ixGmax1,ixGmin2:ixGmax2,ixGmin3:ixGmax3,&
-       2)>(0.25d0-dlin)).and.(x(ixGmin1:ixGmax1,ixGmin2:ixGmax2,&
-       ixGmin3:ixGmax3,2)<(0.25d0+dlin)))
-      w(ixGmin1:ixGmax1,ixGmin2:ixGmax2,ixGmin3:ixGmax3,&
-         mom(1))=(x(ixGmin1:ixGmax1,ixGmin2:ixGmax2,ixGmin3:ixGmax3,&
-         2)-(0.25d0-dlin))* ((vextra+0.5d0)-(vextra-0.5d0))/(2.0d0*dlin)+&
-         (vextra-0.5d0)
-    endwhere
-
-    where((x(ixGmin1:ixGmax1,ixGmin2:ixGmax2,ixGmin3:ixGmax3,&
-       2)>(0.75d0-dlin)).and.(x(ixGmin1:ixGmax1,ixGmin2:ixGmax2,&
-       ixGmin3:ixGmax3,2)<(0.75d0+dlin)))
-      w(ixGmin1:ixGmax1,ixGmin2:ixGmax2,ixGmin3:ixGmax3,&
-         mom(1))=(x(ixGmin1:ixGmax1,ixGmin2:ixGmax2,ixGmin3:ixGmax3,&
-         2)-(0.75d0-dlin))* ((vextra-0.5d0)-(vextra+0.5d0))/(2.0d0*dlin)+&
-         (vextra+0.5d0)
-    endwhere
-
-    w(ixGmin1:ixGmax1,ixGmin2:ixGmax2,ixGmin3:ixGmax3,&
-       mom(2))=0.01d0*dsin(kx*x(ixGmin1:ixGmax1,ixGmin2:ixGmax2,&
-       ixGmin3:ixGmax3,1))* (dexp(-0.5d0*(x(ixGmin1:ixGmax1,ixGmin2:ixGmax2,&
-       ixGmin3:ixGmax3,2)-0.25d0)**2/sigma)+dexp(-0.5d0*(x(ixGmin1:ixGmax1,&
-       ixGmin2:ixGmax2,ixGmin3:ixGmax3,2)-0.75d0)**2/sigma))
+  
+  subroutine initglobaldata_usr
+  
+    ! jet to cloud density ratio parameter
+    beta    = 0.04d0
+    ! jet to ambient density
+    eta_jet = 3.00d0
+    ! ambient sound speed
+    ca      = 1.00d0
+    ! jet Mach number
+    mach    = 10.0d0
+    ! cloud to jet radii ratio
+    rc      = 1.5d0
     
-    w(ixGmin1:ixGmax1,ixGmin2:ixGmax2,ixGmin3:ixGmax3,&
-       mom(3))=0.1d0*dsin(kz*x(ixGmin1:ixGmax1,ixGmin2:ixGmax2,ixGmin3:ixGmax3,&
-       3))* (dexp(-0.5d0*(x(ixGmin1:ixGmax1,ixGmin2:ixGmax2,ixGmin3:ixGmax3,&
-       2)-0.25d0)**2/sigma)+dexp(-0.5d0*(x(ixGmin1:ixGmax1,ixGmin2:ixGmax2,&
-       ixGmin3:ixGmax3,2)-0.75d0)**2/sigma))
-   
+  end subroutine initglobaldata_usr
 
-    call phys_to_conserved(ixGmin1,ixGmin2,ixGmin3,ixGmax1,ixGmax2,ixGmax3,&
-       ixmin1,ixmin2,ixmin3,ixmax1,ixmax2,ixmax3,w,x)
+  subroutine initonegrid_usr(ixImin1,ixImin2,ixImin3,ixImax1,ixImax2,ixImax3,&
+      ixOmin1,ixOmin2,ixOmin3,ixOmax1,ixOmax2,ixOmax3, w, x)
+    use mod_global_parameters
+
+    integer, intent(in)             :: ixImin1,ixImin2,ixImin3,ixImax1,ixImax2,&
+       ixImax3,ixOmin1,ixOmin2,ixOmin3,ixOmax1,ixOmax2,ixOmax3
+    double precision, intent(in)    :: x(ixImin1:ixImax1,ixImin2:ixImax2,&
+       ixImin3:ixImax3, 1:ndim)
+    double precision, intent(inout) :: w(ixImin1:ixImax1,ixImin2:ixImax2,&
+       ixImin3:ixImax3, 1:nw)
+
+    double precision                :: rinlet(ixImin1:ixImax1,ixImin2:ixImax2,&
+       ixImin3:ixImax3), rcloud(ixImin1:ixImax1,ixImin2:ixImax2,&
+       ixImin3:ixImax3)
+    double precision                :: x1, x2, x3, sigma
+
+
+    ! jet comes in from left edge
+    rinlet(ixOmin1:ixOmax1,ixOmin2:ixOmax2,&
+       ixOmin3:ixOmax3) = abs(x(ixOmin1:ixOmax1,ixOmin2:ixOmax2,&
+       ixOmin3:ixOmax3, 2))
+    
+    rinlet(ixOmin1:ixOmax1,ixOmin2:ixOmax2,&
+       ixOmin3:ixOmax3) = dsqrt(x(ixOmin1:ixOmax1,ixOmin2:ixOmax2,&
+       ixOmin3:ixOmax3, 2)**2+x(ixOmin1:ixOmax1,ixOmin2:ixOmax2,&
+       ixOmin3:ixOmax3,3)**2)
+   
+    where(rinlet(ixOmin1:ixOmax1,ixOmin2:ixOmax2,&
+       ixOmin3:ixOmax3) <= 1.0d0 .and. abs(x(ixOmin1:ixOmax1,ixOmin2:ixOmax2,&
+       ixOmin3:ixOmax3, 1) - xprobmin1) <= 2.5d0)
+       ! configure jet
+       w(ixOmin1:ixOmax1,ixOmin2:ixOmax2,ixOmin3:ixOmax3, rho_)   = 1.0d0
+       w(ixOmin1:ixOmax1,ixOmin2:ixOmax2,ixOmin3:ixOmax3, mom(1)) = mach * ca
+       w(ixOmin1:ixOmax1,ixOmin2:ixOmax2,ixOmin3:ixOmax3, mom(2)) = 0.0d0
+       
+       w(ixOmin1:ixOmax1,ixOmin2:ixOmax2,ixOmin3:ixOmax3, mom(3)) = 0.0d0
+      
+       w(ixOmin1:ixOmax1,ixOmin2:ixOmax2,ixOmin3:ixOmax3,&
+           e_)     = ca**2 / (hd_gamma * eta_jet)
+    elsewhere
+       ! configure ambient medium
+       w(ixOmin1:ixOmax1,ixOmin2:ixOmax2,ixOmin3:ixOmax3,&
+           rho_)   = 1.0d0 / eta_jet
+       w(ixOmin1:ixOmax1,ixOmin2:ixOmax2,ixOmin3:ixOmax3, mom(1)) = 0.0d0
+       w(ixOmin1:ixOmax1,ixOmin2:ixOmax2,ixOmin3:ixOmax3, mom(2)) = 0.0d0
+       
+       w(ixOmin1:ixOmax1,ixOmin2:ixOmax2,ixOmin3:ixOmax3, mom(3)) = 0.0d0
+      
+       w(ixOmin1:ixOmax1,ixOmin2:ixOmax2,ixOmin3:ixOmax3,&
+           e_)     = ca**2 / (hd_gamma * eta_jet)
+    endwhere
+
+    ! configure cloud, center coordinates
+    x1    = 0.0d0
+    x2    = 1.2d0
+    x3    = 0.0d0
+    sigma = 0.75d0 * rc ! Gaussian width
+
+    rcloud(ixOmin1:ixOmax1,ixOmin2:ixOmax2,&
+       ixOmin3:ixOmax3) = ((x(ixOmin1:ixOmax1,ixOmin2:ixOmax2,ixOmin3:ixOmax3,&
+       1)-x1)**2+(x(ixOmin1:ixOmax1,ixOmin2:ixOmax2,ixOmin3:ixOmax3,&
+       2)-x2)**2+(x(ixOmin1:ixOmax1,ixOmin2:ixOmax2,ixOmin3:ixOmax3,&
+       3)-x3)**2) 
+
+    where(sqrt(rcloud(ixOmin1:ixOmax1,ixOmin2:ixOmax2,ixOmin3:ixOmax3)) <= rc)
+       w(ixOmin1:ixOmax1,ixOmin2:ixOmax2,ixOmin3:ixOmax3,&
+           rho_) = 1.0d0/eta_jet + (1.0d0/(beta**2)) * &
+          exp(-rcloud(ixOmin1:ixOmax1,ixOmin2:ixOmax2,&
+          ixOmin3:ixOmax3) / (sigma*sigma))
+    endwhere
+
+    call phys_to_conserved(ixImin1,ixImin2,ixImin3,ixImax1,ixImax2,ixImax3,&
+        ixOmin1,ixOmin2,ixOmin3,ixOmax1,ixOmax2,ixOmax3, w, x)
 
   end subroutine initonegrid_usr
 
+  subroutine specialbound_usr(qt, ixImin1,ixImin2,ixImin3,ixImax1,ixImax2,&
+     ixImax3, ixOmin1,ixOmin2,ixOmin3,ixOmax1,ixOmax2,ixOmax3, iB, w, x)
+    integer, intent(in)             :: ixImin1,ixImin2,ixImin3,ixImax1,ixImax2,&
+       ixImax3, ixOmin1,ixOmin2,ixOmin3,ixOmax1,ixOmax2,ixOmax3, iB
+    double precision, intent(in)    :: qt, x(ixImin1:ixImax1,ixImin2:ixImax2,&
+       ixImin3:ixImax3, 1:ndim)
+    double precision, intent(inout) :: w(ixImin1:ixImax1,ixImin2:ixImax2,&
+       ixImin3:ixImax3, 1:nw)
+
+    double precision                :: rinlet(ixImin1:ixImax1,ixImin2:ixImax2,&
+       ixImin3:ixImax3)
+
+    select case(iB)
+    case(1)
+       ! fixed left boundary
+       rinlet(ixOmin1:ixOmax1,ixOmin2:ixOmax2,&
+          ixOmin3:ixOmax3) = abs(x(ixOmin1:ixOmax1,ixOmin2:ixOmax2,&
+          ixOmin3:ixOmax3, 2))
+       
+       rinlet(ixOmin1:ixOmax1,ixOmin2:ixOmax2,&
+          ixOmin3:ixOmax3) = dsqrt(x(ixOmin1:ixOmax1,ixOmin2:ixOmax2,&
+          ixOmin3:ixOmax3, 2)**2+x(ixOmin1:ixOmax1,ixOmin2:ixOmax2,&
+          ixOmin3:ixOmax3,3)**2)
+      
+       where(rinlet(ixOmin1:ixOmax1,ixOmin2:ixOmax2,ixOmin3:ixOmax3) < 1.0d0)
+          w(ixOmin1:ixOmax1,ixOmin2:ixOmax2,ixOmin3:ixOmax3, rho_)   = 1.0d0
+          w(ixOmin1:ixOmax1,ixOmin2:ixOmax2,ixOmin3:ixOmax3,&
+              mom(1)) = mach * ca
+          w(ixOmin1:ixOmax1,ixOmin2:ixOmax2,ixOmin3:ixOmax3, mom(2)) = 0.0d0
+          
+          w(ixOmin1:ixOmax1,ixOmin2:ixOmax2,ixOmin3:ixOmax3, mom(3)) = 0.0d0
+         
+          w(ixOmin1:ixOmax1,ixOmin2:ixOmax2,ixOmin3:ixOmax3,&
+              e_)     = ca**2 / (hd_gamma * eta_jet)
+       elsewhere
+          w(ixOmin1:ixOmax1,ixOmin2:ixOmax2,ixOmin3:ixOmax3,&
+              rho_)   = 1.0d0/eta_jet
+          w(ixOmin1:ixOmax1,ixOmin2:ixOmax2,ixOmin3:ixOmax3, mom(1)) = 0.0d0
+          w(ixOmin1:ixOmax1,ixOmin2:ixOmax2,ixOmin3:ixOmax3, mom(2)) = 0.0d0
+          
+          w(ixOmin1:ixOmax1,ixOmin2:ixOmax2,ixOmin3:ixOmax3, mom(3)) = 0.0d0
+         
+          w(ixOmin1:ixOmax1,ixOmin2:ixOmax2,ixOmin3:ixOmax3,&
+              e_)     = ca**2 / (hd_gamma * eta_jet)
+       endwhere
+       call phys_to_conserved(ixImin1,ixImin2,ixImin3,ixImax1,ixImax2,ixImax3,&
+           ixOmin1,ixOmin2,ixOmin3,ixOmax1,ixOmax2,ixOmax3, w, x)
+    case default
+       call mpistop('boundary not defined')
+    end select
+
+  end subroutine specialbound_usr
+  
+  subroutine extra_var_output(ixImin1,ixImin2,ixImin3,ixImax1,ixImax2,ixImax3,&
+      ixOmin1,ixOmin2,ixOmin3,ixOmax1,ixOmax2,ixOmax3, w, x, normconv)
+    use mod_physics
+    use mod_global_parameters
+
+    integer, intent(in)              :: ixImin1,ixImin2,ixImin3,ixImax1,&
+       ixImax2,ixImax3, ixOmin1,ixOmin2,ixOmin3,ixOmax1,ixOmax2,ixOmax3
+    double precision, intent(in)     :: x(ixImin1:ixImax1,ixImin2:ixImax2,&
+       ixImin3:ixImax3, 1:ndim)
+    double precision                 :: w(ixImin1:ixImax1,ixImin2:ixImax2,&
+       ixImin3:ixImax3, nw+nwauxio), wlocal(ixImin1:ixImax1,ixImin2:ixImax2,&
+       ixImin3:ixImax3, 1:nw)
+    double precision                 :: normconv(0:nw+nwauxio)
+
+    double precision                 :: pth(ixImin1:ixImax1,ixImin2:ixImax2,&
+       ixImin3:ixImax3)
+    
+    wlocal(ixImin1:ixImax1,ixImin2:ixImax2,ixImin3:ixImax3,&
+        1:nw) = w(ixImin1:ixImax1,ixImin2:ixImax2,ixImin3:ixImax3, 1:nw)
+
+    ! AGILE: tbd
+    ! store temperature
+!    call phys_get_pthermal(wlocal, x, ixImin1,ixImin2,ixImin3,ixImax1,ixImax2,&
+!       ixImax3, ixOmin1,ixOmin2,ixOmin3,ixOmax1,ixOmax2,ixOmax3, pth)
+!    w(ixOmin1:ixOmax1,ixOmin2:ixOmax2,ixOmin3:ixOmax3,&
+!        nw+1) = pth(ixOmin1:ixOmax1,ixOmin2:ixOmax2,&
+!       ixOmin3:ixOmax3) / w(ixOmin1:ixOmax1,ixOmin2:ixOmax2,ixOmin3:ixOmax3,&
+!        rho_)
+    w(ixOmin1:ixOmax1,ixOmin2:ixOmax2,ixOmin3:ixOmax3,&
+        nw+1) = 1.0d0
+    
+  end subroutine extra_var_output
+  
+  subroutine extra_var_names_output(varnames)
+    character(len=*)  :: varnames
+    
+    varnames = "T"
+    
+  end subroutine extra_var_names_output
+    
 end module mod_usr

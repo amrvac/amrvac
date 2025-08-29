@@ -1,21 +1,21 @@
 module mod_usr
-  use mod_hd
+  use mod_amrvac
+  use mod_physics
+  
   implicit none
+  
   double precision  :: beta, eta_jet, ca, mach, rc
 
 contains
 
   subroutine usr_init()
   
-    call set_coordinate_system("Cartesian_2D")
+    call set_coordinate_system("Cartesian_3D")
     
     usr_set_parameters  => initglobaldata_usr
     usr_init_one_grid   => initonegrid_usr
-    usr_special_bc      => specialbound_usr
-    usr_aux_output      => extra_var_output
-    usr_add_aux_names   => extra_var_names_output
 
-    call hd_activate()
+    call phys_activate()
 
   end subroutine usr_init
   
