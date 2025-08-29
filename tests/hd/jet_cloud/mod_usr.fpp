@@ -1,4 +1,3 @@
-! inlining to_conservative for performance:
 module mod_usr
   use mod_amrvac
   use mod_physics
@@ -166,11 +165,10 @@ contains
                  
                  w(ix1,ix2,ix3, iw_mom(1)) = w(ix1,ix2,ix3, iw_rho) * w(ix1,ix2,ix3, iw_mom(1))
 
-
                  w(ix1,ix2,ix3, iw_mom(2)) = w(ix1,ix2,ix3, iw_rho) * w(ix1,ix2,ix3, iw_mom(2))
 
-
                  w(ix1,ix2,ix3, iw_mom(3)) = w(ix1,ix2,ix3, iw_rho) * w(ix1,ix2,ix3, iw_mom(3))
+
               end do
            end do
         end do
