@@ -12,7 +12,9 @@ contains
   subroutine bc_phys(iside,idims,time,qdt,s,ixGmin1,ixGmin2,ixGmin3,ixGmax1,&
        ixGmax2,ixGmax3,ixBmin1,ixBmin2,ixBmin3,ixBmax1,ixBmax2,ixBmax3)
     !$acc routine vector
-!    use mod_usr_methods, only: usr_special_bc
+    use mod_usr, only: specialbound_usr!, beta, eta_jet, ca, mach, rc
+!    use mod_physics, only: to_conservative
+!    use mod_physics_vars
     use mod_global_parameters
 
     integer, intent(in) :: iside, idims, ixGmin1,ixGmin2,ixGmin3,ixGmax1,&
@@ -28,6 +30,7 @@ contains
        ixOmax3, ixMmin1,ixMmin2,ixMmin3,ixMmax1,ixMmax2,ixMmax3, nghostcellsi,&
        iib1,iib2,iib3
     logical  :: isphysbound
+!    double precision :: rinlet2
 
     associate(x=>s%x,w=>s%w,ws=>s%ws)
     select case (idims)
@@ -369,14 +372,48 @@ contains
        end if 
     end select
 
-    !AGILE: tbd
     ! do user defined special boundary conditions
-    ! if (any(typeboundary(1:nwflux+nwaux,iB)==bc_special)) then
-    !    if (.not. associated(usr_special_bc)) call &
-    !       mpistop("usr_special_bc not defined")
-    !    call usr_special_bc(time,ixGmin1,ixGmin2,ixGmin3,ixGmax1,ixGmax2,&
-    !       ixGmax3,ixOmin1,ixOmin2,ixOmin3,ixOmax1,ixOmax2,ixOmax3,iB,w,x)
-    ! end if
+    if (any(typeboundary(1:nwflux+nwaux,iB)==bc_special)) then
+
+    ! for DEBUG:
+    ! select case(iB)
+    ! case(1)
+    !    ! fixed left boundary
+       
+    !    !$acc loop collapse(3) vector private(rinlet2)
+    !    do ix3=ixOmin3,ixOmax3
+    !       do ix2=ixOmin2,ixOmax2
+    !          do ix1=ixOmin1,ixOmax1
+
+    !             rinlet2 = x(ix1,ix2,ix3, 2)**2 + x(ix1,ix2,ix3, 3)**2
+
+    !             if (rinlet2 < 1.0d0) then
+    !                w(ix1,ix2,ix3, rho_)   = 1.0d0
+    !                w(ix1,ix2,ix3, mom(1)) = mach * ca
+    !                w(ix1,ix2,ix3, mom(2)) = 0.0d0
+    !                w(ix1,ix2,ix3, mom(3)) = 0.0d0
+    !                w(ix1,ix2,ix3, e_)     = ca**2 / (hd_gamma * eta_jet)
+    !             else
+    !                w(ix1,ix2,ix3, rho_)   = 1.0d0 / eta_jet
+    !                w(ix1,ix2,ix3, mom(1)) = 0.0d0
+    !                w(ix1,ix2,ix3, mom(2)) = 0.0d0
+    !                w(ix1,ix2,ix3, mom(3)) = 0.0d0
+    !                w(ix1,ix2,ix3, e_)     = ca**2 / (hd_gamma * eta_jet)
+    !             end if
+
+    !             call to_conservative(w(ix1,ix2,ix3,:))
+
+    !          end do
+    !       end do
+    !    end do
+
+    ! ! case default
+    ! !    call mpistop('boundary not defined')
+    !  end select
+       
+        call specialbound_usr(time,ixGmin1,ixGmin2,ixGmin3,ixGmax1,ixGmax2,&
+           ixGmax3,ixOmin1,ixOmin2,ixOmin3,ixOmax1,ixOmax2,ixOmax3,iB,w,x)
+     end if
 
     end associate
   end subroutine bc_phys

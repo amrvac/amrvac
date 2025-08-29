@@ -1,3 +1,4 @@
+! inlining to_conservative for performance:
 module mod_usr
   use mod_amrvac
   use mod_physics
@@ -5,9 +6,10 @@ module mod_usr
   implicit none
   
   double precision  :: beta, eta_jet, ca, mach, rc
+  !$acc declare create( beta, eta_jet, ca, mach, rc )
 
 contains
-
+  
   subroutine usr_init()
   
     call set_coordinate_system("Cartesian_3D")
@@ -33,6 +35,8 @@ contains
     mach    = 10.0d0
     ! cloud to jet radii ratio
     rc      = 1.5d0
+
+    !$acc update device( beta, eta_jet, ca, mach, rc )
     
   end subroutine initglobaldata_usr
 
@@ -113,7 +117,9 @@ contains
   end subroutine initonegrid_usr
 
   subroutine specialbound_usr(qt, ixImin1,ixImin2,ixImin3,ixImax1,ixImax2,&
-     ixImax3, ixOmin1,ixOmin2,ixOmin3,ixOmax1,ixOmax2,ixOmax3, iB, w, x)
+       ixImax3, ixOmin1,ixOmin2,ixOmin3,ixOmax1,ixOmax2,ixOmax3, iB, w, x)
+    !$acc routine vector
+
     integer, intent(in)             :: ixImin1,ixImin2,ixImin3,ixImax1,ixImax2,&
        ixImax3, ixOmin1,ixOmin2,ixOmin3,ixOmax1,ixOmax2,ixOmax3, iB
     double precision, intent(in)    :: qt, x(ixImin1:ixImax1,ixImin2:ixImax2,&
@@ -121,49 +127,57 @@ contains
     double precision, intent(inout) :: w(ixImin1:ixImax1,ixImin2:ixImax2,&
        ixImin3:ixImax3, 1:nw)
 
-    double precision                :: rinlet(ixImin1:ixImax1,ixImin2:ixImax2,&
-       ixImin3:ixImax3)
+    
+     double precision                :: rinlet2, inv_gamma_m1
+     integer                         :: ix1,ix2,ix3
 
-    select case(iB)
-    case(1)
-       ! fixed left boundary
-       rinlet(ixOmin1:ixOmax1,ixOmin2:ixOmax2,&
-          ixOmin3:ixOmax3) = abs(x(ixOmin1:ixOmax1,ixOmin2:ixOmax2,&
-          ixOmin3:ixOmax3, 2))
-       
-       rinlet(ixOmin1:ixOmax1,ixOmin2:ixOmax2,&
-          ixOmin3:ixOmax3) = dsqrt(x(ixOmin1:ixOmax1,ixOmin2:ixOmax2,&
-          ixOmin3:ixOmax3, 2)**2+x(ixOmin1:ixOmax1,ixOmin2:ixOmax2,&
-          ixOmin3:ixOmax3,3)**2)
-      
-       where(rinlet(ixOmin1:ixOmax1,ixOmin2:ixOmax2,ixOmin3:ixOmax3) < 1.0d0)
-          w(ixOmin1:ixOmax1,ixOmin2:ixOmax2,ixOmin3:ixOmax3, rho_)   = 1.0d0
-          w(ixOmin1:ixOmax1,ixOmin2:ixOmax2,ixOmin3:ixOmax3,&
-              mom(1)) = mach * ca
-          w(ixOmin1:ixOmax1,ixOmin2:ixOmax2,ixOmin3:ixOmax3, mom(2)) = 0.0d0
-          
-          w(ixOmin1:ixOmax1,ixOmin2:ixOmax2,ixOmin3:ixOmax3, mom(3)) = 0.0d0
-         
-          w(ixOmin1:ixOmax1,ixOmin2:ixOmax2,ixOmin3:ixOmax3,&
-              e_)     = ca**2 / (hd_gamma * eta_jet)
-       elsewhere
-          w(ixOmin1:ixOmax1,ixOmin2:ixOmax2,ixOmin3:ixOmax3,&
-              rho_)   = 1.0d0/eta_jet
-          w(ixOmin1:ixOmax1,ixOmin2:ixOmax2,ixOmin3:ixOmax3, mom(1)) = 0.0d0
-          w(ixOmin1:ixOmax1,ixOmin2:ixOmax2,ixOmin3:ixOmax3, mom(2)) = 0.0d0
-          
-          w(ixOmin1:ixOmax1,ixOmin2:ixOmax2,ixOmin3:ixOmax3, mom(3)) = 0.0d0
-         
-          w(ixOmin1:ixOmax1,ixOmin2:ixOmax2,ixOmin3:ixOmax3,&
-              e_)     = ca**2 / (hd_gamma * eta_jet)
-       endwhere
-       call phys_to_conserved(ixImin1,ixImin2,ixImin3,ixImax1,ixImax2,ixImax3,&
-           ixOmin1,ixOmin2,ixOmin3,ixOmax1,ixOmax2,ixOmax3, w, x)
-    case default
-       call mpistop('boundary not defined')
-    end select
 
-  end subroutine specialbound_usr
+     select case(iB)
+
+     ! fixed left boundary
+     case(1)
+
+        inv_gamma_m1 = 1.0d0/(hd_gamma - 1.0d0)
+        
+        !$acc loop collapse(3) vector
+        do ix3=ixOmin3,ixOmax3
+           do ix2=ixOmin2,ixOmax2
+              do ix1=ixOmin1,ixOmax1
+
+                 rinlet2 = x(ix1,ix2,ix3, 2)**2 + x(ix1,ix2,ix3, 3)**2
+
+                 if (rinlet2 < 1.0d0) then
+                    w(ix1,ix2,ix3, rho_)   = 1.0d0
+                    w(ix1,ix2,ix3, mom(1)) = mach * ca
+                    w(ix1,ix2,ix3, mom(2)) = 0.0d0
+                    w(ix1,ix2,ix3, mom(3)) = 0.0d0
+                    w(ix1,ix2,ix3, e_)     = ca**2 / (hd_gamma * eta_jet)
+                 else
+                    w(ix1,ix2,ix3, rho_)   = 1.0d0 / eta_jet
+                    w(ix1,ix2,ix3, mom(1)) = 0.0d0
+                    w(ix1,ix2,ix3, mom(2)) = 0.0d0
+                    w(ix1,ix2,ix3, mom(3)) = 0.0d0
+                    w(ix1,ix2,ix3, e_)     = ca**2 / (hd_gamma * eta_jet)
+                 end if
+
+                 ! inline to_conservative() for performance:
+                 w(ix1,ix2,ix3, e_) = w(ix1,ix2,ix3, e_) * inv_gamma_m1 + 0.5_dp * w(ix1,ix2,ix3, rho_) * &
+                      sum(w(ix1,ix2,ix3,iw_mom(1:ndim))**2)
+                 
+                 w(ix1,ix2,ix3, iw_mom(1)) = w(ix1,ix2,ix3, iw_rho) * w(ix1,ix2,ix3, iw_mom(1))
+
+
+                 w(ix1,ix2,ix3, iw_mom(2)) = w(ix1,ix2,ix3, iw_rho) * w(ix1,ix2,ix3, iw_mom(2))
+
+
+                 w(ix1,ix2,ix3, iw_mom(3)) = w(ix1,ix2,ix3, iw_rho) * w(ix1,ix2,ix3, iw_mom(3))
+              end do
+           end do
+        end do
+
+     end select
+
+   end subroutine specialbound_usr
   
   subroutine extra_var_output(ixImin1,ixImin2,ixImin3,ixImax1,ixImax2,ixImax3,&
       ixOmin1,ixOmin2,ixOmin3,ixOmax1,ixOmax2,ixOmax3, w, x, normconv)
