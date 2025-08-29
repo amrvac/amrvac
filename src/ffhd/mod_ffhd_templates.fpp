@@ -200,7 +200,6 @@
     !$acc update device(nwgc)
 
     #:if defined('COOLING')
-    allocate(rc_fl)
     call radiative_cooling_init_params(phys_gamma,He_abundance)
     call radiative_cooling_init(rc_fl)
     !$acc update device(rc_fl)
@@ -260,7 +259,7 @@ subroutine addsource_local(qdt, dtfactor, qtC, wCT, wCTprim, qt, wnew, x,&
      field = gravity_field(wCT, x, idim)
      mag = bfield(x, idim)
      wnew(iw_mom(1)) = wnew(iw_mom(1)) + qdt * field * wCT(iw_rho) * mag
-     wnew(iw_e)         = wnew(iw_e) + qdt * field * wCT(iw_mom(1)) * mag
+     wnew(iw_e)      = wnew(iw_e) + qdt * field * wCT(iw_mom(1)) * mag
   end do
 #:endif  
 !> p*divb to be added here
@@ -291,7 +290,7 @@ pure subroutine to_conservative(u)
   real(dp), intent(inout) :: u(nw_phys)
   real(dp)                :: inv_gamma_m1
 
-  inv_gamma_m1 = 1.0d0/(phys_gamma - 1.0_dp)
+  inv_gamma_m1 = 1.0_dp/(phys_gamma - 1.0_dp)
 
   ! Compute energy from pressure and kinetic energy
   u(iw_e) = u(iw_e) * inv_gamma_m1 + 0.5_dp * u(iw_rho) * &
@@ -315,7 +314,7 @@ subroutine get_flux(u, xC, flux_dim, flux)
   real(dp)              :: inv_gamma_m1
   real(dp)              :: mag
 
-  inv_gamma_m1 = 1.0d0/(phys_gamma - 1.0_dp)
+  inv_gamma_m1 = 1.0_dp/(phys_gamma - 1.0_dp)
 
   mag = bfield(xC, flux_dim)
 

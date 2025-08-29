@@ -77,6 +77,9 @@ module mod_radiative_cooling
 
   end type rc_fluid
 
+  type(rc_fluid)   :: rc_fl
+  !$acc declare create(rc_fl)
+
   ! Interpolatable tables
 
   double precision :: t_JCcorona(1:45), t_DM_2(1:76), t_Colgan(1:55) 

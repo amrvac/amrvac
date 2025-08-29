@@ -13,17 +13,11 @@ module mod_physics
 
   !> Radiative cooling fluid
   #:if defined('COOLING')
-    use mod_radiative_cooling, only: rc_fluid
+    use mod_radiative_cooling, only: rc_fl
   #:endif
   
   implicit none
   public
-
-  #:if defined('COOLING')
-  !> Radiative cooling fluid
-  type(rc_fluid), public, allocatable :: rc_fl
-  !$acc declare create(rc_fl)
-  #:endif
   
   procedure(sub_check_params), pointer    :: phys_check_params           => &
      null()

@@ -6,6 +6,7 @@ module mod_usr
   implicit none
 
   double precision :: scale, radius
+  !$acc declare create(scale, radius)
 
 contains
 
@@ -109,7 +110,7 @@ contains
 
   !> analytical fomula for the unit vectors along B
   pure real(dp) function bfield(x, idim) result(field)
-    !>$acc routine seq
+    !$acc routine seq
     real(dp), intent(in)    :: x(1:ndim)
     integer, value, intent(in)     :: idim
 
@@ -120,8 +121,8 @@ contains
   end function bfield
 
   subroutine addsource_usr(qdt, dtfactor, qtC, wCT, wCTprim, qt, wnew, x, qsourcesplit)
+    !$acc routine seq
     #:if defined('COOLING')
-    use mod_physics, only: rc_fl
     use mod_radiative_cooling, only: getvar_cooling_exact
     #:endif
 

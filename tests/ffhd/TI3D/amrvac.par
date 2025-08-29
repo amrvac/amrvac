@@ -10,6 +10,8 @@
    convert_type     = 'vtuBCCmpi'
    saveprim         = T
  /
+   base_filename    = '/scratch/leuven/377/vsc37715/agile_test/ti'
+
 
  &savelist
    itsave(1,1)      = 0
