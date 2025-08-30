@@ -211,6 +211,7 @@
 
     !> here for hypertc
     hypertc_kappa = 8.0_dp*unit_temperature**3.5_dp/unit_length/unit_density/unit_velocity**3.0_dp
+    !$acc update device(hypertc_kappa)
 
   end subroutine phys_init
 #:enddef
@@ -261,7 +262,7 @@ subroutine addsource_local(qdt, dtfactor, qtC, wCT, wCTprim, qt, wnew, x,&
   ! .. local ..
   integer                  :: idim
   real(dp)                 :: field, mag, divb
-  real(dp)                 :: Te, tau, htc_qrsc, sigT, invdx, taumin
+  real(dp)                 :: Te, tau, htc_qrsc, sigT, taumin
 
 #:if defined('GRAVITY')
   do idim = 1, ndim
@@ -285,8 +286,7 @@ subroutine addsource_local(qdt, dtfactor, qtC, wCT, wCTprim, qt, wnew, x,&
   htc_qrsc = 0.0_dp
   do idim = 1, ndim
     mag      = bfield(x, idim)
-    invdx    = 1.0_dp/dx(idim)
-    htc_qrsc = htc_qrsc + sigT*mag*0.0_dp*invdx !> gradT(idim) to be added and move the entire to nonlocal
+    htc_qrsc = htc_qrsc + sigT*mag*0.0_dp !> gradT(idim) to be added and move the entire to nonlocal
   end do
   htc_qrsc   = (htc_qrsc+wCT(iw_q))/tau
   wnew(iw_q) = wnew(iw_q) - qdt*htc_qrsc
