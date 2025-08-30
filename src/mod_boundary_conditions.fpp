@@ -12,9 +12,9 @@ contains
   subroutine bc_phys(iside,idims,time,qdt,s,ixGmin1,ixGmin2,ixGmin3,ixGmax1,&
        ixGmax2,ixGmax3,ixBmin1,ixBmin2,ixBmin3,ixBmax1,ixBmax2,ixBmax3)
     !$acc routine vector
-    use mod_usr, only: specialbound_usr!, beta, eta_jet, ca, mach, rc
-!    use mod_physics, only: to_conservative
-!    use mod_physics_vars
+#:if defined('SPECIALBOUNDARY')    
+    use mod_usr, only: specialbound_usr
+#:endif
     use mod_global_parameters
 
     integer, intent(in) :: iside, idims, ixGmin1,ixGmin2,ixGmin3,ixGmax1,&
@@ -30,7 +30,6 @@ contains
        ixOmax3, ixMmin1,ixMmin2,ixMmin3,ixMmax1,ixMmax2,ixMmax3, nghostcellsi,&
        iib1,iib2,iib3
     logical  :: isphysbound
-!    double precision :: rinlet2
 
     associate(x=>s%x,w=>s%w,ws=>s%ws)
     select case (idims)
@@ -372,6 +371,7 @@ contains
        end if 
     end select
 
+#:if defined('SPECIALBOUNDARY')    
     ! do user defined special boundary conditions
     if (any(typeboundary(1:nwflux+nwaux,iB)==bc_special)) then
 
@@ -379,7 +379,8 @@ contains
             ixGmax3,ixOmin1,ixOmin2,ixOmin3,ixOmax1,ixOmax2,ixOmax3,iB,w,x)
 
     end if
-
+#:endif
+    
   end associate
   end subroutine bc_phys
 

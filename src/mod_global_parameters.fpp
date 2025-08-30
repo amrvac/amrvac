@@ -780,6 +780,9 @@ module mod_global_parameters
   integer, parameter :: bc_data=8
   integer, parameter :: bc_character=9
   integer, parameter :: bc_icarus=10
+  !> signal to the precompiler that we need special boundaries:
+  logical            :: specialboundary = .false.
+  !$acc declare copyin(specialboundary)
 
   !> whether copy values instead of interpolation in ghost cells of finer blocks
   logical :: ghost_copy=.false.

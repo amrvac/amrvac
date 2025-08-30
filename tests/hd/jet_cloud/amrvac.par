@@ -32,6 +32,7 @@
    typeboundary_max2 = 5*'noinflow'
    typeboundary_min3 = 5*'noinflow'
    typeboundary_max3 = 5*'noinflow'
+   specialboundary   = .true.
  /
 
  &meshlist

@@ -23,6 +23,13 @@ options = ["hd", "ffhd"]
 flags = ["fypp", "hash"]
 default = "hd"
 
+[boundlist]
+[boundlist.specialboundary]
+type = "flag"
+name = "SPECIALBOUNDARY"
+flags = ["fypp", "hash"]
+default = false
+
 [hd_list]
 [hd_list.hd_gravity]
 type = "flag"
