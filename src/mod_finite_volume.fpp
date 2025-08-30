@@ -29,7 +29,7 @@ contains
      ixImin3,ixImax1,ixImax2,ixImax3, ixOmin1,ixOmin2,ixOmin3,ixOmax1,ixOmax2,&
      ixOmax3, idimsmin,idimsmax, qtC, bga, qt, bgb, fC, fE)
     use mod_global_parameters
-    #:if defined('USR_SOURCE')
+    #:if defined('SOURCE_USR')
     use mod_usr, only: addsource_usr
     #:endif
 
@@ -113,7 +113,7 @@ contains
                 bgb%w(ix1, ix2, ix3, :, n) = bgb%w(ix1, ix2, ix3, :,&
                      n) + qdt * (f(:, 1) - f(:, 2)) * inv_dr(3)
 
-#:if defined('SOURCE_TERM')
+#:if defined('SOURCE_LOCAL')
                 ! Add source terms:
                 xloc(1:ndim) = ps(n)%x(ix1, ix2, ix3, 1:ndim)
                 wprim        = uprim(1:nw_phys, ix1, ix2, ix3)
@@ -123,8 +123,9 @@ contains
                      dtfactor*dble(idimsmax-idimsmin+1)/dble(ndim), qtC, wCT,&
                      wprim, qt, wnew, xloc, .false. )
                 bgb%w(ix1, ix2, ix3, :, n) = wnew(:)
+#:endif             
 
-         #:if defined('USR_SOURCE')
+#:if defined('SOURCE_USR')
                ! Add source terms:
                xloc(1:ndim) = ps(n)%x(ix1, ix2, ix3, 1:ndim)
                wprim        = uprim(1:nw_phys, ix1, ix2, ix3)
@@ -134,8 +135,7 @@ contains
                      dtfactor*dble(idimsmax-idimsmin+1)/dble(ndim), qtC, wCT,&
                      wprim, qt, wnew, xloc, .false. )
                bgb%w(ix1, ix2, ix3, :, n) = wnew(:)
-         #:endif
-#:endif             
+#:endif
 
 
              end do

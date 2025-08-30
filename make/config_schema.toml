@@ -1,33 +1,19 @@
 # This file sets what settings in amrvac.par are read as compile
 # time flags and whether they should affect the build hash.
+# [components] is for hidden implied options inferred by the precompiler
 
 [components]
-[components.source_term]
+[components.source_nonlocal]
 type = "flag"
-name = "SOURCE_TERM"
-flags = ["fypp"]
-default = false
-
-[components.cooling]
-type = "flag"
-name = "COOLING"
+name = "SOURCE_NONLOCAL"
 flags = ["fypp", "hash"]
 default = false
-implies = ["components.source_term"]
 
-[components.gravity]
+[components.source_local]
 type = "flag"
-name = "GRAVITY"
+name = "SOURCE_LOCAL"
 flags = ["fypp", "hash"]
 default = false
-implies = ["components.source_term"]
-
-[components.usr_source]
-type = "flag"
-name = "USR_SOURCE"
-flags = ["fypp", "hash"]
-default = false
-implies = ["components.source_term"]
 
 [methodlist]
 [methodlist.phys]
@@ -36,3 +22,31 @@ name = "PHYS"
 options = ["hd", "mhd", "ffhd"]
 flags = ["fypp", "hash"]
 default = "hd"
+
+[phys_list]
+[phys_list.gravity]
+type = "flag"
+name = "GRAVITY"
+flags = ["fypp", "hash"]
+default = false
+implies = ["components.source_local"]
+
+[phys_list.hyperbolic_thermal_conduction]
+type = "flag"
+name = "HYPERTC"
+flags = []
+default = false
+implies = ["components.source_nonlocal"]
+
+[phys_list.radiative_cooling]
+type = "flag"
+name = "COOLING"
+flags = ["fypp", "hash"]
+default = false
+implies = ["components.source_local"]
+
+[phys_list.source_usr]
+type = "flag"
+name = "SOURCE_USR"
+flags = ["fypp", "hash"]
+default = false

@@ -1,9 +1,3 @@
- &components
-   gravity = .false.
-   cooling = .true.
-   usr_source = .false.
- /
-
  &filelist
    base_filename    = 'output/ti3d'
    autoconvert      = F
@@ -70,6 +64,12 @@
    ncool = 4000
    coolmethod = 'exact'
    coolcurve = 'Colgan_DM'
+ /
+
+ &phys_list
+   gravity = .false.
+   source_usr = .false.
+   radiative_cooling = .true.
  /
 
  &usr_list

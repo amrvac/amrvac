@@ -36,6 +36,10 @@
   !> Helium abundance over Hydrogen
   double precision, public                :: He_abundance=0.1d0
 
+  !> Whether to use gravity
+  logical, public                         :: hd_gravity = .false.
+  !$acc declare copyin(hd_gravity)
+
   !> Whether plasma is partially ionized
   logical, public                         :: hd_partial_ionization = .false.
   !$acc declare copyin(hd_partial_ionization)
@@ -58,7 +62,7 @@
     integer                      :: n
 
     namelist /hd_list/ hd_energy, hd_gamma, hd_adiab, hd_partial_ionization,&
-        hd_force_diagonal, hd_particles
+        hd_force_diagonal, hd_particles, hd_gravity
 
     do n = 1, size(files)
        open(unitpar, file=trim(files(n)), status="old")
@@ -67,7 +71,7 @@
     end do
 
 #ifdef _OPENACC
- !$acc update device(hd_energy, hd_gamma, hd_adiab, hd_partial_ionization, hd_force_diagonal, hd_particles)
+ !$acc update device(hd_energy, hd_gamma, hd_adiab, hd_partial_ionization, hd_force_diagonal, hd_particles, hd_gravity)
 #endif
 
   end subroutine read_params

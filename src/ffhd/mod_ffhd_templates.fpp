@@ -43,8 +43,21 @@
   double precision, public                :: hypertc_kappa=-1.0d0
   !$acc declare copyin(hypertc_kappa)
 
+  !> switch for hyperbolic thermal conduction
+  logical, public                         :: ffhd_hyperbolic_thermal_conduction = .false.
+  !$acc declare copyin(ffhd_hyperbolic_thermal_conduction)
+
   !> Whether plasma is partially ionized
   logical, public                         :: ffhd_partial_ionization = .false.
+  !$acc declare copyin(ffhd_partial_ionization)
+
+  !> switch for gravity
+  logical, public                         :: ffhd_gravity = .false.
+  !$acc declare copyin(ffhd_gravity)
+
+  !> switch for radiative cooling
+  logical, public                         :: ffhd_radiative_cooling = .false.
+  !$acc declare copyin(ffhd_radiative_cooling)
 
 #:enddef
 
