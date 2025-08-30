@@ -37,9 +37,10 @@
 
   !> The helium abundance
   double precision, public                :: He_abundance=0.1d0
+  !$acc declare copyin(He_abundance)
 
   !> The thermal conductivity kappa in hyperbolic thermal conduction
-  double precision, public                :: hypertc_kappa
+  double precision, public                :: hypertc_kappa=-1.0d0
   !$acc declare copyin(hypertc_kappa)
 
   !> Whether plasma is partially ionized
@@ -193,7 +194,9 @@
 
     ! Set index for heat flux
     q_ = var_set_q()
+    need_global_cs2max = .true.
     !$acc update device(q_)
+    !$acc update device(need_global_cs2max)
 
     ! set number of variables which need update ghostcells
     nwgc=nwflux
@@ -205,6 +208,9 @@
     !$acc update device(rc_fl)
     !$acc enter data copyin(rc_fl%tcool,rc_fl%Lcool, rc_fl%Yc)
     #:endif
+
+    !> here for hypertc
+    hypertc_kappa = 8.0_dp*unit_temperature**3.5_dp/unit_length/unit_density/unit_velocity**3.0_dp
 
   end subroutine phys_init
 #:enddef
@@ -246,6 +252,7 @@ subroutine addsource_local(qdt, dtfactor, qtC, wCT, wCTprim, qt, wnew, x,&
   use mod_radiative_cooling, only: radiative_cooling_add_source
 #:endif
 
+  use mod_global_parameters, only : dt, cs2max_global
   real(dp), intent(in)     :: qdt, dtfactor, qtC, qt
   real(dp), intent(in)     :: wCT(nw_phys), wCTprim(nw_phys)
   real(dp), intent(in)     :: x(1:ndim)
@@ -253,7 +260,8 @@ subroutine addsource_local(qdt, dtfactor, qtC, wCT, wCTprim, qt, wnew, x,&
   logical, intent(in)      :: qsourcesplit
   ! .. local ..
   integer                  :: idim
-  real(dp)                 :: field, mag
+  real(dp)                 :: field, mag, divb
+  real(dp)                 :: Te, tau, htc_qrsc, sigT, invdx, taumin
 
 #:if defined('GRAVITY')
   do idim = 1, ndim
@@ -263,7 +271,26 @@ subroutine addsource_local(qdt, dtfactor, qtC, wCT, wCTprim, qt, wnew, x,&
      wnew(iw_e)      = wnew(iw_e) + qdt * field * wCT(iw_mom(1)) * mag
   end do
 #:endif  
-!> p*divb to be added here
+
+  !> p*divb to be added here
+  divb = 0.0_dp
+  wnew(iw_mom(1)) = wnew(iw_mom(1)) + qdt*wCTprim(iw_e)*divb
+
+  !> hyperbolic thermal conduction
+  Te     = wCTprim(iw_e) / wCTprim(iw_rho)
+  sigT   = hypertc_kappa*sqrt(Te**5)
+  taumin = 0.4_dp
+  tau = max(taumin*qt, sigT*Te*(phys_gamma-1.0_dp)/wCTprim(iw_e)/cs2max_global)
+
+  htc_qrsc = 0.0_dp
+  do idim = 1, ndim
+    mag      = bfield(x, idim)
+    invdx    = 1.0_dp/dx(idim)
+    htc_qrsc = htc_qrsc + sigT*mag*0.0_dp*invdx !> gradT(idim) to be added and move the entire to nonlocal
+  end do
+  htc_qrsc   = (htc_qrsc+wCT(iw_q))/tau
+  wnew(iw_q) = wnew(iw_q) - qdt*htc_qrsc
+
 
 #:if defined('COOLING')
   call radiative_cooling_add_source(qdt,wCT,wCTprim,wnew,x,rc_fl)
@@ -352,28 +379,38 @@ pure real(dp) function get_cmax(u, x, flux_dim) result(wC)
 end function get_cmax
 #:enddef  
 
-#:def get_rho()
-pure double precision function get_rho(w, x) result(rho)
+#:def get_cs2()
+!> obtain the squared sound speed
+pure real(dp) function get_cs2(u) result(cs2)
   !$acc routine seq
-  double precision, intent(in)  :: w(nwflux)
-  double precision, intent(in)  :: x(1:ndim)
+  real(dp), intent(in)  :: u(nw_phys)
+
+  cs2 = phys_gamma*u(iw_e)/u(iw_rho)
+end function get_cs2
+#:enddef
+
+#:def get_rho()
+pure real(dp) function get_rho(w, x) result(rho)
+  !$acc routine seq
+  real(dp), intent(in)  :: w(nw_phys)
+  real(dp), intent(in)  :: x(1:ndim)
 
   rho = w(iw_rho)
 end function get_rho
 #:enddef
 
 #:def get_pthermal()
-pure double precision function get_pthermal(w, x) result(pth)
+pure real(dp) function get_pthermal(w, x) result(pth)
   !$acc routine seq
-  double precision, intent(in)  :: w(nwflux)
-  double precision, intent(in)  :: x(1:ndim)
+  real(dp), intent(in)  :: w(nw_phys)
+  real(dp), intent(in)  :: x(1:ndim)
 
   pth = (phys_gamma-1.0_dp)*(w(iw_e)-0.5_dp*w(iw_mom(1))**2/w(iw_rho))
 end function get_pthermal
 #:enddef
 
 #:def get_Rfactor()
-pure double precision function get_Rfactor() result(Rfactor)
+pure real(dp) function get_Rfactor() result(Rfactor)
   !$acc routine seq
   Rfactor = 1.0d0
 end function get_Rfactor

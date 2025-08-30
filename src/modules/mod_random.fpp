@@ -51,7 +51,7 @@ contains
 #if defined(__NVCOMPILER) ||  (defined(USE_INTRINSIC_SHIFT) && USE_INTRINSIC_SHIFT==0)
 
   !> added for nvidia compilers
-   function shiftl(val, shift) result(res_value)
+   pure function shiftl(val, shift) result(res_value)
     integer(i8), intent(in) :: val
     integer, intent(in) :: shift
     integer(i8) :: res_value
@@ -75,7 +75,7 @@ contains
   end function shiftl
 
 
-   function shiftr(val, shift) result(res_value)
+   pure function shiftr(val, shift) result(res_value)
     integer(i8), intent(in) :: val
     integer, intent(in) :: shift
     integer(i8) :: res_value

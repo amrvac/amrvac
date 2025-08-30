@@ -719,6 +719,10 @@ module mod_global_parameters
   double precision :: cmax_global
   !$acc declare create(cmax_global)
 
+  !> global fastest sound speed needed for htc
+  double precision :: cs2max_global
+  !$acc declare create(cs2max_global)
+
   !> global fastest flow speed needed in glm method
   double precision :: vmax_global
   !$acc declare create(vmax_global)
@@ -734,6 +738,10 @@ module mod_global_parameters
   !> global value for schmid scheme
   logical :: need_global_a2max=.false.
   !$acc declare create(need_global_a2max)
+
+  !> global value for sound scheme
+  logical :: need_global_cs2max=.false.
+  !$acc declare create(need_global_cs2max)
   
   ! Boundary region parameters
 
