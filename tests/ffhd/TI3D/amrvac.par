@@ -1,5 +1,6 @@
  &filelist
-   base_filename    = 'output/ti3d'
+   !base_filename    = 'output/ti3d'
+   base_filename    = 'output/htc'
    autoconvert      = F
    convert_type     = 'vtuBCCmpi'
    saveprim         = T
@@ -11,12 +12,12 @@
    itsave(1,1)      = 0
    itsave(1,2)      = 0
    dtsave_log      = 0.01
-   dtsave_dat      = 1.d0
+   dtsave_dat      = 0.1d0
 
  /
 
  &stoplist
-   time_max        = 10.d0
+   time_max        = 5.d0
  /
 
  &methodlist
@@ -69,7 +70,8 @@
  &phys_list
    gravity = .false.
    source_usr = .false.
-   radiative_cooling = .true.
+   hyperbolic_thermal_conduction = .true.
+   radiative_cooling = .false.
  /
 
  &usr_list

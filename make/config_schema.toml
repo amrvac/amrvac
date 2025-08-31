@@ -2,18 +2,25 @@
 # time flags and whether they should affect the build hash.
 # [components] is for hidden implied options inferred by the precompiler
 
-[components]
+[components.source_term]
+type = "flag"
+name = "SOURCE_TERM"
+flags = ["fypp", "hash"]
+default = false
+
 [components.source_nonlocal]
 type = "flag"
 name = "SOURCE_NONLOCAL"
 flags = ["fypp", "hash"]
 default = false
+implies = ["components.source_term"]
 
 [components.source_local]
 type = "flag"
 name = "SOURCE_LOCAL"
 flags = ["fypp", "hash"]
 default = false
+implies = ["components.source_term"]
 
 [methodlist]
 [methodlist.phys]
@@ -34,7 +41,7 @@ implies = ["components.source_local"]
 [phys_list.hyperbolic_thermal_conduction]
 type = "flag"
 name = "HYPERTC"
-flags = []
+flags = ["fypp", "hash"]
 default = false
 implies = ["components.source_nonlocal"]
 
@@ -50,3 +57,4 @@ type = "flag"
 name = "SOURCE_USR"
 flags = ["fypp", "hash"]
 default = false
+implies = ["components.source_term"]

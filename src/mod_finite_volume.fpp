@@ -22,6 +22,7 @@ contains
 
 ! instantiate the templated functions here for inlining:
 @:addsource_local()
+@:addsource_nonlocal()
 @:get_flux()
 @:get_cmax()
 
@@ -125,6 +126,29 @@ contains
                 bgb%w(ix1, ix2, ix3, :, n) = wnew(:)
 #:endif             
 
+#:if defined('SOURCE_NONLOCAL')
+                ! Add non-local (gradient) source terms:
+                xloc(1:ndim) = ps(n)%x(ix1, ix2, ix3, 1:ndim)
+                wnew         = bgb%w(ix1, ix2, ix3, 1:nw_phys, n)
+                
+                tmp = uprim(:, ix1-2:ix1+2, ix2, ix3)
+                call addsource_nonlocal(qdt*dble(idimsmax-idimsmin+1)/dble(ndim),&
+                     dtfactor*dble(idimsmax-idimsmin+1)/dble(ndim), qtC, tmp,&
+                     qt, wnew, xloc, dr, 1, .false. )
+
+                tmp = uprim(:, ix1, ix2-2:ix2+2, ix3)
+                call addsource_nonlocal(qdt*dble(idimsmax-idimsmin+1)/dble(ndim),&
+                     dtfactor*dble(idimsmax-idimsmin+1)/dble(ndim), qtC, tmp,&
+                     qt, wnew, xloc, dr, 2, .false. )
+
+                tmp = uprim(:, ix1, ix2, ix3-2:ix3+2)
+                call addsource_nonlocal(qdt*dble(idimsmax-idimsmin+1)/dble(ndim),&
+                     dtfactor*dble(idimsmax-idimsmin+1)/dble(ndim), qtC, tmp,&
+                     qt, wnew, xloc, dr, 3, .false. )
+                
+                bgb%w(ix1, ix2, ix3, :, n) = wnew(:)           
+#:endif                
+
 #:if defined('SOURCE_USR')
                ! Add source terms:
                xloc(1:ndim) = ps(n)%x(ix1, ix2, ix3, 1:ndim)
@@ -136,7 +160,6 @@ contains
                      wprim, qt, wnew, xloc, .false. )
                bgb%w(ix1, ix2, ix3, :, n) = wnew(:)
 #:endif
-
 
              end do
           end do

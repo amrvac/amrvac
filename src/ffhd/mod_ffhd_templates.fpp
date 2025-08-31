@@ -206,25 +206,25 @@
     !$acc update device(e_,p_)
 
     ! Set index for heat flux
+#:if defined('HYPERTC')
     q_ = var_set_q()
     need_global_cs2max = .true.
+    hypertc_kappa = 8.d-7*unit_temperature**3.5_dp/unit_length/unit_density/unit_velocity**3.0_dp
     !$acc update device(q_)
     !$acc update device(need_global_cs2max)
+    !$acc update device(hypertc_kappa)
+#:endif
 
     ! set number of variables which need update ghostcells
     nwgc=nwflux
     !$acc update device(nwgc)
 
-    #:if defined('COOLING')
+#:if defined('COOLING')
     call radiative_cooling_init_params(phys_gamma,He_abundance)
     call radiative_cooling_init(rc_fl)
     !$acc update device(rc_fl)
     !$acc enter data copyin(rc_fl%tcool,rc_fl%Lcool, rc_fl%Yc)
-    #:endif
-
-    !> here for hypertc
-    hypertc_kappa = 8.0_dp*unit_temperature**3.5_dp/unit_length/unit_density/unit_velocity**3.0_dp
-    !$acc update device(hypertc_kappa)
+#:endif
 
   end subroutine phys_init
 #:enddef
@@ -275,7 +275,6 @@ subroutine addsource_local(qdt, dtfactor, qtC, wCT, wCTprim, qt, wnew, x,&
   ! .. local ..
   integer                  :: idim
   real(dp)                 :: field, mag, divb
-  real(dp)                 :: Te, tau, htc_qrsc, sigT, taumin
 
 #:if defined('GRAVITY')
   do idim = 1, ndim
@@ -290,26 +289,54 @@ subroutine addsource_local(qdt, dtfactor, qtC, wCT, wCTprim, qt, wnew, x,&
   divb = 0.0_dp
   wnew(iw_mom(1)) = wnew(iw_mom(1)) + qdt*wCTprim(iw_e)*divb
 
-  !> hyperbolic thermal conduction
-  Te     = wCTprim(iw_e) / wCTprim(iw_rho)
-  sigT   = hypertc_kappa*sqrt(Te**5)
-  taumin = 0.4_dp
-  tau = max(taumin*qt, sigT*Te*(phys_gamma-1.0_dp)/wCTprim(iw_e)/cs2max_global)
-
-  htc_qrsc = 0.0_dp
-  do idim = 1, ndim
-    mag      = bfield(x, idim)
-    htc_qrsc = htc_qrsc + sigT*mag*0.0_dp !> gradT(idim) to be added and move the entire to nonlocal
-  end do
-  htc_qrsc   = (htc_qrsc+wCT(iw_q))/tau
-  wnew(iw_q) = wnew(iw_q) - qdt*htc_qrsc
-
-
 #:if defined('COOLING')
   call radiative_cooling_add_source(qdt,wCT,wCTprim,wnew,x,rc_fl)
 #:endif
 
 end subroutine addsource_local
+#:enddef
+
+#:def addsource_nonlocal()
+subroutine addsource_nonlocal(qdt, dtfactor, qtC, wCTprim, qt, wnew, x, dx, idir, &
+     qsourcesplit)
+  !$acc routine seq
+  use mod_usr, only: bfield
+  use mod_global_parameters, only: dt, cs2max_global
+
+  real(dp), intent(in)     :: qdt, dtfactor, qtC, qt
+  real(dp), intent(in)     :: wCTprim(nw_phys,5)
+  real(dp), intent(in)     :: x(1:ndim), dx(1:ndim)
+  real(dp), intent(inout)  :: wnew(nw_phys)
+  integer, intent(in)      :: idir
+  logical, intent(in)      :: qsourcesplit
+  ! .. local ..
+  real(dp)                 :: field, mag
+  real(dp)                 :: Te, tau, htc_qrsc, sigT, taumin
+  real(dp)                 :: T(1:5), gradT, Tface(2)
+
+#:if defined('HYPERTC')
+  !> gradient of temperature:
+  T(1:5) = wCTprim(iw_e,1:5) / wCTprim(iw_rho,1:5)
+  
+  Tface(1) = (7.0d0*(T(2)+T(3))-(T(1)+T(4)))/12.0d0
+  Tface(2) = (7.0d0*(T(3)+T(4))-(T(2)+T(5)))/12.0d0
+  gradT    = (Tface(2)-Tface(1)) / dx(idir)
+  
+  Te     = wCTprim(iw_e,3) / wCTprim(iw_rho,3)
+  sigT   = hypertc_kappa * sqrt(Te**5)
+  taumin = 4.d0
+
+  tau = taumin
+  tau = max( taumin*dt, sigT*Te*(phys_gamma-1.0d0)/wCTprim(iw_e,3)/cs2max_global)
+
+  mag   = bfield(x, idir)
+  htc_qrsc = sigT * mag * gradT
+  htc_qrsc = ( htc_qrsc + wCTprim(iw_q,3)/3.0_dp ) / tau
+
+  wnew(iw_q) = wnew(iw_q) - qdt * htc_qrsc
+#:endif
+end subroutine addsource_nonlocal
+
 #:enddef
 
 #:def to_primitive()
@@ -366,12 +393,13 @@ subroutine get_flux(u, xC, flux_dim, flux)
   flux(iw_mom(1)) = (u(iw_rho)*u(iw_mom(1))**2 + u(iw_e)) * mag
   
   ! Energy flux with hyperbolic conduction included
-  flux(iw_e) = ( u(iw_mom(1))*(u(iw_e)*inv_gamma_m1 + &
-               0.5_dp*u(iw_rho)*u(iw_mom(1))**2 + u(iw_e)) + &
-               u(iw_q)) * mag
+  flux(iw_e) = u(iw_mom(1))*(u(iw_e)*inv_gamma_m1 + &
+               0.5_dp*u(iw_rho)*u(iw_mom(1))**2 + u(iw_e)) * mag
 
-  ! heat flux, to be added
+#:if defined('HYPERTC')
+  flux(iw_e) = flux(iw_e) + u(iw_q) * mag
   flux(iw_q) = 0.0d0
+#:endif
 
 end subroutine get_flux
 #:enddef
