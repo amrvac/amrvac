@@ -33,9 +33,17 @@
   double precision, public                :: hd_adiab = 1.0d0
   !$acc declare copyin(hd_adiab)
 
+  !> The helium abundance
+  double precision, public                :: He_abundance=0.1d0
+  !$acc declare copyin(He_abundance)
+
   !> Whether plasma is partially ionized
   logical, public                         :: hd_partial_ionization = .false.
   !$acc declare copyin(hd_partial_ionization)
+  
+  !> Whether to use gravity
+  logical, public                         :: hd_gravity = .false.
+  !$acc declare copyin(hd_gravity)
 
   !> Allows overruling default corner filling (for debug mode, since otherwise corner primitives fail)
   logical, public                         :: hd_force_diagonal = .false.
@@ -55,7 +63,7 @@
     integer                      :: n
 
     namelist /hd_list/ hd_energy, hd_gamma, hd_adiab, hd_partial_ionization,&
-        hd_force_diagonal, hd_particles
+        hd_force_diagonal, hd_particles, hd_gravity
 
     do n = 1, size(files)
        open(unitpar, file=trim(files(n)), status="old")
@@ -64,7 +72,7 @@
     end do
 
 #ifdef _OPENACC
- !$acc update device(hd_energy, hd_gamma, hd_adiab, hd_partial_ionization, hd_force_diagonal, hd_particles)
+ !$acc update device(hd_energy, hd_gamma, hd_adiab, hd_partial_ionization, hd_force_diagonal, hd_particles, hd_gravity)
 #endif
 
   end subroutine read_params
@@ -75,14 +83,96 @@
     call phys_init()
   end subroutine phys_activate
 #:enddef
-  
+  #:def phys_units()
+  subroutine phys_units()
+    use mod_global_parameters
+    double precision :: mp, kB
+    double precision :: a,b
+
+    !> here no SI_UNIT used by default, to be implemented
+    mp = mp_cgs
+    kB = kB_cgs
+    !> eq_state_units by default, to be implemented
+    a = 1.d0+4.d0*He_abundance
+    b = 2.d0+3.d0*He_abundance
+
+    if(unit_density/=1.d0 .or. unit_numberdensity/=1.d0) then
+      if(unit_density/=1.d0) then
+        unit_numberdensity=unit_density/(a*mp)
+      else if(unit_numberdensity/=1.d0) then
+        unit_density=a*mp*unit_numberdensity
+      end if
+      if(unit_temperature/=1.d0) then
+        unit_pressure=b*unit_numberdensity*kB*unit_temperature
+        unit_velocity=dsqrt(unit_pressure/unit_density)
+        if(unit_length/=1.d0) then
+          unit_time=unit_length/unit_velocity
+        else if(unit_time/=1.d0) then
+          unit_length=unit_velocity*unit_time
+        end if
+      else if(unit_pressure/=1.d0) then
+        unit_temperature=unit_pressure/(b*unit_numberdensity*kB)
+        unit_velocity=dsqrt(unit_pressure/unit_density)
+        if(unit_length/=1.d0) then
+          unit_time=unit_length/unit_velocity
+        else if(unit_time/=1.d0) then
+          unit_length=unit_velocity*unit_time
+        end if
+      else if(unit_velocity/=1.d0) then
+        unit_pressure=unit_density*unit_velocity**2
+        unit_temperature=unit_pressure/(b*unit_numberdensity*kB)
+        if(unit_length/=1.d0) then
+          unit_time=unit_length/unit_velocity
+        else if(unit_time/=1.d0) then
+          unit_length=unit_velocity*unit_time
+        end if
+      else if(unit_time/=1.d0) then
+        unit_velocity=unit_length/unit_time
+        unit_pressure=unit_density*unit_velocity**2
+        unit_temperature=unit_pressure/(b*unit_numberdensity*kB)
+      end if
+    else if(unit_temperature/=1.d0) then
+      ! units of temperature and velocity are dependent
+      if(unit_pressure/=1.d0) then
+        unit_numberdensity=unit_pressure/(b*unit_temperature*kB)
+        unit_density=a*mp*unit_numberdensity
+        unit_velocity=dsqrt(unit_pressure/unit_density)
+        if(unit_length/=1.d0) then
+          unit_time=unit_length/unit_velocity
+        else if(unit_time/=1.d0) then
+          unit_length=unit_velocity*unit_time
+        end if
+      end if
+    else if(unit_pressure/=1.d0) then
+      if(unit_velocity/=1.d0) then
+        unit_density=unit_pressure/unit_velocity**2
+        unit_numberdensity=unit_density/(a*mp)
+        unit_temperature=unit_pressure/(b*unit_numberdensity*kB)
+        if(unit_length/=1.d0) then
+          unit_time=unit_length/unit_velocity
+        else if(unit_time/=1.d0) then
+          unit_length=unit_velocity*unit_time
+        end if
+      else if(unit_time/=0.d0) then
+        unit_velocity=unit_length/unit_time
+        unit_density=unit_pressure/unit_velocity**2
+        unit_numberdensity=unit_density/(a*mp)
+        unit_temperature=unit_pressure/(b*unit_numberdensity*kB)
+      end if
+    end if
+    unit_mass=unit_density*unit_length**3
+
+    !$acc update device(unit_density, unit_numberdensity, unit_temperature, unit_pressure, unit_velocity, unit_length, unit_time, unit_mass)
+  end subroutine phys_units
+#:enddef
+
 #:def phys_init()
     !> Initialize the module
   subroutine phys_init()
     use mod_global_parameters
 !    use mod_particles, only: particles_init
 
-
+    call phys_units()
     call read_params(par_files)
 
     phys_energy  = hd_energy
@@ -241,9 +331,10 @@ end subroutine to_conservative
 #:enddef
 
 #:def get_flux()
-subroutine get_flux(u, flux_dim, flux)
+subroutine get_flux(u, xC, flux_dim, flux)
   !$acc routine seq
   real(dp), intent(in)  :: u(nw_phys)
+  real(dp), intent(in)  :: xC(ndim)
   integer, intent(in)   :: flux_dim
   real(dp), intent(out) :: flux(nw_phys)
   real(dp)              :: inv_gamma_m1
@@ -273,13 +364,31 @@ end subroutine get_flux
 #:enddef
 
 #:def get_cmax()  
-pure real(dp) function get_cmax(u, flux_dim) result(wC)
+pure real(dp) function get_cmax(u, x, flux_dim) result(wC)
   !$acc routine seq
   real(dp), intent(in)  :: u(nw_phys)
+  real(dp), intent(in)  :: x(1:ndim)
   integer, intent(in)   :: flux_dim
 
   wC = sqrt(hd_gamma * u(iw_e) / u(iw_rho)) + abs(u(iw_mom(flux_dim)))
 
 end function get_cmax
 #:enddef  
+
+#:def get_gradientT()
+pure real(dp) function get_gradientT(u, x, grad_dim) result(gradT)
+  !$acc routine seq
+  real(dp), intent(in)  :: u(nw_phys, 5)
+  real(dp), intent(in)  :: x(1:ndim)
+  integer, intent(in)   :: grad_dim
+  real(dp) :: Te(5),Tface(2)
+
+  Te(1:5)=u(iw_e,1:5)/u(iw_rho,1:5)
+  Tface(1)=(7.0d0*(Te(2)+Te(3))-(Te(1)+Te(4)))/12.0d0
+  Tface(2)=(7.0d0*(Te(3)+Te(4))-(Te(2)+Te(5)))/12.0d0
+  gradT=Tface(2)-Tface(1)
+
+end function get_gradientT
+
+#:enddef
 #:endif

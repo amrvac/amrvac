@@ -1,24 +1,54 @@
 # This file sets what settings in amrvac.par are read as compile
 # time flags and whether they should affect the build hash.
+# [components] is for hidden implied options inferred by the precompiler
 
 [components]
-[components.source_term]
+[components.source_nonlocal]
 type = "flag"
-name = "SOURCE_TERM"
-flags = ["fypp"]
-default = false
-
-[components.gravity]
-type = "flag"
-name = "GRAVITY"
+name = "SOURCE_NONLOCAL"
 flags = ["fypp", "hash"]
 default = false
-implies = ["components.source_term"]
+
+[components.source_local]
+type = "flag"
+name = "SOURCE_LOCAL"
+flags = ["fypp", "hash"]
+default = false
 
 [methodlist]
 [methodlist.phys]
 type = "option"
 name = "PHYS"
-options = ["hd", "mhd"]
+options = ["hd", "ffhd"]
 flags = ["fypp", "hash"]
 default = "hd"
+
+[boundlist]
+[boundlist.specialboundary]
+type = "flag"
+name = "SPECIALBOUNDARY"
+flags = ["fypp", "hash"]
+default = false
+
+[hd_list]
+[hd_list.hd_gravity]
+type = "flag"
+name = "GRAVITY"
+flags = ["fypp", "hash"]
+default = false
+implies = ["components.source_local"]
+
+[ffhd_list]
+[ffhd_list.ffhd_hyperbolic_thermal_conduction]
+type = "flag"
+name = "ffhd_hyperbolic_thermal_conduction"
+flags = []
+default = false
+implies = ["components.source_nonlocal"]
+
+[ffhd_list.ffhd_gravity]
+type = "flag"
+name = "GRAVITY"
+flags = ["fypp", "hash"]
+default = false
+implies = ["components.source_local"]

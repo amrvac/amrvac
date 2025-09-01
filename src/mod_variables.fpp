@@ -68,16 +68,17 @@ module mod_variables
   integer, allocatable :: iw_mom(:)
   !$acc declare create(iw_mom)
 
-
   !> Index of the energy density
   integer :: iw_e = -1
   !$acc declare copyin(iw_e)
 
+  !> Index of the heat flux
+  integer :: iw_q = -1
+  !$acc declare copyin(iw_q)
 
   !> Index of the radiation energy density
   integer :: iw_r_e = -1
   !$acc declare copyin(iw_r_e)
-
 
   !> Indices of the magnetic field components
   integer, allocatable, protected :: iw_mag(:)
@@ -257,6 +258,20 @@ contains
     prim_wnames(nwflux) = 'p'
     !$acc update device(nwflux,nw,nwfluxbc,iw_e)
   end function var_set_energy
+
+  !> Set heat flux variable (hyperbolic treatment)
+  function var_set_q() result(iw)
+    integer :: iw
+
+    nwflux              = nwflux + 1
+    nwfluxbc            = nwfluxbc + 1
+    nw                  = nw + 1
+    iw_q                = nwflux
+    iw                  = nwflux
+    cons_wnames(nwflux) = 'q'
+    prim_wnames(nwflux) = 'q'
+    !$acc update device(nwflux,nw,nwfluxbc,iw_q)
+  end function var_set_q
 
   function var_set_radiation_energy() result(iw)
     integer :: iw

@@ -128,6 +128,7 @@ contains
 
   @:read_params()
   @:phys_init()
+  @:phys_units()
   @:to_primitive()
   @:to_conservative()
   @:get_flux()
