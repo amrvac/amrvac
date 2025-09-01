@@ -13,17 +13,21 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest]
-        FC_compiler: [gfortran-12]
-        CC_compiler: [gcc-12]
+        os: [ubuntu-latest]
+        FC_compiler: [gfortran-14]
+        CC_compiler: [gcc-14]
         suite: [hd]
+        include:
+          - os: macos-latest
+            FC_compiler: gfortran-15
+            CC_compiler: gcc-15
 
     env:
       CC: ${{ matrix.CC_compiler }}
       FC: ${{ matrix.FC_compiler }}
       AMRVAC_DIR: ${{ github.workspace }}
-      GCC_PACKAGE_NAME: gcc@12
-
+      OSX_GCC_PACKAGE_NAME: gcc@15
+      
     runs-on: ${{ matrix.os }}
 
     name: ${{ matrix.os }} / ${{ matrix.FC_compiler }} / ${{ matrix.suite }}
@@ -37,11 +41,12 @@ jobs:
             sudo apt-get install ${{ matrix.FC_compiler }}
             sudo apt-get install openmpi-bin libopenmpi-dev
           else
-            brew install ${{ env.GCC_PACKAGE_NAME }}
+            brew install ${{ env.OSX_GCC_PACKAGE_NAME }}
             brew install open-mpi
             brew install grep
             brew install md5sha1sum
             ln -s $(which ${{ matrix.FC_compiler }}) /usr/local/bin/gfortran
+            
           fi
       - name: check compiler versions
         run: |
