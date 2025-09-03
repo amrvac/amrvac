@@ -5,7 +5,9 @@
 pure real(dp) function get_cs2(u) result(cs2)
   !$acc routine seq
   real(dp), intent(in)  :: u(nw_phys)
-  
+
+  ! provide nonsensical soundspeed so the user notices:
+  cs2 = -1.0d0
   
 end function get_cs2
 #:enddef
