@@ -1,6 +1,8 @@
 !> Module with finite volume methods for fluxes
 
+#:mute
 #:include "physics/mod_physics_templates.fpp"
+#:endmute
 
 module mod_finite_volume
 

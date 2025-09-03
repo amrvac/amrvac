@@ -1,5 +1,7 @@
 
+#:mute
 #:include "physics/mod_physics_templates.fpp"
+#:endmute
 
 module mod_dt
 
@@ -27,14 +29,13 @@ contains
     integer :: iigrid, igrid, idims, ix1,ix2,ix3, ifile
     double precision :: dtmin_mype, factor, dx1,dx2,dx3, dtmax
 
-    double precision :: w(nw_phys,ixMlo1:ixMhi1,ixMlo2:ixMhi2,ixMlo3:ixMhi3)
     double precision :: dxinv(1:ndim), cmaxtot, cmax, u(1:nw_phys), cs2max_mype
     double precision :: xloc(1:ndim), qdtnew
 
     if (dtpar<=zero) then
        dtmin_mype=bigdouble
        
-       !$acc parallel loop PRIVATE(igrid,dx1,dx2,dx3,dxinv,w) REDUCTION(min:dtmin_mype) gang
+       !$acc parallel loop PRIVATE(igrid,dx1,dx2,dx3,dxinv) REDUCTION(min:dtmin_mype) gang
        do iigrid=1,igridstail_active; igrid=igrids_active(iigrid)
 
           dx1=rnode(rpdx1_,igrid);dx2=rnode(rpdx2_,igrid)
@@ -42,16 +43,15 @@ contains
 
           dxinv(1)=one/dx1;dxinv(2)=one/dx2;dxinv(3)=one/dx3;
 
-          !$acc loop vector collapse(ndim) REDUCTION(min:dtmin_mype) private(cmax, cmaxtot, u, xloc, dxinv, qdtnew)
+          !$acc loop vector collapse(ndim) REDUCTION(min:dtmin_mype) private(cmax, cmaxtot, u, xloc, qdtnew)
           do ix3=ixMlo3,ixMhi3 
              do ix2=ixMlo2,ixMhi2 
                 do ix1=ixMlo1,ixMhi1 
-                   w(1:nw_phys,ix1,ix2,ix3) = bg(1)%w(ix1,ix2,ix3,1:nw_phys,igrid)
-                   cmaxtot = 0.0d0
-                   u = w(:,ix1,ix2,ix3)
+                   u = bg(1)%w(ix1,ix2,ix3,1:nw_phys,igrid)
                    call to_primitive(u)
-                   
                    xloc(1:ndim) = ps(igrid)%x(ix1, ix2, ix3, 1:ndim)
+
+                   cmaxtot = 0.0d0
                    !$acc loop seq
                    do idims = 1, ndim
                       cmax = get_cmax(u,xloc,idims)
@@ -60,7 +60,7 @@ contains
                    dtmin_mype     = min( dtmin_mype, courantpar / cmaxtot )
                    
 #:if defined('SOURCE_TERM')
-                   u            = w(:,ix1,ix2,ix3)
+                   u = bg(1)%w(ix1,ix2,ix3,1:nw_phys,igrid)
                    xloc(1:ndim) = ps(igrid)%x(ix1, ix2, ix3, 1:ndim)
                    call phys_get_dt(u, xloc, [dx1, dx2, dx3], qdtnew)
                    dtmin_mype = min( dtmin_mype, qdtnew )
