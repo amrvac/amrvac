@@ -21,6 +21,6 @@ module load OpenMPI/4.1.5-NVHPC-24.5-CUDA-12.1.1
 
 ## Currently supported features on master
 - Hydrodynamics module (hd)
-- Source terms (gravity) and boundary conditions (standard `symm, asymm,` etc.)
+- Source terms (gravity) and boundary conditions (`symm, asymm,` etc. but also `special`)
 - Multi-block uniform grid simulations
 - Multi-GPU (MPI) simulations
