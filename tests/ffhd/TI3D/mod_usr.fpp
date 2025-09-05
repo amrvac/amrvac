@@ -122,19 +122,18 @@ contains
 
   end function bfield
 
-  subroutine addsource_usr(qdt, dtfactor, qtC, wCT, wCTprim, qt, wnew, x, qsourcesplit)
+  subroutine addsource_usr(qdt, qt, wCT, wCTprim, wnew, x, qsourcesplit)
     !$acc routine seq
     #:if defined('COOLING')
-    use mod_radiative_cooling, only: getvar_cooling_exact
+    use mod_radiative_cooling, only: rc_fl, getvar_cooling_exact
     #:endif
 
-    double precision, intent(in) :: qdt, dtfactor, qtC, qt
+    double precision, intent(in) :: qdt, qt
     double precision, intent(in) :: wCT(nw_phys), wCTprim(nw_phys) 
     double precision, intent(in) :: x(ndim)
     double precision, intent(inout) :: wnew(nw_phys)
     logical, intent(in) :: qsourcesplit
 
-    integer             :: idim
     double precision :: coolrate
     double precision :: winit(nw_phys)
 

@@ -8,9 +8,6 @@ module mod_finite_volume
   use mod_physics
   use mod_global_parameters, only: ndim
   use mod_physicaldata
-  #:if PHYS == 'ffhd'
-  use mod_usr, only: bfield
-  #:endif
 
   implicit none
 
@@ -30,9 +27,6 @@ contains
      ixImin3,ixImax1,ixImax2,ixImax3, ixOmin1,ixOmin2,ixOmin3,ixOmax1,ixOmax2,&
      ixOmax3, idimsmin,idimsmax, qtC, bga, qt, bgb, fC, fE)
     use mod_global_parameters
-    #:if defined('SOURCE_USR')
-    use mod_usr, only: addsource_usr
-    #:endif
 
     integer, intent(in)                                                :: &
        method
@@ -81,7 +75,7 @@ contains
           end do
        end do
 
-       !$acc loop collapse(ndim) private(f, tmp, xlocC #{if defined('SOURCE_TERM')}#, wnew, wCT, xloc, wprim #{endif}#) vector
+       !$acc loop collapse(ndim) private(f, wnew, tmp, xlocC, xloc #{if defined('SOURCE_LOCAL')}#, wCT, wprim #{endif}#) vector
        do ix3=ixOmin3,ixOmax3 
           do ix2=ixOmin2,ixOmax2 
              do ix1=ixOmin1,ixOmax1 
@@ -148,19 +142,6 @@ contains
                 
                 bgb%w(ix1, ix2, ix3, :, n) = wnew(:)           
 #:endif                
-
-#:if defined('SOURCE_USR')
-               ! Add source terms:
-               xloc(1:ndim) = ps(n)%x(ix1, ix2, ix3, 1:ndim)
-               wprim        = uprim(1:nw_phys, ix1, ix2, ix3)
-               wCT          = bga%w(ix1, ix2, ix3, 1:nw_phys, n)
-               wnew         = bgb%w(ix1, ix2, ix3, 1:nw_phys, n)
-               call addsource_usr(qdt*dble(idimsmax-idimsmin+1)/dble(ndim),&
-                     dtfactor*dble(idimsmax-idimsmin+1)/dble(ndim), qtC, wCT,&
-                     wprim, qt, wnew, xloc, .false. )
-               bgb%w(ix1, ix2, ix3, :, n) = wnew(:)
-#:endif
-
              end do
           end do
        end do

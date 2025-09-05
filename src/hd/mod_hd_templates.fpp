@@ -172,7 +172,7 @@
     use mod_global_parameters
 !    use mod_particles, only: particles_init
     #:if defined('COOLING')
-    use mod_radiative_cooling, only: radiative_cooling_init_params, radiative_cooling_init
+    use mod_radiative_cooling, only: rc_fl, radiative_cooling_init_params, radiative_cooling_init
     #:endif
 
     call phys_units()
@@ -231,12 +231,12 @@
     !$acc update device(nvector, iw_vector)
     !$acc update device(phys_req_diagonal)
 
-    #:if defined('COOLING')
-    allocate(rc_fl)
+#:if defined('COOLING')
     call radiative_cooling_init_params(phys_gamma,He_abundance)
     call radiative_cooling_init(rc_fl)
     !$acc update device(rc_fl)
-    #:endif
+    !$acc enter data copyin(rc_fl%tcool,rc_fl%Lcool, rc_fl%Yc)
+#:endif
 
   end subroutine phys_init
 #:enddef

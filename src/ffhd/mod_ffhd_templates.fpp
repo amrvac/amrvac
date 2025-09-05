@@ -174,7 +174,7 @@
 
     use mod_global_parameters
     #:if defined('COOLING')
-    use mod_radiative_cooling, only: radiative_cooling_init_params, radiative_cooling_init
+    use mod_radiative_cooling, only: rc_fl, radiative_cooling_init_params, radiative_cooling_init
     #:endif
 
     call phys_units()
@@ -259,11 +259,14 @@ subroutine addsource_local(qdt, dtfactor, qtC, wCT, wCTprim, qt, wnew, x,&
     qsourcesplit)
   !$acc routine seq
   use mod_usr, only: bfield
+#:if defined('SOURCE_USR')
+  use mod_usr, only: addsource_usr
+#:endif
 #:if defined('GRAVITY')
   use mod_usr, only: gravity_field
 #:endif    
 #:if defined('COOLING')
-  use mod_radiative_cooling, only: radiative_cooling_add_source
+  use mod_radiative_cooling, only: rc_fl, radiative_cooling_add_source
 #:endif
 
   use mod_global_parameters, only : dt, cs2max_global
@@ -276,6 +279,10 @@ subroutine addsource_local(qdt, dtfactor, qtC, wCT, wCTprim, qt, wnew, x,&
   integer                  :: idim
   real(dp)                 :: field, mag, divb
 
+  !> p*divb to be added here
+  divb = 0.0_dp
+  wnew(iw_mom(1)) = wnew(iw_mom(1)) + qdt*wCTprim(iw_e)*divb
+
 #:if defined('GRAVITY')
   do idim = 1, ndim
      field = gravity_field(wCT, x, idim)
@@ -285,12 +292,12 @@ subroutine addsource_local(qdt, dtfactor, qtC, wCT, wCTprim, qt, wnew, x,&
   end do
 #:endif  
 
-  !> p*divb to be added here
-  divb = 0.0_dp
-  wnew(iw_mom(1)) = wnew(iw_mom(1)) + qdt*wCTprim(iw_e)*divb
-
 #:if defined('COOLING')
   call radiative_cooling_add_source(qdt,wCT,wCTprim,wnew,x,rc_fl)
+#:endif
+
+#:if defined('SOURCE_USR')
+  call addsource_usr(qdt, qt, wCT, wCTprim, wnew, x, .false.)
 #:endif
 
 end subroutine addsource_local

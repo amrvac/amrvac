@@ -10,11 +10,6 @@ module mod_physics
   use mod_variables
   use mod_physics_vars
   use mod_comm_lib, only: mpistop
-
-  !> Radiative cooling fluid
-  #:if defined('COOLING')
-    use mod_radiative_cooling, only: rc_fl
-  #:endif
   
   implicit none
   public
