@@ -122,7 +122,7 @@ contains
                 wnew         = bgb%w(ix1, ix2, ix3, 1:nw_phys, n)
                 call addsource_local(qdt*dble(idimsmax-idimsmin+1)/dble(ndim),&
                      dtfactor*dble(idimsmax-idimsmin+1)/dble(ndim), qtC, wCT,&
-                     wprim, qt, wnew, xloc, .false. )
+                     wprim, qt, wnew, xloc, dr, .false. )
                 bgb%w(ix1, ix2, ix3, :, n) = wnew(:)
 #:endif             
 

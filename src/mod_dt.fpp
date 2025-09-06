@@ -28,7 +28,7 @@ contains
     double precision :: dtmin_mype, factor, dx1,dx2,dx3, dtmax
 
     double precision :: w(nw_phys,ixMlo1:ixMhi1,ixMlo2:ixMhi2,ixMlo3:ixMhi3)
-    double precision :: dxinv(1:ndim), cmaxtot, cmax, u(1:nw_phys), cs2max_mype
+    double precision :: dxinv(1:ndim), cmaxtot, cmax, u(1:nw_phys), cs2max_mype, cmax_mype=0.d0
     double precision :: xloc(1:ndim), qdtnew
 
     if (dtpar<=zero) then
@@ -55,6 +55,7 @@ contains
                    !$acc loop seq
                    do idims = 1, ndim
                       cmax = get_cmax(u,xloc,idims)
+                      cmax_mype = max( cmax, cmax_mype )
                       cmaxtot = cmaxtot + cmax * dxinv(idims)
                    end do
                    dtmin_mype     = min( dtmin_mype, courantpar / cmaxtot )
@@ -128,6 +129,11 @@ contains
       call MPI_ALLREDUCE(cs2max_mype, cs2max_global, 1, MPI_DOUBLE_PRECISION, MPI_MAX, icomm, &
            ierrmpi)
       !$acc update device(cs2max_global)
+    end if
+    if (need_global_cmax) then
+      call MPI_ALLREDUCE(cmax_mype, cmax_global, 1, MPI_DOUBLE_PRECISION, MPI_MAX, icomm, &
+             ierrmpi)
+      !$acc update device(cmax_global)
     end if
 
     if(any(dtsave(1:nfile)<bigdouble).or.any(tsave(isavet(1:nfile),&

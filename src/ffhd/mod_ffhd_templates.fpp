@@ -255,7 +255,7 @@
 #:enddef  
 
 #:def addsource_local()
-subroutine addsource_local(qdt, dtfactor, qtC, wCT, wCTprim, qt, wnew, x,&
+subroutine addsource_local(qdt, dtfactor, qtC, wCT, wCTprim, qt, wnew, x, dr, &
     qsourcesplit)
   !$acc routine seq
   use mod_usr, only: bfield
@@ -269,7 +269,7 @@ subroutine addsource_local(qdt, dtfactor, qtC, wCT, wCTprim, qt, wnew, x,&
   use mod_global_parameters, only : dt, cs2max_global
   real(dp), intent(in)     :: qdt, dtfactor, qtC, qt
   real(dp), intent(in)     :: wCT(nw_phys), wCTprim(nw_phys)
-  real(dp), intent(in)     :: x(1:ndim)
+  real(dp), intent(in)     :: x(1:ndim), dr(ndim)
   real(dp), intent(inout)  :: wnew(nw_phys)
   logical, intent(in)      :: qsourcesplit
   ! .. local ..
