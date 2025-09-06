@@ -1,11 +1,10 @@
 module mod_radiative_cooling
 
-  #:if defined('COOLING')
+#:if defined('COOLING')
 
-  #:mute
-  #:include "../hd/mod_hd_templates.fpp"
-  #:include "../ffhd/mod_ffhd_templates.fpp"
-  #:endmute
+#:mute
+#:include 'mod_physics_templates.fpp'
+#:endmute
 
 ! For the interpolatable tables: these tables contain log_10 temperature values and corresponding
 ! log_10 luminosity values. The simulation-dependent temperature and luminosity
@@ -634,6 +633,6 @@ module mod_radiative_cooling
       coolrate = de/qdt
       end subroutine getvar_cooling_exact
     
-  #:endif
+#:endif
 
 end module mod_radiative_cooling
