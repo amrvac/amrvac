@@ -111,6 +111,8 @@ module mod_mhd_phys
   logical, public, protected              :: mhd_radiative_cooling = .false.
   !> Whether thermal conduction is used
   logical, public, protected              :: mhd_hyperbolic_thermal_conduction = .false.
+  !> Wheterh saturation is considered for hyperbolic TC
+  logical, public, protected              :: mhd_htc_sat = .false.
   !> Whether viscosity is added
   logical, public, protected              :: mhd_viscosity = .false.
   !> Whether gravity is added
@@ -262,7 +264,7 @@ contains
       boundary_divbfix, boundary_divbfix_skip, mhd_divb_nth, mhd_semirelativistic,&
       mhd_reduced_c, clean_initial_divb, mhd_internal_e, &
       mhd_hydrodynamic_e, mhd_trac, mhd_trac_type, mhd_trac_mask, mhd_trac_finegrid, mhd_cak_force, &
-      mhd_hyperbolic_thermal_conduction
+      mhd_hyperbolic_thermal_conduction, mhd_htc_sat
 
     do n = 1, size(files)
        open(unitpar, file=trim(files(n)), status="old")
@@ -4576,35 +4578,6 @@ contains
     end if
   end subroutine add_pe0_divv
 
-  subroutine get_tau(ixI^L,ixO^L,w,Te,tau,sigT5)
-    use mod_global_parameters
-    integer, intent(in) :: ixI^L, ixO^L
-    double precision, dimension(ixI^S,1:nw), intent(in) :: w
-    double precision, dimension(ixI^S), intent(in) :: Te
-    double precision, dimension(ixI^S), intent(out) :: tau,sigT5
-
-    double precision :: dxmin,taumin
-    double precision, dimension(ixI^S) :: sigT7,eint
-    integer :: ix^D
-
-    taumin=4.d0
-    !> w supposed to be wCTprim here
-    if(mhd_trac) then
-      where(Te(ixO^S) .lt. block%wextra(ixO^S,Tcoff_))
-        sigT5(ixO^S)=hypertc_kappa*sqrt(block%wextra(ixO^S,Tcoff_)**5)
-        sigT7(ixO^S)=sigT5(ixO^S)*block%wextra(ixO^S,Tcoff_)
-      else where
-        sigT5(ixO^S)=hypertc_kappa*sqrt(Te(ixO^S)**5)
-        sigT7(ixO^S)=sigT5(ixO^S)*Te(ixO^S)
-      end where
-    else
-      sigT5(ixO^S)=hypertc_kappa*sqrt(Te(ixO^S)**5)
-      sigT7(ixO^S)=sigT5(ixO^S)*Te(ixO^S)
-    end if
-    eint(ixO^S)=w(ixO^S,p_)/(mhd_gamma-one)
-    tau(ixO^S)=max(taumin*dt,sigT7(ixO^S)/eint(ixO^S)/cmax_global**2)
-  end subroutine get_tau
-
   subroutine add_hypertc_source(qdt,ixI^L,ixO^L,wCT,w,x,wCTprim)
     use mod_global_parameters
     integer, intent(in) :: ixI^L,ixO^L
@@ -4613,40 +4586,59 @@ contains
     double precision, dimension(ixI^S,1:nw), intent(in) :: wCT,wCTprim
     double precision, dimension(ixI^S,1:nw), intent(inout) :: w
 
-    double precision :: invdx
-    double precision, dimension(ixI^S) :: Te,tau,sigT,htc_qsrc,Tface,R
-    double precision, dimension(ixI^S) :: htc_esrc,Bsum,Bunit
-    double precision, dimension(ixI^S,1:ndim) :: Btot
+    double precision :: invdx,tau_min
+    double precision, dimension(ixI^S) :: R,Te,sigma_T5,sigma_T7,E_int,rho_loc,B_sum,f_sat,T_face,b_unit,sigmaT5_bgradT,tau,htc_qsrc
+    double precision, dimension(ixI^S,1:ndim) :: B_tot
     integer :: idims
     integer :: hxC^L,hxO^L,ixC^L,jxC^L,jxO^L,kxC^L
 
+    tau_min = 4.d0
+    call mhd_get_rho(wCT,x,ixI^L,ixI^L,rho_loc)
     call mhd_get_Rfactor(wCTprim,x,ixI^L,ixI^L,R)
-    !Te(ixI^S)=wCTprim(ixI^S,p_)/wCT(ixI^S,rho_)
-    Te(ixI^S)=wCTprim(ixI^S,p_)/(R(ixI^S)*w(ixI^S,rho_))
-    call get_tau(ixI^L,ixO^L,wCTprim,Te,tau,sigT)
-    htc_qsrc=zero
-    do idims=1,ndim
-      if(B0field) then
-        Btot(ixO^S,idims)=wCT(ixO^S,mag(idims))+block%B0(ixO^S,idims,0)
+    Te(ixI^S)=wCTprim(ixI^S,p_)/(R(ixI^S)*rho_loc(ixI^S))
+    !> Compute sigma_T5 = sigma * T^2.5 and sigma_T7 = sigma * T^3.5
+    if (mhd_trac) then
+      where(Te(ixO^S) .lt. block%wextra(ixO^S,Tcoff_))
+        sigma_T5(ixO^S) = hypertc_kappa * sqrt(block%wextra(ixO^S,Tcoff_)**5)
+        sigma_T7(ixO^S) = sigma_T5(ixO^S) * block%wextra(ixO^S,Tcoff_)
+      else where
+        sigma_T5(ixO^S) = hypertc_kappa * sqrt(Te(ixO^S)**5)
+        sigma_T7(ixO^S) = sigma_T5(ixO^S) * Te(ixO^S)
+      end where
+    else
+      sigma_T5(ixO^S) = hypertc_kappa * sqrt(Te(ixO^S)**5)
+      sigma_T7(ixO^S) = sigma_T5(ixO^S) * Te(ixO^S)
+    end if
+    E_int(ixO^S) = wCTprim(ixO^S,p_) / (mhd_gamma - one)
+    do idims = 1, ndim
+      if (B0field) then
+        B_tot(ixI^S,idims) = wCT(ixI^S,mag(idims)) + block%B0(ixI^S,idims,0)
       else
-        Btot(ixO^S,idims)=wCT(ixO^S,mag(idims))
-      endif
-    enddo
-    Bsum(ixO^S)=sqrt(sum(Btot(ixO^S,:)**2,dim=ndim+1))+smalldouble
-    do idims=1,ndim
-      invdx=1.d0/dxlevel(idims)
+        B_tot(ixI^S,idims) = wCT(ixI^S,mag(idims))
+      end if
+    end do
+    B_sum(ixI^S) = sqrt(sum(B_tot(ixI^S,:)**2, dim=ndim+1)) + smalldouble
+    sigmaT5_bgradT(ixO^S) = zero
+    do idims = 1, ndim
+      invdx = 1.d0 / dxlevel(idims)
       ixC^L=ixO^L;
       ixCmin^D=ixOmin^D-kr(idims,^D);ixCmax^D=ixOmax^D;
       jxC^L=ixC^L+kr(idims,^D);
       kxC^L=jxC^L+kr(idims,^D);
       hxC^L=ixC^L-kr(idims,^D);
       hxO^L=ixO^L-kr(idims,^D);
-      Tface(ixC^S)=(7.d0*(Te(ixC^S)+Te(jxC^S))-(Te(hxC^S)+Te(kxC^S)))/12.d0
-      Bunit(ixO^S)=Btot(ixO^S,idims)/Bsum(ixO^S)
-      htc_qsrc(ixO^S)=htc_qsrc(ixO^S)+sigT(ixO^S)*Bunit(ixO^S)*(Tface(ixO^S)-Tface(hxO^S))*invdx
+      T_face(ixC^S) = (7.d0 * (Te(ixC^S) + Te(jxC^S)) - (Te(hxC^S) + Te(kxC^S))) / 12.d0
+      b_unit(ixO^S) = B_tot(ixO^S,idims) / B_sum(ixO^S)
+      sigmaT5_bgradT(ixO^S) = sigmaT5_bgradT(ixO^S) + sigma_T5(ixO^S) * b_unit(ixO^S) * (T_face(ixO^S) - T_face(hxO^S)) * invdx
     end do
-    htc_qsrc(ixO^S)=(htc_qsrc(ixO^S)+wCT(ixO^S,q_))/tau(ixO^S)
-    w(ixO^S,q_)=w(ixO^S,q_)-qdt*htc_qsrc(ixO^S)
+    if(mhd_htc_sat) then
+      f_sat(ixO^S) = one / (one + abs(sigmaT5_bgradT(ixO^S)) / 1.5d0 / rho_loc(ixO^S) / (mhd_gamma * wCTprim(ixO^S,p_) / rho_loc(ixO^S))**1.5d0)
+    else
+      f_sat(ixO^S) = one
+    endif
+    tau(ixO^S) = max(tau_min * dt, f_sat(ixO^S) * sigma_T7(ixO^S) / E_int(ixO^S) / cmax_global**2)
+    htc_qsrc(ixO^S) = (f_sat(ixO^S) * sigmaT5_bgradT(ixO^S) + wCT(ixO^S,q_)) / tau(ixO^S)
+    w(ixO^S,q_) = w(ixO^S,q_) - qdt * htc_qsrc(ixO^S)
   end subroutine add_hypertc_source
 
   !> Compute the Lorentz force (JxB)
