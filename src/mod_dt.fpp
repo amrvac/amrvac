@@ -27,14 +27,13 @@ contains
     integer :: iigrid, igrid, idims, ix1,ix2,ix3, ifile
     double precision :: dtmin_mype, factor, dx1,dx2,dx3, dtmax
 
-    double precision :: w(nw_phys,ixMlo1:ixMhi1,ixMlo2:ixMhi2,ixMlo3:ixMhi3)
-    double precision :: dxinv(1:ndim), cmaxtot, cmax, u(1:nw_phys), cs2max_mype, cmax_mype=0.d0
+    double precision :: dxinv(1:ndim), cmaxtot, cmax, u(1:nw_phys), cs2max_mype, cmax_mype
     double precision :: xloc(1:ndim), qdtnew
 
     if (dtpar<=zero) then
        dtmin_mype=bigdouble
        
-       !$acc parallel loop PRIVATE(igrid,dx1,dx2,dx3,dxinv,w) REDUCTION(min:dtmin_mype) gang
+       !$acc parallel loop PRIVATE(igrid,dxinv) REDUCTION(min:dtmin_mype) gang
        do iigrid=1,igridstail_active; igrid=igrids_active(iigrid)
 
           dx1=rnode(rpdx1_,igrid);dx2=rnode(rpdx2_,igrid)
@@ -42,26 +41,24 @@ contains
 
           dxinv(1)=one/dx1;dxinv(2)=one/dx2;dxinv(3)=one/dx3;
 
-          !$acc loop vector collapse(ndim) REDUCTION(min:dtmin_mype) private(cmax, cmaxtot, u, xloc, dxinv, qdtnew)
+          !$acc loop vector collapse(ndim) REDUCTION(min:dtmin_mype) private(u, xloc)
           do ix3=ixMlo3,ixMhi3 
              do ix2=ixMlo2,ixMhi2 
                 do ix1=ixMlo1,ixMhi1 
-                   w(1:nw_phys,ix1,ix2,ix3) = bg(1)%w(ix1,ix2,ix3,1:nw_phys,igrid)
                    cmaxtot = 0.0d0
-                   u = w(:,ix1,ix2,ix3)
+                   u = bg(1)%w(ix1, ix2, ix3, 1:nw_phys, igrid)
                    call to_primitive(u)
                    
                    xloc(1:ndim) = ps(igrid)%x(ix1, ix2, ix3, 1:ndim)
                    !$acc loop seq
                    do idims = 1, ndim
-                      cmax = get_cmax(u,xloc,idims)
-                      cmax_mype = max( cmax, cmax_mype )
+                      cmax = get_cmax(u, xloc, idims)
                       cmaxtot = cmaxtot + cmax * dxinv(idims)
                    end do
                    dtmin_mype     = min( dtmin_mype, courantpar / cmaxtot )
                    
 #:if defined('SOURCE_TERM')
-                   u            = w(:,ix1,ix2,ix3)
+                   u            = bg(1)%w(ix1, ix2, ix3, 1:nw_phys, igrid)
                    xloc(1:ndim) = ps(igrid)%x(ix1, ix2, ix3, 1:ndim)
                    call phys_get_dt(u, xloc, [dx1, dx2, dx3], qdtnew)
                    dtmin_mype = min( dtmin_mype, qdtnew )
@@ -77,6 +74,34 @@ contains
        dtmin_mype=dtpar
     end if
 
+    
+    if (need_global_cmax) then
+       cmax_mype=-bigdouble
+
+       !$acc parallel loop PRIVATE(igrid) REDUCTION(max:cmax_mype) gang
+       do iigrid=1,igridstail_active; igrid=igrids_active(iigrid)
+
+          !$acc loop vector collapse(ndim) REDUCTION(max:cmax_mype) private(u, xloc)
+          do ix3=ixMlo3,ixMhi3 
+             do ix2=ixMlo2,ixMhi2 
+                do ix1=ixMlo1,ixMhi1
+
+                   u(1:nw_phys) = bg(1)%w(ix1, ix2, ix3, 1:nw_phys, igrid)
+                   call to_primitive(u)
+                   xloc(1:ndim) = ps(igrid)%x(ix1, ix2, ix3, 1:ndim)
+                   !$acc loop seq
+                   do idims = 1, ndim
+                      cmax = get_cmax(u, xloc, idims)
+                      cmax_mype = max( cmax_mype, cmax )
+                   end do
+
+                end do
+             end do
+          end do
+       end do
+    end if
+
+
     if (need_global_cs2max) then
       cs2max_mype=-bigdouble
       
@@ -88,7 +113,7 @@ contains
             do ix2=ixMlo2,ixMhi2 
                do ix1=ixMlo1,ixMhi1
                   
-                  u(1:nw_phys) = bg(1)%w(ix1,ix2,ix3,1:nw_phys,igrid)
+                  u(1:nw_phys) = bg(1)%w(ix1, ix2, ix3, 1:nw_phys, igrid)
                   call to_primitive(u)
                   cs2max_mype = max( cs2max_mype, get_cs2(u) )
       

@@ -1,6 +1,6 @@
 
  &filelist
-   base_filename    = 'output/kh3d'
+   base_filename    = 'output/bw3d'
    autoconvert      = T
    convert_type     = 'vtuBCCmpi'
    saveprim         = T
