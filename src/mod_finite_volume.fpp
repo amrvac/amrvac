@@ -56,7 +56,7 @@ contains
     real(dp)               :: wprim(nw_phys), wCT(nw_phys), wnew(nw_phys)
     !-----------------------------------------------------------------------------
     
-    !$acc parallel loop private(n, uprim, inv_dr, typelim) firstprivate(ixImin1,ixImin2,ixImin3,ixImax1,ixImax2,ixImax3, ixOmin1,ixOmin2,ixOmin3,ixOmax1,ixOmax2,ixOmax3) present(bga%w, bgb%w)
+    !$acc parallel loop private(uprim, inv_dr, dr) present(bga%w, bgb%w)
     do iigrid = 1, igridstail_active
        n = igrids_active(iigrid)
 

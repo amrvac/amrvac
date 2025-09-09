@@ -22,7 +22,6 @@
    time_stepper    = 'threestep'
    flux_scheme     = 20*'tvdlf'
    limiter         = 20*'vanleer'
-   small_values_method = 'ignore'
    phys            = 'mhd'
  /
 
@@ -56,9 +55,4 @@
  &paramlist
    slowsteps        = 10
    courantpar       = 0.7d0
-   typecourant      = 'maxsum'
- /
-
- &phys_list
-   gravity = .false.
  /
