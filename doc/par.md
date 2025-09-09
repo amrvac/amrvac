@@ -28,6 +28,7 @@ The physics-dependent namelists include:
 * @ref par_nonlinearlist (see also `mod_nonlinear_phys`)
 * @ref par_hdlist (see also `mod_hd_phys`)
 * @ref par_mhdlist (see also `mod_mhd_phys`)
+* @ref par_ffhdlist (see also `mod_ffhd_phys`)
 
 Further namelist are used to control optional modules. Most of these lists are
 not documented here, but the parameters are described in the corresponding
@@ -936,6 +937,25 @@ sharp discontinuities. It is normally inactive with a default value -1.
       SI_unit= F | T
     /
 
+## ffHD list {#par_ffhdlist}
+
+    &hd_list
+      ffhd_energy= T | F
+      ffhd_gamma= DOUBLE 
+      ffhd_adiab= DOUBLE
+      ffhd_thermal_conduction= F | T
+      ffhd_hyperbolic_thermal_conduction= F | T
+      ffhd_radiative_cooling= F | T
+      ffhd_gravity= F | T
+      ffhd_viscosity= F | T
+      He_abundance= DOUBLE from 0 to 1
+      SI_unit= F | T
+      ffhd_trac= F | T
+      ffhd_trac_type= INTEGER from 1 to 6
+      ffhd_trac_mask= bigdouble
+      ffhd_trac_finegrid= INTEGER
+    /
+
 ## MHD list {#par_mhdlist}
 
     &mhd_list
@@ -964,6 +984,8 @@ sharp discontinuities. It is normally inactive with a default value -1.
      mhd_trac_type= INTEGER from 1 to 6
      mhd_trac_mask= bigdouble
      mhd_trac_finegrid= INTEGER
+     mhd_hyperbolic_thermal_conduction= F | T
+     mhd_htc_sat = F | T
      typedivbfix= 'linde'|'ct'|'glm'|'powel'|'lindejanhunen'|'lindepowel'|'lindeglm'|'multigrid'|'none'
      type_ct='uct_contact'|'uct_hll'|'average'
      source_split_divb= F | T
@@ -1087,6 +1109,16 @@ as the HLL flux in all intermediate states of the Riemann fan.
 In the second method, We solve hydrodynamic energy, i.e., internal and kinetic energy, instead of
 total energy with an additional source term of Lorentz force work, by setting `mhd_hydrodynamic_e=T`,
 which has better conservation than solving internal energy.
+
+Hyperbolic thermal conduction {#par_HTC}
+
+In classical plasma theory, Spitzer-type thermal conduction is parabolic in nature, which imposes a severe timestep restriction when solved explicitly. Even with acceleration techniques such as super time stepping (already implemented in AMRVAC) or multigrid solvers, the conduction step remains computationally more expensive than the MHD (hyperbolic) part, and is often the bottleneck in the overall performance.
+
+An improved approach is to treat the conduction as hyperbolic by introducing a finite signal propagation speed (comparable to the global maximum velocity). In this formulation, the conduction no longer constrains the MHD timestep. Estimates of conduction timescales show that this approximation is well justified in the solar corona, but less accurate in the chromosphere and photosphere. However, since thermal conduction is not the dominant energy transport mechanism in those lower layers, the approximation is still acceptable.
+
+The specific form of hyperbolic thermal conduction adopted in AMRVAC is described in Zhou et al. 2025, ApJ, 978, 72. In the current implementation, the conductivity coefficient is fixed and constant, and only the field-aligned component is included. Variable coefficients and cross-field conduction are not yet supported. To activate this option, set mhd_hyperbolic_thermal_conduction = T and define the heat flux q_ in mod_usr.t. Note that the number of variables in the boundary conditions must be increased by one. Also, when mhd_hyperbolic_thermal_conduction is enabled, the parabolic conduction option mhd_thermal_conduction must be disabled.
+
+During energetic events such as solar flares, conduction becomes saturated and its efficiency decreases. For this regime, one can enable the saturated conduction option by setting mhd_htc_sat = T.
 
 ### Solve semirelativistic MHD to tackle extreme Alfven speed{#par_semirelati}
 

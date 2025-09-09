@@ -2523,7 +2523,7 @@ contains
         amode=ior(amode,MPI_MODE_APPEND)
         call MPI_FILE_OPEN(MPI_COMM_SELF,filename,amode,MPI_INFO_NULL,fhmf,ierrmpi)
         logmfopened=.true.
-        filehead="  it,time,CW_sin_theta,current,Lorenz_force,f_i"
+        filehead="    it, time, CW_sin_theta, current, Lorenz_force, f_i"
         if (it == 0) then
           call MPI_FILE_WRITE(fhmf,filehead,len_trim(filehead), &
                               MPI_CHARACTER,istatus,ierrmpi)
@@ -2531,7 +2531,7 @@ contains
         end if
       end if
       line=''
-      write(datastr,'(i6,a)') it,','
+      write(datastr,'(i8,a)') it,','
       line=trim(line)//trim(datastr)
       write(datastr,'(es13.6,a)') global_time,','
       line=trim(line)//trim(datastr)
