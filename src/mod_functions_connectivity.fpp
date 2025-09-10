@@ -12,9 +12,9 @@ module mod_functions_connectivity
   subroutine get_level_range
     use mod_forest
     use mod_global_parameters
-  
+
     integer :: level
-  
+
     ! determine new finest level
     do level=refine_max_level,1,-1
        if (associated(level_tail(level)%node)) then
@@ -22,7 +22,7 @@ module mod_functions_connectivity
           exit
        end if
     end do
-  
+
     ! determine coarsest level
     do level=1,levmax
        if (associated(level_tail(level)%node)) then
@@ -30,16 +30,16 @@ module mod_functions_connectivity
           exit
        end if
     end do
-  
+
   end subroutine get_level_range
-  
+
   subroutine getigrids
     use mod_forest
     use mod_global_parameters
     implicit none
-  
+
     integer :: iigrid, igrid
-  
+
     iigrid=0
     do igrid=1,max_blocks
        if (igrid_inuse(igrid,mype)) then
@@ -47,18 +47,18 @@ module mod_functions_connectivity
           igrids(iigrid)=igrid
        end if
     end do
-  
+
     igridstail=iigrid
     !$acc update device(igrids, igridstail)
-  
+
   end subroutine getigrids
-  
+
   subroutine build_connectivity
     use mod_forest
     use mod_global_parameters
     use mod_ghostcells_update
-    use mod_amr_neighbors, only: find_neighbor 
-  
+    use mod_amr_neighbors, only: find_neighbor
+
     integer :: iigrid, igrid, i1,i2,i3, my_neighbor_type
     integer :: iside, idim, ic1,ic2,ic3, inc1,inc2,inc3, ih1,ih2,ih3, icdim
     type(tree_node_ptr) :: tree, my_neighbor, child
@@ -68,11 +68,11 @@ module mod_functions_connectivity
     integer :: idir,pi1,pi2,pi3, mi1,mi2,mi3, ph1,ph2,ph3, mh1,mh2,mh3,&
         ipe_neighbor
     integer :: nrecvs,nsends
-  
+
     ! total size of buffer arrays
     integer :: nbuff_bc_recv_srl, nbuff_bc_send_srl, nbuff_bc_recv_r,&
         nbuff_bc_send_r, nbuff_bc_recv_p, nbuff_bc_send_p
-  
+
     nrecv_bc_srl=0; nsend_bc_srl=0
     nrecv_bc_r=0; nsend_bc_r=0
     nrecv_bc_p=0; nsend_bc_p=0
@@ -81,12 +81,12 @@ module mod_functions_connectivity
     nbuff_bc_recv_r=0; nbuff_bc_send_r=0
     nbuff_bc_recv_p=0; nbuff_bc_send_p=0
     if(stagger_grid) nrecv_cc=0; nsend_cc=0
-    
+
     call nbprocs_info%reset
-  
+
     do iigrid=1,igridstail; igrid=igrids(iigrid);
        tree%node => igrid_to_node(igrid,mype)%node
-  
+
        do i3=-1,1
        do i2=-1,1
        do i1=-1,1
@@ -99,7 +99,7 @@ module mod_functions_connectivity
              call find_neighbor(my_neighbor,my_neighbor_type,tree,i1,i2,i3,&
                 pole)
              nopole=.not.any(pole)
-  
+
              select case (my_neighbor_type)
              ! adjacent to physical boundary
              case (neighbor_boundary)
@@ -180,7 +180,7 @@ module mod_functions_connectivity
                 end do
                 end do
              end select
-  
+
              ! flux fix for conservation only for pure directional shifts
              if (abs(i1)+abs(i2)+abs(i3)==1) then
                 if (i1/=0) then
@@ -219,7 +219,7 @@ module mod_functions_connectivity
                          end if
                       end do
                    end do
-                   end do 
+                   end do
                    case (2)
                       do ic1=1,2
                    do ic2=icdim,icdim
@@ -231,7 +231,7 @@ module mod_functions_connectivity
                          end if
                       end do
                    end do
-                   end do 
+                   end do
                    case (3)
                       do ic1=1,2
                    do ic2=1,2
@@ -243,11 +243,11 @@ module mod_functions_connectivity
                          end if
                       end do
                    end do
-                   end do 
+                   end do
                    end select
                 end select
              end if
-  
+
              if (phi_ > 0) then
                neighbor_pole(i1,i2,i3,igrid)=0
                if (my_neighbor_type>1) then
@@ -260,7 +260,7 @@ module mod_functions_connectivity
                end if
              end if
              neighbor_type(i1,i2,i3,igrid)=my_neighbor_type
-  
+
           end if
        end do
        end do
@@ -303,13 +303,13 @@ module mod_functions_connectivity
                  mh1=mi1-kr(idim,1)*(2*iside-3)
                  mh2=mi2-kr(idim,2)*(2*iside-3)
                  mh3=mi3-kr(idim,3)*(2*iside-3);
-  
+
                  if (neighbor_type(pi1,pi2,pi3,igrid)==2.and.neighbor_type(ph1,&
                     ph2,ph3,igrid)==2.and.mype/=neighbor(2,pi1,pi2,pi3,&
                     igrid).and.neighbor_pole(pi1,pi2,pi3,igrid)==0) then
                     nsend_cc(idim) = nsend_cc(idim) + 1
                  end if
-  
+
                  if (neighbor_type(mi1,mi2,mi3,igrid)==2.and.neighbor_type(mh1,&
                     mh2,mh3,igrid)==2.and.mype/=neighbor(2,mi1,mi2,mi3,&
                     igrid).and.neighbor_pole(mi1,mi2,mi3,igrid)==0) then
@@ -328,7 +328,7 @@ module mod_functions_connectivity
                  mh1=mi1-kr(idim,1)*(2*iside-3)
                  mh2=mi2-kr(idim,2)*(2*iside-3)
                  mh3=mi3-kr(idim,3)*(2*iside-3);
-  
+
                  if (neighbor_type(pi1,pi2,pi3,igrid)==4.and.neighbor_type(ph1,&
                     ph2,ph3,igrid)==3.and.neighbor_pole(pi1,pi2,pi3,&
                     igrid)==0) then
@@ -346,7 +346,7 @@ module mod_functions_connectivity
                   end do
                   end do
                  end if
-  
+
                  if (neighbor_type(mi1,mi2,mi3,igrid)==4.and.neighbor_type(mh1,&
                     mh2,mh3,igrid)==3.and.neighbor_pole(mi1,mi2,mi3,&
                     igrid)==0) then
@@ -371,7 +371,7 @@ module mod_functions_connectivity
         end do
         end do
        end if
-  
+
     end do
 
     ! allocate with new nbstructure
@@ -389,12 +389,12 @@ module mod_functions_connectivity
        deallocate(recv_srl_nb, recvstatus_srl_nb)
     end if
     allocate(recv_srl_nb(nbprocs_info%nbprocs_srl*2), recvstatus_srl_nb(MPI_STATUS_SIZE,nbprocs_info%nbprocs_srl*2))
-    
+
     if (allocated(sendstatus_srl_nb)) then
        deallocate(send_srl_nb, sendstatus_srl_nb)
     end if
     allocate(send_srl_nb(nbprocs_info%nbprocs_srl*2), sendstatus_srl_nb(MPI_STATUS_SIZE,nbprocs_info%nbprocs_srl*2))
-  
+
     ! allocate space for mpi recieve for siblings and restrict ghost cell filling
     nrecvs=nrecv_bc_srl+nrecv_bc_r
     if (allocated(recvstatus_c_sr)) then
@@ -406,7 +406,7 @@ module mod_functions_connectivity
          recvrequest_c_sr(nrecvs))
     end if
     recvrequest_c_sr=MPI_REQUEST_NULL
-  
+
     ! allocate space for mpi send for siblings and restrict ghost cell filling
     nsends=nsend_bc_srl+nsend_bc_r
     if (allocated(sendstatus_c_sr)) then
@@ -418,7 +418,7 @@ module mod_functions_connectivity
          sendrequest_c_sr(nsends))
     end if
     sendrequest_c_sr=MPI_REQUEST_NULL
-  
+
     ! allocate space for mpi recieve for prolongation ghost cell filling
     if (allocated(recvstatus_c_p)) then
       deallocate(recvstatus_c_p,recvrequest_c_p)
@@ -429,7 +429,7 @@ module mod_functions_connectivity
          recvrequest_c_p(nrecv_bc_p))
     end if
     recvrequest_c_p=MPI_REQUEST_NULL
-  
+
     ! allocate space for mpi send for prolongation ghost cell filling
     if (allocated(sendstatus_c_p)) then
       deallocate(sendstatus_c_p,sendrequest_c_p)
@@ -440,7 +440,7 @@ module mod_functions_connectivity
          sendrequest_c_p(nsend_bc_p))
     end if
     sendrequest_c_p=MPI_REQUEST_NULL
-  
+
     if(stagger_grid) then
       ! allocate space for recieve buffer for siblings ghost cell filling
       if (allocated(recvbuffer_srl)) then
@@ -460,7 +460,7 @@ module mod_functions_connectivity
            recvrequest_srl(nrecv_bc_srl))
       end if
       recvrequest_srl=MPI_REQUEST_NULL
-  
+
       ! allocate space for send buffer for siblings ghost cell filling
       if (allocated(sendbuffer_srl)) then
         if (nbuff_bc_send_srl /= size(sendbuffer_srl)) then
@@ -479,7 +479,7 @@ module mod_functions_connectivity
            sendrequest_srl(nsend_bc_srl))
       end if
       sendrequest_srl=MPI_REQUEST_NULL
-  
+
       ! allocate space for recieve buffer for restrict ghost cell filling
       if (allocated(recvbuffer_r)) then
         if (nbuff_bc_recv_r /= size(recvbuffer_r)) then
@@ -498,7 +498,7 @@ module mod_functions_connectivity
            recvrequest_r(nrecv_bc_r))
       end if
       recvrequest_r=MPI_REQUEST_NULL
-  
+
       ! allocate space for send buffer for restrict ghost cell filling
       if (allocated(sendbuffer_r)) then
         if (nbuff_bc_send_r /= size(sendbuffer_r)) then
@@ -517,7 +517,7 @@ module mod_functions_connectivity
            sendrequest_r(nsend_bc_r))
       end if
       sendrequest_r=MPI_REQUEST_NULL
-  
+
       ! allocate space for recieve buffer for prolong ghost cell filling
       if (allocated(recvbuffer_p)) then
         if (nbuff_bc_recv_p /= size(recvbuffer_p)) then
@@ -536,7 +536,7 @@ module mod_functions_connectivity
            recvrequest_p(nrecv_bc_p))
       end if
       recvrequest_p=MPI_REQUEST_NULL
-  
+
       ! allocate space for send buffer for restrict ghost cell filling
       if (allocated(sendbuffer_p)) then
         if (nbuff_bc_send_p /= size(sendbuffer_p)) then
@@ -560,8 +560,6 @@ module mod_functions_connectivity
 
     !update the neighbor information on the device
     !$acc update device(neighbor, neighbor_type, neighbor_pole, neighbor_child, idphyb, nbprocs_info)
-    !assuming cray already does deepcopy
-#ifndef _CRAYFTN
     !$acc enter data copyin(nbprocs_info%srl_rcv, nbprocs_info%srl_send, nbprocs_info%srl, nbprocs_info%srl_info_rcv, nbprocs_info%srl_info_send)
     do ipe_neighbor = 1, nbprocs_info%nbprocs_srl
        !$acc enter data copyin(nbprocs_info%srl_rcv(ipe_neighbor)%buffer, nbprocs_info%srl_info_rcv(ipe_neighbor)%buffer)
@@ -572,9 +570,9 @@ module mod_functions_connectivity
        !$acc enter data copyin(nbprocs_info%srl(ipe_neighbor)%ibuf_start)
        !$acc enter data copyin(nbprocs_info%srl(ipe_neighbor)%nigrids)
     end do
-#endif    
 
-    
+
+
   end subroutine build_connectivity
 
   subroutine identifyphysbound_connectivity(igrid)

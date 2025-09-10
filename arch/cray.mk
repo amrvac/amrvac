@@ -2,7 +2,7 @@ arch := cray
 
 compile = ftn
 # disabled ftn messages: 878=multiple includes of same module
-f90_flags += -ea -ef -eZ -ffree -eI -M878
+f90_flags += -ea -ef -eZ -ffree -eI -M878 -hacc_model=auto_async_none:fast_addr:no_deep_copy
 
 ifdef OPENMP
 $(info Enabling OpenMP)
@@ -16,6 +16,11 @@ ifdef OPENACC
 $(info Enabling OpenACC)
 f90_flags += -hacc
 enabled += OPENACC
+ifdef NOGPUDIRECT
+$(info Disabling direct GPU-GPU copies)
+f90_flags += -DNOGPUDIRECT
+enabled += NOGPUDIRECT
+endif
 endif
 
 ifdef DEBUG
