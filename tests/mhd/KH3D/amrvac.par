@@ -59,6 +59,6 @@
    typecourant      = 'maxsum'
  /
 
- &phys_list
-   gravity = .false.
+ &mhd_list
+   mhd_gravity = .false.
  /

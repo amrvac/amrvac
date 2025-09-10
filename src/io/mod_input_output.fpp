@@ -266,7 +266,7 @@ contains
     namelist /boundlist/ nghostcells,ghost_copy,internalboundary,&
         typeboundary_min1,typeboundary_min2,typeboundary_min3,&
        typeboundary_max1,typeboundary_max2,typeboundary_max3,&
-        save_physical_boundary
+        save_physical_boundary, specialboundary
 
     namelist /meshlist/ refine_max_level,nbufferx1,nbufferx2,nbufferx3,&
        refine_threshold,derefine_ratio, refine_criterion, stretch_dim,&
@@ -1565,9 +1565,13 @@ contains
         end select
         end if
       end if
-    end do
+   end do
    
-
+   if (any(typeboundary(:,:)==bc_special) .and. .not. specialboundary) then
+      call mpistop('special boundary requested, set specialboundary=.true.')
+   end if
+      
+   
     if(.not.phys_energy) then
       flatcd=.false.
       flatsh=.false.
@@ -2099,7 +2103,7 @@ contains
  !$acc update device(rk_beta11,rk_beta22,rk_beta33,rk_beta44,rk_c2,rk_c3,rk_c4)
  !$acc update device(rk_alfa21,rk_alfa22,rk_alfa31,rk_alfa33,rk_alfa41,rk_alfa44)
  !$acc update device(rk_beta54,rk_beta55,rk_alfa53,rk_alfa54,rk_alfa55,rk_c5)
- !$acc update device(typeboundary)   
+ !$acc update device(typeboundary, specialboundary)   
   end subroutine read_par_files
 
   !> Routine to find entries in a string

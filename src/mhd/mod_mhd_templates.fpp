@@ -67,6 +67,10 @@
   double precision, public                :: mhd_glm_alpha = 0.5d0
   !$acc declare copyin(mhd_glm_alpha)
 
+  !> Whether to use gravity
+  logical, public                         :: mhd_gravity = .false.
+  !$acc declare copyin(mhd_gravity)
+
   !> Whether plasma is partially ionized
   logical, public                         :: mhd_partial_ionization = .false.
   !$acc declare copyin(mhd_partial_ionization)
@@ -84,7 +88,7 @@
     character(len=*), intent(in) :: files(:)
     integer                      :: n
 
-    namelist /mhd_list/ mhd_gamma, mhd_glm_alpha
+    namelist /mhd_list/ mhd_gamma, mhd_glm_alpha, mhd_gravity
 
     do n = 1, size(files)
        open(unitpar, file=trim(files(n)), status="old")

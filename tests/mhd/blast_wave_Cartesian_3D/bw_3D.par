@@ -56,6 +56,6 @@
    courantpar       = 0.9d0
  /
 
- &phys_list
-   gravity = .false.
+ &mhd_list
+   mhd_gravity = .false.
  /

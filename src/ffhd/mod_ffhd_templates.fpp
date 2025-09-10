@@ -4,8 +4,17 @@
 
   integer, parameter :: dp = kind(0.0d0)
   !> Only consider the hyperbolic thermal conduction situation
-  integer, parameter, public              :: nw_phys=4
-  
+  !> Base number of physical variables (density, momentum, energy)
+  integer, parameter, public              :: nw_phys_base=3
+  !> Total number of physical variables (base + conditional additions)
+  !> This will be set to nw_phys_base + 1 if HYPERTC is defined
+  integer, parameter, public              :: nw_phys=nw_phys_base &
+#:if defined('HYPERTC')
+    + 1
+#:else
+    + 0
+#:endif
+
   !> Whether an energy equation is used
   logical, public                         :: ffhd_energy = .true.
 
@@ -59,6 +68,10 @@
   logical, public                         :: ffhd_radiative_cooling = .false.
   !$acc declare copyin(ffhd_radiative_cooling)
 
+  !> switch for source user
+  logical, public                         :: ffhd_source_usr = .false.
+  !$acc declare copyin(ffhd_source_usr)
+
 #:enddef
 
 #:def read_params()
@@ -68,7 +81,8 @@
     character(len=*), intent(in) :: files(:)
     integer                      :: n
 
-    namelist /ffhd_list/ ffhd_energy, ffhd_gamma, ffhd_partial_ionization
+    namelist /ffhd_list/ ffhd_energy, ffhd_gamma, ffhd_partial_ionization, ffhd_gravity, &
+          ffhd_radiative_cooling, ffhd_hyperbolic_thermal_conduction, ffhd_source_usr
 
     do n = 1, size(files)
        open(unitpar, file=trim(files(n)), status="old")

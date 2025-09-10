@@ -1,5 +1,7 @@
 
+#:mute
 #:include "physics/mod_physics_templates.fpp"
+#:endmute
 
 module mod_dt
 
@@ -48,8 +50,9 @@ contains
                    cmaxtot = 0.0d0
                    u = bg(1)%w(ix1, ix2, ix3, 1:nw_phys, igrid)
                    call to_primitive(u)
-                   
                    xloc(1:ndim) = ps(igrid)%x(ix1, ix2, ix3, 1:ndim)
+
+                   cmaxtot = 0.0d0
                    !$acc loop seq
                    do idims = 1, ndim
                       cmax = get_cmax(u, xloc, idims)
@@ -62,7 +65,8 @@ contains
                    xloc(1:ndim) = ps(igrid)%x(ix1, ix2, ix3, 1:ndim)
                    call phys_get_dt(u, xloc, [dx1, dx2, dx3], qdtnew)
                    dtmin_mype = min( dtmin_mype, qdtnew )
-#:endif    
+#:endif
+                   
                 end do
              end do
           end do

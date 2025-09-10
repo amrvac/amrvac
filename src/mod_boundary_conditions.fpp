@@ -12,7 +12,9 @@ contains
   subroutine bc_phys(iside,idims,time,qdt,s,ixGmin1,ixGmin2,ixGmin3,ixGmax1,&
        ixGmax2,ixGmax3,ixBmin1,ixBmin2,ixBmin3,ixBmax1,ixBmax2,ixBmax3)
     !$acc routine vector
-!    use mod_usr_methods, only: usr_special_bc
+#:if defined('SPECIALBOUNDARY')    
+    use mod_usr, only: specialbound_usr
+#:endif
     use mod_global_parameters
 
     integer, intent(in) :: iside, idims, ixGmin1,ixGmin2,ixGmin3,ixGmax1,&
@@ -369,16 +371,17 @@ contains
        end if 
     end select
 
-    !AGILE: tbd
+#:if defined('SPECIALBOUNDARY')    
     ! do user defined special boundary conditions
-    ! if (any(typeboundary(1:nwflux+nwaux,iB)==bc_special)) then
-    !    if (.not. associated(usr_special_bc)) call &
-    !       mpistop("usr_special_bc not defined")
-    !    call usr_special_bc(time,ixGmin1,ixGmin2,ixGmin3,ixGmax1,ixGmax2,&
-    !       ixGmax3,ixOmin1,ixOmin2,ixOmin3,ixOmax1,ixOmax2,ixOmax3,iB,w,x)
-    ! end if
+    if (any(typeboundary(1:nwflux+nwaux,iB)==bc_special)) then
 
-    end associate
+       call specialbound_usr(time,ixGmin1,ixGmin2,ixGmin3,ixGmax1,ixGmax2,&
+            ixGmax3,ixOmin1,ixOmin2,ixOmin3,ixOmax1,ixOmax2,ixOmax3,iB,w,x)
+
+    end if
+#:endif
+    
+  end associate
   end subroutine bc_phys
 
   !> fill inner boundary values

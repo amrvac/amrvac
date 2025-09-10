@@ -1,14 +1,15 @@
 !> Module with finite volume methods for fluxes
 
+#:mute
 #:include "physics/mod_physics_templates.fpp"
+#:endmute
 
 module mod_finite_volume
 
   use mod_variables
-  use mod_physics
+  use mod_physics_vars
   use mod_global_parameters, only: ndim
   use mod_physicaldata
-
   implicit none
 
   private
@@ -20,8 +21,10 @@ contains
 ! instantiate the templated functions here for inlining:
 @:addsource_local()
 @:addsource_nonlocal()
-@:get_flux()
+@:to_primitive()
+@:to_conservative()
 @:get_cmax()
+@:get_flux()
 
   subroutine finite_volume_local(method, qdt, dtfactor, ixImin1,ixImin2,&
      ixImin3,ixImax1,ixImax2,ixImax3, ixOmin1,ixOmin2,ixOmin3,ixOmax1,ixOmax2,&
@@ -109,7 +112,7 @@ contains
                      n) + qdt * (f(:, 1) - f(:, 2)) * inv_dr(3)
 
 #:if defined('SOURCE_LOCAL')
-                ! Add source terms:
+                ! Add local source terms:
                 xloc(1:ndim) = ps(n)%x(ix1, ix2, ix3, 1:ndim)
                 wprim        = uprim(1:nw_phys, ix1, ix2, ix3)
                 wCT          = bga%w(ix1, ix2, ix3, 1:nw_phys, n)
@@ -173,11 +176,11 @@ contains
     end select
 
     xC=xlocC(:,1)
-    call get_flux(uL, xC, flux_dim, flux_l)    
-    call get_flux(uR, xC, flux_dim, flux_r)    
+    call get_flux(uL, xC, flux_dim, flux_l)
+    call get_flux(uR, xC, flux_dim, flux_r)
 
-    wL = get_cmax(uL, xC, flux_dim)
-    wR = get_cmax(uR, xC, flux_dim)
+    wL = get_cmax(uL,xC, flux_dim)
+    wR = get_cmax(uR,xC, flux_dim)
     wmax = max(wL, wR)
 
     call to_conservative(uL)
@@ -198,8 +201,8 @@ contains
     call get_flux(uL, xC, flux_dim, flux_l)
     call get_flux(uR, xC, flux_dim, flux_r)
 
-    wL = get_cmax(uL, xC, flux_dim)
-    wR = get_cmax(uR, xC, flux_dim)
+    wL = get_cmax(uL,xC, flux_dim)
+    wR = get_cmax(uR,xC, flux_dim)
     wmax = max(wL, wR)
 
     call to_conservative(uL)

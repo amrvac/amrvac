@@ -68,7 +68,6 @@ module mod_variables
   integer, allocatable :: iw_mom(:)
   !$acc declare create(iw_mom)
 
-
   !> Index of the energy density
   integer :: iw_e = -1
   !$acc declare copyin(iw_e)
@@ -80,7 +79,6 @@ module mod_variables
   !> Index of the radiation energy density
   integer :: iw_r_e = -1
   !$acc declare copyin(iw_r_e)
-
 
   !> Indices of the magnetic field components
   integer, allocatable, protected :: iw_mag(:)

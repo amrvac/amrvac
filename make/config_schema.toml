@@ -2,59 +2,75 @@
 # time flags and whether they should affect the build hash.
 # [components] is for hidden implied options inferred by the precompiler
 
-[components.source_term]
-type = "flag"
-name = "SOURCE_TERM"
-flags = ["fypp", "hash"]
-default = false
-
+[components]
 [components.source_nonlocal]
 type = "flag"
 name = "SOURCE_NONLOCAL"
 flags = ["fypp", "hash"]
 default = false
-implies = ["components.source_term"]
 
 [components.source_local]
 type = "flag"
 name = "SOURCE_LOCAL"
 flags = ["fypp", "hash"]
 default = false
-implies = ["components.source_term"]
 
 [methodlist]
 [methodlist.phys]
 type = "option"
 name = "PHYS"
-options = ["hd", "mhd", "ffhd"]
+options = ["hd", "ffhd"]
 flags = ["fypp", "hash"]
 default = "hd"
 
-[phys_list]
-[phys_list.gravity]
+[boundlist]
+[boundlist.specialboundary]
+type = "flag"
+name = "SPECIALBOUNDARY"
+flags = ["fypp", "hash"]
+default = false
+
+[hd_list]
+[hd_list.hd_gravity]
 type = "flag"
 name = "GRAVITY"
 flags = ["fypp", "hash"]
 default = false
 implies = ["components.source_local"]
 
-[phys_list.hyperbolic_thermal_conduction]
+[ffhd_list]
+[ffhd_list.ffhd_hyperbolic_thermal_conduction]
 type = "flag"
 name = "HYPERTC"
 flags = ["fypp", "hash"]
 default = false
 implies = ["components.source_nonlocal"]
 
-[phys_list.radiative_cooling]
+[ffhd_list.ffhd_gravity]
+type = "flag"
+name = "GRAVITY"
+flags = ["fypp", "hash"]
+default = false
+implies = ["components.source_local"]
+
+[ffhd_list.ffhd_radiative_cooling]
 type = "flag"
 name = "COOLING"
 flags = ["fypp", "hash"]
 default = false
 implies = ["components.source_local"]
 
-[phys_list.source_usr]
+[ffhd_list.ffhd_source_usr]
 type = "flag"
 name = "SOURCE_USR"
 flags = ["fypp", "hash"]
 default = false
-implies = ["components.source_term"]
+implies = ["components.source_local"]
+
+[mhd_list]
+[mhd_list.mhd_gravity]
+type = "flag"
+name = "GRAVITY"
+flags = ["fypp", "hash"]
+default = false
+implies = ["components.source_local"]

@@ -33,16 +33,17 @@
   double precision, public                :: hd_adiab = 1.0d0
   !$acc declare copyin(hd_adiab)
 
-  !> Helium abundance over Hydrogen
+  !> The helium abundance
   double precision, public                :: He_abundance=0.1d0
-
-  !> Whether to use gravity
-  logical, public                         :: hd_gravity = .false.
-  !$acc declare copyin(hd_gravity)
+  !$acc declare copyin(He_abundance)
 
   !> Whether plasma is partially ionized
   logical, public                         :: hd_partial_ionization = .false.
   !$acc declare copyin(hd_partial_ionization)
+  
+  !> Whether to use gravity
+  logical, public                         :: hd_gravity = .false.
+  !$acc declare copyin(hd_gravity)
 
   !> Allows overruling default corner filling (for debug mode, since otherwise corner primitives fail)
   logical, public                         :: hd_force_diagonal = .false.
@@ -82,7 +83,6 @@
     call phys_init()
   end subroutine phys_activate
 #:enddef
-
 #:def phys_units()
   subroutine phys_units()
     use mod_global_parameters
@@ -274,7 +274,7 @@ subroutine addsource_local(qdt, dtfactor, qtC, wCT, wCTprim, qt, wnew, x, dr, &
   use mod_usr, only: gravity_field
 #:endif    
 #:if defined('COOLING')
-  use mod_radiative_cooling, only: radiative_cooling_add_source
+  use mod_radiative_cooling, only: rc_fl, radiative_cooling_add_source
 #:endif
 
   real(dp), intent(in)     :: qdt, dtfactor, qtC, qt

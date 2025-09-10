@@ -11,8 +11,7 @@
    itsave(1,1)      = 0
    itsave(1,2)      = 0
    dtsave_log      = 0.01
-   dtsave_dat      = 0.1d0
-
+   dtsave_dat      = 1.d0
  /
 
  &stoplist
@@ -66,11 +65,11 @@
    coolcurve = 'Colgan_DM'
  /
 
- &phys_list
-   gravity = .false.
-   source_usr = .true.
-   hyperbolic_thermal_conduction = .true.
-   radiative_cooling = .true.
+ &ffhd_list
+   ffhd_gravity = .false.
+   ffhd_hyperbolic_thermal_conduction = .true.
+   ffhd_radiative_cooling = .true.
+   ffhd_source_usr = .false.
  /
 
  &usr_list
