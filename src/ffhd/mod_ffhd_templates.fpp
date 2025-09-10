@@ -280,7 +280,7 @@ subroutine addsource_local(qdt, dtfactor, qtC, wCT, wCTprim, qt, wnew, x, dr, &
   use mod_usr, only: gravity_field
 #:endif    
 #:if defined('COOLING')
-  use mod_radiative_cooling, only: rc_fl, radiative_cooling_add_source
+  use mod_radiative_cooling, only: radiative_cooling_add_source
 #:endif
 
   use mod_global_parameters, only : dt, cs2max_global
@@ -307,7 +307,7 @@ subroutine addsource_local(qdt, dtfactor, qtC, wCT, wCTprim, qt, wnew, x, dr, &
 #:endif  
 
 #:if defined('COOLING')
-  call radiative_cooling_add_source(qdt,wCT,wCTprim,wnew,x,rc_fl)
+  call radiative_cooling_add_source(qdt,wCT,wCTprim,wnew,x)
 #:endif
 
 #:if defined('SOURCE_USR')
