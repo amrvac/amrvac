@@ -1256,6 +1256,7 @@ contains
     integer, dimension(1) :: shapes
     logical  :: req_diagonal, update
     type(wbuffer) :: pwbuf(npwbuf)
+    real(dp) :: tempval
 
     integer :: ix1,ix2,ix3, iw, inb, i, Nx1, Nx2, Nx3, ienc, imaxigrids
 
@@ -1494,14 +1495,16 @@ contains
              do ix3 = ixRmin3, ixRmax3
                 do ix2 = ixRmin2, ixRmax2
                    do ix1 = ixRmin1, ixRmax1
-                      psb(igrid)%w( ix1, ix2, ix3, iw ) &
-                           = nbprocs_info%srl_rcv(inb)%buffer( &
+                      ! going through a tempval is a workaround for Cray, which gives
+                      ! a memory access fault on the GPUs otherwise
+                      tempval = nbprocs_info%srl_rcv(inb)%buffer( &
                            ibuf_start &
                            + (ix1-ixRmin1) &
                            + Nx1 * (ix2-ixRmin2) &
                            + Nx1*Nx2 * (ix3-ixRmin3) &
                            + Nx1*Nx2*Nx3 * (iw-nwhead) &
                            )
+                      psb(igrid)%w( ix1, ix2, ix3, iw ) = tempval
                    end do
                 end do
              end do
