@@ -225,6 +225,7 @@ contains
     use mod_fix_conserve
     use mod_physics
     use mod_finite_volume, only: finite_volume_local
+    use mod_usr_methods
 
     integer, intent(in)          :: idimmin,idimmax
     integer :: ixOmin1,ixOmin2,ixOmin3,ixOmax1,ixOmax2,ixOmax3
@@ -275,25 +276,37 @@ contains
         fC, fE &                        ! fluxes
         )
     
-    if (fix_conserve_global .and. fix_conserve_at_step) then
-      call recvflux(idimmin,idimmax)
-      call sendflux(idimmin,idimmax)
-      call fix_conserve(psb,idimmin,idimmax,1,nwflux)
-      if(stagger_grid) then
-        call fix_edges(psb,idimmin,idimmax)
-        ! fill the cell-center values from the updated staggered variables
-        !$OMP PARALLEL DO PRIVATE(igrid)
-        do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
-          call phys_face_to_center(ixMlo1,ixMlo2,ixMlo3,ixMhi1,ixMhi2,ixMhi3,&
-             psb(igrid))
-        end do
-        !$OMP END PARALLEL DO
-      end if
+    ! if (fix_conserve_global .and. fix_conserve_at_step) then
+    !   call recvflux(idimmin,idimmax)
+    !   call sendflux(idimmin,idimmax)
+    !   call fix_conserve(psb,idimmin,idimmax,1,nwflux)
+    !   if(stagger_grid) then
+    !     call fix_edges(psb,idimmin,idimmax)
+    !     ! fill the cell-center values from the updated staggered variables
+    !     !$OMP PARALLEL DO PRIVATE(igrid)
+    !     do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
+    !       call phys_face_to_center(ixMlo1,ixMlo2,ixMlo3,ixMhi1,ixMhi2,ixMhi3,&
+    !          psb(igrid))
+    !     end do
+    !     !$OMP END PARALLEL DO
+    !   end if
+    ! end if
+
+    if (associated(usr_before_main_loop)) then
+       print *, 'before getbc:', it
+       call usr_before_main_loop()
     end if
 
+    
     ! For all grids: fill ghost cells
     call getbc(qt+qdt,qdt,psb,iwstart,nwgc,phys_req_diagonal)
 
+    if (associated(usr_before_main_loop)) then
+       print *, 'after getbc:', it
+       call usr_before_main_loop()
+    end if
+
+    
   end subroutine advect1
 
   !> process is a user entry in time loop, before output and advance

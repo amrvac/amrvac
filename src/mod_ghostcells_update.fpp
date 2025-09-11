@@ -1289,6 +1289,7 @@ contains
     ! prepare coarse values to send to coarser neighbors
     !$OMP PARALLEL DO SCHEDULE(dynamic) PRIVATE(igrid)
     do iigrid=1,igridstail; igrid=igrids(iigrid);
+       
        if(any(neighbor_type(:,:,:,igrid)==neighbor_coarse)) then
           call coarsen_grid(psb(igrid),ixGlo1,ixGlo2,ixGlo3,ixGhi1,ixGhi2,ixGhi3,&
                ixMmin1,ixMmin2,ixMmin3,ixMmax1,ixMmax2,ixMmax3,psc(igrid),&
@@ -3072,7 +3073,6 @@ contains
                              psb(igrid)%w(ixFi1,ixFi2,ixFi3,nwmin:nwmax)=psc(igrid)%w(ixCo1,&
                                   ixCo2,ixCo3,nwmin:nwmax)+(slope(nwmin:nwmax,&
                                   1)*eta1)+(slope(nwmin:nwmax,2)*eta2)+(slope(nwmin:nwmax,3)*eta3)
-                             print *, psb(igrid)%w(ixFi1,ixFi2,ixFi3,nwmin:nwmax)
 
                           end do
                        end do
