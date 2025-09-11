@@ -1427,36 +1427,71 @@ contains
        do i=1, 27
           call idecode( i1, i2, i3, i)
           igrid=igrids(iigrid)
+          iib1=idphyb(1,igrid); iib2=idphyb(2,igrid); iib3=idphyb(3,igrid)
           ipe_neighbor=neighbor(2,i1,i2,i3,igrid)
 
           if(ipe_neighbor==mype) then
              ineighbor=neighbor(1,i1,i2,i3,igrid)
 
-             iib1=idphyb(1,igrid); iib2=idphyb(2,igrid); iib3=idphyb(3,igrid)
-             n_i1=-i1; n_i2=-i2; n_i3=-i3
-             ixSmin1=ixS_srl_min1(iib1,i1);   ixSmin2=ixS_srl_min2(iib2,i2)
-             ixSmin3=ixS_srl_min3(iib3,i3);   ixSmax1=ixS_srl_max1(iib1,i1)
-             ixSmax2=ixS_srl_max2(iib2,i2);   ixSmax3=ixS_srl_max3(iib3,i3)
-             ixRmin1=ixR_srl_min1(iib1,n_i1); ixRmin2=ixR_srl_min2(iib2,n_i2)
-             ixRmin3=ixR_srl_min3(iib3,n_i3); ixRmax1=ixR_srl_max1(iib1,n_i1)
-             ixRmax2=ixR_srl_max2(iib2,n_i2); ixRmax3=ixR_srl_max3(iib3,n_i3)
+             select case (neighbor_type(i1,i2,i3,igrid))
+             case(neighbor_sibling)
 
-             !$acc loop collapse(ndim+1) independent vector
-             do iw = nwhead, nwtail
-                do ix3=1,ixSmax3-ixSmin3+1
-                   do ix2=1,ixSmax2-ixSmin2+1
-                      do ix1=1,ixSmax1-ixSmin1+1
-                         psb(ineighbor)%w(ixRmin1+ix1-1,ixRmin2+ix2-1,ixRmin3+ix3-1,&
-                              iw) = psb(igrid)%w(ixSmin1+ix1-1,ixSmin2+ix2-1,&
-                              ixSmin3+ix3-1,iw)
+                n_i1=-i1; n_i2=-i2; n_i3=-i3
+                ixSmin1=ixS_srl_min1(iib1,i1);   ixSmin2=ixS_srl_min2(iib2,i2)
+                ixSmin3=ixS_srl_min3(iib3,i3);   ixSmax1=ixS_srl_max1(iib1,i1)
+                ixSmax2=ixS_srl_max2(iib2,i2);   ixSmax3=ixS_srl_max3(iib3,i3)
+                ixRmin1=ixR_srl_min1(iib1,n_i1); ixRmin2=ixR_srl_min2(iib2,n_i2)
+                ixRmin3=ixR_srl_min3(iib3,n_i3); ixRmax1=ixR_srl_max1(iib1,n_i1)
+                ixRmax2=ixR_srl_max2(iib2,n_i2); ixRmax3=ixR_srl_max3(iib3,n_i3)
+
+                !$acc loop collapse(ndim+1) independent vector
+                do iw = nwhead, nwtail
+                   do ix3=1,ixSmax3-ixSmin3+1
+                      do ix2=1,ixSmax2-ixSmin2+1
+                         do ix1=1,ixSmax1-ixSmin1+1
+                            psb(ineighbor)%w(ixRmin1+ix1-1,ixRmin2+ix2-1,ixRmin3+ix3-1,&
+                                 iw) = psb(igrid)%w(ixSmin1+ix1-1,ixSmin2+ix2-1,&
+                                 ixSmin3+ix3-1,iw)
+                         end do
                       end do
                    end do
                 end do
-             end do
+                
+             case(neighbor_coarse)
 
-          end if
+                ic1=1+modulo(node(pig1_,igrid)-1,2)
+                ic2=1+modulo(node(pig2_,igrid)-1,2)
+                ic3=1+modulo(node(pig3_,igrid)-1,2)
 
-       end do
+                if(.not.(i1==0.or.i1==2*ic1-3).or..not.(i2==0.or.i2==2*ic2-3)&
+                     .or..not.(i3==0.or.i3==2*ic3-3)) cycle
+
+                  n_inc1=-2*i1+ic1;n_inc2=-2*i2+ic2;n_inc3=-2*i3+ic3;
+                  ixSmin1=ixS_r_min1(iib1,i1);ixSmin2=ixS_r_min2(iib2,i2)
+                  ixSmin3=ixS_r_min3(iib3,i3);ixSmax1=ixS_r_max1(iib1,i1)
+                  ixSmax2=ixS_r_max2(iib2,i2);ixSmax3=ixS_r_max3(iib3,i3);
+                  ixRmin1=ixR_r_min1(iib1,n_inc1);ixRmin2=ixR_r_min2(iib2,n_inc2)
+                  ixRmin3=ixR_r_min3(iib3,n_inc3);ixRmax1=ixR_r_max1(iib1,n_inc1)
+                  ixRmax2=ixR_r_max2(iib2,n_inc2);ixRmax3=ixR_r_max3(iib3,n_inc3);
+
+                  !$acc loop collapse(ndim+1) independent vector
+                  do iw = nwhead, nwtail
+                     do ix3=1,ixSmax3-ixSmin3+1
+                        do ix2=1,ixSmax2-ixSmin2+1
+                           do ix1=1,ixSmax1-ixSmin1+1
+                              psb(ineighbor)%w(ixRmin1+ix1-1,ixRmin2+ix2-1,&
+                                   ixRmin3+ix3-1,iw) = psc(igrid)%w(ixSmin1+ix1-1,&
+                                   ixSmin2+ix2-1,ixSmin3+ix3-1,iw)
+                           end do
+                        end do
+                     end do
+                  end do
+
+               end select
+
+            end if
+
+         end do
     end do
     !$OMP END PARALLEL DO
 
@@ -2381,6 +2416,7 @@ contains
                            psc(ineighbor)%w(ixRmin1:ixRmax1,ixRmin2:ixRmax2,&
                                 ixRmin3:ixRmax3,nwhead:nwtail) =psb(igrid)%w(ixSmin1:ixSmax1,&
                                 ixSmin2:ixSmax2,ixSmin3:ixSmax3,nwhead:nwtail)
+
                            if(stagger_grid) then
                               do idir=1,ndim
                                  ixSmin1=ixS_p_stg_min1(idir,inc1)
@@ -3036,6 +3072,7 @@ contains
                              psb(igrid)%w(ixFi1,ixFi2,ixFi3,nwmin:nwmax)=psc(igrid)%w(ixCo1,&
                                   ixCo2,ixCo3,nwmin:nwmax)+(slope(nwmin:nwmax,&
                                   1)*eta1)+(slope(nwmin:nwmax,2)*eta2)+(slope(nwmin:nwmax,3)*eta3)
+                             print *, psb(igrid)%w(ixFi1,ixFi2,ixFi3,nwmin:nwmax)
 
                           end do
                        end do
