@@ -28,10 +28,10 @@
  /
 
  &boundlist
-        typeboundary_min1 = 4*'cont'
-        typeboundary_max1 = 4*'cont'
-        typeboundary_min2 = 4*'special'
-        typeboundary_max2 = 4*'special'
+        typeboundary_min1 = 3*'cont'
+        typeboundary_max1 = 3*'cont'
+        typeboundary_min2 = 3*'special'
+        typeboundary_max2 = 3*'special'
  /
 
  &meshlist

@@ -229,7 +229,6 @@ contains
     integer :: iw
 
     nwflux              = nwflux + 1
-    nwfluxbc            = nwfluxbc + 1
     nw                  = nw + 1
     iw_q                = nwflux
     iw                  = nwflux

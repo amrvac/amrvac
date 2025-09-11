@@ -4,7 +4,7 @@
 
 # Introduction {#introduction}
 
-This is the documentation for the 3.2 development version of MPI-AMRVAC. The code is
+This is the documentation for the released version 3.2 of MPI-AMRVAC. The code is
 available on [Github](https://github.com/amrvac/amrvac), and the documentation
 on [amrvac.org](http://amrvac.org/). If you have questions about MPI-AMRVAC,
 please send them to the mailing list: <mailto:amrvacusers@ls.kuleuven.be>, which you can also

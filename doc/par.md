@@ -1110,13 +1110,13 @@ In the second method, We solve hydrodynamic energy, i.e., internal and kinetic e
 total energy with an additional source term of Lorentz force work, by setting `mhd_hydrodynamic_e=T`,
 which has better conservation than solving internal energy.
 
-Hyperbolic thermal conduction {#par_HTC}
+### Hyperbolic thermal conduction {#par_HTC}
 
 In classical plasma theory, Spitzer-type thermal conduction is parabolic in nature, which imposes a severe timestep restriction when solved explicitly. Even with acceleration techniques such as super time stepping (already implemented in AMRVAC) or multigrid solvers, the conduction step remains computationally more expensive than the MHD (hyperbolic) part, and is often the bottleneck in the overall performance.
 
 An improved approach is to treat the conduction as hyperbolic by introducing a finite signal propagation speed (comparable to the global maximum velocity). In this formulation, the conduction no longer constrains the MHD timestep. Estimates of conduction timescales show that this approximation is well justified in the solar corona, but less accurate in the chromosphere and photosphere. However, since thermal conduction is not the dominant energy transport mechanism in those lower layers, the approximation is still acceptable.
 
-The specific form of hyperbolic thermal conduction adopted in AMRVAC is described in Zhou et al. 2025, ApJ, 978, 72. In the current implementation, the conductivity coefficient is fixed and constant, and only the field-aligned component is included. Variable coefficients and cross-field conduction are not yet supported. To activate this option, set mhd_hyperbolic_thermal_conduction = T and define the heat flux q_ in mod_usr.t. Note that the number of variables in the boundary conditions must be increased by one. Also, when mhd_hyperbolic_thermal_conduction is enabled, the parabolic conduction option mhd_thermal_conduction must be disabled.
+The specific form of hyperbolic thermal conduction adopted in AMRVAC is described in Zhou et al. 2025, ApJ, 978, 72. In the current implementation, the conductivity coefficient is fixed and constant, and only the field-aligned component is included. Variable coefficients and cross-field conduction are not yet supported. To activate this option, set mhd_hyperbolic_thermal_conduction = T and initialize the heat flux q_ to be zero  in mod_usr.t. The boundary condition for q_ is automatically set to be the same as the one of density rho. Also, when mhd_hyperbolic_thermal_conduction is enabled, the parabolic conduction option mhd_thermal_conduction is automatically set to F to be disabled.
 
 During energetic events such as solar flares, conduction becomes saturated and its efficiency decreases. For this regime, one can enable the saturated conduction option by setting mhd_htc_sat = T.
 
