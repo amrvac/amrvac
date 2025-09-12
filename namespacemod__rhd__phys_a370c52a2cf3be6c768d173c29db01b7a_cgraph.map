@@ -1,5 +1,7 @@
 <map id="mod_rhd_phys::rhd_check_params" name="mod_rhd_phys::rhd_check_params">
-<area shape="rect" id="node1" title=" " alt="" coords="5,39,196,80"/>
-<area shape="rect" id="node2" href="$namespacemod__dust.html#abac9be1c49bbffe25b1de9e17c608392" title=" " alt="" coords="247,5,414,47"/>
-<area shape="rect" id="node3" href="$namespacemod__rhd__phys.html#aae68137f6db48de868d85892e0c9ad2b" title="Set the boundaries for the diffusion of E." alt="" coords="244,71,417,112"/>
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,37,196,77"/>
+<area shape="rect" id="Node000002" href="$namespacemod__dust.html#abac9be1c49bbffe25b1de9e17c608392" title=" " alt="" coords="247,5,414,45"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="196,41,233,36,234,41,197,47"/>
+<area shape="rect" id="Node000003" href="$namespacemod__rhd__phys.html#aae68137f6db48de868d85892e0c9ad2b" title="Set the boundaries for the diffusion of E." alt="" coords="244,69,417,109"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="197,68,231,73,230,78,196,73"/>
 </map>

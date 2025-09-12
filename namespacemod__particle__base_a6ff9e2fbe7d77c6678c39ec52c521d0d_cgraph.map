@@ -1,8 +1,15 @@
 <map id="mod_particle_base::handle_particles" name="mod_particle_base::handle_particles">
-<area shape="rect" id="node1" title="Let particles evolve in time. The routine also handles grid variables and output." alt="" coords="5,136,159,177"/>
-<area shape="rect" id="node2" href="$namespacemod__particle__base.html#abe0a898715bc93553b26b9ff359f2e54" title="Routine handles the particle evolution." alt="" coords="217,5,370,47"/>
-<area shape="rect" id="node3" href="$namespacemod__particle__base.html#af299ec05dc0bd3fe76a9341ce4472946" title=" " alt="" coords="207,71,380,112"/>
-<area shape="rect" id="node4" href="$namespacemod__particle__base.html#a83e06128a50d73e09215a45b2f05080e" title=" " alt="" coords="217,136,370,177"/>
-<area shape="rect" id="node5" href="$namespacemod__particle__base.html#a2b078cd13a41fd38ad141b6f8eaf6c0d" title="update grid variables for particles" alt="" coords="217,201,370,243"/>
-<area shape="rect" id="node6" href="$namespacemod__particle__base.html#a22d691333cb182e116559e4043a16590" title=" " alt="" coords="213,267,373,308"/>
+<area shape="rect" id="Node000001" title="Let particles evolve in time. The routine also handles grid variables and output." alt="" coords="5,165,159,205"/>
+<area shape="rect" id="Node000002" href="$namespacemod__particle__base.html#abe0a898715bc93553b26b9ff359f2e54" title="Routine handles the particle evolution." alt="" coords="222,5,375,45"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="96,163,141,110,171,81,205,55,216,49,218,54,208,60,175,85,145,114,100,167"/>
+<area shape="rect" id="Node000016" href="$namespacemod__particle__base.html#af299ec05dc0bd3fe76a9341ce4472946" title=" " alt="" coords="212,69,385,109"/>
+<area shape="poly" id="edge2_Node000001_Node000016" title=" " alt="" coords="118,163,206,119,223,112,225,117,208,124,120,168"/>
+<area shape="rect" id="Node000017" href="$namespacemod__particle__base.html#a83e06128a50d73e09215a45b2f05080e" title=" " alt="" coords="222,133,375,173"/>
+<area shape="poly" id="edge3_Node000001_Node000017" title=" " alt="" coords="158,171,208,164,209,169,159,177"/>
+<area shape="rect" id="Node000021" href="$namespacemod__particle__base.html#a2b078cd13a41fd38ad141b6f8eaf6c0d" title="update grid variables for particles" alt="" coords="222,197,375,237"/>
+<area shape="poly" id="edge4_Node000001_Node000021" title=" " alt="" coords="159,194,209,201,208,207,158,199"/>
+<area shape="rect" id="Node000022" href="$namespacemod__particle__base.html#a22d691333cb182e116559e4043a16590" title=" " alt="" coords="219,261,379,301"/>
+<area shape="poly" id="edge5_Node000001_Node000022" title=" " alt="" coords="120,203,208,247,225,254,223,259,206,252,118,208"/>
+<area shape="rect" id="Node000024" href="$namespacemod__particle__base.html#a50c09bd15de4d2f51f730d3a73b407f2" title=" " alt="" coords="207,325,391,365"/>
+<area shape="poly" id="edge6_Node000001_Node000024" title=" " alt="" coords="100,204,145,257,175,286,208,311,218,317,216,322,205,316,171,290,141,261,96,207"/>
 </map>

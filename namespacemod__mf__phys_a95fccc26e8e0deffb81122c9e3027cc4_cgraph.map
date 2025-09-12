@@ -1,4 +1,0 @@
-<map id="mod_mf_phys::mf_get_dt" name="mod_mf_phys::mf_get_dt">
-<area shape="rect" id="node1" title="If resistivity is not zero, check diffusion time limit for dt." alt="" coords="5,5,193,32"/>
-<area shape="rect" id="node2" href="$namespacemod__mf__phys.html#a8572d792b38d46006b5e11260528972c" title="Calculate idirmin and the idirmin:3 components of the common current array make sure that dxlevel(^D)..." alt="" coords="241,5,437,32"/>
-</map>

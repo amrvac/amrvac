@@ -1,0 +1,5 @@
+<map id="mod_constrained_transport::fake_update" name="mod_constrained_transport::fake_update">
+<area shape="rect" id="Node000001" title="fake update magnetic field from vector potential" alt="" coords="5,5,205,45"/>
+<area shape="rect" id="Node000002" href="$namespacemod__constrained__transport.html#a25f8b180b123dbde3aeb06a78fe5d054" title="calculate magnetic field from vector potential A at cell edges" alt="" coords="253,5,453,45"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="205,23,240,23,240,28,205,28"/>
+</map>

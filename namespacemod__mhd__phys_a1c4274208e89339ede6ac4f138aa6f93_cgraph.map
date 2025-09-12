@@ -1,4 +1,0 @@
-<map id="mod_mhd_phys::mhd_gamma_alfven" name="mod_mhd_phys::mhd_gamma_alfven">
-<area shape="rect" id="node1" title="Compute 1/sqrt(1+v_A^2/c^2) for semirelativisitic MHD, where v_A is the Alfven velocity." alt="" coords="5,5,224,47"/>
-<area shape="rect" id="node2" href="$namespacemod__mhd__phys.html#a691f2e84d937bb79544d33d4e53db2ed" title="Compute 1/(1+v_A^2/c^2) for semirelativistic MHD, where v_A is the Alfven velocity." alt="" coords="272,5,499,47"/>
-</map>

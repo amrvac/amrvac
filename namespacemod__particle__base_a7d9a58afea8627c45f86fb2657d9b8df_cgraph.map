@@ -1,5 +1,8 @@
 <map id="mod_particle_base::get_bfield" name="mod_particle_base::get_bfield">
-<area shape="rect" id="node1" title=" " alt="" coords="5,35,159,76"/>
-<area shape="rect" id="node2" href="$namespacemod__particle__base.html#a85a2d46a6cbe809098c52ea9beca540a" title=" " alt="" coords="207,5,360,47"/>
-<area shape="rect" id="node3" href="$namespacemod__particle__base.html#afbb3e79e4e88f4a187510bef0211f4a0" title=" " alt="" coords="408,35,561,76"/>
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,35,159,75"/>
+<area shape="rect" id="Node000002" href="$namespacemod__particle__base.html#a85a2d46a6cbe809098c52ea9beca540a" title=" " alt="" coords="207,5,360,45"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="159,41,193,36,194,41,159,46"/>
+<area shape="rect" id="Node000003" href="$namespacemod__particle__base.html#add7436e8bce8fa58e03ff73e0545c47d" title=" " alt="" coords="408,35,561,75"/>
+<area shape="poly" id="edge3_Node000001_Node000003" title=" " alt="" coords="159,54,207,55,360,55,394,54,394,59,360,60,207,60,159,59"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="361,34,395,39,394,44,360,39"/>
 </map>

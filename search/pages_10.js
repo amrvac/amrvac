@@ -1,4 +1,5 @@
 var searchData=
 [
-  ['variable_20names_6816',['Variable names',['../md_doc_varnames.html',1,'']]]
+  ['quantities_0',['Looking at line-integrated quantities',['../md_doc_2collapsed.html',1,'']]],
+  ['questions_1',['Frequently Asked Questions',['../md_doc_2faq.html',1,'']]]
 ];

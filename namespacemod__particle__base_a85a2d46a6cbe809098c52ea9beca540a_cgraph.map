@@ -1,4 +1,5 @@
 <map id="mod_particle_base::get_vec" name="mod_particle_base::get_vec">
-<area shape="rect" id="node1" title=" " alt="" coords="5,5,159,47"/>
-<area shape="rect" id="node2" href="$namespacemod__particle__base.html#afbb3e79e4e88f4a187510bef0211f4a0" title=" " alt="" coords="207,5,360,47"/>
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,5,159,45"/>
+<area shape="rect" id="Node000002" href="$namespacemod__particle__base.html#add7436e8bce8fa58e03ff73e0545c47d" title=" " alt="" coords="207,5,360,45"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="159,23,193,23,193,28,159,28"/>
 </map>

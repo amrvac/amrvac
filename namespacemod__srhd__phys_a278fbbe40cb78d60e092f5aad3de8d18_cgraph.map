@@ -1,4 +1,0 @@
-<map id="mod_srhd_phys::srhd_get_auxiliary" name="mod_srhd_phys::srhd_get_auxiliary">
-<area shape="rect" id="node1" title="Compute auxiliary variables lfac and xi from a conservative state using srhd_con2prim to calculate en..." alt="" coords="5,5,165,47"/>
-<area shape="rect" id="node2" href="$namespacemod__srhd__phys.html#ac00f15c977eaefa0523d182dc55f4315" title="con2prim: (D,S**2,tau) &#45;&#45;&gt; compute auxiliaries lfac and xi" alt="" coords="213,13,436,39"/>
-</map>

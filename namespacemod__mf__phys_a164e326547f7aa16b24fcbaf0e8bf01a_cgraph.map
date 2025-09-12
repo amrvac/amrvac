@@ -1,23 +1,14 @@
 <map id="mod_mf_phys::mf_phys_init" name="mod_mf_phys::mf_phys_init">
-<area shape="rect" id="node1" title=" " alt="" coords="5,593,212,619"/>
-<area shape="rect" id="node2" href="$namespacemod__mf__phys.html#a8cbee5aeb3ec1f5bc7d73c5e8eabab19" title="w[iws]=w[iws]+qdt*S[iws,wCT] where S is the source based on wCT within ixO" alt="" coords="284,5,455,47"/>
-<area shape="rect" id="node3" href="$namespacemod__mf__phys.html#a31522bbc4f9c6a2afabba1baa3ac7762" title=" " alt="" coords="284,71,455,112"/>
-<area shape="rect" id="node4" href="$namespacemod__mf__phys.html#ab99b07b21395999f8a61e4d96faa76ac" title=" " alt="" coords="265,136,473,177"/>
-<area shape="rect" id="node5" href="$namespacemod__mf__phys.html#a18f4a9e18c389b5a90f76dd2dc2f9dce" title=" " alt="" coords="277,201,462,243"/>
-<area shape="rect" id="node6" href="$namespacemod__mf__phys.html#ad9c6423d95f07ba8b1d77ea65420c6ee" title=" " alt="" coords="278,267,461,308"/>
-<area shape="rect" id="node7" href="$namespacemod__mf__phys.html#a1db6517eae55918bcd93739e670a77fd" title="calculate cell&#45;center values from face&#45;center values" alt="" coords="527,296,701,337"/>
-<area shape="rect" id="node8" href="$namespacemod__mf__phys.html#a859dd5f245e21f3986dd445bf816de7d" title="Estimating bounds for the minimum and maximum signal velocities." alt="" coords="285,384,453,425"/>
-<area shape="rect" id="node9" href="$namespacemod__mf__phys.html#a45a08fd2da766d0f378a8694133f1a54" title="Calculate cmax_idim=csound+abs(v_idim) within ixO^L." alt="" coords="264,450,475,477"/>
-<area shape="rect" id="node10" href="$namespacemod__mf__phys.html#a09d95616d2987b148f0ff0fc6e8143f1" title="prepare velocities for ct methods" alt="" coords="285,501,453,543"/>
-<area shape="rect" id="node11" href="$namespacemod__mf__phys.html#a95fccc26e8e0deffb81122c9e3027cc4" title="If resistivity is not zero, check diffusion time limit for dt." alt="" coords="275,567,463,594"/>
-<area shape="rect" id="node12" href="$namespacemod__mf__phys.html#a16dd0f06c273cb9f8b90026dc8756e28" title="Calculate fluxes within ixO^L." alt="" coords="270,618,469,645"/>
-<area shape="rect" id="node13" href="$namespacemod__mf__phys.html#aea0ee2b93079543018cd3347f7dc54fe" title="Calculate v vector." alt="" coords="278,669,461,695"/>
-<area shape="rect" id="node14" href="$namespacemod__mf__phys.html#a298879015f462984603c544bfed4aab4" title=" " alt="" coords="260,719,479,746"/>
-<area shape="rect" id="node15" href="$namespacemod__mf__phys.html#affce02bda119815622485d3b707dcb03" title=" " alt="" coords="269,771,470,812"/>
-<area shape="rect" id="node16" href="$namespacemod__mf__phys.html#ab70dfa046f9db36bdbc4099530ebf1c1" title="Transform primitive variables into conservative ones." alt="" coords="289,836,449,877"/>
-<area shape="rect" id="node17" href="$namespacemod__mf__phys.html#a1276a43e95a34a706934608fe37904c4" title="Transform conservative variables into primitive ones." alt="" coords="289,901,449,943"/>
-<area shape="rect" id="node18" href="$namespacemod__mf__phys.html#af7c51c3f27621ab02a85f9c8a2c4e81b" title=" " alt="" coords="273,967,465,1008"/>
-<area shape="rect" id="node19" href="$namespacemod__mf__phys.html#a891ceb8d3185e1df2b98270bfc1d2083" title="Add global source terms to update frictional velocity on complete domain." alt="" coords="270,1032,469,1073"/>
-<area shape="rect" id="node20" href="$namespacemod__mf__phys.html#ad0edb985cb7c4a3ca53eed3ca655b3dc" title="Write this module&#39;s parameters to a snapsoht." alt="" coords="263,1098,475,1125"/>
-<area shape="rect" id="node21" href="$namespacemod__particles.html#a7a89b126b34bb788a3911955880ddd8f" title="Initialize particle data and parameters." alt="" coords="266,1149,473,1175"/>
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,127,212,153"/>
+<area shape="rect" id="Node000002" href="$namespacemod__mf__phys.html#ad9c6423d95f07ba8b1d77ea65420c6ee" title=" " alt="" coords="272,5,455,45"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="132,125,259,62,292,48,294,53,261,66,135,129"/>
+<area shape="rect" id="Node000007" href="$namespacemod__mf__phys.html#a4a98a656d79ffa62895208194b0f8cca" title="calculate cell&#45;center values from face&#45;center values" alt="" coords="515,35,689,75"/>
+<area shape="poly" id="edge3_Node000001_Node000007" title=" " alt="" coords="166,125,260,105,501,66,501,71,260,111,167,130"/>
+<area shape="rect" id="Node000011" href="$namespacemod__mf__phys.html#ac938faf678e69b784ccf3946ad68c7ee" title="Transform primitive variables into conservative ones." alt="" coords="283,120,443,160"/>
+<area shape="poly" id="edge4_Node000001_Node000011" title=" " alt="" coords="212,137,270,137,270,143,212,143"/>
+<area shape="rect" id="Node000012" href="$namespacemod__mf__phys.html#ae91deb72f6f5352614c7541a8815b92d" title="Transform conservative variables into primitive ones." alt="" coords="283,184,443,224"/>
+<area shape="poly" id="edge5_Node000001_Node000012" title=" " alt="" coords="161,150,270,178,269,183,160,155"/>
+<area shape="rect" id="Node000029" href="$namespacemod__particles.html#a7a89b126b34bb788a3911955880ddd8f" title="Initialize particle data and parameters." alt="" coords="260,249,467,274"/>
+<area shape="poly" id="edge6_Node000001_Node000029" title=" " alt="" coords="128,151,185,191,222,214,261,234,285,242,283,247,259,238,219,219,182,196,125,155"/>
+<area shape="poly" id="edge2_Node000002_Node000007" title=" " alt="" coords="455,34,501,40,501,45,455,39"/>
 </map>

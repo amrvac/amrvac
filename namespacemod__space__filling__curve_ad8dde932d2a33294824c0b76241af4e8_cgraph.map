@@ -1,5 +1,8 @@
 <map id="mod_space_filling_curve::amr_morton_order" name="mod_space_filling_curve::amr_morton_order">
-<area shape="rect" id="node1" title="Construct Morton&#45;order as a global recursive lexicographic ordering." alt="" coords="5,23,188,65"/>
-<area shape="rect" id="node2" href="$mod__space__filling__curve_8t.html#a4fae20104462f77cf16438c6a3794b67" title=" " alt="" coords="250,5,405,32"/>
-<area shape="rect" id="node3" href="$namespacemod__comm__lib.html#a9b6f1a8fd13bc5670e3b426151c34048" title="Exit MPI&#45;AMRVAC with an error message." alt="" coords="236,56,419,83"/>
+<area shape="rect" id="Node000001" title="Construct Morton&#45;order as a global recursive lexicographic ordering." alt="" coords="5,47,188,87"/>
+<area shape="rect" id="Node000002" href="$mod__space__filling__curve_8t.html#a4fae20104462f77cf16438c6a3794b67" title=" " alt="" coords="250,29,405,55"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="188,55,236,49,236,55,188,60"/>
+<area shape="rect" id="Node000003" href="$namespacemod__comm__lib.html#a9b6f1a8fd13bc5670e3b426151c34048" title="Exit MPI&#45;AMRVAC with an error message." alt="" coords="236,79,419,104"/>
+<area shape="poly" id="edge3_Node000001_Node000003" title=" " alt="" coords="188,74,223,78,222,83,188,79"/>
+<area shape="poly" id="edge2_Node000002_Node000002" title=" " alt="" coords="290,31,282,21,286,11,302,5,327,3,360,7,372,16,369,20,358,11,327,8,303,10,290,15,287,20,294,27"/>
 </map>

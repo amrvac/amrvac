@@ -1,9 +1,14 @@
 <map id="mod_load_balance::load_balance" name="mod_load_balance::load_balance">
-<area shape="rect" id="node1" title="reallocate blocks into processors for load balance" alt="" coords="5,165,185,207"/>
-<area shape="rect" id="node2" href="$namespacemod__functions__forest.html#a3f1ac123fb8f2445d4dc3abe12031658" title=" " alt="" coords="240,5,409,47"/>
-<area shape="rect" id="node3" href="$namespacemod__space__filling__curve.html#a934e4e04b49eba5a4caa84f0e7c11e69" title="Set the Morton range for each processor." alt="" coords="233,71,416,112"/>
-<area shape="rect" id="node4" href="$namespacemod__amr__solution__node.html#aeef76b98e4c841f25f27fefa770ce314" title="Get first available igrid on processor ipe." alt="" coords="233,136,416,177"/>
-<area shape="rect" id="node5" href="$mod__load__balance_8t.html#a5f3f61bcc1f983dc370017a88c020987" title=" " alt="" coords="290,202,359,229"/>
-<area shape="rect" id="node6" href="$mod__load__balance_8t.html#aa6de8c51cd660a9211a13d1be3967316" title=" " alt="" coords="289,253,361,279"/>
-<area shape="rect" id="node7" href="$namespacemod__amr__solution__node.html#a24e271e2c807eb2e0881f075d6ff55c2" title=" " alt="" coords="233,304,416,345"/>
+<area shape="rect" id="Node000001" title="reallocate blocks into processors for load balance" alt="" coords="5,157,185,197"/>
+<area shape="rect" id="Node000002" href="$namespacemod__functions__forest.html#a3f1ac123fb8f2445d4dc3abe12031658" title=" " alt="" coords="240,5,409,45"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="113,155,164,106,197,79,232,55,244,49,246,53,235,60,200,83,167,110,117,159"/>
+<area shape="rect" id="Node000003" href="$namespacemod__space__filling__curve.html#a934e4e04b49eba5a4caa84f0e7c11e69" title="Set the Morton range for each processor." alt="" coords="233,69,416,109"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="144,155,232,119,252,112,254,117,234,124,146,160"/>
+<area shape="rect" id="Node000004" href="$namespacemod__amr__solution__node.html#aeef76b98e4c841f25f27fefa770ce314" title="Get first available igrid on processor ipe." alt="" coords="233,157,416,197"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="186,175,219,175,219,180,186,180"/>
+<area shape="rect" id="Node000006" href="$mod__load__balance_8t.html#a5f3f61bcc1f983dc370017a88c020987" title=" " alt="" coords="290,222,359,247"/>
+<area shape="poly" id="edge5_Node000001_Node000006" title=" " alt="" coords="177,195,278,220,276,225,175,200"/>
+<area shape="rect" id="Node000011" href="$namespacemod__amr__solution__node.html#a24e271e2c807eb2e0881f075d6ff55c2" title=" " alt="" coords="233,272,416,312"/>
+<area shape="poly" id="edge6_Node000001_Node000011" title=" " alt="" coords="128,195,177,225,235,256,252,264,250,269,232,261,175,230,125,200"/>
+<area shape="poly" id="edge4_Node000004_Node000004" title=" " alt="" coords="282,158,279,148,286,138,301,133,325,131,351,134,366,141,364,146,350,139,325,136,303,138,289,143,284,149,287,156"/>
 </map>

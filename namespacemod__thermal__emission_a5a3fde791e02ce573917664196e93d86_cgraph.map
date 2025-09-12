@@ -1,0 +1,7 @@
+<map id="mod_thermal_emission::integrate_spectra_datresol" name="mod_thermal_emission::integrate_spectra_datresol">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,37,209,77"/>
+<area shape="rect" id="Node000002" href="$namespacemod__thermal__emission.html#af49384ae59d12d978836e02f57cfee66" title=" " alt="" coords="257,5,432,45"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="209,41,244,36,244,42,210,46"/>
+<area shape="rect" id="Node000004" href="$namespacemod__thermal__emission.html#a3089c33eabc4b5a051bf7f3f027ef7a7" title=" " alt="" coords="257,69,432,109"/>
+<area shape="poly" id="edge2_Node000001_Node000004" title=" " alt="" coords="210,68,244,73,244,78,209,74"/>
+</map>

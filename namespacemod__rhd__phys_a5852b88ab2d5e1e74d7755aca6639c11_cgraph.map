@@ -1,9 +1,0 @@
-<map id="mod_rhd_phys::rhd_add_source" name="mod_rhd_phys::rhd_add_source">
-<area shape="rect" id="node1" title=" " alt="" coords="5,181,183,223"/>
-<area shape="rect" id="node2" href="$namespacemod__dust.html#a63222be92b15ca739af19cd425247e3b" title="w[iw]= w[iw]+qdt*S[wCT, x] where S is the source based on wCT within ixO" alt="" coords="253,5,407,47"/>
-<area shape="rect" id="node3" href="$namespacemod__gravity.html#ab20751e039ea3c70d106929d2940f853" title="w[iw]=w[iw]+qdt*S[wCT,qtC,x] where S is the source based on wCT within ixO" alt="" coords="251,71,409,112"/>
-<area shape="rect" id="node4" href="$namespacemod__radiative__cooling.html#ae958ed08210d50fa1e01ed5ae3fd4e34" title=" " alt="" coords="243,137,417,193"/>
-<area shape="rect" id="node5" href="$namespacemod__rhd__phys.html#a5d882fb0fb8e6d01178072fde57a0937" title=" " alt="" coords="241,217,419,259"/>
-<area shape="rect" id="node6" href="$namespacemod__rhd__phys.html#aa7716ab0f3bab6083faa39ad8cd38bc5" title=" " alt="" coords="231,283,429,324"/>
-<area shape="rect" id="node7" href="$namespacemod__viscosity.html#a61f06d68c91f32ec45245f989be9614c" title=" " alt="" coords="239,348,421,389"/>
-</map>

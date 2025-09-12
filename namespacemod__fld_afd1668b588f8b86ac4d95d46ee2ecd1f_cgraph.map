@@ -1,6 +1,0 @@
-<map id="mod_fld::newton_method" name="mod_fld::newton_method">
-<area shape="rect" id="node1" title="Find the root of the 4th degree polynomial using the Newton&#45;Ralphson method." alt="" coords="5,71,192,98"/>
-<area shape="rect" id="node2" href="$namespacemod__fld.html#ae111198d92df820a9edeaf0073f4107e" title="Find the root of the 4th degree polynomial using the bisection method." alt="" coords="251,5,392,47"/>
-<area shape="rect" id="node3" href="$namespacemod__fld.html#a8ec89cf1950c713250b72d34680df7c0" title="Evaluate polynomial at argument e_gas." alt="" coords="451,35,605,76"/>
-<area shape="rect" id="node4" href="$namespacemod__fld.html#ac956fe2dd223e2039a113a0d0c2991d0" title="Evaluate first derivative of polynomial at argument e_gas." alt="" coords="240,123,403,164"/>
-</map>

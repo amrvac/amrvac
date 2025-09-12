@@ -1,5 +1,8 @@
 <map id="mod_particle_base::find_particle_ipe" name="mod_particle_base::find_particle_ipe">
-<area shape="rect" id="node1" title=" " alt="" coords="5,27,159,69"/>
-<area shape="rect" id="node2" href="$namespacemod__slice.html#a29d6f9885b76722d9fd862805d94e030" title=" " alt="" coords="207,5,373,32"/>
-<area shape="rect" id="node3" href="$namespacemod__particle__base.html#ae7e59fb41ba6b4365b1ee55be06e15d9" title="Check if particle is inside computational domain." alt="" coords="213,57,367,98"/>
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,39,159,79"/>
+<area shape="rect" id="Node000002" href="$namespacemod__slice.html#a29d6f9885b76722d9fd862805d94e030" title=" " alt="" coords="207,5,373,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="159,41,211,31,212,36,160,47"/>
+<area shape="rect" id="Node000003" href="$namespacemod__particle__base.html#ae7e59fb41ba6b4365b1ee55be06e15d9" title="Check if particle is inside computational domain." alt="" coords="213,79,367,119"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="160,71,200,79,199,85,159,77"/>
+<area shape="poly" id="edge3_Node000003_Node000003" title=" " alt="" coords="251,80,249,70,255,60,269,55,290,53,314,56,328,63,325,68,313,61,290,58,270,60,258,65,254,71,256,78"/>
 </map>

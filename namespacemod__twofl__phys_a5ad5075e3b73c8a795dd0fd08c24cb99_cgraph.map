@@ -1,8 +1,0 @@
-<map id="mod_twofl_phys::twofl_get_csound_prim_c" name="mod_twofl_phys::twofl_get_csound_prim_c">
-<area shape="rect" id="node1" title="Calculate fast magnetosonic wave speed." alt="" coords="5,98,173,139"/>
-<area shape="rect" id="node2" href="$namespacemod__twofl__phys.html#a4e18f8b5346e80f4d7e4418f32845e7f" title=" " alt="" coords="465,33,623,74"/>
-<area shape="rect" id="node3" href="$namespacemod__twofl__phys.html#a03da7a6f4947646d89894d9e90364237" title=" " alt="" coords="235,33,403,74"/>
-<area shape="rect" id="node4" href="$namespacemod__twofl__phys.html#a0e504bc1b93d85eec72aa438dca8312f" title=" " alt="" coords="221,98,417,139"/>
-<area shape="rect" id="node5" href="$namespacemod__twofl__phys.html#ac36cb8a7f352e9bdc3ca1c2dd54489d2" title="Compute 2 times total magnetic energy." alt="" coords="235,163,403,205"/>
-<area shape="rect" id="node6" href="$namespacemod__twofl__phys.html#ad5909743198e8160e3d81cf6771cbd10" title="Compute full magnetic field by direction." alt="" coords="235,229,403,270"/>
-</map>

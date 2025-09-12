@@ -1,0 +1,8 @@
+<map id="mod_twofl_phys::get_gamma_ion_rec" name="mod_twofl_phys::get_gamma_ion_rec">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,5,163,45"/>
+<area shape="rect" id="Node000002" href="$namespacemod__twofl__phys.html#addeb124f8b22598bc4f5b29d5481c728" title=" " alt="" coords="427,5,584,45"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="163,20,211,19,379,19,413,19,413,25,379,24,211,24,163,25"/>
+<area shape="rect" id="Node000003" href="$namespacemod__twofl__phys.html#a56f47f86014a476093cc20d05d2d2f17" title=" " alt="" coords="211,33,379,73"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="163,33,198,38,197,43,162,38"/>
+<area shape="poly" id="edge3_Node000003_Node000002" title=" " alt="" coords="378,40,413,35,414,40,379,45"/>
+</map>

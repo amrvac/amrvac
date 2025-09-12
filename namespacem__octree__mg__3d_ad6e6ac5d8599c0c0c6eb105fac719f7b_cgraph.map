@@ -1,8 +1,15 @@
 <map id="m_octree_mg_3d::diffusion_solve_vcoeff" name="m_octree_mg_3d::diffusion_solve_vcoeff">
-<area shape="rect" id="node1" title="Solve a diffusion equation implicitly, assuming a variable diffusion coefficient which has been store..." alt="" coords="5,129,204,171"/>
-<area shape="rect" id="node2" href="$namespacem__octree__mg__3d.html#af95ca06674754498ceb1334ba49c80ef" title="Apply operator to the tree and store in variable i_out." alt="" coords="278,5,441,47"/>
-<area shape="rect" id="node3" href="$namespacem__octree__mg__3d.html#a0fcfb66d8fdf2bce3eccd610dee47e69" title="Perform FAS&#45;FMG cycle (full approximation scheme, full multigrid)." alt="" coords="278,71,441,112"/>
-<area shape="rect" id="node4" href="$namespacem__octree__mg__3d.html#a2605f9bea5f4e76ba80c4f34afaf2c57" title="Perform FAS V&#45;cycle (full approximation scheme)." alt="" coords="515,100,677,141"/>
-<area shape="rect" id="node5" href="$namespacem__octree__mg__3d.html#a090ee85cf25ae97102482719872f6524" title=" " alt="" coords="278,188,441,229"/>
-<area shape="rect" id="node6" href="$namespacem__octree__mg__3d.html#a4344c1e34e58b185e2a7fd771d99101d" title=" " alt="" coords="252,253,467,295"/>
+<area shape="rect" id="Node000001" title="Solve a diffusion equation implicitly, assuming a variable diffusion coefficient which has been store..." alt="" coords="5,127,204,167"/>
+<area shape="rect" id="Node000002" href="$namespacem__octree__mg__3d.html#af95ca06674754498ceb1334ba49c80ef" title="Apply operator to the tree and store in variable i_out." alt="" coords="278,5,441,45"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="132,124,186,90,251,55,269,47,271,52,253,60,189,94,135,129"/>
+<area shape="rect" id="Node000003" href="$namespacem__octree__mg__3d.html#a0fcfb66d8fdf2bce3eccd610dee47e69" title="Perform FAS&#45;FMG cycle (full approximation scheme, full multigrid)." alt="" coords="278,69,441,109"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="194,124,264,108,265,113,195,129"/>
+<area shape="rect" id="Node000004" href="$namespacem__octree__mg__3d.html#a2605f9bea5f4e76ba80c4f34afaf2c57" title="Perform FAS V&#45;cycle (full approximation scheme)." alt="" coords="515,99,677,139"/>
+<area shape="poly" id="edge4_Node000001_Node000004" title=" " alt="" coords="204,138,500,121,501,127,204,144"/>
+<area shape="rect" id="Node000014" href="$namespacem__octree__mg__3d.html#a090ee85cf25ae97102482719872f6524" title=" " alt="" coords="278,208,441,248"/>
+<area shape="poly" id="edge5_Node000001_Node000014" title=" " alt="" coords="169,164,284,201,282,206,167,169"/>
+<area shape="rect" id="Node000022" href="$namespacem__octree__mg__3d.html#a4344c1e34e58b185e2a7fd771d99101d" title=" " alt="" coords="252,272,467,312"/>
+<area shape="poly" id="edge7_Node000001_Node000022" title=" " alt="" coords="129,165,183,211,217,236,253,258,268,265,266,270,251,262,214,241,180,216,125,169"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="442,97,501,104,501,110,441,102"/>
+<area shape="poly" id="edge6_Node000014_Node000014" title=" " alt="" coords="316,208,313,198,320,189,336,183,359,181,387,184,402,191,399,196,385,189,359,187,337,189,323,193,318,199,321,207"/>
 </map>

@@ -1,5 +1,0 @@
-<map id="mod_twofl_phys::update_faces_hll" name="mod_twofl_phys::update_faces_hll">
-<area shape="rect" id="node1" title="update faces" alt="" coords="5,39,187,80"/>
-<area shape="rect" id="node2" href="$namespacemod__twofl__phys.html#a67c97221faff95203eadafd87b2fcb62" title="calculate eta J at cell edges" alt="" coords="247,5,422,47"/>
-<area shape="rect" id="node3" href="$namespacemod__constrained__transport.html#ae0d99ce25d3a609e5e1e51dc97c9b4c8" title="Reconstruct scalar q within ixO^L to 1/2 dx in direction idir Return both left and right reconstructe..." alt="" coords="235,71,435,112"/>
-</map>

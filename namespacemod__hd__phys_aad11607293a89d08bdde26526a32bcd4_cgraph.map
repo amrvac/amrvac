@@ -1,0 +1,11 @@
+<map id="mod_hd_phys::hd_to_primitive" name="mod_hd_phys::hd_to_primitive">
+<area shape="rect" id="Node000001" title="Transform conservative variables into primitive ones." alt="" coords="5,85,161,125"/>
+<area shape="rect" id="Node000002" href="$namespacemod__dust.html#aa8f0323bbd86a80c96eb9cdd1838cd46" title=" " alt="" coords="217,5,410,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="119,82,161,61,208,41,237,32,239,37,210,46,163,66,122,87"/>
+<area shape="rect" id="Node000003" href="$namespacemod__dust.html#ac1c2ed9a82c30e325a4a2a2922e0f409" title=" " alt="" coords="238,55,389,95"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="161,92,224,84,225,89,162,97"/>
+<area shape="rect" id="Node000004" href="$namespacemod__dust.html#a6bebf3d46a4b790c0988ba3acade6288" title=" " alt="" coords="209,120,417,145"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="162,111,196,116,195,121,161,117"/>
+<area shape="rect" id="Node000006" href="$namespacemod__hd__phys.html#a44f30d12946c0f46f8c64c835aa589f6" title="Calculate the square of the thermal sound speed csound2 within ixO^L. csound2=gamma*p/rho." alt="" coords="231,170,395,210"/>
+<area shape="poly" id="edge4_Node000001_Node000006" title=" " alt="" coords="131,122,210,154,236,163,234,168,208,159,129,127"/>
+</map>

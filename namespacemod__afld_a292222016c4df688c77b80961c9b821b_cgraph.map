@@ -1,0 +1,10 @@
+<map id="mod_afld::afld_get_diffcoef_central" name="mod_afld::afld_get_diffcoef_central">
+<area shape="rect" id="Node000001" title="Calculates cell&#45;centered diffusion coefficient to be used in multigrid." alt="" coords="5,63,148,103"/>
+<area shape="rect" id="Node000002" href="$namespacemod__afld.html#a534fb3f2e92a62c9e7518f901ce3ae57" title="Calculate fld flux limiter This subroutine calculates flux limiter lambda using the prescription stor..." alt="" coords="210,5,353,45"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="147,60,196,46,198,51,149,65"/>
+<area shape="rect" id="Node000003" href="$namespacemod__afld.html#ad8704dc4f298466b7f931aae68dcb380" title="Sets the opacity in the w&#45;array by calling mod_opal_opacity." alt="" coords="415,35,557,75"/>
+<area shape="poly" id="edge3_Node000001_Node000003" title=" " alt="" coords="148,75,401,58,401,63,149,80"/>
+<area shape="rect" id="Node000010" href="$namespacemod__afld.html#a0ce190d6c038097eb591a808d0c4525f" title="Use running average on Diffusion coefficient." alt="" coords="196,120,367,160"/>
+<area shape="poly" id="edge4_Node000001_Node000010" title=" " alt="" coords="149,100,197,114,195,119,147,105"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="353,33,401,40,401,45,352,38"/>
+</map>

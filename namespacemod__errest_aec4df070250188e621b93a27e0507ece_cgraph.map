@@ -1,7 +1,5 @@
 <map id="mod_errest::errest" name="mod_errest::errest">
-<area shape="rect" id="node1" title="Do all local error estimation which determines (de)refinement." alt="" coords="5,81,148,108"/>
-<area shape="rect" id="node2" href="$namespacemod__errest.html#a2692e1a90e4aed6b994ac0a869bb8d9a" title=" " alt="" coords="196,5,411,32"/>
-<area shape="rect" id="node3" href="$namespacemod__errest.html#a28c669448c2a8f875b7a93deaeb877ef" title=" " alt="" coords="215,56,392,83"/>
-<area shape="rect" id="node4" href="$namespacemod__comm__lib.html#a9b6f1a8fd13bc5670e3b426151c34048" title="Exit MPI&#45;AMRVAC with an error message." alt="" coords="459,81,641,108"/>
-<area shape="rect" id="node5" href="$namespacemod__errest.html#a9e88e35ac7d692c38fb286d5bd253e03" title=" " alt="" coords="231,158,376,199"/>
+<area shape="rect" id="Node000001" title="Do all local error estimation which determines (de)refinement." alt="" coords="5,5,148,31"/>
+<area shape="rect" id="Node000002" href="$namespacemod__comm__lib.html#a9b6f1a8fd13bc5670e3b426151c34048" title="Exit MPI&#45;AMRVAC with an error message." alt="" coords="196,5,379,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="148,15,182,15,182,21,148,21"/>
 </map>

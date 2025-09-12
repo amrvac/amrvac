@@ -1,4 +1,0 @@
-<map id="mod_rhd_phys::rhd_get_csound2" name="mod_rhd_phys::rhd_get_csound2">
-<area shape="rect" id="node1" title="Calculate the square of the thermal sound speed csound2 within ixO^L. csound2=gamma*p/rho." alt="" coords="5,5,180,47"/>
-<area shape="rect" id="node2" href="$namespacemod__rhd__phys.html#a76f4afba27897e442dd81c4fb032a6db" title="calculates the sum of the gas pressure and max Prad tensor element" alt="" coords="228,13,435,39"/>
-</map>

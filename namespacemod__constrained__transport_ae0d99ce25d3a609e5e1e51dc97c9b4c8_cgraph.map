@@ -1,4 +1,0 @@
-<map id="mod_constrained_transport::reconstruct" name="mod_constrained_transport::reconstruct">
-<area shape="rect" id="node1" title="Reconstruct scalar q within ixO^L to 1/2 dx in direction idir Return both left and right reconstructe..." alt="" coords="5,5,205,47"/>
-<area shape="rect" id="node2" href="$namespacemod__limiter.html#a358e3650bfa838c75f25186e88f850e6" title="Limit the centered dwC differences within ixC for iw in direction idim. The limiter is chosen accordi..." alt="" coords="253,13,432,39"/>
-</map>

@@ -1,6 +1,9 @@
 <map id="mod_hd::hd_activate" name="mod_hd::hd_activate">
-<area shape="rect" id="node1" title=" " alt="" coords="5,56,164,83"/>
-<area shape="rect" id="node2" href="$namespacemod__hd__hllc.html#a0833bd009acd265827ed1d7fcba916b0" title=" " alt="" coords="220,5,407,32"/>
-<area shape="rect" id="node3" href="$namespacemod__hd__phys.html#a86518623ab235a1cf8ce7a29593d0599" title="Initialize the module." alt="" coords="212,56,415,83"/>
-<area shape="rect" id="node4" href="$namespacemod__hd__roe.html#a2914c6ee26f6009d4973a8e68c8e2069" title=" " alt="" coords="222,107,405,133"/>
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,55,164,80"/>
+<area shape="rect" id="Node000002" href="$namespacemod__hd__hllc.html#a0833bd009acd265827ed1d7fcba916b0" title=" " alt="" coords="220,5,407,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="144,52,240,31,241,36,145,57"/>
+<area shape="rect" id="Node000003" href="$namespacemod__hd__phys.html#a86518623ab235a1cf8ce7a29593d0599" title="Initialize the module." alt="" coords="212,55,415,80"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="164,65,198,65,198,70,164,70"/>
+<area shape="rect" id="Node000122" href="$namespacemod__hd__roe.html#a2914c6ee26f6009d4973a8e68c8e2069" title=" " alt="" coords="222,104,405,129"/>
+<area shape="poly" id="edge3_Node000001_Node000122" title=" " alt="" coords="145,77,241,98,240,104,144,83"/>
 </map>

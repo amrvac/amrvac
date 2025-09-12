@@ -1,4 +1,0 @@
-<map id="mod_afld::afld_get_opacity" name="mod_afld::afld_get_opacity">
-<area shape="rect" id="node1" title="Sets the opacity in the w&#45;array by calling mod_opal_opacity." alt="" coords="5,5,148,47"/>
-<area shape="rect" id="node2" href="$namespacemod__opal__opacity.html#a8a6b7571280893a4d5716c993e03c910" title="This subroutine calculates the opacity for a given temperature&#45;density structure. Opacities are read ..." alt="" coords="196,5,364,47"/>
-</map>

@@ -1,4 +1,0 @@
-<map id="mod_srhd_phys::srhd_get_pthermal" name="mod_srhd_phys::srhd_get_pthermal">
-<area shape="rect" id="node1" title="Calculate thermal pressure p within ixO^L must follow after update conservative with auxiliaries." alt="" coords="5,5,165,47"/>
-<area shape="rect" id="node2" href="$namespacemod__srhd__phys.html#ab5b5c926f4c40d769f5bfb3fceea2a3c" title="Calculate thermal pressure p from density rho and enthalpy rho*h will provide p (and E if srhd_eos)" alt="" coords="213,5,373,47"/>
-</map>

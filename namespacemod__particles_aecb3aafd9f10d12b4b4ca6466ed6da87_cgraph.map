@@ -1,7 +1,13 @@
 <map id="mod_particles::particles_create" name="mod_particles::particles_create">
-<area shape="rect" id="node1" title="Create initial particles." alt="" coords="5,104,184,145"/>
-<area shape="rect" id="node2" href="$namespacemod__particle__advect.html#aa2e7fa0d8bc6967ac9d50cc6f3a9483e" title=" " alt="" coords="234,5,419,47"/>
-<area shape="rect" id="node3" href="$namespacemod__particle__gca.html#a7655ff0241d9b535bda5851a41425f26" title=" " alt="" coords="243,71,411,112"/>
-<area shape="rect" id="node4" href="$namespacemod__particle__lorentz.html#ae2dc5dd4be039dedb44a197a36b9fa13" title=" " alt="" coords="233,136,420,177"/>
-<area shape="rect" id="node5" href="$namespacemod__particle__sample.html#aee684c8a4df45d1ae8aa316ee1251143" title=" " alt="" coords="232,201,421,243"/>
+<area shape="rect" id="Node000001" title="Create initial particles." alt="" coords="5,133,184,173"/>
+<area shape="rect" id="Node000002" href="$namespacemod__particle__advect.html#aa2e7fa0d8bc6967ac9d50cc6f3a9483e" title=" " alt="" coords="234,5,419,45"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="119,131,169,93,231,55,245,48,248,53,233,60,172,97,122,135"/>
+<area shape="rect" id="Node000019" href="$namespacemod__particle__gca.html#a7655ff0241d9b535bda5851a41425f26" title=" " alt="" coords="243,69,411,109"/>
+<area shape="poly" id="edge2_Node000001_Node000019" title=" " alt="" coords="167,131,240,110,241,116,169,136"/>
+<area shape="rect" id="Node000031" href="$namespacemod__particle__lorentz.html#ae2dc5dd4be039dedb44a197a36b9fa13" title=" " alt="" coords="233,133,420,173"/>
+<area shape="poly" id="edge3_Node000001_Node000031" title=" " alt="" coords="184,151,220,151,220,156,184,156"/>
+<area shape="rect" id="Node000011" href="$namespacemod__comm__lib.html#a9b6f1a8fd13bc5670e3b426151c34048" title="Exit MPI&#45;AMRVAC with an error message." alt="" coords="235,198,418,223"/>
+<area shape="poly" id="edge4_Node000001_Node000011" title=" " alt="" coords="177,171,262,192,261,197,176,176"/>
+<area shape="rect" id="Node000038" href="$namespacemod__particle__sample.html#aee684c8a4df45d1ae8aa316ee1251143" title=" " alt="" coords="232,248,421,288"/>
+<area shape="poly" id="edge5_Node000001_Node000038" title=" " alt="" coords="127,171,176,202,233,232,252,241,250,245,231,237,173,206,124,176"/>
 </map>

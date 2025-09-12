@@ -1,5 +1,0 @@
-<map id="mod_mf_phys::add_source_hyperres" name="mod_mf_phys::add_source_hyperres">
-<area shape="rect" id="node1" title="Add Hyper&#45;resistive source to w within ixO Uses 9 point stencil (4 neighbours) in each direction." alt="" coords="5,5,201,47"/>
-<area shape="rect" id="node2" href="$namespacemod__geometry.html#aabd378d228c27c5b83d0d14d9058661e" title="Calculate curl of a vector qvec within ixL Options to employ standard second order CD evaluations use..." alt="" coords="493,13,687,39"/>
-<area shape="rect" id="node3" href="$namespacemod__mf__phys.html#a8572d792b38d46006b5e11260528972c" title="Calculate idirmin and the idirmin:3 components of the common current array make sure that dxlevel(^D)..." alt="" coords="249,38,445,65"/>
-</map>

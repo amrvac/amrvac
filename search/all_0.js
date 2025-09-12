@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['3d_20printing_0',['3D Printing',['../md_doc_print3D.html',1,'']]]
+  ['0_20demo_20simulations_0',['MPI-AMRVAC 3.0 Demo simulations',['../md_doc_2demo-movies.html',1,'']]]
 ];

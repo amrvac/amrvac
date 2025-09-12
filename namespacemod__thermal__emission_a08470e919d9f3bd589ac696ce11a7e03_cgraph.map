@@ -1,6 +1,10 @@
 <map id="mod_thermal_emission::get_spectrum_datresol" name="mod_thermal_emission::get_spectrum_datresol">
-<area shape="rect" id="node1" title=" " alt="" coords="5,64,184,105"/>
-<area shape="rect" id="node2" href="$namespacemod__thermal__emission.html#a2b5356855b856281110717a9ea6d311b" title=" " alt="" coords="232,5,436,47"/>
-<area shape="rect" id="node3" href="$namespacemod__comm__lib.html#a9b6f1a8fd13bc5670e3b426151c34048" title="Exit MPI&#45;AMRVAC with an error message." alt="" coords="484,101,667,127"/>
-<area shape="rect" id="node4" href="$namespacemod__thermal__emission.html#a57369d41967c698ec8dac67f2766c67d" title=" " alt="" coords="247,123,421,164"/>
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,63,184,103"/>
+<area shape="rect" id="Node000002" href="$namespacemod__thermal__emission.html#a5a3fde791e02ce573917664196e93d86" title=" " alt="" coords="232,5,436,45"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="178,60,236,46,237,51,179,65"/>
+<area shape="rect" id="Node000004" href="$namespacemod__comm__lib.html#a9b6f1a8fd13bc5670e3b426151c34048" title="Exit MPI&#45;AMRVAC with an error message." alt="" coords="484,99,667,125"/>
+<area shape="poly" id="edge2_Node000001_Node000004" title=" " alt="" coords="184,85,471,103,470,108,184,91"/>
+<area shape="rect" id="Node000006" href="$namespacemod__thermal__emission.html#ac97d12f33117a202d49629a059dae17a" title=" " alt="" coords="247,120,421,160"/>
+<area shape="poly" id="edge3_Node000001_Node000006" title=" " alt="" coords="179,100,237,114,236,119,178,105"/>
+<area shape="poly" id="edge4_Node000006_Node000004" title=" " alt="" coords="421,127,470,122,471,127,422,133"/>
 </map>

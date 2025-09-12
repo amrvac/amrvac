@@ -1,4 +1,0 @@
-<map id="mod_twofl_phys::update_faces_contact" name="mod_twofl_phys::update_faces_contact">
-<area shape="rect" id="node1" title="update faces using UCT contact mode by Gardiner and Stone 2005 JCP 205, 509" alt="" coords="5,5,187,47"/>
-<area shape="rect" id="node2" href="$namespacemod__twofl__phys.html#a67c97221faff95203eadafd87b2fcb62" title="calculate eta J at cell edges" alt="" coords="235,5,409,47"/>
-</map>

@@ -1,0 +1,18 @@
+<map id="mod_fld::energy_interaction" name="mod_fld::energy_interaction">
+<area shape="rect" id="Node000001" title="Energy interaction and photon tiring." alt="" coords="5,124,209,149"/>
+<area shape="rect" id="Node000002" href="$namespacemod__fld.html#a790ae55dace4c7cae8c5a7091943ad65" title="Find the root of the 4th degree polynomial using the bisection method." alt="" coords="739,91,880,131"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="120,122,176,75,214,51,256,33,321,15,376,6,426,3,474,6,571,25,691,58,758,83,756,88,690,63,570,31,473,11,426,8,377,11,322,21,258,38,217,56,179,80,123,126"/>
+<area shape="rect" id="Node000004" href="$namespacemod__fld.html#ae4b0473cde5cb134920cc7505650e13b" title="Calculate Eddington&#45;tensor Stores Eddington&#45;tensor in w&#45;array." alt="" coords="257,48,456,73"/>
+<area shape="poly" id="edge2_Node000001_Node000004" title=" " alt="" coords="149,121,300,75,302,80,151,126"/>
+<area shape="rect" id="Node000012" href="$namespacemod__geometry.html#a9be440eb43ae039be6f1e52e5c841f69" title=" " alt="" coords="506,73,689,99"/>
+<area shape="poly" id="edge5_Node000001_Node000012" title=" " alt="" coords="209,123,492,94,492,99,210,129"/>
+<area shape="rect" id="Node000006" href="$namespacemod__fld.html#a078e9ee0bdeb4d94763a97c2f009d9fd" title="Sets the opacity in the w&#45;array by calling mod_opal_opacity." alt="" coords="266,149,447,175"/>
+<area shape="poly" id="edge4_Node000001_Node000006" title=" " alt="" coords="210,144,252,149,252,154,209,150"/>
+<area shape="rect" id="Node000013" href="$namespacemod__fld.html#aae00cd585d53d7f497426872a6b7a36c" title="Find the root of the 4th degree polynomial using the Halley method." alt="" coords="267,199,446,224"/>
+<area shape="poly" id="edge6_Node000001_Node000013" title=" " alt="" coords="144,147,258,185,287,193,286,198,257,190,142,152"/>
+<area shape="rect" id="Node000016" href="$namespacemod__fld.html#ab77a233aa68b193411dcd4d51348ead7" title="Find the root of the 4th degree polynomial using the Newton&#45;Ralphson method." alt="" coords="504,199,691,224"/>
+<area shape="poly" id="edge9_Node000001_Node000016" title=" " alt="" coords="123,147,179,193,217,217,258,234,295,243,333,247,410,247,481,238,541,225,542,230,482,243,410,252,333,253,294,248,257,239,214,221,176,197,120,151"/>
+<area shape="poly" id="edge3_Node000004_Node000012" title=" " alt="" coords="456,68,493,72,492,78,456,74"/>
+<area shape="poly" id="edge7_Node000013_Node000016" title=" " alt="" coords="446,209,490,209,490,214,446,214"/>
+<area shape="poly" id="edge8_Node000016_Node000002" title=" " alt="" coords="624,196,753,135,755,140,627,201"/>
+</map>

@@ -1,6 +1,9 @@
 <map id="unflag_coarsen_siblings" name="unflag_coarsen_siblings">
-<area shape="rect" id="node1" title=" " alt="" coords="5,71,183,98"/>
-<area shape="rect" id="node2" href="$namespacemod__amr__solution__node.html#a5360422247c76466eb60cf0a2d6fd5e9" title="allocate arrays on igrid node" alt="" coords="239,5,422,47"/>
-<area shape="rect" id="node3" href="$namespacemod__coarsen.html#aa405d60da3c03b9423df6c225752424b" title="coarsen one grid to its coarser representative" alt="" coords="231,71,431,98"/>
-<area shape="rect" id="node4" href="$namespacemod__initialize__amr.html#af51458e257138c8950600f7ada222ea7" title="fill in initial condition" alt="" coords="257,123,404,164"/>
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,70,183,95"/>
+<area shape="rect" id="Node000002" href="$namespacemod__amr__solution__node.html#a5360422247c76466eb60cf0a2d6fd5e9" title="allocate arrays on igrid node" alt="" coords="239,5,422,45"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="147,67,234,46,235,51,148,73"/>
+<area shape="rect" id="Node000007" href="$namespacemod__coarsen.html#a584590984389500a29a420b0a883c8a8" title="coarsen one grid to its coarser representative" alt="" coords="231,70,431,95"/>
+<area shape="poly" id="edge2_Node000001_Node000007" title=" " alt="" coords="183,80,217,80,217,85,183,85"/>
+<area shape="rect" id="Node000008" href="$namespacemod__initialize__amr.html#af51458e257138c8950600f7ada222ea7" title="fill in initial condition" alt="" coords="257,120,404,160"/>
+<area shape="poly" id="edge3_Node000001_Node000008" title=" " alt="" coords="148,93,245,116,243,122,147,98"/>
 </map>

@@ -1,6 +1,10 @@
 <map id="mod_multigrid_coupling::mg_setup_multigrid" name="mod_multigrid_coupling::mg_setup_multigrid">
-<area shape="rect" id="node1" title="Setup multigrid for usage." alt="" coords="5,71,184,112"/>
-<area shape="rect" id="node2" href="$namespacem__octree__mg__1d.html#a73ca10723160a036d9da70def7a35d10" title="Prolong from a parent to a child with index offset dix. This method could sometimes work better than ..." alt="" coords="240,5,403,47"/>
-<area shape="rect" id="node3" href="$namespacem__octree__mg__1d.html#a4f486bb046797dbd4bb808db4c7e6e87" title=" " alt="" coords="240,71,403,112"/>
-<area shape="rect" id="node4" href="$namespacemod__multigrid__coupling.html#aea3f8b822761ecb311f84dea0d4f59ca" title="Generate a multigrid tree that includes the amrvac tree, but also contains coarser grid levels...." alt="" coords="232,136,411,177"/>
+<area shape="rect" id="Node000001" title="Setup multigrid for usage." alt="" coords="5,93,184,133"/>
+<area shape="rect" id="Node000002" href="$namespacem__octree__mg__1d.html#a73ca10723160a036d9da70def7a35d10" title="Prolong from a parent to a child with index offset dix. This method could sometimes work better than ..." alt="" coords="240,5,403,45"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="143,91,231,55,250,48,252,53,233,60,145,96"/>
+<area shape="rect" id="Node000003" href="$namespacem__octree__mg__1d.html#a4f486bb046797dbd4bb808db4c7e6e87" title=" " alt="" coords="240,93,403,133"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="185,111,226,111,226,116,185,116"/>
+<area shape="rect" id="Node000011" href="$namespacemod__multigrid__coupling.html#aea3f8b822761ecb311f84dea0d4f59ca" title="Generate a multigrid tree that includes the amrvac tree, but also contains coarser grid levels...." alt="" coords="232,157,411,197"/>
+<area shape="poly" id="edge4_Node000001_Node000011" title=" " alt="" coords="167,131,237,151,236,156,166,136"/>
+<area shape="poly" id="edge3_Node000003_Node000003" title=" " alt="" coords="279,94,276,84,283,74,298,69,321,67,348,70,362,77,360,82,346,75,321,72,300,74,286,79,282,85,284,92"/>
 </map>

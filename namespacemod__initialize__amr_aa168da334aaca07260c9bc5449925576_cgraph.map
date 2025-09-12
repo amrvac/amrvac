@@ -1,9 +1,15 @@
 <map id="mod_initialize_amr::initlevelone" name="mod_initialize_amr::initlevelone">
-<area shape="rect" id="node1" title="Generate and initialize all grids at the coarsest level (level one)" alt="" coords="5,169,152,211"/>
-<area shape="rect" id="node2" href="$namespacemod__amr__solution__node.html#a5360422247c76466eb60cf0a2d6fd5e9" title="allocate arrays on igrid node" alt="" coords="211,5,394,47"/>
-<area shape="rect" id="node3" href="$namespacemod__functions__connectivity.html#ad0f896bb9a50442f121e8fa63b365b15" title=" " alt="" coords="200,71,405,112"/>
-<area shape="rect" id="node4" href="$namespacemod__ghostcells__update.html#abc70508ceb326fb28166d751e5de31fc" title="do update ghost cells of all blocks including physical boundaries" alt="" coords="215,136,391,177"/>
-<area shape="rect" id="node5" href="$namespacemod__functions__connectivity.html#ad727947fbcfbbb6f3b25ab9fa7515dda" title=" " alt="" coords="200,201,405,243"/>
-<area shape="rect" id="node6" href="$namespacemod__functions__forest.html#af5c95b2af2d0507974034c26be5ff04c" title="build root forest" alt="" coords="221,267,384,308"/>
-<area shape="rect" id="node7" href="$namespacemod__initialize__amr.html#af51458e257138c8950600f7ada222ea7" title="fill in initial condition" alt="" coords="229,332,376,373"/>
+<area shape="rect" id="Node000001" title="Generate and initialize all grids at the coarsest level (level one)" alt="" coords="5,165,152,205"/>
+<area shape="rect" id="Node000002" href="$namespacemod__amr__solution__node.html#a5360422247c76466eb60cf0a2d6fd5e9" title="allocate arrays on igrid node" alt="" coords="211,5,394,45"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="92,163,135,110,165,80,199,55,210,49,212,53,201,60,169,84,139,113,96,167"/>
+<area shape="rect" id="Node000007" href="$namespacemod__functions__connectivity.html#ad0f896bb9a50442f121e8fa63b365b15" title=" " alt="" coords="200,69,405,109"/>
+<area shape="poly" id="edge2_Node000001_Node000007" title=" " alt="" coords="113,163,199,119,218,111,220,116,201,124,115,168"/>
+<area shape="rect" id="Node000010" href="$namespacemod__ghostcells__update.html#a1b945d19ee179d85b1b4a719a8dfcad6" title="do update ghost cells of all blocks including physical boundaries" alt="" coords="215,133,391,173"/>
+<area shape="poly" id="edge3_Node000001_Node000010" title=" " alt="" coords="152,172,200,165,201,171,153,177"/>
+<area shape="rect" id="Node000024" href="$namespacemod__functions__connectivity.html#ad727947fbcfbbb6f3b25ab9fa7515dda" title=" " alt="" coords="200,197,405,237"/>
+<area shape="poly" id="edge4_Node000001_Node000024" title=" " alt="" coords="153,193,187,198,186,203,152,198"/>
+<area shape="rect" id="Node000025" href="$namespacemod__functions__forest.html#af5c95b2af2d0507974034c26be5ff04c" title="build root forest" alt="" coords="221,261,384,301"/>
+<area shape="poly" id="edge5_Node000001_Node000025" title=" " alt="" coords="115,203,201,247,220,254,218,259,199,252,113,208"/>
+<area shape="rect" id="Node000030" href="$namespacemod__initialize__amr.html#af51458e257138c8950600f7ada222ea7" title="fill in initial condition" alt="" coords="229,325,376,365"/>
+<area shape="poly" id="edge6_Node000001_Node000030" title=" " alt="" coords="96,204,139,257,169,286,201,311,218,320,215,325,199,316,165,290,135,261,92,207"/>
 </map>

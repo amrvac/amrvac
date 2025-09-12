@@ -1,6 +1,0 @@
-<map id="mod_mhd_phys::add_source_hydrodynamic_e" name="mod_mhd_phys::add_source_hydrodynamic_e">
-<area shape="rect" id="node1" title="Source terms for hydrodynamic energy version of MHD." alt="" coords="5,64,212,105"/>
-<area shape="rect" id="node2" href="$namespacemod__global__parameters.html#ab7c08882c0c573fe148b826cf02a2546" title="Cross product of two vectors." alt="" coords="267,5,447,47"/>
-<area shape="rect" id="node3" href="$namespacemod__geometry.html#aabd378d228c27c5b83d0d14d9058661e" title="Calculate curl of a vector qvec within ixL Options to employ standard second order CD evaluations use..." alt="" coords="260,71,453,98"/>
-<area shape="rect" id="node4" href="$namespacemod__geometry.html#a92ec4e2c8ae00a42bf5bf2c1ce3a26c4" title="Calculate gradient of a scalar q within ixL in direction idir." alt="" coords="265,122,448,149"/>
-</map>

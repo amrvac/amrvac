@@ -1,6 +1,0 @@
-<map id="mod_mhd_phys::mhd_handle_small_ei" name="mod_mhd_phys::mhd_handle_small_ei">
-<area shape="rect" id="node1" title="handle small or negative internal energy" alt="" coords="5,57,219,98"/>
-<area shape="rect" id="node2" href="$namespacemod__mhd__phys.html#a363460651196f934c305aa8d52ac8593" title=" " alt="" coords="267,5,485,32"/>
-<area shape="rect" id="node3" href="$namespacemod__small__values.html#a327e5c8e043106015f50a464cd16fce8" title=" " alt="" coords="282,57,470,98"/>
-<area shape="rect" id="node4" href="$namespacemod__small__values.html#ae1bc437ca6fe653ef9e9249e09d0f4aa" title=" " alt="" coords="282,122,470,163"/>
-</map>

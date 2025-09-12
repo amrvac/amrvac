@@ -1,5 +1,0 @@
-<map id="mod_twofl_phys::twofl_get_h_speed_species" name="mod_twofl_phys::twofl_get_h_speed_species">
-<area shape="rect" id="node1" title="get H speed for H&#45;correction to fix the carbuncle problem at grid&#45;aligned shock front" alt="" coords="5,39,173,80"/>
-<area shape="rect" id="node2" href="$namespacemod__twofl__phys.html#a5ad5075e3b73c8a795dd0fd08c24cb99" title="Calculate fast magnetosonic wave speed." alt="" coords="221,5,389,47"/>
-<area shape="rect" id="node3" href="$namespacemod__twofl__phys.html#ae08d4bc76f8c0cdd7020b346c5d7e151" title="Calculate fast magnetosonic wave speed." alt="" coords="221,71,389,112"/>
-</map>

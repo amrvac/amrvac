@@ -1,5 +1,0 @@
-<map id="mod_afld::afld_get_eddington" name="mod_afld::afld_get_eddington">
-<area shape="rect" id="node1" title="Calculate Eddington&#45;tensor Stores Eddington&#45;tensor in w&#45;array." alt="" coords="5,35,148,76"/>
-<area shape="rect" id="node2" href="$namespacemod__afld.html#a15de558bd4ac30eafda8e094ef42845e" title="Calculate fld flux limiter This subroutine calculates flux limiter lambda using the prescription stor..." alt="" coords="196,5,339,47"/>
-<area shape="rect" id="node3" href="$namespacemod__afld.html#abc9c121f004800e7363f3a8d053d1efc" title="Calculate gradient of a scalar q within ixL in direction idir difference with gradient is gradq(ixO^S..." alt="" coords="387,42,539,69"/>
-</map>

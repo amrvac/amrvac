@@ -1,6 +1,0 @@
-<map id="mod_srhd_phys::srhd_add_source_geom" name="mod_srhd_phys::srhd_add_source_geom">
-<area shape="rect" id="node1" title="Add geometrical source terms to w." alt="" coords="5,71,165,112"/>
-<area shape="rect" id="node2" href="$namespacemod__srhd__phys.html#a278fbbe40cb78d60e092f5aad3de8d18" title="Compute auxiliary variables lfac and xi from a conservative state using srhd_con2prim to calculate en..." alt="" coords="213,5,373,47"/>
-<area shape="rect" id="node3" href="$namespacemod__srhd__phys.html#a28487e7e2a29dad0ed770060d6c2200b" title="Calculate thermal pressure p within ixO^L must follow after update conservative with auxiliaries." alt="" coords="213,71,373,112"/>
-<area shape="rect" id="node4" href="$namespacemod__srhd__phys.html#a85fe93ea83d32d065f99ec09575158cc" title="Calculate v vector from conservatives." alt="" coords="213,136,373,177"/>
-</map>

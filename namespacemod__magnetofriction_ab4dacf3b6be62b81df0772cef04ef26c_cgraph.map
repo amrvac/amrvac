@@ -1,0 +1,9 @@
+<map id="mod_magnetofriction::advectmf" name="mod_magnetofriction::advectmf">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,69,168,109"/>
+<area shape="rect" id="Node000002" href="$namespacemod__magnetofriction.html#aaf7947ade2814f1273067ed663b4372e" title=" " alt="" coords="226,5,389,45"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="156,67,224,47,226,52,157,72"/>
+<area shape="rect" id="Node000041" href="$namespacemod__fix__conserve.html#a2e4c6023056bcf10b8c09fffde678679" title=" " alt="" coords="223,69,392,109"/>
+<area shape="poly" id="edge2_Node000001_Node000041" title=" " alt="" coords="169,87,209,87,209,92,169,92"/>
+<area shape="rect" id="Node000009" href="$namespacemod__comm__lib.html#a9b6f1a8fd13bc5670e3b426151c34048" title="Exit MPI&#45;AMRVAC with an error message." alt="" coords="216,134,399,159"/>
+<area shape="poly" id="edge3_Node000001_Node000009" title=" " alt="" coords="165,107,245,128,244,133,164,112"/>
+</map>

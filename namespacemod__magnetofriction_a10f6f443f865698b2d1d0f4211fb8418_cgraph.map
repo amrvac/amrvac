@@ -1,0 +1,13 @@
+<map id="mod_magnetofriction::fdmf" name="mod_magnetofriction::fdmf">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,133,168,173"/>
+<area shape="rect" id="Node000002" href="$namespacemod__magnetofriction.html#a9da17e169bb86a39e89dd9bf0835b3f0" title=" " alt="" coords="216,5,379,45"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="109,131,156,94,215,55,227,49,229,53,217,60,159,98,112,135"/>
+<area shape="rect" id="Node000003" href="$namespacemod__magnetofriction.html#a648c9c1b8985ad7d42430e3987373fa2" title="Clean divergence of magnetic field by Janhunen&#39;s and Linde&#39;s source terms." alt="" coords="216,69,379,109"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="152,131,217,111,219,116,154,136"/>
+<area shape="rect" id="Node000011" href="$namespacemod__magnetofriction.html#a29bc4abe418f3324208b70d329f69cb2" title=" " alt="" coords="216,133,379,173"/>
+<area shape="poly" id="edge3_Node000001_Node000011" title=" " alt="" coords="168,151,202,151,202,156,168,156"/>
+<area shape="rect" id="Node000012" href="$namespacemod__magnetofriction.html#af1bfe1aa11e8fac42284e1649d052fc5" title=" " alt="" coords="216,197,379,237"/>
+<area shape="poly" id="edge4_Node000001_Node000012" title=" " alt="" coords="154,171,219,191,217,196,152,176"/>
+<area shape="rect" id="Node000013" href="$namespacemod__magnetofriction.html#a52674989a914305ac978e79c199d7018" title=" " alt="" coords="216,261,379,301"/>
+<area shape="poly" id="edge5_Node000001_Node000013" title=" " alt="" coords="112,171,159,209,217,247,229,253,227,258,215,252,156,213,109,175"/>
+</map>

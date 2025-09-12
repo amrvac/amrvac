@@ -1,6 +1,0 @@
-<map id="mod_constrained_transport::fake_advance" name="mod_constrained_transport::fake_advance">
-<area shape="rect" id="node1" title="fake advance a step to calculate magnetic field" alt="" coords="5,64,205,105"/>
-<area shape="rect" id="node2" href="$namespacemod__constrained__transport.html#a30c4e2c13f08b4c2772ee66999d50aeb" title="fake update magnetic field from vector potential" alt="" coords="263,5,463,47"/>
-<area shape="rect" id="node3" href="$namespacemod__fix__conserve.html#a8e321b6488183dd5e10247497d0d975e" title=" " alt="" coords="253,71,473,98"/>
-<area shape="rect" id="node4" href="$namespacemod__fix__conserve.html#af0fc91a69837c51f45b6d82fe884d75a" title=" " alt="" coords="257,122,469,149"/>
-</map>

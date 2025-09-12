@@ -1,5 +1,7 @@
 <map id="mod_magnetofriction::mf_velocity_update" name="mod_magnetofriction::mf_velocity_update">
-<area shape="rect" id="node1" title=" " alt="" coords="5,39,168,80"/>
-<area shape="rect" id="node2" href="$namespacemod__magnetofriction.html#a5162a4bf35692fe914bee08416780431" title=" " alt="" coords="216,5,379,47"/>
-<area shape="rect" id="node3" href="$namespacemod__magnetofriction.html#a7d86318c8955565bb7509a64fce51d92" title=" " alt="" coords="216,71,379,112"/>
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,37,168,77"/>
+<area shape="rect" id="Node000002" href="$namespacemod__magnetofriction.html#aa4a703b6c5a713294594ba0c13fa6d1c" title=" " alt="" coords="216,5,379,45"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="168,42,202,37,203,42,169,48"/>
+<area shape="rect" id="Node000003" href="$namespacemod__magnetofriction.html#a845e3e96b21f59f061f00742839f39e6" title=" " alt="" coords="216,69,379,109"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="169,67,203,72,202,78,168,72"/>
 </map>

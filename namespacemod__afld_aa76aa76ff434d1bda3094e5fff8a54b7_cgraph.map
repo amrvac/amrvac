@@ -1,0 +1,13 @@
+<map id="mod_afld::halley_method" name="mod_afld::halley_method">
+<area shape="rect" id="Node000001" title="Find the root of the 4th degree polynomial using the Halley method." alt="" coords="5,95,192,121"/>
+<area shape="rect" id="Node000002" href="$namespacemod__afld.html#a77e713c279492245503edda6384cef4a" title="Evaluate second derivative of polynomial at argument e_gas." alt="" coords="248,5,427,45"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="135,93,265,47,267,53,137,98"/>
+<area shape="rect" id="Node000003" href="$namespacemod__afld.html#a8a78bd59aab671d27b82fd0f79713d1a" title="Evaluate first derivative of polynomial at argument e_gas." alt="" coords="483,72,653,112"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="192,102,469,93,469,98,192,108"/>
+<area shape="rect" id="Node000004" href="$namespacemod__afld.html#ab2f3dbfffba4e7c41a1e40821ce15ab7" title="Find the root of the 4th degree polynomial using the Newton&#45;Ralphson method." alt="" coords="240,121,435,146"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="193,115,227,119,226,124,192,121"/>
+<area shape="rect" id="Node000006" href="$namespacemod__afld.html#aa9ba324228b7daabfdf1ee26a7c88026" title="Evaluate polynomial at argument e_gas." alt="" coords="487,145,649,185"/>
+<area shape="poly" id="edge6_Node000001_Node000006" title=" " alt="" coords="128,118,180,139,241,156,300,164,361,169,473,169,473,174,361,174,300,170,239,161,178,144,126,123"/>
+<area shape="poly" id="edge4_Node000004_Node000003" title=" " alt="" coords="408,118,469,107,470,112,409,123"/>
+<area shape="poly" id="edge5_Node000004_Node000006" title=" " alt="" coords="430,143,473,150,473,155,429,149"/>
+</map>

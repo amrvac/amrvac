@@ -1,4 +1,0 @@
-<map id="bc_prolong_stg" name="bc_prolong_stg">
-<area shape="rect" id="node1" title=" " alt="" coords="5,13,125,39"/>
-<area shape="rect" id="node2" href="$namespacemod__amr__fct.html#ade22fb884492cfb257ebcd647dc15ff4" title="This subroutine performs a 2nd order prolongation for a staggered field F, preserving the divergence ..." alt="" coords="173,5,339,47"/>
-</map>

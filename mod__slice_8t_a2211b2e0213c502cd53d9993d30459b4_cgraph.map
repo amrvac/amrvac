@@ -1,4 +1,6 @@
 <map id="traverse_slice" name="traverse_slice">
-<area shape="rect" id="node1" title=" " alt="" coords="5,5,119,32"/>
-<area shape="rect" id="node2" href="$namespacemod__slice.html#a2fe453ca6dc91583c77bc093c00db5cc" title=" " alt="" coords="167,5,341,32"/>
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,29,119,55"/>
+<area shape="poly" id="edge2_Node000001_Node000001" title=" " alt="" coords="30,31,24,21,27,11,40,5,62,3,88,6,99,15,96,19,86,11,62,8,42,10,31,15,29,20,35,28"/>
+<area shape="rect" id="Node000002" href="$namespacemod__slice.html#a2fe453ca6dc91583c77bc093c00db5cc" title=" " alt="" coords="167,29,341,55"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="119,39,153,39,153,45,119,45"/>
 </map>

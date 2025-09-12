@@ -1,7 +1,0 @@
-<map id="mod_particle_gca::gca_get_particle_dt" name="mod_particle_gca::gca_get_particle_dt">
-<area shape="rect" id="node1" title=" " alt="" coords="5,90,173,131"/>
-<area shape="rect" id="node2" href="$namespacemod__particle__gca.html#a3122997645fd02516d04de652c53287f" title=" " alt="" coords="221,5,436,32"/>
-<area shape="rect" id="node3" href="$namespacemod__particle__gca.html#a3c6adb0f0d4a68723bba52be3f22de52" title=" " alt="" coords="236,57,421,98"/>
-<area shape="rect" id="node4" href="$namespacemod__particle__base.html#a10fdd3836ff16c481594ceec5fd1e97e" title=" " alt="" coords="252,122,405,163"/>
-<area shape="rect" id="node5" href="$namespacemod__particle__base.html#a24d3f7d76b59c8f7954ad59258a02b32" title="Quick check if particle is still in igrid." alt="" coords="252,187,405,229"/>
-</map>

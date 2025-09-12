@@ -1,5 +1,0 @@
-<map id="mod_viscosity::viscosity_add_source" name="mod_viscosity::viscosity_add_source">
-<area shape="rect" id="node1" title=" " alt="" coords="5,23,187,65"/>
-<area shape="rect" id="node2" href="$namespacemod__geometry.html#ae6552832949b076a9d4f2c96704077cc" title="Calculate divergence of a vector qvec within ixL." alt="" coords="235,5,424,32"/>
-<area shape="rect" id="node3" href="$namespacemod__geometry.html#a92ec4e2c8ae00a42bf5bf2c1ce3a26c4" title="Calculate gradient of a scalar q within ixL in direction idir." alt="" coords="238,56,421,83"/>
-</map>

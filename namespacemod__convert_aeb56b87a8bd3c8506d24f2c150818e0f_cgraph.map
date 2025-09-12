@@ -1,4 +1,5 @@
 <map id="mod_convert::convert_all" name="mod_convert::convert_all">
-<area shape="rect" id="node1" title=" " alt="" coords="5,13,192,39"/>
-<area shape="rect" id="node2" href="$namespacemod__convert.html#a1220edaa4a865404010d133ce591e627" title=" " alt="" coords="240,5,404,47"/>
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,13,192,38"/>
+<area shape="rect" id="Node000002" href="$namespacemod__convert.html#a1220edaa4a865404010d133ce591e627" title=" " alt="" coords="240,5,404,45"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="192,23,226,23,226,28,192,28"/>
 </map>

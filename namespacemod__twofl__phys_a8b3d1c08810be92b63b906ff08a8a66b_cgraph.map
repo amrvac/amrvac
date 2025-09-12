@@ -1,7 +1,0 @@
-<map id="mod_twofl_phys::add_source_glm" name="mod_twofl_phys::add_source_glm">
-<area shape="rect" id="node1" title=" " alt="" coords="5,78,165,119"/>
-<area shape="rect" id="node2" href="$namespacemod__geometry.html#a92ec4e2c8ae00a42bf5bf2c1ce3a26c4" title="Calculate gradient of a scalar q within ixL in direction idir." alt="" coords="217,5,399,32"/>
-<area shape="rect" id="node3" href="$namespacemod__geometry.html#ad4e9524cb60a1c8ce07d4641fe761251" title="Calculate gradient of a scalar q within ixL in direction idir first use limiter to go from cell cente..." alt="" coords="213,56,403,83"/>
-<area shape="rect" id="node4" href="$namespacemod__twofl__phys.html#ac3a9eb19d555dfbc5e17d410f70d6479" title=" " alt="" coords="224,107,392,149"/>
-<area shape="rect" id="node5" href="$namespacemod__twofl__phys.html#ad5909743198e8160e3d81cf6771cbd10" title="Compute full magnetic field by direction." alt="" coords="224,173,392,214"/>
-</map>

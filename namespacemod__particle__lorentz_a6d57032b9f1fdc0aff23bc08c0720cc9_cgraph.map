@@ -1,4 +1,0 @@
-<map id="mod_particle_lorentz::lorentz_fill_gridvars" name="mod_particle_lorentz::lorentz_fill_gridvars">
-<area shape="rect" id="node1" title=" " alt="" coords="5,5,164,47"/>
-<area shape="rect" id="node2" href="$namespacemod__particle__base.html#a72a44f312e4e01053ad928ec6fa522c2" title="This routine fills the particle grid variables with the default for mhd, i.e. only E and B." alt="" coords="212,5,365,47"/>
-</map>

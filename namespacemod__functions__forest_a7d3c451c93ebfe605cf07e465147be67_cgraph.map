@@ -1,6 +1,5 @@
 <map id="mod_functions_forest::refine_tree_leaf" name="mod_functions_forest::refine_tree_leaf">
-<area shape="rect" id="node1" title=" " alt="" coords="5,71,168,112"/>
-<area shape="rect" id="node2" href="$namespacemod__functions__forest.html#a533a6def3c20726e6a75445c0081af9b" title=" " alt="" coords="216,5,399,47"/>
-<area shape="rect" id="node3" href="$namespacemod__amr__neighbors.html#a9a8f5feacf60fbac6b4b9a8cf9062b41" title="find neighors of all blocks" alt="" coords="226,71,389,112"/>
-<area shape="rect" id="node4" href="$namespacemod__functions__forest.html#a9a03da74d688e278042e0d3d1c823897" title=" " alt="" coords="226,136,389,177"/>
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,5,168,45"/>
+<area shape="rect" id="Node000002" href="$namespacemod__amr__neighbors.html#a686f8e8a5eace464a27777d6efd0a762" title="find neighors of all blocks" alt="" coords="216,5,379,45"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="168,23,202,23,202,28,168,28"/>
 </map>

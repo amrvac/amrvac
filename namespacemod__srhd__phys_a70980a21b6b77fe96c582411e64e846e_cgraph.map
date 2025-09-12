@@ -1,5 +1,0 @@
-<map id="mod_srhd_phys::srhd_get_csound2" name="mod_srhd_phys::srhd_get_csound2">
-<area shape="rect" id="node1" title="Calculate the square of the thermal sound speed csound2 within ixO^L. here computed from conservative..." alt="" coords="5,39,165,80"/>
-<area shape="rect" id="node2" href="$namespacemod__srhd__phys.html#a278fbbe40cb78d60e092f5aad3de8d18" title="Compute auxiliary variables lfac and xi from a conservative state using srhd_con2prim to calculate en..." alt="" coords="213,5,373,47"/>
-<area shape="rect" id="node3" href="$namespacemod__srhd__phys.html#a54faebcf5043a5008ce76dec35e960c6" title="Calculate the square of the thermal sound speed csound2 within ixO^L. available rho &#45; rho*h." alt="" coords="213,71,373,112"/>
-</map>

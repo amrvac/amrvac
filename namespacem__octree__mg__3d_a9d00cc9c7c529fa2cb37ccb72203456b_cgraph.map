@@ -1,4 +1,6 @@
 <map id="m_octree_mg_3d::mg_set_next_level_ids" name="m_octree_mg_3d::mg_set_next_level_ids">
-<area shape="rect" id="node1" title=" " alt="" coords="5,5,168,47"/>
-<area shape="rect" id="node2" href="$namespacem__octree__mg__3d.html#a0fc5a872f96005a335dfa85d810ce796" title="Compute the child index for a box with spatial index ix. With child index we mean the index in the ch..." alt="" coords="216,5,379,47"/>
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,29,168,69"/>
+<area shape="rect" id="Node000002" href="$namespacem__octree__mg__3d.html#a0fc5a872f96005a335dfa85d810ce796" title="Compute the child index for a box with spatial index ix. With child index we mean the index in the ch..." alt="" coords="216,29,379,69"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="168,47,202,47,202,52,168,52"/>
+<area shape="poly" id="edge2_Node000002_Node000002" title=" " alt="" coords="258,30,255,20,262,10,276,5,297,3,322,6,335,13,333,18,320,11,297,8,277,10,265,15,261,21,263,28"/>
 </map>

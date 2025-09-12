@@ -1,5 +1,0 @@
-<map id="mod_mhd_phys::mhd_get_cbounds_split_rho" name="mod_mhd_phys::mhd_get_cbounds_split_rho">
-<area shape="rect" id="node1" title="Estimating bounds for the minimum and maximum signal velocities with rho split." alt="" coords="5,39,196,80"/>
-<area shape="rect" id="node2" href="$namespacemod__mhd__phys.html#a51b674d873a4653315abb08dec667343" title="Calculate fast magnetosonic wave speed." alt="" coords="244,5,435,47"/>
-<area shape="rect" id="node3" href="$namespacemod__mhd__phys.html#a9cdc32f900f484ea8b1fbcf469be5725" title="Calculate fast magnetosonic wave speed." alt="" coords="244,71,435,112"/>
-</map>

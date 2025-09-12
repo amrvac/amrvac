@@ -1,7 +1,14 @@
 <map id="mod_thermal_emission::get_euv_spectrum" name="mod_thermal_emission::get_euv_spectrum">
-<area shape="rect" id="node1" title=" " alt="" coords="5,56,180,97"/>
-<area shape="rect" id="node2" href="$namespacemod__thermal__emission.html#a1a25bc5a0fd959ac45e97815ff19cc41" title=" " alt="" coords="453,27,627,68"/>
-<area shape="rect" id="node3" href="$namespacemod__comm__lib.html#a9b6f1a8fd13bc5670e3b426151c34048" title="Exit MPI&#45;AMRVAC with an error message." alt="" coords="677,93,860,119"/>
-<area shape="rect" id="node4" href="$namespacemod__thermal__emission.html#a6eef9766abf5593190ce02034980caeb" title=" " alt="" coords="228,27,403,68"/>
-<area shape="rect" id="node5" href="$namespacemod__thermal__emission.html#a08470e919d9f3bd589ac696ce11a7e03" title=" " alt="" coords="451,144,629,185"/>
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,55,180,95"/>
+<area shape="rect" id="Node000002" href="$namespacemod__thermal__emission.html#a3089c33eabc4b5a051bf7f3f027ef7a7" title=" " alt="" coords="453,26,627,66"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="126,53,173,29,227,11,286,4,346,4,403,11,454,20,453,25,402,16,346,10,286,9,229,16,175,34,128,57"/>
+<area shape="rect" id="Node000003" href="$namespacemod__comm__lib.html#a9b6f1a8fd13bc5670e3b426151c34048" title="Exit MPI&#45;AMRVAC with an error message." alt="" coords="677,90,860,116"/>
+<area shape="poly" id="edge7_Node000001_Node000003" title=" " alt="" coords="180,76,664,96,663,101,180,81"/>
+<area shape="rect" id="Node000004" href="$namespacemod__thermal__emission.html#a6eef9766abf5593190ce02034980caeb" title=" " alt="" coords="228,26,403,66"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="180,61,214,56,215,62,181,66"/>
+<area shape="rect" id="Node000017" href="$namespacemod__thermal__emission.html#a08470e919d9f3bd589ac696ce11a7e03" title=" " alt="" coords="451,140,629,180"/>
+<area shape="poly" id="edge5_Node000001_Node000017" title=" " alt="" coords="144,93,229,119,336,139,437,151,437,156,335,144,227,124,143,98"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="621,63,705,85,703,90,620,68"/>
+<area shape="poly" id="edge4_Node000004_Node000002" title=" " alt="" coords="403,43,439,43,439,48,403,48"/>
+<area shape="poly" id="edge6_Node000017_Node000003" title=" " alt="" coords="620,138,703,117,705,122,621,143"/>
 </map>

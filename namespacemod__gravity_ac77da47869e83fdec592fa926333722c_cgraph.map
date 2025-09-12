@@ -1,5 +1,7 @@
 <map id="mod_gravity::gravity_init" name="mod_gravity::gravity_init">
-<area shape="rect" id="node1" title="Initialize the module." alt="" coords="5,31,191,57"/>
-<area shape="rect" id="node2" href="$namespacemod__gravity.html#ab7d092c1b27307517cbb8bd631519932" title="Read this module&#39;s parameters from a file." alt="" coords="239,5,471,32"/>
-<area shape="rect" id="node3" href="$namespacemod__comm__lib.html#a9b6f1a8fd13bc5670e3b426151c34048" title="Exit MPI&#45;AMRVAC with an error message." alt="" coords="263,56,446,83"/>
+<area shape="rect" id="Node000001" title="Initialize the module." alt="" coords="5,31,191,56"/>
+<area shape="rect" id="Node000002" href="$namespacemod__gravity.html#ab7d092c1b27307517cbb8bd631519932" title="Read this module&#39;s parameters from a file." alt="" coords="239,5,471,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="190,32,225,28,225,33,191,37"/>
+<area shape="rect" id="Node000003" href="$namespacemod__comm__lib.html#a9b6f1a8fd13bc5670e3b426151c34048" title="Exit MPI&#45;AMRVAC with an error message." alt="" coords="263,55,446,80"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="191,49,250,55,250,60,190,55"/>
 </map>

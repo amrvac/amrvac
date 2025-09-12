@@ -1,0 +1,5 @@
+<map id="mod_opal_opacity::interpolate_krt" name="mod_opal_opacity::interpolate_krt">
+<area shape="rect" id="Node000001" title="This subroutine does a bilinear interpolation in the R,T&#45;plane." alt="" coords="5,5,249,31"/>
+<area shape="rect" id="Node000002" href="$namespacemod__opal__opacity.html#ab8a5d134d864f9310accaf0b159015a9" title="Interpolation in one dimension." alt="" coords="297,5,532,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="249,15,283,15,283,21,249,21"/>
+</map>

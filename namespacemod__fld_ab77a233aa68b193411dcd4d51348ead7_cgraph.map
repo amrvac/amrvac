@@ -1,0 +1,10 @@
+<map id="mod_fld::newton_method" name="mod_fld::newton_method">
+<area shape="rect" id="Node000001" title="Find the root of the 4th degree polynomial using the Newton&#45;Ralphson method." alt="" coords="5,70,192,95"/>
+<area shape="rect" id="Node000002" href="$namespacemod__fld.html#a790ae55dace4c7cae8c5a7091943ad65" title="Find the root of the 4th degree polynomial using the bisection method." alt="" coords="251,5,392,45"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="148,67,237,44,238,49,149,73"/>
+<area shape="rect" id="Node000003" href="$namespacemod__fld.html#a8ec89cf1950c713250b72d34680df7c0" title="Evaluate polynomial at argument e_gas." alt="" coords="451,35,605,75"/>
+<area shape="poly" id="edge4_Node000001_Node000003" title=" " alt="" coords="192,74,437,58,437,63,192,79"/>
+<area shape="rect" id="Node000004" href="$namespacemod__fld.html#ac956fe2dd223e2039a113a0d0c2991d0" title="Evaluate first derivative of polynomial at argument e_gas." alt="" coords="240,120,403,160"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="149,93,231,114,229,119,148,98"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="393,33,437,39,436,44,392,38"/>
+</map>

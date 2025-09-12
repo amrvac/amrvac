@@ -1,5 +1,7 @@
 <map id="mod_point_searching::get_point_w" name="mod_point_searching::get_point_w">
-<area shape="rect" id="node1" title=" " alt="" coords="5,39,167,80"/>
-<area shape="rect" id="node2" href="$namespacemod__particle__base.html#a557c63a62cb1491a66af98fb29258dd5" title=" " alt="" coords="219,5,372,47"/>
-<area shape="rect" id="node3" href="$namespacemod__point__searching.html#acf2fb6e34ce8149d298767f87a950b15" title=" " alt="" coords="215,71,376,112"/>
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,37,167,77"/>
+<area shape="rect" id="Node000002" href="$namespacemod__particle__base.html#a557c63a62cb1491a66af98fb29258dd5" title=" " alt="" coords="219,5,372,45"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="167,42,205,36,205,42,168,48"/>
+<area shape="rect" id="Node000005" href="$namespacemod__point__searching.html#acf2fb6e34ce8149d298767f87a950b15" title=" " alt="" coords="215,69,376,109"/>
+<area shape="poly" id="edge2_Node000001_Node000005" title=" " alt="" coords="168,67,202,72,201,78,167,72"/>
 </map>

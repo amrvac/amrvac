@@ -1,0 +1,18 @@
+<map id="mod_finite_difference::fd" name="mod_finite_difference::fd">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,132,189,157"/>
+<area shape="rect" id="Node000002" href="$namespacemod__source.html#a5968f73a47943fc0490e07e46ee13858" title="Add source within ixO for iws: w=w+qdt*S[wCT]." alt="" coords="237,5,421,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="113,130,166,90,236,48,271,33,273,38,239,52,169,95,116,134"/>
+<area shape="rect" id="Node000003" href="$namespacemod__limiter.html#ad477e395652065ecae809c863f1c3cbd" title="Limit the centered dwC differences within ixC for iw in direction idim. The limiter is chosen accordi..." alt="" coords="469,133,648,159"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="189,142,421,142,456,142,456,148,421,147,189,147"/>
+<area shape="rect" id="Node000004" href="$namespacemod__comm__lib.html#a9b6f1a8fd13bc5670e3b426151c34048" title="Exit MPI&#45;AMRVAC with an error message." alt="" coords="696,133,879,159"/>
+<area shape="poly" id="edge6_Node000001_Node000004" title=" " alt="" coords="181,129,237,123,443,109,533,110,648,118,717,128,716,133,648,123,533,115,443,114,238,129,182,135"/>
+<area shape="rect" id="Node000005" href="$namespacemod__mp5.html#a1f465efe521354a20c5f4b686104897f" title=" " alt="" coords="244,157,415,183"/>
+<area shape="poly" id="edge4_Node000001_Node000005" title=" " alt="" coords="190,152,231,157,230,162,190,157"/>
+<area shape="rect" id="Node000006" href="$namespacemod__mp5.html#aca0ce0883eeae8808f26509616afcc69" title=" " alt="" coords="243,207,415,232"/>
+<area shape="poly" id="edge5_Node000001_Node000006" title=" " alt="" coords="132,155,238,193,264,200,262,205,237,198,130,160"/>
+<area shape="rect" id="Node000007" href="$namespacemod__finite__volume.html#ad2db0b98318dfd688534a66f8abf9733" title="Determine the upwinded wLC(ixL) and wRC(ixR) from w. the wCT is only used when PPM is exploited." alt="" coords="252,257,407,297"/>
+<area shape="poly" id="edge7_Node000001_Node000007" title=" " alt="" coords="115,156,168,197,239,242,252,249,250,254,236,247,165,202,112,160"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="648,143,683,143,683,149,648,149"/>
+<area shape="poly" id="edge8_Node000007_Node000003" title=" " alt="" coords="394,254,420,242,481,204,531,165,534,170,484,208,423,247,396,259"/>
+<area shape="poly" id="edge9_Node000007_Node000004" title=" " alt="" coords="400,254,727,160,729,165,402,259"/>
+</map>

@@ -1,4 +1,0 @@
-<map id="mod_hd_phys::hd_get_tcutoff" name="mod_hd_phys::hd_get_tcutoff">
-<area shape="rect" id="node1" title="get adaptive cutoff temperature for TRAC (Johnston 2019 ApJL, 873, L22)" alt="" coords="5,5,169,47"/>
-<area shape="rect" id="node2" href="$namespacemod__hd__phys.html#afb41e9a01347be23b834783a2e2e43a4" title="Calculate temperature=p/rho when in e_ the total energy is stored." alt="" coords="217,5,399,47"/>
-</map>

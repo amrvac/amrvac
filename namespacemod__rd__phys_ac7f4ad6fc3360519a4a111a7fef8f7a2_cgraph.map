@@ -1,4 +1,0 @@
-<map id="mod_rd_phys::put_laplacians_onegrid" name="mod_rd_phys::put_laplacians_onegrid">
-<area shape="rect" id="node1" title=" " alt="" coords="5,5,216,47"/>
-<area shape="rect" id="node2" href="$namespacemod__rd__phys.html#ad91427217c2802e2847fdad64201d511" title="Compute the Laplacian using a standard second order scheme. For now this method only works in slab ge..." alt="" coords="264,13,460,39"/>
-</map>

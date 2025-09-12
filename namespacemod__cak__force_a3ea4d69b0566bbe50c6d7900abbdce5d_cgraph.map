@@ -1,6 +1,9 @@
 <map id="mod_cak_force::cak_init" name="mod_cak_force::cak_init">
-<area shape="rect" id="node1" title="Initialize the module." alt="" coords="5,71,185,98"/>
-<area shape="rect" id="node2" href="$namespacemod__cak__force.html#a3f11fac7bc8895d5ad4001f8e818621d" title="Public method." alt="" coords="250,5,402,47"/>
-<area shape="rect" id="node3" href="$namespacemod__comm__lib.html#a9b6f1a8fd13bc5670e3b426151c34048" title="Exit MPI&#45;AMRVAC with an error message." alt="" coords="235,71,417,98"/>
-<area shape="rect" id="node4" href="$namespacemod__cak__force.html#aef780782d3155c249770b687578d070b" title="Initialise (theta&#39;,phi&#39;) radiation angles coming from stellar disc." alt="" coords="233,122,419,149"/>
+<area shape="rect" id="Node000001" title="Initialize the module." alt="" coords="5,70,185,95"/>
+<area shape="rect" id="Node000002" href="$namespacemod__cak__force.html#a3f11fac7bc8895d5ad4001f8e818621d" title="Public method." alt="" coords="250,5,402,45"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="147,67,236,45,237,50,148,73"/>
+<area shape="rect" id="Node000003" href="$namespacemod__comm__lib.html#a9b6f1a8fd13bc5670e3b426151c34048" title="Exit MPI&#45;AMRVAC with an error message." alt="" coords="235,70,417,95"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="185,80,221,80,221,85,185,85"/>
+<area shape="rect" id="Node000004" href="$namespacemod__cak__force.html#aef780782d3155c249770b687578d070b" title="Initialise (theta&#39;,phi&#39;) radiation angles coming from stellar disc." alt="" coords="233,119,419,145"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="156,93,253,114,252,119,155,98"/>
 </map>

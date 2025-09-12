@@ -1,7 +1,9 @@
 <map id="mod_amr_solution_node::alloc_node" name="mod_amr_solution_node::alloc_node">
-<area shape="rect" id="node1" title="allocate arrays on igrid node" alt="" coords="5,100,188,141"/>
-<area shape="rect" id="node2" href="$namespacemod__amr__solution__node.html#adc8ef27e0cc0959b70d05d2b00cfbe7e" title="allocate memory to physical state of igrid node" alt="" coords="236,5,419,47"/>
-<area shape="rect" id="node3" href="$namespacemod__amr__solution__node.html#a1c78a0739335e62d3cb1833fd470550a" title="allocate memory to one&#45;level coarser physical state of igrid node" alt="" coords="236,71,419,112"/>
-<area shape="rect" id="node4" href="$namespacemod__comm__lib.html#a9b6f1a8fd13bc5670e3b426151c34048" title="Exit MPI&#45;AMRVAC with an error message." alt="" coords="236,137,419,163"/>
-<area shape="rect" id="node5" href="$namespacemod__b0.html#a3152adb2dab69d6e677893eff9cfe06f" title=" " alt="" coords="249,187,406,214"/>
+<area shape="rect" id="Node000001" title="allocate arrays on igrid node" alt="" coords="5,63,188,103"/>
+<area shape="rect" id="Node000002" href="$namespacemod__amr__solution__node.html#a31c1213e5f0a678e352f88f60812dc3f" title="allocate memory to physical state of igrid node" alt="" coords="236,5,419,45"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="177,60,232,46,234,51,178,65"/>
+<area shape="rect" id="Node000003" href="$namespacemod__comm__lib.html#a9b6f1a8fd13bc5670e3b426151c34048" title="Exit MPI&#45;AMRVAC with an error message." alt="" coords="236,70,419,95"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="188,80,222,80,222,85,188,85"/>
+<area shape="rect" id="Node000004" href="$namespacemod__b0.html#a3152adb2dab69d6e677893eff9cfe06f" title=" " alt="" coords="249,119,406,145"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="189,100,254,114,253,119,188,105"/>
 </map>

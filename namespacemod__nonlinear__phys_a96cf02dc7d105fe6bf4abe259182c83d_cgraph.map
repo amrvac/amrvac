@@ -1,14 +1,7 @@
 <map id="mod_nonlinear_phys::nonlinear_phys_init" name="mod_nonlinear_phys::nonlinear_phys_init">
-<area shape="rect" id="node1" title=" " alt="" coords="5,318,163,359"/>
-<area shape="rect" id="node2" href="$namespacemod__kdv.html#a62c481ac932c61a252c909316d01ca93" title="Initialize the module." alt="" coords="248,5,389,32"/>
-<area shape="rect" id="node3" href="$namespacemod__nonlinear__phys.html#aec5e0a36ab5d02e689574da90117f67e" title=" " alt="" coords="233,57,405,98"/>
-<area shape="rect" id="node4" href="$namespacemod__nonlinear__phys.html#a43f51e4c68e343c98384570cb2f074d4" title=" " alt="" coords="211,122,427,163"/>
-<area shape="rect" id="node5" href="$namespacemod__nonlinear__phys.html#ad2ad9b84c04f9016d5288566c6344797" title=" " alt="" coords="229,187,409,229"/>
-<area shape="rect" id="node6" href="$namespacemod__nonlinear__phys.html#acd079d3206a40c1489f8707427521aa6" title=" " alt="" coords="237,253,400,294"/>
-<area shape="rect" id="node7" href="$namespacemod__nonlinear__phys.html#a4e5fe63dd5a8063c3b69b4cf084812fa" title=" " alt="" coords="240,318,397,359"/>
-<area shape="rect" id="node8" href="$namespacemod__nonlinear__phys.html#a24e2427f19f9053e2ce1e2407d91a728" title=" " alt="" coords="240,383,397,425"/>
-<area shape="rect" id="node9" href="$namespacemod__nonlinear__phys.html#aedf732cbe14cb2fcffbd469ca7d02c4b" title=" " alt="" coords="226,449,411,490"/>
-<area shape="rect" id="node10" href="$namespacemod__nonlinear__phys.html#af9e796aa68885385c9a91d524645e528" title=" " alt="" coords="230,514,407,555"/>
-<area shape="rect" id="node11" href="$namespacemod__nonlinear__phys.html#af127ec21bd444ab74cfeaa2d71ad2efd" title="Write this module&#39;s parameters to a snapshot." alt="" coords="237,579,400,621"/>
-<area shape="rect" id="node12" href="$namespacemod__particles.html#a7a89b126b34bb788a3911955880ddd8f" title="Initialize particle data and parameters." alt="" coords="215,645,422,672"/>
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,23,163,63"/>
+<area shape="rect" id="Node000002" href="$namespacemod__kdv.html#a62c481ac932c61a252c909316d01ca93" title="Initialize the module." alt="" coords="243,5,385,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="163,32,229,25,230,30,163,37"/>
+<area shape="rect" id="Node000004" href="$namespacemod__particles.html#a7a89b126b34bb788a3911955880ddd8f" title="Initialize particle data and parameters." alt="" coords="211,55,417,80"/>
+<area shape="poly" id="edge2_Node000001_Node000004" title=" " alt="" coords="163,49,197,52,197,58,163,54"/>
 </map>

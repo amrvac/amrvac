@@ -1,5 +1,7 @@
 <map id="mod_interpolation::interp_from_grid_linear" name="mod_interpolation::interp_from_grid_linear">
-<area shape="rect" id="node1" title=" " alt="" coords="5,35,180,76"/>
-<area shape="rect" id="node2" href="$namespacemod__interpolation.html#a92fa277931165dab9db2ff5472633306" title=" " alt="" coords="243,5,396,47"/>
-<area shape="rect" id="node3" href="$namespacemod__comm__lib.html#a9b6f1a8fd13bc5670e3b426151c34048" title="Exit MPI&#45;AMRVAC with an error message." alt="" coords="228,71,411,98"/>
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,35,180,75"/>
+<area shape="rect" id="Node000002" href="$namespacemod__interpolation.html#a92fa277931165dab9db2ff5472633306" title=" " alt="" coords="243,5,396,45"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="180,41,229,34,230,40,181,46"/>
+<area shape="rect" id="Node000004" href="$namespacemod__comm__lib.html#a9b6f1a8fd13bc5670e3b426151c34048" title="Exit MPI&#45;AMRVAC with an error message." alt="" coords="228,70,411,95"/>
+<area shape="poly" id="edge2_Node000001_Node000004" title=" " alt="" coords="181,63,215,67,214,72,180,68"/>
 </map>

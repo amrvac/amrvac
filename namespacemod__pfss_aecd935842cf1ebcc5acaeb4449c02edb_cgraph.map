@@ -1,6 +1,5 @@
 <map id="mod_pfss::harm_coef" name="mod_pfss::harm_coef">
-<area shape="rect" id="node1" title=" " alt="" coords="5,56,168,83"/>
-<area shape="rect" id="node2" href="$namespacemod__pfss.html#aa07c80923b09ad7d8c572e6704dc2b05" title=" " alt="" coords="230,5,385,32"/>
-<area shape="rect" id="node3" href="$namespacemod__pfss.html#a32868c4635cda4ae043c118f688bb8c3" title=" " alt="" coords="247,56,368,83"/>
-<area shape="rect" id="node4" href="$namespacemod__comm__lib.html#a9b6f1a8fd13bc5670e3b426151c34048" title="Exit MPI&#45;AMRVAC with an error message." alt="" coords="216,107,399,133"/>
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,5,168,31"/>
+<area shape="rect" id="Node000002" href="$namespacemod__comm__lib.html#a9b6f1a8fd13bc5670e3b426151c34048" title="Exit MPI&#45;AMRVAC with an error message." alt="" coords="216,5,399,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="169,15,202,15,202,21,169,21"/>
 </map>

@@ -1,0 +1,7 @@
+<map id="mod_rmhd_phys::b_from_vector_potential" name="mod_rmhd_phys::b_from_vector_potential">
+<area shape="rect" id="Node000001" title="calculate magnetic field from vector potential" alt="" coords="5,41,189,81"/>
+<area shape="rect" id="Node000002" href="$namespacemod__constrained__transport.html#a25f8b180b123dbde3aeb06a78fe5d054" title="calculate magnetic field from vector potential A at cell edges" alt="" coords="237,5,437,45"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="189,45,223,40,224,45,190,50"/>
+<area shape="rect" id="Node000003" href="$namespacemod__ionization__degree.html#a6962e885e888b499a67ad341d025b8b5" title=" " alt="" coords="245,70,429,125"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="190,72,232,79,231,84,189,78"/>
+</map>

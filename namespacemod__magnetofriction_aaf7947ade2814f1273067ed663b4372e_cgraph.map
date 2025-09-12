@@ -1,0 +1,15 @@
+<map id="mod_magnetofriction::advect1mf" name="mod_magnetofriction::advect1mf">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,165,168,205"/>
+<area shape="rect" id="Node000002" href="$namespacemod__fix__conserve.html#ad236c15eff28ba77007d6b30944c4960" title=" " alt="" coords="235,5,399,45"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="101,163,148,110,180,80,215,55,226,49,229,53,217,60,183,85,152,113,105,167"/>
+<area shape="rect" id="Node000003" href="$namespacemod__ghostcells__update.html#a1b945d19ee179d85b1b4a719a8dfcad6" title="do update ghost cells of all blocks including physical boundaries" alt="" coords="229,69,405,109"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="123,163,215,119,235,111,236,116,217,124,125,168"/>
+<area shape="rect" id="Node000018" href="$namespacemod__magnetofriction.html#aa80c1fdbbd16d0e4ebac788ac232f124" title=" " alt="" coords="236,133,399,173"/>
+<area shape="poly" id="edge3_Node000001_Node000018" title=" " alt="" coords="168,171,222,164,223,169,169,177"/>
+<area shape="rect" id="Node000023" href="$namespacemod__magnetofriction.html#aaf1e07753ae1c4c9569cebe4cdac0963" title=" " alt="" coords="236,197,399,237"/>
+<area shape="poly" id="edge4_Node000001_Node000023" title=" " alt="" coords="169,194,223,202,222,207,168,199"/>
+<area shape="rect" id="Node000038" href="$namespacemod__fix__conserve.html#a49499e4f7495954672968bc149e490bc" title=" " alt="" coords="217,262,417,287"/>
+<area shape="poly" id="edge5_Node000001_Node000038" title=" " alt="" coords="124,203,168,226,217,247,244,256,242,261,215,252,166,230,122,208"/>
+<area shape="rect" id="Node000039" href="$namespacemod__fix__conserve.html#a58fe3939f9c06464f98003eaf4e4d04b" title=" " alt="" coords="216,311,419,337"/>
+<area shape="poly" id="edge6_Node000001_Node000039" title=" " alt="" coords="107,203,154,251,184,275,217,296,235,304,233,309,215,301,181,280,150,254,103,207"/>
+</map>

@@ -1,0 +1,13 @@
+<map id="mod_cak_force::cak_add_source" name="mod_cak_force::cak_add_source">
+<area shape="rect" id="Node000001" title="w[iw]=w[iw]+qdt*S[wCT,qtC,x] where S is the source based on wCT within ixO" alt="" coords="5,77,157,117"/>
+<area shape="rect" id="Node000002" href="$namespacemod__cak__force.html#aa08c2ad79f1b3467a602d6e89682073c" title="1&#45;D CAK line force in the Gayley line&#45;ensemble distribution parametrisation" alt="" coords="205,48,356,88"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="157,84,192,78,192,84,158,89"/>
+<area shape="rect" id="Node000003" href="$namespacemod__cak__force.html#acaebd295aa12936f50f03f48e8301c5b" title="Compute continuum radiation force from Thomson scattering." alt="" coords="420,5,571,45"/>
+<area shape="poly" id="edge5_Node000001_Node000003" title=" " alt="" coords="112,75,155,52,205,33,256,23,309,18,406,16,406,22,309,23,257,29,206,39,157,57,115,80"/>
+<area shape="rect" id="Node000005" href="$namespacemod__comm__lib.html#a9b6f1a8fd13bc5670e3b426151c34048" title="Exit MPI&#45;AMRVAC with an error message." alt="" coords="404,85,587,110"/>
+<area shape="poly" id="edge6_Node000001_Node000005" title=" " alt="" coords="158,97,205,97,356,97,390,97,390,102,356,103,205,103,158,102"/>
+<area shape="rect" id="Node000006" href="$namespacemod__cak__force.html#ae07dd5a22740f8e7acab46615f70fd49" title="Vector CAK line force in the Gayley line&#45;ensemble distribution parametrisation." alt="" coords="205,163,356,203"/>
+<area shape="poly" id="edge4_Node000001_Node000006" title=" " alt="" coords="130,115,222,155,219,160,128,120"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="356,50,406,40,407,46,357,56"/>
+<area shape="poly" id="edge3_Node000002_Node000005" title=" " alt="" coords="357,76,391,80,390,86,356,81"/>
+</map>

@@ -1,6 +1,9 @@
 <map id="mod_rhd::rhd_activate" name="mod_rhd::rhd_activate">
-<area shape="rect" id="node1" title=" " alt="" coords="5,56,173,83"/>
-<area shape="rect" id="node2" href="$namespacemod__rhd__hllc.html#aa9700d5ba5c88c906445992300fae71c" title=" " alt="" coords="229,5,425,32"/>
-<area shape="rect" id="node3" href="$namespacemod__rhd__phys.html#a3f7d6dc56a47e47cd1e733b2ae66b071" title="Initialize the module." alt="" coords="221,56,433,83"/>
-<area shape="rect" id="node4" href="$namespacemod__rhd__roe.html#a7ca00a23ee8fa7c9e5286a2669431c64" title=" " alt="" coords="231,107,423,133"/>
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,55,173,80"/>
+<area shape="rect" id="Node000002" href="$namespacemod__rhd__hllc.html#aa9700d5ba5c88c906445992300fae71c" title=" " alt="" coords="229,5,425,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="151,52,252,31,253,36,152,57"/>
+<area shape="rect" id="Node000003" href="$namespacemod__rhd__phys.html#a3f7d6dc56a47e47cd1e733b2ae66b071" title="Initialize the module." alt="" coords="221,55,433,80"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="174,65,208,65,208,70,174,70"/>
+<area shape="rect" id="Node000190" href="$namespacemod__rhd__roe.html#a7ca00a23ee8fa7c9e5286a2669431c64" title=" " alt="" coords="231,104,423,129"/>
+<area shape="poly" id="edge3_Node000001_Node000190" title=" " alt="" coords="152,77,253,99,252,104,151,83"/>
 </map>

@@ -1,4 +1,6 @@
 <map id="mod_convert_files::nodenumbertec1d" name="mod_convert_files::nodenumbertec1d">
-<area shape="rect" id="node1" title=" " alt="" coords="5,5,155,47"/>
-<area shape="rect" id="node2" href="$namespacemod__comm__lib.html#a9b6f1a8fd13bc5670e3b426151c34048" title="Exit MPI&#45;AMRVAC with an error message." alt="" coords="203,13,385,39"/>
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,29,155,69"/>
+<area shape="poly" id="edge2_Node000001_Node000001" title=" " alt="" coords="40,30,38,20,44,10,58,5,80,3,105,6,119,13,116,18,103,11,80,8,60,10,47,15,43,21,45,28"/>
+<area shape="rect" id="Node000002" href="$namespacemod__comm__lib.html#a9b6f1a8fd13bc5670e3b426151c34048" title="Exit MPI&#45;AMRVAC with an error message." alt="" coords="203,37,385,62"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="155,47,189,47,189,52,155,52"/>
 </map>

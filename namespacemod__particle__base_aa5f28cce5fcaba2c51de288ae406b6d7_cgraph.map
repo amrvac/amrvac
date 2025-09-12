@@ -1,9 +1,18 @@
 <map id="mod_particle_base::comm_particles" name="mod_particle_base::comm_particles">
-<area shape="rect" id="node1" title=" " alt="" coords="5,152,159,193"/>
-<area shape="rect" id="node2" href="$namespacemod__particle__base.html#ab8ea9400a27c2e5e0c19c8a4d3b620e8" title=" " alt="" coords="232,5,385,47"/>
-<area shape="rect" id="node3" href="$namespacemod__particle__base.html#a557c63a62cb1491a66af98fb29258dd5" title=" " alt="" coords="483,47,637,88"/>
-<area shape="rect" id="node4" href="$namespacemod__particle__base.html#a43281fc1a5a02b8bbe9621cad0e2e605" title="clean up destroyed particles on all cores" alt="" coords="232,123,385,164"/>
-<area shape="rect" id="node5" href="$namespacemod__particle__base.html#a594d8a5c5b6d0801a3814db632cdedbf" title=" " alt="" coords="459,134,661,190"/>
-<area shape="rect" id="node6" href="$namespacemod__particle__base.html#a24d3f7d76b59c8f7954ad59258a02b32" title="Quick check if particle is still in igrid." alt="" coords="232,240,385,281"/>
-<area shape="rect" id="node7" href="$namespacemod__particle__base.html#a8cb2c79dc331397db976421b8e78431e" title=" " alt="" coords="207,306,411,362"/>
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,149,159,189"/>
+<area shape="rect" id="Node000002" href="$namespacemod__particle__base.html#adc89985d56d34c0aa8f19240df55eeb5" title=" " alt="" coords="232,5,385,45"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="101,147,146,105,205,62,232,48,234,53,208,66,150,109,104,151"/>
+<area shape="rect" id="Node000003" href="$namespacemod__particle__base.html#a557c63a62cb1491a66af98fb29258dd5" title=" " alt="" coords="483,45,637,85"/>
+<area shape="poly" id="edge5_Node000001_Node000003" title=" " alt="" coords="115,147,157,125,206,105,274,89,343,77,469,65,470,70,344,82,275,94,207,111,159,129,117,152"/>
+<area shape="rect" id="Node000006" href="$namespacemod__particle__base.html#a43281fc1a5a02b8bbe9621cad0e2e605" title="clean up destroyed particles on all cores" alt="" coords="232,120,385,160"/>
+<area shape="poly" id="edge3_Node000001_Node000006" title=" " alt="" coords="159,157,218,149,219,154,160,162"/>
+<area shape="rect" id="Node000010" href="$namespacemod__particle__base.html#a594d8a5c5b6d0801a3814db632cdedbf" title=" " alt="" coords="459,131,661,186"/>
+<area shape="poly" id="edge8_Node000001_Node000010" title=" " alt="" coords="159,169,207,169,309,171,411,169,445,167,445,173,411,175,309,177,207,175,159,174"/>
+<area shape="rect" id="Node000011" href="$namespacemod__particle__base.html#a24d3f7d76b59c8f7954ad59258a02b32" title="Quick check if particle is still in igrid." alt="" coords="232,259,385,299"/>
+<area shape="poly" id="edge6_Node000001_Node000011" title=" " alt="" coords="126,187,255,250,253,255,123,192"/>
+<area shape="rect" id="Node000012" href="$namespacemod__particle__base.html#a8cb2c79dc331397db976421b8e78431e" title=" " alt="" coords="207,323,411,378"/>
+<area shape="poly" id="edge9_Node000001_Node000012" title=" " alt="" coords="98,188,143,247,174,280,208,309,217,314,214,319,205,313,170,283,139,250,94,191"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="386,35,470,48,469,54,385,40"/>
+<area shape="poly" id="edge4_Node000006_Node000010" title=" " alt="" coords="386,143,445,147,445,153,385,148"/>
+<area shape="poly" id="edge7_Node000011_Node000011" title=" " alt="" coords="266,259,264,249,271,240,286,234,309,232,335,235,350,242,347,247,334,240,309,237,287,239,274,244,269,250,271,258"/>
 </map>

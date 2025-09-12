@@ -1,6 +1,0 @@
-<map id="mod_rhd_phys::rhd_to_primitive" name="mod_rhd_phys::rhd_to_primitive">
-<area shape="rect" id="node1" title="Transform conservative variables into primitive ones." alt="" coords="5,57,172,98"/>
-<area shape="rect" id="node2" href="$namespacemod__dust.html#a6ea8accb829e2ec233f2b152db06417e" title=" " alt="" coords="220,5,428,32"/>
-<area shape="rect" id="node3" href="$namespacemod__rhd__phys.html#a8eb91b2b6609e139baefc7bb7858e00c" title=" " alt="" coords="225,57,423,98"/>
-<area shape="rect" id="node4" href="$namespacemod__rhd__phys.html#a1e07786761252b41b296d48374a982fa" title=" " alt="" coords="476,93,672,120"/>
-</map>

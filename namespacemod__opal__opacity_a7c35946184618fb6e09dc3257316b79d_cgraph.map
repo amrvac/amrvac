@@ -1,4 +1,5 @@
 <map id="mod_opal_opacity::init_opal_table" name="mod_opal_opacity::init_opal_table">
-<area shape="rect" id="node1" title="This subroutine is called when the FLD radiation module is initialised. The OPAL tables for different..." alt="" coords="5,5,175,47"/>
-<area shape="rect" id="node2" href="$namespacemod__opal__opacity.html#aec221a112c8b33e1c6d1573de7215e36" title="This routine reads in 1&#45;D (rho,T) values from an opacity table and gives back as output the 1&#45;D (rho,..." alt="" coords="223,5,400,47"/>
+<area shape="rect" id="Node000001" title="This subroutine is called when the FLD radiation module is initialised. The OPAL tables for different..." alt="" coords="5,5,175,45"/>
+<area shape="rect" id="Node000002" href="$namespacemod__opal__opacity.html#a2e3fc2004c103b979c9932960110f18f" title="This routine reads in 1&#45;D (rho,T) values from an opacity table and gives back as output the 1&#45;D (rho,..." alt="" coords="223,5,400,45"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="175,23,209,23,209,28,175,28"/>
 </map>

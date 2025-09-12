@@ -1,0 +1,9 @@
+<map id="mod_fld::diffuse_e_rad_mg" name="mod_fld::diffuse_e_rad_mg">
+<area shape="rect" id="Node000001" title="Calling all subroutines to perform the multigrid method Communicates rad_e and diff_coeff to multigri..." alt="" coords="5,69,147,109"/>
+<area shape="rect" id="Node000002" href="$namespacemod__multigrid__coupling.html#adba5ed257a7b740fc0152041faa8f490" title="Copy from multigrid tree with one layer of ghost cells. Corner ghost cells are not used/set." alt="" coords="197,5,379,45"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="142,67,207,47,209,52,144,72"/>
+<area shape="rect" id="Node000003" href="$namespacemod__multigrid__coupling.html#a6844c00572acb078d62136c84a07a4c8" title="Copy a variable to the multigrid tree, including a layer of ghost cells." alt="" coords="199,69,377,109"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="147,87,185,87,185,92,147,92"/>
+<area shape="rect" id="Node000012" href="$namespacemod__fld.html#a38e6e06ef18024f6865cadb7aab2aa00" title=" " alt="" coords="195,134,381,159"/>
+<area shape="poly" id="edge3_Node000001_Node000012" title=" " alt="" coords="148,106,228,128,227,133,146,111"/>
+</map>

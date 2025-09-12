@@ -1,0 +1,5 @@
+<map id="mod_srhd_phys::srhd_get_auxiliary_prim" name="mod_srhd_phys::srhd_get_auxiliary_prim">
+<area shape="rect" id="Node000001" title="Set auxiliary variables lfac and xi from a primitive state only used when handle_small_values average..." alt="" coords="5,5,165,45"/>
+<area shape="rect" id="Node000002" href="$namespacemod__srhd__phys.html#a3b5173e531735363289a99e4f6368dff" title="Compute the enthalpy rho*h from rho and pressure p." alt="" coords="213,5,373,45"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="165,23,199,23,199,28,165,28"/>
+</map>

@@ -1,4 +1,5 @@
 var searchData=
 [
-  ['looking_20at_20line_2dintegrated_20quantities_6786',['Looking at line-integrated quantities',['../md_doc_collapsed.html',1,'']]]
+  ['getting_20started_0',['Getting started',['../md_doc_2getting__started.html',1,'']]],
+  ['guide_1',['Code style guide',['../md_doc_2code__style__guide.html',1,'']]]
 ];

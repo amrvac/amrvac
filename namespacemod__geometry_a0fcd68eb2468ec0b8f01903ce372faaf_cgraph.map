@@ -1,4 +1,5 @@
 <map id="mod_geometry::set_coordinate_system" name="mod_geometry::set_coordinate_system">
-<area shape="rect" id="node1" title="Set the coordinate system to be used." alt="" coords="5,5,229,47"/>
-<area shape="rect" id="node2" href="$namespacemod__comm__lib.html#a9b6f1a8fd13bc5670e3b426151c34048" title="Exit MPI&#45;AMRVAC with an error message." alt="" coords="277,13,460,39"/>
+<area shape="rect" id="Node000001" title="Set the coordinate system to be used." alt="" coords="5,5,229,45"/>
+<area shape="rect" id="Node000002" href="$namespacemod__comm__lib.html#a9b6f1a8fd13bc5670e3b426151c34048" title="Exit MPI&#45;AMRVAC with an error message." alt="" coords="277,13,460,38"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="230,23,264,23,264,28,230,28"/>
 </map>

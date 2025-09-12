@@ -1,0 +1,7 @@
+<map id="mod_radiative_cooling::cooling_get_dt" name="mod_radiative_cooling::cooling_get_dt">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,37,176,77"/>
+<area shape="rect" id="Node000002" href="$namespacemod__radiative__cooling.html#a7961a939e49a748f32727184fafd6718" title=" " alt="" coords="224,5,395,45"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="176,42,210,37,211,42,177,48"/>
+<area shape="rect" id="Node000003" href="$namespacemod__radiative__cooling.html#a1b83b5c9023a36e54f17b94790c062d5" title=" " alt="" coords="224,69,395,109"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="177,67,211,72,210,78,176,72"/>
+</map>

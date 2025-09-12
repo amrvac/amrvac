@@ -1,5 +1,0 @@
-<map id="mod_mhd_phys::get_ambipolar_dt" name="mod_mhd_phys::get_ambipolar_dt">
-<area shape="rect" id="node1" title="Calculates the explicit dt for the ambipokar term This function is used by both explicit scheme and S..." alt="" coords="5,42,252,69"/>
-<area shape="rect" id="node2" href="$namespacemod__mhd__phys.html#af14fa2e60e611999dd386a22dc273449" title="Compute 2 times total magnetic energy." alt="" coords="325,5,523,47"/>
-<area shape="rect" id="node3" href="$namespacemod__mhd__phys.html#ae7f950253d527c1f35fbde3597da75c0" title="multiply res by the ambipolar coefficient The ambipolar coefficient is calculated as &#45;mhd_eta_ambi/rh..." alt="" coords="300,71,548,98"/>
-</map>

@@ -1,5 +1,0 @@
-<map id="mod_mhd_phys::update_faces_average" name="mod_mhd_phys::update_faces_average">
-<area shape="rect" id="node1" title="get electric field though averaging neighors to update faces in CT" alt="" coords="5,39,184,80"/>
-<area shape="rect" id="node2" href="$namespacemod__mhd__phys.html#a941606423adad1d3332607d682f80660" title="get ambipolar electric field on cell edges" alt="" coords="232,5,459,47"/>
-<area shape="rect" id="node3" href="$namespacemod__mhd__phys.html#a7878975462afc31d4bd41d6f582a6eb2" title="calculate eta J at cell edges" alt="" coords="237,71,454,112"/>
-</map>

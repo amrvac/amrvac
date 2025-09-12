@@ -1,0 +1,7 @@
+<map id="mod_calculate_xw::calc_grid" name="mod_calculate_xw::calc_grid">
+<area shape="rect" id="Node000001" title="Compute both corner as well as cell&#45;centered values for output." alt="" coords="5,35,213,60"/>
+<area shape="rect" id="Node000002" href="$namespacemod__comm__lib.html#a9b6f1a8fd13bc5670e3b426151c34048" title="Exit MPI&#45;AMRVAC with an error message." alt="" coords="261,5,444,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="213,32,247,28,248,33,214,37"/>
+<area shape="rect" id="Node000003" href="$namespacemod__calculate__xw.html#a285719fc54a5beed92032b66f2cdd50a" title="convert to cartesian coordinates and vector components" alt="" coords="271,55,434,95"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="214,57,258,62,257,67,213,62"/>
+</map>

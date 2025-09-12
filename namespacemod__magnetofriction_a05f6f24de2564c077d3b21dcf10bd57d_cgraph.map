@@ -1,9 +1,0 @@
-<map id="mod_magnetofriction::advect1mf" name="mod_magnetofriction::advect1mf">
-<area shape="rect" id="node1" title=" " alt="" coords="5,169,168,211"/>
-<area shape="rect" id="node2" href="$namespacemod__fix__conserve.html#a63d6347a8533a8ed2e9537869c665444" title=" " alt="" coords="235,5,399,47"/>
-<area shape="rect" id="node3" href="$namespacemod__ghostcells__update.html#abc70508ceb326fb28166d751e5de31fc" title="do update ghost cells of all blocks including physical boundaries" alt="" coords="229,71,405,112"/>
-<area shape="rect" id="node4" href="$namespacemod__magnetofriction.html#aa80c1fdbbd16d0e4ebac788ac232f124" title=" " alt="" coords="236,136,399,177"/>
-<area shape="rect" id="node5" href="$namespacemod__magnetofriction.html#a131031ef0f97bcd2cd81d29b4a123ccd" title=" " alt="" coords="236,201,399,243"/>
-<area shape="rect" id="node6" href="$namespacemod__fix__conserve.html#a295f588de053ce80e0500c241ae24460" title=" " alt="" coords="217,267,417,294"/>
-<area shape="rect" id="node7" href="$namespacemod__fix__conserve.html#a58ec316c5eb551df342c792ed2612f0e" title=" " alt="" coords="216,318,419,345"/>
-</map>

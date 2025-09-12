@@ -1,4 +1,6 @@
 <map id="mod_input_output::snapshot_read_header" name="mod_input_output::snapshot_read_header">
-<area shape="rect" id="node1" title="Read header for a snapshot." alt="" coords="5,5,212,47"/>
-<area shape="rect" id="node2" href="$namespacemod__input__output.html#a2b408b40f813e4fe523621ab4a497d76" title=" " alt="" coords="260,5,429,47"/>
+<area shape="rect" id="Node000001" title="Read header for a snapshot." alt="" coords="5,29,212,69"/>
+<area shape="rect" id="Node000002" href="$namespacemod__input__output.html#a2b408b40f813e4fe523621ab4a497d76" title=" " alt="" coords="260,29,429,69"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="212,47,246,47,246,52,212,52"/>
+<area shape="poly" id="edge2_Node000002_Node000002" title=" " alt="" coords="301,30,298,20,305,10,321,5,345,3,372,6,387,13,385,18,371,11,345,8,322,10,308,15,303,21,306,28"/>
 </map>

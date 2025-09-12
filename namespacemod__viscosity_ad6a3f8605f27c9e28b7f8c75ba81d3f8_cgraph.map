@@ -1,5 +1,0 @@
-<map id="mod_viscosity::visc_get_flux_prim" name="mod_viscosity::visc_get_flux_prim">
-<area shape="rect" id="node1" title=" " alt="" coords="5,27,155,69"/>
-<area shape="rect" id="node2" href="$namespacemod__geometry.html#ae6552832949b076a9d4f2c96704077cc" title="Calculate divergence of a vector qvec within ixL." alt="" coords="203,5,392,32"/>
-<area shape="rect" id="node3" href="$namespacemod__viscosity.html#a11532df3c752947c09276c101e811642" title=" " alt="" coords="225,57,369,98"/>
-</map>

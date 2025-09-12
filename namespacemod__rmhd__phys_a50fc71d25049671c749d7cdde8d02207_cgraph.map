@@ -1,0 +1,29 @@
+<map id="mod_rmhd_phys::rmhd_get_trad" name="mod_rmhd_phys::rmhd_get_trad">
+<area shape="rect" id="Node000001" title="Calculates radiation temperature." alt="" coords="5,344,177,384"/>
+<area shape="rect" id="Node000002" href="$namespacemod__afld.html#a292222016c4df688c77b80961c9b821b" title="Calculates cell&#45;centered diffusion coefficient to be used in multigrid." alt="" coords="245,5,388,45"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="93,343,105,287,129,210,146,168,167,128,193,89,223,55,232,49,235,53,227,59,197,93,172,130,151,171,134,212,110,288,98,344"/>
+<area shape="rect" id="Node000012" href="$namespacemod__cak__force.html#a6cf762353c1aecaa5af0c8c4371c11a0" title="w[iw]=w[iw]+qdt*S[wCT,qtC,x] where S is the source based on wCT within ixO" alt="" coords="241,69,393,109"/>
+<area shape="poly" id="edge2_Node000001_Node000012" title=" " alt="" coords="96,343,111,298,137,238,174,175,197,145,224,119,229,115,233,119,227,123,201,149,179,178,142,240,116,299,101,345"/>
+<area shape="rect" id="Node000018" href="$namespacemod__global__parameters.html#a1ba907b301287b1559121df9aeb35f03" title="Cross product of two vectors." alt="" coords="227,133,407,173"/>
+<area shape="poly" id="edge3_Node000001_Node000018" title=" " alt="" coords="101,342,149,270,183,227,224,190,243,177,246,182,227,194,187,231,153,273,106,345"/>
+<area shape="rect" id="Node000019" href="$namespacemod__geometry.html#a34777249130c0a609ca96597bb403b30" title=" " alt="" coords="456,463,645,489"/>
+<area shape="poly" id="edge4_Node000001_Node000019" title=" " alt="" coords="104,342,124,315,151,285,185,256,224,234,275,215,318,207,361,212,409,234,438,254,464,280,485,309,503,340,530,400,546,449,541,451,525,402,499,342,481,312,460,284,435,259,407,238,360,217,319,212,276,220,226,238,188,260,155,289,128,319,108,345"/>
+<area shape="rect" id="Node000020" href="$namespacemod__fld.html#a7655ed0734cd3f508292a2549b19db7b" title="Calculates cell&#45;centered diffusion coefficient to be used in multigrid." alt="" coords="225,248,408,288"/>
+<area shape="poly" id="edge5_Node000001_Node000020" title=" " alt="" coords="131,341,224,298,242,290,244,295,226,302,133,346"/>
+<area shape="rect" id="Node000024" href="$namespacemod__afld.html#ac6227c4f754590112d4ff98a4610cd87" title="w[iw]=w[iw]+qdt*S[wCT,qtC,x] where S is the source based on wCT within ixO This subroutine handles th..." alt="" coords="245,312,388,352"/>
+<area shape="poly" id="edge6_Node000001_Node000024" title=" " alt="" coords="177,349,231,341,232,347,178,354"/>
+<area shape="rect" id="Node000032" href="$namespacemod__afld.html#a4ce83136673f187e8bbcd22062c249a4" title="w[iw]=w[iw]+qdt*S[wCT,qtC,x] where S is the source based on wCT within ixO This subroutine handles th..." alt="" coords="245,376,388,416"/>
+<area shape="poly" id="edge7_Node000001_Node000032" title=" " alt="" coords="178,374,232,381,231,387,177,379"/>
+<area shape="rect" id="Node000034" href="$namespacemod__rmhd__phys.html#a002c2bc2d73339e92ca77f4857204c05" title="Calculate idirmin and the idirmin:3 components of the common current array make sure that dxlevel(^D)..." alt="" coords="237,464,396,504"/>
+<area shape="poly" id="edge8_Node000001_Node000034" title=" " alt="" coords="131,382,267,455,264,460,129,386"/>
+<area shape="rect" id="Node000041" href="$namespacemod__fld.html#a5b928697cae65a802cc7721063d39b65" title="w[iw]=w[iw]+qdt*S[wCT,qtC,x] where S is the source based on wCT within ixO This subroutine handles th..." alt="" coords="239,528,394,568"/>
+<area shape="poly" id="edge10_Node000001_Node000041" title=" " alt="" coords="107,383,155,447,189,483,227,514,236,519,233,524,224,518,185,487,151,450,103,386"/>
+<area shape="rect" id="Node000042" href="$namespacemod__gravity.html#adc1755b19a864ee2b13cafbcc9fb9826" title="w[iw]=w[iw]+qdt*S[wCT,qtC,x] where S is the source based on wCT within ixO" alt="" coords="238,592,395,632"/>
+<area shape="poly" id="edge11_Node000001_Node000042" title=" " alt="" coords="102,383,119,424,146,476,182,531,203,556,227,578,234,583,230,587,224,582,199,560,177,534,141,479,114,426,97,385"/>
+<area shape="rect" id="Node000043" href="$namespacemod__rmhd__phys.html#a8206442c8d5ae913c57e16cab2e376fa" title="Compute 2 times total magnetic energy." alt="" coords="231,656,403,696"/>
+<area shape="poly" id="edge12_Node000001_Node000043" title=" " alt="" coords="99,383,112,435,137,504,175,578,199,612,227,642,232,646,229,651,224,646,195,615,170,581,132,506,107,437,94,385"/>
+<area shape="rect" id="Node000044" href="$namespacemod__viscosity.html#a8c9581ffb669577f04e4b1d0618be1fd" title=" " alt="" coords="226,720,407,760"/>
+<area shape="poly" id="edge13_Node000001_Node000044" title=" " alt="" coords="97,384,107,446,129,532,146,579,168,625,194,668,227,706,232,710,228,714,223,710,190,671,163,627,141,581,124,534,102,447,92,385"/>
+<area shape="poly" id="edge9_Node000034_Node000034" title=" " alt="" coords="275,464,272,454,279,445,294,439,317,437,343,440,357,447,355,452,341,445,317,443,295,445,282,449,277,455,280,463"/>
+<area shape="poly" id="edge14_Node000044_Node000019" title=" " alt="" coords="388,718,406,706,431,683,454,657,491,600,519,545,538,501,543,503,524,548,496,603,458,660,435,687,410,710,391,722"/>
+</map>

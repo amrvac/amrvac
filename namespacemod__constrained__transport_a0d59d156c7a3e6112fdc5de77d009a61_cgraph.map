@@ -1,10 +1,17 @@
 <map id="mod_constrained_transport::recalculateb" name="mod_constrained_transport::recalculateb">
-<area shape="rect" id="node1" title="re&#45;calculate the magnetic field from the vector potential in a completely divergency free way" alt="" coords="5,201,205,243"/>
-<area shape="rect" id="node2" href="$namespacemod__constrained__transport.html#aecd5f30febca79f78c03bef611e65774" title="fake advance a step to calculate magnetic field" alt="" coords="255,5,455,47"/>
-<area shape="rect" id="node3" href="$namespacemod__fix__conserve.html#a63d6347a8533a8ed2e9537869c665444" title=" " alt="" coords="273,71,437,112"/>
-<area shape="rect" id="node4" href="$namespacemod__fix__conserve.html#a482f9e62d354bc5d00003e380fbc8ee1" title=" " alt="" coords="273,136,437,177"/>
-<area shape="rect" id="node5" href="$namespacemod__ghostcells__update.html#abc70508ceb326fb28166d751e5de31fc" title="do update ghost cells of all blocks including physical boundaries" alt="" coords="267,201,443,243"/>
-<area shape="rect" id="node6" href="$namespacemod__fix__conserve.html#ab77976465c9541ed8b78e91e0d01077d" title=" " alt="" coords="270,267,439,308"/>
-<area shape="rect" id="node7" href="$namespacemod__fix__conserve.html#a295f588de053ce80e0500c241ae24460" title=" " alt="" coords="255,333,455,359"/>
-<area shape="rect" id="node8" href="$namespacemod__fix__conserve.html#a58ec316c5eb551df342c792ed2612f0e" title=" " alt="" coords="253,383,456,410"/>
+<area shape="rect" id="Node000001" title="re&#45;calculate the magnetic field from the vector potential in a completely divergency free way" alt="" coords="5,197,205,237"/>
+<area shape="rect" id="Node000002" href="$namespacemod__constrained__transport.html#a1cafb42d9aee455411a38214baf28e92" title="fake advance a step to calculate magnetic field" alt="" coords="255,5,455,45"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="118,195,171,127,209,88,252,55,263,49,265,53,255,60,212,92,175,130,122,199"/>
+<area shape="rect" id="Node000007" href="$namespacemod__fix__conserve.html#ad236c15eff28ba77007d6b30944c4960" title=" " alt="" coords="273,69,437,109"/>
+<area shape="poly" id="edge2_Node000001_Node000007" title=" " alt="" coords="131,195,186,157,252,119,269,112,271,117,255,124,188,161,134,199"/>
+<area shape="rect" id="Node000008" href="$namespacemod__fix__conserve.html#a3e7ff76fcc6944ccea619a812869181f" title=" " alt="" coords="273,133,437,173"/>
+<area shape="poly" id="edge3_Node000001_Node000008" title=" " alt="" coords="183,195,263,174,264,179,185,200"/>
+<area shape="rect" id="Node000009" href="$namespacemod__ghostcells__update.html#a1b945d19ee179d85b1b4a719a8dfcad6" title="do update ghost cells of all blocks including physical boundaries" alt="" coords="267,197,443,237"/>
+<area shape="poly" id="edge4_Node000001_Node000009" title=" " alt="" coords="206,215,253,215,253,220,206,220"/>
+<area shape="rect" id="Node000024" href="$namespacemod__fix__conserve.html#a2e4c6023056bcf10b8c09fffde678679" title=" " alt="" coords="270,261,439,301"/>
+<area shape="poly" id="edge5_Node000001_Node000024" title=" " alt="" coords="185,235,264,255,263,261,183,240"/>
+<area shape="rect" id="Node000025" href="$namespacemod__fix__conserve.html#a49499e4f7495954672968bc149e490bc" title=" " alt="" coords="255,326,455,351"/>
+<area shape="poly" id="edge6_Node000001_Node000025" title=" " alt="" coords="133,235,187,274,254,311,278,320,276,325,252,316,184,278,130,240"/>
+<area shape="rect" id="Node000026" href="$namespacemod__fix__conserve.html#a58fe3939f9c06464f98003eaf4e4d04b" title=" " alt="" coords="253,375,456,401"/>
+<area shape="poly" id="edge7_Node000001_Node000026" title=" " alt="" coords="123,236,177,298,214,332,255,360,271,368,269,373,252,365,210,336,173,302,119,239"/>
 </map>

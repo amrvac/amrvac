@@ -1,10 +1,12 @@
 <map id="mod_slice::put_slice" name="mod_slice::put_slice">
-<area shape="rect" id="node1" title=" " alt="" coords="5,139,160,166"/>
-<area shape="rect" id="node2" href="$namespacemod__slice.html#af1779f67911ecd3bab21aafbc64f5523" title=" " alt="" coords="453,81,596,122"/>
-<area shape="rect" id="node3" href="$namespacemod__comm__lib.html#a9b6f1a8fd13bc5670e3b426151c34048" title="Exit MPI&#45;AMRVAC with an error message." alt="" coords="208,38,391,64"/>
-<area shape="rect" id="node4" href="$mod__slice_8t.html#a8211b07ac1242919b899792e776fb558" title=" " alt="" coords="245,88,354,115"/>
-<area shape="rect" id="node5" href="$mod__slice_8t.html#a64b58c73520b3fd3d65da2db546e7185" title=" " alt="" coords="245,190,353,216"/>
-<area shape="rect" id="node6" href="$namespacemod__slice.html#ae7077f697521c2588f38cdb3b4df4e6e" title=" " alt="" coords="439,215,611,242"/>
-<area shape="rect" id="node7" href="$mod__slice_8t.html#ad9366c8b9a5321087966ad6804d65e77" title=" " alt="" coords="245,139,353,166"/>
-<area shape="rect" id="node8" href="$mod__slice_8t.html#a698333f361e6c476b19d4a0baf8f7311" title=" " alt="" coords="238,291,361,318"/>
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,53,160,78"/>
+<area shape="rect" id="Node000002" href="$namespacemod__slice.html#af1779f67911ecd3bab21aafbc64f5523" title=" " alt="" coords="439,20,581,60"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="106,50,152,29,207,12,259,4,299,3,391,12,426,17,425,23,390,18,299,8,259,10,209,17,154,34,108,55"/>
+<area shape="rect" id="Node000003" href="$namespacemod__comm__lib.html#a9b6f1a8fd13bc5670e3b426151c34048" title="Exit MPI&#45;AMRVAC with an error message." alt="" coords="208,28,391,53"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="160,54,194,50,195,55,160,59"/>
+<area shape="rect" id="Node000004" href="$mod__slice_8t.html#ad9366c8b9a5321087966ad6804d65e77" title=" " alt="" coords="245,77,353,102"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="160,71,232,79,231,85,160,77"/>
+<area shape="rect" id="Node000008" href="$namespacemod__slice.html#ae7077f697521c2588f38cdb3b4df4e6e" title=" " alt="" coords="213,126,385,152"/>
+<area shape="poly" id="edge5_Node000001_Node000008" title=" " alt="" coords="116,76,209,111,237,120,236,125,207,116,114,81"/>
+<area shape="poly" id="edge4_Node000004_Node000002" title=" " alt="" coords="353,74,425,57,426,63,354,80"/>
 </map>

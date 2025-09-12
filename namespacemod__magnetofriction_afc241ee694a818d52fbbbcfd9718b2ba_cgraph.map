@@ -1,0 +1,7 @@
+<map id="mod_magnetofriction::get_divb" name="mod_magnetofriction::get_divb">
+<area shape="rect" id="Node000001" title="Calculate div B within ixO." alt="" coords="5,23,168,63"/>
+<area shape="rect" id="Node000002" href="$namespacemod__geometry.html#a34777249130c0a609ca96597bb403b30" title=" " alt="" coords="219,5,409,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="168,32,205,27,206,33,169,37"/>
+<area shape="rect" id="Node000003" href="$namespacemod__geometry.html#aa38fdb510ba28c2d2152f575d1ccf20f" title="Calculate divergence of a vector qvec within ixL using limited extrapolation to cell edges." alt="" coords="216,55,412,80"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="169,49,203,53,202,58,168,55"/>
+</map>

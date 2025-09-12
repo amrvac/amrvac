@@ -1,4 +1,5 @@
 <map id="mod_srhd::srhd_activate" name="mod_srhd::srhd_activate">
-<area shape="rect" id="node1" title=" " alt="" coords="5,13,188,39"/>
-<area shape="rect" id="node2" href="$namespacemod__srhd__phys.html#a67e4ed5472a202c9308dc1c7ca62da90" title="Initialize the module." alt="" coords="236,5,396,47"/>
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,13,188,38"/>
+<area shape="rect" id="Node000002" href="$namespacemod__srhd__phys.html#a67e4ed5472a202c9308dc1c7ca62da90" title="Initialize the module." alt="" coords="236,5,396,45"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="188,23,222,23,222,28,188,28"/>
 </map>

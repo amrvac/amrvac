@@ -1,5 +1,47 @@
 <map id="mod_advance::advance" name="mod_advance::advance">
-<area shape="rect" id="node1" title="Advance all the grids over one time step, including all sources." alt="" coords="5,42,181,69"/>
-<area shape="rect" id="node2" href="$namespacemod__source.html#ade000a04c13e706d440c104d28b71cfa" title=" " alt="" coords="229,5,397,47"/>
-<area shape="rect" id="node3" href="$namespacemod__advance.html#a8bd03efeae8c6c9c50600d69ed345bf0" title="Advance all grids over one time step, but without taking dimensional splitting or split source terms ..." alt="" coords="231,71,396,98"/>
+<area shape="rect" id="Node000001" title="Advance all the grids over one time step, including all sources." alt="" coords="5,464,181,490"/>
+<area shape="rect" id="Node000002" href="$namespacemod__source.html#ade000a04c13e706d440c104d28b71cfa" title=" " alt="" coords="255,132,423,172"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="94,464,105,412,129,336,147,294,169,253,195,215,228,182,242,172,245,176,231,186,200,218,173,256,151,296,134,337,110,413,99,465"/>
+<area shape="rect" id="Node000003" href="$namespacemod__source.html#a5968f73a47943fc0490e07e46ee13858" title="Add source within ixO for iws: w=w+qdt*S[wCT]." alt="" coords="497,260,681,286"/>
+<area shape="poly" id="edge6_Node000001_Node000003" title=" " alt="" coords="97,463,114,428,141,381,179,334,202,313,228,296,260,281,293,270,363,257,431,254,493,256,493,262,431,259,363,262,295,275,262,286,231,301,206,317,183,337,146,384,119,430,102,465"/>
+<area shape="rect" id="Node000004" href="$namespacemod__ghostcells__update.html#a1b945d19ee179d85b1b4a719a8dfcad6" title="do update ghost cells of all blocks including physical boundaries" alt="" coords="501,92,677,132"/>
+<area shape="poly" id="edge18_Node000001_Node000004" title=" " alt="" coords="92,464,97,399,104,354,115,303,132,251,156,200,187,155,228,117,260,99,294,86,330,78,367,74,439,76,504,86,503,91,439,82,367,80,331,83,295,91,262,104,231,122,191,158,160,203,137,253,120,304,109,355,102,400,97,464"/>
+<area shape="rect" id="Node000009" href="$namespacemod__comm__lib.html#a9b6f1a8fd13bc5670e3b426151c34048" title="Exit MPI&#45;AMRVAC with an error message." alt="" coords="729,207,912,232"/>
+<area shape="poly" id="edge23_Node000001_Node000009" title=" " alt="" coords="92,464,94,393,99,342,109,285,126,227,150,170,183,119,204,97,228,77,287,40,342,17,395,5,447,4,500,12,556,28,682,77,723,101,758,132,786,165,807,194,802,197,782,168,754,135,720,105,680,82,555,33,499,17,447,9,396,10,344,22,289,45,231,82,208,101,188,123,155,173,131,229,114,286,104,342,99,393,97,464"/>
+<area shape="rect" id="Node000020" href="$namespacemod__finite__difference.html#aef932174ce5d16ec4844ce39f53b345c" title=" " alt="" coords="258,196,421,236"/>
+<area shape="poly" id="edge7_Node000001_Node000020" title=" " alt="" coords="97,463,112,422,139,366,178,305,201,277,228,252,247,240,250,244,231,256,205,281,182,308,144,368,117,424,102,465"/>
+<area shape="rect" id="Node000022" href="$namespacemod__finite__difference.html#a1ac3532e429be25e0d9faf53fe2fdc98" title=" " alt="" coords="247,311,431,336"/>
+<area shape="poly" id="edge10_Node000001_Node000022" title=" " alt="" coords="102,462,152,406,187,374,228,347,246,338,248,343,231,351,191,378,155,410,106,466"/>
+<area shape="rect" id="Node000025" href="$namespacemod__finite__volume.html#a73a62c8f8dfc64efbc07af1c2085a9b5" title="finite volume method" alt="" coords="262,361,417,401"/>
+<area shape="poly" id="edge13_Node000001_Node000025" title=" " alt="" coords="117,462,168,437,228,410,250,403,252,408,230,415,170,441,120,467"/>
+<area shape="rect" id="Node000029" href="$namespacemod__fix__conserve.html#ad236c15eff28ba77007d6b30944c4960" title=" " alt="" coords="257,489,421,529"/>
+<area shape="poly" id="edge16_Node000001_Node000029" title=" " alt="" coords="182,486,244,494,244,499,181,491"/>
+<area shape="rect" id="Node000030" href="$namespacemod__fix__conserve.html#a3e7ff76fcc6944ccea619a812869181f" title=" " alt="" coords="257,553,421,593"/>
+<area shape="poly" id="edge17_Node000001_Node000030" title=" " alt="" coords="120,487,170,512,230,538,252,546,250,551,228,543,168,517,117,492"/>
+<area shape="rect" id="Node000031" href="$namespacemod__finite__volume.html#af45f9ba91539e8a29b7ebfe257a97f7c" title="The non&#45;conservative Hancock predictor for TVDLF." alt="" coords="262,425,417,465"/>
+<area shape="poly" id="edge19_Node000001_Node000031" title=" " alt="" coords="181,463,248,454,249,459,182,468"/>
+<area shape="rect" id="Node000032" href="$namespacemod__fix__conserve.html#a2e4c6023056bcf10b8c09fffde678679" title=" " alt="" coords="255,617,424,657"/>
+<area shape="poly" id="edge22_Node000001_Node000032" title=" " alt="" coords="107,488,156,543,191,575,231,603,243,609,241,614,228,607,188,579,152,547,103,492"/>
+<area shape="rect" id="Node000033" href="$namespacemod__fix__conserve.html#a49499e4f7495954672968bc149e490bc" title=" " alt="" coords="239,682,439,707"/>
+<area shape="poly" id="edge24_Node000001_Node000033" title=" " alt="" coords="102,488,119,524,146,573,184,624,206,647,231,667,244,674,241,679,228,671,202,651,179,627,141,576,114,527,97,491"/>
+<area shape="rect" id="Node000034" href="$namespacemod__fix__conserve.html#a58fe3939f9c06464f98003eaf4e4d04b" title=" " alt="" coords="238,731,441,756"/>
+<area shape="poly" id="edge25_Node000001_Node000034" title=" " alt="" coords="100,489,114,534,139,596,178,662,202,692,231,717,238,722,236,727,228,722,199,696,173,665,134,598,109,535,95,491"/>
+<area shape="rect" id="Node000035" href="$namespacemod__fix__conserve.html#accd8011113a5f7b3efeec90d42bd9dad" title=" " alt="" coords="229,780,449,806"/>
+<area shape="poly" id="edge26_Node000001_Node000035" title=" " alt="" coords="99,489,110,542,133,617,150,658,172,698,199,735,231,767,237,771,234,776,228,771,195,739,168,701,145,661,128,619,105,543,94,490"/>
+<area shape="rect" id="Node000036" href="$namespacemod__fix__conserve.html#a6ba16bd40994889786a4523e73309321" title=" " alt="" coords="233,830,445,855"/>
+<area shape="poly" id="edge27_Node000001_Node000036" title=" " alt="" coords="98,489,106,549,127,638,144,687,166,734,195,778,231,816,237,820,233,825,228,820,191,782,162,737,139,689,122,640,101,550,93,490"/>
+<area shape="rect" id="Node000037" href="$namespacemod__tvd.html#a4417d91c0bac51f2b009e61c904fb651" title=" " alt="" coords="270,879,409,904"/>
+<area shape="poly" id="edge28_Node000001_Node000037" title=" " alt="" coords="98,490,102,557,121,659,137,715,161,770,192,821,231,865,258,881,255,886,228,870,187,825,156,773,132,717,115,660,97,557,92,490"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="420,169,450,181,512,215,562,250,559,254,509,220,448,186,418,174"/>
+<area shape="poly" id="edge3_Node000002_Node000004" title=" " alt="" coords="423,136,488,125,488,130,424,141"/>
+<area shape="poly" id="edge5_Node000002_Node000009" title=" " alt="" coords="424,160,682,197,719,202,718,208,681,202,423,166"/>
+<area shape="poly" id="edge4_Node000004_Node000009" title=" " alt="" coords="640,129,682,148,784,198,782,203,680,153,638,134"/>
+<area shape="poly" id="edge8_Node000020_Node000003" title=" " alt="" coords="422,232,521,254,519,260,420,237"/>
+<area shape="poly" id="edge9_Node000020_Node000009" title=" " alt="" coords="421,214,715,216,715,221,421,219"/>
+<area shape="poly" id="edge11_Node000022_Node000003" title=" " alt="" coords="403,308,512,286,513,291,404,313"/>
+<area shape="poly" id="edge12_Node000022_Node000009" title=" " alt="" coords="431,324,552,319,617,309,680,294,740,268,790,238,792,243,743,273,682,299,618,315,552,324,432,330"/>
+<area shape="poly" id="edge14_Node000025_Node000003" title=" " alt="" coords="412,358,448,345,505,318,555,290,557,295,508,323,450,350,414,363"/>
+<area shape="poly" id="edge15_Node000025_Node000009" title=" " alt="" coords="417,379,476,375,543,367,613,352,680,329,715,310,747,287,797,240,801,244,751,291,718,315,682,334,615,357,544,372,476,381,417,384"/>
+<area shape="poly" id="edge20_Node000031_Node000003" title=" " alt="" coords="416,425,448,411,485,384,519,353,569,295,573,298,522,357,488,388,451,415,418,430"/>
+<area shape="poly" id="edge21_Node000031_Node000009" title=" " alt="" coords="417,442,477,438,545,427,615,408,680,379,720,349,755,312,783,275,803,243,808,246,787,278,759,316,724,353,683,383,616,413,546,432,477,443,417,447"/>
 </map>

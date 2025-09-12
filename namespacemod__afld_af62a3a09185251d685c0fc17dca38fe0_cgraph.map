@@ -1,0 +1,8 @@
+<map id="mod_afld::afld_get_eddington" name="mod_afld::afld_get_eddington">
+<area shape="rect" id="Node000001" title="Calculate Eddington&#45;tensor Stores Eddington&#45;tensor in w&#45;array." alt="" coords="5,35,148,75"/>
+<area shape="rect" id="Node000002" href="$namespacemod__afld.html#a534fb3f2e92a62c9e7518f901ce3ae57" title="Calculate fld flux limiter This subroutine calculates flux limiter lambda using the prescription stor..." alt="" coords="196,5,339,45"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="148,41,182,36,183,41,148,46"/>
+<area shape="rect" id="Node000009" href="$namespacemod__geometry.html#a9be440eb43ae039be6f1e52e5c841f69" title=" " alt="" coords="387,42,569,67"/>
+<area shape="poly" id="edge3_Node000001_Node000009" title=" " alt="" coords="149,54,196,55,339,55,373,54,373,60,339,60,196,60,148,59"/>
+<area shape="poly" id="edge2_Node000002_Node000009" title=" " alt="" coords="339,33,374,37,373,43,339,38"/>
+</map>

@@ -1,4 +1,0 @@
-<map id="mod_rhd_phys::rhd_get_tgas" name="mod_rhd_phys::rhd_get_tgas">
-<area shape="rect" id="node1" title="Calculates gas temperature." alt="" coords="5,13,215,39"/>
-<area shape="rect" id="node2" href="$namespacemod__rhd__phys.html#ac35b28a6a4b662912b5d755502927fcb" title="Calculate thermal pressure=(gamma&#45;1)*(e&#45;0.5*m**2/rho) within ixO^L." alt="" coords="263,5,437,47"/>
-</map>

@@ -1,4 +1,5 @@
 <map id="mod_initialize_amr::modify_ic" name="mod_initialize_amr::modify_ic">
-<area shape="rect" id="node1" title="modify initial condition" alt="" coords="5,5,152,47"/>
-<area shape="rect" id="node2" href="$namespacemod__comm__lib.html#a9b6f1a8fd13bc5670e3b426151c34048" title="Exit MPI&#45;AMRVAC with an error message." alt="" coords="200,13,383,39"/>
+<area shape="rect" id="Node000001" title="modify initial condition" alt="" coords="5,5,152,45"/>
+<area shape="rect" id="Node000002" href="$namespacemod__comm__lib.html#a9b6f1a8fd13bc5670e3b426151c34048" title="Exit MPI&#45;AMRVAC with an error message." alt="" coords="200,13,383,38"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="152,23,186,23,186,28,152,28"/>
 </map>

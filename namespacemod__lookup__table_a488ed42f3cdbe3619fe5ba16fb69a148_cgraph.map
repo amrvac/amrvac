@@ -1,5 +1,7 @@
 <map id="mod_lookup_table::lt_set_col" name="mod_lookup_table::lt_set_col">
-<area shape="rect" id="node1" title="Fill the column with index col_ix using the linearly interpolated (x, y) data." alt="" coords="5,39,164,80"/>
-<area shape="rect" id="node2" href="$namespacemod__lookup__table.html#a5c37452351e8703b4c9032ff4e5ccc28" title="Linearly interpolate the (x, y) input data to the new_x coordinates." alt="" coords="212,5,371,47"/>
-<area shape="rect" id="node3" href="$namespacemod__lookup__table.html#aa6db6afb6d47ff97d3159af6fb82acd1" title="Returns the x&#45;coordinates of the lookup table." alt="" coords="212,71,371,112"/>
+<area shape="rect" id="Node000001" title="Fill the column with index col_ix using the linearly interpolated (x, y) data." alt="" coords="5,37,164,77"/>
+<area shape="rect" id="Node000002" href="$namespacemod__lookup__table.html#a5c37452351e8703b4c9032ff4e5ccc28" title="Linearly interpolate the (x, y) input data to the new_x coordinates." alt="" coords="212,5,371,45"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="164,42,198,37,199,42,165,48"/>
+<area shape="rect" id="Node000007" href="$namespacemod__lookup__table.html#aa6db6afb6d47ff97d3159af6fb82acd1" title="Returns the x&#45;coordinates of the lookup table." alt="" coords="212,69,371,109"/>
+<area shape="poly" id="edge2_Node000001_Node000007" title=" " alt="" coords="165,67,199,72,198,78,164,72"/>
 </map>

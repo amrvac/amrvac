@@ -1,5 +1,10 @@
 <map id="mod_tdfluxrope::elle" name="mod_tdfluxrope::elle">
-<area shape="rect" id="node1" title=" " alt="" coords="5,31,161,57"/>
-<area shape="rect" id="node2" href="$namespacemod__tdfluxrope.html#a9a2135623a89a45fd7ef3b4e6451a2a6" title=" " alt="" coords="209,5,355,32"/>
-<area shape="rect" id="node3" href="$namespacemod__tdfluxrope.html#ab2a8f37e309328dfcdfc2b2a581e223f" title=" " alt="" coords="211,56,353,83"/>
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,67,161,92"/>
+<area shape="poly" id="edge1_Node000001_Node000001" title=" " alt="" coords="51,68,44,58,47,48,61,42,83,40,110,44,122,52,118,57,108,48,83,45,62,47,51,52,49,58,55,65"/>
+<area shape="rect" id="Node000002" href="$namespacemod__tdfluxrope.html#a9a2135623a89a45fd7ef3b4e6451a2a6" title=" " alt="" coords="209,29,355,55"/>
+<area shape="poly" id="edge2_Node000001_Node000002" title=" " alt="" coords="151,64,200,55,201,60,152,69"/>
+<area shape="rect" id="Node000003" href="$namespacemod__tdfluxrope.html#ab2a8f37e309328dfcdfc2b2a581e223f" title=" " alt="" coords="211,103,353,128"/>
+<area shape="poly" id="edge4_Node000001_Node000003" title=" " alt="" coords="154,89,199,98,198,103,153,95"/>
+<area shape="poly" id="edge3_Node000002_Node000002" title=" " alt="" coords="249,31,243,21,246,11,260,5,282,3,309,6,320,15,317,19,307,11,282,8,261,10,250,15,248,20,254,28"/>
+<area shape="poly" id="edge5_Node000003_Node000003" title=" " alt="" coords="249,104,243,94,246,84,260,78,282,76,309,80,320,88,317,93,307,84,282,81,261,83,250,88,248,94,254,101"/>
 </map>

@@ -1,5 +1,0 @@
-<map id="mod_twofl_phys::add_source_lorentz_work" name="mod_twofl_phys::add_source_lorentz_work">
-<area shape="rect" id="node1" title=" " alt="" coords="5,39,168,80"/>
-<area shape="rect" id="node2" href="$namespacemod__twofl__phys.html#a56fcb06f1118885e7637aae3b746bdc3" title="Compute the Lorentz force (JxB)" alt="" coords="221,5,379,47"/>
-<area shape="rect" id="node3" href="$namespacemod__twofl__phys.html#a24133b0cf4345eb22d782077403d87b8" title="Calculate v_c vector." alt="" coords="216,71,384,112"/>
-</map>

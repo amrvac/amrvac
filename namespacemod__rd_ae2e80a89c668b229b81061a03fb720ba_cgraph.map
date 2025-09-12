@@ -1,4 +1,5 @@
 <map id="mod_rd::rd_activate" name="mod_rd::rd_activate">
-<area shape="rect" id="node1" title=" " alt="" coords="5,5,157,32"/>
-<area shape="rect" id="node2" href="$namespacemod__rd__phys.html#a2781b19b4d1c74287564f4b4bfa70779" title=" " alt="" coords="205,5,401,32"/>
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,5,157,31"/>
+<area shape="rect" id="Node000002" href="$namespacemod__rd__phys.html#a2781b19b4d1c74287564f4b4bfa70779" title=" " alt="" coords="205,5,401,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="158,15,191,15,191,21,158,21"/>
 </map>

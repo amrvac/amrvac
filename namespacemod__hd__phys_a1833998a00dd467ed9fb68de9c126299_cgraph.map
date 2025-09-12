@@ -1,6 +1,0 @@
-<map id="mod_hd_phys::hd_get_flux" name="mod_hd_phys::hd_get_flux">
-<area shape="rect" id="node1" title=" " alt="" coords="5,78,200,105"/>
-<area shape="rect" id="node2" href="$namespacemod__dust.html#aba91e073d2ba19189fb1e0e8e3599e45" title=" " alt="" coords="255,5,405,47"/>
-<area shape="rect" id="node3" href="$namespacemod__hd__phys.html#aa893373436eb62993cc188e9005870c8" title="Calculate thermal pressure=(gamma&#45;1)*(e&#45;0.5*m**2/rho) within ixO^L." alt="" coords="248,71,412,112"/>
-<area shape="rect" id="node4" href="$namespacemod__viscosity.html#ad6a3f8605f27c9e28b7f8c75ba81d3f8" title=" " alt="" coords="255,136,405,177"/>
-</map>

@@ -1,0 +1,4 @@
+<map id="m_octree_mg_2d::mg_ix_to_ichild" name="m_octree_mg_2d::mg_ix_to_ichild">
+<area shape="rect" id="Node000001" title="Compute the child index for a box with spatial index ix. With child index we mean the index in the ch..." alt="" coords="5,29,168,69"/>
+<area shape="poly" id="edge1_Node000001_Node000001" title=" " alt="" coords="55,29,54,20,59,11,70,5,87,3,106,6,117,13,114,17,104,11,87,8,71,10,62,14,59,21,61,28"/>
+</map>

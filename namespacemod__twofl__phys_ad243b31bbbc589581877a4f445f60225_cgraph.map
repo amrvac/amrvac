@@ -1,7 +1,0 @@
-<map id="mod_twofl_phys::twofl_get_cmax" name="mod_twofl_phys::twofl_get_cmax">
-<area shape="rect" id="node1" title="Calculate cmax_idim=csound+abs(v_idim) within ixO^L." alt="" coords="5,104,173,145"/>
-<area shape="rect" id="node2" href="$namespacemod__twofl__phys.html#a265f73f7fadf3244fc54f587c2d3d5d9" title=" " alt="" coords="221,5,389,47"/>
-<area shape="rect" id="node3" href="$namespacemod__twofl__phys.html#a54443e040270edd9403016a3766a95b8" title=" " alt="" coords="221,71,389,112"/>
-<area shape="rect" id="node4" href="$namespacemod__twofl__phys.html#ae75430a9644fd40e05232b3d0c7cf9e9" title="Calculate v_c component." alt="" coords="221,136,389,177"/>
-<area shape="rect" id="node5" href="$namespacemod__twofl__phys.html#a5b2aeb62c9e0a037a48252fdda1a632d" title="Calculate v component." alt="" coords="221,201,389,243"/>
-</map>

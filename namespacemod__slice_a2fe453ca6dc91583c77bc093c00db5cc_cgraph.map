@@ -1,7 +1,11 @@
 <map id="mod_slice::fill_subnode" name="mod_slice::fill_subnode">
-<area shape="rect" id="node1" title=" " alt="" coords="5,81,180,108"/>
-<area shape="rect" id="node2" href="$namespacemod__slice.html#a3e46b0faa76f755baca8577613805076" title=" " alt="" coords="237,5,427,32"/>
-<area shape="rect" id="node3" href="$namespacemod__calculate__xw.html#a006c2619a5377d574da9393a41a10865" title="Compute both corner as well as cell&#45;centered values for output." alt="" coords="228,56,436,83"/>
-<area shape="rect" id="node4" href="$namespacemod__calculate__xw.html#a3ca517175958ca7d8e3e55131acf4b5d" title="computes cell corner (xC) and cell center (xCC) coordinates" alt="" coords="237,107,427,133"/>
-<area shape="rect" id="node5" href="$namespacemod__slice.html#a2754dd15e0ee5efa8c741d63fe2dd7b1" title=" " alt="" coords="229,157,435,184"/>
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,80,180,105"/>
+<area shape="rect" id="Node000002" href="$namespacemod__slice.html#a3e46b0faa76f755baca8577613805076" title=" " alt="" coords="237,5,427,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="124,77,227,39,256,31,258,37,229,45,125,82"/>
+<area shape="rect" id="Node000003" href="$namespacemod__calculate__xw.html#aad91259729b0d0b0d7caecf0268281fd" title="Compute both corner as well as cell&#45;centered values for output." alt="" coords="228,55,436,80"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="180,81,214,77,215,82,180,86"/>
+<area shape="rect" id="Node000006" href="$namespacemod__calculate__xw.html#ae89d9342dffad9ff1ded6b11408870cb" title="computes cell corner (xC) and cell center (xCC) coordinates" alt="" coords="237,104,427,129"/>
+<area shape="poly" id="edge3_Node000001_Node000006" title=" " alt="" coords="180,99,223,103,223,108,180,104"/>
+<area shape="rect" id="Node000007" href="$namespacemod__slice.html#a2754dd15e0ee5efa8c741d63fe2dd7b1" title=" " alt="" coords="229,153,435,179"/>
+<area shape="poly" id="edge4_Node000001_Node000007" title=" " alt="" coords="128,103,229,138,262,147,261,153,227,143,126,108"/>
 </map>

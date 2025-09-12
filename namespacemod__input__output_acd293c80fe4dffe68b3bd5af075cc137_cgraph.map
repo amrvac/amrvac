@@ -1,4 +1,5 @@
 <map id="mod_input_output::snapshot_write_header" name="mod_input_output::snapshot_write_header">
-<area shape="rect" id="node1" title="Write header for a snapshot." alt="" coords="5,5,212,47"/>
-<area shape="rect" id="node2" href="$namespacemod__input__output__helper.html#a9b3e3365ae87d58b382931ee36cb6d7e" title="Write header for a snapshot, generalize cons_wnames and nw." alt="" coords="260,5,449,47"/>
+<area shape="rect" id="Node000001" title="Write header for a snapshot." alt="" coords="5,5,212,45"/>
+<area shape="rect" id="Node000002" href="$namespacemod__input__output__helper.html#a9b3e3365ae87d58b382931ee36cb6d7e" title="Write header for a snapshot, generalize cons_wnames and nw." alt="" coords="260,5,449,45"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="212,23,247,23,247,28,212,28"/>
 </map>

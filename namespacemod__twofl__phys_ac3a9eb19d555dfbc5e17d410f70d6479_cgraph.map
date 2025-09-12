@@ -1,9 +1,0 @@
-<map id="mod_twofl_phys::twofl_handle_small_values" name="mod_twofl_phys::twofl_handle_small_values">
-<area shape="rect" id="node1" title=" " alt="" coords="5,159,173,200"/>
-<area shape="rect" id="node2" href="$namespacemod__small__values.html#a327e5c8e043106015f50a464cd16fce8" title=" " alt="" coords="221,5,409,47"/>
-<area shape="rect" id="node3" href="$namespacemod__small__values.html#ae1bc437ca6fe653ef9e9249e09d0f4aa" title=" " alt="" coords="221,71,409,112"/>
-<area shape="rect" id="node4" href="$namespacemod__twofl__phys.html#a060982803945d8ffa5f9be09d086d355" title=" " alt="" coords="231,188,399,229"/>
-<area shape="rect" id="node5" href="$namespacemod__twofl__phys.html#ac5281ea9af4d384f350c6b13eee076da" title="compute kinetic energy of charges w are conserved variables" alt="" coords="457,135,625,176"/>
-<area shape="rect" id="node6" href="$namespacemod__twofl__phys.html#acdfb8efbf527c4c01dfa9f9f50ea7dd8" title="compute kinetic energy of neutrals" alt="" coords="457,204,625,245"/>
-<area shape="rect" id="node7" href="$namespacemod__twofl__phys.html#aaecd38986d84940cc41c8d30b0edfb6e" title="Compute evolving magnetic energy." alt="" coords="457,279,625,320"/>
-</map>

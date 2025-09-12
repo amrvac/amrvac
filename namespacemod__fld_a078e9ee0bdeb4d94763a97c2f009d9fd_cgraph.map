@@ -1,0 +1,5 @@
+<map id="mod_fld::fld_get_opacity" name="mod_fld::fld_get_opacity">
+<area shape="rect" id="Node000001" title="Sets the opacity in the w&#45;array by calling mod_opal_opacity." alt="" coords="5,13,187,38"/>
+<area shape="rect" id="Node000002" href="$namespacemod__opal__opacity.html#a8a6b7571280893a4d5716c993e03c910" title="This subroutine calculates the opacity for a given temperature&#45;density structure. Opacities are read ..." alt="" coords="235,5,403,45"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="187,23,221,23,221,28,187,28"/>
+</map>

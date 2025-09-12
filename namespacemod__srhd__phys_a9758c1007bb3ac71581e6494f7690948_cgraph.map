@@ -1,5 +1,0 @@
-<map id="mod_srhd_phys::srhd_to_primitive" name="mod_srhd_phys::srhd_to_primitive">
-<area shape="rect" id="node1" title="Transform conservative variables into primitive ones." alt="" coords="5,39,165,80"/>
-<area shape="rect" id="node2" href="$namespacemod__srhd__phys.html#a278fbbe40cb78d60e092f5aad3de8d18" title="Compute auxiliary variables lfac and xi from a conservative state using srhd_con2prim to calculate en..." alt="" coords="213,5,373,47"/>
-<area shape="rect" id="node3" href="$namespacemod__srhd__phys.html#ab5b5c926f4c40d769f5bfb3fceea2a3c" title="Calculate thermal pressure p from density rho and enthalpy rho*h will provide p (and E if srhd_eos)" alt="" coords="213,71,373,112"/>
-</map>

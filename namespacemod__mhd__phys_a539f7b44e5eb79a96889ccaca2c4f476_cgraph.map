@@ -1,6 +1,0 @@
-<map id="mod_mhd_phys::add_source_glm" name="mod_mhd_phys::add_source_glm">
-<area shape="rect" id="node1" title=" " alt="" coords="5,56,244,83"/>
-<area shape="rect" id="node2" href="$namespacemod__geometry.html#a92ec4e2c8ae00a42bf5bf2c1ce3a26c4" title="Calculate gradient of a scalar q within ixL in direction idir." alt="" coords="300,5,483,32"/>
-<area shape="rect" id="node3" href="$namespacemod__geometry.html#ad4e9524cb60a1c8ce07d4641fe761251" title="Calculate gradient of a scalar q within ixL in direction idir first use limiter to go from cell cente..." alt="" coords="297,56,486,83"/>
-<area shape="rect" id="node4" href="$namespacemod__mhd__phys.html#a1ec41703a636a9c11cf09ccf97b193a8" title="Compute full magnetic field by direction." alt="" coords="292,107,491,149"/>
-</map>

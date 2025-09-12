@@ -1,5 +1,0 @@
-<map id="mod_mhd_phys::mhd_get_cmax_origin" name="mod_mhd_phys::mhd_get_cmax_origin">
-<area shape="rect" id="node1" title="Calculate cmax_idim=csound+abs(v_idim) within ixO^L." alt="" coords="5,39,196,80"/>
-<area shape="rect" id="node2" href="$namespacemod__mhd__phys.html#a51b674d873a4653315abb08dec667343" title="Calculate fast magnetosonic wave speed." alt="" coords="244,5,435,47"/>
-<area shape="rect" id="node3" href="$namespacemod__mhd__phys.html#ae556a53c00568c2ee56e22419c17f139" title="Calculate v component." alt="" coords="244,71,435,112"/>
-</map>

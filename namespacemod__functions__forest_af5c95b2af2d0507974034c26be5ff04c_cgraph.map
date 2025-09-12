@@ -1,8 +1,12 @@
 <map id="mod_functions_forest::init_forest_root" name="mod_functions_forest::init_forest_root">
-<area shape="rect" id="node1" title="build root forest" alt="" coords="5,136,168,177"/>
-<area shape="rect" id="node2" href="$namespacemod__amr__neighbors.html#a2dc7160e2489b2155324bd6a1a54e781" title="find neighors of level&#45;one root blocks" alt="" coords="226,5,389,47"/>
-<area shape="rect" id="node3" href="$namespacemod__space__filling__curve.html#a934e4e04b49eba5a4caa84f0e7c11e69" title="Set the Morton range for each processor." alt="" coords="216,71,399,112"/>
-<area shape="rect" id="node4" href="$namespacemod__amr__solution__node.html#aeef76b98e4c841f25f27fefa770ce314" title="Get first available igrid on processor ipe." alt="" coords="216,136,399,177"/>
-<area shape="rect" id="node5" href="$namespacemod__functions__forest.html#a9a03da74d688e278042e0d3d1c823897" title=" " alt="" coords="226,201,389,243"/>
-<area shape="rect" id="node6" href="$namespacemod__space__filling__curve.html#aef1e8e8d1ac8b83aaa2c3b5526c4e342" title="build Morton space filling curve for level 1 grid" alt="" coords="216,267,399,308"/>
+<area shape="rect" id="Node000001" title="build root forest" alt="" coords="5,113,168,153"/>
+<area shape="rect" id="Node000002" href="$namespacemod__amr__neighbors.html#a78c63ae8c2be343c93ca9cc8838e8247" title="find neighors of level&#45;one root blocks" alt="" coords="226,5,389,45"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="117,111,162,83,215,55,231,48,233,53,217,60,165,88,120,115"/>
+<area shape="rect" id="Node000003" href="$namespacemod__space__filling__curve.html#a934e4e04b49eba5a4caa84f0e7c11e69" title="Set the Morton range for each processor." alt="" coords="216,69,399,109"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="168,114,202,108,203,113,169,120"/>
+<area shape="rect" id="Node000004" href="$namespacemod__amr__solution__node.html#aeef76b98e4c841f25f27fefa770ce314" title="Get first available igrid on processor ipe." alt="" coords="216,157,399,197"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="169,147,203,154,202,159,168,152"/>
+<area shape="rect" id="Node000006" href="$namespacemod__space__filling__curve.html#aef1e8e8d1ac8b83aaa2c3b5526c4e342" title="build Morton space filling curve for level 1 grid" alt="" coords="216,221,399,261"/>
+<area shape="poly" id="edge5_Node000001_Node000006" title=" " alt="" coords="120,151,165,179,217,207,233,214,231,219,215,212,162,184,117,156"/>
+<area shape="poly" id="edge4_Node000004_Node000004" title=" " alt="" coords="266,158,264,148,270,138,285,133,307,131,333,134,347,141,344,146,331,139,307,136,286,138,274,143,269,149,271,156"/>
 </map>

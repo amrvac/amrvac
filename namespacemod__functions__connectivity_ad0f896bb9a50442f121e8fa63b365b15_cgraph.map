@@ -1,4 +1,5 @@
 <map id="mod_functions_connectivity::build_connectivity" name="mod_functions_connectivity::build_connectivity">
-<area shape="rect" id="node1" title=" " alt="" coords="5,5,211,47"/>
-<area shape="rect" id="node2" href="$namespacemod__amr__neighbors.html#a9a8f5feacf60fbac6b4b9a8cf9062b41" title="find neighors of all blocks" alt="" coords="259,5,421,47"/>
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,5,211,45"/>
+<area shape="rect" id="Node000002" href="$namespacemod__amr__neighbors.html#a686f8e8a5eace464a27777d6efd0a762" title="find neighors of all blocks" alt="" coords="259,5,421,45"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="211,23,245,23,245,28,211,28"/>
 </map>

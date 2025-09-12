@@ -1,4 +1,5 @@
 <map id="mod_advance::process" name="mod_advance::process">
-<area shape="rect" id="node1" title="process is a user entry in time loop, before output and advance allows to modify solution,..." alt="" coords="5,13,176,39"/>
-<area shape="rect" id="node2" href="$namespacemod__ghostcells__update.html#abc70508ceb326fb28166d751e5de31fc" title="do update ghost cells of all blocks including physical boundaries" alt="" coords="224,5,400,47"/>
+<area shape="rect" id="Node000001" title="process is a user entry in time loop, before output and advance allows to modify solution,..." alt="" coords="5,13,176,38"/>
+<area shape="rect" id="Node000002" href="$namespacemod__ghostcells__update.html#a1b945d19ee179d85b1b4a719a8dfcad6" title="do update ghost cells of all blocks including physical boundaries" alt="" coords="224,5,400,45"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="177,23,210,23,210,28,177,28"/>
 </map>

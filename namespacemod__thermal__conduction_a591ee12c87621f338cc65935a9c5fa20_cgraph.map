@@ -1,0 +1,7 @@
+<map id="mod_thermal_conduction::sts_set_source_tc_mhd" name="mod_thermal_conduction::sts_set_source_tc_mhd">
+<area shape="rect" id="Node000001" title="anisotropic thermal conduction with slope limited symmetric scheme Sharma 2007 Journal of Computation..." alt="" coords="5,35,192,75"/>
+<area shape="rect" id="Node000002" href="$namespacemod__thermal__conduction.html#af99d869a8e87c611519170f866a65b95" title=" " alt="" coords="253,5,439,45"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="192,41,239,35,239,41,192,46"/>
+<area shape="rect" id="Node000004" href="$namespacemod__fix__conserve.html#a6ba16bd40994889786a4523e73309321" title=" " alt="" coords="240,70,452,95"/>
+<area shape="poly" id="edge2_Node000001_Node000004" title=" " alt="" coords="192,63,227,66,226,72,192,68"/>
+</map>

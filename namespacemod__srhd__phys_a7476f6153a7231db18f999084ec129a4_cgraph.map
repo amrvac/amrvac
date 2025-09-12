@@ -1,4 +1,0 @@
-<map id="mod_srhd_phys::srhd_to_conserved" name="mod_srhd_phys::srhd_to_conserved">
-<area shape="rect" id="node1" title="Transform primitive variables into conservative ones." alt="" coords="5,5,165,47"/>
-<area shape="rect" id="node2" href="$namespacemod__srhd__phys.html#a8e28b6b2c7713005329951f9cc2a4c79" title="Compute the enthalpy rho*h from rho and pressure p." alt="" coords="213,5,373,47"/>
-</map>

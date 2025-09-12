@@ -1,5 +1,0 @@
-<map id="mod_hd_phys::hd_update_temperature" name="mod_hd_phys::hd_update_temperature">
-<area shape="rect" id="node1" title=" " alt="" coords="5,43,193,84"/>
-<area shape="rect" id="node2" href="$namespacemod__hd__phys.html#aa893373436eb62993cc188e9005870c8" title="Calculate thermal pressure=(gamma&#45;1)*(e&#45;0.5*m**2/rho) within ixO^L." alt="" coords="251,5,415,47"/>
-<area shape="rect" id="node3" href="$namespacemod__ionization__degree.html#aada806f2bfeccc2603a328eb71607817" title=" " alt="" coords="241,71,425,127"/>
-</map>

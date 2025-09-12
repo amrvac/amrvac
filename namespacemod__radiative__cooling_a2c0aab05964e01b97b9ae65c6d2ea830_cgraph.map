@@ -1,6 +1,9 @@
 <map id="mod_radiative_cooling::radiative_cooling_init" name="mod_radiative_cooling::radiative_cooling_init">
-<area shape="rect" id="node1" title=" " alt="" coords="5,71,176,112"/>
-<area shape="rect" id="node2" href="$namespacemod__radiative__cooling.html#a5e673c837df3fbd572820caf874c3c7f" title=" " alt="" coords="230,5,401,47"/>
-<area shape="rect" id="node3" href="$namespacemod__radiative__cooling.html#ab2477d54f5f1250b8513b3bbb5a20ea5" title=" " alt="" coords="230,71,401,112"/>
-<area shape="rect" id="node4" href="$namespacemod__comm__lib.html#a9b6f1a8fd13bc5670e3b426151c34048" title="Exit MPI&#45;AMRVAC with an error message." alt="" coords="224,137,407,163"/>
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,69,176,109"/>
+<area shape="rect" id="Node000002" href="$namespacemod__radiative__cooling.html#a5e673c837df3fbd572820caf874c3c7f" title=" " alt="" coords="230,5,401,45"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="161,67,231,47,232,52,162,72"/>
+<area shape="rect" id="Node000003" href="$namespacemod__radiative__cooling.html#a1b83b5c9023a36e54f17b94790c062d5" title=" " alt="" coords="230,69,401,109"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="177,87,216,87,216,92,177,92"/>
+<area shape="rect" id="Node000004" href="$namespacemod__comm__lib.html#a9b6f1a8fd13bc5670e3b426151c34048" title="Exit MPI&#45;AMRVAC with an error message." alt="" coords="224,134,407,159"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="170,107,252,128,251,133,169,112"/>
 </map>

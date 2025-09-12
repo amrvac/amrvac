@@ -1,9 +1,17 @@
 <map id="mod_particles::particles_init" name="mod_particles::particles_init">
-<area shape="rect" id="node1" title="Initialize particle data and parameters." alt="" coords="5,163,212,190"/>
-<area shape="rect" id="node2" href="$namespacemod__particle__advect.html#a077a7238a312ce4135e9c3a5ae595c9b" title=" " alt="" coords="279,5,437,47"/>
-<area shape="rect" id="node3" href="$namespacemod__particle__gca.html#a3d2463d9188aa68326c9222f45677b42" title=" " alt="" coords="260,71,456,98"/>
-<area shape="rect" id="node4" href="$namespacemod__particle__base.html#a2369bf21b0e74e54a2a801252da69ad6" title="Initialize communicators for particles." alt="" coords="281,123,435,164"/>
-<area shape="rect" id="node5" href="$namespacemod__particle__lorentz.html#a7d69e6051df4a9ac4aa2893e21a45370" title=" " alt="" coords="279,188,437,229"/>
-<area shape="rect" id="node6" href="$namespacemod__particle__base.html#ad1d0184bacf1d2b43594640158665c65" title="Give initial values to parameters." alt="" coords="281,253,435,295"/>
-<area shape="rect" id="node7" href="$namespacemod__particle__sample.html#a93f9d66f8e6029b91724e5672e332298" title=" " alt="" coords="277,319,439,360"/>
+<area shape="rect" id="Node000001" title="Initialize particle data and parameters." alt="" coords="5,191,212,217"/>
+<area shape="rect" id="Node000002" href="$namespacemod__particle__advect.html#a077a7238a312ce4135e9c3a5ae595c9b" title=" " alt="" coords="279,5,437,45"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="118,189,173,126,213,88,259,55,270,49,273,53,261,60,217,92,177,130,122,193"/>
+<area shape="rect" id="Node000003" href="$namespacemod__particle__gca.html#a3d2463d9188aa68326c9222f45677b42" title=" " alt="" coords="260,70,456,95"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="125,189,182,148,219,125,259,106,282,97,284,102,261,110,222,130,185,153,128,193"/>
+<area shape="rect" id="Node000004" href="$namespacemod__particle__base.html#a2369bf21b0e74e54a2a801252da69ad6" title="Initialize communicators for particles." alt="" coords="281,120,435,160"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="159,189,267,160,269,166,160,194"/>
+<area shape="rect" id="Node000005" href="$namespacemod__particle__lorentz.html#a7d69e6051df4a9ac4aa2893e21a45370" title=" " alt="" coords="279,184,437,224"/>
+<area shape="poly" id="edge4_Node000001_Node000005" title=" " alt="" coords="212,201,265,201,265,207,212,207"/>
+<area shape="rect" id="Node000006" href="$namespacemod__comm__lib.html#a9b6f1a8fd13bc5670e3b426151c34048" title="Exit MPI&#45;AMRVAC with an error message." alt="" coords="267,249,449,274"/>
+<area shape="poly" id="edge5_Node000001_Node000006" title=" " alt="" coords="165,214,289,243,288,248,164,219"/>
+<area shape="rect" id="Node000007" href="$namespacemod__particle__base.html#ad1d0184bacf1d2b43594640158665c65" title="Give initial values to parameters." alt="" coords="281,299,435,339"/>
+<area shape="poly" id="edge6_Node000001_Node000007" title=" " alt="" coords="132,214,189,247,261,283,282,291,280,296,259,288,187,252,129,219"/>
+<area shape="rect" id="Node000009" href="$namespacemod__particle__sample.html#a93f9d66f8e6029b91724e5672e332298" title=" " alt="" coords="277,363,439,403"/>
+<area shape="poly" id="edge7_Node000001_Node000009" title=" " alt="" coords="122,215,177,278,217,316,261,348,273,355,270,359,259,353,213,320,173,282,118,219"/>
 </map>

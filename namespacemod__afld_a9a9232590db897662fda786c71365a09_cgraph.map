@@ -1,0 +1,13 @@
+<map id="mod_afld::energy_interaction" name="mod_afld::energy_interaction">
+<area shape="rect" id="Node000001" title="This subroutine calculates the radiation heating, radiation cooling and photon tiring using an implic..." alt="" coords="5,95,217,121"/>
+<area shape="rect" id="Node000002" href="$namespacemod__afld.html#ad8704dc4f298466b7f931aae68dcb380" title="Sets the opacity in the w&#45;array by calling mod_opal_opacity." alt="" coords="287,5,430,45"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="150,93,284,47,286,52,151,98"/>
+<area shape="rect" id="Node000008" href="$namespacemod__afld.html#a7eb940836590e32462520c6b43fecac3" title="Find the root of the 4th degree polynomial using the bisection method." alt="" coords="743,88,892,128"/>
+<area shape="poly" id="edge2_Node000001_Node000008" title=" " alt="" coords="218,105,729,105,729,111,218,111"/>
+<area shape="rect" id="Node000010" href="$namespacemod__afld.html#aa76aa76ff434d1bda3094e5fff8a54b7" title="Find the root of the 4th degree polynomial using the Halley method." alt="" coords="265,121,452,146"/>
+<area shape="poly" id="edge3_Node000001_Node000010" title=" " alt="" coords="218,116,252,120,251,125,217,122"/>
+<area shape="rect" id="Node000013" href="$namespacemod__afld.html#ab2f3dbfffba4e7c41a1e40821ce15ab7" title="Find the root of the 4th degree polynomial using the Newton&#45;Ralphson method." alt="" coords="500,121,695,146"/>
+<area shape="poly" id="edge6_Node000001_Node000013" title=" " alt="" coords="143,118,199,139,266,156,334,162,403,161,468,155,524,146,525,151,468,160,403,166,334,167,265,161,197,144,141,123"/>
+<area shape="poly" id="edge4_Node000010_Node000013" title=" " alt="" coords="452,131,487,131,487,136,452,136"/>
+<area shape="poly" id="edge5_Node000013_Node000008" title=" " alt="" coords="695,119,729,115,729,121,696,125"/>
+</map>

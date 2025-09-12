@@ -1,5 +1,0 @@
-<map id="mod_rhd_phys::rhd_get_cbounds" name="mod_rhd_phys::rhd_get_cbounds">
-<area shape="rect" id="node1" title="Calculate cmax_idim = csound + abs(v_idim) within ixO^L." alt="" coords="5,27,180,69"/>
-<area shape="rect" id="node2" href="$namespacemod__dust.html#a7af239bb52c595147cfcd5250d689ded" title=" " alt="" coords="228,5,421,32"/>
-<area shape="rect" id="node3" href="$namespacemod__rhd__phys.html#a735dd721c05cd0ffad93a8c04f23441d" title="Calculate the square of the thermal sound speed csound2 within ixO^L. csound2=gamma*p/rho." alt="" coords="237,57,412,98"/>
-</map>

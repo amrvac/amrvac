@@ -1,4 +1,6 @@
 <map id="mod_particle_base::init_particles_output" name="mod_particle_base::init_particles_output">
-<area shape="rect" id="node1" title=" " alt="" coords="5,5,160,47"/>
-<area shape="rect" id="node2" href="$namespacemod__particle__base.html#af1c6a0038ac3f58e52ee1938654b026f" title=" " alt="" coords="208,5,387,47"/>
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,29,160,69"/>
+<area shape="rect" id="Node000002" href="$namespacemod__particle__base.html#af1c6a0038ac3f58e52ee1938654b026f" title=" " alt="" coords="208,29,387,69"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="161,47,194,47,194,52,161,52"/>
+<area shape="poly" id="edge2_Node000002_Node000002" title=" " alt="" coords="257,30,255,20,261,10,276,5,297,3,322,6,336,13,333,18,321,11,297,8,277,10,265,15,260,21,262,28"/>
 </map>

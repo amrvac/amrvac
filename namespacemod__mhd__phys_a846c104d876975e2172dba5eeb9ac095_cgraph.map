@@ -1,4 +1,0 @@
-<map id="mod_mhd_phys::get_normalized_divb" name="mod_mhd_phys::get_normalized_divb">
-<area shape="rect" id="node1" title="get dimensionless div B = |divB| * volume / area / |B|" alt="" coords="5,13,275,39"/>
-<area shape="rect" id="node2" href="$namespacemod__mhd__phys.html#af14fa2e60e611999dd386a22dc273449" title="Compute 2 times total magnetic energy." alt="" coords="323,5,521,47"/>
-</map>

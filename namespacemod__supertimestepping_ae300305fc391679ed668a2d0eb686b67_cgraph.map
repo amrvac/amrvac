@@ -1,5 +1,5 @@
 <map id="mod_supertimestepping::sts_init" name="mod_supertimestepping::sts_init">
-<area shape="rect" id="node1" title="Initialize sts module." alt="" coords="5,39,185,80"/>
-<area shape="rect" id="node2" href="$namespacemod__supertimestepping.html#a19f0146c969921122af8dced8f0b7593" title="Iterates all the terms implemented with STS and adds the sources STS method 1 implementation." alt="" coords="233,5,413,47"/>
-<area shape="rect" id="node3" href="$namespacemod__supertimestepping.html#a49c558accd899d2c9d20e264b9852685" title="method used to set the number of cycles for the STS1 method" alt="" coords="233,71,413,112"/>
+<area shape="rect" id="Node000001" title="Initialize sts module." alt="" coords="5,5,185,45"/>
+<area shape="rect" id="Node000002" href="$namespacemod__comm__lib.html#a9b6f1a8fd13bc5670e3b426151c34048" title="Exit MPI&#45;AMRVAC with an error message." alt="" coords="233,13,416,38"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="186,23,219,23,219,28,186,28"/>
 </map>

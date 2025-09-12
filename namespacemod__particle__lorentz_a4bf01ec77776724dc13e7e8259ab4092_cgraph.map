@@ -1,7 +1,0 @@
-<map id="mod_particle_lorentz::lorentz_update_payload" name="mod_particle_lorentz::lorentz_update_payload">
-<area shape="rect" id="node1" title="Update payload subroutine." alt="" coords="5,93,192,135"/>
-<area shape="rect" id="node2" href="$namespacemod__particle__base.html#ab86a6399bcf481404721bcb11ca92e8a" title=" " alt="" coords="240,5,393,47"/>
-<area shape="rect" id="node3" href="$namespacemod__particle__base.html#a7d9a58afea8627c45f86fb2657d9b8df" title=" " alt="" coords="441,93,595,135"/>
-<area shape="rect" id="node4" href="$namespacemod__particle__base.html#a39bc08ff3212378f905b861b84bcfc85" title=" " alt="" coords="240,123,393,164"/>
-<area shape="rect" id="node5" href="$namespacemod__particle__base.html#a543c5dd3a4184ec64857fea2c6526279" title="Get Lorentz factor from relativistic momentum." alt="" coords="240,188,393,229"/>
-</map>

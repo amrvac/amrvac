@@ -1,13 +1,23 @@
 <map id="mod_magnetofriction::magnetofriction" name="mod_magnetofriction::magnetofriction">
-<area shape="rect" id="node1" title=" " alt="" coords="5,283,168,324"/>
-<area shape="rect" id="node2" href="$namespacemod__magnetofriction.html#a80f8234b04d26b9b70e8188d576b87af" title=" " alt="" coords="247,5,410,47"/>
-<area shape="rect" id="node3" href="$namespacemod__comm__lib.html#a9b6f1a8fd13bc5670e3b426151c34048" title="Exit MPI&#45;AMRVAC with an error message." alt="" coords="489,71,672,98"/>
-<area shape="rect" id="node4" href="$namespacemod__ghostcells__update.html#a5a035ca86bfa7e52a61d1ba8f5d1389d" title=" " alt="" coords="233,123,424,164"/>
-<area shape="rect" id="node5" href="$namespacemod__ghostcells__update.html#abc70508ceb326fb28166d751e5de31fc" title="do update ghost cells of all blocks including physical boundaries" alt="" coords="241,188,417,229"/>
-<area shape="rect" id="node6" href="$namespacemod__magnetofriction.html#a1093c3f5a0ae4f6217ba3a1c81719bef" title=" " alt="" coords="247,253,410,295"/>
-<area shape="rect" id="node7" href="$mod__magnetofriction_8t.html#a0b3223c2536a1c82c3ac7b6096b98137" title=" " alt="" coords="293,319,364,346"/>
-<area shape="rect" id="node8" href="$namespacemod__magnetofriction.html#aa80c1fdbbd16d0e4ebac788ac232f124" title=" " alt="" coords="247,371,410,412"/>
-<area shape="rect" id="node9" href="$mod__magnetofriction_8t.html#a9d078fc76205d152533b7c1deb926e9b" title=" " alt="" coords="280,437,377,463"/>
-<area shape="rect" id="node10" href="$namespacemod__amr__grid.html#a1d21768e5b7034d71d93c87a60b14833" title="reset AMR and (de)allocate boundary flux storage at level changes" alt="" coords="237,487,420,514"/>
-<area shape="rect" id="node11" href="$namespacemod__input__output.html#a061b50e8aaaaf828c94809adf831ccbe" title=" " alt="" coords="216,538,441,565"/>
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,248,168,288"/>
+<area shape="rect" id="Node000002" href="$namespacemod__magnetofriction.html#ab4dacf3b6be62b81df0772cef04ef26c" title=" " alt="" coords="247,5,410,45"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="93,246,110,208,135,158,170,107,214,62,234,49,237,53,218,66,175,110,140,161,114,210,98,248"/>
+<area shape="rect" id="Node000010" href="$namespacemod__comm__lib.html#a9b6f1a8fd13bc5670e3b426151c34048" title="Exit MPI&#45;AMRVAC with an error message." alt="" coords="489,70,672,95"/>
+<area shape="poly" id="edge9_Node000001_Node000010" title=" " alt="" coords="95,247,112,214,139,175,173,136,215,106,280,80,349,68,418,64,480,66,480,72,418,69,350,73,282,86,217,110,176,140,143,178,117,217,100,249"/>
+<area shape="rect" id="Node000043" href="$namespacemod__ghostcells__update.html#a5a035ca86bfa7e52a61d1ba8f5d1389d" title=" " alt="" coords="233,120,424,160"/>
+<area shape="poly" id="edge3_Node000001_Node000043" title=" " alt="" coords="108,246,155,207,215,170,231,163,233,167,217,174,158,212,111,250"/>
+<area shape="rect" id="Node000005" href="$namespacemod__ghostcells__update.html#a1b945d19ee179d85b1b4a719a8dfcad6" title="do update ghost cells of all blocks including physical boundaries" alt="" coords="241,184,417,224"/>
+<area shape="poly" id="edge4_Node000001_Node000005" title=" " alt="" coords="162,245,239,225,240,230,164,251"/>
+<area shape="rect" id="Node000045" href="$namespacemod__magnetofriction.html#a1dacdad96eabfb8e026e4f7e764b98e1" title=" " alt="" coords="247,248,410,288"/>
+<area shape="poly" id="edge6_Node000001_Node000045" title=" " alt="" coords="168,265,233,265,233,271,168,271"/>
+<area shape="rect" id="Node000046" href="$mod__magnetofriction_8t.html#a0b3223c2536a1c82c3ac7b6096b98137" title=" " alt="" coords="293,313,364,338"/>
+<area shape="poly" id="edge7_Node000001_Node000046" title=" " alt="" coords="168,285,217,297,281,312,279,317,215,303,167,291"/>
+<area shape="rect" id="Node000020" href="$namespacemod__magnetofriction.html#aa80c1fdbbd16d0e4ebac788ac232f124" title=" " alt="" coords="247,363,410,403"/>
+<area shape="poly" id="edge8_Node000001_Node000020" title=" " alt="" coords="116,286,162,317,217,347,238,356,236,360,215,352,159,321,113,290"/>
+<area shape="rect" id="Node000047" href="$namespacemod__amr__grid.html#a1d21768e5b7034d71d93c87a60b14833" title="reset AMR and (de)allocate boundary flux storage at level changes" alt="" coords="237,427,420,453"/>
+<area shape="poly" id="edge10_Node000001_Node000047" title=" " alt="" coords="102,287,147,350,180,384,217,412,233,420,230,425,215,417,176,388,143,353,98,290"/>
+<area shape="rect" id="Node000075" href="$namespacemod__input__output.html#a061b50e8aaaaf828c94809adf831ccbe" title=" " alt="" coords="216,477,441,502"/>
+<area shape="poly" id="edge11_Node000001_Node000075" title=" " alt="" coords="98,287,114,325,139,373,174,421,195,443,218,462,229,469,226,473,214,466,191,447,170,425,135,376,109,328,93,289"/>
+<area shape="poly" id="edge2_Node000002_Node000010" title=" " alt="" coords="411,41,511,64,510,69,410,46"/>
+<area shape="poly" id="edge5_Node000005_Node000010" title=" " alt="" coords="410,181,440,170,501,136,551,101,554,106,504,140,442,174,412,186"/>
 </map>

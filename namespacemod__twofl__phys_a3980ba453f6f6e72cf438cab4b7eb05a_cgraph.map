@@ -1,5 +1,0 @@
-<map id="mod_twofl_phys::gravity_add_source" name="mod_twofl_phys::gravity_add_source">
-<area shape="rect" id="node1" title="w[iw]=w[iw]+qdt*S[wCT,qtC,x] where S is the source based on wCT within ixO" alt="" coords="5,39,188,80"/>
-<area shape="rect" id="node2" href="$namespacemod__twofl__phys.html#ae75430a9644fd40e05232b3d0c7cf9e9" title="Calculate v_c component." alt="" coords="236,5,404,47"/>
-<area shape="rect" id="node3" href="$namespacemod__twofl__phys.html#a5b2aeb62c9e0a037a48252fdda1a632d" title="Calculate v component." alt="" coords="236,71,404,112"/>
-</map>

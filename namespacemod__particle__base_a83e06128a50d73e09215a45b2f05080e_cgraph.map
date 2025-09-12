@@ -1,6 +1,9 @@
 <map id="mod_particle_base::set_neighbor_ipe" name="mod_particle_base::set_neighbor_ipe">
-<area shape="rect" id="node1" title=" " alt="" coords="5,71,159,112"/>
-<area shape="rect" id="node2" href="$namespacemod__particle__base.html#a1ab9a89036213a478a7c5bd0723b307a" title=" " alt="" coords="207,5,360,47"/>
-<area shape="rect" id="node3" href="$namespacemod__particle__base.html#a7864f44d4f0f7c4a7907966a68b596b6" title=" " alt="" coords="207,71,360,112"/>
-<area shape="rect" id="node4" href="$namespacemod__particle__base.html#adea618fdd813509ed843d864c4151ab9" title=" " alt="" coords="207,136,360,177"/>
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,69,159,109"/>
+<area shape="rect" id="Node000002" href="$namespacemod__particle__base.html#ae7c662ad707df4f929bcf5dcee6cbf24" title=" " alt="" coords="207,5,360,45"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="145,67,206,47,208,52,146,72"/>
+<area shape="rect" id="Node000003" href="$namespacemod__particle__base.html#a375dc3876e1e879d1fcbf7adfb4cd5ee" title=" " alt="" coords="207,69,360,109"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="159,87,193,87,193,92,159,92"/>
+<area shape="rect" id="Node000004" href="$namespacemod__particle__base.html#a7ca1dfe72db5157ebc267198e872c1a8" title=" " alt="" coords="207,133,360,173"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="146,107,208,127,206,132,145,112"/>
 </map>

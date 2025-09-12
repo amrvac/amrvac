@@ -1,0 +1,19 @@
+<map id="mod_thermal_emission::integrate_emission_spherical" name="mod_thermal_emission::integrate_emission_spherical">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,157,180,211"/>
+<area shape="rect" id="Node000002" href="$namespacemod__thermal__emission.html#a7c4ad4cf7531ac9c7ee63034c9872f20" title=" " alt="" coords="474,5,649,45"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="107,155,127,125,155,91,188,60,227,35,285,15,346,6,406,4,461,7,460,12,406,9,346,11,286,20,229,40,191,64,158,95,132,128,112,158"/>
+<area shape="rect" id="Node000003" href="$namespacemod__thermal__emission.html#a7af4c6d3fcf23e43ae346803b99e78b4" title=" " alt="" coords="231,49,423,89"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="138,154,227,106,257,92,259,97,229,110,140,159"/>
+<area shape="rect" id="Node000004" href="$namespacemod__thermal__emission.html#af98394fcb6030a415c5129b986eeaf1d" title=" " alt="" coords="473,81,649,121"/>
+<area shape="poly" id="edge9_Node000001_Node000004" title=" " alt="" coords="180,160,228,149,460,112,460,117,228,155,181,165"/>
+<area shape="rect" id="Node000005" href="$namespacemod__thermal__emission.html#af49384ae59d12d978836e02f57cfee66" title=" " alt="" coords="239,164,414,204"/>
+<area shape="poly" id="edge5_Node000001_Node000005" title=" " alt="" coords="180,181,225,181,225,187,180,187"/>
+<area shape="rect" id="Node000007" href="$namespacemod__thermal__emission.html#a3089c33eabc4b5a051bf7f3f027ef7a7" title=" " alt="" coords="239,228,414,268"/>
+<area shape="poly" id="edge6_Node000001_Node000007" title=" " alt="" coords="181,205,240,222,239,227,179,210"/>
+<area shape="rect" id="Node000008" href="$namespacemod__thermal__emission.html#a223000779d492daf29bf20dd2b44c72a" title=" " alt="" coords="239,292,414,332"/>
+<area shape="poly" id="edge7_Node000001_Node000008" title=" " alt="" coords="128,209,174,244,229,278,244,284,242,289,227,282,171,249,125,214"/>
+<area shape="rect" id="Node000009" href="$namespacemod__thermal__emission.html#a2b728bc738d4f1c3dbe2772f02c0e3e3" title=" " alt="" coords="228,356,425,396"/>
+<area shape="poly" id="edge8_Node000001_Node000009" title=" " alt="" coords="113,210,160,276,193,311,230,342,239,348,237,352,226,346,189,315,156,280,108,213"/>
+<area shape="poly" id="edge3_Node000003_Node000002" title=" " alt="" coords="422,49,460,42,461,47,423,54"/>
+<area shape="poly" id="edge4_Node000003_Node000004" title=" " alt="" coords="423,80,460,85,459,90,422,85"/>
+</map>

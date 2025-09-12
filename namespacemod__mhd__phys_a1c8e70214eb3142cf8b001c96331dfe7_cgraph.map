@@ -1,4 +1,0 @@
-<map id="mod_mhd_phys::mhd_get_tcutoff" name="mod_mhd_phys::mhd_get_tcutoff">
-<area shape="rect" id="node1" title="get adaptive cutoff temperature for TRAC (Johnston 2019 ApJL, 873, L22)" alt="" coords="5,5,196,47"/>
-<area shape="rect" id="node2" href="$namespacemod__geometry.html#a92ec4e2c8ae00a42bf5bf2c1ce3a26c4" title="Calculate gradient of a scalar q within ixL in direction idir." alt="" coords="244,13,427,39"/>
-</map>

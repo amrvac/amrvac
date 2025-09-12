@@ -1,0 +1,18 @@
+<map id="mod_magnetofriction::process1_gridmf" name="mod_magnetofriction::process1_gridmf">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,152,168,192"/>
+<area shape="rect" id="Node000002" href="$namespacemod__magnetofriction.html#a68ea6bc27b3d2f3c9a00964c1a996bee" title=" " alt="" coords="241,5,403,45"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="106,150,153,106,215,62,242,48,244,53,217,66,156,110,109,154"/>
+<area shape="rect" id="Node000009" href="$namespacemod__comm__lib.html#a9b6f1a8fd13bc5670e3b426151c34048" title="Exit MPI&#45;AMRVAC with an error message." alt="" coords="476,131,659,157"/>
+<area shape="poly" id="edge6_Node000001_Node000009" title=" " alt="" coords="117,150,162,125,215,105,274,95,321,93,428,105,473,114,516,125,514,130,472,119,428,111,321,98,275,100,217,111,164,130,119,154"/>
+<area shape="rect" id="Node000015" href="$namespacemod__magnetofriction.html#a10f6f443f865698b2d1d0f4211fb8418" title=" " alt="" coords="241,120,403,160"/>
+<area shape="poly" id="edge3_Node000001_Node000015" title=" " alt="" coords="168,158,227,150,227,156,168,164"/>
+<area shape="rect" id="Node000018" href="$namespacemod__magnetofriction.html#a21e5c84c992a098dc677feb57efff858" title=" " alt="" coords="241,184,403,224"/>
+<area shape="poly" id="edge4_Node000001_Node000018" title=" " alt="" coords="168,180,227,188,227,194,168,186"/>
+<area shape="rect" id="Node000019" href="$namespacemod__fix__conserve.html#a6ba16bd40994889786a4523e73309321" title=" " alt="" coords="216,249,428,274"/>
+<area shape="poly" id="edge7_Node000001_Node000019" title=" " alt="" coords="124,190,168,212,217,234,246,243,244,248,215,238,166,217,122,195"/>
+<area shape="rect" id="Node000020" href="$namespacemod__magnetofriction.html#acbd783be23fd31706a45c632b931ae3c" title=" " alt="" coords="241,299,403,339"/>
+<area shape="poly" id="edge8_Node000001_Node000020" title=" " alt="" coords="107,190,154,237,185,261,217,283,233,291,231,296,215,288,182,266,151,241,104,194"/>
+<area shape="poly" id="edge2_Node000002_Node000009" title=" " alt="" coords="384,43,429,62,487,92,536,122,534,126,484,97,427,66,382,48"/>
+<area shape="poly" id="edge5_Node000018_Node000009" title=" " alt="" coords="403,182,501,157,502,163,404,187"/>
+<area shape="poly" id="edge9_Node000020_Node000009" title=" " alt="" coords="400,296,427,283,463,256,497,225,547,166,551,169,501,228,467,260,429,288,402,301"/>
+</map>

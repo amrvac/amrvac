@@ -1,6 +1,9 @@
 <map id="mod_mhd::mhd_activate" name="mod_mhd::mhd_activate">
-<area shape="rect" id="node1" title=" " alt="" coords="5,56,189,83"/>
-<area shape="rect" id="node2" href="$namespacemod__mhd__hllc.html#a348634cd8122197d331e1a06d555568b" title=" " alt="" coords="245,5,457,32"/>
-<area shape="rect" id="node3" href="$namespacemod__mhd__phys.html#ad7d98b0addb883f4aa58a876eee8025e" title=" " alt="" coords="237,56,465,83"/>
-<area shape="rect" id="node4" href="$namespacemod__mhd__roe.html#a5cb3b297639ad9e15d27ad211ef95f61" title=" " alt="" coords="247,107,455,133"/>
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,55,189,80"/>
+<area shape="rect" id="Node000002" href="$namespacemod__mhd__hllc.html#a348634cd8122197d331e1a06d555568b" title=" " alt="" coords="245,5,457,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="163,52,271,31,272,36,164,57"/>
+<area shape="rect" id="Node000003" href="$namespacemod__mhd__phys.html#ad7d98b0addb883f4aa58a876eee8025e" title=" " alt="" coords="237,55,465,80"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="189,65,224,65,224,70,189,70"/>
+<area shape="rect" id="Node000249" href="$namespacemod__mhd__roe.html#a5cb3b297639ad9e15d27ad211ef95f61" title=" " alt="" coords="247,104,455,129"/>
+<area shape="poly" id="edge3_Node000001_Node000249" title=" " alt="" coords="164,77,272,99,271,104,163,83"/>
 </map>

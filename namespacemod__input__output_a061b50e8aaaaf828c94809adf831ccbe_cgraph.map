@@ -1,9 +1,15 @@
 <map id="mod_input_output::saveamrfile" name="mod_input_output::saveamrfile">
-<area shape="rect" id="node1" title=" " alt="" coords="5,177,231,203"/>
-<area shape="rect" id="node2" href="$namespacemod__convert__files.html#a62a6fb3fa85f5bb311485d3dc140562c" title=" " alt="" coords="303,5,453,47"/>
-<area shape="rect" id="node3" href="$namespacemod__input__output.html#ac699b426ea2d42b06de1c1798b98f96d" title="Write volume&#45;averaged values and other information to the log file." alt="" coords="279,71,477,112"/>
-<area shape="rect" id="node4" href="$namespacemod__input__output.html#a97e4df1969002df5c3fcc551db7d354e" title="Print a log that can be used to check whether the code still produces the same output (regression tes..." alt="" coords="279,136,477,177"/>
-<area shape="rect" id="node5" href="$namespacemod__collapse.html#ae345a692009d6f8bf85ddd4cdb30cb4e" title=" " alt="" coords="301,201,455,243"/>
-<area shape="rect" id="node6" href="$namespacemod__slice.html#a6a45feb00cf001fcff14f72e126a89c4" title=" " alt="" coords="295,267,461,294"/>
-<area shape="rect" id="node7" href="$namespacemod__input__output.html#ae1d4a41dcf32cae3752c48ef73f42364" title=" " alt="" coords="287,319,469,360"/>
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,173,231,198"/>
+<area shape="rect" id="Node000002" href="$namespacemod__convert__files.html#a62a6fb3fa85f5bb311485d3dc140562c" title=" " alt="" coords="303,5,453,45"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="130,171,190,116,232,83,277,55,291,48,293,53,280,60,235,88,194,120,134,175"/>
+<area shape="rect" id="Node000040" href="$namespacemod__input__output.html#ac699b426ea2d42b06de1c1798b98f96d" title="Write volume&#45;averaged values and other information to the log file." alt="" coords="279,69,477,109"/>
+<area shape="poly" id="edge2_Node000001_Node000040" title=" " alt="" coords="149,170,278,119,299,111,301,116,280,124,151,175"/>
+<area shape="rect" id="Node000043" href="$namespacemod__input__output.html#a97e4df1969002df5c3fcc551db7d354e" title="Print a log that can be used to check whether the code still produces the same output (regression tes..." alt="" coords="279,133,477,173"/>
+<area shape="poly" id="edge3_Node000001_Node000043" title=" " alt="" coords="221,170,265,165,266,170,222,175"/>
+<area shape="rect" id="Node000044" href="$namespacemod__collapse.html#ae345a692009d6f8bf85ddd4cdb30cb4e" title=" " alt="" coords="301,197,455,237"/>
+<area shape="poly" id="edge4_Node000001_Node000044" title=" " alt="" coords="222,195,288,204,287,209,221,201"/>
+<area shape="rect" id="Node000053" href="$namespacemod__slice.html#a6a45feb00cf001fcff14f72e126a89c4" title=" " alt="" coords="295,262,461,287"/>
+<area shape="poly" id="edge5_Node000001_Node000053" title=" " alt="" coords="149,196,208,221,280,247,310,256,309,261,278,252,207,226,147,200"/>
+<area shape="rect" id="Node000063" href="$namespacemod__input__output.html#ae1d4a41dcf32cae3752c48ef73f42364" title=" " alt="" coords="287,312,469,352"/>
+<area shape="poly" id="edge6_Node000001_Node000063" title=" " alt="" coords="136,196,197,244,237,272,280,296,298,304,295,309,277,301,234,276,193,248,133,200"/>
 </map>

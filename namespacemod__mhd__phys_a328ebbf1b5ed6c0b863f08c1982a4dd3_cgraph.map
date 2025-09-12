@@ -1,6 +1,0 @@
-<map id="mod_mhd_phys::add_source_internal_e" name="mod_mhd_phys::add_source_internal_e">
-<area shape="rect" id="node1" title="Source terms for internal energy version of MHD." alt="" coords="5,64,212,105"/>
-<area shape="rect" id="node2" href="$namespacemod__mhd__phys.html#a5ae357171798016eb067ae4ec7f7c3e2" title="Source terms J.E in internal energy. For the ambipolar term E = ambiCoef * JxBxB=ambiCoef * B^2(&#45;J_pe..." alt="" coords="263,5,470,47"/>
-<area shape="rect" id="node3" href="$namespacemod__geometry.html#ae6552832949b076a9d4f2c96704077cc" title="Calculate divergence of a vector qvec within ixL." alt="" coords="272,71,461,98"/>
-<area shape="rect" id="node4" href="$namespacemod__mhd__phys.html#ad50b3d711e10d6316238b8688d218914" title="handle small or negative internal energy" alt="" coords="260,123,473,164"/>
-</map>

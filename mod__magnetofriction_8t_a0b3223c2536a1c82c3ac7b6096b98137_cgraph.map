@@ -1,5 +1,5 @@
 <map id="metrics" name="metrics">
-<area shape="rect" id="node1" title=" " alt="" coords="5,31,76,57"/>
-<area shape="rect" id="node2" href="$mod__magnetofriction_8t.html#aa253ce9b281b55eda04d6db5c8b8adc4" title=" " alt="" coords="124,5,253,32"/>
-<area shape="rect" id="node3" href="$mod__magnetofriction_8t.html#a6d2ce4be9e084762fb07b8784eec9dd8" title=" " alt="" coords="139,56,238,83"/>
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,13,76,38"/>
+<area shape="rect" id="Node000002" href="$namespacemod__magnetofriction.html#a8b065f58db4ef35aafd649b2facb98ac" title="Calculate idirmin and the idirmin:3 components of the common current array make sure that dxlevel(^D)..." alt="" coords="124,5,287,45"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="76,23,110,23,110,28,76,28"/>
 </map>

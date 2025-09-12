@@ -1,4 +1,0 @@
-<map id="mod_twofl_phys::twofl_get_tc_dt_mhd_c" name="mod_twofl_phys::twofl_get_tc_dt_mhd_c">
-<area shape="rect" id="node1" title=" " alt="" coords="5,5,173,47"/>
-<area shape="rect" id="node2" href="$namespacemod__thermal__conduction.html#af8b53592736ea52c07ce819bf7869e35" title="Get the explicut timestep for the TC (mhd implementation)" alt="" coords="221,5,408,47"/>
-</map>

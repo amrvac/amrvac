@@ -1,0 +1,5 @@
+<map id="mod_amr_neighbors::find_neighbor" name="mod_amr_neighbors::find_neighbor">
+<area shape="rect" id="Node000001" title="find neighors of all blocks" alt="" coords="5,5,168,45"/>
+<area shape="rect" id="Node000002" href="$namespacemod__amr__neighbors.html#a78c63ae8c2be343c93ca9cc8838e8247" title="find neighors of level&#45;one root blocks" alt="" coords="216,5,379,45"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="168,23,202,23,202,28,168,28"/>
+</map>

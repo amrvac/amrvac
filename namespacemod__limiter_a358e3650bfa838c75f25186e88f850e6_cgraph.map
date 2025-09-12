@@ -1,4 +1,0 @@
-<map id="mod_limiter::dwlimiter2" name="mod_limiter::dwlimiter2">
-<area shape="rect" id="node1" title="Limit the centered dwC differences within ixC for iw in direction idim. The limiter is chosen accordi..." alt="" coords="5,5,184,32"/>
-<area shape="rect" id="node2" href="$namespacemod__comm__lib.html#a9b6f1a8fd13bc5670e3b426151c34048" title="Exit MPI&#45;AMRVAC with an error message." alt="" coords="232,5,415,32"/>
-</map>

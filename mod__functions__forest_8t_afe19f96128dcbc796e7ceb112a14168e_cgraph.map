@@ -1,6 +1,0 @@
-<map id="read_node" name="read_node">
-<area shape="rect" id="node1" title=" " alt="" coords="5,78,96,105"/>
-<area shape="rect" id="node2" href="$namespacemod__functions__forest.html#a8bbdb48ae58687b69968ec33ab94687b" title=" " alt="" coords="154,5,317,47"/>
-<area shape="rect" id="node3" href="$namespacemod__amr__neighbors.html#a729cf3a8b2f89fc63c916a3973af4093" title="asign tree node neighor" alt="" coords="154,71,317,112"/>
-<area shape="rect" id="node4" href="$namespacemod__amr__solution__node.html#aeef76b98e4c841f25f27fefa770ce314" title="Get first available igrid on processor ipe." alt="" coords="144,136,327,177"/>
-</map>

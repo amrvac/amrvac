@@ -1,4 +1,0 @@
-<map id="mod_mf_phys::update_faces_average" name="mod_mf_phys::update_faces_average">
-<area shape="rect" id="node1" title="get electric field though averaging neighors to update faces in CT" alt="" coords="5,5,172,47"/>
-<area shape="rect" id="node2" href="$namespacemod__mf__phys.html#a77984dd9f45d24d60e3d5f9d36caec40" title="calculate eta J at cell edges" alt="" coords="220,5,427,47"/>
-</map>

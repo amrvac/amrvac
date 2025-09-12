@@ -1,6 +1,9 @@
 <map id="mod_hd_phys::hd_check_params" name="mod_hd_phys::hd_check_params">
-<area shape="rect" id="node1" title=" " alt="" coords="5,71,187,112"/>
-<area shape="rect" id="node2" href="$namespacemod__dust.html#abac9be1c49bbffe25b1de9e17c608392" title=" " alt="" coords="245,5,411,47"/>
-<area shape="rect" id="node3" href="$namespacemod__dust.html#ac0752c128bfebcdb24c5ea944e86e5da" title="inplace update of psa==&gt;F_im(psa)" alt="" coords="235,71,421,112"/>
-<area shape="rect" id="node4" href="$namespacemod__dust.html#a386f2d3ce337135d9797dfde3208b9c0" title="Implicit solve of psb=psa+dtfactor*dt*F_im(psb)" alt="" coords="239,136,417,177"/>
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,69,187,109"/>
+<area shape="rect" id="Node000002" href="$namespacemod__dust.html#abac9be1c49bbffe25b1de9e17c608392" title=" " alt="" coords="245,5,411,45"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="169,67,241,46,243,52,170,72"/>
+<area shape="rect" id="Node000003" href="$namespacemod__dust.html#a5cebc3aeae2db9646a5042db9d290037" title="inplace update of psa==&gt;F_im(psa)" alt="" coords="235,69,421,109"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="187,87,221,87,221,92,187,92"/>
+<area shape="rect" id="Node000004" href="$namespacemod__dust.html#ae9efdbe1728135dcefe096391d55bff8" title="Implicit solve of psb=psa+dtfactor*dt*F_im(psb)" alt="" coords="239,133,417,173"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="170,107,243,127,241,132,169,112"/>
 </map>

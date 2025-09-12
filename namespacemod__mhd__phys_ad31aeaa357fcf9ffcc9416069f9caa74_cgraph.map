@@ -1,6 +1,0 @@
-<map id="mod_mhd_phys::get_lorentz_force" name="mod_mhd_phys::get_lorentz_force">
-<area shape="rect" id="node1" title="Compute the Lorentz force (JxB)" alt="" coords="5,64,212,105"/>
-<area shape="rect" id="node2" href="$namespacemod__global__parameters.html#ab7c08882c0c573fe148b826cf02a2546" title="Cross product of two vectors." alt="" coords="273,5,453,47"/>
-<area shape="rect" id="node3" href="$namespacemod__mhd__phys.html#a3338aacd3dacb242389aa735b3e787af" title="Calculate idirmin and the idirmin:3 components of the common current array make sure that dxlevel(^D)..." alt="" coords="260,71,467,98"/>
-<area shape="rect" id="node4" href="$namespacemod__mhd__phys.html#a1ec41703a636a9c11cf09ccf97b193a8" title="Compute full magnetic field by direction." alt="" coords="264,123,463,164"/>
-</map>

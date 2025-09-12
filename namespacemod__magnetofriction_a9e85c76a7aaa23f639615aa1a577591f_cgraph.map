@@ -1,9 +1,0 @@
-<map id="mod_magnetofriction::tvdlfmf" name="mod_magnetofriction::tvdlfmf">
-<area shape="rect" id="node1" title=" " alt="" coords="5,169,168,211"/>
-<area shape="rect" id="node2" href="$namespacemod__magnetofriction.html#af6ae103fc5055b469a90c5d93d1e7916" title=" " alt="" coords="226,5,389,47"/>
-<area shape="rect" id="node3" href="$namespacemod__magnetofriction.html#a16c33871e34ad474bbf7dcaf3de4c350" title="Clean divergence of magnetic field by Janhunen&#39;s and Linde&#39;s source terms." alt="" coords="226,71,389,112"/>
-<area shape="rect" id="node4" href="$namespacemod__magnetofriction.html#aa5412c2d88bece658ee8adef3c9ccda8" title=" " alt="" coords="226,136,389,177"/>
-<area shape="rect" id="node5" href="$namespacemod__magnetofriction.html#a1a70950b19dc31794e9cd3f6e81ea231" title=" " alt="" coords="226,201,389,243"/>
-<area shape="rect" id="node6" href="$namespacemod__comm__lib.html#a9b6f1a8fd13bc5670e3b426151c34048" title="Exit MPI&#45;AMRVAC with an error message." alt="" coords="216,267,399,294"/>
-<area shape="rect" id="node7" href="$namespacemod__magnetofriction.html#af4f77260e435f372d232b0cef8f4ab2e" title=" " alt="" coords="226,319,389,360"/>
-</map>

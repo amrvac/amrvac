@@ -1,4 +1,5 @@
 <map id="mod_afld::update_diffcoeff" name="mod_afld::update_diffcoeff">
-<area shape="rect" id="node1" title=" " alt="" coords="5,13,200,39"/>
-<area shape="rect" id="node2" href="$namespacemod__afld.html#a834262f00ee7ba17b4bae9d45f9c4ff1" title="Calculates cell&#45;centered diffusion coefficient to be used in multigrid." alt="" coords="248,5,391,47"/>
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,13,200,38"/>
+<area shape="rect" id="Node000002" href="$namespacemod__afld.html#a292222016c4df688c77b80961c9b821b" title="Calculates cell&#45;centered diffusion coefficient to be used in multigrid." alt="" coords="248,5,391,45"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="200,23,234,23,234,28,200,28"/>
 </map>

@@ -1,0 +1,16 @@
+<map id="mod_mhd_phys::mhd_mag_en_all" name="mod_mhd_phys::mhd_mag_en_all">
+<area shape="rect" id="Node000001" title="Compute 2 times total magnetic energy." alt="" coords="5,93,204,133"/>
+<area shape="rect" id="Node000002" href="$namespacemod__mhd__phys.html#ac7bf1b8d5fd9dac730901cb6319ced4d" title="Calculate idirmin and the idirmin:3 components of the common current array make sure that dxlevel(^D)..." alt="" coords="815,56,1021,81"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="131,90,184,56,217,40,251,29,335,12,420,4,506,3,590,8,741,27,856,50,855,55,741,32,590,13,506,9,421,10,335,18,253,34,219,45,187,61,134,95"/>
+<area shape="rect" id="Node000013" href="$namespacemod__mhd__phys.html#af871b6be3fe6f0ca6cca59a59309c86c" title=" " alt="" coords="252,68,471,93"/>
+<area shape="poly" id="edge3_Node000001_Node000013" title=" " alt="" coords="204,98,246,92,246,98,205,103"/>
+<area shape="rect" id="Node000021" href="$namespacemod__mhd__phys.html#a7e7f9e0cfdae3f081d89b5a609011c5d" title="multiply res by the ambipolar coefficient The ambipolar coefficient is calculated as &#45;mhd_eta_ambi/rh..." alt="" coords="519,107,767,132"/>
+<area shape="poly" id="edge10_Node000001_Node000021" title=" " alt="" coords="204,118,505,123,505,128,204,124"/>
+<area shape="poly" id="edge2_Node000002_Node000002" title=" " alt="" coords="874,58,864,48,869,37,887,31,918,29,957,33,968,38,972,44,967,47,965,42,956,38,918,35,888,37,873,42,869,47,878,54"/>
+<area shape="poly" id="edge4_Node000013_Node000002" title=" " alt="" coords="471,76,801,68,801,74,471,81"/>
+<area shape="poly" id="edge5_Node000013_Node000013" title=" " alt="" coords="320,70,311,60,316,49,333,43,361,41,397,45,408,50,412,56,407,59,404,54,396,50,361,47,334,49,319,53,316,59,324,66"/>
+<area shape="poly" id="edge6_Node000013_Node000021" title=" " alt="" coords="406,91,505,107,505,112,405,96"/>
+<area shape="poly" id="edge9_Node000021_Node000001" title=" " alt="" coords="518,113,218,109,218,104,518,107"/>
+<area shape="poly" id="edge7_Node000021_Node000002" title=" " alt="" coords="712,104,834,81,835,86,713,109"/>
+<area shape="poly" id="edge8_Node000021_Node000013" title=" " alt="" coords="598,109,484,91,485,86,599,104"/>
+</map>

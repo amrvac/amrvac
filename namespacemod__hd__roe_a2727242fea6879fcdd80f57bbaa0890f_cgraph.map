@@ -1,4 +1,0 @@
-<map id="mod_hd_roe::hd_average" name="mod_hd_roe::hd_average">
-<area shape="rect" id="node1" title="Calculate the Roe average of w, assignment of variables: rho &#45;&gt; rho, m &#45;&gt; v, e &#45;&gt; h." alt="" coords="5,13,192,39"/>
-<area shape="rect" id="node2" href="$namespacemod__hd__phys.html#aa893373436eb62993cc188e9005870c8" title="Calculate thermal pressure=(gamma&#45;1)*(e&#45;0.5*m**2/rho) within ixO^L." alt="" coords="240,5,404,47"/>
-</map>

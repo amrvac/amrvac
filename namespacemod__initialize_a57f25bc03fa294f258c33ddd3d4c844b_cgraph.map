@@ -1,9 +1,15 @@
 <map id="mod_initialize::initialize_amrvac" name="mod_initialize::initialize_amrvac">
-<area shape="rect" id="node1" title="Initialize amrvac: read par files and initialize variables." alt="" coords="5,141,184,182"/>
-<area shape="rect" id="node2" href="$namespacemod__bc__data.html#ad538a8f959099a8987f483568f917dc4" title=" " alt="" coords="241,5,437,32"/>
-<area shape="rect" id="node3" href="$namespacemod__comm__lib.html#a26b2e1656174e5fed20848263c37c6d8" title="Create and store the MPI types that will be used for parallel communication." alt="" coords="263,57,414,98"/>
-<area shape="rect" id="node4" href="$namespacemod__initialize.html#a9a3b9297f1ba4c1feafaa36381791c94" title="Initialize (and allocate) simulation and grid variables." alt="" coords="232,123,445,149"/>
-<area shape="rect" id="node5" href="$namespacemod__physics.html#aea7f8deb14a3c301c4db010855407ce3" title=" " alt="" coords="243,173,434,200"/>
-<area shape="rect" id="node6" href="$namespacemod__init__datafromfile.html#ae428d479ea3d920683af9a2b2a40943a" title=" " alt="" coords="255,225,422,266"/>
-<area shape="rect" id="node7" href="$namespacemod__input__output.html#a3d02333ce1529f982c89bf948cc871e7" title="Read in the user&#45;supplied parameter&#45;file." alt="" coords="250,290,427,331"/>
+<area shape="rect" id="Node000001" title="Initialize amrvac: read par files and initialize variables." alt="" coords="5,142,184,182"/>
+<area shape="rect" id="Node000002" href="$namespacemod__bc__data.html#ad538a8f959099a8987f483568f917dc4" title=" " alt="" coords="232,5,428,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="112,140,162,90,195,64,231,41,249,33,251,38,233,46,198,68,165,94,116,143"/>
+<area shape="rect" id="Node000007" href="$namespacemod__comm__lib.html#a26b2e1656174e5fed20848263c37c6d8" title="Create and store the MPI types that will be used for parallel communication." alt="" coords="255,55,405,95"/>
+<area shape="poly" id="edge2_Node000001_Node000007" title=" " alt="" coords="143,139,231,105,252,97,254,102,233,110,145,144"/>
+<area shape="rect" id="Node000008" href="$namespacemod__physics.html#aea7f8deb14a3c301c4db010855407ce3" title=" " alt="" coords="235,120,425,145"/>
+<area shape="poly" id="edge3_Node000001_Node000008" title=" " alt="" coords="184,148,221,144,221,149,185,153"/>
+<area shape="rect" id="Node000036" href="$namespacemod__init__datafromfile.html#ae428d479ea3d920683af9a2b2a40943a" title=" " alt="" coords="247,170,413,210"/>
+<area shape="poly" id="edge4_Node000001_Node000036" title=" " alt="" coords="185,170,233,176,233,181,184,175"/>
+<area shape="rect" id="Node000037" href="$namespacemod__input__output.html#a3d02333ce1529f982c89bf948cc871e7" title="Read in the user&#45;supplied parameter&#45;file." alt="" coords="241,234,419,274"/>
+<area shape="poly" id="edge5_Node000001_Node000037" title=" " alt="" coords="140,180,233,220,253,227,251,232,231,224,138,185"/>
+<area shape="rect" id="Node000041" href="$namespacemod__geometry.html#a419308dd8d42f82ba97cc9f7f7f07d95" title=" " alt="" coords="239,299,421,324"/>
+<area shape="poly" id="edge6_Node000001_Node000041" title=" " alt="" coords="115,181,164,233,197,260,233,284,251,292,249,297,231,288,194,264,161,236,111,184"/>
 </map>

@@ -1,6 +1,0 @@
-<map id="mod_thermal_emission::output_data" name="mod_thermal_emission::output_data">
-<area shape="rect" id="node1" title=" " alt="" coords="5,57,180,98"/>
-<area shape="rect" id="node2" href="$namespacemod__comm__lib.html#a9b6f1a8fd13bc5670e3b426151c34048" title="Exit MPI&#45;AMRVAC with an error message." alt="" coords="228,5,411,32"/>
-<area shape="rect" id="node3" href="$namespacemod__thermal__emission.html#a41157c3eb957b39bcc520d4f1637f8de" title=" " alt="" coords="232,57,407,98"/>
-<area shape="rect" id="node4" href="$namespacemod__thermal__emission.html#a3a3c1ab87fc76ad57d2b45416140dc33" title=" " alt="" coords="232,122,407,163"/>
-</map>

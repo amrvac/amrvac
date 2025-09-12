@@ -1,7 +1,0 @@
-<map id="mod_twofl_phys::internal_energy_add_source_n" name="mod_twofl_phys::internal_energy_add_source_n">
-<area shape="rect" id="node1" title=" " alt="" coords="5,104,192,145"/>
-<area shape="rect" id="node2" href="$namespacemod__twofl__phys.html#aebdffcb74ebf82b97406ca7d06b9ba72" title=" " alt="" coords="244,5,404,47"/>
-<area shape="rect" id="node3" href="$namespacemod__twofl__phys.html#ac259c672cb2413d1274cae8f02b08182" title=" " alt="" coords="240,71,408,112"/>
-<area shape="rect" id="node4" href="$namespacemod__twofl__phys.html#a9577917ed367b281004fd8b15eae554e" title="Calculate v_n vector." alt="" coords="240,136,408,177"/>
-<area shape="rect" id="node5" href="$namespacemod__twofl__phys.html#ad66a3f0699b4cfdc3b4a89a3c23a4b05" title="handle small or negative internal energy" alt="" coords="240,201,408,243"/>
-</map>

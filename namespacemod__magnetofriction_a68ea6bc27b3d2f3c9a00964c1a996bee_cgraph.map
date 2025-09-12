@@ -1,0 +1,15 @@
+<map id="mod_magnetofriction::centdiff4mf" name="mod_magnetofriction::centdiff4mf">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,165,168,205"/>
+<area shape="rect" id="Node000002" href="$namespacemod__magnetofriction.html#a9da17e169bb86a39e89dd9bf0835b3f0" title=" " alt="" coords="226,5,389,45"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="101,163,148,110,180,81,215,55,226,49,228,53,217,60,183,85,152,114,105,167"/>
+<area shape="rect" id="Node000003" href="$namespacemod__magnetofriction.html#a648c9c1b8985ad7d42430e3987373fa2" title="Clean divergence of magnetic field by Janhunen&#39;s and Linde&#39;s source terms." alt="" coords="226,69,389,109"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="124,163,215,119,232,112,234,117,217,124,127,167"/>
+<area shape="rect" id="Node000011" href="$namespacemod__magnetofriction.html#a57c1f8bf0d9d1e2cda19442698a0cc7c" title=" " alt="" coords="226,133,389,173"/>
+<area shape="poly" id="edge3_Node000001_Node000011" title=" " alt="" coords="168,171,212,164,213,170,169,176"/>
+<area shape="rect" id="Node000012" href="$namespacemod__magnetofriction.html#a29bc4abe418f3324208b70d329f69cb2" title=" " alt="" coords="226,197,389,237"/>
+<area shape="poly" id="edge4_Node000001_Node000012" title=" " alt="" coords="169,195,213,201,212,206,168,200"/>
+<area shape="rect" id="Node000008" href="$namespacemod__comm__lib.html#a9b6f1a8fd13bc5670e3b426151c34048" title="Exit MPI&#45;AMRVAC with an error message." alt="" coords="216,262,399,287"/>
+<area shape="poly" id="edge5_Node000001_Node000008" title=" " alt="" coords="125,203,217,247,242,255,240,261,215,252,122,208"/>
+<area shape="rect" id="Node000013" href="$namespacemod__magnetofriction.html#aa7f2892aad3fee243653f4d53ddad988" title=" " alt="" coords="226,312,389,352"/>
+<area shape="poly" id="edge6_Node000001_Node000013" title=" " alt="" coords="108,204,155,250,185,274,217,296,232,304,229,309,215,301,182,279,152,254,104,207"/>
+</map>

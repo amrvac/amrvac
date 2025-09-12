@@ -1,0 +1,9 @@
+<map id="mod_radiative_cooling::cool_exact" name="mod_radiative_cooling::cool_exact">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,69,176,109"/>
+<area shape="rect" id="Node000002" href="$namespacemod__radiative__cooling.html#a7961a939e49a748f32727184fafd6718" title=" " alt="" coords="224,5,395,45"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="159,67,227,47,228,52,161,72"/>
+<area shape="rect" id="Node000003" href="$namespacemod__radiative__cooling.html#a8a64aa6cb7c2be55247c345678086604" title=" " alt="" coords="224,69,395,109"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="176,87,210,87,210,92,176,92"/>
+<area shape="rect" id="Node000004" href="$namespacemod__radiative__cooling.html#afc796e69f3a078d992911ee36792678d" title=" " alt="" coords="224,133,395,173"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="161,107,228,127,227,132,159,112"/>
+</map>

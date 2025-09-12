@@ -1,5 +1,11 @@
 <map id="mod_tdfluxrope::ellpi" name="mod_tdfluxrope::ellpi">
-<area shape="rect" id="node1" title=" " alt="" coords="5,5,165,32"/>
-<area shape="rect" id="node2" href="$namespacemod__tdfluxrope.html#ab2a8f37e309328dfcdfc2b2a581e223f" title=" " alt="" coords="403,5,545,32"/>
-<area shape="rect" id="node3" href="$namespacemod__tdfluxrope.html#a748169af3cb116030287f694a739f07e" title=" " alt="" coords="213,31,355,57"/>
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,29,165,55"/>
+<area shape="poly" id="edge1_Node000001_Node000001" title=" " alt="" coords="53,31,46,21,49,11,63,5,85,3,112,6,124,15,120,19,110,11,85,8,64,10,53,15,51,20,57,28"/>
+<area shape="rect" id="Node000002" href="$namespacemod__tdfluxrope.html#ab2a8f37e309328dfcdfc2b2a581e223f" title=" " alt="" coords="403,29,545,55"/>
+<area shape="poly" id="edge2_Node000001_Node000002" title=" " alt="" coords="165,31,213,27,284,25,355,27,389,30,389,35,355,33,284,30,213,33,166,36"/>
+<area shape="rect" id="Node000003" href="$namespacemod__tdfluxrope.html#a748169af3cb116030287f694a739f07e" title=" " alt="" coords="213,67,355,92"/>
+<area shape="poly" id="edge4_Node000001_Node000003" title=" " alt="" coords="154,52,203,61,202,67,153,57"/>
+<area shape="poly" id="edge3_Node000002_Node000002" title=" " alt="" coords="443,31,436,21,440,11,453,5,474,3,500,6,511,15,508,19,498,11,474,8,454,10,443,15,441,20,447,28"/>
+<area shape="poly" id="edge5_Node000003_Node000002" title=" " alt="" coords="349,64,395,55,396,60,350,69"/>
+<area shape="poly" id="edge6_Node000003_Node000003" title=" " alt="" coords="253,68,246,58,250,48,263,42,284,40,310,44,321,52,318,56,308,48,284,45,264,47,253,52,251,58,257,65"/>
 </map>

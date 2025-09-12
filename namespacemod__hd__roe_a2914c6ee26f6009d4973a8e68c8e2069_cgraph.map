@@ -1,9 +1,8 @@
 <map id="mod_hd_roe::hd_roe_init" name="mod_hd_roe::hd_roe_init">
-<area shape="rect" id="node1" title=" " alt="" coords="5,148,188,175"/>
-<area shape="rect" id="node2" href="$namespacemod__hd__roe.html#a2727242fea6879fcdd80f57bbaa0890f" title="Calculate the Roe average of w, assignment of variables: rho &#45;&gt; rho, m &#45;&gt; v, e &#45;&gt; h." alt="" coords="249,5,435,32"/>
-<area shape="rect" id="node3" href="$namespacemod__hd__roe.html#a9806248b3fefea296bbf96869156a82b" title=" " alt="" coords="236,56,448,83"/>
-<area shape="rect" id="node4" href="$namespacemod__hd__roe.html#acb3430a4b8126eb7b0ed04a4969e56cb" title="Calculate the il&#45;th characteristic speed and the jump in the il&#45;th characteristic variable in the idi..." alt="" coords="265,107,419,149"/>
-<area shape="rect" id="node5" href="$namespacemod__hd__roe.html#ae4cdb5e3de0b458b310fe1b2f804d540" title=" " alt="" coords="265,173,419,214"/>
-<area shape="rect" id="node6" href="$namespacemod__hd__roe.html#a1c37ca7e072c14b56f9f8cc8d2a0d03b" title="Multiply q by R(il,iw), where R is the right eigenvalue matrix at wroe." alt="" coords="255,239,429,265"/>
-<area shape="rect" id="node7" href="$namespacemod__hd__roe.html#adfe28f544f140408493ac7351db6f057" title=" " alt="" coords="241,289,443,316"/>
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,47,188,72"/>
+<area shape="rect" id="Node000002" href="$namespacemod__tvd.html#ae8748c5ff719141fefc2ac786f5b4acd" title=" " alt="" coords="241,5,395,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="165,44,236,31,237,36,166,49"/>
+<area shape="rect" id="Node000004" href="$namespacemod__hd__phys.html#af17430a2cacc3c6b8c497f916273daff" title="Calculate thermal pressure=(gamma&#45;1)*(e&#45;0.5*m**2/rho) within ixO^L." alt="" coords="236,79,400,119"/>
+<area shape="poly" id="edge2_Node000001_Node000004" title=" " alt="" coords="168,69,223,79,222,85,167,75"/>
+<area shape="poly" id="edge3_Node000004_Node000004" title=" " alt="" coords="277,80,274,70,281,60,296,55,318,53,344,56,358,63,356,68,342,61,318,58,297,60,284,65,279,71,282,78"/>
 </map>

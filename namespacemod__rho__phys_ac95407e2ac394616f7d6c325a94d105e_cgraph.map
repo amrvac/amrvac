@@ -1,12 +1,5 @@
 <map id="mod_rho_phys::rho_phys_init" name="mod_rho_phys::rho_phys_init">
-<area shape="rect" id="node1" title=" " alt="" coords="5,239,217,265"/>
-<area shape="rect" id="node2" href="$namespacemod__particles.html#a7a89b126b34bb788a3911955880ddd8f" title="Initialize particle data and parameters." alt="" coords="271,5,478,32"/>
-<area shape="rect" id="node3" href="$namespacemod__rho__phys.html#a08f4baf8c313a095e80da6257b559f65" title=" " alt="" coords="286,57,463,98"/>
-<area shape="rect" id="node4" href="$namespacemod__rho__phys.html#ad51ef98e818c1942f188987a65ec8106" title=" " alt="" coords="287,122,462,163"/>
-<area shape="rect" id="node5" href="$namespacemod__rho__phys.html#aed01b1eb30e68167bca7a7299b08dc57" title=" " alt="" coords="266,188,483,215"/>
-<area shape="rect" id="node6" href="$namespacemod__rho__phys.html#a589f74f87219d123db6aa6c5781198ef" title=" " alt="" coords="277,239,472,265"/>
-<area shape="rect" id="node7" href="$namespacemod__rho__phys.html#ab9f977ec4d9f61b3e31ea28d1b855b18" title=" " alt="" coords="272,289,477,316"/>
-<area shape="rect" id="node8" href="$namespacemod__rho__phys.html#a2a721992f29714df7de556a0c2cd2f59" title=" " alt="" coords="291,341,458,382"/>
-<area shape="rect" id="node9" href="$namespacemod__rho__phys.html#a61ab5237932189be0a77dc8dfaa3c08a" title=" " alt="" coords="291,406,458,447"/>
-<area shape="rect" id="node10" href="$namespacemod__rho__phys.html#aa92707cb7cde3ad1a87b99f401edd81e" title="Write this module&#39;s parameters to a snapsoht." alt="" coords="265,472,484,499"/>
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,5,217,31"/>
+<area shape="rect" id="Node000002" href="$namespacemod__particles.html#a7a89b126b34bb788a3911955880ddd8f" title="Initialize particle data and parameters." alt="" coords="265,5,472,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="217,15,252,15,252,21,217,21"/>
 </map>

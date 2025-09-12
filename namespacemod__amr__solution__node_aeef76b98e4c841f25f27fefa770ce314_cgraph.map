@@ -1,4 +1,6 @@
 <map id="mod_amr_solution_node::getnode" name="mod_amr_solution_node::getnode">
-<area shape="rect" id="node1" title="Get first available igrid on processor ipe." alt="" coords="5,5,188,47"/>
-<area shape="rect" id="node2" href="$namespacemod__comm__lib.html#a9b6f1a8fd13bc5670e3b426151c34048" title="Exit MPI&#45;AMRVAC with an error message." alt="" coords="236,13,419,39"/>
+<area shape="rect" id="Node000001" title="Get first available igrid on processor ipe." alt="" coords="5,29,188,69"/>
+<area shape="poly" id="edge1_Node000001_Node000001" title=" " alt="" coords="54,30,51,20,58,10,73,5,97,3,123,6,138,13,136,18,122,11,97,8,75,10,61,15,56,21,59,28"/>
+<area shape="rect" id="Node000002" href="$namespacemod__comm__lib.html#a9b6f1a8fd13bc5670e3b426151c34048" title="Exit MPI&#45;AMRVAC with an error message." alt="" coords="236,37,419,62"/>
+<area shape="poly" id="edge2_Node000001_Node000002" title=" " alt="" coords="188,47,222,47,222,52,188,52"/>
 </map>

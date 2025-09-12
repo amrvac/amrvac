@@ -1,4 +1,0 @@
-<map id="mod_twofl_phys::get_normalized_divb" name="mod_twofl_phys::get_normalized_divb">
-<area shape="rect" id="node1" title="get dimensionless div B = |divB| * volume / area / |B|" alt="" coords="5,5,163,47"/>
-<area shape="rect" id="node2" href="$namespacemod__twofl__phys.html#ac36cb8a7f352e9bdc3ca1c2dd54489d2" title="Compute 2 times total magnetic energy." alt="" coords="211,5,379,47"/>
-</map>

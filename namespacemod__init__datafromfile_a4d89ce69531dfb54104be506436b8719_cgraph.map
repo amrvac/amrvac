@@ -1,0 +1,9 @@
+<map id="mod_init_datafromfile::read_data_set" name="mod_init_datafromfile::read_data_set">
+<area shape="rect" id="Node000001" title="Set values according to user data." alt="" coords="5,69,172,109"/>
+<area shape="rect" id="Node000002" href="$namespacemod__init__datafromfile.html#abba4801d02f43703219e7fda2abc08c5" title=" " alt="" coords="220,5,387,45"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="156,67,222,47,223,52,157,72"/>
+<area shape="rect" id="Node000006" href="$namespacemod__init__datafromfile.html#a2d036335f2815229f33287a9f8c5f070" title=" " alt="" coords="220,69,387,109"/>
+<area shape="poly" id="edge2_Node000001_Node000006" title=" " alt="" coords="173,87,206,87,206,92,173,92"/>
+<area shape="rect" id="Node000010" href="$namespacemod__init__datafromfile.html#a5540d5a4624ebfb524c1a5103690d151" title=" " alt="" coords="220,133,387,173"/>
+<area shape="poly" id="edge3_Node000001_Node000010" title=" " alt="" coords="157,107,223,127,222,132,156,112"/>
+</map>

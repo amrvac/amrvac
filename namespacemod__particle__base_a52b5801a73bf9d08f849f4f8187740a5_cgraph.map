@@ -1,4 +1,5 @@
 <map id="mod_particle_base::particles_finish" name="mod_particle_base::particles_finish">
-<area shape="rect" id="node1" title="Finalize the particles module." alt="" coords="5,5,159,47"/>
-<area shape="rect" id="node2" href="$namespacemod__particle__base.html#a43281fc1a5a02b8bbe9621cad0e2e605" title="clean up destroyed particles on all cores" alt="" coords="207,5,360,47"/>
+<area shape="rect" id="Node000001" title="Finalize the particles module." alt="" coords="5,5,159,45"/>
+<area shape="rect" id="Node000002" href="$namespacemod__particle__base.html#a43281fc1a5a02b8bbe9621cad0e2e605" title="clean up destroyed particles on all cores" alt="" coords="207,5,360,45"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="159,23,193,23,193,28,159,28"/>
 </map>

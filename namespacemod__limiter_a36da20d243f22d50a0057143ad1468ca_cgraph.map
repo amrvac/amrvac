@@ -1,4 +1,6 @@
 <map id="mod_limiter::limiter_type" name="mod_limiter::limiter_type">
-<area shape="rect" id="node1" title=" " alt="" coords="5,5,193,32"/>
-<area shape="rect" id="node2" href="$namespacemod__comm__lib.html#a9b6f1a8fd13bc5670e3b426151c34048" title="Exit MPI&#45;AMRVAC with an error message." alt="" coords="241,5,424,32"/>
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,29,193,55"/>
+<area shape="poly" id="edge1_Node000001_Node000001" title=" " alt="" coords="62,31,53,21,58,11,73,5,99,3,132,7,144,16,141,20,130,11,99,8,74,10,61,15,59,20,66,27"/>
+<area shape="rect" id="Node000002" href="$namespacemod__comm__lib.html#a9b6f1a8fd13bc5670e3b426151c34048" title="Exit MPI&#45;AMRVAC with an error message." alt="" coords="241,29,424,55"/>
+<area shape="poly" id="edge2_Node000001_Node000002" title=" " alt="" coords="194,39,228,39,228,45,194,45"/>
 </map>

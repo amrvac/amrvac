@@ -1,5 +1,7 @@
 <map id="mod_point_searching::get_cell_w" name="mod_point_searching::get_cell_w">
-<area shape="rect" id="node1" title=" " alt="" coords="5,35,167,76"/>
-<area shape="rect" id="node2" href="$namespacemod__particle__base.html#a557c63a62cb1491a66af98fb29258dd5" title=" " alt="" coords="229,5,383,47"/>
-<area shape="rect" id="node3" href="$namespacemod__comm__lib.html#a9b6f1a8fd13bc5670e3b426151c34048" title="Exit MPI&#45;AMRVAC with an error message." alt="" coords="215,71,397,98"/>
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,35,167,75"/>
+<area shape="rect" id="Node000002" href="$namespacemod__particle__base.html#a557c63a62cb1491a66af98fb29258dd5" title=" " alt="" coords="229,5,383,45"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="167,41,216,35,216,40,167,47"/>
+<area shape="rect" id="Node000005" href="$namespacemod__comm__lib.html#a9b6f1a8fd13bc5670e3b426151c34048" title="Exit MPI&#45;AMRVAC with an error message." alt="" coords="215,70,397,95"/>
+<area shape="poly" id="edge2_Node000001_Node000005" title=" " alt="" coords="167,62,201,67,201,72,167,68"/>
 </map>

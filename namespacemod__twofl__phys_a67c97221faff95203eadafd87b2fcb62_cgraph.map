@@ -1,5 +1,0 @@
-<map id="mod_twofl_phys::get_resistive_electric_field" name="mod_twofl_phys::get_resistive_electric_field">
-<area shape="rect" id="node1" title="calculate eta J at cell edges" alt="" coords="5,35,180,76"/>
-<area shape="rect" id="node2" href="$namespacemod__twofl__phys.html#a35943a026269e9b298b1b62e51b411da" title="Calculate idirmin and the idirmin:3 components of the common current array make sure that dxlevel(^D)..." alt="" coords="245,5,402,47"/>
-<area shape="rect" id="node3" href="$namespacemod__geometry.html#afb4a536895193b5cace9dcddd0011926" title="Calculate gradient of a scalar q in direction idir at cell interfaces." alt="" coords="228,71,419,98"/>
-</map>

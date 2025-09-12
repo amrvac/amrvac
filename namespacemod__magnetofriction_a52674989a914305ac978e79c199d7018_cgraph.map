@@ -1,0 +1,5 @@
+<map id="mod_magnetofriction::reconstructrmf" name="mod_magnetofriction::reconstructrmf">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,5,168,45"/>
+<area shape="rect" id="Node000002" href="$namespacemod__limiter.html#ad477e395652065ecae809c863f1c3cbd" title="Limit the centered dwC differences within ixC for iw in direction idim. The limiter is chosen accordi..." alt="" coords="216,13,395,38"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="168,23,203,23,203,28,168,28"/>
+</map>

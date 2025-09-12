@@ -1,5 +1,0 @@
-<map id="mod_geometry::divvectors" name="mod_geometry::divvectors">
-<area shape="rect" id="node1" title="Calculate divergence of a vector qvec within ixL using limited extrapolation to cell edges." alt="" coords="5,31,201,57"/>
-<area shape="rect" id="node2" href="$namespacemod__limiter.html#a358e3650bfa838c75f25186e88f850e6" title="Limit the centered dwC differences within ixC for iw in direction idim. The limiter is chosen accordi..." alt="" coords="254,5,433,32"/>
-<area shape="rect" id="node3" href="$namespacemod__ppm.html#a96670619b5c26282a40260cf0a77032a" title=" " alt="" coords="249,56,437,83"/>
-</map>

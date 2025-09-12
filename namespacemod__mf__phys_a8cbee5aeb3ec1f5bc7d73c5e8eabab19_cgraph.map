@@ -1,9 +1,0 @@
-<map id="mod_mf_phys::mf_add_source" name="mod_mf_phys::mf_add_source">
-<area shape="rect" id="node1" title="w[iws]=w[iws]+qdt*S[iws,wCT] where S is the source based on wCT within ixO" alt="" coords="5,155,176,197"/>
-<area shape="rect" id="node2" href="$namespacemod__mf__phys.html#a16ecff5ed43b4085c7f1bf9d454043fa" title=" " alt="" coords="225,5,453,32"/>
-<area shape="rect" id="node3" href="$namespacemod__mf__phys.html#a0a82cff5d1f5f3dc2ddea2d3bd0f4308" title="Add Hyper&#45;resistive source to w within ixO Uses 9 point stencil (4 neighbours) in each direction." alt="" coords="241,57,437,98"/>
-<area shape="rect" id="node4" href="$namespacemod__mf__phys.html#a1aa402011a2aad94f158739b912aa6dc" title=" " alt="" coords="241,122,437,163"/>
-<area shape="rect" id="node5" href="$namespacemod__mf__phys.html#a2afaaa2e0df289e03ac85c39b7273d84" title=" " alt="" coords="241,187,437,229"/>
-<area shape="rect" id="node6" href="$namespacemod__mf__phys.html#ac1226a987cc7b5aad3219f1428764aee" title="Add divB related sources to w within ixO corresponding to Powel." alt="" coords="241,253,437,294"/>
-<area shape="rect" id="node7" href="$namespacemod__mf__phys.html#a7c387e1cff4e4ae1ab0f0aa2c5675772" title="Add resistive source to w within ixO Uses 5 point stencil (2 neighbours) in each direction,..." alt="" coords="224,319,455,345"/>
-</map>

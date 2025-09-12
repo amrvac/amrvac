@@ -1,5 +1,8 @@
 <map id="mod_mf_phys::record_force_free_metrics" name="mod_mf_phys::record_force_free_metrics">
-<area shape="rect" id="node1" title=" " alt="" coords="5,35,168,76"/>
-<area shape="rect" id="node2" href="$namespacemod__mf__phys.html#a85ba6178b6bfb83c76a5477ef80cdeda" title=" " alt="" coords="229,5,401,47"/>
-<area shape="rect" id="node3" href="$namespacemod__mf__phys.html#a99437fe79b8b86847487f64461915631" title=" " alt="" coords="216,71,415,98"/>
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,47,168,87"/>
+<area shape="rect" id="Node000002" href="$namespacemod__mf__phys.html#ad553db91857bc6b8a6cdde18dde649ba" title="Calculate idirmin and the idirmin:3 components of the common current array make sure that dxlevel(^D)..." alt="" coords="247,29,443,55"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="168,57,233,50,234,56,169,62"/>
+<area shape="rect" id="Node000004" href="$namespacemod__mf__phys.html#ab11ecbc8587af5e14f686e74d66a69e8" title="get dimensionless div B = |divB| * volume / area / |B|" alt="" coords="216,79,475,104"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="169,72,202,75,202,81,168,78"/>
+<area shape="poly" id="edge2_Node000002_Node000002" title=" " alt="" coords="304,31,294,21,299,11,316,5,345,3,382,7,392,11,396,17,392,20,389,15,380,12,345,8,318,10,303,15,300,20,307,27"/>
 </map>

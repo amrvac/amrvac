@@ -1,5 +1,10 @@
 <map id="mod_convert_files::oneblock" name="mod_convert_files::oneblock">
-<area shape="rect" id="node1" title=" " alt="" coords="5,23,155,65"/>
-<area shape="rect" id="node2" href="$namespacemod__calculate__xw.html#a3c777f366638d870c023352a16d4ef2e" title="get all variables names" alt="" coords="203,5,463,32"/>
-<area shape="rect" id="node3" href="$namespacemod__comm__lib.html#a9b6f1a8fd13bc5670e3b426151c34048" title="Exit MPI&#45;AMRVAC with an error message." alt="" coords="511,31,693,57"/>
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,63,155,103"/>
+<area shape="rect" id="Node000002" href="$namespacemod__amr__solution__node.html#ad87b8554d938a30e20546d46dc5b1817" title="allocate memory to physical state of igrid node for output with auxio" alt="" coords="241,5,424,45"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="154,63,230,46,232,51,156,68"/>
+<area shape="rect" id="Node000003" href="$namespacemod__calculate__xw.html#a3c777f366638d870c023352a16d4ef2e" title="get all variables names" alt="" coords="203,70,463,95"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="155,80,189,80,189,85,155,85"/>
+<area shape="rect" id="Node000004" href="$namespacemod__comm__lib.html#a9b6f1a8fd13bc5670e3b426151c34048" title="Exit MPI&#45;AMRVAC with an error message." alt="" coords="511,95,693,121"/>
+<area shape="poly" id="edge4_Node000001_Node000004" title=" " alt="" coords="155,97,203,104,357,112,497,110,497,116,357,117,202,109,154,102"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="463,92,497,96,497,101,463,98"/>
 </map>

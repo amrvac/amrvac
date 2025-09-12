@@ -1,4 +1,5 @@
 <map id="mod_interpolation::interp_linear_multid" name="mod_interpolation::interp_linear_multid">
-<area shape="rect" id="node1" title=" " alt="" coords="5,5,159,47"/>
-<area shape="rect" id="node2" href="$namespacemod__interpolation.html#a36bfb22b00fd3ee7260a36cc775989d7" title=" " alt="" coords="207,5,384,47"/>
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,5,159,45"/>
+<area shape="rect" id="Node000002" href="$namespacemod__interpolation.html#a36bfb22b00fd3ee7260a36cc775989d7" title=" " alt="" coords="207,5,384,45"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="159,23,193,23,193,28,159,28"/>
 </map>

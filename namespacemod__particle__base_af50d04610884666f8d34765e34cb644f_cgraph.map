@@ -1,5 +1,7 @@
 <map id="mod_particle_base::read_particles_snapshot" name="mod_particle_base::read_particles_snapshot">
-<area shape="rect" id="node1" title=" " alt="" coords="5,39,185,80"/>
-<area shape="rect" id="node2" href="$namespacemod__particle__base.html#af299ec05dc0bd3fe76a9341ce4472946" title=" " alt="" coords="233,5,407,47"/>
-<area shape="rect" id="node3" href="$namespacemod__particle__base.html#a8d2abb7efcc7f290bc4e3f92451a8250" title=" " alt="" coords="243,71,397,112"/>
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,37,185,77"/>
+<area shape="rect" id="Node000002" href="$namespacemod__particle__base.html#af299ec05dc0bd3fe76a9341ce4472946" title=" " alt="" coords="233,5,407,45"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="185,42,220,37,220,42,186,47"/>
+<area shape="rect" id="Node000008" href="$namespacemod__particle__base.html#a8d2abb7efcc7f290bc4e3f92451a8250" title=" " alt="" coords="243,69,397,109"/>
+<area shape="poly" id="edge2_Node000001_Node000008" title=" " alt="" coords="186,68,229,74,229,79,185,73"/>
 </map>

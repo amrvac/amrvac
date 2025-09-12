@@ -1,7 +1,15 @@
 <map id="mod_refine::refine_grids" name="mod_refine::refine_grids">
-<area shape="rect" id="node1" title="refine one block to its children blocks" alt="" coords="5,104,145,145"/>
-<area shape="rect" id="node2" href="$namespacemod__amr__solution__node.html#a5360422247c76466eb60cf0a2d6fd5e9" title="allocate arrays on igrid node" alt="" coords="194,5,377,47"/>
-<area shape="rect" id="node3" href="$namespacemod__amr__solution__node.html#a46ef45ac86c356bf8616032f5c04afdf" title=" " alt="" coords="194,71,377,112"/>
-<area shape="rect" id="node4" href="$namespacemod__initialize__amr.html#af51458e257138c8950600f7ada222ea7" title="fill in initial condition" alt="" coords="212,136,359,177"/>
-<area shape="rect" id="node5" href="$namespacemod__refine.html#a47229e0de9bfa71c48e870c809afc85c" title="prolong one block" alt="" coords="193,202,377,229"/>
+<area shape="rect" id="Node000001" title="refine one block to its children blocks" alt="" coords="5,152,145,192"/>
+<area shape="rect" id="Node000002" href="$namespacemod__amr__solution__node.html#a5360422247c76466eb60cf0a2d6fd5e9" title="allocate arrays on igrid node" alt="" coords="205,5,388,45"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="90,150,133,102,161,77,192,55,204,49,206,53,195,60,164,81,137,106,94,153"/>
+<area shape="rect" id="Node000007" href="$namespacemod__amr__fct.html#a27b77a2a627fe94e774cdcdbc02f5d5e" title="This routine fills the fine faces before prolonging. It is the face equivalent of fix_conserve." alt="" coords="199,70,395,95"/>
+<area shape="poly" id="edge2_Node000001_Node000007" title=" " alt="" coords="107,149,147,127,192,106,219,97,221,102,194,110,149,131,110,154"/>
+<area shape="rect" id="Node000008" href="$namespacemod__amr__solution__node.html#a46ef45ac86c356bf8616032f5c04afdf" title=" " alt="" coords="205,120,388,160"/>
+<area shape="poly" id="edge3_Node000001_Node000008" title=" " alt="" coords="145,159,191,153,192,158,146,165"/>
+<area shape="rect" id="Node000009" href="$namespacemod__initialize__amr.html#af51458e257138c8950600f7ada222ea7" title="fill in initial condition" alt="" coords="223,184,370,224"/>
+<area shape="poly" id="edge4_Node000001_Node000009" title=" " alt="" coords="146,179,210,189,209,194,145,185"/>
+<area shape="rect" id="Node000010" href="$namespacemod__amr__fct.html#a3e49fcf98a33e001dfd449ec2236ddf3" title=" " alt="" coords="193,249,400,274"/>
+<area shape="poly" id="edge5_Node000001_Node000010" title=" " alt="" coords="110,190,149,213,194,234,221,242,219,247,192,238,147,217,107,195"/>
+<area shape="rect" id="Node000011" href="$namespacemod__amr__fct.html#a7f8b4ae82331c730b194e68bf8f6c54f" title="This subroutine performs a 2nd order prolongation for a staggered field F, preserving the divergence ..." alt="" coords="214,299,379,339"/>
+<area shape="poly" id="edge6_Node000001_Node000011" title=" " alt="" coords="94,190,137,237,164,262,195,283,210,291,207,296,192,288,161,266,133,241,90,194"/>
 </map>

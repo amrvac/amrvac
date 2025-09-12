@@ -1,4 +1,0 @@
-<map id="mod_mhd_phys::mhd_get_h_speed" name="mod_mhd_phys::mhd_get_h_speed">
-<area shape="rect" id="node1" title="get H speed for H&#45;correction to fix the carbuncle problem at grid&#45;aligned shock front" alt="" coords="5,5,196,47"/>
-<area shape="rect" id="node2" href="$namespacemod__mhd__phys.html#a9cdc32f900f484ea8b1fbcf469be5725" title="Calculate fast magnetosonic wave speed." alt="" coords="244,5,435,47"/>
-</map>

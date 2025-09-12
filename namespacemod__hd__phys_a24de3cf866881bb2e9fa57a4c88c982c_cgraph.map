@@ -1,6 +1,0 @@
-<map id="mod_hd_phys::hd_add_source_geom" name="mod_hd_phys::hd_add_source_geom">
-<area shape="rect" id="node1" title="Add geometrical source terms to w." alt="" coords="5,79,172,120"/>
-<area shape="rect" id="node2" href="$namespacemod__hd__phys.html#aa893373436eb62993cc188e9005870c8" title="Calculate thermal pressure=(gamma&#45;1)*(e&#45;0.5*m**2/rho) within ixO^L." alt="" coords="220,5,384,47"/>
-<area shape="rect" id="node3" href="$namespacemod__rotating__frame.html#a2c66211145083d9dc744d39d837b74ed" title="w[iw]=w[iw]+qdt*S[wCT,qtC,x] where S is the source based on wCT within ixO" alt="" coords="223,71,381,127"/>
-<area shape="rect" id="node4" href="$namespacemod__viscosity.html#a992638ce7fbbbc28f36a51e4a6d51835" title=" " alt="" coords="227,152,377,193"/>
-</map>

@@ -1,4 +1,0 @@
-<map id="mod_mhd_phys::mhd_ei_to_e_semirelati" name="mod_mhd_phys::mhd_ei_to_e_semirelati">
-<area shape="rect" id="node1" title="Transform internal energy to total energy and velocity to momentum." alt="" coords="5,5,187,47"/>
-<area shape="rect" id="node2" href="$namespacemod__mhd__phys.html#a130828b285d14c0eb8e02b328372a102" title="Transform primitive variables into conservative ones." alt="" coords="235,5,417,47"/>
-</map>

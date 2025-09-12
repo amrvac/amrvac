@@ -1,5 +1,7 @@
 <map id="mod_multigrid_coupling::mg_copy_to_tree" name="mod_multigrid_coupling::mg_copy_to_tree">
-<area shape="rect" id="node1" title="Copy a variable to the multigrid tree, including a layer of ghost cells." alt="" coords="5,39,184,80"/>
-<area shape="rect" id="node2" href="$namespacem__octree__mg__1d.html#a6d0dd6be708ecce88d9c0c52e27b58f9" title="Fill ghost cells at all grid levels." alt="" coords="232,5,395,47"/>
-<area shape="rect" id="node3" href="$namespacem__octree__mg__1d.html#a8aaf70a1c8437510eae5db8ec0472498" title="Restrict all levels." alt="" coords="232,71,395,112"/>
+<area shape="rect" id="Node000001" title="Copy a variable to the multigrid tree, including a layer of ghost cells." alt="" coords="5,37,184,77"/>
+<area shape="rect" id="Node000002" href="$namespacem__octree__mg__1d.html#a6d0dd6be708ecce88d9c0c52e27b58f9" title="Fill ghost cells at all grid levels." alt="" coords="232,5,395,45"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="184,42,218,37,219,42,185,47"/>
+<area shape="rect" id="Node000007" href="$namespacem__octree__mg__1d.html#a8aaf70a1c8437510eae5db8ec0472498" title="Restrict all levels." alt="" coords="232,69,395,109"/>
+<area shape="poly" id="edge2_Node000001_Node000007" title=" " alt="" coords="185,68,219,73,218,78,184,73"/>
 </map>

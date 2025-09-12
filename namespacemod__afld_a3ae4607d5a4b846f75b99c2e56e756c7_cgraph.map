@@ -1,0 +1,11 @@
+<map id="mod_afld::afld_get_radflux" name="mod_afld::afld_get_radflux">
+<area shape="rect" id="Node000001" title="Calculate Radiation Flux Calculate the Flux using the fld closure relation F = &#45;c*lambda/(kappa*rho) ..." alt="" coords="5,48,148,88"/>
+<area shape="rect" id="Node000002" href="$namespacemod__afld.html#a534fb3f2e92a62c9e7518f901ce3ae57" title="Calculate fld flux limiter This subroutine calculates flux limiter lambda using the prescription stor..." alt="" coords="196,48,339,88"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="148,65,183,65,183,71,148,71"/>
+<area shape="rect" id="Node000003" href="$namespacemod__afld.html#ad8704dc4f298466b7f931aae68dcb380" title="Sets the opacity in the w&#45;array by calling mod_opal_opacity." alt="" coords="407,5,549,45"/>
+<area shape="poly" id="edge4_Node000001_Node000003" title=" " alt="" coords="141,45,196,33,298,23,393,21,393,26,298,29,196,39,142,50"/>
+<area shape="rect" id="Node000009" href="$namespacemod__geometry.html#a9be440eb43ae039be6f1e52e5c841f69" title=" " alt="" coords="387,85,569,110"/>
+<area shape="poly" id="edge5_Node000001_Node000009" title=" " alt="" coords="140,85,196,97,286,104,373,103,373,108,286,109,196,103,139,91"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="339,51,392,40,393,45,340,56"/>
+<area shape="poly" id="edge3_Node000002_Node000009" title=" " alt="" coords="339,75,374,80,373,85,339,81"/>
+</map>

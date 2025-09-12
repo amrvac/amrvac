@@ -1,6 +1,7 @@
 <map id="mod_config::cfg_write_markdown" name="mod_config::cfg_write_markdown">
-<area shape="rect" id="node1" title="This routine writes the current configuration to a markdown file." alt="" coords="5,49,171,90"/>
-<area shape="rect" id="node2" href="$namespacemod__config.html#a876daa4a791587b777f5e32f68b1416c" title=" " alt="" coords="232,5,403,32"/>
-<area shape="rect" id="node3" href="$namespacemod__config.html#ae80cf65ae292a77d65dec6aedeec6ddc" title="Sort the variables for faster lookup." alt="" coords="239,56,396,83"/>
-<area shape="rect" id="node4" href="$namespacemod__config.html#a1e7a59cc7d338a1504babb8fc2a201e7" title=" " alt="" coords="219,107,416,133"/>
+<area shape="rect" id="Node000001" title="This routine writes the current configuration to a markdown file." alt="" coords="5,23,171,63"/>
+<area shape="rect" id="Node000002" href="$namespacemod__config.html#a876daa4a791587b777f5e32f68b1416c" title=" " alt="" coords="219,5,389,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="171,31,205,27,206,32,172,36"/>
+<area shape="rect" id="Node000003" href="$namespacemod__config.html#ae80cf65ae292a77d65dec6aedeec6ddc" title="Sort the variables for faster lookup." alt="" coords="225,55,383,80"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="172,50,212,54,212,60,171,55"/>
 </map>

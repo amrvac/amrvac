@@ -1,4 +1,5 @@
 <map id="mod_particle_base::write_particles_snapshot" name="mod_particle_base::write_particles_snapshot">
-<area shape="rect" id="node1" title=" " alt="" coords="5,5,189,47"/>
-<area shape="rect" id="node2" href="$namespacemod__particle__base.html#adba75a2e2c5e77705b3a05400541f343" title=" " alt="" coords="237,5,393,47"/>
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,5,189,45"/>
+<area shape="rect" id="Node000002" href="$namespacemod__particle__base.html#adba75a2e2c5e77705b3a05400541f343" title=" " alt="" coords="237,5,393,45"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="189,23,223,23,223,28,189,28"/>
 </map>

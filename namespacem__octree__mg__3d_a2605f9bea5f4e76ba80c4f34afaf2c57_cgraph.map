@@ -1,7 +1,13 @@
 <map id="m_octree_mg_3d::mg_fas_vcycle" name="m_octree_mg_3d::mg_fas_vcycle">
-<area shape="rect" id="node1" title="Perform FAS V&#45;cycle (full approximation scheme)." alt="" coords="5,104,168,145"/>
-<area shape="rect" id="node2" href="$namespacem__octree__mg__3d.html#ac81473bc228eeb41c4ef7c8548d5d3ef" title="Fill ghost cells at a grid level." alt="" coords="254,5,417,47"/>
-<area shape="rect" id="node3" href="$namespacem__octree__mg__3d.html#a961626d221fbf74d61e0096947b833cc" title=" " alt="" coords="254,71,417,112"/>
-<area shape="rect" id="node4" href="$namespacem__octree__mg__3d.html#ab084a1dea709aa74001f979444ef07a2" title=" " alt="" coords="254,136,417,177"/>
-<area shape="rect" id="node5" href="$namespacem__octree__mg__3d.html#a14590fc2d845ae0cd5f58004ee2cb885" title=" " alt="" coords="216,202,455,229"/>
+<area shape="rect" id="Node000001" title="Perform FAS V&#45;cycle (full approximation scheme)." alt="" coords="5,133,168,173"/>
+<area shape="rect" id="Node000002" href="$namespacem__octree__mg__3d.html#ac81473bc228eeb41c4ef7c8548d5d3ef" title="Fill ghost cells at a grid level." alt="" coords="216,5,379,45"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="109,131,156,94,215,55,227,49,229,53,217,60,159,98,112,135"/>
+<area shape="rect" id="Node000006" href="$namespacem__octree__mg__3d.html#af2e4b5f022d4440976bbacfd96dcd609" title="Prolong variable iv from lvl to variable iv_to at lvl+1." alt="" coords="216,69,379,109"/>
+<area shape="poly" id="edge2_Node000001_Node000006" title=" " alt="" coords="152,131,217,111,219,116,154,136"/>
+<area shape="rect" id="Node000007" href="$namespacem__octree__mg__3d.html#aeeba33d31095a6254c0beaf99312ee70" title="Restrict from lvl to lvl&#45;1." alt="" coords="216,133,379,173"/>
+<area shape="poly" id="edge3_Node000001_Node000007" title=" " alt="" coords="168,151,202,151,202,156,168,156"/>
+<area shape="rect" id="Node000009" href="$namespacem__octree__mg__3d.html#a961626d221fbf74d61e0096947b833cc" title=" " alt="" coords="216,197,379,237"/>
+<area shape="poly" id="edge4_Node000001_Node000009" title=" " alt="" coords="154,171,219,191,217,196,152,176"/>
+<area shape="rect" id="Node000010" href="$namespacem__octree__mg__3d.html#ab084a1dea709aa74001f979444ef07a2" title=" " alt="" coords="216,261,379,301"/>
+<area shape="poly" id="edge5_Node000001_Node000010" title=" " alt="" coords="112,171,159,209,217,247,229,253,227,258,215,252,156,213,109,175"/>
 </map>

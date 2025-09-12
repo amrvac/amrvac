@@ -1,8 +1,15 @@
 <map id="mod_input_output::write_snapshot" name="mod_input_output::write_snapshot">
-<area shape="rect" id="node1" title=" " alt="" coords="5,123,187,164"/>
-<area shape="rect" id="node2" href="$namespacemod__input__output__helper.html#ac03c76ebf22aa6a66b2b1677e00a82d9" title="Determine the shape of a block for output (whether to include ghost cells, and on which sides)" alt="" coords="244,5,432,47"/>
-<area shape="rect" id="node3" href="$namespacemod__input__output__helper.html#a54d24b33757cb6dc549aeb19a2563964" title="Compute number of elements in index range." alt="" coords="489,35,677,76"/>
-<area shape="rect" id="node4" href="$namespacemod__input__output__helper.html#a208f91df2b8f3fdbcbbd029668802c26" title="Standard method for creating a new output file." alt="" coords="244,123,432,164"/>
-<area shape="rect" id="node5" href="$namespacemod__input__output.html#acd293c80fe4dffe68b3bd5af075cc137" title="Write header for a snapshot." alt="" coords="235,188,441,229"/>
-<area shape="rect" id="node6" href="$namespacemod__functions__forest.html#a5fe089544b6f559e305b5b6e41544191" title=" " alt="" coords="257,253,419,295"/>
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,120,187,160"/>
+<area shape="rect" id="Node000002" href="$namespacemod__input__output__helper.html#a63ddb5cbb8a7faff9ac4c9e3575b9a3b" title="Determine the shape of a block for output (whether to include ghost cells, and on which sides)" alt="" coords="244,5,432,45"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="129,118,234,62,266,48,268,53,236,66,132,122"/>
+<area shape="rect" id="Node000003" href="$namespacemod__input__output__helper.html#ac371917cf06d0aa8ca7a401981d3a5e6" title="Compute number of elements in index range." alt="" coords="489,35,677,75"/>
+<area shape="poly" id="edge4_Node000001_Node000003" title=" " alt="" coords="178,117,234,105,475,66,476,71,235,111,179,123"/>
+<area shape="rect" id="Node000004" href="$namespacemod__input__output__helper.html#a208f91df2b8f3fdbcbbd029668802c26" title="Standard method for creating a new output file." alt="" coords="244,120,432,160"/>
+<area shape="poly" id="edge5_Node000001_Node000004" title=" " alt="" coords="187,137,230,137,230,143,187,143"/>
+<area shape="rect" id="Node000006" href="$namespacemod__input__output.html#acd293c80fe4dffe68b3bd5af075cc137" title="Write header for a snapshot." alt="" coords="235,184,441,224"/>
+<area shape="poly" id="edge6_Node000001_Node000006" title=" " alt="" coords="173,157,250,178,248,183,172,163"/>
+<area shape="rect" id="Node000008" href="$namespacemod__functions__forest.html#a5fe089544b6f559e305b5b6e41544191" title=" " alt="" coords="257,248,419,288"/>
+<area shape="poly" id="edge7_Node000001_Node000008" title=" " alt="" coords="123,158,173,196,236,234,252,241,249,245,233,238,170,200,120,162"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="432,34,476,39,476,44,432,39"/>
+<area shape="poly" id="edge3_Node000003_Node000003" title=" " alt="" coords="538,35,535,25,542,16,559,10,583,8,612,11,627,18,625,23,610,16,583,13,560,15,545,20,540,26,543,34"/>
 </map>

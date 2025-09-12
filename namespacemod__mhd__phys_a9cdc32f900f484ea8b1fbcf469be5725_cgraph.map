@@ -1,7 +1,0 @@
-<map id="mod_mhd_phys::mhd_get_csound_prim" name="mod_mhd_phys::mhd_get_csound_prim">
-<area shape="rect" id="node1" title="Calculate fast magnetosonic wave speed." alt="" coords="5,93,196,135"/>
-<area shape="rect" id="node2" href="$namespacemod__mhd__phys.html#a1c4274208e89339ede6ac4f138aa6f93" title="Compute 1/sqrt(1+v_A^2/c^2) for semirelativisitic MHD, where v_A is the Alfven velocity." alt="" coords="244,5,463,47"/>
-<area shape="rect" id="node3" href="$namespacemod__mhd__phys.html#a363460651196f934c305aa8d52ac8593" title=" " alt="" coords="244,71,463,98"/>
-<area shape="rect" id="node4" href="$namespacemod__mhd__phys.html#af14fa2e60e611999dd386a22dc273449" title="Compute 2 times total magnetic energy." alt="" coords="254,123,453,164"/>
-<area shape="rect" id="node5" href="$namespacemod__mhd__phys.html#a1ec41703a636a9c11cf09ccf97b193a8" title="Compute full magnetic field by direction." alt="" coords="254,188,453,229"/>
-</map>

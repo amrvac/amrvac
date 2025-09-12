@@ -1,6 +1,0 @@
-<map id="mod_afld::evaluate_e_rad_mg" name="mod_afld::evaluate_e_rad_mg">
-<area shape="rect" id="node1" title="inplace update of psa==&gt;F_im(psa)" alt="" coords="5,71,152,112"/>
-<area shape="rect" id="node2" href="$namespacemod__ghostcells__update.html#abc70508ceb326fb28166d751e5de31fc" title="do update ghost cells of all blocks including physical boundaries" alt="" coords="209,5,385,47"/>
-<area shape="rect" id="node3" href="$namespacemod__afld.html#a1cf20c12d4efae8590b4f27f42e51580" title="inplace update of psa==&gt;F_im(psa)" alt="" coords="212,71,383,112"/>
-<area shape="rect" id="node4" href="$namespacemod__afld.html#a9d5289df9bf8e1e13a2af0815ef926a5" title=" " alt="" coords="200,137,395,163"/>
-</map>

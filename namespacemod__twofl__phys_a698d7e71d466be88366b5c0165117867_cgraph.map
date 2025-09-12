@@ -1,4 +1,0 @@
-<map id="mod_twofl_phys::twofl_implicit_coll_terms_update" name="mod_twofl_phys::twofl_implicit_coll_terms_update">
-<area shape="rect" id="node1" title="Implicit solve of psb=psa+dtfactor*dt*F_im(psb)" alt="" coords="5,5,173,61"/>
-<area shape="rect" id="node2" href="$namespacemod__ghostcells__update.html#abc70508ceb326fb28166d751e5de31fc" title="do update ghost cells of all blocks including physical boundaries" alt="" coords="221,13,397,54"/>
-</map>

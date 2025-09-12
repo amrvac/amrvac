@@ -1,4 +1,5 @@
 <map id="mod_selectgrids::selectgrids" name="mod_selectgrids::selectgrids">
-<area shape="rect" id="node1" title=" " alt="" coords="5,5,213,32"/>
-<area shape="rect" id="node2" href="$mod__selectgrids_8t.html#a43966f4f2447dee0c123ebb7283ab353" title=" " alt="" coords="261,5,408,32"/>
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,5,213,31"/>
+<area shape="rect" id="Node000002" href="$mod__selectgrids_8t.html#a43966f4f2447dee0c123ebb7283ab353" title=" " alt="" coords="261,5,408,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="214,15,247,15,247,21,214,21"/>
 </map>

@@ -1,6 +1,9 @@
 <map id="mod_amr_grid::settree" name="mod_amr_grid::settree">
-<area shape="rect" id="node1" title="Build up AMR." alt="" coords="5,64,176,91"/>
-<area shape="rect" id="node2" href="$namespacemod__fix__conserve.html#ad56616828b83c369718a109e26b0e9ff" title=" " alt="" coords="224,5,456,32"/>
-<area shape="rect" id="node3" href="$namespacemod__coarsen__refine.html#a90d7cd8cbcd1b2de285dee4d58973632" title="coarsen and refine blocks to update AMR grid" alt="" coords="261,57,419,98"/>
-<area shape="rect" id="node4" href="$namespacemod__errest.html#aec4df070250188e621b93a27e0507ece" title="Do all local error estimation which determines (de)refinement." alt="" coords="269,123,411,149"/>
+<area shape="rect" id="Node000001" title="Build up AMR." alt="" coords="5,63,176,88"/>
+<area shape="rect" id="Node000002" href="$namespacemod__fix__conserve.html#ad56616828b83c369718a109e26b0e9ff" title=" " alt="" coords="224,5,456,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="143,60,223,41,266,31,267,36,225,46,144,65"/>
+<area shape="rect" id="Node000003" href="$namespacemod__coarsen__refine.html#a90d7cd8cbcd1b2de285dee4d58973632" title="coarsen and refine blocks to update AMR grid" alt="" coords="261,55,419,95"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="176,73,247,73,247,78,176,78"/>
+<area shape="rect" id="Node000030" href="$namespacemod__errest.html#aec4df070250188e621b93a27e0507ece" title="Do all local error estimation which determines (de)refinement." alt="" coords="269,120,411,145"/>
+<area shape="poly" id="edge3_Node000001_Node000030" title=" " alt="" coords="144,85,225,105,267,114,266,120,223,110,143,91"/>
 </map>

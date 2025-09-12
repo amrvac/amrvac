@@ -1,11 +1,23 @@
 <map id="mod_multigrid_coupling::mg_tree_from_amrvac" name="mod_multigrid_coupling::mg_tree_from_amrvac">
-<area shape="rect" id="node1" title="Generate a multigrid tree that includes the amrvac tree, but also contains coarser grid levels...." alt="" coords="5,196,184,237"/>
-<area shape="rect" id="node2" href="$namespacem__octree__mg__1d.html#a8fedc74930bb1cb9235686e273df7c93" title=" " alt="" coords="487,5,649,47"/>
-<area shape="rect" id="node3" href="$namespacem__octree__mg__1d.html#ab88c6fda89340ef56a59e9ccd0259ed3" title="Allocate communication buffers and local boxes for a tree that has already been created." alt="" coords="254,280,417,321"/>
-<area shape="rect" id="node4" href="$namespacem__octree__mg__1d.html#a6f3f6a899dd51ef27fc6bdf7ddf2edaf" title=" " alt="" coords="254,112,417,153"/>
-<area shape="rect" id="node5" href="$namespacem__octree__mg__1d.html#ade277efcd08f44946612f19628897e7c" title="Create a list of leaves and a list of parents for a level." alt="" coords="487,72,649,113"/>
-<area shape="rect" id="node6" href="$namespacem__octree__mg__1d.html#aaa064c2eccc2547149e15f27d80c5c40" title=" " alt="" coords="487,140,649,181"/>
-<area shape="rect" id="node7" href="$namespacem__octree__mg__1d.html#aa5ceddcac386c2e9b227a05be842f7b3" title=" " alt="" coords="487,211,649,252"/>
-<area shape="rect" id="node8" href="$namespacem__octree__mg__1d.html#ae0b7c562e83f6e66eef68314c3326785" title="Load balance the parents (non&#45;leafs). Assign them to the rank that has most children." alt="" coords="250,345,421,387"/>
-<area shape="rect" id="node9" href="$namespacem__octree__mg__1d.html#a9b386275450bb125a9abd55c9f22d865" title="Create a list of refinement boundaries (from the coarse side)" alt="" coords="232,411,439,452"/>
+<area shape="rect" id="Node000001" title="Generate a multigrid tree that includes the amrvac tree, but also contains coarser grid levels...." alt="" coords="5,193,184,233"/>
+<area shape="rect" id="Node000002" href="$namespacem__octree__mg__1d.html#a8fedc74930bb1cb9235686e273df7c93" title=" " alt="" coords="487,5,649,45"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="106,192,126,162,154,128,190,93,231,66,291,42,354,27,416,20,473,18,473,23,416,25,355,33,292,47,233,70,193,97,158,131,130,166,110,195"/>
+<area shape="rect" id="Node000003" href="$namespacem__octree__mg__1d.html#ab88c6fda89340ef56a59e9ccd0259ed3" title="Allocate communication buffers and local boxes for a tree that has already been created." alt="" coords="254,276,417,316"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="154,231,264,269,262,274,153,236"/>
+<area shape="rect" id="Node000007" href="$namespacem__octree__mg__1d.html#a6f3f6a899dd51ef27fc6bdf7ddf2edaf" title=" " alt="" coords="254,111,417,151"/>
+<area shape="poly" id="edge3_Node000001_Node000007" title=" " alt="" coords="153,191,262,153,264,158,154,196"/>
+<area shape="rect" id="Node000008" href="$namespacem__octree__mg__1d.html#ade277efcd08f44946612f19628897e7c" title="Create a list of leaves and a list of parents for a level." alt="" coords="487,71,649,111"/>
+<area shape="poly" id="edge9_Node000001_Node000008" title=" " alt="" coords="110,191,160,141,193,116,231,96,292,79,355,72,417,71,473,74,473,79,417,76,356,77,293,85,233,101,196,120,163,145,114,195"/>
+<area shape="rect" id="Node000010" href="$namespacem__octree__mg__1d.html#aaa064c2eccc2547149e15f27d80c5c40" title=" " alt="" coords="487,137,649,177"/>
+<area shape="poly" id="edge10_Node000001_Node000010" title=" " alt="" coords="184,200,472,166,473,171,185,205"/>
+<area shape="rect" id="Node000011" href="$namespacem__octree__mg__1d.html#aa5ceddcac386c2e9b227a05be842f7b3" title=" " alt="" coords="487,207,649,247"/>
+<area shape="poly" id="edge11_Node000001_Node000011" title=" " alt="" coords="185,213,473,221,473,227,184,219"/>
+<area shape="rect" id="Node000013" href="$namespacem__octree__mg__1d.html#ae0b7c562e83f6e66eef68314c3326785" title="Load balance the parents (non&#45;leafs). Assign them to the rank that has most children." alt="" coords="250,340,421,380"/>
+<area shape="poly" id="edge8_Node000001_Node000013" title=" " alt="" coords="117,232,167,279,199,304,233,326,247,332,244,337,231,330,196,308,163,283,113,236"/>
+<area shape="rect" id="Node000014" href="$namespacem__octree__mg__1d.html#a9b386275450bb125a9abd55c9f22d865" title="Create a list of refinement boundaries (from the coarse side)" alt="" coords="232,404,439,444"/>
+<area shape="poly" id="edge12_Node000001_Node000014" title=" " alt="" coords="108,232,128,267,156,309,191,353,234,390,242,395,240,400,230,394,187,356,151,312,123,269,104,235"/>
+<area shape="poly" id="edge4_Node000007_Node000002" title=" " alt="" coords="376,108,486,56,504,48,506,53,488,61,378,113"/>
+<area shape="poly" id="edge5_Node000007_Node000008" title=" " alt="" coords="417,114,473,104,474,110,418,119"/>
+<area shape="poly" id="edge6_Node000007_Node000010" title=" " alt="" coords="417,137,474,144,473,149,417,143"/>
+<area shape="poly" id="edge7_Node000007_Node000011" title=" " alt="" coords="386,148,507,199,505,204,384,153"/>
 </map>

@@ -1,5 +1,0 @@
-<map id="mod_functions_bfield::get_divb" name="mod_functions_bfield::get_divb">
-<area shape="rect" id="node1" title="Calculate div B within ixO." alt="" coords="5,23,167,65"/>
-<area shape="rect" id="node2" href="$namespacemod__geometry.html#ae6552832949b076a9d4f2c96704077cc" title="Calculate divergence of a vector qvec within ixL." alt="" coords="218,5,407,32"/>
-<area shape="rect" id="node3" href="$namespacemod__geometry.html#a25150b60cbb554923349cbfdf879ce9e" title="Calculate divergence of a vector qvec within ixL using limited extrapolation to cell edges." alt="" coords="215,56,411,83"/>
-</map>

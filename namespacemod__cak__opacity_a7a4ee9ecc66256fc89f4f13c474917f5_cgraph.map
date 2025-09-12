@@ -1,4 +1,0 @@
-<map id="mod_cak_opacity::set_cak_opacity" name="mod_cak_opacity::set_cak_opacity">
-<area shape="rect" id="node1" title="This subroutine calculates the opacity for a given temperature&#45;density structure. Opacities are read ..." alt="" coords="5,5,168,47"/>
-<area shape="rect" id="node2" href="$namespacemod__cak__opacity.html#a8251a767b3d083e31eb8d594efb37500" title="This subroutine looks in the table for the four couples (T,rho) surrounding a given input T and rho." alt="" coords="216,5,380,47"/>
-</map>

@@ -1,6 +1,10 @@
 <map id="mod_collapse::collapse_subnode" name="mod_collapse::collapse_subnode">
-<area shape="rect" id="node1" title=" " alt="" coords="5,49,180,90"/>
-<area shape="rect" id="node2" href="$namespacemod__calculate__xw.html#a006c2619a5377d574da9393a41a10865" title="Compute both corner as well as cell&#45;centered values for output." alt="" coords="228,5,436,32"/>
-<area shape="rect" id="node3" href="$namespacemod__comm__lib.html#a9b6f1a8fd13bc5670e3b426151c34048" title="Exit MPI&#45;AMRVAC with an error message." alt="" coords="484,31,667,57"/>
-<area shape="rect" id="node4" href="$namespacemod__calculate__xw.html#a3ca517175958ca7d8e3e55131acf4b5d" title="computes cell corner (xC) and cell center (xCC) coordinates" alt="" coords="237,107,427,133"/>
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,49,180,89"/>
+<area shape="rect" id="Node000002" href="$namespacemod__calculate__xw.html#aad91259729b0d0b0d7caecf0268281fd" title="Compute both corner as well as cell&#45;centered values for output." alt="" coords="228,5,436,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="180,48,257,31,259,36,181,53"/>
+<area shape="rect" id="Node000003" href="$namespacemod__comm__lib.html#a9b6f1a8fd13bc5670e3b426151c34048" title="Exit MPI&#45;AMRVAC with an error message." alt="" coords="484,31,667,56"/>
+<area shape="poly" id="edge4_Node000001_Node000003" title=" " alt="" coords="180,61,470,46,470,51,181,67"/>
+<area shape="rect" id="Node000005" href="$namespacemod__calculate__xw.html#ae89d9342dffad9ff1ded6b11408870cb" title="computes cell corner (xC) and cell center (xCC) coordinates" alt="" coords="237,107,427,132"/>
+<area shape="poly" id="edge3_Node000001_Node000005" title=" " alt="" coords="181,84,259,101,257,106,180,90"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="436,26,470,30,470,35,436,31"/>
 </map>

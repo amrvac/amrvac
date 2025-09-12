@@ -1,4 +1,0 @@
-<map id="mod_mf_phys::update_faces_contact" name="mod_mf_phys::update_faces_contact">
-<area shape="rect" id="node1" title="update faces using UCT contact mode by Gardiner and Stone 2005 JCP 205, 509" alt="" coords="5,5,172,47"/>
-<area shape="rect" id="node2" href="$namespacemod__mf__phys.html#a77984dd9f45d24d60e3d5f9d36caec40" title="calculate eta J at cell edges" alt="" coords="220,5,427,47"/>
-</map>

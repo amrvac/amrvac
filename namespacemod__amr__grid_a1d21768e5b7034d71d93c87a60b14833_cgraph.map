@@ -1,8 +1,13 @@
 <map id="mod_amr_grid::resettree" name="mod_amr_grid::resettree">
-<area shape="rect" id="node1" title="reset AMR and (de)allocate boundary flux storage at level changes" alt="" coords="5,123,188,149"/>
-<area shape="rect" id="node2" href="$namespacemod__fix__conserve.html#ad56616828b83c369718a109e26b0e9ff" title=" " alt="" coords="244,5,476,32"/>
-<area shape="rect" id="node3" href="$namespacemod__coarsen__refine.html#a90d7cd8cbcd1b2de285dee4d58973632" title="coarsen and refine blocks to update AMR grid" alt="" coords="281,57,439,98"/>
-<area shape="rect" id="node4" href="$namespacemod__amr__fct.html#af15ca531e99d7cec5ba5997edc0cc6c8" title=" " alt="" coords="247,123,473,149"/>
-<area shape="rect" id="node5" href="$namespacemod__fix__conserve.html#a65d99df7e3cd137b545e3067ca538afc" title=" " alt="" coords="236,173,484,200"/>
-<area shape="rect" id="node6" href="$namespacemod__errest.html#aec4df070250188e621b93a27e0507ece" title="Do all local error estimation which determines (de)refinement." alt="" coords="289,224,431,251"/>
+<area shape="rect" id="Node000001" title="reset AMR and (de)allocate boundary flux storage at level changes" alt="" coords="5,120,188,145"/>
+<area shape="rect" id="Node000002" href="$namespacemod__fix__conserve.html#ad56616828b83c369718a109e26b0e9ff" title=" " alt="" coords="244,5,476,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="112,118,164,79,199,59,235,41,261,32,263,37,237,46,201,63,167,84,115,122"/>
+<area shape="rect" id="Node000003" href="$namespacemod__coarsen__refine.html#a90d7cd8cbcd1b2de285dee4d58973632" title="coarsen and refine blocks to update AMR grid" alt="" coords="281,55,439,95"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="155,117,266,93,267,98,156,123"/>
+<area shape="rect" id="Node000030" href="$namespacemod__amr__fct.html#af15ca531e99d7cec5ba5997edc0cc6c8" title=" " alt="" coords="247,120,473,145"/>
+<area shape="poly" id="edge3_Node000001_Node000030" title=" " alt="" coords="188,130,233,130,233,135,188,135"/>
+<area shape="rect" id="Node000031" href="$namespacemod__fix__conserve.html#a65d99df7e3cd137b545e3067ca538afc" title=" " alt="" coords="236,169,484,195"/>
+<area shape="poly" id="edge4_Node000001_Node000031" title=" " alt="" coords="166,143,278,164,277,169,165,148"/>
+<area shape="rect" id="Node000032" href="$namespacemod__errest.html#aec4df070250188e621b93a27e0507ece" title="Do all local error estimation which determines (de)refinement." alt="" coords="289,219,431,244"/>
+<area shape="poly" id="edge5_Node000001_Node000032" title=" " alt="" coords="119,143,171,174,237,204,276,215,274,220,235,208,169,178,116,148"/>
 </map>

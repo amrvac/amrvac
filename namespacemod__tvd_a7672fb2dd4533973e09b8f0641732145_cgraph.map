@@ -1,0 +1,11 @@
+<map id="mod_tvd::tvdlimit2" name="mod_tvd::tvdlimit2">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,56,152,81"/>
+<area shape="rect" id="Node000002" href="$namespacemod__limiter.html#ad477e395652065ecae809c863f1c3cbd" title="Limit the centered dwC differences within ixC for iw in direction idim. The limiter is chosen accordi..." alt="" coords="200,5,379,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="132,53,222,31,224,36,133,58"/>
+<area shape="rect" id="Node000003" href="$namespacemod__comm__lib.html#a9b6f1a8fd13bc5670e3b426151c34048" title="Exit MPI&#45;AMRVAC with an error message." alt="" coords="427,31,609,56"/>
+<area shape="poly" id="edge5_Node000001_Node000003" title=" " alt="" coords="152,62,413,47,413,52,152,67"/>
+<area shape="rect" id="Node000004" href="$namespacemod__limiter.html#a211107a3ba4806836a4857ade8ba68c6" title=" " alt="" coords="213,130,365,170"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="113,79,225,123,223,127,112,84"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="379,25,413,29,413,34,378,31"/>
+<area shape="poly" id="edge4_Node000004_Node000004" title=" " alt="" coords="250,130,247,120,254,111,268,105,289,103,314,106,327,114,325,118,312,111,289,109,269,111,257,115,253,121,255,129"/>
+</map>

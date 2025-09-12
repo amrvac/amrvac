@@ -1,6 +1,9 @@
 <map id="mod_random_heating::generatetv" name="mod_random_heating::generatetv">
-<area shape="rect" id="node1" title=" " alt="" coords="5,57,169,98"/>
-<area shape="rect" id="node2" href="$namespacemod__comm__lib.html#a9b6f1a8fd13bc5670e3b426151c34048" title="Exit MPI&#45;AMRVAC with an error message." alt="" coords="217,5,400,32"/>
-<area shape="rect" id="node3" href="$namespacemod__random__heating.html#af46f06ffd0bea7aa8637ba284d43f058" title=" " alt="" coords="227,57,391,98"/>
-<area shape="rect" id="node4" href="$namespacemod__random__heating.html#ae81a31f9937d0dafe61c8149838fc36f" title=" " alt="" coords="227,122,391,163"/>
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,55,169,95"/>
+<area shape="rect" id="Node000002" href="$namespacemod__comm__lib.html#a9b6f1a8fd13bc5670e3b426151c34048" title="Exit MPI&#45;AMRVAC with an error message." alt="" coords="217,5,400,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="164,53,245,32,246,37,166,58"/>
+<area shape="rect" id="Node000003" href="$namespacemod__random__heating.html#af46f06ffd0bea7aa8637ba284d43f058" title=" " alt="" coords="227,55,391,95"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="169,73,213,73,213,78,169,78"/>
+<area shape="rect" id="Node000004" href="$namespacemod__random__heating.html#ae81a31f9937d0dafe61c8149838fc36f" title=" " alt="" coords="227,119,391,159"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="158,93,227,113,225,118,157,98"/>
 </map>

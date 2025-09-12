@@ -1,4 +1,0 @@
-<map id="mod_fld::get_fld_energy_interact" name="mod_fld::get_fld_energy_interact">
-<area shape="rect" id="node1" title="w[iw]=w[iw]+qdt*S[wCT,qtC,x] where S is the source based on wCT within ixO This subroutine handles th..." alt="" coords="5,5,184,47"/>
-<area shape="rect" id="node2" href="$namespacemod__fld.html#a03cf61257d6dd23014c08b06329d2b2c" title="This subroutine calculates the radiation heating, radiation cooling and photon tiring using an implic..." alt="" coords="232,13,436,39"/>
-</map>
