@@ -18,10 +18,9 @@
 !>  4. In usr_init of mod_usr.t call the set_cak_force_norm routine and pass
 !>     along the stellar radius and wind temperature---this is needed to
 !>     correctly compute the (initial) force normalisation inside mod_cak_force
-!>  5. Ensure that the order of calls in usr_init is similar as for test problem
-!>     CAKwind_spherical_1D: first reading usr.par list; then set unit scales;
-!>     then call (M)HD_activate; then call set_cak_force_norm. This order avoids
-!>     an incorrect force normalisation and code crash
+!>  5. Always ensure that the set_cak_force_norm routine is called in mod_usr.t
+!      either in usr_init or in usr_set_parameters and after the hydro unit
+!      variables have been set/computed
 !>
 !> Developed by Florian Driessen (2022)
 module mod_cak_force
@@ -38,7 +37,7 @@ module mod_cak_force
   real(8), private :: cak_gamma
 
   !> Variables needed to compute force normalisation fnorm in initialisation
-  real(8), private :: lum, dlum, drstar, dke, dclight
+  real(8), private :: lum_cgs, lum, rstar, kappae, clight
 
   !> To enforce a floor temperature when doing adiabatic (M)HD
   real(8), private :: tfloor
@@ -47,7 +46,7 @@ module mod_cak_force
   integer :: cak_1d_opt
 
   ! Avoid magic numbers in code for 1-D CAK line force option
-  integer, parameter, private :: radstream=0, fdisc=1, fdisc_cutoff=2
+  integer, parameter, private :: radstream = 0, fdisc = 1, fdisc_cutoff = 2
 
   !> Amount of rays in radiation polar and radiation azimuthal direction
   integer :: nthetaray, nphiray
@@ -56,16 +55,16 @@ module mod_cak_force
   integer :: gcak1_, gcak2_, gcak3_, fdf_
 
   !> To treat source term in split or unsplit (default) fashion
-  logical :: cak_split=.false.
+  logical :: cak_split = .false.
 
   !> To activate the original CAK 1-D line force computation
-  logical :: cak_1d_force=.false.
+  logical :: cak_1d_force = .false.
 
   !> To activate the vector CAK line force computation
-  logical :: cak_vector_force=.false.
+  logical :: cak_vector_force = .false.
 
   !> To activate the pure radial vector CAK line force computation
-  logical :: fix_vector_force_1d=.false.
+  logical :: fix_vector_force_1d = .false.
 
   !> Public method
   public :: set_cak_force_norm
@@ -140,18 +139,18 @@ contains
   end subroutine cak_init
 
   !> Compute some (unitless) variables for CAK force normalisation
-  subroutine set_cak_force_norm(rstar,twind)
+  subroutine set_cak_force_norm(rstar_cgs,twind_cgs)
     use mod_global_parameters
     use mod_constants
 
-    real(8), intent(in) :: rstar, twind
+    real(8), intent(in) :: rstar_cgs, twind_cgs
 
-    lum     = 4.0d0*dpi * rstar**2.0d0 * const_sigma * twind**4.0d0
-    dke     = const_kappae * unit_density * unit_length
-    dclight = const_c/unit_velocity
-    dlum    = lum/(unit_density * unit_length**5.0d0 / unit_time**3.0d0)
-    drstar  = rstar/unit_length
-    tfloor  = twind/unit_temperature
+    lum_cgs = 4.0d0*dpi * rstar_cgs**2.0d0 * const_sigma * twind_cgs**4.0d0
+    kappae  = const_kappae * unit_density * unit_length
+    clight  = const_c/unit_velocity
+    lum     = lum_cgs/(unit_density * unit_length**5.0d0 / unit_time**3.0d0)
+    rstar   = rstar_cgs/unit_length
+    tfloor  = twind_cgs/unit_temperature
 
   end subroutine set_cak_force_norm
   
@@ -243,12 +242,12 @@ contains
     ! Sobolev optical depth for line ensemble (tau = Qbar * t_r) and the force
     select case (cak_1d_opt)
     case(radstream, fdisc)
-      taus(ixO^S)   = gayley_qbar * dke * dclight * wCT(ixO^S,iw_rho)/dvrdr(ixO^S)
+      taus(ixO^S)   = gayley_qbar * kappae * clight * wCT(ixO^S,iw_rho)/dvrdr(ixO^S)
       gcak(ixO^S,1) = gayley_qbar/(1.0d0 - cak_alpha) &
                       * ge(ixO^S)/taus(ixO^S)**cak_alpha
 
     case(fdisc_cutoff)
-      taus(ixO^S)   = gayley_q0 * dke * dclight * wCT(ixO^S,iw_rho)/dvrdr(ixO^S)
+      taus(ixO^S)   = gayley_q0 * kappae * clight * wCT(ixO^S,iw_rho)/dvrdr(ixO^S)
       gcak(ixO^S,1) = gayley_qbar * ge(ixO^S)                                  &
                       * ( (1.0d0 + taus(ixO^S))**(1.0d0 - cak_alpha) - 1.0d0 ) &
                       / ( (1.0d0 - cak_alpha) * taus(ixO^S) )
@@ -258,7 +257,7 @@ contains
 
     ! Finite disk factor parameterisation (Owocki & Puls 1996)
     beta_fd(ixO^S) = ( 1.0d0 - vr(ixO^S)/(x(ixO^S,1) * dvrdr(ixO^S)) ) &
-                      * (drstar/x(ixO^S,1))**2.0d0
+                      * (rstar/x(ixO^S,1))**2.0d0
 
     select case (cak_1d_opt)
     case(radstream)
@@ -372,7 +371,7 @@ contains
           ! === Geometrical factors ===
           ! Make y quadrature linear in mu, not mu**2; better for gtheta,gphi
           ! y -> mu quadrature is preserved; y=0 <=> mu=1; y=1 <=> mu=mustar
-          mustar = sqrt(max(1.0d0 - (drstar/x(ix^D,1))**2.0d0, 0.0d0))
+          mustar = sqrt(max(1.0d0 - (rstar/x(ix^D,1))**2.0d0, 0.0d0))
           costp  = 1.0d0 - y*(1.0d0 - mustar)
           costp2 = costp*costp
           sintp  = sqrt(max(1.0d0 - costp2, 0.0d0))
@@ -409,8 +408,8 @@ contains
 
     ! Normalisation for line force
     ! NOTE: extra 1/pi factor comes from integration in radiation Phi angle
-    gcak(ixO^S,:) = (dke*gayley_qbar)**(1.0d0 - cak_alpha)/(1.0d0 - cak_alpha)    &
-                    * dlum/(4.0d0*dpi*drstar**2.0d0 * dclight**(1.0d0+cak_alpha)) &
+    gcak(ixO^S,:) = (kappae*gayley_qbar)**(1.0d0 - cak_alpha)/(1.0d0 - cak_alpha)    &
+                    * lum/(4.0d0*dpi*rstar**2.0d0 * clight**(1.0d0+cak_alpha)) &
                     * gcak(ixO^S,:)/dpi
 
     if (fix_vector_force_1d) then
@@ -433,7 +432,7 @@ contains
     real(8), intent(in) :: w(ixI^S,1:nw), x(ixI^S,1:ndim)
     real(8), intent(out):: ge(ixO^S)
 
-    ge(ixO^S) = dke * dlum/(4.0d0*dpi * dclight * x(ixO^S,1)**2.0d0)
+    ge(ixO^S) = kappae * lum/(4.0d0*dpi * clight * x(ixO^S,1)**2.0d0)
 
   end subroutine get_gelectron
 

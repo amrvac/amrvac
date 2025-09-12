@@ -9,6 +9,9 @@
 
 &filelist
   base_filename = 'test/cak'
+  saveprim      = .true.
+  convert_type  = 'oneblock'
+  level_io      = 1
 /
 
 &savelist
@@ -24,14 +27,14 @@
 /
 
 &methodlist
-  time_stepper = 'twostep'
+  time_stepper = 'threestep'
   flux_scheme  = 'tvdlf'
-  limiter      = 'vanleer'
+  limiter      = 'minmod'
 /
 
 &boundlist
   typeboundary_min1 = 2*'special'
-  typeboundary_max1 = 2*'special'
+  typeboundary_max1 = 2*'cont'
 /
 
 &meshlist

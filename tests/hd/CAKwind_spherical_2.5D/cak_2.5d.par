@@ -64,10 +64,10 @@
 /
 
 &star_list
-  mstar    = 50.0d0
-  rstar    = 20.0d0
-  twind    = 4.0d4
-  rhobound = 2.0d-11
-  beta     = 0.5d0
-  Wrot     = 0.5d0
+  mstar_sol    = 50.0d0
+  rstar_sol    = 20.0d0
+  twind_cgs    = 4.0d4
+  rhobound_cgs = 2.0d-11
+  beta         = 0.5d0
+  Wrot         = 0.5d0
 /
