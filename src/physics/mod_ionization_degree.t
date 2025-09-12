@@ -6,6 +6,7 @@ module mod_ionization_degree
   double precision, dimension(:), allocatable :: Te_H_table
   double precision, dimension(:), allocatable :: iz_H_table
   double precision :: Te_table_min, Te_table_max, Te_table_step, inv_Te_table_step
+  double precision :: Te_low_iz_He=5413.d0
   ! Carlsson, M., & Leenaarts, J. 2012, A&A, 539, A39
   data Te_H_CL /2.1000005d+03, 2.2349495d+03, 2.3785708d+03, 2.5314199d+03, 2.6940928d+03, &
                 2.8672190d+03, 3.0514692d+03, 3.2475613d+03, 3.4562544d+03, 3.6783584d+03, &
@@ -49,7 +50,6 @@ module mod_ionization_degree
                 1.4264889d-07, 1.2616209d-07, 1.1193421d-07, 9.9408616d-08, 8.8335305d-08, &
                 7.8593857d-08, 7.0042269d-08, 6.2532941d-08, 5.5898361d-08, 5.0049657d-08, &
                 4.4888207d-08, 4.0317172d-08, 3.6192560d-08, 3.2330732d-08, 2.9387850d-08  /
-    double precision :: Te_low_iz_He=5413.d0
   contains
 
     subroutine ionization_degree_init()
@@ -137,7 +137,7 @@ module mod_ionization_degree
       Te_H_table=Te_H_table/unit_temperature
       Te_table_min=Te_H_table(1)
       Te_table_max=Te_H_table(n_interpolated_table)
-      inv_Te_table_step=unit_temperature/Te_table_step
+      inv_Te_table_step=dble(n_interpolated_table-1)/(Te_table_max-Te_table_min)
 
       ! transition temperature
       Te_low_iz_He=Te_low_iz_He/unit_temperature
@@ -155,7 +155,7 @@ module mod_ionization_degree
       {do ix^DB=ixOmin^DB,ixOmax^DB\}
         if(Te(ix^D)<Te_table_min) then
           iz_H(ix^D)=0.d0
-        else if (Te(ix^D)>Te_table_max) then
+        else if (Te(ix^D)>=Te_table_max) then
           iz_H(ix^D)=1.d0
         else
           i=int((Te(ix^D)-Te_table_min)*inv_Te_table_step)+1
@@ -183,7 +183,7 @@ module mod_ionization_degree
 
       if(Te<Te_table_min) then
         iz_H=0.d0
-      else if (Te>Te_table_max) then
+      else if (Te>=Te_table_max) then
         iz_H=1.d0
       else
         i=int((Te-Te_table_min)*inv_Te_table_step)+1

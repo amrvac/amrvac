@@ -10,16 +10,12 @@ contains
     use mod_usr_methods, only: usr_special_convert
     use mod_global_parameters
     use mod_ghostcells_update
-    use mod_physics, only: phys_req_diagonal,phys_te_images
+    use mod_physics, only: phys_te_images
     use mod_convert, only: convert_all
     use mod_thermal_emission
 
     character(len=std_len) :: convert_type_elem
     integer :: i
-
-    if(.not. phys_req_diagonal) then
-      call getbc(global_time,0.d0,ps,iwstart,nwgc)
-    end if
 
     select case(convert_type)
       case('tecplot','tecplotCC','tecline')
@@ -85,24 +81,19 @@ contains
     use mod_usr_methods, only: usr_aux_output
     use mod_physics
     use mod_calculate_xw
+    use mod_amr_solution_node, only: alloc_state_output
     integer, intent(in) :: qunit
 
+    double precision:: normconv(0:nw+nwauxio)
     integer             :: Morton_no,igrid,ix^D,ig^D,level
     integer, pointer    :: ig_to_igrid(:^D&,:)
-    logical             :: fileopen,writeblk(max_blocks)
-    character(len=80)   :: filename
     integer             :: filenr,ncells^D,ncellx^D,jg^D,jig^D
-
+    integer           :: iw,iiw,writenw,iwrite(1:nw+nwauxio),iigrid,idim
+    logical             :: fileopen,writeblk(max_blocks)
+    logical :: patchw(ixG^T)
     character(len=name_len) :: wnamei(1:nw+nwauxio),xandwnamei(1:ndim+nw+nwauxio)
     character(len=1024) :: outfilehead
-
-    double precision :: wval1,xval1
-    double precision, dimension({^D&1:1},1:nw+nwauxio)   :: wval
-    double precision, dimension({^D&1:1},1:ndim)         :: xval
-    double precision:: normconv(0:nw+nwauxio)
-
-    integer           :: iw,iiw,writenw,iwrite(1:nw+nwauxio),iigrid,idim
-    logical :: patchw(ixG^T)
+    character(len=80)   :: filename
 
     if(level_io<1)then
      call mpistop('please specify level_io>0 for usage with oneblock')
@@ -171,39 +162,29 @@ contains
     do iigrid=1,igridstail; igrid=igrids(iigrid)
       if(.not.writeblk(igrid)) cycle
       block=>ps(igrid)
-      if (nwauxio > 0) then
+      call alloc_state_output(igrid,ps1(igrid),ixG^LL)
+      ps1(igrid)%w(ixG^T,1:nw)=ps(igrid)%w(ixG^T,1:nw)
+      if(nwauxio > 0) then
         if (.not. associated(usr_aux_output)) then
           call mpistop("usr_aux_output not defined")
         else
-          call usr_aux_output(ixG^LL,ixM^LL^LADD1, &
-                ps(igrid)%w,ps(igrid)%x,normconv)
+          call usr_aux_output(ixG^LL,ixM^LL^LADD1,ps1(igrid)%w,ps(igrid)%x,normconv)
+        end if
+      end if
+      if(saveprim) then
+        call phys_to_primitive(ixG^LL,ixG^LL^LSUB2,ps1(igrid)%w,ps(igrid)%x)
+        if(B0field) ps1(igrid)%w(ixG^T,iw_mag(:))=ps1(igrid)%w(ixG^T,iw_mag(:))+ps(igrid)%B0(ixG^T,:,0)
+      else
+        if(B0field) then
+          ! add background magnetic field B0 to B
+          if(phys_total_energy) then
+            ps1(igrid)%w(ixG^T,iw_e)=ps1(igrid)%w(ixG^T,iw_e)+0.5d0*sum(ps(igrid)%B0(ixG^T,:,0)**2,dim=ndim+1) &
+                + sum(ps1(igrid)%w(ixG^T,iw_mag(:))*ps(igrid)%B0(ixG^T,:,0),dim=ndim+1)
+          end if
+          ps1(igrid)%w(ixG^T,iw_mag(:))=ps1(igrid)%w(ixG^T,iw_mag(:))+ps(igrid)%B0(ixG^T,:,0)
         end if
       end if
     end do
-
-    if (saveprim) then
-      do iigrid=1,igridstail; igrid=igrids(iigrid)
-        if (.not.writeblk(igrid)) cycle
-        block=>ps(igrid)
-        call phys_to_primitive(ixG^LL,ixG^LL^LSUB1,ps(igrid)%w,ps(igrid)%x)
-        if(B0field) then
-          ! add background magnetic field B0 to B
-          ps(igrid)%w(ixG^T,iw_mag(:))=ps(igrid)%w(ixG^T,iw_mag(:))+ps(igrid)%B0(ixG^T,:,0)
-        end if
-      end do
-    else
-      do iigrid=1,igridstail; igrid=igrids(iigrid)
-        if (.not.writeblk(igrid)) cycle
-        block=>ps(igrid)
-        if (B0field) then
-          ! add background magnetic field B0 to B
-          if(phys_energy) &
-            ps(igrid)%w(ixG^T,iw_e)=ps(igrid)%w(ixG^T,iw_e)+0.5d0*sum(ps(igrid)%B0(ixG^T,:,0)**2,dim=ndim+1) &
-                + sum(ps(igrid)%w(ixG^T,iw_mag(:))*ps(igrid)%B0(ixG^T,:,0),dim=ndim+1)
-          ps(igrid)%w(ixG^T,iw_mag(:))=ps(igrid)%w(ixG^T,iw_mag(:))+ps(igrid)%B0(ixG^T,:,0)
-        end if
-      end do
-    end if
 
     Master_cpu_open : if (mype == 0) then
      inquire(qunit,opened=fileopen)
@@ -244,10 +225,10 @@ contains
                    case("oneblock")
                      write(qunit,fmt="(100(e14.6))") &
                       ps(igrid)%x(ix^D,1:ndim)*normconv(0),&
-                      (ps(igrid)%w(ix^D,iwrite(iw))*normconv(iwrite(iw)),iw=1,writenw)
+                      (ps1(igrid)%w(ix^D,iwrite(iw))*normconv(iwrite(iw)),iw=1,writenw)
                    case("oneblockB")
                      write(qunit) real(ps(igrid)%x(ix^D,1:ndim)*normconv(0)),&
-                      (real(ps(igrid)%w(ix^D,iwrite(iw))*normconv(iwrite(iw))),iw=1,writenw)
+                      (real(ps1(igrid)%w(ix^D,iwrite(iw))*normconv(iwrite(iw))),iw=1,writenw)
                  end select
                end if Master_write
              end do
@@ -280,18 +261,17 @@ contains
     use mod_calculate_xw
     integer, intent(in) :: qunit
 
+    double precision  :: w_recv(ixG^T,1:nw),x_recv(ixG^T,1:ndim)
     integer             :: itag,Morton_no,igrid,ix^D,iw
+    integer             :: filenr
+    !.. MPI variables ..
+    integer           :: igrid_recv,ipe
+    integer, allocatable :: intstatus(:,:)
     logical             :: fileopen
     character(len=80)   :: filename
-    integer             :: filenr
-
     character(len=name_len) :: wnamei(1:nw+nwauxio),xandwnamei(1:ndim+nw+nwauxio)
     character(len=1024) :: outfilehead
 
-    !.. MPI variables ..
-    integer           :: igrid_recv,ipe
-    double precision  :: w_recv(ixG^T,1:nw),x_recv(ixG^T,1:ndim)
-    integer, allocatable :: intstatus(:,:)
 
     if(nwauxio>0)then
       if(mype==0) PRINT *,'ONEGRID to be used without nwauxio'
@@ -377,10 +357,6 @@ contains
 
     integer, intent(in) :: qunit
 
-    integer::               igrid,iigrid,level,igonlevel,iw,idim,ix^D
-    integer::               NumGridsOnLevel(1:nlevelshi)
-    integer :: nx^D,nxC^D,nodesonlevel,elemsonlevel,ixC^L,ixCC^L
-    integer ::              nodes, elems
     double precision :: x_TEC(ndim), w_TEC(nw+nwauxio)
     double precision, dimension(ixMlo^D-1:ixMhi^D,ndim) :: xC_TMP
     double precision, dimension(ixMlo^D:ixMhi^D,ndim)   :: xCC_TMP
@@ -389,9 +365,13 @@ contains
     double precision, dimension(ixMlo^D-1:ixMhi^D,nw+nwauxio)   :: wC_TMP
     double precision, dimension(ixMlo^D:ixMhi^D,nw+nwauxio)     :: wCC_TMP
     double precision, dimension(0:nw+nwauxio)                   :: normconv
+    integer::               igrid,iigrid,level,igonlevel,iw,idim,ix^D
+    integer::               NumGridsOnLevel(1:nlevelshi)
+    integer :: nx^D,nxC^D,nodesonlevel,elemsonlevel,ixC^L,ixCC^L
+    integer ::              nodes, elems
+    integer  :: filenr
     logical :: fileopen,first
     character(len=80) :: filename
-    integer  :: filenr
     !!! possible length conflict
     character(len=1024) :: tecplothead
     character(len=name_len) :: wnamei(1:nw+nwauxio),xandwnamei(1:ndim+nw+nwauxio)
@@ -655,8 +635,8 @@ contains
     integer::               igrid,iigrid,level,igonlevel,icel,ixC^L,ixCC^L,iw
     integer::               NumGridsOnLevel(1:nlevelshi)
     integer :: nx^D,nxC^D,nodesonlevel,elemsonlevel,nc,np,VTK_type,ix^D
-    character(len=80)::  filename
     integer          :: filenr
+    character(len=80)::  filename
     character(len=name_len) :: wnamei(1:nw+nwauxio),xandwnamei(1:ndim+nw+nwauxio)
     character(len=1024) :: outfilehead
     logical :: fileopen
@@ -822,13 +802,14 @@ contains
     double precision, dimension(ixMlo^D:ixMhi^D,nw+nwauxio)  :: wCC_TMP
     double precision :: normconv(0:nw+nwauxio)
     integer, allocatable :: intstatus(:,:)
+    integer*8 :: offset
     integer :: itag,ipe,igrid,level,icel,ixC^L,ixCC^L,Morton_no,Morton_length
     integer :: nx^D,nxC^D,nc,np,VTK_type,ix^D,filenr
-    integer*8 :: offset
     integer::  k,iw
     integer::  length,lengthcc,length_coords,length_conn,length_offsets
     character::  buf
     character(len=80)::  filename
+    character(len=19)::  offset_char
     character(len=name_len) :: wnamei(1:nw+nwauxio),xandwnamei(1:ndim+nw+nwauxio)
     character(len=1024) :: outfilehead
     logical ::   fileopen,cell_corner=.false.
@@ -926,16 +907,18 @@ contains
             if(iw<=nw) then 
               if(.not.w_write(iw)) cycle
             endif
-            write(qunit,'(a,a,a,i16,a)')&
+            write(offset_char,'(i19)') offset
+            write(qunit,'(a,a,a,a,a)')&
                 '<DataArray type="Float32" Name="',TRIM(wnamei(iw)), &
-                '" format="appended" offset="',offset,'">'
+                '" format="appended" offset="',trim(adjustl(offset_char)),'">'
             write(qunit,'(a)')'</DataArray>'
             offset=offset+length+size_int
           end do
           write(qunit,'(a)')'</PointData>'
           write(qunit,'(a)')'<Points>'
-          write(qunit,'(a,i16,a)') &
-          '<DataArray type="Float32" NumberOfComponents="3" format="appended" offset="',offset,'"/>'
+          write(offset_char,'(i19)') offset
+          write(qunit,'(a,a,a)') &
+          '<DataArray type="Float32" NumberOfComponents="3" format="appended" offset="',trim(adjustl(offset_char)),'"/>'
           ! write cell corner coordinates in a backward dimensional loop, always 3D output
           offset=offset+length_coords+size_int
           write(qunit,'(a)')'</Points>'
@@ -948,32 +931,37 @@ contains
             if(iw<=nw) then 
                if(.not.w_write(iw)) cycle
             end if
-            write(qunit,'(a,a,a,i16,a)')&
+            write(offset_char,'(i19)') offset
+            write(qunit,'(a,a,a,a,a)')&
                 '<DataArray type="Float32" Name="',TRIM(wnamei(iw)), &
-                '" format="appended" offset="',offset,'">'
+                '" format="appended" offset="',trim(adjustl(offset_char)),'">'
             write(qunit,'(a)')'</DataArray>'
             offset=offset+lengthcc+size_int
           end do
           write(qunit,'(a)')'</CellData>'
           write(qunit,'(a)')'<Points>'
-          write(qunit,'(a,i16,a)') &
-          '<DataArray type="Float32" NumberOfComponents="3" format="appended" offset="',offset,'"/>'
+          write(offset_char,'(i19)') offset
+          write(qunit,'(a,a,a)') &
+          '<DataArray type="Float32" NumberOfComponents="3" format="appended" offset="',trim(adjustl(offset_char)),'"/>'
           ! write cell corner coordinates in a backward dimensional loop, always 3D output
           offset=offset+length_coords+size_int
           write(qunit,'(a)')'</Points>'
         end if
         write(qunit,'(a)')'<Cells>'
         ! connectivity part
-        write(qunit,'(a,i16,a)')&
-          '<DataArray type="Int32" Name="connectivity" format="appended" offset="',offset,'"/>'
+        write(offset_char,'(i19)') offset
+        write(qunit,'(a,a,a)')&
+          '<DataArray type="Int32" Name="connectivity" format="appended" offset="',trim(adjustl(offset_char)),'"/>'
         offset=offset+length_conn+size_int    
         ! offsets data array
-        write(qunit,'(a,i16,a)') &
-          '<DataArray type="Int32" Name="offsets" format="appended" offset="',offset,'"/>'
+        write(offset_char,'(i19)') offset
+        write(qunit,'(a,a,a)') &
+          '<DataArray type="Int32" Name="offsets" format="appended" offset="',trim(adjustl(offset_char)),'"/>'
         offset=offset+length_offsets+size_int    
         ! VTK cell type data array
-        write(qunit,'(a,i16,a)') &
-          '<DataArray type="Int32" Name="types" format="appended" offset="',offset,'"/>' 
+        write(offset_char,'(i19)') offset
+        write(qunit,'(a,a,a)') &
+          '<DataArray type="Int32" Name="types" format="appended" offset="',trim(adjustl(offset_char)),'"/>' 
         offset=offset+size_int+nc*size_int
         write(qunit,'(a)')'</Cells>'
         write(qunit,'(a)')'</Piece>'
@@ -992,16 +980,18 @@ contains
                 if(iw<=nw) then 
                   if(.not.w_write(iw)) cycle
                 end if
-                write(qunit,'(a,a,a,i16,a)')&
+                write(offset_char,'(i19)') offset
+                write(qunit,'(a,a,a,a,a)')&
                     '<DataArray type="Float32" Name="',TRIM(wnamei(iw)), &
-                    '" format="appended" offset="',offset,'">'
+                    '" format="appended" offset="',trim(adjustl(offset_char)),'">'
                 write(qunit,'(a)')'</DataArray>'
                 offset=offset+length+size_int
               end do
               write(qunit,'(a)')'</PointData>'
               write(qunit,'(a)')'<Points>'
-              write(qunit,'(a,i16,a)') &
-              '<DataArray type="Float32" NumberOfComponents="3" format="appended" offset="',offset,'"/>'
+              write(offset_char,'(i19)') offset
+              write(qunit,'(a,a,a)') &
+              '<DataArray type="Float32" NumberOfComponents="3" format="appended" offset="',trim(adjustl(offset_char)),'"/>'
               ! write cell corner coordinates in a backward dimensional loop, always 3D output
               offset=offset+length_coords+size_int
               write(qunit,'(a)')'</Points>'
@@ -1014,32 +1004,37 @@ contains
                 if(iw<=nw) then 
                   if(.not.w_write(iw)) cycle
                 end if
-                write(qunit,'(a,a,a,i16,a)')&
+                write(offset_char,'(i19)') offset
+                write(qunit,'(a,a,a,a,a)')&
                     '<DataArray type="Float32" Name="',TRIM(wnamei(iw)), &
-                    '" format="appended" offset="',offset,'">'
+                    '" format="appended" offset="',trim(adjustl(offset_char)),'">'
                 write(qunit,'(a)')'</DataArray>'
                 offset=offset+lengthcc+size_int
               end do
               write(qunit,'(a)')'</CellData>'
               write(qunit,'(a)')'<Points>'
-              write(qunit,'(a,i16,a)') &
-              '<DataArray type="Float32" NumberOfComponents="3" format="appended" offset="',offset,'"/>'
+              write(offset_char,'(i19)') offset
+              write(qunit,'(a,a,a)') &
+              '<DataArray type="Float32" NumberOfComponents="3" format="appended" offset="',trim(adjustl(offset_char)),'"/>'
               ! write cell corner coordinates in a backward dimensional loop, always 3D output
               offset=offset+length_coords+size_int
               write(qunit,'(a)')'</Points>'
             end if
             write(qunit,'(a)')'<Cells>'
             ! connectivity part
-            write(qunit,'(a,i16,a)')&
-              '<DataArray type="Int32" Name="connectivity" format="appended" offset="',offset,'"/>'
+            write(offset_char,'(i19)') offset
+            write(qunit,'(a,a,a)')&
+              '<DataArray type="Int32" Name="connectivity" format="appended" offset="',trim(adjustl(offset_char)),'"/>'
             offset=offset+length_conn+size_int    
             ! offsets data array
-            write(qunit,'(a,i16,a)') &
-              '<DataArray type="Int32" Name="offsets" format="appended" offset="',offset,'"/>'
+            write(offset_char,'(i19)') offset
+            write(qunit,'(a,a,a)') &
+              '<DataArray type="Int32" Name="offsets" format="appended" offset="',trim(adjustl(offset_char)),'"/>'
             offset=offset+length_offsets+size_int    
             ! VTK cell type data array
-            write(qunit,'(a,i16,a)') &
-              '<DataArray type="Int32" Name="types" format="appended" offset="',offset,'"/>' 
+            write(offset_char,'(i19)') offset
+            write(qunit,'(a,a,a)') &
+              '<DataArray type="Int32" Name="types" format="appended" offset="',trim(adjustl(offset_char)),'"/>' 
             offset=offset+size_int+nc*size_int
             write(qunit,'(a)')'</Cells>'
             write(qunit,'(a)')'</Piece>'
@@ -1216,9 +1211,9 @@ contains
     double precision, dimension(ixMlo^D:ixMhi^D,nw+nwauxio)  :: wCC_TMP
     double precision :: normconv(0:nw+nwauxio)
     integer, allocatable :: intstatus(:,:)
+    integer*8 :: offset
     integer :: itag,ipe,igrid,level,icel,ixC^L,ixCC^L,Morton_no,Morton_length
     integer :: nx^D,nxC^D,nc,np,VTK_type,ix^D,filenr
-    integer*8 :: offset
     integer::  k,iw
     integer::  length,lengthcc,length_coords,length_conn,length_offsets
     character::  buf
@@ -1633,20 +1628,20 @@ contains
     double precision, dimension(ixMlo^D-1:ixMhi^D,nw+nwauxio)   :: wC_TMP,wC_TMP_recv
     double precision, dimension(ixMlo^D:ixMhi^D,nw+nwauxio)     :: wCC_TMP,wCC_TMP_recv
     double precision, dimension(0:nw+nwauxio)                   :: normconv
-    integer::               igrid,iigrid,level,ixC^L,ixCC^L
-    integer::               NumGridsOnLevel(1:nlevelshi)
+    double precision :: origin(1:3), spacing(1:3)
+    integer :: igrid,iigrid,level,ixC^L,ixCC^L
+    integer :: NumGridsOnLevel(1:nlevelshi)
     integer :: nx^D
-    character(len=80)::  filename
-    integer ::           filenr
-    integer, allocatable :: intstatus(:,:)
-    logical, allocatable :: Morton_aim(:),Morton_aim_p(:)
-    character(len=name_len) :: wnamei(1:nw+nwauxio),xandwnamei(1:ndim+nw+nwauxio)
-    character(len=1024) :: outfilehead
-    logical :: fileopen
+    integer :: filenr
     integer :: itag,ipe,Morton_no,Morton_length
     integer :: ixrvC^L, ixrvCC^L, siz_ind, ind_send(5*^ND), ind_recv(5*^ND)
-    double precision    :: origin(1:3), spacing(1:3)
     integer :: wholeExtent(1:6), ig^D
+    integer, allocatable :: intstatus(:,:)
+    logical, allocatable :: Morton_aim(:),Morton_aim_p(:)
+    logical :: fileopen
+    character(len=name_len) :: wnamei(1:nw+nwauxio),xandwnamei(1:ndim+nw+nwauxio)
+    character(len=1024) :: outfilehead
+    character(len=80)::  filename
     type(tree_node_ptr) :: tree
 
     if(levmin/=levmax) call mpistop('ImageData can only be used when levmin=levmax')
@@ -1785,12 +1780,12 @@ contains
     double precision, dimension(ixMlo^D:ixMhi^D,ndim)           :: xCC
     double precision, dimension(ixMlo^D-1:ixMhi^D,nw+nwauxio)   :: wC_TMP
     double precision, dimension(ixMlo^D:ixMhi^D,nw+nwauxio)     :: wCC_TMP
-    character(len=name_len)   :: wnamei(1:nw+nwauxio),xandwnamei(1:ndim+nw+nwauxio)
-    character(len=1024) :: outfilehead
     integer             :: nx^D,nxC^D,nc,np, igrid,ixC^L,ixCC^L,level,Morton_no
-    character(len=80)   :: pfilename
     integer             :: filenr
     logical             :: fileopen,conv_grid
+    character(len=name_len)   :: wnamei(1:nw+nwauxio),xandwnamei(1:ndim+nw+nwauxio)
+    character(len=1024) :: outfilehead
+    character(len=80)   :: pfilename
 
     ! Write pvtu-file:
     if (mype==0) then
@@ -1881,15 +1876,15 @@ contains
     integer::               igrid,iigrid,level,ixC^L,ixCC^L
     integer::               NumGridsOnLevel(1:nlevelshi)
     integer :: nx^D,nxC^D,nodesonlevel,elemsonlevel,nc,np,ix^D
-    character(len=80)::  filename
     integer ::           filenr
-    integer, allocatable :: intstatus(:,:)
-    character(len=name_len) :: wnamei(1:nw+nwauxio),xandwnamei(1:ndim+nw+nwauxio)
-    character(len=1024) :: outfilehead
-    logical :: fileopen,conv_grid,cond_grid_recv
     integer :: itag,ipe,Morton_no,siz_ind
     integer :: ind_send(4*^ND),ind_recv(4*^ND)
     integer :: levmin_recv,levmax_recv,level_recv,igrid_recv,ixrvC^L,ixrvCC^L
+    integer, allocatable :: intstatus(:,:)
+    logical :: fileopen,conv_grid,cond_grid_recv
+    character(len=80)::  filename
+    character(len=name_len) :: wnamei(1:nw+nwauxio),xandwnamei(1:ndim+nw+nwauxio)
+    character(len=1024) :: outfilehead
 
     if(mype==0) then
       inquire(qunit,opened=fileopen)
@@ -2182,11 +2177,11 @@ contains
 
     integer, intent(in) :: qunit
 
+    integer             :: filenr,iw,ipe,iscalars
+    logical             :: fileopen
     character(len=name_len)   :: wnamei(1:nw+nwauxio),xandwnamei(1:ndim+nw+nwauxio),outtype
     character(len=1024) :: outfilehead
     character(len=80)   :: filename,pfilename
-    integer             :: filenr,iw,ipe,iscalars
-    logical             :: fileopen
 
     select case(convert_type)
     case('pvtumpi','pvtuBmpi')
@@ -2260,12 +2255,6 @@ contains
 
     integer, intent(in) :: qunit
 
-    integer::               igrid,iigrid,level,igonlevel,iw,idim,ix^D
-    integer::               NumGridsOnLevel(1:nlevelshi)
-    integer :: nx^D,nxC^D,nodesonlevel,elemsonlevel,ixC^L,ixCC^L
-    integer :: nodesonlevelmype,elemsonlevelmype
-    integer ::              nodes, elems
-    integer, allocatable :: intstatus(:,:)
     double precision :: x_TEC(ndim), w_TEC(nw+nwauxio)
     double precision, dimension(ixMlo^D-1:ixMhi^D,ndim) :: xC_TMP,xC_TMP_recv
     double precision, dimension(ixMlo^D:ixMhi^D,ndim)   :: xCC_TMP,xCC_TMP_recv
@@ -2274,13 +2263,19 @@ contains
     double precision, dimension(ixMlo^D-1:ixMhi^D,nw+nwauxio)   :: wC_TMP,wC_TMP_recv
     double precision, dimension(ixMlo^D:ixMhi^D,nw+nwauxio)     :: wCC_TMP,wCC_TMP_recv
     double precision, dimension(0:nw+nwauxio)                   :: normconv
-    logical :: fileopen,first
+    integer::               igrid,iigrid,level,igonlevel,iw,idim,ix^D
+    integer::               NumGridsOnLevel(1:nlevelshi)
+    integer :: nx^D,nxC^D,nodesonlevel,elemsonlevel,ixC^L,ixCC^L
+    integer :: nodesonlevelmype,elemsonlevelmype
+    integer ::              nodes, elems
+    integer, allocatable :: intstatus(:,:)
     integer :: itag,Morton_no,ipe,levmin_recv,levmax_recv,igrid_recv,level_recv
     integer :: ixrvC^L,ixrvCC^L
     integer :: ind_send(2*^ND),ind_recv(2*^ND),siz_ind,igonlevel_recv
     integer :: NumGridsOnLevel_mype(1:nlevelshi,0:npe-1)
-    character(len=80) :: filename
     integer ::           filenr
+    logical :: fileopen,first
+    character(len=80) :: filename
     character(len=1024) :: tecplothead
     character(len=name_len) :: wnamei(1:nw+nwauxio),xandwnamei(1:ndim+nw+nwauxio)
     character(len=1024) :: outfilehead
@@ -2710,20 +2705,20 @@ contains
     double precision, dimension(ixMlo^D:ixMhi^D,ndim)   :: xCC
     double precision, dimension(ixMlo^D-1:ixMhi^D,nw+nwauxio)   :: wC_TMP
     double precision, dimension(ixMlo^D:ixMhi^D,nw+nwauxio)     :: wCC_TMP
+    double precision :: normconv(0:nw+nwauxio)
+    integer*8 :: offset
     integer :: igrid,iigrid,level,igonlevel,icel,ixC^L,ixCC^L,Morton_no
     integer ::               NumGridsOnLevel(1:nlevelshi)
     integer :: nx^D,nxC^D,nodesonlevel,elemsonlevel,nc,np,VTK_type,ix^D
-    double precision :: normconv(0:nw+nwauxio)
-    character(len=80) :: pfilename
-    character(len=name_len) :: wnamei(1:nw+nwauxio),xandwnamei(1:ndim+nw+nwauxio)
-    character(len=1024) :: outfilehead
-    integer*8 :: offset
     integer::  recsep,k,iw,filenr
     integer::  length,lengthcc,offset_points,offset_cells, &
                length_coords,length_conn,length_offsets
+    logical ::   fileopen
     character::  buf
     character(len=6)::  bufform
-    logical ::   fileopen
+    character(len=80) :: pfilename
+    character(len=name_len) :: wnamei(1:nw+nwauxio),xandwnamei(1:ndim+nw+nwauxio)
+    character(len=1024) :: outfilehead
 
     ! Write pvtu-file:
     if (mype==0) then
@@ -2979,26 +2974,26 @@ contains
        +nwauxio)     :: wCC_TMP
     double precision, dimension(ixGlo1:ixGhi1,ixGlo2:ixGhi2,ixGlo1:ixGhi1,1:nw&
        +nwauxio)   :: w
+    double precision :: normconv(0:nw+nwauxio)
+    double precision :: zlength
+    double precision ::d3grid,zlengsc,zgridsc
+    integer*8 :: offset
     integer::               igrid,iigrid,level,igonlevel,icel,ixCmin1,ixCmin2,&
        ixCmin3,ixCmax1,ixCmax2,ixCmax3,ixCCmin1,ixCCmin2,ixCCmin3,ixCCmax1,&
        ixCCmax2,ixCCmax3
     integer::               NumGridsOnLevel(1:nlevelshi)
     integer :: nx1,nx2,nx3,nxC1,nxC2,nxC3,nodesonlevel,elemsonlevel,nc,np,&
        VTK_type,ix1,ix2,ix3
-    double precision :: normconv(0:nw+nwauxio)
-    character(len=80)::  filename
-    character(len=name_len) :: wnamei(1:nw+nwauxio),xandwnamei(1:3+nw+nwauxio)
-    character(len=1024) :: outfilehead
-    integer*8 :: offset
     integer :: size_length,recsep,k,iw
     integer :: length,lengthcc,offset_points,offset_cells, length_coords,&
        length_conn,length_offsets
     integer :: i3grid,n3grid
-    double precision ::d3grid,zlengsc,zgridsc
+    logical ::   fileopen
     character::  buffer
     character(len=6)::  bufform
-    double precision :: zlength
-    logical ::   fileopen
+    character(len=80)::  filename
+    character(len=name_len) :: wnamei(1:nw+nwauxio),xandwnamei(1:3+nw+nwauxio)
+    character(len=1024) :: outfilehead
 
     if(npe>1)then
       if(mype==0) PRINT *,'unstructuredvtkB23 not parallel, use vtumpi'
@@ -3286,26 +3281,26 @@ contains
        +nwauxio)     :: wCC_TMP
     double precision, dimension(ixGlo1:ixGhi1,ixGlo2:ixGhi2,ixGlo1:ixGhi1,1:nw&
        +nwauxio)   :: w
+    double precision :: normconv(0:nw+nwauxio)
+    double precision ::d3grid,zlengsc,zgridsc
+    double precision :: zlength
+    integer*8 :: offset
     integer::               igrid,iigrid,level,igonlevel,icel,ixCmin1,ixCmin2,&
        ixCmin3,ixCmax1,ixCmax2,ixCmax3,ixCCmin1,ixCCmin2,ixCCmin3,ixCCmax1,&
        ixCCmax2,ixCCmax3
     integer::               NumGridsOnLevel(1:nlevelshi)
     integer :: nx1,nx2,nx3,nxC1,nxC2,nxC3,nodesonlevel,elemsonlevel,nc,np,&
        VTK_type,ix1,ix2,ix3
-    double precision :: normconv(0:nw+nwauxio)
-    character(len=80)::  filename
-    character(len=name_len) :: wnamei(1:nw+nwauxio),xandwnamei(1:3+nw+nwauxio)
-    character(len=1024) :: outfilehead
-    integer*8 :: offset
     integer :: size_length,recsep,k,iw
     integer :: length,lengthcc,offset_points,offset_cells, length_coords,&
        length_conn,length_offsets
     integer :: i3grid,n3grid
-    double precision ::d3grid,zlengsc,zgridsc
+    logical ::   fileopen
+    character(len=80)::  filename
+    character(len=name_len) :: wnamei(1:nw+nwauxio),xandwnamei(1:3+nw+nwauxio)
+    character(len=1024) :: outfilehead
     character::  buffer
     character(len=6)::  bufform
-    double precision :: zlength
-    logical ::   fileopen
 
     if(npe>1)then
       if(mype==0) PRINT *,'unstructuredvtkBsym23 not parallel, use vtumpi'
@@ -3740,11 +3735,7 @@ contains
     integer, intent(in) :: qunit, igrid,i3grid
     logical, intent(in) :: first
 
-    integer :: nx1,nx2,nx3, nxC1,nxC2,nxC3, ix1,ix2,ix3, ix, iw, level, idir
-    integer :: ixCmin1,ixCmin2,ixCmin3,ixCmax1,ixCmax2,ixCmax3,ixCCmin1,&
-       ixCCmin2,ixCCmin3,ixCCmax1,ixCCmax2,ixCCmax3,nxCC1,nxCC2,nxCC3
     double precision :: dx1,dx2,dx3,d3grid,zlength,zgridsc
-    integer :: idims,jxCmin1,jxCmin2,jxCmin3,jxCmax1,jxCmax2,jxCmax3
     double precision :: ldw(ixGlo1:ixGhi1,ixGlo2:ixGhi2,ixGlo1:ixGhi1),&
         dwC(ixGlo1:ixGhi1,ixGlo2:ixGhi2,ixGlo1:ixGhi1)
     double precision, dimension(ixMlo1-1:ixMhi1,ixMlo2-1:ixMhi2,ixMlo1&
@@ -3766,6 +3757,10 @@ contains
     double precision, dimension(ixGlo1:ixGhi1,ixGlo2:ixGhi2,ixGlo1:ixGhi1,1:nw&
        +nwauxio)   :: w
     double precision,dimension(0:nw+nwauxio)       :: normconv
+    integer :: nx1,nx2,nx3, nxC1,nxC2,nxC3, ix1,ix2,ix3, ix, iw, level, idir
+    integer :: ixCmin1,ixCmin2,ixCmin3,ixCmax1,ixCmax2,ixCmax3,ixCCmin1,&
+       ixCCmin2,ixCCmin3,ixCCmax1,ixCCmax2,ixCCmax3,nxCC1,nxCC2,nxCC3
+    integer :: idims,jxCmin1,jxCmin2,jxCmin3,jxCmax1,jxCmax2,jxCmax3
     logical, save :: subfirst=.true.
 
     ! following only for allowing compiler to go through with debug on

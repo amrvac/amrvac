@@ -27,10 +27,10 @@
 module mod_lfff
   implicit none
   
-  integer, save :: nx1,nx2
   double precision, save :: Bzmax,darea
   double precision, allocatable, save :: Bz0(:,:)
   double precision, allocatable, save :: xa1(:),xa2(:)
+  integer, save :: nx1,nx2
   
 contains
 
@@ -42,8 +42,8 @@ contains
     double precision :: xc1,xc2,dxm1,dxm2
     integer, dimension(MPI_STATUS_SIZE) :: statuss
     integer :: file_handle,i
-    character(len=*), intent(in) :: magnetogramname
     logical :: aexist
+    character(len=*), intent(in) :: magnetogramname
     ! nx1,nx2 are numbers of cells for each direction
     ! xc1,xc2 are coordinates of the central point of the magnetogram
     ! dxm1,dxm2 are cell sizes for each direction

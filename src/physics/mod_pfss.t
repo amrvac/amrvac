@@ -58,9 +58,9 @@ contains
     double precision :: rsl,xrl,dxr
     integer :: xm,ym,l,m,amode,file_handle,il,ir,nlarr,nsh
     integer, dimension(MPI_STATUS_SIZE) :: statuss
+    logical :: aexist
     character(len=*) :: mapname
     character(len=80) :: fharmcoef
-    logical :: aexist
 
     fharmcoef=mapname//'.coef'
     inquire(file=fharmcoef, exist=aexist)
@@ -504,11 +504,11 @@ contains
         dimension nfac(11),np(209)
   !  array storage for maximum prime factor of 23
         dimension at(23),ck(23),bt(23),sk(23)
-        integer :: i,ii,maxp,maxf,n,inc,isn,nt,ntot,ks,nspan,kspan,nn,jc,jf,m
-        integer :: k,j,jj,nfac,kt,np,kk,k1,k2,k3,k4,kspnn
         double precision :: c72,s72,s120,rad,radf,sd,cd,ak,bk,c1
         double precision :: s1,aj,bj,akp,ajp,ajm,akm,bkp,bkm,bjp,bjm,aa
         double precision :: bb,sk,ck,at,bt,s3,c3,s2,c2
+        integer :: i,ii,maxp,maxf,n,inc,isn,nt,ntot,ks,nspan,kspan,nn,jc,jf,m
+        integer :: k,j,jj,nfac,kt,np,kk,k1,k2,k3,k4,kspnn
         equivalence (i,ii)
   
   !  the following two constants should agree with the array dimensions.

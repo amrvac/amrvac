@@ -5,6 +5,8 @@ the current MPI-version MPI-AMRVAC (some, especially the older papers used
 previous variants of the code). Especially the first papers listed here are 
 specific to the current version.**
 
+* `Frozen-field modeling of coronal cndensations with MPI-AMRVAC. II. Optimization and applications in 3D models', Y. Zhou, X. Li, J.M. Jenkins &amp; R. Keppens, 2025, ApJ **978**, 72 [doi:10.3847/1538-4357/ad96af](https://doi.org/10.3847/1538-4357/ad96af) **introduces the FFHD module and hyperbolic thermal conduction**
+
 * `MPI-AMRVAC 3.0: Updates to an open-source simulation framework', R. Keppens, B. Popescu Braileanu, Y.Zhou, W. Ruan, C. Xia, Y. Guo, N. Claes &amp; F. Bacchini, 2023, A &amp; A **673**, A66 [doi:10.1051/0004-6361/202245359](https://doi.org/10.1051/0004-6361/202245359) **THIS IS MPI-AMRVAC 3.0**
 
 * `MPI-AMRVAC: a parallel, grid-adaptive PDE toolkit', R. Keppens, J. Teunissen, C. Xia &amp; O. Porth, 2021, Computers & Mathematics With Applications **81**, 316 [doi:10.1016/j.camwa.2020.03.023](https://doi.org/10.1016/j.camwa.2020.03.023)

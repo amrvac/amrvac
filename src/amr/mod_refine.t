@@ -48,8 +48,8 @@ contains
     integer, dimension(2^D&), intent(in) :: child_igrid, child_ipe
     integer, intent(in) :: igrid, ipe
   
-    integer :: ix^L, ichild, ixCo^L, ic^D
     double precision :: dxCo^D, xComin^D, dxFi^D, xFimin^D
+    integer :: ix^L, ichild, ixCo^L, ic^D
   
     ix^L=ixM^LL^LADD1;
   
@@ -88,10 +88,10 @@ contains
     type(state), intent(in)      :: sCo
     type(state), intent(inout)   :: sFi
   
-    integer :: ixCo^D, jxCo^D, hxCo^D, ixFi^D, ix^D, idim, iw, ixCg^L, el
     double precision :: slopeL, slopeR, slopeC, signC, signR
     double precision :: slope(nw,ndim)
     double precision :: eta^D
+    integer :: ixCo^D, jxCo^D, hxCo^D, ixFi^D, ix^D, idim, iw, ixCg^L, el
     logical :: fine_^L
   
     associate(wCo=>sCo%w, wFi=>sFi%w)

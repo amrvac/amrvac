@@ -26,8 +26,8 @@ contains
     ! split source addition
     call add_split_source(prior=.true.)
 
-    if (dimsplit) then
-       if ((iit/2)*2==iit .or. typedimsplit=='xy') then
+    if(dimsplit) then
+       if((iit/2)*2==iit .or. typedimsplit=='xy') then
           ! do the sweeps in order of increasing idim,
           do idimsplit=1,ndim
              call advect(idimsplit,idimsplit)
@@ -57,7 +57,6 @@ contains
     use mod_global_parameters
     use mod_fix_conserve
     use mod_ghostcells_update
-    use mod_physics, only: phys_req_diagonal
     use mod_comm_lib, only: mpistop
 
     integer, intent(in) :: idim^LIM
@@ -171,7 +170,7 @@ contains
              if(stagger_grid) ps(igrid)%ws = ps2(igrid)%ws+half*dt*ps(igrid)%ws
           end do
           !$OMP END PARALLEL DO
-          call getbc(global_time+dt,dt,ps1,iwstart,nwgc,phys_req_diagonal)
+          call getbc(global_time+dt,dt,ps1,iwstart,nwgc)
           call global_implicit_update(half,dt,global_time+dt,ps2,ps1)
           !$OMP PARALLEL DO PRIVATE(igrid)
           do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
@@ -221,7 +220,7 @@ contains
              if(stagger_grid) ps1(igrid)%ws = ps1(igrid)%ws + (1.0d0 - 2.0d0*imex222_lambda)*ps2(igrid)%ws
           end do
           !$OMP END PARALLEL DO
-          call getbc(global_time+dt,dt,ps1,iwstart,nwgc,phys_req_diagonal)
+          call getbc(global_time+dt,dt,ps1,iwstart,nwgc)
 
           ! Preallocate ps2 as xi1 for the implicit update (is at t^n)
           !$OMP PARALLEL DO PRIVATE(igrid)
@@ -363,7 +362,7 @@ contains
              if(stagger_grid) ps1(igrid)%ws=ps1(igrid)%ws+imex_ha21*dt*ps3(igrid)%ws
           end do
           !$OMP END PARALLEL DO
-          call getbc(global_time+imex_a21*dt,dt,ps1,iwstart,nwgc,phys_req_diagonal)
+          call getbc(global_time+imex_a21*dt,dt,ps1,iwstart,nwgc)
           call global_implicit_update(imex_ha22,dt,global_time+imex_c2*dt,ps2,ps1)
           !$OMP PARALLEL DO PRIVATE(igrid)
           do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
@@ -571,7 +570,7 @@ contains
   subroutine global_implicit_update(dtfactor,qdt,qtC,psa,psb)
     use mod_global_parameters
     use mod_ghostcells_update
-    use mod_physics, only: phys_implicit_update, phys_req_diagonal
+    use mod_physics, only: phys_implicit_update
 
     type(state), target :: psa(max_blocks)   !< Compute implicit part from this state and update it
     type(state), target :: psb(max_blocks)   !< Will be unchanged, as on entry
@@ -592,7 +591,7 @@ contains
     end if
 
     ! enforce boundary conditions for psa
-    call getbc(qtC,0.d0,psa,iwstart,nwgc,phys_req_diagonal)
+    call getbc(qtC,0.d0,psa,iwstart,nwgc)
 
   end subroutine global_implicit_update
 
@@ -600,14 +599,12 @@ contains
   subroutine evaluate_implicit(qtC,psa)
     use mod_global_parameters
     use mod_physics, only: phys_evaluate_implicit
-
     type(state), target :: psa(max_blocks)   !< Compute implicit part from this state and update it
     double precision, intent(in) :: qtC      !< psa at this time level
 
     if (associated(phys_evaluate_implicit)) then
        call phys_evaluate_implicit(qtC,psa)
     end if
-
   end subroutine evaluate_implicit
 
   !> Integrate all grids by one partial step
@@ -625,10 +622,6 @@ contains
     double precision, intent(in) :: qt
     integer, intent(in) :: method(nlevelshi)
 
-    ! cell face flux
-    double precision :: fC(ixG^T,1:nwflux,1:ndim)
-    ! cell edge flux
-    double precision :: fE(ixG^T,sdim:3)
     double precision :: qdt
     integer :: iigrid, igrid
 
@@ -644,21 +637,8 @@ contains
     do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
       block=>ps(igrid)
       ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
-
-      call advect1_grid(method(block%level),qdt,dtfactor,ixG^LL,idim^LIM,&
-        qtC,psa(igrid),qt,psb(igrid),fC,fE,rnode(rpdx1_:rnodehi,igrid),ps(igrid)%x)
-
-      ! opedit: Obviously, flux is stored only for active grids.
-      ! but we know in fix_conserve wether there is a passive neighbor
-      ! but we know in conserve_fix wether there is a passive neighbor
-      ! via neighbor_active(i^D,igrid) thus we skip the correction for those.
-      ! This violates strict conservation when the active/passive interface
-      ! coincides with a coarse/fine interface.
-      if (fix_conserve_global .and. fix_conserve_at_step) then
-        call store_flux(igrid,fC,idim^LIM,nwflux)
-        if(stagger_grid) call store_edge(igrid,ixG^LL,fE,idim^LIM)
-      end if
-
+      call advect1_grid(igrid,method(block%level),qdt,dtfactor,ixG^LL,idim^LIM,&
+        qtC,psa(igrid),qt,psb(igrid),rnode(rpdx1_:rnodehi,igrid),ps(igrid)%x)
     end do
     !$OMP END PARALLEL DO
 
@@ -681,12 +661,12 @@ contains
     end if
 
     ! For all grids: fill ghost cells
-    call getbc(qt+qdt,qdt,psb,iwstart,nwgc,phys_req_diagonal)
+    call getbc(qt+qdt,qdt,psb,iwstart,nwgc)
 
   end subroutine advect1
 
   !> Advance a single grid over one partial time step
-  subroutine advect1_grid(method,qdt,dtfactor,ixI^L,idim^LIM,qtC,sCT,qt,s,fC,fE,dxs,x)
+  subroutine advect1_grid(igrid,method,qdt,dtfactor,ixI^L,idim^LIM,qtC,sCT,qt,s,dxs,x)
 
     !  integrate one grid by one partial step
     use mod_finite_volume
@@ -696,15 +676,22 @@ contains
     use mod_physics, only: phys_to_primitive
     use mod_global_parameters
     use mod_comm_lib, only: mpistop
+    use mod_fix_conserve
 
-    integer, intent(in) :: method
+    integer, intent(in) :: igrid,method
     integer, intent(in) :: ixI^L, idim^LIM
     double precision, intent(in) :: qdt, dtfactor, qtC, qt, dxs(ndim), x(ixI^S,1:ndim)
     type(state), target          :: sCT, s
-    double precision :: fC(ixI^S,1:nwflux,1:ndim), wprim(ixI^S,1:nw)
-    double precision :: fE(ixI^S,sdim:3)
 
+    ! cell face flux
+    double precision :: fC(ixI^S,1:nwflux,1:ndim)
+    ! cell edge flux
+    double precision :: fE(ixI^S,sdim:3)
+    double precision :: wprim(ixI^S,1:nw)
     integer :: ixO^L
+
+    ! for mf module
+    if(iwstart>1) fC=0.d0
 
     ixO^L=ixI^L^LSUBnghostcells;
     select case (method)
@@ -720,6 +707,8 @@ contains
        call centdiff(fs_cd,qdt,dtfactor,ixI^L,ixO^L,idim^LIM,qtC,sCT,qt,s,fC,fE,dxs,x)
        call tvdlimit(method,qdt,ixI^L,ixO^L,idim^LIM,sCT,qt+qdt,s,fC,dxs,x)
     case (fs_source)
+       fC=0.d0
+       fE=0.d0
        wprim=sCT%w
        call phys_to_primitive(ixI^L,ixI^L,wprim,x)
        call addsource2(qdt*dble(idimmax-idimmin+1)/dble(ndim),&
@@ -731,6 +720,17 @@ contains
        call mpistop("unknown flux scheme in advect1_grid")
     end select
 
+    ! opedit: Obviously, flux is stored only for active grids.
+    ! but we know in fix_conserve wether there is a passive neighbor
+    ! but we know in conserve_fix wether there is a passive neighbor
+    ! via neighbor_active(i^D,igrid) thus we skip the correction for those.
+    ! This violates strict conservation when the active/passive interface
+    ! coincides with a coarse/fine interface.
+    if (fix_conserve_global .and. fix_conserve_at_step) then
+      call store_flux(igrid,fC,idim^LIM,nwflux)
+      if(stagger_grid) call store_edge(igrid,ixG^LL,fE,idim^LIM)
+    end if
+
   end subroutine advect1_grid
 
   !> process is a user entry in time loop, before output and advance
@@ -740,7 +740,6 @@ contains
     use mod_usr_methods, only: usr_process_grid, usr_process_global
     use mod_global_parameters
     use mod_ghostcells_update
-    use mod_physics, only: phys_req_diagonal
     ! .. scalars ..
     integer,intent(in)          :: iit
     double precision, intent(in):: qt
@@ -761,7 +760,7 @@ contains
               qt,ps(igrid)%w,ps(igrid)%x)
       end do
       !$OMP END PARALLEL DO
-      call getbc(qt,dt,ps,iwstart,nwgc,phys_req_diagonal)
+      call getbc(qt,dt,ps,iwstart,nwgc)
     end if
   end subroutine process
 
@@ -774,7 +773,6 @@ contains
                                usr_process_adv_global
     use mod_global_parameters
     use mod_ghostcells_update
-    use mod_physics, only: phys_req_diagonal
     ! .. scalars ..
     integer,intent(in)          :: iit
     double precision, intent(in):: qt
@@ -796,7 +794,7 @@ contains
               qt,ps(igrid)%w,ps(igrid)%x)
       end do
       !$OMP END PARALLEL DO
-      call getbc(qt,dt,ps,iwstart,nwgc,phys_req_diagonal)
+      call getbc(qt,dt,ps,iwstart,nwgc)
     end if
   end subroutine process_advanced
 

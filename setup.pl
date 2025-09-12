@@ -10,17 +10,19 @@ my $help_message =
 Options:
 
     -d=N                        N is the problem dimension (1 to 3)
+    -v=N                        N is the vector direction (1 to 3)
     -arch=<name>                Use compilation flags from arch/<name>.defs
     -phys=<name>                For new setups: use this physics module
     -help                       Show this help message
 
 Examples:
 
-setup.pl -d=2\n";
+setup.pl -d=2 -v=3\n";
 
 
 # Locally define the variables that will hold the options
 my $ndim;
+my $ndir;
 my $arch;
 my $phys;
 my $help;
@@ -35,6 +37,14 @@ GetOptions(
         $ndim = $1;
         $ndim >= 1 && $ndim <= 3 ||
             die("1 <= ndim <= 3 does not hold\n");
+    },
+    "v=i"     =>
+    sub {
+        my ($opt_name, $opt_value) = @_;
+        $opt_value =~ /([123])/ || die "-$opt_name flag incorrect\n";
+        $ndir = $1;
+        $ndir >= 1 && $ndir <= 3 ||
+            die("1 <= ndir <= 3 does not hold\n");
     },
     "arch=s"  => \$arch,
     "phys=s"  => \$phys,
@@ -67,6 +77,12 @@ close $fh;
 if ($ndim) {
     replace_regexp_file("makefile", qr/NDIM\s*[:?]?=.*/, "NDIM := $ndim");
 }
+
+if ($ndir) {
+    replace_regexp_file("makefile", qr/NDIR\s*[:?]?=.*/, "NDIR := $ndir");
+}else{
+    replace_regexp_file("makefile", qr/NDIR\s*[:?]?=.*/, "NDIR := $ndim");
+;}
 
 if ($arch) {
     replace_regexp_file("makefile", qr/ARCH\s*[:?]?=.*/, "ARCH = $arch");

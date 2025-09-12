@@ -5,6 +5,7 @@ module mod_particles
   use mod_particle_lorentz
   use mod_particle_gca
   use mod_particle_sample
+  use mod_comm_lib, only: mpistop
 
   implicit none
 

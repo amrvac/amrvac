@@ -6,9 +6,7 @@ module mod_initialize_amr
   public :: initlevelone
   public :: modify_IC
   public :: initial_condition
-  {^NOONED
   public :: improve_initial_condition
-  }
  
  
 contains
@@ -95,7 +93,6 @@ contains
   
   end subroutine modify_IC
   
-  {^NOONED
   !> improve initial condition after initialization
   subroutine improve_initial_condition()
     use mod_global_parameters
@@ -125,6 +122,5 @@ contains
     end if
   
   end subroutine improve_initial_condition
-}
 
 end module mod_initialize_amr

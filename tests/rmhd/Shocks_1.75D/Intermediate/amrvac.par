@@ -1,0 +1,101 @@
+&filelist
+  base_filename='./output/rhd_shock'
+  saveprim         = T
+  autoconvert      = T
+  level_io         = 1
+  convert_type = 'vtuBCCmpi'
+  nwauxio=2
+/
+
+&savelist
+   itsave(1,1)     = 0
+   itsave(1,2)     = 0
+   !ditsave_dat     = 1
+   !ditsave_log     = 1
+   dtsave_dat     = 1.d0
+   dtsave_log     = 1.d0
+/
+
+&stoplist
+   time_max = 2.d1
+   dtmin = 1.0d-20
+/
+
+ &methodlist
+   time_stepper = 'threestep'
+   time_integrator = 'IMEX_ARS3'
+   check_small_values=.false.
+   flux_scheme     = 20*'hll'
+   limiter         = 20*'weno3'
+   source_split_usr = .false.
+   typesourcesplit = 'sfs'
+   small_values_method = 'replace'
+   small_pressure = 1.d-12
+   small_density = 1.d-12
+/
+
+&boundlist
+  typeboundary_min1 = 9*'cont' 
+  typeboundary_max1 = 9*'cont' 
+  internalboundary = F
+/
+
+ &meshlist
+   refine_max_level   = 5
+   refine_criterion   = 3
+   domain_nx1         = 256
+   block_nx1          = 16
+   xprobmin1       = -0.5d0
+   xprobmax1       = 0.5d0
+   refine_threshold   = 20*0.5d0
+   derefine_ratio     = 20*1.d0/2.d0
+ /
+
+ &paramlist
+  courantpar       = 0.6d0
+  !dtpar           = 2.d-3
+  slowsteps = 2000
+ /
+
+ &rmhd_list
+  He_abundance = 0.d0
+  rmhd_gravity = .false.
+  rmhd_energy = .true.
+  rmhd_gamma = 1.4d0
+  radio_acoustic_filter = .false.
+  rmhd_radiation_formalism = 'fld'
+  rmhd_radiation_force = .true.
+  rmhd_energy_interact = .true.
+  rmhd_radiation_diffusion = .true.
+  rmhd_radiation_advection = .true.
+ /
+
+ &fld_list
+  fld_Eint_split = .false.
+  fld_Radforce_split = .false.
+  fld_opacity_law = 'const'
+  fld_kappa0 = 0.2d3
+  fld_diff_scheme = 'mg'
+  fld_interaction_method = 'Halley'
+  fld_fluxlimiter = 'Diffusion'
+  fld_diff_tol = 1.d-7
+  /
+
+  &shock_list
+   rho1 = 0.000116963
+   rho2 = 0.0004399472025368226
+   v1 = 9.82668d7
+   v2 = 2.6124906948210526d7
+   T1 = 346709.42895176
+   T2 = 5944001.828732
+   B1 = 3544907.6997857 
+   B2 = 3544907.6997857 
+   vy1 = -1.74756d8
+   vz1 = 3.61511d8 
+   By1 = -3778977.9552026
+   Bz1 = 7557955.9104051 
+   vy2 = -6.484892231231231d7
+   vz2 = 1.4169684462462464d8
+   By2 = 699040.76841055 
+   Bz2 = -1398081.5368211 
+   /

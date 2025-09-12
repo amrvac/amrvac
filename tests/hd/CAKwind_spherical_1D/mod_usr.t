@@ -207,20 +207,18 @@ contains
 
     select case (iB)
     case(1)
-      call hd_to_primitive(ixI^L,ixI^L,w,x)
-
       ! Mass density fixed at boundary mass density
       w(ixB^S,rho_) = rhobound
 
       ! Radial velocity field (constant slope extrapolation)
       do ir = ixBmax1,ixBmin1,-1
         if (ir == ixBmax1) then
-          w(ir,mom(1)) = w(ir+1,mom(1)) - (w(ir+2,mom(1)) - w(ir+1,mom(1))) &
-                            * (x(ir+1,1) - x(ir,1))/(x(ir+2,1) - x(ir+1,1))
+          w(ir,mom(1))=w(ir+1,mom(1))/w(ir+1,rho_)-(w(ir+2,mom(1))/w(ir+2,rho_)-w(ir+1,mom(1))/w(ir+1,rho_)) &
+                            *(x(ir+1,1)-x(ir,1))/(x(ir+2,1)-x(ir+1,1))
         else
-          w(ir,mom(1)) = w(ir+1,mom(1))
-        endif
-      enddo
+          w(ir,mom(1))=w(ir+1,mom(1))
+        end if
+      end do
 
       ! Avoid supersonic ghost cells, also avoid overloading too much
       w(ixB^S,mom(1)) = min(w(ixB^S,mom(1)), asound)
@@ -230,23 +228,22 @@ contains
         w(ixB^S,p_) = asound**2.0 * rhobound * (w(ixB^S,rho_)/rhobound)**hd_gamma
       endif
 
-      call hd_to_conserved(ixI^L,ixI^L,w,x)
+      call hd_to_conserved(ixI^L,ixB^L,w,x)
 
     case(2)
       ! Constant extrapolation of all to have continuous velocity gradient
-      call hd_to_primitive(ixI^L,ixI^L,w,x)
-
       w(ixB^S,rho_) = w(ixBmin1-1,rho_) * (x(ixBmin1-1,1) / x(ixB^S,1))**2.0d0
 
-      do ir = ixBmin1,ixBmax1
-        w(ir,mom(1)) = w(ir-1,mom(1)) + (w(ixBmin1-1,mom(1)) - w(ixBmin1-2,mom(1)))
+      w(ixBmin1,mom(1)) = w(ixBmin1-1,mom(1))/w(ixBmin1-1,rho_)+(w(ixBmin1-1,mom(1))/w(ixBmin1-1,rho_)-w(ixBmin1-2,mom(1))/w(ixBmin1-2,rho_))
+      do ir = ixBmin1+1,ixBmax1
+        w(ir,mom(1)) = w(ir-1,mom(1))+(w(ixBmin1-1,mom(1))/w(ixBmin1-1,rho_)-w(ixBmin1-2,mom(1))/w(ixBmin1-2,rho_))
       enddo
 
       if (hd_energy) then
         w(ixB^S,p_) = asound**2.0 * rhobound * (w(ixB^S,rho_)/rhobound)**hd_gamma
       endif
 
-      call hd_to_conserved(ixI^L,ixI^L,w,x)
+      call hd_to_conserved(ixI^L,ixB^L,w,x)
 
     case default
       call mpistop("BC not specified")

@@ -662,7 +662,7 @@ contains
     double precision, intent(out):: kappa(ixO^S)
 
     integer :: ix^D
-    double precision :: vel(ixI^S), gradv(ixO^S), gradvI(ixI^S)
+    double precision :: vel(ixI^S), gradv(ixI^S), gradvI(ixI^S)
     double precision :: xx(ixO^S), alpha(ixO^S)
 
     if (.not. CAK_zero) then
@@ -670,10 +670,7 @@ contains
     !> Get CAK opacities from gradient in v_r (This is maybe a weird approximation)
     !> Need diffusion coefficient depending on direction?
     vel(ixI^S) = w(ixI^S,mom(1))/w(ixI^S,rho_)
-    call gradientO(vel,x,ixI^L,ixO^L,1,gradv,nghostcells)
-
-    ! call gradient(vel,ixI^L,ixO^L,1,gradvI)
-    ! gradv(ixO^S) = gradvI(ixO^S)
+    call gradient(vel,ixI^L,ixO^L,1,gradv,nghostcells)
 
     !> Absolute value of gradient:
     gradv(ixO^S) = abs(gradv(ixO^S))
@@ -743,12 +740,12 @@ subroutine get_kappa_CAK2(ixI^L,ixO^L,w,x,kappa)
 
     double precision :: alpha, Qbar, Q0, kappa_e_t
     double precision :: tau, M_t
-    double precision :: vel(ixI^S), gradv(ixO^S), gradvI(ixI^S)
+    double precision :: vel(ixI^S), gradv(ixI^S), gradvI(ixI^S)
 
     !> Get CAK opacities from gradient in v_r (This is maybe a weird approximation)
     !> Need diffusion coefficient depending on direction?
     vel(ixI^S) = w(ixI^S,mom(1))/w(ixI^S,rho_)
-    call gradientO(vel,x,ixI^L,ixO^L,1,gradv,nghostcells)
+    call gradient(vel,ixI^L,ixO^L,1,gradv,nghostcells)
 
     ! call gradient(vel,ixI^L,ixO^L,1,gradvI)
     ! gradv(ixO^S) = gradvI(ixO^S)
@@ -1130,7 +1127,7 @@ subroutine get_kappa_CAK2(ixI^L,ixO^L,w,x,kappa)
     double precision                   :: kappa(ixO^S), OPAL(ixO^S), CAK(ixO^S), CAK2(ixO^S)
     double precision                   :: vel(ixI^S), gradv(ixI^S)
     double precision                   :: rad_flux(ixO^S,1:ndim), Lum(ixO^S)
-    double precision                   :: pp_rf(ixO^S), lambda(ixO^S), fld_R(ixO^S), gradOE(ixO^S)
+    double precision                   :: pp_rf(ixO^S), lambda(ixO^S), fld_R(ixO^S), gradOE(ixI^S)
     integer                            :: idim
     double precision :: radius(ixI^S)
     double precision :: mass
@@ -1165,7 +1162,7 @@ subroutine get_kappa_CAK2(ixI^L,ixO^L,w,x,kappa)
 
     Lum(ixO^S) = 4*dpi*rad_flux(ixO^S,1)*(x(ixO^S,1)*unit_length)**2*unit_radflux/L_sun
 
-    call gradientO(w(ixI^S,r_e),x,ixI^L,ixO^L,1,gradOE,nghostcells)
+    call gradient(w(ixI^S,r_e),ixI^L,ixO^L,1,gradOE,nghostcells)
 
     w(ixO^S,i_v1) = w(ixO^S,mom(1))/w(ixO^S,rho_)
     w(ixO^S,i_v2) = w(ixO^S,mom(2))/w(ixO^S,rho_)

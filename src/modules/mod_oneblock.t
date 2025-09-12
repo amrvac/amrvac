@@ -19,12 +19,12 @@ contains
   subroutine read_oneblock(filename)
   use mod_global_parameters
 
-  character(len=*), intent(in)             :: filename
-  character(len=1024)                      :: outfilehead
-  integer                                  :: nctot, ix^D, ixp^D
   double precision                         :: time
+  integer                                  :: nctot, ix^D, ixp^D
   integer                                  :: idim
   integer,dimension(^ND)                   :: sendbuff
+  character(len=*), intent(in)             :: filename
+  character(len=1024)                      :: outfilehead
 
   if (mype == 0) write(*,*) 'mod_oneblock: reading ',nw,' variables on unit:', unit
 
@@ -77,7 +77,6 @@ contains
   double precision, intent(out)                           :: out
   ! .. local ..
   double precision, dimension(^ND)                        :: xloc
-  integer                                                 :: ic^D, ic1^D, ic2^D
   double precision                                        :: xd^D
   {^IFTWOD
   double precision                                        :: c00, c10
@@ -86,6 +85,7 @@ contains
   double precision                                        :: c0, c1, c00, c10, c01, c11
   }
   integer                                                 :: ipivot^D, idir
+  integer                                                 :: ic^D, ic1^D, ic2^D
 
   xloc=x
 

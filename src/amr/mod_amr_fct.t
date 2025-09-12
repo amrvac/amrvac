@@ -17,12 +17,12 @@ module mod_amr_fct
 
   integer, dimension(:,:^D&,:), allocatable, public :: old_neighbor
 
+  double precision, allocatable :: recvbuffer(:), sendbuffer(:)
   integer :: itag, isend, irecv
   integer :: nrecv, nsend, ibuf_recv, ibuf_send, ibuf_send_next
   integer, dimension(^ND) :: isize
   integer, dimension(:), allocatable :: recvrequest, sendrequest
   integer, dimension(:,:), allocatable :: recvstatus, sendstatus
-  double precision, allocatable :: recvbuffer(:), sendbuffer(:)
 
   public :: store_faces
   public :: comm_faces
@@ -46,18 +46,9 @@ contains
     double precision, intent(in) :: dxCo^D, xComin^D, dxFi^D, xFimin^D
     type(state), intent(in)      :: sCo
     type(state), intent(inout)   :: sFi
-
     logical, optional :: fine_^Lin
-    logical           :: fine_^L
 
     double precision :: eta^D, invdxCo^D
-    integer :: ixCo^L,ixFi^L
-    integer :: idim1,idim2,ix^DE,idim3,ixFis^L,ixGs^L,ixCos^L,ixFisC^L
-    integer :: ixCosV^L(1:ndim),ixFisV^L(1:ndim)
-    integer :: hxCos^L,jxCos^L,ixCosE^L,ixFisE^L,hxFisC^L,jxFisC^L,ipxFisC^L,ixCosC^L,imxFisC^L,jpxFisC^L,jmxFisC^L,hpxFisC^L
-    integer :: hxFi^L,jxFi^L,hijxFi^L,hjixFi^L,hjjxFi^L
-    integer :: iihxFi^L,iijxFi^L,ijhxFi^L,ijjxFi^L,ihixFi^L,ijixFi^L,ihjxFi^L
-    integer :: jihxFi^L,jijxFi^L,jjhxFi^L,jjjxFi^L,jhixFi^L,jjixFi^L,jhjxFi^L
     double precision :: bfluxCo(sCo%ixGs^S,nws),bfluxFi(sFi%ixGs^S,nws)
     double precision :: slopes(sCo%ixGs^S,ndim),B_energy_change(ixG^T)
     {^IFTHREED
@@ -69,10 +60,14 @@ contains
     ! Auxiliary arrays for magnetic fluxes
     double precision :: F1(ixG^T),F2(ixG^T),F3(ixG^T),F4(ixG^T)
     }
-
-    {^IFONED
-    call mpistop("CT prolongation not implemented in 1D. But CT is not needed.")
-    }
+    integer :: ixCo^L,ixFi^L
+    integer :: idim1,idim2,ix^DE,idim3,ixFis^L,ixGs^L,ixCos^L,ixFisC^L
+    integer :: ixCosV^L(1:ndim),ixFisV^L(1:ndim)
+    integer :: hxCos^L,jxCos^L,ixCosE^L,ixFisE^L,hxFisC^L,jxFisC^L,ipxFisC^L,ixCosC^L,imxFisC^L,jpxFisC^L,jmxFisC^L,hpxFisC^L
+    integer :: hxFi^L,jxFi^L,hijxFi^L,hjixFi^L,hjjxFi^L
+    integer :: iihxFi^L,iijxFi^L,ijhxFi^L,ijjxFi^L,ihixFi^L,ijixFi^L,ihjxFi^L
+    integer :: jihxFi^L,jijxFi^L,jjhxFi^L,jjjxFi^L,jhixFi^L,jjixFi^L,jhjxFi^L
+    logical :: fine_^L
 
     {^NOONED
     ! Note on the indices:

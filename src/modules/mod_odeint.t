@@ -2,10 +2,10 @@
 module mod_odeint
   use mod_comm_lib, only: mpistop
   implicit none
-  integer                  :: MAXSTP, NMAX, KMAXX
-  PARAMETER (MAXSTP=10000,NMAX=50,KMAXX=200)
   double precision         :: TINY
   PARAMETER (TINY=1.d-30)
+  integer                  :: MAXSTP, NMAX, KMAXX
+  PARAMETER (MAXSTP=10000,NMAX=50,KMAXX=200)
 
 contains
 
@@ -13,10 +13,10 @@ contains
 
     INTEGER nbad,nok,nvar
     double precision eps,h1,hmin,x1,x2,ystart(nvar)
-    INTEGER i,nstp
     double precision h,hdid,hnext,x,xsav,dydx(NMAX),y(NMAX),yscal(NMAX)
-    integer kmax, kount
     double precision dxsav, yp(NMAX,KMAXX), xp(KMAXX)
+    integer kmax, kount
+    INTEGER i,nstp
     ! Can be 0: success, 1: hmin too small, 2: MAXSTP exceeded
     integer, intent(out) :: ierror
 

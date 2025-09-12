@@ -12,8 +12,8 @@ contains
     use mod_forest, only: refine, buffer
     use mod_global_parameters
 
-    integer :: igrid, iigrid, ixCoG^L
     double precision :: factor
+    integer :: igrid, iigrid, ixCoG^L
     logical, dimension(:,:), allocatable :: refine2
 
     if (igridstail==0) return
@@ -68,12 +68,12 @@ contains
 
     integer, intent(in) :: igrid
 
-    integer                            :: iflag, idims, idims2, level
-    integer                            :: ix^L, hx^L, jx^L, h2x^L, j2x^L, ix^D
     double precision                   :: epsilon, threshold, wtol(1:nw), xtol(1:ndim)
     double precision, dimension(ixM^T) :: numerator, denominator, error
     double precision, dimension(ixG^T) :: tmp, tmp1, tmp2
     double precision                   :: w(ixG^T,1:nw)
+    integer                            :: iflag, idims, idims2, level
+    integer                            :: ix^L, hx^L, jx^L, h2x^L, j2x^L, ix^D
     logical, dimension(ixG^T)          :: refineflag, coarsenflag
 
     epsilon = 1.0d-6
@@ -84,7 +84,7 @@ contains
 
     w(ixG^T,1:nw)=ps(igrid)%w(ixG^T,1:nw)
 
-    if(B0field) then
+    if(B0field .and. allocated(iw_mag)) then
       if(phys_energy) &
         w(ixG^T,iw_e)=w(ixG^T,iw_e)+0.5d0*sum(ps(igrid)%B0(ixG^T,:,0)**2,dim=ndim+1) &
                         + sum(w(ixG^T,iw_mag(:))*ps(igrid)%B0(ixG^T,:,0),dim=ndim+1)
@@ -205,11 +205,11 @@ contains
 
     integer, intent(in) :: igrid
 
-    integer :: iflag, idims, level
-    integer :: ix^L, hx^L, jx^L, ix^D
     double precision :: epsilon, threshold, wtol(1:nw), xtol(1:ndim)
     double precision, dimension(ixM^T) :: numerator, denominator, error
     double precision, dimension(ixG^T) :: dp, dm, dref, tmp1
+    integer :: iflag, idims, level
+    integer :: ix^L, hx^L, jx^L, ix^D
     logical, dimension(ixG^T) :: refineflag, coarsenflag
 
     epsilon=1.0d-6
@@ -301,9 +301,9 @@ contains
     integer, intent(in) :: igrid
     double precision, intent(in) :: w(ixG^T,nw)
 
+    double precision :: qt
     integer :: level
     integer :: my_refine, my_coarsen
-    double precision :: qt
     logical, dimension(ixG^T) :: refineflag
 
     level=node(plevel_,igrid)
@@ -367,8 +367,8 @@ contains
     integer, intent(in)          :: igrid
     double precision, intent(in) :: w(ixG^T,nw)
 
-    integer                   :: level, my_levmin, my_levmax
     logical, dimension(ixG^T) :: refineflag
+    integer                   :: level, my_levmin, my_levmax
 
     level=node(plevel_,igrid)
 

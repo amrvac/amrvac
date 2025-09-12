@@ -50,6 +50,9 @@ module mod_hd_phys
   !> Indices of the momentum density
   integer, allocatable, public, protected :: mom(:)
 
+  !> Indices of the momentum density for the form of better vectorization
+  integer, public, protected              :: ^C&m^C_
+
   !> Indices of the tracers
   integer, allocatable, public, protected :: tracer(:)
 
@@ -68,6 +71,9 @@ module mod_hd_phys
   !> The adiabatic index
   double precision, public                :: hd_gamma = 5.d0/3.0d0
 
+  !> gamma minus one and its inverse
+  double precision :: gamma_1, inv_gamma_1
+
   !> The adiabatic constant
   double precision, public                :: hd_adiab = 1.0d0
 
@@ -77,9 +83,6 @@ module mod_hd_phys
   !> Whether TRAC method is used
   logical, public, protected              :: hd_trac = .false.
   integer, public, protected              :: hd_trac_type = 1
-
-  !> Allows overruling default corner filling (for debug mode, since otherwise corner primitives fail)
-  logical, public, protected              :: hd_force_diagonal = .false.
 
   !> Helium abundance over Hydrogen
   double precision, public, protected  :: He_abundance=0.1d0
@@ -124,7 +127,7 @@ contains
     hd_dust, hd_thermal_conduction, hd_radiative_cooling, hd_viscosity, &
     hd_gravity, He_abundance,H_ion_fr, He_ion_fr, He_ion_fr2, eq_state_units, &
     SI_unit, hd_particles, hd_rotating_frame, hd_trac, &
-    hd_force_diagonal, hd_trac_type, hd_cak_force, hd_partial_ionization
+    hd_trac_type, hd_cak_force, hd_partial_ionization
 
     do n = 1, size(files)
        open(unitpar, file=trim(files(n)), status="old")
@@ -221,6 +224,7 @@ contains
 
     allocate(mom(ndir))
     mom(:) = var_set_momentum(ndir)
+    m^C_=mom(^C);
 
     ! Set index of energy variable
     if (hd_energy) then
@@ -245,23 +249,15 @@ contains
     phys_check_w             => hd_check_w
     phys_get_pthermal        => hd_get_pthermal
     phys_get_v               => hd_get_v
+    phys_get_rho             => hd_get_rho
     phys_write_info          => hd_write_info
     phys_handle_small_values => hd_handle_small_values
-
-    ! Whether diagonal ghost cells are required for the physics
-    phys_req_diagonal = .false.
 
     ! derive units from basic units
     call hd_physical_units()
 
     if (hd_dust) then
         call dust_init(rho_, mom(:), e_)
-    endif
-
-    if (hd_force_diagonal) then
-       ! ensure corners are filled, otherwise divide by zero when getting primitives
-       !  --> only for debug purposes
-       phys_req_diagonal = .true.
     endif
 
     allocate(tracer(hd_n_tracer))
@@ -272,7 +268,7 @@ contains
     end do
 
     ! set number of variables which need update ghostcells
-    nwgc=nwflux
+    nwgc=nwflux+nwaux
 
     ! set the index of the last flux variable for species 1
     stop_indices(1)=nwflux
@@ -305,7 +301,6 @@ contains
     if (hd_thermal_conduction) then
       if (.not. hd_energy) &
            call mpistop("thermal conduction needs hd_energy=T")
-      phys_req_diagonal = .true.
 
       call sts_init()
       call tc_init_params(hd_gamma)
@@ -342,7 +337,7 @@ contains
     phys_te_images => hd_te_images
 }
     ! Initialize viscosity module
-    if (hd_viscosity) call viscosity_init(phys_wider_stencil,phys_req_diagonal)
+    if (hd_viscosity) call viscosity_init(phys_wider_stencil)
 
     ! Initialize gravity module
     if (hd_gravity) call gravity_init()
@@ -356,7 +351,6 @@ contains
     ! Initialize particles module
     if (hd_particles) then
        call particles_init()
-       phys_req_diagonal = .true.
     end if
 
     ! Check whether custom flux types have been defined
@@ -545,6 +539,7 @@ contains
        if (hd_gamma <= 0.0d0 .or. hd_gamma == 1.0d0) &
             call mpistop ("Error: hd_gamma <= 0 or hd_gamma == 1.0")
        small_e = small_pressure/(hd_gamma - 1.0d0)
+       inv_gamma_1=1.d0/(hd_gamma-1.d0)
     end if
 
     if (hd_dust) call dust_check_params()
@@ -569,40 +564,81 @@ contains
       kB=kB_cgs
     end if
     if(eq_state_units) then
-      a = 1d0 + 4d0 * He_abundance
+      a=1d0+4d0*He_abundance
       if(hd_partial_ionization) then
-        b = 2.d0+3.d0*He_abundance
+        b=1d0+H_ion_fr+He_abundance*(He_ion_fr*(He_ion_fr2+1d0)+1d0)
       else
-        b = 1d0 + H_ion_fr + He_abundance*(He_ion_fr*(He_ion_fr2 + 1d0)+1d0)
+        b=2d0+3d0*He_abundance
       end if
-      RR = 1d0
+      RR=1d0
     else
-      a = 1d0
-      b = 1d0
-      RR = (1d0 + H_ion_fr + He_abundance*(He_ion_fr*(He_ion_fr2 + 1d0)+1d0))/(1d0 + 4d0 * He_abundance)
+      a=1d0
+      b=1d0
+      RR=(1d0+H_ion_fr+He_abundance*(He_ion_fr*(He_ion_fr2+1d0)+1d0))/(1d0+4d0*He_abundance)
     end if
-    if(unit_density/=1.d0) then
-      unit_numberdensity=unit_density/(a*mp)
-    else
-      ! unit of numberdensity is independent by default
-      unit_density=a*mp*unit_numberdensity
-    end if
-    if(unit_velocity/=1.d0) then
-      unit_pressure=unit_density*unit_velocity**2
-      unit_temperature=unit_pressure/(b*unit_numberdensity*kB)
+    if(unit_density/=1.d0 .or. unit_numberdensity/=1.d0) then
+      if(unit_density/=1.d0) then
+        unit_numberdensity=unit_density/(a*mp)
+      else if(unit_numberdensity/=1.d0) then
+        unit_density=a*mp*unit_numberdensity
+      end if
+      if(unit_temperature/=1.d0) then
+        unit_pressure=b*unit_numberdensity*kB*unit_temperature
+        unit_velocity=sqrt(unit_pressure/unit_density)
+        if(unit_length/=1.d0) then
+          unit_time=unit_length/unit_velocity
+        else if(unit_time/=1.d0) then
+          unit_length=unit_velocity*unit_time
+        end if
+      else if(unit_pressure/=1.d0) then
+        unit_temperature=unit_pressure/(b*unit_numberdensity*kB)
+        unit_velocity=sqrt(unit_pressure/unit_density)
+        if(unit_length/=1.d0) then
+          unit_time=unit_length/unit_velocity
+        else if(unit_time/=1.d0) then
+          unit_length=unit_velocity*unit_time
+        end if
+      else if(unit_velocity/=1.d0) then
+        unit_pressure=unit_density*unit_velocity**2
+        unit_temperature=unit_pressure/(b*unit_numberdensity*kB)
+        if(unit_length/=1.d0) then
+          unit_time=unit_length/unit_velocity
+        else if(unit_time/=1.d0) then
+          unit_length=unit_velocity*unit_time
+        end if
+      else if(unit_time/=1.d0) then
+        unit_velocity=unit_length/unit_time
+        unit_pressure=unit_density*unit_velocity**2
+        unit_temperature=unit_pressure/(b*unit_numberdensity*kB)
+      end if
+    else if(unit_temperature/=1.d0) then
+      ! units of temperature and velocity are dependent
+      if(unit_pressure/=1.d0) then
+        unit_numberdensity=unit_pressure/(b*unit_temperature*kB)
+        unit_density=a*mp*unit_numberdensity
+        unit_velocity=sqrt(unit_pressure/unit_density)
+        if(unit_length/=1.d0) then
+          unit_time=unit_length/unit_velocity
+        else if(unit_time/=1.d0) then
+          unit_length=unit_velocity*unit_time
+        end if
+      end if
     else if(unit_pressure/=1.d0) then
-      unit_temperature=unit_pressure/(b*unit_numberdensity*kB)
-      unit_velocity=sqrt(unit_pressure/unit_density)
-    else
-      ! unit of temperature is independent by default
-      unit_pressure=b*unit_numberdensity*kB*unit_temperature
-      unit_velocity=sqrt(unit_pressure/unit_density)
-    end if
-    if(unit_time/=1.d0) then
-      unit_length=unit_time*unit_velocity
-    else
-      ! unit of length is independent by default
-      unit_time=unit_length/unit_velocity
+      if(unit_velocity/=1.d0) then
+        unit_density=unit_pressure/unit_velocity**2
+        unit_numberdensity=unit_density/(a*mp)
+        unit_temperature=unit_pressure/(b*unit_numberdensity*kB)
+        if(unit_length/=1.d0) then
+          unit_time=unit_length/unit_velocity
+        else if(unit_time/=1.d0) then
+          unit_length=unit_velocity*unit_time
+        end if
+      else if(unit_time/=0.d0) then
+        unit_velocity=unit_length/unit_time
+        unit_density=unit_pressure/unit_velocity**2
+        unit_numberdensity=unit_density/(a*mp)
+        unit_temperature=unit_pressure/(b*unit_numberdensity*kB)
+      end if
     end if
     unit_mass = unit_density * unit_length**3
 
@@ -625,8 +661,8 @@ contains
        if (primitive) then
           where(w(ixO^S, e_) < small_pressure) flag(ixO^S,e_) = .true.
        else
-          tmp(ixO^S) = (hd_gamma - 1.0d0)*(w(ixO^S, e_) - &
-               hd_kin_en(w, ixI^L, ixO^L))
+          tmp(ixO^S)=(hd_gamma-1.0d0)*(w(ixO^S,e_)-&
+           half*(^C&w(ixO^S,m^C_)**2+)/w(ixO^S,rho_))
           where(tmp(ixO^S) < small_pressure) flag(ixO^S,e_) = .true.
        endif
     end if
@@ -644,24 +680,18 @@ contains
     integer, intent(in)             :: ixI^L, ixO^L
     double precision, intent(inout) :: w(ixI^S, nw)
     double precision, intent(in)    :: x(ixI^S, 1:ndim)
-    double precision                :: invgam
-    integer                         :: idir, itr
 
-    !!if (fix_small_values) then
-    !!  call hd_handle_small_values(.true., w, x, ixI^L, ixO^L, 'hd_to_conserved')
-    !!end if
+    integer :: ix^D
 
-    if (hd_energy) then
-       invgam = 1.d0/(hd_gamma - 1.0d0)
-       ! Calculate total energy from pressure and kinetic energy
-       w(ixO^S, e_) = w(ixO^S, e_) * invgam + &
-            0.5d0 * sum(w(ixO^S, mom(:))**2, dim=ndim+1) * w(ixO^S, rho_)
-    end if
-
-    ! Convert velocity to momentum
-    do idir = 1, ndir
-       w(ixO^S, mom(idir)) = w(ixO^S, rho_) * w(ixO^S, mom(idir))
-    end do
+    {do ix^DB=ixOmin^DB,ixOmax^DB\}
+      if (hd_energy) then
+         ! Calculate total energy from pressure and kinetic energy
+         w(ix^D,e_)=w(ix^D, e_)*inv_gamma_1+&
+          half*(^C&w(ix^D,m^C_)**2+)*w(ix^D,rho_)
+      end if
+      ! Convert velocity to momentum
+      ^C&w(ix^D,m^C_)=w(ix^D,rho_)*w(ix^D,m^C_)\
+    {end do\}
 
     if (hd_dust) then
       call dust_to_conserved(ixI^L, ixO^L, w, x)
@@ -676,25 +706,25 @@ contains
     integer, intent(in)             :: ixI^L, ixO^L
     double precision, intent(inout) :: w(ixI^S, nw)
     double precision, intent(in)    :: x(ixI^S, 1:ndim)
-    integer                         :: itr, idir
-    double precision                :: inv_rho(ixO^S)
+
+    double precision                :: inv_rho
+    integer :: ix^D
 
     if (fix_small_values) then
       call hd_handle_small_values(.false., w, x, ixI^L, ixO^L, 'hd_to_primitive')
     end if
 
-    inv_rho = 1.0d0 / w(ixO^S, rho_)
-
-    if (hd_energy) then
-       ! Compute pressure
-       w(ixO^S, e_) = (hd_gamma - 1.0d0) * (w(ixO^S, e_) - &
-            hd_kin_en(w, ixI^L, ixO^L, inv_rho))
-    end if
-
-    ! Convert momentum to velocity
-    do idir = 1, ndir
-       w(ixO^S, mom(idir)) = w(ixO^S, mom(idir)) * inv_rho
-    end do
+   {do ix^DB=ixOmin^DB,ixOmax^DB\}
+      inv_rho = 1.d0/w(ix^D,rho_)
+      ! Convert momentum to velocity
+      ^C&w(ix^D,m^C_)=w(ix^D,m^C_)*inv_rho\
+      ! Calculate pressure = (gamma-1) * (e-ek)
+      if(hd_energy) then
+         ! Compute pressure
+        w(ix^D,p_)=(hd_gamma-1.d0)*(w(ix^D,e_)&
+                  -half*w(ix^D,rho_)*(^C&w(ix^D,m^C_)**2+))
+      end if
+   {end do\}
 
     ! Convert dust momentum to dust velocity
     if (hd_dust) then
@@ -711,8 +741,7 @@ contains
     double precision, intent(in)    :: x(ixI^S, 1:ndim)
 
     ! Calculate total energy from internal and kinetic energy
-    w(ixO^S,e_)=w(ixO^S,e_)&
-               +hd_kin_en(w,ixI^L,ixO^L)
+    w(ixO^S,e_)=w(ixO^S,e_)+half*(^C&w(ixO^S,m^C_)**2+)/w(ixO^S,rho_)
 
   end subroutine hd_ei_to_e
 
@@ -724,40 +753,9 @@ contains
     double precision, intent(in)    :: x(ixI^S, 1:ndim)
 
     ! Calculate ei = e - ek
-    w(ixO^S,e_)=w(ixO^S,e_)&
-                -hd_kin_en(w,ixI^L,ixO^L)
+    w(ixO^S,e_)=w(ixO^S,e_)-half*(^C&w(ixO^S,m^C_)**2+)/w(ixO^S,rho_)
 
   end subroutine hd_e_to_ei
-
-  subroutine e_to_rhos(ixI^L, ixO^L, w, x)
-    use mod_global_parameters
-
-    integer, intent(in)          :: ixI^L, ixO^L
-    double precision             :: w(ixI^S, nw)
-    double precision, intent(in) :: x(ixI^S, 1:ndim)
-
-    if (hd_energy) then
-       w(ixO^S, e_) = (hd_gamma - 1.0d0) * w(ixO^S, rho_)**(1.0d0 - hd_gamma) * &
-            (w(ixO^S, e_) - hd_kin_en(w, ixI^L, ixO^L))
-    else
-       call mpistop("energy from entropy can not be used with -eos = iso !")
-    end if
-  end subroutine e_to_rhos
-
-  subroutine rhos_to_e(ixI^L, ixO^L, w, x)
-    use mod_global_parameters
-
-    integer, intent(in)          :: ixI^L, ixO^L
-    double precision             :: w(ixI^S, nw)
-    double precision, intent(in) :: x(ixI^S, 1:ndim)
-
-    if (hd_energy) then
-       w(ixO^S, e_) = w(ixO^S, rho_)**(hd_gamma - 1.0d0) * w(ixO^S, e_) &
-            / (hd_gamma - 1.0d0) + hd_kin_en(w, ixI^L, ixO^L)
-    else
-       call mpistop("entropy from energy can not be used with -eos = iso !")
-    end if
-  end subroutine rhos_to_e
 
   !> Calculate v_i = m_i / rho within ixO^L
   subroutine hd_get_v_idim(w, x, ixI^L, ixO^L, idim, v)
@@ -788,22 +786,27 @@ contains
   !> Calculate cmax_idim = csound + abs(v_idim) within ixO^L
   subroutine hd_get_cmax(w, x, ixI^L, ixO^L, idim, cmax)
     use mod_global_parameters
-    use mod_dust, only: dust_get_cmax
+    use mod_dust, only: dust_get_cmax_prim
+    use mod_usr_methods, only: usr_set_pthermal
 
     integer, intent(in)                       :: ixI^L, ixO^L, idim
+    ! w in primitive form
     double precision, intent(in)              :: w(ixI^S, nw), x(ixI^S, 1:ndim)
     double precision, intent(inout)           :: cmax(ixI^S)
-    double precision                          :: csound(ixI^S)
-    double precision                          :: v(ixI^S)
 
-    call hd_get_v_idim(w, x, ixI^L, ixO^L, idim, v)
-    call hd_get_csound2(w,x,ixI^L,ixO^L,csound)
-    csound(ixO^S) = dsqrt(csound(ixO^S))
-
-    cmax(ixO^S) = dabs(v(ixO^S))+csound(ixO^S)
+    if(hd_energy) then
+      cmax(ixO^S)=dabs(w(ixO^S,mom(idim)))+dsqrt(hd_gamma*w(ixO^S,p_)/w(ixO^S,rho_))
+    else
+      if (.not. associated(usr_set_pthermal)) then
+        cmax(ixO^S) = hd_adiab * w(ixO^S, rho_)**hd_gamma
+      else
+        call usr_set_pthermal(w,x,ixI^L,ixO^L,cmax)
+      end if
+      cmax(ixO^S)=dabs(w(ixO^S,mom(idim)))+dsqrt(hd_gamma*cmax(ixO^S)/w(ixO^S,rho_))
+    end if
 
     if (hd_dust) then
-      call dust_get_cmax(w, x, ixI^L, ixO^L, idim, cmax)
+      call dust_get_cmax_prim(w, x, ixI^L, ixO^L, idim, cmax)
     end if
   end subroutine hd_get_cmax
 
@@ -834,6 +837,7 @@ contains
     use mod_global_parameters
     integer, intent(in) :: ixI^L,ixO^L
     double precision, intent(in) :: x(ixI^S,1:ndim)
+    ! in primitive form
     double precision, intent(inout) :: w(ixI^S,1:nw)
     double precision, intent(out) :: tco_local, Tmax_local
 
@@ -845,7 +849,8 @@ contains
     logical :: lrlt(ixI^S)
 
     {^IFONED
-    call hd_get_temperature_from_etot(w,x,ixI^L,ixI^L,Te)
+    call hd_get_Rfactor(w,x,ixI^L,ixI^L,Te)
+    Te(ixI^S)=w(ixI^S,p_)/(Te(ixI^S)*w(ixI^S,rho_))
 
     Tco_local=zero
     Tmax_local=maxval(Te(ixO^S))
@@ -909,7 +914,7 @@ contains
 
       tmp1(ixO^S)=dsqrt(wLp(ixO^S,rho_))
       tmp2(ixO^S)=dsqrt(wRp(ixO^S,rho_))
-      tmp3(ixO^S)=1.d0/(dsqrt(wLp(ixO^S,rho_))+dsqrt(wRp(ixO^S,rho_)))
+      tmp3(ixO^S)=1.d0/(tmp1(ixO^S)+tmp2(ixO^S))
       umean(ixO^S)=(wLp(ixO^S,mom(idim))*tmp1(ixO^S)+wRp(ixO^S,mom(idim))*tmp2(ixO^S))*tmp3(ixO^S)
 
       if(hd_energy) then
@@ -1089,45 +1094,6 @@ contains
   end subroutine hd_get_temperature_from_eint
 
   ! Calculate flux f_idim[iw]
-  subroutine hd_get_flux_cons(w, x, ixI^L, ixO^L, idim, f)
-    use mod_global_parameters
-    use mod_dust, only: dust_get_flux
-
-    integer, intent(in)             :: ixI^L, ixO^L, idim
-    double precision, intent(in)    :: w(ixI^S, 1:nw), x(ixI^S, 1:ndim)
-    double precision, intent(out)   :: f(ixI^S, nwflux)
-    double precision                :: pth(ixI^S), v(ixI^S),frame_vel(ixI^S)
-    integer                         :: idir, itr
-
-    call hd_get_pthermal(w, x, ixI^L, ixO^L, pth)
-    call hd_get_v_idim(w, x, ixI^L, ixO^L, idim, v)
-
-    f(ixO^S, rho_) = v(ixO^S) * w(ixO^S, rho_)
-
-    ! Momentum flux is v_i*m_i, +p in direction idim
-    do idir = 1, ndir
-       f(ixO^S, mom(idir)) = v(ixO^S) * w(ixO^S, mom(idir))
-    end do
-
-    f(ixO^S, mom(idim)) = f(ixO^S, mom(idim)) + pth(ixO^S)
-
-    if(hd_energy) then
-      ! Energy flux is v_i*(e + p)
-      f(ixO^S, e_) = v(ixO^S) * (w(ixO^S, e_) + pth(ixO^S))
-    end if
-
-    do itr = 1, hd_n_tracer
-       f(ixO^S, tracer(itr)) = v(ixO^S) * w(ixO^S, tracer(itr))
-    end do
-
-    ! Dust fluxes
-    if (hd_dust) then
-      call dust_get_flux(w, x, ixI^L, ixO^L, idim, f)
-    end if
-
-  end subroutine hd_get_flux_cons
-
-  ! Calculate flux f_idim[iw]
   subroutine hd_get_flux(wC, w, x, ixI^L, ixO^L, idim, f)
     use mod_global_parameters
     use mod_dust, only: dust_get_flux_prim
@@ -1140,31 +1106,31 @@ contains
     double precision, intent(in)    :: w(ixI^S, 1:nw)
     double precision, intent(in)    :: x(ixI^S, 1:ndim)
     double precision, intent(out)   :: f(ixI^S, nwflux)
-    double precision                :: pth(ixI^S),frame_vel(ixI^S)
-    integer                         :: idir, itr
+
+    double precision                :: pth(ixI^S)
+    integer                         :: ix^DB
 
     if (hd_energy) then
-       pth(ixO^S) = w(ixO^S,p_)
+     {do ix^DB=ixOmin^DB,ixOmax^DB\}
+        f(ix^D,rho_)=w(ix^D,mom(idim))*w(ix^D,rho_)
+        ! Momentum flux is v_i*m_i, +p in direction idim
+        ^C&f(ix^D,m^C_)=w(ix^D,mom(idim))*wC(ix^D,m^C_)\
+        f(ix^D,mom(idim))=f(ix^D,mom(idim))+w(ix^D,p_)
+        ! Energy flux is v_i*(e + p)
+        f(ix^D,e_)=w(ix^D,mom(idim))*(wC(ix^D,e_)+w(ix^D,p_))
+     {end do\}
     else
-       call hd_get_pthermal(wC, x, ixI^L, ixO^L, pth)
+      call hd_get_pthermal(wC, x, ixI^L, ixO^L, pth)
+     {do ix^DB=ixOmin^DB,ixOmax^DB\}
+        f(ix^D,rho_)=w(ix^D,mom(idim))*w(ix^D,rho_)
+        ! Momentum flux is v_i*m_i, +p in direction idim
+        ^C&f(ix^D,m^C_)=w(ix^D,mom(idim))*wC(ix^D,m^C_)\
+        f(ix^D,mom(idim))=f(ix^D,mom(idim))+pth(ix^D)
+     {end do\}
     end if
 
-    f(ixO^S, rho_) = w(ixO^S,mom(idim)) * w(ixO^S, rho_)
-
-    ! Momentum flux is v_i*m_i, +p in direction idim
-    do idir = 1, ndir
-       f(ixO^S, mom(idir)) = w(ixO^S,mom(idim)) * wC(ixO^S, mom(idir))
-    end do
-
-    f(ixO^S, mom(idim)) = f(ixO^S, mom(idim)) + pth(ixO^S)
-
-    if(hd_energy) then
-      ! Energy flux is v_i*(e + p)
-      f(ixO^S, e_) = w(ixO^S,mom(idim)) * (wC(ixO^S, e_) + w(ixO^S,p_))
-    end if
-
-    do itr = 1, hd_n_tracer
-       f(ixO^S, tracer(itr)) = w(ixO^S,mom(idim)) * w(ixO^S, tracer(itr))
+    do ix1 = 1, hd_n_tracer
+       f(ixO^S, tracer(ix1)) = w(ixO^S,mom(idim)) * w(ixO^S, tracer(ix1))
     end do
 
     ! Dust fluxes
@@ -1186,16 +1152,16 @@ contains
   !>
   !> Ileyk : to do :
   !>     - address the source term for the dust in case (coordinate == spherical)
-  subroutine hd_add_source_geom(qdt, dtfactor, ixI^L, ixO^L, wCT, w, x)
+  subroutine hd_add_source_geom(qdt, dtfactor, ixI^L, ixO^L, wCT, wprim, w, x)
     use mod_global_parameters
-    use mod_usr_methods, only: usr_set_surface
+    use mod_usr_methods, only: usr_set_surface, usr_set_pthermal
     use mod_viscosity, only: visc_add_source_geom ! viscInDiv
     use mod_rotating_frame, only: rotating_frame_add_source
     use mod_dust, only: dust_n_species, dust_mom, dust_rho
     use mod_geometry
     integer, intent(in)             :: ixI^L, ixO^L
     double precision, intent(in)    :: qdt, dtfactor, x(ixI^S, 1:ndim)
-    double precision, intent(inout) :: wCT(ixI^S, 1:nw), w(ixI^S, 1:nw)
+    double precision, intent(inout) :: wCT(ixI^S, 1:nw), wprim(ixI^S,1:nw),w(ixI^S, 1:nw)
     ! to change and to set as a parameter in the parfile once the possibility to
     ! solve the equations in an angular momentum conserving form has been
     ! implemented (change tvdlf.t eg)
@@ -1216,7 +1182,15 @@ contains
     case(Cartesian_expansion)
       !the user provides the functions of exp_factor and del_exp_factor
       if(associated(usr_set_surface)) call usr_set_surface(ixI^L,x,block%dx,exp_factor,del_exp_factor,exp_factor_primitive)
-      call hd_get_pthermal(wCT, x, ixI^L, ixO^L, source)
+      if(hd_energy) then
+        source(ixO^S)=wprim(ixO^S, p_)
+      else
+        if(.not. associated(usr_set_pthermal)) then
+          source(ixO^S)=hd_adiab * wprim(ixO^S, rho_)**hd_gamma
+        else
+          call usr_set_pthermal(wCT,x,ixI^L,ixO^L,source)
+        end if
+      end if
       source(ixO^S) = source(ixO^S)*del_exp_factor(ixO^S)/exp_factor(ixO^S)
       w(ixO^S,mom(1)) = w(ixO^S,mom(1)) + qdt*source(ixO^S)
 
@@ -1224,33 +1198,41 @@ contains
        do ifluid = 0, n_fluids-1
           ! s[mr]=(pthermal+mphi**2/rho)/radius
           if (ifluid == 0) then
-             ! gas
-             irho  = rho_
-             mr_   = mom(r_)
-             if(phi_>0) mphi_ = mom(phi_)
-             call hd_get_pthermal(wCT, x, ixI^L, ixO^L, source)
-             minrho = 0.0d0
+            ! gas
+            irho  = rho_
+            mr_   = mom(r_)
+            if(phi_>0) mphi_ = mom(phi_)
+            if(hd_energy) then
+              source(ixO^S)=wprim(ixO^S, p_)
+            else
+              if(.not. associated(usr_set_pthermal)) then
+                source(ixO^S)=hd_adiab * wprim(ixO^S, rho_)**hd_gamma
+              else
+                call usr_set_pthermal(wCT,x,ixI^L,ixO^L,source)
+              end if
+            end if
+            minrho = 0.0d0
           else
-             ! dust : no pressure
-             irho  = dust_rho(ifluid)
-             mr_   = dust_mom(r_, ifluid)
-             if(phi_>0) mphi_ = dust_mom(phi_, ifluid)
-             source(ixI^S) = zero
-             minrho = 0.0d0
+            ! dust : no pressure
+            irho  = dust_rho(ifluid)
+            mr_   = dust_mom(r_, ifluid)
+            if(phi_>0) mphi_ = dust_mom(phi_, ifluid)
+            source(ixI^S) = zero
+            minrho = 0.0d0
           end if
-          if (phi_ > 0) then
-             where (wCT(ixO^S, irho) > minrho)
-                source(ixO^S) = source(ixO^S) + wCT(ixO^S, mphi_)**2 / wCT(ixO^S, irho)
-                w(ixO^S, mr_) = w(ixO^S, mr_) + qdt * source(ixO^S) / x(ixO^S, r_)
-             end where
-             ! s[mphi]=(-mphi*mr/rho)/radius
-             where (wCT(ixO^S, irho) > minrho)
-                source(ixO^S) = -wCT(ixO^S, mphi_) * wCT(ixO^S, mr_) / wCT(ixO^S, irho)
-                w(ixO^S, mphi_) = w(ixO^S, mphi_) + qdt * source(ixO^S) / x(ixO^S, r_)
-             end where
+          if(phi_ > 0) then
+            where (wCT(ixO^S, irho) > minrho)
+              source(ixO^S) = source(ixO^S) + wCT(ixO^S,mphi_)*wprim(ixO^S,mphi_)
+              w(ixO^S, mr_) = w(ixO^S, mr_) + qdt*source(ixO^S)/x(ixO^S,r_)
+            end where
+            ! s[mphi]=(-mphi*vr)/radius
+            where (wCT(ixO^S, irho) > minrho)
+              source(ixO^S) = -wCT(ixO^S, mphi_) * wprim(ixO^S, mr_)
+              w(ixO^S, mphi_) = w(ixO^S, mphi_) + qdt * source(ixO^S) / x(ixO^S, r_)
+            end where
           else
-             ! s[mr]=2pthermal/radius
-             w(ixO^S, mr_) = w(ixO^S, mr_) + qdt * source(ixO^S) / x(ixO^S, r_)
+            ! s[mr]=2pthermal/radius
+            w(ixO^S, mr_) = w(ixO^S, mr_) + qdt * source(ixO^S) / x(ixO^S, r_)
           end if
        end do
     case (spherical)
@@ -1260,45 +1242,51 @@ contains
        mr_   = mom(r_)
        if(phi_>0) mphi_ = mom(phi_)
        h1x^L=ixO^L-kr(1,^D); {^NOONED h2x^L=ixO^L-kr(2,^D);}
-       ! s[mr]=((mtheta**2+mphi**2)/rho+2*p)/r
-       call hd_get_pthermal(wCT, x, ixI^L, ixO^L, pth)
+       if(hd_energy) then
+         pth(ixO^S)=wprim(ixO^S, p_)
+       else
+         if(.not. associated(usr_set_pthermal)) then
+           pth(ixO^S)=hd_adiab * wprim(ixO^S, rho_)**hd_gamma
+         else
+           call usr_set_pthermal(wCT,x,ixI^L,ixO^L,pth)
+         end if
+       end if
+       ! s[mr]=((vtheta**2+vphi**2)*rho+2*p)/r
        source(ixO^S) = pth(ixO^S) * x(ixO^S, 1) &
             *(block%surfaceC(ixO^S, 1) - block%surfaceC(h1x^S, 1)) &
             /block%dvolume(ixO^S)
-       if (ndir > 1) then
-         do idir = 2, ndir
-           source(ixO^S) = source(ixO^S) + wCT(ixO^S, mom(idir))**2 / wCT(ixO^S, rho_)
-         end do
-       end if
+       do idir = 2, ndir
+         source(ixO^S) = source(ixO^S) + wprim(ixO^S, mom(idir))**2 * wprim(ixO^S, rho_)
+       end do
        w(ixO^S, mr_) = w(ixO^S, mr_) + qdt * source(ixO^S) / x(ixO^S, 1)
 
        {^NOONED
-       ! s[mtheta]=-(mr*mtheta/rho)/r+cot(theta)*(mphi**2/rho+p)/r
+       ! s[mtheta]=-(vr*vtheta*rho)/r+cot(theta)*(vphi**2*rho+p)/r
        source(ixO^S) = pth(ixO^S) * x(ixO^S, 1) &
             * (block%surfaceC(ixO^S, 2) - block%surfaceC(h2x^S, 2)) &
             / block%dvolume(ixO^S)
        if (ndir == 3) then
-          source(ixO^S) = source(ixO^S) + (wCT(ixO^S, mom(3))**2 / wCT(ixO^S, rho_)) / tan(x(ixO^S, 2))
+         source(ixO^S) = source(ixO^S) + (wprim(ixO^S, mom(3))**2 * wprim(ixO^S, rho_)) / tan(x(ixO^S, 2))
        end if
-       source(ixO^S) = source(ixO^S) - (wCT(ixO^S, mom(2)) * wCT(ixO^S, mr_)) / wCT(ixO^S, rho_)
+       source(ixO^S) = source(ixO^S) - (wprim(ixO^S, mom(2)) * wprim(ixO^S, mr_)) * wprim(ixO^S, rho_)
        w(ixO^S, mom(2)) = w(ixO^S, mom(2)) + qdt * source(ixO^S) / x(ixO^S, 1)
 
        if (ndir == 3) then
-         ! s[mphi]=-(mphi*mr/rho)/r-cot(theta)*(mtheta*mphi/rho)/r
-         source(ixO^S) = -(wCT(ixO^S, mom(3)) * wCT(ixO^S, mr_)) / wCT(ixO^S, rho_)&
-                        - (wCT(ixO^S, mom(2)) * wCT(ixO^S, mom(3))) / wCT(ixO^S, rho_) / tan(x(ixO^S, 2))
+         ! s[mphi]=-(vphi*vr/rho)/r-cot(theta)*(vtheta*vphi/rho)/r
+         source(ixO^S) = -(wprim(ixO^S, mom(3)) * wprim(ixO^S, mr_)) * wprim(ixO^S, rho_)&
+                        - (wprim(ixO^S, mom(2)) * wprim(ixO^S, mom(3))) * wprim(ixO^S, rho_) / tan(x(ixO^S, 2))
          w(ixO^S, mom(3)) = w(ixO^S, mom(3)) + qdt * source(ixO^S) / x(ixO^S, 1)
        end if
        }
     end select
 
-    if (hd_viscosity) call visc_add_source_geom(qdt,ixI^L,ixO^L,wCT,w,x)
+    if (hd_viscosity) call visc_add_source_geom(qdt,ixI^L,ixO^L,wprim,w,x)
 
     if (hd_rotating_frame) then
        if (hd_dust) then
           call mpistop("Rotating frame not implemented yet with dust")
        else
-          call rotating_frame_add_source(qdt,dtfactor,ixI^L,ixO^L,wCT,w,x)
+          call rotating_frame_add_source(qdt,dtfactor,ixI^L,ixO^L,wprim,w,x)
        end if
     end if
 

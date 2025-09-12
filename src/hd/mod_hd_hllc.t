@@ -70,9 +70,9 @@ contains
     double precision, dimension(ixI^S,1:nwflux), intent(out) :: Fhll,whll
     double precision, dimension(ixI^S), intent(out)          :: lambdaCD
 
-    logical         , dimension(ixI^S)     :: Cond_patchf
     double precision                       :: Epsilon
     integer                                :: iw,ix^D
+    logical         , dimension(ixI^S)     :: Cond_patchf
 
     !--------------------------------------------
     ! on entry, patch is preset to contain values from -2,1,2,4

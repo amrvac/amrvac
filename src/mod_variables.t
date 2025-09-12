@@ -40,12 +40,6 @@ module mod_variables
   !> Maximum number of variables
   integer, parameter :: max_nw = 50
 
-  !> Primitive variable names
-  character(len=name_len) :: prim_wnames(max_nw)
-
-  !> Conservative variable names
-  character(len=name_len) :: cons_wnames(max_nw)
-
   ! Global indices of variables that are often used
 
   !> Index of the (gas) density
@@ -60,11 +54,15 @@ module mod_variables
   !> Index of the radiation energy density
   integer :: iw_r_e = -1
 
+  !> Index of heat flux
+  integer :: iw_q = -1
+
   !> Indices of the magnetic field components
   integer, allocatable, protected :: iw_mag(:)
 
   !> Index of the cutoff temperature for the TRAC method
-  integer :: iw_tcoff = -1
+  integer :: iw_Tcoff = -1
+  integer :: iw_Tweight= -1
 
   !> number of species: each species has different characterictic speeds and should
   !> be used accordingly in mod_finite_volume and mod_finite_difference
@@ -87,6 +85,12 @@ module mod_variables
   ! these are needed for hlld solver, TODO: consider moving in a separate file
   integer :: iw_equi_rho = -1
   integer :: iw_equi_p = -1
+
+  !> Primitive variable names
+  character(len=name_len) :: prim_wnames(max_nw)
+
+  !> Conservative variable names
+  character(len=name_len) :: cons_wnames(max_nw)
 
 contains
 
@@ -179,17 +183,14 @@ contains
     cons_wnames(nwflux) = 'rho'
   end function var_set_rho
 
-  ! THE INCLUDE files cannot use other modules
-  ! mpistop replaced by errormsg, should it exit?
   !> Exit MPI-AMRVAC with an error message
   subroutine errormsg(message)
-  
+
     character(len=*), intent(in) :: message !< The error message
-  
+
     write(*, *) "ERROR for processor"
     write(*, *) trim(message)
-  
-  
+
   end subroutine errormsg
   !> Set momentum variables
   function var_set_momentum(ndir) result(iw)
@@ -223,6 +224,17 @@ contains
     cons_wnames(nwflux) = 'e'
     prim_wnames(nwflux) = 'p'
   end function var_set_energy
+
+  function var_set_q() result(iw)
+    integer :: iw
+
+    nwflux              = nwflux + 1
+    nw                  = nw + 1
+    iw_q                = nwflux
+    iw                  = nwflux
+    prim_wnames(nwflux) = 'q'
+    cons_wnames(nwflux) = 'q'
+  end function var_set_q
 
   function var_set_radiation_energy() result(iw)
     integer :: iw

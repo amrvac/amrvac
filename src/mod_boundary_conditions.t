@@ -15,17 +15,15 @@ contains
     use mod_global_parameters
     use mod_physics
     use mod_functions_bfield, only: get_divb
+    use mod_comm_lib, only: mpistop
 
     integer, intent(in) :: iside, idims, ixG^L,ixB^L
     double precision, intent(in) :: time,qdt
     type(state), intent(inout) :: s
-    double precision :: wtmp(ixG^S,1:nwflux)
 
-    integer :: idir, is
-    integer :: ixOs^L,hxO^L,jxO^L
     double precision :: Q(ixG^S),Qp(ixG^S) 
-    integer :: iw, iB, ix^D, ixO^L, ixM^L, nghostcellsi,iib^D
-    logical  :: isphysbound
+    integer :: idir, ixOs^L,hxO^L,jxO^L
+    integer :: iw, iB, ix^D, ixO^L
 
     associate(x=>s%x,w=>s%w,ws=>s%ws)
     select case (idims)

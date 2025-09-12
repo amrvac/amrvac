@@ -30,25 +30,23 @@ contains
     character(len=*), intent(in) :: tabledir
 
     ! Local variables
-    character(len=:), allocatable :: AMRVAC_DIR, path_table_dir
+    character(len=256) :: AMRVAC_DIR, path_table_dir
     
     call get_environment_variable("AMRVAC_DIR", AMRVAC_DIR)
-    path_table_dir = trim(AMRVAC_DIR)//"/src/rhd/CAK_tables/"//trim(tabledir)
+    path_table_dir = trim(AMRVAC_DIR)//"src/tables/CAK_tables/"//trim(tabledir)
 
-    call read_table(logD_list, logT_list, alpha_vals, path_table_dir//"/al_TD")
-    call read_table(logD_list, logT_list, Qbar_vals, path_table_dir//"/Qb_TD")
-    call read_table(logD_list, logT_list, Q0_vals, path_table_dir//"/Q0_TD")
-    call read_table(logD_list, logT_list, kappae_vals, path_table_dir//"/Ke_TD")
+    call read_table(logD_list, logT_list, alpha_vals, trim(path_table_dir)//"/al_TD")
+    call read_table(logD_list, logT_list, Qbar_vals, trim(path_table_dir)//"/Qb_TD")
+    call read_table(logD_list, logT_list, Q0_vals, trim(path_table_dir)//"/Q0_TD")
+    call read_table(logD_list, logT_list, kappae_vals, trim(path_table_dir)//"/Ke_TD")
 
   end subroutine init_cak_table
 
   !> This subroutine calculates the opacity for a given temperature-density
   !> structure. Opacities are read from a table with given metalicity.
   subroutine set_cak_opacity(rho, temp, alpha_output, Qbar_output, Q0_output, kappae_output)
-        
     double precision, intent(in)  :: rho, temp
     double precision, intent(out) :: alpha_output, Qbar_output, Q0_output, kappae_output
-
     ! Local variables
     double precision :: D_input, T_input, kappa_cak
 
@@ -63,7 +61,6 @@ contains
     call get_val_comb(alpha_vals,Qbar_vals,Q0_vals,kappae_vals, &
                       logD_list, logT_list, D_input, T_input, &
                       alpha_output, Qbar_output, Q0_output, kappae_output)
-
   end subroutine set_cak_opacity
 
   !> This routine reads in 1-D (T,rho) values from a line opacity table and gives

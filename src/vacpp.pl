@@ -64,6 +64,13 @@ $d =~ /([123])/ || die "Incorrect -d flag value\n";
 # of the regexp)
 $ndim = $1;
 
+# Check whether the vector direction lie between 1 and 3, by
+# matching with a regexp.
+#if ($v){
+    $v =~ /([123])/ || die "Incorrect -v flag value\n";
+    $ndir = $1;
+#}else{ $ndir=$ndim;}
+
 # Call these routines
 &definepatterns;
 
@@ -164,6 +171,7 @@ sub definepatterns{
    # Define number of substitutes and substitute strings for patterns
    # E.g. ^D -> 1,2 is defined by &patdef('D',2,'1','2','3')
    &patdef('ND'	,1	,$ndim			);
+   &patdef('NC'	,1	,$ndir			);
    &patdef('DE'	,$ndim-1,2	,3		);
    &patdef('DE&',$ndim-1			);
    &patdef('DE%',$ndim-1,'^%2'	,'^%3'		);
@@ -179,6 +187,11 @@ sub definepatterns{
    &patdef('D%'	,$ndim	,'^%1'	,'^%2'	,'^%3'	);
    &patdef('S'	,$ndim	,'^LIM1:','^LIM2:','^LIM3:');
    &patdef('T'	,$ndim	,'^LLIM1:','^LLIM2:','^LLIM3:');
+   &patdef('C'	,$ndir	,1	,2	,3	);
+   &patdef('C&'	,$ndir				);
+   &patdef('CC'	,$ndir	,'^C'	,'^C'	,'^C'	);
+   &patdef('CE' ,$ndir-1,2      ,3              );
+   &patdef('CE&',$ndir-1                        );
 
    &patdef('LIM'	,2	,'min'	,'max'	);
    &patdef('LLIM'	,2	,'lo'	,'hi'	);
@@ -193,6 +206,11 @@ sub definepatterns{
    &patdef('IFTHREED'	,$ndim==3		);
    &patdef('NOONED'	,$ndim!=1		);
    &patdef('NOTHREED'	,$ndim!=3		);
+   &patdef('IFONEC'     ,$ndir==1               );
+   &patdef('IFTWOC'	,$ndir==2		);
+   &patdef('IFTHREEC'	,$ndir==3		);
+   &patdef('NOONEC'     ,$ndir!=1               );
+   &patdef('NOTHREEC'	,$ndir!=3		);
 }
 #============================================================================
 sub patdef{

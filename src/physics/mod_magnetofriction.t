@@ -477,8 +477,8 @@ contains
     use mod_global_parameters
 
     double precision, intent(in) :: dtfff
-    integer :: i,iigrid, igrid
     double precision :: vhatmax,vhatmax_pe,vhatmaxgrid
+    integer :: i,iigrid, igrid
 
     vhatmax_pe=smalldouble
     do iigrid=1,igridstail; igrid=igrids(iigrid);
@@ -797,8 +797,8 @@ contains
     double precision, dimension(ixI^S,1:nw) :: wLC, wRC
     double precision, dimension(ixI^S,1:ndim) :: x
 
-    integer :: jxR^L, ixC^L, jxC^L, iw
     double precision   :: ldw(ixI^S), rdw(ixI^S), dwC(ixI^S)
+    integer :: jxR^L, ixC^L, jxC^L, iw
 
     if (type_limiter(block%level) == limiter_mp5) then
        call MP5limiter(ixI^L,ixL^L,idim,w,wLC,wRC)
@@ -1300,8 +1300,8 @@ contains
     integer, intent(in)             :: ixI^L, ixO^L
     double precision, intent(in)    :: x(ixI^S,1:ndim),wCT(ixI^S,1:nw),qdt
     double precision, intent(inout) :: w(ixI^S,1:nw)
-    integer :: idims, ix^L, ixp^L, i^D, iside
     double precision :: divb(ixI^S),graddivb(ixI^S),bdivb(ixI^S,1:ndir)
+    integer :: idims, ix^L, ixp^L, i^D, iside
 
     ! Calculate div B
     ix^L=ixO^L^LADD1;
@@ -1401,10 +1401,10 @@ contains
     integer :: idirmin0
     integer :: ixO^L, idirmin, ixI^L
     double precision :: w(ixI^S,1:nw)
-    integer :: idir
 
     ! For ndir=2 only 3rd component of J can exist, ndir=1 is impossible for MHD
     double precision :: current(ixI^S,7-2*ndir:3),bvec(ixI^S,1:ndir)
+    integer :: idir
 
     idirmin0 = 7-2*ndir
 

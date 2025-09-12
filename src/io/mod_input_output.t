@@ -6,6 +6,9 @@ module mod_input_output
   public
 
 
+  !> coefficient for rk2_alfa
+  double precision, private :: rk2_alfa
+
   !> List of compatible versions
   integer, parameter :: compatible_versions(3) = [3, 4, 5]
 
@@ -14,10 +17,6 @@ module mod_input_output
 
   !> tag for MPI message
   integer, private :: itag
-
-  !> coefficient for rk2_alfa
-  double precision, private :: rk2_alfa
-
 
   !> whether staggered field is in dat
   logical, private :: stagger_mark_dat=.false.
@@ -35,14 +34,13 @@ contains
   !> Read the command line arguments passed to amrvac
   subroutine read_arguments()
     use mod_global_parameters
-    use mod_slice, only: slicenext
 
     integer                          :: len, stat, n, i, ipars
     integer, parameter               :: max_files = 20 ! Maximum number of par files
     integer                          :: n_par_files
+    logical                          :: unknown_arg, help, morepars
     character(len=max_files*std_len) :: all_par_files
     character(len=std_len)           :: tmp_files(max_files), arg
-    logical                          :: unknown_arg, help, morepars
 
     if (mype == 0) then
        print *, '-----------------------------------------------------------------------------'
@@ -182,13 +180,24 @@ contains
     use mod_source
     use mod_input_output_helper, only: get_names_from_string
 
-    logical          :: fileopen, file_exists
-    integer          :: i, j, k, ifile, io_state
-    integer          :: iB, isave, iw, level, idim, islice
-    integer          :: nx_vec(^ND), block_nx_vec(^ND)
-    integer          :: my_unit, iostate
-    integer          :: ilev
+    double precision, dimension(nsavehi) :: tsave_log, tsave_dat, tsave_slice, &
+         tsave_collapsed, tsave_custom
+    double precision :: dtsave_log, dtsave_dat, dtsave_slice, &
+         dtsave_collapsed, dtsave_custom
+    double precision :: tsavestart_log, tsavestart_dat, tsavestart_slice, &
+         tsavestart_collapsed, tsavestart_custom
+    double precision :: sizeuniformpart^D
+    double precision :: im_delta,im_nu,rka54,rka51,rkb54,rka55
     double precision :: dx_vec(^ND)
+    integer :: ditsave_log, ditsave_dat, ditsave_slice, &
+         ditsave_collapsed, ditsave_custom
+    integer :: windex, ipower
+    integer :: i, j, k, ifile, io_state
+    integer :: iB, isave, iw, level, idim, islice
+    integer :: nx_vec(^ND), block_nx_vec(^ND)
+    integer :: my_unit, iostate
+    integer :: ilev
+    logical :: fileopen, file_exists
 
     character              :: c_ndim
     character(len=80)      :: fmt_string
@@ -221,17 +230,6 @@ contains
     !> computing CFL-limited time steps.
     character(len=std_len) :: typecourant
 
-    double precision, dimension(nsavehi) :: tsave_log, tsave_dat, tsave_slice, &
-         tsave_collapsed, tsave_custom
-    double precision :: dtsave_log, dtsave_dat, dtsave_slice, &
-         dtsave_collapsed, dtsave_custom
-    integer :: ditsave_log, ditsave_dat, ditsave_slice, &
-         ditsave_collapsed, ditsave_custom
-    double precision :: tsavestart_log, tsavestart_dat, tsavestart_slice, &
-         tsavestart_collapsed, tsavestart_custom
-    integer :: windex, ipower
-    double precision :: sizeuniformpart^D
-    double precision :: im_delta,im_nu,rka54,rka51,rkb54,rka55
  
     namelist /filelist/ base_filename,restart_from_file, &
          typefilelog,firstprocess,reset_grid,snapshotnext, &
@@ -260,7 +258,7 @@ contains
          loglimit,typeboundspeed, H_correction,&
          typetvd,typeentropy,entropycoef,typeaverage, &
          typegrad,typediv,typecurl,&
-         nxdiffusehllc, flathllc, tvdlfeps,&
+         nxdiffusehllc, flathllc, tvdlfeps, flux_adaptive_diffusion, &
          flatcd,flatsh,&
          rk2_alfa,imex222_lambda,ssprk_order,rk3_switch,imex_switch,&
          small_temperature,small_pressure,small_density, &
@@ -462,6 +460,7 @@ contains
     ! Defaults for discretization methods
     typeaverage     = 'default'
     tvdlfeps        = one
+    flux_adaptive_diffusion = .false.
     nxdiffusehllc   = 0
     flathllc        = .false.
     slowsteps       = -1
@@ -470,7 +469,7 @@ contains
     dimsplit        = .false.
     typedimsplit    = 'default'
     if(physics_type=='mhd') then
-      cada3_radius  = 0.5d0
+      cada3_radius  = 0.1d0
     else
       cada3_radius  = 0.1d0
     end if
@@ -1311,13 +1310,13 @@ contains
 
     ! psi, tracers take the same boundary type as the first variable
     if (nwfluxbc<nwflux) then
-      do iw = nwfluxbc+1, nwflux
+      do iw=nwfluxbc+1,nwflux
         typeboundary(iw,:) = typeboundary(1, :)
       end do
     end if
     ! auxiliary variables take the same boundary type as the first variable
     if (nwaux>0) then
-      do iw = nwflux+1, nwflux+nwaux
+      do iw=nwflux+1, nwflux+nwaux
         typeboundary(iw,:) = typeboundary(1, :)
       end do
     end if
@@ -1346,45 +1345,65 @@ contains
     do idim=1,ndim
       if(any(typeboundary(:,2*idim-1)==12)) then
         if(any(typeboundary(:,2*idim-1)/=12)) typeboundary(:,2*idim-1)=12
-        if(phys_energy) then
-          windex=2
-        else
-          windex=1
-        end if
-        typeboundary(:,2*idim-1)=bc_symm
-        if(physics_type/='rho') then
-          select case(coordinate)
-          case(cylindrical)
+        select case(physics_type)
+        case ('rho','ard','rd','nonlinear','ffhd')
+           ! all symmetric at pole
+           typeboundary(:,2*idim-1)=bc_symm
+           if(mype==0) print *,'symmetric minimal pole'
+        case ('hd','rhd','srhd','mhd','rmhd')
+           typeboundary(:,2*idim-1)=bc_symm
+           ! here we assume the ordering of variables is fixed to rho-mom-[e]-B
+           if(phys_energy) then
+            windex=2
+           else
+            windex=1
+           end if
+           select case(coordinate)
+           case(cylindrical)
             typeboundary(phi_+1,2*idim-1)=bc_asymm
-            if(physics_type=='mhd') typeboundary(ndir+windex+phi_,2*idim-1)=bc_asymm
-          case(spherical)
+            if(physics_type=='mhd'.or.physics_type=='rmhd') typeboundary(ndir+windex+phi_,2*idim-1)=bc_asymm
+           case(spherical)
             typeboundary(3:ndir+1,2*idim-1)=bc_asymm
-            if(physics_type=='mhd') typeboundary(ndir+windex+2:ndir+windex+ndir,2*idim-1)=bc_asymm
-          case default
+            if(physics_type=='mhd'.or.physics_type=='rmhd') typeboundary(ndir+windex+2:ndir+windex+ndir,2*idim-1)=bc_asymm
+           case default
             call mpistop('Pole is in cylindrical, polar, spherical coordinates!')
-          end select
-        end if
+           end select
+        case ('twofl','mf')
+           call mpistop('Pole treatment for twofl or mf not implemented yet')
+        case default
+           call mpistop('unknown physics type for setting minimal pole boundary treatment')
+        end select
       end if
       if(any(typeboundary(:,2*idim)==12)) then
         if(any(typeboundary(:,2*idim)/=12)) typeboundary(:,2*idim)=12
-        if(phys_energy) then
-          windex=2
-        else
-          windex=1
-        end if
-        typeboundary(:,2*idim)=bc_symm
-        if(physics_type/='rho') then
-        select case(coordinate)
-        case(cylindrical)
-          typeboundary(phi_+1,2*idim)=bc_asymm
-          if(physics_type=='mhd') typeboundary(ndir+windex+phi_,2*idim)=bc_asymm
-        case(spherical)
-          typeboundary(3:ndir+1,2*idim)=bc_asymm
-          if(physics_type=='mhd') typeboundary(ndir+windex+2:ndir+windex+ndir,2*idim)=bc_asymm
+        select case(physics_type)
+        case ('rho','ard','rd','nonlinear','ffhd')
+           ! all symmetric at pole
+           typeboundary(:,2*idim)=bc_symm
+           if(mype==0) print *,'symmetric maximal pole'
+        case ('hd','rhd','srhd','mhd','rmhd')
+           typeboundary(:,2*idim)=bc_symm
+           ! here we assume the ordering of variables is fixed to rho-mom-[e]-B
+           if(phys_energy) then
+            windex=2
+           else
+            windex=1
+           end if
+           select case(coordinate)
+           case(cylindrical)
+            typeboundary(phi_+1,2*idim)=bc_asymm
+            if(physics_type=='mhd'.or.physics_type=='rmhd') typeboundary(ndir+windex+phi_,2*idim)=bc_asymm
+           case(spherical)
+            typeboundary(3:ndir+1,2*idim)=bc_asymm
+            if(physics_type=='mhd'.or.physics_type=='rmhd') typeboundary(ndir+windex+2:ndir+windex+ndir,2*idim)=bc_asymm
+           case default
+            call mpistop('Pole is in cylindrical, polar, spherical coordinates!')
+           end select
+        case ('twofl','mf')
+           call mpistop('Pole treatment for twofl or mf not implemented yet')
         case default
-          call mpistop('Pole is in cylindrical, polar, spherical coordinates!')
+           call mpistop('unknown physics type for setting maximal pole boundary treatment')
         end select
-        end if
       end if
     end do
     }
@@ -1618,7 +1637,7 @@ contains
     case('cmaxleftright')
       boundspeed=3
     case default
-      call mpistop("set typeboundspeed='Einfieldt' or 'cmaxmean' or 'cmaxleftright'")
+      call mpistop("set typeboundspeed='Einfeldt' or 'cmaxmean' or 'cmaxleftright'")
     end select
 
     if (mype==0) write(unitterm, '(A30)', advance='no') 'Refine estimation: '
@@ -1800,7 +1819,6 @@ contains
     use mod_forest
     use mod_physics
     use mod_global_parameters
-    use mod_slice, only: slicenext
     use mod_input_output_helper, only: snapshot_write_header1
     integer, intent(in)                       :: fh           !< File handle
     integer(kind=MPI_OFFSET_KIND), intent(in) :: offset_tree  !< Offset of tree info
@@ -1816,19 +1834,19 @@ contains
     use mod_forest
     use mod_global_parameters
     use mod_physics, only: physics_type
-    use mod_slice, only: slicenext
     integer, intent(in)                   :: fh           !< File handle
     integer(MPI_OFFSET_KIND), intent(out) :: offset_tree  !< Offset of tree info
     integer(MPI_OFFSET_KIND), intent(out) :: offset_block !< Offset of block data
+
+    double precision                      :: rbuf(ndim)
+    double precision, allocatable         :: params(:)
     integer                               :: i, version
     integer                               :: ibuf(ndim), iw
-    double precision                      :: rbuf(ndim)
-    integer, dimension(MPI_STATUS_SIZE)   :: st
-    character(len=name_len), allocatable  :: var_names(:), param_names(:)
-    double precision, allocatable         :: params(:)
-    character(len=name_len)               :: phys_name, geom_name
     integer                               :: er, n_par, tmp_int
+    integer, dimension(MPI_STATUS_SIZE)   :: st
     logical                               :: periodic(ndim)
+    character(len=name_len), allocatable  :: var_names(:), param_names(:)
+    character(len=name_len)               :: phys_name, geom_name
 
     ! Version number
     call MPI_FILE_READ(fh, version, 1, MPI_INTEGER, st, er)
@@ -1983,8 +2001,6 @@ contains
 
   end subroutine snapshot_read_header
 
-
-
   subroutine write_snapshot
     use mod_forest
     use mod_global_parameters
@@ -1992,6 +2008,7 @@ contains
     use mod_input_output_helper, only: count_ix,block_shape_io,create_output_file
     use mod_functions_forest, only: write_forest
 
+    double precision, allocatable :: w_buffer(:)
     integer                       :: file_handle, igrid, Morton_no, iwrite
     integer                       :: ipe, ix_buffer(2*ndim+1), n_values
     integer                       :: ixO^L, n_ghost(2*ndim)
@@ -2000,15 +2017,13 @@ contains
     integer                       :: ioastatus(MPI_STATUS_SIZE)
     integer                       :: igrecvstatus(MPI_STATUS_SIZE)
     integer                       :: istatus(MPI_STATUS_SIZE)
-    type(tree_node), pointer      :: pnode
     integer(kind=MPI_OFFSET_KIND) :: offset_tree_info
     integer(kind=MPI_OFFSET_KIND) :: offset_block_data
     integer(kind=MPI_OFFSET_KIND) :: offset_offsets
-    double precision, allocatable :: w_buffer(:)
-
     integer, allocatable                       :: block_ig(:, :)
     integer, allocatable                       :: block_lvl(:)
     integer(kind=MPI_OFFSET_KIND), allocatable :: block_offset(:)
+    type(tree_node), pointer      :: pnode
 
     call MPI_BARRIER(icomm, ierrmpi)
 
@@ -2154,7 +2169,6 @@ contains
     end if
 
     call MPI_BARRIER(icomm, ierrmpi)
-
   end subroutine write_snapshot
 
   !> Routine to read in snapshots (.dat files). When it cannot recognize the
@@ -2164,22 +2178,21 @@ contains
     use mod_input_output_helper, only: count_ix
     use mod_forest
     use mod_global_parameters
-    use mod_slice, only: slicenext
     use mod_amr_solution_node, only: alloc_node
     use mod_functions_forest, only: read_forest
 
+    double precision :: ws(ixGs^T,1:ndim)
+    double precision, allocatable :: w_buffer(:)
+    double precision, dimension(:^D&,:), allocatable :: w
     integer                       :: ix_buffer(2*ndim+1), n_values, n_values_stagger
     integer                       :: ixO^L, ixOs^L
     integer                       :: file_handle, amode, igrid, Morton_no, iread
     integer                       :: istatus(MPI_STATUS_SIZE)
     integer                       :: iorecvstatus(MPI_STATUS_SIZE)
     integer                       :: ipe,inrecv,nrecv, file_version
-    logical                       :: fexist
     integer(MPI_OFFSET_KIND)      :: offset_tree_info
     integer(MPI_OFFSET_KIND)      :: offset_block_data
-    double precision, allocatable :: w_buffer(:)
-    double precision, dimension(:^D&,:), allocatable :: w
-    double precision :: ws(ixGs^T,1:ndim)
+    logical                       :: fexist
 
     if (mype==0) then
       inquire(file=trim(restart_from_file), exist=fexist)
@@ -2372,6 +2385,7 @@ contains
     use mod_functions_forest, only: read_forest
 
     double precision              :: wio(ixG^T,1:nw)
+    double precision              :: eqpar_dummy(100)
     integer                       :: fh, igrid, Morton_no, iread
     integer                       :: levmaxini, ndimini, ndirini
     integer                       :: nwini, neqparini, nxini^D
@@ -2380,9 +2394,8 @@ contains
     integer, allocatable          :: iorecvstatus(:,:)
     integer                       :: ipe,inrecv,nrecv
     integer                       :: sendini(7+^ND)
-    character(len=80)             :: filename
     logical                       :: fexist
-    double precision              :: eqpar_dummy(100)
+    character(len=80)             :: filename
 
     if (mype==0) then
       call MPI_FILE_OPEN(MPI_COMM_SELF,trim(restart_from_file), &
@@ -2512,19 +2525,19 @@ contains
     use mod_forest, only: nleafs, nleafs_active, nleafs_level
     use mod_global_parameters
 
-    logical              :: fileopen
-    integer              :: i, iw, level
-    double precision     :: wmean(1:nw), total_volume
-    double precision     :: volume_coverage(refine_max_level)
-    integer              :: nx^D, nc, ncells, dit
     double precision     :: dtTimeLast, now, cellupdatesPerSecond
     double precision     :: activeBlocksPerCore, wctPerCodeTime, timeToFinish
+    double precision     :: wmean(1:nw), total_volume
+    double precision     :: volume_coverage(refine_max_level)
+    integer              :: i, iw, level
+    integer              :: nx^D, nc, ncells, dit
+    integer              :: amode, istatus(MPI_STATUS_SIZE)
+    integer, parameter   :: my_unit = 20
+    logical, save        :: opened  = .false.
+    logical              :: fileopen
     character(len=40)    :: fmt_string
     character(len=80)    :: filename
     character(len=2048)  :: line
-    logical, save        :: opened  = .false.
-    integer              :: amode, istatus(MPI_STATUS_SIZE)
-    integer, parameter   :: my_unit = 20
 
     ! Compute the volume-average of w**1 = w
     call get_volume_average(1, wmean, total_volume)
@@ -2640,13 +2653,13 @@ contains
   subroutine printlog_regression_test()
     use mod_global_parameters
 
+    double precision   :: modes(nw, 2), volume
     integer, parameter :: n_modes = 2
+    integer            :: power
+    integer              :: amode, istatus(MPI_STATUS_SIZE)
+    logical, save      :: file_open = .false.
     character(len=40)  :: fmt_string
     character(len=2048)  :: line
-    logical, save      :: file_open = .false.
-    integer            :: power
-    double precision   :: modes(nw, n_modes), volume
-    integer              :: amode, istatus(MPI_STATUS_SIZE)
     character(len=80)    :: filename
 
     do power = 1, n_modes
@@ -2684,9 +2697,10 @@ contains
     integer, intent(in)           :: power     !< Which mode to compute
     double precision, intent(out) :: mode(nw)  !< The computed mode
     double precision, intent(out) :: volume    !< The total grid volume
-    integer                       :: iigrid, igrid, iw
+
     double precision              :: wsum(nw+1)
     double precision              :: dsum_recv(1:nw+1)
+    integer                       :: iigrid, igrid, iw
 
     wsum(:) = 0
 
@@ -2754,9 +2768,9 @@ contains
     end interface
     double precision, intent(out) :: f_avg  !< The volume average of func
     double precision, intent(out) :: volume    !< The total grid volume
-    integer                       :: iigrid, igrid, i^D
     double precision              :: wsum(2)
     double precision              :: dsum_recv(2)
+    integer                       :: iigrid, igrid, i^D
 
     wsum(:) = 0
 
@@ -2790,8 +2804,8 @@ contains
 
     double precision, intent(out) :: wmax(nw)  !< The global maxima
 
-    integer                       :: iigrid, igrid, iw
     double precision              :: wmax_mype(nw),wmax_recv(nw)
+    integer                       :: iigrid, igrid, iw
 
     wmax_mype(1:nw) = -bigdouble
 
@@ -2817,8 +2831,8 @@ contains
 
     double precision, intent(out) :: wmin(nw)  !< The global maxima
 
-    integer                       :: iigrid, igrid, iw
     double precision              :: wmin_mype(nw),wmin_recv(nw)
+    integer                       :: iigrid, igrid, iw
 
     wmin_mype(1:nw) = bigdouble
 
@@ -2837,7 +2851,5 @@ contains
     wmin(1:nw)=wmin_recv(1:nw)
 
   end subroutine get_global_minima
-
-
 
 end module mod_input_output

@@ -1,0 +1,74 @@
+&testlist
+        teststr=''
+/
+
+ &filelist
+        base_filename='Brio_Wu'
+        autoconvert=F
+        saveprim=F
+        typefilelog='regression_test'
+ /
+
+ &savelist
+        dtsave_log=0.001d0
+ /
+
+ &stoplist
+        time_max=0.01d0 
+ /
+
+ &methodlist
+        time_stepper=  'threestep'
+        time_integrator= 'IMEX_ARS3'
+        flux_scheme=    20*'hll'
+        limiter= 20*'weno3'
+        check_small_values=.false 
+        small_values_method = 'replace'
+        small_pressure = 1.d-12
+        small_density = 1.d-12
+ /
+
+ &boundlist
+        typeboundary_min1=9*'cont' 
+        typeboundary_max1=9*'cont' 
+ /
+
+ &meshlist
+        refine_criterion=3
+        refine_max_level=5
+        w_refine_weight(1)=0.5
+        w_refine_weight(3)=0.5
+        refine_threshold=20*0.05d0
+        domain_nx1=1024
+        block_nx1=16
+        xprobmin1=-1.d0
+        xprobmax1= 1.d0
+ /
+
+ &paramlist
+        courantpar=0.6d0
+        slowsteps=20000
+ /
+
+ &rmhd_list
+     typedivbfix='none'
+     He_abundance = 0.0d0 
+     rmhd_energy = .true.
+     rmhd_gamma = 1.6666667d0
+     rmhd_radiation_formalism = 'fld'
+     rmhd_radiation_force = .T.
+     rmhd_energy_interact = .T.
+     rmhd_radiation_diffusion = .T.
+     rmhd_radiation_advection = .T.
+ /
+
+ &fld_list
+     fld_Eint_split = .false.
+     fld_Radforce_split = .false.
+     fld_opacity_law = 'const'
+     fld_kappa0 = 0.4d4
+     fld_diff_scheme = 'mg'
+     fld_interaction_method = 'Halley'
+     fld_fluxlimiter = 'Pomraning'
+     fld_diff_tol = 1.d-7
+ /

@@ -39,14 +39,14 @@ contains
     logical, intent(in) :: forwardm(numL)
     character(len=std_len), intent(in) :: ftype,tcondi
 
-    integer :: indomain,ipe_now,igrid_now,igrid,j,iL
-    integer :: ipoint_in,ipoint_out,numSend,nRT,nRTmax
     double precision :: x3d(3),statusF(4+ndim),statusL(numL,4+ndim+nwL),statusS(numL,4+ndim+nwL)
-    logical :: continueL(numL),myL(numL)
-    logical :: stopT,forward
-    integer :: ipointm(numL),igridm(numL)
     double precision :: xf(numP,ndim),wP(numP,nwP),wL(1+nwL)
     double precision, allocatable :: data_send(:,:,:),data_recv(:,:,:)
+    integer :: indomain,ipe_now,igrid_now,igrid,j,iL
+    integer :: ipoint_in,ipoint_out,numSend,nRT,nRTmax
+    integer :: ipointm(numL),igridm(numL)
+    logical :: continueL(numL),myL(numL)
+    logical :: stopT,forward
 
     if (tcondi/='TRAC') then
       wPm=zero
@@ -204,11 +204,11 @@ contains
     logical, intent(in) :: forward
     character(len=std_len), intent(in) :: ftype,tcondi
 
+    double precision :: x3d(3),statusF(4+ndim),status_bcast(4+ndim+nwL)
+    double precision, allocatable :: data_send(:,:),data_recv(:,:)
     integer :: indomain,ipoint_in,ipe_now,igrid_now,igrid,j
     integer :: ipoint_out,ipe_next,igrid_next,numRT
-    double precision :: x3d(3),statusF(4+ndim),status_bcast(4+ndim+nwL)
     logical :: stopT
-    double precision, allocatable :: data_send(:,:),data_recv(:,:)
 
     wP=zero
     wL=zero
@@ -301,9 +301,9 @@ contains
     character(len=std_len), intent(in) :: ftype,tcondi
     double precision, intent(inout) :: statusF(4+ndim)
 
+    double precision :: xfout(ndim)
     integer :: ipe_next,igrid_next,ip_in,ip_out,j,indomain
     logical :: newpe,stopT
-    double precision :: xfout(ndim)
 
     ip_in=ipoint_in
     newpe=.FALSE.
@@ -363,9 +363,9 @@ contains
     logical, intent(inout) :: newpe,stopT
 
     double precision :: dxb^D,xb^L,xbmid^D
+    double precision :: xbn^L
     integer :: idn^D,my_neighbor_type,inblock
     integer :: ic^D,inc^D,ipe_neighbor,igrid_neighbor
-    double precision :: xbn^L
 
     ^D&xbmin^D=rnode(rpxmin^D_,igrid)\
     ^D&xbmax^D=rnode(rpxmax^D_,igrid)\
@@ -437,11 +437,11 @@ contains
     character(len=std_len), intent(in) :: ftype,tcondi
 
     double precision :: dxb^D,xb^L
-    integer          :: ip,inblock,ixI^L,ixO^L,j
     double precision :: field(ixg^T,ndir)
     double precision :: xs1(ndim),xs2(ndim),K1(ndim),K2(ndim)
     double precision :: xfpre(ndim),xfnow(ndim),xfnext(ndim)
     double precision :: Tpre,Tnow,Tnext,dTds,Lt,Lr,ds,T_bott,trac_delta
+    integer          :: ip,inblock,ixI^L,ixO^L,j
 
     ixI^L=ixG^LL;
     ixO^L=ixM^LL;
@@ -540,11 +540,11 @@ contains
     double precision :: xfn(ndim),K(ndim)
     character(len=std_len) :: ftype
 
-    integer          :: ixb^D,ix^D,ixbl^D,ixO^L,j
     double precision :: xd^D
     double precision :: field(0:1^D&,ndir),Fx(ndim),factor(0:1^D&)
     double precision :: vector(ixI^S,1:ndir)
     double precision :: Ftotal
+    integer          :: ixb^D,ix^D,ixbl^D,ixO^L,j
 
     ^D&ixbl^D=floor((xfn(^D)-ps(igrid)%x(ixImin^DD,^D))/dxb^D)+ixImin^D;
     ^D&xd^D=(xfn(^D)-ps(igrid)%x(ixbl^DD,^D))/dxb^D;
@@ -553,9 +553,13 @@ contains
     vector=zero
 
     field=zero
-    if (ftype=='Bfield') then
-      if (B0field) then
-        vector(ixO^S,1:ndir)=ps(igrid)%w(ixO^S,iw_mag(1:ndir))+ps(igrid)%B0(ixO^S,1:ndir,0)
+    if(ftype=='Bfield') then
+      if(B0field) then
+        if(allocated(iw_mag)) then
+          vector(ixO^S,1:ndir)=ps(igrid)%w(ixO^S,iw_mag(1:ndir))+ps(igrid)%B0(ixO^S,1:ndir,0)
+        else
+          vector(ixO^S,1:ndir)=ps(igrid)%B0(ixO^S,1:ndir,0)
+        endif
       else
         vector(ixO^S,1:ndir)=ps(igrid)%w(ixO^S,iw_mag(1:ndir))
       endif
@@ -610,9 +614,9 @@ contains
     double precision, intent(inout) :: Tloc
     double precision, intent(in) :: dxb^D
 
-    integer          :: ixb^D,ix^D,ixbl^D,j,ixO^L
     double precision :: xd^D
     double precision :: factor(0:1^D&),Tnear(0:1^D&)
+    integer          :: ixb^D,ix^D,ixbl^D,j,ixO^L
 
     ^D&ixbl^D=floor((xloc(^D)-ps(igrid)%x(ixImin^DD,^D))/dxb^D)+ixImin^D;
     ^D&xd^D=(xloc(^D)-ps(igrid)%x(ixbl^DD,^D))/dxb^D;

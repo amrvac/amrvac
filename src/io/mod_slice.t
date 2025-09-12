@@ -4,14 +4,11 @@ module mod_slice
   use mod_comm_lib, only: mpistop
   implicit none
 
+  !> Slice coordinates, see @ref slices.md
+  double precision :: slicecoord(1000)
+
   !> Maximum number of slices
   integer, parameter :: nslicemax=1000
-
-  !> Slice coordinates, see @ref slices.md
-  double precision :: slicecoord(nslicemax)
-
-  !> the file number of slices
-  integer :: slicenext
 
   !> Number of slices to output
   integer :: nslices
@@ -19,11 +16,14 @@ module mod_slice
   !> The slice direction for each slice
   integer :: slicedir(nslicemax)
 
-  !> choose data type of slice: vtu, vtuCC, dat, or csv
-  character(len=std_len) :: slice_type
-
   !> tag for MPI message
   integer, private :: itag
+
+  !> choose data type of slice: vtu, vtuCC, dat, or csv
+  character(len=std_len) :: slice_type
+  
+  !> igrid and ipe of the leaf blocks on the slice, with the first (1,1:2) stores the nleafs and nparents
+  integer, allocatable :: sfc_sub(:,:)
 
 contains
 
@@ -55,13 +55,17 @@ contains
     integer, intent(in) :: dir
     double precision, intent(in) :: xslice
     ! .. local ..
+    double precision,dimension(0:nw+nwauxio) :: normconv 
     integer :: Njgrid, jgrid
     integer, dimension(ndim-1) :: ixsubGlo, ixsubGhi
     integer, dimension(ndim-1) :: ixsubMlo, ixsubMhi
     integer :: size_subblock_io, nx^D, slice_fh, nwexpand
     integer :: type_subblock_io, type_subblockC_io, type_subblock_x_io, type_subblockC_x_io
     integer, dimension(ndim) :: sizes, subsizes, start
-    double precision,dimension(0:nw+nwauxio)          :: normconv 
+
+    double precision, dimension(ndim-1) :: xprobminsub, xprobmaxsub
+    integer, dimension(ndim-1) :: block_nx_sub, domain_nx_sub
+    logical, dimension(ndim-1) :: periodBsub
   
     ! Preamble: 
     nx^D=ixMhi^D-ixMlo^D+1;
@@ -98,6 +102,11 @@ contains
        subsizes(1)=nx2;subsizes(2)=nx3;
        start(1)=ixMlo2-1;start(2)=ixMlo3-1;
        size_subblock_io=nx2*nx3*(nw+nwexpand)*size_double
+       xprobminsub(1)=xprobmin2; xprobmaxsub(1)=xprobmax2;
+       xprobminsub(2)=xprobmin3; xprobmaxsub(2)=xprobmax3;
+       domain_nx_sub(1)=domain_nx2; domain_nx_sub(2)=domain_nx3;
+       block_nx_sub(1)=block_nx2; block_nx_sub(2)=block_nx3;
+       periodBsub(1)=periodB(2); periodBsub(2)=periodB(3);
     case (2)
        sizes(1) = ixGhi1; sizes(2) = ixGhi3;
        ixsubGlo(1) = ixGlo1; ixsubGlo(2) = ixGlo3;
@@ -105,6 +114,11 @@ contains
        subsizes(1)=nx1;subsizes(2)=nx3;
        start(1)=ixMlo1-1;start(2)=ixMlo3-1;
        size_subblock_io=nx1*nx3*(nw+nwexpand)*size_double
+       xprobminsub(1)=xprobmin1; xprobmaxsub(1)=xprobmax1;
+       xprobminsub(2)=xprobmin3; xprobmaxsub(2)=xprobmax3;
+       domain_nx_sub(1)=domain_nx1; domain_nx_sub(2)=domain_nx3;
+       block_nx_sub(1)=block_nx1; block_nx_sub(2)=block_nx3;
+       periodBsub(1)=periodB(1); periodBsub(2)=periodB(3);
     case (3)
        ixsubGlo(1) = ixGlo1; ixsubGlo(2) = ixGlo2;
        ixsubGhi(1) = ixGhi1; ixsubGhi(2) = ixGhi2;
@@ -112,6 +126,11 @@ contains
        subsizes(1)=nx1;subsizes(2)=nx2;
        start(1)=ixMlo1-1;start(2)=ixMlo2-1;
        size_subblock_io=nx1*nx2*(nw+nwexpand)*size_double
+       xprobminsub(1)=xprobmin1; xprobmaxsub(1)=xprobmax1;
+       xprobminsub(2)=xprobmin2; xprobmaxsub(2)=xprobmax2;
+       domain_nx_sub(1)=domain_nx1; domain_nx_sub(2)=domain_nx2;
+       block_nx_sub(1)=block_nx1; block_nx_sub(2)=block_nx2;
+       periodBsub(1)=periodB(1); periodBsub(2)=periodB(2);
     case default
        call mpistop("slice direction not clear in put_slice")
     end select
@@ -124,12 +143,20 @@ contains
        subsizes(1)=nx2
        start(1)=ixMlo2-1
        size_subblock_io=nx2*(nw+nwexpand)*size_double
+       xprobminsub(1)=xprobmin2; xprobmaxsub(1)=xprobmax2;
+       domain_nx_sub(1)=domain_nx2;
+       block_nx_sub(1)=block_nx2;
+       periodBsub(1)=periodB(2);
     case (2)
        ixsubGlo(1) = ixGlo1; ixsubGhi(1) = ixGhi1;
        sizes(1) = ixGhi1
        subsizes(1)=nx1
        start(1)=ixMlo1-1
        size_subblock_io=nx1*(nw+nwexpand)*size_double
+       xprobminsub(1)=xprobmin1; xprobmaxsub(1)=xprobmax1;
+       domain_nx_sub(1)=domain_nx1;
+       block_nx_sub(1)=block_nx1;
+       periodBsub(1)=periodB(1);
     case default
        call mpistop("slice direction not clear in put_slice")
     end select
@@ -209,18 +236,19 @@ contains
     call MPI_TYPE_FREE(type_subblockC_io,ierrmpi)
     call MPI_TYPE_FREE(type_subblockC_x_io,ierrmpi)
 
+    if (allocated(sfc_sub)) deallocate(sfc_sub)
 
   contains
 
     subroutine put_slice_vtu
 
       use mod_calculate_xw
+      integer :: status(MPI_STATUS_SIZE), ipe
+      logical             :: fileopen
       character(len=1024) :: filename, xlabel
       character(len=79)   :: xxlabel
-      logical             :: fileopen
       character(len=name_len) :: wnamei(1:nw+nwauxio),xandwnamei(1:ndim+nw+nwauxio)
       character(len=1024) :: outfilehead
-      integer :: status(MPI_STATUS_SIZE), ipe
 
       if (mype==0) then
 
@@ -308,11 +336,11 @@ contains
       ! This remainder part only for more than 1D, but nesting with NOONED gives problems 
       {#IFNDEF D1
       ! .. local ..
+      double precision              :: x_VTK(1:3)
+      double precision, parameter   :: minvalue = 1.0d-99, maxvalue = 1.0d+99
       integer                       :: ixC^L, ixCC^L, nc, np, iw
       integer                       :: nx^DM, nxC^DM, icell, ix^DM
-      double precision              :: x_VTK(1:3)
       integer                       :: VTK_type
-      double precision, parameter   :: minvalue = 1.0d-99, maxvalue = 1.0d+99
 
       {^DM&ixCCmin^DM = ixsubMlo(^DM);}
       {^DM&ixCCmax^DM = ixsubMhi(^DM);}
@@ -430,14 +458,14 @@ contains
     subroutine put_slice_csv
 
       use mod_calculate_xw
+      integer                       :: iw, ipe, itag
+      integer                       :: status(MPI_STATUS_SIZE)
+      logical                       :: fileopen
       character(len=1024)           :: filename, xlabel
       character(len=79)             :: xxlabel
-      logical                       :: fileopen
       character(len=name_len)       :: wnamei(1:nw+nwauxio),xandwnamei(1:ndim+nw+nwauxio)
       character(len=1024)           :: outfilehead
-      integer                       :: iw, ipe, itag
       character(len=1024)           :: line
-      integer                       :: status(MPI_STATUS_SIZE)
 
       if (mype==0) then
          inquire(slice_fh,opened=fileopen)
@@ -499,9 +527,9 @@ contains
     subroutine put_slice_line(jout,file_handle)
       integer, intent(in) :: jout, file_handle
       ! .. local ..
-      character(len=1024) ::line, data
-      integer :: ix^D,idir,iw
       double precision, parameter :: minvalue = 1.0d-99, maxvalue = 1.0d+99
+      integer :: ix^D,idir,iw
+      character(len=1024) ::line, data
 
       {^IFTHREED
       do ix2=ixsubMlo(2),ixsubMhi(2)
@@ -557,15 +585,76 @@ contains
 
     subroutine put_slice_dat
 
-      integer, dimension(max_blocks) :: iorequest
+      use mod_forest, only: tree_node, igrid_to_node
+      use mod_input_output_helper, only: version_number, save_now
+      use mod_physics, only: physics_type, phys_write_info
+
+      integer, dimension(max_blocks*2) :: iorequest
       integer, dimension(MPI_STATUS_SIZE,max_blocks) :: iostatus
-      integer(kind=MPI_OFFSET_KIND) :: offset
+      integer(kind=MPI_OFFSET_KIND) :: offset, offset1
       integer :: nsubleafs
+      integer :: amode, status(MPI_STATUS_SIZE), iwrite
       character(len=1024) :: filename, xlabel
       character(len=79)   :: xxlabel
-      integer :: amode, status(MPI_STATUS_SIZE), iwrite
+      character(len=name_len) :: dname
+
+      integer :: nsubparents, iw, ileaf, inode
+      integer(kind=MPI_OFFSET_KIND) :: block_offset, tree_offset
+      integer, allocatable :: block_ig_sub(:,:)
+      integer, allocatable :: block_lvl_sub(:)
+      integer(kind=MPI_OFFSET_KIND), allocatable :: block_offset_sub(:)
+      logical, allocatable :: isleaf_sub(:)
+      type(tree_node), pointer :: pnode
 
       nsubleafs=Morton_sub_stop(npe-1)
+
+      ! only on processor 0, prepare all the data for writing header
+      if (mype==0) then
+
+         if (nsubleafs /= sfc_sub(0,1)) error stop "nsubleafs /= sfc_sub(0,1)"
+         nsubparents = sfc_sub(0,2)
+         allocate(block_ig_sub(ndim-1,nsubleafs))
+         allocate(block_lvl_sub(nsubleafs))
+         allocate(block_offset_sub(nsubleafs))
+         allocate(isleaf_sub(nsubleafs+nsubparents))
+
+         block_offset = int(0,kind=MPI_OFFSET_KIND)
+         ileaf = 0
+         ! get block_ig_sub, block_lvl_sub, block_offset_sub
+         do inode=1,nsubleafs+nsubparents
+            if (sfc_sub(inode,1) == 0) then
+               isleaf_sub(inode) = .false.
+            else
+               isleaf_sub(inode) = .true.
+               pnode => igrid_to_node(sfc_sub(inode,1),sfc_sub(inode,2))%node
+               ileaf = ileaf + 1
+               {^IFTHREED
+               select case (dir)
+                  case (1)
+                     block_ig_sub(:,ileaf) = [ pnode%ig2, pnode%ig3 ]
+                  case (2)
+                     block_ig_sub(:,ileaf) = [ pnode%ig1, pnode%ig3 ]
+                  case (3)
+                     block_ig_sub(:,ileaf) = [ pnode%ig1, pnode%ig2 ]
+               end select
+               }
+               {^IFTWOD
+               select case (dir)
+                  case (1)
+                     block_ig_sub(:,ileaf) = [ pnode%ig2 ]
+                  case (2)
+                     block_ig_sub(:,ileaf) = [ pnode%ig1 ]
+               end select
+               }
+               block_lvl_sub(ileaf) = pnode%level
+               ! will not save ghost cells, start from offset_block_data
+               block_offset_sub(ileaf) = block_offset
+               block_offset = block_offset + int(2*(ndim-1)*size_int,kind=MPI_OFFSET_KIND)
+               block_offset = block_offset + int(product(block_nx_sub)*nw*size_double,kind=MPI_OFFSET_KIND)
+            end if
+         end do
+      end if
+
       ! generate filename
       write(xlabel,"(D9.2)")xslice
       xxlabel=trim(xlabel)
@@ -579,6 +668,114 @@ contains
          close(unit=slice_fh)
       end if
 
+      ! header writing 
+      if (mype==0) then
+         ! call select_slice(dir,xslice,.true.,slice_fh,normconv)
+         amode=ior(MPI_MODE_APPEND,MPI_MODE_WRONLY)
+         call MPI_FILE_OPEN(MPI_COMM_SELF,filename,amode,MPI_INFO_NULL, &
+              slice_fh,ierrmpi)
+
+         call MPI_FILE_WRITE(slice_fh, version_number, 1, MPI_INTEGER, status, ierrmpi)
+         ! two offsets for tree and block data
+         call MPI_FILE_WRITE(slice_fh, 0, 1, MPI_INTEGER, status, ierrmpi)
+         call MPI_FILE_WRITE(slice_fh, 0, 1, MPI_INTEGER, status, ierrmpi)
+         call MPI_FILE_WRITE(slice_fh, nw, 1, MPI_INTEGER, status, ierrmpi)
+         call MPI_FILE_WRITE(slice_fh, ndir, 1, MPI_INTEGER, status, ierrmpi)
+         call MPI_FILE_WRITE(slice_fh, ndim-1, 1, MPI_INTEGER, status, ierrmpi)
+         call MPI_FILE_WRITE(slice_fh, levmax_sub, 1, MPI_INTEGER, status, ierrmpi)
+         call MPI_FILE_WRITE(slice_fh, nsubleafs, 1, MPI_INTEGER, status, ierrmpi)
+         call MPI_FILE_WRITE(slice_fh, nsubparents, 1, MPI_INTEGER, status, ierrmpi)
+         call MPI_FILE_WRITE(slice_fh, it, 1, MPI_INTEGER, status, ierrmpi)
+         ! Note: It is nice when this double has an even number of 4 byte
+         ! integers before it (for alignment)
+         call MPI_FILE_WRITE(slice_fh, global_time, 1, MPI_DOUBLE_PRECISION, status, ierrmpi)
+
+         call MPI_FILE_WRITE(slice_fh, xprobminsub, ndim-1, &
+               MPI_DOUBLE_PRECISION, status, ierrmpi)
+         call MPI_FILE_WRITE(slice_fh, xprobmaxsub, ndim-1, &
+               MPI_DOUBLE_PRECISION, status, ierrmpi)
+         call MPI_FILE_WRITE(slice_fh, domain_nx_sub, ndim-1, &
+               MPI_INTEGER, status, ierrmpi)
+         call MPI_FILE_WRITE(slice_fh, block_nx_sub, ndim-1, &
+               MPI_INTEGER, status, ierrmpi)
+
+         ! Periodicity (assume all variables are periodic if one is)
+         call MPI_FILE_WRITE(slice_fh, periodBsub, ndim-1, MPI_LOGICAL, status, ierrmpi)
+
+         ! Geometry
+         call MPI_FILE_WRITE(slice_fh, geometry_name(1:name_len), &
+               name_len, MPI_CHARACTER, status, ierrmpi)
+
+         ! Write stagger grid mark
+         call MPI_FILE_WRITE(slice_fh, stagger_grid, 1, MPI_LOGICAL, status, ierrmpi)
+
+         do iw = 1, nw
+            ! using directly trim(adjustl((cons_wnames(iw)))) in MPI_FILE_WRITE call 
+            ! does not work, there will be trailing characters
+            dname = trim(adjustl((cons_wnames(iw))))
+            call MPI_FILE_WRITE(slice_fh, dname, name_len, MPI_CHARACTER, status, ierrmpi)
+         end do
+
+         ! Physics related information
+         call MPI_FILE_WRITE(slice_fh, physics_type, name_len, MPI_CHARACTER, status, ierrmpi)
+
+         ! Format:
+         ! integer :: n_par
+         ! double precision :: values(n_par)
+         ! character(n_par * name_len) :: names
+         call phys_write_info(slice_fh)
+
+         ! Write snapshotnext etc., which is useful for restarting.
+         ! Note we add one, since snapshotnext is updated *after* this procedure
+         if(pass_wall_time.or.save_now) then
+            call MPI_FILE_WRITE(slice_fh, snapshotnext, 1, MPI_INTEGER, status, ierrmpi)
+         else
+            call MPI_FILE_WRITE(slice_fh, snapshotnext+1, 1, MPI_INTEGER, status, ierrmpi)
+         end if
+         call MPI_FILE_WRITE(slice_fh, slicenext, 1, MPI_INTEGER, status, ierrmpi)
+         call MPI_FILE_WRITE(slice_fh, collapsenext, 1, MPI_INTEGER, status, ierrmpi)
+
+         call MPI_FILE_GET_POSITION(slice_fh, tree_offset, ierrmpi)
+         call MPI_FILE_WRITE(slice_fh, isleaf_sub, nsubleafs+nsubparents, MPI_LOGICAL, status, ierrmpi)
+         call MPI_FILE_WRITE(slice_fh, block_lvl_sub, nsubleafs, MPI_INTEGER, status, ierrmpi)
+         call MPI_FILE_WRITE(slice_fh, block_ig_sub, size(block_ig_sub), MPI_INTEGER, status, ierrmpi)
+
+         ! add the block_offset(above) to block_offset_sub
+         call MPI_FILE_GET_POSITION(slice_fh, block_offset, ierrmpi)
+         block_offset_sub(:) = block_offset_sub(:) + block_offset + &
+            int(nsubleafs*2*size_int, kind=MPI_OFFSET_KIND)
+
+         call MPI_FILE_WRITE(slice_fh, block_offset_sub, nsubleafs, MPI_OFFSET, status, ierrmpi)
+
+         ! get the right block_offset
+         call MPI_FILE_GET_POSITION(slice_fh, block_offset, ierrmpi)
+         if (block_offset - tree_offset /= &
+            (nsubleafs + nsubparents) * size_logical + &
+            nsubleafs * ((ndim-1+1) * size_int + 2 * size_int)) then
+            print *, "Warning: MPI_OFFSET type /= 8 bytes"
+            print *, "This *could* cause problems when reading .dat files"
+         end if
+
+         ! come back to write offsets
+         call MPI_FILE_SEEK(slice_fh, int(size_int,kind=MPI_OFFSET_KIND), MPI_SEEK_SET, ierrmpi)
+         call MPI_FILE_WRITE(slice_fh, int(tree_offset), 1, MPI_INTEGER, status, ierrmpi)
+         call MPI_FILE_WRITE(slice_fh, int(block_offset), 1, MPI_INTEGER, status, ierrmpi)
+
+         call MPI_FILE_CLOSE(slice_fh,ierrmpi)
+      end if
+
+      ! Broadcast nsubleafs and nsubparents to all processors
+      call MPI_BCAST(nsubleafs, 1, MPI_INTEGER, 0, icomm, ierrmpi)
+      call MPI_BCAST(nsubparents, 1, MPI_INTEGER, 0, icomm, ierrmpi)
+
+      ! Allocate block_offset_sub on all processors (if not already allocated on processor 0)
+      if (mype /= 0) then
+         allocate(block_offset_sub(nsubleafs))
+      end if
+
+      ! Broadcast block_offset_sub from processor 0 to all processors
+      call MPI_BCAST(block_offset_sub, nsubleafs, MPI_OFFSET, 0, icomm, ierrmpi)
+
       amode=ior(MPI_MODE_CREATE,MPI_MODE_WRONLY)
       call MPI_FILE_OPEN(icomm,filename,amode,MPI_INFO_NULL,slice_fh,ierrmpi)
       iorequest=MPI_REQUEST_NULL
@@ -586,9 +783,11 @@ contains
 
       do jgrid=1,Njgrid
          iwrite=iwrite+1
-         offset=int(size_subblock_io,kind=MPI_OFFSET_KIND) &
-              *int(Morton_sub_start(mype)+jgrid-2,kind=MPI_OFFSET_KIND)
-         call MPI_FILE_IWRITE_AT(slice_fh,offset,ps_sub(jgrid)%w,1,type_subblock_io, &
+         offset=block_offset_sub(int(Morton_sub_start(mype)+jgrid-1))
+         call MPI_FILE_IWRITE_AT(slice_fh,offset,0,2*(ndim-1),MPI_INTEGER,iorequest(iwrite),ierrmpi) 
+         iwrite=iwrite+1
+         offset1=offset+int(2*(ndim-1)*size_int,kind=MPI_OFFSET_KIND)
+         call MPI_FILE_IWRITE_AT(slice_fh,offset1,ps_sub(jgrid)%w,1,type_subblock_io, &
               iorequest(iwrite),ierrmpi)
       end do
 
@@ -596,26 +795,11 @@ contains
       call MPI_BARRIER(icomm, ierrmpi)
       call MPI_FILE_CLOSE(slice_fh,ierrmpi)
 
-      if (mype==0) then
-         amode=ior(MPI_MODE_APPEND,MPI_MODE_WRONLY)
-         call MPI_FILE_OPEN(MPI_COMM_SELF,filename,amode,MPI_INFO_NULL, &
-              slice_fh,ierrmpi)
-
-         call select_slice(dir,xslice,.true.,slice_fh,normconv)
-
-         {call MPI_FILE_WRITE(slice_fh,subsizes(^DE-1),1,MPI_INTEGER,status,ierrmpi)\}
-!         call MPI_FILE_WRITE(slice_fh,eqpar,neqpar+nspecialpar, &
-!              MPI_DOUBLE_PRECISION,status,ierrmpi)
-         call MPI_FILE_WRITE(slice_fh,nsubleafs,1,MPI_INTEGER,status,ierrmpi)
-         call MPI_FILE_WRITE(slice_fh,levmax_sub,1,MPI_INTEGER,status,ierrmpi)
-         call MPI_FILE_WRITE(slice_fh,ndim-1,1,MPI_INTEGER,status,ierrmpi)
-         call MPI_FILE_WRITE(slice_fh,ndir,1,MPI_INTEGER,status,ierrmpi)
-         call MPI_FILE_WRITE(slice_fh,nw,1,MPI_INTEGER,status,ierrmpi)
-!         call MPI_FILE_WRITE(slice_fh,neqpar+nspecialpar,1,MPI_INTEGER,status,ierrmpi)
-         call MPI_FILE_WRITE(slice_fh,it,1,MPI_INTEGER,status,ierrmpi)
-         call MPI_FILE_WRITE(slice_fh,global_time,1,MPI_DOUBLE_PRECISION,status,ierrmpi)
-
-         call MPI_FILE_CLOSE(slice_fh,ierrmpi)
+      deallocate(block_offset_sub)
+      if (mype == 0) then
+         deallocate(block_ig_sub)
+         deallocate(block_lvl_sub)
+         deallocate(isleaf_sub)
       end if
 
     end subroutine put_slice_dat
@@ -624,13 +808,13 @@ contains
 
       use mod_calculate_xw
       integer::  iw
+      integer :: amode, iwrite, status(MPI_STATUS_SIZE)
+      logical, save :: opened=.false.
       character(len=name_len) :: wnamei(1:nw+nwauxio),xandwnamei(1:ndim+nw+nwauxio)
       character(len=1024) :: outfilehead
-      logical, save :: opened=.false.
       character(len=1024) ::line, data
       character(len=1024) :: filename, xlabel
       character(len=79)   :: xxlabel
-      integer :: amode, iwrite, status(MPI_STATUS_SIZE)
 
       {^IFONED
       ! generate filename: 
@@ -691,7 +875,7 @@ contains
   end subroutine put_slice
 
   subroutine select_slice(dir,xslice,writeonly,file_handle,normconv)
-    use mod_forest, only: tree_node_ptr, tree_root, Morton_sub_start, Morton_sub_stop
+    use mod_forest, only: iglevel1_sfc, sfc_iglevel1, tree_node_ptr, tree_root, Morton_sub_start, Morton_sub_stop
     use mod_global_parameters
     integer, intent(in) :: dir
     double precision, intent(in) :: xslice
@@ -701,61 +885,60 @@ contains
     ! .. local ..
     integer :: ig^D, jgrid, slice_fh, ipe, mylevmax
     integer, dimension(nlevelshi) :: igslice
+    integer, allocatable :: iglevel1_sub_sfc(:)
+    integer :: ig^L, ngsub1, jglevel1, igsorted, kgrid, ngmax
 
+    kgrid = 0
     jgrid = 0
     mylevmax = 0
+    jglevel1 = 0
 
     ! Find the global slice index for every level:
     call get_igslice(dir,xslice,igslice)
+    igmin^D=1;igmax^D=ng^D(1);
 
     ! Traverse forest to find grids indicating slice:
-    {^IFTHREED
     select case(dir)
-    case (1)
-       ig1 = igslice(1)
-       do ig3=1,ng3(1)
-          do ig2=1,ng2(1)
-             call traverse_slice(tree_root(ig^D))
-          end do
-       end do
-    case (2)
-       ig2 = igslice(1)
-       do ig3=1,ng3(1)
-          do ig1=1,ng1(1)
-             call traverse_slice(tree_root(ig^D))
-          end do
-       end do
-    case (3)
-       ig3 = igslice(1)
-       do ig2=1,ng2(1)
-          do ig1=1,ng1(1)
-             call traverse_slice(tree_root(ig^D))
-          end do
-       end do
+    {case(^D)
+      igmin^D=igslice(1);
+      igmax^D=igslice(1);
+    \}
     case default
        call mpistop("slice direction not clear in select_slice")
     end select
-    }
-    {^IFTWOD
-    select case(dir)
-    case (1)
-       ig1 = igslice(1)
-       do ig2=1,ng2(1)
-          call traverse_slice(tree_root(ig^D))
-       end do
-    case (2)
-       ig2 = igslice(1)
-       do ig1=1,ng1(1)
-          call traverse_slice(tree_root(ig^D))
-       end do
-    case default
-       call mpistop("slice direction not clear in select_slice")
-    end select
-    }
-    {^IFONED
-    ig1 = igslice(1)
-    call traverse_slice(tree_root(ig^D))
-    }
+
+    ! total number of level 1 blocks in the slice
+    ngsub1={(igmax^D-igmin^D+1)|*}
+    allocate(iglevel1_sub_sfc(ngsub1))
+    if (.not. allocated(sfc_sub)) then 
+      {^IFTHREED
+      ngmax = ngsub1*(4**refine_max_level-1)
+      \}
+      {^IFTWOD
+      ngmax = ngsub1*(2**refine_max_level-1)
+      \}
+      {^IFONED
+      ngmax = ngsub1
+      \}
+      allocate(sfc_sub(0:ngmax,1:3)) ! the first three are nleafs, nparents and isleaf (0 or 1)
+      sfc_sub = 0
+    end if
+
+    ! get the sfc index of the level 1 blocks in the slice
+    {do ig^DB=igmin^DB,igmax^DB\}
+       jglevel1=jglevel1+1
+       iglevel1_sub_sfc(jglevel1)=iglevel1_sfc(ig^D)
+    {end do \}
+
+    ! Sort the array from small to big using quicksort
+    call quicksort_integer(iglevel1_sub_sfc, 1, ngsub1)
+
+    ! traverse level 1 blocks depending on the sub morton order
+    do igsorted=1,ngsub1
+       {ig^D=sfc_iglevel1(^D,iglevel1_sub_sfc(igsorted))\}
+       call traverse_slice(tree_root(ig^D))
+    end do
+   deallocate(iglevel1_sub_sfc)
 
     if (.not.writeonly) then
        ! Synchronize the levmax_sub for output (only rank 0 needs it): 
@@ -782,9 +965,21 @@ contains
       integer :: ic^D
       integer, dimension(MPI_STATUS_SIZE) :: status
 
-      if (writeonly) then
-         call MPI_FILE_WRITE(file_handle,tree%node%leaf,1,MPI_LOGICAL, &
-              status,ierrmpi)
+      ! if (writeonly) then
+      !    call MPI_FILE_WRITE(file_handle,tree%node%leaf,1,MPI_LOGICAL, &
+      !         status,ierrmpi)
+      ! end if
+      if (mype==0) then
+         kgrid = kgrid + 1
+         sfc_sub(kgrid,1) = tree%node%igrid
+         sfc_sub(kgrid,2) = tree%node%ipe
+         if (tree%node%leaf) then
+            sfc_sub(0,1) = sfc_sub(0,1) + 1
+            sfc_sub(kgrid,3) = 1
+         else
+            sfc_sub(0,2) = sfc_sub(0,2) + 1
+            sfc_sub(kgrid,3) = 0
+         end if
       end if
 
       if (tree%node%leaf) then
@@ -1111,8 +1306,8 @@ contains
     double precision, intent(in) :: x
     integer, dimension(nlevelshi), intent(out) :: igslice
     ! .. local ..
-    integer :: level
     double precision :: distance
+    integer :: level
     !double precision :: xsgrid(ndim,nlevelshi),qs(ndim),xmgrid(ndim,3),xnew,xlgrid(ndim,3)
     !integer :: nbefore
 
@@ -1245,6 +1440,47 @@ contains
     if (roundoff_minmax /= roundoff_minmax) roundoff_minmax = maxval
 
   end function roundoff_minmax
+
+  recursive subroutine quicksort_integer(arr, left, right)
+    implicit none
+    integer, intent(inout) :: arr(:)
+    integer, intent(in) :: left, right
+    ! .. local ..
+    integer :: pivot, i, j, temp
+    
+    if (left < right) then
+       ! Choose pivot (using middle element)
+       pivot = arr((left + right) / 2)
+       i = left - 1
+       j = right + 1
+       
+       do
+          ! Find elements to swap
+          do
+             i = i + 1
+             if (arr(i) >= pivot) exit
+          end do
+          
+          do
+             j = j - 1
+             if (arr(j) <= pivot) exit
+          end do
+          
+          if (i >= j) exit
+          
+          ! Swap elements
+          temp = arr(i)
+          arr(i) = arr(j)
+          arr(j) = temp
+       end do
+       
+       ! Recursively sort subarrays
+       call quicksort_integer(arr, left, j)
+       call quicksort_integer(arr, j + 1, right)
+    end if
+    
+  end subroutine quicksort_integer
+
 
 end module mod_slice
 

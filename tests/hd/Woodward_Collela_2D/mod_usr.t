@@ -136,7 +136,7 @@ contains
           case("central")
            call gradient(w(ixI^S,rho_),ixI^L,ixO^L,idims,drho)
           case("limited")
-           call gradientS(w(ixI^S,rho_),ixI^L,ixO^L,idims,drho)
+           call gradientL(w(ixI^S,rho_),ixI^L,ixO^L,idims,drho)
        end select
        gradrho(ixO^S)=gradrho(ixO^S)+drho(ixO^S)**2.0d0
     enddo

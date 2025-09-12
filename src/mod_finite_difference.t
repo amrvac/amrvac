@@ -137,13 +137,18 @@ contains
       end do ! Next idims
     end if
 
-    if (.not.slab.and.idimsmin==1) call phys_add_source_geom(qdt,dtfactor,ixI^L,ixO^L,wCT,wnew,x)
+    if (.not.slab.and.idimsmin==1) call phys_add_source_geom(qdt,dtfactor,ixI^L,ixO^L,wCT,wprim,wnew,x)
 
     if(stagger_grid) call phys_face_to_center(ixO^L,snew)
 
     ! check and optionally correct unphysical values
     if(fix_small_values) then
        call phys_handle_small_values(.false.,wnew,x,ixI^L,ixO^L,'fd')
+       if(crash) then
+         ! replace erroneous values with values at previous step
+         wnew=wCT
+         if(stagger_grid) snew%ws=sCT%ws
+       end if
     endif
 
     call addsource2(qdt*dble(idimsmax-idimsmin+1)/dble(ndim), &
@@ -388,8 +393,8 @@ contains
        end if
 
        ! Calculate velocities from upwinded values
-       call phys_get_cmax(wLC,x,ixG^LL,ixC^L,idims,cmaxLC)
-       call phys_get_cmax(wRC,x,ixG^LL,ixC^L,idims,cmaxRC)
+       call phys_get_cmax(wLp,x,ixG^LL,ixC^L,idims,cmaxLC)
+       call phys_get_cmax(wRp,x,ixG^LL,ixC^L,idims,cmaxRC)
        ! now take the maximum of left and right states
        vLC(ixC^S)=max(cmaxRC(ixC^S),cmaxLC(ixC^S))
 
@@ -453,7 +458,7 @@ contains
       end do ! Next idims
     end if
 
-    if (.not.slab.and.idimsmin==1) call phys_add_source_geom(qdt,dtfactor,ixI^L,ixO^L,wCT,w,x)
+    if (.not.slab.and.idimsmin==1) call phys_add_source_geom(qdt,dtfactor,ixI^L,ixO^L,wCT,wprim,w,x)
 
     if(stagger_grid) call phys_face_to_center(ixO^L,s)
 

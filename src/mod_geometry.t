@@ -313,24 +313,60 @@ contains
     case default
       call mpistop("Sorry, coordinate unknown")
     end select
-
   end subroutine get_surface_area
 
-  !> Calculate gradient of a scalar q within ixL in direction idir
-  subroutine gradient(q,ixI^L,ixO^L,idir,gradq)
+  !**************************************************************************
+  ! Purpose: Computes the gradient of a scalar field q(ixI^S) at cell 
+  !          centers in the idir direction and outputs it in gradq(ixO^S), 
+  !          which is also defined at cell **centers**. The gradient is 
+  !          computed using a 2nd-order central difference scheme, 
+  !          utilizing cell center values on both sides. 
+  !
+  !          For uniform Cartesian coordinates, an optional input 
+  !          parameter nth_in allows increasing the order of the 
+  !          central difference scheme to 2*nth_in.
+  !**************************************************************************
+  subroutine gradient(q,ixI^L,ixO^L,idir,gradq,nth_in)
     use mod_global_parameters
-
     integer, intent(in)             :: ixI^L, ixO^L, idir
+    integer, intent(in), optional   :: nth_in
     double precision, intent(in)    :: q(ixI^S)
     double precision, intent(inout) :: gradq(ixI^S)
+    integer                         :: jxO^L, hxO^L, nth
 
-    integer                         :: jxO^L, hxO^L
+    if(present(nth_in)) then
+      nth = nth_in
+    else
+      nth = 1
+    endif
+    if(nth .gt. nghostcells) then 
+      call mpistop("gradient stencil too wide")
+    endif
 
     hxO^L=ixO^L-kr(idir,^D);
     jxO^L=ixO^L+kr(idir,^D);
     select case(coordinate)
     case(Cartesian)
-      gradq(ixO^S)=half*(q(jxO^S)-q(hxO^S))/dxlevel(idir)
+      select case(nth)
+      case(1)
+        gradq(ixO^S)=(q(jxO^S)-q(hxO^S))*half
+      case(2)
+        gradq(ixO^S)=(q(jxO^S)-q(hxO^S))*2.d0/3.d0
+        hxO^L=ixO^L-2*kr(idir,^D);
+        jxO^L=ixO^L+2*kr(idir,^D);
+        gradq(ixO^S)=gradq(ixO^S)-(q(jxO^S)-q(hxO^S))/12.d0
+      case(3)
+        gradq(ixO^S)=(q(jxO^S)-q(hxO^S))*3.d0/4.d0
+        hxO^L=ixO^L-2*kr(idir,^D);
+        jxO^L=ixO^L+2*kr(idir,^D);
+        gradq(ixO^S)=gradq(ixO^S)-(q(jxO^S)-q(hxO^S))*3.d0/20.d0
+        hxO^L=ixO^L-3*kr(idir,^D);
+        jxO^L=ixO^L+3*kr(idir,^D);
+        gradq(ixO^S)=gradq(ixO^S)+(q(jxO^S)-q(hxO^S))/60.d0
+      case default
+        call mpistop("unknown stencil gradient")
+      end select
+      gradq(ixO^S)=gradq(ixO^S)/dxlevel(idir)
     case(Cartesian_stretched,Cartesian_expansion)
       gradq(ixO^S)=(q(jxO^S)-q(hxO^S))/(block%x(jxO^S,idir)-block%x(hxO^S,idir))
     case(spherical)
@@ -355,132 +391,40 @@ contains
     case default
       call mpistop('Unknown geometry')
     end select
-
   end subroutine gradient
 
-  !> Calculate gradient of a scalar q in direction idir at cell interfaces
-  subroutine gradientx(q,x,ixI^L,ixO^L,idir,gradq,fourth_order)
-    use mod_global_parameters
-
-    integer, intent(in)             :: ixI^L, ixO^L, idir
-    double precision, intent(in)    :: q(ixI^S), x(ixI^S,1:ndim)
-    double precision, intent(inout) :: gradq(ixI^S)
-    logical, intent(in)             :: fourth_order
-    integer                         :: jxO^L, hxO^L, kxO^L
-
-    hxO^L=ixO^L;
-    jxO^L=ixO^L+kr(idir,^D);
-    select case(coordinate)
-    case(Cartesian)
-      if(fourth_order) then
-        ! Fourth order, stencil width is two
-        kxO^L=ixO^L^LADD2;
-        if(ixImin^D>kxOmin^D.or.ixImax^D<kxOmax^D|.or.) &
-             call mpistop("Error in gradientx: Non-conforming input limits")
-        hxO^L=ixO^L-kr(idir,^D);
-        jxO^L=ixO^L+kr(idir,^D);
-        kxO^L=ixO^L+kr(idir,^D)*2;
-        gradq(ixO^S)=(27.d0*(q(jxO^S)-q(ixO^S))-q(kxO^S)+q(hxO^S))/24.d0/dxlevel(idir)
-      else
-        gradq(ixO^S)=(q(jxO^S)-q(hxO^S))/dxlevel(idir)
-      end if
-    case(Cartesian_stretched,Cartesian_expansion)
-      gradq(ixO^S)=(q(jxO^S)-q(hxO^S))/(x(jxO^S,idir)-x(hxO^S,idir))
-    case(spherical)
-      select case(idir)
-      case(1)
-        gradq(ixO^S)=(q(jxO^S)-q(hxO^S))/((x(jxO^S,1)-x(hxO^S,1)))
-        {^NOONED
-      case(2)
-        gradq(ixO^S)=(q(jxO^S)-q(hxO^S))/((x(jxO^S,2)-x(hxO^S,2))*x(ixO^S,1))
-        }
-        {^IFTHREED
-      case(3)
-        gradq(ixO^S)=(q(jxO^S)-q(hxO^S))/((x(jxO^S,3)-x(hxO^S,3))*x(ixO^S,1)*dsin(x(ixO^S,2)))
-        }
-      end select
-    case(cylindrical)
-      if(idir==phi_) then
-        gradq(ixO^S)=(q(jxO^S)-q(hxO^S))/((x(jxO^S,phi_)-x(hxO^S,phi_))*x(ixO^S,r_))
-      else
-        gradq(ixO^S)=(q(jxO^S)-q(hxO^S))/(x(jxO^S,idir)-x(hxO^S,idir))
-      end if
-    case default
-      call mpistop('Unknown geometry')
-    end select
-
-  end subroutine gradientx
-
-  !> Calculate gradient of a scalar q in direction idir at cell interfaces
-  subroutine gradientq(q,x,ixI^L,ixO^L,idir,gradq)
-    use mod_global_parameters
-
-    integer, intent(in)             :: ixI^L, ixO^L, idir
-    double precision, intent(in)    :: q(ixI^S), x(ixI^S,1:ndim)
-    double precision, intent(inout) :: gradq(ixI^S)
-    integer                         :: jxO^L, hxO^L, kxO^L
-
-    jxO^L=ixO^L;
-    hxO^L=ixO^L-kr(idir,^D);
-    select case(coordinate)
-    case(Cartesian)
-      gradq(ixO^S)=(q(jxO^S)-q(hxO^S))/dxlevel(idir)
-    case(Cartesian_stretched,Cartesian_expansion)
-      gradq(ixO^S)=(q(jxO^S)-q(hxO^S))/(x(jxO^S,idir)-x(hxO^S,idir))
-    case(spherical)
-      select case(idir)
-      case(1)
-        gradq(ixO^S)=(q(jxO^S)-q(hxO^S))/((x(jxO^S,1)-x(hxO^S,1)))
-        {^NOONED
-      case(2)
-        gradq(ixO^S)=(q(jxO^S)-q(hxO^S))/((x(jxO^S,2)-x(hxO^S,2))*x(ixO^S,1))
-        }
-        {^IFTHREED
-      case(3)
-        gradq(ixO^S)=(q(jxO^S)-q(hxO^S))/((x(jxO^S,3)-x(hxO^S,3))*x(ixO^S,1)*dsin(x(ixO^S,2)))
-        }
-      end select
-    case(cylindrical)
-      if(idir==phi_) then
-        gradq(ixO^S)=(q(jxO^S)-q(hxO^S))/((x(jxO^S,phi_)-x(hxO^S,phi_))*x(ixO^S,r_))
-      else
-        gradq(ixO^S)=(q(jxO^S)-q(hxO^S))/(x(jxO^S,idir)-x(hxO^S,idir))
-      end if
-    case default
-      call mpistop('Unknown geometry')
-    end select
-
-  end subroutine gradientq
-
-  !> Calculate gradient of a scalar q within ixL in direction idir
-  !> first use limiter to go from cell center to edge
-  subroutine gradientS(q,ixI^L,ixO^L,idir,gradq)
+  !**************************************************************************
+  ! Purpose: Originally named as gradientS.
+  !          Computes the gradient of a scalar field q(ixI^S) at cell 
+  !          centers in the idir direction and outputs it in gradq(ixO^S), 
+  !          which is also defined at cell **centers**. Unlike the standard 
+  !          gradient computation, this routine first reconstructs cell 
+  !          face values using a slope **Limiter** and then computes the 
+  !          gradient from these face values.
+  !**************************************************************************
+  subroutine gradientL(q,ixI^L,ixO^L,idir,gradq)
     use mod_global_parameters
     use mod_limiter
     use mod_ppm
-
     integer, intent(in)                :: ixI^L, ixO^L, idir
     double precision, intent(in)       :: q(ixI^S)
     double precision, intent(inout)    :: gradq(ixI^S)
     double precision ,dimension(ixI^S) :: qC,qL,qR,dqC,ldq,rdq
-
     double precision :: x(ixI^S,1:ndim)
     double precision :: invdx
     integer          :: hxO^L,ixC^L,jxC^L,gxC^L,hxC^L
 
     x(ixI^S,1:ndim)=block%x(ixI^S,1:ndim)
-
     invdx=1.d0/dxlevel(idir)
     hxO^L=ixO^L-kr(idir,^D);
     ixCmin^D=hxOmin^D;ixCmax^D=ixOmax^D;
     jxC^L=ixC^L+kr(idir,^D);
     gxCmin^D=ixCmin^D-kr(idir,^D);gxCmax^D=jxCmax^D;
     hxC^L=gxC^L+kr(idir,^D);
-
     ! set the gradient limiter here
     qR(gxC^S) = q(hxC^S)
     qL(gxC^S) = q(gxC^S)
-    if (type_gradient_limiter(block%level)/=limiter_ppm) then
+    if(type_gradient_limiter(block%level)/=limiter_ppm) then
       dqC(gxC^S)= qR(gxC^S)-qL(gxC^S)
       call dwlimiter2(dqC,ixI^L,gxC^L,idir,type_gradient_limiter(block%level),ldw=ldq,rdw=rdq)
       qL(ixC^S) = qL(ixC^S) + half*ldq(ixC^S)
@@ -508,55 +452,172 @@ contains
       gradq(ixO^S)=(qR(ixO^S)-qL(hxO^S))/block%dx(ixO^S,idir)
       if(idir==phi_) gradq(ixO^S)=gradq(ixO^S)/x(ixO^S,1)
     end select
+  end subroutine gradientL
 
-  end subroutine gradientS
+  !**************************************************************************
+  ! Purpose: Merged from gradientx, gradientq and gradientC. 
+  !          Computes the gradient of a scalar field q(ixI^S) at cell 
+  !          centers in the idir direction and outputs it in gradq(ixO^S), 
+  !          which is defined at cell **Faces**. The gradient is computed 
+  !          using a 2nd-order central difference scheme, utilizing 
+  !          the cell center values on both sides of a given cell face.
+  !
+  !          For uniform Cartesian coordinates, an optional input 
+  !          parameter nth_in allows increasing the order of the 
+  !          central difference scheme to 2*nth_in.
+  !
+  !          By default, the index is shifted one position to the left. 
+  !          This structure also allows the routine to be used for 
+  !          one-sided difference calculations of the gradient at cell 
+  !          **centers**. In such cases, the optional logical parameter pm_in
+  !          controls whether the index shifts to the left (default) 
+  !          or to the right.
+  !**************************************************************************
+  subroutine gradientF(q,x,ixI^L,ixO^L,idir,gradq,nth_in,pm_in)
+    use mod_global_parameters
+    integer, intent(in)             :: ixI^L, ixO^L, idir
+    double precision, intent(in)    :: q(ixI^S),x(ixI^S,1:ndim)
+    double precision, intent(inout) :: gradq(ixI^S)
+    integer, intent(in), optional   :: nth_in
+    logical, intent(in), optional   :: pm_in
+    logical                         :: pm
+    integer                         :: nth,jxO^L,hxO^L
 
-  !> Calculate divergence of a vector qvec within ixL
-  subroutine divvector(qvec,ixI^L,ixO^L,divq,fourthorder,sixthorder)
+    if(present(nth_in)) then
+      nth = nth_in
+    else
+      nth = 1
+    endif
+    if(nth .gt. nghostcells) then
+      call mpistop("gradient stencil too wide")
+    endif
+    if(present(pm_in)) then
+      pm = pm_in
+    else
+      pm = .true.
+    endif
+
+    if(pm) then
+      hxO^L=ixO^L;
+      jxO^L=ixO^L+kr(idir,^D);
+    else
+      hxO^L=ixO^L-kr(idir,^D);
+      jxO^L=ixO^L;
+    endif
+    select case(coordinate)
+    case(Cartesian)
+      select case(nth)
+      case(1)
+        gradq(ixO^S)=q(jxO^S)-q(hxO^S)
+      case(2)
+        gradq(ixO^S)=(q(jxO^S)-q(hxO^S))*27.d0/24.d0
+        if(pm) then
+          hxO^L=ixO^L-kr(idir,^D);
+          jxO^L=ixO^L+2*kr(idir,^D);
+        else
+          hxO^L=ixO^L-2*kr(idir,^D);
+          jxO^L=ixO^L+kr(idir,^D);
+        endif
+        gradq(ixO^S)=gradq(ixO^S)-(q(jxO^S)-q(hxO^S))/24.d0
+      case(3)
+        gradq(ixO^S)=(q(jxO^S)-q(hxO^S))*225.d0/192.d0
+        if(pm) then
+          hxO^L=ixO^L-kr(idir,^D);
+          jxO^L=ixO^L+2*kr(idir,^D);
+        else
+          hxO^L=ixO^L-2*kr(idir,^D);
+          jxO^L=ixO^L+kr(idir,^D);
+        endif
+        gradq(ixO^S)=gradq(ixO^S)-(q(jxO^S)-q(hxO^S))*25.d0/384.d0
+        if(pm) then
+          hxO^L=ixO^L-2*kr(idir,^D);
+          jxO^L=ixO^L+3*kr(idir,^D);
+        else
+          hxO^L=ixO^L-3*kr(idir,^D);
+          jxO^L=ixO^L+2*kr(idir,^D);
+        endif
+        gradq(ixO^S)=gradq(ixO^S)+(q(jxO^S)-q(hxO^S))*3.0/640.d0
+      case default
+        call mpistop("unknown stencil gradient")
+      end select
+      gradq(ixO^S)=gradq(ixO^S)/dxlevel(idir)
+    case(Cartesian_stretched)
+      gradq(ixO^S)=(q(jxO^S)-q(hxO^S))/(x(jxO^S,idir)-x(hxO^S,idir))
+    case(spherical)
+      select case(idir)
+      case(1)
+        gradq(ixO^S)=(q(jxO^S)-q(hxO^S))/(x(jxO^S,1)-x(hxO^S,1))
+        {^NOONED
+      case(2)
+        gradq(ixO^S)=(q(jxO^S)-q(hxO^S))/((x(jxO^S,2)-x(hxO^S,2))*x(ixO^S,1))
+        }
+        {^IFTHREED
+      case(3)
+        gradq(ixO^S)=(q(jxO^S)-q(hxO^S))/((x(jxO^S,3)-x(hxO^S,3))*x(ixO^S,1)*dsin(x(ixO^S,2)))
+        }
+      end select
+    case(cylindrical)
+      if(idir==phi_) then
+        gradq(ixO^S)=(q(jxO^S)-q(hxO^S))/((x(jxO^S,phi_)-x(hxO^S,phi_))*x(ixO^S,r_))
+      else
+        gradq(ixO^S)=(q(jxO^S)-q(hxO^S))/(x(jxO^S,idir)-x(hxO^S,idir))
+      end if
+    case default
+      call mpistop('Unknown geometry')
+    end select
+  end subroutine gradientF
+
+  !**************************************************************************
+  ! Purpose: Computes the divergence of a vector field qvec(ixI^S,1:ndim) 
+  !          at cell centers and stores the result in q(ixO^S), which is 
+  !          also defined at cell centers. The divergence is computed using 
+  !          a 2nd-order central difference scheme, utilizing the vector 
+  !          components at adjacent cell centers.
+  !
+  !          For uniform Cartesian coordinates, an optional input parameter 
+  !          nth_in allows increasing the order of the central difference 
+  !          scheme to 2*nth_in, improving the accuracy of the divergence 
+  !          computation.
+  !**************************************************************************
+  subroutine divvector(qvec,ixI^L,ixO^L,divq,nth_in)
     use mod_global_parameters
     integer, intent(in)             :: ixI^L,ixO^L
     double precision, intent(in)    :: qvec(ixI^S,1:ndir)
     double precision, intent(inout) :: divq(ixI^S)
-    logical, intent(in), optional   :: fourthorder !< Default: false
-    logical, intent(in), optional   :: sixthorder !< Default: false
-    logical                         :: use_4th_order
-    logical                         :: use_6th_order
+    integer, intent(in), optional   :: nth_in
     double precision                :: qC(ixI^S), invdx(1:ndim)
     integer                         :: jxO^L, hxO^L, ixC^L, jxC^L
-    integer                         :: idims, ix^L, gxO^L, kxO^L
-    integer                         :: lxO^L, fxO^L
+    integer                         :: idims, gxO^L, kxO^L
+    integer                         :: lxO^L, fxO^L, nth
 
-    use_4th_order = .false.
-    use_6th_order = .false.
-    if (present(fourthorder)) use_4th_order = fourthorder
-    if (present(sixthorder))  use_6th_order = sixthorder
-    if(use_4th_order .and. use_6th_order) &
-      call mpistop("divvector: using 4th and 6th order at the same time")
-
-    if(use_4th_order) then
-      if (.not. slab_uniform) &
-           call mpistop("divvector: 4th order only supported for slab geometry")
-      ! Fourth order, stencil width is two
-      ix^L=ixO^L^LADD2;
-    else if(use_6th_order) then
-      ! Sixth order, stencil width is three
-      if (.not. slab_uniform) &
-           call mpistop("divvector: 6th order only supported for slab geometry")
-      ix^L=ixO^L^LADD3;
+    if(present(nth_in)) then
+      nth = nth_in
     else
-      ! Second order, stencil width is one
-      ix^L=ixO^L^LADD1;
-    end if
-
-    if (ixImin^D>ixmin^D.or.ixImax^D<ixmax^D|.or.) &
-         call mpistop("Error in divvector: Non-conforming input limits")
+      nth = 1
+    endif
+    if(nth .gt. nghostcells) then
+      call mpistop("divvector stencil too wide")
+    endif
 
     invdx=1.d0/dxlevel
     divq(ixO^S)=0.0d0
-
     if (slab_uniform) then
       do idims=1,ndim
-        if(use_6th_order) then
+        select case(nth)
+        case(1)
+          jxO^L=ixO^L+kr(idims,^D);
+          hxO^L=ixO^L-kr(idims,^D);
+          divq(ixO^S)=divq(ixO^S)+half*(qvec(jxO^S,idims) &
+               - qvec(hxO^S,idims))*invdx(idims)
+        case(2)
+          kxO^L=ixO^L+2*kr(idims,^D);
+          jxO^L=ixO^L+kr(idims,^D);
+          hxO^L=ixO^L-kr(idims,^D);
+          gxO^L=ixO^L-2*kr(idims,^D);
+          divq(ixO^S)=divq(ixO^S)+&
+                    (-qvec(kxO^S,idims)+8.d0*qvec(jxO^S,idims)-8.d0*&
+                      qvec(hxO^S,idims)+qvec(gxO^S,idims))/(12.d0*dxlevel(idims))
+        case(3)
           lxO^L=ixO^L+3*kr(idims,^D);
           kxO^L=ixO^L+2*kr(idims,^D);
           jxO^L=ixO^L+kr(idims,^D);
@@ -567,23 +628,10 @@ contains
                     (-qvec(fxO^S,idims)+9.d0*qvec(gxO^S,idims)-45.d0*qvec(hxO^S,idims)&
                      +qvec(lxO^S,idims)-9.d0*qvec(kxO^S,idims)+45.d0*qvec(jxO^S,idims))&
                      /(60.d0*dxlevel(idims))
-        else if(use_4th_order) then
-          ! Use fourth order scheme
-          kxO^L=ixO^L+2*kr(idims,^D);
-          jxO^L=ixO^L+kr(idims,^D);
-          hxO^L=ixO^L-kr(idims,^D);
-          gxO^L=ixO^L-2*kr(idims,^D);
-          divq(ixO^S)=divq(ixO^S)+&
-                    (-qvec(kxO^S,idims)+8.d0*qvec(jxO^S,idims)-8.d0*&
-                      qvec(hxO^S,idims)+qvec(gxO^S,idims))/(12.d0*dxlevel(idims))
-        else
-          ! Use second order scheme
-          jxO^L=ixO^L+kr(idims,^D);
-          hxO^L=ixO^L-kr(idims,^D);
-          divq(ixO^S)=divq(ixO^S)+half*(qvec(jxO^S,idims) &
-               - qvec(hxO^S,idims))*invdx(idims)
-        end if
-      end do
+        case default
+          call mpistop("unknown stencil in divvector")
+        end select
+      enddo
     else
       do idims=1,ndim
         hxO^L=ixO^L-kr(idims,^D);
@@ -608,7 +656,6 @@ contains
     use mod_global_parameters
     use mod_limiter
     use mod_ppm
-
     integer, intent(in)                :: ixI^L,ixO^L
     double precision, intent(in)       :: qvec(ixI^S,1:ndir)
     double precision, intent(inout)    :: divq(ixI^S)
@@ -651,7 +698,6 @@ contains
       end if
     end do
     if(.not.slab_uniform) divq(ixO^S)=divq(ixO^S)/block%dvolume(ixO^S)
-
   end subroutine divvectorS
 
   !> Calculate curl of a vector qvec within ixL
@@ -669,9 +715,9 @@ contains
     double precision, intent(inout) :: curlvec(ixI^S,idirmin0:3)
     logical, intent(in), optional   :: fourthorder !< Default: false
 
-    integer          :: ixA^L,ixC^L,jxC^L,idir,jdir,kdir,hxO^L,jxO^L,kxO^L,gxO^L
     double precision :: invdx(1:ndim)
     double precision :: tmp(ixI^S),tmp2(ixI^S),xC(ixI^S),surface(ixI^S)
+    integer          :: ixA^L,ixC^L,jxC^L,idir,jdir,kdir,hxO^L,jxO^L,kxO^L,gxO^L
     logical          :: use_4th_order
 
     ! Calculate curl within ixL: CurlV_i=eps_ijk*d_j V_k
@@ -1137,9 +1183,9 @@ contains
     double precision, intent(in)    :: qvec(ixI^S,1:ndir0),qvecc(ixI^S,1:ndir0)
     double precision, intent(inout) :: curlvec(ixI^S,idirmin0:3)
 
-    integer          :: ixA^L,ixC^L,jxC^L,idir,jdir,kdir,hxO^L,jxO^L
     double precision :: invdx(1:ndim)
     double precision :: tmp(ixI^S),tmp2(ixI^S),xC(ixI^S),surface(ixI^S)
+    integer          :: ixA^L,ixC^L,jxC^L,idir,jdir,kdir,hxO^L,jxO^L
 
     ! Calculate curl within ixL: CurlV_i=eps_ijk*d_j V_k
     ! Curl can have components (idirmin:3)

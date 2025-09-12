@@ -87,9 +87,6 @@ module mod_rhd_phys
   logical, public, protected              :: rhd_trac = .false.
   integer, public, protected              :: rhd_trac_type = 1
 
-  !> Allows overruling default corner filling (for debug mode, since otherwise corner primitives fail)
-  logical, public, protected              :: rhd_force_diagonal = .false.
-
   !> Helium abundance over Hydrogen
   double precision, public, protected  :: He_abundance=0.1d0
 
@@ -170,7 +167,7 @@ contains
     rhd_dust, rhd_thermal_conduction, rhd_radiative_cooling, rhd_viscosity, &
     rhd_gravity, He_abundance, H_ion_fr, He_ion_fr, He_ion_fr2, eq_state_units, &
     SI_unit, rhd_particles, rhd_rotating_frame, rhd_trac, &
-    rhd_force_diagonal, rhd_trac_type, rhd_radiation_formalism, &
+    rhd_trac_type, rhd_radiation_formalism, &
     rhd_radiation_force, rhd_energy_interact, rhd_radiation_diffusion, &
     rhd_radiation_advection, radio_acoustic_filter, size_ra_filter, dt_c, rhd_partial_ionization
 
@@ -309,9 +306,6 @@ contains
     phys_get_trad            => rhd_get_trad
     phys_get_tgas            => rhd_get_tgas
 
-    ! Whether diagonal ghost cells are required for the physics
-    phys_req_diagonal = .false.
-
     ! derive units from basic units
     call rhd_physical_units()
 
@@ -322,18 +316,12 @@ contains
     !> Initiate radiation-closure module
     select case (rhd_radiation_formalism)
     case('fld')
-      call fld_init(He_abundance, rhd_radiation_diffusion, rhd_gamma)
+      call fld_init(He_abundance, rhd_radiation_diffusion, rhd_energy_interact, rhd_gamma)
     case('afld')
       call afld_init(He_abundance, rhd_radiation_diffusion, rhd_gamma)
     case default
       call mpistop('Radiation formalism unknown')
     end select
-
-    if (rhd_force_diagonal) then
-       ! ensure corners are filled, otherwise divide by zero when getting primitives
-       !  --> only for debug purposes
-       phys_req_diagonal = .true.
-    endif
 
     allocate(tracer(rhd_n_tracer))
 
@@ -343,7 +331,7 @@ contains
     end do
 
     ! set number of variables which need update ghostcells
-    nwgc=nwflux
+    nwgc=nwflux+nwaux
 
     ! set the index of the last flux variable for species 1
     stop_indices(1)=nwflux
@@ -369,7 +357,6 @@ contains
     if (rhd_thermal_conduction) then
       if (.not. rhd_energy) &
            call mpistop("thermal conduction needs rhd_energy=T")
-      phys_req_diagonal = .true.
 
       call sts_init()
       call tc_init_params(rhd_gamma)
@@ -406,7 +393,7 @@ contains
     phys_te_images => rhd_te_images
 }
     ! Initialize viscosity module
-    if (rhd_viscosity) call viscosity_init(phys_wider_stencil,phys_req_diagonal)
+    if (rhd_viscosity) call viscosity_init(phys_wider_stencil)
 
     ! Initialize gravity module
     if (rhd_gravity) call gravity_init()
@@ -417,7 +404,6 @@ contains
     ! Initialize particles module
     if (rhd_particles) then
        call particles_init()
-       phys_req_diagonal = .true.
     end if
 
     ! Check whether custom flux types have been defined
@@ -436,7 +422,6 @@ contains
     kbmpmua4 = unit_pressure**(-3.d0/4.d0)*unit_density*const_kB/(const_mp*fld_mu)*const_rad_a**(-1.d0/4.d0)
     ! initialize ionization degree table
     if(rhd_partial_ionization) call ionization_degree_init()
-
   end subroutine rhd_phys_init
 
 {^IFTHREED
@@ -675,40 +660,81 @@ contains
       kB=kB_cgs
     end if
     if(eq_state_units) then
-      a = 1d0 + 4d0 * He_abundance
+      a=1d0+4d0*He_abundance
       if(rhd_partial_ionization) then
-        b = 2.d0+3.d0*He_abundance
+        b=1d0+H_ion_fr+He_abundance*(He_ion_fr*(He_ion_fr2+1d0)+1d0)
       else
-        b = 1d0 + H_ion_fr + He_abundance*(He_ion_fr*(He_ion_fr2 + 1d0)+1d0)
+        b=2d0+3d0*He_abundance
       end if
-      RR = 1d0
+      RR=1d0
     else
-      a = 1d0
-      b = 1d0
-      RR = (1d0 + H_ion_fr + He_abundance*(He_ion_fr*(He_ion_fr2 + 1d0)+1d0))/(1d0 + 4d0 * He_abundance)
+      a=1d0
+      b=1d0
+      RR=(1d0+H_ion_fr+He_abundance*(He_ion_fr*(He_ion_fr2+1d0)+1d0))/(1d0+4d0*He_abundance)
     end if
-    if(unit_density/=1.d0) then
-      unit_numberdensity=unit_density/(a*mp)
-    else
-      ! unit of numberdensity is independent by default
-      unit_density=a*mp*unit_numberdensity
-    end if
-    if(unit_velocity/=1.d0) then
-      unit_pressure=unit_density*unit_velocity**2
-      unit_temperature=unit_pressure/(b*unit_numberdensity*kB)
+    if(unit_density/=1.d0 .or. unit_numberdensity/=1.d0) then
+      if(unit_density/=1.d0) then
+        unit_numberdensity=unit_density/(a*mp)
+      else if(unit_numberdensity/=1.d0) then
+        unit_density=a*mp*unit_numberdensity
+      end if
+      if(unit_temperature/=1.d0) then
+        unit_pressure=b*unit_numberdensity*kB*unit_temperature
+        unit_velocity=sqrt(unit_pressure/unit_density)
+        if(unit_length/=1.d0) then
+          unit_time=unit_length/unit_velocity
+        else if(unit_time/=1.d0) then
+          unit_length=unit_velocity*unit_time
+        end if
+      else if(unit_pressure/=1.d0) then
+        unit_temperature=unit_pressure/(b*unit_numberdensity*kB)
+        unit_velocity=sqrt(unit_pressure/unit_density)
+        if(unit_length/=1.d0) then
+          unit_time=unit_length/unit_velocity
+        else if(unit_time/=1.d0) then
+          unit_length=unit_velocity*unit_time
+        end if
+      else if(unit_velocity/=1.d0) then
+        unit_pressure=unit_density*unit_velocity**2
+        unit_temperature=unit_pressure/(b*unit_numberdensity*kB)
+        if(unit_length/=1.d0) then
+          unit_time=unit_length/unit_velocity
+        else if(unit_time/=1.d0) then
+          unit_length=unit_velocity*unit_time
+        end if
+      else if(unit_time/=1.d0) then
+        unit_velocity=unit_length/unit_time
+        unit_pressure=unit_density*unit_velocity**2
+        unit_temperature=unit_pressure/(b*unit_numberdensity*kB)
+      end if
+    else if(unit_temperature/=1.d0) then
+      ! units of temperature and velocity are dependent
+      if(unit_pressure/=1.d0) then
+        unit_numberdensity=unit_pressure/(b*unit_temperature*kB)
+        unit_density=a*mp*unit_numberdensity
+        unit_velocity=sqrt(unit_pressure/unit_density)
+        if(unit_length/=1.d0) then
+          unit_time=unit_length/unit_velocity
+        else if(unit_time/=1.d0) then
+          unit_length=unit_velocity*unit_time
+        end if
+      end if
     else if(unit_pressure/=1.d0) then
-      unit_temperature=unit_pressure/(b*unit_numberdensity*kB)
-      unit_velocity=sqrt(unit_pressure/unit_density)
-    else
-      ! unit of temperature is independent by default
-      unit_pressure=b*unit_numberdensity*kB*unit_temperature
-      unit_velocity=sqrt(unit_pressure/unit_density)
-    end if
-    if(unit_time/=1.d0) then
-      unit_length=unit_time*unit_velocity
-    else
-      ! unit of length is independent by default
-      unit_time=unit_length/unit_velocity
+      if(unit_velocity/=1.d0) then
+        unit_density=unit_pressure/unit_velocity**2
+        unit_numberdensity=unit_density/(a*mp)
+        unit_temperature=unit_pressure/(b*unit_numberdensity*kB)
+        if(unit_length/=1.d0) then
+          unit_time=unit_length/unit_velocity
+        else if(unit_time/=1.d0) then
+          unit_length=unit_velocity*unit_time
+        end if
+      else if(unit_time/=0.d0) then
+        unit_velocity=unit_length/unit_time
+        unit_density=unit_pressure/unit_velocity**2
+        unit_numberdensity=unit_density/(a*mp)
+        unit_temperature=unit_pressure/(b*unit_numberdensity*kB)
+      end if
     end if
 
     !> Units for radiative flux and opacity
@@ -883,22 +909,37 @@ contains
   !> Calculate cmax_idim = csound + abs(v_idim) within ixO^L
   subroutine rhd_get_cmax(w, x, ixI^L, ixO^L, idim, cmax)
     use mod_global_parameters
-    use mod_dust, only: dust_get_cmax
+    use mod_usr_methods, only: usr_set_pthermal
+    use mod_dust, only: dust_get_cmax_prim
 
     integer, intent(in)                       :: ixI^L, ixO^L, idim
+    ! w in primitive form
     double precision, intent(in)              :: w(ixI^S, nw), x(ixI^S, 1:ndim)
     double precision, intent(inout)           :: cmax(ixI^S)
-    double precision                          :: csound(ixI^S)
-    double precision                          :: v(ixI^S)
 
-    call rhd_get_v(w, x, ixI^L, ixO^L, idim, v)
-    call rhd_get_csound2(w,x,ixI^L,ixO^L,csound)
-    csound(ixO^S) = dsqrt(csound(ixO^S))
-
-    cmax(ixO^S) = dabs(v(ixO^S))+csound(ixO^S)
+    if(rhd_energy) then
+      cmax(ixO^S)=dabs(w(ixO^S,mom(idim)))+dsqrt(rhd_gamma*w(ixO^S,p_)/w(ixO^S,rho_))
+    else
+      if (.not. associated(usr_set_pthermal)) then
+        select case (rhd_pressure)
+         case ('Trad')
+          cmax(ixO^S) = (w(ixO^S,r_e)*unit_pressure/const_rad_a)**0.25d0&
+          /unit_temperature*w(ixO^S, rho_)
+         case ('adiabatic')
+          cmax(ixO^S) = rhd_adiab * w(ixO^S, rho_)**rhd_gamma
+         case ('Tcond') !> Thermal conduction?!
+          cmax(ixO^S) = (rhd_gamma-1.d0)*w(ixO^S,r_e)
+         case default
+          call mpistop('rhd_pressure unknown, use Trad or adiabatic')
+         end select
+      else
+         call usr_set_pthermal(w,x,ixI^L,ixO^L,cmax)
+      end if
+      cmax(ixO^S)=dabs(w(ixO^S,mom(idim)))+dsqrt(rhd_gamma*cmax(ixO^S)/w(ixO^S,rho_))
+    end if
 
     if (rhd_dust) then
-      call dust_get_cmax(w, x, ixI^L, ixO^L, idim, cmax)
+      call dust_get_cmax_prim(w, x, ixI^L, ixO^L, idim, cmax)
     end if
   end subroutine rhd_get_cmax
 
@@ -1190,9 +1231,9 @@ contains
 
     select case (rhd_radiation_formalism)
     case('fld')
-      call fld_get_radpress(w, x, ixI^L, ixO^L, prad)
+      call fld_get_radpress(w, x, ixI^L, ixO^L, prad, nghostcells)
     case('afld')
-      call afld_get_radpress(w, x, ixI^L, ixO^L, prad)
+      call afld_get_radpress(w, x, ixI^L, ixO^L, prad, nghostcells)
     case default
       call mpistop('Radiation formalism unknown')
     end select
@@ -1451,16 +1492,16 @@ contains
   !> Notice that the expressions of the geometrical terms depend only on ndir,
   !> not ndim. Eg, they are the same in 2.5D and in 3D, for any geometry.
   !>
-  subroutine rhd_add_source_geom(qdt, dtfactor, ixI^L, ixO^L, wCT, w, x)
+  subroutine rhd_add_source_geom(qdt, dtfactor, ixI^L, ixO^L, wCT, wprim, w, x)
     use mod_global_parameters
-    use mod_usr_methods, only: usr_set_surface
+    use mod_usr_methods, only: usr_set_surface, usr_set_pthermal
     use mod_viscosity, only: visc_add_source_geom ! viscInDiv
     use mod_rotating_frame, only: rotating_frame_add_source
     use mod_dust, only: dust_n_species, dust_mom, dust_rho
     use mod_geometry
     integer, intent(in)             :: ixI^L, ixO^L
     double precision, intent(in)    :: qdt, dtfactor, x(ixI^S, 1:ndim)
-    double precision, intent(inout) :: wCT(ixI^S, 1:nw), w(ixI^S, 1:nw)
+    double precision, intent(inout) :: wCT(ixI^S, 1:nw), wprim(ixI^S,1:nw), w(ixI^S, 1:nw)
     ! to change and to set as a parameter in the parfile once the possibility to
     ! solve the equations in an angular momentum conserving form has been
     ! implemented (change tvdlf.t eg)
@@ -1481,7 +1522,15 @@ contains
     case(Cartesian_expansion)
       !the user provides the functions of exp_factor and del_exp_factor
       if(associated(usr_set_surface)) call usr_set_surface(ixI^L,x,block%dx,exp_factor,del_exp_factor,exp_factor_primitive)
-      call rhd_get_pthermal(wCT, x, ixI^L, ixO^L, source)
+      if(rhd_energy) then
+        source(ixO^S) =wprim(ixO^S, p_)
+      else
+        if(.not. associated(usr_set_pthermal)) then
+          source(ixO^S)=rhd_adiab * wprim(ixO^S, rho_)**rhd_gamma
+        else
+          call usr_set_pthermal(wCT,x,ixI^L,ixO^L,source)
+        end if
+      end if
       source(ixO^S) = source(ixO^S)*del_exp_factor(ixO^S)/exp_factor(ixO^S)
       w(ixO^S,mom(1)) = w(ixO^S,mom(1)) + qdt*source(ixO^S)
 
@@ -1493,12 +1542,20 @@ contains
        do ifluid = 0, n_fluids-1
           ! s[mr]=(pthermal+mphi**2/rho)/radius
           if (ifluid == 0) then
-             ! gas
-             irho  = rho_
-             mr_   = mom(r_)
-             if(phi_>0) mphi_ = mom(phi_)
-             call rhd_get_pthermal(wCT, x, ixI^L, ixO^L, source)
-             minrho = 0.0d0
+            ! gas
+            irho  = rho_
+            mr_   = mom(r_)
+            if(phi_>0) mphi_ = mom(phi_)
+            if(rhd_energy) then
+              source(ixO^S) =wprim(ixO^S, p_)
+            else
+              if(.not. associated(usr_set_pthermal)) then
+                source(ixO^S)=rhd_adiab * wprim(ixO^S, rho_)**rhd_gamma
+              else
+                call usr_set_pthermal(wCT,x,ixI^L,ixO^L,source)
+              end if
+            end if
+            minrho = 0.0d0
           else
              ! dust : no pressure
              irho  = dust_rho(ifluid)
@@ -1508,18 +1565,14 @@ contains
              minrho = 0.0d0
           end if
           if (phi_ > 0) then
-             where (wCT(ixO^S, irho) > minrho)
-                source(ixO^S) = source(ixO^S) + wCT(ixO^S, mphi_)**2 / wCT(ixO^S, irho)
-                w(ixO^S, mr_) = w(ixO^S, mr_) + qdt * source(ixO^S) / x(ixO^S, r_)
-             end where
-             ! s[mphi]=(-mphi*mr/rho)/radius
-             where (wCT(ixO^S, irho) > minrho)
-                source(ixO^S) = -wCT(ixO^S, mphi_) * wCT(ixO^S, mr_) / wCT(ixO^S, irho)
-                w(ixO^S, mphi_) = w(ixO^S, mphi_) + qdt * source(ixO^S) / x(ixO^S, r_)
-             end where
+            source(ixO^S) = source(ixO^S) + wprim(ixO^S, mphi_)**2 * wprim(ixO^S, irho)
+            w(ixO^S, mr_) = w(ixO^S, mr_) + qdt * source(ixO^S) / x(ixO^S, r_)
+         ! s[mphi]=(-vphi*vr*rho)/radius
+            source(ixO^S) = -wprim(ixO^S, mphi_) * wprim(ixO^S, mr_) * wprim(ixO^S, irho)
+            w(ixO^S, mphi_) = w(ixO^S, mphi_) + qdt * source(ixO^S) / x(ixO^S, r_)
           else
-             ! s[mr]=2pthermal/radius
-             w(ixO^S, mr_) = w(ixO^S, mr_) + qdt * source(ixO^S) / x(ixO^S, r_)
+            ! s[mr]=2pthermal/radius
+            w(ixO^S, mr_) = w(ixO^S, mr_) + qdt * source(ixO^S) / x(ixO^S, r_)
           end if
        end do
     case (spherical)
@@ -1534,45 +1587,51 @@ contains
        mr_   = mom(r_)
        if(phi_>0) mphi_ = mom(phi_)
        h1x^L=ixO^L-kr(1,^D); {^NOONED h2x^L=ixO^L-kr(2,^D);}
-       ! s[mr]=((mtheta**2+mphi**2)/rho+2*p)/r
-       call rhd_get_pthermal(wCT, x, ixI^L, ixO^L, pth)
+       ! s[mr]=((vtheta**2+vphi**2)*rho+2*p)/r
+       if(rhd_energy) then
+         pth(ixO^S) =wprim(ixO^S, p_)
+       else
+         if(.not. associated(usr_set_pthermal)) then
+           pth(ixO^S)=rhd_adiab * wprim(ixO^S, rho_)**rhd_gamma
+         else
+           call usr_set_pthermal(wCT,x,ixI^L,ixO^L,pth)
+         end if
+       end if
        source(ixO^S) = pth(ixO^S) * x(ixO^S, 1) &
             *(block%surfaceC(ixO^S, 1) - block%surfaceC(h1x^S, 1)) &
             /block%dvolume(ixO^S)
-       if (ndir > 1) then
-         do idir = 2, ndir
-           source(ixO^S) = source(ixO^S) + wCT(ixO^S, mom(idir))**2 / wCT(ixO^S, rho_)
-         end do
-       end if
+       do idir = 2, ndir
+         source(ixO^S) = source(ixO^S) + wprim(ixO^S, mom(idir))**2 * wprim(ixO^S, rho_)
+       end do
        w(ixO^S, mr_) = w(ixO^S, mr_) + qdt * source(ixO^S) / x(ixO^S, 1)
 
        {^NOONED
-       ! s[mtheta]=-(mr*mtheta/rho)/r+cot(theta)*(mphi**2/rho+p)/r
+       ! s[mtheta]=-(vr*vtheta*rho)/r+cot(theta)*(vphi**2*rho+p)/r
        source(ixO^S) = pth(ixO^S) * x(ixO^S, 1) &
             * (block%surfaceC(ixO^S, 2) - block%surfaceC(h2x^S, 2)) &
             / block%dvolume(ixO^S)
        if (ndir == 3) then
-          source(ixO^S) = source(ixO^S) + (wCT(ixO^S, mom(3))**2 / wCT(ixO^S, rho_)) / tan(x(ixO^S, 2))
+          source(ixO^S) = source(ixO^S) + (wprim(ixO^S, mom(3))**2 * wprim(ixO^S, rho_)) / tan(x(ixO^S, 2))
        end if
-       source(ixO^S) = source(ixO^S) - (wCT(ixO^S, mom(2)) * wCT(ixO^S, mr_)) / wCT(ixO^S, rho_)
+       source(ixO^S) = source(ixO^S) - (wprim(ixO^S, mom(2)) * wprim(ixO^S, mr_)) * wprim(ixO^S, rho_)
        w(ixO^S, mom(2)) = w(ixO^S, mom(2)) + qdt * source(ixO^S) / x(ixO^S, 1)
 
        if (ndir == 3) then
-         ! s[mphi]=-(mphi*mr/rho)/r-cot(theta)*(mtheta*mphi/rho)/r
-         source(ixO^S) = -(wCT(ixO^S, mom(3)) * wCT(ixO^S, mr_)) / wCT(ixO^S, rho_)&
-                        - (wCT(ixO^S, mom(2)) * wCT(ixO^S, mom(3))) / wCT(ixO^S, rho_) / tan(x(ixO^S, 2))
+         ! s[mphi]=-(vphi*vr/rho)/r-cot(theta)*(vtheta*vphi/rho)/r
+         source(ixO^S) = -(wprim(ixO^S, mom(3)) * wprim(ixO^S, mr_)) * wprim(ixO^S, rho_)&
+                        - (wprim(ixO^S, mom(2)) * wprim(ixO^S, mom(3))) * wprim(ixO^S, rho_) / tan(x(ixO^S, 2))
          w(ixO^S, mom(3)) = w(ixO^S, mom(3)) + qdt * source(ixO^S) / x(ixO^S, 1)
        end if
        }
     end select
 
-    if (rhd_viscosity) call visc_add_source_geom(qdt,ixI^L,ixO^L,wCT,w,x)
+    if (rhd_viscosity) call visc_add_source_geom(qdt,ixI^L,ixO^L,wprim,w,x)
 
     if (rhd_rotating_frame) then
        if (rhd_dust) then
           call mpistop("Rotating frame not implemented yet with dust")
        else
-          call rotating_frame_add_source(qdt,dtfactor,ixI^L,ixO^L,wCT,w,x)
+          call rotating_frame_add_source(qdt,dtfactor,ixI^L,ixO^L,wprim,w,x)
        end if
     end if
 
@@ -1655,41 +1714,24 @@ contains
     logical, intent(inout) :: active
     double precision :: cmax(ixI^S)
 
-
     select case(rhd_radiation_formalism)
     case('fld')
-
-      if (fld_diff_scheme .eq. 'mg') call fld_get_diffcoef_central(w, wCT, x, ixI^L, ixO^L)
-      ! if (fld_diff_scheme .eq. 'mg') call set_mg_bounds(wCT, x, ixI^L, ixO^L)
-
+      if(fld_diff_scheme .eq. 'mg') call fld_get_diffcoef_central(w, wCT, x, ixI^L, ixO^L)
       !> radiation force
-      if (rhd_radiation_force) call get_fld_rad_force(qdt,ixI^L,ixO^L,wCT,w,x,&
+      if(rhd_radiation_force) call get_fld_rad_force(qdt,ixI^L,ixO^L,wCT,w,x,&
         rhd_energy,qsourcesplit,active)
-
       call rhd_handle_small_values(.true., w, x, ixI^L, ixO^L, 'fld_e_interact')
-
-      !> photon tiring, heating and cooling
-      if (rhd_energy) then
-      if (rhd_energy_interact) call get_fld_energy_interact(qdt,ixI^L,ixO^L,wCT,w,x,&
-        rhd_energy,qsourcesplit,active)
-      endif
-
     case('afld')
-
       if (fld_diff_scheme .eq. 'mg') call afld_get_diffcoef_central(w, wCT, x, ixI^L, ixO^L)
-
       !> radiation force
       if (rhd_radiation_force) call get_afld_rad_force(qdt,ixI^L,ixO^L,wCT,w,x,&
         rhd_energy,qsourcesplit,active)
-
       call rhd_handle_small_values(.true., w, x, ixI^L, ixO^L, 'fld_e_interact')
-
       !> photon tiring, heating and cooling
       if (rhd_energy) then
       if (rhd_energy_interact) call get_afld_energy_interact(qdt,ixI^L,ixO^L,wCT,w,x,&
         rhd_energy,qsourcesplit,active)
       endif
-
     case default
       call mpistop('Radiation formalism unknown')
     end select
@@ -1697,7 +1739,6 @@ contains
     ! ! !>  NOT necessary for calculation, just want to know the grid-dependent-timestep
     ! call rhd_get_cmax(w, x, ixI^L, ixO^L, 2, cmax)
     ! w(ixI^S,i_test) = cmax(ixI^S)
-
   end subroutine rhd_add_radiation_source
 
   subroutine rhd_get_dt(w, ixI^L, ixO^L, dtnew, dx^D, x)

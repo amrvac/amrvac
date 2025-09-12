@@ -91,8 +91,9 @@ module mod_input_output_helper
     integer, intent(in)          :: ix !< Index of file
     character(len=*), intent(in) :: extension !< Extension of file
     character(len=*), intent(in), optional :: suffix !< Optional suffix
-    character(len=std_len)       :: filename
+
     integer :: amode
+    character(len=std_len)       :: filename
 
     if (ix >= 10000) then
       call mpistop("Number of output files is limited to 10000 (0...9999)")
@@ -128,7 +129,6 @@ module mod_input_output_helper
     use mod_forest
     use mod_physics
     use mod_global_parameters
-    use mod_slice, only: slicenext
     integer, intent(in)                       :: fh           !< File handle
     integer(kind=MPI_OFFSET_KIND), intent(in) :: offset_tree  !< Offset of tree info
     integer(kind=MPI_OFFSET_KIND), intent(in) :: offset_block !< Offset of block data

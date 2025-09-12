@@ -1,8 +1,8 @@
 !==============================================================
-! Project : 2.5D MHD solar atmosphere in bipolar magnetic field
+! Project : 2.5D MHD coronal rain simulation
 ! Aim     : serve as a basic model for solar applications
 ! Results :
-! Update  : 10/02/2017
+! Update  : 19/05/2023
 ! configuration :
 ! $AMRVAC_DIR/setup.pl -d=2
 !==============================================================

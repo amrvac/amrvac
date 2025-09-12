@@ -36,7 +36,7 @@ contains
   subroutine initglobaldata_usr()
     heatunit=unit_pressure/unit_time          ! 3.697693390805347E-003 erg*cm^-3/s
 
-    usr_grav=-2.74d4*unit_length/unit_velocity**2 ! solar gravity
+    usr_grav=-2.74d4*unit_length/unit_velocity**2 ! solar gravity at the surface
     bQ0=1.d-4/heatunit ! background heating power density
     gzone=2.d8/unit_length ! thickness of a ghostzone below the bottom boundary
     dya=(2.d0*gzone+xprobmax2-xprobmin2)/dble(jmax) ! cells size of high-resolution 1D solar atmosphere
@@ -76,14 +76,18 @@ contains
       ftra=wtra*atanh(2.d0*(Ttr-Tpho)/(Ttop-Tpho)-1.d0)
       kappa=8.d-7*unit_temperature**3.5d0/unit_length/unit_density/unit_velocity**3
       do j=1,jmax
-         ya(j)=(dble(j)-0.5d0)*dya-gzone
+         ya(j)=(dble(j)-0.5d0)*dya-gzone+xprobmin2
          if(ya(j)>htra) then
            Ta(j)=(3.5d0*Fc/kappa*(ya(j)-htra)+Ttr**3.5d0)**(2.d0/7.d0)
-         else
+           gg(j)=usr_grav*(SRadius/(SRadius+ya(j)))**2
+         else if(ya(j)>=0.d0) then
            Ta(j)=Tpho+0.5d0*(Ttop-Tpho)*(tanh((ya(j)-htra+ftra)/wtra)+1.d0)
-         endif
-         gg(j)=usr_grav*(SRadius/(SRadius+ya(j)))**2
-      enddo
+           gg(j)=usr_grav*(SRadius/(SRadius+ya(j)))**2
+         else
+           Ta(j)=Tpho-0.4d0*mH_cgs*2.74d4/kB_cgs/unit_temperature*unit_length*(ya(j)-Tpho)
+           gg(j)=usr_grav*((SRadius+ya(j))/SRadius)**3
+         end if
+      end do
       !! solution of hydrostatic equation 
       ra(1)=rpho
       pa(1)=rpho*Tpho
@@ -97,10 +101,10 @@ contains
     else
       do j=1,jmax
          ! get height table
-         ya(j)=(dble(j)-0.5d0)*dya-gzone
+         ya(j)=(dble(j)-0.5d0)*dya-gzone+xprobmin2
          ! get gravity table
          gg(j)=usr_grav*(SRadius/(SRadius+ya(j)))**2
-      enddo
+      end do
       ! a coronal height at 10 Mm
       hc=1.d9/unit_length
       ! the number density at the coronal height
@@ -117,8 +121,9 @@ contains
     allocate(rbc(nghostcells))
     allocate(pbc(nghostcells))
     do ibc=nghostcells,1,-1
-      na=floor((gzone-dx(2,refine_max_level)*(dble(nghostcells-ibc+1)-0.5d0))/dya+0.5d0)
-      res=gzone-dx(2,refine_max_level)*(dble(nghostcells-ibc+1)-0.5d0)-(dble(na)-0.5d0)*dya
+      res=gzone-dx(2,refine_max_level)*(dble(nghostcells-ibc+1)-0.5d0)
+      na=floor(res/dya+0.5d0)
+      res=res-(dble(na)-0.5d0)*dya
       rbc(ibc)=ra(na)+res/dya*(ra(na+1)-ra(na))
       pbc(ibc)=pa(na)+res/dya*(pa(na+1)-pa(na))
     end do
@@ -127,7 +132,7 @@ contains
      print*,'minra',minval(ra)
      print*,'rhob',rhob
      print*,'pb',pb
-    endif
+    end if
 
   end subroutine inithdstatic
 
@@ -355,6 +360,13 @@ contains
         w(ixOmin1:ixOmax1,ix2,rho_)=rbc(ix2)
         w(ixOmin1:ixOmax1,ix2,p_)=pbc(ix2)
       enddo
+      if(mhd_hyperbolic_thermal_conduction) then
+        do ix2=ixOmin2,ixOmax2
+          do ix1=ixOmin1,ixOmax1
+            w(ix1,ix2,q_)=w(ix1,ixOmax2+1,q_)
+          end do
+        end do
+      end if
       call mhd_to_conserved(ixI^L,ixO^L,w,x)
     case(4)
       ixOs^L=ixO^L;
@@ -412,6 +424,13 @@ contains
                  +4.0d0*w(ixOmin1:ixOmax1,ix2-1,mag(:)))
         enddo
       end if
+      if(mhd_hyperbolic_thermal_conduction) then
+        do ix2=ixOmin2,ixOmax2
+          do ix1=ixOmin1,ixOmax1
+            w(ix1,ix2,q_)=w(ix1,ixOmin2-1,q_)
+          end do
+        end do
+      end if
       call mhd_to_conserved(ixI^L,ixO^L,w,x)
     case default
        call mpistop("Special boundary is not defined for this region")
@@ -438,7 +457,16 @@ contains
     double precision, intent(in)    :: x(ixI^S,1:ndim)
     double precision, intent(out)   :: ggrid(ixI^S)
 
-    ggrid(ixO^S)=usr_grav*(SRadius/(SRadius+x(ixO^S,2)))**2
+    integer :: ix^D
+
+    {do ix^DB=ixOmin^DB,ixOmax^DB\}
+      if(x(ix^D,2)>=0.d0) then
+        ggrid(ix^D)=usr_grav*(SRadius/(SRadius+x(ix^D,2)))**2
+      else
+        ggrid(ix^D)=usr_grav*((SRadius+x(ix^D,2))/SRadius)**3
+      end if
+    {end do\}
+
   end subroutine
 
   subroutine special_source(qdt,ixI^L,ixO^L,iw^LIM,qtC,wCT,qt,w,x)

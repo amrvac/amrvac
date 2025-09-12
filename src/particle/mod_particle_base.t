@@ -6,14 +6,25 @@ module mod_particle_base
   use mod_constants
   use mod_comm_lib, only: mpistop
 
-  !> String describing the particle physics type
-  character(len=name_len) :: physics_type_particles = ""
-  !> String describing the particle integrator type
-  character(len=name_len) :: integrator_type_particles = ""
-  !> Header string used in CSV files
-  character(len=400)      :: csv_header
-  !> Format string used in CSV files
-  character(len=60)       :: csv_format
+  !> Normalization factor for velocity in the integrator
+  double precision                        :: integrator_velocity_factor(3)
+  !> Time limit of particles
+  double precision        :: tmax_particles
+  !> Minimum time of all particles
+  double precision        :: min_particle_time
+  !> Time interval to save particles
+  double precision        :: dtsave_particles
+  !> If positive, a constant time step for the particles
+  double precision        :: const_dt_particles
+  !> Particle CFL safety factor
+  double precision        :: particles_cfl
+  !> Time to write next particle output
+  double precision        :: t_next_output
+  !> Resistivity
+  double precision        :: particles_eta, particles_etah
+  double precision        :: dtheta
+  !> Particle downsampling factor in CSV output
+  integer                 :: downsample_particles
   !> Maximum number of particles
   integer                 :: nparticleshi
   !> Maximum number of particles in one processor
@@ -28,32 +39,6 @@ module mod_particle_base
   integer                 :: ngridvars
   !> Number of particles
   integer                 :: num_particles
-  !> Time limit of particles
-  double precision        :: tmax_particles
-  !> Minimum time of all particles
-  double precision        :: min_particle_time
-  !> Time interval to save particles
-  double precision        :: dtsave_particles
-  !> If positive, a constant time step for the particles
-  double precision        :: const_dt_particles
-  !> Particle CFL safety factor
-  double precision        :: particles_cfl
-  !> Time to write next particle output
-  double precision        :: t_next_output
-  !> Whether to write individual particle output (followed particles)
-  logical                 :: write_individual
-  !> Whether to write ensemble output
-  logical                 :: write_ensemble
-  !> Whether to write particle snapshots
-  logical                 :: write_snapshot
-  !> Particle downsampling factor in CSV output
-  integer                 :: downsample_particles
-  !> Use a relativistic particle mover?
-  logical                 :: relativistic
-  !> Resistivity
-  double precision        :: particles_eta, particles_etah
-  double precision        :: dtheta
-  logical                 :: losses
   !> Identity number and total number of particles
   integer                 :: nparticles
   !> Iteration number of paritcles
@@ -81,8 +66,6 @@ module mod_particle_base
   integer                                 :: nparticles_on_mype
   !> Number of active particles in current processor
   integer                                 :: nparticles_active_on_mype
-  !> Normalization factor for velocity in the integrator
-  double precision                        :: integrator_velocity_factor(3)
   !> Integrator to be used for particles
   integer                                 :: integrator
 
@@ -96,6 +79,25 @@ module mod_particle_base
   integer, allocatable :: jp(:)
   !> Variable index for density
   integer :: rhop
+  !> Use a relativistic particle mover?
+  logical                 :: relativistic
+  !> Whether to write individual particle output (followed particles)
+  logical                 :: write_individual
+  !> Whether to write ensemble output
+  logical                 :: write_ensemble
+  !> Whether to write particle snapshots
+  logical                 :: write_snapshot
+  logical                 :: losses
+  !> String describing the particle interpolation type
+  character(len=name_len) :: interp_type_particles = ""
+  !> String describing the particle physics type
+  character(len=name_len) :: physics_type_particles = ""
+  !> String describing the particle integrator type
+  character(len=name_len) :: integrator_type_particles = ""
+  !> Header string used in CSV files
+  character(len=400)      :: csv_header
+  !> Format string used in CSV files
+  character(len=60)       :: csv_format
 
   type particle_ptr
     type(particle_t), pointer         :: self
@@ -191,7 +193,8 @@ contains
                               downsample_particles, dtsave_particles, tmax_particles, &
                               num_particles, ndefpayload, nusrpayload, &
                               losses, const_dt_particles, particles_cfl, dtheta, &
-                              relativistic, integrator_type_particles, particles_eta, particles_etah
+                              relativistic, integrator_type_particles, particles_eta, particles_etah, &
+                              interp_type_particles
 
     do n = 1, size(files)
       open(unitpar, file=trim(files(n)), status="old")
@@ -204,9 +207,10 @@ contains
   !> Give initial values to parameters
   subroutine particle_base_init()
     use mod_global_parameters
-    integer            :: n, idir
+    integer            :: n
     integer, parameter :: i8 = selected_int_kind(18)
     integer(i8)        :: seed(2)
+    integer            :: idir
     character(len=20)  :: strdata
 
     physics_type_particles    = 'advect'
@@ -236,6 +240,7 @@ contains
     nparticles_active_on_mype = 0
     integrator_velocity_factor(:) = 1.0d0
     integrator_type_particles = 'Boris'
+    interp_type_particles = 'default'
 
     call particles_params_read(par_files)
 
@@ -376,9 +381,9 @@ contains
     use mod_global_parameters
     use mod_usr_methods, only: usr_particle_fields
 
-    integer :: igrid, iigrid
     double precision :: E(ixG^T, ndir)
     double precision :: B(ixG^T, ndir)
+    integer :: igrid, iigrid
 
     do iigrid=1,igridstail; igrid=igrids(iigrid);
       if (associated(usr_particle_fields)) then ! FILL ONLY E AND B
@@ -399,9 +404,10 @@ contains
     integer, intent(in)             :: igrid
     double precision, intent(in)    :: w_mhd(ixG^T,nw)
     double precision, intent(inout) :: w_part(ixG^T,ngridvars)
-    integer                         :: idirmin, idir
+
     double precision                :: current(ixG^T,7-2*ndir:3)
     double precision                :: w(ixG^T,1:nw)
+    integer                         :: idirmin, idir
 
     ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
 
@@ -483,12 +489,12 @@ contains
     use mod_global_parameters
     use mod_geometry
 
-    integer :: idirmin0
     integer :: ixO^L, idirmin, ixI^L
     double precision :: w(ixI^S,1:nw)
-    integer :: idir
     ! For ndir=2 only 3rd component of J can exist, ndir=1 is impossible for MHD
     double precision :: current(ixI^S,7-2*ndir:3),bvec(ixI^S,1:ndir)
+    integer :: idir
+    integer :: idirmin0
 
     idirmin0 = 7-2*ndir
 
@@ -556,8 +562,11 @@ contains
       if (tmax_particles >= t_next_output) then
         call advance_particles(t_next_output, steps_taken)
         tpartc_io_0 = MPI_WTIME()
-        if (mype .eq. 0 .and. (.not. time_advance)) print*, "Writing particle output at time",t_next_output
         call write_particle_output()
+        if(convert .and. write_snapshot) then
+          if(mype==0) print*, "Writing particle output at time",t_next_output
+          call write_particles_snapshot()
+        end if
         timeio_tot  = timeio_tot+(MPI_WTIME()-tpartc_io_0)
         tpartc_io   = tpartc_io+(MPI_WTIME()-tpartc_io_0)
 
@@ -644,7 +653,7 @@ contains
     double precision, intent(in)                       :: tloc
     double precision,dimension(ndir), intent(out)      :: vec
     double precision,dimension(ndir)                   :: vec1, vec2
-    double precision                                   :: td
+    double precision                                   :: td, bb
     integer                                            :: ic^D,idir
 
     if (associated(usr_particle_analytic)) then
@@ -654,19 +663,40 @@ contains
         call interpolate_var(igrid,ixG^LL,ixM^LL,gridvars(igrid)%w(ixG^T,ix(idir)), &
              ps(igrid)%x(ixG^T,1:ndim),x,vec(idir))
       end do
+
       if (time_advance) then
         do idir=1,ndir
           call interpolate_var(igrid,ixG^LL,ixM^LL,gridvars(igrid)%wold(ixG^T,ix(idir)), &
                ps(igrid)%x(ixG^T,1:ndim),x,vec2(idir))
         end do
+
+        ! Interpolate in time
         td = (tloc - global_time) / dt
-        vec(:) = vec(:) * (1.0d0 - td) + vec2(:) * td
+        vec(:) = vec2(:) * (1.0d0 - td) + vec(:) * td
+      end if
+
+      ! Fabio June 2024: Renormalize vector by its grid-evaluated norm
+      if (interp_type_particles=='renormalized') then
+        if (time_advance) then
+          if (sqrt(sum(vec(:)**2)) .gt. 0.d0) then
+            call interpolate_var(igrid,ixG^LL,ixM^LL, &
+                                 sum(gridvars(igrid)%w(ixG^T,ix(:))**2,dim=ndim+1)*td &
+                                 +sum(gridvars(igrid)%wold(ixG^T,ix(:))**2,dim=ndim+1)*(1.d0-td), &
+                                 ps(igrid)%x(ixG^T,1:ndim),x,bb)
+          end if
+        else
+          if (sqrt(sum(vec(:)**2)) .gt. 0.d0) then
+            call interpolate_var(igrid,ixG^LL,ixM^LL, &
+                                 sum(gridvars(igrid)%w(ixG^T,ix(:))**2,dim=ndim+1), &
+                                 ps(igrid)%x(ixG^T,1:ndim),x,bb)
+          end if
+          vec = vec/sqrt(sum(vec(:)**2))*sqrt(bb)
+        end if
       end if
     end if
 
   end subroutine get_vec
 
-  ! Shorthand for getting specifically the B field at the particle position
   subroutine get_bfield(igrid,x,tloc,b)
     use mod_global_parameters
     use mod_usr_methods, only: usr_particle_analytic, usr_particle_fields
@@ -676,7 +706,7 @@ contains
     double precision, intent(in)                       :: tloc
     double precision,dimension(ndir), intent(out)      :: b
     double precision,dimension(ndir)                   :: vec1, vec2, vec
-    double precision                                   :: td
+    double precision                                   :: td, bb
     integer                                            :: ic^D,idir
 
     if (associated(usr_particle_analytic)) then
@@ -688,14 +718,37 @@ contains
         call interpolate_var(igrid,ixG^LL,ixM^LL,gridvars(igrid)%w(ixG^T,bp(idir)), &
              ps(igrid)%x(ixG^T,1:ndim),x,vec(idir))
       end do
+
       if (time_advance) then
         do idir=1,ndir
           call interpolate_var(igrid,ixG^LL,ixM^LL,gridvars(igrid)%wold(ixG^T,bp(idir)), &
                ps(igrid)%x(ixG^T,1:ndim),x,vec2(idir))
         end do
+
+        ! Interpolate in time
         td = (tloc - global_time) / dt
-        vec(:) = vec(:) * (1.0d0 - td) + vec2(:) * td
+        vec(:) = vec2(:) * (1.0d0 - td) + vec(:) * td
       end if
+
+      ! Fabio June 2024: Renormalize vector by its grid-evaluated norm
+      if (interp_type_particles=='renormalized') then
+        if (time_advance) then
+          if (sqrt(sum(vec(:)**2)) .gt. 0.d0) then
+            call interpolate_var(igrid,ixG^LL,ixM^LL, &
+                                 sum(gridvars(igrid)%w(ixG^T,bp(:))**2,dim=ndim+1)*td &
+                                 +sum(gridvars(igrid)%wold(ixG^T,bp(:))**2,dim=ndim+1)*(1.d0-td), &
+                                 ps(igrid)%x(ixG^T,1:ndim),x,bb)
+          end if
+        else
+          if (sqrt(sum(vec(:)**2)) .gt. 0.d0) then
+            call interpolate_var(igrid,ixG^LL,ixM^LL, &
+                                 sum(gridvars(igrid)%w(ixG^T,bp(:))**2,dim=ndim+1), &
+                                 ps(igrid)%x(ixG^T,1:ndim),x,bb)
+          end if
+          vec = vec/sqrt(sum(vec(:)**2))*sqrt(bb)
+        end if
+      end if
+
     end if
 
     b(:) = vec(:)
@@ -736,7 +789,7 @@ contains
         if (time_advance) then
           call interpolate_var(igrid,ixG^LL,ixM^LL,gridvars(igrid)%wold(ixG^T,rhop),ps(igrid)%x(ixG^T,1:ndim),x,rho2)
           td = (tloc - global_time) / dt
-          rho = rho * (1.0d0 - td) + rho2 * td
+          rho = rho2 * (1.0d0 - td) + rho * td
         end if
       end if
 
@@ -942,7 +995,7 @@ contains
 
     logical,intent(out)             :: file_exists
     character(len=std_len)          :: filename
-    integer                         :: mynpayload, mynparticles, pos
+    integer                         :: mynpayload, mynparticles, pos, index_latest
 
     ! some initialisations:
     nparticles_on_mype = 0
@@ -953,11 +1006,13 @@ contains
     ! open the snapshot file on the headnode
     file_exists=.false.
     if (mype == 0) then
-!      write(filename,"(a,a,i4.4,a)") trim(base_filename),'_particles',snapshotini,'.dat'
       ! Strip restart_from_filename of the ending 
       pos = scan(restart_from_file, '.dat', back=.true.)
-      write(filename,"(a,a,i4.4,a)") trim(restart_from_file(1:pos-8)),'_particles',snapshotini,'.dat'
-      INQUIRE(FILE=filename, EXIST=file_exists)
+      do index_latest=9999,0,-1
+        write(filename,"(a,a,i4.4,a)") trim(restart_from_file(1:pos-8)),'_particles',index_latest,'.dat'
+        INQUIRE(FILE=filename, EXIST=file_exists)
+        if(file_exists) exit 
+      end do
       if (.not. file_exists) then
         write(*,*) 'WARNING: File '//trim(filename)//' with particle data does not exist.'
         write(*,*) 'Initialising particles from user or default routines'
@@ -988,6 +1043,8 @@ contains
     end do
 
     if (mype == 0) close(unit=unitparticles)
+
+    t_next_output=global_time+dtsave_particles
 
   end subroutine read_particles_snapshot
 
@@ -1035,14 +1092,19 @@ contains
     integer,dimension(0:npe-1)      :: receive_n_particles_for_output_from_ipe
     integer                         :: ipe, ipart, iipart, send_n_particles_for_output
     logical,save                    :: file_exists=.false.
+    integer                         :: snapshotnumber
 
-    if (.not. write_snapshot) return
+    if (time_advance) then
+      snapshotnumber = snapshotnext
+    else
+      snapshotnumber = nint(t_next_output/dtsave_particles)
+    end if 
 
     receive_n_particles_for_output_from_ipe(:) = 0
 
     ! open the snapshot file on the headnode
     if (mype .eq. 0) then
-      write(filename,"(a,a,i4.4,a)") trim(base_filename),'_particles',snapshotnext,'.dat'
+      write(filename,"(a,a,i4.4,a)") trim(base_filename),'_particles',snapshotnumber,'.dat'
       INQUIRE(FILE=filename, EXIST=file_exists)
       if (.not. file_exists) then
         open(unit=unitparticles,file=filename,form='unformatted',status='new',access='stream')
@@ -1124,9 +1186,9 @@ contains
   subroutine init_particles_output()
     use mod_global_parameters
 
+    integer                           :: iipart, ipart, icomp
     character(len=std_len)            :: filename
     character(len=1024)               :: line, strdata
-    integer                           :: iipart, ipart, icomp
 
     do iipart=1,nparticles_on_mype;ipart=particles_on_mype(iipart);
       if (particle(ipart)%self%follow) then
@@ -1148,9 +1210,9 @@ contains
     use mod_global_parameters
     double precision, intent(in) :: end_time
 
+    double precision :: t_min_mype
     integer          :: ipart, iipart
     logical          :: activate
-    double precision :: t_min_mype
 
     t_min_mype = bigdouble
     nparticles_active_on_mype = 0
@@ -1179,8 +1241,8 @@ contains
     integer, intent(in)                            :: index
     integer, intent(out)                           :: igrid_particle, ipe_particle
     integer                                        :: iipart,ipart,ipe_has_particle,ipe
-    logical                                        :: has_particle(0:npe-1)
     integer,dimension(0:1)                         :: buff
+    logical                                        :: has_particle(0:npe-1)
 
     has_particle(:) = .false.
     do iipart=1,nparticles_on_mype;ipart=particles_on_mype(iipart);
@@ -1360,14 +1422,14 @@ contains
     use mod_global_parameters
 
     character(len=std_len) :: filename
-    integer                         :: ipart,iipart
 !    type(particle_t), dimension(nparticles_per_cpu_hi)  :: send_particles
 !    double precision, dimension(npayload,nparticles_per_cpu_hi)  :: send_payload
     type(particle_t), allocatable, dimension(:)   :: send_particles
     double precision, allocatable, dimension(:,:) :: send_payload
+    double precision                :: tout
     integer                         :: send_n_particles_for_output, cc
     integer                         :: nout
-    double precision                :: tout
+    integer                         :: ipart,iipart
 
     if (write_individual) then
       call output_individual()
@@ -1773,11 +1835,11 @@ contains
     integer, allocatable, dimension(:,:)      :: particle_index_to_be_sent_to_ipe
     integer, dimension(nparticles_per_cpu_hi) :: particle_index_to_be_destroyed
     integer                                   :: destroy_n_particles_mype
-    logical                                   :: BC_applied
     integer, allocatable, dimension(:)        :: sndrqst, rcvrqst
     integer, allocatable, dimension(:)        :: sndrqst_payload, rcvrqst_payload
     integer                                   :: isnd, ircv
     integer, parameter                        :: maxneighbors=56 ! maximum case: coarse-fine in 3D
+    logical                                   :: BC_applied
     !-----------------------------------------------------------------------------
 
     send_n_particles_to_ipe(:)      = 0
@@ -1956,9 +2018,9 @@ contains
     double precision, allocatable, dimension(:,:)  :: send_payload
     double precision, allocatable, dimension(:,:)  :: receive_payload
     integer, allocatable, dimension(:,:)      :: particle_index_to_be_sent_to_ipe
-    logical                                   :: BC_applied
     integer, allocatable, dimension(:)        :: sndrqst, rcvrqst
     integer                                   :: isnd, ircv
+    logical                                   :: BC_applied
     !-----------------------------------------------------------------------------
     send_n_particles_to_ipe(:)      = 0
     receive_n_particles_from_ipe(:) = 0

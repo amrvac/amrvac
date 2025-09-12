@@ -8,25 +8,6 @@ module mod_dust
   implicit none
   private
 
-  !> The number of dust species
-  integer, public, protected      :: dust_n_species = 0
-
-  integer, protected              :: gas_rho_ = -1
-  integer, allocatable, protected :: gas_mom(:)
-  integer, protected              :: gas_e_   = -1
-
-  !> Indices of the dust densities
-  integer, allocatable, public, protected :: dust_rho(:)
-
-  !> Indices of the dust momentum densities
-  integer, allocatable, public, protected :: dust_mom(:, :)
-
-  !> Size of each dust species, dimensionless expression
-  double precision, allocatable, public :: dust_size(:)
-
-  !> Internal density of each dust species, dimensionless expression
-  double precision, allocatable, public :: dust_density(:)
-
   !> Reduction of stopping time timestep limit
   double precision :: dust_dtpar = 0.5d0
 
@@ -43,17 +24,43 @@ module mod_dust
   !> eqn. 5.44 using an input stellar luminosity in solar luminosities
   double precision :: dust_stellar_luminosity = -1.0d0
 
-  !> Set small dust densities to zero to avoid numerical problems
-  logical, public, protected :: dust_small_to_zero = .false.
-
   !> Minimum dust density as used when dust_small_to_zero=T
   double precision, public, protected :: dust_min_rho = -1.0d0
+
+  !> Size of each dust species, dimensionless expression
+  double precision, allocatable, public :: dust_size(:)
+
+  !> Internal density of each dust species, dimensionless expression
+  double precision, allocatable, public :: dust_density(:)
+
+  !> The number of dust species
+  integer, public, protected      :: dust_n_species = 0
+
+  integer, protected              :: gas_rho_ = -1
+  integer, allocatable, protected :: gas_mom(:)
+  integer, protected              :: gas_e_   = -1
+
+  !> Indices of the dust densities
+  integer, allocatable, public, protected :: dust_rho(:)
+
+  !> Indices of the dust momentum densities
+  integer, allocatable, public, protected :: dust_mom(:, :)
+
+  !> Set small dust densities to zero to avoid numerical problems
+  logical, public, protected :: dust_small_to_zero = .false.
 
   !> Adding dust in sourcesplit manner or not
   logical :: dust_source_split = .false.
 
   !> This can be turned off for testing purposes, if F then gas uncouples from dust
   logical :: dust_backreaction = .true.
+
+  !> whether second order terms (relevant only when dust_n_species >=2) are included
+  !> there are the terms  n2, ni2, d2 in Eqs 6,7,8 in amrvac 3.0 paper
+  logical :: dust_implicit_second_order = .true.  
+
+  !> whether fh is added for gas energy:  is only added in the impliict implementation, the explicit one was left as before
+  logical :: dust_backreaction_fh = .false.  
 
   !> What type of dust drag force to use. Can be 'Kwok', 'sticking', 'linear', 'usr' or 'none'.
   character(len=std_len), public, protected :: dust_method = 'Kwok'
@@ -63,13 +70,6 @@ module mod_dust
 
   !> Determines the dust temperature, can be 'constant', 'ism', or 'stellar'
   character(len=std_len) :: dust_temperature_type = 'constant'
-
-  !> whether second order terms (relevant only when dust_n_species >=2) are included
-  !> there are the terms  n2, ni2, d2 in Eqs 6,7,8 in amrvac 3.0 paper
-  logical :: dust_implicit_second_order = .true.  
-
-  !> whether fh is added for gas energy:  is only added in the impliict implementation, the explicit one was left as before
-  logical :: dust_backreaction_fh = .false.  
 
 
   ! Public methods
@@ -329,8 +329,9 @@ contains
     integer, intent(in)             :: ixI^L, ixO^L
     double precision, intent(in)    :: x(ixI^S, 1:ndim)
     double precision, intent(inout) :: w(ixI^S, 1:nw)
-    logical                         :: flag(ixI^S)
+
     integer                         :: n, idir
+    logical                         :: flag(ixI^S)
 
     do n = 1, dust_n_species
       flag(ixO^S)=(w(ixO^S, dust_rho(n)) <= dust_min_rho)

@@ -28,15 +28,10 @@ module mod_convert
   type(convert_vars_method), pointer :: head_convert_vars_methods 
 contains
 
-
   subroutine init_convert()
     !initialize the head of the linked list of convert methods
     nullify(head_convert_vars_methods)
   end subroutine init_convert
-
-
-
-
 
   ! shortcut
   subroutine add_convert_method2(phys_convert_vars, nwc, aux_variable_names, file_suffix)

@@ -101,7 +101,7 @@ contains
     w(ixI^S,r_e) = const_rad_a*(temp(ixI^S)*unit_temperature)**4.d0/unit_pressure
 
     call fld_get_opacity(w, x, ixI^L, ixO^L, kappa)
-    call fld_get_fluxlimiter(w, x, ixI^L, ixO^L, lambda, fld_R)
+    call fld_get_fluxlimiter(w, x, ixI^L, ixO^L, lambda, fld_R, nghostcells)
 
     w(ixO^S,i_diff_mg) = (const_c/unit_velocity)*lambda(ixO^S)/(kappa(ixO^S)*w(ixO^S,rho_))
 

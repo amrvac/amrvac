@@ -599,7 +599,7 @@ contains
         case("central")
           call gradient(ps(igrid)%w(ixG^T,p_),ixG^LL,ixM^LL,idim,tmp)
         case("limited")
-          call gradientS(ps(igrid)%w(ixG^T,p_),ixG^LL,ixM^LL,idim,tmp)
+          call gradientL(ps(igrid)%w(ixG^T,p_),ixG^LL,ixM^LL,idim,tmp)
         end select
         pgrad(ixM^T,idim) = tmp(ixM^T)
       end do

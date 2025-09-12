@@ -1,0 +1,101 @@
+!==============================================================
+! Project : 2.5D MHD flux emergence - relaxzation
+! Aim     : Reach the quasi-equlibrium before starting the emergence
+! Results :
+! Update  : 24/06/2025
+! configuration :
+! $AMRVAC_DIR/setup.pl -d=2
+!==============================================================
+
+ &filelist
+        base_filename='Relax_A60_vl_hll_b'
+        !restart_from_file='Relax_A60_vl_hll_b****.dat'
+        saveprim=.true.
+        autoconvert=.true.
+        convert_type='vtuBCCmpi'
+        nwauxio=10
+/
+
+ &savelist
+        itsave(1,1)=0
+        itsave(1,2)=0
+        dtsave_log=0.1d0
+        dtsave_dat=1.d0
+ /
+
+
+ &stoplist
+        !reset_time=.true.
+        !reset_it=.true.
+        dtmin=1.D-7
+        !it_max=0
+        time_max=100.d0
+ /
+
+ &methodlist
+        time_stepper=  'threestep'
+        flux_scheme=    20*'hll'
+        limiter= 20*'vanleer'
+        check_small_values=.true.
+        !fix_small_values=.true.
+        !small_values_method='average'
+ / 
+
+ &boundlist
+        typeboundary_min1 = 'symm','asymm','symm','symm','symm','asymm','symm','symm'
+        typeboundary_max1 = 'symm','asymm','symm','symm','symm','asymm','symm','symm'
+        typeboundary_min2 = 8*'special'
+        typeboundary_max2 = 8*'special'
+ /
+
+ &meshlist
+        refine_criterion=3
+        refine_max_level=5
+        refine_threshold=20*0.2d0
+        derefine_ratio=20*0.15d0
+        block_nx1=24
+        block_nx2=12
+        domain_nx1=192
+        domain_nx2=96
+        iprob=1
+        xprobmin1=-6.d0
+        xprobmax1=6.d0
+        xprobmin2=0.d0
+        xprobmax2=6.d0
+        ditregrid=3
+ /
+
+ &paramlist
+        typecourant='maxsum'
+        courantpar=0.8d0
+ /
+
+ &mhd_list
+        mhd_radiative_cooling=.true.
+        mhd_thermal_conduction=.true.
+        mhd_gravity=.true.
+        typedivbfix='ct'
+        !type_ct='uct_hll'
+        Busr=20.d0
+        B0field=.false.
+        !mhd_eta=-0.01
+        boundary_divbfix(3)=.false.
+        mhd_trac=.true.
+        !mhd_trac_type=2
+        !mhd_trac_mask=0.5
+ /
+
+
+ &tc_list
+        tc_perpendicular=.false.
+        tc_saturate=.true.
+ /
+
+ &rc_list
+        ncool=4000
+        coolcurve='JCcorona'
+        coolmethod='exact'
+        Tfix=.false.
+ /
+
+

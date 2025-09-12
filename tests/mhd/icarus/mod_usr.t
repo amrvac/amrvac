@@ -1,12 +1,15 @@
 module mod_usr
   use mod_mhd
+  use mod_lookup_table
+  use mod_bc_data
   !SI units, constants
   use mod_constants, only: mp_SI, kB_SI, miu0_SI
   implicit none
 
   character(len=20)                              :: printsettingformat
   double precision                               :: omega_frame
-  character(len=500)                             :: amr_criterion, cme_parameter_file, boundary_file
+  character(len=500)                             :: amr_criterion, cme_parameter_file
+
   integer                                        :: cme_flag, num_cmes, relaxation, cme_insertion
   type satellite_pos
     real(kind=8), dimension(:,:), allocatable    :: positions
@@ -15,16 +18,16 @@ module mod_usr
   !Shared over subroutines
   real(kind=8), allocatable                      :: coord_grid_init(:,:,:),variables_init(:,:,:)
   type(satellite_pos), dimension(:), allocatable :: positions_list
-  character(len=250), dimension(8)               :: trajectory_list
-  integer, dimension(8)                          :: which_satellite = (/1, 1, 1, 1, 1, 1, 0, 0/)     ! intended order: earth, mars, mercury, venus, sta, stb, psp, solo
-  integer, dimension(8)                          :: sat_indx = (/0, 0, 0, 0, 0, 0, 0, 0/)     ! intended order: earth, mars, mercury, venus, sta, stb, psp, solo
+  character(len=250), dimension(10)               :: trajectory_list
+  integer, dimension(10)                          :: which_satellite = (/0, 0, 0, 0, 0, 0, 0, 0, 0, 0/)     ! intended order: earth, mars, mercury, venus, sta, stb, psp, solo, bepi, juno
+  integer, dimension(10)                          :: sat_indx = (/0, 0, 0, 0, 0, 0, 0, 0, 0, 0/)     ! intended order: earth, mars, mercury, venus, sta, stb, psp, solo, bepi, juno
   integer                                        :: sat_count=0, zero_count=0
-  double precision, dimension(8)                 :: last = (/0, 0, 0, 0, 0, 0, 0, 0/)        ! intended order: earth, mars, mercury, venus, sta, stb, psp, solo
-  integer, dimension(8)                          :: last_index = (/0, 0, 0, 0, 0, 0, 0, 0/)  ! intended order: earth, mars, mercury, venus, sta, stb, psp, solo
-  integer, dimension(8)                          :: last_index_s = (/0, 0, 0, 0, 0, 0, 0, 0/)
+
+  integer, dimension(10)                          :: last_index = (/0, 0, 0, 0, 0, 0, 0, 0, 0, 0/)  ! intended order: earth, mars, mercury, venus, sta, stb, psp, solo, bepi, juno
+  integer, dimension(10)                          :: last_index_s = (/0, 0, 0, 0, 0, 0, 0, 0, 0, 0/)
   double precision                               :: delta_phi
   integer, dimension(:,:), allocatable           :: starting_index, cme_index    ! first coordinate: satellite index; second coordinate: cme index
-  integer, dimension(8)                          :: magnetogram_index = (/0, 0, 0, 0, 0, 0, 0, 0/)
+  integer, dimension(10)                          :: magnetogram_index = (/0, 0, 0, 0, 0, 0, 0, 0,0,0/)
 
   ! CME parameters and simulation details from the parameter file
   ! define my cme parameters here
@@ -35,7 +38,10 @@ module mod_usr
   double precision, dimension(:,:), allocatable  :: time_difference_cme_magn
   double precision, dimension(:), allocatable    :: lon_updated, lon_original
   integer             :: magnetogram_timestamp(6)
+  character(len=20)   :: magnetogram_time
+
   integer             :: cme_exists
+      public :: bc_data_get_3d
 
 contains
 
@@ -45,11 +51,12 @@ contains
 
     namelist /rotating_frame_list/ omega_frame
     namelist /icarus_list/ amr_criterion, cme_flag, num_cmes, relaxation, cme_insertion, &
-    cme_parameter_file, boundary_file
+    cme_parameter_file, magnetogram_time, delta_phi
 
     do n = 1, size(files)
        open(unitpar, file=trim(files(n)), status="old")
        read(unitpar, rotating_frame_list, end=111)
+
        read(unitpar, icarus_list, end=111)
 111    close(unitpar)
     end do
@@ -58,8 +65,14 @@ contains
    end if
    if (cme_flag .eq. 0) then
      cme_insertion = 0
-   end if 
-
+   end if
+      read (magnetogram_time(1:4),*) magnetogram_timestamp(1)
+      read (magnetogram_time(6:7),*) magnetogram_timestamp(2)
+      read (magnetogram_time(9:10),*) magnetogram_timestamp(3)
+      read (magnetogram_time(12:13),*) magnetogram_timestamp(4)
+      read (magnetogram_time(15:16),*) magnetogram_timestamp(5)
+      read (magnetogram_time(18:19),*) magnetogram_timestamp(6)
+      delta_phi = -delta_phi
   end subroutine usr_params_read
 
   subroutine usr_init()
@@ -80,7 +93,8 @@ contains
     call set_coordinate_system('spherical_3D')
     call mhd_activate()
 
-    ! Note: mhd_activate sets the physical units used by MPI-AMRVAC as governed
+
+    !  Note: mhd_activate sets the physical units used by MPI-AMRVAC as governed
     ! in subroutine mhd_phys_init (in mod_mhd_phys.t) which in turn calls
     ! subroutine mhd_physical_units (also in mod_mhd_phys.t)
     !  There, the parameters SI_unit, eq_state_units, mhd_partial_ionization enter
@@ -136,6 +150,7 @@ contains
     character(len=200)  :: path_satellite_trajectories
     integer             :: nr_colat, nr_lon, k, n, i
 
+
     if(firstglobalusr) then
       call print_initial_information()
       !Read-in coronal model
@@ -143,8 +158,9 @@ contains
       !Coronal model has data for 4 parameters: vr, n, T, Br
       path_satellite_trajectories = './orbit/'
 
-      call grid_info_coronal_model(boundary_file, nr_colat, nr_lon)
 
+      nr_colat = lt_3d(1)%n_points(1)
+      nr_lon = lt_3d(1)%n_points(2)
       ! WARNING: ASSUMES STENCIL IS USING 2 GHOSTCELLS: may need to GENERALIZE!
       !We have 4 extra points for longitude because the boundary is periodic
       ALLOCATE(coord_grid_init(nr_colat, nr_lon+4, ndim-1), STAT = AllocateStatus)
@@ -152,68 +168,58 @@ contains
       ALLOCATE(variables_init(nr_colat, nr_lon+4, 4), STAT = AllocateStatus)
       IF (AllocateStatus /= 0) call mpistop('*** Not enough memory ***')
 
-      ! read in boundary file
-      call read_boundary_coronal_model(boundary_file, coord_grid_init, variables_init, delta_phi)
+     ! delta_phi=1.19 ! If input from WSA
+
 
       ! read in cme parameters
-      if (num_cmes == 0) then 
+      if (num_cmes == 0) then
         ALLOCATE(timestamp(1))
-        ALLOCATE(cme_index(8,1))
-        ALLOCATE(starting_index(8, 1))
-        ALLOCATE(time_difference_cme_magn(8, 1))
+        ALLOCATE(cme_index(10,1))
+        ALLOCATE(starting_index(10, 1))
+        ALLOCATE(time_difference_cme_magn(10, 1))
       else
         call read_cme_parameters(cme_parameter_file)
       end if
       ! Initialize cme starting index in the trajectory file, cme index in the trajectory file and the time difference between the start and cme indexes
       if (num_cmes > 0) then
         do n = 1, num_cmes
-          do i = 1, 8
+          do i = 1, 10
             cme_index(i, n) = 0
             starting_index(i, n) = 0
             time_difference_cme_magn(i, n) = 0
           end do
         end do
-        else 
-          do i = 1, 8
+        else
+          do i = 1, 10
             cme_index(i, 1) = 0
             starting_index(i, 1) = 0
             time_difference_cme_magn(i, 1) = 0
           end do
        end if
 
-       
-   !     do i=1, 8
-   !         call find_trajectory_file(i, path_satellite_trajectories)
-   !     end do
 
-        earth_trajectory = "orbit/2015_june_earth_ext.unf"
-        mars_trajectory = "orbit/2015_june_mars_ext.unf"
-        venus_trajectory = "orbit/2015_june_venus_ext.unf"
-        mercury_trajectory = "orbit/2015_june_mercury_ext.unf"
-        sta_trajectory = "orbit/2015_june_sta_ext.unf"
-        stb_trajectory = "orbit/2015_june_stb_ext.unf"
+        do i=1, 10
+            call find_trajectory_file(i, path_satellite_trajectories)
+        end do
 
-
-        trajectory_list(1) = earth_trajectory
-        trajectory_list(2) = mars_trajectory
-        trajectory_list(4) = venus_trajectory
-        trajectory_list(3) = mercury_trajectory
-        trajectory_list(5) = sta_trajectory
-        trajectory_list(6) = stb_trajectory
-    
-        ALLOCATE(positions_list(8), STAT=AllocateStatus)
+        ALLOCATE(positions_list(10), STAT=AllocateStatus)
 
       ! for each satellite, read the trajectory data and save in the arrays of time and locations
-      do i = 1, 8
+      do i = 1, 10
         if (which_satellite(i)==1) then
           sat_indx(i-zero_count) = i
           sat_count = sat_count+1
           call read_satellite_trajectory(trajectory_list(i), i)
+          !print *, i, positions_list(i)%positions(1,1)
         end if
          if (which_satellite(i) == 0) then
           zero_count = zero_count+1
          end if
       end do
+
+
+
+
 
       ! calculate timestamp for cme insertion
       timestamp(:) = relaxation*24.0+cme_insertion*24.0
@@ -267,11 +273,10 @@ contains
     double precision, intent(out)      :: x(3)
     integer, intent(in)                :: satellite_index
     integer                            :: n_particles
-    double precision, dimension(8)     :: orbital_period = (/365.24, 686.98, 87.969, 224.7, 346.0, 388.0, 88.0, 168.0/)    ! earth, mars, mercury, venus, sta, stb, psp, solo
+    double precision, dimension(10)     :: orbital_period = (/365.24, 686.98, 87.969, 224.7, 346.0, 388.0, 88.0, 168.0, 87.969, 1590.0/)    ! earth, mars, mercury, venus, sta, stb, psp, solo
     double precision                   :: phi_satellite, before_cme
 
 
-    !print *, xprobmin1, xprobmax1, xprobmin2, xprobmax2, xprobmin3, xprobmax3
     before_cme = (cme_index(1,1) - magnetogram_index(1))/60.0
     x(1) = positions_list(satellite_index)%positions(7, starting_index(satellite_index,1))
     x(2) = (dpi/2.0 - positions_list(satellite_index)%positions(8, starting_index(satellite_index,1)))
@@ -295,20 +300,29 @@ contains
     integer, intent(in)             :: satellite_index
 
     double precision                :: phi_satellite, before_cme, delta_lon, lon_old, lon_new
-    double precision, dimension(8)     :: orbital_period = (/365.24, 686.98, 87.969, 224.7, 346.0, 388.0, 88.0, 168.0/)    ! earth, mars, mercury, venus, sta, stb, psp, solo
-    double precision                :: curr_lon, final_fix
+    double precision, dimension(10)     :: orbital_period = (/365.24, 686.98, 87.969, 224.7, 346.0, 388.0, 88.0, 168.0, 87.969, 1590.0/)    ! earth, mars, mercury, venus, sta, stb, psp, solo
+
+    double precision                :: curr_lon,prev_lon, final_fix, curr_lon_e
+    integer, dimension(8)           :: prev_index_s = (/0, 0, 0, 0, 0, 0, 0, 0/)
+
 
     last_index_s(satellite_index) = starting_index(satellite_index, 1) + floor(tnew*60.0)
     before_cme = (cme_index(1,1) - magnetogram_index(1))/60.0
 
+    curr_lon = positions_list(satellite_index)%positions(9, last_index_s(satellite_index))
+    prev_index_s(satellite_index) = starting_index(satellite_index, 1) + floor(told*60.0)
+    prev_lon = positions_list(satellite_index)%positions(9, prev_index_s(satellite_index))
+    delta_lon = curr_lon-prev_lon
+
+
     xf(1) = positions_list(satellite_index)%positions(7, last_index_s(satellite_index))
     xf(2) = dpi/2.0 - positions_list(satellite_index)%positions(8, last_index_s(satellite_index))
-    xf(3) = x(3) - (tnew-told)*(2.0*dpi)/24.0*(1/2.447d1-1/orbital_period(1))
+    xf(3) = x(3) + delta_lon- (tnew-told)*(2.0*dpi)/24.0*(1/2.447d1-1/orbital_period(1))
     last_index_s(satellite_index) = starting_index(satellite_index, 1) + ceiling(tnew*60.0)
 
     xc(1) = positions_list(satellite_index)%positions(7, last_index_s(satellite_index))
     xc(2) = dpi/2.0 - positions_list(satellite_index)%positions(8, last_index_s(satellite_index))
-    xc(3) = x(3) - (tnew-told)*(2.0*dpi)/24.0*(1/2.447d1-1/orbital_period(1))
+    xc(3) = x(3) +delta_lon- (tnew-told)*(2.0*dpi)/24.0*(1/2.447d1-1/orbital_period(1))
 
     if ((ceiling(tnew) - floor(tnew)) .gt. 0.0) then
       x(1) = xf(1) + (tnew - floor(tnew))*(xc(1)-xf(1))/(ceiling(tnew) - floor(tnew))
@@ -320,46 +334,12 @@ contains
       x(3) = xf(3)
     end if
 
-    before_cme = (cme_index(1,1) - magnetogram_index(1))/60.0
-    x(1) = positions_list(satellite_index)%positions(7, starting_index(satellite_index,1))
-    x(2) = (dpi/2.0 - positions_list(satellite_index)%positions(8, starting_index(satellite_index,1)))
 
-    ! phi_satellite here is at qt = 0, so at the simulation start
-    phi_satellite = delta_phi+positions_list(satellite_index)%positions(9, starting_index(satellite_index,1))&
-     + ((timestamp(1)-before_cme))*(2.0*dpi)/24.0*(1/2.447d1-1/orbital_period(1))
-
-    ! This is the small (temporary) fix for the longitude update from the file
-    ! because now we are updating the previous longitude, which only reads out the first longitude of the satellite from the file
-    ! but not afterwards at everystep, so to fix for that we are doing this
-    x_test(3) = delta_phi+positions_list(satellite_index)%positions(9, last_index_s(satellite_index))&
-     - (tnew-(timestamp(1)-before_cme))*(2.0*dpi)/24.0*(1/2.447d1-1/orbital_period(1))
-
-    if (x_test(3) < 0) then
-      x_test(3) = 2 * dpi + x_test(3)
-    else if (x_test(3) > 2.0*dpi) then
-      x_test(3) = x_test(3) - 2.0*dpi
-    end if
-
-
-    final_fix = x_test(3) - x(3)
-    if (final_fix < -2*dpi) then
-      final_fix = final_fix + 2*dpi
-    end if
-
-    if (final_fix > 2*dpi) then 
-      final_fix = final_fix - 2*dpi
-    end if
-    !if (tnew > 138.7 .and. satellite_index == 3 .and. tnew < 140.0) then
-    !print *, "inside ", tnew, x_test(3), x(3)
-    !x(3) = x(3)+mod((x_test(3)-x(3)), 2*dpi)
-    !else
-    !x(3) = x(3) + final_fix
-    !end if
-    x(3) = x(3)+mod((x_test(3)-x(3)), 2*dpi)
   end subroutine move_particle
 
   subroutine initonegrid_usr(ixG^L,ix^L,w,x)
     use mod_global_parameters
+
     logical, save:: first=.true.
     integer, intent(in)             :: ixG^L, ix^L
     double precision, intent(in)    :: x(ixG^S,1:ndim)
@@ -369,28 +349,42 @@ contains
     double precision    :: r_boundary
     integer             :: point11_clt, point11_lon, point22_clt, point22_lon
 
+    double precision :: velocity2d(ixmin2:ixmax2,ixmin3:ixmax3)
+    double precision :: rho2d(ixmin2:ixmax2,ixmin3:ixmax3)
+    double precision :: p2d(ixmin2:ixmax2,ixmin3:ixmax3)
+    double precision :: br2d(ixmin2:ixmax2,ixmin3:ixmax3)
+    integer ::  idir, i
+
+
     w(ix^S,1:nw) = zero
+
+
     r_boundary   = xprobmin1 !in R_sun
+!    print *, "lt_2dthing ", lt_3d(1)%n_points(1)
+    velocity2d(ixmin2:ixmax2, ixmin3:ixmax3) = bc_data_get_3d(bc_data_ix(mom(1), 1), &
+           x(ixmin1, ixmin2:ixmax2, ixmin3:ixmax3, 2), &
+           x(ixmin1, ixmin2:ixmax2, ixmin3:ixmax3, 3), 0d0)
+    rho2d(ixmin2:ixmax2, ixmin3:ixmax3) = bc_data_get_3d(bc_data_ix(rho_, 1), &
+           x(ixmin1, ixmin2:ixmax2, ixmin3:ixmax3, 2), &
+           x(ixmin1, ixmin2:ixmax2, ixmin3:ixmax3, 3), 0d0)
+    p2d(ixmin2:ixmax2, ixmin3:ixmax3) = bc_data_get_3d(bc_data_ix(p_, 1), &
+           x(ixmin1, ixmin2:ixmax2, ixmin3:ixmax3, 2), &
+           x(ixmin1, ixmin2:ixmax2, ixmin3:ixmax3, 3), 0d0)
+    br2d(ixmin2:ixmax2, ixmin3:ixmax3) = bc_data_get_3d(bc_data_ix(mag(1), 1), &
+           x(ixmin1, ixmin2:ixmax2, ixmin3:ixmax3, 2), &
+           x(ixmin1, ixmin2:ixmax2, ixmin3:ixmax3, 3), 0d0)
 
-    !Loop non-ghost cells of cell-block
-    {do ix^DB=ixmin^DB,ixmax^DB\}
-      !Information of grid coordinate
-      xloc(:)=x(ix^D,:)
-      !Find the corresponding grid numbers of clt and lon that are closest to the value of xloc
-      !point11 and point22 similar to wiki of linear interpolation in 2D
-      call find_indices_coord_grid(xloc, point11_clt, point11_lon, point22_clt, point22_lon)
 
-      ! INTERPOLATION
-      w(ix^D, mom(1)) = linear_interpolation(xloc(2),xloc(3),point11_clt,point11_lon,point22_clt,point22_lon,1)/unit_velocity
-      w(ix^D, rho_)   = linear_interpolation(xloc(2),xloc(3),point11_clt,point11_lon,point22_clt,point22_lon,2)/unit_density*(r_boundary/xloc(1))**2
-      w(ix^D, p_)     = linear_interpolation(xloc(2),xloc(3),point11_clt,point11_lon,point22_clt,point22_lon,3)/unit_pressure*(r_boundary/xloc(1))**2
-      w(ix^D, mag(1)) = linear_interpolation(xloc(2),xloc(3),point11_clt,point11_lon,point22_clt,point22_lon,4)/unit_magneticfield*(r_boundary/xloc(1))**2
 
-      if(w(ix^D, p_)<0.0d0.or.w(ix^D, rho_)<0.0d0) then
-        print*, "NEGATIVE PRESSURE/DENSITY when setting the initial grid: ", w(ix^D, p_), w(ix^D, rho_)
-      end if
-
-    {end do\}
+   do ix1=ixmin1,ixmax1
+      w(ix1,ixmin2:ixmax2,ixmin3:ixmax3,mom(1))=velocity2d(ixmin2:ixmax2, ixmin3:ixmax3)
+      w(ix1,ixmin2:ixmax2,ixmin3:ixmax3,rho_)=rho2d(ixmin2:ixmax2, ixmin3:ixmax3)&
+      *(r_boundary/x(ix1,ixmin2:ixmax2, ixmin3:ixmax3, 1))**2
+      w(ix1,ixmin2:ixmax2,ixmin3:ixmax3,p_)=p2d(ixmin2:ixmax2, ixmin3:ixmax3)&
+      *(r_boundary/x(ix1,ixmin2:ixmax2, ixmin3:ixmax3, 1))**2
+      w(ix1,ixmin2:ixmax2,ixmin3:ixmax3,mag(1))=br2d(ixmin2:ixmax2, ixmin3:ixmax3)&
+      *(r_boundary/x(ix1,ixmin2:ixmax2, ixmin3:ixmax3, 1))**2
+    enddo
 
     !Convert to conserved values
     call mhd_to_conserved(ixG^L,ix^L,w,x)
@@ -460,26 +454,7 @@ contains
 
   end subroutine specialsource
 
-! LINEAR INTERPOLATION FUNCTION IN 3D
-  double precision function linear_interpolation_3D(xd, yd, zd, C000, C100, C001, C101, C010, C110, C011, C111)
-    use mod_global_parameters
-    double precision :: xd, yd, zd, C000, C100, C001, C101, C010, C110, C011, C111
-    double precision :: C00, C01, C10, C11, C0, C1
 
-    ! variables CXXX are taken as on wikipedia page on linear interpolation in 3D
-
-    C00 = C000*(1.0d0-xd)+C100*xd
-    C01 = C001*(1.0d0-xd)+C101*xd
-    C10 = C010*(1.0d0-xd)+C110*xd
-    C11 = C011*(1.0d0-xd)+C111*xd
-
-    C0 = C00*(1.0d0-yd)+C10*yd
-    C1 = C01*(1.0d0-yd)+C11*yd
-
-    linear_interpolation_3D = C0*(1.0d0-zd)+C1*zd
-
-    return
-  end function linear_interpolation_3D
 
   subroutine specialrefine_grid(igrid,level,ixI^L,ixO^L,qt,w,x,refine,coarsen)
     ! refine = -1 enforce to not refine
@@ -530,16 +505,33 @@ contains
       end if
     end if
 
+   if (amr_criterion == "lonwindow" .and. qt>360.) then
+    if (any(x(ixI^S,3) >= dpi/2) .and. any(x(ixI^S,3) <= dpi/2)) then
+      refine = 1
+      coarsen = -1
+      else
+      refine = -1
+      coarsen = 1
+    end if
+   end if
+
     ! Refinement criterion for tracing function
     if (amr_criterion == "tracing") then
       if (qt > timestamp(1)) then
-        if (any(w(ixI^S,tracer(1)) > 0.001)) then
-          refine = 1
-          coarsen = -1
+      !  if (any(w(ixI^S,tracer(1)) > 0.001) .and. any(x(ixI^S,1) >= 50.0)) then
+          if (any(w(ixI^S,tracer(1)) > 0.001)) then
+            if (any(x(ixI^S,3) < phi_satellite + 30*dpi/180) .and. any(x(ixI^S,3) > max(phi_satellite -30*dpi/180,0.0)) ) then
+              refine = 1
+              coarsen = -1
+            else
+              refine = -1
+              coarsen = 1
+            end if
         else
           refine = -1
           coarsen = 1
         end if
+
       end if
     end if
 
@@ -562,9 +554,10 @@ contains
 
     select case(iB)
       case(1)! Lower radial boundary
-        nr_colat = SIZE(coord_grid_init(:,1,1))
-        nr_lon = SIZE(coord_grid_init(1,:,1))
-        w(ixO^S,:) = 0.d0
+        nr_colat = lt_3d(1)%n_points(1)
+        nr_lon = lt_3d(1)%n_points(2)
+    !    print *, "in boundary function  ", nr_colat, nr_lon
+!        w(ixO^S,:) = 0.d0
 
         !W IS USING CONSERVATIVE VALUES
         !SO TO GET v1 WE NEED TO USE m1/rho!!
@@ -576,6 +569,7 @@ contains
         !then b. = f(r)_bound - f(r)_phys / (R_bound - R_phys)
         !and a = f(r)_bound - b*21.5R_sun
         !FOR NOW WE ASSUME NON-STRETCHED GRID!
+        call mhd_to_primitive(ixI^L,ixO^L,w,x)
         do ix3 = ixOmin3, ixOmax3
           do ix2 = ixOmin2,ixOmax2
             !Get data from the first phsyical cell going in the r-direction
@@ -584,19 +578,18 @@ contains
             phi     = x(ixOmin1, ix2, ix3, 3)
             xloc(:) = x(ixOmin1 +2, ix2, ix3,:)
             !IMPORTANT NOTE:
-            !AMRVAC has ghostcells that are largers than 2*pi
+!            !AMRVAC has ghostcells that are largers than 2*pi
             !We made sure that coord_grid_init also has data >2*pi
 
             !Find the corresponding data in the initial grid
-            !For now we take the values at 21.5+delta_r/2 as our grid coord_grid_init does not have 21.5R_sun
+!            !For now we take the values at 21.5+delta_r/2 as our grid coord_grid_init does not have 21.5R_sun
             !TODO: add the 21.5 R_sun grid!!
 
-            call find_indices_coord_grid(xloc, point11_clt, point11_lon, point22_clt, point22_lon)
-
+        !    call find_indices_coord_grid(xloc, point11_clt, point11_lon, point22_clt, point22_lon)
             mask_cme = 0
             if (num_cmes == 0) then
               local_check = 1
-            else 
+            else
               local_check = num_cmes
             end if
             do n=1, local_check
@@ -611,226 +604,26 @@ contains
                   ! speed
                   w(ixOmax1, ix2, ix3, mom(1)) =  vr_cme(n)/unit_velocity
                   w(ixOmin1, ix2, ix3, mom(1)) =  vr_cme(n)/unit_velocity
-                  w(ixOmax1, ix2, ix3, mom(2)) = - w(ixOmin1+2,ix2, ix3,mom(2))/w(ixOmin1+2,ix2, ix3,rho_)
-                  w(ixOmin1, ix2, ix3, mom(2)) = - w(ixOmin1+3,ix2, ix3,mom(2))/w(ixOmin1+2,ix2, ix3,rho_)
-                  w(ixOmax1, ix2, ix3, mom(3)) = - w(ixOmin1+2,ix2, ix3,mom(3))/w(ixOmin1+2,ix2, ix3,rho_)
-                  w(ixOmin1, ix2, ix3, mom(3)) = - w(ixOmin1+3,ix2, ix3,mom(3))/w(ixOmin1+2,ix2, ix3,rho_)
-                  ! magnetic field (keep the way it is)
-                  w(ixOmax1, ix2, ix3, mag(1)) =  2.0d0* linear_interpolation(theta, phi, point11_clt, point11_lon, point22_clt, point22_lon, 4)/unit_magneticfield&
-                                              - w(ixOmin1+2,ix2, ix3,mag(1))
-                  w(ixOmin1, ix2, ix3, mag(1)) =  4.0d0* linear_interpolation(theta, phi, point11_clt, point11_lon, point22_clt, point22_lon, 4)/unit_magneticfield&
-                                              - 3.0d0*w(ixOmin1+2,ix2, ix3,mag(1))
-                  ! B_theta B_phi are 0
-                  w(ixOmax1, ix2, ix3, mag(2)) = - w(ixOmin1+2,ix2, ix3,mag(2))
-                  w(ixOmax1, ix2, ix3, mag(3)) = - w(ixOmin1+2,ix2, ix3,mag(3))
-                  w(ixOmin1, ix2, ix3, mag(2)) = - w(ixOmin1+3,ix2, ix3,mag(2))
-                  w(ixOmin1, ix2, ix3, mag(3)) = - w(ixOmin1+3,ix2, ix3,mag(3))
                   !pressure: p
                   w(ixOmax1, ix2, ix3, p_) = rho_cme(n) / (0.5 * mp_SI) * kB_SI * temperature_cme(n)/unit_pressure
                   w(ixOmin1, ix2, ix3, p_) = rho_cme(n) / (0.5 * mp_SI) * kB_SI * temperature_cme(n)/unit_pressure
                   ! Setting tracer function to the value of densicy inside CME
                   w(ixOmax1, ix2, ix3,  tracer(1)) = rho_cme(n)/unit_density
                   w(ixOmin1, ix2, ix3,  tracer(1)) = rho_cme(n)/unit_density
-
-                else
-                  !Mass density
-                  w(ixOmax1, ix2, ix3, rho_) =  2.0d0* linear_interpolation(theta, phi, point11_clt, point11_lon, point22_clt, point22_lon, 2)/unit_density&
-                                               - w(ixOmin1+2,ix2, ix3,rho_)
-                  w(ixOmin1, ix2, ix3, rho_) =  4.0d0* linear_interpolation(theta, phi, point11_clt, point11_lon, point22_clt, point22_lon, 2)/unit_density &
-                                               - 3.0d0*w(ixOmin1+2,ix2, ix3,rho_)
-                  !Change momentum to speed
-                  w(ixOmax1, ix2, ix3, mom(1)) =  2.0d0* linear_interpolation(theta, phi, point11_clt, point11_lon, point22_clt, point22_lon, 1)/unit_velocity&
-                                               - w(ixOmin1+2,ix2, ix3,mom(1))/w(ixOmin1+2,ix2, ix3,rho_)
-                  w(ixOmin1, ix2, ix3, mom(1)) =  4.0d0* linear_interpolation(theta, phi, point11_clt, point11_lon, point22_clt, point22_lon, 1)/unit_velocity &
-                                               - 3.0d0*w(ixOmin1+2,ix2, ix3,mom(1))/w(ixOmin1+2,ix2, ix3,rho_)
-                  !v2 and v3 are zero at boundary- so we can just copy the value and change the sign
-                  w(ixOmax1, ix2, ix3, mom(2)) = - w(ixOmin1+2,ix2, ix3,mom(2))/w(ixOmin1+2,ix2, ix3,rho_)
-                  w(ixOmin1, ix2, ix3, mom(2)) = - w(ixOmin1+3,ix2, ix3,mom(2))/w(ixOmin1+2,ix2, ix3,rho_)
-                  w(ixOmax1, ix2, ix3, mom(3)) = - w(ixOmin1+2,ix2, ix3,mom(3))/w(ixOmin1+2,ix2, ix3,rho_)
-                  w(ixOmin1, ix2, ix3, mom(3)) = - w(ixOmin1+3,ix2, ix3,mom(3))/w(ixOmin1+2,ix2, ix3,rho_)
-                  !magnetic field: b1
-                  w(ixOmax1, ix2, ix3, mag(1)) =  2.0d0* linear_interpolation(theta, phi, point11_clt, point11_lon, point22_clt, point22_lon, 4)/unit_magneticfield&
-                                               - w(ixOmin1+2,ix2, ix3,mag(1))
-                  w(ixOmin1, ix2, ix3, mag(1)) =  4.0d0* linear_interpolation(theta, phi, point11_clt, point11_lon, point22_clt, point22_lon, 4)/unit_magneticfield&
-                                               - 3.0d0*w(ixOmin1+2,ix2, ix3,mag(1))
-                  !b2 and b3 are zero at boundary- so we can just copy the value and change the sign
-                  w(ixOmax1, ix2, ix3, mag(2)) = - w(ixOmin1+2,ix2, ix3,mag(2))
-                  w(ixOmax1, ix2, ix3, mag(3)) = - w(ixOmin1+2,ix2, ix3,mag(3))
-                  w(ixOmin1, ix2, ix3, mag(2)) = - w(ixOmin1+3,ix2, ix3,mag(2))
-                  w(ixOmin1, ix2, ix3, mag(3)) = - w(ixOmin1+3,ix2, ix3,mag(3))
-                  !pressure: p
-                  w(ixOmax1, ix2, ix3, p_) = linear_interpolation(theta, phi, point11_clt, point11_lon, point22_clt, point22_lon, 3)/unit_pressure
-                  w(ixOmin1, ix2, ix3, p_) = linear_interpolation(theta, phi, point11_clt, point11_lon, point22_clt, point22_lon, 3)/unit_pressure
+                 else
                   w(ixOmax1, ix2, ix3,  tracer(1)) = - w(ixOmin1+2, ix2, ix3,  tracer(1))
                   w(ixOmin1, ix2, ix3,  tracer(1)) = - w(ixOmin1+3, ix2, ix3,  tracer(1))
-
                 end if
               end if
-            end do
-          end do
-        end do
-
+             end do
+            !Mass density
+      end do
+    end do
         !convert back to conserved values
         call mhd_to_conserved(ixI^L,ixO^L,w,x)
     end select
   end subroutine specialbound_usr
 
-! LINEAR INTERPOLATION FUNCTION
-  double precision function linear_interpolation(x, y, counter_x1, counter_y1, counter_x2, counter_y2, variable)
-    use mod_global_parameters
-
-    integer          :: variable, counter_x1, counter_x2, counter_y1, counter_y2
-    double precision :: x1, x2, y1, y2, x, y, interpolation_x1, interpolation_x2
-
-    x1 = coord_grid_init(counter_x1, counter_y1, 1)
-    x2 = coord_grid_init(counter_x2, counter_y2, 1)
-    y1 = coord_grid_init(counter_x1, counter_y1, 2)
-    y2 = coord_grid_init(counter_x2, counter_y2, 2)
-    interpolation_x1 = (x2-x)/(x2-x1)*variables_init(counter_x1, counter_y1, variable)
-    interpolation_x1 = interpolation_x1 + (x-x1)/(x2-x1)*variables_init(counter_x2, counter_y1,variable)
-    interpolation_x2 = (x2-x)/(x2-x1)*variables_init(counter_x1, counter_y2, variable)
-    interpolation_x2 = interpolation_x2 + (x-x1)/(x2-x1)*variables_init(counter_x2, counter_y2, variable)
-
-    linear_interpolation = (y2-y)/(y2-y1)*interpolation_x1 + (y-y1)/(y2-y1)*interpolation_x2
-
-    return
-  end function linear_interpolation
-
-!Get grid info on coronal model
-  subroutine grid_info_coronal_model(filename, nr_colat, nr_lon)
-    use mod_global_parameters
-    character(len=50), intent(in)   :: filename
-    integer, intent(out)            :: nr_colat, nr_lon
-    integer                         :: iUnit=20, iError, i
-
-    open(iUnit, file=filename, status="old", action="read", iostat=iError)
-    if(iError /= 0) call mpistop('Importdata could not open real4 file = '//trim(filename))
-    !Note: second line is the time, in case this is needed
-    do i = 1, 5
-      read(iUnit,*)
-    end do
-    read(iUnit,*) nr_colat
-    do i = 1, nr_colat+2
-      read(iUnit,*)
-    end do
-    read(iUnit,*) nr_lon
-    close(iUnit)
-
-  end subroutine grid_info_coronal_model
-
-! read in boundary file
-  subroutine read_boundary_coronal_model(filename, coord_grid, variables, delta_phi)
-    use mod_global_parameters
-    character(len=50), intent(in)   :: filename
-    double precision, intent(out)   :: coord_grid(:,:,:), variables(:,:,:)
-    double precision, intent(out)   :: delta_phi
-    integer                         :: AllocateStatus, DeAllocateStatus
-    integer                         :: iUnit=20, iError
-    integer                         :: nVar =4, nr_colat, nr_lon, counter, i,j,k
-    integer                         :: total_boundary_points
-    double precision, dimension(:), allocatable     :: colat_points, lon_points
-    double precision, dimension(:,:), allocatable   :: variables_boundary_data
-
-    character(len=20)               :: magnetogram_time
-
-    open(iUnit, file=filename, status="old", action="read", iostat=iError)
-    if(iError /= 0) call mpistop('Importdata could not open real4 file = '//trim(filename))
-    !Note: second line is the time, in case this would ever be needed
-    do i = 1, 5
-      if (i == 2) then
-        read(iUnit, *) magnetogram_time
-      else
-        read(iUnit,*)
-      end if
-    end do
-
-    read (magnetogram_time(1:4),*) magnetogram_timestamp(1)
-    read (magnetogram_time(6:7),*) magnetogram_timestamp(2)
-    read (magnetogram_time(9:10),*) magnetogram_timestamp(3)
-    read (magnetogram_time(12:13),*) magnetogram_timestamp(4)
-    read (magnetogram_time(15:16),*) magnetogram_timestamp(5)
-    read (magnetogram_time(18:19),*) magnetogram_timestamp(6)
-    read(iUnit,*) nr_colat
-    read(iUnit,*)
-    ALLOCATE(colat_points(nr_colat), STAT = AllocateStatus)
-    if (AllocateStatus /= 0) call mpistop('*** Not enough memory ***')
-    do i = 1, nr_colat
-      read(iUnit,*) colat_points(i)
-    end do
-    read(iUnit,*)
-    read(iUnit,*) nr_lon
-    read(iUnit,*)
-    ALLOCATE(lon_points(nr_lon), STAT = AllocateStatus)
-            IF (AllocateStatus /= 0) call mpistop('*** Not enough memory ***')
-    do i = 1, nr_lon
-        read(iUnit,*) lon_points(i)
-    end do
-    read(iUnit,*)
-    total_boundary_points = nr_colat*nr_lon
-    ALLOCATE(variables_boundary_data(total_boundary_points, nVar), STAT = AllocateStatus)
-    if (AllocateStatus /= 0) call mpistop('*** Not enough memory ***')
-    do j = 1,nVar
-      do i = 1, total_boundary_points
-        read(iUnit,*) variables_boundary_data(i,j)
-      end do
-      if (j<4) then
-        read(iUnit,*)
-      end if
-    end do
-    close(iUnit)
-
-    !Set longitude points to be between 0 and 2pi by shifting smallest value to zero
-    if (lon_points(1)<=0) then
-      delta_phi =  abs(lon_points(1))
-    else if (lon_points(1)>0) then
-      delta_phi = - lon_points(1)
-    end if
-
-    !Note: Boundary points loop over colat (inner loop) then over longitude (outer loop)
-    !k+2 for periodic reasons (longitude)
-    !4 parameters: vr, n, T, Br
-    counter = 1
-    do k = 1, nr_lon
-      do j = 1, nr_colat
-        coord_grid(j,k+2,1) = colat_points(j)
-        coord_grid(j,k+2,2) = lon_points(k) + delta_phi
-        !vr stays vr
-        variables(j,k+2,1)  = variables_boundary_data(counter,1)
-        !number density -> density rho = n_bound * half * mp_SI * (r_0/r)**2
-        variables(j,k+2,2)  = variables_boundary_data(counter,2) * half * mp_SI
-        !temperature --> change to pressure = n k_b T
-        variables(j,k+2,3) = variables_boundary_data(counter,3) * kB_SI * variables_boundary_data(counter, 2)
-        !magnetic field: Br = Br_bound * sqrt(r_0/r)
-        variables(j,k+2,4)  = variables_boundary_data(counter,4)
-        if(variables(j,k+1,3)<0 ) call mpistop('NEGATIVE PRESSURE in boundary file.')
-        counter = counter + 1
-      end do
-    end do
-
-    !k+2 for periodic reasons longitude (copy last two to front and first two to back)
-    do j = 1, nr_colat
-      coord_grid(j,1,1) = colat_points(j)
-      coord_grid(j,1,2) = lon_points(nr_lon-1) + delta_phi - two*dpi
-      variables(j,1,:)  = variables(j,nr_lon-1,:)
-
-      coord_grid(j,2,1) = colat_points(j)
-      coord_grid(j,2,2) = lon_points(nr_lon-2) + delta_phi - two*dpi
-      variables(j,2,:)  = variables(j,nr_lon-2,:)
-
-      coord_grid(j,nr_lon+3,1) = colat_points(j)
-      coord_grid(j,nr_lon+3,2) = lon_points(1) +delta_phi + two*dpi
-      variables(j,nr_lon+3,:)  = variables(j,3,:)
-
-      coord_grid(j,nr_lon+4,1) = colat_points(j)
-      coord_grid(j,nr_lon+4,2) = lon_points(2) + delta_phi + two*dpi
-      variables(j,nr_lon+4,:)  = variables(j,4,:)
-    end do
-
-    DEALLOCATE (variables_boundary_data, STAT = DeAllocateStatus)
-    DEALLOCATE (lon_points, STAT = DeAllocateStatus)
-    DEALLOCATE (colat_points, STAT = DeAllocateStatus)
-
-  end subroutine read_boundary_coronal_model
 
   subroutine set_units(Lunit, Tunit, Rhounit, Vunit, Bunit, Eunit, Punit)
     use mod_global_parameters
@@ -893,7 +686,7 @@ contains
       print *, ''//NEW_LINE('A')
       print *, '=================================================================='
       print *, '=================================================================='//NEW_LINE('A')
-      print *, 'EUHFORIA'//NEW_LINE('A')
+      print *, 'Icarus'//NEW_LINE('A')
     end if
   end subroutine print_initial_information
 
@@ -904,8 +697,8 @@ contains
     integer                 :: counter_clt, counter_lon, nr_colat, nr_lon, j,k
     double precision        :: minimum
 
-    nr_colat     = SIZE(coord_grid_init(:,1,1))
-    nr_lon       = SIZE(coord_grid_init(1,:,1))
+    nr_colat     = lt_3d(1)%n_points(1)
+    nr_lon       = lt_3d(1)%n_points(2)
 
     counter_clt= 1
     minimum = abs(coord_grid_init(1,1,1)-coordinate(2))
@@ -957,7 +750,7 @@ contains
     use mod_global_parameters
     integer, intent(in)             :: satellite_index
     character(len=200) , intent(in) :: path_satellite_trajectories
-        
+
     character(len=10), dimension(20) :: satellite_begin_dates = (/'1975_01_01', '1977_10_03', '1980_10_03', '1983_10_04', '1986_10_04', '1989_10_04', '1992_10_04', '1995_10_05', '1998_10_05', '2001_10_05', '2004_10_05', '2007_10_06', '2010_10_06', '2013_10_06', '2016_10_06', '2019_10_07', '2022_10_07', '2025_10_07', '2028_10_07', '2031_10_08'/)
     character(len=10), dimension(20) :: satellite_end_dates = (/'1978_04_01', '1981_04_01', '1984_04_01', '1987_04_02', '1990_04_02', '1993_04_02', '1996_04_02', '1999_04_03', '2002_04_03', '2005_04_03', '2008_04_03', '2011_04_04', '2014_04_04', '2017_04_04', '2020_04_04', '2023_04_05', '2026_04_05', '2029_04_05', '2032_04_05', '2034_12_31'/)
     character(len=10), dimension(9) :: sta_begin_dates = (/'2006_10_10', '2007_10_06', '2010_10_06', '2013_10_06', '2016_10_06', '2019_10_07', '2022_10_07', '2025_10_07', '2028_10_07'/)
@@ -968,11 +761,15 @@ contains
     character(len=10), dimension(3) :: psp_end_dates = (/'2020_04_04', '2023_04_05', '2025_08_30'/)
     character(len=10), dimension(4) :: solo_begin_dates = (/'2020_02_11', '2022_10_07', '2025_10_07', '2028_10_07'/)
     character(len=10), dimension(4) :: solo_end_dates = (/'2023_04_05', '2026_04_05', '2029_04_05', '2030_11_17'/)
+    character(len=10), dimension(3) :: bepi_begin_dates = (/'2018_10_21', '2019_10_03', '2022_10_02'/)
+    character(len=10), dimension(3) :: bepi_end_dates = (/'2020_03_31', '2023_03_31', '2025_11_01'/)
+    character(len=10), dimension(3) :: juno_begin_dates = (/'2011_08_06', '2013_10_03', '2016_10_03'/)
+    character(len=10), dimension(3) :: juno_end_dates = (/'2014_04_01', '2017_04_01', '2019_06_19'/)
     character(len=10), dimension(:), allocatable :: begin_dates, end_dates
-    
-    character(len=11), dimension(8) :: satellite_list = (/'earth      ', 'mars       ', 'mercury    ', 'venus      ', 'sta        ', 'stb        ', 'psp_nom_R02', 'SolO       '/)
-    
-    integer, dimension(8)           :: dates_lengths = (/20, 20, 20, 20, 9, 4, 3, 4/)
+
+    character(len=11), dimension(10) :: satellite_list = (/'earth      ', 'mars       ', 'mercury    ', 'venus      ', 'sta        ', 'stb        ', 'psp_nom_R02', 'SolO       ', 'mpo        ', 'juno       '/)
+
+    integer, dimension(10)           :: dates_lengths = (/20, 20, 20, 20, 9, 4, 3, 4, 3, 3/)
     integer :: begin_year, begin_month, begin_day, begin_year_previous, begin_month_previous
     integer :: first_year, first_month, first_day
     integer :: last_year, last_month, last_day
@@ -996,30 +793,39 @@ contains
     else if (satellite_index == 7) then
       begin_dates = psp_begin_dates
       end_dates = psp_end_dates
-    else
+    else if (satellite_index == 8) then
       begin_dates = solo_begin_dates
       end_dates = solo_end_dates
+    else if (satellite_index == 9) then
+      begin_dates = bepi_begin_dates
+      end_dates = bepi_end_dates
+    else
+      begin_dates = juno_begin_dates
+      end_dates = juno_end_dates
     end if
+
+
+
 
     read(begin_dates(1)(1:4), '(i4)') first_year
     read(begin_dates(1)(6:7), '(i2)') first_month
     read(begin_dates(1)(9:10), '(i2)') first_day
     read(end_dates(length)(1:4), '(i4)') last_year
     read(end_dates(length)(6:7), '(i2)') last_month
-    read(end_dates(length)(9:10), '(i2)') last_day      
+    read(end_dates(length)(9:10), '(i2)') last_day
 
-    if ((magnetogram_timestamp(1)>first_year .and. .not.(magnetogram_timestamp(1)==first_year+1 .and. magnetogram_timestamp(2)==1 .and. first_month==12) .or. magnetogram_timestamp(1)==first_year .and. magnetogram_timestamp(2)>first_month+1) .and. & 
+    if ((magnetogram_timestamp(1)>first_year .and. .not.(magnetogram_timestamp(1)==first_year+1 .and. magnetogram_timestamp(2)==1 .and. first_month==12) .or. magnetogram_timestamp(1)==first_year .and. magnetogram_timestamp(2)>first_month+1) .and. &
         (magnetogram_timestamp(1)<last_year .and. .not.(magnetogram_timestamp(1)==last_year-1 .and. magnetogram_timestamp(2)==12 .and. first_month==1) .or. magnetogram_timestamp(1)==last_year .and. magnetogram_timestamp(2)<last_month-1)) then
 
       do i=2, length
         read(begin_dates(i)(1:4), '(i4)') begin_year
         read(begin_dates(i)(6:7), '(i2)') begin_month
         read(begin_dates(i)(9:10), '(i2)') begin_day
-        if (magnetogram_timestamp(1)<begin_year .or. magnetogram_timestamp(1)==begin_year .and. magnetogram_timestamp(2)<begin_month .or. & 
+        if (magnetogram_timestamp(1)<begin_year .or. magnetogram_timestamp(1)==begin_year .and. magnetogram_timestamp(2)<begin_month .or. &
             magnetogram_timestamp(1)==begin_year .and. magnetogram_timestamp(2)==begin_month .and. magnetogram_timestamp(3)<begin_day) then
           j = i-1
           if (i > 2) then
-            if ((magnetogram_timestamp(1)==begin_year_previous .and. (magnetogram_timestamp(2)==begin_month_previous .or. magnetogram_timestamp(2)-1==begin_month_previous)) .or. & 
+            if ((magnetogram_timestamp(1)==begin_year_previous .and. (magnetogram_timestamp(2)==begin_month_previous .or. magnetogram_timestamp(2)-1==begin_month_previous)) .or. &
                 (magnetogram_timestamp(1)-1==begin_year_previous .and. magnetogram_timestamp(2)==1 .and. begin_month_previous==12)) then    ! if magnetogram time is too close to the begin date of the file (at most 1 month)
                 j = i-2     ! change to the one file before
             end if
@@ -1029,11 +835,11 @@ contains
           exit
         end if
         begin_year_previous = begin_year
-        begin_month_previous = begin_month 
+        begin_month_previous = begin_month
       end do
 
       if (which_satellite(satellite_index)==0) then
-        if ((magnetogram_timestamp(1)==begin_year_previous .and. (magnetogram_timestamp(2)==begin_month_previous .or. magnetogram_timestamp(2)-1==begin_month_previous)) .or. & 
+        if ((magnetogram_timestamp(1)==begin_year_previous .and. (magnetogram_timestamp(2)==begin_month_previous .or. magnetogram_timestamp(2)-1==begin_month_previous)) .or. &
             (magnetogram_timestamp(1)-1==begin_year_previous .and. magnetogram_timestamp(2)==1 .and. begin_month_previous==12)) then    ! if magnetogram time is too close to the begin date of the file (at most 1 month)
             length = length-1       ! change to the one file before
         end if
@@ -1088,7 +894,7 @@ contains
     close(iUnit)
 
     ALLOCATE(positions_list(index)%positions(nr_coordinates, nr_positions), STAT = AllocateStatus)
-    
+
     positions_list(index)%positions(1,:) = year
     positions_list(index)%positions(2,:) = month
     positions_list(index)%positions(3,:) = day
@@ -1100,15 +906,12 @@ contains
     positions_list(index)%positions(9,:) = longitudes
 
     delta_time = 0.25d0
-    ! delta_steps = int(timestamp*60)
-
     if (magnetogram_index(index) .eq. 0) then
       do j_date = 1, size(year)
         if ((year(j_date) == magnetogram_timestamp(1)) .and.  (month(j_date) == magnetogram_timestamp(2))) then
           if ((day(j_date) == magnetogram_timestamp(3)) .and. (hour(j_date) == magnetogram_timestamp(4))) then
             if (minute(j_date) == magnetogram_timestamp(5)) then
               magnetogram_index(index) = j_date
-
               exit
             end if
           end if
@@ -1118,9 +921,9 @@ contains
 
     if (starting_index(index, 1) .eq. 0 .and. (num_cmes == 0)) then
       starting_index(index, 1) = magnetogram_index(index)
-      !time_difference_cme_magn(index, 1) = 0.0
       cme_index(index,1) = magnetogram_index(index)
     end if
+
 
     if (starting_index(index, 1) .eq. 0 .and. (num_cmes > 0)) then
       do n = 1, num_cmes
@@ -1130,9 +933,10 @@ contains
               if (minute(i_date) == cme_minute(n)) then
                 cme_index(index, n) = i_date
                 time_difference_cme_magn(index, n) = (cme_index(index, n) - magnetogram_index(index))/60.0 !hours
+
                 delta_steps = int((relaxation*24.0+cme_insertion*24.0+time_difference_cme_magn(index, n))*60)
                 starting_index(index, n) = i_date - delta_steps
-                
+
                 exit
               end if
             end if
@@ -1150,6 +954,7 @@ contains
     DEALLOCATE(radii, STAT = DEAllocateStatus)
     DEALLOCATE(latitudes, STAT = DEAllocateStatus)
     DEALLOCATE(longitudes, STAT = DEAllocateStatus)
+
 
   end subroutine read_satellite_trajectory
 
@@ -1179,18 +984,19 @@ contains
     ALLOCATE(lon_cme(num_cmes))
     ALLOCATE(rho_cme(num_cmes))
     ALLOCATE(temperature_cme(num_cmes))
-    ALLOCATE(cme_index(8,num_cmes))
-    ALLOCATE(starting_index(8, num_cmes))
-    ALLOCATE(time_difference_cme_magn(8, num_cmes))
+    ALLOCATE(cme_index(10,num_cmes))
+    ALLOCATE(starting_index(10, num_cmes))
+    ALLOCATE(time_difference_cme_magn(10, num_cmes))
     ALLOCATE(longitudes_fix(num_cmes))
 
     do i=1, num_cmes
       read(iUnit,*) cme_type(i), cme_date(i), clt_cme(i), lon_cme(i), w_half(i),  vr_cme(i), rho_cme(i), temperature_cme(i)
       w_half(i) = w_half(i) * dpi/180.0
       clt_cme(i) = (-clt_cme(i) + 90.0) * dpi/180.0
-      lon_cme(i) = delta_phi + lon_cme(i) * dpi/180.0
+      lon_cme(i) = lon_cme(i)*dpi/180.0+delta_phi
       vr_cme(i) = vr_cme(i)*1000.0
     end do
+
     close(iUnit)
     do i=1, num_cmes
       read (cme_date(i)(1:4),*) cme_year(i)

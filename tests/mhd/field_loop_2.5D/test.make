@@ -1,4 +1,4 @@
-SETUP_FLAGS := -d=2
+SETUP_FLAGS := -d=2 -v=3
 SCHEME_DIR := ../../schemes
 SCHEMES := 3step_hll_cada 3step_hlld_cada 3step_hll_cada_ct 3step_hll_cada_ct_hll 3step_hll_cada_ct_average
 

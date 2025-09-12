@@ -183,8 +183,6 @@ contains
 
     physics_type = "ard"
     phys_energy  = .false.
-    ! Whether diagonal ghost cells are required for the physics
-    phys_req_diagonal = .false.
     use_particles = ard_particles
 
     allocate(start_indices(number_species),stop_indices(number_species))
@@ -228,7 +226,6 @@ contains
     ! Initialize particles module
     if (ard_particles) then
        call particles_init()
-       phys_req_diagonal = .true.
     end if
 
   end subroutine ard_phys_init
@@ -453,7 +450,7 @@ contains
 
   end subroutine ard_get_flux
 
-  subroutine ard_add_source_geom(qdt, dtfactor, ixI^L, ixO^L, wCT, w, x)
+  subroutine ard_add_source_geom(qdt, dtfactor, ixI^L, ixO^L, wCT, wprim,w, x)
 
     ! Add geometrical source terms
     ! There are no geometrical source terms 
@@ -462,7 +459,7 @@ contains
 
     integer, intent(in) :: ixI^L, ixO^L
     double precision, intent(in) :: qdt, dtfactor, x(ixI^S, 1:^ND)
-    double precision, intent(inout) :: wCT(ixI^S, 1:nw), w(ixI^S, 1:nw)
+    double precision, intent(inout) :: wCT(ixI^S, 1:nw), wprim(ixI^S,1:nw),w(ixI^S, 1:nw)
 
   end subroutine ard_add_source_geom
 

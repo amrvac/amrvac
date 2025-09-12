@@ -4,12 +4,13 @@ endif
 
 ARCH ?= default
 NDIM := 1
+NDIR := 1
 
 # By exporting these can be used when building libamrvac
-export ARCH NDIM
+export ARCH NDIM NDIR
 
 SRC_DIR := $(AMRVAC_DIR)/src
-LIB_DIR := $(AMRVAC_DIR)/lib/$(NDIM)d_$(ARCH)
+LIB_DIR := $(AMRVAC_DIR)/lib/$(NDIM)d$(NDIR)_$(ARCH)
 LIB_MAKE := $(AMRVAC_DIR)/arch/lib.make
 LIB_AMRVAC := $(LIB_DIR)/libamrvac.a
 
@@ -61,7 +62,8 @@ clean:
 	$(RM) amrvac amrvac.o mod_usr.o mod_usr.mod
 
 # Also clean the library
-allclean: clean
+allclean:
+	$(RM) amrvac amrvac.o mod_usr.o mod_usr.f mod_usr.mod
 	@echo 'Cleaning libamrvac'
 	@mkdir -p $(LIB_DIR)	# Prevent error message
 	$(MAKE) -C $(LIB_DIR) -f $(LIB_MAKE) clean

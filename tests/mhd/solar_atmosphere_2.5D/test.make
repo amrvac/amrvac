@@ -1,7 +1,8 @@
-SETUP_FLAGS := -d=2
+SETUP_FLAGS := -d=2 -v=3
 SCHEME_DIR := ../../schemes
 SCHEMES := 3step_hll_cada_ct 2step_tvdlf_mm 3step_hll_cada 3step_hlld_cada 4step_hll_mc \
-4step_hllc_ko rk4_tvdlf_cada ssprk54_hlld_mp5 B0split mhd_internal_e mhd_hydrodynamic_e
+4step_hllc_ko rk4_tvdlf_cada ssprk54_hlld_mp5 B0split mhd_internal_e mhd_hydrodynamic_e \
+mhd_hyperbolic_thermal_conduction
 
 TESTS := $(SCHEMES:%=solar_atm_25D_%.log)
 

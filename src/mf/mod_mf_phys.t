@@ -17,31 +17,9 @@ module mod_mf_phys
   !> decay scale of frictional velocity near boundaries
   double precision, public                :: mf_decay_scale(2*^ND)=0.d0
 
-  !> Whether particles module is added
-  logical, public, protected              :: mf_particles = .false.
-
-  !> Whether GLM-MHD is used
-  logical, public, protected              :: mf_glm = .false.
-
-  !> Whether divB cleaning sources are added splitting from fluid solver
-  logical, public, protected              :: source_split_divb = .false.
-
   !> GLM-MHD parameter: ratio of the diffusive and advective time scales for div b
   !> taking values within [0, 1]
   double precision, public                :: mf_glm_alpha = 0.5d0
-
-  !> MHD fourth order
-  logical, public, protected              :: mf_4th_order = .false.
-
-  !> set to true if need to record electric field on cell edges
-  logical, public, protected              :: mf_record_electric_field = .false.
-
-  !> Indices of the momentum density
-  integer, allocatable, public, protected :: mom(:)
-
-
-  !> Indices of the GLM psi
-  integer, public, protected :: psi_
 
   !> The resistivity
   double precision, public                :: mf_eta = 0.0d0
@@ -49,41 +27,29 @@ module mod_mf_phys
   !> The hyper-resistivity
   double precision, public                :: mf_eta_hyper = 0.0d0
 
-  !> Method type to clean divergence of B
-  character(len=std_len), public, protected :: typedivbfix  = 'ct'
-
-  !> Method type of constrained transport
-  character(len=std_len), public, protected :: type_ct  = 'average'
-
-  !> Whether divB is computed with a fourth order approximation
-  logical, public, protected :: mf_divb_4thorder = .false.
-
-  !> Method type in a integer for good performance
-  integer :: type_divb
-
   !> Coefficient of diffusive divB cleaning
   double precision :: divbdiff     = 0.8d0
-
-  !> Update all equations due to divB cleaning
-  character(len=std_len) ::    typedivbdiff = 'all'
-
-  !> Use a compact way to add resistivity
-  logical :: compactres   = .false.
-
-  !> Add divB wave in Roe solver
-  logical, public :: divbwave     = .true.
 
   !> Helium abundance over Hydrogen
   double precision, public, protected  :: He_abundance=0.1d0
 
-  !> To control divB=0 fix for boundary
-  logical, public, protected :: boundary_divbfix(2*^ND)=.true.
+  !> Method type in a integer for good performance
+  integer :: type_divb
+
+  !> Indices of the momentum density
+  integer, allocatable, public, protected :: mom(:)
+
+  !> Indices of the momentum density for the form of better vectorization
+  integer, public, protected              :: ^C&m^C_
+
+  !> Indices of the magnetic field for the form of better vectorization
+  integer, public, protected              :: ^C&b^C_
+
+  !> Indices of the GLM psi
+  integer, public, protected :: psi_
 
   !> To skip * layer of ghost cells during divB=0 fix for boundary
   integer, public, protected :: boundary_divbfix_skip(2*^ND)=0
-
-  !> clean divb in the initial condition
-  logical, public, protected :: clean_initial_divb=.false.
 
   ! DivB cleaning methods
   integer, parameter :: divb_none          = 0
@@ -97,11 +63,48 @@ module mod_mf_phys
   integer, parameter :: divb_lindeglm      = 7
   integer, parameter :: divb_ct            = 8
 
+  !> Whether particles module is added
+  logical, public, protected              :: mf_particles = .false.
+
+  !> Whether GLM-MHD is used
+  logical, public, protected              :: mf_glm = .false.
+
+  !> Whether divB cleaning sources are added splitting from fluid solver
+  logical, public, protected              :: source_split_divb = .false.
+
+  !> MHD fourth order
+  logical, public, protected              :: mf_4th_order = .false.
+
+  !> set to true if need to record electric field on cell edges
+  logical, public, protected              :: mf_record_electric_field = .false.
+
+  !> Whether divB is computed with a fourth order approximation
+  integer, public, protected :: mf_divb_nth = 1
+
+  !> To control divB=0 fix for boundary
+  logical, public, protected :: boundary_divbfix(2*^ND)=.true.
+
+  !> Use a compact way to add resistivity
+  logical :: compactres   = .false.
+
+  !> Add divB wave in Roe solver
+  logical, public :: divbwave     = .true.
+
+  !> clean divb in the initial condition
+  logical, public, protected :: clean_initial_divb=.false.
+
+  !> Method type to clean divergence of B
+  character(len=std_len), public, protected :: typedivbfix  = 'ct'
+
+  !> Method type of constrained transport
+  character(len=std_len), public, protected :: type_ct  = 'average'
+
+  !> Update all equations due to divB cleaning
+  character(len=std_len) ::    typedivbdiff = 'all'
+
 
   ! Public methods
   public :: mf_phys_init
-  public :: mf_get_v
-  public :: mf_get_v_idim
   public :: mf_to_conserved
   public :: mf_to_primitive
   public :: mf_face_to_center
@@ -109,7 +112,6 @@ module mod_mf_phys
   public :: get_current
   public :: get_normalized_divb
   public :: b_from_vector_potential
-  public :: mf_mag_en_all
   public :: record_force_free_metrics
   {^NOONED
   public :: mf_clean_divb_multigrid
@@ -130,7 +132,7 @@ contains
       mf_4th_order, typedivbfix, source_split_divb, divbdiff,&
       typedivbdiff, type_ct, compactres, divbwave, He_abundance, SI_unit, &
       Bdip, Bquad, Boct, Busr, clean_initial_divb, &
-      boundary_divbfix, boundary_divbfix_skip, mf_divb_4thorder
+      boundary_divbfix, boundary_divbfix_skip, mf_divb_nth
 
     do n = 1, size(files)
        open(unitpar, file=trim(files(n)), status="old")
@@ -210,16 +212,15 @@ contains
       call mpistop('Unknown divB fix')
     end select
 
-    ! Whether diagonal ghost cells are required for the physics
-    if(type_divb < divb_linde) phys_req_diagonal = .false.
-
     ! set velocity field as flux variables
     allocate(mom(ndir))
     mom(:) = var_set_momentum(ndir)
+    m^C_=mom(^C);
 
     ! set magnetic field as flux variables
     allocate(mag(ndir))
     mag(:) = var_set_bfield(ndir)
+    b^C_=mag(^C);
 
     ! start with magnetic field and skip velocity when update ghostcells
     iwstart=mag(1)
@@ -263,7 +264,6 @@ contains
     phys_get_cmax            => mf_get_cmax
     phys_get_cbounds         => mf_get_cbounds
     phys_get_flux            => mf_get_flux
-    phys_get_v               => mf_get_v
     phys_add_source_geom     => mf_add_source_geom
     phys_add_source          => mf_add_source
     phys_to_conserved        => mf_to_conserved
@@ -282,7 +282,6 @@ contains
     ! Initialize particles module
     if(mf_particles) then
       call particles_init()
-      phys_req_diagonal = .true.
       ! never allow Hall effects in particles when doing magnetofrictional
       particles_etah=0.0d0
       if(mype==0) then
@@ -318,6 +317,7 @@ contains
   subroutine mf_physical_units()
     use mod_global_parameters
     double precision :: mp,kB,miu0,c_lightspeed
+    double precision :: a,b
     ! Derive scaling units
     if(SI_unit) then
       mp=mp_SI
@@ -330,35 +330,116 @@ contains
       miu0=4.d0*dpi
       c_lightspeed=const_c
     end if
-    if(unit_density/=1.d0) then
-      unit_numberdensity=unit_density/((1.d0+4.d0*He_abundance)*mp)
-    else
-      ! unit of numberdensity is independent by default
-      unit_density=(1.d0+4.d0*He_abundance)*mp*unit_numberdensity
-    end if
-    if(unit_velocity/=1.d0) then
-      unit_pressure=unit_density*unit_velocity**2
-      unit_temperature=unit_pressure/((2.d0+3.d0*He_abundance)*unit_numberdensity*kB)
-      unit_magneticfield=sqrt(miu0*unit_pressure)
-    else if(unit_pressure/=1.d0) then
-      unit_temperature=unit_pressure/((2.d0+3.d0*He_abundance)*unit_numberdensity*kB)
-      unit_velocity=sqrt(unit_pressure/unit_density)
-      unit_magneticfield=sqrt(miu0*unit_pressure)
+    a=1.d0+4.d0*He_abundance
+    b=2.d0+3.d0*He_abundance
+    if(unit_density/=1.d0 .or. unit_numberdensity/=1.d0) then
+      if(unit_density/=1.d0) then
+        unit_numberdensity=unit_density/(a*mp)
+      else if(unit_numberdensity/=1.d0) then
+        unit_density=a*mp*unit_numberdensity
+      end if
+      if(unit_temperature/=1.d0) then
+        unit_pressure=b*unit_numberdensity*kB*unit_temperature
+        unit_velocity=sqrt(unit_pressure/unit_density)
+        unit_magneticfield=sqrt(miu0*unit_pressure)
+        if(unit_length/=1.d0) then
+          unit_time=unit_length/unit_velocity
+        else if(unit_time/=1.d0) then
+          unit_length=unit_velocity*unit_time
+        end if
+      else if(unit_magneticfield/=1.d0) then
+        unit_pressure=unit_magneticfield**2/miu0
+        unit_temperature=unit_pressure/(b*unit_numberdensity*kB)
+        unit_velocity=sqrt(unit_pressure/unit_density)
+        if(unit_length/=1.d0) then
+          unit_time=unit_length/unit_velocity
+        else if(unit_time/=1.d0) then
+          unit_length=unit_velocity*unit_time
+        end if
+      else if(unit_pressure/=1.d0) then
+        unit_temperature=unit_pressure/(b*unit_numberdensity*kB)
+        unit_velocity=sqrt(unit_pressure/unit_density)
+        unit_magneticfield=sqrt(miu0*unit_pressure)
+        if(unit_length/=1.d0) then
+          unit_time=unit_length/unit_velocity
+        else if(unit_time/=1.d0) then
+          unit_length=unit_velocity*unit_time
+        end if
+      else if(unit_velocity/=1.d0) then
+        unit_pressure=unit_density*unit_velocity**2
+        unit_temperature=unit_pressure/(b*unit_numberdensity*kB)
+        unit_magneticfield=sqrt(miu0*unit_pressure)
+        if(unit_length/=1.d0) then
+          unit_time=unit_length/unit_velocity
+        else if(unit_time/=1.d0) then
+          unit_length=unit_velocity*unit_time
+        end if
+      else if(unit_time/=1.d0) then
+        unit_velocity=unit_length/unit_time
+        unit_pressure=unit_density*unit_velocity**2
+        unit_magneticfield=sqrt(miu0*unit_pressure)
+        unit_temperature=unit_pressure/(b*unit_numberdensity*kB)
+      end if
+    else if(unit_temperature/=1.d0) then
+      ! units of temperature and velocity are dependent
+      if(unit_magneticfield/=1.d0) then
+        unit_pressure=unit_magneticfield**2/miu0
+        unit_numberdensity=unit_pressure/(b*unit_temperature*kB)
+        unit_density=a*mp*unit_numberdensity
+        unit_velocity=sqrt(unit_pressure/unit_density)
+        if(unit_length/=1.d0) then
+          unit_time=unit_length/unit_velocity
+        else if(unit_time/=1.d0) then
+          unit_length=unit_velocity*unit_time
+        end if
+      else if(unit_pressure/=1.d0) then
+        unit_magneticfield=sqrt(miu0*unit_pressure)
+        unit_numberdensity=unit_pressure/(b*unit_temperature*kB)
+        unit_density=a*mp*unit_numberdensity
+        unit_velocity=sqrt(unit_pressure/unit_density)
+        if(unit_length/=1.d0) then
+          unit_time=unit_length/unit_velocity
+        else if(unit_time/=1.d0) then
+          unit_length=unit_velocity*unit_time
+        end if
+      end if
     else if(unit_magneticfield/=1.d0) then
-      unit_pressure=unit_magneticfield**2/miu0
-      unit_temperature=unit_pressure/((2.d0+3.d0*He_abundance)*unit_numberdensity*kB)
-      unit_velocity=sqrt(unit_pressure/unit_density)
-    else
-      ! unit of temperature is independent by default
-      unit_pressure=(2.d0+3.d0*He_abundance)*unit_numberdensity*kB*unit_temperature
-      unit_velocity=sqrt(unit_pressure/unit_density)
-      unit_magneticfield=sqrt(miu0*unit_pressure)
-    end if
-    if(unit_time/=1.d0) then
-      unit_length=unit_time*unit_velocity
-    else
-      ! unit of length is independent by default
-      unit_time=unit_length/unit_velocity
+      ! units of magnetic field and pressure are dependent
+      if(unit_velocity/=1.d0) then
+        unit_pressure=unit_magneticfield**2/miu0
+        unit_numberdensity=unit_pressure/(b*unit_temperature*kB)
+        unit_density=a*mp*unit_numberdensity
+        unit_temperature=unit_pressure/(b*unit_numberdensity*kB)
+        if(unit_length/=1.d0) then
+          unit_time=unit_length/unit_velocity
+        else if(unit_time/=1.d0) then
+          unit_length=unit_velocity*unit_time
+        end if
+      else if(unit_time/=0.d0) then
+        unit_pressure=unit_magneticfield**2/miu0
+        unit_velocity=unit_length/unit_time
+        unit_density=unit_pressure/unit_velocity**2
+        unit_numberdensity=unit_density/(a*mp)
+        unit_temperature=unit_pressure/(b*unit_numberdensity*kB)
+      end if
+    else if(unit_pressure/=1.d0) then
+      if(unit_velocity/=1.d0) then
+        unit_magneticfield=sqrt(miu0*unit_pressure)
+        unit_density=unit_pressure/unit_velocity**2
+        unit_numberdensity=unit_density/(a*mp)
+        unit_temperature=unit_pressure/(b*unit_numberdensity*kB)
+        if(unit_length/=1.d0) then
+          unit_time=unit_length/unit_velocity
+        else if(unit_time/=1.d0) then
+          unit_length=unit_velocity*unit_time
+        end if
+      else if(unit_time/=0.d0) then
+        unit_magneticfield=sqrt(miu0*unit_pressure)
+        unit_velocity=unit_length/unit_time
+        unit_density=unit_pressure/unit_velocity**2
+        unit_numberdensity=unit_density/(a*mp)
+        unit_temperature=unit_pressure/(b*unit_numberdensity*kB)
+      end if
     end if
     ! Additional units needed for the particles
     c_norm=c_lightspeed/unit_velocity
@@ -393,34 +474,6 @@ contains
 
     ! nothing to do for mf
   end subroutine mf_to_primitive
-
-  !> Calculate v vector
-  subroutine mf_get_v(w,x,ixI^L,ixO^L,v)
-    use mod_global_parameters
-
-    integer, intent(in)           :: ixI^L, ixO^L
-    double precision, intent(in)  :: w(ixI^S,nw), x(ixI^S,1:ndim)
-    double precision, intent(out) :: v(ixI^S,ndir)
-
-    integer :: idir
-
-    do idir=1,ndir
-      v(ixO^S,idir) = w(ixO^S, mom(idir))
-    end do
-
-  end subroutine mf_get_v
-
-  !> Calculate v component
-  subroutine mf_get_v_idim(w,x,ixI^L,ixO^L,idim,v)
-    use mod_global_parameters
-
-    integer, intent(in)           :: ixI^L, ixO^L, idim
-    double precision, intent(in)  :: w(ixI^S,nw), x(ixI^S,1:ndim)
-    double precision, intent(out) :: v(ixI^S)
-
-    v(ixO^S) = w(ixO^S, mom(idim))
-
-  end subroutine mf_get_v_idim
 
   !> Calculate cmax_idim=csound+abs(v_idim) within ixO^L
   subroutine mf_get_cmax(w,x,ixI^L,ixO^L,idim,cmax)
@@ -512,19 +565,6 @@ contains
 
   end subroutine mf_get_ct_velocity
 
-  !> Calculate total pressure within ixO^L including magnetic pressure
-  subroutine mf_get_p_total(w,x,ixI^L,ixO^L,p)
-    use mod_global_parameters
-
-    integer, intent(in)             :: ixI^L, ixO^L
-    double precision, intent(in)    :: w(ixI^S,nw)
-    double precision, intent(in)    :: x(ixI^S,1:ndim)
-    double precision, intent(out)   :: p(ixI^S)
-
-    p(ixO^S) = 0.5d0 * sum(w(ixO^S, mag(:))**2, dim=ndim+1)
-
-  end subroutine mf_get_p_total
-
   !> Calculate fluxes within ixO^L.
   subroutine mf_get_flux(wC,w,x,ixI^L,ixO^L,idim,f)
     use mod_global_parameters
@@ -539,29 +579,19 @@ contains
     double precision, intent(in) :: x(ixI^S,1:ndim)
     double precision,intent(out) :: f(ixI^S,nwflux)
 
-    integer                      :: idir
+    integer :: ix^D
 
-    ! flux of velocity field is zero, frictional velocity is given in addsource2
-    f(ixO^S,mom(:))=0.d0
-
-    ! compute flux of magnetic field
-    ! f_i[b_k]=v_i*b_k-v_k*b_i
-    do idir=1,ndir
-      if (idim==idir) then
-        ! f_i[b_i] should be exactly 0, so we do not use the transport flux
-        if (mf_glm) then
-           f(ixO^S,mag(idir))=w(ixO^S,psi_)
-        else
-           f(ixO^S,mag(idir))=zero
-        end if
-      else
-        f(ixO^S,mag(idir))=w(ixO^S,mom(idim))*w(ixO^S,mag(idir))-w(ixO^S,mag(idim))*w(ixO^S,mom(idir))
-      end if
-    end do
-
-    if (mf_glm) then
-      !f_i[psi]=Ch^2*b_{i} Eq. 24e and Eq. 38c Dedner et al 2002 JCP, 175, 645
-      f(ixO^S,psi_)  = cmax_global**2*w(ixO^S,mag(idim))
+   {do ix^DB=ixOmin^DB,ixOmax^DB\}
+      ! compute flux of magnetic field
+      ! f_i[b_k]=v_i*b_k-v_k*b_i
+      ^C&f(ix^D,b^C_)=w(ix^D,mom(idim))*w(ix^D,b^C_)-w(ix^D,mag(idim))*w(ix^D,m^C_)\
+   {end do\}
+    if(mf_glm) then
+     {do ix^DB=ixOmin^DB,ixOmax^DB\}
+        f(ix^D,mag(idim))=w(ix^D,psi_)
+        !f_i[psi]=Ch^2*b_{i} Eq. 24e and Eq. 38c Dedner et al 2002 JCP, 175, 645
+        f(ix^D,psi_)=cmax_global**2*w(ix^D,mag(idim))
+     {end do\}
     end if
 
   end subroutine mf_get_flux
@@ -604,9 +634,9 @@ contains
     type_recv_r=>type_recv_r_p1
     type_send_p=>type_send_p_p1
     type_recv_p=>type_recv_p_p1
-    bcphys=.false.
     stagger_grid=.false.
-    call getbc(qt,0.d0,psa,mom(1),ndir,.true.)
+    bcphys=.false.
+    call getbc(qt,0.d0,psa,mom(1),ndir)
     bcphys=.true.
     type_send_srl=>type_send_srl_f
     type_recv_srl=>type_recv_srl_f
@@ -775,14 +805,13 @@ contains
     double precision, intent(in)    :: qdt
     double precision, intent(in) :: wCT(ixI^S,1:nw), x(ixI^S,1:ndim)
     double precision, intent(inout) :: w(ixI^S,1:nw)
-    integer :: ixA^L,idir,jdir,kdir,idirmin,idim,jxO^L,hxO^L,ix
-    integer :: lxO^L, kxO^L
-
-    double precision :: tmp(ixI^S),tmp2(ixI^S)
 
     ! For ndir=2 only 3rd component of J can exist, ndir=1 is impossible for MHD
     double precision :: current(ixI^S,7-2*ndir:3),eta(ixI^S)
     double precision :: gradeta(ixI^S,1:ndim), Bf(ixI^S,1:ndir)
+    double precision :: tmp(ixI^S),tmp2(ixI^S)
+    integer :: ixA^L,idir,jdir,kdir,idirmin,idim,jxO^L,hxO^L,ix
+    integer :: lxO^L, kxO^L
 
     ! Calculating resistive sources involve one extra layer
     if (mf_4th_order) then
@@ -967,11 +996,11 @@ contains
     double precision, intent(in) :: qdt, wCT(ixI^S,1:nw), x(ixI^S,1:ndim)
     double precision, intent(inout) :: w(ixI^S,1:nw)
     double precision:: divb(ixI^S)
-    integer          :: idim,idir
     double precision :: gradPsi(ixI^S)
+    integer          :: idim,idir
 
     ! We calculate now div B
-    call get_divb(wCT,ixI^L,ixO^L,divb, mf_divb_4thorder)
+    call get_divb(wCT,ixI^L,ixO^L,divb,mf_divb_nth)
 
     ! dPsi/dt =  - Ch^2/Cp^2 Psi
     if (mf_glm_alpha < zero) then
@@ -992,10 +1021,9 @@ contains
        case("central")
           call gradient(wCT(ixI^S,psi_),ixI^L,ixO^L,idim,gradPsi)
        case("limited")
-          call gradientS(wCT(ixI^S,psi_),ixI^L,ixO^L,idim,gradPsi)
+          call gradientL(wCT(ixI^S,psi_),ixI^L,ixO^L,idim,gradPsi)
        end select
     end do
-
   end subroutine add_source_glm
 
   !> Add divB related sources to w within ixO corresponding to Powel
@@ -1005,18 +1033,16 @@ contains
     integer, intent(in)             :: ixI^L, ixO^L
     double precision, intent(in)    :: qdt,   wCT(ixI^S,1:nw), x(ixI^S,1:ndim)
     double precision, intent(inout) :: w(ixI^S,1:nw)
-    double precision                :: divb(ixI^S),v(ixI^S,1:ndir)
+
+    double precision                :: divb(ixI^S)
     integer                         :: idir
 
     ! We calculate now div B
-    call get_divb(wCT,ixI^L,ixO^L,divb, mf_divb_4thorder)
-
-    ! calculate velocity
-    call mf_get_v(wCT,x,ixI^L,ixO^L,v)
+    call get_divb(wCT,ixI^L,ixO^L,divb,mf_divb_nth)
 
     ! b = b - qdt v * div b
     do idir=1,ndir
-      w(ixO^S,mag(idir))=w(ixO^S,mag(idir))-qdt*v(ixO^S,idir)*divb(ixO^S)
+      w(ixO^S,mag(idir))=w(ixO^S,mag(idir))-qdt*wCT(ixO^S,mom(idir))*divb(ixO^S)
     end do
 
   end subroutine add_source_powel
@@ -1029,18 +1055,15 @@ contains
     integer, intent(in)             :: ixI^L, ixO^L
     double precision, intent(in)    :: qdt,   wCT(ixI^S,1:nw), x(ixI^S,1:ndim)
     double precision, intent(inout) :: w(ixI^S,1:nw)
-    double precision                :: divb(ixI^S),v(ixI^S,1:ndir)
+    double precision                :: divb(ixI^S)
     integer                         :: idir
 
     ! We calculate now div B
-    call get_divb(wCT,ixI^L,ixO^L,divb, mf_divb_4thorder)
-
-    ! calculate velocity
-    call mf_get_v(wCT,x,ixI^L,ixO^L,v)
+    call get_divb(wCT,ixI^L,ixO^L,divb,mf_divb_nth)
 
     ! b = b - qdt v * div b
     do idir=1,ndir
-      w(ixO^S,mag(idir))=w(ixO^S,mag(idir))-qdt*v(ixO^S,idir)*divb(ixO^S)
+      w(ixO^S,mag(idir))=w(ixO^S,mag(idir))-qdt*wCT(ixO^S,mom(idir))*divb(ixO^S)
     end do
 
   end subroutine add_source_janhunen
@@ -1053,13 +1076,13 @@ contains
     integer, intent(in)             :: ixI^L, ixO^L
     double precision, intent(in)    :: qdt, wCT(ixI^S,1:nw), x(ixI^S,1:ndim)
     double precision, intent(inout) :: w(ixI^S,1:nw)
-    integer :: idim, idir, ixp^L, i^D, iside
     double precision :: divb(ixI^S),graddivb(ixI^S)
+    integer :: idim, idir, ixp^L, i^D, iside
     logical, dimension(-1:1^D&) :: leveljump
 
     ! Calculate div B
     ixp^L=ixO^L^LADD1;
-    call get_divb(wCT,ixI^L,ixp^L,divb, mf_divb_4thorder)
+    call get_divb(wCT,ixI^L,ixp^L,divb,mf_divb_nth)
 
     ! for AMR stability, retreat one cell layer from the boarders of level jump
     {do i^DB=-1,1\}
@@ -1096,7 +1119,7 @@ contains
        case("central")
          call gradient(divb,ixI^L,ixp^L,idim,graddivb)
        case("limited")
-         call gradientS(divb,ixI^L,ixp^L,idim,graddivb)
+         call gradientL(divb,ixI^L,ixp^L,idim,graddivb)
        end select
 
        ! Multiply by Linde's eta*dt = divbdiff*(c_max*dx)*dt = divbdiff*dx**2
@@ -1126,7 +1149,7 @@ contains
     integer :: ixA^L,idims
 
     call get_divb(w,ixI^L,ixO^L,divb)
-    invB(ixO^S)=sqrt(mf_mag_en_all(w,ixI^L,ixO^L))
+    invB(ixO^S)=sqrt(sum(w(ixO^S, mag(:))**2, dim=ndim+1))
     where(invB(ixO^S)/=0.d0)
       invB(ixO^S)=1.d0/invB(ixO^S)
     end where
@@ -1156,10 +1179,10 @@ contains
     double precision, intent(in) :: w(ixI^S,1:nw)
     integer, intent(out) :: idirmin
     logical, intent(in), optional :: fourthorder
-    integer :: idir, idirmin0
 
     ! For ndir=2 only 3rd component of J can exist, ndir=1 is impossible for MHD
     double precision :: current(ixI^S,7-2*ndir:3)
+    integer :: idir, idirmin0
 
     idirmin0 = 7-2*ndir
 
@@ -1182,9 +1205,9 @@ contains
     double precision, intent(in)    :: w(ixI^S,1:nw)
     double precision, intent(in)    :: x(ixI^S,1:ndim)
 
-    integer                       :: idirmin,idim
     double precision              :: dxarr(ndim)
     double precision              :: current(ixI^S,7-2*ndir:3),eta(ixI^S)
+    integer                       :: idirmin,idim
 
     dtnew = bigdouble
 
@@ -1216,16 +1239,16 @@ contains
   end subroutine mf_get_dt
 
   ! Add geometrical source terms to w
-  subroutine mf_add_source_geom(qdt,dtfactor, ixI^L,ixO^L,wCT,w,x)
+  subroutine mf_add_source_geom(qdt,dtfactor, ixI^L,ixO^L,wCT,wprim,w,x)
     use mod_global_parameters
     use mod_geometry
 
     integer, intent(in)             :: ixI^L, ixO^L
     double precision, intent(in)    :: qdt, dtfactor, x(ixI^S,1:ndim)
-    double precision, intent(inout) :: wCT(ixI^S,1:nw), w(ixI^S,1:nw)
+    double precision, intent(inout) :: wCT(ixI^S,1:nw), wprim(ixI^S,1:nw), w(ixI^S,1:nw)
 
-    integer          :: iw,idir
-    double precision :: tmp(ixI^S)
+    double precision :: tmp,invr,cs2
+    integer          :: iw,idir,ix^D
 
     integer :: mr_,mphi_ ! Polar var. names
     integer :: br_,bphi_
@@ -1235,78 +1258,60 @@ contains
 
     select case (coordinate)
     case (cylindrical)
-      call mf_get_p_total(wCT,x,ixI^L,ixO^L,tmp)
       if(phi_>0) then
         if(.not.stagger_grid) then
-          w(ixO^S,bphi_)=w(ixO^S,bphi_)+qdt/x(ixO^S,1)*&
-                   (wCT(ixO^S,bphi_)*wCT(ixO^S,mr_) &
-                   -wCT(ixO^S,br_)*wCT(ixO^S,mphi_))
+         {do ix^DB=ixOmin^DB,ixOmax^DB\}
+            w(ix^D,bphi_)=w(ix^D,bphi_)+qdt/x(ix^D,1)*&
+                     (wCT(ix^D,bphi_)*wCT(ix^D,mr_) &
+                     -wCT(ix^D,br_)*wCT(ix^D,mphi_))
+         {end do\}
         end if
       end if
       if(mf_glm) w(ixO^S,br_)=w(ixO^S,br_)+qdt*wCT(ixO^S,psi_)/x(ixO^S,1)
     case (spherical)
-       ! b1
-       if(mf_glm) then
-         w(ixO^S,mag(1))=w(ixO^S,mag(1))+qdt/x(ixO^S,1)*2.0d0*wCT(ixO^S,psi_)
-       end if
-
-       {^NOONED
-       ! b2
-       if(.not.stagger_grid) then
-         tmp(ixO^S)=wCT(ixO^S,mom(1))*wCT(ixO^S,mag(2)) &
-              -wCT(ixO^S,mom(2))*wCT(ixO^S,mag(1))
+       {do ix^DB=ixOmin^DB,ixOmax^DB\}
+          invr=qdt/x(ix^D,1)
+         ! b1
          if(mf_glm) then
-           tmp(ixO^S)=tmp(ixO^S) &
-                + dcos(x(ixO^S,2))/dsin(x(ixO^S,2))*wCT(ixO^S,psi_)
+           w(ix^D,mag(1))=w(ix^D,mag(1))+invr*2.0d0*wCT(ix^D,psi_)
          end if
-         w(ixO^S,mag(2))=w(ixO^S,mag(2))+qdt*tmp(ixO^S)/x(ixO^S,1)
-       end if
-       }
 
-       if(ndir==3) then
-         ! b3
+         {^NOONED
+         ! b2
          if(.not.stagger_grid) then
-           tmp(ixO^S)=(wCT(ixO^S,mom(1))*wCT(ixO^S,mag(3)) &
-                -wCT(ixO^S,mom(3))*wCT(ixO^S,mag(1))) {^NOONED &
-                -(wCT(ixO^S,mom(3))*wCT(ixO^S,mag(2)) &
-                -wCT(ixO^S,mom(2))*wCT(ixO^S,mag(3)))*dcos(x(ixO^S,2)) &
-                /dsin(x(ixO^S,2)) }
-           w(ixO^S,mag(3))=w(ixO^S,mag(3))+qdt*tmp(ixO^S)/x(ixO^S,1)
+           tmp=wCT(ix^D,mom(1))*wCT(ix^D,mag(2))-wCT(ix^D,mom(2))*wCT(ix^D,mag(1))
+           cs2=1.d0/tan(x(ix^D,2))
+           if(mf_glm) then
+             tmp=tmp+cs2*wCT(ix^D,psi_)
+           end if
+           w(ix^D,mag(2))=w(ix^D,mag(2))+tmp*invr
          end if
-       end if
+         }
+
+         if(ndir==3) then
+          {^IFONED
+          ! b3
+          if(.not.stagger_grid) then
+            w(ix^D,mag(3))=w(ix^D,mag(3))+invr*&
+               (wCT(ix^D,mom(1))*wCT(ix^D,mag(3)) &
+               -wCT(ix^D,mom(3))*wCT(ix^D,mag(1)))
+          end if
+          }
+          {^NOONED
+          ! b3
+          if(.not.stagger_grid) then
+            w(ix^D,mag(3))=w(ix^D,mag(3))+invr*&
+               (wCT(ix^D,mom(1))*wCT(ix^D,mag(3)) &
+               -wCT(ix^D,mom(3))*wCT(ix^D,mag(1)) &
+              -(wCT(ix^D,mom(3))*wCT(ix^D,mag(2)) &
+               -wCT(ix^D,mom(2))*wCT(ix^D,mag(3)))*cs2)
+          end if
+          }
+         end if
+       {end do\}
     end select
 
   end subroutine mf_add_source_geom
-
-  !> Compute 2 times total magnetic energy
-  function mf_mag_en_all(w, ixI^L, ixO^L) result(mge)
-    use mod_global_parameters
-    integer, intent(in)           :: ixI^L, ixO^L
-    double precision, intent(in)  :: w(ixI^S, nw)
-    double precision              :: mge(ixO^S)
-
-    mge = sum(w(ixO^S, mag(:))**2, dim=ndim+1)
-  end function mf_mag_en_all
-
-  !> Compute full magnetic field by direction
-  function mf_mag_i_all(w, ixI^L, ixO^L,idir) result(mgf)
-    use mod_global_parameters
-    integer, intent(in)           :: ixI^L, ixO^L, idir
-    double precision, intent(in)  :: w(ixI^S, nw)
-    double precision              :: mgf(ixO^S)
-
-    mgf = w(ixO^S, mag(idir))
-  end function mf_mag_i_all
-
-  !> Compute evolving magnetic energy
-  function mf_mag_en(w, ixI^L, ixO^L) result(mge)
-    use mod_global_parameters, only: nw, ndim
-    integer, intent(in)           :: ixI^L, ixO^L
-    double precision, intent(in)  :: w(ixI^S, nw)
-    double precision              :: mge(ixO^S)
-
-    mge = 0.5d0 * sum(w(ixO^S, mag(:))**2, dim=ndim+1)
-  end function mf_mag_en
 
   subroutine mf_modify_wLR(ixI^L,ixO^L,qt,wLC,wRC,wLp,wRp,s,idir)
     use mod_global_parameters
@@ -1752,15 +1757,17 @@ contains
     double precision, intent(in) :: qdt    !< Current time step
     double precision, intent(in) :: qt     !< Current time
     logical, intent(inout)       :: active !< Output if the source is active
-    integer                      :: iigrid, igrid, id
-    integer                      :: n, nc, lvl, ix^L, ixC^L, idim
-    type(tree_node), pointer     :: pnode
+
     double precision             :: tmp(ixG^T), grad(ixG^T, ndim)
     double precision             :: res
     double precision, parameter  :: max_residual = 1d-3
     double precision, parameter  :: residual_reduction = 1d-10
+    integer                      :: id
     integer, parameter           :: max_its      = 50
     double precision             :: residual_it(max_its), max_divb
+    integer                      :: iigrid, igrid
+    integer                      :: n, nc, lvl, ix^L, ixC^L, idim
+    type(tree_node), pointer     :: pnode
 
     mg%operator_type = mg_laplacian
 
@@ -1808,7 +1815,7 @@ contains
        ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
 
        call get_divb(ps(igrid)%w(ixG^T, 1:nw), ixG^LL, ixM^LL, tmp, &
-            mf_divb_4thorder)
+            mf_divb_nth)
        mg%boxes(id)%cc({1:nc}, mg_irhs) = tmp(ixM^T)
        max_divb = max(max_divb, maxval(abs(tmp(ixM^T))))
     end do
@@ -1861,7 +1868,7 @@ contains
          do idim =1, ndim
            ixCmin^D=ixMlo^D-kr(idim,^D);
            ixCmax^D=ixMhi^D;
-           call gradientx(tmp,ps(igrid)%x,ixG^LL,ixC^L,idim,grad(ixG^T,idim),.false.)
+           call gradientF(tmp,ps(igrid)%x,ixG^LL,ixC^L,idim,grad(ixG^T,idim))
            ps(igrid)%ws(ixC^S,idim)=ps(igrid)%ws(ixC^S,idim)-grad(ixC^S,idim)
          end do
          call mf_face_to_center(ixM^LL,ps(igrid))
@@ -1917,11 +1924,10 @@ contains
     double precision, intent(in)       :: fC(ixI^S,1:nwflux,1:ndim)
     double precision, intent(inout)    :: fE(ixI^S,sdim:3)
 
-    integer                            :: hxC^L,ixC^L,jxC^L,ixCm^L
-    integer                            :: idim1,idim2,idir,iwdim1,iwdim2
     double precision                   :: circ(ixI^S,1:ndim)
-    ! current on cell edges
-    double precision :: jce(ixI^S,sdim:3)
+    double precision                   :: E_resi(ixI^S,sdim:3)
+    integer                            :: ix^D,ixC^L,ixA^L,i1kr^D,i2kr^D
+    integer                            :: idim1,idim2,idir,iwdim1,iwdim2
 
     associate(bfaces=>s%ws,x=>s%x)
 
@@ -1930,31 +1936,30 @@ contains
     ! electric field in the positive idir direction.
 
     ! if there is resistivity, get eta J
-    if(mf_eta/=zero) call get_resistive_electric_field(ixI^L,ixO^L,sCT,s,jce)
+    if(mf_eta/=zero) call get_resistive_electric_field(ixI^L,ixO^L,sCT,s,E_resi)
 
     do idim1=1,ndim 
       iwdim1 = mag(idim1)
+      i1kr^D=kr(idim1,^D);
       do idim2=1,ndim
         iwdim2 = mag(idim2)
+        i2kr^D=kr(idim2,^D);
         do idir=sdim,3! Direction of line integral
           ! Allow only even permutations
           if (lvc(idim1,idim2,idir)==1) then
             ixCmax^D=ixOmax^D;
             ixCmin^D=ixOmin^D+kr(idir,^D)-1;
-            ! Assemble indices
-            jxC^L=ixC^L+kr(idim1,^D);
-            hxC^L=ixC^L+kr(idim2,^D);
-            ! Interpolate to edges
-            fE(ixC^S,idir)=quarter*(fC(ixC^S,iwdim1,idim2)+fC(jxC^S,iwdim1,idim2)&
-                                   -fC(ixC^S,iwdim2,idim1)-fC(hxC^S,iwdim2,idim1))
-
-            ! add current component of electric field at cell edges E=-vxB+eta J
-            if(mf_eta/=zero) fE(ixC^S,idir)=fE(ixC^S,idir)+jce(ixC^S,idir)
-
-            if(record_electric_field) s%we(ixC^S,idir)=fE(ixC^S,idir)
-            ! times time step and edge length 
-            fE(ixC^S,idir)=qdt*s%dsC(ixC^S,idir)*fE(ixC^S,idir)
-
+            ! average cell-face electric field to cell edges
+           {do ix^DB=ixCmin^DB,ixCmax^DB\}
+              fE(ix^D,idir)=quarter*&
+                (fC(ix^D,iwdim1,idim2)+fC({ix^D+i1kr^D},iwdim1,idim2)&
+                -fC(ix^D,iwdim2,idim1)-fC({ix^D+i2kr^D},iwdim2,idim1))
+              ! add resistive electric field at cell edges E=-vxB+eta J
+              if(mf_eta/=zero) fE(ix^D,idir)=fE(ix^D,idir)+E_resi(ix^D,idir)
+              if(record_electric_field) s%we(ix^D,idir)=fE(ix^D,idir)
+              ! times time step and edge length
+              fE(ix^D,idir)=fE(ix^D,idir)*qdt*s%dsC(ix^D,idir)
+           {end do\}
           end if
         end do
       end do
@@ -1972,15 +1977,19 @@ contains
       ixCmax^D=ixOmax^D;
       ixCmin^D=ixOmin^D-kr(idim1,^D);
       do idim2=1,ndim
+        ixA^L=ixC^L-kr(idim2,^D);
         do idir=sdim,3 ! Direction of line integral
           ! Assemble indices
-          if(lvc(idim1,idim2,idir)/=0) then
-            hxC^L=ixC^L-kr(idim2,^D);
+          if(lvc(idim1,idim2,idir)==1) then
             ! Add line integrals in direction idir
             circ(ixC^S,idim1)=circ(ixC^S,idim1)&
-                             +lvc(idim1,idim2,idir)&
-                             *(fE(ixC^S,idir)&
-                              -fE(hxC^S,idir))
+                             +(fE(ixC^S,idir)&
+                              -fE(ixA^S,idir))
+          else if(lvc(idim1,idim2,idir)==-1) then
+            ! Add line integrals in direction idir
+            circ(ixC^S,idim1)=circ(ixC^S,idim1)&
+                             -(fE(ixC^S,idir)&
+                              -fE(ixA^S,idir))
           end if
         end do
       end do
@@ -2337,7 +2346,7 @@ contains
           ! current at transverse faces
           xs(ixB^S,:)=x(ixB^S,:)
           xs(ixB^S,idim2)=x(ixB^S,idim2)+half*dx(ixB^S,idim2)
-          call gradientx(wCTs(ixGs^T,idim2),xs,ixGs^LL,ixC^L,idim1,gradi,.false.)
+          call gradientF(wCTs(ixGs^T,idim2),xs,ixGs^LL,ixC^L,idim1,gradi)
           if (lvc(idim1,idim2,idir)==1) then
             jce(ixC^S,idir)=jce(ixC^S,idir)+gradi(ixC^S)
           else
@@ -2379,22 +2388,26 @@ contains
     integer, intent(in)                :: ixO^L
     type(state)                        :: s
 
-    integer                            :: fxO^L, gxO^L, hxO^L, jxO^L, kxO^L, idim
-
-    associate(w=>s%w, ws=>s%ws)
+    integer :: ix^D
 
     ! calculate cell-center values from face-center values in 2nd order
-    do idim=1,ndim
-      ! Displace index to the left
-      ! Even if ixI^L is the full size of the w arrays, this is ok
-      ! because the staggered arrays have an additional place to the left.
-      hxO^L=ixO^L-kr(idim,^D);
-      ! Interpolate to cell barycentre using arithmetic average
-      ! This might be done better later, to make the method less diffusive.
-      w(ixO^S,mag(idim))=half/s%surface(ixO^S,idim)*&
-        (ws(ixO^S,idim)*s%surfaceC(ixO^S,idim)&
-        +ws(hxO^S,idim)*s%surfaceC(hxO^S,idim))
-    end do
+   {!dir$ ivdep
+    do ix^DB=ixOmin^DB,ixOmax^DB\}
+      {^IFTHREED
+      s%w(ix^D,mag(1))=half/s%surface(ix^D,1)*(s%ws(ix^D,1)*s%surfaceC(ix^D,1)&
+        +s%ws(ix1-1,ix2,ix3,1)*s%surfaceC(ix1-1,ix2,ix3,1))
+      s%w(ix^D,mag(2))=half/s%surface(ix^D,2)*(s%ws(ix^D,2)*s%surfaceC(ix^D,2)&
+        +s%ws(ix1,ix2-1,ix3,2)*s%surfaceC(ix1,ix2-1,ix3,2))
+      s%w(ix^D,mag(3))=half/s%surface(ix^D,3)*(s%ws(ix^D,3)*s%surfaceC(ix^D,3)&
+        +s%ws(ix1,ix2,ix3-1,3)*s%surfaceC(ix1,ix2,ix3-1,3))
+      }
+      {^IFTWOD
+      s%w(ix^D,mag(1))=half/s%surface(ix^D,1)*(s%ws(ix^D,1)*s%surfaceC(ix^D,1)&
+        +s%ws(ix1-1,ix2,1)*s%surfaceC(ix1-1,ix2,1))
+      s%w(ix^D,mag(2))=half/s%surface(ix^D,2)*(s%ws(ix^D,2)*s%surfaceC(ix^D,2)&
+        +s%ws(ix1,ix2-1,2)*s%surfaceC(ix1,ix2-1,2))
+      }
+   {end do\}
 
     ! calculate cell-center values from face-center values in 4th order
     !do idim=1,ndim
@@ -2428,8 +2441,6 @@ contains
     !        +3.0d0*ws(kxO^S,idim)*s%surfaceC(kxO^S,idim) )
     !end do
 
-    end associate
-
   end subroutine mf_face_to_center
 
   !> calculate magnetic field from vector potential
@@ -2455,10 +2466,10 @@ contains
     integer :: iigrid, igrid, ix^D
     integer :: amode, istatus(MPI_STATUS_SIZE)
     integer, save :: fhmf
-    character(len=800) :: filename,filehead
-    character(len=800) :: line,datastr
     logical :: patchwi(ixG^T)
     logical, save :: logmfopened=.false.
+    character(len=800) :: filename,filehead
+    character(len=800) :: line,datastr
 
     sum_jbb_ipe = 0.d0
     sum_j_ipe = 0.d0
@@ -2512,7 +2523,7 @@ contains
         amode=ior(amode,MPI_MODE_APPEND)
         call MPI_FILE_OPEN(MPI_COMM_SELF,filename,amode,MPI_INFO_NULL,fhmf,ierrmpi)
         logmfopened=.true.
-        filehead="  it,time,CW_sin_theta,current,Lorenz_force,f_i"
+        filehead="    it, time, CW_sin_theta, current, Lorenz_force, f_i"
         if (it == 0) then
           call MPI_FILE_WRITE(fhmf,filehead,len_trim(filehead), &
                               MPI_CHARACTER,istatus,ierrmpi)
@@ -2520,7 +2531,7 @@ contains
         end if
       end if
       line=''
-      write(datastr,'(i6,a)') it,','
+      write(datastr,'(i8,a)') it,','
       line=trim(line)//trim(datastr)
       write(datastr,'(es13.6,a)') global_time,','
       line=trim(line)//trim(datastr)
