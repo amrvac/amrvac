@@ -16,7 +16,7 @@ jobs:
         os: [ubuntu-latest]
         FC_compiler: [gfortran-14]
         CC_compiler: [gcc-14]
-        suite: [hd]
+        suite: [ ]
         include:
           - os: macos-latest
             FC_compiler: gfortran-15
@@ -67,7 +67,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest]
-        suite: [hd]
+        suite: [ ]
 
     runs-on: ${{ matrix.os }}
     name: ${{ matrix.os }} / ifx / ${{ matrix.suite }}
