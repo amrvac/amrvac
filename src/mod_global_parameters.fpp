@@ -743,6 +743,10 @@ module mod_global_parameters
   logical :: need_global_cs2max=.false.
   !$acc declare create(need_global_cs2max)
   
+  !> global value for sound scheme
+  logical :: need_global_cs2max=.false.
+  !$acc declare create(need_global_cs2max)
+  
   ! Boundary region parameters
 
   !> True for dimensions with periodic boundaries

@@ -1,6 +1,8 @@
 
 #:mute
+#:mute
 #:include "physics/mod_physics_templates.fpp"
+#:endmute
 #:endmute
 
 module mod_dt
@@ -20,9 +22,9 @@ contains
 @:phys_get_dt()
 @:get_cs2()
 
-  !>setdt  - set dt for all levels between levmin and levmax. 
+  !>setdt  - set dt for all levels between levmin and levmax.
   !>         dtpar>0  --> use fixed dtpar for all level
-  !>         dtpar<=0 --> determine CFL limited timestep 
+  !>         dtpar<=0 --> determine CFL limited timestep
   subroutine setdt()
     use mod_global_parameters
 
@@ -58,14 +60,14 @@ contains
                       cmaxtot = cmaxtot + cmax * dxinv(idims)
                    end do
                    dtmin_mype     = min( dtmin_mype, courantpar / cmaxtot )
-                   
+
 #:if defined('SOURCE_TERM')
-                   u            = bg(1)%w(ix1, ix2, ix3, 1:nw_phys, igrid)
+                   u = bg(1)%w(ix1,ix2,ix3,1:nw_phys,igrid)
                    xloc(1:ndim) = ps(igrid)%x(ix1, ix2, ix3, 1:ndim)
                    call phys_get_dt(u, xloc, [dx1, dx2, dx3], qdtnew)
                    dtmin_mype = min( dtmin_mype, qdtnew )
 #:endif
-                   
+
                 end do
              end do
           end do
@@ -171,7 +173,7 @@ contains
        do ifile=1,nfile
           dtmax = min(tsave(isavet(ifile),ifile)-global_time,dtmax)
        end do
-       if(dtmax > smalldouble)then 
+       if(dtmax > smalldouble)then
           dt=min(dt,dtmax)
        else
           ! dtmax=0 means dtsave is divisible by global_time

@@ -1256,6 +1256,7 @@ contains
     integer, dimension(1) :: shapes
     logical  :: req_diagonal, update
     type(wbuffer) :: pwbuf(npwbuf)
+    real(dp) :: tempval
 
     integer :: ix1,ix2,ix3, iw, inb, i, Nx1, Nx2, Nx3, ienc, imaxigrids
 
@@ -1331,7 +1332,11 @@ contains
     ! MPI receive SRL
     do inb = 1, nbprocs_info%nbprocs_srl
 #ifndef NOGPUDIRECT
+#ifdef _CRAYFTN
+      !$acc host_data use_device(nbprocs_info)
+#else
       !$acc host_data use_device(nbprocs_info%srl_rcv(inb)%buffer, nbprocs_info%srl_info_rcv(inb)%buffer)
+#endif
 #endif
        call MPI_IRECV(nbprocs_info%srl_rcv(inb)%buffer, &
             size(nbprocs_info%srl_rcv(inb)%buffer), &
@@ -1349,7 +1354,7 @@ contains
     do inb = 1, nbprocs_info%nbprocs_srl
        imaxigrids = max(nbprocs_info%srl(inb)%nigrids, imaxigrids)
     end do
-    !$acc parallel loop gang collapse(2) independent
+    !$acc parallel loop gang collapse(2) independent private(Nx1,Nx2,Nx3,ienc)
     do inb = 1, nbprocs_info%nbprocs_srl
        do i = 1, imaxigrids
           if (i > nbprocs_info%srl(inb)%nigrids) cycle
@@ -1398,7 +1403,11 @@ contains
     ! MPI send SRL
     do inb = 1, nbprocs_info%nbprocs_srl
 #ifndef NOGPUDIRECT
+#ifdef _CRAYFTN
+      !$acc host_data use_device(nbprocs_info)
+#else
       !$acc host_data use_device(nbprocs_info%srl_send(inb)%buffer, nbprocs_info%srl_info_send(inb)%buffer)
+#endif
 #endif
        call MPI_ISEND(nbprocs_info%srl_send(inb)%buffer, &
             size(nbprocs_info%srl_send(inb)%buffer), &
@@ -1462,7 +1471,7 @@ contains
 #endif
 
     ! unpack the MPI buffers
-    !$acc parallel loop gang collapse(2) independent
+    !$acc parallel loop gang collapse(2) independent private(Nx1,Nx2,Nx3,ienc)
     do inb = 1, nbprocs_info%nbprocs_srl
        do i = 1, imaxigrids
           if (i > nbprocs_info%srl(inb)%nigrids) cycle
@@ -1473,8 +1482,6 @@ contains
 
           call idecode( i1, i2, i3, ienc )
           i1 = -i1; i2 = -i2; i3=-i3
-
-!          print *, 'received:', igrid, i1, i2, i3
 
           iib1 = idphyb(1,igrid); iib2 = idphyb(2,igrid); iib3 = idphyb(3,igrid)
 
@@ -1488,14 +1495,16 @@ contains
              do ix3 = ixRmin3, ixRmax3
                 do ix2 = ixRmin2, ixRmax2
                    do ix1 = ixRmin1, ixRmax1
-                      psb(igrid)%w( ix1, ix2, ix3, iw ) &
-                           = nbprocs_info%srl_rcv(inb)%buffer( &
+                      ! going through a tempval is a workaround for Cray, which gives
+                      ! a memory access fault on the GPUs otherwise
+                      tempval = nbprocs_info%srl_rcv(inb)%buffer( &
                            ibuf_start &
                            + (ix1-ixRmin1) &
                            + Nx1 * (ix2-ixRmin2) &
                            + Nx1*Nx2 * (ix3-ixRmin3) &
                            + Nx1*Nx2*Nx3 * (iw-nwhead) &
                            )
+                      psb(igrid)%w( ix1, ix2, ix3, iw ) = tempval
                    end do
                 end do
              end do
@@ -1653,131 +1662,6 @@ contains
       end if
     end function skip_direction
 
-
-        !> Receive from sibling at same refinement level
-        subroutine bc_recv_srl
-          integer                     :: istep
-
-          ipe_neighbor=neighbor(2,i1,i2,i3,igrid)
-          if (ipe_neighbor/=mype) then
-             irecv_c=irecv_c+1
-             itag=(3**3+4**3)*(igrid-1)+(i1+1)*3**(1-1)+(i2+1)*3**(2-1)+(i3+&
-                  1)*3**(3-1)
-             istep = psb(igrid)%istep
-            !$acc host_data use_device(bg(istep)%w)
-             call MPI_IRECV(bg(istep)%w(:,:,:,:,igrid),1,type_recv_srl(iib1,iib2,iib3,i1,i2,&
-                  i3), ipe_neighbor,itag,icomm,recvrequest_c_sr(irecv_c),ierrmpi)
-            !$acc end host_data
-             if(stagger_grid) then
-                irecv_srl=irecv_srl+1
-                call MPI_IRECV(recvbuffer_srl(ibuf_recv_srl),&
-                     sizes_srl_recv_total(i1,i2,i3),MPI_DOUBLE_PRECISION,&
-                     ipe_neighbor,itag,icomm,recvrequest_srl(irecv_srl),ierrmpi)
-                ibuf_recv_srl=ibuf_recv_srl+sizes_srl_recv_total(i1,i2,i3)
-             end if
-          end if
-
-        end subroutine bc_recv_srl
-
-        !> Send to sibling at same refinement level
-        subroutine bc_send_srl
-          integer                     :: istep
-
-          ipe_neighbor=neighbor(2,i1,i2,i3,igrid)
-
-          if(ipe_neighbor/=mype) then
-             ineighbor=neighbor(1,i1,i2,i3,igrid)
-             ipole=neighbor_pole(i1,i2,i3,igrid)
-             if(ipole==0) then
-                n_i1=-i1;n_i2=-i2;n_i3=-i3;
-                isend_c=isend_c+1
-                itag=(3**3+4**3)*(ineighbor-1)+(n_i1+1)*3**(1-1)+(n_i2+1)*3**(2-1)+&
-                     (n_i3+1)*3**(3-1)
-                istep = psb(igrid)%istep
-               !$acc host_data use_device(bg(istep)%w)
-                call MPI_ISEND(bg(istep)%w(:,:,:,:,igrid),1,type_send_srl(iib1,iib2,iib3,i1,i2,&
-                     i3), ipe_neighbor,itag,icomm,sendrequest_c_sr(isend_c),ierrmpi)
-               !$acc end host_data
-                if(stagger_grid) then
-                   ibuf_start=ibuf_send_srl
-                   do idir=1,ndim
-                      ixSmin1=ixS_srl_stg_min1(idir,i1)
-                      ixSmin2=ixS_srl_stg_min2(idir,i2)
-                      ixSmin3=ixS_srl_stg_min3(idir,i3)
-                      ixSmax1=ixS_srl_stg_max1(idir,i1)
-                      ixSmax2=ixS_srl_stg_max2(idir,i2)
-                      ixSmax3=ixS_srl_stg_max3(idir,i3);
-                      ibuf_next=ibuf_start+sizes_srl_send_stg(idir,i1,i2,i3)
-                      shapes=(/sizes_srl_send_stg(idir,i1,i2,i3)/)
-                      sendbuffer_srl(ibuf_start:ibuf_next-&
-                           1)=reshape(psb(igrid)%ws(ixSmin1:ixSmax1,ixSmin2:ixSmax2,&
-                           ixSmin3:ixSmax3,idir),shapes)
-                      ibuf_start=ibuf_next
-                   end do
-                   isend_srl=isend_srl+1
-                   call MPI_ISEND(sendbuffer_srl(ibuf_send_srl),&
-                        sizes_srl_send_total(i1,i2,i3),MPI_DOUBLE_PRECISION,&
-                        ipe_neighbor,itag,icomm,sendrequest_srl(isend_srl),ierrmpi)
-                   ibuf_send_srl=ibuf_next
-                end if
-             else
-                ixSmin1=ixS_srl_min1(iib1,i1);ixSmin2=ixS_srl_min2(iib2,i2)
-                ixSmin3=ixS_srl_min3(iib3,i3);ixSmax1=ixS_srl_max1(iib1,i1)
-                ixSmax2=ixS_srl_max2(iib2,i2);ixSmax3=ixS_srl_max3(iib3,i3);
-                select case (ipole)
-                case (1)
-                   n_i1=i1;n_i2=-i2;n_i3=-i3;
-                case (2)
-                   n_i1=-i1;n_i2=i2;n_i3=-i3;
-                case (3)
-                   n_i1=-i1;n_i2=-i2;n_i3=i3;
-                end select
-                if (isend_buf(ipwbuf)/=0) then
-                   call MPI_WAIT(sendrequest_c_sr(isend_buf(ipwbuf)),&
-                        sendstatus_c_sr(:,isend_buf(ipwbuf)),ierrmpi)
-                   deallocate(pwbuf(ipwbuf)%w)
-                end if
-                allocate(pwbuf(ipwbuf)%w(ixSmin1:ixSmax1,ixSmin2:ixSmax2,&
-                     ixSmin3:ixSmax3,nwhead:nwtail))
-                call pole_buffer(pwbuf(ipwbuf)%w,ixSmin1,ixSmin2,ixSmin3,ixSmax1,&
-                     ixSmax2,ixSmax3,ixSmin1,ixSmin2,ixSmin3,ixSmax1,ixSmax2,ixSmax3,&
-                     psb(igrid)%w,ixGlo1,ixGlo2,ixGlo3,ixGhi1,ixGhi2,ixGhi3,ixSmin1,&
-                     ixSmin2,ixSmin3,ixSmax1,ixSmax2,ixSmax3)
-                isend_c=isend_c+1
-                isend_buf(ipwbuf)=isend_c
-                itag=(3**3+4**3)*(ineighbor-1)+(n_i1+1)*3**(1-1)+(n_i2+1)*3**(2-1)+&
-                     (n_i3+1)*3**(3-1)
-                isizes=(ixSmax1-ixSmin1+1)*(ixSmax2-ixSmin2+1)*(ixSmax3-ixSmin3+&
-                     1)*nwbc
-                call MPI_ISEND(pwbuf(ipwbuf)%w,isizes,MPI_DOUBLE_PRECISION,&
-                     ipe_neighbor,itag,icomm,sendrequest_c_sr(isend_c),ierrmpi)
-                ipwbuf=1+modulo(ipwbuf,npwbuf)
-                if(stagger_grid) then
-                   ibuf_start=ibuf_send_srl
-                   do idir=1,ndim
-                      ixSmin1=ixS_srl_stg_min1(idir,i1)
-                      ixSmin2=ixS_srl_stg_min2(idir,i2)
-                      ixSmin3=ixS_srl_stg_min3(idir,i3)
-                      ixSmax1=ixS_srl_stg_max1(idir,i1)
-                      ixSmax2=ixS_srl_stg_max2(idir,i2)
-                      ixSmax3=ixS_srl_stg_max3(idir,i3);
-                      ibuf_next=ibuf_start+sizes_srl_send_stg(idir,i1,i2,i3)
-                      shapes=(/sizes_srl_send_stg(idir,i1,i2,i3)/)
-                      sendbuffer_srl(ibuf_start:ibuf_next-&
-                           1)=reshape(psb(igrid)%ws(ixSmin1:ixSmax1,ixSmin2:ixSmax2,&
-                           ixSmin3:ixSmax3,idir),shapes)
-                      ibuf_start=ibuf_next
-                   end do
-                   isend_srl=isend_srl+1
-                   call MPI_ISEND(sendbuffer_srl(ibuf_send_srl),&
-                        sizes_srl_send_total(i1,i2,i3),MPI_DOUBLE_PRECISION,&
-                        ipe_neighbor,itag,icomm,sendrequest_srl(isend_srl),ierrmpi)
-                   ibuf_send_srl=ibuf_next
-                end if
-             end if
-          end if
-
-        end subroutine bc_send_srl
 
         !> Receive from fine neighbor
         subroutine bc_recv_restrict

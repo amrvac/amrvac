@@ -64,7 +64,7 @@ contains
        n = igrids_active(iigrid)
 
        dr  = rnode(rpdx1_:rnodehi, n)
-       inv_dr  = 1.0_dp/dr
+       inv_dr  = 1/rnode(rpdx1_:rnodehi, n)
        typelim = type_limiter(node(plevel_, n))
 
        !$acc loop collapse(ndim) vector
