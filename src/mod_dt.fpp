@@ -1,8 +1,5 @@
-
-#:mute
 #:mute
 #:include "physics/mod_physics_templates.fpp"
-#:endmute
 #:endmute
 
 module mod_dt
