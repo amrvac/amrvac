@@ -55,11 +55,11 @@ contains
     real(dp)               :: dr(ndim)
     integer                :: typelim
     real(dp)               :: xloc(ndim)
-    real(dp)               :: xlocC(ndim, 2), gradT(ndim)
+    real(dp)               :: xlocC(ndim,2)
     real(dp)               :: wprim(nw_phys), wCT(nw_phys), wnew(nw_phys)
     !-----------------------------------------------------------------------------
     
-    !$acc parallel loop private(n, uprim, inv_dr, typelim) firstprivate(ixImin1,ixImin2,ixImin3,ixImax1,ixImax2,ixImax3, ixOmin1,ixOmin2,ixOmin3,ixOmax1,ixOmax2,ixOmax3) present(bga%w, bgb%w)
+    !$acc parallel loop private(uprim, inv_dr, dr) present(bga%w, bgb%w)
     do iigrid = 1, igridstail_active
        n = igrids_active(iigrid)
 
@@ -78,7 +78,7 @@ contains
           end do
        end do
 
-       !$acc loop collapse(ndim) private(f, tmp, xlocC #{if defined('SOURCE_LOCAL')}#, wnew, wCT, xloc, wprim, gradT #{endif}#) vector
+       !$acc loop collapse(ndim) private(f, wnew, tmp, xlocC, xloc #{if defined('SOURCE_LOCAL')}#, wCT, wprim #{endif}#) vector
        do ix3=ixOmin3,ixOmax3 
           do ix2=ixOmin2,ixOmax2 
              do ix1=ixOmin1,ixOmax1 
@@ -119,9 +119,9 @@ contains
                 wnew         = bgb%w(ix1, ix2, ix3, 1:nw_phys, n)
                 call addsource_local(qdt*dble(idimsmax-idimsmin+1)/dble(ndim),&
                      dtfactor*dble(idimsmax-idimsmin+1)/dble(ndim), qtC, wCT,&
-                     wprim, qt, wnew, xloc, .false. )
+                     wprim, qt, wnew, xloc, dr, .false. )
                 bgb%w(ix1, ix2, ix3, :, n) = wnew(:)
-#:endif
+#:endif             
 
 #:if defined('SOURCE_NONLOCAL')
                 ! Add non-local (gradient) source terms:
@@ -145,7 +145,6 @@ contains
                 
                 bgb%w(ix1, ix2, ix3, :, n) = wnew(:)           
 #:endif                
-
              end do
           end do
        end do

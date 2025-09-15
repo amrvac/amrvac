@@ -1,13 +1,22 @@
-#:if PHYS == 'hd'
+#:if PHYS == 'ffhd'
   
 #:def phys_vars()
 
   integer, parameter :: dp = kind(0.0d0)
-  integer, parameter, public              :: nw_phys=2+ndim
-  
+  !> Only consider the hyperbolic thermal conduction situation
+  !> Base number of physical variables (density, momentum, energy)
+  integer, parameter, public              :: nw_phys_base=3
+  !> Total number of physical variables (base + conditional additions)
+  !> This will be set to nw_phys_base + 1 if HYPERTC is defined
+  integer, parameter, public              :: nw_phys=nw_phys_base &
+#:if defined('HYPERTC')
+    + 1
+#:else
+    + 0
+#:endif
+
   !> Whether an energy equation is used
-  logical, public                         :: hd_energy = .true.
-  !$acc declare copyin(hd_energy)
+  logical, public                         :: ffhd_energy = .true.
 
   !> Index of the density (in the w array)
   integer, public                         :: rho_
@@ -25,33 +34,43 @@
   integer, public                         :: p_
   !$acc declare create(p_)
 
+    !> Index of the hyperbolic flux variable
+  integer, public                         :: q_
+  !$acc declare create(q_)
+
   !> The adiabatic index
-  double precision, public                :: hd_gamma = 5.d0/3.0d0
-  !$acc declare copyin(hd_gamma)
+  double precision, public                :: ffhd_gamma = 5.d0/3.0d0
 
   !> The adiabatic constant
-  double precision, public                :: hd_adiab = 1.0d0
-  !$acc declare copyin(hd_adiab)
+  double precision, public                :: ffhd_adiab = 1.0d0
 
   !> The helium abundance
   double precision, public                :: He_abundance=0.1d0
   !$acc declare copyin(He_abundance)
 
+  !> The thermal conductivity kappa in hyperbolic thermal conduction
+  double precision, public                :: hypertc_kappa=-1.0d0
+  !$acc declare copyin(hypertc_kappa)
+
+  !> switch for hyperbolic thermal conduction
+  logical, public                         :: ffhd_hyperbolic_thermal_conduction = .false.
+  !$acc declare copyin(ffhd_hyperbolic_thermal_conduction)
+
   !> Whether plasma is partially ionized
-  logical, public                         :: hd_partial_ionization = .false.
-  !$acc declare copyin(hd_partial_ionization)
-  
-  !> Whether to use gravity
-  logical, public                         :: hd_gravity = .false.
-  !$acc declare copyin(hd_gravity)
+  logical, public                         :: ffhd_partial_ionization = .false.
+  !$acc declare copyin(ffhd_partial_ionization)
 
-  !> Allows overruling default corner filling (for debug mode, since otherwise corner primitives fail)
-  logical, public                         :: hd_force_diagonal = .false.
-  !$acc declare copyin(hd_force_diagonal)
+  !> switch for gravity
+  logical, public                         :: ffhd_gravity = .false.
+  !$acc declare copyin(ffhd_gravity)
 
-  !> Whether particles module is added
-  logical, public                         :: hd_particles = .false.
-  !$acc declare copyin(hd_particles)
+  !> switch for radiative cooling
+  logical, public                         :: ffhd_radiative_cooling = .false.
+  !$acc declare copyin(ffhd_radiative_cooling)
+
+  !> switch for source user
+  logical, public                         :: ffhd_source_usr = .false.
+  !$acc declare copyin(ffhd_source_usr)
 
 #:enddef
 
@@ -62,18 +81,14 @@
     character(len=*), intent(in) :: files(:)
     integer                      :: n
 
-    namelist /hd_list/ hd_energy, hd_gamma, hd_adiab, hd_partial_ionization,&
-        hd_force_diagonal, hd_particles, hd_gravity
+    namelist /ffhd_list/ ffhd_energy, ffhd_gamma, ffhd_partial_ionization, ffhd_gravity, &
+          ffhd_radiative_cooling, ffhd_hyperbolic_thermal_conduction, ffhd_source_usr
 
     do n = 1, size(files)
        open(unitpar, file=trim(files(n)), status="old")
-       read(unitpar, hd_list, end=111)
+       read(unitpar, ffhd_list, end=111)
 111    close(unitpar)
     end do
-
-#ifdef _OPENACC
- !$acc update device(hd_energy, hd_gamma, hd_adiab, hd_partial_ionization, hd_force_diagonal, hd_particles, hd_gravity)
-#endif
 
   end subroutine read_params
 #:enddef
@@ -83,6 +98,7 @@
     call phys_init()
   end subroutine phys_activate
 #:enddef
+
 #:def phys_units()
   subroutine phys_units()
     use mod_global_parameters
@@ -169,8 +185,8 @@
 #:def phys_init()
     !> Initialize the module
   subroutine phys_init()
+
     use mod_global_parameters
-!    use mod_particles, only: particles_init
     #:if defined('COOLING')
     use mod_radiative_cooling, only: rc_fl, radiative_cooling_init_params, radiative_cooling_init
     #:endif
@@ -178,25 +194,23 @@
     call phys_units()
     call read_params(par_files)
 
-    phys_energy  = hd_energy
-    phys_total_energy  = hd_energy
+    phys_energy  = ffhd_energy
+    phys_total_energy  = ffhd_energy
     phys_internal_e = .false.
-    phys_gamma = hd_gamma
-    phys_partial_ionization=hd_partial_ionization
+    phys_gamma = ffhd_gamma
+    phys_partial_ionization=ffhd_partial_ionization
  !$acc update device(physics_type, phys_energy, phys_total_energy, phys_internal_e, phys_gamma, phys_partial_ionization)
-
-    use_particles = hd_particles
 
     ! Determine flux variables
     rho_ = var_set_rho()
     !$acc update device(rho_)
 
-    allocate(mom(ndir))
-    mom(:) = var_set_momentum(ndir)
+    allocate(mom(1))
+    mom(:) = var_set_momentum(1)
     !$acc update device(mom)
 
     ! Set index of energy variable
-    if (hd_energy) then
+    if (ffhd_energy) then
        e_ = var_set_energy()
        p_ = e_
     else
@@ -205,31 +219,19 @@
     end if
     !$acc update device(e_,p_)
 
-    ! Whether diagonal ghost cells are required for the physics
-    phys_req_diagonal = .false.
-
-    if (hd_force_diagonal) then
-       ! ensure corners are filled, otherwise divide by zero when getting primitives
-       !  --> only for debug purposes
-       phys_req_diagonal = .true.
-    endif
+    ! Set index for heat flux
+#:if defined('HYPERTC')
+    q_ = var_set_q()
+    need_global_cs2max = .true.
+    hypertc_kappa = 8.d-7*unit_temperature**3.5_dp/unit_length/unit_density/unit_velocity**3.0_dp
+    !$acc update device(q_)
+    !$acc update device(need_global_cs2max)
+    !$acc update device(hypertc_kappa)
+#:endif
 
     ! set number of variables which need update ghostcells
     nwgc=nwflux
     !$acc update device(nwgc)
-
-! use cycle, needs to be dealt with:    
-!    ! Initialize particles module
-!    if (hd_particles) then
-!       call particles_init()
-!       phys_req_diagonal = .true.
-!    end if
-
-    nvector      = 1 ! No. vector vars
-    allocate(iw_vector(nvector))
-    iw_vector(1) = mom(1) - 1
-    !$acc update device(nvector, iw_vector)
-    !$acc update device(phys_req_diagonal)
 
 #:if defined('COOLING')
     call radiative_cooling_init_params(phys_gamma,He_abundance)
@@ -270,13 +272,18 @@
 subroutine addsource_local(qdt, dtfactor, qtC, wCT, wCTprim, qt, wnew, x, dr, &
     qsourcesplit)
   !$acc routine seq
+  use mod_usr, only: bfield
+#:if defined('SOURCE_USR')
+  use mod_usr, only: addsource_usr
+#:endif
 #:if defined('GRAVITY')
   use mod_usr, only: gravity_field
 #:endif    
 #:if defined('COOLING')
-  use mod_radiative_cooling, only: rc_fl, radiative_cooling_add_source
+  use mod_radiative_cooling, only: radiative_cooling_add_source
 #:endif
 
+  use mod_global_parameters, only : dt, cs2max_global
   real(dp), intent(in)     :: qdt, dtfactor, qtC, qt
   real(dp), intent(in)     :: wCT(nw_phys), wCTprim(nw_phys)
   real(dp), intent(in)     :: x(1:ndim), dr(ndim)
@@ -284,21 +291,73 @@ subroutine addsource_local(qdt, dtfactor, qtC, wCT, wCTprim, qt, wnew, x, dr, &
   logical, intent(in)      :: qsourcesplit
   ! .. local ..
   integer                  :: idim
-  real(dp)                 :: field
+  real(dp)                 :: field, mag, divb
+
+  !> p*divb to be added here
+  divb = 0.0_dp
+  wnew(iw_mom(1)) = wnew(iw_mom(1)) + qdt*wCTprim(iw_e)*divb
 
 #:if defined('GRAVITY')
   do idim = 1, ndim
      field = gravity_field(wCT, x, idim)
-     wnew(iw_mom(idim)) = wnew(iw_mom(idim)) + qdt * field * wCT(iw_rho)
-     wnew(iw_e)         = wnew(iw_e) + qdt * field * wCT(iw_mom(idim))
+     mag = bfield(x, idim)
+     wnew(iw_mom(1)) = wnew(iw_mom(1)) + qdt * field * wCT(iw_rho) * mag
+     wnew(iw_e)      = wnew(iw_e) + qdt * field * wCT(iw_mom(1)) * mag
   end do
 #:endif  
 
 #:if defined('COOLING')
-  call radiative_cooling_add_source(qdt,wCT,wCTprim,wnew,x,rc_fl)
+  call radiative_cooling_add_source(qdt,wCT,wCTprim,wnew,x)
+#:endif
+
+#:if defined('SOURCE_USR')
+  call addsource_usr(qdt, qt, wCT, wCTprim, wnew, x, .false.)
 #:endif
 
 end subroutine addsource_local
+#:enddef
+
+#:def addsource_nonlocal()
+subroutine addsource_nonlocal(qdt, dtfactor, qtC, wCTprim, qt, wnew, x, dx, idir, &
+     qsourcesplit)
+  !$acc routine seq
+  use mod_usr, only: bfield
+  use mod_global_parameters, only: dt, cs2max_global
+
+  real(dp), intent(in)     :: qdt, dtfactor, qtC, qt
+  real(dp), intent(in)     :: wCTprim(nw_phys,5)
+  real(dp), intent(in)     :: x(1:ndim), dx(1:ndim)
+  real(dp), intent(inout)  :: wnew(nw_phys)
+  integer, intent(in)      :: idir
+  logical, intent(in)      :: qsourcesplit
+  ! .. local ..
+  real(dp)                 :: field, mag
+  real(dp)                 :: Te, tau, htc_qrsc, sigT, taumin
+  real(dp)                 :: T(1:5), gradT, Tface(2)
+
+#:if defined('HYPERTC')
+  !> gradient of temperature:
+  T(1:5) = wCTprim(iw_e,1:5) / wCTprim(iw_rho,1:5)
+  
+  Tface(1) = (7.0d0*(T(2)+T(3))-(T(1)+T(4)))/12.0d0
+  Tface(2) = (7.0d0*(T(3)+T(4))-(T(2)+T(5)))/12.0d0
+  gradT    = (Tface(2)-Tface(1)) / dx(idir)
+  
+  Te     = wCTprim(iw_e,3) / wCTprim(iw_rho,3)
+  sigT   = hypertc_kappa * sqrt(Te**5)
+  taumin = 4.d0
+
+  tau = taumin
+  tau = max( taumin*dt, sigT*Te*(phys_gamma-1.0d0)/wCTprim(iw_e,3)/cs2max_global)
+
+  mag   = bfield(x, idir)
+  htc_qrsc = sigT * mag * gradT
+  htc_qrsc = ( htc_qrsc + wCTprim(iw_q,3)/3.0_dp ) / tau
+
+  wnew(iw_q) = wnew(iw_q) - qdt * htc_qrsc
+#:endif
+end subroutine addsource_nonlocal
+
 #:enddef
 
 #:def to_primitive()
@@ -306,18 +365,10 @@ pure subroutine to_primitive(u)
   !$acc routine seq
   real(dp), intent(inout) :: u(nw_phys)
 
-  
-       u(iw_mom(1)) = u(iw_mom(1))/u(iw_rho)
-  
-  
-       u(iw_mom(2)) = u(iw_mom(2))/u(iw_rho)
-  
-  
-       u(iw_mom(3)) = u(iw_mom(3))/u(iw_rho)
-  
+  u(iw_mom(1)) = u(iw_mom(1))/u(iw_rho)
 
-  u(iw_e) = (hd_gamma-1.0_dp) * (u(iw_e) - 0.5_dp * u(iw_rho) * &
-     sum(u(iw_mom(1:ndim))**2) )
+  u(iw_e) = (phys_gamma-1.0_dp) * (u(iw_e) - 0.5_dp * u(iw_rho) * &
+     u(iw_mom(1))**2 )
 
 end subroutine to_primitive
 #:enddef
@@ -328,55 +379,48 @@ pure subroutine to_conservative(u)
   real(dp), intent(inout) :: u(nw_phys)
   real(dp)                :: inv_gamma_m1
 
-  inv_gamma_m1 = 1.0d0/(hd_gamma - 1.0_dp)
+  inv_gamma_m1 = 1.0_dp/(phys_gamma - 1.0_dp)
 
   ! Compute energy from pressure and kinetic energy
   u(iw_e) = u(iw_e) * inv_gamma_m1 + 0.5_dp * u(iw_rho) * &
-     sum(u(iw_mom(1:ndim))**2)
+     u(iw_mom(1))**2
 
   ! Compute momentum from density and velocity components
+  u(iw_mom(1)) = u(iw_rho) * u(iw_mom(1))
   
-       u(iw_mom(1)) = u(iw_rho) * u(iw_mom(1))
-  
-  
-       u(iw_mom(2)) = u(iw_rho) * u(iw_mom(2))
-  
-  
-       u(iw_mom(3)) = u(iw_rho) * u(iw_mom(3))
-  
-
 end subroutine to_conservative
 #:enddef
 
 #:def get_flux()
 subroutine get_flux(u, xC, flux_dim, flux)
   !$acc routine seq
+  use mod_usr, only: bfield
+
   real(dp), intent(in)  :: u(nw_phys)
-  real(dp), intent(in)  :: xC(ndim)
+  real(dp), intent(in)  :: xC(1:ndim)
   integer, intent(in)   :: flux_dim
   real(dp), intent(out) :: flux(nw_phys)
   real(dp)              :: inv_gamma_m1
+  real(dp)              :: mag
 
-  inv_gamma_m1 = 1.0d0/(hd_gamma - 1.0_dp)
+  inv_gamma_m1 = 1.0_dp/(phys_gamma - 1.0_dp)
+
+  mag = bfield(xC, flux_dim)
 
   ! Density flux
-  flux(iw_rho) = u(iw_rho) * u(iw_mom(flux_dim))
+  flux(iw_rho) = u(iw_rho) * u(iw_mom(1)) * mag
 
   ! Momentum flux with pressure term
+  flux(iw_mom(1)) = (u(iw_rho)*u(iw_mom(1))**2 + u(iw_e)) * mag
   
-       flux(iw_mom(1)) = u(iw_rho) * u(iw_mom(1)) * u(iw_mom(flux_dim))
-  
-  
-       flux(iw_mom(2)) = u(iw_rho) * u(iw_mom(2)) * u(iw_mom(flux_dim))
-  
-  
-       flux(iw_mom(3)) = u(iw_rho) * u(iw_mom(3)) * u(iw_mom(flux_dim))
-  
-  flux(iw_mom(flux_dim)) = flux(iw_mom(flux_dim)) + u(iw_e)
+  ! Energy flux with hyperbolic conduction included
+  flux(iw_e) = u(iw_mom(1))*(u(iw_e)*inv_gamma_m1 + &
+               0.5_dp*u(iw_rho)*u(iw_mom(1))**2 + u(iw_e)) * mag
 
-  ! Energy flux
-  flux(iw_e) = u(iw_mom(flux_dim)) * (u(iw_e) * inv_gamma_m1 + 0.5_dp * &
-     u(iw_rho) * sum(u(iw_mom(1:ndim))**2) + u(iw_e))
+#:if defined('HYPERTC')
+  flux(iw_e) = flux(iw_e) + u(iw_q) * mag
+  flux(iw_q) = 0.0d0
+#:endif
 
 end subroutine get_flux
 #:enddef
@@ -384,37 +428,51 @@ end subroutine get_flux
 #:def get_cmax()  
 pure real(dp) function get_cmax(u, x, flux_dim) result(wC)
   !$acc routine seq
+  use mod_usr, only: bfield
   real(dp), intent(in)  :: u(nw_phys)
   real(dp), intent(in)  :: x(1:ndim)
   integer, intent(in)   :: flux_dim
+  real(dp)              :: mag
 
-  wC = sqrt(hd_gamma * u(iw_e) / u(iw_rho)) + abs(u(iw_mom(flux_dim)))
+  mag = bfield(x, flux_dim)
+  
+  wC = dsqrt(phys_gamma*u(iw_e)/u(iw_rho)) + abs(u(iw_mom(1))*mag)
 
 end function get_cmax
 #:enddef  
 
-#:def get_rho()
-  pure real(dp) function get_rho(w, x) result(rho)
-    !$acc routine seq
-    real(dp), intent(in)  :: w(nw_phys)
-    real(dp), intent(in)  :: x(1:ndim)
+#:def get_cs2()
+!> obtain the squared sound speed
+pure real(dp) function get_cs2(u) result(cs2)
+  !$acc routine seq
+  real(dp), intent(in)  :: u(nw_phys)
 
-    rho = w(iw_rho)
-  end function get_rho
+  cs2 = phys_gamma*u(iw_e)/u(iw_rho)
+end function get_cs2
+#:enddef
+
+#:def get_rho()
+pure real(dp) function get_rho(w, x) result(rho)
+  !$acc routine seq
+  real(dp), intent(in)  :: w(nw_phys)
+  real(dp), intent(in)  :: x(1:ndim)
+
+  rho = w(iw_rho)
+end function get_rho
 #:enddef
 
 #:def get_pthermal()
-pure double precision function get_pthermal(w, x) result(pth)
+pure real(dp) function get_pthermal(w, x) result(pth)
   !$acc routine seq
-  double precision, intent(in)  :: w(nwflux)
-  double precision, intent(in)  :: x(1:ndim)
+  real(dp), intent(in)  :: w(nw_phys)
+  real(dp), intent(in)  :: x(1:ndim)
 
-  pth = (phys_gamma-1.0_dp)*(w(iw_e)-0.5_dp*sum(w(iw_mom(:))**2)/w(iw_rho))
+  pth = (phys_gamma-1.0_dp)*(w(iw_e)-0.5_dp*w(iw_mom(1))**2/w(iw_rho))
 end function get_pthermal
 #:enddef
 
 #:def get_Rfactor()
-pure double precision function get_Rfactor() result(Rfactor)
+pure real(dp) function get_Rfactor() result(Rfactor)
   !$acc routine seq
   Rfactor = 1.0d0
 end function get_Rfactor

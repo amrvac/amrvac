@@ -41,12 +41,34 @@ implies = ["components.source_local"]
 [ffhd_list]
 [ffhd_list.ffhd_hyperbolic_thermal_conduction]
 type = "flag"
-name = "ffhd_hyperbolic_thermal_conduction"
-flags = []
+name = "HYPERTC"
+flags = ["fypp", "hash"]
 default = false
 implies = ["components.source_nonlocal"]
 
 [ffhd_list.ffhd_gravity]
+type = "flag"
+name = "GRAVITY"
+flags = ["fypp", "hash"]
+default = false
+implies = ["components.source_local"]
+
+[ffhd_list.ffhd_radiative_cooling]
+type = "flag"
+name = "COOLING"
+flags = ["fypp", "hash"]
+default = false
+implies = ["components.source_local"]
+
+[ffhd_list.ffhd_source_usr]
+type = "flag"
+name = "SOURCE_USR"
+flags = ["fypp", "hash"]
+default = false
+implies = ["components.source_local"]
+
+[mhd_list]
+[mhd_list.mhd_gravity]
 type = "flag"
 name = "GRAVITY"
 flags = ["fypp", "hash"]

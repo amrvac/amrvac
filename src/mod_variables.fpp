@@ -259,7 +259,7 @@ contains
     !$acc update device(nwflux,nw,nwfluxbc,iw_e)
   end function var_set_energy
 
-  !> Set heat flux variable (hyperbolic treatment)
+  !> Set heat flux variable (hyperbolic TC treatment)
   function var_set_q() result(iw)
     integer :: iw
 
