@@ -1,0 +1,55 @@
+
+ &filelist
+   base_filename    = 'test'
+   autoconvert      = F
+   typefilelog      = 'regression_test'
+ /
+
+ &savelist
+   dtsave_log      = 1e10
+   dtsave_dat      = 1e10
+
+ /
+
+ &stoplist
+   time_max        = 0.05d0
+ /
+
+ &methodlist
+   time_stepper    = 'threestep'
+   flux_scheme     = 20*'tvdlf'
+   limiter         = 20*'vanleer'
+   phys            = 'mhd'
+ /
+
+ &boundlist
+   typeboundary_min1 = 8*'cont'
+   typeboundary_max1 = 8*'cont'
+   typeboundary_min2 = 8*'cont'
+   typeboundary_max2 = 8*'cont'
+   typeboundary_min3 = 8*'cont'
+   typeboundary_max3 = 8*'cont'
+ /
+
+ &meshlist
+   max_blocks         = 8
+   refine_max_level   = 1
+   block_nx1          = 16
+   block_nx2          = 16
+   block_nx3          = 16
+   domain_nx1         = 32
+   domain_nx2         = 32
+   domain_nx3         = 32
+   xprobmin1       = 0.0d0
+   xprobmax1       = 2.0d0
+   xprobmin2       = 0.0d0
+   xprobmax2       = 2.0d0
+   xprobmin3       = 0.0d0
+   xprobmax3       = 2.0d0
+   iprob=1
+ /
+
+ &paramlist
+   slowsteps        = 10
+   courantpar       = 0.7d0
+ /
