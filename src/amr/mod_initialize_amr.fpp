@@ -27,11 +27,6 @@ contains
   
     levmin=1
     levmax=1
-  
-    !$acc enter data copyin(bg)
-    do itimelevel = 1, nstep
-       !$acc enter data copyin( bg(itimelevel)%w )
-    end do
     
     call init_forest_root
   

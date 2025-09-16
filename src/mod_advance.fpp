@@ -292,20 +292,9 @@ contains
     !   end if
     ! end if
 
-    if (associated(usr_before_main_loop)) then
-       print *, 'before getbc:', it
-       call usr_before_main_loop()
-    end if
-
     
     ! For all grids: fill ghost cells
     call getbc(qt+qdt,qdt,psb,iwstart,nwgc,phys_req_diagonal)
-
-    if (associated(usr_before_main_loop)) then
-       print *, 'after getbc:', it
-       call usr_before_main_loop()
-    end if
-
     
   end subroutine advect1
 

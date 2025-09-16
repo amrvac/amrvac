@@ -1596,22 +1596,13 @@ contains
    end if
    !$acc update device( phyboundblock(igrid) )
 
-!   !$acc update device(ps(igrid), ps1(igrid), ps2(igrid))
-!   !$acc update device(bg(1)%w(:,:,:,:,igrid))
-!   !$acc enter data attach(ps(igrid)%w, ps1(igrid)%w, ps2(igrid)%w)
-!   !$acc enter data attach(ps1(igrid)%x, ps2(igrid)%x)
+   !$acc update device(ps(igrid), ps1(igrid), ps2(igrid))
+   !$acc enter data attach(ps(igrid)%w, ps1(igrid)%w, ps2(igrid)%w)
+   !$acc enter data copyin(ps(igrid)%x, ps(igrid)%is_physical_boundary)
+   !$acc enter data attach(ps1(igrid)%x, ps2(igrid)%x)
+   !$acc enter data attach(ps1(igrid)%is_physical_boundary, ps2(igrid)%is_physical_boundary)
    
-!!!todojesse tried to change this, which does not seem to work!
-!!$acc update device(ps(igrid), ps1(igrid), ps2(igrid))
-!!$acc update device(bg(1)%w(:,:,:,:,igrid))
-!!$acc enter data copyin(ps(igrid)%x, ps1(igrid)%x, ps2(igrid)%x)
-!!$acc enter data copyin(ps(igrid)%w, ps1(igrid)%w, ps2(igrid)%w)
-!!!$acc enter data attach(ps1(igrid)%x, ps2(igrid)%x)
-   
-   !!todojesse this actually seemed to work
-!   !$acc update device(psc(igrid))
-!   !$acc enter data copyin(psc(igrid)%x, psc(igrid)%w)
-   
+   !$acc enter data copyin(psc(igrid)%x, psc(igrid)%w)
    
   end subroutine alloc_node
   
@@ -1630,7 +1621,6 @@ contains
   
     !allocate(s%w(ixG^S,1:nw))
     s%w => bg(s%istep)%w(:,:,:,:,igrid)
-    !$acc enter data attach(s%w)
     s%igrid=igrid
     s%w=0.d0
     s%ixGmin1=ixGmin1;s%ixGmin2=ixGmin2;s%ixGmin3=ixGmin3;s%ixGmax1=ixGmax1
@@ -1655,7 +1645,6 @@ contains
          ixGmin3:ixGmax3,1:nw_extra))
       ! allocate coordinates
       allocate(s%x(ixGmin1:ixGmax1,ixGmin2:ixGmax2,ixGmin3:ixGmax3,1:ndim))
-      !$acc enter data copyin(s%x)
       allocate(s%dx(ixGextmin1:ixGextmax1,ixGextmin2:ixGextmax2,&
          ixGextmin3:ixGextmax3,1:ndim), s%ds(ixGextmin1:ixGextmax1,&
          ixGextmin2:ixGextmax2,ixGextmin3:ixGextmax3,1:ndim),&
@@ -1694,7 +1683,6 @@ contains
       ! share common info from ps states to save memory
       if(nw_extra>0) s%wextra=>ps(igrid)%wextra
       s%x=>ps(igrid)%x
-      !$acc enter data attach(s%x)
       s%dx=>ps(igrid)%dx
       s%ds=>ps(igrid)%ds
       s%dsC=>ps(igrid)%dsC
@@ -1702,7 +1690,6 @@ contains
       s%surfaceC=>ps(igrid)%surfaceC
       s%surface=>ps(igrid)%surface
       s%is_physical_boundary=>ps(igrid)%is_physical_boundary
-      !$acc enter data attach(s%is_physical_boundary)
       if(B0field) then
         s%B0=>ps(igrid)%B0
         s%J0=>ps(igrid)%J0
@@ -1713,7 +1700,6 @@ contains
       if(phys_trac) s%special_values=>ps(igrid)%special_values
    end if
 
-   !$acc update device(s)
   end subroutine alloc_state
   
   !> allocate memory to one-level coarser physical state of igrid node
@@ -1729,7 +1715,8 @@ contains
        ixGsmax3
   
     allocate(s%w(ixGmin1:ixGmax1,ixGmin2:ixGmax2,ixGmin3:ixGmax3,1:nw))
-    !$acc enter data copyin(s%w)
+!    !$acc enter data copyin(s%w)
+!    print *, 'allocated psc', igrid
     s%igrid=igrid
     s%w=0.d0
     s%ixGmin1=ixGmin1;s%ixGmin2=ixGmin2;s%ixGmin3=ixGmin3;s%ixGmax1=ixGmax1
@@ -1749,7 +1736,6 @@ contains
     end if
     ! allocate coordinates
     allocate(s%x(ixGmin1:ixGmax1,ixGmin2:ixGmax2,ixGmin3:ixGmax3,1:ndim))
-    !$acc enter data copyin(s%x)
     allocate(s%dx(ixGextmin1:ixGextmax1,ixGextmin2:ixGextmax2,&
        ixGextmin3:ixGextmax3,1:ndim), s%ds(ixGextmin1:ixGextmax1,&
        ixGextmin2:ixGextmax2,ixGextmin3:ixGextmax3,1:ndim),&
@@ -1762,9 +1748,7 @@ contains
          1:ndim))
     ! allocate physical boundary flag
     allocate(s%is_physical_boundary(2*ndim))
-    !$acc enter data copyin(s%is_physical_boundary)
 
-    !$acc update device(s)
   end subroutine alloc_state_coarse
 
   subroutine dealloc_state(igrid, s,dealloc_x)

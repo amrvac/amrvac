@@ -1108,6 +1108,7 @@ contains
     !$acc update device(ixCoGmin1,ixCoGmin2,ixCoGmin3,ixCoGmax1,ixCoGmax2,ixCoGmax3)
     !$acc update device(ixCoMmin1,ixCoMmin2,ixCoMmin3,ixCoMmax1,ixCoMmax2,ixCoMmax3)
     !$acc update device(ixCoGsmin1,ixCoGsmin2,ixCoGsmin3,ixCoGsmax1,ixCoGsmax2,ixCoGsmax3)
+    !$acc update device(ixMmin1,ixMmin2,ixMmin3,ixMmax1,ixMmax2,ixMmax3)
     
   end subroutine init_bc
 
@@ -1271,11 +1272,20 @@ contains
     real(dp) :: tempval
 
     integer :: ix1,ix2,ix3, iw, inb, i, Nx1, Nx2, Nx3, ienc, imaxigrids
+    double precision :: CoFiratio
+    integer :: ixCo1,ixCo2,ixCo3, ixFi1,ixFi2,ixFi3
 
     time_bcin=MPI_WTIME()
 
     call nvtxStartRange("getbc",2)
 
+    !opedit: unclear why this is necessary
+    !$acc parallel loop gang
+    do iigrid=1,igridstail; igrid=igrids(iigrid);
+       !$acc enter data attach(psb(igrid)%w, psb(igrid)%x)
+    end do       
+
+    
     nwhead=nwstart
     nwtail=nwstart+nwbc-1
 
@@ -1300,20 +1310,6 @@ contains
        !$OMP END PARALLEL DO
     end if
 
-    !opedit: debug, can I touch this on device?
-    print *, 'ghostcells_update: touching psb(igrid)%w'
-    !$acc parallel loop gang private(igrid)
-    do iigrid=1,igridstail; igrid=igrids(iigrid);
-       print *, igrid, size(psb(igrid)%w), loc(psb(igrid)%w)
-       ! this works:
-!       bg(psb(igrid)%istep)%w(:,:,:,:,igrid) = 0.0d0
-       ! this does not:
-       !$acc enter data attach(psb(igrid)%w)
-!       !$acc enter data copyin(psc(igrid)%w)
-       ! its supposed to be the same storage!
-    end do
-    print *, 'ghostcells_update: done touching psb(igrid)%w'
-       
     
     ! prepare coarse values to send to coarser neighbors
     !$OMP PARALLEL DO SCHEDULE(dynamic) PRIVATE(igrid)
@@ -1321,10 +1317,35 @@ contains
     do iigrid=1,igridstail; igrid=igrids(iigrid);
        
        if(any(neighbor_type(:,:,:,igrid)==neighbor_coarse)) then
-          call coarsen_grid(psb(igrid),ixGlo1,ixGlo2,ixGlo3,ixGhi1,ixGhi2,ixGhi3,&
-               ixMmin1,ixMmin2,ixMmin3,ixMmax1,ixMmax2,ixMmax3,psc(igrid),&
-               ixCoGmin1,ixCoGmin2,ixCoGmin3,ixCoGmax1,ixCoGmax2,ixCoGmax3,&
-               ixCoMmin1,ixCoMmin2,ixCoMmin3,ixCoMmax1,ixCoMmax2,ixCoMmax3)
+
+          CoFiratio=one/dble(2**ndim)
+          do iw=1,nw
+             do ixCo3 = ixCoMmin3,ixCoMmax3
+                ixFi3=2*(ixCo3-ixCoMmin3)+ixMmin3
+                do ixCo2 = ixCoMmin2,ixCoMmax2
+                   ixFi2=2*(ixCo2-ixCoMmin2)+ixMmin2
+                   do ixCo1 = ixCoMmin1,ixCoMmax1
+                      ixFi1=2*(ixCo1-ixCoMmin1)+ixMmin1
+                      psc(igrid)%w(ixCo1,ixCo2,ixCo3,iw) = 0.0d0
+                      do ix3 = ixFi3,ixFi3+1
+                         do ix2 = ixFi2,ixFi2+1
+                            do ix1 = ixFi1,ixFi1+1
+!                               psc(igrid)%w(ixCo1,ixCo2,ixCo3,iw) = psc(igrid)%w(ixCo1,ixCo2,ixCo3,iw) &
+!                                    + psb(igrid)%w(ix1,ix2,ix3,iw)
+!                               print *, ix1,ix2,ix3
+                            end do
+                         end do
+                      end do
+                      print *, ixCo1, ixCo2, ixCo3
+                      psc(igrid)%w(ixCo1,ixCo2,ixCo3,iw) = psc(igrid)%w(ixCo1,ixCo2,ixCo3,iw)*coFiRatio
+                   end do
+                end do
+             end do
+          end do
+!          call coarsen_grid(psb(igrid),ixGlo1,ixGlo2,ixGlo3,ixGhi1,ixGhi2,ixGhi3,&
+!               ixMmin1,ixMmin2,ixMmin3,ixMmax1,ixMmax2,ixMmax3,psc(igrid),&
+!               ixCoGmin1,ixCoGmin2,ixCoGmin3,ixCoGmax1,ixCoGmax2,ixCoGmax3,&
+!               ixCoMmin1,ixCoMmin2,ixCoMmin3,ixCoMmax1,ixCoMmax2,ixCoMmax3)
           do i3=-1,1
              do i2=-1,1
                 do i1=-1,1

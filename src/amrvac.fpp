@@ -296,10 +296,6 @@ contains
        call nvtxStartRange("setdt");       call setdt()
        call nvtxEndRange
 
-       if (associated(usr_before_main_loop)) then
-          print *, 'before iteration:', it
-          call usr_before_main_loop()
-       end if
        
        ! Optionally call a user method that can modify the grid variables at the
        ! beginning of a time step
@@ -368,20 +364,8 @@ contains
        if (it>=it_max .or. global_time>=time_max .or. pass_wall_time .or. &
           final_dt_exit) exit time_evol
 
-       
-       if (associated(usr_before_main_loop)) then
-          print *, 'before advance:', it
-          call usr_before_main_loop()
-       end if
-
        ! solving equations
        call advance(it)
-
-       if (associated(usr_before_main_loop)) then
-          print *, 'after iteration:', it
-          call usr_before_main_loop()
-       end if
-
        
        !opedit: FIXME, this seems to take a long time!
        ! if met unphysical values, output the last good status and stop the run

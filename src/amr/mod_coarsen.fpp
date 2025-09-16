@@ -38,7 +38,7 @@ contains
 !    if(coarsenprimitive) call phys_to_primitive(ixFiGmin1,ixFiGmin2,ixFiGmin3,&
 !       ixFiGmax1,ixFiGmax2,ixFiGmax3,ixFimin1,ixFimin2,ixFimin3,ixFimax1,&
 !       ixFimax2,ixFimax3,wFi,sFi%x)
-  
+
     if(slab_uniform) then
       CoFiratio=one/dble(2**ndim)
       do iw=1,nw
@@ -48,8 +48,9 @@ contains
             ixFi2=2*(ixCo2-ixComin2)+ixFimin2
          do ixCo1 = ixComin1,ixComax1
             ixFi1=2*(ixCo1-ixComin1)+ixFimin1
-            wCo(ixCo1,ixCo2,ixCo3,iw)=sum(wFi(ixFi1:ixFi1+1,ixFi2:ixFi2+1,&
-               ixFi3:ixFi3+1,iw))*CoFiratio
+            print *, ixFi1,ixFi2,ixFi3
+!            wCo(ixCo1,ixCo2,ixCo3,iw)=sum(wFi(ixFi1:ixFi1+1,ixFi2:ixFi2+1,&
+!               ixFi3:ixFi3+1,iw))*CoFiratio
          end do
          end do
          end do
