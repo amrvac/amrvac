@@ -1319,25 +1319,27 @@ contains
        if(any(neighbor_type(:,:,:,igrid)==neighbor_coarse)) then
 
           CoFiratio=one/dble(2**ndim)
-          do iw=1,nw
+          !$acc loop collapse(4) vector
+          do iw=nwhead,nwtail
              do ixCo3 = ixCoMmin3,ixCoMmax3
-                ixFi3=2*(ixCo3-ixCoMmin3)+ixMmin3
                 do ixCo2 = ixCoMmin2,ixCoMmax2
-                   ixFi2=2*(ixCo2-ixCoMmin2)+ixMmin2
                    do ixCo1 = ixCoMmin1,ixCoMmax1
+                      ixFi3=2*(ixCo3-ixCoMmin3)+ixMmin3
+                      ixFi2=2*(ixCo2-ixCoMmin2)+ixMmin2
                       ixFi1=2*(ixCo1-ixCoMmin1)+ixMmin1
+                      
                       psc(igrid)%w(ixCo1,ixCo2,ixCo3,iw) = 0.0d0
+
                       do ix3 = ixFi3,ixFi3+1
                          do ix2 = ixFi2,ixFi2+1
                             do ix1 = ixFi1,ixFi1+1
-!                               psc(igrid)%w(ixCo1,ixCo2,ixCo3,iw) = psc(igrid)%w(ixCo1,ixCo2,ixCo3,iw) &
-!                                    + psb(igrid)%w(ix1,ix2,ix3,iw)
-!                               print *, ix1,ix2,ix3
+                               psc(igrid)%w(ixCo1,ixCo2,ixCo3,iw) = psc(igrid)%w(ixCo1,ixCo2,ixCo3,iw) &
+                                    + psb(igrid)%w(ix1,ix2,ix3,iw)
                             end do
                          end do
                       end do
-                      print *, ixCo1, ixCo2, ixCo3
                       psc(igrid)%w(ixCo1,ixCo2,ixCo3,iw) = psc(igrid)%w(ixCo1,ixCo2,ixCo3,iw)*coFiRatio
+                      
                    end do
                 end do
              end do
