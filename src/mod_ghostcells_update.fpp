@@ -1307,7 +1307,9 @@ contains
        ! this works:
 !       bg(psb(igrid)%istep)%w(:,:,:,:,igrid) = 0.0d0
        ! this does not:
-       psb(igrid)%w(:,:,:,:) = 0.0d0
+       !$acc enter data attach(psb(igrid)%w)
+       !$acc enter data copyin(psc(igrid)%w)
+!       psb(igrid)%w(:,:,:,:) = 0.0d0
        ! its supposed to be the same storage!
     end do
     print *, 'ghostcells_update: done touching psb(igrid)%w'
@@ -1319,10 +1321,10 @@ contains
     do iigrid=1,igridstail; igrid=igrids(iigrid);
        
        if(any(neighbor_type(:,:,:,igrid)==neighbor_coarse)) then
-!          call coarsen_grid(psb(igrid),ixGlo1,ixGlo2,ixGlo3,ixGhi1,ixGhi2,ixGhi3,&
-!               ixMmin1,ixMmin2,ixMmin3,ixMmax1,ixMmax2,ixMmax3,psc(igrid),&
-!               ixCoGmin1,ixCoGmin2,ixCoGmin3,ixCoGmax1,ixCoGmax2,ixCoGmax3,&
-!               ixCoMmin1,ixCoMmin2,ixCoMmin3,ixCoMmax1,ixCoMmax2,ixCoMmax3)
+          call coarsen_grid(psb(igrid),ixGlo1,ixGlo2,ixGlo3,ixGhi1,ixGhi2,ixGhi3,&
+               ixMmin1,ixMmin2,ixMmin3,ixMmax1,ixMmax2,ixMmax3,psc(igrid),&
+               ixCoGmin1,ixCoGmin2,ixCoGmin3,ixCoGmax1,ixCoGmax2,ixCoGmax3,&
+               ixCoMmin1,ixCoMmin2,ixCoMmin3,ixCoMmax1,ixCoMmax2,ixCoMmax3)
           do i3=-1,1
              do i2=-1,1
                 do i1=-1,1
