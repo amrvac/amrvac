@@ -1627,8 +1627,6 @@ contains
     logical, intent(in) :: alloc_once_for_ps
     integer             :: ixGsmin1,ixGsmin2,ixGsmin3,ixGsmax1,ixGsmax2,&
        ixGsmax3
-    !opedit: debug:
-    integer             :: idbg
   
     !allocate(s%w(ixG^S,1:nw))
     s%w => bg(s%istep)%w(:,:,:,:,igrid)
