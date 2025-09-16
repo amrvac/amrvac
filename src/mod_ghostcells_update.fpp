@@ -9,14 +9,22 @@ module mod_ghostcells_update
 
   ! A switch of update physical boundary or not
   logical, public :: bcphys=.true.
+  !$acc declare copyin(bcphys)
 
   integer :: ixMmin1,ixMmin2,ixMmin3,ixMmax1,ixMmax2,ixMmax3, ixCoGmin1,&
        ixCoGmin2,ixCoGmin3,ixCoGmax1,ixCoGmax2,ixCoGmax3, ixCoMmin1,ixCoMmin2,&
        ixCoMmin3,ixCoMmax1,ixCoMmax2,ixCoMmax3, ixCoGsmin1,ixCoGsmin2,ixCoGsmin3,&
        ixCoGsmax1,ixCoGsmax2,ixCoGsmax3
+  !$acc declare create(ixCoGmin1,ixCoGmin2,ixCoGmin3,ixCoGmax1,ixCoGmax2,ixCoGmax3)
+  !$acc declare create(ixMmin1,ixMmin2,ixMmin3,ixMmax1,ixMmax2,ixMmax3)
+  !$acc declare create(ixCoMmin1,ixCoMmin2,ixCoMmin3,ixCoMmax1,ixCoMmax2,ixCoMmax3)
+  !$acc declare create(ixCoGsmin1,ixCoGsmin2,ixCoGsmin3,ixCoGsmax1,ixCoGsmax2,ixCoGsmax3)
 
   ! The number of interleaving sending buffers for ghost cells
   integer, parameter :: npwbuf=2
+  logical  :: req_diagonal = .true.
+  !$acc declare copyin(req_diagonal)
+
 
   ! The first index goes from -1:2, where -1 is used when a block touches the
   ! lower boundary, 1 when a block touches an upper boundary, and 0 a situation
@@ -1097,7 +1105,10 @@ contains
     !$acc update device(ixS_srl_min1,ixS_srl_min2,ixS_srl_min3)
     !$acc update device(ixS_srl_max1,ixS_srl_max2,ixS_srl_max3, ixR_srl_min1,ixR_srl_min2)
     !$acc update device(ixR_srl_min3,ixR_srl_max1,ixR_srl_max2,ixR_srl_max3)
-
+    !$acc update device(ixCoGmin1,ixCoGmin2,ixCoGmin3,ixCoGmax1,ixCoGmax2,ixCoGmax3)
+    !$acc update device(ixCoMmin1,ixCoMmin2,ixCoMmin3,ixCoMmax1,ixCoMmax2,ixCoMmax3)
+    !$acc update device(ixCoGsmin1,ixCoGsmin2,ixCoGsmin3,ixCoGsmax1,ixCoGsmax2,ixCoGsmax3)
+    
   end subroutine init_bc
 
   subroutine create_bc_mpi_datatype(nwstart,nwbc)
@@ -1254,7 +1265,7 @@ contains
     integer :: ibuf_start, ibuf_next
     ! shapes of reshape
     integer, dimension(1) :: shapes
-    logical  :: req_diagonal, update
+    logical  :: update
     type(wbuffer) :: pwbuf(npwbuf)
     real(dp) :: tempval
 
@@ -1269,12 +1280,14 @@ contains
 
     req_diagonal = .true.
     if (present(req_diag)) req_diagonal = req_diag
+    !$acc update device(req_diagonal)
 
     ! fill internal physical boundary
     if (internalboundary) then
        call getintbc(time,ixGlo1,ixGlo2,ixGlo3,ixGhi1,ixGhi2,ixGhi3)
     end if
 
+    
     ! fill physical-boundary ghost cells before internal ghost-cell values exchange
     if(bcphys.and. .not.stagger_grid) then
        !$OMP PARALLEL DO SCHEDULE(dynamic) PRIVATE(igrid)
@@ -1286,21 +1299,36 @@ contains
        !$OMP END PARALLEL DO
     end if
 
+    !opedit: debug, can I touch this on device?
+    print *, 'ghostcells_update: touching psb(igrid)%w'
+    !$acc parallel loop gang
+    do iigrid=1,igridstail; igrid=igrids(iigrid);
+       print *, igrid, size(psb(igrid)%w), psb(igrid)%istep
+       ! this works:
+!       bg(psb(igrid)%istep)%w(:,:,:,:,igrid) = 0.0d0
+       ! this does not:
+       psb(igrid)%w(:,:,:,:) = 0.0d0
+       ! its supposed to be the same storage!
+    end do
+    print *, 'ghostcells_update: done touching psb(igrid)%w'
+       
+    
     ! prepare coarse values to send to coarser neighbors
     !$OMP PARALLEL DO SCHEDULE(dynamic) PRIVATE(igrid)
+    !$acc parallel loop gang
     do iigrid=1,igridstail; igrid=igrids(iigrid);
        
        if(any(neighbor_type(:,:,:,igrid)==neighbor_coarse)) then
-          call coarsen_grid(psb(igrid),ixGlo1,ixGlo2,ixGlo3,ixGhi1,ixGhi2,ixGhi3,&
-               ixMmin1,ixMmin2,ixMmin3,ixMmax1,ixMmax2,ixMmax3,psc(igrid),&
-               ixCoGmin1,ixCoGmin2,ixCoGmin3,ixCoGmax1,ixCoGmax2,ixCoGmax3,&
-               ixCoMmin1,ixCoMmin2,ixCoMmin3,ixCoMmax1,ixCoMmax2,ixCoMmax3)
+!          call coarsen_grid(psb(igrid),ixGlo1,ixGlo2,ixGlo3,ixGhi1,ixGhi2,ixGhi3,&
+!               ixMmin1,ixMmin2,ixMmin3,ixMmax1,ixMmax2,ixMmax3,psc(igrid),&
+!               ixCoGmin1,ixCoGmin2,ixCoGmin3,ixCoGmax1,ixCoGmax2,ixCoGmax3,&
+!               ixCoMmin1,ixCoMmin2,ixCoMmin3,ixCoMmax1,ixCoMmax2,ixCoMmax3)
           do i3=-1,1
              do i2=-1,1
                 do i1=-1,1
                    if(skip_direction([ i1,i2,i3 ])) cycle
                    if(neighbor_type(i1,i2,i3,igrid)==neighbor_coarse) call &
-                        fill_coarse_boundary(igrid,i1,i2,i3)
+                        fill_coarse_boundary(time,igrid,i1,i2,i3)
                 end do
              end do
           end do
@@ -1308,6 +1336,13 @@ contains
     end do
     !$OMP END PARALLEL DO
 
+    !opedit: do EVERYTHING on host
+    do iigrid=1,igridstail; igrid=igrids(iigrid);
+       !$acc update host(psb(igrid)%w)
+       !$acc update host(psc(igrid)%w)
+    end do
+
+    
     ! default : no singular axis
     ipole=0
     irecv_c=0
@@ -1423,7 +1458,7 @@ contains
 
     ! fill ghost-cell values of sibling blocks
     !$OMP PARALLEL DO SCHEDULE(dynamic) PRIVATE(igrid,iib1,iib2,iib3)
-    !$acc parallel loop gang collapse(2) independent
+!    !$acc parallel loop gang collapse(2) independent
     do iigrid=1, igridstail
        do i=1, 27
           call idecode( i1, i2, i3, i)
@@ -1445,7 +1480,7 @@ contains
                 ixRmin3=ixR_srl_min3(iib3,n_i3); ixRmax1=ixR_srl_max1(iib1,n_i1)
                 ixRmax2=ixR_srl_max2(iib2,n_i2); ixRmax3=ixR_srl_max3(iib3,n_i3)
 
-                !$acc loop collapse(ndim+1) independent vector
+!                !$acc loop collapse(ndim+1) independent vector
                 do iw = nwhead, nwtail
                    do ix3=1,ixSmax3-ixSmin3+1
                       do ix2=1,ixSmax2-ixSmin2+1
@@ -1475,7 +1510,7 @@ contains
                   ixRmin3=ixR_r_min3(iib3,n_inc3);ixRmax1=ixR_r_max1(iib1,n_inc1)
                   ixRmax2=ixR_r_max2(iib2,n_inc2);ixRmax3=ixR_r_max3(iib3,n_inc3);
 
-                  !$acc loop collapse(ndim+1) independent vector
+!                  !$acc loop collapse(ndim+1) independent vector
                   do iw = nwhead, nwtail
                      do ix3=1,ixSmax3-ixSmin3+1
                         do ix2=1,ixSmax2-ixSmin2+1
@@ -1663,7 +1698,7 @@ contains
     ! fill physical boundary ghost cells after internal ghost-cell values exchange
     if(bcphys.and.stagger_grid) then
        !$OMP PARALLEL DO SCHEDULE(dynamic) PRIVATE(igrid)
-       !$acc parallel loop gang
+!       !$acc parallel loop gang
        do iigrid=1,igridstail; igrid=igrids(iigrid);
           if(.not.phyboundblock(igrid)) cycle
           call fill_boundary_after_gc(psb(igrid),igrid,time,qdt)
@@ -1682,126 +1717,46 @@ contains
     end if
 
     time_bc=time_bc+(MPI_WTIME()-time_bcin)
+
+!opedit: do EVERYTHING on host
+    do iigrid=1,igridstail; igrid=igrids(iigrid);
+       !$acc update device(ps(igrid)%w)
+    end do
+    
     call nvtxEndRange
 
   contains
+    
+    !> Receive from fine neighbor
+    subroutine bc_recv_restrict
 
-    logical function skip_direction(dir)
-      integer, intent(in) :: dir(3)
-
-      if (all(dir == 0)) then
-         skip_direction = .true.
-      else if (.not. req_diagonal .and. count(dir /= 0) > 1) then
-         skip_direction = .true.
-      else
-         skip_direction = .false.
-      end if
-    end function skip_direction
-
-
-        !> Receive from fine neighbor
-        subroutine bc_recv_restrict
-
-          do ic3=1+int((1-i3)/2),2-int((1+i3)/2)
-             inc3=2*i3+ic3
-             do ic2=1+int((1-i2)/2),2-int((1+i2)/2)
-                inc2=2*i2+ic2
-                do ic1=1+int((1-i1)/2),2-int((1+i1)/2)
-                   inc1=2*i1+ic1
-                   ipe_neighbor=neighbor_child(2,inc1,inc2,inc3,igrid)
-                   if (ipe_neighbor/=mype) then
-                      irecv_c=irecv_c+1
-                      itag=(3**3+4**3)*(igrid-1)+3**3+inc1*4**(1-1)+inc2*4**(2-1)+&
-                           inc3*4**(3-1)
-                      call MPI_IRECV(psb(igrid)%w,1,type_recv_r(iib1,iib2,iib3,inc1,&
-                           inc2,inc3), ipe_neighbor,itag,icomm,recvrequest_c_sr(irecv_c),&
-                           ierrmpi)
-                      if(stagger_grid) then
-                         irecv_r=irecv_r+1
-                         call MPI_IRECV(recvbuffer_r(ibuf_recv_r),&
-                              sizes_r_recv_total(inc1,inc2,inc3), MPI_DOUBLE_PRECISION,&
-                              ipe_neighbor,itag, icomm,recvrequest_r(irecv_r),ierrmpi)
-                         ibuf_recv_r=ibuf_recv_r+sizes_r_recv_total(inc1,inc2,inc3)
-                      end if
-                   end if
-                end do
-             end do
-          end do
-
-        end subroutine bc_recv_restrict
-
-        subroutine fill_coarse_boundary(igrid,i1,i2,i3)
-          integer, intent(in) :: igrid,i1,i2,i3
-
-          integer :: idims,iside,kmin1,kmin2,kmin3,kmax1,kmax2,kmax3,ixBmin1,&
-               ixBmin2,ixBmin3,ixBmax1,ixBmax2,ixBmax3,ii1,ii2,ii3
-
-          if(phyboundblock(igrid).and..not.stagger_grid.and.bcphys) then
-             ! to use block in physical boundary setup for coarse representative
-             block=>psc(igrid)
-               ! filling physical boundary ghost cells of a coarser representative block for
-               ! sending swap region with width of nghostcells to its coarser neighbor
-               do idims=1,ndim
-                  ! to avoid using as yet unknown corner info in more than 1D, we
-                  ! fill only interior mesh ranges of the ghost cell ranges at first,
-                  ! and progressively enlarge the ranges to include corners later
-                  kmin1=merge(0, 1, idims==1)
-                  kmax1=merge(0, 1, idims==1)
-                  ixBmin1=ixCoGmin1+kmin1*nghostcells
-                  ixBmax1=ixCoGmax1-kmax1*nghostcells
-                  kmin2=merge(0, 1, idims==2)
-                  kmax2=merge(0, 1, idims==2)
-                  ixBmin2=ixCoGmin2+kmin2*nghostcells
-                  ixBmax2=ixCoGmax2-kmax2*nghostcells
-                  kmin3=merge(0, 1, idims==3)
-                  kmax3=merge(0, 1, idims==3)
-                  ixBmin3=ixCoGmin3+kmin3*nghostcells
-                  ixBmax3=ixCoGmax3-kmax3*nghostcells
-
-
-                  if(idims > 1 .and. neighbor_type(-1,0,0,&
-                       igrid)==neighbor_boundary) ixBmin1=ixCoGmin1
-                  if(idims > 1 .and. neighbor_type( 1,0,0,&
-                       igrid)==neighbor_boundary) ixBmax1=ixCoGmax1
-                  if(idims > 2 .and. neighbor_type(0,-1,0,&
-                       igrid)==neighbor_boundary) ixBmin2=ixCoGmin2
-                  if(idims > 2 .and. neighbor_type(0, 1,0,&
-                       igrid)==neighbor_boundary) ixBmax2=ixCoGmax2
-                  if(i1==-1) then
-                     ixBmin1=ixCoGmin1+nghostcells
-                     ixBmax1=ixCoGmin1+2*nghostcells-1
-                  else if(i1==1) then
-                     ixBmin1=ixCoGmax1-2*nghostcells+1
-                     ixBmax1=ixCoGmax1-nghostcells
+      do ic3=1+int((1-i3)/2),2-int((1+i3)/2)
+         inc3=2*i3+ic3
+         do ic2=1+int((1-i2)/2),2-int((1+i2)/2)
+            inc2=2*i2+ic2
+            do ic1=1+int((1-i1)/2),2-int((1+i1)/2)
+               inc1=2*i1+ic1
+               ipe_neighbor=neighbor_child(2,inc1,inc2,inc3,igrid)
+               if (ipe_neighbor/=mype) then
+                  irecv_c=irecv_c+1
+                  itag=(3**3+4**3)*(igrid-1)+3**3+inc1*4**(1-1)+inc2*4**(2-1)+&
+                       inc3*4**(3-1)
+                  call MPI_IRECV(psb(igrid)%w,1,type_recv_r(iib1,iib2,iib3,inc1,&
+                       inc2,inc3), ipe_neighbor,itag,icomm,recvrequest_c_sr(irecv_c),&
+                       ierrmpi)
+                  if(stagger_grid) then
+                     irecv_r=irecv_r+1
+                     call MPI_IRECV(recvbuffer_r(ibuf_recv_r),&
+                          sizes_r_recv_total(inc1,inc2,inc3), MPI_DOUBLE_PRECISION,&
+                          ipe_neighbor,itag, icomm,recvrequest_r(irecv_r),ierrmpi)
+                     ibuf_recv_r=ibuf_recv_r+sizes_r_recv_total(inc1,inc2,inc3)
                   end if
-                  if(i2==-1) then
-                     ixBmin2=ixCoGmin2+nghostcells
-                     ixBmax2=ixCoGmin2+2*nghostcells-1
-                  else if(i2==1) then
-                     ixBmin2=ixCoGmax2-2*nghostcells+1
-                     ixBmax2=ixCoGmax2-nghostcells
-                  end if
-                  if(i3==-1) then
-                     ixBmin3=ixCoGmin3+nghostcells
-                     ixBmax3=ixCoGmin3+2*nghostcells-1
-                  else if(i3==1) then
-                     ixBmin3=ixCoGmax3-2*nghostcells+1
-                     ixBmax3=ixCoGmax3-nghostcells
-                  end if
-                  do iside=1,2
-                     ii1=kr(1,idims)*(2*iside-3);ii2=kr(2,idims)*(2*iside-3)
-                     ii3=kr(3,idims)*(2*iside-3);
-                     if (abs(i1)==1.and.abs(ii1)==1.or.abs(i2)==1.and.abs(ii2)==&
-                          1.or.abs(i3)==1.and.abs(ii3)==1) cycle
-                     if (neighbor_type(ii1,ii2,ii3,igrid)/=neighbor_boundary) cycle
-                     call bc_phys(iside,idims,time,0.d0,psc(igrid),ixCoGmin1,&
-                          ixCoGmin2,ixCoGmin3,ixCoGmax1,ixCoGmax2,ixCoGmax3,ixBmin1,&
-                          ixBmin2,ixBmin3,ixBmax1,ixBmax2,ixBmax3)
-                  end do
-               end do
-            end if
+               end if
+            end do
+         end do
+      end do
 
-          end subroutine fill_coarse_boundary
+    end subroutine bc_recv_restrict
 
           !> Send to coarser neighbor
           subroutine bc_send_restrict
@@ -3355,6 +3310,96 @@ contains
                     end subroutine pole_buffer
 
                   end subroutine getbc
+
+      logical function skip_direction(dir)
+        !$acc routine vector
+        integer, intent(in) :: dir(3)
+
+        if (all(dir == 0)) then
+           skip_direction = .true.
+        else if (.not. req_diagonal .and. count(dir /= 0) > 1) then
+           skip_direction = .true.
+        else
+           skip_direction = .false.
+        end if
+      end function skip_direction
+    
+                  
+                  subroutine fill_coarse_boundary(time,igrid,i1,i2,i3)
+                    !$acc routine vector
+                    use mod_global_parameters
+                    use mod_boundary_conditions, only: bc_phys
+                    integer, intent(in) :: igrid,i1,i2,i3
+                    double precision, intent(in) :: time
+
+                    integer :: idims,iside,kmin1,kmin2,kmin3,kmax1,kmax2,kmax3,ixBmin1,&
+                         ixBmin2,ixBmin3,ixBmax1,ixBmax2,ixBmax3,ii1,ii2,ii3
+
+                    if(phyboundblock(igrid).and..not.stagger_grid.and.bcphys) then
+                         ! filling physical boundary ghost cells of a coarser representative block for
+                         ! sending swap region with width of nghostcells to its coarser neighbor
+                         do idims=1,ndim
+                            ! to avoid using as yet unknown corner info in more than 1D, we
+                            ! fill only interior mesh ranges of the ghost cell ranges at first,
+                            ! and progressively enlarge the ranges to include corners later
+                            kmin1=merge(0, 1, idims==1)
+                            kmax1=merge(0, 1, idims==1)
+                            ixBmin1=ixCoGmin1+kmin1*nghostcells
+                            ixBmax1=ixCoGmax1-kmax1*nghostcells
+                            kmin2=merge(0, 1, idims==2)
+                            kmax2=merge(0, 1, idims==2)
+                            ixBmin2=ixCoGmin2+kmin2*nghostcells
+                            ixBmax2=ixCoGmax2-kmax2*nghostcells
+                            kmin3=merge(0, 1, idims==3)
+                            kmax3=merge(0, 1, idims==3)
+                            ixBmin3=ixCoGmin3+kmin3*nghostcells
+                            ixBmax3=ixCoGmax3-kmax3*nghostcells
+
+
+                            if(idims > 1 .and. neighbor_type(-1,0,0,&
+                                 igrid)==neighbor_boundary) ixBmin1=ixCoGmin1
+                            if(idims > 1 .and. neighbor_type( 1,0,0,&
+                                 igrid)==neighbor_boundary) ixBmax1=ixCoGmax1
+                            if(idims > 2 .and. neighbor_type(0,-1,0,&
+                                 igrid)==neighbor_boundary) ixBmin2=ixCoGmin2
+                            if(idims > 2 .and. neighbor_type(0, 1,0,&
+                                 igrid)==neighbor_boundary) ixBmax2=ixCoGmax2
+                            if(i1==-1) then
+                               ixBmin1=ixCoGmin1+nghostcells
+                               ixBmax1=ixCoGmin1+2*nghostcells-1
+                            else if(i1==1) then
+                               ixBmin1=ixCoGmax1-2*nghostcells+1
+                               ixBmax1=ixCoGmax1-nghostcells
+                            end if
+                            if(i2==-1) then
+                               ixBmin2=ixCoGmin2+nghostcells
+                               ixBmax2=ixCoGmin2+2*nghostcells-1
+                            else if(i2==1) then
+                               ixBmin2=ixCoGmax2-2*nghostcells+1
+                               ixBmax2=ixCoGmax2-nghostcells
+                            end if
+                            if(i3==-1) then
+                               ixBmin3=ixCoGmin3+nghostcells
+                               ixBmax3=ixCoGmin3+2*nghostcells-1
+                            else if(i3==1) then
+                               ixBmin3=ixCoGmax3-2*nghostcells+1
+                               ixBmax3=ixCoGmax3-nghostcells
+                            end if
+                            do iside=1,2
+                               ii1=kr(1,idims)*(2*iside-3);ii2=kr(2,idims)*(2*iside-3)
+                               ii3=kr(3,idims)*(2*iside-3);
+                               if (abs(i1)==1.and.abs(ii1)==1.or.abs(i2)==1.and.abs(ii2)==&
+                                    1.or.abs(i3)==1.and.abs(ii3)==1) cycle
+                               if (neighbor_type(ii1,ii2,ii3,igrid)/=neighbor_boundary) cycle
+                               call bc_phys(iside,idims,time,0.d0,psc(igrid),ixCoGmin1,&
+                                    ixCoGmin2,ixCoGmin3,ixCoGmax1,ixCoGmax2,ixCoGmax3,ixBmin1,&
+                                    ixBmin2,ixBmin3,ixBmax1,ixBmax2,ixBmax3)
+                            end do
+                         end do
+                      end if
+
+                    end subroutine fill_coarse_boundary
+
 
     !> Physical boundary conditions
     subroutine fill_boundary_before_gc(s,igrid,time,qdt)
