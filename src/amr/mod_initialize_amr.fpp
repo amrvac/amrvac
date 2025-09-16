@@ -75,24 +75,8 @@ contains
          call usr_init_one_grid(ixGlo1,ixGlo2,ixGlo3,ixGhi1,ixGhi2,ixGhi3,ixMlo1,&
               ixMlo2,ixMlo3,ixMhi1,ixMhi2,ixMhi3,ps(igrid)%w,ps(igrid)%x)
       end if
-
-      !$acc update device(ps(igrid), ps1(igrid), ps2(igrid))
+      
       !$acc update device(bg(1)%w(:,:,:,:,igrid))
-      !$acc enter data copyin(ps(igrid)%x)
-      !$acc enter data attach(ps(igrid)%w, ps1(igrid)%w, ps2(igrid)%w)
-      !$acc enter data attach(ps1(igrid)%x, ps2(igrid)%x)
-
-      !!!todojesse tried to change this, which does not seem to work!
-      !!$acc update device(ps(igrid), ps1(igrid), ps2(igrid))
-      !!$acc update device(bg(1)%w(:,:,:,:,igrid))
-      !!$acc enter data copyin(ps(igrid)%x, ps1(igrid)%x, ps2(igrid)%x)
-      !!$acc enter data copyin(ps(igrid)%w, ps1(igrid)%w, ps2(igrid)%w)
-      !!!$acc enter data attach(ps1(igrid)%x, ps2(igrid)%x)
-
-      !!todojesse this actually seemed to work
-      !$acc update device(psc(igrid))
-      !$acc enter data copyin(psc(igrid)%x, psc(igrid)%w)
-
     end subroutine initial_condition
 
     !> modify initial condition

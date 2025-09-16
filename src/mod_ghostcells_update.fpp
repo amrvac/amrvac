@@ -1239,6 +1239,7 @@ contains
   !> do update ghost cells of all blocks including physical boundaries
   subroutine getbc(time,qdt,psb,nwstart,nwbc,req_diag)
     use mod_nvtx
+    use openacc
     use mod_global_parameters
     use mod_physics
     use mod_coarsen, only: coarsen_grid
@@ -1303,13 +1304,16 @@ contains
     print *, 'ghostcells_update: touching psb(igrid)%w'
     !$acc parallel loop gang
     do iigrid=1,igridstail; igrid=igrids(iigrid);
-       print *, igrid, size(psb(igrid)%w), psb(igrid)%istep
+       print *, igrid, size(psb(igrid)%w), loc(psb(igrid)%w)
        ! this works:
 !       bg(psb(igrid)%istep)%w(:,:,:,:,igrid) = 0.0d0
        ! this does not:
-       !$acc enter data attach(psb(igrid)%w)
-       !$acc enter data copyin(psc(igrid)%w)
-!       psb(igrid)%w(:,:,:,:) = 0.0d0
+!       !$acc enter data attach(psb(igrid)%w)
+!       !$acc enter data copyin(psc(igrid)%w)
+!       psb(igrid)%w = 0.0d0
+!       if (.not. acc_is_present(psb(igrid)%w)) then
+!          print *, 'psb is not there', igrid
+!       end if
        ! its supposed to be the same storage!
     end do
     print *, 'ghostcells_update: done touching psb(igrid)%w'

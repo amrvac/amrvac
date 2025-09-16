@@ -47,7 +47,7 @@
 
  &meshlist
    max_blocks         = 16384 !32768 !4096
-   refine_max_level   = 2
+   refine_max_level   = 1
 !   max_blocks         = 4096
 !   refine_max_level   = 1
    refine_criterion   = 1 !user-defined criterion only (in mod_usr)
