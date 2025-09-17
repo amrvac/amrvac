@@ -48,6 +48,7 @@ module mod_ghostcells_update
   ! index ranges to send (S) restricted (r) ghost cells to coarser blocks
   integer, dimension(-1:1,-1:1) :: ixS_r_min1,ixS_r_min2,ixS_r_min3,ixS_r_max1,&
        ixS_r_max2,ixS_r_max3
+  !$acc declare create(ixS_r_min1,ixS_r_min2,ixS_r_min3,ixS_r_max1,ixS_r_max2,ixS_r_max3)
 
   ! index ranges of staggered variables to send (S) restricted (r) ghost cells to coarser blocks
   integer, dimension(3,-1:1) :: ixS_r_stg_min1,ixS_r_stg_min2,ixS_r_stg_min3,&
@@ -56,7 +57,8 @@ module mod_ghostcells_update
   ! index ranges to receive restriced ghost cells from finer blocks
   integer, dimension(-1:1, 0:3) :: ixR_r_min1,ixR_r_min2,ixR_r_min3,ixR_r_max1,&
        ixR_r_max2,ixR_r_max3
-
+  !$acc declare create(ixR_r_min1,ixR_r_min2,ixR_r_min3,ixR_r_max1,ixR_r_max2,ixR_r_max3)
+  
   ! index ranges of staggered variables to receive restriced ghost cells from finer blocks
   integer, dimension(3,0:3)  :: ixR_r_stg_min1,ixR_r_stg_min2,ixR_r_stg_min3,&
        ixR_r_stg_max1,ixR_r_stg_max2,ixR_r_stg_max3
@@ -1109,6 +1111,8 @@ contains
     !$acc update device(ixCoMmin1,ixCoMmin2,ixCoMmin3,ixCoMmax1,ixCoMmax2,ixCoMmax3)
     !$acc update device(ixCoGsmin1,ixCoGsmin2,ixCoGsmin3,ixCoGsmax1,ixCoGsmax2,ixCoGsmax3)
     !$acc update device(ixMmin1,ixMmin2,ixMmin3,ixMmax1,ixMmax2,ixMmax3)
+    !$acc update device(ixS_r_min1,ixS_r_min2,ixS_r_min3,ixS_r_max1,ixS_r_max2,ixS_r_max3)
+    !$acc update device(ixR_r_min1,ixR_r_min2,ixR_r_min3,ixR_r_max1,ixR_r_max2,ixR_r_max3)
     
   end subroutine init_bc
 
@@ -1260,8 +1264,6 @@ contains
          ixSmin2,ixSmin3,ixSmax1,ixSmax2,ixSmax3
     integer :: i1,i2,i3, n_i1,n_i2,n_i3, ic1,ic2,ic3, inc1,inc2,inc3, n_inc1,&
          n_inc2,n_inc3, iib1,iib2,iib3, idir, istage
-    ! store physical boundary indicating index
-!    integer :: idphyb(ndim,max_blocks)
     integer :: isend_buf(npwbuf), ipwbuf, nghostcellsco
     ! index pointer for buffer arrays as a start for a segment
     integer :: ibuf_start, ibuf_next
@@ -1279,13 +1281,6 @@ contains
 
     call nvtxStartRange("getbc",2)
 
-    !opedit: unclear why this is necessary
-    !$acc parallel loop gang
-    do iigrid=1,igridstail; igrid=igrids(iigrid);
-       !$acc enter data attach(psb(igrid)%w, psb(igrid)%x)
-    end do       
-
-    
     nwhead=nwstart
     nwtail=nwstart+nwbc-1
 
@@ -1297,7 +1292,6 @@ contains
     if (internalboundary) then
        call getintbc(time,ixGlo1,ixGlo2,ixGlo3,ixGhi1,ixGhi2,ixGhi3)
     end if
-
     
     ! fill physical-boundary ghost cells before internal ghost-cell values exchange
     if(bcphys.and. .not.stagger_grid) then
@@ -1315,7 +1309,6 @@ contains
     !$OMP PARALLEL DO SCHEDULE(dynamic) PRIVATE(igrid)
     !$acc parallel loop gang
     do iigrid=1,igridstail; igrid=igrids(iigrid);
-       
        if(any(neighbor_type(:,:,:,igrid)==neighbor_coarse)) then
 
           CoFiratio=one/dble(2**ndim)
@@ -1329,7 +1322,6 @@ contains
                       ixFi1=2*(ixCo1-ixCoMmin1)+ixMmin1
                       
                       psc(igrid)%w(ixCo1,ixCo2,ixCo3,iw) = 0.0d0
-
                       do ix3 = ixFi3,ixFi3+1
                          do ix2 = ixFi2,ixFi2+1
                             do ix1 = ixFi1,ixFi1+1
@@ -1339,11 +1331,13 @@ contains
                          end do
                       end do
                       psc(igrid)%w(ixCo1,ixCo2,ixCo3,iw) = psc(igrid)%w(ixCo1,ixCo2,ixCo3,iw)*coFiRatio
-                      
+
                    end do
                 end do
              end do
           end do
+          
+          !eventually replace with generic implementation here:
 !          call coarsen_grid(psb(igrid),ixGlo1,ixGlo2,ixGlo3,ixGhi1,ixGhi2,ixGhi3,&
 !               ixMmin1,ixMmin2,ixMmin3,ixMmax1,ixMmax2,ixMmax3,psc(igrid),&
 !               ixCoGmin1,ixCoGmin2,ixCoGmin3,ixCoGmax1,ixCoGmax2,ixCoGmax3,&
@@ -1361,7 +1355,7 @@ contains
     end do
     !$OMP END PARALLEL DO
 
-    !opedit: do EVERYTHING on host
+    ! !opedit: do EVERYTHING on host
     do iigrid=1,igridstail; igrid=igrids(iigrid);
        !$acc update host(psb(igrid)%w)
        !$acc update host(psc(igrid)%w)
@@ -1518,37 +1512,37 @@ contains
                    end do
                 end do
                 
-             case(neighbor_coarse)
+              case(neighbor_coarse)
 
-                ic1=1+modulo(node(pig1_,igrid)-1,2)
-                ic2=1+modulo(node(pig2_,igrid)-1,2)
-                ic3=1+modulo(node(pig3_,igrid)-1,2)
+                 ic1=1+modulo(node(pig1_,igrid)-1,2)
+                 ic2=1+modulo(node(pig2_,igrid)-1,2)
+                 ic3=1+modulo(node(pig3_,igrid)-1,2)
 
-                if(.not.(i1==0.or.i1==2*ic1-3).or..not.(i2==0.or.i2==2*ic2-3)&
-                     .or..not.(i3==0.or.i3==2*ic3-3)) cycle
+                 if(.not.(i1==0.or.i1==2*ic1-3).or..not.(i2==0.or.i2==2*ic2-3)&
+                      .or..not.(i3==0.or.i3==2*ic3-3)) cycle
 
-                  n_inc1=-2*i1+ic1;n_inc2=-2*i2+ic2;n_inc3=-2*i3+ic3;
-                  ixSmin1=ixS_r_min1(iib1,i1);ixSmin2=ixS_r_min2(iib2,i2)
-                  ixSmin3=ixS_r_min3(iib3,i3);ixSmax1=ixS_r_max1(iib1,i1)
-                  ixSmax2=ixS_r_max2(iib2,i2);ixSmax3=ixS_r_max3(iib3,i3);
-                  ixRmin1=ixR_r_min1(iib1,n_inc1);ixRmin2=ixR_r_min2(iib2,n_inc2)
-                  ixRmin3=ixR_r_min3(iib3,n_inc3);ixRmax1=ixR_r_max1(iib1,n_inc1)
-                  ixRmax2=ixR_r_max2(iib2,n_inc2);ixRmax3=ixR_r_max3(iib3,n_inc3);
+                   n_inc1=-2*i1+ic1;n_inc2=-2*i2+ic2;n_inc3=-2*i3+ic3;
+                   ixSmin1=ixS_r_min1(iib1,i1);ixSmin2=ixS_r_min2(iib2,i2)
+                   ixSmin3=ixS_r_min3(iib3,i3);ixSmax1=ixS_r_max1(iib1,i1)
+                   ixSmax2=ixS_r_max2(iib2,i2);ixSmax3=ixS_r_max3(iib3,i3);
+                   ixRmin1=ixR_r_min1(iib1,n_inc1);ixRmin2=ixR_r_min2(iib2,n_inc2)
+                   ixRmin3=ixR_r_min3(iib3,n_inc3);ixRmax1=ixR_r_max1(iib1,n_inc1)
+                   ixRmax2=ixR_r_max2(iib2,n_inc2);ixRmax3=ixR_r_max3(iib3,n_inc3);
 
-!                  !$acc loop collapse(ndim+1) independent vector
-                  do iw = nwhead, nwtail
-                     do ix3=1,ixSmax3-ixSmin3+1
-                        do ix2=1,ixSmax2-ixSmin2+1
-                           do ix1=1,ixSmax1-ixSmin1+1
-                              psb(ineighbor)%w(ixRmin1+ix1-1,ixRmin2+ix2-1,&
-                                   ixRmin3+ix3-1,iw) = psc(igrid)%w(ixSmin1+ix1-1,&
-                                   ixSmin2+ix2-1,ixSmin3+ix3-1,iw)
-                           end do
-                        end do
-                     end do
-                  end do
+ !                  !$acc loop collapse(ndim+1) independent vector
+                   do iw = nwhead, nwtail
+                      do ix3=1,ixSmax3-ixSmin3+1
+                         do ix2=1,ixSmax2-ixSmin2+1
+                            do ix1=1,ixSmax1-ixSmin1+1
+                               psb(ineighbor)%w(ixRmin1+ix1-1,ixRmin2+ix2-1,&
+                                    ixRmin3+ix3-1,iw) = psc(igrid)%w(ixSmin1+ix1-1,&
+                                    ixSmin2+ix2-1,ixSmin3+ix3-1,iw)
+                            end do
+                         end do
+                      end do
+                   end do
 
-               end select
+                end select
 
             end if
 
@@ -1743,7 +1737,7 @@ contains
 
     time_bc=time_bc+(MPI_WTIME()-time_bcin)
 
-!opedit: do EVERYTHING on host
+    ! !opedit: do EVERYTHING on host
     do iigrid=1,igridstail; igrid=igrids(iigrid);
        !$acc update device(ps(igrid)%w)
     end do

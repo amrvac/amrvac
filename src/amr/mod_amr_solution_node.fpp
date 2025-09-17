@@ -1597,13 +1597,15 @@ contains
    !$acc update device( phyboundblock(igrid) )
 
    !$acc update device(ps(igrid), ps1(igrid), ps2(igrid))
+   !$acc enter data copyin(ps(igrid)%w, ps1(igrid)%w, ps2(igrid)%w)
    !$acc enter data attach(ps(igrid)%w, ps1(igrid)%w, ps2(igrid)%w)
    !$acc enter data copyin(ps(igrid)%x, ps(igrid)%is_physical_boundary)
+   !$acc enter data copyin(ps1(igrid)%x, ps2(igrid)%x)
    !$acc enter data attach(ps1(igrid)%x, ps2(igrid)%x)
-   !$acc enter data attach(ps1(igrid)%is_physical_boundary, ps2(igrid)%is_physical_boundary)
+   !$acc enter data copyin(ps1(igrid)%is_physical_boundary, ps2(igrid)%is_physical_boundary)
    
    !$acc enter data copyin(psc(igrid)%x, psc(igrid)%w)
-   
+
   end subroutine alloc_node
   
   !> allocate memory to physical state of igrid node
