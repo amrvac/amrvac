@@ -154,19 +154,23 @@ contains
         ixGmin3,ixGmax1,ixGmax2,ixGmax3, ixmin1,ixmin2,ixmin3,ixmax1,&
         ixmax2,ixmax3
     double precision, intent(in)    :: qt, x(ixGmin1:ixGmax1,&
-        ixGmin2:ixGmax2,ixGmin3:ixGmax3,1:ndim)
+         ixGmin2:ixGmax2,ixGmin3:ixGmax3,1:ndim)
     double precision, intent(in)    :: w(ixGmin1:ixGmax1,&
-        ixGmin2:ixGmax2,ixGmin3:ixGmax3,1:nw)
+         ixGmin2:ixGmax2,ixGmin3:ixGmax3,1:nw)
     integer, intent(inout) :: refine, coarsen
 
-    if ( any(x(ixGmin1:ixGmax1,ixGmin2:ixGmax2,ixGmin3:ixGmax3,1) & 
-<0.5d0) .and. any(x(ixGmin1:ixGmax1,ixGmin2:ixGmax2,ixGmin3:ixGmax3,1) & 
->0.4d0) ) then
-     coarsen = -1
-     refine  = 1
+    if ( any(x(ixGmin1:ixGmax1,ixGmin2:ixGmax2,ixGmin3:ixGmax3,2) & 
+         <0.75d0) .and. any(x(ixGmin1:ixGmax1,ixGmin2:ixGmax2,ixGmin3:ixGmax3,2) & 
+         >0.75d0) &
+         .or. &
+         any(x(ixGmin1:ixGmax1,ixGmin2:ixGmax2,ixGmin3:ixGmax3,2) & 
+         <0.25d0) .and. any(x(ixGmin1:ixGmax1,ixGmin2:ixGmax2,ixGmin3:ixGmax3,2) & 
+         >0.25d0)) then
+       coarsen = -1
+       refine  = 1
     else
-     coarsen = 0
-     refine  = 0
+       coarsen = 0
+       refine  = 0
     end if
 
   end subroutine specialrefine_grid
