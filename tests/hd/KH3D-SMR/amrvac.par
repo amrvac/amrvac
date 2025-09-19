@@ -1,0 +1,67 @@
+ &filelist
+   base_filename    = 'output/kh3d'
+   autoconvert      = T
+   convert_type     = 'vtuBCCmpi'
+   saveprim         = T
+ /
+
+ &savelist
+  itsave(1,1)      = 0
+  itsave(1,2)      = 0
+  itsave(1,3)      = 0
+  ditsave_log      = 100
+  dtsave_dat       = 1.0d0
+  dtsave_slice     = 0.1d0
+  nslices          = 3
+  slicedir(1)      = 3
+  slicecoord(1)    = 0.5d0
+  slicedir(2)      = 2
+  slicecoord(2)    = 0.5d0
+  slicedir(3)      = 1
+  slicecoord(3)    = 0.5d0
+ /
+
+ &stoplist
+   time_max         = 2.0d0
+ /
+
+ &methodlist
+   time_stepper    = 'threestep'
+   flux_scheme     = 20*'tvdlf'
+   limiter         = 20*'vanleer'
+   phys            = 'hd'
+ /
+
+ &boundlist
+   typeboundary_min1 = 5*'periodic'
+   typeboundary_max1 = 5*'periodic'
+   typeboundary_min2 = 5*'periodic'
+   typeboundary_max2 = 5*'periodic'
+   typeboundary_min3 = 5*'periodic'
+   typeboundary_max3 = 5*'periodic'
+ /
+
+ &meshlist
+   max_blocks         = 40000
+   refine_max_level   = 4
+   refine_criterion   = 1 !user-defined criterion only (in mod_usr)
+   itfixgrid          = 0 
+   block_nx1          = 16
+   block_nx2          = 16
+   block_nx3          = 16
+   domain_nx1         = 128
+   domain_nx2         = 128
+   domain_nx3         = 128
+   xprobmin1       = 0.0d0
+   xprobmax1       = 1.0d0
+   xprobmin2       = 0.0d0
+   xprobmax2       = 1.0d0
+   xprobmin3       = 0.0d0
+   xprobmax3       = 1.0d0
+   iprob=1
+ /
+
+ &paramlist
+   slowsteps        = 10
+   courantpar       = 0.7d0
+ /
