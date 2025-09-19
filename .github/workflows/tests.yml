@@ -16,7 +16,6 @@ jobs:
         os: [ubuntu-latest]
         FC_compiler: [gfortran-14]
         CC_compiler: [gcc-14]
-        suite: [hd]
         include:
           - os: macos-latest
             FC_compiler: gfortran-15
@@ -30,7 +29,7 @@ jobs:
       
     runs-on: ${{ matrix.os }}
 
-    name: ${{ matrix.os }} / ${{ matrix.FC_compiler }} / ${{ matrix.suite }}
+    name: ${{ matrix.os }} / ${{ matrix.FC_compiler }}
 
     steps:
       - uses: actions/checkout@v2
@@ -60,17 +59,16 @@ jobs:
       - name: compile and run tests
         run: |
           cd tests
-          ARCH=gnu ./test_runner.sh ${{ matrix.suite }}
+          ARCH=gnu ./test_runner.sh
 
   INTEL:
     strategy:
       fail-fast: false
       matrix:
         os: [ubuntu-latest]
-        suite: [hd]
 
     runs-on: ${{ matrix.os }}
-    name: ${{ matrix.os }} / ifx / ${{ matrix.suite }}
+    name: ${{ matrix.os }} / ifx
 
     env:
       FC: ifx
@@ -107,4 +105,4 @@ jobs:
       - name: compile
         run: |
           cd tests
-          ARCH=ifx ./test_runner.sh ${{ matrix.suite }}
+          ARCH=ifx ./test_runner.sh

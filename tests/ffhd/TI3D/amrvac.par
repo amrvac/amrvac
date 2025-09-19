@@ -1,0 +1,79 @@
+ &filelist
+   base_filename    = 'output/ti3d'
+   autoconvert      = F
+   convert_type     = 'vtuBCCmpi'
+   saveprim         = T
+ /
+   base_filename    = '/scratch/leuven/377/vsc37715/agile_test/ti'
+
+
+ &savelist
+   itsave(1,1)      = 0
+   itsave(1,2)      = 0
+   dtsave_log      = 0.01
+   dtsave_dat      = 1.d0
+ /
+
+ &stoplist
+   time_max        = 5.d0
+ /
+
+ &methodlist
+   time_stepper    = 'threestep'
+   flux_scheme     = 20*'tvdlf'
+   limiter         = 20*'vanleer'
+   phys            = 'ffhd'
+ /
+
+ &boundlist
+   typeboundary_min1 = 4*'periodic'
+   typeboundary_max1 = 4*'periodic'
+   typeboundary_min2 = 4*'periodic'
+   typeboundary_max2 = 4*'periodic'
+   typeboundary_min3 = 4*'periodic'
+   typeboundary_max3 = 4*'periodic'
+ /
+   typeboundary_min3 = 'symm','asymm','symm','asymm'
+   typeboundary_max3 = 'symm','asymm','symm','asymm'
+
+ &meshlist
+   refine_max_level   = 1
+   block_nx1          = 32
+   block_nx2          = 32
+   block_nx3          = 32
+   domain_nx1         = 128
+   domain_nx2         = 128
+   domain_nx3         = 128
+   xprobmin1       = 0.0d0
+   xprobmax1       = 1.0d0
+   xprobmin2       = 0.0d0
+   xprobmax2       = 1.0d0
+   xprobmin3       = 0.0d0
+   xprobmax3       = 1.0d0
+   iprob=1
+ /
+
+ &paramlist
+   slowsteps        = 50
+   courantpar       = 0.4d0
+   typecourant      = 'maxsum'
+ /
+
+ &rc_list
+   ncool = 4000
+   coolmethod = 'exact'
+   coolcurve = 'Colgan_DM'
+ /
+
+ &ffhd_list
+   ffhd_gravity = .false.
+   ffhd_hyperbolic_thermal_conduction = .true.
+   ffhd_radiative_cooling = .true.
+   ffhd_source_usr = .false.
+ /
+
+ &usr_list
+  scale = 0.1d0
+  radius = 0.15d0
+ /
+
