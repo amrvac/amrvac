@@ -6,23 +6,23 @@
  /
 
  &savelist
-   itsave(1,1)      = 0
-   itsave(1,2)      = 0
-   itsave(1,3)      = 0
-   ditsave_log      = 1
-   dtsave_dat       = 0.1d0
-   dtsave_slice     = 0.1d0
-   nslices          = 3
-   slicedir(1)      = 3
-   slicecoord(1)    = 0.5d0
-   slicedir(2)      = 2
-   slicecoord(2)    = 0.5d0
-   slicedir(3)      = 1
-   slicecoord(3)    = 0.5d0
+  itsave(1,1)      = 0
+  itsave(1,2)      = 0
+  itsave(1,3)      = 0
+  ditsave_log      = 100
+  dtsave_dat       = 1.0d0
+  dtsave_slice     = 0.1d0
+  nslices          = 3
+  slicedir(1)      = 3
+  slicecoord(1)    = 0.5d0
+  slicedir(2)      = 2
+  slicecoord(2)    = 0.5d0
+  slicedir(3)      = 1
+  slicecoord(3)    = 0.5d0
  /
 
  &stoplist
-   time_max         = 0.2d0
+   time_max         = 2.0d0
  /
 
  &methodlist
@@ -42,8 +42,8 @@
  /
 
  &meshlist
-   max_blocks         = 32768
-   refine_max_level   = 3
+   max_blocks         = 40000
+   refine_max_level   = 4
    refine_criterion   = 1 !user-defined criterion only (in mod_usr)
    itfixgrid          = 0 
    block_nx1          = 16

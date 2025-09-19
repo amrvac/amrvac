@@ -43,10 +43,8 @@ contains
 
     end do
 
-    print *, 'calling getbc from initlevelone'
     ! update ghost cells
     call getbc(global_time,0.d0,ps,iwstart,nwgc)
-    print *, 'done getbc from initlevelone'
     
   end subroutine initlevelone
 
