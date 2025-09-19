@@ -18,13 +18,10 @@ contains
 
 
     call set_coordinate_system("Cartesian_3D")
-
 !todojesse this reference does not work for some reason ...
     usr_refine_grid => specialrefine_grid
 
     usr_init_one_grid => initonegrid_usr
-
-    usr_before_main_loop => blockcheck_usr
 
     call phys_activate()
 
