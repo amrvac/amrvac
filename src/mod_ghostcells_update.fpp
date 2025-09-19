@@ -1248,7 +1248,6 @@ contains
   !> do update ghost cells of all blocks including physical boundaries
   subroutine getbc(time,qdt,psb,nwstart,nwbc,req_diag)
     use mod_nvtx
-    use openacc
     use mod_global_parameters
     use mod_physics
     use mod_coarsen, only: coarsen_grid
