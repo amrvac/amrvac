@@ -275,7 +275,8 @@ contains
         bgb, &                          ! second block grid
         fC, fE &                        ! fluxes
         )
-    
+
+    ! AGILE: todo
     ! if (fix_conserve_global .and. fix_conserve_at_step) then
     !   call recvflux(idimmin,idimmax)
     !   call sendflux(idimmin,idimmax)
