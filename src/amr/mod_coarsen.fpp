@@ -48,9 +48,8 @@ contains
             ixFi2=2*(ixCo2-ixComin2)+ixFimin2
          do ixCo1 = ixComin1,ixComax1
             ixFi1=2*(ixCo1-ixComin1)+ixFimin1
-            print *, ixFi1,ixFi2,ixFi3
-!            wCo(ixCo1,ixCo2,ixCo3,iw)=sum(wFi(ixFi1:ixFi1+1,ixFi2:ixFi2+1,&
-!               ixFi3:ixFi3+1,iw))*CoFiratio
+            wCo(ixCo1,ixCo2,ixCo3,iw)=sum(wFi(ixFi1:ixFi1+1,ixFi2:ixFi2+1,&
+               ixFi3:ixFi3+1,iw))*CoFiratio
          end do
          end do
          end do
