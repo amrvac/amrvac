@@ -1717,8 +1717,7 @@ contains
        ixGsmax3
   
     allocate(s%w(ixGmin1:ixGmax1,ixGmin2:ixGmax2,ixGmin3:ixGmax3,1:nw))
-!    !$acc enter data copyin(s%w)
-!    print *, 'allocated psc', igrid
+
     s%igrid=igrid
     s%w=0.d0
     s%ixGmin1=ixGmin1;s%ixGmin2=ixGmin2;s%ixGmin3=ixGmin3;s%ixGmax1=ixGmax1
