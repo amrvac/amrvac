@@ -24,3 +24,4 @@ module load OpenMPI/4.1.5-NVHPC-24.5-CUDA-12.1.1
 - Source terms (gravity, radiative cooling, hyperbolic thermal conduction, user defined) and boundary conditions (`symm, asymm, cont` etc. but also `special`)
 - Multi-block uniform grid simulations
 - Multi-GPU (MPI) simulations
+- Static mesh refinement (so far only on single GPU)
