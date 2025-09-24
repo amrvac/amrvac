@@ -8,7 +8,7 @@ def main():
         lines = f.readlines()
     for i, line in enumerate(lines):
         if line.startswith("PROJECT_NUMBER"):
-            lines[i] = 'PROJECT_NUMBER = "3.1"\n'
+            lines[i] = 'PROJECT_NUMBER = "3.2"\n'
         if line.startswith("PROJECT_BRIEF"):
             brief = lines[i].split("=")[1].replace('"', "").strip()
             lines[i] = f'PROJECT_BRIEF = "{brief} (development version)"\n'

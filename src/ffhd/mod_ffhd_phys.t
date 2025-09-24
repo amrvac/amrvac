@@ -20,6 +20,8 @@ module mod_ffhd_phys
   logical, public, protected              :: ffhd_thermal_conduction = .false.
   !> Whether hyperbolic type thermal conduction is used
   logical, public, protected              :: ffhd_hyperbolic_thermal_conduction = .false.
+  !> Wheterh saturation is considered for hyperbolic TC
+  logical, public, protected              :: ffhd_htc_sat = .false.
   !> type of fluid for thermal conduction
   type(tc_fluid), public, allocatable     :: tc_fl
   !> type of fluid for thermal emission synthesis
@@ -150,7 +152,7 @@ contains
     integer                      :: n
 
     namelist /ffhd_list/ ffhd_energy, ffhd_gamma, ffhd_adiab, &
-      ffhd_thermal_conduction, ffhd_hyperbolic_thermal_conduction, ffhd_radiative_cooling, ffhd_gravity,&
+      ffhd_thermal_conduction, ffhd_hyperbolic_thermal_conduction, ffhd_htc_sat, ffhd_radiative_cooling, ffhd_gravity,&
       ffhd_viscosity, He_abundance, H_ion_fr, He_ion_fr, He_ion_fr2, eq_state_units, SI_unit,&
       B0field, Busr, ffhd_partial_ionization, ffhd_trac, ffhd_trac_type, ffhd_trac_mask, ffhd_trac_finegrid
 
@@ -269,7 +271,7 @@ contains
 
     if(ffhd_hyperbolic_thermal_conduction) then
       q_ = var_set_q()
-      need_global_cs2max=.true.
+      need_global_cmax=.true.
     else
       q_=-1
     end if
@@ -313,7 +315,6 @@ contains
     phys_get_dt              => ffhd_get_dt
     phys_get_cmax            => ffhd_get_cmax_origin
     phys_get_a2max           => ffhd_get_a2max
-    phys_get_cs2max          => ffhd_get_cs2max
     phys_get_tcutoff         => ffhd_get_tcutoff
     phys_get_cbounds         => ffhd_get_cbounds
     phys_to_primitive        => ffhd_to_primitive_origin
@@ -844,17 +845,6 @@ contains
     cmax(ixO^S)=dabs(wprim(ixO^S,mom(1))*block%B0(ixO^S,idim,0))+cmax(ixO^S)
 
   end subroutine ffhd_get_cmax_origin
-
-  subroutine ffhd_get_cs2max(w,x,ixI^L,ixO^L,cs2max)
-    use mod_global_parameters
-    integer, intent(in)          :: ixI^L, ixO^L
-    double precision, intent(in) :: w(ixI^S, nw), x(ixI^S,1:ndim)
-    double precision, intent(inout) :: cs2max
-    double precision :: cs2(ixI^S)
-
-    call ffhd_get_csound2(w,x,ixI^L,ixO^L,cs2)
-    cs2max=maxval(cs2(ixO^S))
-  end subroutine ffhd_get_cs2max
 
   subroutine ffhd_get_a2max(w,x,ixI^L,ixO^L,a2max)
     use mod_global_parameters
@@ -1426,74 +1416,82 @@ contains
     Rfactor(ixO^S)=RR
   end subroutine Rfactor_from_constant_ionization
 
-  subroutine get_tau(ixI^L,ixO^L,w,Te,tau,sigT5)
-    use mod_global_parameters
-    integer, intent(in) :: ixI^L, ixO^L
-    double precision, dimension(ixI^S,1:nw), intent(in) :: w
-    double precision, dimension(ixI^S), intent(in) :: Te
-    double precision, dimension(ixI^S), intent(out) :: tau,sigT5
-    double precision :: taumin
-    double precision, dimension(ixI^S) :: sigT7,eint
-
-    taumin=4.d0
-    !> w supposed to be wCTprim here
-    if(ffhd_trac) then
-      where(Te(ixO^S) .lt. block%wextra(ixO^S,Tcoff_))
-        sigT5(ixO^S)=hypertc_kappa*dsqrt(block%wextra(ixO^S,Tcoff_)**5)
-        sigT7(ixO^S)=sigT5(ixO^S)*block%wextra(ixO^S,Tcoff_)
-      else where
-        sigT5(ixO^S)=hypertc_kappa*dsqrt(Te(ixO^S)**5)
-        sigT7(ixO^S)=sigT5(ixO^S)*Te(ixO^S)
-      end where
-    else
-      sigT5(ixO^S)=hypertc_kappa*dsqrt(Te(ixO^S)**5)
-      sigT7(ixO^S)=sigT5(ixO^S)*Te(ixO^S)
-    end if
-    eint(ixO^S)=w(ixO^S,p_)*inv_gamma_1
-    tau(ixO^S)=max(taumin*dt,sigT7(ixO^S)/eint(ixO^S)/cs2max_global)
-  end subroutine get_tau
-
   subroutine add_hypertc_source(qdt,ixI^L,ixO^L,wCT,w,x,wCTprim)
     use mod_global_parameters
-    use mod_geometry
     integer, intent(in) :: ixI^L,ixO^L
     double precision, intent(in) :: qdt
     double precision, dimension(ixI^S,1:ndim), intent(in) :: x
     double precision, dimension(ixI^S,1:nw), intent(in) :: wCT,wCTprim
     double precision, dimension(ixI^S,1:nw), intent(inout) :: w
-    integer :: idims
-    integer :: hxC^L,hxO^L,ixC^L,jxC^L,jxO^L,kxC^L
-    double precision :: invdx
-    double precision, dimension(ixI^S) :: Te,tau,sigT,htc_qsrc,Tface,gradT
+
+    double precision, dimension(ixI^S) :: Te
+    double precision :: sigma_T5,sigma_T7,sigmaT5_bgradT,f_sat,tau
+    integer :: ix^D
 
     Te(ixI^S)=wCTprim(ixI^S,p_)/wCT(ixI^S,rho_)
-    call get_tau(ixI^L,ixO^L,wCTprim,Te,tau,sigT)
-    htc_qsrc=zero
-    select case (coordinate)
-    case (Cartesian)
-      do idims=1,ndim
-        invdx=1.d0/dxlevel(idims)
-        ixC^L=ixO^L;
-        ixCmin^D=ixOmin^D-kr(idims,^D);ixCmax^D=ixOmax^D;
-        jxC^L=ixC^L+kr(idims,^D);
-        kxC^L=jxC^L+kr(idims,^D);
-        hxC^L=ixC^L-kr(idims,^D);
-        hxO^L=ixO^L-kr(idims,^D);
-        ! T_(i+1/2)=[7(T_i+T_i+1)-(T_i-1+T_i+2)]/12 or a 4-point weighted face-averaged value
-        Tface(ixC^S)=(7.d0*(Te(ixC^S)+Te(jxC^S))-(Te(hxC^S)+Te(kxC^S)))/12.d0
-        htc_qsrc(ixO^S)=htc_qsrc(ixO^S)+sigT(ixO^S)*block%B0(ixO^S,idims,0)*(Tface(ixO^S)-Tface(hxO^S))*invdx
+    ! temperature on face T_(i+1/2)=(7(T_i+T_(i+1))-(T_(i-1)+T_(i+2)))/12
+    ! T_(i+1/2)-T_(i-1/2)=(8(T_(i+1)-T_(i-1))-T_(i+2)+T_(i-2))/12
+   {^IFTWOD
+    do ix2=ixOmin2,ixOmax2
+      do ix1=ixOmin1,ixOmax1
+        if(ffhd_trac) then
+          if(Te(ix^D)<block%wextra(ix^D,Tcoff_)) then
+            sigma_T5=hypertc_kappa*sqrt(block%wextra(ix^D,Tcoff_)**5)
+            sigma_T7=sigma_T5*block%wextra(ix^D,Tcoff_)
+          else
+            sigma_T5=hypertc_kappa*sqrt(Te(ix^D)**5)
+            sigma_T7=sigma_T5*Te(ix^D)
+          end if
+        else
+          sigma_T5=hypertc_kappa*sqrt(Te(ix^D)**5)
+          sigma_T7=sigma_T5*Te(ix^D)
+        end if
+        sigmaT5_bgradT=sigma_T5*(&
+           block%B0(ix^D,1,0)*((8.d0*(Te(ix1+1,ix2)-Te(ix1-1,ix2))-Te(ix1+2,ix2)+Te(ix1-2,ix2))/12.d0)/block%ds(ix^D,1)&
+          +block%B0(ix^D,2,0)*((8.d0*(Te(ix1,ix2+1)-Te(ix1,ix2-1))-Te(ix1,ix2+2)+Te(ix1,ix2-2))/12.d0)/block%ds(ix^D,2))
+        if(ffhd_htc_sat) then
+          f_sat=one/(one+abs(sigmaT5_bgradT))/(1.5d0*wCT(ix^D,rho_)*(ffhd_gamma*wCTprim(ix^D,p_)/wCT(ix^D,rho_))**1.5d0)
+          tau=max(4.d0*dt, f_sat*sigma_T7*courantpar**2/(wCTprim(ix^D,p_)*inv_gamma_1*cmax_global**2))
+          w(ix^D,q_)=w(ix^D,q_)-qdt*(f_sat*sigmaT5_bgradT+wCT(ix^D,q_))/tau
+        else
+          w(ix^D,q_)=w(ix^D,q_)-qdt*(sigmaT5_bgradT+wCT(ix^D,q_))/&
+           max(4.d0*dt, sigma_T7*courantpar**2/(wCTprim(ix^D,p_)*inv_gamma_1*cmax_global**2))
+        end if
       end do
-    case (cylindrical,spherical)
-      do idims=1,ndim
-        call gradient(Te,ixI^L,ixO^L,idims,gradT)
-        htc_qsrc(ixO^S)=htc_qsrc(ixO^S)+sigT(ixO^S)*block%B0(ixO^S,idims,0)*gradT(ixO^S)
+    end do
+    }
+   {^IFTHREED
+    do ix3=ixOmin3,ixOmax3
+      do ix2=ixOmin2,ixOmax2
+        do ix1=ixOmin1,ixOmax1
+          if(ffhd_trac) then
+            if(Te(ix^D)<block%wextra(ix^D,Tcoff_)) then
+              sigma_T5=hypertc_kappa*sqrt(block%wextra(ix^D,Tcoff_)**5)
+              sigma_T7=sigma_T5*block%wextra(ix^D,Tcoff_)
+            else
+              sigma_T5=hypertc_kappa*sqrt(Te(ix^D)**5)
+              sigma_T7=sigma_T5*Te(ix^D)
+            end if
+          else
+            sigma_T5=hypertc_kappa*sqrt(Te(ix^D)**5)
+            sigma_T7=sigma_T5*Te(ix^D)
+          end if
+          sigmaT5_bgradT=sigma_T5*(&
+             block%B0(ix^D,1,0)*((8.d0*(Te(ix1+1,ix2,ix3)-Te(ix1-1,ix2,ix3))-Te(ix1+2,ix2,ix3)+Te(ix1-2,ix2,ix3))/12.d0)/block%ds(ix^D,1)&
+            +block%B0(ix^D,2,0)*((8.d0*(Te(ix1,ix2+1,ix3)-Te(ix1,ix2-1,ix3))-Te(ix1,ix2+2,ix3)+Te(ix1,ix2-2,ix3))/12.d0)/block%ds(ix^D,2)&
+            +block%B0(ix^D,3,0)*((8.d0*(Te(ix1,ix2,ix3+1)-Te(ix1,ix2,ix3-1))-Te(ix1,ix2,ix3+2)+Te(ix1,ix2,ix3-2))/12.d0)/block%ds(ix^D,3))
+          if(ffhd_htc_sat) then
+            f_sat=one/(one+abs(sigmaT5_bgradT))/(1.5d0*wCT(ix^D,rho_)*(ffhd_gamma*wCTprim(ix^D,p_)/wCT(ix^D,rho_))**1.5d0)
+            tau=max(4.d0*dt, f_sat*sigma_T7*courantpar**2/(wCTprim(ix^D,p_)*inv_gamma_1*cmax_global**2))
+            w(ix^D,q_)=w(ix^D,q_)-qdt*(f_sat*sigmaT5_bgradT+wCT(ix^D,q_))/tau
+          else
+            w(ix^D,q_)=w(ix^D,q_)-qdt*(sigmaT5_bgradT+wCT(ix^D,q_))/&
+             max(4.d0*dt, sigma_T7*courantpar**2/(wCTprim(ix^D,p_)*inv_gamma_1*cmax_global**2))
+          end if
+        end do
       end do
-    case default
-      ! Cartesian_stretched and Cartesian_expansion not dealt with here
-      call mpistop("unknown geometry in add_hypertc_source")
-    end select
-    htc_qsrc(ixO^S)=(htc_qsrc(ixO^S)+wCT(ixO^S,q_))/tau(ixO^S)
-    w(ixO^S,q_)=w(ixO^S,q_)-qdt*htc_qsrc(ixO^S)
+    end do
+    }
   end subroutine add_hypertc_source
 
 end module mod_ffhd_phys

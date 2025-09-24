@@ -2684,14 +2684,13 @@ contains
     double precision, intent(out) :: Tco_local,Tmax_local
 
     double precision, parameter :: trac_delta=0.25d0
-    double precision :: tmp1(ixI^S),Te(ixI^S),lts(ixI^S)
+    double precision :: Te(ixI^S),lts(ixI^S)
     double precision, dimension(ixI^S,1:ndir) :: bunitvec
     double precision, dimension(ixI^S,1:ndim) :: gradT
-    double precision :: Bdir(ndim)
+    double precision :: Bdir(ndim),minq
     double precision :: ltrc,ltrp,altr(ixI^S)
     integer :: idims,jxO^L,hxO^L,ixA^D,ixB^D,ix^D
     integer :: jxP^L,hxP^L,ixP^L,ixQ^L
-    logical :: lrlt(ixI^S)
 
     if(mhd_partial_ionization) then
       call mhd_get_temperature_from_Te(w,x,ixI^L,ixI^L,Te)
@@ -2708,16 +2707,12 @@ contains
       !> test case, fixed cutoff temperature
       block%wextra(ixI^S,Tcoff_)=2.5d5/unit_temperature
     case(1)
-      hxO^L=ixO^L-1;
-      jxO^L=ixO^L+1;
-      lts(ixO^S)=0.5d0*abs(Te(jxO^S)-Te(hxO^S))/Te(ixO^S)
-      lrlt=.false.
-      where(lts(ixO^S) > trac_delta)
-        lrlt(ixO^S)=.true.
-      end where
-      if(any(lrlt(ixO^S))) then
-        Tco_local=maxval(Te(ixO^S), mask=lrlt(ixO^S))
-      end if
+      do ix1=ixOmin1,ixOmax1
+        lts(ix1)=0.5d0*abs(Te(ix1+1)-Te(ix1-1))/Te(ix1)
+        if(lts(ix1)>trac_delta) then
+          Tco_local=max(Tco_local,Te(ix1))
+        end if
+      end do
     case(2)
       !> iijima et al. 2021, LTRAC method
       ltrc=1.5d0
@@ -2743,54 +2738,41 @@ contains
     case(1,4,6)
       ! temperature gradient at cell centers
       do idims=1,ndim
-        call gradient(Te,ixI^L,ixO^L,idims,tmp1)
-        gradT(ixO^S,idims)=tmp1(ixO^S)
+        call gradient(Te,ixI^L,ixO^L,idims,gradT(ixI^S,idims))
       end do
-      ! B vector
-      if(B0field) then
-        bunitvec(ixO^S,:)=w(ixO^S,iw_mag(:))+block%B0(ixO^S,:,0)
-      else
-        bunitvec(ixO^S,:)=w(ixO^S,iw_mag(:))
-      end if
       if(mhd_trac_type .gt. 1) then
-        ! B direction at cell center
+        ! B direction at block center
         Bdir=zero
-        {do ixA^D=0,1\}
-          ixB^D=(ixOmin^D+ixOmax^D-1)/2+ixA^D;
-          Bdir(1:ndim)=Bdir(1:ndim)+bunitvec(ixB^D,1:ndim)
-        {end do\}
-        if(sum(Bdir(:)**2) .gt. zero) then
-          Bdir(1:ndim)=Bdir(1:ndim)/dsqrt(sum(Bdir(:)**2))
+        if(B0field) then
+          {do ixA^D=0,1\}
+            ixB^D=(ixOmin^D+ixOmax^D-1)/2+ixA^D;
+            Bdir(1:ndim)=Bdir(1:ndim)+w(ixB^D,iw_mag(1:ndim))+block%B0(ixB^D,1:ndim,0)
+          {end do\}
+        else
+          {do ixA^D=0,1\}
+            ixB^D=(ixOmin^D+ixOmax^D-1)/2+ixA^D;
+            Bdir(1:ndim)=Bdir(1:ndim)+w(ixB^D,iw_mag(1:ndim))
+          {end do\}
         end if
+        Bdir(1:ndim)=Bdir(1:ndim)/(dsqrt(^D&bdir(^D)**2+)+1.d-319)
         block%special_values(3:ndim+2)=Bdir(1:ndim)
       end if
-      tmp1(ixO^S)=dsqrt(sum(bunitvec(ixO^S,:)**2,dim=ndim+1))
-      where(tmp1(ixO^S)/=0.d0)
-        tmp1(ixO^S)=1.d0/tmp1(ixO^S)
-      elsewhere
-        tmp1(ixO^S)=bigdouble
-      end where
       ! b unit vector: magnetic field direction vector
-      do idims=1,ndim
-        bunitvec(ixO^S,idims)=bunitvec(ixO^S,idims)*tmp1(ixO^S)
-      end do
-      ! temperature length scale inversed
-      lts(ixO^S)=abs(sum(gradT(ixO^S,1:ndim)*bunitvec(ixO^S,1:ndim),dim=ndim+1))/Te(ixO^S)
-      ! fraction of cells size to temperature length scale
-      if(slab_uniform) then
-        lts(ixO^S)=minval(dxlevel)*lts(ixO^S)
-      else
-        lts(ixO^S)=minval(block%ds(ixO^S,:),dim=ndim+1)*lts(ixO^S)
-      end if
-      lrlt=.false.
-      where(lts(ixO^S) > trac_delta)
-        lrlt(ixO^S)=.true.
-      end where
-      if(any(lrlt(ixO^S))) then
-        block%special_values(1)=maxval(Te(ixO^S), mask=lrlt(ixO^S))
-      else
-        block%special_values(1)=zero
-      end if
+      block%special_values(1)=zero
+     {do ix^DB=ixOmin^DB,ixOmax^DB\}
+        if(B0field) then
+          ^D&bdir(^D)=w({ix^D},iw_mag(^D))+block%B0({ix^D},^D,0)\
+        else
+          ^D&bdir(^D)=w({ix^D},iw_mag(^D))\
+        end if
+        minq=sqrt(^D&bdir(^D)**2+)
+        ^D&bunitvec({ix^D},^D)=Bdir(^D)/(minq+1.d-319)\
+        ! temperature length scale inversed
+        lts(ix^D)=minval(block%ds(ix^D,1:ndim))*abs(^D&gradT({ix^D},^D)*bunitvec({ix^D},^D)+)/Te(ix^D)
+        if(lts(ix^D)>trac_delta) then
+          block%special_values(1)=max(block%special_values(1),Te(ix^D))
+        end if
+     {end do\}
       block%special_values(2)=Tmax_local
     case(2)
       !> iijima et al. 2021, LTRAC method
@@ -2814,26 +2796,29 @@ contains
         call gradientF(Te,x,ixI^L,hxP^L,idims,gradT(ixI^S,idims),nghostcells,.true.)
         call gradientF(Te,x,ixI^L,jxP^L,idims,gradT(ixI^S,idims),nghostcells,.false.)
       end do
-      ! B vector
-     {do ix^DB=ixPmin^DB,ixPmax^DB\}
-        if(B0field) then
-          ^C&bunitvec(ix^D,^C)=w(ix^D,iw_mag(^C))+block%B0(ix^D,^C,0)\
-        else
-          ^C&bunitvec(ix^D,^C)=w(ix^D,iw_mag(^C))\
-        end if
-        tmp1(ix^D)=1.d0/(dsqrt(^C&bunitvec(ix^D,^C)**2+)+smalldouble)
-        ! b unit vector: magnetic field direction vector
-        ^D&bunitvec({ix^D},^D)=bunitvec({ix^D},^D)*tmp1({ix^D})\
-        ! temperature length scale inversed
-        lts(ix^D)=abs(^D&gradT({ix^D},^D)*bunitvec({ix^D},^D)+)/Te(ix^D)
-        ! fraction of cells size to temperature length scale
-        if(slab_uniform) then
-          lts(ix^D)=min(^D&dxlevel(^D))*lts(ix^D)
-        else
+      ! b unit vector: magnetic field direction vector
+      if(B0field) then
+       {do ix^DB=ixPmin^DB,ixPmax^DB\}
+          ^D&bdir(^D)=w({ix^D},iw_mag(^D))+block%B0({ix^D},^D,0)\
+          minq=sqrt(^D&bdir(^D)**2+)
+          ^D&bunitvec({ix^D},^D)=Bdir(^D)/(minq+1.d-319)\
+          ! temperature length scale inversed
+          lts(ix^D)=abs(^D&gradT({ix^D},^D)*bunitvec({ix^D},^D)+)/Te(ix^D)
+          ! fraction of cells size to temperature length scale
           lts(ix^D)=min(^D&block%ds({ix^D},^D))*lts(ix^D)
-        end if
-        lts(ix^D)=max(one,(exp(lts(ix^D))/ltrc)**ltrp)
-     {end do\}
+          lts(ix^D)=max(one,(exp(lts(ix^D))/ltrc)**ltrp)
+       {end do\}
+      else
+       {do ix^DB=ixPmin^DB,ixPmax^DB\}
+          minq=sqrt(^D&w({ix^D},iw_mag(^D))**2+)
+          ^D&bunitvec({ix^D},^D)=w({ix^D},iw_mag(^D))/(minq+1.d-319)\
+          ! temperature length scale inversed
+          lts(ix^D)=abs(^D&gradT({ix^D},^D)*bunitvec({ix^D},^D)+)/Te(ix^D)
+          ! fraction of cells size to temperature length scale
+          lts(ix^D)=min(^D&block%ds({ix^D},^D))*lts(ix^D)
+          lts(ix^D)=max(one,(exp(lts(ix^D))/ltrc)**ltrp)
+       {end do\}
+      end if
   
       ! need one ghost layer for thermal conductivity
       ixP^L=ixO^L^LADD1;
@@ -4585,18 +4570,12 @@ contains
     double precision, dimension(ixI^S,1:nw), intent(inout) :: w
 
     double precision, dimension(ixI^S) :: R,Te,rho_loc
-    double precision :: sigma_T5,sigma_T7,B_sum,f_sat,sigmaT5_bgradT,tau
-    double precision, dimension(ixO^S,1:ndim) :: B_tot
+    double precision :: sigma_T5,sigma_T7,f_sat,sigmaT5_bgradT,tau,Bdir(ndim),bunitvec(ndim)
     integer :: ix^D
 
     call mhd_get_rho(wCT,x,ixI^L,ixI^L,rho_loc)
     call mhd_get_Rfactor(wCTprim,x,ixI^L,ixI^L,R)
     Te(ixI^S)=wCTprim(ixI^S,p_)/(R(ixI^S)*rho_loc(ixI^S))
-    if (B0field) then
-      B_tot(ixO^S,1:ndim) = wCT(ixO^S,mag(1:ndim)) + block%B0(ixO^S,1:ndim,0)
-    else
-      B_tot(ixO^S,1:ndim) = wCT(ixO^S,mag(1:ndim))
-    end if
     ! temperature on face T_(i+1/2)=(7(T_i+T_(i+1))-(T_(i-1)+T_(i+2)))/12
     ! T_(i+1/2)-T_(i-1/2)=(8(T_(i+1)-T_(i-1))-T_(i+2)+T_(i-2))/12
    {^IFTWOD
@@ -4614,17 +4593,23 @@ contains
           sigma_T5=hypertc_kappa*sqrt(Te(ix^D)**5)
           sigma_T7=sigma_T5*Te(ix^D)
         end if
-        B_sum=sqrt(B_tot(ix^D,1)**2+B_tot(ix^D,2)**2)
-        sigmaT5_bgradT=sigma_T5/B_sum*(&
-           B_tot(ix^D,1)*((8.d0*(Te(ix1+1,ix2)-Te(ix1-1,ix2))-Te(ix1+2,ix2)+Te(ix1-2,ix2))/12.d0)/block%ds(ix^D,1)&
-          +B_tot(ix^D,2)*((8.d0*(Te(ix1,ix2+1)-Te(ix1,ix2-1))-Te(ix1,ix2+2)+Te(ix1,ix2-2))/12.d0)/block%ds(ix^D,2))
+        if(B0field) then
+          ^D&bdir(^D)=wCT({ix^D},mag(^D))+block%B0({ix^D},^D,0)\
+        else
+          ^D&bdir(^D)=wCT({ix^D},mag(^D))\
+        end if
+        tau=sqrt(^D&bdir(^D)**2+)
+        ^D&bunitvec(^D)=Bdir(^D)/(tau+1.d-319)\
+        sigmaT5_bgradT=sigma_T5*(&
+           bunitvec(1)*((8.d0*(Te(ix1+1,ix2)-Te(ix1-1,ix2))-Te(ix1+2,ix2)+Te(ix1-2,ix2))/12.d0)/block%ds(ix^D,1)&
+          +bunitvec(2)*((8.d0*(Te(ix1,ix2+1)-Te(ix1,ix2-1))-Te(ix1,ix2+2)+Te(ix1,ix2-2))/12.d0)/block%ds(ix^D,2))
         if(mhd_htc_sat) then
           f_sat=one/(one+abs(sigmaT5_bgradT))/(1.5d0*rho_loc(ix^D)*(mhd_gamma*wCTprim(ix^D,p_)/rho_loc(ix^D))**1.5d0)
-          tau=max(4.d0*dt, f_sat*sigma_T7/(wCTprim(ix^D,p_)*inv_gamma_1*cmax_global**2))
+          tau=max(4.d0*dt, f_sat*sigma_T7*courantpar**2/(wCTprim(ix^D,p_)*inv_gamma_1*cmax_global**2))
           w(ix^D,q_)=w(ix^D,q_)-qdt*(f_sat*sigmaT5_bgradT+wCT(ix^D,q_))/tau
         else
           w(ix^D,q_)=w(ix^D,q_)-qdt*(sigmaT5_bgradT+wCT(ix^D,q_))/&
-           max(4.d0*dt, sigma_T7/(wCTprim(ix^D,p_)*inv_gamma_1*cmax_global**2))
+           max(4.d0*dt, sigma_T7*courantpar**2/(wCTprim(ix^D,p_)*inv_gamma_1*cmax_global**2))
         end if
       end do
     end do
@@ -4645,18 +4630,24 @@ contains
             sigma_T5=hypertc_kappa*sqrt(Te(ix^D)**5)
             sigma_T7=sigma_T5*Te(ix^D)
           end if
-          B_sum=sqrt(B_tot(ix^D,1)**2+B_tot(ix^D,2)**2+B_tot(ix^D,3)**2)
-          sigmaT5_bgradT=sigma_T5/B_sum*(&
-             B_tot(ix^D,1)*((8.d0*(Te(ix1+1,ix2,ix3)-Te(ix1-1,ix2,ix3))-Te(ix1+2,ix2,ix3)+Te(ix1-2,ix2,ix3))/12.d0)/block%ds(ix^D,1)&
-            +B_tot(ix^D,2)*((8.d0*(Te(ix1,ix2+1,ix3)-Te(ix1,ix2-1,ix3))-Te(ix1,ix2+2,ix3)+Te(ix1,ix2-2,ix3))/12.d0)/block%ds(ix^D,2)&
-            +B_tot(ix^D,3)*((8.d0*(Te(ix1,ix2,ix3+1)-Te(ix1,ix2,ix3-1))-Te(ix1,ix2,ix3+2)+Te(ix1,ix2,ix3-2))/12.d0)/block%ds(ix^D,3))
+          if(B0field) then
+            ^D&bdir(^D)=wCT({ix^D},mag(^D))+block%B0({ix^D},^D,0)\
+          else
+            ^D&bdir(^D)=wCT({ix^D},mag(^D))\
+          end if
+          tau=sqrt(^D&bdir(^D)**2+)
+          ^D&bunitvec(^D)=Bdir(^D)/(tau+1.d-319)\
+          sigmaT5_bgradT=sigma_T5*(&
+             bunitvec(1)*((8.d0*(Te(ix1+1,ix2,ix3)-Te(ix1-1,ix2,ix3))-Te(ix1+2,ix2,ix3)+Te(ix1-2,ix2,ix3))/12.d0)/block%ds(ix^D,1)&
+            +bunitvec(2)*((8.d0*(Te(ix1,ix2+1,ix3)-Te(ix1,ix2-1,ix3))-Te(ix1,ix2+2,ix3)+Te(ix1,ix2-2,ix3))/12.d0)/block%ds(ix^D,2)&
+            +bunitvec(3)*((8.d0*(Te(ix1,ix2,ix3+1)-Te(ix1,ix2,ix3-1))-Te(ix1,ix2,ix3+2)+Te(ix1,ix2,ix3-2))/12.d0)/block%ds(ix^D,3))
           if(mhd_htc_sat) then
             f_sat=one/(one+abs(sigmaT5_bgradT))/(1.5d0*rho_loc(ix^D)*(mhd_gamma*wCTprim(ix^D,p_)/rho_loc(ix^D))**1.5d0)
-            tau=max(4.d0*dt, f_sat*sigma_T7/(wCTprim(ix^D,p_)*inv_gamma_1*cmax_global**2))
+            tau=max(4.d0*dt, f_sat*sigma_T7*courantpar**2/(wCTprim(ix^D,p_)*inv_gamma_1*cmax_global**2))
             w(ix^D,q_)=w(ix^D,q_)-qdt*(f_sat*sigmaT5_bgradT+wCT(ix^D,q_))/tau
           else
             w(ix^D,q_)=w(ix^D,q_)-qdt*(sigmaT5_bgradT+wCT(ix^D,q_))/&
-             max(4.d0*dt, sigma_T7/(wCTprim(ix^D,p_)*inv_gamma_1*cmax_global**2))
+             max(4.d0*dt, sigma_T7*courantpar**2/(wCTprim(ix^D,p_)*inv_gamma_1*cmax_global**2))
           end if
         end do
       end do

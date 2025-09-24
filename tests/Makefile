@@ -37,7 +37,7 @@ multigrid/field_loop_2d multigrid/implicit_diffusion
 
 RD_DIRS := rd/schnakenberg_2d rd/test_suite_2d
 
-FFHD_DIRS := ffhd/solar_atmosphere_2D
+FFHD_DIRS := ffhd/solar_atmosphere_2D ffhd/ring_thermal_conduction_2D
 
 ARD_DIRS := ard/schnakenberg_2d
 

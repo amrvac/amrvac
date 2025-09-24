@@ -144,9 +144,6 @@ module mod_global_parameters
   !> global largest a2 for schmid scheme
   double precision :: a2max_global(^ND)
 
-  !> global largest cs2 for hyperbolic thermal conduction
-  double precision :: cs2max_global
-
   !> times for enhancing spatial resolution for EUV image/spectra
   double precision :: instrument_resolution_factor
   !> the white light emission below it (unit=Rsun) is not visible 
@@ -177,6 +174,7 @@ module mod_global_parameters
   double precision, allocatable :: rnode(:,:)
   double precision, allocatable :: rnode_sub(:,:)
 
+  !> spatial steps for all dimensions at all levels
   double precision, allocatable :: dx(:,:)
 
   !> Error tolerance for refinement decision
@@ -680,9 +678,6 @@ module mod_global_parameters
 
   !> global value for schmid scheme
   logical :: need_global_a2max=.false.
-
-  !> global value for csound speed
-  logical :: need_global_cs2max=.false.
   
   ! Boundary region parameters
 

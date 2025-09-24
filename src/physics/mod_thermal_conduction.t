@@ -370,38 +370,24 @@ contains
     !! qdd store the heat conduction energy changing rate
     double precision, dimension(ixI^S,1:ndim) :: mf,Bc,Bcf,gradT
     double precision, dimension(ixI^S) :: ka,kaf,ke,kef,qdd,Bnorm
-    double precision :: minq,maxq,qd(ixI^S,2**(ndim-1))
+    double precision :: minq,maxq,qd(ixI^S,2**(ndim-1)), Blocal(ndim)
     integer :: idims,idir,ix^D,ix^L,ixC^L,ixA^L,ixB^L
 
     ix^L=ixO^L^LADD1;
 
     ! T gradient at cell faces
-    ! B vector
+    ! b unit vector mf: magnetic field direction vector
     if(allocated(iw_mag)) then
       if(B0field) then
        {do ix^DB=ixmin^DB,ixmax^DB\}
-          ^D&mf({ix^D},^D)=w({ix^D},iw_mag(^D))+block%B0({ix^D},^D,0)\
-          ! |B|
-          Bnorm(ix^D)=dsqrt(^D&mf({ix^D},^D)**2+)
-          if(Bnorm(ix^D)/=0.d0) then
-            Bnorm(ix^D)=1.d0/Bnorm(ix^D)
-          else
-            Bnorm(ix^D)=bigdouble
-          end if
-          ! b unit vector: magnetic field direction vector
-          ^D&mf({ix^D},^D)=mf({ix^D},^D)*Bnorm({ix^D})\
+          ^D&blocal(^D)=w({ix^D},iw_mag(^D))+block%B0({ix^D},^D,0)\
+          minq=sqrt(^D&blocal(^D)**2+)
+          ^D&mf({ix^D},^D)=Blocal(^D)/(minq+1.d-319)\
        {end do\}
       else
        {do ix^DB=ixmin^DB,ixmax^DB\}
-          ! |B|
-          Bnorm(ix^D)=dsqrt(^D&w({ix^D},iw_mag(^D))**2+)
-          if(Bnorm(ix^D)/=0.d0) then
-            Bnorm(ix^D)=1.d0/Bnorm(ix^D)
-          else
-            Bnorm(ix^D)=bigdouble
-          end if
-          ! b unit vector: magnetic field direction vector
-          ^D&mf({ix^D},^D)=w({ix^D},iw_mag(^D))*Bnorm({ix^D})\
+          minq=sqrt(^D&w({ix^D},iw_mag(^D))**2+)
+          ^D&mf({ix^D},^D)=w({ix^D},iw_mag(^D))/(minq+1.d-319)\
        {end do\}
       end if
     else
@@ -471,7 +457,11 @@ contains
      }
       ! compensate with perpendicular conductivity
       if(fl%tc_perpendicular) then
-        qdd(ix^S)=fl%tc_k_perp*rho(ix^S)**2*Bnorm(ix^S)**2/dsqrt(Te(ix^S))
+        if(B0field) then
+          qdd(ix^S)=fl%tc_k_perp*rho(ix^S)**2/((^D&(w(ix^S,iw_mag(^D))+block%B0(ix^S,^D,0))**2+)*dsqrt(Te(ix^S))+smalldouble)
+        else
+          qdd(ix^S)=fl%tc_k_perp*rho(ix^S)**2/((^D&w(ix^S,iw_mag(^D))**2+)*dsqrt(Te(ix^S))+smalldouble)
+        end if
        {^IFTHREED
        {do ix^DB=ixCmin^DB,ixCmax^DB\}
           ke(ix^D)=0.125d0*(qdd(ix1,ix2,ix3)+qdd(ix1+1,ix2,ix3)&

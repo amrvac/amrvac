@@ -17,7 +17,7 @@ contains
     integer :: iigrid, igrid, ncycle, ncycle2, ifile, idim
     double precision   :: dtnew, qdtnew, dtmin_mype, factor, dx^D, dxmin^D
     double precision   :: dtmax, dxmin, cmax_mype
-    double precision   :: a2max_mype(ndim), cs2max_mype, tco_mype, tco_global, Tmax_mype, T_peak
+    double precision   :: a2max_mype(ndim), tco_mype, tco_global, Tmax_mype, T_peak
     double precision   :: trac_alfa, trac_dmax, trac_tau, T_bott
     integer, parameter :: niter_print = 2000
   
@@ -25,10 +25,9 @@ contains
       dtmin_mype  = bigdouble
       cmax_mype   = zero
       a2max_mype  = zero
-      cs2max_mype  = zero
       tco_mype    = zero
       Tmax_mype   = zero
-      !$OMP PARALLEL DO PRIVATE(igrid,qdtnew,dtnew,dx^D) REDUCTION(min:dtmin_mype) REDUCTION(max:cmax_mype,a2max_mype,cs2max_mype)
+      !$OMP PARALLEL DO PRIVATE(igrid,qdtnew,dtnew,dx^D) REDUCTION(min:dtmin_mype) REDUCTION(max:cmax_mype,a2max_mype)
       do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
         dtnew=bigdouble
         dx^D=rnode(rpdx^D_,igrid);
@@ -38,7 +37,7 @@ contains
           ps(igrid)%dt(ixM^T)=bigdouble
         endif
         call getdt_courant(ps(igrid)%w,ixG^LL,ixM^LL,qdtnew,dx^D,ps(igrid)%x,&
-             cmax_mype,a2max_mype,cs2max_mype)
+             cmax_mype,a2max_mype)
         dtnew=min(dtnew,qdtnew)
   
         call phys_get_dt(ps(igrid)%w,ixG^LL,ixM^LL,qdtnew,dx^D,ps(igrid)%x)
@@ -130,8 +129,6 @@ contains
          MPI_DOUBLE_PRECISION,MPI_MAX,icomm,ierrmpi)
     if(need_global_a2max)  call MPI_ALLREDUCE(a2max_mype, a2max_global, ndim,&
          MPI_DOUBLE_PRECISION,MPI_MAX,icomm,ierrmpi)
-    if(need_global_cs2max) call MPI_ALLREDUCE(cs2max_mype, cs2max_global, 1,&
-         MPI_DOUBLE_PRECISION,MPI_MAX,icomm,ierrmpi)
   
     ! transition region adaptive thermal conduction (Johnston 2019 ApJL, 873, L22)
     ! transition region adaptive thermal conduction (Johnston 2020 A&A, 635, 168)
@@ -160,19 +157,19 @@ contains
     contains
   
       !> compute CFL limited dt (for variable time stepping)
-      subroutine getdt_courant(w,ixI^L,ixO^L,dtnew,dx^D,x,cmax_mype,a2max_mype,cs2max_mype)
+      subroutine getdt_courant(w,ixI^L,ixO^L,dtnew,dx^D,x,cmax_mype,a2max_mype)
         use mod_global_parameters
-        use mod_physics, only: phys_get_cmax,phys_get_a2max, phys_get_cs2max,&
+        use mod_physics, only: phys_get_cmax,phys_get_a2max, &
                                phys_get_tcutoff,phys_get_auxiliary, phys_to_primitive
   
         integer, intent(in) :: ixI^L, ixO^L
         double precision, intent(in) :: x(ixI^S,1:ndim)
         double precision, intent(in)    :: dx^D
-        double precision, intent(inout) :: w(ixI^S,1:nw), dtnew, cmax_mype, a2max_mype(ndim),cs2max_mype
+        double precision, intent(inout) :: w(ixI^S,1:nw), dtnew, cmax_mype, a2max_mype(ndim)
   
         double precision :: courantmax, dxinv(1:ndim), courantmaxtot, courantmaxtots
         double precision :: cmax(ixI^S), cmaxtot(ixI^S), wprim(ixI^S,1:nw)
-        double precision :: a2max(ndim), cs2max, tco_local, Tmax_local
+        double precision :: a2max(ndim), tco_local, Tmax_local
         integer :: idims
         integer :: hxO^L
   
@@ -198,10 +195,6 @@ contains
           do idims=1,ndim
             a2max_mype(idims) = max(a2max_mype(idims),a2max(idims))
           end do
-        end if
-        if(need_global_cs2max) then
-          call phys_get_cs2max(w,x,ixI^L,ixO^L,cs2max)
-          cs2max_mype = max(cs2max_mype,cs2max)
         end if
 
         if(phys_trac) then
