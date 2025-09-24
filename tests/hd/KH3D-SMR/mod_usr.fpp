@@ -18,7 +18,7 @@ contains
 
 
     call set_coordinate_system("Cartesian_3D")
-!todojesse this reference does not work for some reason ...
+
     usr_refine_grid => specialrefine_grid
 
     usr_init_one_grid => initonegrid_usr
@@ -26,28 +26,6 @@ contains
     call phys_activate()
 
   end subroutine usr_init
-
-  subroutine blockcheck_usr()
-    integer:: igrid, iigrid, iw, ix1, ix2, ix3
-
-    print *, 'checking blocks'
-    
-    do iigrid=1,igridstail; igrid=igrids(iigrid);
-       do iw = 1, nw
-          do ix3 = ixGlo3, ixGhi3
-             do ix2 = ixGlo2, ixGhi2
-                do ix1 = ixGlo1, ixGhi1
-!                   print *, ix1,ix2,ix3,iw,igrid,ps(igrid)%w(ix1,ix2,ix3,iw)
-                   if (ps(igrid)%w(ix1,ix2,ix3,iw) /= ps(igrid)%w(ix1,ix2,ix3,iw)) then
-                      print *, 'NaN in block: ', ix1,ix2,ix3,iw,igrid
-                   end if
-                end do
-             end do
-          end do
-       end do
-    end do
-
-  end subroutine blockcheck_usr
 
   subroutine initonegrid_usr(ixGmin1,ixGmin2,ixGmin3,ixGmax1,ixGmax2,ixGmax3,&
      ixmin1,ixmin2,ixmin3,ixmax1,ixmax2,ixmax3,w,x)
