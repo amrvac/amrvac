@@ -296,6 +296,7 @@ contains
        call nvtxStartRange("setdt");       call setdt()
        call nvtxEndRange
 
+       
        ! Optionally call a user method that can modify the grid variables at the
        ! beginning of a time step
        if (associated(usr_process_grid) .or. associated(usr_process_global)) &
@@ -365,7 +366,7 @@ contains
 
        ! solving equations
        call advance(it)
-
+       
        !opedit: FIXME, this seems to take a long time!
        ! if met unphysical values, output the last good status and stop the run
        ! call MPI_ALLREDUCE(crash,crashall,1,MPI_LOGICAL,MPI_LOR,icomm,ierrmpi)

@@ -51,8 +51,9 @@ F90FLAGS := $(f90_flags)
 	else echo -e "$(_red)** FAILED **$(_reset) $@" ; \
 	fi
 
-amrvac: force		# Always try to build
-	@$(MAKE) arch=$(ARCH)
+amrvac: force		# Always try a fresh build
+	@$(MAKE) arch=$(ARCH) clean
+	@$(MAKE) -j arch=$(ARCH)
 
 # To make sure the comparison utility can be build
 $(LOG_CMP).o: $(LOG_CMP).f

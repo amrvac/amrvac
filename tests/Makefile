@@ -7,7 +7,7 @@
 #
 # 3. You can hide the Entering/leaving directory messages with: -s
 
-HD_DIRS := hd/KH3D hd/RT3D
+HD_DIRS := hd/KH3D hd/RT3D hd/KH3D-SMR
 MHD_DIRS := mhd/blast_wave_Cartesian_3D
 FFHD_DIRS := ffhd/TI3D
 

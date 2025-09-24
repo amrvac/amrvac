@@ -67,8 +67,9 @@ contains
     allocate(ps3(max_blocks))
     allocate(ps4(max_blocks))
     
-       
     allocate(psc(max_blocks))
+    !$acc enter data copyin(ps,ps1,ps2,ps3,ps4,psc)
+    
     allocate(ps_sub(max_blocks))
     allocate(neighbor(2,-1:1,-1:1,-1:1,max_blocks),neighbor_child(2,0:3,0:3,&
        0:3,max_blocks))
@@ -83,10 +84,13 @@ contains
     allocate(pflux(2,3,max_blocks))
 
     allocate( bg(1:nstep) )
+    !$acc enter data copyin(bg)
     do istep = 1 , nstep
        bg(istep)%istep = istep
        allocate( bg(istep)%w(ixGlo1:ixGhi1,ixGlo2:ixGhi2,ixGlo3:ixGhi3, 1:nw,&
-           1:max_blocks) )
+            1:max_blocks) )
+       !$acc update device(bg(istep))
+       !$acc enter data copyin( bg(istep)%w )
     end do
 
     do igrid = 1, max_blocks

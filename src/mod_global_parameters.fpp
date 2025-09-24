@@ -85,7 +85,7 @@ module mod_global_parameters
   !$acc declare create(slab)
 
   !> uniform Cartesian geometry or not (stretched Cartesian)
-  logical :: slab_uniform
+  logical :: slab_uniform=.true.
   !$acc declare create(slab_uniform)
   
   !> each cell has its own timestep or not
@@ -459,6 +459,7 @@ module mod_global_parameters
   integer                       :: refine_criterion
   logical                       :: prolongprimitive=.false.
   logical                       :: coarsenprimitive=.false.
+  !$acc declare copyin(prolongprimitive, coarsenprimitive)
 
   !> Error tolerance for refinement decision
   double precision, allocatable :: refine_threshold(:)
