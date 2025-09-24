@@ -1,52 +1,49 @@
 <map id="mod_physics::phys_check" name="mod_physics::phys_check">
-<area shape="rect" id="Node000001" title=" " alt="" coords="5,671,196,697"/>
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,639,196,665"/>
 <area shape="rect" id="Node000002" href="$namespacemod__physics.html#acb93a2cb9f96ea748b9260649f74f7a9" title=" " alt="" coords="249,5,415,45"/>
-<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="101,671,114,554,142,370,162,272,185,182,211,107,226,78,242,56,245,52,249,56,246,59,231,81,216,109,190,184,167,274,147,371,119,555,106,671"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="101,639,115,528,144,353,163,261,186,175,212,104,227,77,242,56,245,52,249,56,246,59,231,80,217,107,191,177,169,262,149,354,120,529,106,640"/>
 <area shape="rect" id="Node000003" href="$namespacemod__physics.html#a919517a0375ba9aec07fdbaec8d45026" title=" " alt="" coords="249,69,415,109"/>
-<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="101,671,116,565,146,399,165,312,188,232,214,165,242,120,245,116,249,120,246,123,218,168,193,234,171,314,151,400,121,565,106,671"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="99,639,100,554,104,489,115,416,132,338,157,260,194,186,216,151,242,120,246,116,250,119,246,123,220,154,198,188,162,262,137,339,120,417,110,490,105,554,104,639"/>
 <area shape="rect" id="Node000004" href="$namespacemod__physics.html#a0c16dbee64a6667a0d86337bc7dce6bf" title=" " alt="" coords="249,133,415,173"/>
-<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="99,671,102,590,107,529,118,460,135,387,161,314,196,245,242,184,246,180,250,184,246,187,200,248,166,316,141,389,123,461,113,530,107,590,104,671"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="99,639,103,562,110,505,122,441,139,373,164,305,198,241,242,184,246,180,250,184,246,187,203,244,169,307,144,375,127,442,115,506,109,563,105,639"/>
 <area shape="rect" id="Node000005" href="$namespacemod__physics.html#ac22202501f5cbeb12c46765f66769eb5" title=" " alt="" coords="249,197,415,237"/>
-<area shape="poly" id="edge4_Node000001_Node000005" title=" " alt="" coords="100,671,105,599,125,486,143,423,168,360,200,300,242,248,247,243,250,247,246,251,205,303,173,362,148,425,130,488,111,600,105,672"/>
+<area shape="poly" id="edge4_Node000001_Node000005" title=" " alt="" coords="100,639,107,571,129,467,147,409,171,351,203,296,242,248,247,243,250,247,246,251,207,299,176,353,152,411,134,468,113,572,105,639"/>
 <area shape="rect" id="Node000006" href="$namespacemod__physics.html#ae3dffdc49477a3ae74efe8e5f5af9007" title=" " alt="" coords="249,261,415,301"/>
-<area shape="poly" id="edge5_Node000001_Node000006" title=" " alt="" coords="101,671,110,608,132,512,151,459,175,406,205,356,242,311,247,307,250,311,246,315,209,359,179,408,156,461,138,514,115,609,106,671"/>
+<area shape="poly" id="edge5_Node000001_Node000006" title=" " alt="" coords="101,639,112,581,136,493,155,445,178,397,207,352,242,311,247,307,250,311,246,315,211,355,183,399,160,447,141,495,117,582,106,640"/>
 <area shape="rect" id="Node000007" href="$namespacemod__physics.html#abe800757b5fef61e70123504cc960c8e" title=" " alt="" coords="249,325,415,365"/>
-<area shape="poly" id="edge6_Node000001_Node000007" title=" " alt="" coords="102,670,114,617,140,538,159,495,182,452,209,411,242,375,248,371,251,375,246,379,214,414,186,454,164,497,145,540,119,618,107,671"/>
+<area shape="poly" id="edge6_Node000001_Node000007" title=" " alt="" coords="103,638,117,590,144,519,185,443,212,407,242,375,248,371,251,375,246,379,216,410,190,446,149,522,122,591,108,640"/>
 <area shape="rect" id="Node000008" href="$namespacemod__physics.html#a3202f3eecdee29f8a85c8f9e0138d326" title=" " alt="" coords="249,389,415,429"/>
-<area shape="poly" id="edge7_Node000001_Node000008" title=" " alt="" coords="104,670,120,626,148,565,189,498,214,467,242,439,249,434,252,439,246,443,218,470,193,501,153,567,125,628,109,672"/>
+<area shape="poly" id="edge7_Node000001_Node000008" title=" " alt="" coords="105,638,123,600,152,546,192,489,216,463,242,439,250,434,253,438,246,443,220,467,196,493,157,549,127,602,110,640"/>
 <area shape="rect" id="Node000009" href="$namespacemod__physics.html#a40c50419208b88add96e72857016e934" title=" " alt="" coords="249,453,415,493"/>
-<area shape="poly" id="edge8_Node000001_Node000009" title=" " alt="" coords="108,670,158,596,197,551,242,510,262,497,265,502,246,514,201,554,163,599,112,673"/>
-<area shape="rect" id="Node000010" href="$namespacemod__comm__lib.html#a9b6f1a8fd13bc5670e3b426151c34048" title="Exit MPI&#45;AMRVAC with an error message." alt="" coords="468,607,651,633"/>
-<area shape="poly" id="edge25_Node000001_Node000010" title=" " alt="" coords="109,670,129,643,160,610,198,578,243,554,291,539,331,536,371,542,421,553,478,573,527,598,525,603,476,578,419,559,370,548,331,542,292,544,245,558,201,582,164,614,133,647,113,673"/>
+<area shape="poly" id="edge8_Node000001_Node000009" title=" " alt="" coords="110,637,163,578,201,542,242,510,264,497,266,502,246,514,204,546,167,582,114,641"/>
+<area shape="rect" id="Node000010" href="$namespacemod__comm__lib.html#a9b6f1a8fd13bc5670e3b426151c34048" title="Exit MPI&#45;AMRVAC with an error message." alt="" coords="468,575,651,601"/>
+<area shape="poly" id="edge23_Node000001_Node000010" title=" " alt="" coords="113,637,167,593,203,570,243,553,278,545,315,541,387,544,454,554,509,569,508,574,453,560,387,549,315,547,279,551,245,559,206,575,170,598,117,641"/>
 <area shape="rect" id="Node000011" href="$namespacemod__physics.html#a3038efe433a8e0366120d8715677ce97" title=" " alt="" coords="249,568,415,608"/>
-<area shape="poly" id="edge10_Node000001_Node000011" title=" " alt="" coords="128,669,243,618,261,610,263,615,245,622,130,674"/>
+<area shape="poly" id="edge10_Node000001_Node000011" title=" " alt="" coords="147,637,245,609,247,614,148,642"/>
 <area shape="rect" id="Node000012" href="$namespacemod__physics.html#adb7a6dc632f5d777f4db61bad2698d44" title=" " alt="" coords="249,632,415,672"/>
-<area shape="poly" id="edge12_Node000001_Node000012" title=" " alt="" coords="193,669,235,663,236,668,193,674"/>
-<area shape="rect" id="Node000013" href="$namespacemod__physics.html#a79cd47a0ef9203fb307fd39a406615f6" title=" " alt="" coords="249,696,415,736"/>
-<area shape="poly" id="edge14_Node000001_Node000013" title=" " alt="" coords="193,694,236,700,235,705,193,699"/>
-<area shape="rect" id="Node000014" href="$namespacemod__physics.html#aa44c24d815700b2dc32afa3e844bddde" title=" " alt="" coords="249,760,415,800"/>
-<area shape="poly" id="edge16_Node000001_Node000014" title=" " alt="" coords="130,694,245,746,263,753,261,758,243,750,128,699"/>
-<area shape="rect" id="Node000015" href="$namespacemod__physics.html#a86a7b7145a138780ab7317d9616b4f40" title=" " alt="" coords="249,824,415,864"/>
-<area shape="poly" id="edge17_Node000001_Node000015" title=" " alt="" coords="115,695,168,750,205,781,245,810,256,816,254,820,243,814,202,786,165,753,111,699"/>
-<area shape="rect" id="Node000016" href="$namespacemod__physics.html#a67ac821597b78d2b59f0aceb68ea5dcb" title=" " alt="" coords="249,888,415,928"/>
-<area shape="poly" id="edge18_Node000001_Node000016" title=" " alt="" coords="110,695,129,731,159,778,198,829,246,874,253,879,250,883,242,878,194,833,154,781,124,733,106,698"/>
-<area shape="rect" id="Node000017" href="$namespacemod__physics.html#a096edb1a84f0fc9f8faa5f013ad49e8e" title=" " alt="" coords="249,952,415,992"/>
-<area shape="poly" id="edge20_Node000001_Node000017" title=" " alt="" coords="108,696,123,741,151,806,191,876,217,909,246,938,252,943,249,947,242,942,213,913,187,879,146,808,118,743,103,698"/>
-<area shape="rect" id="Node000018" href="$namespacemod__physics.html#a39e444ebba95fcfacfcd91259f55d708" title=" " alt="" coords="249,1016,415,1056"/>
-<area shape="poly" id="edge21_Node000001_Node000018" title=" " alt="" coords="107,697,118,752,143,834,162,879,185,923,213,965,246,1002,251,1006,248,1011,242,1006,208,968,180,926,157,881,138,835,113,753,101,698"/>
-<area shape="rect" id="Node000019" href="$namespacemod__physics.html#a87ab477d21081f0e4e375c5962fbbdf4" title=" " alt="" coords="249,1080,415,1120"/>
-<area shape="poly" id="edge22_Node000001_Node000019" title=" " alt="" coords="106,697,114,761,136,860,154,915,178,969,208,1021,246,1066,250,1070,247,1074,242,1070,204,1024,173,972,149,917,131,862,109,762,100,697"/>
-<area shape="rect" id="Node000020" href="$namespacemod__physics.html#a585217865f0de986ef0b84f8c2db0878" title=" " alt="" coords="249,1144,415,1184"/>
-<area shape="poly" id="edge23_Node000001_Node000020" title=" " alt="" coords="105,697,110,771,117,825,129,886,147,951,171,1015,204,1076,246,1130,250,1134,246,1138,242,1134,200,1079,166,1018,142,953,124,888,112,826,105,772,100,697"/>
-<area shape="rect" id="Node000021" href="$namespacemod__physics.html#ad95e43868a4a0bd787b8953adf6b97f3" title=" " alt="" coords="249,1208,415,1248"/>
-<area shape="poly" id="edge24_Node000001_Node000021" title=" " alt="" coords="104,697,106,780,111,842,122,912,139,986,164,1061,200,1132,221,1164,246,1194,250,1198,246,1202,242,1198,217,1167,195,1134,159,1063,134,988,117,913,106,842,101,780,99,697"/>
-<area shape="rect" id="Node000022" href="$namespacemod__physics__hllc.html#ad7c46ece6c1f2f3e2925fd5f8ad82465" title=" " alt="" coords="244,1272,420,1312"/>
-<area shape="poly" id="edge26_Node000001_Node000022" title=" " alt="" coords="106,697,121,804,150,973,170,1062,192,1145,218,1212,232,1238,246,1258,249,1261,245,1265,242,1262,227,1241,213,1215,187,1146,165,1064,145,974,116,805,101,697"/>
-<area shape="rect" id="Node000026" href="$namespacemod__physics__roe.html#a2f639d0151ac75a4fbfdd2262541ac41" title=" " alt="" coords="245,1336,419,1376"/>
-<area shape="poly" id="edge27_Node000001_Node000026" title=" " alt="" coords="106,696,119,815,146,1003,166,1103,189,1195,216,1271,230,1300,246,1322,249,1325,245,1329,242,1326,226,1303,211,1273,184,1196,161,1104,141,1004,114,815,101,697"/>
-<area shape="poly" id="edge9_Node000009_Node000010" title=" " alt="" coords="385,491,421,510,485,554,535,596,532,600,481,558,419,514,383,496"/>
-<area shape="poly" id="edge11_Node000011_Node000010" title=" " alt="" coords="415,597,456,603,455,608,415,602"/>
-<area shape="poly" id="edge13_Node000012_Node000010" title=" " alt="" coords="415,638,455,632,456,637,415,643"/>
-<area shape="poly" id="edge15_Node000013_Node000010" title=" " alt="" coords="389,694,419,682,519,636,521,641,421,686,391,698"/>
-<area shape="poly" id="edge19_Node000016_Node000010" title=" " alt="" coords="401,886,418,874,444,848,467,819,505,755,532,693,548,645,553,647,537,695,510,757,472,822,448,851,422,878,404,890"/>
+<area shape="poly" id="edge12_Node000001_Node000012" title=" " alt="" coords="196,649,236,649,236,655,196,655"/>
+<area shape="rect" id="Node000013" href="$namespacemod__physics.html#aa44c24d815700b2dc32afa3e844bddde" title=" " alt="" coords="249,696,415,736"/>
+<area shape="poly" id="edge14_Node000001_Node000013" title=" " alt="" coords="148,662,247,690,245,695,147,667"/>
+<area shape="rect" id="Node000014" href="$namespacemod__physics.html#a86a7b7145a138780ab7317d9616b4f40" title=" " alt="" coords="249,760,415,800"/>
+<area shape="poly" id="edge15_Node000001_Node000014" title=" " alt="" coords="120,663,174,702,245,746,259,752,257,757,243,750,171,707,117,667"/>
+<area shape="rect" id="Node000015" href="$namespacemod__physics.html#a67ac821597b78d2b59f0aceb68ea5dcb" title=" " alt="" coords="249,824,415,864"/>
+<area shape="poly" id="edge16_Node000001_Node000015" title=" " alt="" coords="112,663,163,732,201,773,246,810,255,816,252,820,242,814,198,777,159,735,108,666"/>
+<area shape="rect" id="Node000016" href="$namespacemod__physics.html#a096edb1a84f0fc9f8faa5f013ad49e8e" title=" " alt="" coords="249,888,415,928"/>
+<area shape="poly" id="edge18_Node000001_Node000016" title=" " alt="" coords="109,664,126,704,155,760,195,821,219,849,246,874,252,879,249,883,242,878,215,853,191,824,150,763,121,706,104,666"/>
+<area shape="rect" id="Node000017" href="$namespacemod__physics.html#a39e444ebba95fcfacfcd91259f55d708" title=" " alt="" coords="249,952,415,992"/>
+<area shape="poly" id="edge19_Node000001_Node000017" title=" " alt="" coords="107,664,121,715,147,788,166,828,188,868,215,905,246,938,251,942,248,947,242,942,211,909,184,871,161,831,142,790,116,716,102,666"/>
+<area shape="rect" id="Node000018" href="$namespacemod__physics.html#a87ab477d21081f0e4e375c5962fbbdf4" title=" " alt="" coords="249,1016,415,1056"/>
+<area shape="poly" id="edge20_Node000001_Node000018" title=" " alt="" coords="106,664,116,725,140,815,158,865,181,914,211,961,246,1002,250,1006,247,1010,242,1006,206,964,177,917,153,867,135,816,111,726,101,665"/>
+<area shape="rect" id="Node000019" href="$namespacemod__physics.html#a585217865f0de986ef0b84f8c2db0878" title=" " alt="" coords="249,1080,415,1120"/>
+<area shape="poly" id="edge21_Node000001_Node000019" title=" " alt="" coords="105,665,112,734,132,841,150,901,175,960,206,1017,246,1066,250,1070,247,1074,242,1070,202,1019,170,963,145,903,127,842,107,735,100,665"/>
+<area shape="rect" id="Node000020" href="$namespacemod__physics.html#ad95e43868a4a0bd787b8953adf6b97f3" title=" " alt="" coords="249,1144,415,1184"/>
+<area shape="poly" id="edge22_Node000001_Node000020" title=" " alt="" coords="105,665,108,743,114,801,125,867,143,937,168,1006,202,1072,246,1130,250,1134,246,1138,242,1134,197,1075,163,1008,138,938,120,868,109,802,103,743,99,665"/>
+<area shape="rect" id="Node000021" href="$namespacemod__physics__hllc.html#ad7c46ece6c1f2f3e2925fd5f8ad82465" title=" " alt="" coords="244,1208,420,1248"/>
+<area shape="poly" id="edge24_Node000001_Node000021" title=" " alt="" coords="106,665,122,768,152,927,172,1011,194,1088,219,1151,246,1194,250,1198,246,1202,242,1198,214,1154,189,1089,167,1012,147,928,117,768,101,666"/>
+<area shape="rect" id="Node000025" href="$namespacemod__physics__roe.html#a2f639d0151ac75a4fbfdd2262541ac41" title=" " alt="" coords="245,1272,419,1312"/>
+<area shape="poly" id="edge25_Node000001_Node000025" title=" " alt="" coords="106,665,120,778,148,957,168,1051,191,1138,217,1210,231,1237,246,1258,249,1261,245,1265,242,1262,227,1240,212,1212,186,1139,163,1052,143,958,115,779,101,665"/>
+<area shape="poly" id="edge9_Node000009_Node000010" title=" " alt="" coords="382,491,421,510,526,566,523,571,419,514,379,496"/>
+<area shape="poly" id="edge11_Node000011_Node000010" title=" " alt="" coords="415,585,454,585,454,591,415,591"/>
+<area shape="poly" id="edge13_Node000012_Node000010" title=" " alt="" coords="403,629,499,602,501,607,405,634"/>
+<area shape="poly" id="edge17_Node000015_Node000010" title=" " alt="" coords="400,822,418,810,464,763,501,708,528,655,546,613,551,615,533,658,505,711,468,766,422,814,403,826"/>
 </map>

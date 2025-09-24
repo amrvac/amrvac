@@ -8,16 +8,16 @@
 <area shape="poly" id="edge3_Node000001_Node000005" title=" " alt="" coords="81,625,83,546,89,491,98,431,114,367,136,304,166,244,206,190,221,177,225,181,210,194,171,247,141,306,119,369,103,432,94,492,88,547,86,625"/>
 <area shape="rect" id="Node000006" href="$namespacemod__ffhd__phys.html#a5a9d8c58337847af6590a9d592f94904" title=" " alt="" coords="465,163,620,203"/>
 <area shape="poly" id="edge7_Node000001_Node000006" title=" " alt="" coords="81,625,83,551,88,500,97,444,113,387,135,331,166,279,206,234,224,223,248,213,310,199,382,190,452,184,452,189,383,195,311,204,250,219,226,228,210,238,170,282,140,333,118,388,103,445,93,501,88,551,86,625"/>
-<area shape="rect" id="Node000016" href="$namespacemod__ffhd__phys.html#ad3418da655c172d48c6fe1c71919ee4b" title=" " alt="" coords="235,248,390,288"/>
-<area shape="poly" id="edge6_Node000001_Node000016" title=" " alt="" coords="83,625,90,562,109,475,125,427,146,380,173,337,206,298,221,287,224,291,210,302,177,340,151,383,130,429,115,476,95,563,88,626"/>
-<area shape="rect" id="Node000017" href="$namespacemod__thermal__emission.html#a159fb3c1b066f6de4fee75cb5141bc2f" title=" " alt="" coords="225,312,400,352"/>
-<area shape="poly" id="edge8_Node000001_Node000017" title=" " alt="" coords="84,625,96,572,118,502,134,464,154,427,178,392,206,362,212,357,215,362,210,366,182,396,158,430,138,466,123,504,101,574,90,626"/>
-<area shape="rect" id="Node000042" href="$namespacemod__thermal__emission.html#adf0fb0ee2b1bfd1c734f0a86070c37ec" title=" " alt="" coords="225,376,400,416"/>
-<area shape="poly" id="edge9_Node000001_Node000042" title=" " alt="" coords="87,624,102,583,127,529,161,474,182,448,206,426,213,421,216,425,210,430,186,452,165,477,131,532,107,585,92,626"/>
-<area shape="rect" id="Node000047" href="$namespacemod__thermal__emission.html#a8c9910c8edf1623c3705458a5b337b62" title=" " alt="" coords="225,440,400,480"/>
-<area shape="poly" id="edge10_Node000001_Node000047" title=" " alt="" coords="93,624,137,558,169,521,206,490,216,484,219,488,210,494,173,525,141,561,97,627"/>
-<area shape="rect" id="Node000048" href="$namespacemod__thermal__conduction.html#a17b4756aab5213e0be7b3525ebcb4785" title="Get the explicut timestep for the TC (mhd implementation)" alt="" coords="219,504,406,544"/>
-<area shape="poly" id="edge11_Node000001_Node000048" title=" " alt="" coords="106,623,151,588,207,554,223,547,225,551,209,558,154,592,109,627"/>
+<area shape="rect" id="Node000015" href="$namespacemod__ffhd__phys.html#ad3418da655c172d48c6fe1c71919ee4b" title=" " alt="" coords="235,248,390,288"/>
+<area shape="poly" id="edge6_Node000001_Node000015" title=" " alt="" coords="83,625,90,562,109,475,125,427,146,380,173,337,206,298,221,287,224,291,210,302,177,340,151,383,130,429,115,476,95,563,88,626"/>
+<area shape="rect" id="Node000016" href="$namespacemod__thermal__emission.html#a159fb3c1b066f6de4fee75cb5141bc2f" title=" " alt="" coords="225,312,400,352"/>
+<area shape="poly" id="edge8_Node000001_Node000016" title=" " alt="" coords="84,625,96,572,118,502,134,464,154,427,178,392,206,362,212,357,215,362,210,366,182,396,158,430,138,466,123,504,101,574,90,626"/>
+<area shape="rect" id="Node000041" href="$namespacemod__thermal__emission.html#adf0fb0ee2b1bfd1c734f0a86070c37ec" title=" " alt="" coords="225,376,400,416"/>
+<area shape="poly" id="edge9_Node000001_Node000041" title=" " alt="" coords="87,624,102,583,127,529,161,474,182,448,206,426,213,421,216,425,210,430,186,452,165,477,131,532,107,585,92,626"/>
+<area shape="rect" id="Node000046" href="$namespacemod__thermal__emission.html#a8c9910c8edf1623c3705458a5b337b62" title=" " alt="" coords="225,440,400,480"/>
+<area shape="poly" id="edge10_Node000001_Node000046" title=" " alt="" coords="93,624,137,558,169,521,206,490,216,484,219,488,210,494,173,525,141,561,97,627"/>
+<area shape="rect" id="Node000047" href="$namespacemod__thermal__conduction.html#a17b4756aab5213e0be7b3525ebcb4785" title="Get the explicut timestep for the TC (mhd implementation)" alt="" coords="219,504,406,544"/>
+<area shape="poly" id="edge11_Node000001_Node000047" title=" " alt="" coords="106,623,151,588,207,554,223,547,225,551,209,558,154,592,109,627"/>
 <area shape="rect" id="Node000049" href="$namespacemod__thermal__emission.html#af29ccd138f3aca890abf25d1dbc02b97" title=" " alt="" coords="225,568,400,608"/>
 <area shape="poly" id="edge12_Node000001_Node000049" title=" " alt="" coords="160,623,218,609,219,614,161,629"/>
 <area shape="rect" id="Node000050" href="$namespacemod__gravity.html#ac77da47869e83fdec592fa926333722c" title="Initialize the module." alt="" coords="220,633,405,658"/>

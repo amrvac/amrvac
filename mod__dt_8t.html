@@ -29,7 +29,7 @@ MathJax.Hub.Config({
  <tbody>
  <tr id="projectrow">
   <td id="projectalign">
-   <div id="projectname">MPI-AMRVAC<span id="projectnumber">&#160;3.1</span>
+   <div id="projectname">MPI-AMRVAC<span id="projectnumber">&#160;3.2</span>
    </div>
    <div id="projectbrief">The MPI - Adaptive Mesh Refinement - Versatile Advection Code</div>
   </td>
@@ -101,13 +101,13 @@ Functions/Subroutines</h2></td></tr>
 <tr class="memitem:aea859f9346411815a5d7a157dd8afab0" id="r_aea859f9346411815a5d7a157dd8afab0"><td class="memItemLeft" align="right" valign="top">subroutine, public&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__dt.html#aea859f9346411815a5d7a157dd8afab0">mod_dt::setdt</a> ()</td></tr>
 <tr class="memdesc:aea859f9346411815a5d7a157dd8afab0"><td class="mdescLeft">&#160;</td><td class="mdescRight">setdt - set dt for all levels between levmin and levmax. dtpar&gt;0 --&gt; use fixed dtpar for all level dtpar&lt;=0 --&gt; determine CFL limited timestep  <br /></td></tr>
 <tr class="separator:aea859f9346411815a5d7a157dd8afab0"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a7cf814979085913f4350612d78247773" id="r_a7cf814979085913f4350612d78247773"><td class="memItemLeft" align="right" valign="top">subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="mod__dt_8t.html#a7cf814979085913f4350612d78247773">getdt_courant</a> (w, ixil, ixol, dtnew, dxd, x, cmax_mype, a2max_mype, cs2max_mype)</td></tr>
-<tr class="memdesc:a7cf814979085913f4350612d78247773"><td class="mdescLeft">&#160;</td><td class="mdescRight">compute CFL limited dt (for variable time stepping)  <br /></td></tr>
-<tr class="separator:a7cf814979085913f4350612d78247773"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a5fc849c0d2320b16740c46ddfe10b044" id="r_a5fc849c0d2320b16740c46ddfe10b044"><td class="memItemLeft" align="right" valign="top">subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="mod__dt_8t.html#a5fc849c0d2320b16740c46ddfe10b044">getdt_courant</a> (w, ixil, ixol, dtnew, dxd, x, cmax_mype, a2max_mype)</td></tr>
+<tr class="memdesc:a5fc849c0d2320b16740c46ddfe10b044"><td class="mdescLeft">&#160;</td><td class="mdescRight">compute CFL limited dt (for variable time stepping)  <br /></td></tr>
+<tr class="separator:a5fc849c0d2320b16740c46ddfe10b044"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <h2 class="groupheader">Function/Subroutine Documentation</h2>
-<a id="a7cf814979085913f4350612d78247773" name="a7cf814979085913f4350612d78247773"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a7cf814979085913f4350612d78247773">&#9670;&#160;</a></span>getdt_courant()</h2>
+<a id="a5fc849c0d2320b16740c46ddfe10b044" name="a5fc849c0d2320b16740c46ddfe10b044"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a5fc849c0d2320b16740c46ddfe10b044">&#9670;&#160;</a></span>getdt_courant()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -176,13 +176,7 @@ Functions/Subroutines</h2></td></tr>
           <td class="paramkey"></td>
           <td></td>
           <td class="paramtype">double precision, dimension(ndim), intent(inout)&#160;</td>
-          <td class="paramname"><em>a2max_mype</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">double precision, intent(inout)&#160;</td>
-          <td class="paramname"><em>cs2max_mype</em>&#160;</td>
+          <td class="paramname"><em>a2max_mype</em>&#160;</td>
         </tr>
         <tr>
           <td></td>
@@ -194,12 +188,12 @@ Functions/Subroutines</h2></td></tr>
 
 <p>compute CFL limited dt (for variable time stepping) </p>
 
-<p class="definition">Definition at line <a class="el" href="mod__dt_8t_source.html#l00163">163</a> of file <a class="el" href="mod__dt_8t_source.html">mod_dt.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__dt_8t_source.html#l00160">160</a> of file <a class="el" href="mod__dt_8t_source.html">mod_dt.t</a>.</p>
 <div class="dynheader">
 Here is the call graph for this function:</div>
 <div class="dyncontent">
-<div class="center"><img src="mod__dt_8t_a7cf814979085913f4350612d78247773_cgraph.png" border="0" usemap="#amod__dt_8t_a7cf814979085913f4350612d78247773_cgraph" alt=""/></div>
-<map name="amod__dt_8t_a7cf814979085913f4350612d78247773_cgraph" id="amod__dt_8t_a7cf814979085913f4350612d78247773_cgraph">
+<div class="center"><img src="mod__dt_8t_a5fc849c0d2320b16740c46ddfe10b044_cgraph.png" border="0" usemap="#amod__dt_8t_a5fc849c0d2320b16740c46ddfe10b044_cgraph" alt=""/></div>
+<map name="amod__dt_8t_a5fc849c0d2320b16740c46ddfe10b044_cgraph" id="amod__dt_8t_a5fc849c0d2320b16740c46ddfe10b044_cgraph">
 <area shape="rect" title="compute CFL limited dt (for variable time stepping)" alt="" coords="5,5,117,31"/>
 <area shape="rect" href="namespacemod__comm__lib.html#a9b6f1a8fd13bc5670e3b426151c34048" title="Exit MPI&#45;AMRVAC with an error message." alt="" coords="165,5,348,31"/>
 <area shape="poly" title=" " alt="" coords="117,15,152,15,152,21,117,21"/>

@@ -29,7 +29,7 @@ MathJax.Hub.Config({
  <tbody>
  <tr id="projectrow">
   <td id="projectalign">
-   <div id="projectname">MPI-AMRVAC<span id="projectnumber">&#160;3.1</span>
+   <div id="projectname">MPI-AMRVAC<span id="projectnumber">&#160;3.2</span>
    </div>
    <div id="projectbrief">The MPI - Adaptive Mesh Refinement - Versatile Advection Code</div>
   </td>
@@ -331,9 +331,6 @@ Variables</h2></td></tr>
 <tr class="memitem:ace1f74994725bbcc1d65eeaa380d91a3" id="r_ace1f74994725bbcc1d65eeaa380d91a3"><td class="memItemLeft" align="right" valign="top">double precision, dimension(^nd)&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__global__parameters.html#ace1f74994725bbcc1d65eeaa380d91a3">mod_global_parameters::a2max_global</a></td></tr>
 <tr class="memdesc:ace1f74994725bbcc1d65eeaa380d91a3"><td class="mdescLeft">&#160;</td><td class="mdescRight">global largest a2 for schmid scheme  <br /></td></tr>
 <tr class="separator:ace1f74994725bbcc1d65eeaa380d91a3"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ac787ee32ff713e0ad6a41f4571b41d02" id="r_ac787ee32ff713e0ad6a41f4571b41d02"><td class="memItemLeft" align="right" valign="top">double precision&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__global__parameters.html#ac787ee32ff713e0ad6a41f4571b41d02">mod_global_parameters::cs2max_global</a></td></tr>
-<tr class="memdesc:ac787ee32ff713e0ad6a41f4571b41d02"><td class="mdescLeft">&#160;</td><td class="mdescRight">global largest cs2 for hyperbolic thermal conduction  <br /></td></tr>
-<tr class="separator:ac787ee32ff713e0ad6a41f4571b41d02"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:acfb666485b777dea6289a235519303a6" id="r_acfb666485b777dea6289a235519303a6"><td class="memItemLeft" align="right" valign="top">double precision&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__global__parameters.html#acfb666485b777dea6289a235519303a6">mod_global_parameters::instrument_resolution_factor</a></td></tr>
 <tr class="memdesc:acfb666485b777dea6289a235519303a6"><td class="mdescLeft">&#160;</td><td class="mdescRight">times for enhancing spatial resolution for EUV image/spectra  <br /></td></tr>
 <tr class="separator:acfb666485b777dea6289a235519303a6"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -379,6 +376,7 @@ Variables</h2></td></tr>
 <tr class="memitem:ac7574c746ee9c4510e2df9c40ad483eb" id="r_ac7574c746ee9c4510e2df9c40ad483eb"><td class="memItemLeft" align="right" valign="top">double precision, dimension(:,:), allocatable&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__global__parameters.html#ac7574c746ee9c4510e2df9c40ad483eb">mod_global_parameters::rnode_sub</a></td></tr>
 <tr class="separator:ac7574c746ee9c4510e2df9c40ad483eb"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aafb7ce2cea79dc8b58a753a761a48035" id="r_aafb7ce2cea79dc8b58a753a761a48035"><td class="memItemLeft" align="right" valign="top">double precision, dimension(:,:), allocatable&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__global__parameters.html#aafb7ce2cea79dc8b58a753a761a48035">mod_global_parameters::dx</a></td></tr>
+<tr class="memdesc:aafb7ce2cea79dc8b58a753a761a48035"><td class="mdescLeft">&#160;</td><td class="mdescRight">spatial steps for all dimensions at all levels  <br /></td></tr>
 <tr class="separator:aafb7ce2cea79dc8b58a753a761a48035"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:acc91cb6c162d5ddec9755eee2a2f593a" id="r_acc91cb6c162d5ddec9755eee2a2f593a"><td class="memItemLeft" align="right" valign="top">double precision, dimension(:), allocatable&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__global__parameters.html#acc91cb6c162d5ddec9755eee2a2f593a">mod_global_parameters::refine_threshold</a></td></tr>
 <tr class="memdesc:acc91cb6c162d5ddec9755eee2a2f593a"><td class="mdescLeft">&#160;</td><td class="mdescRight">Error tolerance for refinement decision.  <br /></td></tr>
@@ -989,9 +987,6 @@ Variables</h2></td></tr>
 <tr class="memitem:a6c1fd617eca3f24fcb8f148e603c2d92" id="r_a6c1fd617eca3f24fcb8f148e603c2d92"><td class="memItemLeft" align="right" valign="top">logical&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__global__parameters.html#a6c1fd617eca3f24fcb8f148e603c2d92">mod_global_parameters::need_global_a2max</a> =.false.</td></tr>
 <tr class="memdesc:a6c1fd617eca3f24fcb8f148e603c2d92"><td class="mdescLeft">&#160;</td><td class="mdescRight">global value for schmid scheme  <br /></td></tr>
 <tr class="separator:a6c1fd617eca3f24fcb8f148e603c2d92"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a9fe42560138cc26ad128b1d3b22c5b6e" id="r_a9fe42560138cc26ad128b1d3b22c5b6e"><td class="memItemLeft" align="right" valign="top">logical&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__global__parameters.html#a9fe42560138cc26ad128b1d3b22c5b6e">mod_global_parameters::need_global_cs2max</a> =.false.</td></tr>
-<tr class="memdesc:a9fe42560138cc26ad128b1d3b22c5b6e"><td class="mdescLeft">&#160;</td><td class="mdescRight">global value for csound speed  <br /></td></tr>
-<tr class="separator:a9fe42560138cc26ad128b1d3b22c5b6e"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a9af4bac5cdacef49764bebff3e1dd01b" id="r_a9af4bac5cdacef49764bebff3e1dd01b"><td class="memItemLeft" align="right" valign="top">logical, dimension(<a class="el" href="namespacemod__global__parameters.html#a44dda3cb334ff384ee40e1797717cc38">ndim</a>)&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__global__parameters.html#a9af4bac5cdacef49764bebff3e1dd01b">mod_global_parameters::periodb</a></td></tr>
 <tr class="memdesc:a9af4bac5cdacef49764bebff3e1dd01b"><td class="mdescLeft">&#160;</td><td class="mdescRight">True for dimensions with periodic boundaries.  <br /></td></tr>
 <tr class="separator:a9af4bac5cdacef49764bebff3e1dd01b"><td class="memSeparator" colspan="2">&#160;</td></tr>
