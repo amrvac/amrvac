@@ -14,14 +14,14 @@
 <area shape="poly" id="edge6_Node000001_Node000039" title=" " alt="" coords="118,833,124,753,132,694,146,627,166,556,194,486,231,420,279,362,289,354,292,359,283,366,236,423,199,488,171,558,151,628,137,695,129,754,124,834"/>
 <area shape="rect" id="Node000040" href="$namespacemod__thermal__conduction.html#a17b4756aab5213e0be7b3525ebcb4785" title="Get the explicut timestep for the TC (mhd implementation)" alt="" coords="296,376,483,416"/>
 <area shape="poly" id="edge7_Node000001_Node000040" title=" " alt="" coords="119,834,128,763,153,653,174,592,201,532,236,476,279,426,285,421,288,426,283,430,240,479,206,535,179,594,158,655,133,764,124,834"/>
-<area shape="rect" id="Node000042" href="$namespacemod__thermal__emission.html#af29ccd138f3aca890abf25d1dbc02b97" title=" " alt="" coords="302,440,477,480"/>
-<area shape="poly" id="edge8_Node000001_Node000042" title=" " alt="" coords="120,833,133,772,161,679,182,629,208,578,241,531,280,490,288,483,291,488,283,494,245,534,213,581,186,631,166,681,138,773,125,834"/>
-<area shape="rect" id="Node000043" href="$namespacemod__gravity.html#ac77da47869e83fdec592fa926333722c" title="Initialize the module." alt="" coords="297,505,482,530"/>
-<area shape="poly" id="edge9_Node000001_Node000043" title=" " alt="" coords="121,833,136,779,165,699,187,656,213,614,243,574,280,541,290,534,293,538,283,545,247,578,217,617,191,659,170,702,141,781,126,835"/>
-<area shape="rect" id="Node000045" href="$namespacemod__ionization__degree.html#a98f8df508ab03ff6431b97782de7be8d" title=" " alt="" coords="302,555,477,595"/>
-<area shape="poly" id="edge10_Node000001_Node000045" title=" " alt="" coords="123,833,142,789,175,728,221,662,249,631,280,605,288,599,291,604,283,609,252,635,225,665,179,731,147,792,128,835"/>
-<area shape="rect" id="Node000046" href="$namespacemod__magnetofriction.html#a7a760a33229888d9d1388aa2bb2f874e" title="Initialize the module." alt="" coords="308,619,471,659"/>
-<area shape="poly" id="edge11_Node000001_Node000046" title=" " alt="" coords="127,832,149,799,184,755,228,709,280,668,294,661,297,665,283,673,232,713,188,759,153,803,131,835"/>
+<area shape="rect" id="Node000041" href="$namespacemod__thermal__emission.html#af29ccd138f3aca890abf25d1dbc02b97" title=" " alt="" coords="302,440,477,480"/>
+<area shape="poly" id="edge8_Node000001_Node000041" title=" " alt="" coords="120,833,133,772,161,679,182,629,208,578,241,531,280,490,288,483,291,488,283,494,245,534,213,581,186,631,166,681,138,773,125,834"/>
+<area shape="rect" id="Node000042" href="$namespacemod__gravity.html#ac77da47869e83fdec592fa926333722c" title="Initialize the module." alt="" coords="297,505,482,530"/>
+<area shape="poly" id="edge9_Node000001_Node000042" title=" " alt="" coords="121,833,136,779,165,699,187,656,213,614,243,574,280,541,290,534,293,538,283,545,247,578,217,617,191,659,170,702,141,781,126,835"/>
+<area shape="rect" id="Node000044" href="$namespacemod__ionization__degree.html#a98f8df508ab03ff6431b97782de7be8d" title=" " alt="" coords="302,555,477,595"/>
+<area shape="poly" id="edge10_Node000001_Node000044" title=" " alt="" coords="123,833,142,789,175,728,221,662,249,631,280,605,288,599,291,604,283,609,252,635,225,665,179,731,147,792,128,835"/>
+<area shape="rect" id="Node000045" href="$namespacemod__magnetofriction.html#a7a760a33229888d9d1388aa2bb2f874e" title="Initialize the module." alt="" coords="308,619,471,659"/>
+<area shape="poly" id="edge11_Node000001_Node000045" title=" " alt="" coords="127,832,149,799,184,755,228,709,280,668,294,661,297,665,283,673,232,713,188,759,153,803,131,835"/>
 <area shape="rect" id="Node000183" href="$namespacemod__mhd__phys.html#a146ddbc522f5c61e67c327808e6a8220" title=" " alt="" coords="287,683,491,723"/>
 <area shape="poly" id="edge12_Node000001_Node000183" title=" " alt="" coords="136,832,198,788,280,739,311,725,313,730,283,744,200,792,139,836"/>
 <area shape="rect" id="Node000194" href="$namespacemod__mhd__phys.html#ac54ab9cded448f662757e2a9fb5f8bd1" title="calculate cell&#45;center values from face&#45;center values" alt="" coords="556,712,753,752"/>
