@@ -2685,11 +2685,10 @@ contains
 
     double precision, parameter :: trac_delta=0.25d0
     double precision :: Te(ixI^S),lts(ixI^S)
-    double precision, dimension(ixI^S,1:ndir) :: bunitvec
+    double precision, dimension(1:ndim) :: Bdir, bunitvec
     double precision, dimension(ixI^S,1:ndim) :: gradT
-    double precision :: Bdir(ndim),minq
-    double precision :: ltrc,ltrp,altr(ixI^S)
-    integer :: idims,jxO^L,hxO^L,ixA^D,ixB^D,ix^D
+    double precision :: ltrc,ltrp,altr
+    integer :: idims,ix^D,jxO^L,hxO^L,ixA^D,ixB^D
     integer :: jxP^L,hxP^L,ixP^L,ixQ^L
 
     if(mhd_partial_ionization) then
@@ -2754,8 +2753,38 @@ contains
             Bdir(1:ndim)=Bdir(1:ndim)+w(ixB^D,iw_mag(1:ndim))
           {end do\}
         end if
-        Bdir(1:ndim)=Bdir(1:ndim)/(dsqrt(^D&bdir(^D)**2+)+1.d-319)
-        block%special_values(3:ndim+2)=Bdir(1:ndim)
+        {^IFTWOD
+        if(Bdir(1)/=0.d0) then
+          block%special_values(3)=sign(1.d0,Bdir(1))/dsqrt(1.d0+(Bdir(2)/Bdir(1))**2)
+        else
+          block%special_values(3)=0.d0
+        end if
+        if(Bdir(2)/=0.d0) then
+          block%special_values(4)=sign(1.d0,Bdir(2))/dsqrt(1.d0+(Bdir(1)/Bdir(2))**2)
+        else
+          block%special_values(4)=0.d0
+        end if
+        }
+        {^IFTHREED
+        if(Bdir(1)/=0.d0) then
+          block%special_values(3)=sign(1.d0,Bdir(1))/dsqrt(1.d0+(Bdir(2)/Bdir(1))**2+&
+           (Bdir(3)/Bdir(1))**2)
+        else
+          block%special_values(3)=0.d0
+        end if
+        if(Bdir(2)/=0.d0) then
+          block%special_values(4)=sign(1.d0,Bdir(2))/dsqrt(1.d0+(Bdir(1)/Bdir(2))**2+&
+           (Bdir(3)/Bdir(2))**2)
+        else
+          block%special_values(4)=0.d0
+        end if
+        if(Bdir(3)/=0.d0) then
+          block%special_values(5)=sign(1.d0,Bdir(3))/dsqrt(1.d0+(Bdir(1)/Bdir(3))**2+&
+           (Bdir(2)/Bdir(3))**2)
+        else
+          block%special_values(5)=0.d0
+        end if
+        }
       end if
       ! b unit vector: magnetic field direction vector
       block%special_values(1)=zero
@@ -2765,10 +2794,41 @@ contains
         else
           ^D&bdir(^D)=w({ix^D},iw_mag(^D))\
         end if
-        minq=sqrt(^D&bdir(^D)**2+)
-        ^D&bunitvec({ix^D},^D)=Bdir(^D)/(minq+1.d-319)\
+        {^IFTWOD
+        if(Bdir(1)/=0.d0) then
+          bunitvec(1)=sign(1.d0,Bdir(1))/dsqrt(1.d0+(Bdir(2)/Bdir(1))**2)
+        else
+          bunitvec(1)=0.d0
+        end if
+        if(Bdir(2)/=0.d0) then
+          bunitvec(2)=sign(1.d0,Bdir(2))/dsqrt(1.d0+(Bdir(1)/Bdir(2))**2)
+        else
+          bunitvec(2)=0.d0
+        end if
         ! temperature length scale inversed
-        lts(ix^D)=minval(block%ds(ix^D,1:ndim))*abs(^D&gradT({ix^D},^D)*bunitvec({ix^D},^D)+)/Te(ix^D)
+        lts(ix^D)=min(block%ds(ix^D,1),block%ds(ix^D,2))*&
+          abs(^D&gradT({ix^D},^D)*bunitvec(^D)+)/Te(ix^D)
+        }
+        {^IFTHREED
+        if(Bdir(1)/=0.d0) then
+          bunitvec(1)=sign(1.d0,Bdir(1))/dsqrt(1.d0+(Bdir(2)/Bdir(1))**2+(Bdir(3)/Bdir(1))**2)
+        else
+          bunitvec(1)=0.d0
+        end if
+        if(Bdir(2)/=0.d0) then
+          bunitvec(2)=sign(1.d0,Bdir(2))/dsqrt(1.d0+(Bdir(1)/Bdir(2))**2+(Bdir(3)/Bdir(2))**2)
+        else
+          bunitvec(2)=0.d0
+        end if
+        if(Bdir(3)/=0.d0) then
+          bunitvec(3)=sign(1.d0,Bdir(3))/dsqrt(1.d0+(Bdir(1)/Bdir(3))**2+(Bdir(2)/Bdir(3))**2)
+        else
+          bunitvec(3)=0.d0
+        end if
+        ! temperature length scale inversed
+        lts(ix^D)=min(block%ds(ix^D,1),block%ds(ix^D,2),block%ds(ix^D,3))*&
+          abs(^D&gradT({ix^D},^D)*bunitvec(^D)+)/Te(ix^D)
+        }
         if(lts(ix^D)>trac_delta) then
           block%special_values(1)=max(block%special_values(1),Te(ix^D))
         end if
@@ -2800,20 +2860,77 @@ contains
       if(B0field) then
        {do ix^DB=ixPmin^DB,ixPmax^DB\}
           ^D&bdir(^D)=w({ix^D},iw_mag(^D))+block%B0({ix^D},^D,0)\
-          minq=sqrt(^D&bdir(^D)**2+)
-          ^D&bunitvec({ix^D},^D)=Bdir(^D)/(minq+1.d-319)\
+          {^IFTWOD
+          if(Bdir(1)/=0.d0) then
+            bunitvec(1)=sign(1.d0,Bdir(1))/dsqrt(1.d0+(Bdir(2)/Bdir(1))**2)
+          else
+            bunitvec(1)=0.d0
+          end if
+          if(Bdir(2)/=0.d0) then
+            bunitvec(2)=sign(1.d0,Bdir(2))/dsqrt(1.d0+(Bdir(1)/Bdir(2))**2)
+          else
+            bunitvec(2)=0.d0
+          end if
+          }
+          {^IFTHREED
+          if(Bdir(1)/=0.d0) then
+            bunitvec(1)=sign(1.d0,Bdir(1))/dsqrt(1.d0+(Bdir(2)/Bdir(1))**2+(Bdir(3)/Bdir(1))**2)
+          else
+            bunitvec(1)=0.d0
+          end if
+          if(Bdir(2)/=0.d0) then
+            bunitvec(2)=sign(1.d0,Bdir(2))/dsqrt(1.d0+(Bdir(1)/Bdir(2))**2+(Bdir(3)/Bdir(2))**2)
+          else
+            bunitvec(2)=0.d0
+          end if
+          if(Bdir(3)/=0.d0) then
+            bunitvec(3)=sign(1.d0,Bdir(3))/dsqrt(1.d0+(Bdir(1)/Bdir(3))**2+(Bdir(2)/Bdir(3))**2)
+          else
+            bunitvec(3)=0.d0
+          end if
+          }
           ! temperature length scale inversed
-          lts(ix^D)=abs(^D&gradT({ix^D},^D)*bunitvec({ix^D},^D)+)/Te(ix^D)
+          lts(ix^D)=abs(^D&gradT({ix^D},^D)*bunitvec(^D)+)/Te(ix^D)
           ! fraction of cells size to temperature length scale
           lts(ix^D)=min(^D&block%ds({ix^D},^D))*lts(ix^D)
           lts(ix^D)=max(one,(exp(lts(ix^D))/ltrc)**ltrp)
        {end do\}
       else
        {do ix^DB=ixPmin^DB,ixPmax^DB\}
-          minq=sqrt(^D&w({ix^D},iw_mag(^D))**2+)
-          ^D&bunitvec({ix^D},^D)=w({ix^D},iw_mag(^D))/(minq+1.d-319)\
+         {^IFTWOD
+          if(w(ix^D,iw_mag(1))/=0.d0) then
+            bunitvec(1)=sign(1.d0,w(ix^D,iw_mag(1)))/dsqrt(1.d0+(w(ix^D,iw_mag(2))/w(ix^D,iw_mag(1)))**2)
+          else
+            bunitvec(1)=0.d0
+          end if
+          if(w(ix^D,iw_mag(2))/=0.d0) then
+            bunitvec(2)=sign(1.d0,w(ix^D,iw_mag(2)))/dsqrt(1.d0+(w(ix^D,iw_mag(1))/w(ix^D,iw_mag(2)))**2)
+          else
+            bunitvec(2)=0.d0
+          end if
+         }
+         {^IFTHREED
+          if(w(ix^D,iw_mag(1))/=0.d0) then
+            bunitvec(1)=sign(1.d0,w(ix^D,iw_mag(1)))/dsqrt(1.d0+(w(ix^D,iw_mag(2))/w(ix^D,iw_mag(1)))**2+&
+              (w(ix^D,iw_mag(3))/w(ix^D,iw_mag(1)))**2)
+          else
+            bunitvec(1)=0.d0
+          end if
+          if(w(ix^D,iw_mag(2))/=0.d0) then
+            bunitvec(2)=sign(1.d0,w(ix^D,iw_mag(2)))/dsqrt(1.d0+(w(ix^D,iw_mag(1))/w(ix^D,iw_mag(2)))**2+&
+              (w(ix^D,iw_mag(3))/w(ix^D,iw_mag(2)))**2)
+          else
+            bunitvec(2)=0.d0
+          end if
+          if(w(ix^D,iw_mag(3))/=0.d0) then
+            bunitvec(3)=sign(1.d0,w(ix^D,iw_mag(3)))/dsqrt(1.d0+(w(ix^D,iw_mag(1))/w(ix^D,iw_mag(3)))**2+&
+              (w(ix^D,iw_mag(2))/w(ix^D,iw_mag(3)))**2)
+          else
+            bunitvec(3)=0.d0
+          end if
+         }
           ! temperature length scale inversed
-          lts(ix^D)=abs(^D&gradT({ix^D},^D)*bunitvec({ix^D},^D)+)/Te(ix^D)
+          lts(ix^D)=abs(^D&gradT({ix^D},^D)*bunitvec(^D)+)/Te(ix^D)
           ! fraction of cells size to temperature length scale
           lts(ix^D)=min(^D&block%ds({ix^D},^D))*lts(ix^D)
           lts(ix^D)=max(one,(exp(lts(ix^D))/ltrc)**ltrp)
@@ -2822,16 +2939,19 @@ contains
   
       ! need one ghost layer for thermal conductivity
       ixP^L=ixO^L^LADD1;
-      do idims=1,ndim
-        hxO^L=ixP^L-kr(idims,^D);
-        jxO^L=ixP^L+kr(idims,^D);
-        if(idims==1) then
-          altr(ixP^S)=0.25d0*(lts(hxO^S)+two*lts(ixP^S)+lts(jxO^S))*bunitvec(ixP^S,idims)**2
-        else
-          altr(ixP^S)=altr(ixP^S)+0.25d0*(lts(hxO^S)+two*lts(ixP^S)+lts(jxO^S))*bunitvec(ixP^S,idims)**2
-        end if
-      end do
-      block%wextra(ixP^S,Tcoff_)=Te(ixP^S)*altr(ixP^S)**0.4d0
+     {do ix^DB=ixPmin^DB,ixPmax^DB\}
+        {^IFTWOD
+        altr=0.25d0*((lts(ix1-1,ix2)+two*lts(ix^D)+lts(ix1+1,ix2))*bunitvec(1)**2+&
+                     (lts(ix1,ix2-1)+two*lts(ix^D)+lts(ix1,ix2+1))*bunitvec(2)**2)
+        block%wextra(ix^D,Tcoff_)=Te(ix^D)*altr**0.4d0
+        }
+        {^IFTHREED
+        altr=0.25d0*((lts(ix1-1,ix2,ix3)+two*lts(ix^D)+lts(ix1+1,ix2,ix3))*bunitvec(1)**2+&
+                     (lts(ix1,ix2-1,ix3)+two*lts(ix^D)+lts(ix1,ix2+1,ix3))*bunitvec(2)**2+&
+                     (lts(ix1,ix2,ix3-1)+two*lts(ix^D)+lts(ix1,ix2,ix3+1))*bunitvec(3)**2)
+        block%wextra(ix^D,Tcoff_)=Te(ix^D)*altr**0.4d0
+        }
+     {end do\}
     case(3,5)
       !> do nothing here
     case default
@@ -4598,8 +4718,16 @@ contains
         else
           ^D&bdir(^D)=wCT({ix^D},mag(^D))\
         end if
-        tau=sqrt(^D&bdir(^D)**2+)
-        ^D&bunitvec(^D)=Bdir(^D)/(tau+1.d-319)\
+        if(Bdir(1)/=0.d0) then
+          bunitvec(1)=sign(1.d0,Bdir(1))/dsqrt(1.d0+(Bdir(2)/Bdir(1))**2)
+        else
+          bunitvec(1)=0.d0
+        end if
+        if(Bdir(2)/=0.d0) then
+          bunitvec(2)=sign(1.d0,Bdir(2))/dsqrt(1.d0+(Bdir(1)/Bdir(2))**2)
+        else
+          bunitvec(2)=0.d0
+        end if
         sigmaT5_bgradT=sigma_T5*(&
            bunitvec(1)*((8.d0*(Te(ix1+1,ix2)-Te(ix1-1,ix2))-Te(ix1+2,ix2)+Te(ix1-2,ix2))/12.d0)/block%ds(ix^D,1)&
           +bunitvec(2)*((8.d0*(Te(ix1,ix2+1)-Te(ix1,ix2-1))-Te(ix1,ix2+2)+Te(ix1,ix2-2))/12.d0)/block%ds(ix^D,2))
@@ -4635,8 +4763,21 @@ contains
           else
             ^D&bdir(^D)=wCT({ix^D},mag(^D))\
           end if
-          tau=sqrt(^D&bdir(^D)**2+)
-          ^D&bunitvec(^D)=Bdir(^D)/(tau+1.d-319)\
+          if(Bdir(1)/=0.d0) then
+            bunitvec(1)=sign(1.d0,Bdir(1))/dsqrt(1.d0+(Bdir(2)/Bdir(1))**2+(Bdir(3)/Bdir(1))**2)
+          else
+            bunitvec(1)=0.d0
+          end if
+          if(Bdir(2)/=0.d0) then
+            bunitvec(2)=sign(1.d0,Bdir(2))/dsqrt(1.d0+(Bdir(1)/Bdir(2))**2+(Bdir(3)/Bdir(2))**2)
+          else
+            bunitvec(2)=0.d0
+          end if
+          if(Bdir(3)/=0.d0) then
+            bunitvec(3)=sign(1.d0,Bdir(3))/dsqrt(1.d0+(Bdir(1)/Bdir(3))**2+(Bdir(2)/Bdir(3))**2)
+          else
+            bunitvec(3)=0.d0
+          end if
           sigmaT5_bgradT=sigma_T5*(&
              bunitvec(1)*((8.d0*(Te(ix1+1,ix2,ix3)-Te(ix1-1,ix2,ix3))-Te(ix1+2,ix2,ix3)+Te(ix1-2,ix2,ix3))/12.d0)/block%ds(ix^D,1)&
             +bunitvec(2)*((8.d0*(Te(ix1,ix2+1,ix3)-Te(ix1,ix2-1,ix3))-Te(ix1,ix2+2,ix3)+Te(ix1,ix2-2,ix3))/12.d0)/block%ds(ix^D,2)&
