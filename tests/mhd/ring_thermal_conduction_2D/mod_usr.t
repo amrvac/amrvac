@@ -44,9 +44,9 @@ contains
     endwhere
     ! hot central circular spot with uniform pressure
     where(r(ixO^S)>0.5d0 .and. r(ixO^S)<0.7d0 .and. theta(ixO^S)>11.d0/12.d0*dpi .and. theta(ixO^S)<13.d0/12.d0*dpi)
-      w(ixO^S,p_)=12.d0
+      w(ixO^S,p_)=4.d0
     elsewhere
-      w(ixO^S,p_)=10.d0
+      w(ixO^S,p_)=1.d0
     endwhere
     ! straight line current
     B(ixO^S)=Busr/r(ixO^S)

@@ -197,7 +197,7 @@ contains
     double precision :: dtnew
 
     double precision :: mf(ixO^S,1:ndim),Te(ixI^S),rho(ixI^S),gradT(ixI^S)
-    double precision :: tmp(ixO^S),hfs(ixO^S)
+    double precision :: tmp(ixO^S),hfs(ixO^S),Blocal(1:ndim)
     double precision :: dtdiff_tcond,maxtmp2
     integer          :: idims,ix^D
 
@@ -206,24 +206,78 @@ contains
 
     ! B
     if(allocated(iw_mag)) then
-      {do ix^DB=ixOmin^DB,ixOmax^DB\}
-        if(B0field) then
-          ^D&mf({ix^D},^D)=w({ix^D},iw_mag(^D))+block%B0({ix^D},^D,0)\
-        else
-          ^D&mf({ix^D},^D)=w({ix^D},iw_mag(^D))\
-        end if
-        ! Bsquared
-        tmp(ix^D)=(^D&mf({ix^D},^D)**2+)
-        ! B_i**2/B**2
-        if(tmp(ix^D)/=0.d0) then
-          ^D&mf({ix^D},^D)=mf({ix^D},^D)**2/tmp({ix^D})\
-        else
-          ^D&mf({ix^D},^D)=1.d0\
-        end if
-     {end do\}
-   else
-     mf(ixO^S,1:ndim)=block%B0(ixO^S,1:ndim,0)**2
-   endif
+      if(B0field) then
+       {do ix^DB=ixOmin^DB,ixOmax^DB\}
+          ^D&blocal(^D)=w({ix^D},iw_mag(^D))+block%B0({ix^D},^D,0)\
+         {^IFTWOD
+          if(Blocal(1)/=0.d0) then
+            mf(ix^D,1)=sign(1.d0,Blocal(1))/dsqrt(1.d0+(Blocal(2)/Blocal(1))**2)
+          else
+            mf(ix^D,1)=0.d0
+          end if
+          if(Blocal(2)/=0.d0) then
+            mf(ix^D,2)=sign(1.d0,Blocal(2))/dsqrt(1.d0+(Blocal(1)/Blocal(2))**2)
+          else
+            mf(ix^D,2)=0.d0
+          end if
+         }
+         {^IFTHREED
+          if(Blocal(1)/=0.d0) then
+            mf(ix^D,1)=sign(1.d0,Blocal(1))/dsqrt(1.d0+(Blocal(2)/Blocal(1))**2+(Blocal(3)/Blocal(1))**2)
+          else
+            mf(ix^D,1)=0.d0
+          end if
+          if(Blocal(2)/=0.d0) then
+            mf(ix^D,2)=sign(1.d0,Blocal(2))/dsqrt(1.d0+(Blocal(1)/Blocal(2))**2+(Blocal(3)/Blocal(2))**2)
+          else
+            mf(ix^D,2)=0.d0
+          end if
+          if(Blocal(3)/=0.d0) then
+            mf(ix^D,3)=sign(1.d0,Blocal(3))/dsqrt(1.d0+(Blocal(1)/Blocal(3))**2+(Blocal(2)/Blocal(3))**2)
+          else
+            mf(ix^D,3)=0.d0
+          end if
+         }
+       {end do\}
+      else
+       {do ix^DB=ixOmin^DB,ixOmax^DB\}
+         {^IFTWOD
+          if(w(ix^D,iw_mag(1))/=0.d0) then
+            mf(ix^D,1)=sign(1.d0,w(ix^D,iw_mag(1)))/dsqrt(1.d0+(w(ix^D,iw_mag(2))/w(ix^D,iw_mag(1)))**2)
+          else
+            mf(ix^D,1)=0.d0
+          end if
+          if(w(ix^D,iw_mag(2))/=0.d0) then
+            mf(ix^D,2)=sign(1.d0,w(ix^D,iw_mag(2)))/dsqrt(1.d0+(w(ix^D,iw_mag(1))/w(ix^D,iw_mag(2)))**2)
+          else
+            mf(ix^D,2)=0.d0
+          end if
+         }
+         {^IFTHREED
+          if(w(ix^D,iw_mag(1))/=0.d0) then
+            mf(ix^D,1)=sign(1.d0,w(ix^D,iw_mag(1)))/dsqrt(1.d0+(w(ix^D,iw_mag(2))/w(ix^D,iw_mag(1)))**2+&
+              (w(ix^D,iw_mag(3))/w(ix^D,iw_mag(1)))**2)
+          else
+            mf(ix^D,1)=0.d0
+          end if
+          if(w(ix^D,iw_mag(2))/=0.d0) then
+            mf(ix^D,2)=sign(1.d0,w(ix^D,iw_mag(2)))/dsqrt(1.d0+(w(ix^D,iw_mag(1))/w(ix^D,iw_mag(2)))**2+&
+              (w(ix^D,iw_mag(3))/w(ix^D,iw_mag(2)))**2)
+          else
+            mf(ix^D,2)=0.d0
+          end if
+          if(w(ix^D,iw_mag(3))/=0.d0) then
+            mf(ix^D,3)=sign(1.d0,w(ix^D,iw_mag(3)))/dsqrt(1.d0+(w(ix^D,iw_mag(1))/w(ix^D,iw_mag(3)))**2+&
+              (w(ix^D,iw_mag(2))/w(ix^D,iw_mag(3)))**2)
+          else
+            mf(ix^D,3)=0.d0
+          end if
+         }
+       {end do\}
+      end if
+    else
+      mf(ixO^S,1:ndim)=block%B0(ixO^S,1:ndim,0)
+    end if
 
     dtnew=bigdouble
     call fl%get_rho(w,x,ixI^L,ixO^L,rho)
@@ -240,9 +294,9 @@ contains
         do idims=1,ndim
           call gradient(Te,ixI^L,ixO^L,idims,gradT)
           if(idims==1) then
-            hfs(ixO^S)=gradT(ixO^S)*sqrt(mf(ixO^S,idims))
+            hfs(ixO^S)=gradT(ixO^S)*mf(ixO^S,idims)
           else
-            hfs(ixO^S)=hfs(ixO^S)+gradT(ixO^S)*sqrt(mf(ixO^S,idims))
+            hfs(ixO^S)=hfs(ixO^S)+gradT(ixO^S)*mf(ixO^S,idims)
           end if
         end do
         ! kappa=kappa_Spizer/(1+4.2*l_mfpe/(T/|gradT.b|))
@@ -253,25 +307,14 @@ contains
       end if
     end if
 
-    if(slab_uniform) then
-      do idims=1,ndim
-        ! approximate thermal conduction flux: tc_k_para_i/rho/dx*B_i**2/B**2
-        maxtmp2=maxval(tmp(ixO^S)*mf(ixO^S,idims)/(rho(ixO^S)*dxlevel(idims)))
-        ! dt< dx_idim**2/((gamma-1)*tc_k_para_i/rho*B_i**2/B**2)
-        dtdiff_tcond=dxlevel(idims)/(tc_gamma_1*maxtmp2+smalldouble)
-        ! limit the time step
-        dtnew=min(dtnew,dtdiff_tcond)
-      end do
-    else
-      do idims=1,ndim
-        ! approximate thermal conduction flux: tc_k_para_i/rho/dx*B_i**2/B**2
-        maxtmp2=maxval(tmp(ixO^S)*mf(ixO^S,idims)/(rho(ixO^S)*block%ds(ixO^S,idims)**2))
-        ! dt< dx_idim**2/((gamma-1)*tc_k_para_i/rho*B_i**2/B**2)
-        dtdiff_tcond=1.d0/(tc_gamma_1*maxtmp2+smalldouble)
-        ! limit the time step
-        dtnew=min(dtnew,dtdiff_tcond)
-      end do
-    end if
+    do idims=1,ndim
+      ! approximate thermal conduction flux: tc_k_para_i/rho/dx*B_i**2/B**2
+      maxtmp2=maxval(tmp(ixO^S)*mf(ixO^S,idims)**2/(rho(ixO^S)*block%ds(ixO^S,idims)**2))
+      ! dt< dx_idim**2/((gamma-1)*tc_k_para_i/rho*B_i**2/B**2)
+      dtdiff_tcond=1.d0/(tc_gamma_1*maxtmp2+1.d-307)
+      ! limit the time step
+      dtnew=min(dtnew,dtdiff_tcond)
+    end do
     dtnew=dtnew/dble(ndim)
   end function get_tc_dt_mhd
 
@@ -370,38 +413,81 @@ contains
     !! qdd store the heat conduction energy changing rate
     double precision, dimension(ixI^S,1:ndim) :: mf,Bc,Bcf,gradT
     double precision, dimension(ixI^S) :: ka,kaf,ke,kef,qdd,Bnorm
-    double precision :: minq,maxq,qd(ixI^S,2**(ndim-1))
+    double precision :: minq,maxq,qd(ixI^S,2**(ndim-1)), Blocal(ndim)
     integer :: idims,idir,ix^D,ix^L,ixC^L,ixA^L,ixB^L
 
     ix^L=ixO^L^LADD1;
 
     ! T gradient at cell faces
-    ! B vector
+    ! b unit vector mf: magnetic field direction vector
     if(allocated(iw_mag)) then
       if(B0field) then
        {do ix^DB=ixmin^DB,ixmax^DB\}
-          ^D&mf({ix^D},^D)=w({ix^D},iw_mag(^D))+block%B0({ix^D},^D,0)\
-          ! |B|
-          Bnorm(ix^D)=dsqrt(^D&mf({ix^D},^D)**2+)
-          if(Bnorm(ix^D)/=0.d0) then
-            Bnorm(ix^D)=1.d0/Bnorm(ix^D)
+          ^D&blocal(^D)=w({ix^D},iw_mag(^D))+block%B0({ix^D},^D,0)\
+         {^IFTWOD
+          if(Blocal(1)/=0.d0) then
+            mf(ix^D,1)=sign(1.d0,Blocal(1))/dsqrt(1.d0+(Blocal(2)/Blocal(1))**2)
           else
-            Bnorm(ix^D)=bigdouble
+            mf(ix^D,1)=0.d0
           end if
-          ! b unit vector: magnetic field direction vector
-          ^D&mf({ix^D},^D)=mf({ix^D},^D)*Bnorm({ix^D})\
+          if(Blocal(2)/=0.d0) then
+            mf(ix^D,2)=sign(1.d0,Blocal(2))/dsqrt(1.d0+(Blocal(1)/Blocal(2))**2)
+          else
+            mf(ix^D,2)=0.d0
+          end if
+         }
+         {^IFTHREED
+          if(Blocal(1)/=0.d0) then
+            mf(ix^D,1)=sign(1.d0,Blocal(1))/dsqrt(1.d0+(Blocal(2)/Blocal(1))**2+(Blocal(3)/Blocal(1))**2)
+          else
+            mf(ix^D,1)=0.d0
+          end if
+          if(Blocal(2)/=0.d0) then
+            mf(ix^D,2)=sign(1.d0,Blocal(2))/dsqrt(1.d0+(Blocal(1)/Blocal(2))**2+(Blocal(3)/Blocal(2))**2)
+          else
+            mf(ix^D,2)=0.d0
+          end if
+          if(Blocal(3)/=0.d0) then
+            mf(ix^D,3)=sign(1.d0,Blocal(3))/dsqrt(1.d0+(Blocal(1)/Blocal(3))**2+(Blocal(2)/Blocal(3))**2)
+          else
+            mf(ix^D,3)=0.d0
+          end if
+         }
        {end do\}
       else
        {do ix^DB=ixmin^DB,ixmax^DB\}
-          ! |B|
-          Bnorm(ix^D)=dsqrt(^D&w({ix^D},iw_mag(^D))**2+)
-          if(Bnorm(ix^D)/=0.d0) then
-            Bnorm(ix^D)=1.d0/Bnorm(ix^D)
+         {^IFTWOD
+          if(w(ix^D,iw_mag(1))/=0.d0) then
+            mf(ix^D,1)=sign(1.d0,w(ix^D,iw_mag(1)))/dsqrt(1.d0+(w(ix^D,iw_mag(2))/w(ix^D,iw_mag(1)))**2)
           else
-            Bnorm(ix^D)=bigdouble
+            mf(ix^D,1)=0.d0
           end if
-          ! b unit vector: magnetic field direction vector
-          ^D&mf({ix^D},^D)=w({ix^D},iw_mag(^D))*Bnorm({ix^D})\
+          if(w(ix^D,iw_mag(2))/=0.d0) then
+            mf(ix^D,2)=sign(1.d0,w(ix^D,iw_mag(2)))/dsqrt(1.d0+(w(ix^D,iw_mag(1))/w(ix^D,iw_mag(2)))**2)
+          else
+            mf(ix^D,2)=0.d0
+          end if
+         }
+         {^IFTHREED
+          if(w(ix^D,iw_mag(1))/=0.d0) then
+            mf(ix^D,1)=sign(1.d0,w(ix^D,iw_mag(1)))/dsqrt(1.d0+(w(ix^D,iw_mag(2))/w(ix^D,iw_mag(1)))**2+&
+              (w(ix^D,iw_mag(3))/w(ix^D,iw_mag(1)))**2)
+          else
+            mf(ix^D,1)=0.d0
+          end if
+          if(w(ix^D,iw_mag(2))/=0.d0) then
+            mf(ix^D,2)=sign(1.d0,w(ix^D,iw_mag(2)))/dsqrt(1.d0+(w(ix^D,iw_mag(1))/w(ix^D,iw_mag(2)))**2+&
+              (w(ix^D,iw_mag(3))/w(ix^D,iw_mag(2)))**2)
+          else
+            mf(ix^D,2)=0.d0
+          end if
+          if(w(ix^D,iw_mag(3))/=0.d0) then
+            mf(ix^D,3)=sign(1.d0,w(ix^D,iw_mag(3)))/dsqrt(1.d0+(w(ix^D,iw_mag(1))/w(ix^D,iw_mag(3)))**2+&
+              (w(ix^D,iw_mag(2))/w(ix^D,iw_mag(3)))**2)
+          else
+            mf(ix^D,3)=0.d0
+          end if
+         }
        {end do\}
       end if
     else
@@ -471,7 +557,11 @@ contains
      }
       ! compensate with perpendicular conductivity
       if(fl%tc_perpendicular) then
-        qdd(ix^S)=fl%tc_k_perp*rho(ix^S)**2*Bnorm(ix^S)**2/dsqrt(Te(ix^S))
+        if(B0field) then
+          qdd(ix^S)=fl%tc_k_perp*rho(ix^S)**2/((^D&(w(ix^S,iw_mag(^D))+block%B0(ix^S,^D,0))**2+)*dsqrt(Te(ix^S))+smalldouble)
+        else
+          qdd(ix^S)=fl%tc_k_perp*rho(ix^S)**2/((^D&w(ix^S,iw_mag(^D))**2+)*dsqrt(Te(ix^S))+smalldouble)
+        end if
        {^IFTHREED
        {do ix^DB=ixCmin^DB,ixCmax^DB\}
           ke(ix^D)=0.125d0*(qdd(ix1,ix2,ix3)+qdd(ix1+1,ix2,ix3)&
