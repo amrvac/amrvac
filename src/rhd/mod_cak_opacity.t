@@ -12,6 +12,9 @@ module mod_cak_opacity
   integer, parameter :: iDmin = 2, iDmax = 16
   integer, parameter :: iTmin = 2, iTmax = 51
 
+  !> If user wants to read tables from different location than AMRVAC source
+  logical :: set_custom_tabledir = .false.
+
   !> The opacity tables are read once and stored globally
   double precision, public :: alpha_vals(iDmin:iDmax,iTmin:iTmax)
   double precision, public :: Qbar_vals(iDmin:iDmax,iTmin:iTmax)
@@ -25,15 +28,20 @@ module mod_cak_opacity
 contains
 
   !> This routine is called when the FLD radiation module is initialised.
-  subroutine init_cak_table(tabledir)
+  subroutine init_cak_table(tabledir,set_custom_tabledir)
 
-    character(len=*), intent(in) :: tabledir
+    character(len=*),  intent(in) :: tabledir
+    logical, optional, intent(in) :: set_custom_tabledir
 
     ! Local variables
     character(len=256) :: AMRVAC_DIR, path_table_dir
-    
-    call get_environment_variable("AMRVAC_DIR", AMRVAC_DIR)
-    path_table_dir = trim(AMRVAC_DIR)//"src/tables/CAK_tables/"//trim(tabledir)
+
+    if (present(set_custom_tabledir) .and. set_custom_tabledir) then
+      path_table_dir = trim(tabledir)
+    else
+      call get_environment_variable("AMRVAC_DIR", AMRVAC_DIR)
+      path_table_dir = trim(AMRVAC_DIR)//"/src/tables/CAK_tables/"//trim(tabledir)
+    endif
 
     call read_table(logD_list, logT_list, alpha_vals, trim(path_table_dir)//"/al_TD")
     call read_table(logD_list, logT_list, Qbar_vals, trim(path_table_dir)//"/Qb_TD")
