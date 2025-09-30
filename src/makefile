@@ -117,6 +117,7 @@ mod_cak_force.o: mod_constants.mod
 mod_cak_force.o: mod_global_parameters.mod
 mod_cak_force.o: mod_physics.mod
 mod_cak_force.o: mod_usr_methods.mod
+mod_cak_opacity.o: mod_comm_lib.mod
 mod_calculate_xw.o: mod_comm_lib.mod
 mod_calculate_xw.o: mod_geometry.mod
 mod_calculate_xw.o: mod_global_parameters.mod
