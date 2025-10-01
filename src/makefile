@@ -455,6 +455,7 @@ mod_nonlinear_roe.o: mod_physics_roe.mod
 mod_odeint.o: mod_comm_lib.mod
 mod_oneblock.o: mod_comm_lib.mod
 mod_oneblock.o: mod_global_parameters.mod
+mod_opal_opacity.o: mod_comm_lib.mod
 mod_particle_advect.o: mod_geometry.mod
 mod_particle_advect.o: mod_global_parameters.mod
 mod_particle_advect.o: mod_odeint.mod

@@ -124,11 +124,11 @@ contains
     ! Local variables
     integer :: low_D_index, up_D_index, low_T_index, up_T_index
 
-    if (D .gt. maxval(logD_list)) then
+    if (D > maxval(logD_list)) then
       ! print*, 'Extrapolating in logR'
       low_D_index = iDmax-1
       up_D_index = iDmax
-    elseif (D .lt. minval(logD_list)) then
+    elseif (D < minval(logD_list)) then
       ! print*, 'Extrapolating in logR'
       low_D_index = iDmin
       up_D_index = iDmin+1
@@ -136,11 +136,11 @@ contains
       call get_low_up_index(D, logD_list, iDmin, iDmax, low_D_index, up_D_index)
     endif
 
-    if (T .gt. maxval(logT_list)) then
+    if (T > maxval(logT_list)) then
       ! print*, 'Extrapolating in logT'
       low_T_index = iTmax-1
       up_T_index = iTmax
-    elseif (T .lt. minval(logT_list)) then
+    elseif (T < minval(logT_list)) then
       ! print*, 'Extrapolating in logT'
       low_T_index = iTmin
       up_T_index = iTmin+1
@@ -176,14 +176,14 @@ contains
     res = var_list - var_in
     
     ! Find all bounding values for given input
-    up_val = minval(res, MASK = res .ge. 0) + var_in
-    low_val = maxval(res, MASK = res .le. 0) + var_in
+    up_val = minval(res, MASK = res >= 0) + var_in
+    low_val = maxval(res, MASK = res <= 0) + var_in
 
     ! Find all bounding indices
     up_i = minloc(abs(var_list - up_val),1) + imin -1
     low_i = minloc(abs(var_list - low_val),1) + imin -1
 
-    if (up_i .eq. low_i) low_i = low_i - 1
+    if (up_i == low_i) low_i = low_i - 1
 
   end subroutine get_low_up_index
 
