@@ -12,8 +12,8 @@ module mod_cak_opacity
   private
 
   !> min and max indices for R,T-range in opacity table
-  integer, parameter :: iDmin = 2, iDmax = 16
-  integer, parameter :: iTmin = 2, iTmax = 51
+  integer, parameter :: iDmin = 2, iDmax = 51
+  integer, parameter :: iTmin = 2, iTmax = 21
 
   !> If user wants to read tables from different location than AMRVAC source
   !> NOTE: the tables should have same size as AMRVAC tables
