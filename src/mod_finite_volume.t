@@ -33,7 +33,7 @@ contains
     double precision :: fLC(ixI^S, nwflux), fRC(ixI^S, nwflux)
     double precision :: dxinv(1:ndim)
     integer :: idims, iw, ix^L, hxO^L
-    logical :: active
+    logical :: active=.false.
 
     associate(wCT=>sCT%w,wnew=>snew%w)
     ! Expand limits in each idims direction in which fluxes are added
@@ -144,7 +144,7 @@ contains
     double precision, dimension(ixO^S) :: inv_volume
     double precision, dimension(1:ndim) :: dxinv
     integer :: idims, iw, ix^D, hx^D, ix^L, hxO^L, ixC^L, ixCR^L, kxC^L, kxR^L, ii
-    logical :: active
+    logical :: active=.false.
     type(ct_velocity) :: vcts
 
     associate(wCT=>sCT%w, wnew=>snew%w)
