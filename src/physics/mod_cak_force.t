@@ -173,6 +173,8 @@ contains
     ! By default add source in unsplit fashion together with the fluxes
     if (qsourcesplit .eqv. cak_split) then
 
+      active = .true.
+
       ! Thomson force
       call get_gelectron(ixI^L,ixO^L,wCT,x,ge)
 
