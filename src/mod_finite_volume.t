@@ -1122,7 +1122,7 @@ contains
     double precision, dimension(ixI^S,1:nw) :: wLp, wRp
     double precision, dimension(ixI^S,1:ndim) :: x
 
-    integer            :: jxR^L, ixC^L, jxC^L, iw
+    integer            :: jxR^L, ixC^L, jxC^L, ixO^L, iw
     double precision   :: ldw(ixI^S), rdw(ixI^S), dwC(ixI^S)
     double precision   :: a2max
 
@@ -1160,7 +1160,9 @@ contains
           call phys_handle_small_values(.true.,wRp,x,ixI^L,ixR^L,'reconstruct right')
        end if
     case (limiter_ppm)
-       call PPMlimiter(ixI^L,ixM^LL,idims,w,w,wLp,wRp)
+       ixOmin^D=ixLmin^D+kr(idims,^D);
+       ixOmax^D=ixLmax^D;
+       call PPMlimiter(ixI^L,ixO^L,idims,w,w,wLp,wRp)
        if(fix_small_values) then
           call phys_handle_small_values(.true.,wLp,x,ixI^L,ixL^L,'reconstruct left')
           call phys_handle_small_values(.true.,wRp,x,ixI^L,ixR^L,'reconstruct right')
