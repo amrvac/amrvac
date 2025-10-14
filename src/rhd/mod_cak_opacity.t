@@ -6,11 +6,18 @@
 
 module mod_cak_opacity
 
+  use mod_comm_lib, only: mpistop
+
   implicit none
+  private
 
   !> min and max indices for R,T-range in opacity table
-  integer, parameter :: iDmin = 2, iDmax = 16
-  integer, parameter :: iTmin = 2, iTmax = 51
+  integer, parameter :: iDmin = 2, iDmax = 51
+  integer, parameter :: iTmin = 2, iTmax = 21
+
+  !> If user wants to read tables from different location than AMRVAC source
+  !> NOTE: the tables should have same size as AMRVAC tables
+  logical :: set_custom_tabledir = .false.
 
   !> The opacity tables are read once and stored globally
   double precision, public :: alpha_vals(iDmin:iDmax,iTmin:iTmax)
@@ -25,15 +32,20 @@ module mod_cak_opacity
 contains
 
   !> This routine is called when the FLD radiation module is initialised.
-  subroutine init_cak_table(tabledir)
+  subroutine init_cak_table(tabledir,set_custom_tabledir)
 
-    character(len=*), intent(in) :: tabledir
+    character(len=*),  intent(in) :: tabledir
+    logical, optional, intent(in) :: set_custom_tabledir
 
     ! Local variables
     character(len=256) :: AMRVAC_DIR, path_table_dir
-    
-    call get_environment_variable("AMRVAC_DIR", AMRVAC_DIR)
-    path_table_dir = trim(AMRVAC_DIR)//"src/tables/CAK_tables/"//trim(tabledir)
+
+    if (present(set_custom_tabledir) .and. set_custom_tabledir) then
+      path_table_dir = trim(tabledir)
+    else
+      call get_environment_variable("AMRVAC_DIR", AMRVAC_DIR)
+      path_table_dir = trim(AMRVAC_DIR)//"/src/tables/CAK_tables/"//trim(tabledir)
+    endif
 
     call read_table(logD_list, logT_list, alpha_vals, trim(path_table_dir)//"/al_TD")
     call read_table(logD_list, logT_list, Qbar_vals, trim(path_table_dir)//"/Qb_TD")
@@ -45,22 +57,23 @@ contains
   !> This subroutine calculates the opacity for a given temperature-density
   !> structure. Opacities are read from a table with given metalicity.
   subroutine set_cak_opacity(rho, temp, alpha_output, Qbar_output, Q0_output, kappae_output)
+
     double precision, intent(in)  :: rho, temp
     double precision, intent(out) :: alpha_output, Qbar_output, Q0_output, kappae_output
+
     ! Local variables
     double precision :: D_input, T_input, kappa_cak
+
+    if (temp <= 0.0d0) call mpistop('Input temperature < 0 in set_cak_opacity.')
+    if (rho <= 0.0d0) call mpistop('Input density < 0 in set_cak_opacity.')
 
     D_input = log10(rho)
     T_input = log10(temp)
 
-    D_input = min(-7.d0-1.d-5, D_input)
-    D_input = max(-16.d0+1.d-5, D_input)
-    T_input = min(5d0-1.d-5, T_input)
-    T_input = max(4d0+1.d-5, T_input)
-
     call get_val_comb(alpha_vals,Qbar_vals,Q0_vals,kappae_vals, &
                       logD_list, logT_list, D_input, T_input, &
                       alpha_output, Qbar_output, Q0_output, kappae_output)
+
   end subroutine set_cak_opacity
 
   !> This routine reads in 1-D (T,rho) values from a line opacity table and gives
@@ -72,27 +85,33 @@ contains
 
     ! Local variables
     character :: dum
-    integer   :: row, col
+    integer   :: row, col, funit=99
+    logical   :: alive
 
-    open(unit=1, status='old', file=trim(filename))
+    inquire(file=trim(filename), exist=alive)
+
+    if (alive) then
+      open(funit, file=trim(filename), status='unknown')
+    else
+      call mpistop('Table file you want to use cannot be found: '//filename)
+    endif
 
     ! Read temperature
-    read(1,*) dum, T(iTmin:iTmax)
+    read(funit,*) dum, T(iTmin:iTmax)
 
     ! Read rho and kappa
     do row = iDmin,iDmax
-      read(1,*) D(row), K(row,iTmin:iTmax)
+      read(funit,*) D(row), K(row,iTmin:iTmax)
     enddo
 
-    close(1)
+    close(funit)
 
   end subroutine read_table
 
   !> This subroutine looks in the table for the four couples (T,rho) surrounding
   !> a given input T and rho
   subroutine get_val_comb(K1_vals,K2_vals,K3_vals,K4_vals, &
-                     logD_list, logT_list, D, T, &
-                     K1, K2, K3, K4)
+                     logD_list, logT_list, D, T, K1, K2, K3, K4)
 
     double precision, intent(in)  :: K1_vals(iDmin:iDmax,iTmin:iTmax)
     double precision, intent(in)  :: K2_vals(iDmin:iDmax,iTmin:iTmax)
@@ -105,28 +124,28 @@ contains
     ! Local variables
     integer :: low_D_index, up_D_index, low_T_index, up_T_index
 
-    if (D .gt. maxval(logD_list)) then
-        ! print*, 'Extrapolating in logR'
-        low_D_index = iDmax-1
-        up_D_index = iDmax
-    elseif (D .lt. minval(logD_list)) then
-        ! print*, 'Extrapolating in logR'
-        low_D_index = iDmin
-        up_D_index = iDmin+1
+    if (D > maxval(logD_list)) then
+      ! print*, 'Extrapolating in logR'
+      low_D_index = iDmax-1
+      up_D_index = iDmax
+    elseif (D < minval(logD_list)) then
+      ! print*, 'Extrapolating in logR'
+      low_D_index = iDmin
+      up_D_index = iDmin+1
     else
-        call get_low_up_index(D, logD_list, iDmin, iDmax, low_D_index, up_D_index)
+      call get_low_up_index(D, logD_list, iDmin, iDmax, low_D_index, up_D_index)
     endif
 
-    if (T .gt. maxval(logT_list)) then
-        ! print*, 'Extrapolating in logT'
-        low_T_index = iTmax-1
-        up_T_index = iTmax
-    elseif (T .lt. minval(logT_list)) then
-        ! print*, 'Extrapolating in logT'
-        low_T_index = iTmin
-        up_T_index = iTmin+1
+    if (T > maxval(logT_list)) then
+      ! print*, 'Extrapolating in logT'
+      low_T_index = iTmax-1
+      up_T_index = iTmax
+    elseif (T < minval(logT_list)) then
+      ! print*, 'Extrapolating in logT'
+      low_T_index = iTmin
+      up_T_index = iTmin+1
     else
-        call get_low_up_index(T, logT_list, iTmin, iTmax, low_T_index, up_T_index)
+      call get_low_up_index(T, logT_list, iTmin, iTmax, low_T_index, up_T_index)
     endif
 
     call interpolate_KRT(low_D_index, up_D_index, low_T_index, up_T_index, &
@@ -140,7 +159,7 @@ contains
 
     call interpolate_KRT(low_D_index, up_D_index, low_T_index, up_T_index, &
                        logD_list, logT_list, K4_vals, D, T, K4)
-                       
+
   end subroutine get_val_comb
 
   !> This subroutine finds the indices in rho and T arrays of the two values
@@ -157,14 +176,14 @@ contains
     res = var_list - var_in
     
     ! Find all bounding values for given input
-    up_val = minval(res, MASK = res .ge. 0) + var_in
-    low_val = maxval(res, MASK = res .le. 0) + var_in
+    up_val = minval(res, MASK = res >= 0) + var_in
+    low_val = maxval(res, MASK = res <= 0) + var_in
 
     ! Find all bounding indices
     up_i = minloc(abs(var_list - up_val),1) + imin -1
     low_i = minloc(abs(var_list - low_val),1) + imin -1
 
-    if (up_i .eq. low_i) low_i = low_i - 1
+    if (up_i == low_i) low_i = low_i - 1
 
   end subroutine get_low_up_index
 
