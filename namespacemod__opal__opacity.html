@@ -90,39 +90,15 @@ $(function() {
 <table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="func-members" name="func-members"></a>
 Functions/Subroutines</h2></td></tr>
-<tr class="memitem:a7c35946184618fb6e09dc3257316b79d" id="r_a7c35946184618fb6e09dc3257316b79d"><td class="memItemLeft" align="right" valign="top">subroutine, public&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__opal__opacity.html#a7c35946184618fb6e09dc3257316b79d">init_opal_table</a> (tablename)</td></tr>
-<tr class="memdesc:a7c35946184618fb6e09dc3257316b79d"><td class="mdescLeft">&#160;</td><td class="mdescRight">This subroutine is called when the FLD radiation module is initialised. The OPAL tables for different helium abundances are read and interpolated.  <br /></td></tr>
-<tr class="separator:a7c35946184618fb6e09dc3257316b79d"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a17145ddb2d55ee60475132568935d5d7" id="r_a17145ddb2d55ee60475132568935d5d7"><td class="memItemLeft" align="right" valign="top">subroutine, public&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__opal__opacity.html#a17145ddb2d55ee60475132568935d5d7">init_opal_table</a> (tabledir, set_custom_tabledir)</td></tr>
+<tr class="memdesc:a17145ddb2d55ee60475132568935d5d7"><td class="mdescLeft">&#160;</td><td class="mdescRight">This subroutine is called when the FLD radiation module is initialised. The OPAL tables for different helium abundances are read and interpolated.  <br /></td></tr>
+<tr class="separator:a17145ddb2d55ee60475132568935d5d7"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a8a6b7571280893a4d5716c993e03c910" id="r_a8a6b7571280893a4d5716c993e03c910"><td class="memItemLeft" align="right" valign="top">subroutine, public&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__opal__opacity.html#a8a6b7571280893a4d5716c993e03c910">set_opal_opacity</a> (rho, temp, kappa)</td></tr>
 <tr class="memdesc:a8a6b7571280893a4d5716c993e03c910"><td class="mdescLeft">&#160;</td><td class="mdescRight">This subroutine calculates the opacity for a given temperature-density structure. Opacities are read from a table with given metalicity.  <br /></td></tr>
 <tr class="separator:a8a6b7571280893a4d5716c993e03c910"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a2e3fc2004c103b979c9932960110f18f" id="r_a2e3fc2004c103b979c9932960110f18f"><td class="memItemLeft" align="right" valign="top">subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__opal__opacity.html#a2e3fc2004c103b979c9932960110f18f">read_table</a> (r, t, k, filename)</td></tr>
-<tr class="memdesc:a2e3fc2004c103b979c9932960110f18f"><td class="mdescLeft">&#160;</td><td class="mdescRight">This routine reads in 1-D (rho,T) values from an opacity table and gives back as output the 1-D (rho,T) values and 2-D opacity.  <br /></td></tr>
-<tr class="separator:a2e3fc2004c103b979c9932960110f18f"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:aa92d1fe822b918fca0b5adfd9370dfb0" id="r_aa92d1fe822b918fca0b5adfd9370dfb0"><td class="memItemLeft" align="right" valign="top">subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__opal__opacity.html#aa92d1fe822b918fca0b5adfd9370dfb0">get_kappa</a> (<a class="el" href="namespacemod__opal__opacity.html#a7dd97579ace2715cddebb4296ab3101f">kappa_vals</a>, <a class="el" href="namespacemod__opal__opacity.html#adfd06183a398cb857517316b420f4bcd">logr_list</a>, <a class="el" href="namespacemod__opal__opacity.html#a5ba0d598d42df527a51470aa3f7f2bc0">logt_list</a>, r, t, k)</td></tr>
-<tr class="memdesc:aa92d1fe822b918fca0b5adfd9370dfb0"><td class="mdescLeft">&#160;</td><td class="mdescRight">This subroutine looks in the table for the four couples (T,rho) surrounding a given input T and rho.  <br /></td></tr>
-<tr class="separator:aa92d1fe822b918fca0b5adfd9370dfb0"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a96cc48d988f30d3f6658cb476a3af6e0" id="r_a96cc48d988f30d3f6658cb476a3af6e0"><td class="memItemLeft" align="right" valign="top">subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__opal__opacity.html#a96cc48d988f30d3f6658cb476a3af6e0">get_low_up_index</a> (var_in, var_list, imin, imax, low_i, up_i)</td></tr>
-<tr class="memdesc:a96cc48d988f30d3f6658cb476a3af6e0"><td class="mdescLeft">&#160;</td><td class="mdescRight">This subroutine finds the indices in rho and T arrays of the two values surrounding the input rho and T.  <br /></td></tr>
-<tr class="separator:a96cc48d988f30d3f6658cb476a3af6e0"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:af4d769378545aecbce1008fd6a122c46" id="r_af4d769378545aecbce1008fd6a122c46"><td class="memItemLeft" align="right" valign="top">subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__opal__opacity.html#af4d769378545aecbce1008fd6a122c46">interpolate_krt</a> (low_r, up_r, low_t, up_t, <a class="el" href="namespacemod__opal__opacity.html#adfd06183a398cb857517316b420f4bcd">logr_list</a>, <a class="el" href="namespacemod__opal__opacity.html#a5ba0d598d42df527a51470aa3f7f2bc0">logt_list</a>, <a class="el" href="namespacemod__opal__opacity.html#a7dd97579ace2715cddebb4296ab3101f">kappa_vals</a>, r, t, kappa_interp)</td></tr>
-<tr class="memdesc:af4d769378545aecbce1008fd6a122c46"><td class="mdescLeft">&#160;</td><td class="mdescRight">This subroutine does a bilinear interpolation in the R,T-plane.  <br /></td></tr>
-<tr class="separator:af4d769378545aecbce1008fd6a122c46"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ab8a5d134d864f9310accaf0b159015a9" id="r_ab8a5d134d864f9310accaf0b159015a9"><td class="memItemLeft" align="right" valign="top">subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__opal__opacity.html#ab8a5d134d864f9310accaf0b159015a9">interpolate1d</a> (x1, x2, x, y1, y2, y)</td></tr>
-<tr class="memdesc:ab8a5d134d864f9310accaf0b159015a9"><td class="mdescLeft">&#160;</td><td class="mdescRight">Interpolation in one dimension.  <br /></td></tr>
-<tr class="separator:ab8a5d134d864f9310accaf0b159015a9"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="var-members" name="var-members"></a>
 Variables</h2></td></tr>
-<tr class="memitem:a0b5b73032dc0aada43337f805fa6730b" id="r_a0b5b73032dc0aada43337f805fa6730b"><td class="memItemLeft" align="right" valign="top">integer, parameter&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__opal__opacity.html#a0b5b73032dc0aada43337f805fa6730b">irmin</a> = 2</td></tr>
-<tr class="memdesc:a0b5b73032dc0aada43337f805fa6730b"><td class="mdescLeft">&#160;</td><td class="mdescRight">min and max indices for R,T-range in opacity table  <br /></td></tr>
-<tr class="separator:a0b5b73032dc0aada43337f805fa6730b"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ac311a23b8ecdb6950175a41cd7161a9a" id="r_ac311a23b8ecdb6950175a41cd7161a9a"><td class="memItemLeft" align="right" valign="top">integer, parameter&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__opal__opacity.html#ac311a23b8ecdb6950175a41cd7161a9a">irmax</a> = 20</td></tr>
-<tr class="separator:ac311a23b8ecdb6950175a41cd7161a9a"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ad211582a0b24f167a0c3ae534b6ec311" id="r_ad211582a0b24f167a0c3ae534b6ec311"><td class="memItemLeft" align="right" valign="top">integer, parameter&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__opal__opacity.html#ad211582a0b24f167a0c3ae534b6ec311">itmin</a> = 7</td></tr>
-<tr class="separator:ad211582a0b24f167a0c3ae534b6ec311"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ae9788169c3ae3fd9c86a4d11b2f2984e" id="r_ae9788169c3ae3fd9c86a4d11b2f2984e"><td class="memItemLeft" align="right" valign="top">integer, parameter&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__opal__opacity.html#ae9788169c3ae3fd9c86a4d11b2f2984e">itmax</a> = 76</td></tr>
-<tr class="separator:ae9788169c3ae3fd9c86a4d11b2f2984e"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a7dd97579ace2715cddebb4296ab3101f" id="r_a7dd97579ace2715cddebb4296ab3101f"><td class="memItemLeft" align="right" valign="top">double precision, dimension(itmin:itmax, irmin:irmax), public&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__opal__opacity.html#a7dd97579ace2715cddebb4296ab3101f">kappa_vals</a></td></tr>
 <tr class="memdesc:a7dd97579ace2715cddebb4296ab3101f"><td class="mdescLeft">&#160;</td><td class="mdescRight">The opacity tables are read once and stored globally in Kappa_vals.  <br /></td></tr>
 <tr class="separator:a7dd97579ace2715cddebb4296ab3101f"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -134,132 +110,8 @@ Variables</h2></td></tr>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>This module reads in Rosseland-mean opacities from OPAL tables. Table opacity values are given in base 10 logarithm and are a function of mass density (R) and temperature (T), which are also both given in base 10 logarithm. </p>
 </div><h2 class="groupheader">Function/Subroutine Documentation</h2>
-<a id="aa92d1fe822b918fca0b5adfd9370dfb0" name="aa92d1fe822b918fca0b5adfd9370dfb0"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#aa92d1fe822b918fca0b5adfd9370dfb0">&#9670;&#160;</a></span>get_kappa()</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">subroutine mod_opal_opacity::get_kappa </td>
-          <td>(</td>
-          <td class="paramtype">double precision, dimension(itmin:itmax,irmin:irmax), intent(in)&#160;</td>
-          <td class="paramname"><em>kappa_vals</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">double precision, dimension(irmin:irmax), intent(in)&#160;</td>
-          <td class="paramname"><em>logr_list</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">double precision, dimension(itmin:itmax), intent(in)&#160;</td>
-          <td class="paramname"><em>logt_list</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">double precision, intent(in)&#160;</td>
-          <td class="paramname"><em>r</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">double precision, intent(in)&#160;</td>
-          <td class="paramname"><em>t</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">double precision, intent(out)&#160;</td>
-          <td class="paramname"><em>k</em>&#160;</td>
-        </tr>
-        <tr>
-          <td></td>
-          <td>)</td>
-          <td></td><td></td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>This subroutine looks in the table for the four couples (T,rho) surrounding a given input T and rho. </p>
-
-<p class="definition">Definition at line <a class="el" href="mod__opal__opacity_8t_source.html#l00102">102</a> of file <a class="el" href="mod__opal__opacity_8t_source.html">mod_opal_opacity.t</a>.</p>
-<div class="dynheader">
-Here is the call graph for this function:</div>
-<div class="dyncontent">
-<div class="center"><img src="namespacemod__opal__opacity_aa92d1fe822b918fca0b5adfd9370dfb0_cgraph.png" border="0" usemap="#anamespacemod__opal__opacity_aa92d1fe822b918fca0b5adfd9370dfb0_cgraph" alt=""/></div>
-<map name="anamespacemod__opal__opacity_aa92d1fe822b918fca0b5adfd9370dfb0_cgraph" id="anamespacemod__opal__opacity_aa92d1fe822b918fca0b5adfd9370dfb0_cgraph">
-<area shape="rect" title="This subroutine looks in the table for the four couples (T,rho) surrounding a given input T and rho." alt="" coords="5,35,175,75"/>
-<area shape="rect" href="namespacemod__opal__opacity.html#a96cc48d988f30d3f6658cb476a3af6e0" title="This subroutine finds the indices in rho and T arrays of the two values surrounding the input rho and..." alt="" coords="260,5,429,45"/>
-<area shape="poly" title=" " alt="" coords="175,42,246,34,247,39,175,48"/>
-<area shape="rect" href="namespacemod__opal__opacity.html#af4d769378545aecbce1008fd6a122c46" title="This subroutine does a bilinear interpolation in the R,T&#45;plane." alt="" coords="223,70,467,95"/>
-<area shape="poly" title=" " alt="" coords="175,61,216,66,215,71,175,67"/>
-</map>
-</div>
-
-</div>
-</div>
-<a id="a96cc48d988f30d3f6658cb476a3af6e0" name="a96cc48d988f30d3f6658cb476a3af6e0"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a96cc48d988f30d3f6658cb476a3af6e0">&#9670;&#160;</a></span>get_low_up_index()</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">subroutine mod_opal_opacity::get_low_up_index </td>
-          <td>(</td>
-          <td class="paramtype">double precision, intent(in)&#160;</td>
-          <td class="paramname"><em>var_in</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">double precision, dimension(imin:imax), intent(in)&#160;</td>
-          <td class="paramname"><em>var_list</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">integer, intent(in)&#160;</td>
-          <td class="paramname"><em>imin</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">integer, intent(in)&#160;</td>
-          <td class="paramname"><em>imax</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">integer, intent(out)&#160;</td>
-          <td class="paramname"><em>low_i</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">integer, intent(out)&#160;</td>
-          <td class="paramname"><em>up_i</em>&#160;</td>
-        </tr>
-        <tr>
-          <td></td>
-          <td>)</td>
-          <td></td><td></td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>This subroutine finds the indices in rho and T arrays of the two values surrounding the input rho and T. </p>
-
-<p class="definition">Definition at line <a class="el" href="mod__opal__opacity_8t_source.html#l00143">143</a> of file <a class="el" href="mod__opal__opacity_8t_source.html">mod_opal_opacity.t</a>.</p>
-
-</div>
-</div>
-<a id="a7c35946184618fb6e09dc3257316b79d" name="a7c35946184618fb6e09dc3257316b79d"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a7c35946184618fb6e09dc3257316b79d">&#9670;&#160;</a></span>init_opal_table()</h2>
+<a id="a17145ddb2d55ee60475132568935d5d7" name="a17145ddb2d55ee60475132568935d5d7"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a17145ddb2d55ee60475132568935d5d7">&#9670;&#160;</a></span>init_opal_table()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -268,215 +120,25 @@ Here is the call graph for this function:</div>
           <td class="memname">subroutine, public mod_opal_opacity::init_opal_table </td>
           <td>(</td>
           <td class="paramtype">character(len=*), intent(in)&#160;</td>
-          <td class="paramname"><em>tablename</em></td><td>)</td>
+          <td class="paramname"><em>tabledir</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
           <td></td>
+          <td class="paramtype">logical, intent(in), optional&#160;</td>
+          <td class="paramname"><em>set_custom_tabledir</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
         </tr>
       </table>
 </div><div class="memdoc">
 
 <p>This subroutine is called when the FLD radiation module is initialised. The OPAL tables for different helium abundances are read and interpolated. </p>
 
-<p class="definition">Definition at line <a class="el" href="mod__opal__opacity_8t_source.html#l00023">23</a> of file <a class="el" href="mod__opal__opacity_8t_source.html">mod_opal_opacity.t</a>.</p>
-<div class="dynheader">
-Here is the call graph for this function:</div>
-<div class="dyncontent">
-<div class="center"><img src="namespacemod__opal__opacity_a7c35946184618fb6e09dc3257316b79d_cgraph.png" border="0" usemap="#anamespacemod__opal__opacity_a7c35946184618fb6e09dc3257316b79d_cgraph" alt=""/></div>
-<map name="anamespacemod__opal__opacity_a7c35946184618fb6e09dc3257316b79d_cgraph" id="anamespacemod__opal__opacity_a7c35946184618fb6e09dc3257316b79d_cgraph">
-<area shape="rect" title="This subroutine is called when the FLD radiation module is initialised. The OPAL tables for different..." alt="" coords="5,5,175,45"/>
-<area shape="rect" href="namespacemod__opal__opacity.html#a2e3fc2004c103b979c9932960110f18f" title="This routine reads in 1&#45;D (rho,T) values from an opacity table and gives back as output the 1&#45;D (rho,..." alt="" coords="223,5,400,45"/>
-<area shape="poly" title=" " alt="" coords="175,23,209,23,209,28,175,28"/>
-</map>
-</div>
-
-</div>
-</div>
-<a id="ab8a5d134d864f9310accaf0b159015a9" name="ab8a5d134d864f9310accaf0b159015a9"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ab8a5d134d864f9310accaf0b159015a9">&#9670;&#160;</a></span>interpolate1d()</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">subroutine mod_opal_opacity::interpolate1d </td>
-          <td>(</td>
-          <td class="paramtype">double precision, intent(in)&#160;</td>
-          <td class="paramname"><em>x1</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">double precision, intent(in)&#160;</td>
-          <td class="paramname"><em>x2</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">double precision, intent(in)&#160;</td>
-          <td class="paramname"><em>x</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">double precision, intent(in)&#160;</td>
-          <td class="paramname"><em>y1</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">double precision, intent(in)&#160;</td>
-          <td class="paramname"><em>y2</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">double precision, intent(out)&#160;</td>
-          <td class="paramname"><em>y</em>&#160;</td>
-        </tr>
-        <tr>
-          <td></td>
-          <td>)</td>
-          <td></td><td></td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>Interpolation in one dimension. </p>
-
-<p class="definition">Definition at line <a class="el" href="mod__opal__opacity_8t_source.html#l00212">212</a> of file <a class="el" href="mod__opal__opacity_8t_source.html">mod_opal_opacity.t</a>.</p>
-
-</div>
-</div>
-<a id="af4d769378545aecbce1008fd6a122c46" name="af4d769378545aecbce1008fd6a122c46"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#af4d769378545aecbce1008fd6a122c46">&#9670;&#160;</a></span>interpolate_krt()</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">subroutine mod_opal_opacity::interpolate_krt </td>
-          <td>(</td>
-          <td class="paramtype">integer, intent(in)&#160;</td>
-          <td class="paramname"><em>low_r</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">integer, intent(in)&#160;</td>
-          <td class="paramname"><em>up_r</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">integer, intent(in)&#160;</td>
-          <td class="paramname"><em>low_t</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">integer, intent(in)&#160;</td>
-          <td class="paramname"><em>up_t</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">double precision, dimension(irmin:irmax), intent(in)&#160;</td>
-          <td class="paramname"><em>logr_list</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">double precision, dimension(itmin:itmax), intent(in)&#160;</td>
-          <td class="paramname"><em>logt_list</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">double precision, dimension(itmin:itmax,irmin:irmax), intent(in)&#160;</td>
-          <td class="paramname"><em>kappa_vals</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">double precision, intent(in)&#160;</td>
-          <td class="paramname"><em>r</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">double precision, intent(in)&#160;</td>
-          <td class="paramname"><em>t</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">double precision, intent(out)&#160;</td>
-          <td class="paramname"><em>kappa_interp</em>&#160;</td>
-        </tr>
-        <tr>
-          <td></td>
-          <td>)</td>
-          <td></td><td></td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>This subroutine does a bilinear interpolation in the R,T-plane. </p>
-
-<p class="definition">Definition at line <a class="el" href="mod__opal__opacity_8t_source.html#l00167">167</a> of file <a class="el" href="mod__opal__opacity_8t_source.html">mod_opal_opacity.t</a>.</p>
-<div class="dynheader">
-Here is the call graph for this function:</div>
-<div class="dyncontent">
-<div class="center"><img src="namespacemod__opal__opacity_af4d769378545aecbce1008fd6a122c46_cgraph.png" border="0" usemap="#anamespacemod__opal__opacity_af4d769378545aecbce1008fd6a122c46_cgraph" alt=""/></div>
-<map name="anamespacemod__opal__opacity_af4d769378545aecbce1008fd6a122c46_cgraph" id="anamespacemod__opal__opacity_af4d769378545aecbce1008fd6a122c46_cgraph">
-<area shape="rect" title="This subroutine does a bilinear interpolation in the R,T&#45;plane." alt="" coords="5,5,249,31"/>
-<area shape="rect" href="namespacemod__opal__opacity.html#ab8a5d134d864f9310accaf0b159015a9" title="Interpolation in one dimension." alt="" coords="297,5,532,31"/>
-<area shape="poly" title=" " alt="" coords="249,15,283,15,283,21,249,21"/>
-</map>
-</div>
-
-</div>
-</div>
-<a id="a2e3fc2004c103b979c9932960110f18f" name="a2e3fc2004c103b979c9932960110f18f"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a2e3fc2004c103b979c9932960110f18f">&#9670;&#160;</a></span>read_table()</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">subroutine mod_opal_opacity::read_table </td>
-          <td>(</td>
-          <td class="paramtype">double precision, dimension(irmin:irmax), intent(out)&#160;</td>
-          <td class="paramname"><em>r</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">double precision, dimension(itmin:itmax), intent(out)&#160;</td>
-          <td class="paramname"><em>t</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">double precision, dimension(itmin:itmax,irmin:irmax), intent(out)&#160;</td>
-          <td class="paramname"><em>k</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">character(*), intent(in)&#160;</td>
-          <td class="paramname"><em>filename</em>&#160;</td>
-        </tr>
-        <tr>
-          <td></td>
-          <td>)</td>
-          <td></td><td></td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>This routine reads in 1-D (rho,T) values from an opacity table and gives back as output the 1-D (rho,T) values and 2-D opacity. </p>
-
-<p class="definition">Definition at line <a class="el" href="mod__opal__opacity_8t_source.html#l00071">71</a> of file <a class="el" href="mod__opal__opacity_8t_source.html">mod_opal_opacity.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__opal__opacity_8t_source.html#l00031">31</a> of file <a class="el" href="mod__opal__opacity_8t_source.html">mod_opal_opacity.t</a>.</p>
 
 </div>
 </div>
@@ -514,14 +176,14 @@ Here is the call graph for this function:</div>
 
 <p>This subroutine calculates the opacity for a given temperature-density structure. Opacities are read from a table with given metalicity. </p>
 
-<p class="definition">Definition at line <a class="el" href="mod__opal__opacity_8t_source.html#l00041">41</a> of file <a class="el" href="mod__opal__opacity_8t_source.html">mod_opal_opacity.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__opal__opacity_8t_source.html#l00053">53</a> of file <a class="el" href="mod__opal__opacity_8t_source.html">mod_opal_opacity.t</a>.</p>
 <div class="dynheader">
 Here is the call graph for this function:</div>
 <div class="dyncontent">
 <div class="center"><img src="namespacemod__opal__opacity_a8a6b7571280893a4d5716c993e03c910_cgraph.png" border="0" usemap="#anamespacemod__opal__opacity_a8a6b7571280893a4d5716c993e03c910_cgraph" alt=""/></div>
 <map name="anamespacemod__opal__opacity_a8a6b7571280893a4d5716c993e03c910_cgraph" id="anamespacemod__opal__opacity_a8a6b7571280893a4d5716c993e03c910_cgraph">
 <area shape="rect" title="This subroutine calculates the opacity for a given temperature&#45;density structure. Opacities are read ..." alt="" coords="5,5,173,45"/>
-<area shape="rect" href="namespacemod__opal__opacity.html#aa92d1fe822b918fca0b5adfd9370dfb0" title="This subroutine looks in the table for the four couples (T,rho) surrounding a given input T and rho." alt="" coords="221,5,391,45"/>
+<area shape="rect" href="namespacemod__comm__lib.html#a9b6f1a8fd13bc5670e3b426151c34048" title="Exit MPI&#45;AMRVAC with an error message." alt="" coords="221,13,404,38"/>
 <area shape="poly" title=" " alt="" coords="173,23,208,23,208,28,173,28"/>
 </map>
 </div>
@@ -529,72 +191,6 @@ Here is the call graph for this function:</div>
 </div>
 </div>
 <h2 class="groupheader">Variable Documentation</h2>
-<a id="ac311a23b8ecdb6950175a41cd7161a9a" name="ac311a23b8ecdb6950175a41cd7161a9a"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ac311a23b8ecdb6950175a41cd7161a9a">&#9670;&#160;</a></span>irmax</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">integer, parameter mod_opal_opacity::irmax = 20</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p class="definition">Definition at line <a class="el" href="mod__opal__opacity_8t_source.html#l00009">9</a> of file <a class="el" href="mod__opal__opacity_8t_source.html">mod_opal_opacity.t</a>.</p>
-
-</div>
-</div>
-<a id="a0b5b73032dc0aada43337f805fa6730b" name="a0b5b73032dc0aada43337f805fa6730b"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a0b5b73032dc0aada43337f805fa6730b">&#9670;&#160;</a></span>irmin</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">integer, parameter mod_opal_opacity::irmin = 2</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>min and max indices for R,T-range in opacity table </p>
-
-<p class="definition">Definition at line <a class="el" href="mod__opal__opacity_8t_source.html#l00009">9</a> of file <a class="el" href="mod__opal__opacity_8t_source.html">mod_opal_opacity.t</a>.</p>
-
-</div>
-</div>
-<a id="ae9788169c3ae3fd9c86a4d11b2f2984e" name="ae9788169c3ae3fd9c86a4d11b2f2984e"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ae9788169c3ae3fd9c86a4d11b2f2984e">&#9670;&#160;</a></span>itmax</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">integer, parameter mod_opal_opacity::itmax = 76</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p class="definition">Definition at line <a class="el" href="mod__opal__opacity_8t_source.html#l00010">10</a> of file <a class="el" href="mod__opal__opacity_8t_source.html">mod_opal_opacity.t</a>.</p>
-
-</div>
-</div>
-<a id="ad211582a0b24f167a0c3ae534b6ec311" name="ad211582a0b24f167a0c3ae534b6ec311"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ad211582a0b24f167a0c3ae534b6ec311">&#9670;&#160;</a></span>itmin</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">integer, parameter mod_opal_opacity::itmin = 7</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p class="definition">Definition at line <a class="el" href="mod__opal__opacity_8t_source.html#l00010">10</a> of file <a class="el" href="mod__opal__opacity_8t_source.html">mod_opal_opacity.t</a>.</p>
-
-</div>
-</div>
 <a id="a7dd97579ace2715cddebb4296ab3101f" name="a7dd97579ace2715cddebb4296ab3101f"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a7dd97579ace2715cddebb4296ab3101f">&#9670;&#160;</a></span>kappa_vals</h2>
 
@@ -609,7 +205,7 @@ Here is the call graph for this function:</div>
 
 <p>The opacity tables are read once and stored globally in Kappa_vals. </p>
 
-<p class="definition">Definition at line <a class="el" href="mod__opal__opacity_8t_source.html#l00013">13</a> of file <a class="el" href="mod__opal__opacity_8t_source.html">mod_opal_opacity.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__opal__opacity_8t_source.html#l00021">21</a> of file <a class="el" href="mod__opal__opacity_8t_source.html">mod_opal_opacity.t</a>.</p>
 
 </div>
 </div>
@@ -625,7 +221,7 @@ Here is the call graph for this function:</div>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="mod__opal__opacity_8t_source.html#l00014">14</a> of file <a class="el" href="mod__opal__opacity_8t_source.html">mod_opal_opacity.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__opal__opacity_8t_source.html#l00022">22</a> of file <a class="el" href="mod__opal__opacity_8t_source.html">mod_opal_opacity.t</a>.</p>
 
 </div>
 </div>
@@ -641,7 +237,7 @@ Here is the call graph for this function:</div>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="mod__opal__opacity_8t_source.html#l00014">14</a> of file <a class="el" href="mod__opal__opacity_8t_source.html">mod_opal_opacity.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__opal__opacity_8t_source.html#l00022">22</a> of file <a class="el" href="mod__opal__opacity_8t_source.html">mod_opal_opacity.t</a>.</p>
 
 </div>
 </div>

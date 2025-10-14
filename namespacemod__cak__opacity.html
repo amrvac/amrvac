@@ -90,39 +90,15 @@ $(function() {
 <table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="func-members" name="func-members"></a>
 Functions/Subroutines</h2></td></tr>
-<tr class="memitem:ab76be223f19944b21fb8ecd24d5c59d4" id="r_ab76be223f19944b21fb8ecd24d5c59d4"><td class="memItemLeft" align="right" valign="top">subroutine, public&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__cak__opacity.html#ab76be223f19944b21fb8ecd24d5c59d4">init_cak_table</a> (tabledir)</td></tr>
-<tr class="memdesc:ab76be223f19944b21fb8ecd24d5c59d4"><td class="mdescLeft">&#160;</td><td class="mdescRight">This routine is called when the FLD radiation module is initialised.  <br /></td></tr>
-<tr class="separator:ab76be223f19944b21fb8ecd24d5c59d4"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a59858c738465ef91f00f5afa78cdf8c8" id="r_a59858c738465ef91f00f5afa78cdf8c8"><td class="memItemLeft" align="right" valign="top">subroutine, public&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__cak__opacity.html#a59858c738465ef91f00f5afa78cdf8c8">init_cak_table</a> (tabledir, set_custom_tabledir)</td></tr>
+<tr class="memdesc:a59858c738465ef91f00f5afa78cdf8c8"><td class="mdescLeft">&#160;</td><td class="mdescRight">This routine is called when the FLD radiation module is initialised.  <br /></td></tr>
+<tr class="separator:a59858c738465ef91f00f5afa78cdf8c8"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ab627a656718bc3ac50a1c5a7dc3339d3" id="r_ab627a656718bc3ac50a1c5a7dc3339d3"><td class="memItemLeft" align="right" valign="top">subroutine, public&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__cak__opacity.html#ab627a656718bc3ac50a1c5a7dc3339d3">set_cak_opacity</a> (rho, temp, alpha_output, qbar_output, q0_output, kappae_output)</td></tr>
 <tr class="memdesc:ab627a656718bc3ac50a1c5a7dc3339d3"><td class="mdescLeft">&#160;</td><td class="mdescRight">This subroutine calculates the opacity for a given temperature-density structure. Opacities are read from a table with given metalicity.  <br /></td></tr>
 <tr class="separator:ab627a656718bc3ac50a1c5a7dc3339d3"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ad328fa1388b084ee7b0d64a34a298c02" id="r_ad328fa1388b084ee7b0d64a34a298c02"><td class="memItemLeft" align="right" valign="top">subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__cak__opacity.html#ad328fa1388b084ee7b0d64a34a298c02">read_table</a> (d, t, k, filename)</td></tr>
-<tr class="memdesc:ad328fa1388b084ee7b0d64a34a298c02"><td class="mdescLeft">&#160;</td><td class="mdescRight">This routine reads in 1-D (T,rho) values from a line opacity table and gives back as output the 1-D (T,rho) values and 2-D line opacity value.  <br /></td></tr>
-<tr class="separator:ad328fa1388b084ee7b0d64a34a298c02"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ae4f16e91c29300e844f7fee61db8e6c7" id="r_ae4f16e91c29300e844f7fee61db8e6c7"><td class="memItemLeft" align="right" valign="top">subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__cak__opacity.html#ae4f16e91c29300e844f7fee61db8e6c7">get_val_comb</a> (k1_vals, k2_vals, k3_vals, k4_vals, <a class="el" href="namespacemod__cak__opacity.html#a88547621c27a45d21e100abfc8df586b">logd_list</a>, <a class="el" href="namespacemod__cak__opacity.html#a1eb38226ec6233ecec7e54bc60be9b32">logt_list</a>, d, t, k1, k2, k3, k4)</td></tr>
-<tr class="memdesc:ae4f16e91c29300e844f7fee61db8e6c7"><td class="mdescLeft">&#160;</td><td class="mdescRight">This subroutine looks in the table for the four couples (T,rho) surrounding a given input T and rho.  <br /></td></tr>
-<tr class="separator:ae4f16e91c29300e844f7fee61db8e6c7"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:aa312932bbdd1afc070d36a7059ad1594" id="r_aa312932bbdd1afc070d36a7059ad1594"><td class="memItemLeft" align="right" valign="top">subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__cak__opacity.html#aa312932bbdd1afc070d36a7059ad1594">get_low_up_index</a> (var_in, var_list, imin, imax, low_i, up_i)</td></tr>
-<tr class="memdesc:aa312932bbdd1afc070d36a7059ad1594"><td class="mdescLeft">&#160;</td><td class="mdescRight">This subroutine finds the indices in rho and T arrays of the two values surrounding the input rho and T.  <br /></td></tr>
-<tr class="separator:aa312932bbdd1afc070d36a7059ad1594"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a6efa0f8557c900faaf985fe46449759a" id="r_a6efa0f8557c900faaf985fe46449759a"><td class="memItemLeft" align="right" valign="top">subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__cak__opacity.html#a6efa0f8557c900faaf985fe46449759a">interpolate_krt</a> (low_r, up_r, low_t, up_t, <a class="el" href="namespacemod__cak__opacity.html#a88547621c27a45d21e100abfc8df586b">logd_list</a>, <a class="el" href="namespacemod__cak__opacity.html#a1eb38226ec6233ecec7e54bc60be9b32">logt_list</a>, kappa_vals, d, t, kappa_interp)</td></tr>
-<tr class="memdesc:a6efa0f8557c900faaf985fe46449759a"><td class="mdescLeft">&#160;</td><td class="mdescRight">This subroutine does a bilinear interpolation in the R,T-plane.  <br /></td></tr>
-<tr class="separator:a6efa0f8557c900faaf985fe46449759a"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ab3d50f9f7b672fcf93057cacc2728306" id="r_ab3d50f9f7b672fcf93057cacc2728306"><td class="memItemLeft" align="right" valign="top">subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__cak__opacity.html#ab3d50f9f7b672fcf93057cacc2728306">interpolate1d</a> (x1, x2, x, y1, y2, y)</td></tr>
-<tr class="memdesc:ab3d50f9f7b672fcf93057cacc2728306"><td class="mdescLeft">&#160;</td><td class="mdescRight">Interpolation in one dimension.  <br /></td></tr>
-<tr class="separator:ab3d50f9f7b672fcf93057cacc2728306"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="var-members" name="var-members"></a>
 Variables</h2></td></tr>
-<tr class="memitem:a56c9c06a8c97e3393fd91924600f833e" id="r_a56c9c06a8c97e3393fd91924600f833e"><td class="memItemLeft" align="right" valign="top">integer, parameter&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__cak__opacity.html#a56c9c06a8c97e3393fd91924600f833e">idmin</a> = 2</td></tr>
-<tr class="memdesc:a56c9c06a8c97e3393fd91924600f833e"><td class="mdescLeft">&#160;</td><td class="mdescRight">min and max indices for R,T-range in opacity table  <br /></td></tr>
-<tr class="separator:a56c9c06a8c97e3393fd91924600f833e"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a82a13ebbbc1481184a4d7ed0753b46b2" id="r_a82a13ebbbc1481184a4d7ed0753b46b2"><td class="memItemLeft" align="right" valign="top">integer, parameter&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__cak__opacity.html#a82a13ebbbc1481184a4d7ed0753b46b2">idmax</a> = 16</td></tr>
-<tr class="separator:a82a13ebbbc1481184a4d7ed0753b46b2"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a6f0d94ffeb85f5e725ddd6567f1a6881" id="r_a6f0d94ffeb85f5e725ddd6567f1a6881"><td class="memItemLeft" align="right" valign="top">integer, parameter&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__cak__opacity.html#a6f0d94ffeb85f5e725ddd6567f1a6881">itmin</a> = 2</td></tr>
-<tr class="separator:a6f0d94ffeb85f5e725ddd6567f1a6881"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:adc5864cf7a238847cd4a44e294de6c17" id="r_adc5864cf7a238847cd4a44e294de6c17"><td class="memItemLeft" align="right" valign="top">integer, parameter&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__cak__opacity.html#adc5864cf7a238847cd4a44e294de6c17">itmax</a> = 51</td></tr>
-<tr class="separator:adc5864cf7a238847cd4a44e294de6c17"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a5b3026e55e58ac2d02958615107a93e8" id="r_a5b3026e55e58ac2d02958615107a93e8"><td class="memItemLeft" align="right" valign="top">double precision, dimension(idmin:idmax, itmin:itmax), public&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__cak__opacity.html#a5b3026e55e58ac2d02958615107a93e8">alpha_vals</a></td></tr>
 <tr class="memdesc:a5b3026e55e58ac2d02958615107a93e8"><td class="mdescLeft">&#160;</td><td class="mdescRight">The opacity tables are read once and stored globally.  <br /></td></tr>
 <tr class="separator:a5b3026e55e58ac2d02958615107a93e8"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -140,168 +116,8 @@ Variables</h2></td></tr>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>This module reads in CAK line opacities in the Gayley (1995) notation (alpha, Qbar, Q0, kappae) from corresponding tables. Tabulated values assume LTE conditions and are a function of mass density (D) and temperature (T), which are both given in base 10 logarithm. The construction of the tables is outlined in Poniatowski+ (2021), A&amp;A, 667. </p>
 </div><h2 class="groupheader">Function/Subroutine Documentation</h2>
-<a id="aa312932bbdd1afc070d36a7059ad1594" name="aa312932bbdd1afc070d36a7059ad1594"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#aa312932bbdd1afc070d36a7059ad1594">&#9670;&#160;</a></span>get_low_up_index()</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">subroutine mod_cak_opacity::get_low_up_index </td>
-          <td>(</td>
-          <td class="paramtype">double precision, intent(in)&#160;</td>
-          <td class="paramname"><em>var_in</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">double precision, dimension(imin:imax), intent(in)&#160;</td>
-          <td class="paramname"><em>var_list</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">integer, intent(in)&#160;</td>
-          <td class="paramname"><em>imin</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">integer, intent(in)&#160;</td>
-          <td class="paramname"><em>imax</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">integer, intent(out)&#160;</td>
-          <td class="paramname"><em>low_i</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">integer, intent(out)&#160;</td>
-          <td class="paramname"><em>up_i</em>&#160;</td>
-        </tr>
-        <tr>
-          <td></td>
-          <td>)</td>
-          <td></td><td></td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>This subroutine finds the indices in rho and T arrays of the two values surrounding the input rho and T. </p>
-
-<p class="definition">Definition at line <a class="el" href="mod__cak__opacity_8t_source.html#l00148">148</a> of file <a class="el" href="mod__cak__opacity_8t_source.html">mod_cak_opacity.t</a>.</p>
-
-</div>
-</div>
-<a id="ae4f16e91c29300e844f7fee61db8e6c7" name="ae4f16e91c29300e844f7fee61db8e6c7"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ae4f16e91c29300e844f7fee61db8e6c7">&#9670;&#160;</a></span>get_val_comb()</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">subroutine mod_cak_opacity::get_val_comb </td>
-          <td>(</td>
-          <td class="paramtype">double precision, dimension(idmin:idmax,itmin:itmax), intent(in)&#160;</td>
-          <td class="paramname"><em>k1_vals</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">double precision, dimension(idmin:idmax,itmin:itmax), intent(in)&#160;</td>
-          <td class="paramname"><em>k2_vals</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">double precision, dimension(idmin:idmax,itmin:itmax), intent(in)&#160;</td>
-          <td class="paramname"><em>k3_vals</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">double precision, dimension(idmin:idmax,itmin:itmax), intent(in)&#160;</td>
-          <td class="paramname"><em>k4_vals</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">double precision, dimension(idmin:idmax), intent(in)&#160;</td>
-          <td class="paramname"><em>logd_list</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">double precision, dimension(itmin:itmax), intent(in)&#160;</td>
-          <td class="paramname"><em>logt_list</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">double precision, intent(in)&#160;</td>
-          <td class="paramname"><em>d</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">double precision, intent(in)&#160;</td>
-          <td class="paramname"><em>t</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">double precision, intent(out)&#160;</td>
-          <td class="paramname"><em>k1</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">double precision, intent(out)&#160;</td>
-          <td class="paramname"><em>k2</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">double precision, intent(out)&#160;</td>
-          <td class="paramname"><em>k3</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">double precision, intent(out)&#160;</td>
-          <td class="paramname"><em>k4</em>&#160;</td>
-        </tr>
-        <tr>
-          <td></td>
-          <td>)</td>
-          <td></td><td></td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>This subroutine looks in the table for the four couples (T,rho) surrounding a given input T and rho. </p>
-
-<p class="definition">Definition at line <a class="el" href="mod__cak__opacity_8t_source.html#l00093">93</a> of file <a class="el" href="mod__cak__opacity_8t_source.html">mod_cak_opacity.t</a>.</p>
-<div class="dynheader">
-Here is the call graph for this function:</div>
-<div class="dyncontent">
-<div class="center"><img src="namespacemod__cak__opacity_ae4f16e91c29300e844f7fee61db8e6c7_cgraph.png" border="0" usemap="#anamespacemod__cak__opacity_ae4f16e91c29300e844f7fee61db8e6c7_cgraph" alt=""/></div>
-<map name="anamespacemod__cak__opacity_ae4f16e91c29300e844f7fee61db8e6c7_cgraph" id="anamespacemod__cak__opacity_ae4f16e91c29300e844f7fee61db8e6c7_cgraph">
-<area shape="rect" title="This subroutine looks in the table for the four couples (T,rho) surrounding a given input T and rho." alt="" coords="5,35,169,75"/>
-<area shape="rect" href="namespacemod__cak__opacity.html#aa312932bbdd1afc070d36a7059ad1594" title="This subroutine finds the indices in rho and T arrays of the two values surrounding the input rho and..." alt="" coords="255,5,419,45"/>
-<area shape="poly" title=" " alt="" coords="169,42,240,34,241,39,170,48"/>
-<area shape="rect" href="namespacemod__cak__opacity.html#a6efa0f8557c900faaf985fe46449759a" title="This subroutine does a bilinear interpolation in the R,T&#45;plane." alt="" coords="217,70,456,95"/>
-<area shape="poly" title=" " alt="" coords="170,61,211,66,210,71,169,66"/>
-</map>
-</div>
-
-</div>
-</div>
-<a id="ab76be223f19944b21fb8ecd24d5c59d4" name="ab76be223f19944b21fb8ecd24d5c59d4"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ab76be223f19944b21fb8ecd24d5c59d4">&#9670;&#160;</a></span>init_cak_table()</h2>
+<a id="a59858c738465ef91f00f5afa78cdf8c8" name="a59858c738465ef91f00f5afa78cdf8c8"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a59858c738465ef91f00f5afa78cdf8c8">&#9670;&#160;</a></span>init_cak_table()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -310,215 +126,25 @@ Here is the call graph for this function:</div>
           <td class="memname">subroutine, public mod_cak_opacity::init_cak_table </td>
           <td>(</td>
           <td class="paramtype">character(len=*), intent(in)&#160;</td>
-          <td class="paramname"><em>tabledir</em></td><td>)</td>
+          <td class="paramname"><em>tabledir</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
           <td></td>
+          <td class="paramtype">logical, intent(in), optional&#160;</td>
+          <td class="paramname"><em>set_custom_tabledir</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
         </tr>
       </table>
 </div><div class="memdoc">
 
 <p>This routine is called when the FLD radiation module is initialised. </p>
 
-<p class="definition">Definition at line <a class="el" href="mod__cak__opacity_8t_source.html#l00028">28</a> of file <a class="el" href="mod__cak__opacity_8t_source.html">mod_cak_opacity.t</a>.</p>
-<div class="dynheader">
-Here is the call graph for this function:</div>
-<div class="dyncontent">
-<div class="center"><img src="namespacemod__cak__opacity_ab76be223f19944b21fb8ecd24d5c59d4_cgraph.png" border="0" usemap="#anamespacemod__cak__opacity_ab76be223f19944b21fb8ecd24d5c59d4_cgraph" alt=""/></div>
-<map name="anamespacemod__cak__opacity_ab76be223f19944b21fb8ecd24d5c59d4_cgraph" id="anamespacemod__cak__opacity_ab76be223f19944b21fb8ecd24d5c59d4_cgraph">
-<area shape="rect" title="This routine is called when the FLD radiation module is initialised." alt="" coords="5,5,169,45"/>
-<area shape="rect" href="namespacemod__cak__opacity.html#ad328fa1388b084ee7b0d64a34a298c02" title="This routine reads in 1&#45;D (T,rho) values from a line opacity table and gives back as output the 1&#45;D (..." alt="" coords="217,5,389,45"/>
-<area shape="poly" title=" " alt="" coords="170,23,203,23,203,28,170,28"/>
-</map>
-</div>
-
-</div>
-</div>
-<a id="ab3d50f9f7b672fcf93057cacc2728306" name="ab3d50f9f7b672fcf93057cacc2728306"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ab3d50f9f7b672fcf93057cacc2728306">&#9670;&#160;</a></span>interpolate1d()</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">subroutine mod_cak_opacity::interpolate1d </td>
-          <td>(</td>
-          <td class="paramtype">double precision, intent(in)&#160;</td>
-          <td class="paramname"><em>x1</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">double precision, intent(in)&#160;</td>
-          <td class="paramname"><em>x2</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">double precision, intent(in)&#160;</td>
-          <td class="paramname"><em>x</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">double precision, intent(in)&#160;</td>
-          <td class="paramname"><em>y1</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">double precision, intent(in)&#160;</td>
-          <td class="paramname"><em>y2</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">double precision, intent(out)&#160;</td>
-          <td class="paramname"><em>y</em>&#160;</td>
-        </tr>
-        <tr>
-          <td></td>
-          <td>)</td>
-          <td></td><td></td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>Interpolation in one dimension. </p>
-
-<p class="definition">Definition at line <a class="el" href="mod__cak__opacity_8t_source.html#l00217">217</a> of file <a class="el" href="mod__cak__opacity_8t_source.html">mod_cak_opacity.t</a>.</p>
-
-</div>
-</div>
-<a id="a6efa0f8557c900faaf985fe46449759a" name="a6efa0f8557c900faaf985fe46449759a"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a6efa0f8557c900faaf985fe46449759a">&#9670;&#160;</a></span>interpolate_krt()</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">subroutine mod_cak_opacity::interpolate_krt </td>
-          <td>(</td>
-          <td class="paramtype">integer, intent(in)&#160;</td>
-          <td class="paramname"><em>low_r</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">integer, intent(in)&#160;</td>
-          <td class="paramname"><em>up_r</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">integer, intent(in)&#160;</td>
-          <td class="paramname"><em>low_t</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">integer, intent(in)&#160;</td>
-          <td class="paramname"><em>up_t</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">double precision, dimension(idmin:idmax), intent(in)&#160;</td>
-          <td class="paramname"><em>logd_list</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">double precision, dimension(itmin:itmax), intent(in)&#160;</td>
-          <td class="paramname"><em>logt_list</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">double precision, dimension(idmin:idmax,itmin:itmax), intent(in)&#160;</td>
-          <td class="paramname"><em>kappa_vals</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">double precision, intent(in)&#160;</td>
-          <td class="paramname"><em>d</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">double precision, intent(in)&#160;</td>
-          <td class="paramname"><em>t</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">double precision, intent(out)&#160;</td>
-          <td class="paramname"><em>kappa_interp</em>&#160;</td>
-        </tr>
-        <tr>
-          <td></td>
-          <td>)</td>
-          <td></td><td></td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>This subroutine does a bilinear interpolation in the R,T-plane. </p>
-
-<p class="definition">Definition at line <a class="el" href="mod__cak__opacity_8t_source.html#l00172">172</a> of file <a class="el" href="mod__cak__opacity_8t_source.html">mod_cak_opacity.t</a>.</p>
-<div class="dynheader">
-Here is the call graph for this function:</div>
-<div class="dyncontent">
-<div class="center"><img src="namespacemod__cak__opacity_a6efa0f8557c900faaf985fe46449759a_cgraph.png" border="0" usemap="#anamespacemod__cak__opacity_a6efa0f8557c900faaf985fe46449759a_cgraph" alt=""/></div>
-<map name="anamespacemod__cak__opacity_a6efa0f8557c900faaf985fe46449759a_cgraph" id="anamespacemod__cak__opacity_a6efa0f8557c900faaf985fe46449759a_cgraph">
-<area shape="rect" title="This subroutine does a bilinear interpolation in the R,T&#45;plane." alt="" coords="5,5,244,31"/>
-<area shape="rect" href="namespacemod__cak__opacity.html#ab3d50f9f7b672fcf93057cacc2728306" title="Interpolation in one dimension." alt="" coords="292,5,523,31"/>
-<area shape="poly" title=" " alt="" coords="244,15,278,15,278,21,244,21"/>
-</map>
-</div>
-
-</div>
-</div>
-<a id="ad328fa1388b084ee7b0d64a34a298c02" name="ad328fa1388b084ee7b0d64a34a298c02"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ad328fa1388b084ee7b0d64a34a298c02">&#9670;&#160;</a></span>read_table()</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">subroutine mod_cak_opacity::read_table </td>
-          <td>(</td>
-          <td class="paramtype">double precision, dimension(idmin:idmax), intent(out)&#160;</td>
-          <td class="paramname"><em>d</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">double precision, dimension(itmin:itmax), intent(out)&#160;</td>
-          <td class="paramname"><em>t</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">double precision, dimension(idmin:idmax,itmin:itmax), intent(out)&#160;</td>
-          <td class="paramname"><em>k</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">character(*), intent(in)&#160;</td>
-          <td class="paramname"><em>filename</em>&#160;</td>
-        </tr>
-        <tr>
-          <td></td>
-          <td>)</td>
-          <td></td><td></td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>This routine reads in 1-D (T,rho) values from a line opacity table and gives back as output the 1-D (T,rho) values and 2-D line opacity value. </p>
-
-<p class="definition">Definition at line <a class="el" href="mod__cak__opacity_8t_source.html#l00068">68</a> of file <a class="el" href="mod__cak__opacity_8t_source.html">mod_cak_opacity.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__cak__opacity_8t_source.html#l00035">35</a> of file <a class="el" href="mod__cak__opacity_8t_source.html">mod_cak_opacity.t</a>.</p>
 
 </div>
 </div>
@@ -574,15 +200,15 @@ Here is the call graph for this function:</div>
 
 <p>This subroutine calculates the opacity for a given temperature-density structure. Opacities are read from a table with given metalicity. </p>
 
-<p class="definition">Definition at line <a class="el" href="mod__cak__opacity_8t_source.html#l00047">47</a> of file <a class="el" href="mod__cak__opacity_8t_source.html">mod_cak_opacity.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__cak__opacity_8t_source.html#l00059">59</a> of file <a class="el" href="mod__cak__opacity_8t_source.html">mod_cak_opacity.t</a>.</p>
 <div class="dynheader">
 Here is the call graph for this function:</div>
 <div class="dyncontent">
 <div class="center"><img src="namespacemod__cak__opacity_ab627a656718bc3ac50a1c5a7dc3339d3_cgraph.png" border="0" usemap="#anamespacemod__cak__opacity_ab627a656718bc3ac50a1c5a7dc3339d3_cgraph" alt=""/></div>
 <map name="anamespacemod__cak__opacity_ab627a656718bc3ac50a1c5a7dc3339d3_cgraph" id="anamespacemod__cak__opacity_ab627a656718bc3ac50a1c5a7dc3339d3_cgraph">
 <area shape="rect" title="This subroutine calculates the opacity for a given temperature&#45;density structure. Opacities are read ..." alt="" coords="5,5,168,45"/>
-<area shape="rect" href="namespacemod__cak__opacity.html#ae4f16e91c29300e844f7fee61db8e6c7" title="This subroutine looks in the table for the four couples (T,rho) surrounding a given input T and rho." alt="" coords="216,5,380,45"/>
-<area shape="poly" title=" " alt="" coords="168,23,202,23,202,28,168,28"/>
+<area shape="rect" href="namespacemod__comm__lib.html#a9b6f1a8fd13bc5670e3b426151c34048" title="Exit MPI&#45;AMRVAC with an error message." alt="" coords="216,13,399,38"/>
+<area shape="poly" title=" " alt="" coords="169,23,202,23,202,28,169,28"/>
 </map>
 </div>
 
@@ -603,73 +229,7 @@ Here is the call graph for this function:</div>
 
 <p>The opacity tables are read once and stored globally. </p>
 
-<p class="definition">Definition at line <a class="el" href="mod__cak__opacity_8t_source.html#l00016">16</a> of file <a class="el" href="mod__cak__opacity_8t_source.html">mod_cak_opacity.t</a>.</p>
-
-</div>
-</div>
-<a id="a82a13ebbbc1481184a4d7ed0753b46b2" name="a82a13ebbbc1481184a4d7ed0753b46b2"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a82a13ebbbc1481184a4d7ed0753b46b2">&#9670;&#160;</a></span>idmax</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">integer, parameter mod_cak_opacity::idmax = 16</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p class="definition">Definition at line <a class="el" href="mod__cak__opacity_8t_source.html#l00012">12</a> of file <a class="el" href="mod__cak__opacity_8t_source.html">mod_cak_opacity.t</a>.</p>
-
-</div>
-</div>
-<a id="a56c9c06a8c97e3393fd91924600f833e" name="a56c9c06a8c97e3393fd91924600f833e"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a56c9c06a8c97e3393fd91924600f833e">&#9670;&#160;</a></span>idmin</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">integer, parameter mod_cak_opacity::idmin = 2</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>min and max indices for R,T-range in opacity table </p>
-
-<p class="definition">Definition at line <a class="el" href="mod__cak__opacity_8t_source.html#l00012">12</a> of file <a class="el" href="mod__cak__opacity_8t_source.html">mod_cak_opacity.t</a>.</p>
-
-</div>
-</div>
-<a id="adc5864cf7a238847cd4a44e294de6c17" name="adc5864cf7a238847cd4a44e294de6c17"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#adc5864cf7a238847cd4a44e294de6c17">&#9670;&#160;</a></span>itmax</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">integer, parameter mod_cak_opacity::itmax = 51</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p class="definition">Definition at line <a class="el" href="mod__cak__opacity_8t_source.html#l00013">13</a> of file <a class="el" href="mod__cak__opacity_8t_source.html">mod_cak_opacity.t</a>.</p>
-
-</div>
-</div>
-<a id="a6f0d94ffeb85f5e725ddd6567f1a6881" name="a6f0d94ffeb85f5e725ddd6567f1a6881"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a6f0d94ffeb85f5e725ddd6567f1a6881">&#9670;&#160;</a></span>itmin</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">integer, parameter mod_cak_opacity::itmin = 2</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p class="definition">Definition at line <a class="el" href="mod__cak__opacity_8t_source.html#l00013">13</a> of file <a class="el" href="mod__cak__opacity_8t_source.html">mod_cak_opacity.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__cak__opacity_8t_source.html#l00023">23</a> of file <a class="el" href="mod__cak__opacity_8t_source.html">mod_cak_opacity.t</a>.</p>
 
 </div>
 </div>
@@ -685,7 +245,7 @@ Here is the call graph for this function:</div>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="mod__cak__opacity_8t_source.html#l00019">19</a> of file <a class="el" href="mod__cak__opacity_8t_source.html">mod_cak_opacity.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__cak__opacity_8t_source.html#l00026">26</a> of file <a class="el" href="mod__cak__opacity_8t_source.html">mod_cak_opacity.t</a>.</p>
 
 </div>
 </div>
@@ -701,7 +261,7 @@ Here is the call graph for this function:</div>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="mod__cak__opacity_8t_source.html#l00020">20</a> of file <a class="el" href="mod__cak__opacity_8t_source.html">mod_cak_opacity.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__cak__opacity_8t_source.html#l00027">27</a> of file <a class="el" href="mod__cak__opacity_8t_source.html">mod_cak_opacity.t</a>.</p>
 
 </div>
 </div>
@@ -717,7 +277,7 @@ Here is the call graph for this function:</div>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="mod__cak__opacity_8t_source.html#l00020">20</a> of file <a class="el" href="mod__cak__opacity_8t_source.html">mod_cak_opacity.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__cak__opacity_8t_source.html#l00027">27</a> of file <a class="el" href="mod__cak__opacity_8t_source.html">mod_cak_opacity.t</a>.</p>
 
 </div>
 </div>
@@ -733,7 +293,7 @@ Here is the call graph for this function:</div>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="mod__cak__opacity_8t_source.html#l00018">18</a> of file <a class="el" href="mod__cak__opacity_8t_source.html">mod_cak_opacity.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__cak__opacity_8t_source.html#l00025">25</a> of file <a class="el" href="mod__cak__opacity_8t_source.html">mod_cak_opacity.t</a>.</p>
 
 </div>
 </div>
@@ -749,7 +309,7 @@ Here is the call graph for this function:</div>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="mod__cak__opacity_8t_source.html#l00017">17</a> of file <a class="el" href="mod__cak__opacity_8t_source.html">mod_cak_opacity.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__cak__opacity_8t_source.html#l00024">24</a> of file <a class="el" href="mod__cak__opacity_8t_source.html">mod_cak_opacity.t</a>.</p>
 
 </div>
 </div>

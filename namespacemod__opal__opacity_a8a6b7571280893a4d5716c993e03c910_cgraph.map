@@ -1,5 +1,5 @@
 <map id="mod_opal_opacity::set_opal_opacity" name="mod_opal_opacity::set_opal_opacity">
 <area shape="rect" id="Node000001" title="This subroutine calculates the opacity for a given temperature&#45;density structure. Opacities are read ..." alt="" coords="5,5,173,45"/>
-<area shape="rect" id="Node000002" href="$namespacemod__opal__opacity.html#aa92d1fe822b918fca0b5adfd9370dfb0" title="This subroutine looks in the table for the four couples (T,rho) surrounding a given input T and rho." alt="" coords="221,5,391,45"/>
+<area shape="rect" id="Node000002" href="$namespacemod__comm__lib.html#a9b6f1a8fd13bc5670e3b426151c34048" title="Exit MPI&#45;AMRVAC with an error message." alt="" coords="221,13,404,38"/>
 <area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="173,23,208,23,208,28,173,28"/>
 </map>
