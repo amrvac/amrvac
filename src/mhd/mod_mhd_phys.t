@@ -2484,7 +2484,11 @@ contains
         end if
         inv_rho=1.d0/rho
         ! sound speed**2 
-        cmax(ix^D)=mhd_gamma*w(ix^D,p_)*inv_rho
+        if(has_equi_pe0) then
+           cmax(ix^D)=mhd_gamma*(w(ix^D,p_)+block%equi_vars(ix^D,equi_pe0_,b0i))*inv_rho
+        else
+           cmax(ix^D)=mhd_gamma*w(ix^D,p_)*inv_rho
+        endif
         ! store |B|^2 in v
         b2=(^C&(w(ix^D,b^C_)+block%B0(ix^D,^C,b0i))**2+)
         cfast2=b2*inv_rho+cmax(ix^D)
@@ -2507,7 +2511,11 @@ contains
         end if
         inv_rho=1.d0/rho
         ! sound speed**2 
-        cmax(ix^D)=mhd_gamma*w(ix^D,p_)*inv_rho
+        if(has_equi_pe0) then
+           cmax(ix^D)=mhd_gamma*(w(ix^D,p_)+block%equi_vars(ix^D,equi_pe0_,b0i))*inv_rho
+        else
+           cmax(ix^D)=mhd_gamma*w(ix^D,p_)*inv_rho
+        endif
         ! store |B|^2 in v
         b2=(^C&w(ix^D,b^C_)**2+)
         cfast2=b2*inv_rho+cmax(ix^D)
@@ -4469,7 +4477,7 @@ contains
     end if
   end subroutine get_flux_on_cell_face
 
-  !> Calculates the explicit dt for the ambipokar term
+  !> Calculates the explicit dt for the ambipolar term
   !> This function is used by both explicit scheme and STS method
   function get_ambipolar_dt(w,ixI^L,ixO^L,dx^D,x)  result(dtnew)
     use mod_global_parameters
