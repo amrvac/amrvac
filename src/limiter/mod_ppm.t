@@ -139,7 +139,7 @@ contains
     hxL^L=hxC^L-kr(idims,^D);           ! hxL = [ixMmin-2,ixMmax-1]
     hxR^L=hxC^L+kr(idims,^D);           ! hxR = [ixMmin,ixMmax+1]
 
-    kxCmin^D=ixLmin^D-1; kxCmax^D=ixRmax^D; ! kxC=[iMmin-3,ixMmax+2]
+    kxCmin^D=ixLmin^D-kr(idims,^D); kxCmax^D=ixRmax^D; ! kxC=[iMmin-3,ixMmax+2]
     kxR^L=kxC^L+kr(idims,^D);              ! kxR=[iMmin-2,ixMmax+3]
 
     lxCmin^D=ixOmin^D-kr(idims,^D);lxCmax^D=ixOmax^D+kr(idims,^D);! lxC=[iMmin-2,ixMmax+2]

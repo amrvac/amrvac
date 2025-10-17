@@ -30,6 +30,8 @@ module mod_physics
   integer, parameter   :: flux_special        = 3
   !> Indicates the flux should be treated with hll
   integer, parameter   :: flux_hll        = 4
+  !> extra ghost cells in the transverse dimensions for fluxes of CT
+  integer :: transverse_ghost_cells = 0
 
   !> Solve energy equation or not
   logical :: phys_energy=.false.

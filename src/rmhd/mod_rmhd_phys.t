@@ -587,8 +587,22 @@ contains
 
     ! if using ct stagger grid, boundary divb=0 is not done here
     if(stagger_grid) then
-      phys_get_ct_velocity => rmhd_get_ct_velocity
-      phys_update_faces => rmhd_update_faces
+      select case(type_ct)
+      case('average')
+        transverse_ghost_cells = 1
+        phys_get_ct_velocity => rmhd_get_ct_velocity_average
+        phys_update_faces => rmhd_update_faces_average
+      case('uct_contact')
+        transverse_ghost_cells = 1
+        phys_get_ct_velocity => rmhd_get_ct_velocity_contact
+        phys_update_faces => rmhd_update_faces_contact
+      case('uct_hll')
+        transverse_ghost_cells = 2
+        phys_get_ct_velocity => rmhd_get_ct_velocity_hll
+        phys_update_faces => rmhd_update_faces_hll
+      case default
+        call mpistop('choose average, uct_contact,or uct_hll for type_ct!')
+      end select
       phys_face_to_center => rmhd_face_to_center
       phys_modify_wLR => rmhd_modify_wLR
     else if(ndim>1) then
@@ -1877,53 +1891,73 @@ contains
   end subroutine rmhd_get_cbounds_split_rho
 
   !> prepare velocities for ct methods
-  subroutine rmhd_get_ct_velocity(vcts,wLp,wRp,ixI^L,ixO^L,idim,cmax,cmin)
+  subroutine rmhd_get_ct_velocity_average(vcts,wLp,wRp,ixI^L,ixO^L,idim,cmax,cmin)
     use mod_global_parameters
-    integer, intent(in)              :: ixI^L, ixO^L, idim
-    double precision, intent(in)     :: wLp(ixI^S, nw), wRp(ixI^S, nw)
-    double precision, intent(in)     :: cmax(ixI^S)
+
+    integer, intent(in)             :: ixI^L, ixO^L, idim
+    double precision, intent(in)    :: wLp(ixI^S, nw), wRp(ixI^S, nw)
+    double precision, intent(in)    :: cmax(ixI^S)
     double precision, intent(in), optional :: cmin(ixI^S)
-    type(ct_velocity), intent(inout) :: vcts
-    integer                          :: idimE,idimN
+    type(ct_velocity), intent(inout):: vcts
+
+  end subroutine rmhd_get_ct_velocity_average
+
+  subroutine rmhd_get_ct_velocity_contact(vcts,wLp,wRp,ixI^L,ixO^L,idim,cmax,cmin)
+    use mod_global_parameters
+
+    integer, intent(in)             :: ixI^L, ixO^L, idim
+    double precision, intent(in)    :: wLp(ixI^S, nw), wRp(ixI^S, nw)
+    double precision, intent(in)    :: cmax(ixI^S)
+    double precision, intent(in), optional :: cmin(ixI^S)
+    type(ct_velocity), intent(inout):: vcts
 
     ! calculate velocities related to different UCT schemes
-    select case(type_ct)
-    case('average')
-    case('uct_contact')
-      if(.not.allocated(vcts%vnorm)) allocate(vcts%vnorm(ixI^S,1:ndim))
-      ! get average normal velocity at cell faces
-      vcts%vnorm(ixO^S,idim)=0.5d0*(wLp(ixO^S,mom(idim))+wRp(ixO^S,mom(idim)))
-    case('uct_hll')
-      if(.not.allocated(vcts%vbarC)) then
-        allocate(vcts%vbarC(ixI^S,1:ndir,2),vcts%vbarLC(ixI^S,1:ndir,2),vcts%vbarRC(ixI^S,1:ndir,2))
-        allocate(vcts%cbarmin(ixI^S,1:ndim),vcts%cbarmax(ixI^S,1:ndim))
-      end if
-      ! Store magnitude of characteristics
-      if(present(cmin)) then
-        vcts%cbarmin(ixO^S,idim)=max(-cmin(ixO^S),zero)
-        vcts%cbarmax(ixO^S,idim)=max( cmax(ixO^S),zero)
-      else
-        vcts%cbarmax(ixO^S,idim)=max( cmax(ixO^S),zero)
-        vcts%cbarmin(ixO^S,idim)=vcts%cbarmax(ixO^S,idim)
-      end if
+    if(.not.allocated(vcts%vnorm)) allocate(vcts%vnorm(ixI^S,1:ndim))
+    ! get average normal velocity at cell faces
+    vcts%vnorm(ixO^S,idim)=0.5d0*(wLp(ixO^S,mom(idim))+wRp(ixO^S,mom(idim)))
 
-      idimN=mod(idim,ndir)+1 ! 'Next' direction
-      idimE=mod(idim+1,ndir)+1 ! Electric field direction
-      ! Store velocities
-      vcts%vbarLC(ixO^S,idim,1)=wLp(ixO^S,mom(idimN))
-      vcts%vbarRC(ixO^S,idim,1)=wRp(ixO^S,mom(idimN))
-      vcts%vbarC(ixO^S,idim,1)=(vcts%cbarmax(ixO^S,idim)*vcts%vbarLC(ixO^S,idim,1) &
-           +vcts%cbarmin(ixO^S,idim)*vcts%vbarRC(ixO^S,idim,1))&
-          /(vcts%cbarmax(ixO^S,idim)+vcts%cbarmin(ixO^S,idim))
-      vcts%vbarLC(ixO^S,idim,2)=wLp(ixO^S,mom(idimE))
-      vcts%vbarRC(ixO^S,idim,2)=wRp(ixO^S,mom(idimE))
-      vcts%vbarC(ixO^S,idim,2)=(vcts%cbarmax(ixO^S,idim)*vcts%vbarLC(ixO^S,idim,2) &
-           +vcts%cbarmin(ixO^S,idim)*vcts%vbarRC(ixO^S,idim,1))&
-          /(vcts%cbarmax(ixO^S,idim)+vcts%cbarmin(ixO^S,idim))
-    case default
-      call mpistop('choose average, uct_contact,or uct_hll for type_ct!')
-    end select
-  end subroutine rmhd_get_ct_velocity
+  end subroutine rmhd_get_ct_velocity_contact
+
+  subroutine rmhd_get_ct_velocity_hll(vcts,wLp,wRp,ixI^L,ixO^L,idim,cmax,cmin)
+    use mod_global_parameters
+
+    integer, intent(in)             :: ixI^L, ixO^L, idim
+    double precision, intent(in)    :: wLp(ixI^S, nw), wRp(ixI^S, nw)
+    double precision, intent(in)    :: cmax(ixI^S)
+    double precision, intent(in), optional :: cmin(ixI^S)
+    type(ct_velocity), intent(inout):: vcts
+
+    integer                         :: idimE,idimN
+
+    if(.not.allocated(vcts%vbarC)) then
+      allocate(vcts%vbarC(ixI^S,1:ndir,2),vcts%vbarLC(ixI^S,1:ndir,2),vcts%vbarRC(ixI^S,1:ndir,2))
+      allocate(vcts%cbarmin(ixI^S,1:ndim),vcts%cbarmax(ixI^S,1:ndim))
+    end if
+    ! Store magnitude of characteristics
+    if(present(cmin)) then
+      vcts%cbarmin(ixO^S,idim)=max(-cmin(ixO^S),zero)
+      vcts%cbarmax(ixO^S,idim)=max( cmax(ixO^S),zero)
+    else
+      vcts%cbarmax(ixO^S,idim)=max( cmax(ixO^S),zero)
+      vcts%cbarmin(ixO^S,idim)=vcts%cbarmax(ixO^S,idim)
+    end if
+
+    idimN=mod(idim,ndir)+1 ! 'Next' direction
+    idimE=mod(idim+1,ndir)+1 ! Electric field direction
+    ! Store velocities
+    vcts%vbarLC(ixO^S,idim,1)=wLp(ixO^S,mom(idimN))
+    vcts%vbarRC(ixO^S,idim,1)=wRp(ixO^S,mom(idimN))
+    vcts%vbarC(ixO^S,idim,1)=(vcts%cbarmax(ixO^S,idim)*vcts%vbarLC(ixO^S,idim,1) &
+         +vcts%cbarmin(ixO^S,idim)*vcts%vbarRC(ixO^S,idim,1))&
+        /(vcts%cbarmax(ixO^S,idim)+vcts%cbarmin(ixO^S,idim))
+
+    vcts%vbarLC(ixO^S,idim,2)=wLp(ixO^S,mom(idimE))
+    vcts%vbarRC(ixO^S,idim,2)=wRp(ixO^S,mom(idimE))
+    vcts%vbarC(ixO^S,idim,2)=(vcts%cbarmax(ixO^S,idim)*vcts%vbarLC(ixO^S,idim,2) &
+         +vcts%cbarmin(ixO^S,idim)*vcts%vbarRC(ixO^S,idim,1))&
+        /(vcts%cbarmax(ixO^S,idim)+vcts%cbarmin(ixO^S,idim))
+
+  end subroutine rmhd_get_ct_velocity_hll
 
   !> Calculate fast magnetosonic wave speed
   subroutine rmhd_get_csound_prim(w,x,ixI^L,ixO^L,idim,csound)
@@ -4272,38 +4306,20 @@ contains
   end subroutine rmhd_clean_divb_multigrid
   }
 
-  subroutine rmhd_update_faces(ixI^L,ixO^L,qt,qdt,wprim,fC,fE,sCT,s,vcts)
+  !> get electric field though averaging neighors to update faces in CT
+  subroutine rmhd_update_faces_average(ixI^L,ixO^L,qt,qdt,wp,fC,fE,sCT,s,vcts)
     use mod_global_parameters
+    use mod_usr_methods
+
     integer, intent(in)                :: ixI^L, ixO^L
     double precision, intent(in)       :: qt,qdt
     ! cell-center primitive variables
-    double precision, intent(in)       :: wprim(ixI^S,1:nw)
+    double precision, intent(in)       :: wp(ixI^S,1:nw)
     type(state)                        :: sCT, s
     type(ct_velocity)                  :: vcts
     double precision, intent(in)       :: fC(ixI^S,1:nwflux,1:ndim)
     double precision, intent(inout)    :: fE(ixI^S,sdim:3)
 
-    select case(type_ct)
-    case('average')
-      call update_faces_average(ixI^L,ixO^L,qt,qdt,fC,fE,sCT,s)
-    case('uct_contact')
-      call update_faces_contact(ixI^L,ixO^L,qt,qdt,wprim,fC,fE,sCT,s,vcts)
-    case('uct_hll')
-      call update_faces_hll(ixI^L,ixO^L,qt,qdt,fE,sCT,s,vcts)
-    case default
-      call mpistop('choose average, uct_contact,or uct_hll for type_ct!')
-    end select
-  end subroutine rmhd_update_faces
-
-  !> get electric field though averaging neighors to update faces in CT
-  subroutine update_faces_average(ixI^L,ixO^L,qt,qdt,fC,fE,sCT,s)
-    use mod_global_parameters
-    use mod_usr_methods
-    integer, intent(in)                :: ixI^L, ixO^L
-    double precision, intent(in)       :: qt, qdt
-    type(state)                        :: sCT, s
-    double precision, intent(in)       :: fC(ixI^S,1:nwflux,1:ndim)
-    double precision, intent(inout)    :: fE(ixI^S,sdim:3)
     double precision                   :: circ(ixI^S,1:ndim)
     ! non-ideal electric field on cell edges
     double precision, dimension(ixI^S,sdim:3) :: E_resi
@@ -4311,11 +4327,14 @@ contains
     integer                            :: idim1,idim2,idir,iwdim1,iwdim2
 
     associate(bfaces=>s%ws,x=>s%x)
+
     ! Calculate contribution to FEM of each edge,
     ! that is, estimate value of line integral of
     ! electric field in the positive idir direction.
+
     ! if there is resistivity, get eta J
-    if(rmhd_eta/=zero) call get_resistive_electric_field(ixI^L,ixO^L,sCT,s,E_resi)
+    if(rmhd_eta/=zero) call get_resistive_electric_field(ixI^L,ixO^L,wp,sCT,s,E_resi)
+
     do idim1=1,ndim
       iwdim1 = mag(idim1)
       i1kr^D=kr(idim1,^D);
@@ -4341,10 +4360,13 @@ contains
         end do
       end do
     end do
+
     ! allow user to change inductive electric field, especially for boundary driven applications
     if(associated(usr_set_electric_field)) &
       call usr_set_electric_field(ixI^L,ixO^L,qt,qdt,fE,sCT)
+
     circ(ixI^S,1:ndim)=zero
+
     ! Calculate circulation on each face
     do idim1=1,ndim ! Coordinate perpendicular to face
       ixCmax^D=ixOmax^D;
@@ -4366,23 +4388,25 @@ contains
           end if
         end do
       end do
-      ! Divide by the area of the face to get dB/dt
-      where(s%surfaceC(ixC^S,idim1) > 1.0d-9*s%dvolume(ixC^S))
-        circ(ixC^S,idim1)=circ(ixC^S,idim1)/s%surfaceC(ixC^S,idim1)
-      elsewhere
-        circ(ixC^S,idim1)=zero
-      end where
-      ! Time update cell-face magnetic field component
-      bfaces(ixC^S,idim1)=bfaces(ixC^S,idim1)-circ(ixC^S,idim1)
+     {do ix^DB=ixCmin^DB,ixCmax^DB\}
+        ! Divide by the area of the face to get dB/dt
+        if(s%surfaceC(ix^D,idim1) > smalldouble) then
+          ! Time update cell-face magnetic field component
+          bfaces(ix^D,idim1)=bfaces(ix^D,idim1)-circ(ix^D,idim1)/s%surfaceC(ix^D,idim1)
+        end if
+     {end do\}
     end do
+
     end associate
-  end subroutine update_faces_average
+
+  end subroutine rmhd_update_faces_average
 
   !> update faces using UCT contact mode by Gardiner and Stone 2005 JCP 205, 509
-  subroutine update_faces_contact(ixI^L,ixO^L,qt,qdt,wp,fC,fE,sCT,s,vcts)
+  subroutine rmhd_update_faces_contact(ixI^L,ixO^L,qt,qdt,wp,fC,fE,sCT,s,vcts)
     use mod_global_parameters
     use mod_usr_methods
     use mod_geometry
+
     integer, intent(in)                :: ixI^L, ixO^L
     double precision, intent(in)       :: qt, qdt
     ! cell-center primitive variables
@@ -4391,6 +4415,7 @@ contains
     type(ct_velocity)                  :: vcts
     double precision, intent(in)       :: fC(ixI^S,1:nwflux,1:ndim)
     double precision, intent(inout)    :: fE(ixI^S,sdim:3)
+
     double precision                   :: circ(ixI^S,1:ndim)
     ! electric field at cell centers
     double precision                   :: ECC(ixI^S,sdim:3)
@@ -4410,8 +4435,10 @@ contains
     integer :: idim1,idim2,idir,iwdim1,iwdim2,ix^D,i1kr^D,i2kr^D
 
     associate(bfaces=>s%ws,x=>s%x,w=>s%w,vnorm=>vcts%vnorm,wCTs=>sCT%ws)
+
     ! if there is resistivity, get eta J
-    if(rmhd_eta/=zero) call get_resistive_electric_field(ixI^L,ixO^L,sCT,s,E_resi)
+    if(rmhd_eta/=zero) call get_resistive_electric_field(ixI^L,ixO^L,wp,sCT,s,E_resi)
+
     if(B0field) then
      {do ix^DB=ixImin^DB,ixImax^DB\}
         ! Calculate electric field at cell centers
@@ -4492,6 +4519,7 @@ contains
               end if
               fE(ix^D,idir)=fE(ix^D,idir)+0.25d0*(ELC+ERC)
            {end do\}
+
             ! add slope in idim1 direction from equation (50)
             ixAmin^D=ixCmin^D;
             ixAmax^D=ixCmax^D+i2kr^D;
@@ -4527,6 +4555,7 @@ contains
         end do
       end do
     end do
+
     if(partial_energy) then
       ! add upwind diffused magnetic energy back to energy
       ! calculate current density at cell edges
@@ -4596,10 +4625,13 @@ contains
         end if
       end do
     end if
+
     ! allow user to change inductive electric field, especially for boundary driven applications
     if(associated(usr_set_electric_field)) &
       call usr_set_electric_field(ixI^L,ixO^L,qt,qdt,fE,sCT)
+
     circ(ixI^S,1:ndim)=zero
+
     ! Calculate circulation on each face
     do idim1=1,ndim ! Coordinate perpendicular to face
       ixCmax^D=ixOmax^D;
@@ -4621,28 +4653,34 @@ contains
           end if
         end do
       end do
-      ! Divide by the area of the face to get dB/dt
-      where(s%surfaceC(ixC^S,idim1) > smalldouble)
-        circ(ixC^S,idim1)=circ(ixC^S,idim1)/s%surfaceC(ixC^S,idim1)
-      elsewhere
-        circ(ixC^S,idim1)=zero
-      end where
-      ! Time update cell-face magnetic field component
-      bfaces(ixC^S,idim1)=bfaces(ixC^S,idim1)-circ(ixC^S,idim1)
+     {do ix^DB=ixCmin^DB,ixCmax^DB\}
+        ! Divide by the area of the face to get dB/dt
+        if(s%surfaceC(ix^D,idim1) > smalldouble) then
+          ! Time update cell-face magnetic field component
+          bfaces(ix^D,idim1)=bfaces(ix^D,idim1)-circ(ix^D,idim1)/s%surfaceC(ix^D,idim1)
+        end if
+     {end do\}
     end do
+
     end associate
-  end subroutine update_faces_contact
+
+  end subroutine rmhd_update_faces_contact
 
   !> update faces
-  subroutine update_faces_hll(ixI^L,ixO^L,qt,qdt,fE,sCT,s,vcts)
+  subroutine rmhd_update_faces_hll(ixI^L,ixO^L,qt,qdt,wp,fC,fE,sCT,s,vcts)
     use mod_global_parameters
-    use mod_constrained_transport
     use mod_usr_methods
+    use mod_constrained_transport
+
     integer, intent(in)                :: ixI^L, ixO^L
     double precision, intent(in)       :: qt, qdt
-    double precision, intent(inout)    :: fE(ixI^S,sdim:3)
+    ! cell-center primitive variables
+    double precision, intent(in)       :: wp(ixI^S,1:nw)
     type(state)                        :: sCT, s
     type(ct_velocity)                  :: vcts
+    double precision, intent(in)       :: fC(ixI^S,1:nwflux,1:ndim)
+    double precision, intent(inout)    :: fE(ixI^S,sdim:3)
+
     double precision                   :: vtilL(ixI^S,2)
     double precision                   :: vtilR(ixI^S,2)
     double precision                   :: bfacetot(ixI^S,ndim)
@@ -4654,10 +4692,11 @@ contains
     ! non-ideal electric field on cell edges
     double precision, dimension(ixI^S,sdim:3) :: E_resi
     integer                            :: hxC^L,ixC^L,ixCp^L,jxC^L,ixCm^L
-    integer                            :: idim1,idim2,idir
+    integer                            :: idim1,idim2,idir,ix^D
 
     associate(bfaces=>s%ws,bfacesCT=>sCT%ws,x=>s%x,vbarC=>vcts%vbarC,cbarmin=>vcts%cbarmin,&
       cbarmax=>vcts%cbarmax)
+
     ! Calculate contribution to FEM of each edge,
     ! that is, estimate value of line integral of
     ! electric field in the positive idir direction.
@@ -4669,7 +4708,7 @@ contains
     ! idim2: directions in which we perform the reconstruction
 
     ! if there is resistivity, get eta J
-    if(rmhd_eta/=zero) call get_resistive_electric_field(ixI^L,ixO^L,sCT,s,E_resi)
+    if(rmhd_eta/=zero) call get_resistive_electric_field(ixI^L,ixO^L,wp,sCT,s,E_resi)
 
     do idir=sdim,3
       ! Indices
@@ -4680,18 +4719,24 @@ contains
       ! Velocity components on the surface
       ! follow cyclic premutations:
       ! Sx(1),Sx(2)=y,z ; Sy(1),Sy(2)=z,x ; Sz(1),Sz(2)=x,y
+
       ixCmax^D=ixOmax^D;
       ixCmin^D=ixOmin^D-1+kr(idir,^D);
+
       ! Set indices and directions
       idim1=mod(idir,3)+1
       idim2=mod(idir+1,3)+1
+
       jxC^L=ixC^L+kr(idim1,^D);
       ixCp^L=ixC^L+kr(idim2,^D);
+
       ! Reconstruct transverse transport velocities
       call reconstruct(ixI^L,ixC^L,idim2,vbarC(ixI^S,idim1,1),&
                vtilL(ixI^S,2),vtilR(ixI^S,2))
+
       call reconstruct(ixI^L,ixC^L,idim1,vbarC(ixI^S,idim2,2),&
                vtilL(ixI^S,1),vtilR(ixI^S,1))
+
       ! Reconstruct magnetic fields
       ! Eventhough the arrays are larger, reconstruct works with
       ! the limits ixG.
@@ -4704,13 +4749,19 @@ contains
       end if
       call reconstruct(ixI^L,ixC^L,idim2,bfacetot(ixI^S,idim1),&
                btilL(ixI^S,idim1),btilR(ixI^S,idim1))
+
       call reconstruct(ixI^L,ixC^L,idim1,bfacetot(ixI^S,idim2),&
                btilL(ixI^S,idim2),btilR(ixI^S,idim2))
+
       ! Take the maximum characteristic
+
       cm(ixC^S,1)=max(cbarmin(ixCp^S,idim1),cbarmin(ixC^S,idim1))
       cp(ixC^S,1)=max(cbarmax(ixCp^S,idim1),cbarmax(ixC^S,idim1))
+
       cm(ixC^S,2)=max(cbarmin(jxC^S,idim2),cbarmin(ixC^S,idim2))
       cp(ixC^S,2)=max(cbarmax(jxC^S,idim2),cbarmax(ixC^S,idim2))
+     
+
       ! Calculate eletric field
       fE(ixC^S,idir)=-(cp(ixC^S,1)*vtilL(ixC^S,1)*btilL(ixC^S,idim2) &
                      + cm(ixC^S,1)*vtilR(ixC^S,1)*btilR(ixC^S,idim2) &
@@ -4720,19 +4771,25 @@ contains
                      + cm(ixC^S,2)*vtilR(ixC^S,2)*btilR(ixC^S,idim1) &
                      - cp(ixC^S,2)*cm(ixC^S,2)*(btilR(ixC^S,idim1)-btilL(ixC^S,idim1)))&
                      /(cp(ixC^S,2)+cm(ixC^S,2))
+
       ! add resistive electric field at cell edges E=-vxB+eta J
       if(rmhd_eta/=zero) fE(ixC^S,idir)=fE(ixC^S,idir)+E_resi(ixC^S,idir)
       fE(ixC^S,idir)=qdt*s%dsC(ixC^S,idir)*fE(ixC^S,idir)
+
       if (.not.slab) then
         where(abs(x(ixC^S,r_)+half*dxlevel(r_)).lt.1.0d-9)
           fE(ixC^S,idir)=zero
         end where
       end if
+
     end do
+
     ! allow user to change inductive electric field, especially for boundary driven applications
     if(associated(usr_set_electric_field)) &
       call usr_set_electric_field(ixI^L,ixO^L,qt,qdt,fE,sCT)
+
     circ(ixI^S,1:ndim)=zero
+
     ! Calculate circulation on each face: interal(fE dot dl)
     do idim1=1,ndim ! Coordinate perpendicular to face
       ixCmax^D=ixOmax^D;
@@ -4750,27 +4807,31 @@ contains
           end if
         end do
       end do
-      ! Divide by the area of the face to get dB/dt
-      where(s%surfaceC(ixC^S,idim1) > 1.0d-9*s%dvolume(ixC^S))
-        circ(ixC^S,idim1)=circ(ixC^S,idim1)/s%surfaceC(ixC^S,idim1)
-      elsewhere
-        circ(ixC^S,idim1)=zero
-      end where
-      ! Time update cell-face magnetic field component
-      bfaces(ixC^S,idim1)=bfaces(ixC^S,idim1)-circ(ixC^S,idim1)
+     {do ix^DB=ixCmin^DB,ixCmax^DB\}
+        ! Divide by the area of the face to get dB/dt
+        if(s%surfaceC(ix^D,idim1) > smalldouble) then
+          ! Time update cell-face magnetic field component
+          bfaces(ix^D,idim1)=bfaces(ix^D,idim1)-circ(ix^D,idim1)/s%surfaceC(ix^D,idim1)
+        end if
+     {end do\}
     end do
+
     end associate
-  end subroutine update_faces_hll
+  end subroutine rmhd_update_faces_hll
 
   !> calculate eta J at cell edges
-  subroutine get_resistive_electric_field(ixI^L,ixO^L,sCT,s,jce)
+  subroutine get_resistive_electric_field(ixI^L,ixO^L,wp,sCT,s,jce)
     use mod_global_parameters
     use mod_usr_methods
     use mod_geometry
+
     integer, intent(in)                :: ixI^L, ixO^L
+    ! cell-center primitive variables
+    double precision, intent(in)       :: wp(ixI^S,1:nw)
     type(state), intent(in)            :: sCT, s
     ! current on cell edges
     double precision :: jce(ixI^S,sdim:3)
+
     ! current on cell centers
     double precision :: jcc(ixI^S,7-2*ndir:3)
     ! location at cell faces
@@ -4809,7 +4870,7 @@ contains
     else
       ixA^L=ixO^L^LADD1;
       call get_current(wCT,ixI^L,ixA^L,idirmin,jcc)
-      call usr_special_resistivity(wCT,ixI^L,ixA^L,idirmin,x,jcc,eta)
+      call usr_special_resistivity(wp,ixI^L,ixA^L,idirmin,x,jcc,eta)
       ! calcuate eta on cell edges
       do idir=sdim,3
         ixCmax^D=ixOmax^D;
@@ -4825,6 +4886,7 @@ contains
         jce(ixC^S,idir)=jce(ixC^S,idir)*jcc(ixC^S,idir)
       end do
     end if
+
     end associate
   end subroutine get_resistive_electric_field
 

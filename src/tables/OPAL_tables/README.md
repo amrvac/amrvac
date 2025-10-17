@@ -3,7 +3,7 @@
 
 The base directory of the source code contains the following text files by default:
 
-- `GN93hz`: gives an overview of all currently available Rosseland-mean opacity tabulations from the OPAL project (126 tables in total). All tabulations assume solar abundances from Grevesse & Noels (1993).
+- `GN93hz`: gives an overview of all currently available Rosseland-mean opacity tabulations from the OPAL project (126 tables in total). All tabulations assume solar abundances from [Grevesse & Noels (1993)](https://ui.adsabs.harvard.edu/abs/1993oee..conf...15G/abstract).
 - `Y09800`: example OPAL table for a pure helium atmosphere appropriate to model a wind outflows from classical Wolf-Rayet stars (hydrogen mass fraction $X=0$, helium mass fraction $Y=0.98$, metal mass fraction $Z=0.02$).
 
 # Generating new tables
@@ -26,7 +26,7 @@ logT  -8.0   -7.5   -7.0   -6.5   -6.0   -5.5   -5.0   -4.5   -4.0   -3.5   -3.0
 ......
 ```
 
-It is important to not change the original file structure in order to avoid problems with reading in the table. In essence this means the newly created file containing a table should count 70 lines with different $log(T)$ values, as is standard for OPAL tables. Additionally, the name of the file containing the new table should not exceed 50 characters.
+It is important to not change the original file structure in order to avoid problems with reading in the table. In essence this means the newly created file containing a table should count 70 lines with different $log_{10}(T)$ values, as is standard for OPAL tables, and 19 columns with different $log_{10}(\rho)$ values. Additionally, the user can provide a custom directory, different from this AMRVAC directory, where such table files are stored (in the same format).
 
 # How-to
 
@@ -34,5 +34,5 @@ There are essentially two ways to use a (new) OPAL opacity table in a simulation
 
 1. When using the FLD module of the code, the filename containing the table can be passed as a string to the `fld_opal_table` variable within the `fld_list` namelist. By default the FLD module will use the already included `Y09800` table.
 
-2. When requiring the tables inside mod_usr.t the user needs to import some subroutines from `mod_opal_opacity.t`. Firstly, the table needs to be initialised by calling the subroutine `init_opal_table`. This should be done once inside the subroutine `initglobaldata_usr`. Secondly, to apply the values from the table to a given problem (e.g. boundary condition, source term computation), make a call to the subroutine `set_opal_opacity`.
-See `mod_opal_opacity.t` for what arguments these subroutines require in their calls. An example of how to call OPAL tables inside the mod_usr.t file is given by the Wolf-Rayet stellar wind test problems of the rhd module. (NOTE: these test problems also rely on the FLD module, but this is not a prerequisite to use the tables.)
+2. When requiring the tables inside `mod_usr.t` the user needs to import some subroutines from `mod_opal_opacity.t`. Firstly, the table needs to be initialised by calling the subroutine `init_opal_table`. This should be done once, for example, inside the subroutine `initglobaldata_usr`. Secondly, to apply the values from the table to a given problem (e.g. boundary condition, source term computation), include a call to the subroutine `set_opal_opacity`.
+See `mod_opal_opacity.t` for what arguments these subroutines require in their calls. An example of how to call OPAL tables inside the `mod_usr.t` file is given by the Wolf-Rayet stellar wind test problems of the rhd module. (Note: these test problems also rely on the FLD module, but this is not a prerequisite to use the tables.)

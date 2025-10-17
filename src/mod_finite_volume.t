@@ -181,13 +181,14 @@ contains
 
        hxO^L=ixO^L-kr(idims,^D);
        if(stagger_grid) then
-         ! ct needs all transverse cells
-         ixCmax^D=ixOmax^D+nghostcells-nghostcells*kr(idims,^D);
-         ixCmin^D=hxOmin^D-nghostcells+nghostcells*kr(idims,^D);
+         ! ct needs 1 or 2 (hll) ghost cells in the transverse dimensions
+         ixCmax^D=ixOmax^D+transverse_ghost_cells-transverse_ghost_cells*kr(idims,^D);
+         ixCmin^D=hxOmin^D-transverse_ghost_cells+transverse_ghost_cells*kr(idims,^D);
        else
          ! ixC is centered index in the idims direction from ixOmin-1/2 to ixOmax+1/2
          ixCmax^D=ixOmax^D; ixCmin^D=hxOmin^D;
        end if
+
 
        ! Determine stencil size
        {ixCRmin^D = max(ixCmin^D - phys_wider_stencil,ixGlo^D)\}
@@ -1122,7 +1123,7 @@ contains
     double precision, dimension(ixI^S,1:nw) :: wLp, wRp
     double precision, dimension(ixI^S,1:ndim) :: x
 
-    integer            :: jxR^L, ixC^L, jxC^L, ixO^L, iw
+    integer            :: jxR^L, ixC^L, jxC^L, iw
     double precision   :: ldw(ixI^S), rdw(ixI^S), dwC(ixI^S)
     double precision   :: a2max
 
@@ -1160,12 +1161,12 @@ contains
           call phys_handle_small_values(.true.,wRp,x,ixI^L,ixR^L,'reconstruct right')
        end if
     case (limiter_ppm)
-       ixOmin^D=ixLmin^D+kr(idims,^D);
-       ixOmax^D=ixLmax^D;
-       call PPMlimiter(ixI^L,ixO^L,idims,w,w,wLp,wRp)
+       ixCmin^D=ixLmin^D+kr(idims,^D);
+       ixCmax^D=ixLmax^D;
+       call PPMlimiter(ixI^L,ixC^L,idims,w,w,wLp,wRp)
        if(fix_small_values) then
-          call phys_handle_small_values(.true.,wLp,x,ixI^L,ixL^L,'reconstruct left')
-          call phys_handle_small_values(.true.,wRp,x,ixI^L,ixR^L,'reconstruct right')
+          call phys_handle_small_values(.true.,wLp,x,ixI^L,ixC^L,'reconstruct left')
+          call phys_handle_small_values(.true.,wRp,x,ixI^L,ixC^L,'reconstruct right')
        end if
     case default
        jxR^L=ixR^L+kr(idims,^D);
