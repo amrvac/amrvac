@@ -1,6 +1,6 @@
 var searchData=
 [
-  ['b_0',['b',['../namespacemod__mf__phys.html#a00a3493ee88005d6b67bd0a8f83602ad',1,'mod_mf_phys::b'],['../namespacemod__mhd__phys.html#ac21f646cc9e76a808c9e86b0c86d8a6f',1,'mod_mhd_phys::b'],['../namespacemod__rmhd__phys.html#a47ef966867693f308e2beec7ae62473d',1,'mod_rmhd_phys::b']]],
+  ['b_0',['b',['../namespacemod__mf__phys.html#a00a3493ee88005d6b67bd0a8f83602ad',1,'mod_mf_phys::b'],['../namespacemod__mhd__phys.html#ac21f646cc9e76a808c9e86b0c86d8a6f',1,'mod_mhd_phys::b'],['../namespacemod__rmhd__phys.html#a47ef966867693f308e2beec7ae62473d',1,'mod_rmhd_phys::b'],['../namespacemod__twofl__phys.html#aad72cbc22af306ce12364a9878f3748c',1,'mod_twofl_phys::b']]],
   ['b0_1',['b0',['../structmod__physicaldata_1_1state.html#a0ee7297bd1311c66b2d912ca660cdd9d',1,'mod_physicaldata::state']]],
   ['b0field_2',['b0field',['../namespacemod__global__parameters.html#a9cd6aa831c14cbf613948179b96c9193',1,'mod_global_parameters']]],
   ['b0field_5fforcefree_3',['b0field_forcefree',['../namespacemod__mhd__phys.html#ae868e58d5d3110b2471c1bfdb55478d4',1,'mod_mhd_phys::b0field_forcefree'],['../namespacemod__rmhd__phys.html#adde4208bab505dfe875ba61f897d4513',1,'mod_rmhd_phys::b0field_forcefree'],['../namespacemod__twofl__phys.html#a662e9c1e028a8c5e63c0f74f3ec7c2e0',1,'mod_twofl_phys::b0field_forcefree']]],

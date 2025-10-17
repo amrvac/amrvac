@@ -227,9 +227,18 @@ Variables</h2></td></tr>
 <tr class="memitem:a74405b485d3340c1b9a2cb6faa9c9c45" id="r_a74405b485d3340c1b9a2cb6faa9c9c45"><td class="memItemLeft" align="right" valign="top">integer, dimension(:), allocatable, public&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__twofl__phys.html#a74405b485d3340c1b9a2cb6faa9c9c45">mod_twofl_phys::mom_c</a></td></tr>
 <tr class="memdesc:a74405b485d3340c1b9a2cb6faa9c9c45"><td class="mdescLeft">&#160;</td><td class="mdescRight">Indices of the momentum density.  <br /></td></tr>
 <tr class="separator:a74405b485d3340c1b9a2cb6faa9c9c45"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a6a54af70fe88bfc4954751461c14492a" id="r_a6a54af70fe88bfc4954751461c14492a"><td class="memItemLeft" align="right" valign="top">integer, public, protected&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__twofl__phys.html#a6a54af70fe88bfc4954751461c14492a">mod_twofl_phys::c</a></td></tr>
+<tr class="memdesc:a6a54af70fe88bfc4954751461c14492a"><td class="mdescLeft">&#160;</td><td class="mdescRight">Indices of the momentum density for the form of better vectorization.  <br /></td></tr>
+<tr class="separator:a6a54af70fe88bfc4954751461c14492a"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:af0a6502bb61e2cab99546ce38040004a" id="r_af0a6502bb61e2cab99546ce38040004a"><td class="memItemLeft" align="right" valign="top">integer, public, protected&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__twofl__phys.html#af0a6502bb61e2cab99546ce38040004a">mod_twofl_phys::m</a></td></tr>
+<tr class="separator:af0a6502bb61e2cab99546ce38040004a"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ad4a9ec973bf9394e8d4403b10304cf47" id="r_ad4a9ec973bf9394e8d4403b10304cf47"><td class="memItemLeft" align="right" valign="top">integer, public, protected&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__twofl__phys.html#ad4a9ec973bf9394e8d4403b10304cf47">mod_twofl_phys::c_</a></td></tr>
+<tr class="separator:ad4a9ec973bf9394e8d4403b10304cf47"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a67a7b6e4293897d377a1d5bdf4b48abe" id="r_a67a7b6e4293897d377a1d5bdf4b48abe"><td class="memItemLeft" align="right" valign="top">integer, public&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__twofl__phys.html#a67a7b6e4293897d377a1d5bdf4b48abe">mod_twofl_phys::e_c_</a> =-1</td></tr>
 <tr class="memdesc:a67a7b6e4293897d377a1d5bdf4b48abe"><td class="mdescLeft">&#160;</td><td class="mdescRight">Index of the energy density (-1 if not present)  <br /></td></tr>
 <tr class="separator:a67a7b6e4293897d377a1d5bdf4b48abe"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aad72cbc22af306ce12364a9878f3748c" id="r_aad72cbc22af306ce12364a9878f3748c"><td class="memItemLeft" align="right" valign="top">integer, public, protected&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__twofl__phys.html#aad72cbc22af306ce12364a9878f3748c">mod_twofl_phys::b</a></td></tr>
+<tr class="separator:aad72cbc22af306ce12364a9878f3748c"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:abb09a6d8e56a5be30cdd424af15838b2" id="r_abb09a6d8e56a5be30cdd424af15838b2"><td class="memItemLeft" align="right" valign="top">integer, public&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__twofl__phys.html#abb09a6d8e56a5be30cdd424af15838b2">mod_twofl_phys::tcoff_c_</a></td></tr>
 <tr class="memdesc:abb09a6d8e56a5be30cdd424af15838b2"><td class="mdescLeft">&#160;</td><td class="mdescRight">Index of the cutoff temperature for the TRAC method.  <br /></td></tr>
 <tr class="separator:abb09a6d8e56a5be30cdd424af15838b2"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -355,7 +364,7 @@ Variables</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="mod__twofl__phys_8t_source.html#l06354">6354</a> of file <a class="el" href="mod__twofl__phys_8t_source.html">mod_twofl_phys.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__twofl__phys_8t_source.html#l06396">6396</a> of file <a class="el" href="mod__twofl__phys_8t_source.html">mod_twofl_phys.t</a>.</p>
 <div class="dynheader">
 Here is the call graph for this function:</div>
 <div class="dyncontent">
@@ -452,7 +461,7 @@ Here is the call graph for this function:</div>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="mod__twofl__phys_8t_source.html#l02679">2679</a> of file <a class="el" href="mod__twofl__phys_8t_source.html">mod_twofl_phys.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__twofl__phys_8t_source.html#l02725">2725</a> of file <a class="el" href="mod__twofl__phys_8t_source.html">mod_twofl_phys.t</a>.</p>
 <div class="dynheader">
 Here is the call graph for this function:</div>
 <div class="dyncontent">
@@ -530,7 +539,7 @@ Here is the call graph for this function:</div>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="mod__twofl__phys_8t_source.html#l04804">4804</a> of file <a class="el" href="mod__twofl__phys_8t_source.html">mod_twofl_phys.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__twofl__phys_8t_source.html#l04850">4850</a> of file <a class="el" href="mod__twofl__phys_8t_source.html">mod_twofl_phys.t</a>.</p>
 <div class="dynheader">
 Here is the call graph for this function:</div>
 <div class="dyncontent">

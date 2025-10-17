@@ -211,9 +211,18 @@ Variables</h2></td></tr>
 <tr class="memitem:a74405b485d3340c1b9a2cb6faa9c9c45" id="r_a74405b485d3340c1b9a2cb6faa9c9c45"><td class="memItemLeft" align="right" valign="top">integer, dimension(:), allocatable, public&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__twofl__phys.html#a74405b485d3340c1b9a2cb6faa9c9c45">mom_c</a></td></tr>
 <tr class="memdesc:a74405b485d3340c1b9a2cb6faa9c9c45"><td class="mdescLeft">&#160;</td><td class="mdescRight">Indices of the momentum density.  <br /></td></tr>
 <tr class="separator:a74405b485d3340c1b9a2cb6faa9c9c45"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a6a54af70fe88bfc4954751461c14492a" id="r_a6a54af70fe88bfc4954751461c14492a"><td class="memItemLeft" align="right" valign="top">integer, public, protected&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__twofl__phys.html#a6a54af70fe88bfc4954751461c14492a">c</a></td></tr>
+<tr class="memdesc:a6a54af70fe88bfc4954751461c14492a"><td class="mdescLeft">&#160;</td><td class="mdescRight">Indices of the momentum density for the form of better vectorization.  <br /></td></tr>
+<tr class="separator:a6a54af70fe88bfc4954751461c14492a"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:af0a6502bb61e2cab99546ce38040004a" id="r_af0a6502bb61e2cab99546ce38040004a"><td class="memItemLeft" align="right" valign="top">integer, public, protected&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__twofl__phys.html#af0a6502bb61e2cab99546ce38040004a">m</a></td></tr>
+<tr class="separator:af0a6502bb61e2cab99546ce38040004a"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ad4a9ec973bf9394e8d4403b10304cf47" id="r_ad4a9ec973bf9394e8d4403b10304cf47"><td class="memItemLeft" align="right" valign="top">integer, public, protected&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__twofl__phys.html#ad4a9ec973bf9394e8d4403b10304cf47">c_</a></td></tr>
+<tr class="separator:ad4a9ec973bf9394e8d4403b10304cf47"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a67a7b6e4293897d377a1d5bdf4b48abe" id="r_a67a7b6e4293897d377a1d5bdf4b48abe"><td class="memItemLeft" align="right" valign="top">integer, public&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__twofl__phys.html#a67a7b6e4293897d377a1d5bdf4b48abe">e_c_</a> =-1</td></tr>
 <tr class="memdesc:a67a7b6e4293897d377a1d5bdf4b48abe"><td class="mdescLeft">&#160;</td><td class="mdescRight">Index of the energy density (-1 if not present)  <br /></td></tr>
 <tr class="separator:a67a7b6e4293897d377a1d5bdf4b48abe"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aad72cbc22af306ce12364a9878f3748c" id="r_aad72cbc22af306ce12364a9878f3748c"><td class="memItemLeft" align="right" valign="top">integer, public, protected&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__twofl__phys.html#aad72cbc22af306ce12364a9878f3748c">b</a></td></tr>
+<tr class="separator:aad72cbc22af306ce12364a9878f3748c"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:abb09a6d8e56a5be30cdd424af15838b2" id="r_abb09a6d8e56a5be30cdd424af15838b2"><td class="memItemLeft" align="right" valign="top">integer, public&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemod__twofl__phys.html#abb09a6d8e56a5be30cdd424af15838b2">tcoff_c_</a></td></tr>
 <tr class="memdesc:abb09a6d8e56a5be30cdd424af15838b2"><td class="mdescLeft">&#160;</td><td class="mdescRight">Index of the cutoff temperature for the TRAC method.  <br /></td></tr>
 <tr class="separator:abb09a6d8e56a5be30cdd424af15838b2"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -389,7 +398,7 @@ Variables</h2></td></tr>
 
 <p>calculate magnetic field from vector potential </p>
 
-<p class="definition">Definition at line <a class="el" href="mod__twofl__phys_8t_source.html#l06179">6179</a> of file <a class="el" href="mod__twofl__phys_8t_source.html">mod_twofl_phys.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__twofl__phys_8t_source.html#l06221">6221</a> of file <a class="el" href="mod__twofl__phys_8t_source.html">mod_twofl_phys.t</a>.</p>
 <div class="dynheader">
 Here is the call graph for this function:</div>
 <div class="dyncontent">
@@ -478,7 +487,7 @@ Here is the call graph for this function:</div>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="mod__twofl__phys_8t_source.html#l06672">6672</a> of file <a class="el" href="mod__twofl__phys_8t_source.html">mod_twofl_phys.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__twofl__phys_8t_source.html#l06714">6714</a> of file <a class="el" href="mod__twofl__phys_8t_source.html">mod_twofl_phys.t</a>.</p>
 <div class="dynheader">
 Here is the call graph for this function:</div>
 <div class="dyncontent">
@@ -565,7 +574,7 @@ Here is the call graph for this function:</div>
 
 <p>Calculate idirmin and the idirmin:3 components of the common current array make sure that <a class="el" href="namespacemod__global__parameters.html#ac487446056522027f949f42ba64b2e11" title="store unstretched cell size of current level">dxlevel(^D)</a> is set correctly. </p>
 
-<p class="definition">Definition at line <a class="el" href="mod__twofl__phys_8t_source.html#l04387">4387</a> of file <a class="el" href="mod__twofl__phys_8t_source.html">mod_twofl_phys.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__twofl__phys_8t_source.html#l04433">4433</a> of file <a class="el" href="mod__twofl__phys_8t_source.html">mod_twofl_phys.t</a>.</p>
 <div class="dynheader">
 Here is the call graph for this function:</div>
 <div class="dyncontent">
@@ -677,7 +686,7 @@ Here is the call graph for this function:</div>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="mod__twofl__phys_8t_source.html#l06633">6633</a> of file <a class="el" href="mod__twofl__phys_8t_source.html">mod_twofl_phys.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__twofl__phys_8t_source.html#l06675">6675</a> of file <a class="el" href="mod__twofl__phys_8t_source.html">mod_twofl_phys.t</a>.</p>
 <div class="dynheader">
 Here is the call graph for this function:</div>
 <div class="dyncontent">
@@ -746,7 +755,7 @@ Here is the call graph for this function:</div>
 
 <p>get dimensionless div B = |divB| * volume / area / |B| </p>
 
-<p class="definition">Definition at line <a class="el" href="mod__twofl__phys_8t_source.html#l04353">4353</a> of file <a class="el" href="mod__twofl__phys_8t_source.html">mod_twofl_phys.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__twofl__phys_8t_source.html#l04399">4399</a> of file <a class="el" href="mod__twofl__phys_8t_source.html">mod_twofl_phys.t</a>.</p>
 
 </div>
 </div>
@@ -806,7 +815,7 @@ Here is the call graph for this function:</div>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="mod__twofl__phys_8t_source.html#l03666">3666</a> of file <a class="el" href="mod__twofl__phys_8t_source.html">mod_twofl_phys.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__twofl__phys_8t_source.html#l03712">3712</a> of file <a class="el" href="mod__twofl__phys_8t_source.html">mod_twofl_phys.t</a>.</p>
 
 </div>
 </div>
@@ -866,7 +875,7 @@ Here is the call graph for this function:</div>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="mod__twofl__phys_8t_source.html#l03532">3532</a> of file <a class="el" href="mod__twofl__phys_8t_source.html">mod_twofl_phys.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__twofl__phys_8t_source.html#l03578">3578</a> of file <a class="el" href="mod__twofl__phys_8t_source.html">mod_twofl_phys.t</a>.</p>
 
 </div>
 </div>
@@ -910,7 +919,7 @@ Here is the call graph for this function:</div>
   </dd>
 </dl>
 
-<p class="definition">Definition at line <a class="el" href="mod__twofl__phys_8t_source.html#l05452">5452</a> of file <a class="el" href="mod__twofl__phys_8t_source.html">mod_twofl_phys.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__twofl__phys_8t_source.html#l05498">5498</a> of file <a class="el" href="mod__twofl__phys_8t_source.html">mod_twofl_phys.t</a>.</p>
 <div class="dynheader">
 Here is the call graph for this function:</div>
 <div class="dyncontent">
@@ -967,7 +976,7 @@ Here is the call graph for this function:</div>
 
 <p>calculate cell-center values from face-center values </p>
 
-<p class="definition">Definition at line <a class="el" href="mod__twofl__phys_8t_source.html#l06119">6119</a> of file <a class="el" href="mod__twofl__phys_8t_source.html">mod_twofl_phys.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__twofl__phys_8t_source.html#l06161">6161</a> of file <a class="el" href="mod__twofl__phys_8t_source.html">mod_twofl_phys.t</a>.</p>
 
 </div>
 </div>
@@ -1027,7 +1036,7 @@ Here is the call graph for this function:</div>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="mod__twofl__phys_8t_source.html#l03073">3073</a> of file <a class="el" href="mod__twofl__phys_8t_source.html">mod_twofl_phys.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__twofl__phys_8t_source.html#l03119">3119</a> of file <a class="el" href="mod__twofl__phys_8t_source.html">mod_twofl_phys.t</a>.</p>
 <div class="dynheader">
 Here is the call graph for this function:</div>
 <div class="dyncontent">
@@ -1116,7 +1125,7 @@ Here is the call graph for this function:</div>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="mod__twofl__phys_8t_source.html#l03679">3679</a> of file <a class="el" href="mod__twofl__phys_8t_source.html">mod_twofl_phys.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__twofl__phys_8t_source.html#l03725">3725</a> of file <a class="el" href="mod__twofl__phys_8t_source.html">mod_twofl_phys.t</a>.</p>
 <div class="dynheader">
 Here is the call graph for this function:</div>
 <div class="dyncontent">
@@ -1186,7 +1195,7 @@ Here is the call graph for this function:</div>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="mod__twofl__phys_8t_source.html#l03545">3545</a> of file <a class="el" href="mod__twofl__phys_8t_source.html">mod_twofl_phys.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__twofl__phys_8t_source.html#l03591">3591</a> of file <a class="el" href="mod__twofl__phys_8t_source.html">mod_twofl_phys.t</a>.</p>
 <div class="dynheader">
 Here is the call graph for this function:</div>
 <div class="dyncontent">
@@ -1264,7 +1273,7 @@ Here is the call graph for this function:</div>
 
 <p>Calculate v_c component. </p>
 
-<p class="definition">Definition at line <a class="el" href="mod__twofl__phys_8t_source.html#l03754">3754</a> of file <a class="el" href="mod__twofl__phys_8t_source.html">mod_twofl_phys.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__twofl__phys_8t_source.html#l03800">3800</a> of file <a class="el" href="mod__twofl__phys_8t_source.html">mod_twofl_phys.t</a>.</p>
 <div class="dynheader">
 Here is the call graph for this function:</div>
 <div class="dyncontent">
@@ -1367,7 +1376,7 @@ Here is the call graph for this function:</div>
 
 <p>Calculate v component. </p>
 
-<p class="definition">Definition at line <a class="el" href="mod__twofl__phys_8t_source.html#l03617">3617</a> of file <a class="el" href="mod__twofl__phys_8t_source.html">mod_twofl_phys.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__twofl__phys_8t_source.html#l03663">3663</a> of file <a class="el" href="mod__twofl__phys_8t_source.html">mod_twofl_phys.t</a>.</p>
 <div class="dynheader">
 Here is the call graph for this function:</div>
 <div class="dyncontent">
@@ -1400,7 +1409,7 @@ Here is the call graph for this function:</div>
 <p>Solve total energy equation or not</p>
 <p>Solve internal energy instead of total energy</p>
 
-<p class="definition">Definition at line <a class="el" href="mod__twofl__phys_8t_source.html#l00354">354</a> of file <a class="el" href="mod__twofl__phys_8t_source.html">mod_twofl_phys.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__twofl__phys_8t_source.html#l00358">358</a> of file <a class="el" href="mod__twofl__phys_8t_source.html">mod_twofl_phys.t</a>.</p>
 <div class="dynheader">
 Here is the call graph for this function:</div>
 <div class="dyncontent">
@@ -1522,7 +1531,7 @@ Here is the call graph for this function:</div>
 
 <p>Transform primitive variables into conservative ones. </p>
 
-<p class="definition">Definition at line <a class="el" href="mod__twofl__phys_8t_source.html#l01502">1502</a> of file <a class="el" href="mod__twofl__phys_8t_source.html">mod_twofl_phys.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__twofl__phys_8t_source.html#l01533">1533</a> of file <a class="el" href="mod__twofl__phys_8t_source.html">mod_twofl_phys.t</a>.</p>
 <div class="dynheader">
 Here is the call graph for this function:</div>
 <div class="dyncontent">
@@ -1590,7 +1599,7 @@ Here is the call graph for this function:</div>
 
 <p>Transform conservative variables into primitive ones. </p>
 
-<p class="definition">Definition at line <a class="el" href="mod__twofl__phys_8t_source.html#l01546">1546</a> of file <a class="el" href="mod__twofl__phys_8t_source.html">mod_twofl_phys.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__twofl__phys_8t_source.html#l01577">1577</a> of file <a class="el" href="mod__twofl__phys_8t_source.html">mod_twofl_phys.t</a>.</p>
 <div class="dynheader">
 Here is the call graph for this function:</div>
 <div class="dyncontent">
@@ -1617,6 +1626,22 @@ Here is the call graph for this function:</div>
 </div>
 </div>
 <h2 class="groupheader">Variable Documentation</h2>
+<a id="aad72cbc22af306ce12364a9878f3748c" name="aad72cbc22af306ce12364a9878f3748c"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#aad72cbc22af306ce12364a9878f3748c">&#9670;&#160;</a></span>b</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">integer, public, protected mod_twofl_phys::b</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p class="definition">Definition at line <a class="el" href="mod__twofl__phys_8t_source.html#l00101">101</a> of file <a class="el" href="mod__twofl__phys_8t_source.html">mod_twofl_phys.t</a>.</p>
+
+</div>
+</div>
 <a id="a662e9c1e028a8c5e63c0f74f3ec7c2e0" name="a662e9c1e028a8c5e63c0f74f3ec7c2e0"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a662e9c1e028a8c5e63c0f74f3ec7c2e0">&#9670;&#160;</a></span>b0field_forcefree</h2>
 
@@ -1631,7 +1656,7 @@ Here is the call graph for this function:</div>
 
 <p>B0 field is force-free. </p>
 
-<p class="definition">Definition at line <a class="el" href="mod__twofl__phys_8t_source.html#l00197">197</a> of file <a class="el" href="mod__twofl__phys_8t_source.html">mod_twofl_phys.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__twofl__phys_8t_source.html#l00201">201</a> of file <a class="el" href="mod__twofl__phys_8t_source.html">mod_twofl_phys.t</a>.</p>
 
 </div>
 </div>
@@ -1649,7 +1674,7 @@ Here is the call graph for this function:</div>
 
 <p>To control divB=0 fix for boundary. </p>
 
-<p class="definition">Definition at line <a class="el" href="mod__twofl__phys_8t_source.html#l00191">191</a> of file <a class="el" href="mod__twofl__phys_8t_source.html">mod_twofl_phys.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__twofl__phys_8t_source.html#l00195">195</a> of file <a class="el" href="mod__twofl__phys_8t_source.html">mod_twofl_phys.t</a>.</p>
 
 </div>
 </div>
@@ -1667,7 +1692,42 @@ Here is the call graph for this function:</div>
 
 <p>To skip * layer of ghost cells during divB=0 fix for boundary. </p>
 
-<p class="definition">Definition at line <a class="el" href="mod__twofl__phys_8t_source.html#l00194">194</a> of file <a class="el" href="mod__twofl__phys_8t_source.html">mod_twofl_phys.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__twofl__phys_8t_source.html#l00198">198</a> of file <a class="el" href="mod__twofl__phys_8t_source.html">mod_twofl_phys.t</a>.</p>
+
+</div>
+</div>
+<a id="a6a54af70fe88bfc4954751461c14492a" name="a6a54af70fe88bfc4954751461c14492a"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a6a54af70fe88bfc4954751461c14492a">&#9670;&#160;</a></span>c</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">integer public protected mod_twofl_phys::c</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Indices of the momentum density for the form of better vectorization. </p>
+<p>Indices of the magnetic field for the form of better vectorization. </p>
+
+<p class="definition">Definition at line <a class="el" href="mod__twofl__phys_8t_source.html#l00096">96</a> of file <a class="el" href="mod__twofl__phys_8t_source.html">mod_twofl_phys.t</a>.</p>
+
+</div>
+</div>
+<a id="ad4a9ec973bf9394e8d4403b10304cf47" name="ad4a9ec973bf9394e8d4403b10304cf47"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ad4a9ec973bf9394e8d4403b10304cf47">&#9670;&#160;</a></span>c_</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">integer public protected mod_twofl_phys::c_</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p class="definition">Definition at line <a class="el" href="mod__twofl__phys_8t_source.html#l00096">96</a> of file <a class="el" href="mod__twofl__phys_8t_source.html">mod_twofl_phys.t</a>.</p>
 
 </div>
 </div>
@@ -1717,7 +1777,7 @@ Here is the call graph for this function:</div>
 
 <p>clean initial divB </p>
 
-<p class="definition">Definition at line <a class="el" href="mod__twofl__phys_8t_source.html#l00185">185</a> of file <a class="el" href="mod__twofl__phys_8t_source.html">mod_twofl_phys.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__twofl__phys_8t_source.html#l00189">189</a> of file <a class="el" href="mod__twofl__phys_8t_source.html">mod_twofl_phys.t</a>.</p>
 
 </div>
 </div>
@@ -1735,7 +1795,7 @@ Here is the call graph for this function:</div>
 
 <p>Add divB wave in Roe solver. </p>
 
-<p class="definition">Definition at line <a class="el" href="mod__twofl__phys_8t_source.html#l00188">188</a> of file <a class="el" href="mod__twofl__phys_8t_source.html">mod_twofl_phys.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__twofl__phys_8t_source.html#l00192">192</a> of file <a class="el" href="mod__twofl__phys_8t_source.html">mod_twofl_phys.t</a>.</p>
 
 </div>
 </div>
@@ -1751,7 +1811,7 @@ Here is the call graph for this function:</div>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="mod__twofl__phys_8t_source.html#l00137">137</a> of file <a class="el" href="mod__twofl__phys_8t_source.html">mod_twofl_phys.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__twofl__phys_8t_source.html#l00141">141</a> of file <a class="el" href="mod__twofl__phys_8t_source.html">mod_twofl_phys.t</a>.</p>
 
 </div>
 </div>
@@ -1769,7 +1829,7 @@ Here is the call graph for this function:</div>
 
 <p>Index of the energy density (-1 if not present) </p>
 
-<p class="definition">Definition at line <a class="el" href="mod__twofl__phys_8t_source.html#l00097">97</a> of file <a class="el" href="mod__twofl__phys_8t_source.html">mod_twofl_phys.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__twofl__phys_8t_source.html#l00099">99</a> of file <a class="el" href="mod__twofl__phys_8t_source.html">mod_twofl_phys.t</a>.</p>
 
 </div>
 </div>
@@ -1785,7 +1845,7 @@ Here is the call graph for this function:</div>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="mod__twofl__phys_8t_source.html#l00120">120</a> of file <a class="el" href="mod__twofl__phys_8t_source.html">mod_twofl_phys.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__twofl__phys_8t_source.html#l00124">124</a> of file <a class="el" href="mod__twofl__phys_8t_source.html">mod_twofl_phys.t</a>.</p>
 
 </div>
 </div>
@@ -1865,7 +1925,7 @@ Here is the call graph for this function:</div>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="mod__twofl__phys_8t_source.html#l00112">112</a> of file <a class="el" href="mod__twofl__phys_8t_source.html">mod_twofl_phys.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__twofl__phys_8t_source.html#l00116">116</a> of file <a class="el" href="mod__twofl__phys_8t_source.html">mod_twofl_phys.t</a>.</p>
 
 </div>
 </div>
@@ -1881,7 +1941,7 @@ Here is the call graph for this function:</div>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="mod__twofl__phys_8t_source.html#l00126">126</a> of file <a class="el" href="mod__twofl__phys_8t_source.html">mod_twofl_phys.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__twofl__phys_8t_source.html#l00130">130</a> of file <a class="el" href="mod__twofl__phys_8t_source.html">mod_twofl_phys.t</a>.</p>
 
 </div>
 </div>
@@ -1899,7 +1959,7 @@ Here is the call graph for this function:</div>
 
 <p>equi vars indices in the stateequi_vars array </p>
 
-<p class="definition">Definition at line <a class="el" href="mod__twofl__phys_8t_source.html#l00111">111</a> of file <a class="el" href="mod__twofl__phys_8t_source.html">mod_twofl_phys.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__twofl__phys_8t_source.html#l00115">115</a> of file <a class="el" href="mod__twofl__phys_8t_source.html">mod_twofl_phys.t</a>.</p>
 
 </div>
 </div>
@@ -1915,7 +1975,7 @@ Here is the call graph for this function:</div>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="mod__twofl__phys_8t_source.html#l00125">125</a> of file <a class="el" href="mod__twofl__phys_8t_source.html">mod_twofl_phys.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__twofl__phys_8t_source.html#l00129">129</a> of file <a class="el" href="mod__twofl__phys_8t_source.html">mod_twofl_phys.t</a>.</p>
 
 </div>
 </div>
@@ -1931,7 +1991,7 @@ Here is the call graph for this function:</div>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="mod__twofl__phys_8t_source.html#l00108">108</a> of file <a class="el" href="mod__twofl__phys_8t_source.html">mod_twofl_phys.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__twofl__phys_8t_source.html#l00112">112</a> of file <a class="el" href="mod__twofl__phys_8t_source.html">mod_twofl_phys.t</a>.</p>
 
 </div>
 </div>
@@ -1947,7 +2007,7 @@ Here is the call graph for this function:</div>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="mod__twofl__phys_8t_source.html#l00124">124</a> of file <a class="el" href="mod__twofl__phys_8t_source.html">mod_twofl_phys.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__twofl__phys_8t_source.html#l00128">128</a> of file <a class="el" href="mod__twofl__phys_8t_source.html">mod_twofl_phys.t</a>.</p>
 
 </div>
 </div>
@@ -1965,7 +2025,7 @@ Here is the call graph for this function:</div>
 
 <p>equi vars flags </p>
 
-<p class="definition">Definition at line <a class="el" href="mod__twofl__phys_8t_source.html#l00107">107</a> of file <a class="el" href="mod__twofl__phys_8t_source.html">mod_twofl_phys.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__twofl__phys_8t_source.html#l00111">111</a> of file <a class="el" href="mod__twofl__phys_8t_source.html">mod_twofl_phys.t</a>.</p>
 
 </div>
 </div>
@@ -1981,7 +2041,7 @@ Here is the call graph for this function:</div>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="mod__twofl__phys_8t_source.html#l00123">123</a> of file <a class="el" href="mod__twofl__phys_8t_source.html">mod_twofl_phys.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__twofl__phys_8t_source.html#l00127">127</a> of file <a class="el" href="mod__twofl__phys_8t_source.html">mod_twofl_phys.t</a>.</p>
 
 </div>
 </div>
@@ -1997,7 +2057,23 @@ Here is the call graph for this function:</div>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="mod__twofl__phys_8t_source.html#l00143">143</a> of file <a class="el" href="mod__twofl__phys_8t_source.html">mod_twofl_phys.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__twofl__phys_8t_source.html#l00147">147</a> of file <a class="el" href="mod__twofl__phys_8t_source.html">mod_twofl_phys.t</a>.</p>
+
+</div>
+</div>
+<a id="af0a6502bb61e2cab99546ce38040004a" name="af0a6502bb61e2cab99546ce38040004a"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#af0a6502bb61e2cab99546ce38040004a">&#9670;&#160;</a></span>m</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">integer, public, protected mod_twofl_phys::m</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p class="definition">Definition at line <a class="el" href="mod__twofl__phys_8t_source.html#l00096">96</a> of file <a class="el" href="mod__twofl__phys_8t_source.html">mod_twofl_phys.t</a>.</p>
 
 </div>
 </div>
@@ -2031,7 +2107,7 @@ Here is the call graph for this function:</div>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="mod__twofl__phys_8t_source.html#l00119">119</a> of file <a class="el" href="mod__twofl__phys_8t_source.html">mod_twofl_phys.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__twofl__phys_8t_source.html#l00123">123</a> of file <a class="el" href="mod__twofl__phys_8t_source.html">mod_twofl_phys.t</a>.</p>
 
 </div>
 </div>
@@ -2049,7 +2125,7 @@ Here is the call graph for this function:</div>
 
 <p>Indices of the GLM psi. </p>
 
-<p class="definition">Definition at line <a class="el" href="mod__twofl__phys_8t_source.html#l00104">104</a> of file <a class="el" href="mod__twofl__phys_8t_source.html">mod_twofl_phys.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__twofl__phys_8t_source.html#l00108">108</a> of file <a class="el" href="mod__twofl__phys_8t_source.html">mod_twofl_phys.t</a>.</p>
 
 </div>
 </div>
@@ -2065,7 +2141,7 @@ Here is the call graph for this function:</div>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="mod__twofl__phys_8t_source.html#l00145">145</a> of file <a class="el" href="mod__twofl__phys_8t_source.html">mod_twofl_phys.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__twofl__phys_8t_source.html#l00149">149</a> of file <a class="el" href="mod__twofl__phys_8t_source.html">mod_twofl_phys.t</a>.</p>
 
 </div>
 </div>
@@ -2115,7 +2191,7 @@ Here is the call graph for this function:</div>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="mod__twofl__phys_8t_source.html#l00118">118</a> of file <a class="el" href="mod__twofl__phys_8t_source.html">mod_twofl_phys.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__twofl__phys_8t_source.html#l00122">122</a> of file <a class="el" href="mod__twofl__phys_8t_source.html">mod_twofl_phys.t</a>.</p>
 
 </div>
 </div>
@@ -2131,7 +2207,7 @@ Here is the call graph for this function:</div>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="mod__twofl__phys_8t_source.html#l00146">146</a> of file <a class="el" href="mod__twofl__phys_8t_source.html">mod_twofl_phys.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__twofl__phys_8t_source.html#l00150">150</a> of file <a class="el" href="mod__twofl__phys_8t_source.html">mod_twofl_phys.t</a>.</p>
 
 </div>
 </div>
@@ -2183,7 +2259,7 @@ Here is the call graph for this function:</div>
 
 <p>Index of the cutoff temperature for the TRAC method. </p>
 
-<p class="definition">Definition at line <a class="el" href="mod__twofl__phys_8t_source.html#l00100">100</a> of file <a class="el" href="mod__twofl__phys_8t_source.html">mod_twofl_phys.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__twofl__phys_8t_source.html#l00104">104</a> of file <a class="el" href="mod__twofl__phys_8t_source.html">mod_twofl_phys.t</a>.</p>
 
 </div>
 </div>
@@ -2199,7 +2275,7 @@ Here is the call graph for this function:</div>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="mod__twofl__phys_8t_source.html#l00121">121</a> of file <a class="el" href="mod__twofl__phys_8t_source.html">mod_twofl_phys.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__twofl__phys_8t_source.html#l00125">125</a> of file <a class="el" href="mod__twofl__phys_8t_source.html">mod_twofl_phys.t</a>.</p>
 
 </div>
 </div>
@@ -2231,7 +2307,7 @@ Here is the call graph for this function:</div>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="mod__twofl__phys_8t_source.html#l00101">101</a> of file <a class="el" href="mod__twofl__phys_8t_source.html">mod_twofl_phys.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__twofl__phys_8t_source.html#l00105">105</a> of file <a class="el" href="mod__twofl__phys_8t_source.html">mod_twofl_phys.t</a>.</p>
 
 </div>
 </div>
@@ -2247,7 +2323,7 @@ Here is the call graph for this function:</div>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="mod__twofl__phys_8t_source.html#l00122">122</a> of file <a class="el" href="mod__twofl__phys_8t_source.html">mod_twofl_phys.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__twofl__phys_8t_source.html#l00126">126</a> of file <a class="el" href="mod__twofl__phys_8t_source.html">mod_twofl_phys.t</a>.</p>
 
 </div>
 </div>
@@ -2283,7 +2359,7 @@ Here is the call graph for this function:</div>
 
 <p>The adiabatic constant. </p>
 
-<p class="definition">Definition at line <a class="el" href="mod__twofl__phys_8t_source.html#l00152">152</a> of file <a class="el" href="mod__twofl__phys_8t_source.html">mod_twofl_phys.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__twofl__phys_8t_source.html#l00156">156</a> of file <a class="el" href="mod__twofl__phys_8t_source.html">mod_twofl_phys.t</a>.</p>
 
 </div>
 </div>
@@ -2301,7 +2377,7 @@ Here is the call graph for this function:</div>
 
 <p>collisional alpha </p>
 
-<p class="definition">Definition at line <a class="el" href="mod__twofl__phys_8t_source.html#l00130">130</a> of file <a class="el" href="mod__twofl__phys_8t_source.html">mod_twofl_phys.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__twofl__phys_8t_source.html#l00134">134</a> of file <a class="el" href="mod__twofl__phys_8t_source.html">mod_twofl_phys.t</a>.</p>
 
 </div>
 </div>
@@ -2317,7 +2393,7 @@ Here is the call graph for this function:</div>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="mod__twofl__phys_8t_source.html#l00131">131</a> of file <a class="el" href="mod__twofl__phys_8t_source.html">mod_twofl_phys.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__twofl__phys_8t_source.html#l00135">135</a> of file <a class="el" href="mod__twofl__phys_8t_source.html">mod_twofl_phys.t</a>.</p>
 
 </div>
 </div>
@@ -2335,7 +2411,7 @@ Here is the call graph for this function:</div>
 
 <p>whether include ionization/recombination inelastic collisional terms </p>
 
-<p class="definition">Definition at line <a class="el" href="mod__twofl__phys_8t_source.html#l00135">135</a> of file <a class="el" href="mod__twofl__phys_8t_source.html">mod_twofl_phys.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__twofl__phys_8t_source.html#l00139">139</a> of file <a class="el" href="mod__twofl__phys_8t_source.html">mod_twofl_phys.t</a>.</p>
 
 </div>
 </div>
@@ -2353,7 +2429,7 @@ Here is the call graph for this function:</div>
 
 <p>whether include thermal exchange collisional terms </p>
 
-<p class="definition">Definition at line <a class="el" href="mod__twofl__phys_8t_source.html#l00133">133</a> of file <a class="el" href="mod__twofl__phys_8t_source.html">mod_twofl_phys.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__twofl__phys_8t_source.html#l00137">137</a> of file <a class="el" href="mod__twofl__phys_8t_source.html">mod_twofl_phys.t</a>.</p>
 
 </div>
 </div>
@@ -2371,7 +2447,7 @@ Here is the call graph for this function:</div>
 
 <p>Whether divB is computed with a fourth order approximation. </p>
 
-<p class="definition">Definition at line <a class="el" href="mod__twofl__phys_8t_source.html#l00173">173</a> of file <a class="el" href="mod__twofl__phys_8t_source.html">mod_twofl_phys.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__twofl__phys_8t_source.html#l00177">177</a> of file <a class="el" href="mod__twofl__phys_8t_source.html">mod_twofl_phys.t</a>.</p>
 
 </div>
 </div>
@@ -2389,7 +2465,7 @@ Here is the call graph for this function:</div>
 
 <p>whether dump collisional terms in a separte dat file </p>
 
-<p class="definition">Definition at line <a class="el" href="mod__twofl__phys_8t_source.html#l00139">139</a> of file <a class="el" href="mod__twofl__phys_8t_source.html">mod_twofl_phys.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__twofl__phys_8t_source.html#l00143">143</a> of file <a class="el" href="mod__twofl__phys_8t_source.html">mod_twofl_phys.t</a>.</p>
 
 </div>
 </div>
@@ -2455,7 +2531,7 @@ Here is the call graph for this function:</div>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="mod__twofl__phys_8t_source.html#l00115">115</a> of file <a class="el" href="mod__twofl__phys_8t_source.html">mod_twofl_phys.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__twofl__phys_8t_source.html#l00119">119</a> of file <a class="el" href="mod__twofl__phys_8t_source.html">mod_twofl_phys.t</a>.</p>
 
 </div>
 </div>
@@ -2471,7 +2547,7 @@ Here is the call graph for this function:</div>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="mod__twofl__phys_8t_source.html#l00113">113</a> of file <a class="el" href="mod__twofl__phys_8t_source.html">mod_twofl_phys.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__twofl__phys_8t_source.html#l00117">117</a> of file <a class="el" href="mod__twofl__phys_8t_source.html">mod_twofl_phys.t</a>.</p>
 
 </div>
 </div>
@@ -2487,7 +2563,7 @@ Here is the call graph for this function:</div>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="mod__twofl__phys_8t_source.html#l00136">136</a> of file <a class="el" href="mod__twofl__phys_8t_source.html">mod_twofl_phys.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__twofl__phys_8t_source.html#l00140">140</a> of file <a class="el" href="mod__twofl__phys_8t_source.html">mod_twofl_phys.t</a>.</p>
 
 </div>
 </div>
@@ -2505,7 +2581,7 @@ Here is the call graph for this function:</div>
 
 <p>The MHD resistivity. </p>
 
-<p class="definition">Definition at line <a class="el" href="mod__twofl__phys_8t_source.html#l00155">155</a> of file <a class="el" href="mod__twofl__phys_8t_source.html">mod_twofl_phys.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__twofl__phys_8t_source.html#l00159">159</a> of file <a class="el" href="mod__twofl__phys_8t_source.html">mod_twofl_phys.t</a>.</p>
 
 </div>
 </div>
@@ -2523,7 +2599,7 @@ Here is the call graph for this function:</div>
 
 <p>The MHD hyper-resistivity. </p>
 
-<p class="definition">Definition at line <a class="el" href="mod__twofl__phys_8t_source.html#l00158">158</a> of file <a class="el" href="mod__twofl__phys_8t_source.html">mod_twofl_phys.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__twofl__phys_8t_source.html#l00162">162</a> of file <a class="el" href="mod__twofl__phys_8t_source.html">mod_twofl_phys.t</a>.</p>
 
 </div>
 </div>
@@ -2541,7 +2617,7 @@ Here is the call graph for this function:</div>
 
 <p>The MHD Hall coefficient. </p>
 
-<p class="definition">Definition at line <a class="el" href="mod__twofl__phys_8t_source.html#l00161">161</a> of file <a class="el" href="mod__twofl__phys_8t_source.html">mod_twofl_phys.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__twofl__phys_8t_source.html#l00165">165</a> of file <a class="el" href="mod__twofl__phys_8t_source.html">mod_twofl_phys.t</a>.</p>
 
 </div>
 </div>
@@ -2559,7 +2635,7 @@ Here is the call graph for this function:</div>
 
 <p>The adiabatic index. </p>
 
-<p class="definition">Definition at line <a class="el" href="mod__twofl__phys_8t_source.html#l00149">149</a> of file <a class="el" href="mod__twofl__phys_8t_source.html">mod_twofl_phys.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__twofl__phys_8t_source.html#l00153">153</a> of file <a class="el" href="mod__twofl__phys_8t_source.html">mod_twofl_phys.t</a>.</p>
 
 </div>
 </div>
@@ -2808,7 +2884,7 @@ Here is the call graph for this function:</div>
 
 <p>Method type of constrained transport. </p>
 
-<p class="definition">Definition at line <a class="el" href="mod__twofl__phys_8t_source.html#l00170">170</a> of file <a class="el" href="mod__twofl__phys_8t_source.html">mod_twofl_phys.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__twofl__phys_8t_source.html#l00174">174</a> of file <a class="el" href="mod__twofl__phys_8t_source.html">mod_twofl_phys.t</a>.</p>
 
 </div>
 </div>
@@ -2826,7 +2902,7 @@ Here is the call graph for this function:</div>
 
 <p>Method type to clean divergence of B. </p>
 
-<p class="definition">Definition at line <a class="el" href="mod__twofl__phys_8t_source.html#l00167">167</a> of file <a class="el" href="mod__twofl__phys_8t_source.html">mod_twofl_phys.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__twofl__phys_8t_source.html#l00171">171</a> of file <a class="el" href="mod__twofl__phys_8t_source.html">mod_twofl_phys.t</a>.</p>
 
 </div>
 </div>
@@ -2842,7 +2918,7 @@ Here is the call graph for this function:</div>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="mod__twofl__phys_8t_source.html#l00276">276</a> of file <a class="el" href="mod__twofl__phys_8t_source.html">mod_twofl_phys.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__twofl__phys_8t_source.html#l00280">280</a> of file <a class="el" href="mod__twofl__phys_8t_source.html">mod_twofl_phys.t</a>.</p>
 
 </div>
 </div>
@@ -2858,7 +2934,7 @@ Here is the call graph for this function:</div>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="mod__twofl__phys_8t_source.html#l00277">277</a> of file <a class="el" href="mod__twofl__phys_8t_source.html">mod_twofl_phys.t</a>.</p>
+<p class="definition">Definition at line <a class="el" href="mod__twofl__phys_8t_source.html#l00281">281</a> of file <a class="el" href="mod__twofl__phys_8t_source.html">mod_twofl_phys.t</a>.</p>
 
 </div>
 </div>

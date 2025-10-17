@@ -1,6 +1,6 @@
 var searchData=
 [
-  ['b_0',['b',['../namespacemod__rmhd__phys.html#a47ef966867693f308e2beec7ae62473d',1,'mod_rmhd_phys::b'],['../namespacemod__mhd__phys.html#ac21f646cc9e76a808c9e86b0c86d8a6f',1,'mod_mhd_phys::b'],['../namespacemod__mf__phys.html#a00a3493ee88005d6b67bd0a8f83602ad',1,'mod_mf_phys::b']]],
+  ['b_0',['b',['../namespacemod__twofl__phys.html#aad72cbc22af306ce12364a9878f3748c',1,'mod_twofl_phys::b'],['../namespacemod__rmhd__phys.html#a47ef966867693f308e2beec7ae62473d',1,'mod_rmhd_phys::b'],['../namespacemod__mhd__phys.html#ac21f646cc9e76a808c9e86b0c86d8a6f',1,'mod_mhd_phys::b'],['../namespacemod__mf__phys.html#a00a3493ee88005d6b67bd0a8f83602ad',1,'mod_mf_phys::b']]],
   ['b_20source_20treatments_1',['Divergence B source treatments',['../md_doc_2equations.html#eq_divB_fix',1,'']]],
   ['b0_2',['b0',['../structmod__physicaldata_1_1state.html#a0ee7297bd1311c66b2d912ca660cdd9d',1,'mod_physicaldata::state']]],
   ['b0field_3',['b0field',['../namespacemod__global__parameters.html#a9cd6aa831c14cbf613948179b96c9193',1,'mod_global_parameters']]],
