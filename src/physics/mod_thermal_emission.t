@@ -1988,8 +1988,7 @@ module mod_thermal_emission
         if (.not. slab .and. .not. (coordinate==spherical .and. trim(ray_method_active)=='spherical')) &
           call MPISTOP('EUV dat-resolution needs Cartesian or spherical native rays')
         if (mype==0) then
-          write(*,'(a,f7.1,a,f7.1,a,f5.1,a,f5.1,a)') ' Supposed Pixel: ',spaceRsl*725.0,' km x ',spaceRsl*725.0, & 
-                                                     ' km  (', spaceRsl, ' arcsec x ', spaceRsl, ' arcsec)'
+          print *, 'Data-resolution image requested; native output pixel sizes are reported below.'
           if (SI_unit) then
             write(*,'(a,f8.1,a)') ' Unit of length: ',unit_length/1.d6,' Mm'
           else
@@ -2515,7 +2514,7 @@ module mod_thermal_emission
       double precision :: xIF^L
       double precision :: vec_cor(1:3),xI_cor(1:2),dxDDA,xIcent1,xIcent2
 
-      double precision :: unitv,arcsec,RHESSI_rsl
+      double precision :: unitv,arcsec,RHESSI_rsl,length_to_km
       integer :: strtype^D,nstrb^D,nbb^D,nuni^D,nstr^D,bnx^D
       double precision :: qs^D,dxfirst^D,dxmid^D,lenstr^D
       logical :: has_doppler_output,has_thick_output
@@ -2758,6 +2757,23 @@ module mod_thermal_emission
       case default
         call mpistop("unknown stretch type")
       end select
+
+      if (mype==0 .and. datatype=='image_euv') then
+        if (SI_unit) then
+          length_to_km=unit_length/1.d3
+          arcsec=7.25d5/unit_length
+        else
+          length_to_km=unit_length/1.d5
+          arcsec=7.25d7/unit_length
+        endif
+        write(*,'(a,i8,a,i8)') ' Native data-resolution image grid: ',nXIF1,' x ',nXIF2
+        write(*,'(a,f10.3,a,f10.3,a,f8.3,a,f8.3,a)') &
+          ' Native xI1 pixel-size range: ',minval(dxIF1)*length_to_km,'--', &
+          maxval(dxIF1)*length_to_km,' km (',minval(dxIF1)/arcsec,'--',maxval(dxIF1)/arcsec,' arcsec)'
+        write(*,'(a,f10.3,a,f10.3,a,f8.3,a,f8.3,a)') &
+          ' Native xI2 pixel-size range: ',minval(dxIF2)*length_to_km,'--', &
+          maxval(dxIF2)*length_to_km,' km (',minval(dxIF2)/arcsec,'--',maxval(dxIF2)/arcsec,' arcsec)'
+      endif
 
       ! integrate EUV flux and get cell average flux for image
       if (datatype=='image_euv') then
@@ -4402,6 +4418,14 @@ module mod_thermal_emission
       double precision :: cth,aa,bb,cc,disc,root
 
       cth=cos(thetaface)
+      ! At the equator the cone equation degenerates to z**2=0.  Solve the
+      ! corresponding plane intersection directly to avoid losing its double
+      ! root through roundoff in the quadratic discriminant.
+      if (abs(cth)<1.d-12) then
+        if (abs(ray_dir(3))>1.d-14) &
+          call sph_add_t(tvals,nt,capacity,-ray_origin(3)/ray_dir(3))
+        return
+      endif
       aa=ray_dir(3)**2-cth**2*sum(ray_dir**2)
       bb=2.d0*(ray_origin(3)*ray_dir(3)-cth**2*sum(ray_origin*ray_dir))
       cc=ray_origin(3)**2-cth**2*sum(ray_origin**2)
@@ -4684,6 +4708,11 @@ module mod_thermal_emission
         endif
       enddo
       do ix2=ixOmin2,ixOmax2+1
+        if (abs(theta_cos(ix2))<1.d-12) then
+          if (abs(vec_LOS(3))>1.d-14) &
+            call sph_add_t_fixed(tvals,nt,-ray_origin(3)/vec_LOS(3))
+          cycle
+        endif
         cth2=theta_cos(ix2)**2
         aa=vec_LOS(3)**2-cth2*dir2
         bb=2.d0*(ray_origin(3)*vec_LOS(3)-cth2*odotd)
@@ -4846,6 +4875,12 @@ module mod_thermal_emission
       enddo
 
       do iface=ix2,ix2+1
+        if (abs(theta_cos(iface))<1.d-12) then
+          if (abs(vec_LOS(3))>1.d-14) call sph_try_theta_exit_candidate(&
+            -ray_origin(3)/vec_LOS(3),theta_cos(iface),ray_origin,tNow,tExit,epsRay,&
+            tNext,found)
+          cycle
+        endif
         cth2=theta_cos(iface)**2
         aa=vec_LOS(3)**2-cth2*dir2
         bb=2.d0*(ray_origin(3)*vec_LOS(3)-cth2*odotd)
@@ -4991,6 +5026,11 @@ module mod_thermal_emission
         endif
       enddo
       do ix2=ixOmin2,ixOmax2+1,ixOmax2-ixOmin2+1
+        if (abs(theta_cos(ix2))<1.d-12) then
+          if (abs(vec_LOS(3))>1.d-14) &
+            call sph_add_t_fixed(tvals,nt,-ray_origin(3)/vec_LOS(3))
+          cycle
+        endif
         cth2=theta_cos(ix2)**2
         aa=vec_LOS(3)**2-cth2*dir2
         bb=2.d0*(ray_origin(3)*vec_LOS(3)-cth2*odotd)

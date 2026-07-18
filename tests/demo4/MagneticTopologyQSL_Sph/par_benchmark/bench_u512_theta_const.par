@@ -1,0 +1,86 @@
+! Uniform 512x384x512 spherical TDm theta_const benchmark, RK45 all-array products.
+! Run after par_init/u512.par. This case can be expensive.
+
+&filelist
+  convert=.true.
+  firstprocess=.false.
+  convert_type='user'
+  autoconvert=.false.
+  restart_from_file='output/spherical_tdm_u512_0000.dat'
+/
+
+&stoplist
+  it_max=0
+  time_max=1.d0
+/
+
+&methodlist
+  time_stepper='threestep'
+  flux_scheme=20*'hll'
+  limiter=20*'cada3'
+/
+
+&boundlist
+  typeboundary_min1=8*'cont'
+  typeboundary_max1=8*'cont'
+  typeboundary_min2=8*'cont'
+  typeboundary_max2=8*'cont'
+  typeboundary_min3=8*'cont'
+  typeboundary_max3=8*'cont'
+  nghostcells=4
+/
+
+&meshlist
+  refine_criterion=3
+  refine_max_level=1
+  block_nx1=32
+  block_nx2=32
+  block_nx3=32
+  domain_nx1=512
+  domain_nx2=384
+  domain_nx3=512
+  xprobmin1=69.61d0
+  xprobmax1=79.61d0
+  xprobmin2=0.2270568141714314d0
+  xprobmax2=0.2729431858285686d0
+  xprobmin3=-0.01718120494117723d0
+  xprobmax3= 0.01718120494117723d0
+/
+
+&paramlist
+  typecourant='maxsum'
+  courantpar=0.5d0
+/
+
+&mhd_list
+  mhd_energy=.true.
+  typedivbfix='none'
+/
+
+&usr_list
+  minor_radius_cm=2.25d9
+  n_axis_points=400
+  rho0=1.0d0
+  pressure0=1.0d0
+/
+
+&magnetic_topology_list
+  mt_enable = .true.
+  mt_mode = 'spherical_surface_products'
+  mt_seed_surface = 'theta_const'
+  mt_seed_coord = 1.5707963267948966d0
+  mt_seed_layout = 'cell_centered'
+  mt_output_file = 'output/benchmark/theta_const_u512.vtu'
+  mt_vtk_detail = 'minimal'
+  mt_trace_integrator = 'rk45_spherical'
+  mt_step_control = 'cell_fraction'
+  mt_step_fraction = 4.0d0
+  mt_max_steps = -1
+  mt_b_min = 1.d-8
+  mt_n1 = 512
+  mt_n2 = 512
+  mt_compute_length = .true.
+  mt_compute_twist = .true.
+  mt_compute_q = .true.
+  mt_compute_qperp = .true.
+/
