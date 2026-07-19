@@ -438,7 +438,7 @@ module mod_thermal_emission
         if (datatype=='image_euv' .and. coordinate==spherical) then
           ray_method_active='spherical'
           sph_use_dda=.true.
-        else if (datatype=='image_euv' .and. coordinate==cartesian .and. dat_resolution .and. slab) then
+        else if (datatype=='image_euv' .and. dat_resolution .and. slab) then
           ray_method_active='cart'
         else
           ray_method_active='legacy'
@@ -522,7 +522,7 @@ module mod_thermal_emission
       end select
 
       if (trim(ray_method_active) == 'cart') then
-        if (datatype /= 'image_euv' .or. coordinate /= cartesian .or. .not. slab) then
+        if (datatype /= 'image_euv' .or. .not. slab) then
           call mpistop("ray_method=cart needs Cartesian EUV slab images")
         endif
       endif
@@ -2022,7 +2022,7 @@ module mod_thermal_emission
             endif
           endif
         endif
-        if (coordinate==cartesian) then
+        if (slab) then
           if (mype==0) write(*,'(a,f8.3,f8.3,f8.3,a)') ' Mapping: [',x_origin(1),x_origin(2),x_origin(3), &
                                                      '] of the simulation box is located at [X=0,Y=0] of the image'
             call get_image(qunit,datatype,fl)
@@ -5734,7 +5734,7 @@ module mod_thermal_emission
       if (datatype=='image_euv' .or. datatype=='image_sxr') then
         has_thick_output=datatype=='image_euv' .and. trim(radiation_transfer)=='thick' .and. &
             ((coordinate==spherical .and. trim(ray_method_active)=='spherical') .or. &
-             (coordinate==cartesian .and. trim(ray_method_active)=='cart'))
+             (slab .and. trim(ray_method_active)=='cart'))
         if (datatype=='image_euv') then
           numWI=radsyn_euv_num_outputs(.false.,has_thick_output)
         else
@@ -5750,7 +5750,7 @@ module mod_thermal_emission
           Tau=zero
           EMthin=zero
         endif
-        if (coordinate==cartesian .and. datatype=='image_euv' .and. &
+        if (slab .and. datatype=='image_euv' .and. &
             trim(ray_method_active)=='cart') then
           ray_image_global=.true.
           allocate(Dpl(numXI1,numXI2))
@@ -5761,7 +5761,7 @@ module mod_thermal_emission
             call integrate_EUV_cart_dda_datresol(numXI1,numXI2,xI1,xI2,fl,EM,Dpl)
           endif
           deallocate(Dpl)
-        else if (coordinate==cartesian) then
+        else if (slab) then
           do iigrid=1,igridstail; igrid=igrids(iigrid);
             call integrate_emission_cartesian(igrid,numXI1,numXI2,xI1,xI2,dxI,fl,datatype,EM)
           enddo
