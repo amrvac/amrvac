@@ -292,7 +292,7 @@ contains
           filename_sxr,emin_sxr,emax_sxr,&
           LOS_theta,LOS_phi,image_rotate,x_origin,big_image,&
           spectrum_wl,location_slit,filename_spectrum,&
-          radiation_transfer,ray_method,emission_model,&
+          radiation_transfer,ray_method,dat_resolution_mode,emission_model,&
           instrument_postprocess,&
           radio_frequency,radio_beam_fwhm,radio_beam_pixel_size,&
           radsyn_pixel_batch,radsyn_segment_batch_factor,radsyn_segment_memory_mb,&
@@ -517,6 +517,7 @@ contains
     location_slit = 0.d0
     radiation_transfer = 'thin'
     ray_method = 'auto'
+    dat_resolution_mode = 'nominal'
     emission_model = 'auto'
     instrument_postprocess=.false.
     radio_frequency = 17.d9

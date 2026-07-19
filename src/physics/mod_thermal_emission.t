@@ -432,6 +432,11 @@ module mod_thermal_emission
         call mpistop("bad radiation_transfer")
       endif
 
+      if (trim(dat_resolution_mode) /= 'nominal' .and. &
+          trim(dat_resolution_mode) /= 'minimum') then
+        call mpistop("dat_resolution_mode must be nominal or minimum")
+      endif
+
       sph_use_dda=.false.
       select case(trim(ray_method))
       case('auto','')
@@ -2529,7 +2534,7 @@ module mod_thermal_emission
       ! parameters for creating table
       if (coordinate==spherical .and. trim(ray_method_active)=='spherical') then
         call get_sph_intersection_image_bounds(xIFmin1,xIFmax1,xIFmin2,xIFmax2)
-        call get_sph_intersection_datresol_spacing(dxDDA)
+        call get_native_datresol_spacing(dxDDA)
         xIcent1=half*(xIFmin1+xIFmax1)
         xIcent2=half*(xIFmin2+xIFmax2)
         nXIF1=max(1,ceiling((xIFmax1-xIFmin1)/dxDDA))
@@ -2548,11 +2553,10 @@ module mod_thermal_emission
         nstrb2=0
         qs1=one
         qs2=one
-        if (mype==0) write(*,'(a,1pe12.5,a,2(i8,1x))') &
-          ' spherical native dat-resolution image-plane dx: ',dxDDA,' n=',nXIF1,nXIF2
-      else if (trim(ray_method_active)=='cart' .and. .not. &
-          ((LOS_phi==0 .and. LOS_theta==90) .or. &
-           (LOS_phi==90 .and. LOS_theta==90) .or. LOS_theta==0)) then
+        if (mype==0) write(*,'(a,a,a,1pe12.5,a,2(i8,1x))') &
+          ' spherical dat-resolution mode=',trim(dat_resolution_mode),&
+          ' image-plane dx=',dxDDA,' n=',nXIF1,nXIF2
+      else if (trim(ray_method_active)=='cart') then
         do ix1=1,2
           if (ix1==1) vec_cor(1)=xprobmin1
           if (ix1==2) vec_cor(1)=xprobmax1
@@ -2577,9 +2581,7 @@ module mod_thermal_emission
             enddo
           enddo
         enddo
-        dxDDA=min((xprobmax1-xprobmin1)/dble(numX1),&
-                  (xprobmax2-xprobmin2)/dble(numX2),&
-                  (xprobmax3-xprobmin3)/dble(numX3))
+        call get_native_datresol_spacing(dxDDA)
         xIcent1=half*(xIFmin1+xIFmax1)
         xIcent2=half*(xIFmin2+xIFmax2)
         nXIF1=max(1,ceiling((xIFmax1-xIFmin1)/dxDDA))
@@ -2598,6 +2600,9 @@ module mod_thermal_emission
         nstrb2=0
         qs1=one
         qs2=one
+        if (mype==0) write(*,'(a,a,a,1pe12.5,a,2(i8,1x))') &
+          ' Cartesian dat-resolution mode=',trim(dat_resolution_mode),&
+          ' image-plane dx=',dxDDA,' n=',nXIF1,nXIF2
       else if (LOS_phi==0 .and. LOS_theta==90) then
         nXIF1=domain_nx2*2**(refine_max_level-1)
         nXIF2=domain_nx3*2**(refine_max_level-1)
@@ -5555,7 +5560,47 @@ module mod_thermal_emission
       endif
     end subroutine get_sph_intersection_image_bounds
 
-    subroutine get_sph_intersection_datresol_spacing(dxI)
+    subroutine get_native_datresol_spacing(dxI)
+      double precision, intent(out) :: dxI
+
+      select case(trim(dat_resolution_mode))
+      case('nominal')
+        call get_nominal_datresol_spacing(dxI)
+      case('minimum')
+        call get_minimum_datresol_spacing(dxI)
+      case default
+        call mpistop("unknown dat_resolution_mode")
+      end select
+    end subroutine get_native_datresol_spacing
+
+    subroutine get_nominal_datresol_spacing(dxI)
+      double precision, intent(out) :: dxI
+
+      double precision :: refine_factor,dr,dtheta,dphi,rmin,sin_theta_min
+
+      refine_factor=dble(2**(refine_max_level-1))
+      if (slab) then
+        dxI=min(abs(xprobmax1-xprobmin1)/(dble(domain_nx1)*refine_factor),&
+                abs(xprobmax2-xprobmin2)/(dble(domain_nx2)*refine_factor),&
+                abs(xprobmax3-xprobmin3)/(dble(domain_nx3)*refine_factor))
+      else if (coordinate==spherical) then
+        rmin=max(smalldouble,min(xprobmin1,xprobmax1))
+        sin_theta_min=max(smalldouble,min(abs(sin(xprobmin2)),&
+                                             abs(sin(xprobmax2))))
+        dr=abs(xprobmax1-xprobmin1)/(dble(domain_nx1)*refine_factor)
+        dtheta=abs(xprobmax2-xprobmin2)/(dble(domain_nx2)*refine_factor)
+        dphi=abs(xprobmax3-xprobmin3)/(dble(domain_nx3)*refine_factor)
+        dxI=min(dr,rmin*dtheta,rmin*sin_theta_min*dphi)
+      else
+        call mpistop("nominal dat resolution needs Cartesian or spherical coordinates")
+      endif
+
+      if (dxI<=zero .or. dxI>half*huge(one)) then
+        call mpistop("could not determine nominal dat-resolution image spacing")
+      endif
+    end subroutine get_nominal_datresol_spacing
+
+    subroutine get_minimum_datresol_spacing(dxI)
       double precision, intent(out) :: dxI
 
       integer :: iigrid,igrid,ixI^L,ixO^L,ix^D
@@ -5572,23 +5617,31 @@ module mod_thermal_emission
         do ix1=ixOmin1,ixOmax1
           do ix2=ixOmin2,ixOmax2
             do ix3=ixOmin3,ixOmax3
-              rval=max(smalldouble,ps(igrid)%x(ix^D,1))
-              theta=ps(igrid)%x(ix^D,2)
-              dr=ps(igrid)%dx(ix^D,1)
-              ds_theta=rval*ps(igrid)%dx(ix^D,2)
-              ds_phi=rval*max(smalldouble,sin(theta))*ps(igrid)%dx(ix^D,3)
-              local_min=min(local_min,dr,ds_theta,ds_phi)
+              if (slab) then
+                local_min=min(local_min,ps(igrid)%dx(ix^D,1),&
+                  ps(igrid)%dx(ix^D,2),ps(igrid)%dx(ix^D,3))
+              else if (coordinate==spherical) then
+                rval=max(smalldouble,ps(igrid)%x(ix^D,1))
+                theta=ps(igrid)%x(ix^D,2)
+                dr=ps(igrid)%dx(ix^D,1)
+                ds_theta=rval*ps(igrid)%dx(ix^D,2)
+                ds_phi=rval*max(smalldouble,sin(theta))*ps(igrid)%dx(ix^D,3)
+                local_min=min(local_min,dr,ds_theta,ds_phi)
+              else
+                call mpistop("minimum dat resolution needs Cartesian or spherical coordinates")
+              endif
             enddo
           enddo
         enddo
       enddo
 
-      call MPI_ALLREDUCE(local_min,global_min,1,MPI_DOUBLE_PRECISION,MPI_MIN,icomm,ierrmpi)
+      call MPI_ALLREDUCE(local_min,global_min,1,MPI_DOUBLE_PRECISION,MPI_MIN,&
+                         icomm,ierrmpi)
       if (global_min<=zero .or. global_min>half*huge(one)) then
-        call mpistop("sph_intersection could not determine dat-resolution image spacing")
+        call mpistop("could not determine minimum dat-resolution image spacing")
       endif
       dxI=global_min
-    end subroutine get_sph_intersection_datresol_spacing
+    end subroutine get_minimum_datresol_spacing
 
     subroutine get_image(qunit,datatype,fl)
       ! integrate emission flux along line of sight (LOS) 

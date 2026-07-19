@@ -168,6 +168,8 @@ module mod_global_parameters
   character(len=std_len) :: radiation_transfer
   !> Synthetic emission ray traversal method
   character(len=std_len) :: ray_method
+  !> Data-resolution image spacing: nominal or minimum actual cell size
+  character(len=std_len) :: dat_resolution_mode
   !> Synthetic emission physical model selector
   character(len=std_len) :: emission_model
   !> Post-process dat-resolution EUV images onto the instrument pixel grid

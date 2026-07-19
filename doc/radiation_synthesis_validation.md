@@ -9,6 +9,7 @@ The default `&emissionlist` behavior remains unchanged:
 
 - `radiation_transfer='thin'`
 - `ray_method='auto'`
+- `dat_resolution_mode='nominal'`
 - `emission_model='auto'`
 - `output_tau=.false.`
 - `output_absorption_fraction=.false.`

@@ -1197,8 +1197,15 @@ changing. When 'big_image=T', then the synthesized EUV/SXR image will have a fix
 not change when changing the LOS, and the whole simulation box will always be convered inside the domain. The 
 parameter 'x_origin' is also added for making such kind of movie.
 
-Two types of resolution are supported: data resolution and instrument resolution. In data resolution, 
-the size of the image pixel is the same as the size of the finest cell. In instrument resolution, 
+Two types of resolution are supported: data resolution and instrument resolution. In data resolution,
+`dat_resolution_mode` selects how a single uniform image-pixel size is derived from an AMR or stretched
+mesh. The default `nominal` mode uses the finest-level uniform-equivalent spacing implied by the domain
+size, base-grid resolution, and maximum AMR level; it does not depend on which finest-level cells are
+actually present and ignores local stretching. The optional `minimum` mode scans the active leaf cells
+and uses the globally smallest physical cell edge, including Cartesian stretching and the spherical
+metric factors `dr`, `r*dtheta`, and `r*sin(theta)*dphi`. The latter preserves the smallest available
+mesh scale but can produce very large uniform images when fine cells occupy only a small part of the
+domain. In instrument resolution,
 the size of a pixel is the same as that in relevant observation data (such as SDO and RHESSI). 
 The point spread function (PSF, instrument effect) has been included for instrument resolution. 
 The spatial resolution or EUV image/SXR image/EUV spectra is controlled by the parameter 'dat_resolution'.
@@ -1310,6 +1317,7 @@ thin transfer and labels the output variable 'pseudo_current'.
       R_opt_thick= DOUBLE
       activate_unit_arcsec= LOGICAL
       dat_resolution=LOGICAL
+      dat_resolution_mode= 'nominal' | 'minimum'
       output_tau=LOGICAL
       output_absorption_fraction=LOGICAL
       instrument_resolution_factor=INTEGER
