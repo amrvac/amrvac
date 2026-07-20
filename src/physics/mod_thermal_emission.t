@@ -1208,24 +1208,26 @@ module mod_thermal_emission
       double precision, intent(out) :: flux(ixI^S)
 
       integer :: ix^D
-      double precision :: pth(ixI^S),Te(ixI^S),Ne(ixI^S)
+      double precision :: pth(ixI^S),rho(ixI^S),Rfactor(ixI^S),Te(ixI^S)
+      double precision :: Ne(ixI^S),nH(ixI^S)
 
       call fl%get_pthermal(w,x,ixI^L,ixO^L,pth)
-      call fl%get_rho(w,x,ixI^L,ixO^L,Ne)
-      call fl%get_var_Rfactor(w,x,ixI^L,ixO^L,Te)
-      Te(ixO^S)=pth(ixO^S)/(Ne(ixO^S)*Te(ixO^S))*unit_temperature
-      ! get actual electron density from EoS (replaces rho with ne)
-      block
-        double precision :: nH_dummy(ixI^S)
-        call eos%get_ne_nH(ixI^L, ixO^L, w, Ne, nH_dummy)
-      end block
+      call fl%get_rho(w,x,ixI^L,ixO^L,rho)
+      call fl%get_var_Rfactor(w,x,ixI^L,ixO^L,Rfactor)
+      Te(ixO^S)=pth(ixO^S)/(rho(ixO^S)*Rfactor(ixO^S))*unit_temperature
+
+      ! The tabulated response is multiplied by the physical emission-measure
+      ! factor ne*nH.  Both densities come from the active EOS so the source
+      ! remains consistent for FI, PI, and LTE simulations.
+      call eos%get_ne_nH(ixI^L, ixO^L, w, Ne, nH)
       if (SI_unit) then
         Ne(ixO^S)=Ne(ixO^S)*unit_numberdensity/1.d6 ! m^-3 -> cm-3
-        flux(ixO^S)=Ne(ixO^S)**2
+        nH(ixO^S)=nH(ixO^S)*unit_numberdensity/1.d6
       else
         Ne(ixO^S)=Ne(ixO^S)*unit_numberdensity
-        flux(ixO^S)=Ne(ixO^S)**2
+        nH(ixO^S)=nH(ixO^S)*unit_numberdensity
       endif
+      flux(ixO^S)=Ne(ixO^S)*nH(ixO^S)
 
       select case(wl)
       case(94)
