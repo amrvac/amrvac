@@ -794,10 +794,106 @@ module mod_thermal_emission
       {enddo\}
     end subroutine apply_temperature_response
 
+    subroutine get_EUV_saha_fractions(Te,Ne,x_HII,x_HeII,x_HeIII)
+      ! Ion fractions at fixed temperature and electron density.  Ne is an
+      ! input here: this helper does not impose charge conservation or alter
+      ! the thermodynamic state of the simulation.
+      use mod_constants, only: kB_cgs
+
+      double precision, intent(in) :: Te,Ne
+      double precision, intent(out) :: x_HII,x_HeII,x_HeIII
+
+      double precision :: Pe,log_H21,log_He21,log_He32,log_He321
+      double precision :: logScaleHe,w_H21,term0,term1,term2,denHe
+      double precision, parameter :: Xe_H21=13.6d0
+      double precision, parameter :: Xe_He21=24.587d0
+      double precision, parameter :: Xe_He32=54.416d0
+
+      x_HII=zero
+      x_HeII=zero
+      x_HeIII=zero
+      if (Te<=zero .or. Ne<=zero) return
+
+      Pe=Ne*kB_cgs*Te
+      if (Pe<=zero) return
+
+      log_H21=2.5d0*log10(Te)-5040.d0*Xe_H21/Te-log10(Pe)-0.48d0
+      log_He21=log10(4.d0)+2.5d0*log10(Te)-5040.d0*Xe_He21/Te-log10(Pe)-0.48d0
+      log_He32=2.5d0*log10(Te)-5040.d0*Xe_He32/Te-log10(Pe)-0.48d0
+
+      w_H21=pow10_clamped(log_H21)
+      x_HII=w_H21/(1.d0+w_H21)
+
+      ! Normalize the three helium stages in logarithmic form to avoid
+      ! overflow in the product of the two Saha ratios.
+      log_He321=log_He21+log_He32
+      logScaleHe=max(zero,log_He21,log_He321)
+      term0=pow10_clamped(-logScaleHe)
+      term1=pow10_clamped(log_He21-logScaleHe)
+      term2=pow10_clamped(log_He321-logScaleHe)
+      denHe=term0+term1+term2
+      if (denHe>zero) then
+        x_HeII=term1/denHe
+        x_HeIII=term2/denHe
+      endif
+    end subroutine get_EUV_saha_fractions
+
+    subroutine solve_EUV_saha_charge_state(nH,Te,rHe,Ne_guess,x_HII,x_HeII,x_HeIII)
+      ! Radiation-only Saha closure at fixed total hydrogen density and
+      ! temperature.  It is used for an FI simulation, whose fully-ionized
+      ! electron density cannot consistently determine cool neutral fractions.
+      ! rHe belongs to the synthetic absorber and is not fed back into the
+      ! simulation equation of state, pressure, or temperature.
+      double precision, intent(in) :: nH,Te,rHe,Ne_guess
+      double precision, intent(out) :: x_HII,x_HeII,x_HeIII
+
+      integer, parameter :: max_iter=32
+      integer :: iter
+      double precision :: Ne,Ne_lo,Ne_hi,Ne_new,residual,derivative
+      double precision :: e_He,de_HII_dNe,de_He_dNe
+
+      x_HII=zero
+      x_HeII=zero
+      x_HeIII=zero
+      if (nH<=zero .or. Te<=zero) return
+
+      Ne_lo=max(1.d-30*nH,1.d-100)
+      Ne_hi=(1.d0+2.d0*rHe)*nH
+      Ne=min(max(Ne_guess,Ne_lo),Ne_hi)
+
+      do iter=1,max_iter
+        call get_EUV_saha_fractions(Te,Ne,x_HII,x_HeII,x_HeIII)
+        e_He=x_HeII+2.d0*x_HeIII
+        residual=Ne/nH-x_HII-rHe*e_He
+        if (abs(residual)<1.d-10) exit
+
+        if (residual>zero) then
+          Ne_hi=Ne
+        else
+          Ne_lo=Ne
+        endif
+
+        ! Analytic derivative of the charge-neutrality residual.  The
+        ! Newton step is kept inside a bisection bracket for robustness.
+        de_HII_dNe=-x_HII*(1.d0-x_HII)/Ne
+        de_He_dNe=(x_HeII*(e_He-1.d0) &
+             +2.d0*x_HeIII*(e_He-2.d0))/Ne
+        derivative=1.d0/nH-de_HII_dNe-rHe*de_He_dNe
+        Ne_new=Ne-residual/derivative
+        if (.not.(Ne_new>Ne_lo .and. Ne_new<Ne_hi)) then
+          Ne_new=0.5d0*(Ne_lo+Ne_hi)
+        endif
+        Ne=Ne_new
+      enddo
+
+      ! Ensure the returned fractions correspond to the final iterate.
+      call get_EUV_saha_fractions(Te,Ne,x_HII,x_HeII,x_HeIII)
+    end subroutine solve_EUV_saha_charge_state
+
     subroutine get_EUV_HHe_opacity(wl,ixI^L,ixO^L,w,x,fl,kappa)
       ! H I + He I + He II photoionization opacity in cm^-1.
-      use mod_constants, only: kB_cgs
       use mod_eos, only: eos
+      use mod_eos_PI_tables, only: ionization_state_Tp
 
       integer, intent(in) :: wl
       integer, intent(in) :: ixI^L, ixO^L
@@ -807,27 +903,34 @@ module mod_thermal_emission
       double precision, intent(out) :: kappa(ixI^S)
 
       integer :: ix^D
-      double precision :: pth(ixI^S),Te(ixI^S),Ne(ixI^S)
-      double precision :: wave_ratio,s_H1,s_He1,s_He2,Pe
-      double precision :: log_H21,log_He21,log_He32,log_He321,logScaleHe,w_H21
-      double precision :: term0,term1,term2,denHe,i0,j1,j2,be
-      double precision :: N_H,N_H1,N_He1,N_He2
-      double precision, parameter :: Xe_H21=13.6d0, Xe_He21=24.587d0, Xe_He32=54.416d0
-      double precision, parameter :: rHe=0.1d0
+      double precision :: pth(ixI^S),rho(ixI^S),Rfactor(ixI^S),Te(ixI^S)
+      double precision :: Ne(ixI^S),nH(ixI^S)
+      double precision :: wave_ratio,s_H1,s_He1,s_He2
+      double precision :: x_HII,x_HeII,x_HeIII,iz_H,iz_He,Rdummy
+      double precision :: N_H1,N_He1,N_He2
+      double precision, parameter :: rHe_opacity=0.1d0
       double precision, parameter :: sigma_H1=5.16d-20, sigma_He1=9.25d-19, sigma_He2=7.17d-19
 
       call fl%get_pthermal(w,x,ixI^L,ixO^L,pth)
-      call fl%get_rho(w,x,ixI^L,ixO^L,Ne)
-      call fl%get_var_Rfactor(w,x,ixI^L,ixO^L,Te)
-      Te(ixO^S)=pth(ixO^S)/(Ne(ixO^S)*Te(ixO^S))*unit_temperature
-      block
-        double precision :: nH_dummy(ixI^S)
-        call eos%get_ne_nH(ixI^L, ixO^L, w, Ne, nH_dummy)
-      end block
+      call fl%get_rho(w,x,ixI^L,ixO^L,rho)
+      call fl%get_var_Rfactor(w,x,ixI^L,ixO^L,Rfactor)
+      Te(ixO^S)=zero
+      {do ix^DB=ixOmin^DB,ixOmax^DB\}
+        if (rho(ix^D)>zero .and. Rfactor(ix^D)>zero) then
+          Te(ix^D)=pth(ix^D)/(rho(ix^D)*Rfactor(ix^D))*unit_temperature
+        endif
+      {enddo\}
+
+      ! nH always follows the mass density and composition of the simulated
+      ! gas.  rHe_opacity is deliberately applied only when constructing the
+      ! synthetic absorber below; it never changes this EOS conversion.
+      call eos%get_ne_nH(ixI^L, ixO^L, w, Ne, nH)
       if (SI_unit) then
         Ne(ixO^S)=Ne(ixO^S)*unit_numberdensity/1.d6
+        nH(ixO^S)=nH(ixO^S)*unit_numberdensity/1.d6
       else
         Ne(ixO^S)=Ne(ixO^S)*unit_numberdensity
+        nH(ixO^S)=nH(ixO^S)*unit_numberdensity
       endif
 
       wave_ratio=dble(wl)/171.d0
@@ -840,36 +943,49 @@ module mod_thermal_emission
       kappa(ixO^S)=zero
 
       {do ix^DB=ixOmin^DB,ixOmax^DB\}
-        if (Te(ix^D)>zero .and. Ne(ix^D)>zero) then
-          Pe=Ne(ix^D)*kB_cgs*Te(ix^D)
-          if (Pe>zero) then
-            log_H21=2.5d0*log10(Te(ix^D))-5040.d0*Xe_H21/Te(ix^D)-log10(Pe)-0.48d0
-            log_He21=log10(4.d0)+2.5d0*log10(Te(ix^D))-5040.d0*Xe_He21/Te(ix^D)-log10(Pe)-0.48d0
-            log_He32=2.5d0*log10(Te(ix^D))-5040.d0*Xe_He32/Te(ix^D)-log10(Pe)-0.48d0
-            w_H21=pow10_clamped(log_H21)
-            i0=w_H21/(1.d0+w_H21)
-            log_He321=log_He21+log_He32
-            logScaleHe=max(zero,log_He21,log_He321)
-            term0=pow10_clamped(-logScaleHe)
-            term1=pow10_clamped(log_He21-logScaleHe)
-            term2=pow10_clamped(log_He321-logScaleHe)
-            denHe=term0+term1+term2
-            if (denHe>zero) then
-              j1=term1/denHe
-              j2=term2/denHe
+        if (Te(ix^D)>zero .and. nH(ix^D)>zero) then
+          select case (trim(eos%eos_type))
+          case ('PI')
+            ! Reuse the ionisation state of the PI backend.  In its helium
+            ! convention iz_He is the fraction ionised at least once and
+            ! iz_He**2 the fraction ionised twice.
+            call ionization_state_Tp(Te(ix^D)/unit_temperature,pth(ix^D), &
+                 Rdummy,iz_H,iz_He)
+            x_HII=iz_H
+            x_HeII=iz_He*(1.d0-iz_He)
+            x_HeIII=iz_He*iz_He
+          case ('LTE')
+            ! LTE stores the self-consistent total electron density rather
+            ! than separate H/He populations.  Reconstruct the helium stages
+            ! at that EOS electron density and temperature, then retain the
+            ! simulated ne/nH exactly when obtaining the hydrogen fraction.
+            if (Ne(ix^D)>zero) then
+              call get_EUV_saha_fractions(Te(ix^D),Ne(ix^D), &
+                   x_HII,x_HeII,x_HeIII)
+              if (trim(eos%method)=='analytic') then
+                ! The analytic LTE option is explicitly H-only below its FI
+                ! bypass, so its stored ne/nH is the hydrogen ion fraction.
+                x_HII=min(one,max(zero,Ne(ix^D)/nH(ix^D)))
+              else
+                x_HII=min(one,max(zero,Ne(ix^D)/nH(ix^D) &
+                     -eos%He_abundance*(x_HeII+2.d0*x_HeIII)))
+              endif
             else
-              j1=zero
-              j2=zero
+              call solve_EUV_saha_charge_state(nH(ix^D),Te(ix^D), &
+                   rHe_opacity,Ne(ix^D),x_HII,x_HeII,x_HeIII)
             endif
-            be=i0+rHe*(j1+2.d0*j2)
-            if (be>smalldouble) then
-              N_H=Ne(ix^D)/be
-              N_H1=N_H*(1.d0-i0)
-              N_He1=(1.d0-j1-j2)*rHe*N_H
-              N_He2=j1*rHe*N_H
-              kappa(ix^D)=max(zero,N_H1*s_H1+N_He1*s_He1+N_He2*s_He2)
-            endif
-          endif
+          case default
+            ! FI supplies a fully-ionized Ne even when its rho,T state is
+            ! cool.  Discard that Ne constraint and solve charge neutrality
+            ! at fixed simulated nH and T for the radiation post-processing.
+            call solve_EUV_saha_charge_state(nH(ix^D),Te(ix^D), &
+                 rHe_opacity,Ne(ix^D),x_HII,x_HeII,x_HeIII)
+          end select
+
+          N_H1=nH(ix^D)*(1.d0-x_HII)
+          N_He1=rHe_opacity*nH(ix^D)*(1.d0-x_HeII-x_HeIII)
+          N_He2=rHe_opacity*nH(ix^D)*x_HeII
+          kappa(ix^D)=max(zero,N_H1*s_H1+N_He1*s_He1+N_He2*s_He2)
         endif
       {enddo\}
     end subroutine get_EUV_HHe_opacity

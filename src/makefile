@@ -744,6 +744,7 @@ mod_thermal_conduction.o: mod_global_parameters.mod
 mod_thermal_emission.o: mod_comm_lib.mod
 mod_thermal_emission.o: mod_constants.mod
 mod_thermal_emission.o: mod_eos.mod
+mod_thermal_emission.o: mod_eos_PI_tables.mod
 mod_thermal_emission.o: mod_geometry.mod
 mod_thermal_emission.o: mod_global_parameters.mod
 mod_thermal_emission.o: mod_physics.mod
