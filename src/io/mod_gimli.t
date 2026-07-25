@@ -165,16 +165,18 @@ contains
         complex(dp), intent(in) :: array(ef_gridpts)
         complex(dp), intent(out) :: amplitude
         integer :: idl, idu
+        real(dp) :: alpha
 
         if (x <= grid(1) .and. xprobmin1 <= x) then
             amplitude = array(1)
             
             if (coordinate==cylindrical .and. grid(1) > 0) then
-                if (x >= grid(1)/2) then
-                    amplitude = (x - grid(1)/2) * array(1) / grid(1)
+                if (k2 .ne. 0.0d0) then
+                    alpha = abs(k2)
                 else
-                    amplitude = 0.d0
+                    alpha = 2.0d0
                 end if
+                amplitude = array(1) * (x / grid(1))**alpha
             end if
         else if (x >= grid(size(grid)) .and. x <= xprobmax1) then
             amplitude = array(size(grid))
@@ -218,11 +220,10 @@ contains
         ! Delete the log when not doing a restart run
             if (restart_from_file == undefined .or. reset_time) then
                 open(unit=my_unit,file=trim(filename),form='formatted',status='replace')
-                write(my_unit,'(a)') ''
                 if (mhd_bool == 1) then
-                    write(my_unit,'(a)') '#Global_time Tmax Tmin vmax B1max B2max B3max mag_avg'
+                    write(my_unit,'(a)') 'global_time Tmax Tmin vmax B1max B2max B3max mag_avg'
                 else
-                    write(my_unit,'(a)') '#Global_time Tmax Tmin vmax'
+                    write(my_unit,'(a)') 'global_time Tmax Tmin vmax'
                 end if
             end if
             visited = .true.
