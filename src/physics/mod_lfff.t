@@ -100,6 +100,7 @@ contains
   
   end subroutine init_b_fff_data
 
+{^IFTHREED
   subroutine init_b_fff_data_driven_boundary(boundaryname,qLunit,qBunit,qxc1,qxc2)
     use mod_global_parameters
     use mod_comm_lib, only: mpistop
@@ -166,6 +167,7 @@ contains
       print*,'extrapolating potential field from Bz of',nx1,'by',nx2,'pixels. Bzmax=',Bzmax
     end if
   end subroutine init_b_fff_data_driven_boundary
+}
 
   !> Check a constant-alpha magnetogram and optionally remove its core mean.
   !> Status: 0 accepted unchanged, 1 mean removed, 2 invalid treatment,
