@@ -1,0 +1,19 @@
+! Production-resolution transport comparison through the pre-divergence window.
+&filelist
+  autoconvert=.false.
+/
+&savelist
+  dtsave_log=5.d-3
+  dtsave_dat=1.d-1
+/
+&stoplist
+  time_max=6.d-1
+/
+&meshlist
+  refine_max_level=3
+  domain_nx1=128
+  domain_nx2=128
+/
+&usr_list
+  eta_fixed_amplitude=2.d-4
+/

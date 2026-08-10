@@ -55,8 +55,15 @@ module mod_magnetofriction
   integer :: mf_ditsave
   integer :: mf_it_max
   integer :: mf_it
+  !> How to open the MF diagnostics CSV: auto, append, or replace.
+  character(len=16) :: mf_log_mode
+  !> Optional diagnostics filename; empty uses <base_filename>_mflog.csv.
+  character(len=256) :: mf_log_filename
   logical :: mf_advance
   logical :: fix_conserve_at_step = .true.
+
+  !> Whether this run continues an existing MF diagnostics series.
+  logical :: mf_continue_run = .false.
 
 contains
   !> Read this module"s parameters from a file
@@ -65,8 +72,9 @@ contains
     character(len=*), intent(in) :: files(:)
     integer                      :: n
 
-    namelist /mf_list/ mf_ditsave, mf_it_max, mf_it, mf_cc, mf_cy, mf_cy_max, & 
-                       mf_cdivb, mf_cdivb_max, mf_tvdlfeps, mf_tvdlfeps_min
+    namelist /mf_list/ mf_ditsave, mf_it_max, mf_it, mf_cc, mf_cy, mf_cy_max, &
+                       mf_cdivb, mf_cdivb_max, mf_tvdlfeps, mf_tvdlfeps_min, &
+                       mf_log_mode, mf_log_filename
 
     do n = 1, size(files)
        open(unitpar, file=trim(files(n)), status="old")
@@ -97,6 +105,8 @@ contains
     mf_cdivb_max=mf_cdivb ! maximum of the divb cleaning coefficient
     mf_tvdlfeps=1.d0 ! coefficient to control the TVDLF dissipation
     mf_tvdlfeps_min = mf_tvdlfeps ! minimum of the TVDLF dissipation coefficient
+    mf_log_mode='auto'
+    mf_log_filename=''
     ! get dimensionless maximal mf velocity limit
     mf_vmax=mf_vmax/unit_velocity
 
@@ -140,6 +150,21 @@ contains
     tmpit=it
     tmf=global_time
     i=mf_it
+    ! MF checkpoints store the MF iteration in the standard snapshot header.
+    ! Recover it automatically unless the user explicitly supplied mf_it.
+    if(i==0 .and. it>0) i=it
+    select case(trim(mf_log_mode))
+    case('auto')
+      ! Potential-field snapshots normally have it=0, whereas MF checkpoints
+      ! store their positive MF iteration in the standard snapshot header.
+      mf_continue_run=(i>0)
+    case('append')
+      mf_continue_run=.true.
+    case('replace')
+      mf_continue_run=.false.
+    case default
+      call mpistop("mf_log_mode must be 'auto', 'append', or 'replace'")
+    end select
     if(snapshotini==0 .and. i==0) then
       call saveamrfile(1)
       call saveamrfile(2)
@@ -348,23 +373,43 @@ contains
 
       subroutine printlog_mf
         integer :: amode, status(MPI_STATUS_SIZE)
+        integer :: truncate_unit, ios
         character(len=800) :: filename,filehead
         character(len=2048) :: line,datastr
         logical, save :: logmfopened=.false.
+        logical :: logfile_exists
 
         if(mype==0) then
           if(.not.logmfopened) then
             ! generate filename
-            write(filename,"(a,a)") TRIM(base_filename), "_mflog.csv"
+            if(len_trim(mf_log_filename)>0) then
+              filename=trim(mf_log_filename)
+            else
+              write(filename,"(a,a)") TRIM(base_filename), "_mflog.csv"
+            end if
+
+            inquire(file=trim(filename),exist=logfile_exists)
+            if(.not.mf_continue_run) then
+              ! A potential-field (or otherwise unrelated) restart begins a
+              ! new MF relaxation, so discard diagnostics from an older run.
+              open(newunit=truncate_unit,file=trim(filename),status='replace', &
+                   action='write',iostat=ios)
+              if(ios/=0) call mpistop('Unable to replace magnetofriction log file')
+              close(truncate_unit)
+              logfile_exists=.false.
+            end if
 
             amode=ior(MPI_MODE_CREATE,MPI_MODE_WRONLY)
             amode=ior(amode,MPI_MODE_APPEND)
             call MPI_FILE_OPEN(MPI_COMM_SELF,filename,amode,MPI_INFO_NULL,fhmf,ierrmpi)
             logmfopened=.true.
-            filehead="  itmf,  dt,  <f_i>,  <CW sin theta>,  <Current>,  <Lorenz force>"
-            call MPI_FILE_WRITE(fhmf,filehead,len_trim(filehead), &
-                                MPI_CHARACTER,status,ierrmpi)
-            call MPI_FILE_WRITE(fhmf,achar(10),1,MPI_CHARACTER,status,ierrmpi)
+            ! Preserve a single header when continuing an existing MF run.
+            if(.not.logfile_exists) then
+              filehead="  itmf,  dt,  <f_i>,  <CW sin theta>,  <Current>,  <Lorenz force>"
+              call MPI_FILE_WRITE(fhmf,filehead,len_trim(filehead), &
+                                  MPI_CHARACTER,status,ierrmpi)
+              call MPI_FILE_WRITE(fhmf,achar(10),1,MPI_CHARACTER,status,ierrmpi)
+            end if
           end if
           line=''
           write(datastr,'(i6,a)') i,','

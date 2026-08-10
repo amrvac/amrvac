@@ -1,0 +1,10 @@
+&filelist
+  base_filename='datamr/flare00_parallel_'
+/
+&mhd_list
+  ! Numerically matched parallel limit: keep qperp and the same stencil as
+  ! every cross-field case, but make its coefficient physically negligible.
+  mhd_hyperbolic_tc_use_perp=.true.
+  mhd_hyperbolic_tc_perp_mode='fixed_reference'
+  mhd_hyperbolic_tc_kappa_perp_factor=1.d-30
+/

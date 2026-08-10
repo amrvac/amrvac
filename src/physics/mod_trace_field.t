@@ -26,6 +26,12 @@ module mod_trace_field
   integer, parameter, public :: trace_status_singular_q           = 13
   integer, parameter, public :: trace_status_bad_q_bound          = 14
 
+  ! Both standard and perpendicular squashing factors have the analytic
+  ! lower bound Q >= 2.  Cartesian tangent transport can undershoot this
+  ! bound slightly because of integration error, so valid outputs are floored
+  ! before taking the logarithm.
+  double precision, parameter, private :: trace_q_min=2.d0
+
   integer, parameter, public :: trace_face_none      = 0
   integer, parameter, public :: trace_face_xmin      = 1
   integer, parameter, public :: trace_face_xmax      = 2
@@ -3513,6 +3519,7 @@ contains
     result%bfactor=abs(Bf_norm*Bb_norm)/(Bseed_norm**2)
     qtmp=result%N2*result%bfactor
     if (qtmp>zero .and. ieee_is_finite(qtmp)) then
+      qtmp=max(qtmp,trace_q_min)
       result%qperp=qtmp
       result%logqperp=dlog10(qtmp)
       result%valid=.true.
@@ -3598,6 +3605,7 @@ contains
     result%backward_Bn_q0=Bnb
     qtmp=result%N2_qperp0*result%bfactor_qperp0
     if (qtmp>zero .and. ieee_is_finite(qtmp)) then
+      qtmp=max(qtmp,trace_q_min)
       result%q0=qtmp
       result%logq0=dlog10(qtmp)
       result%valid_q0=.true.
@@ -4208,11 +4216,11 @@ contains
     qval=frob2/abs(detD)
     q_tol=1.d-8
     if (qval>zero .and. ieee_is_finite(qval)) then
-      if (qval<2.d0-q_tol) then
+      if (qval<trace_q_min-q_tol) then
         status=trace_status_bad_q_bound
         return
       endif
-      qval=max(qval,2.d0)
+      qval=max(qval,trace_q_min)
       logq=dlog10(qval)
       valid=.true.
       status=trace_status_boundary

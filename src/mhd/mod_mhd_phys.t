@@ -116,19 +116,25 @@ module mod_mhd_phys
   logical, public, protected              :: mhd_radiative_cooling = .false.
   !> Whether thermal conduction is used
   logical, public, protected              :: mhd_hyperbolic_tc = .false.
-  !> Whether saturation is considered for hyperbolic TC
+  !> Whether saturation is considered for hyperbolic TC. When the perpendicular
+  !> channel is active, the limiter uses sqrt(q_parallel^2+q_perp^2).
   logical, public, protected              :: mhd_hyperbolic_tc_sat = .false.
   !> Whether the perpendicular hyperbolic-TC channel is enabled
   logical, public, protected              :: mhd_hyperbolic_tc_use_perp = .false.
   !> Perpendicular hyperbolic-TC closure mode:
-  !> 0 = off, 1 = fixed anisotropy, 2 = field-strength-dependent isotropization
-  !> 3 = magnetization-based closure kappa_perp = kappa_parallel/(1+chi^2)
-  integer, public, protected              :: mhd_hyperbolic_tc_perp_mode = 0
+  !> 'off' = disabled
+  !> 'fixed_reference' = fixed classical ratio at the reference normalisation
+  !> 'weak_field_isotropization' = empirical transition using a prescribed Bmin
+  !> 'electron_magnetization' = simplified ratio 1/(1+chi_e^2)
+  character(len=std_len), public, protected :: mhd_hyperbolic_tc_perp_mode = 'off'
   !> Relative perpendicular hyperbolic-TC coefficient in fixed/strong-field limit:
   !> kappa_perp0 = mhd_hyperbolic_tc_kappa_perp_factor * kappa_parallel
   double precision, public, protected     :: mhd_hyperbolic_tc_kappa_perp_factor = 0.d0
   !> Field-strength transition scale for perpendicular closure
   double precision, public, protected     :: mhd_hyperbolic_tc_Bmin = 0.d0
+  !> Constant Coulomb logarithm used by the simplified electron-magnetization
+  !> closure. It is a namelist parameter so changing it has no per-cell cost.
+  double precision, public, protected     :: mhd_hyperbolic_tc_coulomb_log = 20.d0
   !> Whether viscosity is added
   logical, public, protected              :: mhd_viscosity = .false.
   !> Whether gravity is added
@@ -278,6 +284,7 @@ contains
       mhd_hyperbolic_tc, mhd_hyperbolic_tc_sat, mhd_hyperbolic_tc_kappa, &
       mhd_hyperbolic_tc_use_perp, mhd_hyperbolic_tc_perp_mode, &
       mhd_hyperbolic_tc_kappa_perp_factor, mhd_hyperbolic_tc_Bmin, &
+      mhd_hyperbolic_tc_coulomb_log, &
       mhd_radiation_fld, mhd_fip
 
     do n = 1, size(files)
@@ -816,8 +823,8 @@ contains
       end if
     
       if(mhd_hyperbolic_tc_use_perp) then
-        select case(mhd_hyperbolic_tc_perp_mode)
-        case(1)
+        select case(trim(mhd_hyperbolic_tc_perp_mode))
+        case('fixed_reference')
           if(mhd_hyperbolic_tc_kappa_perp_factor==0.d0) then
             if(SI_unit) then
               mhd_hyperbolic_tc_kappa_perp_factor = 4.d-30 * &
@@ -827,10 +834,17 @@ contains
                 unit_numberdensity**2 / unit_magneticfield**2 / unit_temperature**3
             end if
           end if
-        case(2)
+        case('weak_field_isotropization')
           if(mhd_hyperbolic_tc_Bmin==0.d0) then
             mhd_hyperbolic_tc_Bmin=0.1d0/unit_magneticfield
           end if
+        case('electron_magnetization')
+          if(mhd_hyperbolic_tc_coulomb_log<=zero) then
+            call mpistop("mhd_hyperbolic_tc_coulomb_log must be positive")
+          end if
+        case default
+          call mpistop("invalid mhd_hyperbolic_tc_perp_mode: "// &
+               trim(mhd_hyperbolic_tc_perp_mode))
         end select
       end if
     end if
@@ -987,6 +1001,13 @@ contains
       ! For Hall, we need one more reconstructed layer since currents are computed
       ! in mhd_get_flux: assuming one additional ghost layer added in nghostcells.
       phys_wider_stencil = 1
+    end if
+
+    ! The perpendicular HTC geometry evaluates a fourth-order centred
+    ! temperature gradient inside the reconstructed flux layer. It therefore
+    ! needs one layer beyond the default two ghost cells.
+    if(mhd_hyperbolic_tc .and. mhd_hyperbolic_tc_use_perp) then
+      phys_wider_stencil=max(phys_wider_stencil,1)
     end if
 
     if(mhd_ambipolar) then
@@ -3680,11 +3701,17 @@ contains
      {end do\}
     end do
 
-    use_perp_flux = mhd_hyperbolic_tc .and. mhd_hyperbolic_tc_use_perp .and. mhd_hyperbolic_tc_perp_mode > 0
+    use_perp_flux = mhd_hyperbolic_tc .and. mhd_hyperbolic_tc_use_perp .and. &
+                    trim(mhd_hyperbolic_tc_perp_mode)/='off'
     if(use_perp_flux) then
       call mhd_get_rho(w,x,ixI^L,ixI^L,rho_loc)
       call eos%get_Rfactor(w,x,ixI^L,ixI^L,R)
-      Te(ixI^S)=w(ixI^S,p_)/(R(ixI^S)*rho_loc(ixI^S))
+      if(has_equi_rho_and_p) then
+        Te(ixI^S)=(w(ixI^S,p_)+block%equi_vars(ixI^S,equi_pe0_,b0i)) / &
+                  (R(ixI^S)*rho_loc(ixI^S))
+      else
+        Te(ixI^S)=w(ixI^S,p_)/(R(ixI^S)*rho_loc(ixI^S))
+      end if
       {do ix^DB=ixOmin^DB,ixOmax^DB\}
         do idir=1,ndir
           Bvec(ix^D,idir)=w(ix^D,mag(idir))
@@ -3825,7 +3852,8 @@ contains
         f(ix^D,tracer(iw))=w(ix^D,mom(idim))*w(ix^D,tracer(iw))
      {end do\}
     end do
-    use_perp_flux = mhd_hyperbolic_tc .and. mhd_hyperbolic_tc_use_perp .and. mhd_hyperbolic_tc_perp_mode > 0
+    use_perp_flux = mhd_hyperbolic_tc .and. mhd_hyperbolic_tc_use_perp .and. &
+                    trim(mhd_hyperbolic_tc_perp_mode)/='off'
     if(use_perp_flux) then
       call mhd_get_rho(w,x,ixI^L,ixI^L,rho_loc)
       call eos%get_Rfactor(w,x,ixI^L,ixI^L,R)
@@ -3948,11 +3976,17 @@ contains
         f(ix^D,tracer(iw))=w(ix^D,mom(idim))*w(ix^D,tracer(iw))
      {end do\}
     end do
-    use_perp_flux = mhd_hyperbolic_tc .and. mhd_hyperbolic_tc_use_perp .and. mhd_hyperbolic_tc_perp_mode > 0
+    use_perp_flux = mhd_hyperbolic_tc .and. mhd_hyperbolic_tc_use_perp .and. &
+                    trim(mhd_hyperbolic_tc_perp_mode)/='off'
     if(use_perp_flux) then
       call mhd_get_rho(w,x,ixI^L,ixI^L,rho_loc)
       call eos%get_Rfactor(w,x,ixI^L,ixI^L,R)
-      Te(ixI^S)=w(ixI^S,p_)/(R(ixI^S)*rho_loc(ixI^S))
+      if(has_equi_rho_and_p) then
+        Te(ixI^S)=(w(ixI^S,p_)+block%equi_vars(ixI^S,equi_pe0_,b0i)) / &
+                  (R(ixI^S)*rho_loc(ixI^S))
+      else
+        Te(ixI^S)=w(ixI^S,p_)/(R(ixI^S)*rho_loc(ixI^S))
+      end if
       {do ix^DB=ixOmin^DB,ixOmax^DB\}
         do idir=1,ndir
           Bvec(ix^D,idir)=Btotal(ix^D,idir)
@@ -4059,7 +4093,8 @@ contains
         f(ix^D,tracer(iw))=w(ix^D,mom(idim))*w(ix^D,tracer(iw))
      {end do\}
     end do
-    use_perp_flux = mhd_hyperbolic_tc .and. mhd_hyperbolic_tc_use_perp .and. mhd_hyperbolic_tc_perp_mode > 0
+    use_perp_flux = mhd_hyperbolic_tc .and. mhd_hyperbolic_tc_use_perp .and. &
+                    trim(mhd_hyperbolic_tc_perp_mode)/='off'
     if(use_perp_flux) then
       call mhd_get_rho(w,x,ixI^L,ixI^L,rho_loc)
       call eos%get_Rfactor(w,x,ixI^L,ixI^L,R)
@@ -4915,21 +4950,34 @@ contains
     double precision, dimension(ixI^S,1:nw), intent(inout) :: w
 
     double precision, dimension(ixI^S) :: R,Te,rho_loc,pth_loc
+    double precision, dimension(ixI^S) :: ne_loc,nH_dummy
     double precision, dimension(ixI^S,1:ndir) :: Bvec
     double precision, dimension(ixI^S) :: bgradT, gradTperp_mag
     double precision, dimension(ixI^S,1:ndir) :: nperp
     double precision, dimension(ixI^S) :: gradT_geom
-    double precision, parameter :: lnLambda_perp = 20.d0
     double precision, parameter :: xe_prefac_cgs = 4.753567596681522d6
     double precision :: kappa_T5,kappa_T5_perp,kappa_T5_perp_eff
     double precision :: kappa_T7,f_sat,kappaT5_bgradT,kappaT5_gradTperp,tau,B2,fB,gradT1
+    double precision :: qclass_diss
     double precision :: Bmag_loc,Tloc,Tcond,nloc_code,Cchi,chi
     double precision :: cmax(ndim),c2,cfast2,avMinCs2(ndim),inv_rho
     logical :: use_perp_source
     integer :: ix^D,idir
 
-    Cchi = 0.823d0*(xe_prefac_cgs/lnLambda_perp) * &
-           unit_magneticfield*unit_temperature**1.5d0/unit_numberdensity
+    ! xe_prefac_cgs expects B [G], T [K], and ne [cm^-3]. Convert the
+    ! normalisation units explicitly in SI mode, while retaining code-unit
+    ! state variables in the cell loop below.
+    Cchi=zero
+    if(trim(mhd_hyperbolic_tc_perp_mode)=='electron_magnetization') then
+      if(SI_unit) then
+        Cchi = (xe_prefac_cgs/mhd_hyperbolic_tc_coulomb_log) * &
+               (1.d4*unit_magneticfield)*unit_temperature**1.5d0 / &
+               (1.d-6*unit_numberdensity)
+      else
+        Cchi = (xe_prefac_cgs/mhd_hyperbolic_tc_coulomb_log) * &
+               unit_magneticfield*unit_temperature**1.5d0/unit_numberdensity
+      end if
+    end if
     call eos%get_Rfactor(wCT,x,ixI^L,ixI^L,R)
     {do ix^DB=ixImin^DB,ixImax^DB\}
       if(has_equi_rho_and_p) then
@@ -4941,7 +4989,22 @@ contains
       end if
       Te(ix^D)=pth_loc(ix^D)/(R(ix^D)*rho_loc(ix^D))
     {end do\}
-    use_perp_source = mhd_hyperbolic_tc_use_perp .and. mhd_hyperbolic_tc_perp_mode > 0
+    ! Electron number density in code units. Under the FI/PI normalisation,
+    ! rho_code equals nH_code. FI uses the composition-dependent fully ionised
+    ! electron count. PI obtains the local electron count from its R factor:
+    ! R*(2+3 A_He) = (n_nuclei+n_e)/n_H. LTE stores ne explicitly.
+    if(trim(mhd_hyperbolic_tc_perp_mode)=='electron_magnetization') then
+      if(eos%eos_type=='LTE') then
+        call eos%get_ne_nH(ixI^L,ixI^L,wCT,ne_loc,nH_dummy)
+      else if(eos%eos_type=='PI') then
+        ne_loc(ixI^S)=rho_loc(ixI^S)*max(R(ixI^S)*(2.d0+3.d0*eos%He_abundance) &
+             -(1.d0+eos%He_abundance),smalldouble)
+      else
+        ne_loc(ixI^S)=rho_loc(ixI^S)*(1.d0+2.d0*eos%He_abundance)
+      end if
+    end if
+    use_perp_source = mhd_hyperbolic_tc_use_perp .and. &
+                      trim(mhd_hyperbolic_tc_perp_mode)/='off'
     if(B0field) then
       {do ix^DB=ixOmin^DB,ixOmax^DB\}
         do idir=1,ndir
@@ -5025,10 +5088,10 @@ contains
           B2 = B2 + Bvec(ix^D,idir)**2
         end do
         if(use_perp_source) then
-          select case(mhd_hyperbolic_tc_perp_mode)
-          case(1)
+          select case(trim(mhd_hyperbolic_tc_perp_mode))
+          case('fixed_reference')
             kappa_T5_perp=mhd_hyperbolic_tc_kappa_perp_factor*kappa_T5
-          case(2)
+          case('weak_field_isotropization')
             if(mhd_hyperbolic_tc_Bmin>zero) then
               fB=B2/(B2+mhd_hyperbolic_tc_Bmin**2)
             else
@@ -5036,10 +5099,10 @@ contains
             end if
             kappa_T5_perp_eff=(one-fB)*kappa_T5
             kappa_T5_perp=kappa_T5_perp_eff
-          case(3)
+          case('electron_magnetization')
             Bmag_loc = dsqrt(B2)
             Tloc = max(Te(ix^D), smalldouble)
-            nloc_code = max(rho_loc(ix^D), smalldouble)
+            nloc_code = max(ne_loc(ix^D), smalldouble)
             chi = Cchi*Bmag_loc*Tloc**1.5d0/nloc_code
             kappa_T5_perp_eff = kappa_T5/(one+chi**2)
             kappa_T5_perp = kappa_T5_perp_eff
@@ -5056,7 +5119,10 @@ contains
           cmax(idir)=sqrt(half*(cfast2+sqrt(dabs(avMinCs2(idir)))))\
         end do
         if(mhd_hyperbolic_tc_sat) then
-          f_sat=one/(one+dabs(kappaT5_bgradT)/(1.5d0*rho_loc(ix^D)*(pth_loc(ix^D)/rho_loc(ix^D))**1.5d0))
+          qclass_diss=dabs(kappaT5_bgradT)
+          if(use_perp_source) &
+            qclass_diss=dsqrt(kappaT5_bgradT**2+kappaT5_gradTperp**2)
+          f_sat=one/(one+qclass_diss/(1.5d0*rho_loc(ix^D)*(pth_loc(ix^D)/rho_loc(ix^D))**1.5d0))
           tau=max(4.d0*dt, f_sat*kappa_T7*courantpar**2/(pth_loc(ix^D)*eos%inv_gamma_minus_1*maxval(cmax(:))**2))
           w(ix^D,qpar_)=w(ix^D,qpar_)-qdt*(f_sat*kappaT5_bgradT+wCT(ix^D,qpar_))/tau
           if(use_perp_source) then
@@ -5093,10 +5159,10 @@ contains
             B2 = B2 + Bvec(ix^D,idir)**2
           end do
           if(use_perp_source) then
-            select case(mhd_hyperbolic_tc_perp_mode)
-            case(1)
+            select case(trim(mhd_hyperbolic_tc_perp_mode))
+            case('fixed_reference')
               kappa_T5_perp=mhd_hyperbolic_tc_kappa_perp_factor*kappa_T5
-            case(2)
+            case('weak_field_isotropization')
               if(mhd_hyperbolic_tc_Bmin>zero) then
                 fB=B2/(B2+mhd_hyperbolic_tc_Bmin**2)
               else
@@ -5104,10 +5170,10 @@ contains
               end if
               kappa_T5_perp_eff=(one-fB)*kappa_T5
               kappa_T5_perp=kappa_T5_perp_eff
-            case(3)
+            case('electron_magnetization')
               Bmag_loc = dsqrt(B2)
               Tloc = max(Te(ix^D), smalldouble)
-              nloc_code = max(rho_loc(ix^D), smalldouble)
+              nloc_code = max(ne_loc(ix^D), smalldouble)
               chi = Cchi*Bmag_loc*Tloc**1.5d0/nloc_code
               kappa_T5_perp_eff = kappa_T5/(one+chi**2)
               kappa_T5_perp = kappa_T5_perp_eff
@@ -5124,7 +5190,10 @@ contains
             cmax(idir)=sqrt(half*(cfast2+sqrt(dabs(avMinCs2(idir)))))\
           end do
           if(mhd_hyperbolic_tc_sat) then
-            f_sat=one/(one+dabs(kappaT5_bgradT)/(1.5d0*rho_loc(ix^D)*(pth_loc(ix^D)/rho_loc(ix^D))**1.5d0))
+            qclass_diss=dabs(kappaT5_bgradT)
+            if(use_perp_source) &
+              qclass_diss=dsqrt(kappaT5_bgradT**2+kappaT5_gradTperp**2)
+            f_sat=one/(one+qclass_diss/(1.5d0*rho_loc(ix^D)*(pth_loc(ix^D)/rho_loc(ix^D))**1.5d0))
             tau=max(4.d0*dt, f_sat*kappa_T7*courantpar**2/(pth_loc(ix^D)*eos%inv_gamma_minus_1*maxval(cmax(:))**2))
             w(ix^D,qpar_)=w(ix^D,qpar_)-qdt*(f_sat*kappaT5_bgradT+wCT(ix^D,qpar_))/tau
             if(use_perp_source) then

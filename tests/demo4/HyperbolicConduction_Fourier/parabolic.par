@@ -1,0 +1,11 @@
+&mhd_list
+  mhd_thermal_conduction=.true.
+  mhd_hyperbolic_tc=.false.
+/
+&tc_list
+  tc_perpendicular=.true.
+  tc_saturate=.false.
+  tc_slope_limiter='MC'
+  tc_k_para=150.d0
+  tc_k_perp=15.d0
+/

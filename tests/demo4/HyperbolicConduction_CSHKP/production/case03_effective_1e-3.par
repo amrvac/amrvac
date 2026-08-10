@@ -1,0 +1,8 @@
+&filelist
+  base_filename='datamr/flare03_effective_1e-3_'
+/
+&mhd_list
+  mhd_hyperbolic_tc_use_perp=.true.
+  mhd_hyperbolic_tc_perp_mode='fixed_reference'
+  mhd_hyperbolic_tc_kappa_perp_factor=1.d-3
+/

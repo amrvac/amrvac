@@ -1,0 +1,78 @@
+!$AMRVAC_DIR/setup.pl -d=3
+
+&filelist
+  base_filename='output/time_dependent_mf'
+  restart_from_file='output/data_driven_potential0000.dat'
+  saveprim=.true.
+  autoconvert=.true.
+  convert_type='vtuBCCmpi'
+/
+
+&savelist
+  itsave(1,1)=0
+  dtsave_dat=5.d0
+  dtsave_log=0.5d0
+/
+
+&stoplist
+  time_max=100.d0
+/
+
+&methodlist
+  time_stepper='threestep'
+  flux_scheme=20*'hll'
+  limiter=20*'cada3'
+/
+
+&boundlist
+  typeboundary_min1=6*'cont'
+  typeboundary_max1=6*'cont'
+  typeboundary_min2=6*'cont'
+  typeboundary_max2=6*'cont'
+  typeboundary_min3=6*'special'
+  typeboundary_max3=6*'cont'
+/
+
+&meshlist
+  refine_criterion=3
+  refine_max_level=1
+  refine_threshold=20*0.2d0
+  derefine_ratio=20*0.1d0
+  w_refine_weight(4)=0.3d0
+  w_refine_weight(5)=0.3d0
+  w_refine_weight(6)=0.4d0
+  block_nx1=12
+  block_nx2=12
+  block_nx3=12
+  domain_nx1=144
+  domain_nx2=96
+  domain_nx3=96
+  xprobmin1=-11.13894d0
+  xprobmax1=11.13894d0
+  xprobmin2=-7.474815d0
+  xprobmax2=7.474815d0
+  xprobmin3=0.07786265625d0
+  xprobmax3=15.02749265625d0
+  prolongprimitive=.false.
+  ditregrid=10
+/
+
+&paramlist
+  typecourant='maxsum'
+  courantpar=0.8d0
+/
+
+&mf_list
+  ! Standalone mf: three artificial-velocity variables plus B1:B3; no rho.
+  typedivbfix='linde'
+  mf_nu=1.d-15
+  mf_vmax=3.d6
+  mf_eta=0.d0
+  mf_eta_hyper=0.d0
+  boundary_divbfix_skip(5)=1
+/
+
+&usr_list
+  boundary_series_dir='../MagneticBoundary/Evolution/Sequence'
+  driving_time_scale=12.d0
+/

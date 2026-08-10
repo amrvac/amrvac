@@ -1,0 +1,8 @@
+&mhd_list
+  mhd_thermal_conduction=.false.
+  mhd_hyperbolic_tc=.true.
+  mhd_hyperbolic_tc_kappa=150.d0
+  mhd_hyperbolic_tc_sat=.false.
+  mhd_hyperbolic_tc_use_perp=.true.
+  mhd_hyperbolic_tc_perp_mode='fixed_reference'
+/

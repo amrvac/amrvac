@@ -170,6 +170,7 @@ mod_convert_files.o: mod_global_parameters.mod
 mod_convert_files.o: mod_physics.mod
 mod_convert_files.o: mod_thermal_emission.mod
 mod_convert_files.o: mod_usr_methods.mod
+mod_data_driven_boundary.o: mod_comm_lib.mod
 mod_datacube.o: mod_constants.mod
 mod_dipole.o: mod_comm_lib.mod
 mod_dipole.o: mod_global_parameters.mod
@@ -466,6 +467,8 @@ mod_kdv.o: mod_comm_lib.mod
 mod_kdv.o: mod_global_parameters.mod
 mod_kdv.o: mod_usr_methods.mod
 mod_lfff.o: mod_comm_lib.mod
+mod_lfff.o: mod_data_driven_boundary.mod
+mod_lfff.o: mod_fft.mod
 mod_lfff.o: mod_forest.mod
 mod_lfff.o: mod_geometry.mod
 mod_lfff.o: mod_global_parameters.mod
@@ -627,6 +630,7 @@ mod_particles.o: mod_particle_gca.mod
 mod_particles.o: mod_particle_lorentz.mod
 mod_particles.o: mod_particle_sample.mod
 mod_pfss.o: mod_comm_lib.mod
+mod_pfss.o: mod_fft.mod
 mod_pfss.o: mod_global_parameters.mod
 mod_phys_dict.o: mod_global_parameters.mod
 mod_physics.o: mod_comm_lib.mod
