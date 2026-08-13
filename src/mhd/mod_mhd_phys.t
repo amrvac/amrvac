@@ -86,6 +86,24 @@ module mod_mhd_phys
   integer, public, protected :: fip_ = -1
   !> Whether FIP passive scalar is enabled
   logical, public, protected :: mhd_fip = .false.
+  !> Enable the Uniturbulence and Alfven Wave Solar Model extension
+  logical, public, protected :: mhd_uawsom = .false.
+  !> Enable the conservative Alfven-wave reflection source (McMurdo et al. 2026, Eq. 34)
+  logical, public, protected :: mhd_uawsom_reflection = .false.
+  !> Dimensionless multiplier in the Alfven-wave reflection source
+  double precision, public, protected :: mhd_uawsom_sigma = 0.d0
+  !> Cartesian direction used for the prescribed density contrast and reflection gradient
+  integer, public, protected :: mhd_uawsom_height_dim = -1
+  !> Base transverse density contrast and filling factor
+  double precision, public, protected :: mhd_uawsom_zeta0 = 5.d0
+  double precision, public, protected :: mhd_uawsom_filling_factor = 0.1d0
+  !> Physical input scales (lengths and magnetic field); converted to code units at init
+  double precision, public, protected :: mhd_uawsom_zeta_scale = -1.d0
+  double precision, public, protected :: mhd_uawsom_thread_radius0 = -1.d0
+  double precision, public, protected :: mhd_uawsom_Bref = -1.d0
+  double precision, public, protected :: mhd_uawsom_alfven_corr_length0 = -1.d0
+  !> Conserved wave-energy indices.  The plus variables propagate against B.
+  integer, public, protected :: wAplus_=-1, wAminus_=-1, wkplus_=-1, wkminus_=-1
   !> Index of the cutoff temperature for the TRAC method
   integer, public, protected              :: Tcoff_
   integer, public, protected              :: Tweight_
@@ -242,6 +260,10 @@ module mod_mhd_phys
   public :: get_normalized_divb
   public :: b_from_vector_potential
   public :: mhd_mag_en_all
+  public :: mhd_uawsom_wave_energy_cell
+  public :: mhd_uawsom_rho2_factor
+  public :: mhd_uawsom_wave_pressure_cell
+  public :: mhd_uawsom_rho2_factor_cell
   {^NOONED
   public :: mhd_clean_divb_multigrid
   }
@@ -285,7 +307,11 @@ contains
       mhd_hyperbolic_tc_use_perp, mhd_hyperbolic_tc_perp_mode, &
       mhd_hyperbolic_tc_kappa_perp_factor, mhd_hyperbolic_tc_Bmin, &
       mhd_hyperbolic_tc_coulomb_log, &
-      mhd_radiation_fld, mhd_fip
+      mhd_radiation_fld, mhd_fip, mhd_uawsom, mhd_uawsom_reflection, &
+      mhd_uawsom_sigma, mhd_uawsom_height_dim, mhd_uawsom_zeta0, &
+      mhd_uawsom_filling_factor, mhd_uawsom_zeta_scale, &
+      mhd_uawsom_thread_radius0, mhd_uawsom_Bref, &
+      mhd_uawsom_alfven_corr_length0
 
     do n = 1, size(files)
        open(unitpar, file=trim(files(n)), status="old")
@@ -338,6 +364,7 @@ contains
     integer :: itr, idir
 
     call mhd_read_params(par_files)
+    if(mhd_uawsom_height_dim < 0) mhd_uawsom_height_dim=ndim
 
     if(mhd_internal_e) then
       if(mhd_hydrodynamic_e) then
@@ -554,6 +581,15 @@ contains
       fip_ = var_set_fluxvar('rho_fip', 'fip', need_bc=.false.)
     else
       fip_ = -1
+    end if
+
+    if (mhd_uawsom) then
+      wAplus_  = var_set_fluxvar('wAplus',  'wAplus')
+      wAminus_ = var_set_fluxvar('wAminus', 'wAminus')
+      wkplus_  = var_set_fluxvar('wkplus',  'wkplus')
+      wkminus_ = var_set_fluxvar('wkminus', 'wkminus')
+    else
+      wAplus_=-1; wAminus_=-1; wkplus_=-1; wkminus_=-1
     end if
 
     if (eos%eos_type == 'LTE') then
@@ -810,6 +846,24 @@ contains
 
     ! derive units from basic units
     call mhd_physical_units()
+
+    if(mhd_uawsom) then
+      ! Namelist inputs are physical quantities, following the normal AMRVAC
+      ! convention for this module (cm/G in cgs, m/T in SI).
+      if(mhd_uawsom_zeta_scale == -one) &
+        mhd_uawsom_zeta_scale=merge(3.4805d9,3.4805d11,SI_unit)
+      if(mhd_uawsom_thread_radius0 == -one) &
+        mhd_uawsom_thread_radius0=merge(1.d5,1.d7,SI_unit)
+      if(mhd_uawsom_Bref == -one) &
+        mhd_uawsom_Bref=merge(1.d-3,10.d0,SI_unit)
+      if(mhd_uawsom_alfven_corr_length0 == -one) &
+        mhd_uawsom_alfven_corr_length0=merge(1.5d7,1.5d9,SI_unit)
+      mhd_uawsom_zeta_scale = mhd_uawsom_zeta_scale/unit_length
+      mhd_uawsom_thread_radius0 = mhd_uawsom_thread_radius0/unit_length
+      mhd_uawsom_Bref = mhd_uawsom_Bref/unit_magneticfield
+      mhd_uawsom_alfven_corr_length0 = &
+           mhd_uawsom_alfven_corr_length0/unit_length
+    end if
 
     if(mhd_hyperbolic_tc) then
       if(mhd_hyperbolic_tc_kappa==0.d0) then
@@ -1351,7 +1405,7 @@ contains
   subroutine mhd_check_params
     use mod_global_parameters
     use mod_usr_methods
-    use mod_geometry, only: coordinate 
+    use mod_geometry, only: coordinate, Cartesian
     use mod_convert, only: add_convert_method
     use mod_particles, only: particles_init, particles_eta, particles_etah
     use mod_particles, only: npayload,nusrpayload, &
@@ -1359,6 +1413,28 @@ contains
     use mod_fld
 
     double precision :: a,b,Xfrac,Yfrac
+
+    if(mhd_uawsom) then
+      if(coordinate /= Cartesian .or. .not.slab_uniform) &
+        call mpistop('mhd_uawsom currently requires a uniform Cartesian grid')
+      if(.not.mhd_energy .or. .not.total_energy) &
+        call mpistop('mhd_uawsom requires the standard total-energy MHD formulation')
+      if(mhd_semirelativistic .or. has_equi_rho_and_p .or. mhd_radiation_fld) &
+        call mpistop('mhd_uawsom: unsupported MHD option')
+      if(trim(eos%eos_type) /= 'FI') &
+        call mpistop("mhd_uawsom currently supports eos_type='FI' only")
+      if(mhd_uawsom_height_dim < 1 .or. mhd_uawsom_height_dim > ndim) &
+        call mpistop('mhd_uawsom_height_dim must be between 1 and ndim')
+      if(mhd_uawsom_zeta0 <= one .or. mhd_uawsom_filling_factor <= zero .or. &
+         mhd_uawsom_filling_factor >= one) &
+        call mpistop('mhd_uawsom requires zeta0>1 and 0<filling_factor<1')
+      if(mhd_uawsom_zeta_scale <= zero .or. &
+         mhd_uawsom_thread_radius0 <= zero .or. &
+         mhd_uawsom_alfven_corr_length0 <= zero .or. mhd_uawsom_Bref <= zero) &
+        call mpistop('mhd_uawsom: scales must be positive')
+      if(mhd_uawsom_sigma < zero) &
+        call mpistop('mhd_uawsom_sigma must be non-negative')
+    end if
 
     ! Initialize particles module here, so all extra and user vars are sample
     if(mhd_particles) then
@@ -1791,7 +1867,14 @@ contains
         if(w(ix^D,p_)<small_pressure) flag(ix^D,e_) = .true.
       else
         if(w(ix^D,e_)-half*((^C&w(ix^D,m^C_)**2+)/w(ix^D,rho_)+&
-          (^C&w(ix^D,b^C_)**2+))<small_e) flag(ix^D,e_) = .true.
+          (^C&w(ix^D,b^C_)**2+))-mhd_uawsom_wave_energy_cell(w(ix^D,:))&
+          <small_e) flag(ix^D,e_) = .true.
+        if(mhd_uawsom) then
+          if(w(ix^D,wAplus_)<zero) flag(ix^D,wAplus_)=.true.
+          if(w(ix^D,wAminus_)<zero) flag(ix^D,wAminus_)=.true.
+          if(w(ix^D,wkplus_)<zero) flag(ix^D,wkplus_)=.true.
+          if(w(ix^D,wkminus_)<zero) flag(ix^D,wkminus_)=.true.
+        end if
       end if
       if(mhd_radiation_fld)then
          if(w(ix^D,r_e)<small_r_e) flag(ix^D,r_e) = .true.
@@ -1910,6 +1993,165 @@ contains
     end if
   end subroutine mhd_bound_fip
 
+  !> Return local UAWSoM closure coefficients in code units.  User cases may
+  !> replace all three profiles through usr_uawsom_coefficients.
+  subroutine mhd_uawsom_get_coefficients(w,x,ixI^L,ixO^L,primitive,zeta,radius,lperp_A)
+    use mod_global_parameters
+    use mod_usr_methods, only: usr_uawsom_coefficients
+    integer, intent(in) :: ixI^L, ixO^L
+    double precision, intent(in) :: w(ixI^S,1:nw), x(ixI^S,1:ndim)
+    logical, intent(in) :: primitive
+    double precision, intent(out) :: zeta(ixI^S), radius(ixI^S), lperp_A(ixI^S)
+    double precision :: Bmag(ixI^S), Btotal(ixI^S,1:ndir), height_base
+    integer :: idir
+
+    if(associated(usr_uawsom_coefficients)) then
+      call usr_uawsom_coefficients(w,x,ixI^L,ixO^L,primitive,zeta,radius,lperp_A)
+    else
+      do idir=1,ndir
+        if(B0field) then
+          Btotal(ixO^S,idir)=w(ixO^S,mag(idir))+block%B0(ixO^S,idir,b0i)
+        else
+          Btotal(ixO^S,idir)=w(ixO^S,mag(idir))
+        end if
+      end do
+      Bmag(ixO^S)=dsqrt(sum(Btotal(ixO^S,1:ndir)**2,dim=ndim+1))
+      select case(mhd_uawsom_height_dim)
+      case(1)
+        height_base=xprobmin1
+      {^NOONED
+      case(2)
+        height_base=xprobmin2
+      }
+      {^IFTHREED
+      case(3)
+        height_base=xprobmin3
+      }
+      end select
+      zeta(ixO^S)=one+(mhd_uawsom_zeta0-one)*dexp(&
+           -max(x(ixO^S,mhd_uawsom_height_dim)-height_base,zero)/&
+           mhd_uawsom_zeta_scale)
+      radius(ixO^S)=mhd_uawsom_thread_radius0*dsqrt(&
+           mhd_uawsom_Bref/max(Bmag(ixO^S),smalldouble))
+      lperp_A(ixO^S)=mhd_uawsom_alfven_corr_length0*dsqrt(&
+           mhd_uawsom_Bref/max(Bmag(ixO^S),smalldouble))
+    end if
+    if(any(zeta(ixO^S)<=one) .or. any(radius(ixO^S)<=zero) .or. &
+       any(lperp_A(ixO^S)<=zero)) &
+      call mpistop('mhd_uawsom coefficients require zeta>1 and positive lengths')
+  end subroutine mhd_uawsom_get_coefficients
+
+  subroutine mhd_uawsom_rho2_factor(ixI^L,ixO^L,w,x,factor)
+    use mod_global_parameters
+    integer, intent(in) :: ixI^L, ixO^L
+    double precision, intent(in) :: w(ixI^S,1:nw), x(ixI^S,1:ndim)
+    double precision, intent(out) :: factor(ixI^S)
+    double precision :: zeta(ixI^S), radius(ixI^S), lperp_A(ixI^S)
+    call mhd_uawsom_get_coefficients(w,x,ixI^L,ixO^L,.false.,zeta,radius,lperp_A)
+    factor(ixO^S)=mhd_uawsom_rho2_factor_cell(zeta(ixO^S))
+  end subroutine mhd_uawsom_rho2_factor
+
+  elemental pure double precision function mhd_uawsom_rho2_factor_cell(zeta)
+    double precision, intent(in) :: zeta
+    double precision :: f
+    f=mhd_uawsom_filling_factor
+    mhd_uawsom_rho2_factor_cell=1.d0+f*(1.d0-f)*(zeta-1.d0)**2/&
+         (1.d0+f*zeta-f)**2
+  end function mhd_uawsom_rho2_factor_cell
+
+  pure double precision function mhd_uawsom_wave_pressure_cell(wcell,zeta)
+    double precision, intent(in) :: wcell(:),zeta
+    mhd_uawsom_wave_pressure_cell=0.5d0*(wcell(wAplus_)+wcell(wAminus_))+&
+         0.25d0*(zeta+1.d0)*(wcell(wkplus_)+wcell(wkminus_))
+  end function mhd_uawsom_wave_pressure_cell
+
+  pure double precision function mhd_uawsom_wave_energy_cell(wcell)
+    use mod_constants, only: zero
+    double precision, intent(in) :: wcell(:)
+    if(mhd_uawsom) then
+      mhd_uawsom_wave_energy_cell=wcell(wAplus_)+wcell(wAminus_)+&
+           wcell(wkplus_)+wcell(wkminus_)
+    else
+      mhd_uawsom_wave_energy_cell=zero
+    end if
+  end function mhd_uawsom_wave_energy_cell
+
+  !> UAWSoM compression, nonlinear damping, and optional Alfven reflection.
+  !> Total energy is intentionally unchanged by damping: because it contains
+  !> the four W variables, their loss is recovered as gas internal energy.
+  subroutine mhd_add_source_uawsom(qdt,ixI^L,ixO^L,wCT,wCTprim,w,x)
+    use mod_global_parameters
+    use mod_geometry, only: divvector, gradient
+    integer, intent(in) :: ixI^L, ixO^L
+    double precision, intent(in) :: qdt, wCT(ixI^S,1:nw), &
+         wCTprim(ixI^S,1:nw), x(ixI^S,1:ndim)
+    double precision, intent(inout) :: w(ixI^S,1:nw)
+    double precision :: v(ixI^S,1:ndir), divv(ixI^S)
+    double precision :: zeta(ixI^S), radius(ixI^S), lperp_A(ixI^S)
+    double precision :: lperp_k(ixI^S), rho_e(ixI^S)
+    double precision :: gamma_plus(ixI^S), gamma_minus(ixI^S)
+    double precision :: dampAp(ixI^S), dampAm(ixI^S), dampkp(ixI^S), dampkm(ixI^S)
+    double precision :: Btotal(ixI^S,1:ndir), Bmag(ixI^S), va(ixI^S), gradva(ixI^S)
+    double precision :: refl_rate(ixI^S), transfer(ixI^S), donor(ixI^S)
+    double precision :: f, kink_pressure(ixI^S)
+    integer :: idir
+
+    call mhd_get_v(wCT,x,ixI^L,ixI^L,v)
+    call divvector(v,ixI^L,ixO^L,divv)
+    call mhd_uawsom_get_coefficients(wCT,x,ixI^L,ixO^L,.false.,zeta,radius,lperp_A)
+    f=mhd_uawsom_filling_factor
+    rho_e(ixO^S)=wCT(ixO^S,rho_)/(one+f*zeta(ixO^S)-f)
+    lperp_k(ixO^S)=dsqrt(10.d0)*dsqrt(f*dpi)*radius(ixO^S)*&
+         (zeta(ixO^S)+one-f)**1.5d0/&
+         ((zeta(ixO^S)-one)*(one-f**2.5d0))
+    gamma_plus(ixO^S)=two/lperp_A(ixO^S)*dsqrt(&
+         max(wCT(ixO^S,wAminus_),zero)/wCT(ixO^S,rho_))
+    gamma_minus(ixO^S)=two/lperp_A(ixO^S)*dsqrt(&
+         max(wCT(ixO^S,wAplus_),zero)/wCT(ixO^S,rho_))
+    dampAp(ixO^S)=gamma_plus(ixO^S)*max(wCT(ixO^S,wAplus_),zero)
+    dampAm(ixO^S)=gamma_minus(ixO^S)*max(wCT(ixO^S,wAminus_),zero)
+    dampkp(ixO^S)=max(wCT(ixO^S,wkplus_),zero)**1.5d0/&
+         (dsqrt(rho_e(ixO^S))*lperp_k(ixO^S))
+    dampkm(ixO^S)=max(wCT(ixO^S,wkminus_),zero)**1.5d0/&
+         (dsqrt(rho_e(ixO^S))*lperp_k(ixO^S))
+
+    w(ixO^S,wAplus_)=w(ixO^S,wAplus_)-qdt*(&
+         half*divv(ixO^S)*wCT(ixO^S,wAplus_)+dampAp(ixO^S))
+    w(ixO^S,wAminus_)=w(ixO^S,wAminus_)-qdt*(&
+         half*divv(ixO^S)*wCT(ixO^S,wAminus_)+dampAm(ixO^S))
+    w(ixO^S,wkplus_)=w(ixO^S,wkplus_)-qdt*(&
+         half*divv(ixO^S)*wCT(ixO^S,wkplus_)+dampkp(ixO^S))
+    w(ixO^S,wkminus_)=w(ixO^S,wkminus_)-qdt*(&
+         half*divv(ixO^S)*wCT(ixO^S,wkminus_)+dampkm(ixO^S))
+
+    kink_pressure(ixO^S)=quarter*(zeta(ixO^S)+one)*&
+         (wCT(ixO^S,wkplus_)+wCT(ixO^S,wkminus_))
+    w(ixO^S,e_)=w(ixO^S,e_)+qdt*(zeta(ixO^S)-one)/&
+         (zeta(ixO^S)+one)*kink_pressure(ixO^S)*divv(ixO^S)
+
+    if(mhd_uawsom_reflection .and. mhd_uawsom_sigma>zero) then
+      do idir=1,ndir
+        if(B0field) then
+          Btotal(ixI^S,idir)=wCT(ixI^S,mag(idir))+block%B0(ixI^S,idir,b0i)
+        else
+          Btotal(ixI^S,idir)=wCT(ixI^S,mag(idir))
+        end if
+      end do
+      Bmag(ixI^S)=dsqrt(sum(Btotal(ixI^S,1:ndir)**2,dim=ndim+1))
+      va(ixI^S)=Bmag(ixI^S)/dsqrt(max(wCT(ixI^S,rho_),small_density))
+      call gradient(va,ixI^L,ixO^L,mhd_uawsom_height_dim,gradva)
+      refl_rate(ixO^S)=mhd_uawsom_sigma*&
+           (wCTprim(ixO^S,mom(mhd_uawsom_height_dim))+va(ixO^S))/&
+           max(va(ixO^S),smalldouble)*gradva(ixO^S)
+      donor(ixO^S)=merge(max(wCT(ixO^S,wAplus_),zero),&
+           max(wCT(ixO^S,wAminus_),zero),refl_rate(ixO^S)>=zero)
+      transfer(ixO^S)=refl_rate(ixO^S)*donor(ixO^S)
+      transfer(ixO^S)=sign(min(abs(transfer(ixO^S)),donor(ixO^S)/qdt),transfer(ixO^S))
+      w(ixO^S,wAplus_)=w(ixO^S,wAplus_)-qdt*transfer(ixO^S)
+      w(ixO^S,wAminus_)=w(ixO^S,wAminus_)+qdt*transfer(ixO^S)
+    end if
+  end subroutine mhd_add_source_uawsom
+
   !> Transform internal energy to total energy
   subroutine mhd_ei_to_e(ixI^L,ixO^L,w,x)
     use mod_global_parameters
@@ -1932,7 +2174,8 @@ contains
         ! Calculate e = ei + ek + eb
         w(ix^D,e_)=w(ix^D,e_)&
                   +half*((^C&w(ix^D,m^C_)**2+)/w(ix^D,rho_)&
-                        +(^C&w(ix^D,b^C_)**2+))
+                        +(^C&w(ix^D,b^C_)**2+))&
+                  +mhd_uawsom_wave_energy_cell(w(ix^D,:))
      {end do\}
     end if
   end subroutine mhd_ei_to_e
@@ -1989,7 +2232,8 @@ contains
         ! Calculate ei = e - ek - eb
         w(ix^D,e_)=w(ix^D,e_)&
                   -half*((^C&w(ix^D,m^C_)**2+)/w(ix^D,rho_)&
-                        +(^C&w(ix^D,b^C_)**2+))
+                        +(^C&w(ix^D,b^C_)**2+))&
+                  -mhd_uawsom_wave_energy_cell(w(ix^D,:))
      {end do\}
     end if
 
@@ -2166,8 +2410,15 @@ contains
           if(primitive) then
             if(flag(ix^D,e_)) w(ix^D,p_)=small_pressure
           else
+            if(mhd_uawsom) then
+              if(flag(ix^D,wAplus_)) w(ix^D,wAplus_)=zero
+              if(flag(ix^D,wAminus_)) w(ix^D,wAminus_)=zero
+              if(flag(ix^D,wkplus_)) w(ix^D,wkplus_)=zero
+              if(flag(ix^D,wkminus_)) w(ix^D,wkminus_)=zero
+            end if
             if(flag(ix^D,e_)) &
-              w(ix^D,e_)=small_e+half*((^C&w(ix^D,m^C_)**2+)/w(ix^D,rho_)+(^C&w(ix^D,b^C_)**2+))
+              w(ix^D,e_)=small_e+half*((^C&w(ix^D,m^C_)**2+)/w(ix^D,rho_)+(^C&w(ix^D,b^C_)**2+))&
+                   +mhd_uawsom_wave_energy_cell(w(ix^D,:))
           end if
           if(mhd_radiation_fld)then
             if(small_values_fix_iw(r_e)) then
@@ -2181,16 +2432,24 @@ contains
         if(primitive)then
           call small_values_average(ixI^L, ixO^L, w, x, flag, p_)
         else
+          if(mhd_uawsom) then
+            call small_values_average(ixI^L,ixO^L,w,x,flag,wAplus_)
+            call small_values_average(ixI^L,ixO^L,w,x,flag,wAminus_)
+            call small_values_average(ixI^L,ixO^L,w,x,flag,wkplus_)
+            call small_values_average(ixI^L,ixO^L,w,x,flag,wkminus_)
+          end if
           ! do averaging of internal energy
          {do ix^DB=ixImin^DB,ixImax^DB\}
             w(ix^D,e_)=w(ix^D,e_)&
-                -half*((^C&w(ix^D,m^C_)**2+)/w(ix^D,rho_)+(^C&w(ix^D,b^C_)**2+))
+                -half*((^C&w(ix^D,m^C_)**2+)/w(ix^D,rho_)+(^C&w(ix^D,b^C_)**2+))&
+                -mhd_uawsom_wave_energy_cell(w(ix^D,:))
          {end do\}
           call small_values_average(ixI^L, ixO^L, w, x, flag, e_)
           ! convert back
          {do ix^DB=ixImin^DB,ixImax^DB\}
             w(ix^D,e_)=w(ix^D,e_)&
-                +half*((^C&w(ix^D,m^C_)**2+)/w(ix^D,rho_)+(^C&w(ix^D,b^C_)**2+))
+                +half*((^C&w(ix^D,m^C_)**2+)/w(ix^D,rho_)+(^C&w(ix^D,b^C_)**2+))&
+                +mhd_uawsom_wave_energy_cell(w(ix^D,:))
          {end do\}
         end if
         if(mhd_radiation_fld) then
@@ -2202,7 +2461,8 @@ contains
          {do ix^DB=ixOmin^DB,ixOmax^DB\}
             ^C&w(ix^D,m^C_)=w(ix^D,m^C_)/w(ix^D,rho_)\
             w(ix^D,p_)=eos%gamma_minus_1*(w(ix^D,e_)&
-                -half*((^C&w(ix^D,m^C_)**2+)*w(ix^D,rho_)+(^C&w(ix^D,b^C_)**2+)))
+                -half*((^C&w(ix^D,m^C_)**2+)*w(ix^D,rho_)+(^C&w(ix^D,b^C_)**2+))&
+                -mhd_uawsom_wave_energy_cell(w(ix^D,:)))
          {end do\}
         end if
         call small_values_error(w, x, ixI^L, ixO^L, flag, subname)
@@ -2472,11 +2732,14 @@ contains
 
     double precision :: rho, inv_rho, ploc, cfast2, AvMinCs2, b2, kmax
     double precision :: cs2(ixI^S)
+    double precision :: uawsom_zeta(ixI^S), uawsom_radius(ixI^S), uawsom_lperp(ixI^S)
     double precision, allocatable :: w_eos(:^D&,:)
     integer :: ix^D
     logical :: need_aug
 
     if(mhd_hall) kmax = dpi/min({dxlevel(^D)},bigdouble)*half
+    if(mhd_uawsom) call mhd_uawsom_get_coefficients(w,x,ixI^L,ixO^L,.true.,&
+         uawsom_zeta,uawsom_radius,uawsom_lperp)
 
     ! Sound speed squared via EoS dispatch (LTE+ionE -> Gamma_1 table; FI -> const gamma).
     ! If equi_rho0 / equi_pe0 are active, csound^2 is based on the total state.
@@ -2516,6 +2779,14 @@ contains
           ! largest wavenumber supported by grid: Nyquist (in practise can reduce by some factor)
           cmax(ix^D)=max(cmax(ix^D),mhd_etah*sqrt(b2)*inv_rho*kmax)
         end if
+        if(mhd_uawsom) then
+          cmax(ix^D)=max(cmax(ix^D),abs(w(ix^D,mag(idim))+&
+               block%B0(ix^D,idim,b0i))*dsqrt(inv_rho))
+          cmax(ix^D)=max(cmax(ix^D),abs(w(ix^D,mag(idim))+&
+               block%B0(ix^D,idim,b0i))/dsqrt(rho*&
+               ((uawsom_zeta(ix^D)+one)/(two*(one+mhd_uawsom_filling_factor*&
+               uawsom_zeta(ix^D)-mhd_uawsom_filling_factor)))))
+        end if
         cmax(ix^D)=abs(w(ix^D,mom(idim)))+cmax(ix^D)
      {end do\}
     else
@@ -2539,6 +2810,12 @@ contains
           ! take the Hall velocity into account: most simple estimate, high k limit:
           ! largest wavenumber supported by grid: Nyquist (in practise can reduce by some factor)
           cmax(ix^D)=max(cmax(ix^D),mhd_etah*sqrt(b2)*inv_rho*kmax)
+        end if
+        if(mhd_uawsom) then
+          cmax(ix^D)=max(cmax(ix^D),abs(w(ix^D,mag(idim)))*dsqrt(inv_rho))
+          cmax(ix^D)=max(cmax(ix^D),abs(w(ix^D,mag(idim)))/dsqrt(rho*&
+               ((uawsom_zeta(ix^D)+one)/(two*(one+mhd_uawsom_filling_factor*&
+               uawsom_zeta(ix^D)-mhd_uawsom_filling_factor)))))
         end if
         cmax(ix^D)=abs(w(ix^D,mom(idim)))+cmax(ix^D)
      {end do\}
@@ -2848,8 +3125,11 @@ contains
           \}
         end select
         call gradient(Te,ixI^L,ixQ^L,idims,gradT(ixI^S,idims))
-        call gradientF(Te,x,ixI^L,hxP^L,idims,gradT(ixI^S,idims),nghostcells,.true.)
-        call gradientF(Te,x,ixI^L,jxP^L,idims,gradT(ixI^S,idims),nghostcells,.false.)
+        ! The outermost ghost cell has no room for a fourth-order one-sided
+        ! stencil.  A first-order one-sided gradient keeps the two-ghost-layer
+        ! LTRAC coverage without reading outside ixI.
+        call gradientF(Te,x,ixI^L,hxP^L,idims,gradT(ixI^S,idims),1,.true.)
+        call gradientF(Te,x,ixI^L,jxP^L,idims,gradT(ixI^S,idims),1,.false.)
       end do
       ! b unit vector: magnetic field direction vector
       if(B0field) then
@@ -3631,8 +3911,14 @@ contains
     double precision             :: Bvec(ixI^S,1:ndir)
     double precision             :: bgradT(ixI^S), gradTperp_mag(ixI^S)
     double precision             :: nperp(ixI^S,1:ndir)
+    double precision             :: uawsom_zeta(ixI^S), uawsom_radius(ixI^S)
+    double precision             :: uawsom_lperp(ixI^S), uawsom_denom
+    double precision             :: uawsom_pwave, uawsom_Bi
     logical                      :: use_perp_flux
     integer                      :: iw, ix^D, idir
+
+    if(mhd_uawsom) call mhd_uawsom_get_coefficients(w,x,ixI^L,ixO^L,.true.,&
+         uawsom_zeta,uawsom_radius,uawsom_lperp)
 
     if(mhd_internal_e) then
      {do ix^DB=ixOmin^DB,ixOmax^DB\}
@@ -3654,12 +3940,25 @@ contains
         ! f_i[m_k]=v_i*m_k-b_k*b_i
         ^C&f(ix^D,m^C_)=wC(ix^D,mom(idim))*w(ix^D,m^C_)-w(ix^D,mag(idim))*w(ix^D,b^C_)\
         ptotal=w(ix^D,p_)+half*(^C&w(ix^D,b^C_)**2+)
+        if(mhd_uawsom) then
+          uawsom_pwave=mhd_uawsom_wave_pressure_cell(w(ix^D,:),uawsom_zeta(ix^D))
+          ptotal=ptotal+uawsom_pwave
+        end if
         ! normal one includes total pressure
         f(ix^D,mom(idim))=f(ix^D,mom(idim))+ptotal
         ! Get flux of total energy
         ! f_i[e]=v_i*e+v_i*ptotal-b_i*(b_k*v_k)
         f(ix^D,e_)=w(ix^D,mom(idim))*(wC(ix^D,e_)+ptotal)&
            -w(ix^D,mag(idim))*(^C&w(ix^D,b^C_)*w(ix^D,m^C_)+)
+        if(mhd_uawsom) then
+          uawsom_denom=dsqrt(w(ix^D,rho_)*(uawsom_zeta(ix^D)+one)/&
+               (two*(one+mhd_uawsom_filling_factor*uawsom_zeta(ix^D)-&
+               mhd_uawsom_filling_factor)))
+          uawsom_Bi=w(ix^D,mag(idim))
+          f(ix^D,e_)=f(ix^D,e_)+uawsom_Bi*(&
+               (w(ix^D,wAminus_)-w(ix^D,wAplus_))/dsqrt(w(ix^D,rho_))+&
+               (w(ix^D,wkminus_)-w(ix^D,wkplus_))/uawsom_denom)
+        end if
         ! f_i[b_k]=v_i*b_k-v_k*b_i
         ^C&f(ix^D,b^C_)=w(ix^D,mom(idim))*w(ix^D,b^C_)-w(ix^D,mag(idim))*w(ix^D,m^C_)\
      {end do\}
@@ -3693,6 +3992,20 @@ contains
 
     if (mhd_fip) then
       f(ixO^S,fip_) = w(ixO^S,mom(idim)) * wC(ixO^S,fip_)
+    end if
+    if(mhd_uawsom) then
+     {do ix^DB=ixOmin^DB,ixOmax^DB\}
+      uawsom_denom=dsqrt(w(ix^D,rho_)*(uawsom_zeta(ix^D)+one)/&
+           (two*(one+mhd_uawsom_filling_factor*uawsom_zeta(ix^D)-&
+           mhd_uawsom_filling_factor)))
+      uawsom_Bi=w(ix^D,mag(idim))
+      f(ix^D,wAplus_)=w(ix^D,wAplus_)*(w(ix^D,mom(idim))-&
+           uawsom_Bi/dsqrt(w(ix^D,rho_)))
+      f(ix^D,wAminus_)=w(ix^D,wAminus_)*(w(ix^D,mom(idim))+&
+           uawsom_Bi/dsqrt(w(ix^D,rho_)))
+      f(ix^D,wkplus_)=w(ix^D,wkplus_)*(w(ix^D,mom(idim))-uawsom_Bi/uawsom_denom)
+      f(ix^D,wkminus_)=w(ix^D,wkminus_)*(w(ix^D,mom(idim))+uawsom_Bi/uawsom_denom)
+     {end do\}
     end if
     ! Get flux of tracer
     do iw=1,mhd_n_tracer
@@ -3900,8 +4213,14 @@ contains
     double precision             :: Bvec(ixI^S,1:ndir)
     double precision             :: bgradT(ixI^S), gradTperp_mag(ixI^S)
     double precision             :: nperp(ixI^S,1:ndir)
+    double precision             :: uawsom_zeta(ixI^S), uawsom_radius(ixI^S)
+    double precision             :: uawsom_lperp(ixI^S), uawsom_denom
+    double precision             :: uawsom_pwave, uawsom_Bi
     logical                      :: use_perp_flux
     integer                      :: iw, ix^D, idir
+
+    if(mhd_uawsom) call mhd_uawsom_get_coefficients(w,x,ixI^L,ixO^L,.true.,&
+         uawsom_zeta,uawsom_radius,uawsom_lperp)
 
    {do ix^DB=ixOmin^DB,ixOmax^DB\}
       ! Get flux of density
@@ -3928,6 +4247,10 @@ contains
         ^C&f(ix^D,m^C_)=wC(ix^D,mom(idim))*w(ix^D,m^C_)-w(ix^D,mag(idim))*w(ix^D,b^C_)\
         f(ix^D,mom(idim))=f(ix^D,mom(idim))+ptotal
       end if
+      if(mhd_uawsom) then
+        uawsom_pwave=mhd_uawsom_wave_pressure_cell(w(ix^D,:),uawsom_zeta(ix^D))
+        f(ix^D,mom(idim))=f(ix^D,mom(idim))+uawsom_pwave
+      end if
       ! f_i[b_k]=v_i*b_k-v_k*b_i
       ^C&f(ix^D,b^C_)=w(ix^D,mom(idim))*btotal(ix^D,^C)-btotal(ix^D,idim)*w(ix^D,m^C_)\
 
@@ -3938,6 +4261,15 @@ contains
       else
         f(ix^D,e_)=w(ix^D,mom(idim))*(wC(ix^D,e_)+ptotal)&
            -btotal(ix^D,idim)*(^C&w(ix^D,b^C_)*w(ix^D,m^C_)+)
+        if(mhd_uawsom) then
+          uawsom_denom=dsqrt(w(ix^D,rho_)*(uawsom_zeta(ix^D)+one)/&
+               (two*(one+mhd_uawsom_filling_factor*uawsom_zeta(ix^D)-&
+               mhd_uawsom_filling_factor)))
+          uawsom_Bi=btotal(ix^D,idim)
+          f(ix^D,e_)=f(ix^D,e_)+w(ix^D,mom(idim))*uawsom_pwave+uawsom_Bi*(&
+               (w(ix^D,wAminus_)-w(ix^D,wAplus_))/dsqrt(w(ix^D,rho_))+&
+               (w(ix^D,wkminus_)-w(ix^D,wkplus_))/uawsom_denom)
+        end if
       end if
    {end do\}
 
@@ -3969,6 +4301,20 @@ contains
     end if
     if (mhd_fip) then
       f(ixO^S,fip_) = w(ixO^S,mom(idim)) * wC(ixO^S,fip_)
+    end if
+    if(mhd_uawsom) then
+     {do ix^DB=ixOmin^DB,ixOmax^DB\}
+      uawsom_denom=dsqrt(w(ix^D,rho_)*(uawsom_zeta(ix^D)+one)/&
+           (two*(one+mhd_uawsom_filling_factor*uawsom_zeta(ix^D)-&
+           mhd_uawsom_filling_factor)))
+      uawsom_Bi=btotal(ix^D,idim)
+      f(ix^D,wAplus_)=w(ix^D,wAplus_)*(w(ix^D,mom(idim))-&
+           uawsom_Bi/dsqrt(w(ix^D,rho_)))
+      f(ix^D,wAminus_)=w(ix^D,wAminus_)*(w(ix^D,mom(idim))+&
+           uawsom_Bi/dsqrt(w(ix^D,rho_)))
+      f(ix^D,wkplus_)=w(ix^D,wkplus_)*(w(ix^D,mom(idim))-uawsom_Bi/uawsom_denom)
+      f(ix^D,wkminus_)=w(ix^D,wkminus_)*(w(ix^D,mom(idim))+uawsom_Bi/uawsom_denom)
+     {end do\}
     end if
     ! Get flux of tracer
     do iw=1,mhd_n_tracer
@@ -4596,6 +4942,10 @@ contains
     ! modification as it does not use dt in the update
 
     if (.not. qsourcesplit) then
+      if(mhd_uawsom) then
+        active = .true.
+        call mhd_add_source_uawsom(qdt,ixI^L,ixO^L,wCT,wCTprim,w,x)
+      end if
       if(mhd_internal_e) then
         ! Source for solving internal energy
         active = .true.

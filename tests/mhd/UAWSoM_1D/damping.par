@@ -1,0 +1,10 @@
+ &filelist
+   base_filename='uawsom_damping'
+ /
+ &meshlist
+   iprob=3
+ /
+ &mhd_list
+   mhd_uawsom_thread_radius0=0.1d0
+   mhd_uawsom_alfven_corr_length0=0.1d0
+ /

@@ -319,6 +319,8 @@ contains
             rc_fl%get_var_Rfactor  => eos%get_Rfactor
             rc_fl%get_Te           => eos%get_Te
             rc_fl%get_ne_nH        => eos%get_ne_nH
+            nullify(rc_fl%get_rho2_factor)
+            if(mhd_uawsom) rc_fl%get_rho2_factor => mhd_uawsom_rho2_factor
             rc_fl%ionE              =  eos%ionE
             rc_fl%method            =  eos%method
             rc_fl%inv_gamma_minus_1 =  eos%inv_gamma_minus_1
@@ -397,6 +399,8 @@ contains
             w(ix^D,e_)=w(ix^D,p_)*eos%inv_gamma_minus_1&
                       +half*((^C&w(ix^D,m^C_)**2+)*w(ix^D,rho_)&
                       +(^C&w(ix^D,b^C_)**2+))
+            if(mhd_uawsom) w(ix^D,e_)=w(ix^D,e_)+&
+                 w(ix^D,wAplus_)+w(ix^D,wAminus_)+w(ix^D,wkplus_)+w(ix^D,wkminus_)
             ! Convert velocity to momentum
             ^C&w(ix^D,m^C_)=w(ix^D,rho_)*w(ix^D,m^C_)\
         {end do\}
@@ -583,7 +587,8 @@ contains
             ! Calculate pressure = (gamma-1) * (e-ek-eb)
             w(ix^D,p_)=eos%gamma_minus_1*(w(ix^D,e_)&
                       -half*(w(ix^D,rho_)*(^C&w(ix^D,m^C_)**2+)&
-                        +(^C&w(ix^D,b^C_)**2+)))
+                        +(^C&w(ix^D,b^C_)**2+))&
+                      -mhd_uawsom_wave_energy_cell(w(ix^D,:)))
         {end do\}
 
     end subroutine mhd_to_primitive_origin
@@ -876,6 +881,8 @@ contains
                           +half*((^C&w(ix^D,m^C_)**2+)*w(ix^D,rho_)&
                           +(^C&w(ix^D,b^C_)**2+))
             end if
+            if(mhd_uawsom) w(ix^D,e_)=w(ix^D,e_)+&
+                 w(ix^D,wAplus_)+w(ix^D,wAminus_)+w(ix^D,wkplus_)+w(ix^D,wkminus_)
         {end do\}
 
     end subroutine mhd_p_to_e
@@ -1350,7 +1357,7 @@ contains
                      +(^C&w(ix^D,b^C_)**2+)))+block%equi_vars(ix^D,equi_pe0_,0)
             else
                 pth(ix^D)=eos%gamma_minus_1*(w(ix^D,e_)-half*((^C&w(ix^D,m^C_)**2+)/w(ix^D,rho_)&
-                     +(^C&w(ix^D,b^C_)**2+)))
+                     +(^C&w(ix^D,b^C_)**2+))-mhd_uawsom_wave_energy_cell(w(ix^D,:)))
             end if
             if(fix_small_values.and.pth(ix^D)<small_pressure) pth(ix^D)=small_pressure
         {end do\}

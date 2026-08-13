@@ -1002,6 +1002,16 @@ sharp discontinuities. It is normally inactive with a default value -1.
      mhd_trac_finegrid= INTEGER
      mhd_hyperbolic_thermal_conduction= F | T
      mhd_htc_sat = F | T
+     mhd_uawsom= F | T (default F)
+     mhd_uawsom_reflection= F | T (default F)
+     mhd_uawsom_sigma= non-negative DOUBLE (default 0)
+     mhd_uawsom_height_dim= INTEGER from 1 to ndim (default ndim)
+     mhd_uawsom_zeta0= DOUBLE greater than 1 (default 5)
+     mhd_uawsom_filling_factor= DOUBLE between 0 and 1 (default 0.1)
+     mhd_uawsom_zeta_scale= positive DOUBLE (physical length; default -1 selects automatic value)
+     mhd_uawsom_thread_radius0= positive DOUBLE (physical length; default -1 selects automatic value)
+     mhd_uawsom_Bref= positive DOUBLE (physical magnetic field; default -1 selects automatic value)
+     mhd_uawsom_alfven_corr_length0= positive DOUBLE (physical length; default -1 selects automatic value)
      typedivbfix= 'linde'|'ct'|'glm'|'powel'|'lindejanhunen'|'lindepowel'|'lindeglm'|'multigrid'|'none'
      type_ct='uct_contact'|'uct_hll'|'average'
      source_split_divb= F | T
@@ -1019,6 +1029,30 @@ sharp discontinuities. It is normally inactive with a default value -1.
      He_abundance= DOUBLE from 0 to 1
      SI_unit= F | T
     /
+
+The optional UAWSoM equations are disabled by default.  Length and magnetic
+field inputs use physical units (cm and G in cgs mode; m and T in SI mode) and
+are converted once during initialization.  The default closure profile uses
+the selected Cartesian direction and measures height from that direction's
+lower problem boundary.  A problem can instead assign
+`usr_uawsom_coefficients` to return local `zeta`, thread radius, and Alfvén
+correlation length in code units.  The callback also receives a `primitive`
+flag so that state-dependent closures can recover thermodynamic quantities
+from the correct representation.
+
+For the four physical scales, the `-1` sentinel selects cgs defaults of
+`3.4805e11 cm`, `1e7 cm`, `10 G`, and `1.5e9 cm`, respectively.  In SI mode
+the equivalent inputs are `3.4805e9 m`, `1e5 m`, `1e-3 T`, and `1.5e7 m`.
+
+The initial, boundary, and output state can access the public indices
+`wAplus_`, `wAminus_`, `wkplus_`, and `wkminus_`.  The `plus` variables
+propagate against the magnetic field.  Initial primitive states must set all
+four wave energies before calling the normal MHD/EOS conserved conversion.
+
+The first implementation supports uniform Cartesian 1D/2D/3D total-energy MHD
+with the fixed-ionization EOS, including B0 splitting.  It rejects
+semirelativistic MHD, equilibrium density/pressure splitting, FLD, no-energy,
+internal-energy, and hydrodynamic-energy formulations at startup.
 
 ### Magnetic field divergence fixes {#par_divbfix}
 

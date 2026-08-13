@@ -1,0 +1,10 @@
+ &filelist
+   base_filename='uawsom_reflection'
+ /
+ &meshlist
+   iprob=2
+ /
+ &mhd_list
+   mhd_uawsom_reflection=.true.
+   mhd_uawsom_sigma=0.15d0
+ /

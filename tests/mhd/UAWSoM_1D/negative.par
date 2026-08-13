@@ -1,0 +1,14 @@
+ &filelist
+   base_filename='uawsom_negative'
+ /
+ &stoplist
+   time_max=1.d-6
+ /
+ &methodlist
+   fix_small_values=.true.
+   check_small_values=.true.
+   small_values_method='replace'
+ /
+ &meshlist
+   iprob=4
+ /

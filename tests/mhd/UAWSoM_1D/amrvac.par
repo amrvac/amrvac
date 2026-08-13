@@ -1,0 +1,55 @@
+ &filelist
+   base_filename='uawsom_1d'
+   typefilelog='special'
+ /
+
+ &savelist
+   ditsave_log=1
+   itsave(1,1)=0
+   itsave(1,2)=0
+ /
+
+ &stoplist
+   time_max=2.d-3
+ /
+
+ &methodlist
+   time_stepper='threestep'
+   flux_scheme=12*'hll'
+   limiter=12*'cada3'
+   small_values_method='replace'
+ /
+
+ &boundlist
+   typeboundary_min1=8*'periodic'
+   typeboundary_max1=8*'periodic'
+ /
+
+ &meshlist
+   refine_max_level=1
+   domain_nx1=64
+   block_nx1=32
+   xprobmin1=0.d0
+   xprobmax1=1.d0
+   iprob=1
+ /
+
+ &paramlist
+   courantpar=0.4d0
+ /
+
+ &mhd_list
+   typedivbfix='none'
+   mhd_uawsom=.true.
+   mhd_uawsom_height_dim=1
+   mhd_uawsom_zeta0=5.d0
+   mhd_uawsom_zeta_scale=1.d99
+   mhd_uawsom_thread_radius0=1.d99
+   mhd_uawsom_Bref=1.d0
+   mhd_uawsom_alfven_corr_length0=1.d99
+ /
+
+ &eos_list
+   eos_type='FI'
+   gamma=1.6666666666666667d0
+ /

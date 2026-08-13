@@ -1,0 +1,94 @@
+!========================================================================================
+! Parameter file for 2.5D x-y simulation
+!========================================================================================
+
+ &filelist
+        base_filename = 'uawsom_solar_'
+        typefilelog = 'special'
+        saveprim      = .true.
+        convert   = .false. !we just need .dat files for Jupyter notebook
+        convert_type  = 'vtuCCmpi' !ignored by above line
+/
+
+ &savelist
+        itsave(1,1) = 0
+        itsave(1,2) = 0
+        dtsave_log  = 1.0d0
+        dtsave_dat  = 1.0d1
+/
+
+ &stoplist
+        dtmin    = 1.d-6 !safety check that the simulation doesn't grind to a halt
+        time_max = 200.0d0 !last snapshot saved
+/
+ &methodlist
+        time_stepper       = 'threestep'
+        flux_scheme        = 20*'hll'
+        limiter            = 20*'vanleer'
+        fix_small_values   = .true.
+        check_small_values = .true.
+/
+! rho m1 m2 m3 e b1 b2 b3 wkpm wApm
+&boundlist
+       typeboundary_min1 = 'symm','asymm','symm','symm','symm','asymm',6*'symm'
+       typeboundary_max1 = 'symm','asymm','symm','symm','symm','asymm',6*'symm'
+       typeboundary_min2 = 12*'special'
+       typeboundary_max2 = 8*'special',4*'cont'
+/
+
+ &meshlist
+        refine_criterion = 0  !want amr? change this from 0 to 3 and refine_max_level to >1
+        refine_max_level = 1  !2lvs: 250km x 250 km, 5lvls: 31.25km x 31.25km
+        block_nx1        = 10
+        block_nx2        = 10
+        domain_nx1       = 100
+        domain_nx2       = 80
+        xprobmin1        = -5.d0
+        xprobmax1        = +5.0d0
+        xprobmin2        = 0.0d0
+        xprobmax2        = 8.0d0
+ /
+
+ &paramlist
+        typecourant='maxsum'
+        courantpar=0.8d0
+ /
+
+
+  &mhd_list
+         mhd_gravity   = .true.
+         typedivbfix   = 'lindepowel'
+         mhd_thermal_conduction = .true.
+         mhd_radiative_cooling = .true.
+         mhd_trac = .true.
+         mhd_trac_type = 2
+         mhd_energy=.true.
+	     mhd_internal_e=.false.
+	     mhd_hydrodynamic_e=.false.
+         mhd_uawsom=.true.
+         mhd_uawsom_height_dim=2
+         mhd_uawsom_zeta0=5.d0
+         mhd_uawsom_filling_factor=0.1d0
+         B0field=.true.
+  /
+
+ &eos_list
+         eos_type='FI'
+         gamma=1.6667d0
+ /
+
+ &tc_list
+        tc_perpendicular=.false. !generally many orders of magnitude less than parallel
+        tc_saturate=.true.
+ /
+
+  &rc_list
+         ncool = 4000
+         coolcurve = 'Colgan_DM'
+         tlow       = 4.17d-3
+         Tfix       = .true.
+  /
+
+  &usr_list
+         reference_field=20.d0 ! paper base field, in G
+  /

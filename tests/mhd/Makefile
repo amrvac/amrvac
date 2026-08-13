@@ -7,6 +7,7 @@ blast_wave_spherical_stretched_3D convection_2D Kelvin_Helmholtz_3D Kelvin_Helmh
 thermal_conduction_mhd_2D ring_thermal_conduction_3D solar_flare_reconnection_2.5D lfff_extrapolation_3D \
 Low_flux_rope_3D field_loop_2.5D solar_wind_2.5D Orszag_Tang_2.5D solar_atmosphere_3D alfvenwing_3D \
 semirelativistic_Alfven_wave_1.75D blast_wave_Cartesian_3D Ambipolar1DWave-B0split Ambipolar1DWave
+TEST_DIRS += UAWSoM_1D UAWSoM_solar_atmosphere_2.5D
 
 # Directories with altered names (useful for cleaning)
 CLEAN_TEST := $(TEST_DIRS:%=clean-%)
