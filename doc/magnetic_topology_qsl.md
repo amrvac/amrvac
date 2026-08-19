@@ -66,9 +66,24 @@ and an arbitrarily oriented embedded surface.
 
 ## OpenMP Post-Processing
 
+Magnetic-topology conversion is a single-MPI-rank backend. Run it with
+`convert_type='magnetic_topology'` and use OpenMP threads inside that rank:
+
+```sh
+OMP_NUM_THREADS=8 OMP_PROC_BIND=close OMP_PLACES=cores \
+  mpirun -np 1 ./amrvac -convert -if snapshot.dat -i amrvac.par topology.par
+```
+
+Do not launch this conversion with multiple MPI ranks. The separate
+`convert_type='magnetic_helicity'` backend is the MPI-parallel path.
+
 The tested OpenMP route is the gfortran `ARCH=openmp` build, which enables
 `-fopenmp`. The default `ARCH=default` build is serial/non-OpenMP. No Intel
 `ifx`/`ifort` OpenMP architecture is added here.
+
+Finite-volume relative magnetic helicity is a separate MPI conversion backend;
+see [`magnetic_helicity.md`](magnetic_helicity.md). It is not combined with
+the OpenMP topology task in one conversion.
 
 Build the AMRVAC4 magnetic-topology QSL demo with OpenMP, for example:
 
@@ -132,7 +147,6 @@ Typical axis-plane minimal VTI use:
 
 ```fortran
 &magnetic_topology_list
-  mt_enable = .true.
   mt_mode = 'axis_plane_full_vtu'
   mt_output_file = 'qsl_axis_xy.vti'
   mt_vtk_detail = 'minimal'
@@ -166,7 +180,6 @@ Typical axis-plane CSV use:
 
 ```fortran
 &magnetic_topology_list
-  mt_enable = .true.
   mt_mode = 'axis_plane_csv'
   mt_output_prefix = 'qsl_axis_csv'
   mt_plane = 'xy'

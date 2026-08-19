@@ -137,7 +137,9 @@ program amrvac
 
      if(convert) then
        if (npe/=1.and.(.not.(index(convert_type,'mpi')>=1)) &
-            .and. convert_type .ne. 'user')  &
+            .and. convert_type .ne. 'user' &
+            .and. convert_type .ne. 'magnetic_helicity' &
+            .and. convert_type .ne. 'magnetic_topology')  &
             call mpistop("non-mpi conversion only uses 1 cpu")
        if(mype==0.and.level_io>0) write(unitterm,*)'reset tree to fixed level=',level_io
 

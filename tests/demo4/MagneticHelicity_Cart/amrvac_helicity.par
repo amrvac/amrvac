@@ -1,0 +1,25 @@
+! MPI finite-volume relative magnetic-helicity conversion.
+! Combine this file with amrvac_generate.par; -if may point to another
+! uniform Cartesian snapshot with the same magnetic variables.
+
+&filelist
+  convert=.true.
+  firstprocess=.false.
+  convert_type='magnetic_helicity'
+  autoconvert=.false.
+  restart_from_file='output/tdm_0000.dat'
+  level_io=1
+/
+
+&magnetic_helicity_list
+  mh_output_file='output/tdm_helicity.csv'
+  mh_gauge_axis=3
+  mh_mg_tolerance=1.d-4
+  mh_mg_max_cycles=50
+  ! The sampled TDm/RBSL faces have a 1.5e-5 discrete imbalance; retain it
+  ! as a reported quality metric while keeping the hard guard at 1e-4.
+  mh_max_flux_imbalance=1.d-4
+  mh_write_debug_vti=.false.
+  mh_write_mg_timing=.false.
+  mh_debug_vti_file=''
+/

@@ -13,6 +13,8 @@ contains
     use mod_physics, only: phys_te_images
     use mod_convert, only: convert_all
     use mod_thermal_emission
+    use mod_magnetic_helicity, only: mh_run_task
+    use mod_magnetic_topology, only: mt_run_topology_task
 
     character(len=std_len) :: convert_type_elem
     integer :: i
@@ -53,6 +55,10 @@ contains
         endif
       case('dat_generic_mpi')
         call convert_all()
+      case('magnetic_helicity')
+        call mh_run_task()
+      case('magnetic_topology')
+        call mt_run_topology_task()
       case('user','usermpi')
          if (.not. associated(usr_special_convert)) then
             call mpistop("usr_special_convert not defined")

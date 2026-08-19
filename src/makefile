@@ -167,6 +167,8 @@ mod_convert_files.o: mod_convert.mod
 mod_convert_files.o: mod_forest.mod
 mod_convert_files.o: mod_ghostcells_update.mod
 mod_convert_files.o: mod_global_parameters.mod
+mod_convert_files.o: mod_magnetic_helicity.mod
+mod_convert_files.o: mod_magnetic_topology.mod
 mod_convert_files.o: mod_physics.mod
 mod_convert_files.o: mod_thermal_emission.mod
 mod_convert_files.o: mod_usr_methods.mod
@@ -472,6 +474,7 @@ mod_lfff.o: mod_fft.mod
 mod_lfff.o: mod_forest.mod
 mod_lfff.o: mod_geometry.mod
 mod_lfff.o: mod_global_parameters.mod
+mod_lfff.o: mod_magnetic_reference_fv.mod
 mod_lfff.o: mod_multigrid_coupling.mod
 mod_limiter.o: mod_comm_lib.mod
 mod_limiter.o: mod_global_parameters.mod
@@ -484,8 +487,19 @@ mod_load_balance.o: mod_forest.mod
 mod_load_balance.o: mod_functions_forest.mod
 mod_load_balance.o: mod_global_parameters.mod
 mod_load_balance.o: mod_space_filling_curve.mod
+mod_magnetic_helicity.o: mod_comm_lib.mod
+mod_magnetic_helicity.o: mod_geometry.mod
+mod_magnetic_helicity.o: mod_ghostcells_update.mod
+mod_magnetic_helicity.o: mod_global_parameters.mod
+mod_magnetic_helicity.o: mod_magnetic_reference_fv.mod
+mod_magnetic_reference_fv.o: mod_comm_lib.mod
+mod_magnetic_reference_fv.o: mod_forest.mod
+mod_magnetic_reference_fv.o: mod_geometry.mod
+mod_magnetic_reference_fv.o: mod_global_parameters.mod
+mod_magnetic_reference_fv.o: mod_multigrid_coupling.mod
 mod_magnetic_topology.o: mod_comm_lib.mod
 mod_magnetic_topology.o: mod_geometry.mod
+mod_magnetic_topology.o: mod_ghostcells_update.mod
 mod_magnetic_topology.o: mod_global_parameters.mod
 mod_magnetic_topology.o: mod_trace_field.mod
 mod_magnetofriction.o: mod_amr_grid.mod

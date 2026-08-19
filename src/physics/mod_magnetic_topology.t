@@ -2,7 +2,7 @@ module mod_magnetic_topology
   use, intrinsic :: ieee_arithmetic, only: ieee_value,ieee_quiet_nan, &
        ieee_is_finite
   use mod_global_parameters, only: ndim,npe,slab_uniform,periodB, &
-       xprobmin1,xprobmax1
+       xprobmin1,xprobmax1,global_time,ps,iwstart,nwgc,par_files
   {^IFTHREED
   use mod_global_parameters, only: xprobmin2,xprobmax2,xprobmin3,xprobmax3
   }
@@ -68,7 +68,6 @@ module mod_magnetic_topology
   integer, parameter :: mt_task_name_len    = 128
   double precision, parameter :: mt_unset_real = huge(1.d0)
 
-  logical :: mt_enable = .false.
   character(len=mt_task_name_len) :: mt_mode = ''
   character(len=mt_task_name_len) :: mt_output_file = ''
   character(len=mt_task_name_len) :: mt_output_prefix = ''
@@ -131,6 +130,7 @@ module mod_magnetic_topology
   integer :: mt_n3 = -1
   integer :: mt_chunk_nz = -1
   logical :: mt_profile_spherical = .false.
+  logical :: mt_params_loaded = .false.
 
   type, private :: mt_vti_array_desc
     character(len=mt_vti_name_len) :: name
@@ -189,13 +189,13 @@ module mod_magnetic_topology
 contains
 
   subroutine mt_params_read(files)
-    ! Read the optional one-task magnetic-topology namelist.
+    ! Read the one-task magnetic-topology namelist.
     use mod_global_parameters, only: unitpar
     character(len=*), intent(in) :: files(:)
 
     integer :: n
 
-    namelist /magnetic_topology_list/ mt_enable,mt_mode,mt_output_file, &
+    namelist /magnetic_topology_list/ mt_mode,mt_output_file, &
          mt_output_prefix,mt_seed_file,mt_vtk_detail, &
          mt_seed_surface,mt_seed_layout,mt_seed_coord, &
          mt_seed_theta0,mt_seed_phi0,mt_seed_alpha, &
@@ -220,14 +220,21 @@ contains
       read(unitpar,magnetic_topology_list,end=111)
 111   close(unitpar)
     enddo
+    mt_params_loaded=.true.
   end subroutine mt_params_read
 
   subroutine mt_run_topology_task()
     ! Dispatch the namelist-selected topology/QSL postprocessing task.
+    ! This backend is deliberately single-MPI-rank and OpenMP capable.
+    use mod_comm_lib, only: mpistop
+    use mod_ghostcells_update, only: getbc
     character(len=mt_task_name_len) :: mode
     logical :: report_rk2,report_rk45
 
-    if (.not.mt_enable) return
+    if (npe/=1) call mpistop(&
+         'magnetic-topology conversion requires npe=1; use OpenMP threads')
+    if (.not.mt_params_loaded) call mt_params_read(par_files)
+    call getbc(global_time,0.d0,ps,iwstart,nwgc)
 
     mode=mt_lowercase(trim(mt_mode))
     call mt_validate_common_params(mode)
@@ -278,7 +285,7 @@ contains
   end subroutine mt_run_topology_task
 
   subroutine mt_set_default_params()
-    mt_enable=.false.
+    mt_params_loaded=.false.
     mt_mode=''
     mt_output_file=''
     mt_output_prefix=''

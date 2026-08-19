@@ -74,6 +74,10 @@ visualization.
 * [Line of sight views](collapsed.md) How to output collapsed views for
 visualisation and analysis (e.g. column densities).
 * [Analysis routine](analysis.md) Using the run-time analysis routine.
+* [Magnetic helicity](magnetic_helicity.md) MPI finite-volume relative-helicity
+  conversion and quality diagnostics.
+* [Magnetic topology and QSL](magnetic_topology_qsl.md) OpenMP field-line
+  topology products.
 * [Dumping arbitrary fields for debugging](debug_field_dump.md) How to write any
 intermediate field (fluxes, electric field, sources) to a .dat file.
 * [3D Printing](print3D.md) A note on how to generate 3D printed results.
