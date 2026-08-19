@@ -6,5 +6,6 @@
  /
  &mhd_list
    mhd_uawsom_reflection=.true.
+   mhd_uawsom_reflection_mode='one_dimensional_gradient'
    mhd_uawsom_sigma=0.15d0
  /

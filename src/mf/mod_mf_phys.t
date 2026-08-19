@@ -622,7 +622,7 @@ contains
     vcts%vbarLC(ixO^S,idim,2)=wLp(ixO^S,mom(idimE))
     vcts%vbarRC(ixO^S,idim,2)=wRp(ixO^S,mom(idimE))
     vcts%vbarC(ixO^S,idim,2)=(vcts%cbarmax(ixO^S,idim)*vcts%vbarLC(ixO^S,idim,2) &
-         +vcts%cbarmin(ixO^S,idim)*vcts%vbarRC(ixO^S,idim,1))&
+         +vcts%cbarmin(ixO^S,idim)*vcts%vbarRC(ixO^S,idim,2))&
         /(vcts%cbarmax(ixO^S,idim)+vcts%cbarmin(ixO^S,idim))
 
   end subroutine mf_get_ct_velocity_hll

@@ -1004,7 +1004,9 @@ sharp discontinuities. It is normally inactive with a default value -1.
      mhd_htc_sat = F | T
      mhd_uawsom= F | T (default F)
      mhd_uawsom_reflection= F | T (default F)
-     mhd_uawsom_sigma= non-negative DOUBLE (default 0)
+     mhd_uawsom_reflection_mode= 'one_dimensional_gradient' | 'cartesian_gradient_vorticity' (default 'one_dimensional_gradient')
+     mhd_uawsom_kink_reflection= F | T (default F)
+     mhd_uawsom_sigma= non-negative DOUBLE (default 0; one_dimensional_gradient only)
      mhd_uawsom_height_dim= INTEGER from 1 to ndim (default ndim)
      mhd_uawsom_zeta0= DOUBLE greater than 1 (default 5)
      mhd_uawsom_filling_factor= DOUBLE between 0 and 1 (default 0.1)
@@ -1046,13 +1048,24 @@ the equivalent inputs are `3.4805e9 m`, `1e5 m`, `1e-3 T`, and `1.5e7 m`.
 
 The initial, boundary, and output state can access the public indices
 `wAplus_`, `wAminus_`, `wkplus_`, and `wkminus_`.  The `plus` variables
-propagate against the magnetic field.  Initial primitive states must set all
-four wave energies before calling the normal MHD/EOS conserved conversion.
+propagate against the magnetic field and the `minus` variables along it.
+`mhd_uawsom_reflection_mode='one_dimensional_gradient'` preserves the original one-dimensional
+gradient source and is the only path controlled by `mhd_uawsom_sigma`.
+`cartesian_gradient_vorticity` computes the Alfvén directional speed gradient and
+field-aligned velocity vorticity from the total field; its limiter is
+`min(R_imb,A,max(Gamma_plus,Gamma_minus))` and is independent of sigma.  Kink
+reflection uses only the directional kink-speed gradient, with an analogous
+sigma-independent limiter.  Both multidimensional paths apply the 4:1
+imbalance factor, a damping-rate upper bound, and a donor positivity cap.
+Initial primitive states must set all four wave energies before calling the
+normal MHD/EOS conserved conversion.
 
 The first implementation supports uniform Cartesian 1D/2D/3D total-energy MHD
 with the fixed-ionization EOS, including B0 splitting.  It rejects
 semirelativistic MHD, equilibrium density/pressure splitting, FLD, no-energy,
 internal-energy, and hydrodynamic-energy formulations at startup.
+It does not implement cylindrical, polar, or spherical coordinates, nonuniform
+grids, `source_geom`/`source_geom_split`, or `angmomfix` combinations.
 
 ### Magnetic field divergence fixes {#par_divbfix}
 

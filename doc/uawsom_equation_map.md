@@ -17,7 +17,9 @@ The compatibility reference is commit `932ee5d` of
 | Eq. 8, averaged density | inline `zeta` and filling-factor expressions | coefficient callback and namelist defaults |
 | Eq. 9, Alfven dissipation | `Gamma_plus`, `Gamma_minus` in `w_add_source` | `mhd_add_source_uawsom` |
 | Eq. 10, kink correlation length | `Lperp` in `w_add_source` | coefficient callback/default coefficient evaluator |
-| Eq. 34, Alfven reflection | commented tutorial source | runtime `mhd_uawsom_reflection` branch |
+| Eq. 34, Alfven reflection | commented tutorial source | `one_dimensional_gradient` compatibility branch or Cartesian `cartesian_gradient_vorticity` branch |
+| Cartesian gradient/vorticity closure | commented tutorial source around `Rimb`/`Rlim` | total-field `b dot grad(ln v_A)` plus `b dot curl(v)` |
+| Kink reflection | commented `Rimbk`/`Rlimk` source | kink-speed gradient only; no field-aligned vorticity term |
 
 ## Deliberate differences from the tutorial fork
 
@@ -47,9 +49,62 @@ primitive or conserved so that both solver paths evaluate the same physical
 temperature.  The fork's base `zeta=6`, `R0=0.1 Mm`, and temperature-independent
 Alfvén correlation length are not retained.
 
-Alfven reflection is an optional, conservative exchange between the two
-propagation populations using the local Eq. 34 coefficient.  Kink reflection
-remains zero, matching the stated limitation of McMurdo et al. (2026).
+## Reflection and propagation conventions
+
+MPI-AMRVAC labels `wAplus` and `wkplus` as the populations propagating against
+the local magnetic field, while `wAminus` and `wkminus` propagate along it.  In
+a B0-split run every reflection speed uses the total field
+`B = B_perturbation + B0`, not the perturbation alone.  Define
+
+`b = B/|B|`, `v_A = |B|/sqrt(rho)`, and
+`v_k = |B|/sqrt(rho_e (zeta+1)/2)`, with
+`rho_e = rho/(1 + f zeta - f)`.  The Cartesian gradient/vorticity closure uses
+
+`S_A = v_A b dot grad(ln v_A)`,
+`Omega_A = b dot curl(v)`, and
+`S_k = v_k b dot grad(ln v_k)`.
+
+The Alfvén reflection limiter is bounded by the larger nonlinear Alfvén
+damping rate, `R_imb,A = sqrt(S_A^2 + Omega_A^2)` and
+`R_lim,A = min(R_imb,A, max(Gamma_plus, Gamma_minus))`.  Kink reflection uses
+`R_lim,k = min(abs(S_k), max(Gamma_kplus, Gamma_kminus))`; it deliberately
+omits `Omega_A`.  Neither multidimensional limiter contains
+`mhd_uawsom_sigma`.
+The 4:1 population-imbalance factor is zero between the two 4:1 thresholds,
+and approaches a bounded signed value for stronger imbalance.  For
+`W_plus >= 4 W_minus`, `F = 1 - 2 sqrt(W_minus/W_plus) >= 0`; therefore a
+positive exchange `T = R F sqrt(W_plus W_minus)` removes energy from the plus
+population and adds the same amount to the minus population.  For
+`W_minus >= 4 W_plus`, `F <= 0`, so the updates reverse and weaken the minus
+population.  Between the thresholds `F=0`.  Thus the helper always weakens
+the dominant population, enhances the minor population, and leaves balanced
+states unchanged.  The donor cap `abs(T) <= W_donor/dt` uses the actual
+post-damping donor state; the equal-and-opposite updates conserve the exchanged
+wave energy without silently repairing a negative state produced by the
+ordinary sources.
+
+`mhd_uawsom_reflection_mode='one_dimensional_gradient'` retains the original
+one-dimensional gradient source and its sign convention; only this path uses
+the positive `mhd_uawsom_sigma` multiplier.  The default remains
+`one_dimensional_gradient` for backward compatibility.
+`cartesian_gradient_vorticity` is the multidimensional Cartesian
+gradient/vorticity closure and runs whenever Alfvén reflection is enabled,
+including with `mhd_uawsom_sigma=0`.  `mhd_uawsom_kink_reflection=.true.`
+enables the kink-speed-gradient exchange independently of both the Alfvén
+switch and sigma.
+
+The kink expansion-work source is the positive right-hand-side term in paper
+Eq. 4: `+(zeta-1)/(zeta+1) p_k div(v)` in the gas-energy equation.  Its sign is
+independent of the reflection exchange.
+
+## Supported scope
+
+The implementation supports uniform Cartesian 1D, 2D/2.5D, and 3D
+total-energy MHD with the fixed-ionization EOS, including B0 splitting.  The
+current task intentionally does not implement cylindrical, polar, or
+spherical coordinates; semirelativistic, internal-energy, or
+hydrodynamic-energy formulations; FLD; nonuniform grids; or angular-momentum
+fix, `source_geom`/`source_geom_split`, or `angmomfix` combinations.
 
 Before upstream merge, this table and the two explicitly recorded tutorial
 differences (energy-flux double counting and kink-work sign) are the author

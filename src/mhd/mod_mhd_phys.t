@@ -88,9 +88,15 @@ module mod_mhd_phys
   logical, public, protected :: mhd_fip = .false.
   !> Enable the Uniturbulence and Alfven Wave Solar Model extension
   logical, public, protected :: mhd_uawsom = .false.
-  !> Enable the conservative Alfven-wave reflection source (McMurdo et al. 2026, Eq. 34)
+  !> Enable conservative Alfvén reflection (one-dimensional or Cartesian gradient-vorticity)
   logical, public, protected :: mhd_uawsom_reflection = .false.
-  !> Dimensionless multiplier in the Alfven-wave reflection source
+  !> Algebra used by the Alfven-wave reflection source.  one_dimensional_gradient
+  !> retains the original one-dimensional source; cartesian_gradient_vorticity
+  !> is the multidimensional gradient/vorticity closure.
+  character(len=std_len), public, protected :: mhd_uawsom_reflection_mode = 'one_dimensional_gradient'
+  !> Enable conservative kink-wave reflection from the kink-speed gradient
+  logical, public, protected :: mhd_uawsom_kink_reflection = .false.
+  !> Dimensionless multiplier in the one_dimensional_gradient source only
   double precision, public, protected :: mhd_uawsom_sigma = 0.d0
   !> Cartesian direction used for the prescribed density contrast and reflection gradient
   integer, public, protected :: mhd_uawsom_height_dim = -1
@@ -308,6 +314,7 @@ contains
       mhd_hyperbolic_tc_kappa_perp_factor, mhd_hyperbolic_tc_Bmin, &
       mhd_hyperbolic_tc_coulomb_log, &
       mhd_radiation_fld, mhd_fip, mhd_uawsom, mhd_uawsom_reflection, &
+      mhd_uawsom_reflection_mode, mhd_uawsom_kink_reflection, &
       mhd_uawsom_sigma, mhd_uawsom_height_dim, mhd_uawsom_zeta0, &
       mhd_uawsom_filling_factor, mhd_uawsom_zeta_scale, &
       mhd_uawsom_thread_radius0, mhd_uawsom_Bref, &
@@ -1419,7 +1426,8 @@ contains
         call mpistop('mhd_uawsom currently requires a uniform Cartesian grid')
       if(.not.mhd_energy .or. .not.total_energy) &
         call mpistop('mhd_uawsom requires the standard total-energy MHD formulation')
-      if(mhd_semirelativistic .or. has_equi_rho_and_p .or. mhd_radiation_fld) &
+      if(mhd_internal_e .or. mhd_hydrodynamic_e .or. mhd_semirelativistic .or. &
+         has_equi_rho_and_p .or. mhd_radiation_fld) &
         call mpistop('mhd_uawsom: unsupported MHD option')
       if(trim(eos%eos_type) /= 'FI') &
         call mpistop("mhd_uawsom currently supports eos_type='FI' only")
@@ -1434,6 +1442,12 @@ contains
         call mpistop('mhd_uawsom: scales must be positive')
       if(mhd_uawsom_sigma < zero) &
         call mpistop('mhd_uawsom_sigma must be non-negative')
+      select case(trim(mhd_uawsom_reflection_mode))
+      case('one_dimensional_gradient','cartesian_gradient_vorticity')
+        continue
+      case default
+        call mpistop('invalid mhd_uawsom_reflection_mode')
+      end select
     end if
 
     ! Initialize particles module here, so all extra and user vars are sample
@@ -2076,12 +2090,31 @@ contains
     end if
   end function mhd_uawsom_wave_energy_cell
 
+  !> Signed population imbalance used by the Cartesian gradient-vorticity reflection model.
+  !> A positive value transfers W_A^+ (or W_k^+) to the minus population;
+  !> a negative value transfers the minus population to the plus population.
+  !> The factor is zero for a balanced state and remains bounded in [-1,1]
+  !> for an arbitrarily imbalanced state.
+  elemental pure double precision function mhd_uawsom_imbalance_factor(wplus,wminus)
+    double precision, intent(in) :: wplus,wminus
+
+    if(wplus<=0.d0 .or. wminus<=0.d0) then
+      mhd_uawsom_imbalance_factor=0.d0
+    else if(4.d0*wminus<=wplus) then
+      mhd_uawsom_imbalance_factor=1.d0-2.d0*dsqrt(wminus/wplus)
+    else if(4.d0*wplus<=wminus) then
+      mhd_uawsom_imbalance_factor=-(1.d0-2.d0*dsqrt(wplus/wminus))
+    else
+      mhd_uawsom_imbalance_factor=0.d0
+    end if
+  end function mhd_uawsom_imbalance_factor
+
   !> UAWSoM compression, nonlinear damping, and optional Alfven reflection.
   !> Total energy is intentionally unchanged by damping: because it contains
   !> the four W variables, their loss is recovered as gas internal energy.
   subroutine mhd_add_source_uawsom(qdt,ixI^L,ixO^L,wCT,wCTprim,w,x)
     use mod_global_parameters
-    use mod_geometry, only: divvector, gradient
+    use mod_geometry, only: divvector, gradient, curlvector
     integer, intent(in) :: ixI^L, ixO^L
     double precision, intent(in) :: qdt, wCT(ixI^S,1:nw), &
          wCTprim(ixI^S,1:nw), x(ixI^S,1:ndim)
@@ -2090,30 +2123,47 @@ contains
     double precision :: zeta(ixI^S), radius(ixI^S), lperp_A(ixI^S)
     double precision :: lperp_k(ixI^S), rho_e(ixI^S)
     double precision :: gamma_plus(ixI^S), gamma_minus(ixI^S)
+    double precision :: gamma_kplus(ixI^S), gamma_kminus(ixI^S)
     double precision :: dampAp(ixI^S), dampAm(ixI^S), dampkp(ixI^S), dampkm(ixI^S)
-    double precision :: Btotal(ixI^S,1:ndir), Bmag(ixI^S), va(ixI^S), gradva(ixI^S)
-    double precision :: refl_rate(ixI^S), transfer(ixI^S), donor(ixI^S)
+    double precision :: Btotal(ixI^S,1:ndir), Bunit(ixI^S,1:ndir), Bmag(ixI^S)
+    double precision :: va(ixI^S), vk(ixI^S), lnva(ixI^S), lnvk(ixI^S)
+    double precision :: grad_component(ixI^S), grad_A(ixI^S), grad_k(ixI^S)
+    double precision :: curlv(ixI^S,1:3), vorticity(ixI^S)
+    double precision :: rimb_A(ixI^S), rlim_A(ixI^S), rlim_k(ixI^S)
+    double precision :: refl_rate(ixI^S), donor_reflection(ixI^S)
+    double precision :: transfer_A(ixI^S), transfer_k(ixI^S), donor(ixI^S)
+    double precision :: imbalance_A(ixI^S), imbalance_k(ixI^S)
+    double precision :: wave_plus(ixI^S), wave_minus(ixI^S)
+    double precision :: wave_kplus(ixI^S), wave_kminus(ixI^S)
     double precision :: f, kink_pressure(ixI^S)
-    integer :: idir
+    integer :: idir, idirmin
+    logical :: have_reflection, have_alfven_reflection, have_kink_reflection
 
     call mhd_get_v(wCT,x,ixI^L,ixI^L,v)
     call divvector(v,ixI^L,ixO^L,divv)
-    call mhd_uawsom_get_coefficients(wCT,x,ixI^L,ixO^L,.false.,zeta,radius,lperp_A)
+    ! Reflection gradients need one-cell ghost values, so obtain the closure
+    ! profiles on ixI rather than only on the source update region.
+    call mhd_uawsom_get_coefficients(wCT,x,ixI^L,ixI^L,.false.,zeta,radius,lperp_A)
     f=mhd_uawsom_filling_factor
-    rho_e(ixO^S)=wCT(ixO^S,rho_)/(one+f*zeta(ixO^S)-f)
-    lperp_k(ixO^S)=dsqrt(10.d0)*dsqrt(f*dpi)*radius(ixO^S)*&
-         (zeta(ixO^S)+one-f)**1.5d0/&
-         ((zeta(ixO^S)-one)*(one-f**2.5d0))
+    rho_e(ixI^S)=max(wCT(ixI^S,rho_),small_density)/&
+         max(one+f*zeta(ixI^S)-f,smalldouble)
+    lperp_k(ixI^S)=dsqrt(10.d0)*dsqrt(f*dpi)*radius(ixI^S)*&
+         (zeta(ixI^S)+one-f)**1.5d0/&
+         ((zeta(ixI^S)-one)*(one-f**2.5d0))
     gamma_plus(ixO^S)=two/lperp_A(ixO^S)*dsqrt(&
-         max(wCT(ixO^S,wAminus_),zero)/wCT(ixO^S,rho_))
+         max(wCT(ixO^S,wAminus_),zero)/max(wCT(ixO^S,rho_),small_density))
     gamma_minus(ixO^S)=two/lperp_A(ixO^S)*dsqrt(&
-         max(wCT(ixO^S,wAplus_),zero)/wCT(ixO^S,rho_))
+         max(wCT(ixO^S,wAplus_),zero)/max(wCT(ixO^S,rho_),small_density))
     dampAp(ixO^S)=gamma_plus(ixO^S)*max(wCT(ixO^S,wAplus_),zero)
     dampAm(ixO^S)=gamma_minus(ixO^S)*max(wCT(ixO^S,wAminus_),zero)
     dampkp(ixO^S)=max(wCT(ixO^S,wkplus_),zero)**1.5d0/&
          (dsqrt(rho_e(ixO^S))*lperp_k(ixO^S))
     dampkm(ixO^S)=max(wCT(ixO^S,wkminus_),zero)**1.5d0/&
          (dsqrt(rho_e(ixO^S))*lperp_k(ixO^S))
+    gamma_kplus(ixO^S)=dsqrt(max(wCT(ixO^S,wkplus_),zero)/&
+         max(rho_e(ixO^S),small_density))/max(lperp_k(ixO^S),smalldouble)
+    gamma_kminus(ixO^S)=dsqrt(max(wCT(ixO^S,wkminus_),zero)/&
+         max(rho_e(ixO^S),small_density))/max(lperp_k(ixO^S),smalldouble)
 
     w(ixO^S,wAplus_)=w(ixO^S,wAplus_)-qdt*(&
          half*divv(ixO^S)*wCT(ixO^S,wAplus_)+dampAp(ixO^S))
@@ -2129,7 +2179,18 @@ contains
     w(ixO^S,e_)=w(ixO^S,e_)+qdt*(zeta(ixO^S)-one)/&
          (zeta(ixO^S)+one)*kink_pressure(ixO^S)*divv(ixO^S)
 
-    if(mhd_uawsom_reflection .and. mhd_uawsom_sigma>zero) then
+    have_alfven_reflection=.false.
+    if(mhd_uawsom_reflection) then
+      select case(trim(mhd_uawsom_reflection_mode))
+      case('one_dimensional_gradient')
+        have_alfven_reflection=(mhd_uawsom_sigma>zero)
+      case('cartesian_gradient_vorticity')
+        have_alfven_reflection=.true.
+      end select
+    end if
+    have_kink_reflection=mhd_uawsom_kink_reflection
+    have_reflection=have_alfven_reflection .or. have_kink_reflection
+    if(have_reflection) then
       do idir=1,ndir
         if(B0field) then
           Btotal(ixI^S,idir)=wCT(ixI^S,mag(idir))+block%B0(ixI^S,idir,b0i)
@@ -2138,17 +2199,99 @@ contains
         end if
       end do
       Bmag(ixI^S)=dsqrt(sum(Btotal(ixI^S,1:ndir)**2,dim=ndim+1))
+      do idir=1,ndir
+        Bunit(ixI^S,idir)=Btotal(ixI^S,idir)/max(Bmag(ixI^S),smalldouble)
+      end do
       va(ixI^S)=Bmag(ixI^S)/dsqrt(max(wCT(ixI^S,rho_),small_density))
-      call gradient(va,ixI^L,ixO^L,mhd_uawsom_height_dim,gradva)
-      refl_rate(ixO^S)=mhd_uawsom_sigma*&
-           (wCTprim(ixO^S,mom(mhd_uawsom_height_dim))+va(ixO^S))/&
-           max(va(ixO^S),smalldouble)*gradva(ixO^S)
-      donor(ixO^S)=merge(max(wCT(ixO^S,wAplus_),zero),&
-           max(wCT(ixO^S,wAminus_),zero),refl_rate(ixO^S)>=zero)
-      transfer(ixO^S)=refl_rate(ixO^S)*donor(ixO^S)
-      transfer(ixO^S)=sign(min(abs(transfer(ixO^S)),donor(ixO^S)/qdt),transfer(ixO^S))
-      w(ixO^S,wAplus_)=w(ixO^S,wAplus_)-qdt*transfer(ixO^S)
-      w(ixO^S,wAminus_)=w(ixO^S,wAminus_)+qdt*transfer(ixO^S)
+      vk(ixI^S)=Bmag(ixI^S)/dsqrt(max(rho_e(ixI^S)*&
+           (zeta(ixI^S)+one)/two,smalldouble))
+      lnva(ixI^S)=dlog(max(va(ixI^S),smalldouble))
+      lnvk(ixI^S)=dlog(max(vk(ixI^S),smalldouble))
+
+      ! Apply exchange after the ordinary source update.  The donor cap below
+      ! uses that actual post-damping state; it does not silently repair a
+      ! negative state produced by compression or damping.  The standard
+      ! small-value handling remains responsible for such a state.
+      if(have_alfven_reflection) then
+        wave_plus(ixO^S)=max(wCT(ixO^S,wAplus_),zero)
+        wave_minus(ixO^S)=max(wCT(ixO^S,wAminus_),zero)
+
+        select case(trim(mhd_uawsom_reflection_mode))
+        case('one_dimensional_gradient')
+          ! Retain the original one-dimensional source and sign convention:
+          ! a positive transfer removes W_A^+ and adds W_A^-.
+          call gradient(va,ixI^L,ixO^L,mhd_uawsom_height_dim,grad_component)
+          refl_rate(ixO^S)=mhd_uawsom_sigma*&
+               (wCTprim(ixO^S,mom(mhd_uawsom_height_dim))+va(ixO^S))/&
+               max(va(ixO^S),smalldouble)*grad_component(ixO^S)
+          donor_reflection(ixO^S)=merge(max(wCT(ixO^S,wAplus_),zero),&
+               max(wCT(ixO^S,wAminus_),zero),refl_rate(ixO^S)>=zero)
+          transfer_A(ixO^S)=refl_rate(ixO^S)*donor_reflection(ixO^S)
+        case('cartesian_gradient_vorticity')
+          grad_A(ixO^S)=zero
+          do idir=1,ndim
+            call gradient(lnva,ixI^L,ixO^L,idir,grad_component)
+            grad_A(ixO^S)=grad_A(ixO^S)+va(ixO^S)*Bunit(ixO^S,idir)*&
+                 grad_component(ixO^S)
+          end do
+          call curlvector(v,ixI^L,ixO^L,curlv,idirmin,1,ndir)
+          vorticity(ixO^S)=zero
+          do idir=1,ndir
+            vorticity(ixO^S)=vorticity(ixO^S)+Bunit(ixO^S,idir)*&
+                 curlv(ixO^S,idir)
+          end do
+          ! Sigma belongs to the one-dimensional gradient source only; it is
+          ! absent from the Cartesian gradient-vorticity R_imb/R_lim closure.
+          rimb_A(ixO^S)=dsqrt(grad_A(ixO^S)**2+vorticity(ixO^S)**2)
+          rlim_A(ixO^S)=min(rimb_A(ixO^S),&
+               max(gamma_plus(ixO^S),gamma_minus(ixO^S)))
+          imbalance_A(ixO^S)=mhd_uawsom_imbalance_factor(&
+               wave_plus(ixO^S),wave_minus(ixO^S))
+          transfer_A(ixO^S)=rlim_A(ixO^S)*imbalance_A(ixO^S)*&
+               dsqrt(wave_plus(ixO^S)*wave_minus(ixO^S))
+        end select
+
+        if(qdt>zero) then
+          donor(ixO^S)=merge(max(w(ixO^S,wAplus_),zero),&
+               max(w(ixO^S,wAminus_),zero),transfer_A(ixO^S)>=zero)
+          transfer_A(ixO^S)=sign(min(abs(transfer_A(ixO^S)),&
+               donor(ixO^S)/qdt),transfer_A(ixO^S))
+        else
+          transfer_A(ixO^S)=zero
+        end if
+        w(ixO^S,wAplus_)=w(ixO^S,wAplus_)-qdt*transfer_A(ixO^S)
+        w(ixO^S,wAminus_)=w(ixO^S,wAminus_)+qdt*transfer_A(ixO^S)
+      end if
+
+      if(have_kink_reflection) then
+        wave_kplus(ixO^S)=max(wCT(ixO^S,wkplus_),zero)
+        wave_kminus(ixO^S)=max(wCT(ixO^S,wkminus_),zero)
+        grad_k(ixO^S)=zero
+        do idir=1,ndim
+          call gradient(lnvk,ixI^L,ixO^L,idir,grad_component)
+          grad_k(ixO^S)=grad_k(ixO^S)+vk(ixO^S)*Bunit(ixO^S,idir)*&
+               grad_component(ixO^S)
+        end do
+        ! Kink reflection deliberately uses only the kink-speed gradient;
+        ! the field-aligned velocity-vorticity term belongs to Alfvén waves,
+        ! and sigma is not part of this limiter.
+        rlim_k(ixO^S)=min(abs(grad_k(ixO^S)),&
+             max(gamma_kplus(ixO^S),gamma_kminus(ixO^S)))
+        imbalance_k(ixO^S)=mhd_uawsom_imbalance_factor(&
+             wave_kplus(ixO^S),wave_kminus(ixO^S))
+        transfer_k(ixO^S)=rlim_k(ixO^S)*imbalance_k(ixO^S)*&
+             dsqrt(wave_kplus(ixO^S)*wave_kminus(ixO^S))
+        if(qdt>zero) then
+          donor(ixO^S)=merge(max(w(ixO^S,wkplus_),zero),&
+               max(w(ixO^S,wkminus_),zero),transfer_k(ixO^S)>=zero)
+          transfer_k(ixO^S)=sign(min(abs(transfer_k(ixO^S)),&
+               donor(ixO^S)/qdt),transfer_k(ixO^S))
+        else
+          transfer_k(ixO^S)=zero
+        end if
+        w(ixO^S,wkplus_)=w(ixO^S,wkplus_)-qdt*transfer_k(ixO^S)
+        w(ixO^S,wkminus_)=w(ixO^S,wkminus_)+qdt*transfer_k(ixO^S)
+      end if
     end if
   end subroutine mhd_add_source_uawsom
 
@@ -3575,7 +3718,7 @@ contains
     vcts%vbarLC(ixO^S,idim,2)=wLp(ixO^S,mom(idimE))
     vcts%vbarRC(ixO^S,idim,2)=wRp(ixO^S,mom(idimE))
     vcts%vbarC(ixO^S,idim,2)=(vcts%cbarmax(ixO^S,idim)*vcts%vbarLC(ixO^S,idim,2) &
-         +vcts%cbarmin(ixO^S,idim)*vcts%vbarRC(ixO^S,idim,1))&
+         +vcts%cbarmin(ixO^S,idim)*vcts%vbarRC(ixO^S,idim,2))&
         /(vcts%cbarmax(ixO^S,idim)+vcts%cbarmin(ixO^S,idim))
 
   end subroutine mhd_get_ct_velocity_hll
