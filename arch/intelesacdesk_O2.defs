@@ -1,4 +1,0 @@
-F90=mpiifort -fc=ifx
-FFLAGS = -c
-F90FLAGS = -fpp -free -implicitnone -O2
-LINK= $(F90)  $(F90FLAGS)
