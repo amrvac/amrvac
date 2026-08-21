@@ -415,7 +415,7 @@ contains
         endif
     end subroutine try_load_tables_LTE
 
-    !> Read an EoS table from a binary file written by generate_lte_tables.py.
+    !> Read an EoS table from a binary file written by generate_state_tables.py.
     !>
     !> File format (uniform -- legacy):
     !>   [2 x int32]   : (dim1, dim2) = (dimy, dimx)   in Fortran column-major

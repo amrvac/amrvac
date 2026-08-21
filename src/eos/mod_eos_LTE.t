@@ -762,17 +762,30 @@ contains
         double precision :: log_p_target, p2eint_ratio, log_eint_guess
         double precision :: log_p_at_guess, log_eint_lo, log_eint_hi
         double precision :: f_bracket, margin
+        double precision :: eint_lim_lo, eint_lim_hi
         integer :: max_iter
 
         if (eos%type_id /= EOS_TYPE_LTE) call mpistop("eint_from_p_bisect called outside its eos_type (LTE)")
         log_p_target = log_p_val - log_nH_val
 
+        !> eint-axis limits. var2_min/var2_max are populated for uniform tables only; with an
+        !> adaptive (non-uniform) log_p table they are meaningless, so the guess/bracket clamps
+        !> below let log_eint run out of range -> out-of-bounds stencil load in bicubic_lookup
+        !> (SIGSEGV at init). log_p_bisect_cached already branches on is_uniform; this wrapper did not.
+        if (eos%log_p%is_uniform) then
+            eint_lim_lo = eos%log_p%var2_min
+            eint_lim_hi = eos%log_p%var2_max
+        else
+            eint_lim_lo = eos%log_p%var2_nodes(1)
+            eint_lim_hi = eos%log_p%var2_nodes(eos%log_p%dim2)
+        end if
+
         ! Initial guess from p2eint table
         p2eint_ratio = p2eint_from_nH_p(log_nH_val, log_p_target)
         log_eint_guess = dlog10(p2eint_ratio) + log_p_target
 
-        log_eint_guess = max(log_eint_guess, eos%log_p%var2_min)
-        log_eint_guess = min(log_eint_guess, eos%log_p%var2_max)
+        log_eint_guess = max(log_eint_guess, eint_lim_lo)
+        log_eint_guess = min(log_eint_guess, eint_lim_hi)
 
         log_p_at_guess = log_p_from_nH_eint(log_nH_val, log_eint_guess)
 
@@ -780,10 +793,10 @@ contains
         margin = 5.0d-4
         if (log_p_at_guess < log_p_target) then
             log_eint_lo = log_eint_guess
-            log_eint_hi = min(log_eint_guess + margin, eos%log_p%var2_max)
+            log_eint_hi = min(log_eint_guess + margin, eint_lim_hi)
             f_bracket = log_p_from_nH_eint(log_nH_val, log_eint_hi) - log_p_target
         else
-            log_eint_lo = max(log_eint_guess - margin, eos%log_p%var2_min)
+            log_eint_lo = max(log_eint_guess - margin, eint_lim_lo)
             log_eint_hi = log_eint_guess
             f_bracket = -(log_p_from_nH_eint(log_nH_val, log_eint_lo) - log_p_target)
         end if
@@ -791,8 +804,8 @@ contains
         if (f_bracket >= 0.0d0) then
             max_iter = 8
         else
-            log_eint_lo = eos%log_p%var2_min
-            log_eint_hi = eos%log_p%var2_max
+            log_eint_lo = eint_lim_lo
+            log_eint_hi = eint_lim_hi
             max_iter = 20
         end if
 
