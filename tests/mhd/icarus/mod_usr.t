@@ -702,12 +702,10 @@ contains
         end do
 
       case (AMR_LONWINDOW)
-        ! refine if any cell is within fixed window around φ0 (wrap-safe)
-        block
-          if (any( abs( modulo((x(ixI^S,3)-phi0)+dpi, 2.d0*dpi)-dpi ) <= halfw )) then
-            refine=1; coarsen=-1
-          end if
-        end block
+        ! refine if any cell is within fixed window around phi0 (wrap-safe)
+        if (any( abs( modulo((x(ixI^S,3)-phi0)+dpi, 2.d0*dpi)-dpi ) <= halfw )) then
+          refine=1; coarsen=-1
+        end if
 
       case (AMR_TRACING)
 
