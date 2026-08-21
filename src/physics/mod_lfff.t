@@ -34,6 +34,12 @@ module mod_lfff
   double precision, parameter :: lfff_mode_tolerance=1.d-12
   double precision, parameter :: lfff_resonance_tolerance=1.d-10
   double precision, parameter :: lfff_flux_balance_tolerance=1.d-8
+{^IFTWOD
+  double precision, allocatable, save :: l2d_br(:),l2d_bi(:),l2d_k(:)
+  double precision, save :: l2d_b0,l2d_alpha,l2d_y0,l2d_ytop
+  integer, save :: l2d_nm
+  logical, save :: l2d_closed,l2d_ready=.false.
+}
   
 contains
 
@@ -653,6 +659,7 @@ contains
     deallocate(bcore,spec_r,spec_i,work_r,work_i,kx,ky)
     deallocate(sendcounts,recvcounts,sdispls,rdispls,cursor,blockpos)
   end subroutine extrapolate_potential_fft
+}
 
   !> Vertical transfer functions for one nonzero horizontal constant-alpha
   !> Fourier mode. transfer_b multiplies Bz0, while transfer_d=-d(transfer_b)/dz
@@ -715,6 +722,7 @@ contains
     end if
   end subroutine lfff_fft_transfer
 
+{^IFTHREED
   subroutine calc_lin_fff(ixI^L,ixO^L,Bf,x,alpha,zshift,idir)
   ! PURPOSE: 
   ! Calculation to determine linear FFF from the field on 
@@ -948,4 +956,81 @@ contains
 
   end subroutine multigrid_bc
 }
+
+{^IFTWOD
+  subroutine init_lfff_2d(bn_bottom,nx,qalpha,qy0,qtop_closed,qy_top,flux_treatment,nmodes_keep)
+    use mod_global_parameters
+    use mod_comm_lib, only: mpistop
+    integer, intent(in) :: nx
+    double precision, intent(in) :: bn_bottom(nx),qalpha,qy0,qy_top
+    logical, intent(in) :: qtop_closed
+    character(len=*), intent(in), optional :: flux_treatment
+    integer, intent(in), optional :: nmodes_keep
+
+    double precision :: Lx,xj,arg
+    integer :: m,j,nm
+
+    Lx=xprobmax1-xprobmin1
+    nm=nx/2-1
+    if(present(nmodes_keep)) nm=min(nm,nmodes_keep)
+    if(allocated(l2d_br)) deallocate(l2d_br,l2d_bi,l2d_k)
+    allocate(l2d_br(nm),l2d_bi(nm),l2d_k(nm))
+    l2d_b0=sum(bn_bottom)/dble(nx)
+    if(present(flux_treatment)) then
+      if(flux_treatment=='subtract') then
+        if(mype==0.and.dabs(l2d_b0)>lfff_flux_balance_tolerance) &
+          print*,'init_lfff_2d: subtracting net flux ',l2d_b0
+        l2d_b0=0.d0
+      end if
+    end if
+    do m=1,nm
+      l2d_k(m)=2.d0*dpi*dble(m)/Lx
+      l2d_br(m)=0.d0; l2d_bi(m)=0.d0
+      do j=1,nx
+        xj=xprobmin1+(dble(j)-0.5d0)*Lx/dble(nx)
+        arg=l2d_k(m)*xj
+        l2d_br(m)=l2d_br(m)+bn_bottom(j)*dcos(arg)
+        l2d_bi(m)=l2d_bi(m)-bn_bottom(j)*dsin(arg)
+      end do
+      l2d_br(m)=2.d0*l2d_br(m)/dble(nx)
+      l2d_bi(m)=2.d0*l2d_bi(m)/dble(nx)
+    end do
+    l2d_nm=nm; l2d_alpha=qalpha; l2d_y0=qy0; l2d_ytop=qy_top; l2d_closed=qtop_closed
+    if(.not.qtop_closed .and. qalpha**2>=l2d_k(1)**2) &
+      call mpistop('init_lfff_2d: |alpha| >= k_1, oscillatory open modes')
+    l2d_ready=.true.
+  end subroutine init_lfff_2d
+
+  !> B from the stored modes at arbitrary points; Bf(:,:,1:3)=(Bx,By,Bz=alpha*A)
+  subroutine calc_lfff_2d(ixI^L,ixO^L,x,Bf)
+    use mod_global_parameters
+    use mod_comm_lib, only: mpistop
+    integer, intent(in) :: ixI^L,ixO^L
+    double precision, intent(in) :: x(ixI^S,1:ndim)
+    double precision, intent(out) :: Bf(ixI^S,1:3)
+
+    double precision :: tb,td,ca,sa,cme,sme,zz
+    integer :: ix^D,m,istat
+
+    if(.not.l2d_ready) call mpistop('calc_lfff_2d: call init_lfff_2d first')
+    Bf(ixO^S,1)=0.d0
+    Bf(ixO^S,2)=l2d_b0
+    Bf(ixO^S,3)=0.d0
+    {do ix^DB=ixOmin^DB,ixOmax^DB\}
+      zz=min(max(x(ix^D,2)-l2d_y0,0.d0),l2d_ytop-l2d_y0)
+      do m=1,l2d_nm
+        call lfff_fft_transfer(l2d_k(m)**2,l2d_alpha,zz,l2d_ytop-l2d_y0,&
+           l2d_closed,tb,td,istat)
+        if(istat==2) call mpistop('calc_lfff_2d: closed-box resonance')
+        cme=dcos(l2d_k(m)*x(ix^D,1)); sme=dsin(l2d_k(m)*x(ix^D,1))
+        ca=l2d_br(m)*cme-l2d_bi(m)*sme
+        sa=l2d_bi(m)*cme+l2d_br(m)*sme
+        Bf(ix^D,2)=Bf(ix^D,2)+ca*tb
+        Bf(ix^D,1)=Bf(ix^D,1)+sa*td/l2d_k(m)
+        Bf(ix^D,3)=Bf(ix^D,3)+l2d_alpha*sa*tb/l2d_k(m)
+      end do
+    {end do\}
+  end subroutine calc_lfff_2d
+}
+
 end module mod_lfff
