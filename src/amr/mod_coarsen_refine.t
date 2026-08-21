@@ -13,6 +13,7 @@ module mod_coarsen_refine
 
   ! Public subroutines
   public :: amr_coarsen_refine
+  public :: amr_rebalance
 
 contains
 
@@ -176,6 +177,33 @@ contains
     end if
 
   end subroutine amr_coarsen_refine
+
+  !> Cost-weighted rebalance without refine/coarsen. For static/uniform grids (refine_max_level=1)
+  !> amr_coarsen_refine never runs, so the cost-weighted load_balance has no invocation point and the
+  !> partition stays at the initial equal-block (cell-count) split -> photosphere EoS-heavy ranks stall
+  !> the rest. This migrates blocks to equalise the measured per-block cost (block_cost, populated when
+  !> lb_automatic is on) then rebuilds connectivity + ghosts, mirroring the tail of amr_coarsen_refine.
+  subroutine amr_rebalance
+    use mod_forest
+    use mod_global_parameters
+    use mod_ghostcells_update, only: getbc
+    use mod_amr_fct, only: end_comm_faces
+    use mod_space_filling_curve, only: amr_Morton_order
+    use mod_load_balance, only: load_balance
+    use mod_functions_connectivity, only: get_level_range, getigrids, build_connectivity
+    use mod_selectgrids, only: selectgrids
+
+    if (npe==1) return
+    if (stagger_grid) call end_comm_faces
+    call get_level_range
+    call amr_Morton_order()
+    call load_balance
+    ! rebuild tree connectivity + active-grid list, then refill ghosts (advance assumes filled ghosts)
+    call getigrids
+    call build_connectivity
+    call selectgrids
+    call getbc(global_time, 0.d0, ps, iwstart, nwgc)
+  end subroutine amr_rebalance
 
   !> For all grids on all processors, do a check on refinement flags. Make
   !> sure that neighbors will not differ more than one level of refinement.

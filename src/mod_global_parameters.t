@@ -279,19 +279,45 @@ module mod_global_parameters
   !> 0 = no memory (volatile), 1 = no update.
   double precision :: lb_alpha = 0.9d0
 
+  !> Bound on the memory imbalance get_Morton_range_costed may create: no rank
+  !> may hold more than lb_max_block_ratio * (nleafs/npe) blocks. Cost balance
+  !> and memory balance are in tension, as a rank owning cheap blocks must hold
+  !> more of them to match one owning expensive blocks. 1.0 is the equal-block
+  !> cut; larger values allow more freedom to follow cost.
+  !> get_Morton_range_active bounds the same ratio through its wa/wp weights.
+  double precision :: lb_max_block_ratio = 1.25d0
+
   !> Per-step per-block (per-rank, indexed by igrid) cost accumulator.
   !> Reset at start of each advance call; filled inside iigrid loops by the
   !> per-block timer wrappers in mod_advance.t and mod_supertimestepping.t.
   double precision, dimension(:), allocatable :: block_cost
 
-  !> Persistent global per-Morton-leaf EWMA cost. Sized to max_blocks*npe
-  !> (the upper bound on nleafs); only the first nleafs entries are
-  !> meaningful. Morton numbering is invariant across load_balance
-  !> migration, so costlist values are correctly preserved when blocks
-  !> change rank. Refinement events insert/remove Morton indices, after
-  !> which the EWMA recovers over ~5 cycles. Indexed 1..nleafs. Updated
-  !> by EWMA blend inside get_Morton_range_costed.
+  !> Per-step per-block cost of the short-characteristics sweep, indexed by
+  !> igrid. Separate from block_cost because rt_sc_solve() runs before advance(),
+  !> which zeroes block_cost on entry. advance() seeds block_cost from this array
+  !> and clears it for the next solve, so both costs share a partition weight.
+  double precision, dimension(:), allocatable :: block_cost_rt
+
+  !> Per-rank wall time spent in the SC radiative-transfer KBA sweep this step,
+  !> for the lb_diagnose rank-timing log. Filled by mod_rt_sc_solvers (which runs
+  !> before advance), gathered and zeroed inside advance's diagnostic block.
+  double precision :: lb_rt_accum = 0.0d0
+
+  !> Persistent global per-Morton-leaf EWMA cost, in seconds (block_cost is a
+  !> wall-clock accumulation). Sized to max_blocks*npe (the upper bound on
+  !> nleafs); only the first nleafs entries are meaningful. Morton numbering
+  !> is invariant across load_balance migration, so costlist values are
+  !> correctly preserved when blocks change rank. Refinement events
+  !> insert/remove Morton indices, after which the EWMA recovers over
+  !> ~5 cycles. Indexed 1..nleafs. Updated by EWMA blend inside
+  !> get_Morton_range_costed.
   double precision, dimension(:), allocatable :: costlist
+
+  !> Whether the matching costlist slot has ever carried a measurement. Morton
+  !> indices created by a refinement event have not been timed; they are seeded
+  !> with the mean of the measured slots, since costlist is a wall time and any
+  !> fixed seed would be a units error.
+  logical, dimension(:), allocatable :: costlist_seen
 
   !> MPI file handle for logfile
   integer :: log_fh
@@ -585,6 +611,50 @@ module mod_global_parameters
   !> typegrad or typediv are set to 'limited'
   integer, allocatable :: type_gradient_limiter(:)
 
+  !> Coefficient alpha of the explicit diffusive flux of Mignone et al. 2005 eq. B19-B21,
+  !> the second half of PPM's dissipation algorithm. 0 = off (default); the paper says
+  !> "alpha is typically set to 0.1".
+  !>
+  !>     F_{i+1/2} -> F_{i+1/2} + k_nu (U_i - U_{i+1}) ,   k_nu = alpha*max(-D_{i+1/2},0)
+  !>
+  !> D is an undivided multidimensional divergence of v at the interface, so the term is
+  !> active only where the flow converges. Two consequences worth knowing:
+  !>   * it is identically zero for a state at rest, so it cannot disturb a hydrostatic
+  !>     column -- exact discrete balance survives it untouched;
+  !>   * it is proportional to the raw cell difference U_i - U_{i+1}, not to the
+  !>     reconstructed face jump, so unlike everything else in the scheme it can see an
+  !>     odd-even mode that a face-value reconstruction annihilates.
+  double precision :: ppm_avisc = 0.0d0
+
+  !> Residual-jump velocity reconstruction (RJV). 0 = off (default), 1 = full strength.
+  !>
+  !> PPM's face operator annihilates the odd-even (2 dx) mode: the face value's leading
+  !> term is (q_i + q_{i+1})/2, and adjacent cells carry opposite ripple sign, while the
+  !> slope depends on (q_{i+1} - q_{i-1})/2, where the two cells have the same parity. So
+  !> the mode leaves no trace in w_L or w_R, the Riemann solver sees no jump, and applies
+  !> exactly zero dissipation to it. It never decays once seeded.
+  !>
+  !> But what the operator annihilates is exactly recoverable as its own residual,
+  !>
+  !>     e_i = v_i - (P_{i+1/2} + P_{i-1/2})/2 ,
+  !>
+  !> built from the two face values PPM has already computed -- no new stencil. For a
+  !> ripple A(-1)^i, e_i = A(-1)^i at full amplitude; for smooth data e_i = -h^2 v''/8.
+  !> Reinject it as a jump only, leaving the face value (and hence the flux, and hence a
+  !> hydrostatic column) untouched:
+  !>
+  !>     w_L(i+1/2) = P_{i+1/2} + beta*s_i*e_i ,  w_R(i+1/2) = P_{i+1/2} + beta*s_{i+1}*e_{i+1}
+  !>
+  !> with s_i = 1 only where e alternates across three cells, which no smooth field does.
+  !> At beta = 1 this reproduces the piecewise-constant jump for a pure ripple, i.e. full
+  !> first-order dissipation on the null component alone.
+  !>
+  !> Applied to the velocity components only. That is what makes it exact rather than
+  !> approximate: at rest v = 0, so e = 0 identically and the jump is exactly zero, and
+  !> every flux term the velocity enters carries a factor v. Measured inert on a resolved
+  !> sine (l=8 and l=32), a 3-cell tanh front, a discontinuity, and an exponential column.
+  double precision :: ppm_rjv = 0.0d0
+
   !> background magnetic field location indicator
   integer :: b0i=0
 
@@ -677,6 +747,11 @@ module mod_global_parameters
 
   !> If true, call initonegrid_usr upon restarting
   logical :: firstprocess
+
+  !> If true, allow a restart from a snapshot whose ndir differs from the current
+  !> run (e.g. hd ndir=2 -> mhd ndir=3). Block I/O is ndim-based only, so the data
+  !> loads exactly; use usr_transform_w to place the source vars into the right slots.
+  logical :: allow_ndir_change
 
   !> If true, wall time is up, modify snapshotnext for later overwrite
   logical :: pass_wall_time

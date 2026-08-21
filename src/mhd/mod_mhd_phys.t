@@ -187,6 +187,8 @@ module mod_mhd_phys
   integer, public, protected              :: mhd_trac_type=1
   !> Distance between two adjacent traced magnetic field lines (in finest cell size)
   integer, public, protected              :: mhd_trac_finegrid=4
+  !> TRAC-7 (Johnston 2021, A&A 654 A2): target number of cells resolving the TR
+  double precision, public, protected     :: mhd_trac_delta=0.5d0
   !> Whether internal energy is solved instead of total energy
   logical, public, protected              :: mhd_internal_e = .false.
   !> Whether hydrodynamic energy is solved instead of total energy
@@ -308,7 +310,8 @@ contains
       particles_eta, particles_etah,has_equi_rho_and_p,mhd_equi_thermal,&
       boundary_divbfix, boundary_divbfix_skip, mhd_divb_nth, mhd_semirelativistic,&
       mhd_reduced_c, clean_initial_divb, mhd_internal_e, numerical_resistive_heating,&
-      mhd_hydrodynamic_e, mhd_trac, mhd_trac_type, mhd_trac_mask, mhd_trac_finegrid, mhd_cak_force, &
+      mhd_hydrodynamic_e, mhd_trac, mhd_trac_type, mhd_trac_mask, mhd_trac_finegrid, &
+      mhd_trac_delta, mhd_cak_force, &
       mhd_hyperbolic_tc, mhd_hyperbolic_tc_sat, mhd_hyperbolic_tc_kappa, &
       mhd_hyperbolic_tc_use_perp, mhd_hyperbolic_tc_perp_mode, &
       mhd_hyperbolic_tc_kappa_perp_factor, mhd_hyperbolic_tc_Bmin, &
@@ -362,7 +365,7 @@ contains
     use mod_cak_force, only: cak_init
     use mod_eos_PI_tables
     use mod_geometry
-    use mod_usr_methods, only: usr_Rfactor
+    use mod_usr_methods, only: usr_Rfactor, usr_get_heating
     {^NOONED
     use mod_multigrid_coupling
     }
@@ -500,6 +503,12 @@ contains
       mhd_trac_mask=bigdouble
       if(mype==0) write(*,*) 'WARNING: set mhd_trac_mask==bigdouble for global TRAC method'
     end if
+    if(mhd_trac .and. mhd_trac_type==7) then
+      ! per-cell local TRAC (Johnston 2021) needs the background heating rate for the
+      ! steady-state balance; it is field-aligned and per-cell, so no global trac_mask is used.
+      if(.not. associated(usr_get_heating)) &
+        call mpistop("mhd_trac_type=7 requires usr_get_heating to be set in mod_usr.t")
+    end if
     phys_trac_mask=mhd_trac_mask
 
     use_particles=mhd_particles
@@ -599,17 +608,6 @@ contains
       wAplus_=-1; wAminus_=-1; wkplus_=-1; wkminus_=-1
     end if
 
-    if (eos%eos_type == 'LTE') then
-      Ne_ = var_set_ne()
-      Te_ = var_set_te()
-    else if (eos%eos_type == 'PI') then !  PI stores Te via var_set_te (sets iw_te) so the generic mod_eos_PI getters address it like LTE
-      Ne_ = -1
-      Te_ = var_set_te()
-    else
-      Ne_ = -1
-      Te_ = -1
-    end if
-
     allocate(tracer(mhd_n_tracer))
     ! Set starting index of tracers
     do itr = 1, mhd_n_tracer
@@ -658,8 +656,34 @@ contains
       r_e=-1
     endif
 
+    ! LTE/PI electron-density and temperature aux variables. These must be registered
+    ! after every flux variable (including the FLD radiation energy r_e and any tracers):
+    ! var_set_radiation_energy indexes by nwflux, so if r_e is registered after these
+    ! nw-indexed aux vars its nwflux slot collides with Ne_ (iw_r_e==iw_ne) and overwrites
+    ! its name. Registering them here keeps the flux block contiguous.
+    if (eos%eos_type == 'LTE') then
+      Ne_ = var_set_ne()
+      Te_ = var_set_te()
+    else if (eos%eos_type == 'PI') then
+      Ne_ = -1
+      Te_ = var_set_te()
+    else
+      Ne_ = -1
+      Te_ = -1
+    end if
+
     ! set number of variables which need update ghostcells
+    ! set number of variables which need update ghostcells.
+    ! The EoS-derived slots Ne/Te are derived state that must stay consistent with (rho,e)
+    ! wherever the conserved state is valid, so they have to travel with it. var_set_ne /
+    ! var_set_te bump nw but neither nwflux nor nwaux, so the historic nwflux+nwaux silently
+    ! excluded them: they were never communicated, only derived, and every ghost cell held
+    ! zero until something derived it. Extend the window to whichever of them exist (they are
+    ! registered contiguously just above); FI leaves both at -1 and the window is unchanged.
+    ! bc_phys is unaffected -- it iterates nwflux+nwaux independently.
     nwgc=nwflux+nwaux
+    if (iw_ne > 0) nwgc = max(nwgc, iw_ne)
+    if (iw_te > 0) nwgc = max(nwgc, iw_te)
 
     ! set the index of the last flux variable for species 1
     stop_indices(1)=nwflux
@@ -1284,6 +1308,7 @@ contains
     !> Variable-c_V Townsend extension (Y_mod): quadrature and sub-intervals
     character(len=8) :: rc_Y_mod_quadrature='boole'
     integer :: rc_Y_mod_N_sub=16
+    !> Smooth SC<->thin blend (mirrors hd): thin cooling *= 0.5(1+tanh((T-T0)/dT))*0.5(1+tanh((y-y0)/dy))
 
     namelist /rc_list/ coolcurve, ncool, cfrac, tlow, Tfix, rc_split, &
                        rad_cut_hgt, rad_cut_dey, &
@@ -1472,6 +1497,20 @@ contains
     if (number_equi_vars > 0 .and. .not. associated(usr_set_equi_vars)) then
       call mpistop("usr_set_equi_vars has to be implemented in the user file")
     endif
+
+    if(has_equi_rho_and_p) then
+      ! The Roe and HLLC solvers read the rho slot as a physical density, which
+      ! under splitting holds only the perturbation. Neither has a split variant,
+      ! so refuse the combination rather than return a quietly wrong wave speed.
+      if(any(flux_method(:)==fs_tvdmu) .or. any(flux_method(:)==fs_hllc) &
+         .or. any(flux_method(:)==fs_hllcd)) then
+        call mpistop("Must have has_equi_rho_and_p=F with the roe/hllc/hllcd flux schemes")
+      end if
+      ! mhd_get_tcutoff forms Te from the perturbation pressure and density.
+      if(mhd_trac) then
+        call mpistop("Must have has_equi_rho_and_p=F when mhd_trac=T")
+      end if
+    end if
     if(convert .or. autoconvert) then
       if(convert_type .eq. 'dat_generic_mpi') then
         if(mhd_dump_full_vars) then
@@ -1872,7 +1911,7 @@ contains
     double precision, intent(in) :: w(ixI^S,nw)
     logical, intent(inout) :: flag(ixI^S,1:nw)
 
-    integer :: ix^D
+    integer :: ix^D, igrp
 
     flag=.false.
    {do ix^DB=ixOmin^DB,ixOmax^DB\}
@@ -2535,7 +2574,7 @@ contains
     double precision, intent(in)    :: x(ixI^S,1:ndim)
     character(len=*), intent(in)    :: subname
 
-    integer :: ix^D
+    integer :: ix^D, igrp
     logical :: flag(ixI^S,1:nw)
 
     call phys_check_w(primitive, ixI^L, ixO^L, w, flag)
@@ -2624,7 +2663,7 @@ contains
     character(len=*), intent(in)    :: subname
 
     double precision :: rho
-    integer :: ix^D
+    integer :: ix^D, igrp
     logical :: flag(ixI^S,1:nw)
 
     call phys_check_w(primitive, ixI^L, ixO^L, w, flag)
@@ -2693,7 +2732,7 @@ contains
     double precision, intent(in)    :: x(ixI^S,1:ndim)
     character(len=*), intent(in)    :: subname
 
-    integer :: ix^D
+    integer :: ix^D, igrp
     logical :: flag(ixI^S,1:nw)
 
     call phys_check_w(primitive, ixI^L, ixO^L, w, flag)
@@ -2740,7 +2779,7 @@ contains
     double precision, intent(in)    :: x(ixI^S,1:ndim)
     character(len=*), intent(in)    :: subname
 
-    integer :: ix^D
+    integer :: ix^D, igrp
     logical :: flag(ixI^S,1:nw)
 
     call phys_check_w(primitive, ixI^L, ixO^L, w, flag)
@@ -2781,7 +2820,7 @@ contains
     double precision, intent(in)    :: x(ixI^S,1:ndim)
     character(len=*), intent(in)    :: subname
 
-    integer :: ix^D
+    integer :: ix^D, igrp
     logical :: flag(ixI^S,1:nw)
 
     call phys_check_w(primitive, ixI^L, ixO^L, w, flag)
@@ -2876,29 +2915,14 @@ contains
     double precision :: rho, inv_rho, ploc, cfast2, AvMinCs2, b2, kmax
     double precision :: cs2(ixI^S)
     double precision :: uawsom_zeta(ixI^S), uawsom_radius(ixI^S), uawsom_lperp(ixI^S)
-    double precision, allocatable :: w_eos(:^D&,:)
     integer :: ix^D
-    logical :: need_aug
 
     if(mhd_hall) kmax = dpi/min({dxlevel(^D)},bigdouble)*half
     if(mhd_uawsom) call mhd_uawsom_get_coefficients(w,x,ixI^L,ixO^L,.true.,&
          uawsom_zeta,uawsom_radius,uawsom_lperp)
 
     ! Sound speed squared via EoS dispatch (LTE+ionE -> Gamma_1 table; FI -> const gamma).
-    ! If equi_rho0 / equi_pe0 are active, csound^2 is based on the total state.
-    need_aug = has_equi_rho_and_p .or. has_equi_rho_and_p
-    if (need_aug) then
-      allocate(w_eos(ixI^S,nw))
-      w_eos(ixO^S,:) = w(ixO^S,:)
-      if (has_equi_rho_and_p) w_eos(ixO^S, rho_) = &
-          w(ixO^S, rho_) + block%equi_vars(ixO^S, equi_rho0_, b0i)
-      if (has_equi_rho_and_p)  w_eos(ixO^S, p_)   = &
-          w(ixO^S, p_)   + block%equi_vars(ixO^S, equi_pe0_, b0i)
-      call eos%get_csound2(w_eos, x, ixI^L, ixO^L, cs2)
-      deallocate(w_eos)
-    else
-      call eos%get_csound2(w, x, ixI^L, ixO^L, cs2)
-    end if
+    call eos%get_csound2(w, x, ixI^L, ixO^L, cs2)
 
     if(B0field) then
      {do ix^DB=ixOmin^DB,ixOmax^DB \}
@@ -3092,6 +3116,8 @@ contains
   subroutine mhd_get_tcutoff(ixI^L,ixO^L,w,x,Tco_local,Tmax_local)
     use mod_global_parameters
     use mod_geometry
+    use mod_usr_methods, only: usr_get_heating
+    use mod_radiative_cooling, only: findL, calc_l_extended
     integer, intent(in) :: ixI^L,ixO^L
     double precision, intent(in) :: x(ixI^S,1:ndim)
     ! in primitive form
@@ -3105,6 +3131,12 @@ contains
     double precision :: ltrc,ltrp,altr
     integer :: idims,ix^D,jxO^L,hxO^L,ixA^D,ixB^D
     integer :: jxP^L,hxP^L,ixP^L,ixQ^L
+    ! TRAC-7 (Johnston et al. 2021, A&A 654 A2) field-aligned local method
+    double precision :: Q_heat(ixI^S), ne(ixI^S), nH_arr(ixI^S)
+    double precision :: Bvec(1:ndir)
+    double precision :: bmin_c, Bmag, gnorm, Bgtd, L_T, dl_eff, vmag, Bdotv, Binp2
+    double precision :: v_n, a_coeff, L1, cooling, net_cool
+    double precision :: kappa_par, disc, dx_over_delta, kappa_TRAC, kappa_eff, Tcoff_eff
 
     if (eos%eos_type == 'LTE' .or. eos%eos_type == 'PI') then
       Te(ixI^S) = w(ixI^S, Te_)
@@ -3370,6 +3402,77 @@ contains
         block%wextra(ix^D,Tcoff_)=Te(ix^D)*altr**0.4d0
         }
      {end do\}
+    case(7)
+      ! Johnston et al. 2021 (A&A 654, A2) local field-aligned TRAC for MHD.
+      ! Anisotropic conduction broadens the TR along B, so the length scale (Eq.18) and the
+      ! enthalpy flux (Eq.16) are projected on the field, regularized by b_min=0.1 G (paper
+      ! value) as B->0 or B perpendicular to grad T. Per-cell adaptive parallel conductivity from the
+      ! steady-state balance (Eq.11/12) with the Eq.13 selection; general-EoS cooling n_e n_H L.
+      ! (HD isotropic version used the grad-T direction; here it is the magnetic field.)
+      call usr_get_heating(Q_heat, ixI^L, ixO^L, w, x)
+      call eos%get_ne_nH(ixI^L, ixO^L, w, x, ne, nH_arr)
+      block%wextra(ixI^S,Tcoff_) = Te(ixI^S)         ! default (incl. ghost layer): no broadening
+      do idims=1,ndim
+        call gradient(Te,ixI^L,ixO^L,idims,gradT(ixI^S,idims))
+      end do
+      bmin_c = 0.1d0/unit_magneticfield              ! 0.1 G in code units
+      {do ix^DB=ixOmin^DB,ixOmax^DB\}
+        ! full field B-magnitude (Eq.18 numerator, regularized), and B.v, v-magnitude over ndir
+        Bmag=bmin_c**2; Bdotv=0.d0; vmag=0.d0
+        do idims=1,ndir
+          Bvec(idims)=w(ix^D,iw_mag(idims))
+          if(B0field) Bvec(idims)=Bvec(idims)+block%B0(ix^D,idims,0)
+          Bmag =Bmag +Bvec(idims)**2
+          Bdotv=Bdotv+Bvec(idims)*w(ix^D,mom(idims))
+          vmag =vmag +w(ix^D,mom(idims))**2
+        end do
+        Bmag=dsqrt(Bmag); vmag=dsqrt(vmag)
+        ! in-plane grad-T norm, in-plane field^2, and in-plane B.grad T (grad T has no z-part in 2D)
+        gnorm=0.d0; Binp2=0.d0; Bgtd=0.d0
+        do idims=1,ndim
+          gnorm=gnorm+gradT(ix^D,idims)**2
+          Binp2=Binp2+Bvec(idims)**2
+          Bgtd =Bgtd +Bvec(idims)*gradT(ix^D,idims)
+        end do
+        gnorm=dsqrt(gnorm)
+        if(gnorm<smalldouble .or. Binp2<smalldouble) then
+          block%wextra(ix^D,Tcoff_)=Te(ix^D)          ! uniform T or no in-plane field: no TR
+        else
+          ! Eq.18 field-aligned length scale (dabs: conduction is bidirectional along B)
+          L_T=Te(ix^D)*Bmag/(dabs(Bgtd)+bmin_c*gnorm)
+          ! grid spacing along the (in-plane) field direction b = Bvec/Bmag
+          dl_eff=0.d0
+          do idims=1,ndim
+            dl_eff=dl_eff+(Bvec(idims)/block%ds(ix^D,idims))**2
+          end do
+          dl_eff=Bmag/dsqrt(dl_eff)
+          ! Eq.16 field-aligned enthalpy (mass) flux
+          v_n=(dabs(Bdotv)+bmin_c*vmag)/Bmag
+          a_coeff=2.5d0*w(ix^D,p_)*v_n/Te(ix^D)
+          ! optically-thin cooling n_e n_H Lambda(T), guarded to the table range (positive
+          ! in-range test so a non-finite Te falls to zero rather than indexing findL with NaN)
+          if(Te(ix^D)>rc_fl%tcoolmin .and. Te(ix^D)<rc_fl%tcoolmax) then
+            call findL(Te(ix^D),L1,rc_fl); cooling=L1*ne(ix^D)*nH_arr(ix^D)
+          else if(Te(ix^D)>=rc_fl%tcoolmax) then
+            call calc_l_extended(Te(ix^D),L1,rc_fl); cooling=L1*ne(ix^D)*nH_arr(ix^D)
+          else
+            cooling=0.d0
+          end if
+          net_cool=dabs(cooling-Q_heat(ix^D))
+          kappa_par=tc_fl%tc_k_para*Te(ix^D)**2.5d0
+          disc=a_coeff**2+4.d0*tc_fl%tc_k_para*Te(ix^D)**1.5d0*net_cool
+          dx_over_delta=dl_eff/mhd_trac_delta
+          ! Eq.13 selection: under-resolved (Eq.11, keep mass flux) vs over-resolved (Eq.12, limiter)
+          if(L_T<=2.d0*dx_over_delta) then
+            kappa_TRAC=(a_coeff+dsqrt(disc))/(2.d0/dx_over_delta)
+          else
+            kappa_TRAC=dsqrt(4.d0*tc_fl%tc_k_para*Te(ix^D)**1.5d0*net_cool)/(2.d0/dx_over_delta)
+          end if
+          kappa_eff=max(kappa_TRAC,kappa_par)
+          Tcoff_eff=(kappa_eff/tc_fl%tc_k_para)**0.4d0
+          block%wextra(ix^D,Tcoff_)=max(Te(ix^D),Tcoff_eff)
+        end if
+      {end do\}
     case(3,5)
       !> do nothing here
     case default
@@ -4030,7 +4133,7 @@ contains
     double precision, intent(in) :: w(ixI^S, 1:nw)
     double precision, intent(in) :: x(ixI^S, 1:ndim)
     double precision, intent(out):: trad(ixI^S)
-          
+
     trad(ixI^S) = (w(ixI^S,r_e)/arad_norm)**(1.d0/4.d0)
 
   end subroutine mhd_get_trad
@@ -5488,7 +5591,7 @@ contains
     ! R*(2+3 A_He) = (n_nuclei+n_e)/n_H. LTE stores ne explicitly.
     if(trim(mhd_hyperbolic_tc_perp_mode)=='electron_magnetization') then
       if(eos%eos_type=='LTE') then
-        call eos%get_ne_nH(ixI^L,ixI^L,wCT,ne_loc,nH_dummy)
+        call eos%get_ne_nH(ixI^L,ixI^L,wCT, x,ne_loc,nH_dummy)
       else if(eos%eos_type=='PI') then
         ne_loc(ixI^S)=rho_loc(ixI^S)*max(R(ixI^S)*(2.d0+3.d0*eos%He_abundance) &
              -(1.d0+eos%He_abundance),smalldouble)

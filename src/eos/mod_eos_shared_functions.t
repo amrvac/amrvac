@@ -22,13 +22,23 @@ module mod_eos_shared_functions
 contains
 
     !> Mass density (code units).
+    !>
+    !> Under equilibrium splitting (iw_equi_rho>0) the rho slot carries only the
+    !> perturbation about the static background, so the background is added back
+    !> here. This is the single place that check lives: get_nH and get_ne_nH both
+    !> route through this routine rather than reading the rho slot themselves.
     subroutine get_rho(w,x,ixI^L,ixO^L,rho)
         integer, intent(in)           :: ixI^L, ixO^L
         double precision, intent(in)  :: w(ixI^S,1:nw)
         double precision, intent(in)  :: x(ixI^S,1:ndim)
         double precision, intent(out) :: rho(ixI^S)
 
-        rho(ixO^S) = w(ixO^S,iw_rho)
+        if (iw_equi_rho > 0) then
+            rho(ixO^S) = w(ixO^S,iw_rho) &
+                 + block%equi_vars(ixO^S,iw_equi_rho,b0i)
+        else
+            rho(ixO^S) = w(ixO^S,iw_rho)
+        end if
 
     end subroutine get_rho
 
@@ -39,19 +49,25 @@ contains
         double precision, intent(in)  :: x(ixI^S,1:ndim)
         double precision, intent(out) :: nH(ixI^S)
 
-        nH(ixO^S) = w(ixO^S,iw_rho) / eos%nH2rhoFactor
+        call get_rho(w,x,ixI^L,ixO^L,nH)
+        nH(ixO^S) = nH(ixO^S) / eos%nH2rhoFactor
 
     end subroutine get_nH
 
     !> Return electron and hydrogen number densities in code units.
     !> For LTE (iw_ne allocated): ne from Saha EoS, nH from rho/nH2rhoFactor.
     !> For FI  (iw_ne not allocated): ne = nH * neOnH_FI (full ionisation).
-    subroutine get_ne_nH(ixI^L, ixO^L, w, ne, nH)
+    !>
+    !> x is unused here but keeps the signature uniform with get_rho/get_nH, so
+    !> the density can be taken from get_nH and the equilibrium-splitting check
+    !> stays in get_rho alone.
+    subroutine get_ne_nH(ixI^L, ixO^L, w, x, ne, nH)
         integer, intent(in)           :: ixI^L, ixO^L
         double precision, intent(in)  :: w(ixI^S, 1:nw)
+        double precision, intent(in)  :: x(ixI^S, 1:ndim)
         double precision, intent(out) :: ne(ixI^S), nH(ixI^S)
 
-        nH(ixO^S) = w(ixO^S, iw_rho) / eos%nH2rhoFactor
+        call get_nH(w, x, ixI^L, ixO^L, nH)
         if (iw_ne > 0) then
             ne(ixO^S) = w(ixO^S, iw_ne)
         else

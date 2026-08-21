@@ -238,6 +238,7 @@ contains
  
     namelist /filelist/ base_filename,restart_from_file, &
          typefilelog,firstprocess,reset_grid,snapshotnext, &
+         allow_ndir_change, &
          convert,convert_type,saveprim,usr_filename,&
          nwauxio,nocartesian, w_write,writelevel,&
          writespshift,length_convert_factor, w_convert_factor, &
@@ -266,7 +267,7 @@ contains
          typegrad, typediv, typecurl, &
          nxdiffusehllc, flathllc, tvdlfeps, flux_adaptive_diffusion, &
          flux_adaptive_diffusion_min, flux_adaptive_diffusion_scale, &
-         flux_energy_only, flatcd, flatsh, &
+         flux_energy_only, flatcd, flatsh, ppm_avisc, ppm_rjv, &
          rk2_alfa, imex222_lambda, ssprk_order, rk3_switch, imex_switch, &
          small_temperature, small_pressure, small_density, &
          small_values_method, small_values_daverage, fix_small_values, check_small_values, &
@@ -284,7 +285,7 @@ contains
          w_refine_weight, prolongprimitive,coarsenprimitive, &
          typeprolonglimit, &
          logflag,tfixgrid,itfixgrid,ditregrid, &
-         lb_diagnose,lb_automatic,lb_interval,lb_alpha
+         lb_diagnose,lb_automatic,lb_interval,lb_alpha,lb_max_block_ratio
     namelist /paramlist/  courantpar, dtpar, dtdiffpar, &
          typecourant, slowsteps
 
@@ -467,6 +468,7 @@ contains
     reset_it = .false.
     firstprocess  = .false.
     reset_grid     = .false.
+    allow_ndir_change = .false.
     base_filename   = 'data'
     usr_filename    = ''
 
@@ -547,6 +549,8 @@ contains
        gradient_limiter(level) = 'minmod'
     end do
 
+    ppm_avisc       = 0.0d0
+    ppm_rjv         = 0.0d0
     flatcd          = .false.
     flatsh          = .false.
     typesourcesplit = 'sfs'
@@ -1915,9 +1919,17 @@ contains
     ! ndir
     call MPI_FILE_READ(fh, ibuf(1), 1, MPI_INTEGER, st, er)
     if (ibuf(1) /= ndir) then
-      write(*,*) "ndir in restart file = ",ibuf(1)
-      write(*,*) "ndir = ",ndir
-      call mpistop("reset ndir to ndir in restart file")
+      if (allow_ndir_change) then
+        if (mype==0) then
+          write(*,*) "WARNING: ndir in restart file = ",ibuf(1)," but current ndir = ",ndir
+          write(*,*) "allow_ndir_change=T: loading anyway (block I/O is ndim-based)."
+          write(*,*) "Ensure usr_transform_w maps the source vars into the right slots."
+        end if
+      else
+        write(*,*) "ndir in restart file = ",ibuf(1)
+        write(*,*) "ndir = ",ndir
+        call mpistop("reset ndir to ndir in restart file (or set allow_ndir_change=T)")
+      end if
     end if
 
     ! ndim
@@ -1985,8 +1997,13 @@ contains
       call MPI_FILE_READ(fh, geom_name, name_len, MPI_CHARACTER, st, er)
 
       if (geom_name /= geometry_name(1:name_len)) then
-        write(*,*) "type of coordinates in data is: ", geom_name
-        call mpistop("select the correct coordinates in mod_usr.t file")
+        if (allow_ndir_change) then
+          if (mype==0) write(*,*) "WARNING: coordinates in data = ",trim(geom_name), &
+               " vs current ",trim(geometry_name),"; allow_ndir_change=T (e.g. Cartesian_2D->2.5D), loading anyway."
+        else
+          write(*,*) "type of coordinates in data is: ", geom_name
+          call mpistop("select the correct coordinates in mod_usr.t file")
+        end if
       end if
 
       call MPI_FILE_READ(fh, stagger_mark_dat, 1, MPI_LOGICAL, st, er)

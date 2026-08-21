@@ -379,10 +379,11 @@ module mod_thermal_emission
   end interface
 
   abstract interface
-    subroutine get_2var_subr_te(ixI^L, ixO^L, w, val1, val2)
+    subroutine get_2var_subr_te(ixI^L, ixO^L, w, x, val1, val2)
       use mod_global_parameters
       integer, intent(in)          :: ixI^L, ixO^L
       double precision, intent(in) :: w(ixI^S, nw)
+      double precision, intent(in) :: x(ixI^S, 1:ndim)
       double precision, intent(out):: val1(ixI^S), val2(ixI^S)
     end subroutine get_2var_subr_te
   end interface
@@ -924,7 +925,7 @@ module mod_thermal_emission
       ! nH always follows the mass density and composition of the simulated
       ! gas.  rHe_opacity is deliberately applied only when constructing the
       ! synthetic absorber below; it never changes this EOS conversion.
-      call eos%get_ne_nH(ixI^L, ixO^L, w, Ne, nH)
+      call eos%get_ne_nH(ixI^L, ixO^L, w, x, Ne, nH)
       if (SI_unit) then
         Ne(ixO^S)=Ne(ixO^S)*unit_numberdensity/1.d6
         nH(ixO^S)=nH(ixO^S)*unit_numberdensity/1.d6
@@ -1035,7 +1036,7 @@ module mod_thermal_emission
       call fl%get_rho(w,x,ixI^L,ixO^L,Ne)
       call fl%get_var_Rfactor(w,x,ixI^L,ixO^L,Te)
       Te(ixO^S)=pth(ixO^S)/(Ne(ixO^S)*Te(ixO^S))*unit_temperature
-      call eos%get_ne_nH(ixI^L,ixO^L,w,Ne,nH_dummy)
+      call eos%get_ne_nH(ixI^L,ixO^L,w, x,Ne,nH_dummy)
       if (SI_unit) then
         Ne(ixO^S)=Ne(ixO^S)*unit_numberdensity/1.d6
       else
@@ -1219,7 +1220,7 @@ module mod_thermal_emission
       ! The tabulated response is multiplied by the physical emission-measure
       ! factor ne*nH.  Both densities come from the active EOS so the source
       ! remains consistent for FI, PI, and LTE simulations.
-      call eos%get_ne_nH(ixI^L, ixO^L, w, Ne, nH)
+      call eos%get_ne_nH(ixI^L, ixO^L, w, x, Ne, nH)
       if (SI_unit) then
         Ne(ixO^S)=Ne(ixO^S)*unit_numberdensity/1.d6 ! m^-3 -> cm-3
         nH(ixO^S)=nH(ixO^S)*unit_numberdensity/1.d6
@@ -1280,6 +1281,7 @@ module mod_thermal_emission
       double precision :: pth(ixI^S),Te(ixI^S),kbT(ixI^S)
       double precision :: Ne(ixI^S),gff(ixI^S),fi(ixI^S)
       double precision :: EM(ixI^S)
+      double precision :: nH_dummy(ixI^S)
 
       I0=3.01d-15   ! I0*4*pi*AU**2, I0 from Pinto (2015)
       kb=const_kb
@@ -1291,10 +1293,7 @@ module mod_thermal_emission
       call fl%get_var_Rfactor(w,x,ixI^L,ixO^L,Te)
       Te(ixO^S)=pth(ixO^S)/(Ne(ixO^S)*Te(ixO^S))*unit_temperature
       ! get actual electron density from EoS (replaces rho with ne)
-      block
-        double precision :: nH_dummy(ixI^S)
-        call eos%get_ne_nH(ixI^L, ixO^L, w, Ne, nH_dummy)
-      end block
+      call eos%get_ne_nH(ixI^L, ixO^L, w, x, Ne, nH_dummy)
       if (SI_unit) then
         Ne(ixO^S)=Ne(ixO^S)*unit_numberdensity/1.d6 ! m^-3 -> cm-3
         EM(ixO^S)=(Ne(ixO^S))**2*1.d6 ! cm^-3 m^-3
@@ -1364,6 +1363,7 @@ module mod_thermal_emission
       double precision :: I0,kb,keV,dE,Ei,El,Eu,A_cgs
       double precision :: pth(ixI^S),Te(ixI^S),kbT(ixI^S)
       double precision :: Ne(ixI^S),EM(ixI^S)
+      double precision :: nH_dummy(ixI^S)
       double precision :: gff,fi,erg_SI
 
       ! check whether the grid is inside given box
@@ -1391,10 +1391,7 @@ module mod_thermal_emission
         call fl%get_var_Rfactor(w,x,ixI^L,ixb^L,Te)
         Te(ixb^S)=pth(ixb^S)/(Ne(ixb^S)*Te(ixb^S))*unit_temperature
         ! get actual electron density from EoS (replaces rho with ne)
-        block
-          double precision :: nH_dummy(ixI^S)
-          call eos%get_ne_nH(ixI^L, ixb^L, w, Ne, nH_dummy)
-        end block
+        call eos%get_ne_nH(ixI^L, ixb^L, w, x, Ne, nH_dummy)
         if (SI_unit) then
           Ne(ixO^S)=Ne(ixO^S)*unit_numberdensity/1.d6 ! m^-3 -> cm-3
           EM(ixb^S)=(I0*(Ne(ixb^S))**2)*dV(ixb^S)*(unit_length*1.d2)**3 ! cm^-3
@@ -6289,7 +6286,7 @@ module mod_thermal_emission
       double precision, intent(inout) :: WLB(numXI1,numXI2,numWI)
 
       integer :: ixO^L,ixO^D,ixI^L,ix^D,i,j
-      double precision, allocatable :: flux(:^D&),Ne(:^D&)
+      double precision, allocatable :: flux(:^D&),Ne(:^D&),nH_dummy(:^D&)
       integer :: ixP^L,ixP^D,nSubC^D,iSubC^D
       double precision :: xSubP1,xSubP2,dxSubP,xerf^L,fluxsubC,RsubC
       double precision :: sigma_PSF,sigma0,arcsec,pixel,LASCO_rsl
@@ -6312,6 +6309,7 @@ module mod_thermal_emission
       endif
 
       allocate(Ne(ixI^S))
+      allocate(nH_dummy(ixI^S))
       if (whitelight_instrument=='LASCO/C1') then
         LASCO_rsl=5.6d0/instrument_resolution_factor
         R_occult=1.1d0
@@ -6326,10 +6324,7 @@ module mod_thermal_emission
       R_occult=R_occult*const_Rsun/unit_length
       call fl%get_rho(ps(igrid)%w,ps(igrid)%x,ixI^L,ixO^L,Ne)
       ! get actual electron density from EoS (replaces rho with ne)
-      block
-        double precision :: nH_dummy(ixI^S)
-        call eos%get_ne_nH(ixI^L, ixO^L, ps(igrid)%w, Ne, nH_dummy)
-      end block
+      call eos%get_ne_nH(ixI^L, ixO^L, ps(igrid)%w, ps(igrid)%x, Ne, nH_dummy)
       sigma_PSF=1.d0
       pixel=LASCO_rsl*arcsec
       sigma0=sigma_PSF*pixel
@@ -6414,6 +6409,7 @@ module mod_thermal_emission
       {enddo\} !ix
 
       deallocate(Ne)
+      deallocate(nH_dummy)
 
     end subroutine integrate_whitelight_spherical
 

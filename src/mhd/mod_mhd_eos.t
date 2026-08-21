@@ -59,6 +59,10 @@ contains
         ! to_primitive (and p_to_e/pthermal/csound) at the PI-energy variants, so
         ! the FI assignment here is just a harmless base that gets replaced.
         if (eos%eos_type == 'FI' .or. eos%eos_type == 'PI') then
+            ! PI takes its electron count from a variable R factor evaluated on
+            ! the rho slot, which under splitting holds only the perturbation.
+            if (eos%eos_type == 'PI' .and. has_equi_rho_and_p) &
+              call mpistop('PI EoS not supported with equilibrium splitting')
             if(mhd_hydrodynamic_e) then
                 eos%to_primitive        => mhd_to_primitive_hde
                 eos%to_conserved        => mhd_to_conserved_hde
@@ -109,7 +113,6 @@ contains
 
         phys_to_primitive       => eos%to_primitive
         phys_to_conserved       => eos%to_conserved
-        phys_get_rho            => eos%get_rho
         phys_bind_eos_to_source => bind_eos_to_source
 
         !> p_to_e (pressure -> total energy for origin, or eint for inte)
@@ -335,6 +338,8 @@ contains
                 rc_fl%subtract_equi = .true.
                 rc_fl%get_rho_equi => mhd_get_rho_equi
                 rc_fl%get_pthermal_equi => mhd_get_pe_equi
+                rc_fl%get_ne_nH_equi => mhd_get_ne_nH_equi
+                rc_fl%get_temperature_equi => mhd_get_temperature_equi
             else
                 rc_fl%subtract_equi = .false.
             end if
@@ -1174,9 +1179,17 @@ contains
         double precision, intent(in)    :: x(ixI^S, 1:ndim)
         double precision, intent(out)   :: cs2(ixI^S)
 
+        double precision :: rho(ixI^S), pth(ixI^S)
+
         timeeos0 = MPI_WTIME()
 
-        cs2(ixO^S) = eos%gamma * w(ixO^S, p_) / w(ixO^S, rho_)
+        !> Both slots hold perturbations under equilibrium splitting, so the
+        !> background is restored before the ratio is formed.
+        call eos%get_rho(w, x, ixI^L, ixO^L, rho)
+        pth(ixO^S) = w(ixO^S, p_)
+        if (iw_equi_p > 0) pth(ixO^S) = pth(ixO^S) &
+             + block%equi_vars(ixO^S, iw_equi_p, b0i)
+        cs2(ixO^S) = eos%gamma * pth(ixO^S) / rho(ixO^S)
 
         timeeos_csound = timeeos_csound + (MPI_WTIME()-timeeos0)
 
@@ -1660,6 +1673,19 @@ contains
         double precision, intent(out):: res(ixI^S)
         res(ixO^S) = block%equi_vars(ixO^S,equi_pe0_,b0i)
     end subroutine mhd_get_pe_equi
+
+    !> Electron and hydrogen number densities of the background alone, for the
+    !> equilibrium rate that subtract_equi removes. Splitting is restricted to
+    !> the FI EoS, so the electron count is the fully ionised one.
+    subroutine mhd_get_ne_nH_equi(ixI^L, ixO^L, w, x, ne, nH)
+        use mod_global_parameters
+        integer, intent(in)          :: ixI^L, ixO^L
+        double precision, intent(in) :: w(ixI^S, nw)
+        double precision, intent(in) :: x(ixI^S, 1:ndim)
+        double precision, intent(out):: ne(ixI^S), nH(ixI^S)
+        nH(ixO^S) = block%equi_vars(ixO^S,equi_rho0_,b0i) / eos%nH2rhoFactor
+        ne(ixO^S) = nH(ixO^S) * eos%neOnH_FI
+    end subroutine mhd_get_ne_nH_equi
 
     !> Internal energy extraction + small value handling (moved from mod_mhd_phys.t)
 

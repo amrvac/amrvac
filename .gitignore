@@ -31,3 +31,7 @@ mod_usr.f
 .idea/
 *.npy
 /src/new_makefile
+
+# machine-specific build definitions: keep locally, do not track
+arch/intelesac*.defs
+arch/dbgnofpe.defs

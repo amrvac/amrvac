@@ -6,7 +6,7 @@
 !> the bicubic Hermite polynomial in each cell: exact at nodes, O(h^4) inside,
 !> no closure. No Newton, bisection, or iteration on the hot path; the
 !> iterative work is done offline against the analytic Saha solver (see
-!> entropy/generate_all_tables.py).
+!> entropy128/generate_entropy_tables.py).
 !>
 !> Forward tables, axes (log10 nH, log10 eint/nH):
 !>     Tfwd -> T    pfwd -> p    neOnH -> ne/nH
@@ -40,6 +40,7 @@ module mod_eos_LTE_entropy
     public :: entropy_y_from_nH_eint
     public :: entropy_T_and_y_from_nH_eint
     !> Inverse (log nH, log p/nH) -> eint/p ratio, Gamma_1
+    public :: entropy_eint_from_p_bisect
     public :: entropy_eint_from_nH_p
     public :: entropy_gamma1_from_nH_p
     !> Inverse (log nH, log T) -> log10(eint/nH)
@@ -50,7 +51,7 @@ contains
     !> Entropy-method load: six quantities, each a value table plus its three
     !> derivative tables, on the forward (nH, eint/nH), inverse-p (nH, p/nH) and
     !> inverse-T (nH, T) grids. Every runtime query is one bicubic-Hermite
-    !> evaluation (see generate_all_tables.py).
+    !> evaluation (see generate_entropy_tables.py).
     subroutine load_entropy_LTE()
         integer :: iq, id
         character(len=8), parameter :: quantity(6) = &
@@ -373,6 +374,75 @@ contains
         log_e_nh_code = log_e_nh_cgs - dlog10(unit_pressure / unit_numberdensity)
         ratio = 10.0d0**(log_e_nh_code - log_p_nH_code)
     end function entropy_eint_from_nH_p
+
+    !> Bisection inverse for the entropy table set: find log10(eint/nH) [code] such that
+    !> p(nH, eint) = p_target exactly, using the forward pfwd table. The eintP table only
+    !> supplies the initial guess. This is the entropy-mode counterpart of
+    !> eint_from_p_bisect (mod_eos_LTE), which is bound to eos%log_p - a table that is not
+    !> loaded when eos_method='entropy' (its use there segfaulted on an unallocated array).
+    subroutine entropy_eint_from_p_bisect(pfwd, pfwd_x, pfwd_y, pfwd_xy, &
+                                          eintP, eintP_x, eintP_y, eintP_xy, &
+                                          log_nH_code, log_p_nH_code, log_eint_nH_code)
+        type(eos_table_container), intent(in) :: pfwd, pfwd_x, pfwd_y, pfwd_xy
+        type(eos_table_container), intent(in) :: eintP, eintP_x, eintP_y, eintP_xy
+        double precision, intent(in)  :: log_nH_code, log_p_nH_code
+        double precision, intent(out) :: log_eint_nH_code
+        double precision :: ratio, guess, lo, hi, mid, f_lo, f_hi, f_mid
+        double precision :: lim_lo, lim_hi
+        integer :: iter
+
+        !> eint-axis limits of the forward table (uniform vs adaptive grid)
+        if (pfwd%is_uniform) then
+            lim_lo = pfwd%var2_min
+            lim_hi = pfwd%var2_max
+        else
+            lim_lo = pfwd%var2_nodes(1)
+            lim_hi = pfwd%var2_nodes(pfwd%dim2)
+        end if
+
+        !> initial guess from the inverse table
+        ratio = entropy_eint_from_nH_p(eintP, eintP_x, eintP_y, eintP_xy, &
+                                       log_nH_code, log_p_nH_code)
+        guess = dlog10(max(ratio, 1.0d-300)) + log_p_nH_code
+        guess = max(lim_lo, min(lim_hi, guess))
+
+        !> bracket, expanding until the target is straddled
+        lo = max(lim_lo, guess - 2.0d-2)
+        hi = min(lim_hi, guess + 2.0d-2)
+        f_lo = dlog10(max(entropy_p_nH_from_eint(pfwd, pfwd_x, pfwd_y, pfwd_xy, &
+                          log_nH_code, lo), 1.0d-300)) - log_p_nH_code
+        f_hi = dlog10(max(entropy_p_nH_from_eint(pfwd, pfwd_x, pfwd_y, pfwd_xy, &
+                          log_nH_code, hi), 1.0d-300)) - log_p_nH_code
+        do iter = 1, 12
+            if (f_lo*f_hi <= 0.0d0) exit
+            lo = max(lim_lo, lo - 1.0d-1)
+            hi = min(lim_hi, hi + 1.0d-1)
+            f_lo = dlog10(max(entropy_p_nH_from_eint(pfwd, pfwd_x, pfwd_y, pfwd_xy, &
+                              log_nH_code, lo), 1.0d-300)) - log_p_nH_code
+            f_hi = dlog10(max(entropy_p_nH_from_eint(pfwd, pfwd_x, pfwd_y, pfwd_xy, &
+                              log_nH_code, hi), 1.0d-300)) - log_p_nH_code
+            if (lo <= lim_lo .and. hi >= lim_hi) exit
+        end do
+
+        !> no bracket (target outside the table range) -> keep the table guess
+        if (f_lo*f_hi > 0.0d0) then
+            log_eint_nH_code = guess
+            return
+        end if
+
+        do iter = 1, 40
+            mid = 0.5d0*(lo + hi)
+            f_mid = dlog10(max(entropy_p_nH_from_eint(pfwd, pfwd_x, pfwd_y, pfwd_xy, &
+                               log_nH_code, mid), 1.0d-300)) - log_p_nH_code
+            if (f_mid*f_lo <= 0.0d0) then
+                hi = mid; f_hi = f_mid
+            else
+                lo = mid; f_lo = f_mid
+            end if
+            if (hi - lo < 1.0d-12) exit
+        end do
+        log_eint_nH_code = 0.5d0*(lo + hi)
+    end subroutine entropy_eint_from_p_bisect
 
     !> Inverse: Gamma_1 from (log nH, log p/nH). Bicubic Hermite of g1p.
     double precision function entropy_gamma1_from_nH_p(g1p, g1p_x, g1p_y, g1p_xy, &

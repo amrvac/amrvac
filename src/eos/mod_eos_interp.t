@@ -263,7 +263,7 @@ contains
     !> Convention (matches struct fields var1_nodes / var2_nodes):
     !>   var1 has dim1 nodes, var2 has dim2 nodes.
     !>   Table is stored as table(dim1, dim2) -- Fortran column-major,
-    !>   matching how generate_lte_tables.py writes it (data.T.tofile).
+    !>   matching how generate_state_tables.py writes it (data.T.tofile).
     !>   Element (i1, i2) of the table corresponds to node positions
     !>   (var1_nodes(i1), var2_nodes(i2)).
     pure double precision function interp_clamped_bilinear_table_nu( &

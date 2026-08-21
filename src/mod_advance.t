@@ -38,9 +38,11 @@ contains
     double precision, allocatable, save :: c_all_ranks(:)
     double precision, allocatable, save :: tc_all_ranks(:)
     double precision, allocatable, save :: cool_all_ranks(:)
+    double precision, allocatable, save :: rt_all_ranks(:)
     double precision :: cmax, cmean, ratioc
     double precision :: tcmax, tcmean, ratiotc
     double precision :: coolmax, coolmean, ratiocool
+    double precision :: rtmax, rtmean, ratiort
     integer, save :: lb_log_unit = -1
     logical, save :: lb_first_call = .true.
     integer :: ipe
@@ -54,6 +56,7 @@ contains
         allocate(c_all_ranks(npe))
         allocate(tc_all_ranks(npe))
         allocate(cool_all_ranks(npe))
+        allocate(rt_all_ranks(npe))
         write(lb_log_name,'(a,a)') trim(base_filename), 'rank_timing.log'
         open(newunit=lb_log_unit, file=trim(lb_log_name), status='replace', action='write')
         write(lb_log_unit,'(a)',advance='no') '# it time '
@@ -69,7 +72,12 @@ contains
         do ipe=0,npe-1
           write(lb_log_unit,'(a,i0,a)',advance='no') 't_cool_rank',ipe,' '
         end do
-        write(lb_log_unit,'(a)') 'tmax tmean R cmax cmean Rc tcmax tcmean Rtc coolmax coolmean Rcool'
+        do ipe=0,npe-1
+          write(lb_log_unit,'(a,i0,a)',advance='no') 't_rt_rank',ipe,' '
+        end do
+        write(lb_log_unit,'(a)',advance='no') 'tmax tmean R cmax cmean Rc '
+        write(lb_log_unit,'(a)',advance='no') 'tcmax tcmean Rtc coolmax coolmean Rcool '
+        write(lb_log_unit,'(a)') 'rtmax rtmean Rrt'
         flush(lb_log_unit)
         lb_first_call = .false.
       else if (lb_first_call) then
@@ -83,7 +91,13 @@ contains
 
     ! Per-block cost reset for the cost-weighted load balancer.
     ! Cleared every step before the iigrid loops fill it.
-    if (lb_automatic) block_cost = 0.0d0
+    ! Seed with the sweep cost measured by rt_sc_solve() earlier this step, then
+    ! clear that accumulator for the next solve. The hydro timers below add on
+    ! top, so the partitioner sees transfer and hydro cost for the same step.
+    if (lb_automatic) then
+      block_cost = block_cost_rt
+      block_cost_rt = 0.0d0
+    end if
 
     ! split source addition
     call add_split_source(prior=.true.) !> calculates temperature based on conservative state
@@ -133,6 +147,8 @@ contains
                         tc_all_ranks,1,MPI_DOUBLE_PRECISION,0,icomm,ierrmpi)
         call MPI_GATHER(lb_cool_accum,1,MPI_DOUBLE_PRECISION, &
                         cool_all_ranks,1,MPI_DOUBLE_PRECISION,0,icomm,ierrmpi)
+        call MPI_GATHER(lb_rt_accum,1,MPI_DOUBLE_PRECISION, &
+                        rt_all_ranks,1,MPI_DOUBLE_PRECISION,0,icomm,ierrmpi)
         tmax = maxval(t_all_ranks)
         tmean = sum(t_all_ranks)/dble(npe)
         cmax = maxval(c_all_ranks)
@@ -141,6 +157,8 @@ contains
         tcmean = sum(tc_all_ranks)/dble(npe)
         coolmax = maxval(cool_all_ranks)
         coolmean = sum(cool_all_ranks)/dble(npe)
+        rtmax = maxval(rt_all_ranks)
+        rtmean = sum(rt_all_ranks)/dble(npe)
         if (tmean > 0.0d0) then
           ratio = tmax/tmean
         else
@@ -161,6 +179,11 @@ contains
         else
           ratiocool = 1.0d0
         end if
+        if (rtmean > 0.0d0) then
+          ratiort = rtmax/rtmean
+        else
+          ratiort = 1.0d0
+        end if
         write(lb_log_unit,'(i10,1x,es16.8,1x)',advance='no') it, global_time
         do ipe=1,npe
           write(lb_log_unit,'(es14.6,1x)',advance='no') t_all_ranks(ipe)
@@ -174,9 +197,13 @@ contains
         do ipe=1,npe
           write(lb_log_unit,'(es14.6,1x)',advance='no') cool_all_ranks(ipe)
         end do
-        write(lb_log_unit,'(12(es14.6,1x))') &
+        do ipe=1,npe
+          write(lb_log_unit,'(es14.6,1x)',advance='no') rt_all_ranks(ipe)
+        end do
+        write(lb_log_unit,'(15(es14.6,1x))') &
              tmax, tmean, ratio, cmax, cmean, ratioc, &
-             tcmax, tcmean, ratiotc, coolmax, coolmean, ratiocool
+             tcmax, tcmean, ratiotc, coolmax, coolmean, ratiocool, &
+             rtmax, rtmean, ratiort
         flush(lb_log_unit)
       else
         call MPI_GATHER(t_advance_local,1,MPI_DOUBLE_PRECISION, &
@@ -187,7 +214,12 @@ contains
                         t_dummy,1,MPI_DOUBLE_PRECISION,0,icomm,ierrmpi)
         call MPI_GATHER(lb_cool_accum,1,MPI_DOUBLE_PRECISION, &
                         t_dummy,1,MPI_DOUBLE_PRECISION,0,icomm,ierrmpi)
+        call MPI_GATHER(lb_rt_accum,1,MPI_DOUBLE_PRECISION, &
+                        t_dummy,1,MPI_DOUBLE_PRECISION,0,icomm,ierrmpi)
       end if
+      ! The sweep accumulates before advance is entered, so it is cleared here,
+      ! after the gather, rather than in the reset block at the top.
+      lb_rt_accum = 0.0d0
     end if
 
   end subroutine advance

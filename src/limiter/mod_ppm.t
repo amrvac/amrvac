@@ -200,6 +200,13 @@ contains
     if(flatcd)then
       ixRR^L=ixR^L+kr(idims,^D);               !ixRR=[iMmin+1,ixMmax+3]
       kxL^L=kxC^L-kr(idims,^D);                ! kxL=[iMmin-4,ixMmax+1]
+      ! d2wC above is assigned only over lxC, but ppm_flatcd reads it over kxC, which
+      ! reaches one plane further down (kxCmin = ixOmin-2, lxCmin = ixOmin-1). That plane
+      ! was never written, so the contact-flattening detector was fed uninitialised memory.
+      ! Re-derive it over kxC here. The extra plane needs w at kxCmin-1, which is in range
+      ! only because flatcd forces nghostcells>=4 (mod_input_output.t), so this stays
+      ! inside the flatcd branch.
+      d2wC(kxC^S,1:nwflux)=half*(w(kxR^S,1:nwflux)-w(kxL^S,1:nwflux))
       call ppm_flatcd(ixI^L,kxC^L,kxL^L,kxR^L,wCT,d2wC,aa,ab)
       if(any(kappa*aa(kxC^S)>=ab(kxC^S)))then
         do iw=1,nwflux
@@ -258,18 +265,29 @@ contains
           ixR^L=ixO^L+kr(idimss,^D); ! ixR=[ixMmin,ixMmax+2]
           ki(ixO^S)=min(ki(ixO^S),aa(ixL^S),aa(ixO^S),aa(ixR^S))
        end do
+       ! Eq. B12/B13, page 217, Mignone et al 2005, ApJS:
+       !     q_L -> chi*q_L + (1-chi)*qbar ,   q_R -> chi*q_R + (1-chi)*qbar
+       ! with chi the flattening parameter of eq. B14, i.e. the minimum of the
+       ! one-dimensional chi~ of eq. B17/B18 over the neighbouring zones. That is exactly
+       ! what ki holds. This used to blend with ab instead -- the raw shock-strength
+       ! measure returned by ppm_flatsh, which is not a weight in [0,1]: on smooth data
+       ! it runs 1e-4 to 0.09, so every cell was flattened by >90% toward its own
+       ! average. Measured on an Alfven wave over one period with flatsh enabled, that
+       ! left the scheme not converging at all -- L1 fell by 17% between 32 and 256
+       ! cells, an observed order of 0.0 to 0.2 -- against second order once ki is used
+       ! (1.9, 1.7, 2.1 over the same refinements). ki was computed and never read.
        ! recycling wMax
        do iw=1,nwflux
-          where(dabs(ab(ixO^S)-one)>smalldouble)
-             wMax(ixO^S,iw) = (one-ab(ixO^S))*wCT(ixO^S,iw)
+          where(dabs(ki(ixO^S)-one)>smalldouble)
+             wMax(ixO^S,iw) = (one-ki(ixO^S))*wCT(ixO^S,iw)
           end where
 
-          where(dabs(ab(hxC^S)-one)>smalldouble)
-             wLC(hxC^S,iw) = ab(hxC^S)*wLC(hxC^S,iw)+wMax(hxC^S,iw)
+          where(dabs(ki(hxC^S)-one)>smalldouble)
+             wLC(hxC^S,iw) = ki(hxC^S)*wLC(hxC^S,iw)+wMax(hxC^S,iw)
           end where
 
-          where(dabs(ab(hxR^S)-one)>smalldouble)
-             wRC(hxC^S,iw) = ab(hxR^S)*wRC(hxC^S,iw)+wMax(hxR^S,iw)
+          where(dabs(ki(hxR^S)-one)>smalldouble)
+             wRC(hxC^S,iw) = ki(hxR^S)*wRC(hxC^S,iw)+wMax(hxR^S,iw)
           end where
        end do
     end if

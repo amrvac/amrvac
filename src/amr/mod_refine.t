@@ -176,8 +176,6 @@ contains
       call prolong_2nd_stg(sCo,sFi,ixCo^L,ixM^LL,dxCo^D,xComin^D,dxFi^D,xFimin^D,.false.,fine_^L)
     end if
   
-    if(fix_small_values) call phys_handle_small_values(prolongprimitive,wFi,sFi%x,ixG^LL,ixM^LL,'prolong_2nd')
-
     ! Convert child cells from prolongation space to conserved.
     if(associated(phys_from_prolong) .and. associated(phys_wb_prolong)) then
       ! EoS-aware interpolation produced (rho, v, T) in the child cells.
@@ -202,6 +200,17 @@ contains
     else
       if(prolongprimitive) call phys_to_conserved(ixG^LL,ixM^LL,wFi,sFi%x)
     end if
+
+    ! Small-value repair runs here, after the conversion above, not before it. wFi is in
+    ! EoS prolongation space until then -- (rho, v, T), with T in the e_ slot and velocity in
+    ! the momentum slots -- whereas phys_handle_small_values is told the layout by
+    ! prolongprimitive, which is .false. here. Called earlier it therefore read T as total
+    ! energy and formed 0.5*v^2/rho instead of 0.5*m^2/rho, and with
+    ! small_values_method='replace' overwrote cells on the strength of that misreading.
+    ! Symptom: only the energy slot of newly refined blocks was destroyed (rho/m/Ne within 4%
+    ! of untouched blocks, e 5.7e6x too large), dt collapsing 1.9E-04 -> 2.7E-20 at the first
+    ! regrid. Invisible whenever fix_small_values=.false., because that skips this call.
+    if(fix_small_values) call phys_handle_small_values(prolongprimitive,wFi,sFi%x,ixG^LL,ixM^LL,'prolong_2nd')
     end associate
   
   end subroutine prolong_2nd

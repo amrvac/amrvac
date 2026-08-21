@@ -60,10 +60,11 @@ module mod_thermal_conduction
       double precision, intent(out):: res(ixI^S)
     end subroutine get_var_subr
 
-    subroutine get_2var_subr(ixI^L, ixO^L, w, ne, nH)
+    subroutine get_2var_subr(ixI^L, ixO^L, w, x, ne, nH)
       use mod_global_parameters
       integer, intent(in)          :: ixI^L, ixO^L
       double precision, intent(in) :: w(ixI^S, nw)
+      double precision, intent(in) :: x(ixI^S, 1:ndim)
       double precision, intent(out):: ne(ixI^S), nH(ixI^S)
     end subroutine get_2var_subr
 
@@ -264,7 +265,7 @@ contains
     !temperature
     call fl%get_temperature_from_conserved(w,x,ixI^L,ixI^L,Te)
     call fl%get_rho(w,x,ixI^L,ixO^L,rho)
-    call fl%get_ne_nH(ixI^L, ixO^L, w, ne, nH_arr)
+    call fl%get_ne_nH(ixI^L, ixO^L, w, x, ne, nH_arr)
 
     !tc_k_para_i
     if(fl%tc_constant) then
@@ -1412,7 +1413,7 @@ contains
 
     call fl%get_temperature_from_conserved(w,x,ixI^L,ixI^L,Te)
     call fl%get_rho(w,x,ixI^L,ixO^L,rho)
-    call fl%get_ne_nH(ixI^L, ixO^L, w, ne, nH_arr)
+    call fl%get_ne_nH(ixI^L, ixO^L, w, x, ne, nH_arr)
 
     if(fl%tc_constant) then
       tmp(ixO^S)=fl%tc_k_para/rho(ixO^S)
