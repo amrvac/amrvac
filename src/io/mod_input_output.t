@@ -285,7 +285,7 @@ contains
          w_refine_weight, prolongprimitive,coarsenprimitive, &
          typeprolonglimit, &
          logflag,tfixgrid,itfixgrid,ditregrid, &
-         lb_diagnose,lb_automatic,lb_interval,lb_alpha
+         lb_diagnose,lb_automatic,lb_interval,lb_alpha,lb_max_block_ratio
     namelist /paramlist/  courantpar, dtpar, dtdiffpar, &
          typecourant, slowsteps
 

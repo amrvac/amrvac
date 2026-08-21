@@ -171,13 +171,19 @@ contains
 
     sfc=0
     ! Cost-weighted load balancer arrays. costlist is global Morton-indexed
-    ! (sized to max_blocks*npe, the upper bound on nleafs); cold-start to 1.0
-    ! so the first partition equals the equal-block-count cut. block_cost is
-    ! the per-step scratch accumulator (per-rank, per-igrid), reset every
-    ! advance.
+    ! (sized to max_blocks*npe, the upper bound on nleafs) and holds seconds.
+    ! Cold-start is zero with costlist_seen false, which makes
+    ! get_Morton_range_costed take the equal-block-count fallback until the
+    ! first real measurement arrives; a non-zero dimensionless cold start
+    ! would be a units error against block_cost. block_cost is the per-step
+    ! scratch accumulator (per-rank, per-igrid), reset every advance.
     allocate(costlist(max_blocks*npe))
+    allocate(costlist_seen(max_blocks*npe))
     allocate(block_cost(max_blocks))
-    costlist   = 1.0d0
+    allocate(block_cost_rt(max_blocks))
+    block_cost_rt = 0.0d0
+    costlist   = 0.0d0
+    costlist_seen = .false.
     block_cost = 0.0d0
     allocate(Morton_start(0:npe-1),Morton_stop(0:npe-1))
     allocate(Morton_sub_start(0:npe-1),Morton_sub_stop(0:npe-1))

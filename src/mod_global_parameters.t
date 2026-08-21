@@ -279,19 +279,45 @@ module mod_global_parameters
   !> 0 = no memory (volatile), 1 = no update.
   double precision :: lb_alpha = 0.9d0
 
+  !> Bound on the memory imbalance get_Morton_range_costed may create: no rank
+  !> may hold more than lb_max_block_ratio * (nleafs/npe) blocks. Cost balance
+  !> and memory balance are in tension, as a rank owning cheap blocks must hold
+  !> more of them to match one owning expensive blocks. 1.0 is the equal-block
+  !> cut; larger values allow more freedom to follow cost.
+  !> get_Morton_range_active bounds the same ratio through its wa/wp weights.
+  double precision :: lb_max_block_ratio = 1.25d0
+
   !> Per-step per-block (per-rank, indexed by igrid) cost accumulator.
   !> Reset at start of each advance call; filled inside iigrid loops by the
   !> per-block timer wrappers in mod_advance.t and mod_supertimestepping.t.
   double precision, dimension(:), allocatable :: block_cost
 
-  !> Persistent global per-Morton-leaf EWMA cost. Sized to max_blocks*npe
-  !> (the upper bound on nleafs); only the first nleafs entries are
-  !> meaningful. Morton numbering is invariant across load_balance
-  !> migration, so costlist values are correctly preserved when blocks
-  !> change rank. Refinement events insert/remove Morton indices, after
-  !> which the EWMA recovers over ~5 cycles. Indexed 1..nleafs. Updated
-  !> by EWMA blend inside get_Morton_range_costed.
+  !> Per-step per-block cost of the short-characteristics sweep, indexed by
+  !> igrid. Separate from block_cost because rt_sc_solve() runs before advance(),
+  !> which zeroes block_cost on entry. advance() seeds block_cost from this array
+  !> and clears it for the next solve, so both costs share a partition weight.
+  double precision, dimension(:), allocatable :: block_cost_rt
+
+  !> Per-rank wall time spent in the SC radiative-transfer KBA sweep this step,
+  !> for the lb_diagnose rank-timing log. Filled by mod_rt_sc_solvers (which runs
+  !> before advance), gathered and zeroed inside advance's diagnostic block.
+  double precision :: lb_rt_accum = 0.0d0
+
+  !> Persistent global per-Morton-leaf EWMA cost, in seconds (block_cost is a
+  !> wall-clock accumulation). Sized to max_blocks*npe (the upper bound on
+  !> nleafs); only the first nleafs entries are meaningful. Morton numbering
+  !> is invariant across load_balance migration, so costlist values are
+  !> correctly preserved when blocks change rank. Refinement events
+  !> insert/remove Morton indices, after which the EWMA recovers over
+  !> ~5 cycles. Indexed 1..nleafs. Updated by EWMA blend inside
+  !> get_Morton_range_costed.
   double precision, dimension(:), allocatable :: costlist
+
+  !> Whether the matching costlist slot has ever carried a measurement. Morton
+  !> indices created by a refinement event have not been timed; they are seeded
+  !> with the mean of the measured slots, since costlist is a wall time and any
+  !> fixed seed would be a units error.
+  logical, dimension(:), allocatable :: costlist_seen
 
   !> MPI file handle for logfile
   integer :: log_fh

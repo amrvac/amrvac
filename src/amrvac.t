@@ -20,6 +20,7 @@ program amrvac
   use mod_physics
   use mod_eos, only: eos, eos_init, eos_finalise, prepare_eos_w_fields
   use mod_amr_grid, only: resettree, settree, resettree_convert
+  use mod_coarsen_refine, only: amr_rebalance
   use mod_trac, only: initialize_trac_after_settree
   use mod_convert_files, only: generate_plotfile
   use mod_comm_lib, only: comm_start, comm_finalize,mpistop
@@ -284,13 +285,18 @@ contains
 
        time_before_advance=MPI_WTIME()
        ! set time step
+       tw_setdt=MPI_WTIME()
        call setdt()
+       tw_setdt=MPI_WTIME()-tw_setdt
 
        ! Optionally call a user method that can modify the grid variables at the
-       ! beginning of a time step
+       ! beginning of a time step (this is where the SC radiative transfer solve runs)
+       tw_process=0.d0
        if (associated(usr_process_grid) .or. &
             associated(usr_process_global)) then
+          tw_process=MPI_WTIME()
           call process(it,global_time)
+          tw_process=MPI_WTIME()-tw_process
        end if
 
        ! Check if output needs to be written
@@ -378,6 +384,11 @@ contains
        ! update AMR mesh and tree (upstream-style: mod-based regrid)
        timegr0=MPI_WTIME()
        if (mod(it,ditregrid)==0 .and. refine_max_level>1 .and. .not.(fixgrid())) call resettree
+       ! Static-grid cost rebalance: regrid never fires when refine_max_level==1, so the cost-weighted
+       ! load_balance has no trigger. Fire it every lb_interval cycles (the previously-unused knob).
+       ! (AMR grids get the costed rebalance inside resettree already, so this is static-grid only.)
+       if (lb_automatic .and. refine_max_level==1 .and. it>it_init .and. mod(it,lb_interval)==0) &
+            call amr_rebalance
        tw_regrid=MPI_WTIME()-timegr0
        timegr_tot=timegr_tot+tw_regrid
 
