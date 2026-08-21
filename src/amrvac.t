@@ -93,7 +93,7 @@ program amrvac
      ! modify initial condition
      if (firstprocess) then
        ! update ghost cells for all need-boundary variables before modification
-       call getbc(global_time,0.d0,ps,1,nwflux+nwaux)
+       call getbc(global_time,0.d0,ps,iwstart,nwgc)
        call modify_IC
      end if
 
@@ -101,7 +101,7 @@ program amrvac
      call selectgrids
 
      ! update ghost cells for all need-boundary variables
-     call getbc(global_time,0.d0,ps,1,nwflux+nwaux)
+     call getbc(global_time,0.d0,ps,iwstart,nwgc)
 
      ! reset AMR grid
      if (reset_grid) then

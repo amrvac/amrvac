@@ -482,8 +482,17 @@ contains
        tracer(itr) = var_set_fluxvar("trc", "trp", itr, need_bc=.false.)
     end do
 
-    ! set number of variables which need update ghostcells
+    ! set number of variables which need update ghostcells.
+    ! The EoS-derived slots Ne/Te are derived state that must stay consistent with (rho,e)
+    ! wherever the conserved state is valid, so they have to travel with it. var_set_ne /
+    ! var_set_te bump nw but neither nwflux nor nwaux, so the historic nwflux+nwaux silently
+    ! excluded them: they were never communicated, only derived, and every ghost cell held
+    ! zero until something derived it. Extend the window to whichever of them exist (they are
+    ! registered contiguously just above); FI leaves both at -1 and the window is unchanged.
+    ! bc_phys is unaffected -- it iterates nwflux+nwaux independently.
     nwgc=nwflux+nwaux
+    if (iw_ne > 0) nwgc = max(nwgc, iw_ne)
+    if (iw_te > 0) nwgc = max(nwgc, iw_te)
 
     ! set the index of the last flux variable for species 1
     stop_indices(1)=nwflux
