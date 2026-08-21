@@ -379,10 +379,11 @@ module mod_thermal_emission
   end interface
 
   abstract interface
-    subroutine get_2var_subr_te(ixI^L, ixO^L, w, val1, val2)
+    subroutine get_2var_subr_te(ixI^L, ixO^L, w, x, val1, val2)
       use mod_global_parameters
       integer, intent(in)          :: ixI^L, ixO^L
       double precision, intent(in) :: w(ixI^S, nw)
+      double precision, intent(in) :: x(ixI^S, 1:ndim)
       double precision, intent(out):: val1(ixI^S), val2(ixI^S)
     end subroutine get_2var_subr_te
   end interface
@@ -924,7 +925,7 @@ module mod_thermal_emission
       ! nH always follows the mass density and composition of the simulated
       ! gas.  rHe_opacity is deliberately applied only when constructing the
       ! synthetic absorber below; it never changes this EOS conversion.
-      call eos%get_ne_nH(ixI^L, ixO^L, w, Ne, nH)
+      call eos%get_ne_nH(ixI^L, ixO^L, w, x, Ne, nH)
       if (SI_unit) then
         Ne(ixO^S)=Ne(ixO^S)*unit_numberdensity/1.d6
         nH(ixO^S)=nH(ixO^S)*unit_numberdensity/1.d6
@@ -1035,7 +1036,7 @@ module mod_thermal_emission
       call fl%get_rho(w,x,ixI^L,ixO^L,Ne)
       call fl%get_var_Rfactor(w,x,ixI^L,ixO^L,Te)
       Te(ixO^S)=pth(ixO^S)/(Ne(ixO^S)*Te(ixO^S))*unit_temperature
-      call eos%get_ne_nH(ixI^L,ixO^L,w,Ne,nH_dummy)
+      call eos%get_ne_nH(ixI^L,ixO^L,w, x,Ne,nH_dummy)
       if (SI_unit) then
         Ne(ixO^S)=Ne(ixO^S)*unit_numberdensity/1.d6
       else
@@ -1219,7 +1220,7 @@ module mod_thermal_emission
       ! The tabulated response is multiplied by the physical emission-measure
       ! factor ne*nH.  Both densities come from the active EOS so the source
       ! remains consistent for FI, PI, and LTE simulations.
-      call eos%get_ne_nH(ixI^L, ixO^L, w, Ne, nH)
+      call eos%get_ne_nH(ixI^L, ixO^L, w, x, Ne, nH)
       if (SI_unit) then
         Ne(ixO^S)=Ne(ixO^S)*unit_numberdensity/1.d6 ! m^-3 -> cm-3
         nH(ixO^S)=nH(ixO^S)*unit_numberdensity/1.d6
@@ -1293,7 +1294,7 @@ module mod_thermal_emission
       ! get actual electron density from EoS (replaces rho with ne)
       block
         double precision :: nH_dummy(ixI^S)
-        call eos%get_ne_nH(ixI^L, ixO^L, w, Ne, nH_dummy)
+        call eos%get_ne_nH(ixI^L, ixO^L, w, x, Ne, nH_dummy)
       end block
       if (SI_unit) then
         Ne(ixO^S)=Ne(ixO^S)*unit_numberdensity/1.d6 ! m^-3 -> cm-3
@@ -1393,7 +1394,7 @@ module mod_thermal_emission
         ! get actual electron density from EoS (replaces rho with ne)
         block
           double precision :: nH_dummy(ixI^S)
-          call eos%get_ne_nH(ixI^L, ixb^L, w, Ne, nH_dummy)
+          call eos%get_ne_nH(ixI^L, ixb^L, w, x, Ne, nH_dummy)
         end block
         if (SI_unit) then
           Ne(ixO^S)=Ne(ixO^S)*unit_numberdensity/1.d6 ! m^-3 -> cm-3
@@ -6328,7 +6329,7 @@ module mod_thermal_emission
       ! get actual electron density from EoS (replaces rho with ne)
       block
         double precision :: nH_dummy(ixI^S)
-        call eos%get_ne_nH(ixI^L, ixO^L, ps(igrid)%w, Ne, nH_dummy)
+        call eos%get_ne_nH(ixI^L, ixO^L, ps(igrid)%w, ps(igrid)%x, Ne, nH_dummy)
       end block
       sigma_PSF=1.d0
       pixel=LASCO_rsl*arcsec

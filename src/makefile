@@ -200,6 +200,7 @@ mod_eos.o: mod_eos_shared_functions.mod
 mod_eos.o: mod_global_parameters.mod
 mod_eos.o: mod_timing.mod
 mod_eos_FI.o: mod_eos_container.mod
+mod_eos_FI.o: mod_eos_shared_functions.mod
 mod_eos_FI.o: mod_global_parameters.mod
 mod_eos_FI.o: mod_physics.mod
 mod_eos_FI.o: mod_timing.mod

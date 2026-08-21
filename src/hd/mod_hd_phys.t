@@ -182,13 +182,6 @@ module mod_hd_phys
   logical, public, protected              :: hd_well_balanced = .false.
 
 
-  !> Equilibrium splitting variables (stubs for mod_usr.t compatibility)
-  logical, public :: hd_equi_rho0 = .false.
-  logical, public :: hd_equi_pe0 = .false.
-  integer, public :: equi_rho0_ = -1
-  integer, public :: equi_pe0_ = -1
-  integer, public :: equi_e0_ = -1
-
   !> Helium abundance over Hydrogen
   !> He_abundance is set in &eos_list and accessed via eos%He_abundance
   !> Ionization fraction of H
@@ -1486,7 +1479,7 @@ contains
 
       ! Get n_e and n_H for cooling rate: Q = n_e * n_H * Lambda(T)
       ! For FI: n_e = n_H * neOnH_FI.  For LTE: n_e from Saha EoS.
-      call eos%get_ne_nH(ixI^L, ixO^L, w, ne, nH_arr)
+      call eos%get_ne_nH(ixI^L, ixO^L, w, x, ne, nH_arr)
 
       hxO^L=ixO^L-1;
       jxO^L=ixO^L+1;
@@ -1556,7 +1549,7 @@ contains
       ! Isotropic Spitzer conduction, so the TR normal is the unit temperature
       ! gradient direction nhat, and the broadening is applied along it.
       call usr_get_heating(Q_heat, ixI^L, ixO^L, w, x)
-      call eos%get_ne_nH(ixI^L, ixO^L, w, ne, nH_arr)
+      call eos%get_ne_nH(ixI^L, ixO^L, w, x, ne, nH_arr)
       ! default (incl. non-communicated ghost layer): Tcoff=Te -> no broadening; interior overwritten
       block%wextra(ixI^S,Tcoff_) = Te(ixI^S)
       do idims=1,ndim

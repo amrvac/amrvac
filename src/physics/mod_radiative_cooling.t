@@ -62,10 +62,11 @@ module mod_radiative_cooling
       double precision, intent(out):: res(ixI^S)
     end subroutine get_subr1
 
-    subroutine get_2var_subr(ixI^L, ixO^L, w, ne, nH)
+    subroutine get_2var_subr(ixI^L, ixO^L, w, x, ne, nH)
       use mod_global_parameters
       integer, intent(in)          :: ixI^L, ixO^L
       double precision, intent(in) :: w(ixI^S, nw)
+      double precision, intent(in) :: x(ixI^S, 1:ndim)
       double precision, intent(out):: ne(ixI^S), nH(ixI^S)
     end subroutine get_2var_subr
 
@@ -187,6 +188,7 @@ module mod_radiative_cooling
     procedure (get_subr1), pointer, nopass :: get_pthermal_equi => null()
     procedure (get_subr1), pointer, nopass :: get_var_Rfactor => null()
     procedure (get_2var_subr), pointer, nopass :: get_ne_nH => null()
+    procedure (get_2var_subr), pointer, nopass :: get_ne_nH_equi => null()
     procedure (local_rho2_factor_subr), pointer, nopass :: get_rho2_factor => null()
     procedure (get_subr1), pointer, nopass :: get_temperature_equi => null()
     !> EoS snapshots + scalar inverse accessors (set in bind_eos_to_source); let
@@ -1029,7 +1031,7 @@ module mod_radiative_cooling
       ! call fl%get_var_Rfactor(w,x,ixI^L,ixO^L,Rfactor)
       ! Te(ixO^S) = pth(ixO^S) / (rho(ixO^S)*Rfactor(ixO^S))
       call fl%get_Te(w,x,ixI^L,ixO^L,Te)
-      call fl%get_ne_nH(ixI^L, ixO^L, w, ne, nH_arr)
+      call fl%get_ne_nH(ixI^L, ixO^L, w, x, ne, nH_arr)
       call radiative_cooling_rho2_factor(ixI^L,ixO^L,w,x,fl,rho2_factor)
 
       {do ix^DB = ixO^LIM^DB\}
@@ -1076,7 +1078,7 @@ module mod_radiative_cooling
       call fl%get_rho(wCT, x, ixI^L, ixO^L, rho)
       call fl%get_var_Rfactor(wCT,x,ixI^L,ixO^L,Rfactor)
       call fl%get_Te(wCT, x, ixI^L, ixO^L, Te)
-      call fl%get_ne_nH(ixI^L, ixO^L, wCT, ne, nH_arr)
+      call fl%get_ne_nH(ixI^L, ixO^L, wCT, x, ne, nH_arr)
       call radiative_cooling_rho2_factor(ixI^L,ixO^L,wCT,x,fl,rho2_factor)
       ! Te(ixO^S)=pth(ixO^S)/(rho(ixO^S)*Rfactor(ixO^S))
 
@@ -1307,8 +1309,9 @@ module mod_radiative_cooling
       call fl%get_rho_equi(wCT,x,ixI^L,ixO^L,rho)
       call fl%get_var_Rfactor(wCT,x,ixI^L,ixO^L,Rfactor)
       ! Te(ixO^S)=pth(ixO^S)/(rho(ixO^S)*Rfactor(ixO^S))
-      call fl%get_Te(wCT,x,ixI^L,ixO^L,Te)
-      call fl%get_ne_nH(ixI^L, ixO^L, wCT, ne, nH_arr)
+      ! temperature and densities of the background alone, to match pth and rho
+      call fl%get_temperature_equi(wCT,x,ixI^L,ixO^L,Te)
+      call fl%get_ne_nH_equi(ixI^L, ixO^L, wCT, x, ne, nH_arr)
       call radiative_cooling_rho2_factor(ixI^L,ixO^L,wCT,x,fl,rho2_factor)
 
       res=0d0
@@ -1430,7 +1433,7 @@ module mod_radiative_cooling
       call fl%get_rho(wCT,x,ixI^L,ixO^L,rho)
       call fl%get_var_Rfactor(wCT,x,ixI^L,ixO^L,Rfactor)
       call fl%get_Te(wCT,x,ixI^L,ixO^L,Te)
-      call fl%get_ne_nH(ixI^L, ixO^L, wCT, ne, nH_arr)
+      call fl%get_ne_nH(ixI^L, ixO^L, wCT, x, ne, nH_arr)
       call radiative_cooling_rho2_factor(ixI^L,ixO^L,wCT,x,fl,rho2_factor)
       call fl%get_pthermal(w,x,ixI^L,ixO^L,pnew)
       call fl%get_rho(w,x,ixI^L,ixO^L,rhonew)

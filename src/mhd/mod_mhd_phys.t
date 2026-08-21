@@ -1497,6 +1497,20 @@ contains
     if (number_equi_vars > 0 .and. .not. associated(usr_set_equi_vars)) then
       call mpistop("usr_set_equi_vars has to be implemented in the user file")
     endif
+
+    if(has_equi_rho_and_p) then
+      ! The Roe and HLLC solvers read the rho slot as a physical density, which
+      ! under splitting holds only the perturbation. Neither has a split variant,
+      ! so refuse the combination rather than return a quietly wrong wave speed.
+      if(any(flux_method(:)==fs_tvdmu) .or. any(flux_method(:)==fs_hllc) &
+         .or. any(flux_method(:)==fs_hllcd)) then
+        call mpistop("Must have has_equi_rho_and_p=F with the roe/hllc/hllcd flux schemes")
+      end if
+      ! mhd_get_tcutoff forms Te from the perturbation pressure and density.
+      if(mhd_trac) then
+        call mpistop("Must have has_equi_rho_and_p=F when mhd_trac=T")
+      end if
+    end if
     if(convert .or. autoconvert) then
       if(convert_type .eq. 'dat_generic_mpi') then
         if(mhd_dump_full_vars) then
@@ -2901,29 +2915,14 @@ contains
     double precision :: rho, inv_rho, ploc, cfast2, AvMinCs2, b2, kmax
     double precision :: cs2(ixI^S)
     double precision :: uawsom_zeta(ixI^S), uawsom_radius(ixI^S), uawsom_lperp(ixI^S)
-    double precision, allocatable :: w_eos(:^D&,:)
     integer :: ix^D
-    logical :: need_aug
 
     if(mhd_hall) kmax = dpi/min({dxlevel(^D)},bigdouble)*half
     if(mhd_uawsom) call mhd_uawsom_get_coefficients(w,x,ixI^L,ixO^L,.true.,&
          uawsom_zeta,uawsom_radius,uawsom_lperp)
 
     ! Sound speed squared via EoS dispatch (LTE+ionE -> Gamma_1 table; FI -> const gamma).
-    ! If equi_rho0 / equi_pe0 are active, csound^2 is based on the total state.
-    need_aug = has_equi_rho_and_p .or. has_equi_rho_and_p
-    if (need_aug) then
-      allocate(w_eos(ixI^S,nw))
-      w_eos(ixO^S,:) = w(ixO^S,:)
-      if (has_equi_rho_and_p) w_eos(ixO^S, rho_) = &
-          w(ixO^S, rho_) + block%equi_vars(ixO^S, equi_rho0_, b0i)
-      if (has_equi_rho_and_p)  w_eos(ixO^S, p_)   = &
-          w(ixO^S, p_)   + block%equi_vars(ixO^S, equi_pe0_, b0i)
-      call eos%get_csound2(w_eos, x, ixI^L, ixO^L, cs2)
-      deallocate(w_eos)
-    else
-      call eos%get_csound2(w, x, ixI^L, ixO^L, cs2)
-    end if
+    call eos%get_csound2(w, x, ixI^L, ixO^L, cs2)
 
     if(B0field) then
      {do ix^DB=ixOmin^DB,ixOmax^DB \}
@@ -3411,7 +3410,7 @@ contains
       ! steady-state balance (Eq.11/12) with the Eq.13 selection; general-EoS cooling n_e n_H L.
       ! (HD isotropic version used the grad-T direction; here it is the magnetic field.)
       call usr_get_heating(Q_heat, ixI^L, ixO^L, w, x)
-      call eos%get_ne_nH(ixI^L, ixO^L, w, ne, nH_arr)
+      call eos%get_ne_nH(ixI^L, ixO^L, w, x, ne, nH_arr)
       block%wextra(ixI^S,Tcoff_) = Te(ixI^S)         ! default (incl. ghost layer): no broadening
       do idims=1,ndim
         call gradient(Te,ixI^L,ixO^L,idims,gradT(ixI^S,idims))
@@ -5592,7 +5591,7 @@ contains
     ! R*(2+3 A_He) = (n_nuclei+n_e)/n_H. LTE stores ne explicitly.
     if(trim(mhd_hyperbolic_tc_perp_mode)=='electron_magnetization') then
       if(eos%eos_type=='LTE') then
-        call eos%get_ne_nH(ixI^L,ixI^L,wCT,ne_loc,nH_dummy)
+        call eos%get_ne_nH(ixI^L,ixI^L,wCT, x,ne_loc,nH_dummy)
       else if(eos%eos_type=='PI') then
         ne_loc(ixI^S)=rho_loc(ixI^S)*max(R(ixI^S)*(2.d0+3.d0*eos%He_abundance) &
              -(1.d0+eos%He_abundance),smalldouble)

@@ -10,6 +10,7 @@
 module mod_eos_FI
     use mod_global_parameters
     use mod_eos_container
+    use mod_eos_shared_functions, only: get_rho
     use mod_timing
 
     implicit none
@@ -69,13 +70,16 @@ contains
         double precision, intent(in)  :: w(ixI^S,1:nw)
         double precision, intent(in)  :: x(ixI^S,1:ndim)
         double precision, intent(out) :: T(ixI^S)
-        double precision :: Rfactor(ixI^S), pth(ixI^S)
+        double precision :: Rfactor(ixI^S), pth(ixI^S), rho(ixI^S)
 
         !> No timing here: get_thermal_pressure is already timed.
         !> The division and Rfactor call are trivial.
+        !> get_thermal_pressure already returns the total pressure under
+        !> equilibrium splitting, so only the density needs the background.
         call eos%get_thermal_pressure(w, x, ixI^L, ixO^L, pth)
         call eos%get_Rfactor(w,x,ixI^L,ixO^L,Rfactor)
-        T(ixO^S) = pth(ixO^S) / (w(ixO^S,iw_rho) * Rfactor(ixO^S))
+        call get_rho(w,x,ixI^L,ixO^L,rho)
+        T(ixO^S) = pth(ixO^S) / (rho(ixO^S) * Rfactor(ixO^S))
 
     end subroutine get_Te_FI
 
@@ -88,12 +92,18 @@ contains
         double precision, intent(in) :: w(ixI^S,1:nw)
         double precision, intent(out)   :: res(ixI^S)
 
-        double precision :: Rfactor(ixI^S)
+        double precision :: Rfactor(ixI^S), rho(ixI^S), pth(ixI^S)
 
         timeeos0 = MPI_WTIME()
 
         call eos%get_Rfactor(w,x,ixI^L,ixO^L,Rfactor)
-        res(ixO^S) = (eos%gamma_minus_1 * w(ixO^S,iw_e) / (Rfactor(ixO^S) * w(ixO^S,iw_rho))) !> pth/rho
+        call get_rho(w,x,ixI^L,ixO^L,rho)
+        !> Under equilibrium splitting the e slot holds the perturbation internal
+        !> energy, so the background pressure is added back to recover the total.
+        pth(ixO^S) = eos%gamma_minus_1 * w(ixO^S,iw_e)
+        if (iw_equi_p > 0) pth(ixO^S) = pth(ixO^S) &
+             + block%equi_vars(ixO^S,iw_equi_p,b0i)
+        res(ixO^S) = pth(ixO^S) / (Rfactor(ixO^S) * rho(ixO^S))
 
         timeeos_Tfromei=timeeos_Tfromei+(MPI_WTIME()-timeeos0)
     end subroutine get_temperature_from_eint_FI
