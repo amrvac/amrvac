@@ -10163,8 +10163,12 @@ contains
     double precision :: dxc^D,xd^D
     double precision :: field(0:1^D&,ndir),Fx(ndim),factor(0:1^D&)
     double precision :: Ftotal,field_min
+    double precision :: w_stencil(0:1^D&,1:nw)
+    double precision :: x_stencil(0:1^D&,1:ndim)
+    double precision :: vector_stencil(0:1^D&,1:ndir)
     logical :: valid_field
     integer          :: ixb^D,ix^D,ixbl^D,j,status_interp
+    integer          :: ixS^L
 
     if (geo_coordinate==geo_spherical) then
       call trace_interp_weights_block(xfn,igrid,ixI^L,ixbl^D,xd^D,dxc^D, &
@@ -10198,21 +10202,16 @@ contains
         {enddo\}
       endif
     else if (ftype=='Vfield') then
-      block
-        double precision :: w_stencil(ixbl^D:ixbl^D+1^D&,1:nw)
-        double precision :: x_stencil(ixbl^D:ixbl^D+1^D&,1:ndim)
-        double precision :: vector_stencil(ixbl^D:ixbl^D+1^D&,1:ndir)
-        integer :: ixS^L
-
-        ^D&ixSmin^D=ixbl^D;
-        ^D&ixSmax^D=ixbl^D+1;
-        w_stencil(ixS^S,1:nw)=ps(igrid)%w(ixS^S,1:nw)
-        x_stencil(ixS^S,1:ndim)=ps(igrid)%x(ixS^S,1:ndim)
-        call phys_get_v(w_stencil,x_stencil,ixS^L,ixS^L,vector_stencil)
-        {do ix^D=0,1\}
-          field(ix^D,1:ndir)=vector_stencil(ixbl^D+ix^D,1:ndir)
-        {enddo\}
-      end block
+      ! stencil is the two cells ixbl:ixbl+1 in each direction, held at 0:1 so
+      ! the bounds do not depend on the runtime ixbl
+      ^D&ixSmin^D=0;
+      ^D&ixSmax^D=1;
+      w_stencil(ixS^S,1:nw)=ps(igrid)%w(ixbl^D:ixbl^D+1^D&,1:nw)
+      x_stencil(ixS^S,1:ndim)=ps(igrid)%x(ixbl^D:ixbl^D+1^D&,1:ndim)
+      call phys_get_v(w_stencil,x_stencil,ixS^L,ixS^L,vector_stencil)
+      {do ix^D=0,1\}
+        field(ix^D,1:ndir)=vector_stencil(ix^D,1:ndir)
+      {enddo\}
     endif
     {do ix^D=0,1\}
       factor(ix^D)={abs(1-ix^D-xd^D)*}
