@@ -13,12 +13,10 @@ doc/html/*
 *.bak
 *.csv
 *.log.shfp.*
-/tests/hd/*/makefile
-/tests/mhd/*/makefile
-/tests/rho/*/makefile
-/tests/multigrid/*/makefile
-/tests/rd/*/makefile
-/tests/rhd/*/makefile
+# setup.pl and test_rules.make generate these in every test directory
+/tests/**/makefile
+/tests/**/amrvac.h
+/tests/**/myEqui.txt
 /tools/fortran/compare_logs
 # vacpp-generated Fortran (regenerated from .t sources; never commit)
 amrvac.f
