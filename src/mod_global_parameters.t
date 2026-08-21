@@ -678,6 +678,11 @@ module mod_global_parameters
   !> If true, call initonegrid_usr upon restarting
   logical :: firstprocess
 
+  !> If true, allow a restart from a snapshot whose ndir differs from the current
+  !> run (e.g. hd ndir=2 -> mhd ndir=3). Block I/O is ndim-based only, so the data
+  !> loads exactly; use usr_transform_w to place the source vars into the right slots.
+  logical :: allow_ndir_change
+
   !> If true, wall time is up, modify snapshotnext for later overwrite
   logical :: pass_wall_time
 
