@@ -267,7 +267,7 @@ contains
          typegrad, typediv, typecurl, &
          nxdiffusehllc, flathllc, tvdlfeps, flux_adaptive_diffusion, &
          flux_adaptive_diffusion_min, flux_adaptive_diffusion_scale, &
-         flux_energy_only, flatcd, flatsh, &
+         flux_energy_only, flatcd, flatsh, ppm_avisc, ppm_rjv, &
          rk2_alfa, imex222_lambda, ssprk_order, rk3_switch, imex_switch, &
          small_temperature, small_pressure, small_density, &
          small_values_method, small_values_daverage, fix_small_values, check_small_values, &
@@ -549,6 +549,8 @@ contains
        gradient_limiter(level) = 'minmod'
     end do
 
+    ppm_avisc       = 0.0d0
+    ppm_rjv         = 0.0d0
     flatcd          = .false.
     flatsh          = .false.
     typesourcesplit = 'sfs'

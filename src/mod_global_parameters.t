@@ -585,6 +585,50 @@ module mod_global_parameters
   !> typegrad or typediv are set to 'limited'
   integer, allocatable :: type_gradient_limiter(:)
 
+  !> Coefficient alpha of the explicit diffusive flux of Mignone et al. 2005 eq. B19-B21,
+  !> the second half of PPM's dissipation algorithm. 0 = off (default); the paper says
+  !> "alpha is typically set to 0.1".
+  !>
+  !>     F_{i+1/2} -> F_{i+1/2} + k_nu (U_i - U_{i+1}) ,   k_nu = alpha*max(-D_{i+1/2},0)
+  !>
+  !> D is an undivided multidimensional divergence of v at the interface, so the term is
+  !> active only where the flow converges. Two consequences worth knowing:
+  !>   * it is identically zero for a state at rest, so it cannot disturb a hydrostatic
+  !>     column -- exact discrete balance survives it untouched;
+  !>   * it is proportional to the raw cell difference U_i - U_{i+1}, not to the
+  !>     reconstructed face jump, so unlike everything else in the scheme it can see an
+  !>     odd-even mode that a face-value reconstruction annihilates.
+  double precision :: ppm_avisc = 0.0d0
+
+  !> Residual-jump velocity reconstruction (RJV). 0 = off (default), 1 = full strength.
+  !>
+  !> PPM's face operator annihilates the odd-even (2 dx) mode: the face value's leading
+  !> term is (q_i + q_{i+1})/2, and adjacent cells carry opposite ripple sign, while the
+  !> slope depends on (q_{i+1} - q_{i-1})/2, where the two cells have the same parity. So
+  !> the mode leaves no trace in w_L or w_R, the Riemann solver sees no jump, and applies
+  !> exactly zero dissipation to it. It never decays once seeded.
+  !>
+  !> But what the operator annihilates is exactly recoverable as its own residual,
+  !>
+  !>     e_i = v_i - (P_{i+1/2} + P_{i-1/2})/2 ,
+  !>
+  !> built from the two face values PPM has already computed -- no new stencil. For a
+  !> ripple A(-1)^i, e_i = A(-1)^i at full amplitude; for smooth data e_i = -h^2 v''/8.
+  !> Reinject it as a jump only, leaving the face value (and hence the flux, and hence a
+  !> hydrostatic column) untouched:
+  !>
+  !>     w_L(i+1/2) = P_{i+1/2} + beta*s_i*e_i ,  w_R(i+1/2) = P_{i+1/2} + beta*s_{i+1}*e_{i+1}
+  !>
+  !> with s_i = 1 only where e alternates across three cells, which no smooth field does.
+  !> At beta = 1 this reproduces the piecewise-constant jump for a pure ripple, i.e. full
+  !> first-order dissipation on the null component alone.
+  !>
+  !> Applied to the velocity components only. That is what makes it exact rather than
+  !> approximate: at rest v = 0, so e = 0 identically and the jump is exactly zero, and
+  !> every flux term the velocity enters carries a factor v. Measured inert on a resolved
+  !> sine (l=8 and l=32), a 3-cell tanh front, a discontinuity, and an exponential column.
+  double precision :: ppm_rjv = 0.0d0
+
   !> background magnetic field location indicator
   integer :: b0i=0
 
