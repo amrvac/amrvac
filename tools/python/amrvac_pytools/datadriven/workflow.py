@@ -7,6 +7,7 @@ algorithms live in :mod:`pipeline`, AMRVAC case generation lives in
 
 from __future__ import print_function
 
+import hashlib
 import json
 from importlib.util import find_spec
 from pathlib import Path
@@ -16,6 +17,8 @@ from shlex import quote
 DEFAULT_BLOCK_SIZES = (12, 14, 16, 18, 20)
 CORE_PACKAGES = ("numpy", "matplotlib", "astropy")
 RAW_HMI_PACKAGES = ("scipy", "sunpy")
+_DEFAULT_NLFFF_METHOD = object()
+NLFFF_METHODS = ("legacy_mfr", "optimization", "grad_rubin")
 
 
 def check_data_driven_dependencies():
@@ -106,6 +109,9 @@ class DataConstrainWorkflow(object):
             "boundaries": root / "MagneticBoundary",
             "potential": root / "PotentialField",
             "mfr": root / "MagnetofrictionalRelaxation",
+            "optimization": root / "Optimization",
+            "grad_rubin": root / "GradRubin",
+            "alpha_products": root / "AlphaProducts",
             "data_constrained": root / "DataConstrained",
         }
 
@@ -192,16 +198,26 @@ class DataConstrainWorkflow(object):
         cea_remap_options=None,
         geometry=None,
         preprocess=False,
+        preprocessing_mode=None,
+        fail_on_nonconvergence=False,
         nghost=2,
         quicklook=True,
         vmax=500.0,
         stage_potential=True,
-        stage_mfr=True,
+        stage_mfr=None,
+        nlfff_method=_DEFAULT_NLFFF_METHOD,
         potential_options=None,
         mfr_options=None,
+        optimization_options=None,
+        grad_rubin_options=None,
+        gr_alpha_cleaning=False,
+        gr_alpha_preset="recommended",
+        gr_alpha_options=None,
+        unit_length_cm=1.0e9,
+        unit_magneticfield_g=100.0,
         potential_restart_file=None,
     ):
-        """Prepare only ``snapshot_index`` and stage the initial-field cases.
+        """Prepare one frame and stage PotentialField plus one NLFFF method.
 
         Raw HMI sequences are deliberately remapped one selected frame at a
         time.  This method never calls the full-sequence conversion API.
@@ -209,9 +225,21 @@ class DataConstrainWorkflow(object):
 
         if self.region is None:
             raise RuntimeError("plan_region must be called before prepare_initial_field")
-        from .cases import stage_magnetofrictional_relaxation_case, stage_potential_field_case
+        from .cases import (
+            stage_grad_rubin_nlfff_case,
+            stage_magnetofrictional_relaxation_case,
+            stage_optimization_nlfff_case,
+            stage_potential_field_case,
+        )
         from .fits_io import inspect_magnetic_input
         from .pipeline import make_cea_patch, prepare_boundary_frame
+
+        if nlfff_method is _DEFAULT_NLFFF_METHOD:
+            selected_method = "legacy_mfr" if stage_mfr is not False else "potential"
+        else:
+            selected_method = _normalize_nlfff_method(nlfff_method)
+        if selected_method != "potential" and selected_method not in NLFFF_METHODS:
+            raise ValueError("NLFFF_METHOD must be one of {}".format(", ".join(NLFFF_METHODS)))
 
         snapshot_index = int(snapshot_index)
         if snapshot_index < 0:
@@ -234,6 +262,8 @@ class DataConstrainWorkflow(object):
             geometry=geometry,
             snapshot_index=boundary_snapshot_index,
             preprocess=preprocess,
+            preprocessing_mode=preprocessing_mode,
+            fail_on_nonconvergence=fail_on_nonconvergence,
             nghost=nghost,
             quicklook=quicklook,
             vmax=vmax,
@@ -246,6 +276,8 @@ class DataConstrainWorkflow(object):
             geometry=geometry,
             snapshot_index=boundary_snapshot_index,
             preprocess=preprocess,
+            preprocessing_mode=preprocessing_mode,
+            fail_on_nonconvergence=fail_on_nonconvergence,
             nghost=nghost,
             quicklook=quicklook,
             vmax=vmax,
@@ -255,7 +287,21 @@ class DataConstrainWorkflow(object):
 
         potential_summary = None
         mfr_summary = None
+        nlfff_summary = None
+        alpha_summary = None
         relaxation_boundary = _first_boundary(relaxation_meta)
+        if gr_alpha_cleaning:
+            alpha_summary = _write_grad_rubin_external_alpha_from_boundary(
+                relaxation_meta,
+                relaxation_boundary,
+                paths["alpha_products"],
+                preset=gr_alpha_preset,
+                alpha_options=gr_alpha_options,
+                unit_length_cm=unit_length_cm,
+                unit_magneticfield_g=unit_magneticfield_g,
+                used_by_method=(selected_method == "grad_rubin"),
+                nlfff_method=selected_method,
+            )
         if stage_potential:
             options = dict(potential_options or {})
             options.setdefault("portable_paths", True)
@@ -273,12 +319,48 @@ class DataConstrainWorkflow(object):
 
         if potential_restart_file is None:
             potential_restart_file = paths["potential"] / "output" / "data_driven_potential0000.dat"
-        if stage_mfr:
+        if selected_method == "legacy_mfr":
             options = dict(mfr_options or {})
             options.setdefault("portable_paths", True)
             mfr_summary = stage_magnetofrictional_relaxation_case(
                 relaxation_meta,
                 paths["mfr"],
+                potential_restart_file=potential_restart_file,
+                amrvac_root=self.amrvac_root,
+                boundary_filename=relaxation_boundary,
+                refine_max_level=self.relaxation_grid.amrvac_refinement_level,
+                block_nx1=self.region["plans"]["relaxation"]["x"]["block_size"],
+                block_nx2=self.region["plans"]["relaxation"]["y"]["block_size"],
+                block_nx3=self.region["plans"]["relaxation"]["y"]["block_size"],
+                **options
+            )
+            nlfff_summary = mfr_summary
+        elif selected_method == "optimization":
+            options = dict(optimization_options or {})
+            options.setdefault("portable_paths", True)
+            nlfff_summary = stage_optimization_nlfff_case(
+                relaxation_meta,
+                paths["optimization"],
+                potential_restart_file=potential_restart_file,
+                amrvac_root=self.amrvac_root,
+                boundary_filename=relaxation_boundary,
+                refine_max_level=self.relaxation_grid.amrvac_refinement_level,
+                block_nx1=self.region["plans"]["relaxation"]["x"]["block_size"],
+                block_nx2=self.region["plans"]["relaxation"]["y"]["block_size"],
+                block_nx3=self.region["plans"]["relaxation"]["y"]["block_size"],
+                **options
+            )
+        elif selected_method == "grad_rubin":
+            options = dict(grad_rubin_options or {})
+            options.setdefault("portable_paths", True)
+            if gr_alpha_cleaning:
+                options["gr_alpha_source"] = "external"
+                options["external_alpha_filename"] = alpha_summary["external_alpha"]
+            else:
+                options.setdefault("gr_alpha_source", "vector_magnetogram")
+            nlfff_summary = stage_grad_rubin_nlfff_case(
+                relaxation_meta,
+                paths["grad_rubin"],
                 potential_restart_file=potential_restart_file,
                 amrvac_root=self.amrvac_root,
                 boundary_filename=relaxation_boundary,
@@ -297,9 +379,18 @@ class DataConstrainWorkflow(object):
             "evolution_boundary": evolution_meta,
             "potential_case": potential_summary,
             "mfr_case": mfr_summary,
+            "nlfff_method": selected_method,
+            "nlfff_case": nlfff_summary,
+            "alpha_product": alpha_summary,
             "potential_restart_file": str(Path(potential_restart_file)),
             "summary": _initial_field_summary(
-                self.project_dir, relaxation_meta, evolution_meta, potential_summary, mfr_summary
+                self.project_dir,
+                relaxation_meta,
+                evolution_meta,
+                potential_summary,
+                nlfff_summary,
+                selected_method,
+                alpha_summary,
             ),
         }
         self._update_manifest({
@@ -330,6 +421,7 @@ class DataConstrainWorkflow(object):
         from .cases import stage_data_constrained_case
         from .diagnostics import (
             find_relaxation_restart_snapshots,
+            normalize_nlfff_metrics,
             plot_relaxation_diagnostics,
             read_relaxation_diagnostics,
             select_relaxation_restart,
@@ -353,45 +445,62 @@ class DataConstrainWorkflow(object):
         restart_summary = None
         selection = None
         plot_summary = None
+        metrics_summary = None
+        initial = self._initial_field_state or {}
+        nlfff_case = initial.get("nlfff_case")
+        nlfff_method = initial.get("nlfff_method", "legacy_mfr")
         if restart_file is None:
-            output_dir = paths["mfr"] / "output"
-            if diagnostics_csv is None:
-                diagnostics_csv = output_dir / "data_driven_mfr_mflog.csv"
-            diagnostics = read_relaxation_diagnostics(diagnostics_csv)
-            restart_summary = find_relaxation_restart_snapshots(
-                output_dir=output_dir,
-                base_filename=restart_prefix,
-                diagnostics=diagnostics,
-                mf_ditsave=mf_ditsave,
-            )
-            selection = select_relaxation_restart(
-                diagnostics=diagnostics,
-                output_dir=output_dir,
-                base_filename=restart_prefix,
-                mf_ditsave=mf_ditsave,
-                snapshot_number=selected_restart_number,
-            )
-            restart_file = selection.get("restart_file")
-            if restart_file is None:
-                raise RuntimeError("no magnetofrictional restart snapshot was found")
-            selected = selection.get("selected_marker") or {}
-            markers = [dict(marker) for marker in restart_summary["markers"]]
-            for marker in markers:
-                marker["selected"] = marker.get("snapshot_number") == selected.get("snapshot_number")
-            plot_columns = ["cw_sin_theta"]
-            if plot_lorentz_force:
-                plot_columns.append("lorentz_force")
-            plot_summary = plot_relaxation_diagnostics(
-                diagnostics,
-                output_path=output_dir / "relaxation_diagnostics_quicklook.png",
-                columns=plot_columns,
-                x_column="iteration",
-                restart_markers=markers,
-            )
-            if show_plot:
-                import matplotlib.pyplot as plt
+            if nlfff_case is None:
+                raise RuntimeError("prepare_initial_field did not stage an NLFFF case")
+            metrics_summary = normalize_nlfff_metrics(nlfff_case)
+            if nlfff_method == "legacy_mfr":
+                output_dir = paths["mfr"] / "output"
+                if diagnostics_csv is None:
+                    diagnostics_csv = metrics_summary.get("path")
+                diagnostics = read_relaxation_diagnostics(diagnostics_csv)
+                restart_summary = find_relaxation_restart_snapshots(
+                    output_dir=output_dir,
+                    base_filename=restart_prefix,
+                    diagnostics=diagnostics,
+                    mf_ditsave=mf_ditsave,
+                )
+                selection = select_relaxation_restart(
+                    diagnostics=diagnostics,
+                    output_dir=output_dir,
+                    base_filename=restart_prefix,
+                    mf_ditsave=mf_ditsave,
+                    snapshot_number=selected_restart_number,
+                )
+                restart_file = selection.get("restart_file")
+                if restart_file is None:
+                    raise RuntimeError("no magnetofrictional restart snapshot was found")
+                selected = selection.get("selected_marker") or {}
+                markers = [dict(marker) for marker in restart_summary["markers"]]
+                for marker in markers:
+                    marker["selected"] = marker.get("snapshot_number") == selected.get("snapshot_number")
+                plot_columns = ["cw_sin_theta"]
+                if plot_lorentz_force:
+                    plot_columns.append("lorentz_force")
+                plot_summary = plot_relaxation_diagnostics(
+                    diagnostics,
+                    output_path=output_dir / "relaxation_diagnostics_quicklook.png",
+                    columns=plot_columns,
+                    x_column="iteration",
+                    restart_markers=markers,
+                )
+                if show_plot:
+                    import matplotlib.pyplot as plt
 
-                plt.show()
+                    plt.show()
+            else:
+                restart_file = _one_shot_nlfff_restart_file(nlfff_case)
+                selection = {
+                    "restart_file": restart_file,
+                    "reason": "{} one-shot NLFFF output selected".format(nlfff_method),
+                    "warnings": list(metrics_summary.get("warnings", [])),
+                    "diagnostic_values": {},
+                    "metrics": metrics_summary,
+                }
         else:
             restart_file = str(Path(restart_file).expanduser().resolve())
             selection = {
@@ -425,6 +534,7 @@ class DataConstrainWorkflow(object):
             "restart_summary": restart_summary,
             "selection": selection,
             "plot": plot_summary,
+            "metrics": metrics_summary,
             "case": case_summary,
             "warnings": warnings,
         }
@@ -502,23 +612,133 @@ class DataConstrainWorkflow(object):
                 summary["evolution_boundary"]["physical_grid"]
             ),
             "PotentialField case: {}".format(summary["potential_case_dir"]),
-            "MagnetofrictionalRelaxation case: {}".format(summary["mfr_case_dir"]),
+            "Selected NLFFF method: {}".format(summary["nlfff_method"]),
+            "Selected NLFFF case: {}".format(summary["nlfff_case_dir"]),
+            "Unified NLFFF metrics: {}".format(summary["nlfff_metrics_csv"]),
+            "GR external alpha: {}".format(summary.get("external_alpha") or "not used"),
         ])
 
     def initial_field_commands(self, nproc=4):
-        """Return terminal commands for PotentialField followed by MFR."""
+        """Return terminal commands for PotentialField followed by selected NLFFF."""
 
         state = self._require_initial_field()
         sections = []
         for title, case in (
             ("1. Potential-field extrapolation", state["potential_case"]),
-            ("2. Magnetofrictional relaxation", state["mfr_case"]),
+            ("2. Selected NLFFF method ({})".format(state["nlfff_method"]), state["nlfff_case"]),
         ):
             if case is not None:
                 sections.append(
                     "{}\n{}".format(title, "\n".join(self.case_commands(case, nproc=nproc)))
                 )
         return "\n\n".join(sections)
+
+    def normalize_initial_nlfff_metrics(self, overwrite=False):
+        """Ensure/report the selected method's common ``_nlfff_metrics.csv``."""
+
+        state = self._require_initial_field()
+        case = state.get("nlfff_case")
+        if case is None:
+            return {
+                "path": None,
+                "status": "no_nlfff_case",
+                "method": state.get("nlfff_method"),
+            }
+        from .diagnostics import normalize_nlfff_metrics
+
+        result = normalize_nlfff_metrics(case, overwrite=overwrite)
+        state["nlfff_metrics"] = result
+        self._update_manifest({"initial_nlfff_metrics": result})
+        return result
+
+    def initial_nlfff_metrics_report(self):
+        state = self._require_initial_field()
+        metrics = state.get("nlfff_metrics")
+        if metrics is None:
+            metrics = self.normalize_initial_nlfff_metrics()
+        lines = [
+            "Selected NLFFF method: {}".format(state.get("nlfff_method")),
+            "Unified metrics CSV: {}".format(metrics.get("path")),
+            "Metrics status: {}".format(metrics.get("status")),
+        ]
+        if metrics.get("source"):
+            lines.append("Metrics source: {}".format(metrics["source"]))
+        if metrics.get("adapter_audit"):
+            lines.append("Adapter audit: {}".format(metrics["adapter_audit"]))
+        return _report_with_warnings(lines, metrics.get("warnings", []))
+
+    def plot_initial_nlfff_metrics(self, show=False, output_path=None):
+        """Create the common metrics quicklook for the selected NLFFF method.
+
+        The public notebook path is method-neutral.  Only legacy MFR is
+        allowed to add explicitly discovered checkpoint markers; Optimization
+        and Grad--Rubin retain their one-shot ``0000.dat`` semantics and never
+        search MFR restart files here.
+        """
+
+        state = self._require_initial_field()
+        metrics = state.get("nlfff_metrics")
+        if metrics is None:
+            metrics = self.normalize_initial_nlfff_metrics()
+        if not metrics.get("path"):
+            raise RuntimeError(
+                "selected NLFFF method has no common metrics CSV: {}".format(
+                    metrics.get("status")
+                )
+            )
+
+        from .diagnostics import (
+            find_relaxation_restart_snapshots,
+            plot_nlfff_metrics,
+            read_nlfff_metrics,
+        )
+
+        method = str(state.get("nlfff_method", "legacy_mfr"))
+        markers = []
+        marker_warnings = []
+        marker_source = "none"
+        if method == "legacy_mfr":
+            mfr_case = state.get("mfr_case") or state.get("nlfff_case") or {}
+            case_dir = mfr_case.get("case_dir")
+            if case_dir:
+                diagnostic_data = read_nlfff_metrics(metrics["path"])
+                base_filename = Path(
+                    str(mfr_case.get("base_filename", "output/data_driven_mfr"))
+                ).name
+                restart_summary = find_relaxation_restart_snapshots(
+                    output_dir=Path(case_dir).expanduser().resolve() / "output",
+                    base_filename=base_filename,
+                    diagnostics=diagnostic_data,
+                    mf_ditsave=mfr_case.get("mf_ditsave", 20000),
+                )
+                markers = [dict(marker) for marker in restart_summary.get("markers", [])]
+                marker_warnings.extend(restart_summary.get("warnings", []))
+                marker_source = "legacy_mfr_explicit_checkpoint_search"
+
+        plot = plot_nlfff_metrics(
+            metrics,
+            output_path=output_path,
+            method=method,
+            restart_markers=markers,
+            show=show,
+        )
+        plot["restart_search"] = marker_source
+        plot["warnings"] = list(dict.fromkeys(marker_warnings + plot.get("warnings", [])))
+        state["nlfff_metrics_plot"] = plot
+        manifest_plot = {
+            key: plot.get(key)
+            for key in (
+                "output_path",
+                "metrics_csv",
+                "method",
+                "plotted_columns",
+                "skipped_columns",
+                "restart_search",
+                "warnings",
+            )
+        }
+        self._update_manifest({"initial_nlfff_metrics_plot": manifest_plot})
+        return plot
 
     def data_constrained_report(self):
         """Return the selected restart diagnostics and staged-case summary."""
@@ -976,7 +1196,132 @@ def _first_boundary(product):
     return outputs[0]
 
 
-def _initial_field_summary(project_dir, relaxation, evolution, potential, mfr):
+def _normalize_nlfff_method(value):
+    value = str(value).strip().lower().replace("-", "_")
+    aliases = {
+        "mfr": "legacy_mfr",
+        "legacy_mf": "legacy_mfr",
+        "magnetofriction": "legacy_mfr",
+        "magnetofrictional_relaxation": "legacy_mfr",
+        "opt": "optimization",
+        "weighted_optimization": "optimization",
+        "gr": "grad_rubin",
+        "grad_rubin": "grad_rubin",
+        "grad_rubin_nlfff": "grad_rubin",
+        "potential": "potential",
+    }
+    return aliases.get(value, value)
+
+
+def _write_grad_rubin_external_alpha_from_boundary(
+    boundary_metadata,
+    boundary_filename,
+    output_dir,
+    preset,
+    alpha_options,
+    unit_length_cm,
+    unit_magneticfield_g,
+    used_by_method,
+    nlfff_method,
+):
+    import numpy as np
+
+    from .alpha_cleaning import AlphaCleaningConfig, clean_grad_rubin_alpha, write_alpha_cleaning_audit
+    from .external_alpha import write_external_alpha
+    from .writers import ensure_output_dir, read_boundary_frame, write_json
+
+    output_dir = ensure_output_dir(output_dir)
+    frame = read_boundary_frame(boundary_filename)
+    meta = boundary_metadata.get("amrvac") or {}
+    unit_length_cm = float(unit_length_cm)
+    unit_magneticfield_g = float(unit_magneticfield_g)
+    dx_code = frame["dx"] * 1.0e5 / unit_length_cm
+    dy_code = frame["dy"] * 1.0e5 / unit_length_cm
+    xc_code = 0.5 * (float(meta["xprobmin1"]) + float(meta["xprobmax1"]))
+    yc_code = 0.5 * (float(meta["xprobmin2"]) + float(meta["xprobmax2"]))
+    x = xc_code + (np.arange(frame["nx"], dtype=float) - 0.5 * frame["nx"] + 0.5) * dx_code
+    y = yc_code + (np.arange(frame["ny"], dtype=float) - 0.5 * frame["ny"] + 0.5) * dy_code
+    options = dict(alpha_options or {})
+    config = AlphaCleaningConfig(
+        preset,
+        derivative_spacing_x=dx_code,
+        derivative_spacing_y=dy_code,
+        coordinate_unit_cm=unit_length_cm,
+        unit_length_cm=unit_length_cm,
+        **options
+    )
+    product = clean_grad_rubin_alpha(frame["bx"], frame["by"], frame["bz"], config=config)
+    audit_path = write_alpha_cleaning_audit(
+        output_dir / "grad_rubin_alpha_cleaning_audit.json",
+        product["audit"],
+    )
+    audit_sha256 = _file_sha256(audit_path)
+    preprocess_info = boundary_metadata.get("preprocess")
+    if isinstance(preprocess_info, dict):
+        preprocess_enabled = bool(preprocess_info.get("enabled", False))
+    else:
+        preprocess_enabled = bool(preprocess_info)
+    alpha_path = write_external_alpha(
+        output_dir / "grad_rubin_external_alpha_v1.dat",
+        product["alpha_clean"],
+        x,
+        y,
+        alpha_raw=product["alpha_raw"],
+        weight=product["weight"],
+        pil_mask=product["pil_mask"],
+        valid_mask=product["valid_mask"],
+        polarity_mask=product["polarity_mask"],
+        unit_length_cm=unit_length_cm,
+        unit_magneticfield_g=unit_magneticfield_g,
+        coordinate_unit="code_length",
+        coordinate_unit_cm=unit_length_cm,
+        metadata={
+            "created_by": "DataConstrainWorkflow.prepare_initial_field",
+            "source_boundary": str(Path(boundary_filename).expanduser().resolve()),
+            "source_boundary_sha256": _file_sha256(boundary_filename),
+            "preprocessing_audit": (boundary_metadata.get("preprocessing") or {}).get("audit_files"),
+            "preprocess": {
+                "enabled": preprocess_enabled,
+                "mode": (boundary_metadata.get("preprocessing") or {}).get("mode"),
+            },
+            "alpha_cleaning_audit": str(audit_path),
+            "alpha_cleaning_audit_sha256": audit_sha256,
+            "nlfff_method": nlfff_method,
+            "used_by_grad_rubin": bool(used_by_method),
+            "unused": not bool(used_by_method),
+        },
+    )
+    summary = {
+        "external_alpha": str(alpha_path),
+        "audit": str(audit_path),
+        "audit_sha256": audit_sha256,
+        "file_sha256": _file_sha256(alpha_path),
+        "preset": str(preset),
+        "used_by_method": bool(used_by_method),
+        "nlfff_method": str(nlfff_method),
+        "support": product["audit"].get("support", {}),
+    }
+    write_json(output_dir / "grad_rubin_external_alpha_manifest.json", summary)
+    return summary
+
+
+def _file_sha256(path):
+    digest = hashlib.sha256()
+    with Path(path).expanduser().resolve().open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def _one_shot_nlfff_restart_file(case_summary):
+    base = Path(str(case_summary["base_filename"]))
+    case_dir = Path(case_summary["case_dir"]).expanduser().resolve()
+    if not base.is_absolute():
+        base = case_dir / base
+    return str((base.parent / (base.name + "0000.dat")).resolve())
+
+
+def _initial_field_summary(project_dir, relaxation, evolution, potential, nlfff, nlfff_method="legacy_mfr", alpha=None):
     def boundary_summary(product):
         meta = product.get("amrvac") or {}
         return {
@@ -991,7 +1336,12 @@ def _initial_field_summary(project_dir, relaxation, evolution, potential, mfr):
         "relaxation_boundary": boundary_summary(relaxation),
         "evolution_boundary": boundary_summary(evolution),
         "potential_case_dir": potential.get("case_dir") if potential else None,
-        "mfr_case_dir": mfr.get("case_dir") if mfr else None,
+        "mfr_case_dir": nlfff.get("case_dir") if nlfff and nlfff_method == "legacy_mfr" else None,
+        "nlfff_method": nlfff_method,
+        "nlfff_case_dir": nlfff.get("case_dir") if nlfff else None,
+        "nlfff_metrics_csv": nlfff.get("nlfff_metrics_csv") if nlfff else None,
+        "method_metrics_csv": nlfff.get("method_metrics_csv") if nlfff else None,
+        "external_alpha": alpha.get("external_alpha") if alpha else None,
     }
 
 

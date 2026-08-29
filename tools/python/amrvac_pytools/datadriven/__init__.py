@@ -38,6 +38,66 @@ def prepare_data_constrained_from_vector(*args, **kwargs):
     return _prepare_data_constrained_from_vector(*args, **kwargs)
 
 
+def clean_grad_rubin_alpha(*args, **kwargs):
+    from .alpha_cleaning import clean_grad_rubin_alpha as _clean_grad_rubin_alpha
+
+    return _clean_grad_rubin_alpha(*args, **kwargs)
+
+
+def write_alpha_cleaning_audit(*args, **kwargs):
+    from .alpha_cleaning import write_alpha_cleaning_audit as _write_audit
+
+    return _write_audit(*args, **kwargs)
+
+
+def alpha_cleaning_config(*args, **kwargs):
+    from .alpha_cleaning import AlphaCleaningConfig as _AlphaCleaningConfig
+
+    return _AlphaCleaningConfig(*args, **kwargs)
+
+
+def AlphaCleaningConfig(*args, **kwargs):
+    """Lazy public constructor retaining the class-style notebook spelling."""
+
+    return alpha_cleaning_config(*args, **kwargs)
+
+
+def preprocess_vector_magnetogram(*args, **kwargs):
+    from .preprocessing import preprocess_vector_magnetogram as _preprocess_vector_magnetogram
+
+    return _preprocess_vector_magnetogram(*args, **kwargs)
+
+
+def VectorPreprocessingConfig(*args, **kwargs):
+    from .preprocessing import VectorPreprocessingConfig as _VectorPreprocessingConfig
+
+    return _VectorPreprocessingConfig(*args, **kwargs)
+
+
+def recommend_vector_preprocessing(*args, **kwargs):
+    from .preprocessing import recommend_vector_preprocessing as _recommend_vector_preprocessing
+
+    return _recommend_vector_preprocessing(*args, **kwargs)
+
+
+def write_external_alpha(*args, **kwargs):
+    from .external_alpha import write_external_alpha as _write_external_alpha
+
+    return _write_external_alpha(*args, **kwargs)
+
+
+def read_external_alpha(*args, **kwargs):
+    from .external_alpha import read_external_alpha as _read_external_alpha
+
+    return _read_external_alpha(*args, **kwargs)
+
+
+def validate_external_alpha_grid(*args, **kwargs):
+    from .external_alpha import validate_external_alpha_grid as _validate_external_alpha_grid
+
+    return _validate_external_alpha_grid(*args, **kwargs)
+
+
 def prepare_tmf_sequence(*args, **kwargs):
     from .pipeline import prepare_tmf_sequence as _prepare_tmf_sequence
 
@@ -82,6 +142,18 @@ def stage_magnetofrictional_relaxation_case(*args, **kwargs):
     return _stage_magnetofrictional_relaxation_case(*args, **kwargs)
 
 
+def stage_optimization_nlfff_case(*args, **kwargs):
+    from .cases import stage_optimization_nlfff_case as _stage_optimization_nlfff_case
+
+    return _stage_optimization_nlfff_case(*args, **kwargs)
+
+
+def stage_grad_rubin_nlfff_case(*args, **kwargs):
+    from .cases import stage_grad_rubin_nlfff_case as _stage_grad_rubin_nlfff_case
+
+    return _stage_grad_rubin_nlfff_case(*args, **kwargs)
+
+
 def stage_data_constrained_case(*args, **kwargs):
     from .cases import stage_data_constrained_case as _stage_data_constrained_case
 
@@ -108,10 +180,22 @@ def read_relaxation_diagnostics(*args, **kwargs):
     return _read_relaxation_diagnostics(*args, **kwargs)
 
 
+def read_nlfff_metrics(*args, **kwargs):
+    from .diagnostics import read_nlfff_metrics as _read_nlfff_metrics
+
+    return _read_nlfff_metrics(*args, **kwargs)
+
+
 def plot_relaxation_diagnostics(*args, **kwargs):
     from .diagnostics import plot_relaxation_diagnostics as _plot_relaxation_diagnostics
 
     return _plot_relaxation_diagnostics(*args, **kwargs)
+
+
+def plot_nlfff_metrics(*args, **kwargs):
+    from .diagnostics import plot_nlfff_metrics as _plot_nlfff_metrics
+
+    return _plot_nlfff_metrics(*args, **kwargs)
 
 
 def select_relaxation_restart(*args, **kwargs):
@@ -124,6 +208,18 @@ def find_relaxation_restart_snapshots(*args, **kwargs):
     from .diagnostics import find_relaxation_restart_snapshots as _find_relaxation_restart_snapshots
 
     return _find_relaxation_restart_snapshots(*args, **kwargs)
+
+
+def nlfff_metrics_csv_path(*args, **kwargs):
+    from .diagnostics import nlfff_metrics_csv_path as _nlfff_metrics_csv_path
+
+    return _nlfff_metrics_csv_path(*args, **kwargs)
+
+
+def normalize_nlfff_metrics(*args, **kwargs):
+    from .diagnostics import normalize_nlfff_metrics as _normalize_nlfff_metrics
+
+    return _normalize_nlfff_metrics(*args, **kwargs)
 
 
 def inspect_magnetic_input(*args, **kwargs):
@@ -174,6 +270,54 @@ def check_data_driven_dependencies(*args, **kwargs):
     return _check_dependencies(*args, **kwargs)
 
 
+def normalize_notebook_options(*args, **kwargs):
+    from .notebook import normalize_notebook_options as _normalize_options
+
+    return _normalize_options(*args, **kwargs)
+
+
+def notebook_configuration_report(*args, **kwargs):
+    from .notebook import notebook_configuration_report as _configuration_report
+
+    return _configuration_report(*args, **kwargs)
+
+
+def create_notebook_workflow(*args, **kwargs):
+    from .notebook import create_notebook_workflow as _create_workflow
+
+    return _create_workflow(*args, **kwargs)
+
+
+def default_notebook_nlfff_run_options(*args, **kwargs):
+    from .notebook import default_notebook_nlfff_run_options as _default_options
+
+    return _default_options(*args, **kwargs)
+
+
+def notebook_boundary_options(*args, **kwargs):
+    from .notebook import notebook_boundary_options as _boundary_options
+
+    return _boundary_options(*args, **kwargs)
+
+
+def notebook_single_frame_options(*args, **kwargs):
+    from .notebook import notebook_single_frame_options as _frame_options
+
+    return _frame_options(*args, **kwargs)
+
+
+def notebook_reference_frame_options(*args, **kwargs):
+    from .notebook import notebook_reference_frame_options as _reference_options
+
+    return _reference_options(*args, **kwargs)
+
+
+def notebook_sequence_options(*args, **kwargs):
+    from .notebook import notebook_sequence_options as _sequence_options
+
+    return _sequence_options(*args, **kwargs)
+
+
 def stage_grid_config(*args, **kwargs):
     from .workflow import StageGridConfig
 
@@ -209,6 +353,16 @@ __all__ = [
     "prepare_potential_from_br",
     "prepare_nlfff_from_vector",
     "prepare_data_constrained_from_vector",
+    "clean_grad_rubin_alpha",
+    "write_alpha_cleaning_audit",
+    "alpha_cleaning_config",
+    "AlphaCleaningConfig",
+    "preprocess_vector_magnetogram",
+    "VectorPreprocessingConfig",
+    "recommend_vector_preprocessing",
+    "write_external_alpha",
+    "read_external_alpha",
+    "validate_external_alpha_grid",
     "prepare_tmf_sequence",
     "prepare_mhd_sequence",
     "prepare_boundary_frame",
@@ -216,16 +370,30 @@ __all__ = [
     "recommend_amrvac_grid",
     "stage_potential_field_case",
     "stage_magnetofrictional_relaxation_case",
+    "stage_optimization_nlfff_case",
+    "stage_grad_rubin_nlfff_case",
     "stage_data_constrained_case",
     "stage_time_dependent_magnetofriction_case",
     "stage_data_driven_case",
     "read_relaxation_diagnostics",
+    "read_nlfff_metrics",
     "plot_relaxation_diagnostics",
+    "plot_nlfff_metrics",
     "select_relaxation_restart",
     "find_relaxation_restart_snapshots",
+    "nlfff_metrics_csv_path",
+    "normalize_nlfff_metrics",
     "create_data_constrain_workflow",
     "create_data_driven_workflow",
     "check_data_driven_dependencies",
+    "normalize_notebook_options",
+    "notebook_configuration_report",
+    "create_notebook_workflow",
+    "default_notebook_nlfff_run_options",
+    "notebook_boundary_options",
+    "notebook_single_frame_options",
+    "notebook_reference_frame_options",
+    "notebook_sequence_options",
     "stage_grid_config",
     "plan_data_constrain_region",
     "plot_data_constrain_region",

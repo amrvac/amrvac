@@ -280,31 +280,51 @@ def preprocess_cartesian_field(
     max_iter: int = 2000,
     tol: float = 1.0e-4,
     report_interval: int = 50,
+    dx: float = 1.0,
+    dy: float = 1.0,
+    geometry_mode: str = "legacy_unit_square",
+    edge_treatment: str = "legacy_periodic",
     progress=None,
 ):
     """Wiegelmann-style preprocessing used by Guo's `prepro_wie/prepro.pro`.
 
     The implementation mirrors the IDL code's normalized force, torque, data,
-    and smoothing terms. The IDL `shift` and `laplace` operations are periodic,
-    so this version uses `np.roll`.
+    and smoothing terms.  ``edge_treatment='legacy_periodic'`` preserves the
+    old IDL-style periodic Laplacian.  Notebook policy uses
+    ``edge_treatment='nonperiodic'`` for observational magnetograms.
     """
 
     bx = np.asarray(bx, dtype=float).copy()
     by = np.asarray(by, dtype=float).copy()
     bz = np.asarray(bz, dtype=float).copy()
+    bx_input = bx.copy()
+    by_input = by.copy()
+    bz_input = bz.copy()
     if bx.shape != by.shape or bx.shape != bz.shape:
         raise ValueError("bx, by, and bz must have the same shape")
     if bx.ndim != 2:
         raise ValueError("magnetic components must be 2-D")
+    if not all(np.all(np.isfinite(item)) for item in (bx, by, bz)):
+        raise ValueError("preprocessing requires finite magnetic components")
 
     ny, nx = bz.shape
     if nx < 2 or ny < 2:
         raise ValueError("preprocessing requires at least 2 pixels in each direction")
+    max_iter = int(max_iter)
+    report_interval = int(report_interval)
+    if max_iter < 0:
+        raise ValueError("max_iter must be non-negative")
+    if tol < 0.0:
+        raise ValueError("tol must be non-negative")
+    dx = float(dx)
+    dy = float(dy)
+    if dx <= 0.0 or dy <= 0.0:
+        raise ValueError("dx and dy must be positive")
+    edge_treatment = str(edge_treatment).strip().lower()
+    if edge_treatment not in ("legacy_periodic", "periodic", "nonperiodic"):
+        raise ValueError("edge_treatment must be legacy_periodic, periodic, or nonperiodic")
 
-    x1 = np.linspace(0.0, 1.0, nx)
-    y1 = np.linspace(0.0, 1.0, ny)
-    x, y = np.meshgrid(x1, y1)
-    dxdy = (1.0 / (nx - 1)) * (1.0 / (ny - 1))
+    x, y, dxdy = _preprocess_geometry(nx, ny, dx, dy, geometry_mode)
 
     bave2d = np.nanmean(np.sqrt(bx**2 + by**2 + bz**2))
     if not np.isfinite(bave2d) or bave2d == 0.0:
@@ -319,8 +339,12 @@ def preprocess_cartesian_field(
 
     mu1 = 0.1
     mu2 = 0.1
-    mu3 = float(mu3) / 10.0
-    mu4 = float(mu4) / 10.0
+    mu3_input = float(mu3)
+    mu4_input = float(mu4)
+    if mu3_input < 0.0 or mu4_input < 0.0:
+        raise ValueError("mu3 and mu4 must be non-negative")
+    mu3 = mu3_input / 10.0
+    mu4 = mu4_input / 10.0
 
     emag = np.nansum(bx**2 + by**2 + bz**2)
     r = np.sqrt(x**2 + y**2)
@@ -328,62 +352,41 @@ def preprocess_cartesian_field(
     if emag == 0.0 or ihelp == 0.0:
         raise ValueError("cannot preprocess a zero magnetic field")
 
-    old_l12 = old_l3 = old_l4 = None
-    dl = np.inf
-    metrics = {}
+    metrics, terms = _preprocess_metrics(
+        bx, by, bz, bxo, byo, bzo, x, y, dxdy, emag, ihelp,
+        edge_treatment=edge_treatment,
+    )
+    metrics.update({
+        "iteration": 0,
+        "iterations": 0,
+        "dL": float(np.inf),
+        "converged": False,
+        "stop_reason": "max_iter_zero" if max_iter == 0 else "not_started",
+        "effective_mu1": float(mu1),
+        "effective_mu2": float(mu2),
+        "effective_mu3": float(mu3),
+        "effective_mu4": float(mu4),
+        "input_mu3": float(mu3_input),
+        "input_mu4": float(mu4_input),
+        "tol": float(tol),
+        "max_iter": int(max_iter),
+        "geometry_mode": str(geometry_mode),
+        "edge_treatment": edge_treatment,
+        "dx": float(dx),
+        "dy": float(dy),
+    })
+    if progress is not None and report_interval > 0:
+        progress(metrics)
+    if max_iter == 0:
+        return bx_input, by_input, bz_input, metrics
 
-    for iteration in range(int(max_iter) + 1):
-        term1a = np.nansum(bx * bz) / emag
-        term1b = np.nansum(by * bz) / emag
-        term1c = (np.nansum(bz**2) - np.nansum(bx**2 + by**2)) / emag
+    old_l12 = metrics["L1"] + metrics["L2"]
+    old_l3 = metrics["L3"]
+    old_l4 = metrics["L4"]
+    stop_reason = "max_iterations"
 
-        term2a = (np.nansum(x * bz**2) - np.nansum(x * (bx**2 + by**2))) / ihelp
-        term2b = (np.nansum(y * bz**2) - np.nansum(y * (bx**2 + by**2))) / ihelp
-        term2c = (np.nansum(y * bx * bz) - np.nansum(x * by * bz)) / ihelp
-
-        lap_bx = _periodic_laplace(bx)
-        lap_by = _periodic_laplace(by)
-        lap_bz = _periodic_laplace(bz)
-        term4a = 2.0 * _periodic_laplace(lap_bx)
-        term4b = 2.0 * _periodic_laplace(lap_by)
-        term4c = 2.0 * _periodic_laplace(lap_bz)
-
-        eps_force = abs(term1a) + abs(term1b) + abs(term1c)
-        eps_torque = abs(term2a) + abs(term2b) + abs(term2c)
-        eps_smooth = (
-            np.nansum(np.abs(lap_bx)) + np.nansum(np.abs(lap_by)) + np.nansum(np.abs(lap_bz))
-        ) * dxdy / np.sqrt(emag)
-
-        l1 = term1a**2 + term1b**2 + term1c**2
-        l2 = term2a**2 + term2b**2 + term2c**2
-        l12 = l1 + l2
-        l3 = np.nansum((bx - bxo) ** 2 + (by - byo) ** 2 + (bz - bzo) ** 2) / (emag * emag)
-        l4 = dxdy * np.nansum(lap_bx**2 + lap_by**2 + lap_bz**2) / emag
-
-        if old_l12 is not None:
-            dl = (
-                abs(l12 - old_l12) / max(abs(l12), np.finfo(float).tiny)
-                + abs(l3 - old_l3) / max(abs(l3), np.finfo(float).tiny)
-                + abs(l4 - old_l4) / max(abs(l4), np.finfo(float).tiny)
-            )
-
-        metrics = {
-            "iteration": iteration,
-            "dL": float(dl),
-            "L1": float(l1),
-            "L2": float(l2),
-            "L3": float(l3),
-            "L4": float(l4),
-            "eps_force": float(eps_force),
-            "eps_torque": float(eps_torque),
-            "eps_smooth": float(eps_smooth),
-        }
-        if progress is not None and (iteration % int(report_interval) == 0):
-            progress(metrics)
-        if iteration > 0 and dl <= tol:
-            break
-
-        old_l12, old_l3, old_l4 = l12, l3, l4
+    for iteration in range(1, max_iter + 1):
+        term1a, term1b, term1c, term2a, term2b, term2c, term4a, term4b, term4c = terms
         bx_next = (
             bx
             + mu1 * (-2.0 * term1a * bz + 4.0 * term1c * bx)
@@ -400,11 +403,128 @@ def preprocess_cartesian_field(
         )
         bz_next = bz - mu3 * 2.0 * (bz - bzo) - mu4 * term4c
         bx, by, bz = bx_next, by_next, bz_next
+        if not all(np.all(np.isfinite(item)) for item in (bx, by, bz)):
+            raise FloatingPointError("preprocessing produced non-finite values at iteration {}".format(iteration))
+
+        metrics, terms = _preprocess_metrics(
+            bx, by, bz, bxo, byo, bzo, x, y, dxdy, emag, ihelp,
+            edge_treatment=edge_treatment,
+        )
+        l12 = metrics["L1"] + metrics["L2"]
+        l3 = metrics["L3"]
+        l4 = metrics["L4"]
+        dl = (
+            abs(l12 - old_l12) / max(abs(l12), np.finfo(float).tiny)
+            + abs(l3 - old_l3) / max(abs(l3), np.finfo(float).tiny)
+            + abs(l4 - old_l4) / max(abs(l4), np.finfo(float).tiny)
+        )
+        metrics.update({
+            "iteration": int(iteration),
+            "iterations": int(iteration),
+            "dL": float(dl),
+            "converged": bool(dl <= tol),
+            "stop_reason": "converged" if dl <= tol else "max_iterations",
+            "effective_mu1": float(mu1),
+            "effective_mu2": float(mu2),
+            "effective_mu3": float(mu3),
+            "effective_mu4": float(mu4),
+            "input_mu3": float(mu3_input),
+            "input_mu4": float(mu4_input),
+            "tol": float(tol),
+            "max_iter": int(max_iter),
+            "geometry_mode": str(geometry_mode),
+            "edge_treatment": edge_treatment,
+            "dx": float(dx),
+            "dy": float(dy),
+        })
+        if progress is not None and report_interval > 0 and iteration % report_interval == 0:
+            progress(metrics)
+        if dl <= tol:
+            stop_reason = "converged"
+            break
+        old_l12, old_l3, old_l4 = l12, l3, l4
+    metrics["stop_reason"] = stop_reason
+    metrics["converged"] = bool(stop_reason == "converged")
 
     return bx * bave2d, by * bave2d, bz * bave2d, metrics
 
 
-def cartesian_preprocess_diagnostics(bx, by, bz):
+def _preprocess_geometry(nx, ny, dx, dy, geometry_mode):
+    mode = str(geometry_mode).strip().lower()
+    if mode == "legacy_unit_square":
+        x1 = np.linspace(0.0, 1.0, nx)
+        y1 = np.linspace(0.0, 1.0, ny)
+        dxdy = (1.0 / (nx - 1)) * (1.0 / (ny - 1))
+    elif mode == "centered":
+        x1 = (np.arange(nx, dtype=float) - 0.5 * (nx - 1)) * float(dx)
+        y1 = (np.arange(ny, dtype=float) - 0.5 * (ny - 1)) * float(dy)
+        dxdy = abs(float(dx) * float(dy))
+    else:
+        raise ValueError("geometry_mode must be legacy_unit_square or centered")
+    x, y = np.meshgrid(x1, y1)
+    return x, y, float(dxdy)
+
+
+def _laplace(data, edge_treatment):
+    edge_treatment = str(edge_treatment).strip().lower()
+    if edge_treatment in ("legacy_periodic", "periodic"):
+        return _periodic_laplace(data)
+    if edge_treatment != "nonperiodic":
+        raise ValueError("edge_treatment must be legacy_periodic, periodic, or nonperiodic")
+    padded = np.pad(data, 1, mode="edge")
+    return (
+        -4.0 * data
+        + padded[1:-1, 2:]
+        + padded[1:-1, :-2]
+        + padded[2:, 1:-1]
+        + padded[:-2, 1:-1]
+    )
+
+
+def _preprocess_metrics(
+    bx, by, bz, bxo, byo, bzo, x, y, dxdy, emag, ihelp,
+    edge_treatment="legacy_periodic",
+):
+    term1a = np.nansum(bx * bz) / emag
+    term1b = np.nansum(by * bz) / emag
+    term1c = (np.nansum(bz**2) - np.nansum(bx**2 + by**2)) / emag
+
+    term2a = (np.nansum(x * bz**2) - np.nansum(x * (bx**2 + by**2))) / ihelp
+    term2b = (np.nansum(y * bz**2) - np.nansum(y * (bx**2 + by**2))) / ihelp
+    term2c = (np.nansum(y * bx * bz) - np.nansum(x * by * bz)) / ihelp
+
+    lap_bx = _laplace(bx, edge_treatment)
+    lap_by = _laplace(by, edge_treatment)
+    lap_bz = _laplace(bz, edge_treatment)
+    term4a = 2.0 * _laplace(lap_bx, edge_treatment)
+    term4b = 2.0 * _laplace(lap_by, edge_treatment)
+    term4c = 2.0 * _laplace(lap_bz, edge_treatment)
+
+    eps_force = abs(term1a) + abs(term1b) + abs(term1c)
+    eps_torque = abs(term2a) + abs(term2b) + abs(term2c)
+    eps_smooth = (
+        np.nansum(np.abs(lap_bx)) + np.nansum(np.abs(lap_by)) + np.nansum(np.abs(lap_bz))
+    ) * dxdy / np.sqrt(emag)
+    metrics = {
+        "L1": float(term1a**2 + term1b**2 + term1c**2),
+        "L2": float(term2a**2 + term2b**2 + term2c**2),
+        "L3": float(
+            np.nansum((bx - bxo) ** 2 + (by - byo) ** 2 + (bz - bzo) ** 2)
+            / (emag * emag)
+        ),
+        "L4": float(dxdy * np.nansum(lap_bx**2 + lap_by**2 + lap_bz**2) / emag),
+        "eps_force": float(eps_force),
+        "eps_torque": float(eps_torque),
+        "eps_smooth": float(eps_smooth),
+    }
+    terms = (term1a, term1b, term1c, term2a, term2b, term2c, term4a, term4b, term4c)
+    return metrics, terms
+
+
+def cartesian_preprocess_diagnostics(
+    bx, by, bz, dx=1.0, dy=1.0,
+    geometry_mode="legacy_unit_square", edge_treatment="legacy_periodic",
+):
     """Return force, torque, and smoothing diagnostics for a Cartesian boundary."""
 
     bx = np.asarray(bx, dtype=float)
@@ -414,10 +534,16 @@ def cartesian_preprocess_diagnostics(bx, by, bz):
         raise ValueError("bx, by, and bz must have the same shape")
     if bx.ndim != 2:
         raise ValueError("magnetic components must be 2-D")
+    if not all(np.all(np.isfinite(item)) for item in (bx, by, bz)):
+        raise ValueError("diagnostics require finite magnetic components")
 
     ny, nx = bz.shape
     if nx < 2 or ny < 2:
         raise ValueError("diagnostics require at least 2 pixels in each direction")
+    dx = float(dx)
+    dy = float(dy)
+    if dx <= 0.0 or dy <= 0.0:
+        raise ValueError("dx and dy must be positive")
 
     bave2d = np.nanmean(np.sqrt(bx**2 + by**2 + bz**2))
     if not np.isfinite(bave2d) or bave2d == 0.0:
@@ -426,10 +552,7 @@ def cartesian_preprocess_diagnostics(bx, by, bz):
     by = by / bave2d
     bz = bz / bave2d
 
-    x1 = np.linspace(0.0, 1.0, nx)
-    y1 = np.linspace(0.0, 1.0, ny)
-    x, y = np.meshgrid(x1, y1)
-    dxdy = (1.0 / (nx - 1)) * (1.0 / (ny - 1))
+    x, y, dxdy = _preprocess_geometry(nx, ny, dx, dy, geometry_mode)
 
     emag = np.nansum(bx**2 + by**2 + bz**2)
     r = np.sqrt(x**2 + y**2)
@@ -444,9 +567,9 @@ def cartesian_preprocess_diagnostics(bx, by, bz):
     term2b = (np.nansum(y * bz**2) - np.nansum(y * (bx**2 + by**2))) / ihelp
     term2c = (np.nansum(y * bx * bz) - np.nansum(x * by * bz)) / ihelp
 
-    lap_bx = _periodic_laplace(bx)
-    lap_by = _periodic_laplace(by)
-    lap_bz = _periodic_laplace(bz)
+    lap_bx = _laplace(bx, edge_treatment)
+    lap_by = _laplace(by, edge_treatment)
+    lap_bz = _laplace(bz, edge_treatment)
     eps_smooth = (
         np.nansum(np.abs(lap_bx)) + np.nansum(np.abs(lap_by)) + np.nansum(np.abs(lap_bz))
     ) * dxdy / np.sqrt(emag)
@@ -459,6 +582,11 @@ def cartesian_preprocess_diagnostics(bx, by, bz):
         "L2": float(term2a**2 + term2b**2 + term2c**2),
         "L4": float(dxdy * np.nansum(lap_bx**2 + lap_by**2 + lap_bz**2) / emag),
         "mean_field_strength": float(bave2d),
+        "Bz_flux": float(np.nansum(bz) * dxdy),
+        "geometry_mode": str(geometry_mode),
+        "edge_treatment": str(edge_treatment),
+        "dx": float(dx),
+        "dy": float(dy),
     }
 
 

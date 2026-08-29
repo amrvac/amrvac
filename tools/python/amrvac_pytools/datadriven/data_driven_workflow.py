@@ -12,6 +12,8 @@ from .workflow import (
     StageGridConfig,
     format_case_commands,
     plan_workflow_region,
+    _normalize_nlfff_method,
+    _one_shot_nlfff_restart_file,
 )
 
 
@@ -34,7 +36,8 @@ class DataDrivenWorkflow(object):
             evolution_grid=evolution_grid,
             manifest_workflow="data_driven",
         )
-        self.initial_field = "potential"
+        self.initial_field = "legacy_mfr"
+        self.nlfff_method = "legacy_mfr"
         self.evolution_mode = "tmf"
         self.sequence_selection = None
         self._sequence_state = None
@@ -133,7 +136,8 @@ class DataDrivenWorkflow(object):
         start_snapshot_index=0,
         stop_snapshot_index=None,
         frame_stride=1,
-        initial_field="potential",
+        initial_field=None,
+        nlfff_method="legacy_mfr",
         evolution_mode="tmf",
     ):
         """Validate the time range and bind its first frame to the initial field."""
@@ -152,13 +156,20 @@ class DataDrivenWorkflow(object):
         indices = list(range(start, stop, stride))
         if len(indices) < 2:
             raise ValueError("time-dependent workflows require at least two selected frames")
-        initial_field = str(initial_field).strip().lower()
-        if initial_field not in ("potential", "mfr"):
-            raise ValueError("INITIAL_FIELD must be 'potential' or 'mfr'")
+        if initial_field is not None:
+            legacy_initial = str(initial_field).strip().lower()
+            if legacy_initial not in ("potential", "mfr"):
+                raise ValueError("INITIAL_FIELD must be 'potential' or 'mfr'")
+            if nlfff_method == "legacy_mfr":
+                nlfff_method = "legacy_mfr" if legacy_initial == "mfr" else "potential"
+        nlfff_method = _normalize_nlfff_method(nlfff_method)
+        if nlfff_method not in ("legacy_mfr", "optimization", "grad_rubin", "potential"):
+            raise ValueError("NLFFF_METHOD must be legacy_mfr, optimization, or grad_rubin")
         evolution_mode = str(evolution_mode).strip().lower()
         if evolution_mode not in ("tmf", "data_driven"):
             raise ValueError("EVOLUTION_MODE must be 'tmf' or 'data_driven'")
-        self.initial_field = initial_field
+        self.initial_field = nlfff_method
+        self.nlfff_method = nlfff_method
         self.evolution_mode = evolution_mode
         self.sequence_selection = {
             "start": start,
@@ -168,7 +179,7 @@ class DataDrivenWorkflow(object):
         }
         self._update_manifest({
             "sequence_selection": {key: value for key, value in self.sequence_selection.items() if key != "indices"},
-            "initial_field_mode": initial_field,
+            "nlfff_method": nlfff_method,
             "evolution_mode": evolution_mode,
         })
         return self.sequence_selection
@@ -184,7 +195,7 @@ class DataDrivenWorkflow(object):
                 indices[0], indices[-1], selection["stride"]
             ),
             "First selected frame defines observation time 0 s",
-            "Initial field: {}".format(self.initial_field),
+            "Selected NLFFF method: {}".format(self.nlfff_method),
             "Evolution mode: {}".format(self.evolution_mode),
         ])
 
@@ -193,11 +204,20 @@ class DataDrivenWorkflow(object):
         cea_remap_options=None,
         geometry=None,
         preprocess=False,
+        preprocessing_mode=None,
+        fail_on_nonconvergence=False,
         nghost=2,
         quicklook=True,
         vmax=500.0,
         potential_options=None,
         mfr_options=None,
+        optimization_options=None,
+        grad_rubin_options=None,
+        gr_alpha_cleaning=False,
+        gr_alpha_preset="recommended",
+        gr_alpha_options=None,
+        unit_length_cm=1.0e9,
+        unit_magneticfield_g=100.0,
         resume=True,
         overwrite=False,
     ):
@@ -214,10 +234,19 @@ class DataDrivenWorkflow(object):
             cea_remap_options=cea_remap_options or {},
             geometry=geometry,
             preprocess=preprocess,
+            preprocessing_mode=preprocessing_mode,
+            fail_on_nonconvergence=fail_on_nonconvergence,
             nghost=nghost,
-            initial_field=self.initial_field,
+            nlfff_method=self.nlfff_method,
             potential_options=potential_options or {},
             mfr_options=mfr_options or {},
+            optimization_options=optimization_options or {},
+            grad_rubin_options=grad_rubin_options or {},
+            gr_alpha_cleaning=bool(gr_alpha_cleaning),
+            gr_alpha_preset=gr_alpha_preset,
+            gr_alpha_options=gr_alpha_options or {},
+            unit_length_cm=unit_length_cm,
+            unit_magneticfield_g=unit_magneticfield_g,
         )
         reference_signature = _payload_signature(reference_signature_payload)
         reference_cache = self.paths["prepared_magnetograms"] / "reference_cache.json"
@@ -235,7 +264,7 @@ class DataDrivenWorkflow(object):
                     "reference_frame": {
                         "snapshot_index": selection["start"],
                         "source_frame": cached_state["source_frame"],
-                        "initial_field_mode": self.initial_field,
+                        "nlfff_method": self.nlfff_method,
                         "signature": reference_signature,
                         "reused": True,
                     }
@@ -265,13 +294,22 @@ class DataDrivenWorkflow(object):
                 cea_remap_options=cea_remap_options,
                 geometry=geometry,
                 preprocess=preprocess,
+                preprocessing_mode=preprocessing_mode,
+                fail_on_nonconvergence=fail_on_nonconvergence,
                 nghost=nghost,
                 quicklook=quicklook,
                 vmax=vmax,
                 stage_potential=True,
-                stage_mfr=self.initial_field == "mfr",
+                nlfff_method=self.nlfff_method,
                 potential_options=potential_options,
                 mfr_options=mfr_options,
+                optimization_options=optimization_options,
+                grad_rubin_options=grad_rubin_options,
+                gr_alpha_cleaning=gr_alpha_cleaning,
+                gr_alpha_preset=gr_alpha_preset,
+                gr_alpha_options=gr_alpha_options,
+                unit_length_cm=unit_length_cm,
+                unit_magneticfield_g=unit_magneticfield_g,
             )
         finally:
             self._base.input_dir = original_input_dir
@@ -289,7 +327,7 @@ class DataDrivenWorkflow(object):
             "reference_frame": {
                 "snapshot_index": selection["start"],
                 "source_frame": result["source_frame"],
-                "initial_field_mode": self.initial_field,
+                "nlfff_method": self.nlfff_method,
                 "signature": reference_signature,
                 "reused": False,
             }
@@ -301,6 +339,8 @@ class DataDrivenWorkflow(object):
         cea_remap_options=None,
         geometry=None,
         preprocess=False,
+        preprocessing_mode=None,
+        fail_on_nonconvergence=False,
         nghost=2,
         quicklook=True,
         vmax=500.0,
@@ -321,6 +361,8 @@ class DataDrivenWorkflow(object):
         signature_payload = _sequence_signature_payload(
             info, indices, self.region, remap_options, self.evolution_grid,
             preprocess, nghost,
+            preprocessing_mode=preprocessing_mode,
+            fail_on_nonconvergence=fail_on_nonconvergence,
         )
         signature = _payload_signature(signature_payload)
         cache_root = ensure_output_dir(self.paths["prepared_magnetograms"] / "Sequence")
@@ -402,6 +444,8 @@ class DataDrivenWorkflow(object):
             level=self.evolution_grid.boundary_reduction_level,
             geometry=geometry,
             preprocess=preprocess,
+            preprocessing_mode=preprocessing_mode,
+            fail_on_nonconvergence=fail_on_nonconvergence,
             nghost=nghost,
             quicklook=quicklook,
             vmax=vmax,
@@ -445,30 +489,32 @@ class DataDrivenWorkflow(object):
         show_plot=True,
         plot_lorentz_force=False,
     ):
-        """Resolve the potential or MFR restart selected for time evolution."""
+        """Resolve the selected NLFFF restart for time evolution."""
 
         if self._base._initial_field_state is None:
             raise RuntimeError("prepare_reference_frame must be called first")
         initial = self._base._initial_field_state
         if restart_file is not None:
             state = {"restart_file": str(Path(restart_file).expanduser().resolve()), "reason": "explicit restart"}
-        elif self.initial_field == "potential":
+        elif self.nlfff_method == "potential":
             state = {
                 "restart_file": str(Path(initial["potential_restart_file"]).expanduser().resolve()),
-                "reason": "potential initial field selected",
+                "reason": "legacy potential-only initial field selected",
             }
-        else:
+        elif self.nlfff_method == "legacy_mfr":
             from .diagnostics import (
                 find_relaxation_restart_snapshots,
+                normalize_nlfff_metrics,
                 plot_relaxation_diagnostics,
                 read_relaxation_diagnostics,
                 select_relaxation_restart,
             )
             mfr_case = initial.get("mfr_case")
             if mfr_case is None:
-                raise RuntimeError("INITIAL_FIELD='mfr' requires a staged MFR case")
+                raise RuntimeError("NLFFF_METHOD='legacy_mfr' requires a staged MFR case")
             output_dir = self.paths["mfr"] / "output"
-            diagnostics = read_relaxation_diagnostics(output_dir / "data_driven_mfr_mflog.csv")
+            metrics = normalize_nlfff_metrics(mfr_case)
+            diagnostics = read_relaxation_diagnostics(metrics["path"])
             ditsave = int(mfr_case.get("mf_ditsave", 20000))
             restart_summary = find_relaxation_restart_snapshots(
                 output_dir=output_dir,
@@ -502,6 +548,20 @@ class DataDrivenWorkflow(object):
                 plt.show()
             state = dict(selection)
             state["warnings"] = restart_summary.get("warnings", []) + selection.get("warnings", [])
+            state["metrics"] = metrics
+        else:
+            from .diagnostics import normalize_nlfff_metrics
+
+            nlfff_case = initial.get("nlfff_case")
+            if nlfff_case is None:
+                raise RuntimeError("NLFFF_METHOD='{}' requires a staged case".format(self.nlfff_method))
+            metrics = normalize_nlfff_metrics(nlfff_case)
+            state = {
+                "restart_file": _one_shot_nlfff_restart_file(nlfff_case),
+                "reason": "{} one-shot NLFFF output selected".format(self.nlfff_method),
+                "warnings": list(metrics.get("warnings", [])),
+                "metrics": metrics,
+            }
         if not state.get("restart_file"):
             raise RuntimeError("no initial restart was resolved")
         self._restart_state = state
@@ -558,6 +618,22 @@ class DataDrivenWorkflow(object):
 
     def initial_field_commands(self, nproc=4):
         return self._base.initial_field_commands(nproc=nproc)
+
+    def normalize_initial_nlfff_metrics(self, overwrite=False):
+        """Expose the shared metrics normalizer to the public notebook."""
+
+        return self._base.normalize_initial_nlfff_metrics(overwrite=overwrite)
+
+    def initial_nlfff_metrics_report(self):
+        return self._base.initial_nlfff_metrics_report()
+
+    def plot_initial_nlfff_metrics(self, show=False, output_path=None):
+        """Create the same method-neutral metrics quicklook as DataConstrain."""
+
+        return self._base.plot_initial_nlfff_metrics(
+            show=show,
+            output_path=output_path,
+        )
 
     def sequence_report(self):
         if self._sequence_state is None:
@@ -667,9 +743,15 @@ class DataDrivenWorkflow(object):
     def restart_report(self):
         if self._restart_state is None:
             raise RuntimeError("resolve_initial_restart must be called first")
-        return "Initial restart: {}\nReason: {}".format(
-            self._restart_state["restart_file"], self._restart_state.get("reason", "selected")
-        )
+        lines = [
+            "Initial restart: {}".format(self._restart_state["restart_file"]),
+            "Reason: {}".format(self._restart_state.get("reason", "selected")),
+        ]
+        metrics = self._restart_state.get("metrics")
+        if metrics:
+            lines.append("Unified NLFFF metrics: {}".format(metrics.get("path")))
+            lines.append("Metrics status: {}".format(metrics.get("status")))
+        return "\n".join(lines)
 
     def evolution_report(self):
         if self._evolution_state is None:
@@ -726,7 +808,17 @@ def _file_identity(path):
     return {"path": str(path.resolve()), "size": stat.st_size, "mtime_ns": int(stat.st_mtime_ns)}
 
 
-def _sequence_signature_payload(info, indices, region, remap_options, grid, preprocess, nghost):
+def _sequence_signature_payload(
+    info,
+    indices,
+    region,
+    remap_options,
+    grid,
+    preprocess,
+    nghost,
+    preprocessing_mode=None,
+    fail_on_nonconvergence=False,
+):
     if info["kind"] == "raw_hmi_vector_sequence":
         selected = []
         for index in indices:
@@ -743,6 +835,8 @@ def _sequence_signature_payload(info, indices, region, remap_options, grid, prep
         "remap_options": remap_options,
         "evolution_grid": grid.as_dict(),
         "preprocess": bool(preprocess),
+        "preprocessing_mode": preprocessing_mode,
+        "fail_on_nonconvergence": bool(fail_on_nonconvergence),
         "nghost": int(nghost),
     }
 
@@ -756,10 +850,19 @@ def _reference_signature_payload(
     cea_remap_options,
     geometry,
     preprocess,
+    preprocessing_mode,
+    fail_on_nonconvergence,
     nghost,
-    initial_field,
+    nlfff_method,
     potential_options,
     mfr_options,
+    optimization_options,
+    grad_rubin_options,
+    gr_alpha_cleaning,
+    gr_alpha_preset,
+    gr_alpha_options,
+    unit_length_cm,
+    unit_magneticfield_g,
 ):
     if info["kind"] == "raw_hmi_vector_sequence":
         frame = info["raw_hmi_sequence"]["complete"][reference_index]
@@ -783,10 +886,19 @@ def _reference_signature_payload(
         "cea_remap_options": cea_remap_options,
         "geometry": geometry,
         "preprocess": bool(preprocess),
+        "preprocessing_mode": preprocessing_mode,
+        "fail_on_nonconvergence": bool(fail_on_nonconvergence),
         "nghost": int(nghost),
-        "initial_field": str(initial_field),
+        "nlfff_method": str(nlfff_method),
         "potential_options": potential_options,
         "mfr_options": mfr_options,
+        "optimization_options": optimization_options,
+        "grad_rubin_options": grad_rubin_options,
+        "gr_alpha_cleaning": bool(gr_alpha_cleaning),
+        "gr_alpha_preset": str(gr_alpha_preset),
+        "gr_alpha_options": gr_alpha_options,
+        "unit_length_cm": float(unit_length_cm),
+        "unit_magneticfield_g": float(unit_magneticfield_g),
     }
 
 
@@ -820,7 +932,7 @@ def _initial_state_exists(state):
             return False
         if not all(path.exists() for path in _paths_from_outputs(metadata.get("outputs"))):
             return False
-    for key in ("potential_case", "mfr_case"):
+    for key in ("potential_case", "mfr_case", "nlfff_case"):
         case = state.get(key)
         if case is None:
             continue

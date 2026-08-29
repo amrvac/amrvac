@@ -195,7 +195,7 @@ def stage_potential_field_case(
         base_par_source = template_dir / "par_init" / "potential_field.par"
     copied = _copy_case_files(case_dir, [
         template_dir / "mod_usr.t",
-        template_dir / "makefile",
+        _optional_template_file(template_dir / "makefile"),
         (base_par_source, base_par_name),
     ])
 
@@ -273,6 +273,7 @@ def stage_magnetofrictional_relaxation_case(
     mf_cdivb=0.01,
     mf_log_mode="auto",
     mf_log_filename="",
+    mf_write_detailed_history=False,
     portable_paths=True,
 ):
     """Stage an AMRVAC magnetofrictional-relaxation case.
@@ -286,7 +287,7 @@ def stage_magnetofrictional_relaxation_case(
 
     copied = _copy_case_files(case_dir, [
         template_dir / "mod_usr.t",
-        template_dir / "makefile",
+        _optional_template_file(template_dir / "makefile"),
         (template_dir / base_par_name, base_par_name),
     ])
 
@@ -321,11 +322,15 @@ def stage_magnetofrictional_relaxation_case(
             mf_cdivb=mf_cdivb,
             mf_log_mode=mf_log_mode,
             mf_log_filename=mf_log_filename,
+            mf_write_detailed_history=mf_write_detailed_history,
         ),
         encoding="utf-8",
     )
+    nlfff_metrics_csv = _case_output_path(case_dir, base_filename, "_nlfff_metrics.csv")
+    mflog_csv = _case_output_path(case_dir, base_filename, "_mflog.csv")
 
     return {
+        "method": "legacy_mfr",
         "case_dir": str(case_dir),
         "base_par": str(case_dir / base_par_name),
         "override_par": str(override_path),
@@ -337,6 +342,218 @@ def stage_magnetofrictional_relaxation_case(
         "mf_ditsave": int(mf_ditsave),
         "mf_log_mode": str(mf_log_mode).strip().lower(),
         "mf_log_filename": str(mf_log_filename),
+        "mf_write_detailed_history": bool(mf_write_detailed_history),
+        "nlfff_metrics_csv": str(nlfff_metrics_csv),
+        "method_metrics_csv": str(mflog_csv) if mf_write_detailed_history else None,
+        "copied": copied,
+        "run_command": "mpirun -np 4 ./amrvac -i {} {}".format(base_par_name, override_par_name),
+    }
+
+
+def stage_optimization_nlfff_case(
+    boundary_metadata,
+    case_dir,
+    potential_restart_file,
+    amrvac_root=None,
+    template_dir=None,
+    boundary_filename=None,
+    base_par_name="amrvac.par",
+    override_par_name="data_driven_optimization.par",
+    domain_nx3=None,
+    block_nx1=None,
+    block_nx2=None,
+    block_nx3=None,
+    refine_max_level=1,
+    allowed_block_sizes=(12, 14, 16, 18, 20),
+    base_filename="output/data_driven_optimization",
+    fft_padding_factor=2,
+    fft_top_boundary="open",
+    lfff_flux_treatment="strict",
+    lfff_max_flux_imbalance=0.1,
+    nlfff_buffer_cells=10,
+    nlfff_max_iterations=1000,
+    nlfff_initial_step_scale=1.0,
+    nlfff_log_interval=1,
+    nlfff_update_preconditioner="binomial_xy",
+    nlfff_write_detailed_history=False,
+    portable_paths=True,
+):
+    """Stage a weighted-optimization NLFFF case from the shared potential field."""
+
+    case_dir = _prepare_case_dir(case_dir)
+    template_dir = _optimization_template_dir(amrvac_root, template_dir)
+    copied = _copy_case_files(case_dir, [
+        template_dir / "mod_usr.t",
+        (template_dir / base_par_name, base_par_name),
+    ])
+    boundary_path, _ = _resolve_boundary_path(boundary_metadata, boundary_filename)
+    restart_path = Path(potential_restart_file).expanduser().resolve()
+    amrvac_meta = boundary_metadata.get("amrvac")
+    if not amrvac_meta:
+        raise ValueError("boundary_metadata does not contain AMRVAC mesh metadata")
+
+    override_path = case_dir / override_par_name
+    override_path.write_text(
+        _format_optimization_nlfff_override_par(
+            amrvac_meta,
+            boundary_filename=_path_for_case_par(boundary_path, case_dir, portable_paths),
+            potential_restart_file=_path_for_case_par(restart_path, case_dir, portable_paths),
+            domain_nx3=domain_nx3,
+            block_nx1=block_nx1,
+            block_nx2=block_nx2,
+            block_nx3=block_nx3,
+            refine_max_level=refine_max_level,
+            allowed_block_sizes=allowed_block_sizes,
+            base_filename=base_filename,
+            fft_padding_factor=fft_padding_factor,
+            fft_top_boundary=fft_top_boundary,
+            lfff_flux_treatment=lfff_flux_treatment,
+            lfff_max_flux_imbalance=lfff_max_flux_imbalance,
+            nlfff_buffer_cells=nlfff_buffer_cells,
+            nlfff_max_iterations=nlfff_max_iterations,
+            nlfff_initial_step_scale=nlfff_initial_step_scale,
+            nlfff_log_interval=nlfff_log_interval,
+            nlfff_update_preconditioner=nlfff_update_preconditioner,
+            nlfff_write_detailed_history=nlfff_write_detailed_history,
+        ),
+        encoding="utf-8",
+    )
+    return {
+        "method": "optimization",
+        "case_dir": str(case_dir),
+        "base_par": str(case_dir / base_par_name),
+        "override_par": str(override_path),
+        "boundary_filename": str(boundary_path),
+        "potential_restart_file": str(restart_path),
+        "base_filename": str(base_filename),
+        "nlfff_metrics_csv": str(_case_output_path(case_dir, base_filename, "_nlfff_metrics.csv")),
+        "method_metrics_csv": str(_case_output_path(case_dir, base_filename, "_nlfff_opt.csv"))
+        if nlfff_write_detailed_history else None,
+        "copied": copied,
+        "run_command": "mpirun -np 4 ./amrvac -i {} {}".format(base_par_name, override_par_name),
+    }
+
+
+def stage_grad_rubin_nlfff_case(
+    boundary_metadata,
+    case_dir,
+    potential_restart_file,
+    amrvac_root=None,
+    template_dir=None,
+    boundary_filename=None,
+    external_alpha_filename=None,
+    base_par_name="amrvac.par",
+    override_par_name="data_driven_grad_rubin.par",
+    domain_nx3=None,
+    block_nx1=None,
+    block_nx2=None,
+    block_nx3=None,
+    refine_max_level=1,
+    allowed_block_sizes=(12, 14, 16, 18, 20),
+    base_filename="output/data_driven_grad_rubin",
+    gr_alpha_source="vector_magnetogram",
+    gr_fft_padding_factor=2,
+    gr_flux_treatment="strict",
+    gr_max_flux_imbalance=0.1,
+    gr_polarity=1,
+    gr_bz_taper_zero=0.01,
+    gr_bz_taper_full=0.02,
+    gr_relaxation_factor=0.5,
+    gr_fieldline_step_fraction=0.5,
+    gr_fieldline_max_steps=10000,
+    gr_max_iterations=50,
+    gr_convergence_streak=3,
+    gr_field_change_tolerance=1.0e-5,
+    gr_energy_change_tolerance=1.0e-6,
+    gr_self_consistency_cycles=0,
+    gr_self_consistency_streak=1,
+    gr_self_consistency_field_tolerance=1.0e-3,
+    gr_self_consistency_alpha_tolerance=1.0e-3,
+    gr_log_interval=1,
+    gr_memory_limit_mb=2048.0,
+    gr_write_detailed_history=False,
+    portable_paths=True,
+):
+    """Stage a Grad--Rubin NLFFF case from the shared potential field."""
+
+    gr_alpha_source = str(gr_alpha_source).strip().lower()
+    if gr_alpha_source not in ("vector_magnetogram", "external"):
+        raise ValueError("gr_alpha_source must be vector_magnetogram or external")
+    case_dir = _prepare_case_dir(case_dir)
+    template_dir = _grad_rubin_template_dir(amrvac_root, template_dir)
+    copied = _copy_case_files(case_dir, [
+        template_dir / "mod_usr.t",
+        (template_dir / base_par_name, base_par_name),
+    ])
+    boundary_path, _ = _resolve_boundary_path(boundary_metadata, boundary_filename)
+    restart_path = Path(potential_restart_file).expanduser().resolve()
+    alpha_path = None
+    alpha_for_par = ""
+    if gr_alpha_source == "external":
+        if external_alpha_filename is None:
+            raise ValueError("external Grad-Rubin alpha requires external_alpha_filename")
+        alpha_path = Path(external_alpha_filename).expanduser().resolve()
+        alpha_for_par = _path_for_case_par(alpha_path, case_dir, portable_paths)
+    amrvac_meta = boundary_metadata.get("amrvac")
+    if not amrvac_meta:
+        raise ValueError("boundary_metadata does not contain AMRVAC mesh metadata")
+
+    override_path = case_dir / override_par_name
+    override_path.write_text(
+        _format_grad_rubin_nlfff_override_par(
+            amrvac_meta,
+            boundary_filename=_path_for_case_par(boundary_path, case_dir, portable_paths),
+            potential_restart_file=_path_for_case_par(restart_path, case_dir, portable_paths),
+            external_alpha_filename=alpha_for_par,
+            domain_nx3=domain_nx3,
+            block_nx1=block_nx1,
+            block_nx2=block_nx2,
+            block_nx3=block_nx3,
+            refine_max_level=refine_max_level,
+            allowed_block_sizes=allowed_block_sizes,
+            base_filename=base_filename,
+            gr_alpha_source=gr_alpha_source,
+            gr_fft_padding_factor=gr_fft_padding_factor,
+            gr_flux_treatment=gr_flux_treatment,
+            gr_max_flux_imbalance=gr_max_flux_imbalance,
+            gr_polarity=gr_polarity,
+            gr_bz_taper_zero=gr_bz_taper_zero,
+            gr_bz_taper_full=gr_bz_taper_full,
+            gr_relaxation_factor=gr_relaxation_factor,
+            gr_fieldline_step_fraction=gr_fieldline_step_fraction,
+            gr_fieldline_max_steps=gr_fieldline_max_steps,
+            gr_max_iterations=gr_max_iterations,
+            gr_convergence_streak=gr_convergence_streak,
+            gr_field_change_tolerance=gr_field_change_tolerance,
+            gr_energy_change_tolerance=gr_energy_change_tolerance,
+            gr_self_consistency_cycles=gr_self_consistency_cycles,
+            gr_self_consistency_streak=gr_self_consistency_streak,
+            gr_self_consistency_field_tolerance=gr_self_consistency_field_tolerance,
+            gr_self_consistency_alpha_tolerance=gr_self_consistency_alpha_tolerance,
+            gr_log_interval=gr_log_interval,
+            gr_memory_limit_mb=gr_memory_limit_mb,
+            gr_write_detailed_history=gr_write_detailed_history,
+        ),
+        encoding="utf-8",
+    )
+    return {
+        "method": "grad_rubin",
+        "case_dir": str(case_dir),
+        "base_par": str(case_dir / base_par_name),
+        "override_par": str(override_path),
+        "boundary_filename": str(boundary_path),
+        "potential_restart_file": str(restart_path),
+        "external_alpha_filename": str(alpha_path) if alpha_path else None,
+        "gr_alpha_source": gr_alpha_source,
+        "base_filename": str(base_filename),
+        "nlfff_metrics_csv": str(_case_output_path(case_dir, base_filename, "_nlfff_metrics.csv")),
+        "method_metrics_csv": str(
+            _case_output_path(
+                case_dir,
+                base_filename,
+                "_grad_rubin_{}_alpha.csv".format("positive" if int(gr_polarity) > 0 else "negative"),
+            )
+        ) if gr_write_detailed_history else None,
         "copied": copied,
         "run_command": "mpirun -np 4 ./amrvac -i {} {}".format(base_par_name, override_par_name),
     }
@@ -436,8 +653,8 @@ def stage_data_constrained_case(
 
     copied = _copy_case_files(case_dir, [
         template_dir / "mod_usr.t",
-        template_dir / "makefile",
-        template_dir / "amrvac.h",
+        _optional_template_file(template_dir / "makefile"),
+        _optional_template_file(template_dir / "amrvac.h"),
     ])
 
     selected_base_par = template_dir / ("par_" + mhd_model) / base_par_name
@@ -748,7 +965,7 @@ def _stage_time_dependent_case(
         base_par_source = template_dir / base_par_name
     copied = _copy_case_files(case_dir, [
         template_dir / "mod_usr.t",
-        template_dir / "makefile",
+        _optional_template_file(template_dir / "makefile"),
         (base_par_source, base_par_name),
     ])
     amrvac_h = template_dir / "amrvac.h"
@@ -895,6 +1112,8 @@ def _copy_case_files(case_dir, sources):
 
     copied = []
     for item in sources:
+        if item is None:
+            continue
         if isinstance(item, tuple):
             source, target_name = item
         else:
@@ -906,6 +1125,11 @@ def _copy_case_files(case_dir, sources):
         shutil.copy2(str(source), str(target))
         copied.append(str(target))
     return copied
+
+
+def _optional_template_file(path):
+    path = Path(path)
+    return path if path.exists() else None
 
 
 def _resolve_boundary_path(boundary_metadata, boundary_filename):
@@ -941,6 +1165,22 @@ def _magnetofrictional_template_dir(amrvac_root, template_dir):
     return Path(amrvac_root).expanduser().resolve() / "tests/demo4/Data_Driven/MagnetofrictionalRelaxation"
 
 
+def _optimization_template_dir(amrvac_root, template_dir):
+    if template_dir is not None:
+        return Path(template_dir).expanduser().resolve()
+    if amrvac_root is None:
+        amrvac_root = Path(__file__).resolve().parents[4]
+    return Path(amrvac_root).expanduser().resolve() / "tests/demo4/OptimizationTD99"
+
+
+def _grad_rubin_template_dir(amrvac_root, template_dir):
+    if template_dir is not None:
+        return Path(template_dir).expanduser().resolve()
+    if amrvac_root is None:
+        amrvac_root = Path(__file__).resolve().parents[4]
+    return Path(amrvac_root).expanduser().resolve() / "tests/demo4/GradRubinTD99"
+
+
 def _data_constrained_template_dir(amrvac_root, template_dir):
     if template_dir is not None:
         return Path(template_dir).expanduser().resolve()
@@ -954,6 +1194,13 @@ def _path_for_case_par(path, case_dir, portable_paths):
     if portable_paths:
         return os.path.relpath(str(path), str(Path(case_dir).expanduser().resolve()))
     return str(path)
+
+
+def _case_output_path(case_dir, base_filename, suffix):
+    base = Path(str(base_filename))
+    if not base.is_absolute():
+        base = Path(case_dir).expanduser().resolve() / base
+    return (base.parent / (base.name + str(suffix))).resolve()
 
 
 def _format_potential_field_override_par(
@@ -1120,6 +1367,7 @@ def _format_magnetofrictional_relaxation_override_par(
     mf_cdivb=0.01,
     mf_log_mode="auto",
     mf_log_filename="",
+    mf_write_detailed_history=False,
 ):
     refine_max_level = int(refine_max_level)
     if refine_max_level < 1:
@@ -1223,6 +1471,7 @@ def _format_magnetofrictional_relaxation_override_par(
         "  mf_cdivb={}\n"
         "  mf_log_mode='{}'\n"
         "  mf_log_filename='{}'\n"
+        "  mf_write_detailed_history={}\n"
         "/\n"
     ).format(
         escaped_base_filename,
@@ -1237,6 +1486,211 @@ def _format_magnetofrictional_relaxation_override_par(
         _fortran_d(mf_cdivb),
         mf_log_mode,
         escaped_log_filename,
+        _fortran_l(mf_write_detailed_history),
+    )
+
+
+def _format_optimization_nlfff_override_par(
+    amrvac_meta,
+    boundary_filename,
+    potential_restart_file,
+    domain_nx3=None,
+    block_nx1=None,
+    block_nx2=None,
+    block_nx3=None,
+    refine_max_level=1,
+    allowed_block_sizes=(12, 14, 16, 18, 20),
+    base_filename="output/data_driven_optimization",
+    fft_padding_factor=2,
+    fft_top_boundary="open",
+    lfff_flux_treatment="strict",
+    lfff_max_flux_imbalance=0.1,
+    nlfff_buffer_cells=10,
+    nlfff_max_iterations=1000,
+    nlfff_initial_step_scale=1.0,
+    nlfff_log_interval=1,
+    nlfff_update_preconditioner="binomial_xy",
+    nlfff_write_detailed_history=False,
+):
+    fft_top_boundary = str(fft_top_boundary).strip().lower()
+    if fft_top_boundary not in ("open", "closed"):
+        raise ValueError("fft_top_boundary must be open or closed")
+    lfff_flux_treatment = str(lfff_flux_treatment).strip().lower()
+    if lfff_flux_treatment not in ("strict", "subtract_mean"):
+        raise ValueError("lfff_flux_treatment must be strict or subtract_mean")
+    nlfff_update_preconditioner = str(nlfff_update_preconditioner).strip().lower()
+    if nlfff_update_preconditioner not in ("none", "binomial_xy"):
+        raise ValueError("nlfff_update_preconditioner must be none or binomial_xy")
+    mesh_lines = _time_dependent_mesh_lines(
+        amrvac_meta, domain_nx3, block_nx1, block_nx2, block_nx3,
+        refine_max_level, allowed_block_sizes,
+    )
+    reset_grid_line = "  reset_grid=.true.\n" if int(refine_max_level) > 1 else ""
+    return (
+        "! Data-specific weighted-optimization NLFFF overrides.\n"
+        "! Run after the shared potential-field case has written the restart snapshot.\n\n"
+        "&filelist\n"
+        "  base_filename='{}'\n"
+        "  restart_from_file='{}'\n"
+        "  firstprocess=.true.\n"
+        "{}"
+        "/\n\n"
+        "&stoplist\n"
+        "  reset_time=.true.\n"
+        "  reset_it=.true.\n"
+        "/\n\n"
+        "&meshlist\n"
+        "{}\n"
+        "/\n\n"
+        "&usr_list\n"
+        "  boundary_filename='{}'\n"
+        "  fft_padding_factor={}\n"
+        "  fft_top_boundary='{}'\n"
+        "  lfff_flux_treatment='{}'\n"
+        "  lfff_max_flux_imbalance={}\n"
+        "  nlfff_buffer_cells={}\n"
+        "  nlfff_max_iterations={}\n"
+        "  nlfff_initial_step_scale={}\n"
+        "  nlfff_log_interval={}\n"
+        "  nlfff_update_preconditioner='{}'\n"
+        "  nlfff_write_detailed_history={}\n"
+        "/\n"
+    ).format(
+        str(base_filename).replace("'", "''"),
+        str(potential_restart_file).replace("'", "''"),
+        reset_grid_line,
+        "\n".join(mesh_lines),
+        str(boundary_filename).replace("'", "''"),
+        int(fft_padding_factor),
+        fft_top_boundary,
+        lfff_flux_treatment,
+        _fortran_d(lfff_max_flux_imbalance),
+        int(nlfff_buffer_cells),
+        int(nlfff_max_iterations),
+        _fortran_d(nlfff_initial_step_scale),
+        int(nlfff_log_interval),
+        nlfff_update_preconditioner,
+        _fortran_l(nlfff_write_detailed_history),
+    )
+
+
+def _format_grad_rubin_nlfff_override_par(
+    amrvac_meta,
+    boundary_filename,
+    potential_restart_file,
+    external_alpha_filename="",
+    domain_nx3=None,
+    block_nx1=None,
+    block_nx2=None,
+    block_nx3=None,
+    refine_max_level=1,
+    allowed_block_sizes=(12, 14, 16, 18, 20),
+    base_filename="output/data_driven_grad_rubin",
+    gr_alpha_source="vector_magnetogram",
+    gr_fft_padding_factor=2,
+    gr_flux_treatment="strict",
+    gr_max_flux_imbalance=0.1,
+    gr_polarity=1,
+    gr_bz_taper_zero=0.01,
+    gr_bz_taper_full=0.02,
+    gr_relaxation_factor=0.5,
+    gr_fieldline_step_fraction=0.5,
+    gr_fieldline_max_steps=10000,
+    gr_max_iterations=50,
+    gr_convergence_streak=3,
+    gr_field_change_tolerance=1.0e-5,
+    gr_energy_change_tolerance=1.0e-6,
+    gr_self_consistency_cycles=0,
+    gr_self_consistency_streak=1,
+    gr_self_consistency_field_tolerance=1.0e-3,
+    gr_self_consistency_alpha_tolerance=1.0e-3,
+    gr_log_interval=1,
+    gr_memory_limit_mb=2048.0,
+    gr_write_detailed_history=False,
+):
+    gr_alpha_source = str(gr_alpha_source).strip().lower()
+    if gr_alpha_source not in ("vector_magnetogram", "external"):
+        raise ValueError("gr_alpha_source must be vector_magnetogram or external")
+    gr_flux_treatment = str(gr_flux_treatment).strip().lower()
+    if gr_flux_treatment not in ("strict", "subtract_mean"):
+        raise ValueError("gr_flux_treatment must be strict or subtract_mean")
+    gr_polarity = int(gr_polarity)
+    if gr_polarity not in (-1, 1):
+        raise ValueError("gr_polarity must be +1 or -1")
+    mesh_lines = _time_dependent_mesh_lines(
+        amrvac_meta, domain_nx3, block_nx1, block_nx2, block_nx3,
+        refine_max_level, allowed_block_sizes,
+    )
+    reset_grid_line = "  reset_grid=.true.\n" if int(refine_max_level) > 1 else ""
+    return (
+        "! Data-specific Grad-Rubin NLFFF overrides.\n"
+        "! Run after the shared potential-field case has written the restart snapshot.\n\n"
+        "&filelist\n"
+        "  base_filename='{}'\n"
+        "  restart_from_file='{}'\n"
+        "  firstprocess=.true.\n"
+        "{}"
+        "/\n\n"
+        "&stoplist\n"
+        "  reset_time=.true.\n"
+        "  reset_it=.true.\n"
+        "/\n\n"
+        "&meshlist\n"
+        "{}\n"
+        "/\n\n"
+        "&usr_list\n"
+        "  boundary_filename='{}'\n"
+        "  gr_alpha_source='{}'\n"
+        "  gr_alpha_filename='{}'\n"
+        "  gr_fft_padding_factor={}\n"
+        "  gr_flux_treatment='{}'\n"
+        "  gr_max_flux_imbalance={}\n"
+        "  gr_polarity={}\n"
+        "  gr_bz_taper_zero={}\n"
+        "  gr_bz_taper_full={}\n"
+        "  gr_relaxation_factor={}\n"
+        "  gr_fieldline_step_fraction={}\n"
+        "  gr_fieldline_max_steps={}\n"
+        "  gr_max_iterations={}\n"
+        "  gr_convergence_streak={}\n"
+        "  gr_field_change_tolerance={}\n"
+        "  gr_energy_change_tolerance={}\n"
+        "  gr_self_consistency_cycles={}\n"
+        "  gr_self_consistency_streak={}\n"
+        "  gr_self_consistency_field_tolerance={}\n"
+        "  gr_self_consistency_alpha_tolerance={}\n"
+        "  gr_log_interval={}\n"
+        "  gr_memory_limit_mb={}\n"
+        "  gr_write_detailed_history={}\n"
+        "/\n"
+    ).format(
+        str(base_filename).replace("'", "''"),
+        str(potential_restart_file).replace("'", "''"),
+        reset_grid_line,
+        "\n".join(mesh_lines),
+        str(boundary_filename).replace("'", "''"),
+        gr_alpha_source,
+        str(external_alpha_filename or "").replace("'", "''"),
+        int(gr_fft_padding_factor),
+        gr_flux_treatment,
+        _fortran_d(gr_max_flux_imbalance),
+        gr_polarity,
+        _fortran_d(gr_bz_taper_zero),
+        _fortran_d(gr_bz_taper_full),
+        _fortran_d(gr_relaxation_factor),
+        _fortran_d(gr_fieldline_step_fraction),
+        int(gr_fieldline_max_steps),
+        int(gr_max_iterations),
+        int(gr_convergence_streak),
+        _fortran_d(gr_field_change_tolerance),
+        _fortran_d(gr_energy_change_tolerance),
+        int(gr_self_consistency_cycles),
+        int(gr_self_consistency_streak),
+        _fortran_d(gr_self_consistency_field_tolerance),
+        _fortran_d(gr_self_consistency_alpha_tolerance),
+        int(gr_log_interval),
+        _fortran_d(gr_memory_limit_mb),
+        _fortran_l(gr_write_detailed_history),
     )
 
 
@@ -1392,7 +1846,15 @@ def _format_data_constrained_override_par(
 
 
 def _fortran_d(value):
-    return "{:.12g}d0".format(float(value))
+    text = "{:.17g}".format(float(value)).lower()
+    if "e" in text:
+        mantissa, exponent = text.split("e", 1)
+        return "{}d{}".format(mantissa, int(exponent))
+    return text + "d0"
+
+
+def _fortran_l(value):
+    return ".true." if bool(value) else ".false."
 
 
 def _recommend_amrvac_dimension(
@@ -1462,6 +1924,8 @@ __all__ = [
     "recommend_amrvac_grid",
     "stage_potential_field_case",
     "stage_magnetofrictional_relaxation_case",
+    "stage_optimization_nlfff_case",
+    "stage_grad_rubin_nlfff_case",
     "stage_data_constrained_case",
     "stage_time_dependent_magnetofriction_case",
     "stage_data_driven_case",

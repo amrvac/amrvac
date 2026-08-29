@@ -48,16 +48,33 @@ Both accept raw HMI `field/inclination/azimuth/disambig` data or prepared
 SHARP/CEA `Br/Bt/Bp` data. `DataConstrain.ipynb` stages the single-frame chain:
 
 ```text
-selected frame -> PotentialField -> MagnetofrictionalRelaxation -> DataConstrained
+selected frame -> optional shared preprocessing -> optional Grad-Rubin alpha cleaning
+-> PotentialField -> one selected NLFFF method -> DataConstrained
 ```
 
-`DataDriven.ipynb` operates on a time sequence. It always stages a potential
-field, optionally stages a magnetofrictional relaxation, and then stages one
-of two B-only evolution modes:
+`DataDriven.ipynb` operates on a time sequence. It uses the first selected
+frame as the reference field, stages the same potential-plus-one-NLFFF initial
+field, and then stages one of two B-only evolution modes:
 
 ```text
-magnetic sequence -> PotentialField -> optional MFR -> TMF or DataDriven MHD
+magnetic sequence -> optional shared preprocessing -> optional Grad-Rubin alpha cleaning
+-> PotentialField -> one selected NLFFF method -> TMF or DataDriven MHD
 ```
+
+The public notebooks expose exactly one post-potential NLFFF selection:
+`legacy_mfr`, `optimization`, or `grad_rubin`. Shared vector preprocessing is
+controlled only by `PREPROCESS_VECTOR=False` by default; it is optional for the
+legacy embedded-MHD MFR path and recommended for observational Optimization and
+Grad-Rubin runs. Grad-Rubin alpha cleaning is controlled only by
+`GR_ALPHA_CLEANING=False` by default; when enabled, the external-alpha product
+is generated from the same already-preprocessed boundary field and is marked
+unused if another NLFFF method is selected.
+
+All three NLFFF methods expose the same common `<base_filename>_nlfff_metrics.csv`
+path by default. Method-specific detailed CSV histories such as legacy
+`_mflog.csv` remain opt-in through explicit detailed-history switches; older
+legacy MFR logs can be normalized into the common metrics schema with unavailable
+quantities recorded as `NaN` and documented in an adapter audit JSON.
 
 The V1 time-dependent workflow writes one `B_XXXX.dat` file per observation.
 It does not write velocity files and does not require DAVE/DAVE4VM. Observation

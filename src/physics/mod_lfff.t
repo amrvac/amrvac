@@ -107,20 +107,32 @@ contains
   end subroutine init_b_fff_data
 
 {^IFTHREED
-  subroutine init_b_fff_data_driven_boundary(boundaryname,qLunit,qBunit,qxc1,qxc2)
+  subroutine init_b_fff_data_driven_boundary(boundaryname,qLunit,qBunit,qxc1,qxc2,bvector)
     use mod_global_parameters
     use mod_comm_lib, only: mpistop
     use mod_data_driven_boundary, only: read_data_driven_boundary_frame
+    use, intrinsic :: ieee_arithmetic, only: ieee_is_finite
 
     character(len=*), intent(in) :: boundaryname
     double precision, intent(in) :: qLunit,qBunit
     double precision, intent(in), optional :: qxc1,qxc2
+    !> Optional unmodified vector magnetogram in AMRVAC magnetic-field units.
+    double precision, allocatable, intent(out), optional :: bvector(:,:,:)
 
     double precision :: snapshot_time,dxm1,dxm2,xc1,xc2
     double precision, allocatable :: bframe(:,:,:)
     integer :: i,bnx,bny
 
+    if(.not.ieee_is_finite(qLunit) .or. .not.ieee_is_finite(qBunit) .or. &
+       qLunit<=0.d0 .or. qBunit<=0.d0) &
+       call mpistop('data-driven boundary units must be positive')
     call read_data_driven_boundary_frame(boundaryname,snapshot_time,bnx,bny,dxm1,dxm2,bframe)
+    if(bnx<1 .or. bny<1 .or. .not.ieee_is_finite(snapshot_time) .or. &
+       .not.ieee_is_finite(dxm1) .or. &
+       .not.ieee_is_finite(dxm2) .or. dxm1<=0.d0 .or. dxm2<=0.d0) &
+       call mpistop('invalid data-driven boundary geometry')
+    if(.not.all(ieee_is_finite(bframe))) &
+       call mpistop('non-finite magnetic value in data-driven boundary frame')
 
     nx1 = bnx
     nx2 = bny
@@ -144,8 +156,14 @@ contains
     else
       xc2 = 0.5d0*(xprobmin2+xprobmax2)*qLunit
     end if
+    if(.not.ieee_is_finite(xc1) .or. .not.ieee_is_finite(xc2)) &
+       call mpistop('non-finite data-driven boundary center')
 
     Bz0(:,:) = bframe(:,:,3)
+    if(present(bvector)) then
+      allocate(bvector(nx1,nx2,3))
+      bvector = bframe/qBunit
+    end if
     deallocate(bframe)
 
     do i=1,nx1
@@ -221,6 +239,102 @@ contains
   end subroutine lfff_balance_bottom_flux
 
 {^IFTHREED
+  !> Construct an open-half-space potential field on one dense Cartesian grid.
+  !> Plane 1 is the magnetogram plane; planes 2:nz+1 are cell centres one,
+  !> two, ... grid spacings above it. The input Bz is already in AMRVAC units.
+  subroutine extrapolate_potential_fft_dense(bz,dx1,dx2,dx3,padding_factor,b)
+    use mod_comm_lib, only: mpistop
+    use mod_fft, only: fft_2d_real_imag,fft_size_supported
+    use mod_global_parameters, only: domain_nx1,domain_nx2,domain_nx3,dpi
+
+    double precision, intent(in) :: bz(:,:),dx1,dx2,dx3
+    integer, intent(in) :: padding_factor
+    double precision, allocatable, intent(out) :: b(:,:,:,:)
+
+    double precision, allocatable :: sr(:,:),si(:,:),wr(:,:),wi(:,:)
+    double precision, allocatable :: kx(:),ky(:)
+    double precision :: k2,q,z,fac,kxd,kyd
+    integer :: nx,ny,nz,npx,npy,ip0,jp0,i,j,k,ic,mode
+
+    nx=size(bz,1)
+    ny=size(bz,2)
+    nz=domain_nx3
+    if(nx/=domain_nx1 .or. ny/=domain_nx2) &
+       call mpistop('dense potential Bz does not match the physical grid')
+    if(padding_factor<1) call mpistop('dense potential padding must be positive')
+    npx=padding_factor*nx
+    npy=padding_factor*ny
+    if(.not.fft_size_supported(npx) .or. .not.fft_size_supported(npy)) &
+       call mpistop('dense potential padded FFT size is unsupported')
+
+    allocate(b(nx,ny,nz+1,3))
+    allocate(sr(npx,npy),si(npx,npy),wr(npx,npy),wi(npx,npy))
+    allocate(kx(npx),ky(npy))
+    ip0=(npx-nx)/2+1
+    jp0=(npy-ny)/2+1
+    sr=0.d0
+    si=0.d0
+    sr(ip0:ip0+nx-1,jp0:jp0+ny-1)=bz
+    call fft_2d_real_imag(sr,si,.false.)
+
+    do i=1,npx
+      mode=i-1
+      if(mode>npx/2) mode=mode-npx
+      kx(i)=2.d0*dpi*dble(mode)/(dble(npx)*dx1)
+    end do
+    do j=1,npy
+      mode=j-1
+      if(mode>npy/2) mode=mode-npy
+      ky(j)=2.d0*dpi*dble(mode)/(dble(npy)*dx2)
+    end do
+
+    do k=1,nz+1
+      z=dble(k-1)*dx3
+      do ic=1,3
+        do j=1,npy
+          do i=1,npx
+            k2=kx(i)**2+ky(j)**2
+            if(k2<=0.d0) then
+              if(ic==3) then
+                wr(i,j)=sr(i,j)
+                wi(i,j)=si(i,j)
+              else
+                wr(i,j)=0.d0
+                wi(i,j)=0.d0
+              end if
+            else
+              q=dsqrt(k2)
+              kxd=kx(i)
+              kyd=ky(j)
+              if(mod(npx,2)==0 .and. i==npx/2+1) kxd=0.d0
+              if(mod(npy,2)==0 .and. j==npy/2+1) kyd=0.d0
+              select case(ic)
+              case(1)
+                fac=kxd/q*dexp(-q*z)
+                wr(i,j)=fac*si(i,j)
+                wi(i,j)=-fac*sr(i,j)
+              case(2)
+                fac=kyd/q*dexp(-q*z)
+                wr(i,j)=fac*si(i,j)
+                wi(i,j)=-fac*sr(i,j)
+              case(3)
+                fac=dexp(-q*z)
+                wr(i,j)=fac*sr(i,j)
+                wi(i,j)=fac*si(i,j)
+              end select
+            end if
+          end do
+        end do
+        call fft_2d_real_imag(wr,wi,.true.)
+        b(:,:,k,ic)=wr(ip0:ip0+nx-1,jp0:jp0+ny-1)
+      end do
+    end do
+
+    ! Preserve the prescribed normal field exactly at the magnetogram plane.
+    b(:,:,1,3)=bz
+    deallocate(sr,si,wr,wi,kx,ky)
+  end subroutine extrapolate_potential_fft_dense
+
   !> Extrapolate a Cartesian potential field with horizontal Fourier modes.
   !> The bottom magnetogram must match the level-one physical cell centers.
   !> Results are streamed one AMRVAC block layer at a time and written directly

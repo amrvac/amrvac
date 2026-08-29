@@ -13,6 +13,30 @@ import re
 from pathlib import Path
 
 
+NLFFF_METRICS_COLUMNS = (
+    "iteration",
+    "CW_sin_theta",
+    "epsilon_force",
+    "epsilon_div",
+    "magnetic_energy",
+)
+
+_NLFFF_METRIC_KEYS = (
+    ("iteration", "iteration"),
+    ("CW_sin_theta", "cw_sin_theta"),
+    ("epsilon_force", "epsilon_force"),
+    ("epsilon_div", "epsilon_div"),
+    ("magnetic_energy", "magnetic_energy"),
+)
+
+_NLFFF_METRIC_LABELS = {
+    "CW_sin_theta": "CW_sin_theta",
+    "epsilon_force": "epsilon_force",
+    "epsilon_div": "epsilon_div",
+    "magnetic_energy": "magnetic_energy",
+}
+
+
 _ALIASES = {
     "iteration": ("iteration", "iter", "it", "itmf", "step", "nstep", "istep"),
     "time": ("time", "t", "physical_time", "simulation_time"),
@@ -34,6 +58,17 @@ _ALIASES = {
         "cw_sin",
         "sigmaj",
         "sigma_j",
+    ),
+    "epsilon_force": (
+        "epsilon_force",
+        "epsilon force",
+        "epsilon_jxb",
+        "force_error",
+    ),
+    "epsilon_div": (
+        "epsilon_div",
+        "epsilon div",
+        "divergence_error",
     ),
     "current": ("current", "mean_current", "average_current", "j"),
     "lorentz_force": (
@@ -68,6 +103,294 @@ _ALIASES = {
 
 
 _SNAPSHOT_RE = re.compile(r"^(?P<stem>.*?)(?P<number>\d+)\.dat$")
+
+
+def nlfff_metrics_csv_path(case_summary=None, case_dir=None, base_filename=None):
+    """Return the common ``<base_filename>_nlfff_metrics.csv`` path.
+
+    The Optimization, Grad--Rubin, and current legacy-MFR kernels write this
+    common five-column file directly.  The helper is also used by the
+    notebook-facing MFR adapter for older runs that only produced ``_mflog``.
+    """
+
+    if case_summary is not None:
+        case_dir = case_summary.get("case_dir", case_dir)
+        base_filename = case_summary.get("base_filename", base_filename)
+    if case_dir is None:
+        raise ValueError("case_dir is required to resolve NLFFF metrics")
+    if base_filename is None:
+        base_filename = "output/data_driven_mfr"
+    base = Path(str(base_filename))
+    if not base.is_absolute():
+        base = Path(case_dir).expanduser().resolve() / base
+    return str((base.parent / (base.name + "_nlfff_metrics.csv")).resolve())
+
+
+def normalize_nlfff_metrics(case_summary, output_csv=None, source_csv=None, overwrite=False):
+    """Ensure a common ``_nlfff_metrics.csv`` exists or report why it cannot.
+
+    For native current kernels this returns the existing common metrics path.
+    For legacy MFR outputs that predate the common metrics stream, it adapts the
+    method-specific ``_mflog.csv`` into the same five-column schema.  Quantities
+    unavailable from the method log are written as NaN and documented in a
+    deterministic sidecar audit.
+    """
+
+    case_summary = dict(case_summary or {})
+    method = _normalize_method_name(case_summary.get("method", "legacy_mfr"))
+    target = Path(output_csv or nlfff_metrics_csv_path(case_summary)).expanduser().resolve()
+    audit_path = target.parent / (target.stem + "_adapter.json")
+
+    if target.exists() and not overwrite:
+        return {
+            "path": str(target),
+            "status": "native_exists",
+            "source": "native_common_metrics",
+            "method": method,
+            "adapter_audit": str(audit_path) if audit_path.exists() else None,
+        }
+
+    if method not in ("legacy_mfr", "mfr"):
+        return {
+            "path": str(target),
+            "status": "missing_native_metrics",
+            "source": "native_common_metrics",
+            "method": method,
+            "adapter_audit": None,
+            "warnings": [
+                "non-MFR methods are expected to write _nlfff_metrics.csv natively"
+            ],
+        }
+
+    log_path = _resolve_mfr_log_path(case_summary, source_csv)
+    if log_path is None or not log_path.exists():
+        return {
+            "path": str(target),
+            "status": "missing_source_mflog",
+            "source": str(log_path) if log_path else None,
+            "method": method,
+            "adapter_audit": None,
+            "warnings": [
+                "legacy MFR adapter needs either native common metrics or an existing _mflog.csv"
+            ],
+        }
+
+    diagnostics = read_relaxation_diagnostics(log_path)
+    rows, column_sources = _mfr_log_to_common_metrics_rows(diagnostics)
+    target.parent.mkdir(parents=True, exist_ok=True)
+    with target.open("w", encoding="utf-8", newline="") as handle:
+        writer = csv.writer(handle)
+        writer.writerow(NLFFF_METRICS_COLUMNS)
+        writer.writerows(rows)
+
+    audit = {
+        "schema": "amrvac.nlfff_metrics_adapter.v1",
+        "method": method,
+        "status": "adapted_from_mflog",
+        "target": str(target),
+        "source": str(log_path.resolve()),
+        "row_count": len(rows),
+        "columns": list(NLFFF_METRICS_COLUMNS),
+        "column_sources": column_sources,
+        "notes": [
+            "CW_sin_theta is copied from the MFR diagnostic log when present.",
+            "epsilon_div uses the MFR <f_i> diagnostic as a method-specific proxy.",
+            "epsilon_force uses the MFR Lorentz-force diagnostic as a method-specific proxy.",
+            "magnetic_energy is NaN unless a recognized energy column exists in the source log.",
+        ],
+    }
+    _write_metrics_adapter_audit(audit_path, audit)
+    return {
+        "path": str(target),
+        "status": "adapted_from_mflog",
+        "source": str(log_path.resolve()),
+        "method": method,
+        "adapter_audit": str(audit_path),
+        "row_count": len(rows),
+        "warnings": [],
+    }
+
+
+def read_nlfff_metrics(csv_path, require_iteration=True):
+    """Read the method-neutral NLFFF metrics schema.
+
+    The common file contains ``iteration`` plus up to four plotted quantities:
+    ``CW_sin_theta``, ``epsilon_force``, ``epsilon_div`` and
+    ``magnetic_energy``.  The iteration column is required because it is the
+    common x-axis.  The four metric columns are optional at read time so that
+    an older MFR adapter can document unavailable values as NaN without
+    making the quicklook fail.
+    """
+
+    try:
+        import numpy as np
+    except ImportError as error:  # pragma: no cover
+        raise ImportError("numpy is required to read NLFFF metrics") from error
+
+    diagnostics = read_relaxation_diagnostics(csv_path)
+    warnings = list(diagnostics.get("warnings", []))
+    iteration_column = _common_metric_column(diagnostics, "iteration")
+    if require_iteration and iteration_column is None:
+        raise ValueError(
+            "common NLFFF metrics CSV is missing required iteration column: {}".format(
+                diagnostics.get("csv_path")
+            )
+        )
+    if iteration_column is not None:
+        iteration_values = diagnostics["data"][iteration_column]
+        if not np.any(np.isfinite(iteration_values)):
+            raise ValueError(
+                "common NLFFF metrics iteration column has no finite values: {}".format(
+                    diagnostics.get("csv_path")
+                )
+            )
+
+    availability = {}
+    for target, key in _NLFFF_METRIC_KEYS:
+        column = _common_metric_column(diagnostics, key)
+        if column is None:
+            availability[target] = {"column": None, "status": "missing"}
+            warnings.append("common metric column is missing: {}".format(target))
+            continue
+        values = diagnostics["data"][column]
+        finite_count = int(np.isfinite(values).sum())
+        status = "finite" if finite_count == len(values) else "partial_nan"
+        if finite_count == 0:
+            status = "all_nan"
+            warnings.append("common metric column has no finite values: {}".format(target))
+        elif finite_count < len(values):
+            warnings.append(
+                "common metric column contains non-finite values; finite rows only: {}".format(
+                    target
+                )
+            )
+        availability[target] = {
+            "column": column,
+            "status": status,
+            "finite_count": finite_count,
+            "row_count": len(values),
+        }
+    diagnostics = dict(diagnostics)
+    diagnostics["schema"] = "amrvac.nlfff_metrics.v1"
+    diagnostics["warnings"] = list(dict.fromkeys(warnings))
+    diagnostics["availability"] = availability
+    diagnostics["required_columns"] = ["iteration"]
+    diagnostics["metric_columns"] = [name for name, _ in _NLFFF_METRIC_KEYS if availability[name]["column"]]
+    return diagnostics
+
+
+def plot_nlfff_metrics(
+    metrics,
+    output_path=None,
+    base_filename=None,
+    method=None,
+    restart_markers=None,
+    show=False,
+    figsize=(10, 8),
+    dpi=150,
+):
+    """Plot the common NLFFF history without method-specific assumptions.
+
+    ``restart_markers`` are deliberately opt-in.  The generic function never
+    searches for checkpoint files.  Explicit markers are accepted only for
+    ``legacy_mfr``; Optimization and Grad--Rubin use their one-shot
+    ``0000.dat`` product and therefore ignore markers with a warning.
+    """
+
+    try:
+        import numpy as np
+        import matplotlib.pyplot as plt
+    except ImportError as error:  # pragma: no cover
+        raise ImportError("numpy and matplotlib are required to plot NLFFF metrics") from error
+
+    diagnostics = _as_nlfff_metrics(metrics)
+    data = diagnostics["data"]
+    canonical = diagnostics["canonical_columns"]
+    warnings = list(diagnostics.get("warnings", []))
+    method_name = _normalize_method_name(method or diagnostics.get("method"))
+    iteration_column = _common_metric_column(diagnostics, "iteration")
+    if iteration_column is None:
+        raise ValueError("NLFFF metrics plot requires a finite iteration column")
+    x_values = np.asarray(data[iteration_column], dtype=float)
+    x_finite = np.isfinite(x_values)
+
+    plotted = []
+    skipped = []
+    series = []
+    for target, key in _NLFFF_METRIC_KEYS[1:]:
+        column = _common_metric_column(diagnostics, key)
+        if column is None:
+            skipped.append(target)
+            continue
+        values = np.asarray(data[column], dtype=float)
+        finite = x_finite & np.isfinite(values)
+        if not np.any(finite):
+            skipped.append(target)
+            warnings.append("skipped {} because it has no finite plotted values".format(target))
+            continue
+        if np.count_nonzero(finite) < len(values):
+            warnings.append("{} contains gaps; plotted finite rows only".format(target))
+        plotted.append(target)
+        series.append((target, values, finite))
+
+    markers = list(restart_markers or [])
+    if markers and method_name != "legacy_mfr":
+        warnings.append(
+            "restart markers were ignored for {}; only legacy_mfr may overlay checkpoints".format(
+                method_name or "the selected method"
+            )
+        )
+        markers = []
+
+    if series:
+        fig, axes = plt.subplots(
+            len(series),
+            1,
+            sharex=True,
+            figsize=(figsize[0], max(figsize[1], 2.3 * len(series))),
+            squeeze=False,
+        )
+        axes = [axis for row in axes for axis in row]
+        for axis, (target, values, finite) in zip(axes, series):
+            axis.plot(x_values[finite], values[finite], linewidth=1.25, label=target)
+            axis.set_ylabel(_NLFFF_METRIC_LABELS[target])
+            axis.grid(True, alpha=0.25)
+            _draw_explicit_restart_markers(axis, markers)
+        axes[-1].set_xlabel("iteration")
+    else:
+        fig, axis = plt.subplots(figsize=figsize)
+        axes = [axis]
+        axis.text(0.5, 0.5, "No finite common NLFFF metric series", ha="center", va="center")
+        axis.set_axis_off()
+        warnings.append("no finite common NLFFF metric series was available")
+
+    title = "NLFFF metrics"
+    if method_name:
+        title = "{} ({})".format(title, method_name)
+    axes[0].set_title(title)
+    fig.tight_layout()
+
+    saved_path = None
+    if output_path is None:
+        output_path = _nlfff_metrics_quicklook_path(diagnostics, base_filename)
+    if output_path is not None:
+        output_path = Path(output_path).expanduser().resolve()
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        fig.savefig(str(output_path), dpi=dpi)
+        saved_path = str(output_path)
+    if show:
+        plt.show()
+    return {
+        "figure": fig,
+        "axes": axes,
+        "output_path": saved_path,
+        "metrics_csv": diagnostics.get("csv_path"),
+        "method": method_name,
+        "plotted_columns": plotted,
+        "skipped_columns": skipped,
+        "restart_markers": markers,
+        "warnings": list(dict.fromkeys(warnings)),
+    }
 
 
 def read_relaxation_diagnostics(csv_path):
@@ -456,6 +779,88 @@ def _as_diagnostics(value):
     return read_relaxation_diagnostics(value)
 
 
+def _as_nlfff_metrics(value):
+    if isinstance(value, dict) and "data" in value and "canonical_columns" in value:
+        return value
+    method = None
+    if isinstance(value, dict):
+        method = value.get("method")
+        value = value.get("path") or value.get("csv_path")
+    diagnostics = read_nlfff_metrics(value)
+    if method is not None:
+        diagnostics["method"] = method
+    return diagnostics
+
+
+def _common_metric_column(diagnostics, key):
+    """Resolve a common metric key while retaining original CSV column names."""
+
+    canonical = diagnostics.get("canonical_columns", {})
+    column = canonical.get(key)
+    if column is not None:
+        return column
+    data = diagnostics.get("data", {})
+    for candidate in (key, key.replace("_", " ")):
+        if candidate in data:
+            return candidate
+    return None
+
+
+def _nlfff_metrics_quicklook_path(diagnostics, base_filename=None):
+    csv_path = diagnostics.get("csv_path")
+    if base_filename is None:
+        if csv_path is None:
+            return None
+        base = Path(csv_path).expanduser().resolve()
+        parent = base.parent
+        stem = base.stem
+    else:
+        base = Path(str(base_filename)).expanduser()
+        if base.is_absolute():
+            parent = base.parent
+        elif csv_path is not None:
+            parent = Path(csv_path).expanduser().resolve().parent / base.parent
+        else:
+            parent = base.parent
+        stem = base.stem if base.suffix else base.name
+    if stem.endswith("_nlfff_metrics"):
+        stem = stem[: -len("_nlfff_metrics")]
+    return (parent / (stem + "_nlfff_metrics_quicklook.png")).resolve()
+
+
+def _draw_explicit_restart_markers(axis, markers):
+    saved_handle = None
+    selected_handle = None
+    for marker in markers:
+        value = marker.get("iteration")
+        if value is None:
+            value = marker.get("values", {}).get("iteration")
+        try:
+            value = float(value)
+        except (TypeError, ValueError):
+            continue
+        if not math.isfinite(value):
+            continue
+        if marker.get("selected"):
+            selected_handle = axis.axvline(
+                value, color="tab:green", linewidth=1.3, alpha=0.8,
+            )
+        else:
+            saved_handle = axis.axvline(
+                value, color="tab:red", linewidth=0.8, alpha=0.35,
+            )
+    handles = []
+    labels = []
+    if saved_handle is not None:
+        handles.append(saved_handle)
+        labels.append("saved restart")
+    if selected_handle is not None:
+        handles.append(selected_handle)
+        labels.append("selected restart")
+    if handles:
+        axis.legend(handles, labels, loc="best")
+
+
 def _resolve_column(diag, name):
     if name is None:
         return None
@@ -820,3 +1225,102 @@ def _selected_diagnostic_values(diag, marker):
         if column is not None and column in values:
             selected[key] = float(values[column])
     return selected
+
+
+def _normalize_method_name(value):
+    value = str(value or "").strip().lower()
+    aliases = {
+        "legacy_mfr": "legacy_mfr",
+        "mfr": "legacy_mfr",
+        "magnetofriction": "legacy_mfr",
+        "magnetofrictional_relaxation": "legacy_mfr",
+        "optimization": "optimization",
+        "grad_rubin": "grad_rubin",
+        "gr": "grad_rubin",
+    }
+    return aliases.get(value, value)
+
+
+def _resolve_mfr_log_path(case_summary, source_csv):
+    if source_csv is not None:
+        return Path(source_csv).expanduser().resolve()
+    case_dir = case_summary.get("case_dir")
+    if case_dir is None:
+        return None
+    explicit = str(case_summary.get("mf_log_filename", "") or "").strip()
+    if explicit:
+        path = Path(explicit)
+        if not path.is_absolute():
+            path = Path(case_dir).expanduser().resolve() / path
+        return path.resolve()
+    base_filename = case_summary.get("base_filename", "output/data_driven_mfr")
+    base = Path(str(base_filename))
+    if not base.is_absolute():
+        base = Path(case_dir).expanduser().resolve() / base
+    return (base.parent / (base.name + "_mflog.csv")).resolve()
+
+
+def _mfr_log_to_common_metrics_rows(diagnostics):
+    import numpy as np
+
+    diag = _as_diagnostics(diagnostics)
+    canonical = diag["canonical_columns"]
+    row_count = int(diag["row_count"])
+    columns = {
+        "iteration": canonical.get("iteration"),
+        "CW_sin_theta": canonical.get("cw_sin_theta"),
+        "epsilon_force": canonical.get("lorentz_force") or canonical.get("jxb"),
+        "epsilon_div": canonical.get("divb"),
+        "magnetic_energy": canonical.get("magnetic_energy"),
+    }
+    column_sources = {}
+    for target, source in columns.items():
+        if source is None:
+            column_sources[target] = {
+                "source_column": None,
+                "status": "nan_unavailable",
+            }
+        elif target == "epsilon_force":
+            column_sources[target] = {
+                "source_column": source,
+                "status": "method_specific_proxy",
+                "meaning": "MFR Lorentz-force diagnostic, not the native common epsilon_force",
+            }
+        elif target == "epsilon_div":
+            column_sources[target] = {
+                "source_column": source,
+                "status": "method_specific_proxy",
+                "meaning": "MFR <f_i> diagnostic, not the native common epsilon_div",
+            }
+        else:
+            column_sources[target] = {
+                "source_column": source,
+                "status": "copied",
+            }
+
+    rows = []
+    for index in range(row_count):
+        row = []
+        for target in NLFFF_METRICS_COLUMNS:
+            source = columns[target]
+            if source is None:
+                value = np.nan
+            else:
+                value = float(diag["data"][source][index])
+            if target == "iteration" and (not math.isfinite(value)):
+                value = float(index)
+            row.append(value)
+        rows.append(row)
+    return rows, column_sources
+
+
+def _write_metrics_adapter_audit(path, audit):
+    import json
+
+    path = Path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(
+        json.dumps(audit, indent=2, sort_keys=True, allow_nan=True) + "\n",
+        encoding="utf-8",
+    )
+    return path

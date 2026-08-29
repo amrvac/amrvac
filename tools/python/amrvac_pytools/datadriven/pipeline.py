@@ -431,7 +431,7 @@ def prepare_nlfff_from_vector(
     window=None,
     level=1,
     geometry=None,
-    preprocess=True,
+    preprocess=False,
     preprocess_mu3=0.1,
     preprocess_mu4=0.1,
     preprocess_max_iter=5000,
@@ -439,6 +439,7 @@ def prepare_nlfff_from_vector(
     nghost=2,
     quicklook=True,
     vmax=500.0,
+    preprocessing_mode=None,
 ):
     """Prepare scenario 2: single Br/Bt/Bp map for NLFFF relaxation."""
 
@@ -447,6 +448,7 @@ def prepare_nlfff_from_vector(
         br, bt, bp, output_dir, window, level, geometry,
         preprocess, preprocess_mu3, preprocess_mu4, preprocess_max_iter,
         preprocess_tol, nghost, quicklook, vmax,
+        preprocessing_mode=preprocessing_mode,
     )
 
 
@@ -458,7 +460,7 @@ def prepare_data_constrained_from_vector(
     window=None,
     level=1,
     geometry=None,
-    preprocess=True,
+    preprocess=False,
     preprocess_mu3=0.1,
     preprocess_mu4=0.1,
     preprocess_max_iter=5000,
@@ -466,6 +468,7 @@ def prepare_data_constrained_from_vector(
     nghost=2,
     quicklook=True,
     vmax=500.0,
+    preprocessing_mode=None,
 ):
     """Prepare scenario 3: fixed-bottom data-constrained MHD inputs."""
 
@@ -474,6 +477,7 @@ def prepare_data_constrained_from_vector(
         br, bt, bp, output_dir, window, level, geometry,
         preprocess, preprocess_mu3, preprocess_mu4, preprocess_max_iter,
         preprocess_tol, nghost, quicklook, vmax,
+        preprocessing_mode=preprocessing_mode,
         extra={"bottom_velocity": "zero", "time_dependence": "fixed_boundary"},
     )
 
@@ -529,6 +533,12 @@ def prepare_boundary_frame(
     geometry=None,
     snapshot_index=0,
     preprocess=False,
+    preprocess_mu3=0.1,
+    preprocess_mu4=0.1,
+    preprocess_max_iter=5000,
+    preprocess_tol=1.0e-4,
+    preprocessing_mode=None,
+    fail_on_nonconvergence=False,
     nghost=2,
     quicklook=True,
     vmax=500.0,
@@ -544,6 +554,12 @@ def prepare_boundary_frame(
         snapshot_index=snapshot_index,
         all_frames=False,
         preprocess=preprocess,
+        preprocess_mu3=preprocess_mu3,
+        preprocess_mu4=preprocess_mu4,
+        preprocess_max_iter=preprocess_max_iter,
+        preprocess_tol=preprocess_tol,
+        preprocessing_mode=preprocessing_mode,
+        fail_on_nonconvergence=fail_on_nonconvergence,
         nghost=nghost,
         quicklook=quicklook,
         vmax=vmax,
@@ -558,6 +574,12 @@ def prepare_boundary_sequence(
     level=1,
     geometry=None,
     preprocess=False,
+    preprocess_mu3=0.1,
+    preprocess_mu4=0.1,
+    preprocess_max_iter=5000,
+    preprocess_tol=1.0e-4,
+    preprocessing_mode=None,
+    fail_on_nonconvergence=False,
     nghost=2,
     quicklook=True,
     vmax=500.0,
@@ -576,6 +598,12 @@ def prepare_boundary_sequence(
         snapshot_index=0,
         all_frames=True,
         preprocess=preprocess,
+        preprocess_mu3=preprocess_mu3,
+        preprocess_mu4=preprocess_mu4,
+        preprocess_max_iter=preprocess_max_iter,
+        preprocess_tol=preprocess_tol,
+        preprocessing_mode=preprocessing_mode,
+        fail_on_nonconvergence=fail_on_nonconvergence,
         nghost=nghost,
         quicklook=quicklook,
         vmax=vmax,
@@ -603,16 +631,16 @@ def _prepare_vector_static(
     quicklook,
     vmax,
     extra=None,
+    preprocessing_mode=None,
 ):
     from .cartesian import (
         boundary_metadata,
-        cartesian_preprocess_diagnostics,
         crop_components_with_padding,
         multigrid_reduce_components,
         multigrid_reducer,
-        preprocess_cartesian_field,
     )
     from .fits_io import load_vector_components
+    from .preprocessing import VectorPreprocessingConfig, preprocess_vector_magnetogram
     from .writers import write_boundary_frame, write_json, write_static_boundary_products
 
     bx, by, bz, header = _arrays_or_vector_fits(br, bt, bp, load_vector_components)
@@ -626,16 +654,24 @@ def _prepare_vector_static(
     bx_mg, by_mg, bz_mg = multigrid_reduce_components(
         bx_crop, by_crop, bz_crop, level=level
     )
-    diagnostics_before = cartesian_preprocess_diagnostics(bx_mg, by_mg, bz_mg)
-    preprocess_metrics = None
-    diagnostics_after = diagnostics_before
-    if preprocess:
-        bx_mg, by_mg, bz_mg, preprocess_metrics = preprocess_cartesian_field(
-            bx_mg, by_mg, bz_mg,
-            mu3=preprocess_mu3, mu4=preprocess_mu4,
-            max_iter=preprocess_max_iter, tol=preprocess_tol,
-        )
-        diagnostics_after = cartesian_preprocess_diagnostics(bx_mg, by_mg, bz_mg)
+    if preprocessing_mode is None:
+        preprocessing_mode = "recommended" if preprocess else "none"
+    dx_cm, dy_cm = _static_spacing(header, geometry, level)
+    preprocess_config = VectorPreprocessingConfig(
+        mode=preprocessing_mode,
+        mu3=preprocess_mu3,
+        mu4=preprocess_mu4,
+        max_iter=preprocess_max_iter,
+        tol=preprocess_tol,
+        dx=dx_cm / 1.0e5,
+        dy=dy_cm / 1.0e5,
+        geometry_mode="centered" if preprocessing_mode != "none" else None,
+        edge_treatment="nonperiodic" if preprocessing_mode != "none" else None,
+    )
+    bx_mg, by_mg, bz_mg, preprocessing_audit = preprocess_vector_magnetogram(
+        bx_mg, by_mg, bz_mg, config=preprocess_config
+    )
+    preprocess = preprocess_config.mode != "none"
 
     meta = _metadata_for_boundary(
         header, geometry, crop, level, bx_mg.shape, nghost, boundary_metadata
@@ -643,6 +679,9 @@ def _prepare_vector_static(
     outputs = write_static_boundary_products(
         output_dir, bx_mg, by_mg, bz_mg, meta, quicklook=quicklook, vmax=vmax
     )
+    preprocessing_audit_path = Path(output_dir) / "preprocessing_audit.json"
+    write_json(preprocessing_audit_path, preprocessing_audit)
+    outputs["preprocessing_audit"] = str(preprocessing_audit_path)
     if mode == "data_constrained":
         boundary_frame = write_boundary_frame(
             Path(output_dir) / "B_0001.dat",
@@ -661,9 +700,8 @@ def _prepare_vector_static(
         "mu4": preprocess_mu4,
         "max_iter": preprocess_max_iter,
         "tol": preprocess_tol,
-        "metrics": preprocess_metrics,
-        "diagnostics_before": diagnostics_before,
-        "diagnostics_after": diagnostics_after,
+        "mode": preprocess_config.mode,
+        "audit": preprocessing_audit,
     }
     if extra:
         metadata.update(extra)
@@ -680,6 +718,12 @@ def _prepare_unified_boundary(
     snapshot_index,
     all_frames,
     preprocess,
+    preprocess_mu3,
+    preprocess_mu4,
+    preprocess_max_iter,
+    preprocess_tol,
+    preprocessing_mode,
+    fail_on_nonconvergence,
     nghost,
     quicklook,
     vmax,
@@ -692,9 +736,9 @@ def _prepare_unified_boundary(
         crop_components_with_padding,
         multigrid_reduce_components,
         multigrid_reducer,
-        preprocess_cartesian_field,
     )
     from .fits_io import discover_vector_sequence, load_vector_components
+    from .preprocessing import VectorPreprocessingConfig, preprocess_vector_magnetogram
     from .writers import ensure_output_dir, write_boundary_outputs, write_json, write_quicklook
 
     output_dir = ensure_output_dir(output_dir)
@@ -724,6 +768,9 @@ def _prepare_unified_boundary(
     reducer = multigrid_reducer(level)
     crop = None
     frames = []
+    preprocessing_audits = []
+    correction_continuity = []
+    previous_correction = None
     first_time = None
     meta = None
     padding = None
@@ -755,9 +802,42 @@ def _prepare_unified_boundary(
             pad_x=nghost * reducer, pad_y=nghost * reducer,
         )
         bx, by, bz = multigrid_reduce_components(bx, by, bz, level=level)
-        if preprocess:
-            bx, by, bz, _ = preprocess_cartesian_field(bx, by, bz)
         frame_spacing = _sequence_spacing(header, geometry, level)
+        if preprocessing_mode is None:
+            selected_preprocessing_mode = "recommended" if preprocess else "none"
+        else:
+            selected_preprocessing_mode = preprocessing_mode
+        before_preprocess = [item.copy() for item in (bx, by, bz)]
+        preprocess_config = VectorPreprocessingConfig(
+            mode=selected_preprocessing_mode,
+            mu3=preprocess_mu3,
+            mu4=preprocess_mu4,
+            max_iter=preprocess_max_iter,
+            tol=preprocess_tol,
+            dx=frame_spacing[0],
+            dy=frame_spacing[1],
+            geometry_mode="centered" if selected_preprocessing_mode != "none" else None,
+            edge_treatment="nonperiodic" if selected_preprocessing_mode != "none" else None,
+            fail_on_nonconvergence=fail_on_nonconvergence,
+        )
+        bx, by, bz, preprocessing_audit = preprocess_vector_magnetogram(
+            bx, by, bz, config=preprocess_config
+        )
+        preprocess = preprocess_config.mode != "none"
+        correction = [new - old for old, new in zip(before_preprocess, (bx, by, bz))]
+        correction_norm = float(
+            sum(float((item * item).sum()) for item in correction) ** 0.5
+        )
+        if previous_correction is None:
+            correction_delta = None
+            correction_delta_relative = None
+        else:
+            delta = [new - old for old, new in zip(previous_correction, correction)]
+            correction_delta = float(
+                sum(float((item * item).sum()) for item in delta) ** 0.5
+            )
+            correction_delta_relative = correction_delta / max(correction_norm, 1.0e-300)
+        previous_correction = correction
         if meta is None:
             meta = _metadata_for_boundary(
                 header, geometry, crop, level, bx.shape, nghost, boundary_metadata
@@ -793,6 +873,29 @@ def _prepare_unified_boundary(
         else:
             snapshot_time = 0.0
         dx, dy = frame_spacing
+        audit_path = output_dir / "preprocessing_audit_frame_{:04d}.json".format(
+            len(preprocessing_audits) + 1
+        )
+        preprocessing_audit.update({
+            "frame": {
+                "source_index": int(source_index),
+                "snapshot_time": float(snapshot_time),
+                "observation_time": _header_observation_time(header),
+                "dx_km": float(dx),
+                "dy_km": float(dy),
+            },
+            "correction_norm": correction_norm,
+            "correction_delta_to_previous": correction_delta,
+            "correction_delta_to_previous_relative": correction_delta_relative,
+        })
+        write_json(audit_path, preprocessing_audit)
+        preprocessing_audits.append(str(audit_path))
+        correction_continuity.append({
+            "source_index": int(source_index),
+            "correction_norm": correction_norm,
+            "delta_to_previous": correction_delta,
+            "delta_to_previous_relative": correction_delta_relative,
+        })
         frames.append({
             "bx": bx,
             "by": by,
@@ -827,6 +930,11 @@ def _prepare_unified_boundary(
         "nghost": nghost,
         "padding": padding,
         "preprocess": bool(preprocess),
+        "preprocessing": {
+            "mode": selected_preprocessing_mode if selected_indices else ("recommended" if preprocess else "none"),
+            "audit_files": preprocessing_audits,
+            "correction_continuity": correction_continuity,
+        },
         "quicklook_vmax": float(vmax),
         "frame_format": "snapshot_time,nx,ny,dx,dy,Bx,By,Bz",
         "spacing_unit": "km",
@@ -864,12 +972,16 @@ def _prepare_vector_sequence(
 ):
     from .cartesian import crop_components, multigrid_reduce_components
     from .fits_io import discover_vector_sequence, load_vector_components
+    from .preprocessing import VectorPreprocessingConfig, preprocess_vector_magnetogram
     from .writers import ensure_output_dir, write_boundary_outputs, write_json, write_quicklook
 
     output_dir = ensure_output_dir(output_dir)
     series = discover_vector_sequence(input_dir)
     crop = None
     frames = []
+    preprocessing_audits = []
+    correction_continuity = []
+    previous_correction = None
     first_time = None
     for index, (br, bt, bp) in enumerate(zip(series["br"], series["bt"], series["bp"])):
         bx, by, bz, header = load_vector_components(br, bt, bp)
@@ -879,16 +991,58 @@ def _prepare_vector_sequence(
             bx, by, bz, x0=crop["x0"], y0=crop["y0"], nx=crop["nx"], ny=crop["ny"]
         )
         bx, by, bz = multigrid_reduce_components(bx, by, bz, level=level)
-        if preprocess:
-            from .cartesian import preprocess_cartesian_field
-
-            bx, by, bz, _ = preprocess_cartesian_field(bx, by, bz)
         time_seconds = _header_time_seconds(header)
         if time_seconds is None:
             time_seconds = float(index)
         if first_time is None:
             first_time = time_seconds
         dx, dy = _sequence_spacing(header, geometry, level)
+        before_preprocess = [item.copy() for item in (bx, by, bz)]
+        preprocess_config = VectorPreprocessingConfig(
+            mode="recommended" if preprocess else "none",
+            dx=dx,
+            dy=dy,
+            geometry_mode="centered" if preprocess else None,
+            edge_treatment="nonperiodic" if preprocess else None,
+        )
+        bx, by, bz, preprocessing_audit = preprocess_vector_magnetogram(
+            bx, by, bz, config=preprocess_config
+        )
+        correction = [new - old for old, new in zip(before_preprocess, (bx, by, bz))]
+        correction_norm = float(
+            sum(float((item * item).sum()) for item in correction) ** 0.5
+        )
+        if previous_correction is None:
+            correction_delta = None
+            correction_delta_relative = None
+        else:
+            delta = [new - old for old, new in zip(previous_correction, correction)]
+            correction_delta = float(
+                sum(float((item * item).sum()) for item in delta) ** 0.5
+            )
+            correction_delta_relative = correction_delta / max(correction_norm, 1.0e-300)
+        previous_correction = correction
+        audit_path = output_dir / "preprocessing_audit_frame_{:04d}.json".format(index + 1)
+        preprocessing_audit.update({
+            "frame": {
+                "source_index": int(index),
+                "snapshot_time": float(time_seconds - first_time),
+                "observation_time": _header_observation_time(header),
+                "dx_km": float(dx),
+                "dy_km": float(dy),
+            },
+            "correction_norm": correction_norm,
+            "correction_delta_to_previous": correction_delta,
+            "correction_delta_to_previous_relative": correction_delta_relative,
+        })
+        write_json(audit_path, preprocessing_audit)
+        preprocessing_audits.append(str(audit_path))
+        correction_continuity.append({
+            "source_index": int(index),
+            "correction_norm": correction_norm,
+            "delta_to_previous": correction_delta,
+            "delta_to_previous_relative": correction_delta_relative,
+        })
         frames.append({
             "bx": bx,
             "by": by,
@@ -908,6 +1062,11 @@ def _prepare_vector_sequence(
         "window": crop,
         "level": level,
         "preprocess": bool(preprocess),
+        "preprocessing": {
+            "mode": "recommended" if preprocess else "none",
+            "audit_files": preprocessing_audits,
+            "correction_continuity": correction_continuity,
+        },
         "sequence_format": "snapshot_time,nx,ny,dx,dy,Bx,By,Bz",
         "time_scaling": "not_written_python_v1",
         "frame_count": len(frames),
