@@ -376,13 +376,11 @@ without changing time, set `reset_it=T`.
 
 The `ghostcell_comm_batched` switch limits the number of outstanding ghost-cell
 send requests by waiting after every `ghostcell_comm_batch_size` sends. The
-default is `ghostcell_comm_batched=T`. In large-scale MHD tests, the original
+default is `ghostcell_comm_batched=F`; set it to `T` to enable batching. In
+large-scale MHD tests, the original
 all-at-once ghost-cell exchange could stall during spherical u512
 initialization, while u256 5-step tests showed less than 0.1% total runtime
-difference with batching enabled. The original communication pattern is still
-available by setting `ghostcell_comm_batched=F`. If the batched path remains
-stable in broader tests, the old path can be removed later. The default batch
-size is 64.
+difference with batching enabled. The default batch size is 64.
 
 ### time_stepper, time_integrator, flux_scheme {#par_time_integrator}
 

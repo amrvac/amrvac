@@ -769,8 +769,8 @@ module mod_global_parameters
   !> that failure mode, while u256 5-step tests showed less than 0.1% total
   !> runtime difference. The original path is still available by setting this to
   !> false; if batching remains stable in broader tests, the old path can be
-  !> removed later.
-  logical :: ghostcell_comm_batched=.true.
+  !> removed later. Disabled by default; set this to true to opt in.
+  logical :: ghostcell_comm_batched=.false.
   integer :: ghostcell_comm_batch_size=64
   !> True for record electric field
   logical :: record_electric_field=.false.
