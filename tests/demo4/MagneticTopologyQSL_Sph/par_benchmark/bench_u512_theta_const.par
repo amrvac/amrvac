@@ -4,7 +4,7 @@
 &filelist
   convert=.true.
   firstprocess=.false.
-  convert_type='user'
+  convert_type='magnetic_topology'
   autoconvert=.false.
   restart_from_file='output/spherical_tdm_u512_0000.dat'
 /
@@ -65,7 +65,6 @@
 /
 
 &magnetic_topology_list
-  mt_enable = .true.
   mt_mode = 'spherical_surface_products'
   mt_seed_surface = 'theta_const'
   mt_seed_coord = 1.5707963267948966d0

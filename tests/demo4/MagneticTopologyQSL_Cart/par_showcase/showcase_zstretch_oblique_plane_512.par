@@ -2,7 +2,7 @@
 ! Plane: origin=(0,0,5), e1=(1,0,0), e2=(0,1,1)/sqrt(2).
 &filelist
   convert=.true.
-  convert_type='user'
+  convert_type='magnetic_topology'
   autoconvert=.false.
   restart_from_file='output/qsl_tdm_amr_l3_zstretch_0000.dat'
 /
@@ -63,7 +63,6 @@
 /
 
 &magnetic_topology_list
-  mt_enable = .true.
   mt_mode = 'arbitrary_plane_products'
   mt_output_file = 'output/showcase/zstretch_oblique_plane_512.vtu'
   mt_step_control = 'cell_fraction'

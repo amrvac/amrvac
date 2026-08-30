@@ -64,6 +64,7 @@ mf_cy=0.2d0            ! magnetofriction velocity coefficient
 mf_cdivb=0.01d0        ! diffusive div(B) cleaning coefficient
 mf_log_mode='auto'     ! 'auto', 'append', or 'replace'
 mf_log_filename=''     ! empty: <base_filename>_mflog.csv
+mf_write_detailed_history=.false. ! enable the legacy _mflog.csv
 ```
 
 With `mf_log_mode='auto'`, a run starting from a potential snapshot (`it=0`)
@@ -78,5 +79,16 @@ the maximum level. Other blocks follow the magnetic-field refinement settings
 in `meshlist`.
 
 The relaxation writes AMRVAC checkpoint snapshots and, when `autoconvert` is
-enabled, cell-centered VTU files under `base_filename`. It also writes the MF
-diagnostics CSV containing iteration/time and force-free/divergence metrics.
+enabled, cell-centered VTU files under `base_filename`. It always writes
+`<base_filename>_nlfff_metrics.csv`, using the same
+compact external schema as the optimization and Grad--Rubin extrapolators:
+
+```text
+iteration,CW_sin_theta,epsilon_force,epsilon_div,magnetic_energy
+```
+
+The existing `_mflog.csv` is available for compatibility and for its artificial
+MF time step, fractional-flux metric, mean current, and mean Lorentz force. It
+is disabled by default; add `detailed_history.par` to the input list or set
+`mf_write_detailed_history=.true.` in `mf_list` to enable it.
+The common file uses all active cells and is the preferred cross-method plot.

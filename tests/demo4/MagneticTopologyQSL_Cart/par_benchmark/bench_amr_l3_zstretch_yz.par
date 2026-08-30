@@ -3,7 +3,7 @@
 &filelist
   convert=.true.
   firstprocess=.false.
-  convert_type='user'
+  convert_type='magnetic_topology'
   autoconvert=.false.
   restart_from_file='output/qsl_tdm_amr_l3_zstretch_0000.dat'
 /
@@ -64,7 +64,6 @@
 /
 
 &magnetic_topology_list
-  mt_enable = .true.
   mt_mode = 'axis_plane_full_vtu'
   mt_vtk_detail = 'minimal'
   mt_output_file = 'output/benchmark/yz_amr_l3_zstretch.vti'

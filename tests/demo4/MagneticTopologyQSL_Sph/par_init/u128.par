@@ -68,5 +68,4 @@
 /
 
 &magnetic_topology_list
-  mt_enable=.false.
 /

@@ -2,7 +2,7 @@
 ! This uses spherical_cloud_products on a 256 x 192 x 256 internal-coordinate grid.
 &filelist
   convert=.true.
-  convert_type='user'
+  convert_type='magnetic_topology'
   autoconvert=.false.
   restart_from_file='output/spherical_tdm_amr_l3_rstretch_0000.dat'
 /
@@ -72,7 +72,6 @@
 /
 
 &magnetic_topology_list
-  mt_enable = .true.
   mt_mode = 'spherical_cloud_products'
   mt_seed_layout = 'cell_centered'
   mt_output_file = 'output/showcase/rstretch_volume_256.vtu'

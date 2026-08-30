@@ -1,0 +1,42 @@
+!$AMRVAC_DIR/setup.pl -d=3
+
+&filelist
+  base_filename=''
+  saveprim=.true.
+  autoconvert=.false.
+/
+
+&stoplist
+  it_max=0
+/
+
+&boundlist
+  typeboundary_min1=3*'cont'
+  typeboundary_max1=3*'cont'
+  typeboundary_min2=3*'cont'
+  typeboundary_max2=3*'cont'
+  typeboundary_min3=3*'cont'
+  typeboundary_max3=3*'cont'
+/
+
+&meshlist
+  refine_max_level=1
+  block_nx1=42
+  block_nx2=42
+  block_nx3=4
+  domain_nx1=504
+  domain_nx2=504
+  domain_nx3=4
+  xprobmin1=-60.12024048096192d0
+  xprobmax1= 61.08216432865731d0
+  xprobmin2=-60.12024048096192d0
+  xprobmax2= 61.08216432865731d0
+  xprobmin3= 0.12024048096192385d0
+  xprobmax3= 1.082164328657314d0
+/
+
+&usr_list
+  run_mode='generate_boundary'
+  boundary_export_filename='td99_boundary_v1.dat'
+  i0_effective_ta=13.d0
+/

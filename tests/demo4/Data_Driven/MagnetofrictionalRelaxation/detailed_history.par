@@ -1,0 +1,3 @@
+&mf_list
+  mf_write_detailed_history=.true.
+/
