@@ -1,14 +1,14 @@
 &filelist
-  base_filename='output/Torrilhon'
+  base_filename='output/Torrilhon_diff_nomg'
   autoconvert      = F
-  typefilelog='regression_test'
 /
+  typefilelog='regression_test'
 
  &savelist
    itsave(1,1)=0
    itsave(1,2)=0
-   dtsave_log     = 0.001d0
-   ditsave_dat     = 500
+   ditsave_log     = 10
+   dtsave_dat     = 0.01d0
 /
 
  &stoplist
@@ -19,9 +19,8 @@
         time_stepper = 'threestep'    
         time_integrator = 'IMEX_ARS3'
         flux_scheme=    20*'hll'
-        limiter= 20*'koren'
- /
         limiter= 20*'weno3'
+ /
 
  &boundlist
         typeboundary_min1=9*'cont' 
@@ -41,8 +40,8 @@
  /
 
  &paramlist
-        courantpar=0.05d0
-        slowsteps=200000
+        courantpar=0.8d0
+        slowsteps=20000
  /
 
  &mhd_list
@@ -51,23 +50,19 @@
      mhd_radiation_fld = .true.
  /
 
-     fld_kappa0 = 0.4d0
  &eos_list
   gamma = 1.6666667d0
   He_abundance = 0.0d0
  /
 
-     fld_kappa0 = 0.4d0
  &fld_list
      fld_Radforce_split = .false.
      fld_opacity_law = 'const'
-     fld_kappa0 = 400.0d0
+     fld_kappa0 = 4000.0d0
      fld_interaction_method = 'Halley'
      fld_fluxlimiter = 'Diffusion'
-     fld_diff_tol = 1.d-6
+     fld_diff_tol = 1.d-7
      fld_bisect_tol=1.d-6
      fld_tiring_explicit=.true.
-     fld_force_MG_converged=.false.
+     fld_no_mg=.true.
  /
-     fld_fluxlimiter = 'Pomraning'
-     fld_debug=T

@@ -16,7 +16,7 @@ module mod_hd_phys
   !> Whether thermal conduction is added
   logical, public, protected              :: hd_thermal_conduction = .false.
   !> Whether hyperbolic thermal conduction (Cattaneo relaxation) is used.
-  !> 1D only — the q-variable is treated as a scalar carrying the
+  !> 1D only : the q-variable is treated as a scalar carrying the
   !> heat flux along the only spatial direction.
   logical, public, protected              :: hd_hyperbolic_thermal_conduction = .false.
   !> Whether saturation is considered for hyperbolic TC
@@ -36,6 +36,7 @@ module mod_hd_phys
 
   !> Whether radiation-gas interaction is handled using flux limited diffusion
   logical, public, protected              :: hd_radiation_fld = .false.
+  logical, public, protected              :: hd_fld_pradtensor= .true.
   !> Radiation fluid object (gas-EoS callbacks for FLD), wired in hd_link_eos
   type(fld_fluid), allocatable, public    :: fld_fl
 
@@ -243,7 +244,7 @@ contains
     SI_unit, hd_particles, hd_rotating_frame, hd_trac, &
     hd_trac_type, hd_trac_nzones, hd_trac_zone_splits, hd_trac_delta, &
     hd_cak_force, hd_well_balanced, &
-    hd_radiation_fld, hd_fip
+    hd_radiation_fld, hd_fld_pradtensor,hd_fip
 
     do n = 1, size(files)
        open(unitpar, file=trim(files(n)), status="old")
@@ -940,7 +941,9 @@ contains
            write(*,*)'==FLD SETUP======================'
            write(*,*)'Using FLD with settings:'
            write(*,*)'Using FLD with settings: hd_radiation_fld=',hd_radiation_fld
+           write(*,*)'Using FLD with settings: hd_fld_pradtensor=',hd_fld_pradtensor
            write(*,*)'Using FLD with settings: fld_fluxlimiter=',fld_fluxlimiter
+           write(*,*)'Using FLD with settings: fld_bound_diff=',fld_bound_diff
            write(*,*)'Using FLD with settings: fld_interaction_method=',fld_interaction_method
            write(*,*)'Using FLD with settings: fld_opacity_law=',fld_opacity_law
            write(*,*)'Using FLD with settings: fld_kappa0=',fld_kappa0
@@ -950,9 +953,21 @@ contains
            write(*,*)'Using FLD with settings: fld_diff_tol=',fld_diff_tol
            write(*,*)'Using FLD with settings: nth_for_diff_mg=',nth_for_diff_mg
            write(*,*)'      FLD has use_imex_scheme and use_multigrid=',use_imex_scheme,use_multigrid
+           write(*,*)'      FLD has fld_no_mg=',fld_no_mg
+           if(fld_no_mg)then
+              print *,'WARNING: cheating with FLD diffusion ***********************'
+              print *,'WARNING: No MG-diffusion for radiative energy at all!!!!!!!'
+              print *,'WARNING: cheating with FLD diffusion ***********************'
+           endif
            print *,'const_rad_a   =',const_rad_a
            print *,'NORMALIZED arad_norm=',arad_norm
            print *,'NORMALIZED c_norm=',c_norm
+           if(fld_cnorm>0.0d0)then
+              print *,'WARNING: cheating with c_norm ***********************'
+              print *,'WARNING: c_norm reset to=',fld_cnorm
+              c_norm=fld_cnorm
+              print *,'WARNING: cheating with c_norm ***********************'
+           endif
            print *,'const_kappae  =',const_kappae
            if(trim(fld_opacity_law).eq.'const_norm')then
                print *,'NORMALIZED fld_kappa0          =',fld_kappa0
@@ -1601,6 +1616,7 @@ contains
   subroutine hd_get_cbounds(wLC, wRC, wLp, wRp, x, ixI^L, ixO^L, idim,Hspeed,cmax, cmin)
     use mod_global_parameters
     use mod_dust, only: dust_get_cmax
+    use mod_fld, only: fld_bound_diff
     use mod_variables
 
     integer, intent(in)             :: ixI^L, ixO^L, idim
@@ -1630,6 +1646,10 @@ contains
       if(hd_energy) then
         call eos%get_csound2(wLp, x, ixI^L, ixO^L, csoundL)
         call eos%get_csound2(wRp, x, ixI^L, ixO^L, csoundR)
+        if(fld_bound_diff)then
+          csoundL(ixO^S)=csoundL(ixO^S)+(4.0d0/9.0d0)*wLp(ixO^S,r_e)/wLp(ixO^S,rho_)
+          csoundR(ixO^S)=csoundR(ixO^S)+(4.0d0/9.0d0)*wRp(ixO^S,r_e)/wRp(ixO^S,rho_)
+        endif
       else
          ! note usage of conservatives here
          call hd_get_csound2(wLC,x,ixI^L,ixO^L,csoundL)
@@ -1670,6 +1690,7 @@ contains
          wmean(ixO^S,1:nwflux)=0.5d0*(wLC(ixO^S,1:nwflux)+wRC(ixO^S,1:nwflux))
          tmp1(ixO^S)=wmean(ixO^S,mom(idim))/wmean(ixO^S,rho_)
          call hd_get_csound2(wmean,x,ixI^L,ixO^L,csoundR)
+         if(fld_bound_diff)csoundR(ixO^S)=csoundR(ixO^S)+(4.0d0/9.0d0)*wmean(ixO^S,r_e)/wmean(ixO^S,rho_)
       !endif
       csoundR(ixO^S) = dsqrt(csoundR(ixO^S))
 
@@ -1694,6 +1715,10 @@ contains
       if(hd_energy) then
         call eos%get_csound2(wLp, x, ixI^L, ixO^L, csoundL)
         call eos%get_csound2(wRp, x, ixI^L, ixO^L, csoundR)
+        if(fld_bound_diff)then
+          csoundL(ixO^S)=csoundL(ixO^S)+(4.0d0/9.0d0)*wLp(ixO^S,r_e)/wLp(ixO^S,rho_)
+          csoundR(ixO^S)=csoundR(ixO^S)+(4.0d0/9.0d0)*wRp(ixO^S,r_e)/wRp(ixO^S,rho_)
+        endif
       else
          ! note usage of conservatives here
          call hd_get_csound2(wLC,x,ixI^L,ixO^L,csoundL)
@@ -1725,6 +1750,10 @@ contains
       if(hd_energy) then
         call eos%get_csound2(wLp, x, ixI^L, ixO^L, csoundL)
         call eos%get_csound2(wRp, x, ixI^L, ixO^L, csoundR)
+        if(fld_bound_diff)then
+          csoundL(ixO^S)=csoundL(ixO^S)+(4.0d0/9.0d0)*wLp(ixO^S,r_e)/wLp(ixO^S,rho_)
+          csoundR(ixO^S)=csoundR(ixO^S)+(4.0d0/9.0d0)*wRp(ixO^S,r_e)/wRp(ixO^S,rho_)
+        endif
       else
         call hd_get_csound2(wLC,x,ixI^L,ixO^L,csoundL)
         call hd_get_csound2(wRC,x,ixI^L,ixO^L,csoundR)
@@ -1876,12 +1905,20 @@ contains
     double precision :: inv_rho
     double precision :: prad_tensor(ixI^S, 1:ndim, 1:ndim)
     double precision :: prad_max(ixI^S)
+    integer :: idim
 
-    call hd_get_pradiation_from_prim(w, x, ixI^L, ixO^L, prad_tensor)
+   if(hd_fld_pradtensor) then
+       call hd_get_pradiation_from_prim(w, x, ixI^L, ixO^L, prad_tensor)
+    else
+       prad_tensor=zero 
+       do idim=1,ndim
+         prad_tensor(ixO^S,idim,idim)=w(ixO^S,r_e)/3.0d0
+       enddo
+    endif
 
    {do ix^DB=ixOmin^DB,ixOmax^DB \}
       inv_rho=1.d0/w(ix^D,rho_)
-      prad_max(ix^D) = maxval(prad_tensor(ix^D,:,:))
+      prad_max(ix^D) = (4.0d0/3.0d0)*maxval(prad_tensor(ix^D,:,:))
       csound(ix^D)=(eos%gamma*w(ix^D,p_)+prad_max(ix^D))*inv_rho
    {end do\}
 

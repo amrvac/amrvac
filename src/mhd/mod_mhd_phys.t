@@ -202,6 +202,7 @@ module mod_mhd_phys
   logical, public, protected              :: mhd_cak_force = .false.
   !> Whether radiation-gas interaction is handled using flux limited diffusion
   logical, public, protected              :: mhd_radiation_fld = .false.
+  logical, public, protected              :: mhd_fld_pradtensor= .true.
   !> Radiation fluid object (gas-EoS callbacks for FLD), wired in mhd_link_eos
   type(fld_fluid), allocatable, public    :: fld_fl
   !> whether split off equilibrium density and pressure
@@ -316,7 +317,7 @@ contains
       mhd_hyperbolic_tc_use_perp, mhd_hyperbolic_tc_perp_mode, &
       mhd_hyperbolic_tc_kappa_perp_factor, mhd_hyperbolic_tc_Bmin, &
       mhd_hyperbolic_tc_coulomb_log, &
-      mhd_radiation_fld, mhd_fip, mhd_uawsom, mhd_uawsom_reflection, &
+      mhd_radiation_fld,mhd_fld_pradtensor,mhd_fip, mhd_uawsom, mhd_uawsom_reflection, &
       mhd_uawsom_reflection_mode, mhd_uawsom_kink_reflection, &
       mhd_uawsom_sigma, mhd_uawsom_height_dim, mhd_uawsom_zeta0, &
       mhd_uawsom_filling_factor, mhd_uawsom_zeta_scale, &
@@ -1533,7 +1534,9 @@ contains
            write(*,*)'==FLD SETUP======================'
            write(*,*)'Using FLD with settings:'
            write(*,*)'Using FLD with settings: mhd_radiation_fld=',mhd_radiation_fld
+           write(*,*)'Using FLD with settings: mhd_fld_pradtensor=',mhd_fld_pradtensor
            write(*,*)'Using FLD with settings: fld_fluxlimiter=',fld_fluxlimiter
+           write(*,*)'Using FLD with settings: fld_bound_diff=',fld_bound_diff
            write(*,*)'Using FLD with settings: fld_interaction_method=',fld_interaction_method
            write(*,*)'Using FLD with settings: fld_opacity_law=',fld_opacity_law
            write(*,*)'Using FLD with settings: fld_kappa0=',fld_kappa0
@@ -1543,9 +1546,21 @@ contains
            write(*,*)'Using FLD with settings: fld_diff_tol=',fld_diff_tol
            write(*,*)'Using FLD with settings: nth_for_diff_mg=',nth_for_diff_mg
            write(*,*)'      FLD has use_imex_scheme and use_multigrid=',use_imex_scheme,use_multigrid
+           write(*,*)'      FLD has fld_no_mg=',fld_no_mg
+           if(fld_no_mg)then
+              print *,'WARNING: cheating with FLD diffusion ***********************'
+              print *,'WARNING: No MG-diffusion for radiative energy at all!!!!!!!'
+              print *,'WARNING: cheating with FLD diffusion ***********************'
+           endif
            print *,'const_rad_a   =',const_rad_a
            print *,'NORMALIZED arad_norm=',arad_norm
            print *,'NORMALIZED c_norm=',c_norm
+           if(fld_cnorm>0.0d0)then
+              print *,'WARNING: cheating with c_norm ***********************'
+              print *,'WARNING: c_norm reset to=',fld_cnorm
+              c_norm=fld_cnorm
+              print *,'WARNING: cheating with c_norm ***********************'
+           endif
            print *,'const_kappae  =',const_kappae 
            if(trim(fld_opacity_law).eq.'const_norm')then
                print *,'NORMALIZED fld_kappa0          =',fld_kappa0
@@ -3537,6 +3552,7 @@ contains
   !> Estimating bounds for the minimum and maximum signal velocities without split
   subroutine mhd_get_cbounds(wLC,wRC,wLp,wRp,x,ixI^L,ixO^L,idim,Hspeed,cmax,cmin)
     use mod_global_parameters
+    !!use mod_fld, only: fld_bound_diff, fld_get_local_invtauc
 
     integer, intent(in)             :: ixI^L, ixO^L, idim
     double precision, intent(in)    :: wLC(ixI^S, nw), wRC(ixI^S, nw)
@@ -3547,6 +3563,7 @@ contains
     double precision, intent(in)    :: Hspeed(ixI^S,1:number_species)
 
     double precision :: wmean(ixI^S,nw), csoundL(ixO^S), csoundR(ixO^S)
+    !!double precision :: invtaucL(ixI^S),invtaucR(ixI^S),invtauc
     double precision :: umean, dmean, tmp1, tmp2, tmp3
     integer :: ix^D
 
@@ -3556,6 +3573,10 @@ contains
       ! Methods for Fluid Dynamics" by Toro.
       call mhd_get_csound_prim(wLp,x,ixI^L,ixO^L,idim,csoundL)
       call mhd_get_csound_prim(wRp,x,ixI^L,ixO^L,idim,csoundR)
+      !!if(mhd_radiation_fld.and.fld_bound_diff)then
+      !!   call fld_get_local_invtauc(wLp,ixI^L,ixO^L,{dxlevel(^D)},x,invtaucL,fld_fl)
+      !!   call fld_get_local_invtauc(wRp,ixI^L,ixO^L,{dxlevel(^D)},x,invtaucR,fld_fl)
+      !!endif
       if(present(cmin)) then
        {do ix^DB=ixOmin^DB,ixOmax^DB\}
           tmp1=sqrt(wLp(ix^D,rho_))
@@ -3566,6 +3587,11 @@ contains
            half*tmp1*tmp2*tmp3**2*(wRp(ix^D,mom(idim))-wLp(ix^D,mom(idim)))**2)
           cmin(ix^D,1)=umean-dmean
           cmax(ix^D,1)=umean+dmean
+          !!if(mhd_radiation_fld.and.fld_bound_diff)then
+          !!  invtauc=min(invtaucL(ix^D),invtaucR(ix^D))
+          !!  cmax(ix^D,1)=min(cmax(ix^D,1),+invtauc)
+          !!  cmin(ix^D,1)=max(cmin(ix^D,1),-invtauc)
+          !!endif
        {end do\}
         if(H_correction) then
           {do ix^DB=ixOmin^DB,ixOmax^DB\}
@@ -3582,15 +3608,27 @@ contains
           dmean=sqrt((tmp1*csoundL(ix^D)**2+tmp2*csoundR(ix^D)**2)*tmp3+&
            half*tmp1*tmp2*tmp3**2*(wRp(ix^D,mom(idim))-wLp(ix^D,mom(idim)))**2)
           cmax(ix^D,1)=abs(umean)+dmean
+          !!if(mhd_radiation_fld.and.fld_bound_diff)then
+          !!  invtauc=min(invtaucL(ix^D),invtaucR(ix^D))
+          !!  cmax(ix^D,1)=min(cmax(ix^D,1),+invtauc)
+          !!endif
        {end do\}
       end if
     case (2)
       wmean(ixO^S,1:nwflux)=0.5d0*(wLp(ixO^S,1:nwflux)+wRp(ixO^S,1:nwflux))
       call mhd_get_csound_prim(wmean,x,ixI^L,ixO^L,idim,csoundR)
+      !!if(mhd_radiation_fld.and.fld_bound_diff)then
+      !!   call fld_get_local_invtauc(wmean,ixI^L,ixO^L,{dxlevel(^D)},x,invtaucL,fld_fl)
+      !!endif
       if(present(cmin)) then
        {do ix^DB=ixOmin^DB,ixOmax^DB\}
           cmax(ix^D,1)=max(wmean(ix^D,mom(idim))+csoundR(ix^D),zero)
           cmin(ix^D,1)=min(wmean(ix^D,mom(idim))-csoundR(ix^D),zero)
+          !!if(mhd_radiation_fld.and.fld_bound_diff)then
+          !!  invtauc=invtaucL(ix^D)
+          !!  cmax(ix^D,1)=min(cmax(ix^D,1),+invtauc)
+          !!  cmin(ix^D,1)=max(cmin(ix^D,1),-invtauc)
+          !!endif
        {end do\}
         if(H_correction) then
           {do ix^DB=ixOmin^DB,ixOmax^DB\}
@@ -3600,16 +3638,29 @@ contains
         end if
       else
         cmax(ixO^S,1)=abs(wmean(ixO^S,mom(idim)))+csoundR(ixO^S)
+        !!if(mhd_radiation_fld.and.fld_bound_diff)then
+        !!    invtauc=invtaucL(ix^D)
+        !!    cmax(ix^D,1)=min(cmax(ix^D,1),+invtauc)
+        !!endif
       end if
     case (3)
       ! Miyoshi 2005 JCP 208, 315 equation (67)
       call mhd_get_csound_prim(wLp,x,ixI^L,ixO^L,idim,csoundL)
       call mhd_get_csound_prim(wRp,x,ixI^L,ixO^L,idim,csoundR)
+      !!if(mhd_radiation_fld.and.fld_bound_diff)then
+      !!   call fld_get_local_invtauc(wLp,ixI^L,ixO^L,{dxlevel(^D)},x,invtaucL,fld_fl)
+      !!   call fld_get_local_invtauc(wRp,ixI^L,ixO^L,{dxlevel(^D)},x,invtaucR,fld_fl)
+      !!endif
       if(present(cmin)) then
        {do ix^DB=ixOmin^DB,ixOmax^DB\}
           csoundL(ix^D)=max(csoundL(ix^D),csoundR(ix^D))
           cmin(ix^D,1)=min(wLp(ix^D,mom(idim)),wRp(ix^D,mom(idim)))-csoundL(ix^D)
           cmax(ix^D,1)=max(wLp(ix^D,mom(idim)),wRp(ix^D,mom(idim)))+csoundL(ix^D)
+          !!if(mhd_radiation_fld.and.fld_bound_diff)then
+          !!  invtauc=min(invtaucL(ix^D),invtaucR(ix^D))
+          !!  cmax(ix^D,1)=min(cmax(ix^D,1),+invtauc)
+          !!  cmin(ix^D,1)=max(cmin(ix^D,1),-invtauc)
+          !!endif
        {end do\}
         if(H_correction) then
           {do ix^DB=ixOmin^DB,ixOmax^DB\}
@@ -3621,6 +3672,10 @@ contains
        {do ix^DB=ixOmin^DB,ixOmax^DB\}
           csoundL(ix^D)=max(csoundL(ix^D),csoundR(ix^D))
           cmax(ix^D,1)=max(wLp(ix^D,mom(idim)),wRp(ix^D,mom(idim)))+csoundL(ix^D)
+          !!if(mhd_radiation_fld.and.fld_bound_diff)then
+          !!  invtauc=min(invtaucL(ix^D),invtaucR(ix^D))
+          !!  cmax(ix^D,1)=min(cmax(ix^D,1),+invtauc)
+          !!endif
        {end do\}
       end if
     end select
@@ -3857,21 +3912,28 @@ contains
     double precision :: inv_rho, b2
     double precision :: prad_tensor(ixI^S, 1:ndim, 1:ndim)
     double precision :: prad_max(ixI^S)
-    integer :: ix^D
+    integer :: ix^D,idim
 
-    call mhd_get_pradiation_from_prim(w, x, ixI^L, ixO^L, prad_tensor)
+    if(mhd_fld_pradtensor) then
+       call mhd_get_pradiation_from_prim(w, x, ixI^L, ixO^L, prad_tensor)
+    else
+       prad_tensor=zero
+       do idim=1,ndim
+         prad_tensor(ixO^S,idim,idim)=w(ixO^S,r_e)/3.0d0
+       enddo
+    endif
 
     if(B0field) then
      {do ix^DB=ixOmin^DB,ixOmax^DB \}
         inv_rho=1.d0/w(ix^D,rho_)
-        prad_max(ix^D) = maxval(prad_tensor(ix^D,:,:))
+        prad_max(ix^D) = (4.0d0/3.0d0)*maxval(prad_tensor(ix^D,:,:))
         b2=(^C&(w(ix^D,b^C_)+block%B0(ix^D,^C,b0i))**2+)
         csound(ix^D)=(eos%gamma*w(ix^D,p_)+b2+prad_max(ix^D))*inv_rho
      {end do\}
     else
      {do ix^DB=ixOmin^DB,ixOmax^DB \}
         inv_rho=1.d0/w(ix^D,rho_)
-        prad_max(ix^D) = maxval(prad_tensor(ix^D,:,:))
+        prad_max(ix^D) = (4.0d0/3.0d0)*maxval(prad_tensor(ix^D,:,:))
         b2=(^C&w(ix^D,b^C_)**2+)
         csound(ix^D)=(eos%gamma*w(ix^D,p_)+b2+prad_max(ix^D))*inv_rho
      {end do\}
@@ -3890,6 +3952,7 @@ contains
   subroutine mhd_get_csound_prim(w,x,ixI^L,ixO^L,idim,csound)
     use mod_global_parameters
     use mod_usr_methods, only: usr_set_adiab, usr_set_gamma
+    use mod_fld, only: fld_bound_diff
 
     integer, intent(in)          :: ixI^L, ixO^L, idim
     double precision, intent(in) :: w(ixI^S, nw), x(ixI^S,1:ndim)
@@ -3926,6 +3989,7 @@ contains
         inv_rho=1.d0/w(ix^D,rho_)
         if(mhd_energy) then
           csound(ix^D)=cs2(ix^D)
+          if(fld_bound_diff)csound(ix^D)=cs2(ix^D)+4.0d0*w(ix^D,r_e)*inv_rho/9.0d0
         else
           csound(ix^D)=gammas(ix^D)*adiabs(ix^D)*w(ix^D,rho_)**(gammas(ix^D)-1.d0)
         end if
@@ -3944,6 +4008,7 @@ contains
         inv_rho=1.d0/w(ix^D,rho_)
         if(mhd_energy) then
           csound(ix^D)=cs2(ix^D)
+          if(fld_bound_diff)csound(ix^D)=cs2(ix^D)+4.0d0*w(ix^D,r_e)*inv_rho/9.0d0
         else
           csound(ix^D)=gammas(ix^D)*adiabs(ix^D)*w(ix^D,rho_)**(gammas(ix^D)-1.d0)
         end if

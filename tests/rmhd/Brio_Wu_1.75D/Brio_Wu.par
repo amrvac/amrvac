@@ -1,5 +1,5 @@
  &filelist
-        base_filename='output/Brio_Wu'
+        base_filename='output/BrioWu_diff_nomg'
         autoconvert=F
         saveprim=F
         typefilelog='regression_test'
@@ -12,14 +12,9 @@
         dtsave_log=0.01d0
         dtsave_dat=0.01d0
  /
-        ditsave_log=10
-        ditsave_dat=10
-
-        dtmin=1.d-20
  &stoplist
         time_max=0.2d0 
  /
-        it_max=100
 
  &methodlist
         time_stepper=  'threestep'
@@ -27,20 +22,13 @@
         flux_scheme=    20*'hll'
         limiter= 20*'weno3'
  /
-        time_stepper=  'onestep'
-        time_integrator= 'IMEX_SP'
-        flux_scheme=    20*'hll'
-        limiter= 20*'koren'
-
-        typeboundary_min1=9*'special' 
-        typeboundary_max1=9*'special' 
  &boundlist
         typeboundary_min1=9*'cont' 
         typeboundary_max1=9*'cont' 
  /
 
  &meshlist
-        refine_max_level=4
+        refine_max_level=7
         w_refine_weight(1)=0.5
         w_refine_weight(3)=0.5
         refine_threshold=20*0.05d0
@@ -51,7 +39,7 @@
  /
 
  &paramlist
-        courantpar=0.2d0
+        courantpar=0.6d0
         slowsteps=20000
  /
 
@@ -61,26 +49,19 @@
      mhd_radiation_fld = .true.
  /
 
-     fld_kappa0 = 0.4d0
  &eos_list
   gamma = 2.0d0
   He_abundance = 0.0d0
  /
 
-     fld_kappa0 = 0.4d0
  &fld_list
      fld_Radforce_split = .false.
      fld_opacity_law = 'const'
-     fld_kappa0 = 4.0d2
+     fld_kappa0 = 0.4d4
      fld_interaction_method = 'Halley'
      fld_fluxlimiter = 'Diffusion'
      fld_diff_tol = 1.d-6
      fld_bisect_tol=1.d-7
      fld_tiring_explicit=.true.
+     fld_no_mg=.true.
  /
-     fld_slowsteps=T
-     fld_boost_dt=1.0d4
-     fld_debug=T
-     fld_no_mg=T
-     fld_force_MG_converged=T
-     fld_fluxlimiter = 'Pomraning'

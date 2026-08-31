@@ -29,6 +29,7 @@ module mod_usr
 
   ! Storing additional var in the dat file
   integer :: Tgas_,Trad_,pres_,velx_,vely_,amr_
+  integer :: rflux_,invtauc_
 
 contains
 
@@ -36,9 +37,9 @@ contains
   subroutine usr_init()
 
     ! Note how we here must set three values that in turn define M-L-T
-    unit_density      =0.0001d0       ! 0.01 g cm^-3
-    unit_velocity     =1.d8         ! 10^8 cm s^-1
-    unit_length       =1.d5         ! 10^5 cm
+    unit_density      =0.0001d0                  !  g cm^-3
+    unit_temperature  =1.0889904411594d6         !  K
+    unit_length       =1.d5                      !  cm
 
     call usr_params_read(par_files)
 
@@ -71,6 +72,8 @@ contains
     velx_ = var_set_extravar("velx", "velx")
     vely_ = var_set_extravar("vely", "vely")
     amr_ = var_set_extravar("level", "level")
+    rflux_ = var_set_extravar("rflux", "rflux")
+    invtauc_ = var_set_extravar("invtauc", "invtauc")
 
   end subroutine usr_init
 
@@ -195,8 +198,10 @@ contains
                            (Bz2_norm*vx2_norm - Bx2_norm*vz2_norm) 
     endif
 
-    mg%bc(1, mg_iphi)%bc_type = mg_bc_dirichlet
-    mg%bc(1, mg_iphi)%bc_value = Er1_norm
+    !mg%bc(1, mg_iphi)%bc_type = mg_bc_dirichlet
+    !mg%bc(1, mg_iphi)%bc_value = Er1_norm
+    mg%bc(1, mg_iphi)%bc_type = mg_bc_neumann
+    mg%bc(1, mg_iphi)%bc_value = 0.0d0
     !mg%bc(2, mg_iphi)%bc_type = mg_bc_dirichlet
     !mg%bc(2, mg_iphi)%bc_value = Er2_norm
     mg%bc(2, mg_iphi)%bc_type = mg_bc_neumann
@@ -379,6 +384,8 @@ contains
     double precision, intent(inout) :: w(ixI^S,1:nw)
 
     double precision :: Trad(ixI^S),Tgas(ixI^S),pth(ixI^S)
+    double precision :: radflux(ixI^S,1:ndim)
+    double precision :: invtauc(ixI^S)
 
     call eos%get_thermal_pressure(w,x,ixI^L,ixO^L,pth)
     call mhd_get_trad(w,x,ixI^L,ixO^L,Trad)
@@ -390,6 +397,10 @@ contains
     w(ixO^S,vely_)=w(ixO^S,mom(2))/w(ixO^S,rho_)
     ! output the AMR level (assuming uniform grid blocks)
     w(ixO^S,amr_)=dlog(((xprobmax1-xprobmin1)/domain_nx1)/dxlevel(1))/dlog(2.0d0)+1.0d0
+    call fld_get_radflux(w,x,ixI^L,ixO^L,radflux,fld_fl)
+    w(ixO^S,rflux_)=radflux(ixO^S,1)
+    call fld_get_local_invtauc(w,ixI^L,ixO^L,{dxlevel(^D)},x,invtauc,fld_fl)
+    w(ixO^S,invtauc_)=invtauc(ixO^S)
 
   end subroutine set_output_vars
 
