@@ -1646,7 +1646,7 @@ contains
       if(hd_energy) then
         call eos%get_csound2(wLp, x, ixI^L, ixO^L, csoundL)
         call eos%get_csound2(wRp, x, ixI^L, ixO^L, csoundR)
-        if(fld_bound_diff)then
+        if(hd_radiation_fld.and.fld_bound_diff)then
           csoundL(ixO^S)=csoundL(ixO^S)+(4.0d0/9.0d0)*wLp(ixO^S,r_e)/wLp(ixO^S,rho_)
           csoundR(ixO^S)=csoundR(ixO^S)+(4.0d0/9.0d0)*wRp(ixO^S,r_e)/wRp(ixO^S,rho_)
         endif
@@ -1690,7 +1690,7 @@ contains
          wmean(ixO^S,1:nwflux)=0.5d0*(wLC(ixO^S,1:nwflux)+wRC(ixO^S,1:nwflux))
          tmp1(ixO^S)=wmean(ixO^S,mom(idim))/wmean(ixO^S,rho_)
          call hd_get_csound2(wmean,x,ixI^L,ixO^L,csoundR)
-         if(fld_bound_diff)csoundR(ixO^S)=csoundR(ixO^S)+(4.0d0/9.0d0)*wmean(ixO^S,r_e)/wmean(ixO^S,rho_)
+         if(hd_radiation_fld.and.fld_bound_diff)csoundR(ixO^S)=csoundR(ixO^S)+(4.0d0/9.0d0)*wmean(ixO^S,r_e)/wmean(ixO^S,rho_)
       !endif
       csoundR(ixO^S) = dsqrt(csoundR(ixO^S))
 
@@ -1715,7 +1715,7 @@ contains
       if(hd_energy) then
         call eos%get_csound2(wLp, x, ixI^L, ixO^L, csoundL)
         call eos%get_csound2(wRp, x, ixI^L, ixO^L, csoundR)
-        if(fld_bound_diff)then
+        if(hd_radiation_fld.and.fld_bound_diff)then
           csoundL(ixO^S)=csoundL(ixO^S)+(4.0d0/9.0d0)*wLp(ixO^S,r_e)/wLp(ixO^S,rho_)
           csoundR(ixO^S)=csoundR(ixO^S)+(4.0d0/9.0d0)*wRp(ixO^S,r_e)/wRp(ixO^S,rho_)
         endif
@@ -1750,7 +1750,7 @@ contains
       if(hd_energy) then
         call eos%get_csound2(wLp, x, ixI^L, ixO^L, csoundL)
         call eos%get_csound2(wRp, x, ixI^L, ixO^L, csoundR)
-        if(fld_bound_diff)then
+        if(hd_radiation_fld.and.fld_bound_diff)then
           csoundL(ixO^S)=csoundL(ixO^S)+(4.0d0/9.0d0)*wLp(ixO^S,r_e)/wLp(ixO^S,rho_)
           csoundR(ixO^S)=csoundR(ixO^S)+(4.0d0/9.0d0)*wRp(ixO^S,r_e)/wRp(ixO^S,rho_)
         endif

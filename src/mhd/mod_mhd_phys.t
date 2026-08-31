@@ -3989,7 +3989,7 @@ contains
         inv_rho=1.d0/w(ix^D,rho_)
         if(mhd_energy) then
           csound(ix^D)=cs2(ix^D)
-          if(fld_bound_diff)csound(ix^D)=cs2(ix^D)+4.0d0*w(ix^D,r_e)*inv_rho/9.0d0
+          if(mhd_radiation_fld.and.fld_bound_diff)csound(ix^D)=cs2(ix^D)+4.0d0*w(ix^D,r_e)*inv_rho/9.0d0
         else
           csound(ix^D)=gammas(ix^D)*adiabs(ix^D)*w(ix^D,rho_)**(gammas(ix^D)-1.d0)
         end if
@@ -4008,7 +4008,7 @@ contains
         inv_rho=1.d0/w(ix^D,rho_)
         if(mhd_energy) then
           csound(ix^D)=cs2(ix^D)
-          if(fld_bound_diff)csound(ix^D)=cs2(ix^D)+4.0d0*w(ix^D,r_e)*inv_rho/9.0d0
+          if(mhd_radiation_fld.and.fld_bound_diff)csound(ix^D)=cs2(ix^D)+4.0d0*w(ix^D,r_e)*inv_rho/9.0d0
         else
           csound(ix^D)=gammas(ix^D)*adiabs(ix^D)*w(ix^D,rho_)**(gammas(ix^D)-1.d0)
         end if
