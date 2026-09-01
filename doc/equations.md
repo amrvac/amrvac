@@ -44,12 +44,11 @@ methods give identical results.
 
 This module contains various instances of a scalar nonlinear equation, including the inviscid Burgers, inviscid nonconvex equation, as well as a possibility to handle the Korteweg-de Vries equation. It allows testing of truly nonlinear (shock steepening and formation) phenomena, in 1D to multi-D, or to test how source additions are best combined with flux prescriptions and discretizations. The equation implemented in \f$N_d\f$ dimensions is
 
-    \f$  \frac{\partial \rho}{\partial t} + \nabla \cdot \mathbf{F}(\rho,\mathbf{x},t) = -\delta^2 \sum_{i=1}^{N_d} \frac{\partial^3 \rho}{\partial x_i^3} \f$
+\f[
+\frac{\partial \rho}{\partial t} + \nabla \cdot \mathbf{F}(\rho,\mathbf{x},t) = -\delta^2 \sum_{i=1}^{N_d} \frac{\partial^3 \rho}{\partial x_i^3}
+\f]
 
-where the RHS is activated through the _mod_kdv.t_ module. The actual flux expression can be chosen (depending on the parameter `nonlinear_flux_type`) to be one of
-\f$   \mathbf{F}^{\mathrm{burgers}}  =  \frac{1}{2}{\rho^2}\mathbf{v}_0  \f$ or
-\f$  \mathbf{F}^{\mathrm{nonconvex}}  =  {\rho^3}\mathbf{v}_0 \f$
-where we introduced \f$\mathbf{v}_0=\sum_{i=1}^{N_d} \hat{\mathbf{e}}_i\f$
+where the RHS is activated through the _mod_kdv.t_ module. The actual flux expression can be chosen (depending on the parameter `nonlinear_flux_type`) to be one of \f$ \mathbf{F}^{\mathrm{burgers}}  =  \frac{1}{2}{\rho^2}\mathbf{v}_0 \f$ or \f$ \mathbf{F}^{\mathrm{nonconvex}}  =  {\rho^3}\mathbf{v}_0 \f$, where we introduced \f$ \mathbf{v}_0=\sum_{i=1}^{N_d} \hat{\mathbf{e}}_i \f$
 
 ## Hydrodynamics: hd {#eq_hd}
 
@@ -96,7 +95,7 @@ The system of adiabatic hydrodynamical equations are solved for the density
 **rho** and the momentum density **m=rho*v**. The pressure is a function of
 density only since an isentropic initial condition is assumed. There are two
 equation parameters, the adiabatic index **hd_gamma** (the isothermal
-case corresponds to **hd_gamma**) and the adiabatic constant
+case corresponds to **hd_gamma = 1**) and the adiabatic constant
 **hd_adiab** (which should be positive or zero). It is possible to set
 **hd_adiab=0** and handle the case of pressureless dust.
 
