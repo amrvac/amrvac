@@ -1,26 +1,17 @@
 !==============================================================================
 ! Project : 1-D CAK wind
 !
-! Aim     : study effect of CAK line force. Also serves to relax a spherically
-!           symmetric wind for input in multi-dimensional CAK wind models
+! Aim     : post-process 1-D simulation output to ascii format with aiconvert
+!           script: aiconvert convert.par n0 n1
 !
-! Config  : setup.pl -d=1 -v=1
+!           and n0, n1 the first and last index of a snapshot
 !==============================================================================
 
 &filelist
   base_filename = 'test/cak'
-/
-
-&savelist
-  itsave(1,1)  = 0
-  itsave(1,2)  = 0
-  ditsave_log  = 1000
-  dtsave_dat   = 1.0d-1
-/
-
-&stoplist
-  dtmin    = 1.0d-12
-  time_max = 1.0d0
+  saveprim      = .true.
+  convert_type  = 'oneblock'
+  level_io      = 1
 /
 
 &methodlist
@@ -50,6 +41,7 @@
 &hd_list
   hd_gravity = .true.
   hd_energy  = .false.
+  hd_gamma   = 1.0d0
   hd_cak_force = .true.
 /
 
@@ -71,7 +63,3 @@
   rhobound_cgs = 2.0d-11
   beta         = 0.8d0
 /
- &eos_list
-  gamma = 1.0d0
- /
-

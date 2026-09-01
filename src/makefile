@@ -116,6 +116,7 @@ mod_boundary_conditions.o: mod_physics.mod
 mod_boundary_conditions.o: mod_usr_methods.mod
 mod_bremsstrahlung.o: mod_constants.mod
 mod_bremsstrahlung.o: mod_physics.mod
+mod_cak_force.o: mod_cak_opacity.mod
 mod_cak_force.o: mod_comm_lib.mod
 mod_cak_force.o: mod_constants.mod
 mod_cak_force.o: mod_global_parameters.mod
