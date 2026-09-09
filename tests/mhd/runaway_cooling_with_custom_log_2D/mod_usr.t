@@ -118,7 +118,7 @@ contains
 
    filename = trim(base_filename) // "_c.log"
 
-   if (.not. visited) then
+   if (mype == 0 .and. .not. visited) then
      ! Delete the log when not doing a restart run
      if (restart_from_file == undefined) then
         open(unit=my_unit,file=trim(filename),form='formatted',status='replace')
