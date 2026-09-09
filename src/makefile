@@ -351,6 +351,8 @@ mod_ghostcells_update.o: mod_comm_lib.mod
 mod_ghostcells_update.o: mod_global_parameters.mod
 mod_ghostcells_update.o: mod_physics.mod
 mod_ghostcells_update.o: mod_usr_methods.mod
+mod_gimli.o: mod_comm_lib.mod
+mod_gimli.o: mod_eos.mod
 mod_gimli.o: mod_functions_bfield.mod
 mod_gimli.o: mod_geometry.mod
 mod_gimli.o: mod_global_parameters.mod
