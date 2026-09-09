@@ -172,6 +172,7 @@ mod_convert_files.o: mod_calculate_xw.mod
 mod_convert_files.o: mod_comm_lib.mod
 mod_convert_files.o: mod_convert.mod
 mod_convert_files.o: mod_forest.mod
+mod_convert_files.o: mod_geometry.mod
 mod_convert_files.o: mod_ghostcells_update.mod
 mod_convert_files.o: mod_global_parameters.mod
 mod_convert_files.o: mod_magnetic_helicity.mod
