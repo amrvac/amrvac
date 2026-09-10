@@ -765,10 +765,7 @@ contains
     
             ! VTK cell type data array
             write(qunit,'(a)')'<DataArray type="Int32" Name="types" format="ascii">'
-            ! VTK_LINE=3; VTK_PIXEL=8; VTK_VOXEL=11 -> vtk-syntax
-            {^IFONED VTK_type=3 \}
-            {^IFTWOD VTK_type=8 \}
-            {^IFTHREED VTK_type=11 \}
+            VTK_type=vtk_cell_type()
             do icel=1,nc
               write(qunit,'(i2)') VTK_type
             end do
@@ -1084,33 +1081,14 @@ contains
         {end do \}
 
         write(qunit) length_conn
-        {do ix^DB=1,nx^DB\}
-          {^IFONED write(qunit)ix1-1,ix1 \}
-          {^IFTWOD
-          write(qunit)(ix2-1)*nxC1+ix1-1, &
-          (ix2-1)*nxC1+ix1,ix2*nxC1+ix1-1,ix2*nxC1+ix1
-           \}
-          {^IFTHREED
-          write(qunit)&
-          (ix3-1)*nxC2*nxC1+(ix2-1)*nxC1+ix1-1, &
-          (ix3-1)*nxC2*nxC1+(ix2-1)*nxC1+ix1,&
-          (ix3-1)*nxC2*nxC1+    ix2*nxC1+ix1-1,&
-          (ix3-1)*nxC2*nxC1+    ix2*nxC1+ix1,&
-           ix3*nxC2*nxC1+(ix2-1)*nxC1+ix1-1,&
-           ix3*nxC2*nxC1+(ix2-1)*nxC1+ix1,&
-           ix3*nxC2*nxC1+    ix2*nxC1+ix1-1,&
-           ix3*nxC2*nxC1+    ix2*nxC1+ix1
-           \}
-        {end do\}
+        call write_connvtk_binary(qunit)
 
         write(qunit) length_offsets
         do icel=1,nc
           write(qunit) icel*(2**^ND)
         end do
 
-       {^IFONED VTK_type=3 \}
-       {^IFTWOD VTK_type=8 \}
-       {^IFTHREED VTK_type=11 \}
+        VTK_type=vtk_cell_type()
         write(qunit) size_int*nc
         do icel=1,nc
           write(qunit) VTK_type
@@ -1151,31 +1129,12 @@ contains
               end do
             {end do \}
             write(qunit) length_conn
-            {do ix^DB=1,nx^DB\}
-              {^IFONED write(qunit)ix1-1,ix1 \}
-              {^IFTWOD
-              write(qunit)(ix2-1)*nxC1+ix1-1, &
-              (ix2-1)*nxC1+ix1,ix2*nxC1+ix1-1,ix2*nxC1+ix1
-               \}
-              {^IFTHREED
-              write(qunit)&
-              (ix3-1)*nxC2*nxC1+(ix2-1)*nxC1+ix1-1, &
-              (ix3-1)*nxC2*nxC1+(ix2-1)*nxC1+ix1,&
-              (ix3-1)*nxC2*nxC1+    ix2*nxC1+ix1-1,&
-              (ix3-1)*nxC2*nxC1+    ix2*nxC1+ix1,&
-               ix3*nxC2*nxC1+(ix2-1)*nxC1+ix1-1,&
-               ix3*nxC2*nxC1+(ix2-1)*nxC1+ix1,&
-               ix3*nxC2*nxC1+    ix2*nxC1+ix1-1,&
-               ix3*nxC2*nxC1+    ix2*nxC1+ix1
-               \}
-            {end do\}
+            call write_connvtk_binary(qunit)
             write(qunit) length_offsets
             do icel=1,nc
               write(qunit) icel*(2**^ND)
             end do
-            {^IFONED VTK_type=3 \}
-            {^IFTWOD VTK_type=8 \}
-            {^IFTHREED VTK_type=11 \}
+            VTK_type=vtk_cell_type()
             write(qunit) size_int*nc
             do icel=1,nc
               write(qunit) VTK_type
@@ -1471,31 +1430,12 @@ contains
           end do
         {end do \}
         write(qunit) length_conn
-        {do ix^DB=1,nx^DB\}
-          {^IFONED write(qunit)ix1-1,ix1 \}
-          {^IFTWOD
-          write(qunit)(ix2-1)*nxC1+ix1-1, &
-          (ix2-1)*nxC1+ix1,ix2*nxC1+ix1-1,ix2*nxC1+ix1
-           \}
-          {^IFTHREED
-          write(qunit)&
-          (ix3-1)*nxC2*nxC1+(ix2-1)*nxC1+ix1-1, &
-          (ix3-1)*nxC2*nxC1+(ix2-1)*nxC1+ix1,&
-          (ix3-1)*nxC2*nxC1+    ix2*nxC1+ix1-1,&
-          (ix3-1)*nxC2*nxC1+    ix2*nxC1+ix1,&
-           ix3*nxC2*nxC1+(ix2-1)*nxC1+ix1-1,&
-           ix3*nxC2*nxC1+(ix2-1)*nxC1+ix1,&
-           ix3*nxC2*nxC1+    ix2*nxC1+ix1-1,&
-           ix3*nxC2*nxC1+    ix2*nxC1+ix1
-           \}
-        {end do\}
+        call write_connvtk_binary(qunit)
         write(qunit) length_offsets
         do icel=1,nc
           write(qunit) icel*(2**^ND)
         end do
-       {^IFONED VTK_type=3 \}
-       {^IFTWOD VTK_type=8 \}
-       {^IFTHREED VTK_type=11 \}
+        VTK_type=vtk_cell_type()
         write(qunit) size_int*nc
         do icel=1,nc
           write(qunit) VTK_type
@@ -1536,31 +1476,12 @@ contains
               end do
             {end do \}
             write(qunit) length_conn
-            {do ix^DB=1,nx^DB\}
-              {^IFONED write(qunit)ix1-1,ix1 \}
-              {^IFTWOD
-              write(qunit)(ix2-1)*nxC1+ix1-1, &
-              (ix2-1)*nxC1+ix1,ix2*nxC1+ix1-1,ix2*nxC1+ix1
-               \}
-              {^IFTHREED
-              write(qunit)&
-              (ix3-1)*nxC2*nxC1+(ix2-1)*nxC1+ix1-1, &
-              (ix3-1)*nxC2*nxC1+(ix2-1)*nxC1+ix1,&
-              (ix3-1)*nxC2*nxC1+    ix2*nxC1+ix1-1,&
-              (ix3-1)*nxC2*nxC1+    ix2*nxC1+ix1,&
-               ix3*nxC2*nxC1+(ix2-1)*nxC1+ix1-1,&
-               ix3*nxC2*nxC1+(ix2-1)*nxC1+ix1,&
-               ix3*nxC2*nxC1+    ix2*nxC1+ix1-1,&
-               ix3*nxC2*nxC1+    ix2*nxC1+ix1
-               \}
-            {end do\}
+            call write_connvtk_binary(qunit)
             write(qunit) length_offsets
             do icel=1,nc
               write(qunit) icel*(2**^ND)
             end do
-            {^IFONED VTK_type=3 \}
-            {^IFTWOD VTK_type=8 \}
-            {^IFTHREED VTK_type=11 \}
+            VTK_type=vtk_cell_type()
             write(qunit) size_int*nc
             do icel=1,nc
               write(qunit) VTK_type
@@ -1586,21 +1507,40 @@ contains
     ! this saves the basic line, pixel and voxel connectivity,
     ! as used by VTK file outputs for unstructured grid
     use mod_global_parameters
+    use mod_geometry, only: Cartesian, Cartesian_expansion, Cartesian_stretched, coordinate
 
     integer, intent(in) :: qunit, igrid
 
     integer :: nx^D, nxC^D, ix^D
+    logical :: transformed_coordinates
 
     nx^D=ixMhi^D-ixMlo^D+1;
     nxC^D=nx^D+1;
+    transformed_coordinates=vtk_coordinates_transformed()
     {do ix^DB=1,nx^DB\}
             {^IFONED write(qunit,'(2(i7,1x))')ix1-1,ix1 \}
             {^IFTWOD
-            write(qunit,'(4(i7,1x))')(ix2-1)*nxC1+ix1-1, &
+            if(transformed_coordinates) then
+              write(qunit,'(4(i7,1x))')(ix2-1)*nxC1+ix1-1, &
+                   (ix2-1)*nxC1+ix1,ix2*nxC1+ix1,ix2*nxC1+ix1-1
+            else
+              write(qunit,'(4(i7,1x))')(ix2-1)*nxC1+ix1-1, &
                    (ix2-1)*nxC1+ix1,ix2*nxC1+ix1-1,ix2*nxC1+ix1
+            end if
             \}
             {^IFTHREED
-            write(qunit,'(8(i7,1x))')&
+            if(transformed_coordinates) then
+              write(qunit,'(8(i7,1x))')&
+                       (ix3-1)*nxC2*nxC1+(ix2-1)*nxC1+ix1-1, &
+                       (ix3-1)*nxC2*nxC1+(ix2-1)*nxC1+ix1,&
+                       (ix3-1)*nxC2*nxC1+    ix2*nxC1+ix1,&
+                       (ix3-1)*nxC2*nxC1+    ix2*nxC1+ix1-1,&
+                           ix3*nxC2*nxC1+(ix2-1)*nxC1+ix1-1,&
+                           ix3*nxC2*nxC1+(ix2-1)*nxC1+ix1,&
+                           ix3*nxC2*nxC1+    ix2*nxC1+ix1,&
+                           ix3*nxC2*nxC1+    ix2*nxC1+ix1-1
+            else
+              write(qunit,'(8(i7,1x))')&
                        (ix3-1)*nxC2*nxC1+(ix2-1)*nxC1+ix1-1, &
                        (ix3-1)*nxC2*nxC1+(ix2-1)*nxC1+ix1,&
                        (ix3-1)*nxC2*nxC1+    ix2*nxC1+ix1-1,&
@@ -1609,10 +1549,98 @@ contains
                            ix3*nxC2*nxC1+(ix2-1)*nxC1+ix1,&
                            ix3*nxC2*nxC1+    ix2*nxC1+ix1-1,&
                            ix3*nxC2*nxC1+    ix2*nxC1+ix1
+                          end if
             \}
     {end do\}
 
   end subroutine save_connvtk
+
+  integer function vtk_cell_type()
+    logical :: transformed_coordinates
+
+    transformed_coordinates=vtk_coordinates_transformed()
+    {^IFONED vtk_cell_type=3 \} !VTK_LINE
+    {^IFTWOD
+    if(transformed_coordinates) then
+      vtk_cell_type=9 !VTK_QUAD
+    else
+      vtk_cell_type=8 !VTK_PIXEL
+    end if
+    \}
+    {^IFTHREED
+    if(transformed_coordinates) then
+      vtk_cell_type=12 !VTK_HEXAHEDRON
+    else
+      vtk_cell_type=11 !VTK_VOXEL
+    end if
+    \}
+  end function vtk_cell_type
+
+  logical function vtk_coordinates_transformed()
+    use mod_global_parameters, only: ndim, nocartesian, phi_
+    use mod_geometry, only: Cartesian, Cartesian_expansion, Cartesian_stretched, cylindrical, &
+                            coordinate, spherical
+
+    vtk_coordinates_transformed=.false.
+    if (nocartesian) return
+
+    select case(coordinate)
+    case(cylindrical)
+      vtk_coordinates_transformed=(ndim==3) .or. (ndim==2 .and. phi_==2)
+    case(spherical)
+      vtk_coordinates_transformed=ndim>1
+    case(Cartesian, Cartesian_stretched, Cartesian_expansion)
+      vtk_coordinates_transformed=.false.
+    end select
+  end function vtk_coordinates_transformed
+
+  subroutine write_connvtk_binary(qunit)
+    use mod_global_parameters
+    use mod_geometry, only: Cartesian, Cartesian_expansion, Cartesian_stretched, coordinate
+
+    integer, intent(in) :: qunit
+    integer :: nx^D, nxC^D, ix^D
+    logical :: transformed_coordinates
+
+    nx^D=ixMhi^D-ixMlo^D+1;
+    nxC^D=nx^D+1;
+    transformed_coordinates=vtk_coordinates_transformed()
+    {do ix^DB=1,nx^DB\}
+      {^IFONED write(qunit)ix1-1,ix1 \}
+      {^IFTWOD
+      if(transformed_coordinates) then
+        write(qunit)(ix2-1)*nxC1+ix1-1, &
+                    (ix2-1)*nxC1+ix1,ix2*nxC1+ix1,ix2*nxC1+ix1-1
+      else
+        write(qunit)(ix2-1)*nxC1+ix1-1, &
+                    (ix2-1)*nxC1+ix1,ix2*nxC1+ix1-1,ix2*nxC1+ix1
+      end if
+      \}
+      {^IFTHREED
+      if(transformed_coordinates) then
+        write(qunit)&
+        (ix3-1)*nxC2*nxC1+(ix2-1)*nxC1+ix1-1, &
+        (ix3-1)*nxC2*nxC1+(ix2-1)*nxC1+ix1,&
+        (ix3-1)*nxC2*nxC1+    ix2*nxC1+ix1,&
+        (ix3-1)*nxC2*nxC1+    ix2*nxC1+ix1-1,&
+         ix3*nxC2*nxC1+(ix2-1)*nxC1+ix1-1,&
+         ix3*nxC2*nxC1+(ix2-1)*nxC1+ix1,&
+         ix3*nxC2*nxC1+    ix2*nxC1+ix1,&
+         ix3*nxC2*nxC1+    ix2*nxC1+ix1-1
+      else
+        write(qunit)&
+        (ix3-1)*nxC2*nxC1+(ix2-1)*nxC1+ix1-1, &
+        (ix3-1)*nxC2*nxC1+(ix2-1)*nxC1+ix1,&
+        (ix3-1)*nxC2*nxC1+    ix2*nxC1+ix1-1,&
+        (ix3-1)*nxC2*nxC1+    ix2*nxC1+ix1,&
+         ix3*nxC2*nxC1+(ix2-1)*nxC1+ix1-1,&
+         ix3*nxC2*nxC1+(ix2-1)*nxC1+ix1,&
+         ix3*nxC2*nxC1+    ix2*nxC1+ix1-1,&
+         ix3*nxC2*nxC1+    ix2*nxC1+ix1
+      end if
+      \}
+    {end do\}
+  end subroutine write_connvtk_binary
 
   subroutine ImageDataVtk_mpi(qunit)
     ! output for vti format to paraview, non-binary version output
@@ -2108,10 +2136,7 @@ contains
     write(qunit,'(a)')'</DataArray>'
     ! VTK cell type data array
     write(qunit,'(a)')'<DataArray type="Int32" Name="types" format="ascii">'
-    ! VTK_LINE=3; VTK_PIXEL=8; VTK_VOXEL=11 -> vtk-syntax
-    {^IFONED VTK_type=3 \}
-    {^IFTWOD VTK_type=8 \}
-    {^IFTHREED VTK_type=11 \}
+    VTK_type=vtk_cell_type()
     do icel=1,nc
       write(qunit,'(i2)') VTK_type
     end do
@@ -2917,31 +2942,12 @@ contains
                end do
             {end do \}
             write(qunit) length_conn
-            {do ix^DB=1,nx^DB\}
-            {^IFONED write(qunit)ix1-1,ix1 \}
-            {^IFTWOD
-            write(qunit)(ix2-1)*nxC1+ix1-1, &
-            (ix2-1)*nxC1+ix1,ix2*nxC1+ix1-1,ix2*nxC1+ix1
-             \}
-            {^IFTHREED
-            write(qunit)&
-            (ix3-1)*nxC2*nxC1+(ix2-1)*nxC1+ix1-1, &
-            (ix3-1)*nxC2*nxC1+(ix2-1)*nxC1+ix1,&
-            (ix3-1)*nxC2*nxC1+    ix2*nxC1+ix1-1,&
-            (ix3-1)*nxC2*nxC1+    ix2*nxC1+ix1,&
-             ix3*nxC2*nxC1+(ix2-1)*nxC1+ix1-1,&
-             ix3*nxC2*nxC1+(ix2-1)*nxC1+ix1,&
-             ix3*nxC2*nxC1+    ix2*nxC1+ix1-1,&
-             ix3*nxC2*nxC1+    ix2*nxC1+ix1
-             \}
-            {end do\}
+            call write_connvtk_binary(qunit)
             write(qunit) length_offsets
             do icel=1,nc
               write(qunit) icel*(2**^ND)
             end do
-           {^IFONED VTK_type=3 \}
-           {^IFTWOD VTK_type=8 \}
-           {^IFTHREED VTK_type=11 \}
+            VTK_type=vtk_cell_type()
             write(qunit) size_int*nc
             do icel=1,nc
               write(qunit) VTK_type

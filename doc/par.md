@@ -157,6 +157,8 @@ which then forces you typically to do the conversion to cell center cartesian
 grid coordinates and vector variables in your visualization session. By
 default (i.e. `nocartesian=F`), the convert module does the conversion from
 the orthogonal to locally cartesian coordinates and vector components for you.
+VTK output then uses general quadrilateral or hexahedral cells, as required
+for the transformed grid geometry.
 You can overrule this default behavior by setting `nocartesian=T`. (note:
 for tecplot format, the coordinate labels are then corrected in the converted
 file as well).

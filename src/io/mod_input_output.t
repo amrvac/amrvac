@@ -1403,8 +1403,13 @@ contains
            end if
            select case(coordinate)
            case(cylindrical)
+            ! across r=0 both the radial and azimuthal components flip sign
+            typeboundary(r_+1,2*idim-1)=bc_asymm
             typeboundary(phi_+1,2*idim-1)=bc_asymm
-            if(physics_type=='mhd'.or.physics_type=='rmhd') typeboundary(ndir+windex+phi_,2*idim-1)=bc_asymm
+            if(physics_type=='mhd'.or.physics_type=='rmhd') then
+              typeboundary(ndir+windex+r_,2*idim-1)=bc_asymm
+              typeboundary(ndir+windex+phi_,2*idim-1)=bc_asymm
+            end if
            case(spherical)
             typeboundary(3:ndir+1,2*idim-1)=bc_asymm
             if(physics_type=='mhd'.or.physics_type=='rmhd') typeboundary(ndir+windex+2:ndir+windex+ndir,2*idim-1)=bc_asymm
@@ -1434,8 +1439,13 @@ contains
            end if
            select case(coordinate)
            case(cylindrical)
+            ! across r=0 both the radial and azimuthal components flip sign
+            typeboundary(r_+1,2*idim)=bc_asymm
             typeboundary(phi_+1,2*idim)=bc_asymm
-            if(physics_type=='mhd'.or.physics_type=='rmhd') typeboundary(ndir+windex+phi_,2*idim)=bc_asymm
+            if(physics_type=='mhd'.or.physics_type=='rmhd') then
+              typeboundary(ndir+windex+r_,2*idim)=bc_asymm
+              typeboundary(ndir+windex+phi_,2*idim)=bc_asymm
+            end if
            case(spherical)
             typeboundary(3:ndir+1,2*idim)=bc_asymm
             if(physics_type=='mhd'.or.physics_type=='rmhd') typeboundary(ndir+windex+2:ndir+windex+ndir,2*idim)=bc_asymm

@@ -218,7 +218,7 @@ contains
 
         filename = trim(base_filename) // "_c.log"
 
-        if (.not. visited) then
+        if (mype == 0 .and. .not. visited) then
         ! Delete the log when not doing a restart run
             if (restart_from_file == undefined .or. reset_time) then
                 open(unit=my_unit,file=trim(filename),form='formatted',status='replace')
@@ -383,9 +383,9 @@ contains
 
         select case (boundary)
         case ('outer')
-            w(ixO^S, w_index) = w(ixOmin1-1:ixOmin1-nghostcells:-1,ixOmin2:ixOmax2,ixOmin3:ixOmax3, w_index)
+            w(ixO^S, w_index) = w(ixOmin1-1:ixOmin1-nghostcells:-1^%1ixO^S, w_index)
         case ('inner')
-            w(ixO^S, w_index) = w(ixOmax1+nghostcells:ixOmax1+1:-1,ixOmin2:ixOmax2,ixOmin3:ixOmax3, w_index)
+            w(ixO^S, w_index) = w(ixOmax1+nghostcells:ixOmax1+1:-1^%1ixO^S, w_index)
         case default
             call mpistop('Unknown boundary side: ' // trim(boundary))
         end select
@@ -403,10 +403,10 @@ contains
         select case (boundary)
         case ('outer')
             w(ixO^S, w_index) = equi_w(ixO^S) &
-                + (w(ixOmin1-1:ixOmin1-nghostcells:-1,ixOmin2:ixOmax2,ixOmin3:ixOmax3, w_index) - equi_w(ixOmin1-1:ixOmin1-nghostcells:-1,ixOmin2:ixOmax2,ixOmin3:ixOmax3))
+                + (w(ixOmin1-1:ixOmin1-nghostcells:-1^%1ixO^S, w_index) - equi_w(ixOmin1-1:ixOmin1-nghostcells:-1^%1ixO^S))
         case ('inner')
             w(ixO^S, w_index) = equi_w(ixO^S) &
-                + (w(ixOmax1+nghostcells:ixOmax1+1:-1,ixOmin2:ixOmax2,ixOmin3:ixOmax3, w_index) - equi_w(ixOmax1+nghostcells:ixOmax1+1:-1,ixOmin2:ixOmax2,ixOmin3:ixOmax3))
+                + (w(ixOmax1+nghostcells:ixOmax1+1:-1^%1ixO^S, w_index) - equi_w(ixOmax1+nghostcells:ixOmax1+1:-1^%1ixO^S))
         case default
             call mpistop('Unknown boundary side: ' // trim(boundary))
         end select
@@ -424,13 +424,13 @@ contains
         select case (boundary)
         case ('outer')
             do ix1 = ixOmin1, ixOmax1
-                w(ix1, ixOmin2:ixOmax2, ixOmin3:ixOmax3, w_index) = 2.0d0 * w(ix1-1,ixOmin2:ixOmax2,ixOmin3:ixOmax3, w_index) &
-                    - w(ix1-2,ixOmin2:ixOmax2,ixOmin3:ixOmax3, w_index)
+                w(ix1^%1ixO^S, w_index) = 2.0d0 * w(ix1-1^%1ixO^S, w_index) &
+                    - w(ix1-2^%1ixO^S, w_index)
             end do
         case ('inner')
             do ix1 = ixOmax1, ixOmin1, -1
-                w(ix1, ixOmin2:ixOmax2, ixOmin3:ixOmax3, w_index) = 2.0d0 * w(ix1+1,ixOmin2:ixOmax2,ixOmin3:ixOmax3, w_index) &
-                    - w(ix1+2,ixOmin2:ixOmax2,ixOmin3:ixOmax3, w_index)
+                w(ix1^%1ixO^S, w_index) = 2.0d0 * w(ix1+1^%1ixO^S, w_index) &
+                    - w(ix1+2^%1ixO^S, w_index)
             end do
         case default
             call mpistop('Unknown boundary side: ' // trim(boundary))
@@ -450,15 +450,15 @@ contains
         select case (boundary)
         case ('outer')
             do ix1 = ixOmin1, ixOmax1
-                w(ix1, ixOmin2:ixOmax2, ixOmin3:ixOmax3, w_index) = equi_w(ix1, ixOmin2:ixOmax2, ixOmin3:ixOmax3) &
-                    + 2.0d0 * (w(ix1-1,ixOmin2:ixOmax2,ixOmin3:ixOmax3, w_index) - equi_w(ix1-1,ixOmin2:ixOmax2,ixOmin3:ixOmax3)) &
-                    - (w(ix1-2,ixOmin2:ixOmax2,ixOmin3:ixOmax3, w_index) - equi_w(ix1-2,ixOmin2:ixOmax2,ixOmin3:ixOmax3))
+                w(ix1^%1ixO^S, w_index) = equi_w(ix1^%1ixO^S) &
+                    + 2.0d0 * (w(ix1-1^%1ixO^S, w_index) - equi_w(ix1-1^%1ixO^S)) &
+                    - (w(ix1-2^%1ixO^S, w_index) - equi_w(ix1-2^%1ixO^S))
             end do
         case ('inner')
             do ix1 = ixOmax1, ixOmin1, -1
-                w(ix1, ixOmin2:ixOmax2, ixOmin3:ixOmax3, w_index) = equi_w(ix1, ixOmin2:ixOmax2, ixOmin3:ixOmax3) &
-                    + 2.0d0 * (w(ix1+1,ixOmin2:ixOmax2,ixOmin3:ixOmax3, w_index) - equi_w(ix1+1,ixOmin2:ixOmax2,ixOmin3:ixOmax3)) &
-                    - (w(ix1+2,ixOmin2:ixOmax2,ixOmin3:ixOmax3, w_index) - equi_w(ix1+2,ixOmin2:ixOmax2,ixOmin3:ixOmax3))
+                w(ix1^%1ixO^S, w_index) = equi_w(ix1^%1ixO^S) &
+                    + 2.0d0 * (w(ix1+1^%1ixO^S, w_index) - equi_w(ix1+1^%1ixO^S)) &
+                    - (w(ix1+2^%1ixO^S, w_index) - equi_w(ix1+2^%1ixO^S))
             end do
         case default
             call mpistop('Unknown boundary side: ' // trim(boundary))
