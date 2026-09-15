@@ -7,7 +7,7 @@
 !> mod_eos re-exports the public names so existing `use mod_eos` callers are
 !> unaffected; eos_finalise wires these as the FI pointer targets.
 !=============================================================================
-module mod_eos_FI
+module mod_eos_fi
     use mod_global_parameters
     use mod_eos_container
     use mod_eos_shared_functions, only: get_rho
@@ -19,7 +19,7 @@ module mod_eos_FI
     !> get_Te_FI is PRIVATE: bound to eos%get_Te inside eos_finalise_FI only.
     !> The rest stay public: update_eos_FI (ffhd_phys), get_gamma1_FI (the seam
     !> phys_get_gamma1), get_temperature_from_{eint,pressure}_FI (reused by
-    !> mod_eos_PI), and the init/finalise dispatcher arms.
+    !> mod_eos_pi), and the init/finalise dispatcher arms.
     public :: update_eos_FI
     public :: get_gamma1_FI
     public :: get_temperature_from_eint_FI
@@ -124,4 +124,4 @@ contains
         res(ixO^S) = w(ixO^S,iw_e) / (Rfactor(ixO^S) * w(ixO^S,iw_rho))
     end subroutine get_temperature_from_pressure_FI
 
-end module mod_eos_FI
+end module mod_eos_fi

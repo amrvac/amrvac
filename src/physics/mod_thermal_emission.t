@@ -894,7 +894,7 @@ module mod_thermal_emission
     subroutine get_EUV_HHe_opacity(wl,ixI^L,ixO^L,w,x,fl,kappa)
       ! H I + He I + He II photoionization opacity in cm^-1.
       use mod_eos, only: eos
-      use mod_eos_PI_tables, only: ionization_state_Tp
+      use mod_eos_pi_tables, only: ionization_state_Tp
 
       integer, intent(in) :: wl
       integer, intent(in) :: ixI^L, ixO^L

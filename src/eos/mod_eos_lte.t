@@ -9,15 +9,15 @@
 !> accessors, never on mod_eos -> no circular use. mod_eos re-exports the public
 !> kernels so existing `use mod_eos` callers are unaffected.
 !=============================================================================
-module mod_eos_LTE
+module mod_eos_lte
     use mod_global_parameters
     use mod_eos_container
     use mod_eos_shared_functions
     use mod_eos_interp
-    use mod_eos_LTE_saha
-    use mod_eos_LTE_entropy
-    use mod_eos_LTE_tables
-    use mod_eos_LTE_state
+    use mod_eos_lte_saha
+    use mod_eos_lte_entropy
+    use mod_eos_lte_tables
+    use mod_eos_lte_state
     use mod_timing
     use mod_comm_lib, only: mpistop
 
@@ -54,8 +54,8 @@ contains
 
     !> LTE arm of eos_finalise: wire the LTE runtime pointer targets, then
     !> dispatch on eos_method to the per-method finaliser, each owned by its
-    !> method module (analytic->mod_eos_LTE_saha, entropy->mod_eos_LTE_entropy,
-    !> tables->mod_eos_LTE_tables).
+    !> method module (analytic->mod_eos_lte_saha, entropy->mod_eos_lte_entropy,
+    !> tables->mod_eos_lte_tables).
     subroutine eos_finalise_LTE()
         eos%update_eos => update_eos_LTE
         ! eos%get_thermal_pressure is set by (m)hd_link_eos
@@ -272,7 +272,7 @@ contains
         !>   bilinear table lookup + dexp.  Threshold check uses multiply
         !>   (eint <= threshold * rho) to avoid a 14-cycle scalar division.
         use mod_physics
-        use mod_eos_LTE_entropy, only: entropy_T_from_nH_eint
+        use mod_eos_lte_entropy, only: entropy_T_from_nH_eint
         integer, intent(in)             :: ixI^L,ixO^L
         double precision, intent(in)    :: x(ixI^S,1:ndim)
         double precision, intent(in)    :: w(ixI^S,1:nw)
@@ -361,7 +361,7 @@ contains
     !> Ionization fraction from (log10 nH, log10 eint/nH) in code units.
     !> Dispatches: analytic -> Saha quadratic, tables -> PCHIP interpolation.
     double precision function y_from_nH_eint(nH, eint_nh) result(result_val)
-        use mod_eos_LTE_entropy, only: entropy_y_from_nH_eint
+        use mod_eos_lte_entropy, only: entropy_y_from_nH_eint
         double precision, intent(in) :: nH, eint_nh
         double precision, parameter :: ln10 = 2.302585092994046d0
         double precision :: T_loc, y_loc, eint_rho
@@ -388,7 +388,7 @@ contains
     !> Temperature from (log10 nH, log10 eint/nH) in code units.
     !> Dispatches: analytic -> Saha bisection/Newton, tables -> PCHIP interpolation.
     double precision function T_from_nH_eint(nH, eint_nh) result(result_val)
-        use mod_eos_LTE_entropy, only: entropy_T_from_nH_eint
+        use mod_eos_lte_entropy, only: entropy_T_from_nH_eint
         double precision, intent(in) :: nH, eint_nh
         double precision, parameter :: ln10 = 2.302585092994046d0
         double precision :: T_loc, y_loc, eint_rho, Rfactor_FI
@@ -417,7 +417,7 @@ contains
     !> Computes grid indices once, evaluates both T and y tables.
     !> Saves one index computation + better cache utilisation vs separate calls.
     subroutine T_and_y_from_nH_eint(log_nH, log_eint_nH, T_out, y_out)
-        use mod_eos_LTE_entropy, only: entropy_T_and_y_from_nH_eint
+        use mod_eos_lte_entropy, only: entropy_T_and_y_from_nH_eint
         double precision, intent(in) :: log_nH, log_eint_nH
         double precision, intent(out) :: T_out, y_out
         double precision, parameter :: ln10 = 2.302585092994046d0
@@ -458,7 +458,7 @@ contains
     !> Pressure-to-eint ratio from (log10 nH, log10 p/nH) in code units.
     !> Dispatches: analytic -> Saha solve for eint/p, tables -> PCHIP interpolation.
     double precision function p2eint_from_nH_p(nH, ponH) result(result_val)
-        use mod_eos_LTE_entropy, only: entropy_eint_from_nH_p
+        use mod_eos_lte_entropy, only: entropy_eint_from_nH_p
         double precision, intent(in) :: nH, ponH
         double precision :: nH_code, p_code, T_loc, y_loc, eint_nH_loc, p_rho
 
@@ -490,7 +490,7 @@ contains
     !> is one bisection per cell -- non-trivial cost; this function is in the hot path
     !> via hd_get_csound2_LTE.
     double precision function gamma1_from_nH_p(log_nH, log_p_nH) result(g1)
-        use mod_eos_LTE_entropy, only: entropy_gamma1_from_nH_p
+        use mod_eos_lte_entropy, only: entropy_gamma1_from_nH_p
         double precision, intent(in) :: log_nH, log_p_nH
         if (eos%type_id /= EOS_TYPE_LTE) call mpistop("gamma1_from_nH_p called outside its eos_type (LTE)")
         if (eos%method_id == EOS_ENTROPY) then
@@ -513,7 +513,7 @@ contains
     !> p/nH from (log10 nH, log10 eint/nH) in code units.
     !> Returns (1+He+y)*T directly -- single lookup replaces T + y lookups.
     double precision function p_nH_from_eint(log_nH, log_eint_nH) result(p_nH)
-        use mod_eos_LTE_entropy, only: entropy_p_nH_from_eint
+        use mod_eos_lte_entropy, only: entropy_p_nH_from_eint
         double precision, intent(in) :: log_nH, log_eint_nH
         double precision, parameter :: ln10 = 2.302585092994046d0
         double precision :: T_loc, y_loc
@@ -534,7 +534,7 @@ contains
     !> Uses the bisection-built inverse table (H+He, machine precision).
     !> Fallback: H-only Saha if table not built.
     double precision function eint_nH_from_T(log_nH, log_T) result(eint_nH)
-        use mod_eos_LTE_entropy, only: entropy_eint_from_nH_T
+        use mod_eos_lte_entropy, only: entropy_eint_from_nH_T
         double precision, intent(in) :: log_nH, log_T
         double precision, parameter :: ln10 = 2.302585092994046d0
         double precision :: log_e_nh
@@ -843,4 +843,4 @@ contains
         end if
     end subroutine eos_get_eintT_grid
 
-end module mod_eos_LTE
+end module mod_eos_lte

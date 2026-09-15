@@ -3,7 +3,7 @@
 !>
 !> Carved out of mod_eos.t (the per-type split). These operate on `eos` and the
 !> conserved/primitive state without committing to FI / LTE / PI, so they are
-!> the common dependency that mod_eos_FI / mod_eos_LTE / mod_eos_PI and the
+!> the common dependency that mod_eos_fi / mod_eos_lte / mod_eos_pi and the
 !> orchestrating mod_eos all draw on -- keeping the type-specific modules free
 !> of any back-dependency on mod_eos (no circular use). mod_eos re-exports the
 !> public names so existing `use mod_eos` callers are unaffected.

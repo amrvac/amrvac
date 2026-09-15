@@ -284,7 +284,7 @@ contains
     use mod_cak_force, only: cak_init
     use mod_supertimestepping, only: sts_init, add_sts_method,&
             set_conversion_methods_to_head, set_error_handling_to_head
-    use mod_eos_PI_tables
+    use mod_eos_pi_tables
     use mod_usr_methods, only: usr_Rfactor, usr_get_heating
     use mod_escape_probability, only: escape_prob_init
     use mod_fld
@@ -385,7 +385,7 @@ contains
     if (eos%eos_type == 'LTE') then
       Ne_ = var_set_ne()
       Te_ = var_set_te()
-    else if (eos%eos_type == 'PI') then !  PI stores Te via var_set_te (sets iw_te) so the generic mod_eos_PI getters address it like LTE
+    else if (eos%eos_type == 'PI') then !  PI stores Te via var_set_te (sets iw_te) so the generic mod_eos_pi getters address it like LTE
       Ne_ = -1
       Te_ = var_set_te()
     else
@@ -626,7 +626,7 @@ contains
     allocate(iw_vector(nvector))
     iw_vector(1) = mom(1) - 1
     ! ionization-degree table init now lives in eos_finalise (eos% owns
-    ! thermodynamic-backend init); see mod_eos_PI.
+    ! thermodynamic-backend init); see mod_eos_pi.
 
   end subroutine hd_phys_init
 
@@ -1846,7 +1846,7 @@ contains
   subroutine hd_get_csound2(w,x,ixI^L,ixO^L,csound2)
     use mod_global_parameters
     use mod_timing
-    use mod_eos_LTE, only: gamma1_from_nH_p
+    use mod_eos_lte, only: gamma1_from_nH_p
     integer, intent(in)             :: ixI^L, ixO^L
     double precision, intent(in)    :: w(ixI^S,nw)
     double precision, intent(in)    :: x(ixI^S,1:ndim)

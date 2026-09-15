@@ -6,7 +6,7 @@
 !>          via one of three interchangeable methods (eos_method):
 !>            state    -- per-quantity (T,p,ne/nH,eint/p) Saha-equilibrium tables,
 !>                        PCHIP/bilinear interpolated ('tables' accepted as legacy alias).
-!>            entropy  -- bicubic-Hermite reconstruction (see mod_eos_LTE_entropy).
+!>            entropy  -- bicubic-Hermite reconstruction (see mod_eos_lte_entropy).
 !>            analytic -- on-the-fly H-only Saha solve (see saha_* routines).
 !>          Tables are generated offline and read as binary; their axes are
 !>          (log10 nH, log10 eint/nH) in code units after the unit shift applied
@@ -32,11 +32,11 @@ module mod_eos
     use mod_eos_container
     use mod_eos_shared_functions
     use mod_eos_interp
-    use mod_eos_LTE_saha
-    use mod_eos_LTE_tables
-    use mod_eos_FI
-    use mod_eos_LTE
-    use mod_eos_PI, only: eos_init_PI, eos_finalise_PI
+    use mod_eos_lte_saha
+    use mod_eos_lte_tables
+    use mod_eos_fi
+    use mod_eos_lte
+    use mod_eos_pi, only: eos_init_PI, eos_finalise_PI
     use mod_timing
     use mod_comm_lib, only: mpistop
 
@@ -55,8 +55,8 @@ module mod_eos
     !> Type-agnostic helpers, safe in any eos_type. The mode-specific scalar
     !> kernels (LTE T/y/p/eint/gamma1, saha_*, the PI state/eint/csound2 backend
     !> and fl-port shims) are deliberately NOT re-exported here: the hd/mhd/ffhd
-    !> seams reach them via their sub-modules (mod_eos_LTE / mod_eos_LTE_saha /
-    !> mod_eos_PI), and each kernel mpistops if called under the wrong
+    !> seams reach them via their sub-modules (mod_eos_lte / mod_eos_lte_saha /
+    !> mod_eos_pi), and each kernel mpistops if called under the wrong
     !> eos_type/method. So `use mod_eos` no longer exposes mode-specific routines.
     public :: get_ne_nH, eos_get_log_T_floor
     !> Ideal-gas Gamma_1 (returns eos%gamma); bound to phys_get_gamma1 for FI and
@@ -171,7 +171,7 @@ contains
             !> tables; the prominence table is (T,p)-dependent -> no-energy only.
             !> This also gates the only PI configuration that cannot model He
             !> ionisation energy: the chromosphere/flare energy paths now fold
-            !> the He ionisation energy into eint (mod_eos_PI_tables,
+            !> the He ionisation energy into eint (mod_eos_pi_tables,
             !> ionization_eps_ion_of_degrees), consistent with the He electron
             !> count already in the R-factor, so He>0 energy mode is allowed there.
             if (eos%ionE .and. trim(eos%pi_table) == 'prominence') then
@@ -259,7 +259,7 @@ contains
     !> EoS never reaches back into those modules.
     !> Finalise the EoS once units are set: dispatch on eos_type to the per-type
     !> finaliser (each owns its pointer wiring + backend table loading, living in
-    !> mod_eos_FI / mod_eos_LTE / mod_eos_PI), then wire the shared total-energy
+    !> mod_eos_fi / mod_eos_lte / mod_eos_pi), then wire the shared total-energy
     !> temperature getter. Called from amrvac.t after phys init.
     subroutine eos_finalise()
         if (.not. allocated(eos)) &

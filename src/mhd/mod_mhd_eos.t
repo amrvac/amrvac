@@ -20,9 +20,9 @@ module mod_mhd_eos
     !> The mode-specific scalar kernels are reached from their sub-modules, not the
     !> mod_eos facade (which no longer re-exports them). Each kernel mpistops if
     !> called under the wrong eos_type/method.
-    use mod_eos_LTE
-    use mod_eos_LTE_saha
-    use mod_eos_PI
+    use mod_eos_lte
+    use mod_eos_lte_saha
+    use mod_eos_pi
     use mod_eos_container
     use mod_mhd_phys
     use mod_timing
@@ -204,7 +204,7 @@ contains
         ! PI shares FI's normalisation and no-energy path verbatim; energy mode
         ! differs ONLY in the eint<->p relation (eint carries the ionisation
         ! energy). Override exactly the routines that touch that relation, all
-        ! delegating to the portable scalar backend in mod_eos_PI. FI
+        ! delegating to the portable scalar backend in mod_eos_pi. FI
         ! routines stay pristine (no flag branch in the hot path).
         if (eos%eos_type == 'PI' .and. eos%ionE) then
             if (.not. mhd_energy) &
@@ -1720,7 +1720,7 @@ contains
     !> Structural mirror of the FI conversion/pthermal/csound family, sharing
     !> FI's eq_state_units / RR=1 normalisation; the only difference is that the
     !> eint<->p relation is delegated to the portable scalar backend
-    !> (mod_eos_PI), so eint carries the ionisation-energy term.
+    !> (mod_eos_pi), so eint carries the ionisation-energy term.
     !> Origin: w(e_) is total energy; inte: w(e_) is gas internal energy.
 
     !> Primitive pressure -> total energy (origin). m^C_ is still velocity here

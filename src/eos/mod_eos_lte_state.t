@@ -6,22 +6,22 @@
 !> builds the derived tables the runtime needs (gamma1, log_p, p_over_nH, the
 !> interleaved fast-path block, the pressure-indexed gamma1, and the bisected
 !> p2eint / eint-from-T inverses). The shared binary-file I/O, axis/guard/validate
-!> machinery and the FI-bypass constants live in mod_eos_LTE_tables (used by all
+!> machinery and the FI-bypass constants live in mod_eos_lte_tables (used by all
 !> LTE methods); this module owns only the state-method build + finalise. Runs
 !> once, during eos_init_LTE / eos_finalise_LTE.
 !=============================================================================
-module mod_eos_LTE_state
+module mod_eos_lte_state
     use mod_global_parameters
     use mod_eos_container
     use mod_eos_interp
-    use mod_eos_LTE_tables, only: load_tables_LTE, try_load_tables_LTE, &
+    use mod_eos_lte_tables, only: load_tables_LTE, try_load_tables_LTE, &
          ensure_axis_nodes, eos_build_guards, eos_validate_table, &
          precompute_FI_bypass_constants
     use mod_comm_lib, only: mpistop
     implicit none
     private
 
-    !> state arms of the eos_init / eos_finalise dispatchers (mod_eos_LTE)
+    !> state arms of the eos_init / eos_finalise dispatchers (mod_eos_lte)
     public :: load_state_LTE, finalise_state_LTE
 
 contains
@@ -825,5 +825,5 @@ contains
 
     end subroutine verify_eos_round_trips
 
-end module mod_eos_LTE_state
+end module mod_eos_lte_state
 !> Needs a line after to pass the preprocessor
