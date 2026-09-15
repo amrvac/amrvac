@@ -153,7 +153,7 @@ module mod_eos_container
         !> Entropy-method tables (eos%method == 'entropy'). Each quantity Q is
         !> stored as four containers -- Q, Q_x, Q_y, Q_xy (value plus the two
         !> first derivatives and the cross derivative) -- fully determining the
-        !> bicubic Hermite polynomial in each cell (mod_eos_LTE_entropy). Five
+        !> bicubic Hermite polynomial in each cell (mod_eos_lte_entropy). Five
         !> quantities:
         !>   Forward (log_nH, log_eint/nH): Tfwd, pfwd, neOnH.
         !>   Inverse (log_nH, log_p/nH):    eintP, g1p (= Gamma_1).

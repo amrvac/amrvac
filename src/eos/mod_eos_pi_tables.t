@@ -1,12 +1,12 @@
 !=============================================================================
 !> PI (partial-ionisation) ionisation-degree backend for the eos% family.
 !>
-!> The physics library behind mod_eos_PI (the eos_type='PI' adapter): given the
+!> The physics library behind mod_eos_pi (the eos_type='PI' adapter): given the
 !> thermodynamic state it returns the hydrogen/helium ionisation degrees, the
 !> R-factor (mean inverse molecular weight) and -- in energy mode -- the
 !> ionisation energy. Standalone: depends only on mod_global_parameters /
 !> mod_constants / mod_comm_lib, never on mod_eos*, so eos% -> ionisation is
-!> acyclic. The analogue for PI of mod_eos_LTE_tables for LTE.
+!> acyclic. The analogue for PI of mod_eos_lte_tables for LTE.
 !>
 !> Three interchangeable tables (eos%pi_table), selected at init:
 !>   chromosphere -- T-only H I/H fraction, Carlsson & Leenaarts (2012, A&A 539 A39)
@@ -23,11 +23,11 @@
 !> eint -> T by Newton.
 !>
 !> Public API: ionization_degree_init (once, after units) + the state-query
-!> routines consumed by mod_eos_PI (get_state[_scalar], state_Tp, solve_p_Rfactor,
+!> routines consumed by mod_eos_pi (get_state[_scalar], state_Tp, solve_p_Rfactor,
 !> get_state_from_eint, get_p_eint_from_rho_T, get_eps_derivative_T,
 !> get_csound2_T, the predicates and the legacy degree-from-temperature shim).
 !=============================================================================
-module mod_eos_PI_tables
+module mod_eos_pi_tables
   implicit none
   private
   integer, parameter :: n_Tonly = 100
@@ -91,7 +91,7 @@ module mod_eos_PI_tables
   ! ionization_check_eint_table and ionization_state_from_temperature_scalar
   ! are PRIVATE: only ever called inside this module (no external importer in
   ! src/), so they are not part of the backend's public surface.
-  ! Legacy compatibility API (used by get_Rfactor_tonly_PI in mod_eos_PI)
+  ! Legacy compatibility API (used by get_Rfactor_tonly_PI in mod_eos_pi)
   public :: ionization_degree_from_temperature
   logical :: ionization_initialized = .false.
   logical :: ionization_include_energy = .false.
@@ -456,7 +456,7 @@ module mod_eos_PI_tables
     end subroutine ionization_prominence_pressure_bracket
 
     !> Array interface for T -> ionization degrees. Used by get_Rfactor_tonly_PI
-    !> (mod_eos_PI) to build the no-energy chromosphere/flare R-factor block.
+    !> (mod_eos_pi) to build the no-energy chromosphere/flare R-factor block.
     subroutine ionization_degree_from_temperature(ixI^L,ixO^L,Te,iz_H,iz_He)
       use mod_global_parameters
       integer, intent(in) :: ixI^L, ixO^L
@@ -1220,4 +1220,4 @@ module mod_eos_PI_tables
       csound2 = q*(1.d0+dq_dT/deps_dT)
     end subroutine ionization_get_csound2_T
 
-end module mod_eos_PI_tables
+end module mod_eos_pi_tables

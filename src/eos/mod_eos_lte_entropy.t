@@ -19,11 +19,11 @@
 !> derivatives, so the lookup stays smooth; values are Maxwell-consistent with
 !> (p, T) by construction.
 !=============================================================================
-module mod_eos_LTE_entropy
+module mod_eos_lte_entropy
     use mod_global_parameters
     use mod_comm_lib,      only: mpistop
     use mod_eos_container, only: eos_table_container, eos
-    use mod_eos_LTE_tables, only: load_tables_LTE, precompute_FI_bypass_constants, &
+    use mod_eos_lte_tables, only: load_tables_LTE, precompute_FI_bypass_constants, &
          ensure_axis_nodes, shift_axis_to_code, shift_axis_to_code_T, &
          eos_build_guards, eos_validate_table
     use mod_eos_interp, only: precompute_step_inv
@@ -378,7 +378,7 @@ contains
     !> Bisection inverse for the entropy table set: find log10(eint/nH) [code] such that
     !> p(nH, eint) = p_target exactly, using the forward pfwd table. The eintP table only
     !> supplies the initial guess. This is the entropy-mode counterpart of
-    !> eint_from_p_bisect (mod_eos_LTE), which is bound to eos%log_p - a table that is not
+    !> eint_from_p_bisect (mod_eos_lte), which is bound to eos%log_p - a table that is not
     !> loaded when eos_method='entropy' (its use there segfaulted on an unallocated array).
     subroutine entropy_eint_from_p_bisect(pfwd, pfwd_x, pfwd_y, pfwd_xy, &
                                           eintP, eintP_x, eintP_y, eintP_xy, &
@@ -471,7 +471,7 @@ contains
 
 
     !> Per-container code-unit shift + prepare for loaded entropy tables
-    !> (moved from mod_eos_LTE_tables; uses the shared infra there).
+    !> (moved from mod_eos_lte_tables; uses the shared infra there).
     subroutine entropy_table_prepare(tc)
         !> Bundle ensure_axis_nodes + precompute_step_inv + build_guards + validate,
         !> the identical four-step setup each loaded entropy table container needs.
@@ -494,5 +494,5 @@ contains
         call entropy_table_prepare(tc)
     end subroutine entropy_shift_prepare
 
-end module mod_eos_LTE_entropy
+end module mod_eos_lte_entropy
 !> Needs a line after to pass the preprocessor

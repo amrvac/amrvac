@@ -6,10 +6,10 @@
 !> per-container preparation (ensure_axis_nodes, code-unit axis shifts, O(1) guard
 !> arrays via eos_build_guards, eos_validate_table) and the fully-ionised bypass
 !> constants. NOT a method: 'tables' here means the literal lookup tables, not the
-!> 'state' method (which lives in mod_eos_LTE_state and consumes this infra).
+!> 'state' method (which lives in mod_eos_lte_state and consumes this infra).
 !> Everything here runs once, during eos_init_LTE / eos_finalise_LTE.
 !=============================================================================
-module mod_eos_LTE_tables
+module mod_eos_lte_tables
     use mod_global_parameters
     use mod_eos_container
     use mod_eos_interp
@@ -17,8 +17,8 @@ module mod_eos_LTE_tables
     implicit none
     private
 
-    !> Shared table-file I/O + per-container prep, consumed by mod_eos_LTE_state
-    !> (state method) and mod_eos_LTE_entropy (entropy method).
+    !> Shared table-file I/O + per-container prep, consumed by mod_eos_lte_state
+    !> (state method) and mod_eos_lte_entropy (entropy method).
     public :: load_tables_LTE, try_load_tables_LTE
     public :: ensure_axis_nodes, shift_axis_to_code, shift_axis_to_code_T
     public :: eos_build_guards, eos_validate_table, precompute_FI_bypass_constants
@@ -498,5 +498,5 @@ contains
 
     end subroutine read_eos_from_file
 
-end module mod_eos_LTE_tables
+end module mod_eos_lte_tables
 !> Needs a line after to pass the preprocessor

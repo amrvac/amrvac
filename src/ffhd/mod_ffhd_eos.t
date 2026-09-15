@@ -22,9 +22,9 @@ module mod_ffhd_eos
     use mod_eos
     !> Mode-specific kernels come from their sub-modules (the facade no longer
     !> re-exports them); each mpistops if called under the wrong eos_type/method.
-    use mod_eos_LTE
-    use mod_eos_LTE_saha
-    use mod_eos_PI
+    use mod_eos_lte
+    use mod_eos_lte_saha
+    use mod_eos_pi
     use mod_eos_container
     use mod_ffhd_phys
     use mod_radiative_cooling, only: build_Y_mod_table
@@ -129,7 +129,7 @@ contains
         !> PI energy-mode overrides (eos_type='PI', ionE=.true.). Energy mode
         !> differs from no-energy PI only in the eint<->p relation (eint carries
         !> the ionisation energy), so override exactly the routines touching it,
-        !> all via the portable mod_eos_PI backend. get_Rfactor stays the
+        !> all via the portable mod_eos_pi backend. get_Rfactor stays the
         !> Te_-addressed routine above (Te_ refreshed each step by
         !> ffhd_update_temperature_PI).
         if (eos%eos_type == 'PI' .and. eos%ionE) then
@@ -523,7 +523,7 @@ contains
     !> PI energy-mode (eos_type='PI', ionE=.true.) thermodynamics for FFHD.
     !> eint carries the ionisation-energy term, so p=(gamma-1)*eint no longer
     !> holds; the eint<->p relation is delegated to the portable scalar backend
-    !> (mod_eos_PI). Single momentum, total-energy only. Mirrors the
+    !> (mod_eos_pi). Single momentum, total-energy only. Mirrors the
     !> hd PI-energy family.
     !=========================================================================
 

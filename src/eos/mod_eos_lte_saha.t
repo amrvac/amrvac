@@ -9,12 +9,12 @@
 !> the state. build_gamma1_analytic_table tabulates Gamma_1(nH, T) once for the
 !> 'exact' gamma1 path; saha_gamma1_from_nH_T reads it back.
 !=============================================================================
-module mod_eos_LTE_saha
+module mod_eos_lte_saha
     use mod_global_parameters
     use mod_eos_container, only: eos, EOS_ANALYTIC
     use mod_eos_interp,    only: bicubic_lookup, precompute_step_inv
     use mod_comm_lib,      only: mpistop
-    use mod_eos_LTE_tables, only: precompute_FI_bypass_constants
+    use mod_eos_lte_tables, only: precompute_FI_bypass_constants
     implicit none
     private
 
@@ -344,5 +344,5 @@ contains
 
     end function saha_gamma1_from_nH_T
 
-end module mod_eos_LTE_saha
+end module mod_eos_lte_saha
 !> Needs a line after to pass the preprocessor

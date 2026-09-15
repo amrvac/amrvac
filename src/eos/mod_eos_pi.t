@@ -1,14 +1,14 @@
 !=============================================================================
 !> PI (partial-ionisation, eos_type='PI') arm of the eos% family.
 !>
-!> The adapter between the ionisation backend (mod_eos_PI_tables) and the eos%
+!> The adapter between the ionisation backend (mod_eos_pi_tables) and the eos%
 !> authority. PI rides the FI fully-ionised ideal-gas closure (RR=1
 !> normalisation, p=(gamma-1) eint when ionE=F) and differs only through the
 !> variable mean-mass that enters via eos%get_Rfactor and -- in energy mode --
-!> the ionisation energy folded into eint. mod_eos_PI_tables has no mod_eos
+!> the ionisation energy folded into eint. mod_eos_pi_tables has no mod_eos
 !> dependency, so eos% -> ionisation is acyclic.
 !>
-!> Structure mirrors mod_eos_FI / mod_eos_LTE:
+!> Structure mirrors mod_eos_fi / mod_eos_lte:
 !>   A. init / finalise               -- wire the eos% pointer targets
 !>   B. generic block getters         -- the eos%-interface routines bound for PI
 !>                                       (csound2, gamma1, Rfactor, Te update);
@@ -24,12 +24,12 @@
 !> mod_eos re-exports the public names so the seams reach them through the single
 !> `use mod_eos` facade, exactly as for the FI/LTE kernels.
 !=============================================================================
-module mod_eos_PI
+module mod_eos_pi
     use mod_global_parameters
     use mod_eos_container, only: eos, EOS_TYPE_PI
-    use mod_eos_FI, only: get_temperature_from_eint_FI, &
+    use mod_eos_fi, only: get_temperature_from_eint_FI, &
          get_temperature_from_pressure_FI
-    use mod_eos_PI_tables
+    use mod_eos_pi_tables
     use mod_timing
     use mod_comm_lib, only: mpistop
     implicit none
@@ -357,4 +357,4 @@ contains
         y = iz_H + eos%He_abundance*iz_He*(1.d0+iz_He)
     end function y_from_eint_PI
 
-end module mod_eos_PI
+end module mod_eos_pi

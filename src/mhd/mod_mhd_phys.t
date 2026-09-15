@@ -364,7 +364,7 @@ contains
     use mod_supertimestepping, only: sts_init, add_sts_method,&
             set_conversion_methods_to_head, set_error_handling_to_head
     use mod_cak_force, only: cak_init
-    use mod_eos_PI_tables
+    use mod_eos_pi_tables
     use mod_geometry
     use mod_usr_methods, only: usr_Rfactor, usr_get_heating
     {^NOONED
@@ -1116,7 +1116,7 @@ contains
     end if
 
     ! ionization-degree table init now lives in eos_finalise (eos% owns
-    ! thermodynamic-backend init, parallel to LTE tables); see mod_eos_PI.
+    ! thermodynamic-backend init, parallel to LTE tables); see mod_eos_pi.
 
     ! Initialize CAK radiation force module
     if (mhd_cak_force) then
