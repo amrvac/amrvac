@@ -101,7 +101,7 @@ contains
         {do idx^D = ixImin^D, ixImax^D|\}
         call ef_amplitude(x(idx^D, 1), ef_grid, values, amplitude)
         quantity = amplitude * exp_factor(idx^D)
-        w(idx^D, w_index) = w(idx^D, w_index) + quantity%re
+        w(idx^D, w_index) = w(idx^D, w_index) + real(quantity)
         {end do|\}
     end subroutine add_perturbation_to_w_array
 
