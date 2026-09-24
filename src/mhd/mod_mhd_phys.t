@@ -8247,6 +8247,7 @@ contains
     ! location at cell faces
     double precision :: xs(ixGs^T,1:ndim)
     double precision :: gradi(ixGs^T)
+    double precision :: resis_heat
     integer :: ixC^L,ixA^L
     integer :: idim1,idim2,idir,iwdim1,iwdim2,ix^D,i1kr^D,i2kr^D
 
@@ -8402,50 +8403,28 @@ contains
           end do
         end do
       end do
-      do idir=sdim,3
-        ixCmax^D=ixOmax^D;
-        ixCmin^D=ixOmin^D+kr(idir,^D)-1;
-        ! E dot J on cell edges
-        Ein(ixC^S,idir)=Ein(ixC^S,idir)*jce(ixC^S,idir)
-        ! average from cell edge to cell center
-       {^IFTHREED
-        if(idir==1) then
-         {do ix^DB=ixOmin^DB,ixOmax^DB\}
-            jce(ix^D,idir)=0.25d0*(Ein(ix^D,idir)+Ein(ix1,ix2-1,ix3,idir)+Ein(ix1,ix2,ix3-1,idir)&
-                          +Ein(ix1,ix2-1,ix3-1,idir))
-            if(jce(ix^D,idir)<0.d0) jce(ix^D,idir)=0.d0
-            w(ix^D,e_)=w(ix^D,e_)+qdt*jce(ix^D,idir)
-         {end do\}
-        else if(idir==2) then
-         {do ix^DB=ixOmin^DB,ixOmax^DB\}
-            jce(ix^D,idir)=0.25d0*(Ein(ix^D,idir)+Ein(ix1-1,ix2,ix3,idir)+Ein(ix1,ix2,ix3-1,idir)&
-                          +Ein(ix1-1,ix2,ix3-1,idir))
-            if(jce(ix^D,idir)<0.d0) jce(ix^D,idir)=0.d0
-            w(ix^D,e_)=w(ix^D,e_)+qdt*jce(ix^D,idir)
-         {end do\}
-        else
-         {do ix^DB=ixOmin^DB,ixOmax^DB\}
-            jce(ix^D,idir)=0.25d0*(Ein(ix^D,idir)+Ein(ix1-1,ix2,ix3,idir)+Ein(ix1,ix2-1,ix3,idir)&
-                          +Ein(ix1-1,ix2-1,ix3,idir))
-            if(jce(ix^D,idir)<0.d0) jce(ix^D,idir)=0.d0
-            w(ix^D,e_)=w(ix^D,e_)+qdt*jce(ix^D,idir)
-         {end do\}
-        end if
-       }
-       {^IFTWOD
-        !idir=3
-       {do ix^DB=ixOmin^DB,ixOmax^DB\}
-          jce(ix^D,idir)=0.25d0*(Ein(ix^D,idir)+Ein(ix1-1,ix2,idir)+Ein(ix1,ix2-1,idir)&
-                        +Ein(ix1-1,ix2-1,idir))
-          if(jce(ix^D,idir)<0.d0) jce(ix^D,idir)=0.d0
-          w(ix^D,e_)=w(ix^D,e_)+qdt*jce(ix^D,idir)
-       {end do\}
-       }
-        ! save additional numerical resistive heating to an extra variable
-       !! if(nwextra>0) then
-       !!   block%w(ixO^S,nw)=block%w(ixO^S,nw)+jce(ixO^S,idir)
-       !! end if
-      end do
+      {^IFTHREED
+      {do ix^DB=ixOmin^DB,ixOmax^DB\}
+          resis_heat=0.25d0*(Ein(ix^D,1)*jce(ix^D,1)+Ein(ix1,ix2-1,ix3,1)*jce(ix1,ix2-1,ix3,1)&
+              +Ein(ix1,ix2,ix3-1,1)*jce(ix1,ix2,ix3-1,1)+Ein(ix1,ix2-1,ix3-1,1)*jce(ix1,ix2-1,ix3-1,1))&
+              +0.25d0*(Ein(ix^D,2)*jce(ix^D,2)+Ein(ix1-1,ix2,ix3,2)*jce(ix1-1,ix2,ix3,2)&
+              +Ein(ix1,ix2,ix3-1,2)*jce(ix1,ix2,ix3-1,2)+Ein(ix1-1,ix2,ix3-1,2)*jce(ix1-1,ix2,ix3-1,2))&
+              +0.25d0*(Ein(ix^D,3)*jce(ix^D,3)+Ein(ix1-1,ix2,ix3,3)*jce(ix1-1,ix2,ix3,3)&
+              +Ein(ix1,ix2-1,ix3,3)*jce(ix1,ix2-1,ix3,3)+Ein(ix1-1,ix2-1,ix3,3)*jce(ix1-1,ix2-1,ix3,3))
+          if(resis_heat<0.d0) resis_heat=0.d0
+          w(ix^D,e_)=w(ix^D,e_)+qdt*resis_heat
+          !if(nwextra>0) block%w(ix^D,nw)=resis_heat
+      {end do\}
+      }
+      {^IFTWOD
+      {do ix^DB=ixOmin^DB,ixOmax^DB\}
+          resis_heat=0.25d0*(Ein(ix^D,3)*jce(ix^D,3)+Ein(ix1-1,ix2,3)*jce(ix1-1,ix2,3)&
+              +Ein(ix1,ix2-1,3)*jce(ix1,ix2-1,3)+Ein(ix1-1,ix2-1,3)*jce(ix1-1,ix2-1,3))
+          if(resis_heat<0.d0) resis_heat=0.d0
+          w(ix^D,e_)=w(ix^D,e_)+qdt*resis_heat
+          !if(nwextra>0) block%w(ix^D,nw)=resis_heat
+      {end do\}
+      }
     end if
 
     ! allow user to change inductive electric field, especially for boundary driven applications
