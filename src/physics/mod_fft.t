@@ -1,7 +1,9 @@
 !> Self-contained complex FFT utilities based on the mixed-radix Singleton
 !> transform historically embedded in mod_pfss.
 module mod_fft
+  use mod_comm_lib, only: mpistop
   implicit none
+
   private
 
   public :: fft_1d
@@ -758,9 +760,7 @@ contains
         return
   !  error finish, insufficient array storage
     998 isn=0
-        print 999
-        stop
-    999 format(44h0array bounds exceeded within subroutine fft)
+        call mpistop("array bounds exceeded within subroutine fft")
   end subroutine fft_raw
 
 end module mod_fft

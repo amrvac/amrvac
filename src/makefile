@@ -298,6 +298,7 @@ mod_ffhd_phys.o: mod_supertimestepping.mod
 mod_ffhd_phys.o: mod_thermal_conduction.mod
 mod_ffhd_phys.o: mod_thermal_emission.mod
 mod_ffhd_phys.o: mod_usr_methods.mod
+mod_fft.o: mod_comm_lib.mod
 mod_finite_difference.o: mod_comm_lib.mod
 mod_finite_difference.o: mod_finite_volume.mod
 mod_finite_difference.o: mod_global_parameters.mod
