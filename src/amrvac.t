@@ -184,7 +184,7 @@ program amrvac
   call initialize_trac_after_settree
 
   ! Populate the additional w state eos variables (if needed)
-  call prepare_eos_w_fields()
+  call prepare_eos_w_fields(ps)
 
   if (mype==0) then
      print*,'-------------------------------------------------------------------------------'
@@ -296,6 +296,7 @@ contains
             associated(usr_process_global)) then
           tw_process=MPI_WTIME()
           call process(it,global_time)
+          call prepare_eos_w_fields(ps)
           tw_process=MPI_WTIME()-tw_process
        end if
 
@@ -375,6 +376,7 @@ contains
        if (associated(usr_process_adv_grid) .or. &
             associated(usr_process_adv_global)) then
           call process_advanced(it,global_time)
+          call prepare_eos_w_fields(ps)
        end if
 
        ! update time variables

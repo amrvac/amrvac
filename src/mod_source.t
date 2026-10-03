@@ -130,7 +130,7 @@ contains
     if (src_active) then
        call getbc(qt,0.d0,ps,iwstart,nwgc)
        ! update eos variables: Te (nH) including ghost cells
-       call prepare_eos_w_fields()
+       call prepare_eos_w_fields(ps)
     end if
 
   end subroutine add_split_source

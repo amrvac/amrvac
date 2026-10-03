@@ -19,6 +19,7 @@ contains
     use mod_functions_connectivity, only: build_connectivity, getigrids 
     use mod_functions_forest, only: init_forest_root
     use mod_amr_solution_node, only: alloc_node
+    use mod_eos, only: prepare_eos_w_fields
  
     integer :: iigrid, igrid{#IFDEF EVOLVINGBOUNDARY , Morton_no}
   
@@ -48,6 +49,7 @@ contains
   
     ! update ghost cells
     call getbc(global_time,0.d0,ps,iwstart,nwgc)
+    call prepare_eos_w_fields(ps)
   
   end subroutine initlevelone
   

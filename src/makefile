@@ -450,6 +450,7 @@ mod_initialize.o: mod_usr_methods.mod
 mod_initialize_amr.o: mod_amr_solution_node.mod
 mod_initialize_amr.o: mod_comm_lib.mod
 mod_initialize_amr.o: mod_constrained_transport.mod
+mod_initialize_amr.o: mod_eos.mod
 mod_initialize_amr.o: mod_functions_connectivity.mod
 mod_initialize_amr.o: mod_functions_forest.mod
 mod_initialize_amr.o: mod_ghostcells_update.mod

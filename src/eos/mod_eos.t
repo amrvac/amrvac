@@ -279,13 +279,14 @@ contains
         eos%get_temperature_from_etot => get_temperature_from_etot
     end subroutine eos_finalise
 
-    subroutine prepare_eos_w_fields()
+    subroutine prepare_eos_w_fields(psx)
+        type(state), intent(inout) :: psx(max_blocks)
         integer :: iigrid, igrid
 
         ! fill eos space of all grids, including ghost cells (boundaries)
         !$OMP PARALLEL DO PRIVATE(igrid)
         do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
-            call eos%update_eos(ixG^LL,ixG^LL,ps(igrid)%w,ps(igrid)%x)
+            call eos%update_eos(ixG^LL,ixG^LL,psx(igrid)%w,psx(igrid)%x)
         end do
         !$OMP END PARALLEL DO
 
