@@ -6592,8 +6592,8 @@ contains
           case("limited")
             call gradientL(wCT(ixI^S,psi_),ixI^L,ixO^L,idir,gradPsi)
           end select
-          ! e  = e  -qdt (b . grad(Psi))
-          w(ixO^S,e_) = w(ixO^S,e_)-qdt*Ba(ixO^S,idir)*gradPsi(ixO^S)
+          ! e = e - qdt (b1 . grad(Psi)): e carries only the b1 magnetic energy
+          w(ixO^S,e_) = w(ixO^S,e_)-qdt*wCT(ixO^S,mag(idir))*gradPsi(ixO^S)
         end do
       end if
 
@@ -8279,7 +8279,8 @@ contains
         ECC(ix^D,3)=(wp(ix^D,b1_)+block%B0(ix^D,1,0))*wp(ix^D,m2_)-(wp(ix^D,b2_)+block%B0(ix^D,2,0))*wp(ix^D,m1_)
        }
        {^IFTWOD
-        ECC(ix^D,3)=wp(ix^D,b1_)*wp(ix^D,m2_)-wp(ix^D,b2_)*wp(ix^D,m1_)
+        ECC(ix^D,3)=(wp(ix^D,b1_)+block%B0(ix^D,1,0))*wp(ix^D,m2_) &
+                   -(wp(ix^D,b2_)+block%B0(ix^D,2,0))*wp(ix^D,m1_)
        }
        {^IFONED
         ECC(ix^D,3)=0.d0
