@@ -3860,7 +3860,7 @@ contains
             do i = i0, nc, di
                a0(1:2)     = cc(i, j, k, i_eps1)
                a0(3:4)     = cc(i, j, k, i_eps2)
-               a0(4:5)     = cc(i, j, k, i_eps3)
+               a0(5:6)     = cc(i, j, k, i_eps3)
                u(1:2) = cc(i-1:i+1:2, j, k, n)
                a(1:2) = cc(i-1:i+1:2, j, k, i_eps1)
                u(3:4) = cc(i, j-1:j+1:2, k, n)
