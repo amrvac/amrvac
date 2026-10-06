@@ -964,7 +964,14 @@ contains
     endif
 
     ! Energy conversion pointers needed by EOS module regardless of TC method
-    if(mhd_hydrodynamic_e) then
+    if(mhd_internal_e) then
+      if (iw_log_nH > 0) then
+        phys_e_to_ei => mhd_ei_unchanged_and_cache_log_nH
+      else
+        phys_e_to_ei => mhd_ei_unchanged
+      end if
+      phys_ei_to_e => mhd_ei_unchanged
+    else if(mhd_hydrodynamic_e) then
       phys_e_to_ei => mhd_e_to_ei_hde
       phys_ei_to_e => mhd_ei_to_e_hde
     else if(mhd_semirelativistic) then
@@ -2467,6 +2474,24 @@ contains
     call mhd_e_to_ei(ixI^L,ixO^L,w,x)
     block%wextra(ixO^S, iw_log_nH) = dlog10(w(ixO^S, rho_) / eos%nH2rhoFactor)
   end subroutine mhd_e_to_ei_and_cache_log_nH
+
+  !> no conversion: with mhd_internal_e the energy variable is already internal
+  subroutine mhd_ei_unchanged(ixI^L,ixO^L,w,x)
+    use mod_global_parameters
+    integer, intent(in)             :: ixI^L, ixO^L
+    double precision, intent(inout) :: w(ixI^S, nw)
+    double precision, intent(in)    :: x(ixI^S, 1:ndim)
+  end subroutine mhd_ei_unchanged
+
+  !> no conversion, but write the log10(nH) cache read by the LTE temperature lookups
+  subroutine mhd_ei_unchanged_and_cache_log_nH(ixI^L,ixO^L,w,x)
+    use mod_global_parameters
+    integer, intent(in)             :: ixI^L, ixO^L
+    double precision, intent(inout) :: w(ixI^S, nw)
+    double precision, intent(in)    :: x(ixI^S, 1:ndim)
+
+    block%wextra(ixO^S, iw_log_nH) = dlog10(w(ixO^S, rho_) / eos%nH2rhoFactor)
+  end subroutine mhd_ei_unchanged_and_cache_log_nH
 
   !> Transform hydrodynamic energy to internal energy
   subroutine mhd_e_to_ei_hde(ixI^L,ixO^L,w,x)
