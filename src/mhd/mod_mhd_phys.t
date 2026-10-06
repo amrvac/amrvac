@@ -588,7 +588,7 @@ contains
       else
         qperp_ = -1
       end if
-      need_global_cmax=.true.
+      !need_global_cmax=.true.
     else
       qpar_ = -1
       qperp_ = -1
@@ -5270,7 +5270,7 @@ contains
 
       if(mhd_hyperbolic_tc) then
         active = .true.
-        call add_hyperbolic_tc_source(qdt,ixI^L,ixO^L,wCT,w,x,wCTprim)
+        call add_source_hyperbolic_tc(qdt,ixI^L,ixO^L,wCT,w,x,wCTprim)
       end if
 
       ! Source for B0 splitting
@@ -5601,7 +5601,7 @@ contains
     }
   end subroutine mhd_get_hyperbolic_tc_geometry
 
-  subroutine add_hyperbolic_tc_source(qdt,ixI^L,ixO^L,wCT,w,x,wCTprim)
+  subroutine add_source_hyperbolic_tc(qdt,ixI^L,ixO^L,wCT,w,x,wCTprim)
     use mod_global_parameters
     use mod_geometry, only: gradient
     integer, intent(in) :: ixI^L,ixO^L
@@ -5871,7 +5871,7 @@ contains
       end do
     end do
    }
-  end subroutine add_hyperbolic_tc_source
+  end subroutine add_source_hyperbolic_tc
 
   !> Compute the Lorentz force (JxB) Note: Unused subroutine
   !> perhaps useful for post-processing when made public

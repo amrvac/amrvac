@@ -82,7 +82,7 @@ module mod_eos_pi_tables
   ! Prescribed rho,T -> consistent pthermal and Rfactor
   public :: ionization_solve_p_Rfactor
   ! T-only cooling callback and mode query
-  public :: ionization_get_Rfactor_from_temperature
+  public :: ionization_state_from_temperature_scalar
   public :: ionization_is_temperature_only
   public :: ionization_get_state_from_eint
   public :: ionization_get_p_eint_from_rho_T
@@ -980,13 +980,6 @@ module mod_eos_pi_tables
            + ionization_He_abundance * ( ionization_HeI_energy_unit*iz_He &
                                        + ionization_HeII_energy_unit*iz_He*iz_He )
     end function ionization_eps_ion_of_degrees
-
-    subroutine ionization_get_Rfactor_from_temperature(T, Rfactor)
-      double precision, intent(in)  :: T
-      double precision, intent(out) :: Rfactor
-
-      call ionization_state_from_temperature_scalar(T, Rfactor)
-    end subroutine ionization_get_Rfactor_from_temperature
 
     logical function ionization_is_temperature_only()
       ionization_is_temperature_only = &
