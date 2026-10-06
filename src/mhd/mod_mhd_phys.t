@@ -5646,7 +5646,7 @@ contains
     double precision, dimension(ixI^S,1:nw), intent(in) :: wCT,wCTprim
     double precision, dimension(ixI^S,1:nw), intent(inout) :: w
 
-    double precision, dimension(ixI^S) :: R,Te,rho_loc,pth_loc
+    double precision, dimension(ixI^S) :: R,Te,rho_loc,pth_loc,cs2_loc
     double precision, dimension(ixI^S) :: ne_loc,nH_dummy
     double precision, dimension(ixI^S,1:ndir) :: Bvec
     double precision, dimension(ixI^S) :: bgradT, gradTperp_mag
@@ -5686,6 +5686,12 @@ contains
       end if
       Te(ix^D)=pth_loc(ix^D)/(R(ix^D)*rho_loc(ix^D))
     {end do\}
+    ! sound speed from the EoS (table Gamma_1 under LTE); the equi split keeps gamma p/rho
+    if(has_equi_rho_and_p) then
+      cs2_loc(ixI^S)=eos%gamma*pth_loc(ixI^S)/rho_loc(ixI^S)
+    else
+      call eos%get_csound2(wCTprim,x,ixI^L,ixI^L,cs2_loc)
+    end if
     ! Electron number density in code units. Under the FI/PI normalisation,
     ! rho_code equals nH_code. FI uses the composition-dependent fully ionised
     ! electron count. PI obtains the local electron count from its R factor:
@@ -5751,7 +5757,7 @@ contains
       end if
       kappaT5_bgradT=kappa_T5*bgradT(ix1)
       inv_rho=1.d0/rho_loc(ix1)
-      c2=eos%gamma*pth_loc(ix1)*inv_rho
+      c2=cs2_loc(ix1)
       cfast2 = B2*inv_rho + c2
       avMinCs2(1) = cfast2**2 - 4.0d0*c2*Bvec(ix1,1)**2*inv_rho
       cmax(1) = sqrt(half*(cfast2 + sqrt(dabs(avMinCs2(1)))))
@@ -5809,7 +5815,7 @@ contains
           kappaT5_gradTperp=kappa_T5_perp*gradTperp_mag(ix^D)
         end if
         inv_rho=1.d0/rho_loc(ix^D)
-        c2=eos%gamma*pth_loc(ix^D)*inv_rho
+        c2=cs2_loc(ix^D)
         cfast2 = B2*inv_rho + c2
         do idir=1,ndim
           avMinCs2(idir)=cfast2**2-4.0d0*c2*Bvec(ix^D,idir)**2*inv_rho
@@ -5880,7 +5886,7 @@ contains
             kappaT5_gradTperp=kappa_T5_perp*gradTperp_mag(ix^D)
           end if
           inv_rho=1.d0/rho_loc(ix^D)
-          c2=eos%gamma*pth_loc(ix^D)*inv_rho
+          c2=cs2_loc(ix^D)
           cfast2 = B2*inv_rho + c2
           do idir = 1, ndim
             avMinCs2(idir)=cfast2**2-4.0d0*c2*Bvec(ix^D,idir)**2*inv_rho

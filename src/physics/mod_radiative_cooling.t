@@ -199,6 +199,8 @@ module mod_radiative_cooling
     double precision   :: nH2rhoFactor
     double precision   :: eion_per_nH
     procedure(eos_scalar2_func), pointer, nopass :: eint_from_T => null()
+    !> lower log10(T) bound of the (rho,T) inverse table, to clamp tlow lookups
+    double precision :: log_T_floor = -30.0d0
     procedure(eos_scalar2_func), pointer, nopass :: p2eint      => null()
     procedure(eos_scalar2_func), pointer, nopass :: T_from_eint => null()
     procedure(eos_scalar2_func), pointer, nopass :: y_from_eint => null()
@@ -1092,6 +1094,9 @@ module mod_radiative_cooling
          if (fl%ionE) then
            nH_val = rhonew(ix^D) / fl%nH2rhoFactor
            log_nH = dlog10(nH_val)
+           ! floor energy from the tables; the analytic route keeps the ideal form
+           if (fl%method /= 'analytic') &
+             emin = fl%eint_from_T(log_nH, max(dlog10(fl%tlow), fl%log_T_floor)) * nH_val
            if (fl%method == 'analytic') then
              T_l = Te(ix^D)
              y_l = wCT(ix^D, iw_ne) / nH_val
@@ -1191,7 +1196,7 @@ module mod_radiative_cooling
       if (lb_diagnose) lb_cool_accum = lb_cool_accum + (MPI_WTIME() - lb_t0_cool)
     end subroutine radiative_cooling_add_source
 
-    subroutine floortemperature(qdt,ixI^L,ixO^L,wCT,w,x,fl) !> This will need revisiting in LTE
+    subroutine floortemperature(qdt,ixI^L,ixO^L,wCT,w,x,fl)
     !  Force minimum temperature to a fixed temperature
       use mod_global_parameters
       integer, intent(in)             :: ixI^L, ixO^L
@@ -1199,15 +1204,25 @@ module mod_radiative_cooling
       double precision, intent(inout) :: w(ixI^S,1:nw)
       type(rc_fluid), intent(in) :: fl
       double precision :: etherm(ixI^S), rho(ixI^S), Rfactor(ixI^S),emin
+      double precision :: nH_val, log_nH, eint_floor, eint_current
       integer :: ix^D
 
-      call fl%get_pthermal(w,x,ixI^L,ixO^L,etherm)  
-      call fl%get_rho(w,x,ixI^L,ixO^L,rho)  
+      call fl%get_pthermal(w,x,ixI^L,ixO^L,etherm)
+      call fl%get_rho(w,x,ixI^L,ixO^L,rho)
       call fl%get_var_Rfactor(wCT,x,ixI^L,ixO^L,Rfactor)
       {do ix^DB = ixO^LIM^DB\}
          emin = rho(ix^D)*fl%tlow*Rfactor(ix^D)
          if(etherm(ix^D) < emin) then
-           w(ix^D,fl%e_)=w(ix^D,fl%e_)+(emin-etherm(ix^D))*invgam
+           if (fl%ionE .and. fl%method /= 'analytic') then
+             ! energy to reach the floor temperature from the tables, ionisation included
+             nH_val = rho(ix^D) / fl%nH2rhoFactor
+             log_nH = dlog10(nH_val)
+             eint_floor   = fl%eint_from_T(log_nH, max(dlog10(fl%tlow), fl%log_T_floor)) * nH_val
+             eint_current = etherm(ix^D) * fl%p2eint(log_nH, dlog10(etherm(ix^D)/nH_val))
+             w(ix^D,fl%e_)=w(ix^D,fl%e_)+max(eint_floor-eint_current, zero)
+           else
+             w(ix^D,fl%e_)=w(ix^D,fl%e_)+(emin-etherm(ix^D))*invgam
+           end if
          end if
       {end do\}
     end subroutine floortemperature
@@ -1322,6 +1337,9 @@ module mod_radiative_cooling
            if (fl%ionE) then
              nH_val = rho(ix^D) / fl%nH2rhoFactor
              log_nH = dlog10(nH_val)
+             ! floor energy from the tables; the analytic route keeps the ideal form
+             if (fl%method /= 'analytic') &
+               emin = fl%eint_from_T(log_nH, max(dlog10(fl%tlow), fl%log_T_floor)) * nH_val
              if (fl%method == 'analytic') then
                T_l = Te(ix^D)
                y_l = wCT(ix^D, iw_ne) / nH_val

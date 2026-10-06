@@ -326,6 +326,7 @@ contains
             rc_fl%nH2rhoFactor      =  eos%nH2rhoFactor
             rc_fl%eion_per_nH       =  eos%eion_per_nH
             rc_fl%eint_from_T       => eint_nH_from_T
+            rc_fl%log_T_floor       =  eos_get_log_T_floor()
             rc_fl%p2eint            => p2eint_from_nH_p
             rc_fl%T_from_eint       => T_from_nH_eint
             rc_fl%y_from_eint       => y_from_nH_eint
