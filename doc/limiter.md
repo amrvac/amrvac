@@ -11,7 +11,7 @@ That might be why sometimes they are not so reliable.
 AMRVAC provides many limiters to reconstruct data at cell face.
 Most of them are applied for finite volume methods.
 Therefore, take care when using them in combination with finite difference schemes, especially for asymmetric ones.
-Most TVD limiters in mod_limiter.t could be found in Yee (1989).
+Most TVD limiters in mod_limiter.t can be found in [Yee (1989)](https://ntrs.nasa.gov/citations/19890016281).
 
 In the current version, limiters can be chosen from the following list.
 
@@ -27,8 +27,6 @@ TVD | 'koren' | 3 | 2 | Koren (1993)
 TVD | 'ppm' | 3 | 3 | Colella and Woodward (1984)
 beyond TVD | 'cada' | 2 | 2 | Cada et al. (2009)
 beyond TVD | 'cada3' | 3 | 2 | Cada et al. (2009)
-beyond TVD | 'schmid1' | 3 | 2 | Schmidtmann et al. (2016)
-beyond TVD | 'schmid2' | 3 | 2 | Schmidtmann et al. (2016)
 beyond TVD | 'venk' | 2 | 2 | Venkatakrishnan (1995)
 ENO-based | 'weno3' | 3 | 2 | Jiang et al. (1996)
 ENO-based | 'wenoyc3' | 3 | 2 | Yamaleev et al. (2009), Arandiga et al. (2014)
@@ -58,8 +56,6 @@ ENO-based | 'mpweno7' | 7 | 4 | Balsara et al. (2000)
 'ppm': A three-point centered stencil third-order TVD limiter, the acronym stands for the Piecewise Parabolic Method (Colella and Woodward 1984). See also the references in mod_ppm.t for the implementation of this method.
 
 'cada', 'cada3': Second-order and third-order asymmetric limiter, a.k.a. LIMO or LIMO3. They are designed to simplify the complex TVD limiter created by Artebrant et al. (2005).  However, the simplication makes it not strictly TVD any more. As a third-order limiter, 'cada3' performs better than 'koren' limiter. Thus, although it has some drawbacks like being asymmetric or relying on some artificial parameters, this limiter is still recommended when choosing third-order limiters.
-
-'schmid1', 'schmid2': An improved version 'cada3' limiter. It changed some parameters of the 'cada3' limiter so that it is now a symmetric limiter. Besides, it changes the criteria to switch on/off the TVD function in 'cada3' from a quite artificial approach to a more reliable method. According to Schmidtmann (2016), it should be related to "the max value of the second derivative of all the variables", which is calculated automatically in 'schmid1' settings. But considering the time cost of communication, 'schmid2' is recommended. The users are expected to give "the max value of the second derivative of all the variables at t=0" manually. See examples of the Shu-Osher test in the hd test folder.
 
 'venk': The 'venkatakrishnan' limiter is popular in unstructured meshes. It is a little bit similar with the 'van albada' limiter. This limiter is claimed to keep a better balance between accuracy and oscillations, and thus can provide some more details than other second-order limiters. The parameter K, as mentioned in their paper, is set to be 0.3. Other values like 1 or 10 are also widely used in literature.
 
@@ -98,15 +94,14 @@ References
 14. Liu, X., 1994, Weighted Essentially Non-Oscillatory Schemes.
 15. Peng, J., 2021, An efficient targeted ENO scheme with local adaptive dissipation for compressible flow simulation.
 16. Roe, P., 1985, Some Contributions to the Modelling of Discontinuous Flows.
-17. Schmidtmann, B., 2016, Relations Between WENO3 and Third-Order Limiting in Finite Volume Methods.
-18. Shu, C., 2009, High Order Weighted Essentially Nonoscillatory Schemes for Convection Dominated Problems.
-19. Suresh, A., 1997, Accurate Monotonicity-Preserving Schemes with Runge–Kutta Time Stepping.
-20. Sweby, P, 1984, High Resolution Schemes Using Flux Limiters for Hyperbolic Conservation Laws.
-21. Toro, E, 2009, Riemann Solvers and Numerical Methods for Fluid Dynamics: A Practical Introduction.
-22. van Albada, G., 1982, A Comparative Study of Computional Methods in Cosmic Gas Dynamic.
-23. van Leer, B., 1974. Towards the Ultimate Conservative Difference Scheme, II: Monotonicity and Conservation Combined in a Second-Order Scheme.
-24. van Leer, B., 1977, Towards the Ultimate Conservative Difference Scheme. III. Upstream-Centered Finite-Difference Schemes for Ideal Compressible Flow
-25. Venkatakrishnan, V., 1993, On the Accuracy of Limiters and Convergence to Steady State Solutions.
-26. Woodward, P., 1984, The Numerical Simulation of Two-Dimensional Fluid Flow with Strong Shock.
-27. Yamaleev, N., 2009, A systematic methodology for constructing high-order energy stable WENO schemes
-28. Yee, H., 1989, A Class of High-Resolution Explicit and Implicit Shock-Capturing Methods.
+17. Shu, C., 2009, High Order Weighted Essentially Nonoscillatory Schemes for Convection Dominated Problems.
+18. Suresh, A., 1997, Accurate Monotonicity-Preserving Schemes with Runge–Kutta Time Stepping.
+19. Sweby, P, 1984, High Resolution Schemes Using Flux Limiters for Hyperbolic Conservation Laws.
+20. Toro, E, 2009, Riemann Solvers and Numerical Methods for Fluid Dynamics: A Practical Introduction.
+21. van Albada, G., 1982, A Comparative Study of Computational Methods in Cosmic Gas Dynamic.
+22. van Leer, B., 1974. Towards the Ultimate Conservative Difference Scheme, II: Monotonicity and Conservation Combined in a Second-Order Scheme.
+23. van Leer, B., 1977, Towards the Ultimate Conservative Difference Scheme. III. Upstream-Centered Finite-Difference Schemes for Ideal Compressible Flow
+24. Venkatakrishnan, V., 1993, On the Accuracy of Limiters and Convergence to Steady State Solutions.
+25. Woodward, P., 1984, The Numerical Simulation of Two-Dimensional Fluid Flow with Strong Shock.
+26. Yamaleev, N., 2009, A systematic methodology for constructing high-order energy stable WENO schemes
+27. Yee, H., 1989, A Class of High-Resolution Explicit and Implicit Shock-Capturing Methods.

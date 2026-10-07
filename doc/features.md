@@ -42,10 +42,10 @@ See [equations](equations.md) for more detail.
 
 The following types of finite-volume grids are supported:
 
-* Cartesian 1D, 1.5D, 2D, 2.5D, 3D
+* Cartesian 1D, 1.5D, 1.75D, 2D, 2.5D, 3D
 * Cylindrical 2D, 2.5D, 3D
 * Polar 2D, 2.5D, 3D
-* Spherical 2D, 2.5D, 3D
+* Spherical 1D, 2D, 2.5D, 3D
 
 The **slab**, **cylindrical** or **spherical** grids differ in the definition
 of volumes and surfaces for the grid cells, and there are some extra terms in
