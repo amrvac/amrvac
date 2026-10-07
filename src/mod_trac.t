@@ -862,8 +862,7 @@ contains
         !> 2D or 3D TRACB(lock) method with mask
         call TRACB(.true.,T_peak)
       case(7)
-        !> Johnston et al. 2021 local TRAC (clamp per-cell Tcoff)
-        call LTRAC(T_peak)
+        !> Johnston et al. 2021 local TRAC, with Tcoff set per cell in phys_get_tcutoff
       case default
         call mpistop("undefined TRAC method type")
       end select
