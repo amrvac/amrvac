@@ -60,6 +60,16 @@ module mod_thermal_conduction
       double precision, intent(out):: res(ixI^S)
     end subroutine get_var_subr
 
+    !> temperature from the energy variable and, if present, ciso2 = p/rho
+    subroutine get_Tciso2_subr(w,x,ixI^L,ixO^L,res,ciso2)
+      use mod_global_parameters
+      integer, intent(in)          :: ixI^L, ixO^L
+      double precision, intent(in) :: w(ixI^S,nw)
+      double precision, intent(in) :: x(ixI^S,1:ndim)
+      double precision, intent(out):: res(ixI^S)
+      double precision, intent(out), optional :: ciso2(ixI^S)
+    end subroutine get_Tciso2_subr
+
     subroutine get_2var_subr(ixI^L, ixO^L, w, x, ne, nH)
       use mod_global_parameters
       integer, intent(in)          :: ixI^L, ixO^L
@@ -107,6 +117,9 @@ module mod_thermal_conduction
     !> in the Spitzer conductivity when the RKL2 polynomial overshoots.
     logical :: tc_patch_eint=.false.
 
+    !> true when R = p/(rho T) is not 1, so saturation takes ciso2 = R T from get_var_Rfactor
+    logical :: sat_R_variable=.false.
+
     !> Minimum temperature (code units) below which TRAC does not modify conductivity.
     !> Below this T, the energy balance is dominated by optically thick radiation
     !> and recombination, not optically thin cooling + Spitzer conduction, so TRAC's
@@ -117,6 +130,9 @@ module mod_thermal_conduction
     procedure (get_var_subr), pointer, nopass :: get_rho => null()
     procedure (get_var_subr), pointer, nopass :: get_rho_equi => null()
     procedure(get_var_subr), pointer,nopass :: get_temperature_from_eint => null()
+    !> temperature getter that also returns ciso2 = p/rho, bound instead of
+    !> get_temperature_from_eint for LTE with ionisation energy
+    procedure(get_Tciso2_subr), pointer,nopass :: get_temperature_ciso2_from_eint => null()
     procedure(get_var_subr), pointer,nopass :: get_temperature_from_conserved => null()
     procedure(get_var_subr), pointer,nopass :: get_temperature_equi => null()
     procedure(get_2var_subr), pointer,nopass :: get_ne_nH => null()
@@ -326,7 +342,7 @@ contains
 
     !! qd store the heat conduction energy changing rate
     double precision :: qd(ixO^S)
-    double precision :: rho(ixI^S),Te(ixI^S)
+    double precision :: rho(ixI^S),Te(ixI^S),ciso2(ixI^S)
     double precision :: qvec(ixI^S,1:ndim)
     double precision :: fluxall(ixI^S,1,1:ndim)
     double precision :: alpha,dxinv(ndim)
@@ -342,23 +358,18 @@ contains
 
     dxinv=1.d0/dxlevel
 
-    call fl%get_temperature_from_eint(w, x, ixI^L, ixI^L, Te)  !calculate Te in whole domain (+ghosts)
-    if (fl%tc_patch_eint) call tc_patch_negative_eint(w, x, ixI^L, ixI^L, Te, fl%e_, fl)
+    ! Te and ciso2 = p/rho in the whole block (+ghosts)
+    call tc_get_Te_ciso2(w,x,ixI^L,fl,Te,ciso2)
     call fl%get_rho(w, x, ixI^L, ixI^L, rho)  !calculate rho in whole domain (+ghosts)
-    if(slab_uniform) then
-      call set_source_tc_mhd(ixI^L,ixO^L,w,x,fl,qvec,rho,Te,alpha)
-    else
-      call set_source_tc_mhd_geo(ixI^L,ixO^L,w,x,fl,qvec,rho,Te,alpha)
-    end if
+    call tc_flux_mhd(ixI^L,ixO^L,w,x,fl,qvec,rho,Te,ciso2,alpha)
     if(fl%subtract_equi) then
       allocate(qvec_equi(ixI^S,1:ndim))
+      ! the equilibrium flux reuses R = ciso2/Te of the full state
+      ciso2(ixI^S)=ciso2(ixI^S)/Te(ixI^S)
       call fl%get_temperature_equi(w, x, ixI^L, ixI^L, Te)  !calculate Te in whole domain (+ghosts)
       call fl%get_rho_equi(w, x, ixI^L, ixI^L, rho)  !calculate rho in whole domain (+ghosts)
-      if(slab_uniform) then
-        call set_source_tc_mhd(ixI^L,ixO^L,w,x,fl,qvec_equi,rho,Te,alpha)
-      else
-        call set_source_tc_mhd_geo(ixI^L,ixO^L,w,x,fl,qvec_equi,rho,Te,alpha)
-      end if
+      ciso2(ixI^S)=ciso2(ixI^S)*Te(ixI^S)
+      call tc_flux_mhd(ixI^L,ixO^L,w,x,fl,qvec_equi,rho,Te,ciso2,alpha)
       do idims=1,ndim
         ixAmax^D=ixOmax^D; ixAmin^D=ixOmin^D-kr(idims,^D);
         qvec(ixA^S,idims)=qvec(ixA^S,idims)-qvec_equi(ixA^S,idims)
@@ -402,13 +413,13 @@ contains
     wres(ixO^S,fl%e_)=qd(ixO^S)
   end subroutine sts_set_source_tc_mhd
 
-  subroutine set_source_tc_mhd(ixI^L,ixO^L,w,x,fl,qvec,rho,Te,alpha)
+  subroutine set_source_tc_mhd(ixI^L,ixO^L,w,x,fl,qvec,rho,Te,ciso2,alpha)
     use mod_global_parameters
     integer, intent(in) :: ixI^L, ixO^L
     double precision, intent(in) ::  x(ixI^S,1:ndim)
     double precision, intent(in) ::  w(ixI^S,1:nw)
     type(tc_fluid), intent(in) :: fl
-    double precision, intent(in) :: rho(ixI^S),Te(ixI^S)
+    double precision, intent(in) :: rho(ixI^S),Te(ixI^S),ciso2(ixI^S)
     double precision, intent(in) :: alpha
     double precision, intent(out) :: qvec(ixI^S,1:ndim)
 
@@ -856,7 +867,7 @@ contains
         ! consider saturation (Cowie and Mckee 1977 ApJ, 211, 135: phi=1.1, Balbus and Mckee 1982 ApJ, 252, 529: phi=0.3)
         ! unsigned saturated TC flux = 5 phi rho c**3, c=sqrt(p/rho) is isothermal sound speed, phi=0.3
         ixB^L=ixA^L+kr(idims,^D);
-        qdd(ixA^S)=0.75d0*(rho(ixA^S)+rho(ixB^S))*dsqrt(0.5d0*(Te(ixA^S)+Te(ixB^S)))**3*dabs(Bnorm(ixA^S))
+        qdd(ixA^S)=0.75d0*(rho(ixA^S)+rho(ixB^S))*dsqrt(0.5d0*(ciso2(ixA^S)+ciso2(ixB^S)))**3*dabs(Bnorm(ixA^S))
        {do ix^DB=ixAmin^DB,ixAmax^DB\}
           if(dabs(qvec(ix^D,idims))>qdd(ix^D)) then
             qvec(ix^D,idims)=sign(1.d0,qvec(ix^D,idims))*qdd(ix^D)
@@ -865,13 +876,13 @@ contains
       end if
     end do
   end subroutine set_source_tc_mhd
-  subroutine set_source_tc_mhd_geo(ixI^L,ixO^L,w,x,fl,qvec,rho,Te,alpha)
+  subroutine set_source_tc_mhd_geo(ixI^L,ixO^L,w,x,fl,qvec,rho,Te,ciso2,alpha)
     use mod_global_parameters
     integer, intent(in) :: ixI^L, ixO^L
     double precision, intent(in) ::  x(ixI^S,1:ndim)
     double precision, intent(in) ::  w(ixI^S,1:nw)
     type(tc_fluid), intent(in) :: fl
-    double precision, intent(in) :: rho(ixI^S),Te(ixI^S)
+    double precision, intent(in) :: rho(ixI^S),Te(ixI^S),ciso2(ixI^S)
     double precision, intent(in) :: alpha
     double precision, intent(out) :: qvec(ixI^S,1:ndim)
 
@@ -1344,7 +1355,7 @@ contains
         ! consider saturation (Cowie and Mckee 1977 ApJ, 211, 135: phi=1.1, Balbus and Mckee 1982 ApJ, 252, 529: phi=0.3)
         ! unsigned saturated TC flux = 5 phi rho c**3, c=sqrt(p/rho) is isothermal sound speed, phi=0.3
         ixB^L=ixA^L+kr(idims,^D);
-        qdd(ixA^S)=0.75d0*(rho(ixA^S)+rho(ixB^S))*dsqrt(0.5d0*(Te(ixA^S)+Te(ixB^S)))**3*dabs(Bnorm(ixA^S))
+        qdd(ixA^S)=0.75d0*(rho(ixA^S)+rho(ixB^S))*dsqrt(0.5d0*(ciso2(ixA^S)+ciso2(ixB^S)))**3*dabs(Bnorm(ixA^S))
        {do ix^DB=ixAmin^DB,ixAmax^DB\}
           if(dabs(qvec(ix^D,idims))>qdd(ix^D)) then
             qvec(ix^D,idims)=sign(1.d0,qvec(ix^D,idims))*qdd(ix^D)
@@ -1452,6 +1463,73 @@ contains
     dtnew=dtnew/dble(ndim)
   end function get_tc_dt_hd
 
+  !> Te over the block (+ghosts), with the optional negative-eint repair, and ciso2 = p/rho
+  !> for the saturation limit (ciso2 = Te where R = 1 or without saturation)
+  subroutine tc_get_Te_ciso2(w,x,ixI^L,fl,Te,ciso2)
+    use mod_global_parameters
+    integer, intent(in) :: ixI^L
+    double precision, intent(inout) :: w(ixI^S,1:nw)
+    double precision, intent(in) :: x(ixI^S,1:ndim)
+    type(tc_fluid), intent(in) :: fl
+    double precision, intent(out) :: Te(ixI^S), ciso2(ixI^S)
+
+    double precision :: Tdummy(ixI^S)
+    logical :: patched, want_ciso2
+
+    want_ciso2 = fl%tc_saturate .and. associated(fl%get_temperature_ciso2_from_eint)
+    if(want_ciso2) then
+      call fl%get_temperature_ciso2_from_eint(w, x, ixI^L, ixI^L, Te, ciso2)
+    else if(associated(fl%get_temperature_ciso2_from_eint)) then
+      call fl%get_temperature_ciso2_from_eint(w, x, ixI^L, ixI^L, Te)
+    else
+      call fl%get_temperature_from_eint(w, x, ixI^L, ixI^L, Te)
+    end if
+    patched = .false.
+    if(fl%tc_patch_eint) call tc_patch_negative_eint(w, x, ixI^L, ixI^L, Te, fl%e_, fl, patched)
+
+    if(want_ciso2) then
+      ! ciso2 from the repaired energy, keeping the repaired Te
+      if(patched) call fl%get_temperature_ciso2_from_eint(w, x, ixI^L, ixI^L, Tdummy, ciso2)
+    else if(fl%tc_saturate .and. fl%sat_R_variable .and. associated(fl%get_var_Rfactor)) then
+      call fl%get_var_Rfactor(w, x, ixI^L, ixI^L, ciso2)
+      ciso2(ixI^S) = ciso2(ixI^S)*Te(ixI^S)
+    else
+      ciso2(ixI^S) = Te(ixI^S)
+    end if
+  end subroutine tc_get_Te_ciso2
+
+  !> Face fluxes for the HD STS source, uniform or general geometry
+  subroutine tc_flux_hd(ixI^L,ixO^L,w,x,fl,qvec,rho,Te,ciso2)
+    use mod_global_parameters
+    integer, intent(in) :: ixI^L, ixO^L
+    double precision, intent(in) :: x(ixI^S,1:ndim), w(ixI^S,1:nw)
+    type(tc_fluid), intent(in) :: fl
+    double precision, intent(in) :: rho(ixI^S), Te(ixI^S), ciso2(ixI^S)
+    double precision, intent(out) :: qvec(ixI^S,1:ndim)
+
+    if(slab_uniform) then
+      call set_source_tc_hd(ixI^L,ixO^L,w,x,fl,qvec,rho,Te,ciso2)
+    else
+      call set_source_tc_hd_geo(ixI^L,ixO^L,w,x,fl,qvec,rho,Te,ciso2)
+    end if
+  end subroutine tc_flux_hd
+
+  !> Face fluxes for the MHD STS source, uniform or general geometry
+  subroutine tc_flux_mhd(ixI^L,ixO^L,w,x,fl,qvec,rho,Te,ciso2,alpha)
+    use mod_global_parameters
+    integer, intent(in) :: ixI^L, ixO^L
+    double precision, intent(in) :: x(ixI^S,1:ndim), w(ixI^S,1:nw)
+    type(tc_fluid), intent(in) :: fl
+    double precision, intent(in) :: rho(ixI^S), Te(ixI^S), ciso2(ixI^S), alpha
+    double precision, intent(out) :: qvec(ixI^S,1:ndim)
+
+    if(slab_uniform) then
+      call set_source_tc_mhd(ixI^L,ixO^L,w,x,fl,qvec,rho,Te,ciso2,alpha)
+    else
+      call set_source_tc_mhd_geo(ixI^L,ixO^L,w,x,fl,qvec,rho,Te,ciso2,alpha)
+    end if
+  end subroutine tc_flux_mhd
+
   subroutine sts_set_source_tc_hd(ixI^L,ixO^L,w,x,wres,fix_conserve_at_step,my_dt,igrid,nflux,fl)
     use mod_global_parameters
     use mod_fix_conserve
@@ -1466,7 +1544,7 @@ contains
     logical, intent(in) :: fix_conserve_at_step
     type(tc_fluid), intent(in)    :: fl
 
-    double precision :: Te(ixI^S),rho(ixI^S)
+    double precision :: Te(ixI^S),rho(ixI^S),ciso2(ixI^S)
     double precision :: qvec(ixI^S,1:ndim),qd(ixI^S)
     double precision, allocatable, dimension(:^D&,:) :: qvec_equi
     double precision :: fluxall(ixI^S,1,1:ndim)
@@ -1478,24 +1556,18 @@ contains
 
     dxinv=1.d0/dxlevel
 
-    !calculate Te in whole domain (+ghosts)
-    call fl%get_temperature_from_eint(w, x, ixI^L, ixI^L, Te)
-    if (fl%tc_patch_eint) call tc_patch_negative_eint(w, x, ixI^L, ixI^L, Te, fl%e_, fl)
+    ! Te and ciso2 = p/rho in the whole block (+ghosts)
+    call tc_get_Te_ciso2(w,x,ixI^L,fl,Te,ciso2)
     call fl%get_rho(w, x, ixI^L, ixI^L, rho)
-    if(slab_uniform) then
-      call set_source_tc_hd(ixI^L,ixO^L,w,x,fl,qvec,rho,Te)
-    else
-      call set_source_tc_hd_geo(ixI^L,ixO^L,w,x,fl,qvec,rho,Te)
-    end if
+    call tc_flux_hd(ixI^L,ixO^L,w,x,fl,qvec,rho,Te,ciso2)
     if(fl%subtract_equi) then
       allocate(qvec_equi(ixI^S,1:ndim))
+      ! the equilibrium flux reuses R = ciso2/Te of the full state
+      ciso2(ixI^S)=ciso2(ixI^S)/Te(ixI^S)
       call fl%get_temperature_equi(w, x, ixI^L, ixI^L, Te)  !calculate Te in whole domain (+ghosts)
       call fl%get_rho_equi(w, x, ixI^L, ixI^L, rho)  !calculate rho in whole domain (+ghosts)
-      if(slab_uniform) then
-        call set_source_tc_hd(ixI^L,ixO^L,w,x,fl,qvec_equi,rho,Te)
-      else
-        call set_source_tc_hd_geo(ixI^L,ixO^L,w,x,fl,qvec_equi,rho,Te)
-      end if
+      ciso2(ixI^S)=ciso2(ixI^S)*Te(ixI^S)
+      call tc_flux_hd(ixI^L,ixO^L,w,x,fl,qvec_equi,rho,Te,ciso2)
       do idims=1,ndim
         ! operate only on the per-idims face range that set_source_tc_hd fills
         ! (ixOmin-kr .. ixOmax); ix^S (=ixO+1) over-reaches into the
@@ -1535,13 +1607,13 @@ contains
     wres(ixO^S,fl%e_)=qd(ixO^S)
   end subroutine sts_set_source_tc_hd
 
-  subroutine set_source_tc_hd(ixI^L,ixO^L,w,x,fl,qvec,rho,Te)
+  subroutine set_source_tc_hd(ixI^L,ixO^L,w,x,fl,qvec,rho,Te,ciso2)
     use mod_global_parameters
     integer, intent(in) :: ixI^L, ixO^L
     double precision, intent(in) ::  x(ixI^S,1:ndim)
     double precision, intent(in) ::  w(ixI^S,1:nw)
     type(tc_fluid), intent(in)    :: fl
-    double precision, intent(in) :: Te(ixI^S),rho(ixI^S)
+    double precision, intent(in) :: Te(ixI^S),rho(ixI^S),ciso2(ixI^S)
     double precision, intent(out) :: qvec(ixI^S,1:ndim)
     double precision :: gradT(ixI^S,1:ndim),ke(ixI^S),qd(ixI^S)
     integer :: idims,ix^D,ix^L,ixC^L,ixA^L,ixB^L
@@ -1674,7 +1746,7 @@ contains
         ! consider saturation (Cowie and Mckee 1977 ApJ, 211, 135: phi=1.1, Balbus and Mckee 1982 ApJ, 252, 529: phi=0.3)
         ! unsigned saturated TC flux = 5 phi rho c**3, c=sqrt(p/rho) is isothermal sound speed, phi=0.3
         ixB^L=ixA^L+kr(idims,^D);
-        qd(ixA^S)=0.75d0*(rho(ixA^S)+rho(ixB^S))*dsqrt(0.5d0*(Te(ixA^S)+Te(ixB^S)))**3
+        qd(ixA^S)=0.75d0*(rho(ixA^S)+rho(ixB^S))*dsqrt(0.5d0*(ciso2(ixA^S)+ciso2(ixB^S)))**3
        {do ix^DB=ixAmin^DB,ixAmax^DB\}
           if(dabs(qvec(ix^D,idims))>qd(ix^D)) then
             qvec(ix^D,idims)=sign(1.d0,qvec(ix^D,idims))*qd(ix^D)
@@ -1683,13 +1755,13 @@ contains
       end if
     end do
   end subroutine set_source_tc_hd
-  subroutine set_source_tc_hd_geo(ixI^L,ixO^L,w,x,fl,qvec,rho,Te)
+  subroutine set_source_tc_hd_geo(ixI^L,ixO^L,w,x,fl,qvec,rho,Te,ciso2)
     use mod_global_parameters
     integer, intent(in) :: ixI^L, ixO^L
     double precision, intent(in) ::  x(ixI^S,1:ndim)
     double precision, intent(in) ::  w(ixI^S,1:nw)
     type(tc_fluid), intent(in)    :: fl
-    double precision, intent(in) :: Te(ixI^S),rho(ixI^S)
+    double precision, intent(in) :: Te(ixI^S),rho(ixI^S),ciso2(ixI^S)
     double precision, intent(out) :: qvec(ixI^S,1:ndim)
     double precision :: gradT(ixI^S,1:ndim),ke(ixI^S),qd(ixI^S)
     integer :: idims,ix^D,ix^L,ixC^L,ixA^L,ixB^L
@@ -1841,7 +1913,7 @@ contains
         ! consider saturation (Cowie and Mckee 1977 ApJ, 211, 135: phi=1.1, Balbus and Mckee 1982 ApJ, 252, 529: phi=0.3)
         ! unsigned saturated TC flux = 5 phi rho c**3, c=sqrt(p/rho) is isothermal sound speed, phi=0.3
         ixB^L=ixA^L+kr(idims,^D);
-        qd(ixA^S)=0.75d0*(rho(ixA^S)+rho(ixB^S))*dsqrt(0.5d0*(Te(ixA^S)+Te(ixB^S)))**3
+        qd(ixA^S)=0.75d0*(rho(ixA^S)+rho(ixB^S))*dsqrt(0.5d0*(ciso2(ixA^S)+ciso2(ixB^S)))**3
        {do ix^DB=ixAmin^DB,ixAmax^DB\}
           if(dabs(qvec(ix^D,idims))>qd(ix^D)) then
             qvec(ix^D,idims)=sign(1.d0,qvec(ix^D,idims))*qd(ix^D)
@@ -1861,13 +1933,15 @@ contains
   !> the average of valid (e_int > 0) neighbors and writes the matching
   !> e_int back to w(ix, ie) via the EoS inverse helper eint_nH_from_T,
   !> so the next STS substep does not re-read negative w and amplify it.
-  subroutine tc_patch_negative_eint(w, x, ixI^L, ixO^L, Te, ie, fl)
+  subroutine tc_patch_negative_eint(w, x, ixI^L, ixO^L, Te, ie, fl, patched)
     use mod_global_parameters
     integer, intent(in)             :: ixI^L, ixO^L, ie
     double precision, intent(inout) :: w(ixI^S, 1:nw)
     double precision, intent(in)    :: x(ixI^S, 1:ndim)
     double precision, intent(inout) :: Te(ixI^S)
     type(tc_fluid), intent(in)      :: fl
+    !> true when at least one cell was repaired
+    logical, intent(out)            :: patched
 
     integer :: ix^D, count
     integer :: ipatch(ixI^S)
@@ -1883,7 +1957,8 @@ contains
     {end do\}
 
     ! Quick exit if no cells need patching
-    if (all(ipatch(ixO^S) == 0)) return
+    patched = any(ipatch(ixO^S) /= 0)
+    if (.not. patched) return
 
     ! Need rho per-cell to back out e_int from a prescribed T via the EoS.
     call fl%get_rho(w, x, ixI^L, ixI^L, rho)

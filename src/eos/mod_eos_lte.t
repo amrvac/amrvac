@@ -28,7 +28,7 @@ module mod_eos_lte
     !> Rfactor_from_LTE are PRIVATE: all bound to eos% pointers inside
     !> eos_finalise_LTE, so no external module names them.
     !> get_temperature_from_eint_fast_LTE stays public -- the seam binds it to
-    !> tc_fl%get_temperature_from_eint (fast TC path).
+    !> tc_fl%get_temperature_ciso2_from_eint (fast TC path, optional p/rho)
     public :: get_temperature_from_eint_fast_LTE
     !> Scalar table kernels (re-exported by mod_eos for the hd/mhd/ffhd seams).
     !> T_and_y_from_nH_eint is internal-only (entropy update path).
@@ -262,7 +262,7 @@ contains
         timeeos_Tfromei=timeeos_Tfromei+(MPI_WTIME()-timeeos0)
     end subroutine get_temperature_from_eint_LTE
 
-    subroutine get_temperature_from_eint_fast_LTE(w, x, ixI^L, ixO^L, res)
+    subroutine get_temperature_from_eint_fast_LTE(w, x, ixI^L, ixO^L, res, ciso2)
         !> Fast TC variant: two-pass regime-aware bypass.
         !>
         !> Pass 1 (vectorised): compute FI formula for ALL cells as array ops.
@@ -271,31 +271,40 @@ contains
         !> Pass 2 (scalar): overwrite ionisation-zone cells with
         !>   bilinear table lookup + dexp.  Threshold check uses multiply
         !>   (eint <= threshold * rho) to avoid a 14-cycle scalar division.
+        !> With ciso2 present it also returns p/rho = (1 + He + y) T / nH2rhoFactor at the
+        !> current eint
         use mod_physics
-        use mod_eos_lte_entropy, only: entropy_T_from_nH_eint
         integer, intent(in)             :: ixI^L,ixO^L
         double precision, intent(in)    :: x(ixI^S,1:ndim)
         double precision, intent(in)    :: w(ixI^S,1:nw)
         double precision, intent(out)   :: res(ixI^S)
+        double precision, intent(out), optional :: ciso2(ixI^S)
 
-        double precision :: inv_Rfactor_FI, eion_rho_inv
+        double precision :: inv_Rfactor_FI, Rfactor_FI, eion_rho_inv, inv_nH2rho, onepHe
         double precision :: log_nH_val, log_eint_nH_val
         double precision :: fx, fy, rx, ry, nH_loc, T_loc, y_loc
         integer :: jx, jy, jx1, jy1, ix^D
+        logical :: want_ciso2
         double precision, parameter :: ln10 = 2.302585092994046d0
 
         if (eos%type_id /= EOS_TYPE_LTE) call mpistop("get_temperature_from_eint_fast_LTE called outside its eos_type (LTE)")
         timeeos0 = MPI_WTIME()
 
+        want_ciso2 = present(ciso2)
+
         !> Precompute scalar constants (avoid per-cell divisions)
         inv_Rfactor_FI = (1.0d0 + 4.0d0*eos%He_abundance) / eos%n_per_nH_FI
+        Rfactor_FI = eos%n_per_nH_FI / (1.0d0 + 4.0d0*eos%He_abundance)
         eion_rho_inv = eos%eion_per_nH / eos%nH2rhoFactor
+        inv_nH2rho = 1.0d0 / eos%nH2rhoFactor
+        onepHe = 1.0d0 + eos%He_abundance
 
         !> Pass 1: FI formula for ALL cells (vectorisable array operations).
         !> T = (gamma-1) * (eint - eion_per_rho * rho) / (Rfactor_FI * rho)
         res(ixO^S) = eos%gamma_minus_1 * inv_Rfactor_FI &
             * (w(ixO^S,iw_e) - eion_rho_inv * w(ixO^S,iw_rho)) &
             / w(ixO^S,iw_rho)
+        if (want_ciso2) ciso2(ixO^S) = Rfactor_FI * res(ixO^S)
 
         !> Pass 2: overwrite ionisation-zone cells.
         {do ix^DB=ixOmin^DB,ixOmax^DB\}
@@ -305,6 +314,7 @@ contains
                     call saha_T_from_nH_eint(nH_loc, &
                         w(ix^D,iw_e) / nH_loc, T_loc, y_loc)
                     res(ix^D) = T_loc
+                    if (want_ciso2) ciso2(ix^D) = (onepHe + y_loc) * inv_nH2rho * T_loc
                 else if (eos%method_id == EOS_ENTROPY) then
                     if (iw_log_nH > 0) then
                         log_nH_val = block%wextra(ix^D, iw_log_nH)
@@ -312,8 +322,17 @@ contains
                         log_nH_val = dlog10(w(ix^D, iw_rho) / eos%nH2rhoFactor)
                     end if
                     log_eint_nH_val = dlog10(w(ix^D, iw_e)) - log_nH_val
-                    res(ix^D) = entropy_T_from_nH_eint(eos%Tfwd, eos%Tfwd_x, &
-                        eos%Tfwd_y, eos%Tfwd_xy, log_nH_val, log_eint_nH_val)
+                    if (want_ciso2) then
+                        call entropy_T_and_y_from_nH_eint(eos%Tfwd, eos%Tfwd_x, &
+                            eos%Tfwd_y, eos%Tfwd_xy, eos%neOnH, eos%neOnH_x, &
+                            eos%neOnH_y, eos%neOnH_xy, log_nH_val, log_eint_nH_val, &
+                            T_loc, y_loc)
+                        res(ix^D) = T_loc
+                        ciso2(ix^D) = (onepHe + y_loc) * inv_nH2rho * T_loc
+                    else
+                        res(ix^D) = entropy_T_from_nH_eint(eos%Tfwd, eos%Tfwd_x, &
+                            eos%Tfwd_y, eos%Tfwd_xy, log_nH_val, log_eint_nH_val)
+                    end if
                 else
                     if (iw_log_nH > 0) then
                         log_nH_val = block%wextra(ix^D, iw_log_nH)
@@ -344,6 +363,8 @@ contains
                         res(ix^D) = dexp(ln10 * bilinear_lookup( &
                             log_nH_val, log_eint_nH_val, eos%T))
                     end if
+                    if (want_ciso2) ciso2(ix^D) = (onepHe &
+                        + y_from_nH_eint(log_nH_val, log_eint_nH_val)) * inv_nH2rho * res(ix^D)
                 end if
             end if
         {end do\}
