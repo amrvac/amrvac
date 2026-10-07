@@ -1,11 +1,10 @@
-!===============================================
+!==============================================================================
 ! Project : 2.5D CAK wind with vector force
 !
-! Aim     : study effect of (vector) line force
-!           in fast rotating OB-stars
+! Aim     : study effect of (vector) CAK line force in fast rotating OB-stars
 !
-! Config  : setup.pl -d=2
-!===============================================
+! Config  : setup.pl -d=2 -v=3
+!==============================================================================
 
 &filelist
   base_filename = 'test/cak'
@@ -66,18 +65,22 @@
 &cak_list
   cak_alpha    = 0.65d0
   gayley_qbar  = 2000.0d0
-  cak_vector_force = .true.
-  nthetaray  = 6
-  nphiray    = 6
+  gayley_q0    = 2000.0d0
+  kappae_cgs   = 0.34d0
+  cak_force_method = 'vector'
+  nthetaray = 6
+  nphiray   = 6
+  use_cak_table  = .false.
+  name_cak_table = 'Y02400'
 /
 
 &star_list
-  mstar    = 50.0d0
-  rstar    = 20.0d0
-  twind    = 4.0d4
-  rhobound = 2.0d-11
-  beta     = 0.5d0
-  Wrot     = 0.5d0
+  mstar_sol    = 50.0d0
+  rstar_sol    = 20.0d0
+  twind_cgs    = 4.0d4
+  rhobound_cgs = 2.0d-11
+  beta         = 0.5d0
+  Wrot         = 0.5d0
 /
  &eos_list
   gamma = 1.0d0

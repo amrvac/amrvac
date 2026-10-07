@@ -66,7 +66,6 @@ module mod_constants
   double precision, PARAMETER :: const_h     = 6.6260755d-27   ! erg s             ; Planck constant
   double precision, PARAMETER :: const_pc    = 3.08567758128d18! cm                ; 1 parsec
   double precision, PARAMETER :: const_G     = 6.67191d-8      ! cm^3 g^-1 s^-2    ; Cavendish gravitational constant
-  double precision, PARAMETER :: const_sigma = 5.670367d-5     ! erg cm^-2 K^-4 s^-1 ; Stefan-Boltzman constant
 
   ! Conversion factors:
   double precision, PARAMETER :: const_eV    = 1.6021772d-12   ! erg/eV            ; Electron volt

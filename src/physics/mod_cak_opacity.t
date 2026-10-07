@@ -2,8 +2,14 @@
 !> (alpha, Qbar, Q0, kappae) from corresponding tables. Tabulated values assume
 !> LTE conditions and are a function of mass density (D) and temperature (T),
 !> which are both given in base 10 logarithm.
-!> The construction of the tables is outlined in Poniatowski+ (2021), A&A, 667.
-
+!> The construction of the tables is outlined in Poniatowski+ (2021), A&A 667.
+!>
+!> The CAK opacity tables are stored in src/tables/CAK_tables. It is possible
+!> to use different tables when giving the absolute or relative path to the
+!> directory containing the tables. The only limitation is that the size of the
+!> non-default tables equals the size of the tables in src/tables/CAK_tables.
+!>
+!> This module is used in the FLD radiation module and the CAK force module.
 module mod_cak_opacity
 
   use mod_comm_lib, only: mpistop
@@ -32,7 +38,7 @@ module mod_cak_opacity
 
 contains
 
-  !> This routine is called when the FLD radiation module is initialised.
+  !> This routine is called when the FLD or CAK module is initialised.
   subroutine init_cak_table(tabledir,set_custom_tabledir)
 
     character(len=*),  intent(in) :: tabledir
@@ -53,9 +59,10 @@ contains
     call read_table(logD_list, logT_list, Q0_vals, trim(path_table_dir)//"/Q0_TD")
     call read_table(logD_list, logT_list, kappae_vals, trim(path_table_dir)//"/Ke_TD")
 
-    if(mype==0)then
-       write(*,*)'Initialized CAK tables, read in from',path_table_dir
+    if (mype == 0)then
+       write(*,*)'Initialized CAK tables, read in from ',path_table_dir
     endif
+
   end subroutine init_cak_table
 
   !> This subroutine calculates the opacity for a given temperature-density
@@ -68,8 +75,8 @@ contains
     ! Local variables
     double precision :: D_input, T_input, kappa_cak
 
-    if (temp <= 0.0d0) call mpistop('Input temperature < 0 in set_cak_opacity.')
-    if (rho <= 0.0d0) call mpistop('Input density < 0 in set_cak_opacity.')
+    if (temp <= 0.0d0) call mpistop('set_cak_opacity: local temperature <= 0')
+    if (rho <= 0.0d0) call mpistop('set_cak_opacity: local density <= 0')
 
     D_input = log10(rho)
     T_input = log10(temp)
