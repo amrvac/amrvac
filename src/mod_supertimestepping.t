@@ -634,14 +634,12 @@ contains
 
     bcphys=.true.
 
-    if(eos%eos_type == 'PI') then
-      ! update temperature variable in w
-      !$OMP PARALLEL DO PRIVATE(igrid)
-      do iigrid=1,igridstail; igrid=igrids(iigrid);
-        call eos%update_eos(ixG^LL,ixG^LL,ps(igrid)%w,ps(igrid)%x)
-      end do
-      !$OMP END PARALLEL DO
-    end if
+    ! refresh the cached EoS variables from the conducted energy
+    !$OMP PARALLEL DO PRIVATE(igrid)
+    do iigrid=1,igridstail; igrid=igrids(iigrid);
+      call eos%update_eos(ixG^LL,ixG^LL,ps(igrid)%w,ps(igrid)%x)
+    end do
+    !$OMP END PARALLEL DO
 
   end subroutine sts_add_source2
 
@@ -993,14 +991,12 @@ contains
 
     bcphys=.true.
 
-    if(eos%eos_type == 'PI') then
-      ! update temperature variable in w
-      !$OMP PARALLEL DO PRIVATE(igrid)
-      do iigrid=1,igridstail; igrid=igrids(iigrid);
-        call eos%update_eos(ixG^LL,ixG^LL,ps(igrid)%w,ps(igrid)%x)
-      end do
-      !$OMP END PARALLEL DO
-    end if
+    ! refresh the cached EoS variables from the conducted energy
+    !$OMP PARALLEL DO PRIVATE(igrid)
+    do iigrid=1,igridstail; igrid=igrids(iigrid);
+      call eos%update_eos(ixG^LL,ixG^LL,ps(igrid)%w,ps(igrid)%x)
+    end do
+    !$OMP END PARALLEL DO
 
   end subroutine sts_add_source1
 
