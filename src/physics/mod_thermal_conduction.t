@@ -241,7 +241,7 @@ contains
   !> Get the explicit timestep for the TC (mhd implementation)
   !> Note: for multi-D MHD (1D MHD will use HD fall-back)
   function get_tc_dt_mhd(w,ixI^L,ixO^L,dx^D,x,fl) result(dtnew)
-    !Check diffusion time limit dt < dx_i**2/((gamma-1)*tc_k_para_i/rho)
+    !Check diffusion time limit dt < dx_i**2/((gamma-1)*tc_k_para_i/(rho R))
     !where                      tc_k_para_i=tc_k_para*B_i**2/B**2
     !and                        T=p/rho
     use mod_global_parameters
@@ -253,7 +253,7 @@ contains
     double precision :: dtnew
 
     double precision :: mf(ixO^S,1:ndir),Te(ixI^S),rho(ixI^S),gradT(ixI^S)
-    double precision :: ne(ixI^S), nH_arr(ixI^S)
+    double precision :: ne(ixI^S), nH_arr(ixI^S), Rf(ixI^S)
     double precision :: tmp(ixO^S),hfs(ixO^S),blocal(1:ndir),Bmag
     double precision :: dtdiff_tcond,maxtmp2
     integer          :: idims,ix^D
@@ -282,6 +282,11 @@ contains
     call fl%get_temperature_from_conserved(w,x,ixI^L,ixI^L,Te)
     call fl%get_rho(w,x,ixI^L,ixO^L,rho)
     call fl%get_ne_nH(ixI^L, ixO^L, w, x, ne, nH_arr)
+    ! the diffusivity is kappa/(rho c_v) with c_v = R/(gamma-1): weight rho by R
+    if(associated(fl%get_var_Rfactor)) then
+      call fl%get_var_Rfactor(w, x, ixI^L, ixO^L, Rf)
+      rho(ixO^S)=rho(ixO^S)*Rf(ixO^S)
+    end if
 
     !tc_k_para_i
     if(fl%tc_constant) then
@@ -1408,7 +1413,7 @@ contains
   !> Get the explicit timestep for the TC (hd implementation)
   !> Note: also used in 1D MHD (or for neutrals in twofl)
   function get_tc_dt_hd(w,ixI^L,ixO^L,dx^D,x,fl)  result(dtnew)
-    ! Check diffusion time limit dt < dx_i**2 / ((gamma-1)*tc_k_para/rho)
+    ! Check diffusion time limit dt < dx_i**2 / ((gamma-1)*tc_k_para/(rho R))
     use mod_global_parameters
 
     integer, intent(in) :: ixI^L, ixO^L
@@ -1418,13 +1423,18 @@ contains
     double precision :: dtnew
 
     double precision :: tmp(ixO^S),tmp2(ixO^S),Te(ixI^S),rho(ixI^S),hfs(ixO^S),gradT(ixI^S)
-    double precision :: ne(ixI^S), nH_arr(ixI^S)
+    double precision :: ne(ixI^S), nH_arr(ixI^S), Rf(ixI^S)
     double precision :: dtdiff_tcond,maxtmp2
     integer          :: idim
 
     call fl%get_temperature_from_conserved(w,x,ixI^L,ixI^L,Te)
     call fl%get_rho(w,x,ixI^L,ixO^L,rho)
     call fl%get_ne_nH(ixI^L, ixO^L, w, x, ne, nH_arr)
+    ! the diffusivity is kappa/(rho c_v) with c_v = R/(gamma-1): weight rho by R
+    if(associated(fl%get_var_Rfactor)) then
+      call fl%get_var_Rfactor(w, x, ixI^L, ixO^L, Rf)
+      rho(ixO^S)=rho(ixO^S)*Rf(ixO^S)
+    end if
 
     if(fl%tc_constant) then
       tmp(ixO^S)=fl%tc_k_para/rho(ixO^S)

@@ -1489,22 +1489,25 @@ contains
       !> Johnston et al. 2021 local TRAC (A&A 654, A2) -- 1D
       !> Per-cell kappa_TRAC from steady-state energy balance
 
+      ! Tcoff also on the first ghost layer, so both blocks at a face see the same conductivity
+      ixP^L=ixO^L^LADD1;
+
       ! Get background heating Q (once per block)
-      call usr_get_heating(Q_heat, ixI^L, ixO^L, w, x)
+      call usr_get_heating(Q_heat, ixI^L, ixP^L, w, x)
 
       ! Get n_e and n_H for cooling rate: Q = n_e * n_H * Lambda(T)
       ! For FI: n_e = n_H * neOnH_FI.  For LTE: n_e from Saha EoS.
-      call eos%get_ne_nH(ixI^L, ixO^L, w, x, ne, nH_arr)
+      call eos%get_ne_nH(ixI^L, ixP^L, w, x, ne, nH_arr)
 
       hxO^L=ixO^L-1;
       jxO^L=ixO^L+1;
       dx_over_delta = dxlevel(1) / hd_trac_delta
 
-      do ix1=ixOmin1,ixOmax1
+      do ix1=ixPmin1,ixPmax1
         ! Temperature gradient: L_T = T / abs(dT/dx)
         dTdx = abs(Te(ix1+1) - Te(ix1-1)) / (2.d0 * dxlevel(1))
-        if(dTdx < smalldouble) then
-          ! Uniform temperature -- no broadening needed
+        ! Uniform temperature, or below trac_T_floor: no broadening (Tcoff = Te)
+        if(dTdx < smalldouble .or. Te(ix1) < tc_fl%trac_T_floor) then
           block%wextra(ix1,Tcoff_) = Te(ix1)
           cycle
         end if
@@ -1552,12 +1555,6 @@ contains
         ! Store max(Te, Tcoff_eff) -- Tcoff must be >= Te
         block%wextra(ix1,Tcoff_) = max(Te(ix1), Tcoff_eff)
       end do
-      ! Fill one ghost cell on each side with nearest interior Tcoff.
-      ! The thermal conduction routine reads Tcoff at ixO +/- 1;
-      ! wextra ghost cells are NOT halo-communicated, so without this
-      ! the conduction sees stale values and breaks symmetry.
-      block%wextra(ixOmin1-1,Tcoff_) = block%wextra(ixOmin1,Tcoff_)
-      block%wextra(ixOmax1+1,Tcoff_) = block%wextra(ixOmax1,Tcoff_)
       }
       {^NOONED
       ! Johnston et al. 2021 local TRAC, A and A 654 A2 -- multi-D, per-cell.
