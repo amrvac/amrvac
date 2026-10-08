@@ -230,9 +230,13 @@ module mod_radiative_cooling
     double precision :: Y_mod_lg_nH_min = 0.0d0
     double precision :: Y_mod_lg_nH_max = 0.0d0
     double precision :: Y_mod_lg_nH_step_inv = 0.0d0
-    !> Build flag — set to .true. only after the table has been populated
+    !> step of the nH axis in log10, zero for a single row
+    double precision :: Y_mod_lg_nH_step = 0.0d0
+    !> Build flag - set to .true. only after the table has been populated
     !> by build_Y_mod_table (called from bind_eos_to_source after eos_finalise).
     logical :: Y_mod_built = .false.
+    !> upper temperature of the Y_mod path: above 200 kK c_V is constant and Townsend is exact
+    double precision :: T_Ymod_max = huge(1.0d0)
     !> Quadrature method: 'simpson' (3-point, O(h^4)) or 'boole' (5-point, O(h^6))
     character(len=8) :: Y_mod_quadrature = 'boole'
     !> Number of sub-intervals per [u_i, u_{i+1}] segment for the quadrature
@@ -242,7 +246,7 @@ module mod_radiative_cooling
     !>
     !> The SPEX/SPEX_DM cooling tables follow Schure et al. (2009) which
     !> publishes the cooling function in two parts:
-    !>   Lambda_SPEX(T)  -- the cooling rate per n_H^2 (NOT per n_e n_H)
+    !>   Lambda_SPEX(T)  -- the cooling rate per n_e n_H (their Lambda_N, Table 2)
     !>   nenh_SPEX(T)    -- the CIE equilibrium n_e/n_H ratio at temperature T
     !> Reconstructing the volumetric cooling rate is then:
     !>   Q = n_H^2 * nenh_eq(T) * Lambda_SPEX(T)
@@ -1137,7 +1141,8 @@ module mod_radiative_cooling
            call findT(tlocal2, y2, fl)
 
            if (fl%ionE .and. fl%Y_mod_built .and. &
-               dabs(Te(ix^D) - tlocal2) > 1.0d-4 * Te(ix^D)) then
+               dabs(Te(ix^D) - tlocal2) > 1.0d-4 * Te(ix^D) .and. &
+               Te(ix^D) < fl%T_Ymod_max) then
              y1 = findY_mod(Te(ix^D), nH_arr(ix^D), fl)
              if (y1 == y1 .and. abs(y1) < huge(1.0d0)) then
                y2 = y1 + rho2_factor(ix^D)*qdt
@@ -1148,7 +1153,8 @@ module mod_radiative_cooling
            if( tlocal2 <= fl%tcoolmin ) then
              l1 = lmax
            else if (fl%ionE .and. &
-                    dabs(Te(ix^D) - tlocal2) > 1.0d-4 * Te(ix^D)) then
+                    dabs(Te(ix^D) - tlocal2) > 1.0d-4 * Te(ix^D) .and. &
+                    Te(ix^D) < fl%T_Ymod_max) then
              !> Recombination zone: table-based de for variable c_V.
              l1 = ((fl%eint_from_T(log_nH, dlog10(Te(ix^D))) &
                   - fl%eint_from_T(log_nH, dlog10(tlocal2))) * nH_val) / qdt
@@ -1391,7 +1397,8 @@ module mod_radiative_cooling
              call findT(Tlocal2,Y2,fl)
 
              if (fl%ionE .and. fl%Y_mod_built .and. &
-                 dabs(Te(ix^D) - Tlocal2) > 1.0d-4 * Te(ix^D)) then
+                 dabs(Te(ix^D) - Tlocal2) > 1.0d-4 * Te(ix^D) .and. &
+                 Te(ix^D) < fl%T_Ymod_max) then
                Y1 = findY_mod(Te(ix^D), nH_arr(ix^D), fl)
                if (Y1 == Y1 .and. abs(Y1) < huge(1.0d0)) then
                  Y2 = Y1 + rho2_factor(ix^D)*qdt
@@ -1402,7 +1409,8 @@ module mod_radiative_cooling
              if(Tlocal2<=fl%tcoolmin) then
                de = emax
              else if (fl%ionE .and. &
-                      dabs(Te(ix^D) - Tlocal2) > 1.0d-4 * Te(ix^D)) then
+                      dabs(Te(ix^D) - Tlocal2) > 1.0d-4 * Te(ix^D) .and. &
+                      Te(ix^D) < fl%T_Ymod_max) then
                de = (fl%eint_from_T(log_nH, dlog10(Te(ix^D))) &
                     - fl%eint_from_T(log_nH, dlog10(Tlocal2))) * nH_val
                de = max(de, zero)
@@ -1557,7 +1565,8 @@ module mod_radiative_cooling
            !> Guard: if findY_mod overflows (cooling curve near-zero at this T),
            !> keep the classical result -- variable c_V is irrelevant where Lambda ~ 0.
            if (fl%ionE .and. fl%Y_mod_built .and. &
-               dabs(Te(ix^D) - Tlocal2) > 1.0d-4 * Te(ix^D)) then
+               dabs(Te(ix^D) - Tlocal2) > 1.0d-4 * Te(ix^D) .and. &
+               Te(ix^D) < fl%T_Ymod_max) then
              Y1 = findY_mod(Te(ix^D), nH_arr(ix^D), fl)
              if (Y1 == Y1 .and. abs(Y1) < huge(1.0d0)) then
                Y2 = Y1 + cool_fac * qdt
@@ -1568,7 +1577,8 @@ module mod_radiative_cooling
            if(Tlocal2<=fl%tcoolmin) then
              de = emax
            else if (fl%ionE .and. &
-                    dabs(Te(ix^D) - Tlocal2) > 1.0d-4 * Te(ix^D)) then
+                    dabs(Te(ix^D) - Tlocal2) > 1.0d-4 * Te(ix^D) .and. &
+                    Te(ix^D) < fl%T_Ymod_max) then
              !> Recombination zone: use table-based de for variable c_V.
              de = (fl%eint_from_T(log_nH, dlog10(Te(ix^D))) &
                    - fl%eint_from_T(log_nH, dlog10(Tlocal2))) * nH_val
@@ -1838,7 +1848,7 @@ module mod_radiative_cooling
     !> Per-row inverse table T_mod_inv(j, k) is also built for the
     !> 'table' inverse method (alternative to bisection).
     subroutine build_Y_mod_table(fl)
-      use mod_global_parameters, only: mype
+      use mod_global_parameters, only: mype, unit_temperature
       type(rc_fluid), intent(inout) :: fl
 
       integer :: i, j, k, n_nH, ncool, N_sub
@@ -1887,12 +1897,15 @@ module mod_radiative_cooling
         if (mod(N_sub, 2) /= 0) N_sub = N_sub + 1
       end if
 
+      fl%T_Ymod_max = 2.0d5/unit_temperature
       fl%Y_mod_n_nH = n_nH
       if (n_nH > 1) then
         fl%Y_mod_lg_nH_step_inv = dble(n_nH - 1) &
             / (fl%Y_mod_lg_nH_max - fl%Y_mod_lg_nH_min)
+        fl%Y_mod_lg_nH_step = 1.0d0/fl%Y_mod_lg_nH_step_inv
       else
         fl%Y_mod_lg_nH_step_inv = 0.0d0
+        fl%Y_mod_lg_nH_step = 0.0d0
       end if
 
       allocate(fl%Y_mod(n_nH, ncool))
@@ -1912,7 +1925,7 @@ module mod_radiative_cooling
 
         fl%Y_mod(j, ncool) = 0.0d0
 
-        ! Step downward in T, accumulating ∫du / (n_e Λ)
+        ! Step downward in T, accumulating int du / (n_e Lambda)
         do i = ncool - 1, 1, -1
           u_lo = u_at_T(i)
           u_hi = u_at_T(i + 1)
@@ -2072,15 +2085,15 @@ module mod_radiative_cooling
       end if
     end function invert_row_bisect
 
-    !> Forward Y_mod lookup: bilinear interpolation in (log10 nH, log10 T)
-    !> on the precomputed Y_mod table. Both axes are uniform in log space.
+    !> Forward Y_mod lookup in (log10 nH, log10 T), both axes uniform in log space;
+    !> along nH the product nH*Y is interpolated (Y_mod_row_weights)
     function findY_mod(Te_loc, nH_loc, fl) result(Y_out)
       double precision, intent(in) :: Te_loc, nH_loc
       type(rc_fluid), intent(in) :: fl
       double precision :: Y_out
       double precision :: log_nH, log_T, ry, rx
       integer :: jy, jy1, jx, jx1
-      double precision :: fy, fx
+      double precision :: fy, fx, wlo, whi
 
       log_nH = dlog10(nH_loc)
       log_T  = dlog10(Te_loc)
@@ -2098,16 +2111,17 @@ module mod_radiative_cooling
       jx1 = min(jx + 1, fl%ncool - 1)
       fx  = rx - dble(jx)
 
-      Y_out = (1.0d0 - fy) * ((1.0d0 - fx) * fl%Y_mod(jy + 1,  jx + 1) &
-                             +         fx  * fl%Y_mod(jy + 1,  jx1 + 1)) &
-            +         fy  * ((1.0d0 - fx) * fl%Y_mod(jy1 + 1, jx + 1) &
-                             +         fx  * fl%Y_mod(jy1 + 1, jx1 + 1))
+      call Y_mod_row_weights(fy, fl, wlo, whi)
+      Y_out = wlo * ((1.0d0 - fx) * fl%Y_mod(jy + 1,  jx + 1) &
+                   +         fx  * fl%Y_mod(jy + 1,  jx1 + 1)) &
+            + whi * ((1.0d0 - fx) * fl%Y_mod(jy1 + 1, jx + 1) &
+                   +         fx  * fl%Y_mod(jy1 + 1, jx1 + 1))
     end function findY_mod
 
     !> Inverse Y_mod lookup: given Y_target and nH, return T such that
     !> Y_mod(log10 nH, log10 T) = Y_target. Bisection on the cooling-table
-    !> i index using values interpolated linearly between the two adjacent
-    !> nH rows (same convention as the classical findT). Saturates at the
+    !> i index using values interpolated between the two adjacent nH rows
+    !> with the nH*Y weights of Y_mod_row_weights. Saturates at the
     !> table extremes when Y_target falls outside [Y(tcoolmax), Y(tcoolmin)].
     function findT_mod(Y_target, nH_loc, fl) result(T_out)
       double precision, intent(in) :: Y_target, nH_loc
@@ -2117,7 +2131,7 @@ module mod_radiative_cooling
       integer :: jy, jy1
       double precision :: log_T_lo, log_T_hi
       integer :: jl, jh, jc, ncool
-      double precision :: Yc_lo, Yc_hi
+      double precision :: Yc_lo, Yc_hi, wlo, whi
 
       log_nH = dlog10(nH_loc)
       ry = (log_nH - fl%Y_mod_lg_nH_min) * fl%Y_mod_lg_nH_step_inv
@@ -2126,9 +2140,10 @@ module mod_radiative_cooling
       jy1 = min(jy + 1, fl%Y_mod_n_nH - 1)
       fy  = ry - dble(jy)
       ncool = fl%ncool
+      call Y_mod_row_weights(fy, fl, wlo, whi)
 
-      Yc_lo = (1.0d0 - fy) * fl%Y_mod(jy + 1, 1)      + fy * fl%Y_mod(jy1 + 1, 1)
-      Yc_hi = (1.0d0 - fy) * fl%Y_mod(jy + 1, ncool)  + fy * fl%Y_mod(jy1 + 1, ncool)
+      Yc_lo = wlo * fl%Y_mod(jy + 1, 1)      + whi * fl%Y_mod(jy1 + 1, 1)
+      Yc_hi = wlo * fl%Y_mod(jy + 1, ncool)  + whi * fl%Y_mod(jy1 + 1, ncool)
       if (Y_target >= Yc_lo) then
         T_out = fl%tcoolmin
         return
@@ -2142,15 +2157,15 @@ module mod_radiative_cooling
       do
         if (jh - jl <= 1) exit
         jc = (jl + jh) / 2
-        if (((1.0d0 - fy) * fl%Y_mod(jy + 1, jc) + fy * fl%Y_mod(jy1 + 1, jc)) &
+        if ((wlo * fl%Y_mod(jy + 1, jc) + whi * fl%Y_mod(jy1 + 1, jc)) &
             >= Y_target) then
           jl = jc
         else
           jh = jc
         end if
       end do
-      Yc_lo = (1.0d0 - fy) * fl%Y_mod(jy + 1, jl) + fy * fl%Y_mod(jy1 + 1, jl)
-      Yc_hi = (1.0d0 - fy) * fl%Y_mod(jy + 1, jh) + fy * fl%Y_mod(jy1 + 1, jh)
+      Yc_lo = wlo * fl%Y_mod(jy + 1, jl) + whi * fl%Y_mod(jy1 + 1, jl)
+      Yc_hi = wlo * fl%Y_mod(jy + 1, jh) + whi * fl%Y_mod(jy1 + 1, jh)
       log_T_lo = dlog10(fl%tcool(jl))
       log_T_hi = dlog10(fl%tcool(jh))
       if (Yc_lo == Yc_hi) then
@@ -2160,5 +2175,15 @@ module mod_radiative_cooling
               + (Y_target - Yc_lo) / (Yc_hi - Yc_lo) * (log_T_hi - log_T_lo))
       end if
     end function findT_mod
+
+    !> weights between the nH rows jy and jy+1: nH*Y is interpolated linearly in log10 nH,
+    !> exact for Y ~ 1/nH (fully ionised), where interpolating Y itself overestimates it
+    subroutine Y_mod_row_weights(fy, fl, wlo, whi)
+      double precision, intent(in) :: fy
+      type(rc_fluid), intent(in) :: fl
+      double precision, intent(out) :: wlo, whi
+      wlo = (1.0d0 - fy) * 10.0d0**(-fy*fl%Y_mod_lg_nH_step)
+      whi = fy * 10.0d0**((1.0d0 - fy)*fl%Y_mod_lg_nH_step)
+    end subroutine Y_mod_row_weights
 
 end module mod_radiative_cooling
