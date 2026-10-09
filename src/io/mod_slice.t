@@ -245,8 +245,7 @@ contains
       use mod_calculate_xw
       integer :: status(MPI_STATUS_SIZE), ipe
       logical             :: fileopen
-      character(len=1024) :: filename, xlabel
-      character(len=79)   :: xxlabel
+      character(len=1024) :: filename
       character(len=name_len) :: wnamei(1:nw+nwauxio),xandwnamei(1:ndim+nw+nwauxio)
       character(len=1024) :: outfilehead
 
@@ -255,12 +254,7 @@ contains
          inquire(slice_fh,opened=fileopen)
          if(.not.fileopen)then
             ! generate filename: 
-            write(xlabel,"(D9.2)")xslice
-            xxlabel=trim(xlabel)
-            if(xslice>=zero)then
-               write(xxlabel(1:1),"(a)") "+"
-            endif
-            write(filename,"(a,i1.1,a,i4.4,a)") TRIM(base_filename)//'_d',dir,'_x'//trim(xxlabel)//'_n',slicenext,'.vtu'
+            write(filename,"(a,i1.1,a,i4.4,a)") TRIM(base_filename)//'_d',dir,'_x'//slice_label(xslice)//'_n',slicenext,'.vtu'
             open(slice_fh,file=filename,status='unknown',form='formatted')
          end if
          ! get and write the header: 
@@ -461,8 +455,7 @@ contains
       integer                       :: iw, ipe, itag
       integer                       :: status(MPI_STATUS_SIZE)
       logical                       :: fileopen
-      character(len=1024)           :: filename, xlabel
-      character(len=79)             :: xxlabel
+      character(len=1024)           :: filename
       character(len=name_len)       :: wnamei(1:nw+nwauxio),xandwnamei(1:ndim+nw+nwauxio)
       character(len=1024)           :: outfilehead
       character(len=1024)           :: line
@@ -471,12 +464,7 @@ contains
          inquire(slice_fh,opened=fileopen)
          if(.not.fileopen)then
             ! generate filename: 
-            write(xlabel,"(D9.2)")xslice
-            xxlabel=trim(xlabel)
-            if(xslice>=zero)then
-               write(xxlabel(1:1),"(a)") "+"
-            endif
-            write(filename,"(a,i1.1,a,i4.4,a)") TRIM(base_filename)//'_d',dir,'_x'//trim(xxlabel)//'_n',slicenext,'.csv'
+            write(filename,"(a,i1.1,a,i4.4,a)") TRIM(base_filename)//'_d',dir,'_x'//slice_label(xslice)//'_n',slicenext,'.csv'
             open(slice_fh,file=filename,status='unknown',form='formatted')
          end if
          ! get and write the header: 
@@ -594,8 +582,7 @@ contains
       integer(kind=MPI_OFFSET_KIND) :: offset, offset1
       integer :: nsubleafs
       integer :: amode, status(MPI_STATUS_SIZE), iwrite
-      character(len=1024) :: filename, xlabel
-      character(len=79)   :: xxlabel
+      character(len=1024) :: filename
       character(len=name_len) :: dname
 
       integer :: nsubparents, iw, ileaf, inode
@@ -656,12 +643,7 @@ contains
       end if
 
       ! generate filename
-      write(xlabel,"(D9.2)")xslice
-      xxlabel=trim(xlabel)
-      if(xslice>=zero)then
-         write(xxlabel(1:1),"(a)") "+"
-      endif
-      write(filename,"(a,i1.1,a,i4.4,a)") TRIM(base_filename)//'_d',dir,'_x'//trim(xxlabel)//'_n',slicenext,'.dat'
+      write(filename,"(a,i1.1,a,i4.4,a)") TRIM(base_filename)//'_d',dir,'_x'//slice_label(xslice)//'_n',slicenext,'.dat'
 
       if(mype==0) then
          open(unit=slice_fh,file=filename,status='replace')
@@ -813,17 +795,11 @@ contains
       character(len=name_len) :: wnamei(1:nw+nwauxio),xandwnamei(1:ndim+nw+nwauxio)
       character(len=1024) :: outfilehead
       character(len=1024) ::line, data
-      character(len=1024) :: filename, xlabel
-      character(len=79)   :: xxlabel
+      character(len=1024) :: filename
 
       {^IFONED
       ! generate filename: 
-      write(xlabel,"(D9.2)")xslice
-      xxlabel=trim(xlabel)
-      if(xslice>=zero)then
-         write(xxlabel(1:1),"(a)") "+"
-      endif
-      write(filename,"(a,i1.1,a,i4.4,a)") TRIM(base_filename)//'_d',dir,'_x'//trim(xxlabel)//'.csv'
+      write(filename,"(a,i1.1,a,i4.4,a)") TRIM(base_filename)//'_d',dir,'_x'//slice_label(xslice)//'.csv'
 
       ! Open for header:       
       if (.not. opened .and. mype==0) then
@@ -1481,6 +1457,13 @@ contains
     
   end subroutine quicksort_integer
 
+
+  !> Signed slice coordinate for the file names, such as +0.500000D+00
+  character(len=13) function slice_label(xslice)
+    double precision, intent(in) :: xslice
+    write(slice_label,"(D13.6)") xslice
+    if(xslice >= 0.0d0) slice_label(1:1) = "+"
+  end function slice_label
 
 end module mod_slice
 
