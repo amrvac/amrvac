@@ -1,15 +1,16 @@
 """Rebuild the composite_solar cooling curve from Dere/Colgan/SPEX/cloudy_solar.
 
 This is the canonical generator for the 151-point `t_composite` / `l_composite`
-DATA block in src/physics/mod_radiative_cooling.t. Running this script with
+DATA block in src/physics/mod_radloss_tables.t. Running this script with
 `python3 tools/build_composite_solar.py` re-emits that DATA block on stdout.
 
 Recipe
 ------
-1. Source tables (log10 T, log10 Lambda per n_H^2, solar metallicity):
+1. Source tables (log10 T, log10 Lambda per n_e n_H, i.e. Q = n_e n_H Lambda; solar
+   metallicity):
      - Dere_corona  (CHIANTI) : 101 pts, log T in [4.00, 9.00] step 0.05
      - Colgan       (LANL)    :  55 pts, log T in [4.065, 9.065]
-     - SPEX         (Schure09): 110 pts, log T in [3.80, 8.16] step 0.04
+     - SPEX (Schure et al. 2009): 110 pts, log T in [3.80, 8.16] step 0.04
      - cloudy_solar (Cloudy)  : 151 pts, log T in [1.0, 9.0] (= output grid)
 2. Interpolate each source onto a fine grid `log_T_fine = arange(1.0, 9.001, 0.001)`.
 3. Coronal weighted average (Dere:Colgan:SPEX = 6:4:2). Each weight ramps
@@ -185,12 +186,13 @@ l_out = np.interp(t_out, log_T_fine, composite_smooth)
 # --- Emit Fortran DATA statements to stdout ---
 
 def _emit(name, vals):
-    print(f"  data    {name} /    &")
+    """One Fortran DATA statement, four double-precision literals per line"""
+    print(f"  data {name} / &")
     for i in range(0, len(vals), 4):
         chunk = vals[i:i + 4]
-        line = ", ".join(f"{v:9.3f}" for v in chunk)
-        sep = ", &" if i + 4 < len(vals) else " / "
-        print(f"     {line}   {sep}")
+        line = ", ".join(f"{v:8.3f}d0" for v in chunk)
+        sep = ", &" if i + 4 < len(vals) else " /"
+        print(f"    {line}{sep}")
     print()
 
 
