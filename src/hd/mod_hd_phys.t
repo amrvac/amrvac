@@ -179,6 +179,8 @@ module mod_hd_phys
   double precision, public, protected     :: hd_trac_zone_splits(10) = -1.d0
   !> Johnston 2021 resolution parameter delta (default 0.5)
   double precision, public, protected     :: hd_trac_delta = 0.5d0
+  !> fixed cutoff temperature in K for hd_trac_type=0 (Lionello et al. 2009, Mikic et al. 2013)
+  double precision, public, protected     :: hd_trac_Tfix = 3.d5
   !> Whether well-balanced reconstruction is used (Kaeppeli & Mishra style)
   logical, public, protected              :: hd_well_balanced = .false.
 
@@ -242,7 +244,7 @@ contains
     hd_radiative_cooling, hd_viscosity, &
     hd_gravity, H_ion_fr, He_ion_fr, He_ion_fr2, &
     SI_unit, hd_particles, hd_rotating_frame, hd_trac, &
-    hd_trac_type, hd_trac_nzones, hd_trac_zone_splits, hd_trac_delta, &
+    hd_trac_type, hd_trac_nzones, hd_trac_zone_splits, hd_trac_delta, hd_trac_Tfix, &
     hd_cak_force, hd_well_balanced, &
     hd_radiation_fld, hd_fld_pradtensor,hd_fip
 
@@ -734,7 +736,7 @@ contains
       logical :: tc_saturate=.false.
       logical :: tc_patch_eint=.false.
       double precision :: tc_k_para=0d0
-      double precision :: trac_T_floor=1.d4
+      double precision :: trac_T_floor=0.d0
 
       namelist /tc_list/ tc_saturate, tc_k_para, trac_T_floor, tc_patch_eint
 
@@ -1451,7 +1453,9 @@ contains
     select case(hd_trac_type)
     {^IFONED
     case(0)
-      block%wextra(ixI^S,Tcoff_)=3.d5/unit_temperature
+      block%wextra(ixI^S,Tcoff_)=hd_trac_Tfix/unit_temperature
+      ! below trac_T_floor conductivity, losses and heating are left unmodified (Tcoff = Te)
+      where(Te(ixI^S) < tc_fl%trac_T_floor) block%wextra(ixI^S,Tcoff_)=Te(ixI^S)
     case(1)
       hxO^L=ixO^L-1;
       jxO^L=ixO^L+1;
@@ -1569,8 +1573,9 @@ contains
       end do
       {do ix^DB=ixOmin^DB,ixOmax^DB\}
         gnorm = dsqrt(^D&gradTd({ix^D},^D)**2+ )
-        if(gnorm < smalldouble) then
-          block%wextra(ix^D,Tcoff_) = Te(ix^D)            ! locally uniform T: no broadening
+        if(gnorm < smalldouble .or. Te(ix^D) < tc_fl%trac_T_floor) then
+          ! locally uniform T, or below trac_T_floor: no broadening
+          block%wextra(ix^D,Tcoff_) = Te(ix^D)
         else
           ^D&nhat(^D)=gradTd({ix^D},^D)/gnorm\
           ! grid spacing measured along the gradient direction

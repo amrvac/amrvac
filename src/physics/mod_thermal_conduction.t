@@ -124,7 +124,9 @@ module mod_thermal_conduction
     !> Below this T, the energy balance is dominated by optically thick radiation
     !> and recombination, not optically thin cooling + Spitzer conduction, so TRAC's
     !> broadening assumption does not apply. Read in Kelvin via tc_list (trac_T_floor),
-    !> converted to code units during init. Default 1e4 K.
+    !> converted to code units at init. Default 0 (no floor). Only the HD TRAC cutoff (types 0
+    !> and 7) reads it, with Tcoff = Te below it, so conduction, losses and heating are left
+    !> unmodified there
     double precision :: trac_T_floor=0.d0
     ! END the following are read from param file or set in tc_read_hd_params or tc_read_mhd_params
     procedure (get_var_subr), pointer, nopass :: get_rho => null()
