@@ -109,6 +109,7 @@ contains
         eos%pi_table          = pi_table
         eos%gamma1_method     = gamma1_method
         eos%p2eint_method     = p2eint_method
+        eos%p2eint_bisect     = (p2eint_method == 'bisect')
         eos%table_location    = table_location
         eos%He_abundance      = He_abundance
         eos%gamma             = gamma
@@ -277,6 +278,8 @@ contains
         end select
 
         eos%get_temperature_from_etot => get_temperature_from_etot
+        if (eos%type_id == EOS_TYPE_LTE .and. eos%method_id /= EOS_ANALYTIC) &
+            eos%eint_nH_min = 10.0d0**eos%T%var2_min
     end subroutine eos_finalise
 
     subroutine prepare_eos_w_fields(psx)

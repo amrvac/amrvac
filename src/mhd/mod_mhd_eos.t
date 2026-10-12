@@ -323,7 +323,7 @@ contains
             nullify(rc_fl%get_rho2_factor)
             if(mhd_uawsom) rc_fl%get_rho2_factor => mhd_uawsom_rho2_factor
             rc_fl%ionE              =  eos%ionE
-            rc_fl%method            =  eos%method
+            rc_fl%method_analytic   =  (eos%method_id == EOS_ANALYTIC)
             rc_fl%inv_gamma_minus_1 =  eos%inv_gamma_minus_1
             rc_fl%nH2rhoFactor      =  eos%nH2rhoFactor
             rc_fl%eion_per_nH       =  eos%eion_per_nH
@@ -967,18 +967,18 @@ contains
                     w(ix^D,e_)=w(ix^D,p_)*p_to_eint&
                               +half*((^C&w(ix^D,m^C_)**2+)*w(ix^D,rho_)&
                               +(^C&w(ix^D,b^C_)**2+))
-                else if (eos%method == 'analytic') then
+                else if (eos%method_id == EOS_ANALYTIC) then
                     call saha_state_from_nH_p(nH(ix^D), w(ix^D,p_), &
                         T_solve, y_solve, eint_nH_solve)
                     w(ix^D,e_) = eint_nH_solve * nH(ix^D) &
                         +half*((^C&w(ix^D,m^C_)**2+)*w(ix^D,rho_)&
                         +(^C&w(ix^D,b^C_)**2+))
-                else if (eos%p2eint_method == 'bisect') then
+                else if (eos%p2eint_bisect) then
                     call eint_from_p_bisect(nH_in(ix^D), &
                         dlog10(w(ix^D,p_)), log_eint_mid)
                     eint_total = nH(ix^D) * 10.0d0**log_eint_mid
                     eint_total = max(eint_total, &
-                        nH(ix^D) * 10.0d0**eos%T%var2_min)
+                        nH(ix^D) * eos%eint_nH_min)
                     w(ix^D,e_) = eint_total + &
                         half*((^C&w(ix^D,m^C_)**2+)*w(ix^D,rho_)&
                         +(^C&w(ix^D,b^C_)**2+))
@@ -1029,16 +1029,16 @@ contains
                     p_to_eint = eos%inv_gamma_minus_1 &
                         + eos%eion_per_nH * nH(ix^D) / w(ix^D,p_)
                     w(ix^D,e_) = w(ix^D,p_) * p_to_eint
-                else if (eos%method == 'analytic') then
+                else if (eos%method_id == EOS_ANALYTIC) then
                     call saha_state_from_nH_p(nH(ix^D), w(ix^D,p_), &
                         T_solve, y_solve, eint_nH_solve)
                     w(ix^D,e_) = eint_nH_solve * nH(ix^D)
-                else if (eos%p2eint_method == 'bisect') then
+                else if (eos%p2eint_bisect) then
                     call eint_from_p_bisect(nH_in(ix^D), &
                         dlog10(w(ix^D,p_)), log_eint_mid)
                     eint_total = nH(ix^D) * 10.0d0**log_eint_mid
                     eint_total = max(eint_total, &
-                        nH(ix^D) * 10.0d0**eos%T%var2_min)
+                        nH(ix^D) * eos%eint_nH_min)
                     w(ix^D,e_) = eint_total
                 else
                     p_to_eint = p2eint_from_nH_p(nH_in(ix^D), p_in(ix^D))
@@ -1084,8 +1084,8 @@ contains
                       - half*(w(ix^D,rho_)*(^C&w(ix^D,m^C_)**2+) &
                       + (^C&w(ix^D,b^C_)**2+))
             ! Floor eint to prevent unphysical values
-            if (eos%method /= 'analytic') then
-                eint_val = max(eint_val, nH(ix^D) * 10.0d0**eos%T%var2_min)
+            if (eos%method_id /= EOS_ANALYTIC) then
+                eint_val = max(eint_val, nH(ix^D) * eos%eint_nH_min)
             end if
             eint_val = max(eint_val, smalldouble)
 
@@ -1136,7 +1136,7 @@ contains
         {do ix^DB=ixOmin^DB,ixOmax^DB\}
             ! eint = w(e_) directly for internal energy formulation
             eint_val = w(ix^D,e_)
-            eint_val = max(eint_val, nH(ix^D) * 10.0d0**eos%T%var2_min)
+            eint_val = max(eint_val, nH(ix^D) * eos%eint_nH_min)
 
             if (eos%ionE) then
                 if (eint_val / w(ix^D,rho_) > eos%eint_rho_FI_threshold) then
@@ -1190,8 +1190,8 @@ contains
                     + (^C&w(ix^D,b^C_)**2+))
             end if
             ! Floor eint to prevent unphysical values
-            if (eos%method /= 'analytic') then
-                eint_val = max(eint_val, nH(ix^D) * 10.0d0**eos%T%var2_min)
+            if (eos%method_id /= EOS_ANALYTIC) then
+                eint_val = max(eint_val, nH(ix^D) * eos%eint_nH_min)
             end if
             eint_val = max(eint_val, smalldouble)
 
@@ -1200,7 +1200,7 @@ contains
                 w(ix^D,p_) = eos%gamma_minus_1 &
                     * (eint_val - eos%eion_per_nH * nH(ix^D)) &
                     / (nH(ix^D) * eos%n_per_nH_FI)
-            else if (eos%method == 'analytic') then
+            else if (eos%method_id == EOS_ANALYTIC) then
                 ! Analytical Saha: solve for T from eint
                 call saha_T_from_nH_eint(nH(ix^D), &
                     eint_val / nH(ix^D), T_loc, y_loc)
@@ -1235,7 +1235,7 @@ contains
         ! Floor for log_T into the (rho, T) inverse table; entropy method uses
         ! eos%eintT, legacy 'tables' method uses eos%eint_from_T. Picking the
         ! wrong container leaves var2_min = 0 → floors T at 10^6 K.
-        if (eos%method == 'entropy') then
+        if (eos%method_id == EOS_ENTROPY) then
             log_T_min = eos%eintT%var2_min
         else
             log_T_min = eos%eint_from_T%var2_min
@@ -1251,7 +1251,7 @@ contains
                 eint_val = nH(ix^D) &
                     * (eos%n_per_nH_FI * T_val * eos%inv_gamma_minus_1 &
                     + eos%eion_per_nH)
-            else if (eos%method == 'analytic') then
+            else if (eos%method_id == EOS_ANALYTIC) then
                 ! Analytical Saha: eint from T directly
                 eint_val = saha_eint_from_nH_T(nH(ix^D), T_val) * nH(ix^D)
             else
@@ -1329,7 +1329,7 @@ contains
                     cs2(ix^D) = eos%gamma * p_over_rho
                 else
                     nH_val = w(ix^D, rho_) / eos%nH2rhoFactor
-                    if (eos%method == 'analytic') then
+                    if (eos%method_id == EOS_ANALYTIC) then
                         if (iw_te > 0 .and. w(ix^D,iw_te) > 0.0d0) then
                             g1 = saha_gamma1_from_nH_T(nH_val, w(ix^D,iw_te))
                         else
@@ -1370,7 +1370,7 @@ contains
                 gamma1(ix^D) = eos%gamma
             else
                 nH_val = w(ix^D, rho_) / eos%nH2rhoFactor
-                if (eos%method == 'analytic') then
+                if (eos%method_id == EOS_ANALYTIC) then
                     if (iw_te > 0 .and. w(ix^D,iw_te) > 0.0d0) then
                         gamma1(ix^D) = saha_gamma1_from_nH_T(nH_val, w(ix^D,iw_te))
                     else

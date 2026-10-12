@@ -103,6 +103,7 @@ contains
         !> eos%T%var{1,2}_{min,max} (the cold-cell eint floor, FI-fallback
         !> checks). Source them from eos%Tfwd, on the same forward grid.
         eos%T%var2_min = eos%Tfwd%var2_min
+        eos%eint_nH_min = 10.0d0**eos%T%var2_min
         eos%T%var2_max = eos%Tfwd%var2_max
         eos%T%var1_min = eos%Tfwd%var1_min
         eos%T%var1_max = eos%Tfwd%var1_max
@@ -161,6 +162,39 @@ contains
         if (t > 1.0d0) t = 1.0d0
     end subroutine locate_idx_nodes
 
+    !> The bracket of locate_idx_nodes (largest node index lo <= n-1 with
+    !> nodes(lo) <= val) in O(1) from the guard buckets: guard(k) is the first node
+    !> at or above the start of bucket k, corrected forward to the first node
+    !> >= val and back across a bucket edge that rounding put above val
+    pure subroutine locate_idx_guard(n, nodes, guard, M, scale, val, ix, t, h)
+        integer,          intent(in)  :: n, M
+        double precision, intent(in)  :: nodes(n), scale, val
+        integer,          intent(in)  :: guard(M)
+        integer,          intent(out) :: ix
+        double precision, intent(out) :: t, h
+        integer :: k, j
+        if (val <= nodes(1)) then
+            ix = 1; t = 0.0d0; h = nodes(2) - nodes(1); return
+        end if
+        if (val >= nodes(n)) then
+            ix = n - 1; t = 1.0d0; h = nodes(n) - nodes(n - 1); return
+        end if
+        k = 1 + min(M-1, max(0, int((val - nodes(1)) * scale)))
+        j = guard(k)
+        do while (j < n .and. nodes(j) < val)
+            j = j + 1
+        end do
+        do while (j > 1 .and. nodes(j-1) >= val)
+            j = j - 1
+        end do
+        if (nodes(j) > val) j = j - 1
+        ix = min(max(j, 1), n - 1)
+        h = nodes(ix + 1) - nodes(ix)
+        t = (val - nodes(ix)) / h
+        if (t < 0.0d0) t = 0.0d0
+        if (t > 1.0d0) t = 1.0d0
+    end subroutine locate_idx_guard
+
     pure subroutine locate_idx_axis1(tab, val, ix, t, h)
         type(eos_table_container), intent(in) :: tab
         double precision, intent(in)  :: val
@@ -168,6 +202,9 @@ contains
         double precision, intent(out) :: t, h
         if (tab%is_uniform) then
             call locate_idx_uniform(tab%dim1, tab%var1_min, tab%var1_max, val, ix, t, h)
+        else if (tab%guard_M_1 > 0) then
+            call locate_idx_guard(tab%dim1, tab%var1_nodes, tab%guard_1, tab%guard_M_1, &
+                                  tab%guard_scale_1, val, ix, t, h)
         else
             call locate_idx_nodes(tab%dim1, tab%var1_nodes, val, ix, t, h)
         end if
@@ -180,6 +217,9 @@ contains
         double precision, intent(out) :: t, h
         if (tab%is_uniform) then
             call locate_idx_uniform(tab%dim2, tab%var2_min, tab%var2_max, val, ix, t, h)
+        else if (tab%guard_M_2 > 0) then
+            call locate_idx_guard(tab%dim2, tab%var2_nodes, tab%guard_2, tab%guard_M_2, &
+                                  tab%guard_scale_2, val, ix, t, h)
         else
             call locate_idx_nodes(tab%dim2, tab%var2_nodes, val, ix, t, h)
         end if

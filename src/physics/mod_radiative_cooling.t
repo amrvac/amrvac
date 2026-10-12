@@ -198,7 +198,8 @@ module mod_radiative_cooling
     !> EoS snapshots + scalar inverse accessors (set in bind_eos_to_source); let
     !> cooling reach thermodynamics only through this object, never mod_eos.
     logical            :: ionE = .false.
-    character(len=20)  :: method = 'tables'
+    !> analytic Saha EoS method, set at bind
+    logical            :: method_analytic = .false.
     double precision   :: inv_gamma_minus_1
     double precision   :: nH2rhoFactor
     double precision   :: eion_per_nH
@@ -1102,10 +1103,8 @@ module mod_radiative_cooling
          if (fl%ionE) then
            nH_val = rhonew(ix^D) / fl%nH2rhoFactor
            log_nH = dlog10(nH_val)
-           ! floor energy from the tables; the analytic route keeps the ideal form
-           if (fl%method /= 'analytic') &
-             emin = fl%eint_from_T(log_nH, max(dlog10(fl%tlow), fl%log_T_floor)) * nH_val
-           if (fl%method == 'analytic') then
+           ! the analytic route keeps the ideal floor energy, the tables include ionisation
+           if (fl%method_analytic) then
              T_l = Te(ix^D)
              y_l = wCT(ix^D, iw_ne) / nH_val
              eint_current = fl%inv_gamma_minus_1 * (1.0d0 + y_l) * nH_val * T_l &
@@ -1223,7 +1222,7 @@ module mod_radiative_cooling
       {do ix^DB = ixO^LIM^DB\}
          emin = rho(ix^D)*fl%tlow*Rfactor(ix^D)
          if(etherm(ix^D) < emin) then
-           if (fl%ionE .and. fl%method /= 'analytic') then
+           if (fl%ionE .and. .not. fl%method_analytic) then
              ! energy to reach the floor temperature from the tables, ionisation included
              nH_val = rho(ix^D) / fl%nH2rhoFactor
              log_nH = dlog10(nH_val)
@@ -1361,10 +1360,8 @@ module mod_radiative_cooling
            if (fl%ionE) then
              nH_val = rho(ix^D) / fl%nH2rhoFactor
              log_nH = dlog10(nH_val)
-             ! floor energy from the tables; the analytic route keeps the ideal form
-             if (fl%method /= 'analytic') &
-               emin = fl%eint_from_T(log_nH, max(dlog10(fl%tlow), fl%log_T_floor)) * nH_val
-             if (fl%method == 'analytic') then
+             ! the analytic route keeps the ideal floor energy, the tables include ionisation
+             if (fl%method_analytic) then
                T_l = Te(ix^D)
                y_l = wCT(ix^D, iw_ne) / nH_val
                eint_current = 1.5d0 * (1.0d0 + y_l) * nH_val * T_l &
@@ -1495,7 +1492,7 @@ module mod_radiative_cooling
            ! LTE+IonE: EoS quantities for Y-advance; cap from conserved state
            nH_val = rhonew(ix^D) / fl%nH2rhoFactor
            log_nH = dlog10(nH_val)
-           if (fl%method == 'analytic') then
+           if (fl%method_analytic) then
              ! Use cached Te_ and Ne_ to compute eint directly
              T_loc = Te(ix^D)
              y_loc = wCT(ix^D, iw_ne) / nH_val

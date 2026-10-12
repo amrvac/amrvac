@@ -80,21 +80,19 @@ contains
         double precision, intent(inout) :: w(ixI^S,1:nw)
 
         double precision :: wlocal(ixI^S,1:nw)
-        double precision :: deltaEfactor(ixI^S)
-        double precision :: prev_y(ixI^S), new_y(ixI^S)
+        double precision :: new_y(ixI^S)
         double precision :: pth(ixI^S)
         double precision :: nH_in(ixI^S), nH(ixI^S), eint_in(ixI^S)
         double precision :: Rfactor_FI
         double precision :: yy, eint_nH_floor
-        double precision :: time0
         integer :: ix^D
 
         timeeos0 = MPI_WTIME() !> For monitoring cost of eos module
 
         wlocal(ixI^S,1:nw)=w(ixI^S,1:nw)
-        call phys_e_to_ei(ixI^L,ixO^L,wlocal,x) !> wlocal now contains internal energy, NOT total energy
-
-        pth(ixO^S) = eos%gamma_minus_1 * wlocal(ixO^S,iw_e) !> pressure from internal energy only - SHOULD ONLY BE USED WHEN IonE IS UNIMPORTANT
+        ! wlocal holds the internal energy, and pth the ideal-gas pressure, valid only without ionE
+        call phys_e_to_ei(ixI^L,ixO^L,wlocal,x)
+        pth(ixO^S) = eos%gamma_minus_1 * wlocal(ixO^S,iw_e)
 
         call eos%get_nH(w, x, ixI^L, ixO^L, nH)
         ! Enforce internal energy floor for EoS lookup only.
@@ -112,9 +110,8 @@ contains
         else
             nH_in(ixO^S) = dlog10(nH(ixO^S))
             {do ix^DB=ixOmin^DB,ixOmax^DB\}
-                !> eos%T%var2_min holds the forward log(eint/nH) lower bound for
-                !> all table methods (entropy sources it from Tfwd in eos_finalise).
-                eint_nH_floor = nH(ix^D) * 10.0d0**eos%T%var2_min
+                ! eint_nH_min is the lower eint/nH bound of the forward table
+                eint_nH_floor = nH(ix^D) * eos%eint_nH_min
                 if (wlocal(ix^D,iw_e) < eint_nH_floor) then
                     wlocal(ix^D,iw_e) = eint_nH_floor
                 end if

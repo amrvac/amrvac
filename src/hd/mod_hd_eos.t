@@ -140,7 +140,7 @@ contains
             rc_fl%get_Te => eos%get_Te
             rc_fl%get_ne_nH => eos%get_ne_nH
             rc_fl%ionE              =  eos%ionE
-            rc_fl%method            =  eos%method
+            rc_fl%method_analytic   =  (eos%method_id == EOS_ANALYTIC)
             rc_fl%inv_gamma_minus_1 =  eos%inv_gamma_minus_1
             rc_fl%nH2rhoFactor      =  eos%nH2rhoFactor
             rc_fl%eion_per_nH       =  eos%eion_per_nH
@@ -318,19 +318,19 @@ contains
                             + eos%eion_per_nH * nH(ix^D) / w(ix^D,p_)
                         w(ix^D,e_) = w(ix^D,p_)*p_to_eint + &
                             half*(^C&w(ix^D,m^C_)**2+)*w(ix^D,rho_)
-                    else if (eos%method == 'analytic') then
+                    else if (eos%method_id == EOS_ANALYTIC) then
                         !> Analytical Saha: bisect for T from p, return eint directly
                         call saha_state_from_nH_p(nH(ix^D), w(ix^D,p_), &
                             T_solve, y_solve, eint_nH_solve)
                         w(ix^D,e_) = eint_nH_solve * nH(ix^D) + &
                             half*(^C&w(ix^D,m^C_)**2+)*w(ix^D,rho_)
-                    else if (eos%p2eint_method == 'bisect') then
+                    else if (eos%p2eint_bisect) then
                         !> Bisection on forward p table: finds eint such that
                         !> p(nH, eint) = p_target exactly. More accurate than
                         !> the p2eint table in the ionisation zone.
                         !> Entropy mode uses the pfwd/eintP pair: eos%log_p (used by
                         !> eint_from_p_bisect) is not loaded there.
-                        if (eos%method == 'entropy') then
+                        if (eos%method_id == EOS_ENTROPY) then
                             call entropy_eint_from_p_bisect( &
                                 eos%pfwd, eos%pfwd_x, eos%pfwd_y, eos%pfwd_xy, &
                                 eos%eintP, eos%eintP_x, eos%eintP_y, eos%eintP_xy, &
@@ -342,7 +342,7 @@ contains
                                 dlog10(w(ix^D,p_)), log_eint_mid)
                             eint_total = nH(ix^D) * 10.0d0**log_eint_mid
                             eint_total = max(eint_total, &
-                                nH(ix^D) * 10.0d0**eos%T%var2_min)
+                                nH(ix^D) * eos%eint_nH_min)
                         end if
                         w(ix^D,e_) = eint_total + &
                             half*(^C&w(ix^D,m^C_)**2+)*w(ix^D,rho_)
@@ -407,8 +407,8 @@ contains
                     ! AMR prolongation/coarsening (nonlinear EoS breaks averaging).
                     eint_val = w(ix^D,e_) - half*w(ix^D,rho_)*(^C&w(ix^D,m^C_)**2+)
                     ! Floor eint to prevent unphysical values
-                    if (eos%method /= 'analytic') then
-                        eint_val = max(eint_val, nH(ix^D) * 10.0d0**eos%T%var2_min)
+                    if (eos%method_id /= EOS_ANALYTIC) then
+                        eint_val = max(eint_val, nH(ix^D) * eos%eint_nH_min)
                     end if
                     eint_val = max(eint_val, smalldouble)
                     if (eint_val * inv_rho > eos%eint_rho_FI_threshold) then
@@ -661,7 +661,7 @@ contains
                 gamma1(ix^D) = eos%gamma
             else
                 nH_val = w(ix^D, rho_) / eos%nH2rhoFactor
-                if (eos%method == 'analytic') then
+                if (eos%method_id == EOS_ANALYTIC) then
                     if (iw_te > 0 .and. w(ix^D,iw_te) > 0.0d0) then
                         gamma1(ix^D) = saha_gamma1_from_nH_T(nH_val, w(ix^D,iw_te))
                     else
@@ -712,11 +712,7 @@ contains
             ! Compute eint = E - 0.5*rho*v^2
             eint_val = w(ix^D, e_) &
                 - half * w(ix^D, rho_) * (^C&w(ix^D,m^C_)**2+)
-            ! Floor eint to prevent unphysical values
-            if (eos%method /= 'analytic') then
-                eint_val = max(eint_val, nH_val * 10.0d0**eos%T%var2_min)
-            end if
-            eint_val = max(eint_val, smalldouble)
+            eint_val = max(eint_val, nH_val*eos%eint_nH_min, smalldouble)
 
             ! Convert eint to T via EoS
             if (eint_val * inv_rho > eos%eint_rho_FI_threshold) then
@@ -724,7 +720,7 @@ contains
                 w(ix^D, e_) = eos%gamma_minus_1 &
                     * (eint_val - eos%eion_per_nH * nH_val) &
                     / (nH_val * eos%n_per_nH_FI)
-            else if (eos%method == 'analytic') then
+            else if (eos%method_id == EOS_ANALYTIC) then
                 ! Analytical Saha: solve for T from eint
                 call saha_T_from_nH_eint(nH_val, &
                     eint_val / nH_val, T_loc, y_loc)
@@ -745,23 +741,15 @@ contains
         double precision, intent(inout) :: w(ixI^S, nw)
         double precision, intent(in)    :: x(ixI^S, 1:ndim)
 
-        double precision :: T_val, eint_val, T_FI, nH_val, log_nH, log_T_min
+        double precision :: T_val, eint_val, T_FI, nH_val, log_nH, T_min
         integer :: ix^D
 
         T_FI = (eos%eint_rho_FI_threshold &
             * eos%nH2rhoFactor - eos%eion_per_nH) &
             * eos%gamma_minus_1 / eos%n_per_nH_FI
 
-        ! Floor for log_T when calling the (rho, T) inverse table.
-        ! Legacy 'tables' method populates eos%eint_from_T; entropy method
-        ! populates eos%eintT. Picking the wrong container leaves var2_min = 0
-        ! (uninitialised), which floors T at 10^0 = 1 code unit (= 10^6 K) —
-        ! that clobbers any cold cell going through AMR prolongation.
-        if (eos%method == 'entropy') then
-            log_T_min = eos%eintT%var2_min
-        else
-            log_T_min = eos%eint_from_T%var2_min
-        end if
+        ! Lower T bound of the (rho, T) inverse table
+        T_min = 10.0d0**eos_get_log_T_floor()
 
         {do ix^DB=ixOmin^DB,ixOmax^DB\}
             T_val = w(ix^D, e_)  ! T stored in e_ slot
@@ -773,13 +761,13 @@ contains
                 eint_val = nH_val &
                     * (eos%n_per_nH_FI * T_val * eos%inv_gamma_minus_1 &
                     + eos%eion_per_nH)
-            else if (eos%method == 'analytic') then
+            else if (eos%method_id == EOS_ANALYTIC) then
                 ! Analytical Saha: eint from T directly
                 eint_val = saha_eint_from_nH_T(nH_val, T_val) * nH_val
             else
                 ! Ionisation zone: eint/nH from T table
                 eint_val = eint_nH_from_T(log_nH, &
-                    dlog10(max(T_val, 10.0d0**log_T_min))) &
+                    dlog10(max(T_val, T_min))) &
                     * nH_val
             end if
 
