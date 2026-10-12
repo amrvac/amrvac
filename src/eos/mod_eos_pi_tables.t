@@ -51,10 +51,11 @@ module mod_eos_pi_tables
   double precision :: ionization_HeI_energy_unit  = 0.d0
   double precision :: ionization_HeII_energy_unit = 0.d0
   double precision, dimension(:), allocatable :: Rfactor_table
-  double precision, dimension(:), allocatable :: Y_table
   double precision, dimension(:), allocatable :: eps_ion_H_table
   double precision, dimension(:), allocatable :: Te_H_table
   double precision, dimension(:), allocatable :: iz_H_table
+  ! Y_table(i)=Rfactor_table(i)*Te_H_table(i)
+  double precision, dimension(:), allocatable :: Y_table
   ! chromosphere: T-only ionization table based on
   ! Carlsson & Leenaarts (2012, A&A, 539, A39).
   integer, parameter :: ionization_mode_chromosphere = 1
@@ -967,7 +968,7 @@ module mod_eos_pi_tables
            (1.d0 + iz_He*(1.d0 + iz_He))) / ionization_Rfactor_norm
     end function ionization_Rfactor_from_degrees
 
-    !> Ionisation energy per nH (code units) from the H/He degrees -- the energy
+    !> Ionisation energy per one H (code units) from the H/He degrees -- the energy
     !> analogue of ionization_Rfactor_from_degrees, and the single source for the
     !> ion-energy term in eint. The He electron-count model matches the R-factor:
     !> electrons per He = iz_He*(1+iz_He) = iz_He (first stage, chi_HeI) + iz_He**2
@@ -1025,6 +1026,7 @@ module mod_eos_pi_tables
     subroutine ionization_invert_eint_scalar(eps, invgam, T)
       use mod_comm_lib, only: mpistop
       use mod_global_parameters, only: mype
+      ! eps: internal energy per one H
       double precision, intent(in) :: eps, invgam
       double precision, intent(out) :: T
 
