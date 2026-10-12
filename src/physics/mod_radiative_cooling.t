@@ -177,6 +177,10 @@ module mod_radiative_cooling
     double precision :: rad_escape_height = 0.0d0
     !> Index into wextra for column mass (set during init)
     integer :: iw_colmass_ = -1
+    !> wextra index of a user mask multiplying the thin losses (0 off, 1 on); -1 = no mask
+    integer :: iw_mask_ = -1
+    !> wextra index of a user mask for TRAC scaling of the losses (0 unscaled, 1 scaled); -1 none
+    integer :: iw_tracmask_ = -1
 
     !> Name of cooling curve
     character(len=std_len)  :: coolcurve
@@ -1233,6 +1237,15 @@ module mod_radiative_cooling
       {end do\}
     end subroutine floortemperature
 
+    !> true unless a user TRAC mask switches the TRAC scaling of the losses off in this cell
+    logical function rc_trac_scaled(fl, ix^D)
+      use mod_global_parameters
+      type(rc_fluid), intent(in) :: fl
+      integer, intent(in) :: ix^D
+      rc_trac_scaled = .true.
+      if(fl%iw_tracmask_ > 0) rc_trac_scaled = block%wextra(ix^D, fl%iw_tracmask_) > 0.5d0
+    end function rc_trac_scaled
+
     subroutine radiative_cooling_taper(ix^D, x_ndim, rho_val, Te_val, fl, factor)
       !> Compute multiplicative taper factor for radiative cooling.
       !> Returns 1.0 when no tapering applies; < 1.0 near boundaries,
@@ -1245,6 +1258,11 @@ module mod_radiative_cooling
       double precision :: d_boundary, tau, kappa_local
 
       factor = 1.0d0
+
+      if(fl%iw_mask_ > 0) then
+        factor = block%wextra(ix^D, fl%iw_mask_)
+        if(factor <= 0.0d0) return
+      end if
 
       ! Spatial + density taper
       if(slab_uniform .and. fl%rad_modify) then
@@ -1375,7 +1393,7 @@ module mod_radiative_cooling
              else
                L1 = L1 * ne(ix^D) * nH_arr(ix^D)
              end if
-             if(phys_trac) then
+             if(phys_trac .and. rc_trac_scaled(fl, ix^D)) then
                if(Te(ix^D)<block%wextra(ix^D,fl%Tcoff_)) then
                  L1=L1*sqrt((Te(ix^D)/block%wextra(ix^D,fl%Tcoff_))**5)
                end if
@@ -1417,7 +1435,7 @@ module mod_radiative_cooling
              else
                de = (Te(ix^D)-Tlocal2)*rho(ix^D)*Rfactor(ix^D)*invgam
              end if
-             if(phys_trac) then
+             if(phys_trac .and. rc_trac_scaled(fl, ix^D)) then
                if(Te(ix^D)<block%wextra(ix^D,fl%Tcoff_)) then
                  de=de*sqrt((Te(ix^D)/block%wextra(ix^D,fl%Tcoff_))**5)
                end if
@@ -1534,7 +1552,7 @@ module mod_radiative_cooling
              L1 = L1 * ne(ix^D) * nH_arr(ix^D)
            end if
            L1 = cool_fac * L1
-           if(phys_trac) then
+           if(phys_trac .and. rc_trac_scaled(fl, ix^D)) then
              if(Te(ix^D)<block%wextra(ix^D,fl%Tcoff_)) then
                L1=L1*sqrt((Te(ix^D)/block%wextra(ix^D,fl%Tcoff_))**5)
              end if
@@ -1587,7 +1605,7 @@ module mod_radiative_cooling
              !> Saturated y or non-ionE: classical Townsend kinetic form.
              de = (Te(ix^D)-Tlocal2)*rho(ix^D)*Rfactor(ix^D)*invgam
            end if
-           if(phys_trac) then
+           if(phys_trac .and. rc_trac_scaled(fl, ix^D)) then
              if(Te(ix^D)<block%wextra(ix^D,fl%Tcoff_)) then
                de=de*sqrt((Te(ix^D)/block%wextra(ix^D,fl%Tcoff_))**5)
              end if
