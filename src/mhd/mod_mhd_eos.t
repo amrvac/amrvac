@@ -229,7 +229,11 @@ contains
         if(mhd_internal_e) then
             phys_get_ei => mhd_get_ei_inte
         else if(mhd_energy) then
-            phys_get_ei => mhd_get_ei_origin
+            if(mhd_semirelativistic) then
+              phys_get_ei => mhd_get_ei_semirelati
+            else
+              phys_get_ei => mhd_get_ei_origin
+            end if
         end if
 
         ! phys_e_to_ei / phys_ei_to_e assigned in mhd_phys_init (mod_mhd_phys.t)
@@ -1563,7 +1567,7 @@ contains
         double precision, intent(in) :: x(ixI^S,1:ndim)
         double precision, intent(out):: pth(ixI^S)
 
-        double precision :: b(ixO^S,1:ndir), v(ixO^S,1:ndir), tmp, b2, gamma2, inv_rho
+        double precision :: b(ixO^S,1:ndir), v(ndir), tmp, b2, gamma2, inv_rho
         integer :: iw, ix^D
 
         {do ix^DB=ixOmin^DB,ixOmax^DB\}
@@ -1582,24 +1586,24 @@ contains
             ! equation (15)
             gamma2=1.d0/(1.d0+b2)
             ! Convert momentum to velocity
-            ^C&v(ix^D,^C)=gamma2*(w(ix^D,m^C_)+b2*b(ix^D,^C)*tmp)*inv_rho\
+            ^C&v(^C)=gamma2*(w(ix^D,m^C_)+b2*b(ix^D,^C)*tmp)*inv_rho\
 
             ! E=Bxv
             {^IFTHREEC
-                b(ix^D,1)=w(ix^D,b2_)*v(ix^D,3)-w(ix^D,b3_)*v(ix^D,2)
-                b(ix^D,2)=w(ix^D,b3_)*v(ix^D,1)-w(ix^D,b1_)*v(ix^D,3)
-                b(ix^D,3)=w(ix^D,b1_)*v(ix^D,2)-w(ix^D,b2_)*v(ix^D,1)
+                b(ix^D,1)=w(ix^D,b2_)*v(3)-w(ix^D,b3_)*v(2)
+                b(ix^D,2)=w(ix^D,b3_)*v(1)-w(ix^D,b1_)*v(3)
+                b(ix^D,3)=w(ix^D,b1_)*v(2)-w(ix^D,b2_)*v(1)
             }
             {^IFTWOC
                 b(ix^D,1)=zero
-                b(ix^D,2)=w(ix^D,b1_)*v(ix^D,2)-w(ix^D,b2_)*v(ix^D,1)
+                b(ix^D,2)=w(ix^D,b1_)*v(2)-w(ix^D,b2_)*v(1)
             }
             {^IFONEC
                 b(ix^D,1)=zero
             }
             ! Calculate pressure = (gamma-1) * (e-eK-eB-eE)
             pth(ix^D)=eos%gamma_minus_1*(w(ix^D,e_)&
-                       -half*((^C&v(ix^D,^C)**2+)*w(ix^D,rho_)&
+                       -half*((^C&v(^C)**2+)*w(ix^D,rho_)&
                        +(^C&w(ix^D,b^C_)**2+)&
                        +(^C&b(ix^D,^C)**2+)*eos%inv_squared_c))
             if(fix_small_values.and.pth(ix^D)<small_pressure) pth(ix^D)=small_pressure
@@ -1635,7 +1639,7 @@ contains
         double precision, intent(in) :: x(ixI^S,1:ndim)
         double precision, intent(out):: pth(ixI^S)
 
-        double precision :: b(ixO^S,1:ndir), v(ixO^S,1:ndir), tmp, b2, gamma2, inv_rho, eint, T, Rfac
+        double precision :: b(ixO^S,1:ndir), v(ndir), tmp, b2, gamma2, inv_rho, eint, T, Rfac
         integer :: iw, ix^D
 
         {do ix^DB=ixOmin^DB,ixOmax^DB\}
@@ -1654,24 +1658,24 @@ contains
             ! equation (15)
             gamma2=1.d0/(1.d0+b2)
             ! Convert momentum to velocity
-            ^C&v(ix^D,^C)=gamma2*(w(ix^D,m^C_)+b2*b(ix^D,^C)*tmp)*inv_rho\
+            ^C&v(^C)=gamma2*(w(ix^D,m^C_)+b2*b(ix^D,^C)*tmp)*inv_rho\
 
             ! E=Bxv
             {^IFTHREEC
-                b(ix^D,1)=w(ix^D,b2_)*v(ix^D,3)-w(ix^D,b3_)*v(ix^D,2)
-                b(ix^D,2)=w(ix^D,b3_)*v(ix^D,1)-w(ix^D,b1_)*v(ix^D,3)
-                b(ix^D,3)=w(ix^D,b1_)*v(ix^D,2)-w(ix^D,b2_)*v(ix^D,1)
+                b(ix^D,1)=w(ix^D,b2_)*v(3)-w(ix^D,b3_)*v(2)
+                b(ix^D,2)=w(ix^D,b3_)*v(1)-w(ix^D,b1_)*v(3)
+                b(ix^D,3)=w(ix^D,b1_)*v(2)-w(ix^D,b2_)*v(1)
             }
             {^IFTWOC
                 b(ix^D,1)=zero
-                b(ix^D,2)=w(ix^D,b1_)*v(ix^D,2)-w(ix^D,b2_)*v(ix^D,1)
+                b(ix^D,2)=w(ix^D,b1_)*v(2)-w(ix^D,b2_)*v(1)
             }
             {^IFONEC
                 b(ix^D,1)=zero
             }
             ! internal energy= e-eK-eB-eE
             eint=w(ix^D,e_)&
-                      -half*((^C&w(ix^D,m^C_)**2+)*w(ix^D,rho_)&
+                      -half*((^C&v(^C)**2+)*w(ix^D,rho_)&
                       +(^C&w(ix^D,b^C_)**2+)&
                       +(^C&b(ix^D,^C)**2+)*eos%inv_squared_c)
             call state_from_eint_PI(w(ix^D,rho_), eint, T, pth(ix^D), Rfac)
@@ -1889,6 +1893,55 @@ contains
         ei(ixO^S) = w(ixO^S,e_) - half*((^C&w(ixO^S,m^C_)**2+)/w(ixO^S,rho_) &
              + (^C&w(ixO^S,b^C_)**2+))
     end function mhd_get_ei_origin
+
+    !> Get internal energy from conserved state (semirelativistic formulation)
+    function mhd_get_ei_semirelati(w, ixI^L, ixO^L) result(ei)
+        use mod_global_parameters
+        integer, intent(in)          :: ixI^L, ixO^L
+        double precision, intent(in) :: w(ixI^S, nw)
+        double precision             :: ei(ixO^S)
+
+        double precision :: b(ixO^S,1:ndir), v(ndir), tmp, b2, gamma2, inv_rho
+        integer :: ix^D
+
+        {do ix^DB=ixOmin^DB,ixOmax^DB\}
+            b2=(^C&w(ix^D,b^C_)**2+)
+            if(b2>smalldouble) then
+                tmp=1.d0/sqrt(b2)
+            else
+                tmp=0.d0
+            end if
+            ^C&b(ix^D,^C)=w(ix^D,b^C_)*tmp\
+            tmp=(^C&b(ix^D,^C)*w(ix^D,m^C_)+)
+
+            inv_rho=1.d0/w(ix^D,rho_)
+            ! Va^2/c^2
+            b2=b2*inv_rho*eos%inv_squared_c
+            ! equation (15)
+            gamma2=1.d0/(1.d0+b2)
+            ! Convert momentum to velocity
+            ^C&v(^C)=gamma2*(w(ix^D,m^C_)+b2*b(ix^D,^C)*tmp)*inv_rho\
+
+            ! E=Bxv
+            {^IFTHREEC
+                b(ix^D,1)=w(ix^D,b2_)*v(3)-w(ix^D,b3_)*v(2)
+                b(ix^D,2)=w(ix^D,b3_)*v(1)-w(ix^D,b1_)*v(3)
+                b(ix^D,3)=w(ix^D,b1_)*v(2)-w(ix^D,b2_)*v(1)
+            }
+            {^IFTWOC
+                b(ix^D,1)=zero
+                b(ix^D,2)=w(ix^D,b1_)*v(2)-w(ix^D,b2_)*v(1)
+            }
+            {^IFONEC
+                b(ix^D,1)=zero
+            }
+            ! internal energy= e-eK-eB-eE
+            ei(ix^D)=w(ix^D,e_)&
+                      -half*((^C&v(^C)**2+)*w(ix^D,rho_)&
+                      +(^C&w(ix^D,b^C_)**2+)&
+                      +(^C&b(ix^D,^C)**2+)*eos%inv_squared_c)
+        {end do\}
+    end function mhd_get_ei_semirelati
 
     !> Get internal energy from conserved state (internal energy formulation)
     function mhd_get_ei_inte(w, ixI^L, ixO^L) result(ei)
