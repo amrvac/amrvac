@@ -935,8 +935,7 @@ contains
 
     end subroutine mhd_to_conserved_inte_LTE
 
-    !> Convert pressure to total energy (eint + eK + eB) for origin formulation.
-    !> Uses p2eint table for LTE ionE, with FI bypass for hot cells.
+    !> Convert pressure to total energy (eint + eK + eB) for origin formulation
     subroutine mhd_p_to_e(ixI^L,ixO^L,w,x)
         use mod_global_parameters
         integer, intent(in)             :: ixI^L, ixO^L
@@ -944,63 +943,17 @@ contains
         double precision, intent(in)    :: x(ixI^S, 1:ndim)
 
         integer :: ix^D
-        double precision :: p_to_eint, p_over_rho
-        double precision :: nH(ixI^S), nH_in(ixI^S), p_in(ixI^S)
-        double precision :: T_solve, y_solve, eint_nH_solve
-        double precision :: log_eint_mid, eint_total
 
-        if (eos%ionE) then
-            call eos%get_nH(w, x, ixI^L, ixO^L, nH)
-            nH_in(ixO^S) = dlog10(nH(ixO^S))
-            if (eos%p2eint_method /= 'bisect') then
-                p_in(ixO^S) = dlog10(w(ixO^S,p_)) - nH_in(ixO^S)
-            end if
-        endif
-
-        p_to_eint = eos%inv_gamma_minus_1
+        call mhd_p_to_eint(ixI^L,ixO^L,w,x)
         {do ix^DB=ixOmin^DB,ixOmax^DB\}
-            if (eos%ionE) then
-                p_over_rho = w(ix^D,p_) / w(ix^D,rho_)
-                if (p_over_rho > eos%p_rho_FI_threshold) then
-                    p_to_eint = eos%inv_gamma_minus_1 &
-                        + eos%eion_per_nH * nH(ix^D) / w(ix^D,p_)
-                    w(ix^D,e_)=w(ix^D,p_)*p_to_eint&
-                              +half*((^C&w(ix^D,m^C_)**2+)*w(ix^D,rho_)&
-                              +(^C&w(ix^D,b^C_)**2+))
-                else if (eos%method_id == EOS_ANALYTIC) then
-                    call saha_state_from_nH_p(nH(ix^D), w(ix^D,p_), &
-                        T_solve, y_solve, eint_nH_solve)
-                    w(ix^D,e_) = eint_nH_solve * nH(ix^D) &
-                        +half*((^C&w(ix^D,m^C_)**2+)*w(ix^D,rho_)&
-                        +(^C&w(ix^D,b^C_)**2+))
-                else if (eos%p2eint_bisect) then
-                    call eint_from_p_bisect(nH_in(ix^D), &
-                        dlog10(w(ix^D,p_)), log_eint_mid)
-                    eint_total = nH(ix^D) * 10.0d0**log_eint_mid
-                    eint_total = max(eint_total, &
-                        nH(ix^D) * eos%eint_nH_min)
-                    w(ix^D,e_) = eint_total + &
-                        half*((^C&w(ix^D,m^C_)**2+)*w(ix^D,rho_)&
-                        +(^C&w(ix^D,b^C_)**2+))
-                else
-                    p_to_eint = p2eint_from_nH_p(nH_in(ix^D), p_in(ix^D))
-                    w(ix^D,e_)=w(ix^D,p_)*p_to_eint&
-                              +half*((^C&w(ix^D,m^C_)**2+)*w(ix^D,rho_)&
-                              +(^C&w(ix^D,b^C_)**2+))
-                end if
-            else
-                w(ix^D,e_)=w(ix^D,p_)*p_to_eint&
-                          +half*((^C&w(ix^D,m^C_)**2+)*w(ix^D,rho_)&
-                          +(^C&w(ix^D,b^C_)**2+))
-            end if
+            w(ix^D,e_) = w(ix^D,e_) + half*((^C&w(ix^D,m^C_)**2+)*w(ix^D,rho_) + (^C&w(ix^D,b^C_)**2+))
             if(mhd_uawsom) w(ix^D,e_)=w(ix^D,e_)+&
                  w(ix^D,wAplus_)+w(ix^D,wAminus_)+w(ix^D,wkplus_)+w(ix^D,wkminus_)
         {end do\}
 
     end subroutine mhd_p_to_e
 
-    !> Convert pressure to internal energy only (for internal_e formulation).
-    !> Uses p2eint table for LTE ionE, with FI bypass for hot cells.
+    !> Convert pressure to internal energy only (for internal_e formulation)
     subroutine mhd_p_to_eint(ixI^L,ixO^L,w,x)
         use mod_global_parameters
         integer, intent(in)             :: ixI^L, ixO^L
@@ -1008,58 +961,26 @@ contains
         double precision, intent(in)    :: x(ixI^S, 1:ndim)
 
         integer :: ix^D
-        double precision :: p_to_eint, p_over_rho
-        double precision :: nH(ixI^S), nH_in(ixI^S), p_in(ixI^S)
-        double precision :: T_solve, y_solve, eint_nH_solve
-        double precision :: log_eint_mid, eint_total
+        double precision :: nH(ixI^S), log_nH(ixI^S)
 
-        if (eos%ionE) then
-            call eos%get_nH(w, x, ixI^L, ixO^L, nH)
-            nH_in(ixO^S) = dlog10(nH(ixO^S))
-            if (eos%p2eint_method /= 'bisect') then
-                p_in(ixO^S) = dlog10(w(ixO^S,p_)) - nH_in(ixO^S)
-            end if
-        endif
+        call eos%get_nH(w, x, ixI^L, ixO^L, nH)
+        log_nH(ixO^S) = 0.0d0
+        if (eos%ionE) log_nH(ixO^S) = dlog10(nH(ixO^S))
 
-        p_to_eint = eos%inv_gamma_minus_1
         {do ix^DB=ixOmin^DB,ixOmax^DB\}
-            if (eos%ionE) then
-                p_over_rho = w(ix^D,p_) / w(ix^D,rho_)
-                if (p_over_rho > eos%p_rho_FI_threshold) then
-                    p_to_eint = eos%inv_gamma_minus_1 &
-                        + eos%eion_per_nH * nH(ix^D) / w(ix^D,p_)
-                    w(ix^D,e_) = w(ix^D,p_) * p_to_eint
-                else if (eos%method_id == EOS_ANALYTIC) then
-                    call saha_state_from_nH_p(nH(ix^D), w(ix^D,p_), &
-                        T_solve, y_solve, eint_nH_solve)
-                    w(ix^D,e_) = eint_nH_solve * nH(ix^D)
-                else if (eos%p2eint_bisect) then
-                    call eint_from_p_bisect(nH_in(ix^D), &
-                        dlog10(w(ix^D,p_)), log_eint_mid)
-                    eint_total = nH(ix^D) * 10.0d0**log_eint_mid
-                    eint_total = max(eint_total, &
-                        nH(ix^D) * eos%eint_nH_min)
-                    w(ix^D,e_) = eint_total
-                else
-                    p_to_eint = p2eint_from_nH_p(nH_in(ix^D), p_in(ix^D))
-                    w(ix^D,e_) = w(ix^D,p_) * p_to_eint
-                end if
-            else
-                w(ix^D,e_) = w(ix^D,p_) * p_to_eint
-            end if
+            w(ix^D,e_) = lte_eint_from_p(w(ix^D,p_), nH(ix^D), log_nH(ix^D), w(ix^D,rho_))
         {end do\}
 
     end subroutine mhd_p_to_eint
 
     !> LTE: Conserved (rho, rho*v, E_total, B) -> Primitive (rho, v, p, B)
-    !> Uses T and neOnH tables with FI bypass for hot cells.
     subroutine mhd_to_primitive_origin_LTE(ixI^L,ixO^L,w,x)
         use mod_global_parameters
         integer, intent(in)             :: ixI^L, ixO^L
         double precision, intent(inout) :: w(ixI^S, nw)
         double precision, intent(in)    :: x(ixI^S, 1:ndim)
 
-        double precision :: inv_rho, eint_val, eint_in
+        double precision :: inv_rho, eint_val
         double precision :: nH(ixI^S), log_nH(ixI^S)
         integer :: ix^D
 
@@ -1071,38 +992,16 @@ contains
         end if
 
         call eos%get_nH(w, x, ixI^L, ixO^L, nH)
-        if (eos%ionE) then
-            log_nH(ixO^S) = dlog10(nH(ixO^S))
-        end if
+        log_nH(ixO^S) = 0.0d0
+        if (eos%ionE) log_nH(ixO^S) = dlog10(nH(ixO^S))
 
         {do ix^DB=ixOmin^DB,ixOmax^DB\}
             inv_rho = 1.d0/w(ix^D,rho_)
-            ! Convert momentum to velocity
             ^C&w(ix^D,m^C_)=w(ix^D,m^C_)*inv_rho\
-            ! Extract internal energy: eint = E - 0.5*rho*v^2 - 0.5*B^2
             eint_val = w(ix^D,e_) &
                       - half*(w(ix^D,rho_)*(^C&w(ix^D,m^C_)**2+) &
                       + (^C&w(ix^D,b^C_)**2+))
-            ! Floor eint to prevent unphysical values
-            if (eos%method_id /= EOS_ANALYTIC) then
-                eint_val = max(eint_val, nH(ix^D) * eos%eint_nH_min)
-            end if
-            eint_val = max(eint_val, smalldouble)
-
-            if (eos%ionE) then
-                if (eint_val * inv_rho > eos%eint_rho_FI_threshold) then
-                    ! FI bypass: p = (gamma-1) * (eint - eion*nH)
-                    w(ix^D,p_) = eos%gamma_minus_1 &
-                        * (eint_val - eos%eion_per_nH * nH(ix^D))
-                else
-                    ! Ionisation zone: single p/nH lookup (replaces separate T + y)
-                    eint_in = dlog10(eint_val) - log_nH(ix^D)
-                    w(ix^D,p_) = nH(ix^D) * p_nH_from_eint(log_nH(ix^D), eint_in)
-                end if
-            else
-                ! FI without ionE tables
-                w(ix^D,p_) = eos%gamma_minus_1 * eint_val
-            end if
+            w(ix^D,p_) = lte_p_from_eint(eint_val, nH(ix^D), log_nH(ix^D), inv_rho)
         {end do\}
 
         timeeos_conv=timeeos_conv+(MPI_WTIME()-timeeos0)
@@ -1117,7 +1016,7 @@ contains
         double precision, intent(inout) :: w(ixI^S, nw)
         double precision, intent(in)    :: x(ixI^S, 1:ndim)
 
-        double precision :: inv_rho, eint_val, eint_in, T_loc, y_loc
+        double precision :: inv_rho
         double precision :: nH(ixI^S), log_nH(ixI^S)
         integer :: ix^D
 
@@ -1129,29 +1028,12 @@ contains
         end if
 
         call eos%get_nH(w, x, ixI^L, ixO^L, nH)
-        if (eos%ionE) then
-            log_nH(ixO^S) = dlog10(nH(ixO^S))
-        end if
+        log_nH(ixO^S) = 0.0d0
+        if (eos%ionE) log_nH(ixO^S) = dlog10(nH(ixO^S))
 
         {do ix^DB=ixOmin^DB,ixOmax^DB\}
-            ! eint = w(e_) directly for internal energy formulation
-            eint_val = w(ix^D,e_)
-            eint_val = max(eint_val, nH(ix^D) * eos%eint_nH_min)
-
-            if (eos%ionE) then
-                if (eint_val / w(ix^D,rho_) > eos%eint_rho_FI_threshold) then
-                    w(ix^D,p_) = eos%gamma_minus_1 &
-                        * (eint_val - eos%eion_per_nH * nH(ix^D))
-                else
-                    eint_in = dlog10(eint_val) - log_nH(ix^D)
-                    w(ix^D,p_) = nH(ix^D) * p_nH_from_eint(log_nH(ix^D), eint_in)
-                end if
-            else
-                w(ix^D,p_) = eos%gamma_minus_1 * eint_val
-            end if
-
-            ! Convert momentum to velocity
             inv_rho = 1.d0/w(ix^D,rho_)
+            w(ix^D,p_) = lte_p_from_eint(w(ix^D,e_), nH(ix^D), log_nH(ix^D), inv_rho)
             ^C&w(ix^D,m^C_)=w(ix^D,m^C_)*inv_rho\
         {end do\}
 

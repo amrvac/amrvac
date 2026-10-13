@@ -242,8 +242,6 @@ contains
 
     !> Convert pressure to total energy: E = eint(rho, p) + KE.
     !> On entry rho/v/p; on exit w(e_) = total energy (rho, mom unchanged).
-    !> Four ionE paths mirror hd p_to_e: FI bypass, analytic Saha, p-bisect,
-    !> p2eint table. Non-ionE LTE uses the constant inverse-gamma relation.
     subroutine ffhd_p_to_e(ixI^L, ixO^L, w, x)
         use mod_global_parameters
         integer, intent(in)             :: ixI^L, ixO^L
@@ -251,52 +249,17 @@ contains
         double precision, intent(in)    :: x(ixI^S, 1:ndim)
 
         integer :: ix^D
-        double precision :: p_to_eint, p_over_rho
-        double precision :: nH(ixI^S), nH_in(ixI^S), p_in(ixI^S)
-        double precision :: log_eint_mid, eint_total
-        double precision :: T_solve, y_solve, eint_nH_solve
+        double precision :: nH(ixI^S), log_nH(ixI^S)
 
         if (.not. ffhd_energy) return
 
-        if (eos%ionE) then
-            call eos%get_nH(w, x, ixI^L, ixO^L, nH)
-            nH_in(ixO^S) = dlog10(nH(ixO^S))
-            if (eos%p2eint_method /= 'bisect') then
-                p_in(ixO^S) = dlog10(w(ixO^S,p_)) - nH_in(ixO^S)
-            end if
-        endif
+        call eos%get_nH(w, x, ixI^L, ixO^L, nH)
+        log_nH(ixO^S) = 0.0d0
+        if (eos%ionE) log_nH(ixO^S) = dlog10(nH(ixO^S))
 
-        p_to_eint = eos%inv_gamma_minus_1
         {do ix^DB=ixOmin^DB,ixOmax^DB\}
-            if (eos%ionE) then
-                p_over_rho = w(ix^D,p_) / w(ix^D,rho_)
-                if (p_over_rho > eos%p_rho_FI_threshold) then
-                    p_to_eint = eos%inv_gamma_minus_1 &
-                        + eos%eion_per_nH * nH(ix^D) / w(ix^D,p_)
-                    w(ix^D,e_) = w(ix^D,p_)*p_to_eint + &
-                        half*w(ix^D,mom(1))**2*w(ix^D,rho_)
-                else if (eos%method_id == EOS_ANALYTIC) then
-                    call saha_state_from_nH_p(nH(ix^D), w(ix^D,p_), &
-                        T_solve, y_solve, eint_nH_solve)
-                    w(ix^D,e_) = eint_nH_solve * nH(ix^D) + &
-                        half*w(ix^D,mom(1))**2*w(ix^D,rho_)
-                else if (eos%p2eint_bisect) then
-                    call eint_from_p_bisect(nH_in(ix^D), &
-                        dlog10(w(ix^D,p_)), log_eint_mid)
-                    eint_total = nH(ix^D) * 10.0d0**log_eint_mid
-                    eint_total = max(eint_total, &
-                        nH(ix^D) * eos%eint_nH_min)
-                    w(ix^D,e_) = eint_total + &
-                        half*w(ix^D,mom(1))**2*w(ix^D,rho_)
-                else
-                    p_to_eint = p2eint_from_nH_p(nH_in(ix^D), p_in(ix^D))
-                    w(ix^D,e_) = w(ix^D,p_)*p_to_eint + &
-                        half*w(ix^D,mom(1))**2*w(ix^D,rho_)
-                end if
-            else
-                w(ix^D,e_) = w(ix^D,p_)*p_to_eint + &
-                    half*w(ix^D,mom(1))**2*w(ix^D,rho_)
-            end if
+            w(ix^D,e_) = lte_eint_from_p(w(ix^D,p_), nH(ix^D), log_nH(ix^D), w(ix^D,rho_)) &
+                + half*w(ix^D,mom(1))**2*w(ix^D,rho_)
         {end do\}
     end subroutine ffhd_p_to_e
 
@@ -311,7 +274,7 @@ contains
 
         double precision                :: inv_rho
         double precision                :: nH(ixI^S), log_nH(ixI^S)
-        double precision                :: eint_val, eint_in
+        double precision                :: eint_val
         integer :: ix^D
 
         if (fix_small_values) then
@@ -326,23 +289,11 @@ contains
             inv_rho = 1.d0/w(ix^D,rho_)
             w(ix^D,mom(1)) = w(ix^D,mom(1))*inv_rho
             if (ffhd_energy) then
+                eint_val = w(ix^D,e_) - half*w(ix^D,rho_)*w(ix^D,mom(1))**2
                 if (eos%ionE) then
-                    eint_val = w(ix^D,e_) - half*w(ix^D,rho_)*w(ix^D,mom(1))**2
-                    if (eos%method_id /= EOS_ANALYTIC) then
-                        eint_val = max(eint_val, nH(ix^D)*eos%eint_nH_min)
-                    end if
-                    eint_val = max(eint_val, smalldouble)
-                    if (eint_val * inv_rho > eos%eint_rho_FI_threshold) then
-                        w(ix^D,p_) = eos%gamma_minus_1 &
-                            * (eint_val - eos%eion_per_nH * nH(ix^D))
-                    else
-                        eint_in = dlog10(eint_val) - log_nH(ix^D)
-                        w(ix^D,p_) = nH(ix^D) &
-                            * p_nH_from_eint(log_nH(ix^D), eint_in)
-                    end if
+                    w(ix^D,p_) = lte_p_from_eint(eint_val, nH(ix^D), log_nH(ix^D), inv_rho)
                 else
-                    w(ix^D,p_) = eos%gamma_minus_1 &
-                        * (w(ix^D,e_) - half*w(ix^D,rho_)*w(ix^D,mom(1))**2)
+                    w(ix^D,p_) = eos%gamma_minus_1*eint_val
                 end if
             end if
         {end do\}

@@ -880,13 +880,10 @@ contains
         end if
     end function lte_p_from_eint
 
-    !> Internal energy from pressure, per cell: the single kernel behind every LTE
-    !> p-to-e conversion; log_p_nH = log10(p/nH) may be passed when already known
-    double precision function lte_eint_from_p(pres,nH_val,log_nH_val,rho_val,log_p_nH) result(eint)
-        use mod_global_parameters
+    !> LTE internal energy from pressure in one cell: FI bypass, else eint(nH, p)
+    double precision function lte_eint_from_p(pres,nH_val,log_nH_val,rho_val) result(eint)
         double precision, intent(in) :: pres, nH_val, log_nH_val, rho_val
-        double precision, intent(in), optional :: log_p_nH
-        double precision :: T_solve, y_solve, eint_nH_solve, log_eint_mid, p_in
+        double precision :: T_solve, y_solve, eint_nH_solve, log_eint_mid
         if (.not. eos%ionE) then
             eint = pres*eos%inv_gamma_minus_1
             return
@@ -907,12 +904,7 @@ contains
                 eint = max(nH_val*10.0d0**log_eint_mid, nH_val*eos%eint_nH_min)
             end if
         else
-            if (present(log_p_nH)) then
-                p_in = log_p_nH
-            else
-                p_in = dlog10(pres) - log_nH_val
-            end if
-            eint = pres*p2eint_from_nH_p(log_nH_val, p_in)
+            eint = pres*p2eint_from_nH_p(log_nH_val, dlog10(pres) - log_nH_val)
         end if
     end function lte_eint_from_p
 

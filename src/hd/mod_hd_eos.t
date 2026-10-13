@@ -278,8 +278,8 @@ contains
     end subroutine hd_to_conserved_LTE
 
     subroutine p_to_e(ixI^L, ixO^L, w, x)
-        !> Pressure to total energy, E = eint(rho, p) + KE (lte_eint_from_p).
-        !> On entry w(p_) holds the pressure and w(m_) the velocity.
+        !> Pressure to total energy, E = eint(rho, p) + KE, through lte_eint_from_p.
+        !> On entry w(p_) holds the pressure and w(m_) the velocity
         use mod_global_parameters
         integer, intent(in)             :: ixI^L, ixO^L
         double precision, intent(inout) :: w(ixI^S, nw)

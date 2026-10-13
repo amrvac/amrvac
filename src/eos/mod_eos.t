@@ -109,7 +109,6 @@ contains
         eos%pi_table          = pi_table
         eos%gamma1_method     = gamma1_method
         eos%p2eint_method     = p2eint_method
-        eos%p2eint_bisect     = (p2eint_method == 'bisect')
         eos%table_location    = table_location
         eos%He_abundance      = He_abundance
         eos%gamma             = gamma
@@ -265,6 +264,10 @@ contains
     subroutine eos_finalise()
         if (.not. allocated(eos)) &
             call mpistop('eos_finalise: eos not allocated')
+
+        ! Decoded here, not at read time: physics init may still override the
+        ! method (hd well-balanced forces 'bisect')
+        eos%p2eint_bisect = (eos%p2eint_method == 'bisect')
 
         select case (eos%eos_type)
         case ('LTE')
