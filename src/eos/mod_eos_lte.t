@@ -37,6 +37,7 @@ module mod_eos_lte
     public :: eint_nH_from_T, eint_from_p_bisect, eos_get_eintT_grid
     !> LTE arms of the eos_init / eos_finalise dispatchers
     public :: eos_init_LTE, eos_finalise_LTE
+    public :: lte_p_from_eint, lte_eint_from_p
 
 contains
 
@@ -860,5 +861,59 @@ contains
             lg_nH_max = 0.0d0
         end if
     end subroutine eos_get_eintT_grid
+
+    !> LTE pressure from internal energy in one cell: table floor, FI bypass, else p(nH, eint)
+    double precision function lte_p_from_eint(eint_val,nH_val,log_nH_val,inv_rho) result(pres)
+        double precision, intent(in) :: eint_val, nH_val, log_nH_val, inv_rho
+        double precision :: e_use, eint_in
+        ! eint_nH_min is zero under analytic, so the table floor is inert there
+        e_use = max(eint_val, nH_val*eos%eint_nH_min, smalldouble)
+        if (eos%ionE) then
+            if (e_use*inv_rho > eos%eint_rho_FI_threshold) then
+                pres = eos%gamma_minus_1*(e_use - eos%eion_per_nH*nH_val)
+            else
+                eint_in = dlog10(e_use) - log_nH_val
+                pres = nH_val * p_nH_from_eint(log_nH_val, eint_in)
+            end if
+        else
+            pres = eos%gamma_minus_1 * e_use
+        end if
+    end function lte_p_from_eint
+
+    !> Internal energy from pressure, per cell: the single kernel behind every LTE
+    !> p-to-e conversion; log_p_nH = log10(p/nH) may be passed when already known
+    double precision function lte_eint_from_p(pres,nH_val,log_nH_val,rho_val,log_p_nH) result(eint)
+        use mod_global_parameters
+        double precision, intent(in) :: pres, nH_val, log_nH_val, rho_val
+        double precision, intent(in), optional :: log_p_nH
+        double precision :: T_solve, y_solve, eint_nH_solve, log_eint_mid, p_in
+        if (.not. eos%ionE) then
+            eint = pres*eos%inv_gamma_minus_1
+            return
+        end if
+        if (pres/rho_val > eos%p_rho_FI_threshold) then
+            eint = pres*(eos%inv_gamma_minus_1 + eos%eion_per_nH*nH_val/pres)
+        else if (eos%method_id == EOS_ANALYTIC) then
+            call saha_state_from_nH_p(nH_val, pres, T_solve, y_solve, eint_nH_solve)
+            eint = eint_nH_solve*nH_val
+        else if (eos%p2eint_bisect) then
+            if (eos%method_id == EOS_ENTROPY) then
+                call entropy_eint_from_p_bisect(eos%pfwd, eos%pfwd_x, eos%pfwd_y, eos%pfwd_xy, &
+                    eos%eintP, eos%eintP_x, eos%eintP_y, eos%eintP_xy, &
+                    log_nH_val, dlog10(pres) - log_nH_val, log_eint_mid)
+                eint = nH_val*10.0d0**log_eint_mid
+            else
+                call eint_from_p_bisect(log_nH_val, dlog10(pres), log_eint_mid)
+                eint = max(nH_val*10.0d0**log_eint_mid, nH_val*eos%eint_nH_min)
+            end if
+        else
+            if (present(log_p_nH)) then
+                p_in = log_p_nH
+            else
+                p_in = dlog10(pres) - log_nH_val
+            end if
+            eint = pres*p2eint_from_nH_p(log_nH_val, p_in)
+        end if
+    end function lte_eint_from_p
 
 end module mod_eos_lte
