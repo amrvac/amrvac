@@ -254,19 +254,19 @@ contains
         ! Two semantically distinct hooks:
         !   - from_etot: caller's w(:,e_) is total energy; subtract KE+ME before T.
         !   - from_eint: caller's w(:,e_) is gas internal energy; compute T directly.
-        ! In mhd_internal_e mode w(:,e_) IS already eint, so the etot hook is bound
-        ! to the same routine as the eint hook (no subtraction). Required because
-        ! eos_finalise's generic helper calls phys_e_to_ei, which is left unbound
-        ! by mhd_phys_init when mhd_internal_e=.true.
-        if (eos%eos_type == 'LTE') then
+        ! In mhd_internal_e mode w(:,e_) is already eint, so the etot hook is bound
+        ! to the same routine as the eint hook (no subtraction)
+        if (eos%eos_type == 'LTE' .or. (eos%eos_type == 'PI' .and. eos%ionE)) then
+            ! eint carries the ionisation energy, so T comes from the EoS's own
+            ! eint->T inversion (LTE tables, or the PI energy-mode backend)
             if (mhd_internal_e) then
-                ! w(:,e_) is eint; both hooks do the LTE table lookup directly.
+                ! w(:,e_) is eint; both hooks do the EoS lookup directly
                 eos%get_temperature_from_etot => eos%get_temperature_from_eint
             else
-                ! Total-energy: subtract KE+ME (via phys_e_to_ei) then LTE table lookup.
+                ! Total-energy: subtract KE+ME (via phys_e_to_ei), then the EoS eint->T lookup
                 eos%get_temperature_from_etot => mhd_get_temperature_from_etot_LTE
             end if
-        else  ! FI
+        else  ! FI, or PI without ionisation energy
             if (mhd_internal_e) then
                 ! w(:,e_) is eint; both hooks share the eint variant.
                 if (has_equi_rho_and_p) then
@@ -1212,11 +1212,7 @@ contains
                 else
                     nH_val = w(ix^D, rho_) / eos%nH2rhoFactor
                     if (eos%method_id == EOS_ANALYTIC) then
-                        if (iw_te > 0 .and. w(ix^D,iw_te) > 0.0d0) then
-                            g1 = saha_gamma1_from_nH_T(nH_val, w(ix^D,iw_te))
-                        else
-                            g1 = eos%gamma
-                        end if
+                        g1 = saha_gamma1_from_nH_p(nH_val, w(ix^D,p_))
                     else
                         log_nH = dlog10(nH_val)
                         log_p_nH = dlog10(w(ix^D, p_) / nH_val)
@@ -1253,11 +1249,7 @@ contains
             else
                 nH_val = w(ix^D, rho_) / eos%nH2rhoFactor
                 if (eos%method_id == EOS_ANALYTIC) then
-                    if (iw_te > 0 .and. w(ix^D,iw_te) > 0.0d0) then
-                        gamma1(ix^D) = saha_gamma1_from_nH_T(nH_val, w(ix^D,iw_te))
-                    else
-                        gamma1(ix^D) = eos%gamma
-                    end if
+                    gamma1(ix^D) = saha_gamma1_from_nH_p(nH_val, w(ix^D,p_))
                 else
                     gamma1(ix^D) = gamma1_from_nH_p(dlog10(nH_val), &
                         dlog10(w(ix^D, p_) / nH_val))

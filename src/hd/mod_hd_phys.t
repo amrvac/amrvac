@@ -569,12 +569,6 @@ contains
       end if
     end if
     allocate(te_fl_hd)
-    ! te_fl_hd%get_rho=> hd_get_rho
-    te_fl_hd%get_rho=> eos%get_rho
-    ! te_fl_hd%get_pthermal=> hd_get_pthermal
-    te_fl_hd%get_pthermal=> eos%get_thermal_pressure
-    te_fl_hd%get_var_Rfactor => eos%get_Rfactor
-    te_fl_hd%get_ne_nH => eos%get_ne_nH
 
 
 {^IFTHREED
@@ -1620,6 +1614,7 @@ contains
     use mod_dust, only: dust_get_cmax
     use mod_fld, only: fld_bound_diff
     use mod_variables
+    use mod_eos_container, only: EOS_TYPE_LTE
 
     integer, intent(in)             :: ixI^L, ixO^L, idim
     ! conservative left and right status
@@ -1691,6 +1686,8 @@ contains
          ! note usage of conservatives here
          wmean(ixO^S,1:nwflux)=0.5d0*(wLC(ixO^S,1:nwflux)+wRC(ixO^S,1:nwflux))
          tmp1(ixO^S)=wmean(ixO^S,mom(idim))/wmean(ixO^S,rho_)
+         ! the LTE pressure reads Ne/Te, which face states do not carry
+         if (eos%type_id == EOS_TYPE_LTE) call eos%update_eos(ixI^L,ixO^L,wmean,x)
          call hd_get_csound2(wmean,x,ixI^L,ixO^L,csoundR)
          if(hd_radiation_fld.and.fld_bound_diff)csoundR(ixO^S)=csoundR(ixO^S)+(4.0d0/9.0d0)*wmean(ixO^S,r_e)/wmean(ixO^S,rho_)
       !endif

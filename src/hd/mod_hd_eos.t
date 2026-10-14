@@ -112,7 +112,8 @@ contains
 
     end subroutine hd_link_eos
 
-    subroutine bind_eos_to_source() !> this is called in eos_finalise through mod_physics procedure linking
+    !> Bind the EoS to the conduction and cooling fluids, called from eos_finalise
+    subroutine bind_eos_to_source()
         if (allocated(tc_fl)) then
             tc_fl%get_temperature_from_conserved => eos%get_temperature_from_etot
             !> Use fast bilinear T lookup for TC STS substeps (density fixed,
@@ -173,6 +174,11 @@ contains
                 rc_fl%y_from_eint => y_from_eint_PI
             end if
         end if
+
+        te_fl_hd%get_rho         => eos%get_rho
+        te_fl_hd%get_pthermal    => eos%get_thermal_pressure
+        te_fl_hd%get_var_Rfactor => eos%get_Rfactor
+        te_fl_hd%get_ne_nH       => eos%get_ne_nH
 
         if (allocated(fld_fl)) then
             !> Radiation (FLD) fluid: gas-EoS callbacks. get_temperature_from_pressure
@@ -591,11 +597,7 @@ contains
             else
                 nH_val = w(ix^D, rho_) / eos%nH2rhoFactor
                 if (eos%method_id == EOS_ANALYTIC) then
-                    if (iw_te > 0 .and. w(ix^D,iw_te) > 0.0d0) then
-                        gamma1(ix^D) = saha_gamma1_from_nH_T(nH_val, w(ix^D,iw_te))
-                    else
-                        gamma1(ix^D) = eos%gamma
-                    end if
+                    gamma1(ix^D) = saha_gamma1_from_nH_p(nH_val, w(ix^D,p_))
                 else
                     gamma1(ix^D) = gamma1_from_nH_p(dlog10(nH_val), &
                         dlog10(w(ix^D, p_) / nH_val))

@@ -401,19 +401,17 @@ contains
     !> Temperature from (log10 nH, log10 eint/nH) in code units.
     !> Dispatches: analytic -> Saha bisection/Newton, tables -> PCHIP interpolation.
     double precision function T_from_nH_eint(nH, eint_nh) result(result_val)
-        use mod_eos_lte_entropy, only: entropy_T_from_nH_eint
         double precision, intent(in) :: nH, eint_nh
         double precision, parameter :: ln10 = 2.302585092994046d0
-        double precision :: T_loc, y_loc, eint_rho, Rfactor_FI
+        double precision :: T_loc, y_loc, eint_rho
 
         if (eos%type_id /= EOS_TYPE_LTE) call mpistop("T_from_nH_eint called outside its eos_type (LTE)")
         if (eos%method_id == EOS_ANALYTIC) then
-            ! FI bypass: skip Saha solve for fully ionized cells
+            ! A fully ionised cell skips the Saha solve
             eint_rho = 10.0d0**eint_nh / eos%nH2rhoFactor
             if (eint_rho > eos%eint_rho_FI_threshold) then
-                Rfactor_FI = eos%n_per_nH_FI / (1.0d0 + 4.0d0*eos%He_abundance)
                 result_val = eos%gamma_minus_1 &
-                    * (10.0d0**eint_nh - eos%eion_per_nH) / Rfactor_FI
+                    * (10.0d0**eint_nh - eos%eion_per_nH) / eos%n_per_nH_FI
                 return
             end if
             call saha_T_from_nH_eint(10.0d0**nH, 10.0d0**eint_nh, T_loc, y_loc)

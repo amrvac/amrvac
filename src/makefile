@@ -405,6 +405,7 @@ mod_hd_phys.o: mod_comm_lib.mod
 mod_hd_phys.o: mod_constants.mod
 mod_hd_phys.o: mod_dust.mod
 mod_hd_phys.o: mod_eos.mod
+mod_hd_phys.o: mod_eos_container.mod
 mod_hd_phys.o: mod_eos_lte.mod
 mod_hd_phys.o: mod_eos_pi_tables.mod
 mod_hd_phys.o: mod_escape_probability.mod

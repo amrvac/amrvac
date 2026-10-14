@@ -19,7 +19,7 @@ module mod_eos_lte_saha
     private
 
     public :: saha_eint_from_nH_T, saha_state_from_nH_p
-    public :: saha_T_from_nH_eint, saha_gamma1_from_nH_T
+    public :: saha_T_from_nH_eint, saha_gamma1_from_nH_T, saha_gamma1_from_nH_p
     public :: load_analytic_LTE, finalise_analytic_LTE
 
     ! Analytical H-only Saha constants (module-level parameters)
@@ -343,6 +343,16 @@ contains
         g1 = bicubic_lookup(log_nH, log_T, eos%gamma1_p)
 
     end function saha_gamma1_from_nH_T
+
+    !> Gamma1 from (nH, p): Saha solve for T, then the table; for face states, which carry no Te
+    double precision function saha_gamma1_from_nH_p(nH_code, p_code) result(g1)
+        double precision, intent(in) :: nH_code, p_code
+        double precision :: T_loc, y_loc
+
+        call saha_state_from_nH_p(nH_code, p_code, T_loc, y_loc)
+        g1 = saha_gamma1_from_nH_T(nH_code, T_loc)
+
+    end function saha_gamma1_from_nH_p
 
 end module mod_eos_lte_saha
 !> Needs a line after to pass the preprocessor

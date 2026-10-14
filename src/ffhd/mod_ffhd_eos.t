@@ -380,11 +380,7 @@ contains
             else
                 nH_val = w(ix^D, rho_) / eos%nH2rhoFactor
                 if (eos%method_id == EOS_ANALYTIC) then
-                    if (iw_te > 0 .and. w(ix^D,iw_te) > 0.0d0) then
-                        gamma1(ix^D) = saha_gamma1_from_nH_T(nH_val, w(ix^D,iw_te))
-                    else
-                        gamma1(ix^D) = eos%gamma
-                    end if
+                    gamma1(ix^D) = saha_gamma1_from_nH_p(nH_val, w(ix^D,p_))
                 else
                     gamma1(ix^D) = gamma1_from_nH_p(dlog10(nH_val), &
                         dlog10(w(ix^D, p_) / nH_val))
