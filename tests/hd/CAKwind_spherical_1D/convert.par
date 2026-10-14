@@ -1,0 +1,65 @@
+!==============================================================================
+! Project : 1-D CAK wind
+!
+! Aim     : post-process 1-D simulation output to ascii format with aiconvert
+!           script: aiconvert convert.par n0 n1
+!
+!           and n0, n1 the first and last index of a snapshot
+!==============================================================================
+
+&filelist
+  base_filename = 'test/cak'
+  saveprim      = .true.
+  convert_type  = 'oneblock'
+  level_io      = 1
+/
+
+&methodlist
+  time_stepper = 'twostep'
+  flux_scheme  = 'tvdlf'
+  limiter      = 'vanleer'
+/
+
+&boundlist
+  typeboundary_min1 = 2*'special'
+  typeboundary_max1 = 2*'special'
+/
+
+&meshlist
+  domain_nx1         = 320
+  block_nx1          = 80
+  xprobmin1          = 1.0d0
+  xprobmax1          = 10.0d0
+  stretch_dim(1)     = 'uni'
+  qstretch_baselevel = 1.015
+/
+
+&paramlist
+  courantpar = 0.3d0
+/
+
+&hd_list
+  hd_gravity = .true.
+  hd_energy  = .false.
+  hd_gamma   = 1.0d0
+  hd_cak_force = .true.
+/
+
+&cak_list
+  cak_alpha    = 0.65d0
+  gayley_qbar  = 2000.0d0
+  gayley_q0    = 2000.0d0
+  kappae_cgs   = 0.34d0
+  cak_force_method = 'radial'
+  cak_1d_type = 'finitedisc'
+  use_lte_table  = .false.
+  name_lte_table = 'Y02400'
+/
+
+&star_list
+  mstar_sol    = 50.0d0
+  rstar_sol    = 20.0d0
+  twind_cgs    = 4.0d4
+  rhobound_cgs = 2.0d-11
+  beta         = 0.8d0
+/

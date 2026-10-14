@@ -1,11 +1,11 @@
-!=================================================
+!==============================================================================
 ! Project : 1-D CAK wind
 !
-! Aim     : (mainly) serves to make a relaxed wind
-!           for input in other wind models
+! Aim     : study effect of CAK line force. Also serves to relax a spherically
+!           symmetric wind for input in multi-dimensional CAK wind models
 !
-! Config  : setup.pl -d=1
-!=================================================
+! Config  : setup.pl -d=1 -v=1
+!==============================================================================
 
 &filelist
   base_filename = 'test/cak'
@@ -56,16 +56,20 @@
 &cak_list
   cak_alpha    = 0.65d0
   gayley_qbar  = 2000.0d0
-  gayley_q0    = 2000.0d0 
-  cak_1d_force = .true.
-  cak_1d_opt   = 1
+  gayley_q0    = 2000.0d0
+  kappae_cgs   = 0.34d0
+  cak_force_method = 'radial'
+  cak_1d_type = 'finitedisc'
+  use_lte_table  = .false.
+  name_lte_table = 'Y02400'
 /
+
 &star_list
-  mstar    = 50.0d0
-  rstar    = 20.0d0
-  twind    = 4.0d4
-  rhobound = 2.0d-11
-  beta     = 0.5d0
+  mstar_sol    = 50.0d0
+  rstar_sol    = 20.0d0
+  twind_cgs    = 4.0d4
+  rhobound_cgs = 2.0d-11
+  beta         = 0.8d0
 /
  &eos_list
   gamma = 1.0d0
