@@ -65,6 +65,7 @@ mod_amr_fct.o: mod_global_parameters.mod
 mod_amr_fct.o: mod_physics.mod
 mod_amr_grid.o: mod_amr_fct.mod
 mod_amr_grid.o: mod_coarsen_refine.mod
+mod_amr_grid.o: mod_eos.mod
 mod_amr_grid.o: mod_errest.mod
 mod_amr_grid.o: mod_fix_conserve.mod
 mod_amr_grid.o: mod_ghostcells_update.mod
@@ -135,6 +136,7 @@ mod_coarsen_refine.o: mod_amr_fct.mod
 mod_coarsen_refine.o: mod_amr_neighbors.mod
 mod_coarsen_refine.o: mod_amr_solution_node.mod
 mod_coarsen_refine.o: mod_coarsen.mod
+mod_coarsen_refine.o: mod_eos.mod
 mod_coarsen_refine.o: mod_forest.mod
 mod_coarsen_refine.o: mod_functions_connectivity.mod
 mod_coarsen_refine.o: mod_functions_forest.mod
@@ -755,6 +757,7 @@ mod_solar_atmosphere.o: mod_eos_pi_tables.mod
 mod_solar_atmosphere.o: mod_global_parameters.mod
 mod_solar_atmosphere.o: mod_interpolation.mod
 mod_source.o: mod_comm_lib.mod
+mod_source.o: mod_eos.mod
 mod_source.o: mod_ghostcells_update.mod
 mod_source.o: mod_global_parameters.mod
 mod_source.o: mod_physics.mod

@@ -100,7 +100,7 @@ contains
     end if
 
     ! split source addition
-    call add_split_source(prior=.true.) !> calculates temperature based on conservative state
+    call add_split_source(prior=.true.)
 
     if(dimsplit) then
        if((iit/2)*2==iit .or. typedimsplit=='xy') then
@@ -121,15 +121,9 @@ contains
     end if
 
     ! split source addition
-    call add_split_source(prior=.false.) !> calculates temperature based on conservative state
+    call add_split_source(prior=.false.)
 
     if(use_particles) call handle_particles
-
-    !$OMP PARALLEL DO PRIVATE(igrid)
-    do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
-      call eos%update_eos(ixG^LL,ixG^LL,ps(igrid)%w,ps(igrid)%x)
-    end do
-    !$OMP END PARALLEL DO
 
     ! Cost-weighted load balancer: per-block measurements in block_cost
     ! (per-rank, per-igrid) are folded into the global Morton-indexed
@@ -809,7 +803,6 @@ contains
       if (lb_automatic) lb_t0_block = MPI_WTIME()
       block=>ps(igrid)
       ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
-      call eos%update_eos(ixG^LL,ixG^LL,psa(igrid)%w,psa(igrid)%x)
       call advect1_grid(igrid,method(block%level),qdt,dtfactor,ixG^LL,idim^LIM,&
         qtC,psa(igrid),qt,psb(igrid),rnode(rpdx1_:rnodehi,igrid),ps(igrid)%x)
       if (lb_automatic) block_cost(igrid) = block_cost(igrid) + (MPI_WTIME() - lb_t0_block)
@@ -837,6 +830,13 @@ contains
 
     ! For all grids: fill ghost cells
     call getbc(qt+qdt,qdt,psb,iwstart,nwgc)
+
+    ! update eos variables: Te (nH) including ghost cells
+    !$OMP PARALLEL DO PRIVATE(igrid)
+    do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
+      call eos%update_eos(ixG^LL,ixG^LL,psb(igrid)%w,psb(igrid)%x)
+    end do
+    !$OMP END PARALLEL DO
 
   end subroutine advect1
 

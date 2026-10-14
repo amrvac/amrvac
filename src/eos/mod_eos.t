@@ -282,10 +282,12 @@ contains
     subroutine prepare_eos_w_fields()
         integer :: iigrid, igrid
 
-        ! fill eos space of all grids, inc boundaries
+        ! fill eos space of all grids, including ghost cells (boundaries)
+        !$OMP PARALLEL DO PRIVATE(igrid)
         do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
             call eos%update_eos(ixG^LL,ixG^LL,ps(igrid)%w,ps(igrid)%x)
         end do
+        !$OMP END PARALLEL DO
 
     end subroutine prepare_eos_w_fields
 

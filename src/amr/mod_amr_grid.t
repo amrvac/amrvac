@@ -50,6 +50,7 @@ contains
     use mod_coarsen_refine
     use mod_errest, only: errest 
     use mod_particles
+    use mod_eos, only: prepare_eos_w_fields
 
     if(levmax>levmin) call deallocateBflux
     if(stagger_grid) call deallocateBfaces
@@ -70,6 +71,10 @@ contains
     if(use_particles) then
       call init_gridvars()
     end if
+
+    ! after getbc in amr_coarsen_refine, eos variables of ghost cells are zero for new blocks
+    ! update the additional w state eos variables including ghost cells
+    call prepare_eos_w_fields()
 
   end subroutine resettree
 

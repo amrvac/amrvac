@@ -192,6 +192,7 @@ contains
     use mod_load_balance, only: load_balance
     use mod_functions_connectivity, only: get_level_range, getigrids, build_connectivity
     use mod_selectgrids, only: selectgrids
+    use mod_eos, only: prepare_eos_w_fields
 
     if (npe==1) return
     if (stagger_grid) call end_comm_faces
@@ -203,6 +204,9 @@ contains
     call build_connectivity
     call selectgrids
     call getbc(global_time, 0.d0, ps, iwstart, nwgc)
+    ! after getbc, eos variables of ghost cells are zero for new blocks
+    ! update the additional w state eos variables including ghost cells
+    call prepare_eos_w_fields()
   end subroutine amr_rebalance
 
   !> For all grids on all processors, do a check on refinement flags. Make

@@ -193,8 +193,8 @@ contains
     !> gas internal energy (incl. ionisation energy) by Newton; no-energy modes
     !> form pth=(gamma-1)*eint and invert (rho,pth)->T via the backend
     !> (y-bisection for chromosphere/flare, p-bisection for prominence). Shared by
-    !> update_eos_PI (eos%update_eos) and the gated source/STS call sites.
-    subroutine refresh_Te_PI(ixI^L, ixO^L, w, x)
+    !> update_eos_PI (eos%update_eos) and the gated source/STS call sites, refresh Te
+    subroutine update_eos_PI(ixI^L, ixO^L, w, x)
         use mod_physics, only: phys_get_ei
         integer, intent(in)             :: ixI^L, ixO^L
         double precision, intent(in)    :: x(ixI^S,1:ndim)
@@ -219,15 +219,6 @@ contains
             call ionization_get_state(ixI^L, ixO^L, rho, pth, T, Rf)
             w(ixO^S,iw_te) = T(ixO^S)
         end if
-    end subroutine refresh_Te_PI
-
-    !> eos%update_eos arm: per-RK-substep cache refresh (called from mod_advance,
-    !> exactly as update_eos_LTE). Direct, so the cached Te never lags.
-    subroutine update_eos_PI(ixI^L, ixO^L, w, x)
-        integer, intent(in)             :: ixI^L, ixO^L
-        double precision, intent(in)    :: x(ixI^S,1:ndim)
-        double precision, intent(inout) :: w(ixI^S,1:nw)
-        call refresh_Te_PI(ixI^L, ixO^L, w, x)
     end subroutine update_eos_PI
 
     !> eos%get_Te arm: read the cached temperature (refreshed by update_eos_PI /

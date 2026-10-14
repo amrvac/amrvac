@@ -26,6 +26,7 @@ contains
     use mod_physics, only: phys_global_source_after, phys_to_primitive
     use mod_supertimestepping, only: is_sts_initialized, sts_add_source,sourcetype_sts,&
                                       sourcetype_sts_prior, sourcetype_sts_after, sourcetype_sts_split   
+    use mod_eos, only: prepare_eos_w_fields
     use mod_comm_lib, only: mpistop
 
     logical, intent(in) :: prior
@@ -128,6 +129,8 @@ contains
 
     if (src_active) then
        call getbc(qt,0.d0,ps,iwstart,nwgc)
+       ! update eos variables: Te (nH) including ghost cells
+       call prepare_eos_w_fields()
     end if
 
   end subroutine add_split_source

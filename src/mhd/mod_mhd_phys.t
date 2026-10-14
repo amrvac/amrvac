@@ -3144,14 +3144,14 @@ contains
     double precision, dimension(1:ndim) :: Bdir, bunitvec
     double precision, dimension(ixI^S,1:ndim) :: gradT
     double precision :: ltrc,ltrp,altr
-    integer :: idims,ix^D,jxO^L,hxO^L,ixA^D,ixB^D
-    integer :: jxP^L,hxP^L,ixP^L,ixQ^L
     ! TRAC-7 (Johnston et al. 2021, A&A 654 A2) field-aligned local method
     double precision :: Q_heat(ixI^S), ne(ixI^S), nH_arr(ixI^S)
     double precision :: Bvec(1:ndir)
     double precision :: bmin_c, Bmag, gnorm, Bgtd, L_T, dl_eff, vmag, Bdotv, Binp2
     double precision :: v_n, a_coeff, L1, cooling, net_cool
     double precision :: kappa_par, disc, dx_over_delta, kappa_TRAC, kappa_eff, Tcoff_eff
+    integer :: idims,ix^D,jxO^L,hxO^L,ixA^D,ixB^D
+    integer :: jxP^L,hxP^L,ixP^L,ixQ^L
 
     if (eos%eos_type == 'LTE' .or. eos%eos_type == 'PI') then
       Te(ixI^S) = w(ixI^S, Te_)
@@ -5372,14 +5372,6 @@ contains
     if (mhd_radiation_fld) then
        call mhd_add_radiation_source(qdt,ixI^L,ixO^L,wCT,wCTprim,w,x,qsourcesplit,active)
     endif
-
-    ! update temperature from new pressure, density, and old ionization degree
-    if(eos%eos_type == 'PI') then
-      if(.not.qsourcesplit) then
-        active = .true.
-        call eos%update_eos(ixI^L,ixO^L,w,x)
-      end if
-    end if
 
   end subroutine mhd_add_source
 
