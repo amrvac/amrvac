@@ -1,13 +1,13 @@
 !=============================================================================
-!> Analytic H-only Saha EoS (eos_method == 'analytic').
+!> Analytic hydrogen Saha EoS with neutral helium (eos_method == 'analytic')
 !>
-!> Ground-state Saha for pure hydrogen, solved per call (no tables):
+!> Ground-state Saha for hydrogen, solved per call without tables:
 !>   X(T)        = saha_pf * T^{3/2} * exp(-chi/kB/T)
 !>   y(=ne/nH)   = 2X / (X + sqrt(X^2 + 4 nH X))
-!> Public entry points take and return CODE units; CGS conversion is internal.
-!> T(nH, eint/nH) is found by bisection (default) or Newton; p(nH, T) closes
-!> the state. build_gamma1_analytic_table tabulates Gamma_1(nH, T) once for the
-!> 'exact' gamma1 path; saha_gamma1_from_nH_T reads it back.
+!> Public entry points take and return code units; the CGS conversion is internal.
+!> T(nH, eint/nH) is found by bisection and p(nH, T) closes the state.
+!> build_gamma1_analytic_table tabulates Gamma_1(nH, T) once for the 'exact' gamma1 path,
+!> and saha_gamma1_from_nH_T reads it back
 !=============================================================================
 module mod_eos_lte_saha
     use mod_global_parameters
@@ -22,8 +22,7 @@ module mod_eos_lte_saha
     public :: saha_T_from_nH_eint, saha_gamma1_from_nH_T, saha_gamma1_from_nH_p
     public :: load_analytic_LTE, finalise_analytic_LTE
 
-    ! Analytical H-only Saha constants (module-level parameters)
-    ! Prefactor: (2*pi*m_e*k_B/h^2)^{3/2} in CGS (cm^-3)
+    ! Prefactor (2 pi m_e k_B/h^2)^{3/2} in CGS (cm^-3)
     ! SI value is 2.4146830395719654e21 m^-3; divide by 1e6 for CGS
     double precision, parameter :: saha_pf = 2.4146830395719654d15
     double precision, parameter :: saha_chi_kB = 157763.42386247337d0
@@ -41,19 +40,19 @@ contains
     !> announce the method.
     subroutine load_analytic_LTE()
         if (mype == 0) then
-            write(*,*) 'EoS method: analytic (H-only Saha)'
+            write(*,*) 'EoS method: analytic (hydrogen Saha, helium neutral)'
             write(*,*) '  gamma1_method: ', trim(eos%gamma1_method)
         end if
     end subroutine load_analytic_LTE
 
-    !> Analytic-method finalise (H-only Saha): no table unit conversion needed;
+    !> Analytic-method finalise: no table unit conversion needed;
     !> build the Gamma1 table only for 'exact' mode, then the shared FI-bypass
     !> constants.
     subroutine finalise_analytic_LTE()
         if (eos%gamma1_method == 'exact') then
             call build_gamma1_analytic_table()
         end if
-        call precompute_FI_bypass_constants()
+        call precompute_FI_bypass_constants(saha_chi_H_cgs)
     end subroutine finalise_analytic_LTE
 
     !> Ionization fraction from Saha in CGS (no unit conversions).
@@ -71,7 +70,7 @@ contains
 
     end function saha_y_cgs
 
-    !> Ionization fraction y = ne/nH from analytical Saha at given (nH, T) in CODE UNITS
+    !> Ionisation fraction y = ne/nH from Saha at (nH, T) in code units
     double precision function saha_y_from_nH_T(nH_code, T_code) result(y)
         double precision, intent(in) :: nH_code, T_code
 
@@ -79,55 +78,49 @@ contains
 
     end function saha_y_from_nH_T
 
-    !> Internal energy per nH from analytical Saha, in CODE UNITS.
-    !> eint_nH = 1.5*(1+y)*kB*T [+ y*chi_H] in CGS, converted to code units
+    !> eint/nH in CGS with helium neutral, 1.5 (1+He+y) kB T, plus y chi_H when ionE
+    double precision function saha_eint_cgs(y, T_cgs) result(e)
+        double precision, intent(in) :: y, T_cgs
+        e = 1.5d0 * (1.0d0 + eos%He_abundance + y) * saha_kB_cgs * T_cgs
+        if (eos%ionE) e = e + y * saha_chi_H_cgs
+    end function saha_eint_cgs
+
+    !> eint/nH from Saha at (nH, T), in code units
     double precision function saha_eint_from_nH_T(nH_code, T_code) result(eint_nH_code)
         double precision, intent(in) :: nH_code, T_code
-        double precision :: y, T_cgs, eint_nH_cgs
 
         if (eos%method_id /= EOS_ANALYTIC) call mpistop("saha_eint_from_nH_T requires eos_method=analytic")
-        y = saha_y_from_nH_T(nH_code, T_code)
-        T_cgs = T_code * unit_temperature
-
-        eint_nH_cgs = 1.5d0 * (1.0d0 + y) * saha_kB_cgs * T_cgs
-        if (eos%ionE) then
-            eint_nH_cgs = eint_nH_cgs + y * saha_chi_H_cgs
-        end if
-
-        eint_nH_code = eint_nH_cgs * unit_numberdensity / unit_pressure
+        eint_nH_code = saha_eint_cgs(saha_y_from_nH_T(nH_code, T_code), T_code * unit_temperature) &
+            * unit_numberdensity / unit_pressure
 
     end function saha_eint_from_nH_T
 
-    !> Given (nH, p) in CODE UNITS, find T and y by solving p = nH*(1+y(T))*T_code.
-    !> Uses bisection on T. In code units, kB is absorbed: p = nH*(1+y)*T.
-    !> Given (nH, p) in CODE UNITS, find T, y, and eint/nH.
-    !> Bisects on p = nH*(1+y(T))*T_code, then computes eint from final T,y.
-    !> Returns eint_nH in code units (avoids redundant Saha re-evaluation).
+    !> Given (nH, p) in code units, T, y and optionally eint/nH: bisection on
+    !> p = nH*(1+He+y(T))*T, with kB absorbed in the code units
     subroutine saha_state_from_nH_p(nH_code, p_code, T_out, y_out, eint_nH_out)
         double precision, intent(in)  :: nH_code, p_code
         double precision, intent(out) :: T_out, y_out
         double precision, intent(out), optional :: eint_nH_out
 
-        double precision :: nH_cgs, uT, eint_nH_cgs
+        double precision :: nH_cgs, uT
         double precision :: T_lo, T_hi, T_mid, y_mid, p_eval
         integer :: iter
         integer, parameter :: max_iter = 30
         double precision, parameter :: tol = 1.0d-8
 
-        ! Hoist CGS conversion out of loop
         if (eos%method_id /= EOS_ANALYTIC) call mpistop("saha_state_from_nH_p requires eos_method=analytic")
         nH_cgs = nH_code * unit_numberdensity
         uT = unit_temperature
 
-        ! Brackets in code units: y=0 => T = p/nH, y=1 => T = p/(2*nH)
-        T_hi = p_code / nH_code
-        T_lo = p_code / (2.0d0 * nH_code)
+        ! brackets: y = 0 gives T = p/(nH (1+He)), y = 1 gives T = p/(nH (2+He))
+        T_hi = p_code / (nH_code * (1.0d0 + eos%He_abundance))
+        T_lo = p_code / (nH_code * (2.0d0 + eos%He_abundance))
         T_lo = max(T_lo, 100.0d0 / uT)
 
         do iter = 1, max_iter
             T_mid = 0.5d0 * (T_lo + T_hi)
             y_mid = saha_y_cgs(nH_cgs, T_mid * uT)
-            p_eval = nH_code * (1.0d0 + y_mid) * T_mid
+            p_eval = nH_code * (1.0d0 + eos%He_abundance + y_mid) * T_mid
 
             if (p_eval < p_code) then
                 T_lo = T_mid
@@ -147,17 +140,12 @@ contains
         T_out = T_mid
         y_out = y_mid
 
-        ! Optionally return eint/nH directly (avoids redundant Saha re-evaluation)
-        if (present(eint_nH_out)) then
-            eint_nH_cgs = 1.5d0 * (1.0d0 + y_mid) * saha_kB_cgs * (T_mid * uT)
-            if (eos%ionE) eint_nH_cgs = eint_nH_cgs + y_mid * saha_chi_H_cgs
-            eint_nH_out = eint_nH_cgs * unit_numberdensity / unit_pressure
-        end if
+        if (present(eint_nH_out)) &
+            eint_nH_out = saha_eint_cgs(y_mid, T_mid * uT) * unit_numberdensity / unit_pressure
 
     end subroutine saha_state_from_nH_p
 
-    !> Temperature inversion: given (nH, eint/nH) in CODE UNITS, find T in CODE UNITS,
-    !> by bisection (guaranteed convergence).
+    !> Temperature and ionisation fraction from (nH, eint/nH) in code units, by bisection
     subroutine saha_T_from_nH_eint(nH_code, eint_nH_code, T_out, y_out)
         double precision, intent(in)  :: nH_code, eint_nH_code
         double precision, intent(out) :: T_out, y_out
@@ -167,64 +155,46 @@ contains
 
     end subroutine saha_T_from_nH_eint
 
-    !> Bisection solver for T(nH, eint/nH). Guaranteed convergence.
-    !> Brackets: T_lo from fully ionized (y=1), T_hi from neutral (y=0).
-    !> Handles the non-monotonic eint(T) when ionE is included by
-    !> checking the FI limit first: if y~1 at T_lo, use T_lo directly.
+    !> Bisection for T(nH, eint/nH) between the fully ionised (y = 1) and neutral (y = 0) limits
     subroutine saha_T_bisection(nH_code, eint_nH_code, T_out, y_out)
         double precision, intent(in)  :: nH_code, eint_nH_code
         double precision, intent(out) :: T_out, y_out
 
         double precision :: nH_cgs, eint_nH_cgs, T_lo, T_hi, T_mid
-        double precision :: eint_mid, y_mid, y_lo
+        double precision :: y_mid, cv_ion, cv_neu
         integer :: iter
         integer, parameter :: max_iter = 30
         double precision, parameter :: tol = 1.0d-8
 
-        ! Hoist CGS conversions out of loop
         nH_cgs = nH_code * unit_numberdensity
         eint_nH_cgs = eint_nH_code * unit_pressure / unit_numberdensity
 
-        ! Temperature bounds in CGS from energy equation limits
+        ! temperature bounds from the fully ionised (y = 1) and neutral (y = 0) limits
+        cv_ion = 1.5d0 * (2.0d0 + eos%He_abundance) * saha_kB_cgs
+        cv_neu = 1.5d0 * (1.0d0 + eos%He_abundance) * saha_kB_cgs
         if (eos%ionE) then
-            ! T_lo: assume y=1 (fully ionized) -> eint = 3*kB*T + chi_H
-            T_lo = max((eint_nH_cgs - saha_chi_H_cgs) / (3.0d0 * saha_kB_cgs), 100.0d0)
-            ! T_hi: assume y=0 (neutral) -> eint = 1.5*kB*T
-            T_hi = eint_nH_cgs / (1.5d0 * saha_kB_cgs)
+            T_lo = (eint_nH_cgs - saha_chi_H_cgs) / cv_ion
         else
-            T_lo = eint_nH_cgs / (3.0d0 * saha_kB_cgs)
-            T_hi = eint_nH_cgs / (1.5d0 * saha_kB_cgs)
+            T_lo = eint_nH_cgs / cv_ion
         end if
         T_lo = max(T_lo, 100.0d0)
-        T_hi = max(T_hi, T_lo + 1.0d0)
+        T_hi = max(eint_nH_cgs / cv_neu, T_lo + 1.0d0)
 
-        ! Guard against non-monotonic eint(T) when ionE is active:
-        ! At low nH, hydrogen is fully ionized (y=1) across a wide T range,
-        ! making the Saha equation degenerate. The eint function has two roots:
-        ! one at low T (ionized, eint ~ chi_H + small thermal) and one at
-        ! high T (neutral, eint ~ thermal only). The bisection must stay on
-        ! the correct branch.
-        ! Fix: check y at T_lo. If y~1, use the FI analytical formula directly.
+        ! eint(T) is monotonic, so the bracket always holds; where hydrogen is already fully
+        ! ionised at T_lo (to 1e-10), T_lo = (eint - chi_H)/cv_ion is the solution
         if (eos%ionE) then
-            y_lo = saha_y_cgs(nH_cgs, T_lo)
-            if (y_lo > 0.999d0) then
-                ! Fully ionized: eint = 3*kB*T + chi_H => T = (eint - chi_H)/(3*kB)
-                T_out = max((eint_nH_cgs - saha_chi_H_cgs) &
-                    / (3.0d0 * saha_kB_cgs), 100.0d0) / unit_temperature
+            if (saha_y_cgs(nH_cgs, T_lo) > 1.0d0 - 1.0d-10) then
+                T_out = T_lo / unit_temperature
                 y_out = 1.0d0
                 return
             end if
         end if
 
-        ! Bisect in CGS (no unit conversions inside loop)
+        ! Bisect in CGS
         do iter = 1, max_iter
             T_mid = 0.5d0 * (T_lo + T_hi)
             y_mid = saha_y_cgs(nH_cgs, T_mid)
-
-            eint_mid = 1.5d0 * (1.0d0 + y_mid) * saha_kB_cgs * T_mid
-            if (eos%ionE) eint_mid = eint_mid + y_mid * saha_chi_H_cgs
-
-            if (eint_mid < eint_nH_cgs) then
+            if (saha_eint_cgs(y_mid, T_mid) < eint_nH_cgs) then
                 T_lo = T_mid
             else
                 T_hi = T_mid

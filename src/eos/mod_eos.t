@@ -7,7 +7,7 @@
 !>            state    -- per-quantity (T,p,ne/nH,eint/p) Saha-equilibrium tables,
 !>                        PCHIP/bilinear interpolated ('tables' accepted as legacy alias).
 !>            entropy  -- bicubic-Hermite reconstruction (see mod_eos_lte_entropy).
-!>            analytic -- on-the-fly H-only Saha solve (see saha_* routines).
+!>            analytic -- on-the-fly hydrogen Saha solve, helium neutral (saha_* routines).
 !>          Tables are generated offline and read as binary; their axes are
 !>          (log10 nH, log10 eint/nH) in code units after the unit shift applied
 !>          in eos_finalise. ionE optionally folds ionisation energy into eint.
@@ -200,11 +200,10 @@ contains
                 " (expected 'exact', 'effective', or 'constant')")
         end if
 
-        !> analytic-method caveats (H-only Saha)
+        !> analytic-method caveats (hydrogen Saha, helium neutral)
         if (eos%method_id == EOS_ANALYTIC) then
             if (eos%He_abundance > 0.0d0 .and. mype == 0) write(*,*) &
-                "WARNING: eos_method='analytic' is H-only. He_abundance=", &
-                eos%He_abundance, " used in pressure law but not in Saha ionization."
+                "eos_method='analytic' keeps helium neutral, He_abundance=", eos%He_abundance
             ! effective gamma1 needs T,neOnH tables -> not available analytically
             if (eos%gamma1_method == 'effective') then
                 if (mype == 0) write(*,*) &
