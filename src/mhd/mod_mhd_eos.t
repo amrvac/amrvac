@@ -747,7 +747,7 @@ contains
         double precision, intent(inout) :: w(ixI^S, nw)
         double precision, intent(in)    :: x(ixI^S, 1:ndim)
 
-        double precision :: b(ixO^S,1:ndir), tmp, b2, gamma2, inv_rho
+        double precision :: b(ixO^S,1:ndir), tmp, b2, vac2, gamma2, inv_rho
         integer :: ix^D
 
         if (fix_small_values) then
@@ -766,11 +766,11 @@ contains
 
             inv_rho=1.d0/w(ix^D,rho_)
             ! Va^2/c^2
-            b2=b2*inv_rho*eos%inv_squared_c
+            vac2=b2*inv_rho*eos%inv_squared_c
             ! equation (15)
-            gamma2=1.d0/(1.d0+b2)
+            gamma2=1.d0/(1.d0+vac2)
             ! Convert momentum to velocity
-            ^C&w(ix^D,m^C_)=gamma2*(w(ix^D,m^C_)+b2*b(ix^D,^C)*tmp)*inv_rho\
+            ^C&w(ix^D,m^C_)=gamma2*(w(ix^D,m^C_)+vac2*b(ix^D,^C)*tmp)*inv_rho\
 
             if(mhd_internal_e) then
                 ! internal energy to pressure
@@ -791,8 +791,7 @@ contains
                 }
                 ! Calculate pressure = (gamma-1) * (e-eK-eB-eE)
                 w(ix^D,p_)=eos%gamma_minus_1*(w(ix^D,e_)&
-                          -half*((^C&w(ix^D,m^C_)**2+)*w(ix^D,rho_)&
-                          +(^C&w(ix^D,b^C_)**2+)&
+                          -half*((^C&w(ix^D,m^C_)**2+)*w(ix^D,rho_)+b2&
                           +(^C&b(ix^D,^C)**2+)*eos%inv_squared_c))
             end if
         {end do\}
@@ -806,7 +805,7 @@ contains
         double precision, intent(inout) :: w(ixI^S, nw)
         double precision, intent(in)    :: x(ixI^S, 1:ndim)
 
-        double precision :: b(ixO^S,1:ndir), tmp, b2, gamma2, inv_rho, eint, T, Rfac
+        double precision :: b(ixO^S,1:ndir), tmp, b2, vac2, gamma2, inv_rho, eint, T, Rfac
         integer :: ix^D
 
         if (fix_small_values) then
@@ -825,11 +824,11 @@ contains
 
             inv_rho=1.d0/w(ix^D,rho_)
             ! Va^2/c^2
-            b2=b2*inv_rho*eos%inv_squared_c
+            vac2=b2*inv_rho*eos%inv_squared_c
             ! equation (15)
-            gamma2=1.d0/(1.d0+b2)
+            gamma2=1.d0/(1.d0+vac2)
             ! Convert momentum to velocity
-            ^C&w(ix^D,m^C_)=gamma2*(w(ix^D,m^C_)+b2*b(ix^D,^C)*tmp)*inv_rho\
+            ^C&w(ix^D,m^C_)=gamma2*(w(ix^D,m^C_)+vac2*b(ix^D,^C)*tmp)*inv_rho\
 
             if(mhd_internal_e) then
                 ! internal energy to pressure
@@ -850,8 +849,7 @@ contains
                 }
                 ! internal energy= e-eK-eB-eE
                 eint=w(ix^D,e_)&
-                          -half*((^C&w(ix^D,m^C_)**2+)*w(ix^D,rho_)&
-                          +(^C&w(ix^D,b^C_)**2+)&
+                          -half*((^C&w(ix^D,m^C_)**2+)*w(ix^D,rho_)+b2&
                           +(^C&b(ix^D,^C)**2+)*eos%inv_squared_c)
                 call state_from_eint_PI(w(ix^D,rho_), eint, T, w(ix^D,p_), Rfac)
             end if
@@ -1285,17 +1283,21 @@ contains
         double precision, intent(in)    :: x(ixI^S, 1:ndim)
         double precision, intent(out)   :: cs2(ixI^S)
 
-        double precision :: rho(ixI^S), pth(ixI^S)
+        double precision :: rho, ploc
+        integer :: ix^D
 
         timeeos0 = MPI_WTIME()
-
-        !> Both slots hold perturbations under equilibrium splitting, so the
-        !> background is restored before the ratio is formed.
-        call eos%get_rho(w, x, ixI^L, ixO^L, rho)
-        pth(ixO^S) = w(ixO^S, p_)
-        if (iw_equi_p > 0) pth(ixO^S) = pth(ixO^S) &
-             + block%equi_vars(ixO^S, iw_equi_p, b0i)
-        cs2(ixO^S) = eos%gamma * pth(ixO^S) / rho(ixO^S)
+        {do ix^DB=ixOmin^DB,ixOmax^DB \}
+            if(has_equi_rho_and_p) then
+              rho=(w(ix^D,rho_)+block%equi_vars(ix^D,equi_rho0_,0))
+              ploc=(w(ix^D,p_)+block%equi_vars(ix^D,equi_pe0_,0))
+              ! sound speed**2 
+              cs2(ix^D)=eos%gamma*ploc/rho
+            else
+              ! sound speed**2 
+              cs2(ix^D)=eos%gamma*w(ix^D,p_)/w(ix^D,rho_)
+            end if
+        {end do\}
 
         timeeos_csound = timeeos_csound + (MPI_WTIME()-timeeos0)
 

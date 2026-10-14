@@ -2894,31 +2894,6 @@ contains
 
   end subroutine mhd_get_v
 
-  !> Calculate csound**2 within ixO^L
-  subroutine mhd_get_csound2(w,x,ixI^L,ixO^L,cs2)
-    use mod_global_parameters
-
-    integer, intent(in)          :: ixI^L, ixO^L
-    double precision, intent(in) :: w(ixI^S, nw), x(ixI^S,1:ndim)
-    double precision, intent(inout) :: cs2(ixI^S)
-
-    double precision :: rho, inv_rho, ploc
-    integer :: ix^D
-
-    {do ix^DB=ixOmin^DB,ixOmax^DB \}
-        if(has_equi_rho_and_p) then
-          rho=(w(ix^D,rho_)+block%equi_vars(ix^D,equi_rho0_,0))
-          ploc=(w(ix^D,p_)+block%equi_vars(ix^D,equi_pe0_,0))
-        else
-          rho=w(ix^D,rho_)
-          ploc=w(ix^D,p_)
-        end if
-        inv_rho=1.d0/rho
-        ! sound speed**2 
-        cs2(ix^D)=eos%gamma*ploc*inv_rho
-   {end do\}
-  end subroutine mhd_get_csound2
-
   !> Calculate cmax_idim=csound+abs(v_idim) within ixO^L
   subroutine mhd_get_cmax_origin(w,x,ixI^L,ixO^L,idim,cmax)
     use mod_global_parameters
@@ -2927,7 +2902,7 @@ contains
     double precision, intent(in) :: w(ixI^S, nw), x(ixI^S,1:ndim)
     double precision, intent(inout) :: cmax(ixI^S)
 
-    double precision :: rho, inv_rho, ploc, cfast2, AvMinCs2, b2, kmax
+    double precision :: rho, inv_rho, cfast2, AvMinCs2, b2, kmax
     double precision :: cs2(ixI^S)
     double precision :: uawsom_zeta(ixI^S), uawsom_radius(ixI^S), uawsom_lperp(ixI^S)
     integer :: ix^D
@@ -2943,17 +2918,14 @@ contains
      {do ix^DB=ixOmin^DB,ixOmax^DB \}
         if(has_equi_rho_and_p) then
           rho=(w(ix^D,rho_)+block%equi_vars(ix^D,equi_rho0_,b0i))
-          ploc=(w(ix^D,p_)+block%equi_vars(ix^D,equi_pe0_,b0i))
         else
           rho=w(ix^D,rho_)
-          ploc=w(ix^D,p_)
         end if
         inv_rho=1.d0/rho
-        cmax(ix^D)=cs2(ix^D)
         ! store |B|^2 in v
         b2=(^C&(w(ix^D,b^C_)+block%B0(ix^D,^C,b0i))**2+)
-        cfast2=b2*inv_rho+cmax(ix^D)
-        AvMinCs2=cfast2**2-4.0d0*cmax(ix^D)*(w(ix^D,mag(idim))+block%B0(ix^D,idim,b0i))**2*inv_rho
+        cfast2=b2*inv_rho+cs2(ix^D)
+        AvMinCs2=cfast2**2-4.0d0*cs2(ix^D)*(w(ix^D,mag(idim))+block%B0(ix^D,idim,b0i))**2*inv_rho
         if(AvMinCs2<zero) AvMinCs2=zero
         cmax(ix^D)=sqrt(half*(cfast2+sqrt(AvMinCs2)))
         if(mhd_hall) then
@@ -2975,17 +2947,14 @@ contains
      {do ix^DB=ixOmin^DB,ixOmax^DB \}
         if(has_equi_rho_and_p) then
           rho=(w(ix^D,rho_)+block%equi_vars(ix^D,equi_rho0_,b0i))
-          ploc=(w(ix^D,p_)+block%equi_vars(ix^D,equi_pe0_,b0i))
         else
           rho=w(ix^D,rho_)
-          ploc=w(ix^D,p_)
         end if
         inv_rho=1.d0/rho
-        cmax(ix^D)=cs2(ix^D)
         ! store |B|^2 in v
         b2=(^C&w(ix^D,b^C_)**2+)
-        cfast2=b2*inv_rho+cmax(ix^D)
-        AvMinCs2=cfast2**2-4.0d0*cmax(ix^D)*w(ix^D,mag(idim))**2*inv_rho
+        cfast2=b2*inv_rho+cs2(ix^D)
+        AvMinCs2=cfast2**2-4.0d0*cs2(ix^D)*w(ix^D,mag(idim))**2*inv_rho
         if(AvMinCs2<zero) AvMinCs2=zero
         cmax(ix^D)=sqrt(half*(cfast2+sqrt(AvMinCs2)))
         if(mhd_hall) then
@@ -3014,7 +2983,7 @@ contains
     double precision, intent(in) :: w(ixI^S, nw), x(ixI^S,1:ndim)
     double precision, intent(inout) :: cmax(ixI^S)
 
-    double precision :: rho, inv_rho, cfast2, AvMinCs2, b2, kmax
+    double precision :: inv_rho, cfast2, AvMinCs2, b2, kmax
     double precision :: adiabs(ixI^S), gammas(ixI^S)
     integer :: ix^D
 
@@ -3031,10 +3000,9 @@ contains
        gammas=eos%gamma
     end if
    {do ix^DB=ixOmin^DB,ixOmax^DB \}
-       rho=w(ix^D,rho_)
-       inv_rho=1.d0/rho
+       inv_rho=1.d0/w(ix^D,rho_)
        ! sound speed**2 
-       cmax(ix^D)=gammas(ix^D)*adiabs(ix^D)*rho**(gammas(ix^D)-1.d0)
+       cmax(ix^D)=gammas(ix^D)*adiabs(ix^D)*w(ix^D,rho_)**(gammas(ix^D)-1.d0)
        ! store |B|^2 in v
        b2=(^C&w(ix^D,b^C_)**2+)
        cfast2=b2*inv_rho+cmax(ix^D)
@@ -3059,26 +3027,27 @@ contains
     double precision, intent(in) :: w(ixI^S, nw), x(ixI^S,1:ndim)
     double precision, intent(inout):: cmax(ixI^S)
 
-    double precision :: csound, AvMinCs2, idim_Alfven_speed2
+    double precision :: AvMinCs2, idim_Alfven_speed2
     double precision :: inv_rho, Alfven_speed2, gamma2
+    double precision :: cs2(ixI^S)
     integer :: ix^D
+
+    ! Sound speed squared via EoS dispatch (LTE+ionE -> Gamma_1 table; FI -> const gamma).
+    call eos%get_csound2(w, x, ixI^L, ixO^L, cs2)
 
    {do ix^DB=ixOmin^DB,ixOmax^DB \}
       inv_rho=1.d0/w(ix^D,rho_)
       Alfven_speed2=(^C&w(ix^D,b^C_)**2+)*inv_rho
       gamma2=1.0d0/(1.d0+Alfven_speed2*inv_squared_c)
       cmax(ix^D)=1.d0-gamma2*w(ix^D,mom(idim))**2*inv_squared_c
-      ! squared sound speed
-      csound=eos%gamma*w(ix^D,p_)*inv_rho
       idim_Alfven_speed2=w(ix^D,mag(idim))**2*inv_rho
       ! Va_hat^2+a_hat^2 equation (57)
       ! equation (69)
-      Alfven_speed2=Alfven_speed2*cmax(ix^D)+csound*(1.d0+idim_Alfven_speed2*inv_squared_c)
-      AvMinCs2=(gamma2*Alfven_speed2)**2-4.0d0*gamma2*csound*idim_Alfven_speed2*cmax(ix^D)
+      Alfven_speed2=Alfven_speed2*cmax(ix^D)+cs2(ix^D)*(1.d0+idim_Alfven_speed2*inv_squared_c)
+      AvMinCs2=(gamma2*Alfven_speed2)**2-4.0d0*gamma2*cs2(ix^D)*idim_Alfven_speed2*cmax(ix^D)
       if(AvMinCs2<zero) AvMinCs2=zero
       ! equation (68) fast magnetosonic wave speed
-      csound = sqrt(half*(gamma2*Alfven_speed2+sqrt(AvMinCs2)))
-      cmax(ix^D)=gamma2*abs(w(ix^D,mom(idim)))+csound
+      cmax(ix^D)=gamma2*abs(w(ix^D,mom(idim)))+sqrt(half*(gamma2*Alfven_speed2+sqrt(AvMinCs2)))
    {end do\}
 
   end subroutine mhd_get_cmax_semirelati
@@ -3113,6 +3082,7 @@ contains
       Alfven_speed2=(^C&w(ix^D,b^C_)**2+)*inv_rho
       gamma2=1.0d0/(1.d0+Alfven_speed2*inv_squared_c)
       cmax(ix^D)=1.d0-gamma2*w(ix^D,mom(idim))**2*inv_squared_c
+      ! sound speed squared
       csound=gammas(ix^D)*adiabs(ix^D)*w(ix^D,rho_)**(gammas(ix^D)-1.d0)
       idim_Alfven_speed2=w(ix^D,mag(idim))**2*inv_rho
       ! Va_hat^2+a_hat^2 equation (57)
@@ -3121,8 +3091,7 @@ contains
       AvMinCs2=(gamma2*Alfven_speed2)**2-4.0d0*gamma2*csound*idim_Alfven_speed2*cmax(ix^D)
       if(AvMinCs2<zero) AvMinCs2=zero
       ! equation (68) fast magnetosonic wave speed
-      csound = sqrt(half*(gamma2*Alfven_speed2+sqrt(AvMinCs2)))
-      cmax(ix^D)=gamma2*abs(w(ix^D,mom(idim)))+csound
+      cmax(ix^D)=gamma2*abs(w(ix^D,mom(idim)))+sqrt(half*(gamma2*Alfven_speed2+sqrt(AvMinCs2)))
    {end do\}
 
   end subroutine mhd_get_cmax_semirelati_noe
@@ -3965,7 +3934,10 @@ contains
 
     if(mhd_hall) kmax = dpi/min({dxlevel(^D)},bigdouble)*half
 
-    if(.not.mhd_energy) then
+    if(mhd_energy) then
+      ! Sound speed squared via EoS dispatch (honours LTE+ionE Gamma_1 table).
+      call eos%get_csound2(w, x, ixI^L, ixO^L, cs2)
+    else
       if(associated(usr_set_adiab)) then
          call usr_set_adiab(w,x,ixI^L,ixO^L,adiabs)
       else
@@ -3978,24 +3950,18 @@ contains
       end if
     end if
 
-    ! Sound speed squared via EoS dispatch (honours LTE+ionE Gamma_1 table).
-    if(mhd_energy) then
-      call eos%get_csound2(w, x, ixI^L, ixO^L, cs2)
-    end if
-
     ! store |B|^2 in v
     if(B0field) then
      {do ix^DB=ixOmin^DB,ixOmax^DB \}
         inv_rho=1.d0/w(ix^D,rho_)
         if(mhd_energy) then
-          csound(ix^D)=cs2(ix^D)
-          if(mhd_radiation_fld.and.fld_bound_diff)csound(ix^D)=cs2(ix^D)+4.0d0*w(ix^D,r_e)*inv_rho/9.0d0
+          if(mhd_radiation_fld.and.fld_bound_diff)cs2(ix^D)=cs2(ix^D)+4.0d0*w(ix^D,r_e)*inv_rho/9.0d0
         else
-          csound(ix^D)=gammas(ix^D)*adiabs(ix^D)*w(ix^D,rho_)**(gammas(ix^D)-1.d0)
+          cs2(ix^D)=gammas(ix^D)*adiabs(ix^D)*w(ix^D,rho_)**(gammas(ix^D)-1.d0)
         end if
         b2=(^C&(w(ix^D,b^C_)+block%B0(ix^D,^C,b0i))**2+)
-        cfast2=b2*inv_rho+csound(ix^D)
-        AvMinCs2=cfast2**2-4.0d0*csound(ix^D)*(w(ix^D,mag(idim))+&
+        cfast2=b2*inv_rho+cs2(ix^D)
+        AvMinCs2=cfast2**2-4.0d0*cs2(ix^D)*(w(ix^D,mag(idim))+&
          block%B0(ix^D,idim,b0i))**2*inv_rho
         if(AvMinCs2<zero) AvMinCs2=zero
         csound(ix^D)=sqrt(half*(cfast2+sqrt(AvMinCs2)))
@@ -4007,14 +3973,13 @@ contains
      {do ix^DB=ixOmin^DB,ixOmax^DB \}
         inv_rho=1.d0/w(ix^D,rho_)
         if(mhd_energy) then
-          csound(ix^D)=cs2(ix^D)
-          if(mhd_radiation_fld.and.fld_bound_diff)csound(ix^D)=cs2(ix^D)+4.0d0*w(ix^D,r_e)*inv_rho/9.0d0
+          if(mhd_radiation_fld.and.fld_bound_diff)cs2(ix^D)=cs2(ix^D)+4.0d0*w(ix^D,r_e)*inv_rho/9.0d0
         else
-          csound(ix^D)=gammas(ix^D)*adiabs(ix^D)*w(ix^D,rho_)**(gammas(ix^D)-1.d0)
+          cs2(ix^D)=gammas(ix^D)*adiabs(ix^D)*w(ix^D,rho_)**(gammas(ix^D)-1.d0)
         end if
         b2=(^C&w(ix^D,b^C_)**2+)
-        cfast2=b2*inv_rho+csound(ix^D)
-        AvMinCs2=cfast2**2-4.0d0*csound(ix^D)*w(ix^D,mag(idim))**2*inv_rho
+        cfast2=b2*inv_rho+cs2(ix^D)
+        AvMinCs2=cfast2**2-4.0d0*cs2(ix^D)*w(ix^D,mag(idim))**2*inv_rho
         if(AvMinCs2<zero) AvMinCs2=zero
         csound(ix^D)=sqrt(half*(cfast2+sqrt(AvMinCs2)))
         if(mhd_hall) then
@@ -4083,20 +4048,22 @@ contains
     double precision, intent(out):: csound(ixO^S), gamma2(ixO^S)
 
     double precision :: AvMinCs2, inv_rho, Alfven_speed2, idim_Alfven_speed2
+    double precision :: cs2(ixI^S)
     integer :: ix^D
+
+    ! Sound speed squared via EoS dispatch (LTE+ionE -> Gamma_1 table; FI -> const gamma).
+    call eos%get_csound2(w, x, ixI^L, ixO^L, cs2)
 
    {do ix^DB=ixOmin^DB,ixOmax^DB\}
       inv_rho = 1.d0/w(ix^D,rho_)
-      ! squared sound speed
-      csound(ix^D)=eos%gamma*w(ix^D,p_)*inv_rho
       Alfven_speed2=(^C&w(ix^D,b^C_)**2+)*inv_rho
       gamma2(ix^D) = 1.0d0/(1.d0+Alfven_speed2*inv_squared_c)
       AvMinCs2=1.d0-gamma2(ix^D)*w(ix^D,mom(idim))**2*inv_squared_c
       idim_Alfven_speed2=w(ix^D,mag(idim))**2*inv_rho
       ! Va_hat^2+a_hat^2 equation (57)
       ! equation (69)
-      Alfven_speed2=Alfven_speed2*AvMinCs2+csound(ix^D)*(1.d0+idim_Alfven_speed2*inv_squared_c)
-      AvMinCs2=(gamma2(ix^D)*Alfven_speed2)**2-4.0d0*gamma2(ix^D)*csound(ix^D)*idim_Alfven_speed2*AvMinCs2
+      Alfven_speed2=Alfven_speed2*AvMinCs2+cs2(ix^D)*(1.d0+idim_Alfven_speed2*inv_squared_c)
+      AvMinCs2=(gamma2(ix^D)*Alfven_speed2)**2-4.0d0*gamma2(ix^D)*cs2(ix^D)*idim_Alfven_speed2*AvMinCs2
       if(AvMinCs2<zero) AvMinCs2=zero
       ! equation (68) fast magnetosonic speed
       csound(ix^D) = sqrt(half*(gamma2(ix^D)*Alfven_speed2+sqrt(AvMinCs2)))

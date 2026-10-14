@@ -7,8 +7,8 @@ module mod_usr
   integer, parameter :: jmax=8000
   double precision, allocatable :: pbc(:),rbc(:)
   ! 1D solar atmosphere table for pressure, density, and height
-  double precision :: pa(jmax),ra(jmax),ya(jmax)
-  double precision :: usr_grav,SRadius,rhob,Tiso,dr,gzone,bQ0
+  double precision, allocatable :: pa(:),ra(:)
+  double precision :: usr_grav,SRadius,rhob,Tiso,dha,gzone,bQ0
   double precision :: q_para,d_para,L_para, charge1_x(3), charge2_x(3), charge1, charge2
 
 contains
@@ -65,7 +65,7 @@ contains
 
     gzone=2.d8/unit_length
     ! cell size in 1D solar atmosphere table
-    dr=(2.d0*gzone+xprobmax3-xprobmin3)/dble(jmax)
+    dha=(2.d0*gzone+xprobmax3-xprobmin3)/dble(jmax)
     usr_grav=-2.74d4*unit_length/unit_velocity**2  ! solar gravity
     SRadius=6.955d10/unit_length                   ! Solar radius
 
@@ -90,70 +90,92 @@ contains
 
   !> initialize solar atmosphere table in a vertical line through the global domain
   subroutine inithdstatic
-    use mod_global_parameters
+    use mod_solar_atmosphere
 
-    double precision :: Ta(jmax),gg(jmax)
+    double precision, allocatable :: Ta(:),gg(:),ha(:)
     double precision :: rpho,Tpho,Ttop,htra,wtra,ftra,Ttr,Fc,k_para
     double precision :: res,pb,rhob,invT
+    double precision :: rhohc,hc
     integer :: j,na,ibc,btlevel
+    logical :: simple_temperature_curve
 
-    rpho=1.151d15/unit_numberdensity ! number density at the bottom relaxla
-    Tpho=8.d3/unit_temperature ! temperature of chromosphere
-    Ttop=1.5d6/unit_temperature ! estimated temperature in the top
-    htra=2.d8/unit_length ! height of initial transition region
-    wtra=2.d7/unit_length ! width of initial transition region 
-    htra=2.d8/unit_length ! height of initial transition region
-    wtra=0.2d8/unit_length! width of initial transition region 
-    Ttr=1.6d5/unit_temperature ! lowest temperature of upper profile
-    Fc=2.d5/unit_pressure/unit_velocity  ! constant thermal conduction flux
-    ftra=wtra*atanh(2.d0*(Ttr-Tpho)/(Ttop-Tpho)-1.d0)
-    ! Spitzer thermal conductivity with cgs units
-    k_para=8.d-7*unit_temperature**3.5d0/unit_length/unit_density/unit_velocity**3 
-    !! set T distribution with height
-    do j=1,jmax
-       ya(j)=(dble(j)-0.5d0)*dr-gzone
-       if(ya(j)>htra) then
-         Ta(j)=(3.5d0*Fc/k_para*(ya(j)-htra)+Ttr**3.5d0)**(2.d0/7.d0)
-       else
-         Ta(j)=Tpho+0.5d0*(Ttop-Tpho)*(tanh((ya(j)-htra+ftra)/wtra)+1.d0)
-       endif
-       gg(j)=usr_grav*(SRadius/(SRadius+ya(j)))**2
-    enddo
-    !! solution of hydrostatic equation 
-    ra(1)=rpho
-    pa(1)=rpho*Tpho
-    !invT=0.d0
-    !do j=2,jmax
-    !   invT=invT+(gg(j)/Ta(j)+gg(j-1)/Ta(j-1))*0.5d0
-    !   pa(j)=pa(1)*dexp(invT*dr)
-    !   ra(j)=pa(j)/Ta(j)
-    !end do
-    do j=2,jmax
-       pa(j)=(pa(j-1)+dr*(gg(j)+gg(j-1))*ra(j-1)/4.d0)/(one-dr*(gg(j)+gg(j-1))/&
-              Ta(j)/4.d0)
-       ra(j)=pa(j)/Ta(j)
-    end do
+    simple_temperature_curve=.true.
+
+    allocate(ha(jmax),Ta(jmax),gg(jmax),pa(jmax),ra(jmax))
+
+    if(simple_temperature_curve) then
+      rpho=1.151d15/unit_numberdensity ! number density at the bottom relaxla
+      Tpho=8.d3/unit_temperature ! temperature of chromosphere
+      Ttop=1.5d6/unit_temperature ! estimated temperature in the top
+      htra=2.d8/unit_length ! height of initial transition region
+      wtra=2.d7/unit_length ! width of initial transition region
+      htra=2.d8/unit_length ! height of initial transition region
+      wtra=0.2d8/unit_length! width of initial transition region
+      Ttr=1.6d5/unit_temperature ! lowest temperature of upper profile
+      Fc=2.d5/unit_pressure/unit_velocity  ! constant thermal conduction flux
+      ftra=wtra*atanh(2.d0*(Ttr-Tpho)/(Ttop-Tpho)-1.d0)
+      ! Spitzer thermal conductivity with cgs units
+      k_para=8.d-7*unit_temperature**3.5d0/unit_length/unit_density/unit_velocity**3
+      !! set T distribution with height
+      do j=1,jmax
+         ha(j)=(dble(j)-0.5d0)*dha-gzone+xprobmin3
+         if(ha(j)>htra) then
+           Ta(j)=(3.5d0*Fc/k_para*(ha(j)-htra)+Ttr**3.5d0)**(2.d0/7.d0)
+         else
+           Ta(j)=Tpho+0.5d0*(Ttop-Tpho)*(tanh((ha(j)-htra+ftra)/wtra)+1.d0)
+         end if
+         gg(j)=usr_grav*(SRadius/(SRadius+ha(j)))**2
+      end do
+      !! solution of hydrostatic equation
+      ra(1)=rpho
+      pa(1)=rpho*Tpho
+      !invT=0.d0
+      !do j=2,jmax
+      !   invT=invT+(gg(j)/Ta(j)+gg(j-1)/Ta(j-1))*0.5d0
+      !   pa(j)=pa(1)*dexp(invT*dha)
+      !   ra(j)=pa(j)/Ta(j)
+      !end do
+      do j=2,jmax
+         pa(j)=(pa(j-1)+dha*(gg(j)+gg(j-1))*ra(j-1)/4.d0)/(one-dha*(gg(j)+gg(j-1))/&
+                Ta(j)/4.d0)
+         ra(j)=pa(j)/Ta(j)
+      end do
+    else
+      do j=1,jmax
+         ! get height table
+         ha(j)=(dble(j)-0.5d0)*dha-gzone+xprobmin3
+         ! get gravity table
+         gg(j)=usr_grav*(SRadius/(SRadius+ha(j)))**2
+      end do
+      ! a coronal height at 10 Mm
+      hc=5.02d8/unit_length
+      ! the number density at the coronal height
+      rhohc=9.39786d8/unit_numberdensity
+      ! get density and pressure table in hydrostatic state with a preset temperature table
+      call get_atm_para(ha,ra,pa,gg,jmax,'AL-C7',hc,rhohc)
+    end if
     !! initialized rho and p in the fixed bottom boundary
-    na=floor(gzone/dr+0.5d0)
-    res=gzone-(dble(na)-0.5d0)*dr
-    rhob=ra(na)+res/dr*(ra(na+1)-ra(na))
-    pb=pa(na)+res/dr*(pa(na+1)-pa(na))
+    na=floor(gzone/dha+0.5d0)
+    res=gzone-(dble(na)-0.5d0)*dha
+    rhob=ra(na)+res/dha*(ra(na+1)-ra(na))
+    pb=pa(na)+res/dha*(pa(na+1)-pa(na))
     allocate(rbc(nghostcells))
     allocate(pbc(nghostcells))
     btlevel=refine_max_level
     do ibc=nghostcells,1,-1
-      na=floor((gzone-dx(3,btlevel)*(dble(nghostcells-ibc+1)-0.5d0))/dr+0.5d0)
-      res=gzone-dx(3,btlevel)*(dble(nghostcells-ibc+1)-0.5d0)-(dble(na)-0.5d0)*dr
-      rbc(ibc)=ra(na)+res/dr*(ra(na+1)-ra(na))
-      pbc(ibc)=pa(na)+res/dr*(pa(na+1)-pa(na))
+      na=floor((gzone-dx(3,btlevel)*(dble(nghostcells-ibc+1)-0.5d0))/dha+0.5d0)
+      res=gzone-dx(3,btlevel)*(dble(nghostcells-ibc+1)-0.5d0)-(dble(na)-0.5d0)*dha
+      rbc(ibc)=ra(na)+res/dha*(ra(na+1)-ra(na))
+      pbc(ibc)=pa(na)+res/dha*(pa(na+1)-pa(na))
     end do
-    
-    if (mype==0) then
-     print*,'minra',minval(ra)
-     print*,'maxTa',Ta(jmax)
-     print*,'rhob',rhob
-     print*,'pb',pb
-    endif
+
+    if(mype==0) then
+     write(*,*) 'minra',minval(ra)
+     write(*,*) 'maxTa',Ta(jmax)
+     write(*,*) 'rhob',rhob
+     write(*,*) 'pb',pb
+    end if
+    deallocate(ha,gg,Ta)
 
   end subroutine inithdstatic
 
@@ -191,10 +213,10 @@ contains
 
     if(mhd_energy) then
       {do ix^DB=ixOmin^DB,ixOmax^DB\}
-         na=floor((x(ix^D,3)-xprobmin3+gzone)/dr+0.5d0)
-         res=x(ix^D,3)-xprobmin3+gzone-(dble(na)-0.5d0)*dr
-         w(ix^D,rho_)=ra(na)+(one-cos(dpi*res/dr))/two*(ra(na+1)-ra(na))
-         w(ix^D,p_)  =pa(na)+(one-cos(dpi*res/dr))/two*(pa(na+1)-pa(na))
+         na=floor((x(ix^D,3)-xprobmin3+gzone)/dha+0.5d0)
+         res=x(ix^D,3)-xprobmin3+gzone-(dble(na)-0.5d0)*dha
+         w(ix^D,rho_)=ra(na)+(one-cos(dpi*res/dha))/two*(ra(na+1)-ra(na))
+         w(ix^D,p_)  =pa(na)+(one-cos(dpi*res/dha))/two*(pa(na+1)-pa(na))
       {end do\}
     else if(mhd_adiab/=0) then
       ! isothermal

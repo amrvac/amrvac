@@ -55,10 +55,10 @@ contains
   subroutine inithdstatic
     use mod_solar_atmosphere
     ! initialize the table in a vertical line through the global domain
-    integer :: j,na,ibc
     double precision, allocatable :: Ta(:),gg(:),ya(:)
     double precision :: rpho,Ttop,Tpho,wtra,res,rhob,pb,htra,ftra,Ttr,Fc,invT,kappa
     double precision :: rhohc,hc
+    integer :: j,na,ibc
     logical :: simple_temperature_curve
 
     simple_temperature_curve=.true.
