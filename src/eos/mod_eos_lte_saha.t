@@ -216,7 +216,7 @@ contains
 
     !> Build 2D Gamma1(nH, T) table from analytical Saha for the 'analytic' EoS method.
     !> Grid: uniform in (log10 nH, log10 T) with 256x256 points.
-    !> Gamma1 = 1 + (1+y)*kB / Cv, where Cv = d(eint)/d(T) at constant rho.
+    !> Equilibrium Gamma1 = chi_rho + chi_T^2 (1+He+y)/c_v, with c_v per nH in units of kB.
     !> Stored in eos%gamma1_p for reuse by the existing csound2 routines
     !> (re-indexed: axis 2 = log10(T) instead of log10(p/nH)).
     subroutine build_gamma1_analytic_table()
@@ -224,10 +224,8 @@ contains
         integer :: i, j
         double precision :: log_nH_min, log_nH_max, log_T_min, log_T_max
         double precision :: dx1, dx2, log_nH, log_T
-        double precision :: nH_code, T_code, y, yp, ym
-        double precision :: Cv, g1_val, g1_min, g1_max
-        double precision :: T_cgs, dT_cgs
-        double precision :: eint_p, eint_m
+        double precision :: nH_code, T_code, y, chi, dlny, npart, cv, chi_T, chi_rho
+        double precision :: g1_val, g1_min, g1_max
 
         ! Range: log10(nH [CGS]) from 5 to 19, log10(T [K]) from 2.8 to 6.3
         ! Convert to code-unit ranges
@@ -255,9 +253,7 @@ contains
         do j = 1, ng
             log_T = log_T_min + (j - 1) * dx2
             T_code = 10.0d0**log_T
-            T_cgs = T_code * unit_temperature
-            ! Central difference step: 0.1% of T
-            dT_cgs = 1.0d-3 * T_cgs
+            chi = saha_chi_kB / (T_code * unit_temperature)
 
             do i = 1, ng
                 log_nH = log_nH_min + (i - 1) * dx1
@@ -265,25 +261,14 @@ contains
 
                 y = saha_y_from_nH_T(nH_code, T_code)
 
-                ! Compute Cv = d(eint/nH)/d(T) via central difference
-                yp = saha_y_from_nH_T(nH_code, (T_cgs + dT_cgs) / unit_temperature)
-                ym = saha_y_from_nH_T(nH_code, (T_cgs - dT_cgs) / unit_temperature)
-
-                eint_p = 1.5d0 * (1.0d0 + yp) * saha_kB_cgs * (T_cgs + dT_cgs)
-                eint_m = 1.5d0 * (1.0d0 + ym) * saha_kB_cgs * (T_cgs - dT_cgs)
-                if (eos%ionE) then
-                    eint_p = eint_p + yp * saha_chi_H_cgs
-                    eint_m = eint_m + ym * saha_chi_H_cgs
-                end if
-
-                Cv = (eint_p - eint_m) / (2.0d0 * dT_cgs)
-
-                ! Gamma1 = 1 + (1+y)*kB / Cv
-                if (Cv > 0.0d0) then
-                    g1_val = 1.0d0 + (1.0d0 + y) * saha_kB_cgs / Cv
-                else
-                    g1_val = eos%gamma
-                end if
+                ! dln y/dln T at fixed nH from y^2/(1-y) ~ T^1.5 exp(-chi_H/kT)/nH
+                dlny = (1.0d0 - y) / (2.0d0 - y) * (1.5d0 + chi)
+                npart = 1.0d0 + eos%He_abundance + y
+                cv = 1.5d0 * npart + 1.5d0 * y * dlny
+                if (eos%ionE) cv = cv + y * dlny * chi
+                chi_T = 1.0d0 + y * dlny / npart
+                chi_rho = 1.0d0 - y * (1.0d0 - y) / ((2.0d0 - y) * npart)
+                g1_val = chi_rho + chi_T**2 * npart / cv
 
                 eos%gamma1_p%table(i, j) = g1_val
                 g1_min = min(g1_min, g1_val)
