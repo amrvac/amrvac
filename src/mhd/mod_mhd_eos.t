@@ -1569,7 +1569,7 @@ contains
         double precision, intent(in) :: x(ixI^S,1:ndim)
         double precision, intent(out):: pth(ixI^S)
 
-        double precision :: b(ixO^S,1:ndir), v(ndir), tmp, b2, gamma2, inv_rho
+        double precision :: b(ixO^S,1:ndir), v(ndir), tmp, b2, vac2, gamma2, inv_rho
         integer :: iw, ix^D
 
         {do ix^DB=ixOmin^DB,ixOmax^DB\}
@@ -1584,11 +1584,11 @@ contains
 
             inv_rho=1.d0/w(ix^D,rho_)
             ! Va^2/c^2
-            b2=b2*inv_rho*eos%inv_squared_c
+            vac2=b2*inv_rho*eos%inv_squared_c
             ! equation (15)
-            gamma2=1.d0/(1.d0+b2)
+            gamma2=1.d0/(1.d0+vac2)
             ! Convert momentum to velocity
-            ^C&v(^C)=gamma2*(w(ix^D,m^C_)+b2*b(ix^D,^C)*tmp)*inv_rho\
+            ^C&v(^C)=gamma2*(w(ix^D,m^C_)+vac2*b(ix^D,^C)*tmp)*inv_rho\
 
             ! E=Bxv
             {^IFTHREEC
@@ -1605,8 +1605,7 @@ contains
             }
             ! Calculate pressure = (gamma-1) * (e-eK-eB-eE)
             pth(ix^D)=eos%gamma_minus_1*(w(ix^D,e_)&
-                       -half*((^C&v(^C)**2+)*w(ix^D,rho_)&
-                       +(^C&w(ix^D,b^C_)**2+)&
+                       -half*((^C&v(^C)**2+)*w(ix^D,rho_)+b2&
                        +(^C&b(ix^D,^C)**2+)*eos%inv_squared_c))
             if(fix_small_values.and.pth(ix^D)<small_pressure) pth(ix^D)=small_pressure
         {end do\}

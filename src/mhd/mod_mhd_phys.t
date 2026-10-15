@@ -963,6 +963,23 @@ contains
        endif
     endif
 
+    ! Energy conversion pointers needed by EOS module regardless of TC method
+    if(mhd_hydrodynamic_e) then
+      phys_e_to_ei => mhd_e_to_ei_hde
+      phys_ei_to_e => mhd_ei_to_e_hde
+    else if(mhd_semirelativistic) then
+      phys_e_to_ei => mhd_e_to_ei_semirelati
+      phys_ei_to_e => mhd_ei_to_e_semirelati
+    else
+      if (iw_log_nH > 0) then
+        phys_e_to_ei => mhd_e_to_ei_and_cache_log_nH
+        phys_ei_to_e => mhd_ei_to_e
+      else
+        phys_e_to_ei => mhd_e_to_ei
+        phys_ei_to_e => mhd_ei_to_e
+      end if
+    end if
+
     ! initialize thermal conduction module
     if (mhd_thermal_conduction) then
       call sts_init()
@@ -974,48 +991,13 @@ contains
         call add_sts_method(mhd_get_tc_dt_hd,mhd_sts_set_source_tc_hd,e_,1,e_,1,.false.)
       else
         call add_sts_method(mhd_get_tc_dt_mhd,mhd_sts_set_source_tc_mhd,e_,1,e_,1,.false.)
-      endif
-      ! TC function pointers (get_temperature_from_conserved/eint, get_rho,
-      ! get_temperature_equi, get_rho_equi, subtract_equi) are bound by
-      ! bind_eos_to_source in mod_mhd_eos.t to the correct EoS-aware
-      ! implementations. No EoS machinery in mod_mhd_phys.t.
-      if(.not.mhd_internal_e) then
-        if(mhd_hydrodynamic_e) then
-          call set_conversion_methods_to_head(mhd_e_to_ei_hde, mhd_ei_to_e_hde)
-          phys_e_to_ei => mhd_e_to_ei_hde
-          phys_ei_to_e => mhd_ei_to_e_hde
-        else if(mhd_semirelativistic) then
-          call set_conversion_methods_to_head(mhd_e_to_ei_semirelati, mhd_ei_to_e_semirelati)
-          phys_e_to_ei => mhd_e_to_ei_semirelati
-          phys_ei_to_e => mhd_ei_to_e_semirelati
-        else
-          if (iw_log_nH > 0) then
-            call set_conversion_methods_to_head(mhd_e_to_ei_and_cache_log_nH, mhd_ei_to_e)
-          else
-            call set_conversion_methods_to_head(mhd_e_to_ei, mhd_ei_to_e)
-          end if
-          phys_e_to_ei => mhd_e_to_ei
-          phys_ei_to_e => mhd_ei_to_e
-        end if
       end if
+      if(.not.mhd_internal_e) call set_conversion_methods_to_head(phys_e_to_ei, phys_ei_to_e)
       call set_error_handling_to_head(mhd_tc_handle_small_e)
       tc_fl%e_ = e_
       tc_fl%Tcoff_ = Tcoff_
     end if
 
-    ! Energy conversion pointers needed by EOS module regardless of TC method
-    if(.not.mhd_internal_e .and. .not.associated(phys_e_to_ei)) then
-      if(mhd_hydrodynamic_e) then
-        phys_e_to_ei => mhd_e_to_ei_hde
-        phys_ei_to_e => mhd_ei_to_e_hde
-      else if(mhd_semirelativistic) then
-        phys_e_to_ei => mhd_e_to_ei_semirelati
-        phys_ei_to_e => mhd_ei_to_e_semirelati
-      else
-        phys_e_to_ei => mhd_e_to_ei
-        phys_ei_to_e => mhd_ei_to_e
-      end if
-    end if
 
     ! Initialize radiative cooling module
     if (mhd_radiative_cooling) then
@@ -2367,7 +2349,8 @@ contains
                   +(^C&w(ix^D,b^C_)**2+))
      {end do\}
     else
-     {do ix^DB=ixOmin^DB,ixOmax^DB\}
+     {!dir$ ivdep
+      do ix^DB=ixOmin^DB,ixOmax^DB\}
         ! Calculate e = ei + ek + eb
         w(ix^D,e_)=w(ix^D,e_)&
                   +half*((^C&w(ix^D,m^C_)**2+)/w(ix^D,rho_)&
@@ -2401,9 +2384,40 @@ contains
     double precision, intent(inout) :: w(ixI^S, nw)
     double precision, intent(in)    :: x(ixI^S, 1:ndim)
 
-    w(ixO^S,p_)=w(ixO^S,e_)*eos%gamma_minus_1
-    ! call eos%to_conserved(ixI^L,ixO^L,w,x)
-    call eos%to_conserved(ixI^L,ixO^L,w,x)
+    double precision :: E(ixO^S,1:ndir), S(ixO^S,1:ndir)
+    integer :: ix^D
+
+    {do ix^DB=ixOmin^DB,ixOmax^DB\}
+      {^IFTHREEC
+        E(ix^D,1)=w(ix^D,b2_)*w(ix^D,m3_)-w(ix^D,b3_)*w(ix^D,m2_)
+        E(ix^D,2)=w(ix^D,b3_)*w(ix^D,m1_)-w(ix^D,b1_)*w(ix^D,m3_)
+        E(ix^D,3)=w(ix^D,b1_)*w(ix^D,m2_)-w(ix^D,b2_)*w(ix^D,m1_)
+        S(ix^D,1)=E(ix^D,2)*w(ix^D,b3_)-E(ix^D,3)*w(ix^D,b2_)
+        S(ix^D,2)=E(ix^D,3)*w(ix^D,b1_)-E(ix^D,1)*w(ix^D,b3_)
+        S(ix^D,3)=E(ix^D,1)*w(ix^D,b2_)-E(ix^D,2)*w(ix^D,b1_)
+      }
+      {^IFTWOC
+        E(ix^D,1)=zero
+        ! switch 3 with 2 to add 3 when ^C from 1 to 2
+        E(ix^D,2)=w(ix^D,b1_)*w(ix^D,m2_)-w(ix^D,b2_)*w(ix^D,m1_)
+        S(ix^D,1)=-E(ix^D,2)*w(ix^D,b2_)
+        S(ix^D,2)=E(ix^D,2)*w(ix^D,b1_)
+      }
+      {^IFONEC
+        E(ix^D,1)=zero
+        S(ix^D,1)=zero
+      }
+        ! equation (9)
+        ! Calculate total energy from internal, kinetic and magnetic energy
+        w(ix^D,e_)=w(ix^D,e_)&
+                  +half*((^C&w(ix^D,m^C_)**2+)*w(ix^D,rho_)&
+                  +(^C&w(ix^D,b^C_)**2+)&
+                  +(^C&e(ix^D,^C)**2+)*eos%inv_squared_c)
+
+        ! Convert velocity to momentum, equation (9)
+        ^C&w(ix^D,m^C_)=w(ix^D,rho_)*w(ix^D,m^C_)+S(ix^D,^C)*eos%inv_squared_c\
+
+    {end do\}
 
   end subroutine mhd_ei_to_e_semirelati
 
@@ -2425,7 +2439,8 @@ contains
                         +(^C&w(ix^D,b^C_)**2+))
      {end do\}
     else
-     {do ix^DB=ixOmin^DB,ixOmax^DB\}
+     {!dir$ ivdep
+      do ix^DB=ixOmin^DB,ixOmax^DB\}
         ! Calculate ei = e - ek - eb
         w(ix^D,e_)=w(ix^D,e_)&
                   -half*((^C&w(ix^D,m^C_)**2+)/w(ix^D,rho_)&
@@ -2481,8 +2496,45 @@ contains
     double precision, intent(inout) :: w(ixI^S, nw)
     double precision, intent(in)    :: x(ixI^S, 1:ndim)
 
-    call eos%to_primitive(ixI^L,ixO^L,w,x)
-    w(ixO^S,e_)=w(ixO^S,p_)*eos%inv_gamma_minus_1
+    double precision :: b(ixO^S,1:ndir), tmp, b2, vac2, gamma2, inv_rho
+    integer :: iw, ix^D
+
+    {do ix^DB=ixOmin^DB,ixOmax^DB\}
+        b2=(^C&w(ix^D,b^C_)**2+)
+        if(b2>smalldouble) then
+            tmp=1.d0/sqrt(b2)
+        else
+            tmp=0.d0
+        end if
+        ^C&b(ix^D,^C)=w(ix^D,b^C_)*tmp\
+        tmp=(^C&b(ix^D,^C)*w(ix^D,m^C_)+)
+
+        inv_rho=1.d0/w(ix^D,rho_)
+        ! Va^2/c^2
+        vac2=b2*inv_rho*eos%inv_squared_c
+        ! equation (15)
+        gamma2=1.d0/(1.d0+vac2)
+        ! Convert momentum to velocity
+        ^C&w(ix^D,m^C_)=gamma2*(w(ix^D,m^C_)+vac2*b(ix^D,^C)*tmp)*inv_rho\
+
+        ! E=Bxv
+        {^IFTHREEC
+          b(ix^D,1)=w(ix^D,b2_)*w(ix^D,m3_)-w(ix^D,b3_)*w(ix^D,m2_)
+          b(ix^D,2)=w(ix^D,b3_)*w(ix^D,m1_)-w(ix^D,b1_)*w(ix^D,m3_)
+          b(ix^D,3)=w(ix^D,b1_)*w(ix^D,m2_)-w(ix^D,b2_)*w(ix^D,m1_)
+        }
+        {^IFTWOC
+          b(ix^D,1)=zero
+          b(ix^D,2)=w(ix^D,b1_)*w(ix^D,m2_)-w(ix^D,b2_)*w(ix^D,m1_)
+        }
+        {^IFONEC
+          b(ix^D,1)=zero
+        }
+        ! internal e= e_total-eK-eB-eE
+        w(ix^D,e_)=w(ix^D,e_)&
+                  -half*((^C&w(ix^D,m^C_)**2+)*w(ix^D,rho_)+b2&
+                  +(^C&b(ix^D,^C)**2+)*eos%inv_squared_c)
+    {end do\}
 
   end subroutine mhd_e_to_ei_semirelati
 
