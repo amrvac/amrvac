@@ -1,7 +1,7 @@
 module mod_magnetic_topology
   use, intrinsic :: ieee_arithmetic, only: ieee_value,ieee_quiet_nan, &
        ieee_is_finite
-  use mod_global_parameters, only: ndim,npe,slab_uniform,periodB, &
+  use mod_global_parameters, only: ndim,npe,slab_uniform, &
        xprobmin1,xprobmax1,global_time,ps,iwstart,nwgc,par_files
   {^IFTHREED
   use mod_global_parameters, only: xprobmin2,xprobmax2,xprobmin3,xprobmax3
@@ -10,7 +10,8 @@ module mod_magnetic_topology
   use mod_geometry, only: geo_coordinate => coordinate, &
        geo_cartesian => Cartesian, geo_spherical => spherical, &
        geo_cartesian_stretched => Cartesian_stretched
-  use mod_trace_field, only: trace_length_result,trace_twist_result, &
+  use mod_trace_field, only: trace_periodic_phi_supported, &
+       trace_length_result,trace_twist_result, &
        trace_mapping_result,trace_qperp_result,trace_topology_result, &
        trace_field_length_single,trace_field_length_multi, &
        trace_field_twist_single,trace_field_twist_multi, &
@@ -350,6 +351,12 @@ contains
     mt_profile_spherical=.false.
   end subroutine mt_set_default_params
 
+  subroutine mt_validate_periodic_phi()
+    if (.not.trace_periodic_phi_supported()) then
+      call mpistop('spherical periodic phi requires a full 2*pi longitude span')
+    endif
+  end subroutine mt_validate_periodic_phi
+
   subroutine mt_validate_common_params(mode)
     character(len=*), intent(in) :: mode
 
@@ -365,9 +372,7 @@ contains
       if (geo_coordinate/=geo_spherical) then
         call mpistop(trim(mode)//' requires 3D spherical geometry')
       endif
-      if (periodB(3)) then
-        call mpistop(trim(mode)//' does not yet support periodic phi')
-      endif
+      call mt_validate_periodic_phi()
       }
     case ('seed_products')
       if (ndim/=3) then
@@ -379,9 +384,7 @@ contains
       case default
         call mpistop('seed_products requires Cartesian or spherical geometry')
       end select
-      if (geo_coordinate==geo_spherical .and. periodB(3)) then
-        call mpistop('spherical seed_products does not yet support periodic phi')
-      endif
+      call mt_validate_periodic_phi()
       }
     case ('volume_vti')
       if (ndim/=3) then
@@ -558,9 +561,7 @@ contains
         flush(6)
         call mpistop('mt_trace_integrator=rk45_spherical is spherical-only')
       endif
-      if (periodB(3)) then
-        call mpistop('mt_trace_integrator=rk45_spherical does not yet support periodic phi')
-      endif
+      call mt_validate_periodic_phi()
       }
       if (mt_compute_q) then
         {^IFTHREED
@@ -1876,9 +1877,7 @@ contains
     select case (geo_coordinate)
     case (geo_cartesian,geo_cartesian_stretched)
     case (geo_spherical)
-      if (periodB(3)) then
-        call mpistop('spherical seed_products does not yet support periodic phi')
-      endif
+      call mt_validate_periodic_phi()
     case default
       call mpistop('mt_fieldline_products_seeds requires Cartesian or spherical geometry')
     end select
@@ -2384,10 +2383,7 @@ contains
            '3D spherical geometry')
     endif
     {^IFTHREED
-    if (periodB(3)) then
-      call mpistop('mt_fieldline_products_spherical_surface does not '// &
-           'yet support periodic phi')
-    endif
+    call mt_validate_periodic_phi()
     }
     if (n1<1 .or. n2<1) then
       call mpistop('mt_fieldline_products_spherical_surface requires '// &
@@ -2466,10 +2462,7 @@ contains
            '3D spherical geometry')
     endif
     {^IFTHREED
-    if (periodB(3)) then
-      call mpistop('mt_fieldline_products_spherical_cloud does not '// &
-           'yet support periodic phi')
-    endif
+    call mt_validate_periodic_phi()
     }
     if (n1<1 .or. n2<1 .or. n3<1) then
       call mpistop('mt_fieldline_products_spherical_cloud requires '// &

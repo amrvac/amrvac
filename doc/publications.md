@@ -7,7 +7,7 @@ specific to the current version.**
 
 * `The Uniturbulence and Alfvén Wave Solar Model (UAWSoM) in MPI-AMRVAC', M. McMurdo et al., 2026, A &amp; A **705**, A15 [doi:10.1051/0004-6361/202555912](https://doi.org/10.1051/0004-6361/202555912) **introduces the optional UAWSoM wave-energy extension; source compatibility baseline: fork commit 932ee5d**
 
-* `Frozen-field modeling of coronal cndensations with MPI-AMRVAC. II. Optimization and applications in 3D models', Y. Zhou, X. Li, J.M. Jenkins &amp; R. Keppens, 2025, ApJ **978**, 72 [doi:10.3847/1538-4357/ad96af](https://doi.org/10.3847/1538-4357/ad96af) **introduces the FFHD module and hyperbolic thermal conduction**
+* `Frozen-field Modeling of Coronal Condensations with MPI-AMRVAC. II. Optimization and Application in 3D Models', Y. Zhou, X. Li, J. M. Jenkins, J. Hong &amp; R. Keppens, 2025, ApJ **978**, 72 [doi:10.3847/1538-4357/ad96af](https://doi.org/10.3847/1538-4357/ad96af) **describes FFHD optimization with field-aligned hyperbolic thermal conduction and TRAC**; see [Thermal conduction](thermal_conduction.md) for the current implementation and the separate perpendicular extension.
 
 * `MPI-AMRVAC 3.0: Updates to an open-source simulation framework', R. Keppens, B. Popescu Braileanu, Y.Zhou, W. Ruan, C. Xia, Y. Guo, N. Claes &amp; F. Bacchini, 2023, A &amp; A **673**, A66 [doi:10.1051/0004-6361/202245359](https://doi.org/10.1051/0004-6361/202245359) **THIS IS MPI-AMRVAC 3.0**
 

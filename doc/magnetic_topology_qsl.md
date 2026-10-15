@@ -36,6 +36,59 @@ Spherical surface products, `seed_products`, and `spherical_cloud_products`
 support RK2 and `rk45_spherical` for Q-only, Qperp-only, and fused combined
 Q+Qperp requests.
 
+## Complete periodic longitude in spherical coordinates
+
+The three spherical entry routes (`seed_products`,
+`spherical_surface_products`, `spherical_cloud_products`) support full `2*pi`
+longitude periodicity with `rk2` or `rk45_spherical`, including Q-only,
+Qperp-only, combined Q+Qperp, and their shared length/Tw traces. This remains
+one MPI rank with OpenMP seed parallelism. The radial endpoint policy above
+is unchanged; pole crossing and periodic sectors are unsupported.
+
+Set all magnetic/MHD variables' longitude boundary conditions to `periodic`
+on both sides, as for ordinary periodic MHD. There is no additional topology
+switch: tracing uses `periodB(3)`. After geometry initialization the longitude
+span must satisfy `abs(span-2*pi) <= 1e-10*max(1,2*pi)`; an incomplete periodic
+sector is rejected with a diagnostic. AMRVAC mesh angular bounds in the par
+file are **fractions of `2*pi`**, whereas topology seed files, surface bounds,
+and native-coordinate endpoints use **radians**. For example, mesh longitude
+bounds `0,1` mean `[0,2*pi)`, and `-0.5,0.5` mean `[-pi,pi)`.
+
+Longitude queries are reduced modulo the full domain span to
+`[phi_min,phi_max)`. This includes negative angles, arbitrary origins,
+multiple revolutions, and `phi_max` (equivalent to `phi_min`). Original seed
+records and sampling order are preserved. Traced endpoints use canonical
+longitude; compare Cartesian endpoint distances across longitude conventions.
+Use `mt_seed_layout='cell_centered'` for a full-longitude sampling example;
+`endpoint` is also supported and intentionally duplicates the seam points.
+
+Integrator stage positions remain on one continuous longitude branch for
+both RK2 and Cash–Karp RK45. RK45 compares the two embedded solutions on that
+same branch, then normalizes the accepted state. The seam is excluded from
+physical-boundary intersections, boundary finishing, and near-face detection.
+A simultaneous longitude crossing and radial exit is intersected before the
+endpoint is normalized. Cartesian physical tangent vectors are transported
+continuously and need no rotation at a full-period seam.
+
+Sampling canonicalizes the position before checking the block hint or reuse
+of interpolation data. Periodic ghost cells supply total `B+B0`, curl B and
+finite-difference stencils, including AMR transitions. B remains trilinearly
+interpolated in local physical spherical components with the usual covariant
+connection terms. For the full-period path, tangent gradients interpolate
+second-order three-point nodal slopes (with nonuniform spacing); this avoids
+the leading transverse error of piecewise constant interpolant derivatives
+in strongly winding fields. If that wider stencil is unavailable, the
+existing interpolant derivative and Cartesian finite-difference fallback
+remain available. Nonperiodic tracing retains its existing derivative scheme.
+
+A closed or sufficiently long-winding line still terminates at `mt_max_steps`
+(status `3`); periodicity creates no artificial endpoint and no valid Q for
+such a line. Increase the step budget when physically appropriate. Minimal
+visualization can replace invalid logarithms with zero: inspect `valid_Q`,
+`valid_Qperp`, `valid_twist`, endpoint faces and termination statuses in full
+output or CSV when validating results. A zero visualization value alone is
+not an accepted measurement.
+
 ## Minimal Visualization Output
 
 Minimal visualization output contains only requested science arrays:
@@ -85,11 +138,12 @@ Finite-volume relative magnetic helicity is a separate MPI conversion backend;
 see [`magnetic_helicity.md`](magnetic_helicity.md). It is not combined with
 the OpenMP topology task in one conversion.
 
-Build the AMRVAC4 magnetic-topology QSL demo with OpenMP, for example:
+Build the Cartesian magnetic-topology QSL demo with OpenMP, for example:
 
 ```sh
-cd /home/nanami/codes/amrvac4/tests/demo/AMRVAC4_MagneticTopologyQSL_3D
-AMRVAC_DIR=/home/nanami/codes/amrvac4 make ARCH=openmp -j4
+cd "$AMRVAC_DIR/tests/demo4/MagneticTopologyQSL_Cart"
+"$AMRVAC_DIR/setup.pl" -d=3 -arch=openmp
+make -j4
 ```
 
 Run one process with OpenMP threads for local post-processing:
@@ -99,12 +153,10 @@ OMP_NUM_THREADS=8 OMP_PROC_BIND=close OMP_PLACES=cores \
   ./amrvac -i par_showcase/showcase_zstretch_yz_vertical_512_rk45.par
 ```
 
-The AMRVAC4 demo organizes reproducible TDm/RBSL snapshot setup and QSL
-post-processing examples under
-`tests/demo/AMRVAC4_MagneticTopologyQSL_3D/`: snapshot-generation par files are
-in `par_init/`, showcase examples in `par_showcase/`, timing/efficiency
-examples in `par_benchmark/`, and focused tracing diagnostics in
-`diagnostics/`.
+The Cartesian and spherical TDm/RBSL examples are in
+`tests/demo4/MagneticTopologyQSL_Cart/` and
+`tests/demo4/MagneticTopologyQSL_Sph/`. Each has `par_init/`,
+`par_showcase/`, and `par_benchmark/` inputs.
 
 OpenMP currently accelerates seed-level tracing for `axis_plane_full_vtu` with
 both `mt_vtk_detail = 'minimal'` and `mt_vtk_detail = 'full'`. It also covers

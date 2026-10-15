@@ -945,6 +945,8 @@ sharp discontinuities. It is normally inactive with a default value -1.
       hd_adiab= DOUBLE
       hd_dust= F | T
       hd_thermal_conduction= F | T
+      hd_hyperbolic_thermal_conduction= F | T (1D only)
+      hd_htc_sat= F | T
       hd_radiative_cooling= F | T
       hd_gravity= F | T
       hd_viscosity= F | T
@@ -955,12 +957,13 @@ sharp discontinuities. It is normally inactive with a default value -1.
 
 ## ffHD list {#par_ffhdlist}
 
-    &hd_list
+    &ffhd_list
       ffhd_energy= T | F
       ffhd_gamma= DOUBLE 
       ffhd_adiab= DOUBLE
       ffhd_thermal_conduction= F | T
-      ffhd_hyperbolic_thermal_conduction= F | T
+      ffhd_hyperbolic_tc= F | T
+      ffhd_hyperbolic_tc_sat= F | T
       ffhd_radiative_cooling= F | T
       ffhd_gravity= F | T
       ffhd_viscosity= F | T
@@ -1000,8 +1003,14 @@ sharp discontinuities. It is normally inactive with a default value -1.
      mhd_trac_type= INTEGER from 1 to 6
      mhd_trac_mask= bigdouble
      mhd_trac_finegrid= INTEGER
-     mhd_hyperbolic_thermal_conduction= F | T
-     mhd_htc_sat = F | T
+     mhd_hyperbolic_tc= F | T
+     mhd_hyperbolic_tc_sat= F | T
+     mhd_hyperbolic_tc_kappa= DOUBLE (default 0: Spitzer; positive: constant in code units)
+     mhd_hyperbolic_tc_use_perp= F | T (2D/3D only)
+     mhd_hyperbolic_tc_perp_mode= 'off' | 'fixed_reference' | 'weak_field_isotropization' | 'electron_magnetization'
+     mhd_hyperbolic_tc_kappa_perp_factor= DOUBLE (default 0: automatic reference ratio)
+     mhd_hyperbolic_tc_Bmin= DOUBLE (default 0: automatic; positive: code units)
+     mhd_hyperbolic_tc_coulomb_log= DOUBLE (default 20)
      mhd_uawsom= F | T (default F)
      mhd_uawsom_reflection= F | T (default F)
      mhd_uawsom_reflection_mode= 'one_dimensional_gradient' | 'cartesian_gradient_vorticity' (default 'one_dimensional_gradient')
@@ -1175,13 +1184,18 @@ which has better conservation than solving internal energy.
 
 ### Hyperbolic thermal conduction {#par_HTC}
 
-In classical plasma theory, Spitzer-type thermal conduction is parabolic in nature, which imposes a severe timestep restriction when solved explicitly. Even with acceleration techniques such as super time stepping (already implemented in AMRVAC) or multigrid solvers, the conduction step remains computationally more expensive than the MHD (hyperbolic) part, and is often the bottleneck in the overall performance.
+Set `mhd_hyperbolic_tc=T` in `&mhd_list` and initialize `qpar_` in `mod_usr.t`.
+The default coefficient selects Spitzer conduction; a positive
+`mhd_hyperbolic_tc_kappa` selects constant conductivity in code units.
+Use `mhd_hyperbolic_tc_sat=T` for saturation.
 
-An improved approach is to treat the conduction as hyperbolic by introducing a finite signal propagation speed (comparable to the global maximum velocity). In this formulation, the conduction no longer constrains the MHD timestep. Estimates of conduction timescales show that this approximation is well justified in the solar corona, but less accurate in the chromosphere and photosphere. However, since thermal conduction is not the dominant energy transport mechanism in those lower layers, the approximation is still acceptable.
+For perpendicular conduction in 2D/3D, also set
+`mhd_hyperbolic_tc_use_perp=T`, choose `mhd_hyperbolic_tc_perp_mode`, and
+initialize `qperp_`. See [Thermal conduction](thermal_conduction.md) for
+configuration examples, equations, and the [parameter table](@ref tc-mhd-parameters).
 
-The specific form of hyperbolic thermal conduction adopted in AMRVAC is described in Zhou et al. 2025, ApJ, 978, 72. In the current implementation, the conductivity coefficient is fixed and constant, and only the field-aligned component is included. Variable coefficients and cross-field conduction are not yet supported. To activate this option, set mhd_hyperbolic_thermal_conduction = T and initialize the heat flux q_ to be zero  in mod_usr.t. The boundary condition for q_ is automatically set to be the same as the one of density rho. Also, when mhd_hyperbolic_thermal_conduction is enabled, the parabolic conduction option mhd_thermal_conduction is automatically set to F to be disabled.
-
-During energetic events such as solar flares, conduction becomes saturated and its efficiency decreases. For this regime, one can enable the saturated conduction option by setting mhd_htc_sat = T.
+FFHD and HD have different switches and dimensional support; see the
+[module support table](@ref tc-module-support).
 
 ### Solve semirelativistic MHD to tackle extreme Alfven speed{#par_semirelati}
 

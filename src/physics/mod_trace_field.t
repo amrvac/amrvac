@@ -41,6 +41,7 @@ module mod_trace_field
   integer, parameter, public :: trace_face_zmax      = 6
   integer, parameter, public :: trace_face_ambiguous = 7
 
+  public :: trace_periodic_phi_supported
   public :: trace_field_length_single,trace_field_length_multi
   public :: trace_field_twist_single,trace_field_twist_multi
   public :: trace_field_mapping_single,trace_field_mapping_multi
@@ -121,6 +122,9 @@ module mod_trace_field
   private :: trace_make_perp_basis,trace_debug_nan
   private :: trace_face_from_dim_side,trace_face_Bn,trace_face_is_boundary
   private :: trace_boundary_face_at_point
+  private :: trace_periodic_phi,trace_physical_dimension
+  private :: trace_normalize_position,trace_clamp_sample_position
+  private :: trace_coordinate_in_domain,trace_spherical_corner_slopes
   private :: trace_is_supported_summary_geometry
   private :: trace_effective_step,trace_spherical_metric_ok
   private :: trace_segment_length
@@ -204,6 +208,8 @@ module mod_trace_field
     double precision :: h_local=zero
     logical :: bcorner_valid=.false.
     double precision :: bcorner(0:1,0:1,0:1,3)=zero
+    logical :: slopes_valid=.false.
+    double precision :: slopes(0:1,0:1,0:1,3,3)=zero
   end type trace_sph_interp_ctx
 
   type, private :: trace_spherical_curl_cache_block
@@ -1246,13 +1252,15 @@ contains
     endif
   end subroutine trace_field_qperp_single
 
-  subroutine trace_debug_sample_bhat_gradbhat(seed,bhat,grad_bhat,status,b_min)
+  subroutine trace_debug_sample_bhat_gradbhat(seed,bhat,grad_bhat,status,b_min,spherical_cartfd)
     ! Debug/validation hook for the future Method-II sampler.
     double precision, intent(in) :: seed(ndim)
     double precision, intent(out) :: bhat(3),grad_bhat(3,3)
     integer, intent(out) :: status
     double precision, intent(in), optional :: b_min
 
+    logical, intent(in), optional :: spherical_cartfd
+    logical :: use_cartfd
     type(trace_length_result) :: located
     double precision :: field_min
     integer :: igrid
@@ -1263,7 +1271,7 @@ contains
     if (npe/=1) then
       status=trace_status_mpi_unsupported
       return
-    else if (ndim/=3 .or. .not.slab_uniform) then
+    else if (ndim/=3 .or. .not.trace_is_supported_summary_geometry()) then
       status=trace_status_unsupported_geometry
       return
     endif
@@ -1275,8 +1283,20 @@ contains
     status=located%forward_status
     if (status/=trace_status_active) return
 
-    call sample_bhat_gradbhat_at_point(seed,igrid,field_min,bhat, &
-         grad_bhat,status)
+    use_cartfd=.false.
+    if (present(spherical_cartfd)) use_cartfd=spherical_cartfd
+    if (geo_coordinate==geo_spherical) then
+      if (use_cartfd) then
+        call trace_spherical_sample_bhat_gradbhat_cartfd(seed,igrid, &
+             field_min,bhat,grad_bhat,status)
+      else
+        call trace_spherical_sample_bhat_gradbhat_covariant(seed,igrid, &
+             field_min,bhat,grad_bhat,status)
+      endif
+    else
+      call sample_bhat_gradbhat_at_point(seed,igrid,field_min,bhat, &
+           grad_bhat,status)
+    endif
   end subroutine trace_debug_sample_bhat_gradbhat
 
   subroutine trace_debug_sample_endpoint_B_face_limit(xhit,face_id,B,bhat, &
@@ -1581,7 +1601,7 @@ contains
       xprobe=xold+h*kx1
 
       point_domain=0
-      {if (xprobe(^DB)>=xprobmin^DB .and. xprobe(^DB)<xprobmax^DB) point_domain=point_domain+1\}
+      {if (trace_coordinate_in_domain(xprobe(^DB),^DB)) point_domain=point_domain+1\}
       if (point_domain/=ndim) then
         call trace_intersect_domain(xold,xprobe,xhit,hit_ok,face_id)
         if (.not.hit_ok) then
@@ -1622,7 +1642,7 @@ contains
       if (status/=trace_status_active) return
 
       point_domain=0
-      {if (xtrial(^DB)>=xprobmin^DB .and. xtrial(^DB)<xprobmax^DB) point_domain=point_domain+1\}
+      {if (trace_coordinate_in_domain(xtrial(^DB),^DB)) point_domain=point_domain+1\}
       if (point_domain==ndim) then
         call trace_locate_point_with_hint(xtrial,igrid,igrid_trial,status)
         if (status/=trace_status_active) return
@@ -1797,7 +1817,7 @@ contains
     endif
 
     indomain=0
-    {if (seed(^DB)>=xprobmin^DB .and. seed(^DB)<xprobmax^DB) indomain=indomain+1\}
+    {if (trace_coordinate_in_domain(seed(^DB),^DB)) indomain=indomain+1\}
     if (indomain/=ndim) then
       result%status=trace_status_seed_outside
       return
@@ -1867,6 +1887,7 @@ contains
     state%complete=.false.
     state%has_extra=.false.
     state%x=seed
+    call trace_normalize_position(state%x)
     state%u=u0
     state%v=v0
     state%p=zero
@@ -1879,6 +1900,7 @@ contains
     state%twist_status=trace_status_active
     state%face_id=trace_face_none
     state%endpoint=seed
+    call trace_normalize_position(state%endpoint)
     state%endpoint_B=zero
     state%endpoint_bhat=zero
     state%u_perp=zero
@@ -2252,7 +2274,7 @@ contains
            cs5*kv5+cs6*kv6)
 
       point_domain=0
-      {if (x5sol(^DB)>=xprobmin^DB .and. x5sol(^DB)<xprobmax^DB) point_domain=point_domain+1\}
+      {if (trace_coordinate_in_domain(x5sol(^DB),^DB)) point_domain=point_domain+1\}
       if (point_domain/=ndim) then
         call trace_tangent_rk45_cartesian_finish_boundary(state,xold,uold, &
              vold,x5sol,hsigned,threshold,kx1,ku1,kv1,status, &
@@ -2307,6 +2329,7 @@ contains
           endif
         endif
         state%x=x5sol
+        call trace_normalize_position(state%x)
         state%u=u5sol
         state%v=v5sol
         state%length=state%length+h
@@ -2403,7 +2426,9 @@ contains
       state%v=vold
     endif
     state%x=xhit
+    call trace_normalize_position(state%x)
     state%endpoint=xhit
+    call trace_normalize_position(state%endpoint)
     state%status=trace_status_boundary
     state%active=.false.
     state%complete=.true.
@@ -2600,7 +2625,7 @@ contains
            state%sph_cache,ctx2,ctx_status)
       if (ctx_status/=trace_status_active) then
         call trace_tangent_rk45_spherical_finish_boundary(state,xold,uold, &
-             vold,x2,hsigned,threshold,kx1,ku1,kv1,status, &
+             vold,x2,hsigned*merge(0.2d0,one,trace_periodic_phi()),threshold,kx1,ku1,kv1,status, &
              boundary_finished,pold,qold,kp1,kq1)
         if (boundary_finished) return
         reject_reason=trace_rk45_reject_stage_failure
@@ -2633,7 +2658,7 @@ contains
            state%sph_cache,ctx3,ctx_status)
       if (ctx_status/=trace_status_active) then
         call trace_tangent_rk45_spherical_finish_boundary(state,xold,uold, &
-             vold,x3,hsigned,threshold,kx1,ku1,kv1,status, &
+             vold,x3,hsigned*merge(0.3d0,one,trace_periodic_phi()),threshold,kx1,ku1,kv1,status, &
              boundary_finished,pold,qold,kp1,kq1)
         if (boundary_finished) return
         reject_reason=trace_rk45_reject_stage_failure
@@ -2666,7 +2691,7 @@ contains
            state%sph_cache,ctx4,ctx_status)
       if (ctx_status/=trace_status_active) then
         call trace_tangent_rk45_spherical_finish_boundary(state,xold,uold, &
-             vold,x4,hsigned,threshold,kx1,ku1,kv1,status, &
+             vold,x4,hsigned*merge(0.6d0,one,trace_periodic_phi()),threshold,kx1,ku1,kv1,status, &
              boundary_finished,pold,qold,kp1,kq1)
         if (boundary_finished) return
         reject_reason=trace_rk45_reject_stage_failure
@@ -2732,7 +2757,7 @@ contains
            state%sph_cache,ctx6,ctx_status)
       if (ctx_status/=trace_status_active) then
         call trace_tangent_rk45_spherical_finish_boundary(state,xold,uold, &
-             vold,x6,hsigned,threshold,kx1,ku1,kv1,status, &
+             vold,x6,hsigned*merge(0.875d0,one,trace_periodic_phi()),threshold,kx1,ku1,kv1,status, &
              boundary_finished,pold,qold,kp1,kq1)
         if (boundary_finished) return
         reject_reason=trace_rk45_reject_stage_failure
@@ -2773,7 +2798,7 @@ contains
       endif
 
       point_domain=0
-      {if (x5sol(^DB)>=domain_min(^DB) .and. x5sol(^DB)<domain_max(^DB)) point_domain=point_domain+1\}
+      {if (trace_coordinate_in_domain(x5sol(^DB),^DB)) point_domain=point_domain+1\}
       if (point_domain/=ndim) then
         call trace_tangent_rk45_spherical_finish_boundary(state,xold,uold, &
              vold,x5sol,hsigned,threshold,kx1,ku1,kv1,status, &
@@ -2840,6 +2865,7 @@ contains
           endif
         endif
         state%x=x5sol
+        call trace_normalize_position(state%x)
         state%u=u5sol
         state%v=v5sol
         if (state%has_extra) then
@@ -2952,7 +2978,9 @@ contains
       endif
     endif
     state%x=xhit
+    call trace_normalize_position(state%x)
     state%endpoint=xhit
+    call trace_normalize_position(state%endpoint)
     state%status=trace_status_boundary
     state%active=.false.
     state%complete=.true.
@@ -3059,7 +3087,7 @@ contains
         endif
 
         point_domain=0
-        {if (xtrial(^DB)>=xprobmin^DB .and. xtrial(^DB)<xprobmax^DB) point_domain=point_domain+1\}
+        {if (trace_coordinate_in_domain(xtrial(^DB),^DB)) point_domain=point_domain+1\}
         if (point_domain==ndim) then
           igrid_old=state%igrid
           call trace_locate_point_with_hint(xtrial,state%igrid,igrid_trial, &
@@ -3072,6 +3100,7 @@ contains
           endif
           call trace_tangent_accumulate_twist(state,xtrial,abs(h),threshold)
           state%x=xtrial
+          call trace_normalize_position(state%x)
           state%u=utrial
           state%v=vtrial
           if (state%has_extra) then
@@ -3118,7 +3147,7 @@ contains
               cycle
             endif
             point_domain=0
-            {if (xtrial(^DB)>=xprobmin^DB .and. xtrial(^DB)<xprobmax^DB) point_domain=point_domain+1\}
+            {if (trace_coordinate_in_domain(xtrial(^DB),^DB)) point_domain=point_domain+1\}
             if (point_domain==ndim) then
               h_abs_low=h_abs_mid
               xlow=xtrial
@@ -3198,7 +3227,9 @@ contains
             endif
           endif
           state%x=xhit
+          call trace_normalize_position(state%x)
           state%endpoint=xhit
+          call trace_normalize_position(state%endpoint)
           state%status=trace_status_boundary
           state%active=.false.
           if (trace_spherical_profile_enabled .and. &
@@ -3215,7 +3246,7 @@ contains
       xprobe=xold+h*kx1
 
       point_domain=0
-      {if (xprobe(^DB)>=xprobmin^DB .and. xprobe(^DB)<xprobmax^DB) point_domain=point_domain+1\}
+      {if (trace_coordinate_in_domain(xprobe(^DB),^DB)) point_domain=point_domain+1\}
       if (point_domain/=ndim) then
         call trace_intersect_domain(xold,xprobe,xhit,hit_ok,state%face_id, &
              alpha_hit)
@@ -3224,6 +3255,7 @@ contains
           state%status=trace_status_boundary
           state%active=.false.
           state%x=xold
+          call trace_normalize_position(state%x)
           state%u=uold
           state%v=vold
           if (state%has_extra) then
@@ -3231,6 +3263,7 @@ contains
             state%q=qold
           endif
           state%endpoint=xold
+          call trace_normalize_position(state%endpoint)
           if (hit_ok) call trace_tangent_state_finalize_boundary(state, &
                threshold)
           if (trace_rk2_stats_enabled) call trace_rk2_stats_note_completion(state%status,state%nstep)
@@ -3239,6 +3272,7 @@ contains
         partial_length=trace_segment_length(xold,xhit,h,alpha_hit)
         if (partial_length<=100.d0*epsilon(one)*max(one,abs(h))) then
           state%x=xhit
+          call trace_normalize_position(state%x)
           state%u=uold
           state%v=vold
           if (state%has_extra) then
@@ -3246,6 +3280,7 @@ contains
             state%q=qold
           endif
           state%endpoint=xhit
+          call trace_normalize_position(state%endpoint)
           state%status=trace_status_boundary
           state%active=.false.
           call trace_tangent_state_finalize_boundary(state,threshold)
@@ -3272,6 +3307,7 @@ contains
         call trace_tangent_accumulate_twist(state,xhit,partial_length, &
              threshold)
         state%x=xhit
+        call trace_normalize_position(state%x)
         state%u=utrial
         state%v=vtrial
         if (state%has_extra) then
@@ -3280,6 +3316,7 @@ contains
         endif
         state%length=state%length+partial_length
         state%endpoint=xhit
+        call trace_normalize_position(state%endpoint)
         state%status=trace_status_boundary
         state%active=.false.
         if (trace_rk2_stats_enabled) call trace_rk2_stats_note_step(partial_length,.true.,.false.)
@@ -3305,7 +3342,7 @@ contains
       endif
 
       point_domain=0
-      {if (xtrial(^DB)>=xprobmin^DB .and. xtrial(^DB)<xprobmax^DB) point_domain=point_domain+1\}
+      {if (trace_coordinate_in_domain(xtrial(^DB),^DB)) point_domain=point_domain+1\}
       if (point_domain==ndim) then
         igrid_old=state%igrid
         call trace_locate_point_with_hint(xtrial,state%igrid,igrid_trial, &
@@ -3318,6 +3355,7 @@ contains
         endif
         call trace_tangent_accumulate_twist(state,xtrial,abs(h),threshold)
         state%x=xtrial
+        call trace_normalize_position(state%x)
         state%u=utrial
         state%v=vtrial
         if (state%has_extra) then
@@ -3341,6 +3379,7 @@ contains
           state%status=trace_status_boundary
           state%active=.false.
           state%x=xold
+          call trace_normalize_position(state%x)
           state%u=uold
           state%v=vold
           if (state%has_extra) then
@@ -3348,6 +3387,7 @@ contains
             state%q=qold
           endif
           state%endpoint=xold
+          call trace_normalize_position(state%endpoint)
           if (hit_ok) call trace_tangent_state_finalize_boundary(state, &
                threshold)
           if (trace_rk2_stats_enabled) call trace_rk2_stats_note_completion(state%status,state%nstep)
@@ -3356,6 +3396,7 @@ contains
         partial_length=trace_segment_length(xold,xhit,h,alpha_hit)
         if (partial_length<=100.d0*epsilon(one)*max(one,abs(h))) then
           state%x=xhit
+          call trace_normalize_position(state%x)
           state%u=uold
           state%v=vold
           if (state%has_extra) then
@@ -3363,6 +3404,7 @@ contains
             state%q=qold
           endif
           state%endpoint=xhit
+          call trace_normalize_position(state%endpoint)
           state%status=trace_status_boundary
           state%active=.false.
           call trace_tangent_state_finalize_boundary(state,threshold)
@@ -3389,6 +3431,7 @@ contains
         call trace_tangent_accumulate_twist(state,xhit,partial_length, &
              threshold)
         state%x=xhit
+        call trace_normalize_position(state%x)
         state%u=utrial
         state%v=vtrial
         if (state%has_extra) then
@@ -3397,6 +3440,7 @@ contains
         endif
         state%length=state%length+partial_length
         state%endpoint=xhit
+        call trace_normalize_position(state%endpoint)
         state%status=trace_status_boundary
         state%active=.false.
         if (trace_rk2_stats_enabled) call trace_rk2_stats_note_step(partial_length,.true.,.false.)
@@ -3463,7 +3507,7 @@ contains
     status=trace_status_active
 
     indomain=0
-    {if (seed(^DB)>=xprobmin^DB .and. seed(^DB)<xprobmax^DB) indomain=indomain+1\}
+    {if (trace_coordinate_in_domain(seed(^DB),^DB)) indomain=indomain+1\}
     if (indomain/=ndim) then
       status=trace_status_seed_outside
       result%status=status
@@ -3744,7 +3788,7 @@ contains
     endif
 
     indomain=0
-    {if (seed(^DB)>=xprobmin^DB .and. seed(^DB)<xprobmax^DB) indomain=indomain+1\}
+    {if (trace_coordinate_in_domain(seed(^DB),^DB)) indomain=indomain+1\}
     if (indomain/=ndim) then
       status=trace_status_seed_outside
       result%status=status
@@ -4024,7 +4068,7 @@ contains
     endif
 
     indomain=0
-    {if (seed(^DB)>=xprobmin^DB .and. seed(^DB)<xprobmax^DB) indomain=indomain+1\}
+    {if (trace_coordinate_in_domain(seed(^DB),^DB)) indomain=indomain+1\}
     if (indomain/=ndim) then
       status=trace_status_seed_outside
       result%status=status
@@ -4316,13 +4360,14 @@ contains
     x(1)=r
     x(2)=datan2(rho,xcart(3))
     x(3)=phi
+    call trace_normalize_position(x)
     status=trace_status_active
     }
   end subroutine trace_cart_to_spherical_coord
 
-  subroutine trace_spherical_interp_ctx_build(x,igrid,ctx,status)
-    double precision, intent(in) :: x(ndim)
-    integer, intent(in) :: igrid
+  subroutine trace_spherical_interp_ctx_build(x_input,igrid_input,ctx,status)
+    double precision, intent(in) :: x_input(ndim)
+    integer, intent(in) :: igrid_input
     type(trace_sph_interp_ctx), intent(out) :: ctx
     integer, intent(out) :: status
 
@@ -4330,6 +4375,19 @@ contains
     double precision :: t0
     integer :: ixI^L,ixbl^D
 
+    double precision :: x(ndim)
+    integer :: igrid,locate_status
+
+    x=x_input
+    call trace_normalize_position(x)
+    igrid=igrid_input
+    if (trace_periodic_phi()) then
+      call trace_locate_point_with_hint(x,igrid_input,igrid,locate_status)
+      if (locate_status/=trace_status_active) then
+        status=locate_status
+        return
+      endif
+    endif
     if (trace_spherical_profile_enabled) then
       call trace_spherical_profile_add_count(trace_profile_context_requests, &
            1_8)
@@ -4357,6 +4415,7 @@ contains
     ctx%h_local=zero
     ctx%bcorner_valid=.false.
     ctx%bcorner=zero
+    ctx%slopes_valid=.false.
     status=trace_status_unsupported_geometry
     if (ndim/=3 .or. geo_coordinate/=geo_spherical .or. igrid<0) then
       if (trace_spherical_profile_enabled) then
@@ -4409,9 +4468,9 @@ contains
     }
   end subroutine trace_spherical_interp_ctx_build
 
-  subroutine trace_spherical_interp_ctx_build_cached(x,igrid,cache,ctx,status)
-    double precision, intent(in) :: x(ndim)
-    integer, intent(in) :: igrid
+  subroutine trace_spherical_interp_ctx_build_cached(x_input,igrid_input,cache,ctx,status)
+    double precision, intent(in) :: x_input(ndim)
+    integer, intent(in) :: igrid_input
     type(trace_sph_interp_ctx), intent(inout) :: cache
     type(trace_sph_interp_ctx), intent(out) :: ctx
     integer, intent(out) :: status
@@ -4421,6 +4480,19 @@ contains
     integer :: ixI^L,ixbl^D
     logical :: same_cell
 
+    double precision :: x(ndim)
+    integer :: igrid,locate_status
+
+    x=x_input
+    call trace_normalize_position(x)
+    igrid=igrid_input
+    if (trace_periodic_phi()) then
+      call trace_locate_point_with_hint(x,igrid_input,igrid,locate_status)
+      if (locate_status/=trace_status_active) then
+        status=locate_status
+        return
+      endif
+    endif
     if (trace_spherical_profile_enabled) then
       call trace_spherical_profile_add_count(trace_profile_context_requests, &
            1_8)
@@ -4453,6 +4525,8 @@ contains
           if (same_cell .and. cache%bcorner_valid) then
             ctx%bcorner_valid=.true.
             ctx%bcorner=cache%bcorner
+            ctx%slopes_valid=cache%slopes_valid
+            ctx%slopes=cache%slopes
             if (trace_spherical_profile_enabled) then
               call trace_spherical_profile_add_count( &
                    trace_profile_b_corner_hits,1_8)
@@ -4527,6 +4601,7 @@ contains
     ctx%h_local=zero
     ctx%bcorner_valid=.false.
     ctx%bcorner=zero
+    ctx%slopes_valid=.false.
     status=trace_status_unsupported_geometry
     if (ndim/=3 .or. geo_coordinate/=geo_spherical .or. igrid<0) return
 
@@ -4612,6 +4687,7 @@ contains
       enddo
     enddo
     ctx%bcorner_valid=.true.
+    if (trace_periodic_phi()) call trace_spherical_corner_slopes(ctx)
     if (trace_spherical_profile_enabled) then
       call trace_spherical_profile_add_count(trace_profile_b_corner_loads, &
            1_8)
@@ -4619,6 +4695,46 @@ contains
     status=trace_status_active
     }
   end subroutine trace_spherical_interp_ctx_load_Bcorners
+
+  subroutine trace_spherical_corner_slopes(ctx)
+    ! Smooth second-order native-component derivatives for full-period tracing.
+    ! Differentiating a trilinear interpolant gives piecewise constant slopes;
+    ! for winding fields their first-order transverse error dominates radial Q.
+    ! Interpolate nonuniform three-point nodal slopes instead, retaining B and
+    ! all spherical connection terms. Periodic ghost cells supply the seam.
+    type(trace_sph_interp_ctx), intent(inout) :: ctx
+    integer :: i1,i2,i3,j,ig,idx(3),im(3),ip(3),stat
+    double precision :: bm(3),bp(3),bmid(3),hm,hp
+    {^IFTHREED
+    ig=ctx%igrid
+    if (any(ctx%ixbl-1<(/ixGlo1,ixGlo2,ixGlo3/)) .or. &
+         any(ctx%ixbl+2>(/ixGhi1,ixGhi2,ixGhi3/))) return
+    do i3=0,1
+      do i2=0,1
+        do i1=0,1
+          idx=ctx%ixbl+(/i1,i2,i3/)
+          bmid=ctx%bcorner(i1,i2,i3,:)
+          do j=1,3
+            im=idx; ip=idx
+            im(j)=im(j)-1; ip(j)=ip(j)+1
+            hm=ps(ig)%x(idx(1),idx(2),idx(3),j) &
+                 -ps(ig)%x(im(1),im(2),im(3),j)
+            hp=ps(ig)%x(ip(1),ip(2),ip(3),j) &
+                 -ps(ig)%x(idx(1),idx(2),idx(3),j)
+            if (min(hm,hp)<=smalldouble) return
+            call trace_total_B_at_cell(ig,im(1),im(2),im(3),bm,stat)
+            if (stat/=trace_status_active) return
+            call trace_total_B_at_cell(ig,ip(1),ip(2),ip(3),bp,stat)
+            if (stat/=trace_status_active) return
+            ctx%slopes(i1,i2,i3,:,j)= &
+                 (hp*(bmid-bm)/hm+hm*(bp-bmid)/hp)/(hm+hp)
+          enddo
+        enddo
+      enddo
+    enddo
+    ctx%slopes_valid=.true.
+    }
+  end subroutine trace_spherical_corner_slopes
 
   double precision function trace_spherical_effective_step_ctx(ds,ctx) &
        result(ds_eff)
@@ -4861,6 +4977,18 @@ contains
         enddo
       enddo
     enddo
+
+    if (ctx%slopes_valid) then
+      dBdq=zero
+      do i3=0,1
+        do i2=0,1
+          do i1=0,1
+            weight=ctx%w(i1,1)*ctx%w(i2,2)*ctx%w(i3,3)
+            dBdq=dBdq+weight*ctx%slopes(i1,i2,i3,:,:)
+          enddo
+        enddo
+      enddo
+    endif
 
     Bnorm=dsqrt(sum(Bsph**2))
     if (Bnorm<=zero .or. Bnorm<threshold) then
@@ -5124,8 +5252,12 @@ contains
          xprobmax1-100.d0*epsilon(one)*max(one,abs(xprobmax1))))
     xprobe(2)=max(xprobmin2,min(xprobe(2), &
          xprobmax2-100.d0*epsilon(one)*max(one,abs(xprobmax2))))
-    xprobe(3)=max(xprobmin3,min(xprobe(3), &
-         xprobmax3-100.d0*epsilon(one)*max(one,abs(xprobmax3))))
+    if (trace_periodic_phi()) then
+      call trace_normalize_position(xprobe)
+    else
+      xprobe(3)=max(xprobmin3,min(xprobe(3), &
+           xprobmax3-100.d0*epsilon(one)*max(one,abs(xprobmax3))))
+    endif
     call trace_debug_locate_point(xprobe,sample_igrid,status)
     if (status/=trace_status_active) return
     call trace_spherical_sample_B_bhat_cart(xprobe,sample_igrid,threshold, &
@@ -5533,19 +5665,23 @@ contains
     }
   end subroutine trace_spherical_local_cell_widths
 
-  subroutine trace_debug_locate_point(x,igrid,status)
+  subroutine trace_debug_locate_point(x_input,igrid,status)
     use mod_particle_base, only: find_particle_ipe
 
-    double precision, intent(in) :: x(ndim)
+    double precision, intent(in) :: x_input(ndim)
     integer, intent(out) :: igrid,status
 
     double precision :: x3d(3)
     integer :: indomain,ipe,j
 
+    double precision :: x(ndim)
+
+    x=x_input
+    call trace_normalize_position(x)
     igrid=-1
     status=trace_status_active
     indomain=0
-    {if (x(^DB)>=xprobmin^DB .and. x(^DB)<xprobmax^DB) indomain=indomain+1\}
+    {if (trace_coordinate_in_domain(x(^DB),^DB)) indomain=indomain+1\}
     if (indomain/=ndim) then
       status=trace_status_boundary
       return
@@ -5561,14 +5697,18 @@ contains
     endif
   end subroutine trace_debug_locate_point
 
-  subroutine trace_locate_point_with_hint(x,igrid_hint,igrid,status)
-    double precision, intent(in) :: x(ndim)
+  subroutine trace_locate_point_with_hint(x_input,igrid_hint,igrid,status)
+    double precision, intent(in) :: x_input(ndim)
     integer, intent(in) :: igrid_hint
     integer, intent(out) :: igrid,status
 
     double precision :: xbmin^D,xbmax^D
     integer :: inblock
 
+    double precision :: x(ndim)
+
+    x=x_input
+    call trace_normalize_position(x)
     igrid=-1
     status=trace_status_active
     if (igrid_hint>=0) then
@@ -5731,8 +5871,7 @@ contains
     if (present(clamp_stage)) use_clamped_stage=clamp_stage
     xmid_sample=xmid
     if (use_clamped_stage) then
-      ^D&xmid_sample(^D)=max(xprobmin^D,min(xmid_sample(^D), &
-           xprobmax^D-100.d0*epsilon(one)*max(one,abs(xprobmax^D))));
+      call trace_clamp_sample_position(xmid_sample)
     endif
     call trace_locate_point_with_hint(xmid_sample,igrid,igrid_mid,status)
     if (status/=trace_status_active) return
@@ -6573,6 +6712,68 @@ contains
     endif
   end subroutine trace_summary_validate
 
+  logical function trace_periodic_phi_supported() result(supported)
+    ! Only a complete longitude period is supported, never a periodic sector.
+    supported=.true.
+    {^IFTHREED
+    if (geo_coordinate==geo_spherical .and. periodB(3)) then
+      supported=abs((xprobmax3-xprobmin3)-2.d0*dpi)<= &
+           1.d-10*max(one,2.d0*dpi)
+    endif
+    }
+  end function trace_periodic_phi_supported
+
+  logical function trace_periodic_phi() result(periodic)
+    periodic=.false.
+    {^IFTHREED
+    periodic=geo_coordinate==geo_spherical .and. periodB(3)
+    }
+  end function trace_periodic_phi
+
+  logical function trace_physical_dimension(idim) result(physical)
+    integer, intent(in) :: idim
+    physical=.true.
+    if (idim==3) physical=.not.trace_periodic_phi()
+  end function trace_physical_dimension
+
+  subroutine trace_normalize_position(x)
+    ! Stage coordinates stay continuous in the integrator. Only queries and
+    ! accepted states use this representative; Cartesian tangents need no reset.
+    double precision, intent(inout) :: x(ndim)
+    {^IFTHREED
+    if (trace_periodic_phi() .and. ieee_is_finite(x(3))) then
+      x(3)=xprobmin3+modulo(x(3)-xprobmin3,xprobmax3-xprobmin3)
+      if (x(3)>=xprobmax3) x(3)=xprobmin3
+    endif
+    }
+  end subroutine trace_normalize_position
+
+  logical function trace_coordinate_in_domain(value,idim) result(inside)
+    double precision, intent(in) :: value
+    integer, intent(in) :: idim
+    double precision :: lo(ndim),hi(ndim)
+    ^D&lo(^D)=xprobmin^D;
+    ^D&hi(^D)=xprobmax^D;
+    inside=.false.
+    if (.not.ieee_is_finite(value)) return
+    inside=.not.trace_physical_dimension(idim)
+    if (.not.inside) inside=value>=lo(idim) .and. value<hi(idim)
+  end function trace_coordinate_in_domain
+
+  subroutine trace_clamp_sample_position(x)
+    double precision, intent(inout) :: x(ndim)
+    double precision :: lo(ndim),hi(ndim)
+    integer :: idim
+    ^D&lo(^D)=xprobmin^D;
+    ^D&hi(^D)=xprobmax^D;
+    do idim=1,ndim
+      if (.not.trace_physical_dimension(idim)) cycle
+      x(idim)=max(lo(idim),min(x(idim), &
+           hi(idim)-100.d0*epsilon(one)*max(one,abs(hi(idim)))))
+    enddo
+    call trace_normalize_position(x)
+  end subroutine trace_clamp_sample_position
+
   logical function trace_is_supported_summary_geometry() result(is_supported)
     is_supported=.false.
     if (ndim/=3) return
@@ -6581,9 +6782,7 @@ contains
     case (geo_cartesian,geo_cartesian_stretched)
       is_supported=.true.
     case (geo_spherical)
-      ! Phase-1 spherical tracing uses native coordinates and assumes a
-      ! non-periodic phi interval. Periodic wrapping is a later extension.
-      is_supported=.not.periodB(3)
+      is_supported=trace_periodic_phi_supported()
     end select
     }
   end function trace_is_supported_summary_geometry
@@ -6702,6 +6901,10 @@ contains
     ^D&domain_max(^D)=xprobmax^D;
     tol=100.d0*epsilon(one)*max(one,maxval(abs(domain_max-domain_min)))
     do j=1,ndim
+      if (.not.trace_physical_dimension(j)) then
+        if (ieee_is_finite(seed(j))) indomain=indomain+1
+        cycle
+      endif
       if (seed(j)>=domain_min(j)-tol .and. &
            seed(j)<=domain_max(j)+tol) indomain=indomain+1
     enddo
@@ -6714,7 +6917,9 @@ contains
     x3d=zero
     do j=1,ndim
       x3d(j)=min(max(seed(j),domain_min(j)+tol),domain_max(j)-tol)
+      if (.not.trace_physical_dimension(j)) x3d(j)=seed(j)
     enddo
+    call trace_normalize_position(x3d(1:ndim))
     call find_particle_ipe(x3d,igrid,ipe)
     if (igrid<0 .or. ipe/=mype) then
       result%forward_status=trace_status_out_of_domain
@@ -6787,7 +6992,8 @@ contains
     type(trace_summary_state), intent(out) :: state
 
     state%x=xseed
-    state%footpoint=xseed
+    call trace_normalize_position(state%x)
+    state%footpoint=state%x
     state%length=zero
     state%twist=zero
     state%nstep=0
@@ -6936,6 +7142,7 @@ contains
           best_dim=0
           best_side=0
           do idim=1,ndim
+            if (.not.trace_physical_dimension(idim)) cycle
             face_dist=abs(state%x(idim)-domain_min(idim))
             if (face_dist<best_dist) then
               best_dist=face_dist
@@ -6972,7 +7179,7 @@ contains
     endif
 
     point_domain=0
-    {if (xnext(^DB)>=xprobmin^DB .and. xnext(^DB)<xprobmax^DB) point_domain=point_domain+1\}
+    {if (trace_coordinate_in_domain(xnext(^DB),^DB)) point_domain=point_domain+1\}
     if (point_domain/=ndim) then
       call trace_intersect_domain(state%x,xnext,xhit,hit_ok,face_id, &
            alpha_hit)
@@ -7006,6 +7213,7 @@ contains
           call trace_spherical_profile_add_count(trace_profile_steps,1_8)
         endif
         state%x=xhit
+        call trace_normalize_position(state%x)
         state%footpoint=state%x
         state%face=face_id
       endif
@@ -7043,6 +7251,7 @@ contains
     if (trace_spherical_profile_enabled .and. geo_coordinate==geo_spherical) &
          call trace_spherical_profile_add_count(trace_profile_steps,1_8)
     state%x=xnext
+    call trace_normalize_position(state%x)
     state%footpoint=state%x
 
     ^D&xbmin^D=rnode(rpxmin^D_,state%igrid)\
@@ -7055,7 +7264,12 @@ contains
     ipe_next=mype
     newpe=.false.
     stop_trace=.false.
-    call find_next_grid(state%igrid,igrid_next,ipe_next,state%x,newpe,stop_trace)
+    if (trace_periodic_phi()) then
+      call trace_debug_locate_point(state%x,igrid_next,step_status)
+      if (step_status/=trace_status_active) newpe=.true.
+    else
+      call find_next_grid(state%igrid,igrid_next,ipe_next,state%x,newpe,stop_trace)
+    endif
     if (stop_trace) then
       state%status=trace_status_boundary
       state%active=.false.
@@ -7079,6 +7293,7 @@ contains
           best_dim=0
           best_side=0
           do idim=1,ndim
+            if (.not.trace_physical_dimension(idim)) cycle
             face_dist=abs(state%x(idim)-domain_min(idim))
             if (face_dist<best_dist) then
               best_dist=face_dist
@@ -7402,7 +7617,7 @@ contains
       xm(idir)=xm(idir)-eps
 
       point_domain=0
-      {if (xp(^DB)>=xprobmin^DB .and. xp(^DB)<xprobmax^DB) point_domain=point_domain+1\}
+      {if (trace_coordinate_in_domain(xp(^DB),^DB)) point_domain=point_domain+1\}
       if (point_domain/=ndim) then
         status=trace_status_bad_grad_stencil
         return
@@ -7419,7 +7634,7 @@ contains
       bhat_p=Bp/Bpnorm
 
       point_domain=0
-      {if (xm(^DB)>=xprobmin^DB .and. xm(^DB)<xprobmax^DB) point_domain=point_domain+1\}
+      {if (trace_coordinate_in_domain(xm(^DB),^DB)) point_domain=point_domain+1\}
       if (point_domain/=ndim) then
         status=trace_status_bad_grad_stencil
         return
@@ -7645,12 +7860,12 @@ contains
     }
   end subroutine sample_B_curlB_at_point
 
-  subroutine sample_B_curlB_spherical_at_point(x,igrid,threshold,B,curlB, &
+  subroutine sample_B_curlB_spherical_at_point(x_input,igrid_input,threshold,B,curlB, &
        status,sph_cache)
     ! Reuse AMRVAC's geometry-aware curl operator for local spherical
     ! physical components. B0/J0 handling matches the MHD current path.
-    double precision, intent(in) :: x(ndim),threshold
-    integer, intent(in) :: igrid
+    double precision, intent(in) :: x_input(ndim),threshold
+    integer, intent(in) :: igrid_input
     double precision, intent(out) :: B(3),curlB(3)
     integer, intent(out) :: status
     type(trace_sph_interp_ctx), intent(inout), optional :: sph_cache
@@ -7661,6 +7876,19 @@ contains
     type(trace_sph_interp_ctx) :: ctx
     integer :: ixI^L,ixO^L,ixA^L,ixJ^L,ixbl^D,ix^D,j,idirmin
 
+    double precision :: x(ndim)
+    integer :: igrid,locate_status
+
+    x=x_input
+    call trace_normalize_position(x)
+    igrid=igrid_input
+    if (trace_periodic_phi()) then
+      call trace_locate_point_with_hint(x,igrid_input,igrid,locate_status)
+      if (locate_status/=trace_status_active) then
+        status=locate_status
+        return
+      endif
+    endif
     B=zero
     curlB=zero
     status=trace_status_bad_curl_stencil
@@ -7891,6 +8119,7 @@ contains
     face_id=trace_face_none
     nface=0
     do idim=1,ndim
+      if (.not.trace_physical_dimension(idim)) cycle
       if (abs(x(idim)-domain_min(idim))<=tol) then
         candidate_face=trace_face_from_dim_side(idim,-1)
         nface=nface+1
@@ -7933,6 +8162,7 @@ contains
     hit_side=0
     face_id=trace_face_none
     do idim=1,ndim
+      if (.not.trace_physical_dimension(idim)) cycle
       delta=xoutside(idim)-xinside(idim)
       if (xoutside(idim)<domain_min(idim) .and. abs(delta)>smalldouble) then
         alpha=(domain_min(idim)-xinside(idim))/delta
@@ -7973,6 +8203,7 @@ contains
 
     xhit=xinside+alpha_hit*(xoutside-xinside)
     do idim=1,ndim
+      if (.not.trace_physical_dimension(idim)) cycle
       xhit(idim)=min(max(xhit(idim),domain_min(idim)),domain_max(idim))
     enddo
     if (hit_side<0) then
@@ -8292,7 +8523,7 @@ contains
       x4err=xnow+sgn*h*(cs1*k1+cs3*k3+cs4*k4+cs5*k5+cs6*k6)
 
       point_domain=0
-      {if (x5(^DB)>=domain_min(^DB) .and. x5(^DB)<domain_max(^DB)) point_domain=point_domain+1\}
+      {if (trace_coordinate_in_domain(x5(^DB),^DB)) point_domain=point_domain+1\}
       if (point_domain/=ndim) then
         call trace_intersect_domain(xnow,x5,xhit,hit_ok,face_id)
         if (hit_ok) then
@@ -8560,7 +8791,7 @@ contains
       x4err=xnow+sgn*h*(cs1*k1+cs3*k3+cs4*k4+cs5*k5+cs6*k6)
 
       point_domain=0
-      {if (x5(^DB)>=domain_min(^DB) .and. x5(^DB)<domain_max(^DB)) point_domain=point_domain+1\}
+      {if (trace_coordinate_in_domain(x5(^DB),^DB)) point_domain=point_domain+1\}
       if (point_domain/=ndim) then
         call trace_intersect_domain(xnow,x5,xhit,hit_ok,face_id, &
              alpha_hit)
@@ -8684,8 +8915,7 @@ contains
       xstage=xnow-ds_step*K1
     endif
     xstage_sample=xstage
-    ^D&xstage_sample(^D)=max(xprobmin^D,min(xstage_sample(^D), &
-         xprobmax^D-100.d0*epsilon(one)*max(one,abs(xprobmax^D))));
+    call trace_clamp_sample_position(xstage_sample)
     call trace_locate_point_with_hint(xstage_sample,igrid,igrid_stage,status)
     if (status/=trace_status_active) return
     ^D&dxb^D=rnode(rpdx^D_,igrid_stage);

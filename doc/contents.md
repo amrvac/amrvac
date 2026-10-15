@@ -43,7 +43,7 @@ the data structures for the block-tree AMR.
 
 # Additional Physics {#special_sources}
 
-* [Thermal conduction](thermal_conduction.md) Description of solving thermal conduction.
+* [Thermal conduction](thermal_conduction.md) Parabolic STS and hyperbolic heat-flux relaxation, including parallel and perpendicular MHD transport.
 * [Radiative cooling](radiative_cooling.md) Description of adding radiative cooling.
 * [Pressure less fluids (dust)](dust.md) Getting started with the dust module.
 * [Test particles in (M)HD](particle.md) Description of test particle tracing routines.
