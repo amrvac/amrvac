@@ -729,10 +729,11 @@ contains
       integer                      :: n
       logical :: tc_saturate=.false.
       logical :: tc_patch_eint=.false.
+      logical :: tc_frozen_ion=.true.
       double precision :: tc_k_para=0d0
       double precision :: trac_T_floor=0.d0
 
-      namelist /tc_list/ tc_saturate, tc_k_para, trac_T_floor, tc_patch_eint
+      namelist /tc_list/ tc_saturate, tc_k_para, trac_T_floor, tc_patch_eint, tc_frozen_ion
 
       do n = 1, size(par_files)
          open(unitpar, file=trim(par_files(n)), status="old")
@@ -741,6 +742,7 @@ contains
       end do
       fl%tc_saturate = tc_saturate
       fl%tc_patch_eint = tc_patch_eint
+      fl%frozen_ion = tc_frozen_ion .and. .not. tc_patch_eint
       fl%tc_k_para = tc_k_para
       fl%trac_T_floor = trac_T_floor / unit_temperature
 

@@ -1226,10 +1226,12 @@ contains
     logical :: tc_perpendicular=.false.
     logical :: tc_saturate=.false.
     logical :: tc_patch_eint=.false.
+    logical :: tc_frozen_ion=.true.
     double precision :: trac_T_floor=0.d0
     character(len=std_len)  :: tc_slope_limiter="MC"
 
-    namelist /tc_list/ tc_perpendicular, tc_saturate, tc_slope_limiter, tc_k_para, tc_k_perp, tc_patch_eint, trac_T_floor
+    namelist /tc_list/ tc_perpendicular, tc_saturate, tc_slope_limiter, tc_k_para, tc_k_perp, &
+         tc_patch_eint, trac_T_floor, tc_frozen_ion
 
     do n = 1, size(par_files)
       open(unitpar, file=trim(par_files(n)), status="old")
@@ -1240,6 +1242,7 @@ contains
     fl%tc_perpendicular = tc_perpendicular
     fl%tc_saturate = tc_saturate
     fl%tc_patch_eint = tc_patch_eint
+    fl%frozen_ion = tc_frozen_ion .and. .not. tc_patch_eint
     fl%tc_k_para = tc_k_para
     fl%tc_k_perp = tc_k_perp
     fl%trac_T_floor = trac_T_floor / unit_temperature

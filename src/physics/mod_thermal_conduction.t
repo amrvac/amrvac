@@ -117,6 +117,11 @@ module mod_thermal_conduction
     !> in the Spitzer conductivity when the RKL2 polynomial overshoots.
     logical :: tc_patch_eint=.false.
 
+    !> LTE with ionisation energy: hold the ionisation state fixed through each conduction
+    !> step. T and R = p/(rho T) come from the full EoS at the first STS stage; the later
+    !> stages map the internal energy to T with the frozen-composition heat capacity
+    logical :: frozen_ion=.true.
+
     !> true when R = p/(rho T) is not 1, so saturation takes ciso2 = R T from get_var_Rfactor
     logical :: sat_R_variable=.false.
 
@@ -154,6 +159,14 @@ module mod_thermal_conduction
   public :: sts_set_source_tc_mhd
   public :: sts_set_source_tc_hd
   public :: tc_patch_negative_eint
+
+  !> Per-block anchor of the frozen-ionisation conduction step: T, R and the internal
+  !> energy at the step start, and the inverse frozen-composition heat capacity per volume
+  type tc_anchor_t
+    integer :: sts_id = -1               !< STS application the anchor belongs to
+    double precision, allocatable :: T0(:^D&), e0(:^D&), R0(:^D&), cvinv(:^D&)
+  end type tc_anchor_t
+  type(tc_anchor_t), allocatable :: tc_anchor(:)
 
 contains
 
@@ -365,17 +378,12 @@ contains
 
     dxinv=1.d0/dxlevel
 
-    ! Te and ciso2 = p/rho in the whole block (+ghosts)
-    call tc_get_Te_ciso2(w,x,ixI^L,fl,Te,ciso2)
-    call fl%get_rho(w, x, ixI^L, ixI^L, rho)  !calculate rho in whole domain (+ghosts)
+    call tc_get_Te_ciso2(ixI^L,w,x,fl,igrid,Te,ciso2)
+    call fl%get_rho(w, x, ixI^L, ixI^L, rho)
     call tc_flux_mhd(ixI^L,ixO^L,w,x,fl,qvec,rho,Te,ciso2,alpha)
     if(fl%subtract_equi) then
       allocate(qvec_equi(ixI^S,1:ndim))
-      ! the equilibrium flux reuses R = ciso2/Te of the full state
-      ciso2(ixI^S)=ciso2(ixI^S)/Te(ixI^S)
-      call fl%get_temperature_equi(w, x, ixI^L, ixI^L, Te)  !calculate Te in whole domain (+ghosts)
-      call fl%get_rho_equi(w, x, ixI^L, ixI^L, rho)  !calculate rho in whole domain (+ghosts)
-      ciso2(ixI^S)=ciso2(ixI^S)*Te(ixI^S)
+      call tc_equi_state(ixI^L, w, x, fl, Te, rho, ciso2)
       call tc_flux_mhd(ixI^L,ixO^L,w,x,fl,qvec_equi,rho,Te,ciso2,alpha)
       do idims=1,ndim
         ixAmax^D=ixOmax^D; ixAmin^D=ixOmin^D-kr(idims,^D);
@@ -1475,11 +1483,13 @@ contains
     dtnew=dtnew/dble(ndim)
   end function get_tc_dt_hd
 
-  !> Te over the block (+ghosts), with the optional negative-eint repair, and ciso2 = p/rho
-  !> for the saturation limit (ciso2 = Te where R = 1 or without saturation)
-  subroutine tc_get_Te_ciso2(w,x,ixI^L,fl,Te,ciso2)
+  !> Te over the block (+ghosts) and ciso2 = p/rho for the saturation limit: the frozen-
+  !> ionisation map within a conduction step with frozen_ion, else the full EoS with the
+  !> optional negative-eint repair (ciso2 = Te where R = 1 or without saturation)
+  subroutine tc_get_Te_ciso2(ixI^L,w,x,fl,igrid,Te,ciso2)
     use mod_global_parameters
-    integer, intent(in) :: ixI^L
+    use mod_supertimestepping, only: sts_app_id
+    integer, intent(in) :: ixI^L, igrid
     double precision, intent(inout) :: w(ixI^S,1:nw)
     double precision, intent(in) :: x(ixI^S,1:ndim)
     type(tc_fluid), intent(in) :: fl
@@ -1487,6 +1497,26 @@ contains
 
     double precision :: Tdummy(ixI^S)
     logical :: patched, want_ciso2
+
+    if(fl%frozen_ion .and. associated(fl%get_temperature_ciso2_from_eint)) then
+      ! The anchors are allocated once, by the first thread to arrive
+      !$OMP CRITICAL (tc_anchor_alloc)
+      if(.not. allocated(tc_anchor)) allocate(tc_anchor(max_blocks))
+      !$OMP END CRITICAL (tc_anchor_alloc)
+      ! the first stage of each conduction step anchors on the full EoS
+      if(tc_anchor(igrid)%sts_id /= sts_app_id) then
+        tc_anchor(igrid)%sts_id = sts_app_id
+        call tc_frozen_anchor(ixI^L, w, x, fl, igrid)
+      end if
+      associate(a => tc_anchor(igrid))
+      Te(ixI^S) = a%T0(ixI^S) + (w(ixI^S,fl%e_) - a%e0(ixI^S))*a%cvinv(ixI^S)
+      if(all(Te(ixI^S) > 0.d0)) then
+        ciso2(ixI^S) = a%R0(ixI^S)*Te(ixI^S)
+        return
+      end if
+      ! a non-positive frozen T: this block takes the full EoS for this stage
+      end associate
+    end if
 
     want_ciso2 = fl%tc_saturate .and. associated(fl%get_temperature_ciso2_from_eint)
     if(want_ciso2) then
@@ -1509,6 +1539,40 @@ contains
       ciso2(ixI^S) = Te(ixI^S)
     end if
   end subroutine tc_get_Te_ciso2
+
+  !> Anchor of the frozen-ionisation conduction step for block igrid, on the step-start
+  !> state (internal energy in w(:,e_)): T and R = ciso2/T from the full EoS, the energy,
+  !> and the inverse frozen-composition heat capacity. Within the step
+  !> T = T0 + (e - e0)/(R0 rho/(gamma-1)), exact where the gas is fully ionised or neutral
+  subroutine tc_frozen_anchor(ixI^L, w, x, fl, igrid)
+    use mod_global_parameters
+    integer, intent(in) :: ixI^L, igrid
+    double precision, intent(in) :: w(ixI^S,1:nw), x(ixI^S,1:ndim)
+    type(tc_fluid), intent(in) :: fl
+    double precision :: rho(ixI^S), ciso2(ixI^S)
+
+    associate(a => tc_anchor(igrid))
+    if(.not. allocated(a%T0)) allocate(a%T0(ixI^S), a%e0(ixI^S), a%R0(ixI^S), a%cvinv(ixI^S))
+    call fl%get_temperature_ciso2_from_eint(w, x, ixI^L, ixI^L, a%T0, ciso2)
+    call fl%get_rho(w, x, ixI^L, ixI^L, rho)
+    a%R0(ixI^S) = ciso2(ixI^S)/a%T0(ixI^S)
+    a%e0(ixI^S) = w(ixI^S,fl%e_)
+    a%cvinv(ixI^S) = 1.d0/(fl%inv_gamma_minus_1*a%R0(ixI^S)*rho(ixI^S))
+    end associate
+  end subroutine tc_frozen_anchor
+
+  !> Background Te and rho for the equilibrium flux. ciso2 keeps R = ciso2/Te of the full state
+  subroutine tc_equi_state(ixI^L, w, x, fl, Te, rho, ciso2)
+    use mod_global_parameters
+    integer, intent(in) :: ixI^L
+    double precision, intent(in) :: w(ixI^S,1:nw), x(ixI^S,1:ndim)
+    type(tc_fluid), intent(in) :: fl
+    double precision, intent(inout) :: Te(ixI^S), rho(ixI^S), ciso2(ixI^S)
+    ciso2(ixI^S)=ciso2(ixI^S)/Te(ixI^S)
+    call fl%get_temperature_equi(w, x, ixI^L, ixI^L, Te)
+    call fl%get_rho_equi(w, x, ixI^L, ixI^L, rho)
+    ciso2(ixI^S)=ciso2(ixI^S)*Te(ixI^S)
+  end subroutine tc_equi_state
 
   !> Face fluxes for the HD STS source, uniform or general geometry
   subroutine tc_flux_hd(ixI^L,ixO^L,w,x,fl,qvec,rho,Te,ciso2)
@@ -1568,17 +1632,12 @@ contains
 
     dxinv=1.d0/dxlevel
 
-    ! Te and ciso2 = p/rho in the whole block (+ghosts)
-    call tc_get_Te_ciso2(w,x,ixI^L,fl,Te,ciso2)
+    call tc_get_Te_ciso2(ixI^L,w,x,fl,igrid,Te,ciso2)
     call fl%get_rho(w, x, ixI^L, ixI^L, rho)
     call tc_flux_hd(ixI^L,ixO^L,w,x,fl,qvec,rho,Te,ciso2)
     if(fl%subtract_equi) then
       allocate(qvec_equi(ixI^S,1:ndim))
-      ! the equilibrium flux reuses R = ciso2/Te of the full state
-      ciso2(ixI^S)=ciso2(ixI^S)/Te(ixI^S)
-      call fl%get_temperature_equi(w, x, ixI^L, ixI^L, Te)  !calculate Te in whole domain (+ghosts)
-      call fl%get_rho_equi(w, x, ixI^L, ixI^L, rho)  !calculate rho in whole domain (+ghosts)
-      ciso2(ixI^S)=ciso2(ixI^S)*Te(ixI^S)
+      call tc_equi_state(ixI^L, w, x, fl, Te, rho, ciso2)
       call tc_flux_hd(ixI^L,ixO^L,w,x,fl,qvec_equi,rho,Te,ciso2)
       do idims=1,ndim
         ! operate only on the per-idims face range that set_source_tc_hd fills
