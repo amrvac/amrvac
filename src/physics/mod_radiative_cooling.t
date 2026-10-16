@@ -1461,14 +1461,12 @@ module mod_radiative_cooling
       double precision :: ne(ixI^S), nH_arr(ixI^S), rho2_factor(ixI^S)
       double precision :: taper
       ! LTE+IonE variables
-      double precision :: nH_val, log_nH, log_p_nH
-      double precision :: eint_current
+      double precision :: nH_val, log_nH
       double precision :: eint_w(ixI^S)  ! actual internal energy from conserved state
       double precision :: de_thin, de_thick, emax_rem
       double precision :: T1, T2, p1(ixI^S), tau, xi
       double precision :: xi_arr(ixI^S), emax_rem_arr(ixI^S)
       double precision :: cool_fac, fip_prim, frac_lowFIP, fip_factor
-      double precision :: y_loc, T_loc
       integer :: ix^D
 
       call fl%get_rho(wCT,x,ixI^L,ixO^L,rho)
@@ -1492,16 +1490,6 @@ module mod_radiative_cooling
            ! LTE+IonE: EoS quantities for Y-advance; cap from conserved state
            nH_val = rhonew(ix^D) / fl%nH2rhoFactor
            log_nH = dlog10(nH_val)
-           if (fl%method_analytic) then
-             ! Use cached Te_ and Ne_ to compute eint directly
-             T_loc = Te(ix^D)
-             y_loc = wCT(ix^D, iw_ne) / nH_val
-             eint_current = fl%inv_gamma_minus_1 * (1.0d0 + y_loc) * nH_val * T_loc &
-                 + y_loc * fl%eion_per_nH * nH_val
-           else
-             log_p_nH = dlog10(pnew(ix^D) / nH_val)
-             eint_current = pnew(ix^D) * fl%p2eint(log_nH, log_p_nH)
-           end if
            Lmax = max(zero, eint_w(ix^D) - emin) / qdt
            emax = max(zero, eint_w(ix^D) - emin)
          else
