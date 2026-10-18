@@ -44,6 +44,8 @@ module mod_usr_methods
   ! Source terms
   procedure(source), pointer          :: usr_source           => null()
   procedure(source), pointer          :: usr_source_after     => null()
+  !> opacity and Planck source for the SC RT when rt_sc_opacity = 'usr'
+  procedure(sub_rt_sc_chiB), pointer  :: usr_rt_sc_chiB       => null()
   procedure(get_dt), pointer          :: usr_get_dt           => null()
   procedure(phys_gravity), pointer    :: usr_gravity          => null()
   procedure(sub_get_heating), pointer :: usr_get_heating      => null()
@@ -631,6 +633,14 @@ module mod_usr_methods
       double precision, intent(in) :: x(ixI^S,1:ndim), w(ixI^S,1:nw)
       double precision, intent(out):: Qgrid(ixI^S)
     end subroutine sub_get_heating
+
+    !> Opacity chi = kappa rho and Planck source bpl = a_rad T^4 (code units) for the SC RT
+    subroutine sub_rt_sc_chiB(ixI^L, ixO^L, w, x, chi, bpl)
+      use mod_global_parameters
+      integer, intent(in)          :: ixI^L, ixO^L
+      double precision, intent(in) :: w(ixI^S,1:nw), x(ixI^S,1:ndim)
+      double precision, intent(out):: chi(ixI^S), bpl(ixI^S)
+    end subroutine sub_rt_sc_chiB
 
   end interface
 

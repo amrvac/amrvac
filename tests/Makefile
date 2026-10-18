@@ -20,7 +20,7 @@ hd/blast_wave_spherical_3D hd/Richtmyer_Meshkov_dust_2D hd/thermal_conduction_2D
 hd/blast_wave_spherical_stretched_3D hd/blast_wave_Cartesian_stretched_2D \
 hd/blast_wave_cylindrical_2D hd/blast_wave_cylindrical_3D hd/blast_wave_polar_3D \
 hd/CAKwind_spherical_1D hd/CAKwind_spherical_2.5D hd/thermal_instability_1D hd/thermal_instability_2D \
-hd/Coleman_1D
+hd/Coleman_1D hd/sc_rt_2D
 
 MHD_DIRS := mhd/Riemann_1.75D mhd/rotor_2D mhd/wake_2.5D mhd/shock_cloud_2D mhd/Kelvin_Helmholtz_2D \
 mhd/Orszag_Tang_2D mhd/blast_wave_Cartesian_2D mhd/blast_wave_polar_2D mhd/blast_wave_polar_stretched_2D \

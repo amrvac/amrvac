@@ -10,6 +10,7 @@ module mod_mhd_phys
   use mod_fld, only: fld_fluid
   use mod_physics
   use mod_eos
+  use mod_rt_sc_slab, only: rt_sc_activate, rt_sc_setup, rt_sc_add_source
   use mod_comm_lib, only: mpistop
   use mod_functions_bfield, only: get_divb, mag
 
@@ -138,6 +139,8 @@ module mod_mhd_phys
   logical, public, protected              :: mhd_thermal_conduction = .false.
   !> Whether radiative cooling is added
   logical, public, protected              :: mhd_radiative_cooling = .false.
+  !> Whether the short-characteristics radiative transfer is used, with its settings in &rt_list
+  logical, public, protected              :: mhd_radiative_transfer = .false.
   !> Whether thermal conduction is used
   logical, public, protected              :: mhd_hyperbolic_tc = .false.
   !> Whether saturation is considered for hyperbolic TC. When the perpendicular
@@ -303,8 +306,8 @@ contains
 
     namelist /mhd_list/ mhd_energy, mhd_n_tracer, mhd_adiab,&
       mhd_eta, mhd_eta_hyper, mhd_etah, mhd_eta_ambi, mhd_glm_alpha, mhd_glm_extended, mhd_magnetofriction,&
-      mhd_thermal_conduction, mhd_radiative_cooling, mhd_hall, mhd_ambipolar, mhd_ambipolar_sts, mhd_gravity,&
-      mhd_rotating_frame,mhd_viscosity, typedivbfix, source_split_divb, divbdiff,&
+      mhd_thermal_conduction, mhd_radiative_cooling, mhd_radiative_transfer, mhd_hall, mhd_ambipolar,&
+      mhd_ambipolar_sts, mhd_gravity, mhd_rotating_frame,mhd_viscosity, typedivbfix, source_split_divb, divbdiff,&
       typedivbdiff, type_ct, divbwave, &
       H_ion_fr, He_ion_fr, He_ion_fr2, SI_unit, B0field ,mhd_dump_full_vars,&
       B0field_forcefree, Bdip, Bquad, Boct, Busr, mhd_particles,&
@@ -671,6 +674,13 @@ contains
     else
       Ne_ = -1
       Te_ = -1
+    end if
+
+    ! The radiative transfer reads &rt_list and registers its output variables here, and is set up
+    ! in mhd_check_params once the units and the domain are known
+    if(mhd_radiative_transfer) then
+      if(.not. mhd_energy) call mpistop("radiative transfer needs mhd_energy=T")
+      call rt_sc_activate()
     end if
 
     ! set number of variables which need update ghostcells
@@ -1438,6 +1448,13 @@ contains
     use mod_fld
 
     double precision :: a,b,Xfrac,Yfrac
+
+    if(mhd_radiative_transfer) call rt_sc_setup()
+
+    ! mhd_get_cbounds_semirelati has a single estimator, and pvrs is hd only
+    if(mhd_semirelativistic .and. mype==0 .and. (boundspeed/=2 .or. H_correction)) write(*,*) &
+      'WARNING: typeboundspeed and H_correction are ignored', ' when mhd_semirelativistic=T'
+    if(boundspeed==4) call mpistop("typeboundspeed='pvrs' is not implemented for mhd")
 
     if(mhd_uawsom) then
       if(coordinate /= Cartesian .or. .not.slab_uniform) &
@@ -5399,6 +5416,12 @@ contains
     if(mhd_radiative_cooling) then
       call radiative_cooling_add_source(qdt,ixI^L,ixO^L,wCT,wCTprim,&
            w,x,qsourcesplit,active, rc_fl)
+    end if
+
+    ! The radiative transfer heating, solved once per step, is added unsplit at every stage
+    if(mhd_radiative_transfer .and. .not. qsourcesplit) then
+      active = .true.
+      call rt_sc_add_source(qdt,ixI^L,ixO^L,wCT,w,x,mhd_radiative_cooling,mhd_internal_e)
     end if
 
     if(mhd_viscosity) then

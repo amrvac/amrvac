@@ -12,6 +12,7 @@ module mod_radiative_cooling
   use mod_physics
   use mod_radloss_tables
   use mod_comm_lib, only: mpistop
+  use mod_rt_sc_slab, only: rt_sc_thin_weight
   implicit none
 
   !> Per-rank cooling-only compute accumulator for lb_diagnose. Sums the
@@ -1031,16 +1032,14 @@ module mod_radiative_cooling
       double precision, intent(out):: coolrate(ixI^S)
       type(rc_fluid), intent(in) :: fl
 
-      double precision :: pth(ixI^S),rho(ixI^S)
+      double precision :: rho(ixI^S)
       double precision :: L1,Te(ixI^S),Rfactor(ixI^S)
       double precision :: ne(ixI^S), nH_arr(ixI^S), rho2_factor(ixI^S)
       double precision :: taper
       integer :: ix^D
 
-      ! call fl%get_pthermal(w,x,ixI^L,ixO^L,pth)
       call fl%get_rho(w,x,ixI^L,ixO^L,rho)
-      ! call fl%get_var_Rfactor(w,x,ixI^L,ixO^L,Rfactor)
-      ! Te(ixO^S) = pth(ixO^S) / (rho(ixO^S)*Rfactor(ixO^S))
+      call fl%get_var_Rfactor(w,x,ixI^L,ixO^L,Rfactor)
       call fl%get_Te(w,x,ixI^L,ixO^L,Te)
       call fl%get_ne_nH(ixI^L, ixO^L, w, x, ne, nH_arr)
       call radiative_cooling_rho2_factor(ixI^L,ixO^L,w,x,fl,rho2_factor)
@@ -1059,7 +1058,8 @@ module mod_radiative_cooling
          if(slab_uniform .and. fl%rad_damp .and. x(ix^D,ndim) .le. fl%rad_damp_height) then
            L1 = L1*exp(-(x(ix^D,ndim)-fl%rad_damp_height)**2/fl%rad_damp_scale**2)
          end if
-         call radiative_cooling_taper(ix^D, x(ix^D,ndim), rho(ix^D), Te(ix^D), fl, taper)
+         call radiative_cooling_taper(ix^D, x(ix^D,ndim), rho(ix^D), Te(ix^D), Rfactor(ix^D), &
+              fl, taper)
          L1 = L1 * taper
          coolrate(ix^D) = L1*rho2_factor(ix^D)
       {end do\}
@@ -1110,6 +1110,7 @@ module mod_radiative_cooling
              eint_current = fl%inv_gamma_minus_1 * (1.0d0 + y_l) * nH_val * T_l &
                  + y_l * fl%eion_per_nH * nH_val
            else
+             emin = rc_eint_floor(fl, log_nH, nH_val)
              log_p_nH = dlog10(pnew(ix^D) / nH_val)
              eint_current = pnew(ix^D) * fl%p2eint(log_nH, log_p_nH)
            end if
@@ -1132,7 +1133,7 @@ module mod_radiative_cooling
            l1 = min(l1*rho2_factor(ix^D), lmax)
          else
            !> Always classical Townsend first. Upgrade to Y_mod only where
-           !> ionisation buffering matters (large ΔT, recombination zone).
+           !> ionisation buffering matters (large dT, recombination zone)
            call findY(Te(ix^D), y1, fl)
            if (fl%lambda_needs_nenh_table) then
              y2 = y1 + rho2_factor(ix^D)*fact * nH_arr(ix^D) * nH_arr(ix^D) * rc_gamma_1 &
@@ -1143,9 +1144,7 @@ module mod_radiative_cooling
            end if
            call findT(tlocal2, y2, fl)
 
-           if (fl%ionE .and. fl%Y_mod_built .and. &
-               dabs(Te(ix^D) - tlocal2) > 1.0d-4 * Te(ix^D) .and. &
-               Te(ix^D) < fl%T_Ymod_max) then
+           if (fl%Y_mod_built .and. rc_variable_cv(fl, Te(ix^D), tlocal2)) then
              y1 = findY_mod(Te(ix^D), nH_arr(ix^D), fl)
              if (y1 == y1 .and. abs(y1) < huge(1.0d0)) then
                y2 = y1 + rho2_factor(ix^D)*qdt
@@ -1155,9 +1154,7 @@ module mod_radiative_cooling
 
            if( tlocal2 <= fl%tcoolmin ) then
              l1 = lmax
-           else if (fl%ionE .and. &
-                    dabs(Te(ix^D) - tlocal2) > 1.0d-4 * Te(ix^D) .and. &
-                    Te(ix^D) < fl%T_Ymod_max) then
+           else if (rc_variable_cv(fl, Te(ix^D), tlocal2)) then
              !> Recombination zone: table-based de for variable c_V.
              l1 = ((fl%eint_from_T(log_nH, dlog10(Te(ix^D))) &
                   - fl%eint_from_T(log_nH, dlog10(tlocal2))) * nH_val) / qdt
@@ -1168,7 +1165,8 @@ module mod_radiative_cooling
            end if
            l1 = min(l1, lmax)
          end if
-         call radiative_cooling_taper(ix^D, x(ix^D,ndim), rho(ix^D), Te(ix^D), fl, taper)
+         call radiative_cooling_taper(ix^D, x(ix^D,ndim), rho(ix^D), Te(ix^D), Rfactor(ix^D), &
+              fl, taper)
          l1 = l1 * taper
          if(slab_uniform .and. fl%rad_damp .and. x(ix^D,ndim) .le. fl%rad_damp_height) then
            l1 = l1*exp(-(x(ix^D,ndim)-fl%rad_damp_height)**2/fl%rad_damp_scale**2)
@@ -1226,7 +1224,7 @@ module mod_radiative_cooling
              ! energy to reach the floor temperature from the tables, ionisation included
              nH_val = rho(ix^D) / fl%nH2rhoFactor
              log_nH = dlog10(nH_val)
-             eint_floor   = fl%eint_from_T(log_nH, max(dlog10(fl%tlow), fl%log_T_floor)) * nH_val
+             eint_floor   = rc_eint_floor(fl, log_nH, nH_val)
              eint_current = etherm(ix^D) * fl%p2eint(log_nH, dlog10(etherm(ix^D)/nH_val))
              w(ix^D,fl%e_)=w(ix^D,fl%e_)+max(eint_floor-eint_current, zero)
            else
@@ -1236,22 +1234,44 @@ module mod_radiative_cooling
       {end do\}
     end subroutine floortemperature
 
-    !> true unless a user TRAC mask switches the TRAC scaling of the losses off in this cell
-    logical function rc_trac_scaled(fl, ix^D)
+    !> TRAC factor (T/Tcoff)^(5/2) of the losses below Tcoff, and 1 without TRAC or where a user
+    !> TRAC mask switches the scaling off
+    double precision function rc_trac_factor(fl, ix^D, Te_val)
       use mod_global_parameters
       type(rc_fluid), intent(in) :: fl
       integer, intent(in) :: ix^D
-      rc_trac_scaled = .true.
-      if(fl%iw_tracmask_ > 0) rc_trac_scaled = block%wextra(ix^D, fl%iw_tracmask_) > 0.5d0
-    end function rc_trac_scaled
+      double precision, intent(in) :: Te_val
+      rc_trac_factor = 1.0d0
+      if(.not. phys_trac) return
+      if(fl%iw_tracmask_ > 0) then
+        if(block%wextra(ix^D, fl%iw_tracmask_) <= 0.5d0) return
+      end if
+      if(Te_val < block%wextra(ix^D,fl%Tcoff_)) &
+        rc_trac_factor = sqrt((Te_val/block%wextra(ix^D,fl%Tcoff_))**5)
+    end function rc_trac_factor
 
-    subroutine radiative_cooling_taper(ix^D, x_ndim, rho_val, Te_val, fl, factor)
+    !> True where ionisation buffers the cooling step, so that c_V varies: a large change of T
+    !> below the temperature above which c_V is constant
+    logical function rc_variable_cv(fl, T1, T2)
+      type(rc_fluid), intent(in) :: fl
+      double precision, intent(in) :: T1, T2
+      rc_variable_cv = fl%ionE .and. dabs(T1 - T2) > 1.0d-4 * T1 .and. T1 < fl%T_Ymod_max
+    end function rc_variable_cv
+
+    !> Internal energy per volume at the floor temperature tlow, ionisation included
+    double precision function rc_eint_floor(fl, log_nH, nH_val)
+      type(rc_fluid), intent(in) :: fl
+      double precision, intent(in) :: log_nH, nH_val
+      rc_eint_floor = fl%eint_from_T(log_nH, max(dlog10(fl%tlow), fl%log_T_floor)) * nH_val
+    end function rc_eint_floor
+
+    subroutine radiative_cooling_taper(ix^D, x_ndim, rho_val, Te_val, Rf_val, fl, factor)
       !> Compute multiplicative taper factor for radiative cooling.
-      !> Returns 1.0 when no tapering applies; < 1.0 near boundaries,
-      !> at high density, or in optically thick regions (escape probability).
+      !> Returns 1.0 when no tapering applies; < 1.0 where a user mask or the SC transfer takes
+      !> the losses, near boundaries, at high density, or in optically thick regions
       use mod_global_parameters
       integer, intent(in) :: ix^D
-      double precision, intent(in) :: x_ndim, rho_val, Te_val
+      double precision, intent(in) :: x_ndim, rho_val, Te_val, Rf_val
       type(rc_fluid), intent(in) :: fl
       double precision, intent(out) :: factor
       double precision :: d_boundary, tau, kappa_local
@@ -1262,6 +1282,10 @@ module mod_radiative_cooling
         factor = block%wextra(ix^D, fl%iw_mask_)
         if(factor <= 0.0d0) return
       end if
+
+      ! thin losses only where the SC RT does not take over; rt_sc_thin_weight is the one
+      ! definition of the split, so thin + SC = 1, and it is 1 outside the RT bands
+      factor = factor * rt_sc_thin_weight(Te_val, x_ndim, rho_val*Te_val*Rf_val)
 
       ! Spatial + density taper
       if(slab_uniform .and. fl%rad_modify) then
@@ -1292,7 +1316,7 @@ module mod_radiative_cooling
       end if
 
       ! Escape probability: cooling suppression by optical depth
-      ! kappa(T) = kappa_0 / (1 + (T/T_cutoff)^alpha) — sigmoid cutoff
+      ! kappa(T) = kappa_0 / (1 + (T/T_cutoff)^alpha) - sigmoid cutoff
       if(fl%rad_escape_prob .and. fl%iw_colmass_ > 0) then
         kappa_local = fl%rad_kappa_eff
         if(fl%rad_kappa_Tcutoff > 0.0d0) then
@@ -1367,6 +1391,7 @@ module mod_radiative_cooling
                eint_current = 1.5d0 * (1.0d0 + y_l) * nH_val * T_l &
                    + y_l * fl%eion_per_nH * nH_val
              else
+               emin = rc_eint_floor(fl, log_nH, nH_val)
                log_p_nH = dlog10(pth(ix^D) / nH_val)
                eint_current = pth(ix^D) * fl%p2eint(log_nH, log_p_nH)
              end if
@@ -1390,16 +1415,12 @@ module mod_radiative_cooling
              else
                L1 = L1 * ne(ix^D) * nH_arr(ix^D)
              end if
-             if(phys_trac .and. rc_trac_scaled(fl, ix^D)) then
-               if(Te(ix^D)<block%wextra(ix^D,fl%Tcoff_)) then
-                 L1=L1*sqrt((Te(ix^D)/block%wextra(ix^D,fl%Tcoff_))**5)
-               end if
-             end if
+             L1 = L1*rc_trac_factor(fl, ix^D, Te(ix^D))
              L1 = min(rho2_factor(ix^D)*L1,Lmax)
              res(ix^D) = L1*qdt
            else
              !> Always classical Townsend first. Upgrade to Y_mod only in the
-             !> recombination zone (large ΔT) — saturated y uses the identical
+             !> recombination zone (large dT) - saturated y uses the identical
              !> formula as ionE=false, removing per-substep asymmetry.
              call findY(Te(ix^D),Y1,fl)
              if (fl%lambda_needs_nenh_table) then
@@ -1411,9 +1432,7 @@ module mod_radiative_cooling
              end if
              call findT(Tlocal2,Y2,fl)
 
-             if (fl%ionE .and. fl%Y_mod_built .and. &
-                 dabs(Te(ix^D) - Tlocal2) > 1.0d-4 * Te(ix^D) .and. &
-                 Te(ix^D) < fl%T_Ymod_max) then
+             if (fl%Y_mod_built .and. rc_variable_cv(fl, Te(ix^D), Tlocal2)) then
                Y1 = findY_mod(Te(ix^D), nH_arr(ix^D), fl)
                if (Y1 == Y1 .and. abs(Y1) < huge(1.0d0)) then
                  Y2 = Y1 + rho2_factor(ix^D)*qdt
@@ -1423,24 +1442,19 @@ module mod_radiative_cooling
 
              if(Tlocal2<=fl%tcoolmin) then
                de = emax
-             else if (fl%ionE .and. &
-                      dabs(Te(ix^D) - Tlocal2) > 1.0d-4 * Te(ix^D) .and. &
-                      Te(ix^D) < fl%T_Ymod_max) then
+             else if (rc_variable_cv(fl, Te(ix^D), Tlocal2)) then
                de = (fl%eint_from_T(log_nH, dlog10(Te(ix^D))) &
                     - fl%eint_from_T(log_nH, dlog10(Tlocal2))) * nH_val
                de = max(de, zero)
              else
                de = (Te(ix^D)-Tlocal2)*rho(ix^D)*Rfactor(ix^D)*invgam
              end if
-             if(phys_trac .and. rc_trac_scaled(fl, ix^D)) then
-               if(Te(ix^D)<block%wextra(ix^D,fl%Tcoff_)) then
-                 de=de*sqrt((Te(ix^D)/block%wextra(ix^D,fl%Tcoff_))**5)
-               end if
-             end if
+             de = de*rc_trac_factor(fl, ix^D, Te(ix^D))
              de = min(de,emax)
              res(ix^D) = de
            end if
-           call radiative_cooling_taper(ix^D, x(ix^D,ndim), rho(ix^D), Te(ix^D), fl, taper)
+           call radiative_cooling_taper(ix^D, x(ix^D,ndim), rho(ix^D), Te(ix^D), Rfactor(ix^D), &
+              fl, taper)
            res(ix^D) = res(ix^D) * taper
         {end do\}
     end subroutine get_cool_equi
@@ -1537,13 +1551,10 @@ module mod_radiative_cooling
              L1 = L1 * ne(ix^D) * nH_arr(ix^D)
            end if
            L1 = cool_fac * L1
-           if(phys_trac .and. rc_trac_scaled(fl, ix^D)) then
-             if(Te(ix^D)<block%wextra(ix^D,fl%Tcoff_)) then
-               L1=L1*sqrt((Te(ix^D)/block%wextra(ix^D,fl%Tcoff_))**5)
-             end if
-           end if
+           L1 = L1*rc_trac_factor(fl, ix^D, Te(ix^D))
            L1 = min(L1,Lmax)
-           call radiative_cooling_taper(ix^D, x(ix^D,ndim), rho(ix^D), Te(ix^D), fl, taper)
+           call radiative_cooling_taper(ix^D, x(ix^D,ndim), rho(ix^D), Te(ix^D), Rfactor(ix^D), &
+              fl, taper)
            L1 = L1 * taper
            de_thin = L1 * qdt
            w(ix^D,fl%e_) = w(ix^D,fl%e_) - de_thin
@@ -1567,9 +1578,7 @@ module mod_radiative_cooling
            !> Upgrade to Y_mod only in the recombination zone (large dT).
            !> Guard: if findY_mod overflows (cooling curve near-zero at this T),
            !> keep the classical result -- variable c_V is irrelevant where Lambda ~ 0.
-           if (fl%ionE .and. fl%Y_mod_built .and. &
-               dabs(Te(ix^D) - Tlocal2) > 1.0d-4 * Te(ix^D) .and. &
-               Te(ix^D) < fl%T_Ymod_max) then
+           if (fl%Y_mod_built .and. rc_variable_cv(fl, Te(ix^D), Tlocal2)) then
              Y1 = findY_mod(Te(ix^D), nH_arr(ix^D), fl)
              if (Y1 == Y1 .and. abs(Y1) < huge(1.0d0)) then
                Y2 = Y1 + cool_fac * qdt
@@ -1579,9 +1588,7 @@ module mod_radiative_cooling
 
            if(Tlocal2<=fl%tcoolmin) then
              de = emax
-           else if (fl%ionE .and. &
-                    dabs(Te(ix^D) - Tlocal2) > 1.0d-4 * Te(ix^D) .and. &
-                    Te(ix^D) < fl%T_Ymod_max) then
+           else if (rc_variable_cv(fl, Te(ix^D), Tlocal2)) then
              !> Recombination zone: use table-based de for variable c_V.
              de = (fl%eint_from_T(log_nH, dlog10(Te(ix^D))) &
                    - fl%eint_from_T(log_nH, dlog10(Tlocal2))) * nH_val
@@ -1590,13 +1597,10 @@ module mod_radiative_cooling
              !> Saturated y or non-ionE: classical Townsend kinetic form.
              de = (Te(ix^D)-Tlocal2)*rho(ix^D)*Rfactor(ix^D)*invgam
            end if
-           if(phys_trac .and. rc_trac_scaled(fl, ix^D)) then
-             if(Te(ix^D)<block%wextra(ix^D,fl%Tcoff_)) then
-               de=de*sqrt((Te(ix^D)/block%wextra(ix^D,fl%Tcoff_))**5)
-             end if
-           end if
+           de = de*rc_trac_factor(fl, ix^D, Te(ix^D))
            de = min(de,emax)
-           call radiative_cooling_taper(ix^D, x(ix^D,ndim), rho(ix^D), Te(ix^D), fl, taper)
+           call radiative_cooling_taper(ix^D, x(ix^D,ndim), rho(ix^D), Te(ix^D), Rfactor(ix^D), &
+              fl, taper)
            de = de * taper
            de_thin = de
            w(ix^D,fl%e_) = w(ix^D,fl%e_) - de_thin

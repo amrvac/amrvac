@@ -25,6 +25,7 @@ program amrvac
   use mod_convert_files, only: generate_plotfile
   use mod_comm_lib, only: comm_start, comm_finalize,mpistop
   use mod_escape_probability, only: escape_prob_compute_colmass
+  use mod_rt_sc_slab, only: rt_sc_solve, rt_sc_active
 
 
   double precision :: time0, time_in
@@ -290,7 +291,7 @@ contains
        tw_setdt=MPI_WTIME()-tw_setdt
 
        ! Optionally call a user method that can modify the grid variables at the
-       ! beginning of a time step (this is where the SC radiative transfer solve runs)
+       ! beginning of a time step
        tw_process=0.d0
        if (associated(usr_process_grid) .or. &
             associated(usr_process_global)) then
@@ -298,6 +299,14 @@ contains
           call process(it,global_time)
           call prepare_eos_w_fields(ps)
           tw_process=MPI_WTIME()-tw_process
+       end if
+
+       ! the SC RT is a global solve; its heating enters the sources as a constant of every stage
+       if (rt_sc_active) then
+          ! per-rank wall time including the pipeline waits, which show the imbalance
+          if (lb_diagnose) lb_rt_accum = MPI_WTIME()
+          call rt_sc_solve()
+          if (lb_diagnose) lb_rt_accum = MPI_WTIME() - lb_rt_accum
        end if
 
        ! Check if output needs to be written
@@ -451,6 +460,10 @@ contains
        write(*,'(a,f12.3,a)')' Time spent on WB transform : ',time_wb_transform,' sec'
        write(*,'(a,f12.3,a)')' Time spent on WB inverse+C : ',time_wb_inverse,' sec'
        write(*,'(a,f12.3,a)')' Time spent on reconstruction:',time_wb_recon,' sec'
+       if(time_rt>0.0d0) then
+         write(*,'(a,f12.3,a)')' Time spent on RT (SC)      : ',time_rt,' sec'
+         write(*,'(a,f12.2,a)')'                  Percentage: ',100.0*time_rt/timeloop,' %'
+       end if
        write(*,'(a,f12.3,a)')' Time spent on computing    : ',timeloop-timeio_tot-timeeos_tot-timegr_tot-time_bc,' sec'
        write(*,'(a,f12.2,a)')'                  Percentage: ',100.0*(timeloop-timeio_tot-timeeos_tot-timegr_tot-time_bc)/timeloop,' %'
        write(*,'(a,es12.3 )')' Cells updated / proc / sec : ',dble(ncells_update)*dble(nstep)/dble(npe)/timeloop

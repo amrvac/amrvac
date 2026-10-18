@@ -6,6 +6,7 @@ module mod_hd_phys
   use mod_fld, only: fld_fluid
   use mod_physics
   use mod_eos
+  use mod_rt_sc_slab, only: rt_sc_activate, rt_sc_setup, rt_sc_add_source
   use mod_comm_lib, only: mpistop
   implicit none
   private
@@ -26,6 +27,8 @@ module mod_hd_phys
 
   !> Whether radiative cooling is added
   logical, public, protected              :: hd_radiative_cooling = .false.
+  !> Whether the short-characteristics radiative transfer is used, with its settings in &rt_list
+  logical, public, protected              :: hd_radiative_transfer = .false.
   type(rc_fluid), allocatable, public :: rc_fl
 
   !> Whether dust is added
@@ -241,7 +244,7 @@ contains
     hd_htc_kappa_override, hd_htc_hyp_diff, &
     hd_htc_beta, hd_htc_sat_alpha, hd_htc_pos_eta, hd_htc_validity_warn, &
     hd_htc_gradT_floor, &
-    hd_radiative_cooling, hd_viscosity, &
+    hd_radiative_cooling, hd_radiative_transfer, hd_viscosity, &
     hd_gravity, H_ion_fr, He_ion_fr, He_ion_fr2, &
     SI_unit, hd_particles, hd_rotating_frame, hd_trac, &
     hd_trac_type, hd_trac_nzones, hd_trac_zone_splits, hd_trac_delta, hd_trac_Tfix, &
@@ -393,6 +396,13 @@ contains
     else
       Ne_ = -1
       Te_ = -1
+    end if
+
+    ! The radiative transfer reads &rt_list and registers its output variables here, and is set up
+    ! in hd_check_params once the units and the domain are known
+    if(hd_radiative_transfer) then
+      if(.not. hd_energy) call mpistop("radiative transfer needs hd_energy=T")
+      call rt_sc_activate()
     end if
 
     if(hd_radiation_fld)then
@@ -569,7 +579,6 @@ contains
       end if
     end if
     allocate(te_fl_hd)
-
 
 {^IFTHREED
     phys_te_images => hd_te_images
@@ -887,6 +896,8 @@ contains
     if (hd_particles) then
        call particles_init()
     end if
+
+    if (hd_radiative_transfer) call rt_sc_setup()
 
     if (.not. hd_energy) then
        if (eos%gamma <= 0.0d0) call mpistop ("Error: eos%gamma <= 0")
@@ -2256,6 +2267,12 @@ contains
     if(hd_radiative_cooling) then
       call radiative_cooling_add_source(qdt,ixI^L,ixO^L,wCT,wCTprim,w,x,&
            qsourcesplit,active, rc_fl)
+    end if
+
+    ! The radiative transfer heating, solved once per step, is added unsplit at every stage
+    if(hd_radiative_transfer .and. .not. qsourcesplit) then
+      active = .true.
+      call rt_sc_add_source(qdt,ixI^L,ixO^L,wCT,w,x,hd_radiative_cooling,.false.)
     end if
 
     if(hd_viscosity) then

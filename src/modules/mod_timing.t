@@ -15,6 +15,7 @@ module mod_timing
   double precision       :: timeeos_Tfromei=0.0d0
   double precision       :: time_wb_transform=0.0d0, time_wb_inverse=0.0d0
   double precision       :: time_wb_recon=0.0d0
+  double precision       :: time_rt=0.0d0   ! SC radiative transfer, inclusive
   double precision       :: tpartc=0.0d0, tpartc_io=0.0d0, tpartc_int=0.0d0, tpartc_com=0.0d0, tpartc_grid=0.0d0
   double precision       :: tpartc0, tpartc_int_0, tpartc_com0, tpartc_io_0, tpartc_grid_0
   double precision       :: timeLast

@@ -1,0 +1,12 @@
+ &filelist
+        base_filename = '_beam_pipe'
+ /
+
+ &usr_list
+        rt_case = 'beam'
+ /
+
+ &rt_list
+        rt_sc_distributed = .true.
+        rt_sc_pipeline    = .true.
+ /
