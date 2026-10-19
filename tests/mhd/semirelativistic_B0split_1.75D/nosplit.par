@@ -1,0 +1,6 @@
+ &filelist
+        base_filename = '_nosplit'
+ /
+ &mhd_list
+        B0field = .false.
+ /

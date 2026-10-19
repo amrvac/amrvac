@@ -1,0 +1,12 @@
+! Sheared background, so neither the split field nor the background current
+! vanishes and the j0xB0 and E.j0 source terms of eqs (94) and (96) are exercised
+ &filelist
+        base_filename = '_split_shear'
+ /
+ &mhd_list
+        B0field = .true.
+        B0field_forcefree = .false.
+ /
+ &usr_list
+        b0_profile = 1
+ /

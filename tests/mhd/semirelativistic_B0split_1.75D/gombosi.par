@@ -1,0 +1,65 @@
+! Numerics common to every semirelativistic wave test of Gombosi et al. 2002
+! section 7: second-order MUSCL TVD with a Lax-Friedrichs flux and the Woodward
+! (monotonized central) limiter at Courant number 0.9, on the 800 cell grid
+! spanning -400 < x < 400 that section 7.2 specifies
+
+ &filelist
+        base_filename = ''
+        saveprim      = T
+ /
+
+ &savelist
+        itsave(1,1)   = 0
+        itsave(1,2)   = 0
+        dtsave_log    = 2.d0
+        dtsave_dat    = 2.d1
+ /
+
+ &stoplist
+        time_max      = 200.d0
+ /
+
+ &methodlist
+        time_stepper  = 'twostep'
+        flux_scheme   = 20*'tvdlf'
+        limiter       = 20*'woodward'
+ /
+
+ &boundlist
+        typeboundary_min1 = 8*'cont'
+        typeboundary_max1 = 8*'cont'
+ /
+
+ &meshlist
+        refine_max_level = 1
+        block_nx1     = 16
+        domain_nx1    = 800
+        xprobmin1     = -400.d0
+        xprobmax1     = 400.d0
+ /
+
+ &paramlist
+        courantpar    = 0.9d0
+ /
+
+ &mhd_list
+        typedivbfix   = 'none'
+        SI_unit       = .true.
+        mhd_semirelativistic = .true.
+! c = 0.9 code velocity units, given as 0.9*unit_velocity so that the code keeps
+! the physical true light speed. A value below one is read as a code-unit speed
+! and then sets c0 = 1, which is not the regime the paper works in
+        mhd_reduced_c = 9.d2
+! eq (28) rather than the full eq (26) correction, matching the paper's own runs
+        mhd_semirelati_curl_E = .false.
+ /
+
+ &eos_list
+        gamma         = 2.d0
+        He_abundance  = 0.d0
+ /
+
+ &usr_list
+        unit_v  = 1.d3
+        unit_nd = 1.d20
+ /

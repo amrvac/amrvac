@@ -579,6 +579,9 @@ mod_mhd_phys.o: mod_constants.mod
 mod_mhd_phys.o: mod_constrained_transport.mod
 mod_mhd_phys.o: mod_convert.mod
 mod_mhd_phys.o: mod_eos.mod
+mod_mhd_phys.o: mod_eos_container.mod
+mod_mhd_phys.o: mod_eos_lte.mod
+mod_mhd_phys.o: mod_eos_pi.mod
 mod_mhd_phys.o: mod_eos_pi_tables.mod
 mod_mhd_phys.o: mod_fix_conserve.mod
 mod_mhd_phys.o: mod_fld.mod

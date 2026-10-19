@@ -71,29 +71,17 @@ contains
                 mhd_get_pthermal         => mhd_get_pthermal_hde
             else if(mhd_semirelativistic) then
                 if(mhd_energy) then
-                    if(eos%ionE) then
-                      eos%to_primitive        => mhd_to_primitive_semirelati_PI
-                      eos%to_conserved        => mhd_to_conserved_semirelati_PI
-                      if (mhd_internal_e) then
-                          eos%p_to_e        => mhd_p_to_eint_PI
-                          phys_get_pthermal        => mhd_get_pthermal_inte_PI 
-                          mhd_get_pthermal         => mhd_get_pthermal_inte_PI 
-                      else
-                          eos%p_to_e        => mhd_p_to_e_PI
-                          phys_get_pthermal        => mhd_get_pthermal_semirelati_PI
-                          mhd_get_pthermal         => mhd_get_pthermal_semirelati_PI
-                      end if
+                    ! the eint <-> p step inside dispatches on the EoS
+                    eos%to_primitive        => mhd_to_primitive_semirelati
+                    eos%to_conserved        => mhd_to_conserved_semirelati
+                    if(mhd_internal_e .and. eos%ionE) then
+                      phys_get_pthermal => mhd_get_pthermal_inte_PI
+                    else if(mhd_internal_e) then
+                      phys_get_pthermal => mhd_get_pthermal_inte
                     else
-                      eos%to_primitive        => mhd_to_primitive_semirelati
-                      eos%to_conserved        => mhd_to_conserved_semirelati
-                      if (mhd_internal_e) then
-                        phys_get_pthermal        => mhd_get_pthermal_inte
-                        mhd_get_pthermal         => mhd_get_pthermal_inte
-                      else
-                        phys_get_pthermal        => mhd_get_pthermal_semirelati
-                        mhd_get_pthermal         => mhd_get_pthermal_semirelati
-                      end if
+                      phys_get_pthermal => mhd_get_pthermal_semirelati
                     end if
+                    mhd_get_pthermal => phys_get_pthermal
                 else
                     eos%to_primitive        => mhd_to_primitive_semirelati_noe
                     eos%to_conserved        => mhd_to_conserved_semirelati_noe
@@ -141,14 +129,15 @@ contains
             ! Guard unsupported combinations
             if (mhd_hydrodynamic_e) &
               call mpistop('LTE EoS not supported with mhd_hydrodynamic_e')
-            if (mhd_semirelativistic) &
-              call mpistop('LTE EoS not supported with mhd_semirelativistic')
             if (has_equi_rho_and_p) &
               call mpistop('LTE EoS not supported with equilibrium splitting')
             if (.not. mhd_energy) &
               call mpistop('LTE EoS requires mhd_energy=.true.')
             ! Route LTE conversion based on energy formulation
-            if (mhd_internal_e) then
+            if (mhd_semirelativistic) then
+                eos%to_primitive  => mhd_to_primitive_semirelati
+                eos%to_conserved  => mhd_to_conserved_semirelati
+            else if (mhd_internal_e) then
                 eos%to_primitive  => mhd_to_primitive_inte_LTE
                 eos%to_conserved  => mhd_to_conserved_inte_LTE
             else
@@ -486,104 +475,70 @@ contains
 
     end subroutine mhd_to_conserved_split_rho
 
-    !> Transform primitive variables into conservative ones (semirelativistic)
+    !> E=Bxv and S=ExB from a primitive state, both with the total field (eqs 5 and 23)
+    subroutine semirelati_E_S(w,ixI^L,ixO^L,efd,S)
+        use mod_global_parameters
+        integer, intent(in)           :: ixI^L, ixO^L
+        double precision, intent(in)  :: w(ixI^S,nw)
+        double precision, intent(out) :: efd(ixO^S,1:ndir), S(ixO^S,1:ndir)
+
+        double precision :: btot(1:ndir)
+        integer :: ix^D
+
+        {do ix^DB=ixOmin^DB,ixOmax^DB\}
+            ^C&btot(^C)=w(ix^D,b^C_)\
+            if(B0field) then
+                ^C&btot(^C)=btot(^C)+block%B0(ix^D,^C,b0i)\
+            end if
+            {^IFTHREEC
+                efd(ix^D,1)=btot(2)*w(ix^D,m3_)-btot(3)*w(ix^D,m2_)
+                efd(ix^D,2)=btot(3)*w(ix^D,m1_)-btot(1)*w(ix^D,m3_)
+                efd(ix^D,3)=btot(1)*w(ix^D,m2_)-btot(2)*w(ix^D,m1_)
+                S(ix^D,1)=efd(ix^D,2)*btot(3)-efd(ix^D,3)*btot(2)
+                S(ix^D,2)=efd(ix^D,3)*btot(1)-efd(ix^D,1)*btot(3)
+                S(ix^D,3)=efd(ix^D,1)*btot(2)-efd(ix^D,2)*btot(1)
+            }
+            {^IFTWOC
+                efd(ix^D,1)=zero
+                ! switch 3 with 2 to add 3 when ^C from 1 to 2
+                efd(ix^D,2)=btot(1)*w(ix^D,m2_)-btot(2)*w(ix^D,m1_)
+                S(ix^D,1)=-efd(ix^D,2)*btot(2)
+                S(ix^D,2)=efd(ix^D,2)*btot(1)
+            }
+            {^IFONEC
+                efd(ix^D,1)=zero
+                S(ix^D,1)=zero
+            }
+        {end do\}
+
+    end subroutine semirelati_E_S
+
+    !> Transform primitive variables into conservative ones (semirelativistic, any EoS)
     subroutine mhd_to_conserved_semirelati(ixI^L,ixO^L,w,x)
         use mod_global_parameters
         integer, intent(in)             :: ixI^L, ixO^L
         double precision, intent(inout) :: w(ixI^S, nw)
         double precision, intent(in)    :: x(ixI^S, 1:ndim)
 
-        double precision :: E(ixO^S,1:ndir), S(ixO^S,1:ndir)
+        double precision :: efd(ixO^S,1:ndir), S(ixO^S,1:ndir), eint
         integer :: ix^D
 
+        call semirelati_E_S(w,ixI^L,ixO^L,efd,S)
         {do ix^DB=ixOmin^DB,ixOmax^DB\}
-            {^IFTHREEC
-                E(ix^D,1)=w(ix^D,b2_)*w(ix^D,m3_)-w(ix^D,b3_)*w(ix^D,m2_)
-                E(ix^D,2)=w(ix^D,b3_)*w(ix^D,m1_)-w(ix^D,b1_)*w(ix^D,m3_)
-                E(ix^D,3)=w(ix^D,b1_)*w(ix^D,m2_)-w(ix^D,b2_)*w(ix^D,m1_)
-                S(ix^D,1)=E(ix^D,2)*w(ix^D,b3_)-E(ix^D,3)*w(ix^D,b2_)
-                S(ix^D,2)=E(ix^D,3)*w(ix^D,b1_)-E(ix^D,1)*w(ix^D,b3_)
-                S(ix^D,3)=E(ix^D,1)*w(ix^D,b2_)-E(ix^D,2)*w(ix^D,b1_)
-            }
-            {^IFTWOC
-                E(ix^D,1)=zero
-                ! switch 3 with 2 to add 3 when ^C from 1 to 2
-                E(ix^D,2)=w(ix^D,b1_)*w(ix^D,m2_)-w(ix^D,b2_)*w(ix^D,m1_)
-                S(ix^D,1)=-E(ix^D,2)*w(ix^D,b2_)
-                S(ix^D,2)=E(ix^D,2)*w(ix^D,b1_)
-            }
-            {^IFONEC
-                E(ix^D,1)=zero
-                S(ix^D,1)=zero
-            }
+            eint=mhd_semirelati_eint(w(ix^D,p_),w(ix^D,rho_))
             if(mhd_internal_e) then
-                ! internal energy
-                w(ix^D,e_)=w(ix^D,p_)*eos%inv_gamma_minus_1
+                w(ix^D,e_)=eint
             else
-                ! equation (9)
-                ! Calculate total energy from internal, kinetic and magnetic energy
-                w(ix^D,e_)=w(ix^D,p_)*eos%inv_gamma_minus_1&
-                          +half*((^C&w(ix^D,m^C_)**2+)*w(ix^D,rho_)&
+                ! equation (9), the magnetic energy from the stored slot (eq 92 under splitting)
+                w(ix^D,e_)=eint+half*((^C&w(ix^D,m^C_)**2+)*w(ix^D,rho_)&
                           +(^C&w(ix^D,b^C_)**2+)&
-                          +(^C&e(ix^D,^C)**2+)*eos%inv_squared_c)
+                          +(^C&efd(ix^D,^C)**2+)*eos%inv_squared_c)
             end if
-
             ! Convert velocity to momentum, equation (9)
             ^C&w(ix^D,m^C_)=w(ix^D,rho_)*w(ix^D,m^C_)+S(ix^D,^C)*eos%inv_squared_c\
-
         {end do\}
 
     end subroutine mhd_to_conserved_semirelati
-
-    !> Transform primitive variables into conservative ones (semirelativistic)
-    subroutine mhd_to_conserved_semirelati_PI(ixI^L,ixO^L,w,x)
-        use mod_global_parameters
-        integer, intent(in)             :: ixI^L, ixO^L
-        double precision, intent(inout) :: w(ixI^S, nw)
-        double precision, intent(in)    :: x(ixI^S, 1:ndim)
-
-        double precision :: E(ixO^S,1:ndir), S(ixO^S,1:ndir), eint
-        integer :: ix^D
-
-        {do ix^DB=ixOmin^DB,ixOmax^DB\}
-            {^IFTHREEC
-                E(ix^D,1)=w(ix^D,b2_)*w(ix^D,m3_)-w(ix^D,b3_)*w(ix^D,m2_)
-                E(ix^D,2)=w(ix^D,b3_)*w(ix^D,m1_)-w(ix^D,b1_)*w(ix^D,m3_)
-                E(ix^D,3)=w(ix^D,b1_)*w(ix^D,m2_)-w(ix^D,b2_)*w(ix^D,m1_)
-                S(ix^D,1)=E(ix^D,2)*w(ix^D,b3_)-E(ix^D,3)*w(ix^D,b2_)
-                S(ix^D,2)=E(ix^D,3)*w(ix^D,b1_)-E(ix^D,1)*w(ix^D,b3_)
-                S(ix^D,3)=E(ix^D,1)*w(ix^D,b2_)-E(ix^D,2)*w(ix^D,b1_)
-            }
-            {^IFTWOC
-                E(ix^D,1)=zero
-                ! switch 3 with 2 to add 3 when ^C from 1 to 2
-                E(ix^D,2)=w(ix^D,b1_)*w(ix^D,m2_)-w(ix^D,b2_)*w(ix^D,m1_)
-                S(ix^D,1)=-E(ix^D,2)*w(ix^D,b2_)
-                S(ix^D,2)=E(ix^D,2)*w(ix^D,b1_)
-            }
-            {^IFONEC
-                E(ix^D,1)=zero
-                S(ix^D,1)=zero
-            }
-            if(mhd_internal_e) then
-                ! internal energy
-                call eint_from_rho_p_PI(w(ix^D,rho_), w(ix^D,p_), w(ix^D,e_))
-            else
-                ! equation (9)
-                ! Calculate total energy from internal, kinetic and magnetic energy
-                call eint_from_rho_p_PI(w(ix^D,rho_), w(ix^D,p_), eint)
-                w(ix^D,e_)=eint&
-                          +half*((^C&w(ix^D,m^C_)**2+)*w(ix^D,rho_)&
-                          +(^C&w(ix^D,b^C_)**2+)&
-                          +(^C&e(ix^D,^C)**2+)*eos%inv_squared_c)
-            end if
-
-            ! Convert velocity to momentum, equation (9)
-            ^C&w(ix^D,m^C_)=w(ix^D,rho_)*w(ix^D,m^C_)+S(ix^D,^C)*eos%inv_squared_c\
-
-        {end do\}
-
-    end subroutine mhd_to_conserved_semirelati_PI
 
     subroutine mhd_to_conserved_semirelati_noe(ixI^L,ixO^L,w,x)
         use mod_global_parameters
@@ -591,31 +546,13 @@ contains
         double precision, intent(inout) :: w(ixI^S, nw)
         double precision, intent(in)    :: x(ixI^S, 1:ndim)
 
-        double precision :: E(ixO^S,1:ndir), S(ixO^S,1:ndir)
+        double precision :: efd(ixO^S,1:ndir), S(ixO^S,1:ndir)
         integer :: ix^D
 
+        call semirelati_E_S(w,ixI^L,ixO^L,efd,S)
         {do ix^DB=ixOmin^DB,ixOmax^DB\}
-            {^IFTHREEC
-                E(ix^D,1)=w(ix^D,b2_)*w(ix^D,m3_)-w(ix^D,b3_)*w(ix^D,m2_)
-                E(ix^D,2)=w(ix^D,b3_)*w(ix^D,m1_)-w(ix^D,b1_)*w(ix^D,m3_)
-                E(ix^D,3)=w(ix^D,b1_)*w(ix^D,m2_)-w(ix^D,b2_)*w(ix^D,m1_)
-                S(ix^D,1)=E(ix^D,2)*w(ix^D,b3_)-E(ix^D,3)*w(ix^D,b2_)
-                S(ix^D,2)=E(ix^D,3)*w(ix^D,b1_)-E(ix^D,1)*w(ix^D,b3_)
-                S(ix^D,3)=E(ix^D,1)*w(ix^D,b2_)-E(ix^D,2)*w(ix^D,b1_)
-            }
-            {^IFTWOC
-                E(ix^D,1)=zero
-                ! switch 3 with 2 to add 3 when ^C from 1 to 2
-                E(ix^D,2)=w(ix^D,b1_)*w(ix^D,m2_)-w(ix^D,b2_)*w(ix^D,m1_)
-                S(ix^D,1)=-E(ix^D,2)*w(ix^D,b2_)
-                S(ix^D,2)=E(ix^D,2)*w(ix^D,b1_)
-            }
-            {^IFONEC
-                S(ix^D,1)=zero
-            }
             ! Convert velocity to momentum, equation (9)
             ^C&w(ix^D,m^C_)=w(ix^D,rho_)*w(ix^D,m^C_)+S(ix^D,^C)*eos%inv_squared_c\
-
         {end do\}
 
     end subroutine mhd_to_conserved_semirelati_noe
@@ -743,122 +680,32 @@ contains
 
     end subroutine mhd_to_primitive_split_rho
 
-    !> Transform conservative variables into primitive ones (semirelativistic)
+    !> Transform conservative variables into primitive ones (semirelativistic, any EoS)
     subroutine mhd_to_primitive_semirelati(ixI^L,ixO^L,w,x)
         use mod_global_parameters
         integer, intent(in)             :: ixI^L, ixO^L
         double precision, intent(inout) :: w(ixI^S, nw)
         double precision, intent(in)    :: x(ixI^S, 1:ndim)
 
-        double precision :: b(ixO^S,1:ndir), tmp, b2, vac2, gamma2, inv_rho
+        double precision :: vel(ixO^S,1:ndir), emech(ixO^S)
         integer :: ix^D
 
         if (fix_small_values) then
             call phys_handle_small_values(.false., w, x, ixI^L, ixO^L, 'mhd_to_primitive_semirelati')
         end if
 
+        if(mhd_internal_e) then
+            call mhd_semirelati_vel_emech(w,ixI^L,ixO^L,vel)
+            emech(ixO^S)=zero
+        else
+            call mhd_semirelati_vel_emech(w,ixI^L,ixO^L,vel,emech)
+        end if
         {do ix^DB=ixOmin^DB,ixOmax^DB\}
-            b2=(^C&w(ix^D,b^C_)**2+)
-            if(b2>smalldouble) then
-                tmp=1.d0/sqrt(b2)
-            else
-                tmp=0.d0
-            end if
-            ^C&b(ix^D,^C)=w(ix^D,b^C_)*tmp\
-            tmp=(^C&b(ix^D,^C)*w(ix^D,m^C_)+)
-
-            inv_rho=1.d0/w(ix^D,rho_)
-            ! Va^2/c^2
-            vac2=b2*inv_rho*eos%inv_squared_c
-            ! equation (15)
-            gamma2=1.d0/(1.d0+vac2)
-            ! Convert momentum to velocity
-            ^C&w(ix^D,m^C_)=gamma2*(w(ix^D,m^C_)+vac2*b(ix^D,^C)*tmp)*inv_rho\
-
-            if(mhd_internal_e) then
-                ! internal energy to pressure
-                w(ix^D,p_)=eos%gamma_minus_1*w(ix^D,e_)
-            else
-                ! E=Bxv
-                {^IFTHREEC
-                    b(ix^D,1)=w(ix^D,b2_)*w(ix^D,m3_)-w(ix^D,b3_)*w(ix^D,m2_)
-                    b(ix^D,2)=w(ix^D,b3_)*w(ix^D,m1_)-w(ix^D,b1_)*w(ix^D,m3_)
-                    b(ix^D,3)=w(ix^D,b1_)*w(ix^D,m2_)-w(ix^D,b2_)*w(ix^D,m1_)
-                }
-                {^IFTWOC
-                    b(ix^D,1)=zero
-                    b(ix^D,2)=w(ix^D,b1_)*w(ix^D,m2_)-w(ix^D,b2_)*w(ix^D,m1_)
-                }
-                {^IFONEC
-                    b(ix^D,1)=zero
-                }
-                ! Calculate pressure = (gamma-1) * (e-eK-eB-eE)
-                w(ix^D,p_)=eos%gamma_minus_1*(w(ix^D,e_)&
-                          -half*((^C&w(ix^D,m^C_)**2+)*w(ix^D,rho_)+b2&
-                          +(^C&b(ix^D,^C)**2+)*eos%inv_squared_c))
-            end if
+            ^C&w(ix^D,m^C_)=vel(ix^D,^C)\
+            w(ix^D,p_)=mhd_semirelati_p(w(ix^D,e_)-emech(ix^D),w(ix^D,rho_))
         {end do\}
 
     end subroutine mhd_to_primitive_semirelati
-
-    !> Transform conservative variables into primitive ones (semirelativistic)
-    subroutine mhd_to_primitive_semirelati_PI(ixI^L,ixO^L,w,x)
-        use mod_global_parameters
-        integer, intent(in)             :: ixI^L, ixO^L
-        double precision, intent(inout) :: w(ixI^S, nw)
-        double precision, intent(in)    :: x(ixI^S, 1:ndim)
-
-        double precision :: b(ixO^S,1:ndir), tmp, b2, vac2, gamma2, inv_rho, eint, T, Rfac
-        integer :: ix^D
-
-        if (fix_small_values) then
-            call phys_handle_small_values(.false., w, x, ixI^L, ixO^L, 'mhd_to_primitive_semirelati')
-        end if
-
-        {do ix^DB=ixOmin^DB,ixOmax^DB\}
-            b2=(^C&w(ix^D,b^C_)**2+)
-            if(b2>smalldouble) then
-                tmp=1.d0/sqrt(b2)
-            else
-                tmp=0.d0
-            end if
-            ^C&b(ix^D,^C)=w(ix^D,b^C_)*tmp\
-            tmp=(^C&b(ix^D,^C)*w(ix^D,m^C_)+)
-
-            inv_rho=1.d0/w(ix^D,rho_)
-            ! Va^2/c^2
-            vac2=b2*inv_rho*eos%inv_squared_c
-            ! equation (15)
-            gamma2=1.d0/(1.d0+vac2)
-            ! Convert momentum to velocity
-            ^C&w(ix^D,m^C_)=gamma2*(w(ix^D,m^C_)+vac2*b(ix^D,^C)*tmp)*inv_rho\
-
-            if(mhd_internal_e) then
-                ! internal energy to pressure
-                call state_from_eint_PI(w(ix^D,rho_), w(ix^D,e_), T, w(ix^D,p_), Rfac)
-            else
-                ! E=Bxv
-                {^IFTHREEC
-                    b(ix^D,1)=w(ix^D,b2_)*w(ix^D,m3_)-w(ix^D,b3_)*w(ix^D,m2_)
-                    b(ix^D,2)=w(ix^D,b3_)*w(ix^D,m1_)-w(ix^D,b1_)*w(ix^D,m3_)
-                    b(ix^D,3)=w(ix^D,b1_)*w(ix^D,m2_)-w(ix^D,b2_)*w(ix^D,m1_)
-                }
-                {^IFTWOC
-                    b(ix^D,1)=zero
-                    b(ix^D,2)=w(ix^D,b1_)*w(ix^D,m2_)-w(ix^D,b2_)*w(ix^D,m1_)
-                }
-                {^IFONEC
-                    b(ix^D,1)=zero
-                }
-                ! internal energy= e-eK-eB-eE
-                eint=w(ix^D,e_)&
-                          -half*((^C&w(ix^D,m^C_)**2+)*w(ix^D,rho_)+b2&
-                          +(^C&b(ix^D,^C)**2+)*eos%inv_squared_c)
-                call state_from_eint_PI(w(ix^D,rho_), eint, T, w(ix^D,p_), Rfac)
-            end if
-        {end do\}
-
-    end subroutine mhd_to_primitive_semirelati_PI
 
     !> Transform conservative variables into primitive ones (semirelativistic noe)
     subroutine mhd_to_primitive_semirelati_noe(ixI^L,ixO^L,w,x)
@@ -867,30 +714,16 @@ contains
         double precision, intent(inout) :: w(ixI^S, nw)
         double precision, intent(in)    :: x(ixI^S, 1:ndim)
 
-        double precision :: b(ixO^S,1:ndir),tmp,b2,gamma2,inv_rho
-        integer :: ix^D, idir
+        double precision :: vel(ixO^S,1:ndir)
+        integer :: ix^D
 
         if (fix_small_values) then
             call phys_handle_small_values(.false., w, x, ixI^L, ixO^L, 'mhd_to_primitive_semirelati_noe')
         end if
 
+        call mhd_semirelati_vel_emech(w,ixI^L,ixO^L,vel)
         {do ix^DB=ixOmin^DB,ixOmax^DB\}
-            b2=(^C&w(ix^D,b^C_)**2+)
-            if(b2>smalldouble) then
-                tmp=1.d0/sqrt(b2)
-            else
-                tmp=0.d0
-            end if
-            ^C&b(ix^D,^C)=w(ix^D,b^C_)*tmp\
-            tmp=(^C&b(ix^D,^C)*w(ix^D,m^C_)+)
-
-            inv_rho=1.d0/w(ix^D,rho_)
-            ! Va^2/c^2
-            b2=b2*inv_rho*eos%inv_squared_c
-            ! equation (15)
-            gamma2=1.d0/(1.d0+b2)
-            ! Convert momentum to velocity
-            ^C&w(ix^D,m^C_)=gamma2*(w(ix^D,m^C_)+b2*b(ix^D,^C)*tmp)*inv_rho\
+            ^C&w(ix^D,m^C_)=vel(ix^D,^C)\
         {end do\}
 
     end subroutine mhd_to_primitive_semirelati_noe
@@ -1436,7 +1269,7 @@ contains
 
     end subroutine mhd_get_pthermal_LTE
 
-    !> Calculate thermal pressure for semirelativistic MHD
+    !> Calculate thermal pressure for semirelativistic MHD (any EoS)
     subroutine mhd_get_pthermal_semirelati(w,x,ixI^L,ixO^L,pth)
         use mod_global_parameters
         use mod_small_values, only: trace_small_values
@@ -1446,44 +1279,12 @@ contains
         double precision, intent(in) :: x(ixI^S,1:ndim)
         double precision, intent(out):: pth(ixI^S)
 
-        double precision :: b(ixO^S,1:ndir), v(ndir), tmp, b2, vac2, gamma2, inv_rho
+        double precision :: emech(ixO^S)
         integer :: iw, ix^D
 
+        call mhd_semirelati_vel_emech(w,ixI^L,ixO^L,emech=emech)
         {do ix^DB=ixOmin^DB,ixOmax^DB\}
-            b2=(^C&w(ix^D,b^C_)**2+)
-            if(b2>smalldouble) then
-                tmp=1.d0/sqrt(b2)
-            else
-                tmp=0.d0
-            end if
-            ^C&b(ix^D,^C)=w(ix^D,b^C_)*tmp\
-            tmp=(^C&b(ix^D,^C)*w(ix^D,m^C_)+)
-
-            inv_rho=1.d0/w(ix^D,rho_)
-            ! Va^2/c^2
-            vac2=b2*inv_rho*eos%inv_squared_c
-            ! equation (15)
-            gamma2=1.d0/(1.d0+vac2)
-            ! Convert momentum to velocity
-            ^C&v(^C)=gamma2*(w(ix^D,m^C_)+vac2*b(ix^D,^C)*tmp)*inv_rho\
-
-            ! E=Bxv
-            {^IFTHREEC
-                b(ix^D,1)=w(ix^D,b2_)*v(3)-w(ix^D,b3_)*v(2)
-                b(ix^D,2)=w(ix^D,b3_)*v(1)-w(ix^D,b1_)*v(3)
-                b(ix^D,3)=w(ix^D,b1_)*v(2)-w(ix^D,b2_)*v(1)
-            }
-            {^IFTWOC
-                b(ix^D,1)=zero
-                b(ix^D,2)=w(ix^D,b1_)*v(2)-w(ix^D,b2_)*v(1)
-            }
-            {^IFONEC
-                b(ix^D,1)=zero
-            }
-            ! Calculate pressure = (gamma-1) * (e-eK-eB-eE)
-            pth(ix^D)=eos%gamma_minus_1*(w(ix^D,e_)&
-                       -half*((^C&v(^C)**2+)*w(ix^D,rho_)+b2&
-                       +(^C&b(ix^D,^C)**2+)*eos%inv_squared_c))
+            pth(ix^D)=mhd_semirelati_p(w(ix^D,e_)-emech(ix^D),w(ix^D,rho_))
             if(fix_small_values.and.pth(ix^D)<small_pressure) pth(ix^D)=small_pressure
         {end do\}
 
@@ -1506,79 +1307,6 @@ contains
         end if
 
     end subroutine mhd_get_pthermal_semirelati
-
-    !> Calculate thermal pressure for semirelativistic MHD
-    subroutine mhd_get_pthermal_semirelati_PI(w,x,ixI^L,ixO^L,pth)
-        use mod_global_parameters
-        use mod_small_values, only: trace_small_values
-
-        integer, intent(in)          :: ixI^L, ixO^L
-        double precision, intent(in) :: w(ixI^S,nw)
-        double precision, intent(in) :: x(ixI^S,1:ndim)
-        double precision, intent(out):: pth(ixI^S)
-
-        double precision :: b(ixO^S,1:ndir), v(ndir), tmp, b2, gamma2, inv_rho, eint, T, Rfac
-        integer :: iw, ix^D
-
-        {do ix^DB=ixOmin^DB,ixOmax^DB\}
-            b2=(^C&w(ix^D,b^C_)**2+)
-            if(b2>smalldouble) then
-                tmp=1.d0/sqrt(b2)
-            else
-                tmp=0.d0
-            end if
-            ^C&b(ix^D,^C)=w(ix^D,b^C_)*tmp\
-            tmp=(^C&b(ix^D,^C)*w(ix^D,m^C_)+)
-
-            inv_rho=1.d0/w(ix^D,rho_)
-            ! Va^2/c^2
-            b2=b2*inv_rho*eos%inv_squared_c
-            ! equation (15)
-            gamma2=1.d0/(1.d0+b2)
-            ! Convert momentum to velocity
-            ^C&v(^C)=gamma2*(w(ix^D,m^C_)+b2*b(ix^D,^C)*tmp)*inv_rho\
-
-            ! E=Bxv
-            {^IFTHREEC
-                b(ix^D,1)=w(ix^D,b2_)*v(3)-w(ix^D,b3_)*v(2)
-                b(ix^D,2)=w(ix^D,b3_)*v(1)-w(ix^D,b1_)*v(3)
-                b(ix^D,3)=w(ix^D,b1_)*v(2)-w(ix^D,b2_)*v(1)
-            }
-            {^IFTWOC
-                b(ix^D,1)=zero
-                b(ix^D,2)=w(ix^D,b1_)*v(2)-w(ix^D,b2_)*v(1)
-            }
-            {^IFONEC
-                b(ix^D,1)=zero
-            }
-            ! internal energy= e-eK-eB-eE
-            eint=w(ix^D,e_)&
-                      -half*((^C&v(^C)**2+)*w(ix^D,rho_)&
-                      +(^C&w(ix^D,b^C_)**2+)&
-                      +(^C&b(ix^D,^C)**2+)*eos%inv_squared_c)
-            call state_from_eint_PI(w(ix^D,rho_), eint, T, pth(ix^D), Rfac)
-            if(fix_small_values.and.pth(ix^D)<small_pressure) pth(ix^D)=small_pressure
-        {end do\}
-
-        if(check_small_values.and..not.fix_small_values) then
-            {do ix^DB=ixOmin^DB,ixOmax^DB\}
-                if(pth(ix^D)<small_pressure) then
-                    write(*,*) "Error: small value of gas pressure",pth(ix^D),&
-                         " encountered when call mhd_get_pthermal_semirelati"
-                    write(*,*) "Iteration: ", it, " Time: ", global_time
-                    write(*,*) "Location: ", x(ix^D,:)
-                    write(*,*) "Cell number: ", ix^D
-                    do iw=1,nw
-                        write(*,*) trim(cons_wnames(iw)),": ",w(ix^D,iw)
-                    end do
-                    if(trace_small_values) write(*,*) sqrt(pth(ix^D)-bigdouble)
-                    write(*,*) "Saving status at the previous time step"
-                    crash=.true.
-                end if
-            {end do\}
-        end if
-
-    end subroutine mhd_get_pthermal_semirelati_PI
 
     !> Calculate thermal pressure=(gamma-1)*(e-0.5*m**2/rho) within ixO^L
     subroutine mhd_get_pthermal_hde(w,x,ixI^L,ixO^L,pth)
@@ -1779,46 +1507,10 @@ contains
         double precision, intent(in) :: w(ixI^S, nw)
         double precision             :: ei(ixO^S)
 
-        double precision :: b(ixO^S,1:ndir), v(ndir), tmp, b2, gamma2, inv_rho
-        integer :: ix^D
+        double precision :: emech(ixO^S)
 
-        {do ix^DB=ixOmin^DB,ixOmax^DB\}
-            b2=(^C&w(ix^D,b^C_)**2+)
-            if(b2>smalldouble) then
-                tmp=1.d0/sqrt(b2)
-            else
-                tmp=0.d0
-            end if
-            ^C&b(ix^D,^C)=w(ix^D,b^C_)*tmp\
-            tmp=(^C&b(ix^D,^C)*w(ix^D,m^C_)+)
-
-            inv_rho=1.d0/w(ix^D,rho_)
-            ! Va^2/c^2
-            b2=b2*inv_rho*eos%inv_squared_c
-            ! equation (15)
-            gamma2=1.d0/(1.d0+b2)
-            ! Convert momentum to velocity
-            ^C&v(^C)=gamma2*(w(ix^D,m^C_)+b2*b(ix^D,^C)*tmp)*inv_rho\
-
-            ! E=Bxv
-            {^IFTHREEC
-                b(ix^D,1)=w(ix^D,b2_)*v(3)-w(ix^D,b3_)*v(2)
-                b(ix^D,2)=w(ix^D,b3_)*v(1)-w(ix^D,b1_)*v(3)
-                b(ix^D,3)=w(ix^D,b1_)*v(2)-w(ix^D,b2_)*v(1)
-            }
-            {^IFTWOC
-                b(ix^D,1)=zero
-                b(ix^D,2)=w(ix^D,b1_)*v(2)-w(ix^D,b2_)*v(1)
-            }
-            {^IFONEC
-                b(ix^D,1)=zero
-            }
-            ! internal energy= e-eK-eB-eE
-            ei(ix^D)=w(ix^D,e_)&
-                      -half*((^C&v(^C)**2+)*w(ix^D,rho_)&
-                      +(^C&w(ix^D,b^C_)**2+)&
-                      +(^C&b(ix^D,^C)**2+)*eos%inv_squared_c)
-        {end do\}
+        call mhd_semirelati_vel_emech(w,ixI^L,ixO^L,emech=ei)
+        ei(ixO^S)=w(ixO^S,e_)-ei(ixO^S)
     end function mhd_get_ei_semirelati
 
     !> Get internal energy from conserved state (internal energy formulation)

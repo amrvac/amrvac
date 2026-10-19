@@ -1,0 +1,10 @@
+! Short window for the regression suite, before the waves have separated
+ &filelist
+        typefilelog = 'regression_test'
+ /
+ &savelist
+        dtsave_log = 1.d-1
+ /
+ &stoplist
+        time_max = 5.d0
+ /

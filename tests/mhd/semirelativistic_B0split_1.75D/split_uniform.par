@@ -1,0 +1,10 @@
+! Uniform background, so the split field and the background current both vanish
+ &filelist
+        base_filename = '_split_uniform'
+ /
+ &mhd_list
+        B0field = .true.
+ /
+ &usr_list
+        b0_profile = 0
+ /
