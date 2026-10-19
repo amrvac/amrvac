@@ -694,12 +694,7 @@ contains
             call phys_handle_small_values(.false., w, x, ixI^L, ixO^L, 'mhd_to_primitive_semirelati')
         end if
 
-        if(mhd_internal_e) then
-            call mhd_semirelati_vel_emech(w,ixI^L,ixO^L,vel)
-            emech(ixO^S)=zero
-        else
-            call mhd_semirelati_vel_emech(w,ixI^L,ixO^L,vel,emech)
-        end if
+        call mhd_semirelati_vel_emech(w,ixI^L,ixO^L,vel=vel,emech=emech)
         {do ix^DB=ixOmin^DB,ixOmax^DB\}
             ^C&w(ix^D,m^C_)=vel(ix^D,^C)\
             w(ix^D,p_)=mhd_semirelati_p(w(ix^D,e_)-emech(ix^D),w(ix^D,rho_))
@@ -721,7 +716,7 @@ contains
             call phys_handle_small_values(.false., w, x, ixI^L, ixO^L, 'mhd_to_primitive_semirelati_noe')
         end if
 
-        call mhd_semirelati_vel_emech(w,ixI^L,ixO^L,vel)
+        call mhd_semirelati_vel_emech(w,ixI^L,ixO^L,vel=vel)
         {do ix^DB=ixOmin^DB,ixOmax^DB\}
             ^C&w(ix^D,m^C_)=vel(ix^D,^C)\
         {end do\}
@@ -887,28 +882,32 @@ contains
 
         double precision :: inv_rho, eint_val, T_loc, y_loc
         double precision :: nH(ixI^S), log_nH(ixI^S)
+        double precision :: vel(ixO^S,1:ndir), emech(ixO^S)
         integer :: ix^D
 
         call eos%get_nH(w, x, ixI^L, ixO^L, nH)
         log_nH(ixO^S) = dlog10(nH(ixO^S))
+        if (mhd_semirelativistic) call mhd_semirelati_vel_emech(w,ixI^L,ixO^L,vel=vel,emech=emech)
 
         {do ix^DB=ixOmin^DB,ixOmax^DB\}
             inv_rho = 1.d0/w(ix^D,rho_)
-            ! Convert momentum to velocity
-            ^C&w(ix^D,m^C_)=w(ix^D,m^C_)*inv_rho\
-            if (mhd_internal_e) then
-                eint_val = w(ix^D,e_)
+            if (mhd_semirelativistic) then
+                ! momentum and energy carry the electric-field terms
+                ^C&w(ix^D,m^C_)=vel(ix^D,^C)\
+                eint_val = w(ix^D,e_) - emech(ix^D)
             else
-                ! Compute eint = E - 0.5*rho*v^2 - 0.5*B^2
-                eint_val = w(ix^D,e_) &
-                    - half*(w(ix^D,rho_)*(^C&w(ix^D,m^C_)**2+) &
-                    + (^C&w(ix^D,b^C_)**2+))
+                ! Convert momentum to velocity
+                ^C&w(ix^D,m^C_)=w(ix^D,m^C_)*inv_rho\
+                if (mhd_internal_e) then
+                    eint_val = w(ix^D,e_)
+                else
+                    ! Compute eint = E - 0.5*rho*v^2 - 0.5*B^2
+                    eint_val = w(ix^D,e_) &
+                        - half*(w(ix^D,rho_)*(^C&w(ix^D,m^C_)**2+) &
+                        + (^C&w(ix^D,b^C_)**2+))
+                end if
             end if
-            ! Floor eint to prevent unphysical values
-            if (eos%method_id /= EOS_ANALYTIC) then
-                eint_val = max(eint_val, nH(ix^D) * eos%eint_nH_min)
-            end if
-            eint_val = max(eint_val, smalldouble)
+            eint_val = max(eint_val, nH(ix^D)*eos%eint_nH_min, smalldouble)
 
             if (eint_val * inv_rho > eos%eint_rho_FI_threshold) then
                 ! FI: T = (gamma-1)*(eint - eion*nH) / (nH * n_per_nH_FI)
@@ -940,6 +939,7 @@ contains
 
         double precision :: T_val, eint_val, T_FI, log_T_min
         double precision :: nH(ixI^S), log_nH(ixI^S)
+        double precision :: efd(ixO^S,1:ndir), S(ixO^S,1:ndir)
         integer :: ix^D
 
         ! Temperature above which gas is fully ionised
@@ -958,6 +958,8 @@ contains
 
         call eos%get_nH(w, x, ixI^L, ixO^L, nH)
         log_nH(ixO^S) = dlog10(nH(ixO^S))
+        ! E and the Poynting momentum while the m slots still hold velocity
+        if (mhd_semirelativistic) call semirelati_E_S(w,ixI^L,ixO^L,efd,S)
 
         {do ix^DB=ixOmin^DB,ixOmax^DB\}
             T_val = w(ix^D,p_)  ! T stored in p_ slot
@@ -978,6 +980,12 @@ contains
             end if
             if (mhd_internal_e) then
                 w(ix^D,e_) = eint_val
+            else if (mhd_semirelativistic) then
+                ! equation (9), the magnetic energy from the stored slot
+                w(ix^D,e_) = eint_val &
+                    + half*(w(ix^D,rho_)*(^C&w(ix^D,m^C_)**2+) &
+                    + (^C&w(ix^D,b^C_)**2+) &
+                    + (^C&efd(ix^D,^C)**2+)*eos%inv_squared_c)
             else
                 ! E = eint + 0.5*rho*v^2 + 0.5*B^2
                 w(ix^D,e_) = eint_val &
@@ -985,7 +993,11 @@ contains
                     + (^C&w(ix^D,b^C_)**2+))
             end if
             ! Convert velocity to momentum
-            ^C&w(ix^D,m^C_)=w(ix^D,rho_)*w(ix^D,m^C_)\
+            if (mhd_semirelativistic) then
+                ^C&w(ix^D,m^C_)=w(ix^D,rho_)*w(ix^D,m^C_)+S(ix^D,^C)*eos%inv_squared_c\
+            else
+                ^C&w(ix^D,m^C_)=w(ix^D,rho_)*w(ix^D,m^C_)\
+            end if
         {end do\}
 
     end subroutine mhd_from_prolong_LTE
@@ -1509,8 +1521,8 @@ contains
 
         double precision :: emech(ixO^S)
 
-        call mhd_semirelati_vel_emech(w,ixI^L,ixO^L,emech=ei)
-        ei(ixO^S)=w(ixO^S,e_)-ei(ixO^S)
+        call mhd_semirelati_vel_emech(w,ixI^L,ixO^L,emech=emech)
+        ei(ixO^S)=w(ixO^S,e_)-emech(ixO^S)
     end function mhd_get_ei_semirelati
 
     !> Get internal energy from conserved state (internal energy formulation)

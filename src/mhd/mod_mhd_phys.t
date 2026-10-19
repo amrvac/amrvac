@@ -2605,10 +2605,7 @@ contains
     flag=.false.
     where(w(ixO^S,rho_) < small_density) flag(ixO^S,rho_) = .true.
 
-    if(.not.primitive) then
-      call mhd_semirelati_vel_emech(w,ixI^L,ixO^L,v,emech)
-      if(mhd_internal_e) emech(ixO^S)=zero
-    end if
+    if(.not.primitive) call mhd_semirelati_vel_emech(w,ixI^L,ixO^L,vel=v,emech=emech)
     if(mhd_energy) then
       if(primitive) then
         where(w(ixO^S,p_) < small_pressure) flag(ixO^S,e_) = .true.
@@ -2967,7 +2964,7 @@ contains
     integer :: idir
 
     if(mhd_semirelativistic) then
-      call mhd_semirelati_vel_emech(w,ixI^L,ixO^L,v(ixO^S,1:ndir))
+      call mhd_semirelati_vel_emech(w,ixI^L,ixO^L,vel=v(ixO^S,1:ndir))
       return
     end if
 
