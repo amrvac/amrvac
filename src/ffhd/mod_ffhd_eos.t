@@ -162,21 +162,7 @@ contains
         ffhd_get_Rfactor => eos%get_Rfactor
 
         if (allocated(tc_fl)) then
-            tc_fl%get_temperature_from_conserved => eos%get_temperature_from_etot
-            if (eos%eos_type == 'LTE' .and. eos%ionE) then
-                tc_fl%get_temperature_ciso2_from_eint => get_temperature_from_eint_fast_LTE
-            else
-                tc_fl%get_temperature_from_eint => eos%get_temperature_from_eint
-                !> saturation needs ciso2 = R*T unless R is the constant RR = 1
-                tc_fl%sat_R_variable = .not. associated(eos%get_Rfactor, Rfactor_from_constant_ionization)
-            end if
-            tc_fl%get_rho           => eos%get_rho
-            tc_fl%get_ne_nH         => eos%get_ne_nH
-            tc_fl%get_var_Rfactor   => eos%get_Rfactor
-            tc_fl%inv_gamma_minus_1 =  eos%inv_gamma_minus_1
-            tc_fl%nH2rhoFactor      =  eos%nH2rhoFactor
-            tc_fl%log_T_floor       =  eos_get_log_T_floor()
-            tc_fl%eint_from_T       => eint_nH_from_T
+            call eos_bind_tc(tc_fl, .not. associated(eos%get_Rfactor, Rfactor_from_constant_ionization))
         end if
 
         if (allocated(rc_fl)) then

@@ -19,6 +19,8 @@ module mod_eos_container
     private
 
     public :: eos_container, eos_table_container
+    !> slot interfaces, for routines that hold or wrap an EoS slot
+    public :: convert_condition, update_eos_spaces, get_eos_variable_alt
 
     !> LTE method selector, decoded once from eos%method into eos%method_id so
     !> the runtime kernels dispatch on an integer rather than a string compare.

@@ -213,7 +213,6 @@ contains
 
   subroutine timeintegration()
     use mod_timing
-    use mod_source, only: time_sts_total
     use mod_advance, only: advance, process, process_advanced
     use mod_forest, only: nleafs_active
     use mod_global_parameters
@@ -224,6 +223,7 @@ contains
 
 
     double precision :: time_last_print, time_write0, time_write, time_before_advance, dt_loop
+    double precision :: tio(3), tgr(3), time_comp, teos
     integer(kind=8) ncells_update
     integer :: level, ifile, ncells_block, igrid, iigrid
     logical :: crashall
@@ -255,7 +255,7 @@ contains
     end if
 
     timeloop0=MPI_WTIME()
-    time_bc=0.d0
+    call timers_reset()
     time_write=0.d0
     ncells_block={(ixGhi^D-2*nghostcells)*}
     ncells_update=0
@@ -276,8 +276,8 @@ contains
       else
         open(timing_unit,file=trim(base_filename)//'timing.log', &
              status='replace',action='write')
-        write(timing_unit,'(a)') '# MAIN: it t nleafs setdt advance tc' &
-             //' eos_hydro eos_tc regrid save process adv-tc'
+        write(timing_unit,'(a)') '# MAIN: it t nleafs setdt advance sts' &
+             //' eos_hydro eos_tc regrid save process adv-sts'
       end if
       timing_log_opened = .true.
     end if
@@ -301,20 +301,16 @@ contains
           tw_process=MPI_WTIME()-tw_process
        end if
 
-       ! the SC RT is a global solve; its heating enters the sources as a constant of every stage
-       if (rt_sc_active) then
-          ! per-rank wall time including the pipeline waits, which show the imbalance
-          if (lb_diagnose) lb_rt_accum = MPI_WTIME()
-          call rt_sc_solve()
-          if (lb_diagnose) lb_rt_accum = MPI_WTIME() - lb_rt_accum
-       end if
+       ! linear SC RT is implemented as a global solve with its heating entering the sources as a constant of every stage
+       call rt_sc_solve()
 
        ! Check if output needs to be written
        do ifile=nfile,1,-1
          save_file(ifile) = timetosave(ifile)
        end do
 
-       timeio0=MPI_WTIME()
+       call timer_open(tio)
+       timeio0=tio(1)
 
        if (timeio0 - time_last_print > time_between_print) then
          time_last_print = timeio0
@@ -356,7 +352,8 @@ contains
           call saveamrfile(2)
           call MPI_FILE_DELETE('savenow',MPI_INFO_NULL,ierrmpi)
        end if
-       timeio_tot=timeio_tot+MPI_WTIME()-timeio0
+       tw_save=timer_close(tio)
+       timeio_tot=timeio_tot+tw_save
 
        pass_wall_time=MPI_WTIME()-time0+dt_loop+4.d0*time_write >=wall_time_max
 
@@ -393,19 +390,19 @@ contains
        global_time = global_time + dt
 
        ! update AMR mesh and tree (upstream-style: mod-based regrid)
-       timegr0=MPI_WTIME()
+       call timer_open(tgr)
        if (mod(it,ditregrid)==0 .and. refine_max_level>1 .and. .not.(fixgrid())) call resettree
        ! Static-grid cost rebalance: regrid never fires when refine_max_level==1, so the cost-weighted
        ! load_balance has no trigger. Fire it every lb_interval cycles (the previously-unused knob).
        ! (AMR grids get the costed rebalance inside resettree already, so this is static-grid only.)
        if (lb_automatic .and. refine_max_level==1 .and. it>it_init .and. mod(it,lb_interval)==0) &
             call amr_rebalance
-       tw_regrid=MPI_WTIME()-timegr0
+       tw_regrid=timer_close(tgr)
        timegr_tot=timegr_tot+tw_regrid
 
        ! write main-loop timing to user timing log
-       tw_tc_total = time_sts_total + time_htc_total - tw_tc_prev
-       tw_tc_prev = time_sts_total + time_htc_total
+       tw_sts = time_sts - tw_sts_prev
+       tw_sts_prev = time_sts
        tw_eos_hydro = timeeos_conv + timeeos_pthermal + timeeos_update &
                     - tw_eos_hydro_prev
        tw_eos_hydro_prev = timeeos_conv + timeeos_pthermal + timeeos_update
@@ -415,8 +412,8 @@ contains
            mod(it, timing_log_interval)==0) then
          write(timing_unit,'(a,i8,1x,es12.5,1x,i6,1x,9(f10.4,1x))') &
            '  MAIN ', it, global_time, nleafs_active, &
-           tw_setdt, tw_advance, tw_tc_total, tw_eos_hydro, tw_eos_tc, &
-           tw_regrid, tw_save, tw_process, tw_advance - tw_tc_total
+           tw_setdt, tw_advance, tw_sts, tw_eos_hydro, tw_eos_tc, &
+           tw_regrid, tw_save, tw_process, tw_advance - tw_sts
          call flush(timing_unit)
        end if
 
@@ -441,7 +438,10 @@ contains
 
     timeloop=MPI_WTIME()-timeloop0
 
+    ! rank 0's times; the categories above "computing" are disjoint and sum to the loop
     if (mype==0) then
+       teos=time_eos()
+       time_comp=timeloop-timegr_tot-timeio_tot-time_bc-teos-time_rt
        write(*,'(a,f12.3,a)')' Total timeloop took        : ',timeloop,' sec'
        write(*,'(a,f12.3,a)')' Time spent on AMR          : ',timegr_tot,' sec'
        write(*,'(a,f12.2,a)')'                  Percentage: ',100.0*timegr_tot/timeloop,' %'
@@ -449,33 +449,37 @@ contains
        write(*,'(a,f12.2,a)')'                  Percentage: ',100.0*timeio_tot/timeloop,' %'
        write(*,'(a,f12.3,a)')' Time spent on ghost cells  : ',time_bc,' sec'
        write(*,'(a,f12.2,a)')'                  Percentage: ',100.0*time_bc/timeloop,' %'
-       timeeos_tot = timeeos_update + timeeos_Tfromei + timeeos_csound + timeeos_conv + timeeos_pthermal
-       write(*,'(a,f12.3,a)')' Time spent on eos          : ',timeeos_tot,' sec'
-       write(*,'(a,f12.2,a)')'                  Percentage: ',100.0*timeeos_tot/timeloop,' %'
-       write(*,'(a,f12.3,a)')'   - update_eos             : ',timeeos_update,' sec'
-       write(*,'(a,f12.3,a)')'   - T_from_eint (TC)       : ',timeeos_Tfromei,' sec'
-       write(*,'(a,f12.3,a)')'   - csound2                : ',timeeos_csound,' sec'
-       write(*,'(a,f12.3,a)')'   - cons/prim conversion   : ',timeeos_conv,' sec'
-       write(*,'(a,f12.3,a)')'   - get_pthermal           : ',timeeos_pthermal,' sec'
-       write(*,'(a,f12.3,a)')' Time spent on WB transform : ',time_wb_transform,' sec'
-       write(*,'(a,f12.3,a)')' Time spent on WB inverse+C : ',time_wb_inverse,' sec'
-       write(*,'(a,f12.3,a)')' Time spent on reconstruction:',time_wb_recon,' sec'
-       if(time_rt>0.0d0) then
+       if(eos%eos_type /= 'FI') then
+         write(*,'(a,f12.3,a)')' Time spent on eos          : ',teos,' sec'
+         write(*,'(a,f12.2,a)')'                  Percentage: ',100.0*teos/timeloop,' %'
+         write(*,'(a,f12.3,a)')'   - update_eos             : ',timeeos_update,' sec'
+         write(*,'(a,f12.3,a)')'   - T_from_eint (TC)       : ',timeeos_Tfromei,' sec'
+         write(*,'(a,f12.3,a)')'   - csound2                : ',timeeos_csound,' sec'
+         write(*,'(a,f12.3,a)')'   - cons/prim conversion   : ',timeeos_conv,' sec'
+         write(*,'(a,f12.3,a)')'   - get_pthermal           : ',timeeos_pthermal,' sec'
+       end if
+       if(rt_sc_active) then
          write(*,'(a,f12.3,a)')' Time spent on RT (SC)      : ',time_rt,' sec'
          write(*,'(a,f12.2,a)')'                  Percentage: ',100.0*time_rt/timeloop,' %'
        end if
-       write(*,'(a,f12.3,a)')' Time spent on computing    : ',timeloop-timeio_tot-timeeos_tot-timegr_tot-time_bc,' sec'
-       write(*,'(a,f12.2,a)')'                  Percentage: ',100.0*(timeloop-timeio_tot-timeeos_tot-timegr_tot-time_bc)/timeloop,' %'
+       write(*,'(a,f12.3,a)')' Time spent on computing    : ',time_comp,' sec'
+       write(*,'(a,f12.2,a)')'                  Percentage: ',100.0*time_comp/timeloop,' %'
+       if(associated(phys_wb_transform)) then
+         write(*,'(a,f12.3,a)')'   - reconstruction         : ',time_wb_recon,' sec'
+         write(*,'(a,f12.3,a)')'   - WB transform           : ',time_wb_transform,' sec'
+         write(*,'(a,f12.3,a)')'   - WB inverse + to cons.  : ',time_wb_inverse,' sec'
+       end if
        write(*,'(a,es12.3 )')' Cells updated / proc / sec : ',dble(ncells_update)*dble(nstep)/dble(npe)/timeloop
     end if
 
     ! output end state
-    timeio0=MPI_WTIME()
+    call timer_open(tio)
+    timeio0=tio(1)
     do ifile=nfile,1,-1
        if(itsavelast(ifile)<it) call saveamrfile(ifile)
     end do
     if (mype==0) call MPI_FILE_CLOSE(log_fh,ierrmpi)
-    timeio_tot=timeio_tot+(MPI_WTIME()-timeio0)
+    timeio_tot=timeio_tot+timer_close(tio)
 
     if (mype==0) then
        write(*,'(a,f12.3,a)')' Total time spent on IO     : ',timeio_tot,' sec'

@@ -1857,7 +1857,7 @@ contains
   !> at contact discontinuities, avoiding spurious gamma1 spikes from the eint-indexed table.
   subroutine hd_get_csound2(w,x,ixI^L,ixO^L,csound2)
     use mod_global_parameters
-    use mod_timing
+    use mod_timing, only: eos_timer_start, eos_timer_stop, timeeos_csound
     use mod_eos_lte, only: gamma1_from_nH_p
     integer, intent(in)             :: ixI^L, ixO^L
     double precision, intent(in)    :: w(ixI^S,nw)
@@ -1865,23 +1865,22 @@ contains
     double precision, intent(out)   :: csound2(ixI^S)
     double precision :: pthermal(ixI^S)
     double precision :: nH_val, g1
-    double precision :: local_t0
     integer :: ix^D
 
-    !> get_thermal_pressure has its own timing; only time the gamma1 loop here
+    ! called directly by the wave speeds, so timed here; the pressure inside counts once
+    call eos_timer_start()
     call eos%get_thermal_pressure(w, x, ixI^L, ixO^L, pthermal)
 
     if (eos%ionE) then
-      local_t0 = MPI_WTIME()
       {do ix^DB=ixOmin^DB,ixOmax^DB\}
         nH_val = w(ix^D,rho_) / eos%nH2rhoFactor
         g1 = gamma1_from_nH_p(dlog10(nH_val), dlog10(pthermal(ix^D)/nH_val))
         csound2(ix^D) = g1 * pthermal(ix^D) / w(ix^D,rho_)
       {end do\}
-      timeeos_csound=timeeos_csound+(MPI_WTIME()-local_t0)
     else
       csound2(ixO^S) = eos%gamma * pthermal(ixO^S) / w(ixO^S,rho_)
     end if
+    call eos_timer_stop(timeeos_csound)
 
   end subroutine hd_get_csound2
 

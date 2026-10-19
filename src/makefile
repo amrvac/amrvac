@@ -42,7 +42,6 @@ amrvac.o: mod_particles.mod
 amrvac.o: mod_physics.mod
 amrvac.o: mod_rt_sc_slab.mod
 amrvac.o: mod_selectgrids.mod
-amrvac.o: mod_source.mod
 amrvac.o: mod_timing.mod
 amrvac.o: mod_trac.mod
 amrvac.o: mod_usr.mod
@@ -209,13 +208,14 @@ mod_eos.o: mod_eos_lte_tables.mod
 mod_eos.o: mod_eos_pi.mod
 mod_eos.o: mod_eos_shared_functions.mod
 mod_eos.o: mod_global_parameters.mod
+mod_eos.o: mod_physics.mod
+mod_eos.o: mod_thermal_conduction.mod
 mod_eos.o: mod_timing.mod
 mod_eos_container.o: mod_global_parameters.mod
 mod_eos_fi.o: mod_eos_container.mod
 mod_eos_fi.o: mod_eos_shared_functions.mod
 mod_eos_fi.o: mod_global_parameters.mod
 mod_eos_fi.o: mod_physics.mod
-mod_eos_fi.o: mod_timing.mod
 mod_eos_interp.o: mod_eos_container.mod
 mod_eos_interp.o: mod_lookup_table.mod
 mod_eos_lte.o: mod_comm_lib.mod
@@ -255,7 +255,6 @@ mod_eos_pi.o: mod_eos_fi.mod
 mod_eos_pi.o: mod_eos_pi_tables.mod
 mod_eos_pi.o: mod_global_parameters.mod
 mod_eos_pi.o: mod_physics.mod
-mod_eos_pi.o: mod_timing.mod
 mod_eos_pi_tables.o: mod_comm_lib.mod
 mod_eos_pi_tables.o: mod_constants.mod
 mod_eos_pi_tables.o: mod_global_parameters.mod
@@ -357,6 +356,7 @@ mod_ghostcells_update.o: mod_coarsen.mod
 mod_ghostcells_update.o: mod_comm_lib.mod
 mod_ghostcells_update.o: mod_global_parameters.mod
 mod_ghostcells_update.o: mod_physics.mod
+mod_ghostcells_update.o: mod_timing.mod
 mod_ghostcells_update.o: mod_usr_methods.mod
 mod_gimli.o: mod_comm_lib.mod
 mod_gimli.o: mod_eos.mod
@@ -395,7 +395,6 @@ mod_hd_eos.o: mod_hd_phys.mod
 mod_hd_eos.o: mod_physics.mod
 mod_hd_eos.o: mod_radiative_cooling.mod
 mod_hd_eos.o: mod_small_values.mod
-mod_hd_eos.o: mod_timing.mod
 mod_hd_eos.o: mod_usr_methods.mod
 mod_hd_hllc.o: mod_dust.mod
 mod_hd_hllc.o: mod_global_parameters.mod
@@ -567,7 +566,6 @@ mod_mhd_eos.o: mod_mhd_phys.mod
 mod_mhd_eos.o: mod_physics.mod
 mod_mhd_eos.o: mod_radiative_cooling.mod
 mod_mhd_eos.o: mod_small_values.mod
-mod_mhd_eos.o: mod_timing.mod
 mod_mhd_eos.o: mod_usr_methods.mod
 mod_mhd_hllc.o: mod_functions_bfield.mod
 mod_mhd_hllc.o: mod_global_parameters.mod
@@ -601,7 +599,6 @@ mod_mhd_phys.o: mod_small_values.mod
 mod_mhd_phys.o: mod_supertimestepping.mod
 mod_mhd_phys.o: mod_thermal_conduction.mod
 mod_mhd_phys.o: mod_thermal_emission.mod
-mod_mhd_phys.o: mod_timing.mod
 mod_mhd_phys.o: mod_usr_methods.mod
 mod_mhd_phys.o: mod_viscosity.mod
 mod_mhd_roe.o: mod_eos.mod
@@ -796,6 +793,7 @@ mod_source.o: mod_ghostcells_update.mod
 mod_source.o: mod_global_parameters.mod
 mod_source.o: mod_physics.mod
 mod_source.o: mod_supertimestepping.mod
+mod_source.o: mod_timing.mod
 mod_source.o: mod_usr_methods.mod
 mod_space_filling_curve.o: mod_comm_lib.mod
 mod_space_filling_curve.o: mod_forest.mod
@@ -836,6 +834,7 @@ mod_thermal_emission.o: mod_eos_pi_tables.mod
 mod_thermal_emission.o: mod_geometry.mod
 mod_thermal_emission.o: mod_global_parameters.mod
 mod_thermal_emission.o: mod_physics.mod
+mod_timing.o: mod_global_parameters.mod
 mod_trac.o: mod_comm_lib.mod
 mod_trac.o: mod_eos.mod
 mod_trac.o: mod_global_parameters.mod

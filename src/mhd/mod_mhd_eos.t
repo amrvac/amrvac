@@ -25,7 +25,6 @@ module mod_mhd_eos
     use mod_eos_pi
     use mod_eos_container
     use mod_mhd_phys
-    use mod_timing
     use mod_radiative_cooling, only: build_Y_mod_table
 
     use mod_comm_lib, only: mpistop
@@ -278,21 +277,7 @@ contains
         end if
 
         if (allocated(tc_fl)) then
-            tc_fl%get_temperature_from_conserved => eos%get_temperature_from_etot
-            if (eos%eos_type == 'LTE' .and. eos%ionE) then
-                tc_fl%get_temperature_ciso2_from_eint => get_temperature_from_eint_fast_LTE
-            else
-                tc_fl%get_temperature_from_eint => eos%get_temperature_from_eint
-                !> saturation needs ciso2 = R*T unless R is the constant RR = 1
-                tc_fl%sat_R_variable = .not. associated(eos%get_Rfactor, Rfactor_from_constant_ionization)
-            end if
-            tc_fl%get_rho => eos%get_rho
-            tc_fl%get_ne_nH => eos%get_ne_nH
-            tc_fl%get_var_Rfactor => eos%get_Rfactor
-            tc_fl%inv_gamma_minus_1 =  eos%inv_gamma_minus_1
-            tc_fl%nH2rhoFactor      =  eos%nH2rhoFactor
-            tc_fl%log_T_floor       =  eos_get_log_T_floor()
-            tc_fl%eint_from_T       => eint_nH_from_T
+            call eos_bind_tc(tc_fl, .not. associated(eos%get_Rfactor, Rfactor_from_constant_ionization))
             ! Equilibrium-specific pointers
             if(has_equi_rho_and_p .and. mhd_equi_thermal) then
                 tc_fl%subtract_equi = .true.
@@ -733,14 +718,10 @@ contains
         double precision, intent(inout) :: w(ixI^S, nw)
         double precision, intent(in)    :: x(ixI^S, 1:ndim)
 
-        timeeos0 = MPI_WTIME()
-
         ! Convert p -> E_total (eint + eK + eB) via EoS table
         call mhd_p_to_e(ixI^L, ixO^L, w, x)
         ! Convert velocity to momentum
         ^C&w(ixO^S,m^C_)=w(ixO^S,rho_)*w(ixO^S,m^C_)\
-
-        timeeos_conv=timeeos_conv+(MPI_WTIME()-timeeos0)
 
     end subroutine mhd_to_conserved_origin_LTE
 
@@ -752,14 +733,10 @@ contains
         double precision, intent(inout) :: w(ixI^S, nw)
         double precision, intent(in)    :: x(ixI^S, 1:ndim)
 
-        timeeos0 = MPI_WTIME()
-
         ! Convert p -> eint via EoS table (no mechanical energy)
         call mhd_p_to_eint(ixI^L, ixO^L, w, x)
         ! Convert velocity to momentum
         ^C&w(ixO^S,m^C_)=w(ixO^S,rho_)*w(ixO^S,m^C_)\
-
-        timeeos_conv=timeeos_conv+(MPI_WTIME()-timeeos0)
 
     end subroutine mhd_to_conserved_inte_LTE
 
@@ -812,8 +789,6 @@ contains
         double precision :: nH(ixI^S), log_nH(ixI^S)
         integer :: ix^D
 
-        timeeos0 = MPI_WTIME()
-
         if (fix_small_values) then
             call phys_handle_small_values(.false., w, x, ixI^L, ixO^L, &
                 'mhd_to_primitive_origin_LTE')
@@ -832,8 +807,6 @@ contains
             w(ix^D,p_) = lte_p_from_eint(eint_val, nH(ix^D), log_nH(ix^D), inv_rho)
         {end do\}
 
-        timeeos_conv=timeeos_conv+(MPI_WTIME()-timeeos0)
-
     end subroutine mhd_to_primitive_origin_LTE
 
     !> LTE: Conserved (rho, rho*v, eint, B) -> Primitive (rho, v, p, B)
@@ -847,8 +820,6 @@ contains
         double precision :: inv_rho
         double precision :: nH(ixI^S), log_nH(ixI^S)
         integer :: ix^D
-
-        timeeos0 = MPI_WTIME()
 
         if (fix_small_values) then
             call phys_handle_small_values(.false., w, x, ixI^L, ixO^L, &
@@ -864,8 +835,6 @@ contains
             w(ix^D,p_) = lte_p_from_eint(w(ix^D,e_), nH(ix^D), log_nH(ix^D), inv_rho)
             ^C&w(ix^D,m^C_)=w(ix^D,m^C_)*inv_rho\
         {end do\}
-
-        timeeos_conv=timeeos_conv+(MPI_WTIME()-timeeos0)
 
     end subroutine mhd_to_primitive_inte_LTE
 
@@ -1016,7 +985,6 @@ contains
         double precision :: rho, ploc
         integer :: ix^D
 
-        timeeos0 = MPI_WTIME()
         {do ix^DB=ixOmin^DB,ixOmax^DB \}
             if(has_equi_rho_and_p) then
               rho=(w(ix^D,rho_)+block%equi_vars(ix^D,equi_rho0_,0))
@@ -1028,8 +996,6 @@ contains
               cs2(ix^D)=eos%gamma*w(ix^D,p_)/w(ix^D,rho_)
             end if
         {end do\}
-
-        timeeos_csound = timeeos_csound + (MPI_WTIME()-timeeos0)
 
     end subroutine mhd_get_csound2_FI
 
@@ -1044,8 +1010,6 @@ contains
 
         double precision :: nH_val, log_nH, log_p_nH, g1, p_over_rho
         integer :: ix^D
-
-        timeeos0 = MPI_WTIME()
 
         if (eos%gamma1_method == 'constant') then
             cs2(ixO^S) = eos%gamma * w(ixO^S, p_) / w(ixO^S, rho_)
@@ -1067,8 +1031,6 @@ contains
                 end if
             {end do\}
         end if
-
-        timeeos_csound = timeeos_csound + (MPI_WTIME()-timeeos0)
 
     end subroutine mhd_get_csound2_LTE
 

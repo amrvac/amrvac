@@ -5293,7 +5293,6 @@ contains
   !> w[iws]=w[iws]+qdt*S[iws,wCT] where S is the source based on wCT within ixO
   subroutine mhd_add_source(qdt,dtfactor,ixI^L,ixO^L,wCT,wCTprim,w,x,qsourcesplit,active)
     use mod_global_parameters
-    use mod_timing, only: time_htc_total, time_htc0
     use mod_radiative_cooling, only: radiative_cooling_add_source
     use mod_viscosity, only: viscosity_add_source
     use mod_gravity, only: gravity_add_source

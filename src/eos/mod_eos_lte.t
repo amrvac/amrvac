@@ -18,7 +18,7 @@ module mod_eos_lte
     use mod_eos_lte_entropy
     use mod_eos_lte_tables
     use mod_eos_lte_state
-    use mod_timing
+    use mod_timing, only: eos_timer_start, eos_timer_stop, timeeos_Tfromei
     use mod_comm_lib, only: mpistop
 
     implicit none
@@ -87,8 +87,6 @@ contains
         double precision :: Rfactor_FI
         double precision :: yy, eint_nH_floor
         integer :: ix^D
-
-        timeeos0 = MPI_WTIME() !> For monitoring cost of eos module
 
         wlocal(ixI^S,1:nw)=w(ixI^S,1:nw)
         ! wlocal holds the internal energy, and pth the ideal-gas pressure, valid only without ionE
@@ -175,8 +173,6 @@ contains
 
         w(ixO^S,iw_ne) = new_y(ixO^S) * nH(ixO^S)
 
-        timeeos_update=timeeos_update+(MPI_WTIME()-timeeos0)
-
     end subroutine update_eos_LTE
 
     !> Thermodynamic getters shared verbatim by the hd/mhd seams (eos%/phys
@@ -234,8 +230,6 @@ contains
         double precision :: Rfactor(ixI^S), Rfactor_FI, T_loc, y_loc
         integer :: ix^D
 
-        timeeos0 = MPI_WTIME()
-
         Rfactor_FI = eos%n_per_nH_FI / (1.0d0 + 4.0d0*eos%He_abundance)
 
         call eos%get_nH(w, x, ixI^L, ixO^L, nH)
@@ -257,7 +251,6 @@ contains
             endif
         {end do\}
 
-        timeeos_Tfromei=timeeos_Tfromei+(MPI_WTIME()-timeeos0)
     end subroutine get_temperature_from_eint_LTE
 
     subroutine get_temperature_from_eint_fast_LTE(w, x, ixI^L, ixO^L, res, ciso2)
@@ -286,7 +279,7 @@ contains
         double precision, parameter :: ln10 = 2.302585092994046d0
 
         if (eos%type_id /= EOS_TYPE_LTE) call mpistop("get_temperature_from_eint_fast_LTE called outside its eos_type (LTE)")
-        timeeos0 = MPI_WTIME()
+        call eos_timer_start()
 
         want_ciso2 = present(ciso2)
 
@@ -364,15 +357,11 @@ contains
             end if
         {end do\}
 
-        timeeos_Tfromei = timeeos_Tfromei + (MPI_WTIME()-timeeos0)
+        call eos_timer_stop(timeeos_Tfromei)
     end subroutine get_temperature_from_eint_fast_LTE
 
-    !>#######################################################################
-    !> Scalar EoS kernels: pointwise lookups on (log10 nH, log10 eint/nH) or
-    !> (log10 nH, log10 p/nH) in code units, called by the hd/mhd EoS layer.
-    !> Each dispatches analytic / entropy / table. Ionisation fraction and
-    !> temperature first, then pressure / Gamma_1 / eint.
-    !>#######################################################################
+    !> Scalar EoS kernels: one cell on (log10 nH, log10 eint/nH) or (log10 nH, log10 p/nH), in
+    !> code units, each dispatching to the analytic Saha solve, the entropy tables or the tables
 
     !> Ionization fraction from (log10 nH, log10 eint/nH) in code units.
     !> Dispatches: analytic -> Saha quadratic, tables -> PCHIP interpolation.

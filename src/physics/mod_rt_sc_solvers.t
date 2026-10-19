@@ -39,62 +39,34 @@ contains
   !> Collective, once per step. For each band on rt_sc_amr_level it sweeps all rays and forms the
   !> heating Q, the thin/thick blend with the tau^2 taper, in i_qrad, which is zero elsewhere,
   !> together with Fy, and Iout on the gather path. rt_sc_add_source applies the energy every
-  !> stage. Again, the gather approach here struggles with wrapped boundaries to use with care
+  !> stage. The gather approach struggles with wrapped boundaries, so use it with care
   subroutine rt_sc_solve()
     use mod_global_parameters
-    use mod_timing, only: time_rt
-    integer :: iigrid, igrid, ierr, ix1, ix2
-    double precision :: dmx, qmx, dmx_g, qmx_g
-    double precision :: dd, xatmax, xedge, dmi, dmi_g, tw
+    use mod_timing, only: time_rt, timer_open, timer_close
+    double precision :: tw(3)
 {^IFTWOD
     if(.not.rt_sc_active) return
     if(rt_sc_valpipe .and. rt_sc_distributed) then
-      ! For validation the ray-by-ray Q is copied into i_iout and the pipelined Q left in i_qrad,
-      ! and the two must agree exactly
-      call rt_sc_solve_wave()
-      do iigrid=1,igridstail; igrid=igrids(iigrid)
-        ps(igrid)%w(ixG^T,i_iout) = ps(igrid)%w(ixG^T,i_qrad)
-      end do
-      call rt_sc_solve_wave_pipe()
-      ! dmx is the largest difference anywhere and dmi the largest away from the seam blocks,
-      ! which are the outermost x-block of width xedge on either side
-      dmx=0.0d0; qmx=0.0d0; dmi=0.0d0; xatmax=-1.0d0
-      xedge = block_nx1*(xprobmax1-xprobmin1)/dble(domain_nx1)
-      do iigrid=1,igridstail; igrid=igrids(iigrid)
-        qmx=max(qmx, maxval(dabs(ps(igrid)%w(ixM^T,i_qrad))))
-        do ix2=ixMlo2,ixMhi2; do ix1=ixMlo1,ixMhi1
-          dd=dabs(ps(igrid)%w(ix1,ix2,i_qrad)-ps(igrid)%w(ix1,ix2,i_iout))
-          if(dd>dmx) then; dmx=dd; xatmax=ps(igrid)%x(ix1,ix2,1); end if
-          if(ps(igrid)%x(ix1,ix2,1) > xprobmin1+xedge .and. &
-             ps(igrid)%x(ix1,ix2,1) < xprobmax1-xedge) dmi=max(dmi,dd)
-        end do; end do
-      end do
-      ! Both differences are printed relative to the largest magnitude of Q
-      ! rel = max abs(Q_pipe - Q_wave)/max abs(Q)
-      call MPI_ALLREDUCE(dmx,dmx_g,1,MPI_DOUBLE_PRECISION,MPI_MAX,icomm,ierr)
-      call MPI_ALLREDUCE(qmx,qmx_g,1,MPI_DOUBLE_PRECISION,MPI_MAX,icomm,ierr)
-      call MPI_ALLREDUCE(dmi,dmi_g,1,MPI_DOUBLE_PRECISION,MPI_MAX,icomm,ierr)
-      if(mype==0) write(*,'(a,es12.5,a,es12.5,a,es12.5,a,es12.5)') &
-        ' rt_valpipe rel=',dmx_g/max(qmx_g,1.0d-300),'  rel(x-interior,no seam)=', &
-        dmi_g/max(qmx_g,1.0d-300),'  max|dQ|=',dmx_g,'  max|Q|=',qmx_g
+      call rt_sc_validate_pipe()
       return
     end if
-    tw = MPI_WTIME()
-    
-    if(rt_sc_distributed) then !> main solve choice here
+    call timer_open(tw)
+    if(rt_sc_distributed) then
       if(rt_sc_pipeline) then
         call rt_sc_solve_wave_pipe()
       else
         call rt_sc_solve_wave()
       end if
-      rt_wt_wave = rt_wt_wave + (MPI_WTIME()-tw)
+      rt_wt_wave = rt_wt_wave + (MPI_WTIME()-tw(1))
       rt_nsolve = rt_nsolve + 1
       if(rt_sc_debug .and. mype==0 .and. mod(rt_nsolve,10)==0) write(*,'(a,i5,a,f9.3,a)') &
         ' RT wave nsolve=',rt_nsolve,'  cumulative wave-solve time=',rt_wt_wave,' s'
     else
       call rt_sc_solve_gather()
     end if
-    time_rt = time_rt + (MPI_WTIME()-tw)
+    time_rt = time_rt + timer_close(tw)
+    ! The per-rank wall time, which includes the pipeline waits that show the imbalance
+    if(lb_diagnose) lb_rt_accum = MPI_WTIME() - tw(1)
 }
   end subroutine rt_sc_solve
 
