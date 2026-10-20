@@ -387,7 +387,6 @@ mod_hd_eos.o: mod_dust.mod
 mod_hd_eos.o: mod_eos.mod
 mod_hd_eos.o: mod_eos_container.mod
 mod_hd_eos.o: mod_eos_lte.mod
-mod_hd_eos.o: mod_eos_lte_entropy.mod
 mod_hd_eos.o: mod_eos_lte_saha.mod
 mod_hd_eos.o: mod_eos_pi.mod
 mod_hd_eos.o: mod_global_parameters.mod

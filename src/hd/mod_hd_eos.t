@@ -19,7 +19,6 @@ module mod_hd_eos
     !> Mode-specific kernels come from their sub-modules (the facade no longer
     !> re-exports them); each mpistops if called under the wrong eos_type/method.
     use mod_eos_lte
-    use mod_eos_lte_entropy, only: entropy_eint_from_p_bisect
     use mod_eos_lte_saha
     use mod_eos_pi
     use mod_eos_container

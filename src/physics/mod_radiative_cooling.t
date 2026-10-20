@@ -166,7 +166,7 @@ module mod_radiative_cooling
     logical :: rad_escape_prob = .false.
     !> Effective opacity for escape probability (code units: 1/(density*length))
     double precision :: rad_kappa_eff = 0.0d0
-    !> Temperature above which kappa→0 (stored in code units, input in Kelvin); 0 = constant kappa
+    !> Temperature above which kappa->0 (stored in code units, input in Kelvin); 0 = constant kappa
     double precision :: rad_kappa_Tcutoff = 0.0d0
     !> Sigmoid sharpness exponent for kappa(T) cutoff
     double precision :: rad_kappa_alpha = 4.0d0
@@ -223,13 +223,13 @@ module mod_radiative_cooling
     !>   1/(n_e Lambda) is sampled at composite Simpson or Boole nodes
     !>   between [u(T_i), u(T_{i+1})]. See build_Y_mod_table.
     !>
-    !> Lookups: findY_mod(T, nH, fl) returns Y by bilinear interpolation
-    !>   in (log_nH, log_T). findT_mod(Y, nH, fl) returns T by bisection
+    !> Lookups: findY_mod(T, nH, fl) returns Y in (log_nH, log_T), with nH*Y interpolated
+    !>   along nH. findT_mod(Y, nH, fl) returns T by bisection
     !>   on the row at the interpolated nH. (A precomputed inverse table
     !>   variant was prototyped during development but proved unusable:
     !>   at extreme nH the per-row Y_max varies so widely that bilinear
     !>   blending between rows mixes physically saturated and unsaturated
-    !>   entries. The bisect path is O(log ncool) ≈ 12 iterations anyway.)
+    !>   entries. The bisect path is O(log ncool) ~ 12 iterations anyway.)
     double precision, allocatable :: Y_mod(:,:)
     double precision, allocatable :: Y_mod_max_per_row(:)
     integer :: Y_mod_n_nH = 0
@@ -326,13 +326,13 @@ module mod_radiative_cooling
       ! Representative Voigt parameter (a_ref at T = 10 kK)
       a_rep = voigt_a_ref
 
-      ! phi(0) for the Voigt profile: H(a,0) = exp(a^2)*erfc(a)/sqrt(pi) ≈ 1/sqrt(pi)
+      ! phi(0) for the Voigt profile: H(a,0) = exp(a^2)*erfc(a)/sqrt(pi) ~ 1/sqrt(pi)
       phi0 = 1.0d0 / sqrt(dpi)
 
       ! Precompute g(x) = phi(x)/phi(0) at quadrature nodes
       ! For the Voigt profile: phi(x) = H(a,x), the real part of the
       ! Faddeeva function divided by sqrt(pi).
-      ! For small a, H(a,x) ≈ exp(-x^2)/sqrt(pi) + a/(pi*x^2) for |x|>few.
+      ! For small a, H(a,x) ~ exp(-x^2)/sqrt(pi) + a/(pi*x^2) for |x|>few.
       ! Use the exact Humlicek (1982) rational approximation.
 
       do i = 1, n_voigt_table
@@ -368,7 +368,7 @@ module mod_radiative_cooling
 
     !> Voigt profile ratio phi(x)/phi(0) using Humlicek (1982) Region I/II approx.
     !> For the small-a regime (a < 0.01), this simplifies to:
-    !>   H(a,x)/H(a,0) ≈ exp(-x^2) + a*sqrt(pi)/x^2  for |x| > ~2
+    !>   H(a,x)/H(a,0) ~ exp(-x^2) + a*sqrt(pi)/x^2  for |x| > ~2
     !> We use the exact Gaussian core + Lorentzian wing decomposition.
     double precision function voigt_profile_ratio(a, x)
       use mod_global_parameters, only: dpi
@@ -376,12 +376,12 @@ module mod_radiative_cooling
       double precision, intent(in) :: a, x
       double precision :: gauss_part, lorentz_part, phi_x, phi_0
 
-      ! phi(0) = H(a,0) ≈ 1/sqrt(pi) * (1 + ...) for small a
+      ! phi(0) = H(a,0) ~ 1/sqrt(pi) * (1 + ...) for small a
       phi_0 = 1.0d0 / sqrt(dpi)
 
-      ! For small a: H(a,x) ≈ exp(-x²)/sqrt(pi) for |x| < ~3
-      ! and H(a,x) ≈ a/(pi*x²) for |x| >> 1 where Lorentzian dominates
-      ! Use additive approximation: H(a,x) ≈ exp(-x²)/sqrt(pi) + a/(pi*(x²+a²))
+      ! For small a: H(a,x) ~ exp(-x^2)/sqrt(pi) for |x| < ~3
+      ! and H(a,x) ~ a/(pi*x^2) for |x| >> 1 where Lorentzian dominates
+      ! Use additive approximation: H(a,x) ~ exp(-x^2)/sqrt(pi) + a/(pi*(x^2+a^2))
       gauss_part = exp(-x*x) / sqrt(dpi)
       if(x*x + a*a > 1.0d-30) then
         lorentz_part = a / (dpi * (x*x + a*a))
@@ -1825,16 +1825,16 @@ module mod_radiative_cooling
     !> ===================================================================
     !>
     !> The original Townsend (2009) exact integration scheme assumes a
-    !> constant heat capacity c_V = ρR/(γ-1). For LTE plasmas with H/He
+    !> constant heat capacity c_V = rhoR/(gamma-1). For LTE plasmas with H/He
     !> ionisation, c_V is a strong function of temperature in the
-    !> recombination zone (Ibañez 1985, 1992 thermal-instability buffering).
+    !> recombination zone, where ionisation buffers the cooling
     !>
     !> The derivation defines a modified TEF
-    !>     Ỹ(T; ρ) ≡ ∫_T^{T_ref} c_V(T'; ρ) / (n_H n_e(T'; ρ) Λ(T')) dT'
+    !>     Ytilde(T; rho) = int _T^{T_ref} c_V(T'; rho) / (n_H n_e(T'; rho) Lambda(T')) dT'
     !> with c_V the LTE volumetric heat capacity *including* the
     !> ionisation-energy reservoir. The integral is recast via the change
     !> of variables u = e_int/n_H so that the discrete construction never
-    !> finite-differences c_V — both integrand and energy update are
+    !> finite-differences c_V - both integrand and energy update are
     !> driven by the same eint_from_T table, guaranteeing bit-consistent
     !> energy conservation.
     !>
@@ -1846,10 +1846,10 @@ module mod_radiative_cooling
     !> log10 nH grid point j (taken from the eos%eint_from_T table's nH axis):
     !>   1. Cache u_i = e_int/n_H at every cooling-curve T_i.
     !>   2. Walk i = ncool-1 down to 1 and accumulate
-    !>        Y_mod(j, i) = Y_mod(j, i+1) + ∫_{u_i}^{u_{i+1}} du / (n_e Λ)
+    !>        Y_mod(j, i) = Y_mod(j, i+1) + int _{u_i}^{u_{i+1}} du / (n_e Lambda)
     !>      using a composite Simpson (3-point, O(h^4)) or Boole (5-point,
     !>      O(h^6)) rule with N_sub sub-intervals.
-    !>   3. The integrand evaluates n_e via y_from_nH_eint and Λ via findL
+    !>   3. The integrand evaluates n_e via y_from_nH_eint and Lambda via findL
     !>      (with T from T_from_nH_eint).
     !>
     !> Per-row inverse table T_mod_inv(j, k) is also built for the

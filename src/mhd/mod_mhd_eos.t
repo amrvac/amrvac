@@ -1390,12 +1390,10 @@ contains
 
     end subroutine mhd_get_temperature_from_eint_with_equi
 
-    !> LTE+MHD: T from total energy. Subtract KE+ME (via the MHD-aware
-    !> phys_e_to_ei dispatcher) to get eint, then look up T in the LTE table
-    !> through eos%get_temperature_from_eint (bound to get_temperature_from_eint_LTE
-    !> by eos_finalise). Always fresh; does not use the iw_te cache.
-    !> Should NOT be bound when mhd_internal_e=.true. (w(:,e_) is already eint
-    !> and phys_e_to_ei is unbound) - use eos%get_temperature_from_eint directly.
+    !> T from total energy for LTE, and for PI with ionisation energy. KE+ME are subtracted through
+    !> the MHD-aware phys_e_to_ei, and T comes from the EoS eint->T lookup through
+    !> eos%get_temperature_from_eint. Always fresh; does not use the iw_te cache. With
+    !> mhd_internal_e w(:,e_) is already eint, and eos%get_temperature_from_eint is bound instead
     subroutine mhd_get_temperature_from_etot_LTE(w, x, ixI^L, ixO^L, res)
         use mod_global_parameters
         integer, intent(in)          :: ixI^L, ixO^L

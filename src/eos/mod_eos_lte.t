@@ -227,7 +227,7 @@ contains
         double precision, intent(out)   :: res(ixI^S)
 
         double precision :: nH(ixI^S),nH_in(ixI^S), eint_in(ixI^S)
-        double precision :: Rfactor(ixI^S), Rfactor_FI, T_loc, y_loc
+        double precision :: Rfactor_FI, T_loc, y_loc
         integer :: ix^D
 
         Rfactor_FI = eos%n_per_nH_FI / (1.0d0 + 4.0d0*eos%He_abundance)
@@ -363,8 +363,7 @@ contains
     !> Scalar EoS kernels: one cell on (log10 nH, log10 eint/nH) or (log10 nH, log10 p/nH), in
     !> code units, each dispatching to the analytic Saha solve, the entropy tables or the tables
 
-    !> Ionization fraction from (log10 nH, log10 eint/nH) in code units.
-    !> Dispatches: analytic -> Saha quadratic, tables -> PCHIP interpolation.
+    !> Ionisation fraction ne/nH from (log10 nH, log10 eint/nH)
     double precision function y_from_nH_eint(nH, eint_nh) result(result_val)
         double precision, intent(in) :: nH, eint_nh
         double precision, parameter :: ln10 = 2.302585092994046d0
@@ -387,8 +386,7 @@ contains
         end if
     end function y_from_nH_eint
 
-    !> Temperature from (log10 nH, log10 eint/nH) in code units.
-    !> Dispatches: analytic -> Saha bisection/Newton, tables -> PCHIP interpolation.
+    !> Temperature from (log10 nH, log10 eint/nH)
     double precision function T_from_nH_eint(nH, eint_nh) result(result_val)
         double precision, intent(in) :: nH, eint_nh
         double precision, parameter :: ln10 = 2.302585092994046d0
@@ -412,9 +410,8 @@ contains
         end if
     end function T_from_nH_eint
 
-    !> Fused T+y lookup from (log10 nH, log10 eint/nH) in code units.
-    !> Computes grid indices once, evaluates both T and y tables.
-    !> Saves one index computation + better cache utilisation vs separate calls.
+    !> Temperature and ionisation fraction from (log10 nH, log10 eint/nH), sharing one table
+    !> locate when the interleaved table exists
     subroutine T_and_y_from_nH_eint(log_nH, log_eint_nH, T_out, y_out)
         double precision, intent(in) :: log_nH, log_eint_nH
         double precision, intent(out) :: T_out, y_out
@@ -448,8 +445,7 @@ contains
         end if
     end subroutine T_and_y_from_nH_eint
 
-    !> Pressure-to-eint ratio from (log10 nH, log10 p/nH) in code units.
-    !> Dispatches: analytic -> Saha solve for eint/p, tables -> PCHIP interpolation.
+    !> Ratio eint/p from (log10 nH, log10 p/nH)
     double precision function p2eint_from_nH_p(nH, ponH) result(result_val)
         double precision, intent(in) :: nH, ponH
         double precision :: nH_code, p_code, T_loc, y_loc, eint_nH_loc, p_rho
@@ -474,11 +470,7 @@ contains
         end if
     end function p2eint_from_nH_p
 
-    !> Gamma_1 from pressure-indexed table: (log10 nH, log10 p/nH) -> Gamma_1.
-    !> For 'entropy' the conversion p -> eint -> Gamma_1 via formula is intended
-    !> to keep Maxwell consistency with the forward at runtime. The p->eint inverse 
-    !> is one bisection per cell -- non-trivial cost; this function is in the hot path
-    !> via hd_get_csound2_LTE.
+    !> Gamma_1 from (log10 nH, log10 p/nH), one lookup on the pressure-indexed table
     double precision function gamma1_from_nH_p(log_nH, log_p_nH) result(g1)
         double precision, intent(in) :: log_nH, log_p_nH
         if (eos%type_id /= EOS_TYPE_LTE) call mpistop("gamma1_from_nH_p called outside its eos_type (LTE)")
@@ -489,15 +481,13 @@ contains
         end if
     end function gamma1_from_nH_p
 
-    !> Merged log10(p/nH) lookup: (log10 nH, log10 eint/nH) -> log10(p/nH)
-    !> Single PCHIP evaluation replacing separate T + neOnH lookups.
+    !> log10(p/nH) from (log10 nH, log10 eint/nH)
     double precision function log_p_from_nH_eint(log_nH, log_eint_nH) result(lp)
         double precision, intent(in) :: log_nH, log_eint_nH
         lp = bicubic_lookup(log_nH, log_eint_nH, eos%log_p)
     end function log_p_from_nH_eint
 
-    !> p/nH from (log10 nH, log10 eint/nH) in code units.
-    !> Returns (1+He+y)*T directly -- single lookup replaces T + y lookups.
+    !> p/nH = (1 + He + y) T from (log10 nH, log10 eint/nH)
     double precision function p_nH_from_eint(log_nH, log_eint_nH) result(p_nH)
         double precision, intent(in) :: log_nH, log_eint_nH
         double precision, parameter :: ln10 = 2.302585092994046d0
@@ -514,9 +504,8 @@ contains
         end if
     end function p_nH_from_eint
 
-    !> Internal energy per nH from (log10 nH, log10 T) in code units.
-    !> Uses the bisection-built inverse table (H+He, machine precision).
-    !> Fallback: H-only Saha if table not built.
+    !> eint/nH from (log10 nH, log10 T), from the inverse table when one is built and the Saha
+    !> solve otherwise
     double precision function eint_nH_from_T(log_nH, log_T) result(eint_nH)
         double precision, intent(in) :: log_nH, log_T
         double precision, parameter :: ln10 = 2.302585092994046d0
@@ -748,10 +737,8 @@ contains
         if (eos%type_id /= EOS_TYPE_LTE) call mpistop("eint_from_p_bisect called outside its eos_type (LTE)")
         log_p_target = log_p_val - log_nH_val
 
-        !> eint-axis limits. var2_min/var2_max are populated for uniform tables only; with an
-        !> adaptive (non-uniform) log_p table they are meaningless, so the guess/bracket clamps
-        !> below let log_eint run out of range -> out-of-bounds stencil load in bicubic_lookup
-        !> (SIGSEGV at init). log_p_bisect_cached already branches on is_uniform; this wrapper did not.
+        !> eint-axis limits: var2_min/var2_max are set for uniform tables only, so an adaptive
+        !> log_p table takes its end nodes, which keeps the clamps below inside the bicubic stencil
         if (eos%log_p%is_uniform) then
             eint_lim_lo = eos%log_p%var2_min
             eint_lim_hi = eos%log_p%var2_max
