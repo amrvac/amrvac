@@ -50,6 +50,8 @@ module mod_radiative_cooling
   double precision, parameter, private :: voigt_logtau_max =  8.0d0   ! tau = 1e8
   double precision, parameter, private :: voigt_a_ref = 4.7d-4
   double precision, parameter, private :: voigt_xmax  = 6.0d0
+  !> Temperature in K above which c_V is constant, the upper end of the Y_mod path
+  double precision, parameter :: rc_T_Ymod_max_K = 2.0d5
   double precision, private :: voigt_E_table(n_voigt_table)
   double precision, private :: voigt_logtau_step
   logical, private :: voigt_table_ready = .false.
@@ -241,7 +243,7 @@ module mod_radiative_cooling
     !> Build flag - set to .true. only after the table has been populated
     !> by build_Y_mod_table (called from bind_eos_to_source after eos_finalise).
     logical :: Y_mod_built = .false.
-    !> upper temperature of the Y_mod path: above 200 kK c_V is constant and Townsend is exact
+    !> rc_T_Ymod_max_K in code units, set at bind: above it c_V is constant and Townsend is exact
     double precision :: T_Ymod_max = huge(1.0d0)
     !> Quadrature method: 'simpson' (3-point, O(h^4)) or 'boole' (5-point, O(h^6))
     character(len=8) :: Y_mod_quadrature = 'boole'
@@ -1279,8 +1281,9 @@ module mod_radiative_cooling
       factor = 1.0d0
 
       if(fl%iw_mask_ > 0) then
-        factor = block%wextra(ix^D, fl%iw_mask_)
-        if(factor <= 0.0d0) return
+        ! the mask is a weight in [0, 1], so an undershoot below zero switches the losses off
+        factor = max(0.0d0, block%wextra(ix^D, fl%iw_mask_))
+        if(factor == 0.0d0) return
       end if
 
       ! thin losses only where the SC RT does not take over; rt_sc_thin_weight is the one
@@ -1497,13 +1500,14 @@ module mod_radiative_cooling
       xi_arr = one
       emax_rem_arr = zero
       {do ix^DB = ixO^LIM^DB\}
-         ! Energy floor: always use FI formula (generous safety margin at low T
-         ! where ionE floor would be ~2x lower due to neutral vs FI mean mol. weight)
          emin = rhonew(ix^D)*fl%tlow*Rfactor(ix^D)*invgam
          if (fl%ionE) then
            ! LTE+IonE: EoS quantities for Y-advance; cap from conserved state
            nH_val = rhonew(ix^D) / fl%nH2rhoFactor
            log_nH = dlog10(nH_val)
+           ! eint_w includes the ionisation energy, so the floor does too, as in floortemperature;
+           ! the analytic route keeps the ideal floor energy
+           if (.not. fl%method_analytic) emin = rc_eint_floor(fl, log_nH, nH_val)
            Lmax = max(zero, eint_w(ix^D) - emin) / qdt
            emax = max(zero, eint_w(ix^D) - emin)
          else
@@ -1904,7 +1908,6 @@ module mod_radiative_cooling
         if (mod(N_sub, 2) /= 0) N_sub = N_sub + 1
       end if
 
-      fl%T_Ymod_max = 2.0d5/unit_temperature
       fl%Y_mod_n_nH = n_nH
       if (n_nH > 1) then
         fl%Y_mod_lg_nH_step_inv = dble(n_nH - 1) &

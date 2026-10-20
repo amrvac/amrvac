@@ -25,7 +25,7 @@ module mod_mhd_eos
     use mod_eos_pi
     use mod_eos_container
     use mod_mhd_phys
-    use mod_radiative_cooling, only: build_Y_mod_table
+    use mod_radiative_cooling, only: build_Y_mod_table, rc_T_Ymod_max_K
 
     use mod_comm_lib, only: mpistop
 
@@ -306,6 +306,7 @@ contains
             rc_fl%p2eint            => p2eint_from_nH_p
             rc_fl%T_from_eint       => T_from_nH_eint
             rc_fl%y_from_eint       => y_from_nH_eint
+            rc_fl%T_Ymod_max        =  rc_T_Ymod_max_K/unit_temperature
             ! Equilibrium-specific pointers
             if(has_equi_rho_and_p .and. mhd_equi_thermal) then
                 rc_fl%subtract_equi = .true.

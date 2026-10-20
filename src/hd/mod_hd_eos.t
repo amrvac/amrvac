@@ -23,7 +23,7 @@ module mod_hd_eos
     use mod_eos_pi
     use mod_eos_container
     use mod_hd_phys
-    use mod_radiative_cooling, only: build_Y_mod_table
+    use mod_radiative_cooling, only: build_Y_mod_table, rc_T_Ymod_max_K
 
     use mod_comm_lib, only: mpistop
 
@@ -131,6 +131,8 @@ contains
             rc_fl%p2eint            => p2eint_from_nH_p
             rc_fl%T_from_eint       => T_from_nH_eint
             rc_fl%y_from_eint       => y_from_nH_eint
+            rc_fl%log_T_floor       =  eos_get_log_T_floor()
+            rc_fl%T_Ymod_max        =  rc_T_Ymod_max_K/unit_temperature
             !> Build the variable-c_V Townsend Y_mod table now that all
             !> EoS tables (eint_from_T, T, neOnH) are in code units.
             !> build_Y_mod_table checks coolmethod=='exact' and .not.isPPL

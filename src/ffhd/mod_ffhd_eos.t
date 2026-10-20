@@ -27,7 +27,7 @@ module mod_ffhd_eos
     use mod_eos_pi
     use mod_eos_container
     use mod_ffhd_phys
-    use mod_radiative_cooling, only: build_Y_mod_table
+    use mod_radiative_cooling, only: build_Y_mod_table, rc_T_Ymod_max_K
 
     use mod_comm_lib, only: mpistop
 
@@ -180,6 +180,8 @@ contains
             rc_fl%p2eint            => p2eint_from_nH_p
             rc_fl%T_from_eint       => T_from_nH_eint
             rc_fl%y_from_eint       => y_from_nH_eint
+            rc_fl%log_T_floor       =  eos_get_log_T_floor()
+            rc_fl%T_Ymod_max        =  rc_T_Ymod_max_K/unit_temperature
             if (eos%ionE .and. eos%eos_type == 'LTE') then
                 call eos_get_eintT_grid(rc_fl%Y_mod_n_nH, &
                      rc_fl%Y_mod_lg_nH_min, rc_fl%Y_mod_lg_nH_max)
