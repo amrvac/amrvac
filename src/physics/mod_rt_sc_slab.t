@@ -74,12 +74,18 @@ contains
 
   !> Self-test of the real sweep on an analytic slab. J must approach B
   !> where the slab is optically thick, stay finite in the tenuous top, where the gray FLD
-  !> coefficient D = c lambda/(kappa rho) would diverge, and stay bounded by the source everywhere
+  !> coefficient D = c lambda/(kappa rho) would diverge, and stay bounded by the source everywhere.
+  !> The slab is horizontally infinite, so the test sets thermal side inflows, which are exact for
+  !> it, a thermal bottom and an open top, and restores the run's boundaries afterwards
   subroutine rt_sc_selftest()
     use mod_global_parameters
     {^IFTWOD
     integer :: j, k
     double precision :: tau, taumax, B0, ap, jb_err_deep, jmax, jmin, chimax, chimin
+    logical :: run_bc(5)
+    run_bc = [bc_h_periodic, bc_hlo_thermal, bc_hhi_thermal, bc_lo_thermal, bc_hi_thermal]
+    bc_h_periodic = .false.; bc_hlo_thermal = .true.; bc_hhi_thermal = .true.
+    bc_lo_thermal = .true.;  bc_hi_thermal = .false.
     ! The source is uniform, S = B = B0, and chi grows geometrically downwards over six decades
     nxg = 4; nyg = 200
     dxg = 1.0d0; dyg = 1.0d0
@@ -128,6 +134,8 @@ contains
         print *, " result: fail"
       end if
     end if
+    bc_h_periodic = run_bc(1); bc_hlo_thermal = run_bc(2); bc_hhi_thermal = run_bc(3)
+    bc_lo_thermal = run_bc(4); bc_hi_thermal = run_bc(5)
     }
   end subroutine rt_sc_selftest
 

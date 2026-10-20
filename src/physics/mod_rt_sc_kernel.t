@@ -14,8 +14,9 @@
 !> of the gather and forms the heating in blend_heating, which blends c chi (J - B) with -div F.
 !> Nothing here communicates, since the drivers fill chi and B beforehand
 !>
-!> In general, we do not recommend using the gather approach for production code as it is very
-!> memory heavy. KBA is far better optimised
+!> The gather is the original implementation, kept for comparison and not for production. Every
+!> rank holds the whole band, and its periodic seam is not exact (see sc_sweep_2d). Production runs
+!> should use KBA, which is far better optimised
 !>
 !> Structure:
 !>   A. quadrature    rt_sc_init, rt_sc_dedup_rays, build_gl, build_carlson and
@@ -323,7 +324,10 @@ contains
   end subroutine sc_pad_grid
 
   !> One sweep of the whole replicated grid for direction (nx, ny) into ii_g. The padded grid of
-  !> sc_pad_grid is swept as a single block, which wraps in x when the domain is periodic
+  !> sc_pad_grid is swept as a single block, which wraps in x when the domain is periodic. The wrap
+  !> is not exact: a ray swept column by column reaches the seam before its upwind column holds
+  !> this ray, so the seam takes a vacuum inflow for it. This is accepted, since the gather is only
+  !> a comparison path; the KBA solvers wrap with the intensity of the previous solve
   subroutine sc_sweep_2d(nx, ny)
     double precision, intent(in) :: nx, ny
     ! The interior starts from zero for every ray, while the ghosts keep the inflows

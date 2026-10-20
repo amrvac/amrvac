@@ -39,7 +39,7 @@ contains
   !> Collective, once per step. For each band on rt_sc_amr_level it sweeps all rays and forms the
   !> heating Q, the thin/thick blend with the tau^2 taper, in i_qrad, which is zero elsewhere,
   !> together with Fy, and Iout on the gather path. rt_sc_add_source applies the energy every
-  !> stage. The gather approach struggles with wrapped boundaries, so use it with care
+  !> stage. The gather path is for comparison only, see rt_sc_solve_gather
   subroutine rt_sc_solve()
     use mod_global_parameters
     use mod_timing, only: time_rt, timer_open, timer_close
@@ -70,10 +70,11 @@ contains
 }
   end subroutine rt_sc_solve
 
-  !> Replicated gather. Every rank holds chi and B of the whole band, the rays are shared out over
-  !> the node-local ranks, and the moments are reduced within the node
-  !> Again, use with care. This was the first implementation and hence can be considered
-  !> a kind of oracle but it's not foolproof. KBA, pipelined or otherwise, is far more recommended
+  !> Replicated gather, the original implementation, kept for comparison and not for production.
+  !> Every rank holds chi and B of the whole band, the rays are shared out over the node-local
+  !> ranks, and the moments are reduced within the node. Its memory grows with the whole band on
+  !> every rank, and its periodic seam takes a vacuum inflow for rays swept column by column
+  !> (sc_sweep_2d). Use KBA, pipelined or not
   subroutine rt_sc_solve_gather()
     use mod_global_parameters
     use mod_comm_lib, only: mpistop

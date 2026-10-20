@@ -70,7 +70,8 @@ module mod_rt_sc_state
   !> The distributed KBA wavefront. Each rank sweeps only its own band blocks, one diagonal at a
   !> time, with a getbc of the ray intensity between diagonals, so no rank ever holds the whole
   !> slab. Its intensity slots are reserved by rt_sc_activate. Setting it false selects the
-  !> replicated gather, which is kept as the reference
+  !> replicated gather, the original implementation, kept for comparison only: it holds the whole
+  !> band on every rank and its periodic seam is not exact. Production runs should keep KBA
   logical, public :: rt_sc_distributed = .true.
   !> The pipelined KBA. The four sweep corners run at once, each with its own intensity slot, and
   !> the rays of a corner follow one another through the wavefront. It agrees with the ray-by-ray
