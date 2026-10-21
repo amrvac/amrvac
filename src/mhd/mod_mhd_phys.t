@@ -4815,16 +4815,16 @@ contains
       call mhd_get_rho(w,x,ixI^L,ixI^L,rho_loc)
       call eos%get_Rfactor(w,x,ixI^L,ixI^L,R)
       Te(ixI^S)=w(ixI^S,p_)/(R(ixI^S)*rho_loc(ixI^S))
-      {do ix^DB=ixOmin^DB,ixOmax^DB\}
-        do idir=1,ndir
-          Bvec(ix^D,idir)=w(ix^D,mag(idir))
-        end do
-      {end do\}
-      call mhd_get_hyperbolic_tc_geometry(ixI^L,ixO^L,Te,Bvec,bgradT,gradTperp_mag,nperp)
     end if
+    if(use_perp_flux .or. mhd_hyperbolic_tc) then
+      ! heat flows along the total field, so B0 is added as in the classical split flux
+      Bvec(ixO^S,1:ndir)=w(ixO^S,mag(1:ndir))
+      if(B0field) Bvec(ixO^S,1:ndir)=Bvec(ixO^S,1:ndir)+block%B0(ixO^S,1:ndir,idim)
+    end if
+    if(use_perp_flux) call mhd_get_hyperbolic_tc_geometry(ixI^L,ixO^L,Te,Bvec,bgradT,gradTperp_mag,nperp)
     if(mhd_hyperbolic_tc) then
      {do ix^DB=ixOmin^DB,ixOmax^DB\}
-        f(ix^D,e_)=f(ix^D,e_)+w(ix^D,qpar_)*w(ix^D,mag(idim))/(dsqrt(^C&w(ix^D,b^C_)**2+)+smalldouble)
+        f(ix^D,e_)=f(ix^D,e_)+w(ix^D,qpar_)*Bvec(ix^D,idim)/(dsqrt(sum(Bvec(ix^D,1:ndir)**2))+smalldouble)
         f(ix^D,qpar_)=zero
         if(use_perp_flux) then
           f(ix^D,e_)=f(ix^D,e_)+w(ix^D,qperp_)*nperp(ix^D,idim)
