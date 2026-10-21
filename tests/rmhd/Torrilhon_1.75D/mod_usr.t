@@ -1,26 +1,82 @@
 module mod_usr
-  use mod_rmhd
+  use mod_mhd
+  use mod_eos, only: eos
+  use mod_fld
+  use mod_multigrid_coupling
+
   implicit none
+
+    double precision:: rholeft,rhoright,slocx^D
+    double precision:: vleft(3),pleft,vright(3),pright
+    double precision:: bx,byleft,bzleft,byright,bzright
+    double precision:: Tleft,Tright
+      
+  ! Storing additional var in the dat file
+  integer :: Tgas_,Trad_,pres_,velx_,vely_,amr_
+      
 
 contains
 
+
   subroutine usr_init()
+
+    ! Note how we here must set three values that in turn define M-L-T
+    unit_length        = 1.001d8  ! cm
+    unit_temperature   = 1.1d3    ! K
+    unit_numberdensity = 1.001d10 ! cm^-3
+
+    ! Manually refine grid near shock
+    usr_refine_grid => refine_shock
+
     usr_set_parameters=> initglobaldata_usr
+
     usr_init_one_grid => initonegrid_usr
+
+   ! to add selected variables to the .dat file
+    usr_modify_output => set_output_vars
+
     usr_aux_output      => specialvar_output
     usr_add_aux_names   => specialvarnames_output
 
     call set_coordinate_system('Cartesian_1.75D')
 
-    unit_length        = 1.001d8 !1.d8    ! cm
-    unit_temperature   = 1.1d3  !1.d4   ! K
-    unit_numberdensity = 1.001d10 !1.d9   ! cm^-3
-    
-    call rmhd_activate()
+    call mhd_activate()
+
+    ! to add selected variables to the .dat file
+    Tgas_ = var_set_extravar("Tgas", "Tgas")
+    Trad_ = var_set_extravar("Trad", "Trad")
+    pres_ = var_set_extravar("pres", "pres")
+    velx_ = var_set_extravar("velx", "velx")
+    vely_ = var_set_extravar("vely", "vely")
+    amr_ = var_set_extravar("level", "level")
+
   end subroutine usr_init
 
   subroutine initglobaldata_usr
-     rmhd_gamma = 5.0d0/3.0d0
+   use mod_global_parameters
+   use mod_fld
+
+    ! Torrilhon test for 1.75D MHD 
+    bx=1.5d0
+    rholeft=3.0d0
+    rhoright=1.0d0
+    pleft=3.0d0
+    pright=1.0d0
+    vleft(1:3)=0.0d0
+    vright(1:3)=zero
+    byleft=one
+    byright=cos(1.5d0) 
+    bzleft=zero
+    bzright=sin(1.5d0) 
+    Tleft=pleft/(rholeft*RR)
+    Tright=pright/(rhoright*RR)
+
+    ! here we set the dirichlet (or other) conditions for the MG solver
+    mg%bc(1, mg_iphi)%bc_type = mg_bc_dirichlet
+    mg%bc(1, mg_iphi)%bc_value = arad_norm*(Tleft**4.d0)
+    mg%bc(2, mg_iphi)%bc_type = mg_bc_dirichlet
+    mg%bc(2, mg_iphi)%bc_value = arad_norm*(Tright**4.d0)
+
   end subroutine initglobaldata_usr
 
   subroutine initonegrid_usr(ixG^L,ix^L,w,x)
@@ -29,34 +85,22 @@ contains
     double precision, intent(in) :: x(ixG^S,1:ndim)
     double precision, intent(inout) :: w(ixG^S,1:nw)
 
-    double precision:: rholeft,rhoright,slocx^D
-    double precision:: vleft(3),pleft,vright(3),pright
-    double precision:: bx,byleft,bzleft,byright,bzright
     logical,save :: first=.true.
-
-
-    ! Torrilhon test for 1.75D MHD setup.pl -d=1, Cartesian_1.75D
-    bx=1.5d0
-    rholeft=3.0d0
-    pleft=3.0d0
-    vleft=0.0d0
-    byleft=one
-    bzleft=zero
-    
-    rhoright=1.0d0
-    pright=1.0d0
-    vright=zero
-    byright=cos(1.5d0) 
-    bzright=sin(1.5d0) 
 
     if(first.and.mype==0) then
       print *,'Torrilhon test'
-      print *,'by=',byright,' bz=',bzright
+      print *,'bx=',bx,' gamma=',eos%gamma
+      print *,'LEFT:  by =',byleft,' bz=',bzleft
+      print *,'LEFT:  rho=',rholeft,' p=',pleft
+      print *,'LEFT:  T  =',Tleft,' Erad=',arad_norm*(Tleft)**4
+      print *,'RIGHT: by =',byright,' bz=',bzright
+      print *,'RIGHT: rho=',rhoright,' p=',pright
+      print *,'RIGHT:  T =',Tright,' Erad=',arad_norm*(Tright)**4
       first=.false.
     endif
 
     slocx1=half*(xprobmax1+xprobmin1)
-    where({^D&x(ixG^S,^D)<=slocx^D|.or.})
+    where(x(ixG^S,1)<=slocx1)
        w(ixG^S,rho_)     = rholeft
        w(ixG^S,mom(1))   = vleft(1)
        w(ixG^S,mom(2))   = vleft(2)
@@ -65,7 +109,7 @@ contains
        w(ixG^S,mag(1) )  = bx
        w(ixG^S,mag(2) )  = byleft
        w(ixG^S,mag(3) )  = bzleft
-       w(ix^S,r_e) = const_rad_a*(unit_temperature)**4.d0/unit_pressure
+       w(ixG^S,r_e) = arad_norm*(Tleft**4.0d0)
     elsewhere
        w(ixG^S,rho_)     = rhoright
        w(ixG^S,mom(1))   = vright(1)
@@ -75,11 +119,32 @@ contains
        w(ixG^S,mag(1) )  = bx
        w(ixG^S,mag(2) )  = byright
        w(ixG^S,mag(3) )  = bzright
-       w(ix^S,r_e) = const_rad_a*(unit_temperature)**4.d0/unit_pressure
+       w(ixG^S,r_e) = arad_norm*(Tright**4.0d0)
     endwhere
 
-    call rmhd_to_conserved(ixG^L,ix^L,w,x)
+    call eos%to_conserved(ixG^L,ix^L,w,x)
   end subroutine initonegrid_usr
+
+  subroutine refine_shock(igrid,level,ixG^L,ix^L,qt,w,x,refine,coarsen)
+    ! Enforce additional refinement or coarsening
+    ! One can use the coordinate info in x and/or time qt=t_n and w(t_n) values w.
+    ! you must set consistent values for integers refine/coarsen:
+    ! refine = -1 enforce to not refine
+    ! refine =  0 doesn't enforce anything
+    ! refine =  1 enforce refinement
+    ! coarsen = -1 enforce to not coarsen
+    ! coarsen =  0 doesn't enforce anything
+    ! coarsen =  1 enforce coarsen
+    use mod_global_parameters
+
+    integer, intent(in) :: igrid, level, ixG^L, ix^L
+    double precision, intent(in) :: qt, w(ixG^S,1:nw), x(ixG^S,1:ndim)
+    integer, intent(inout) :: refine, coarsen
+
+    if (any(dabs(x(ixG^S,1)) < 0.1d0)) refine=1
+
+  end subroutine refine_shock
+
 
   subroutine specialvar_output(ixI^L,ixO^L,w,x,normconv)
     use mod_fld
@@ -87,9 +152,11 @@ contains
     double precision, intent(in)       :: x(ixI^S,1:ndim)
     double precision                   :: w(ixI^S,nw+nwauxio)
     double precision                   :: normconv(0:nw+nwauxio)
-    double precision :: lamb(ixO^S), R(ixO^S)
+    double precision :: wlocal(ixI^S,nw)
+    double precision :: lamb(ixI^S), R(ixI^S)
 
-    call fld_get_fluxlimiter(w,x,ixI^L,ixO^L,lamb,R,1)
+    wlocal(ixI^S,1:nw)=w(ixI^S,1:nw)
+    call fld_get_fluxlimiter(wlocal,x,ixI^L,ixO^L,lamb,R,2,fld_fl)
     w(ixO^S,nw+1)=lamb(ixO^S)
     w(ixO^S,nw+2)=R(ixO^S)
   end subroutine specialvar_output
@@ -98,4 +165,26 @@ contains
     character(len=*) :: varnames
     varnames='Lambda R'
   end subroutine specialvarnames_output
+
+  subroutine set_output_vars(ixI^L,ixO^L,qt,w,x)
+    use mod_global_parameters
+    integer, intent(in)             :: ixI^L,ixO^L
+    double precision, intent(in)    :: qt,x(ixI^S,1:ndim)
+    double precision, intent(inout) :: w(ixI^S,1:nw)
+
+    double precision :: Trad(ixI^S),Tgas(ixI^S),pth(ixI^S)
+
+    call eos%get_thermal_pressure(w,x,ixI^L,ixO^L,pth)
+    call mhd_get_trad(w,x,ixI^L,ixO^L,Trad)
+    call eos%get_temperature_from_etot(w,x,ixI^L,ixO^L,Tgas)
+    w(ixO^S,Tgas_)=Tgas(ixO^S)
+    w(ixO^S,Trad_)=Trad(ixO^S)
+    w(ixO^S,pres_)=pth(ixO^S)
+    w(ixO^S,velx_)=w(ixO^S,mom(1))/w(ixO^S,rho_)
+    w(ixO^S,vely_)=w(ixO^S,mom(2))/w(ixO^S,rho_)
+    ! output the AMR level (assuming uniform grid blocks)
+    w(ixO^S,amr_)=dlog(((xprobmax1-xprobmin1)/domain_nx1)/dxlevel(1))/dlog(2.0d0)+1.0d0
+
+  end subroutine set_output_vars
+
 end module mod_usr

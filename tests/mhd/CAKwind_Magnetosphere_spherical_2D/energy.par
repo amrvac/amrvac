@@ -62,7 +62,6 @@
 &mhd_list
   mhd_gravity = .true.
   mhd_energy  = .true.
-  mhd_gamma   = 1.666667d0
   typedivbfix = 'powell'
   B0field     = .false.
   mhd_radiative_cooling = .true.  
@@ -71,7 +70,6 @@
 
 &rc_list
   coolcurve  = 'SPEX'
-  coolmethod = 'exact'
   ncool      = 10000
   Tfix       = .true.
   tlow       = 1.0d0
@@ -93,3 +91,7 @@
   rhobound = 2.0d-11
   timestat = 2.0d5
 /
+ &eos_list
+  gamma = 1.666667d0
+ /
+

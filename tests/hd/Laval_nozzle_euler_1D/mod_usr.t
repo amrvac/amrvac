@@ -1,6 +1,7 @@
 ! test for 1D Laval nozzle flow
 module mod_usr
  use mod_hd
+  use mod_eos, only: eos
  implicit none
  double precision :: mach0
 
@@ -46,17 +47,17 @@ contains
     w(ixO^S,mom(1))=mach0
     if(hd_energy)then
        ! pressure to make inlet sound speed unity
-       w(ixO^S,e_)=1.0d0/hd_gamma
+       w(ixO^S,e_)=1.0d0/eos%gamma
     endif
 
-    call hd_to_conserved(ixI^L, ixO^L, w, x)
+    call eos%to_conserved(ixI^L, ixO^L, w, x)
 
   end subroutine initonegrid_usr
 
 
-  subroutine specialbound_usr(qt,ixI^L,ixO^L,iB,w,x)
+  subroutine specialbound_usr(qdt,qt,ixI^L,ixO^L,iB,w,x)
     integer, intent(in) :: ixO^L, iB, ixI^L
-    double precision, intent(in) :: qt,x(ixI^S,1:ndim)
+    double precision, intent(in) :: qdt,qt,x(ixI^S,1:ndim)
     double precision, intent(inout) :: w(ixI^S,1:nw)
     integer:: ixOInt^L,ix1
 
@@ -66,14 +67,14 @@ contains
       w(ixO^S,rho_)= 1.0d0
       w(ixO^S,mom(1))= mach0
       if(hd_energy)then
-         w(ixO^S,e_)=1.0d0/hd_gamma
+         w(ixO^S,e_)=1.0d0/eos%gamma
       endif
-      call hd_to_conserved(ixI^L,ixO^L,w,x)
+      call eos%to_conserved(ixI^L,ixO^L,w,x)
     case(2)
       ixOInt^L=ixO^L;
       ixOIntmin1=ixOmin1-1 
       ixOIntmax1=ixOmin1-1 
-      call hd_to_primitive(ixI^L,ixOInt^L,w,x)
+      call eos%to_primitive(ixI^L,ixOInt^L,w,x)
       if(hd_energy)then
       ! extrapolate density, velocity, pressure
          do ix1=ixOmin1,ixOmax1
@@ -88,8 +89,8 @@ contains
             w(ix1,mom(1))=w(ixOmin1-1,mom(1))
          enddo
       endif
-      call hd_to_conserved(ixI^L,ixOInt^L,w,x)
-      call hd_to_conserved(ixI^L,ixO^L,w,x)
+      call eos%to_conserved(ixI^L,ixOInt^L,w,x)
+      call eos%to_conserved(ixI^L,ixO^L,w,x)
     case default
        call mpistop("Special boundary is not defined for this region")
     end select
@@ -129,17 +130,17 @@ contains
     call special_surface(ixI^L,x,dx,exp_factor,del_exp_factor,exp_factor_primitive)
     w(ixO^S, nw+1) = exp_factor(ixO^S)
     
-    call hd_get_pthermal(w,x,ixI^L,ixO^L,pp)
+    call eos%get_thermal_pressure(w,x,ixI^L,ixO^L,pp)
     w(ixO^S,nw+2) = pp(ixO^S)/w(ixO^S,rho_)
     vv(ixO^S)=w(ixO^S,mom(1))/w(ixO^S,rho_)
     call hd_get_csound2(w,x,ixI^L,ixO^L,cs2)
     w(ixO^S,nw+3) =vv(ixO^S)/dsqrt(cs2(ixO^S))
     w(ixO^S,nw+4) =vv(ixO^S)*exp_factor(ixO^S)*w(ixO^S,rho_)
-    if(hd_energy.or.hd_gamma/=1.0d0)then
-       w(ixO^S,nw+5)=0.5d0*vv(ixO^S)**2+(pp(ixO^S)/w(ixO^S,rho_))*(hd_gamma/(hd_gamma-1.0d0))
+    if(hd_energy.or.eos%gamma/=1.0d0)then
+       w(ixO^S,nw+5)=0.5d0*vv(ixO^S)**2+(pp(ixO^S)/w(ixO^S,rho_))*(eos%gamma/(eos%gamma-1.0d0))
     else
       print *,'using lnrho: energy,gamma,adiab'
-      print *,hd_energy,hd_gamma,hd_adiab
+      print *,hd_energy,eos%gamma,hd_adiab
        w(ixO^S,nw+5)=0.5d0*vv(ixO^S)**2+hd_adiab*dlog(w(ixO^S,rho_))
     endif
 

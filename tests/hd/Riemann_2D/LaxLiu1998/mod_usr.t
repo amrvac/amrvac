@@ -1,6 +1,7 @@
 !> HD 2D riemann problem: can be used to check Lax&Liu, SIAM, 1998
 module mod_usr
   use mod_hd
+  use mod_eos, only: eos
 
   implicit none
 
@@ -75,7 +76,7 @@ contains
        w(ix^S,mom(2)) = v4
     end where
 
-    call hd_to_conserved(ixG^L,ix^L,w,x)
+    call eos%to_conserved(ixG^L,ix^L,w,x)
 
   end subroutine rm2d_init_one_grid
 

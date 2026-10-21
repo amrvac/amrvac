@@ -1,6 +1,7 @@
 ! pulsar wind bubble through SNR and ISM, as in Swaluw et al 2003
 module mod_usr
   use mod_hd
+  use mod_eos, only: eos
 
   implicit none
 
@@ -51,7 +52,7 @@ contains
     Vsnr=4.0d0*Vrel/7.0d0
     Vpsr=5.0d0*Vsnr/2.0d0
     Psh=3.0d0*rhoISM*Vsnr**2/4.0d0
-    Soundsh=dsqrt(hd_gamma*Psh/(4.0d0*rhoISM))
+    Soundsh=dsqrt(eos%gamma*Psh/(4.0d0*rhoISM))
     eta=0.83d0
     Rts=eta*dsqrt(L0/(2.0d0*dpi*rhoISM*(Vpsr**2)*vinf))
     Esnr=1.0d51
@@ -105,7 +106,6 @@ contains
   subroutine initglobaldata_usr()
     use mod_global_parameters
 
-    hd_gamma=5.0d0/3.0d0
 
     ! turn source amplitudes dimensionless
     Mdotpw=Mdotpw/(rhoISM*Lscale**2*Soundsh)
@@ -130,8 +130,8 @@ contains
     !endif
     if (mype==0)then
         print *,'-------------------'
-        print *,'using hd_gamma    =',hd_gamma
-        print *,'using He_abundance=',He_abundance
+        print *,'using eos%gamma    =',eos%gamma
+        print *,'using eos%He_abundance=',eos%He_abundance
         print *,'-------------------'
         print *,'scaled Mdotpw=',Mdotpw
         print *,'scaled L0    =',L0
@@ -170,7 +170,7 @@ contains
     ! the shocked SNR shell has pressure Psh
     w(ix^S,p_)      = Psh
     
-    call hd_to_conserved(ixG^L,ix^L,w,x)
+    call eos%to_conserved(ixG^L,ix^L,w,x)
 
   end subroutine wind_init_one_grid
 
@@ -198,10 +198,10 @@ contains
 
   end subroutine specialrefine_grid
 
-  subroutine specialbound_usr(qt,ixG^L,ixO^L,iB,w,x)
+  subroutine specialbound_usr(qdt,qt,ixG^L,ixO^L,iB,w,x)
     use mod_global_parameters
     integer, intent(in) :: ixG^L, ixO^L, iB
-    double precision, intent(in) :: qt, x(ixG^S,1:ndim)
+    double precision, intent(in) :: qdt,qt, x(ixG^S,1:ndim)
     double precision, intent(inout) :: w(ixG^S,1:nw)
 
     select case(iB)
@@ -211,7 +211,7 @@ contains
       w(ixO^S,mom(1)) = zero
       w(ixO^S,mom(2)) = Vrel
       w(ixO^S,p_)     = Psh
-      call hd_to_conserved(ixG^L,ixO^L,w,x)
+      call eos%to_conserved(ixG^L,ixO^L,w,x)
     case default
       call mpistop("This boundary is not supposed to be special")
     end select
@@ -247,7 +247,7 @@ contains
     double precision :: pth(ixI^S),wlocal(ixI^S,1:nw)
 
     wlocal(ixI^S,1:nw)=w(ixI^S,1:nw)
-    call hd_get_pthermal(wlocal,x,ixI^L,ixO^L,pth)
+    call eos%get_thermal_pressure(wlocal,x,ixI^L,ixO^L,pth)
     w(ixO^S,nw+1)=pth(ixO^S)/w(ixO^S,rho_)
     w(ixO^S,nw+2)=dlog10(w(ixO^S,rho_))
   end subroutine specialvar_output

@@ -3,6 +3,7 @@
 !=============================================================================
 module mod_usr
   use mod_hd
+  use mod_eos, only: eos
 
   double precision,allocatable, save:: xgrid(:),ygrid(:)
   integer, save:: Nx,Ny,ntmp
@@ -33,7 +34,6 @@ integer::  seed_size,ix
 double precision :: Lx, Ly
 
 
-   hd_gamma=5.0d0/3.0d0
    Ly=xprobmax2-xprobmin2
    Lx=xprobmax1-xprobmin1
    Nx=nint(Lx/dx(1,1))
@@ -114,7 +114,7 @@ w(ix^S,p_)=one*(1+A0*DEXP(-(x(ix^S,1)-x0)**2/Sigx**2)*DEXP(-(x(ix^S,2)-y0)**2/Si
 !w(ix^S,p_)=one*(1+A0*DEXP(-(x(ix^S,1)-x0)**2/sigx**2))
 
 
-call hd_to_conserved(ixG^L,ix^L,w,x)
+call eos%to_conserved(ixG^L,ix^L,w,x)
 
   end subroutine initonegrid_usr
 
@@ -134,7 +134,7 @@ call hd_to_conserved(ixG^L,ix^L,w,x)
 
 ! first store temperature
     wlocal(ixI^S,1:nw)=w(ixI^S,1:nw)
-    call hd_get_pthermal(wlocal,x,ixI^L,ixO^L,pth)
+    call eos%get_thermal_pressure(wlocal,x,ixI^L,ixO^L,pth)
     w(ixO^S,nw+1)=pth(ixO^S)/w(ixO^S,rho_)
 
 ! then compute schlieren density plot
@@ -244,7 +244,7 @@ end subroutine interp1d
       double precision, intent(out) :: var(ixI^S)
 
       if (iflag >nw+1)call mpistop(' iflag error')
-      call hd_get_pthermal(w,x,ixI^L,ixO^L,var)
+      call eos%get_thermal_pressure(w,x,ixI^L,ixO^L,var)
 
   end subroutine myvar_for_errest
 

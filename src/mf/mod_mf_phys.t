@@ -1,6 +1,7 @@
 !> Magnetofriction module
 module mod_mf_phys
   use mod_global_parameters, only: std_len
+  use mod_physics
   use mod_functions_bfield, only: get_divb,mag
   use mod_comm_lib, only: mpistop
 
@@ -72,9 +73,6 @@ module mod_mf_phys
   !> Whether divB cleaning sources are added splitting from fluid solver
   logical, public, protected              :: source_split_divb = .false.
 
-  !> MHD fourth order
-  logical, public, protected              :: mf_4th_order = .false.
-
   !> set to true if need to record electric field on cell edges
   logical, public, protected              :: mf_record_electric_field = .false.
 
@@ -129,7 +127,7 @@ contains
     namelist /mf_list/ mf_nu, mf_vmax, mf_decay_scale, &
       mf_eta, mf_eta_hyper, mf_glm_alpha, mf_particles,&
       particles_eta, mf_record_electric_field,&
-      mf_4th_order, typedivbfix, source_split_divb, divbdiff,&
+      typedivbfix, source_split_divb, divbdiff,&
       typedivbdiff, type_ct, compactres, divbwave, He_abundance, SI_unit, &
       Bdip, Bquad, Boct, Busr, clean_initial_divb, &
       boundary_divbfix, boundary_divbfix_skip, mf_divb_nth
@@ -162,8 +160,6 @@ contains
 
   subroutine mf_phys_init()
     use mod_global_parameters
-    use mod_physics
-    use mod_particles, only: particles_init, particles_eta, particles_etah
     {^NOONED
     use mod_multigrid_coupling
     }
@@ -279,16 +275,6 @@ contains
     ! pass to global variable to record electric field
     record_electric_field=mf_record_electric_field
 
-    ! Initialize particles module
-    if(mf_particles) then
-      call particles_init()
-      ! never allow Hall effects in particles when doing magnetofrictional
-      particles_etah=0.0d0
-      if(mype==0) then
-         write(*,*) '*****Using particles:     with mf_eta, mf_eta_hyper :', mf_eta, mf_eta_hyper
-         write(*,*) '*****Using particles: particles_eta, particles_etah :', particles_eta, particles_etah
-      end if
-    end if
 
     ! if using ct stagger grid, boundary divb=0 is not done here
     if(stagger_grid) then
@@ -325,6 +311,52 @@ contains
 
   subroutine mf_check_params
     use mod_global_parameters
+    use mod_geometry, only: coordinate
+    use mod_particles, only: particles_init, particles_eta, particles_etah
+    use mod_particles, only: npayload,nusrpayload, &
+                ngridvars,num_particles,physics_type_particles
+
+    ! Initialize particles module
+    if(mf_particles) then
+      call particles_init()
+      ! never allow Hall effects in particles when doing magnetofrictional
+      particles_etah=0.0d0
+    end if
+
+    if(mype==0)then 
+           write(*,*)'====MF run with settings===================='
+           write(*,*)'Using mod_mf_phys with settings:'
+           write(*,*)'SI_unit=',SI_unit
+           write(*,*)'Dimensionality   :',ndim
+           write(*,*)'vector components:',ndir
+           write(*,*)'coordinate set to type,slab:',coordinate,slab
+           write(*,*)'number of variables          nw=',nw
+           write(*,*)'    start index         iwstart=',iwstart
+           write(*,*)'number of      vector variables=',nvector
+           write(*,*)'number of stagger variables nws=',nws
+           write(*,*)'number of    variables with BCs=',nwgc
+           write(*,*)'number of      vars with fluxes=',nwflux
+           write(*,*)'number of   vars with flux + BC=',nwfluxbc
+           write(*,*)'number of   auxiliary variables=',nwaux
+           write(*,*)'number of extra vars without flux=',nwextra
+           write(*,*)'number of extra vars   for wextra=',nw_extra
+           write(*,*)'number of auxiliary I/O variables=',nwauxio
+           write(*,*)'    mf_eta=',mf_eta,' nonzero implies resistivity'
+           write(*,*)'    mf_eta_hyper=',mf_eta_hyper
+           write(*,*)'    mf_particles=',mf_particles
+           if(mf_particles) then
+              write(*,*) '*****Using particles:     with mf_eta, mf_eta_hyper :', mf_eta, mf_eta_hyper
+              write(*,*) '*****Using particles: particles_eta, particles_etah :', particles_eta, particles_etah
+              write(*,*) '*****Using particles: npayload,ngridvars :', npayload,ngridvars
+              write(*,*) '*****Using particles:        nusrpayload :', nusrpayload
+              write(*,*) '*****Using particles:      num_particles :', num_particles
+              write(*,*) '*****Using particles: physics_type_particles=',physics_type_particles
+           end if
+           write(*,*)'number of             ghostcells=',nghostcells
+           write(*,*)'number due to phys_wider_stencil=',phys_wider_stencil
+           write(*,*)'==========================================='
+    endif
+
 
   end subroutine mf_check_params
 
@@ -590,7 +622,7 @@ contains
     vcts%vbarLC(ixO^S,idim,2)=wLp(ixO^S,mom(idimE))
     vcts%vbarRC(ixO^S,idim,2)=wRp(ixO^S,mom(idimE))
     vcts%vbarC(ixO^S,idim,2)=(vcts%cbarmax(ixO^S,idim)*vcts%vbarLC(ixO^S,idim,2) &
-         +vcts%cbarmin(ixO^S,idim)*vcts%vbarRC(ixO^S,idim,1))&
+         +vcts%cbarmin(ixO^S,idim)*vcts%vbarRC(ixO^S,idim,2))&
         /(vcts%cbarmax(ixO^S,idim)+vcts%cbarmin(ixO^S,idim))
 
   end subroutine mf_get_ct_velocity_hll
@@ -844,11 +876,7 @@ contains
     integer :: lxO^L, kxO^L
 
     ! Calculating resistive sources involve one extra layer
-    if (mf_4th_order) then
       ixA^L=ixO^L^LADD2;
-    else
-      ixA^L=ixO^L^LADD1;
-    end if
 
     if (ixImin^D>ixAmin^D.or.ixImax^D<ixAmax^D|.or.) &
          call mpistop("Error in add_source_res1: Non-conforming input limits")
@@ -872,7 +900,6 @@ contains
 
     do idir=1,ndir
        ! Put B_idir into tmp2 and eta*Laplace B_idir into tmp
-       if (mf_4th_order) then
          tmp(ixO^S)=zero
          tmp2(ixI^S)=Bf(ixI^S,idir)
          do idim=1,ndim
@@ -884,16 +911,6 @@ contains
                  (-tmp2(lxO^S)+16.0d0*tmp2(jxO^S)-30.0d0*tmp2(ixO^S)+16.0d0*tmp2(hxO^S)-tmp2(kxO^S)) &
                  /(12.0d0 * dxlevel(idim)**2)
          end do
-       else
-         tmp(ixO^S)=zero
-         tmp2(ixI^S)=Bf(ixI^S,idir)
-         do idim=1,ndim
-            jxO^L=ixO^L+kr(idim,^D);
-            hxO^L=ixO^L-kr(idim,^D);
-            tmp(ixO^S)=tmp(ixO^S)+&
-                 (tmp2(jxO^S)-2.0d0*tmp2(ixO^S)+tmp2(hxO^S))/dxlevel(idim)**2
-         end do
-       end if
 
        ! Multiply by eta
        tmp(ixO^S)=tmp(ixO^S)*eta(ixO^S)

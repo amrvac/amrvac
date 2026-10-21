@@ -52,7 +52,6 @@
  /
 
  &hd_list
-      hd_gamma=1.4d0
  /
 
  &usr_list
@@ -72,5 +71,9 @@
         p4=0.35d0
         u4=0.0d0
         v4=0.8939d0
+ /
+
+ &eos_list
+  gamma = 1.4d0
  /
 

@@ -1,6 +1,7 @@
 ! blast wave
 module mod_usr
   use mod_mhd
+  use mod_eos, only: eos
   implicit none
 
 contains
@@ -68,7 +69,7 @@ contains
 
     if(mhd_glm) w(ixO^S,psi_)=0.d0
 
-    call mhd_to_conserved(ixI^L,ixO^L,w,x)
+    call eos%to_conserved(ixI^L,ixO^L,w,x)
 
   end subroutine initonegrid_usr
 
@@ -82,10 +83,10 @@ contains
 
   end subroutine get_B
 
-  subroutine specialbound_usr(qt,ixI^L,ixO^L,iB,w,x)
+  subroutine specialbound_usr(qdt,qt,ixI^L,ixO^L,iB,w,x)
     ! special boundary types, user defined
     integer, intent(in) :: ixO^L, iB, ixI^L
-    double precision, intent(in) :: qt, x(ixI^S,1:ndim)
+    double precision, intent(in) :: qdt,qt, x(ixI^S,1:ndim)
     double precision, intent(inout) :: w(ixI^S,1:nw)
 
     double precision :: pth(ixI^S),tmp(ixI^S),ggrid(ixI^S),invT(ixI^S)
@@ -96,7 +97,7 @@ contains
     case(1)
       ixInt^L=ixO^L;
       ixIntmin1=ixOmax1+1;ixIntmax1=ixOmax1+1;
-      call mhd_get_pthermal(w,x,ixI^L,ixInt^L,pth)
+      call eos%get_thermal_pressure(w,x,ixI^L,ixInt^L,pth)
       do ix1=ixOmin1,ixOmax1
         w(ix1^%1ixO^S,rho_)=w(ixOmax1+1^%1ixO^S,rho_)
         w(ix1^%1ixO^S,p_)=pth(ixOmax1+1^%1ixO^S)
@@ -131,11 +132,11 @@ contains
         enddo
       end if
       if(mhd_glm) w(ixO^S,psi_)=0.d0
-      call mhd_to_conserved(ixI^L,ixO^L,w,x)
+      call eos%to_conserved(ixI^L,ixO^L,w,x)
     case(2)
       ixInt^L=ixO^L;
       ixIntmin1=ixOmin1-1;ixIntmax1=ixOmin1-1;
-      call mhd_get_pthermal(w,x,ixI^L,ixInt^L,pth)
+      call eos%get_thermal_pressure(w,x,ixI^L,ixInt^L,pth)
       do ix1=ixOmin1,ixOmax1
         w(ix1^%1ixO^S,rho_)=w(ixOmin1-1^%1ixO^S,rho_)
         w(ix1^%1ixO^S,p_)=pth(ixOmin1-1^%1ixO^S)
@@ -170,11 +171,11 @@ contains
         enddo
       end if
       if(mhd_glm) w(ixO^S,psi_)=0.d0
-      call mhd_to_conserved(ixI^L,ixO^L,w,x)
+      call eos%to_conserved(ixI^L,ixO^L,w,x)
     case(3)
       ixInt^L=ixO^L;
       ixIntmin2=ixOmax2+1;ixIntmax2=ixOmax2+1;
-      call mhd_get_pthermal(w,x,ixI^L,ixInt^L,pth)
+      call eos%get_thermal_pressure(w,x,ixI^L,ixInt^L,pth)
       do ix2=ixOmin2,ixOmax2
         w(ix2^%2ixO^S,rho_)=w(ixOmax2+1^%2ixO^S,rho_)
         w(ix2^%2ixO^S,p_)=pth(ixOmax2+1^%2ixO^S)
@@ -209,11 +210,11 @@ contains
         enddo
       end if
       if(mhd_glm) w(ixO^S,psi_)=0.d0
-      call mhd_to_conserved(ixI^L,ixO^L,w,x)
+      call eos%to_conserved(ixI^L,ixO^L,w,x)
     case(4)
       ixInt^L=ixO^L;
       ixIntmin2=ixOmin2-1;ixIntmax2=ixOmin2-1;
-      call mhd_get_pthermal(w,x,ixI^L,ixInt^L,pth)
+      call eos%get_thermal_pressure(w,x,ixI^L,ixInt^L,pth)
       do ix2=ixOmin2,ixOmax2
         w(ix2^%2ixO^S,rho_)=w(ixOmin2-1^%2ixO^S,rho_)
         w(ix2^%2ixO^S,p_)=pth(ixOmin2-1^%2ixO^S)
@@ -248,7 +249,7 @@ contains
         enddo
       end if
       if(mhd_glm) w(ixO^S,psi_)=0.d0
-      call mhd_to_conserved(ixI^L,ixO^L,w,x)
+      call eos%to_conserved(ixI^L,ixO^L,w,x)
     case default
        call mpistop("Special boundary is not defined for this region")
     end select
@@ -268,7 +269,7 @@ contains
 
     double precision                   :: tmp(ixI^S) 
 
-    call mhd_get_pthermal(w,x,ixI^L,ixO^L,tmp)
+    call eos%get_thermal_pressure(w,x,ixI^L,ixO^L,tmp)
     ! output the temperature p/rho
     w(ixO^S,nw+1)=tmp(ixO^S)/w(ixO^S,rho_)
     !! output the plasma beta p*2/B**2

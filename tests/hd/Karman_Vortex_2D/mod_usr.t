@@ -1,5 +1,6 @@
 module mod_usr
   use mod_hd
+  use mod_eos, only: eos
   use mod_viscosity
   implicit none
 
@@ -49,7 +50,7 @@ contains
     printsettingformat='(1x,A50,ES15.7,A7)'
     
     vc_mu=1.0/Re
-    p0=1.0d0/(hd_gamma*Ma**2)
+    p0=1.0d0/(eos%gamma*Ma**2)
     RadCyl=0.5d0
 
     if(mype==0) then
@@ -57,7 +58,7 @@ contains
       write(*,printsettingformat) "Mach number ",Ma," input"
       write(*,printsettingformat) "Reynolds number ",Re," input"
       write(*,printsettingformat) "viscosity coefficient ",vc_mu," derived as 1/Re"
-      write(*,printsettingformat) "gamma ",hd_gamma," input"
+      write(*,printsettingformat) "gamma ",eos%gamma," input"
       write(*,printsettingformat) "pressure ",p0," derived as 1/(gamma M2)"
     end if
 
@@ -101,14 +102,14 @@ contains
       w(ix^S,p_)    =p0
     endwhere
 
-    call hd_to_conserved(ixG^L,ix^L,w,x)
+    call eos%to_conserved(ixG^L,ix^L,w,x)
 
   end subroutine initonegrid_usr
 
-  subroutine specialbound_usr(qt,ixI^L,ixO^L,iB,w,x)
+  subroutine specialbound_usr(qdt,qt,ixI^L,ixO^L,iB,w,x)
     ! special boundary types, user defined
     integer, intent(in) :: ixO^L, iB, ixI^L
-    double precision, intent(in) :: qt, x(ixI^S,1:ndim)
+    double precision, intent(in) :: qdt,qt, x(ixI^S,1:ndim)
     double precision, intent(inout) :: w(ixI^S,1:nw)
     double precision :: rad(ixI^S),costhe(ixI^S),cos2theta(ixI^S),rad2(ixI^S),RadCyl2
 
@@ -128,7 +129,7 @@ contains
        !!w(ixO^S,p_)     = p0
        !!w(ixO^S,mom(1)) = 1.0d0
        !!w(ixO^S,mom(2)) = zero
-       call hd_to_conserved(ixI^L,ixO^L,w,x)
+       call eos%to_conserved(ixI^L,ixO^L,w,x)
     case default
        call mpistop("Special boundary is not defined for this region")
     end select
@@ -175,12 +176,12 @@ contains
 
     wlocal(ixI^S,1:nw)=w(ixI^S,1:nw)
     ! output temperature
-    call hd_get_pthermal(wlocal,x,ixI^L,ixO^L,pth)
+    call eos%get_thermal_pressure(wlocal,x,ixI^L,ixO^L,pth)
     w(ixO^S,nw+1)=pth(ixO^S)/w(ixO^S,rho_)
 
     ! output Mach number V/c_s
     w(ixO^S,nw+2)=dsqrt(wlocal(ixO^S,mom(1))**2+wlocal(ixO^S,mom(2))**2) &
-                  /dsqrt(hd_gamma*pth(ixO^S)*w(ixO^S,rho_))
+                  /dsqrt(eos%gamma*pth(ixO^S)*w(ixO^S,rho_))
 
     ! output vorticity
     vrot(ixO^S)=zero
@@ -234,7 +235,7 @@ contains
     where (rad(ixO^S)<RadCyl)
         w(ixO^S,mom(1)) = 0.d0
         w(ixO^S,mom(2)) = 0.d0
-        w(ixO^S,p_)     = p0/(hd_gamma-1.0d0)
+        w(ixO^S,p_)     = p0/(eos%gamma-1.0d0)
         w(ixO^S,rho_)   = 1.d0
     end where
   end subroutine set_internal_cylinder

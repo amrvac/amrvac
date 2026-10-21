@@ -41,7 +41,8 @@ contains
   
   !> prolong one block
   subroutine prolong_grid(child_igrid,child_ipe,igrid,ipe)
-    use mod_physics, only: phys_to_primitive, phys_to_conserved
+    use mod_physics, only: phys_to_primitive, phys_to_conserved, &
+         phys_to_prolong, phys_from_prolong
     use mod_global_parameters
     use mod_amr_fct, only: old_neighbors
   
@@ -52,8 +53,15 @@ contains
     integer :: ix^L, ichild, ixCo^L, ic^D
   
     ix^L=ixM^LL^LADD1;
-  
-    if(prolongprimitive) call phys_to_primitive(ixG^LL,ix^L,ps(igrid)%w,ps(igrid)%x)
+
+    ! Convert parent to prolongation space:
+    !   phys_to_prolong: EoS-aware (rho, v, T) — avoids Jensen's inequality
+    !   phys_to_primitive: standard (rho, v, p) — used with prolongprimitive
+    if(associated(phys_to_prolong)) then
+      call phys_to_prolong(ixG^LL,ix^L,ps(igrid)%w,ps(igrid)%x)
+    else if(prolongprimitive) then
+      call phys_to_primitive(ixG^LL,ix^L,ps(igrid)%w,ps(igrid)%x)
+    end if
   
     xComin^D=rnode(rpxmin^D_,igrid)\
     dxCo^D=rnode(rpdx^D_,igrid)\
@@ -68,18 +76,26 @@ contains
   
       xFimin^D=rnode(rpxmin^D_,ichild)\
       dxFi^D=rnode(rpdx^D_,ichild)\
+      ^D&dxlevel(^D)=dxFi^D;
       call prolong_2nd(ps(igrid),ixCo^L,ps(ichild), &
            dxCo^D,xComin^D,dxFi^D,xFimin^D,igrid,ichild)
       !call prolong_1st(ps(igrid)%w,ixCo^L,ps(ichild)%w,ps(ichild)%x)
     {end do\}
   
-    if (prolongprimitive) call phys_to_conserved(ixG^LL,ix^L,ps(igrid)%w,ps(igrid)%x)
-  
+    ! Convert parent back from prolongation space
+    if(associated(phys_to_prolong)) then
+      call phys_from_prolong(ixG^LL,ix^L,ps(igrid)%w,ps(igrid)%x)
+    else if (prolongprimitive) then
+      call phys_to_conserved(ixG^LL,ix^L,ps(igrid)%w,ps(igrid)%x)
+    end if
+
   end subroutine prolong_grid
   
   !> do 2nd order prolongation
   subroutine prolong_2nd(sCo,ixCo^L,sFi,dxCo^D,xComin^D,dxFi^D,xFimin^D,igridCo,igridFi)
-    use mod_physics, only: phys_to_conserved, phys_handle_small_values
+    use mod_physics, only: phys_to_conserved, phys_to_primitive, &
+         phys_handle_small_values, phys_wb_prolong, &
+         phys_to_prolong, phys_from_prolong
     use mod_global_parameters
     use mod_amr_fct, only: already_fine, prolong_2nd_stg
   
@@ -160,8 +176,41 @@ contains
       call prolong_2nd_stg(sCo,sFi,ixCo^L,ixM^LL,dxCo^D,xComin^D,dxFi^D,xFimin^D,.false.,fine_^L)
     end if
   
+    ! Convert child cells from prolongation space to conserved.
+    if(associated(phys_from_prolong) .and. associated(phys_wb_prolong)) then
+      ! EoS-aware interpolation produced (rho, v, T) in the child cells.
+      ! WB is also active: re-balance pressure via the HSE recurrence so
+      ! the prolonged state preserves the discrete WB reference exactly.
+      !   (rho,v,T) -[from_prolong]-> (rho,m,E) -[to_primitive]-> (rho,v,p)
+      !   -[wb_prolong]-> (rho_eq, v, p_eq) -[to_conserved]-> (rho_eq, m, E_eq)
+      call phys_from_prolong(ixG^LL,ixM^LL,wFi,sFi%x)
+      call phys_to_primitive(ixG^LL,ixM^LL,wFi,sFi%x)
+      call phys_wb_prolong(ixG^LL,ixM^LL,wFi,sFi%x)
+      call phys_to_conserved(ixG^LL,ixM^LL,wFi,sFi%x)
+    else if(associated(phys_from_prolong)) then
+      ! EoS-aware only: (rho, v, T) -> (rho, rho*v, E) using EoS tables
+      call phys_from_prolong(ixG^LL,ixM^LL,wFi,sFi%x)
+    else if(associated(phys_wb_prolong)) then
+      ! WB only: rebuild p from HSE recurrence using interpolated T = p/rho
+      if(.not. prolongprimitive .and. .not. associated(phys_to_prolong)) then
+        call phys_to_primitive(ixG^LL,ixM^LL,wFi,sFi%x)
+      end if
+      call phys_wb_prolong(ixG^LL,ixM^LL,wFi,sFi%x)
+      call phys_to_conserved(ixG^LL,ixM^LL,wFi,sFi%x)
+    else
+      if(prolongprimitive) call phys_to_conserved(ixG^LL,ixM^LL,wFi,sFi%x)
+    end if
+
+    ! Small-value repair runs here, after the conversion above, not before it. wFi is in
+    ! EoS prolongation space until then -- (rho, v, T), with T in the e_ slot and velocity in
+    ! the momentum slots -- whereas phys_handle_small_values is told the layout by
+    ! prolongprimitive, which is .false. here. Called earlier it therefore read T as total
+    ! energy and formed 0.5*v^2/rho instead of 0.5*m^2/rho, and with
+    ! small_values_method='replace' overwrote cells on the strength of that misreading.
+    ! Symptom: only the energy slot of newly refined blocks was destroyed (rho/m/Ne within 4%
+    ! of untouched blocks, e 5.7e6x too large), dt collapsing 1.9E-04 -> 2.7E-20 at the first
+    ! regrid. Invisible whenever fix_small_values=.false., because that skips this call.
     if(fix_small_values) call phys_handle_small_values(prolongprimitive,wFi,sFi%x,ixG^LL,ixM^LL,'prolong_2nd')
-    if(prolongprimitive) call phys_to_conserved(ixG^LL,ixM^LL,wFi,sFi%x)
     end associate
   
   end subroutine prolong_2nd

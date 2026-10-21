@@ -1,5 +1,6 @@
 module mod_usr
   use mod_mhd
+  use mod_eos, only: eos
   implicit none
   double precision :: theta, kx, ly, vc
 
@@ -58,14 +59,14 @@ contains
       w(ixO^S,mag(2))= Busr*dsin(kx*x(ixO^S,1))*dexp(-ly*x(ixO^S,2))
       w(ixO^S,mag(3))=-Busr*dcos(kx*x(ixO^S,1))*dexp(-ly*x(ixO^S,2))*dsin(theta)
     endif
-    call mhd_to_conserved(ixI^L,ixO^L,w,x)
+    call eos%to_conserved(ixI^L,ixO^L,w,x)
 
   end subroutine initonegrid_usr
 
-  subroutine specialbound_usr(qt,ixI^L,ixO^L,iB,w,x)
+  subroutine specialbound_usr(qdt,qt,ixI^L,ixO^L,iB,w,x)
     ! special boundary types, user defined
     integer, intent(in) :: ixO^L, iB, ixI^L
-    double precision, intent(in) :: qt, x(ixI^S,1:ndim)
+    double precision, intent(in) :: qdt,qt, x(ixI^S,1:ndim)
     double precision, intent(inout) :: w(ixI^S,1:nw)
 
     double precision :: pth(ixI^S),tmp(ixI^S),ggrid(ixI^S),invT(ixI^S)
@@ -112,7 +113,7 @@ contains
         w(ixO^S,mag(2))= Busr*dsin(kx*(x(ixO^S,1)-vc*qt))*dexp(-ly*x(ixO^S,2))
         w(ixO^S,mag(3))=-Busr*dcos(kx*(x(ixO^S,1)-vc*qt))*dexp(-ly*x(ixO^S,2))*dsin(theta)
       endif
-      call mhd_to_conserved(ixI^L,ixO^L,w,x)
+      call eos%to_conserved(ixI^L,ixO^L,w,x)
     case(4)
       w(ixO^S,rho_)=1.d0
       w(ixO^S,p_)=1.d0
@@ -151,7 +152,7 @@ contains
         w(ixO^S,mag(2))= Busr*dsin(kx*(x(ixO^S,1)-vc*qt))*dexp(-ly*x(ixO^S,2))
         w(ixO^S,mag(3))=-Busr*dcos(kx*(x(ixO^S,1)-vc*qt))*dexp(-ly*x(ixO^S,2))*dsin(theta)
       endif
-      call mhd_to_conserved(ixI^L,ixO^L,w,x)
+      call eos%to_conserved(ixI^L,ixO^L,w,x)
     case default
        call mpistop("Special boundary is not defined for this region")
     end select
@@ -174,7 +175,7 @@ contains
     integer :: idir
 
     ! output temperature
-    call mhd_get_pthermal(w,x,ixI^L,ixO^L,pth)
+    call eos%get_thermal_pressure(w,x,ixI^L,ixO^L,pth)
     w(ixO^S,nw+1)=pth(ixO^S)/w(ixO^S,rho_)
 
     do idir=1,ndir

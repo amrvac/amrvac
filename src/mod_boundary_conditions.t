@@ -63,8 +63,8 @@ contains
                 w(ixO^S,iw) = - w(ixO^S,iw)
              case (bc_data)
                 ! skip it here, do AFTER all normal type boundaries are set
-           case (bc_icarus)
-              ! skip it here, do AFTER all normal type boundaries are set
+             case (bc_icarus)
+               ! skip it here, do AFTER all normal type boundaries are set
              case (bc_character)
                 ! skip it here, do AFTER all normal type boundaries are set
              case default
@@ -168,8 +168,8 @@ contains
                 w(ixO^S,iw) = - w(ixO^S,iw)
              case (bc_data)
                 ! skip it here, do AFTER all normal type boundaries are set
-           case (bc_icarus)
-              ! skip it here, do AFTER all normal type boundaries are set
+             case (bc_icarus)
+                ! skip it here, do AFTER all normal type boundaries are set
              case (bc_character)
                 ! skip it here, do AFTER all normal type boundaries are set
              case default
@@ -245,7 +245,7 @@ contains
     if (any(typeboundary(1:nwflux+nwaux,iB)==bc_special)) then
        if (.not. associated(usr_special_bc)) &
             call mpistop("usr_special_bc not defined")
-       call usr_special_bc(time,ixG^L,ixO^L,iB,w,x)
+       call usr_special_bc(qdt,time,ixG^L,ixO^L,iB,w,x)
     end if
 
     ! fill boundary conditions from external data vtk files
@@ -258,22 +258,22 @@ contains
        call bc_data_set(time,ixG^L,ixO^L,iB,w,x)
        if (.not. associated(usr_special_bc)) &
             call mpistop("usr_special_bc not defined")
-       call usr_special_bc(time,ixG^L,ixO^L,iB,w,x)
+       call usr_special_bc(qdt,time,ixG^L,ixO^L,iB,w,x)
     end if
 
     end associate
   end subroutine bc_phys
 
   !> fill inner boundary values
-  subroutine getintbc(time,ixG^L)
+  subroutine getintbc(time,qdt,ixG^L)
     use mod_usr_methods, only: usr_internal_bc
     use mod_global_parameters
 
-    double precision, intent(in)   :: time
+    double precision, intent(in)   :: time, qdt
     integer, intent(in)            :: ixG^L
-  
+
     integer :: iigrid, igrid, ixO^L
-  
+
     ixO^L=ixG^L^LSUBnghostcells;
 
     !$OMP PARALLEL DO SCHEDULE(dynamic) PRIVATE(igrid)
@@ -282,7 +282,7 @@ contains
        ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
 
        if (associated(usr_internal_bc)) then
-          call usr_internal_bc(node(plevel_,igrid),time,ixG^L,ixO^L,ps(igrid)%w,ps(igrid)%x)
+          call usr_internal_bc(node(plevel_,igrid),time,qdt,ixG^L,ixO^L,ps(igrid)%w,ps(igrid)%x)
        end if
     end do
     !$OMP END PARALLEL DO

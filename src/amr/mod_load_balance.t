@@ -21,8 +21,15 @@ contains
     integer, dimension(:,:), allocatable :: recvstatus_stg, sendstatus_stg
 
 
-    ! Jannis: for now, not using version for passive/active blocks
-    call get_Morton_range()
+    ! Cost-weighted partition (Athena-style EWMA) when lb_automatic is on
+    ! AND we have at least one cycle of measurement to act on. The
+    ! get_Morton_range_costed routine itself falls back to the equal-block
+    ! partition (cost_total == 0) on the very first call.
+    if (lb_automatic .and. it > it_init) then
+      call get_Morton_range_costed
+    else
+      call get_Morton_range()
+    end if
 
     if (npe==1) then
        sfc_to_igrid(:)=sfc(1,Morton_start(mype):Morton_stop(mype))

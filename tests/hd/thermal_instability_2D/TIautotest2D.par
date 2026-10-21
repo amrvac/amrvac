@@ -46,16 +46,13 @@
  /
 
  &hd_list
-        hd_gamma =1.6666667d0
         hd_radiative_cooling  = .true.
         hd_thermal_conduction = .true. 
-        He_abundance= 0.0d0
  /
 
  &rc_list
         ncool      = 4000
         coolcurve  = 'Hildner'
-        coolmethod = 'exact'
         Tfix=.true.
         tlow=1.0d-3 ! lowest T in Hildner table
  /
@@ -72,4 +69,9 @@
         rho0=10.0d0
         p0=20.0d0
         A0=1.0d-1
+ /
+
+ &eos_list
+  gamma = 1.6666667d0 
+  He_abundance = 0.0d0
  /

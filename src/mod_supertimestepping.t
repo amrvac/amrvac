@@ -1,24 +1,31 @@
 !> Generic supertimestepping method
-!> 1) in amrvac.par in sts_list set the following parameters which have the default values: 
-!> sts_dtpar=0.9,sts_ncycles=1000,sts_method=1,sourcetype_sts=2
-!> These parametes are general for all the methods added TODO: check if there is any need
-!> to have terms implemented with different sets of parameters, and these cannot be general anymore
-!> 2) then add programatically in the code a term with the subroutine
-!> add_sts_method
-!> This method takes as parameters a function which calculated the explicit timestep
-!> associated with the term, a subroutine which sets the source term 
-!> types for the BC and the BC are generated from  the variables startVar:endVar
-!> flux conservation (fixconserve) is done for the variables specified by  ixChangeStart, ixChangeN, ixChangeFixC
-!> The following two steps are done in this way as in fortran it is not allowed to pass null function pointers as parameters:
-!> 3)in order to  to have hooks before_first_cycle, after_last_cycle (e.g. conversion from e_tot to e_int before first sts cycle
-!> and back from  e_int to e_tot after the last STS cycle  for the thermal conductivity module) add them just afterwards with the subroutine
-!> set_conversion_methods_to_head
-!> 4) to add the hook for error handling (e.g check small values in the thermal conductivity module ) 
+!> which can be used for multiple source terms in the governing equations
+!> where each term introduces a sts_term type and all sts terms are stored in a pointer list
+!> 
+!> user control is in
+!> 1) amrvac.par where namelist sts_list sets the following parameters which have default values: 
+!> sts_dtpar=0.5,sts_ncycles=1000,sts_method=1,sourcetype_sts=2
+!> These parametes are shared for all the terms added 
+!>
+!> Any STS-handled term is done via
+!> 2) program in the code a term with the subroutine add_sts_method
+!> This method takes as parameters a function which calculates the explicit timestep
+!> associated with the term and a subroutine which sets the source term 
+!> for the variables startVar:endVar=startVar+nflux-1
+!> flux conservation (fixconserve) is done for the variables as specified by  ixChangeStart, ixChangeN, ixChangeFixC
+!> 
+!> 3) one can have hooks before_first_cycle, after_last_cycle (e.g. conversion from e_tot to e_int before first sts cycle
+!> and back from  e_int to e_tot after the last STS cycle as used for the thermal conductivity module) 
+!> add those hooks just afterwards with the subroutine set_conversion_methods_to_head
+!>
+!> 4) add the hook for error handling (e.g check small values in the thermal conductivity module) 
 !> call set_error_handling_to_head which takes as parameter a subroutine
-!> the error handling subroutine is called before setting BC
+!> this error handling subroutine is called before setting BC
+!>
 module mod_supertimestepping
   use mod_geometry
   use mod_comm_lib, only: mpistop
+  use mod_eos_container, only: eos   !> PI temperature cache refresh via eos%update_eos
   implicit none
   private
 
@@ -29,11 +36,20 @@ module mod_supertimestepping
   public :: set_dt_sts_ncycles
   public :: sourcetype_sts, sourcetype_sts_prior, sourcetype_sts_after, sourcetype_sts_split
 
+  !> Per-rank TC/STS compute accumulator for lb_diagnose. Sums the wall time
+  !> spent inside the iigrid block-loops that call sts_set_sources (the
+  !> per-block parabolic-conduction kernel) plus the per-block STS hooks
+  !> (before_first_cycle, after_last_cycle, sts_handle_errors,
+  !> phys_update_temperature). Excludes inter-rank ghostcell exchanges
+  !> (getbc) and flux-conservation collectives. Reset by mod_advance::advance
+  !> at the start of each step.
+  double precision, public :: lb_tc_accum = 0.0d0
+
   ! input parameters from parameter file
   !> the coefficient that multiplies the sts dt
   double precision :: sts_dtpar=0.5d0
 
-  !The following is used only for method 2, not input parameter TODO check if we want as input parameter
+  !The following is used only for method 2, not input parameter
   double precision,parameter :: nu_sts = 0.5d0
   !> the maximum number of subcycles
   integer :: sts_ncycles=1000
@@ -193,7 +209,7 @@ contains
   !> Params: 
   !> sts_getdt function calculates the explicit timestep for this term
   !> sts_set_sources subroutine sets the source term
-  !> startVar, endVar, nflux indices of start, end, and number of the variables that need fix conservation
+  !> startVar, nflux (making endVar=startVar+nflux-1) indices of start and number of the variables that need fix conservation
   !> startwbc, nwbc indices of start and number of the variables that need ghost cell exchange
   !> These terms implemented by an element of the derived type sts_term are put in a linked list
   subroutine add_sts_method(sts_getdt, sts_set_sources, startVar, nflux, startwbc, nwbc, evolve_B)
@@ -240,6 +256,15 @@ contains
     temp%nwbc = nwbc
     temp%types_initialized = .false.
     temp%evolve_magnetic_field=evolve_B
+
+    ! get_bc_comm_type frees the previous committed type before rebuilding, so every
+    ! handle must start as a null datatype rather than whatever the allocation left.
+    temp%type_send_srl_sts_1=MPI_DATATYPE_NULL; temp%type_recv_srl_sts_1=MPI_DATATYPE_NULL
+    temp%type_send_r_sts_1  =MPI_DATATYPE_NULL; temp%type_recv_r_sts_1  =MPI_DATATYPE_NULL
+    temp%type_send_p_sts_1  =MPI_DATATYPE_NULL; temp%type_recv_p_sts_1  =MPI_DATATYPE_NULL
+    temp%type_send_srl_sts_2=MPI_DATATYPE_NULL; temp%type_recv_srl_sts_2=MPI_DATATYPE_NULL
+    temp%type_send_r_sts_2  =MPI_DATATYPE_NULL; temp%type_recv_r_sts_2  =MPI_DATATYPE_NULL
+    temp%type_send_p_sts_2  =MPI_DATATYPE_NULL; temp%type_recv_p_sts_2  =MPI_DATATYPE_NULL
 
     temp%next => head_sts_terms
     head_sts_terms => temp
@@ -426,17 +451,6 @@ contains
    N=j-1 
   END FUNCTION sum_chev
 
-  !TODO the following not used
-!  PURE FUNCTION total_chev(nu,N)
-!    double precision, INTENT(IN) :: nu
-!    INTEGER, INTENT(IN)       :: N
-!    double precision             :: total_chev
-!
-!    total_chev = N/(2d0*dsqrt(nu)) * ( (1d0 + dsqrt(nu))**(2d0*N) - (1d0 - dsqrt(nu))**(2d0*N) ) / &
-!         ( (1d0 + dsqrt(nu))**(2d0*N) + (1d0 - dsqrt(nu))**(2d0*N) )
-!
-!  END FUNCTION total_chev
-
   !> Iterates all the terms implemented with STS and adds the sources
   !> STS method 2 implementation
   subroutine sts_add_source2(my_dt)
@@ -481,7 +495,7 @@ contains
         do iigrid=1,igridstail; igrid=igrids(iigrid);
           ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
           block=>ps(igrid)
-          call temp%sts_before_first_cycle(ixG^LL,ixG^LL,ps(igrid)%w,ps(igrid)%x)  
+          call temp%sts_before_first_cycle(ixG^LL,ixG^LL,ps(igrid)%w,ps(igrid)%x)
         end do
       end if
 
@@ -620,11 +634,11 @@ contains
 
     bcphys=.true.
 
-    if(phys_partial_ionization) then
+    if(eos%eos_type == 'PI') then
       ! update temperature variable in w
       !$OMP PARALLEL DO PRIVATE(igrid)
       do iigrid=1,igridstail; igrid=igrids(iigrid);
-        call phys_update_temperature(ixG^LL,ixG^LL,ps(igrid)%w,ps(igrid)%w,ps(igrid)%x)
+        call eos%update_eos(ixG^LL,ixG^LL,ps(igrid)%w,ps(igrid)%x)
       end do
       !$OMP END PARALLEL DO
     end if
@@ -646,6 +660,7 @@ contains
     double precision :: omega1,cmu,cmut,cnu,cnut,one_mu_nu
     double precision, allocatable :: bj(:)
     integer:: iigrid, igrid, j, ixC^L, ixGext^L
+    double precision :: lb_t0_tc, lb_t0_block
     logical :: evenstep, stagger_flag=.false., prolong_flag=.false., coarsen_flag=.false., total_energy_flag=.true.
     type(sts_term), pointer  :: temp
     type(state), dimension(:), pointer :: tmpPs1, tmpPs2
@@ -756,9 +771,11 @@ contains
         temp%types_initialized = .true.
       end if
       dtj = cmut*my_dt
+      if (lb_diagnose) lb_t0_tc = MPI_WTIME()
       if(stagger_grid) then
-        !$OMP PARALLEL DO PRIVATE(igrid)
+        !$OMP PARALLEL DO PRIVATE(igrid,lb_t0_block)
         do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
+          if (lb_automatic) lb_t0_block = MPI_WTIME()
           ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
           block=>ps(igrid)
           ps4(igrid)%w=zero
@@ -770,11 +787,13 @@ contains
           end if
           ps1(igrid)%ws(ixC^S,1:nws) = ps1(igrid)%ws(ixC^S,1:nws) + cmut * ps3(igrid)%w(ixC^S,iw_mag(1:nws))
           call phys_face_to_center(ixM^LL,ps1(igrid))
+          if (lb_automatic) block_cost(igrid) = block_cost(igrid) + (MPI_WTIME() - lb_t0_block)
         end do
         !$OMP END PARALLEL DO
       else
-        !$OMP PARALLEL DO PRIVATE(igrid)
+        !$OMP PARALLEL DO PRIVATE(igrid,lb_t0_block)
         do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
+          if (lb_automatic) lb_t0_block = MPI_WTIME()
           ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
           block=>ps(igrid)
           call temp%sts_set_sources(ixG^LL,ixM^LL,ps(igrid)%w,ps(igrid)%x,ps4(igrid)%w,fix_conserve_at_step,dtj,igrid,temp%nflux)
@@ -782,9 +801,11 @@ contains
           ps3(igrid)%w(ixM^T,temp%startVar:temp%endVar) = my_dt * ps4(igrid)%w(ixM^T,temp%startVar:temp%endVar)
           ps1(igrid)%w(ixM^T,temp%startVar:temp%endVar) = ps1(igrid)%w(ixM^T,temp%startVar:temp%endVar) + &
             cmut * ps3(igrid)%w(ixM^T,temp%startVar:temp%endVar)
+          if (lb_automatic) block_cost(igrid) = block_cost(igrid) + (MPI_WTIME() - lb_t0_block)
         end do
         !$OMP END PARALLEL DO
       end if
+      if (lb_diagnose) lb_tc_accum = lb_tc_accum + (MPI_WTIME() - lb_t0_tc)
       if(fix_conserve_at_step) then
         call recvflux(1,ndim)
         call sendflux(1,ndim)
@@ -843,6 +864,7 @@ contains
         end if
 
         dtj = cmut*my_dt
+        if (lb_diagnose) lb_t0_tc = MPI_WTIME()
         if(stagger_grid) then
           !$OMP PARALLEL DO PRIVATE(igrid)
           do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
@@ -878,6 +900,7 @@ contains
           end do
           !$OMP END PARALLEL DO
         end if
+        if (lb_diagnose) lb_tc_accum = lb_tc_accum + (MPI_WTIME() - lb_t0_tc)
         if(fix_conserve_at_step) then
           call recvflux(1,ndim)
           call sendflux(1,ndim)
@@ -901,6 +924,7 @@ contains
           end do
         !$OMP END PARALLEL DO
         end if
+
         if(temp%nflux>temp%nwbc.and.temp%s==j) then
           ! include the changed no-need-ghost-update variables in the last getbc
           type_send_srl=>temp%type_send_srl_sts_2
@@ -917,6 +941,7 @@ contains
       end do
 
       if(associated(temp%sts_after_last_cycle)) then
+        if (lb_diagnose) lb_t0_tc = MPI_WTIME()
         !$OMP PARALLEL DO PRIVATE(igrid)
         do iigrid=1,igridstail; igrid=igrids(iigrid);
           ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
@@ -925,6 +950,7 @@ contains
           call temp%sts_after_last_cycle(ixG^LL,ixG^LL,ps(igrid)%w,ps(igrid)%x)
         end do
         !$OMP END PARALLEL DO
+        if (lb_diagnose) lb_tc_accum = lb_tc_accum + (MPI_WTIME() - lb_t0_tc)
         phys_total_energy=total_energy_flag
         prolongprimitive  = prolong_flag
         coarsenprimitive = coarsen_flag
@@ -967,11 +993,11 @@ contains
 
     bcphys=.true.
 
-    if(phys_partial_ionization) then
+    if(eos%eos_type == 'PI') then
       ! update temperature variable in w
       !$OMP PARALLEL DO PRIVATE(igrid)
       do iigrid=1,igridstail; igrid=igrids(iigrid);
-        call phys_update_temperature(ixG^LL,ixG^LL,ps(igrid)%w,ps(igrid)%w,ps(igrid)%x)
+        call eos%update_eos(ixG^LL,ixG^LL,ps(igrid)%w,ps(igrid)%x)
       end do
       !$OMP END PARALLEL DO
     end if

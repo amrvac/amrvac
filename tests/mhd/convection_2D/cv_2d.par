@@ -68,3 +68,7 @@
         mhd_viscosity=.true.
         mhd_gravity=.true.
  /
+
+ &eos_list
+        gamma=1.66666667d0
+ /

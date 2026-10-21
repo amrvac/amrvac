@@ -2,6 +2,7 @@
 ! here we do a non-relativistic version (like the NR jet in paper)
 module mod_usr
   use mod_mhd
+  use mod_eos, only: eos
 
   implicit none
 
@@ -111,14 +112,14 @@ contains
     w(ix^S,mom(3))=w(ix^S,mag(3))/dsqrt(w(ix^S,rho_))
     w(ix^S,e_)= pjet+0.5d0*(B0**2.0d0-(w(ix^S,mag(3))**2.0d0 + w(ix^S,mag(2))**2.0d0))
 
-    call mhd_to_conserved(ixG^L,ix^L,w,x)
+    call eos%to_conserved(ixG^L,ix^L,w,x)
 
   end subroutine Jet_init_one_grid
 
-  subroutine specialbound_usr(qt,ixI^L,ixO^L,iB,w,x)
+  subroutine specialbound_usr(qdt,qt,ixI^L,ixO^L,iB,w,x)
     ! special boundary types, user defined
     integer, intent(in) :: ixO^L, iB, ixI^L
-    double precision, intent(in) :: qt, x(ixI^S,1:ndim)
+    double precision, intent(in) :: qdt,qt, x(ixI^S,1:ndim)
     double precision, intent(inout) :: w(ixI^S,1:nw)
 
     double precision :: R(ixI^S),Z(ixI^S),hlpphi(ixI^S),hlpR(ixI^S),scale
@@ -136,7 +137,7 @@ contains
       ixOInt^L=ixO^L;
       ixOIntmin2=ixOmax2+1
       ixOIntmax2=ixOmax2+nghostcells
-      call mhd_to_primitive(ixI^L,ixOInt^L,w,x)
+      call eos%to_primitive(ixI^L,ixOInt^L,w,x)
       ! prescribe solution at jet inlet
       hlpphi(ixO^S)=cosh(Z(ixO^S)**npower)
       hlpR(ixO^S)=(cosh(R(ixO^S)**2.0d0))**2.0d0
@@ -173,9 +174,9 @@ contains
       enddo
 
       ! switch to conservative variables in internal zone
-      call mhd_to_conserved(ixI^L,ixOInt^L,w,x)
+      call eos%to_conserved(ixI^L,ixOInt^L,w,x)
       ! switch to conservative variables in ghost cells
-      call mhd_to_conserved(ixI^L,ixO^L,w,x)
+      call eos%to_conserved(ixI^L,ixO^L,w,x)
 
     case default
        call mpistop("Special boundary is not defined for this region")
@@ -224,7 +225,7 @@ contains
 
     wlocal(ixI^S,1:nw)=w(ixI^S,1:nw)
     ! output temperature
-    !call mhd_get_pthermal(wlocal,x,ixI^L,ixO^L,pth)
+    !call eos%get_thermal_pressure(wlocal,x,ixI^L,ixO^L,pth)
     !w(ixO^S,nw+1)=pth(ixO^S)/w(ixO^S,rho_)
 
     !do idir=1,ndir
@@ -253,7 +254,7 @@ contains
     !w(ixO^S,nw+5)=Rjet*Btotal(ixO^S,3)/(x(ixO^S,1)*Btotal(ixO^S,2))
 
     ! output Mach number V_z/c_s
-    !w(ixO^S,nw+6)=wlocal(ixO^S,mom(2))/dsqrt(mhd_gamma*pth(ixO^S)*w(ixO^S,rho_))
+    !w(ixO^S,nw+6)=wlocal(ixO^S,mom(2))/dsqrt(eos%gamma*pth(ixO^S)*w(ixO^S,rho_))
 
     ! output log10(rho)
     !w(ixO^S,nw+7)=dlog10(w(ixO^S,rho_))

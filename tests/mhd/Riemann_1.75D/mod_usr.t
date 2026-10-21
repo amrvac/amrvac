@@ -1,5 +1,6 @@
 module mod_usr
   use mod_mhd
+  use mod_eos, only: eos
   implicit none
 
 contains
@@ -16,8 +17,7 @@ contains
   subroutine initglobaldata_usr
     select case(iprob)
      case(21)
-       mhd_gamma=2.0d0
-    endselect 
+    endselect
 
   end subroutine initglobaldata_usr
 
@@ -63,13 +63,13 @@ contains
        vleft    = zero
        byleft   = one
        bzleft   = zero
-       pleft    = (mhd_gamma-one)*(1.78125d0-half*(bx**2+byleft**2+bzleft**2))
+       pleft    = (eos%gamma-one)*(1.78125d0-half*(bx**2+byleft**2+bzleft**2))
 
        rhoright = 0.125d0
        vright   = zero
        byright  = -1.0d0
        bzright  = zero
-       pright   = (mhd_gamma-one)*(0.88125d0-half*(bx**2+byright**2+bzright**2))
+       pright   = (eos%gamma-one)*(0.88125d0-half*(bx**2+byright**2+bzright**2))
 
      case(0)
        ! stationary contact : setup.pl -d=1, Cartesian_1.75D
@@ -363,7 +363,7 @@ contains
        w(ixG^S,mag(3) )  = bzright
     endwhere
   
-    call mhd_to_conserved(ixG^L,ix^L,w,x)
+    call eos%to_conserved(ixG^L,ix^L,w,x)
   
   end subroutine initonegrid_usr
 

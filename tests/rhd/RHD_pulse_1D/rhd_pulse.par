@@ -1,0 +1,75 @@
+&testlist
+        teststr=''
+/
+
+&filelist
+  base_filename='rhd_pulse'
+  autoconvert      = F
+  typefilelog='regression_test'
+/
+
+ &savelist
+   itsave(1,1)     = 0
+   itsave(1,2)     = 0
+   dtsave_dat     = 1.0d0
+   dtsave_log     = 0.05d0
+/
+
+   time_max = 10.d0
+ &stoplist
+   time_max = 1.d0
+   dtmin = 1.0d-20
+/
+
+ &methodlist
+   time_stepper    = 'twostep'
+   time_integrator = 'IMEX_222'
+   flux_scheme     = 20*'hll'
+   limiter         = 20*'weno5'
+/
+
+&boundlist
+  typeboundary_min1 = 4*'periodic'
+  typeboundary_max1 = 4*'periodic'
+/
+
+ &meshlist
+   refine_max_level   = 1
+   domain_nx1         = 512
+   block_nx1          = 32
+   xprobmin1       = -24.d0
+   xprobmax1       = 24.d0
+ /
+
+ &paramlist
+  courantpar       = 0.6d0
+ /
+
+ &hd_list
+  hd_gravity = .false.
+  hd_energy = .true.
+  hd_radiation_fld = .true.
+  SI_unit=.false.
+ /
+
+ &eos_list
+  gamma = 1.6667d0
+  He_abundance = 0.1d0
+ /
+
+ &fld_list
+  fld_Radforce_split = .false.
+  fld_opacity_law = 'const_norm'
+  fld_kappa0 = 3.47d0
+  fld_interaction_method = 'Halley'
+  fld_fluxlimiter = 'Diffusion'
+  fld_diff_tol = 1.d-8
+  /
+
+&test_list
+  rho0=1.2d0
+  v0=5.d7
+  T0=1.d7
+  T1=2.d7
+  wdth=1.0d0
+/

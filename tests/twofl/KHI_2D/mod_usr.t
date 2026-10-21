@@ -174,7 +174,7 @@ contains
     double precision :: Bx 
     double precision :: ampl 
     double precision :: rho_nc_fr 
-    character(len=*), parameter :: rfilename="random.txt"
+    character(len=*), parameter :: rfilename="random.input"
     double precision, allocatable, dimension(:,:) :: rData
     integer :: nn, ncols, nrows
     double precision ::  pert(ixO^S)

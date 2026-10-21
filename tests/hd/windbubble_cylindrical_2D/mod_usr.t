@@ -1,5 +1,6 @@
 module mod_usr
   use mod_hd
+  use mod_eos, only: eos
 
   implicit none
 
@@ -50,7 +51,6 @@ contains
   subroutine initglobaldata_usr()
     use mod_global_parameters
 
-    hd_gamma=5.0d0/3.0d0
 
 select case( icase )
  case(1) ! O-star in cold medium
@@ -153,7 +153,7 @@ Rstar = Rstar / length_convert_factor
       w(ix^S,p_)     =  w(ix^S,rho_)*Twind*Tscale
     end where
 
-    call hd_to_conserved(ixG^L,ix^L,w,x)
+    call eos%to_conserved(ixG^L,ix^L,w,x)
 
   end subroutine wind_init_one_grid
 
@@ -181,10 +181,10 @@ Rstar = Rstar / length_convert_factor
 
   end subroutine specialrefine_grid
 
-  subroutine specialbound_usr(qt,ixG^L,ixO^L,iB,w,x)
+  subroutine specialbound_usr(qdt,qt,ixG^L,ixO^L,iB,w,x)
     use mod_global_parameters
     integer, intent(in) :: ixG^L, ixO^L, iB
-    double precision, intent(in) :: qt, x(ixG^S,1:ndim)
+    double precision, intent(in) :: qdt,qt, x(ixG^S,1:ndim)
     double precision, intent(inout) :: w(ixG^S,1:nw)
 
     select case(iB)
@@ -193,7 +193,7 @@ Rstar = Rstar / length_convert_factor
       w(ixO^S,mom(1)) = zero
       w(ixO^S,mom(2)) = -vISM/w_convert_factor(mom(2))
       w(ixO^S,p_)     = w(ixO^S,rho_)*TISM*Tscale
-      call hd_to_conserved(ixG^L,ixO^L,w,x)
+      call eos%to_conserved(ixG^L,ixO^L,w,x)
     case default
       call mpistop("This boundary is not supposed to be special")
     end select
@@ -220,7 +220,7 @@ Rstar = Rstar / length_convert_factor
                       / w_convert_factor(rho_)
       w(ixO^S,mom(1)) = (vwind /w_convert_factor(mom(1))) *sinTh(ixO^S)*w(ixO^S,rho_)
       w(ixO^S,mom(2)) = (vwind /w_convert_factor(mom(1))) *cosTh(ixO^S)*w(ixO^S,rho_)
-      w(ixO^S,e_)    = w(ixO^S,rho_)*Twind*Tscale/(hd_gamma-one)+ &
+      w(ixO^S,e_)    = w(ixO^S,rho_)*Twind*Tscale/(eos%gamma-one)+ &
            half*(w(ixO^S,mom(1))**2.0d0+w(ixO^S,mom(2))**2.0d0)/w(ixO^S,rho_)
     end where
 
@@ -236,7 +236,7 @@ Rstar = Rstar / length_convert_factor
     double precision :: pth(ixI^S),wlocal(ixI^S,1:nw)
 
     wlocal(ixI^S,1:nw)=w(ixI^S,1:nw)
-    call hd_get_pthermal(wlocal,x,ixI^L,ixO^L,pth)
+    call eos%get_thermal_pressure(wlocal,x,ixI^L,ixO^L,pth)
     w(ixO^S,nw+1)=pth(ixO^S)/w(ixO^S,rho_)
   end subroutine specialvar_output
 

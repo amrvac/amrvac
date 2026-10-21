@@ -1,6 +1,7 @@
 ! Gombosi et al. 2002 JCP 177, 176, section 7.2 Alfven wave
 module mod_usr
   use mod_mhd
+  use mod_eos, only: eos
   implicit none
 
 contains
@@ -45,7 +46,7 @@ contains
       w(ixO^S,mag(3))=0.d0
     end if
 
-    call mhd_to_conserved(ixI^L,ixO^L,w,x)
+    call eos%to_conserved(ixI^L,ixO^L,w,x)
 
   end subroutine initonegrid_usr
 

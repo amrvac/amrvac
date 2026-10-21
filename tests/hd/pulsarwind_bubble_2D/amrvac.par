@@ -70,13 +70,11 @@
  /
 
  &hd_list
-        He_abundance=0.0d0
         hd_radiative_cooling  = .false.
  /
 
  &rc_list
 	coolcurve   = 'SPEX_DM'
-        coolmethod = 'exact'
         Tfix       = .true.
  /
 
@@ -87,3 +85,8 @@
        Vrel=5.0d7
        vinf=3.0d9
  /
+ &eos_list
+        gamma=1.6666666666666667d0
+  He_abundance = 0.0d0
+ /
+

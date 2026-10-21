@@ -1,16 +1,14 @@
 !=====================================================
 ! Project : 2D Radiative MHD convection, with AMR
 ! Aim     : Hurlburt-Toomre setup with FLD
-! Results :
-! Update  : 04/08/2025
 ! configuration :
 ! $AMRVAC_DIR/setup.pl -d=2 -v=2
 !=====================================================
 
  &filelist
-        base_filename='Convection2d'
+        base_filename='output/Convection2d'
         saveprim=T
-        autoconvert=T
+        autoconvert=F
         typefilelog='regression_test'
         convert_type='vtuBCCmpi'
         nwauxio=9
@@ -33,12 +31,12 @@
         time_integrator = 'IMEX_ARS3'
         flux_scheme=    20*'hll'
         limiter= 20*'cada3'
+ /
         typesourcesplit = 'sfs'
         check_small_values=.true.
         small_values_method = 'replace'
         small_pressure = 1.d-12
         small_density = 1.d-12
- /
 
  &boundlist
         typeboundary_min1=7*'periodic'
@@ -66,37 +64,36 @@
         xprobmax1=3.d0
         xprobmin2=0.d0
         xprobmax2=1.d0
-        iprob=1
  /
 
  &paramlist
-        slowsteps=10  
+        slowsteps=1000
         typecourant='maxsum'
         courantpar=0.9d0
         dtdiffpar=0.4d0
  /
 
- &rmhd_list
-        rmhd_thermal_conduction=.true.
-        rmhd_viscosity=.true.
-        rmhd_gravity=.true.
-        He_abundance = 0.d0 
-        rmhd_energy = .true.
-        radio_acoustic_filter = .false.
-        rmhd_radiation_formalism = 'fld'
-        rmhd_radiation_force = .true. 
-        rmhd_energy_interact = .true.
-        rmhd_radiation_diffusion = .true.
-        rmhd_radiation_advection = .true.
+ &mhd_list
+        mhd_thermal_conduction=.true.
+        mhd_viscosity=.true.
+        mhd_gravity=.true.
+        mhd_energy = .true.
+        mhd_radiation_fld = .true.
 /
 
+ &eos_list
+  gamma = 1.66666667d0
+  He_abundance = 0.d0
+ /
+
  &fld_list
-        fld_Eint_split = .false.
         fld_Radforce_split = .false.
         fld_opacity_law = 'const'
         fld_kappa0 = 0.4d0
-        fld_diff_scheme = 'mg'
         fld_interaction_method = 'Halley'
         fld_fluxlimiter = 'Diffusion'
-        fld_diff_tol = 1.d-7
+        fld_diff_tol = 1.d-6
+        fld_bisect_tol = 1.d-6
+        fld_tiring_explicit=.true.
+        fld_debug=T
  /

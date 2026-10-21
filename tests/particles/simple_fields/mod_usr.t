@@ -1,5 +1,6 @@
 module mod_usr
   use mod_mhd
+  use mod_eos, only: eos
   use mod_particles
 
   implicit none
@@ -86,7 +87,7 @@ contains
     w(ixO^S,mag(2))= 0.0d0
     w(ixO^S,mag(3))= b0
 
-    call mhd_to_conserved(ixI^L,ixO^L,w,x)
+    call eos%to_conserved(ixI^L,ixO^L,w,x)
 
     if (first .and. mype==0 )then
       write(*,*) 'Test particles in 3D simple B-field'

@@ -1,8 +1,8 @@
-!> This is a template for a new user problem
 module mod_usr
 
   ! Include a physics module
-  use mod_rhd
+  use mod_hd
+  use mod_eos, only: eos
   use mod_fld
 
   implicit none
@@ -57,18 +57,11 @@ contains
     !> Additional variables
     usr_process_grid => update_extravars
 
-    ! Output routines
-    ! usr_aux_output    => specialvar_output
-    ! usr_add_aux_names => specialvarnames_output
-
-    ! Timestep for PseudoPlanar
-    ! usr_get_dt => get_dt_cak
-
     ! Refine mesh near base
     usr_refine_grid => refine_base
 
     ! Active the physics module
-    call rhd_activate()
+    call hd_activate()
 
     i_v1 = var_set_extravar("v1", "v1")
     i_p = var_set_extravar("p","p")
@@ -135,6 +128,7 @@ contains
     !> Very bad initial guess for gradE using kappa_e
     gradE = -F_bound*3*kappa_e*rho_bound*unit_velocity/const_c
 
+    if(mype==0)then
     print*, 'L_bound (cgs)', L_bound*(unit_radflux*unit_length**2)
     print*, 'log10(L_bound)', log10(L_bound*(unit_radflux*unit_length**2)/L_sun)
     print*, 'L_bound', L_bound*(unit_radflux*unit_length**2)/L_sun
@@ -144,6 +138,7 @@ contains
     print*, 'unit_pressure', unit_pressure
     print*, 'unit_opacity', unit_opacity
     print*, 'kappa_e', kappa_e
+    endif
 
   end subroutine initglobaldata_usr
 
@@ -169,77 +164,11 @@ contains
     F_bound = L_bound/(4*dpi*R_star**2)
     Mdot = Mdot*M_sun/year
 
-    ! print*, Gamma_e_bound, dpi, const_G, M_star, const_c
-
   end subroutine params_read
-
-  ! !> A routine for specifying initial conditions
-  ! subroutine initial_conditions(ixI^L, ixO^L, w, x)
-  !   use mod_constants
-  !
-  !   integer, intent(in)             :: ixI^L, ixO^L
-  !   double precision, intent(in)    :: x(ixI^S,1:ndim)
-  !   double precision, intent(inout) :: w(ixI^S,1:nw)
-  !
-  !   double precision :: kappa(ixO^S), lambda(ixO^S), fld_R(ixO^S)
-  !   double precision :: vel(ixI^S)
-  !   double precision :: T_out, E_out, E_gauge
-  !   double precision :: T_in, E_in, rr(ixI^S), bb, temp(ixI^S)
-  !
-  !   w(ixI^S,rho_)   = rho_bound
-  !   w(ixI^S,mom(1)) = 0.d0
-  !   vel = 0.d0
-  !
-  !   where(x(ixI^S,1) .gt. 1.d0)
-  !     vel(ixI^S) =  v_inf*(1 - 0.999d0*( 1.d0/x(ixI^S,1)))**0.5d0
-  !     w(ixI^S,rho_) = Mdot/(4.d0*dpi*vel(ixI^S)*x(ixI^S,1)**2)
-  !   endwhere
-  !
-  !   w(ixI^S,mom(1)) = vel(ixI^S)*w(ixI^S,rho_)
-  !
-  !   !> Outer/Inner temperature
-  !   T_out = 28445.836732569689/unit_temperature
-  !   E_out = const_rad_a*(T_out*unit_temperature)**4/unit_pressure
-  !   T_in = T_bound
-  !   E_in = const_rad_a*(T_in*unit_temperature)**4/unit_pressure
-  !
-  !   !>Very bad initial profile using constant gradE
-  !   ! w(ixI^S,r_e) = E_out + gradE*(x(ixI^S,1)-xprobmax1)
-  !   ! w(ixI^S,r_e) = E_in + gradE*(x(ixI^S,1)-xprobmin1)
-  !   rr(ixI^S) = dsqrt(x(ixI^S,1)-xprobmin1)*(16*x(ixI^S,1)**2 + 8*x(ixI^S,1)+ 6) &
-  !               /(15*x(ixI^S,1)**(5.d0/2))
-  !   bb = -kappa_e*L_bound*Mdot*unit_velocity*3/(16*dpi**2*const_c*v_inf)
-  !
-  !   ! bb = bb*2
-  !
-  !   ! rr(ixI^S) = 2*dsqrt(x(ixI^S,1)-xprobmin1)/dsqrt(x(ixI^S,1))
-  !   ! bb = kappa_e*F_bound*Mdot*unit_velocity*3/(4*dpi*const_c*v_inf)
-  !   w(ixI^S,r_e) = E_in + bb*rr(ixI^S)
-  !
-  !   E_gauge = E_in + bb*dsqrt(xprobmax1-xprobmin1)&
-  !             *(16*xprobmax1**2 + 8*xprobmax1+ 6)/(15*xprobmax1**(5.d0/2))
-  !
-  !   w(ixI^S,r_e) = w(ixI^S,r_e) - E_gauge + E_out
-  !
-  !   if (rhd_energy) then
-  !     temp(ixI^S) = (w(ixI^S,r_e)*unit_pressure/const_rad_a)**0.25d0/unit_temperature
-  !     w(ixI^S,e_) = w(ixI^S,rho_)*temp(ixI^S)/(rhd_gamma-1.d0) + half*w(ixI^S,mom(1))**2/w(ixI^S,rho_)
-  !   endif
-  !
-  !   call fld_get_opacity(w, x, ixI^L, ixO^L, kappa)
-  !   call fld_get_fluxlimiter(w, x, ixI^L, ixO^L, lambda, fld_R)
-  !
-  !   w(ixO^S,i_diff_mg) = (const_c/unit_velocity)*lambda(ixO^S)/(kappa(ixO^S)*w(ixO^S,rho_))
-  !   w(ixO^S,i_diff_mg) = (const_c/unit_velocity)/(3.d0*kappa(ixO^S)*w(ixO^S,rho_))
-  !
-  ! end subroutine initial_conditions
 
   !> A routine for specifying initial conditions
   subroutine initial_conditions(ixI^L, ixO^L, w, x)
     use mod_constants
-    use mod_physics
-
-
     integer, intent(in)             :: ixI^L, ixO^L
     double precision, intent(in)    :: x(ixI^S,1:ndim)
     double precision, intent(inout) :: w(ixI^S,1:nw)
@@ -249,12 +178,12 @@ contains
     do ii = ixOmin1,ixOmax1
       w(ii,rho_) = read_initial_conditions(x(ii,1),2)
       w(ii,mom(1)) = read_initial_conditions(x(ii,1),3)
-      if (rhd_energy) w(ii,e_) = read_initial_conditions(x(ii,1),4)
+      w(ii,e_) = read_initial_conditions(x(ii,1),4)
       w(ii,r_e) = read_initial_conditions(x(ii,1),5)
       w(ii,i_diff_mg) = read_initial_conditions(x(ii,1),6)
     enddo
 
-    call phys_to_conserved(ixI^L,ixO^L,w,x)
+    call hd_to_conserved(ixI^L,ixO^L,w,x)
 
   end subroutine initial_conditions
 
@@ -289,14 +218,13 @@ contains
 
   end function read_initial_conditions
 
-  subroutine boundary_conditions(qt,ixI^L,ixB^L,iB,w,x)
-    use mod_physics, only: phys_get_trad
+  subroutine boundary_conditions(qdt,qt,ixI^L,ixB^L,iB,w,x)
     use mod_global_parameters
     use mod_opal_opacity
     use mod_fld
 
     integer, intent(in)             :: ixI^L, ixB^L, iB
-    double precision, intent(in)    :: qt, x(ixI^S,1:ndim)
+    double precision, intent(in)    :: qdt, qt, x(ixI^S,1:ndim)
     double precision, intent(inout) :: w(ixI^S,1:nw)
 
     double precision :: kappa(ixI^S), Temp(ixI^S)
@@ -342,12 +270,8 @@ contains
         + (x(ix1,1)-x(ix1+2,1))*Local_gradE(ix1+1)
       enddo
 
-      if (rhd_energy) then
-        temp(ixB^S) = (w(ixB^S,r_e)*unit_pressure/const_rad_a)**0.25d0/unit_temperature
-        w(ixB^S,e_) = w(ixB^S,rho_)*temp(ixB^S)/(rhd_gamma-1.d0) + half*w(ixB^S,mom(1))**2/w(ixB^S,rho_)
-      endif
-
-      ! print*, it
+      temp(ixB^S) = (w(ixB^S,r_e)*unit_pressure/const_rad_a)**0.25d0/unit_temperature
+      w(ixB^S,e_) = w(ixB^S,rho_)*temp(ixB^S)/(eos%gamma-1.d0) + half*w(ixB^S,mom(1))**2/w(ixB^S,rho_)
 
     case(2)
 
@@ -377,11 +301,6 @@ contains
 
       w(ixB^S,r_e) = const_rad_a*(Local_Tout(ixB^S)*unit_temperature)**4.d0/unit_pressure
 
-      ! print*, it, 'top---------------------------------------'
-      ! print*, Local_tauout(ixBmax1-5:ixBmax1,5)
-      ! print*, Local_Tout(ixBmax1-5:ixBmax1,5)
-      ! print*, w(ixBmax1-5:ixBmax1,5,r_e)
-
     case default
       call mpistop('boundary not known')
     end select
@@ -403,8 +322,7 @@ contains
       mg%bc(iB, mg_iphi)%bc_value = E_out
 
     case default
-      print *, "Not a standard: ", typeboundary(r_e, iB)
-      error stop "Set special bound for this Boundary "
+      call mpistop("issue in mg_bound in mod_usr")
     end select
   end subroutine mg_boundary_conditions
 
@@ -443,7 +361,7 @@ contains
     call PseudoPlanarSource(ixI^L,ixO^L,wCT,x,ppsource)
     w(ixO^S,rho_) = w(ixO^S,rho_) + qdt*ppsource(ixO^S,rho_) !> OK
     w(ixO^S,mom(1)) = w(ixO^S,mom(1)) + qdt*ppsource(ixO^S,mom(1)) !> OK
-    if (rhd_energy) w(ixO^S,e_) = w(ixO^S,e_) + qdt*ppsource(ixO^S,e_) !> OK
+    w(ixO^S,e_) = w(ixO^S,e_) + qdt*ppsource(ixO^S,e_) !> OK
     w(ixO^S,r_e) = w(ixO^S,r_e) + qdt*ppsource(ixO^S,r_e) !> TROUBLEMAKER
 
     if (.not. Cak_in_D) then
@@ -453,23 +371,17 @@ contains
         !> Fixed L = L_bound
         w(ixO^S,mom(1)) = w(ixO^S,mom(1)) &
           + qdt*wCT(ixO^S,rho_)*L_bound/(4*dpi*x(ixO^S,1)**2)/const_c*k_cak(ixO^S)*unit_velocity
-        if (rhd_energy) then
-          w(ixO^S,e_) = w(ixO^S,e_) &
+        w(ixO^S,e_) = w(ixO^S,e_) &
             + qdt*wCT(ixO^S,mom(1))*L_bound/(4*dpi*x(ixO^S,1)**2)/const_c*k_cak(ixO^S)*unit_velocity
-        endif
       else
         !> Local flux
         call fld_get_radflux(wCT, x, ixI^L, ixO^L, rad_flux, 1)
         w(ixO^S,mom(1)) = w(ixO^S,mom(1)) &
           + qdt*wCT(ixO^S,rho_)*rad_flux(ixO^S,1)/const_c*k_cak(ixO^S)*unit_velocity
-        if (rhd_energy) then
-          w(ixO^S,e_) = w(ixO^S,e_) &
+        w(ixO^S,e_) = w(ixO^S,e_) &
             + qdt*wCT(ixO^S,mom(1))*rad_flux(ixO^S,1)/const_c*k_cak(ixO^S)*unit_velocity
-        endif
       endif
     endif
-
-    ! print*, k_cak(10,10)
 
   end subroutine PseudoPlanar
 
@@ -502,11 +414,9 @@ contains
     dtnew = min(dt_cak, dtnew)
 
   end subroutine get_dt_cak
-  !
 
   subroutine PseudoPlanarSource(ixI^L,ixO^L,w,x,source)
     use mod_global_parameters
-    use mod_physics, only: phys_get_pthermal
 
     integer, intent(in)           :: ixI^L, ixO^L
     double precision, intent(in)  :: w(ixI^S,1:nw), x(ixI^S,1:ndim)
@@ -532,36 +442,28 @@ contains
     !> drho/dt = -2 rho v_r/r
     source(ixO^S,rho_) = -two*w(ixO^S,rho_)*v(ixO^S,rdir)/radius(ixO^S)
 
-    call phys_get_pthermal(w,x,ixI^L,ixO^L,pth)
+    call eos%get_thermal_pressure(w,x,ixI^L,ixO^L,pth)
 
     !> dm_r/dt = +(rho*v_p**2 + 2pth)/r -2 (rho*v_r**2 + pth)/r
     !> dm_phi/dt = - 3*rho*v_p m_r/r
     source(ixO^S,mom(rdir)) = - 2*w(ixO^S,rho_)*v(ixO^S,rdir)**two/radius(ixO^S)
 
     !> de/dt = -2 (e+p) v_r/r
-    if (rhd_energy) source(ixO^S,e_) = -two*(w(ixO^S,e_)+pth(ixO^S))*v(ixO^S,rdir)/radius(ixO^S)
+     source(ixO^S,e_) = -two*(w(ixO^S,e_)+pth(ixO^S))*v(ixO^S,rdir)/radius(ixO^S)
 
     !> dEr/dt = -2 (E v_r + F_r)/r
-    if (rhd_radiation_diffusion) then
-      call fld_get_radflux(w, x, ixI^L, ixO^L, rad_flux, 1)
-      source(ixO^S,r_e) = source(ixO^S,r_e) - two*rad_flux(ixO^S,rdir)/radius(ixO^S)
-    endif
+    call fld_get_radflux(w, x, ixI^L, ixO^L, rad_flux, 1)
+    source(ixO^S,r_e) = source(ixO^S,r_e) - two*rad_flux(ixO^S,rdir)/radius(ixO^S)
 
-    if (rhd_radiation_advection) then
-      source(ixO^S,r_e) = source(ixO^S,r_e) - two*w(ixO^S,r_e)*v(ixO^S,rdir)/radius(ixO^S)
-    endif
+    source(ixO^S,r_e) = source(ixO^S,r_e) - two*w(ixO^S,r_e)*v(ixO^S,rdir)/radius(ixO^S)
 
-    ! Not sure about this one
-    if (rhd_radiation_force) then
-      call fld_get_eddington(w, x, ixI^L, ixO^L, edd, nghostcells)
-      source(ixO^S,r_e) = source(ixO^S,r_e) + two*v(ixO^S,rdir)*w(ixO^S,r_e)*edd(ixO^S,1,1)/radius(ixO^S)
-    endif
+    call fld_get_eddington(w, x, ixI^L, ixO^L, edd, nghostcells)
+    source(ixO^S,r_e) = source(ixO^S,r_e) + two*v(ixO^S,rdir)*w(ixO^S,r_e)*edd(ixO^S,1,1)/radius(ixO^S)
 
   end subroutine PseudoPlanarSource
 
 
   subroutine OPAL_and_CAK(ixI^L,ixO^L,w,x,kappa)
-    use mod_physics, only: phys_get_trad
     use mod_global_parameters
     use mod_opal_opacity
     use mod_fld
@@ -589,15 +491,10 @@ contains
     !> Add OPAL and CAK for total opacity
     kappa(ixO^S) = OPAL(ixO^S) + CAK(ixO^S)
 
-    where(kappa(ixO^S) .ne. kappa(ixO^S))
-      kappa(ixO^S) = kappa_e
-    endwhere
-
   end subroutine OPAL_and_CAK
 
 
   subroutine get_kappa_OPAL(ixI^L,ixO^L,w,x,kappa)
-    use mod_physics, only: phys_get_trad, phys_get_tgas
     use mod_global_parameters
     use mod_opal_opacity
     use mod_fld
@@ -608,29 +505,17 @@ contains
 
     integer :: ix^D
     double precision :: Temp(ixI^S)
-    double precision :: n, rho0, Temp0
+    double precision :: kappaval, rho0, Temp0
 
-    !> Get OPAL opacities by reading from table
-    if (rhd_energy) then
-      call phys_get_tgas(w,x,ixI^L,ixO^L,Temp)
-    else
-      call phys_get_trad(w,x,ixI^L,ixO^L,Temp)
-    endif
+    call eos%get_temperature_from_etot(w,x,ixI^L,ixO^L,Temp)
 
     {do ix^D=ixOmin^D,ixOmax^D\ }
         rho0 = w(ix^D,rho_)*unit_density
         Temp0 = Temp(ix^D)*unit_temperature
         Temp0 = max(Temp0,1.d4)
-        call set_opal_opacity(rho0,Temp0,n)
-        kappa(ix^D) = n/unit_opacity
+        call set_opal_opacity(rho0,Temp0,kappaval)
+        kappa(ix^D) = kappaval/unit_opacity
     {enddo\ }
-
-    where(kappa(ixO^S) .ne. kappa(ixO^S))
-      kappa(ixO^S) = kappa_e
-    endwhere
-
-    !> test without opal
-    ! kappa(ixO^S) = kappa_e
 
   end subroutine get_kappa_OPAL
 
@@ -676,7 +561,6 @@ contains
   end subroutine get_kappa_CAK
 
   subroutine get_kappa_CAK2(ixI^L,ixO^L,w,x,kappa)
-    use mod_physics, only: phys_get_trad, phys_get_tgas
     use mod_global_parameters
     use mod_cak_opacity
     use mod_fld
@@ -703,11 +587,7 @@ contains
     gradv(ixO^S) = abs(gradv(ixO^S))
 
     !> Get CAK opacities by reading from table
-    if (rhd_energy) then
-      call phys_get_tgas(w,x,ixI^L,ixO^L,Temp)
-    else
-      call phys_get_trad(w,x,ixI^L,ixO^L,Temp)
-    endif
+    call eos%get_temperature_from_etot(w,x,ixI^L,ixO^L,Temp)
 
     {do ix^D=ixOmin^D,ixOmax^D\ }
         rho0 = w(ix^D,rho_)*unit_density
@@ -722,8 +602,6 @@ contains
 
         kappa(ix^D) = kap0/unit_opacity
 
-        if (kappa(ix^D) .ne. kappa(ix^D)) kappa(ix^D) = 0.d0
-
         kappa(ix^D) = min(50*kappa_e,kappa(ix^D))
     {enddo\ }
 
@@ -731,8 +609,6 @@ contains
     if (x(ixImax1,1) .ge. xprobmax1) then
       kappa(ixOmax1) = kappa(ixOmax1-1)
     endif
-
-    ! print*, kappa
 
   end subroutine get_kappa_CAK2
 
@@ -797,8 +673,8 @@ contains
     call fld_get_opacity(w, x, ixI^L, ixO^L, kappa)
     call fld_get_radflux(w, x, ixI^L, ixO^L, rad_flux, 1)
 
-    call rhd_get_tgas(w, x, ixI^L, ixO^L, Tgas)
-    call rhd_get_trad(w, x, ixI^L, ixO^L, Trad)
+    call eos%get_temperature_from_etot(w,x,ixI^L,ixO^L,Tgas)
+    call hd_get_trad(w, x, ixI^L, ixO^L, Trad)
 
     call get_kappa_OPAL(ixI^L,ixO^L,w,x,OPAL)
     call get_kappa_CAK(ixI^L,ixO^L,w,x,CAK)
@@ -813,13 +689,13 @@ contains
 
     pp_rf(ixO^S) = two*rad_flux(ixO^S,1)/x(ixO^S,1)*dt
 
-    call fld_get_fluxlimiter(w, x, ixI^L, ixO^L, lambda, fld_R, nghostcells)
+    call fld_get_fluxlimiter(w, x, ixI^L, ixO^L, lambda, fld_R, nghostcells,fld_fl)
 
     Lum(ixO^S) = 4*dpi*rad_flux(ixO^S,1)*(x(ixO^S,1)*unit_length)**2*unit_radflux/L_sun
 
     w(ixO^S,i_v1) = w(ixO^S,mom(1))/w(ixO^S,rho_)
     w(ixO^S,i_p) = (w(ixO^S,e_) - 0.5d0 * sum(w(ixO^S, mom(:))**2, dim=ndim+1) / w(ixO^S, rho_)) &
-          *(rhd_gamma - 1)
+          *(eos%gamma - 1)
 
     w(ixO^S,i_Trad) = Trad(ixO^S)*unit_temperature
     w(ixO^S,i_Tgas) = Tgas(ixO^S)*unit_temperature

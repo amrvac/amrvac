@@ -1,5 +1,6 @@
 module mod_usr
   use mod_hd
+  use mod_eos, only: eos
   implicit none
   double precision  :: beta, eta_jet, ca, mach, rc
 
@@ -58,7 +59,7 @@ contains
        {^IFTHREED
        w(ixO^S, mom(3)) = 0.0d0
        }
-       w(ixO^S, e_)     = ca**2 / (hd_gamma * eta_jet)
+       w(ixO^S, e_)     = ca**2 / (eos%gamma * eta_jet)
     elsewhere
        ! configure ambient medium
        w(ixO^S, rho_)   = 1.0d0 / eta_jet
@@ -67,7 +68,7 @@ contains
        {^IFTHREED
        w(ixO^S, mom(3)) = 0.0d0
        }
-       w(ixO^S, e_)     = ca**2 / (hd_gamma * eta_jet)
+       w(ixO^S, e_)     = ca**2 / (eos%gamma * eta_jet)
     endwhere
 
     ! configure cloud, center coordinates
@@ -82,13 +83,13 @@ contains
        w(ixO^S, rho_) = 1.0d0/eta_jet + (1.0d0/(beta**2)) * exp(-rcloud(ixO^S) / (sigma*sigma))
     endwhere
 
-    call hd_to_conserved(ixI^L, ixO^L, w, x)
+    call eos%to_conserved(ixI^L, ixO^L, w, x)
 
   end subroutine initonegrid_usr
 
-  subroutine specialbound_usr(qt, ixI^L, ixO^L, iB, w, x)
+  subroutine specialbound_usr(qdt,qt, ixI^L, ixO^L, iB, w, x)
     integer, intent(in)             :: ixI^L, ixO^L, iB
-    double precision, intent(in)    :: qt, x(ixI^S, 1:ndim)
+    double precision, intent(in) :: qdt,qt, x(ixI^S, 1:ndim)
     double precision, intent(inout) :: w(ixI^S, 1:nw)
 
     double precision                :: rinlet(ixI^S)
@@ -107,7 +108,7 @@ contains
           {^IFTHREED
           w(ixO^S, mom(3)) = 0.0d0
           }
-          w(ixO^S, e_)     = ca**2 / (hd_gamma * eta_jet)
+          w(ixO^S, e_)     = ca**2 / (eos%gamma * eta_jet)
        elsewhere
           w(ixO^S, rho_)   = 1.0d0/eta_jet
           w(ixO^S, mom(1)) = 0.0d0
@@ -115,9 +116,9 @@ contains
           {^IFTHREED
           w(ixO^S, mom(3)) = 0.0d0
           }
-          w(ixO^S, e_)     = ca**2 / (hd_gamma * eta_jet)
+          w(ixO^S, e_)     = ca**2 / (eos%gamma * eta_jet)
        endwhere
-       call hd_to_conserved(ixI^L, ixO^L, w, x)
+       call eos%to_conserved(ixI^L, ixO^L, w, x)
     case default
        call mpistop('boundary not defined')
     end select

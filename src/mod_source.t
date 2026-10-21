@@ -11,8 +11,12 @@ module mod_source
   integer, parameter :: sourcesplit_ssf    = 2
   integer, parameter :: sourcesplit_ssfss  = 3
 
+  double precision, save :: time_sts_total = 0.d0
+  double precision       :: tw_sts0
+
   public :: add_split_source
   public :: addsource2
+  public :: time_sts_total
 
 contains
 
@@ -22,6 +26,7 @@ contains
     use mod_physics, only: phys_global_source_after, phys_to_primitive
     use mod_supertimestepping, only: is_sts_initialized, sts_add_source,sourcetype_sts,&
                                       sourcetype_sts_prior, sourcetype_sts_after, sourcetype_sts_split   
+    use mod_eos, only: prepare_eos_w_fields
     use mod_comm_lib, only: mpistop
 
     logical, intent(in) :: prior
@@ -35,6 +40,7 @@ contains
 
     ! add stiff source terms via super time stepping
     if(is_sts_initialized()) then
+        tw_sts0 = MPI_WTIME()
         select case (sourcetype_sts)
           case (sourcetype_sts_prior)
             if(prior) then
@@ -47,6 +53,7 @@ contains
           case (sourcetype_sts_split)
             call sts_add_source(0.5d0*dt)
           end select
+        time_sts_total = time_sts_total + (MPI_WTIME() - tw_sts0)
     end if
     src_active = .false.
 
@@ -122,6 +129,8 @@ contains
 
     if (src_active) then
        call getbc(qt,0.d0,ps,iwstart,nwgc)
+       ! update eos variables: Te (nH) including ghost cells
+       call prepare_eos_w_fields()
     end if
 
   end subroutine add_split_source
@@ -131,7 +140,7 @@ contains
        w,x,qsourcesplit,src_active)
     use mod_global_parameters
     use mod_physics, only: phys_add_source
-    use mod_usr_methods, only: usr_source
+    use mod_usr_methods, only: usr_source, usr_source_after
     ! differences with VAC is in iw^LIM and in declaration of ranges for wCT,w
 
     integer, intent(in)              :: ixI^L, ixO^L, iw^LIM
@@ -154,6 +163,11 @@ contains
     ! physics defined sources, typically explicitly added,
     ! along with geometrical source additions
     call phys_add_source(qdt,dtfactor,ixI^L,ixO^L,wCT,wCTprim,w,x,qsourcesplit,tmp_active)
+
+    ! user post-physics source (runs after gravity etc.)
+    if ((qsourcesplit .eqv. source_split_usr) .and. associated(usr_source_after)) then
+       call usr_source_after(qdt,ixI^L,ixO^L,iw^LIM,qtC,wCT,qt,w,x)
+    end if
 
     if (present(src_active)) src_active = src_active .or. tmp_active
 

@@ -2,6 +2,7 @@
 ! use parametrization with Mach number by Miczek (TU Munchen, Diss, 2013)
 module mod_usr
   use mod_hd
+  use mod_eos, only: eos
 
   implicit none
 
@@ -63,7 +64,7 @@ contains
     w(ix^S,mom(2)) = vphi_solution(x(ix^S, 1))
     }
 
-    call hd_to_conserved(ixG^L,ix^L,w,x)
+    call eos%to_conserved(ixG^L,ix^L,w,x)
 
   end subroutine GC_init_one_grid
 
@@ -72,7 +73,7 @@ contains
     real(dp)             :: val
     real(dp) :: p0
 
-    p0=1.0d0/(hd_gamma*Mach**2)
+    p0=1.0d0/(eos%gamma*Mach**2)
     if(rad<0.2d0)then
       val=p0+12.5d0*rad**2
     else
@@ -105,9 +106,9 @@ contains
     double precision, intent(inout) :: w(ixI^S,1:nw)
 
     w(ixO^S,i_sol) = p_solution(x(ixO^S, 1))
-    call hd_to_primitive(ixI^L,ixO^L,w,x)
+    call eos%to_primitive(ixI^L,ixO^L,w,x)
     w(ixO^S,i_err_p) = w(ixO^S,e_) - w(ixO^S,i_sol)
-    call hd_to_conserved(ixI^L,ixO^L,w,x)
+    call eos%to_conserved(ixI^L,ixO^L,w,x)
     w(ixO^S,i_err_r) = w(ixO^S,rho_) - 1.0d0
   end subroutine set_error
 

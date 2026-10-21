@@ -48,6 +48,9 @@
  /
 
  &mhd_list
-        mhd_gamma=1.4d0
         typedivbfix='powel'
  /
+ &eos_list
+  gamma = 1.4d0
+ /
+

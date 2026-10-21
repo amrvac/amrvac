@@ -57,7 +57,6 @@
  /
 
  &hd_list
-        hd_gamma = 1.4d0
         hd_dust = .true.
  /
 
@@ -65,3 +64,7 @@
         dust_n_species = 4
         dust_method='Kwok'
  /
+ &eos_list
+  gamma = 1.4d0
+ /
+

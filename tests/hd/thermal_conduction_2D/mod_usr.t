@@ -1,6 +1,7 @@
 !> test isotropic thermal conduction from a central hot ball
 module mod_usr
   use mod_hd
+  use mod_eos, only: eos
   implicit none
 
 contains
@@ -34,7 +35,7 @@ contains
      w(ixO^S,rho_) =1.d0
     endwhere
 
-    call hd_to_conserved(ixI^L,ixO^L,w,x)
+    call eos%to_conserved(ixI^L,ixO^L,w,x)
 
   end subroutine initonegrid_usr
 

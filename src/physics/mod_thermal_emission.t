@@ -378,16 +378,686 @@ module mod_thermal_emission
 
   end interface
 
+  abstract interface
+    subroutine get_2var_subr_te(ixI^L, ixO^L, w, x, val1, val2)
+      use mod_global_parameters
+      integer, intent(in)          :: ixI^L, ixO^L
+      double precision, intent(in) :: w(ixI^S, nw)
+      double precision, intent(in) :: x(ixI^S, 1:ndim)
+      double precision, intent(out):: val1(ixI^S), val2(ixI^S)
+    end subroutine get_2var_subr_te
+  end interface
+
   type te_fluid
 
     procedure (get_subr1), pointer, nopass :: get_rho => null()
     procedure (get_subr1), pointer, nopass :: get_pthermal => null()
     procedure (get_subr1), pointer, nopass :: get_var_Rfactor => null()
+    procedure (get_2var_subr_te), pointer, nopass :: get_ne_nH => null()
 
   end type te_fluid
 
+  type radsyn_euv_cache
+    integer :: igrid=0
+    integer :: level=0
+    integer :: rft=1
+    integer :: los_min=0
+    integer :: los_max=0
+    double precision, allocatable :: source(:^D&)
+    double precision, allocatable :: opacity(:^D&)
+    double precision, allocatable :: sourcev(:^D&)
+    double precision, allocatable :: xface1(:),xface2(:),xface3(:)
+    double precision, allocatable :: rface(:),thetaface(:),phiface(:)
+    double precision, allocatable :: rface2(:),theta_cos(:),phi_sin(:),phi_cos(:)
+    double precision :: box_min(1:3)=0.d0
+    double precision :: box_max(1:3)=0.d0
+    integer :: ixPmin1=1
+    integer :: ixPmax1=0
+    integer :: ixPmin2=1
+    integer :: ixPmax2=0
+    logical :: has_pixels=.false.
+  end type radsyn_euv_cache
+
+  character(len=std_len) :: ray_method_active='legacy'
+  logical :: sph_use_dda=.false.
+
 
   contains
+
+    subroutine check_synthetic_emission_options(datatype)
+      use mod_global_parameters
+
+      character(len=*), intent(in) :: datatype
+
+      if (trim(radiation_transfer) /= 'thin' .and. trim(radiation_transfer) /= 'thick') then
+        call mpistop("bad radiation_transfer")
+      endif
+
+      if (trim(dat_resolution_mode) /= 'nominal' .and. &
+          trim(dat_resolution_mode) /= 'minimum') then
+        call mpistop("dat_resolution_mode must be nominal or minimum")
+      endif
+
+      sph_use_dda=.false.
+      select case(trim(ray_method))
+      case('auto','')
+        if (datatype=='image_euv' .and. coordinate==spherical) then
+          ray_method_active='spherical'
+          sph_use_dda=.true.
+        else if (datatype=='image_euv' .and. dat_resolution .and. slab) then
+          ray_method_active='cart'
+        else
+          ray_method_active='legacy'
+        endif
+      case('legacy')
+        ray_method_active='legacy'
+      case('cart','cart_dda')
+        ray_method_active='cart'
+      case('spherical','sph_intersection')
+        ray_method_active='spherical'
+      case('sph_dda','spherical_dda')
+        ray_method_active='spherical'
+        sph_use_dda=.true.
+      case default
+        call mpistop("bad ray_method")
+      end select
+
+      if (trim(emission_model) /= 'auto' .and. trim(emission_model) /= 'euv_aia' .and. &
+          trim(emission_model) /= 'white_light' .and. trim(emission_model) /= 'radio_ff' .and. &
+          trim(emission_model) /= 'pseudo_current') then
+        call mpistop("bad emission_model")
+      endif
+
+      if ((output_tau .or. output_absorption_fraction) .and. trim(radiation_transfer) /= 'thick') then
+        call mpistop("tau and absorption-fraction output need thick transfer")
+      endif
+
+      if (radsyn_pixel_batch<1) then
+        call mpistop("radsyn_pixel_batch must be positive")
+      endif
+      if (radsyn_segment_batch_factor<0) then
+        call mpistop("radsyn_segment_batch_factor must be non-negative")
+      endif
+      if (radsyn_segment_memory_mb<=zero) then
+        call mpistop("radsyn_segment_memory_mb must be positive")
+      endif
+      if (radsyn_segment_comm_factor<1) then
+        call mpistop("radsyn_segment_comm_factor must be positive")
+      endif
+
+      if (instrument_postprocess) then
+        if (datatype /= 'image_euv' .or. .not. dat_resolution) then
+          call mpistop("instrument_postprocess currently needs dat-resolution EUV images")
+        endif
+        if (trim(ray_method_active) == 'spherical') then
+          call mpistop("instrument_postprocess is not yet supported for spherical rays")
+        endif
+        if (trim(emission_model) == 'pseudo_current') then
+          call mpistop("instrument_postprocess currently supports only EUV AIA or radio_ff images")
+        endif
+        if (trim(emission_model) == 'radio_ff' .and. radio_beam_fwhm<=zero) then
+          call mpistop("radio_ff instrument_postprocess needs radio_beam_fwhm > 0 arcsec")
+        endif
+      endif
+
+      select case(trim(emission_model))
+      case('auto')
+        continue
+      case('euv_aia')
+        if (datatype /= 'image_euv' .and. datatype /= 'spectrum_euv') then
+          call mpistop("emission_model=euv_aia is only valid for EUV synthesis")
+        endif
+      case('white_light')
+        if (datatype /= 'image_whitelight') then
+          call mpistop("emission_model=white_light is only valid for white-light synthesis")
+        endif
+      case('radio_ff')
+        if (datatype /= 'image_euv') then
+          call mpistop("emission_model=radio_ff currently reuses EUV-image convert types")
+        endif
+        if (radio_frequency<=zero) then
+          call mpistop("emission_model=radio_ff needs radio_frequency > 0")
+        endif
+      case('pseudo_current')
+        if (datatype /= 'image_euv') then
+          call mpistop("emission_model=pseudo_current is only valid for EUV-image convert types")
+        endif
+        if (trim(radiation_transfer) /= 'thin') then
+          call mpistop("emission_model=pseudo_current currently supports only thin transfer")
+        endif
+      end select
+
+      if (trim(ray_method_active) == 'cart') then
+        if (datatype /= 'image_euv' .or. .not. slab) then
+          call mpistop("ray_method=cart needs Cartesian EUV slab images")
+        endif
+      endif
+      if (trim(ray_method_active) == 'spherical') then
+        {^IFONED
+        call mpistop("ray_method=spherical currently needs 3D spherical grids")
+        }
+        {^IFTWOD
+        call mpistop("ray_method=spherical currently needs 3D spherical grids")
+        }
+        {^IFTHREED
+        if (datatype /= 'image_euv' .or. coordinate /= spherical .or. &
+            (trim(radiation_transfer) /= 'thin' .and. trim(radiation_transfer) /= 'thick')) then
+          call mpistop("bad ray_method=spherical mode")
+        endif
+        if (trim(emission_model) /= 'auto' .and. trim(emission_model) /= 'euv_aia') then
+          call mpistop("ray_method=spherical currently supports only EUV AIA emission")
+        endif
+        if (xprobmin2<=1.d-10 .or. xprobmax2>=dpi-1.d-10) then
+          call mpistop("ray_method=spherical does not support polar-axis crossing domains")
+        endif
+        if (xprobmax3<=xprobmin3 .or. xprobmax3-xprobmin3>=2.d0*dpi-1.d-10) then
+          call mpistop("ray_method=spherical does not support phi-wrapping domains")
+        endif
+        }
+      endif
+      if (trim(radiation_transfer) == 'thick') then
+        if (datatype /= 'image_euv') then
+          call mpistop("thick transfer is only defined for EUV images")
+        endif
+        if (trim(ray_method_active) == 'spherical') then
+          continue
+        else if (trim(ray_method_active) == 'cart') then
+          if (.not. slab) call mpistop("cartesian thick EUV currently needs slab output")
+        else if (.not. slab .or. .not. dat_resolution) then
+          call mpistop("thick EUV currently needs Cartesian dat_resolution output")
+        endif
+        if (trim(ray_method_active) /= 'cart' .and. &
+            trim(ray_method_active) /= 'spherical' .and. &
+            .not. ((LOS_phi==0 .and. LOS_theta==90) .or. &
+                   (LOS_phi==90 .and. LOS_theta==90) .or. LOS_theta==0)) then
+          call mpistop("thick EUV currently needs x/y/z-aligned LOS")
+        endif
+      endif
+    end subroutine check_synthetic_emission_options
+
+    subroutine integrate_transfer_step_first_order(emissivity,opacity,path_length,intensity,tau)
+      ! First-order formal-solution step used by the planned ordered LOS transfer.
+      double precision, intent(in) :: emissivity,opacity,path_length
+      double precision, intent(inout) :: intensity,tau
+
+      double precision :: dtau
+
+      if (path_length<=zero) return
+      intensity=intensity+transfer_attenuation(tau)*max(zero,emissivity)*path_length
+      dtau=max(zero,opacity)*path_length
+      tau=tau+dtau
+    end subroutine integrate_transfer_step_first_order
+
+    logical function radsyn_euv_has_doppler_output()
+      radsyn_euv_has_doppler_output=trim(emission_model)/='pseudo_current' .and. &
+           trim(emission_model)/='radio_ff' .and. &
+           .not. (coordinate==spherical .and. trim(ray_method_active)=='spherical')
+    end function radsyn_euv_has_doppler_output
+
+    integer function radsyn_euv_num_outputs(has_doppler,has_thick) result(num_outputs)
+      logical, intent(in) :: has_doppler,has_thick
+
+      num_outputs=1
+      if (has_doppler) num_outputs=num_outputs+1
+      if (has_thick .and. output_tau) num_outputs=num_outputs+1
+      if (has_thick .and. output_absorption_fraction) num_outputs=num_outputs+1
+    end function radsyn_euv_num_outputs
+
+    subroutine normalize_euv_doppler(nI1,nI2,EUV,Dpl,unitv)
+      integer, intent(in) :: nI1,nI2
+      double precision, intent(in) :: EUV(nI1,nI2),unitv
+      double precision, intent(inout) :: Dpl(nI1,nI2)
+
+      integer :: ix1,ix2
+
+      do ix1=1,nI1
+        do ix2=1,nI2
+          if (EUV(ix1,ix2)/=zero) then
+            Dpl(ix1,ix2)=(Dpl(ix1,ix2)/EUV(ix1,ix2))*unitv
+          else
+            Dpl(ix1,ix2)=zero
+          endif
+          if (abs(Dpl(ix1,ix2))<smalldouble) Dpl(ix1,ix2)=zero
+        enddo
+      enddo
+    end subroutine normalize_euv_doppler
+
+    subroutine fill_euv_absorption_fraction(nI1,nI2,EUV,EUVthin,smallflux,Absorption,cap_to_one)
+      integer, intent(in) :: nI1,nI2
+      double precision, intent(in) :: EUV(nI1,nI2),EUVthin(nI1,nI2),smallflux
+      double precision, intent(out) :: Absorption(nI1,nI2)
+      logical, intent(in), optional :: cap_to_one
+
+      integer :: ix1,ix2
+      logical :: cap_absorption
+
+      Absorption=zero
+      cap_absorption=.false.
+      if (present(cap_to_one)) cap_absorption=cap_to_one
+      do ix1=1,nI1
+        do ix2=1,nI2
+          if (EUVthin(ix1,ix2)>smallflux) then
+            Absorption(ix1,ix2)=max(zero,(EUVthin(ix1,ix2)-EUV(ix1,ix2))/EUVthin(ix1,ix2))
+            if (cap_absorption) Absorption(ix1,ix2)=min(one,Absorption(ix1,ix2))
+          endif
+        enddo
+      enddo
+    end subroutine fill_euv_absorption_fraction
+
+    subroutine pack_euv_image_outputs(nI1,nI2,EUV,wI,smallflux,has_doppler,has_thick,Dpl,Tau,EUVthin,&
+                                      cap_absorption)
+      integer, intent(in) :: nI1,nI2
+      double precision, intent(in) :: EUV(nI1,nI2),smallflux
+      double precision, intent(inout) :: wI(:,:,:)
+      logical, intent(in) :: has_doppler,has_thick
+      double precision, intent(in), optional :: Dpl(nI1,nI2),Tau(nI1,nI2),EUVthin(nI1,nI2)
+      logical, intent(in), optional :: cap_absorption
+
+      integer :: iw
+      double precision, allocatable :: Absorption(:,:)
+
+      wI=zero
+      wI(:,:,1)=EUV(:,:)
+      iw=1
+      if (has_doppler) then
+        if (.not. present(Dpl)) call mpistop("Doppler output requested without Doppler image")
+        iw=iw+1
+        wI(:,:,iw)=Dpl(:,:)
+      endif
+      if (has_thick .and. output_tau) then
+        if (.not. present(Tau)) call mpistop("tau output requested without tau image")
+        iw=iw+1
+        wI(:,:,iw)=Tau(:,:)
+      endif
+      if (has_thick .and. output_absorption_fraction) then
+        if (.not. present(EUVthin)) call mpistop("absorption output requested without thin image")
+        allocate(Absorption(nI1,nI2))
+        call fill_euv_absorption_fraction(nI1,nI2,EUV,EUVthin,smallflux,Absorption,cap_absorption)
+        iw=iw+1
+        wI(:,:,iw)=Absorption(:,:)
+        deallocate(Absorption)
+      endif
+    end subroutine pack_euv_image_outputs
+
+    subroutine radsyn_get_segment_batch_limits(pixel_batch_target,segment_batch_target,segment_comm_target)
+      integer, intent(out) :: pixel_batch_target,segment_batch_target,segment_comm_target
+
+      pixel_batch_target=max(1,radsyn_pixel_batch)
+      if (radsyn_segment_batch_factor>0) then
+        segment_batch_target=max(128,radsyn_segment_batch_factor*pixel_batch_target)
+      else
+        segment_batch_target=max(128,int(min(dble(huge(segment_batch_target)),&
+             max(128.d0,radsyn_segment_memory_mb*1048576.d0/256.d0))))
+      endif
+      segment_comm_target=max(128,radsyn_segment_comm_factor*pixel_batch_target)
+    end subroutine radsyn_get_segment_batch_limits
+
+    double precision function transfer_attenuation(tau)
+      double precision, intent(in) :: tau
+
+      if (tau<=zero) then
+        transfer_attenuation=one
+      else
+        transfer_attenuation=exp_clamped(-tau)
+      endif
+    end function transfer_attenuation
+
+    double precision function exp_clamped(argument)
+      double precision, intent(in) :: argument
+
+      if (argument<-700.d0) then
+        exp_clamped=zero
+      else if (argument>700.d0) then
+        exp_clamped=huge(one)
+      else
+        exp_clamped=exp(argument)
+      endif
+    end function exp_clamped
+
+    double precision function pow10_clamped(exponent)
+      double precision, intent(in) :: exponent
+
+      if (exponent>300.d0) then
+        pow10_clamped=1.d300
+      else if (exponent<-300.d0) then
+        pow10_clamped=zero
+      else
+        pow10_clamped=10.d0**exponent
+      endif
+    end function pow10_clamped
+
+    double precision function interpolate_response_value(temperature,t_table,f_table,n_table,log_temperature,log_response)
+      double precision, intent(in) :: temperature
+      integer, intent(in) :: n_table
+      double precision, intent(in) :: t_table(n_table),f_table(n_table)
+      logical, intent(in) :: log_temperature,log_response
+
+      integer :: ilo,ihi,imid
+      double precision :: temp_lookup,response_lookup,flo,fhi
+
+      interpolate_response_value=zero
+      if (temperature<=zero) return
+      if (log_temperature) then
+        temp_lookup=log10(temperature)
+      else
+        temp_lookup=temperature
+      endif
+      if (temp_lookup<t_table(1) .or. temp_lookup>t_table(n_table)) return
+      if (temp_lookup==t_table(n_table)) then
+        if (log_response) then
+          response_lookup=log10(max(f_table(n_table),1.d-99))
+        else
+          response_lookup=f_table(n_table)
+        endif
+      else
+        ilo=1
+        ihi=n_table
+        do while (ihi-ilo>1)
+          imid=(ilo+ihi)/2
+          if (temp_lookup>=t_table(imid)) then
+            ilo=imid
+          else
+            ihi=imid
+          endif
+        enddo
+        if (log_response) then
+          flo=log10(max(f_table(ilo),1.d-99))
+          fhi=log10(max(f_table(ilo+1),1.d-99))
+        else
+          flo=f_table(ilo)
+          fhi=f_table(ilo+1)
+        endif
+        response_lookup=flo*(temp_lookup-t_table(ilo+1))/(t_table(ilo)-t_table(ilo+1))+&
+                        fhi*(temp_lookup-t_table(ilo))/(t_table(ilo+1)-t_table(ilo))
+      endif
+
+      if (log_response) then
+        if (response_lookup>-99.d0) interpolate_response_value=10.d0**response_lookup
+      else
+        interpolate_response_value=response_lookup
+      endif
+      if (interpolate_response_value<zero) interpolate_response_value=zero
+    end function interpolate_response_value
+
+    subroutine apply_temperature_response(ixI^L,ixO^L,Te,flux,t_table,f_table,n_table,log_temperature,log_response)
+      integer, intent(in) :: ixI^L, ixO^L, n_table
+      double precision, intent(in) :: Te(ixI^S),t_table(n_table),f_table(n_table)
+      double precision, intent(inout) :: flux(ixI^S)
+      logical, intent(in) :: log_temperature,log_response
+
+      integer :: ix^D
+      double precision :: GT
+
+      {do ix^DB=ixOmin^DB,ixOmax^DB\}
+        GT=interpolate_response_value(Te(ix^D),t_table,f_table,n_table,log_temperature,log_response)
+        flux(ix^D)=flux(ix^D)*GT
+        if (flux(ix^D)<zero) flux(ix^D)=zero
+      {enddo\}
+    end subroutine apply_temperature_response
+
+    subroutine get_EUV_saha_fractions(Te,Ne,x_HII,x_HeII,x_HeIII)
+      ! Ion fractions at fixed temperature and electron density.  Ne is an
+      ! input here: this helper does not impose charge conservation or alter
+      ! the thermodynamic state of the simulation.
+      use mod_constants, only: kB_cgs
+
+      double precision, intent(in) :: Te,Ne
+      double precision, intent(out) :: x_HII,x_HeII,x_HeIII
+
+      double precision :: Pe,log_H21,log_He21,log_He32,log_He321
+      double precision :: logScaleHe,w_H21,term0,term1,term2,denHe
+      double precision, parameter :: Xe_H21=13.6d0
+      double precision, parameter :: Xe_He21=24.587d0
+      double precision, parameter :: Xe_He32=54.416d0
+
+      x_HII=zero
+      x_HeII=zero
+      x_HeIII=zero
+      if (Te<=zero .or. Ne<=zero) return
+
+      Pe=Ne*kB_cgs*Te
+      if (Pe<=zero) return
+
+      log_H21=2.5d0*log10(Te)-5040.d0*Xe_H21/Te-log10(Pe)-0.48d0
+      log_He21=log10(4.d0)+2.5d0*log10(Te)-5040.d0*Xe_He21/Te-log10(Pe)-0.48d0
+      log_He32=2.5d0*log10(Te)-5040.d0*Xe_He32/Te-log10(Pe)-0.48d0
+
+      w_H21=pow10_clamped(log_H21)
+      x_HII=w_H21/(1.d0+w_H21)
+
+      ! Normalize the three helium stages in logarithmic form to avoid
+      ! overflow in the product of the two Saha ratios.
+      log_He321=log_He21+log_He32
+      logScaleHe=max(zero,log_He21,log_He321)
+      term0=pow10_clamped(-logScaleHe)
+      term1=pow10_clamped(log_He21-logScaleHe)
+      term2=pow10_clamped(log_He321-logScaleHe)
+      denHe=term0+term1+term2
+      if (denHe>zero) then
+        x_HeII=term1/denHe
+        x_HeIII=term2/denHe
+      endif
+    end subroutine get_EUV_saha_fractions
+
+    subroutine solve_EUV_saha_charge_state(nH,Te,rHe,Ne_guess,x_HII,x_HeII,x_HeIII)
+      ! Radiation-only Saha closure at fixed total hydrogen density and
+      ! temperature.  It is used for an FI simulation, whose fully-ionized
+      ! electron density cannot consistently determine cool neutral fractions.
+      ! rHe belongs to the synthetic absorber and is not fed back into the
+      ! simulation equation of state, pressure, or temperature.
+      double precision, intent(in) :: nH,Te,rHe,Ne_guess
+      double precision, intent(out) :: x_HII,x_HeII,x_HeIII
+
+      integer, parameter :: max_iter=32
+      integer :: iter
+      double precision :: Ne,Ne_lo,Ne_hi,Ne_new,residual,derivative
+      double precision :: e_He,de_HII_dNe,de_He_dNe
+
+      x_HII=zero
+      x_HeII=zero
+      x_HeIII=zero
+      if (nH<=zero .or. Te<=zero) return
+
+      Ne_lo=max(1.d-30*nH,1.d-100)
+      Ne_hi=(1.d0+2.d0*rHe)*nH
+      Ne=min(max(Ne_guess,Ne_lo),Ne_hi)
+
+      do iter=1,max_iter
+        call get_EUV_saha_fractions(Te,Ne,x_HII,x_HeII,x_HeIII)
+        e_He=x_HeII+2.d0*x_HeIII
+        residual=Ne/nH-x_HII-rHe*e_He
+        if (abs(residual)<1.d-10) exit
+
+        if (residual>zero) then
+          Ne_hi=Ne
+        else
+          Ne_lo=Ne
+        endif
+
+        ! Analytic derivative of the charge-neutrality residual.  The
+        ! Newton step is kept inside a bisection bracket for robustness.
+        de_HII_dNe=-x_HII*(1.d0-x_HII)/Ne
+        de_He_dNe=(x_HeII*(e_He-1.d0) &
+             +2.d0*x_HeIII*(e_He-2.d0))/Ne
+        derivative=1.d0/nH-de_HII_dNe-rHe*de_He_dNe
+        Ne_new=Ne-residual/derivative
+        if (.not.(Ne_new>Ne_lo .and. Ne_new<Ne_hi)) then
+          Ne_new=0.5d0*(Ne_lo+Ne_hi)
+        endif
+        Ne=Ne_new
+      enddo
+
+      ! Ensure the returned fractions correspond to the final iterate.
+      call get_EUV_saha_fractions(Te,Ne,x_HII,x_HeII,x_HeIII)
+    end subroutine solve_EUV_saha_charge_state
+
+    subroutine get_EUV_HHe_opacity(wl,ixI^L,ixO^L,w,x,fl,kappa)
+      ! H I + He I + He II photoionization opacity in cm^-1.
+      use mod_eos, only: eos
+      use mod_eos_pi_tables, only: ionization_state_Tp
+
+      integer, intent(in) :: wl
+      integer, intent(in) :: ixI^L, ixO^L
+      double precision, intent(in) :: x(ixI^S,1:ndim)
+      double precision, intent(in) :: w(ixI^S,1:nw)
+      type(te_fluid), intent(in) :: fl
+      double precision, intent(out) :: kappa(ixI^S)
+
+      integer :: ix^D
+      double precision :: pth(ixI^S),rho(ixI^S),Rfactor(ixI^S),Te(ixI^S)
+      double precision :: Ne(ixI^S),nH(ixI^S)
+      double precision :: wave_ratio,s_H1,s_He1,s_He2
+      double precision :: x_HII,x_HeII,x_HeIII,iz_H,iz_He,Rdummy
+      double precision :: N_H1,N_He1,N_He2
+      double precision, parameter :: rHe_opacity=0.1d0
+      double precision, parameter :: sigma_H1=5.16d-20, sigma_He1=9.25d-19, sigma_He2=7.17d-19
+
+      call fl%get_pthermal(w,x,ixI^L,ixO^L,pth)
+      call fl%get_rho(w,x,ixI^L,ixO^L,rho)
+      call fl%get_var_Rfactor(w,x,ixI^L,ixO^L,Rfactor)
+      Te(ixO^S)=zero
+      {do ix^DB=ixOmin^DB,ixOmax^DB\}
+        if (rho(ix^D)>zero .and. Rfactor(ix^D)>zero) then
+          Te(ix^D)=pth(ix^D)/(rho(ix^D)*Rfactor(ix^D))*unit_temperature
+        endif
+      {enddo\}
+
+      ! nH always follows the mass density and composition of the simulated
+      ! gas.  rHe_opacity is deliberately applied only when constructing the
+      ! synthetic absorber below; it never changes this EOS conversion.
+      call eos%get_ne_nH(ixI^L, ixO^L, w, x, Ne, nH)
+      if (SI_unit) then
+        Ne(ixO^S)=Ne(ixO^S)*unit_numberdensity/1.d6
+        nH(ixO^S)=nH(ixO^S)*unit_numberdensity/1.d6
+      else
+        Ne(ixO^S)=Ne(ixO^S)*unit_numberdensity
+        nH(ixO^S)=nH(ixO^S)*unit_numberdensity
+      endif
+
+      wave_ratio=dble(wl)/171.d0
+      s_H1=zero
+      s_He1=zero
+      s_He2=zero
+      if (wl<=912) s_H1=wave_ratio**3*sigma_H1
+      if (wl<=504) s_He1=wave_ratio**2*sigma_He1
+      if (wl<=228) s_He2=wave_ratio**2.75d0*sigma_He2
+      kappa(ixO^S)=zero
+
+      {do ix^DB=ixOmin^DB,ixOmax^DB\}
+        if (Te(ix^D)>zero .and. nH(ix^D)>zero) then
+          select case (trim(eos%eos_type))
+          case ('PI')
+            ! Reuse the ionisation state of the PI backend.  In its helium
+            ! convention iz_He is the fraction ionised at least once and
+            ! iz_He**2 the fraction ionised twice.
+            call ionization_state_Tp(Te(ix^D)/unit_temperature,pth(ix^D), &
+                 Rdummy,iz_H,iz_He)
+            x_HII=iz_H
+            x_HeII=iz_He*(1.d0-iz_He)
+            x_HeIII=iz_He*iz_He
+          case ('LTE')
+            ! LTE stores the self-consistent total electron density rather
+            ! than separate H/He populations.  Reconstruct the helium stages
+            ! at that EOS electron density and temperature, then retain the
+            ! simulated ne/nH exactly when obtaining the hydrogen fraction.
+            if (Ne(ix^D)>zero) then
+              call get_EUV_saha_fractions(Te(ix^D),Ne(ix^D), &
+                   x_HII,x_HeII,x_HeIII)
+              if (trim(eos%method)=='analytic') then
+                ! The analytic LTE option is explicitly H-only below its FI
+                ! bypass, so its stored ne/nH is the hydrogen ion fraction.
+                x_HII=min(one,max(zero,Ne(ix^D)/nH(ix^D)))
+              else
+                x_HII=min(one,max(zero,Ne(ix^D)/nH(ix^D) &
+                     -eos%He_abundance*(x_HeII+2.d0*x_HeIII)))
+              endif
+            else
+              call solve_EUV_saha_charge_state(nH(ix^D),Te(ix^D), &
+                   rHe_opacity,Ne(ix^D),x_HII,x_HeII,x_HeIII)
+            endif
+          case default
+            ! FI supplies a fully-ionized Ne even when its rho,T state is
+            ! cool.  Discard that Ne constraint and solve charge neutrality
+            ! at fixed simulated nH and T for the radiation post-processing.
+            call solve_EUV_saha_charge_state(nH(ix^D),Te(ix^D), &
+                 rHe_opacity,Ne(ix^D),x_HII,x_HeII,x_HeIII)
+          end select
+
+          N_H1=nH(ix^D)*(1.d0-x_HII)
+          N_He1=rHe_opacity*nH(ix^D)*(1.d0-x_HeII-x_HeIII)
+          N_He2=rHe_opacity*nH(ix^D)*x_HeII
+          kappa(ix^D)=max(zero,N_H1*s_H1+N_He1*s_He1+N_He2*s_He2)
+        endif
+      {enddo\}
+    end subroutine get_EUV_HHe_opacity
+
+    subroutine get_pseudo_current(igrid,ixI^L,ixO^L,w,source)
+      integer, intent(in) :: igrid
+      integer, intent(in) :: ixI^L, ixO^L
+      double precision, intent(in) :: w(ixI^S,1:nw)
+      double precision, intent(out) :: source(ixI^S)
+
+      integer :: ix^D,idir,idirmin,idirmin0
+      double precision :: current(ixI^S,7-2*ndir:3)
+
+      if (.not. allocated(iw_mag)) then
+        call mpistop("emission_model=pseudo_current needs magnetic-field variables")
+      endif
+
+      idirmin0=7-2*ndir
+      current=zero
+      call curlvector(w(ixI^S,iw_mag(1:ndir)),ixI^L,ixO^L,current,idirmin,idirmin0,ndir)
+      if (B0field) then
+        current(ixO^S,idirmin0:3)=current(ixO^S,idirmin0:3)+ps(igrid)%J0(ixO^S,idirmin0:3)
+      endif
+
+      source(ixI^S)=zero
+      {do ix^DB=ixOmin^DB,ixOmax^DB\}
+        do idir=idirmin0,3
+          source(ix^D)=source(ix^D)+current(ix^D,idir)**2
+        enddo
+      {enddo\}
+    end subroutine get_pseudo_current
+
+    subroutine get_radio_ff_source_opacity(ixI^L,ixO^L,w,x,fl,source,kappa)
+      use mod_eos, only: eos
+
+      integer, intent(in) :: ixI^L, ixO^L
+      double precision, intent(in) :: x(ixI^S,1:ndim)
+      double precision, intent(in) :: w(ixI^S,1:nw)
+      type(te_fluid), intent(in) :: fl
+      double precision, intent(out) :: source(ixI^S),kappa(ixI^S)
+
+      integer :: ix^D
+      double precision :: pth(ixI^S),Te(ixI^S),Ne(ixI^S)
+      double precision :: nH_dummy(ixI^S),gff
+
+      call fl%get_pthermal(w,x,ixI^L,ixO^L,pth)
+      call fl%get_rho(w,x,ixI^L,ixO^L,Ne)
+      call fl%get_var_Rfactor(w,x,ixI^L,ixO^L,Te)
+      Te(ixO^S)=pth(ixO^S)/(Ne(ixO^S)*Te(ixO^S))*unit_temperature
+      call eos%get_ne_nH(ixI^L,ixO^L,w, x,Ne,nH_dummy)
+      if (SI_unit) then
+        Ne(ixO^S)=Ne(ixO^S)*unit_numberdensity/1.d6
+      else
+        Ne(ixO^S)=Ne(ixO^S)*unit_numberdensity
+      endif
+
+      source(ixI^S)=zero
+      kappa(ixI^S)=zero
+      {do ix^DB=ixOmin^DB,ixOmax^DB\}
+        if (Te(ix^D)>zero .and. Ne(ix^D)>zero) then
+          if (Te(ix^D)<2.d5) then
+            gff=18.2d0+1.5d0*log(Te(ix^D))-log(radio_frequency)
+          else
+            gff=24.5d0+log(Te(ix^D))-log(radio_frequency)
+          endif
+          gff=max(one,gff)
+          kappa(ix^D)=9.78d-3*Ne(ix^D)**2*gff/(radio_frequency**2*Te(ix^D)**1.5d0)
+          source(ix^D)=Te(ix^D)*kappa(ix^D)
+        endif
+      {enddo\}
+    end subroutine get_radio_ff_source_opacity
 
     subroutine get_line_info(wl,ion,mass,logTe,line_center,spatial_px,spectral_px,sigma_PSF,width_slit)
       ! get information of the spectral line
@@ -529,6 +1199,7 @@ module mod_thermal_emission
       ! unit [DN cm^-1 s^-1 pixel^-1]
       ! ingrate flux along line of sight: DN s^-1 pixel^-1
       use mod_global_parameters
+      use mod_eos, only: eos
 
       integer, intent(in) :: wl
       integer, intent(in) :: ixI^L, ixO^L
@@ -537,148 +1208,56 @@ module mod_thermal_emission
       type(te_fluid), intent(in) :: fl
       double precision, intent(out) :: flux(ixI^S)
 
-      integer :: n_table
-      double precision, allocatable :: t_table(:),f_table(:)
-      integer :: ix^D,iTt,i
-      double precision :: pth(ixI^S),Te(ixI^S),Ne(ixI^S)
-      double precision :: logT,logGT,GT
+      integer :: ix^D
+      double precision :: pth(ixI^S),rho(ixI^S),Rfactor(ixI^S),Te(ixI^S)
+      double precision :: Ne(ixI^S),nH(ixI^S)
 
-      ! selecting emission table 
-      select case(wl)
-      case(94)
-        n_table=n_aia
-        allocate(t_table(1:n_table))
-        allocate(f_table(1:n_table))
-        t_table(1:n_table)=t_aia(1:n_aia)
-        f_table(1:n_table)=f_94(1:n_aia)
-      case(131)
-        n_table=n_aia
-        allocate(t_table(1:n_table))
-        allocate(f_table(1:n_table))
-        t_table(1:n_table)=t_aia(1:n_aia)
-        f_table(1:n_table)=f_131(1:n_aia)
-      case(171)
-        n_table=n_aia
-        allocate(t_table(1:n_table))
-        allocate(f_table(1:n_table))
-        t_table(1:n_table)=t_aia(1:n_aia)
-        f_table(1:n_table)=f_171(1:n_aia)
-      case(193)
-        n_table=n_aia
-        allocate(t_table(1:n_table))
-        allocate(f_table(1:n_table))
-        t_table(1:n_table)=t_aia(1:n_aia)
-        f_table(1:n_table)=f_193(1:n_aia)
-      case(211)
-        n_table=n_aia
-        allocate(t_table(1:n_table))
-        allocate(f_table(1:n_table))
-        t_table(1:n_table)=t_aia(1:n_aia)
-        f_table(1:n_table)=f_211(1:n_aia)
-      case(304)
-        n_table=n_aia
-        allocate(t_table(1:n_table))
-        allocate(f_table(1:n_table))
-        t_table(1:n_table)=t_aia(1:n_aia)
-        f_table(1:n_table)=f_304(1:n_aia)
-      case(335)
-        n_table=n_aia
-        allocate(t_table(1:n_table))
-        allocate(f_table(1:n_table))
-        t_table(1:n_table)=t_aia(1:n_aia)
-        f_table(1:n_table)=f_335(1:n_aia)
-      case(1354)
-        n_table=n_iris
-        allocate(t_table(1:n_table))
-        allocate(f_table(1:n_table))
-        t_table(1:n_table)=t_iris(1:n_iris)
-        f_table(1:n_table)=f_1354(1:n_iris)
-      case(263)
-        n_table=n_eis
-        allocate(t_table(1:n_table))
-        allocate(f_table(1:n_table))
-        t_table(1:n_table)=t_eis1(1:n_eis)
-        f_table(1:n_table)=f_263(1:n_eis)
-      case(264)
-        n_table=n_eis
-        allocate(t_table(1:n_table))
-        allocate(f_table(1:n_table))
-        t_table(1:n_table)=t_eis2(1:n_eis)
-        f_table(1:n_table)=f_264(1:n_eis)
-      case(192)
-        n_table=n_eis
-        allocate(t_table(1:n_table))
-        allocate(f_table(1:n_table))
-        t_table(1:n_table)=t_eis2(1:n_eis)
-        f_table(1:n_table)=f_192(1:n_eis)
-      case(255)
-        n_table=n_eis
-        allocate(t_table(1:n_table))
-        allocate(f_table(1:n_table))
-        t_table(1:n_table)=t_eis2(1:n_eis)
-        f_table(1:n_table)=f_255(1:n_eis)
-      case default
-        allocate(t_table(1))
-        allocate(f_table(1))
-        call mpistop("Unknown wavelength")
-      end select
       call fl%get_pthermal(w,x,ixI^L,ixO^L,pth)
-      call fl%get_rho(w,x,ixI^L,ixO^L,Ne)
-      call fl%get_var_Rfactor(w,x,ixI^L,ixO^L,Te)
-      Te(ixO^S)=pth(ixO^S)/(Ne(ixO^S)*Te(ixO^S))*unit_temperature
+      call fl%get_rho(w,x,ixI^L,ixO^L,rho)
+      call fl%get_var_Rfactor(w,x,ixI^L,ixO^L,Rfactor)
+      Te(ixO^S)=pth(ixO^S)/(rho(ixO^S)*Rfactor(ixO^S))*unit_temperature
+
+      ! The tabulated response is multiplied by the physical emission-measure
+      ! factor ne*nH.  Both densities come from the active EOS so the source
+      ! remains consistent for FI, PI, and LTE simulations.
+      call eos%get_ne_nH(ixI^L, ixO^L, w, x, Ne, nH)
       if (SI_unit) then
         Ne(ixO^S)=Ne(ixO^S)*unit_numberdensity/1.d6 ! m^-3 -> cm-3
-        flux(ixO^S)=Ne(ixO^S)**2
+        nH(ixO^S)=nH(ixO^S)*unit_numberdensity/1.d6
       else
         Ne(ixO^S)=Ne(ixO^S)*unit_numberdensity
-        flux(ixO^S)=Ne(ixO^S)**2
+        nH(ixO^S)=nH(ixO^S)*unit_numberdensity
       endif
+      flux(ixO^S)=Ne(ixO^S)*nH(ixO^S)
 
       select case(wl)
-      case(94,131,171,193,211,304,335,1354)
-      ! temperature table in log
-        do i=1,n_table
-          if(f_table(i) .gt. 1.d-99) then
-            f_table(i)=log10(f_table(i))
-          else
-            f_table(i)=-99.d0
-          endif
-        enddo 
-        logGT=zero
-        {do ix^DB=ixOmin^DB,ixOmax^DB\}
-          logT=log10(Te(ix^D))
-          if (logT>=t_table(1) .and. logT<=t_table(n_table)) then
-            do iTt=1,n_table-1
-              if (logT>=t_table(iTt) .and. logT<t_table(iTt+1)) then
-                logGT=f_table(iTt)*(logT-t_table(iTt+1))/(t_table(iTt)-t_table(iTt+1))+&
-                      f_table(iTt+1)*(logT-t_table(iTt))/(t_table(iTt+1)-t_table(iTt))
-              endif
-            enddo
-            flux(ix^D)=flux(ix^D)*(10**(logGT))
-            if(flux(ix^D)<smalldouble) flux(ix^D)=0.d0
-          else
-            flux(ix^D)=zero
-          endif
-        {enddo\}
+      case(94)
+        call apply_temperature_response(ixI^L,ixO^L,Te,flux,t_aia,f_94,n_aia,.true.,.true.)
+      case(131)
+        call apply_temperature_response(ixI^L,ixO^L,Te,flux,t_aia,f_131,n_aia,.true.,.true.)
+      case(171)
+        call apply_temperature_response(ixI^L,ixO^L,Te,flux,t_aia,f_171,n_aia,.true.,.true.)
+      case(193)
+        call apply_temperature_response(ixI^L,ixO^L,Te,flux,t_aia,f_193,n_aia,.true.,.true.)
+      case(211)
+        call apply_temperature_response(ixI^L,ixO^L,Te,flux,t_aia,f_211,n_aia,.true.,.true.)
+      case(304)
+        call apply_temperature_response(ixI^L,ixO^L,Te,flux,t_aia,f_304,n_aia,.true.,.true.)
+      case(335)
+        call apply_temperature_response(ixI^L,ixO^L,Te,flux,t_aia,f_335,n_aia,.true.,.true.)
+      case(1354)
+        call apply_temperature_response(ixI^L,ixO^L,Te,flux,t_iris,f_1354,n_iris,.true.,.true.)
+      case(263)
+        call apply_temperature_response(ixI^L,ixO^L,Te,flux,t_eis1,f_263,n_eis,.false.,.false.)
+      case(264)
+        call apply_temperature_response(ixI^L,ixO^L,Te,flux,t_eis2,f_264,n_eis,.false.,.false.)
+      case(192)
+        call apply_temperature_response(ixI^L,ixO^L,Te,flux,t_eis2,f_192,n_eis,.false.,.false.)
+      case(255)
+        call apply_temperature_response(ixI^L,ixO^L,Te,flux,t_eis2,f_255,n_eis,.false.,.false.)
       case default
-      ! temperature table linear
-        {do ix^DB=ixOmin^DB,ixOmax^DB\}
-          if (Te(ix^D)>=t_table(1) .and. Te(ix^D)<=t_table(n_table)) then
-            do iTt=1,n_table-1
-              if (Te(ix^D)>=t_table(iTt) .and. Te(ix^D)<t_table(iTt+1)) then
-                GT=f_table(iTt)*(Te(ix^D)-t_table(iTt+1))/(t_table(iTt)-t_table(iTt+1))+&
-                   f_table(iTt+1)*(Te(ix^D)-t_table(iTt))/(t_table(iTt+1)-t_table(iTt))
-              endif
-            enddo
-            flux(ix^D)=flux(ix^D)*GT
-            if(flux(ix^D)<smalldouble) flux(ix^D)=0.d0
-          else
-            flux(ix^D)=zero
-          endif
-        {enddo\}
+        call mpistop("Unknown wavelength")
       end select
-
-      deallocate(t_table,f_table)
     end subroutine get_EUV
 
     subroutine get_SXR(ixI^L,ixO^L,w,x,fl,flux,El,Eu)
@@ -687,6 +1266,7 @@ module mod_thermal_emission
       !flux (cgs): photons cm^-3 s^-1
       !flux (SI): photons m^-3 s^-1
       use mod_global_parameters
+      use mod_eos, only: eos
 
       integer, intent(in)           :: ixI^L,ixO^L
       integer, intent(in)           :: El,Eu
@@ -701,6 +1281,7 @@ module mod_thermal_emission
       double precision :: pth(ixI^S),Te(ixI^S),kbT(ixI^S)
       double precision :: Ne(ixI^S),gff(ixI^S),fi(ixI^S)
       double precision :: EM(ixI^S)
+      double precision :: nH_dummy(ixI^S)
 
       I0=3.01d-15   ! I0*4*pi*AU**2, I0 from Pinto (2015)
       kb=const_kb
@@ -711,6 +1292,8 @@ module mod_thermal_emission
       call fl%get_rho(w,x,ixI^L,ixO^L,Ne)
       call fl%get_var_Rfactor(w,x,ixI^L,ixO^L,Te)
       Te(ixO^S)=pth(ixO^S)/(Ne(ixO^S)*Te(ixO^S))*unit_temperature
+      ! get actual electron density from EoS (replaces rho with ne)
+      call eos%get_ne_nH(ixI^L, ixO^L, w, x, Ne, nH_dummy)
       if (SI_unit) then
         Ne(ixO^S)=Ne(ixO^S)*unit_numberdensity/1.d6 ! m^-3 -> cm-3
         EM(ixO^S)=(Ne(ixO^S))**2*1.d6 ! cm^-3 m^-3
@@ -726,7 +1309,7 @@ module mod_thermal_emission
         {do ix^DB=ixOmin^DB,ixOmax^DB\}
           if (kbT(ix^D)>0.01*Ei) then
             if(kbT(ix^D)<Ei) gff(ix^D)=(kbT(ix^D)/Ei)**0.4
-            fi(ix^D)=(EM(ix^D)*gff(ix^D))*dexp(-Ei/(kbT(ix^D)))/(Ei*dsqrt(kbT(ix^D)))
+            fi(ix^D)=(EM(ix^D)*gff(ix^D))*exp_clamped(-Ei/(kbT(ix^D)))/(Ei*dsqrt(kbT(ix^D)))
           else
             fi(ix^D)=zero
           endif
@@ -766,6 +1349,7 @@ module mod_thermal_emission
 
     subroutine get_GOES_flux_grid(ixI^L,ixO^L,w,x,dV,xbox^L,xb^L,fl,eflux_grid)
       use mod_global_parameters
+      use mod_eos, only: eos
 
       integer, intent(in)           :: ixI^L,ixO^L
       double precision, intent(in)  :: x(ixI^S,1:ndim),dV(ixI^S)
@@ -779,6 +1363,7 @@ module mod_thermal_emission
       double precision :: I0,kb,keV,dE,Ei,El,Eu,A_cgs
       double precision :: pth(ixI^S),Te(ixI^S),kbT(ixI^S)
       double precision :: Ne(ixI^S),EM(ixI^S)
+      double precision :: nH_dummy(ixI^S)
       double precision :: gff,fi,erg_SI
 
       ! check whether the grid is inside given box
@@ -805,6 +1390,8 @@ module mod_thermal_emission
         call fl%get_rho(w,x,ixI^L,ixb^L,Ne)
         call fl%get_var_Rfactor(w,x,ixI^L,ixb^L,Te)
         Te(ixb^S)=pth(ixb^S)/(Ne(ixb^S)*Te(ixb^S))*unit_temperature
+        ! get actual electron density from EoS (replaces rho with ne)
+        call eos%get_ne_nH(ixI^L, ixb^L, w, x, Ne, nH_dummy)
         if (SI_unit) then
           Ne(ixO^S)=Ne(ixO^S)*unit_numberdensity/1.d6 ! m^-3 -> cm-3
           EM(ixb^S)=(I0*(Ne(ixb^S))**2)*dV(ixb^S)*(unit_length*1.d2)**3 ! cm^-3
@@ -824,7 +1411,7 @@ module mod_thermal_emission
               else
                 gff=1.d0
               endif
-              fi=(EM(ix^D)*gff)*dexp(-Ei/(kbT(ix^D)))/(Ei*dsqrt(kbT(ix^D)))
+              fi=(EM(ix^D)*gff)*exp_clamped(-Ei/(kbT(ix^D)))/(Ei*dsqrt(kbT(ix^D)))
               eflux_grid=eflux_grid+fi*dE*Ei
             endif
           {enddo\}
@@ -848,6 +1435,7 @@ module mod_thermal_emission
       double precision :: xslit,arcsec
 
       datatype='spectrum_euv'
+      call check_synthetic_emission_options(datatype)
       arcsec=7.25d7/unit_length
       call get_line_info(spectrum_wl,ion,mass,logTe,lineCent,spaceRsl,wlRsl,sigma_PSF,wslit)
 
@@ -1203,7 +1791,7 @@ module mod_thermal_emission
           if (SI_unit) dL=dL*1.d2
           ! integral pixel flux
           do iwL=1,numWL
-            flux_pix=flux(ix^D)*wlRsl*dL*exp(-(wL(iwL)-wlc)**2/(2*wlwd**2))/(sqrt(2*dpi)*wlwd)
+            flux_pix=flux(ix^D)*wlRsl*dL*exp_clamped(-(wL(iwL)-wlc)**2/(2*wlwd**2))/(sqrt(2*dpi)*wlwd)
             if (flux_pix>smalldouble) then
               flux_pix=flux_pix*wslit/spaceRsl
               spectra(iwL,ixSmin:ixSmax)=spectra(iwL,ixSmin:ixSmax)+flux_pix
@@ -1506,6 +2094,7 @@ module mod_thermal_emission
 
       t0=MPI_WTIME()
       datatype='image_euv'
+      call check_synthetic_emission_options(datatype)
       call get_line_info(wavelength,ion,mass,logTe,lineCent,spaceRsl,wlRsl,sigma_PSF,wslit)
 
       if (mype==0) then
@@ -1516,17 +2105,21 @@ module mod_thermal_emission
       endif
 
       if (dat_resolution) then
-        if (coordinate/=cartesian) call MPISTOP('EUV synthesis: only cartesian is supported for .dat resolution!')
+        if (.not. slab .and. .not. (coordinate==spherical .and. trim(ray_method_active)=='spherical')) &
+          call MPISTOP('EUV dat-resolution needs Cartesian or spherical native rays')
         if (mype==0) then
-          write(*,'(a,f7.1,a,f7.1,a,f5.1,a,f5.1,a)') ' Supposed Pixel: ',spaceRsl*725.0,' km x ',spaceRsl*725.0, & 
-                                                     ' km  (', spaceRsl, ' arcsec x ', spaceRsl, ' arcsec)'
+          print *, 'Data-resolution image requested; native output pixel sizes are reported below.'
           if (SI_unit) then
             write(*,'(a,f8.1,a)') ' Unit of length: ',unit_length/1.d6,' Mm'
           else
             write(*,'(a,f8.1,a)') ' Unit of length: ',unit_length/1.d8,' Mm'
           endif
         endif
-        if (LOS_phi==0 .and. LOS_theta==90) then
+        if (coordinate==spherical .and. trim(ray_method_active)=='spherical') then
+          call get_image_datresol(qunit,datatype,fl)
+        else if (trim(ray_method_active)=='cart') then
+          call get_image_datresol(qunit,datatype,fl)
+        else if (LOS_phi==0 .and. LOS_theta==90) then
           call get_image_datresol(qunit,datatype,fl)
         else if (LOS_phi==90 .and. LOS_theta==90) then
           call get_image_datresol(qunit,datatype,fl)
@@ -1549,7 +2142,7 @@ module mod_thermal_emission
             endif
           endif
         endif
-        if (coordinate==cartesian) then
+        if (slab) then
           if (mype==0) write(*,'(a,f8.3,f8.3,f8.3,a)') ' Mapping: [',x_origin(1),x_origin(2),x_origin(3), &
                                                      '] of the simulation box is located at [X=0,Y=0] of the image'
             call get_image(qunit,datatype,fl)
@@ -1578,6 +2171,7 @@ module mod_thermal_emission
 
       t0=MPI_WTIME()
       datatype='image_sxr'
+      call check_synthetic_emission_options(datatype)
       RHESSI_rsl=2.3/instrument_resolution_factor
 
       if (mype==0) then
@@ -1668,6 +2262,7 @@ module mod_thermal_emission
       if (mype==0) print *, 'Unit of white light flux: average Sun brightness'
 
       datatype='image_whitelight'
+      call check_synthetic_emission_options(datatype)
 
       if (mype==0) then
         if (activate_unit_arcsec) then
@@ -1692,8 +2287,329 @@ module mod_thermal_emission
 
     end subroutine get_whitelight_image
 
+    subroutine postprocess_euv_instrument_image(nSrc1,nSrc2,xSrc1,xSrc2,dxSrc1,dxSrc2,&
+                                                EUV,Dpl,nOut1,nOut2,xOut1,xOut2,&
+                                                dxOut1,dxOut2,wOut,numWOut,Tau,EUVthin)
+      use mod_global_parameters
+      use mod_constants
+
+      integer, intent(in) :: nSrc1,nSrc2
+      double precision, intent(in) :: xSrc1(nSrc1),xSrc2(nSrc2)
+      double precision, intent(in) :: dxSrc1(nSrc1),dxSrc2(nSrc2)
+      double precision, intent(in) :: EUV(nSrc1,nSrc2),Dpl(nSrc1,nSrc2)
+      integer, intent(out) :: nOut1,nOut2,numWOut
+      double precision, allocatable, intent(out) :: xOut1(:),xOut2(:),dxOut1(:),dxOut2(:)
+      double precision, allocatable, intent(out) :: wOut(:,:,:)
+      double precision, intent(in), optional :: Tau(nSrc1,nSrc2),EUVthin(nSrc1,nSrc2)
+
+      integer :: mass,ixS1,ixS2,ixP1,ixP2,ixC1,ixC2,iw
+      integer :: ixPmin1,ixPmax1,ixPmin2,ixPmax2
+      character(30) :: ion
+      double precision :: logTe,lineCent,spaceRsl,wlRsl,sigma_PSF,wslit
+      double precision :: arcsec,dxInst,xMin1,xMax1,xMin2,xMax2,xCent1,xCent2
+      double precision :: sigma0,xerfmin1,xerfmax1,xerfmin2,xerfmax2
+      double precision :: factor,weightSum,weightNorm,thinVal,tauVal
+      double precision, allocatable :: dplNum(:,:),thinOut(:,:),tauOut(:,:),tauWeight(:,:)
+
+      call get_line_info(wavelength,ion,mass,logTe,lineCent,spaceRsl,wlRsl,sigma_PSF,wslit)
+      if (SI_unit) then
+        arcsec=7.25d5/unit_length
+      else
+        arcsec=7.25d7/unit_length
+      endif
+      dxInst=spaceRsl*arcsec
+      if (dxInst<=zero) call mpistop("instrument_postprocess has non-positive pixel size")
+
+      xMin1=minval(xSrc1-half*dxSrc1)
+      xMax1=maxval(xSrc1+half*dxSrc1)
+      xMin2=minval(xSrc2-half*dxSrc2)
+      xMax2=maxval(xSrc2+half*dxSrc2)
+      xCent1=half*(xMin1+xMax1)
+      xCent2=half*(xMin2+xMax2)
+      nOut1=16*max(1,ceiling((xMax1-xMin1)/(16.d0*dxInst)))
+      nOut2=16*max(1,ceiling((xMax2-xMin2)/(16.d0*dxInst)))
+      xMin1=xCent1-half*dble(nOut1)*dxInst
+      xMin2=xCent2-half*dble(nOut2)*dxInst
+
+      allocate(xOut1(nOut1),xOut2(nOut2),dxOut1(nOut1),dxOut2(nOut2))
+      do ixP1=1,nOut1
+        xOut1(ixP1)=xMin1+dxInst*(dble(ixP1)-half)
+        dxOut1(ixP1)=dxInst
+      enddo
+      do ixP2=1,nOut2
+        xOut2(ixP2)=xMin2+dxInst*(dble(ixP2)-half)
+        dxOut2(ixP2)=dxInst
+      enddo
+
+      numWOut=2
+      if (present(Tau) .and. output_tau) numWOut=numWOut+1
+      if (present(EUVthin) .and. output_absorption_fraction) numWOut=numWOut+1
+      allocate(wOut(nOut1,nOut2,numWOut),dplNum(nOut1,nOut2))
+      wOut=zero
+      dplNum=zero
+      if (present(EUVthin)) then
+        allocate(thinOut(nOut1,nOut2))
+        thinOut=zero
+      endif
+      if (present(Tau) .and. output_tau) then
+        allocate(tauOut(nOut1,nOut2),tauWeight(nOut1,nOut2))
+        tauOut=zero
+        tauWeight=zero
+      endif
+
+      sigma0=sigma_PSF*dxInst
+      do ixS1=1,nSrc1
+        do ixS2=1,nSrc2
+          thinVal=zero
+          tauVal=zero
+          if (present(EUVthin)) thinVal=EUVthin(ixS1,ixS2)
+          if (present(Tau)) tauVal=Tau(ixS1,ixS2)
+          if (abs(EUV(ixS1,ixS2))<=smalldouble .and. abs(thinVal)<=smalldouble .and. &
+              abs(tauVal)<=smalldouble) cycle
+
+          ixC1=floor((xSrc1(ixS1)-(xOut1(1)-half*dxInst))/dxInst)+1
+          ixC2=floor((xSrc2(ixS2)-(xOut2(1)-half*dxInst))/dxInst)+1
+          ixPmin1=max(1,ixC1-3)
+          ixPmax1=min(nOut1,ixC1+3)
+          ixPmin2=max(1,ixC2-3)
+          ixPmax2=min(nOut2,ixC2+3)
+
+          weightSum=zero
+          do ixP1=ixPmin1,ixPmax1
+            do ixP2=ixPmin2,ixPmax2
+              xerfmin1=((xOut1(ixP1)-half*dxInst)-xSrc1(ixS1))/(sqrt(2.d0)*sigma0)
+              xerfmax1=((xOut1(ixP1)+half*dxInst)-xSrc1(ixS1))/(sqrt(2.d0)*sigma0)
+              xerfmin2=((xOut2(ixP2)-half*dxInst)-xSrc2(ixS2))/(sqrt(2.d0)*sigma0)
+              xerfmax2=((xOut2(ixP2)+half*dxInst)-xSrc2(ixS2))/(sqrt(2.d0)*sigma0)
+              factor=(erfc(xerfmin1)-erfc(xerfmax1))*(erfc(xerfmin2)-erfc(xerfmax2))/4.d0
+              weightSum=weightSum+factor
+            enddo
+          enddo
+          if (weightSum<=zero) cycle
+
+          do ixP1=ixPmin1,ixPmax1
+            do ixP2=ixPmin2,ixPmax2
+              xerfmin1=((xOut1(ixP1)-half*dxInst)-xSrc1(ixS1))/(sqrt(2.d0)*sigma0)
+              xerfmax1=((xOut1(ixP1)+half*dxInst)-xSrc1(ixS1))/(sqrt(2.d0)*sigma0)
+              xerfmin2=((xOut2(ixP2)-half*dxInst)-xSrc2(ixS2))/(sqrt(2.d0)*sigma0)
+              xerfmax2=((xOut2(ixP2)+half*dxInst)-xSrc2(ixS2))/(sqrt(2.d0)*sigma0)
+              factor=(erfc(xerfmin1)-erfc(xerfmax1))*(erfc(xerfmin2)-erfc(xerfmax2))/4.d0
+              weightNorm=factor/weightSum
+              wOut(ixP1,ixP2,1)=wOut(ixP1,ixP2,1)+EUV(ixS1,ixS2)*weightNorm
+              dplNum(ixP1,ixP2)=dplNum(ixP1,ixP2)+EUV(ixS1,ixS2)*Dpl(ixS1,ixS2)*weightNorm
+              if (present(EUVthin)) thinOut(ixP1,ixP2)=thinOut(ixP1,ixP2)+thinVal*weightNorm
+              if (present(Tau) .and. output_tau) then
+                tauOut(ixP1,ixP2)=tauOut(ixP1,ixP2)+tauVal*weightNorm
+                tauWeight(ixP1,ixP2)=tauWeight(ixP1,ixP2)+weightNorm
+              endif
+            enddo
+          enddo
+        enddo
+      enddo
+
+      do ixP1=1,nOut1
+        do ixP2=1,nOut2
+          if (wOut(ixP1,ixP2,1)>smalldouble) then
+            wOut(ixP1,ixP2,2)=dplNum(ixP1,ixP2)/wOut(ixP1,ixP2,1)
+          else
+            wOut(ixP1,ixP2,2)=zero
+          endif
+        enddo
+      enddo
+      iw=2
+      if (present(Tau) .and. output_tau) then
+        iw=iw+1
+        do ixP1=1,nOut1
+          do ixP2=1,nOut2
+            if (tauWeight(ixP1,ixP2)>zero) then
+              wOut(ixP1,ixP2,iw)=tauOut(ixP1,ixP2)/tauWeight(ixP1,ixP2)
+            else
+              wOut(ixP1,ixP2,iw)=zero
+            endif
+          enddo
+        enddo
+      endif
+      if (present(EUVthin) .and. output_absorption_fraction) then
+        iw=iw+1
+        do ixP1=1,nOut1
+          do ixP2=1,nOut2
+            if (thinOut(ixP1,ixP2)>smalldouble) then
+              wOut(ixP1,ixP2,iw)=min(one,max(zero,(thinOut(ixP1,ixP2)-wOut(ixP1,ixP2,1))/thinOut(ixP1,ixP2)))
+            else
+              wOut(ixP1,ixP2,iw)=zero
+            endif
+          enddo
+        enddo
+      endif
+
+      if (mype==0) then
+        write(*,'(a,2(i8,1x),a,2(i8,1x),a,1pe12.5)') &
+          ' instrument_postprocess EUV grid src/out: ',nSrc1,nSrc2,' -> ',nOut1,nOut2,' dx=',dxInst
+      endif
+
+      deallocate(dplNum)
+      if (allocated(thinOut)) deallocate(thinOut)
+      if (allocated(tauOut)) deallocate(tauOut,tauWeight)
+    end subroutine postprocess_euv_instrument_image
+
+    subroutine postprocess_radio_beam_image(nSrc1,nSrc2,xSrc1,xSrc2,dxSrc1,dxSrc2,&
+                                            Bright,nOut1,nOut2,xOut1,xOut2,&
+                                            dxOut1,dxOut2,wOut,numWOut,Tau,BrightThin)
+      use mod_global_parameters
+
+      integer, intent(in) :: nSrc1,nSrc2
+      double precision, intent(in) :: xSrc1(nSrc1),xSrc2(nSrc2)
+      double precision, intent(in) :: dxSrc1(nSrc1),dxSrc2(nSrc2)
+      double precision, intent(in) :: Bright(nSrc1,nSrc2)
+      integer, intent(out) :: nOut1,nOut2,numWOut
+      double precision, allocatable, intent(out) :: xOut1(:),xOut2(:),dxOut1(:),dxOut2(:)
+      double precision, allocatable, intent(out) :: wOut(:,:,:)
+      double precision, intent(in), optional :: Tau(nSrc1,nSrc2),BrightThin(nSrc1,nSrc2)
+
+      integer :: ixS1,ixS2,ixP1,ixP2,ixC1,ixC2,iw,nStencil
+      integer :: ixPmin1,ixPmax1,ixPmin2,ixPmax2
+      double precision :: arcsec,beamPixel,beamSigma,xMin1,xMax1,xMin2,xMax2,xCent1,xCent2
+      double precision :: distance1,distance2,weight,cellArea,thinVal,tauVal
+      double precision, allocatable :: norm(:,:),thinOut(:,:),tauOut(:,:),tauNorm(:,:)
+
+      if (SI_unit) then
+        arcsec=7.25d5/unit_length
+      else
+        arcsec=7.25d7/unit_length
+      endif
+      beamSigma=radio_beam_fwhm*arcsec/sqrt(8.d0*log(2.d0))
+      if (radio_beam_pixel_size>zero) then
+        beamPixel=radio_beam_pixel_size*arcsec
+      else
+        beamPixel=radio_beam_fwhm*arcsec/3.d0
+      endif
+      if (beamSigma<=zero .or. beamPixel<=zero) then
+        call mpistop("radio beam postprocess has non-positive beam or pixel size")
+      endif
+
+      xMin1=minval(xSrc1-half*dxSrc1)
+      xMax1=maxval(xSrc1+half*dxSrc1)
+      xMin2=minval(xSrc2-half*dxSrc2)
+      xMax2=maxval(xSrc2+half*dxSrc2)
+      xCent1=half*(xMin1+xMax1)
+      xCent2=half*(xMin2+xMax2)
+      nOut1=16*max(1,ceiling((xMax1-xMin1)/(16.d0*beamPixel)))
+      nOut2=16*max(1,ceiling((xMax2-xMin2)/(16.d0*beamPixel)))
+      xMin1=xCent1-half*dble(nOut1)*beamPixel
+      xMin2=xCent2-half*dble(nOut2)*beamPixel
+
+      allocate(xOut1(nOut1),xOut2(nOut2),dxOut1(nOut1),dxOut2(nOut2))
+      do ixP1=1,nOut1
+        xOut1(ixP1)=xMin1+beamPixel*(dble(ixP1)-half)
+        dxOut1(ixP1)=beamPixel
+      enddo
+      do ixP2=1,nOut2
+        xOut2(ixP2)=xMin2+beamPixel*(dble(ixP2)-half)
+        dxOut2(ixP2)=beamPixel
+      enddo
+
+      numWOut=1
+      if (present(Tau) .and. output_tau) numWOut=numWOut+1
+      if (present(BrightThin) .and. output_absorption_fraction) numWOut=numWOut+1
+      allocate(wOut(nOut1,nOut2,numWOut),norm(nOut1,nOut2))
+      wOut=zero
+      norm=zero
+      if (present(BrightThin)) then
+        allocate(thinOut(nOut1,nOut2))
+        thinOut=zero
+      endif
+      if (present(Tau) .and. output_tau) then
+        allocate(tauOut(nOut1,nOut2),tauNorm(nOut1,nOut2))
+        tauOut=zero
+        tauNorm=zero
+      endif
+
+      nStencil=max(3,ceiling(4.d0*beamSigma/beamPixel)+1)
+      do ixS1=1,nSrc1
+        do ixS2=1,nSrc2
+          thinVal=zero
+          tauVal=zero
+          if (present(BrightThin)) thinVal=BrightThin(ixS1,ixS2)
+          if (present(Tau)) tauVal=Tau(ixS1,ixS2)
+          if (abs(Bright(ixS1,ixS2))<=smalldouble .and. abs(thinVal)<=smalldouble .and. &
+              abs(tauVal)<=smalldouble) cycle
+
+          ixC1=floor((xSrc1(ixS1)-(xOut1(1)-half*beamPixel))/beamPixel)+1
+          ixC2=floor((xSrc2(ixS2)-(xOut2(1)-half*beamPixel))/beamPixel)+1
+          ixPmin1=max(1,ixC1-nStencil)
+          ixPmax1=min(nOut1,ixC1+nStencil)
+          ixPmin2=max(1,ixC2-nStencil)
+          ixPmax2=min(nOut2,ixC2+nStencil)
+          cellArea=max(smalldouble,dxSrc1(ixS1)*dxSrc2(ixS2))
+
+          do ixP1=ixPmin1,ixPmax1
+            distance1=xOut1(ixP1)-xSrc1(ixS1)
+            do ixP2=ixPmin2,ixPmax2
+              distance2=xOut2(ixP2)-xSrc2(ixS2)
+              weight=exp_clamped(-half*(distance1**2+distance2**2)/beamSigma**2)*cellArea
+              wOut(ixP1,ixP2,1)=wOut(ixP1,ixP2,1)+Bright(ixS1,ixS2)*weight
+              norm(ixP1,ixP2)=norm(ixP1,ixP2)+weight
+              if (present(BrightThin)) thinOut(ixP1,ixP2)=thinOut(ixP1,ixP2)+thinVal*weight
+              if (present(Tau) .and. output_tau) then
+                tauOut(ixP1,ixP2)=tauOut(ixP1,ixP2)+tauVal*weight
+                tauNorm(ixP1,ixP2)=tauNorm(ixP1,ixP2)+weight
+              endif
+            enddo
+          enddo
+        enddo
+      enddo
+
+      do ixP1=1,nOut1
+        do ixP2=1,nOut2
+          if (norm(ixP1,ixP2)>zero) then
+            wOut(ixP1,ixP2,1)=wOut(ixP1,ixP2,1)/norm(ixP1,ixP2)
+            if (present(BrightThin)) thinOut(ixP1,ixP2)=thinOut(ixP1,ixP2)/norm(ixP1,ixP2)
+          else
+            wOut(ixP1,ixP2,1)=zero
+            if (present(BrightThin)) thinOut(ixP1,ixP2)=zero
+          endif
+        enddo
+      enddo
+
+      iw=1
+      if (present(Tau) .and. output_tau) then
+        iw=iw+1
+        do ixP1=1,nOut1
+          do ixP2=1,nOut2
+            if (tauNorm(ixP1,ixP2)>zero) then
+              wOut(ixP1,ixP2,iw)=tauOut(ixP1,ixP2)/tauNorm(ixP1,ixP2)
+            else
+              wOut(ixP1,ixP2,iw)=zero
+            endif
+          enddo
+        enddo
+      endif
+      if (present(BrightThin) .and. output_absorption_fraction) then
+        iw=iw+1
+        do ixP1=1,nOut1
+          do ixP2=1,nOut2
+            if (thinOut(ixP1,ixP2)>smalldouble) then
+              wOut(ixP1,ixP2,iw)=min(one,max(zero,(thinOut(ixP1,ixP2)-wOut(ixP1,ixP2,1))/thinOut(ixP1,ixP2)))
+            else
+              wOut(ixP1,ixP2,iw)=zero
+            endif
+          enddo
+        enddo
+      endif
+
+      if (mype==0) then
+        write(*,'(a,2(i8,1x),a,2(i8,1x),a,2(1pe12.5,1x))') &
+          ' radio_beam_postprocess grid src/out: ',nSrc1,nSrc2,' -> ',nOut1,nOut2,&
+          ' fwhm/pixel=',radio_beam_fwhm,beamPixel/arcsec
+      endif
+
+      deallocate(norm)
+      if (allocated(thinOut)) deallocate(thinOut)
+      if (allocated(tauOut)) deallocate(tauOut,tauNorm)
+    end subroutine postprocess_radio_beam_image
+
     subroutine get_image_datresol(qunit,datatype,fl)
-      ! integrate emission flux along line of sight (LOS) 
+      ! integrate emission flux along line of sight (LOS)
       ! in a 3D simulation box and get a 2D EUV image
       use mod_global_parameters
       use mod_constants
@@ -1705,25 +2621,104 @@ module mod_thermal_emission
       double precision :: dx^D
       integer :: numX^D,ix^D
       double precision, allocatable :: EUV(:,:),EUVs(:,:),Dpl(:,:),Dpls(:,:)
+      double precision, allocatable :: EUVthin(:,:),Tau(:,:)
       double precision, allocatable :: SXR(:,:),SXRs(:,:),wI(:,:,:)
       double precision, allocatable :: xI1(:),xI2(:),dxI1(:),dxI2(:),dxIi
-      integer :: numXI1,numXI2,numSI,numWI
+      integer :: numXI1,numXI2,numSI,numWI,iw
       double precision :: xI^L
       integer :: iigrid,igrid,i,j
       double precision, allocatable :: xIF1(:),xIF2(:),dxIF1(:),dxIF2(:)
+      double precision, allocatable :: xIP1(:),xIP2(:),dxIP1(:),dxIP2(:),wIP(:,:,:)
       integer :: nXIF1,nXIF2
+      integer :: nXIP1,nXIP2,numWIP
       double precision :: xIF^L
+      double precision :: vec_cor(1:3),xI_cor(1:2),dxDDA,xIcent1,xIcent2
 
-      double precision :: unitv,arcsec,RHESSI_rsl
+      double precision :: unitv,arcsec,RHESSI_rsl,length_to_km
       integer :: strtype^D,nstrb^D,nbb^D,nuni^D,nstr^D,bnx^D
       double precision :: qs^D,dxfirst^D,dxmid^D,lenstr^D
+      logical :: has_doppler_output,has_thick_output
 
       numX1=domain_nx1*2**(refine_max_level-1)
       numX2=domain_nx2*2**(refine_max_level-1)
       numX3=domain_nx3*2**(refine_max_level-1)
 
+      if (trim(ray_method_active)=='cart') call init_vectors_cartesian()
+      if (coordinate==spherical .and. trim(ray_method_active)=='spherical') call init_vectors_spherical()
+
       ! parameters for creating table
-      if (LOS_phi==0 .and. LOS_theta==90) then
+      if (coordinate==spherical .and. trim(ray_method_active)=='spherical') then
+        call get_sph_intersection_image_bounds(xIFmin1,xIFmax1,xIFmin2,xIFmax2)
+        call get_native_datresol_spacing(dxDDA)
+        xIcent1=half*(xIFmin1+xIFmax1)
+        xIcent2=half*(xIFmin2+xIFmax2)
+        nXIF1=max(1,ceiling((xIFmax1-xIFmin1)/dxDDA))
+        nXIF2=max(1,ceiling((xIFmax2-xIFmin2)/dxDDA))
+        xIFmin1=xIcent1-half*dble(nXIF1)*dxDDA
+        xIFmax1=xIcent1+half*dble(nXIF1)*dxDDA
+        xIFmin2=xIcent2-half*dble(nXIF2)*dxDDA
+        xIFmax2=xIcent2+half*dble(nXIF2)*dxDDA
+        bnx1=1
+        bnx2=1
+        nbb1=nXIF1
+        nbb2=nXIF2
+        strtype1=0
+        strtype2=0
+        nstrb1=0
+        nstrb2=0
+        qs1=one
+        qs2=one
+        if (mype==0) write(*,'(a,a,a,1pe12.5,a,2(i8,1x))') &
+          ' spherical dat-resolution mode=',trim(dat_resolution_mode),&
+          ' image-plane dx=',dxDDA,' n=',nXIF1,nXIF2
+      else if (trim(ray_method_active)=='cart') then
+        do ix1=1,2
+          if (ix1==1) vec_cor(1)=xprobmin1
+          if (ix1==2) vec_cor(1)=xprobmax1
+          do ix2=1,2
+            if (ix2==1) vec_cor(2)=xprobmin2
+            if (ix2==2) vec_cor(2)=xprobmax2
+            do ix3=1,2
+              if (ix3==1) vec_cor(3)=xprobmin3
+              if (ix3==2) vec_cor(3)=xprobmax3
+              call get_cor_image(vec_cor,xI_cor)
+              if (ix1==1 .and. ix2==1 .and. ix3==1) then
+                xIFmin1=xI_cor(1)
+                xIFmax1=xI_cor(1)
+                xIFmin2=xI_cor(2)
+                xIFmax2=xI_cor(2)
+              else
+                xIFmin1=min(xIFmin1,xI_cor(1))
+                xIFmax1=max(xIFmax1,xI_cor(1))
+                xIFmin2=min(xIFmin2,xI_cor(2))
+                xIFmax2=max(xIFmax2,xI_cor(2))
+              endif
+            enddo
+          enddo
+        enddo
+        call get_native_datresol_spacing(dxDDA)
+        xIcent1=half*(xIFmin1+xIFmax1)
+        xIcent2=half*(xIFmin2+xIFmax2)
+        nXIF1=max(1,ceiling((xIFmax1-xIFmin1)/dxDDA))
+        nXIF2=max(1,ceiling((xIFmax2-xIFmin2)/dxDDA))
+        xIFmin1=xIcent1-half*dble(nXIF1)*dxDDA
+        xIFmax1=xIcent1+half*dble(nXIF1)*dxDDA
+        xIFmin2=xIcent2-half*dble(nXIF2)*dxDDA
+        xIFmax2=xIcent2+half*dble(nXIF2)*dxDDA
+        bnx1=1
+        bnx2=1
+        nbb1=nXIF1
+        nbb2=nXIF2
+        strtype1=0
+        strtype2=0
+        nstrb1=0
+        nstrb2=0
+        qs1=one
+        qs2=one
+        if (mype==0) write(*,'(a,a,a,1pe12.5,a,2(i8,1x))') &
+          ' Cartesian dat-resolution mode=',trim(dat_resolution_mode),&
+          ' image-plane dx=',dxDDA,' n=',nXIF1,nXIF2
+      else if (LOS_phi==0 .and. LOS_theta==90) then
         nXIF1=domain_nx2*2**(refine_max_level-1)
         nXIF2=domain_nx3*2**(refine_max_level-1)
         xIFmin1=xprobmin2
@@ -1883,6 +2878,23 @@ module mod_thermal_emission
         call mpistop("unknown stretch type")
       end select
 
+      if (mype==0 .and. datatype=='image_euv') then
+        if (SI_unit) then
+          length_to_km=unit_length/1.d3
+          arcsec=7.25d5/unit_length
+        else
+          length_to_km=unit_length/1.d5
+          arcsec=7.25d7/unit_length
+        endif
+        write(*,'(a,i8,a,i8)') ' Native data-resolution image grid: ',nXIF1,' x ',nXIF2
+        write(*,'(a,f10.3,a,f10.3,a,f8.3,a,f8.3,a)') &
+          ' Native xI1 pixel-size range: ',minval(dxIF1)*length_to_km,'--', &
+          maxval(dxIF1)*length_to_km,' km (',minval(dxIF1)/arcsec,'--',maxval(dxIF1)/arcsec,' arcsec)'
+        write(*,'(a,f10.3,a,f10.3,a,f8.3,a,f8.3,a)') &
+          ' Native xI2 pixel-size range: ',minval(dxIF2)*length_to_km,'--', &
+          maxval(dxIF2)*length_to_km,' km (',minval(dxIF2)/arcsec,'--',maxval(dxIF2)/arcsec,' arcsec)'
+      endif
+
       ! integrate EUV flux and get cell average flux for image
       if (datatype=='image_euv') then
         if (SI_unit) then
@@ -1890,38 +2902,101 @@ module mod_thermal_emission
         else
           unitv=unit_velocity/1.0e5 ! km/s
         endif
-        numWI=2
+        has_thick_output=trim(radiation_transfer)=='thick'
+        has_doppler_output=radsyn_euv_has_doppler_output()
+        numWI=radsyn_euv_num_outputs(has_doppler_output,has_thick_output)
         allocate(wI(nXIF1,nXIF2,numWI))
-        allocate(EUVs(nXIF1,nXIF2),EUV(nXIF1,nXIF2))
-        allocate(Dpl(nXIF1,nXIF2),Dpls(nXIF1,nXIF2))
-        EUVs=0.0d0
-        EUV=0.0d0
-        Dpl=0.d0
-        Dpls=0.d0
-        do iigrid=1,igridstail; igrid=igrids(iigrid);
-          call integrate_EUV_datresol(igrid,nXIF1,nXIF2,xIF1,xIF2,dxIF1,dxIF2,fl,EUVs,Dpls)
-        enddo
-        numSI=nXIF1*nXIF2
-        call MPI_ALLREDUCE(EUVs,EUV,numSI,MPI_DOUBLE_PRECISION, &
-                           MPI_SUM,icomm,ierrmpi)
-        call MPI_ALLREDUCE(Dpls,Dpl,numSI,MPI_DOUBLE_PRECISION, &
-                           MPI_SUM,icomm,ierrmpi)
-        do ix1=1,nXIF1
-          do ix2=1,nXIF2
-            if (EUV(ix1,ix2)<smalldouble) EUV(ix1,ix2)=zero
-            if(EUV(ix1,ix2)/=0) then
-              Dpl(ix1,ix2)=(Dpl(ix1,ix2)/EUV(ix1,ix2))*unitv
-            else
-              Dpl(ix1,ix2)=0.d0
-            endif
-            if (abs(Dpl(ix1,ix2))<smalldouble) Dpl(ix1,ix2)=zero
-          enddo
-        enddo
-        wI(:,:,1)=EUV(:,:)
-        wI(:,:,2)=Dpl(:,:)
+        allocate(EUV(nXIF1,nXIF2),Dpl(nXIF1,nXIF2))
+        if (trim(radiation_transfer)=='thick') then
+          allocate(EUVthin(nXIF1,nXIF2),Tau(nXIF1,nXIF2))
+          if (coordinate==spherical .and. trim(ray_method_active)=='spherical') then
+            call integrate_EUV_sph_intersection_thick(nXIF1,nXIF2,xIF1,xIF2,dxIF1(1),fl,EUV,Tau,EUVthin)
+            Dpl=zero
+          else if (trim(ray_method_active)=='cart') then
+            call integrate_EUV_cart_dda_thick_datresol(nXIF1,nXIF2,xIF1,xIF2,fl,EUV,Dpl,Tau,EUVthin)
+          else
+            call integrate_EUV_thick_datresol(nXIF1,nXIF2,fl,EUV,Dpl,Tau,EUVthin)
+          endif
+          if (has_doppler_output) then
+            where(EUV<smalldouble) EUV=zero
+            call normalize_euv_doppler(nXIF1,nXIF2,EUV,Dpl,unitv)
+          endif
+        else
+          allocate(EUVs(nXIF1,nXIF2),Dpls(nXIF1,nXIF2))
+          EUVs=0.0d0
+          EUV=0.0d0
+          Dpl=0.d0
+          Dpls=0.d0
+          if (coordinate==spherical .and. trim(ray_method_active)=='spherical') then
+            call integrate_EUV_sph_intersection_thin(nXIF1,nXIF2,xIF1,xIF2,dxIF1(1),fl,EUV)
+            EUVs=EUV
+            numSI=nXIF1*nXIF2
+            call MPI_ALLREDUCE(EUVs,EUV,numSI,MPI_DOUBLE_PRECISION, &
+                               MPI_SUM,icomm,ierrmpi)
+          else if (trim(ray_method_active)=='cart') then
+            call integrate_EUV_cart_dda_datresol(nXIF1,nXIF2,xIF1,xIF2,fl,EUV,Dpl)
+          else
+            do iigrid=1,igridstail; igrid=igrids(iigrid);
+              call integrate_EUV_datresol(igrid,nXIF1,nXIF2,xIF1,xIF2,dxIF1,dxIF2,fl,EUVs,Dpls)
+            enddo
+            numSI=nXIF1*nXIF2
+            call MPI_ALLREDUCE(EUVs,EUV,numSI,MPI_DOUBLE_PRECISION, &
+                               MPI_SUM,icomm,ierrmpi)
+            call MPI_ALLREDUCE(Dpls,Dpl,numSI,MPI_DOUBLE_PRECISION, &
+                               MPI_SUM,icomm,ierrmpi)
+          endif
+          if (has_doppler_output) then
+            where(EUV<smalldouble) EUV=zero
+            call normalize_euv_doppler(nXIF1,nXIF2,EUV,Dpl,unitv)
+          endif
+          deallocate(EUVs,Dpls)
+        endif
+        if (has_thick_output) then
+          if (has_doppler_output) then
+            call pack_euv_image_outputs(nXIF1,nXIF2,EUV,wI,smalldouble,has_doppler_output,&
+                                        has_thick_output,Dpl=Dpl,Tau=Tau,EUVthin=EUVthin)
+          else
+            call pack_euv_image_outputs(nXIF1,nXIF2,EUV,wI,smalldouble,has_doppler_output,&
+                                        has_thick_output,Tau=Tau,EUVthin=EUVthin)
+          endif
+        else if (has_doppler_output) then
+          call pack_euv_image_outputs(nXIF1,nXIF2,EUV,wI,smalldouble,has_doppler_output,&
+                                      has_thick_output,Dpl=Dpl)
+        else
+          call pack_euv_image_outputs(nXIF1,nXIF2,EUV,wI,smalldouble,has_doppler_output,&
+                                      has_thick_output)
+        endif
 
-        call output_data(qunit,xIF1,xIF2,dxIF1,dxIF2,wI,nXIF1,nXIF2,numWI,datatype)
-        deallocate(WI,EUV,EUVs,Dpl,Dpls)
+        if (instrument_postprocess) then
+          if (trim(emission_model)=='radio_ff') then
+            if (trim(radiation_transfer)=='thick') then
+              call postprocess_radio_beam_image(nXIF1,nXIF2,xIF1,xIF2,dxIF1,dxIF2,&
+                                                EUV,nXIP1,nXIP2,xIP1,xIP2,&
+                                                dxIP1,dxIP2,wIP,numWIP,Tau=Tau,BrightThin=EUVthin)
+            else
+              call postprocess_radio_beam_image(nXIF1,nXIF2,xIF1,xIF2,dxIF1,dxIF2,&
+                                                EUV,nXIP1,nXIP2,xIP1,xIP2,&
+                                                dxIP1,dxIP2,wIP,numWIP)
+            endif
+          else if (trim(radiation_transfer)=='thick') then
+            call postprocess_euv_instrument_image(nXIF1,nXIF2,xIF1,xIF2,dxIF1,dxIF2,&
+                                                  EUV,Dpl,nXIP1,nXIP2,xIP1,xIP2,&
+                                                  dxIP1,dxIP2,wIP,numWIP,Tau=Tau,EUVthin=EUVthin)
+          else
+            call postprocess_euv_instrument_image(nXIF1,nXIF2,xIF1,xIF2,dxIF1,dxIF2,&
+                                                  EUV,Dpl,nXIP1,nXIP2,xIP1,xIP2,&
+                                                  dxIP1,dxIP2,wIP,numWIP)
+          endif
+          call output_data(qunit,xIP1,xIP2,dxIP1,dxIP2,wIP,nXIP1,nXIP2,numWIP,datatype)
+          deallocate(xIP1,xIP2,dxIP1,dxIP2,wIP)
+        else
+          call output_data(qunit,xIF1,xIF2,dxIF1,dxIF2,wI,nXIF1,nXIF2,numWI,datatype)
+        endif
+        if (trim(radiation_transfer)=='thick') then
+          deallocate(WI,EUV,Dpl,EUVthin,Tau)
+        else
+          deallocate(WI,EUV,Dpl)
+        endif
       endif
 
       ! integrate SXR flux and get cell average flux for image
@@ -1971,7 +3046,7 @@ module mod_thermal_emission
 
       integer :: ixO^L,ixO^D,ixI^L,ix^D,i,j
       double precision :: xb^L,xd^D
-      double precision, allocatable :: flux(:^D&)
+      double precision, allocatable :: flux(:^D&),opacity(:^D&)
       double precision, allocatable :: dxb1(:^D&),dxb2(:^D&),dxb3(:^D&)
       double precision, allocatable :: SXRg(:,:),xg1(:),xg2(:),dxg1(:),dxg2(:)
       integer :: levelg,nXg1,nXg2,iXgmin1,iXgmax1,iXgmin2,iXgmax2,rft,iXg^D
@@ -2072,7 +3147,7 @@ module mod_thermal_emission
       area_1AU=2.81d27
       SXRg=SXRg/area_1AU
 
-      ! mapping grid data to global table 
+      ! mapping grid data to global table
       ! index ranges in local table
       select case(direction_LOS)
       case(1)
@@ -2131,7 +3206,7 @@ module mod_thermal_emission
 
       integer :: ixO^L,ixO^D,ixI^L,ix^D,i,j
       double precision :: xb^L,xd^D
-      double precision, allocatable :: flux(:^D&),v(:^D&),rho(:^D&)
+      double precision, allocatable :: flux(:^D&),v(:^D&),rho(:^D&),opacity(:^D&)
       double precision, allocatable :: dxb1(:^D&),dxb2(:^D&),dxb3(:^D&)
       double precision, allocatable :: EUVg(:,:),Fvg(:,:),xg1(:),xg2(:),dxg1(:),dxg2(:)
       integer :: levelg,nXg1,nXg2,iXgmin1,iXgmax1,iXgmin2,iXgmax2,rft,iXg^D
@@ -2154,17 +3229,27 @@ module mod_thermal_emission
       ^D&xbmin^D=rnode(rpxmin^D_,igrid)\
       ^D&xbmax^D=rnode(rpxmax^D_,igrid)\
 
-      allocate(flux(ixI^S),v(ixI^S),rho(ixI^S))
+      allocate(flux(ixI^S),v(ixI^S),rho(ixI^S),opacity(ixI^S))
       allocate(dxb1(ixI^S),dxb2(ixI^S),dxb3(ixI^S))
       dxb1(ixO^S)=ps(igrid)%dx(ixO^S,1)
       dxb2(ixO^S)=ps(igrid)%dx(ixO^S,2)
       dxb3(ixO^S)=ps(igrid)%dx(ixO^S,3)
-      ! get local EUV flux and velocity
-      call get_EUV(wavelength,ixI^L,ixO^L,ps(igrid)%w,ps(igrid)%x,fl,flux)
-      flux(ixO^S)=flux(ixO^S)/instrument_resolution_factor**2   ! adjust flux due to artifical change of resolution
-      call fl%get_rho(ps(igrid)%w,ps(igrid)%x,ixI^L,ixO^L,rho)
-      v(ixO^S)=-ps(igrid)%w(ixO^S,iw_mom(direction_LOS))/rho(ixO^S)
-      deallocate(rho)
+      if (trim(emission_model)=='pseudo_current') then
+        call get_pseudo_current(igrid,ixI^L,ixO^L,ps(igrid)%w,flux)
+        v(ixO^S)=zero
+        deallocate(rho)
+      else if (trim(emission_model)=='radio_ff') then
+        call get_radio_ff_source_opacity(ixI^L,ixO^L,ps(igrid)%w,ps(igrid)%x,fl,flux,opacity)
+        v(ixO^S)=zero
+        deallocate(rho)
+      else
+        ! get local EUV flux and velocity
+        call get_EUV(wavelength,ixI^L,ixO^L,ps(igrid)%w,ps(igrid)%x,fl,flux)
+        flux(ixO^S)=flux(ixO^S)/instrument_resolution_factor**2   ! adjust flux due to artifical change of resolution
+        call fl%get_rho(ps(igrid)%w,ps(igrid)%x,ixI^L,ixO^L,rho)
+        v(ixO^S)=-ps(igrid)%w(ixO^S,iw_mom(direction_LOS))/rho(ixO^S)
+        deallocate(rho)
+      endif
 
       ! grid parameters
       levelg=ps(igrid)%level
@@ -2247,7 +3332,7 @@ module mod_thermal_emission
         Fvg=Fvg*1.d2
       endif
 
-      ! mapping grid data to global table 
+      ! mapping grid data to global table
       ! index ranges in local table
       select case(direction_LOS)
       case(1)
@@ -2293,9 +3378,2385 @@ module mod_thermal_emission
       Dpl(ixPmin1:ixPmax1,ixPmin2:ixPmax2)=Dpl(ixPmin1:ixPmax1,ixPmin2:ixPmax2)+&
                                            FVg(iXgmin1:iXgmax1,iXgmin2:iXgmax2)
 
-      deallocate(flux,v,dxb1,dxb2,dxb3,EUVg,Fvg,xg1,xg2,dxg1,dxg2)
+      deallocate(flux,v,opacity,dxb1,dxb2,dxb3,EUVg,Fvg,xg1,xg2,dxg1,dxg2)
 
     end subroutine integrate_EUV_datresol
+
+  }
+
+  {^IFTHREED
+
+    subroutine ray_box_intersection_cart(ray_origin,ray_dir,box_min,box_max,hit,t_enter,t_exit)
+      double precision, intent(in) :: ray_origin(1:3),ray_dir(1:3),box_min(1:3),box_max(1:3)
+      logical, intent(out) :: hit
+      double precision, intent(out) :: t_enter,t_exit
+
+      integer :: idir
+      double precision :: t1,t2,td
+
+      hit=.true.
+      t_enter=-huge(one)
+      t_exit=huge(one)
+      do idir=1,3
+        if (abs(ray_dir(idir))<=smalldouble) then
+          if (ray_origin(idir)<box_min(idir) .or. ray_origin(idir)>box_max(idir)) then
+            hit=.false.
+            return
+          endif
+        else
+          t1=(box_min(idir)-ray_origin(idir))/ray_dir(idir)
+          t2=(box_max(idir)-ray_origin(idir))/ray_dir(idir)
+          if (t1>t2) then
+            td=t1
+            t1=t2
+            t2=td
+          endif
+          t_enter=max(t_enter,t1)
+          t_exit=min(t_exit,t2)
+          if (t_enter>=t_exit) then
+            hit=.false.
+            return
+          endif
+        endif
+      enddo
+    end subroutine ray_box_intersection_cart
+
+    subroutine build_cart_dda_faces(ixI^L,ixO^L,x,dx,xface1,xface2,xface3)
+      integer, intent(in) :: ixI^L, ixO^L
+      double precision, intent(in) :: x(ixI^S,1:ndim),dx(ixI^S,1:ndim)
+      double precision, allocatable, intent(out) :: xface1(:),xface2(:),xface3(:)
+
+      integer :: ix^D
+
+      allocate(xface1(ixOmin1:ixOmax1+1),xface2(ixOmin2:ixOmax2+1),xface3(ixOmin3:ixOmax3+1))
+
+      ix2=ixOmin2
+      ix3=ixOmin3
+      do ix1=ixOmin1,ixOmax1
+        xface1(ix1)=x(ix^D,1)-half*dx(ix^D,1)
+      enddo
+      xface1(ixOmax1+1)=x(ixOmax1,ixOmin2,ixOmin3,1)+half*dx(ixOmax1,ixOmin2,ixOmin3,1)
+
+      ix1=ixOmin1
+      ix3=ixOmin3
+      do ix2=ixOmin2,ixOmax2
+        xface2(ix2)=x(ix^D,2)-half*dx(ix^D,2)
+      enddo
+      xface2(ixOmax2+1)=x(ixOmin1,ixOmax2,ixOmin3,2)+half*dx(ixOmin1,ixOmax2,ixOmin3,2)
+
+      ix1=ixOmin1
+      ix2=ixOmin2
+      do ix3=ixOmin3,ixOmax3
+        xface3(ix3)=x(ix^D,3)-half*dx(ix^D,3)
+      enddo
+      xface3(ixOmax3+1)=x(ixOmin1,ixOmin2,ixOmax3,3)+half*dx(ixOmin1,ixOmin2,ixOmax3,3)
+    end subroutine build_cart_dda_faces
+
+    integer function cart_dda_locate_index(pos,faces,imin,imax) result(idx)
+      integer, intent(in) :: imin,imax
+      double precision, intent(in) :: pos,faces(imin:imax+1)
+
+      integer :: ilo,ihi,imid
+
+      if (pos<=faces(imin)) then
+        idx=imin
+        return
+      endif
+      if (pos>=faces(imax+1)) then
+        idx=imax
+        return
+      endif
+
+      ilo=imin
+      ihi=imax+1
+      do while (ihi-ilo>1)
+        imid=(ilo+ihi)/2
+        if (pos>=faces(imid)) then
+          ilo=imid
+        else
+          ihi=imid
+        endif
+      enddo
+      idx=min(imax,max(imin,ilo))
+    end function cart_dda_locate_index
+
+    subroutine cart_dda_init_axis(ray_origin_axis,ray_dir_axis,faces,imin,imax,idx,step,tMax)
+      integer, intent(in) :: imin,imax,idx
+      double precision, intent(in) :: ray_origin_axis,ray_dir_axis,faces(imin:imax+1)
+      integer, intent(out) :: step
+      double precision, intent(out) :: tMax
+
+      if (ray_dir_axis>zero) then
+        step=1
+        tMax=(faces(idx+1)-ray_origin_axis)/ray_dir_axis
+      else if (ray_dir_axis<zero) then
+        step=-1
+        tMax=(faces(idx)-ray_origin_axis)/ray_dir_axis
+      else
+        step=0
+        tMax=huge(one)
+      endif
+    end subroutine cart_dda_init_axis
+
+    subroutine cart_dda_advance_axis(ray_origin_axis,ray_dir_axis,faces,imin,imax,idx,step,tMax,done)
+      integer, intent(in) :: imin,imax,step
+      double precision, intent(in) :: ray_origin_axis,ray_dir_axis,faces(imin:imax+1)
+      integer, intent(inout) :: idx
+      double precision, intent(inout) :: tMax
+      logical, intent(out) :: done
+
+      done=.false.
+      idx=idx+step
+      if (idx<imin .or. idx>imax) then
+        done=.true.
+        return
+      endif
+      if (step>0) then
+        tMax=(faces(idx+1)-ray_origin_axis)/ray_dir_axis
+      else if (step<0) then
+        tMax=(faces(idx)-ray_origin_axis)/ray_dir_axis
+      else
+        tMax=huge(one)
+      endif
+    end subroutine cart_dda_advance_axis
+
+    subroutine acc_EUV_cart_dda(ixI^L,ixO^L,source,sourcev,&
+                                ray_origin,xface1,xface2,xface3,t_enter,t_exit,EUVp,Dplp)
+      integer, intent(in) :: ixI^L, ixO^L
+      double precision, intent(in) :: source(ixI^S),sourcev(ixI^S)
+      double precision, intent(in) :: ray_origin(1:3)
+      double precision, intent(in) :: xface1(ixOmin1:ixOmax1+1),xface2(ixOmin2:ixOmax2+1),&
+                                      xface3(ixOmin3:ixOmax3+1)
+      double precision, intent(in) :: t_enter,t_exit
+      double precision, intent(inout) :: EUVp,Dplp
+
+      integer :: ix^D,step(1:3)
+      double precision :: pos(1:3),tMax(1:3),tNow,tNext,ds_cm,epsRay
+      logical :: done
+
+      if (t_exit<=t_enter) return
+      epsRay=max(1.d-12,1.d-10*abs(t_exit-t_enter))
+      pos=ray_origin+(t_enter+epsRay)*vec_LOS
+      ix1=cart_dda_locate_index(pos(1),xface1,ixOmin1,ixOmax1)
+      ix2=cart_dda_locate_index(pos(2),xface2,ixOmin2,ixOmax2)
+      ix3=cart_dda_locate_index(pos(3),xface3,ixOmin3,ixOmax3)
+
+      call cart_dda_init_axis(ray_origin(1),vec_LOS(1),xface1,ixOmin1,ixOmax1,ix1,step(1),tMax(1))
+      call cart_dda_init_axis(ray_origin(2),vec_LOS(2),xface2,ixOmin2,ixOmax2,ix2,step(2),tMax(2))
+      call cart_dda_init_axis(ray_origin(3),vec_LOS(3),xface3,ixOmin3,ixOmax3,ix3,step(3),tMax(3))
+
+      tNow=t_enter
+      do
+        tNext=min(t_exit,tMax(1),tMax(2),tMax(3))
+        if (tNext>tNow) then
+          ds_cm=(tNext-tNow)*unit_length
+          if (SI_unit) ds_cm=ds_cm*1.d2
+          EUVp=EUVp+source(ix^D)*ds_cm
+          Dplp=Dplp+sourcev(ix^D)*ds_cm
+        endif
+        tNow=tNext
+        if (tNow>=t_exit-epsRay) exit
+
+        if (tMax(1)<=tNow+epsRay) then
+          call cart_dda_advance_axis(ray_origin(1),vec_LOS(1),xface1,ixOmin1,ixOmax1,ix1,step(1),tMax(1),done)
+          if (done) exit
+        endif
+        if (tMax(2)<=tNow+epsRay) then
+          call cart_dda_advance_axis(ray_origin(2),vec_LOS(2),xface2,ixOmin2,ixOmax2,ix2,step(2),tMax(2),done)
+          if (done) exit
+        endif
+        if (tMax(3)<=tNow+epsRay) then
+          call cart_dda_advance_axis(ray_origin(3),vec_LOS(3),xface3,ixOmin3,ixOmax3,ix3,step(3),tMax(3),done)
+          if (done) exit
+        endif
+      enddo
+    end subroutine acc_EUV_cart_dda
+
+    subroutine append_cart_dda_segment(segments,nseg,capacity,pixel_id,tseg,jds,kds,jvds)
+      double precision, allocatable, intent(inout) :: segments(:,:)
+      integer, intent(inout) :: nseg,capacity
+      integer, intent(in) :: pixel_id
+      double precision, intent(in) :: tseg,jds,kds,jvds
+
+      double precision, allocatable :: tmp(:,:)
+      integer :: new_capacity
+
+      if (capacity<=0) then
+        capacity=1024
+        allocate(segments(5,capacity))
+      else if (nseg>=capacity) then
+        new_capacity=2*capacity
+        allocate(tmp(5,new_capacity))
+        tmp(:,1:capacity)=segments(:,1:capacity)
+        call move_alloc(tmp,segments)
+        capacity=new_capacity
+      endif
+
+      nseg=nseg+1
+      segments(1,nseg)=dble(pixel_id)
+      segments(2,nseg)=tseg
+      segments(3,nseg)=jds
+      segments(4,nseg)=kds
+      segments(5,nseg)=jvds
+    end subroutine append_cart_dda_segment
+
+    subroutine collect_EUV_cart_dda_segments(ixI^L,ixO^L,source,opacity,sourcev,&
+                                             pixel_id,ray_origin,xface1,xface2,xface3,t_enter,t_exit,&
+                                             segments,nseg,capacity)
+      integer, intent(in) :: ixI^L, ixO^L
+      double precision, intent(in) :: source(ixI^S),opacity(ixI^S),sourcev(ixI^S)
+      integer, intent(in) :: pixel_id
+      double precision, intent(in) :: ray_origin(1:3)
+      double precision, intent(in) :: xface1(ixOmin1:ixOmax1+1),xface2(ixOmin2:ixOmax2+1),&
+                                      xface3(ixOmin3:ixOmax3+1)
+      double precision, intent(in) :: t_enter,t_exit
+      double precision, allocatable, intent(inout) :: segments(:,:)
+      integer, intent(inout) :: nseg,capacity
+
+      integer :: ix^D,step(1:3)
+      double precision :: pos(1:3),tMax(1:3),tNow,tNext,ds_cm,epsRay,tseg
+      double precision :: jds,kds,jvds
+      logical :: done
+
+      if (t_exit<=t_enter) return
+      epsRay=max(1.d-12,1.d-10*abs(t_exit-t_enter))
+      pos=ray_origin+(t_enter+epsRay)*vec_LOS
+      ix1=cart_dda_locate_index(pos(1),xface1,ixOmin1,ixOmax1)
+      ix2=cart_dda_locate_index(pos(2),xface2,ixOmin2,ixOmax2)
+      ix3=cart_dda_locate_index(pos(3),xface3,ixOmin3,ixOmax3)
+
+      call cart_dda_init_axis(ray_origin(1),vec_LOS(1),xface1,ixOmin1,ixOmax1,ix1,step(1),tMax(1))
+      call cart_dda_init_axis(ray_origin(2),vec_LOS(2),xface2,ixOmin2,ixOmax2,ix2,step(2),tMax(2))
+      call cart_dda_init_axis(ray_origin(3),vec_LOS(3),xface3,ixOmin3,ixOmax3,ix3,step(3),tMax(3))
+
+      tNow=t_enter
+      do
+        tNext=min(t_exit,tMax(1),tMax(2),tMax(3))
+        if (tNext>tNow) then
+          ds_cm=(tNext-tNow)*unit_length
+          if (SI_unit) ds_cm=ds_cm*1.d2
+          jds=source(ix^D)*ds_cm
+          kds=opacity(ix^D)*ds_cm
+          jvds=sourcev(ix^D)*ds_cm
+          if (jds/=zero .or. kds/=zero .or. jvds/=zero) then
+            tseg=half*(tNow+tNext)
+            call append_cart_dda_segment(segments,nseg,capacity,pixel_id,tseg,jds,kds,jvds)
+          endif
+        endif
+        tNow=tNext
+        if (tNow>=t_exit-epsRay) exit
+
+        if (tMax(1)<=tNow+epsRay) then
+          call cart_dda_advance_axis(ray_origin(1),vec_LOS(1),xface1,ixOmin1,ixOmax1,ix1,step(1),tMax(1),done)
+          if (done) exit
+        endif
+        if (tMax(2)<=tNow+epsRay) then
+          call cart_dda_advance_axis(ray_origin(2),vec_LOS(2),xface2,ixOmin2,ixOmax2,ix2,step(2),tMax(2),done)
+          if (done) exit
+        endif
+        if (tMax(3)<=tNow+epsRay) then
+          call cart_dda_advance_axis(ray_origin(3),vec_LOS(3),xface3,ixOmin3,ixOmax3,ix3,step(3),tMax(3),done)
+          if (done) exit
+        endif
+      enddo
+    end subroutine collect_EUV_cart_dda_segments
+
+    subroutine sort_segment_indices_near_to_far(segments,idx,nidx)
+      double precision, intent(in) :: segments(:,:)
+      integer, intent(inout) :: idx(:)
+      integer, intent(in) :: nidx
+
+      if (nidx<=1) return
+      if (nidx<=32) then
+        call insertion_sort_segment_indices(segments,idx,1,nidx)
+      else
+        call quicksort_segment_indices(segments,idx,1,nidx)
+      endif
+    end subroutine sort_segment_indices_near_to_far
+
+    subroutine insertion_sort_segment_indices(segments,idx,ilo,ihi)
+      double precision, intent(in) :: segments(:,:)
+      integer, intent(inout) :: idx(:)
+      integer, intent(in) :: ilo,ihi
+
+      integer :: i,j,key
+
+      do i=ilo+1,ihi
+        key=idx(i)
+        j=i-1
+        do while (j>=ilo .and. segments(2,idx(j))>segments(2,key))
+          idx(j+1)=idx(j)
+          j=j-1
+        enddo
+        idx(j+1)=key
+      enddo
+    end subroutine insertion_sort_segment_indices
+
+    recursive subroutine quicksort_segment_indices(segments,idx,ilo,ihi)
+      double precision, intent(in) :: segments(:,:)
+      integer, intent(inout) :: idx(:)
+      integer, intent(in) :: ilo,ihi
+
+      integer :: i,j,tmp
+      double precision :: pivot
+
+      if (ihi-ilo<=32) then
+        call insertion_sort_segment_indices(segments,idx,ilo,ihi)
+        return
+      endif
+
+      i=ilo
+      j=ihi
+      pivot=segments(2,idx((ilo+ihi)/2))
+      do
+        do while (segments(2,idx(i))<pivot)
+          i=i+1
+        enddo
+        do while (segments(2,idx(j))>pivot)
+          j=j-1
+        enddo
+        if (i<=j) then
+          tmp=idx(i)
+          idx(i)=idx(j)
+          idx(j)=tmp
+          i=i+1
+          j=j-1
+        endif
+        if (i>j) exit
+      enddo
+
+      if (ilo<j) call quicksort_segment_indices(segments,idx,ilo,j)
+      if (i<ihi) call quicksort_segment_indices(segments,idx,i,ihi)
+    end subroutine quicksort_segment_indices
+
+    integer function segment_pixel_owner(pixel_id) result(owner)
+      integer, intent(in) :: pixel_id
+
+      owner=mod(pixel_id-1,npe)
+    end function segment_pixel_owner
+
+    logical function segment_is_valid(segments,is,nvars) result(valid)
+      double precision, intent(in) :: segments(:,:)
+      integer, intent(in) :: is,nvars
+
+      integer :: iv
+
+      valid=.true.
+      do iv=1,nvars
+        if (segments(iv,is)/=segments(iv,is) .or. abs(segments(iv,is))>=1.d90) then
+          valid=.false.
+          return
+        endif
+      enddo
+    end function segment_is_valid
+
+    subroutine cart_dda_block_pixel_range(box_min,box_max,nXIF1,nXIF2,xIF1,xIF2,ixPmin1,ixPmax1,ixPmin2,ixPmax2,has_pixels)
+      double precision, intent(in) :: box_min(1:3),box_max(1:3)
+      integer, intent(in) :: nXIF1,nXIF2
+      double precision, intent(in) :: xIF1(nXIF1),xIF2(nXIF2)
+      integer, intent(out) :: ixPmin1,ixPmax1,ixPmin2,ixPmax2
+      logical, intent(out) :: has_pixels
+
+      integer :: i1,i2,i3
+      double precision :: vec_cor(1:3),xI_cor(1:2)
+      double precision :: xmin1,xmax1,xmin2,xmax2,dx1,dx2
+
+      do i1=1,2
+        if (i1==1) vec_cor(1)=box_min(1)
+        if (i1==2) vec_cor(1)=box_max(1)
+        do i2=1,2
+          if (i2==1) vec_cor(2)=box_min(2)
+          if (i2==2) vec_cor(2)=box_max(2)
+          do i3=1,2
+            if (i3==1) vec_cor(3)=box_min(3)
+            if (i3==2) vec_cor(3)=box_max(3)
+            call get_cor_image(vec_cor,xI_cor)
+            if (i1==1 .and. i2==1 .and. i3==1) then
+              xmin1=xI_cor(1)
+              xmax1=xI_cor(1)
+              xmin2=xI_cor(2)
+              xmax2=xI_cor(2)
+            else
+              xmin1=min(xmin1,xI_cor(1))
+              xmax1=max(xmax1,xI_cor(1))
+              xmin2=min(xmin2,xI_cor(2))
+              xmax2=max(xmax2,xI_cor(2))
+            endif
+          enddo
+        enddo
+      enddo
+
+      if (nXIF1>1) then
+        dx1=abs(xIF1(2)-xIF1(1))
+      else
+        dx1=max(one,abs(xmax1-xmin1))
+      endif
+      if (nXIF2>1) then
+        dx2=abs(xIF2(2)-xIF2(1))
+      else
+        dx2=max(one,abs(xmax2-xmin2))
+      endif
+
+      ixPmin1=max(1,floor((xmin1-xIF1(1))/dx1)+1-1)
+      ixPmax1=min(nXIF1,ceiling((xmax1-xIF1(1))/dx1)+1+1)
+      ixPmin2=max(1,floor((xmin2-xIF2(1))/dx2)+1-1)
+      ixPmax2=min(nXIF2,ceiling((xmax2-xIF2(1))/dx2)+1+1)
+      has_pixels=ixPmin1<=ixPmax1 .and. ixPmin2<=ixPmax2
+    end subroutine cart_dda_block_pixel_range
+
+    subroutine integrate_EUV_cart_dda_datresol(nXIF1,nXIF2,xIF1,xIF2,fl,EUV,Dpl)
+      use mod_global_parameters
+
+      integer, intent(in) :: nXIF1,nXIF2
+      double precision, intent(in) :: xIF1(nXIF1),xIF2(nXIF2)
+      type(te_fluid), intent(in) :: fl
+      double precision, intent(out) :: EUV(nXIF1,nXIF2),Dpl(nXIF1,nXIF2)
+
+      integer :: ixO^L,ixO^D,ixI^L,ix^D
+      integer :: iigrid,igrid,ixP1,ixP2,numSI,ixPmin1,ixPmax1,ixPmin2,ixPmax2
+      double precision :: box_min(1:3),box_max(1:3),ray_origin(1:3)
+      double precision :: t_enter,t_exit,vlos
+      double precision :: profile_local(2),profile_global(2)
+      logical :: hit,has_pixels
+      double precision, allocatable :: source(:^D&),sourcev(:^D&),rho(:^D&),opacity(:^D&)
+      double precision, allocatable :: xface1(:),xface2(:),xface3(:)
+      double precision, allocatable :: EUVs(:,:),Dpls(:,:)
+
+      allocate(EUVs(nXIF1,nXIF2),Dpls(nXIF1,nXIF2))
+      EUVs=zero
+      Dpls=zero
+      profile_local=zero
+
+      do iigrid=1,igridstail; igrid=igrids(iigrid);
+        ^D&ixOmin^D=ixmlo^D\
+        ^D&ixOmax^D=ixmhi^D\
+        ^D&ixImin^D=ixglo^D\
+        ^D&ixImax^D=ixghi^D\
+
+        box_min(1)=rnode(rpxmin1_,igrid)
+        box_min(2)=rnode(rpxmin2_,igrid)
+        box_min(3)=rnode(rpxmin3_,igrid)
+        box_max(1)=rnode(rpxmax1_,igrid)
+        box_max(2)=rnode(rpxmax2_,igrid)
+        box_max(3)=rnode(rpxmax3_,igrid)
+        call build_cart_dda_faces(ixI^L,ixO^L,ps(igrid)%x,ps(igrid)%dx,xface1,xface2,xface3)
+        call cart_dda_block_pixel_range(box_min,box_max,nXIF1,nXIF2,xIF1,xIF2,&
+                                        ixPmin1,ixPmax1,ixPmin2,ixPmax2,has_pixels)
+        if (.not. has_pixels) then
+          deallocate(xface1,xface2,xface3)
+          cycle
+        endif
+
+        allocate(source(ixI^S),sourcev(ixI^S),rho(ixI^S),opacity(ixI^S))
+        source=zero
+        sourcev=zero
+        if (trim(emission_model)=='pseudo_current') then
+          call get_pseudo_current(igrid,ixI^L,ixO^L,ps(igrid)%w,source)
+        else if (trim(emission_model)=='radio_ff') then
+          call get_radio_ff_source_opacity(ixI^L,ixO^L,ps(igrid)%w,ps(igrid)%x,fl,source,opacity)
+        else
+          call get_EUV(wavelength,ixI^L,ixO^L,ps(igrid)%w,ps(igrid)%x,fl,source)
+          source(ixO^S)=source(ixO^S)/instrument_resolution_factor**2
+          call fl%get_rho(ps(igrid)%w,ps(igrid)%x,ixI^L,ixO^L,rho)
+          do ix1=ixOmin1,ixOmax1
+            do ix2=ixOmin2,ixOmax2
+              do ix3=ixOmin3,ixOmax3
+                if (rho(ix^D)>smalldouble) then
+                  vlos=(ps(igrid)%w(ix^D,iw_mom(1))*vec_LOS(1)+&
+                        ps(igrid)%w(ix^D,iw_mom(2))*vec_LOS(2)+&
+                        ps(igrid)%w(ix^D,iw_mom(3))*vec_LOS(3))/rho(ix^D)
+                  sourcev(ix^D)=source(ix^D)*vlos
+                endif
+              enddo
+            enddo
+          enddo
+        endif
+        deallocate(rho,opacity)
+
+        do ixP1=ixPmin1,ixPmax1
+          do ixP2=ixPmin2,ixPmax2
+            ray_origin=x_origin+xIF1(ixP1)*vec_xI1+xIF2(ixP2)*vec_xI2
+            profile_local(1)=profile_local(1)+one
+            call ray_box_intersection_cart(ray_origin,vec_LOS,box_min,box_max,hit,t_enter,t_exit)
+            if (hit) then
+              profile_local(2)=profile_local(2)+one
+              call acc_EUV_cart_dda(ixI^L,ixO^L,source,sourcev,&
+                                    ray_origin,xface1,xface2,xface3,t_enter,t_exit,EUVs(ixP1,ixP2),Dpls(ixP1,ixP2))
+            endif
+          enddo
+        enddo
+
+        deallocate(source,sourcev,xface1,xface2,xface3)
+      enddo
+
+      numSI=nXIF1*nXIF2
+      call MPI_ALLREDUCE(EUVs,EUV,numSI,MPI_DOUBLE_PRECISION,MPI_SUM,icomm,ierrmpi)
+      call MPI_ALLREDUCE(Dpls,Dpl,numSI,MPI_DOUBLE_PRECISION,MPI_SUM,icomm,ierrmpi)
+      call MPI_ALLREDUCE(profile_local,profile_global,2,MPI_DOUBLE_PRECISION,MPI_SUM,icomm,ierrmpi)
+      if (radsyn_verbose .and. mype==0) then
+        write(*,'(a,2(es12.5,1x))') ' cart_dda thin profile ray_tests ray_hits: ',profile_global
+      endif
+      deallocate(EUVs,Dpls)
+    end subroutine integrate_EUV_cart_dda_datresol
+
+    subroutine integrate_EUV_cart_dda_thick_datresol(nXIF1,nXIF2,xIF1,xIF2,fl,EUV,Dpl,Tau,EUVthin)
+      use mod_global_parameters
+
+      integer, intent(in) :: nXIF1,nXIF2
+      double precision, intent(in) :: xIF1(nXIF1),xIF2(nXIF2)
+      type(te_fluid), intent(in) :: fl
+      double precision, intent(out) :: EUV(nXIF1,nXIF2),Dpl(nXIF1,nXIF2)
+      double precision, intent(out) :: Tau(nXIF1,nXIF2),EUVthin(nXIF1,nXIF2)
+
+      integer, parameter :: nSegVars=5
+      integer :: ixO^L,ixO^D,ixI^L,ix^D
+      integer :: iigrid,igrid,ixP1,ixP2,ipix,ipixStart,ipixEnd,nPixBatch,pixel_id
+      integer :: nseg,capacity,totalCount,totalSeg,ipe,is,iseg,nidx,owner,isegDest,nsegBefore
+      integer :: ixGlobal,iyGlobal,ixPmin1,ixPmax1,ixPmin2,ixPmax2,iFirst,iLast,iLocal
+      integer :: nPixBatchTarget
+      integer :: maxSegBatchTarget,maxSegCommTarget,maxNsegBatch,nPixTotal
+      integer :: maxOwnerSegCount,maxOwnerSegCountLocal,segOffset,recvFill,totalRoundCount,totalRoundSeg
+      integer, allocatable :: sendCounts(:),recvCounts(:),sendDispls(:),recvDispls(:)
+      integer, allocatable :: roundSendCounts(:),roundRecvCounts(:)
+      integer, allocatable :: roundSendDispls(:),roundRecvDispls(:)
+      integer, allocatable :: ownerSegCounts(:),ownerOffsets(:),idx(:)
+      integer, allocatable :: bucketCounts(:),bucketOffsets(:),bucketFill(:)
+      double precision :: ray_origin(1:3)
+      double precision :: t_enter,t_exit,vlos,atten
+      double precision :: profile_local(5),profile_global(5),profile_batch(5)
+      logical :: hit,has_pixels,batchAccepted,batchReduced
+      double precision, allocatable :: rho(:^D&)
+      double precision, allocatable :: segments(:,:),segments_send(:,:),segments_recv(:,:)
+      double precision, allocatable :: segments_recv_round(:,:)
+      double precision, allocatable :: image_reduce(:,:)
+      type(radsyn_euv_cache), allocatable :: cache(:)
+
+      EUV=zero
+      Dpl=zero
+      Tau=zero
+      EUVthin=zero
+      profile_local=zero
+      allocate(sendCounts(0:npe-1),recvCounts(0:npe-1),sendDispls(0:npe-1),recvDispls(0:npe-1))
+      allocate(roundSendCounts(0:npe-1),roundRecvCounts(0:npe-1))
+      allocate(roundSendDispls(0:npe-1),roundRecvDispls(0:npe-1))
+      allocate(ownerSegCounts(0:npe-1),ownerOffsets(0:npe-1))
+      allocate(cache(igridstail))
+      call radsyn_get_segment_batch_limits(nPixBatchTarget,maxSegBatchTarget,maxSegCommTarget)
+      allocate(bucketCounts(nPixBatchTarget),bucketOffsets(nPixBatchTarget+1),&
+               bucketFill(nPixBatchTarget))
+
+      do iigrid=1,igridstail; igrid=igrids(iigrid);
+        ^D&ixOmin^D=ixmlo^D\
+        ^D&ixOmax^D=ixmhi^D\
+        ^D&ixImin^D=ixglo^D\
+        ^D&ixImax^D=ixghi^D\
+
+        cache(iigrid)%igrid=igrid
+        allocate(cache(iigrid)%source(ixI^S),cache(iigrid)%opacity(ixI^S),&
+                 cache(iigrid)%sourcev(ixI^S),rho(ixI^S))
+        cache(iigrid)%source=zero
+        cache(iigrid)%opacity=zero
+        cache(iigrid)%sourcev=zero
+        if (trim(emission_model)=='radio_ff') then
+          call get_radio_ff_source_opacity(ixI^L,ixO^L,ps(igrid)%w,ps(igrid)%x,fl,&
+                                           cache(iigrid)%source,cache(iigrid)%opacity)
+        else
+          call get_EUV(wavelength,ixI^L,ixO^L,ps(igrid)%w,ps(igrid)%x,fl,cache(iigrid)%source)
+          cache(iigrid)%source(ixO^S)=cache(iigrid)%source(ixO^S)/instrument_resolution_factor**2
+          call get_EUV_HHe_opacity(wavelength,ixI^L,ixO^L,ps(igrid)%w,ps(igrid)%x,fl,cache(iigrid)%opacity)
+          call fl%get_rho(ps(igrid)%w,ps(igrid)%x,ixI^L,ixO^L,rho)
+          do ix1=ixOmin1,ixOmax1
+            do ix2=ixOmin2,ixOmax2
+              do ix3=ixOmin3,ixOmax3
+                if (rho(ix^D)>smalldouble) then
+                  vlos=(ps(igrid)%w(ix^D,iw_mom(1))*vec_LOS(1)+&
+                        ps(igrid)%w(ix^D,iw_mom(2))*vec_LOS(2)+&
+                        ps(igrid)%w(ix^D,iw_mom(3))*vec_LOS(3))/rho(ix^D)
+                  cache(iigrid)%sourcev(ix^D)=cache(iigrid)%source(ix^D)*vlos
+                endif
+              enddo
+            enddo
+          enddo
+        endif
+        deallocate(rho)
+        cache(iigrid)%box_min(1)=rnode(rpxmin1_,igrid)
+        cache(iigrid)%box_min(2)=rnode(rpxmin2_,igrid)
+        cache(iigrid)%box_min(3)=rnode(rpxmin3_,igrid)
+        cache(iigrid)%box_max(1)=rnode(rpxmax1_,igrid)
+        cache(iigrid)%box_max(2)=rnode(rpxmax2_,igrid)
+        cache(iigrid)%box_max(3)=rnode(rpxmax3_,igrid)
+        call build_cart_dda_faces(ixI^L,ixO^L,ps(igrid)%x,ps(igrid)%dx,&
+                                  cache(iigrid)%xface1,cache(iigrid)%xface2,&
+                                  cache(iigrid)%xface3)
+        call cart_dda_block_pixel_range(cache(iigrid)%box_min,cache(iigrid)%box_max,&
+             nXIF1,nXIF2,xIF1,xIF2,cache(iigrid)%ixPmin1,cache(iigrid)%ixPmax1,&
+             cache(iigrid)%ixPmin2,cache(iigrid)%ixPmax2,cache(iigrid)%has_pixels)
+      enddo
+
+      nPixTotal=nXIF1*nXIF2
+      ipixStart=1
+      do while (ipixStart<=nPixTotal)
+        ipixEnd=min(nXIF1*nXIF2,ipixStart+nPixBatchTarget-1)
+        nPixBatch=ipixEnd-ipixStart+1
+        batchAccepted=.false.
+        batchReduced=.false.
+
+        do while (.not. batchAccepted)
+          nseg=0
+          capacity=0
+          profile_batch=zero
+
+          do iigrid=1,igridstail; igrid=igrids(iigrid);
+            ^D&ixOmin^D=ixmlo^D\
+            ^D&ixOmax^D=ixmhi^D\
+            ^D&ixImin^D=ixglo^D\
+            ^D&ixImax^D=ixghi^D\
+
+            ixPmin1=cache(iigrid)%ixPmin1
+            ixPmax1=cache(iigrid)%ixPmax1
+            ixPmin2=cache(iigrid)%ixPmin2
+            ixPmax2=cache(iigrid)%ixPmax2
+            has_pixels=cache(iigrid)%has_pixels
+            if (.not. has_pixels) cycle
+
+            do ixP2=ixPmin2,ixPmax2
+              iFirst=max(ipixStart,(ixP2-1)*nXIF1+ixPmin1)
+              iLast=min(ipixEnd,(ixP2-1)*nXIF1+ixPmax1)
+              if (iFirst>iLast) cycle
+              do ipix=iFirst,iLast
+                ixP1=1+mod(ipix-1,nXIF1)
+                ray_origin=x_origin+xIF1(ixP1)*vec_xI1+xIF2(ixP2)*vec_xI2
+                profile_batch(1)=profile_batch(1)+one
+                call ray_box_intersection_cart(ray_origin,vec_LOS,cache(iigrid)%box_min,&
+                                               cache(iigrid)%box_max,hit,t_enter,t_exit)
+                if (hit) then
+                  profile_batch(2)=profile_batch(2)+one
+                  nsegBefore=nseg
+                  call collect_EUV_cart_dda_segments(ixI^L,ixO^L,cache(iigrid)%source,&
+                                                     cache(iigrid)%opacity,cache(iigrid)%sourcev,&
+                                                     ipix,ray_origin,cache(iigrid)%xface1,&
+                                                     cache(iigrid)%xface2,cache(iigrid)%xface3,&
+                                                     t_enter,t_exit,&
+                                                     segments,nseg,capacity)
+                  profile_batch(3)=profile_batch(3)+dble(nseg-nsegBefore)
+                endif
+              enddo
+            enddo
+          enddo
+
+          call MPI_ALLREDUCE(nseg,maxNsegBatch,1,MPI_INTEGER,MPI_MAX,icomm,ierrmpi)
+          if (maxNsegBatch>maxSegBatchTarget .and. nPixBatch>1) then
+            nPixBatch=max(1,nPixBatch/2)
+            ipixEnd=ipixStart+nPixBatch-1
+            if (allocated(segments)) deallocate(segments)
+            batchReduced=.true.
+          else
+            batchAccepted=.true.
+          endif
+        enddo
+
+        profile_local=profile_local+profile_batch
+        if (radsyn_verbose .and. mype==0 .and. batchReduced) then
+          write(*,'(a,3(i0,1x))') ' cart_dda thick adaptive batch: ',&
+               ipixStart,ipixEnd,maxNsegBatch
+        endif
+
+        if (.not. allocated(segments)) then
+          capacity=1
+          allocate(segments(nSegVars,capacity))
+        endif
+        ownerSegCounts=0
+        do is=1,nseg
+          owner=segment_pixel_owner(nint(segments(1,is)))
+          ownerSegCounts(owner)=ownerSegCounts(owner)+1
+        enddo
+        sendCounts=nSegVars*ownerSegCounts
+        sendDispls(0)=0
+        do ipe=1,npe-1
+          sendDispls(ipe)=sendDispls(ipe-1)+sendCounts(ipe-1)
+        enddo
+
+        allocate(segments_send(nSegVars,max(1,nseg)))
+        ownerOffsets=0
+        do is=1,nseg
+          owner=segment_pixel_owner(nint(segments(1,is)))
+          isegDest=sendDispls(owner)/nSegVars+ownerOffsets(owner)+1
+          segments_send(:,isegDest)=segments(:,is)
+          ownerOffsets(owner)=ownerOffsets(owner)+1
+        enddo
+
+        call MPI_ALLTOALL(sendCounts,1,MPI_INTEGER,recvCounts,1,MPI_INTEGER,icomm,ierrmpi)
+        recvDispls(0)=0
+        do ipe=1,npe-1
+          recvDispls(ipe)=recvDispls(ipe-1)+recvCounts(ipe-1)
+        enddo
+        totalCount=sum(recvCounts)
+        totalSeg=totalCount/nSegVars
+        profile_local(4)=profile_local(4)+dble(totalCount)
+        allocate(segments_recv(nSegVars,max(1,totalSeg)))
+
+        recvFill=0
+        maxOwnerSegCountLocal=maxval(ownerSegCounts)
+        call MPI_ALLREDUCE(maxOwnerSegCountLocal,maxOwnerSegCount,1,MPI_INTEGER,MPI_MAX,icomm,ierrmpi)
+        do segOffset=0,maxOwnerSegCount-1,maxSegCommTarget
+          roundSendCounts=0
+          roundSendDispls=sendDispls
+          do ipe=0,npe-1
+            if (ownerSegCounts(ipe)>segOffset) then
+              roundSendCounts(ipe)=nSegVars*min(maxSegCommTarget,ownerSegCounts(ipe)-segOffset)
+              roundSendDispls(ipe)=sendDispls(ipe)+nSegVars*segOffset
+            endif
+          enddo
+
+          call MPI_ALLTOALL(roundSendCounts,1,MPI_INTEGER,roundRecvCounts,1,MPI_INTEGER,icomm,ierrmpi)
+          roundRecvDispls(0)=0
+          do ipe=1,npe-1
+            roundRecvDispls(ipe)=roundRecvDispls(ipe-1)+roundRecvCounts(ipe-1)
+          enddo
+          totalRoundCount=sum(roundRecvCounts)
+          totalRoundSeg=totalRoundCount/nSegVars
+          allocate(segments_recv_round(nSegVars,max(1,totalRoundSeg)))
+
+          call MPI_ALLTOALLV(segments_send,roundSendCounts,roundSendDispls,MPI_DOUBLE_PRECISION,&
+                             segments_recv_round,roundRecvCounts,roundRecvDispls,&
+                             MPI_DOUBLE_PRECISION,icomm,ierrmpi)
+
+          if (totalRoundSeg>0) then
+            segments_recv(:,recvFill+1:recvFill+totalRoundSeg)=segments_recv_round(:,1:totalRoundSeg)
+            recvFill=recvFill+totalRoundSeg
+          endif
+          deallocate(segments_recv_round)
+        enddo
+
+        if (recvFill/=totalSeg) call mpistop("cart_dda thick segmented receive mismatch")
+
+        if (totalSeg>0) then
+          allocate(idx(totalSeg))
+          bucketCounts(1:nPixBatch)=0
+          do is=1,totalSeg
+            if (segment_is_valid(segments_recv,is,nSegVars)) then
+              ipix=nint(segments_recv(1,is))
+              if (ipix>=ipixStart .and. ipix<=ipixEnd .and. segment_pixel_owner(ipix)==mype) then
+                iLocal=ipix-ipixStart+1
+                bucketCounts(iLocal)=bucketCounts(iLocal)+1
+              endif
+            endif
+          enddo
+
+          bucketOffsets(1)=1
+          do iLocal=1,nPixBatch
+            bucketOffsets(iLocal+1)=bucketOffsets(iLocal)+bucketCounts(iLocal)
+          enddo
+          bucketFill(1:nPixBatch)=bucketOffsets(1:nPixBatch)
+          do is=1,totalSeg
+            if (segment_is_valid(segments_recv,is,nSegVars)) then
+              ipix=nint(segments_recv(1,is))
+              if (ipix>=ipixStart .and. ipix<=ipixEnd .and. segment_pixel_owner(ipix)==mype) then
+                iLocal=ipix-ipixStart+1
+                idx(bucketFill(iLocal))=is
+                bucketFill(iLocal)=bucketFill(iLocal)+1
+              endif
+            endif
+          enddo
+
+          do ipix=ipixStart,ipixEnd
+            if (segment_pixel_owner(ipix)/=mype) cycle
+            iLocal=ipix-ipixStart+1
+            nidx=bucketCounts(iLocal)
+            if (nidx>0) then
+              profile_local(5)=profile_local(5)+dble(nidx)*dble(nidx)
+              call sort_segment_indices_near_to_far(segments_recv,idx(bucketOffsets(iLocal):bucketOffsets(iLocal+1)-1),nidx)
+              ixGlobal=1+mod(ipix-1,nXIF1)
+              iyGlobal=1+(ipix-1)/nXIF1
+              do iseg=bucketOffsets(iLocal),bucketOffsets(iLocal+1)-1
+                is=idx(iseg)
+                EUVthin(ixGlobal,iyGlobal)=EUVthin(ixGlobal,iyGlobal)+segments_recv(3,is)
+                atten=transfer_attenuation(Tau(ixGlobal,iyGlobal))
+                EUV(ixGlobal,iyGlobal)=EUV(ixGlobal,iyGlobal)+atten*segments_recv(3,is)
+                Dpl(ixGlobal,iyGlobal)=Dpl(ixGlobal,iyGlobal)+atten*segments_recv(5,is)
+                Tau(ixGlobal,iyGlobal)=Tau(ixGlobal,iyGlobal)+max(zero,segments_recv(4,is))
+              enddo
+            endif
+          enddo
+          deallocate(idx)
+        endif
+
+        deallocate(segments_send,segments_recv)
+        if (allocated(segments)) deallocate(segments)
+        ipixStart=ipixEnd+1
+      enddo
+
+      do iigrid=1,igridstail
+        if (allocated(cache(iigrid)%source)) deallocate(cache(iigrid)%source)
+        if (allocated(cache(iigrid)%opacity)) deallocate(cache(iigrid)%opacity)
+        if (allocated(cache(iigrid)%sourcev)) deallocate(cache(iigrid)%sourcev)
+        if (allocated(cache(iigrid)%xface1)) deallocate(cache(iigrid)%xface1)
+        if (allocated(cache(iigrid)%xface2)) deallocate(cache(iigrid)%xface2)
+        if (allocated(cache(iigrid)%xface3)) deallocate(cache(iigrid)%xface3)
+      enddo
+      deallocate(cache)
+      deallocate(sendCounts,recvCounts,sendDispls,recvDispls,roundSendCounts,roundRecvCounts,&
+                 roundSendDispls,roundRecvDispls,ownerSegCounts,ownerOffsets,bucketCounts,&
+                 bucketOffsets,bucketFill)
+      allocate(image_reduce(nXIF1,nXIF2))
+      call MPI_ALLREDUCE(EUV,image_reduce,nXIF1*nXIF2,MPI_DOUBLE_PRECISION,MPI_SUM,icomm,ierrmpi)
+      EUV=image_reduce
+      call MPI_ALLREDUCE(Dpl,image_reduce,nXIF1*nXIF2,MPI_DOUBLE_PRECISION,MPI_SUM,icomm,ierrmpi)
+      Dpl=image_reduce
+      call MPI_ALLREDUCE(Tau,image_reduce,nXIF1*nXIF2,MPI_DOUBLE_PRECISION,MPI_SUM,icomm,ierrmpi)
+      Tau=image_reduce
+      call MPI_ALLREDUCE(EUVthin,image_reduce,nXIF1*nXIF2,MPI_DOUBLE_PRECISION,MPI_SUM,icomm,ierrmpi)
+      EUVthin=image_reduce
+      deallocate(image_reduce)
+      call MPI_ALLREDUCE(profile_local,profile_global,5,MPI_DOUBLE_PRECISION,MPI_SUM,icomm,ierrmpi)
+      if (radsyn_verbose .and. mype==0) then
+        write(*,'(a,5(es12.5,1x))') &
+          ' cart_dda thick profile: ',profile_global
+      endif
+    end subroutine integrate_EUV_cart_dda_thick_datresol
+
+    subroutine integrate_EUV_thick_datresol(nXIF1,nXIF2,fl,EUV,Dpl,Tau,EUVthin)
+      use mod_global_parameters
+
+      integer, intent(in) :: nXIF1,nXIF2
+      type(te_fluid), intent(in) :: fl
+      double precision, intent(out) :: EUV(nXIF1,nXIF2),Dpl(nXIF1,nXIF2)
+      double precision, intent(out) :: Tau(nXIF1,nXIF2),EUVthin(nXIF1,nXIF2)
+
+      integer :: ixO^L,ixO^D,ixI^L,ix^D
+      integer :: iigrid,igrid,levelg,rft,direction_LOS,nLOS,numSeg,nLayerVars,nLayerSeg
+      integer :: ixP1,ixP2,ixL,iSub1,iSub2,relL
+      integer :: nLosBatch,nBatch,iBatch,ixLstart,ixLend,ixLgridStart,ixLgridEnd
+      integer :: ixPmin1,ixPmin2
+      double precision :: ds_cm,jds,kds,jvds,atten,layerBytes,targetBytes
+      double precision, allocatable :: rho(:^D&)
+      double precision, allocatable :: layer_ds(:,:,:,:),layer_all(:,:,:,:)
+      type(radsyn_euv_cache), allocatable :: cache(:)
+
+      if (LOS_phi==0 .and. LOS_theta==90) then
+        direction_LOS=1
+        nLOS=domain_nx1*2**(refine_max_level-1)
+      else if (LOS_phi==90 .and. LOS_theta==90) then
+        direction_LOS=2
+        nLOS=domain_nx2*2**(refine_max_level-1)
+      else
+        direction_LOS=3
+        nLOS=domain_nx3*2**(refine_max_level-1)
+      endif
+
+      nLayerVars=3
+      if (nXIF1>huge(numSeg)/max(1,nXIF2) .or. nXIF1*nXIF2>huge(numSeg)/nLayerVars) then
+        call mpistop("thick EUV layer buffer is too large for one MPI reduction")
+      endif
+      nLayerSeg=nXIF1*nXIF2*nLayerVars
+      targetBytes=256.d0*1024.d0*1024.d0
+      layerBytes=dble(nLayerSeg)*8.d0*2.d0
+      nLosBatch=max(1,min(16,int(targetBytes/max(one,layerBytes))))
+      if (nLayerSeg>huge(numSeg)/nLosBatch) then
+        call mpistop("thick EUV batched layer buffer is too large for one MPI reduction")
+      endif
+
+      allocate(cache(igridstail))
+      do iigrid=1,igridstail; igrid=igrids(iigrid);
+        ^D&ixOmin^D=ixmlo^D\
+        ^D&ixOmax^D=ixmhi^D\
+        ^D&ixImin^D=ixglo^D\
+        ^D&ixImax^D=ixghi^D\
+
+        cache(iigrid)%igrid=igrid
+        levelg=ps(igrid)%level
+        rft=2**(refine_max_level-levelg)
+        cache(iigrid)%level=levelg
+        cache(iigrid)%rft=rft
+
+        select case(direction_LOS)
+        case(1)
+          cache(iigrid)%los_min=(node(pig1_,igrid)-1)*rft*block_nx1+1
+          cache(iigrid)%los_max=node(pig1_,igrid)*rft*block_nx1
+        case(2)
+          cache(iigrid)%los_min=(node(pig2_,igrid)-1)*rft*block_nx2+1
+          cache(iigrid)%los_max=node(pig2_,igrid)*rft*block_nx2
+        case(3)
+          cache(iigrid)%los_min=(node(pig3_,igrid)-1)*rft*block_nx3+1
+          cache(iigrid)%los_max=node(pig3_,igrid)*rft*block_nx3
+        end select
+
+        allocate(cache(iigrid)%source(ixI^S),cache(iigrid)%opacity(ixI^S),&
+                 cache(iigrid)%sourcev(ixI^S),rho(ixI^S))
+        cache(iigrid)%source=zero
+        cache(iigrid)%opacity=zero
+        cache(iigrid)%sourcev=zero
+        if (trim(emission_model)=='radio_ff') then
+          call get_radio_ff_source_opacity(ixI^L,ixO^L,ps(igrid)%w,ps(igrid)%x,fl,&
+                                           cache(iigrid)%source,cache(iigrid)%opacity)
+        else
+          call get_EUV(wavelength,ixI^L,ixO^L,ps(igrid)%w,ps(igrid)%x,fl,cache(iigrid)%source)
+          cache(iigrid)%source(ixO^S)=cache(iigrid)%source(ixO^S)/instrument_resolution_factor**2
+          call get_EUV_HHe_opacity(wavelength,ixI^L,ixO^L,ps(igrid)%w,ps(igrid)%x,fl,cache(iigrid)%opacity)
+          call fl%get_rho(ps(igrid)%w,ps(igrid)%x,ixI^L,ixO^L,rho)
+          cache(iigrid)%sourcev(ixO^S)=cache(iigrid)%source(ixO^S)*&
+                                       (-ps(igrid)%w(ixO^S,iw_mom(direction_LOS))/rho(ixO^S))
+        endif
+        deallocate(rho)
+      enddo
+
+      ! Stream a small batch of finest LOS layers; this avoids a full Npix*Nlos column buffer.
+      allocate(layer_ds(nXIF1,nXIF2,nLayerVars,nLosBatch),layer_all(nXIF1,nXIF2,nLayerVars,nLosBatch))
+      EUV=zero
+      Dpl=zero
+      Tau=zero
+      EUVthin=zero
+
+      do ixLstart=1,nLOS,nLosBatch
+        ixLend=min(nLOS,ixLstart+nLosBatch-1)
+        nBatch=ixLend-ixLstart+1
+        layer_ds(:,:,:,1:nBatch)=zero
+
+        do iigrid=1,igridstail
+          ixLgridStart=max(ixLstart,cache(iigrid)%los_min)
+          ixLgridEnd=min(ixLend,cache(iigrid)%los_max)
+          if (ixLgridStart>ixLgridEnd) cycle
+          igrid=cache(iigrid)%igrid
+          rft=cache(iigrid)%rft
+          ^D&ixOmin^D=ixmlo^D\
+          ^D&ixOmax^D=ixmhi^D\
+          ^D&ixImin^D=ixglo^D\
+          ^D&ixImax^D=ixghi^D\
+
+          do ixL=ixLgridStart,ixLgridEnd
+            iBatch=ixL-ixLstart+1
+            relL=ixL-cache(iigrid)%los_min
+
+            select case(direction_LOS)
+            case(1)
+              ix1=ixOmin1+relL/rft
+              do ix2=ixOmin2,ixOmax2
+                ixPmin1=(node(pig2_,igrid)-1)*rft*block_nx2+(ix2-ixOmin2)*rft+1
+                do ix3=ixOmin3,ixOmax3
+                  ixPmin2=(node(pig3_,igrid)-1)*rft*block_nx3+(ix3-ixOmin3)*rft+1
+                  ds_cm=ps(igrid)%dx(ix^D,1)*unit_length/dble(rft)
+                  if (SI_unit) ds_cm=ds_cm*1.d2
+                  jds=cache(iigrid)%source(ix^D)*ds_cm
+                  kds=cache(iigrid)%opacity(ix^D)*ds_cm
+                  jvds=cache(iigrid)%sourcev(ix^D)*ds_cm
+                  do iSub1=0,rft-1
+                    ixP1=ixPmin1+iSub1
+                    do iSub2=0,rft-1
+                      ixP2=ixPmin2+iSub2
+                      layer_ds(ixP1,ixP2,1,iBatch)=layer_ds(ixP1,ixP2,1,iBatch)+jds
+                      layer_ds(ixP1,ixP2,2,iBatch)=layer_ds(ixP1,ixP2,2,iBatch)+kds
+                      layer_ds(ixP1,ixP2,3,iBatch)=layer_ds(ixP1,ixP2,3,iBatch)+jvds
+                    enddo
+                  enddo
+                enddo
+              enddo
+            case(2)
+              ix2=ixOmin2+relL/rft
+              do ix3=ixOmin3,ixOmax3
+                ixPmin1=(node(pig3_,igrid)-1)*rft*block_nx3+(ix3-ixOmin3)*rft+1
+                do ix1=ixOmin1,ixOmax1
+                  ixPmin2=(node(pig1_,igrid)-1)*rft*block_nx1+(ix1-ixOmin1)*rft+1
+                  ds_cm=ps(igrid)%dx(ix^D,2)*unit_length/dble(rft)
+                  if (SI_unit) ds_cm=ds_cm*1.d2
+                  jds=cache(iigrid)%source(ix^D)*ds_cm
+                  kds=cache(iigrid)%opacity(ix^D)*ds_cm
+                  jvds=cache(iigrid)%sourcev(ix^D)*ds_cm
+                  do iSub1=0,rft-1
+                    ixP1=ixPmin1+iSub1
+                    do iSub2=0,rft-1
+                      ixP2=ixPmin2+iSub2
+                      layer_ds(ixP1,ixP2,1,iBatch)=layer_ds(ixP1,ixP2,1,iBatch)+jds
+                      layer_ds(ixP1,ixP2,2,iBatch)=layer_ds(ixP1,ixP2,2,iBatch)+kds
+                      layer_ds(ixP1,ixP2,3,iBatch)=layer_ds(ixP1,ixP2,3,iBatch)+jvds
+                    enddo
+                  enddo
+                enddo
+              enddo
+            case(3)
+              ix3=ixOmin3+relL/rft
+              do ix1=ixOmin1,ixOmax1
+                ixPmin1=(node(pig1_,igrid)-1)*rft*block_nx1+(ix1-ixOmin1)*rft+1
+                do ix2=ixOmin2,ixOmax2
+                  ixPmin2=(node(pig2_,igrid)-1)*rft*block_nx2+(ix2-ixOmin2)*rft+1
+                  ds_cm=ps(igrid)%dx(ix^D,3)*unit_length/dble(rft)
+                  if (SI_unit) ds_cm=ds_cm*1.d2
+                  jds=cache(iigrid)%source(ix^D)*ds_cm
+                  kds=cache(iigrid)%opacity(ix^D)*ds_cm
+                  jvds=cache(iigrid)%sourcev(ix^D)*ds_cm
+                  do iSub1=0,rft-1
+                    ixP1=ixPmin1+iSub1
+                    do iSub2=0,rft-1
+                      ixP2=ixPmin2+iSub2
+                      layer_ds(ixP1,ixP2,1,iBatch)=layer_ds(ixP1,ixP2,1,iBatch)+jds
+                      layer_ds(ixP1,ixP2,2,iBatch)=layer_ds(ixP1,ixP2,2,iBatch)+kds
+                      layer_ds(ixP1,ixP2,3,iBatch)=layer_ds(ixP1,ixP2,3,iBatch)+jvds
+                    enddo
+                  enddo
+                enddo
+              enddo
+            end select
+          enddo
+        enddo
+
+        numSeg=nLayerSeg*nBatch
+        call MPI_ALLREDUCE(layer_ds,layer_all,numSeg,MPI_DOUBLE_PRECISION,MPI_SUM,icomm,ierrmpi)
+
+        do iBatch=1,nBatch
+          !$OMP PARALLEL DO COLLAPSE(2) PRIVATE(atten) SCHEDULE(static)
+          do ixP1=1,nXIF1
+            do ixP2=1,nXIF2
+              EUVthin(ixP1,ixP2)=EUVthin(ixP1,ixP2)+layer_all(ixP1,ixP2,1,iBatch)
+              atten=transfer_attenuation(Tau(ixP1,ixP2))
+              EUV(ixP1,ixP2)=EUV(ixP1,ixP2)+atten*layer_all(ixP1,ixP2,1,iBatch)
+              Dpl(ixP1,ixP2)=Dpl(ixP1,ixP2)+atten*layer_all(ixP1,ixP2,3,iBatch)
+              Tau(ixP1,ixP2)=Tau(ixP1,ixP2)+layer_all(ixP1,ixP2,2,iBatch)
+            enddo
+          enddo
+          !$OMP END PARALLEL DO
+        enddo
+      enddo
+
+      do iigrid=1,igridstail
+        if (allocated(cache(iigrid)%source)) deallocate(cache(iigrid)%source)
+        if (allocated(cache(iigrid)%opacity)) deallocate(cache(iigrid)%opacity)
+        if (allocated(cache(iigrid)%sourcev)) deallocate(cache(iigrid)%sourcev)
+      enddo
+      deallocate(cache,layer_ds,layer_all)
+
+    end subroutine integrate_EUV_thick_datresol
+
+  }
+
+  {^IFTHREED
+
+    subroutine build_sph_intersection_faces(ixI^L,ixO^L,x,dx,rface,thetaface,phiface)
+      integer, intent(in) :: ixI^L, ixO^L
+      double precision, intent(in) :: x(ixI^S,1:ndim),dx(ixI^S,1:ndim)
+      double precision, allocatable, intent(out) :: rface(:),thetaface(:),phiface(:)
+      integer :: ix1,ix2,ix3
+
+      allocate(rface(ixOmin1:ixOmax1+1),thetaface(ixOmin2:ixOmax2+1),phiface(ixOmin3:ixOmax3+1))
+      do ix1=ixOmin1,ixOmax1
+        rface(ix1)=x(ix1,ixOmin2,ixOmin3,1)-half*dx(ix1,ixOmin2,ixOmin3,1)
+      enddo
+      rface(ixOmax1+1)=x(ixOmax1,ixOmin2,ixOmin3,1)+half*dx(ixOmax1,ixOmin2,ixOmin3,1)
+      do ix2=ixOmin2,ixOmax2
+        thetaface(ix2)=x(ixOmin1,ix2,ixOmin3,2)-half*dx(ixOmin1,ix2,ixOmin3,2)
+      enddo
+      thetaface(ixOmax2+1)=x(ixOmin1,ixOmax2,ixOmin3,2)+half*dx(ixOmin1,ixOmax2,ixOmin3,2)
+      do ix3=ixOmin3,ixOmax3
+        phiface(ix3)=x(ixOmin1,ixOmin2,ix3,3)-half*dx(ixOmin1,ixOmin2,ix3,3)
+      enddo
+      phiface(ixOmax3+1)=x(ixOmin1,ixOmin2,ixOmax3,3)+half*dx(ixOmin1,ixOmin2,ixOmax3,3)
+    end subroutine build_sph_intersection_faces
+
+    subroutine sph_add_t(tvals,nt,capacity,t)
+      double precision, allocatable, intent(inout) :: tvals(:)
+      integer, intent(inout) :: nt,capacity
+      double precision, intent(in) :: t
+
+      double precision, allocatable :: tmp(:)
+
+      if (t /= t .or. abs(t)>1.d90) return
+      if (.not. allocated(tvals)) then
+        capacity=64
+        allocate(tvals(capacity))
+      else if (nt>=capacity) then
+        allocate(tmp(capacity))
+        tmp=tvals
+        deallocate(tvals)
+        allocate(tvals(2*capacity))
+        tvals(1:capacity)=tmp
+        deallocate(tmp)
+        capacity=2*capacity
+      endif
+      nt=nt+1
+      tvals(nt)=t
+    end subroutine sph_add_t
+
+    subroutine sph_add_t_fixed(tvals,nt,t)
+      double precision, intent(inout) :: tvals(:)
+      integer, intent(inout) :: nt
+      double precision, intent(in) :: t
+
+      if (t /= t .or. abs(t)>1.d90) return
+      if (nt>=size(tvals)) return
+      nt=nt+1
+      tvals(nt)=t
+    end subroutine sph_add_t_fixed
+
+    subroutine sph_sort_unique_t(tvals,nt)
+      double precision, intent(inout) :: tvals(:)
+      integer, intent(inout) :: nt
+
+      integer :: i,j,nout
+      double precision :: key,epsT
+
+      if (nt<=1) return
+      do i=2,nt
+        key=tvals(i)
+        j=i-1
+        do while (j>=1 .and. tvals(j)>key)
+          tvals(j+1)=tvals(j)
+          j=j-1
+        enddo
+        tvals(j+1)=key
+      enddo
+      epsT=max(1.d-12,1.d-10*max(one,abs(tvals(nt)-tvals(1))))
+      nout=1
+      do i=2,nt
+        if (abs(tvals(i)-tvals(nout))>epsT) then
+          nout=nout+1
+          tvals(nout)=tvals(i)
+        endif
+      enddo
+      nt=nout
+    end subroutine sph_sort_unique_t
+
+    subroutine sph_add_sphere_intersections(ray_origin,ray_dir,rface,tvals,nt,capacity)
+      double precision, intent(in) :: ray_origin(1:3),ray_dir(1:3),rface
+      double precision, allocatable, intent(inout) :: tvals(:)
+      integer, intent(inout) :: nt,capacity
+
+      double precision :: aa,bb,cc,disc,root
+
+      aa=sum(ray_dir**2)
+      bb=2.d0*sum(ray_origin*ray_dir)
+      cc=sum(ray_origin**2)-rface**2
+      disc=bb**2-4.d0*aa*cc
+      if (disc<zero) return
+      root=sqrt(max(zero,disc))
+      call sph_add_t(tvals,nt,capacity,(-bb-root)/(2.d0*aa))
+      call sph_add_t(tvals,nt,capacity,(-bb+root)/(2.d0*aa))
+    end subroutine sph_add_sphere_intersections
+
+    subroutine sph_add_theta_intersections(ray_origin,ray_dir,thetaface,tvals,nt,capacity)
+      double precision, intent(in) :: ray_origin(1:3),ray_dir(1:3),thetaface
+      double precision, allocatable, intent(inout) :: tvals(:)
+      integer, intent(inout) :: nt,capacity
+
+      double precision :: cth,aa,bb,cc,disc,root
+
+      cth=cos(thetaface)
+      ! At the equator the cone equation degenerates to z**2=0.  Solve the
+      ! corresponding plane intersection directly to avoid losing its double
+      ! root through roundoff in the quadratic discriminant.
+      if (abs(cth)<1.d-12) then
+        if (abs(ray_dir(3))>1.d-14) &
+          call sph_add_t(tvals,nt,capacity,-ray_origin(3)/ray_dir(3))
+        return
+      endif
+      aa=ray_dir(3)**2-cth**2*sum(ray_dir**2)
+      bb=2.d0*(ray_origin(3)*ray_dir(3)-cth**2*sum(ray_origin*ray_dir))
+      cc=ray_origin(3)**2-cth**2*sum(ray_origin**2)
+      if (abs(aa)<1.d-14) then
+        if (abs(bb)>1.d-14) call sph_add_t(tvals,nt,capacity,-cc/bb)
+        return
+      endif
+      disc=bb**2-4.d0*aa*cc
+      if (disc<zero) return
+      root=sqrt(max(zero,disc))
+      call sph_add_t(tvals,nt,capacity,(-bb-root)/(2.d0*aa))
+      call sph_add_t(tvals,nt,capacity,(-bb+root)/(2.d0*aa))
+    end subroutine sph_add_theta_intersections
+
+    subroutine sph_add_phi_intersection(ray_origin,ray_dir,phiface,tvals,nt,capacity)
+      double precision, intent(in) :: ray_origin(1:3),ray_dir(1:3),phiface
+      double precision, allocatable, intent(inout) :: tvals(:)
+      integer, intent(inout) :: nt,capacity
+
+      double precision :: normal(1:3),denom,numer
+
+      normal(1)=-sin(phiface)
+      normal(2)=cos(phiface)
+      normal(3)=zero
+      denom=sum(normal*ray_dir)
+      if (abs(denom)<1.d-14) return
+      numer=sum(normal*ray_origin)
+      call sph_add_t(tvals,nt,capacity,-numer/denom)
+    end subroutine sph_add_phi_intersection
+
+    subroutine sph_cart_to_coord(pos,sph)
+      double precision, intent(in) :: pos(1:3)
+      double precision, intent(out) :: sph(1:3)
+
+      sph(1)=sqrt(sum(pos**2))
+      if (sph(1)>zero) then
+        sph(2)=acos(max(-one,min(one,pos(3)/sph(1))))
+      else
+        sph(2)=zero
+      endif
+      sph(3)=atan2(pos(2),pos(1))
+    end subroutine sph_cart_to_coord
+
+    integer function sph_locate_index(value,faces,imin,imax) result(idx)
+      integer, intent(in) :: imin,imax
+      double precision, intent(in) :: value,faces(imin:imax+1)
+
+      integer :: ilo,ihi,imid
+
+      idx=0
+      if (value<faces(imin)-1.d-12 .or. value>faces(imax+1)+1.d-12) return
+      if (value<=faces(imin)) then
+        idx=imin
+        return
+      endif
+      if (value>=faces(imax+1)) then
+        idx=imax
+        return
+      endif
+
+      ilo=imin
+      ihi=imax+1
+      do while (ihi-ilo>1)
+        imid=(ilo+ihi)/2
+        if (value>=faces(imid)) then
+          ilo=imid
+        else
+          ihi=imid
+        endif
+      enddo
+      idx=min(imax,max(imin,ilo))
+    end function sph_locate_index
+
+    integer function sph_locate_index_desc(value,faces,imin,imax) result(idx)
+      integer, intent(in) :: imin,imax
+      double precision, intent(in) :: value,faces(imin:imax+1)
+
+      integer :: ilo,ihi,imid
+
+      idx=0
+      if (value>faces(imin)+1.d-12 .or. value<faces(imax+1)-1.d-12) return
+      if (value>=faces(imin)) then
+        idx=imin
+        return
+      endif
+      if (value<=faces(imax+1)) then
+        idx=imax
+        return
+      endif
+
+      ilo=imin
+      ihi=imax+1
+      do while (ihi-ilo>1)
+        imid=(ilo+ihi)/2
+        if (value<=faces(imid)) then
+          ilo=imid
+        else
+          ihi=imid
+        endif
+      enddo
+      idx=min(imax,max(imin,ilo))
+    end function sph_locate_index_desc
+
+    subroutine sph_locate_cell(pos,rface,thetaface,phiface,ixO^L,ix1,ix2,ix3,inside)
+      double precision, intent(in) :: pos(1:3)
+      double precision, intent(in) :: rface(ixOmin1:ixOmax1+1),thetaface(ixOmin2:ixOmax2+1),&
+                                      phiface(ixOmin3:ixOmax3+1)
+      integer, intent(in) :: ixO^L
+      integer, intent(out) :: ix1,ix2,ix3
+      logical, intent(out) :: inside
+
+      double precision :: sph(1:3),phi
+
+      call sph_cart_to_coord(pos,sph)
+      phi=sph(3)
+      if (phi<phiface(ixOmin3)-1.d-12) phi=phi+2.d0*dpi
+      if (phi>phiface(ixOmax3+1)+1.d-12) phi=phi-2.d0*dpi
+      ix1=sph_locate_index(sph(1),rface,ixOmin1,ixOmax1)
+      ix2=sph_locate_index(sph(2),thetaface,ixOmin2,ixOmax2)
+      ix3=sph_locate_index(phi,phiface,ixOmin3,ixOmax3)
+      inside=ix1>0 .and. ix2>0 .and. ix3>0
+    end subroutine sph_locate_cell
+
+    logical function sph_segment_visible(pos,ximg1,ximg2) result(visible)
+      use mod_constants
+      double precision, intent(in) :: pos(1:3),ximg1,ximg2
+
+      double precision :: dotp,rc,rthick,rloc
+
+      rthick=R_opt_thick*const_Rsun/unit_length
+      rc=sqrt(ximg1**2+ximg2**2)
+      rloc=sqrt(sum(pos**2))
+      call dot_product_loc(vec_LOS,pos,dotp)
+      visible=.true.
+      if (dotp>=zero) then
+        if (rc<=rthick) visible=.false.
+      else
+        if (rloc<=rthick) visible=.false.
+      endif
+    end function sph_segment_visible
+
+    subroutine sph_block_pixel_range(rface,thetaface,phiface,ixO^L,nXI1,nXI2,xI1,xI2,dxI,&
+                                     ixPmin1,ixPmax1,ixPmin2,ixPmax2,has_pixels)
+      double precision, intent(in) :: rface(ixOmin1:ixOmax1+1),thetaface(ixOmin2:ixOmax2+1),&
+                                      phiface(ixOmin3:ixOmax3+1)
+      integer, intent(in) :: ixO^L,nXI1,nXI2
+      double precision, intent(in) :: xI1(nXI1),xI2(nXI2),dxI
+      integer, intent(out) :: ixPmin1,ixPmax1,ixPmin2,ixPmax2
+      logical, intent(out) :: has_pixels
+
+      integer, parameter :: nsample=5
+      integer :: ir,it,ip
+      double precision :: sph(1:3),xcent(1:2)
+      double precision :: xmin1,xmax1,xmin2,xmax2
+      double precision :: wr,wt,wp,pad
+
+      has_pixels=.false.
+      xmin1=huge(one)
+      xmax1=-huge(one)
+      xmin2=huge(one)
+      xmax2=-huge(one)
+      do ir=0,nsample-1
+        wr=dble(ir)/dble(nsample-1)
+        sph(1)=(one-wr)*rface(ixOmin1)+wr*rface(ixOmax1+1)
+        do it=0,nsample-1
+          wt=dble(it)/dble(nsample-1)
+          sph(2)=(one-wt)*thetaface(ixOmin2)+wt*thetaface(ixOmax2+1)
+          do ip=0,nsample-1
+            wp=dble(ip)/dble(nsample-1)
+            if (ir/=0 .and. ir/=nsample-1 .and. it/=0 .and. it/=nsample-1 .and. &
+                ip/=0 .and. ip/=nsample-1) cycle
+            sph(3)=(one-wp)*phiface(ixOmin3)+wp*phiface(ixOmax3+1)
+            call get_cor_image_spherical(sph,xcent)
+            xmin1=min(xmin1,xcent(1))
+            xmax1=max(xmax1,xcent(1))
+            xmin2=min(xmin2,xcent(2))
+            xmax2=max(xmax2,xcent(2))
+          enddo
+        enddo
+      enddo
+      pad=2.d0*dxI
+      xmin1=xmin1-pad
+      xmax1=xmax1+pad
+      xmin2=xmin2-pad
+      xmax2=xmax2+pad
+      ixPmin1=max(1,floor((xmin1-(xI1(1)-half*dxI))/dxI)+1)
+      ixPmax1=min(nXI1,ceiling((xmax1-(xI1(1)-half*dxI))/dxI))
+      ixPmin2=max(1,floor((xmin2-(xI2(1)-half*dxI))/dxI)+1)
+      ixPmax2=min(nXI2,ceiling((xmax2-(xI2(1)-half*dxI))/dxI))
+      has_pixels=ixPmin1<=ixPmax1 .and. ixPmin2<=ixPmax2
+    end subroutine sph_block_pixel_range
+
+    subroutine acc_EUV_sph_intersection(ixI^L,ixO^L,source,ray_origin,ximg1,ximg2,&
+                                        rface,thetaface,phiface,EUVp)
+      integer, intent(in) :: ixI^L,ixO^L
+      double precision, intent(in) :: source(ixI^S),ray_origin(1:3),ximg1,ximg2
+      double precision, intent(in) :: rface(ixOmin1:ixOmax1+1),thetaface(ixOmin2:ixOmax2+1),&
+                                      phiface(ixOmin3:ixOmax3+1)
+      double precision, intent(inout) :: EUVp
+
+      integer :: nt,capacity,i,ix^D
+      double precision, allocatable :: tvals(:)
+      double precision :: posMid(1:3),ds_cm,tMid,t0,t1
+      logical :: inside
+
+      nt=0
+      capacity=0
+      do ix1=ixOmin1,ixOmax1+1
+        call sph_add_sphere_intersections(ray_origin,vec_LOS,rface(ix1),tvals,nt,capacity)
+      enddo
+      do ix2=ixOmin2,ixOmax2+1
+        call sph_add_theta_intersections(ray_origin,vec_LOS,thetaface(ix2),tvals,nt,capacity)
+      enddo
+      do ix3=ixOmin3,ixOmax3+1
+        call sph_add_phi_intersection(ray_origin,vec_LOS,phiface(ix3),tvals,nt,capacity)
+      enddo
+      if (nt<2) then
+        if (allocated(tvals)) deallocate(tvals)
+        return
+      endif
+      call sph_sort_unique_t(tvals,nt)
+
+      do i=1,nt-1
+        t0=tvals(i)
+        t1=tvals(i+1)
+        if (t1<=t0) cycle
+        tMid=half*(t0+t1)
+        posMid=ray_origin+tMid*vec_LOS
+        if (.not. sph_segment_visible(posMid,ximg1,ximg2)) cycle
+        call sph_locate_cell(posMid,rface,thetaface,phiface,ixO^L,ix1,ix2,ix3,inside)
+        if (.not. inside) cycle
+        ds_cm=(t1-t0)*unit_length
+        if (SI_unit) ds_cm=ds_cm*1.d2
+        EUVp=EUVp+source(ix^D)*ds_cm
+      enddo
+      deallocate(tvals)
+    end subroutine acc_EUV_sph_intersection
+
+    subroutine collect_EUV_sph_intersection_segments(ixI^L,ixO^L,source,opacity,&
+                                                     pixel_id,ray_origin,ximg1,ximg2,&
+                                                     rface,thetaface,phiface,rface2,&
+                                                     theta_cos,phi_sin,phi_cos,&
+                                                     segments,nseg,capacity)
+      use mod_constants, only: const_Rsun
+
+      integer, intent(in) :: ixI^L,ixO^L,pixel_id
+      double precision, intent(in) :: source(ixI^S),opacity(ixI^S)
+      double precision, intent(in) :: ray_origin(1:3),ximg1,ximg2
+      double precision, intent(in) :: rface(ixOmin1:ixOmax1+1),thetaface(ixOmin2:ixOmax2+1),&
+                                      phiface(ixOmin3:ixOmax3+1)
+      double precision, intent(in) :: rface2(ixOmin1:ixOmax1+1),theta_cos(ixOmin2:ixOmax2+1),&
+                                      phi_sin(ixOmin3:ixOmax3+1),phi_cos(ixOmin3:ixOmax3+1)
+      double precision, allocatable, intent(inout) :: segments(:,:)
+      integer, intent(inout) :: nseg,capacity
+
+      integer :: nt,i,ix^D
+      double precision :: tvals(2*(ixOmax1-ixOmin1+2)+2*(ixOmax2-ixOmin2+2)+&
+                                (ixOmax3-ixOmin3+2))
+      double precision :: posMid(1:3),ds_cm,tMid,t0,t1,jds,kds
+      double precision :: dir2,origin2,odotd,aa,bb,cc,disc,root,cth2
+      double precision :: denom,numer,r2,mu,phi,dotp,rthick2,rc2
+      logical :: inside
+
+      nt=0
+      dir2=sum(vec_LOS**2)
+      origin2=sum(ray_origin**2)
+      odotd=sum(ray_origin*vec_LOS)
+      rthick2=(R_opt_thick*const_Rsun/unit_length)**2
+      rc2=ximg1**2+ximg2**2
+
+      do ix1=ixOmin1,ixOmax1+1
+        aa=dir2
+        bb=2.d0*odotd
+        cc=origin2-rface2(ix1)
+        disc=bb**2-4.d0*aa*cc
+        if (disc>=zero) then
+          root=sqrt(max(zero,disc))
+          call sph_add_t_fixed(tvals,nt,(-bb-root)/(2.d0*aa))
+          call sph_add_t_fixed(tvals,nt,(-bb+root)/(2.d0*aa))
+        endif
+      enddo
+      do ix2=ixOmin2,ixOmax2+1
+        if (abs(theta_cos(ix2))<1.d-12) then
+          if (abs(vec_LOS(3))>1.d-14) &
+            call sph_add_t_fixed(tvals,nt,-ray_origin(3)/vec_LOS(3))
+          cycle
+        endif
+        cth2=theta_cos(ix2)**2
+        aa=vec_LOS(3)**2-cth2*dir2
+        bb=2.d0*(ray_origin(3)*vec_LOS(3)-cth2*odotd)
+        cc=ray_origin(3)**2-cth2*origin2
+        if (abs(aa)<1.d-14) then
+          if (abs(bb)>1.d-14) call sph_add_t_fixed(tvals,nt,-cc/bb)
+        else
+          disc=bb**2-4.d0*aa*cc
+          if (disc>=zero) then
+            root=sqrt(max(zero,disc))
+            call sph_add_t_fixed(tvals,nt,(-bb-root)/(2.d0*aa))
+            call sph_add_t_fixed(tvals,nt,(-bb+root)/(2.d0*aa))
+          endif
+        endif
+      enddo
+      do ix3=ixOmin3,ixOmax3+1
+        denom=-phi_sin(ix3)*vec_LOS(1)+phi_cos(ix3)*vec_LOS(2)
+        if (abs(denom)>=1.d-14) then
+          numer=-phi_sin(ix3)*ray_origin(1)+phi_cos(ix3)*ray_origin(2)
+          call sph_add_t_fixed(tvals,nt,-numer/denom)
+        endif
+      enddo
+      if (nt<2) return
+      call sph_sort_unique_t(tvals,nt)
+
+      do i=1,nt-1
+        t0=tvals(i)
+        t1=tvals(i+1)
+        if (t1<=t0) cycle
+        tMid=half*(t0+t1)
+        posMid=ray_origin+tMid*vec_LOS
+        r2=sum(posMid**2)
+        dotp=sum(vec_LOS*posMid)
+        if (dotp>=zero) then
+          if (rc2<=rthick2) cycle
+        else
+          if (r2<=rthick2) cycle
+        endif
+
+        ix1=sph_locate_index(r2,rface2,ixOmin1,ixOmax1)
+        if (r2>zero) then
+          mu=posMid(3)/sqrt(r2)
+        else
+          mu=one
+        endif
+        ix2=sph_locate_index_desc(mu,theta_cos,ixOmin2,ixOmax2)
+        phi=atan2(posMid(2),posMid(1))
+        if (phi<phiface(ixOmin3)-1.d-12) phi=phi+2.d0*dpi
+        if (phi>phiface(ixOmax3+1)+1.d-12) phi=phi-2.d0*dpi
+        ix3=sph_locate_index(phi,phiface,ixOmin3,ixOmax3)
+        inside=ix1>0 .and. ix2>0 .and. ix3>0
+        if (.not. inside) cycle
+        ds_cm=(t1-t0)*unit_length
+        if (SI_unit) ds_cm=ds_cm*1.d2
+        jds=max(zero,source(ix^D))*ds_cm
+        kds=max(zero,opacity(ix^D))*ds_cm
+        call append_cart_dda_segment(segments,nseg,capacity,pixel_id,tMid,jds,kds,zero)
+      enddo
+    end subroutine collect_EUV_sph_intersection_segments
+
+    subroutine sph_locate_cell_fast(pos,rface2,theta_cos,phiface,ixO^L,ix1,ix2,ix3,inside)
+      double precision, intent(in) :: pos(1:3)
+      double precision, intent(in) :: rface2(ixOmin1:ixOmax1+1),theta_cos(ixOmin2:ixOmax2+1),&
+                                      phiface(ixOmin3:ixOmax3+1)
+      integer, intent(in) :: ixO^L
+      integer, intent(out) :: ix1,ix2,ix3
+      logical, intent(out) :: inside
+
+      double precision :: r2,mu,phi
+
+      r2=sum(pos**2)
+      ix1=sph_locate_index(r2,rface2,ixOmin1,ixOmax1)
+      if (r2>zero) then
+        mu=pos(3)/sqrt(r2)
+      else
+        mu=one
+      endif
+      ix2=sph_locate_index_desc(mu,theta_cos,ixOmin2,ixOmax2)
+      phi=atan2(pos(2),pos(1))
+      if (phi<phiface(ixOmin3)-1.d-12) phi=phi+2.d0*dpi
+      if (phi>phiface(ixOmax3+1)+1.d-12) phi=phi-2.d0*dpi
+      ix3=sph_locate_index(phi,phiface,ixOmin3,ixOmax3)
+      inside=ix1>0 .and. ix2>0 .and. ix3>0
+    end subroutine sph_locate_cell_fast
+
+    subroutine sph_try_exit_candidate(t,tNow,tExit,epsRay,tNext,found)
+      double precision, intent(in) :: t,tNow,tExit,epsRay
+      double precision, intent(inout) :: tNext
+      logical, intent(inout) :: found
+
+      if (t>tNow+epsRay .and. t<=tExit+epsRay .and. t<tNext) then
+        tNext=t
+        found=.true.
+      endif
+    end subroutine sph_try_exit_candidate
+
+    subroutine sph_try_theta_exit_candidate(t,theta_face_cos,ray_origin,tNow,tExit,epsRay,tNext,found)
+      double precision, intent(in) :: t,theta_face_cos,ray_origin(1:3),tNow,tExit,epsRay
+      double precision, intent(inout) :: tNext
+      logical, intent(inout) :: found
+
+      double precision :: pos(1:3),r2
+
+      if (t<=tNow+epsRay .or. t>tExit+epsRay .or. t>=tNext) return
+      pos=ray_origin+t*vec_LOS
+      r2=sum(pos**2)
+      if (r2<=zero) return
+      if (theta_face_cos>1.d-12 .and. pos(3)<-1.d-10) return
+      if (theta_face_cos<-1.d-12 .and. pos(3)>1.d-10) return
+      if (abs(pos(3)**2-theta_face_cos**2*r2)>1.d-6*max(one,r2)) return
+      tNext=t
+      found=.true.
+    end subroutine sph_try_theta_exit_candidate
+
+    subroutine sph_try_phi_exit_candidate(t,phi_face_sin,phi_face_cos,ray_origin,tNow,tExit,epsRay,tNext,found)
+      double precision, intent(in) :: t,phi_face_sin,phi_face_cos,ray_origin(1:3),tNow,tExit,epsRay
+      double precision, intent(inout) :: tNext
+      logical, intent(inout) :: found
+
+      double precision :: pos(1:3),radialDot
+
+      if (t<=tNow+epsRay .or. t>tExit+epsRay .or. t>=tNext) return
+      pos=ray_origin+t*vec_LOS
+      radialDot=phi_face_cos*pos(1)+phi_face_sin*pos(2)
+      if (radialDot<-1.d-10) return
+      tNext=t
+      found=.true.
+    end subroutine sph_try_phi_exit_candidate
+
+    subroutine sph_next_cell_exit(ray_origin,rface2,theta_cos,phiface,phi_sin,phi_cos,ixO^L,&
+                                  ix1,ix2,ix3,tNow,tExit,epsRay,tNext,found)
+      double precision, intent(in) :: ray_origin(1:3)
+      double precision, intent(in) :: rface2(ixOmin1:ixOmax1+1),theta_cos(ixOmin2:ixOmax2+1),&
+                                      phiface(ixOmin3:ixOmax3+1)
+      double precision, intent(in) :: phi_sin(ixOmin3:ixOmax3+1),phi_cos(ixOmin3:ixOmax3+1)
+      integer, intent(in) :: ixO^L,ix1,ix2,ix3
+      double precision, intent(in) :: tNow,tExit,epsRay
+      double precision, intent(out) :: tNext
+      logical, intent(out) :: found
+
+      integer :: iface
+      double precision :: dir2,origin2,odotd,aa,bb,cc,disc,root,cth2,denom,numer
+
+      found=.false.
+      tNext=huge(one)
+      dir2=sum(vec_LOS**2)
+      origin2=sum(ray_origin**2)
+      odotd=sum(ray_origin*vec_LOS)
+
+      do iface=ix1,ix1+1
+        aa=dir2
+        bb=2.d0*odotd
+        cc=origin2-rface2(iface)
+        disc=bb**2-4.d0*aa*cc
+        if (disc>=zero) then
+          root=sqrt(max(zero,disc))
+          call sph_try_exit_candidate((-bb-root)/(2.d0*aa),tNow,tExit,epsRay,tNext,found)
+          call sph_try_exit_candidate((-bb+root)/(2.d0*aa),tNow,tExit,epsRay,tNext,found)
+        endif
+      enddo
+
+      do iface=ix2,ix2+1
+        if (abs(theta_cos(iface))<1.d-12) then
+          if (abs(vec_LOS(3))>1.d-14) call sph_try_theta_exit_candidate(&
+            -ray_origin(3)/vec_LOS(3),theta_cos(iface),ray_origin,tNow,tExit,epsRay,&
+            tNext,found)
+          cycle
+        endif
+        cth2=theta_cos(iface)**2
+        aa=vec_LOS(3)**2-cth2*dir2
+        bb=2.d0*(ray_origin(3)*vec_LOS(3)-cth2*odotd)
+        cc=ray_origin(3)**2-cth2*origin2
+        if (abs(aa)<1.d-14) then
+          if (abs(bb)>1.d-14) call sph_try_theta_exit_candidate(-cc/bb,theta_cos(iface),&
+               ray_origin,tNow,tExit,epsRay,tNext,found)
+        else
+          disc=bb**2-4.d0*aa*cc
+          if (disc>=zero) then
+            root=sqrt(max(zero,disc))
+            call sph_try_theta_exit_candidate((-bb-root)/(2.d0*aa),theta_cos(iface),&
+                 ray_origin,tNow,tExit,epsRay,tNext,found)
+            call sph_try_theta_exit_candidate((-bb+root)/(2.d0*aa),theta_cos(iface),&
+                 ray_origin,tNow,tExit,epsRay,tNext,found)
+          endif
+        endif
+      enddo
+
+      do iface=ix3,ix3+1
+        denom=-phi_sin(iface)*vec_LOS(1)+phi_cos(iface)*vec_LOS(2)
+        if (abs(denom)>=1.d-14) then
+          numer=-phi_sin(iface)*ray_origin(1)+phi_cos(iface)*ray_origin(2)
+          call sph_try_phi_exit_candidate(-numer/denom,phi_sin(iface),phi_cos(iface),ray_origin,&
+               tNow,tExit,epsRay,tNext,found)
+        endif
+      enddo
+    end subroutine sph_next_cell_exit
+
+    subroutine collect_EUV_sph_dda_interval(ixI^L,ixO^L,source,opacity,pixel_id,&
+                                            ray_origin,ximg1,ximg2,rface2,theta_cos,phiface,&
+                                            phi_sin,phi_cos,&
+                                            t_enter,t_exit,segments,nseg,capacity,ok)
+      use mod_constants, only: const_Rsun
+
+      integer, intent(in) :: ixI^L,ixO^L,pixel_id
+      double precision, intent(in) :: source(ixI^S),opacity(ixI^S)
+      double precision, intent(in) :: ray_origin(1:3),ximg1,ximg2
+      double precision, intent(in) :: rface2(ixOmin1:ixOmax1+1),theta_cos(ixOmin2:ixOmax2+1),&
+                                      phiface(ixOmin3:ixOmax3+1)
+      double precision, intent(in) :: phi_sin(ixOmin3:ixOmax3+1),phi_cos(ixOmin3:ixOmax3+1)
+      double precision, intent(in) :: t_enter,t_exit
+      double precision, allocatable, intent(inout) :: segments(:,:)
+      integer, intent(inout) :: nseg,capacity
+      logical, intent(out) :: ok
+
+      integer :: ix^D,nstep,maxSteps
+      double precision :: tNow,tNext,tEnd,tMid,epsRay,ds_cm,jds,kds
+      double precision :: pos(1:3),r2,dotp,rthick2,rc2
+      logical :: inside,found
+
+      ok=.true.
+      if (t_exit<=t_enter) return
+      epsRay=max(1.d-12,1.d-10*max(one,abs(t_exit-t_enter)))
+      pos=ray_origin+(t_enter+epsRay)*vec_LOS
+      call sph_locate_cell_fast(pos,rface2,theta_cos,phiface,ixO^L,ix1,ix2,ix3,inside)
+      if (.not. inside) then
+        ok=.false.
+        return
+      endif
+
+      rthick2=(R_opt_thick*const_Rsun/unit_length)**2
+      rc2=ximg1**2+ximg2**2
+      tNow=t_enter
+      nstep=0
+      maxSteps=8*((ixOmax1-ixOmin1+1)+(ixOmax2-ixOmin2+1)+(ixOmax3-ixOmin3+1)+3)
+
+      do while (tNow<t_exit-epsRay)
+        call sph_next_cell_exit(ray_origin,rface2,theta_cos,phiface,phi_sin,phi_cos,ixO^L,&
+                                ix1,ix2,ix3,tNow,t_exit,epsRay,tNext,found)
+        if (.not. found) then
+          ok=.false.
+          return
+        endif
+        tEnd=min(tNext,t_exit)
+        if (tEnd>tNow) then
+          tMid=half*(tNow+tEnd)
+          pos=ray_origin+tMid*vec_LOS
+          r2=sum(pos**2)
+          dotp=sum(vec_LOS*pos)
+          if (.not. ((dotp>=zero .and. rc2<=rthick2) .or. &
+                     (dotp<zero .and. r2<=rthick2))) then
+            ds_cm=(tEnd-tNow)*unit_length
+            if (SI_unit) ds_cm=ds_cm*1.d2
+            jds=max(zero,source(ix^D))*ds_cm
+            kds=max(zero,opacity(ix^D))*ds_cm
+            call append_cart_dda_segment(segments,nseg,capacity,pixel_id,tMid,jds,kds,zero)
+          endif
+        endif
+        tNow=tEnd
+        if (tNow>=t_exit-epsRay) exit
+        pos=ray_origin+(tNow+epsRay)*vec_LOS
+        call sph_locate_cell_fast(pos,rface2,theta_cos,phiface,ixO^L,ix1,ix2,ix3,inside)
+        if (.not. inside) then
+          ok=.false.
+          return
+        endif
+        nstep=nstep+1
+        if (nstep>maxSteps) then
+          ok=.false.
+          return
+        endif
+      enddo
+    end subroutine collect_EUV_sph_dda_interval
+
+    subroutine collect_EUV_sph_dda_segments(ixI^L,ixO^L,source,opacity,&
+                                            pixel_id,ray_origin,ximg1,ximg2,&
+                                            rface,thetaface,phiface,rface2,&
+                                            theta_cos,phi_sin,phi_cos,&
+                                            segments,nseg,capacity,fallback)
+      integer, intent(in) :: ixI^L,ixO^L,pixel_id
+      double precision, intent(in) :: source(ixI^S),opacity(ixI^S)
+      double precision, intent(in) :: ray_origin(1:3),ximg1,ximg2
+      double precision, intent(in) :: rface(ixOmin1:ixOmax1+1),thetaface(ixOmin2:ixOmax2+1),&
+                                      phiface(ixOmin3:ixOmax3+1)
+      double precision, intent(in) :: rface2(ixOmin1:ixOmax1+1),theta_cos(ixOmin2:ixOmax2+1),&
+                                      phi_sin(ixOmin3:ixOmax3+1),phi_cos(ixOmin3:ixOmax3+1)
+      double precision, allocatable, intent(inout) :: segments(:,:)
+      integer, intent(inout) :: nseg,capacity
+      logical, intent(out) :: fallback
+
+      integer :: nt,i,nsegStart,ix^D
+      double precision :: tvals(12),posMid(1:3),t0,t1,tMid
+      double precision :: dir2,origin2,odotd,aa,bb,cc,disc,root,cth2,denom,numer
+      logical :: inside,ok
+
+      fallback=.false.
+      nsegStart=nseg
+      nt=0
+      dir2=sum(vec_LOS**2)
+      origin2=sum(ray_origin**2)
+      odotd=sum(ray_origin*vec_LOS)
+
+      do ix1=ixOmin1,ixOmax1+1,ixOmax1-ixOmin1+1
+        aa=dir2
+        bb=2.d0*odotd
+        cc=origin2-rface2(ix1)
+        disc=bb**2-4.d0*aa*cc
+        if (disc>=zero) then
+          root=sqrt(max(zero,disc))
+          call sph_add_t_fixed(tvals,nt,(-bb-root)/(2.d0*aa))
+          call sph_add_t_fixed(tvals,nt,(-bb+root)/(2.d0*aa))
+        endif
+      enddo
+      do ix2=ixOmin2,ixOmax2+1,ixOmax2-ixOmin2+1
+        if (abs(theta_cos(ix2))<1.d-12) then
+          if (abs(vec_LOS(3))>1.d-14) &
+            call sph_add_t_fixed(tvals,nt,-ray_origin(3)/vec_LOS(3))
+          cycle
+        endif
+        cth2=theta_cos(ix2)**2
+        aa=vec_LOS(3)**2-cth2*dir2
+        bb=2.d0*(ray_origin(3)*vec_LOS(3)-cth2*odotd)
+        cc=ray_origin(3)**2-cth2*origin2
+        if (abs(aa)<1.d-14) then
+          if (abs(bb)>1.d-14) call sph_add_t_fixed(tvals,nt,-cc/bb)
+        else
+          disc=bb**2-4.d0*aa*cc
+          if (disc>=zero) then
+            root=sqrt(max(zero,disc))
+            call sph_add_t_fixed(tvals,nt,(-bb-root)/(2.d0*aa))
+            call sph_add_t_fixed(tvals,nt,(-bb+root)/(2.d0*aa))
+          endif
+        endif
+      enddo
+      do ix3=ixOmin3,ixOmax3+1,ixOmax3-ixOmin3+1
+        denom=-phi_sin(ix3)*vec_LOS(1)+phi_cos(ix3)*vec_LOS(2)
+        if (abs(denom)>=1.d-14) then
+          numer=-phi_sin(ix3)*ray_origin(1)+phi_cos(ix3)*ray_origin(2)
+          call sph_add_t_fixed(tvals,nt,-numer/denom)
+        endif
+      enddo
+
+      if (nt<2) return
+      call sph_sort_unique_t(tvals,nt)
+
+      do i=1,nt-1
+        t0=tvals(i)
+        t1=tvals(i+1)
+        if (t1<=t0) cycle
+        tMid=half*(t0+t1)
+        posMid=ray_origin+tMid*vec_LOS
+        call sph_locate_cell_fast(posMid,rface2,theta_cos,phiface,ixO^L,ix1,ix2,ix3,inside)
+        if (.not. inside) cycle
+        call collect_EUV_sph_dda_interval(ixI^L,ixO^L,source,opacity,pixel_id,&
+             ray_origin,ximg1,ximg2,rface2,theta_cos,phiface,phi_sin,phi_cos,&
+             t0,t1,segments,nseg,capacity,ok)
+        if (.not. ok) then
+          nseg=nsegStart
+          fallback=.true.
+          call collect_EUV_sph_intersection_segments(ixI^L,ixO^L,source,opacity,&
+               pixel_id,ray_origin,ximg1,ximg2,rface,thetaface,phiface,rface2,&
+               theta_cos,phi_sin,phi_cos,segments,nseg,capacity)
+          return
+        endif
+      enddo
+
+    end subroutine collect_EUV_sph_dda_segments
+
+    subroutine integrate_EUV_sph_intersection_thin(numXI1,numXI2,xI1,xI2,dxI,fl,EM)
+      use mod_global_parameters
+
+      integer, intent(in) :: numXI1,numXI2
+      double precision, intent(in) :: xI1(numXI1),xI2(numXI2),dxI
+      type(te_fluid), intent(in) :: fl
+      double precision, intent(inout) :: EM(numXI1,numXI2)
+
+      integer :: ixO^L,ixI^L,ix^D
+      integer :: iigrid,igrid,ixP1,ixP2,ixPmin1,ixPmax1,ixPmin2,ixPmax2
+      integer :: iseg,nseg,capacity,sphDdaFallbackLocal,sphDdaFallbackGlobal
+      double precision :: ray_origin(1:3),profile_local(3),profile_global(3)
+      double precision, allocatable :: source(:^D&)
+      double precision, allocatable :: rface(:),thetaface(:),phiface(:)
+      double precision, allocatable :: rface2(:),theta_cos(:),phi_sin(:),phi_cos(:)
+      double precision, allocatable :: segments(:,:)
+      logical :: has_pixels,ddaFallback
+
+      profile_local=zero
+      sphDdaFallbackLocal=0
+      do iigrid=1,igridstail; igrid=igrids(iigrid);
+        ^D&ixOmin^D=ixmlo^D\
+        ^D&ixOmax^D=ixmhi^D\
+        ^D&ixImin^D=ixglo^D\
+        ^D&ixImax^D=ixghi^D\
+
+        allocate(source(ixI^S))
+        call get_EUV(wavelength,ixI^L,ixO^L,ps(igrid)%w,ps(igrid)%x,fl,source)
+        source(ixO^S)=source(ixO^S)/instrument_resolution_factor**2
+        call build_sph_intersection_faces(ixI^L,ixO^L,ps(igrid)%x,ps(igrid)%dx,rface,thetaface,phiface)
+        if (sph_use_dda) then
+          allocate(rface2(ixOmin1:ixOmax1+1),theta_cos(ixOmin2:ixOmax2+1),&
+                   phi_sin(ixOmin3:ixOmax3+1),phi_cos(ixOmin3:ixOmax3+1))
+          rface2=rface**2
+          theta_cos=cos(thetaface)
+          phi_sin=sin(phiface)
+          phi_cos=cos(phiface)
+        endif
+        call sph_block_pixel_range(rface,thetaface,phiface,ixO^L,numXI1,numXI2,xI1,xI2,dxI,&
+                                   ixPmin1,ixPmax1,ixPmin2,ixPmax2,has_pixels)
+        if (has_pixels) then
+          if (sph_use_dda) capacity=0
+          do ixP1=ixPmin1,ixPmax1
+            do ixP2=ixPmin2,ixPmax2
+              ray_origin=xI1(ixP1)*vec_xI1+xI2(ixP2)*vec_xI2
+              profile_local(1)=profile_local(1)+one
+              if (sph_use_dda) then
+                nseg=0
+                call collect_EUV_sph_dda_segments(ixI^L,ixO^L,source,source,&
+                     1,ray_origin,xI1(ixP1),xI2(ixP2),rface,thetaface,phiface,&
+                     rface2,theta_cos,phi_sin,phi_cos,segments,nseg,capacity,ddaFallback)
+                if (ddaFallback) sphDdaFallbackLocal=sphDdaFallbackLocal+1
+                do iseg=1,nseg
+                  EM(ixP1,ixP2)=EM(ixP1,ixP2)+segments(3,iseg)
+                enddo
+              else
+                call acc_EUV_sph_intersection(ixI^L,ixO^L,source,ray_origin,xI1(ixP1),xI2(ixP2),&
+                                              rface,thetaface,phiface,EM(ixP1,ixP2))
+              endif
+            enddo
+          enddo
+          profile_local(2)=profile_local(2)+dble((ixPmax1-ixPmin1+1)*(ixPmax2-ixPmin2+1))
+        endif
+        if (allocated(segments)) deallocate(segments)
+        profile_local(3)=profile_local(3)+one
+        if (allocated(rface2)) deallocate(rface2)
+        if (allocated(theta_cos)) deallocate(theta_cos)
+        if (allocated(phi_sin)) deallocate(phi_sin)
+        if (allocated(phi_cos)) deallocate(phi_cos)
+        deallocate(source,rface,thetaface,phiface)
+      enddo
+      call MPI_ALLREDUCE(profile_local,profile_global,3,MPI_DOUBLE_PRECISION,MPI_SUM,icomm,ierrmpi)
+      call MPI_ALLREDUCE(sphDdaFallbackLocal,sphDdaFallbackGlobal,1,MPI_INTEGER,MPI_SUM,icomm,ierrmpi)
+      if (radsyn_verbose .and. mype==0) then
+        if (sph_use_dda) then
+          write(*,'(a,3(es12.5,1x))') ' sph_dda thin profile rays pixels blocks: ',profile_global
+          write(*,'(a,i0)') ' sph_dda thin fallback rays: ',sphDdaFallbackGlobal
+        else
+          write(*,'(a,3(es12.5,1x))') ' sph_intersection thin profile rays pixels blocks: ',profile_global
+        endif
+      endif
+    end subroutine integrate_EUV_sph_intersection_thin
+
+    subroutine integrate_EUV_sph_intersection_thick(numXI1,numXI2,xI1,xI2,dxI,fl,EUV,Tau,EUVthin)
+      use mod_global_parameters
+
+      integer, intent(in) :: numXI1,numXI2
+      double precision, intent(in) :: xI1(numXI1),xI2(numXI2),dxI
+      type(te_fluid), intent(in) :: fl
+      double precision, intent(out) :: EUV(numXI1,numXI2),Tau(numXI1,numXI2),EUVthin(numXI1,numXI2)
+
+      integer, parameter :: nSegVars=5
+      integer :: ixO^L,ixI^L,ix^D
+      integer :: iigrid,igrid,ixP1,ixP2,ipix,ipixStart,ipixEnd,nPixBatch,pixel_id
+      integer :: nseg,capacity,totalCount,totalSeg,ipe,is,iseg,nidx,owner,isegDest,nsegBefore
+      integer :: ixGlobal,iyGlobal,ixPmin1,ixPmax1,ixPmin2,ixPmax2,iFirst,iLast,iLocal
+      integer :: nPixBatchTarget
+      integer :: maxSegBatchTarget,maxSegCommTarget,maxNsegBatch,nPixTotal
+      integer :: maxOwnerSegCount,maxOwnerSegCountLocal,segOffset,recvFill,totalRoundCount,totalRoundSeg
+      integer :: sphDdaFallbackLocal,sphDdaFallbackGlobal
+      integer, allocatable :: sendCounts(:),recvCounts(:),sendDispls(:),recvDispls(:)
+      integer, allocatable :: roundSendCounts(:),roundRecvCounts(:)
+      integer, allocatable :: roundSendDispls(:),roundRecvDispls(:)
+      integer, allocatable :: ownerSegCounts(:),ownerOffsets(:),idx(:)
+      integer, allocatable :: bucketCounts(:),bucketOffsets(:),bucketFill(:)
+      double precision :: ray_origin(1:3),atten
+      double precision :: profile_local(5),profile_global(5),profile_batch(5)
+      double precision :: phys_max_local(2),phys_max_global(2)
+      double precision :: phys_sum_local(2),phys_sum_global(2),phys_sum_batch(2)
+      double precision, allocatable :: segments(:,:),segments_send(:,:),segments_recv(:,:)
+      double precision, allocatable :: segments_recv_round(:,:)
+      double precision, allocatable :: image_reduce(:,:)
+      logical :: has_pixels,batchAccepted,batchReduced,ddaFallback
+      type(radsyn_euv_cache), allocatable :: cache(:)
+
+      EUV=zero
+      Tau=zero
+      EUVthin=zero
+      profile_local=zero
+      phys_max_local=zero
+      phys_sum_local=zero
+      sphDdaFallbackLocal=0
+      allocate(sendCounts(0:npe-1),recvCounts(0:npe-1),sendDispls(0:npe-1),recvDispls(0:npe-1))
+      allocate(roundSendCounts(0:npe-1),roundRecvCounts(0:npe-1))
+      allocate(roundSendDispls(0:npe-1),roundRecvDispls(0:npe-1))
+      allocate(ownerSegCounts(0:npe-1),ownerOffsets(0:npe-1))
+      allocate(cache(igridstail))
+      call radsyn_get_segment_batch_limits(nPixBatchTarget,maxSegBatchTarget,maxSegCommTarget)
+      allocate(bucketCounts(nPixBatchTarget),bucketOffsets(nPixBatchTarget+1),&
+               bucketFill(nPixBatchTarget))
+
+      do iigrid=1,igridstail; igrid=igrids(iigrid);
+        ^D&ixOmin^D=ixmlo^D\
+        ^D&ixOmax^D=ixmhi^D\
+        ^D&ixImin^D=ixglo^D\
+        ^D&ixImax^D=ixghi^D\
+
+        cache(iigrid)%igrid=igrid
+        allocate(cache(iigrid)%source(ixI^S),cache(iigrid)%opacity(ixI^S))
+        cache(iigrid)%source=zero
+        cache(iigrid)%opacity=zero
+        call get_EUV(wavelength,ixI^L,ixO^L,ps(igrid)%w,ps(igrid)%x,fl,cache(iigrid)%source)
+        cache(iigrid)%source(ixO^S)=cache(iigrid)%source(ixO^S)/instrument_resolution_factor**2
+        call get_EUV_HHe_opacity(wavelength,ixI^L,ixO^L,ps(igrid)%w,ps(igrid)%x,fl,cache(iigrid)%opacity)
+        phys_max_local(1)=max(phys_max_local(1),maxval(cache(iigrid)%source(ixO^S)))
+        phys_max_local(2)=max(phys_max_local(2),maxval(cache(iigrid)%opacity(ixO^S)))
+        call build_sph_intersection_faces(ixI^L,ixO^L,ps(igrid)%x,ps(igrid)%dx,&
+                                          cache(iigrid)%rface,cache(iigrid)%thetaface,&
+                                          cache(iigrid)%phiface)
+        allocate(cache(iigrid)%rface2(ixOmin1:ixOmax1+1),&
+                 cache(iigrid)%theta_cos(ixOmin2:ixOmax2+1),&
+                 cache(iigrid)%phi_sin(ixOmin3:ixOmax3+1),&
+                 cache(iigrid)%phi_cos(ixOmin3:ixOmax3+1))
+        cache(iigrid)%rface2=cache(iigrid)%rface**2
+        cache(iigrid)%theta_cos=cos(cache(iigrid)%thetaface)
+        cache(iigrid)%phi_sin=sin(cache(iigrid)%phiface)
+        cache(iigrid)%phi_cos=cos(cache(iigrid)%phiface)
+        call sph_block_pixel_range(cache(iigrid)%rface,cache(iigrid)%thetaface,&
+             cache(iigrid)%phiface,ixO^L,numXI1,numXI2,xI1,xI2,dxI,&
+             cache(iigrid)%ixPmin1,cache(iigrid)%ixPmax1,&
+             cache(iigrid)%ixPmin2,cache(iigrid)%ixPmax2,cache(iigrid)%has_pixels)
+      enddo
+
+      nPixTotal=numXI1*numXI2
+      ipixStart=1
+      do while (ipixStart<=nPixTotal)
+        ipixEnd=min(numXI1*numXI2,ipixStart+nPixBatchTarget-1)
+        nPixBatch=ipixEnd-ipixStart+1
+        batchAccepted=.false.
+        batchReduced=.false.
+
+        do while (.not. batchAccepted)
+          nseg=0
+          capacity=0
+          profile_batch=zero
+          phys_sum_batch=zero
+
+          do iigrid=1,igridstail; igrid=igrids(iigrid);
+            ^D&ixOmin^D=ixmlo^D\
+            ^D&ixOmax^D=ixmhi^D\
+            ^D&ixImin^D=ixglo^D\
+            ^D&ixImax^D=ixghi^D\
+
+            ixPmin1=cache(iigrid)%ixPmin1
+            ixPmax1=cache(iigrid)%ixPmax1
+            ixPmin2=cache(iigrid)%ixPmin2
+            ixPmax2=cache(iigrid)%ixPmax2
+            has_pixels=cache(iigrid)%has_pixels
+            if (.not. has_pixels) cycle
+
+            do ixP2=ixPmin2,ixPmax2
+              iFirst=max(ipixStart,(ixP2-1)*numXI1+ixPmin1)
+              iLast=min(ipixEnd,(ixP2-1)*numXI1+ixPmax1)
+              if (iFirst>iLast) cycle
+              do ipix=iFirst,iLast
+                ixP1=1+mod(ipix-1,numXI1)
+                pixel_id=ipix
+                ray_origin=xI1(ixP1)*vec_xI1+xI2(ixP2)*vec_xI2
+                profile_batch(1)=profile_batch(1)+one
+                nsegBefore=nseg
+                if (sph_use_dda) then
+                  call collect_EUV_sph_dda_segments(ixI^L,ixO^L,cache(iigrid)%source,&
+                       cache(iigrid)%opacity,pixel_id,ray_origin,xI1(ixP1),xI2(ixP2),&
+                       cache(iigrid)%rface,cache(iigrid)%thetaface,cache(iigrid)%phiface,&
+                       cache(iigrid)%rface2,cache(iigrid)%theta_cos,&
+                       cache(iigrid)%phi_sin,cache(iigrid)%phi_cos,&
+                       segments,nseg,capacity,ddaFallback)
+                  if (ddaFallback) sphDdaFallbackLocal=sphDdaFallbackLocal+1
+                else
+                  call collect_EUV_sph_intersection_segments(ixI^L,ixO^L,cache(iigrid)%source,&
+                       cache(iigrid)%opacity,pixel_id,ray_origin,xI1(ixP1),xI2(ixP2),&
+                       cache(iigrid)%rface,cache(iigrid)%thetaface,cache(iigrid)%phiface,&
+                       cache(iigrid)%rface2,cache(iigrid)%theta_cos,&
+                       cache(iigrid)%phi_sin,cache(iigrid)%phi_cos,&
+                       segments,nseg,capacity)
+                endif
+                if (nseg>nsegBefore) profile_batch(2)=profile_batch(2)+one
+                profile_batch(3)=profile_batch(3)+dble(nseg-nsegBefore)
+                do iseg=nsegBefore+1,nseg
+                  phys_sum_batch(1)=phys_sum_batch(1)+segments(3,iseg)
+                  phys_sum_batch(2)=phys_sum_batch(2)+segments(4,iseg)
+                enddo
+              enddo
+            enddo
+          enddo
+
+          call MPI_ALLREDUCE(nseg,maxNsegBatch,1,MPI_INTEGER,MPI_MAX,icomm,ierrmpi)
+          if (maxNsegBatch>maxSegBatchTarget .and. nPixBatch>1) then
+            nPixBatch=max(1,nPixBatch/2)
+            ipixEnd=ipixStart+nPixBatch-1
+            if (allocated(segments)) deallocate(segments)
+            batchReduced=.true.
+          else
+            batchAccepted=.true.
+          endif
+        enddo
+
+        profile_local=profile_local+profile_batch
+        phys_sum_local=phys_sum_local+phys_sum_batch
+        if (radsyn_verbose .and. mype==0 .and. batchReduced) then
+          if (sph_use_dda) then
+            write(*,'(a,3(i0,1x))') ' sph_dda thick adaptive batch: ',&
+                 ipixStart,ipixEnd,maxNsegBatch
+          else
+            write(*,'(a,3(i0,1x))') ' sph_intersection thick adaptive batch: ',&
+                 ipixStart,ipixEnd,maxNsegBatch
+          endif
+        endif
+
+        if (.not. allocated(segments)) then
+          capacity=1
+          allocate(segments(nSegVars,capacity))
+        endif
+        ownerSegCounts=0
+        do is=1,nseg
+          owner=segment_pixel_owner(nint(segments(1,is)))
+          ownerSegCounts(owner)=ownerSegCounts(owner)+1
+        enddo
+        sendCounts=nSegVars*ownerSegCounts
+        sendDispls(0)=0
+        do ipe=1,npe-1
+          sendDispls(ipe)=sendDispls(ipe-1)+sendCounts(ipe-1)
+        enddo
+
+        allocate(segments_send(nSegVars,max(1,nseg)))
+        ownerOffsets=0
+        do is=1,nseg
+          owner=segment_pixel_owner(nint(segments(1,is)))
+          isegDest=sendDispls(owner)/nSegVars+ownerOffsets(owner)+1
+          segments_send(:,isegDest)=segments(:,is)
+          ownerOffsets(owner)=ownerOffsets(owner)+1
+        enddo
+
+        call MPI_ALLTOALL(sendCounts,1,MPI_INTEGER,recvCounts,1,MPI_INTEGER,icomm,ierrmpi)
+        recvDispls(0)=0
+        do ipe=1,npe-1
+          recvDispls(ipe)=recvDispls(ipe-1)+recvCounts(ipe-1)
+        enddo
+        totalCount=sum(recvCounts)
+        totalSeg=totalCount/nSegVars
+        profile_local(4)=profile_local(4)+dble(totalCount)
+        allocate(segments_recv(nSegVars,max(1,totalSeg)))
+
+        recvFill=0
+        maxOwnerSegCountLocal=maxval(ownerSegCounts)
+        call MPI_ALLREDUCE(maxOwnerSegCountLocal,maxOwnerSegCount,1,MPI_INTEGER,MPI_MAX,icomm,ierrmpi)
+        do segOffset=0,maxOwnerSegCount-1,maxSegCommTarget
+          roundSendCounts=0
+          roundSendDispls=sendDispls
+          do ipe=0,npe-1
+            if (ownerSegCounts(ipe)>segOffset) then
+              roundSendCounts(ipe)=nSegVars*min(maxSegCommTarget,ownerSegCounts(ipe)-segOffset)
+              roundSendDispls(ipe)=sendDispls(ipe)+nSegVars*segOffset
+            endif
+          enddo
+
+          call MPI_ALLTOALL(roundSendCounts,1,MPI_INTEGER,roundRecvCounts,1,MPI_INTEGER,icomm,ierrmpi)
+          roundRecvDispls(0)=0
+          do ipe=1,npe-1
+            roundRecvDispls(ipe)=roundRecvDispls(ipe-1)+roundRecvCounts(ipe-1)
+          enddo
+          totalRoundCount=sum(roundRecvCounts)
+          totalRoundSeg=totalRoundCount/nSegVars
+          allocate(segments_recv_round(nSegVars,max(1,totalRoundSeg)))
+
+          call MPI_ALLTOALLV(segments_send,roundSendCounts,roundSendDispls,MPI_DOUBLE_PRECISION,&
+                             segments_recv_round,roundRecvCounts,roundRecvDispls,&
+                             MPI_DOUBLE_PRECISION,icomm,ierrmpi)
+
+          if (totalRoundSeg>0) then
+            segments_recv(:,recvFill+1:recvFill+totalRoundSeg)=segments_recv_round(:,1:totalRoundSeg)
+            recvFill=recvFill+totalRoundSeg
+          endif
+          deallocate(segments_recv_round)
+        enddo
+
+        if (recvFill/=totalSeg) call mpistop("ray-segment receive mismatch")
+
+        if (totalSeg>0) then
+          allocate(idx(totalSeg))
+          bucketCounts(1:nPixBatch)=0
+          do is=1,totalSeg
+            if (segment_is_valid(segments_recv,is,4)) then
+              ipix=nint(segments_recv(1,is))
+              if (ipix>=ipixStart .and. ipix<=ipixEnd .and. segment_pixel_owner(ipix)==mype) then
+                iLocal=ipix-ipixStart+1
+                bucketCounts(iLocal)=bucketCounts(iLocal)+1
+              endif
+            endif
+          enddo
+
+          bucketOffsets(1)=1
+          do iLocal=1,nPixBatch
+            bucketOffsets(iLocal+1)=bucketOffsets(iLocal)+bucketCounts(iLocal)
+          enddo
+          bucketFill(1:nPixBatch)=bucketOffsets(1:nPixBatch)
+          do is=1,totalSeg
+            if (segment_is_valid(segments_recv,is,4)) then
+              ipix=nint(segments_recv(1,is))
+              if (ipix>=ipixStart .and. ipix<=ipixEnd .and. segment_pixel_owner(ipix)==mype) then
+                iLocal=ipix-ipixStart+1
+                idx(bucketFill(iLocal))=is
+                bucketFill(iLocal)=bucketFill(iLocal)+1
+              endif
+            endif
+          enddo
+
+          do ipix=ipixStart,ipixEnd
+            if (segment_pixel_owner(ipix)/=mype) cycle
+            iLocal=ipix-ipixStart+1
+            nidx=bucketCounts(iLocal)
+            if (nidx>0) then
+              profile_local(5)=profile_local(5)+dble(nidx)*dble(nidx)
+              call sort_segment_indices_near_to_far(segments_recv,&
+                   idx(bucketOffsets(iLocal):bucketOffsets(iLocal+1)-1),nidx)
+              ixGlobal=1+mod(ipix-1,numXI1)
+              iyGlobal=1+(ipix-1)/numXI1
+              do iseg=bucketOffsets(iLocal),bucketOffsets(iLocal+1)-1
+                is=idx(iseg)
+                EUVthin(ixGlobal,iyGlobal)=EUVthin(ixGlobal,iyGlobal)+segments_recv(3,is)
+                atten=transfer_attenuation(Tau(ixGlobal,iyGlobal))
+                EUV(ixGlobal,iyGlobal)=EUV(ixGlobal,iyGlobal)+atten*segments_recv(3,is)
+                Tau(ixGlobal,iyGlobal)=Tau(ixGlobal,iyGlobal)+max(zero,segments_recv(4,is))
+              enddo
+            endif
+          enddo
+          deallocate(idx)
+        endif
+
+        deallocate(segments_send,segments_recv)
+        if (allocated(segments)) deallocate(segments)
+        ipixStart=ipixEnd+1
+      enddo
+
+      do iigrid=1,igridstail
+        if (allocated(cache(iigrid)%source)) deallocate(cache(iigrid)%source)
+        if (allocated(cache(iigrid)%opacity)) deallocate(cache(iigrid)%opacity)
+        if (allocated(cache(iigrid)%rface)) deallocate(cache(iigrid)%rface)
+        if (allocated(cache(iigrid)%thetaface)) deallocate(cache(iigrid)%thetaface)
+        if (allocated(cache(iigrid)%phiface)) deallocate(cache(iigrid)%phiface)
+        if (allocated(cache(iigrid)%rface2)) deallocate(cache(iigrid)%rface2)
+        if (allocated(cache(iigrid)%theta_cos)) deallocate(cache(iigrid)%theta_cos)
+        if (allocated(cache(iigrid)%phi_sin)) deallocate(cache(iigrid)%phi_sin)
+        if (allocated(cache(iigrid)%phi_cos)) deallocate(cache(iigrid)%phi_cos)
+      enddo
+      deallocate(cache)
+      deallocate(sendCounts,recvCounts,sendDispls,recvDispls,roundSendCounts,roundRecvCounts,&
+                 roundSendDispls,roundRecvDispls,ownerSegCounts,ownerOffsets,bucketCounts,&
+                 bucketOffsets,bucketFill)
+      allocate(image_reduce(numXI1,numXI2))
+      call MPI_ALLREDUCE(EUV,image_reduce,numXI1*numXI2,MPI_DOUBLE_PRECISION,MPI_SUM,icomm,ierrmpi)
+      EUV=image_reduce
+      call MPI_ALLREDUCE(Tau,image_reduce,numXI1*numXI2,MPI_DOUBLE_PRECISION,MPI_SUM,icomm,ierrmpi)
+      Tau=image_reduce
+      call MPI_ALLREDUCE(EUVthin,image_reduce,numXI1*numXI2,MPI_DOUBLE_PRECISION,MPI_SUM,icomm,ierrmpi)
+      EUVthin=image_reduce
+      deallocate(image_reduce)
+      call MPI_ALLREDUCE(profile_local,profile_global,5,MPI_DOUBLE_PRECISION,MPI_SUM,icomm,ierrmpi)
+      call MPI_ALLREDUCE(phys_max_local,phys_max_global,2,MPI_DOUBLE_PRECISION,MPI_MAX,icomm,ierrmpi)
+      call MPI_ALLREDUCE(phys_sum_local,phys_sum_global,2,MPI_DOUBLE_PRECISION,MPI_SUM,icomm,ierrmpi)
+      call MPI_ALLREDUCE(sphDdaFallbackLocal,sphDdaFallbackGlobal,1,MPI_INTEGER,MPI_SUM,icomm,ierrmpi)
+      if (radsyn_verbose .and. mype==0) then
+        if (sph_use_dda) then
+          write(*,'(a,5(es12.5,1x))') ' sph_dda thick profile: ',profile_global
+          write(*,'(a,i0)') ' sph_dda thick fallback rays: ',sphDdaFallbackGlobal
+          write(*,'(a,4(es12.5,1x))') ' sph_dda thick physics maxj maxk sumjds sumkds: ',&
+               phys_max_global(1),phys_max_global(2),phys_sum_global(1),phys_sum_global(2)
+        else
+          write(*,'(a,5(es12.5,1x))') ' sph_intersection thick profile: ',profile_global
+          write(*,'(a,4(es12.5,1x))') ' sph_intersection thick physics maxj maxk sumjds sumkds: ',&
+               phys_max_global(1),phys_max_global(2),phys_sum_global(1),phys_sum_global(2)
+        endif
+      endif
+    end subroutine integrate_EUV_sph_intersection_thick
+
+  }
+
+  {^IFTHREED
+
+    subroutine get_sph_intersection_image_bounds(xImin1,xImax1,xImin2,xImax2)
+      double precision, intent(out) :: xImin1,xImax1,xImin2,xImax2
+
+      integer, parameter :: nsample=5
+      integer :: iigrid,igrid,ir,it,ip
+      integer :: ixI^L,ixO^L
+      double precision, allocatable :: rface(:),thetaface(:),phiface(:)
+      double precision :: local_min1,local_max1,local_min2,local_max2
+      double precision :: sph(1:3),xcent(1:2),wr,wt,wp
+
+      local_min1=huge(one)
+      local_max1=-huge(one)
+      local_min2=huge(one)
+      local_max2=-huge(one)
+
+      do iigrid=1,igridstail
+        igrid=igrids(iigrid)
+        ^D&ixOmin^D=ixmlo^D\
+        ^D&ixOmax^D=ixmhi^D\
+        ^D&ixImin^D=ixglo^D\
+        ^D&ixImax^D=ixghi^D\
+
+        call build_sph_intersection_faces(ixI^L,ixO^L,ps(igrid)%x,ps(igrid)%dx,&
+                                          rface,thetaface,phiface)
+        do ir=0,nsample-1
+          wr=dble(ir)/dble(nsample-1)
+          sph(1)=(one-wr)*rface(ixOmin1)+wr*rface(ixOmax1+1)
+          do it=0,nsample-1
+            wt=dble(it)/dble(nsample-1)
+            sph(2)=(one-wt)*thetaface(ixOmin2)+wt*thetaface(ixOmax2+1)
+            do ip=0,nsample-1
+              wp=dble(ip)/dble(nsample-1)
+              if (ir/=0 .and. ir/=nsample-1 .and. it/=0 .and. it/=nsample-1 .and. &
+                  ip/=0 .and. ip/=nsample-1) cycle
+              sph(3)=(one-wp)*phiface(ixOmin3)+wp*phiface(ixOmax3+1)
+              call get_cor_image_spherical(sph,xcent)
+              local_min1=min(local_min1,xcent(1))
+              local_max1=max(local_max1,xcent(1))
+              local_min2=min(local_min2,xcent(2))
+              local_max2=max(local_max2,xcent(2))
+            enddo
+          enddo
+        enddo
+        deallocate(rface,thetaface,phiface)
+      enddo
+
+      call MPI_ALLREDUCE(local_min1,xImin1,1,MPI_DOUBLE_PRECISION,MPI_MIN,icomm,ierrmpi)
+      call MPI_ALLREDUCE(local_max1,xImax1,1,MPI_DOUBLE_PRECISION,MPI_MAX,icomm,ierrmpi)
+      call MPI_ALLREDUCE(local_min2,xImin2,1,MPI_DOUBLE_PRECISION,MPI_MIN,icomm,ierrmpi)
+      call MPI_ALLREDUCE(local_max2,xImax2,1,MPI_DOUBLE_PRECISION,MPI_MAX,icomm,ierrmpi)
+      if (xImin1>0.5d0*huge(one) .or. xImax1<-0.5d0*huge(one) .or. &
+          xImin2>0.5d0*huge(one) .or. xImax2<-0.5d0*huge(one)) then
+        call mpistop("sph_intersection could not determine image bounds")
+      endif
+    end subroutine get_sph_intersection_image_bounds
+
+    subroutine get_native_datresol_spacing(dxI)
+      double precision, intent(out) :: dxI
+
+      select case(trim(dat_resolution_mode))
+      case('nominal')
+        call get_nominal_datresol_spacing(dxI)
+      case('minimum')
+        call get_minimum_datresol_spacing(dxI)
+      case default
+        call mpistop("unknown dat_resolution_mode")
+      end select
+    end subroutine get_native_datresol_spacing
+
+    subroutine get_nominal_datresol_spacing(dxI)
+      double precision, intent(out) :: dxI
+
+      double precision :: refine_factor,dr,dtheta,dphi,rmin,sin_theta_min
+
+      refine_factor=dble(2**(refine_max_level-1))
+      if (slab) then
+        dxI=min(abs(xprobmax1-xprobmin1)/(dble(domain_nx1)*refine_factor),&
+                abs(xprobmax2-xprobmin2)/(dble(domain_nx2)*refine_factor),&
+                abs(xprobmax3-xprobmin3)/(dble(domain_nx3)*refine_factor))
+      else if (coordinate==spherical) then
+        rmin=max(smalldouble,min(xprobmin1,xprobmax1))
+        sin_theta_min=max(smalldouble,min(abs(sin(xprobmin2)),&
+                                             abs(sin(xprobmax2))))
+        dr=abs(xprobmax1-xprobmin1)/(dble(domain_nx1)*refine_factor)
+        dtheta=abs(xprobmax2-xprobmin2)/(dble(domain_nx2)*refine_factor)
+        dphi=abs(xprobmax3-xprobmin3)/(dble(domain_nx3)*refine_factor)
+        dxI=min(dr,rmin*dtheta,rmin*sin_theta_min*dphi)
+      else
+        call mpistop("nominal dat resolution needs Cartesian or spherical coordinates")
+      endif
+
+      if (dxI<=zero .or. dxI>half*huge(one)) then
+        call mpistop("could not determine nominal dat-resolution image spacing")
+      endif
+    end subroutine get_nominal_datresol_spacing
+
+    subroutine get_minimum_datresol_spacing(dxI)
+      double precision, intent(out) :: dxI
+
+      integer :: iigrid,igrid,ixI^L,ixO^L,ix^D
+      double precision :: local_min,global_min,dr,ds_theta,ds_phi,rval,theta
+
+      local_min=huge(one)
+      do iigrid=1,igridstail
+        igrid=igrids(iigrid)
+        ^D&ixOmin^D=ixmlo^D\
+        ^D&ixOmax^D=ixmhi^D\
+        ^D&ixImin^D=ixglo^D\
+        ^D&ixImax^D=ixghi^D\
+
+        do ix1=ixOmin1,ixOmax1
+          do ix2=ixOmin2,ixOmax2
+            do ix3=ixOmin3,ixOmax3
+              if (slab) then
+                local_min=min(local_min,ps(igrid)%dx(ix^D,1),&
+                  ps(igrid)%dx(ix^D,2),ps(igrid)%dx(ix^D,3))
+              else if (coordinate==spherical) then
+                rval=max(smalldouble,ps(igrid)%x(ix^D,1))
+                theta=ps(igrid)%x(ix^D,2)
+                dr=ps(igrid)%dx(ix^D,1)
+                ds_theta=rval*ps(igrid)%dx(ix^D,2)
+                ds_phi=rval*max(smalldouble,sin(theta))*ps(igrid)%dx(ix^D,3)
+                local_min=min(local_min,dr,ds_theta,ds_phi)
+              else
+                call mpistop("minimum dat resolution needs Cartesian or spherical coordinates")
+              endif
+            enddo
+          enddo
+        enddo
+      enddo
+
+      call MPI_ALLREDUCE(local_min,global_min,1,MPI_DOUBLE_PRECISION,MPI_MIN,&
+                         icomm,ierrmpi)
+      if (global_min<=zero .or. global_min>half*huge(one)) then
+        call mpistop("could not determine minimum dat-resolution image spacing")
+      endif
+      dxI=global_min
+    end subroutine get_minimum_datresol_spacing
 
     subroutine get_image(qunit,datatype,fl)
       ! integrate emission flux along line of sight (LOS) 
@@ -2310,7 +5771,7 @@ module mod_thermal_emission
       integer :: ix^D,numXI1,numXI2,numWI
       double precision :: xImin1,xImax1,xImin2,xImax2,xIcent1,xIcent2,dxI
       double precision, allocatable :: xI1(:),xI2(:),dxI1(:),dxI2(:)
-      double precision, allocatable :: wI(:,:,:),wIs(:,:,:),EM(:,:),WLB(:,:,:)
+      double precision, allocatable :: wI(:,:,:),wIs(:,:,:),EM(:,:),Dpl(:,:),Tau(:,:),EMthin(:,:),WLB(:,:,:)
       double precision :: vec_temp1(1:3),vec_temp2(1:3)
       double precision :: vec_z(1:3),vec_cor(1:3),xI_cor(1:2)
       double precision :: res,LOS_psi,r_max,r_loc
@@ -2320,7 +5781,7 @@ module mod_thermal_emission
       double precision :: logTe,lineCent,sigma_PSF,spaceRsl,wlRsl,wslit
       double precision :: arcsec,RHESSI_rsl,LASCO_rsl,pixel,R_occult,smallflux
       integer :: iigrid,igrid,i,j,numSI,iw
-      logical :: emit
+      logical :: emit,ray_image_global,has_thick_output
 
       if (coordinate==spherical) then
         call init_vectors_spherical()
@@ -2331,10 +5792,14 @@ module mod_thermal_emission
 
       ! calculate domain of the image
       if (coordinate==spherical) then
-        xImin1=-abs(xprobmax1)
-        xImin2=-abs(xprobmax1)
-        xImax1=abs(xprobmax1)
-        xImax2=abs(xprobmax1)
+        if (trim(ray_method_active)=='spherical' .and. datatype=='image_euv') then
+          call get_sph_intersection_image_bounds(xImin1,xImax1,xImin2,xImax2)
+        else
+          xImin1=-abs(xprobmax1)
+          xImin2=-abs(xprobmax1)
+          xImax1=abs(xprobmax1)
+          xImax2=abs(xprobmax1)
+        endif
       else
         ! calculate domain of the image
         do ix1=1,2
@@ -2435,27 +5900,70 @@ module mod_thermal_emission
 
       ! calculate emission
       if (datatype=='image_euv' .or. datatype=='image_sxr') then
-        numWI=1
+        has_thick_output=datatype=='image_euv' .and. trim(radiation_transfer)=='thick' .and. &
+            ((coordinate==spherical .and. trim(ray_method_active)=='spherical') .or. &
+             (slab .and. trim(ray_method_active)=='cart'))
+        if (datatype=='image_euv') then
+          numWI=radsyn_euv_num_outputs(.false.,has_thick_output)
+        else
+          numWI=1
+        endif
         allocate(wI(numXI1,numXI2,numWI),wIs(numXI1,numXI2,numWI),EM(numXI1,numXI2))
         wI=zero
         wIs=zero
         EM=zero
-        if (coordinate==cartesian) then
+        ray_image_global=.false.
+        if (has_thick_output) then
+          allocate(Tau(numXI1,numXI2),EMthin(numXI1,numXI2))
+          Tau=zero
+          EMthin=zero
+        endif
+        if (slab .and. datatype=='image_euv' .and. &
+            trim(ray_method_active)=='cart') then
+          ray_image_global=.true.
+          allocate(Dpl(numXI1,numXI2))
+          Dpl=zero
+          if (trim(radiation_transfer)=='thick') then
+            call integrate_EUV_cart_dda_thick_datresol(numXI1,numXI2,xI1,xI2,fl,EM,Dpl,Tau,EMthin)
+          else
+            call integrate_EUV_cart_dda_datresol(numXI1,numXI2,xI1,xI2,fl,EM,Dpl)
+          endif
+          deallocate(Dpl)
+        else if (slab) then
           do iigrid=1,igridstail; igrid=igrids(iigrid);
             call integrate_emission_cartesian(igrid,numXI1,numXI2,xI1,xI2,dxI,fl,datatype,EM)
           enddo
+        else if (trim(ray_method_active) == 'spherical' .and. datatype == 'image_euv') then
+          if (trim(radiation_transfer) == 'thick') then
+            ray_image_global=.true.
+            call integrate_EUV_sph_intersection_thick(numXI1,numXI2,xI1,xI2,dxI,fl,EM,Tau,EMthin)
+          else
+            call integrate_EUV_sph_intersection_thin(numXI1,numXI2,xI1,xI2,dxI,fl,EM)
+          endif
         else
           do iigrid=1,igridstail; igrid=igrids(iigrid);
             call integrate_emission_spherical(igrid,numXI1,numXI2,xI1,xI2,dxI,fl,datatype,EM)
           enddo
         endif
-        do ix1=1,numXI1
-          do ix2=1,numXI2
-            if (EM(ix1,ix2)>smallflux) wIs(ix1,ix2,1)=EM(ix1,ix2)
+        if (ray_image_global) then
+          if (has_thick_output) then
+            call pack_euv_image_outputs(numXI1,numXI2,EM,wI,smallflux,.false.,&
+                                        has_thick_output,Tau=Tau,EUVthin=EMthin,&
+                                        cap_absorption=.true.)
+          else
+            call pack_euv_image_outputs(numXI1,numXI2,EM,wI,smallflux,.false.,has_thick_output)
+          endif
+        else
+          do ix1=1,numXI1
+            do ix2=1,numXI2
+              if (EM(ix1,ix2)>smallflux) wIs(ix1,ix2,1)=EM(ix1,ix2)
+            enddo
           enddo
-        enddo
-        numSI=numXI1*numXI2*numWI
-        call MPI_ALLREDUCE(wIs,wI,numSI,MPI_DOUBLE_PRECISION,MPI_SUM,icomm,ierrmpi)
+        endif
+        if (.not. ray_image_global) then
+          numSI=numXI1*numXI2*numWI
+          call MPI_ALLREDUCE(wIs,wI,numSI,MPI_DOUBLE_PRECISION,MPI_SUM,icomm,ierrmpi)
+        endif
         if (activate_unit_arcsec) then
           xI1=xI1/arcsec
           dxI1=dxI1/arcsec
@@ -2463,6 +5971,8 @@ module mod_thermal_emission
           dxI2=dxI2/arcsec
         endif
         call output_data(qunit,xI1,xI2,dxI1,dxI2,wI,numXI1,numXI2,numWI,datatype)
+        if (allocated(Tau)) deallocate(Tau)
+        if (allocated(EMthin)) deallocate(EMthin)
         deallocate(wI,wIs,EM)
       else if (datatype=='image_whitelight') then
         numWI=2
@@ -2509,7 +6019,7 @@ module mod_thermal_emission
 
       integer :: ixO^L,ixO^D,ixI^L,ix^D,i,j
       double precision :: xb^L,xd^D
-      double precision, allocatable :: flux(:^D&)
+      double precision, allocatable :: flux(:^D&),opacity(:^D&)
       double precision :: res
       integer :: ixP^L,ixP^D,nSubC^D,iSubC^D
       double precision :: xSubP1,xSubP2,dxSubP,xerf^L,fluxsubC
@@ -2536,11 +6046,17 @@ module mod_thermal_emission
         arcsec=7.25d7/unit_length
       endif
 
-      allocate(flux(ixI^S))
+      allocate(flux(ixI^S),opacity(ixI^S))
       if (datatype=='image_euv') then
-        ! get local EUV flux and velocity
-        call get_EUV(wavelength,ixI^L,ixO^L,ps(igrid)%w,ps(igrid)%x,fl,flux)
-        flux(ixO^S)=flux(ixO^S)/instrument_resolution_factor**2   ! adjust flux due to artifical change of resolution
+        if (trim(emission_model)=='pseudo_current') then
+          call get_pseudo_current(igrid,ixI^L,ixO^L,ps(igrid)%w,flux)
+        else if (trim(emission_model)=='radio_ff') then
+          call get_radio_ff_source_opacity(ixI^L,ixO^L,ps(igrid)%w,ps(igrid)%x,fl,flux,opacity)
+        else
+          ! get local EUV flux and velocity
+          call get_EUV(wavelength,ixI^L,ixO^L,ps(igrid)%w,ps(igrid)%x,fl,flux)
+          flux(ixO^S)=flux(ixO^S)/instrument_resolution_factor**2   ! adjust flux due to artifical change of resolution
+        endif
         call get_line_info(wavelength,ion,mass,logTe,lineCent,spaceRsl,wlRsl,sigma_PSF,wslit)
         pixel=spaceRsl*arcsec
         sigma0=sigma_PSF*pixel
@@ -2597,7 +6113,7 @@ module mod_thermal_emission
         endif
       {enddo\} !ix
 
-      deallocate(flux)
+      deallocate(flux,opacity)
     end subroutine integrate_emission_cartesian
 
     subroutine integrate_emission_spherical(igrid,numXI1,numXI2,xI1,xI2,dxI,fl,datatype,EM)
@@ -2609,7 +6125,7 @@ module mod_thermal_emission
       double precision, intent(inout) :: EM(numXI1,numXI2)
 
       integer :: ixO^L,ixO^D,ixI^L,ix^D,i,j
-      double precision, allocatable :: flux(:^D&),Ne(:^D&)
+      double precision, allocatable :: flux(:^D&),Ne(:^D&),opacity(:^D&)
       integer :: ixP^L,ixP^D,nSubC^D,iSubC^D
       double precision :: xSubP1,xSubP2,dxSubP,xerf^L,fluxsubC,RsubC
       double precision :: TBsubC,PBsubC
@@ -2637,11 +6153,17 @@ module mod_thermal_emission
         arcsec=7.25d7/unit_length
       endif
 
-      allocate(flux(ixI^S))
+      allocate(flux(ixI^S),opacity(ixI^S))
       if (datatype=='image_euv') then
-        ! get local EUV flux and velocity
-        call get_EUV(wavelength,ixI^L,ixO^L,ps(igrid)%w,ps(igrid)%x,fl,flux)
-        flux(ixO^S)=flux(ixO^S)/instrument_resolution_factor**2   ! adjust flux due to artifical change of resolution
+        if (trim(emission_model)=='pseudo_current') then
+          call get_pseudo_current(igrid,ixI^L,ixO^L,ps(igrid)%w,flux)
+        else if (trim(emission_model)=='radio_ff') then
+          call get_radio_ff_source_opacity(ixI^L,ixO^L,ps(igrid)%w,ps(igrid)%x,fl,flux,opacity)
+        else
+          ! get local EUV flux and velocity
+          call get_EUV(wavelength,ixI^L,ixO^L,ps(igrid)%w,ps(igrid)%x,fl,flux)
+          flux(ixO^S)=flux(ixO^S)/instrument_resolution_factor**2   ! adjust flux due to artifical change of resolution
+        endif
         call get_line_info(wavelength,ion,mass,logTe,lineCent,spaceRsl,wlRsl,sigma_PSF,wslit)
         pixel=spaceRsl*arcsec
         sigma0=sigma_PSF*pixel
@@ -2749,11 +6271,13 @@ module mod_thermal_emission
         enddo !iSubC1
       {enddo\} !ix
 
-      deallocate(flux)
+      deallocate(flux,opacity)
 
     end subroutine integrate_emission_spherical
 
     subroutine integrate_whitelight_spherical(igrid,numXI1,numXI2,numWI,xI1,xI2,dxI,fl,datatype,WLB)
+      use mod_eos, only: eos
+
       integer, intent(in) :: igrid,numXI1,numXI2,numWI
       double precision, intent(in) :: xI1(numXI1),xI2(numXI2)
       double precision, intent(in) :: dxI
@@ -2762,7 +6286,7 @@ module mod_thermal_emission
       double precision, intent(inout) :: WLB(numXI1,numXI2,numWI)
 
       integer :: ixO^L,ixO^D,ixI^L,ix^D,i,j
-      double precision, allocatable :: flux(:^D&),Ne(:^D&)
+      double precision, allocatable :: flux(:^D&),Ne(:^D&),nH_dummy(:^D&)
       integer :: ixP^L,ixP^D,nSubC^D,iSubC^D
       double precision :: xSubP1,xSubP2,dxSubP,xerf^L,fluxsubC,RsubC
       double precision :: sigma_PSF,sigma0,arcsec,pixel,LASCO_rsl
@@ -2785,6 +6309,7 @@ module mod_thermal_emission
       endif
 
       allocate(Ne(ixI^S))
+      allocate(nH_dummy(ixI^S))
       if (whitelight_instrument=='LASCO/C1') then
         LASCO_rsl=5.6d0/instrument_resolution_factor
         R_occult=1.1d0
@@ -2798,6 +6323,8 @@ module mod_thermal_emission
       if (R_occultor>1.d0) R_occult=R_occultor
       R_occult=R_occult*const_Rsun/unit_length
       call fl%get_rho(ps(igrid)%w,ps(igrid)%x,ixI^L,ixO^L,Ne)
+      ! get actual electron density from EoS (replaces rho with ne)
+      call eos%get_ne_nH(ixI^L, ixO^L, ps(igrid)%w, ps(igrid)%x, Ne, nH_dummy)
       sigma_PSF=1.d0
       pixel=LASCO_rsl*arcsec
       sigma0=sigma_PSF*pixel
@@ -2882,6 +6409,7 @@ module mod_thermal_emission
       {enddo\} !ix
 
       deallocate(Ne)
+      deallocate(nH_dummy)
 
     end subroutine integrate_whitelight_spherical
 
@@ -2952,9 +6480,11 @@ module mod_thermal_emission
 
       integer :: nPiece,nP1,nP2,nC1,nC2,nWC
       integer :: piece_nmax1,piece_nmax2,ix1,ix2,j,ipc,ixc1,ixc2
+      double precision :: uniform_tol
       double precision, allocatable :: xC(:,:,:,:),wC(:,:,:,:),dxC(:,:,:,:)
 
       ! clean small values
+      uniform_tol=1.d-10
       do ix1=1,nxO1
         do ix2=1,nxO2
           do j=1,nWO
@@ -3034,8 +6564,10 @@ module mod_thermal_emission
           call write_image_vtuCC(qunit,xC,wC,dxC,nPiece,nC1,nC2,nWC,datatype)
           deallocate(xC,dxC,wC)
         case('EIvtiCCmpi','ESvtiCCmpi','SIvtiCCmpi','WIvtiCCmpi')
-          if (sum(stretch_type(:))>0 .and. dat_resolution) then
-            call mpistop("Error in synthesize emission: vti is not supported for dat resolution")
+          if (dat_resolution .and. &
+              (maxval(abs(dxO1(:)-dxO1(1)))>uniform_tol*max(one,abs(dxO1(1))) .or. &
+               maxval(abs(dxO2(:)-dxO2(1)))>uniform_tol*max(one,abs(dxO2(1))))) then
+            call mpistop("vti needs uniform dat-resolution image grids")
           else
             call write_image_vtiCC(qunit,xO1,xO2,dxO1,dxO2,wO,nXO1,nXO2,nWO,nC1,nC2)
           endif
@@ -3056,19 +6588,15 @@ module mod_thermal_emission
       double precision, intent(in) :: wO(nXO1,nXO2,nWO)
 
       double precision :: origin(1:3), spacing(1:3)
-      integer :: wholeExtent(1:6),extent(1:6)
-      integer :: nP1,nP2,iP1,iP2,iw
-      integer :: ixC1,ixC2,ixCmin1,ixCmax1,ixCmin2,ixCmax2
+      integer :: wholeExtent(1:6)
+      integer :: iw
+      integer :: ixC1,ixC2
 
       integer :: filenr
       logical :: fileopen
       character (70) :: subname,wname,vname,nameL,nameS
       character (len=std_len) :: filename
-      integer :: mass
-      double precision :: logTe
-      character (30) :: ion
-      double precision :: line_center
-      double precision :: spatial_rsl,spectral_rsl,sigma_PSF,wslit
+      logical :: sph_datres_no_doppler
 
 
       origin(1)=xO1(1)-0.5d0*dxO1(1)
@@ -3076,19 +6604,11 @@ module mod_thermal_emission
       origin(3)=zero
       spacing(1)=dxO1(1)
       spacing(2)=dxO2(1)
-      spacing(3)=zero
+      spacing(3)=one
       wholeExtent=0
       wholeExtent(2)=nXO1
       wholeExtent(4)=nXO2
-      nP1=nXO1/nC1
-      nP2=nXO2/nC2
-
-      ! get information of emission line
-      if (convert_type=='EIvtiCCmpi') then
-        call get_line_info(wavelength,ion,mass,logTe,line_center,spatial_rsl,spectral_rsl,sigma_PSF,wslit)
-      else if (convert_type=='ESvtiCCmpi') then
-        call get_line_info(spectrum_wl,ion,mass,logTe,line_center,spatial_rsl,spectral_rsl,sigma_PSF,wslit)
-      endif
+      sph_datres_no_doppler=dat_resolution .and. coordinate==spherical .and. trim(ray_method_active)=='spherical'
 
       if (mype==0) then
         inquire(qunit,opened=fileopen)
@@ -3120,66 +6640,71 @@ module mod_thermal_emission
                            'NumberOfTuples="1" format="ascii">'
         write(qunit,*) real(global_time*time_convert_factor)
         write(qunit,'(a)')'</DataArray>'
-        if (convert_type=='EIvtiCCmpi' .or. convert_type=='ESvtiCCmpi') then
-          write(qunit,'(2a)')'<DataArray type="Float32" Name="logT" ',&
-                             'NumberOfTuples="1" format="ascii">'
-          write(qunit,*) real(logTe)
-          write(qunit,'(a)')'</DataArray>'
-        endif
         write(qunit,'(a)')'</FieldData>'
         ! pixel/cell data
-        do iP1=1,nP1
-          do iP2=1,nP2
-            extent=0
-            extent(1)=(iP1-1)*nC1
-            extent(2)=iP1*nC1
-            extent(3)=(iP2-1)*nC2
-            extent(4)=iP2*nC2
-            ixCmin1=extent(1)+1
-            ixCmax1=extent(2)
-            ixCmin2=extent(3)+1
-            ixCmax2=extent(4)
-            write(qunit,'(a,6(i10),a)') &
-                  '<Piece Extent="',extent,'">'
-            write(qunit,'(a)')'<CellData>'
-            do iw=1,nWO
-              ! variable name
-              if (convert_type=='EIvtiCCmpi') then
-                if (wavelength<100) then
-                  write(vname,'(a,i2)') "AIA",wavelength
-                else if (wavelength<1000) then
-                  write(vname,'(a,i3)') "AIA",wavelength
-                else
-                  write(vname,'(a,i4)') "IRIS",wavelength
-                endif
-                if (iw==2 .and. dat_resolution) vname='Doppler_velocity'
-              else if (convert_type=='SIvtiCCmpi') then
-                if (emin_sxr<10 .and. emax_sxr<10) then
-                  write(vname,'(a,i1,a,i1,a)') "SXR",emin_sxr,"-",emax_sxr,"keV"
-                else if (emin_sxr<10 .and. emax_sxr>=10) then
-                  write(vname,'(a,i1,a,i2,a)') "SXR",emin_sxr,"-",emax_sxr,"keV"
-                else
-                  write(vname,'(a,i2,a,i2,a)') "SXR",emin_sxr,"-",emax_sxr,"keV"
-                endif
-              else if (convert_type=='WIvtiCCmpi') then
-                if (iw==1) write(vname,'(a)')'B'
-                if (iw==2) write(vname,'(a)')'pB'
-              else if (convert_type=='ESvtiCCmpi') then
-                if (spectrum_wl==1354) then
-                  write(vname,'(a,i4)') "SG",spectrum_wl
-                else
-                  write(vname,'(a,i3)') "EIS",spectrum_wl
-                endif
-              endif
-              write(qunit,'(a,a,a)')&
-                '<DataArray type="Float64" Name="',TRIM(vname),'" format="ascii">'
-              write(qunit,'(200(1pe14.6))') ((wO(ixC1,ixC2,iw),ixC1=ixCmin1,ixCmax1),ixC2=ixCmin2,ixCmax2)
-              write(qunit,'(a)')'</DataArray>'
-            enddo
-            write(qunit,'(a)')'</CellData>'
-            write(qunit,'(a)')'</Piece>'
-          enddo
+        write(qunit,'(a,6(i10),a)') '<Piece Extent="',wholeExtent,'">'
+        write(qunit,'(a)')'<CellData>'
+        do iw=1,nWO
+          ! variable name
+          if (convert_type=='EIvtiCCmpi') then
+            if (wavelength<100) then
+              write(vname,'(a,i2)') "AIA",wavelength
+            else if (wavelength<1000) then
+              write(vname,'(a,i3)') "AIA",wavelength
+            else
+              write(vname,'(a,i4)') "IRIS",wavelength
+            endif
+            if (trim(emission_model)=='pseudo_current' .and. iw==1) vname='pseudo_current'
+            if (trim(emission_model)=='radio_ff' .and. iw==1) vname='radio_brightness_temperature'
+            if (trim(radiation_transfer)=='thick' .and. iw==1) vname=trim(vname)//'_thick'
+            if (iw==2 .and. dat_resolution .and. (.not. sph_datres_no_doppler) .and. &
+                trim(emission_model)/='radio_ff' .and. &
+                trim(emission_model)/='pseudo_current') vname='Doppler_velocity'
+            if (output_tau .and. trim(radiation_transfer)=='thick' .and. &
+                ((trim(emission_model)=='radio_ff' .and. iw==2) .or. &
+                 (trim(emission_model)/='radio_ff' .and. trim(emission_model)/='pseudo_current' .and. &
+                  ((dat_resolution .and. ((sph_datres_no_doppler .and. iw==2) .or. &
+                                          ((.not. sph_datres_no_doppler) .and. iw==3))) .or. &
+                   ((.not. dat_resolution) .and. iw==2))))) then
+              vname='tau'
+            endif
+            if (output_absorption_fraction .and. trim(radiation_transfer)=='thick' .and. &
+                ((trim(emission_model)=='radio_ff' .and. ((output_tau .and. iw==3) .or. &
+                                                         ((.not. output_tau) .and. iw==2))) .or. &
+                 (trim(emission_model)/='radio_ff' .and. trim(emission_model)/='pseudo_current' .and. &
+                  ((dat_resolution .and. sph_datres_no_doppler .and. output_tau .and. iw==3) .or. &
+                   (dat_resolution .and. sph_datres_no_doppler .and. (.not. output_tau) .and. iw==2) .or. &
+                   (dat_resolution .and. (.not. sph_datres_no_doppler) .and. output_tau .and. iw==4) .or. &
+                   (dat_resolution .and. (.not. sph_datres_no_doppler) .and. (.not. output_tau) .and. iw==3) .or. &
+                   ((.not. dat_resolution) .and. output_tau .and. iw==3) .or. &
+                   ((.not. dat_resolution) .and. (.not. output_tau) .and. iw==2))))) then
+              vname='absorption_fraction'
+            endif
+          else if (convert_type=='SIvtiCCmpi') then
+            if (emin_sxr<10 .and. emax_sxr<10) then
+              write(vname,'(a,i1,a,i1,a)') "SXR",emin_sxr,"-",emax_sxr,"keV"
+            else if (emin_sxr<10 .and. emax_sxr>=10) then
+              write(vname,'(a,i1,a,i2,a)') "SXR",emin_sxr,"-",emax_sxr,"keV"
+            else
+              write(vname,'(a,i2,a,i2,a)') "SXR",emin_sxr,"-",emax_sxr,"keV"
+            endif
+          else if (convert_type=='WIvtiCCmpi') then
+            if (iw==1) write(vname,'(a)')'B'
+            if (iw==2) write(vname,'(a)')'pB'
+          else if (convert_type=='ESvtiCCmpi') then
+            if (spectrum_wl==1354) then
+              write(vname,'(a,i4)') "SG",spectrum_wl
+            else
+              write(vname,'(a,i3)') "EIS",spectrum_wl
+            endif
+          endif
+          write(qunit,'(a,a,a)')&
+            '<DataArray type="Float64" Name="',TRIM(vname),'" format="ascii">'
+          write(qunit,'(200(1pe14.6))') ((wO(ixC1,ixC2,iw),ixC1=1,nXO1),ixC2=1,nXO2)
+          write(qunit,'(a)')'</DataArray>'
         enddo
+        write(qunit,'(a)')'</CellData>'
+        write(qunit,'(a)')'</Piece>'
         ! end
         write(qunit,'(a)')'</ImageData>'
         write(qunit,'(a)')'</VTKFile>'
@@ -3206,16 +6731,13 @@ module mod_thermal_emission
       character (len=std_len) :: filename
       integer :: ixC1,ixC2,ixP,ix1,ix2,j
       integer :: nc,np,icel,VTK_type
-      integer :: mass
-      double precision :: logTe
-      character (30) :: ion
-      double precision :: line_center
-      double precision :: spatial_rsl,spectral_rsl,sigma_PSF,wslit
+      logical :: sph_datres_no_doppler
 
       nP1=nC1+1
       nP2=nC2+1
       np=nP1*nP2
       nc=nC1*nC2
+      sph_datres_no_doppler=dat_resolution .and. coordinate==spherical .and. trim(ray_method_active)=='spherical'
       ! cell corner location     
       do ixP=1,nPiece
         do ix1=1,nP1
@@ -3227,13 +6749,6 @@ module mod_thermal_emission
           enddo
         enddo
       enddo
-      ! get information of emission line
-      if (datatype=='image_euv') then
-        call get_line_info(wavelength,ion,mass,logTe,line_center,spatial_rsl,spectral_rsl,sigma_PSF,wslit)
-      else if (datatype=='spectrum_euv') then
-        call get_line_info(spectrum_wl,ion,mass,logTe,line_center,spatial_rsl,spectral_rsl,sigma_PSF,wslit)
-      endif
-
       if (mype==0) then
         inquire(qunit,opened=fileopen)
         if(.not.fileopen)then
@@ -3261,12 +6776,6 @@ module mod_thermal_emission
                            'NumberOfTuples="1" format="ascii">'
         write(qunit,*) real(global_time*time_convert_factor)
         write(qunit,'(a)')'</DataArray>'
-        if (datatype=='image_euv' .or. datatype=='spectrum_euv') then
-          write(qunit,'(2a)')'<DataArray type="Float32" Name="logT" ',&
-                             'NumberOfTuples="1" format="ascii">'
-          write(qunit,*) real(logTe)
-          write(qunit,'(a)')'</DataArray>'
-        endif
         write(qunit,'(a)')'</FieldData>'
         do ixP=1,nPiece
           write(qunit,'(a,i7,a,i7,a)') &
@@ -3282,8 +6791,33 @@ module mod_thermal_emission
                 else
                   write(vname,'(a,i4)') "IRIS",wavelength
                 endif
+                if (trim(emission_model)=='pseudo_current') vname='pseudo_current'
+                if (trim(emission_model)=='radio_ff') vname='radio_brightness_temperature'
+                if (trim(radiation_transfer)=='thick') vname=trim(vname)//'_thick'
               endif
-              if (j==2 .and. dat_resolution) vname='Doppler_velocity'
+              if (j==2 .and. dat_resolution .and. (.not. sph_datres_no_doppler) .and. &
+                  trim(emission_model)/='radio_ff' .and. &
+                  trim(emission_model)/='pseudo_current') vname='Doppler_velocity'
+              if (output_tau .and. trim(radiation_transfer)=='thick' .and. &
+                  ((trim(emission_model)=='radio_ff' .and. j==2) .or. &
+                   (trim(emission_model)/='radio_ff' .and. trim(emission_model)/='pseudo_current' .and. &
+                    ((dat_resolution .and. ((sph_datres_no_doppler .and. j==2) .or. &
+                                            ((.not. sph_datres_no_doppler) .and. j==3))) .or. &
+                     ((.not. dat_resolution) .and. j==2))))) then
+                vname='tau'
+              endif
+              if (output_absorption_fraction .and. trim(radiation_transfer)=='thick' .and. &
+                  ((trim(emission_model)=='radio_ff' .and. ((output_tau .and. j==3) .or. &
+                                                           ((.not. output_tau) .and. j==2))) .or. &
+                   (trim(emission_model)/='radio_ff' .and. trim(emission_model)/='pseudo_current' .and. &
+                    ((dat_resolution .and. sph_datres_no_doppler .and. output_tau .and. j==3) .or. &
+                     (dat_resolution .and. sph_datres_no_doppler .and. (.not. output_tau) .and. j==2) .or. &
+                     (dat_resolution .and. (.not. sph_datres_no_doppler) .and. output_tau .and. j==4) .or. &
+                     (dat_resolution .and. (.not. sph_datres_no_doppler) .and. (.not. output_tau) .and. j==3) .or. &
+                     ((.not. dat_resolution) .and. output_tau .and. j==3) .or. &
+                     ((.not. dat_resolution) .and. (.not. output_tau) .and. j==2))))) then
+                vname='absorption_fraction'
+              endif
             else if (datatype=='image_sxr') then
               if (emin_sxr<10 .and. emax_sxr<10) then
                 write(vname,'(a,i1,a,i1,a)') "SXR",emin_sxr,"-",emax_sxr,"keV"
@@ -3438,9 +6972,9 @@ module mod_thermal_emission
       vec_xI1_sph(2:3)=vec_xI1_sph(2:3)*180.d0/dpi
       vec_xI2_sph(2:3)=vec_xI2_sph(2:3)*180.d0/dpi
 
-      if (mype==0) write(*,'(a,f3.1,f6.1,f6.1,a)') ' LOS vector (spherial): [',vec_LOS_sph(1),vec_LOS_sph(2),vec_LOS_sph(3),']'
-      if (mype==0) write(*,'(a,f3.1,f6.1,f6.1,a)') ' xI1 vector (spherial): [',vec_xI1_sph(1),vec_xI1_sph(2),vec_xI1_sph(3),']'
-      if (mype==0) write(*,'(a,f3.1,f6.1,f6.1,a)') ' xI2 vector (spherial): [',vec_xI2_sph(1),vec_xI2_sph(2),vec_xI2_sph(3),']'
+      if (mype==0) write(*,'(a,f3.1,f6.1,f6.1,a)') ' ray direction (spherical): [',vec_LOS_sph(1),vec_LOS_sph(2),vec_LOS_sph(3),']'
+      if (mype==0) write(*,'(a,f3.1,f6.1,f6.1,a)') ' xI1 direction (spherical): [',vec_xI1_sph(1),vec_xI1_sph(2),vec_xI1_sph(3),']'
+      if (mype==0) write(*,'(a,f3.1,f6.1,f6.1,a)') ' xI2 direction (spherical): [',vec_xI2_sph(1),vec_xI2_sph(2),vec_xI2_sph(3),']'
 
     end subroutine init_vectors_spherical
 
@@ -3462,7 +6996,7 @@ module mod_thermal_emission
 
       vec_sph(1)=dsqrt(vec_car(1)**2+vec_car(2)**2+vec_car(3)**2)
       vec_sph(2)=dacos(vec_car(3)/vec_sph(1))
-      vec_sph(3)=atan2(vec_car(2),vec_car(3))
+      vec_sph(3)=atan2(vec_car(2),vec_car(1))
 
     end subroutine cartesian_to_spherical
 

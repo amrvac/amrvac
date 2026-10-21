@@ -84,9 +84,6 @@ module mod_twofl_phys
   !> taking values within [0, 1]
   double precision, public                :: twofl_glm_alpha = 0.5d0
 
-  !> MHD fourth order
-  logical, public, protected              :: twofl_4th_order = .false.
-
   !> Index of the density (in the w array)
   integer, public             :: rho_c_
 
@@ -163,9 +160,6 @@ module mod_twofl_phys
 
   !> The MHD Hall coefficient
   double precision, public                :: twofl_etah = 0.0d0
-
-  !> The small_est allowed energy
-  double precision, protected             :: small_e
 
   !> Method type to clean divergence of B
   character(len=std_len), public, protected :: typedivbfix  = 'linde'
@@ -291,7 +285,7 @@ contains
     namelist /twofl_list/ twofl_eq_energy, twofl_gamma, twofl_adiab,&
       twofl_eta, twofl_eta_hyper, twofl_etah, twofl_glm_alpha,& 
       twofl_thermal_conduction_c, use_twofl_tc_c, twofl_radiative_cooling_c, twofl_Hall, twofl_gravity,&
-      twofl_viscosity, twofl_4th_order, typedivbfix, source_split_divb, divbdiff,&
+      twofl_viscosity, typedivbfix, source_split_divb, divbdiff,&
       typedivbdiff, type_ct, divbwave, SI_unit, B0field,&
       B0field_forcefree, Bdip, Bquad, Boct, Busr,twofl_equi_thermal_c,twofl_equi_thermal,&
       twofl_dump_full_vars, has_equi_rho_c0, has_equi_pe_c0, twofl_hyperdiffusivity,twofl_dump_hyperdiffusivity_coef,&
@@ -574,7 +568,6 @@ contains
     if(has_equi_pe_n0) then
       number_equi_vars = number_equi_vars + 1
       equi_pe_n0_ = number_equi_vars
-      phys_equi_pe=.true.
     endif  
     if(has_equi_rho_c0) then
       number_equi_vars = number_equi_vars + 1
@@ -585,7 +578,6 @@ contains
       number_equi_vars = number_equi_vars + 1
       equi_pe_c0_ = number_equi_vars
       iw_equi_p = equi_pe_c0_
-      phys_equi_pe=.true.
     endif  
 
     ! set number of variables which need update ghostcells
@@ -617,7 +609,6 @@ contains
 
     phys_get_dt              => twofl_get_dt
     phys_get_cmax            => twofl_get_cmax
-    phys_get_a2max           => twofl_get_a2max
     !phys_get_tcutoff         => twofl_get_tcutoff_c
     if(twofl_cbounds_species) then
       if (mype .eq. 0) print*, "Using different cbounds for each species nspecies = ", number_species
@@ -703,11 +694,11 @@ contains
             endif
         endif
         if(twofl_equi_thermal_c) then
-          tc_fl_c%has_equi = .true.
+          tc_fl_c%subtract_equi = .true.
           tc_fl_c%get_temperature_equi => twofl_get_temperature_c_equi
           tc_fl_c%get_rho_equi => twofl_get_rho_c_equi
         else  
-          tc_fl_c%has_equi = .false.
+          tc_fl_c%subtract_equi = .false.
         endif
       else
         if(phys_internal_e) then
@@ -742,11 +733,11 @@ contains
       if(has_equi_pe_n0 .and. has_equi_rho_n0) then
         tc_fl_n%get_temperature_from_eint => twofl_get_temperature_from_eint_n_with_equi
         if(twofl_equi_thermal_n) then
-          tc_fl_n%has_equi = .true.
+          tc_fl_n%subtract_equi = .true.
           tc_fl_n%get_temperature_equi => twofl_get_temperature_n_equi
           tc_fl_n%get_rho_equi => twofl_get_rho_n_equi
         else  
-          tc_fl_n%has_equi = .false.
+          tc_fl_n%subtract_equi = .false.
         endif
       else
         tc_fl_n%get_temperature_from_eint => twofl_get_temperature_from_eint_n
@@ -796,25 +787,30 @@ contains
         rc_fl_c%get_var_Rfactor => Rfactor_c
         rc_fl_c%e_ = e_c_
         rc_fl_c%Tcoff_ = Tcoff_c_
-        if(has_equi_pe_c0 .and. has_equi_rho_c0 .and. twofl_equi_thermal_c) then
-          rc_fl_c%has_equi = .true.
+        rc_fl_c%has_equi = has_equi_pe_c0 .and. has_equi_rho_c0
+        if(twofl_equi_thermal_c) then
+          rc_fl_c%subtract_equi = .true.
           rc_fl_c%get_rho_equi => twofl_get_rho_c_equi
           rc_fl_c%get_pthermal_equi => twofl_get_pe_c_equi
+          rc_fl_c%get_temperature_equi => twofl_get_temperature_c_equi
         else
-          rc_fl_c%has_equi = .false.
+          rc_fl_c%subtract_equi = .false.
         end if
       end if
+      if(twofl_radiative_cooling_n) then
+         call mpistop("twofl_radiative_cooling_n not implemented yet")
+      endif
     end if
+
+{^IFTHREED
     allocate(te_fl_c)
     te_fl_c%get_rho=> get_rhoc_tot
     te_fl_c%get_pthermal=> twofl_get_pthermal_c
     te_fl_c%get_var_Rfactor => Rfactor_c
-{^IFTHREED
     phys_te_images => twofl_te_images
 }
 
     ! Initialize viscosity module
-    !!TODO
     !if (twofl_viscosity) call viscosity_init(phys_wider_stencil)
 
     ! Initialize gravity module
@@ -823,16 +819,11 @@ contains
        call grav_params_read(par_files)
     end if
 
-    ! Initialize particles module
     ! For Hall, we need one more reconstructed layer since currents are computed
     ! in getflux: assuming one additional ghost layer (two for FOURTHORDER) was
     ! added in nghostcells.
     if (twofl_hall) then
-       if (twofl_4th_order) then
-          phys_wider_stencil = 2
-       else
           phys_wider_stencil = 1
-       end if
     end if
 
     if(twofl_hyperdiffusivity) then
@@ -1002,13 +993,9 @@ contains
     integer                      :: n
     ! list parameters
     integer :: ncool = 4000
-    double precision :: cfrac=0.1d0
   
     !> Name of cooling curve
     character(len=std_len)  :: coolcurve='JCorona'
-  
-    !> Name of cooling method
-    character(len=std_len)  :: coolmethod='exact'
   
     !> Fixed temperature not lower than tlow
     logical    :: Tfix=.false.
@@ -1019,7 +1006,7 @@ contains
     !> Add cooling source in a split way (.true.) or un-split way (.false.)
     logical    :: rc_split=.false.
 
-    namelist /rc_list_n/ coolcurve, coolmethod, ncool, cfrac, tlow, Tfix, rc_split
+    namelist /rc_list_n/ coolcurve, ncool, tlow, Tfix, rc_split
 
     do n = 1, size(par_files)
       open(unitpar, file=trim(par_files(n)), status="old")
@@ -1029,11 +1016,9 @@ contains
 
     fl%ncool=ncool
     fl%coolcurve=coolcurve
-    fl%coolmethod=coolmethod
     fl%tlow=tlow
     fl%Tfix=Tfix
     fl%rc_split=rc_split
-    fl%cfrac=cfrac
   end subroutine rc_params_read_n
 
   !end wrappers
@@ -1113,13 +1098,9 @@ contains
     integer                      :: n
     ! list parameters
     integer :: ncool = 4000
-    double precision :: cfrac=0.1d0
   
     !> Name of cooling curve
     character(len=std_len)  :: coolcurve='JCcorona'
-  
-    !> Name of cooling method
-    character(len=std_len)  :: coolmethod='exact'
   
     !> Fixed temperature not lower than tlow
     logical    :: Tfix=.false.
@@ -1131,7 +1112,7 @@ contains
     logical    :: rc_split=.false.
 
 
-    namelist /rc_list_c/ coolcurve, coolmethod, ncool, cfrac, tlow, Tfix, rc_split
+    namelist /rc_list_c/ coolcurve, ncool, tlow, Tfix, rc_split
 
     do n = 1, size(par_files)
       open(unitpar, file=trim(par_files(n)), status="old")
@@ -1141,11 +1122,9 @@ contains
 
     fl%ncool=ncool
     fl%coolcurve=coolcurve
-    fl%coolmethod=coolmethod
     fl%tlow=tlow
     fl%Tfix=Tfix
     fl%rc_split=rc_split
-    fl%cfrac=cfrac
   end subroutine rc_params_read_c
 
 !! end rad cool
@@ -1450,7 +1429,7 @@ contains
         unit_temperature=unit_pressure/(b*unit_numberdensity*kB)
       end if
     end if
-    ! Additional units needed for the particles
+    ! Additional units needed for particles
     c_norm=c_lightspeed/unit_velocity
     unit_charge=unit_magneticfield*unit_length**2/unit_velocity/miu0
     if (.not. SI_unit) unit_charge = unit_charge*const_c
@@ -1850,28 +1829,6 @@ contains
             abs(w(ixO^S,mom_c(idim)))+cmax(ixO^S))
 
   end subroutine twofl_get_cmax
-
-  subroutine twofl_get_a2max(w,x,ixI^L,ixO^L,a2max)
-    use mod_global_parameters
-
-    integer, intent(in)          :: ixI^L, ixO^L
-    double precision, intent(in) :: w(ixI^S, nw), x(ixI^S,1:ndim)
-    double precision, intent(inout) :: a2max(ndim)
-    double precision :: a2(ixI^S,ndim,nw)
-    integer :: gxO^L,hxO^L,jxO^L,kxO^L,i,j
-
-    a2=zero
-    do i = 1,ndim
-      !> 4th order
-      hxO^L=ixO^L-kr(i,^D);
-      gxO^L=hxO^L-kr(i,^D);
-      jxO^L=ixO^L+kr(i,^D);
-      kxO^L=jxO^L+kr(i,^D);
-      a2(ixO^S,i,1:nw)=abs(-w(kxO^S,1:nw)+16.d0*w(jxO^S,1:nw)&
-         -30.d0*w(ixO^S,1:nw)+16.d0*w(hxO^S,1:nw)-w(gxO^S,1:nw))
-      a2max(i)=maxval(a2(ixO^S,i,1:nw))/12.d0/dxlevel(i)**2
-    end do
-  end subroutine twofl_get_a2max
 
   ! COPIED from hd/moh_hd_phys
   !> get adaptive cutoff temperature for TRAC (Johnston 2019 ApJL, 873, L22)
@@ -2614,7 +2571,7 @@ contains
     vcts%vbarLC(ixO^S,idim,2)=wLp(ixO^S,mom_c(idimE))
     vcts%vbarRC(ixO^S,idim,2)=wRp(ixO^S,mom_c(idimE))
     vcts%vbarC(ixO^S,idim,2)=(vcts%cbarmax(ixO^S,idim)*vcts%vbarLC(ixO^S,idim,2) &
-         +vcts%cbarmin(ixO^S,idim)*vcts%vbarRC(ixO^S,idim,1))&
+         +vcts%cbarmin(ixO^S,idim)*vcts%vbarRC(ixO^S,idim,2))&
         /(vcts%cbarmax(ixO^S,idim)+vcts%cbarmin(ixO^S,idim))
 
   end subroutine twofl_get_ct_velocity_hll
@@ -3328,11 +3285,6 @@ contains
       end if
       ! add u_n * a in the flux
       f(ixO^S, e_n_) = w(ixO^S,mom_n(idim)) * pgas(ixO^S)
-
-      ! Viscosity fluxes - viscInDiv
-      !if (hd_viscosity) then
-      !  call visc_get_flux_prim(w, x, ixI^L, ixO^L, idim, f, phys_energy)
-      !endif
     end if
 
   end subroutine twofl_get_flux
@@ -3999,11 +3951,7 @@ contains
     double precision :: gradeta(ixI^S,1:ndim), Bf(ixI^S,1:ndir)
 
     ! Calculating resistive sources involve one extra layer
-    if (twofl_4th_order) then
       ixA^L=ixO^L^LADD2;
-    else
-      ixA^L=ixO^L^LADD1;
-    end if
 
     if (ixImin^D>ixAmin^D.or.ixImax^D<ixAmax^D|.or.) &
          call mpistop("Error in add_source_res1: Non-conforming input limits")
@@ -4031,7 +3979,6 @@ contains
 
     do idir=1,ndir
        ! Put B_idir into tmp2 and eta*Laplace B_idir into tmp
-       if (twofl_4th_order) then
          tmp(ixO^S)=zero
          tmp2(ixI^S)=Bf(ixI^S,idir)
          do idim=1,ndim
@@ -4043,16 +3990,6 @@ contains
                  (-tmp2(lxO^S)+16.0d0*tmp2(jxO^S)-30.0d0*tmp2(ixO^S)+16.0d0*tmp2(hxO^S)-tmp2(kxO^S)) &
                  /(12.0d0 * dxlevel(idim)**2)
          end do
-       else
-         tmp(ixO^S)=zero
-         tmp2(ixI^S)=Bf(ixI^S,idir)
-         do idim=1,ndim
-            jxO^L=ixO^L+kr(idim,^D);
-            hxO^L=ixO^L-kr(idim,^D);
-            tmp(ixO^S)=tmp(ixO^S)+&
-                 (tmp2(jxO^S)-2.0d0*tmp2(ixO^S)+tmp2(hxO^S))/dxlevel(idim)**2
-         end do
-       end if
 
        ! Multiply by eta
        tmp(ixO^S)=tmp(ixO^S)*eta(ixO^S)
@@ -4544,7 +4481,6 @@ contains
   subroutine twofl_get_dt(w,ixI^L,ixO^L,dtnew,dx^D,x)
     use mod_global_parameters
     use mod_usr_methods
-    use mod_radiative_cooling, only: cooling_get_dt
     !use mod_viscosity, only: viscosity_get_dt
     !use mod_gravity, only: gravity_get_dt
 
@@ -4591,13 +4527,6 @@ contains
         call coll_get_dt(w,x,ixI^L,ixO^L,dtnew)
     endif
 
-    if(twofl_radiative_cooling_c) then
-      call cooling_get_dt(w,ixI^L,ixO^L,dtnew,dx^D,x,rc_fl_c)
-    end if
-    if(twofl_radiative_cooling_n) then
-      call cooling_get_dt(w,ixI^L,ixO^L,dtnew,dx^D,x,rc_fl_n)
-    end if
-!
 !    if(twofl_viscosity) then
 !      call viscosity_get_dt(w,ixI^L,ixO^L,dtnew,dx^D,x)
 !    end if

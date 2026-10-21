@@ -1,5 +1,6 @@
 module mod_usr
   use mod_mhd
+  use mod_eos, only: eos
   use mod_particles
 
   implicit none
@@ -96,7 +97,7 @@ contains
     w(ix^S,mom(:)) = vrot(ix^S,:)
     w(ix^S,mag(:)) = brot(ix^S,:)
 
-    call mhd_to_conserved(ixG^L,ix^L,w,x)
+    call eos%to_conserved(ixG^L,ix^L,w,x)
 
   end subroutine initonegrid_usr
 
@@ -199,7 +200,7 @@ contains
       w(ixG^T,1:nw) = ps(igrid)%w(ixG^T,1:nw)
 
       ! Fill temperature
-      call mhd_get_pthermal(w,ps(igrid)%x,ixG^LL,ixG^LL,pth)
+      call eos%get_thermal_pressure(w,ps(igrid)%x,ixG^LL,ixG^LL,pth)
       gridvars(igrid)%w(ixG^T,Tep) = pth(ixG^T)/w(ixG^T,rho_)
       
       ! Same for old state vector if interpolating in time
@@ -207,8 +208,8 @@ contains
     !!    w(ixG^T,1:nw) = pso(igrid)%w(ixG^T,1:nw) 
 
         ! Temperature
-    !!    call mhd_get_pthermal(w,pso(igrid)%x,ixG^LL,ixG^LL,pth)
-    !!    gridvars(igrid)%wold(ixG^T,Tep) = pth(ixG^T)/w(ixG^T,rho_)
+        call eos%get_thermal_pressure(w,pso(igrid)%x,ixG^LL,ixG^LL,pth)
+        gridvars(igrid)%wold(ixG^T,Tep) = pth(ixG^T)/w(ixG^T,rho_)
 
     !!  end if
 

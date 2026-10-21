@@ -47,7 +47,7 @@
    courantpar=0.1d0
  /
  &ffhd_list
-   ffhd_hyperbolic_thermal_conduction=T
+   ffhd_hyperbolic_tc=T
    B0field=.true.
    Busr=1.d0
  /

@@ -1,0 +1,55 @@
+!setup.pl -d=1
+!> PI smoke: chromosphere table, energy closure (ionE=T)
+
+&filelist
+  base_filename = 'pi_chromoE'
+  typefilelog   = 'regression_test'
+/
+
+&savelist
+  itsave(1,1) = 0
+  dtsave_log  = 0.005d0
+/
+
+&stoplist
+  time_max = 0.05d0
+/
+
+&methodlist
+  time_stepper = 'threestep'
+  flux_scheme  = 20*'hllc'
+  limiter      = 20*'ppm'
+/
+
+&boundlist
+  typeboundary_min1 = 4*'periodic'
+  typeboundary_max1 = 4*'periodic'
+/
+
+&meshlist
+  refine_max_level = 1
+  block_nx1        = 64
+  domain_nx1       = 256
+  xprobmin1        = 0.0d0
+  xprobmax1        = 1.0d0
+/
+
+&paramlist
+  courantpar = 0.4d0
+/
+
+&mhd_list
+  mhd_energy = .true.
+/
+
+&eos_list
+  eos_type     = 'PI'
+  pi_table     = 'chromosphere'
+  ionE         = .true.
+  He_abundance = 0.1d0   !> PI energy mode now folds He ionisation energy into eint
+/
+
+&usr_list
+  rho_base = 1.0d0
+  T_base   = 0.011d0
+/

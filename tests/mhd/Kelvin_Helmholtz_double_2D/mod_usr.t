@@ -1,5 +1,6 @@
 module mod_usr
   use mod_mhd
+  use mod_eos, only: eos
   implicit none
 
 contains
@@ -30,7 +31,7 @@ contains
      ! Baty and Keppens, A&A 447, 9, 2006, case Fig 13
      w(ixG^S,rho_)=one
      w(ixG^S,p_)=one
-     cs=dsqrt(mhd_gamma)
+     cs=dsqrt(eos%gamma)
      machs=3.0d0
      macha=7.0d0
      qv=cs*machs
@@ -65,7 +66,7 @@ contains
      w(ixG^S,mom(1))=half*qv*(one-dtanh(ff*dabs(x(ixG^S,2))/Rjet-ff*Rjet/dabs(x(ixG^S,2))))
      w(ixG^S,mom(2))=dv*ranx(ixG^S)*dexp(-((dabs(x(ixG^S,2))-Rjet)/sigma)**2)
 
-     call mhd_to_conserved(ixG^L,ix^L,w,x)
+     call eos%to_conserved(ixG^L,ix^L,w,x)
 
   end subroutine initonegrid_usr
 

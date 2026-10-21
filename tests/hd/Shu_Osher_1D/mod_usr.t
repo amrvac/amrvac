@@ -1,5 +1,6 @@
 module mod_usr
   use mod_hd
+  use mod_eos, only: eos
   implicit none
 
 contains
@@ -13,7 +14,6 @@ contains
   end subroutine usr_init
 
   subroutine initglobaldata_usr
-    hd_gamma = 1.4d0
   end subroutine initglobaldata_usr
 
   subroutine initonegrid_usr(ixG^L,ix^L,w,x)
@@ -30,6 +30,6 @@ contains
       w(ix^S,mom(1))=zero
       w(ix^S,p_)=1.d0
     end where
-    call hd_to_conserved(ixG^L,ix^L,w,x)
+    call eos%to_conserved(ixG^L,ix^L,w,x)
   end subroutine initonegrid_usr
 end module mod_usr

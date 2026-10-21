@@ -52,8 +52,11 @@
  /
 
  &hd_list
-        hd_gamma = 1.0d0
         hd_adiab = 1.0d0
         hd_n_tracer = 1
         hd_energy=.false.
  /
+ &eos_list
+  gamma = 1.0d0
+ /
+

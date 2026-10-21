@@ -1,5 +1,6 @@
 module mod_usr
   use mod_hd
+  use mod_eos, only: eos
 
   implicit none
 
@@ -44,9 +45,9 @@ contains
 
        if(hd_energy)then
           where(( ^D&x(ix^S,^D)+ ) >= front+smalldouble)
-             w(ix^S,e_)             = pr0/(hd_gamma-one)
+             w(ix^S,e_)             = pr0/(eos%gamma-one)
           elsewhere
-             w(ix^S,e_)             = pr1/(hd_gamma-one)
+             w(ix^S,e_)             = pr1/(eos%gamma-one)
           endwhere
        endif
 
@@ -58,7 +59,7 @@ contains
       endwhere
     end do
 
-    call hd_to_conserved(ixG^L,ix^L,w,x)
+    call eos%to_conserved(ixG^L,ix^L,w,x)
 
     end subroutine liska_init_one_grid
 

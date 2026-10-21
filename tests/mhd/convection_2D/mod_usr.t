@@ -1,5 +1,6 @@
 module mod_usr
   use mod_mhd
+  use mod_eos, only: eos
   use mod_viscosity, only: vc_mu
   implicit none
   double precision :: usr_grav,bstr,temptop
@@ -53,7 +54,7 @@ contains
     ! allows calculation of all equation parameters, namely
     ! the general purpose ones:
     ! ------------------------
-    !  mhd_gamma mhd_eta tc_k_para eqpar(grav1.2_) vc_mu
+    !  eos%gamma mhd_eta tc_k_para eqpar(grav1.2_) vc_mu
     !
     ! and the problem specific one:
     ! ----------------------------
@@ -77,7 +78,6 @@ contains
     endif
     
     temptop=zz0
-    mhd_gamma=gamma
     usr_grav=-(qmpoly+one)
     
     ! dissipative parameters
@@ -164,14 +164,14 @@ contains
     w(ix^S,mom(3))=dvz*dsin(x(ix^S,1)*nkx)*dsin(x(ix^S,2)*nky)*dsin(x(ix^S,3)*nkz)
     }
 
-    call mhd_to_conserved(ixG^L,ix^L,w,x)
+    call eos%to_conserved(ixG^L,ix^L,w,x)
 
   end subroutine initonegrid_usr
 
-  subroutine specialbound_usr(qt,ixG^L,ixO^L,iB,w,x)
+  subroutine specialbound_usr(qdt,qt,ixG^L,ixO^L,iB,w,x)
     ! special boundary types, user defined
     integer, intent(in) :: ixO^L, iB, ixG^L
-    double precision, intent(in) :: qt, x(ixG^S,1:ndim)
+    double precision, intent(in) :: qdt, qt, x(ixG^S,1:ndim)
     double precision, intent(inout) :: w(ixG^S,1:nw)
 
     double precision :: tempb(ixG^S)
@@ -191,7 +191,7 @@ contains
       ! in nghostcells rows above the bottom boundary: switch to primitive
       ixIMmin2=ixOmax2+1;ixIMmax2=ixOmax2+nghostcells;
       ixIMmin1=ixOmin1;ixIMmax1=ixOmax1;
-      call mhd_to_primitive(ixG^L,ixIM^L,w,x)
+      call eos%to_primitive(ixG^L,ixIM^L,w,x)
       do ix2=ixOmax2,ixOmin2,-1
          w(ixOmin1:ixOmax1,ix2,rho_)= w(ixOmin1:ixOmax1,2*ixOmax2+1-ix2,rho_)
          w(ixOmin1:ixOmax1,ix2,mom(1)) = w(ixOmin1:ixOmax1,2*ixOmax2+1-ix2,mom(1))
@@ -218,7 +218,7 @@ contains
       ixIMmin2=ixOmax2+1;ixIMmax2=ixOmax2+nghostcells;
       ixIMmin1=ixOmin1;ixIMmax1=ixOmax1;
       ixIMmin3=ixOmin3;ixIMmax3=ixOmax3;
-      call mhd_to_primitive(ixG^L,ixIM^L,w,x)
+      call eos%to_primitive(ixG^L,ixIM^L,w,x)
       do ix2=ixOmax2,ixOmin2,-1
          w(ixOmin1:ixOmax1,ix2,ixOmin3:ixOmax3,rho_)= w(ixOmin1:ixOmax1,2*ixOmax2+1-ix2,ixOmin3:ixOmax3,rho_)
          w(ixOmin1:ixOmax1,ix2,ixOmin3:ixOmax3,mom(1)) = w(ixOmin1:ixOmax1,2*ixOmax2+1-ix2,ixOmin3:ixOmax3,mom(1))
@@ -250,9 +250,9 @@ contains
       !enddo
       }
       ! now reset the inner mesh values to conservative
-      call mhd_to_conserved(ixG^L,ixIM^L,w,x)
+      call eos%to_conserved(ixG^L,ixIM^L,w,x)
       ! now switch to conservative in full bottom ghost layer
-      call mhd_to_conserved(ixG^L,ixO^L,w,x)
+      call eos%to_conserved(ixG^L,ixO^L,w,x)
     
     case(4)
       ! special top boundary
@@ -266,7 +266,7 @@ contains
       ! in nghostcells rows below top boundary: switch to primitive
       ixIMmin2=ixOmin2-nghostcells;ixIMmax2=ixOmin2-1;
       ixIMmin1=ixOmin1;ixIMmax1=ixOmax1;
-      call mhd_to_primitive(ixG^L,ixIM^L,w,x)
+      call eos%to_primitive(ixG^L,ixIM^L,w,x)
       do ix2=ixOmin2,ixOmax2,+1
           w(ixOmin1:ixOmax1,ix2,rho_)= w(ixOmin1:ixOmax1,2*ixOmin2-ix2-1,rho_)
           w(ixOmin1:ixOmax1,ix2,mom(1)) = w(ixOmin1:ixOmax1,2*ixOmin2-ix2-1,mom(1))
@@ -287,7 +287,7 @@ contains
       ixIMmin2=ixOmin2-nghostcells;ixIMmax2=ixOmin2-1;
       ixIMmin1=ixOmin1;ixIMmax1=ixOmax1;
       ixIMmin3=ixOmin3;ixIMmax3=ixOmax3;
-      call mhd_to_primitive(ixG^L,ixIM^L,w,x)
+      call eos%to_primitive(ixG^L,ixIM^L,w,x)
       do ix2=ixOmin2,ixOmax2,+1
           w(ixOmin1:ixOmax1,ix2,ixOmin3:ixOmax3,rho_)= w(ixOmin1:ixOmax1,2*ixOmin2-ix2-1,ixOmin3:ixOmax3,rho_)
           w(ixOmin1:ixOmax1,ix2,ixOmin3:ixOmax3,mom(1)) = w(ixOmin1:ixOmax1,2*ixOmin2-ix2-1,ixOmin3:ixOmax3,mom(1))
@@ -312,9 +312,9 @@ contains
       !enddo
       }
       ! now reset the inner mesh values to conservative
-      call mhd_to_conserved(ixG^L,ixIM^L,w,x)
+      call eos%to_conserved(ixG^L,ixIM^L,w,x)
       ! now switch to conservative in full bottom ghost layer
-      call mhd_to_conserved(ixG^L,ixO^L,w,x)
+      call eos%to_conserved(ixG^L,ixO^L,w,x)
     case default
        call mpistop("Special boundary is not defined for this region")
     end select
@@ -363,7 +363,7 @@ contains
     integer          :: idirmin
 
     ! output Te
-    call mhd_get_pthermal(w,x,ixI^L,ixO^L,tmp)
+    call eos%get_thermal_pressure(w,x,ixI^L,ixO^L,tmp)
     w(ixO^S,nw+1)=tmp(ixO^S)/w(ixO^S,rho_)
     ! output B 
     w(ixO^S,nw+2)=dsqrt(sum(w(ixO^S,mag(:))**2,dim=ndim+1))

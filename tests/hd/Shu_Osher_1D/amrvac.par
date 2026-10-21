@@ -41,3 +41,7 @@
         courantpar=0.95d0
  /
         slowsteps=10
+
+ &eos_list
+        gamma=1.4d0
+ /

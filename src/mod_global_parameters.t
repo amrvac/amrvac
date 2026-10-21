@@ -101,15 +101,26 @@ module mod_global_parameters
   !> Normalised speed of light
   double precision :: c_norm=1.d0
 
+  !> Normalised radiation constant
+  double precision :: arad_norm=1.d0
+
   !> Physical scaling factor for Opacity
   double precision :: unit_opacity=1.d0
 
   !> Physical scaling factor for radiation flux
   double precision :: unit_radflux=1.d0
 
+  !> Physical scaling factor for radiation energy density
+  double precision :: unit_Erad=1.d0
+
+  !> Physical factors useful for radiation fld
+  double precision :: const_rad_a,const_kappae,const_sigmaSB
+
   !> error handling
-  double precision :: small_temperature,small_pressure,small_density
+  double precision :: small_temperature,small_pressure,small_density,small_e,small_r_e
   double precision :: phys_trac_mask
+
+  double precision :: minfip=1.d0, maxfip=4.d0
 
   !> amplitude of background dipolar, quadrupolar, octupolar, user's field
   double precision :: Bdip=0.d0
@@ -141,9 +152,6 @@ module mod_global_parameters
   !> global fastest flow speed needed in glm method
   double precision :: vmax_global
 
-  !> global largest a2 for schmid scheme
-  double precision :: a2max_global(^ND)
-
   !> times for enhancing spatial resolution for EUV image/spectra
   double precision :: instrument_resolution_factor
   !> the white light emission below it (unit=Rsun) is not visible 
@@ -156,6 +164,33 @@ module mod_global_parameters
   double precision :: x_origin(1:3)
   !> Base file name for synthetic EUV spectrum output
   character(len=std_len) :: filename_spectrum
+  !> Synthetic emission transfer mode: thin or thick
+  character(len=std_len) :: radiation_transfer
+  !> Synthetic emission ray traversal method
+  character(len=std_len) :: ray_method
+  !> Data-resolution image spacing: nominal or minimum actual cell size
+  character(len=std_len) :: dat_resolution_mode
+  !> Synthetic emission physical model selector
+  character(len=std_len) :: emission_model
+  !> Post-process dat-resolution EUV images onto the instrument pixel grid
+  logical :: instrument_postprocess
+  !> Observing frequency for radio free-free synthesis in Hz
+  double precision :: radio_frequency
+  !> Gaussian radio beam full width at half maximum in arcsec
+  double precision :: radio_beam_fwhm
+  !> Output pixel size for radio beam post-processing in arcsec; <=0 uses FWHM/3
+  double precision :: radio_beam_pixel_size
+  !> Number of image pixels processed in one ray-segment MPI batch
+  integer :: radsyn_pixel_batch
+  !> Maximum ray segments per pixel batch, as a factor of radsyn_pixel_batch; <=0 uses memory budget.
+  !> Default value is set from the best spherical u512 benchmark behavior seen so far.
+  integer :: radsyn_segment_batch_factor
+  !> Approximate per-rank temporary memory budget, in MiB, for automatic ray-segment batch sizing
+  double precision :: radsyn_segment_memory_mb
+  !> Maximum ray segments per segmented MPI all-to-all round, as a factor of radsyn_pixel_batch
+  integer :: radsyn_segment_comm_factor
+  !> Print synthetic-emission ray-tracing profiling counters
+  logical :: radsyn_verbose
   !> spectral window
   double precision :: spectrum_window_min,spectrum_window_max
   !> location of the slit
@@ -225,6 +260,64 @@ module mod_global_parameters
 
   !> A global MPI error return code
   integer :: ierrmpi
+
+  !> Per-rank load-balance timing diagnostic toggle (off by default).
+  !> When .true., per-rank wall times are gathered every step and written
+  !> to <basename>_rank_timing.log.
+  logical :: lb_diagnose = .false.
+
+  !> Cost-weighted automatic load balancer toggle (off by default).
+  !> When .true., the SFC partitioner cuts on cumulative measured per-block
+  !> cost rather than on equal block counts.
+  logical :: lb_automatic = .false.
+
+  !> Rebalance every lb_interval cycles when lb_automatic is on.
+  integer :: lb_interval = 10
+
+  !> Exponential-moving-average decay for the per-block cost.
+  !> costlist <- lb_alpha*costlist + (1-lb_alpha)*measured.
+  !> 0 = no memory (volatile), 1 = no update.
+  double precision :: lb_alpha = 0.9d0
+
+  !> Bound on the memory imbalance get_Morton_range_costed may create: no rank
+  !> may hold more than lb_max_block_ratio * (nleafs/npe) blocks. Cost balance
+  !> and memory balance are in tension, as a rank owning cheap blocks must hold
+  !> more of them to match one owning expensive blocks. 1.0 is the equal-block
+  !> cut; larger values allow more freedom to follow cost.
+  !> get_Morton_range_active bounds the same ratio through its wa/wp weights.
+  double precision :: lb_max_block_ratio = 1.25d0
+
+  !> Per-step per-block (per-rank, indexed by igrid) cost accumulator.
+  !> Reset at start of each advance call; filled inside iigrid loops by the
+  !> per-block timer wrappers in mod_advance.t and mod_supertimestepping.t.
+  double precision, dimension(:), allocatable :: block_cost
+
+  !> Per-step per-block cost of the short-characteristics sweep, indexed by
+  !> igrid. Separate from block_cost because rt_sc_solve() runs before advance(),
+  !> which zeroes block_cost on entry. advance() seeds block_cost from this array
+  !> and clears it for the next solve, so both costs share a partition weight.
+  double precision, dimension(:), allocatable :: block_cost_rt
+
+  !> Per-rank wall time spent in the SC radiative-transfer KBA sweep this step,
+  !> for the lb_diagnose rank-timing log. Filled by mod_rt_sc_solvers (which runs
+  !> before advance), gathered and zeroed inside advance's diagnostic block.
+  double precision :: lb_rt_accum = 0.0d0
+
+  !> Persistent global per-Morton-leaf EWMA cost, in seconds (block_cost is a
+  !> wall-clock accumulation). Sized to max_blocks*npe (the upper bound on
+  !> nleafs); only the first nleafs entries are meaningful. Morton numbering
+  !> is invariant across load_balance migration, so costlist values are
+  !> correctly preserved when blocks change rank. Refinement events
+  !> insert/remove Morton indices, after which the EWMA recovers over
+  !> ~5 cycles. Indexed 1..nleafs. Updated by EWMA blend inside
+  !> get_Morton_range_costed.
+  double precision, dimension(:), allocatable :: costlist
+
+  !> Whether the matching costlist slot has ever carried a measurement. Morton
+  !> indices created by a refinement event have not been timed; they are seeded
+  !> with the mean of the measured slots, since costlist is a wall time and any
+  !> fixed seed would be a units error.
+  logical, dimension(:), allocatable :: costlist_seen
 
   !> MPI file handle for logfile
   integer :: log_fh
@@ -387,6 +480,8 @@ module mod_global_parameters
 
   integer :: phys_trac_type=1
   integer :: phys_trac_finegrid=4
+  integer :: phys_trac_nzones=1
+  double precision :: phys_trac_zone_splits(10)=-1.d0
 
   !> integer switchers for type courant
   integer, parameter :: type_maxsum=1
@@ -516,6 +611,50 @@ module mod_global_parameters
   !> typegrad or typediv are set to 'limited'
   integer, allocatable :: type_gradient_limiter(:)
 
+  !> Coefficient alpha of the explicit diffusive flux of Mignone et al. 2005 eq. B19-B21,
+  !> the second half of PPM's dissipation algorithm. 0 = off (default); the paper says
+  !> "alpha is typically set to 0.1".
+  !>
+  !>     F_{i+1/2} -> F_{i+1/2} + k_nu (U_i - U_{i+1}) ,   k_nu = alpha*max(-D_{i+1/2},0)
+  !>
+  !> D is an undivided multidimensional divergence of v at the interface, so the term is
+  !> active only where the flow converges. Two consequences worth knowing:
+  !>   * it is identically zero for a state at rest, so it cannot disturb a hydrostatic
+  !>     column -- exact discrete balance survives it untouched;
+  !>   * it is proportional to the raw cell difference U_i - U_{i+1}, not to the
+  !>     reconstructed face jump, so unlike everything else in the scheme it can see an
+  !>     odd-even mode that a face-value reconstruction annihilates.
+  double precision :: ppm_avisc = 0.0d0
+
+  !> Residual-jump velocity reconstruction (RJV). 0 = off (default), 1 = full strength.
+  !>
+  !> PPM's face operator annihilates the odd-even (2 dx) mode: the face value's leading
+  !> term is (q_i + q_{i+1})/2, and adjacent cells carry opposite ripple sign, while the
+  !> slope depends on (q_{i+1} - q_{i-1})/2, where the two cells have the same parity. So
+  !> the mode leaves no trace in w_L or w_R, the Riemann solver sees no jump, and applies
+  !> exactly zero dissipation to it. It never decays once seeded.
+  !>
+  !> But what the operator annihilates is exactly recoverable as its own residual,
+  !>
+  !>     e_i = v_i - (P_{i+1/2} + P_{i-1/2})/2 ,
+  !>
+  !> built from the two face values PPM has already computed -- no new stencil. For a
+  !> ripple A(-1)^i, e_i = A(-1)^i at full amplitude; for smooth data e_i = -h^2 v''/8.
+  !> Reinject it as a jump only, leaving the face value (and hence the flux, and hence a
+  !> hydrostatic column) untouched:
+  !>
+  !>     w_L(i+1/2) = P_{i+1/2} + beta*s_i*e_i ,  w_R(i+1/2) = P_{i+1/2} + beta*s_{i+1}*e_{i+1}
+  !>
+  !> with s_i = 1 only where e alternates across three cells, which no smooth field does.
+  !> At beta = 1 this reproduces the piecewise-constant jump for a pure ripple, i.e. full
+  !> first-order dissipation on the null component alone.
+  !>
+  !> Applied to the velocity components only. That is what makes it exact rather than
+  !> approximate: at rest v = 0, so e = 0 identically and the jump is exactly zero, and
+  !> every flux term the velocity enters carries a factor v. Measured inert on a resolved
+  !> sine (l=8 and l=32), a 3-cell tanh front, a discontinuity, and an exponential column.
+  double precision :: ppm_rjv = 0.0d0
+
   !> background magnetic field location indicator
   integer :: b0i=0
 
@@ -609,6 +748,11 @@ module mod_global_parameters
   !> If true, call initonegrid_usr upon restarting
   logical :: firstprocess
 
+  !> If true, allow a restart from a snapshot whose ndir differs from the current
+  !> run (e.g. hd ndir=2 -> mhd ndir=3). Block I/O is ndim-based only, so the data
+  !> loads exactly; use usr_transform_w to place the source vars into the right slots.
+  logical :: allow_ndir_change
+
   !> If true, wall time is up, modify snapshotnext for later overwrite
   logical :: pass_wall_time
 
@@ -619,11 +763,24 @@ module mod_global_parameters
   logical :: reset_grid
   !> True for using stagger grid
   logical :: stagger_grid=.false.
+  !> Limit outstanding ghost-cell send requests to avoid MPI request pressure.
+  !> In large-scale MHD tests, the original all-at-once ghost-cell exchange could
+  !> stall during spherical u512 initialization. Batching avoids
+  !> that failure mode, while u256 5-step tests showed less than 0.1% total
+  !> runtime difference. The original path is still available by setting this to
+  !> false; if batching remains stable in broader tests, the old path can be
+  !> removed later. Disabled by default; set this to true to opt in.
+  logical :: ghostcell_comm_batched=.false.
+  integer :: ghostcell_comm_batch_size=64
   !> True for record electric field
   logical :: record_electric_field=.false.
 
   !> resolution of the images
   logical :: dat_resolution
+  !> output optical-depth map for synthetic emission when available
+  logical :: output_tau
+  !> output absorption fraction for thick/thin EUV synthesis when available
+  logical :: output_absorption_fraction
 
   !> If collapse(DIM) is true, generate output integrated over DIM
   logical :: collapse(ndim)
@@ -652,7 +809,6 @@ module mod_global_parameters
   logical :: fix_small_values=.false.
 
   !> split magnetic field as background B0 field
-  ! TODO these should be moved in a different file  
   logical :: B0field=.false.
   logical :: B0fieldAllocCoarse=.false.
   !> Use SI units (.true.) or use cgs units (.false.)
@@ -661,9 +817,15 @@ module mod_global_parameters
   !> Use TRAC for MHD or 1D HD
   logical :: phys_trac=.false.
 
+  !> Use escape probability for radiative cooling modification
+  logical :: phys_escape_prob=.false.
+
   !> Whether to apply flux conservation at refinement boundaries
   logical :: fix_conserve_global = .true.
   logical :: flux_adaptive_diffusion
+  double precision :: flux_adaptive_diffusion_min
+  double precision :: flux_adaptive_diffusion_scale
+  logical :: flux_energy_only
   logical :: flathllc,flatcd,flatsh
   !> Use split or unsplit way to add user's source terms, default: unsplit
   logical :: source_split_usr
@@ -676,9 +838,6 @@ module mod_global_parameters
   !> need global maximal wave speed
   logical :: need_global_cmax=.false.
 
-  !> global value for schmid scheme
-  logical :: need_global_a2max=.false.
-  
   ! Boundary region parameters
 
   !> True for dimensions with periodic boundaries

@@ -1,5 +1,6 @@
 module mod_usr
   use mod_hd
+  use mod_eos, only: eos
   implicit none
   double precision :: rhoBC, velBC, gm, MdotIni, BernIni, rs
 
@@ -24,23 +25,23 @@ contains
 
   subroutine initglobaldata_usr
 
-    ! hd_gamma=5.d0/3.d0
-    ! hd_adiab=one/hd_gamma
+    ! eos%gamma=5.d0/3.d0
+    ! hd_adiab=one/eos%gamma
     ! mach=4.d0
    !  vel=one
     gm=half
    !  rho0=one
    !  Racc=one
-    ! pini=((1/hd_gamma)*rho0*vel**two)/mach**two
-    if (hd_gamma==one) then
+    ! pini=((1/eos%gamma)*rho0*vel**two)/mach**two
+    if (eos%gamma==one) then
       rhoBC=(dpi*dexp(1.5d0)/4.d0) / (4.d0*dpi)
     else
-      rhoBC=( (dpi/4.d0) * (2.d0/(5.d0-3.d0*hd_gamma))**((5.d0-3.d0*hd_gamma)/(2.d0*(hd_gamma-1.d0))) ) / (4.d0*dpi)
+      rhoBC=( (dpi/4.d0) * (2.d0/(5.d0-3.d0*eos%gamma))**((5.d0-3.d0*eos%gamma)/(2.d0*(eos%gamma-1.d0))) ) / (4.d0*dpi)
     endif
     velBC=one ! = Mdot / ( 4pi*r2 * rhoBC)
-    MdotIni=(dpi/4.d0)*(2.d0/(5.d0-3.d0*hd_gamma))**((5.d0-3.d0*hd_gamma)/(2.d0*hd_gamma-2.d0))
-    BernIni=one/(hd_gamma-one)
-    rs=(5.d0-3.d0*hd_gamma)/8.d0
+    MdotIni=(dpi/4.d0)*(2.d0/(5.d0-3.d0*eos%gamma))**((5.d0-3.d0*eos%gamma)/(2.d0*eos%gamma-2.d0))
+    BernIni=one/(eos%gamma-one)
+    rs=(5.d0-3.d0*eos%gamma)/8.d0
 
   end subroutine initglobaldata_usr
 
@@ -56,7 +57,7 @@ contains
     double precision :: rin
     integer :: ix, iy
 
-    if (hd_gamma==one) then
+    if (eos%gamma==one) then
       w(ix^S,rho_)   =  (rhoBC/(xprobmax1**1.5d0))/10000.d0
       w(ix^S,mom(1)) = -((rhoBC/(xprobmax1**1.5d0))/10000.d0)*(velBC/dsqrt(xprobmin1))
     else
@@ -116,12 +117,12 @@ contains
 
   end subroutine get_dt_pt_grav
 
-  subroutine specialbound_usr(qt,ixG^L,ixB^L,iB,w,x)
+  subroutine specialbound_usr(qdt,qt,ixG^L,ixB^L,iB,w,x)
 
     ! special boundary types, user defined
 
     integer, intent(in) :: ixG^L, ixB^L, iB
-    double precision, intent(in) :: qt, x(ixG^S,1:ndim)
+    double precision, intent(in) :: qdt,qt, x(ixG^S,1:ndim)
     double precision, intent(inout) :: w(ixG^S,1:nw)
     double precision :: rho(ixG^S)
 
@@ -145,7 +146,7 @@ contains
 
     case(2)
 
-    if (hd_gamma==one) then
+    if (eos%gamma==one) then
 
       do ix=ixBmin1,ixBmax1
          if (x(ix,1)<0.25d0) then
@@ -226,9 +227,9 @@ contains
   double precision                   :: w(ixI^S,nw+nwauxio)
   double precision                   :: normconv(0:nw+nwauxio)
 
-   w(ixO^S,nw+1) = dabs(w(ixO^S,mom(1))/w(ixO^S,rho_))/dsqrt(hd_gamma*hd_adiab*w(ixO^S,rho_)**(hd_gamma-one))
+   w(ixO^S,nw+1) = dabs(w(ixO^S,mom(1))/w(ixO^S,rho_))/dsqrt(eos%gamma*hd_adiab*w(ixO^S,rho_)**(eos%gamma-one))
    w(ixO^S,nw+2) = dabs(dabs(w(ixO^S,mom(1))*x(ixO^S,1)**two)*4.d0*dpi-MdotIni)/MdotIni
-   w(ixO^S,nw+3) = dabs(half*w(ixO^S,mom(1))**two/w(ixO^S,rho_)**two-gm/x(ixO^S,1)+(one/(hd_gamma-one))*w(ixO^S,rho_)**(hd_gamma-one)-BernIni)/BernIni
+   w(ixO^S,nw+3) = dabs(half*w(ixO^S,mom(1))**two/w(ixO^S,rho_)**two-gm/x(ixO^S,1)+(one/(eos%gamma-one))*w(ixO^S,rho_)**(eos%gamma-one)-BernIni)/BernIni
    
   end subroutine specialvar_output
 

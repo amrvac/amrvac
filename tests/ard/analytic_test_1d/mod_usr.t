@@ -14,8 +14,12 @@ contains
 
     usr_init_one_grid => initonegrid_usr
     usr_special_bc => specialbc_usr
-    usr_process_grid => set_error
-    usr_print_log => print_error
+!!    usr_special_mg_bc => mg_boundary_conditions
+
+    usr_write_analysis => print_error
+
+   ! to add selected variables to the .dat file
+    usr_modify_output => set_error
 
     call ard_activate()
 
@@ -48,6 +52,7 @@ contains
   end function solution
 
   subroutine print_error()
+    use mod_global_parameters
     use mod_input_output, only: get_volume_average, get_global_maxima
     double precision   :: modes(nw, 2), volume
     double precision   :: maxvals(nw)
@@ -58,18 +63,46 @@ contains
 
     if (mype == 0) then
        write(*, "(A,4E14.6)") " CONV_TEST (t,err_1,err_2,err_inf):", global_time, &
-            modes(i_err, 1), sqrt(modes(i_err, 2)), maxvals(i_err)
+            modes(i_err, 1), dsqrt(modes(i_err, 2)), maxvals(i_err)
     end if
   end subroutine print_error
 
-  subroutine set_error(igrid,level,ixI^L,ixO^L,qt,w,x)
-    integer, intent(in)             :: igrid,level,ixI^L,ixO^L
+  subroutine set_error(ixI^L,ixO^L,qt,w,x)
+    integer, intent(in)             :: ixI^L,ixO^L
     double precision, intent(in)    :: qt,x(ixI^S,1:ndim)
     double precision, intent(inout) :: w(ixI^S,1:nw)
 
     w(ixO^S,i_sol) = solution(x(ixO^S, 1), qt)
-    w(ixO^S,i_err) = abs(w(ixO^S,u_) - w(ixO^S,i_sol))
+    w(ixO^S,i_err) = dabs(w(ixO^S,u_) - w(ixO^S,i_sol))
   end subroutine set_error
   
+  ! Following subroutine unused in autotest
+  subroutine mg_boundary_conditions(n)
+
+    use mod_global_parameters
+    use mod_multigrid_coupling
+
+    integer, intent(in)             :: n 
+
+    select case (n)
+    case (1)
+        ! setting neumann
+        ard_mg_bc(:,n)%bc_type = mg_bc_neumann
+        ard_mg_bc(:,n)%bc_value = 0.0_dp
+        ! setting dirichlet, for first (and only) variable
+    !    ard_mg_bc(1,n)%bc_type = mg_bc_dirichlet
+    !    ard_mg_bc(1,n)%bc_value =  1.0_dp / (1.0_dp + dexp( (2.0_dp*xprobmin1 - global_time)/(2.0_dp*D1) ))
+    case (2)
+        ! setting neumann
+        ard_mg_bc(:,n)%bc_type = mg_bc_neumann
+        ard_mg_bc(:,n)%bc_value = 0.0_dp
+        ! setting dirichlet, for first (and only) variable
+    !    ard_mg_bc(1,n)%bc_type = mg_bc_dirichlet
+    !    ard_mg_bc(1,n)%bc_value =  1.0_dp / (1.0_dp + dexp( (2.0_dp*xprobmax1 - global_time)/(2.0_dp*D1) ))
+    case default
+        call mpistop("issue for mg_boundary in mod_usr")
+    end select
+  end subroutine mg_boundary_conditions
+
 end module mod_usr  
 

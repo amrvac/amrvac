@@ -77,20 +77,20 @@ contains
     end if
   end subroutine gravity_add_source
 
-  subroutine gravity_get_dt(w,ixI^L,ixO^L,dtnew,dx^D,x)
+  subroutine gravity_get_dt(wprim,ixI^L,ixO^L,dtnew,dx^D,x)
     use mod_global_parameters
     use mod_usr_methods
     use mod_geometry
 
     integer, intent(in)             :: ixI^L, ixO^L
-    double precision, intent(in)    :: dx^D, x(ixI^S,1:ndim), w(ixI^S,1:nw)
+    double precision, intent(in)    :: dx^D, x(ixI^S,1:ndim), wprim(ixI^S,1:nw)
     double precision, intent(inout) :: dtnew
 
     double precision                :: dxinv(1:ndim), max_grav
     double precision :: gravity_field(ixI^S,ndim)
     integer                         :: idim
 
-    call usr_gravity(ixI^L,ixO^L,w,x,gravity_field)
+    call usr_gravity(ixI^L,ixO^L,wprim,x,gravity_field)
     if(slab_uniform) then
       ^D&dxinv(^D)=one/dx^D;
       do idim = 1, ndim

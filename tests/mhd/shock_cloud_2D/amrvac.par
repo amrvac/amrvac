@@ -68,3 +68,7 @@
  &mhd_list
         mhd_n_tracer=1
  /
+
+ &eos_list
+        gamma=1.66666667d0
+ /

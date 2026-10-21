@@ -3,6 +3,7 @@
 ! RM through planar shock impinging on inclined density discontinuity
 module mod_usr
   use mod_hd
+  use mod_eos, only: eos
 
 contains
 
@@ -20,7 +21,6 @@ contains
 
   subroutine initglobaldata_usr
 
-    hd_gamma=1.4d0
 
   end subroutine initglobaldata_usr
 
@@ -55,10 +55,10 @@ contains
     eta   = 3.0d0
 
     ! compute the RH related states across the planar shock
-    Prat    = one/(one+(M**2-one)*two*hd_gamma/(hd_gamma+one))
-    alfa    = (hd_gamma+one)/(hd_gamma-one)
+    Prat    = one/(one+(M**2-one)*two*eos%gamma/(eos%gamma+one))
+    alfa    = (eos%gamma+one)/(eos%gamma-one)
     c_pre   = one ! pre shock sound speed
-    rhopost = hd_gamma*(alfa+Prat)/(alfa*Prat+one)
+    rhopost = eos%gamma*(alfa+Prat)/(alfa*Prat+one)
     ppost   = one/Prat
     vpost   = c_pre*M*(one-(alfa*Prat+one)/(alfa+Prat))
 
@@ -77,22 +77,22 @@ contains
 
     where(x(ix^S,1)>xshock.and.(x(ix^S,1)>x(ix^S,2)/dtan(alpha)+xbound))
       ! pre shock region
-      w(ix^S,rho_)=hd_gamma*eta
+      w(ix^S,rho_)=eos%gamma*eta
       w(ix^S,mom(1))=zero
       w(ix^S,mom(2))=zero
-      w(ix^S,e_)=one/(hd_gamma-one)
+      w(ix^S,e_)=one/(eos%gamma-one)
     elsewhere(x(ix^S,1)>xshock.and.(x(ix^S,1)<=x(ix^S,2)/dtan(alpha)+xbound))
       ! pre shock region
-      w(ix^S,rho_)=hd_gamma
+      w(ix^S,rho_)=eos%gamma
       w(ix^S,mom(1))=zero
       w(ix^S,mom(2))=zero
-      w(ix^S,e_)=one/(hd_gamma-one)
+      w(ix^S,e_)=one/(eos%gamma-one)
     elsewhere
       ! post shock region
       w(ix^S,rho_)= rhopost
       w(ix^S,mom(1)) = rhopost*vpost
       w(ix^S,mom(2)) = zero
-      w(ix^S,e_)  = ppost/(hd_gamma-one)+0.5d0*rhopost*vpost**2
+      w(ix^S,e_)  = ppost/(eos%gamma-one)+0.5d0*rhopost*vpost**2
     endwhere
 
   end subroutine initonegrid_usr
@@ -113,7 +113,7 @@ contains
 
 ! first store temperature
     wlocal(ixI^S,1:nw)=w(ixI^S,1:nw)
-    call hd_get_pthermal(wlocal,x,ixI^L,ixO^L,pth)
+    call eos%get_thermal_pressure(wlocal,x,ixI^L,ixO^L,pth)
     w(ixO^S,nw+1)=pth(ixO^S)/w(ixO^S,rho_)
 
 ! then compute schlieren density plot

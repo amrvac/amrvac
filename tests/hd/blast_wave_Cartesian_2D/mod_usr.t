@@ -17,7 +17,6 @@ contains
 
   subroutine initonegrid_usr(ixI^L,ixO^L,w,x)
   ! initialize one grid
-    use mod_physics
     integer, intent(in) :: ixI^L, ixO^L
     double precision, intent(in) :: x(ixI^S,1:ndim)
     double precision, intent(inout) :: w(ixI^S,1:nw)
@@ -41,7 +40,7 @@ contains
     endwhere
     w(ixO^S,mom(:))=0.d0
 
-    call phys_to_conserved(ixI^L,ixO^L,w,x)
+    call hd_to_conserved(ixI^L,ixO^L,w,x)
 
   end subroutine initonegrid_usr
 
@@ -60,7 +59,7 @@ contains
 
     double precision                   :: tmp(ixI^S) 
 
-    call phys_get_pthermal(w,x,ixI^L,ixO^L,tmp)
+    call hd_get_pthermal(w,x,ixI^L,ixO^L,tmp)
     ! output the temperature p/rho
     w(ixO^S,nw+1)=tmp(ixO^S)/w(ixO^S,rho_)
 

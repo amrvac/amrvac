@@ -250,12 +250,14 @@ module mod_solar_atmosphere
                 9.7965d+05, 9.8195d+05, 9.8424d+05, 9.8652d+05, 9.8879d+05,&
                 9.9105d+05, 9.9330d+05, 9.9554d+05, 9.9778d+05, 9.9778d+05 /
 
+  private :: get_atm_para_pressure_eos
 
 contains
 
-  subroutine get_atm_para(h,rho,pth,grav,nh,Tcurve,hc,rhohc,Tem)
-    use mod_physics, only: phys_partial_ionization
-    use mod_ionization_degree
+  subroutine get_atm_para(h,rho,pth,grav,nh,Tcurve,hc,rhohc,Tem,clamp_low_T)
+    use mod_eos_container, only: eos
+    use mod_eos_pi_tables, only: ionization_is_temperature_only, &
+        ionization_state_from_temperature_scalar
     ! input:h,grav,nh,rho0,Tcurve; output:rho,pth (dimensionless units)
     ! nh -- number of points
     ! rho0 -- number density at h=0
@@ -265,11 +267,12 @@ contains
     double precision, intent(in) :: h(nh),grav(nh)
     double precision, intent(out) :: rho(nh),pth(nh)
     double precision, intent(out),optional :: Tem(nh)
+    logical, optional, intent(in) :: clamp_low_T
     double precision :: rhohc,hc
     character(*) :: Tcurve
 
     double precision :: h_cgs(nh),Te_cgs(nh),Te(nh)
-    double precision :: invT,dh,rhot,dht,ratio
+    double precision :: invT,dh,rhot,dht,ratio,Rfactor
     integer :: j
 
     h_cgs=h*unit_length
@@ -288,7 +291,11 @@ contains
         if (mype==0) print *, 'Temperature curve from Fontenla et al. 2007, ApJ, 667, 1243'
 
       case('AL-C7')
-        call get_Te_ALC7(h_cgs,Te_cgs,nh)
+        if (present(clamp_low_T)) then
+          call get_Te_ALC7(h_cgs,Te_cgs,nh,clamp_low_T=clamp_low_T)
+        else
+          call get_Te_ALC7(h_cgs,Te_cgs,nh)
+        endif
         if (mype==0) print *, 'Temperature curve from Avrett & Loeser 2008, ApJS, 175, 229'
 
       case default
@@ -299,9 +306,15 @@ contains
     Te=Te_cgs/unit_temperature
     if(present(Tem)) Tem=Te
 
-    if(phys_partial_ionization) then
-      do j=1,nh
-        Te(j)=Te(j)*R_ideal_gas_law_partial_ionization(Te(j))
+    if (eos%eos_type == 'PI') then
+      if (.not. ionization_is_temperature_only()) then
+        call get_atm_para_pressure_eos(h, Te, grav, nh, hc, rhohc, rho, pth)
+        return
+      end if
+
+      do j = 1, nh
+        call ionization_state_from_temperature_scalar(Te(j), Rfactor)
+        Te(j) = Te(j)*Rfactor
       end do
     end if
 
@@ -329,15 +342,106 @@ contains
 
   end subroutine get_atm_para
 
-  subroutine get_Te_ALC7(h,Te,nh)
+
+  subroutine get_atm_para_pressure_eos(h, T, grav, nh, hc, rhohc, rho, pth)
+    use mod_eos_pi_tables, only : ionization_state_Tp, ionization_solve_p_Rfactor
+
+    integer, intent(in) :: nh
+    double precision, intent(in) :: h(nh), T(nh), grav(nh), hc, rhohc
+    double precision, intent(out) :: rho(nh), pth(nh)
+
+    integer :: outer, inner, j
+    double precision :: rho0, rhot, ratio, dh, dht
+    double precision :: Rprev, Rcur, RTprev, RTcur
+    double precision :: pguess, pnext, rel
+    logical :: converged, found_hc
+
+    if (nh < 2) call mpistop("pressure-dependent HSE requires nh >= 2")
+    if (rhohc <= zero) call mpistop("get_atm_para: invalid rhohc")
+    if (any(T <= zero)) call mpistop("get_atm_para: non-positive temperature")
+    if (any(h(2:nh) <= h(1:nh-1))) then
+      call mpistop("get_atm_para: height grid must be strictly increasing")
+    end if
+
+    rho0 = 1.d5
+    converged = .false.
+
+    do outer = 1, 30
+      call ionization_solve_p_Rfactor(rho0, T(1), pth(1), Rprev)
+      rho(1) = rho0
+      RTprev = Rprev*T(1)
+
+      do j = 2, nh
+        dh = h(j)-h(j-1)
+
+        call ionization_state_Tp(T(j), pth(j-1), Rcur)
+        RTcur = Rcur*T(j)
+        pguess = pth(j-1)*exp(0.5d0*dh * (grav(j-1)/RTprev+grav(j)/RTcur))
+
+        do inner = 1, 20
+          call ionization_state_Tp(T(j), pguess, Rcur)
+          RTcur = Rcur*T(j)
+          pnext = pth(j-1)*exp(0.5d0*dh * (grav(j-1)/RTprev+grav(j)/RTcur))
+          ! The first condition also catches NaN because NaN > zero is false.
+          if (.not. (pnext > zero) .or. pnext >= bigdouble) then
+            call mpistop("invalid pressure in pressure-dependent HSE")
+          end if
+          rel = abs(pnext-pguess)/max(abs(pnext),tiny(1.d0))
+          pguess = pnext
+          if (rel < 1.d-12) exit
+        end do
+        if (inner > 20) call mpistop("pressure-dependent HSE did not converge")
+
+        pth(j) = pnext
+        call ionization_state_Tp(T(j), pth(j), Rcur)
+        RTcur = Rcur*T(j)
+        rho(j) = pth(j)/RTcur
+        RTprev = RTcur
+      end do
+
+      if (hc <= h(1)) then
+        rhot = rho(1)
+      else if (hc >= h(nh)) then
+        rhot = rho(nh)
+      else
+        found_hc = .false.
+        do j = 2, nh
+          if (h(j-1) <= hc .and. hc <= h(j)) then
+            dht = hc-h(j-1)
+            rhot = rho(j-1)+dht*(rho(j)-rho(j-1)) / (h(j)-h(j-1))
+            found_hc = .true.
+            exit
+          end if
+        end do
+        if (.not. found_hc) call mpistop("hc is not bracketed by h")
+      end if
+
+      ratio = rhohc/rhot
+      if (abs(ratio-one) < 1.d-10) then
+        converged = .true.
+        exit
+      end if
+
+      ! Shooting correction; outputs are recomputed, never rescaled afterward.
+      rho0 = rho0*min(10.d0,max(0.1d0,ratio))
+    end do
+
+    if (.not. converged) then
+      call mpistop("pressure-dependent HSE shooting did not converge")
+    end if
+  end subroutine get_atm_para_pressure_eos
+
+  subroutine get_Te_ALC7(h,Te,nh,clamp_low_T)
     use mod_interpolation
 
     integer :: nh
     double precision :: h(nh),Te(nh)
+    logical, optional, intent(in) :: clamp_low_T
 
     integer :: ih,j,imin,imax,n_table
     double precision :: h_table(n_alc7),T_table(n_alc7)
     double precision :: unit_h,unit_T,htra,Ttra,Fc,kappa,dTdh
+    logical :: clamp_low
 
     ! temperature profile
     unit_h=1.d5 !  km -> cm
@@ -352,6 +456,9 @@ contains
     Ttra=577400.d0
     ! adiabatic temperature gradient below solar surface (Toriumi and Takasao 2017 ApJ 850 39)
     dTdh=-0.4d0*mH_cgs*solar_gravity/kB_cgs
+    clamp_low=.false.
+    if (present(clamp_low_T)) clamp_low=clamp_low_T
+
 
     do ih=1,nh
       if (h(ih)>h_table(n_table)) then
@@ -361,7 +468,11 @@ contains
 
       if (h(ih)<=h_table(1)) then
       ! below photosphere
-        Te(ih)=(h(ih)-h_table(1))*dTdh+T_table(1)
+        if (clamp_low) then
+          Te(ih)=T_table(1)
+        else
+          Te(ih)=(h(ih)-h_table(1))*dTdh+T_table(1)
+        endif
       endif
     enddo
 

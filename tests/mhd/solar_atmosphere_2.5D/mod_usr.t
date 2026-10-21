@@ -55,10 +55,10 @@ contains
   subroutine inithdstatic
     use mod_solar_atmosphere
     ! initialize the table in a vertical line through the global domain
-    integer :: j,na,ibc
     double precision, allocatable :: Ta(:),gg(:),ya(:)
     double precision :: rpho,Ttop,Tpho,wtra,res,rhob,pb,htra,ftra,Ttr,Fc,invT,kappa
     double precision :: rhohc,hc
+    integer :: j,na,ibc
     logical :: simple_temperature_curve
 
     simple_temperature_curve=.true.
@@ -280,10 +280,10 @@ contains
 
   end subroutine driven_velocity
 
-  subroutine specialbound_usr(qt,ixI^L,ixO^L,iB,w,x)
+  subroutine specialbound_usr(qdt,qt,ixI^L,ixO^L,iB,w,x)
     ! special boundary types, user defined
     integer, intent(in) :: ixO^L, iB, ixI^L
-    double precision, intent(in) :: qt, x(ixI^S,1:ndim)
+    double precision, intent(in) :: qdt,qt, x(ixI^S,1:ndim)
     double precision, intent(inout) :: w(ixI^S,1:nw)
 
     double precision :: pth(ixI^S),tmp(ixI^S),ggrid(ixI^S),invT(ixI^S)
@@ -360,10 +360,10 @@ contains
         w(ixOmin1:ixOmax1,ix2,rho_)=rbc(ix2)
         w(ixOmin1:ixOmax1,ix2,p_)=pbc(ix2)
       enddo
-      if(mhd_hyperbolic_thermal_conduction) then
+      if(mhd_hyperbolic_tc) then
         do ix2=ixOmin2,ixOmax2
           do ix1=ixOmin1,ixOmax1
-            w(ix1,ix2,q_)=w(ix1,ixOmax2+1,q_)
+            w(ix1,ix2,qpar_)=w(ix1,ixOmax2+1,qpar_)
           end do
         end do
       end if
@@ -371,7 +371,7 @@ contains
     case(4)
       ixOs^L=ixO^L;
       ixOsmin2=ixOmin2-1;ixOsmax2=ixOmin2-1;
-      call mhd_get_pthermal(w,x,ixI^L,ixOs^L,pth)
+      call eos%get_thermal_pressure(w,x,ixI^L,ixOs^L,pth)
       ixOsmin2=ixOmin2-1;ixOsmax2=ixOmax2;
       call getggrav(ggrid,ixI^L,ixOs^L,x)
       !> fill pth, rho ghost layers according to gravity stratification
@@ -424,10 +424,10 @@ contains
                  +4.0d0*w(ixOmin1:ixOmax1,ix2-1,mag(:)))
         enddo
       end if
-      if(mhd_hyperbolic_thermal_conduction) then
+      if(mhd_hyperbolic_tc) then
         do ix2=ixOmin2,ixOmax2
           do ix1=ixOmin1,ixOmax1
-            w(ix1,ix2,q_)=w(ix1,ixOmin2-1,q_)
+            w(ix1,ix2,qpar_)=w(ix1,ixOmin2-1,qpar_)
           end do
         end do
       end if

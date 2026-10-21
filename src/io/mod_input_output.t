@@ -1,6 +1,7 @@
 !> Module for reading input and writing output
 module mod_input_output
   use mod_comm_lib, only: mpistop
+  use mod_basic_types, only: name_len
 
   implicit none
   public
@@ -8,6 +9,9 @@ module mod_input_output
 
   !> coefficient for rk2_alfa
   double precision, private :: rk2_alfa
+
+  !> debug field-dump variable names (set by debug_alloc, used by save_wdebug)
+  character(len=name_len), allocatable :: wdebug_names(:)
 
   !> List of compatible versions
   integer, parameter :: compatible_versions(3) = [3, 4, 5]
@@ -179,6 +183,7 @@ contains
     use mod_geometry
     use mod_source
     use mod_input_output_helper, only: get_names_from_string
+    use mod_timing, only: write_timing_log, timing_log_interval
 
     double precision, dimension(nsavehi) :: tsave_log, tsave_dat, tsave_slice, &
          tsave_collapsed, tsave_custom
@@ -233,6 +238,7 @@ contains
  
     namelist /filelist/ base_filename,restart_from_file, &
          typefilelog,firstprocess,reset_grid,snapshotnext, &
+         allow_ndir_change, &
          convert,convert_type,saveprim,usr_filename,&
          nwauxio,nocartesian, w_write,writelevel,&
          writespshift,length_convert_factor, w_convert_factor, &
@@ -246,25 +252,27 @@ contains
          dtsave_log, dtsave_dat, dtsave_slice, dtsave_collapsed, dtsave_custom, &
          ditsave_log, ditsave_dat, ditsave_slice, ditsave_collapsed, ditsave_custom,&
          tsavestart_log, tsavestart_dat, tsavestart_slice, tsavestart_collapsed,&
-         tsavestart_custom, tsavestart
+         tsavestart_custom, tsavestart, &
+         write_timing_log, timing_log_interval
 
     namelist /stoplist/ it_init,time_init,it_max,time_max,dtmin,reset_it,reset_time,&
          wall_time_max,final_dt_reduction
 
-    namelist /methodlist/ time_stepper,time_integrator, &
-         source_split_usr,typesourcesplit,local_timestep,&
-         dimsplit,typedimsplit,flux_scheme,&
-         limiter,gradient_limiter,cada3_radius,&
-         loglimit,typeboundspeed, H_correction,&
-         typetvd,typeentropy,entropycoef,typeaverage, &
-         typegrad,typediv,typecurl,&
+    namelist /methodlist/ time_stepper, time_integrator, &
+         source_split_usr, typesourcesplit, local_timestep, &
+         dimsplit, typedimsplit, flux_scheme, &
+         limiter, gradient_limiter, cada3_radius, &
+         loglimit, typeboundspeed, H_correction, &
+         typetvd, typeentropy, entropycoef, typeaverage, &
+         typegrad, typediv, typecurl, &
          nxdiffusehllc, flathllc, tvdlfeps, flux_adaptive_diffusion, &
-         flatcd,flatsh,&
-         rk2_alfa,imex222_lambda,ssprk_order,rk3_switch,imex_switch,&
-         small_temperature,small_pressure,small_density, &
+         flux_adaptive_diffusion_min, flux_adaptive_diffusion_scale, &
+         flux_energy_only, flatcd, flatsh, ppm_avisc, ppm_rjv, &
+         rk2_alfa, imex222_lambda, ssprk_order, rk3_switch, imex_switch, &
+         small_temperature, small_pressure, small_density, &
          small_values_method, small_values_daverage, fix_small_values, check_small_values, &
-         trace_small_values, small_values_fix_iw, &
-         schmid_rad^D
+         trace_small_values, small_values_fix_iw, minfip, maxfip, &
+         ghostcell_comm_batched, ghostcell_comm_batch_size
 
     namelist /boundlist/ nghostcells,ghost_copy,&
          internalboundary, typeboundary_^L, save_physical_boundary
@@ -276,7 +284,8 @@ contains
          amr_wavefilter,max_blocks,block_nx^D,domain_nx^D,iprob,xprob^L, &
          w_refine_weight, prolongprimitive,coarsenprimitive, &
          typeprolonglimit, &
-         logflag,tfixgrid,itfixgrid,ditregrid
+         logflag,tfixgrid,itfixgrid,ditregrid, &
+         lb_diagnose,lb_automatic,lb_interval,lb_alpha,lb_max_block_ratio
     namelist /paramlist/  courantpar, dtpar, dtdiffpar, &
          typecourant, slowsteps
 
@@ -284,10 +293,16 @@ contains
           filename_sxr,emin_sxr,emax_sxr,&
           LOS_theta,LOS_phi,image_rotate,x_origin,big_image,&
           spectrum_wl,location_slit,filename_spectrum,&
+          radiation_transfer,ray_method,dat_resolution_mode,emission_model,&
+          instrument_postprocess,&
+          radio_frequency,radio_beam_fwhm,radio_beam_pixel_size,&
+          radsyn_pixel_batch,radsyn_segment_batch_factor,radsyn_segment_memory_mb,&
+          radsyn_segment_comm_factor,&
+          radsyn_verbose,&
           spectrum_window_min,spectrum_window_max,&
           instrument_resolution_factor,activate_unit_arcsec,&
           filename_whitelight,whitelight_instrument,R_occultor,R_opt_thick,&
-          dat_resolution,direction_slit
+          dat_resolution,direction_slit,output_tau,output_absorption_fraction
 
     ! default maximum number of grid blocks in a processor
     max_blocks=4000
@@ -453,6 +468,7 @@ contains
     reset_it = .false.
     firstprocess  = .false.
     reset_grid     = .false.
+    allow_ndir_change = .false.
     base_filename   = 'data'
     usr_filename    = ''
 
@@ -461,6 +477,9 @@ contains
     typeaverage     = 'default'
     tvdlfeps        = one
     flux_adaptive_diffusion = .false.
+    flux_adaptive_diffusion_min = 0.d0
+    flux_adaptive_diffusion_scale = 1.d0
+    flux_energy_only = .false.
     nxdiffusehllc   = 0
     flathllc        = .false.
     slowsteps       = -1
@@ -473,7 +492,6 @@ contains
     else
       cada3_radius  = 0.1d0
     end if
-    {schmid_rad^D = 1.d0\}
     typetvd         = 'roe'
     typeboundspeed  = 'Einfeldt'
     source_split_usr= .false.
@@ -499,6 +517,19 @@ contains
     x_origin = 0.d0
     big_image = .false.
     location_slit = 0.d0
+    radiation_transfer = 'thin'
+    ray_method = 'auto'
+    dat_resolution_mode = 'nominal'
+    emission_model = 'auto'
+    instrument_postprocess=.false.
+    radio_frequency = 17.d9
+    radio_beam_fwhm = 0.d0
+    radio_beam_pixel_size = 0.d0
+    radsyn_pixel_batch = 128
+    radsyn_segment_batch_factor = 256
+    radsyn_segment_memory_mb = 8.d0
+    radsyn_segment_comm_factor = 16
+    radsyn_verbose = .false.
     direction_slit = -1
     instrument_resolution_factor=1.d0
     activate_unit_arcsec=.true.
@@ -506,6 +537,8 @@ contains
     R_occultor=-1.d0
     R_opt_thick=1.d0
     dat_resolution=.false.
+    output_tau=.false.
+    output_absorption_fraction=.false.
 
     allocate(flux_scheme(nlevelshi),typepred1(nlevelshi),flux_method(nlevelshi))
     allocate(limiter(nlevelshi),gradient_limiter(nlevelshi))
@@ -516,6 +549,8 @@ contains
        gradient_limiter(level) = 'minmod'
     end do
 
+    ppm_avisc       = 0.0d0
+    ppm_rjv         = 0.0d0
     flatcd          = .false.
     flatsh          = .false.
     typesourcesplit = 'sfs'
@@ -668,6 +703,8 @@ contains
 
     if (small_pressure < 0.d0) call mpistop("small_pressure should be positive.")
     if (small_density < 0.d0) call mpistop("small_density should be positive.")
+    if (ghostcell_comm_batched .and. ghostcell_comm_batch_size < 1) &
+         call mpistop("ghostcell_comm_batch_size should be positive.")
     ! Give priority to non-zero small temperature
     if (small_temperature>0.d0) small_pressure=small_density*small_temperature
 
@@ -730,12 +767,19 @@ contains
       type_courant=type_maxsum
     case ('summax')
       type_courant=type_summax
+      if (local_timestep) then
+       call mpistop("Type courant summax incompatible with local_timestep")
+      endif
     case ('minimum')
       type_courant=type_minimum
+      if (local_timestep) then
+       call mpistop("Type courant minimum incompatible with local_timestep")
+      endif
     case default
        write(unitterm,*)'Unknown typecourant=',typecourant
        call mpistop("Error from read_par_files: no such typecourant!")
     end select
+
 
     do level=1,nlevelshi
        select case (flux_scheme(level))
@@ -813,7 +857,6 @@ contains
 
     ! finite difference scheme fd need global maximal speed
     if(any(flux_scheme=='fd')) need_global_cmax=.true.
-    if(any(limiter=='schmid1')) need_global_a2max=.true.
 
     ! initialize type_curl
      select case (typecurl)
@@ -1360,8 +1403,13 @@ contains
            end if
            select case(coordinate)
            case(cylindrical)
+            ! across r=0 both the radial and azimuthal components flip sign
+            typeboundary(r_+1,2*idim-1)=bc_asymm
             typeboundary(phi_+1,2*idim-1)=bc_asymm
-            if(physics_type=='mhd'.or.physics_type=='rmhd') typeboundary(ndir+windex+phi_,2*idim-1)=bc_asymm
+            if(physics_type=='mhd'.or.physics_type=='rmhd') then
+              typeboundary(ndir+windex+r_,2*idim-1)=bc_asymm
+              typeboundary(ndir+windex+phi_,2*idim-1)=bc_asymm
+            end if
            case(spherical)
             typeboundary(3:ndir+1,2*idim-1)=bc_asymm
             if(physics_type=='mhd'.or.physics_type=='rmhd') typeboundary(ndir+windex+2:ndir+windex+ndir,2*idim-1)=bc_asymm
@@ -1391,8 +1439,13 @@ contains
            end if
            select case(coordinate)
            case(cylindrical)
+            ! across r=0 both the radial and azimuthal components flip sign
+            typeboundary(r_+1,2*idim)=bc_asymm
             typeboundary(phi_+1,2*idim)=bc_asymm
-            if(physics_type=='mhd'.or.physics_type=='rmhd') typeboundary(ndir+windex+phi_,2*idim)=bc_asymm
+            if(physics_type=='mhd'.or.physics_type=='rmhd') then
+              typeboundary(ndir+windex+r_,2*idim)=bc_asymm
+              typeboundary(ndir+windex+phi_,2*idim)=bc_asymm
+            end if
            case(spherical)
             typeboundary(3:ndir+1,2*idim)=bc_asymm
             if(physics_type=='mhd'.or.physics_type=='rmhd') typeboundary(ndir+windex+2:ndir+windex+ndir,2*idim)=bc_asymm
@@ -1636,8 +1689,10 @@ contains
       boundspeed=2
     case('cmaxleftright')
       boundspeed=3
+    case('pvrs')
+      boundspeed=4
     case default
-      call mpistop("set typeboundspeed='Einfeldt' or 'cmaxmean' or 'cmaxleftright'")
+      call mpistop("set typeboundspeed='Einfeldt' or 'cmaxmean' or 'cmaxleftright' or 'pvrs'")
     end select
 
     if (mype==0) write(unitterm, '(A30)', advance='no') 'Refine estimation: '
@@ -1874,9 +1929,17 @@ contains
     ! ndir
     call MPI_FILE_READ(fh, ibuf(1), 1, MPI_INTEGER, st, er)
     if (ibuf(1) /= ndir) then
-      write(*,*) "ndir in restart file = ",ibuf(1)
-      write(*,*) "ndir = ",ndir
-      call mpistop("reset ndir to ndir in restart file")
+      if (allow_ndir_change) then
+        if (mype==0) then
+          write(*,*) "WARNING: ndir in restart file = ",ibuf(1)," but current ndir = ",ndir
+          write(*,*) "allow_ndir_change=T: loading anyway (block I/O is ndim-based)."
+          write(*,*) "Ensure usr_transform_w maps the source vars into the right slots."
+        end if
+      else
+        write(*,*) "ndir in restart file = ",ibuf(1)
+        write(*,*) "ndir = ",ndir
+        call mpistop("reset ndir to ndir in restart file (or set allow_ndir_change=T)")
+      end if
     end if
 
     ! ndim
@@ -1944,8 +2007,13 @@ contains
       call MPI_FILE_READ(fh, geom_name, name_len, MPI_CHARACTER, st, er)
 
       if (geom_name /= geometry_name(1:name_len)) then
-        write(*,*) "type of coordinates in data is: ", geom_name
-        call mpistop("select the correct coordinates in mod_usr.t file")
+        if (allow_ndir_change) then
+          if (mype==0) write(*,*) "WARNING: coordinates in data = ",trim(geom_name), &
+               " vs current ",trim(geometry_name),"; allow_ndir_change=T (e.g. Cartesian_2D->2.5D), loading anyway."
+        else
+          write(*,*) "type of coordinates in data is: ", geom_name
+          call mpistop("select the correct coordinates in mod_usr.t file")
+        end if
       end if
 
       call MPI_FILE_READ(fh, stagger_mark_dat, 1, MPI_LOGICAL, st, er)
@@ -2170,6 +2238,127 @@ contains
 
     call MPI_BARRIER(icomm, ierrmpi)
   end subroutine write_snapshot
+
+  !> Enable the debug field dump: register n named slots. Capture fields with
+  !> ps(igrid)%wdebug(...,islot) anywhere in a block loop (lazy per-block
+  !> allocation at the capture site), then flush with save_wdebug.
+  subroutine debug_alloc(n, names)
+    use mod_global_parameters
+    integer, intent(in)          :: n
+    character(len=*), intent(in) :: names(n)
+    integer :: i
+    n_wdebug = n
+    if (allocated(wdebug_names)) deallocate(wdebug_names)
+    allocate(wdebug_names(n))
+    do i = 1, n
+      wdebug_names(i) = trim(adjustl(names(i)))
+    end do
+    wdebug_on = .true.
+  end subroutine debug_alloc
+
+  !> Flush ps(:)%wdebug to a standalone cell-centred .dat (no staggered),
+  !> readable by the standard AMRVAC .dat readers. Collective; call at a
+  !> barrier-safe point (end of a step), NOT inside a block loop.
+  subroutine save_wdebug(suffix)
+    use mod_forest
+    use mod_global_parameters
+    use mod_physics
+    use mod_input_output_helper, only: count_ix, block_shape_io, create_output_file, snapshot_write_header1
+    use mod_functions_forest, only: write_forest
+    character(len=*), intent(in)  :: suffix
+    logical                       :: stagger_save
+    double precision, allocatable :: w_buffer(:)
+    integer                       :: file_handle, igrid, Morton_no, iwrite
+    integer                       :: ipe, ix_buffer(2*ndim+1), n_values
+    integer                       :: ixO^L, n_ghost(2*ndim)
+    integer                       :: iorecvstatus(MPI_STATUS_SIZE)
+    integer                       :: igrecvstatus(MPI_STATUS_SIZE)
+    integer                       :: istatus(MPI_STATUS_SIZE)
+    integer(kind=MPI_OFFSET_KIND) :: offset_tree_info, offset_block_data, offset_offsets
+    integer, allocatable          :: block_ig(:, :), block_lvl(:)
+    integer(kind=MPI_OFFSET_KIND), allocatable :: block_offset(:)
+    type(tree_node), pointer      :: pnode
+
+    if (n_wdebug <= 0) return
+    call MPI_BARRIER(icomm, ierrmpi)
+
+    n_values = count_ix(ixG^LL) * n_wdebug
+    allocate(w_buffer(n_values))
+    allocate(block_ig(ndim, nleafs), block_lvl(nleafs), block_offset(nleafs+1))
+
+    if (mype == 0) then
+      call create_output_file(file_handle, it, ".dat", trim(suffix))
+      offset_tree_info = -1; offset_block_data = -1
+      stagger_save = stagger_grid; stagger_grid = .false.
+      call snapshot_write_header1(file_handle, offset_tree_info, offset_block_data, wdebug_names, n_wdebug)
+      stagger_grid = stagger_save
+      call MPI_File_get_position(file_handle, offset_tree_info, ierrmpi)
+      call write_forest(file_handle)
+      do Morton_no = Morton_start(0), Morton_stop(npe-1)
+        igrid = sfc(1, Morton_no); ipe = sfc(2, Morton_no)
+        pnode => igrid_to_node(igrid, ipe)%node
+        block_ig(:, Morton_no) = [ pnode%ig^D ]
+        block_lvl(Morton_no) = pnode%level
+        block_offset(Morton_no) = 0
+      end do
+      call MPI_FILE_WRITE(file_handle, block_lvl, size(block_lvl), MPI_INTEGER, istatus, ierrmpi)
+      call MPI_FILE_WRITE(file_handle, block_ig, size(block_ig), MPI_INTEGER, istatus, ierrmpi)
+      call MPI_File_get_position(file_handle, offset_offsets, ierrmpi)
+      call MPI_FILE_WRITE(file_handle, block_offset(1:nleafs), nleafs, MPI_OFFSET, istatus, ierrmpi)
+      call MPI_File_get_position(file_handle, offset_block_data, ierrmpi)
+      block_offset(1) = offset_block_data
+      iwrite = 0
+    end if
+
+    do Morton_no = Morton_start(mype), Morton_stop(mype)
+      igrid = sfc_to_igrid(Morton_no); itag = Morton_no
+      call block_shape_io(igrid, n_ghost, ixO^L, n_values)
+      n_values = count_ix(ixO^L) * n_wdebug
+      if (allocated(ps(igrid)%wdebug)) then
+        w_buffer(1:n_values) = pack(ps(igrid)%wdebug(ixO^S, 1:n_wdebug), .true.)
+      else
+        w_buffer(1:n_values) = 0.0d0
+      end if
+      ix_buffer(1) = n_values
+      ix_buffer(2:) = n_ghost
+      if (mype /= 0) then
+        call MPI_SEND(ix_buffer, 2*ndim+1, MPI_INTEGER, 0, itag, icomm, ierrmpi)
+        call MPI_SEND(w_buffer, n_values, MPI_DOUBLE_PRECISION, 0, itag, icomm, ierrmpi)
+      else
+        iwrite = iwrite+1
+        call MPI_FILE_WRITE(file_handle, ix_buffer(2:), 2*ndim, MPI_INTEGER, istatus, ierrmpi)
+        call MPI_FILE_WRITE(file_handle, w_buffer, n_values, MPI_DOUBLE_PRECISION, istatus, ierrmpi)
+        block_offset(iwrite+1) = block_offset(iwrite) + &
+             int(n_values, MPI_OFFSET_KIND) * size_double + 2 * ndim * size_int
+      end if
+    end do
+
+    if (mype == 0) then
+      do ipe = 1, npe-1
+        do Morton_no = Morton_start(ipe), Morton_stop(ipe)
+          iwrite = iwrite+1; itag = Morton_no
+          call MPI_RECV(ix_buffer, 2*ndim+1, MPI_INTEGER, ipe, itag, icomm, igrecvstatus, ierrmpi)
+          n_values = ix_buffer(1)
+          call MPI_RECV(w_buffer, n_values, MPI_DOUBLE_PRECISION, ipe, itag, icomm, iorecvstatus, ierrmpi)
+          call MPI_FILE_WRITE(file_handle, ix_buffer(2:), 2*ndim, MPI_INTEGER, istatus, ierrmpi)
+          call MPI_FILE_WRITE(file_handle, w_buffer, n_values, MPI_DOUBLE_PRECISION, istatus, ierrmpi)
+          block_offset(iwrite+1) = block_offset(iwrite) + &
+               int(n_values, MPI_OFFSET_KIND) * size_double + 2 * ndim * size_int
+        end do
+      end do
+      call MPI_FILE_SEEK(file_handle, offset_offsets, MPI_SEEK_SET, ierrmpi)
+      call MPI_FILE_WRITE(file_handle, block_offset(1:nleafs), nleafs, MPI_OFFSET, istatus, ierrmpi)
+      call MPI_FILE_SEEK(file_handle, 0_MPI_OFFSET_KIND, MPI_SEEK_SET, ierrmpi)
+      stagger_save = stagger_grid; stagger_grid = .false.
+      call snapshot_write_header1(file_handle, offset_tree_info, offset_block_data, wdebug_names, n_wdebug)
+      stagger_grid = stagger_save
+      call MPI_FILE_CLOSE(file_handle, ierrmpi)
+    end if
+    deallocate(w_buffer, block_ig, block_lvl, block_offset)
+    call MPI_BARRIER(icomm, ierrmpi)
+    if (mype==0) write(*,*) 'save_wdebug: wrote ', n_wdebug, ' field(s) suffix=', trim(suffix), ' it=', it
+  end subroutine save_wdebug
+
 
   !> Routine to read in snapshots (.dat files). When it cannot recognize the
   !> file version, it will automatically try the 'old' reader.
@@ -2799,10 +2988,11 @@ contains
   end subroutine get_volume_average_func
 
   !> Compute global maxima of iw variables over the leaves of the grid.
-  subroutine get_global_maxima(wmax)
+  subroutine get_global_maxima(wmax,psa)
     use mod_global_parameters
 
     double precision, intent(out) :: wmax(nw)  !< The global maxima
+    type(state), target :: psa(max_blocks)
 
     double precision              :: wmax_mype(nw),wmax_recv(nw)
     integer                       :: iigrid, igrid, iw
@@ -2813,7 +3003,7 @@ contains
     do iigrid = 1, igridstail
        igrid = igrids(iigrid)
        do iw = 1, nw
-          wmax_mype(iw)=max(wmax_mype(iw),maxval(ps(igrid)%w(ixM^T,iw)))
+          wmax_mype(iw)=max(wmax_mype(iw),maxval(psa(igrid)%w(ixM^T,iw)))
        end do
     end do
 
@@ -2826,10 +3016,11 @@ contains
   end subroutine get_global_maxima
 
   !> Compute global minima of iw variables over the leaves of the grid.
-  subroutine get_global_minima(wmin)
+  subroutine get_global_minima(wmin,psa)
     use mod_global_parameters
 
     double precision, intent(out) :: wmin(nw)  !< The global maxima
+    type(state), target :: psa(max_blocks)
 
     double precision              :: wmin_mype(nw),wmin_recv(nw)
     integer                       :: iigrid, igrid, iw
@@ -2840,7 +3031,7 @@ contains
     do iigrid = 1, igridstail
        igrid = igrids(iigrid)
        do iw = 1, nw
-          wmin_mype(iw)=min(wmin_mype(iw),minval(ps(igrid)%w(ixM^T,iw)))
+          wmin_mype(iw)=min(wmin_mype(iw),minval(psa(igrid)%w(ixM^T,iw)))
        end do
     end do
 

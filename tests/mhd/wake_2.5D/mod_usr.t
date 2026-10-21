@@ -1,5 +1,6 @@
 module mod_usr
   use mod_mhd
+  use mod_eos, only: eos
   implicit none
 
 contains
@@ -34,7 +35,7 @@ contains
     w(ix^S,rho_)=rho0
     if(first .and. mype==0)then
        write(*,*)'Doing 2.5D resistive MHD, Wake problem'
-       write(*,*)'A  - M - gamma:',dA,dM,mhd_gamma
+       write(*,*)'A  - M - gamma:',dA,dM,eos%gamma
        write(*,*)'dv sigma:',dv,sigma
        write(*,*)'alfa Lx:',alfa,Lx
        write(*,*)'Assuming eta set, using value:',mhd_eta
@@ -48,8 +49,8 @@ contains
     w(ix^S,mag(2))=zero
     w(ix^S,mom(3))=zero
     w(ix^S,mag(3))=dA/dcosh(x(ix^S,2)/width)
-    p0=one/(dM**2)/mhd_gamma
-    w(ix^S,e_)=p0/(mhd_gamma-1)+&
+    p0=one/(dM**2)/eos%gamma
+    w(ix^S,e_)=p0/(eos%gamma-1)+&
       half*(sum(w(ix^S,mom(:))**2,dim=ndim+1)/rho0+sum(w(ix^S,mag(:))**2,dim=ndim+1))
 
   end subroutine initonegrid_usr
@@ -66,7 +67,7 @@ contains
   integer          :: idirmin
 
   wloc(ixI^S,1:nw)=w(ixI^S,1:nw)
-  call mhd_get_pthermal(wloc,x,ixI^L,ixO^L,pth)
+  call eos%get_thermal_pressure(wloc,x,ixI^L,ixO^L,pth)
   w(ixO^S,nw+1)=pth(ixO^S)/wloc(ixO^S,rho_)
   
   call get_current(wloc,ixI^L,ixO^L,idirmin,current)

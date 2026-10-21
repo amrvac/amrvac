@@ -20,6 +20,7 @@ module mod_usr
 
   ! Include a physics module
   use mod_HD
+  use mod_eos, only: eos
 
   ! Get access to some CAK radiation functionality
   use mod_cak_force, only: set_cak_force_norm, cak_alpha, gayley_qbar
@@ -93,13 +94,15 @@ contains
   !=============================================================================
   subroutine initglobaldata_usr
     real(8) :: lstar, mumol, vesc, gammae, logg, logge, heff
+    double precision :: const_kappae_local
 
+    const_kappae_local=0.34d0
     ! Stellar structure
     lstar  = 4.0d0*dpi * rstar**2.0d0 * const_sigma * twind**4.0d0
-    gammae = const_kappae * lstar/(4.0d0*dpi * const_G * mstar * const_c)
+    gammae = const_kappae_local * lstar/(4.0d0*dpi * const_G * mstar * const_c)
     logg   = log10(const_G * mstar/rstar**2.0d0)
     logge  = logg + log10(1.0d0 - gammae)
-    mumol  = (1.0d0 + 4.0d0*He_abundance)/(2.0d0 + 3.0d0*He_abundance)
+    mumol  = (1.0d0 + 4.0d0*eos%He_abundance)/(2.0d0 + 3.0d0*eos%He_abundance)
     asound = sqrt(twind * kB_cgs/(mumol * mp_cgs))
     heff   = asound**2.0d0 / 10.0d0**logge
 
@@ -132,7 +135,7 @@ contains
       print*, 'eff. log(g)            = ', logge
       print*, 'heff/Rstar             = ', heff/rstar
       print*, 'Eddington gamma        = ', gammae
-      print*, 'adiabatic gamma        = ', hd_gamma
+      print*, 'adiabatic gamma        = ', eos%gamma
       print*, 'isothermal asound      = ', asound
       print*, 'eff. vesc              = ', vesc
       print*, 'CAK vinf               = ', vinf
@@ -185,21 +188,21 @@ contains
     w(ixO^S,rho_)   = mdot / (4.0d0*dpi * x(ixO^S,1)**2.0d0 * w(ixO^S,mom(1)))
 
     if (hd_energy) then
-      w(ixO^S,p_) = asound**2.0 * rhobound * (w(ixO^S,rho_)/rhobound)**hd_gamma
+      w(ixO^S,p_) = asound**2.0 * rhobound * (w(ixO^S,rho_)/rhobound)**eos%gamma
     endif
 
-    call hd_to_conserved(ixI^L,ixO^L,w,x)
+    call eos%to_conserved(ixI^L,ixO^L,w,x)
 
   end subroutine initial_conditions
 
   !=============================================================================
   ! Special user boundary conditions at inner + outer radial boundary
   !=============================================================================
-  subroutine special_bound(qt,ixI^L,ixB^L,iB,w,x)
+  subroutine special_bound(qdt,qt,ixI^L,ixB^L,iB,w,x)
 
     ! Subroutine arguments
     integer, intent(in)    :: ixI^L, ixB^L, iB
-    real(8), intent(in)    :: qt, x(ixI^S,1:ndim)
+    real(8), intent(in) :: qdt,qt, x(ixI^S,1:ndim)
     real(8), intent(inout) :: w(ixI^S,1:nw)
 
     ! Local variable
@@ -225,10 +228,10 @@ contains
       w(ixB^S,mom(1)) = max(w(ixB^S,mom(1)), -asound)
 
       if (hd_energy) then
-        w(ixB^S,p_) = asound**2.0 * rhobound * (w(ixB^S,rho_)/rhobound)**hd_gamma
+        w(ixB^S,p_) = asound**2.0 * rhobound * (w(ixB^S,rho_)/rhobound)**eos%gamma
       endif
 
-      call hd_to_conserved(ixI^L,ixB^L,w,x)
+      call eos%to_conserved(ixI^L,ixB^L,w,x)
 
     case(2)
       ! Constant extrapolation of all to have continuous velocity gradient
@@ -240,10 +243,10 @@ contains
       enddo
 
       if (hd_energy) then
-        w(ixB^S,p_) = asound**2.0 * rhobound * (w(ixB^S,rho_)/rhobound)**hd_gamma
+        w(ixB^S,p_) = asound**2.0 * rhobound * (w(ixB^S,rho_)/rhobound)**eos%gamma
       endif
 
-      call hd_to_conserved(ixI^L,ixB^L,w,x)
+      call eos%to_conserved(ixI^L,ixB^L,w,x)
 
     case default
       call mpistop("BC not specified")

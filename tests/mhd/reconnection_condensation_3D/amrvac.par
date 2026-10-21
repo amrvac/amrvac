@@ -91,7 +91,6 @@
  &rc_list
        !ncool=12000
        coolcurve='Colgan_DM'
-       coolmethod='exact'
        Tfix=.true.
 	tlow=1.d-3
  /

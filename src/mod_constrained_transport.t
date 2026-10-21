@@ -173,7 +173,8 @@ contains
   end subroutine b_from_vector_potentialA
 
   !> Reconstruct scalar q within ixO^L to 1/2 dx in direction idir
-  !> Return both left and right reconstructed values 
+  !> Return both left and right reconstructed values
+  !> Only implemented for hll flavour of CT
   subroutine reconstruct(ixI^L,ixC^L,idir,q,qL,qR)
     use mod_limiter
     use mod_global_parameters

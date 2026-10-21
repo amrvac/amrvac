@@ -4,6 +4,7 @@
 ! This tests Galilean invariance, among other things.
 module mod_usr
   use mod_mhd
+  use mod_eos, only: eos
 
   implicit none
 
@@ -109,13 +110,13 @@ contains
 
     select case(equilibrium_version)
        case('TokamakCurrent')
-          pr01=beta1*(1.0d0+invbext)/((beta1+1.0d0)*mhd_gamma)
-          Jfac0=6.0d0*sqrt(2.0d0*(1.0d0+invbext)/((beta1+1.0d0)*mhd_gamma))/sqrt(1.0d0+(Lz*qfac1/dpi)**2)
-          rootfac=2.0d0*(1.0d0+invbext)/((beta1+1.0d0)*mhd_gamma)-Jfac0**2/36.0d0
+          pr01=beta1*(1.0d0+invbext)/((beta1+1.0d0)*eos%gamma)
+          Jfac0=6.0d0*sqrt(2.0d0*(1.0d0+invbext)/((beta1+1.0d0)*eos%gamma))/sqrt(1.0d0+(Lz*qfac1/dpi)**2)
+          rootfac=2.0d0*(1.0d0+invbext)/((beta1+1.0d0)*eos%gamma)-Jfac0**2/36.0d0
           if (rootfac<smalldouble) then
              if(mype==0)then
                 print *,'rootfac=',rootfac
-                print *,2.0d0*(1.0d0+invbext)/((beta1+1.0d0)*mhd_gamma)
+                print *,2.0d0*(1.0d0+invbext)/((beta1+1.0d0)*eos%gamma)
                 print *,Jfac0**2/36.0d0
              endif
              call mpistop("inconsistent parameters for TC")
@@ -123,8 +124,8 @@ contains
           Bz0=sqrt(rootfac)
           rho0=Bz0**2/Rvacs**2
        case('Sakanaka')
-          pr01=beta1*(1.0d0+invbext)/((beta1+1.0d0)*mhd_gamma)
-          Jfac0=sqrt(200.0d0*(1.0d0+invbext)/((beta1+1.0d0)*mhd_gamma))/sqrt(1.0d0+(Lz*qfac1/dpi)**2)
+          pr01=beta1*(1.0d0+invbext)/((beta1+1.0d0)*eos%gamma)
+          Jfac0=sqrt(200.0d0*(1.0d0+invbext)/((beta1+1.0d0)*eos%gamma))/sqrt(1.0d0+(Lz*qfac1/dpi)**2)
           alfa=-12.0d0+40.0d0/3.0d0-125.0d0/8.0d0+63.0d0/5.0d0+18.0d0/7.0d0-9.0d0/16.0d0+1.0d0/18.0d0
           rootfac=Jfac0**2*(alfa/5.0d0+(Lz*qfac1/(10.0d0*dpi))**2)-2.0d0*pr01*(dexp(4.0d0)-1.0d0)
           if (rootfac<smalldouble) then
@@ -139,9 +140,9 @@ contains
           Bz0=sqrt(rootfac)
           rho0=Bz0**2/Rvacs**2
        case('GoldHoyle')
-          pr01=beta1*(1.0d0+invbext)/((beta1+1.0d0)*mhd_gamma)
+          pr01=beta1*(1.0d0+invbext)/((beta1+1.0d0)*eos%gamma)
           Jfac0=dpi/(Lz*qfac1)
-          Bz0=sqrt(2.0d0*(1.0d0+invbext)*(1.0d0+Jfac0**2)/((beta1+1.0d0)*mhd_gamma))
+          Bz0=sqrt(2.0d0*(1.0d0+invbext)*(1.0d0+Jfac0**2)/((beta1+1.0d0)*eos%gamma))
           rho0=Bz0**2/Rvacs**2
        case default
           call mpistop("Unknown equilibrium, choose TokamakCurrent, Sakanaka or GoldHoyle")
@@ -191,7 +192,7 @@ contains
     endwhere
     }
 
-    call mhd_to_conserved(ixG^L,ix^L,w,x)
+    call eos%to_conserved(ixG^L,ix^L,w,x)
 
   end subroutine CCC_init_one_grid
 
@@ -213,7 +214,7 @@ contains
           val=pr01
        end select
     else
-      val=1.0d0/mhd_gamma
+      val=1.0d0/eos%gamma
     endif
 
   end function p_solution
@@ -320,7 +321,7 @@ contains
           val=Bz0/(1.0d0+(Jfac0*rad)**2)
        end select
     else
-      val=sqrt(invbext*2.0d0/mhd_gamma)
+      val=sqrt(invbext*2.0d0/eos%gamma)
     endif
 
   end function bz_solution
@@ -334,9 +335,9 @@ contains
     double precision :: x1(ixO^S), x2(ixO^S)
 
     w(ixO^S,i_sol_r) =1.0d0
-    w(ixO^S,i_sol_p) =1.0d0/mhd_gamma
-    w(ixO^S,i_sol_b) =sqrt(invbext*2.0d0/mhd_gamma)
-    w(ixO^S,i_totp)  =1.0d0/mhd_gamma
+    w(ixO^S,i_sol_p) =1.0d0/eos%gamma
+    w(ixO^S,i_sol_b) =sqrt(invbext*2.0d0/eos%gamma)
+    w(ixO^S,i_totp)  =1.0d0/eos%gamma
 
     {^NOONED
     x1 = x(ixO^S,1) - v01 * qt - xprobmin1
@@ -353,13 +354,13 @@ contains
     endwhere
     }
     w(ixO^S,i_err_r) = w(ixO^S,rho_) - w(ixO^S,i_sol_r)
-    call mhd_to_primitive(ixI^L,ixO^L,w,x)
+    call eos%to_primitive(ixI^L,ixO^L,w,x)
     w(ixO^S,i_err_p) = w(ixO^S,e_) - w(ixO^S,i_sol_p)
     {^NOONED
     w(ixO^S,i_totp) = w(ixO^S,e_) +0.5d0* &
        (w(ixO^S,mag(1))**2+w(ixO^S,mag(2))**2+w(ixO^S,mag(3))**2)
     }
-    call mhd_to_conserved(ixI^L,ixO^L,w,x)
+    call eos%to_conserved(ixI^L,ixO^L,w,x)
     {^NOONED
     w(ixO^S,i_err_b) = sqrt( &
          (w(ixO^S,mag(1)) - bx_solution(x1, x2))**2 + &
@@ -540,14 +541,14 @@ contains
 
     ! first switch all grids (with ghost cells) to primitive variables
     do iigrid=1,igridstail; igrid=igrids(iigrid)
-       call mhd_to_primitive(ixG^LL,ixG^LL,ps(igrid)%w,ps(igrid)%x)
+       call eos%to_primitive(ixG^LL,ixG^LL,ps(igrid)%w,ps(igrid)%x)
     end do
 
     call compute_integrated_quantities
 
     ! end with switching all back to conservative variables
     do iigrid=1,igridstail; igrid=igrids(iigrid)
-       call mhd_to_conserved(ixG^LL,ixG^LL,ps(igrid)%w,ps(igrid)%x)
+       call eos%to_conserved(ixG^LL,ixG^LL,ps(igrid)%w,ps(igrid)%x)
     end do
 
   end subroutine analyze_forces_on_grid

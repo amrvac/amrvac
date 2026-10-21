@@ -3,6 +3,7 @@
 ! (http://dx.doi.org/10.1016/j.jcp.2004.11.016).
 module mod_usr
   use mod_mhd
+  use mod_eos, only: eos
 
   implicit none
 
@@ -66,7 +67,7 @@ contains
       call bfield_solution(ixI^L, ixO^L, x, v0, 0.0d0, bfield)
       w(ixO^S, mag(:)) = bfield(ixO^S, :)
     end if
-    call mhd_to_conserved(ixI^L,ixO^L,w,x)
+    call eos%to_conserved(ixI^L,ixO^L,w,x)
   end subroutine initonegrid_usr
 
   subroutine initvecpot_usr(ixI^L, ixC^L, xC, A, idir)
@@ -141,7 +142,7 @@ contains
     use mod_global_parameters
 
     integer, intent(in)             :: ixI^L,ixO^L
-    double precision, intent(in)    :: qt, x(ixI^S,1:ndim)
+    double precision, intent(in) :: qt, x(ixI^S,1:ndim)
     double precision, intent(inout) :: w(ixI^S,nw)
     double precision                :: divb(ixI^S)
     double precision                :: v0(ndim)

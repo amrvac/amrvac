@@ -122,7 +122,7 @@ contains
        call set_error(ixG^LL,ixM^LL,ps(igrid)%w,ps(igrid)%x)
     end do
 
-    call get_global_maxima(wmax)
+    call get_global_maxima(wmax,ps)
     call get_volume_average(2, modes, vol)
     if (mype == 0) print *, "CONV", it, max_res, wmax(i_err), sqrt(modes(i_err)), sqrt(modes(i_res))
   end subroutine compute_phi

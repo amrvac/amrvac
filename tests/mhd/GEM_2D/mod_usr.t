@@ -1,5 +1,6 @@
 module mod_usr
   use mod_mhd
+  use mod_eos, only: eos
   implicit none
   double precision :: sheetl,rhorat,T0,psi0,llx,lly
 
@@ -110,7 +111,7 @@ contains
   w(ixG^S,rho_) =rhorat+one/(dcosh(x(ixG^S,2)/sheetl)**2) 
   w(ixG^S,p_)   =T0*(rhorat+one/(dcosh(x(ixG^S,2)/sheetl)**2))
   
-  call mhd_to_conserved(ixG^L,ixG^L,w,x)
+  call eos%to_conserved(ixG^L,ixG^L,w,x)
 
   {^IFTWOD
   if(mype==0.and.first)then

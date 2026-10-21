@@ -1,5 +1,7 @@
 F90=mpif90
 FFLAGS = -c
+FPE_SUMMARY_OPTION := $(shell tmp=$$(mktemp /tmp/amrvac_ffpe_summary.XXXXXX); src=$$tmp.f90; printf 'end\n' > $$src; if $(F90) -ffpe-summary=invalid,zero,overflow -c $$src -o $$tmp.o >/dev/null 2>&1; then printf '%s' '-ffpe-summary=invalid,zero,overflow'; fi; rm -f $$src $$tmp.o)
 F90FLAGS = -cpp -ffree-form -fimplicit-none -O3 -g -Wall -Wno-unused-dummy-argument	\
--Wno-unused-function -Wno-unused -Wno-uninitialized -Wno-zerotrip -Wno-target-lifetime -fopenmp
+-Wno-unused-function -Wno-unused -Wno-uninitialized -Wno-zerotrip -Wno-target-lifetime -fopenmp \
+$(FPE_SUMMARY_OPTION)
 LINK= $(F90)  $(F90FLAGS)

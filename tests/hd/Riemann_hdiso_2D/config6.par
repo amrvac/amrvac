@@ -53,7 +53,6 @@
  /
 
  &hd_list
-      hd_gamma=1.0d0
       hd_adiab=1.0d0
       hd_energy=.false.
  /
@@ -71,5 +70,9 @@
         rho4=3.0d0
         u4=-0.75d0
         v4=-0.5d0
+ /
+
+ &eos_list
+  gamma = 1.0d0
  /
 

@@ -1,4 +1,5 @@
-TEST_DIRS := Brio_Wu_1.75D Torrilhon_1.75D Convection_2D
+TEST_DIRS := Shocks_1.75D/Jiang Shocks_1.75D/Fast Shocks_1.75D/Slow Shocks_1.75D/Intermediate Waves_fine_1.75D/Alfven Waves_fine_1.75D/Fast
+#TEST_DIRS := Brio_Wu_1.75D Torrilhon_1.75D Convection_2D
 
 # Directories with altered names (useful for cleaning)
 CLEAN_TEST := $(TEST_DIRS:%=clean-%)

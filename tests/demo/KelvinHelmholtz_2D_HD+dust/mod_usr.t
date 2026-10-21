@@ -4,6 +4,7 @@
 !=============================================================================
 module mod_usr
   use mod_hd
+  use mod_eos, only: eos
 
   double precision:: min_ar,max_ar
   double precision:: delvy,delv
@@ -48,7 +49,6 @@ contains
    integer          :: i
    logical, save    :: first = .true.
 
-   hd_gamma=5.0d0/3.0d0
 
    Ly=xprobmax2-xprobmin2
    Lx=xprobmax1-xprobmin1
@@ -124,7 +124,7 @@ contains
             write(*,*) 'unit density is       =',unit_density
             write(*,*) 'unit pressure is      =',unit_pressure
             write(*,*) 'unit temperature is   =',unit_temperature
-            write(*,*) 'specific heat ratio is=',hd_gamma
+            write(*,*) 'specific heat ratio is=',eos%gamma
             write(*,*) '*****************************************'
             write(*,*) 'Dust included using ',dust_n_species,' dust species'
             write(*,*) 'Dust bins all have specific density rhop ',dust_density(1)
@@ -203,7 +203,7 @@ contains
     ! velocity perturbation
     w(ixO^S,mom(2))=vely(ixO^S)
     ! pressure to make bottom sound speed unity
-    w(ixO^S,e_)=1.0d0/hd_gamma
+    w(ixO^S,e_)=1.0d0/eos%gamma
 
    if (dust_n_species > 0) then
     do n = 1, dust_n_species
@@ -220,7 +220,7 @@ contains
     end do
    endif
 
-    call hd_to_conserved(ixI^L, ixO^L, w, x)
+    call eos%to_conserved(ixI^L, ixO^L, w, x)
 
   end subroutine initonegrid_usr
 
@@ -238,7 +238,7 @@ contains
     integer :: idims
 
     wlocal(ixI^S,1:nw)=w(ixI^S,1:nw)
-    call hd_get_pthermal(wlocal,x,ixI^L,ixO^L,pp)
+    call eos%get_thermal_pressure(wlocal,x,ixI^L,ixO^L,pp)
     w(ixO^S,nw+1) = pp(ixO^S)/w(ixO^S,rho_)
     vv(ixO^S)=w(ixO^S,mom(1))/w(ixO^S,rho_)
     call hd_get_csound2(w,x,ixI^L,ixO^L,cs2)
@@ -341,7 +341,7 @@ end subroutine interp1d
       double precision, intent(out) :: var(ixI^S)
 
       if (iflag >nw+1)call mpistop(' iflag error')
-      call hd_get_pthermal(w,x,ixI^L,ixO^L,var)
+      call eos%get_thermal_pressure(w,x,ixI^L,ixO^L,var)
       var(ixO^S)=var(ixO^S)/w(ixO^S,rho_)
 
   end subroutine myvar_for_errest

@@ -5,7 +5,7 @@
  &filelist
         autoconvert   = .true.
         saveprim      = .true.
-        base_filename ='icarus_2015_5CMEs'
+        base_filename ='./icarus_2015_5CMEs'
         convert_type  = 'vtuBCCmpi'
         slice_type    = 'csv'
         nocartesian   = .true.
@@ -18,7 +18,7 @@
         itsave(1,1)   = 0
         itsave(1,2)   = 0
         tsavestart(2) = 240.0
-        dtsave_dat    = 3.0
+        dtsave_dat    = 12.0
 /
 
 
@@ -111,7 +111,7 @@
 /
 
 &icarus_list
-        amr_criterion = 'shock'
+        amr_criterion = 'tracing'
         num_cmes = 5
         relaxation = 10
         cme_insertion = 7

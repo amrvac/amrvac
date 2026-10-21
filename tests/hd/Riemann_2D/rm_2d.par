@@ -42,5 +42,8 @@
 
  &hd_list
         hd_n_tracer = 0
-        hd_gamma = 1.4
  /
+ &eos_list
+  gamma = 1.4
+ /
+

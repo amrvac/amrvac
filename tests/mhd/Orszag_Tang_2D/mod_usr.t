@@ -1,5 +1,6 @@
 module mod_usr
   use mod_mhd
+  use mod_eos, only: eos
   implicit none
 
   double precision:: b0
@@ -42,7 +43,7 @@ contains
       w(ixO^S,mag(2))= b0*sin(4.0d0*dpi*x(ixO^S,1))
     end if
 
-    call mhd_to_conserved(ixI^L,ixO^L,w,x)
+    call eos%to_conserved(ixI^L,ixO^L,w,x)
 
     if(first .and. mype==0 )then
       write(*,*)'Doing 2D ideal MHD, Orszag Tang problem'

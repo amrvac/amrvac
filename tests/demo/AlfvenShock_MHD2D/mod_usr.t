@@ -3,6 +3,7 @@
 !=============================================================================
 module mod_usr
   use mod_mhd
+  use mod_eos, only: eos
   implicit none
 
   ! this is input
@@ -127,12 +128,11 @@ contains
 
     printsettingformat='(1x,A50,ES15.7,A7)'
 
-    mhd_gamma=1.66666667d0
     mhd_eta=zero
     mhd_etah=zero
-    deltamax=(mhd_gamma+1.0d0)/(mhd_gamma-1.0d0)
+    deltamax=(eos%gamma+1.0d0)/(eos%gamma-1.0d0)
 
-    Bb=dsqrt(2.0d0/(mhd_gamma*betab))
+    Bb=dsqrt(2.0d0/(eos%gamma*betab))
     Bxb=-Bb*dcos(thetabrad)
     Byb=Bb*dsin(thetabrad)
     if(mype==0) then
@@ -148,14 +148,14 @@ contains
       write(*,*) "Computing the three roots of the shock adiabat"
     endif
 
-    vAb2=2.0d0/(mhd_gamma*betab)
+    vAb2=2.0d0/(eos%gamma*betab)
     vSb2=1.0d0
     cos2theb=(dcos(thetabrad))**2
     sin2theb=1.0d0-cos2theb
     aval=delta*vAb2*cos2theb
-    bval=2.0d0*delta*vSb2/(delta+1.0d0-mhd_gamma*(delta-1.0d0))
+    bval=2.0d0*delta*vSb2/(delta+1.0d0-eos%gamma*(delta-1.0d0))
     cval=delta*sin2theb*vAb2
-    dval=(2.0d0*delta-mhd_gamma*(delta-1.0d0))/(delta+1.0d0-mhd_gamma*(delta-1.0d0))
+    dval=(2.0d0*delta-eos%gamma*(delta-1.0d0))/(delta+1.0d0-eos%gamma*(delta-1.0d0))
     eval=delta*vAb2*cos2theb
     a1=-bval-2.0d0*aval-cval*dval
     a2=2.0d0*aval*bval+aval**2+cval*eval
@@ -229,7 +229,7 @@ contains
          Bya=Byb*MArat
          thetaarad=datan(-Bya/Bxa)
          thetaa=thetaarad*180.0/dpi
-         pa=(Byb**2/2.0d0)*(1.0d0-MArat**2)+1.0d0/mhd_gamma+vxb**2*(delta-1.0d0)/delta
+         pa=(Byb**2/2.0d0)*(1.0d0-MArat**2)+1.0d0/eos%gamma+vxb**2*(delta-1.0d0)/delta
          if(mype==0)then
             write(*,printsettingformat) "Bx before shock ",Bxb," input"
             write(*,printsettingformat) "By before shock ",Byb," input"
@@ -238,9 +238,9 @@ contains
             write(*,*) "hence angle changes from   pre-shock upstream (in degrees):", thetab
             write(*,*) "hence angle changes to  post-shock downstream (in degrees):", thetaa
             write(*,printsettingformat) "pressure p after shock ",pa," output"
-            write(*,*) "check on entropy ",pa," must be bigger than ",(delta**mhd_gamma)/mhd_gamma
+            write(*,*) "check on entropy ",pa," must be bigger than ",(delta**eos%gamma)/eos%gamma
          endif
-         if (pa<(delta**mhd_gamma)/mhd_gamma) then
+         if (pa<(delta**eos%gamma)/eos%gamma) then
              call mpistop('no entropy condition fulfilled')
          endif 
     else
@@ -303,7 +303,7 @@ contains
         w(ix^S,rho_)  =1.0d0+val(ix^S,1)
         w(ix^S,mom(1))=vxb
         w(ix^S,mom(2))=vyb
-        w(ix^S,p_)    =1.0d0/mhd_gamma
+        w(ix^S,p_)    =1.0d0/eos%gamma
     endwhere
   
     if(stagger_grid)then
@@ -320,13 +320,13 @@ contains
     endif
 
     if(mype==0.and.first)then
-       write(*,*)'Doing alfven shock challenge, ideal MHD, shock at xshock=',xshock,' gamma=',mhd_gamma
+       write(*,*)'Doing alfven shock challenge, ideal MHD, shock at xshock=',xshock,' gamma=',eos%gamma
        write(*,*)'plasma beta after shock (downstream) is=',2.0d0*pa/(Bxa**2+Bya**2)
-       write(*,*)'plasma beta before shock (upstream)  is=',2.0d0/(mhd_gamma*(Bxb**2+Byb**2))
+       write(*,*)'plasma beta before shock (upstream)  is=',2.0d0/(eos%gamma*(Bxb**2+Byb**2))
        first=.false.
     endif
 
-    call mhd_to_conserved(ixG^L,ix^L,w,x)
+    call eos%to_conserved(ixG^L,ix^L,w,x)
 
   end subroutine initonegrid_usr
 
@@ -366,7 +366,7 @@ contains
     double precision                   :: tmp(ixI^S) 
 
     wlocal(ixI^S,1:nw)=w(ixI^S,1:nw)
-    call mhd_get_pthermal(wlocal,x,ixI^L,ixO^L,tmp)
+    call eos%get_thermal_pressure(wlocal,x,ixI^L,ixO^L,tmp)
     ! output the temperature p/rho
     w(ixO^S,nw+1)=tmp(ixO^S)/wlocal(ixO^S,rho_)
     ! output the plasma beta p*2/B**2

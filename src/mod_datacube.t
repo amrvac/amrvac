@@ -1,8 +1,10 @@
 module mod_datacube
   use, intrinsic :: ieee_arithmetic
+  use mod_constants, only : dpi
   implicit none
   double precision :: globaltime
   integer :: i, found
+  double precision :: ix2, ix3
   integer :: pos_index
   integer, parameter :: nclt = 90, nlons = 180
 
@@ -18,21 +20,21 @@ contains
     real,    allocatable, intent(out) :: vr(:),  vt(:), vp(:)
     real,    allocatable, intent(out) :: br(:),  bt(:), bp(:)
     real,    allocatable, intent(out) :: md(:),  temp(:),  mask(:)
-
-    double precision :: min_diff, latest_time, pi, file_time
-    integer :: unit, ios, size(9), size_2(9)
-    integer :: ierr, nfiles, n, i, j, ndata,  pos
-    integer :: unit_tmp, file_num
-    integer :: time_int
-    integer :: clt_size, lon_size
     character(len=256) :: binfile, cltsfile, lonsfile
     character(len=256) :: output_dir, fullpath, cme_str
+    integer :: unit, ios, size(9), size_2(9)
     character(len=256) :: cmd, line, filename, bestfile
     character(len=256), allocatable :: tmpfile
+    integer :: ierr, nfiles, n, i, j, ndata,  pos
+    double precision :: file_time
+    logical :: file_exists, in_mask
+    integer :: unit_tmp, file_num
     character(len=256) :: base_name, number_str
     character(len=256), allocatable :: files(:)
-    character(len=20) :: time_str
-    logical :: file_exists, in_mask
+    integer :: clt_size, lon_size
+    double precision :: min_diff, latest_time
+character(len=20) :: time_str
+integer :: time_int
     ! Initialize outputs
     found = 0
     if (allocated(clts)) deallocate(clts)
@@ -174,9 +176,9 @@ contains
       output_dir = './'
     end if
 
-    write(cme_str, '(I0)') cme_number
+  write(cme_str, '(I0)') cme_number
 
-    binfile = trim(output_dir) // 'datacube/cme_' // trim(cme_str) // '/'  // trim(bestfile)
+  binfile = trim(output_dir) // 'datacube/cme_' // trim(cme_str) // '/'  // trim(bestfile)
     inquire(file=binfile, exist=file_exists)
     if (.not. file_exists) then
       print *, "Binary datacube file does not exist: ", trim(binfile)
@@ -217,18 +219,19 @@ contains
     clt_size = 90
     lon_size = 180
 
-    pi = 4.0d0 * atan(1.0d0)
 
     allocate(clts(clt_size), lons(lon_size))
     do i = 1, (clt_size)
-        clts(i) = dble(i-1) * pi / dble(clt_size)
+        clts(i) = dble(i-1) * dpi / dble(clt_size)
     end do
 
     do i = 1, (lon_size)
-        lons(i) = -pi + dble(i-1) * 2*pi / dble(lon_size)
+        lons(i) = -dpi + dble(i-1) * 2*dpi / dble(lon_size)
     end do
     found = 1  ! success
   end subroutine get_datacube_arrays
+
+
 
   subroutine get_value(clt, lon_in, ts_magnetogram, clts, lons, mask, vr, vp, vt, br, bt, bp, temp, md, ndata, &
                       found, vr_val, vp_val, vt_val, br_val, bt_val, bp_val, md_val, temp_val)
@@ -239,16 +242,14 @@ contains
     integer, intent(in) :: ndata
     integer, intent(out) :: found
     double precision, intent(out) :: vr_val, vp_val, vt_val, br_val, bt_val, bp_val, md_val, temp_val
-
-    double precision :: synoptic_correction, lon, pi
-    real :: val_1(8), val_2(8), val_min(8), val_max(8)
     integer :: i, j, k
+    real :: val_1(8), val_2(8), val_min(8), val_max(8)
+    double precision :: synoptic_correction, lon
     
     ! Correct synoptic rotation
-    pi = 4.0d0 * atan(1.0d0)
-    synoptic_correction = 2*pi/27.27/24.0d0
+    synoptic_correction = 2*dpi/27.27/24.0d0
     
-    lon = modulo(lon_in + synoptic_correction*ts_magnetogram + pi, 2*pi) -pi
+    lon = modulo(lon_in + synoptic_correction*ts_magnetogram + dpi, 2*dpi) -dpi
     ! Initialize outputs
     found = 0
 
@@ -282,16 +283,17 @@ contains
         end if
     end do
 
+
   end subroutine get_value
+
 
   function get_position_index(clt_val, lon_val, clts, lons) result(position_index)
     implicit none
     double precision, intent(in) :: clt_val, lon_val
     double precision, intent(in) :: clts(:), lons(:)
-
-    double precision :: current_diff, min_diff
     integer :: position_index
     integer :: clt_index, lon_index, n
+    double precision :: current_diff, min_diff
 
     ! Find closest clt index
     clt_index = 1
@@ -327,14 +329,14 @@ contains
   end function get_position_index
 
   function round5(x) result(r)
-    implicit none
-    real, intent(in) :: x   ! input variable (double precision)
-    real :: r               ! result
-    real, parameter :: scale = 1.0d5
+  implicit none
+  real, intent(in) :: x   ! input variable (double precision)
+  real :: r               ! result
+  real, parameter :: scale = 1.0d5
 
-    ! Multiply, round to nearest integer, then divide back
-    r = nint(x * scale) / scale
-  end function round5
+  ! Multiply, round to nearest integer, then divide back
+  r = nint(x * scale) / scale
+end function round5
 
 end module mod_datacube
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    

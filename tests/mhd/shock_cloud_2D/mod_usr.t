@@ -3,6 +3,7 @@
 !=============================================================================
 module mod_usr
   use mod_mhd
+  use mod_eos, only: eos
   implicit none
   double precision :: beta,chi,nval,rcore,rbound,xshock,machs
 
@@ -22,7 +23,6 @@ contains
   end subroutine usr_init
 
   subroutine initglobaldata_usr
-    mhd_gamma=1.66666667d0
     mhd_eta=zero
     mhd_etah=zero
 
@@ -75,9 +75,9 @@ contains
     }
     
     ! compute the RH related states
-    Prat=one/(one+(machs**2-one)*two*mhd_gamma/(mhd_gamma+one))
-    alfa=(mhd_gamma+1)/(mhd_gamma-one)
-    cleft=dsqrt(mhd_gamma*pleft/rholeft)
+    Prat=one/(one+(machs**2-one)*two*eos%gamma/(eos%gamma+one))
+    alfa=(eos%gamma+1)/(eos%gamma-one)
+    cleft=dsqrt(eos%gamma*pleft/rholeft)
     rhoright=rholeft*(alfa+Prat)/(alfa*Prat+one)
     pright=pleft/Prat
     vright=cleft*machs*(one-(alfa*Prat+one)/(alfa+Prat))
@@ -126,24 +126,24 @@ contains
        first=.false.
     endif
 
-    call mhd_to_conserved(ixG^L,ix^L,w,x)
+    call eos%to_conserved(ixG^L,ix^L,w,x)
 
   end subroutine initonegrid_usr
 
-  subroutine specialbound_usr(qt,ixG^L,ixO^L,iB,w,x)
+  subroutine specialbound_usr(qdt,qt,ixG^L,ixO^L,iB,w,x)
     ! special boundary types, user defined
     ! user must assign conservative variables in bounderies
     integer, intent(in) :: ixG^L, ixO^L, iB
-    double precision, intent(in) :: qt, x(ixG^S,1:ndim)
+    double precision, intent(in) :: qdt, qt, x(ixG^S,1:ndim)
     double precision, intent(inout) :: w(ixG^S,1:nw)
 
     double precision:: pleft,rholeft,Prat,alfa,cleft
 
     pleft=one
     rholeft=one+(chi-one)/(one+(rbound/rcore)**nval)
-    Prat=one/(one+(machs**2-one)*two*mhd_gamma/(mhd_gamma+one))
-    alfa=(mhd_gamma+1)/(mhd_gamma-one)
-    cleft=dsqrt(mhd_gamma*pleft/rholeft)
+    Prat=one/(one+(machs**2-one)*two*eos%gamma/(eos%gamma+one))
+    alfa=(eos%gamma+1)/(eos%gamma-one)
+    cleft=dsqrt(eos%gamma*pleft/rholeft)
     
     select case(iB)
      case(1)
@@ -161,7 +161,7 @@ contains
       w(ixO^S,mom(3))=zero
       }
       if(mhd_n_tracer>0) w(ixO^S,tracer(1))=zero
-      call mhd_to_conserved(ixG^L,ixO^L,w,x)
+      call eos%to_conserved(ixG^L,ixO^L,w,x)
      case default
        call mpistop('boundary not defined')
     end select
@@ -182,7 +182,7 @@ contains
 
     double precision                   :: tmp(ixI^S) 
 
-    call mhd_get_pthermal(w,x,ixI^L,ixO^L,tmp)
+    call eos%get_thermal_pressure(w,x,ixI^L,ixO^L,tmp)
     ! output the temperature p/rho
     w(ixO^S,nw+1)=tmp(ixO^S)/w(ixO^S,rho_)
     !! output the plasma beta p*2/B**2

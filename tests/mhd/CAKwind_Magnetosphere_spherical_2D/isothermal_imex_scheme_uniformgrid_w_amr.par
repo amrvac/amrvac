@@ -63,7 +63,6 @@
 &mhd_list
   mhd_gravity = .true.
   mhd_energy  = .false.
-  mhd_gamma   = 1.0d0
   typedivbfix = 'powell'
   B0field     = .false.
   mhd_cak_force = .true.
@@ -87,3 +86,7 @@
   rhobound = 2.0d-11
   timestat = 2.0d5
 /
+ &eos_list
+  gamma = 1.0d0
+ /
+

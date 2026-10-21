@@ -1,0 +1,73 @@
+
+&filelist
+  base_filename='wave_alfven'
+  autoconvert      = F
+  typefilelog='regression_test'
+/
+
+ &savelist
+   itsave(1,2)     = 0
+   dtsave_dat     = 0.5d0
+   dtsave_log     = 0.1d0
+/
+
+   time_max = 30.0d0
+ &stoplist
+   time_max = 1.0d0
+/
+
+ &methodlist
+   time_stepper    = 'threestep'
+   time_integrator = 'IMEX_ARS3'
+   flux_scheme     = 20*'hll' 
+   limiter         = 20*'weno5'
+/
+
+&boundlist
+  typeboundary_min1 = 9*'cont' 
+  typeboundary_max1 = 9*'cont' 
+  internalboundary = T
+/
+
+ &meshlist
+   refine_max_level   = 1
+   domain_nx1         = 3200
+   block_nx1          = 50 
+   xprobmin1       = 0.d0
+   xprobmax1       = 40.d0
+ /
+
+ &paramlist
+  courantpar       = 0.4d0
+ /
+
+ &mhd_list
+  mhd_energy = .true.
+  mhd_radiation_fld = .true.
+ /
+
+ &eos_list
+  gamma = 1.6666667d0
+  He_abundance = 0.0d0
+ /
+
+ &fld_list
+  fld_Radforce_split = .false.
+  fld_opacity_law = 'const'
+  fld_kappa0 = 0.4d0
+  fld_interaction_method = 'Halley'
+  fld_fluxlimiter = 'Diffusion'
+  fld_diff_tol = 1.d-7
+  fld_bisect_tol = 1.d-7
+  fld_tiring_explicit=.true.
+  /
+
+ &wave_list
+  rho0 = 3.216d-9
+  p0 = 17.340d3
+  rho_kappa_lambda = 1.d3
+  ampl = 1.d-2
+  Bx0 = 330.14d0
+  By0 =	0.0d0
+  Bz0 =	330.14d0
+  /

@@ -48,10 +48,13 @@
 
  &hd_list
         hd_energy     =.false.
-        hd_gamma      = 1.d0
         hd_adiab      = 1.d0
  /
 
  &usr_list
         mach0         = 0.5d0
 /
+ &eos_list
+  gamma = 1.d0
+ /
+

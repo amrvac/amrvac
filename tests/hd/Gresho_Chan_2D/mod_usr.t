@@ -1,5 +1,6 @@
 module mod_usr
   use mod_hd
+  use mod_eos, only: eos
 
   implicit none
 
@@ -69,7 +70,7 @@ contains
     w(ix^S,mom(2)) = v02+vphi(ix^S)*cosphi(ix^S)
     }
 
-    call hd_to_conserved(ixG^L,ix^L,w,x)
+    call eos%to_conserved(ixG^L,ix^L,w,x)
 
   end subroutine GC_init_one_grid
 
@@ -78,7 +79,7 @@ contains
     real(dp)             :: val
     real(dp) :: p0,rad
 
-    p0=1.0d0/(hd_gamma*Mach**2)
+    p0=1.0d0/(eos%gamma*Mach**2)
     rad=dsqrt((x-xc)**2+(y-yc)**2)
     if(rad<0.2d0)then
       val=p0+12.5d0*rad**2
@@ -115,7 +116,7 @@ contains
     integer :: ic1,ic2
     double precision:: xmid^D, rr(ixI^S), xshift^D
 
-    w(ixO^S,i_sol) =1.0d0/(hd_gamma*Mach**2)-2.0d0+4.0d0*dlog(2.0d0)
+    w(ixO^S,i_sol) =1.0d0/(eos%gamma*Mach**2)-2.0d0+4.0d0*dlog(2.0d0)
     ! determine centers of all 9 potentially overlapping circles
     if(v01>=0.0d0)then
        xshift1=v01*qt-floor(qt*v01/(xprobmax1-xprobmin1))*(xprobmax1-xprobmin1)
@@ -137,9 +138,9 @@ contains
          endwhere
       enddo
     enddo
-    call hd_to_primitive(ixI^L,ixO^L,w,x)
+    call eos%to_primitive(ixI^L,ixO^L,w,x)
     w(ixO^S,i_err_p) = w(ixO^S,e_) - w(ixO^S,i_sol)
-    call hd_to_conserved(ixI^L,ixO^L,w,x)
+    call eos%to_conserved(ixI^L,ixO^L,w,x)
     w(ixO^S,i_err_r) = w(ixO^S,rho_) - 1.0d0
   end subroutine set_error
 

@@ -45,3 +45,7 @@
  &mhd_list
         typedivbfix='none'
  /
+
+ &eos_list
+        gamma=2.0d0
+ /

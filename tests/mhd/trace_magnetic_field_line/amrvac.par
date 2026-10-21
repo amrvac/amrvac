@@ -91,6 +91,5 @@
  &rc_list
         ncool=4000
         coolcurve='JCcorona'
-        coolmethod='exact'
         Tfix=.false.
  /

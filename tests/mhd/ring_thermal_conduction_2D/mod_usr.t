@@ -2,8 +2,13 @@
 ! test thermal conduction in a ring
 module mod_usr
   use mod_mhd
+  use mod_eos, only: eos
   implicit none
   double precision :: integral_time=0.d0, k_perp
+
+  ! Storing additional variables in the dat file
+  integer :: temp_, velx_, vely_, press_, thcond_, rad_, heat_, netheat_, amr_
+
 
 contains
 
@@ -16,10 +21,26 @@ contains
     usr_aux_output      => specialvar_output
     usr_add_aux_names   => specialvarnames_output 
     usr_special_convert => userspecialconvert
+
+    ! to add selected variables to the .dat file
+    !usr_modify_output => set_output_vars
+
     !usr_process_global  => usrprocess_global
 
     call set_coordinate_system("Cartesian")
     call mhd_activate()
+
+    ! to add selected variables to the .dat file
+    !temp_ = var_set_extravar("Temp", "Temp")
+    !velx_ = var_set_extravar("velx", "velx")
+    !vely_ = var_set_extravar("vely", "vely")
+    !press_ = var_set_extravar("pr", "pr")
+    !thcond_ = var_set_extravar("thcond", "thcond")
+    !rad_ = var_set_extravar("rad", "rad")
+    !heat_ = var_set_extravar("heat", "heat")
+    !netheat_ = var_set_extravar("netheat", "netheat")
+    !amr_ = var_set_extravar("level", "level")
+
 
   end subroutine usr_init
 
@@ -32,7 +53,7 @@ contains
 
     ! set all velocity to zero
     w(ixO^S, mom(:)) = zero
-    ! uniform pressure
+    ! uniform density
     w(ixO^S,rho_) =1.d0
     r(ixO^S)=dsqrt(x(ixO^S,1)**2+x(ixO^S,2)**2)
     where(x(ixO^S,1)>0.d0)
@@ -42,7 +63,7 @@ contains
     elsewhere
       theta(ixO^S)=0.d0
     endwhere
-    ! hot central circular spot with uniform pressure
+    ! hot spot on a ring section with non-uniform pressure
     where(r(ixO^S)>0.5d0 .and. r(ixO^S)<0.7d0 .and. theta(ixO^S)>11.d0/12.d0*dpi .and. theta(ixO^S)<13.d0/12.d0*dpi)
       w(ixO^S,p_)=4.d0
     elsewhere
@@ -53,7 +74,7 @@ contains
     w(ixO^S,mag(1))=B(ixO^S)*dcos(theta(ixO^S)+0.5*dpi)
     w(ixO^S,mag(2))=B(ixO^S)*dsin(theta(ixO^S)+0.5*dpi)
 
-    call mhd_to_conserved(ixI^L,ixO^L,w,x)
+    call eos%to_conserved(ixI^L,ixO^L,w,x)
 
   end subroutine initonegrid_usr
 
@@ -70,7 +91,7 @@ contains
 
     double precision :: r(ixI^S), pth(ixI^S)
 
-    call mhd_get_pthermal(w,x,ixI^L,ixO^L,pth)
+    call eos%get_thermal_pressure(w,x,ixI^L,ixO^L,pth)
     pth(ixO^S)=pth(ixO^S)/w(ixO^S,rho_)
 
     r(ixO^S)=dsqrt(x(ixO^S,1)**2+x(ixO^S,2)**2)
@@ -175,7 +196,7 @@ contains
     double precision :: r(ixI^S), pth(ixI^S),L(ixI^S)
     integer :: ix^D
 
-    call mhd_get_pthermal(w,x,ixI^L,ixO^L,pth)
+    call eos%get_thermal_pressure(w,x,ixI^L,ixO^L,pth)
     pth(ixO^S)=pth(ixO^S)/w(ixO^S,rho_)
 
     r(ixO^S)=dsqrt(x(ixO^S,1)**2+x(ixO^S,2)**2)
@@ -266,7 +287,7 @@ contains
 
     dxinv=1.d0/dxlevel
 
-    call mhd_get_pthermal(w,x,ixI^L,ixI^L,tmp1)
+    call eos%get_thermal_pressure(w,x,ixI^L,ixI^L,tmp1)
     ! compute the temperature
     Te(ixI^S)=tmp1(ixI^S)/w(ixI^S,rho_)
     ! ixC is cell-corner index
@@ -343,5 +364,68 @@ contains
     {end do\}
 
   end subroutine usrprocess_grid
+
+  subroutine set_output_vars(ixI^L,ixO^L,qt,w,x)
+    use mod_radiative_cooling
+    use mod_thermal_conduction
+    use mod_global_parameters
+    integer, intent(in)             :: ixI^L,ixO^L
+    double precision, intent(in)    :: qt,x(ixI^S,1:ndim)
+    double precision, intent(inout) :: w(ixI^S,1:nw)
+  
+    !!double precision :: local_dt
+    double precision :: wlocal(ixI^S,1:nw),wcond(ixI^S,1:nw)
+    double precision :: bQgrid(ixI^S),bQgridB(ixI^S),winit_nopert(ixI^S,1:nw)
+    double precision :: r(ixI^S), theta(ixI^S), B(ixI^S)
+
+    wlocal(ixI^S,1:nw)=w(ixI^S,1:nw)
+
+    ! output thermal conduction TC
+    wcond(ixI^S,1:nw)=0.0d0
+    if(mhd_thermal_conduction)then
+      ! 5 last arguments unused here: fix_conserve_at_step to false, my_dt=1, igrid/nflux to 1
+      !!!convert wlocal e to ei here!!!
+      call mhd_e_to_ei(ixI^L,ixI^L,wlocal,x)
+      call sts_set_source_tc_mhd(ixI^L,ixO^L,wlocal,x,wcond,.false.,1.d0,1,1,tc_fl)
+      call mhd_ei_to_e(ixI^L,ixI^L,wlocal,x)
+      w(ixO^S,thcond_)=wcond(ixO^S,tc_fl%e_)
+    endif
+    ! store the cooling and heating balance
+    if(mhd_radiative_cooling)then
+       r(ixI^S)=dsqrt(x(ixI^S,1)**2+x(ixI^S,2)**2)
+       where(x(ixI^S,1)>0.d0)
+          theta(ixI^S)=atan(x(ixI^S,2)/x(ixI^S,1))
+       elsewhere(x(ixI^S,1)<0.d0)
+          theta(ixI^S)=dpi-atan(x(ixI^S,2)/abs(x(ixI^S,1)))
+       elsewhere
+          theta(ixI^S)=0.d0
+       endwhere
+       winit_nopert(ixI^S,rho_)= 1.0d0
+       winit_nopert(ixI^S,mom(1))=0.0d0
+       winit_nopert(ixI^S,mom(2))=0.0d0
+       winit_nopert(ixI^S,e_)=1.0d0/(eos%gamma - 1.0d0)
+       B(ixI^S)=Busr/r(ixI^S)
+       winit_nopert(ixI^S,mag(1))=B(ixI^S)*dcos(theta(ixI^S)+0.5*dpi)
+       winit_nopert(ixI^S,mag(2))=B(ixI^S)*dsin(theta(ixI^S)+0.5*dpi)
+       call getvar_cooling(ixI^L,ixO^L,winit_nopert,x,bQgrid,rc_fl)
+       w(ixO^S,heat_)=bQgrid(ixO^S)
+       !!using the global timestep dt here, could be unset at last timesave!!!
+       !!local_dt=max(dt,1.0d-6)
+       !!call getvar_cooling_exact(local_dt,ixI^L,ixO^L,wlocal,wlocal,x,bQgridB,rc_fl)
+       call getvar_cooling(ixI^L,ixO^L,wlocal,x,bQgridB,rc_fl)
+       w(ixO^S,rad_)=bQgridB(ixO^S)
+       w(ixO^S,netheat_)=(bQgrid(ixO^S)-bQgridB(ixO^S))
+    endif
+
+    ! now also add extra primitive variables in output dat file
+    call eos%to_primitive(ixI^L,ixO^L,wlocal,x)
+    w(ixO^S,temp_)=wlocal(ixO^S,p_)/wlocal(ixO^S,rho_)
+    w(ixO^S,press_)=wlocal(ixO^S,p_)
+    w(ixO^S,velx_)=wlocal(ixO^S,mom(1))
+    w(ixO^S,vely_)=wlocal(ixO^S,mom(2))
+    ! output the AMR level (assuming uniform grid blocks)
+    w(ixO^S,amr_)=dlog(((xprobmax1-xprobmin1)/domain_nx1)/dxlevel(1))/dlog(2.0d0)+1.0d0
+
+  end subroutine set_output_vars
 
 end module mod_usr

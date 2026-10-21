@@ -1,5 +1,6 @@
 module mod_usr
   use mod_mhd
+  use mod_eos, only: eos
   implicit none
   double precision :: b3val
 
@@ -19,7 +20,6 @@ contains
   end subroutine usr_init
 
   subroutine initglobaldata_usr
-    mhd_gamma=5.0d0/3.0d0
     mhd_eta=0.0001d0
     b3val=0.1d0
   
@@ -40,7 +40,7 @@ contains
 
     epsilon=1.0d-4
     rho0=one
-    p0=one/mhd_gamma
+    p0=one/eos%gamma
     
     w(ix^S,rho_)=rho0
     
@@ -117,7 +117,7 @@ contains
     
     w(ix^S,mag(3))=b3val
     
-    call mhd_to_conserved(ixG^L,ix^L,w,x)
+    call eos%to_conserved(ixG^L,ix^L,w,x)
     
     if(mype==0.and.first)then
           write(*,*)'Doing 3D MHD, tilt problem'
@@ -126,10 +126,10 @@ contains
 
   end subroutine initonegrid_usr
 
-  subroutine specialbound_usr(qt,ixG^L,ixO^L,iB,w,x)
+  subroutine specialbound_usr(qdt,qt,ixG^L,ixO^L,iB,w,x)
   ! special boundary types, user defined
   integer, intent(in) :: ixG^L, ixO^L, iB
-  double precision, intent(in) :: qt, x(ixG^S,1:ndim)
+  double precision, intent(in) :: qdt, qt, x(ixG^S,1:ndim)
   double precision, intent(inout) :: w(ixG^S,1:nw)
 
   double precision:: delydelx,delxdely,delydelz,delxdelz
@@ -141,7 +141,7 @@ contains
     ixIMmin3=ixOmin3;ixIMmax3=ixOmax3;
     ixIMmin2=ixOmin2;ixIMmax2=ixOmax2;
     ixIMmin1=ixOmax1+1;ixIMmax1=ixOmax1+1;
-    call mhd_to_primitive(ixG^L,ixIM^L,w,x)
+    call eos%to_primitive(ixG^L,ixIM^L,w,x)
     do ix1=ixOmax1,ixOmin1,-1
       w(ix1,ixOmin2:ixOmax2,ixOmin3:ixOmax3,rho_)= w(ixOmax1+1,ixOmin2:ixOmax2,ixOmin3:ixOmax3,rho_)
       w(ix1,ixOmin2:ixOmax2,ixOmin3:ixOmax3,p_)  = w(ixOmax1+1,ixOmin2:ixOmax2,ixOmin3:ixOmax3,p_)
@@ -155,13 +155,13 @@ contains
       w(ix1,ixOmin2:ixOmax2,ixOmin3:ixOmax3,mag(3)) = b3val
     enddo
     ! now reset the inner mesh values to conservative
-    call mhd_to_conserved(ixG^L,ixIM^L,w,x)
-    call mhd_to_conserved(ixG^L,ixO^L,w,x)
+    call eos%to_conserved(ixG^L,ixIM^L,w,x)
+    call eos%to_conserved(ixG^L,ixO^L,w,x)
   case(2)
     ixIMmin3=ixOmin3;ixIMmax3=ixOmax3;
     ixIMmin2=ixOmin2;ixIMmax2=ixOmax2;
     ixIMmin1=ixOmin1-1;ixIMmax1=ixOmin1-1;
-    call mhd_to_primitive(ixG^L,ixIM^L,w,x)
+    call eos%to_primitive(ixG^L,ixIM^L,w,x)
     do ix1=ixOmin1,ixOmax1,+1
       w(ix1,ixOmin2:ixOmax2,ixOmin3:ixOmax3,rho_)= w(ixOmin1-1,ixOmin2:ixOmax2,ixOmin3:ixOmax3,rho_)
       w(ix1,ixOmin2:ixOmax2,ixOmin3:ixOmax3,p_)  = w(ixOmin1-1,ixOmin2:ixOmax2,ixOmin3:ixOmax3,p_)
@@ -175,13 +175,13 @@ contains
       w(ix1,ixOmin2:ixOmax2,ixOmin3:ixOmax3,mag(3)) = b3val
     enddo
     ! now reset the inner mesh values to conservative
-    call mhd_to_conserved(ixG^L,ixIM^L,w,x)
-    call mhd_to_conserved(ixG^L,ixO^L,w,x)
+    call eos%to_conserved(ixG^L,ixIM^L,w,x)
+    call eos%to_conserved(ixG^L,ixO^L,w,x)
   case(3)
     ixIMmin2=ixOmax2+1;ixIMmax2=ixOmax2+1;
     ixIMmin1=ixOmin1;ixIMmax1=ixOmax1;
     ixIMmin3=ixOmin3;ixIMmax3=ixOmax3;
-    call mhd_to_primitive(ixG^L,ixIM^L,w,x)
+    call eos%to_primitive(ixG^L,ixIM^L,w,x)
     do ix2=ixOmax2,ixOmin2,-1
       w(ixOmin1:ixOmax1,ix2,ixOmin3:ixOmax3,rho_)= w(ixOmin1:ixOmax1,ixOmax2+1,ixOmin3:ixOmax3,rho_)
       w(ixOmin1:ixOmax1,ix2,ixOmin3:ixOmax3,p_)  = w(ixOmin1:ixOmax1,ixOmax2+1,ixOmin3:ixOmax3,p_)
@@ -195,13 +195,13 @@ contains
       w(ixOmin1:ixOmax1,ix2,ixOmin3:ixOmax3,mag(3)) = b3val
     enddo
     ! now reset the inner mesh values to conservative
-    call mhd_to_conserved(ixG^L,ixIM^L,w,x)
-    call mhd_to_conserved(ixG^L,ixO^L,w,x)
+    call eos%to_conserved(ixG^L,ixIM^L,w,x)
+    call eos%to_conserved(ixG^L,ixO^L,w,x)
   case(4)
     ixIMmin2=ixOmin2-1;ixIMmax2=ixOmin2-1;
     ixIMmin1=ixOmin1;ixIMmax1=ixOmax1;
     ixIMmin3=ixOmin3;ixIMmax3=ixOmax3;
-    call mhd_to_primitive(ixG^L,ixIM^L,w,x)
+    call eos%to_primitive(ixG^L,ixIM^L,w,x)
     do ix2=ixOmin2,ixOmax2,+1
       w(ixOmin1:ixOmax1,ix2,ixOmin3:ixOmax3,rho_)= w(ixOmin1:ixOmax1,ixOmin2-1,ixOmin3:ixOmax3,rho_)
       w(ixOmin1:ixOmax1,ix2,ixOmin3:ixOmax3,p_)  = w(ixOmin1:ixOmax1,ixOmin2-1,ixOmin3:ixOmax3,p_)
@@ -215,8 +215,8 @@ contains
       w(ixOmin1:ixOmax1,ix2,ixOmin3:ixOmax3,mag(3)) = b3val
     enddo
     ! now reset the inner mesh values to conservative
-    call mhd_to_conserved(ixG^L,ixIM^L,w,x)
-    call mhd_to_conserved(ixG^L,ixO^L,w,x)
+    call eos%to_conserved(ixG^L,ixIM^L,w,x)
+    call eos%to_conserved(ixG^L,ixO^L,w,x)
   case default
      call mpistop("Special boundary is not defined for this region")
   end select

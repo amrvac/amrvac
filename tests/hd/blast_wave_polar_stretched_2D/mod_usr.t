@@ -1,6 +1,7 @@
 ! blast wave
 module mod_usr
   use mod_hd
+  use mod_eos, only: eos
   implicit none
 
 contains
@@ -45,7 +46,7 @@ contains
     endwhere
     w(ixO^S,mom(:))=0.d0
 
-    call hd_to_conserved(ixI^L,ixO^L,w,x)
+    call eos%to_conserved(ixI^L,ixO^L,w,x)
 
   end subroutine initonegrid_usr
 
@@ -63,7 +64,7 @@ contains
 
     double precision                   :: tmp(ixI^S) 
 
-    call hd_get_pthermal(w,x,ixI^L,ixO^L,tmp)
+    call eos%get_thermal_pressure(w,x,ixI^L,ixO^L,tmp)
     ! output the temperature p/rho
     w(ixO^S,nw+1)=tmp(ixO^S)/w(ixO^S,rho_)
 

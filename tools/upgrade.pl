@@ -50,12 +50,6 @@ my %simple_replacements = (
     qr/\btol\b/ => "refine_threshold",
     qr/\btolratio\b/ => "derefine_ratio",
     qr/\btypegridfill\b/ => "prolongation_method",
-    qr/\bb1_\b/ => "mag(1)",
-    qr/\bb2_\b/ => "mag(2)",
-    qr/\bb3_\b/ => "mag(3)",
-    qr/(\bv1_\b|\bm1_)/ => "mom(1)",
-    qr/(\bv2_\b|\bm2_)/ => "mom(2)",
-    qr/(\bv3_\b|\bm3_)/ => "mom(3)",
     qr/mygeo/ => "block",
     qr/normvar\(0\)/ => "length_convert_factor",
     qr/normvar\(rho_\)/ => "w_convert_factor(rho_)",
@@ -106,6 +100,8 @@ my %par_file_replacements = (
     qr/ *sliceascii *=.*\n/ => "", # Remove sliceascii= ... lines
     qr/ *restrictprimitive *=.*\n/ => "", # Remove restrictprimitive= ... lines
     qr/ *amrentropy*=.*\n/ => "", # Remove amrentropy= ... lines
+    qr/ *mhd_gamma*=.*\n/ => "", # Remove mhd_gamma= ... lines
+    qr/ *hd_gamma*=.*\n/ => "", # Remove hd_gamma= ... lines
     qr/ *w_for_refine\(1\) *=.*\n/ => "", # Remove w_for_refine*= ... lines
     qr/ *w_for_refine\(2\) *=.*\n/ => "", # Remove w_for_refine*= ... lines
     qr/ *w_for_refine\(3\) *=.*\n/ => "", # Remove w_for_refine*= ... lines
@@ -133,7 +129,6 @@ my %par_file_replacements = (
     qr/tsave\(5\)/ => "tsave_custom",
     qr/\btypetvdlf\b/ => "typeboundspeed",
     qr/\bitmax\b/ => "it_max",
-    qr/\bglm1\b/ => "glm",
     qr/ *typelimited *=.*\n/ => "", # Remove typelimited= ... lines
     );
 

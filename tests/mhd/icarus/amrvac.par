@@ -56,6 +56,7 @@
  &particles_list
        physics_type_particles='sample'
        num_particles=10
+  
        dtsave_particles=0.225d0
        write_individual=.true.
        write_ensemble=.false.
@@ -119,3 +120,7 @@
         magnetogram_time = '2015-06-25T01:04:00' 
         amr_start_hour=0
 /
+
+ &eos_list
+        gamma=1.5d0
+ /

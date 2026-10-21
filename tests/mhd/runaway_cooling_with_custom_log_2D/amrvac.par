@@ -67,7 +67,6 @@
  &rc_list
    ncool=12000
    coolcurve='JCcorona'
-   coolmethod='exact'
    Tfix=.true.
    Tlow = 1e-2
  /

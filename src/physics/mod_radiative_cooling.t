@@ -1,28 +1,27 @@
-!> module radiative cooling -- add optically thin radiative cooling for HD and MHD
+!> module radiative cooling -- add optically thin radiative cooling 
+!> 
+!> only uses the (Townsend) exact integration method, can be used in HD, ffhd, MHD, twofl
 !>
 !> Assumptions: full ionized plasma dominated by H and He, ionization equilibrium 
 !> Formula: Q=-n_H*n_e*f(T), positive f(T) function is pre-computed and tabulated or a piecewise power law
-!> Developed by Allard Jan van Marle, Rony Keppens, and Chun Xia
-!> Cooling tables extend to 1O^9 K, (17.11.2009)  AJvM
-!> Included table by Smith (18.11.2009)           AJvM
-!> Included luminosity output option (18.11.2009) AJvM
-!> Included two cooling curves from Cloudy code supplied by Wang Ye (12.11.2011) AJvM
-!> Included a solar coronal cooling curve (JCcorona) supplied by J. Colgan (2008) ApJ
-!> Modulized and simplified by Chun Xia (2017)
-!> Included piecewise power law functionality by Joris Hermans (01.2020)
+!> Uses the various cooling tables stored in mod_radloss_tables.t
+!>
 module mod_radiative_cooling
-! For the interpolatable tables: these tables contain log_10 temperature values and corresponding
-! log_10 luminosity values. The simulation-dependent temperature and luminosity
-! scaling parameters are supposed to be provided in the user file. 
-! All tables have been extended to at least T=10^9 K using a pure Bremsstrahlung 
-! relationship of Lambda~sqrt(T). This to ensure that a purely explicit calculation 
-! without timestep check is only used for extremely high temperatures. 
-! (Except for the SPEX curve, which is more complicated and therefore simply stops  
-! at the official upper limit of log(T) = 8.16)
+
   use mod_global_parameters, only: std_len
   use mod_physics
+  use mod_radloss_tables
   use mod_comm_lib, only: mpistop
   implicit none
+
+  !> Per-rank cooling-only compute accumulator for lb_diagnose. Sums the
+  !> wall time spent inside radiative_cooling_add_source across all blocks
+  !> and substages within one full advance() call. Reset by
+  !> mod_advance::advance at the start of each step. Note: this is a subset
+  !> of lb_compute_accum (which already encloses the whole advect1 block
+  !> loop); it isolates the cooling Newton/exact-solver kernel cost from
+  !> the surrounding finite-volume work.
+  double precision, public :: lb_cool_accum = 0.0d0
 
   !> Helium abundance over Hydrogen
   double precision, private    :: He_abundance
@@ -36,6 +35,24 @@ module mod_radiative_cooling
   !> inverse of the adiabatic index minus 1
   double precision, private :: invgam
 
+  !> Voigt escape probability lookup table.
+  !> E(tau) is the frequency-integrated single-flight escape probability
+  !> from a uniform slab with a Voigt line profile truncated at x_max
+  !> Doppler widths (CL12 Sec 2.1, mimics PRD):
+  !>   E(tau_0) = [phi(0)/tau_0] * integral_{-xmax}^{xmax} [1 - exp(-tau_0 phi(x)/phi(0))] dx
+  !> Precomputed at initialisation via Gauss-Legendre quadrature, then
+  !> interpolated at runtime from a table in log10(tau).
+  !> Reference Voigt parameter: a_ref = 4.7e-4 at T = 10 kK.
+  !> Sensitivity to a is < 20% for tau < 1e6 (see voigt_escape_derivation.py).
+  integer, parameter, private :: n_voigt_table = 500
+  double precision, parameter, private :: voigt_logtau_min = -2.0d0   ! tau = 0.01
+  double precision, parameter, private :: voigt_logtau_max =  8.0d0   ! tau = 1e8
+  double precision, parameter, private :: voigt_a_ref = 4.7d-4
+  double precision, parameter, private :: voigt_xmax  = 6.0d0
+  double precision, private :: voigt_E_table(n_voigt_table)
+  double precision, private :: voigt_logtau_step
+  logical, private :: voigt_table_ready = .false.
+
   abstract interface
     subroutine get_subr1(w,x,ixI^L,ixO^L,res)
       use mod_global_parameters
@@ -44,16 +61,37 @@ module mod_radiative_cooling
       double precision, intent(in) :: x(ixI^S,1:ndim)
       double precision, intent(out):: res(ixI^S)
     end subroutine get_subr1
+
+    subroutine get_2var_subr(ixI^L, ixO^L, w, x, ne, nH)
+      use mod_global_parameters
+      integer, intent(in)          :: ixI^L, ixO^L
+      double precision, intent(in) :: w(ixI^S, nw)
+      double precision, intent(in) :: x(ixI^S, 1:ndim)
+      double precision, intent(out):: ne(ixI^S), nH(ixI^S)
+    end subroutine get_2var_subr
+
+    !> Optional local multiplier for density-squared radiative losses.
+    subroutine local_rho2_factor_subr(ixI^L,ixO^L,w,x,factor)
+      use mod_global_parameters
+      integer, intent(in) :: ixI^L, ixO^L
+      double precision, intent(in) :: w(ixI^S,1:nw), x(ixI^S,1:ndim)
+      double precision, intent(out) :: factor(ixI^S)
+    end subroutine local_rho2_factor_subr
+
+    !> Scalar EoS inverse, e.g. fl%eint_from_T(log_nH, log_T)
+    double precision function eos_scalar2_func(a, b)
+      double precision, intent(in) :: a, b
+    end function eos_scalar2_func
   end interface
 
   type rc_fluid
 
-    double precision :: rad_cut_hgt
-    double precision :: rad_cut_dey
+    double precision :: rad_damp_height
+    double precision :: rad_damp_scale
 
     ! these are set in init method
     double precision, allocatable :: tcool(:), Lcool(:), dLdtcool(:)
-    double precision, allocatable :: Yc(:), invYc(:)
+    double precision, allocatable :: Yc(:)
     double precision  :: tref, lref, tcoolmin,tcoolmax
     double precision  :: lgtcoolmin, lgtcoolmax, lgstep
 
@@ -63,9 +101,6 @@ module mod_radiative_cooling
 
     !> Lower limit of temperature
     double precision   :: tlow
-
-    !> Coefficent of cooling time step
-    double precision   :: cfrac
 
     !> Index of the energy density
     integer              :: e_
@@ -86,684 +121,164 @@ module mod_radiative_cooling
 
     logical :: isPPL = .false.
 
-    !> cutoff radiative cooling below rad_cut_hgt
-    logical :: rad_cut
+    !> Suppress cooling for T below this threshold (Kelvin) within
+    !> rad_cut_hgt of footpoints. When > 0, cells inside the spatial
+    !> taper region with T < rad_suppress_temp get factor=0; coronal
+    !> cooling above that T proceeds unmodified. Default 0 = disabled.
+    double precision :: rad_suppress_temp = 0.0d0
+    !> Internal: suppress threshold in code units (set from rad_suppress_temp
+    !> during init). Not a namelist parameter.
+    double precision :: suppress_temp_code = 0.0d0
+    !> Master switch for radiative loss modification (spatial + density taper)
+    logical :: rad_modify
+    !> Apply spatial taper at both boundaries (default: lower only)
+    logical :: rad_modify_sym
+    !> Spatial taper height (HEAD addition): suppress cooling within rad_cut_hgt of boundary
+    double precision :: rad_cut_hgt = 0.0d0
+    !> Spatial taper width (HEAD addition): Gaussian dey for the spatial taper
+    double precision :: rad_cut_dey = 0.15d0
+    !> Cooling-curve dt-fraction (HEAD addition; used by legacy explicit-mode dt scaling)
+    double precision :: cfrac = 0.1d0
+    !> cutoff radiative cooling below rad_damp_height
+    logical :: rad_damp
     ! these are to be set directly
+    !> whether background equilibrium contribution is split off
     logical :: has_equi = .false.
+    !> whether background equilibrium is compensated in thermal balance
+    logical :: subtract_equi = .false.
+
+    double precision, allocatable :: frac_lowFIP(:)
+    !> Index of primitive FIP abundance variable, -1 if disabled
+    integer :: fip_ = -1
+    !> Enable local Newton cooling/heating approximation for optically thick losses
+    logical :: rad_newton = .false.
+    double precision :: rad_newton_pthick = 25.d0
+    double precision :: rad_newton_trad = 0.006d0
+    double precision :: rad_newton_rhosurf = 1.d4
+
+    !> Density threshold for Gaussian taper (code units)
+    double precision :: rad_taper_rho
+    !> Gaussian decay width for density taper
+    double precision :: rad_taper_dey
+
+    !> Enable escape probability cooling modification
+    logical :: rad_escape_prob = .false.
+    !> Effective opacity for escape probability (code units: 1/(density*length))
+    double precision :: rad_kappa_eff = 0.0d0
+    !> Temperature above which kappa→0 (stored in code units, input in Kelvin); 0 = constant kappa
+    double precision :: rad_kappa_Tcutoff = 0.0d0
+    !> Sigmoid sharpness exponent for kappa(T) cutoff
+    double precision :: rad_kappa_alpha = 4.0d0
+    !> Escape probability type: 'slab' = (1-exp(-tau))/tau, 'voigt' = Voigt CRD
+    character(len=10) :: rad_escape_type = 'slab'
+    !> Exponential cutoff scale: E *= exp(-tau/tau_cutoff); 0 = disabled
+    double precision :: rad_escape_tau_cutoff = 0.0d0
+    !> Max height from footpoint for column mass integration (code units); 0 = no limit
+    double precision :: rad_escape_height = 0.0d0
+    !> Index into wextra for column mass (set during init)
+    integer :: iw_colmass_ = -1
 
     !> Name of cooling curve
     character(len=std_len)  :: coolcurve
 
-    !> Name of cooling method
-    character(len=std_len)  :: coolmethod
-
     procedure (get_subr1), pointer, nopass :: get_rho => null()
+    procedure (get_subr1), pointer, nopass :: get_Te => null()
     procedure (get_subr1), pointer, nopass :: get_rho_equi => null()
     procedure (get_subr1), pointer, nopass :: get_pthermal => null()
     procedure (get_subr1), pointer, nopass :: get_pthermal_equi => null()
     procedure (get_subr1), pointer, nopass :: get_var_Rfactor => null()
+    procedure (get_2var_subr), pointer, nopass :: get_ne_nH => null()
+    procedure (get_2var_subr), pointer, nopass :: get_ne_nH_equi => null()
+    procedure (local_rho2_factor_subr), pointer, nopass :: get_rho2_factor => null()
+    procedure (get_subr1), pointer, nopass :: get_temperature_equi => null()
+    !> EoS snapshots + scalar inverse accessors (set in bind_eos_to_source); let
+    !> cooling reach thermodynamics only through this object, never mod_eos.
+    logical            :: ionE = .false.
+    character(len=20)  :: method = 'tables'
+    double precision   :: inv_gamma_minus_1
+    double precision   :: nH2rhoFactor
+    double precision   :: eion_per_nH
+    procedure(eos_scalar2_func), pointer, nopass :: eint_from_T => null()
+    procedure(eos_scalar2_func), pointer, nopass :: p2eint      => null()
+    procedure(eos_scalar2_func), pointer, nopass :: T_from_eint => null()
+    procedure(eos_scalar2_func), pointer, nopass :: y_from_eint => null()
+
+    !> Variable-c_V Townsend extension (Y_mod). Built only when fl%ionE.
+    !>
+    !>   Y_mod(j, i) is the modified TEF (units of code time) at the
+    !>   (log10 nH index j, T index i) grid point. Indexing follows the
+    !>   existing AMRVAC convention: Y(ncool) = 0 at the top T = tcoolmax,
+    !>   and Y monotonically increases as T decreases. The j axis matches
+    !>   the eos%eint_from_T table's nH grid (var1_min..var1_max, dim1).
+    !>
+    !> Construction: change-of-variables u = e_int/n_H. The integrand
+    !>   1/(n_e Lambda) is sampled at composite Simpson or Boole nodes
+    !>   between [u(T_i), u(T_{i+1})]. See build_Y_mod_table.
+    !>
+    !> Lookups: findY_mod(T, nH, fl) returns Y by bilinear interpolation
+    !>   in (log_nH, log_T). findT_mod(Y, nH, fl) returns T by bisection
+    !>   on the row at the interpolated nH. (A precomputed inverse table
+    !>   variant was prototyped during development but proved unusable:
+    !>   at extreme nH the per-row Y_max varies so widely that bilinear
+    !>   blending between rows mixes physically saturated and unsaturated
+    !>   entries. The bisect path is O(log ncool) ≈ 12 iterations anyway.)
+    double precision, allocatable :: Y_mod(:,:)
+    double precision, allocatable :: Y_mod_max_per_row(:)
+    integer :: Y_mod_n_nH = 0
+    double precision :: Y_mod_lg_nH_min = 0.0d0
+    double precision :: Y_mod_lg_nH_max = 0.0d0
+    double precision :: Y_mod_lg_nH_step_inv = 0.0d0
+    !> Build flag — set to .true. only after the table has been populated
+    !> by build_Y_mod_table (called from bind_eos_to_source after eos_finalise).
+    logical :: Y_mod_built = .false.
+    !> Quadrature method: 'simpson' (3-point, O(h^4)) or 'boole' (5-point, O(h^6))
+    character(len=8) :: Y_mod_quadrature = 'boole'
+    !> Number of sub-intervals per [u_i, u_{i+1}] segment for the quadrature
+    integer :: Y_mod_N_sub = 16
+
+    !> SPEX-style two-table cooling support.
+    !>
+    !> The SPEX/SPEX_DM cooling tables follow Schure et al. (2009) which
+    !> publishes the cooling function in two parts:
+    !>   Lambda_SPEX(T)  -- the cooling rate per n_H^2 (NOT per n_e n_H)
+    !>   nenh_SPEX(T)    -- the CIE equilibrium n_e/n_H ratio at temperature T
+    !> Reconstructing the volumetric cooling rate is then:
+    !>   Q = n_H^2 * nenh_eq(T) * Lambda_SPEX(T)
+    !>
+    !> All other cooling tables in AMRVAC follow the standard Dere/CHIANTI
+    !> convention where Q = n_e * n_H * Lambda(T) and the equilibrium
+    !> ionisation balance is baked into Lambda(T) itself.
+    !>
+    !> Historically, AMRVAC handled the SPEX two-table convention by
+    !> absorbing log10(nenh_SPEX) into Lambda_table at construction time, so
+    !> that the standard formula Q = n_e n_H * Lambda_table happened to give
+    !> the right answer when n_e ~ n_H (the FI assumption with neOnH ~ 1.2).
+    !> This trick silently *breaks* in LTE+ionE mode where the simulation
+    !> n_e is the actual Saha value: n_e/n_H << 1 at low T, so the formula
+    !> double-counts the equilibrium factor and badly under-counts cooling.
+    !>
+    !> The fix below: do NOT absorb nenh into Lambda_table. Instead, store
+    !> the equilibrium array nenh_eq_table on the same tcool grid, and at
+    !> runtime use Q = n_H^2 * nenh_eq(T) * Lambda_table whenever
+    !> lambda_needs_nenh_table is .true. This honours the published SPEX
+    !> convention regardless of the EoS choice.
+    logical :: lambda_needs_nenh_table = .false.
+    double precision, allocatable :: nenh_eq_table(:)
 
   end type rc_fluid
 
-  double precision :: t_Hildner(1:6), t_FM(1:5), t_Rosner(1:10), t_Klimchuk(1:8), &
-                      t_SPEX_DM_rough(1:8), t_SPEX_DM_fine(1:15)
-
-  double precision :: x_Hildner(1:5), x_FM(1:4), x_Rosner(1:9), x_Klimchuk(1:7), &
-                      x_SPEX_DM_rough(1:7), x_SPEX_DM_fine(1:14)
-
-  double precision :: a_Hildner(1:5), a_FM(1:4), a_Rosner(1:9), a_Klimchuk(1:7), &
-                      a_SPEX_DM_rough(1:7), a_SPEX_DM_fine(1:14)
-
-  integer          :: n_Hildner, n_FM, n_Rosner, n_Klimchuk, n_SPEX_DM_rough, n_SPEX_DM_fine
-
-  data   n_Hildner / 5 /
- 
-  data   t_Hildner / 3.00000, 4.17609, 4.90309, 5.47712, 5.90309, 10.00000 /
-
-  data   x_Hildner / -53.30803, -29.92082, -21.09691, -7.40450, -16.25885 /
-  
-  data   a_Hildner / 7.4, 1.8, 0.0, -2.5, -1.0 /
-
-  data   n_FM / 4 /
- 
-  data   t_FM / 3.00000, 4.30103, 5.60206, 7.00000, 10.00000 /
-
-  data   x_FM / -31.15813, -27.50227, -18.25885, -35.75893 /
-
-  data   a_FM / 2.0, 1.15, -0.5, 2.0 /
-
-  data   n_Rosner / 9 /
-
-  data   t_Rosner / 3.00000, 3.89063, 4.30195, 4.57500,  4.90000, &
-                5.40000, 5.77000, 6.31500, 7.60457, 10.00000  /
-
-  data   x_Rosner / -69.900, -48.307, -21.850, -31.000, -21.200, &
-                -10.400, -21.940, -17.730, -26.602           /
-
-  data   a_Rosner / 11.70, 6.15, 0.00, 2.00, 0.00, &
-                -2.00, 0.00, -0.67, 0.50       /
-
-  data   n_Klimchuk / 7 /
-
-  data   t_Klimchuk / 3.00, 4.97, 5.67, 6.18, 6.55, 6.90, 7.63, 10.00 /
-
-  data   x_Klimchuk / -30.96257, -16.05208, -21.72125, -12.45223, &
-                      -24.46092, -15.26043, -26.70774             /
-
-  data   a_Klimchuk / 2.00, -1.00, 0.00, -1.50, 0.33, -1.00, 0.50 /
-
-  data   n_SPEX_DM_rough / 7 /
-
-  data   t_SPEX_DM_rough / 1.000, 1.572, 3.992, 4.165, 5.221, 5.751, 7.295, 8.160 /
-
-  data   x_SPEX_DM_rough / -34.286, -28.282, -108.273, -26.662, -9.729, -17.550, -24.767 /
-
-  data   a_SPEX_DM_rough / 4.560, 0.740, 20.777, 1.182, -2.061, -0.701, 0.288 /
-
-  data   n_SPEX_DM_fine / 14 /
-
-  data   t_SPEX_DM_fine / 1.000, 1.422, 2.806, 3.980, 4.177, 4.443, 4.832, 5.397, &
-                          5.570, 5.890, 6.232, 6.505, 6.941, 7.385, 8.160         /
-
-  data   x_SPEX_DM_fine / -35.314, -29.195, -26.912, -108.273, -18.971, -32.195, -21.217, & 
-                           -0.247, -15.415, -19.275,   -9.387, -22.476, -17.437, -25.026  /
-
-  data   a_SPEX_DM_fine / 5.452,  1.150,  0.337, 20.777, -0.602,  2.374, 0.102, &
-                         -3.784, -1.061, -0.406, -1.992,  0.020, -0.706, 0.321  /
-
-  ! Interpolatable tables
-
-  double precision :: t_DM(1:71),       t_MB(1:51),       t_MLcosmol(1:71) &
-                    , t_MLwc(1:71),     t_MLsolar1(1:71), t_SPEX(1:110)    &
-                    , t_JCcorona(1:45), t_cl_ism(1:151),  t_cl_solar(1:151)&
-                    , t_DM_2(1:76),     t_Dere(1:101),    t_Colgan(1:55) 
-
-  double precision :: l_DM(1:71),       l_MB(1:51),           l_MLcosmol(1:71)   &
-                    , l_MLwc(1:71),     l_MLsolar1(1:71),     l_SPEX(1:110)      &
-                    , l_JCcorona(1:45), l_cl_ism(1:151),      l_cl_solar(1:151)  &
-                    , l_DM_2(1:76),     l_Dere_corona(1:101), l_Dere_photo(1:101)&
-                    , l_Colgan(1:55)
-
-  double precision :: nenh_SPEX(1:110)
-
-  integer          :: n_DM      , n_MB      , n_MLcosmol &
-                    , n_MLwc    , n_MLsolar1, n_SPEX     &
-                    , n_JCcorona, n_cl_ism  , n_cl_solar &
-                    , n_DM_2    , n_Dere    , n_Colgan
-
-  data    n_JCcorona / 45 /
-
-  data    t_JCcorona / 4.00000, 4.14230, 4.21995, 4.29761, 4.37528, &
-                       4.45294, 4.53061, 4.60827, 4.68593, 4.76359, &
-                       4.79705, 4.83049, 4.86394, 4.89739, 4.93084, &
-                       4.96428, 4.99773, 5.03117, 5.06461, 5.17574, &
-                       5.28684, 5.39796, 5.50907, 5.62018, 5.73129, &
-                       5.84240, 5.95351, 6.06461, 6.17574, 6.28684, &
-                       6.39796, 6.50907, 6.62018, 6.73129, 6.84240, &
-                       6.95351, 7.06461, 7.17574, 7.28684, 7.39796, &
-                       7.50907, 7.62018, 7.73129, 7.84240, 7.95351  /
-
-  data    l_JCcorona / -200.18883, -100.78630, -30.60384, -22.68481, -21.76445, &
-                       -21.67936, -21.54218, -21.37958, -21.25172, -21.17584, &
-                       -21.15783, -21.14491, -21.13527, -21.12837, -21.12485, &
-                       -21.12439, -21.12642, -21.12802, -21.12548, -21.08965, &
-                       -21.08812, -21.19542, -21.34582, -21.34839, -21.31701, &
-                       -21.29072, -21.28900, -21.34104, -21.43122, -21.62448, &
-                       -21.86694, -22.02897, -22.08051, -22.06057, -22.01973, &
-                       -22.00000, -22.05161, -22.22175, -22.41452, -22.52581, &
-                       -22.56914, -22.57486, -22.56151, -22.53969, -22.51490  /
-
-  data    n_DM / 71 /
-
-  data    t_DM / 2.0, 2.1, 2.2, 2.3, 2.4, &
-                 2.5, 2.6, 2.7, 2.8, 2.9, &
-                 3.0, 3.1, 3.2, 3.3, 3.4, &
-                 3.5, 3.6, 3.7, 3.8, 3.9, &
-                 4.0, 4.1, 4.2, 4.3, 4.4, &
-                 4.5, 4.6, 4.7, 4.8, 4.9, &
-                 5.0, 5.1, 5.2, 5.3, 5.4, &
-                 5.5, 5.6, 5.7, 5.8, 5.9, &
-                 6.0, 6.1, 6.2, 6.3, 6.4, &
-                 6.5, 6.6, 6.7, 6.8, 6.9, &
-                 7.0, 7.1, 7.2, 7.3, 7.4, &
-                 7.5, 7.6, 7.7, 7.8, 7.9, &
-                 8.0, 8.1, 8.2, 8.3, 8.4, &
-                 8.5, 8.6, 8.7, 8.8, 8.9, &
-                 9.0 /
-
-  data    l_DM / -26.523, -26.398, -26.301, -26.222, -26.097 & 
-               , -26.011, -25.936, -25.866, -25.807, -25.754 &
-               , -25.708, -25.667, -25.630, -25.595, -25.564 &
-               , -25.534, -25.506, -25.479, -25.453, -25.429 &
-               , -25.407, -23.019, -21.762, -21.742, -21.754 &
-               , -21.730, -21.523, -21.455, -21.314, -21.229 &
-               , -21.163, -21.126, -21.092, -21.060, -21.175 &
-               , -21.280, -21.390, -21.547, -21.762, -22.050 &
-               , -22.271, -22.521, -22.646, -22.660, -22.676 &
-               , -22.688, -22.690, -22.662, -22.635, -22.609 &
-               , -22.616, -22.646, -22.697, -22.740, -22.788 &
-               , -22.815, -22.785, -22.754, -22.728, -22.703 &
-               , -22.680, -22.630, -22.580, -22.530, -22.480 & 
-               , -22.430, -22.380, -22.330, -22.280, -22.230 &
-               , -22.180 /
-
-  data    n_MB / 51 /
-
-  data    t_MB / 4.0, 4.1, 4.2, 4.3, 4.4, &
-                 4.5, 4.6, 4.7, 4.8, 4.9, &
-                 5.0, 5.1, 5.2, 5.3, 5.4, &
-                 5.5, 5.6, 5.7, 5.8, 5.9, &
-                 6.0, 6.1, 6.2, 6.3, 6.4, &
-                 6.5, 6.6, 6.7, 6.8, 6.9, &
-                 7.0, 7.1, 7.2, 7.3, 7.4, &
-                 7.5, 7.6, 7.7, 7.8, 7.9, &
-                 8.0, 8.1, 8.2, 8.3, 8.4, &
-                 8.5, 8.6, 8.7, 8.8, 8.9, &
-                 9.0 /
-
-  data    l_MB  / -23.133, -22.895, -22.548, -22.285, -22.099 &
-                , -21.970, -21.918, -21.826, -21.743, -21.638 &
-                , -21.552, -21.447, -21.431, -21.418, -21.461 &
-                , -21.570, -21.743, -21.832, -21.908, -21.981 &
-                , -22.000, -21.998, -21.992, -22.013, -22.095 &
-                , -22.262, -22.397, -22.445, -22.448, -22.446 &
-                , -22.448, -22.465, -22.575, -22.725, -22.749 &
-                , -22.768, -22.753, -22.717, -22.678, -22.637 &
-                , -22.603, -22.553, -22.503, -22.453, -22.403 &
-                , -22.353, -22.303, -22.253, -22.203, -22.153 &
-                , -22.103 /
-
-  data    n_MLcosmol / 71 /
-
-  data    t_MLcosmol / &
-                 2.0, 2.1, 2.2, 2.3, 2.4, &
-                 2.5, 2.6, 2.7, 2.8, 2.9, &
-                 3.0, 3.1, 3.2, 3.3, 3.4, &
-                 3.5, 3.6, 3.7, 3.8, 3.9, &
-                 4.0, 4.1, 4.2, 4.3, 4.4, &
-                 4.5, 4.6, 4.7, 4.8, 4.9, &
-                 5.0, 5.1, 5.2, 5.3, 5.4, &
-                 5.5, 5.6, 5.7, 5.8, 5.9, &
-                 6.0, 6.1, 6.2, 6.3, 6.4, &
-                 6.5, 6.6, 6.7, 6.8, 6.9, &
-                 7.0, 7.1, 7.2, 7.3, 7.4, &
-                 7.5, 7.6, 7.7, 7.8, 7.9, &
-                 8.0, 8.1, 8.2, 8.3, 8.4, &
-                 8.5, 8.6, 8.7, 8.8, 8.9, &
-                 9.0 /
-
-  data    l_MLcosmol / &
-                 -99.000, -99.000, -99.000, -99.000, -99.000 & 
-               , -99.000, -99.000, -99.000, -99.000, -99.000 &
-               , -99.000, -99.000, -99.000, -99.000, -99.000 &
-               , -99.000, -44.649, -38.362, -33.324, -29.292 &
-               , -26.063, -23.532, -22.192, -22.195, -22.454 &
-               , -22.676, -22.909, -22.925, -22.499, -22.276 &
-               , -22.440, -22.688, -22.917, -23.116, -23.274 &
-               , -23.394, -23.472, -23.516, -23.530, -23.525 &
-               , -23.506, -23.478, -23.444, -23.408, -23.368 &
-               , -23.328, -23.286, -23.244, -23.201, -23.157 &
-               , -23.114, -23.070, -23.026, -22.981, -22.937 &
-               , -22.893, -22.848, -22.803, -22.759, -22.714 &
-               , -22.669, -22.619, -22.569, -22.519, -22.469 &
-               , -22.419, -22.369, -22.319, -22.269, -22.190 &
-               , -22.169 /
-
-  data    n_MLwc / 71 /
-
-  data    t_MLwc / &
-                 2.0, 2.1, 2.2, 2.3, 2.4, &
-                 2.5, 2.6, 2.7, 2.8, 2.9, &
-                 3.0, 3.1, 3.2, 3.3, 3.4, &
-                 3.5, 3.6, 3.7, 3.8, 3.9, &
-                 4.0, 4.1, 4.2, 4.3, 4.4, &
-                 4.5, 4.6, 4.7, 4.8, 4.9, &
-                 5.0, 5.1, 5.2, 5.3, 5.4, &
-                 5.5, 5.6, 5.7, 5.8, 5.9, &
-                 6.0, 6.1, 6.2, 6.3, 6.4, &
-                 6.5, 6.6, 6.7, 6.8, 6.9, &
-                 7.0, 7.1, 7.2, 7.3, 7.4, &
-                 7.5, 7.6, 7.7, 7.8, 7.9, &
-                 8.0, 8.1, 8.2, 8.3, 8.4, &
-                 8.5, 8.6, 8.7, 8.8, 8.9, &
-                 9.0 /
-
-  data    l_MLwc / &
-                 -21.192, -21.160, -21.150, -21.150, -21.166 & 
-               , -21.191, -21.222, -21.264, -21.308, -21.357 &
-               , -21.408, -21.449, -21.494, -21.544, -21.587 &
-               , -21.638, -21.686, -21.736, -21.780, -21.800 &
-               , -21.744, -21.547, -21.208, -20.849, -20.345 &
-               , -19.771, -19.409, -19.105, -18.827, -18.555 &
-               , -18.460, -18.763, -19.168, -19.334, -19.400 &
-               , -19.701, -20.090, -20.288, -20.337, -20.301 &
-               , -20.233, -20.275, -20.363, -20.508, -20.675 &
-               , -20.856, -21.025, -21.159, -21.256, -21.320 &
-               , -21.354, -21.366, -21.361, -21.343, -21.317 &
-               , -21.285, -21.250, -21.212, -21.172, -21.131 &
-               , -21.089, -21.039, -20.989, -20.939, -20.889 &
-               , -20.839, -20.789, -20.739, -20.689, -20.639 & 
-               , -20.589 /
-
-  data n_MLsolar1 / 71 /
-
-  data    t_MLsolar1 / &
-                       2.0, 2.1, 2.2, 2.3, 2.4, &
-                       2.5, 2.6, 2.7, 2.8, 2.9, &
-                        3.0, 3.1, 3.2, 3.3, 3.4, &
-                       3.5, 3.6, 3.7, 3.8, 3.9, &
-                       4.0, 4.1, 4.2, 4.3, 4.4, &
-                       4.5, 4.6, 4.7, 4.8, 4.9, &
-                       5.0, 5.1, 5.2, 5.3, 5.4, &
-                       5.5, 5.6, 5.7, 5.8, 5.9, &
-                       6.0, 6.1, 6.2, 6.3, 6.4, &
-                       6.5, 6.6, 6.7, 6.8, 6.9, &
-                       7.0, 7.1, 7.2, 7.3, 7.4, &
-                       7.5, 7.6, 7.7, 7.8, 7.9, &
-                       8.0, 8.1, 8.2, 8.3, 8.4, &
-                       8.5, 8.6, 8.7, 8.8, 8.9, &
-                       9.0 /
-
-  data    l_MLsolar1 / &
-                       -26.983, -26.951, -26.941, -26.940, -26.956 &
-                     , -26.980, -27.011, -27.052, -27.097, -27.145 &
-                     , -27.195, -27.235, -27.279, -27.327, -27.368 &
-                     , -27.415, -27.456, -27.485, -27.468, -27.223 &
-                     , -25.823, -23.501, -22.162, -22.084, -22.157 &
-                     , -22.101, -21.974, -21.782, -21.542, -21.335 &
-                     , -21.251, -21.275, -21.236, -21.173, -21.167 &
-                     , -21.407, -21.670, -21.788, -21.879, -22.008 &
-                     , -22.192, -22.912, -22.918, -22.887, -22.929 &
-                     , -23.023, -23.094, -23.117, -23.108, -23.083 &
-                     , -23.049, -23.011, -22.970, -22.928, -22.885 &
-                     , -22.842, -22.798, -22.754, -22.709, -22.665 &
-                     , -22.620, -22.570, -22.520, -22.470, -22.420 &
-                     , -22.370, -22.320, -22.270, -22.220, -22.170 &
-                     , -22.120 /
-
-  data n_SPEX / 110 /
-
-  data    t_SPEX / &
-                       3.80, 3.84, 3.88, 3.92, 3.96, &
-                       4.00, 4.04, 4.08, 4.12, 4.16, &
-                       4.20, 4.24, 4.28, 4.32, 4.36, &
-                       4.40, 4.44, 4.48, 4.52, 4.56, &
-                       4.60, 4.64, 4.68, 4.72, 4.76, &
-                       4.80, 4.84, 4.88, 4.92, 4.96, &
-                       5.00, 5.04, 5.08, 5.12, 5.16, &
-                       5.20, 5.24, 5.28, 5.32, 5.36, &
-                       5.40, 5.44, 5.48, 5.52, 5.56, &
-                       5.60, 5.64, 5.68, 5.72, 5.76, &
-                       5.80, 5.84, 5.88, 5.92, 5.96, &
-                       6.00, 6.04, 6.08, 6.12, 6.16, &
-                       6.20, 6.24, 6.28, 6.32, 6.36, &
-                       6.40, 6.44, 6.48, 6.52, 6.56, &
-                       6.60, 6.64, 6.68, 6.72, 6.76, &
-                       6.80, 6.84, 6.88, 6.92, 6.96, &
-                       7.00, 7.04, 7.08, 7.12, 7.16, &
-                       7.20, 7.24, 7.28, 7.32, 7.36, &
-                       7.40, 7.44, 7.48, 7.52, 7.56, &
-                       7.60, 7.64, 7.68, 7.72, 7.76, &
-                       7.80, 7.84, 7.88, 7.92, 7.96, &
-                       8.00, 8.04, 8.08, 8.12, 8.16  /
-
-  data    l_SPEX / &
-                      -25.7331, -25.0383, -24.4059, -23.8288, -23.3027 &
-                    , -22.8242, -22.3917, -22.0067, -21.6818, -21.4529 &
-                    , -21.3246, -21.3459, -21.4305, -21.5293, -21.6138 &
-                    , -21.6615, -21.6551, -21.5919, -21.5092, -21.4124 &
-                    , -21.3085, -21.2047, -21.1067, -21.0194, -20.9413 &
-                    , -20.8735, -20.8205, -20.7805, -20.7547, -20.7455 &
-                    , -20.7565, -20.7820, -20.8008, -20.7994, -20.7847 &
-                    , -20.7687, -20.7590, -20.7544, -20.7505, -20.7545 &
-                    , -20.7888, -20.8832, -21.0450, -21.2286, -21.3737 &
-                    , -21.4573, -21.4935, -21.5098, -21.5345, -21.5863 &
-                    , -21.6548, -21.7108, -21.7424, -21.7576, -21.7696 &
-                    , -21.7883, -21.8115, -21.8303, -21.8419, -21.8514 &
-                    , -21.8690, -21.9057, -21.9690, -22.0554, -22.1488 &
-                    , -22.2355, -22.3084, -22.3641, -22.4033, -22.4282 &
-                    , -22.4408, -22.4443, -22.4411, -22.4334, -22.4242 &
-                    , -22.4164, -22.4134, -22.4168, -22.4267, -22.4418 &
-                    , -22.4603, -22.4830, -22.5112, -22.5449, -22.5819 &
-                    , -22.6177, -22.6483, -22.6719, -22.6883, -22.6985 &
-                    , -22.7032, -22.7037, -22.7008, -22.6950, -22.6869 &
-                    , -22.6769, -22.6655, -22.6531, -22.6397, -22.6258 &
-                    , -22.6111, -22.5964, -22.5816, -22.5668, -22.5519 &
-                    , -22.5367, -22.5216, -22.5062, -22.4912, -22.4753 /
-
-  data    nenh_SPEX / &
-            0.000013264, 0.000042428, 0.000088276, 0.00017967 &
-          , 0.00084362,  0.0034295,   0.013283,    0.042008   &
-          , 0.12138,     0.30481,     0.53386,     0.76622    &
-          , 0.89459,     0.95414,     0.98342 &
-          , 1.0046,    1.0291,    1.0547    &
-          , 1.0767,    1.0888    &
-          , 1.0945,    1.0972,    1.0988    &
-          , 1.1004,    1.1034    &
-          , 1.1102,    1.1233,    1.1433    &
-          , 1.1638,    1.1791    &
-          , 1.1885,    1.1937,    1.1966    &
-          , 1.1983,    1.1993    &
-          , 1.1999,    1.2004,    1.2008    &
-          , 1.2012,    1.2015    &
-          , 1.2020,    1.2025,    1.2030    &
-          , 1.2035,    1.2037    &
-          , 1.2039,    1.2040,    1.2041    &
-          , 1.2042,    1.2044    &
-          , 1.2045,    1.2046,    1.2047    &
-          , 1.2049,    1.2050    &
-          , 1.2051,    1.2053,    1.2055    &
-          , 1.2056,    1.2058    &
-          , 1.2060,    1.2062,    1.2065    &
-          , 1.2067,    1.2070    &
-          , 1.2072,    1.2075,    1.2077    &
-          , 1.2078,    1.2079    &
-          , 1.2080,    1.2081,    1.2082    &
-          , 1.2083,    1.2083    &
-          , 1.2084,    1.2084,    1.2085    &
-          , 1.2085,    1.2086    &
-          , 1.2086,    1.2087,    1.2087    &
-          , 1.2088,    1.2088    &
-          , 1.2089,    1.2089,    1.2089    &
-          , 1.2089,    1.2089    &
-          , 1.2090,    1.2090,    1.2090    &
-          , 1.2090,    1.2090    &
-          , 1.2090,    1.2090,    1.2090    &
-          , 1.2090,    1.2090    &
-          , 1.2090,    1.2090,    1.2090    &
-          , 1.2090,    1.2090    &
-          , 1.2090,    1.2090,    1.2090    &
-          , 1.2090,    1.2090    /   
-  !
-  ! To be used together with the SPEX table for the SPEX_DM option
-  ! Assuming an ionization fraction of 10^-3
-  !
-  data    n_DM_2 / 76 /
-
-  data    t_DM_2 / 1.00, 1.04, 1.08, 1.12, 1.16, 1.20 &
-                 , 1.24, 1.28, 1.32, 1.36, 1.40 &
-                 , 1.44, 1.48, 1.52, 1.56, 1.60 &
-                 , 1.64, 1.68, 1.72, 1.76, 1.80 &
-                 , 1.84, 1.88, 1.92, 1.96, 2.00 &
-                 , 2.04, 2.08, 2.12, 2.16, 2.20 &
-                 , 2.24, 2.28, 2.32, 2.36, 2.40 &
-                 , 2.44, 2.48, 2.52, 2.56, 2.60 & 
-                 , 2.64, 2.68, 2.72, 2.76, 2.80 &
-                 , 2.84, 2.88, 2.92, 2.96, 3.00 &
-                 , 3.04, 3.08, 3.12, 3.16, 3.20 &
-                 , 3.24, 3.28, 3.32, 3.36, 3.40 &
-                 , 3.44, 3.48, 3.52, 3.56, 3.60 & 
-                 , 3.64, 3.68, 3.72, 3.76, 3.80 &
-                 , 3.84, 3.88, 3.92, 3.96, 4.00 /
-
-  data    l_DM_2 / -30.0377, -29.7062, -29.4055, -29.1331, -28.8864, -28.6631 &
-                 , -28.4614, -28.2791, -28.1146, -27.9662, -27.8330 &
-                 , -27.7129, -27.6052, -27.5088, -27.4225, -27.3454 &
-                 , -27.2767, -27.2153, -27.1605, -27.1111, -27.0664 &
-                 , -27.0251, -26.9863, -26.9488, -26.9119, -26.8742 &
-                 , -26.8353, -26.7948, -26.7523, -26.7080, -26.6619 &
-                 , -26.6146, -26.5666, -26.5183, -26.4702, -26.4229 &
-                 , -26.3765, -26.3317, -26.2886, -26.2473, -26.2078 &
-                 , -26.1704, -26.1348, -26.1012, -26.0692, -26.0389 &
-                 , -26.0101, -25.9825, -25.9566, -25.9318, -25.9083 &
-                 , -25.8857, -25.8645, -25.8447, -25.8259, -25.8085 &
-                 , -25.7926, -25.7778, -25.7642, -25.7520, -25.7409 &
-                 , -25.7310, -25.7222, -25.7142, -25.7071, -25.7005 &
-                 , -25.6942, -25.6878, -25.6811, -25.6733, -25.6641 &
-                 , -25.6525, -25.6325, -25.6080, -25.5367, -25.4806  /
-
-  data n_cl_solar / 151 /
-
-  data    t_cl_solar /    &
-     1.000   ,   1.050   ,   1.100   ,   1.150   , &
-     1.200   ,   1.250   ,   1.300   ,   1.350   , &
-     1.400   ,   1.450   ,   1.500   ,   1.550   , &
-     1.600   ,   1.650   ,   1.700   ,   1.750   , &
-     1.800   ,   1.850   ,   1.900   ,   1.950   , &
-     2.000   ,   2.050   ,   2.100   ,   2.150   , &
-     2.200   ,   2.250   ,   2.300   ,   2.350   , & 
-     2.400   ,   2.450   ,   2.500   ,   2.550   , &
-     2.600   ,   2.650   ,   2.700   ,   2.750   , &
-     2.800   ,   2.850   ,   2.900   ,   2.950   , &
-     3.000   ,   3.050   ,   3.100   ,   3.150   , &
-     3.200   ,   3.250   ,   3.300   ,   3.350   , &
-     3.400   ,   3.450   ,   3.500   ,   3.550   , &
-     3.600   ,   3.650   ,   3.700   ,   3.750   , &
-     3.800   ,   3.850   ,   3.900   ,   3.950   , &
-     4.000   ,   4.050   ,   4.100   ,   4.150   , &
-     4.200   ,   4.250   ,   4.300   ,   4.350   , &
-     4.400   ,   4.450   ,   4.500   ,   4.550   , &
-     4.600   ,   4.650   ,   4.700   ,   4.750   , &
-     4.800   ,   4.850   ,   4.900   ,   4.950   , &
-     5.000   ,   5.050   ,   5.100   ,   5.150   , &
-     5.200   ,   5.250   ,   5.300   ,   5.350   , &
-     5.400   ,   5.450   ,   5.500   ,   5.550   , &
-     5.600   ,   5.650   ,   5.700   ,   5.750   , &
-     5.800   ,   5.850   ,   5.900   ,   5.950   , &
-     6.000   ,   6.050   ,   6.100   ,   6.150   , &
-     6.200   ,   6.250   ,   6.300   ,   6.350   , &
-     6.400   ,   6.450   ,   6.500   ,   6.550   , &
-     6.600   ,   6.650   ,   6.700   ,   6.750   , &
-     6.800   ,   6.850   ,   6.900   ,   6.950   , &
-     7.000   ,   7.050   ,   7.100   ,   7.150   , &
-     7.200   ,   7.250   ,   7.300   ,   7.350   , &
-     7.400   ,   7.450   ,   7.500   ,   7.550   , &
-     7.600   ,   7.650   ,   7.700   ,   7.750   , &
-     7.800   ,   7.850   ,   7.900   ,   7.950   , &
-     8.000   ,   8.100   ,   8.200   ,   8.300   , &
-     8.400   ,   8.500   ,   8.600   ,   8.700   , &
-     8.800   ,   8.900   ,   9.00  / 
-
-  data    l_cl_solar / &
-   -28.375   , -28.251   , -28.137   , -28.029   , &
-   -27.929   , -27.834   , -27.745   , -27.662   , &
-   -27.584   , -27.512   , -27.445   , -27.383   , &
-   -27.326   , -27.273   , -27.223   , -27.175   , &
-   -27.128   , -27.079   , -27.027   , -26.972   , &
-   -26.911   , -26.846   , -26.777   , -26.705   , &
-   -26.632   , -26.554   , -26.479   , -26.407   , &
-   -26.338   , -26.274   , -26.213   , -26.156   , &
-   -26.101   , -26.049   , -25.999   , -25.949   , &
-   -25.901   , -25.852   , -25.803   , -25.754   , &
-   -25.707   , -25.662   , -25.621   , -25.588   , &
-   -25.561   , -25.538   , -25.518   , -25.497   , &
-   -25.475   , -25.452   , -25.426   , -25.400   , &
-   -25.374   , -25.333   , -25.295   , -25.261   , &
-   -25.228   , -25.189   , -25.136   , -25.053   , &
-   -24.888   , -24.454   , -23.480   , -22.562   , &
-   -22.009   , -21.826   , -21.840   , -21.905   , &
-   -21.956   , -21.971   , -21.958   , -21.928   , &
-   -21.879   , -21.810   , -21.724   , -21.623   , &
-   -21.512   , -21.404   , -21.321   , -21.273   , &
-   -21.250   , -21.253   , -21.275   , -21.287   , &
-   -21.282   , -21.275   , -21.272   , -21.267   , &
-   -21.281   , -21.357   , -21.496   , -21.616   , &
-   -21.677   , -21.698   , -21.708   , -21.730   , &
-   -21.767   , -21.793   , -21.794   , -21.787   , &
-   -21.787   , -21.802   , -21.826   , -21.859   , &
-   -21.911   , -21.987   , -22.082   , -22.173   , &
-   -22.253   , -22.325   , -22.392   , -22.448   , &
-   -22.487   , -22.512   , -22.524   , -22.528   , &
-   -22.524   , -22.516   , -22.507   , -22.501   , &
-   -22.502   , -22.511   , -22.533   , -22.565   , &
-   -22.600   , -22.630   , -22.648   , -22.656   , &
-   -22.658   , -22.654   , -22.647   , -22.634   , &
-   -22.619   , -22.602   , -22.585   , -22.566   , &
-   -22.546   , -22.525   , -22.505   , -22.480   , &
-   -22.465   , -22.415   , -22.365   , -22.315   , &
-   -22.265   , -22.215   , -22.165   , -22.115   , &
-   -22.065   , -22.015   , -21.965   / 
-
-  data n_cl_ism / 151 /
-
-  data t_cl_ism / &
-     1.000   ,   1.050   ,   1.100   ,   1.150   , &
-     1.200   ,   1.250   ,   1.300   ,   1.350   , &
-     1.400   ,   1.450   ,   1.500   ,   1.550   , &
-     1.600   ,   1.650   ,   1.700   ,   1.750   , &
-     1.800   ,   1.850   ,   1.900   ,   1.950   , &
-     2.000   ,   2.050   ,   2.100   ,   2.150   , &
-     2.200   ,   2.250   ,   2.300   ,   2.350   , &
-     2.400   ,   2.450   ,   2.500   ,   2.550   , &
-     2.600   ,   2.650   ,   2.700   ,   2.750   , &
-     2.800   ,   2.850   ,   2.900   ,   2.950   , &
-     3.000   ,   3.050   ,   3.100   ,   3.150   , &
-     3.200   ,   3.250   ,   3.300   ,   3.350   , &
-     3.400   ,   3.450   ,   3.500   ,   3.550   , &
-     3.600   ,   3.650   ,   3.700   ,   3.750   , &
-     3.800   ,   3.850   ,   3.900   ,   3.950   , &
-     4.000   ,   4.050   ,   4.100   ,   4.150   , &
-     4.200   ,   4.250   ,   4.300   ,   4.350   , &
-     4.400   ,   4.450   ,   4.500   ,   4.550   , &
-     4.600   ,   4.650   ,   4.700   ,   4.750   , &
-     4.800   ,   4.850   ,   4.900   ,   4.950   , &
-     5.000   ,   5.050   ,   5.100   ,   5.150   , &
-     5.200   ,   5.250   ,   5.300   ,   5.350   , &
-     5.400   ,   5.450   ,   5.500   ,   5.550   , &
-     5.600   ,   5.650   ,   5.700   ,   5.750   , &
-     5.800   ,   5.850   ,   5.900   ,   5.950   , &
-     6.000   ,   6.050   ,   6.100   ,   6.150   , &
-     6.200   ,   6.250   ,   6.300   ,   6.350   , &
-     6.400   ,   6.450   ,   6.500   ,   6.550   , &
-     6.600   ,   6.650   ,   6.700   ,   6.750   , &
-     6.800   ,   6.850   ,   6.900   ,   6.950   , &
-     7.000   ,   7.050   ,   7.100   ,   7.150   , &
-     7.200   ,   7.250   ,   7.300   ,   7.350   , &
-     7.400   ,   7.450   ,   7.500   ,   7.550   , &
-     7.600   ,   7.650   ,   7.700   ,   7.750   , &
-     7.800   ,   7.850   ,   7.900   ,   7.950   , &
-     8.000   ,   8.100   ,   8.200   ,   8.300   , &
-     8.400   ,   8.500   ,   8.600   ,   8.700   , &
-     8.800   ,   8.900   ,   9.00    /
-
-  data l_cl_ism / &
-   -28.365   , -28.242   , -28.127   , -28.020   , &
-   -27.919   , -27.825   , -27.736   , -27.653   , &
-   -27.575   , -27.504   , -27.437   , -27.376   , &
-   -27.319   , -27.267   , -27.220   , -27.176   , &
-   -27.134   , -27.095   , -27.058   , -27.021   , &
-   -26.985   , -26.948   , -26.910   , -26.870   , &
-   -26.827   , -26.775   , -26.721   , -26.664   , &
-   -26.608   , -26.552   , -26.495   , -26.437   , &
-   -26.378   , -26.317   , -26.255   , -26.190   , &
-   -26.123   , -26.053   , -25.984   , -25.913   , &
-   -25.847   , -25.786   , -25.736   , -25.702   , &
-   -25.678   , -25.662   , -25.649   , -25.636   , &
-   -25.621   , -25.604   , -25.587   , -25.571   , &
-   -25.562   , -25.526   , -25.505   , -25.499   , &
-   -25.499   , -25.491   , -25.468   , -25.410   , &
-   -25.268   , -24.888   , -23.702   , -22.624   , &
-   -22.036   , -21.843   , -21.854   , -21.924   , &
-   -21.986   , -22.017   , -22.021   , -22.005   , &
-   -21.964   , -21.896   , -21.806   , -21.699   , &
-   -21.580   , -21.463   , -21.370   , -21.312   , &
-   -21.284   , -21.290   , -21.322   , -21.345   , & 
-   -21.354   , -21.366   , -21.385   , -21.396   , &
-   -21.414   , -21.483   , -21.600   , -21.696   , &
-   -21.742   , -21.759   , -21.776   , -21.816   , &
-   -21.885   , -21.939   , -21.946   , -21.918   , &
-   -21.873   , -21.818   , -21.756   , -21.689   , &
-   -21.618   , -21.547   , -21.475   , -21.403   , &
-   -21.331   , -21.260   , -21.188   , -21.114   , &
-   -21.039   , -20.963   , -20.887   , -20.810   , &
-   -20.734   , -20.657   , -20.581   , -20.505   , &
-   -20.429   , -20.352   , -20.276   , -20.200   , &
-   -20.125   , -20.049   , -19.973   , -19.898   , &
-   -19.822   , -19.747   , -19.671   , -19.596   , &
-   -19.520   , -19.445   , -19.370   , -19.295   , &
-   -19.220   , -19.144   , -19.069   , -18.994   , &
-   -18.919   , -18.869   , -18.819   , -18.769   , &
-   -18.719   , -18.669   , -18.619   , -18.569   , &
-   -18.519   , -18.469   , -18.419   /
-
-  data    n_Dere / 101 /
-
-  data    t_Dere / 4.00, 4.05, 4.10, 4.15, 4.20, 4.25, 4.30, 4.35, &
-                   4.40, 4.45, 4.50, 4.55, 4.60, 4.65, 4.70, 4.75, &
-                   4.80, 4.85, 4.90, 4.95, 5.00, 5.05, 5.10, 5.15, &
-                   5.20, 5.25, 5.30, 5.35, 5.40, 5.45, 5.50, 5.55, &
-                   5.60, 5.65, 5.70, 5.75, 5.80, 5.85, 5.90, 5.95, &
-                   6.00, 6.05, 6.10, 6.15, 6.20, 6.25, 6.30, 6.35, &
-                   6.40, 6.45, 6.50, 6.55, 6.60, 6.65, 6.70, 6.75, &
-                   6.80, 6.85, 6.90, 6.95, 7.00, 7.05, 7.10, 7.15, &
-                   7.20, 7.25, 7.30, 7.35, 7.40, 7.45, 7.50, 7.55, &
-                   7.60, 7.65, 7.70, 7.75, 7.80, 7.85, 7.90, 7.95, &
-                   8.00, 8.05, 8.10, 8.15, 8.20, 8.25, 8.30, 8.35, &
-                   8.40, 8.45, 8.50, 8.55, 8.60, 8.65, 8.70, 8.75, &
-                   8.80, 8.85, 8.90, 8.95, 9.00                    /
-
-  data    l_Dere_corona / &
-   -23.00744648, -22.55439580, -22.15614458, -21.83268267, -21.64589156, &
-   -21.61618463, -21.68402965, -21.79048499, -21.87614836, -21.91009489, &
-   -21.89962945, -21.86012091, -21.79588002, -21.71669877, -21.62342304, &
-   -21.52143350, -21.41793664, -21.33068312, -21.27736608, -21.25181197, &
-   -21.24184538, -21.25806092, -21.27901426, -21.27164622, -21.24412514, &
-   -21.21467016, -21.19586057, -21.18309616, -21.18708664, -21.24108811, &
-   -21.35163999, -21.45099674, -21.48678240, -21.47625353, -21.45222529, &
-   -21.43297363, -21.42596873, -21.42021640, -21.41005040, -21.40120949, &
-   -21.40450378, -21.42250820, -21.44977165, -21.47755577, -21.51144928, &
-   -21.55909092, -21.63451202, -21.73754891, -21.85078089, -21.95467702, &
-   -22.03526908, -22.08990945, -22.11804503, -22.12436006, -22.11633856, &
-   -22.10072681, -22.08301995, -22.06701918, -22.05650548, -22.05551733, &
-   -22.06803389, -22.10072681, -22.15926677, -22.24033216, -22.32882716, &
-   -22.40782324, -22.47108330, -22.51855737, -22.54975089, -22.57024772, &
-   -22.58004425, -22.58335949, -22.58169871, -22.57511836, -22.56543110, &
-   -22.55439580, -22.54060751, -22.52724355, -22.51427857, -22.49894074, &
-   -22.48545225, -22.47108330, -22.45593196, -22.44009337, -22.42365865, &
-   -22.40671393, -22.38933984, -22.37059040, -22.35163999, -22.33161408, &
-   -22.31158018, -22.29073004, -22.26921772, -22.24795155, -22.22621356, &
-   -22.20411998, -22.18111459, -22.15864053, -22.13608262, -22.11294562, &
-   -22.08937560                                                          /
-
-  data    l_Dere_photo / &
-   -23.25649024, -22.74232143, -22.28988263, -21.93554201, -21.74232143, &
-   -21.72353820, -21.80410035, -21.91009489, -22.00000000, -22.04143612, &
-   -22.04575749, -22.02502801, -21.97469413, -21.89962945, -21.80410035, &
-   -21.69250396, -21.57511836, -21.46852108, -21.38827669, -21.33629907, &
-   -21.31069114, -21.31966449, -21.33724217, -21.32882716, -21.30189945, &
-   -21.27408837, -21.25649024, -21.24718357, -21.25649024, -21.32148162, &
-   -21.46092390, -21.61083392, -21.70774393, -21.74958000, -21.76955108, &
-   -21.79588002, -21.84466396, -21.88941029, -21.91009489, -21.91721463, &
-   -21.92811799, -21.94692156, -21.96657624, -21.99139983, -22.01412464, &
-   -22.04963515, -22.10402527, -22.17848647, -22.26201267, -22.34390180, &
-   -22.41680123, -22.47237010, -22.50723961, -22.52578374, -22.53313238, &
-   -22.53165267, -22.52578374, -22.51855737, -22.51286162, -22.51286162, &
-   -22.52143350, -22.54211810, -22.57839607, -22.62708800, -22.67366414, &
-   -22.70996539, -22.73282827, -22.74714697, -22.75202673, -22.74958000, &
-   -22.74232143, -22.73282827, -22.72124640, -22.70553377, -22.69036983, &
-   -22.67162040, -22.65364703, -22.63638802, -22.61618463, -22.59687948, &
-   -22.57675413, -22.55752023, -22.53610701, -22.51570016, -22.49485002, &
-   -22.47366072, -22.45222529, -22.42945706, -22.40782324, -22.38510278, &
-   -22.36251027, -22.33913452, -22.31605287, -22.29242982, -22.26921772, &
-   -22.24565166, -22.22184875, -22.19859629, -22.17457388, -22.15058059, &
-   -22.12609840                                                          /           
-
-  data    n_Colgan / 55 /
-
-  data    t_Colgan / 4.06460772, 4.14229559, 4.21995109, 4.29760733, 4.37527944, 4.45293587, &
-                     4.53060946, 4.60826923, 4.68592974, 4.76359269, 4.79704583, 4.83049243, &
-                     4.86394114, 4.89738514, 4.93083701, 4.96428321, 4.99773141, 5.03116600, &
-                     5.06460772, 5.17574368, 5.28683805, 5.39795738, 5.50906805, 5.62017771, &
-                     5.73129054, 5.84240328, 5.95351325, 6.06460772, 6.17574368, 6.28683805, &
-                     6.39795738, 6.50906805, 6.62017771, 6.73129054, 6.84240328, 6.95351325, &
-                     7.06460772, 7.17574368, 7.28683805, 7.39795738, 7.50906805, 7.62017771, &
-                     7.73129054, 7.84240328, 7.95351325, 8.06460772, 8.17574368, 8.28683805, &
-                     8.39795738, 8.50906805, 8.62017771, 8.73129054, 8.84240328, 8.95351325, & 
-                     9.06460772                                                              /
-
-  data    l_Colgan / -22.18883401, -21.78629635, -21.60383554, -21.68480662, -21.76444630, &
-                     -21.67935529, -21.54217864, -21.37958284, -21.25171892, -21.17584161, &
-                     -21.15783402, -21.14491111, -21.13526945, -21.12837453, -21.12485189, &
-                     -21.12438898, -21.12641785, -21.12802448, -21.12547760, -21.08964778, &
-                     -21.08812360, -21.19542445, -21.34582346, -21.34839251, -21.31700703, &
-                     -21.29072156, -21.28900309, -21.34104468, -21.43122351, -21.62448270, &
-                     -21.86694036, -22.02897478, -22.08050874, -22.06057061, -22.01973295, &
-                     -22.00000434, -22.05161149, -22.22175466, -22.41451671, -22.52581288, &
-                     -22.56913516, -22.57485721, -22.56150512, -22.53968863, -22.51490350, &
-                     -22.48895932, -22.46071057, -22.42908363, -22.39358639, -22.35456791, &
-                     -22.31261375, -22.26827428, -22.22203698, -22.17422996, -22.12514145  /
-
   contains
+
+    subroutine radiative_cooling_rho2_factor(ixI^L,ixO^L,w,x,fl,factor)
+      use mod_global_parameters
+      integer, intent(in) :: ixI^L, ixO^L
+      double precision, intent(in) :: w(ixI^S,1:nw), x(ixI^S,1:ndim)
+      type(rc_fluid), intent(in) :: fl
+      double precision, intent(out) :: factor(ixI^S)
+      factor(ixO^S)=one
+      if(associated(fl%get_rho2_factor)) &
+        call fl%get_rho2_factor(ixI^L,ixO^L,w,x,factor)
+    end subroutine radiative_cooling_rho2_factor
 
     !> Radiative cooling initialization
     subroutine radiative_cooling_init_params(phys_gamma,He_abund)
@@ -773,6 +288,182 @@ module mod_radiative_cooling
       rc_gamma=phys_gamma
       He_abundance=He_abund
     end subroutine radiative_cooling_init_params
+
+    !> Build the Voigt escape probability lookup table.
+    !> Called once (guarded by voigt_table_ready flag).
+    !> Uses 64-point Gauss-Legendre quadrature on [0, x_max] to evaluate
+    !>   E(tau_0) = (2 phi(0)/tau_0) * integral_0^{x_max} [1-exp(-tau_0 g(x))] dx
+    !> where g(x) = phi(x)/phi(0) for the Voigt profile H(a,x) truncated at x_max.
+    subroutine voigt_escape_init_table()
+      use mod_global_parameters, only: dpi
+      implicit none
+      integer, parameter :: nquad = 64
+      double precision :: xq(nquad), wq(nquad)
+      double precision :: logtau, tau0, phi0, gx, integrand, E_val
+      double precision :: a_rep
+      integer :: i, k
+
+      if(voigt_table_ready) return
+
+      ! Step size in log10(tau)
+      voigt_logtau_step = (voigt_logtau_max - voigt_logtau_min) / dble(n_voigt_table - 1)
+
+      ! Get Gauss-Legendre nodes and weights on [0, x_max]
+      call voigt_gauss_legendre(0.0d0, voigt_xmax, nquad, xq, wq)
+
+      ! Representative Voigt parameter (a_ref at T = 10 kK)
+      a_rep = voigt_a_ref
+
+      ! phi(0) for the Voigt profile: H(a,0) = exp(a^2)*erfc(a)/sqrt(pi) ≈ 1/sqrt(pi)
+      phi0 = 1.0d0 / sqrt(dpi)
+
+      ! Precompute g(x) = phi(x)/phi(0) at quadrature nodes
+      ! For the Voigt profile: phi(x) = H(a,x), the real part of the
+      ! Faddeeva function divided by sqrt(pi).
+      ! For small a, H(a,x) ≈ exp(-x^2)/sqrt(pi) + a/(pi*x^2) for |x|>few.
+      ! Use the exact Humlicek (1982) rational approximation.
+
+      do i = 1, n_voigt_table
+        logtau = voigt_logtau_min + dble(i-1) * voigt_logtau_step
+        tau0 = 10.0d0**logtau
+
+        if(tau0 < 1.0d-6) then
+          voigt_E_table(i) = 1.0d0
+          cycle
+        end if
+
+        integrand = 0.0d0
+        do k = 1, nquad
+          gx = voigt_profile_ratio(a_rep, xq(k))  ! phi(x)/phi(0)
+          ! [1 - exp(-tau0 * g(x))]
+          if(tau0 * gx > 500.0d0) then
+            integrand = integrand + wq(k) * 1.0d0
+          else if(tau0 * gx < 1.0d-10) then
+            integrand = integrand + wq(k) * tau0 * gx
+          else
+            integrand = integrand + wq(k) * (1.0d0 - exp(-tau0 * gx))
+          end if
+        end do
+
+        E_val = 2.0d0 * phi0 / tau0 * integrand
+        ! Clamp to [0, 1]
+        voigt_E_table(i) = max(0.0d0, min(1.0d0, E_val))
+      end do
+
+      voigt_table_ready = .true.
+
+    end subroutine voigt_escape_init_table
+
+    !> Voigt profile ratio phi(x)/phi(0) using Humlicek (1982) Region I/II approx.
+    !> For the small-a regime (a < 0.01), this simplifies to:
+    !>   H(a,x)/H(a,0) ≈ exp(-x^2) + a*sqrt(pi)/x^2  for |x| > ~2
+    !> We use the exact Gaussian core + Lorentzian wing decomposition.
+    double precision function voigt_profile_ratio(a, x)
+      use mod_global_parameters, only: dpi
+      implicit none
+      double precision, intent(in) :: a, x
+      double precision :: gauss_part, lorentz_part, phi_x, phi_0
+
+      ! phi(0) = H(a,0) ≈ 1/sqrt(pi) * (1 + ...) for small a
+      phi_0 = 1.0d0 / sqrt(dpi)
+
+      ! For small a: H(a,x) ≈ exp(-x²)/sqrt(pi) for |x| < ~3
+      ! and H(a,x) ≈ a/(pi*x²) for |x| >> 1 where Lorentzian dominates
+      ! Use additive approximation: H(a,x) ≈ exp(-x²)/sqrt(pi) + a/(pi*(x²+a²))
+      gauss_part = exp(-x*x) / sqrt(dpi)
+      if(x*x + a*a > 1.0d-30) then
+        lorentz_part = a / (dpi * (x*x + a*a))
+      else
+        lorentz_part = 0.0d0
+      end if
+      phi_x = gauss_part + lorentz_part
+
+      voigt_profile_ratio = phi_x / phi_0
+
+    end function voigt_profile_ratio
+
+    !> Look up the Voigt escape probability for a given tau.
+    !> Uses linear interpolation in log10(tau) space.
+    double precision function voigt_escape_lookup(tau)
+      implicit none
+      double precision, intent(in) :: tau
+      double precision :: logtau, frac
+      integer :: idx
+
+      if(tau < 1.0d-6) then
+        voigt_escape_lookup = 1.0d0
+        return
+      end if
+
+      logtau = log10(tau)
+
+      if(logtau <= voigt_logtau_min) then
+        voigt_escape_lookup = voigt_E_table(1)
+        return
+      end if
+
+      if(logtau >= voigt_logtau_max) then
+        ! Extrapolate with 1/tau scaling from last table entry
+        voigt_escape_lookup = voigt_E_table(n_voigt_table) &
+          * (10.0d0**voigt_logtau_max) / tau
+        return
+      end if
+
+      ! Linear interpolation
+      frac = (logtau - voigt_logtau_min) / voigt_logtau_step
+      idx = int(frac) + 1
+      idx = max(1, min(idx, n_voigt_table - 1))
+      frac = frac - dble(idx - 1)
+
+      voigt_escape_lookup = voigt_E_table(idx) * (1.0d0 - frac) &
+                          + voigt_E_table(idx + 1) * frac
+
+    end function voigt_escape_lookup
+
+    !> Gauss-Legendre quadrature nodes and weights on [a,b].
+    !> Uses the Golub-Welsch algorithm for n points.
+    subroutine voigt_gauss_legendre(a, b, n, x, w)
+      use mod_global_parameters, only: dpi
+      implicit none
+      double precision, intent(in) :: a, b
+      integer, intent(in) :: n
+      double precision, intent(out) :: x(n), w(n)
+      double precision :: xi, wi, p0, p1, p2, pp, z, z1
+      integer :: i, j, k, m
+
+      m = (n + 1) / 2
+
+      do i = 1, m
+        ! Initial guess for i-th root
+        z = cos(dpi * (dble(i) - 0.25d0) / (dble(n) + 0.5d0))
+
+        ! Newton iteration
+        do j = 1, 100
+          p0 = 1.0d0
+          p1 = 0.0d0
+          do k = 1, n
+            p2 = p1
+            p1 = p0
+            p0 = ((2.0d0*dble(k) - 1.0d0) * z * p1 - (dble(k) - 1.0d0) * p2) / dble(k)
+          end do
+          ! p0 = P_n(z), derivative:
+          pp = dble(n) * (z * p0 - p1) / (z*z - 1.0d0)
+          z1 = z
+          z = z - p0 / pp
+          if(abs(z - z1) < 1.0d-15) exit
+        end do
+
+        ! Map from [-1,1] to [a,b]
+        xi = 0.5d0 * ((b - a) * z + (b + a))
+        wi = (b - a) / ((1.0d0 - z*z) * pp*pp)
+
+        x(i) = xi
+        w(i) = wi
+        x(n + 1 - i) = a + b - xi
+        w(n + 1 - i) = wi
+      end do
+
+    end subroutine voigt_gauss_legendre
 
     subroutine radiative_cooling_init(fl,read_params)
       use mod_global_parameters
@@ -789,6 +480,7 @@ module mod_radiative_cooling
   
       double precision, dimension(:), allocatable :: t_table
       double precision, dimension(:), allocatable :: L_table
+      double precision, dimension(:), allocatable :: f_table
       double precision :: ratt, fact1, fact2, fact3, dL1, dL2
       double precision :: tstep, Lstep
       integer :: ntable, i, j
@@ -797,14 +489,38 @@ module mod_radiative_cooling
 
       fl%ncool=4000
       fl%coolcurve='JCcorona'
-      fl%coolmethod='exact'
       fl%tlow=bigdouble
       fl%Tfix=.false.
       fl%rc_split=.false.
-      fl%rad_cut=.false.
-      fl%rad_cut_hgt=0.5d0
+      fl%rad_suppress_temp=0.0d0
+      fl%rad_cut_hgt=0.0d0
       fl%rad_cut_dey=0.15d0
+      fl%rad_modify=.false.
+      fl%rad_modify_sym=.false.
+      fl%rad_taper_rho=bigdouble
+      fl%rad_taper_dey=0.0d0
+      fl%rad_damp=.false.
+      fl%rad_damp_height=0.5d0
+      fl%rad_damp_scale=0.15d0
       call read_params(fl)
+
+      ! Build Voigt escape lookup table if needed (once, shared across fluids)
+      if(fl%rad_escape_prob .and. fl%rad_escape_type == 'voigt') then
+        call voigt_escape_init_table()
+        if(mype == 0) then
+          write(*,'(A,I0,A,ES9.2,A,F4.1,A)') &
+            ' Voigt escape table: ', n_voigt_table, ' points, a_ref=', &
+            voigt_a_ref, ', x_max=', voigt_xmax, ' Doppler widths'
+        end if
+      end if
+
+      if (fl%fip_ > 0) then
+        select case (trim(fl%coolcurve))
+        case ('Dere_photo', 'Dere_photo_DM')
+        case default
+          call mpistop("FIP cooling requires coolcurve='Dere_photo' or 'Dere_photo_DM'")
+        end select
+      end if
 
       if(fl%rc_split) any_source_split=.true.
 
@@ -890,11 +606,11 @@ module mod_radiative_cooling
          ! Go from logarithmic to actual values.
          fl%t_PPL(1:fl%n_PPL+1) = 10.d0**fl%t_PPL(1:fl%n_PPL+1)
          ! Change unit of table if SI is used instead of cgs
-         if (si_unit) fl%l_PPL(1:fl%n_PPL) = fl%l_PPL(1:fl%n_PPL) * 10.0d0**(-13)
+         if (SI_unit) fl%l_PPL(1:fl%n_PPL) = fl%l_PPL(1:fl%n_PPL) * 10.0d0**(-13)
 
          ! Make dimensionless
          fl%t_PPL(1:fl%n_PPL+1) = fl%t_PPL(1:fl%n_PPL+1) / unit_temperature
-         fl%l_PPL(1:fl%n_PPL) = fl%l_PPL(1:fl%n_PPL) * unit_numberdensity**2 * unit_time / unit_pressure * (1.d0+2.d0*He_abundance)        
+         fl%l_PPL(1:fl%n_PPL) = fl%l_PPL(1:fl%n_PPL) * unit_numberdensity**2 * unit_time / unit_pressure
 
          ! Set tref en lref
          fl%l_PPL(fl%n_PPL+1) = fl%l_PPL(fl%n_PPL) * ( fl%t_PPL(fl%n_PPL+1) / fl%t_PPL(fl%n_PPL) )**fl%a_PPL(fl%n_PPL)
@@ -913,7 +629,8 @@ module mod_radiative_cooling
 
          ! Init for interpolatable tables
          allocate(fl%tcool(1:fl%ncool), fl%Lcool(1:fl%ncool), fl%dLdtcool(1:fl%ncool))
-         allocate(fl%Yc(1:fl%ncool), fl%invYc(1:fl%ncool))
+         allocate(fl%Yc(1:fl%ncool))
+         if(fl%fip_ > 0) allocate(fl%frac_lowFIP(1:fl%ncool))
 
          fl%tcool(1:fl%ncool)    = zero
          fl%Lcool(1:fl%ncool)    = zero
@@ -1005,6 +722,19 @@ module mod_radiative_cooling
             t_table(1:ntable) = t_cl_solar(1:n_cl_solar)
             L_table(1:ntable) = l_cl_solar(1:n_cl_solar)
 
+         case('composite_solar')
+            if(mype ==0) then
+            print *, 'Use composite cooling curve for solar metallicity:'
+            print *, '  T > 12 kK: Dere/Colgan/SPEX weighted average'
+            print *, '  7-12 kK:   SPEX CIE through the Lya transition'
+            print *, '  T < 7 kK:  cloudy_solar fine-structure/molecular'
+            end if
+            ntable = n_composite
+            allocate(t_table(1:ntable))
+            allocate(L_table(1:ntable))
+            t_table(1:ntable) = t_composite(1:n_composite)
+            L_table(1:ntable) = l_composite(1:n_composite)
+
          case('SPEX')
             if(mype ==0) &
             print *,'Use SPEX cooling curve (Schure et al. 2009) '&
@@ -1014,12 +744,21 @@ module mod_radiative_cooling
             allocate(L_table(1:ntable))
             t_table(1:ntable) = t_SPEX(1:n_SPEX)
             L_table(1:ntable) = l_SPEX(1:n_SPEX) + log10(nenh_SPEX(1:n_SPEX))
+            ! SPEX two-table convention: the absorbed nenh_SPEX factor in
+            ! L_table makes Q = n_e * n_H * Lambda give the published rate
+            ! ONLY when n_e ~ n_H (the FI assumption). In LTE+ionE mode the
+            ! actual Saha n_e is much smaller than n_H at low T and the
+            ! formula double-counts the equilibrium factor. The flag below
+            ! tells the LTE+ionE code path to substitute n_H for n_e in the
+            ! cooling rate, which recovers the correct published rate
+            ! Q = n_H^2 * (nenh_eq * Lambda_SPEX) = n_H^2 * Lambda_table.
+            fl%lambda_needs_nenh_table = .true.
 
          case('SPEX_DM')
             if(mype ==0) then
-               print *, 'Use SPEX cooling curve for solar metallicity above 10^4 K. ' 
-               print *, 'At lower temperatures,use Dalgarno & McCray (1972), ' 
-               print *, 'with a pre-set ionization fraction of 10^-3. ' 
+               print *, 'Use SPEX cooling curve for solar metallicity above 10^4 K. '
+               print *, 'At lower temperatures,use Dalgarno & McCray (1972), '
+               print *, 'with a pre-set ionization fraction of 10^-3. '
                print *, 'as described by Schure et al. (2009). '
             endif
             ntable = n_SPEX + n_DM_2 - 6
@@ -1029,6 +768,15 @@ module mod_radiative_cooling
             L_table(1:n_DM_2-1) = L_DM_2(1:n_DM_2-1)
             t_table(n_DM_2:ntable) = t_SPEX(6:n_SPEX)
             L_table(n_DM_2:ntable) = l_SPEX(6:n_SPEX) + log10(nenh_SPEX(6:n_SPEX))
+            ! Same SPEX two-table convention as the pure SPEX case above.
+            ! The DM_2 segment was tabulated assuming y_DM = 10^-3 already
+            ! built into the published L_DM_2 values, so it follows the
+            ! same "Lambda_table includes the nenh factor" convention as
+            ! the SPEX segment above (modulo a constant 10^-3 instead of
+            ! the SPEX equilibrium ratio). Treating both halves with the
+            ! same n_H^2 * Lambda_table formula in LTE+ionE mode gives
+            ! consistent rates and removes the double-counting.
+            fl%lambda_needs_nenh_table = .true.
 
          case('Dere_corona')
             if(mype ==0) &
@@ -1058,8 +806,10 @@ module mod_radiative_cooling
             ntable = n_Dere
             allocate(t_table(1:ntable))
             allocate(L_table(1:ntable))
+            if (fl%fip_ > 0) allocate(f_table(1:ntable))
             t_table(1:ntable) = t_Dere(1:n_Dere)
             L_table(1:ntable) = l_Dere_photo(1:n_Dere)
+            if (fl%fip_ > 0) f_table(1:ntable) = lowFIP_frac(1:n_Dere)
 
          case('Dere_photo_DM')
             if(mype==0)&
@@ -1069,10 +819,15 @@ module mod_radiative_cooling
             ntable = n_Dere + n_DM_2 - 1 
             allocate(t_table(1:ntable))
             allocate(L_table(1:ntable))
+            if (fl%fip_ > 0) allocate(f_table(1:ntable))
             t_table(1:n_DM_2-1) = t_DM_2(1:n_DM_2-1)
             L_table(1:n_DM_2-1) = L_DM_2(1:n_DM_2-1)
             t_table(n_DM_2:ntable) = t_Dere(1:n_Dere)
             L_table(n_DM_2:ntable) = l_Dere_photo(1:n_Dere)
+            if (fl%fip_ > 0) then
+              f_table(1:n_DM_2-1) = zero
+              f_table(n_DM_2:ntable) = lowFIP_frac(1:n_Dere)
+            end if
 
          case('Colgan')
             if(mype==0) &
@@ -1100,6 +855,7 @@ module mod_radiative_cooling
             call mpistop("This coolingcurve is unknown")
          end select
 
+
          ! create cooling table(s) for use in amrvac
          fl%tcoolmax = t_table(ntable)
          fl%tcoolmin = t_table(1)
@@ -1110,6 +866,11 @@ module mod_radiative_cooling
 
          fl%tcool(fl%ncool) = fl%tcoolmax
          fl%Lcool(fl%ncool) = L_table(ntable)
+
+         if (fl%fip_ > 0) then
+           fl%frac_lowFIP(1) = f_table(1)
+           fl%frac_lowFIP(fl%ncool) = f_table(ntable)
+         end if
 
          do i=2,fl%ncool        ! loop to create one table
            fl%tcool(i) = fl%tcool(i-1)+ratt
@@ -1123,6 +884,9 @@ module mod_radiative_cooling
                   fact2 = (fl%tcool(i)-t_table(j))       &
                         /(t_table(j+1)-t_table(j)) 
                   fl%Lcool(i) = L_table(j)*fact1 + L_table(j+1)*fact2 
+                  if (fl%fip_ > 0) then
+                    fl%frac_lowFIP(i) = f_table(j)*fact1 + f_table(j+1)*fact2
+                  end if
                   exit
                 else 
                   dL1 = L_table(j+1)-L_table(j)
@@ -1135,6 +899,9 @@ module mod_radiative_cooling
                   fact2 = (fl%tcool(i)-t_table(j))       &
                         /(t_table(j+1)-t_table(j)) 
                   fl%Lcool(i) = L_table(j)*fact1 + L_table(j+1)*fact2
+                  if (fl%fip_ > 0) then
+                    fl%frac_lowFIP(i) = f_table(j)*fact1 + f_table(j+1)*fact2
+                  end if
                   exit          
                 else
                   fact1 = ((fl%tcool(i)-t_table(j+1))     &
@@ -1151,6 +918,10 @@ module mod_radiative_cooling
                         * (t_table(j+2)-t_table(j+1)))
                   fl%Lcool(i) = L_table(j)*fact1 + L_table(j+1)*fact2 &
                            + L_table(j+2)*fact3
+                  if (fl%fip_ > 0) then
+                    fl%frac_lowFIP(i) = f_table(j)*fact1 + f_table(j+1)*fact2 &
+                                      + f_table(j+2)*fact3
+                  end if
                   exit
                 end if
              end if
@@ -1162,13 +933,21 @@ module mod_radiative_cooling
          fl%Lcool(1:fl%ncool) = 10.0D0**fl%Lcool(1:fl%ncool)
 
          ! Change unit of table if SI is used instead of cgs
-         if (si_unit) fl%Lcool(1:fl%ncool) = fl%Lcool(1:fl%ncool) * 10.0d0**(-13)
+         if (SI_unit) fl%Lcool(1:fl%ncool) = fl%Lcool(1:fl%ncool) * 10.0d0**(-13)
 
          ! Scale both T and Lambda
          fl%tcool(1:fl%ncool) = fl%tcool(1:fl%ncool) / unit_temperature
-         fl%Lcool(1:fl%ncool) = fl%Lcool(1:fl%ncool) * unit_numberdensity**2 * unit_time / unit_pressure * (1.d0+2.d0*He_abundance) 
+         fl%Lcool(1:fl%ncool) = fl%Lcool(1:fl%ncool) * unit_numberdensity**2 * unit_time / unit_pressure
 
          fl%tcoolmin       = fl%tcool(1)+smalldouble  ! avoid pointless interpolation
+         ! Convert rad_suppress_temp from Kelvin to code units
+         if(fl%rad_suppress_temp > 0.0d0) then
+           fl%suppress_temp_code = fl%rad_suppress_temp / unit_temperature
+           if(mype == 0) then
+             write(*,'(A,ES10.3,A)') ' Cooling suppression active: disabled below T = ', &
+               fl%rad_suppress_temp, ' K within rad_cut_hgt'
+           end if
+         end if
          ! smaller value for lowest temperatures from cooling table and user's choice
          if (fl%tlow==bigdouble) fl%tlow=fl%tcoolmin
          fl%tcoolmax       = fl%tcool(fl%ncool)
@@ -1184,20 +963,19 @@ module mod_radiative_cooling
 
          deallocate(t_table)
          deallocate(L_table)
+         if (allocated(f_table)) deallocate(f_table)
 
-         if( fl%coolmethod == 'exact' ) then
-            fl%tref = fl%tcoolmax
-            fl%lref = fl%Lcool(fl%ncool)
-            fl%Yc(fl%ncool) = zero
-            do i=fl%ncool-1, 1, -1
-               fl%Yc(i) = fl%Yc(i+1)
-               do j=1,100
-                  tstep = 1.0d-2*(fl%tcool(i+1)-fl%tcool(i))
-                  call findL(fl%tcool(i+1)-j*tstep, Lstep, fl)
-                  fl%Yc(i) = fl%Yc(i) + fl%lref/fl%tref*tstep/Lstep
-               end do
+         fl%tref = fl%tcoolmax
+         fl%lref = fl%Lcool(fl%ncool)
+         fl%Yc(fl%ncool) = zero
+         do i=fl%ncool-1, 1, -1
+            fl%Yc(i) = fl%Yc(i+1)
+            do j=1,100
+               tstep = 1.0d-2*(fl%tcool(i+1)-fl%tcool(i))
+               call findL(fl%tcool(i+1)-j*tstep, Lstep, fl)
+               fl%Yc(i) = fl%Yc(i) + fl%lref/fl%tref*tstep/Lstep
             end do
-         end if
+         end do
       end if
 
       rc_gamma_1=rc_gamma-1.d0
@@ -1229,54 +1007,13 @@ module mod_radiative_cooling
       end do
     end subroutine create_y_PPL
 
-    subroutine cooling_get_dt(w,ixI^L,ixO^L,dtnew,dx^D,x,fl)
-      use mod_global_parameters
-
-      integer, intent(in) :: ixI^L, ixO^L
-      double precision, intent(in) :: dx^D, x(ixI^S,1:ndim), w(ixI^S,1:nw)
-      type(rc_fluid), intent(in) :: fl
-      double precision, intent(inout) :: dtnew
-
-      double precision :: etherm(ixI^S), rho(ixI^S), Rfactor(ixI^S)
-      double precision :: L1,Te(ixI^S), pth(ixI^S), lum(ixI^S)
-      integer :: ix^D
-      !
-      ! Limit timestep to avoid cooling problems when using explicit cooling
-      !
-      if(fl%coolmethod == 'explicit1') then
-        call fl%get_pthermal(w,x,ixI^L,ixO^L,pth) 
-        call fl%get_rho(w,x,ixI^L,ixO^L,rho) 
-        call fl%get_var_Rfactor(w,x,ixI^L,ixO^L,Rfactor)
-        Te(ixO^S)=pth(ixO^S)/(rho(ixO^S)*Rfactor(ixO^S))
-        {do ix^DB = ixO^LIM^DB\}
-          !  Determine explicit cooling
-          !  If temperature is below floor level, no cooling. 
-          !  Stop wasting time and go to next gridpoint.
-          !  If the temperature is higher than the maximum,
-          !  assume Bremsstrahlung
-          if( Te(ix^D)<=fl%tcoolmin ) then
-             L1 = zero
-          else if( Te(ix^D)>=fl%tcoolmax )then
-             call calc_l_extended(Te(ix^D), L1, fl)
-             L1 = L1*rho(ix^D)**2
-          else  
-             call findL(Te(ix^D),L1,fl)
-             L1 = L1*rho(ix^D)**2
-          end if
-          lum(ix^D) = L1
-        {end do\}
-        etherm(ixO^S)=pth(ixO^S)*invgam
-        dtnew =fl%cfrac*minval(etherm(ixO^S)/max(lum(ixO^S),smalldouble))
-      end if
-    end subroutine cooling_get_dt
-
     subroutine getvar_cooling(ixI^L,ixO^L,w,x,coolrate,fl)
     ! Create extra variable to show cooling rate in the output
-    ! Uses a simple explicit scheme. 
-    ! N.B. Since there is no knowledge of the timestep size, 
+    ! Uses a simple explicit scheme.
+    ! N.B. Since there is no knowledge of the timestep size,
     ! there is no upper limit for the cooling rate.
       use mod_global_parameters
-
+      
       integer, intent(in)          :: ixI^L,ixO^L
       double precision, intent(in) :: x(ixI^S,1:ndim)
       double precision             :: w(ixI^S,1:nw)
@@ -1285,12 +1022,17 @@ module mod_radiative_cooling
 
       double precision :: pth(ixI^S),rho(ixI^S)
       double precision :: L1,Te(ixI^S),Rfactor(ixI^S)
+      double precision :: ne(ixI^S), nH_arr(ixI^S), rho2_factor(ixI^S)
+      double precision :: taper
       integer :: ix^D
 
-      call fl%get_pthermal(w,x,ixI^L,ixO^L,pth)
+      ! call fl%get_pthermal(w,x,ixI^L,ixO^L,pth)
       call fl%get_rho(w,x,ixI^L,ixO^L,rho)
-      call fl%get_var_Rfactor(w,x,ixI^L,ixO^L,Rfactor)
-      Te(ixO^S) = pth(ixO^S) / (rho(ixO^S)*Rfactor(ixO^S))
+      ! call fl%get_var_Rfactor(w,x,ixI^L,ixO^L,Rfactor)
+      ! Te(ixO^S) = pth(ixO^S) / (rho(ixO^S)*Rfactor(ixO^S))
+      call fl%get_Te(w,x,ixI^L,ixO^L,Te)
+      call fl%get_ne_nH(ixI^L, ixO^L, w, x, ne, nH_arr)
+      call radiative_cooling_rho2_factor(ixI^L,ixO^L,w,x,fl,rho2_factor)
 
       {do ix^DB = ixO^LIM^DB\}
          ! Determine explicit cooling
@@ -1298,22 +1040,22 @@ module mod_radiative_cooling
            L1 = zero
          else if(Te(ix^D) >= fl%tcoolmax)then
            call calc_l_extended(Te(ix^D),L1,fl)
-           L1 = L1*rho(ix^D)**2
+           L1 = L1*ne(ix^D)*nH_arr(ix^D)
          else
            call findL(Te(ix^D),L1,fl)
-           L1 = L1*rho(ix^D)**2
+           L1 = L1*ne(ix^D)*nH_arr(ix^D)
          end if
-         if(slab_uniform .and. fl%rad_cut .and. x(ix^D,ndim) .le. fl%rad_cut_hgt) then
-           L1 = L1*exp(-(x(ix^D,ndim)-fl%rad_cut_hgt)**2/fl%rad_cut_dey**2)
+         if(slab_uniform .and. fl%rad_damp .and. x(ix^D,ndim) .le. fl%rad_damp_height) then
+           L1 = L1*exp(-(x(ix^D,ndim)-fl%rad_damp_height)**2/fl%rad_damp_scale**2)
          end if
-         coolrate(ix^D) = L1
+         call radiative_cooling_taper(ix^D, x(ix^D,ndim), rho(ix^D), Te(ix^D), fl, taper)
+         L1 = L1 * taper
+         coolrate(ix^D) = L1*rho2_factor(ix^D)
       {end do\}
     end subroutine getvar_cooling
 
     subroutine getvar_cooling_exact(qdt, ixI^L, ixO^L, wCT, w, x, coolrate, fl)
     ! Calculates cooling rate using the exact cooling method,
-    ! for usage in eg. source_terms subroutine.
-    ! this routine can only be used together with the "exact" cooling method.
       use mod_global_parameters
 
       integer, intent(in)           :: ixI^L, ixO^L
@@ -1324,17 +1066,21 @@ module mod_radiative_cooling
       double precision              :: y1, y2, l1, tlocal2
       double precision              :: Te(ixI^S), pnew(ixI^S), rho(ixI^S), rhonew(ixI^S)
       double precision              :: emin, Lmax, fact, Rfactor(ixI^S), pth(ixI^S)
+      double precision              :: ne(ixI^S), nH_arr(ixI^S), rho2_factor(ixI^S)
+      double precision              :: taper
+      ! LTE+IonE variables
+      double precision              :: nH_val, log_nH, log_p_nH
+      double precision              :: eint_current
+      double precision              :: y_l, T_l
       integer                       :: ix^D
-
-      ! Check cooling method
-      if( fl%coolmethod /= 'exact') then
-         call mpistop("Subroutine getvar_cooling_exact needs the exact cooling method")
-      end if
 
       call fl%get_pthermal(wCT, x, ixI^L, ixO^L, pth)
       call fl%get_rho(wCT, x, ixI^L, ixO^L, rho)
       call fl%get_var_Rfactor(wCT,x,ixI^L,ixO^L,Rfactor)
-      Te(ixO^S)=pth(ixO^S)/(rho(ixO^S)*Rfactor(ixO^S))
+      call fl%get_Te(wCT, x, ixI^L, ixO^L, Te)
+      call fl%get_ne_nH(ixI^L, ixO^L, wCT, x, ne, nH_arr)
+      call radiative_cooling_rho2_factor(ixI^L,ixO^L,wCT,x,fl,rho2_factor)
+      ! Te(ixO^S)=pth(ixO^S)/(rho(ixO^S)*Rfactor(ixO^S))
 
       call fl%get_pthermal(w, x, ixI^L, ixO^L, pnew)
       call fl%get_rho(w, x, ixI^L, ixO^L, rhonew)
@@ -1343,7 +1089,22 @@ module mod_radiative_cooling
 
       {do ix^DB = ixO^LIM^DB\}
          emin = rhonew(ix^D) * fl%tlow * Rfactor(ix^D) * invgam
-         lmax = max(zero, ( pnew(ix^D)*invgam - emin ) / qdt)
+         if (fl%ionE) then
+           nH_val = rhonew(ix^D) / fl%nH2rhoFactor
+           log_nH = dlog10(nH_val)
+           if (fl%method == 'analytic') then
+             T_l = Te(ix^D)
+             y_l = wCT(ix^D, iw_ne) / nH_val
+             eint_current = fl%inv_gamma_minus_1 * (1.0d0 + y_l) * nH_val * T_l &
+                 + y_l * fl%eion_per_nH * nH_val
+           else
+             log_p_nH = dlog10(pnew(ix^D) / nH_val)
+             eint_current = pnew(ix^D) * fl%p2eint(log_nH, log_p_nH)
+           end if
+           lmax = max(zero, (eint_current - emin) / qdt)
+         else
+           lmax = max(zero, ( pnew(ix^D)*invgam - emin ) / qdt)
+         end if
 
          ! No cooling if temperature is below floor level.
          ! Assuming Bremsstrahlung if temperature is higher than maximum.
@@ -1351,21 +1112,52 @@ module mod_radiative_cooling
            l1 = zero
          else if( Te(ix^D)>= fl%tcoolmax ) then
            call calc_l_extended(Te(ix^D), l1, fl)
-           l1 = l1 * rho(ix^D)**2
-           l1 = min(l1, lmax)
+           if (fl%lambda_needs_nenh_table) then
+             l1 = l1 * nH_arr(ix^D) * nH_arr(ix^D)
+           else
+             l1 = l1 * ne(ix^D) * nH_arr(ix^D)
+           end if
+           l1 = min(l1*rho2_factor(ix^D), lmax)
          else
+           !> Always classical Townsend first. Upgrade to Y_mod only where
+           !> ionisation buffering matters (large ΔT, recombination zone).
            call findY(Te(ix^D), y1, fl)
-           y2   = y1 +  fact * rho(ix^D)*rc_gamma_1
+           if (fl%lambda_needs_nenh_table) then
+             y2 = y1 + rho2_factor(ix^D)*fact * nH_arr(ix^D) * nH_arr(ix^D) * rc_gamma_1 &
+                              / (rho(ix^D) * Rfactor(ix^D))
+           else
+             y2 = y1 + rho2_factor(ix^D)*fact * ne(ix^D) * nH_arr(ix^D) * rc_gamma_1 &
+                              / (rho(ix^D) * Rfactor(ix^D))
+           end if
            call findT(tlocal2, y2, fl)
+
+           if (fl%ionE .and. fl%Y_mod_built .and. &
+               dabs(Te(ix^D) - tlocal2) > 1.0d-4 * Te(ix^D)) then
+             y1 = findY_mod(Te(ix^D), nH_arr(ix^D), fl)
+             if (y1 == y1 .and. abs(y1) < huge(1.0d0)) then
+               y2 = y1 + rho2_factor(ix^D)*qdt
+               tlocal2 = findT_mod(y2, nH_arr(ix^D), fl)
+             end if
+           end if
+
            if( tlocal2 <= fl%tcoolmin ) then
              l1 = lmax
+           else if (fl%ionE .and. &
+                    dabs(Te(ix^D) - tlocal2) > 1.0d-4 * Te(ix^D)) then
+             !> Recombination zone: table-based de for variable c_V.
+             l1 = ((fl%eint_from_T(log_nH, dlog10(Te(ix^D))) &
+                  - fl%eint_from_T(log_nH, dlog10(tlocal2))) * nH_val) / qdt
+             l1 = max(l1, zero)
            else
+             !> Saturated y or non-ionE: identical Townsend kinetic form.
              l1 = (Te(ix^D)- tlocal2)*rho(ix^D)*Rfactor(ix^D)*invgam/qdt
            end if
            l1 = min(l1, lmax)
          end if
-         if(slab_uniform .and. fl%rad_cut .and. x(ix^D,ndim) .le. fl%rad_cut_hgt) then
-           l1 = l1*exp(-(x(ix^D,ndim)-fl%rad_cut_hgt)**2/fl%rad_cut_dey**2)
+         call radiative_cooling_taper(ix^D, x(ix^D,ndim), rho(ix^D), Te(ix^D), fl, taper)
+         l1 = l1 * taper
+         if(slab_uniform .and. fl%rad_damp .and. x(ix^D,ndim) .le. fl%rad_damp_height) then
+           l1 = l1*exp(-(x(ix^D,ndim)-fl%rad_damp_height)**2/fl%rad_damp_scale**2)
          end if
         coolrate(ix^D) = l1
       {end do\}
@@ -1382,40 +1174,24 @@ module mod_radiative_cooling
       logical, intent(inout) :: active
       type(rc_fluid), intent(in) :: fl
       double precision, allocatable, dimension(:^D&) :: Lequi
+      double precision :: lb_t0_cool
 
+      if (lb_diagnose) lb_t0_cool = MPI_WTIME()
       if(qsourcesplit .eqv.fl%rc_split) then
-        active = .true.
-        select case(fl%coolmethod)
-        case ('explicit1')
-          if(mype==0)then
-            if(it==1) then
-              write(*,*)'Fully explicit cooling is not completely safe in this version'
-              write(*,*)'PROCEED WITH CAUTION!'
-            endif
-          endif
-          call cool_explicit1(qdt,ixI^L,ixO^L,wCT,w,x,fl)
-        case ('explicit2')
-          call cool_explicit2(qdt,ixI^L,ixO^L,wCT,w,x,fl)
-        case ('semiimplicit')
-          call cool_semiimplicit(qdt,ixI^L,ixO^L,wCT,w,x,fl)
-        case ('implicit')   
-          call cool_implicit(qdt,ixI^L,ixO^L,wCT,w,x,fl)   
-        case ('exact')   
-          call cool_exact(qdt,ixI^L,ixO^L,wCT,wCTprim,w,x,fl)
-        case default
-          call mpistop("This cooling method is unknown")
-        end select
-        if(fl%has_equi) then
+       active = .true.
+       call cool_exact(qdt,ixI^L,ixO^L,wCT,wCTprim,w,x,fl)
+       if(fl%subtract_equi) then
           allocate(Lequi(ixI^S))
-          call  get_cool_equi(qdt,ixI^L,ixO^L,wCT,w,x,fl,Lequi)
+          call get_cool_equi(qdt,ixI^L,ixO^L,wCT,w,x,fl,Lequi)
           w(ixO^S,fl%e_) = w(ixO^S,fl%e_)+Lequi(ixO^S)
           deallocate(Lequi)
-        endif
-        if( fl%Tfix ) call floortemperature(qdt,ixI^L,ixO^L,wCT,w,x,fl)
+       endif
+       if( fl%Tfix ) call floortemperature(qdt,ixI^L,ixO^L,wCT,w,x,fl)
       end if
+      if (lb_diagnose) lb_cool_accum = lb_cool_accum + (MPI_WTIME() - lb_t0_cool)
     end subroutine radiative_cooling_add_source
 
-    subroutine floortemperature(qdt,ixI^L,ixO^L,wCT,w,x,fl)
+    subroutine floortemperature(qdt,ixI^L,ixO^L,wCT,w,x,fl) !> This will need revisiting in LTE
     !  Force minimum temperature to a fixed temperature
       use mod_global_parameters
       integer, intent(in)             :: ixI^L, ixO^L
@@ -1436,9 +1212,78 @@ module mod_radiative_cooling
       {end do\}
     end subroutine floortemperature
 
+    subroutine radiative_cooling_taper(ix^D, x_ndim, rho_val, Te_val, fl, factor)
+      !> Compute multiplicative taper factor for radiative cooling.
+      !> Returns 1.0 when no tapering applies; < 1.0 near boundaries,
+      !> at high density, or in optically thick regions (escape probability).
+      use mod_global_parameters
+      integer, intent(in) :: ix^D
+      double precision, intent(in) :: x_ndim, rho_val, Te_val
+      type(rc_fluid), intent(in) :: fl
+      double precision, intent(out) :: factor
+      double precision :: d_boundary, tau, kappa_local
+
+      factor = 1.0d0
+
+      ! Spatial + density taper
+      if(slab_uniform .and. fl%rad_modify) then
+        ! Spatial taper: distance from nearest relevant boundary
+        if(fl%rad_modify_sym) then
+          d_boundary = min(x_ndim - xprobmin^ND, xprobmax^ND - x_ndim)
+        else
+          d_boundary = x_ndim - xprobmin^ND
+        end if
+        if(d_boundary .le. fl%rad_cut_hgt) then
+          if(fl%suppress_temp_code > 0.0d0) then
+            ! Temperature suppression: kill cooling for T below threshold.
+            ! Coronal cooling above threshold proceeds unmodified.
+            if(Te_val .lt. fl%suppress_temp_code) then
+              factor = 0.0d0
+              return
+            end if
+          else
+            ! Standard: Gaussian taper on ALL cooling near boundary
+            factor = factor * exp(-((d_boundary - fl%rad_cut_hgt) / fl%rad_cut_dey)**2)
+          end if
+        end if
+
+        ! Density taper
+        if(rho_val .gt. fl%rad_taper_rho) then
+          factor = factor * exp(-((rho_val - fl%rad_taper_rho) / fl%rad_taper_dey)**2)
+        end if
+      end if
+
+      ! Escape probability: cooling suppression by optical depth
+      ! kappa(T) = kappa_0 / (1 + (T/T_cutoff)^alpha) — sigmoid cutoff
+      if(fl%rad_escape_prob .and. fl%iw_colmass_ > 0) then
+        kappa_local = fl%rad_kappa_eff
+        if(fl%rad_kappa_Tcutoff > 0.0d0) then
+          kappa_local = kappa_local &
+            / (1.0d0 + (Te_val / fl%rad_kappa_Tcutoff)**fl%rad_kappa_alpha)
+        end if
+        tau = kappa_local * block%wextra(ix^D, fl%iw_colmass_)
+        if(tau > 1.0d-6) then
+          select case(fl%rad_escape_type)
+          case('slab')
+            ! Plane-parallel slab: beta(tau) = (1 - exp(-tau))/tau
+            factor = factor * (1.0d0 - exp(-tau)) / tau
+          case('voigt')
+            ! Frequency-integrated escape from a truncated Voigt profile
+            ! (CL12 Sec 2.1).  Precomputed lookup table; see voigt_escape_init_table.
+            factor = factor * voigt_escape_lookup(tau)
+          case default
+            call mpistop("Unknown rad_escape_type: use 'slab' or 'voigt'")
+          end select
+          ! Exponential cutoff at large tau: kills residual cooling
+          ! where rho^2 outpaces the escape function decay
+          if(fl%rad_escape_tau_cutoff > 0.0d0) then
+            factor = factor * exp(-tau / fl%rad_escape_tau_cutoff)
+          end if
+        end if
+      end if
+    end subroutine radiative_cooling_taper
+
     subroutine get_cool_equi(qdt,ixI^L,ixO^L,wCT,w,x,fl,res)
-    ! explicit cooling routine that depends on getdt to 
-    ! adjust the timestep. Accurate but incredibly slow
       use mod_global_parameters
 
       integer, intent(in)             :: ixI^L, ixO^L
@@ -1452,45 +1297,97 @@ module mod_radiative_cooling
       double precision :: emin, Lmax
       double precision :: Y1, Y2
       double precision :: de, emax,fact
+      double precision :: ne(ixI^S), nH_arr(ixI^S), rho2_factor(ixI^S)
+      double precision :: taper
+      ! LTE+IonE variables
+      double precision :: nH_val, log_nH, log_p_nH
+      double precision :: eint_current
+      double precision :: y_l, T_l
       integer :: ix^D
 
       call fl%get_pthermal_equi(wCT,x,ixI^L,ixO^L,pth)
       call fl%get_rho_equi(wCT,x,ixI^L,ixO^L,rho)
       call fl%get_var_Rfactor(wCT,x,ixI^L,ixO^L,Rfactor)
-      Te(ixO^S)=pth(ixO^S)/(rho(ixO^S)*Rfactor(ixO^S))
+      ! Te(ixO^S)=pth(ixO^S)/(rho(ixO^S)*Rfactor(ixO^S))
+      ! temperature and densities of the background alone, to match pth and rho
+      call fl%get_temperature_equi(wCT,x,ixI^L,ixO^L,Te)
+      call fl%get_ne_nH_equi(ixI^L, ixO^L, wCT, x, ne, nH_arr)
+      call radiative_cooling_rho2_factor(ixI^L,ixO^L,wCT,x,fl,rho2_factor)
 
       res=0d0
 
-      if(fl%coolmethod == 'exact') then
-
-        fact = fl%lref*qdt/fl%tref
-        {do ix^DB = ixO^LIM^DB\}
+      fact = fl%lref*qdt/fl%tref
+      {do ix^DB = ixO^LIM^DB\}
            emin = rho(ix^D)*fl%tlow*Rfactor(ix^D)*invgam
-           Lmax = max(zero,(pth(ix^D)*invgam-emin)/qdt)
-           emax = max(zero, pth(ix^D)*invgam-emin)
+           if (fl%ionE) then
+             nH_val = rho(ix^D) / fl%nH2rhoFactor
+             log_nH = dlog10(nH_val)
+             if (fl%method == 'analytic') then
+               T_l = Te(ix^D)
+               y_l = wCT(ix^D, iw_ne) / nH_val
+               eint_current = 1.5d0 * (1.0d0 + y_l) * nH_val * T_l &
+                   + y_l * fl%eion_per_nH * nH_val
+             else
+               log_p_nH = dlog10(pth(ix^D) / nH_val)
+               eint_current = pth(ix^D) * fl%p2eint(log_nH, log_p_nH)
+             end if
+             Lmax = max(zero, (eint_current - emin) / qdt)
+             emax = max(zero, eint_current - emin)
+           else
+             Lmax = max(zero,(pth(ix^D)*invgam-emin)/qdt)
+             emax = max(zero, pth(ix^D)*invgam-emin)
+           end if
            !  Determine explicit cooling
-           !  If temperature is below floor level, no cooling. 
+           !  If temperature is below floor level, no cooling.
            !  Stop wasting time and go to next gridpoint.
            !  If the temperature is higher than the maximum,
            !  assume Bremsstrahlung
            if( Te(ix^D)<=fl%tcoolmin ) then
-             L1 = zero
+             ! res already initialised to 0d0 above; no cooling
            else if( Te(ix^D)>=fl%tcoolmax )then
              call calc_l_extended(Te(ix^D), L1,fl)
-             L1 = L1*rho(ix^D)**2
+             if (fl%lambda_needs_nenh_table) then
+               L1 = L1 * nH_arr(ix^D) * nH_arr(ix^D)
+             else
+               L1 = L1 * ne(ix^D) * nH_arr(ix^D)
+             end if
              if(phys_trac) then
                if(Te(ix^D)<block%wextra(ix^D,fl%Tcoff_)) then
                  L1=L1*sqrt((Te(ix^D)/block%wextra(ix^D,fl%Tcoff_))**5)
                end if
              end if
-             L1 = min(L1,Lmax)
-             res(ix^D) =  L1*qdt
-           else  
+             L1 = min(rho2_factor(ix^D)*L1,Lmax)
+             res(ix^D) = L1*qdt
+           else
+             !> Always classical Townsend first. Upgrade to Y_mod only in the
+             !> recombination zone (large ΔT) — saturated y uses the identical
+             !> formula as ionE=false, removing per-substep asymmetry.
              call findY(Te(ix^D),Y1,fl)
-             Y2 = Y1 + fact * rho(ix^D)*rc_gamma_1
+             if (fl%lambda_needs_nenh_table) then
+               Y2 = Y1 + rho2_factor(ix^D)*fact * nH_arr(ix^D) * nH_arr(ix^D) * rc_gamma_1 &
+                                / (rho(ix^D) * Rfactor(ix^D))
+             else
+               Y2 = Y1 + rho2_factor(ix^D)*fact * ne(ix^D) * nH_arr(ix^D) * rc_gamma_1 &
+                                / (rho(ix^D) * Rfactor(ix^D))
+             end if
              call findT(Tlocal2,Y2,fl)
+
+             if (fl%ionE .and. fl%Y_mod_built .and. &
+                 dabs(Te(ix^D) - Tlocal2) > 1.0d-4 * Te(ix^D)) then
+               Y1 = findY_mod(Te(ix^D), nH_arr(ix^D), fl)
+               if (Y1 == Y1 .and. abs(Y1) < huge(1.0d0)) then
+                 Y2 = Y1 + rho2_factor(ix^D)*qdt
+                 Tlocal2 = findT_mod(Y2, nH_arr(ix^D), fl)
+               end if
+             end if
+
              if(Tlocal2<=fl%tcoolmin) then
                de = emax
+             else if (fl%ionE .and. &
+                      dabs(Te(ix^D) - Tlocal2) > 1.0d-4 * Te(ix^D)) then
+               de = (fl%eint_from_T(log_nH, dlog10(Te(ix^D))) &
+                    - fl%eint_from_T(log_nH, dlog10(Tlocal2))) * nH_val
+               de = max(de, zero)
              else
                de = (Te(ix^D)-Tlocal2)*rho(ix^D)*Rfactor(ix^D)*invgam
              end if
@@ -1499,340 +1396,18 @@ module mod_radiative_cooling
                  de=de*sqrt((Te(ix^D)/block%wextra(ix^D,fl%Tcoff_))**5)
                end if
              end if
-             de = min(de,emax)   
+             de = min(de,emax)
              res(ix^D) = de
            end if
+           call radiative_cooling_taper(ix^D, x(ix^D,ndim), rho(ix^D), Te(ix^D), fl, taper)
+           res(ix^D) = res(ix^D) * taper
         {end do\}
-      else
-        {do ix^DB = ixO^LIM^DB\}
-           emin = rho(ix^D)*fl%tlow*Rfactor(ix^D)*invgam
-           Lmax = max(zero,pth(ix^D)*invgam-emin)/qdt
-           !  Determine explicit cooling
-           !  If temperature is below floor level, no cooling. 
-           !  Stop wasting time and go to next gridpoint.
-           !  If the temperature is higher than the maximum,
-           !  assume Bremsstrahlung
-           if( Te(ix^D)<=fl%tcoolmin ) then
-             L1 = zero
-           else if( Te(ix^D)>=fl%tcoolmax )then
-             call calc_l_extended(Te(ix^D), L1,fl)
-           else
-             call findL(Te(ix^D),L1,fl)
-           end if
-           L1 = L1*rho(ix^D)**2
-           if(phys_trac) then
-             if(Te(ix^D)<block%wextra(ix^D,fl%Tcoff_)) then
-               L1=L1*sqrt((Te(ix^D)/block%wextra(ix^D,fl%Tcoff_))**5)
-             end if
-           end if
-           L1 = min(L1,Lmax)
-           res(ix^D) =L1*qdt
-        {end do\}
-     end if
     end subroutine get_cool_equi
-
-    subroutine cool_explicit1(qdt,ixI^L,ixO^L,wCT,w,x,fl)
-    ! explicit cooling routine that depends on getdt to 
-    ! adjust the timestep. Accurate but incredibly slow
-      use mod_global_parameters
-
-      integer, intent(in)             :: ixI^L, ixO^L
-      double precision, intent(in)    :: qdt, x(ixI^S,1:ndim), wCT(ixI^S,1:nw)
-      double precision, intent(inout) :: w(ixI^S,1:nw)
-      type(rc_fluid), intent(in) :: fl
-
-      double precision :: L1,pth(ixI^S),pnew(ixI^S),rho(ixI^S),Rfactor(ixI^S)
-      double precision :: Te(ixI^S)
-      double precision :: emin, Lmax
-      integer :: ix^D
-
-      call fl%get_pthermal(wCT,x,ixI^L,ixO^L,pth)
-      call fl%get_pthermal(w,x,ixI^L,ixO^L,pnew)
-      call fl%get_rho(wCT,x,ixI^L,ixO^L,rho)
-      call fl%get_var_Rfactor(wCT,x,ixI^L,ixO^L,Rfactor)
-      Te(ixO^S)=pth(ixO^S)/(rho(ixO^S)*Rfactor(ixO^S))
-
-      {do ix^DB = ixO^LIM^DB\}
-         emin = rho(ix^D)*fl%tlow*Rfactor(ix^D)*invgam
-         Lmax = max(zero,pnew(ix^D)*invgam-emin)/qdt
-         !  Determine explicit cooling
-         !  If temperature is below floor level, no cooling. 
-         !  Stop wasting time and go to next gridpoint.
-         !  If the temperature is higher than the maximum,
-         !  assume Bremsstrahlung
-         if( Te(ix^D)<=fl%tcoolmin ) then
-           L1 = zero
-         else if( Te(ix^D)>=fl%tcoolmax )then
-           call calc_l_extended(Te(ix^D), L1,fl)
-           L1 = L1*rho(ix^D)**2
-           if(phys_trac) then
-             if(Te(ix^D)<block%wextra(ix^D,fl%Tcoff_)) then
-               L1=L1*sqrt((Te(ix^D)/block%wextra(ix^D,fl%Tcoff_))**5)
-             end if
-           end if
-           L1 = min(L1,Lmax)
-         else
-           call findL(Te(ix^D),L1,fl)
-           L1 = L1*rho(ix^D)**2
-           if(phys_trac) then
-             if(Te(ix^D)<block%wextra(ix^D,fl%Tcoff_)) then
-               L1=L1*sqrt((Te(ix^D)/block%wextra(ix^D,fl%Tcoff_))**5)
-             end if
-           end if
-           L1 = min(L1,Lmax)
-         end if
-         if(slab_uniform .and. fl%rad_cut .and. x(ix^D,ndim) .le. fl%rad_cut_hgt) then
-           L1 = L1*exp(-(x(ix^D,ndim)-fl%rad_cut_hgt)**2/fl%rad_cut_dey**2)
-         end if
-         w(ix^D,fl%e_) = w(ix^D,fl%e_)-L1*qdt
-      {end do\}
-    end subroutine cool_explicit1
-
-    subroutine cool_explicit2(qdt,ixI^L,ixO^L,wCT,w,x,fl)
-    ! explicit cooling routine that does a series 
-    ! of small forward integration steps, to make 
-    ! sure the amount of cooling remains correct
-    ! Not as accurate as 'explicit1', but a lot faster
-    ! tends to overestimate cooling
-      use mod_global_parameters
-      integer, intent(in)             :: ixI^L, ixO^L
-      double precision, intent(in)    :: qdt, x(ixI^S,1:ndim), wCT(ixI^S,1:nw)
-      double precision, intent(inout) :: w(ixI^S,1:nw)
-      type(rc_fluid), intent(in) :: fl
-      double precision :: Ltest, etherm, de
-      double precision :: dtmax, dtstep
-      double precision :: L1,pth(ixI^S),pnew(ixI^S),rho(ixI^S),Rfactor(ixI^S)
-      double precision :: Tlocal1,plocal,Te(ixI^S)
-      double precision :: emin, Lmax
-      integer :: idt,ndtstep
-      integer :: ix^D
-
-      call fl%get_pthermal(wCT,x,ixI^L,ixO^L,pth)
-      call fl%get_pthermal(w,x,ixI^L,ixO^L,pnew)
-      call fl%get_rho(wCT,x,ixI^L,ixO^L,rho)
-      call fl%get_var_Rfactor(wCT,x,ixI^L,ixO^L,Rfactor)
-      Te(ixO^S)=pth(ixO^S)/(rho(ixO^S)*Rfactor(ixO^S))
-
-      {do ix^DB = ixO^LIM^DB\}
-         !  Calculate explicit cooling value
-         dtmax  = qdt
-         etherm = pth(ix^D)*invgam
-         emin = rho(ix^D)*fl%tlow*Rfactor(ix^D)*invgam
-         Lmax = max(zero,pnew(ix^D)*invgam-emin)/qdt
-         !  Determine explicit cooling
-         !  If temperature is below floor level, no cooling.
-         !  Stop wasting time and go to next gridpoint.
-         !  If the temperature is higher than the maximum,
-         !  assume Bremmstrahlung
-         if( Te(ix^D)<=fl%tcoolmin ) then
-           Ltest = zero
-         else if( Te(ix^D)>=fl%tcoolmax )then
-           call calc_l_extended(Te(ix^D), Ltest,fl)
-           Ltest = L1*rho(ix^D)**2
-           if(phys_trac) then
-             if(Te(ix^D)<block%wextra(ix^D,fl%Tcoff_)) then
-               Ltest=Ltest*sqrt((Te(ix^D)/block%wextra(ix^D,fl%Tcoff_))**5)
-             end if
-           end if
-           Ltest = min(L1,Lmax)
-           if( dtmax>fl%cfrac*etherm/Ltest) dtmax = fl%cfrac*etherm/Ltest
-         else
-           call findL(Te(ix^D),Ltest,fl)
-           Ltest = Ltest*rho(ix^D)**2
-           if(phys_trac) then
-             if(Te(ix^D)<block%wextra(ix^D,fl%Tcoff_)) then
-               Ltest=Ltest*sqrt((Te(ix^D)/block%wextra(ix^D,fl%Tcoff_))**5)
-             end if
-           end if
-           Ltest = min(Ltest,Lmax)
-           if( dtmax>fl%cfrac*etherm/Ltest) dtmax = fl%cfrac*etherm/Ltest
-         end if
-         !  Calculate number of steps for cooling
-         ndtstep = max(nint(qdt/dtmax),1)+1
-         dtstep = qdt/ndtstep
-         !  Use explicit cooling value for first step
-         de     = Ltest*dtstep
-         etherm = etherm - de
-
-         do idt=2,ndtstep
-           plocal = etherm*rc_gamma_1
-           Lmax   = max(zero,etherm-emin)/dtstep
-           !  Tlocal = P/(rho*R)
-           Tlocal1 = plocal/(rho(ix^D)*Rfactor(ix^D))
-           if( Tlocal1<=fl%tcoolmin ) then
-             L1 = zero
-             exit
-           else if( Tlocal1>=fl%tcoolmax )then
-             call calc_l_extended(Tlocal1, L1,fl)
-             L1 = L1*rho(ix^D)**2
-             if(phys_trac) then
-               if(Tlocal1<block%wextra(ix^D,fl%Tcoff_)) then
-                 L1=L1*sqrt((Tlocal1/block%wextra(ix^D,fl%Tcoff_))**5)
-               end if
-             end if
-             L1 = min(L1,Lmax)
-           else  
-             call findL(Tlocal1,L1,fl)
-             L1 = L1*rho(ix^D)**2
-             if(phys_trac) then
-               if(Tlocal1<block%wextra(ix^D,fl%Tcoff_)) then
-                 L1=L1*sqrt((Tlocal1/block%wextra(ix^D,fl%Tcoff_))**5)
-               end if
-             end if
-             L1 = min(L1,Lmax)
-           end if
-           de     = de + L1*dtstep
-           etherm = etherm - L1*dtstep
-         end do
-         if(slab_uniform .and. fl%rad_cut .and. x(ix^D,ndim) .le. fl%rad_cut_hgt) then
-           de = de*exp(-(x(ix^D,ndim)-fl%rad_cut_hgt)**2/fl%rad_cut_dey**2)
-         end if
-         w(ix^D,fl%e_) = w(ix^D,fl%e_) -de 
-      {end do\}
-    end subroutine cool_explicit2
-
-    subroutine cool_semiimplicit(qdt,ixI^L,ixO^L,wCT,w,x,fl)
-    ! Semi-implicit cooling method based on a two point average
-    ! Fast, but tends to underestimate cooling
-      use mod_global_parameters
-      integer, intent(in)             :: ixI^L, ixO^L
-      double precision, intent(in)    :: qdt, x(ixI^S,1:ndim), wCT(ixI^S,1:nw)
-      double precision, intent(inout) :: w(ixI^S,1:nw)
-      type(rc_fluid), intent(in) :: fl
-      double precision :: L1,L2,Tlocal2
-      double precision :: etemp
-      double precision :: emin, Lmax
-      double precision :: pth(ixI^S),pnew(ixI^S),rho(ixI^S),Rfactor(ixI^S),Te(ixI^S)
-      integer :: ix^D
-
-      call fl%get_pthermal(wCT,x,ixI^L,ixO^L,pth)
-      call fl%get_pthermal(w,x,ixI^L,ixO^L,pnew)
-      call fl%get_rho(wCT,x,ixI^L,ixO^L,rho)
-      call fl%get_var_Rfactor(wCT,x,ixI^L,ixO^L,Rfactor)
-      Te(ixO^S)=pth(ixO^S)/(rho(ixO^S)*Rfactor(ixO^S))
-
-      {do ix^DB = ixO^LIM^DB\}
-         emin = rho(ix^D)*fl%tlow*Rfactor(ix^D)*invgam
-         Lmax = max(zero,pnew(ix^D)*invgam-emin)/qdt
-         !  Determine explicit cooling at present temperature
-         !
-         !  If temperature is below floor level, no cooling. 
-         !  Stop wasting time and go to next gridpoint.
-         !  If the temperature is higher than the maximum,
-         !  assume Bremsstrahlung
-         if( Te(ix^D)<=fl%tcoolmin ) then
-           L1 = zero
-           L2 = zero
-         else
-           if( Te(ix^D)>=fl%tcoolmax ) then
-             call calc_l_extended(Te(ix^D), L1,fl)
-           else
-             call findL(Te(ix^D),L1,fl)
-           end if
-           L1 = L1*rho(ix^D)**2
-           if(phys_trac) then
-             if(Te(ix^D)<block%wextra(ix^D,fl%Tcoff_)) then
-               L1=L1*sqrt((Te(ix^D)/block%wextra(ix^D,fl%Tcoff_))**5)
-             end if
-           end if
-           etemp   = pth(ix^D)*invgam - L1*qdt
-           Tlocal2 = etemp*rc_gamma_1/(rho(ix^D)*Rfactor(ix^D))
-           !  Determine explicit cooling at new temperature
-           if( Tlocal2<=fl%tcoolmin ) then
-             L2 = zero
-           else if( Tlocal2>=fl%tcoolmax )then
-             call calc_l_extended(Tlocal2, L2,fl)
-           else
-             call findL(Tlocal2,L2,fl)
-           end if
-           L2 = L2*rho(ix^D)**2
-           if(phys_trac) then
-             if(Tlocal2<block%wextra(ix^D,fl%Tcoff_)) then
-               L2=L2*sqrt((Tlocal2/block%wextra(ix^D,fl%Tcoff_))**5)
-             end if
-           end if
-           if(slab_uniform .and. fl%rad_cut .and. x(ix^D,ndim) .le. fl%rad_cut_hgt) then
-             L1 = L1*exp(-(x(ix^D,ndim)-fl%rad_cut_hgt)**2/fl%rad_cut_dey**2)
-             L2 = L2*exp(-(x(ix^D,ndim)-fl%rad_cut_hgt)**2/fl%rad_cut_dey**2)
-           end if
-           w(ix^D,fl%e_) = w(ix^D,fl%e_) - min(half*(L1+L2),Lmax)*qdt
-         end if 
-      {end do\}
-    end subroutine cool_semiimplicit
-
-    subroutine cool_implicit(qdt,ixI^L,ixO^L,wCT,w,x,fl)
-    ! Implicit cooling method based on a half-step
-    ! refinement algorithm
-      use mod_global_parameters
-      integer, intent(in)             :: ixI^L, ixO^L
-      double precision, intent(in)    :: qdt, x(ixI^S,1:ndim), wCT(ixI^S,1:nw)
-      double precision, intent(inout) :: w(ixI^S,1:nw)
-      type(rc_fluid), intent(in) :: fl
-      double precision :: Ltemp,Tnew,f1,f2,pth(ixI^S), pnew(ixI^S), rho(ixI^S), Rfactor(ixI^S)
-      double precision :: elocal, Te(ixI^S)
-      double precision :: emin, Lmax, eold, enew, estep
-      double precision, parameter :: e_error = 1.0D-6
-      integer, parameter :: maxiter = 100
-      integer :: ix^D, j
-
-      call fl%get_pthermal(wCT,x,ixI^L,ixO^L,pth)
-      call fl%get_pthermal(w,x,ixI^L,ixO^L,pnew)
-      call fl%get_rho(wCT,x,ixI^L,ixO^L,rho)
-      call fl%get_var_Rfactor(wCT,x,ixI^L,ixO^L,Rfactor)
-      Te(ixO^S)=pth(ixO^S)/(rho(ixO^S)*Rfactor(ixO^S))
-
-      {do ix^DB = ixO^LIM^DB\}
-         elocal   = pth(ix^D)*invgam
-         emin = rho(ix^D)*fl%tlow*Rfactor(ix^D)*invgam
-         Lmax = max(zero,pnew(ix^D)*invgam-emin)/qdt
-         !  Determine explicit cooling at present temperature
-         !  If temperature is below floor level, no cooling. 
-         !  Stop wasting time and go to next gridpoint.
-         !  If the temperature is higher than the maximum,
-         !  assume Bremsstrahlung
-         if( Te(ix^D)<=fl%tcoolmin ) then
-           Ltemp = zero
-         else
-           eold  = elocal
-           enew  = elocal
-           estep = -(smalldouble)
-           f2    = 1.d0
-           do j=1,maxiter+1
-             if( j>maxiter ) call mpistop("Implicit cooling exceeds maximum iterations")
-             Tnew  = enew*rc_gamma_1/(rho(ix^D)*Rfactor(ix^D))
-             if( Tnew<=fl%tcoolmin ) then
-               Ltemp = Lmax
-               exit
-             else if( Tnew>=fl%tcoolmax )then
-               call calc_l_extended(Tnew, Ltemp,fl)
-             else
-               call findL(Tnew,Ltemp,fl)
-             end if
-             Ltemp = Ltemp*rho(ix^D)**2
-             eold  = enew + Ltemp*qdt
-             f1 = elocal -eold
-             if(abs(half*f1/(elocal+eold)) < e_error) exit
-             if(phys_trac) then
-               if(Tnew<block%wextra(ix^D,fl%Tcoff_)) then
-                 Ltemp=Ltemp*sqrt((Tnew/block%wextra(ix^D,fl%Tcoff_))**5)
-               end if
-             end if
-             if(j==1) estep = max((elocal-emin)*half,smalldouble)
-             if(f1*f2 < zero) estep = -half*estep
-             f2 = f1
-             enew = enew +estep
-           end do
-         end if
-         if(slab_uniform .and. fl%rad_cut .and. x(ix^D,ndim) .le. fl%rad_cut_hgt) then
-           Ltemp = Ltemp*exp(-(x(ix^D,ndim)-fl%rad_cut_hgt)**2/fl%rad_cut_dey**2)
-         end if
-         w(ix^D,fl%e_) = w(ix^D,fl%e_) - min(Ltemp,Lmax)*qdt
-      {end do\}
-    end subroutine cool_implicit
 
     subroutine cool_exact(qdt,ixI^L,ixO^L,wCT,wCTprim,w,x,fl)
     !  Cooling routine using exact integration method from Townsend 2009
       use mod_global_parameters
+      use mod_physics, only: phys_get_ei
       integer, intent(in)             :: ixI^L, ixO^L
       double precision, intent(in)    :: qdt, x(ixI^S,1:ndim), wCT(ixI^S,1:nw), wCTprim(ixI^S,1:nw)
       double precision, intent(inout) :: w(ixI^S,1:nw)
@@ -1842,53 +1417,146 @@ module mod_radiative_cooling
       double precision :: rho(ixI^S), Te(ixI^S), rhonew(ixI^S), Rfactor(ixI^S)
       double precision :: emin, Lmax, fact
       double precision :: de, emax
+      double precision :: ne(ixI^S), nH_arr(ixI^S), rho2_factor(ixI^S)
+      double precision :: taper
+      ! LTE+IonE variables
+      double precision :: nH_val, log_nH, log_p_nH
+      double precision :: eint_current
+      double precision :: eint_w(ixI^S)  ! actual internal energy from conserved state
+      double precision :: de_thin, de_thick, emax_rem
+      double precision :: T1, T2, p1(ixI^S), tau, xi
+      double precision :: xi_arr(ixI^S), emax_rem_arr(ixI^S)
+      double precision :: cool_fac, fip_prim, frac_lowFIP, fip_factor
+      double precision :: y_loc, T_loc
       integer :: ix^D
 
       call fl%get_rho(wCT,x,ixI^L,ixO^L,rho)
       call fl%get_var_Rfactor(wCT,x,ixI^L,ixO^L,Rfactor)
-      if(phys_equi_pe) then
-        ! need pressure splitting
-        call fl%get_pthermal(wCT,x,ixI^L,ixO^L,Te)
-        Te(ixO^S)=Te(ixO^S)/(rho(ixO^S)*Rfactor(ixO^S))
-      else
-        Te(ixO^S)=wCTprim(ixO^S,iw_e)/(rho(ixO^S)*Rfactor(ixO^S))
-      end if
+      call fl%get_Te(wCT,x,ixI^L,ixO^L,Te)
+      call fl%get_ne_nH(ixI^L, ixO^L, wCT, x, ne, nH_arr)
+      call radiative_cooling_rho2_factor(ixI^L,ixO^L,wCT,x,fl,rho2_factor)
       call fl%get_pthermal(w,x,ixI^L,ixO^L,pnew)
       call fl%get_rho(w,x,ixI^L,ixO^L,rhonew)
+      if (fl%ionE) eint_w(ixO^S) = phys_get_ei(w, ixI^L, ixO^L)
 
       fact = fl%lref*qdt/fl%tref
 
+      xi_arr = one
+      emax_rem_arr = zero
       {do ix^DB = ixO^LIM^DB\}
+         ! Energy floor: always use FI formula (generous safety margin at low T
+         ! where ionE floor would be ~2x lower due to neutral vs FI mean mol. weight)
          emin = rhonew(ix^D)*fl%tlow*Rfactor(ix^D)*invgam
-         Lmax = max(zero,pnew(ix^D)*invgam-emin)/qdt
-         emax = max(zero,pnew(ix^D)*invgam-emin)
-         !  Determine explicit cooling
-         !  If temperature is below floor level, no cooling.
-         !  Stop wasting time and go to next gridpoint.
-         !  If the temperature is higher than the maximum,
-         !  assume Bremsstrahlung
-         if( Te(ix^D)<=fl%tcoolmin ) then
-           L1 = zero
-         else if( Te(ix^D)>=fl%tcoolmax )then
+         if (fl%ionE) then
+           ! LTE+IonE: EoS quantities for Y-advance; cap from conserved state
+           nH_val = rhonew(ix^D) / fl%nH2rhoFactor
+           log_nH = dlog10(nH_val)
+           if (fl%method == 'analytic') then
+             ! Use cached Te_ and Ne_ to compute eint directly
+             T_loc = Te(ix^D)
+             y_loc = wCT(ix^D, iw_ne) / nH_val
+             eint_current = fl%inv_gamma_minus_1 * (1.0d0 + y_loc) * nH_val * T_loc &
+                 + y_loc * fl%eion_per_nH * nH_val
+           else
+             log_p_nH = dlog10(pnew(ix^D) / nH_val)
+             eint_current = pnew(ix^D) * fl%p2eint(log_nH, log_p_nH)
+           end if
+           Lmax = max(zero, eint_w(ix^D) - emin) / qdt
+           emax = max(zero, eint_w(ix^D) - emin)
+         else
+           Lmax = max(zero,pnew(ix^D)*invgam-emin)/qdt
+           emax = max(zero,pnew(ix^D)*invgam-emin)
+         end if
+
+         ! Skip cells below cooling floor: no de_thin contribution, no rad_newton thick step queued.
+         if (Te(ix^D) <= fl%tcoolmin) cycle
+
+         ! Multiplicative cool_fac (upstream): xi (optically thick Newton) * FIP * geometric damping.
+         ! Multiplied INTO the integration (Y2 increment / extended-Bremsstrahlung L1) so the
+         ! Townsend EI mapping sees the reduced Lambda_eff = cool_fac * Lambda.
+         if (fl%rad_newton) then
+           xi = exp(-pnew(ix^D) / fl%rad_newton_pthick)
+           xi = min(max(xi, zero), one)
+         else
+           xi = one
+         end if
+         cool_fac = xi*rho2_factor(ix^D)
+
+         if (fl%fip_ > 0) then
+           fip_prim = min(maxfip, max(minfip, wCTprim(ix^D,fl%fip_)))
+           ! frac_lowFIP(T) in [0,1]: low-FIP contribution to total Lambda at T
+           frac_lowFIP = lowFIP_fraction(Te(ix^D), fl)
+           fip_factor = one - frac_lowFIP + fip_prim * frac_lowFIP
+           cool_fac = cool_fac * fip_factor
+         end if
+
+         ! Geometric (Gaussian) damping near lower boundary (chromosphere/photosphere).
+         if (slab_uniform .and. fl%rad_damp .and. x(ix^D,ndim) <= xprobmin1 + fl%rad_damp_height) then
+           cool_fac = cool_fac * exp(-(x(ix^D,ndim)-xprobmin1-fl%rad_damp_height)**2/fl%rad_damp_scale**2)
+         end if
+         {^IFONED
+         if (slab_uniform .and. fl%rad_damp .and. x(ix^D,ndim) >= xprobmax1 - fl%rad_damp_height) then
+           cool_fac = cool_fac * exp(-(x(ix^D,ndim)-xprobmax1+fl%rad_damp_height)**2/fl%rad_damp_scale**2)
+         end if
+         }
+
+         if( Te(ix^D)>=fl%tcoolmax )then
            call calc_l_extended(Te(ix^D), L1,fl)
-           L1 = L1*rho(ix^D)**2
+           if (fl%lambda_needs_nenh_table) then
+             L1 = L1 * nH_arr(ix^D) * nH_arr(ix^D)
+           else
+             L1 = L1 * ne(ix^D) * nH_arr(ix^D)
+           end if
+           L1 = cool_fac * L1
            if(phys_trac) then
              if(Te(ix^D)<block%wextra(ix^D,fl%Tcoff_)) then
                L1=L1*sqrt((Te(ix^D)/block%wextra(ix^D,fl%Tcoff_))**5)
              end if
            end if
            L1 = min(L1,Lmax)
-           if(slab_uniform .and. fl%rad_cut .and. x(ix^D,ndim) .le. fl%rad_cut_hgt) then
-             L1 = L1*exp(-(x(ix^D,ndim)-fl%rad_cut_hgt)**2/fl%rad_cut_dey**2)
-           end if
-           w(ix^D,fl%e_) = w(ix^D,fl%e_)-L1*qdt
+           call radiative_cooling_taper(ix^D, x(ix^D,ndim), rho(ix^D), Te(ix^D), fl, taper)
+           L1 = L1 * taper
+           de_thin = L1 * qdt
+           w(ix^D,fl%e_) = w(ix^D,fl%e_) - de_thin
          else
+           !> Always compute the CLASSICAL Townsend advance first. This gives
+           !> Tlocal2 using the same path as ionE=false. If the resulting dT
+           !> is small (saturated y region), the classical kinetic form is
+           !> exact and we're done. If dT is large (recombination zone), we
+           !> redo the advance with the Y_mod path to capture variable-c_V
+           !> dynamics from ionisation buffering.
            call findY(Te(ix^D),Y1,fl)
-           Y2 = Y1 + fact*rho(ix^D)*rc_gamma_1
+           if (fl%lambda_needs_nenh_table) then
+             Y2 = Y1 + cool_fac * fact * nH_arr(ix^D) * nH_arr(ix^D) * rc_gamma_1 &
+                              / (rho(ix^D) * Rfactor(ix^D))
+           else
+             Y2 = Y1 + cool_fac * fact * ne(ix^D) * nH_arr(ix^D) * rc_gamma_1 &
+                              / (rho(ix^D) * Rfactor(ix^D))
+           end if
            call findT(Tlocal2,Y2,fl)
+
+           !> Upgrade to Y_mod only in the recombination zone (large dT).
+           !> Guard: if findY_mod overflows (cooling curve near-zero at this T),
+           !> keep the classical result -- variable c_V is irrelevant where Lambda ~ 0.
+           if (fl%ionE .and. fl%Y_mod_built .and. &
+               dabs(Te(ix^D) - Tlocal2) > 1.0d-4 * Te(ix^D)) then
+             Y1 = findY_mod(Te(ix^D), nH_arr(ix^D), fl)
+             if (Y1 == Y1 .and. abs(Y1) < huge(1.0d0)) then
+               Y2 = Y1 + cool_fac * qdt
+               Tlocal2 = findT_mod(Y2, nH_arr(ix^D), fl)
+             end if
+           end if
+
            if(Tlocal2<=fl%tcoolmin) then
              de = emax
+           else if (fl%ionE .and. &
+                    dabs(Te(ix^D) - Tlocal2) > 1.0d-4 * Te(ix^D)) then
+             !> Recombination zone: use table-based de for variable c_V.
+             de = (fl%eint_from_T(log_nH, dlog10(Te(ix^D))) &
+                   - fl%eint_from_T(log_nH, dlog10(Tlocal2))) * nH_val
+             de = max(de, zero)
            else
+             !> Saturated y or non-ionE: classical Townsend kinetic form.
              de = (Te(ix^D)-Tlocal2)*rho(ix^D)*Rfactor(ix^D)*invgam
            end if
            if(phys_trac) then
@@ -1897,12 +1565,30 @@ module mod_radiative_cooling
              end if
            end if
            de = min(de,emax)
-           if(slab_uniform .and. fl%rad_cut .and. x(ix^D,ndim) .le. fl%rad_cut_hgt) then
-             de = de*exp(-(x(ix^D,ndim)-fl%rad_cut_hgt)**2/fl%rad_cut_dey**2)
-           end if
-           w(ix^D,fl%e_) = w(ix^D,fl%e_)-de
+           call radiative_cooling_taper(ix^D, x(ix^D,ndim), rho(ix^D), Te(ix^D), fl, taper)
+           de = de * taper
+           de_thin = de
+           w(ix^D,fl%e_) = w(ix^D,fl%e_) - de_thin
+         end if
+
+         ! Queue remaining energy budget for the optically thick step (upstream rad_newton).
+         if (fl%rad_newton) then
+           xi_arr(ix^D) = xi
+           emax_rem_arr(ix^D) = max(zero, emax - de_thin)
          end if
       {end do\}
+
+      ! ------- (B) OPTICALLY-THICK (NEWTON) PART --------
+      if (fl%rad_newton) then
+      call fl%get_pthermal(w, x, ixI^L, ixO^L, p1)
+      {do ix^DB = ixO^LIM^DB\}
+          T1 = p1(ix^D) / (rho(ix^D) * Rfactor(ix^D))
+          tau = max(0.1d0 * sqrt( fl%rad_newton_rhosurf / rho(ix^D)), 4.d0 * qdt)
+          T2 = fl%rad_newton_trad + (T1 - fl%rad_newton_trad) * exp(-qdt / tau)
+          de_thick = min((one - xi_arr(ix^D)) * (T1 - T2) * rho(ix^D) * Rfactor(ix^D) * invgam, emax_rem_arr(ix^D))
+          w(ix^D,fl%e_) = w(ix^D,fl%e_) - de_thick
+      {end do\}
+      end if
     end subroutine cool_exact
 
     subroutine calc_l_extended (tpoint, lpoint,fl)
@@ -1919,6 +1605,33 @@ module mod_radiative_cooling
         lpoint = fl%Lcool(fl%ncool) * sqrt( tpoint / fl%tcoolmax)
       end if
     end subroutine calc_l_extended
+
+    double precision function lowFIP_fraction(tpoint, fl)
+      use mod_global_parameters
+  
+      double precision, intent(in) :: tpoint
+      type(rc_fluid), intent(in)   :: fl
+  
+      double precision :: lgtp
+      integer :: jl
+  
+      if (tpoint <= fl%tcool(1)) then
+        lowFIP_fraction = fl%frac_lowFIP(1)
+        return
+      else if (tpoint >= fl%tcool(fl%ncool)) then
+        lowFIP_fraction = fl%frac_lowFIP(fl%ncool)
+        return
+      end if
+  
+      lgtp = dlog10(tpoint)
+      jl   = int((lgtp - fl%lgtcoolmin) / fl%lgstep) + 1
+      jl   = max(1, min(fl%ncool-1, jl))
+  
+      lowFIP_fraction = fl%frac_lowFIP(jl) &
+           + (tpoint - fl%tcool(jl)) &
+           * (fl%frac_lowFIP(jl+1) - fl%frac_lowFIP(jl)) &
+           / (fl%tcool(jl+1) - fl%tcool(jl))
+    end function lowFIP_fraction
 
     subroutine findL (tpoint,Lpoint,fl)
     !  Fast search option to find correct point 
@@ -1969,6 +1682,13 @@ module mod_radiative_cooling
       else
         lgtp = dlog10(tpoint)
         jl = int((lgtp - fl%lgtcoolmin) / fl%lgstep) + 1
+        ! Bounds check: jl must satisfy 1 <= jl <= ncool-1 so jl+1 <= ncool
+        if(jl < 1 .or. jl >= fl%ncool) then
+          write(*,'(a,es14.6,a,i0,a,2es14.6)') &
+            'findY: tpoint=',tpoint,' jl=',jl,' out of bounds [1,ncool-1]; tcoolmin/max=', &
+            fl%tcoolmin,fl%tcoolmax
+          call mpistop('findY: temperature index out of bounds')
+        end if
         Ypoint = fl%Yc(jl)+ (tpoint-fl%tcool(jl)) &
                   * (fl%Yc(jl+1)-fl%Yc(jl)) &
                   / (fl%tcool(jl+1)-fl%tcool(jl))
@@ -2022,5 +1742,405 @@ module mod_radiative_cooling
         end if
       end if
     end subroutine findT
+
+    subroutine finddLdt (tpoint,dLpoint,fl)
+    !  Fast search option to find correct point 
+    !  in derivative of cooling curve
+    !  Does not work for the piecewise power laws
+      use mod_global_parameters
+
+      double precision,intent(IN)   :: tpoint
+      double precision, intent(OUT) :: dLpoint
+      type(rc_fluid), intent(in) :: fl
+
+      double precision :: lgtp
+      integer :: jl,jc,jh
+
+      lgtp = dlog10(tpoint)
+      jl = int((lgtp -fl%lgtcoolmin) / fl%lgstep) + 1
+      dLpoint = fl%dLdtcool(jl)+ (tpoint-fl%tcool(jl)) &
+                * (fl%dLdtcool(jl+1)-fl%dLdtcool(jl)) &
+                / (fl%tcool(jl+1)-fl%tcool(jl))
+
+!      if (tpoint == tcoolmin) then
+!        dLpoint = dLdtcool(1)
+!      else if (tpoint == tcoolmax) then
+!        dLpoint = dLdtcool(ncool)
+!      else
+!        jl=0
+!        jh=ncool+1  
+!        do
+!          if (jh-jl <= 1) exit
+!          jc=(jh+jl)/2
+!          if (tpoint >= tcool(jc)) then
+!              jl=jc
+!          else
+!              jh=jc
+!          end if
+!        end do
+!        ! Linear interpolation to obtain correct cooling derivative
+!        dLpoint = dLdtcool(jl)+ (tpoint-tcool(jl)) &
+!                  * (dLdtcool(jl+1)-dLdtcool(jl)) &
+!                  / (tcool(jl+1)-tcool(jl))
+!      end if
+    end subroutine finddLdt
+
+    !> ===================================================================
+    !> Variable-c_V Townsend extension (Y_mod)
+    !> ===================================================================
+    !>
+    !> The original Townsend (2009) exact integration scheme assumes a
+    !> constant heat capacity c_V = ρR/(γ-1). For LTE plasmas with H/He
+    !> ionisation, c_V is a strong function of temperature in the
+    !> recombination zone (Ibañez 1985, 1992 thermal-instability buffering).
+    !>
+    !> The derivation defines a modified TEF
+    !>     Ỹ(T; ρ) ≡ ∫_T^{T_ref} c_V(T'; ρ) / (n_H n_e(T'; ρ) Λ(T')) dT'
+    !> with c_V the LTE volumetric heat capacity *including* the
+    !> ionisation-energy reservoir. The integral is recast via the change
+    !> of variables u = e_int/n_H so that the discrete construction never
+    !> finite-differences c_V — both integrand and energy update are
+    !> driven by the same eint_from_T table, guaranteeing bit-consistent
+    !> energy conservation.
+    !>
+    !> Must be called *after* eos_finalise() so that eos%eint_from_T,
+    !> eos%T (forward), and eos%neOnH are all in code units. The hook is
+    !> bind_eos_to_source() in mod_hd_eos.t / mod_mhd_eos.t.
+    !>
+    !> Algorithm: change of variables from T to u = e_int/n_H. For each
+    !> log10 nH grid point j (taken from the eos%eint_from_T table's nH axis):
+    !>   1. Cache u_i = e_int/n_H at every cooling-curve T_i.
+    !>   2. Walk i = ncool-1 down to 1 and accumulate
+    !>        Y_mod(j, i) = Y_mod(j, i+1) + ∫_{u_i}^{u_{i+1}} du / (n_e Λ)
+    !>      using a composite Simpson (3-point, O(h^4)) or Boole (5-point,
+    !>      O(h^6)) rule with N_sub sub-intervals.
+    !>   3. The integrand evaluates n_e via y_from_nH_eint and Λ via findL
+    !>      (with T from T_from_nH_eint).
+    !>
+    !> Per-row inverse table T_mod_inv(j, k) is also built for the
+    !> 'table' inverse method (alternative to bisection).
+    subroutine build_Y_mod_table(fl)
+      use mod_global_parameters, only: mype
+      type(rc_fluid), intent(inout) :: fl
+
+      integer :: i, j, k, n_nH, ncool, N_sub
+      double precision :: log_nH_j, nH_j_code, u_lo, u_hi, du_total, du_step
+      double precision :: u_s, log_u_s, T_s, y_s, ne_s, Lambda_s, integ
+      double precision, allocatable :: u_at_T(:), f_node(:)
+      double precision :: Y_max_global, Y_min_global
+
+      ! Preconditions for the variable-c_V Townsend extension:
+      !   1. LTE with ionisation energy (otherwise c_V is constant and classical
+      !      Townsend already correct)
+      !   2. Townsend exact cooling method (Y-advance is its signature)
+      !   3. Tabulated cooling curve, not piecewise power law (PPL has its own
+      !      y_PPL path and does not allocate fl%tcool / fl%Lcool)
+      !   4. eos%eint_from_T table must be built (excludes analytic Saha mode)
+      !   5. Build only once per run
+      if (.not. fl%ionE) return
+      if (fl%isPPL) return
+      if (fl%Y_mod_built) return
+
+      ! The (log_nH, log_T) inverse-table grid (extents + n_nH) was snapshotted
+      ! into fl by eos_get_eintT_grid in bind_eos_to_source; n_nH=0 means no such
+      ! table (analytic/FI). The build below queries fl%eint_from_T which already
+      ! dispatches on the EoS method, so we only need the grid extents here.
+      n_nH = fl%Y_mod_n_nH
+      if (n_nH <= 0) then
+        if (mype == 0) write(*,*) ' build_Y_mod_table: no (rho,T) inverse table allocated; skipping'
+        return
+      end if
+
+      ! Validate quadrature option
+      select case (trim(fl%Y_mod_quadrature))
+      case ('simpson', 'boole')
+        ! ok
+      case default
+        call mpistop('build_Y_mod_table: rc_Y_mod_quadrature must be simpson or boole')
+      end select
+
+      ncool = fl%ncool
+      N_sub = max(2, fl%Y_mod_N_sub)
+      ! For Boole's rule we need N_sub to be a multiple of 4; round up if not.
+      if (trim(fl%Y_mod_quadrature) == 'boole') then
+        if (mod(N_sub, 4) /= 0) N_sub = N_sub + (4 - mod(N_sub, 4))
+      else
+        ! Simpson needs N_sub even
+        if (mod(N_sub, 2) /= 0) N_sub = N_sub + 1
+      end if
+
+      fl%Y_mod_n_nH = n_nH
+      if (n_nH > 1) then
+        fl%Y_mod_lg_nH_step_inv = dble(n_nH - 1) &
+            / (fl%Y_mod_lg_nH_max - fl%Y_mod_lg_nH_min)
+      else
+        fl%Y_mod_lg_nH_step_inv = 0.0d0
+      end if
+
+      allocate(fl%Y_mod(n_nH, ncool))
+      allocate(fl%Y_mod_max_per_row(n_nH))
+      allocate(u_at_T(ncool))
+      allocate(f_node(0:N_sub))
+
+      do j = 1, n_nH
+        log_nH_j = fl%Y_mod_lg_nH_min &
+            + dble(j - 1) * (fl%Y_mod_lg_nH_max - fl%Y_mod_lg_nH_min) / dble(max(1, n_nH - 1))
+        nH_j_code = 10.0d0**log_nH_j
+
+        ! Cache u_i = e_int/n_H at each cooling-curve temperature
+        do i = 1, ncool
+          u_at_T(i) = fl%eint_from_T(log_nH_j, dlog10(fl%tcool(i)))
+        end do
+
+        fl%Y_mod(j, ncool) = 0.0d0
+
+        ! Step downward in T, accumulating ∫du / (n_e Λ)
+        do i = ncool - 1, 1, -1
+          u_lo = u_at_T(i)
+          u_hi = u_at_T(i + 1)
+          du_total = u_hi - u_lo
+          if (du_total <= 0.0d0) then
+            ! Degenerate segment (shouldn't happen physically); skip
+            fl%Y_mod(j, i) = fl%Y_mod(j, i + 1)
+            cycle
+          end if
+          du_step = du_total / dble(N_sub)
+
+          ! Sample integrand at composite quadrature nodes
+          do k = 0, N_sub
+            u_s = u_lo + dble(k) * du_step
+            if (u_s <= 0.0d0) then
+              f_node(k) = 0.0d0
+              cycle
+            end if
+            log_u_s = dlog10(u_s)
+            T_s = fl%T_from_eint(log_nH_j, log_u_s)
+            if (fl%lambda_needs_nenh_table) then
+              ! SPEX-style two-table convention: the equilibrium n_e/n_H is
+              ! already absorbed into Lambda_table at construction time, so
+              ! the cooling rate is Q = n_H^2 * Lambda_table. The integrand
+              ! 1/(n_e * Lambda) becomes 1/(n_H * Lambda); equivalently,
+              ! substitute n_e -> n_H by setting y_s = 1.
+              y_s = 1.0d0
+              ne_s = nH_j_code
+            else
+              y_s = fl%y_from_eint(log_nH_j, log_u_s)
+              ne_s = y_s * nH_j_code
+            end if
+            if (T_s <= fl%tcoolmin) then
+              ! Below cooling table: no cooling, so integrand = 0
+              f_node(k) = 0.0d0
+              cycle
+            else if (T_s >= fl%tcoolmax) then
+              call calc_l_extended(T_s, Lambda_s, fl)
+            else
+              call findL(T_s, Lambda_s, fl)
+            end if
+            if (ne_s * Lambda_s > 0.0d0) then
+              f_node(k) = 1.0d0 / (ne_s * Lambda_s)
+            else
+              f_node(k) = 0.0d0
+            end if
+          end do
+
+          select case (trim(fl%Y_mod_quadrature))
+          case ('boole')
+            integ = boole_composite(f_node, N_sub, du_step)
+          case default
+            integ = simpson_composite(f_node, N_sub, du_step)
+          end select
+
+          fl%Y_mod(j, i) = fl%Y_mod(j, i + 1) + integ
+        end do
+
+        fl%Y_mod_max_per_row(j) = fl%Y_mod(j, 1)
+      end do
+
+      deallocate(u_at_T)
+      deallocate(f_node)
+
+      fl%Y_mod_built = .true.
+
+      if (mype == 0) then
+        Y_max_global = maxval(fl%Y_mod_max_per_row)
+        Y_min_global = minval(fl%Y_mod_max_per_row)
+        write(*,'(A,I0,A,I0,A,A,A,I0)') &
+          ' Y_mod table built: ', n_nH, ' nH x ', ncool, ' T   quadrature=', &
+          trim(fl%Y_mod_quadrature), '   N_sub=', N_sub
+        write(*,'(A,F8.4,A,F8.4)') &
+          '   log10 nH range = ', fl%Y_mod_lg_nH_min, ' to ', fl%Y_mod_lg_nH_max
+        write(*,'(A,ES12.4,A,ES12.4,A)') &
+          '   Y_max per row range = [', Y_min_global, ', ', Y_max_global, '] code time'
+        write(*,'(A)') '   inverse=bisect (row-interpolated, O(log ncool))'
+      end if
+    end subroutine build_Y_mod_table
+
+    !> Composite Simpson's rule on (N+1) equally spaced samples (N even).
+    !> N must be a positive even integer; h is the step size.
+    function simpson_composite(f, N, h) result(s)
+      integer, intent(in) :: N
+      double precision, intent(in) :: f(0:N), h
+      double precision :: s
+      integer :: k
+      s = f(0) + f(N)
+      do k = 1, N - 1, 2
+        s = s + 4.0d0 * f(k)
+      end do
+      do k = 2, N - 2, 2
+        s = s + 2.0d0 * f(k)
+      end do
+      s = s * h / 3.0d0
+    end function simpson_composite
+
+    !> Composite Boole's rule on (N+1) equally spaced samples (N a multiple of 4).
+    !> Each 4-step block contributes (2h/45)*(7 f0 + 32 f1 + 12 f2 + 32 f3 + 7 f4).
+    function boole_composite(f, N, h) result(s)
+      integer, intent(in) :: N
+      double precision, intent(in) :: f(0:N), h
+      double precision :: s
+      integer :: k
+      s = 0.0d0
+      do k = 0, N - 4, 4
+        s = s + 7.0d0  * f(k)     &
+              + 32.0d0 * f(k + 1) &
+              + 12.0d0 * f(k + 2) &
+              + 32.0d0 * f(k + 3) &
+              + 7.0d0  * f(k + 4)
+      end do
+      s = s * 2.0d0 * h / 45.0d0
+    end function boole_composite
+
+    !> Bisection on a single Y_mod row to find log10(T) such that
+    !> Y_mod_row(i) = y_target. The row is monotonically increasing in
+    !> *decreasing* i (since Y(ncool)=0 grows toward Y(1)=Y_max).
+    !> Returns log10 T (code units).
+    function invert_row_bisect(Y_row, t_grid, ncool, y_target) result(log_T_out)
+      integer, intent(in) :: ncool
+      double precision, intent(in) :: Y_row(ncool), t_grid(ncool), y_target
+      double precision :: log_T_out
+      integer :: jl, jh, jc
+      double precision :: f_lo, f_hi
+
+      if (y_target <= Y_row(ncool)) then
+        log_T_out = dlog10(t_grid(ncool))
+        return
+      end if
+      if (y_target >= Y_row(1)) then
+        log_T_out = dlog10(t_grid(1))
+        return
+      end if
+
+      ! Bracket: find jl, jh = jl+1 such that Y_row(jh) <= y_target <= Y_row(jl)
+      jl = 1
+      jh = ncool
+      do
+        if (jh - jl <= 1) exit
+        jc = (jl + jh) / 2
+        if (Y_row(jc) >= y_target) then
+          jl = jc
+        else
+          jh = jc
+        end if
+      end do
+      f_lo = Y_row(jl)
+      f_hi = Y_row(jh)
+      if (f_lo == f_hi) then
+        log_T_out = 0.5d0 * (dlog10(t_grid(jl)) + dlog10(t_grid(jh)))
+      else
+        ! Linear interpolation in log T (the cooling-curve T grid is uniform in log T)
+        log_T_out = dlog10(t_grid(jl)) &
+            + (y_target - f_lo) / (f_hi - f_lo) &
+              * (dlog10(t_grid(jh)) - dlog10(t_grid(jl)))
+      end if
+    end function invert_row_bisect
+
+    !> Forward Y_mod lookup: bilinear interpolation in (log10 nH, log10 T)
+    !> on the precomputed Y_mod table. Both axes are uniform in log space.
+    function findY_mod(Te_loc, nH_loc, fl) result(Y_out)
+      double precision, intent(in) :: Te_loc, nH_loc
+      type(rc_fluid), intent(in) :: fl
+      double precision :: Y_out
+      double precision :: log_nH, log_T, ry, rx
+      integer :: jy, jy1, jx, jx1
+      double precision :: fy, fx
+
+      log_nH = dlog10(nH_loc)
+      log_T  = dlog10(Te_loc)
+
+      ! Clamp into table range
+      ry = (log_nH - fl%Y_mod_lg_nH_min) * fl%Y_mod_lg_nH_step_inv
+      ry = max(0.0d0, min(ry, dble(fl%Y_mod_n_nH - 1)))
+      jy  = int(ry)
+      jy1 = min(jy + 1, fl%Y_mod_n_nH - 1)
+      fy  = ry - dble(jy)
+
+      rx = (log_T - fl%lgtcoolmin) / fl%lgstep
+      rx = max(0.0d0, min(rx, dble(fl%ncool - 1)))
+      jx  = int(rx)
+      jx1 = min(jx + 1, fl%ncool - 1)
+      fx  = rx - dble(jx)
+
+      Y_out = (1.0d0 - fy) * ((1.0d0 - fx) * fl%Y_mod(jy + 1,  jx + 1) &
+                             +         fx  * fl%Y_mod(jy + 1,  jx1 + 1)) &
+            +         fy  * ((1.0d0 - fx) * fl%Y_mod(jy1 + 1, jx + 1) &
+                             +         fx  * fl%Y_mod(jy1 + 1, jx1 + 1))
+    end function findY_mod
+
+    !> Inverse Y_mod lookup: given Y_target and nH, return T such that
+    !> Y_mod(log10 nH, log10 T) = Y_target. Bisection on the cooling-table
+    !> i index using values interpolated linearly between the two adjacent
+    !> nH rows (same convention as the classical findT). Saturates at the
+    !> table extremes when Y_target falls outside [Y(tcoolmax), Y(tcoolmin)].
+    function findT_mod(Y_target, nH_loc, fl) result(T_out)
+      double precision, intent(in) :: Y_target, nH_loc
+      type(rc_fluid), intent(in) :: fl
+      double precision :: T_out
+      double precision :: log_nH, ry, fy
+      integer :: jy, jy1
+      double precision :: log_T_lo, log_T_hi
+      integer :: jl, jh, jc, ncool
+      double precision :: Yc_lo, Yc_hi
+
+      log_nH = dlog10(nH_loc)
+      ry = (log_nH - fl%Y_mod_lg_nH_min) * fl%Y_mod_lg_nH_step_inv
+      ry = max(0.0d0, min(ry, dble(fl%Y_mod_n_nH - 1)))
+      jy  = int(ry)
+      jy1 = min(jy + 1, fl%Y_mod_n_nH - 1)
+      fy  = ry - dble(jy)
+      ncool = fl%ncool
+
+      Yc_lo = (1.0d0 - fy) * fl%Y_mod(jy + 1, 1)      + fy * fl%Y_mod(jy1 + 1, 1)
+      Yc_hi = (1.0d0 - fy) * fl%Y_mod(jy + 1, ncool)  + fy * fl%Y_mod(jy1 + 1, ncool)
+      if (Y_target >= Yc_lo) then
+        T_out = fl%tcoolmin
+        return
+      end if
+      if (Y_target <= Yc_hi) then
+        T_out = fl%tcoolmax
+        return
+      end if
+      jl = 1
+      jh = ncool
+      do
+        if (jh - jl <= 1) exit
+        jc = (jl + jh) / 2
+        if (((1.0d0 - fy) * fl%Y_mod(jy + 1, jc) + fy * fl%Y_mod(jy1 + 1, jc)) &
+            >= Y_target) then
+          jl = jc
+        else
+          jh = jc
+        end if
+      end do
+      Yc_lo = (1.0d0 - fy) * fl%Y_mod(jy + 1, jl) + fy * fl%Y_mod(jy1 + 1, jl)
+      Yc_hi = (1.0d0 - fy) * fl%Y_mod(jy + 1, jh) + fy * fl%Y_mod(jy1 + 1, jh)
+      log_T_lo = dlog10(fl%tcool(jl))
+      log_T_hi = dlog10(fl%tcool(jh))
+      if (Yc_lo == Yc_hi) then
+        T_out = fl%tcool(jl)
+      else
+        T_out = 10.0d0**(log_T_lo &
+              + (Y_target - Yc_lo) / (Yc_hi - Yc_lo) * (log_T_hi - log_T_lo))
+      end if
+    end function findT_mod
 
 end module mod_radiative_cooling

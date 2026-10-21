@@ -1,20 +1,18 @@
-&testlist
-        teststr=''
-/
-
 &filelist
-  base_filename='Torrilhon'
-  saveprim         = F
+  base_filename='output/Torrilhon_diff_nomg'
   autoconvert      = F
-  typefilelog='regression_test'
 /
+  typefilelog='regression_test'
 
  &savelist
-   dtsave_log     = 0.001d0
+   itsave(1,1)=0
+   itsave(1,2)=0
+   ditsave_log     = 10
+   dtsave_dat     = 0.01d0
 /
 
  &stoplist
-   time_max = 0.01d0
+   time_max = 0.4d0
 /
 
  &methodlist
@@ -31,7 +29,7 @@
 
  &meshlist
         refine_criterion=3
-        refine_max_level=5 
+        refine_max_level= 7
         w_refine_weight(1)=0.5
         w_refine_weight(3)=0.5
         refine_threshold=20*0.05d0
@@ -46,25 +44,25 @@
         slowsteps=20000
  /
 
- &rmhd_list
+ &mhd_list
      typedivbfix='none'
-     He_abundance = 0.0d0
-     rmhd_energy = .true.
-     rmhd_gamma = 1.6666667d0
-     rmhd_radiation_formalism = 'fld'
-     rmhd_radiation_force = .true.
-     rmhd_energy_interact = .true.
-     rmhd_radiation_diffusion = .true.
-     rmhd_radiation_advection = .true.
+     mhd_energy = .true.
+     mhd_radiation_fld = .true.
+ /
+
+ &eos_list
+  gamma = 1.6666667d0
+  He_abundance = 0.0d0
  /
 
  &fld_list
-     fld_Eint_split = .false.
      fld_Radforce_split = .false.
      fld_opacity_law = 'const'
-     fld_kappa0 = 0.4d4
-     fld_diff_scheme = 'mg'
+     fld_kappa0 = 4000.0d0
      fld_interaction_method = 'Halley'
-     fld_fluxlimiter = 'Pomraning'
+     fld_fluxlimiter = 'Diffusion'
      fld_diff_tol = 1.d-7
+     fld_bisect_tol=1.d-6
+     fld_tiring_explicit=.true.
+     fld_no_mg=.true.
  /

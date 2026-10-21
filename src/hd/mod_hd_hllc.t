@@ -201,6 +201,9 @@ contains
           iw = tracer(n)
           wCD(ix^D,iw) = wSub(ix^D,iw)*(cspeed(ix^D)-vSub(ix^D))*csmls
         end do
+        if (hd_fip) then
+          wCD(ix^D,fip_) = wSub(ix^D,fip_) * (cspeed(ix^D)-vSub(ix^D)) * csmls
+        end if
 
         !------- Momentum ------!
         do iw=1, ndir

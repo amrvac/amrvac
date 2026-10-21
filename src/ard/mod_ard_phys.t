@@ -177,7 +177,6 @@ contains
     use mod_global_parameters
     use mod_physics
     use mod_multigrid_coupling
-    use mod_particles, only: particles_init
 
     call ard_params_read(par_files)
 
@@ -223,16 +222,21 @@ contains
     phys_implicit_update   => ard_implicit_update
     phys_evaluate_implicit => ard_evaluate_implicit
 
-    ! Initialize particles module
-    if (ard_particles) then
-       call particles_init()
-    end if
 
   end subroutine ard_phys_init
 
   subroutine ard_check_params
     use mod_global_parameters
+    use mod_usr_methods
+    use mod_geometry, only: coordinate
+    use mod_particles, only: particles_init
+    use mod_particles, only: npayload,nusrpayload,ngridvars,num_particles,physics_type_particles
     integer :: n, i, iw, species_list(number_of_species)
+
+    ! Initialize particles module
+    if (ard_particles) then
+       call particles_init()
+    end if
 
     if (use_imex_scheme) then
        use_multigrid = .true.
@@ -278,12 +282,17 @@ contains
              case (bc_periodic)
                 ! Nothing to do here
              case (bc_special)
-                if (.not. associated(ard_mg_bc(i, n)%boundary_cond)) then
-                   write(*, "(A,I0,A,I0,A)") "typeboundary(", iw, ",", n, &
-                        ") is 'special', but the corresponding method " // &
-                        "ard_mg_bc(i, n)%boundary_cond is not set"
-                   call mpistop("ard_mg_bc(i, n)%boundary_cond not set")
-                end if
+                if (.not. associated(usr_special_mg_bc)) then
+                  call mpistop("special BC for MG not defined")
+                 else 
+                  call usr_special_mg_bc(n)
+                 endif
+                !!if (.not. associated(ard_mg_bc(i, n)%boundary_cond)) then
+                !!   write(*, "(A,I0,A,I0,A)") "typeboundary(", iw, ",", n, &
+                !!        ") is 'special', but the corresponding method " // &
+                !!        "ard_mg_bc(i, n)%boundary_cond is not set"
+                !!   call mpistop("ard_mg_bc(i, n)%boundary_cond not set")
+                !!end if
              case default
                 write(*,*) "ard_check_params warning: unknown boundary type"
                 ard_mg_bc(i, n)%bc_type = mg_bc_dirichlet
@@ -292,6 +301,36 @@ contains
           end do
        end do
     end if
+
+
+    if(mype==0)then
+           write(*,*)'====ARD run with settings===================='
+           write(*,*)'Using mod_ard_phys with settings:'
+           write(*,*)'Dimensionality   :',ndim
+           write(*,*)'vector components:',ndir
+           write(*,*)'coordinate set to type,slab:',coordinate,slab
+           write(*,*)'number of variables          nw=',nw
+           write(*,*)'    start index         iwstart=',iwstart
+           write(*,*)'number of      vector variables=',nvector
+           write(*,*)'number of stagger variables nws=',nws
+           write(*,*)'number of    variables with BCs=',nwgc
+           write(*,*)'number of      vars with fluxes=',nwflux
+           write(*,*)'number of   vars with flux + BC=',nwfluxbc
+           write(*,*)'number of   auxiliary variables=',nwaux
+           write(*,*)'number of extra vars without flux=',nwextra
+           write(*,*)'number of extra vars   for wextra=',nw_extra
+           write(*,*)'number of auxiliary I/O variables=',nwauxio
+           write(*,*)'    ard_particles=',ard_particles
+           if(ard_particles) then
+              write(*,*) '*****Using particles: npayload,ngridvars :', npayload,ngridvars
+              write(*,*) '*****Using particles:        nusrpayload :', nusrpayload
+              write(*,*) '*****Using particles:      num_particles :', num_particles
+              write(*,*) '*****Using particles: physics_type_particles=',physics_type_particles
+           end if
+           write(*,*)'number of             ghostcells=',nghostcells
+           write(*,*)'==========================================='
+    endif
+
 
   end subroutine ard_check_params
 
@@ -680,6 +719,8 @@ contains
        if (res < max_residual) exit
     end do
 
+    if (res > max_residual) call mpistop("u_multigrid: no convergence")
+
     call mg_copy_from_tree_gc(mg_iphi, u_, state_to=psa)
     ! Done with the u variable ***************************************
 
@@ -698,6 +739,7 @@ contains
           if (res < max_residual) exit
        end do
 
+       if (res > max_residual) call mpistop("v_multigrid: no convergence")
        call mg_copy_from_tree_gc(mg_iphi, v_, state_to=psa)
     end if
     ! Done with the v variable ***************************************
@@ -716,6 +758,7 @@ contains
           if (res < max_residual) exit
        end do
 
+       if (res > max_residual) call mpistop("w_multigrid: no convergence")
        call mg_copy_from_tree_gc(mg_iphi, w_, state_to=psa)
     end if
     ! Done with the w variable ***************************************

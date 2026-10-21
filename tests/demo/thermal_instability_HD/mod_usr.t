@@ -3,6 +3,7 @@
 !=============================================================================
 module mod_usr
   use mod_hd
+  use mod_eos, only: eos
   implicit none
 
   ! this is input
@@ -51,7 +52,6 @@ contains
 
     printsettingformat='(1x,A50,ES15.7,A7)'
 
-    hd_gamma=1.66666667d0
 
     if(mype==0) then
       write(*,*) "HD thermal instability setup:"
@@ -83,14 +83,14 @@ contains
     endwhere
     w(ix^S,mom(1))=0.0d0
     w(ix^S,mom(2))=0.0d0
-    w(ix^S,p_)    =1.0d0/hd_gamma
+    w(ix^S,p_)    =1.0d0/eos%gamma
   
     if(mype==0.and.first)then
-       write(*,*)'Doing TI setup with gamma=',hd_gamma
+       write(*,*)'Doing TI setup with gamma=',eos%gamma
        first=.false.
     endif
 
-    call hd_to_conserved(ixG^L,ix^L,w,x)
+    call eos%to_conserved(ixG^L,ix^L,w,x)
 
   end subroutine initonegrid_usr
 
@@ -107,7 +107,7 @@ contains
        winit_nopert(ixI^S,rho_)=1.0d0
        winit_nopert(ixI^S,mom(1))=0.0d0
        winit_nopert(ixI^S,mom(2))=0.0d0
-       winit_nopert(ixI^S,e_)=(1.0d0/hd_gamma)/(hd_gamma-1.0d0)
+       winit_nopert(ixI^S,e_)=(1.0d0/eos%gamma)/(eos%gamma-1.0d0)
        call getvar_cooling_exact(qdt,ixI^L,ixO^L,winit_nopert,winit_nopert,x,bQgrid,rc_fl)
        w(ixO^S,e_)=w(ixO^S,e_)+qdt*bQgrid(ixO^S)
     endif
@@ -134,7 +134,7 @@ contains
     integer :: idims
 
     wlocal(ixI^S,1:nw)=w(ixI^S,1:nw)
-    call hd_get_pthermal(wlocal,x,ixI^L,ixO^L,tmp)
+    call eos%get_thermal_pressure(wlocal,x,ixI^L,ixO^L,tmp)
     ! output the temperature p/rho
     w(ixO^S,nw+1)=tmp(ixO^S)/wlocal(ixO^S,rho_)
     ! then compute schlieren density plot

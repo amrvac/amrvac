@@ -1,7 +1,11 @@
 F90 := mpif90
 FFLAGS := -c
+# -fallow-argument-mismatch: silence gfortran 10+ checks on MPI
+# choice-buffer arguments. Add it only when the active mpif90 wrapper accepts
+# it, since gfortran 9 and non-GNU compilers reject the option.
+FALLOW_ARGUMENT_MISMATCH := $(shell tmp=$$(mktemp /tmp/amrvac_fallow_argument_mismatch.XXXXXX); src=$$tmp.f90; printf 'end\n' > $$src; if $(F90) -fallow-argument-mismatch -c $$src -o $$tmp.o >/dev/null 2>&1; then printf '%s' '-fallow-argument-mismatch'; fi; rm -f $$src $$tmp.o)
 F90FLAGS := -cpp -ffree-form -fimplicit-none -O2 -finit-real=snan -finit-integer=-2147483648	\
 -g -fbacktrace -fcheck=all -ffpe-trap=invalid,zero \
 -Wall -Wno-unused-dummy-argument -Wno-unused-function -Wno-unused -Wno-zerotrip \
--Wno-maybe-uninitialized
+-Wno-maybe-uninitialized $(FALLOW_ARGUMENT_MISMATCH)
 LINK := $(F90) $(F90FLAGS)

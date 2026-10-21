@@ -2,6 +2,7 @@
 ! here we do a non-relativistic version (like the NR jet in paper)
 module mod_usr
   use mod_mhd
+  use mod_eos, only: eos
 
   implicit none
 
@@ -188,14 +189,14 @@ contains
              /(dsqrt(w(ix^S,rho_))*R(ix^S)*Rjet/apar)
     w(ix^S,e_)= pjet+0.5d0*(B0**2.0d0-(Bphi(ix^S)**2.0d0 + w(ix^S,mag(3))**2.0d0))
 
-    call mhd_to_conserved(ixG^L,ix^L,w,x)
+    call eos%to_conserved(ixG^L,ix^L,w,x)
 
   end subroutine Jet_init_one_grid
 
-  subroutine specialbound_usr(qt,ixI^L,ixO^L,iB,w,x)
+  subroutine specialbound_usr(qdt,qt,ixI^L,ixO^L,iB,w,x)
     ! special boundary types, user defined
     integer, intent(in) :: ixO^L, iB, ixI^L
-    double precision, intent(in) :: qt, x(ixI^S,1:ndim)
+    double precision, intent(in) :: qdt,qt, x(ixI^S,1:ndim)
     double precision, intent(inout) :: w(ixI^S,1:nw)
 
     double precision :: R(ixI^S),Z(ixI^S),hlpphi(ixI^S),hlpR(ixI^S)
@@ -212,7 +213,7 @@ contains
       ixOInt^L=ixO^L;
       ixOIntmin1=ixOmax1+1
       ixOIntmax1=ixOmax1+1
-      call mhd_to_primitive(ixI^L,ixOInt^L,w,x)
+      call eos%to_primitive(ixI^L,ixOInt^L,w,x)
       do ix1 = ixOmin1,ixOmax1
          w(ix1,ixOmin2:ixOmax2,ixOmin3:ixOmax3,rho_)  = w(ixOmax1+1,ixOmin2:ixOmax2,ixOmin3:ixOmax3,rho_)
          w(ix1,ixOmin2:ixOmax2,ixOmin3:ixOmax3,mom(1))= w(ixOmax1+1,ixOmin2:ixOmax2,ixOmin3:ixOmax3,mom(1))
@@ -224,16 +225,16 @@ contains
          w(ix1,ixOmin2:ixOmax2,ixOmin3:ixOmax3,mag(3))= w(ixOmax1+1,ixOmin2:ixOmax2,ixOmin3:ixOmax3,mag(3))
       enddo
       ! switch to conservative variables in internal zone
-      call mhd_to_conserved(ixI^L,ixOInt^L,w,x)
+      call eos%to_conserved(ixI^L,ixOInt^L,w,x)
       ! switch to conservative variables in ghost cells
-      call mhd_to_conserved(ixI^L,ixO^L,w,x)
+      call eos%to_conserved(ixI^L,ixO^L,w,x)
     case(2)
       ! extrapolate all primitives continuously
       ! switch internal zone above boundary zone to primitive variables
       ixOInt^L=ixO^L;
       ixOIntmin1=ixOmin1-1
       ixOIntmax1=ixOmin1-1
-      call mhd_to_primitive(ixI^L,ixOInt^L,w,x)
+      call eos%to_primitive(ixI^L,ixOInt^L,w,x)
       do ix1 = ixOmin1,ixOmax1
          w(ix1,ixOmin2:ixOmax2,ixOmin3:ixOmax3,rho_)  = w(ixOmin1-1,ixOmin2:ixOmax2,ixOmin3:ixOmax3,rho_)
          w(ix1,ixOmin2:ixOmax2,ixOmin3:ixOmax3,mom(1))= w(ixOmin1-1,ixOmin2:ixOmax2,ixOmin3:ixOmax3,mom(1))
@@ -245,16 +246,16 @@ contains
          w(ix1,ixOmin2:ixOmax2,ixOmin3:ixOmax3,mag(3))= w(ixOmin1-1,ixOmin2:ixOmax2,ixOmin3:ixOmax3,mag(3))
       enddo
       ! switch to conservative variables in internal zone
-      call mhd_to_conserved(ixI^L,ixOInt^L,w,x)
+      call eos%to_conserved(ixI^L,ixOInt^L,w,x)
       ! switch to conservative variables in ghost cells
-      call mhd_to_conserved(ixI^L,ixO^L,w,x)
+      call eos%to_conserved(ixI^L,ixO^L,w,x)
     case(3)
       ! extrapolate all primitives continuously
       ! switch internal zone above boundary zone to primitive variables
       ixOInt^L=ixO^L;
       ixOIntmin2=ixOmax2+1
       ixOIntmax2=ixOmax2+1
-      call mhd_to_primitive(ixI^L,ixOInt^L,w,x)
+      call eos%to_primitive(ixI^L,ixOInt^L,w,x)
       do ix2 = ixOmin2,ixOmax2
          w(ixOmin1:ixOmax1,ix2,ixOmin3:ixOmax3,rho_)  = w(ixOmin1:ixOmax1,ixOmax2+1,ixOmin3:ixOmax3,rho_)
          w(ixOmin1:ixOmax1,ix2,ixOmin3:ixOmax3,mom(1))= w(ixOmin1:ixOmax1,ixOmax2+1,ixOmin3:ixOmax3,mom(1))
@@ -266,16 +267,16 @@ contains
          w(ixOmin1:ixOmax1,ix2,ixOmin3:ixOmax3,mag(3))= w(ixOmin1:ixOmax1,ixOmax2+1,ixOmin3:ixOmax3,mag(3))
       enddo
       ! switch to conservative variables in internal zone
-      call mhd_to_conserved(ixI^L,ixOInt^L,w,x)
+      call eos%to_conserved(ixI^L,ixOInt^L,w,x)
       ! switch to conservative variables in ghost cells
-      call mhd_to_conserved(ixI^L,ixO^L,w,x)
+      call eos%to_conserved(ixI^L,ixO^L,w,x)
     case(4)
       ! extrapolate all primitives continuously
       ! switch internal zone above boundary zone to primitive variables
       ixOInt^L=ixO^L;
       ixOIntmin2=ixOmin2-1
       ixOIntmax2=ixOmin2-1
-      call mhd_to_primitive(ixI^L,ixOInt^L,w,x)
+      call eos%to_primitive(ixI^L,ixOInt^L,w,x)
       do ix2 = ixOmin2,ixOmax2
          w(ixOmin1:ixOmax1,ix2,ixOmin3:ixOmax3,rho_)  = w(ixOmin1:ixOmax1,ixOmin2-1,ixOmin3:ixOmax3,rho_)
          w(ixOmin1:ixOmax1,ix2,ixOmin3:ixOmax3,mom(1))= w(ixOmin1:ixOmax1,ixOmin2-1,ixOmin3:ixOmax3,mom(1))
@@ -287,9 +288,9 @@ contains
          w(ixOmin1:ixOmax1,ix2,ixOmin3:ixOmax3,mag(3))= w(ixOmin1:ixOmax1,ixOmin2-1,ixOmin3:ixOmax3,mag(3))
       enddo
       ! switch to conservative variables in internal zone
-      call mhd_to_conserved(ixI^L,ixOInt^L,w,x)
+      call eos%to_conserved(ixI^L,ixOInt^L,w,x)
       ! switch to conservative variables in ghost cells
-      call mhd_to_conserved(ixI^L,ixO^L,w,x)
+      call eos%to_conserved(ixI^L,ixO^L,w,x)
     case(5)
       ! special bottom (Z=0) boundary
       ! fixing all profiles within Rjet
@@ -307,7 +308,7 @@ contains
       ixOInt^L=ixO^L;
       ixOIntmin3=ixOmax3+1
       ixOIntmax3=ixOmax3+nghostcells
-      call mhd_to_primitive(ixI^L,ixOInt^L,w,x)
+      call eos%to_primitive(ixI^L,ixOInt^L,w,x)
       ! prescribe solution at jet inlet
       hlpphi(ixO^S)=cosh(Z(ixO^S)**npower)
       hlpR(ixO^S)=(cosh(R(ixO^S)**2.0d0))**2.0d0
@@ -379,9 +380,9 @@ contains
       enddo
 
       ! switch to conservative variables in internal zone
-      call mhd_to_conserved(ixI^L,ixOInt^L,w,x)
+      call eos%to_conserved(ixI^L,ixOInt^L,w,x)
       ! switch to conservative variables in ghost cells
-      call mhd_to_conserved(ixI^L,ixO^L,w,x)
+      call eos%to_conserved(ixI^L,ixO^L,w,x)
 
     case default
        call mpistop("Special boundary is not defined for this region")
@@ -448,7 +449,7 @@ contains
 
     wlocal(ixI^S,1:nw)=w(ixI^S,1:nw)
     ! output temperature
-    call mhd_get_pthermal(wlocal,x,ixI^L,ixO^L,pth)
+    call eos%get_thermal_pressure(wlocal,x,ixI^L,ixO^L,pth)
     w(ixO^S,nw+1)=pth(ixO^S)/w(ixO^S,rho_)
 
     do idir=1,ndir
@@ -474,7 +475,7 @@ contains
     !end do
 
     ! output Mach number V_z/c_s
-    w(ixO^S,nw+5)=wlocal(ixO^S,mom(3))/dsqrt(mhd_gamma*pth(ixO^S)*w(ixO^S,rho_))
+    w(ixO^S,nw+5)=wlocal(ixO^S,mom(3))/dsqrt(eos%gamma*pth(ixO^S)*w(ixO^S,rho_))
 
     ! output log10(rho)
     w(ixO^S,nw+6)=dlog10(w(ixO^S,rho_))

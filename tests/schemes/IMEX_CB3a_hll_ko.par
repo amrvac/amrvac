@@ -1,0 +1,10 @@
+ &filelist
+ base_filename  = '_IMEX_CB3a_hll_ko'
+ /
+
+ &methodlist
+        time_stepper = 'threestep'
+        time_integrator = 'IMEX_CB3a'
+        flux_scheme     = 20*'hll'
+        limiter         = 20*'koren'
+ /

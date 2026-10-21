@@ -1,5 +1,6 @@
 module mod_usr
   use mod_mhd
+  use mod_eos, only: eos
   implicit none
 
 contains
@@ -45,7 +46,7 @@ contains
     w(ix^S,mom(3))=dv*dexp(-((r(ix^S)-Rjet)/(4.0d0*width))**2) &
                    *dcos(mpol*phi(ix^S))*dsin(k1*x(ix^S,1))*dsin(phi(ix^S))
 
-    call mhd_to_conserved(ixG^L,ix^L,w,x)
+    call eos%to_conserved(ixG^L,ix^L,w,x)
 
     if(first)then
       if(mype==0)then

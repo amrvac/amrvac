@@ -2,6 +2,7 @@
 ! test thermal conduction in circular magnetic field loops
 module mod_usr
   use mod_mhd
+  use mod_eos, only: eos
   implicit none
 
 contains
@@ -69,7 +70,7 @@ contains
     w(ixO^S,mag(2))=dsin(-al)*xp(ixO^S,1)+dcos(-al)*xp(ixO^S,2)
     w(ixO^S,mag(3))=xp(ixO^S,3)
 
-    call mhd_to_conserved(ixI^L,ixO^L,w,x)
+    call eos%to_conserved(ixI^L,ixO^L,w,x)
 
   end subroutine initonegrid_usr
 

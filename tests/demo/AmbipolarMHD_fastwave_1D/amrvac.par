@@ -51,15 +51,13 @@
  &mhd_list
         typedivbfix   =  'linde'
         !typedivbfix   =  'none'
-        has_equi_pe0 = .true.
-        has_equi_rho0 = .true.
+        has_equi_rho_and_p = .true.
         B0field=.true.
         B0field_forcefree=.true.
 
         mhd_dump_full_vars = .true.
         mhd_gravity   =  .true.
         SI_unit       =  .true.
-        He_abundance  =  0d0
         H_ion_fr = 1d-3
         mhd_ambipolar =  .true.
         mhd_eta_ambi=1d-4
@@ -88,3 +86,7 @@
         random_ambi = .false.
 
 /
+ &eos_list
+  He_abundance = 0d0
+ /
+

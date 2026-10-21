@@ -1,6 +1,7 @@
 ! blast wave
 module mod_usr
   use mod_mhd
+  use mod_eos, only: eos
   implicit none
 
 contains
@@ -69,7 +70,7 @@ contains
 
     if(mhd_glm) w(ixO^S,psi_)=0.d0
 
-    call mhd_to_conserved(ixI^L,ixO^L,w,x)
+    call eos%to_conserved(ixI^L,ixO^L,w,x)
 
   end subroutine initonegrid_usr
 

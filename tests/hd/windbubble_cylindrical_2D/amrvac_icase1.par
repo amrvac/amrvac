@@ -74,10 +74,13 @@
 
  &rc_list
 	coolcurve   = 'SPEX_DM'
-        coolmethod = 'exact'
         Tfix       = .true.
  /
 
  &usr_list
        icase=1
+ /
+
+ &eos_list
+        gamma=1.6666666666666667d0
  /

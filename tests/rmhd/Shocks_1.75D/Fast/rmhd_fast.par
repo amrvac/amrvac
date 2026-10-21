@@ -1,0 +1,81 @@
+&filelist
+  base_filename='rmhd_fast'
+  autoconvert      = F
+  typefilelog='regression_test'
+  nwauxio=2 
+/
+
+&savelist
+   itsave(1,1)     = 0
+   itsave(1,2)     = 0
+   !ditsave_dat     = 1
+   !ditsave_log     = 1
+   dtsave_dat     = 1.d0
+   dtsave_log     = 0.2d0
+/
+
+   time_max = 20.d0
+&stoplist
+   time_max = 2.d0
+   dtmin = 1.0d-20
+/
+
+ &methodlist
+   time_stepper = 'threestep'
+   time_integrator = 'IMEX_ARS3'
+   flux_scheme     = 20*'hll'
+   limiter         = 20*'weno3'
+/
+
+&boundlist
+  typeboundary_min1 = 9*'cont' 
+  typeboundary_max1 = 9*'cont' 
+/
+
+ &meshlist
+   refine_max_level   = 3
+   refine_criterion   = 3
+   domain_nx1         = 256
+   block_nx1          = 16
+   xprobmin1       = -0.5d0
+   xprobmax1       = 0.5d0
+   refine_threshold   = 20*0.5d0
+   derefine_ratio     = 20*1.d0/2.d0
+ /
+
+ &paramlist
+  courantpar       = 0.6d0
+  slowsteps = 200
+ /
+
+ &mhd_list
+  mhd_energy = .true.
+  mhd_radiation_fld = .true.
+ /
+
+ &eos_list
+  gamma = 1.4d0
+  He_abundance = 0.d0
+ /
+
+ &fld_list
+  fld_Radforce_split = .false.
+  fld_opacity_law = 'const'
+  fld_kappa0 = 0.4d0
+  fld_interaction_method = 'Halley'
+  fld_fluxlimiter = 'Diffusion'
+  fld_diff_tol = 1.d-7
+  fld_tiring_explicit=.true.
+  /
+
+  &shock_list
+   rho1 = 1.d-2
+   rho2 = 0.0660865d0 
+   T1 = 1.d4
+   vx1 = 1.d9
+   vy1 = 5.d8 
+   vz1 = 2.d6 
+   Bx1 = 3.5449076997857d6 
+   By1 = 1.7724538498929d7 
+   Bz1 = -7.0898153995714d6 
+   /

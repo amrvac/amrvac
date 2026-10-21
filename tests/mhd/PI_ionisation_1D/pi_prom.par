@@ -1,0 +1,57 @@
+!setup.pl -d=1
+!> PI smoke: prominence (T,p) table, no-energy closure (ionE=F).
+!> Lower rho_base places the pressure inside the prominence table range
+!> (~0.03-1.0 dyn/cm^2 CGS) so the (T,p) pressure-bisection path is exercised.
+
+&filelist
+  base_filename = 'pi_prom'
+  typefilelog   = 'regression_test'
+/
+
+&savelist
+  itsave(1,1) = 0
+  dtsave_log  = 0.005d0
+/
+
+&stoplist
+  time_max = 0.05d0
+/
+
+&methodlist
+  time_stepper = 'threestep'
+  flux_scheme  = 20*'hllc'
+  limiter      = 20*'ppm'
+/
+
+&boundlist
+  typeboundary_min1 = 4*'periodic'
+  typeboundary_max1 = 4*'periodic'
+/
+
+&meshlist
+  refine_max_level = 1
+  block_nx1        = 64
+  domain_nx1       = 256
+  xprobmin1        = 0.0d0
+  xprobmax1        = 1.0d0
+/
+
+&paramlist
+  courantpar = 0.4d0
+/
+
+&mhd_list
+  mhd_energy = .true.
+/
+
+&eos_list
+  eos_type     = 'PI'
+  pi_table     = 'prominence'
+  ionE         = .false.
+  He_abundance = 0.1d0
+/
+
+&usr_list
+  rho_base = 5.0d-4
+  T_base   = 0.011d0
+/

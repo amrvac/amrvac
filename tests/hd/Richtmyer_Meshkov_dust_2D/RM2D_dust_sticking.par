@@ -57,7 +57,6 @@
  /
 
  &hd_list
-        hd_gamma = 1.4d0
         hd_dust = .true.
  /
 
@@ -66,3 +65,7 @@
         dust_method='sticking'
         dust_temperature=0.0d0
  /
+ &eos_list
+  gamma = 1.4d0
+ /
+

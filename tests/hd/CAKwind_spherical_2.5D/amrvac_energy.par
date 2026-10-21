@@ -59,7 +59,6 @@
 &hd_list
   hd_gravity = .true.
   hd_energy  = .true.
-  hd_gamma   = 1.66667d0
   hd_cak_force = .true.
   hd_rotating_frame = .false.
 /
@@ -82,3 +81,7 @@
   beta     = 0.5d0
   Wrot     = 0.5d0
 /
+ &eos_list
+  gamma = 1.66667d0
+ /
+

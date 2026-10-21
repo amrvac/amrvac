@@ -1,0 +1,50 @@
+ -----------------------------------------------------------------------------
+ -----------------------------------------------------------------------------
+ |         __  __ ____ ___        _    __  __ ______     ___    ____         |
+ |        |  \/  |  _ \_ _|      / \  |  \/  |  _ \ \   / / \  / ___|        |
+ |        | |\/| | |_) | |_____ / _ \ | |\/| | |_) \ \ / / _ \| |            |
+ |        | |  | |  __/| |_____/ ___ \| |  | |  _ < \ V / ___ \ |___         |
+ |        |_|  |_|_|  |___|   /_/   \_\_|  |_|_| \_\ \_/_/   \_\____|        |
+ -----------------------------------------------------------------------------
+ -----------------------------------------------------------------------------
+ Reading burgers_2d.par
+ Reading ../../schemes/5step_tvdlf_vl.par
+ 
+ Output type | tsavestart |  dtsave   | ditsave | itsave(1) | tsave(1)
+         log | 0.000E+00  | ********* |      1  |      0    | *********
+      normal | 0.000E+00  | 0.500E+00 | ******  |      0    | *********
+       slice | 0.000E+00  | ********* | ******  | ******    | *********
+   collapsed | 0.000E+00  | ********* | ******  | ******    | *********
+    analysis | 0.000E+00  | ********* | ******  | ******    | *********
+ 
+ Warning: coordinate system is not specified!
+ call set_coordinate_system in usr_init in mod_usr.t
+ Now use Cartesian coordinate
+         Domain size (cells): 60 32 
+                Level one dx: 0.833E-01 0.156E+00 
+           Refine estimation: Lohner's scheme
+           restart_from_file:  undefined
+                  converting: F
+
+ -------------------------------------------------------------------------------
+ Startup phase took :             0.030 sec
+ -------------------------------------------------------------------------------
+ Start integrating, print status every  3.00E+01 seconds
+   #        it        time          dt  wc-time(s)
+   #         0  0.0000E+00  2.2527E-03  1.0200E-04
+ Total timeloop took        :        1.946 sec
+ Time spent on AMR          :        0.161 sec
+                  Percentage:         8.25 %
+ Time spent on IO in loop   :        0.044 sec
+                  Percentage:         2.28 %
+ Time spent on ghost cells  :        0.236 sec
+                  Percentage:        12.10 %
+ Time spent on computing    :        1.506 sec
+                  Percentage:        77.37 %
+ Cells updated / proc / sec :    1.319E+07
+ Total time spent on IO     :        0.045 sec
+ Total timeintegration took :        1.947 sec
+   #       334   1.000E+00   0.000E+00   1.946E+00
+ -------------------------------------------------------------------------------
+ Finished AMRVAC in :             1.977 sec            0.001 core hour
+ -------------------------------------------------------------------------------

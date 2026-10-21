@@ -4,6 +4,7 @@
 ! setting for 2D hydro with 4 dust species
 module mod_usr
   use mod_hd
+  use mod_eos, only: eos
 
   double precision :: min_ar
   double precision :: max_ar
@@ -30,7 +31,6 @@ contains
     integer          :: i
     logical, save    :: first = .true.
 
-    hd_gamma=1.4d0
 
     if (dust_n_species > 0) then
       dust_density(1:dust_n_species)   = 3.3d0    ! dust grain density (g/cc)
@@ -70,7 +70,7 @@ contains
             else
                write(*,*) 'Units system in cgs'
             endif
-            write(*,*) 'He_abundance is       =',He_abundance
+            write(*,*) 'eos%He_abundance is       =',eos%He_abundance
             write(*,*) 'unit length is        =',unit_length
             write(*,*) 'unit number density is=',unit_numberdensity
             write(*,*) 'unit velocity is      =',unit_velocity
@@ -78,7 +78,7 @@ contains
             write(*,*) 'unit density is       =',unit_density
             write(*,*) 'unit pressure is      =',unit_pressure
             write(*,*) 'unit temperature is   =',unit_temperature
-            write(*,*) 'specific heat ratio is=',hd_gamma
+            write(*,*) 'specific heat ratio is=',eos%gamma
             write(*,*) '*****************************************'
             write(*,*) 'Dust inluded using ',dust_n_species,' dust species'
             write(*,*) 'Dust bins all have specific density rhop ',dust_density(1)
@@ -132,10 +132,10 @@ contains
     eta   = 3.0d0
 
     ! compute the RH related states across the planar shock
-    Prat    = one/(one+(M**2-one)*two*hd_gamma/(hd_gamma+one))
-    alfa    = (hd_gamma+one)/(hd_gamma-one)
+    Prat    = one/(one+(M**2-one)*two*eos%gamma/(eos%gamma+one))
+    alfa    = (eos%gamma+one)/(eos%gamma-one)
     c_pre   = one ! pre shock sound speed
-    rhopost = hd_gamma*(alfa+Prat)/(alfa*Prat+one)
+    rhopost = eos%gamma*(alfa+Prat)/(alfa*Prat+one)
     ppost   = one/Prat
     vpost   = c_pre*M*(one-(alfa*Prat+one)/(alfa+Prat))
 
@@ -156,7 +156,7 @@ contains
       w(ix^S, dust_mom(:, n)) = 0.0d0
 
       where(x(ix^S,1)>xshock.and.(x(ix^S,1)>x(ix^S,2)/dtan(alpha)+xbound))
-        w(ix^S,dust_rho(n)) = (0.01d0*hd_gamma*eta)/dust_n_species
+        w(ix^S,dust_rho(n)) = (0.01d0*eos%gamma*eta)/dust_n_species
       elsewhere(x(ix^S,1)>xshock.and.(x(ix^S,1)<=x(ix^S,2)/dtan(alpha)+xbound))
         w(ix^S,dust_rho(n)) = 0.0d0
       elsewhere
@@ -166,22 +166,22 @@ contains
 
     where(x(ix^S,1)>xshock.and.(x(ix^S,1)>x(ix^S,2)/dtan(alpha)+xbound))
       ! pre shock region
-      w(ix^S,rho_)=hd_gamma*eta
+      w(ix^S,rho_)=eos%gamma*eta
       w(ix^S,mom(1))=zero
       w(ix^S,mom(2))=zero
-      w(ix^S,e_)=one/(hd_gamma-one)
+      w(ix^S,e_)=one/(eos%gamma-one)
     elsewhere(x(ix^S,1)>xshock.and.(x(ix^S,1)<=x(ix^S,2)/dtan(alpha)+xbound))
       ! pre shock region
-      w(ix^S,rho_)=hd_gamma
+      w(ix^S,rho_)=eos%gamma
       w(ix^S,mom(1))=zero
       w(ix^S,mom(2))=zero
-      w(ix^S,e_)=one/(hd_gamma-one)
+      w(ix^S,e_)=one/(eos%gamma-one)
     elsewhere
       ! post shock region
       w(ix^S,rho_)= rhopost
       w(ix^S,mom(1)) = rhopost*vpost
       w(ix^S,mom(2)) = zero
-      w(ix^S,e_)  = ppost/(hd_gamma-one)+0.5d0*rhopost*vpost**2
+      w(ix^S,e_)  = ppost/(eos%gamma-one)+0.5d0*rhopost*vpost**2
     endwhere
 
   end subroutine initonegrid_usr

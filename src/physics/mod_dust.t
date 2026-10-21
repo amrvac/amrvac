@@ -190,11 +190,12 @@ contains
 
   end subroutine dust_check_params
 
-  subroutine dust_check_w(ixI^L,ixO^L,w,flag)
+  subroutine dust_check_w(ixI^L,ixO^L,w,x,flag)
     use mod_global_parameters
     
     integer, intent(in)         :: ixI^L,ixO^L
     double precision, intent(in):: w(ixI^S,1:nw)
+    double precision, intent(in):: x(ixI^S, 1:ndim)
     logical, intent(inout)      :: flag(ixI^S,1:nw)
     integer                     :: n
 
@@ -435,6 +436,7 @@ contains
   !>
   !> Uses Temperatures in K
   !> Equation from Decin et al. 2006
+  !> NOTE: w can also be wprim on entry, and hence only identical prim-cons variables must be used
   subroutine get_sticking(w, x, ixI^L, ixO^L, alpha_T, ptherm)
     use mod_global_parameters
     integer, intent(in)           :: ixI^L, ixO^L
@@ -465,6 +467,7 @@ contains
   !>
   !> It takes as input the stellar luminosity in solar units in 'stellar' case
   !> or a fixed dust input temperature in Kelvin when 'constant' or does case 'ism'
+  !> NOTE: w can also be wprim on entry, and hence only identical prim-cons variables must be used
   subroutine get_tdust(w, x, ixI^L, ixO^L, Td)
     use mod_global_parameters
     use mod_geometry
@@ -894,13 +897,13 @@ contains
 
 
   !> Get dt related to dust and gas stopping time (Laibe 2011)
-  subroutine dust_get_dt(w, ixI^L, ixO^L, dtnew, dx^D, x)
+  subroutine dust_get_dt(wprim, ixI^L, ixO^L, dtnew, dx^D, x)
     use mod_global_parameters
     use mod_usr_methods, only: usr_dust_get_dt
 
     integer, intent(in)             :: ixI^L, ixO^L
     double precision, intent(in)    :: dx^D, x(ixI^S, 1:ndim)
-    double precision, intent(in)    :: w(ixI^S, 1:nw)
+    double precision, intent(in)    :: wprim(ixI^S, 1:nw)
     double precision, intent(inout) :: dtnew
 
     double precision                :: ptherm(ixI^S), vgas(ixI^S, 1:ndir)
@@ -911,9 +914,14 @@ contains
 
     if(dust_dtpar .le. 0) return
 
-    call phys_get_pthermal(w, x, ixI^L, ixO^L, ptherm)
+    ! hydro has no splitting of pressure and primitives on entry
+    if(gas_e_>0) then
+       ptherm(ixO^S)=wprim(ixO^S,gas_e_)
+    else
+       call mpistop("adjust dust module for no energy for gas")
+    endif
     do idir = 1, ndir
-      vgas(ixO^S,idir)=w(ixO^S,gas_mom(idir))/w(ixO^S,gas_rho_)
+      vgas(ixO^S,idir)=wprim(ixO^S,gas_mom(idir))
     end do
 
     select case( TRIM(dust_method) )
@@ -921,17 +929,17 @@ contains
     case( 'Kwok' ) ! assume sticking coefficient equals 0.25
       dtdust(:) = bigdouble
 
-      vt2(ixO^S) = gas_vtherm_factor*ptherm(ixO^S)/w(ixO^S, gas_rho_)
+      vt2(ixO^S) = gas_vtherm_factor*ptherm(ixO^S)/wprim(ixO^S, gas_rho_)
 
       do idir = 1, ndir
         do n = 1, dust_n_species
-          where(w(ixO^S, dust_rho(n))>0.0d0)
-            vdust(ixO^S)  = w(ixO^S,dust_mom(idir, n))/w(ixO^S, dust_rho(n))
+          where(wprim(ixO^S, dust_rho(n))>0.0d0)
+            vdust(ixO^S)  = wprim(ixO^S,dust_mom(idir, n))
             deltav(ixO^S) = vgas(ixO^S, idir)-vdust(ixO^S)
             tstop(ixO^S)  = 4.0d0*(dust_density(n)*dust_size(n))/ &
                  (3.0d0*(0.75d0)*dsqrt(vt2(ixO^S) + &
-                 deltav(ixO^S)**2)*(w(ixO^S, dust_rho(n)) + &
-                 w(ixO^S, gas_rho_)))
+                 deltav(ixO^S)**2)*(wprim(ixO^S, dust_rho(n)) + &
+                 wprim(ixO^S, gas_rho_)))
           else where
             tstop(ixO^S) = bigdouble
           end where
@@ -945,20 +953,20 @@ contains
     case( 'sticking' ) ! Calculate sticking coefficient based on the gas temperature
       dtdust(:) = bigdouble
 
-      vt2(ixO^S) = gas_vtherm_factor*ptherm(ixO^S)/w(ixO^S, gas_rho_)
+      vt2(ixO^S) = gas_vtherm_factor*ptherm(ixO^S)/wprim(ixO^S, gas_rho_)
 
       ! Sticking coefficient
-      call get_sticking(w, x, ixI^L, ixO^L, alpha_T, ptherm)
+      call get_sticking(wprim, x, ixI^L, ixO^L, alpha_T, ptherm)
 
       do idir = 1, ndir
         do n = 1, dust_n_species
-          where(w(ixO^S, dust_rho(n))>0.0d0)
-            vdust(ixO^S)  = w(ixO^S,dust_mom(idir, n))/w(ixO^S, dust_rho(n))
+          where(wprim(ixO^S, dust_rho(n))>0.0d0)
+            vdust(ixO^S)  = wprim(ixO^S,dust_mom(idir, n))
             deltav(ixO^S) = vgas(ixO^S, idir)-vdust(ixO^S)
             tstop(ixO^S)  = 4.0d0*(dust_density(n)*dust_size(n))/ &
                  (3.0d0*(one-alpha_T(ixO^S,n))*dsqrt(vt2(ixO^S) + &
-                 deltav(ixO^S)**2)*(w(ixO^S, dust_rho(n)) + &
-                 w(ixO^S, gas_rho_)))
+                 deltav(ixO^S)**2)*(wprim(ixO^S, dust_rho(n)) + &
+                 wprim(ixO^S, gas_rho_)))
           else where
             tstop(ixO^S) = bigdouble
           end where
@@ -973,9 +981,9 @@ contains
       dtdust(:) = bigdouble
 
       do n = 1, dust_n_species
-        where(w(ixO^S, dust_rho(n))>0.0d0)
-          tstop(ixO^S)  = (w(ixO^S, dust_rho(n))*w(ixO^S, gas_rho_))/ &
-               (dust_K_lineardrag*(w(ixO^S, dust_rho(n)) + w(ixO^S, gas_rho_)))
+        where(wprim(ixO^S, dust_rho(n))>0.0d0)
+          tstop(ixO^S)  = (wprim(ixO^S, dust_rho(n))*wprim(ixO^S, gas_rho_))/ &
+               (dust_K_lineardrag*(wprim(ixO^S, dust_rho(n)) + wprim(ixO^S, gas_rho_)))
         else where
           tstop(ixO^S) = bigdouble
         end where
@@ -986,7 +994,7 @@ contains
       dtnew = min(minval(dust_dtpar*dtdust(:)), dtnew)
     case('usr')
       dtdust(:) = bigdouble
-      call usr_dust_get_dt(w, ixI^L, ixO^L, dtdust, dx^D, x, dust_n_species)
+      call usr_dust_get_dt(wprim, ixI^L, ixO^L, dtdust, dx^D, x, dust_n_species)
       dtnew = min(minval(dust_dtpar*dtdust(:)), dtnew)
     case('none')
       ! no dust timestep

@@ -26,6 +26,7 @@ financial support.
 * [Command line](commandline.md) Help on command-line parameters.
 * [Examples](examples.md) Description of various example simulations for which
   parameter files and user modules have been provided.
+* [Units](amrvac_units.md) The way units are set for various physics modules.
 
 # Discretization methods and AMR strategy {#discretization}
 
@@ -42,7 +43,7 @@ the data structures for the block-tree AMR.
 
 # Additional Physics {#special_sources}
 
-* [Thermal conduction](thermal_conduction.md) Description of solving thermal conduction.
+* [Thermal conduction](thermal_conduction.md) Parabolic STS and hyperbolic heat-flux relaxation, including parallel and perpendicular MHD transport.
 * [Radiative cooling](radiative_cooling.md) Description of adding radiative cooling.
 * [Pressure less fluids (dust)](dust.md) Getting started with the dust module.
 * [Test particles in (M)HD](particle.md) Description of test particle tracing routines.
@@ -73,5 +74,11 @@ visualization.
 * [Line of sight views](collapsed.md) How to output collapsed views for
 visualisation and analysis (e.g. column densities).
 * [Analysis routine](analysis.md) Using the run-time analysis routine.
+* [Magnetic helicity](magnetic_helicity.md) MPI finite-volume relative-helicity
+  conversion and quality diagnostics.
+* [Magnetic topology and QSL](magnetic_topology_qsl.md) OpenMP field-line
+  topology products.
+* [Dumping arbitrary fields for debugging](debug_field_dump.md) How to write any
+intermediate field (fluxes, electric field, sources) to a .dat file.
 * [3D Printing](print3D.md) A note on how to generate 3D printed results.
 * [Yt visualization](yt_usage.md) The recommended yt usage for visualization.

@@ -49,6 +49,7 @@
   mhd_thermal_conduction =T
   Busr=1.d-1
   typedivbfix='linde'
+  mhd_hyperbolic_tc_sat=.true.
  /
  &tc_list
   tc_perpendicular=.false.

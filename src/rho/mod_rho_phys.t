@@ -56,7 +56,6 @@ contains
   subroutine rho_phys_init()
     use mod_global_parameters
     use mod_physics
-    use mod_particles, only: particles_init
 
     call rho_params_read(par_files)
 
@@ -90,14 +89,52 @@ contains
     phys_to_conserved    => rho_to_conserved
     phys_to_primitive    => rho_to_primitive
     phys_get_dt          => rho_get_dt
+    phys_check_params    => rho_check_params
     phys_write_info      => rho_write_info
 
-    ! Initialize particles module
+
+  end subroutine rho_phys_init
+
+  subroutine rho_check_params
+       use mod_global_parameters
+       use mod_geometry, only: coordinate
+       use mod_particles, only: particles_init
+       use mod_particles, only: npayload,nusrpayload,ngridvars,num_particles,physics_type_particles
+
+    ! Initialize particles module here, so user extra variables are sample
     if (rho_particles) then
        call particles_init()
     end if
 
-  end subroutine rho_phys_init
+    if(mype==0)then
+           write(*,*)'====RHO run with settings===================='
+           write(*,*)'Using mod_rho_phys with settings:'
+           write(*,*)'Dimensionality   :',ndim
+           write(*,*)'vector components:',ndir
+           write(*,*)'coordinate set to type,slab:',coordinate,slab
+           write(*,*)'number of variables          nw=',nw
+           write(*,*)'    start index         iwstart=',iwstart
+           write(*,*)'number of      vector variables=',nvector
+           write(*,*)'number of stagger variables nws=',nws
+           write(*,*)'number of    variables with BCs=',nwgc
+           write(*,*)'number of      vars with fluxes=',nwflux
+           write(*,*)'number of   vars with flux + BC=',nwfluxbc
+           write(*,*)'number of   auxiliary variables=',nwaux
+           write(*,*)'number of extra vars without flux=',nwextra
+           write(*,*)'number of extra vars   for wextra=',nw_extra
+           write(*,*)'number of auxiliary I/O variables=',nwauxio
+           write(*,*)'    rho_particles=',rho_particles
+           if(rho_particles) then
+              write(*,*) '*****Using particles: npayload,ngridvars :', npayload,ngridvars
+              write(*,*) '*****Using particles:        nusrpayload :', nusrpayload
+              write(*,*) '*****Using particles:      num_particles :', num_particles
+              write(*,*) '*****Using particles: physics_type_particles=',physics_type_particles
+           end if
+           write(*,*)'number of             ghostcells=',nghostcells
+           write(*,*)'==========================================='
+    endif
+
+  end subroutine rho_check_params
 
   subroutine rho_to_conserved(ixI^L, ixO^L, w, x)
     use mod_global_parameters

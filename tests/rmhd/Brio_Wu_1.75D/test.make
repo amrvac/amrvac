@@ -1,7 +1,7 @@
 SETUP_FLAGS := -d=1 -v=3
 SCHEME_DIR := ../../schemes
 
-SCHEMES := IMEX_SP_tvdlf_ko
+SCHEMES := IMEX_SP_tvdlf_ko IMEX_ARS3_hll_cada3 IMEX_Midp_hll_w5
 
 TESTS := $(SCHEMES:%=Brio_Wu_%.log)
 

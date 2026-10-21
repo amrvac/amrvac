@@ -56,5 +56,8 @@
  /
 
  &hd_list
-        hd_gamma = 1.4d0
  /
+ &eos_list
+  gamma = 1.4d0
+ /
+

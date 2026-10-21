@@ -1,5 +1,6 @@
 module mod_usr
   use mod_mhd
+  use mod_eos, only: eos
   implicit none
 
   double precision:: b0
@@ -47,7 +48,7 @@ contains
       end if
     end if
 
-    call mhd_to_conserved(ixI^L,ixO^L,w,x)
+    call eos%to_conserved(ixI^L,ixO^L,w,x)
 
     if(first .and. mype==0 )then
       write(*,*)'Doing 2.5D ideal MHD, Orszag Tang problem'

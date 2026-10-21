@@ -1,5 +1,6 @@
 module mod_usr
   use mod_mhd
+  use mod_eos, only: eos
 
 
   implicit none
@@ -391,7 +392,7 @@ contains
 
     if(mype .eq. 0) then
       print*, "Period ", Period
-      print*, "Gamma ", mhd_gamma
+      print*, "Gamma ", eos%gamma
       print*, "Amplitude ", ampl
     endif
 
@@ -617,7 +618,7 @@ contains
     call set_equi_vars2(x(ixG^S,1), pe0(ixG^S), rho0(ixG^S))
     call set_equi_vars2_b0(x(ixG^S,1), bx0(ixG^S))
 
-    c02(ixG^S) = mhd_gamma * pe0(ixG^S)/rho0(ixG^S)
+    c02(ixG^S) = eos%gamma * pe0(ixG^S)/rho0(ixG^S)
     vA02(ixG^S) = bx0(ixG^S)**2/rho0(ixG^S)
     !print*, "c02 ", c02(ixG^S) * unit_velocity**2
     !print*, "va02 ", vA02(ixG^S) * unit_velocity**2
@@ -664,7 +665,7 @@ contains
     call gradient1(temp1 ,ixG^L,ixO^L,temp3)
 !    print*, "grad p  ", temp3(ixO^S)
     temp3(ixO^S) =  temp3(ixO^S)/pe0(ixO^S)
-    PP(ixO^S) =  pe0(ixO^S)* VV(ixO^S) * (k(ixO^S) * mhd_gamma + ic * temp3(ixO^S))/omega
+    PP(ixO^S) =  pe0(ixO^S)* VV(ixO^S) * (k(ixO^S) * eos%gamma + ic * temp3(ixO^S))/omega
 !    print*, "p0 ", w(ixO^S,p_)* unit_pressure
 !    print*, "PP ", PP(ixO^S) * unit_pressure
 
@@ -720,7 +721,7 @@ contains
 
      ! print*, "INDICES ", ixO^L, " wsize ", size(w,1), size(w,2)
 
-      call mhd_to_conserved(ixI^L,ixO^L,w,x)
+      call eos%to_conserved(ixI^L,ixO^L,w,x)
 
   end subroutine setLowerBoundary
 
@@ -824,7 +825,7 @@ end  subroutine special_process_filter
       allocate(rho0(ixG^S), pe0(ixG^S),bx0(ixG^S),c0(ixG^S))
       call set_equi_vars2(x(ixG^S,1), pe0(ixG^S), rho0(ixG^S))
       call set_equi_vars2_b0(x(ixG^S,1), bx0(ixG^S))
-      c0(ixG^S) = sqrt(bx0(ixG^S)/rho0(ixG^S)) + sqrt(mhd_gamma * pe0(ixG^S)/rho0(ixG^S))
+      c0(ixG^S) = sqrt(bx0(ixG^S)/rho0(ixG^S)) + sqrt(eos%gamma * pe0(ixG^S)/rho0(ixG^S))
 
       !!METHOD1
 !      w(ixG^S,rho_)=rho0(ixG^S) 
@@ -859,7 +860,7 @@ end  subroutine special_process_filter
       allocate(tmp(ixG^S))
       !mask(ixG^S) = 0.5*(1d0-tanh((x(ixG^S,1) - 1.7)/0.01))
       !print*, mask(ixG^S)
-      call mhd_to_primitive(ixI^L,ixG^L,w,x)
+      call eos%to_primitive(ixI^L,ixG^L,w,x)
       tmp(ixG^S)= w(ixG^S,rho_) - rho0(ixG^S)
       w(ixG^S,rho_)=rho0(ixG^S) + tmp(ixG^S)*mask(ixG^S)
       tmp(ixG^S)= w(ixG^S,e_) - pe0(ixG^S)
@@ -877,7 +878,7 @@ end  subroutine special_process_filter
       w(ixG^S,mom(2:3))= 0.0
 
 
-      call mhd_to_conserved(ixI^L,ixG^L,w,x)
+      call eos%to_conserved(ixI^L,ixG^L,w,x)
       deallocate(rho0, pe0,bx0)
     endif
 
@@ -989,10 +990,10 @@ end  subroutine special_process_filter
 
 
 
-  subroutine specialbound_usr(qt,ixI^L,ixO^L,iB,w,x)
+  subroutine specialbound_usr(qdt,qt,ixI^L,ixO^L,iB,w,x)
     ! special boundary types, user defined
     integer, intent(in) :: ixO^L, iB, ixI^L
-    double precision, intent(in) :: qt, x(ixI^S,1:ndim)
+    double precision, intent(in) :: qdt, qt, x(ixI^S,1:ndim)
     double precision, intent(inout) :: w(ixI^S,1:nw)
 
 

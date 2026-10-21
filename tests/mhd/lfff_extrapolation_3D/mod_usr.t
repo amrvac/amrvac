@@ -1,5 +1,6 @@
 module mod_usr
   use mod_mhd
+  use mod_eos, only: eos
   use mod_lfff
   implicit none
   ! variables for boundary condition
@@ -181,7 +182,8 @@ contains
       endif
       call calc_lin_fff(1,1,1,nxbc1,nxbc2,nxbc3,ixpemin1,ixpemin2,1,ixpemax1,ixpemax2,&
                         nxbc3,Bbc,xbc,lalpha,llift)
-      call MPI_ALLREDUCE(MPI_IN_PLACE,Bbc,nxbc1*nxbc2*nxbc3*3,MPI_DOUBLE_PRECISION,&
+      Bbt=Bbc
+      call MPI_ALLREDUCE(Bbt,Bbc,nxbc1*nxbc2*nxbc3*3,MPI_DOUBLE_PRECISION,&
                          MPI_SUM,icomm,ierrmpi)
       if(mype==0) then
         print*,'bottom boundaries created!'
@@ -194,7 +196,6 @@ contains
       endif
     endif
 
-    Bbt=Bbc
     ! calculate velocity field of driving motions
     allocate(tmp(nxbc1,nxbc2,nxbc3))
     allocate(tmp2(nxbc1,nxbc2,2))
@@ -294,11 +295,11 @@ contains
     if(mhd_glm) w(ixO^S,psi_)=zero
   end subroutine initonegrid_usr
 
-  subroutine specialbound_usr(qt,ixI^L,ixO^L,iB,w,x)
+  subroutine specialbound_usr(qdt,qt,ixI^L,ixO^L,iB,w,x)
     ! special boundary types, user defined
     use mod_physics
     integer, intent(in) :: ixO^L, iB, ixI^L
-    double precision, intent(in) :: qt, x(ixI^S,1:ndim)
+    double precision, intent(in) :: qdt,qt, x(ixI^S,1:ndim)
     double precision, intent(inout) :: w(ixI^S,1:nw)
     double precision :: ft,tfstop,tramp1,tramp2,coeffrho,vlimit,vsign
     double precision :: xlen^D

@@ -55,7 +55,7 @@ if ($ndim < 3 && !defined $ndir) {
     die "Error: both -d (dimension count) and -v flags (vector count) are mandatory for -d < 3\n";
 } elsif ($ndim > 2 && !defined $ndir) {
     $ndir = $ndim;
-} 
+}
 
 
 # Show help if -help is given or if there are no other arguments
@@ -109,8 +109,8 @@ unless (-e("mod_usr.t") || -e("mod_usr.f")) {
         chomp($phys);
     }
 
-    replace_regexp_file("mod_usr.t", qr/hd_/, "$phys"."_");
-    replace_regexp_file("mod_usr.t", qr/_hd/, "_"."$phys");
+    replace_regexp_file("mod_usr.t", qr/mhd_/, "$phys"."_");
+    replace_regexp_file("mod_usr.t", qr/_mhd/, "_"."$phys");
 }
 
 sub copy_file {

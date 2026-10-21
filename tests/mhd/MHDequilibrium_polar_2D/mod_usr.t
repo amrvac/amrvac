@@ -5,6 +5,7 @@
 ! This tests our implementation of current evaluations (typecurl), among other things.
 module mod_usr
   use mod_mhd
+  use mod_eos, only: eos
 
   implicit none
 
@@ -102,7 +103,7 @@ contains
     w(ix^S,e_)   = pjet-0.5d0*w(ix^S,mag(2))**2.0d0
     }
 
-    call mhd_to_conserved(ixG^L,ix^L,w,x)
+    call eos%to_conserved(ixG^L,ix^L,w,x)
 
   end subroutine CCC_init_one_grid
 
@@ -140,13 +141,13 @@ contains
     w(ixO^S,i_err_r) = w(ixO^S,rho_) - w(ixO^S,i_sol_r)
     w(ixO^S,i_sol_p) = pjet-0.5d0*bphi_solution(x(ixO^S, 1))**2.0d0
     w(ixO^S,i_sol_b) =dsqrt(bphi_solution(x(ixO^S, 1))**2)
-    call mhd_to_primitive(ixI^L,ixO^L,w,x)
+    call eos%to_primitive(ixI^L,ixO^L,w,x)
     w(ixO^S,i_err_p) = w(ixO^S,e_) - w(ixO^S,i_sol_p)
     {^NOONED
     w(ixO^S,i_totp) = w(ixO^S,e_) +0.5d0* &
        (w(ixO^S,mag(1))**2+w(ixO^S,mag(2))**2)
     }
-    call mhd_to_conserved(ixI^L,ixO^L,w,x)
+    call eos%to_conserved(ixI^L,ixO^L,w,x)
     {^NOONED
     w(ixO^S,i_err_b) = dsqrt( w(ixO^S,mag(1))**2+w(ixO^S,mag(2))**2 ) &
                           - w(ixO^S,i_sol_b)

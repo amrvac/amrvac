@@ -13,24 +13,34 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest]
-        compiler: [gfortran-9, gfortran-10, gfortran-11]
+        compiler: [gfortran-11, gfortran-12, gfortran-13, gfortran-14]
+        include:
+          - os: macos-latest
+            compiler: gfortran-15
+
 
     env:
       FC: ${{ matrix.compiler }}
       AMRVAC_DIR: ${GITHUB_WORKSPACE}
+      OSX_GCC_PACKAGE_NAME: gcc@15
 
     runs-on: ${{ matrix.os }}
 
     name: compile / ${{ matrix.os }} / ${{ matrix.compiler }}
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v6
       - name: install dependencies
         run: |
           if [[ $RUNNER_OS == "Linux" ]]; then
             sudo apt-get update
             sudo apt-get install ${{ matrix.compiler }}
             sudo apt-get install openmpi-bin libopenmpi-dev
+          else
+            brew install ${{ env.OSX_GCC_PACKAGE_NAME }}
+            brew install open-mpi
+            ln -s $(which ${{ matrix.compiler }}) /usr/local/bin/gfortran
+            export PATH=$PATH:/usr/local/bin
           fi
       - name: check compiler versions
         run: |
@@ -58,9 +68,9 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest]
-        FC_compiler: [gfortran]
-        CC_compiler: [gcc]
-        suite: [rho, hd, rhd, rmhd, ffhd, mhd, rd, ard, mg, twofl]
+        FC_compiler: [gfortran-14]
+        CC_compiler: [gcc-14]
+        suite: [rho, nl, demo, hd, srhd, rhd, rmhd, ffhd, mhd, rd, ard, mg, twofl, mf]
 
     env:
       CC: ${{ matrix.CC_compiler }}
@@ -73,7 +83,7 @@ jobs:
     name: ${{ matrix.suite }}
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v6
       - name: install dependencies
         run: |
           sudo apt-get update
@@ -107,7 +117,7 @@ jobs:
       AMRVAC_DIR: ${GITHUB_WORKSPACE}
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v6
       - name: setup for Intel oneAPI
         # see https://www.intel.com/content/www/us/en/develop/documentation/installation-guide-for-intel-oneapi-toolkits-linux
         run: |

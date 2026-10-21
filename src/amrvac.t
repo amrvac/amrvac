@@ -18,10 +18,13 @@ program amrvac
   use mod_multigrid_coupling
   use mod_convert, only: init_convert
   use mod_physics
+  use mod_eos, only: eos, eos_init, eos_finalise, prepare_eos_w_fields
   use mod_amr_grid, only: resettree, settree, resettree_convert
+  use mod_coarsen_refine, only: amr_rebalance
   use mod_trac, only: initialize_trac_after_settree
   use mod_convert_files, only: generate_plotfile
   use mod_comm_lib, only: comm_start, comm_finalize,mpistop
+  use mod_escape_probability, only: escape_prob_compute_colmass
 
 
   double precision :: time0, time_in
@@ -39,10 +42,25 @@ program amrvac
 
   ! init_convert is called before usr_init as user might associate a convert method
   call init_convert()
+  !> eos_init is called prior to physics module
+  call eos_init()
   ! the user_init routine should load a physics module
   call usr_init()
 
-  call initialize_amrvac()
+  call eos_finalise() !> finalise the EoS dispatch (tables, pointers) for the loaded physics
+
+  !> The EoS dispatch is now complete. Wire it into the two lower-level modules
+  !> that must call the EoS but cannot depend on mod_eos (hence these pointers).
+  !> Both are set only when there is real work to do and guarded at the call site:
+  !>   - the ghost-cell update refreshes Te/ne on boundary cells, which only the
+  !>     LTE EoS needs (FI's update_eos is a no-op);
+  !>   - the physics layer binds the EoS into its source terms (thermal
+  !>     conduction / cooling / radiation fluid objects), set only by physics
+  !>     modules that have an EoS hook.
+  if (eos%eos_type == 'LTE') update_eos_4_bc => eos%update_eos
+  if (associated(phys_bind_eos_to_source)) call phys_bind_eos_to_source()
+
+  call initialize_amrvac() !> Grid bounds are set up here (ixG^D_ etc)
 
   if (restart_from_file /= undefined) then
      ! restart from previous file or dat file conversion
@@ -67,7 +85,7 @@ program amrvac
        it           = it_init
      end if
 
-     ! allow use to read extra data before filling boundary condition
+     ! allow user to read extra data before filling boundary condition
      if (associated(usr_process_grid) .or. &
           associated(usr_process_global)) then
         call process(it,global_time)
@@ -76,7 +94,7 @@ program amrvac
      ! modify initial condition
      if (firstprocess) then
        ! update ghost cells for all need-boundary variables before modification
-       call getbc(global_time,0.d0,ps,1,nwflux+nwaux)
+       call getbc(global_time,0.d0,ps,iwstart,nwgc)
        call modify_IC
      end if
 
@@ -84,7 +102,7 @@ program amrvac
      call selectgrids
 
      ! update ghost cells for all need-boundary variables
-     call getbc(global_time,0.d0,ps,1,nwflux+nwaux)
+     call getbc(global_time,0.d0,ps,iwstart,nwgc)
 
      ! reset AMR grid
      if (reset_grid) then
@@ -120,7 +138,9 @@ program amrvac
 
      if(convert) then
        if (npe/=1.and.(.not.(index(convert_type,'mpi')>=1)) &
-            .and. convert_type .ne. 'user')  &
+            .and. convert_type .ne. 'user' &
+            .and. convert_type .ne. 'magnetic_helicity' &
+            .and. convert_type .ne. 'magnetic_topology')  &
             call mpistop("non-mpi conversion only uses 1 cpu")
        if(mype==0.and.level_io>0) write(unitterm,*)'reset tree to fixed level=',level_io
 
@@ -163,6 +183,9 @@ program amrvac
   ! initialize something base on tree information
   call initialize_trac_after_settree
 
+  ! Populate the additional w state eos variables (if needed)
+  call prepare_eos_w_fields()
+
   if (mype==0) then
      print*,'-------------------------------------------------------------------------------'
      write(*,'(a,f17.3,a)')' Startup phase took : ',MPI_WTIME()-time0,' sec'
@@ -177,8 +200,9 @@ program amrvac
   call timeintegration()
 
   if (mype==0) then
+     time0=MPI_WTIME()-time0
      print*,'-------------------------------------------------------------------------------'
-     write(*,'(a,f17.3,a)')' Finished AMRVAC in : ',MPI_WTIME()-time0,' sec'
+     write(*,'(a,f17.3,a,f17.3,a)')' Finished AMRVAC in : ',time0,' sec', dble(npe)*time0/3.6d3,' core hour'
      print*,'-------------------------------------------------------------------------------'
   end if
 
@@ -188,6 +212,7 @@ contains
 
   subroutine timeintegration()
     use mod_timing
+    use mod_source, only: time_sts_total
     use mod_advance, only: advance, process, process_advanced
     use mod_forest, only: nleafs_active
     use mod_global_parameters
@@ -199,12 +224,11 @@ contains
 
     double precision :: time_last_print, time_write0, time_write, time_before_advance, dt_loop
     integer(kind=8) ncells_update
-    integer :: level, ifile, fixcount, ncells_block, igrid, iigrid
+    integer :: level, ifile, ncells_block, igrid, iigrid
     logical :: crashall
 
     time_in=MPI_WTIME()
     time_last_print = -bigdouble
-    fixcount=1
 
     n_saves(filelog_:fileout_) = snapshotini
 
@@ -226,7 +250,7 @@ contains
     if (mype==0) then
       write(*, '(A,ES9.2,A)') ' Start integrating, print status every ', &
            time_between_print, ' seconds'
-      write(*, '(A4,A10,A12,A12,A12)') '  #', 'it', 'time', 'dt', 'wc-time(s)'
+      write(*, '(A4,A10,A12,A12,A12,A14)') '  #', 'it', 'time', 'dt', 'wc-time(s)', 'active_grids'
     end if
 
     timeloop0=MPI_WTIME()
@@ -238,17 +262,41 @@ contains
 
     time_advance=.true.
 
+    ! Pre-compute column mass before first advance so escape probability
+    ! is active from the very first timestep (avoids IC transient)
+    if(phys_escape_prob) call escape_prob_compute_colmass()
+
+    ! Open timing breakdown log if requested via savelist
+    if (write_timing_log .and. .not. timing_log_opened .and. mype==0) then
+      if (global_time > 1.0d-10) then
+        open(timing_unit,file=trim(base_filename)//'timing.log', &
+             status='unknown',position='append',action='write')
+        write(timing_unit,'(a,es12.5)') '# --- restart at t = ', global_time
+      else
+        open(timing_unit,file=trim(base_filename)//'timing.log', &
+             status='replace',action='write')
+        write(timing_unit,'(a)') '# MAIN: it t nleafs setdt advance tc' &
+             //' eos_hydro eos_tc regrid save process adv-tc'
+      end if
+      timing_log_opened = .true.
+    end if
+
     time_evol : do
 
        time_before_advance=MPI_WTIME()
        ! set time step
+       tw_setdt=MPI_WTIME()
        call setdt()
+       tw_setdt=MPI_WTIME()-tw_setdt
 
        ! Optionally call a user method that can modify the grid variables at the
-       ! beginning of a time step
+       ! beginning of a time step (this is where the SC radiative transfer solve runs)
+       tw_process=0.d0
        if (associated(usr_process_grid) .or. &
             associated(usr_process_global)) then
+          tw_process=MPI_WTIME()
           call process(it,global_time)
+          tw_process=MPI_WTIME()-tw_process
        end if
 
        ! Check if output needs to be written
@@ -261,8 +309,8 @@ contains
        if (timeio0 - time_last_print > time_between_print) then
          time_last_print = timeio0
          if (mype == 0) then
-           write(*, '(A4,I10,ES12.4,ES12.4,ES12.4)') " #", &
-                it, global_time, dt, timeio0 - time_in
+           write(*, '(A4,I10,ES12.4,ES12.4,ES12.4,I14)') " #", &
+                it, global_time, dt, timeio0 - time_in, nleafs_active
          end if
        end if
 
@@ -305,8 +353,13 @@ contains
        ! exit time loop if time is up
        if (it>=it_max .or. global_time>=time_max .or. pass_wall_time .or. final_dt_exit) exit time_evol
 
+       ! Pre-compute column mass for escape probability cooling modification
+       if(phys_escape_prob) call escape_prob_compute_colmass()
+
        ! solving equations
+       tw_tmp=MPI_WTIME()
        call advance(it)
+       tw_advance=MPI_WTIME()-tw_tmp
 
        ! if met unphysical values, output the last good status and stop the run
        call MPI_ALLREDUCE(crash,crashall,1,MPI_LOGICAL,MPI_LOR,icomm,ierrmpi)
@@ -324,23 +377,37 @@ contains
           call process_advanced(it,global_time)
        end if
 
-       ! update AMR mesh and tree
-       timegr0=MPI_WTIME()
-       if(ditregrid>1) then
-          if(fixcount<ditregrid) then
-             fixcount=fixcount+1
-          else
-             if (refine_max_level>1 .and. .not.(fixgrid())) call resettree
-             fixcount=1
-          end if
-       else
-          if (refine_max_level>1 .and. .not.(fixgrid())) call resettree
-       end if
-       timegr_tot=timegr_tot+(MPI_WTIME()-timegr0)
-
        ! update time variables
        it = it + 1
        global_time = global_time + dt
+
+       ! update AMR mesh and tree (upstream-style: mod-based regrid)
+       timegr0=MPI_WTIME()
+       if (mod(it,ditregrid)==0 .and. refine_max_level>1 .and. .not.(fixgrid())) call resettree
+       ! Static-grid cost rebalance: regrid never fires when refine_max_level==1, so the cost-weighted
+       ! load_balance has no trigger. Fire it every lb_interval cycles (the previously-unused knob).
+       ! (AMR grids get the costed rebalance inside resettree already, so this is static-grid only.)
+       if (lb_automatic .and. refine_max_level==1 .and. it>it_init .and. mod(it,lb_interval)==0) &
+            call amr_rebalance
+       tw_regrid=MPI_WTIME()-timegr0
+       timegr_tot=timegr_tot+tw_regrid
+
+       ! write main-loop timing to user timing log
+       tw_tc_total = time_sts_total + time_htc_total - tw_tc_prev
+       tw_tc_prev = time_sts_total + time_htc_total
+       tw_eos_hydro = timeeos_conv + timeeos_pthermal + timeeos_update &
+                    - tw_eos_hydro_prev
+       tw_eos_hydro_prev = timeeos_conv + timeeos_pthermal + timeeos_update
+       tw_eos_tc = timeeos_Tfromei + timeeos_csound - tw_eos_tc_prev
+       tw_eos_tc_prev = timeeos_Tfromei + timeeos_csound
+       if (mype==0 .and. timing_log_opened .and. &
+           mod(it, timing_log_interval)==0) then
+         write(timing_unit,'(a,i8,1x,es12.5,1x,i6,1x,9(f10.4,1x))') &
+           '  MAIN ', it, global_time, nleafs_active, &
+           tw_setdt, tw_advance, tw_tc_total, tw_eos_hydro, tw_eos_tc, &
+           tw_regrid, tw_save, tw_process, tw_advance - tw_tc_total
+         call flush(timing_unit)
+       end if
 
        if(it>9000000)then
           it = slowsteps+it_init
@@ -371,8 +438,19 @@ contains
        write(*,'(a,f12.2,a)')'                  Percentage: ',100.0*timeio_tot/timeloop,' %'
        write(*,'(a,f12.3,a)')' Time spent on ghost cells  : ',time_bc,' sec'
        write(*,'(a,f12.2,a)')'                  Percentage: ',100.0*time_bc/timeloop,' %'
-       write(*,'(a,f12.3,a)')' Time spent on computing    : ',timeloop-timeio_tot-timegr_tot-time_bc,' sec'
-       write(*,'(a,f12.2,a)')'                  Percentage: ',100.0*(timeloop-timeio_tot-timegr_tot-time_bc)/timeloop,' %'
+       timeeos_tot = timeeos_update + timeeos_Tfromei + timeeos_csound + timeeos_conv + timeeos_pthermal
+       write(*,'(a,f12.3,a)')' Time spent on eos          : ',timeeos_tot,' sec'
+       write(*,'(a,f12.2,a)')'                  Percentage: ',100.0*timeeos_tot/timeloop,' %'
+       write(*,'(a,f12.3,a)')'   - update_eos             : ',timeeos_update,' sec'
+       write(*,'(a,f12.3,a)')'   - T_from_eint (TC)       : ',timeeos_Tfromei,' sec'
+       write(*,'(a,f12.3,a)')'   - csound2                : ',timeeos_csound,' sec'
+       write(*,'(a,f12.3,a)')'   - cons/prim conversion   : ',timeeos_conv,' sec'
+       write(*,'(a,f12.3,a)')'   - get_pthermal           : ',timeeos_pthermal,' sec'
+       write(*,'(a,f12.3,a)')' Time spent on WB transform : ',time_wb_transform,' sec'
+       write(*,'(a,f12.3,a)')' Time spent on WB inverse+C : ',time_wb_inverse,' sec'
+       write(*,'(a,f12.3,a)')' Time spent on reconstruction:',time_wb_recon,' sec'
+       write(*,'(a,f12.3,a)')' Time spent on computing    : ',timeloop-timeio_tot-timeeos_tot-timegr_tot-time_bc,' sec'
+       write(*,'(a,f12.2,a)')'                  Percentage: ',100.0*(timeloop-timeio_tot-timeeos_tot-timegr_tot-time_bc)/timeloop,' %'
        write(*,'(a,es12.3 )')' Cells updated / proc / sec : ',dble(ncells_update)*dble(nstep)/dble(npe)/timeloop
     end if
 

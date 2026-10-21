@@ -1,6 +1,7 @@
 ! blast wave
 module mod_usr
   use mod_mhd
+  use mod_eos, only: eos
   implicit none
 
 contains
@@ -58,7 +59,7 @@ contains
 
     if(mhd_glm) w(ixO^S,psi_)=0.d0
 
-    call mhd_to_conserved(ixI^L,ixO^L,w,x)
+    call eos%to_conserved(ixI^L,ixO^L,w,x)
 
   end subroutine initonegrid_usr
 
@@ -102,7 +103,7 @@ contains
     double precision                   :: tmp(ixI^S),wlocal(ixI^S,1:nw)
 
     wlocal(ixI^S,1:nw)=w(ixI^S,1:nw)
-    call mhd_get_pthermal(wlocal,x,ixI^L,ixO^L,tmp)
+    call eos%get_thermal_pressure(wlocal,x,ixI^L,ixO^L,tmp)
     ! output the temperature p/rho
     w(ixO^S,nw+1)=tmp(ixO^S)/wlocal(ixO^S,rho_)
     !! output the plasma beta p*2/B**2

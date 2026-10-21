@@ -17,7 +17,7 @@ Traditionally, the first test problem is the VAC advection located in
 
 In the vac test folder, run the setup script with:
 
-    setup.pl -d=2
+    setup.pl -d=2 -v=2
 
 This will copy a makefile to the current folder, set the problem dimension
 to two, and use the default compiler settings, which is mpif90 (gfortran with openMPI).
@@ -29,7 +29,7 @@ Then, to compile the code according to the makefile with 4 processors:
 
 To switch to using intel compiler mpiifort, you could modify the makefile and compile:
 
-    setup.pl -d=2 -arch=intel
+    setup.pl -d=2 -v=2 -arch=intel
     make -j4
 
 or you can keep the makefile and switch compiler once with compiling command:
@@ -60,6 +60,8 @@ files ending in `.dat`, `.vtu` and one `.log` file. The `.dat` files are used
 for restarts and the `.vtu` files contain the output data to be visualized.
 
 # Visualization {#visualization}
+
+For this problem, a python notebook is available to visualize the native `.dat` files directly, which assumes you have installed yt.
 
 Simulation output in `.vtu` (VTK unstructured) format can directly be
 visualized using [Paraview](http://www.paraview.org/)

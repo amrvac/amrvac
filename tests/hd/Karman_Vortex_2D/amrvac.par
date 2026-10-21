@@ -54,10 +54,13 @@
 
  &hd_list
   hd_viscosity = T
-  hd_gamma=1.6666666667d0
 /
  
 &usr_list
   Ma=0.1d0
   Re=100.0d0
 /
+ &eos_list
+  gamma = 1.6666666667d0
+ /
+

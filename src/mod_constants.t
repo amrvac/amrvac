@@ -30,6 +30,18 @@ module mod_constants
   !> Boltzmann constant in cgs
   double precision, parameter :: kB_cgs = 1.3806488d-16 ! erg K^-1
 
+  !> Stefan Boltzmann constant in cgs from (2 pi^5 kB^4)/(15 c^2 h^3)
+  double precision, parameter :: sigma_SB_cgs = 5.670374419d-5 ! erg s^-1 cm^-2 K^-4
+
+  !> electron Thomson scattering cross-section in cgs from (8 pi/3) [alfa_FS * h/(2 pi me c)]^2
+  double precision, parameter :: sigma_Te_cgs = 6.6524587051d-25  ! cm^2
+
+  !> Stefan Boltzmann constant in SI (2 pi^5 kB^4)/(15 c^2 h^3)
+  double precision, parameter :: sigma_SB_SI  = 5.670374419d-8 ! W m^-2 K^-4
+
+  !> electron Thomson scattering cross-section in SI from (8 pi/3) [alfa_FS * h/(2 pi me c)]^2
+  double precision, parameter :: sigma_Te_SI = 6.6524587051d-29  ! m^2
+
   !> Proton mass in SI
   double precision, parameter :: mp_SI = 1.672621777d-27 ! kg
 
@@ -42,6 +54,7 @@ module mod_constants
   !> Speed of light in SI
   double precision, parameter :: c_SI = 2.99792458d8 ! m s^-1
 
+  !> universal constants as specified in cgs units
   double precision, PARAMETER :: const_c     = 2.99792458d10   ! cm s^-1           ; Speed of light
   double precision, PARAMETER :: const_me    = 9.1093897d-28   ! g                 ; Electron mass
   double precision, PARAMETER :: const_mp    = 1.672621777d-24 ! g                 ; Proton mass
@@ -51,12 +64,9 @@ module mod_constants
   double precision, PARAMETER :: const_RSun  = 6.9570d10       ! cm                ; Solar radius
   double precision, PARAMETER :: const_kB    = 1.3806488d-16   ! erg K^-1          ; Boltzmann constant
   double precision, PARAMETER :: const_h     = 6.6260755d-27   ! erg s             ; Planck constant
-  double precision, parameter :: const_pc    = 3.08567758128d18! cm                ; 1 parsec
-
-  double precision, PARAMETER :: const_sigma  = 5.670367d-5 ! erg cm^-2 K^-4 s^-1 ; Stefan-Boltzman constant
-  double precision, PARAMETER :: const_G      = 6.67191d-8  ! cm^3 g^-1 s^-2      ; Cavendish gravitational constant
-  double precision, PARAMETER :: const_rad_a  = 7.5657e-15  ! erg cm^-3 K^-4      ; radiation density constant
-  double precision, PARAMETER :: const_kappae = 0.34d0      ! cm^2 g^-1           ; free-electron scattering opacity
+  double precision, PARAMETER :: const_pc    = 3.08567758128d18! cm                ; 1 parsec
+  double precision, PARAMETER :: const_G     = 6.67191d-8      ! cm^3 g^-1 s^-2    ; Cavendish gravitational constant
+  double precision, PARAMETER :: const_sigma = 5.670367d-5     ! erg cm^-2 K^-4 s^-1 ; Stefan-Boltzman constant
 
   ! Conversion factors:
   double precision, PARAMETER :: const_eV    = 1.6021772d-12   ! erg/eV            ; Electron volt

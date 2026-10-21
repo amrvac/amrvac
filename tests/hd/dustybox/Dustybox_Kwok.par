@@ -55,3 +55,7 @@
         dust_min_rho = 1.0d-12
         dust_dtpar=0.4d0
  /
+
+ &eos_list
+        gamma=1.6666666666666667d0
+ /

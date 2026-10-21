@@ -1,0 +1,69 @@
+!setup.pl -d=1
+!> Coleman (4) -- LTE_pureH
+!> Asymmetric collision (double shock)
+
+&filelist
+  base_filename = 'coleman4_state_pureH'
+  saveprim      = .true.
+  convert_type  = 'vtuBCCmpi'
+  autoconvert   = .true.
+  typefilelog   = 'regression_test'
+/
+
+&savelist
+  itsave(1,1)  = 0
+  itsave(1,2)  = 0
+  dtsave_log   = 0.02d0
+  dtsave_dat   = 1.00000d0
+/
+
+&stoplist
+  time_max = 1.00000d0
+/
+
+&methodlist
+  time_stepper    = 'threestep'
+  flux_scheme     = 20*'hllc'
+  limiter         = 20*'ppm'
+  typeboundspeed  = 'pvrs'
+/
+
+&boundlist
+  typeboundary_min1 = 3*'cont'
+  typeboundary_max1 = 3*'cont'
+/
+
+&meshlist
+  refine_max_level  = 1
+  block_nx1         = 64
+  domain_nx1        = 1024
+  xprobmin1         = 0.0d0
+  xprobmax1         = 1.0d0
+/
+
+&paramlist
+  typecourant = 'maxsum'
+  courantpar  = 0.4d0
+/
+
+&hd_list
+  hd_energy          = .true.
+  hd_gravity         = .false.
+/
+
+&eos_list
+  eos_type      = 'LTE'
+  ionE          = .true.
+  eos_method    = 'state'
+  table_location = '../../../src/tables/eos_tables/uniform256/'
+  He_abundance  = 0.0d0
+/
+
+&usr_list
+  rho_L = 7.5684569e+01
+  rho_R = 6.0547655e+01
+  v_L   = 5.9586841e-01
+  v_R   = -7.1504209e-01
+  T_L   = 9.4682442e-04
+  T_R   = 9.4682442e-04
+/

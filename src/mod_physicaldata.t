@@ -13,6 +13,9 @@ module mod_physicaldata
      double precision, dimension(:^D&,:), allocatable :: wc
      !> extra variables do not need ghost cell and equation flux
      double precision, dimension(:^D&,:), pointer :: wextra=>Null()
+     !> debug scratch: arbitrary intermediate fields captured via debug_store,
+     !> flushed to a standalone .dat by save_wdebug (see mod_input_output)
+     double precision, dimension(:^D&,:), allocatable :: wdebug
      !> Time-independent magnetic field at cell center and cell interface
      double precision, dimension(:^D&,:,:), pointer :: B0=>Null()
      !> Time-independent electric current density at cell center
@@ -107,6 +110,12 @@ module mod_physicaldata
   end type grid_field
   !> buffer for pole boundary
   type(state) :: pole_buf
+
+  !> --- debug field dump (flushed by save_wdebug in mod_input_output) ---
+  !> when .true., intermediate fields captured in ps(:)%wdebug are written out
+  logical :: wdebug_on = .false.
+  !> number of debug slots allocated in ps(:)%wdebug
+  integer :: n_wdebug = 0
 
   !> array of physical states for all blocks on my processor
   type(state), dimension(:), allocatable, target :: ps

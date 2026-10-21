@@ -50,7 +50,6 @@
 &hd_list
   hd_gravity = .true.
   hd_energy  = .false.
-  hd_gamma   = 1.0d0
   hd_cak_force = .true.
 /
 
@@ -68,3 +67,7 @@
   rhobound = 2.0d-11
   beta     = 0.5d0
 /
+ &eos_list
+  gamma = 1.0d0
+ /
+

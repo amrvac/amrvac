@@ -193,6 +193,10 @@ contains
           wCD(ix^D,iw) = wSub(ix^D,iw)*(cspeed(ix^D)-vSub(ix^D))&
              /(cspeed(ix^D)-lambdaCD(ix^D))
         end do
+        if (mhd_fip) then
+          wCD(ix^D,fip_) = wSub(ix^D,fip_) * (cspeed(ix^D)-vSub(ix^D)) &
+             / (cspeed(ix^D)-lambdaCD(ix^D))
+        end if
         !==== Magnetic field ====!
         do idir=1,ndir
           ! case from eq 31

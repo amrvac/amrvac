@@ -1,0 +1,77 @@
+&testlist
+        teststr=''
+/
+
+&filelist
+  base_filename='test_heatcool_2D_high'
+  typefilelog='regression_test'
+/
+
+ &savelist
+   itsave(1,1)     = 0
+   itsave(1,2)     = 0
+   ditsave_log=10
+/
+
+ &stoplist
+   dtmin=1.d-15
+   it_max=1000
+/
+   time_max = 1.0d-5
+
+ &methodlist
+   time_stepper    = 'onestep'
+   time_integrator = 'IMEX_SP'
+   flux_scheme     = 20*'hll'
+   limiter         = 20*'koren'
+/
+
+&boundlist
+  typeboundary_min1 = 5*'periodic'
+  typeboundary_max1 = 5*'periodic'
+  typeboundary_min2 = 5*'periodic'
+  typeboundary_max2 = 5*'periodic'
+/
+
+ &meshlist
+   refine_max_level   = 1
+   domain_nx1         = 4
+   domain_nx2         = 4
+   block_nx1          = 4
+   block_nx2          = 4
+   xprobmin1       =  -0.5d0
+   xprobmax1       =  0.5d0
+   xprobmin2       =  0.0d0
+   xprobmax2       =  1.0d0
+ /
+
+ &paramlist
+  dtpar = 2.d-11
+ /
+
+ &hd_list
+  hd_energy = .true.
+  hd_radiation_fld = .true.
+  SI_unit=.false.
+ /
+
+ &eos_list
+  gamma = 1.666667d0
+  He_abundance = 0.1d0
+ /
+
+ &fld_list
+  fld_Radforce_split = .false
+  fld_opacity_law = 'const'
+  fld_kappa0 = 0.4d0
+  fld_interaction_method = 'Halley'
+  fld_debug=.true.
+  fld_no_mg=.true.
+  fld_bisect_tol=1.d-10
+ /
+
+ &test_list
+  rho0 = 1.d-7
+  factor0= 1.d2
+  E_r0 = 1.d12
+ /

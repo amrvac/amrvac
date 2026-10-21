@@ -17,17 +17,16 @@ contains
     integer :: iigrid, igrid, ncycle, ncycle2, ifile, idim
     double precision   :: dtnew, qdtnew, dtmin_mype, factor, dx^D, dxmin^D
     double precision   :: dtmax, dxmin, cmax_mype
-    double precision   :: a2max_mype(ndim), tco_mype, tco_global, Tmax_mype, T_peak
+    double precision   :: tco_mype, tco_global, Tmax_mype, T_peak
     double precision   :: trac_alfa, trac_dmax, trac_tau, T_bott
     integer, parameter :: niter_print = 2000
   
     if (dtpar<=zero) then
       dtmin_mype  = bigdouble
       cmax_mype   = zero
-      a2max_mype  = zero
       tco_mype    = zero
       Tmax_mype   = zero
-      !$OMP PARALLEL DO PRIVATE(igrid,qdtnew,dtnew,dx^D) REDUCTION(min:dtmin_mype) REDUCTION(max:cmax_mype,a2max_mype)
+      !$OMP PARALLEL DO PRIVATE(igrid,qdtnew,dtnew,dx^D) REDUCTION(min:dtmin_mype) REDUCTION(max:cmax_mype)
       do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
         dtnew=bigdouble
         dx^D=rnode(rpdx^D_,igrid);
@@ -36,12 +35,12 @@ contains
         if(local_timestep) then
           ps(igrid)%dt(ixM^T)=bigdouble
         endif
-        call getdt_courant(ps(igrid)%w,ixG^LL,ixM^LL,qdtnew,dx^D,ps(igrid)%x,&
-             cmax_mype,a2max_mype)
+        call getdt_courant_and_phys(ps(igrid)%w,ixG^LL,ixM^LL,qdtnew,dx^D,ps(igrid)%x,&
+             cmax_mype)
         dtnew=min(dtnew,qdtnew)
   
-        call phys_get_dt(ps(igrid)%w,ixG^LL,ixM^LL,qdtnew,dx^D,ps(igrid)%x)
-        dtnew=min(dtnew,qdtnew)
+!        call phys_get_dt(ps(igrid)%w,ixG^LL,ixM^LL,qdtnew,dx^D,ps(igrid)%x)
+!        dtnew=min(dtnew,qdtnew)
   
         if (associated(usr_get_dt)) then
            call usr_get_dt(ps(igrid)%w,ixG^LL,ixM^LL,qdtnew,dx^D,ps(igrid)%x)
@@ -127,8 +126,6 @@ contains
     ! so does GLM: 
     if(need_global_cmax)   call MPI_ALLREDUCE(cmax_mype,  cmax_global,  1,&
          MPI_DOUBLE_PRECISION,MPI_MAX,icomm,ierrmpi)
-    if(need_global_a2max)  call MPI_ALLREDUCE(a2max_mype, a2max_global, ndim,&
-         MPI_DOUBLE_PRECISION,MPI_MAX,icomm,ierrmpi)
   
     ! transition region adaptive thermal conduction (Johnston 2019 ApJL, 873, L22)
     ! transition region adaptive thermal conduction (Johnston 2020 A&A, 635, 168)
@@ -136,7 +133,6 @@ contains
       T_bott=2.d4/unit_temperature
       call MPI_ALLREDUCE(Tmax_mype,T_peak,1,MPI_DOUBLE_PRECISION,&
            MPI_MAX,icomm,ierrmpi)
-      ! TODO trac stuff should not be here at all
       if(phys_trac_type==1) then
         !> 1D TRAC method
         trac_dmax=0.1d0
@@ -157,19 +153,20 @@ contains
     contains
   
       !> compute CFL limited dt (for variable time stepping)
-      subroutine getdt_courant(w,ixI^L,ixO^L,dtnew,dx^D,x,cmax_mype,a2max_mype)
+      subroutine getdt_courant_and_phys(w,ixI^L,ixO^L,dtnew,dx^D,x,cmax_mype)
         use mod_global_parameters
-        use mod_physics, only: phys_get_cmax,phys_get_a2max, &
+        use mod_physics, only: phys_get_cmax, &
                                phys_get_tcutoff,phys_get_auxiliary, phys_to_primitive
   
         integer, intent(in) :: ixI^L, ixO^L
         double precision, intent(in) :: x(ixI^S,1:ndim)
         double precision, intent(in)    :: dx^D
-        double precision, intent(inout) :: w(ixI^S,1:nw), dtnew, cmax_mype, a2max_mype(ndim)
+        double precision, intent(inout) :: w(ixI^S,1:nw), dtnew, cmax_mype
   
         double precision :: courantmax, dxinv(1:ndim), courantmaxtot, courantmaxtots
         double precision :: cmax(ixI^S), cmaxtot(ixI^S), wprim(ixI^S,1:nw)
-        double precision :: a2max(ndim), tco_local, Tmax_local
+        double precision :: tco_local, Tmax_local
+        double precision :: dtnewphys
         integer :: idims
         integer :: hxO^L
   
@@ -189,13 +186,6 @@ contains
         ! use primitive variables to get sound speed faster
         wprim=w
         call phys_to_primitive(ixI^L,ixI^L,wprim,x)
-
-        if(need_global_a2max) then
-          call phys_get_a2max(w,x,ixI^L,ixO^L,a2max)
-          do idims=1,ndim
-            a2max_mype(idims) = max(a2max_mype(idims),a2max(idims))
-          end do
-        end if
 
         if(phys_trac) then
           call phys_get_tcutoff(ixI^L,ixO^L,wprim,x,tco_local,Tmax_local)
@@ -238,10 +228,6 @@ contains
           end if
   
         case (type_summax)
-          !TODO this should be mod_input_output?
-          if(local_timestep) then
-            call mpistop("Type courant summax incompatible with local_timestep")
-          end if
           courantmax=zero
           courantmaxtot=zero
           if(slab_uniform) then
@@ -263,9 +249,6 @@ contains
           ! courantmaxtot='summed max(c/dx)'
           if (courantmaxtot>smalldouble)  dtnew=min(dtnew,courantpar/courantmaxtot)
         case (type_minimum)
-          if(local_timestep) then
-            call mpistop("Type courant not implemented for local_timestep, use maxsum")
-          endif  
           courantmax=zero
           if(slab_uniform) then
             ^D&dxinv(^D)=one/dx^D;
@@ -284,6 +267,11 @@ contains
           ! courantmax='max(c/dx)'
           if (courantmax>smalldouble) dtnew=min(dtnew,courantpar/courantmax)
         end select
-      end subroutine getdt_courant
+
+
+       call phys_get_dt(wprim,ixI^L,ixO^L,dtnewphys,dx^D,x)
+       dtnew=min(dtnew,dtnewphys)
+
+      end subroutine getdt_courant_and_phys
   end subroutine setdt
 end module mod_dt

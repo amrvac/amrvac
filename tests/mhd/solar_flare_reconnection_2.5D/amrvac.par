@@ -64,7 +64,6 @@
         mhd_energy=.true.
         typedivbfix='ct'
         Busr=40.d0
-        He_abundance=0.d0
         mhd_eta=-0.1d0
  /
         B0field=.true.
@@ -79,3 +78,7 @@
  &sts_list
         sts_dtpar=0.8d0
  /
+ &eos_list
+  He_abundance = 0.d0
+ /
+

@@ -1,5 +1,6 @@
 module mod_usr
   use mod_mhd
+  use mod_eos, only: eos
   implicit none
 
 contains
@@ -37,7 +38,7 @@ contains
       write(*,*)'rr0,rr1:'
       write(*,*)rr0,rr1
       write(*,*)'gamma,v0:'
-      write(*,*)mhd_gamma,v0
+      write(*,*)eos%gamma,v0
       first=.false.
     endif
     w(ixO^S,p_)=one
@@ -68,7 +69,7 @@ contains
       w(ixO^S,mom(2))=zero
     endwhere
 
-    call mhd_to_conserved(ixI^L,ixO^L,w,x)
+    call eos%to_conserved(ixI^L,ixO^L,w,x)
 
   end subroutine initonegrid_usr
 

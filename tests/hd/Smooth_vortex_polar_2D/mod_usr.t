@@ -1,6 +1,7 @@
 ! Smooth vortex test, e.g. in Duffell ApJS 226, 2016
 module mod_usr
   use mod_hd
+  use mod_eos, only: eos
 
   implicit none
 
@@ -48,7 +49,7 @@ contains
     endwhere
     }
 
-    call hd_to_conserved(ixG^L,ix^L,w,x)
+    call eos%to_conserved(ixG^L,ix^L,w,x)
 
   end subroutine SV_init_one_grid
 
@@ -75,9 +76,9 @@ contains
     double precision, intent(inout) :: w(ixI^S,1:nw)
 
     w(ixO^S,i_sol) = p_solution(x(ixO^S, 1))
-    call hd_to_primitive(ixI^L,ixO^L,w,x)
+    call eos%to_primitive(ixI^L,ixO^L,w,x)
     w(ixO^S,i_err_p) = abs(w(ixO^S,e_) - w(ixO^S,i_sol))
-    call hd_to_conserved(ixI^L,ixO^L,w,x)
+    call eos%to_conserved(ixI^L,ixO^L,w,x)
     w(ixO^S,i_err_r) = abs(w(ixO^S,rho_) - 1.0d0)
   end subroutine set_error
 

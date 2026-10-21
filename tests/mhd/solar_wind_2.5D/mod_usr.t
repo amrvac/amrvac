@@ -9,6 +9,7 @@
 
 module mod_usr
   use mod_mhd
+  use mod_eos, only: eos
   implicit none
   double precision :: Bbnd,rhobnd,Tbnd,gamma0,gamma2,gamma4,usr_grav
 
@@ -18,7 +19,6 @@ contains
     use mod_global_parameters
     use mod_usr_methods
 
-    mhd_gamma=5.0d0/3.0d0
     mhd_eta=zero
 
     call set_coordinate_system("spherical_2.5D")
@@ -88,7 +88,7 @@ contains
     end if
     w(ixO^S,mag(3))  = 0.0d0
     !pressure decreases like 1/r^2 (T is thus fixed)
-    w(ixO^S,e_)   = Tbnd*rhobnd/x(ixO^S,1)**2/(mhd_gamma-one) &
+    w(ixO^S,e_)   = Tbnd*rhobnd/x(ixO^S,1)**2/(eos%gamma-one) &
                   +0.5d0*(w(ixO^S,mom(1))**2+w(ixO^S,mom(2))**2+w(ixO^S,mom(3))**2)/w(ixO^S,rho_) &
                   +0.5d0*(w(ixO^S,mag(1))**2+w(ixO^S,mag(2))**2+w(ixO^S,mag(3))**2)
 
@@ -110,12 +110,12 @@ contains
 
   end subroutine initvecpot_usr
 
-  subroutine specialbound_usr(qt,ixI^L,ixO^L,iB,w,x)
+  subroutine specialbound_usr(qdt,qt,ixI^L,ixO^L,iB,w,x)
     use mod_global_parameters
     use mod_constrained_transport
 
     integer, intent(in) :: ixI^L, ixO^L, iB
-    double precision, intent(in) :: qt, x(ixI^S,1:ndim)
+    double precision, intent(in) :: qdt, qt, x(ixI^S,1:ndim)
     double precision, intent(inout) :: w(ixI^S,1:nw)
 
     double precision :: pth(ixI^S),tmp(ixI^S)
@@ -204,15 +204,15 @@ contains
 
 
          ! T is fixed at the boundary
-         Pin = (mhd_gamma-one)*(w(ixOmax1+1,ix2,e_)&
+         Pin = (eos%gamma-one)*(w(ixOmax1+1,ix2,e_)&
                   -0.5d0*(w(ixOmax1+1,ix2,mag(1))**2+w(ixOmax1+1,ix2,mag(2))**2+w(ixOmax1+1,ix2,mag(3))**2) &
                   -0.5d0*(w(ixOmax1+1,ix2,mom(1))**2+w(ixOmax1+1,ix2,mom(2))**2+w(ixOmax1+1,ix2,mom(3))**2)/w(ixOmax1+1,ix2,rho_) )
          Pg1 = w(ixOmax1,ix2,rho_)*(2.0d0*Tbnd-Pin/w(ixOmax1+1,ix2,rho_))
          Pg2 = w(ixOmin1,ix2,rho_)*(4.0d0*Tbnd-3.0d0*Pin/w(ixOmax1+1,ix2,rho_))
-         w(ixOmax1,ix2,e_)  = Pg1/(mhd_gamma-one) &
+         w(ixOmax1,ix2,e_)  = Pg1/(eos%gamma-one) &
                             + 0.5d0*(w(ixOmax1,ix2,mag(1))**2+w(ixOmax1,ix2,mag(2))**2+w(ixOmax1,ix2,mag(3))**2) &
                             + 0.5d0*(w(ixOmax1,ix2,mom(1))**2+w(ixOmax1,ix2,mom(2))**2+w(ixOmax1,ix2,mom(3))**2)/w(ixOmax1,ix2,rho_)
-         w(ixOmin1,ix2,e_)  = Pg2/(mhd_gamma-one) &
+         w(ixOmin1,ix2,e_)  = Pg2/(eos%gamma-one) &
                             + 0.5d0*(w(ixOmin1,ix2,mag(1))**2+w(ixOmin1,ix2,mag(2))**2+w(ixOmin1,ix2,mag(3))**2) &
                             + 0.5d0*(w(ixOmin1,ix2,mom(1))**2+w(ixOmin1,ix2,mom(2))**2+w(ixOmin1,ix2,mom(3))**2)/w(ixOmin1,ix2,rho_)
        end do
@@ -262,10 +262,10 @@ contains
 
           ! T is continuous
           ! Ti is the temperature in the last inner cell
-          Ti=(mhd_gamma-one)/w(ixOmin1-1,ix2,rho_)*(w(ixOmin1-1,ix2,e_)&
+          Ti=(eos%gamma-one)/w(ixOmin1-1,ix2,rho_)*(w(ixOmin1-1,ix2,e_)&
                   -0.5d0*(w(ixOmin1-1,ix2,mag(1))**2+w(ixOmin1-1,ix2,mag(2))**2+w(ixOmin1-1,ix2,mag(3))**2) &
                   -0.5d0*(w(ixOmin1-1,ix2,mom(1))**2+w(ixOmin1-1,ix2,mom(2))**2+w(ixOmin1-1,ix2,mom(3))**2)/w(ixOmin1-1,ix2,rho_) )
-          w(ix1,ix2,e_) = Ti*w(ix1,ix2,rho_)/(mhd_gamma-one) &
+          w(ix1,ix2,e_) = Ti*w(ix1,ix2,rho_)/(eos%gamma-one) &
                             + 0.5d0*(w(ix1,ix2,mag(1))**2+w(ix1,ix2,mag(2))**2+w(ix1,ix2,mag(3))**2) &
                             + 0.5d0*(w(ix1,ix2,mom(1))**2+w(ix1,ix2,mom(2))**2+w(ix1,ix2,mom(3))**2)/w(ix1,ix2,rho_)
 
@@ -333,7 +333,7 @@ contains
     if(x(ix^D,1) < 30.0d0)then
        r  = x(ix^D,1)
        th = x(ix^D,2)
-       Pth = (mhd_gamma-one)*(wCT(ix^D,e_)-0.5d0*(sum(wCT(ix^D,mom(:))**2)/wCT(ix^D,rho_)+sum(wCT(ix^D,mag(:))**2)))
+       Pth = (eos%gamma-one)*(wCT(ix^D,e_)-0.5d0*(sum(wCT(ix^D,mom(:))**2)/wCT(ix^D,rho_)+sum(wCT(ix^D,mag(:))**2)))
        sin2_thc = (dsin(theta1)**2)+(dcos(theta1)**2)*(r-1.0d0)/8.0d0
        if ( (r >= 7.0d0) .and. (r < 47.0d0) ) then
           sin2_thc = (dsin(theta2)**2)+(dcos(theta2)**2)*(r-7.0d0)/40.0d0

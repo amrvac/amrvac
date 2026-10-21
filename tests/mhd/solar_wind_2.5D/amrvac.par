@@ -60,3 +60,7 @@
         boundary_divbfix(3)=.false.
         boundary_divbfix(4)=.false.
  /
+
+ &eos_list
+        gamma=1.6666666666666667d0
+ /

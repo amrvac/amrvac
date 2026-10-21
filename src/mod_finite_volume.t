@@ -144,6 +144,9 @@ contains
     double precision, dimension(ixO^S) :: inv_volume
     double precision, dimension(1:ndim) :: dxinv
     integer :: idims, iw, ix^D, hx^D, ix^L, hxO^L, ixC^L, ixCR^L, kxC^L, kxR^L, ii
+    integer :: jdims, jxC^L, hpC^L, hmC^L
+    !> undivided divergence of v at the interface, for the B19 diffusive flux
+    double precision, dimension(ixI^S) :: divvC
     logical :: active=.false.
     type(ct_velocity) :: vcts
 
@@ -243,6 +246,41 @@ contains
        case default
          call mpistop('unkown Riemann flux in finite volume')
        end select
+
+       ! Explicit diffusive flux, Mignone et al. 2005 eq. B19-B21 -- the half of PPM's
+       ! dissipation algorithm that this code has never had:
+       !
+       !     F_{i+1/2} -> F_{i+1/2} + k_nu (U_i - U_{i+1}) ,  k_nu = alpha*max(-D_{i+1/2},0)
+       !
+       ! Differencing that across a cell gives +k_nu*(U_{i+1}-2U_i+U_{i-1}), a genuine
+       ! diffusion. Two properties matter here. It uses the raw cell difference, not the
+       ! reconstructed face jump, so it is the only term in the scheme that can act on an
+       ! odd-even mode which a face-value reconstruction (ppm) annihilates. And it is gated
+       ! on convergence, so it vanishes identically for a state at rest and cannot perturb
+       ! a hydrostatic column.
+       !
+       ! D is B21's undivided multidimensional divergence of v. B21 assembles it from cell
+       ! corners; the equivalent used here is face-centred -- the normal difference across
+       ! the interface plus the mean of the transverse centred divergences of the two cells
+       ! straddling it. Identical in 1D, second-order equivalent in multi-D.
+       if (ppm_avisc > zero) then
+          jxC^L=ixC^L+kr(idims,^D);
+          divvC(ixC^S)=wprim(jxC^S,iw_mom(idims))-wprim(ixC^S,iw_mom(idims))
+          do jdims=1,ndim
+             if (jdims==idims) cycle
+             hpC^L=ixC^L+kr(jdims,^D); hmC^L=ixC^L-kr(jdims,^D);
+             divvC(ixC^S)=divvC(ixC^S) &
+                +0.25d0*(wprim(hpC^S,iw_mom(jdims))-wprim(hmC^S,iw_mom(jdims)))
+             hpC^L=hpC^L+kr(idims,^D); hmC^L=hmC^L+kr(idims,^D);
+             divvC(ixC^S)=divvC(ixC^S) &
+                +0.25d0*(wprim(hpC^S,iw_mom(jdims))-wprim(hmC^S,iw_mom(jdims)))
+          end do
+          divvC(ixC^S)=ppm_avisc*max(-divvC(ixC^S),zero)
+          do iw=iwstart,nwflux
+             fC(ixC^S,iw,idims)=fC(ixC^S,iw,idims) &
+                +divvC(ixC^S)*(wCT(ixC^S,iw)-wCT(jxC^S,iw))
+          end do
+       end if
 
     end do ! Next idims
     b0i=0
@@ -353,29 +391,41 @@ contains
 
       fac(ixC^S) = -0.5d0*tvdlfeps*cmaxC(ixC^S,ii)
       do iw=iws,iwe
-         fC(ixC^S,iw,idims)=0.5d0*(fLC(ixC^S, iw)+fRC(ixC^S, iw))
-         ! Add TVDLF dissipation to the flux
-         if(flux_type(idims, iw) /= flux_no_dissipation) then
-           if(flux_adaptive_diffusion) then
-            {do ix^DB=ixCmin^DB,ixCmax^DB\}
-               jx^D=ix^D+kr(idims,^D)\
-               !> adaptive diffusion from Rempel et al. 2009, see also Rempel et al. 2014
-               !> the previous version is adopt
-               if(((wRC(ix^D,iw)-wLC(ix^D,iw))*(sCT%w(jx^D,iw)-sCT%w(ix^D,iw))) .gt. 1.e-18) then
-                 phi=min((wRC(ix^D,iw)-wLC(ix^D,iw))**2/((sCT%w(jx^D,iw)-sCT%w(ix^D,iw))**2+1.e-18),one)
-               else
-                 phi=1.d0
-               end if
-               fC(ix^D,iw,idims)=fC(ix^D,iw,idims)+fac(ix^D)*(wRC(ix^D,iw)-wLC(ix^D,iw))*phi
-            {end do\}
-           else
-            {do ix^DB=ixCmin^DB,ixCmax^DB\}
-               fC(ix^D,iw,idims)=fC(ix^D,iw,idims)+fac(ix^D)*(wRC(ix^D,iw)-wLC(ix^D,iw))
-            {end do\}
+         if(flux_energy_only .and. iw /= iw_e) then
+           fC(ixC^S,iw,idims)=zero
+         else
+           fC(ixC^S,iw,idims)=0.5d0*(fLC(ixC^S, iw)+fRC(ixC^S, iw))
+           ! Add TVDLF dissipation to the flux
+           if(flux_type(idims, iw) /= flux_no_dissipation) then
+             if(flux_adaptive_diffusion) then
+              {do ix^DB=ixCmin^DB,ixCmax^DB\}
+                 jx^D=ix^D+kr(idims,^D)\
+                 !> adaptive diffusion from Rempel et al. 2009, see also Rempel et al. 2014
+                 !> the previous version is adopt
+                 !if(((wRC(ix^D,iw)-wLC(ix^D,iw))*(sCT%w(jx^D,iw)-sCT%w(ix^D,iw))) .gt. 1.e-18) then
+                 !  phi=min((wRC(ix^D,iw)-wLC(ix^D,iw))**2/((sCT%w(jx^D,iw)-sCT%w(ix^D,iw))**2+1.e-18),one)
+                 !else
+                 !  phi=1.d0
+                 !end if
+                 phi = flux_adaptive_diffusion_min
+                 if(((wRC(ix^D,iw)-wLC(ix^D,iw))*(sCT%w(jx^D,iw)-sCT%w(ix^D,iw))) .gt. 1.d-18) then
+                   phi = max(flux_adaptive_diffusion_min, &
+                        min(flux_adaptive_diffusion_scale * &
+                            (wRC(ix^D,iw)-wLC(ix^D,iw))**2 / &
+                            ((sCT%w(jx^D,iw)-sCT%w(ix^D,iw))**2 + 1.d-18), one))
+                 else
+                   phi = one
+                 end if
+                 fC(ix^D,iw,idims)=fC(ix^D,iw,idims)+fac(ix^D)*(wRC(ix^D,iw)-wLC(ix^D,iw))*phi
+              {end do\}
+             else
+              {do ix^DB=ixCmin^DB,ixCmax^DB\}
+                 fC(ix^D,iw,idims)=fC(ix^D,iw,idims)+fac(ix^D)*(wRC(ix^D,iw)-wLC(ix^D,iw))
+              {end do\}
+             end if
            end if
          end if
       end do
-
     end subroutine get_Riemann_flux_tvdlf
 
     subroutine get_Riemann_flux_hll(iws,iwe)
@@ -1112,6 +1162,7 @@ contains
     use mod_global_parameters
     use mod_limiter
     use mod_comm_lib, only: mpistop
+    use mod_timing, only: time_wb_transform, time_wb_inverse, time_wb_recon
 
     integer, intent(in) :: ixI^L, ixL^L, ixR^L, idims
     double precision, intent(in) :: dxdim
@@ -1123,10 +1174,30 @@ contains
     double precision, dimension(ixI^S,1:nw) :: wLp, wRp
     double precision, dimension(ixI^S,1:ndim) :: x
 
-    integer            :: jxR^L, ixC^L, jxC^L, iw
+    integer            :: jxR^L, ixC^L, jxC^L, hxC^L, ixO^L, iw, idir
+    !> RJV: the PPM reconstruction residual and the alternation switch
+    double precision   :: rjve(ixI^S), rjvs(ixI^S)
     double precision   :: ldw(ixI^S), rdw(ixI^S), dwC(ixI^S)
-    double precision   :: a2max
+    !> scratch for a face-value velocity limiter (weno5/wenoz5/mp5): those routines write
+    !> every variable at once, so they are run into a copy and only the momentum rows kept.
+    !> Allocated only when such a limiter is actually requested.
+    double precision, allocatable :: wLt(:^D&,:), wRt(:^D&,:)
+    double precision   :: wb_phi(ixI^S), wb_phi_face(ixI^S), wb_T(ixI^S)
+    double precision   :: wb_t0
 
+    ! Well-balanced transform: subtract local HSE from pressure before limiting
+    wb_t0 = MPI_WTIME()
+    if (associated(phys_wb_transform)) then
+      call phys_wb_transform(ixI^L, ixI^L, idims, w, x, wb_phi, &
+           wb_phi_face, wb_T)
+      ! Re-initialise wLp/wRp to transformed cell-centre values.
+      jxR^L=ixR^L+kr(idims,^D);
+      wLp(ixL^S, 1:nwflux) = w(ixL^S, 1:nwflux)
+      wRp(ixR^S, 1:nwflux) = w(jxR^S, 1:nwflux)
+    end if
+    time_wb_transform = time_wb_transform + (MPI_WTIME() - wb_t0)
+
+    wb_t0 = MPI_WTIME()
     select case (type_limiter(block%level))
     case (limiter_mp5)
        call MP5limiter(ixI^L,ixL^L,idims,w,wLp,wRp)
@@ -1180,27 +1251,9 @@ contains
           end if
 
           dwC(ixC^S)=w(jxC^S,iw)-w(ixC^S,iw)
-          if(need_global_a2max) then 
-            a2max=a2max_global(idims)
-          else
-            select case(idims)
-            case(1)
-              a2max=schmid_rad1
-            {^IFTWOD
-            case(2)
-              a2max=schmid_rad2}
-            {^IFTHREED
-            case(2)
-              a2max=schmid_rad2
-            case(3)
-              a2max=schmid_rad3}
-            case default
-              call mpistop("idims is wrong in mod_limiter")
-            end select
-          end if
 
           ! limit flux from left and/or right
-          call dwlimiter2(dwC,ixI^L,ixC^L,idims,type_limiter(block%level),ldw,rdw,a2max=a2max)
+          call dwlimiter2(dwC,ixI^L,ixC^L,idims,type_limiter(block%level),ldw,rdw)
           wLp(ixL^S,iw)=wLp(ixL^S,iw)+half*ldw(ixL^S)
           wRp(ixR^S,iw)=wRp(ixR^S,iw)-half*rdw(jxR^S)
 
@@ -1215,11 +1268,20 @@ contains
           call phys_handle_small_values(.true.,wRp,x,ixI^L,ixR^L,'reconstruct right')
        end if
     end select
+    time_wb_recon = time_wb_recon + (MPI_WTIME() - wb_t0)
+
+    ! Well-balanced inverse: add back HSE at interface positions
+    wb_t0 = MPI_WTIME()
+    if (associated(phys_wb_inverse)) then
+      call phys_wb_inverse(ixI^L, ixL^L, ixR^L, idims, wLp, wRp, w, &
+           wb_phi, wb_phi_face, wb_T)
+    end if
 
    wLC(ixL^S,1:nwflux)=wLp(ixL^S,1:nwflux)
    wRC(ixR^S,1:nwflux)=wRp(ixR^S,1:nwflux)
    call phys_to_conserved(ixI^L,ixL^L,wLC,x)
    call phys_to_conserved(ixI^L,ixR^L,wRC,x)
+   time_wb_inverse = time_wb_inverse + (MPI_WTIME() - wb_t0)
    if(nwaux>0)then
       wLp(ixL^S,nwflux+1:nwflux+nwaux)=wLC(ixL^S,nwflux+1:nwflux+nwaux)
       wRp(ixR^S,nwflux+1:nwflux+nwaux)=wRC(ixR^S,nwflux+1:nwflux+nwaux)

@@ -1,5 +1,6 @@
 module mod_usr
   use mod_hd
+  use mod_eos, only: eos
 
   implicit none
 
@@ -17,7 +18,6 @@ contains
   end subroutine usr_init
 
   subroutine initglobaldata_usr
-    hd_gamma=1.4d0
 
   end subroutine initglobaldata_usr
 
@@ -34,13 +34,13 @@ contains
     {^NOONED
     m1post=8.d0*8.25d0*dsin(dpi/3.d0)
     m2post=-8.0d0*8.25d0*dcos(dpi/3.d0)
-    epost=1.165d2/(hd_gamma-1.d0)+(m1post**2+m2post**2)/(16.0d0)
+    epost=1.165d2/(eos%gamma-1.d0)+(m1post**2+m2post**2)/(16.0d0)
     where(x(ix^S,1)>(x(ix^S,2)/dtan(dpi/3.d0)+1.d0/6.d0))
        ! pre shock region
        w(ix^S,rho_)=1.4d0
        w(ix^S,mom(1))=0.0d0
        w(ix^S,mom(2))=0.0d0
-       w(ix^S,e_)=1.0d0/(hd_gamma-1.0d0)
+       w(ix^S,e_)=1.0d0/(eos%gamma-1.0d0)
     endwhere
     where(x(ix^S,1)<=(x(ix^S,2)/dtan(dpi/3.d0)+1.d0/6.d0))
        ! post shock region
@@ -53,9 +53,9 @@ contains
 
   end subroutine wc2d_init_one_grid
 
-  subroutine specialbound_usr(qt,ixG^L,ixO^L,iB,w,x)
+  subroutine specialbound_usr(qdt,qt,ixG^L,ixO^L,iB,w,x)
     integer, intent(in) :: ixG^L, ixO^L, iB
-    double precision, intent(in) :: qt, x(ixG^S,1:ndim)
+    double precision, intent(in) :: qdt,qt, x(ixG^S,1:ndim)
     double precision, intent(inout) :: w(ixG^S,1:nw)
 
     integer :: ix2
@@ -64,8 +64,8 @@ contains
 
     m1post=8.d0*8.25d0*dsin(dpi/3.d0)
     m2post=-8.0d0*8.25d0*dcos(dpi/3.d0)
-    epost=1.165d2/(hd_gamma-1.d0)+(m1post**2+m2post**2)/(16.0d0)
-    pree=1.0d0/(hd_gamma-1.0d0)
+    epost=1.165d2/(eos%gamma-1.d0)+(m1post**2+m2post**2)/(16.0d0)
+    pree=1.0d0/(eos%gamma-1.0d0)
     select case(iB)
      ! implementation of fixed postshock state at left boundary
      case(1)

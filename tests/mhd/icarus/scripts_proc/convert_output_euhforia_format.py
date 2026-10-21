@@ -42,13 +42,15 @@ start_date = magnetogram_timestamp-timedelta(days=(relaxation+cme_insertion))
 ##### Constants used in the script
 au_in_solar_radius = 215.032
 r_sun = 6.957e+8
-omega = 2.97e-6
+r_boundary = 21.5 * r_sun
+omega = 2.865e-6 #2.97e-6
 m_p = scipy.constants.proton_mass
+au_m = 1.496e+11
 
 
-def get_v_lon(r, v_lon):
-    v_lon = v_lon + r * r_sun* omega/100.0
-    return v_lon
+def get_v_lon(r, v_lon, clt):
+    v_lon_inertial = v_lon + (r)* np.sin(clt)* omega/1000
+    return v_lon_inertial
 
 for i, data in enumerate(trajectory_data):
     csv_file = open(data, 'r')
@@ -87,8 +89,8 @@ for i, data in enumerate(trajectory_data):
         b_clt_csv1.append(float(col[' b2']))
         b_lon_csv1.append(float(col[' b3']))
 
-    if (i == i):
-        r_earth = r_csv1
+   
+    r_earth = r_csv1
 
     for j in range(len(date_csv1)):
         if (date_csv1[j] >= magnetogram_time):
@@ -100,7 +102,8 @@ for i, data in enumerate(trajectory_data):
             save_from_index = j
             break
     for k in range(len(date_csv1)):
-        v_lon_heeq.append(get_v_lon(r_earth[k], v_lon_csv1[k]))
+        radius_m = r_csv1[k]*au_m
+        v_lon_heeq.append(get_v_lon(radius_m, v_lon_csv1[k], clt_csv1[k]))
         lon_heeq.append(np.mod(lon_csv1[k]+omega*timedelta(hours=(date_csv1[k]-date_csv1[magnetogram_index])).total_seconds(), 2*np.pi))
 
 

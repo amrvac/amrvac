@@ -52,7 +52,7 @@
  /
 
  &ffhd_list
-        ffhd_hyperbolic_thermal_conduction=T
+        ffhd_hyperbolic_tc=T
         ffhd_radiative_cooling=T
         ffhd_gravity=T
         B0field=.true.
@@ -62,7 +62,6 @@
  &rc_list
         ncool=10000
         coolcurve='JCcorona'
-        coolmethod='exact'
         Tfix=.true.
         tlow=0.008d0
  /

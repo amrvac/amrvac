@@ -43,7 +43,6 @@
 &boundlist
   typeboundary_min1 = 4*'special'
   typeboundary_max1 = 3*'noinflow','special'
-  internalboundary = F
 /
 
  &meshlist
@@ -62,15 +61,12 @@
   slowsteps = 100
  /
 
- &rhd_list
+ &hd_list
   He_abundance = 0.7d0
-  rhd_gravity = .true.
-  rhd_energy = .true.
-  rhd_gamma = 1.6667d0
-  rhd_radiation_force = .true.
-  rhd_energy_interact = .true.
-  rhd_radiation_diffusion = .true.
-  rhd_radiation_advection = .true.
+  hd_gravity = .true.
+  hd_energy = .true.
+  hd_gamma = 1.6667d0
+  hd_radiation_fld = .true.
  /
 
  &fld_list

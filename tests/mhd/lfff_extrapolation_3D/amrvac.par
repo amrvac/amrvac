@@ -76,8 +76,11 @@
         mhd_gravity=.true.
         typedivbfix='glm'
         mhd_energy=.false.
-        mhd_gamma=1.0d0
         mhd_adiab=1.0d0
         Busr=10.d0
+ /
+
+ &eos_list
+  gamma = 1.0d0
  /
 

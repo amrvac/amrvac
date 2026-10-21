@@ -357,7 +357,7 @@ contains
         hxO^L=ixO^L-2*kr(idir,^D);
         jxO^L=ixO^L+2*kr(idir,^D);
         gradq(ixO^S)=gradq(ixO^S)-(q(jxO^S)-q(hxO^S))/12.d0
-      case(3)
+      case(3:)
         gradq(ixO^S)=(q(jxO^S)-q(hxO^S))*3.d0/4.d0
         hxO^L=ixO^L-2*kr(idir,^D);
         jxO^L=ixO^L+2*kr(idir,^D);
@@ -521,7 +521,7 @@ contains
           jxO^L=ixO^L+kr(idir,^D);
         endif
         gradq(ixO^S)=gradq(ixO^S)-(q(jxO^S)-q(hxO^S))/24.d0
-      case(3)
+      case(3:)
         gradq(ixO^S)=(q(jxO^S)-q(hxO^S))*225.d0/192.d0
         if(pm) then
           hxO^L=ixO^L-kr(idir,^D);
@@ -701,6 +701,89 @@ contains
     end do
     if(.not.slab_uniform) divq(ixO^S)=divq(ixO^S)/block%dvolume(ixO^S)
   end subroutine divvectorS
+
+  !**************************************************************************
+  ! Purpose: Computes the Laplacian of a scalar field q(ixI^S) at cell 
+  !          centers and outputs it in laplq(ixO^S), 
+  !          which is also defined at cell **centers**. 
+  !
+  !          For uniform Cartesian coordinates, an optional input 
+  !          parameter nth_in allows increasing the order of the 
+  !          central difference scheme to 2*nth_in.
+  !**************************************************************************
+  subroutine laplacian(q,ixI^L,ixO^L,laplq,nth_in)
+    use mod_global_parameters
+    integer, intent(in)             :: ixI^L, ixO^L
+    integer, intent(in), optional   :: nth_in
+    double precision, intent(in)    :: q(ixI^S)
+    double precision, intent(inout) :: laplq(ixI^S)
+    integer                         :: lxO^L, jxO^L, hxO^L, kxO^L, nth, idim
+
+    if(present(nth_in)) then
+      nth = nth_in
+    else
+      nth = 1
+    endif
+    if(nth .gt. nghostcells) then 
+      call mpistop("laplacian stencil too wide")
+    endif
+
+    select case(coordinate)
+    case(Cartesian)
+      select case(nth)
+      case(1)
+        laplq(ixO^S)=zero
+        do idim=1,ndim
+           jxO^L=ixO^L+kr(idim,^D);
+           hxO^L=ixO^L-kr(idim,^D);
+           laplq(ixO^S)=laplq(ixO^S)+&
+                 (q(jxO^S)-2.0d0*q(ixO^S)+q(hxO^S))/dxlevel(idim)**2
+         end do
+      case(2)
+        laplq(ixO^S)=zero
+        do idim=1,ndim
+           lxO^L=ixO^L+2*kr(idim,^D);
+           jxO^L=ixO^L+kr(idim,^D);
+           hxO^L=ixO^L-kr(idim,^D);
+           kxO^L=ixO^L-2*kr(idim,^D);
+           laplq(ixO^S)=laplq(ixO^S)+&
+                 (-q(lxO^S)+16.0d0*q(jxO^S)-30.0d0*q(ixO^S)+16.0d0*q(hxO^S)-q(kxO^S)) &
+                 /(12.0d0 * dxlevel(idim)**2)
+        end do
+      case default
+        call mpistop("unknown stencil laplacian")
+      end select
+    case(Cartesian_stretched,Cartesian_expansion)
+        call mpistop("No laplacian available")
+    case(spherical)
+        call mpistop("No laplacian available")
+    case(cylindrical)
+        call mpistop("No laplacian available")
+    case default
+      call mpistop('Unknown geometry')
+    end select
+  end subroutine laplacian
+
+  !**************************************************************************
+  ! Purpose: Computes the Laplacian of a vector field qvec(ixI^S,1:ndir) at cell 
+  !          centers and outputs it in lapl_qvec(ixO^S,1:ndir), 
+  !          which is also defined at cell **centers**. 
+  !**************************************************************************
+  subroutine laplacian_of_vector(qvec,ixI^L,ixO^L,lapl_qvec)
+    use mod_global_parameters
+    integer, intent(in)             :: ixI^L, ixO^L
+    double precision, intent(in)    :: qvec(ixI^S,1:ndir)
+    double precision, intent(inout) :: lapl_qvec(ixI^S,1:ndir)
+    integer :: idir
+    double precision :: tmp(ixI^S)
+
+    do idir=1,ndir
+       call laplacian(qvec(ixI^S,idir),ixI^L,ixO^L,tmp)
+       lapl_qvec(ixO^S,idir)=tmp(ixO^S)
+    enddo
+
+  end subroutine laplacian_of_vector
+
 
   !> Calculate curl of a vector qvec within ixL
   !> Options to

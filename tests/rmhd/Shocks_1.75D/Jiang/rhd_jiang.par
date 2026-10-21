@@ -1,0 +1,78 @@
+&filelist
+  base_filename='rhd_jiang'
+  autoconvert      = F
+  typefilelog='regression_test'
+/
+
+&savelist
+   itsave(1,1)     = 0
+   itsave(1,2)     = 0
+   dtsave_dat     = 1.d0
+   dtsave_log     = 0.1d0
+/
+
+   time_max = 20.d0
+&stoplist
+   time_max = 2.0d0
+   dtmin = 1.0d-20
+/
+
+ &methodlist
+   time_stepper = 'threestep'
+   time_integrator = 'IMEX_ARS3'
+   flux_scheme     = 20*'hll'
+   limiter         = 20*'koren'
+/
+
+&boundlist
+  typeboundary_min1 = 9*'cont' 
+  typeboundary_max1 = 9*'cont' 
+/
+
+ &meshlist
+   refine_max_level   = 5
+   refine_criterion   = 3
+   domain_nx1         = 256
+   block_nx1          = 16
+   xprobmin1       = -1.0d0 
+   xprobmax1       = 1.0d0 
+   refine_threshold   = 20*0.5d0
+   derefine_ratio     = 20*1.d0/2.d0
+ /
+
+ &paramlist
+  courantpar       = 0.6d0
+  slowsteps = 200
+ /
+
+ &mhd_list
+  mhd_energy = .true.
+  mhd_radiation_fld = .true.
+ /
+
+ &eos_list
+  gamma = 1.6666666666667d0
+  He_abundance = 0.d0
+ /
+
+ &fld_list
+  fld_Radforce_split = .false.
+  fld_opacity_law = 'const'
+  fld_kappa0 = 0.4d0
+  fld_interaction_method = 'Halley'
+  fld_fluxlimiter = 'Diffusion'
+  fld_diff_tol = 1.d-7
+  fld_tiring_explicit=.true.
+  /
+
+  &shock_list
+   rho1 = 1.0d-2
+   rho2 = 3.0649491394775054d-2
+   T1 = 1.0889904411594d6
+   vx1 = 5.19271002d7
+   vy1 = 0.0d0 
+   vz1 = 0.0d0 
+   Bx1 = 0.0d0 
+   By1 = 0.0d0 
+   Bz1 = 0.0d0 
+   /

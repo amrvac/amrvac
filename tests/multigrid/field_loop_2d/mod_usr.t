@@ -1,5 +1,6 @@
 module mod_usr
   use mod_mhd
+  use mod_eos, only: eos
   use mod_multigrid_coupling
 
   implicit none
@@ -52,7 +53,7 @@ contains
        w(ixO^S,mag(1))= 0.0d0
        w(ixO^S,mag(2))= 0.0d0
     end where
-    call mhd_to_conserved(ixI^L,ixO^L,w,x)
+    call eos%to_conserved(ixI^L,ixO^L,w,x)
   end subroutine initonegrid_usr
 
   subroutine specialvar_output(ixI^L,ixO^L,w,x,normconv)

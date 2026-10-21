@@ -1,0 +1,7 @@
+ &filelist
+        base_filename  = '_amr_3level'
+ /
+
+ &meshlist
+        refine_max_level=3
+ /

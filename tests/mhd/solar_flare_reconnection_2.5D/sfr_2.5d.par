@@ -61,10 +61,14 @@
         B0field=.true.
         B0field_forcefree=.true.
         Busr=50.d0
-        He_abundance=0.d0
         mhd_eta=-0.1d0
+        mhd_hyperbolic_tc_sat=.true.
  /
 
  &sts_list
         sts_dtpar=0.2d0
  /
+ &eos_list
+  He_abundance = 0.d0
+ /
+

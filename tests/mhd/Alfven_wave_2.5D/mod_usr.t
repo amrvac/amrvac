@@ -1,5 +1,6 @@
 module mod_usr
   use mod_mhd
+  use mod_eos, only: eos
   implicit none
 
 contains
@@ -65,7 +66,7 @@ contains
     w(ix^S,mom(:)) = vrot(ix^S,:)
     w(ix^S,mag(:)) = brot(ix^S,:)
 
-    call mhd_to_conserved(ixG^L,ix^L,w,x)
+    call eos%to_conserved(ixG^L,ix^L,w,x)
 
   end subroutine initonegrid_usr
 

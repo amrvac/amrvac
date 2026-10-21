@@ -1,0 +1,7 @@
+ &filelist
+        base_filename  = '_fld_minerbo'
+ /
+
+ &fld_list
+        fld_fluxlimiter='Minerbo'
+ /

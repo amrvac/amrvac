@@ -97,3 +97,7 @@
         fld_fluxlimiter = 'Diffusion'
         fld_diff_tol = 1.d-7
  /
+
+ &eos_list
+        gamma=1.66666667d0
+ /

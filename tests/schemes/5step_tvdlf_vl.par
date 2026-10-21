@@ -1,0 +1,14 @@
+ &filelist
+        base_filename  = '_5step_tvdlf_vl'
+ /
+
+ &methodlist
+        time_stepper=  'fivestep'
+        flux_scheme =    20*'tvdlf'
+        limiter=  20*'vanleer'
+        typeboundspeed  = 'cmaxmean'
+ /
+
+ &paramlist
+        courantpar = 0.9
+ /

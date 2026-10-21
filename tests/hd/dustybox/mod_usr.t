@@ -1,5 +1,6 @@
 module mod_usr
   use mod_hd
+  use mod_eos, only: eos
 
   double precision            :: min_ar_ = 5.0d-8
   double precision            :: max_ar_ = 250.0d-8
@@ -30,7 +31,6 @@ contains
     double precision :: r(0:dust_n_species)
     logical, save    :: first = .true.
 
-    hd_gamma                 = 5.0d0/3.0d0
     dust_density(:)          = 3.3d0   ! specific density of dust in g/cc
 
     dust_density(:) = dust_density(:)/unit_density
@@ -60,7 +60,7 @@ contains
             else
                write(*,*) 'Units system in cgs'
             endif
-            write(*,*) 'He_abundance is       =',He_abundance
+            write(*,*) 'eos%He_abundance is       =',eos%He_abundance
             write(*,*) 'unit length is        =',unit_length
             write(*,*) 'unit number density is=',unit_numberdensity
             write(*,*) 'unit velocity is      =',unit_velocity
@@ -68,7 +68,7 @@ contains
             write(*,*) 'unit density is       =',unit_density
             write(*,*) 'unit pressure is      =',unit_pressure
             write(*,*) 'unit temperature is   =',unit_temperature
-            write(*,*) 'specific heat ratio is=',hd_gamma
+            write(*,*) 'specific heat ratio is=',eos%gamma
             write(*,*) '*****************************************'
             write(*,*) 'Dust included using ',dust_n_species,' dust species'
             write(*,*) 'Dust bins all have specific density rhop ',dust_density(1)
@@ -110,7 +110,7 @@ contains
       w(ix^S, dust_mom(1:ndir, n))  = vel1_/unit_velocity
     end do
 
-    call hd_to_conserved(ixG^L,ix^L,w,x)
+    call eos%to_conserved(ixG^L,ix^L,w,x)
   end subroutine initonegrid_usr
 
 end module mod_usr

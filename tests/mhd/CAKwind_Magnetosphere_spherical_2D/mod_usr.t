@@ -22,6 +22,7 @@
 module mod_usr
 
   use mod_mhd
+  use mod_eos, only: eos
   use mod_cak_force, ONLY: set_cak_force_norm, cak_alpha, gayley_qbar
   use mod_constants, ONLY: const_c, const_G, const_LSun, const_MSun, &
        const_RSun, const_kappae, const_sigma, mp_cgs, kB_cgs, const_years
@@ -126,7 +127,7 @@ contains
     gammae = const_kappae * lstar/(4.0d0*dpi * const_G * mstar * const_c)
     logg   = log10(const_G * mstar/rstar**2.0d0)
     logge  = logg + log10(1.0d0 - gammae)
-    mumol  = (1.0d0 + 4.0d0*He_abundance)/(2.0d0 + 3.0d0*He_abundance)
+    mumol  = (1.0d0 + 4.0d0*eos%He_abundance)/(2.0d0 + 3.0d0*eos%He_abundance)
     asound = sqrt(twind * kB_cgs/(mumol * mp_cgs))
     heff   = asound**2.0d0 / 10.0d0**logge
 
@@ -183,7 +184,7 @@ contains
       print*, 'eff. log(g)            = ', logge
       print*, 'heff/Rstar             = ', heff/rstar
       print*, 'Eddington gamma        = ', gammae
-      print*, 'adiabatic gamma        = ', mhd_gamma
+      print*, 'adiabatic gamma        = ', eos%gamma
       print*, 'isothermal asound      = ', asound
       print*, 'eff. vesc              = ', vesc
       print*, 'CAK vinf               = ', vinf
@@ -260,13 +261,13 @@ contains
     ! Pressure stratification is polytrope
     if (mhd_energy) then
       w(ixO^S,p_) = dasound**2.0 * drhobound &
-           * (w(ixO^S,rho_)/drhobound)**mhd_gamma
+           * (w(ixO^S,rho_)/drhobound)**eos%gamma
     endif
 
     ! If using Dedner+(2002) divergence cleaning
     if (mhd_glm) w(ixO^S,psi_) = 0.0d0
 
-    call mhd_to_conserved(ixI^L,ixO^L,w,x)
+    call eos%to_conserved(ixI^L,ixO^L,w,x)
 
     ! Initialise extra vars to be 0
     w(ixO^S,nw-nwextra+1:nw) = 0.0d0
@@ -387,11 +388,11 @@ contains
   ! Special user boundary conditions at inner radial boundary:
   !   vr, Btheta, Bphi (extrapolated); rho, vtheta, vphi, Br (fixed)
   !============================================================================
-  subroutine special_bound(qt, ixI^L, ixB^L, iB, w, x)
+  subroutine special_bound(qdt,qt, ixI^L, ixB^L, iB, w, x)
 
     ! Subroutine arguments
     integer, intent(in)    :: ixI^L, ixB^L, iB
-    real(8), intent(in)    :: qt, x(ixI^S,1:ndim)
+    real(8), intent(in) :: qdt,qt, x(ixI^S,1:ndim)
     real(8), intent(inout) :: w(ixI^S,1:nw)
 
     ! Local variable
@@ -400,7 +401,7 @@ contains
     select case (iB)
     case(1)
 
-      call mhd_to_primitive(ixI^L,ixI^L,w,x)
+      call eos%to_primitive(ixI^L,ixI^L,w,x)
 
       w(ixB^S,rho_) = drhobound
 
@@ -469,12 +470,12 @@ contains
       ! pthermal
       if (mhd_energy) then
         w(ixB^S,p_) = dasound**2.0 * drhobound &
-             * (w(ixB^S,rho_)/drhobound)**mhd_gamma
+             * (w(ixB^S,rho_)/drhobound)**eos%gamma
       endif
 
       if (mhd_glm) w(ixB^S,psi_) = 0.0d0
 
-      call mhd_to_conserved(ixI^L,ixI^L,w,x)
+      call eos%to_conserved(ixI^L,ixI^L,w,x)
 
     case default
       call mpistop("BC not specified")
@@ -518,7 +519,7 @@ contains
     ! Note: qt is just a placeholder for the 'global_time' variable
     if (qt < dtimestat) RETURN
 
-    call mhd_to_primitive(ixI^L,ixO^L,w,x)
+    call eos%to_primitive(ixI^L,ixO^L,w,x)
 
     ! Current ^(n+1) and previous ^(n) timestep normalisation weigths
     tnormc = qt + dt - dtimestat
@@ -567,7 +568,7 @@ contains
       w(ixO^S,my_tav) = w(ixO^S,my_tav) / tnormc
     endif
 
-    call mhd_to_conserved(ixI^L,ixO^L,w,x)
+    call eos%to_conserved(ixI^L,ixO^L,w,x)
 
   end subroutine compute_stats
 

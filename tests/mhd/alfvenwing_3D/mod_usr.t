@@ -2,6 +2,7 @@ module mod_usr
 
   ! Include a physics module
   use mod_mhd
+  use mod_eos, only: eos
 
   implicit none
   ! Input values
@@ -48,7 +49,6 @@ contains
 
     use mod_global_parameters
 
-    mhd_gamma=5.0d0/3.0d0
     mhd_eta=zero
 
   end subroutine initglobaldata_usr
@@ -92,17 +92,17 @@ contains
     endif
 
     ! now let the code compute the conservative variables itself
-    call mhd_to_conserved(ixG^L,ix^L, w, x)
+    call eos%to_conserved(ixG^L,ix^L, w, x)
 
   end subroutine initonegrid_usr
 
   ! special boundary types, user defined
-  subroutine specialbound_usr(qt,ixG^L,ixO^L,iB,w,x)
+  subroutine specialbound_usr(qdt,qt,ixG^L,ixO^L,iB,w,x)
     use mod_global_parameters
 
     integer, intent(in) :: ixO^L, iB, ixG^L
     integer:: ix^D
-    double precision, intent(in) :: qt, x(ixG^S,1:ndim)
+    double precision, intent(in) :: qdt, qt, x(ixG^S,1:ndim)
     double precision, intent(inout) :: w(ixG^S,1:nw)
     logical :: patchw(ixG^T)
 
@@ -120,7 +120,7 @@ contains
       w(ixO^S,mag(2))=mag_y/Bnorm
       w(ixO^S,mag(3))=mag_z/Bnorm
       if(mhd_glm) w(ixO^S,psi_)=0.d0
-      call mhd_to_conserved(ixG^L,ixO^L,w,x)
+      call eos%to_conserved(ixG^L,ixO^L,w,x)
     case default
        call mpistop("Special boundary is not defined for this region")
     end select

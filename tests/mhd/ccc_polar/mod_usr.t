@@ -4,6 +4,7 @@
 ! This tests our implementation of current evaluations (typecurl), among other things.
 module mod_usr
   use mod_mhd
+  use mod_eos, only: eos
 
   implicit none
 
@@ -90,13 +91,13 @@ contains
 
     select case(equilibrium_version)
        case('TokamakCurrent')
-          pr01=beta1*(1.0d0+invbext)/((beta1+1.0d0)*mhd_gamma)
-          Jfac0=6.0d0*dsqrt(2.0d0*(1.0d0+invbext)/((beta1+1.0d0)*mhd_gamma))/dsqrt(1.0d0+(Lz*qfac1/dpi)**2)
-          rootfac=2.0d0*(1.0d0+invbext)/((beta1+1.0d0)*mhd_gamma)-Jfac0**2/36.0d0
+          pr01=beta1*(1.0d0+invbext)/((beta1+1.0d0)*eos%gamma)
+          Jfac0=6.0d0*dsqrt(2.0d0*(1.0d0+invbext)/((beta1+1.0d0)*eos%gamma))/dsqrt(1.0d0+(Lz*qfac1/dpi)**2)
+          rootfac=2.0d0*(1.0d0+invbext)/((beta1+1.0d0)*eos%gamma)-Jfac0**2/36.0d0
           if (rootfac<smalldouble) then
              if(mype==0)then
                 print *,'rootfac=',rootfac
-                print *,2.0d0*(1.0d0+invbext)/((beta1+1.0d0)*mhd_gamma)
+                print *,2.0d0*(1.0d0+invbext)/((beta1+1.0d0)*eos%gamma)
                 print *,Jfac0**2/36.0d0
              endif
              call mpistop("inconsistent parameters for TC")
@@ -104,8 +105,8 @@ contains
           Bz0=dsqrt(rootfac)
           rho0=Bz0**2/Rvacs**2
        case('Sakanaka')
-          pr01=beta1*(1.0d0+invbext)/((beta1+1.0d0)*mhd_gamma)
-          Jfac0=dsqrt(200.0d0*(1.0d0+invbext)/((beta1+1.0d0)*mhd_gamma))/dsqrt(1.0d0+(Lz*qfac1/dpi)**2)
+          pr01=beta1*(1.0d0+invbext)/((beta1+1.0d0)*eos%gamma)
+          Jfac0=dsqrt(200.0d0*(1.0d0+invbext)/((beta1+1.0d0)*eos%gamma))/dsqrt(1.0d0+(Lz*qfac1/dpi)**2)
           alfa=-12.0d0+40.0d0/3.0d0-125.0d0/8.0d0+63.0d0/5.0d0+18.0d0/7.0d0-9.0d0/16.0d0+1.0d0/18.0d0
           rootfac=Jfac0**2*(alfa/5.0d0+(Lz*qfac1/(10.0d0*dpi))**2)-2.0d0*pr01*(dexp(4.0d0)-1.0d0)
           if (rootfac<smalldouble) then
@@ -120,9 +121,9 @@ contains
           Bz0=dsqrt(rootfac)
           rho0=Bz0**2/Rvacs**2
        case('GoldHoyle')
-          pr01=beta1*(1.0d0+invbext)/((beta1+1.0d0)*mhd_gamma)
+          pr01=beta1*(1.0d0+invbext)/((beta1+1.0d0)*eos%gamma)
           Jfac0=dpi/(Lz*qfac1)
-          Bz0=dsqrt(2.0d0*(1.0d0+invbext)*(1.0d0+Jfac0**2)/((beta1+1.0d0)*mhd_gamma))
+          Bz0=dsqrt(2.0d0*(1.0d0+invbext)*(1.0d0+Jfac0**2)/((beta1+1.0d0)*eos%gamma))
           rho0=Bz0**2/Rvacs**2
        case default
           call mpistop("Unknown equilibrium, choose TokamakCurrent, Sakanaka or GoldHoyle")
@@ -157,7 +158,7 @@ contains
     w(ix^S,mom(3)) = 0.0d0
     }
 
-    call mhd_to_conserved(ixG^L,ix^L,w,x)
+    call eos%to_conserved(ixG^L,ix^L,w,x)
 
   end subroutine CCC_init_one_grid
 
@@ -177,7 +178,7 @@ contains
           val=pr01
        end select
     else
-      val=1.0d0/mhd_gamma
+      val=1.0d0/eos%gamma
     endif
 
   end function p_solution
@@ -232,7 +233,7 @@ contains
           val=Bz0/(1.0d0+(Jfac0*rad)**2)
        end select
     else
-      val=dsqrt(invbext*2.0d0/mhd_gamma)
+      val=dsqrt(invbext*2.0d0/eos%gamma)
     endif
 
   end function bz_solution
@@ -244,9 +245,9 @@ contains
     double precision, intent(inout) :: w(ixI^S,1:nw)
 
     w(ixO^S,i_sol_r) =1.0d0
-    w(ixO^S,i_sol_p) =1.0d0/mhd_gamma
-    w(ixO^S,i_sol_b) =dsqrt(invbext*2.0d0/mhd_gamma)
-    w(ixO^S,i_totp)  =1.0d0/mhd_gamma
+    w(ixO^S,i_sol_p) =1.0d0/eos%gamma
+    w(ixO^S,i_sol_b) =dsqrt(invbext*2.0d0/eos%gamma)
+    w(ixO^S,i_totp)  =1.0d0/eos%gamma
     {^NOONED
     where(x(ixO^S,1)<1.0d0)
       w(ixO^S,i_sol_p) = p_solution(x(ixO^S, 1))
@@ -256,13 +257,13 @@ contains
     endwhere
     }
     w(ixO^S,i_err_r) = w(ixO^S,rho_) - w(ixO^S,i_sol_r)
-    call mhd_to_primitive(ixI^L,ixO^L,w,x)
+    call eos%to_primitive(ixI^L,ixO^L,w,x)
     w(ixO^S,i_err_p) = w(ixO^S,e_) - w(ixO^S,i_sol_p)
     {^NOONED
     w(ixO^S,i_totp) = w(ixO^S,e_) +0.5d0* &
        (w(ixO^S,mag(1))**2+w(ixO^S,mag(2))**2+w(ixO^S,mag(3))**2)
     }
-    call mhd_to_conserved(ixI^L,ixO^L,w,x)
+    call eos%to_conserved(ixI^L,ixO^L,w,x)
     {^NOONED
     w(ixO^S,i_err_b) = dsqrt( w(ixO^S,mag(1))**2+w(ixO^S,mag(2))**2+w(ixO^S,mag(3))**2 ) &
                           - w(ixO^S,i_sol_b)

@@ -40,8 +40,6 @@ module mod_srhd_phys
   double precision, public                :: srhd_gamma = 5.d0/3.0d0
   double precision, public                :: gamma_1,inv_gamma_1,gamma_to_gamma_1
 
-  !> The smallest allowed energy
-  double precision, public             :: small_e
   !> The smallest allowed inertia
   double precision, public             :: small_xi
 
@@ -110,7 +108,6 @@ contains
   !> Initialize the module
   subroutine srhd_phys_init()
     use mod_global_parameters
-    use mod_particles, only: particles_init
     integer :: itr,idir
 
     call srhd_read_params(par_files)
@@ -122,7 +119,6 @@ contains
 
     ! unused physics options
     phys_internal_e = .false.
-    phys_partial_ionization=.false.
     phys_trac=.false.
 
     use_particles = srhd_particles
@@ -179,8 +175,6 @@ contains
     ! dummy for now, no extra source terms precoded
     phys_add_source          => srhd_add_source
     phys_get_dt              => srhd_get_dt
-    ! copied in from HD/MHD, for certain limiters
-    phys_get_a2max           => srhd_get_a2max
 
     ! actual srhd routines
     phys_check_params        => srhd_check_params
@@ -199,15 +193,19 @@ contains
     phys_write_info          => srhd_write_info
     phys_handle_small_values => srhd_handle_small_values
 
-    ! Initialize particles module
-    if (srhd_particles) then
-       call particles_init()
-    end if
 
   end subroutine srhd_phys_init
 
   subroutine srhd_check_params
     use mod_global_parameters
+    use mod_geometry, only: coordinate
+    use mod_particles, only: particles_init
+    use mod_particles, only: npayload,nusrpayload,ngridvars,num_particles,physics_type_particles
+
+    ! Initialize particles module
+    if (srhd_particles) then
+       call particles_init()
+    end if
 
     if (srhd_gamma <= 0.0d0 .or. srhd_gamma == 1.0d0) &
             call mpistop ("Error: srhd_gamma <= 0 or srhd_gamma == 1")
@@ -229,6 +227,38 @@ contains
        write(*,*)'Derived small values: xi and e ',small_xi,small_e
        write(*,*)'------------------------------------------------------------'
     endif
+
+    if(mype==0)then
+           write(*,*)'====SRHD run with settings===================='
+           write(*,*)'Using mod_srhd_phys with settings:'
+           write(*,*)'SI_unit=',SI_unit
+           write(*,*)'Dimensionality   :',ndim
+           write(*,*)'vector components:',ndir
+           write(*,*)'coordinate set to type,slab:',coordinate,slab
+           write(*,*)'number of variables          nw=',nw
+           write(*,*)'    start index         iwstart=',iwstart
+           write(*,*)'number of      vector variables=',nvector
+           write(*,*)'number of stagger variables nws=',nws
+           write(*,*)'number of    variables with BCs=',nwgc
+           write(*,*)'number of      vars with fluxes=',nwflux
+           write(*,*)'number of   vars with flux + BC=',nwfluxbc
+           write(*,*)'number of   auxiliary variables=',nwaux
+           write(*,*)'number of extra vars without flux=',nwextra
+           write(*,*)'number of extra vars   for wextra=',nw_extra
+           write(*,*)'number of auxiliary I/O variables=',nwauxio
+           write(*,*)'number of             srhd_n_tracer=',srhd_n_tracer
+           write(*,*)'    srhd_particles=',srhd_particles
+           if(srhd_particles) then
+              write(*,*) '*****Using particles: npayload,ngridvars :', npayload,ngridvars
+              write(*,*) '*****Using particles:        nusrpayload :', nusrpayload
+              write(*,*) '*****Using particles:      num_particles :', num_particles
+              write(*,*) '*****Using particles: physics_type_particles=',physics_type_particles
+           end if
+           write(*,*)'number of             ghostcells=',nghostcells
+           write(*,*)'number due to phys_wider_stencil=',phys_wider_stencil
+           write(*,*)'==========================================='
+    endif
+
 
   end subroutine srhd_check_params
 
@@ -593,22 +623,19 @@ contains
     double precision, intent(in)              :: w(ixI^S, nw), x(ixI^S, 1:ndim)
     double precision, intent(inout)           :: cmax(ixI^S)
 
-    double precision :: wc(ixI^S,nw)
     double precision, dimension(ixO^S)        :: csound2,tmp1,tmp2,v2
     double precision, dimension(ixI^S)        :: vidim, cmin
 
     logical       :: flag(ixI^S,1:nw)
 
-    !!call srhd_check_w_aux(ixI^L, ixO^L, w, flag)
-
-    ! input w is in primitive form TODO use it
-    wc=w
-    call srhd_to_conserved(ixI^L, ixO^L, wc, x)
+    ! input w is in primitive form 
     ! auxiliaries are filled here
-    tmp1(ixO^S)=wc(ixO^S,xi_)/wc(ixO^S,lfac_)**2.0d0
-    v2(ixO^S)=1.0d0-1.0d0/wc(ixO^S,lfac_)**2
-    call srhd_get_csound2_rhoh(wc,x,ixI^L,ixO^L,tmp1,csound2)
-    vidim(ixO^S) = wc(ixO^S, mom(idim))/wc(ixO^S, xi_)
+    tmp1=w(ixO^S,rho_)
+    tmp2=w(ixO^S,xi_)/w(ixO^S,lfac_)**2.0d0
+    v2=w(ixO^S,p_)
+    call srhd_get_csound2_prim_eos(ixO^L,tmp1,tmp2,v2,csound2)
+    v2(ixO^S)=1.0d0-1.0d0/w(ixO^S,lfac_)**2
+    vidim(ixO^S) = w(ixO^S, mom(idim))/w(ixO^S, lfac_)
     tmp2(ixO^S)=vidim(ixO^S)**2.0d0
     tmp1(ixO^S)=1.0d0-v2(ixO^S)*csound2(ixO^S) &
                         -tmp2(ixO^S)*(1.0d0-csound2(ixO^S))
@@ -625,29 +652,6 @@ contains
     cmax(ixO^S) = max(dabs(cmax(ixO^S)),dabs(cmin(ixO^S)))
 
   end subroutine srhd_get_cmax
-
-  subroutine srhd_get_a2max(w,x,ixI^L,ixO^L,a2max)
-    use mod_global_parameters
-
-    integer, intent(in)          :: ixI^L, ixO^L
-    double precision, intent(in) :: w(ixI^S, nw), x(ixI^S,1:ndim)
-    double precision, intent(inout) :: a2max(ndim)
-    double precision :: a2(ixI^S,ndim,nw)
-    integer :: gxO^L,hxO^L,jxO^L,kxO^L,i
-
-    a2=zero
-    do i = 1,ndim
-      !> 4th order
-      hxO^L=ixO^L-kr(i,^D);
-      gxO^L=hxO^L-kr(i,^D);
-      jxO^L=ixO^L+kr(i,^D);
-      kxO^L=jxO^L+kr(i,^D);
-      a2(ixO^S,i,1:nwflux)=dabs(-w(kxO^S,1:nwflux)+16.d0*w(jxO^S,1:nwflux)&
-        -30.d0*w(ixO^S,1:nwflux)+16.d0*w(hxO^S,1:nwflux)-w(gxO^S,1:nwflux))
-      a2max(i)=maxval(a2(ixO^S,i,1:nwflux))/12.d0/dxlevel(i)**2
-    end do
-
-  end subroutine srhd_get_a2max
 
   !> local version for recycling code when computing cmax-cmin
   subroutine srhd_get_cmax_loc(ixI^L,ixO^L,vidim,csound2,v2,cmax,cmin)
@@ -993,7 +997,7 @@ contains
 
   !> Compute the small value limits
   subroutine srhd_get_smallvalues_eos
-    use mod_global_parameters, only: small_pressure, small_density
+    use mod_global_parameters, only: small_pressure, small_density, small_e
     implicit none
     ! local small values
     double precision :: LsmallE,Lsmallp,Lsmallrho

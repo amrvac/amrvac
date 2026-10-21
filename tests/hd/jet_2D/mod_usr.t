@@ -1,5 +1,6 @@
 module mod_usr
   use mod_hd
+  use mod_eos, only: eos
   implicit none
   double precision :: rhoj, eta, vj
 
@@ -18,8 +19,7 @@ contains
 
   subroutine initglobaldata_usr
     
-    hd_gamma=1.4d0
-    rhoj=hd_gamma
+    rhoj=eos%gamma
     if(iprob==1)then
         eta=10.d0
     endif
@@ -45,22 +45,22 @@ contains
        w(ix^S,rho_)=rhoj
        w(ix^S,mom(1))=zero
        w(ix^S,mom(2))=rhoj*vj
-       w(ix^S,e_)=one/(hd_gamma-one)+0.5d0*rhoj*vj**2.0d0
+       w(ix^S,e_)=one/(eos%gamma-one)+0.5d0*rhoj*vj**2.0d0
     else where
        w(ix^S,rho_) = rhoj/eta
-       w(ix^S,e_) = one/(hd_gamma-one)
+       w(ix^S,e_) = one/(eos%gamma-one)
        w(ix^S,mom(1)) = zero
        w(ix^S,mom(2)) = zero
     end where
 
   end subroutine initonegrid_usr
 
-  subroutine specialbound_usr(qt,ixG^L,ixO^L,iB,w,x)
+  subroutine specialbound_usr(qdt,qt,ixG^L,ixO^L,iB,w,x)
 
     ! special boundary types, user defined
 
     integer, intent(in) :: ixG^L, ixO^L, iB
-    double precision, intent(in) :: qt, x(ixG^S,1:ndim)
+    double precision, intent(in) :: qdt,qt, x(ixG^S,1:ndim)
     double precision, intent(inout) :: w(ixG^S,1:nw)
     integer :: ixOInt^L, ix2
 
@@ -73,7 +73,7 @@ contains
       ixOInt^L=ixO^L;
       ixOIntmin2=ixOmax2+1
       ixOIntmax2=ixOmax2+1
-      call hd_to_primitive(ixG^L,ixOInt^L,w,x)
+      call eos%to_primitive(ixG^L,ixOInt^L,w,x)
       ! extrapolate primitives, first everywhere on boundary
       do ix2 = ixOmin2,ixOmax2
          w(ixOmin1:ixOmax1,ix2,rho_)  = w(ixOmin1:ixOmax1,ixOmax2+1,rho_)
@@ -89,9 +89,9 @@ contains
          w(ixO^S,e_)=one
       endwhere
       ! switch to conservative variables in internal zone
-      call hd_to_conserved(ixG^L,ixOInt^L,w,x)
+      call eos%to_conserved(ixG^L,ixOInt^L,w,x)
       ! switch to conservative variables in ghost cells
-      call hd_to_conserved(ixG^L,ixO^L,w,x)
+      call eos%to_conserved(ixG^L,ixO^L,w,x)
     case default
        call mpistop("Special boundary is not defined for this region")
     end select

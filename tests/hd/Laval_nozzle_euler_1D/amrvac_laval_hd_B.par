@@ -48,9 +48,12 @@
 
  &hd_list
         hd_energy     =.true.
-        hd_gamma      = 1.666667d0
  /
 
  &usr_list
         mach0         = 0.5d0
 /
+ &eos_list
+  gamma = 1.666667d0
+ /
+

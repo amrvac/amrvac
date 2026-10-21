@@ -1,0 +1,74 @@
+&filelist
+  base_filename='output/rhd_shock'
+  autoconvert      = F
+/
+  typefilelog='regression_test'
+  nwauxio=2
+
+&savelist
+   itsave(1,1)     = 0
+   itsave(1,2)     = 0
+   dtsave_dat     = 0.1d0
+   dtsave_log     = 0.1d0
+/
+
+&stoplist
+   time_max = 2.0d0
+   dtmin = 1.0d-20
+/
+
+ &methodlist
+   time_stepper    = 'threestep'
+   time_integrator = 'IMEX_ARS3'
+   flux_scheme     = 20*'hll'
+   limiter         = 20*'koren'
+/
+
+&boundlist
+  typeboundary_min1 = 9*'cont'
+  typeboundary_max1 = 9*'cont'
+/
+
+ &meshlist
+   refine_max_level   = 3
+   domain_nx1         = 256
+   block_nx1          = 16
+   xprobmin1       = -0.5d0
+   xprobmax1       = 0.5d0
+ /
+
+ &paramlist
+  courantpar       = 0.4d0
+  slowsteps = 1000
+ /
+
+ &mhd_list
+  mhd_energy = .true.
+  mhd_radiation_fld = .true.
+ /
+
+&eos_list
+  He_abundance = 0.d0 
+  gamma = 1.4d0
+/
+ &fld_list
+  fld_Radforce_split = .false.
+  fld_opacity_law = 'const'
+  fld_kappa0 = 0.4d0
+  fld_interaction_method = 'Halley'
+  fld_fluxlimiter = 'Diffusion'
+  fld_diff_tol = 1.d-6
+  fld_bisect_tol = 1.d-6
+  /
+
+  &shock_list
+   rho1= 1.0d-2
+   rho2= 0.0685847d0
+   T1  = 1.0d4
+   vx1 = 1.0d9
+   vy1 = 0.0d0 
+   vz1 = 0.0d0 
+   Bx1 = 0.d0
+   By1 = 0.0d0 
+   Bz1 = 0.0d0 
+   /

@@ -44,6 +44,7 @@ module mod_random
 
   public :: rng_t
   public :: prng_t
+  public :: Poisson_disk_sampling
 
 contains
 
@@ -280,5 +281,103 @@ contains
 
     res = ior(shiftl(x, k), shiftr(x, 64 - k))
   end function rotl
+
+  subroutine Poisson_disk_sampling(r_min,bmin1,bmin2,bmax1,bmax2,nmax,points_store,n_setpoints)
+    use mod_constants
+    ! a bigger number than expected total number of sampling points
+    integer, intent(in) :: nmax
+    double precision, intent(in)  :: r_min,bmin1,bmin2,bmax1,bmax2
+    double precision, intent(out) :: points_store(nmax,2)
+    integer, intent(out) :: n_setpoints
+
+    double precision :: gsize,x1len,x2len,R2,threeR2,r_rand,a_rand,x_rand,y_rand
+    double precision :: unif_random_number(2),candidate(2),distance,random01
+    type(rng_t) :: rng
+    ! the id of a point in a background grid, in which each cell can only contain at most one point
+    integer, allocatable :: id_grid(:,:)
+    integer :: nx1,nx2,ix1,ix2,n_active,id,j,k_candi
+    integer :: id_active_points(nmax),point_index_in_grid(2,nmax)
+    logical :: points_active(nmax)
+    logical :: candidate_found
+
+    k_candi=30
+    id_active_points=0
+    R2=r_min**2
+    threeR2=3.d0*R2
+    points_active=.false.
+    ! cell size of the background grid
+    gsize=r_min/sqrt(2.d0)
+    ! size of region to sample
+    x1len=bmax1-bmin1
+    x2len=bmax2-bmin2
+    nx1=ceiling(x1len/gsize)
+    nx2=ceiling(x2len/gsize)
+    allocate(id_grid(nx1,nx2))
+    id_grid=0
+    ! set the first point
+    call rng%unif_01_vec(unif_random_number)
+    points_store(1,1)=unif_random_number(1)*x1len
+    points_store(1,2)=unif_random_number(2)*x2len
+    ix1=ceiling(points_store(1,1)/gsize)
+    ix2=ceiling(points_store(1,2)/gsize)
+    id_grid(ix1,ix2)=1
+    point_index_in_grid(1,1)=ix1
+    point_index_in_grid(2,1)=ix2
+    points_active(1)=.true.
+    n_setpoints=1
+
+    do while(any(points_active))
+      ! generate active point list
+      n_active=0
+      do id=1,nmax
+        if(points_active(id)) then
+          n_active=n_active+1
+          id_active_points(n_active)=id
+        end if
+      end do
+      ! randomly select one point from the active point list
+      id=id_active_points(ceiling(rng%unif_01()*dble(n_active)))
+      do j=1,k_candi
+        candidate_found=.true.
+        r_rand=sqrt(rng%unif_01()*threeR2+R2)
+        a_rand=2.d0*dpi*rng%unif_01()
+        x_rand=points_store(id,1)+r_rand*cos(a_rand)
+        y_rand=points_store(id,2)+r_rand*sin(a_rand)
+        if(x_rand<0.d0 .or. x_rand> x1len .or. y_rand<0.d0 .or. y_rand > x2len) cycle
+        do ix2=max(1,point_index_in_grid(2,id)-3),min(nx2,point_index_in_grid(2,id)+3)
+          do ix1=max(1,point_index_in_grid(1,id)-3),min(nx1,point_index_in_grid(1,id)+3)
+            if(id_grid(ix1,ix2)==id) cycle
+            if(id_grid(ix1,ix2)/=0) then
+              distance=sqrt((x_rand-points_store(id_grid(ix1,ix2),1))**2+(y_rand-points_store(id_grid(ix1,ix2),2))**2)
+              if(distance<r_min) then
+                candidate_found=.false.
+                go to 12
+              end if
+            end if
+          end do
+        end do
+        if(candidate_found) then
+          n_setpoints=n_setpoints+1
+          points_store(n_setpoints,1)=x_rand
+          points_store(n_setpoints,2)=y_rand
+          ix1=ceiling(points_store(n_setpoints,1)/gsize)
+          ix2=ceiling(points_store(n_setpoints,2)/gsize)
+          point_index_in_grid(1,n_setpoints)=ix1
+          point_index_in_grid(2,n_setpoints)=ix2
+          id_grid(ix1,ix2)=n_setpoints
+          points_active(n_setpoints)=.true.
+          exit
+        end if
+12      continue
+      end do
+      if(.not.candidate_found) then
+        points_active(id)=.false.
+      end if
+    end do
+    points_store(1:n_setpoints,1)=points_store(1:n_setpoints,1)+bmin1
+    points_store(1:n_setpoints,2)=points_store(1:n_setpoints,2)+bmin2
+    deallocate(id_grid)
+
+  end subroutine Poisson_disk_sampling
 
 end module mod_random

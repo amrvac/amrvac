@@ -32,7 +32,7 @@ or
 
         call add_convert_method(dump_vars, 4, (/" jx", " jy", " jz", "sxr"/), "_aux_")
 
-The first way is preferred as because Fortran requires the strrings in an array to have the same length and extra spaces might be necessary for this.
+The first way is preferred as because Fortran requires the strings in an array to have the same length and extra spaces might be necessary for this.
 The last argument `_aux_` is the suffix added to `base_filename`  in order to generate  the name of the new dat file.
 
 3. Implement `dump_vars` function: 

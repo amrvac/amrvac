@@ -1,77 +1,71 @@
-!> This is a template for a new user problem
 module mod_usr
 
   ! Include a physics module
-  use mod_rhd
+  use mod_hd
   use mod_fld
+  use mod_eos, only: eos
 
   implicit none
 
-  double precision :: rho0 = 1.2d0
-  double precision :: v0 = 5.d7
-  double precision :: T0 = 1.d7
-  double precision :: T1 = 2.d7
-  double precision :: wdth = 24.d0
+    double precision :: rho0,v0,T0,T1,wdth
+    double precision :: rho0_norm,T0_norm,T1_norm,v0_norm
+
+  ! Storing additional var in the dat file
+  integer :: Tgas_,Trad_,pres_,vel_,amr_
 
 contains
 
   !> This routine should set user methods, and activate the physics module
   subroutine usr_init()
 
-    ! Choose coordinate system as 2D Cartesian with three components for vectors
-    {^IFONED call set_coordinate_system("Cartesian_1D")}
-    {^IFTWOD call set_coordinate_system("Cartesian_2D")}
-    {^IFTHREED call set_coordinate_system("Cartesian_3D")}
+    ! Note how we here must set three values that in turn define M-L-T
+    unit_density       =1.2d0        ! 1.2 g cm^-3
+    unit_temperature   =1.d7         ! 10^7 K
+    unit_length        =24.d0        ! 24 cm
 
-    ! Initialize units
-    usr_set_parameters => initglobaldata_usr
+    call usr_params_read(par_files)
 
     ! A routine for initial conditions is always required
     usr_init_one_grid => initial_conditions
 
-    ! Specify other user routines, for a list see mod_usr_methods.t
-    ! Boundary conditions
-    usr_special_bc => boundary_conditions
-    usr_special_mg_bc => mg_boundary_conditions
+   ! to add selected variables to the .dat file
+    usr_modify_output => set_output_vars
 
+    call set_coordinate_system("Cartesian_1D")
     ! Active the physics module
-    call rhd_activate()
+    call hd_activate()
+
+    ! to add selected variables to the .dat file
+    Tgas_ = var_set_extravar("Tgas", "Tgas")
+    Trad_ = var_set_extravar("Trad", "Trad")
+    pres_ = var_set_extravar("pres", "pres")
+    vel_ = var_set_extravar("vel", "vel")
+    amr_ = var_set_extravar("level", "level")
 
   end subroutine usr_init
 
+  subroutine usr_params_read(files)
+  use mod_global_parameters, only: unitpar
+  character(len=*), intent(in) :: files(:)
+  integer                      :: n
 
-  subroutine initglobaldata_usr
-    use mod_global_parameters
-    use mod_fld
+  namelist /test_list/ rho0, v0, T0, T1, wdth
 
-    unit_velocity = v0 !r_arr(nghostcells) ! cm
-    unit_numberdensity = rho0/((1.d0+4.d0*He_abundance)*const_mp)
-    unit_length = wdth
+  do n = 1, size(files)
+     open(unitpar, file=trim(files(n)), status="old")
+     read(unitpar, test_list, end=111)
+     111    close(unitpar)
+  end do
 
-    !> Remaining units
-    unit_density=(1.d0+4.d0*He_abundance)*const_mp*unit_numberdensity
-    unit_pressure=unit_density*unit_velocity**2
-    unit_temperature=unit_pressure/((2.d0+3.d0*He_abundance)*unit_numberdensity*const_kB)
-    unit_time=unit_length/unit_velocity
+  if(mype==0)then
+    print *,'============================================'
+    write(*,*) 'INPUT GIVEN IN cgs units is'
+    write(*,*) 'input density, velocity, temperatures0-1 =',rho0,v0,T0,T1
+    write(*,*) 'input dimensionless (length) factor is   =',wdth
+    print *,'============================================'
+  endif
 
-    unit_radflux = unit_velocity*unit_pressure
-    unit_opacity = one/(unit_density*unit_length)
-
-    print*, unit_time, 's'
-
-    rho0 = rho0/unit_density
-    v0 = v0/unit_velocity
-    T0 = T0/unit_temperature
-    T1 = T1/unit_temperature
-    wdth = wdth/unit_length
-
-    print*, 'u_time', unit_time
-    print*, 'u_length', unit_length
-    print*, 'u_density', unit_density
-    print*, 'u_pressure', unit_pressure
-
-  end subroutine initglobaldata_usr
-
+  end subroutine usr_params_read
 
   !> A routine for specifying initial conditions
   subroutine initial_conditions(ixI^L, ixO^L, w, x)
@@ -81,81 +75,60 @@ contains
     double precision, intent(in)    :: x(ixI^S,1:ndim)
     double precision, intent(inout) :: w(ixI^S,1:nw)
 
-    double precision :: temp(ixI^S), pth(ixI^S)
-    double precision :: kappa(ixO^S), fld_R(ixO^S), lambda(ixO^S)
+    double precision :: temp(ixI^S)
+    double precision :: a,b,Xfrac,Yfrac
+    logical, save:: first=.true.
 
-    ! v0 = 0.d0
+    rho0_norm=rho0/unit_density
+    T0_norm=T0/unit_temperature
+    T1_norm=T1/unit_temperature
+    v0_norm = v0/unit_velocity
 
-    temp(ixI^S) = T0 + (T1-T0)*dexp(-x(ixI^S,1)**2.d0/(2*wdth**2))
+    temp(ixI^S) = T0_norm + (T1_norm-T0_norm)*dexp(-x(ixI^S,1)**2.d0/(2*(wdth**2)))
 
-    w(ixI^S,rho_) = rho0*T0/temp(ixI^S) &
-    + const_rad_a*fld_mu*const_mp/(3.d0*const_kB) &
-    * unit_temperature**3/unit_density &
-    * (T0**4.d0/temp(ixI^S) - temp(ixI^S)**3.d0)
-
+    w(ixI^S,rho_) = rho0_norm*T0_norm/temp(ixI^S) &
+                   + arad_norm * (T0_norm**4.d0/temp(ixI^S) - temp(ixI^S)**3.d0)
     w(ixI^S,mom(:)) = 0.d0
-    w(ixI^S,mom(1)) = w(ixI^S,rho_)*v0
+    w(ixI^S,mom(1)) = v0_norm
+    w(ixI^S,p_) = temp(ixI^S)*w(ixI^S,rho_)
+    w(ixI^S,r_e) = arad_norm*(temp(ixI^S)**4.d0)
 
-    pth(ixI^S) = temp(ixI^S)*w(ixI^S,rho_)
-    w(ixI^S,e_) = pth(ixI^S)/(rhd_gamma-1.d0) + half*w(ixI^S,rho_)*v0**2
-    w(ixI^S,r_e) = const_rad_a*(temp(ixI^S)*unit_temperature)**4.d0/unit_pressure
+    call eos%to_conserved(ixI^L,ixI^L,w,x)
 
-    call fld_get_opacity(w, x, ixI^L, ixO^L, kappa)
-    call fld_get_fluxlimiter(w, x, ixI^L, ixO^L, lambda, fld_R, nghostcells)
-
-    w(ixO^S,i_diff_mg) = (const_c/unit_velocity)*lambda(ixO^S)/(kappa(ixO^S)*w(ixO^S,rho_))
+  if(mype==0.and.first)then
+    print *,'===IN INITIAL CONDITIONS========================================='
+    write(*,*) 'converted to normalized values'
+    write(*,*) 'normalized density, velocity, temperatures0-1 =',rho0_norm,v0_norm,T0_norm,T1_norm
+    print *,'=======================---------------------====================='
+    print *,'========GLOBAL values==========='
+    print *,'rho0=',rho0
+    print *,'T0,T1=',T0,T1
+    print *,'v0=',v0
+    print *,'========GLOBAL values==========='
+    first=.false.
+  endif
 
   end subroutine initial_conditions
 
-  subroutine boundary_conditions(qt,ixI^L,ixB^L,iB,w,x)
+  subroutine set_output_vars(ixI^L,ixO^L,qt,w,x)
     use mod_global_parameters
-    use mod_fld
-
-
-    integer, intent(in)             :: ixI^L, ixB^L, iB
-    double precision, intent(in)    :: qt, x(ixI^S,1:ndim)
+    integer, intent(in)             :: ixI^L,ixO^L
+    double precision, intent(in)    :: qt,x(ixI^S,1:ndim)
     double precision, intent(inout) :: w(ixI^S,1:nw)
 
-    double precision :: temp(ixB^S), pth(ixB^S)
+    double precision :: Trad(ixI^S),Tgas(ixI^S),pth(ixI^S)
 
-    select case (iB)
-    case(1,2)
-      temp(ixB^S) = T0 + (T1-T0)*dexp(-(x(ixB^S,1)-v0*qt)**2.d0/(2*wdth**2))
-      w(ixB^S,rho_) = rho0*T0/temp(ixB^S) &
-      + const_rad_a*fld_mu*const_mp/(3.d0*const_kB) &
-      * unit_temperature**3/unit_density &
-      * (T0**4.d0/temp(ixB^S) - temp(ixB^S)**3.d0)
-      w(ixB^S,mom(:)) = 0.d0
-      w(ixB^S,mom(1)) = w(ixB^S,rho_)*v0
-      pth(ixB^S) = temp(ixB^S)*w(ixB^S,rho_)
-      w(ixB^S,e_) = pth(ixB^S)/(rhd_gamma-1.d0) + half*w(ixB^S,rho_)*v0**2
-      w(ixB^S,r_e) = const_rad_a*(temp(ixB^S)*unit_temperature)**4.d0/unit_pressure
+    call hd_get_pthermal(w,x,ixI^L,ixO^L,pth)
+    call hd_get_trad(w,x,ixI^L,ixO^L,Trad)
+    call hd_get_temperature_from_etot(w,x,ixI^L,ixO^L,Tgas)
+    w(ixO^S,Tgas_)=Tgas(ixO^S)
+    w(ixO^S,Trad_)=Trad(ixO^S)
+    w(ixO^S,pres_)=pth(ixO^S)
+    w(ixO^S,vel_)=w(ixO^S,mom(1))/w(ixO^S,rho_)
+    ! output the AMR level (assuming uniform grid blocks)
+    w(ixO^S,amr_)=dlog(((xprobmax1-xprobmin1)/domain_nx1)/dxlevel(1))/dlog(2.0d0)+1.0d0
 
-    case default
-      call mpistop('boundary not known')
-    end select
-  end subroutine boundary_conditions
+  end subroutine set_output_vars
 
-
-  subroutine mg_boundary_conditions(iB)
-
-    use mod_global_parameters
-    use mod_multigrid_coupling
-
-    integer, intent(in)             :: iB
-
-    select case (iB)
-    case (1)
-        mg%bc(iB, mg_iphi)%bc_type = mg_bc_dirichlet
-        mg%bc(iB, mg_iphi)%bc_value = const_rad_a*(T0*unit_temperature)**4.d0/unit_pressure
-    case (2)
-        mg%bc(iB, mg_iphi)%bc_type = mg_bc_dirichlet
-        mg%bc(iB, mg_iphi)%bc_value = const_rad_a*(T0*unit_temperature)**4.d0/unit_pressure
-
-      case default
-        print *, "Not a standard: ", typeboundary(r_e, iB)
-        error stop "Set special bound for this Boundary "
-    end select
-  end subroutine mg_boundary_conditions
 
 end module mod_usr

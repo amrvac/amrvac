@@ -1,5 +1,6 @@
 module mod_usr
   use mod_TDfluxrope
+  use mod_eos, only: eos
   use mod_mhd
   implicit none
   double precision :: tcorona, rhocorona, internalrhoratio
@@ -217,13 +218,13 @@ contains
 
     if(mhd_energy) w(ixO^S,p_)=rhocorona*tcorona
 
-    call mhd_to_conserved(ixI^L,ixO^L,w,x)
+    call eos%to_conserved(ixI^L,ixO^L,w,x)
 
   end subroutine initonegrid_usr
 
-  subroutine specialbound_usr(qt,ixI^L,ixO^L,iB,w,x)
+  subroutine specialbound_usr(qdt,qt,ixI^L,ixO^L,iB,w,x)
     integer, intent(in) :: ixI^L, ixO^L, iB
-    double precision, intent(in) :: qt, x(ixI^S,1:ndim)
+    double precision, intent(in) :: qdt,qt, x(ixI^S,1:ndim)
     double precision, intent(inout) :: w(ixI^S,1:nw)
     double precision :: Bf(ixI^S,1:ndir)
     double precision :: pth(ixI^S)
@@ -239,7 +240,7 @@ contains
       ixIMmin3=ixOmin3;ixIMmax3=ixOmax3;
       ixIMmin2=ixOmin2;ixIMmax2=ixOmax2;
       ixIMmin1=ixOmax1+1;ixIMmax1=ixOmax1+1;
-      call mhd_get_pthermal(w,x,ixI^L,ixIM^L,pth)
+      call eos%get_thermal_pressure(w,x,ixI^L,ixIM^L,pth)
       w(ixO^S,:)=0.d0
       do ix1=ixOmax1,ixOmin1,-1
       ! simply copy in the edge values (zero gradient type, all ghost cells layers identical)
@@ -248,13 +249,13 @@ contains
       enddo
       call TD99(ixI^L,ixO^L,x,Bf)
       w(ixO^S,mag(1:ndir))=Bf(ixO^S,1:ndir)
-      call mhd_to_conserved(ixI^L,ixO^L,w,x)
+      call eos%to_conserved(ixI^L,ixO^L,w,x)
     case(2)
       ! max boundary in the 1st dimension
       ixIMmin3=ixOmin3;ixIMmax3=ixOmax3;
       ixIMmin2=ixOmin2;ixIMmax2=ixOmax2;
       ixIMmin1=ixOmin1-1;ixIMmax1=ixOmin1-1;
-      call mhd_get_pthermal(w,x,ixI^L,ixIM^L,pth)
+      call eos%get_thermal_pressure(w,x,ixI^L,ixIM^L,pth)
       w(ixO^S,:)=0.d0
       do ix1=ixOmin1,ixOmax1,+1
         w(ix1,ixOmin2:ixOmax2,ixOmin3:ixOmax3,rho_)= w(ixOmin1-1,ixOmin2:ixOmax2,ixOmin3:ixOmax3,rho_)
@@ -262,13 +263,13 @@ contains
       enddo
       call TD99(ixI^L,ixO^L,x,Bf)
       w(ixO^S,mag(1:ndir))=Bf(ixO^S,1:ndir)
-      call mhd_to_conserved(ixI^L,ixO^L,w,x)
+      call eos%to_conserved(ixI^L,ixO^L,w,x)
     case(3)
       ! min boundary in the 2nd dimension 
       ixIMmin2=ixOmax2+1;ixIMmax2=ixOmax2+1;
       ixIMmin1=ixOmin1;ixIMmax1=ixOmax1;
       ixIMmin3=ixOmin3;ixIMmax3=ixOmax3;
-      call mhd_get_pthermal(w,x,ixI^L,ixIM^L,pth)
+      call eos%get_thermal_pressure(w,x,ixI^L,ixIM^L,pth)
       w(ixO^S,:)=0.d0
       do ix2=ixOmax2,ixOmin2,-1
         w(ixOmin1:ixOmax1,ix2,ixOmin3:ixOmax3,rho_)= w(ixOmin1:ixOmax1,ixOmax2+1,ixOmin3:ixOmax3,rho_)
@@ -276,13 +277,13 @@ contains
       enddo
       call TD99(ixI^L,ixO^L,x,Bf)
       w(ixO^S,mag(1:ndir))=Bf(ixO^S,1:ndir)
-      call mhd_to_conserved(ixI^L,ixO^L,w,x)
+      call eos%to_conserved(ixI^L,ixO^L,w,x)
     case(4)
       ! max boundary in the 2nd dimension
       ixIMmin2=ixOmin2-1;ixIMmax2=ixOmin2-1;
       ixIMmin1=ixOmin1;ixIMmax1=ixOmax1;
       ixIMmin3=ixOmin3;ixIMmax3=ixOmax3;
-      call mhd_get_pthermal(w,x,ixI^L,ixIM^L,pth)
+      call eos%get_thermal_pressure(w,x,ixI^L,ixIM^L,pth)
       w(ixO^S,:)=0.d0
       do ix2=ixOmin2,ixOmax2,+1
         w(ixOmin1:ixOmax1,ix2,ixOmin3:ixOmax3,rho_)= w(ixOmin1:ixOmax1,ixOmin2-1,ixOmin3:ixOmax3,rho_)
@@ -290,13 +291,13 @@ contains
       enddo
       call TD99(ixI^L,ixO^L,x,Bf)
       w(ixO^S,mag(1:ndir))=Bf(ixO^S,1:ndir)
-      call mhd_to_conserved(ixI^L,ixO^L,w,x)
+      call eos%to_conserved(ixI^L,ixO^L,w,x)
     case(5)
       ! min boundary in the 3rd dimension
       ixIMmin3=ixOmax3+1;ixIMmax3=ixOmax3+1;
       ixIMmin2=ixOmin2;ixIMmax2=ixOmax2;
       ixIMmin1=ixOmin1;ixIMmax1=ixOmax1;
-      call mhd_get_pthermal(w,x,ixI^L,ixIM^L,pth)
+      call eos%get_thermal_pressure(w,x,ixI^L,ixIM^L,pth)
       w(ixO^S,:)=0.d0
       do ix3=ixOmax3,ixOmin3,-1
         w(ixOmin1:ixOmax1,ixOmin2:ixOmax2,ix3,p_)  = pth(ixOmin1:ixOmax1,ixOmin2:ixOmax2,ixOmax3+1)
@@ -329,13 +330,13 @@ contains
       enddo
       call TD99(ixI^L,ixO^L,x,Bf)
       w(ixO^S,mag(1:ndir))=Bf(ixO^S,1:ndir)
-      call mhd_to_conserved(ixI^L,ixO^L,w,x)
+      call eos%to_conserved(ixI^L,ixO^L,w,x)
     case(6)
       ! max boundary in the 3rd dimension
       ixIMmin3=ixOmin3-1;ixIMmax3=ixOmin3-1;
       ixIMmin2=ixOmin2;ixIMmax2=ixOmax2;
       ixIMmin1=ixOmin1;ixIMmax1=ixOmax1;
-      call mhd_get_pthermal(w,x,ixI^L,ixIM^L,pth)
+      call eos%get_thermal_pressure(w,x,ixI^L,ixIM^L,pth)
       w(ixO^S,:)=0.d0
       do ix3=ixOmin3,ixOmax3,+1
         w(ixOmin1:ixOmax1,ixOmin2:ixOmax2,ix3,rho_)= w(ixOmin1:ixOmax1,ixOmin2:ixOmax2,ixOmin3-1,rho_)
@@ -343,7 +344,7 @@ contains
       enddo
       call TD99(ixI^L,ixO^L,x,Bf)
       w(ixO^S,mag(1:ndir))=Bf(ixO^S,1:ndir)
-      call mhd_to_conserved(ixI^L,ixO^L,w,x)
+      call eos%to_conserved(ixI^L,ixO^L,w,x)
     end select
 
   end subroutine specialbound_usr
@@ -419,7 +420,7 @@ contains
     
     integer :: idir,jdir,kdir,idirmin
 
-    call mhd_get_pthermal(w,x,ixI^L,ixO^L,pth)
+    call eos%get_thermal_pressure(w,x,ixI^L,ixO^L,pth)
     w(ixO^S,nw+1)=pth(ixO^S)/w(ixO^S,rho_)
 
     call get_current(w,ixI^L,ixO^L,idirmin,current)

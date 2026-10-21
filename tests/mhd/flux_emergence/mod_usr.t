@@ -1,5 +1,6 @@
 module mod_usr
   use mod_mhd
+  use mod_eos, only: eos
   use mod_thermal_emission
   implicit none
   double precision, allocatable :: pbc(:),rbc(:)
@@ -442,7 +443,7 @@ contains
       w(ixO^S,mag(3))=-B0*dcos(kx*x(ixO^S,1))*dexp(-ly*x(ixO^S,2))*dsin(theta)
     endif
 
-    call mhd_to_conserved(ixI^L,ixO^L,w,x)
+    call eos%to_conserved(ixI^L,ixO^L,w,x)
 
   end subroutine initonegrid_usr
 
@@ -580,11 +581,11 @@ contains
   end subroutine emergeB
 
 
-  subroutine specialbound_usr(qt,ixI^L,ixO^L,iB,w,x)
+  subroutine specialbound_usr(qdt,qt,ixI^L,ixO^L,iB,w,x)
     use mod_global_parameters
     ! special boundary types, user defined
     integer, intent(in) :: ixO^L, iB, ixI^L
-    double precision, intent(in) :: qt, x(ixI^S,1:ndim)
+    double precision, intent(in) :: qdt,qt, x(ixI^S,1:ndim)
     double precision, intent(inout) :: w(ixI^S,1:nw)
 
     double precision :: pth(ixI^S),tmp(ixI^S),ggrid(ixI^S),invT(ixI^S)
@@ -664,11 +665,11 @@ contains
         !Pgas=Pbot-B^2/8*pi  Pbot=2.44*10^9 dyn cm^{-2}
         !w(ixOmin1:ixOmax1,ix2,p_)=2.44*10**9/0.31758 -(w(ixOmin1:ixOmax1,ix2,mag(1))**2+w(ixOmin1:ixOmax1,ix2,mag(2))**2+w(ixOmin1:ixOmax1,ix2,mag(3))**2)/2
       enddo
-      call mhd_to_conserved(ixI^L,ixO^L,w,x)
+      call eos%to_conserved(ixI^L,ixO^L,w,x)
     case(4)
       ixOs^L=ixO^L;
       ixOsmin2=ixOmin2-1;ixOsmax2=ixOmin2-1;
-      call mhd_get_pthermal(w,x,ixI^L,ixOs^L,pth)
+      call eos%get_thermal_pressure(w,x,ixI^L,ixOs^L,pth)
       ixOsmin2=ixOmin2-1;ixOsmax2=ixOmax2;
       call getggrav(ggrid,ixI^L,ixOs^L,x)
       !> fill pth, rho ghost layers according to gravity stratification
@@ -721,7 +722,7 @@ contains
                  +4.0d0*w(ixOmin1:ixOmax1,ix2-1,mag(:)))
         enddo
       end if
-      call mhd_to_conserved(ixI^L,ixO^L,w,x)
+      call eos%to_conserved(ixI^L,ixO^L,w,x)
     case default
        call mpistop("Special boundary is not defined for this region")
     end select
@@ -972,7 +973,7 @@ contains
 
     wlocal(ixI^S,1:nw)=w(ixI^S,1:nw)
     ! output temperature
-    call mhd_get_pthermal(wlocal,x,ixI^L,ixI^L,pth)
+    call eos%get_thermal_pressure(wlocal,x,ixI^L,ixI^L,pth)
     Te(ixI^S)=pth(ixI^S)/w(ixI^S,rho_)
     w(ixO^S,nw+1)=Te(ixO^S)
 

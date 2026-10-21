@@ -1,0 +1,7 @@
+ &filelist
+        base_filename  = '_fld_nth_for_diff2'
+ /
+
+ &fld_list
+        nth_for_diff_mg=2
+ /

@@ -1,6 +1,7 @@
 ! Double GEM problem: resistive to Hall MHD
 module mod_usr
   use mod_mhd
+  use mod_eos, only: eos
   implicit none
   double precision :: sheetl, rhorat, BB0, llx, lly, psi0bot, psi0top
 
@@ -118,7 +119,7 @@ contains
 
     w(ixO^S,p_)=half*BB0**2*w(ixO^S,rho_)
     
-    call mhd_to_conserved(ixI^L,ixO^L,w,x)
+    call eos%to_conserved(ixI^L,ixO^L,w,x)
 
   end subroutine initonegrid_usr
 

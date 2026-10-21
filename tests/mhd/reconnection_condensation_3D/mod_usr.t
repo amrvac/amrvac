@@ -1,5 +1,6 @@
 module mod_usr
   use mod_mhd
+  use mod_eos, only: eos
   implicit none
 
   ! initial parameters of system 
@@ -212,7 +213,7 @@ end subroutine usr_params_read
     end if
 
     ! convert primitive variables to conservative variables
-    call mhd_to_conserved(ixI^L,ixO^L,w,x)
+    call eos%to_conserved(ixI^L,ixO^L,w,x)
   end subroutine initonegrid_usr
 
   subroutine specialset_B0(ixI^L,ixO^L,x,wB0)
@@ -270,12 +271,12 @@ end subroutine usr_params_read
     end if
   end subroutine specialset_A0
 
-  subroutine specialbound_usr(qt,ixI^L,ixO^L,iB,w,x)
+  subroutine specialbound_usr(qdt,qt,ixI^L,ixO^L,iB,w,x)
     use mod_global_parameters
     integer, intent(in)             :: ixI^L
     integer, intent(in)             :: ixO^L
     integer, intent(in)             :: iB
-    double precision, intent(in)    :: qt, x(ixI^S,1:ndim)
+    double precision, intent(in) :: qdt,qt, x(ixI^S,1:ndim)
     double precision, intent(inout) :: w(ixI^S,1:nw)
 
     double precision                :: v0, argx(ixI^S), argy(ixI^S), argz(ixI^S)
@@ -463,7 +464,7 @@ end subroutine usr_params_read
       end do
     end select whichboundary
   
-    call mhd_to_conserved(ixI^L,ixO^L,w,x)
+    call eos%to_conserved(ixI^L,ixO^L,w,x)
 
   end subroutine specialbound_usr
 
@@ -591,7 +592,7 @@ end subroutine usr_params_read
       end if ylvlif
     end if yif
 
-    call mhd_get_pthermal(w,x,ixI^L,ixO^L,pth)
+    call eos%get_thermal_pressure(w,x,ixI^L,ixO^L,pth)
     temp(ixI^S)=pth(ixI^S)/w(ixI^S,rho_)
     tempif: if (any(temp(ixO^S)<=T_threshold_refine_norm)) then
         refine    =  1
@@ -804,7 +805,7 @@ end subroutine usr_params_read
     w(ixO^S,nw+5)=pgrad2(ixO^S)
 
     ! output temperature
-    call mhd_get_pthermal(w,x,ixI^L,ixO^L,pth)
+    call eos%get_thermal_pressure(w,x,ixI^L,ixO^L,pth)
     w(ixO^S,nw+6)=pth(ixO^S)/w(ixO^S,rho_)
 
     call getbQ(bQgrid,ixI^L,ixO^L,global_time,w,x)
@@ -889,7 +890,7 @@ end subroutine usr_params_read
 
 
     !---------------- Temperature -----------------!
-    call mhd_get_pthermal(w,x,ixI^L,ixO^L,pth)
+    call eos%get_thermal_pressure(w,x,ixI^L,ixO^L,pth)
     w(ixO^S,Temp_)=pth(ixO^S)/w(ixO^S,rho_)
 
 

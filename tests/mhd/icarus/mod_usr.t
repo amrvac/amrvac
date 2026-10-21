@@ -1,11 +1,13 @@
 module mod_usr
   use mod_mhd
+  use mod_eos, only: eos
   use mod_lookup_table
   use mod_bc_data
   !SI units, constants
   use mod_constants, only: mp_SI, kB_SI, miu0_SI
   use, intrinsic :: ieee_arithmetic
   use mod_datacube
+  use mod_particles
   implicit none
 
   character(len=20)                              :: printsettingformat
@@ -59,6 +61,8 @@ module mod_usr
   integer             :: cme_exists
       public :: bc_data_get_3d
 
+
+
 contains
 
   subroutine usr_params_read(files)
@@ -104,6 +108,7 @@ contains
     use mod_global_parameters
     use mod_usr_methods
 
+
     call usr_params_read(par_files)
     usr_set_parameters  => initglobaldata_usr
     usr_init_one_grid   => initonegrid_usr
@@ -114,16 +119,23 @@ contains
     usr_source          => specialsource
     usr_create_particles => generate_particles
     usr_particle_position => move_particle
+  
+
 
     call set_coordinate_system('spherical_3D')
+
+
     call mhd_activate()
+
+   
+
 
 
     !  Note: mhd_activate sets the physical units used by MPI-AMRVAC as governed
     ! in subroutine mhd_phys_init (in mod_mhd_phys.t) which in turn calls
     ! subroutine mhd_physical_units (also in mod_mhd_phys.t)
     !  There, the parameters SI_unit, eq_state_units, mhd_partial_ionization enter
-    !  Sometime we use He_abundance, H_ion_fr, He_ion_fr, He_ion_fr2
+    !  Sometime we use eos%He_abundance, H_ion_fr, He_ion_fr, He_ion_fr2
     !  Moreover, we use 3 out of
     !      unit_density, unit_numberdensity, unit_length, unit_time, unit_velocity,
     !      unit_pressure, unit_magneticfield, unit_temperature,
@@ -132,14 +144,13 @@ contains
     printsettingformat='(1x,A50,ES15.7)'
     if(mype==0) then
       write(*,*)'----------------PARAMETERS--   ----------------------'
-      write(*,printsettingformat) "mhd_gamma ",mhd_gamma
+      write(*,printsettingformat) "eos%gamma ",eos%gamma
       write(*,printsettingformat) "mhd_eta ",mhd_eta
       write(*,*)'----------------BEGIN UNITS  ------------------------'
       write(*,*)'----------------UNIT CONTROLS------------------------'
       write(*,*) "SI_unit",SI_unit
-      write(*,*) "eq_state_units",eq_state_units
-      write(*,*) "mhd_partial_ionization",mhd_partial_ionization
-      write(*,printsettingformat) "He_abundance",He_abundance
+      write(*,*) "eos_type",eos%eos_type
+      write(*,printsettingformat) "eos%He_abundance",eos%He_abundance
       write(*,printsettingformat) "H_ion_fr",H_ion_fr
       write(*,printsettingformat) "He_ion_fr",He_ion_fr
       write(*,printsettingformat) "He_ion_fr2",He_ion_fr2
@@ -268,7 +279,9 @@ contains
 
     end if
 
-    mhd_gamma= 3.0d0/2.0d0
+    !> gamma is set in the parfile (&eos_list gamma=1.5d0), read once at
+    !> eos_init so the derived gamma constants stay consistent. Do not set
+    !> eos%gamma from user code.
     call set_units(Lunit_in, Tunit_in, Rhounit_in, Vunit_in, Bunit_in, Eunit_in, Punit_in)
 
     w_convert_factor(rho_) = Rhounit_in ! in km/m^3
@@ -281,6 +294,8 @@ contains
     w_convert_factor(mag(3)) = w_convert_factor(mag(1))
 
   end subroutine initglobaldata_usr
+
+
 
   subroutine generate_particles(n_particles, x, v, q, m, follow)
     use mod_particles
@@ -490,9 +505,9 @@ contains
         p    = p2d(ix2, ix3)   * (r_boundary / r)**2
         br   = br2d(ix2, ix3)  * (r_boundary / r)**2
         
-        !u_phi_corot = -omega_frame * r * sin_theta ! if  radial flow as inner BC in the inertial frame
+        u_phi_corot = -omega_frame * r * sin_theta ! if  radial flow as inner BC in the inertial frame
         
-        u_phi_corot = -omega_frame * (r - r_boundary) * sin_theta ! if radial flow as inner BC in the corotating frame
+        !u_phi_corot = -omega_frame * (r - r_boundary) * sin_theta ! if radial flow as inner BC in the corotating frame
         bphi = 0.d0                                         ! (u_phi_corot / ur) * br (creates divB)
 
 
@@ -512,7 +527,7 @@ contains
   end do
 
     !Convert to conserved values
-    call mhd_to_conserved(ixG^L,ix^L,w,x)
+    call eos%to_conserved(ixG^L,ix^L,w,x)
 
     if(mhd_n_tracer ==  1) then
        w(ix^S, tracer(1)) = 0.0d0
@@ -530,10 +545,13 @@ contains
     double precision :: divb(ixI^S), divmom(ixI^S)
     double precision :: v(ixI^S,ndir), divV(ixI^S), momentum(ixI^S, ndir)
     integer :: i
+    double precision :: r_boundary
+    double precision ::  r(ixO^S), theta(ixO^S), sin_theta(ixO^S)
 
     ! output divB1
     call get_divb(w,ixI^L,ixO^L,divb)
     w(ixO^S,nw+1)=divb(ixO^S)
+   
 
     do i=1,ndir
       v(ixI^S,i)=w(ixI^S,mom(i))/w(ixI^S,rho_)
@@ -549,6 +567,10 @@ contains
     call divvector(momentum,ixI^L,ixO^L,divmom)
     w(ixO^S,nw+3)=divmom(ixO^S)
 
+
+   ! w(ixO^S,nw+4) = (v(ixO^S,3) + &
+   ! omega_frame*(r)* sin_theta)*unit_velocity*1d-3 ! the unit in km/s
+
   end subroutine specialvar_output
 
   subroutine specialvarnames_output(varnames)
@@ -556,6 +578,9 @@ contains
 
     varnames='divB divV div_mom'
   end subroutine specialvarnames_output
+
+
+  
 
   subroutine specialsource(qdt,ixI^L,ixO^L,iw^LIM,qtC,wCT,qt,w,x)
     use mod_global_parameters
@@ -615,8 +640,7 @@ contains
     ! default: coarsen
       refine  = -1
       coarsen = 1
-
-      ! common precomputes used by several modes
+        ! common precomputes used by several modes
       if (num_cmes > 0) then
         before_cme = (cme_index(1,1) - magnetogram_index(1))/60.0d0
       else
@@ -678,12 +702,10 @@ contains
         end do
 
       case (AMR_LONWINDOW)
-        ! refine if any cell is within fixed window around φ0 (wrap-safe)
-        block
-          if (any( abs( modulo((x(ixI^S,3)-phi0)+dpi, 2.d0*dpi)-dpi ) <= halfw )) then
-            refine=1; coarsen=-1
-          end if
-        end block
+        ! refine if any cell is within fixed window around phi0 (wrap-safe)
+        if (any( abs( modulo((x(ixI^S,3)-phi0)+dpi, 2.d0*dpi)-dpi ) <= halfw )) then
+          refine=1; coarsen=-1
+        end if
 
       case (AMR_TRACING)
 
@@ -738,10 +760,10 @@ contains
     end if
   end subroutine mask_cap
 
-  subroutine specialbound_usr(qt,ixI^L,ixO^L,iB,w,x)
+  subroutine specialbound_usr(qdt,qt,ixI^L,ixO^L,iB,w,x)
     use mod_global_parameters
     integer, intent(in)             :: ixI^L, ixO^L, iB
-    double precision, intent(in)    :: qt, x(ixI^S,1:ndim)
+    double precision, intent(in) :: qdt,qt, x(ixI^S,1:ndim)
     double precision, intent(inout) :: w(ixI^S,1:nw)
     integer             :: ix3,ix2
     double precision    :: vr_bc, vt_bc, vp_bc, br_bc, bt_bc, bp_bc, md_bc,rho_bc, temp_bc, p_bc, theta, phi
@@ -768,7 +790,7 @@ contains
 ! Should we want a radial velocity in the inertial frame, we need to set v3 = -omega_frame * r  and B3 = -omega_frame * r * sin\theta / v1
 ! we cannot use asymm BC for v3 and B3 in the par file, since that will kill any component in the corot-frame
       
-      call mhd_to_primitive(ixI^L,ixO^L,w,x)
+      call eos%to_primitive(ixI^L,ixO^L,w,x)
       do ix3 = ixOmin3, ixOmax3
           do ix2 = ixOmin2,ixOmax2
             ! bc_data_set() has already filled ghost cells; keep its value at the
@@ -782,12 +804,15 @@ contains
               r_g = x(i, ix2, ix3, 1)
               w(i,ix2,ix3,mag(1)) = br_bc  * (r_ref / r_g)**2
               w(i,ix2,ix3,rho_)   = rho_bc * (r_ref / r_g)**2
+              w(i,ix2,ix3,mom(3)) = -omega_frame * (r_g)*sin(x(i, ix2, ix3, 2))
+              w(i,ix2,ix3,mag(3)) = -w(i,ix2,ix3,mag(1))*omega_frame * (r_g)&
+              *sin(x(i, ix2, ix3, 2))/w(i,ix2,ix3,mom(1))
 
               ! (A) isothermal:
               ! w(i,ix2,ix3,p_) = p_bc * ( w(i,ix2,ix3,rho_) / rho_bc )
 
               ! (B) polytropic:
-              w(i,ix2,ix3,p_)  =  p_bc * ( w(i,ix2,ix3,rho_) / rho_bc )**mhd_gamma
+              w(i,ix2,ix3,p_)  =  p_bc * ( w(i,ix2,ix3,rho_) / rho_bc )**eos%gamma
 
             end do
 
@@ -880,7 +905,7 @@ contains
         end do
 
         ! convert back to conserved values
-        call mhd_to_conserved(ixI^L, ixO^L, w, x)
+        call eos%to_conserved(ixI^L, ixO^L, w, x)
     end select
   end subroutine specialbound_usr
 

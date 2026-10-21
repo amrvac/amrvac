@@ -157,6 +157,8 @@ which then forces you typically to do the conversion to cell center cartesian
 grid coordinates and vector variables in your visualization session. By
 default (i.e. `nocartesian=F`), the convert module does the conversion from
 the orthogonal to locally cartesian coordinates and vector components for you.
+VTK output then uses general quadrilateral or hexahedral cells, as required
+for the transformed grid geometry.
 You can overrule this default behavior by setting `nocartesian=T`. (note:
 for tecplot format, the coordinate labels are then corrected in the converted
 file as well).
@@ -364,11 +366,23 @@ without changing time, set `reset_it=T`.
     fix_small_values= F | T
     trace_small_values= F | T
     small_values_fix_iw= LOGICAL, LOGICAL, LOGICAL, ...
+    ghostcell_comm_batched= F | T
+    ghostcell_comm_batch_size= INTEGER
 
     typegrad = 'central' | 'limited'
     typediv = 'central' | 'limited'
     typecurl = 'central' | 'Gaussbased' | 'Stokesbased'
     /
+
+### Ghost-cell communication batching {#par_ghostcell_comm}
+
+The `ghostcell_comm_batched` switch limits the number of outstanding ghost-cell
+send requests by waiting after every `ghostcell_comm_batch_size` sends. The
+default is `ghostcell_comm_batched=F`; set it to `T` to enable batching. In
+large-scale MHD tests, the original
+all-at-once ghost-cell exchange could stall during spherical u512
+initialization, while u256 5-step tests showed less than 0.1% total runtime
+difference with batching enabled. The default batch size is 64.
 
 ### time_stepper, time_integrator, flux_scheme {#par_time_integrator}
 
@@ -748,7 +762,9 @@ The computational domain is set by specifying the minimal and maximal
 coordinate value per direction in the _xprob^L_ settings. When cylindrical or
 spherical coordinates are selected, the angle ranges (for phi in
 the cylindrical case, and for both theta and phi in the spherical case) are to
-be given in 2 pi units.
+be given in 2 pi rad units. After initialization, e.g., inside the user module 
+_mod_usr.t_, the angle range parameters _xprobmin^D_ and _xprobmax^D_ are
+changed to be in rad units.
 
 The base grid resolution (i.e. on the coarsest level 1) is best specified by
 providing _domain_nx^D_, the number of grid cells per dimension, to cover the full
@@ -929,6 +945,8 @@ sharp discontinuities. It is normally inactive with a default value -1.
       hd_adiab= DOUBLE
       hd_dust= F | T
       hd_thermal_conduction= F | T
+      hd_hyperbolic_thermal_conduction= F | T (1D only)
+      hd_htc_sat= F | T
       hd_radiative_cooling= F | T
       hd_gravity= F | T
       hd_viscosity= F | T
@@ -939,12 +957,13 @@ sharp discontinuities. It is normally inactive with a default value -1.
 
 ## ffHD list {#par_ffhdlist}
 
-    &hd_list
+    &ffhd_list
       ffhd_energy= T | F
       ffhd_gamma= DOUBLE 
       ffhd_adiab= DOUBLE
       ffhd_thermal_conduction= F | T
-      ffhd_hyperbolic_thermal_conduction= F | T
+      ffhd_hyperbolic_tc= F | T
+      ffhd_hyperbolic_tc_sat= F | T
       ffhd_radiative_cooling= F | T
       ffhd_gravity= F | T
       ffhd_viscosity= F | T
@@ -984,8 +1003,26 @@ sharp discontinuities. It is normally inactive with a default value -1.
      mhd_trac_type= INTEGER from 1 to 6
      mhd_trac_mask= bigdouble
      mhd_trac_finegrid= INTEGER
-     mhd_hyperbolic_thermal_conduction= F | T
-     mhd_htc_sat = F | T
+     mhd_hyperbolic_tc= F | T
+     mhd_hyperbolic_tc_sat= F | T
+     mhd_hyperbolic_tc_kappa= DOUBLE (default 0: Spitzer; positive: constant in code units)
+     mhd_hyperbolic_tc_use_perp= F | T (2D/3D only)
+     mhd_hyperbolic_tc_perp_mode= 'off' | 'fixed_reference' | 'weak_field_isotropization' | 'electron_magnetization'
+     mhd_hyperbolic_tc_kappa_perp_factor= DOUBLE (default 0: automatic reference ratio)
+     mhd_hyperbolic_tc_Bmin= DOUBLE (default 0: automatic; positive: code units)
+     mhd_hyperbolic_tc_coulomb_log= DOUBLE (default 20)
+     mhd_uawsom= F | T (default F)
+     mhd_uawsom_reflection= F | T (default F)
+     mhd_uawsom_reflection_mode= 'one_dimensional_gradient' | 'cartesian_gradient_vorticity' (default 'one_dimensional_gradient')
+     mhd_uawsom_kink_reflection= F | T (default F)
+     mhd_uawsom_sigma= non-negative DOUBLE (default 0; one_dimensional_gradient only)
+     mhd_uawsom_height_dim= INTEGER from 1 to ndim (default ndim)
+     mhd_uawsom_zeta0= DOUBLE greater than 1 (default 5)
+     mhd_uawsom_filling_factor= DOUBLE between 0 and 1 (default 0.1)
+     mhd_uawsom_zeta_scale= positive DOUBLE (physical length; default -1 selects automatic value)
+     mhd_uawsom_thread_radius0= positive DOUBLE (physical length; default -1 selects automatic value)
+     mhd_uawsom_Bref= positive DOUBLE (physical magnetic field; default -1 selects automatic value)
+     mhd_uawsom_alfven_corr_length0= positive DOUBLE (physical length; default -1 selects automatic value)
      typedivbfix= 'linde'|'ct'|'glm'|'powel'|'lindejanhunen'|'lindepowel'|'lindeglm'|'multigrid'|'none'
      type_ct='uct_contact'|'uct_hll'|'average'
      source_split_divb= F | T
@@ -1003,6 +1040,41 @@ sharp discontinuities. It is normally inactive with a default value -1.
      He_abundance= DOUBLE from 0 to 1
      SI_unit= F | T
     /
+
+The optional UAWSoM equations are disabled by default.  Length and magnetic
+field inputs use physical units (cm and G in cgs mode; m and T in SI mode) and
+are converted once during initialization.  The default closure profile uses
+the selected Cartesian direction and measures height from that direction's
+lower problem boundary.  A problem can instead assign
+`usr_uawsom_coefficients` to return local `zeta`, thread radius, and Alfvén
+correlation length in code units.  The callback also receives a `primitive`
+flag so that state-dependent closures can recover thermodynamic quantities
+from the correct representation.
+
+For the four physical scales, the `-1` sentinel selects cgs defaults of
+`3.4805e11 cm`, `1e7 cm`, `10 G`, and `1.5e9 cm`, respectively.  In SI mode
+the equivalent inputs are `3.4805e9 m`, `1e5 m`, `1e-3 T`, and `1.5e7 m`.
+
+The initial, boundary, and output state can access the public indices
+`wAplus_`, `wAminus_`, `wkplus_`, and `wkminus_`.  The `plus` variables
+propagate against the magnetic field and the `minus` variables along it.
+`mhd_uawsom_reflection_mode='one_dimensional_gradient'` preserves the original one-dimensional
+gradient source and is the only path controlled by `mhd_uawsom_sigma`.
+`cartesian_gradient_vorticity` computes the Alfvén directional speed gradient and
+field-aligned velocity vorticity from the total field; its limiter is
+`min(R_imb,A,max(Gamma_plus,Gamma_minus))` and is independent of sigma.  Kink
+reflection uses only the directional kink-speed gradient, with an analogous
+sigma-independent limiter.  Both multidimensional paths apply the 4:1
+imbalance factor, a damping-rate upper bound, and a donor positivity cap.
+Initial primitive states must set all four wave energies before calling the
+normal MHD/EOS conserved conversion.
+
+The first implementation supports uniform Cartesian 1D/2D/3D total-energy MHD
+with the fixed-ionization EOS, including B0 splitting.  It rejects
+semirelativistic MHD, equilibrium density/pressure splitting, FLD, no-energy,
+internal-energy, and hydrodynamic-energy formulations at startup.
+It does not implement cylindrical, polar, or spherical coordinates, nonuniform
+grids, `source_geom`/`source_geom_split`, or `angmomfix` combinations.
 
 ### Magnetic field divergence fixes {#par_divbfix}
 
@@ -1112,13 +1184,18 @@ which has better conservation than solving internal energy.
 
 ### Hyperbolic thermal conduction {#par_HTC}
 
-In classical plasma theory, Spitzer-type thermal conduction is parabolic in nature, which imposes a severe timestep restriction when solved explicitly. Even with acceleration techniques such as super time stepping (already implemented in AMRVAC) or multigrid solvers, the conduction step remains computationally more expensive than the MHD (hyperbolic) part, and is often the bottleneck in the overall performance.
+Set `mhd_hyperbolic_tc=T` in `&mhd_list` and initialize `qpar_` in `mod_usr.t`.
+The default coefficient selects Spitzer conduction; a positive
+`mhd_hyperbolic_tc_kappa` selects constant conductivity in code units.
+Use `mhd_hyperbolic_tc_sat=T` for saturation.
 
-An improved approach is to treat the conduction as hyperbolic by introducing a finite signal propagation speed (comparable to the global maximum velocity). In this formulation, the conduction no longer constrains the MHD timestep. Estimates of conduction timescales show that this approximation is well justified in the solar corona, but less accurate in the chromosphere and photosphere. However, since thermal conduction is not the dominant energy transport mechanism in those lower layers, the approximation is still acceptable.
+For perpendicular conduction in 2D/3D, also set
+`mhd_hyperbolic_tc_use_perp=T`, choose `mhd_hyperbolic_tc_perp_mode`, and
+initialize `qperp_`. See [Thermal conduction](thermal_conduction.md) for
+configuration examples, equations, and the [parameter table](@ref tc-mhd-parameters).
 
-The specific form of hyperbolic thermal conduction adopted in AMRVAC is described in Zhou et al. 2025, ApJ, 978, 72. In the current implementation, the conductivity coefficient is fixed and constant, and only the field-aligned component is included. Variable coefficients and cross-field conduction are not yet supported. To activate this option, set mhd_hyperbolic_thermal_conduction = T and initialize the heat flux q_ to be zero  in mod_usr.t. The boundary condition for q_ is automatically set to be the same as the one of density rho. Also, when mhd_hyperbolic_thermal_conduction is enabled, the parabolic conduction option mhd_thermal_conduction is automatically set to F to be disabled.
-
-During energetic events such as solar flares, conduction becomes saturated and its efficiency decreases. For this regime, one can enable the saturated conduction option by setting mhd_htc_sat = T.
+FFHD and HD have different switches and dimensional support; see the
+[module support table](@ref tc-module-support).
 
 ### Solve semirelativistic MHD to tackle extreme Alfven speed{#par_semirelati}
 
@@ -1181,8 +1258,15 @@ changing. When 'big_image=T', then the synthesized EUV/SXR image will have a fix
 not change when changing the LOS, and the whole simulation box will always be convered inside the domain. The 
 parameter 'x_origin' is also added for making such kind of movie.
 
-Two types of resolution are supported: data resolution and instrument resolution. In data resolution, 
-the size of the image pixel is the same as the size of the finest cell. In instrument resolution, 
+Two types of resolution are supported: data resolution and instrument resolution. In data resolution,
+`dat_resolution_mode` selects how a single uniform image-pixel size is derived from an AMR or stretched
+mesh. The default `nominal` mode uses the finest-level uniform-equivalent spacing implied by the domain
+size, base-grid resolution, and maximum AMR level; it does not depend on which finest-level cells are
+actually present and ignores local stretching. The optional `minimum` mode scans the active leaf cells
+and uses the globally smallest physical cell edge, including Cartesian stretching and the spherical
+metric factors `dr`, `r*dtheta`, and `r*sin(theta)*dphi`. The latter preserves the smallest available
+mesh scale but can produce very large uniform images when fine cells occupy only a small part of the
+domain. In instrument resolution,
 the size of a pixel is the same as that in relevant observation data (such as SDO and RHESSI). 
 The point spread function (PSF, instrument effect) has been included for instrument resolution. 
 The spatial resolution or EUV image/SXR image/EUV spectra is controlled by the parameter 'dat_resolution'.
@@ -1194,8 +1278,71 @@ For example, we can double the spatial resolution by setting 'instrument_resolut
 The default unit of length for the outputed image is arcsec and the related variables in .par file, 
 but user can set 'activate_unit_arcsec' to F to use the simulation length unit.
 
-Only Cartesian and spherical coordinate system are supported currently. In spherical coordinate,
-region below 'R_opt_thick' (in solar radius, default value is 1) is assumed as not transparent.
+Only Cartesian and spherical coordinate systems are supported currently. In spherical coordinate,
+the region below 'R_opt_thick' (in solar radius, default value is 1) is treated as opaque for the
+legacy EUV/SXR occultation check. Spherical EUV/SXR and white-light synthesis use the historical
+instrument-resolution projection: cells are sub-sampled in spherical coordinates, mapped to the
+image plane, and distributed with the corresponding instrument PSF. A native spherical
+ray/mesh-intersection path is available with `ray_method='spherical'` for spherical
+EUV images at instrument resolution or dat resolution. It constructs ordered ray segments from
+`r/theta/phi` cell faces and integrates either thin emissivity or front-to-back thick EUV transfer
+along each LOS. This first native spherical version does not support spherical SXR, spherical
+white light, radio/pseudo-current spherical products, polar-axis-crossing domains, or phi-wrapping
+domains.
+
+The radiation-transfer extension is controlled by 'radiation_transfer', 'ray_method', and
+'emission_model'. The default values are 'thin', 'auto', and 'auto'. With
+`ray_method='auto'`, Cartesian dat-resolution EUV uses the native Cartesian ray
+tracer, spherical EUV uses the native spherical ray/mesh intersection, and
+products without a native path fall back to `legacy`.
+
+Recommended use:
+
+- Use `ray_method='legacy'` to force the historical optically thin projection
+  path for EUV/SXR and spherical white-light products.
+- Use `dat_resolution=.true.` and `radiation_transfer='thick'` for Cartesian x/y/z-aligned
+  optically thick EUV diagnostics.
+- Use `ray_method='cart'` for Cartesian arbitrary-angle EUV/radio/pseudo-current images.
+  In thick mode, `cart` routes ray segments by image-pixel batch to the owning MPI ranks,
+  sorts same-pixel segments along the LOS, and then applies the ordered transfer.
+- Use `ray_method='spherical'` for spherical EUV images when native
+  ray/mesh intersections are preferred over legacy spherical deposition. It
+  supports arbitrary viewing angles for both instrument-resolution and
+  dat-resolution EUV images, including stretched spherical grids. Thick mode
+  uses the same H I / He I / He II opacity model as Cartesian thick EUV and can
+  output `tau` and `absorption_fraction`. Dat-resolution `spherical`
+  outputs AIA intensity only, plus those optional thick diagnostics; Doppler
+  and `instrument_postprocess` are not yet defined for this path.
+- The older names `ray_method='cart_dda'` and
+  `ray_method='sph_intersection'` are accepted as compatibility aliases for
+  `cart` and `spherical`.
+- Use `instrument_postprocess=.true.` after Cartesian native dat-resolution products when an
+  observational image grid is desired. EUV AIA images use the existing AIA-style Gaussian PSF.
+  Radio free-free images use an independent Gaussian beam controlled by `radio_beam_fwhm` and
+  `radio_beam_pixel_size`, both in arcsec; if `radio_beam_pixel_size` is non-positive, it defaults
+  to one third of the beam FWHM.
+- Use `radsyn_pixel_batch` to cap the number of image pixels processed in one native Cartesian/spherical
+  thick-transfer segment batch. The default is 128. Set `radsyn_verbose=.true.` to print ray tests,
+  segment counts, MPI volume, and sort-work counters for profiling.
+- Use `radsyn_segment_batch_factor` and `radsyn_segment_comm_factor` to tune native thick-transfer
+  segment batching. By default `radsyn_segment_batch_factor=256`, which allows up to
+  `256*radsyn_pixel_batch` ray segments in one image-pixel batch. Set
+  `radsyn_segment_batch_factor<=0` to choose the per-batch segment limit from
+  `radsyn_segment_memory_mb` instead. The default memory budget is 8 MiB per MPI rank, which is
+  conservative for the temporary segment, communication, and sorting arrays. Increasing
+  `radsyn_segment_comm_factor` allows more ray segments per segmented MPI all-to-all round; its
+  default is 16.
+- Use VTU output for non-uniform dat-resolution image grids. VTI is allowed
+  only when the emitted image-plane spacing is uniform.
+
+The first optically thick EUV model uses H I / He I / He II photoionization opacity and reduces to
+the thin result when opacity is zero. The flags 'output_tau' and 'output_absorption_fraction' add
+diagnostic maps for thick EUV and radio products. The model 'radio_ff' reuses the EUV image convert
+types for thermal free-free radio synthesis. It uses the observing frequency 'radio_frequency' in
+Hz and outputs brightness temperature as 'radio_brightness_temperature' or
+'radio_brightness_temperature_thick'. The model 'pseudo_current' reuses the EUV image convert types
+as a magnetic-structure visualization mode: it integrates |curl B|^2 along the LOS with optically
+thin transfer and labels the output variable 'pseudo_current'.
 
     &emissionlist
       filename_euv= CHARACTER
@@ -1209,6 +1356,18 @@ region below 'R_opt_thick' (in solar radius, default value is 1) is assumed as n
       emin_sxr= INTEGER
       emax_sxr= INTEGER
       filename_spectrum= CHARACTER
+      radiation_transfer= 'thin' | 'thick'
+      ray_method= 'auto' | 'legacy' | 'cart' | 'spherical'
+      emission_model= 'auto' | 'euv_aia' | 'white_light' | 'radio_ff' | 'pseudo_current'
+      instrument_postprocess=LOGICAL
+      radio_frequency= DOUBLE
+      radio_beam_fwhm= DOUBLE
+      radio_beam_pixel_size= DOUBLE
+      radsyn_pixel_batch= INTEGER
+      radsyn_segment_batch_factor= INTEGER
+      radsyn_segment_memory_mb= DOUBLE
+      radsyn_segment_comm_factor= INTEGER
+      radsyn_verbose= LOGICAL
       spectrum_wl= 1354 | 263 | 264| 192 | 255
       spectrum_window_min= DOUBLE
       spectrum_window_max= DOUBLE
@@ -1219,6 +1378,9 @@ region below 'R_opt_thick' (in solar radius, default value is 1) is assumed as n
       R_opt_thick= DOUBLE
       activate_unit_arcsec= LOGICAL
       dat_resolution=LOGICAL
+      dat_resolution_mode= 'nominal' | 'minimum'
+      output_tau=LOGICAL
+      output_absorption_fraction=LOGICAL
       instrument_resolution_factor=INTEGER
     /
 
@@ -1228,8 +1390,7 @@ region below 'R_opt_thick' (in solar radius, default value is 1) is assumed as n
 set 
 ```
 
-        has_equi_pe0 = .true.
-        has_equi_rho0 = .true.
+        has_equi_rho_and_p = .true.
 
 ```
 to true in ***mhd\_list***
@@ -1261,4 +1422,3 @@ and implement usr\_set\_equi\_vars in mod\_ust.t file
   end subroutine special_set_equi_vars
 
 ```
-

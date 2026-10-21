@@ -1,5 +1,6 @@
 module mod_usr
   use mod_mhd
+  use mod_eos, only: eos
   implicit none
   double precision :: miu,k,zc
 
@@ -52,14 +53,14 @@ contains
       w(ixO^S,mag(:))=Bloc(ixO^S,:)
     end if
     if(mhd_glm) w(ixO^S,psi_)=0.d0
-    call mhd_to_conserved(ixI^L,ixO^L,w,x)
+    call eos%to_conserved(ixI^L,ixO^L,w,x)
 
   end subroutine initonegrid_usr
 
-  subroutine specialbound_usr(qt,ixI^L,ixO^L,iB,w,x)
+  subroutine specialbound_usr(qdt,qt,ixI^L,ixO^L,iB,w,x)
     ! special boundary types, user defined
     integer, intent(in) :: ixO^L, iB, ixI^L
-    double precision, intent(in) :: qt, x(ixI^S,1:ndim)
+    double precision, intent(in) :: qdt, qt, x(ixI^S,1:ndim)
     double precision, intent(inout) :: w(ixI^S,1:nw)
 
     double precision :: pth(ixI^S),Bloc(ixI^S,1:ndir)
@@ -75,7 +76,7 @@ contains
       end if
       ixA^L=ixO^L;
       ixAmin1=ixOmax1+1;ixAmax1=ixOmax1+1;
-      call mhd_get_pthermal(w,x,ixI^L,ixA^L,pth)
+      call eos%get_thermal_pressure(w,x,ixI^L,ixA^L,pth)
       do ix1=ixOmin1,ixOmax1
         w(ix1^%1ixO^S,rho_)=w(ixOmax1+1^%1ixO^S,rho_)
         w(ix1^%1ixO^S,mom(1))=w(ixOmax1+1^%1ixO^S,mom(1))/w(ixOmax1+1^%1ixO^S,rho_)
@@ -83,7 +84,7 @@ contains
         w(ix1^%1ixO^S,mom(3))=w(ixOmax1+1^%1ixO^S,mom(3))/w(ixOmax1+1^%1ixO^S,rho_)
         w(ix1^%1ixO^S,p_)=pth(ixOmax1+1^%1ixO^S)
       enddo
-      call mhd_to_conserved(ixI^L,ixO^L,w,x)
+      call eos%to_conserved(ixI^L,ixO^L,w,x)
     case(2)
       if(B0field) then
         w(ixO^S,mag(:))=0.d0
@@ -93,7 +94,7 @@ contains
       end if
       ixA^L=ixO^L;
       ixAmin1=ixOmin1-1;ixAmax1=ixOmin1-1;
-      call mhd_get_pthermal(w,x,ixI^L,ixA^L,pth)
+      call eos%get_thermal_pressure(w,x,ixI^L,ixA^L,pth)
       do ix1=ixOmin1,ixOmax1
         w(ix1^%1ixO^S,rho_)=w(ixOmin1-1^%1ixO^S,rho_)
         w(ix1^%1ixO^S,mom(1))=w(ixOmin1-1^%1ixO^S,mom(1))/w(ixOmin1-1^%1ixO^S,rho_)
@@ -101,7 +102,7 @@ contains
         w(ix1^%1ixO^S,mom(3))=w(ixOmin1-1^%1ixO^S,mom(3))/w(ixOmin1-1^%1ixO^S,rho_)
         w(ix1^%1ixO^S,p_)=pth(ixOmin1-1^%1ixO^S)
       enddo
-      call mhd_to_conserved(ixI^L,ixO^L,w,x)
+      call eos%to_conserved(ixI^L,ixO^L,w,x)
     case(3)
       if(B0field) then
         w(ixO^S,mag(:))=0.d0
@@ -111,7 +112,7 @@ contains
       end if
       ixA^L=ixO^L;
       ixAmin2=ixOmax2+1;ixAmax2=ixOmax2+1;
-      call mhd_get_pthermal(w,x,ixI^L,ixA^L,pth)
+      call eos%get_thermal_pressure(w,x,ixI^L,ixA^L,pth)
       do ix2=ixOmin2,ixOmax2
         w(ix2^%2ixO^S,rho_)=w(ixOmax2+1^%2ixO^S,rho_)
         w(ix2^%2ixO^S,mom(1))=w(ixOmax2+1^%2ixO^S,mom(1))/w(ixOmax2+1^%2ixO^S,rho_)
@@ -119,7 +120,7 @@ contains
         w(ix2^%2ixO^S,mom(3))=w(ixOmax2+1^%2ixO^S,mom(3))/w(ixOmax2+1^%2ixO^S,rho_)
         w(ix2^%2ixO^S,p_)=pth(ixOmax2+1^%2ixO^S)
       enddo
-      call mhd_to_conserved(ixI^L,ixO^L,w,x)
+      call eos%to_conserved(ixI^L,ixO^L,w,x)
     case(4)
       if(B0field) then
         w(ixO^S,mag(:))=0.d0
@@ -129,7 +130,7 @@ contains
       end if
       ixA^L=ixO^L;
       ixAmin2=ixOmin2-1;ixAmax2=ixOmin2-1;
-      call mhd_get_pthermal(w,x,ixI^L,ixA^L,pth)
+      call eos%get_thermal_pressure(w,x,ixI^L,ixA^L,pth)
       do ix2=ixOmin2,ixOmax2
         w(ix2^%2ixO^S,rho_)=w(ixOmin2-1^%2ixO^S,rho_)
         w(ix2^%2ixO^S,mom(1))=w(ixOmin2-1^%2ixO^S,mom(1))/w(ixOmin2-1^%2ixO^S,rho_)
@@ -137,7 +138,7 @@ contains
         w(ix2^%2ixO^S,mom(3))=w(ixOmin2-1^%2ixO^S,mom(3))/w(ixOmin2-1^%2ixO^S,rho_)
         w(ix2^%2ixO^S,p_)=pth(ixOmin2-1^%2ixO^S)
       enddo
-      call mhd_to_conserved(ixI^L,ixO^L,w,x)
+      call eos%to_conserved(ixI^L,ixO^L,w,x)
     case(5)
       if(B0field) then
         w(ixO^S,mag(:))=0.d0
@@ -147,7 +148,7 @@ contains
       end if
       ixA^L=ixO^L;
       ixAmin3=ixOmax3+1;ixAmax3=ixOmax3+1;
-      call mhd_get_pthermal(w,x,ixI^L,ixA^L,pth)
+      call eos%get_thermal_pressure(w,x,ixI^L,ixA^L,pth)
       do ix3=ixOmin3,ixOmax3
         w(ix3^%3ixO^S,rho_)=w(ixOmax3+1^%3ixO^S,rho_)
         w(ix3^%3ixO^S,mom(1))=w(ixOmax3+1^%3ixO^S,mom(1))/w(ixOmax3+1^%3ixO^S,rho_)
@@ -155,7 +156,7 @@ contains
         w(ix3^%3ixO^S,mom(3))=w(ixOmax3+1^%3ixO^S,mom(3))/w(ixOmax3+1^%3ixO^S,rho_)
         w(ix3^%3ixO^S,p_)=pth(ixOmax3+1^%3ixO^S)
       enddo
-      call mhd_to_conserved(ixI^L,ixO^L,w,x)
+      call eos%to_conserved(ixI^L,ixO^L,w,x)
     case(6)
       if(B0field) then
         w(ixO^S,mag(:))=0.d0
@@ -165,7 +166,7 @@ contains
       end if
       ixA^L=ixO^L;
       ixAmin3=ixOmin3-1;ixAmax3=ixOmin3-1;
-      call mhd_get_pthermal(w,x,ixI^L,ixA^L,pth)
+      call eos%get_thermal_pressure(w,x,ixI^L,ixA^L,pth)
       do ix3=ixOmin3,ixOmax3
         w(ix3^%3ixO^S,rho_)=w(ixOmin3-1^%3ixO^S,rho_)
         w(ix3^%3ixO^S,mom(1))=w(ixOmin3-1^%3ixO^S,mom(1))/w(ixOmin3-1^%3ixO^S,rho_)
@@ -173,7 +174,7 @@ contains
         w(ix3^%3ixO^S,mom(3))=w(ixOmin3-1^%3ixO^S,mom(3))/w(ixOmin3-1^%3ixO^S,rho_)
         w(ix3^%3ixO^S,p_)=pth(ixOmin3-1^%3ixO^S)
       enddo
-      call mhd_to_conserved(ixI^L,ixO^L,w,x)
+      call eos%to_conserved(ixI^L,ixO^L,w,x)
     case default
       call mpistop("Special boundary is not defined for this region")
     end select
@@ -189,7 +190,7 @@ contains
     double precision             :: bvec(ixI^S,1:ndir),qvec(ixI^S,1:ndir)
     integer :: idirmin, idir, jdir, kdir
 
-    call mhd_get_pthermal(w,x,ixI^L,ixO^L,tmp)
+    call eos%get_thermal_pressure(w,x,ixI^L,ixO^L,tmp)
     ! output the temperature p/rho
     w(ixO^S,nw+1)=tmp(ixO^S)/w(ixO^S,rho_)
     ! output the plasma beta p*2/B**2
@@ -416,9 +417,9 @@ contains
       {end do\}
      case(2)
       ! internal energy
-      call mhd_get_pthermal(w,x,ixI^L,ixO^L,tmp)
+      call eos%get_thermal_pressure(w,x,ixI^L,ixO^L,tmp)
       {do ix^DB=ixOmin^DB,ixOmax^DB\}
-         if(patchwi(ix^D))  integral_grid=integral_grid+tmp(ix^D)/(mhd_gamma-1.d0)*dvolume(ix^D)
+         if(patchwi(ix^D))  integral_grid=integral_grid+tmp(ix^D)/(eos%gamma-1.d0)*dvolume(ix^D)
       {end do\}
      case(3)
       ! current strength

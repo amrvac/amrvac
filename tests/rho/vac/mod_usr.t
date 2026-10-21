@@ -156,8 +156,8 @@ contains
     integer :: iw
     double precision :: modes(nw,2), volume
 
-    call get_global_minima(minvals)
-    call get_global_maxima(maxvals)
+    call get_global_minima(minvals,ps)
+    call get_global_maxima(maxvals,ps)
     call get_volume_average(1,modes(:,1),volume)
     call get_volume_average(2,modes(:,2),volume)
 

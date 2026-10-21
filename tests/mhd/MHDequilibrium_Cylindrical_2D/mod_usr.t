@@ -2,6 +2,7 @@
 ! to check e.g. curlvector implementation
 module mod_usr
   use mod_mhd
+  use mod_eos, only: eos
 
   implicit none
 
@@ -97,7 +98,7 @@ contains
 
     w(ix^S,e_)= pjet+0.5d0*(B0**2.0d0-(w(ix^S,mag(2))**2.0d0))
 
-    call mhd_to_conserved(ixG^L,ix^L,w,x)
+    call eos%to_conserved(ixG^L,ix^L,w,x)
 
   end subroutine Jet_init_one_grid
 
@@ -120,7 +121,7 @@ contains
 
     wlocal(ixI^S,1:nw)=w(ixI^S,1:nw)
     ! output temperature
-    call mhd_get_pthermal(wlocal,x,ixI^L,ixO^L,pth)
+    call eos%get_thermal_pressure(wlocal,x,ixI^L,ixO^L,pth)
     w(ixO^S,nw+1)=pth(ixO^S)/w(ixO^S,rho_)
 
     do idir=1,ndir

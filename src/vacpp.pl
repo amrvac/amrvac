@@ -192,6 +192,8 @@ sub definepatterns{
    &patdef('CC'	,$ndir	,'^C'	,'^C'	,'^C'	);
    &patdef('CE' ,$ndir-1,2      ,3              );
    &patdef('CE&',$ndir-1                        );
+   &patdef('CF' ,$ndir-1,1      ,3              );
+   &patdef('CF&',$ndir-1                        );
 
    &patdef('LIM'	,2	,'min'	,'max'	);
    &patdef('LLIM'	,2	,'lo'	,'hi'	);

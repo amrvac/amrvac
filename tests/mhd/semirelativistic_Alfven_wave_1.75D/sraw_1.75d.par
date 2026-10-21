@@ -42,8 +42,11 @@
  &mhd_list
         typedivbfix   =  'none'
         SI_unit       =  .true.
-        He_abundance  =  0d0
-        mhd_gamma=2.d0
         mhd_semirelativistic=.true.
         mhd_reduced_c = 0.9d0
  /
+ &eos_list
+  gamma = 2.d0
+  He_abundance = 0d0
+ /
+

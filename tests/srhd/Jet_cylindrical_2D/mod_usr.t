@@ -5,7 +5,7 @@ module mod_usr
 
   implicit none
 
-  double precision :: rjet,rhob,etarho,rhojet,pb,zetap,pjet,lfacjet,vjet
+  double precision :: rjet,zjet,rhob,etarho,rhojet,pb,zetap,pjet,lfacjet,vjet
   double precision :: Qjet, Mdotjet, p0val, t0val, tcross, vhead
 
 contains
@@ -15,7 +15,7 @@ contains
     character(len=*), intent(in) :: files(:)
     integer                      :: n
 
-    namelist /usr_list/ rjet, rhob, etarho, pb, zetap, lfacjet
+    namelist /usr_list/ rjet, zjet,rhob, etarho, pb, zetap, lfacjet
 
     do n = 1, size(files)
        open(unitpar, file=trim(files(n)), status="old")
@@ -55,6 +55,7 @@ contains
     if(mype==0) then
       write(*,*) "Jet (Seo et al ApJ 2021, 920, 144) setup:"
       write(*,printsettingformat) "dimensionless jet radius ",rjet," input"
+      write(*,printsettingformat) "dimensionless jet length ",zjet," input"
       write(*,printsettingformat) "dimensionless density in medium ",rhob," input"
       write(*,printsettingformat) "density in jet: via  ",etarho," input"
       write(*,printsettingformat) "dimensionless pressure background ",pb," input"
@@ -151,7 +152,7 @@ contains
 
     ! radial velocity vR
     w(ix^S,mom(1))  = 0.0d0
-    where(R(ix^S)<rjet .and. Z(ix^S)<0.0d0)
+    where(R(ix^S)<rjet .and. Z(ix^S)<zjet)
        w(ix^S,rho_) = rhojet
        w(ix^S,p_)   = pjet
        ! beware to fill with four-velocity
@@ -163,7 +164,7 @@ contains
     end where
     if(srhd_n_tracer>0)then
       do itr=1,srhd_n_tracer 
-          where(R(ix^S)<rjet .and. Z(ix^S)<0.0d0)
+          where(R(ix^S)<rjet .and. Z(ix^S)<zjet)
              w(ix^S,tracer(itr))=1.0d0
           elsewhere
              w(ix^S,tracer(itr))=0.0d0
@@ -177,10 +178,10 @@ contains
 
   end subroutine Jet_init_one_grid
 
-  subroutine specialbound_usr(qt,ixI^L,ixO^L,iB,w,x)
+  subroutine specialbound_usr(qdt,qt,ixI^L,ixO^L,iB,w,x)
     ! special boundary types, user defined
     integer, intent(in) :: ixO^L, iB, ixI^L
-    double precision, intent(in) :: qt, x(ixI^S,1:ndim)
+    double precision, intent(in) :: qdt, qt, x(ixI^S,1:ndim)
     double precision, intent(inout) :: w(ixI^S,1:nw)
 
     double precision :: R(ixI^S)
@@ -255,7 +256,7 @@ contains
     R(ix^S)=x(ix^S,1)
     Z(ix^S)=x(ix^S,2)
 
-    if (any((R(ix^S) <= 1.1d0*rjet) .and. (Z(ix^S)<= 0.5d0))) refine=1
+    if (any((R(ix^S) <= 1.1d0*rjet) .and. (Z(ix^S)<= 1.1d0*zjet))) refine=1
 
   end subroutine specialrefine_grid
 

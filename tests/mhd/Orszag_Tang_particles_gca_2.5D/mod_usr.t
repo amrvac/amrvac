@@ -1,5 +1,6 @@
 module mod_usr
   use mod_mhd
+  use mod_eos, only: eos
   implicit none
 
 contains
@@ -40,7 +41,7 @@ contains
     w(ixO^S,mag(2))= b0*sin(4.0d0*dpi*x(ixO^S,1))
     w(ixO^S,mag(3))= 0.d0
 
-    call mhd_to_conserved(ixI^L,ixO^L,w,x)
+    call eos%to_conserved(ixI^L,ixO^L,w,x)
 
     if(first .and. mype==0 )then
       write(*,*)'Doing 2.5D ideal MHD, Orszag Tang problem with tracing particles'

@@ -5,6 +5,7 @@
 
 module mod_usr
   use mod_hd
+  use mod_eos, only: eos
   implicit none
   double precision              :: rho0, p0, A0
 
@@ -93,7 +94,7 @@ contains
         write(*,*)'domain=',xprobmin1,xprobmax1
         first=.false.
     endif
-    call hd_to_conserved(ixG^L,ix^L,w,x)
+    call eos%to_conserved(ixG^L,ix^L,w,x)
   
   end subroutine initonegrid_usr
 
@@ -110,7 +111,7 @@ contains
     if(hd_radiative_cooling)then
        winit_nopert(ixI^S,rho_)= rho0 
        winit_nopert(ixI^S,mom(1))=0.0d0
-       winit_nopert(ixI^S,e_)=p0/(hd_gamma - 1.0d0)   
+       winit_nopert(ixI^S,e_)=p0/(eos%gamma - 1.0d0)   
        ! this is adding heating that balances the cooling from the uniform background
        call getvar_cooling(ixI^L,ixO^L,winit_nopert,x,bQgrid,rc_fl)
        w(ixO^S,e_)=w(ixO^S,e_)+qdt*bQgrid(ixO^S)
@@ -146,7 +147,7 @@ contains
     if(hd_radiative_cooling)then
        winit_nopert(ixI^S,rho_)= rho0 
        winit_nopert(ixI^S,mom(1))=0.0d0
-       winit_nopert(ixI^S,e_)=p0/(hd_gamma - 1.0d0)   
+       winit_nopert(ixI^S,e_)=p0/(eos%gamma - 1.0d0)   
        call getvar_cooling(ixI^L,ixO^L,winit_nopert,x,bQgrid,rc_fl)
        w(ixO^S,heat_)=bQgrid(ixO^S)
        !!using the global timestep dt here, could be unset at last timesave!!!
@@ -158,7 +159,7 @@ contains
     endif  
 
     ! now also add extra primitive variables in output dat file 
-    call hd_to_primitive(ixI^L,ixO^L,wlocal,x)
+    call eos%to_primitive(ixI^L,ixO^L,wlocal,x)
     w(ixO^S,temp_)=wlocal(ixO^S,p_)/wlocal(ixO^S,rho_)
     w(ixO^S,press_)=wlocal(ixO^S,p_)
     w(ixO^S,vel_)=wlocal(ixO^S,mom(1))

@@ -49,13 +49,13 @@
   courantpar=0.1d0
  /
  &mhd_list
-  mhd_hyperbolic_thermal_conduction=T
+  mhd_hyperbolic_tc=T
   mhd_internal_e=.true.
   Busr=1.d-1
   typedivbfix='linde'
  /
   mhd_thermal_conduction =T
-  mhd_htc_sat=.true.
+  mhd_hyperbolic_tc_sat=.true.
  &tc_list
   tc_perpendicular=.false.
   tc_saturate     =.true.
