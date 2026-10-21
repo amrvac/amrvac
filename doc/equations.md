@@ -138,6 +138,54 @@ This equation module can be combined with physical sources for
 (local) optically thin [radiative losses](radiative_cooling.md) by set **mhd_radiative_cooling=.true.**. 
 It can also be combined with the external gravity modules by set **mhd_gravity=.true.**.
 
+### UAWSoM wave-energy extension
+
+Setting **mhd_uawsom=.true.** adds four conserved wave-energy densities,
+**wAplus**, **wAminus**, **wkplus**, and **wkminus**, to total-energy MHD.  The
+first pair represents Alfvén waves and the second pair represents kink waves.
+In MPI-AMRVAC's sign convention, the `plus` variables propagate against the
+magnetic field and the `minus` variables propagate along it.  Their pressures
+are
+
+    p_A = (wAplus + wAminus)/2
+    p_k = (zeta + 1) (wkplus + wkminus)/4,
+
+and the total energy includes the sum of all four wave energies.  Their fluxes
+use the bulk velocity plus or minus the local Alfvén or kink speed.  Expansion,
+nonlinear dissipation, and the associated thermalization are applied as source
+terms.  With **mhd_uawsom_reflection=.true.**,
+**mhd_uawsom_reflection_mode='one_dimensional_gradient'** retains the original
+one-dimensional gradient source.  **'cartesian_gradient_vorticity'** uses the total-field directional
+gradient of the Alfvén speed and the field-aligned velocity vorticity, with a
+rate limiter `R_lim,A=min(R_imb,A,max(Gamma_plus,Gamma_minus))`.  This
+multidimensional closure does not use `mhd_uawsom_sigma`.  The exchange is
+conservative: a signed transfer removes energy from one population and adds it
+to the other.  **mhd_uawsom_kink_reflection=.true.** adds the corresponding
+kink-speed directional-gradient exchange with
+`R_lim,k=min(abs((V_k dot grad) ln V_k),max(Gamma_kplus,Gamma_kminus))`; it
+also does not use `mhd_uawsom_sigma`, and the kink source does not include a
+field-aligned vorticity term.  Both exchanges have a bounded 4:1 imbalance
+factor, a donor positivity cap, and zero-energy protection.
+
+The local density contrast `zeta`, unresolved thread radius, and Alfvén
+correlation length can be supplied by **usr_uawsom_coefficients**.  Otherwise
+the `mhd_uawsom_*` namelist scales are used.  B0-split runs evaluate all wave
+speeds and closure lengths from the total magnetic field.  Optically thin
+cooling is multiplied by the transverse-structure average
+
+    1 + f (1-f) (zeta-1)^2 / (1 + f zeta - f)^2.
+
+The `plus` populations propagate against **B** and the `minus` populations
+along **B**.  In a B0-split run, **B** is the sum of the evolved perturbation
+and the static background field.  The kink expansion-work source has the
+positive paper-Eq. 4 sign, `+(zeta-1)/(zeta+1) p_k div(v)`.
+
+See `tests/mhd/UAWSoM_1D`,
+`tests/mhd/UAWSoM_reflection_2.5D`,
+`tests/mhd/UAWSoM_reflection_3D`, and
+`tests/mhd/UAWSoM_solar_atmosphere_2.5D`, together with the detailed
+provenance map in `doc/uawsom_equation_map.md`.
+
 We also have implemented the magnetic field splitting strategy, where a static, 
 background magnetic field is assumed. This modifies the equations and brings in extra
 sources and flux terms.

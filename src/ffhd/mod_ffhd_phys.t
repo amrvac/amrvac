@@ -188,7 +188,7 @@ contains
     use mod_gravity, only: gravity_init
     use mod_supertimestepping, only: sts_init, add_sts_method,&
             set_conversion_methods_to_head, set_error_handling_to_head
-    use mod_eos_PI_tables
+    use mod_eos_pi_tables
     use mod_usr_methods, only: usr_Rfactor
     integer :: itr, idir
 
@@ -276,7 +276,7 @@ contains
     if (eos%eos_type == 'LTE') then
       Ne_ = var_set_ne()
       Te_ = var_set_te()
-    else if (eos%eos_type == 'PI') then !  PI stores Te via var_set_te (sets iw_te) so the generic mod_eos_PI getters address it like LTE
+    else if (eos%eos_type == 'PI') then !  PI stores Te via var_set_te (sets iw_te) so the generic mod_eos_pi getters address it like LTE
       Ne_ = -1
       Te_ = var_set_te()
     else
@@ -285,7 +285,17 @@ contains
     end if
 
     ! set number of variables which need update ghostcells
+    ! set number of variables which need update ghostcells.
+    ! The EoS-derived slots Ne/Te are derived state that must stay consistent with (rho,e)
+    ! wherever the conserved state is valid, so they have to travel with it. var_set_ne /
+    ! var_set_te bump nw but neither nwflux nor nwaux, so the historic nwflux+nwaux silently
+    ! excluded them: they were never communicated, only derived, and every ghost cell held
+    ! zero until something derived it. Extend the window to whichever of them exist (they are
+    ! registered contiguously just above); FI leaves both at -1 and the window is unchanged.
+    ! bc_phys is unaffected -- it iterates nwflux+nwaux independently.
     nwgc=nwflux+nwaux
+    if (iw_ne > 0) nwgc = max(nwgc, iw_ne)
+    if (iw_te > 0) nwgc = max(nwgc, iw_te)
 
     ! set the index of the last flux variable for species 1
     stop_indices(1)=nwflux
@@ -405,7 +415,7 @@ contains
     end if
 
     ! The PI ionisation backend (both ionE modes) is initialised centrally in
-    ! eos_finalise_PI (mod_eos_PI) -- mirrors hd/mhd, which no longer call
+    ! eos_finalise_PI (mod_eos_pi) -- mirrors hd/mhd, which no longer call
     ! ionization_degree_init from the phys module (one source of truth; calling
     ! it here too triggers "ionization_degree_init called more than once").
   end subroutine ffhd_phys_init

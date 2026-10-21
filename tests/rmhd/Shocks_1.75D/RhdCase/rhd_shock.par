@@ -1,19 +1,19 @@
 &filelist
   base_filename='output/rhd_shock'
   autoconvert      = F
+/
   typefilelog='regression_test'
   nwauxio=2
-/
 
 &savelist
    itsave(1,1)     = 0
    itsave(1,2)     = 0
-   dtsave_dat     = 0.01d0
+   dtsave_dat     = 0.1d0
    dtsave_log     = 0.1d0
 /
 
 &stoplist
-   time_max = 1.0d0
+   time_max = 2.0d0
    dtmin = 1.0d-20
 /
 
@@ -25,7 +25,7 @@
 /
 
 &boundlist
-  typeboundary_min1 = 9*'special'
+  typeboundary_min1 = 9*'cont'
   typeboundary_max1 = 9*'cont'
 /
 
@@ -43,12 +43,14 @@
  /
 
  &mhd_list
-  He_abundance = 0.d0 
   mhd_energy = .true.
-  mhd_gamma = 1.4d0
   mhd_radiation_fld = .true.
  /
 
+&eos_list
+  He_abundance = 0.d0 
+  gamma = 1.4d0
+/
  &fld_list
   fld_Radforce_split = .false.
   fld_opacity_law = 'const'

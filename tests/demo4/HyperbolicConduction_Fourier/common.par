@@ -1,0 +1,69 @@
+! setup.pl -d=2 -v=2
+&filelist
+  base_filename=''
+  typefilelog='special'
+  autoconvert=.false.
+/
+&savelist
+  dtsave_log=2.5d-4
+  tsavestart(2)=1.d-2
+  dtsave_dat=1.d0
+/
+&stoplist
+  time_max=1.d-2
+/
+&methodlist
+  time_stepper='threestep'
+  flux_scheme=20*'hll'
+  limiter=20*'cada3'
+  small_pressure=1.d-14
+  small_density=1.d-14
+  fix_small_values=.true.
+/
+&boundlist
+  typeboundary_min1=6*'periodic'
+  typeboundary_max1=6*'periodic'
+  typeboundary_min2=6*'periodic'
+  typeboundary_max2=6*'periodic'
+/
+&meshlist
+  refine_max_level=1
+  block_nx1=16
+  block_nx2=16
+  domain_nx1=64
+  domain_nx2=64
+  xprobmin1=0.d0
+  xprobmax1=1.d0
+  xprobmin2=0.d0
+  xprobmax2=1.d0
+/
+&mhd_list
+  mhd_energy=.true.
+  mhd_internal_e=.false.
+  typedivbfix='none'
+  mhd_thermal_conduction=.false.
+  mhd_hyperbolic_tc=.true.
+  mhd_hyperbolic_tc_kappa=150.d0
+  mhd_hyperbolic_tc_sat=.false.
+  mhd_hyperbolic_tc_use_perp=.true.
+  mhd_hyperbolic_tc_perp_mode='fixed_reference'
+  mhd_hyperbolic_tc_kappa_perp_factor=0.1d0
+/
+&usr_list
+  rho0=100.d0
+  p0=1.d0
+  perturbation=1.d-6
+  bdir1=8.944271909999159d-1
+  bdir2=4.472135954999579d-1
+  bmag=1.d-6
+  kappa_parallel_usr=150.d0
+  kappa_perp_ratio_usr=0.1d0
+  tau_target=2.5d-4
+  kx_mode=2
+  ky_mode=1
+  fourier_consistent_flux=.true.
+/
+&sts_list
+  sts_dtpar=0.9d0
+  sts_method=2
+/

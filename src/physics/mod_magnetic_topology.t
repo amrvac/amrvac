@@ -1,8 +1,8 @@
 module mod_magnetic_topology
   use, intrinsic :: ieee_arithmetic, only: ieee_value,ieee_quiet_nan, &
        ieee_is_finite
-  use mod_global_parameters, only: ndim,npe,slab_uniform,periodB, &
-       xprobmin1,xprobmax1
+  use mod_global_parameters, only: ndim,npe,slab_uniform, &
+       xprobmin1,xprobmax1,global_time,ps,iwstart,nwgc,par_files
   {^IFTHREED
   use mod_global_parameters, only: xprobmin2,xprobmax2,xprobmin3,xprobmax3
   }
@@ -10,7 +10,8 @@ module mod_magnetic_topology
   use mod_geometry, only: geo_coordinate => coordinate, &
        geo_cartesian => Cartesian, geo_spherical => spherical, &
        geo_cartesian_stretched => Cartesian_stretched
-  use mod_trace_field, only: trace_length_result,trace_twist_result, &
+  use mod_trace_field, only: trace_periodic_phi_supported, &
+       trace_length_result,trace_twist_result, &
        trace_mapping_result,trace_qperp_result,trace_topology_result, &
        trace_field_length_single,trace_field_length_multi, &
        trace_field_twist_single,trace_field_twist_multi, &
@@ -68,7 +69,6 @@ module mod_magnetic_topology
   integer, parameter :: mt_task_name_len    = 128
   double precision, parameter :: mt_unset_real = huge(1.d0)
 
-  logical :: mt_enable = .false.
   character(len=mt_task_name_len) :: mt_mode = ''
   character(len=mt_task_name_len) :: mt_output_file = ''
   character(len=mt_task_name_len) :: mt_output_prefix = ''
@@ -131,6 +131,7 @@ module mod_magnetic_topology
   integer :: mt_n3 = -1
   integer :: mt_chunk_nz = -1
   logical :: mt_profile_spherical = .false.
+  logical :: mt_params_loaded = .false.
 
   type, private :: mt_vti_array_desc
     character(len=mt_vti_name_len) :: name
@@ -189,13 +190,13 @@ module mod_magnetic_topology
 contains
 
   subroutine mt_params_read(files)
-    ! Read the optional one-task magnetic-topology namelist.
+    ! Read the one-task magnetic-topology namelist.
     use mod_global_parameters, only: unitpar
     character(len=*), intent(in) :: files(:)
 
     integer :: n
 
-    namelist /magnetic_topology_list/ mt_enable,mt_mode,mt_output_file, &
+    namelist /magnetic_topology_list/ mt_mode,mt_output_file, &
          mt_output_prefix,mt_seed_file,mt_vtk_detail, &
          mt_seed_surface,mt_seed_layout,mt_seed_coord, &
          mt_seed_theta0,mt_seed_phi0,mt_seed_alpha, &
@@ -220,14 +221,21 @@ contains
       read(unitpar,magnetic_topology_list,end=111)
 111   close(unitpar)
     enddo
+    mt_params_loaded=.true.
   end subroutine mt_params_read
 
   subroutine mt_run_topology_task()
     ! Dispatch the namelist-selected topology/QSL postprocessing task.
+    ! This backend is deliberately single-MPI-rank and OpenMP capable.
+    use mod_comm_lib, only: mpistop
+    use mod_ghostcells_update, only: getbc
     character(len=mt_task_name_len) :: mode
     logical :: report_rk2,report_rk45
 
-    if (.not.mt_enable) return
+    if (npe/=1) call mpistop(&
+         'magnetic-topology conversion requires npe=1; use OpenMP threads')
+    if (.not.mt_params_loaded) call mt_params_read(par_files)
+    call getbc(global_time,0.d0,ps,iwstart,nwgc)
 
     mode=mt_lowercase(trim(mt_mode))
     call mt_validate_common_params(mode)
@@ -278,7 +286,7 @@ contains
   end subroutine mt_run_topology_task
 
   subroutine mt_set_default_params()
-    mt_enable=.false.
+    mt_params_loaded=.false.
     mt_mode=''
     mt_output_file=''
     mt_output_prefix=''
@@ -343,6 +351,12 @@ contains
     mt_profile_spherical=.false.
   end subroutine mt_set_default_params
 
+  subroutine mt_validate_periodic_phi()
+    if (.not.trace_periodic_phi_supported()) then
+      call mpistop('spherical periodic phi requires a full 2*pi longitude span')
+    endif
+  end subroutine mt_validate_periodic_phi
+
   subroutine mt_validate_common_params(mode)
     character(len=*), intent(in) :: mode
 
@@ -358,9 +372,7 @@ contains
       if (geo_coordinate/=geo_spherical) then
         call mpistop(trim(mode)//' requires 3D spherical geometry')
       endif
-      if (periodB(3)) then
-        call mpistop(trim(mode)//' does not yet support periodic phi')
-      endif
+      call mt_validate_periodic_phi()
       }
     case ('seed_products')
       if (ndim/=3) then
@@ -372,9 +384,7 @@ contains
       case default
         call mpistop('seed_products requires Cartesian or spherical geometry')
       end select
-      if (geo_coordinate==geo_spherical .and. periodB(3)) then
-        call mpistop('spherical seed_products does not yet support periodic phi')
-      endif
+      call mt_validate_periodic_phi()
       }
     case ('volume_vti')
       if (ndim/=3) then
@@ -551,9 +561,7 @@ contains
         flush(6)
         call mpistop('mt_trace_integrator=rk45_spherical is spherical-only')
       endif
-      if (periodB(3)) then
-        call mpistop('mt_trace_integrator=rk45_spherical does not yet support periodic phi')
-      endif
+      call mt_validate_periodic_phi()
       }
       if (mt_compute_q) then
         {^IFTHREED
@@ -1869,9 +1877,7 @@ contains
     select case (geo_coordinate)
     case (geo_cartesian,geo_cartesian_stretched)
     case (geo_spherical)
-      if (periodB(3)) then
-        call mpistop('spherical seed_products does not yet support periodic phi')
-      endif
+      call mt_validate_periodic_phi()
     case default
       call mpistop('mt_fieldline_products_seeds requires Cartesian or spherical geometry')
     end select
@@ -2377,10 +2383,7 @@ contains
            '3D spherical geometry')
     endif
     {^IFTHREED
-    if (periodB(3)) then
-      call mpistop('mt_fieldline_products_spherical_surface does not '// &
-           'yet support periodic phi')
-    endif
+    call mt_validate_periodic_phi()
     }
     if (n1<1 .or. n2<1) then
       call mpistop('mt_fieldline_products_spherical_surface requires '// &
@@ -2459,10 +2462,7 @@ contains
            '3D spherical geometry')
     endif
     {^IFTHREED
-    if (periodB(3)) then
-      call mpistop('mt_fieldline_products_spherical_cloud does not '// &
-           'yet support periodic phi')
-    endif
+    call mt_validate_periodic_phi()
     }
     if (n1<1 .or. n2<1 .or. n3<1) then
       call mpistop('mt_fieldline_products_spherical_cloud requires '// &

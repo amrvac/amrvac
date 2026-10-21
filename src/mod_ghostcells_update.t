@@ -132,6 +132,19 @@ contains
     integer :: nghostcellsCo, interpolation_order
     integer :: nx^D, nxCo^D, ixG^L, i^D, idir
 
+    ! Initialise all bc datatype handles to null so get_bc_comm_type can free the previous committed type
+    ! before rebuilding. Without this, every create_bc_mpi_datatype leaks its MPI subarray types; the RT
+    ! sweep rebuilds them each solve -> unbounded virtual-memory growth -> OOM/SIGKILL on long runs.
+    type_send_srl_f=MPI_DATATYPE_NULL; type_recv_srl_f=MPI_DATATYPE_NULL
+    type_send_r_f  =MPI_DATATYPE_NULL; type_recv_r_f  =MPI_DATATYPE_NULL
+    type_send_p_f  =MPI_DATATYPE_NULL; type_recv_p_f  =MPI_DATATYPE_NULL
+    type_send_srl_p1=MPI_DATATYPE_NULL; type_recv_srl_p1=MPI_DATATYPE_NULL
+    type_send_r_p1 =MPI_DATATYPE_NULL; type_recv_r_p1 =MPI_DATATYPE_NULL
+    type_send_p_p1 =MPI_DATATYPE_NULL; type_recv_p_p1 =MPI_DATATYPE_NULL
+    type_send_srl_p2=MPI_DATATYPE_NULL; type_recv_srl_p2=MPI_DATATYPE_NULL
+    type_send_r_p2 =MPI_DATATYPE_NULL; type_recv_r_p2 =MPI_DATATYPE_NULL
+    type_send_p_p2 =MPI_DATATYPE_NULL; type_recv_p_p2 =MPI_DATATYPE_NULL
+
     ixG^L=ixG^LL;
     ixM^L=ixG^L^LSUBnghostcells;
     ixCoGmin^D=1;
@@ -315,46 +328,68 @@ contains
 
   end subroutine init_bc
 
-  subroutine create_bc_mpi_datatype(nwstart,nwbc) 
+  subroutine create_bc_mpi_datatype(nwstart,nwbc,nwfull)
     use mod_global_parameters
 
     integer, intent(in) :: nwstart, nwbc
+    !> stride of the target state (its last-dim size); defaults to global nw. See get_bc_comm_type.
+    integer, intent(in), optional :: nwfull
     integer :: i^D, ic^D, inc^D
+    integer :: errh_w, errh_s
+
+    ! get_bc_comm_type frees the previous committed type before rebuilding (else the RT sweep, which
+    ! rebuilds these every solve, leaks MPI subarray types -> unbounded virtual memory -> OOM). Some
+    ! degenerate restrict/prolong handles reject MPI_TYPE_FREE on this MPI, so make the free best-effort:
+    ! set the error handler to return for the rebuild, so a failed free is ignored (that one type leaks,
+    ! minor) while all valid frees succeed; a successful create always overwrites the handle. Restore after.
+    call MPI_COMM_GET_ERRHANDLER(MPI_COMM_WORLD, errh_w, ierrmpi)
+    call MPI_COMM_GET_ERRHANDLER(MPI_COMM_SELF,  errh_s, ierrmpi)
+    call MPI_COMM_SET_ERRHANDLER(MPI_COMM_WORLD, MPI_ERRORS_RETURN, ierrmpi)
+    call MPI_COMM_SET_ERRHANDLER(MPI_COMM_SELF,  MPI_ERRORS_RETURN, ierrmpi)
 
    {do i^DB=-1,1\}
       if(i^D==0|.and.) cycle
-      call get_bc_comm_type(type_send_srl(i^D),ixS_srl_^L(i^D),ixG^LL,nwstart,nwbc)
-      call get_bc_comm_type(type_recv_srl(i^D),ixR_srl_^L(i^D),ixG^LL,nwstart,nwbc)
-      call get_bc_comm_type(type_send_r(i^D),   ixS_r_^L(i^D),ixCoG^L,nwstart,nwbc)
+      call get_bc_comm_type(type_send_srl(i^D),ixS_srl_^L(i^D),ixG^LL,nwstart,nwbc,nwfull)
+      call get_bc_comm_type(type_recv_srl(i^D),ixR_srl_^L(i^D),ixG^LL,nwstart,nwbc,nwfull)
+      call get_bc_comm_type(type_send_r(i^D),   ixS_r_^L(i^D),ixCoG^L,nwstart,nwbc,nwfull)
       {do ic^DB=1+int((1-i^DB)/2),2-int((1+i^DB)/2)
          inc^DB=2*i^DB+ic^DB\}
-         call get_bc_comm_type(type_recv_r(inc^D),ixR_r_^L(inc^D), ixG^LL,nwstart,nwbc)
-         call get_bc_comm_type(type_send_p(inc^D),ixS_p_^L(inc^D), ixG^LL,nwstart,nwbc)
-         call get_bc_comm_type(type_recv_p(inc^D),ixR_p_^L(inc^D),ixCoG^L,nwstart,nwbc)
+         call get_bc_comm_type(type_recv_r(inc^D),ixR_r_^L(inc^D), ixG^LL,nwstart,nwbc,nwfull)
+         call get_bc_comm_type(type_send_p(inc^D),ixS_p_^L(inc^D), ixG^LL,nwstart,nwbc,nwfull)
+         call get_bc_comm_type(type_recv_p(inc^D),ixR_p_^L(inc^D),ixCoG^L,nwstart,nwbc,nwfull)
       {end do\}
    {end do\}
-  
+
+    call MPI_COMM_SET_ERRHANDLER(MPI_COMM_WORLD, errh_w, ierrmpi)   ! restore fatal handlers
+    call MPI_COMM_SET_ERRHANDLER(MPI_COMM_SELF,  errh_s, ierrmpi)
+
   end subroutine create_bc_mpi_datatype
 
-  subroutine get_bc_comm_type(comm_type,ix^L,ixG^L,nwstart,nwbc)
+  subroutine get_bc_comm_type(comm_type,ix^L,ixG^L,nwstart,nwbc,nwfull)
     use mod_global_parameters
-  
+
     integer, intent(inout) :: comm_type
     integer, intent(in) :: ix^L, ixG^L, nwstart, nwbc
-    
+    !> total number of w-variables in the target state's last dimension (its stride). Defaults to the
+    !> global nw (the hydro state). Pass the actual nw of a separate state (e.g. the RT intensity state,
+    !> nw=nisw) so the MPI subarray stride matches that array's layout.
+    integer, intent(in), optional :: nwfull
+
     integer, dimension(ndim+1) :: fullsize, subsize, start
 
     ^D&fullsize(^D)=ixGmax^D;
     fullsize(ndim+1)=nw
+    if(present(nwfull)) fullsize(ndim+1)=nwfull
     ^D&subsize(^D)=ixmax^D-ixmin^D+1;
     subsize(ndim+1)=nwbc
     ^D&start(^D)=ixmin^D-1;
     start(ndim+1)=nwstart-1
     
+    if(comm_type/=MPI_DATATYPE_NULL) call MPI_TYPE_FREE(comm_type,ierrmpi)   ! free the previous type (no leak)
     call MPI_TYPE_CREATE_SUBARRAY(ndim+1,fullsize,subsize,start,MPI_ORDER_FORTRAN, &
                                   MPI_DOUBLE_PRECISION,comm_type,ierrmpi)
     call MPI_TYPE_COMMIT(comm_type,ierrmpi)
-    
+
   end subroutine get_bc_comm_type
 
   !> do update ghost cells of all blocks including physical boundaries
@@ -585,7 +620,7 @@ contains
     end if
 
     time_bc=time_bc+(MPI_WTIME()-time_bcin)
-    
+
     contains
 
       subroutine waitall_limited(nrequest,requests,statuses)
@@ -659,8 +694,12 @@ contains
 
         integer, intent(in) :: igrid
 
-        integer :: idims,iside,i^D,k^L,ixB^L
+        integer :: idims,iside,i^D,k^L,ixB^L,ixO^L
+        logical :: has_eos_bc
 
+        !> Query the hook once: gfortran resolves the symbol as a procedure after the
+        !> first call statement and then rejects associated() on it later in the scope.
+        has_eos_bc = associated(update_eos_4_bc)
         block=>psb(igrid)
         ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
         do idims=1,ndim
@@ -688,9 +727,31 @@ contains
             end if
             !> Refresh the EoS-derived ghost fields before extrapolation; the hook
             !> is set (in amrvac.t) only when the EoS needs it, e.g. LTE.
-            if (associated(update_eos_4_bc)) &
+            !> ixM (interior) is deliberate: bc_phys extrapolates outward from interior
+            !> values, so it is the interior that must be current here. Ghost cells are
+            !> covered afterwards, for every block, at the end of getbc.
+            if (has_eos_bc) &
                call update_eos_4_bc(ixG^LL,ixM^LL,psb(igrid)%w,psb(igrid)%x)
             call bc_phys(iside,idims,time,qdt,psb(igrid),ixG^LL,ixB^L)
+            !> ...and derive them again on the cells bc_phys just wrote. The call above
+            !> refreshes the interior so bc_phys can extrapolate outward from current values;
+            !> it does not touch the ghosts bc_phys produces. Those are never reached by the
+            !> exchange either (physical boundaries have no neighbour to receive from), so
+            !> without this they keep whatever the block held before. ixO is the same ghost
+            !> strip bc_phys derives internally from ixB -- nghostcells deep, this side only.
+            if (has_eos_bc) then
+              select case (idims)
+              {case (^D)
+                if (iside==2) then
+                  ixOmin^DD=ixBmax^D+1-nghostcells^D%ixOmin^DD=ixBmin^DD;
+                  ixOmax^DD=ixBmax^DD;
+                else
+                  ixOmin^DD=ixBmin^DD;
+                  ixOmax^DD=ixBmin^D-1+nghostcells^D%ixOmax^DD=ixBmax^DD;
+                end if \}
+              end select
+              call update_eos_4_bc(ixG^LL,ixO^L,psb(igrid)%w,psb(igrid)%x)
+            end if
           end do
         end do
 

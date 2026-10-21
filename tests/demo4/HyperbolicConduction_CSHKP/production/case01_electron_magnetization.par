@@ -1,0 +1,8 @@
+&filelist
+  base_filename='datamr/flare01_electron_magnetization_'
+/
+&mhd_list
+  mhd_hyperbolic_tc_use_perp=.true.
+  mhd_hyperbolic_tc_perp_mode='electron_magnetization'
+  mhd_hyperbolic_tc_coulomb_log=20.d0
+/

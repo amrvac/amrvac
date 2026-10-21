@@ -200,14 +200,14 @@ contains
                            (Bz2_norm*vx2_norm - Bx2_norm*vz2_norm) 
     endif
 
-    !mg%bc(1, mg_iphi)%bc_type = mg_bc_neumann
-    !mg%bc(1, mg_iphi)%bc_value = 0.0d0
-    mg%bc(1, mg_iphi)%bc_type = mg_bc_dirichlet
-    mg%bc(1, mg_iphi)%bc_value = Er1_norm
-    mg%bc(2, mg_iphi)%bc_type = mg_bc_dirichlet
-    mg%bc(2, mg_iphi)%bc_value = Er2_norm
-    !mg%bc(2, mg_iphi)%bc_type = mg_bc_neumann
-    !mg%bc(2, mg_iphi)%bc_value = 0.0d0
+    !mg%bc(1, mg_iphi)%bc_type = mg_bc_dirichlet
+    !mg%bc(1, mg_iphi)%bc_value = Er1_norm
+    !mg%bc(2, mg_iphi)%bc_type = mg_bc_dirichlet
+    !mg%bc(2, mg_iphi)%bc_value = Er2_norm
+    mg%bc(1, mg_iphi)%bc_type = mg_bc_neumann
+    mg%bc(1, mg_iphi)%bc_value = 0.0d0
+    mg%bc(2, mg_iphi)%bc_type = mg_bc_neumann
+    mg%bc(2, mg_iphi)%bc_value = 0.0d0
 
   end subroutine set_params_and_mg_boundary_conds
 

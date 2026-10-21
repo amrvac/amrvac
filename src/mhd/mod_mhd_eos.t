@@ -20,9 +20,9 @@ module mod_mhd_eos
     !> The mode-specific scalar kernels are reached from their sub-modules, not the
     !> mod_eos facade (which no longer re-exports them). Each kernel mpistops if
     !> called under the wrong eos_type/method.
-    use mod_eos_LTE
-    use mod_eos_LTE_saha
-    use mod_eos_PI
+    use mod_eos_lte
+    use mod_eos_lte_saha
+    use mod_eos_pi
     use mod_eos_container
     use mod_mhd_phys
     use mod_timing
@@ -59,30 +59,82 @@ contains
         ! to_primitive (and p_to_e/pthermal/csound) at the PI-energy variants, so
         ! the FI assignment here is just a harmless base that gets replaced.
         if (eos%eos_type == 'FI' .or. eos%eos_type == 'PI') then
+            ! PI takes its electron count from a variable R factor evaluated on
+            ! the rho slot, which under splitting holds only the perturbation.
+            if (eos%eos_type == 'PI' .and. has_equi_rho_and_p) &
+              call mpistop('PI EoS not supported with equilibrium splitting')
             if(mhd_hydrodynamic_e) then
+                if(eos%ionE) call mpistop('PI energy EoS not supported with mhd_hydrodynamic_e')
                 eos%to_primitive        => mhd_to_primitive_hde
                 eos%to_conserved        => mhd_to_conserved_hde
+                phys_get_pthermal        => mhd_get_pthermal_hde
+                mhd_get_pthermal         => mhd_get_pthermal_hde
             else if(mhd_semirelativistic) then
                 if(mhd_energy) then
-                    eos%to_primitive        => mhd_to_primitive_semirelati
-                    eos%to_conserved        => mhd_to_conserved_semirelati
+                    if(eos%ionE) then
+                      eos%to_primitive        => mhd_to_primitive_semirelati_PI
+                      eos%to_conserved        => mhd_to_conserved_semirelati_PI
+                      if (mhd_internal_e) then
+                          eos%p_to_e        => mhd_p_to_eint_PI
+                          phys_get_pthermal        => mhd_get_pthermal_inte_PI 
+                          mhd_get_pthermal         => mhd_get_pthermal_inte_PI 
+                      else
+                          eos%p_to_e        => mhd_p_to_e_PI
+                          phys_get_pthermal        => mhd_get_pthermal_semirelati_PI
+                          mhd_get_pthermal         => mhd_get_pthermal_semirelati_PI
+                      end if
+                    else
+                      eos%to_primitive        => mhd_to_primitive_semirelati
+                      eos%to_conserved        => mhd_to_conserved_semirelati
+                      if (mhd_internal_e) then
+                        phys_get_pthermal        => mhd_get_pthermal_inte
+                        mhd_get_pthermal         => mhd_get_pthermal_inte
+                      else
+                        phys_get_pthermal        => mhd_get_pthermal_semirelati
+                        mhd_get_pthermal         => mhd_get_pthermal_semirelati
+                      end if
+                    end if
                 else
                     eos%to_primitive        => mhd_to_primitive_semirelati_noe
                     eos%to_conserved        => mhd_to_conserved_semirelati_noe
+                    phys_get_pthermal       => mhd_get_pthermal_noe
+                    mhd_get_pthermal        => mhd_get_pthermal_noe
                 end if
             else
                 if(has_equi_rho_and_p) then
-                    eos%to_primitive        => mhd_to_primitive_split_rho
-                    eos%to_conserved        => mhd_to_conserved_split_rho
+                    eos%to_primitive    => mhd_to_primitive_split_rho
+                    eos%to_conserved    => mhd_to_conserved_split_rho
                 else if(mhd_internal_e) then
-                    eos%to_primitive        => mhd_to_primitive_inte
-                    eos%to_conserved        => mhd_to_conserved_inte
+                    if(eos%ionE) then
+                      eos%to_conserved  => mhd_to_conserved_inte_PI
+                      eos%to_primitive  => mhd_to_primitive_inte_PI
+                      eos%p_to_e        => mhd_p_to_eint_PI
+                      phys_get_pthermal => mhd_get_pthermal_inte_PI
+                      mhd_get_pthermal  => mhd_get_pthermal_inte_PI
+                    else
+                      eos%to_primitive  => mhd_to_primitive_inte
+                      eos%to_conserved  => mhd_to_conserved_inte
+                      phys_get_pthermal => mhd_get_pthermal_inte
+                      mhd_get_pthermal  => mhd_get_pthermal_inte
+                    end if
                 else if(mhd_energy) then
-                    eos%to_primitive         => mhd_to_primitive_origin
-                    eos%to_conserved         => mhd_to_conserved_origin
+                    if(eos%ionE) then
+                      eos%to_conserved  => mhd_to_conserved_origin_PI
+                      eos%to_primitive  => mhd_to_primitive_origin_PI
+                      eos%p_to_e        => mhd_p_to_e_PI
+                      phys_get_pthermal => mhd_get_pthermal_origin_PI
+                      mhd_get_pthermal  => mhd_get_pthermal_origin_PI
+                    else
+                      eos%to_primitive  => mhd_to_primitive_origin
+                      eos%to_conserved  => mhd_to_conserved_origin
+                      phys_get_pthermal => mhd_get_pthermal_origin
+                      mhd_get_pthermal  => mhd_get_pthermal_origin
+                    end if
                 else
-                    eos%to_primitive         => mhd_to_primitive_origin_noe
-                    eos%to_conserved         => mhd_to_conserved_origin_noe
+                    eos%to_primitive    => mhd_to_primitive_origin_noe
+                    eos%to_conserved    => mhd_to_conserved_origin_noe
+                    phys_get_pthermal   => mhd_get_pthermal_noe
+                    mhd_get_pthermal    => mhd_get_pthermal_noe
                 end if
             end if
         else if (eos%eos_type == 'LTE') then
@@ -109,7 +161,6 @@ contains
 
         phys_to_primitive       => eos%to_primitive
         phys_to_conserved       => eos%to_conserved
-        phys_get_rho            => eos%get_rho
         phys_bind_eos_to_source => bind_eos_to_source
 
         !> p_to_e (pressure -> total energy for origin, or eint for inte)
@@ -123,6 +174,9 @@ contains
         if (eos%eos_type == 'LTE' .and. eos%ionE) then
             eos%get_csound2 => mhd_get_csound2_LTE
             phys_get_gamma1 => mhd_get_gamma1_LTE
+        else if (eos%eos_type == 'PI' .and. eos%ionE) then
+            eos%get_csound2 => mhd_get_csound2_FI
+            phys_get_gamma1 => get_gamma1_PI
         else
             eos%get_csound2 => mhd_get_csound2_FI
             phys_get_gamma1 => get_gamma1_FI
@@ -142,25 +196,6 @@ contains
             eos%get_Rfactor => usr_Rfactor
         else
             eos%get_Rfactor => Rfactor_from_constant_ionization
-        end if
-
-
-        !> Thermal pressure routing
-        if(mhd_internal_e) then
-            phys_get_pthermal        => mhd_get_pthermal_inte
-            mhd_get_pthermal         => mhd_get_pthermal_inte
-        else if(mhd_hydrodynamic_e) then
-            phys_get_pthermal        => mhd_get_pthermal_hde
-            mhd_get_pthermal         => mhd_get_pthermal_hde
-        else if(mhd_semirelativistic) then
-            phys_get_pthermal        => mhd_get_pthermal_semirelati
-            mhd_get_pthermal         => mhd_get_pthermal_semirelati
-        else if(mhd_energy) then
-            phys_get_pthermal        => mhd_get_pthermal_origin
-            mhd_get_pthermal         => mhd_get_pthermal_origin
-        else
-            phys_get_pthermal        => mhd_get_pthermal_noe
-            mhd_get_pthermal         => mhd_get_pthermal_noe
         end if
 
         ! For LTE, override with version that delegates to eos%get_thermal_pressure
@@ -194,55 +229,19 @@ contains
         if(mhd_internal_e) then
             phys_get_ei => mhd_get_ei_inte
         else if(mhd_energy) then
-            phys_get_ei => mhd_get_ei_origin
-        end if
-
-        !> PI energy-mode overrides (eos_type='PI', ionE=.true.)
-        ! PI shares FI's normalisation and no-energy path verbatim; energy mode
-        ! differs ONLY in the eint<->p relation (eint carries the ionisation
-        ! energy). Override exactly the routines that touch that relation, all
-        ! delegating to the portable scalar backend in mod_eos_PI. FI
-        ! routines stay pristine (no flag branch in the hot path).
-        if (eos%eos_type == 'PI' .and. eos%ionE) then
-            if (.not. mhd_energy) &
-              call mpistop('PI energy EoS requires mhd_energy=.true.')
-            if (mhd_hydrodynamic_e) &
-              call mpistop('PI energy EoS not supported with mhd_hydrodynamic_e')
-            if (mhd_semirelativistic) &
-              call mpistop('PI energy EoS not supported with mhd_semirelativistic')
-            if (has_equi_rho_and_p) &
-              call mpistop('PI energy EoS not supported with equilibrium splitting')
-
-            if (mhd_internal_e) then
-                eos%to_conserved  => mhd_to_conserved_inte_PI
-                eos%to_primitive  => mhd_to_primitive_inte_PI
-                eos%p_to_e        => mhd_p_to_eint_PI
-                phys_get_pthermal => mhd_get_pthermal_inte_PI
-                mhd_get_pthermal  => mhd_get_pthermal_inte_PI
+            if(mhd_semirelativistic) then
+              phys_get_ei => mhd_get_ei_semirelati
             else
-                eos%to_conserved  => mhd_to_conserved_origin_PI
-                eos%to_primitive  => mhd_to_primitive_origin_PI
-                eos%p_to_e        => mhd_p_to_e_PI
-                phys_get_pthermal => mhd_get_pthermal_origin_PI
-                mhd_get_pthermal  => mhd_get_pthermal_origin_PI
+              phys_get_ei => mhd_get_ei_origin
             end if
-            phys_to_primitive        => eos%to_primitive
-            phys_to_conserved        => eos%to_conserved
-            eos%get_thermal_pressure => mhd_get_pthermal
-
-            !> eos%get_csound2 => get_csound2_PI is physics-independent: set in
-            !> eos_finalise_PI (ionE arm) so the target stays private.
-            phys_get_gamma1 => get_gamma1_PI
-
-            ! Te_ refreshed from eint each substep (direct inversion, no lag).
-            ! Module-specific (uses MHD's Te_ index): PI registers Te via
-            ! var_set_auxvar, which does NOT set the generic iw_te, so the
-            ! temperature aux must be addressed through the module's own Te_.
         end if
 
         ! phys_e_to_ei / phys_ei_to_e assigned in mhd_phys_init (mod_mhd_phys.t)
         mhd_to_primitive => eos%to_primitive
         mhd_to_conserved => eos%to_conserved
+        phys_to_primitive        => eos%to_primitive
+        phys_to_conserved        => eos%to_conserved
+        eos%get_thermal_pressure => mhd_get_pthermal
 
     end subroutine mhd_link_eos
 
@@ -319,6 +318,8 @@ contains
             rc_fl%get_var_Rfactor  => eos%get_Rfactor
             rc_fl%get_Te           => eos%get_Te
             rc_fl%get_ne_nH        => eos%get_ne_nH
+            nullify(rc_fl%get_rho2_factor)
+            if(mhd_uawsom) rc_fl%get_rho2_factor => mhd_uawsom_rho2_factor
             rc_fl%ionE              =  eos%ionE
             rc_fl%method            =  eos%method
             rc_fl%inv_gamma_minus_1 =  eos%inv_gamma_minus_1
@@ -333,6 +334,8 @@ contains
                 rc_fl%subtract_equi = .true.
                 rc_fl%get_rho_equi => mhd_get_rho_equi
                 rc_fl%get_pthermal_equi => mhd_get_pe_equi
+                rc_fl%get_ne_nH_equi => mhd_get_ne_nH_equi
+                rc_fl%get_temperature_equi => mhd_get_temperature_equi
             else
                 rc_fl%subtract_equi = .false.
             end if
@@ -397,6 +400,8 @@ contains
             w(ix^D,e_)=w(ix^D,p_)*eos%inv_gamma_minus_1&
                       +half*((^C&w(ix^D,m^C_)**2+)*w(ix^D,rho_)&
                       +(^C&w(ix^D,b^C_)**2+))
+            if(mhd_uawsom) w(ix^D,e_)=w(ix^D,e_)+&
+                 w(ix^D,wAplus_)+w(ix^D,wAminus_)+w(ix^D,wkplus_)+w(ix^D,wkminus_)
             ! Convert velocity to momentum
             ^C&w(ix^D,m^C_)=w(ix^D,rho_)*w(ix^D,m^C_)\
         {end do\}
@@ -527,6 +532,56 @@ contains
 
     end subroutine mhd_to_conserved_semirelati
 
+    !> Transform primitive variables into conservative ones (semirelativistic)
+    subroutine mhd_to_conserved_semirelati_PI(ixI^L,ixO^L,w,x)
+        use mod_global_parameters
+        integer, intent(in)             :: ixI^L, ixO^L
+        double precision, intent(inout) :: w(ixI^S, nw)
+        double precision, intent(in)    :: x(ixI^S, 1:ndim)
+
+        double precision :: E(ixO^S,1:ndir), S(ixO^S,1:ndir), eint
+        integer :: ix^D
+
+        {do ix^DB=ixOmin^DB,ixOmax^DB\}
+            {^IFTHREEC
+                E(ix^D,1)=w(ix^D,b2_)*w(ix^D,m3_)-w(ix^D,b3_)*w(ix^D,m2_)
+                E(ix^D,2)=w(ix^D,b3_)*w(ix^D,m1_)-w(ix^D,b1_)*w(ix^D,m3_)
+                E(ix^D,3)=w(ix^D,b1_)*w(ix^D,m2_)-w(ix^D,b2_)*w(ix^D,m1_)
+                S(ix^D,1)=E(ix^D,2)*w(ix^D,b3_)-E(ix^D,3)*w(ix^D,b2_)
+                S(ix^D,2)=E(ix^D,3)*w(ix^D,b1_)-E(ix^D,1)*w(ix^D,b3_)
+                S(ix^D,3)=E(ix^D,1)*w(ix^D,b2_)-E(ix^D,2)*w(ix^D,b1_)
+            }
+            {^IFTWOC
+                E(ix^D,1)=zero
+                ! switch 3 with 2 to add 3 when ^C from 1 to 2
+                E(ix^D,2)=w(ix^D,b1_)*w(ix^D,m2_)-w(ix^D,b2_)*w(ix^D,m1_)
+                S(ix^D,1)=-E(ix^D,2)*w(ix^D,b2_)
+                S(ix^D,2)=E(ix^D,2)*w(ix^D,b1_)
+            }
+            {^IFONEC
+                E(ix^D,1)=zero
+                S(ix^D,1)=zero
+            }
+            if(mhd_internal_e) then
+                ! internal energy
+                call eint_from_rho_p_PI(w(ix^D,rho_), w(ix^D,p_), w(ix^D,e_))
+            else
+                ! equation (9)
+                ! Calculate total energy from internal, kinetic and magnetic energy
+                call eint_from_rho_p_PI(w(ix^D,rho_), w(ix^D,p_), eint)
+                w(ix^D,e_)=eint&
+                          +half*((^C&w(ix^D,m^C_)**2+)*w(ix^D,rho_)&
+                          +(^C&w(ix^D,b^C_)**2+)&
+                          +(^C&e(ix^D,^C)**2+)*eos%inv_squared_c)
+            end if
+
+            ! Convert velocity to momentum, equation (9)
+            ^C&w(ix^D,m^C_)=w(ix^D,rho_)*w(ix^D,m^C_)+S(ix^D,^C)*eos%inv_squared_c\
+
+        {end do\}
+
+    end subroutine mhd_to_conserved_semirelati_PI
+
     subroutine mhd_to_conserved_semirelati_noe(ixI^L,ixO^L,w,x)
         use mod_global_parameters
         integer, intent(in)             :: ixI^L, ixO^L
@@ -583,7 +638,8 @@ contains
             ! Calculate pressure = (gamma-1) * (e-ek-eb)
             w(ix^D,p_)=eos%gamma_minus_1*(w(ix^D,e_)&
                       -half*(w(ix^D,rho_)*(^C&w(ix^D,m^C_)**2+)&
-                        +(^C&w(ix^D,b^C_)**2+)))
+                        +(^C&w(ix^D,b^C_)**2+))&
+                      -mhd_uawsom_wave_energy_cell(w(ix^D,:)))
         {end do\}
 
     end subroutine mhd_to_primitive_origin
@@ -691,7 +747,7 @@ contains
         double precision, intent(inout) :: w(ixI^S, nw)
         double precision, intent(in)    :: x(ixI^S, 1:ndim)
 
-        double precision :: b(ixO^S,1:ndir), tmp, b2, gamma2, inv_rho
+        double precision :: b(ixO^S,1:ndir), tmp, b2, vac2, gamma2, inv_rho
         integer :: ix^D
 
         if (fix_small_values) then
@@ -710,11 +766,11 @@ contains
 
             inv_rho=1.d0/w(ix^D,rho_)
             ! Va^2/c^2
-            b2=b2*inv_rho*eos%inv_squared_c
+            vac2=b2*inv_rho*eos%inv_squared_c
             ! equation (15)
-            gamma2=1.d0/(1.d0+b2)
+            gamma2=1.d0/(1.d0+vac2)
             ! Convert momentum to velocity
-            ^C&w(ix^D,m^C_)=gamma2*(w(ix^D,m^C_)+b2*b(ix^D,^C)*tmp)*inv_rho\
+            ^C&w(ix^D,m^C_)=gamma2*(w(ix^D,m^C_)+vac2*b(ix^D,^C)*tmp)*inv_rho\
 
             if(mhd_internal_e) then
                 ! internal energy to pressure
@@ -735,13 +791,71 @@ contains
                 }
                 ! Calculate pressure = (gamma-1) * (e-eK-eB-eE)
                 w(ix^D,p_)=eos%gamma_minus_1*(w(ix^D,e_)&
-                          -half*((^C&w(ix^D,m^C_)**2+)*w(ix^D,rho_)&
-                          +(^C&w(ix^D,b^C_)**2+)&
+                          -half*((^C&w(ix^D,m^C_)**2+)*w(ix^D,rho_)+b2&
                           +(^C&b(ix^D,^C)**2+)*eos%inv_squared_c))
             end if
         {end do\}
 
     end subroutine mhd_to_primitive_semirelati
+
+    !> Transform conservative variables into primitive ones (semirelativistic)
+    subroutine mhd_to_primitive_semirelati_PI(ixI^L,ixO^L,w,x)
+        use mod_global_parameters
+        integer, intent(in)             :: ixI^L, ixO^L
+        double precision, intent(inout) :: w(ixI^S, nw)
+        double precision, intent(in)    :: x(ixI^S, 1:ndim)
+
+        double precision :: b(ixO^S,1:ndir), tmp, b2, vac2, gamma2, inv_rho, eint, T, Rfac
+        integer :: ix^D
+
+        if (fix_small_values) then
+            call phys_handle_small_values(.false., w, x, ixI^L, ixO^L, 'mhd_to_primitive_semirelati')
+        end if
+
+        {do ix^DB=ixOmin^DB,ixOmax^DB\}
+            b2=(^C&w(ix^D,b^C_)**2+)
+            if(b2>smalldouble) then
+                tmp=1.d0/sqrt(b2)
+            else
+                tmp=0.d0
+            end if
+            ^C&b(ix^D,^C)=w(ix^D,b^C_)*tmp\
+            tmp=(^C&b(ix^D,^C)*w(ix^D,m^C_)+)
+
+            inv_rho=1.d0/w(ix^D,rho_)
+            ! Va^2/c^2
+            vac2=b2*inv_rho*eos%inv_squared_c
+            ! equation (15)
+            gamma2=1.d0/(1.d0+vac2)
+            ! Convert momentum to velocity
+            ^C&w(ix^D,m^C_)=gamma2*(w(ix^D,m^C_)+vac2*b(ix^D,^C)*tmp)*inv_rho\
+
+            if(mhd_internal_e) then
+                ! internal energy to pressure
+                call state_from_eint_PI(w(ix^D,rho_), w(ix^D,e_), T, w(ix^D,p_), Rfac)
+            else
+                ! E=Bxv
+                {^IFTHREEC
+                    b(ix^D,1)=w(ix^D,b2_)*w(ix^D,m3_)-w(ix^D,b3_)*w(ix^D,m2_)
+                    b(ix^D,2)=w(ix^D,b3_)*w(ix^D,m1_)-w(ix^D,b1_)*w(ix^D,m3_)
+                    b(ix^D,3)=w(ix^D,b1_)*w(ix^D,m2_)-w(ix^D,b2_)*w(ix^D,m1_)
+                }
+                {^IFTWOC
+                    b(ix^D,1)=zero
+                    b(ix^D,2)=w(ix^D,b1_)*w(ix^D,m2_)-w(ix^D,b2_)*w(ix^D,m1_)
+                }
+                {^IFONEC
+                    b(ix^D,1)=zero
+                }
+                ! internal energy= e-eK-eB-eE
+                eint=w(ix^D,e_)&
+                          -half*((^C&w(ix^D,m^C_)**2+)*w(ix^D,rho_)+b2&
+                          +(^C&b(ix^D,^C)**2+)*eos%inv_squared_c)
+                call state_from_eint_PI(w(ix^D,rho_), eint, T, w(ix^D,p_), Rfac)
+            end if
+        {end do\}
+
+    end subroutine mhd_to_primitive_semirelati_PI
 
     !> Transform conservative variables into primitive ones (semirelativistic noe)
     subroutine mhd_to_primitive_semirelati_noe(ixI^L,ixO^L,w,x)
@@ -876,6 +990,8 @@ contains
                           +half*((^C&w(ix^D,m^C_)**2+)*w(ix^D,rho_)&
                           +(^C&w(ix^D,b^C_)**2+))
             end if
+            if(mhd_uawsom) w(ix^D,e_)=w(ix^D,e_)+&
+                 w(ix^D,wAplus_)+w(ix^D,wAminus_)+w(ix^D,wkplus_)+w(ix^D,wkminus_)
         {end do\}
 
     end subroutine mhd_p_to_e
@@ -1167,9 +1283,21 @@ contains
         double precision, intent(in)    :: x(ixI^S, 1:ndim)
         double precision, intent(out)   :: cs2(ixI^S)
 
-        timeeos0 = MPI_WTIME()
+        double precision :: rho, ploc
+        integer :: ix^D
 
-        cs2(ixO^S) = eos%gamma * w(ixO^S, p_) / w(ixO^S, rho_)
+        timeeos0 = MPI_WTIME()
+        {do ix^DB=ixOmin^DB,ixOmax^DB \}
+            if(has_equi_rho_and_p) then
+              rho=(w(ix^D,rho_)+block%equi_vars(ix^D,equi_rho0_,0))
+              ploc=(w(ix^D,p_)+block%equi_vars(ix^D,equi_pe0_,0))
+              ! sound speed**2 
+              cs2(ix^D)=eos%gamma*ploc/rho
+            else
+              ! sound speed**2 
+              cs2(ix^D)=eos%gamma*w(ix^D,p_)/w(ix^D,rho_)
+            end if
+        {end do\}
 
         timeeos_csound = timeeos_csound + (MPI_WTIME()-timeeos0)
 
@@ -1277,16 +1405,30 @@ contains
     !> Calculate isothermal thermal pressure
     subroutine mhd_get_pthermal_noe(w,x,ixI^L,ixO^L,pth)
         use mod_global_parameters
+        use mod_usr_methods, only: usr_set_adiab, usr_set_gamma
 
         integer, intent(in)          :: ixI^L, ixO^L
         double precision, intent(in) :: w(ixI^S,nw)
         double precision, intent(in) :: x(ixI^S,1:ndim)
         double precision, intent(out):: pth(ixI^S)
 
-        if(has_equi_rho_and_p) then
-            pth(ixO^S)=mhd_adiab*(w(ixO^S,rho_)+block%equi_vars(ixO^S,equi_rho0_,0))**eos%gamma
+        double precision :: adiabs(ixI^S), gammas(ixI^S)
+
+        if(associated(usr_set_adiab)) then
+           call usr_set_adiab(w,x,ixI^L,ixO^L,adiabs)
         else
-            pth(ixO^S)=mhd_adiab*w(ixO^S,rho_)**eos%gamma
+           adiabs=mhd_adiab
+        end if
+        if(associated(usr_set_gamma)) then
+           call usr_set_gamma(w,x,ixI^L,ixO^L,gammas)
+        else
+           gammas=eos%gamma
+        end if
+
+        if(has_equi_rho_and_p) then
+            pth(ixO^S)=adiabs(ixO^S)*(w(ixO^S,rho_)+block%equi_vars(ixO^S,equi_rho0_,0))**gammas(ixO^S)
+        else
+            pth(ixO^S)=adiabs(ixO^S)*w(ixO^S,rho_)**gammas(ixO^S)
         end if
 
     end subroutine mhd_get_pthermal_noe
@@ -1350,7 +1492,7 @@ contains
                      +(^C&w(ix^D,b^C_)**2+)))+block%equi_vars(ix^D,equi_pe0_,0)
             else
                 pth(ix^D)=eos%gamma_minus_1*(w(ix^D,e_)-half*((^C&w(ix^D,m^C_)**2+)/w(ix^D,rho_)&
-                     +(^C&w(ix^D,b^C_)**2+)))
+                     +(^C&w(ix^D,b^C_)**2+))-mhd_uawsom_wave_energy_cell(w(ix^D,:)))
             end if
             if(fix_small_values.and.pth(ix^D)<small_pressure) pth(ix^D)=small_pressure
         {end do\}
@@ -1427,7 +1569,7 @@ contains
         double precision, intent(in) :: x(ixI^S,1:ndim)
         double precision, intent(out):: pth(ixI^S)
 
-        double precision :: b(ixO^S,1:ndir), v(ixO^S,1:ndir), tmp, b2, gamma2, inv_rho
+        double precision :: b(ixO^S,1:ndir), v(ndir), tmp, b2, vac2, gamma2, inv_rho
         integer :: iw, ix^D
 
         {do ix^DB=ixOmin^DB,ixOmax^DB\}
@@ -1442,29 +1584,28 @@ contains
 
             inv_rho=1.d0/w(ix^D,rho_)
             ! Va^2/c^2
-            b2=b2*inv_rho*eos%inv_squared_c
+            vac2=b2*inv_rho*eos%inv_squared_c
             ! equation (15)
-            gamma2=1.d0/(1.d0+b2)
+            gamma2=1.d0/(1.d0+vac2)
             ! Convert momentum to velocity
-            ^C&v(ix^D,^C)=gamma2*(w(ix^D,m^C_)+b2*b(ix^D,^C)*tmp)*inv_rho\
+            ^C&v(^C)=gamma2*(w(ix^D,m^C_)+vac2*b(ix^D,^C)*tmp)*inv_rho\
 
             ! E=Bxv
             {^IFTHREEC
-                b(ix^D,1)=w(ix^D,b2_)*v(ix^D,3)-w(ix^D,b3_)*v(ix^D,2)
-                b(ix^D,2)=w(ix^D,b3_)*v(ix^D,1)-w(ix^D,b1_)*v(ix^D,3)
-                b(ix^D,3)=w(ix^D,b1_)*v(ix^D,2)-w(ix^D,b2_)*v(ix^D,1)
+                b(ix^D,1)=w(ix^D,b2_)*v(3)-w(ix^D,b3_)*v(2)
+                b(ix^D,2)=w(ix^D,b3_)*v(1)-w(ix^D,b1_)*v(3)
+                b(ix^D,3)=w(ix^D,b1_)*v(2)-w(ix^D,b2_)*v(1)
             }
             {^IFTWOC
                 b(ix^D,1)=zero
-                b(ix^D,2)=w(ix^D,b1_)*v(ix^D,2)-w(ix^D,b2_)*v(ix^D,1)
+                b(ix^D,2)=w(ix^D,b1_)*v(2)-w(ix^D,b2_)*v(1)
             }
             {^IFONEC
                 b(ix^D,1)=zero
             }
             ! Calculate pressure = (gamma-1) * (e-eK-eB-eE)
             pth(ix^D)=eos%gamma_minus_1*(w(ix^D,e_)&
-                       -half*((^C&v(ix^D,^C)**2+)*w(ix^D,rho_)&
-                       +(^C&w(ix^D,b^C_)**2+)&
+                       -half*((^C&v(^C)**2+)*w(ix^D,rho_)+b2&
                        +(^C&b(ix^D,^C)**2+)*eos%inv_squared_c))
             if(fix_small_values.and.pth(ix^D)<small_pressure) pth(ix^D)=small_pressure
         {end do\}
@@ -1488,6 +1629,79 @@ contains
         end if
 
     end subroutine mhd_get_pthermal_semirelati
+
+    !> Calculate thermal pressure for semirelativistic MHD
+    subroutine mhd_get_pthermal_semirelati_PI(w,x,ixI^L,ixO^L,pth)
+        use mod_global_parameters
+        use mod_small_values, only: trace_small_values
+
+        integer, intent(in)          :: ixI^L, ixO^L
+        double precision, intent(in) :: w(ixI^S,nw)
+        double precision, intent(in) :: x(ixI^S,1:ndim)
+        double precision, intent(out):: pth(ixI^S)
+
+        double precision :: b(ixO^S,1:ndir), v(ndir), tmp, b2, gamma2, inv_rho, eint, T, Rfac
+        integer :: iw, ix^D
+
+        {do ix^DB=ixOmin^DB,ixOmax^DB\}
+            b2=(^C&w(ix^D,b^C_)**2+)
+            if(b2>smalldouble) then
+                tmp=1.d0/sqrt(b2)
+            else
+                tmp=0.d0
+            end if
+            ^C&b(ix^D,^C)=w(ix^D,b^C_)*tmp\
+            tmp=(^C&b(ix^D,^C)*w(ix^D,m^C_)+)
+
+            inv_rho=1.d0/w(ix^D,rho_)
+            ! Va^2/c^2
+            b2=b2*inv_rho*eos%inv_squared_c
+            ! equation (15)
+            gamma2=1.d0/(1.d0+b2)
+            ! Convert momentum to velocity
+            ^C&v(^C)=gamma2*(w(ix^D,m^C_)+b2*b(ix^D,^C)*tmp)*inv_rho\
+
+            ! E=Bxv
+            {^IFTHREEC
+                b(ix^D,1)=w(ix^D,b2_)*v(3)-w(ix^D,b3_)*v(2)
+                b(ix^D,2)=w(ix^D,b3_)*v(1)-w(ix^D,b1_)*v(3)
+                b(ix^D,3)=w(ix^D,b1_)*v(2)-w(ix^D,b2_)*v(1)
+            }
+            {^IFTWOC
+                b(ix^D,1)=zero
+                b(ix^D,2)=w(ix^D,b1_)*v(2)-w(ix^D,b2_)*v(1)
+            }
+            {^IFONEC
+                b(ix^D,1)=zero
+            }
+            ! internal energy= e-eK-eB-eE
+            eint=w(ix^D,e_)&
+                      -half*((^C&v(^C)**2+)*w(ix^D,rho_)&
+                      +(^C&w(ix^D,b^C_)**2+)&
+                      +(^C&b(ix^D,^C)**2+)*eos%inv_squared_c)
+            call state_from_eint_PI(w(ix^D,rho_), eint, T, pth(ix^D), Rfac)
+            if(fix_small_values.and.pth(ix^D)<small_pressure) pth(ix^D)=small_pressure
+        {end do\}
+
+        if(check_small_values.and..not.fix_small_values) then
+            {do ix^DB=ixOmin^DB,ixOmax^DB\}
+                if(pth(ix^D)<small_pressure) then
+                    write(*,*) "Error: small value of gas pressure",pth(ix^D),&
+                         " encountered when call mhd_get_pthermal_semirelati"
+                    write(*,*) "Iteration: ", it, " Time: ", global_time
+                    write(*,*) "Location: ", x(ix^D,:)
+                    write(*,*) "Cell number: ", ix^D
+                    do iw=1,nw
+                        write(*,*) trim(cons_wnames(iw)),": ",w(ix^D,iw)
+                    end do
+                    if(trace_small_values) write(*,*) sqrt(pth(ix^D)-bigdouble)
+                    write(*,*) "Saving status at the previous time step"
+                    crash=.true.
+                end if
+            {end do\}
+        end if
+
+    end subroutine mhd_get_pthermal_semirelati_PI
 
     !> Calculate thermal pressure=(gamma-1)*(e-0.5*m**2/rho) within ixO^L
     subroutine mhd_get_pthermal_hde(w,x,ixI^L,ixO^L,pth)
@@ -1654,6 +1868,19 @@ contains
         res(ixO^S) = block%equi_vars(ixO^S,equi_pe0_,b0i)
     end subroutine mhd_get_pe_equi
 
+    !> Electron and hydrogen number densities of the background alone, for the
+    !> equilibrium rate that subtract_equi removes. Splitting is restricted to
+    !> the FI EoS, so the electron count is the fully ionised one.
+    subroutine mhd_get_ne_nH_equi(ixI^L, ixO^L, w, x, ne, nH)
+        use mod_global_parameters
+        integer, intent(in)          :: ixI^L, ixO^L
+        double precision, intent(in) :: w(ixI^S, nw)
+        double precision, intent(in) :: x(ixI^S, 1:ndim)
+        double precision, intent(out):: ne(ixI^S), nH(ixI^S)
+        nH(ixO^S) = block%equi_vars(ixO^S,equi_rho0_,b0i) / eos%nH2rhoFactor
+        ne(ixO^S) = nH(ixO^S) * eos%neOnH_FI
+    end subroutine mhd_get_ne_nH_equi
+
     !> Internal energy extraction + small value handling (moved from mod_mhd_phys.t)
 
     !> Get internal energy from conserved state (origin formulation)
@@ -1667,6 +1894,55 @@ contains
         ei(ixO^S) = w(ixO^S,e_) - half*((^C&w(ixO^S,m^C_)**2+)/w(ixO^S,rho_) &
              + (^C&w(ixO^S,b^C_)**2+))
     end function mhd_get_ei_origin
+
+    !> Get internal energy from conserved state (semirelativistic formulation)
+    function mhd_get_ei_semirelati(w, ixI^L, ixO^L) result(ei)
+        use mod_global_parameters
+        integer, intent(in)          :: ixI^L, ixO^L
+        double precision, intent(in) :: w(ixI^S, nw)
+        double precision             :: ei(ixO^S)
+
+        double precision :: b(ixO^S,1:ndir), v(ndir), tmp, b2, gamma2, inv_rho
+        integer :: ix^D
+
+        {do ix^DB=ixOmin^DB,ixOmax^DB\}
+            b2=(^C&w(ix^D,b^C_)**2+)
+            if(b2>smalldouble) then
+                tmp=1.d0/sqrt(b2)
+            else
+                tmp=0.d0
+            end if
+            ^C&b(ix^D,^C)=w(ix^D,b^C_)*tmp\
+            tmp=(^C&b(ix^D,^C)*w(ix^D,m^C_)+)
+
+            inv_rho=1.d0/w(ix^D,rho_)
+            ! Va^2/c^2
+            b2=b2*inv_rho*eos%inv_squared_c
+            ! equation (15)
+            gamma2=1.d0/(1.d0+b2)
+            ! Convert momentum to velocity
+            ^C&v(^C)=gamma2*(w(ix^D,m^C_)+b2*b(ix^D,^C)*tmp)*inv_rho\
+
+            ! E=Bxv
+            {^IFTHREEC
+                b(ix^D,1)=w(ix^D,b2_)*v(3)-w(ix^D,b3_)*v(2)
+                b(ix^D,2)=w(ix^D,b3_)*v(1)-w(ix^D,b1_)*v(3)
+                b(ix^D,3)=w(ix^D,b1_)*v(2)-w(ix^D,b2_)*v(1)
+            }
+            {^IFTWOC
+                b(ix^D,1)=zero
+                b(ix^D,2)=w(ix^D,b1_)*v(2)-w(ix^D,b2_)*v(1)
+            }
+            {^IFONEC
+                b(ix^D,1)=zero
+            }
+            ! internal energy= e-eK-eB-eE
+            ei(ix^D)=w(ix^D,e_)&
+                      -half*((^C&v(^C)**2+)*w(ix^D,rho_)&
+                      +(^C&w(ix^D,b^C_)**2+)&
+                      +(^C&b(ix^D,^C)**2+)*eos%inv_squared_c)
+        {end do\}
+    end function mhd_get_ei_semirelati
 
     !> Get internal energy from conserved state (internal energy formulation)
     function mhd_get_ei_inte(w, ixI^L, ixO^L) result(ei)
@@ -1687,7 +1963,7 @@ contains
     !> Structural mirror of the FI conversion/pthermal/csound family, sharing
     !> FI's eq_state_units / RR=1 normalisation; the only difference is that the
     !> eint<->p relation is delegated to the portable scalar backend
-    !> (mod_eos_PI), so eint carries the ionisation-energy term.
+    !> (mod_eos_pi), so eint carries the ionisation-energy term.
     !> Origin: w(e_) is total energy; inte: w(e_) is gas internal energy.
 
     !> Primitive pressure -> total energy (origin). m^C_ is still velocity here

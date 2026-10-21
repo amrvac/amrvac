@@ -60,10 +60,11 @@ module mod_eos_container
             double precision, intent(out)   :: res(ixI^S)
         end subroutine get_eos_variable_alt
 
-        subroutine get_ne_nH_iface(ixI^L, ixO^L, w, ne, nH)
+        subroutine get_ne_nH_iface(ixI^L, ixO^L, w, x, ne, nH)
             use mod_global_parameters
             integer, intent(in)             :: ixI^L, ixO^L
             double precision, intent(in)    :: w(ixI^S, nw)
+            double precision, intent(in)    :: x(ixI^S, 1:ndim)
             double precision, intent(out)   :: ne(ixI^S), nH(ixI^S)
         end subroutine get_ne_nH_iface
     end interface
@@ -152,7 +153,7 @@ module mod_eos_container
         !> Entropy-method tables (eos%method == 'entropy'). Each quantity Q is
         !> stored as four containers -- Q, Q_x, Q_y, Q_xy (value plus the two
         !> first derivatives and the cross derivative) -- fully determining the
-        !> bicubic Hermite polynomial in each cell (mod_eos_LTE_entropy). Five
+        !> bicubic Hermite polynomial in each cell (mod_eos_lte_entropy). Five
         !> quantities:
         !>   Forward (log_nH, log_eint/nH): Tfwd, pfwd, neOnH.
         !>   Inverse (log_nH, log_p/nH):    eintP, g1p (= Gamma_1).

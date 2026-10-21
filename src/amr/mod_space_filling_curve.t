@@ -254,11 +254,15 @@ contains
     use mod_forest
     use mod_global_parameters
 
-    integer :: ipe, Morton_no, igrid, ix
-    double precision :: cost_total, cost_target, cost_cum
+    integer :: ipe, Morton_no, igrid, ix, nseen, ncut, nmax, nrem
+    integer :: ncut_lo, ncut_hi
+    integer, save :: last_report = -1
+    double precision :: cost_total, cost_target, cost_mean
     double precision :: maxcount, mincount, maxcost, meancost
-    double precision, allocatable :: cost_local(:)
+    double precision, allocatable :: cost_local(:), cost_cumul(:)
     integer :: nblocks_per(0:npe-1)
+    logical :: partition_ok
+    logical, save :: warned_fallback = .false.
 
     if (allocated(sfc_to_igrid)) deallocate(sfc_to_igrid)
     {#IFDEF EVOLVINGBOUNDARY
@@ -269,8 +273,9 @@ contains
     !    Morton-indexed cost_local at its own slots, zeros elsewhere.
     !    Morton numbering is invariant across load_balance migration, so
     !    costlist values built up via EWMA below stay meaningful when
-    !    blocks change rank. Refinement events insert/remove Morton
-    !    indices; the EWMA recovers within ~5 cycles for affected entries.
+    !    blocks change rank. Refinement events insert and remove Morton indices;
+    !    slots created that way are seeded at step 3b and then converge on their
+    !    own measurements.
     allocate(cost_local(nleafs))
     cost_local = 0.0d0
     do Morton_no = 1, nleafs
@@ -291,43 +296,104 @@ contains
     end if
 
     ! 3. EWMA blend the measurement into the persistent global costlist.
-    !    Skip slots with zero measurement (block didn't run advect this
-    !    cycle for some reason — keep the prior estimate). This blend at
+    !    Skip slots with zero measurement (block did not run advect this
+    !    cycle for some reason) and keep the prior estimate. This blend at
     !    the GLOBAL Morton level (not per-igrid) is what makes the
     !    partition migration-safe.
     do Morton_no = 1, nleafs
       if (cost_local(Morton_no) > 0.0d0) then
-        costlist(Morton_no) = lb_alpha * costlist(Morton_no) &
-                            + (1.0d0 - lb_alpha) * cost_local(Morton_no)
+        if (costlist_seen(Morton_no)) then
+          costlist(Morton_no) = lb_alpha * costlist(Morton_no) &
+                              + (1.0d0 - lb_alpha) * cost_local(Morton_no)
+        else
+          ! First measurement for this slot: take it rather than blend it
+          ! against a value that was never measured.
+          costlist(Morton_no) = cost_local(Morton_no)
+          costlist_seen(Morton_no) = .true.
+        end if
       end if
     end do
     deallocate(cost_local)
 
+    ! 3b. Give never-measured slots the mean of the measured ones. costlist is
+    !     a wall time, so any fixed seed is a units error and would let a single
+    !     untimed leaf dominate cost_total.
+    nseen = count(costlist_seen(1:nleafs))
+    if (nseen > 0) then
+      cost_mean = sum(costlist(1:nleafs), mask=costlist_seen(1:nleafs)) / dble(nseen)
+      do Morton_no = 1, nleafs
+        if (.not. costlist_seen(Morton_no)) costlist(Morton_no) = cost_mean
+      end do
+    end if
+
     cost_total = sum(costlist(1:nleafs))
-    if (cost_total <= 0.0d0) then
-      ! Fully cold: fall back to equal-block partition.
+    if (cost_total <= 0.0d0 .or. nseen == 0 .or. nleafs < npe) then
+      ! Fully cold, or fewer leaves than ranks (no cost-based cut can give
+      ! every rank work): fall back to the equal-block partition.
       call get_Morton_range
       return
     end if
 
-    ! 4. Greedy cumulative-cost cut along the Morton-sorted leaves. Aim for
-    !    each rank to receive cost_total / npe of cumulative work; cut at
-    !    the leaf where the running sum first exceeds the per-rank target.
-    nblocks_per = 0
-    ipe = 0
-    cost_cum = 0.0d0
-    Morton_start(0) = 1
+    ! 4. Cumulative-cost cut along the Morton-sorted leaves. Each rank is closed
+    !    explicitly, in rank order, so the ranges are always a contiguous cover
+    !    of 1..nleafs. Morton_start/Morton_stop persist between calls, so a rank
+    !    left unassigned here would silently retain a stale range.
+    allocate(cost_cumul(0:nleafs))
+    cost_cumul(0) = 0.0d0
     do Morton_no = 1, nleafs
-      cost_cum = cost_cum + costlist(Morton_no)
+      cost_cumul(Morton_no) = cost_cumul(Morton_no-1) + costlist(Morton_no)
+    end do
+
+    ! Upper bound on the blocks one rank may hold, from lb_max_block_ratio.
+    nmax = max(1, ceiling(lb_max_block_ratio * dble(nleafs) / dble(npe)))
+
+    nblocks_per = 0
+    ix = 0                                  ! last leaf handed out so far
+    Morton_start(0) = 1
+    do ipe = 0, npe-2
+      nrem = npe-1-ipe                      ! ranks still to be assigned
       cost_target = (dble(ipe) + 1.0d0) * cost_total / dble(npe)
-      nblocks_per(ipe) = nblocks_per(ipe) + 1
-      if (cost_cum >= cost_target .and. ipe < npe-1) then
-        Morton_stop(ipe) = Morton_no
-        ipe = ipe + 1
-        Morton_start(ipe) = Morton_no + 1
-      end if
+      ! smallest leaf whose cumulative cost reaches this rank's target
+      ncut = ix + 1
+      do while (ncut < nleafs .and. cost_cumul(ncut) < cost_target)
+        ncut = ncut + 1
+      end do
+      ! Feasible window: lo keeps at least one leaf here and leaves the
+      ! remaining ranks no more than nmax each; hi respects nmax for this rank
+      ! and leaves at least one leaf per remaining rank.
+      ncut_lo = max(ix + 1,     nleafs - nmax*nrem)
+      ncut_hi = min(ix + nmax,  nleafs - nrem)
+      ncut = min(max(ncut, ncut_lo), ncut_hi)
+      Morton_stop(ipe)    = ncut
+      Morton_start(ipe+1) = ncut + 1
+      nblocks_per(ipe)    = ncut - ix
+      ix = ncut
     end do
     Morton_stop(npe-1) = nleafs
+    nblocks_per(npe-1) = nleafs - ix
+    deallocate(cost_cumul)
+
+    ! 4b. Verify the cover before returning: load_balance migrates blocks from
+    !     these ranges and a malformed partition corrupts the forest rather than
+    !     failing cleanly. Fall back to the equal-block cut if it is wrong.
+    partition_ok = (Morton_start(0) == 1 .and. Morton_stop(npe-1) == nleafs)
+    do ipe = 1, npe-1
+      if (Morton_start(ipe) /= Morton_stop(ipe-1) + 1) partition_ok = .false.
+    end do
+    do ipe = 0, npe-1
+      if (Morton_stop(ipe) < Morton_start(ipe)) partition_ok = .false.
+      if (Morton_start(ipe) < 1 .or. Morton_stop(ipe) > nleafs) partition_ok = .false.
+    end do
+    if (.not. partition_ok) then
+      if (mype == 0 .and. .not. warned_fallback) then
+        write(*,*) 'get_Morton_range_costed: partition failed validation at it=', it
+        write(*,*) '  nleafs=', nleafs, ' npe=', npe, ' cost_total=', cost_total
+        write(*,*) '  falling back to equal-block partition (warned once)'
+        warned_fallback = .true.
+      end if
+      call get_Morton_range
+      return
+    end if
 
     ! 5. Diagnostics (also drive the existing log columns Xload/Xmemory).
     maxcount = dble(maxval(nblocks_per))
@@ -339,6 +405,16 @@ contains
     end do
     meancost = cost_total / dble(npe)
     Xload    = maxcost / max(meancost, tiny(1.0d0))
+
+    ! Report the achieved block spread and load imbalance, rank 0, at most once
+    ! per 500 iterations.
+    if (mype == 0 .and. it >= last_report + 500) then
+      write(*,'(a,i9,a,i6,a,i5,a,i5,a,i5,a,f6.2)') &
+        ' [lb] it=', it, ' nleafs=', nleafs, &
+        '  blocks/rank min=', minval(nblocks_per), ' max=', maxval(nblocks_per), &
+        ' cap=', nmax, '  Xload=', Xload
+      last_report = it
+    end if
 
     if (Morton_stop(mype) >= Morton_start(mype)) then
       allocate(sfc_to_igrid(Morton_start(mype):Morton_stop(mype)))

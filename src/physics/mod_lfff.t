@@ -31,6 +31,15 @@ module mod_lfff
   double precision, allocatable, save :: Bz0(:,:)
   double precision, allocatable, save :: xa1(:),xa2(:)
   integer, save :: nx1,nx2
+  double precision, parameter :: lfff_mode_tolerance=1.d-12
+  double precision, parameter :: lfff_resonance_tolerance=1.d-10
+  double precision, parameter :: lfff_flux_balance_tolerance=1.d-8
+{^IFTWOD
+  double precision, allocatable, save :: l2d_br(:),l2d_bi(:),l2d_k(:)
+  double precision, save :: l2d_b0,l2d_alpha,l2d_y0,l2d_ytop
+  integer, save :: l2d_nm
+  logical, save :: l2d_closed,l2d_ready=.false.
+}
   
 contains
 
@@ -98,6 +107,736 @@ contains
   end subroutine init_b_fff_data
 
 {^IFTHREED
+  subroutine init_b_fff_data_driven_boundary(boundaryname,qLunit,qBunit,qxc1,qxc2,bvector)
+    use mod_global_parameters
+    use mod_comm_lib, only: mpistop
+    use mod_data_driven_boundary, only: read_data_driven_boundary_frame
+    use, intrinsic :: ieee_arithmetic, only: ieee_is_finite
+
+    character(len=*), intent(in) :: boundaryname
+    double precision, intent(in) :: qLunit,qBunit
+    double precision, intent(in), optional :: qxc1,qxc2
+    !> Optional unmodified vector magnetogram in AMRVAC magnetic-field units.
+    double precision, allocatable, intent(out), optional :: bvector(:,:,:)
+
+    double precision :: snapshot_time,dxm1,dxm2,xc1,xc2
+    double precision, allocatable :: bframe(:,:,:)
+    integer :: i,bnx,bny
+
+    if(.not.ieee_is_finite(qLunit) .or. .not.ieee_is_finite(qBunit) .or. &
+       qLunit<=0.d0 .or. qBunit<=0.d0) &
+       call mpistop('data-driven boundary units must be positive')
+    call read_data_driven_boundary_frame(boundaryname,snapshot_time,bnx,bny,dxm1,dxm2,bframe)
+    if(bnx<1 .or. bny<1 .or. .not.ieee_is_finite(snapshot_time) .or. &
+       .not.ieee_is_finite(dxm1) .or. &
+       .not.ieee_is_finite(dxm2) .or. dxm1<=0.d0 .or. dxm2<=0.d0) &
+       call mpistop('invalid data-driven boundary geometry')
+    if(.not.all(ieee_is_finite(bframe))) &
+       call mpistop('non-finite magnetic value in data-driven boundary frame')
+
+    nx1 = bnx
+    nx2 = bny
+    if(allocated(Bz0)) deallocate(Bz0)
+    if(allocated(xa1)) deallocate(xa1)
+    if(allocated(xa2)) deallocate(xa2)
+    allocate(Bz0(nx1,nx2))
+    allocate(xa1(nx1))
+    allocate(xa2(nx2))
+
+    ! Python V1 stores dx/dy in km and B in Gauss.
+    dxm1 = dxm1*1.d5
+    dxm2 = dxm2*1.d5
+    if(present(qxc1)) then
+      xc1 = qxc1
+    else
+      xc1 = 0.5d0*(xprobmin1+xprobmax1)*qLunit
+    end if
+    if(present(qxc2)) then
+      xc2 = qxc2
+    else
+      xc2 = 0.5d0*(xprobmin2+xprobmax2)*qLunit
+    end if
+    if(.not.ieee_is_finite(xc1) .or. .not.ieee_is_finite(xc2)) &
+       call mpistop('non-finite data-driven boundary center')
+
+    Bz0(:,:) = bframe(:,:,3)
+    if(present(bvector)) then
+      allocate(bvector(nx1,nx2,3))
+      bvector = bframe/qBunit
+    end if
+    deallocate(bframe)
+
+    do i=1,nx1
+      xa1(i) = xc1 + (dble(i) - dble(nx1)/2.d0 - 0.5d0)*dxm1
+    end do
+    do i=1,nx2
+      xa2(i) = xc2 + (dble(i) - dble(nx2)/2.d0 - 0.5d0)*dxm2
+    end do
+
+    dxm1 = dxm1/qLunit
+    dxm2 = dxm2/qLunit
+    xa1 = xa1/qLunit
+    xa2 = xa2/qLunit
+    darea = dxm1*dxm2
+    Bz0 = Bz0/qBunit
+    Bzmax = maxval(dabs(Bz0(:,:)))
+    if(Bzmax<=0.d0) call mpistop('zero Bz in data-driven boundary frame')
+    Bz0 = Bz0/Bzmax
+
+    if(mype==0) then
+      print*,'data-driven boundary frame:',trim(boundaryname)
+      print*,'snapshot_time [s]:',snapshot_time
+      print*,'magnetogram xrange:',minval(xa1),maxval(xa1)
+      print*,'magnetogram yrange:',minval(xa2),maxval(xa2)
+      print*,'extrapolating potential field from Bz of',nx1,'by',nx2,'pixels. Bzmax=',Bzmax
+    end if
+  end subroutine init_b_fff_data_driven_boundary
+}
+
+  !> Check a constant-alpha magnetogram and optionally remove its core mean.
+  !> Status: 0 accepted unchanged, 1 mean removed, 2 invalid treatment,
+  !> 3 invalid threshold, 4 strict-mode imbalance, 5 above auto-balance limit.
+  subroutine lfff_balance_bottom_flux(bz,treatment,max_imbalance,&
+     imbalance_before,imbalance_after,mean_correction,status)
+    double precision, intent(inout) :: bz(:,:)
+    character(len=*), intent(in) :: treatment
+    double precision, intent(in) :: max_imbalance
+    double precision, intent(out) :: imbalance_before,imbalance_after
+    double precision, intent(out) :: mean_correction
+    integer, intent(out) :: status
+
+    double precision :: unsigned_flux
+
+    mean_correction=0.d0
+    unsigned_flux=sum(dabs(bz))
+    imbalance_before=dabs(sum(bz))/max(unsigned_flux,tiny(1.d0))
+    imbalance_after=imbalance_before
+    status=0
+
+    if(max_imbalance<0.d0 .or. max_imbalance>1.d0) then
+      status=3
+      return
+    end if
+
+    select case(trim(adjustl(treatment)))
+    case('strict')
+      if(imbalance_before>lfff_flux_balance_tolerance) status=4
+    case('subtract_mean')
+      if(imbalance_before>max_imbalance) then
+        status=5
+        return
+      end if
+      if(imbalance_before>lfff_flux_balance_tolerance) then
+        mean_correction=sum(bz)/dble(size(bz))
+        bz=bz-mean_correction
+        unsigned_flux=sum(dabs(bz))
+        imbalance_after=dabs(sum(bz))/max(unsigned_flux,tiny(1.d0))
+        status=1
+      end if
+    case default
+      status=2
+    end select
+  end subroutine lfff_balance_bottom_flux
+
+{^IFTHREED
+  !> Construct an open-half-space potential field on one dense Cartesian grid.
+  !> Plane 1 is the magnetogram plane; planes 2:nz+1 are cell centres one,
+  !> two, ... grid spacings above it. The input Bz is already in AMRVAC units.
+  subroutine extrapolate_potential_fft_dense(bz,dx1,dx2,dx3,padding_factor,b)
+    use mod_comm_lib, only: mpistop
+    use mod_fft, only: fft_2d_real_imag,fft_size_supported
+    use mod_global_parameters, only: domain_nx1,domain_nx2,domain_nx3,dpi
+
+    double precision, intent(in) :: bz(:,:),dx1,dx2,dx3
+    integer, intent(in) :: padding_factor
+    double precision, allocatable, intent(out) :: b(:,:,:,:)
+
+    double precision, allocatable :: sr(:,:),si(:,:),wr(:,:),wi(:,:)
+    double precision, allocatable :: kx(:),ky(:)
+    double precision :: k2,q,z,fac,kxd,kyd
+    integer :: nx,ny,nz,npx,npy,ip0,jp0,i,j,k,ic,mode
+
+    nx=size(bz,1)
+    ny=size(bz,2)
+    nz=domain_nx3
+    if(nx/=domain_nx1 .or. ny/=domain_nx2) &
+       call mpistop('dense potential Bz does not match the physical grid')
+    if(padding_factor<1) call mpistop('dense potential padding must be positive')
+    npx=padding_factor*nx
+    npy=padding_factor*ny
+    if(.not.fft_size_supported(npx) .or. .not.fft_size_supported(npy)) &
+       call mpistop('dense potential padded FFT size is unsupported')
+
+    allocate(b(nx,ny,nz+1,3))
+    allocate(sr(npx,npy),si(npx,npy),wr(npx,npy),wi(npx,npy))
+    allocate(kx(npx),ky(npy))
+    ip0=(npx-nx)/2+1
+    jp0=(npy-ny)/2+1
+    sr=0.d0
+    si=0.d0
+    sr(ip0:ip0+nx-1,jp0:jp0+ny-1)=bz
+    call fft_2d_real_imag(sr,si,.false.)
+
+    do i=1,npx
+      mode=i-1
+      if(mode>npx/2) mode=mode-npx
+      kx(i)=2.d0*dpi*dble(mode)/(dble(npx)*dx1)
+    end do
+    do j=1,npy
+      mode=j-1
+      if(mode>npy/2) mode=mode-npy
+      ky(j)=2.d0*dpi*dble(mode)/(dble(npy)*dx2)
+    end do
+
+    do k=1,nz+1
+      z=dble(k-1)*dx3
+      do ic=1,3
+        do j=1,npy
+          do i=1,npx
+            k2=kx(i)**2+ky(j)**2
+            if(k2<=0.d0) then
+              if(ic==3) then
+                wr(i,j)=sr(i,j)
+                wi(i,j)=si(i,j)
+              else
+                wr(i,j)=0.d0
+                wi(i,j)=0.d0
+              end if
+            else
+              q=dsqrt(k2)
+              kxd=kx(i)
+              kyd=ky(j)
+              if(mod(npx,2)==0 .and. i==npx/2+1) kxd=0.d0
+              if(mod(npy,2)==0 .and. j==npy/2+1) kyd=0.d0
+              select case(ic)
+              case(1)
+                fac=kxd/q*dexp(-q*z)
+                wr(i,j)=fac*si(i,j)
+                wi(i,j)=-fac*sr(i,j)
+              case(2)
+                fac=kyd/q*dexp(-q*z)
+                wr(i,j)=fac*si(i,j)
+                wi(i,j)=-fac*sr(i,j)
+              case(3)
+                fac=dexp(-q*z)
+                wr(i,j)=fac*sr(i,j)
+                wi(i,j)=fac*si(i,j)
+              end select
+            end if
+          end do
+        end do
+        call fft_2d_real_imag(wr,wi,.true.)
+        b(:,:,k,ic)=wr(ip0:ip0+nx-1,jp0:jp0+ny-1)
+      end do
+    end do
+
+    ! Preserve the prescribed normal field exactly at the magnetogram plane.
+    b(:,:,1,3)=bz
+    deallocate(sr,si,wr,wi,kx,ky)
+  end subroutine extrapolate_potential_fft_dense
+
+  !> Extrapolate a Cartesian potential field with horizontal Fourier modes.
+  !> The bottom magnetogram must match the level-one physical cell centers.
+  !> Results are streamed one AMRVAC block layer at a time and written directly
+  !> to the distributed cell-centered magnetic variables.
+  subroutine extrapolate_potential_fft(iw_b,padding_factor,source_plane_depth,&
+     alpha,top_boundary,flux_treatment,max_flux_imbalance)
+    use mpi
+    use mod_global_parameters
+    use mod_comm_lib, only: mpistop
+    use mod_fft, only: fft_2d_real_imag,fft_size_supported,fft_next_supported,&
+       fft_factorization
+    use mod_forest, only: tree_root
+    use mod_geometry
+
+    integer, intent(in) :: iw_b(3)
+    integer, intent(in), optional :: padding_factor
+    double precision, intent(in), optional :: source_plane_depth
+    double precision, intent(in), optional :: alpha
+    character(len=*), intent(in), optional :: top_boundary
+    character(len=*), intent(in), optional :: flux_treatment
+    double precision, intent(in), optional :: max_flux_imbalance
+
+    double precision, allocatable :: bcore(:,:),spec_r(:,:),spec_i(:,:)
+    double precision, allocatable :: work_r(:,:),work_i(:,:),bplane(:,:,:)
+    double precision, allocatable :: sendbuf(:),recvbuf(:),kx(:),ky(:)
+    integer, allocatable :: sendcounts(:),recvcounts(:),sdispls(:),rdispls(:)
+    integer, allocatable :: cursor(:),blockpos(:,:)
+    double precision :: dx1,dx2,dx3,tol1,tol2,maxerr,z,fac,source_depth
+    double precision :: bmean,bflux,tstart,memory_mb,alpha_fft,alpha2,k2
+    double precision :: beta,transfer_b,transfer_d,top_height
+    double precision :: kx_der,ky_der,kmin,flux_imbalance,unsigned_flux
+    double precision :: flux_imbalance_before,bmean_before,bflux_before
+    double precision :: mean_correction,max_imbalance
+    double precision, parameter :: fft_memory_limit_mb=2048.d0
+    integer :: pad,npx,npy,ip0,jp0,ix0,iy0,starti
+    integer :: nb1,nb2,nb3,layer,layer_owner,kg,klocal
+    integer :: ig1,ig2,ipe,igrid,ic,ix1,ix2,pos,base,payload,slice_size
+    integer :: mode,next1,next2,nrecv,nsend,mode_status,flux_status
+    character(len=16) :: top_mode,flux_mode
+    character(len=256) :: message
+    logical :: top_closed,alpha_nonzero
+
+    if(ndim/=3) call mpistop('FFT potential field requires three dimensions')
+    if(coordinate/=Cartesian) call mpistop('FFT potential field requires Cartesian coordinates')
+    if(any(stretched_dim)) call mpistop('FFT potential field requires a uniform mesh')
+    if(refine_max_level/=1 .or. levmax/=1) &
+       call mpistop('FFT potential field v1 requires refine_max_level=1')
+    if(stagger_grid) call mpistop('FFT potential field v1 does not support stagger_grid')
+    if(.not.allocated(Bz0) .or. .not.allocated(xa1) .or. .not.allocated(xa2)) &
+       call mpistop('FFT potential field requires initialized magnetogram data')
+
+    pad=2
+    if(present(padding_factor)) pad=padding_factor
+    if(pad<1) call mpistop('FFT padding factor must be at least one')
+
+    source_depth=0.d0
+    if(present(source_plane_depth)) source_depth=source_plane_depth
+    if(source_depth<0.d0) call mpistop('FFT source-plane depth must not be negative')
+
+    alpha_fft=0.d0
+    if(present(alpha)) alpha_fft=alpha
+    alpha2=alpha_fft**2
+    alpha_nonzero=(alpha_fft/=0.d0)
+
+    top_mode='open'
+    if(present(top_boundary)) top_mode=trim(adjustl(top_boundary))
+    select case(trim(top_mode))
+    case('open')
+      top_closed=.false.
+    case('closed')
+      top_closed=.true.
+    case default
+      call mpistop("FFT top boundary must be 'open' or 'closed'")
+    end select
+
+    flux_mode='strict'
+    if(present(flux_treatment)) flux_mode=trim(adjustl(flux_treatment))
+    select case(trim(flux_mode))
+    case('strict','subtract_mean')
+      continue
+    case default
+      call mpistop("LFFF flux treatment must be 'strict' or 'subtract_mean'")
+    end select
+    max_imbalance=0.1d0
+    if(present(max_flux_imbalance)) max_imbalance=max_flux_imbalance
+    if(max_imbalance<0.d0 .or. max_imbalance>1.d0) &
+       call mpistop('LFFF maximum flux imbalance must be between zero and one')
+
+    dx1=dx(1,1)
+    dx2=dx(2,1)
+    dx3=dx(3,1)
+    top_height=source_depth+dble(domain_nx3)*dx3
+    tol1=1.d-8*max(1.d0,dabs(xprobmin1),dabs(xprobmax1),dabs(dx1))
+    tol2=1.d-8*max(1.d0,dabs(xprobmin2),dabs(xprobmax2),dabs(dx2))
+
+    ! Locate, by coordinates, the physical magnetogram core. This naturally
+    ! removes any symmetric ghost layers without assuming their width.
+    ix0=0
+    if(nx1>=domain_nx1) then
+      do starti=1,nx1-domain_nx1+1
+        maxerr=0.d0
+        do ix1=1,domain_nx1
+          maxerr=max(maxerr,dabs(xa1(starti+ix1-1)-&
+             (xprobmin1+(dble(ix1)-0.5d0)*dx1)))
+        end do
+        if(maxerr<=tol1) then
+          ix0=starti
+          exit
+        end if
+      end do
+    end if
+    iy0=0
+    if(nx2>=domain_nx2) then
+      do starti=1,nx2-domain_nx2+1
+        maxerr=0.d0
+        do ix2=1,domain_nx2
+          maxerr=max(maxerr,dabs(xa2(starti+ix2-1)-&
+             (xprobmin2+(dble(ix2)-0.5d0)*dx2)))
+        end do
+        if(maxerr<=tol2) then
+          iy0=starti
+          exit
+        end if
+      end do
+    end if
+    if(ix0==0 .or. iy0==0) then
+      if(mype==0) then
+        write(*,*) 'magnetogram size:',nx1,nx2
+        write(*,*) 'required physical FFT size:',domain_nx1,domain_nx2
+        write(*,*) 'AMRVAC dx/dy:',dx1,dx2
+      end if
+      call mpistop('FFT magnetogram centers do not match the level-one physical grid')
+    end if
+
+    npx=pad*domain_nx1
+    npy=pad*domain_nx2
+    if(.not.fft_size_supported(npx) .or. .not.fft_size_supported(npy)) then
+      next1=fft_next_supported(npx)
+      next2=fft_next_supported(npy)
+      write(message,'(a,i0,a,a,a,i0,a,a,a,i0,a,i0)') &
+         'unsupported padded FFT size ',npx,' (',trim(fft_factorization(npx)),&
+         ') x ',npy,' (',trim(fft_factorization(npy)),&
+         '); next supported sizes are ',next1,' x ',next2
+      call mpistop(trim(message))
+    end if
+
+    if(mod(domain_nx1,block_nx1)/=0 .or. mod(domain_nx2,block_nx2)/=0 .or. &
+       mod(domain_nx3,block_nx3)/=0) &
+       call mpistop('FFT potential field requires domain_nx divisible by block_nx')
+    nb1=domain_nx1/block_nx1
+    nb2=domain_nx2/block_nx2
+    nb3=domain_nx3/block_nx3
+    slice_size=block_nx1*block_nx2*3
+    payload=slice_size*block_nx3
+
+    ! Conservative per-rank upper bound: four padded spectral/work planes,
+    ! core plus three-component physical plane, and one full block layer in
+    ! each MPI send/receive buffer. Refuse an unexpectedly large allocation
+    ! instead of relying on the operating system to terminate a rank.
+    memory_mb=8.d0*(4.d0*dble(npx)*dble(npy)+4.d0*dble(domain_nx1)*&
+       dble(domain_nx2)+6.d0*dble(domain_nx1)*dble(domain_nx2)*&
+       dble(block_nx3))/(1024.d0**2)
+    if(memory_mb>fft_memory_limit_mb) then
+      write(message,'(a,f10.1,a,f10.1,a)') 'FFT potential field needs up to ',&
+         memory_mb,' MiB/rank, above the internal limit of ',&
+         fft_memory_limit_mb,' MiB; reduce block_nx3 or horizontal size'
+      call mpistop(trim(message))
+    end if
+
+    allocate(bcore(domain_nx1,domain_nx2))
+    bcore=Bz0(ix0:ix0+domain_nx1-1,iy0:iy0+domain_nx2-1)
+    bmean_before=sum(bcore)/dble(size(bcore))*Bzmax
+    bflux_before=sum(bcore)*Bzmax*dx1*dx2
+    unsigned_flux=sum(dabs(bcore))
+    flux_imbalance_before=dabs(sum(bcore))/max(unsigned_flux,tiny(1.d0))
+    mean_correction=0.d0
+    flux_status=0
+    if(alpha_nonzero) then
+      call lfff_balance_bottom_flux(bcore,flux_mode,max_imbalance,&
+         flux_imbalance_before,flux_imbalance,mean_correction,flux_status)
+      select case(flux_status)
+      case(0,1)
+        continue
+      case(4)
+        if(mype==0) then
+          write(*,*) 'FFT LFFF alpha:',alpha_fft
+          write(*,*) 'relative bottom flux imbalance:',flux_imbalance_before
+          write(*,*) 'strict balance tolerance:',lfff_flux_balance_tolerance
+        end if
+        call mpistop('constant-alpha FFT LFFF requires a flux-balanced bottom magnetogram')
+      case(5)
+        if(mype==0) then
+          write(*,*) 'FFT LFFF alpha:',alpha_fft
+          write(*,*) 'relative bottom flux imbalance:',flux_imbalance_before
+          write(*,*) 'maximum automatic-balance imbalance:',max_imbalance
+        end if
+        call mpistop('LFFF magnetogram is too unbalanced for automatic mean subtraction')
+      case default
+        call mpistop('invalid LFFF flux-balance configuration')
+      end select
+    else
+      flux_imbalance=flux_imbalance_before
+    end if
+    bmean=sum(bcore)/dble(npx*npy)*Bzmax
+    bflux=sum(bcore)*Bzmax*dx1*dx2
+    ip0=(npx-domain_nx1)/2+1
+    jp0=(npy-domain_nx2)/2+1
+
+    allocate(spec_r(npx,npy),spec_i(npx,npy),work_r(npx,npy),work_i(npx,npy))
+    allocate(kx(npx),ky(npy))
+    spec_r=0.d0
+    spec_i=0.d0
+    if(mype==0) then
+      spec_r(ip0:ip0+domain_nx1-1,jp0:jp0+domain_nx2-1)=bcore
+      call fft_2d_real_imag(spec_r,spec_i,.false.)
+    end if
+    call MPI_BCAST(spec_r,npx*npy,MPI_DOUBLE_PRECISION,0,icomm,ierrmpi)
+    call MPI_BCAST(spec_i,npx*npy,MPI_DOUBLE_PRECISION,0,icomm,ierrmpi)
+
+    do ix1=1,npx
+      mode=ix1-1
+      if(mode>npx/2) mode=mode-npx
+      kx(ix1)=2.d0*dpi*dble(mode)/(dble(npx)*dx1)
+    end do
+    do ix2=1,npy
+      mode=ix2-1
+      if(mode>npy/2) mode=mode-npy
+      ky(ix2)=2.d0*dpi*dble(mode)/(dble(npy)*dx2)
+    end do
+
+    kmin=min(2.d0*dpi/(dble(npx)*dx1),2.d0*dpi/(dble(npy)*dx2))
+    if(alpha_nonzero .and. .not.top_closed .and. dabs(alpha_fft)>=kmin) then
+      if(mype==0) then
+        write(*,*) 'FFT LFFF alpha:',alpha_fft
+        write(*,*) 'smallest nonzero padded horizontal wavenumber:',kmin
+      end if
+      call mpistop('open-top FFT LFFF requires abs(alpha) < kmin')
+    end if
+
+    ! A finite-height closed LFFF permits oscillatory low-wavenumber modes,
+    ! except at the eigenvalues sin(beta*L)=0 where the two Bz boundary
+    ! conditions are singular.  Validate these modes before distributed work.
+    if(alpha_nonzero .and. top_closed) then
+      do ix2=1,npy
+        do ix1=1,npx
+          k2=kx(ix1)**2+ky(ix2)**2
+          if(k2<=0.d0 .or. alpha2<=k2) cycle
+          beta=dsqrt(alpha2-k2)
+          call lfff_fft_transfer(k2,alpha_fft,0.d0,top_height,.true.,&
+             transfer_b,transfer_d,mode_status)
+          if(mode_status==2) then
+            if(mype==0) then
+              write(*,*) 'FFT closed LFFF resonant mode kx,ky:',kx(ix1),ky(ix2)
+              write(*,*) 'alpha, beta, top height:',alpha_fft,beta,top_height
+            end if
+            call mpistop('closed-top FFT LFFF is singular for a horizontal mode')
+          end if
+        end do
+      end do
+    end if
+
+    allocate(sendcounts(0:npe-1),recvcounts(0:npe-1))
+    allocate(sdispls(0:npe-1),rdispls(0:npe-1),cursor(0:npe-1))
+    allocate(blockpos(nb1,nb2))
+    tstart=MPI_WTIME()
+
+    if(mype==0) then
+      write(*,*) 'FFT potential field physical size:',domain_nx1,domain_nx2,domain_nx3
+      write(*,*) 'FFT padded size:',npx,npy,' padding factor:',pad
+      write(*,*) 'FFT conservative memory bound [MiB/rank]:',memory_mb
+      write(*,*) 'FFT source plane below lower face:',source_depth
+      write(*,*) 'FFT alpha and top boundary:',alpha_fft,trim(top_mode)
+      if(top_closed) write(*,*) 'FFT closed-top height above source plane:',top_height
+      write(*,*) 'FFT magnetogram core starts at:',ix0,iy0
+      write(*,*) 'FFT input core mean Bz:',bmean_before,' input net bottom flux:',bflux_before
+      if(alpha_nonzero) then
+        write(*,*) 'FFT LFFF flux treatment:',trim(flux_mode)
+        write(*,*) 'FFT input relative bottom flux imbalance:',flux_imbalance_before
+        if(flux_status==1) &
+           write(*,*) 'FFT subtracted core mean Bz:',mean_correction*Bzmax
+        write(*,*) 'FFT corrected relative bottom flux imbalance:',flux_imbalance
+      end if
+      write(*,*) 'FFT padded zero-mode mean Bz:',bmean,' net bottom flux:',bflux
+    end if
+
+    do layer=1,nb3
+      layer_owner=mod(layer-1,npe)
+      sendcounts=0
+      recvcounts=0
+      sdispls=0
+      rdispls=0
+      blockpos=0
+
+      if(mype==layer_owner) then
+        do ig2=1,nb2
+          do ig1=1,nb1
+            ipe=tree_root(ig1,ig2,layer)%node%ipe
+            sendcounts(ipe)=sendcounts(ipe)+payload
+          end do
+        end do
+        do ipe=1,npe-1
+          sdispls(ipe)=sdispls(ipe-1)+sendcounts(ipe-1)
+        end do
+        cursor=sdispls
+        do ig2=1,nb2
+          do ig1=1,nb1
+            ipe=tree_root(ig1,ig2,layer)%node%ipe
+            blockpos(ig1,ig2)=cursor(ipe)+1
+            cursor(ipe)=cursor(ipe)+payload
+          end do
+        end do
+      end if
+
+      nrecv=0
+      do ig2=1,nb2
+        do ig1=1,nb1
+          if(tree_root(ig1,ig2,layer)%node%ipe==mype) nrecv=nrecv+payload
+        end do
+      end do
+      recvcounts(layer_owner)=nrecv
+      nsend=sum(sendcounts)
+      allocate(sendbuf(max(1,nsend)),recvbuf(max(1,nrecv)))
+      sendbuf=0.d0
+      recvbuf=0.d0
+
+      if(mype==layer_owner) then
+        allocate(bplane(domain_nx1,domain_nx2,3))
+        do klocal=1,block_nx3
+          kg=(layer-1)*block_nx3+klocal
+          z=(dble(kg)-0.5d0)*dx3+source_depth
+
+          do ic=1,3
+            do ix2=1,npy
+              do ix1=1,npx
+                k2=kx(ix1)**2+ky(ix2)**2
+                kx_der=kx(ix1)
+                ky_der=ky(ix2)
+                ! A first derivative of the self-conjugate Nyquist mode cannot
+                ! be represented by a real grid function.  Use the standard
+                ! zero derivative symbol for that one mode in each direction.
+                if(mod(npx,2)==0 .and. ix1==npx/2+1) kx_der=0.d0
+                if(mod(npy,2)==0 .and. ix2==npy/2+1) ky_der=0.d0
+
+                if(k2<=0.d0) then
+                  if(alpha_nonzero) then
+                    transfer_b=0.d0
+                  else
+                    ! A potential field retains the padded-domain mean flux.
+                    ! For a closed top only the fluctuating modes are closed.
+                    transfer_b=1.d0
+                  end if
+                  transfer_d=0.d0
+                else
+                  call lfff_fft_transfer(k2,alpha_fft,z,top_height,&
+                     top_closed,transfer_b,transfer_d,mode_status)
+                  if(mode_status/=0) &
+                     call mpistop('invalid FFT LFFF mode reached distributed solve')
+                end if
+
+                select case(ic)
+                case(1)
+                  if(k2>0.d0) then
+                    fac=(kx_der*transfer_d-&
+                       ky_der*alpha_fft*transfer_b)/k2
+                    work_r(ix1,ix2)= fac*spec_i(ix1,ix2)
+                    work_i(ix1,ix2)=-fac*spec_r(ix1,ix2)
+                  else
+                    work_r(ix1,ix2)=0.d0
+                    work_i(ix1,ix2)=0.d0
+                  end if
+                case(2)
+                  if(k2>0.d0) then
+                    fac=(ky_der*transfer_d+&
+                       kx_der*alpha_fft*transfer_b)/k2
+                    work_r(ix1,ix2)= fac*spec_i(ix1,ix2)
+                    work_i(ix1,ix2)=-fac*spec_r(ix1,ix2)
+                  else
+                    work_r(ix1,ix2)=0.d0
+                    work_i(ix1,ix2)=0.d0
+                  end if
+                case(3)
+                  work_r(ix1,ix2)=transfer_b*spec_r(ix1,ix2)
+                  work_i(ix1,ix2)=transfer_b*spec_i(ix1,ix2)
+                end select
+              end do
+            end do
+            call fft_2d_real_imag(work_r,work_i,.true.)
+            bplane(:,:,ic)=Bzmax*work_r(ip0:ip0+domain_nx1-1,&
+                                        jp0:jp0+domain_nx2-1)
+          end do
+
+          do ig2=1,nb2
+            do ig1=1,nb1
+              base=blockpos(ig1,ig2)+(klocal-1)*slice_size
+              pos=base
+              do ic=1,3
+                do ix2=1,block_nx2
+                  do ix1=1,block_nx1
+                    sendbuf(pos)=bplane((ig1-1)*block_nx1+ix1,&
+                       (ig2-1)*block_nx2+ix2,ic)
+                    pos=pos+1
+                  end do
+                end do
+              end do
+            end do
+          end do
+        end do
+        deallocate(bplane)
+      end if
+
+      call MPI_ALLTOALLV(sendbuf,sendcounts,sdispls,MPI_DOUBLE_PRECISION,&
+         recvbuf,recvcounts,rdispls,MPI_DOUBLE_PRECISION,icomm,ierrmpi)
+
+      pos=1
+      do ig2=1,nb2
+        do ig1=1,nb1
+          if(tree_root(ig1,ig2,layer)%node%ipe/=mype) cycle
+          igrid=tree_root(ig1,ig2,layer)%node%igrid
+          do klocal=1,block_nx3
+            do ic=1,3
+              do ix2=1,block_nx2
+                do ix1=1,block_nx1
+                  ps(igrid)%w(ixMlo1+ix1-1,ixMlo2+ix2-1,&
+                     ixMlo3+klocal-1,iw_b(ic))=recvbuf(pos)
+                  pos=pos+1
+                end do
+              end do
+            end do
+          end do
+        end do
+      end do
+      deallocate(sendbuf,recvbuf)
+    end do
+
+    if(mype==0) write(*,*) 'FFT potential/LFFF extrapolation took:',MPI_WTIME()-tstart,'s'
+    deallocate(bcore,spec_r,spec_i,work_r,work_i,kx,ky)
+    deallocate(sendcounts,recvcounts,sdispls,rdispls,cursor,blockpos)
+  end subroutine extrapolate_potential_fft
+}
+
+  !> Vertical transfer functions for one nonzero horizontal constant-alpha
+  !> Fourier mode. transfer_b multiplies Bz0, while transfer_d=-d(transfer_b)/dz
+  !> enters the horizontal field. status is zero on success, one for an
+  !> oscillatory mode in an open half-space, two for a closed-box resonance,
+  !> and three for invalid geometry.
+  subroutine lfff_fft_transfer(k2,alpha,z,top_height,top_closed,&
+     transfer_b,transfer_d,status)
+    double precision, intent(in) :: k2,alpha,z,top_height
+    logical, intent(in) :: top_closed
+    double precision, intent(out) :: transfer_b,transfer_d
+    integer, intent(out) :: status
+
+    double precision :: q2,q,beta,denominator,scale
+
+    transfer_b=0.d0
+    transfer_d=0.d0
+    status=0
+    if(k2<=0.d0 .or. top_height<=0.d0 .or. z<0.d0 .or. z>top_height) then
+      status=3
+      return
+    end if
+
+    q2=k2-alpha**2
+    scale=max(1.d0,k2,alpha**2)
+    if(.not.top_closed) then
+      if(q2< -lfff_mode_tolerance*scale) then
+        status=1
+        return
+      end if
+      q=dsqrt(max(0.d0,q2))
+      transfer_b=dexp(-q*z)
+      transfer_d=q*transfer_b
+    else if(q2>lfff_mode_tolerance*scale) then
+      q=dsqrt(q2)
+      if(q*top_height<50.d0) then
+        denominator=dsinh(q*top_height)
+        transfer_b=dsinh(q*(top_height-z))/denominator
+        transfer_d=q*dcosh(q*(top_height-z))/denominator
+      else
+        ! Algebraically identical exponential form that cannot overflow for
+        ! large q*L when 0 <= z <= L.
+        denominator=1.d0-dexp(-2.d0*q*top_height)
+        transfer_b=(dexp(-q*z)-dexp(-q*(2.d0*top_height-z)))/denominator
+        transfer_d=q*(dexp(-q*z)+dexp(-q*(2.d0*top_height-z)))/denominator
+      end if
+    else if(q2< -lfff_mode_tolerance*scale) then
+      beta=dsqrt(-q2)
+      denominator=dsin(beta*top_height)
+      if(dabs(denominator)<lfff_resonance_tolerance) then
+        status=2
+        return
+      end if
+      transfer_b=dsin(beta*(top_height-z))/denominator
+      transfer_d=beta*dcos(beta*(top_height-z))/denominator
+    else
+      ! Critical q=0 limit of sinh(q*(L-z))/sinh(q*L).
+      transfer_b=1.d0-z/top_height
+      transfer_d=1.d0/top_height
+    end if
+  end subroutine lfff_fft_transfer
+
+{^IFTHREED
   subroutine calc_lin_fff(ixI^L,ixO^L,Bf,x,alpha,zshift,idir)
   ! PURPOSE: 
   ! Calculation to determine linear FFF from the field on 
@@ -113,13 +852,48 @@ contains
     double precision, intent(inout) :: Bf(ixI^S,1:ndir)
 
     double precision, dimension(ixO^S) :: cos_az,sin_az,zk,bigr,r,r2,r3,cos_ar,sin_ar,g,dgdz
-    double precision :: gx(ixO^S,1:ndim),twopiinv
+    double precision, dimension(ixO^S) :: dx1,dx2,invr3
+    double precision :: twopiinv
+    logical :: compute_dir(1:ndir)
     integer :: idim,ixp1,ixp2
 
     Bf=0.d0
     twopiinv = 0.5d0/dpi*Bzmax*darea
-    ! get cos and sin arrays
     zk(ixO^S)=x(ixO^S,3)-xprobmin3+zshift
+
+    compute_dir=.true.
+    if(present(idir)) then
+      compute_dir=.false.
+      if(idir>=1 .and. idir<=ndir) compute_dir(idir)=.true.
+    end if
+
+    ! For a potential field, the Green-function kernel simplifies exactly to
+    ! (dx,dy,z)/r**3. Avoid the trigonometric functions, singular 1/bigr
+    ! factors, and intermediate arrays needed by the general linear FFF form.
+    if(alpha==0.d0) then
+      do ixp2=1,nx2
+        do ixp1=1,nx1
+          dx1(ixO^S)=x(ixO^S,1)-xa1(ixp1)
+          dx2(ixO^S)=x(ixO^S,2)-xa2(ixp2)
+          r2(ixO^S)=dx1(ixO^S)**2+dx2(ixO^S)**2+zk(ixO^S)**2
+          where(r2(ixO^S)>0.d0)
+            invr3(ixO^S)=1.d0/(r2(ixO^S)*dsqrt(r2(ixO^S)))
+          elsewhere
+            invr3(ixO^S)=0.d0
+          end where
+          if(compute_dir(1)) Bf(ixO^S,1)=Bf(ixO^S,1)+&
+             Bz0(ixp1,ixp2)*dx1(ixO^S)*invr3(ixO^S)
+          if(compute_dir(2)) Bf(ixO^S,2)=Bf(ixO^S,2)+&
+             Bz0(ixp1,ixp2)*dx2(ixO^S)*invr3(ixO^S)
+          if(compute_dir(3)) Bf(ixO^S,3)=Bf(ixO^S,3)+&
+             Bz0(ixp1,ixp2)*zk(ixO^S)*invr3(ixO^S)
+        end do
+      end do
+      Bf(ixO^S,:)=Bf(ixO^S,:)*twopiinv
+      return
+    end if
+
+    ! get cos and sin arrays for a non-zero linear force-free alpha
     cos_az(ixO^S)=dcos(alpha*zk(ixO^S))
     sin_az(ixO^S)=dsin(alpha*zk(ixO^S))
     ! looping Bz0 pixels
@@ -251,74 +1025,39 @@ contains
 
   !> get potential magnetic field energy given normal B on all boundaries
   subroutine potential_field_energy_mg(benergy)
-  ! NOTE: Solve Poisson equation of scalar potential using multigrid solver
-  ! Only works for 3D Cartesian coordinates 
-    use mod_global_parameters
-    use mod_multigrid_coupling
-    use mod_forest
-    use mod_geometry
+    use mod_magnetic_reference_fv, only: magnetic_reference_config,&
+       magnetic_reference_result,magnetic_reference_field,&
+       solve_magnetic_reference_fv,free_magnetic_reference_field
+
     real*8, intent(out) :: benergy
-    real*8  :: block_Benergy(ixM^T), mype_Benergy
-    real*8, allocatable :: tmp(:,:,:)
-    integer :: iigrid, igrid, idir
-    integer :: id,nc, lvl, ixI^L
+    type(magnetic_reference_config) :: config
+    type(magnetic_reference_result) :: result
+    type(magnetic_reference_field) :: bp
 
-    call get_potential_field_potential_mg()
-    ixImin^D=ixMlo^D-1;
-    ixImax^D=ixMhi^D+1;
-    allocate(tmp(ixI^S))
-    mype_Benergy=0.d0
-    do iigrid=1,igridstail; igrid=igrids(iigrid);
-      block=>ps(igrid)
-      ^D&dxlevel(^D)=rnode(rpdx^D_,igrid);
-      id = igrid_to_node(igrid, mype)%node%id
-      lvl= mg%boxes(id)%lvl
-      nc = mg%box_size_lvl(lvl)
-      block_Benergy=0.d0
-      do idir=1,ndim
-        call gradient(mg%boxes(id)%cc({0:nc+1},mg_iphi),ixI^L,ixM^LL,idir,tmp)
-        block_Benergy(ixM^T)=block_Benergy(ixM^T)+tmp(ixM^T)**2
-      end do
-      mype_Benergy=mype_Benergy+sum(0.5d0*block_Benergy(ixM^T)*block%dvolume(ixM^T))
-    end do
-
-    call MPI_ALLREDUCE(mype_Benergy,benergy,1,MPI_DOUBLE_PRECISION,MPI_SUM,icomm,ierrmpi)
+    call solve_magnetic_reference_fv(config,bp,result)
+    benergy=result%magnetic_energy
+    call free_magnetic_reference_field(bp)
 
   end subroutine potential_field_energy_mg
 
   !>  Solve Poisson equation of scalar potential using multigrid solver
   subroutine get_potential_field_potential_mg()
-    use mod_global_parameters
-    use mod_comm_lib, only: mpistop
-    use mod_multigrid_coupling
-    double precision :: max_residual, res
-    integer :: i, max_its
+    use mod_magnetic_reference_fv, only: magnetic_reference_config,&
+       magnetic_reference_result,magnetic_reference_field,&
+       solve_magnetic_reference_fv,free_magnetic_reference_field
 
-    mg%operator_type = mg_laplacian
-    max_its=50
-    max_residual=1.d-8
+    type(magnetic_reference_config) :: config
+    type(magnetic_reference_result) :: result
+    type(magnetic_reference_field) :: bp
 
-    ! Set boundary conditions
-    mg%bc(:, mg_iphi)%bc_type = mg_bc_neumann
-
-    do i=1,2*ndim
-       mg%bc(i, mg_iphi)%boundary_cond => multigrid_bc
-    end do
-
-    ! Solve laplacian(phi) = 0
-    do i=1,max_its
-       !call mg_fas_vcycle(mg, max_res=res)
-       call mg_fas_fmg(mg,.true.,max_res=res)
-       if(mype==0) write(*,*) 'mg iteration',i,'residual:', res
-       if(res < max_residual) exit
-    end do
-    if(res > max_residual) call mpistop("get potential multigrid: no convergence")
+    call solve_magnetic_reference_fv(config,bp,result)
+    call free_magnetic_reference_field(bp)
 
   end subroutine get_potential_field_potential_mg
 
   !> To set boundary condition on physical boundaries for mg Poisson solver
   subroutine multigrid_bc(box, nc, iv, nb, bc_type, bc)
-    use mod_global_parameters
+    use mod_magnetic_reference_fv, only: magnetic_reference_bc
     use mod_multigrid_coupling
     type(mg_box_t), intent(in)    :: box
     integer, intent(in)           :: nc
@@ -327,173 +1066,85 @@ contains
     integer, intent(out)          :: bc_type !< Type of b.c.
     ! mg boundary values
     double precision, intent(out) :: bc(nc, nc)
-    ! mg coordinates of boundary layer
-    double precision              :: rr(nc, nc, 3)
-    double precision :: rmina,rminb,rmaxa,rmaxb,xmina,xminb,xmaxa,xmaxb
-    ! store normal magnetic field on the boundary
-    double precision :: wbn(ixG^T)
-    double precision, allocatable :: xcoarse(:,:,:)
-    integer :: iigrid,igrid,ix^D,idir,ixbca,ixbcb,ixbcn,dlvl,wnc
-
-    bc_type = mg_bc_neumann
-
-    call mg_get_face_coords(box, nb, nc, rr)
-
-    idir=(nb+1)/2
-    bc=0.d0
-    ! send normal B on boundaries from AMRVAC to mg Poisson solver
-    ! for Neumann boundary condition
-    select case(idir)
-    case(1)
-      if(mod(nb,2)==0) then
-        ixbcn=ixMhi1
-      else
-        ixbcn=ixMlo1-1
-      end if
-      rmina=rr(1,1,2)-0.5d0*box%dr(2)
-      rmaxa=rr(nc,1,2)+0.5d0*box%dr(2)
-      rminb=rr(1,1,3)-0.5d0*box%dr(3)
-      rmaxb=rr(1,nc,3)+0.5d0*box%dr(3)
-      do iigrid=1,igridstail; igrid=igrids(iigrid);
-        block=>ps(igrid)
-        if(.not.block%is_physical_boundary(nb)) cycle
-        if(stagger_grid) then
-          !wbn(ixbcn^%1ixG^T)=block%ws(ixbcn^%1ixG^T,idir)
-          wbn(ixbcn^%1ixG^T)=block%ws(ixbcn^%1ixG^T,idir)
-        else
-          wbn(ixbcn^%1ixG^T)=half*(block%w(ixbcn^%1ixG^T,iw_mag(idir))+block%w(ixbcn+1^%1ixG^T,iw_mag(idir)))
-        end if
-        xmina=block%x(1,1,1,2)-0.5d0*rnode(rpdx2_,igrid)
-        xmaxa=block%x(1,ixGhi2,1,2)+0.5d0*rnode(rpdx2_,igrid)
-        xminb=block%x(1,1,1,3)-0.5d0*rnode(rpdx3_,igrid)
-        xmaxb=block%x(1,1,ixGhi3,3)+0.5d0*rnode(rpdx3_,igrid)
-        if(xmina<rr(1,1,2) .and. xmaxa>rr(nc,1,2) .and. &
-           xminb<rr(1,1,3) .and. xmaxb>rr(1,nc,3)) then
-          do ix2=1,nc
-            do ix1=1,nc
-              ixbca=ceiling((rr(ix1,ix2,2)-xmina)/rnode(rpdx2_,igrid))
-              ixbcb=ceiling((rr(ix1,ix2,3)-xminb)/rnode(rpdx3_,igrid))
-              bc(ix1,ix2)=wbn(ixbcn,ixbca,ixbcb)
-            end do
-          end do
-        else if(block%x(1,ixMlo2,1,2)>rmina .and. block%x(1,ixMhi2,1,2)<rmaxa .and. &
-                block%x(1,1,ixMlo3,3)>rminb .and. block%x(1,1,ixMhi3,3)<rmaxb) then
-          dlvl=node(plevel_,igrid)-box%lvl
-          wnc=nc/2**dlvl
-          allocate(xcoarse(wnc,wnc,2))
-          do ix2=1,wnc
-            do ix1=1,wnc
-              xcoarse(ix1,ix2,1)=sum(block%x(1,(ix1-1)*2**dlvl+1+nghostcells:ix1*2**dlvl+nghostcells,1,2))/dble(2**dlvl)
-              xcoarse(ix1,ix2,2)=sum(block%x(1,1,(ix2-1)*2**dlvl+1+nghostcells:ix2*2**dlvl+nghostcells,3))/dble(2**dlvl)
-              ixbca=ceiling((xcoarse(ix1,ix2,1)-rmina)/box%dr(2))
-              ixbcb=ceiling((xcoarse(ix1,ix2,2)-rminb)/box%dr(3))
-              bc(ixbca,ixbcb)=sum(wbn(ixbcn,(ix1-1)*2**dlvl+1+nghostcells:ix1*2**dlvl+nghostcells,&
-                                  (ix2-1)*2**dlvl+1+nghostcells:ix2*2**dlvl+nghostcells))/dble(2**(2*dlvl))
-            end do
-          end do
-          deallocate(xcoarse)
-        end if
-      end do
-    case(2)
-      if(mod(nb,2)==0) then
-        ixbcn=ixMhi2
-      else
-        ixbcn=ixMlo2-1
-      end if
-      rmina=rr(1,1,1)-0.5d0*box%dr(1)
-      rmaxa=rr(nc,1,1)+0.5d0*box%dr(1)
-      rminb=rr(1,1,3)-0.5d0*box%dr(3)
-      rmaxb=rr(1,nc,3)+0.5d0*box%dr(3)
-      do iigrid=1,igridstail; igrid=igrids(iigrid);
-        block=>ps(igrid)
-        if(.not.block%is_physical_boundary(nb)) cycle
-        if(stagger_grid) then
-          wbn(ixbcn^%2ixG^T)=block%ws(ixbcn^%2ixG^T,idir)
-        else
-          wbn(ixbcn^%2ixG^T)=half*(block%w(ixbcn^%2ixG^T,iw_mag(idir))+block%w(ixbcn+1^%2ixG^T,iw_mag(idir)))
-        end if
-        xmina=block%x(1,1,1,1)-0.5d0*rnode(rpdx1_,igrid)
-        xmaxa=block%x(ixGhi1,1,1,1)+0.5d0*rnode(rpdx1_,igrid)
-        xminb=block%x(1,1,1,3)-0.5d0*rnode(rpdx3_,igrid)
-        xmaxb=block%x(1,1,ixGhi3,3)+0.5d0*rnode(rpdx3_,igrid)
-        if(xmina<rr(1,1,1) .and. xmaxa>rr(nc,1,1) .and. &
-           xminb<rr(1,1,3) .and. xmaxb>rr(1,nc,3)) then
-          do ix2=1,nc
-            do ix1=1,nc
-              ixbca=ceiling((rr(ix1,ix2,1)-xmina)/rnode(rpdx1_,igrid))
-              ixbcb=ceiling((rr(ix1,ix2,3)-xminb)/rnode(rpdx3_,igrid))
-              bc(ix1,ix2)=wbn(ixbca,ixbcn,ixbcb)
-            end do
-          end do
-        else if(block%x(ixMlo1,1,1,1)>rmina .and. block%x(ixMhi1,1,1,1)<rmaxa .and. &
-                block%x(1,1,ixMlo3,3)>rminb .and. block%x(1,1,ixMhi3,3)<rmaxb) then
-          dlvl=node(plevel_,igrid)-box%lvl
-          wnc=nc/2**dlvl
-          allocate(xcoarse(wnc,wnc,2))
-          do ix2=1,wnc
-            do ix1=1,wnc
-              xcoarse(ix1,ix2,1)=sum(block%x((ix1-1)*2**dlvl+1+nghostcells:ix1*2**dlvl+nghostcells,1,1,1))/dble(2**dlvl)
-              xcoarse(ix1,ix2,2)=sum(block%x(1,1,(ix2-1)*2**dlvl+1+nghostcells:ix2*2**dlvl+nghostcells,3))/dble(2**dlvl)
-              ixbca=ceiling((xcoarse(ix1,ix2,1)-rmina)/box%dr(1))
-              ixbcb=ceiling((xcoarse(ix1,ix2,2)-rminb)/box%dr(3))
-              bc(ixbca,ixbcb)=sum(wbn((ix1-1)*2**dlvl+1+nghostcells:ix1*2**dlvl+nghostcells,ixbcn,&
-                                  (ix2-1)*2**dlvl+1+nghostcells:ix2*2**dlvl+nghostcells))/dble(2**(2*dlvl))
-            end do
-          end do
-          deallocate(xcoarse)
-        end if
-      end do
-    case(3)
-      if(mod(nb,2)==0) then
-        ixbcn=ixMhi3
-      else
-        ixbcn=ixMlo3-1
-      end if
-      rmina=rr(1,1,1)-0.5d0*box%dr(1)
-      rmaxa=rr(nc,1,1)+0.5d0*box%dr(1)
-      rminb=rr(1,1,2)-0.5d0*box%dr(2)
-      rmaxb=rr(1,nc,2)+0.5d0*box%dr(2)
-      do iigrid=1,igridstail; igrid=igrids(iigrid);
-        block=>ps(igrid)
-        if(.not.block%is_physical_boundary(nb)) cycle
-        if(stagger_grid) then
-          wbn(ixbcn^%3ixG^T)=block%ws(ixbcn^%3ixG^T,idir)
-        else
-          wbn(ixbcn^%3ixG^T)=half*(block%w(ixbcn^%3ixG^T,iw_mag(idir))+block%w(ixbcn+1^%3ixG^T,iw_mag(idir)))
-        end if
-        xmina=block%x(1,1,1,1)-0.5d0*rnode(rpdx1_,igrid)
-        xmaxa=block%x(ixGhi1,1,1,1)+0.5d0*rnode(rpdx1_,igrid)
-        xminb=block%x(1,1,1,2)-0.5d0*rnode(rpdx2_,igrid)
-        xmaxb=block%x(1,ixGhi2,1,2)+0.5d0*rnode(rpdx2_,igrid)
-        if(xmina<rr(1,1,1) .and. xmaxa>rr(nc,1,1) .and. &
-           xminb<rr(1,1,2) .and. xmaxb>rr(1,nc,2)) then
-          do ix2=1,nc
-            do ix1=1,nc
-              ixbca=ceiling((rr(ix1,ix2,1)-xmina)/rnode(rpdx1_,igrid))
-              ixbcb=ceiling((rr(ix1,ix2,2)-xminb)/rnode(rpdx2_,igrid))
-              bc(ix1,ix2)=wbn(ixbca,ixbcb,ixbcn)
-            end do
-          end do
-        else if(block%x(ixMlo1,1,1,1)>rmina .and. block%x(ixMhi1,1,1,1)<rmaxa .and. &
-                block%x(1,ixMlo2,1,2)>rminb .and. block%x(1,ixMhi2,1,2)<rmaxb) then
-          dlvl=node(plevel_,igrid)-box%lvl
-          wnc=nc/2**dlvl
-          allocate(xcoarse(wnc,wnc,2))
-          do ix2=1,wnc
-            do ix1=1,wnc
-              xcoarse(ix1,ix2,1)=sum(block%x((ix1-1)*2**dlvl+1+nghostcells:ix1*2**dlvl+nghostcells,1,1,1))/dble(2**dlvl)
-              xcoarse(ix1,ix2,2)=sum(block%x(1,(ix2-1)*2**dlvl+1+nghostcells:ix2*2**dlvl+nghostcells,1,2))/dble(2**dlvl)
-              ixbca=ceiling((xcoarse(ix1,ix2,1)-rmina)/box%dr(1))
-              ixbcb=ceiling((xcoarse(ix1,ix2,2)-rminb)/box%dr(2))
-              bc(ixbca,ixbcb)=sum(wbn((ix1-1)*2**dlvl+1+nghostcells:ix1*2**dlvl+nghostcells,&
-                                  (ix2-1)*2**dlvl+1+nghostcells:ix2*2**dlvl+nghostcells,ixbcn))/dble(2**(2*dlvl))
-            end do
-          end do
-          deallocate(xcoarse)
-        end if
-      end do
-    end select
+    call magnetic_reference_bc(box,nc,iv,nb,bc_type,bc)
 
   end subroutine multigrid_bc
 }
+
+{^IFTWOD
+  subroutine init_lfff_2d(bn_bottom,nx,qalpha,qy0,qtop_closed,qy_top,flux_treatment,nmodes_keep)
+    use mod_global_parameters
+    use mod_comm_lib, only: mpistop
+    integer, intent(in) :: nx
+    double precision, intent(in) :: bn_bottom(nx),qalpha,qy0,qy_top
+    logical, intent(in) :: qtop_closed
+    character(len=*), intent(in), optional :: flux_treatment
+    integer, intent(in), optional :: nmodes_keep
+
+    double precision :: Lx,xj,arg
+    integer :: m,j,nm
+
+    Lx=xprobmax1-xprobmin1
+    nm=nx/2-1
+    if(present(nmodes_keep)) nm=min(nm,nmodes_keep)
+    if(allocated(l2d_br)) deallocate(l2d_br,l2d_bi,l2d_k)
+    allocate(l2d_br(nm),l2d_bi(nm),l2d_k(nm))
+    l2d_b0=sum(bn_bottom)/dble(nx)
+    if(present(flux_treatment)) then
+      if(flux_treatment=='subtract') then
+        if(mype==0.and.dabs(l2d_b0)>lfff_flux_balance_tolerance) &
+          print*,'init_lfff_2d: subtracting net flux ',l2d_b0
+        l2d_b0=0.d0
+      end if
+    end if
+    do m=1,nm
+      l2d_k(m)=2.d0*dpi*dble(m)/Lx
+      l2d_br(m)=0.d0; l2d_bi(m)=0.d0
+      do j=1,nx
+        xj=xprobmin1+(dble(j)-0.5d0)*Lx/dble(nx)
+        arg=l2d_k(m)*xj
+        l2d_br(m)=l2d_br(m)+bn_bottom(j)*dcos(arg)
+        l2d_bi(m)=l2d_bi(m)-bn_bottom(j)*dsin(arg)
+      end do
+      l2d_br(m)=2.d0*l2d_br(m)/dble(nx)
+      l2d_bi(m)=2.d0*l2d_bi(m)/dble(nx)
+    end do
+    l2d_nm=nm; l2d_alpha=qalpha; l2d_y0=qy0; l2d_ytop=qy_top; l2d_closed=qtop_closed
+    if(.not.qtop_closed .and. qalpha**2>=l2d_k(1)**2) &
+      call mpistop('init_lfff_2d: |alpha| >= k_1, oscillatory open modes')
+    l2d_ready=.true.
+  end subroutine init_lfff_2d
+
+  !> B from the stored modes at arbitrary points; Bf(:,:,1:3)=(Bx,By,Bz=alpha*A)
+  subroutine calc_lfff_2d(ixI^L,ixO^L,x,Bf)
+    use mod_global_parameters
+    use mod_comm_lib, only: mpistop
+    integer, intent(in) :: ixI^L,ixO^L
+    double precision, intent(in) :: x(ixI^S,1:ndim)
+    double precision, intent(out) :: Bf(ixI^S,1:3)
+
+    double precision :: tb,td,ca,sa,cme,sme,zz
+    integer :: ix^D,m,istat
+
+    if(.not.l2d_ready) call mpistop('calc_lfff_2d: call init_lfff_2d first')
+    Bf(ixO^S,1)=0.d0
+    Bf(ixO^S,2)=l2d_b0
+    Bf(ixO^S,3)=0.d0
+    {do ix^DB=ixOmin^DB,ixOmax^DB\}
+      zz=min(max(x(ix^D,2)-l2d_y0,0.d0),l2d_ytop-l2d_y0)
+      do m=1,l2d_nm
+        call lfff_fft_transfer(l2d_k(m)**2,l2d_alpha,zz,l2d_ytop-l2d_y0,&
+           l2d_closed,tb,td,istat)
+        if(istat==2) call mpistop('calc_lfff_2d: closed-box resonance')
+        cme=dcos(l2d_k(m)*x(ix^D,1)); sme=dsin(l2d_k(m)*x(ix^D,1))
+        ca=l2d_br(m)*cme-l2d_bi(m)*sme
+        sa=l2d_bi(m)*cme+l2d_br(m)*sme
+        Bf(ix^D,2)=Bf(ix^D,2)+ca*tb
+        Bf(ix^D,1)=Bf(ix^D,1)+sa*td/l2d_k(m)
+        Bf(ix^D,3)=Bf(ix^D,3)+l2d_alpha*sa*tb/l2d_k(m)
+      end do
+    {end do\}
+  end subroutine calc_lfff_2d
+}
+
 end module mod_lfff

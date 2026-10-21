@@ -19,9 +19,9 @@ contains
   subroutine usr_init()
 
     ! Note how we here must set three values that in turn define M-L-T
-    unit_length        =1.d10         ! cm
-    unit_temperature   =1.1d3         ! K
-    unit_density       =1.67492d-14   ! g cm^-3
+    unit_length        =1.001d10   ! cm
+    unit_temperature   =1.1d3      ! K
+    unit_numberdensity =1.001d10   ! cm^-3
 
     usr_set_parameters=> initglobaldata_usr
 

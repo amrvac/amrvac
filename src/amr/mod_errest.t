@@ -130,13 +130,19 @@ contains
        do idims=1,ndim
           if (iflag<=nw) then
              if (logflag(iflag)) then
-              tmp=dabs(dlog10(w(ixG^T,iflag)))
+              ! With logflag the differenced quantity is u = log10(w), for which
+              ! Lohner's eps*|u| filter is not meaningful: it is a relative floor,
+              ! scale-invariant for a linear variable but not for a log, where a
+              ! change of unit is additive and |u| becomes the distance from
+              ! w_code = 1. The fractional character is already carried by
+              ! d(log w), so the floor is constant and amr_wavefilter is in dex.
+              tmp=one
              else
               tmp=dabs(w(ixG^T,iflag))
              end if
           else
              if (logflag(iflag)) then
-              tmp=dabs(dlog10(tmp1(ixG^T)))
+              tmp=one                      ! dex floor, as in the w-slot branch above
              else
               tmp=dabs(tmp1(ixG^T))
              end if

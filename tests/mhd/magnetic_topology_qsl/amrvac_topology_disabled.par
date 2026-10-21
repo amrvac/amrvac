@@ -1,7 +1,0 @@
-&magnetic_topology_list
-  mt_enable = .false.
-  mt_mode = 'volume_vti'
-  mt_output_file = 'reg_namelist_disabled.vti'
-  mt_dL = 0.05d0
-  mt_max_steps = 100
-/

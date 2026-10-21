@@ -5,6 +5,8 @@ module mod_gimli
     use mod_hd_phys, only: rho_hd=>rho_, mom_hd=>mom, p_hd=>p_
     use mod_mhd_phys, only: rho_mhd=>rho_, mom_mhd=>mom, p_mhd=>p_ 
     use mod_functions_bfield, only: mag_mhd=>mag
+    use mod_eos, only: eos
+    use mod_comm_lib, only: mpistop
 
     implicit none
     public
@@ -99,7 +101,7 @@ contains
         {do idx^D = ixImin^D, ixImax^D|\}
         call ef_amplitude(x(idx^D, 1), ef_grid, values, amplitude)
         quantity = amplitude * exp_factor(idx^D)
-        w(idx^D, w_index) = w(idx^D, w_index) + quantity%re
+        w(idx^D, w_index) = w(idx^D, w_index) + real(quantity)
         {end do|\}
     end subroutine add_perturbation_to_w_array
 
@@ -165,16 +167,18 @@ contains
         complex(dp), intent(in) :: array(ef_gridpts)
         complex(dp), intent(out) :: amplitude
         integer :: idl, idu
+        real(dp) :: alpha
 
         if (x <= grid(1) .and. xprobmin1 <= x) then
             amplitude = array(1)
             
             if (coordinate==cylindrical .and. grid(1) > 0) then
-                if (x >= grid(1)/2) then
-                    amplitude = (x - grid(1)/2) * array(1) / grid(1)
+                if (k2 .ne. 0.0d0) then
+                    alpha = abs(k2)
                 else
-                    amplitude = 0.d0
+                    alpha = 2.0d0
                 end if
+                amplitude = array(1) * (x / grid(1))**alpha
             end if
         else if (x >= grid(size(grid)) .and. x <= xprobmax1) then
             amplitude = array(size(grid))
@@ -208,42 +212,41 @@ contains
         call get_minmax_temperature(Tmax,Tmin)
         call get_max_velocity(vmax)
         if (mhd_bool == 1) then
-        call get_max_B(B1max, B2max, B3max)
+            call get_max_B(B1max, B2max, B3max)
             call get_volume_average_func(magnetic, magn_avg, volume)
         end if
 
         filename = trim(base_filename) // "_c.log"
 
-        if (.not. visited) then
+        if (mype == 0 .and. .not. visited) then
         ! Delete the log when not doing a restart run
             if (restart_from_file == undefined .or. reset_time) then
                 open(unit=my_unit,file=trim(filename),form='formatted',status='replace')
-                write(my_unit,'(a)') ''
                 if (mhd_bool == 1) then
-                    write(my_unit,'(a)') '#Global_time Tmax Tmin vmax B1max B2max B3max mag_avg'
+                    write(my_unit,'(a)') 'global_time Tmax Tmin vmax B1max B2max B3max mag_avg'
                 else
-                    write(my_unit,'(a)') '#Global_time Tmax Tmin vmax'
+                    write(my_unit,'(a)') 'global_time Tmax Tmin vmax'
                 end if
             end if
             visited = .true.
         end if
 
         if (mype == 0) then
-        write(filename,"(a)") filename
-        inquire(file=filename,exist=alive)
-        if(alive) then
-            open(unit=my_unit,file=filename,form='formatted',status='old',access='append')
-        else
-            open(unit=my_unit,file=filename,form='formatted',status='new')
-        endif
+            write(filename,"(a)") filename
+            inquire(file=filename,exist=alive)
+            if(alive) then
+                open(unit=my_unit,file=filename,form='formatted',status='old',access='append')
+            else
+                open(unit=my_unit,file=filename,form='formatted',status='new')
+            endif
 
-        ! if number of output doubles is increase, don't forget to change the fmt_string above
-        if (mhd_bool == 1) then
-            write(my_unit, fmt_string) global_time, Tmax, Tmin, vmax, B1max, B2max, B3max, magn_avg
-        else
-            write(my_unit, fmt_string) global_time, Tmax, Tmin, vmax
-        end if
-        close(my_unit)
+            ! if number of output doubles is increase, don't forget to change the fmt_string above
+            if (mhd_bool == 1) then
+                write(my_unit, fmt_string) global_time, Tmax, Tmin, vmax, B1max, B2max, B3max, magn_avg
+            else
+                write(my_unit, fmt_string) global_time, Tmax, Tmin, vmax
+            end if
+            close(my_unit)
         end if
     end subroutine analytics_log
 
@@ -259,14 +262,13 @@ contains
     ! Calculate both min and max of temperature on grid in one go.
     subroutine get_minmax_temperature(Tmax, Tmin)
         use mod_global_parameters
-        use mod_physics, only: phys_get_pthermal, phys_get_rho
 
         double precision, intent(out) :: Tmax, Tmin
 
-        integer                       :: iigrid, igrid, iw
+        integer                       :: iigrid, igrid
         double precision              :: Tmax_mype, Tmax_recv, Tmin_mype, Tmin_recv
-        double precision              :: w(ixG^T,1:nw), wlocal(ixG^T,1:nw), xlocal(ixG^T,1:nw)
-        double precision              :: Te(ixG^T), pth(ixG^T), rho(ixG^T)
+        double precision              :: wlocal(ixG^T,1:nw), xlocal(ixG^T,1:ndim)
+        double precision              :: Te(ixG^T), pth(ixG^T), rho(ixG^T), Rfactor(ixG^T)
 
         Tmax_mype = -bigdouble
         Tmin_mype = bigdouble
@@ -277,9 +279,10 @@ contains
 
             wlocal(ixG^T,1:nw) = ps(igrid)%w(ixG^T,1:nw)
             xlocal(ixG^T,1:ndim) = ps(igrid)%x(ixG^T,1:ndim)
-            call phys_get_pthermal(wlocal,xlocal,ixG^LL,ixG^LL,pth)
-            call phys_get_rho(wlocal,xlocal,ixG^LL,ixG^LL,rho)
-            Te(ixG^T) = pth(ixG^T)/rho(ixG^T)
+            call eos%get_thermal_pressure(wlocal,xlocal,ixG^LL,ixG^LL,pth)
+            call eos%get_rho(wlocal,xlocal,ixG^LL,ixM^LL,rho)
+            call eos%get_Rfactor(wlocal,xlocal,ixG^LL,ixG^LL,Rfactor)
+            Te(ixM^T) = pth(ixM^T)/(rho(ixM^T)*Rfactor(ixM^T))
 
             ! Compare values on current grid to temporary max/min
             Tmax_mype = max(Tmax_mype,maxval(Te(ixM^T)))
@@ -303,7 +306,7 @@ contains
 
         double precision, intent(out) :: vmax
 
-        integer                       :: iigrid, igrid, iw
+        integer                       :: iigrid, igrid
         double precision              :: vmax_mype,vmax_recv
         double precision              :: v_vec(ixG^T,1:ndir), v(ixG^T)
 
@@ -334,7 +337,7 @@ contains
 
         double precision, intent(out) :: B1max, B2max, B3max
 
-        integer                       :: iigrid, igrid, iw
+        integer                       :: iigrid, igrid
         double precision              :: B1max_mype, B1max_recv
         double precision              :: B2max_mype, B2max_recv
         double precision              :: B3max_mype, B3max_recv
@@ -366,7 +369,102 @@ contains
         B2max = B2max_recv
         B3max = B3max_recv
 
+        if (B2max == -bigdouble) B2max = 0.d0
+        if (B3max == -bigdouble) B3max = 0.d0
+
     end subroutine get_max_B
+
+    subroutine symm(ixI^L,ixO^L,w,x,w_index,boundary)
+    !> Symmetric boundary condition
+        integer, intent(in) :: ixI^L, ixO^L, w_index
+        double precision, intent(in) :: x(ixI^S, 1:ndim)
+        double precision, intent(inout) :: w(ixI^S, 1:nw)
+        character(len=*), intent(in) :: boundary
+
+        select case (boundary)
+        case ('outer')
+            w(ixO^S, w_index) = w(ixOmin1-1:ixOmin1-nghostcells:-1^%1ixO^S, w_index)
+        case ('inner')
+            w(ixO^S, w_index) = w(ixOmax1+nghostcells:ixOmax1+1:-1^%1ixO^S, w_index)
+        case default
+            call mpistop('Unknown boundary side: ' // trim(boundary))
+        end select
+
+    end subroutine symm
+
+    subroutine split_symm(ixI^L,ixO^L,w,x,w_index,equi_w,boundary)
+    !> Symmetric boundary condition applied to the perturbation only
+        integer, intent(in) :: ixI^L, ixO^L, w_index
+        double precision, intent(in) :: x(ixI^S, 1:ndim)
+        double precision, intent(inout) :: w(ixI^S, 1:nw)
+        double precision, intent(in) :: equi_w(ixI^S)
+        character(len=*), intent(in) :: boundary
+
+        select case (boundary)
+        case ('outer')
+            w(ixO^S, w_index) = equi_w(ixO^S) &
+                + (w(ixOmin1-1:ixOmin1-nghostcells:-1^%1ixO^S, w_index) - equi_w(ixOmin1-1:ixOmin1-nghostcells:-1^%1ixO^S))
+        case ('inner')
+            w(ixO^S, w_index) = equi_w(ixO^S) &
+                + (w(ixOmax1+nghostcells:ixOmax1+1:-1^%1ixO^S, w_index) - equi_w(ixOmax1+nghostcells:ixOmax1+1:-1^%1ixO^S))
+        case default
+            call mpistop('Unknown boundary side: ' // trim(boundary))
+        end select
+
+    end subroutine split_symm
+
+    subroutine extrapolate(ixI^L,ixO^L,w,x,w_index,boundary)
+    !> Extrapolate boundary condition
+        integer, intent(in) :: ixI^L, ixO^L, w_index
+        double precision, intent(in) :: x(ixI^S, 1:ndim)
+        double precision, intent(inout) :: w(ixI^S, 1:nw)
+        character(len=*), intent(in) :: boundary
+        integer :: ix1
+
+        select case (boundary)
+        case ('outer')
+            do ix1 = ixOmin1, ixOmax1
+                w(ix1^%1ixO^S, w_index) = 2.0d0 * w(ix1-1^%1ixO^S, w_index) &
+                    - w(ix1-2^%1ixO^S, w_index)
+            end do
+        case ('inner')
+            do ix1 = ixOmax1, ixOmin1, -1
+                w(ix1^%1ixO^S, w_index) = 2.0d0 * w(ix1+1^%1ixO^S, w_index) &
+                    - w(ix1+2^%1ixO^S, w_index)
+            end do
+        case default
+            call mpistop('Unknown boundary side: ' // trim(boundary))
+        end select
+
+    end subroutine extrapolate
+
+    subroutine split_extrapolate(ixI^L,ixO^L,w,x,w_index,equi_w,boundary)
+    !> Extrapolate boundary condition applied to the perturbation only
+        integer, intent(in) :: ixI^L, ixO^L, w_index
+        double precision, intent(in) :: x(ixI^S, 1:ndim)
+        double precision, intent(inout) :: w(ixI^S, 1:nw)
+        double precision, intent(in) :: equi_w(ixI^S)
+        character(len=*), intent(in) :: boundary
+        integer :: ix1
+
+        select case (boundary)
+        case ('outer')
+            do ix1 = ixOmin1, ixOmax1
+                w(ix1^%1ixO^S, w_index) = equi_w(ix1^%1ixO^S) &
+                    + 2.0d0 * (w(ix1-1^%1ixO^S, w_index) - equi_w(ix1-1^%1ixO^S)) &
+                    - (w(ix1-2^%1ixO^S, w_index) - equi_w(ix1-2^%1ixO^S))
+            end do
+        case ('inner')
+            do ix1 = ixOmax1, ixOmin1, -1
+                w(ix1^%1ixO^S, w_index) = equi_w(ix1^%1ixO^S) &
+                    + 2.0d0 * (w(ix1+1^%1ixO^S, w_index) - equi_w(ix1+1^%1ixO^S)) &
+                    - (w(ix1+2^%1ixO^S, w_index) - equi_w(ix1+2^%1ixO^S))
+            end do
+        case default
+            call mpistop('Unknown boundary side: ' // trim(boundary))
+        end select
+
+    end subroutine split_extrapolate
 
 end module mod_gimli
 !

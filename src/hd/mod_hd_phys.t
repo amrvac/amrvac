@@ -16,7 +16,7 @@ module mod_hd_phys
   !> Whether thermal conduction is added
   logical, public, protected              :: hd_thermal_conduction = .false.
   !> Whether hyperbolic thermal conduction (Cattaneo relaxation) is used.
-  !> 1D only — the q-variable is treated as a scalar carrying the
+  !> 1D only : the q-variable is treated as a scalar carrying the
   !> heat flux along the only spatial direction.
   logical, public, protected              :: hd_hyperbolic_thermal_conduction = .false.
   !> Whether saturation is considered for hyperbolic TC
@@ -36,6 +36,7 @@ module mod_hd_phys
 
   !> Whether radiation-gas interaction is handled using flux limited diffusion
   logical, public, protected              :: hd_radiation_fld = .false.
+  logical, public, protected              :: hd_fld_pradtensor= .true.
   !> Radiation fluid object (gas-EoS callbacks for FLD), wired in hd_link_eos
   type(fld_fluid), allocatable, public    :: fld_fl
 
@@ -178,21 +179,9 @@ module mod_hd_phys
   double precision, public, protected     :: hd_trac_zone_splits(10) = -1.d0
   !> Johnston 2021 resolution parameter delta (default 0.5)
   double precision, public, protected     :: hd_trac_delta = 0.5d0
-  !> Johnston 2021 mass flux velocity threshold (fraction of local c_s).
-  !> Below this Mach number, enthalpy flux is ignored in the TRAC formula
-  !> to prevent feedback-driven asymmetry from subsonic sloshing.
-  double precision, public, protected     :: hd_trac_v_thresh = 0.01d0
-
   !> Whether well-balanced reconstruction is used (Kaeppeli & Mishra style)
   logical, public, protected              :: hd_well_balanced = .false.
 
-
-  !> Equilibrium splitting variables (stubs for mod_usr.t compatibility)
-  logical, public :: hd_equi_rho0 = .false.
-  logical, public :: hd_equi_pe0 = .false.
-  integer, public :: equi_rho0_ = -1
-  integer, public :: equi_pe0_ = -1
-  integer, public :: equi_e0_ = -1
 
   !> Helium abundance over Hydrogen
   !> He_abundance is set in &eos_list and accessed via eos%He_abundance
@@ -253,9 +242,9 @@ contains
     hd_radiative_cooling, hd_viscosity, &
     hd_gravity, H_ion_fr, He_ion_fr, He_ion_fr2, &
     SI_unit, hd_particles, hd_rotating_frame, hd_trac, &
-    hd_trac_type, hd_trac_nzones, hd_trac_zone_splits, hd_trac_delta, hd_trac_v_thresh, &
+    hd_trac_type, hd_trac_nzones, hd_trac_zone_splits, hd_trac_delta, &
     hd_cak_force, hd_well_balanced, &
-    hd_radiation_fld, hd_fip
+    hd_radiation_fld, hd_fld_pradtensor,hd_fip
 
     do n = 1, size(files)
        open(unitpar, file=trim(files(n)), status="old")
@@ -295,7 +284,7 @@ contains
     use mod_cak_force, only: cak_init
     use mod_supertimestepping, only: sts_init, add_sts_method,&
             set_conversion_methods_to_head, set_error_handling_to_head
-    use mod_eos_PI_tables
+    use mod_eos_pi_tables
     use mod_usr_methods, only: usr_Rfactor, usr_get_heating
     use mod_escape_probability, only: escape_prob_init
     use mod_fld
@@ -326,8 +315,17 @@ contains
         phys_trac_nzones=hd_trac_nzones
         phys_trac_zone_splits=hd_trac_zone_splits
       else
-        phys_trac=.false.
-        if(mype==0) write(*,*) 'WARNING: set hd_trac=F when ndim>=2'
+        ! multi-D: only the local (per-cell) Johnston-2021 TRAC (type 7) is supported here;
+        ! the column-sweep variants (1,2) need field-line/vertical tracing not implemented for HD.
+        if(hd_trac_type == 7) then
+          if(.not. associated(usr_get_heating)) then
+            call mpistop("hd_trac_type=7 requires usr_get_heating to be set in mod_usr.t")
+          end if
+          phys_trac_type=7
+        else
+          phys_trac=.false.
+          if(mype==0) write(*,*) 'WARNING: hd_trac disabled for ndim>=2 (only trac_type=7 supported)'
+        end if
       end if
     end if
 
@@ -387,7 +385,7 @@ contains
     if (eos%eos_type == 'LTE') then
       Ne_ = var_set_ne()
       Te_ = var_set_te()
-    else if (eos%eos_type == 'PI') then !  PI stores Te via var_set_te (sets iw_te) so the generic mod_eos_PI getters address it like LTE
+    else if (eos%eos_type == 'PI') then !  PI stores Te via var_set_te (sets iw_te) so the generic mod_eos_pi getters address it like LTE
       Ne_ = -1
       Te_ = var_set_te()
     else
@@ -437,6 +435,7 @@ contains
     phys_get_flux            => hd_get_flux
     phys_add_source_geom     => hd_add_source_geom
     phys_add_source          => hd_add_source
+    phys_modify_wLR          => hd_modify_wLR
     phys_check_params        => hd_check_params
     phys_check_w             => hd_check_w
     ! phys_get_pthermal is set by hd_link_eos
@@ -482,8 +481,17 @@ contains
        tracer(itr) = var_set_fluxvar("trc", "trp", itr, need_bc=.false.)
     end do
 
-    ! set number of variables which need update ghostcells
+    ! set number of variables which need update ghostcells.
+    ! The EoS-derived slots Ne/Te are derived state that must stay consistent with (rho,e)
+    ! wherever the conserved state is valid, so they have to travel with it. var_set_ne /
+    ! var_set_te bump nw but neither nwflux nor nwaux, so the historic nwflux+nwaux silently
+    ! excluded them: they were never communicated, only derived, and every ghost cell held
+    ! zero until something derived it. Extend the window to whichever of them exist (they are
+    ! registered contiguously just above); FI leaves both at -1 and the window is unchanged.
+    ! bc_phys is unaffected -- it iterates nwflux+nwaux independently.
     nwgc=nwflux+nwaux
+    if (iw_ne > 0) nwgc = max(nwgc, iw_ne)
+    if (iw_te > 0) nwgc = max(nwgc, iw_te)
 
     ! set the index of the last flux variable for species 1
     stop_indices(1)=nwflux
@@ -618,9 +626,24 @@ contains
     allocate(iw_vector(nvector))
     iw_vector(1) = mom(1) - 1
     ! ionization-degree table init now lives in eos_finalise (eos% owns
-    ! thermodynamic-backend init); see mod_eos_PI.
+    ! thermodynamic-backend init); see mod_eos_pi.
 
   end subroutine hd_phys_init
+
+  !> allow the user to control the left/right states (and hence the flux) at
+  !> physical boundary interfaces, as in the MHD module
+  subroutine hd_modify_wLR(ixI^L,ixO^L,qt,wLC,wRC,wLp,wRp,s,idir)
+    use mod_global_parameters
+    use mod_usr_methods
+    integer, intent(in)             :: ixI^L, ixO^L, idir
+    double precision, intent(in)    :: qt
+    double precision, intent(inout) :: wLC(ixI^S,1:nw), wRC(ixI^S,1:nw)
+    double precision, intent(inout) :: wLp(ixI^S,1:nw), wRp(ixI^S,1:nw)
+    type(state)                     :: s
+
+    if(associated(usr_set_wLR)) call usr_set_wLR(ixI^L,ixO^L,qt,wLC,wRC,wLp,wRp,s,idir)
+
+  end subroutine hd_modify_wLR
 
 {^IFTHREED
   subroutine hd_te_images
@@ -918,7 +941,9 @@ contains
            write(*,*)'==FLD SETUP======================'
            write(*,*)'Using FLD with settings:'
            write(*,*)'Using FLD with settings: hd_radiation_fld=',hd_radiation_fld
+           write(*,*)'Using FLD with settings: hd_fld_pradtensor=',hd_fld_pradtensor
            write(*,*)'Using FLD with settings: fld_fluxlimiter=',fld_fluxlimiter
+           write(*,*)'Using FLD with settings: fld_bound_diff=',fld_bound_diff
            write(*,*)'Using FLD with settings: fld_interaction_method=',fld_interaction_method
            write(*,*)'Using FLD with settings: fld_opacity_law=',fld_opacity_law
            write(*,*)'Using FLD with settings: fld_kappa0=',fld_kappa0
@@ -928,9 +953,21 @@ contains
            write(*,*)'Using FLD with settings: fld_diff_tol=',fld_diff_tol
            write(*,*)'Using FLD with settings: nth_for_diff_mg=',nth_for_diff_mg
            write(*,*)'      FLD has use_imex_scheme and use_multigrid=',use_imex_scheme,use_multigrid
+           write(*,*)'      FLD has fld_no_mg=',fld_no_mg
+           if(fld_no_mg)then
+              print *,'WARNING: cheating with FLD diffusion ***********************'
+              print *,'WARNING: No MG-diffusion for radiative energy at all!!!!!!!'
+              print *,'WARNING: cheating with FLD diffusion ***********************'
+           endif
            print *,'const_rad_a   =',const_rad_a
            print *,'NORMALIZED arad_norm=',arad_norm
            print *,'NORMALIZED c_norm=',c_norm
+           if(fld_cnorm>0.0d0)then
+              print *,'WARNING: cheating with c_norm ***********************'
+              print *,'WARNING: c_norm reset to=',fld_cnorm
+              c_norm=fld_cnorm
+              print *,'WARNING: cheating with c_norm ***********************'
+           endif
            print *,'const_kappae  =',const_kappae
            if(trim(fld_opacity_law).eq.'const_norm')then
                print *,'NORMALIZED fld_kappa0          =',fld_kappa0
@@ -1379,8 +1416,9 @@ contains
   subroutine hd_get_tcutoff(ixI^L,ixO^L,w,x,tco_local,Tmax_local)
     use mod_global_parameters
     use mod_usr_methods, only: usr_get_heating
-    use mod_radiative_cooling, only: findL
+    use mod_radiative_cooling, only: findL, calc_l_extended
     use mod_eos, only: eos
+    use mod_geometry, only: gradient
     integer, intent(in) :: ixI^L,ixO^L
     double precision, intent(in) :: x(ixI^S,1:ndim)
     ! in primitive form
@@ -1396,11 +1434,11 @@ contains
     ! Johnston 2021 type 7 variables
     double precision :: dTdx, L_T, a_coeff, L1, cooling, net_cool
     double precision :: kappa_par, disc, kappa_TRAC, kappa_eff, Tcoff_eff
-    double precision :: dx_over_delta, v_abs, v_thresh
+    double precision :: dx_over_delta, v_abs, v_n, gnorm, dl_eff
     double precision :: Q_heat(ixI^S), ne(ixI^S), nH_arr(ixI^S)
-    integer :: ix1
+    double precision :: gradTd(ixI^S,1:ndim), nhat(1:ndim)
+    integer :: ix^D, idims
 
-    {^IFONED
     call eos%get_Rfactor(w,x,ixI^L,ixI^L,R)
     Te(ixI^S)=w(ixI^S,p_)/(R(ixI^S)*w(ixI^S,rho_))
 
@@ -1411,6 +1449,7 @@ contains
     Tco_local=zero
     Tmax_local=maxval(Te(ixO^S))
     select case(hd_trac_type)
+    {^IFONED
     case(0)
       block%wextra(ixI^S,Tcoff_)=3.d5/unit_temperature
     case(1)
@@ -1444,8 +1483,10 @@ contains
       ! the conduction sees stale values and breaks symmetry.
       block%wextra(ixOmin1-1,Tcoff_)=Te(ixOmin1-1)*lts(ixOmin1-1)**0.4d0
       block%wextra(ixOmax1+1,Tcoff_)=Te(ixOmax1+1)*lts(ixOmax1+1)**0.4d0
+    }
     case(7)
-      !> Johnston et al. 2021 local TRAC (A&A 654, A2)
+      {^IFONED
+      !> Johnston et al. 2021 local TRAC (A&A 654, A2) -- 1D
       !> Per-cell kappa_TRAC from steady-state energy balance
 
       ! Get background heating Q (once per block)
@@ -1453,7 +1494,7 @@ contains
 
       ! Get n_e and n_H for cooling rate: Q = n_e * n_H * Lambda(T)
       ! For FI: n_e = n_H * neOnH_FI.  For LTE: n_e from Saha EoS.
-      call eos%get_ne_nH(ixI^L, ixO^L, w, ne, nH_arr)
+      call eos%get_ne_nH(ixI^L, ixO^L, w, x, ne, nH_arr)
 
       hxO^L=ixO^L-1;
       jxO^L=ixO^L+1;
@@ -1469,16 +1510,20 @@ contains
         end if
         L_T = Te(ix1) / dTdx
 
-        ! Mass flux coefficient: a = (5/2)*p*v_eff/T  [exact for any ideal gas]
-        ! Threshold: ignore enthalpy flux for subsonic sloshing (v < v_thresh*cs)
-        ! to prevent feedback-driven Tcoff asymmetry from machine-precision seeds.
+        ! Eq.11 mass flux coefficient a = (5/2) p v / T, which is (5/2) kB J for
+        ! an ideal gas since p = n kB T.
         v_abs = abs(w(ix1,m1_))
-        v_thresh = hd_trac_v_thresh * dsqrt(eos%gamma * w(ix1,p_) / w(ix1,rho_))
-        a_coeff = 2.5d0 * w(ix1,p_) * max(v_abs - v_thresh, 0.d0) / Te(ix1)
+        a_coeff = 2.5d0 * w(ix1,p_) * v_abs / Te(ix1)
 
-        ! Radiative cooling: n_e * n_H * Lambda(T)
-        call findL(Te(ix1), L1, rc_fl)
-        cooling = ne(ix1) * nH_arr(ix1) * L1
+        ! Radiative cooling: n_e * n_H * Lambda(T), guarded to the table range (positive in-range
+        ! test so a non-finite Te falls to zero rather than indexing findL with int(NaN)).
+        if(Te(ix1) > rc_fl%tcoolmin .and. Te(ix1) < rc_fl%tcoolmax) then
+          call findL(Te(ix1), L1, rc_fl); cooling = ne(ix1) * nH_arr(ix1) * L1
+        else if(Te(ix1) >= rc_fl%tcoolmax) then
+          call calc_l_extended(Te(ix1), L1, rc_fl); cooling = ne(ix1) * nH_arr(ix1) * L1
+        else
+          cooling = 0.d0
+        end if
 
         ! Net cooling - heating
         net_cool = abs(cooling - Q_heat(ix1))
@@ -1513,16 +1558,65 @@ contains
       ! the conduction sees stale values and breaks symmetry.
       block%wextra(ixOmin1-1,Tcoff_) = block%wextra(ixOmin1,Tcoff_)
       block%wextra(ixOmax1+1,Tcoff_) = block%wextra(ixOmax1,Tcoff_)
+      }
+      {^NOONED
+      ! Johnston et al. 2021 local TRAC, A and A 654 A2 -- multi-D, per-cell.
+      ! Isotropic Spitzer conduction, so the TR normal is the unit temperature
+      ! gradient direction nhat, and the broadening is applied along it.
+      call usr_get_heating(Q_heat, ixI^L, ixO^L, w, x)
+      call eos%get_ne_nH(ixI^L, ixO^L, w, x, ne, nH_arr)
+      ! default (incl. non-communicated ghost layer): Tcoff=Te -> no broadening; interior overwritten
+      block%wextra(ixI^S,Tcoff_) = Te(ixI^S)
+      do idims=1,ndim
+        call gradient(Te,ixI^L,ixO^L,idims,gradTd(ixI^S,idims))
+      end do
+      {do ix^DB=ixOmin^DB,ixOmax^DB\}
+        gnorm = dsqrt(^D&gradTd({ix^D},^D)**2+ )
+        if(gnorm < smalldouble) then
+          block%wextra(ix^D,Tcoff_) = Te(ix^D)            ! locally uniform T: no broadening
+        else
+          ^D&nhat(^D)=gradTd({ix^D},^D)/gnorm\
+          ! grid spacing measured along the gradient direction
+          dl_eff = 1.d0/dsqrt(^D&(nhat(^D)/block%ds({ix^D},^D))**2+ )
+          L_T    = Te(ix^D)/gnorm
+          ! Eq.16 enthalpy (mass) flux along the gradient
+          v_n      = ^D&w({ix^D},mom(^D))*nhat(^D)+
+          a_coeff  = 2.5d0*w(ix^D,p_)*dabs(v_n)/Te(ix^D)
+          ! optically-thin cooling n_e n_H Lambda(T), guarded to the table range with a positive
+          ! in-range test so a non-finite Te (NaN from an under-resolved collapse) falls to zero
+          ! rather than indexing findL with int(NaN) -> out of bounds.
+          if(Te(ix^D) > rc_fl%tcoolmin .and. Te(ix^D) < rc_fl%tcoolmax) then
+            call findL(Te(ix^D),L1,rc_fl); cooling = L1*ne(ix^D)*nH_arr(ix^D)
+          else if(Te(ix^D) >= rc_fl%tcoolmax) then
+            call calc_l_extended(Te(ix^D),L1,rc_fl); cooling = L1*ne(ix^D)*nH_arr(ix^D)
+          else
+            cooling = 0.d0
+          end if
+          net_cool = dabs(cooling-Q_heat(ix^D))
+          kappa_par     = tc_fl%tc_k_para*Te(ix^D)**2.5d0
+          disc          = a_coeff**2 + 4.d0*tc_fl%tc_k_para*Te(ix^D)**1.5d0*net_cool
+          dx_over_delta = dl_eff/hd_trac_delta
+          if(L_T <= 2.d0*dx_over_delta) then
+            kappa_TRAC = (a_coeff+dsqrt(disc))/(2.d0/dx_over_delta)
+          else
+            kappa_TRAC = dsqrt(4.d0*tc_fl%tc_k_para*Te(ix^D)**1.5d0*net_cool)/(2.d0/dx_over_delta)
+          end if
+          kappa_eff = max(kappa_TRAC,kappa_par)
+          Tcoff_eff = (kappa_eff/tc_fl%tc_k_para)**0.4d0
+          block%wextra(ix^D,Tcoff_) = max(Te(ix^D),Tcoff_eff)
+        end if
+      {end do\}
+      }
     case default
-      call mpistop("hd_trac_type not allowed for 1D simulation")
+      call mpistop("hd_trac_type not allowed")
     end select
-    }
   end subroutine hd_get_tcutoff
 
   !> Calculate cmax_idim = csound + abs(v_idim) within ixO^L
   subroutine hd_get_cbounds(wLC, wRC, wLp, wRp, x, ixI^L, ixO^L, idim,Hspeed,cmax, cmin)
     use mod_global_parameters
     use mod_dust, only: dust_get_cmax
+    use mod_fld, only: fld_bound_diff
     use mod_variables
 
     integer, intent(in)             :: ixI^L, ixO^L, idim
@@ -1552,6 +1646,10 @@ contains
       if(hd_energy) then
         call eos%get_csound2(wLp, x, ixI^L, ixO^L, csoundL)
         call eos%get_csound2(wRp, x, ixI^L, ixO^L, csoundR)
+        if(hd_radiation_fld.and.fld_bound_diff)then
+          csoundL(ixO^S)=csoundL(ixO^S)+(4.0d0/9.0d0)*wLp(ixO^S,r_e)/wLp(ixO^S,rho_)
+          csoundR(ixO^S)=csoundR(ixO^S)+(4.0d0/9.0d0)*wRp(ixO^S,r_e)/wRp(ixO^S,rho_)
+        endif
       else
          ! note usage of conservatives here
          call hd_get_csound2(wLC,x,ixI^L,ixO^L,csoundL)
@@ -1592,6 +1690,7 @@ contains
          wmean(ixO^S,1:nwflux)=0.5d0*(wLC(ixO^S,1:nwflux)+wRC(ixO^S,1:nwflux))
          tmp1(ixO^S)=wmean(ixO^S,mom(idim))/wmean(ixO^S,rho_)
          call hd_get_csound2(wmean,x,ixI^L,ixO^L,csoundR)
+         if(hd_radiation_fld.and.fld_bound_diff)csoundR(ixO^S)=csoundR(ixO^S)+(4.0d0/9.0d0)*wmean(ixO^S,r_e)/wmean(ixO^S,rho_)
       !endif
       csoundR(ixO^S) = dsqrt(csoundR(ixO^S))
 
@@ -1616,6 +1715,10 @@ contains
       if(hd_energy) then
         call eos%get_csound2(wLp, x, ixI^L, ixO^L, csoundL)
         call eos%get_csound2(wRp, x, ixI^L, ixO^L, csoundR)
+        if(hd_radiation_fld.and.fld_bound_diff)then
+          csoundL(ixO^S)=csoundL(ixO^S)+(4.0d0/9.0d0)*wLp(ixO^S,r_e)/wLp(ixO^S,rho_)
+          csoundR(ixO^S)=csoundR(ixO^S)+(4.0d0/9.0d0)*wRp(ixO^S,r_e)/wRp(ixO^S,rho_)
+        endif
       else
          ! note usage of conservatives here
          call hd_get_csound2(wLC,x,ixI^L,ixO^L,csoundL)
@@ -1647,6 +1750,10 @@ contains
       if(hd_energy) then
         call eos%get_csound2(wLp, x, ixI^L, ixO^L, csoundL)
         call eos%get_csound2(wRp, x, ixI^L, ixO^L, csoundR)
+        if(hd_radiation_fld.and.fld_bound_diff)then
+          csoundL(ixO^S)=csoundL(ixO^S)+(4.0d0/9.0d0)*wLp(ixO^S,r_e)/wLp(ixO^S,rho_)
+          csoundR(ixO^S)=csoundR(ixO^S)+(4.0d0/9.0d0)*wRp(ixO^S,r_e)/wRp(ixO^S,rho_)
+        endif
       else
         call hd_get_csound2(wLC,x,ixI^L,ixO^L,csoundL)
         call hd_get_csound2(wRC,x,ixI^L,ixO^L,csoundR)
@@ -1739,7 +1846,7 @@ contains
   subroutine hd_get_csound2(w,x,ixI^L,ixO^L,csound2)
     use mod_global_parameters
     use mod_timing
-    use mod_eos_LTE, only: gamma1_from_nH_p
+    use mod_eos_lte, only: gamma1_from_nH_p
     integer, intent(in)             :: ixI^L, ixO^L
     double precision, intent(in)    :: w(ixI^S,nw)
     double precision, intent(in)    :: x(ixI^S,1:ndim)
@@ -1798,12 +1905,20 @@ contains
     double precision :: inv_rho
     double precision :: prad_tensor(ixI^S, 1:ndim, 1:ndim)
     double precision :: prad_max(ixI^S)
+    integer :: idim
 
-    call hd_get_pradiation_from_prim(w, x, ixI^L, ixO^L, prad_tensor)
+   if(hd_fld_pradtensor) then
+       call hd_get_pradiation_from_prim(w, x, ixI^L, ixO^L, prad_tensor)
+    else
+       prad_tensor=zero 
+       do idim=1,ndim
+         prad_tensor(ixO^S,idim,idim)=w(ixO^S,r_e)/3.0d0
+       enddo
+    endif
 
    {do ix^DB=ixOmin^DB,ixOmax^DB \}
       inv_rho=1.d0/w(ix^D,rho_)
-      prad_max(ix^D) = maxval(prad_tensor(ix^D,:,:))
+      prad_max(ix^D) = (4.0d0/3.0d0)*maxval(prad_tensor(ix^D,:,:))
       csound(ix^D)=(eos%gamma*w(ix^D,p_)+prad_max(ix^D))*inv_rho
    {end do\}
 

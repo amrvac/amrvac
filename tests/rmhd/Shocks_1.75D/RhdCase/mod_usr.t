@@ -2,6 +2,7 @@ module mod_usr
 
   ! Include a physics module
   use mod_mhd
+  use mod_eos, only: eos
   use mod_fld
   use mod_multigrid_coupling
 
@@ -52,7 +53,7 @@ contains
     usr_modify_output => set_output_vars
 
     ! Boundary conditions
-    usr_special_bc => boundary_conditions
+    !usr_special_bc => boundary_conditions
 
     ! custom output
     !usr_aux_output      => specialvar_output
@@ -140,9 +141,9 @@ contains
     else
     ! this computes T2 ensuring that the energy flux is exactly equal
     ! use the Halley root finder for the 4th order polynomial in T2 (normalized)
-    c1B_norm=3.0d0*RR*rho2_norm*mhd_gamma/(arad_norm*4.0d0*(mhd_gamma-1.d0))
+    c1B_norm=3.0d0*RR*rho2_norm*eos%gamma/(arad_norm*4.0d0*(eos%gamma-1.d0))
     c0B_norm=(3.0d0/(4.0d0*arad_norm))* &
-       ((mhd_gamma*RR*rho1_norm*T1_norm/(mhd_gamma-1.d0) &
+       ((eos%gamma*RR*rho1_norm*T1_norm/(eos%gamma-1.d0) &
          +4.0d0*Er1_norm/3.0d0+half*rho1_norm*vsq1+Btotsq1)*rho2_norm/rho1_norm &
        -half*rho2_norm*vsq2-Btotsq2-(rho2_norm/momc_n)*Bx1_norm*(vdotB1-vdotB2))
     T2B_norm=T1_norm ! this is a bad guess
@@ -154,12 +155,12 @@ contains
     T2=T2_norm*unit_temperature
     p2_norm=T2_norm*rho2_norm*RR
     Er2_norm = arad_norm*T2_norm**4.d0
-    eg1_norm=p1_norm/(mhd_gamma-1.0d0)+half*rho1_norm*vsq1+half*Btotsq1
-    eg2_norm=p2_norm/(mhd_gamma-1.0d0)+half*rho2_norm*vsq2+half*Btotsq2
+    eg1_norm=p1_norm/(eos%gamma-1.0d0)+half*rho1_norm*vsq1+half*Btotsq1
+    eg2_norm=p2_norm/(eos%gamma-1.0d0)+half*rho2_norm*vsq2+half*Btotsq2
 
     if(mype==0)then
-     print*, 'M_1: ', vx1_norm/dsqrt(mhd_gamma*p1_norm/rho1_norm) 
-     print*, 'M_2: ', vx2_norm/dsqrt(mhd_gamma*p2_norm/rho2_norm) 
+     print*, 'M_1: ', vx1_norm/dsqrt(eos%gamma*p1_norm/rho1_norm) 
+     print*, 'M_2: ', vx2_norm/dsqrt(eos%gamma*p2_norm/rho2_norm) 
      print*, 'RMHD-quantities  : ', 'Left', ' | ', 'Right'
      print*, 'density          :', rho1_norm, ' | ', rho2_norm
      print*, 'velocity         :', vx1_norm,vy1_norm,vz2_norm, ' | ', vx2_norm,vy2_norm,vz2_norm 
@@ -356,7 +357,7 @@ contains
     double precision :: lamb(ixI^S), R(ixI^S)
 
     wlocal(ixI^S,1:nw)=w(ixI^S,1:nw)
-    call fld_get_fluxlimiter(wlocal,x,ixI^L,ixO^L,lamb,R,2)
+    !call fld_get_fluxlimiter(wlocal,x,ixI^L,ixO^L,lamb,R,2)
     w(ixO^S,nw+1)=lamb(ixO^S)
     w(ixO^S,nw+2)=R(ixO^S)
   end subroutine specialvar_output
@@ -377,7 +378,7 @@ contains
 
     call mhd_get_pthermal(w,x,ixI^L,ixO^L,pth)
     call mhd_get_trad(w,x,ixI^L,ixO^L,Trad)
-    call mhd_get_temperature_from_etot(w,x,ixI^L,ixO^L,Tgas)
+    call eos%get_temperature_from_etot(w,x,ixI^L,ixO^L,Tgas)
     w(ixO^S,Tgas_)=Tgas(ixO^S)
     w(ixO^S,Trad_)=Trad(ixO^S)
     w(ixO^S,pres_)=pth(ixO^S)

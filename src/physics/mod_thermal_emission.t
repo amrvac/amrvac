@@ -379,10 +379,11 @@ module mod_thermal_emission
   end interface
 
   abstract interface
-    subroutine get_2var_subr_te(ixI^L, ixO^L, w, val1, val2)
+    subroutine get_2var_subr_te(ixI^L, ixO^L, w, x, val1, val2)
       use mod_global_parameters
       integer, intent(in)          :: ixI^L, ixO^L
       double precision, intent(in) :: w(ixI^S, nw)
+      double precision, intent(in) :: x(ixI^S, 1:ndim)
       double precision, intent(out):: val1(ixI^S), val2(ixI^S)
     end subroutine get_2var_subr_te
   end interface
@@ -432,13 +433,18 @@ module mod_thermal_emission
         call mpistop("bad radiation_transfer")
       endif
 
+      if (trim(dat_resolution_mode) /= 'nominal' .and. &
+          trim(dat_resolution_mode) /= 'minimum') then
+        call mpistop("dat_resolution_mode must be nominal or minimum")
+      endif
+
       sph_use_dda=.false.
       select case(trim(ray_method))
       case('auto','')
         if (datatype=='image_euv' .and. coordinate==spherical) then
           ray_method_active='spherical'
           sph_use_dda=.true.
-        else if (datatype=='image_euv' .and. coordinate==cartesian .and. dat_resolution .and. slab) then
+        else if (datatype=='image_euv' .and. dat_resolution .and. slab) then
           ray_method_active='cart'
         else
           ray_method_active='legacy'
@@ -522,7 +528,7 @@ module mod_thermal_emission
       end select
 
       if (trim(ray_method_active) == 'cart') then
-        if (datatype /= 'image_euv' .or. coordinate /= cartesian .or. .not. slab) then
+        if (datatype /= 'image_euv' .or. .not. slab) then
           call mpistop("ray_method=cart needs Cartesian EUV slab images")
         endif
       endif
@@ -789,10 +795,106 @@ module mod_thermal_emission
       {enddo\}
     end subroutine apply_temperature_response
 
+    subroutine get_EUV_saha_fractions(Te,Ne,x_HII,x_HeII,x_HeIII)
+      ! Ion fractions at fixed temperature and electron density.  Ne is an
+      ! input here: this helper does not impose charge conservation or alter
+      ! the thermodynamic state of the simulation.
+      use mod_constants, only: kB_cgs
+
+      double precision, intent(in) :: Te,Ne
+      double precision, intent(out) :: x_HII,x_HeII,x_HeIII
+
+      double precision :: Pe,log_H21,log_He21,log_He32,log_He321
+      double precision :: logScaleHe,w_H21,term0,term1,term2,denHe
+      double precision, parameter :: Xe_H21=13.6d0
+      double precision, parameter :: Xe_He21=24.587d0
+      double precision, parameter :: Xe_He32=54.416d0
+
+      x_HII=zero
+      x_HeII=zero
+      x_HeIII=zero
+      if (Te<=zero .or. Ne<=zero) return
+
+      Pe=Ne*kB_cgs*Te
+      if (Pe<=zero) return
+
+      log_H21=2.5d0*log10(Te)-5040.d0*Xe_H21/Te-log10(Pe)-0.48d0
+      log_He21=log10(4.d0)+2.5d0*log10(Te)-5040.d0*Xe_He21/Te-log10(Pe)-0.48d0
+      log_He32=2.5d0*log10(Te)-5040.d0*Xe_He32/Te-log10(Pe)-0.48d0
+
+      w_H21=pow10_clamped(log_H21)
+      x_HII=w_H21/(1.d0+w_H21)
+
+      ! Normalize the three helium stages in logarithmic form to avoid
+      ! overflow in the product of the two Saha ratios.
+      log_He321=log_He21+log_He32
+      logScaleHe=max(zero,log_He21,log_He321)
+      term0=pow10_clamped(-logScaleHe)
+      term1=pow10_clamped(log_He21-logScaleHe)
+      term2=pow10_clamped(log_He321-logScaleHe)
+      denHe=term0+term1+term2
+      if (denHe>zero) then
+        x_HeII=term1/denHe
+        x_HeIII=term2/denHe
+      endif
+    end subroutine get_EUV_saha_fractions
+
+    subroutine solve_EUV_saha_charge_state(nH,Te,rHe,Ne_guess,x_HII,x_HeII,x_HeIII)
+      ! Radiation-only Saha closure at fixed total hydrogen density and
+      ! temperature.  It is used for an FI simulation, whose fully-ionized
+      ! electron density cannot consistently determine cool neutral fractions.
+      ! rHe belongs to the synthetic absorber and is not fed back into the
+      ! simulation equation of state, pressure, or temperature.
+      double precision, intent(in) :: nH,Te,rHe,Ne_guess
+      double precision, intent(out) :: x_HII,x_HeII,x_HeIII
+
+      integer, parameter :: max_iter=32
+      integer :: iter
+      double precision :: Ne,Ne_lo,Ne_hi,Ne_new,residual,derivative
+      double precision :: e_He,de_HII_dNe,de_He_dNe
+
+      x_HII=zero
+      x_HeII=zero
+      x_HeIII=zero
+      if (nH<=zero .or. Te<=zero) return
+
+      Ne_lo=max(1.d-30*nH,1.d-100)
+      Ne_hi=(1.d0+2.d0*rHe)*nH
+      Ne=min(max(Ne_guess,Ne_lo),Ne_hi)
+
+      do iter=1,max_iter
+        call get_EUV_saha_fractions(Te,Ne,x_HII,x_HeII,x_HeIII)
+        e_He=x_HeII+2.d0*x_HeIII
+        residual=Ne/nH-x_HII-rHe*e_He
+        if (abs(residual)<1.d-10) exit
+
+        if (residual>zero) then
+          Ne_hi=Ne
+        else
+          Ne_lo=Ne
+        endif
+
+        ! Analytic derivative of the charge-neutrality residual.  The
+        ! Newton step is kept inside a bisection bracket for robustness.
+        de_HII_dNe=-x_HII*(1.d0-x_HII)/Ne
+        de_He_dNe=(x_HeII*(e_He-1.d0) &
+             +2.d0*x_HeIII*(e_He-2.d0))/Ne
+        derivative=1.d0/nH-de_HII_dNe-rHe*de_He_dNe
+        Ne_new=Ne-residual/derivative
+        if (.not.(Ne_new>Ne_lo .and. Ne_new<Ne_hi)) then
+          Ne_new=0.5d0*(Ne_lo+Ne_hi)
+        endif
+        Ne=Ne_new
+      enddo
+
+      ! Ensure the returned fractions correspond to the final iterate.
+      call get_EUV_saha_fractions(Te,Ne,x_HII,x_HeII,x_HeIII)
+    end subroutine solve_EUV_saha_charge_state
+
     subroutine get_EUV_HHe_opacity(wl,ixI^L,ixO^L,w,x,fl,kappa)
       ! H I + He I + He II photoionization opacity in cm^-1.
-      use mod_constants, only: kB_cgs
       use mod_eos, only: eos
+      use mod_eos_pi_tables, only: ionization_state_Tp
 
       integer, intent(in) :: wl
       integer, intent(in) :: ixI^L, ixO^L
@@ -802,27 +904,34 @@ module mod_thermal_emission
       double precision, intent(out) :: kappa(ixI^S)
 
       integer :: ix^D
-      double precision :: pth(ixI^S),Te(ixI^S),Ne(ixI^S)
-      double precision :: wave_ratio,s_H1,s_He1,s_He2,Pe
-      double precision :: log_H21,log_He21,log_He32,log_He321,logScaleHe,w_H21
-      double precision :: term0,term1,term2,denHe,i0,j1,j2,be
-      double precision :: N_H,N_H1,N_He1,N_He2
-      double precision, parameter :: Xe_H21=13.6d0, Xe_He21=24.587d0, Xe_He32=54.416d0
-      double precision, parameter :: rHe=0.1d0
+      double precision :: pth(ixI^S),rho(ixI^S),Rfactor(ixI^S),Te(ixI^S)
+      double precision :: Ne(ixI^S),nH(ixI^S)
+      double precision :: wave_ratio,s_H1,s_He1,s_He2
+      double precision :: x_HII,x_HeII,x_HeIII,iz_H,iz_He,Rdummy
+      double precision :: N_H1,N_He1,N_He2
+      double precision, parameter :: rHe_opacity=0.1d0
       double precision, parameter :: sigma_H1=5.16d-20, sigma_He1=9.25d-19, sigma_He2=7.17d-19
 
       call fl%get_pthermal(w,x,ixI^L,ixO^L,pth)
-      call fl%get_rho(w,x,ixI^L,ixO^L,Ne)
-      call fl%get_var_Rfactor(w,x,ixI^L,ixO^L,Te)
-      Te(ixO^S)=pth(ixO^S)/(Ne(ixO^S)*Te(ixO^S))*unit_temperature
-      block
-        double precision :: nH_dummy(ixI^S)
-        call eos%get_ne_nH(ixI^L, ixO^L, w, Ne, nH_dummy)
-      end block
+      call fl%get_rho(w,x,ixI^L,ixO^L,rho)
+      call fl%get_var_Rfactor(w,x,ixI^L,ixO^L,Rfactor)
+      Te(ixO^S)=zero
+      {do ix^DB=ixOmin^DB,ixOmax^DB\}
+        if (rho(ix^D)>zero .and. Rfactor(ix^D)>zero) then
+          Te(ix^D)=pth(ix^D)/(rho(ix^D)*Rfactor(ix^D))*unit_temperature
+        endif
+      {enddo\}
+
+      ! nH always follows the mass density and composition of the simulated
+      ! gas.  rHe_opacity is deliberately applied only when constructing the
+      ! synthetic absorber below; it never changes this EOS conversion.
+      call eos%get_ne_nH(ixI^L, ixO^L, w, x, Ne, nH)
       if (SI_unit) then
         Ne(ixO^S)=Ne(ixO^S)*unit_numberdensity/1.d6
+        nH(ixO^S)=nH(ixO^S)*unit_numberdensity/1.d6
       else
         Ne(ixO^S)=Ne(ixO^S)*unit_numberdensity
+        nH(ixO^S)=nH(ixO^S)*unit_numberdensity
       endif
 
       wave_ratio=dble(wl)/171.d0
@@ -835,36 +944,49 @@ module mod_thermal_emission
       kappa(ixO^S)=zero
 
       {do ix^DB=ixOmin^DB,ixOmax^DB\}
-        if (Te(ix^D)>zero .and. Ne(ix^D)>zero) then
-          Pe=Ne(ix^D)*kB_cgs*Te(ix^D)
-          if (Pe>zero) then
-            log_H21=2.5d0*log10(Te(ix^D))-5040.d0*Xe_H21/Te(ix^D)-log10(Pe)-0.48d0
-            log_He21=log10(4.d0)+2.5d0*log10(Te(ix^D))-5040.d0*Xe_He21/Te(ix^D)-log10(Pe)-0.48d0
-            log_He32=2.5d0*log10(Te(ix^D))-5040.d0*Xe_He32/Te(ix^D)-log10(Pe)-0.48d0
-            w_H21=pow10_clamped(log_H21)
-            i0=w_H21/(1.d0+w_H21)
-            log_He321=log_He21+log_He32
-            logScaleHe=max(zero,log_He21,log_He321)
-            term0=pow10_clamped(-logScaleHe)
-            term1=pow10_clamped(log_He21-logScaleHe)
-            term2=pow10_clamped(log_He321-logScaleHe)
-            denHe=term0+term1+term2
-            if (denHe>zero) then
-              j1=term1/denHe
-              j2=term2/denHe
+        if (Te(ix^D)>zero .and. nH(ix^D)>zero) then
+          select case (trim(eos%eos_type))
+          case ('PI')
+            ! Reuse the ionisation state of the PI backend.  In its helium
+            ! convention iz_He is the fraction ionised at least once and
+            ! iz_He**2 the fraction ionised twice.
+            call ionization_state_Tp(Te(ix^D)/unit_temperature,pth(ix^D), &
+                 Rdummy,iz_H,iz_He)
+            x_HII=iz_H
+            x_HeII=iz_He*(1.d0-iz_He)
+            x_HeIII=iz_He*iz_He
+          case ('LTE')
+            ! LTE stores the self-consistent total electron density rather
+            ! than separate H/He populations.  Reconstruct the helium stages
+            ! at that EOS electron density and temperature, then retain the
+            ! simulated ne/nH exactly when obtaining the hydrogen fraction.
+            if (Ne(ix^D)>zero) then
+              call get_EUV_saha_fractions(Te(ix^D),Ne(ix^D), &
+                   x_HII,x_HeII,x_HeIII)
+              if (trim(eos%method)=='analytic') then
+                ! The analytic LTE option is explicitly H-only below its FI
+                ! bypass, so its stored ne/nH is the hydrogen ion fraction.
+                x_HII=min(one,max(zero,Ne(ix^D)/nH(ix^D)))
+              else
+                x_HII=min(one,max(zero,Ne(ix^D)/nH(ix^D) &
+                     -eos%He_abundance*(x_HeII+2.d0*x_HeIII)))
+              endif
             else
-              j1=zero
-              j2=zero
+              call solve_EUV_saha_charge_state(nH(ix^D),Te(ix^D), &
+                   rHe_opacity,Ne(ix^D),x_HII,x_HeII,x_HeIII)
             endif
-            be=i0+rHe*(j1+2.d0*j2)
-            if (be>smalldouble) then
-              N_H=Ne(ix^D)/be
-              N_H1=N_H*(1.d0-i0)
-              N_He1=(1.d0-j1-j2)*rHe*N_H
-              N_He2=j1*rHe*N_H
-              kappa(ix^D)=max(zero,N_H1*s_H1+N_He1*s_He1+N_He2*s_He2)
-            endif
-          endif
+          case default
+            ! FI supplies a fully-ionized Ne even when its rho,T state is
+            ! cool.  Discard that Ne constraint and solve charge neutrality
+            ! at fixed simulated nH and T for the radiation post-processing.
+            call solve_EUV_saha_charge_state(nH(ix^D),Te(ix^D), &
+                 rHe_opacity,Ne(ix^D),x_HII,x_HeII,x_HeIII)
+          end select
+
+          N_H1=nH(ix^D)*(1.d0-x_HII)
+          N_He1=rHe_opacity*nH(ix^D)*(1.d0-x_HeII-x_HeIII)
+          N_He2=rHe_opacity*nH(ix^D)*x_HeII
+          kappa(ix^D)=max(zero,N_H1*s_H1+N_He1*s_He1+N_He2*s_He2)
         endif
       {enddo\}
     end subroutine get_EUV_HHe_opacity
@@ -914,7 +1036,7 @@ module mod_thermal_emission
       call fl%get_rho(w,x,ixI^L,ixO^L,Ne)
       call fl%get_var_Rfactor(w,x,ixI^L,ixO^L,Te)
       Te(ixO^S)=pth(ixO^S)/(Ne(ixO^S)*Te(ixO^S))*unit_temperature
-      call eos%get_ne_nH(ixI^L,ixO^L,w,Ne,nH_dummy)
+      call eos%get_ne_nH(ixI^L,ixO^L,w, x,Ne,nH_dummy)
       if (SI_unit) then
         Ne(ixO^S)=Ne(ixO^S)*unit_numberdensity/1.d6
       else
@@ -1087,24 +1209,26 @@ module mod_thermal_emission
       double precision, intent(out) :: flux(ixI^S)
 
       integer :: ix^D
-      double precision :: pth(ixI^S),Te(ixI^S),Ne(ixI^S)
+      double precision :: pth(ixI^S),rho(ixI^S),Rfactor(ixI^S),Te(ixI^S)
+      double precision :: Ne(ixI^S),nH(ixI^S)
 
       call fl%get_pthermal(w,x,ixI^L,ixO^L,pth)
-      call fl%get_rho(w,x,ixI^L,ixO^L,Ne)
-      call fl%get_var_Rfactor(w,x,ixI^L,ixO^L,Te)
-      Te(ixO^S)=pth(ixO^S)/(Ne(ixO^S)*Te(ixO^S))*unit_temperature
-      ! get actual electron density from EoS (replaces rho with ne)
-      block
-        double precision :: nH_dummy(ixI^S)
-        call eos%get_ne_nH(ixI^L, ixO^L, w, Ne, nH_dummy)
-      end block
+      call fl%get_rho(w,x,ixI^L,ixO^L,rho)
+      call fl%get_var_Rfactor(w,x,ixI^L,ixO^L,Rfactor)
+      Te(ixO^S)=pth(ixO^S)/(rho(ixO^S)*Rfactor(ixO^S))*unit_temperature
+
+      ! The tabulated response is multiplied by the physical emission-measure
+      ! factor ne*nH.  Both densities come from the active EOS so the source
+      ! remains consistent for FI, PI, and LTE simulations.
+      call eos%get_ne_nH(ixI^L, ixO^L, w, x, Ne, nH)
       if (SI_unit) then
         Ne(ixO^S)=Ne(ixO^S)*unit_numberdensity/1.d6 ! m^-3 -> cm-3
-        flux(ixO^S)=Ne(ixO^S)**2
+        nH(ixO^S)=nH(ixO^S)*unit_numberdensity/1.d6
       else
         Ne(ixO^S)=Ne(ixO^S)*unit_numberdensity
-        flux(ixO^S)=Ne(ixO^S)**2
+        nH(ixO^S)=nH(ixO^S)*unit_numberdensity
       endif
+      flux(ixO^S)=Ne(ixO^S)*nH(ixO^S)
 
       select case(wl)
       case(94)
@@ -1157,6 +1281,7 @@ module mod_thermal_emission
       double precision :: pth(ixI^S),Te(ixI^S),kbT(ixI^S)
       double precision :: Ne(ixI^S),gff(ixI^S),fi(ixI^S)
       double precision :: EM(ixI^S)
+      double precision :: nH_dummy(ixI^S)
 
       I0=3.01d-15   ! I0*4*pi*AU**2, I0 from Pinto (2015)
       kb=const_kb
@@ -1168,10 +1293,7 @@ module mod_thermal_emission
       call fl%get_var_Rfactor(w,x,ixI^L,ixO^L,Te)
       Te(ixO^S)=pth(ixO^S)/(Ne(ixO^S)*Te(ixO^S))*unit_temperature
       ! get actual electron density from EoS (replaces rho with ne)
-      block
-        double precision :: nH_dummy(ixI^S)
-        call eos%get_ne_nH(ixI^L, ixO^L, w, Ne, nH_dummy)
-      end block
+      call eos%get_ne_nH(ixI^L, ixO^L, w, x, Ne, nH_dummy)
       if (SI_unit) then
         Ne(ixO^S)=Ne(ixO^S)*unit_numberdensity/1.d6 ! m^-3 -> cm-3
         EM(ixO^S)=(Ne(ixO^S))**2*1.d6 ! cm^-3 m^-3
@@ -1241,6 +1363,7 @@ module mod_thermal_emission
       double precision :: I0,kb,keV,dE,Ei,El,Eu,A_cgs
       double precision :: pth(ixI^S),Te(ixI^S),kbT(ixI^S)
       double precision :: Ne(ixI^S),EM(ixI^S)
+      double precision :: nH_dummy(ixI^S)
       double precision :: gff,fi,erg_SI
 
       ! check whether the grid is inside given box
@@ -1268,10 +1391,7 @@ module mod_thermal_emission
         call fl%get_var_Rfactor(w,x,ixI^L,ixb^L,Te)
         Te(ixb^S)=pth(ixb^S)/(Ne(ixb^S)*Te(ixb^S))*unit_temperature
         ! get actual electron density from EoS (replaces rho with ne)
-        block
-          double precision :: nH_dummy(ixI^S)
-          call eos%get_ne_nH(ixI^L, ixb^L, w, Ne, nH_dummy)
-        end block
+        call eos%get_ne_nH(ixI^L, ixb^L, w, x, Ne, nH_dummy)
         if (SI_unit) then
           Ne(ixO^S)=Ne(ixO^S)*unit_numberdensity/1.d6 ! m^-3 -> cm-3
           EM(ixb^S)=(I0*(Ne(ixb^S))**2)*dV(ixb^S)*(unit_length*1.d2)**3 ! cm^-3
@@ -1988,8 +2108,7 @@ module mod_thermal_emission
         if (.not. slab .and. .not. (coordinate==spherical .and. trim(ray_method_active)=='spherical')) &
           call MPISTOP('EUV dat-resolution needs Cartesian or spherical native rays')
         if (mype==0) then
-          write(*,'(a,f7.1,a,f7.1,a,f5.1,a,f5.1,a)') ' Supposed Pixel: ',spaceRsl*725.0,' km x ',spaceRsl*725.0, & 
-                                                     ' km  (', spaceRsl, ' arcsec x ', spaceRsl, ' arcsec)'
+          print *, 'Data-resolution image requested; native output pixel sizes are reported below.'
           if (SI_unit) then
             write(*,'(a,f8.1,a)') ' Unit of length: ',unit_length/1.d6,' Mm'
           else
@@ -2023,7 +2142,7 @@ module mod_thermal_emission
             endif
           endif
         endif
-        if (coordinate==cartesian) then
+        if (slab) then
           if (mype==0) write(*,'(a,f8.3,f8.3,f8.3,a)') ' Mapping: [',x_origin(1),x_origin(2),x_origin(3), &
                                                      '] of the simulation box is located at [X=0,Y=0] of the image'
             call get_image(qunit,datatype,fl)
@@ -2515,7 +2634,7 @@ module mod_thermal_emission
       double precision :: xIF^L
       double precision :: vec_cor(1:3),xI_cor(1:2),dxDDA,xIcent1,xIcent2
 
-      double precision :: unitv,arcsec,RHESSI_rsl
+      double precision :: unitv,arcsec,RHESSI_rsl,length_to_km
       integer :: strtype^D,nstrb^D,nbb^D,nuni^D,nstr^D,bnx^D
       double precision :: qs^D,dxfirst^D,dxmid^D,lenstr^D
       logical :: has_doppler_output,has_thick_output
@@ -2530,7 +2649,7 @@ module mod_thermal_emission
       ! parameters for creating table
       if (coordinate==spherical .and. trim(ray_method_active)=='spherical') then
         call get_sph_intersection_image_bounds(xIFmin1,xIFmax1,xIFmin2,xIFmax2)
-        call get_sph_intersection_datresol_spacing(dxDDA)
+        call get_native_datresol_spacing(dxDDA)
         xIcent1=half*(xIFmin1+xIFmax1)
         xIcent2=half*(xIFmin2+xIFmax2)
         nXIF1=max(1,ceiling((xIFmax1-xIFmin1)/dxDDA))
@@ -2549,11 +2668,10 @@ module mod_thermal_emission
         nstrb2=0
         qs1=one
         qs2=one
-        if (mype==0) write(*,'(a,1pe12.5,a,2(i8,1x))') &
-          ' spherical native dat-resolution image-plane dx: ',dxDDA,' n=',nXIF1,nXIF2
-      else if (trim(ray_method_active)=='cart' .and. .not. &
-          ((LOS_phi==0 .and. LOS_theta==90) .or. &
-           (LOS_phi==90 .and. LOS_theta==90) .or. LOS_theta==0)) then
+        if (mype==0) write(*,'(a,a,a,1pe12.5,a,2(i8,1x))') &
+          ' spherical dat-resolution mode=',trim(dat_resolution_mode),&
+          ' image-plane dx=',dxDDA,' n=',nXIF1,nXIF2
+      else if (trim(ray_method_active)=='cart') then
         do ix1=1,2
           if (ix1==1) vec_cor(1)=xprobmin1
           if (ix1==2) vec_cor(1)=xprobmax1
@@ -2578,9 +2696,7 @@ module mod_thermal_emission
             enddo
           enddo
         enddo
-        dxDDA=min((xprobmax1-xprobmin1)/dble(numX1),&
-                  (xprobmax2-xprobmin2)/dble(numX2),&
-                  (xprobmax3-xprobmin3)/dble(numX3))
+        call get_native_datresol_spacing(dxDDA)
         xIcent1=half*(xIFmin1+xIFmax1)
         xIcent2=half*(xIFmin2+xIFmax2)
         nXIF1=max(1,ceiling((xIFmax1-xIFmin1)/dxDDA))
@@ -2599,6 +2715,9 @@ module mod_thermal_emission
         nstrb2=0
         qs1=one
         qs2=one
+        if (mype==0) write(*,'(a,a,a,1pe12.5,a,2(i8,1x))') &
+          ' Cartesian dat-resolution mode=',trim(dat_resolution_mode),&
+          ' image-plane dx=',dxDDA,' n=',nXIF1,nXIF2
       else if (LOS_phi==0 .and. LOS_theta==90) then
         nXIF1=domain_nx2*2**(refine_max_level-1)
         nXIF2=domain_nx3*2**(refine_max_level-1)
@@ -2758,6 +2877,23 @@ module mod_thermal_emission
       case default
         call mpistop("unknown stretch type")
       end select
+
+      if (mype==0 .and. datatype=='image_euv') then
+        if (SI_unit) then
+          length_to_km=unit_length/1.d3
+          arcsec=7.25d5/unit_length
+        else
+          length_to_km=unit_length/1.d5
+          arcsec=7.25d7/unit_length
+        endif
+        write(*,'(a,i8,a,i8)') ' Native data-resolution image grid: ',nXIF1,' x ',nXIF2
+        write(*,'(a,f10.3,a,f10.3,a,f8.3,a,f8.3,a)') &
+          ' Native xI1 pixel-size range: ',minval(dxIF1)*length_to_km,'--', &
+          maxval(dxIF1)*length_to_km,' km (',minval(dxIF1)/arcsec,'--',maxval(dxIF1)/arcsec,' arcsec)'
+        write(*,'(a,f10.3,a,f10.3,a,f8.3,a,f8.3,a)') &
+          ' Native xI2 pixel-size range: ',minval(dxIF2)*length_to_km,'--', &
+          maxval(dxIF2)*length_to_km,' km (',minval(dxIF2)/arcsec,'--',maxval(dxIF2)/arcsec,' arcsec)'
+      endif
 
       ! integrate EUV flux and get cell average flux for image
       if (datatype=='image_euv') then
@@ -4402,6 +4538,14 @@ module mod_thermal_emission
       double precision :: cth,aa,bb,cc,disc,root
 
       cth=cos(thetaface)
+      ! At the equator the cone equation degenerates to z**2=0.  Solve the
+      ! corresponding plane intersection directly to avoid losing its double
+      ! root through roundoff in the quadratic discriminant.
+      if (abs(cth)<1.d-12) then
+        if (abs(ray_dir(3))>1.d-14) &
+          call sph_add_t(tvals,nt,capacity,-ray_origin(3)/ray_dir(3))
+        return
+      endif
       aa=ray_dir(3)**2-cth**2*sum(ray_dir**2)
       bb=2.d0*(ray_origin(3)*ray_dir(3)-cth**2*sum(ray_origin*ray_dir))
       cc=ray_origin(3)**2-cth**2*sum(ray_origin**2)
@@ -4684,6 +4828,11 @@ module mod_thermal_emission
         endif
       enddo
       do ix2=ixOmin2,ixOmax2+1
+        if (abs(theta_cos(ix2))<1.d-12) then
+          if (abs(vec_LOS(3))>1.d-14) &
+            call sph_add_t_fixed(tvals,nt,-ray_origin(3)/vec_LOS(3))
+          cycle
+        endif
         cth2=theta_cos(ix2)**2
         aa=vec_LOS(3)**2-cth2*dir2
         bb=2.d0*(ray_origin(3)*vec_LOS(3)-cth2*odotd)
@@ -4846,6 +4995,12 @@ module mod_thermal_emission
       enddo
 
       do iface=ix2,ix2+1
+        if (abs(theta_cos(iface))<1.d-12) then
+          if (abs(vec_LOS(3))>1.d-14) call sph_try_theta_exit_candidate(&
+            -ray_origin(3)/vec_LOS(3),theta_cos(iface),ray_origin,tNow,tExit,epsRay,&
+            tNext,found)
+          cycle
+        endif
         cth2=theta_cos(iface)**2
         aa=vec_LOS(3)**2-cth2*dir2
         bb=2.d0*(ray_origin(3)*vec_LOS(3)-cth2*odotd)
@@ -4991,6 +5146,11 @@ module mod_thermal_emission
         endif
       enddo
       do ix2=ixOmin2,ixOmax2+1,ixOmax2-ixOmin2+1
+        if (abs(theta_cos(ix2))<1.d-12) then
+          if (abs(vec_LOS(3))>1.d-14) &
+            call sph_add_t_fixed(tvals,nt,-ray_origin(3)/vec_LOS(3))
+          cycle
+        endif
         cth2=theta_cos(ix2)**2
         aa=vec_LOS(3)**2-cth2*dir2
         bb=2.d0*(ray_origin(3)*vec_LOS(3)-cth2*odotd)
@@ -5515,7 +5675,47 @@ module mod_thermal_emission
       endif
     end subroutine get_sph_intersection_image_bounds
 
-    subroutine get_sph_intersection_datresol_spacing(dxI)
+    subroutine get_native_datresol_spacing(dxI)
+      double precision, intent(out) :: dxI
+
+      select case(trim(dat_resolution_mode))
+      case('nominal')
+        call get_nominal_datresol_spacing(dxI)
+      case('minimum')
+        call get_minimum_datresol_spacing(dxI)
+      case default
+        call mpistop("unknown dat_resolution_mode")
+      end select
+    end subroutine get_native_datresol_spacing
+
+    subroutine get_nominal_datresol_spacing(dxI)
+      double precision, intent(out) :: dxI
+
+      double precision :: refine_factor,dr,dtheta,dphi,rmin,sin_theta_min
+
+      refine_factor=dble(2**(refine_max_level-1))
+      if (slab) then
+        dxI=min(abs(xprobmax1-xprobmin1)/(dble(domain_nx1)*refine_factor),&
+                abs(xprobmax2-xprobmin2)/(dble(domain_nx2)*refine_factor),&
+                abs(xprobmax3-xprobmin3)/(dble(domain_nx3)*refine_factor))
+      else if (coordinate==spherical) then
+        rmin=max(smalldouble,min(xprobmin1,xprobmax1))
+        sin_theta_min=max(smalldouble,min(abs(sin(xprobmin2)),&
+                                             abs(sin(xprobmax2))))
+        dr=abs(xprobmax1-xprobmin1)/(dble(domain_nx1)*refine_factor)
+        dtheta=abs(xprobmax2-xprobmin2)/(dble(domain_nx2)*refine_factor)
+        dphi=abs(xprobmax3-xprobmin3)/(dble(domain_nx3)*refine_factor)
+        dxI=min(dr,rmin*dtheta,rmin*sin_theta_min*dphi)
+      else
+        call mpistop("nominal dat resolution needs Cartesian or spherical coordinates")
+      endif
+
+      if (dxI<=zero .or. dxI>half*huge(one)) then
+        call mpistop("could not determine nominal dat-resolution image spacing")
+      endif
+    end subroutine get_nominal_datresol_spacing
+
+    subroutine get_minimum_datresol_spacing(dxI)
       double precision, intent(out) :: dxI
 
       integer :: iigrid,igrid,ixI^L,ixO^L,ix^D
@@ -5532,23 +5732,31 @@ module mod_thermal_emission
         do ix1=ixOmin1,ixOmax1
           do ix2=ixOmin2,ixOmax2
             do ix3=ixOmin3,ixOmax3
-              rval=max(smalldouble,ps(igrid)%x(ix^D,1))
-              theta=ps(igrid)%x(ix^D,2)
-              dr=ps(igrid)%dx(ix^D,1)
-              ds_theta=rval*ps(igrid)%dx(ix^D,2)
-              ds_phi=rval*max(smalldouble,sin(theta))*ps(igrid)%dx(ix^D,3)
-              local_min=min(local_min,dr,ds_theta,ds_phi)
+              if (slab) then
+                local_min=min(local_min,ps(igrid)%dx(ix^D,1),&
+                  ps(igrid)%dx(ix^D,2),ps(igrid)%dx(ix^D,3))
+              else if (coordinate==spherical) then
+                rval=max(smalldouble,ps(igrid)%x(ix^D,1))
+                theta=ps(igrid)%x(ix^D,2)
+                dr=ps(igrid)%dx(ix^D,1)
+                ds_theta=rval*ps(igrid)%dx(ix^D,2)
+                ds_phi=rval*max(smalldouble,sin(theta))*ps(igrid)%dx(ix^D,3)
+                local_min=min(local_min,dr,ds_theta,ds_phi)
+              else
+                call mpistop("minimum dat resolution needs Cartesian or spherical coordinates")
+              endif
             enddo
           enddo
         enddo
       enddo
 
-      call MPI_ALLREDUCE(local_min,global_min,1,MPI_DOUBLE_PRECISION,MPI_MIN,icomm,ierrmpi)
+      call MPI_ALLREDUCE(local_min,global_min,1,MPI_DOUBLE_PRECISION,MPI_MIN,&
+                         icomm,ierrmpi)
       if (global_min<=zero .or. global_min>half*huge(one)) then
-        call mpistop("sph_intersection could not determine dat-resolution image spacing")
+        call mpistop("could not determine minimum dat-resolution image spacing")
       endif
       dxI=global_min
-    end subroutine get_sph_intersection_datresol_spacing
+    end subroutine get_minimum_datresol_spacing
 
     subroutine get_image(qunit,datatype,fl)
       ! integrate emission flux along line of sight (LOS) 
@@ -5694,7 +5902,7 @@ module mod_thermal_emission
       if (datatype=='image_euv' .or. datatype=='image_sxr') then
         has_thick_output=datatype=='image_euv' .and. trim(radiation_transfer)=='thick' .and. &
             ((coordinate==spherical .and. trim(ray_method_active)=='spherical') .or. &
-             (coordinate==cartesian .and. trim(ray_method_active)=='cart'))
+             (slab .and. trim(ray_method_active)=='cart'))
         if (datatype=='image_euv') then
           numWI=radsyn_euv_num_outputs(.false.,has_thick_output)
         else
@@ -5710,7 +5918,7 @@ module mod_thermal_emission
           Tau=zero
           EMthin=zero
         endif
-        if (coordinate==cartesian .and. datatype=='image_euv' .and. &
+        if (slab .and. datatype=='image_euv' .and. &
             trim(ray_method_active)=='cart') then
           ray_image_global=.true.
           allocate(Dpl(numXI1,numXI2))
@@ -5721,7 +5929,7 @@ module mod_thermal_emission
             call integrate_EUV_cart_dda_datresol(numXI1,numXI2,xI1,xI2,fl,EM,Dpl)
           endif
           deallocate(Dpl)
-        else if (coordinate==cartesian) then
+        else if (slab) then
           do iigrid=1,igridstail; igrid=igrids(iigrid);
             call integrate_emission_cartesian(igrid,numXI1,numXI2,xI1,xI2,dxI,fl,datatype,EM)
           enddo
@@ -6078,7 +6286,7 @@ module mod_thermal_emission
       double precision, intent(inout) :: WLB(numXI1,numXI2,numWI)
 
       integer :: ixO^L,ixO^D,ixI^L,ix^D,i,j
-      double precision, allocatable :: flux(:^D&),Ne(:^D&)
+      double precision, allocatable :: flux(:^D&),Ne(:^D&),nH_dummy(:^D&)
       integer :: ixP^L,ixP^D,nSubC^D,iSubC^D
       double precision :: xSubP1,xSubP2,dxSubP,xerf^L,fluxsubC,RsubC
       double precision :: sigma_PSF,sigma0,arcsec,pixel,LASCO_rsl
@@ -6101,6 +6309,7 @@ module mod_thermal_emission
       endif
 
       allocate(Ne(ixI^S))
+      allocate(nH_dummy(ixI^S))
       if (whitelight_instrument=='LASCO/C1') then
         LASCO_rsl=5.6d0/instrument_resolution_factor
         R_occult=1.1d0
@@ -6115,10 +6324,7 @@ module mod_thermal_emission
       R_occult=R_occult*const_Rsun/unit_length
       call fl%get_rho(ps(igrid)%w,ps(igrid)%x,ixI^L,ixO^L,Ne)
       ! get actual electron density from EoS (replaces rho with ne)
-      block
-        double precision :: nH_dummy(ixI^S)
-        call eos%get_ne_nH(ixI^L, ixO^L, ps(igrid)%w, Ne, nH_dummy)
-      end block
+      call eos%get_ne_nH(ixI^L, ixO^L, ps(igrid)%w, ps(igrid)%x, Ne, nH_dummy)
       sigma_PSF=1.d0
       pixel=LASCO_rsl*arcsec
       sigma0=sigma_PSF*pixel
@@ -6203,6 +6409,7 @@ module mod_thermal_emission
       {enddo\} !ix
 
       deallocate(Ne)
+      deallocate(nH_dummy)
 
     end subroutine integrate_whitelight_spherical
 

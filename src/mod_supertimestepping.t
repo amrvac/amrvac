@@ -257,6 +257,15 @@ contains
     temp%types_initialized = .false.
     temp%evolve_magnetic_field=evolve_B
 
+    ! get_bc_comm_type frees the previous committed type before rebuilding, so every
+    ! handle must start as a null datatype rather than whatever the allocation left.
+    temp%type_send_srl_sts_1=MPI_DATATYPE_NULL; temp%type_recv_srl_sts_1=MPI_DATATYPE_NULL
+    temp%type_send_r_sts_1  =MPI_DATATYPE_NULL; temp%type_recv_r_sts_1  =MPI_DATATYPE_NULL
+    temp%type_send_p_sts_1  =MPI_DATATYPE_NULL; temp%type_recv_p_sts_1  =MPI_DATATYPE_NULL
+    temp%type_send_srl_sts_2=MPI_DATATYPE_NULL; temp%type_recv_srl_sts_2=MPI_DATATYPE_NULL
+    temp%type_send_r_sts_2  =MPI_DATATYPE_NULL; temp%type_recv_r_sts_2  =MPI_DATATYPE_NULL
+    temp%type_send_p_sts_2  =MPI_DATATYPE_NULL; temp%type_recv_p_sts_2  =MPI_DATATYPE_NULL
+
     temp%next => head_sts_terms
     head_sts_terms => temp
 

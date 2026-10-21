@@ -144,6 +144,9 @@ contains
     double precision, dimension(ixO^S) :: inv_volume
     double precision, dimension(1:ndim) :: dxinv
     integer :: idims, iw, ix^D, hx^D, ix^L, hxO^L, ixC^L, ixCR^L, kxC^L, kxR^L, ii
+    integer :: jdims, jxC^L, hpC^L, hmC^L
+    !> undivided divergence of v at the interface, for the B19 diffusive flux
+    double precision, dimension(ixI^S) :: divvC
     logical :: active=.false.
     type(ct_velocity) :: vcts
 
@@ -243,6 +246,41 @@ contains
        case default
          call mpistop('unkown Riemann flux in finite volume')
        end select
+
+       ! Explicit diffusive flux, Mignone et al. 2005 eq. B19-B21 -- the half of PPM's
+       ! dissipation algorithm that this code has never had:
+       !
+       !     F_{i+1/2} -> F_{i+1/2} + k_nu (U_i - U_{i+1}) ,  k_nu = alpha*max(-D_{i+1/2},0)
+       !
+       ! Differencing that across a cell gives +k_nu*(U_{i+1}-2U_i+U_{i-1}), a genuine
+       ! diffusion. Two properties matter here. It uses the raw cell difference, not the
+       ! reconstructed face jump, so it is the only term in the scheme that can act on an
+       ! odd-even mode which a face-value reconstruction (ppm) annihilates. And it is gated
+       ! on convergence, so it vanishes identically for a state at rest and cannot perturb
+       ! a hydrostatic column.
+       !
+       ! D is B21's undivided multidimensional divergence of v. B21 assembles it from cell
+       ! corners; the equivalent used here is face-centred -- the normal difference across
+       ! the interface plus the mean of the transverse centred divergences of the two cells
+       ! straddling it. Identical in 1D, second-order equivalent in multi-D.
+       if (ppm_avisc > zero) then
+          jxC^L=ixC^L+kr(idims,^D);
+          divvC(ixC^S)=wprim(jxC^S,iw_mom(idims))-wprim(ixC^S,iw_mom(idims))
+          do jdims=1,ndim
+             if (jdims==idims) cycle
+             hpC^L=ixC^L+kr(jdims,^D); hmC^L=ixC^L-kr(jdims,^D);
+             divvC(ixC^S)=divvC(ixC^S) &
+                +0.25d0*(wprim(hpC^S,iw_mom(jdims))-wprim(hmC^S,iw_mom(jdims)))
+             hpC^L=hpC^L+kr(idims,^D); hmC^L=hmC^L+kr(idims,^D);
+             divvC(ixC^S)=divvC(ixC^S) &
+                +0.25d0*(wprim(hpC^S,iw_mom(jdims))-wprim(hmC^S,iw_mom(jdims)))
+          end do
+          divvC(ixC^S)=ppm_avisc*max(-divvC(ixC^S),zero)
+          do iw=iwstart,nwflux
+             fC(ixC^S,iw,idims)=fC(ixC^S,iw,idims) &
+                +divvC(ixC^S)*(wCT(ixC^S,iw)-wCT(jxC^S,iw))
+          end do
+       end if
 
     end do ! Next idims
     b0i=0
@@ -1136,8 +1174,14 @@ contains
     double precision, dimension(ixI^S,1:nw) :: wLp, wRp
     double precision, dimension(ixI^S,1:ndim) :: x
 
-    integer            :: jxR^L, ixC^L, jxC^L, ixO^L, iw
+    integer            :: jxR^L, ixC^L, jxC^L, hxC^L, ixO^L, iw, idir
+    !> RJV: the PPM reconstruction residual and the alternation switch
+    double precision   :: rjve(ixI^S), rjvs(ixI^S)
     double precision   :: ldw(ixI^S), rdw(ixI^S), dwC(ixI^S)
+    !> scratch for a face-value velocity limiter (weno5/wenoz5/mp5): those routines write
+    !> every variable at once, so they are run into a copy and only the momentum rows kept.
+    !> Allocated only when such a limiter is actually requested.
+    double precision, allocatable :: wLt(:^D&,:), wRt(:^D&,:)
     double precision   :: wb_phi(ixI^S), wb_phi_face(ixI^S), wb_T(ixI^S)
     double precision   :: wb_t0
 

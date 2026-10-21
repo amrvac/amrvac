@@ -28,9 +28,12 @@ module mod_fld
     !> handling ramp-up phase with explicit diffusion dt limit, slowly boosted
     logical :: fld_slowsteps = .false.
     double precision, public :: fld_boost_dt = 0.0d0
+    !> switches for using changed cmax-cmin bounds
+    logical :: fld_bound_diff = .true.
     !> switches for local debug purposes
     logical :: fld_force_MG_converged = .true.
     logical :: fld_debug,fld_no_mg
+    double precision, public :: fld_cnorm = 0.0d0
     !> switches for opacity
     character(len=40)  :: fld_opacity_law = 'const'
     character(len=40) :: fld_opal_table = 'Y09800' 
@@ -74,6 +77,7 @@ module mod_fld
     public :: fld_get_diffcoef_central
     public :: add_fld_rad_force
     public :: fld_radforce_get_dt
+    public :: fld_get_local_invtauc
     !> wired to physics-module wrappers (which inject fld_fl) in mod_(m)hd_phys
     public :: fld_implicit_update
     public :: fld_evaluate_implicit
@@ -95,8 +99,8 @@ module mod_fld
     namelist /fld_list/ fld_kappa0, fld_Radforce_split, &
     fld_bisect_tol, fld_diff_tol, fld_opacity_law, fld_fluxlimiter, &
     fld_interaction_method, fld_opal_table, nth_for_diff_mg, &
-    fld_debug, fld_no_mg,fld_force_MG_converged, fld_slowsteps,fld_boost_dt, &
-    fld_tiring_explicit
+    fld_debug,fld_no_mg,fld_force_MG_converged, fld_slowsteps,fld_boost_dt, &
+    fld_tiring_explicit,fld_cnorm,fld_bound_diff
 
     do n = 1, size(files)
        open(unitpar, file=trim(files(n)), status="old")
@@ -351,6 +355,25 @@ module mod_fld
       w(ixO^S,iw_r_e) = E_rad(ixO^S)
     end if
   end subroutine add_fld_rad_force
+
+  !> maybe needed for restricting the cmax/cmin in diffusion limit
+  !> CURRENTLY UNUSED
+  !> NOTE: w is primitive on entry
+  subroutine fld_get_local_invtauc(w,ixI^L,ixO^L,dx^D,x,invtauc,fl)
+    use mod_global_parameters
+    use mod_usr_methods
+    integer, intent(in)             :: ixI^L, ixO^L
+    double precision, intent(in)    :: dx^D, x(ixI^S,1:ndim), w(ixI^S,1:nw)
+    double precision, intent(out)   :: invtauc(ixI^S)
+    type(fld_fluid), intent(in)     :: fl
+
+    double precision :: dxinv(1:ndim)
+    double precision :: kappa(ixI^S)
+
+    call fld_get_opacity_prim(w, x, ixI^L, ixO^L, kappa, fl)
+    ^D&dxinv(^D)=one/dx^D;
+    invtauc(ixO^S)=4.0d0*minval(dxinv(1:ndim))/(3.0d0*kappa(ixO^S)*w(ixO^S,iw_rho))
+  end subroutine fld_get_local_invtauc
 
   !> get dt limit for radiation force and FLD explicit source additions
   !> NOTE: w is primitive on entry
@@ -777,6 +800,8 @@ module mod_fld
     double precision :: wmaxb(nw),wminb(nw)
     integer :: iigrid, igrid
 
+    if(fld_no_mg)return
+    
     ! we need first to compute the (variable) diffusion coefficient on entire grid
     !   this must be done in mesh+1 ghostcell layer
     call update_diffcoeff(psa,fl)
@@ -910,6 +935,8 @@ module mod_fld
     type(fld_fluid), intent(in)  :: fl
     integer :: iigrid, igrid
     integer :: ixO^L
+
+    if(fld_no_mg)return
 
     call update_diffcoeff(psa,fl)
 

@@ -1,6 +1,6 @@
 
 &filelist
-  base_filename='output/rmhd_switchoff'
+  base_filename='output/rmhd_switchoff_full'
   autoconvert      = F
   typefilelog = 'regression_test'
   nwauxio=2 
@@ -14,7 +14,7 @@
 /
 
 &stoplist
-   time_max = 2.d1
+   time_max = 1.0d0
    dtmin = 1.0d-20
 /
 
@@ -47,11 +47,14 @@
  /
 
  &mhd_list
-  He_abundance = 0.d0 
   mhd_energy = .true.
-  mhd_gamma = 1.4d0
   mhd_radiation_fld = .true.
  /
+
+&eos_list
+  He_abundance = 0.d0 
+  gamma = 1.4d0
+/
 
  &fld_list
   fld_Radforce_split = .false.

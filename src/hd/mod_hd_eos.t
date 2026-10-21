@@ -18,9 +18,10 @@ module mod_hd_eos
     use mod_eos
     !> Mode-specific kernels come from their sub-modules (the facade no longer
     !> re-exports them); each mpistops if called under the wrong eos_type/method.
-    use mod_eos_LTE
-    use mod_eos_LTE_saha
-    use mod_eos_PI
+    use mod_eos_lte
+    use mod_eos_lte_entropy, only: entropy_eint_from_p_bisect
+    use mod_eos_lte_saha
+    use mod_eos_pi
     use mod_eos_container
     use mod_hd_phys
     use mod_timing
@@ -325,11 +326,22 @@ contains
                         !> Bisection on forward p table: finds eint such that
                         !> p(nH, eint) = p_target exactly. More accurate than
                         !> the p2eint table in the ionisation zone.
-                        call eint_from_p_bisect(nH_in(ix^D), &
-                            dlog10(w(ix^D,p_)), log_eint_mid)
-                        eint_total = nH(ix^D) * 10.0d0**log_eint_mid
-                        eint_total = max(eint_total, &
-                            nH(ix^D) * 10.0d0**eos%T%var2_min)
+                        !> Entropy mode uses the pfwd/eintP pair: eos%log_p (used by
+                        !> eint_from_p_bisect) is not loaded there.
+                        if (eos%method == 'entropy') then
+                            call entropy_eint_from_p_bisect( &
+                                eos%pfwd, eos%pfwd_x, eos%pfwd_y, eos%pfwd_xy, &
+                                eos%eintP, eos%eintP_x, eos%eintP_y, eos%eintP_xy, &
+                                nH_in(ix^D), dlog10(w(ix^D,p_)) - nH_in(ix^D), &
+                                log_eint_mid)
+                            eint_total = nH(ix^D) * 10.0d0**log_eint_mid
+                        else
+                            call eint_from_p_bisect(nH_in(ix^D), &
+                                dlog10(w(ix^D,p_)), log_eint_mid)
+                            eint_total = nH(ix^D) * 10.0d0**log_eint_mid
+                            eint_total = max(eint_total, &
+                                nH(ix^D) * 10.0d0**eos%T%var2_min)
+                        end if
                         w(ix^D,e_) = eint_total + &
                             half*(^C&w(ix^D,m^C_)**2+)*w(ix^D,rho_)
                     else
@@ -531,7 +543,7 @@ contains
 
     !> PI energy-mode routines (eos_type='PI', ionE=.true.)
     !> Mirror the HD FI/LTE family; the eint<->p relation is delegated to the
-    !> portable scalar backend (mod_eos_PI). Same eq_state_units /
+    !> portable scalar backend (mod_eos_pi). Same eq_state_units /
     !> RR=1 normalisation as FI. Origin (total-energy) only, as in HD. eint
     !> carries the ionisation-energy term, so p=(gamma-1)*eint no longer holds.
 
