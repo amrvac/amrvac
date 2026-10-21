@@ -19,7 +19,7 @@
 module mod_usr
 
   ! Include a physics module
-  use mod_HD
+  use mod_hd
   use mod_eos, only: eos
 
   ! Get access to some CAK radiation functionality
@@ -54,6 +54,16 @@ contains
     usr_init_one_grid  => initial_conditions
     usr_special_bc     => special_bound
     usr_gravity        => stellar_gravity
+
+    ! For cgs output in convert stage if wished for
+    ! if (convert .and. saveprim) then
+    !   w_convert_factor(rho_)   = unit_density
+    !   w_convert_factor(mom(:)) = unit_velocity
+    !   w_convert_factor(gcak1_) = unit_length / unit_time**2.0d0
+    !   if (hd_energy) w_convert_factor(p_) = unit_pressure
+    !   length_convert_factor    = unit_length
+    !   time_convert_factor      = unit_time
+    ! endif
 
     call hd_activate()
 
@@ -108,16 +118,6 @@ contains
     call set_cak_force_norm(rstar_cgs,twind_cgs)
 
     if (mype == 0 .and. .not.convert) then
-      print*, '======================'
-      print*, '   Unity quantities   '
-      print*, '======================'
-      print*, 'unit length        = ', unit_length
-      print*, 'unit density       = ', unit_density
-      print*, 'unit velocity      = ', unit_velocity
-      print*, 'unit numberdensity = ', unit_numberdensity
-      print*, 'unit pressure      = ', unit_pressure
-      print*, 'unit temperature   = ', unit_temperature
-      print*, 'unit time          = ', unit_time
       print*, '==============================================='
       print*, '   Stellar and wind parameters in CGS units    '
       print*, '==============================================='
@@ -170,16 +170,6 @@ contains
       print*, 'hd_adiab = ', hd_adiab
     endif
 
-    ! For cgs output in convert stage if wished for
-    ! if (convert .and. saveprim) then
-    !   w_convert_factor(rho_)   = unit_density
-    !   w_convert_factor(mom(:)) = unit_velocity
-    !   w_convert_factor(gcak1_) = unit_length / unit_time**2.0d0
-    !   if (hd_energy) w_convert_factor(p_) = unit_pressure
-    !   length_convert_factor    = unit_length
-    !   time_convert_factor      = unit_time
-    ! endif
-
   end subroutine initglobaldata_usr
 
   !============================================================================
@@ -218,15 +208,20 @@ contains
     real(8), intent(in)    :: qdt, qt, x(ixI^S,1:ndim)
     real(8), intent(inout) :: w(ixI^S,1:nw)
 
-    ! Local variable
-    integer :: ir
+    ! Local variables
+    integer :: ir, ixE^L
 
     select case (iB)
     case(1)
       ! Mass density fixed at boundary mass density
       w(ixB^S,rho_) = rhobound
 
-      call hd_to_primitive(ixI^L,ixI^L,w,x)
+      ! Extension of boundary limits into physical grid for prim/cons
+      ixE^L=ixB^L;
+      ixEmin1 = ixBmin1
+      ixEmax1 = ixBmax1 + 2
+
+      call eos%to_primitive(ixI^L,ixE^L,w,x)
 
       ! Radial velocity field (constant slope extrapolation: d^2(vr)/dr^2 = 0)
       do ir = ixBmax1,ixBmin1,-1
@@ -239,13 +234,17 @@ contains
 
       if (hd_energy) w(ixB^S,p_) = hd_adiab * w(ixB^S,rho_)**eos%gamma
 
-      call eos%to_conserved(ixI^L,ixI^L,w,x)
+      call eos%to_conserved(ixI^L,ixE^L,w,x)
 
     case(2)
       ! Constant extrapolation of all to have continuous velocity gradient
       w(ixB^S,rho_) = w(ixBmin1-1,rho_) * (x(ixBmin1-1,1) / x(ixB^S,1))**2.0d0
 
-      call hd_to_primitive(ixI^L,ixI^L,w,x)
+      ixE^L=ixB^L;
+      ixEmin1 = ixBmin1 - 2
+      ixEmax1 = ixBmax1
+
+      call eos%to_primitive(ixI^L,ixE^L,w,x)
 
       do ir = ixBmin1,ixBmax1
         w(ir,mom(1)) = w(ir-1,mom(1)) &
@@ -254,7 +253,7 @@ contains
 
       if (hd_energy) w(ixB^S,p_) = hd_adiab * w(ixB^S,rho_)**eos%gamma
 
-      call eos%to_conserved(ixI^L,ixI^L,w,x)
+      call eos%to_conserved(ixI^L,ixE^L,w,x)
 
     case default
       call mpistop("BC not specified")

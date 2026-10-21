@@ -25,7 +25,7 @@ module mod_usr
   ! Include a physics module
   use mod_hd
   use mod_eos, only: eos
-  
+
   ! Get access to some CAK radiation functionality
   use mod_cak_force, only: set_cak_force_norm, cak_alpha, gayley_qbar, &
        kappae_cgs, gcak1_, gcak2_, gcak3_
@@ -58,8 +58,20 @@ contains
     usr_special_bc     => special_bound
     usr_gravity        => stellar_gravity
 
+    ! For cgs output in convert stage if wished for
+    ! if (convert .and. saveprim) then
+    !   w_convert_factor(rho_)   = unit_density
+    !   w_convert_factor(mom(:)) = unit_velocity
+    !   w_convert_factor(gcak1_) = unit_length / unit_time**2.0d0
+    !   w_convert_factor(gcak2_) = unit_length / unit_time**2.0d0
+    !   w_convert_factor(gcak3_) = unit_length / unit_time**2.0d0
+    !   if (hd_energy) w_convert_factor(p_) = unit_pressure
+    !   length_convert_factor    = unit_length
+    !   time_convert_factor      = unit_time
+    ! endif
+
     call hd_activate()
-    
+
   end subroutine usr_init
 
   !============================================================================
@@ -117,16 +129,6 @@ contains
     call set_cak_force_norm(rstar_cgs,twind_cgs)
 
     if (mype == 0) then
-      print*, '======================'
-      print*, '   Unity quantities   '
-      print*, '======================'
-      print*, 'unit length        = ', unit_length
-      print*, 'unit density       = ', unit_density
-      print*, 'unit velocity      = ', unit_velocity
-      print*, 'unit numberdensity = ', unit_numberdensity
-      print*, 'unit pressure      = ', unit_pressure
-      print*, 'unit temperature   = ', unit_temperature
-      print*, 'unit time          = ', unit_time
       print*, '==============================================='
       print*, '   Stellar and wind parameters in CGS units    '
       print*, '==============================================='
@@ -184,20 +186,8 @@ contains
       print*, 'hd_adiab = ', hd_adiab
     endif
 
-    ! For cgs output in convert stage if wished for
-    ! if (convert .and. saveprim) then
-    !   w_convert_factor(rho_)   = unit_density
-    !   w_convert_factor(mom(:)) = unit_velocity
-    !   w_convert_factor(gcak1_) = unit_length / unit_time**2.0d0
-    !   w_convert_factor(gcak2_) = unit_length / unit_time**2.0d0
-    !   w_convert_factor(gcak3_) = unit_length / unit_time**2.0d0
-    !   if (hd_energy) w_convert_factor(p_) = unit_pressure
-    !   length_convert_factor    = unit_length
-    !   time_convert_factor      = unit_time
-    ! endif
-
   end subroutine initglobaldata_usr
-  
+
   !============================================================================
   ! Initial conditions start from spherically symmetric 1-D CAK beta-law wind
   !============================================================================
@@ -217,7 +207,7 @@ contains
     w(ixO^S,mom(1)) = vinf * ( 1.0d0 - sfac * rstar/x(ixO^S,1) )**beta
     w(ixO^S,rho_)   = mdot / (4.0d0*dpi * x(ixO^S,1)**2.0d0 * w(ixO^S,mom(1)))
     w(ixO^S,mom(2)) = 0.0d0
-    
+
     if (hd_rotating_frame) then
       w(ixO^S,mom(3)) = 0.0d0
     else
@@ -256,7 +246,7 @@ contains
       ixEmin1 = ixBmin1
       ixEmax1 = ixBmax1 + 2
 
-      call hd_to_primitive(ixI^L,ixE^L,w,x)
+      call eos%to_primitive(ixI^L,ixE^L,w,x)
 
       do ir = ixBmax1,ixBmin1,-1
         ! Radial velocity (constant slope extrapolation: d^2(vr)/dr^2 = 0)
