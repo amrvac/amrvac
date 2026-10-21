@@ -6,20 +6,20 @@
 !>   y(=ne/nH)   = 2X / (X + sqrt(X^2 + 4 nH X))
 !> Public entry points take and return code units; the CGS conversion is internal.
 !> T(nH, eint/nH) is found by bisection and p(nH, T) closes the state.
-!> build_gamma1_analytic_table tabulates Gamma_1(nH, T) once for the 'exact' gamma1 path,
-!> and saha_gamma1_from_nH_T reads it back
+!> build_gamma1_analytic_table tabulates Gamma_1(nH, p/nH) once for the 'exact' gamma1 path,
+!> on the axes that gamma1_from_nH_p reads for every method
 !=============================================================================
 module mod_eos_lte_saha
     use mod_global_parameters
     use mod_eos_container, only: eos, EOS_ANALYTIC
-    use mod_eos_interp,    only: bicubic_lookup, precompute_step_inv
+    use mod_eos_interp,    only: precompute_step_inv
     use mod_comm_lib,      only: mpistop
     use mod_eos_lte_tables, only: precompute_FI_bypass_constants
     implicit none
     private
 
     public :: saha_eint_from_nH_T, saha_state_from_nH_p
-    public :: saha_T_from_nH_eint, saha_gamma1_from_nH_T, saha_gamma1_from_nH_p
+    public :: saha_T_from_nH_eint
     public :: load_analytic_LTE, finalise_analytic_LTE
 
     ! Prefactor (2 pi m_e k_B/h^2)^{3/2} in CGS (cm^-3)
@@ -214,53 +214,44 @@ contains
 
     end subroutine saha_T_bisection
 
-    !> Build 2D Gamma1(nH, T) table from analytical Saha for the 'analytic' EoS method.
-    !> Grid: uniform in (log10 nH, log10 T) with 256x256 points.
-    !> Equilibrium Gamma1 = chi_rho + chi_T^2 (1+He+y)/c_v, with c_v per nH in units of kB.
-    !> Stored in eos%gamma1_p for reuse by the existing csound2 routines
-    !> (re-indexed: axis 2 = log10(T) instead of log10(p/nH)).
+    !> Build the analytic Gamma_1 table in eos%gamma1_p on (log10 nH, log10 p/nH), the axes of the
+    !> LTE tables, so that gamma1_from_nH_p serves every method. Each node takes T and y from the
+    !> Saha solve at (nH, p), and Gamma_1 = chi_rho + chi_T^2 (1+He+y)/c_v, with c_v per nH in kB
     subroutine build_gamma1_analytic_table()
         integer, parameter :: ng = 256
         integer :: i, j
-        double precision :: log_nH_min, log_nH_max, log_T_min, log_T_max
-        double precision :: dx1, dx2, log_nH, log_T
-        double precision :: nH_code, T_code, y, chi, dlny, npart, cv, chi_T, chi_rho
-        double precision :: g1_val, g1_min, g1_max
+        double precision :: log_nH_min, log_nH_max, log_pn_min, log_pn_max, T_min, T_max
+        double precision :: dx1, dx2, nH_code, p_code, T_code, y, chi, dlny, npart, cv
+        double precision :: chi_T, chi_rho, g1_val, g1_min, g1_max
 
-        ! Range: log10(nH [CGS]) from 5 to 19, log10(T [K]) from 2.8 to 6.3
-        ! Convert to code-unit ranges
+        ! log10(nH [CGS]) from 5 to 19, and p/nH = (1+He+y) T over T from 10^2.8 K neutral to
+        ! 10^6.3 K ionised, all in code units
         log_nH_min = 5.0d0  - dlog10(unit_numberdensity)
         log_nH_max = 19.0d0 - dlog10(unit_numberdensity)
-        log_T_min  = 2.8d0  - dlog10(unit_temperature)
-        log_T_max  = 6.3d0  - dlog10(unit_temperature)
+        T_min = 10.0d0**2.8d0 / unit_temperature
+        T_max = 10.0d0**6.3d0 / unit_temperature
+        log_pn_min = dlog10((1.0d0 + eos%He_abundance) * T_min)
+        log_pn_max = dlog10((2.0d0 + eos%He_abundance) * T_max)
 
         eos%gamma1_p%dim1 = ng
         eos%gamma1_p%dim2 = ng
         eos%gamma1_p%var1_min = log_nH_min
         eos%gamma1_p%var1_max = log_nH_max
-        eos%gamma1_p%var2_min = log_T_min
-        eos%gamma1_p%var2_max = log_T_max
+        eos%gamma1_p%var2_min = log_pn_min
+        eos%gamma1_p%var2_max = log_pn_max
         eos%gamma1_p%filename = 'computed_gamma1_analytic'
-
         allocate(eos%gamma1_p%table(ng, ng))
 
         dx1 = (log_nH_max - log_nH_min) / dble(ng - 1)
-        dx2 = (log_T_max  - log_T_min)  / dble(ng - 1)
-
+        dx2 = (log_pn_max - log_pn_min) / dble(ng - 1)
         g1_min = 1.0d30
         g1_max = -1.0d30
-
         do j = 1, ng
-            log_T = log_T_min + (j - 1) * dx2
-            T_code = 10.0d0**log_T
-            chi = saha_chi_kB / (T_code * unit_temperature)
-
             do i = 1, ng
-                log_nH = log_nH_min + (i - 1) * dx1
-                nH_code = 10.0d0**log_nH
-
-                y = saha_y_from_nH_T(nH_code, T_code)
-
+                nH_code = 10.0d0**(log_nH_min + (i - 1) * dx1)
+                p_code  = nH_code * 10.0d0**(log_pn_min + (j - 1) * dx2)
+                call saha_state_from_nH_p(nH_code, p_code, T_code, y)
+                chi = saha_chi_kB / (T_code * unit_temperature)
                 ! dln y/dln T at fixed nH from y^2/(1-y) ~ T^1.5 exp(-chi_H/kT)/nH
                 dlny = (1.0d0 - y) / (2.0d0 - y) * (1.5d0 + chi)
                 npart = 1.0d0 + eos%He_abundance + y
@@ -269,45 +260,19 @@ contains
                 chi_T = 1.0d0 + y * dlny / npart
                 chi_rho = 1.0d0 - y * (1.0d0 - y) / ((2.0d0 - y) * npart)
                 g1_val = chi_rho + chi_T**2 * npart / cv
-
                 eos%gamma1_p%table(i, j) = g1_val
                 g1_min = min(g1_min, g1_val)
                 g1_max = max(g1_max, g1_val)
             end do
         end do
-
         call precompute_step_inv(eos%gamma1_p)
 
         if (mype == 0) then
             write(*, '(A,F8.4,A,F8.4)') &
-                ' Gamma1 analytic table built (nH x T): min = ', g1_min, ', max = ', g1_max
+                ' Gamma1 analytic table built (nH x p/nH): min = ', g1_min, ', max = ', g1_max
         end if
 
     end subroutine build_gamma1_analytic_table
-
-    !> Look up Gamma1 from the analytical 2D table (nH, T axes in code units).
-    !> For use when eos%method == 'analytic' and gamma1_method == 'exact'.
-    double precision function saha_gamma1_from_nH_T(nH_code, T_code) result(g1)
-        double precision, intent(in) :: nH_code, T_code
-        double precision :: log_nH, log_T
-
-        if (eos%method_id /= EOS_ANALYTIC) call mpistop("saha_gamma1_from_nH_T requires eos_method=analytic")
-        log_nH = dlog10(nH_code)
-        log_T  = dlog10(T_code)
-
-        g1 = bicubic_lookup(log_nH, log_T, eos%gamma1_p)
-
-    end function saha_gamma1_from_nH_T
-
-    !> Gamma1 from (nH, p): Saha solve for T, then the table; for face states, which carry no Te
-    double precision function saha_gamma1_from_nH_p(nH_code, p_code) result(g1)
-        double precision, intent(in) :: nH_code, p_code
-        double precision :: T_loc, y_loc
-
-        call saha_state_from_nH_p(nH_code, p_code, T_loc, y_loc)
-        g1 = saha_gamma1_from_nH_T(nH_code, T_loc)
-
-    end function saha_gamma1_from_nH_p
 
 end module mod_eos_lte_saha
 !> Needs a line after to pass the preprocessor

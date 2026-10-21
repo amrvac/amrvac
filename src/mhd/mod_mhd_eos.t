@@ -1009,27 +1009,13 @@ contains
         double precision, intent(in)    :: x(ixI^S, 1:ndim)
         double precision, intent(out)   :: cs2(ixI^S)
 
-        double precision :: nH_val, log_nH, log_p_nH, g1, p_over_rho
         integer :: ix^D
 
         if (eos%gamma1_method == 'constant') then
             cs2(ixO^S) = eos%gamma * w(ixO^S, p_) / w(ixO^S, rho_)
         else
             {do ix^DB=ixOmin^DB,ixOmax^DB\}
-                p_over_rho = w(ix^D, p_) / w(ix^D, rho_)
-                if (p_over_rho > eos%p_rho_FI_threshold) then
-                    cs2(ix^D) = eos%gamma * p_over_rho
-                else
-                    nH_val = w(ix^D, rho_) / eos%nH2rhoFactor
-                    if (eos%method_id == EOS_ANALYTIC) then
-                        g1 = saha_gamma1_from_nH_p(nH_val, w(ix^D,p_))
-                    else
-                        log_nH = dlog10(nH_val)
-                        log_p_nH = dlog10(w(ix^D, p_) / nH_val)
-                        g1 = gamma1_from_nH_p(log_nH, log_p_nH)
-                    end if
-                    cs2(ix^D) = g1 * p_over_rho
-                end if
+                cs2(ix^D) = lte_gamma1_from_p(w(ix^D,p_), w(ix^D,rho_)) * (w(ix^D,p_) / w(ix^D,rho_))
             {end do\}
         end if
 
@@ -1042,7 +1028,6 @@ contains
         double precision, intent(in)    :: x(ixI^S, 1:ndim)
         double precision, intent(out)   :: gamma1(ixI^S)
 
-        double precision :: nH_val, p_over_rho
         integer :: ix^D
 
         if (eos%gamma1_method == 'constant') then
@@ -1051,18 +1036,7 @@ contains
         end if
 
         {do ix^DB=ixOmin^DB,ixOmax^DB\}
-            p_over_rho = w(ix^D, p_) / w(ix^D, rho_)
-            if (p_over_rho > eos%p_rho_FI_threshold) then
-                gamma1(ix^D) = eos%gamma
-            else
-                nH_val = w(ix^D, rho_) / eos%nH2rhoFactor
-                if (eos%method_id == EOS_ANALYTIC) then
-                    gamma1(ix^D) = saha_gamma1_from_nH_p(nH_val, w(ix^D,p_))
-                else
-                    gamma1(ix^D) = gamma1_from_nH_p(dlog10(nH_val), &
-                        dlog10(w(ix^D, p_) / nH_val))
-                end if
-            end if
+            gamma1(ix^D) = lte_gamma1_from_p(w(ix^D,p_), w(ix^D,rho_))
         {end do\}
 
     end subroutine mhd_get_gamma1_LTE

@@ -1627,7 +1627,6 @@ contains
     use mod_dust, only: dust_get_cmax
     use mod_fld, only: fld_bound_diff
     use mod_variables
-    use mod_eos_container, only: EOS_TYPE_LTE
 
     integer, intent(in)             :: ixI^L, ixO^L, idim
     ! conservative left and right status
@@ -1699,8 +1698,6 @@ contains
          ! note usage of conservatives here
          wmean(ixO^S,1:nwflux)=0.5d0*(wLC(ixO^S,1:nwflux)+wRC(ixO^S,1:nwflux))
          tmp1(ixO^S)=wmean(ixO^S,mom(idim))/wmean(ixO^S,rho_)
-         ! the LTE pressure reads Ne/Te, which face states do not carry
-         if (eos%type_id == EOS_TYPE_LTE) call eos%update_eos(ixI^L,ixO^L,wmean,x)
          call hd_get_csound2(wmean,x,ixI^L,ixO^L,csoundR)
          if(hd_radiation_fld.and.fld_bound_diff)csoundR(ixO^S)=csoundR(ixO^S)+(4.0d0/9.0d0)*wmean(ixO^S,r_e)/wmean(ixO^S,rho_)
       !endif
@@ -1852,32 +1849,38 @@ contains
 
   !> Calculate the square of the thermal sound speed csound2 within ixO^L.
   !> For conserved w: extracts pthermal first, then applies Gamma_1.
-  !> For LTE+IonE: look up Gamma_1 from pressure-indexed table, then cs2 = Gamma_1 * p/rho.
-  !> Uses pressure-indexed table (gamma1_from_nH_p) because pressure is continuous
-  !> at contact discontinuities, avoiding spurious gamma1 spikes from the eint-indexed table.
+  !> Squared sound speed of a conserved face state, Gamma_1 p/rho. Face states carry no Ne/Te, so
+  !> under LTE the pressure comes from the internal energy through lte_p_from_eint, and Gamma_1
+  !> from the pressure-indexed table, since p is continuous at contact discontinuities
   subroutine hd_get_csound2(w,x,ixI^L,ixO^L,csound2)
     use mod_global_parameters
     use mod_timing, only: eos_timer_start, eos_timer_stop, timeeos_csound
-    use mod_eos_lte, only: gamma1_from_nH_p
+    use mod_eos_container, only: EOS_TYPE_LTE
+    use mod_eos_lte, only: lte_p_from_eint, lte_gamma1_from_p
     integer, intent(in)             :: ixI^L, ixO^L
     double precision, intent(in)    :: w(ixI^S,nw)
     double precision, intent(in)    :: x(ixI^S,1:ndim)
     double precision, intent(out)   :: csound2(ixI^S)
     double precision :: pthermal(ixI^S)
-    double precision :: nH_val, g1
+    double precision :: inv_rho, nH_val, pres, g1
+    logical :: tab_g1
     integer :: ix^D
 
     ! called directly by the wave speeds, so timed here; the pressure inside counts once
     call eos_timer_start()
-    call eos%get_thermal_pressure(w, x, ixI^L, ixO^L, pthermal)
-
-    if (eos%ionE) then
+    if (hd_energy .and. eos%type_id == EOS_TYPE_LTE) then
+      tab_g1 = eos%ionE .and. eos%gamma1_method /= 'constant'
       {do ix^DB=ixOmin^DB,ixOmax^DB\}
-        nH_val = w(ix^D,rho_) / eos%nH2rhoFactor
-        g1 = gamma1_from_nH_p(dlog10(nH_val), dlog10(pthermal(ix^D)/nH_val))
-        csound2(ix^D) = g1 * pthermal(ix^D) / w(ix^D,rho_)
+        inv_rho = 1.0d0/w(ix^D,rho_)
+        nH_val  = w(ix^D,rho_)/eos%nH2rhoFactor
+        pres = lte_p_from_eint(w(ix^D,e_) - half*(^C&w(ix^D,m^C_)**2+)*inv_rho, &
+                               nH_val, dlog10(nH_val), inv_rho)
+        g1 = eos%gamma
+        if (tab_g1) g1 = lte_gamma1_from_p(pres, w(ix^D,rho_))
+        csound2(ix^D) = g1*pres*inv_rho
       {end do\}
     else
+      call eos%get_thermal_pressure(w, x, ixI^L, ixO^L, pthermal)
       csound2(ixO^S) = eos%gamma * pthermal(ixO^S) / w(ixO^S,rho_)
     end if
     call eos_timer_stop(timeeos_csound)

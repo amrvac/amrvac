@@ -33,7 +33,7 @@ module mod_eos_lte
     !> Scalar table kernels (re-exported by mod_eos for the hd/mhd/ffhd seams).
     !> T_and_y_from_nH_eint is internal-only (entropy update path).
     public :: y_from_nH_eint, T_from_nH_eint
-    public :: p2eint_from_nH_p, gamma1_from_nH_p, p_nH_from_eint
+    public :: p2eint_from_nH_p, gamma1_from_nH_p, lte_gamma1_from_p, p_nH_from_eint
     public :: eint_nH_from_T, eint_from_p_bisect, eos_get_eintT_grid
     !> LTE arms of the eos_init / eos_finalise dispatchers
     public :: eos_init_LTE, eos_finalise_LTE
@@ -480,6 +480,19 @@ contains
             g1 = bicubic_lookup(log_nH, log_p_nH, eos%gamma1_p)
         end if
     end function gamma1_from_nH_p
+
+    !> Gamma_1 of one cell from (p, rho): the ideal value where fully ionised, else the pressure-
+    !> indexed table of the method
+    double precision function lte_gamma1_from_p(pres, rho_val) result(g1)
+        double precision, intent(in) :: pres, rho_val
+        double precision :: nH_val
+        if (pres/rho_val > eos%p_rho_FI_threshold) then
+            g1 = eos%gamma
+        else
+            nH_val = rho_val/eos%nH2rhoFactor
+            g1 = gamma1_from_nH_p(dlog10(nH_val), dlog10(pres/nH_val))
+        end if
+    end function lte_gamma1_from_p
 
     !> log10(p/nH) from (log10 nH, log10 eint/nH)
     double precision function log_p_from_nH_eint(log_nH, log_eint_nH) result(lp)
