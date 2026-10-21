@@ -42,15 +42,19 @@
 /
 
 &cak_list
-  cak_1d_force = .true.
+  cak_alpha    = 0.65d0
+  gayley_qbar  = 2000.0d0
+  gayley_q0    = 2000.0d0
+  kappae_cgs   = 0.34d0
+  cak_force_method = 'radial'
 /
 
 &star_list
-  mstar    = 50.0d0
-  rstar    = 20.0d0
-  twind    = 4.0d4
-  rhobound = 2.0d-11
-  beta     = 0.5d0
+  mstar_sol    = 50.0d0
+  rstar_sol    = 20.0d0
+  twind_cgs    = 4.0d4
+  rhobound_cgs = 2.0d-11
+  beta         = 0.5d0
 /
  &eos_list
   gamma = 1.0d0
