@@ -119,12 +119,13 @@ jobs:
     steps:
       - uses: actions/checkout@v6
       - name: setup for Intel oneAPI
-        # see https://www.intel.com/content/www/us/en/develop/documentation/installation-guide-for-intel-oneapi-toolkits-linux
+        # see https://www.intel.com/content/www/us/en/developer/tools/oneapi/base-toolkit-download.html (APT instructions)
+        # apt-key is no longer available on recent runners: store the key in its own keyring and reference it via signed-by
         run: |
-          wget https://apt.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS.PUB
-          sudo apt-key add GPG-PUB-KEY-INTEL-SW-PRODUCTS.PUB
-          rm GPG-PUB-KEY-INTEL-SW-PRODUCTS.PUB
-          sudo add-apt-repository  -y "deb https://apt.repos.intel.com/oneapi all main"
+          wget -O- https://apt.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS.PUB \
+            | gpg --dearmor | sudo tee /usr/share/keyrings/oneapi-archive-keyring.gpg > /dev/null
+          echo "deb [signed-by=/usr/share/keyrings/oneapi-archive-keyring.gpg] https://apt.repos.intel.com/oneapi all main" \
+            | sudo tee /etc/apt/sources.list.d/oneAPI.list
       - name: install Intel oneAPI
         run: |
           sudo apt update 
