@@ -598,15 +598,11 @@ contains
         phys_wb_transform => hd_wb_transform
         phys_wb_inverse   => hd_wb_inverse
         phys_wb_prolong   => hd_wb_prolong
-        if (eos%ionE .and. eos%p2eint_method /= 'bisect' &
-            .and. eos%method /= 'entropy') then
+        ! the WB transform needs p -> e to invert e -> p exactly, which the bisection does for
+        ! the tables and the entropy method alike
+        if (eos%ionE .and. eos%p2eint_method /= 'bisect') then
           eos%p2eint_method = 'bisect'
           if(mype==0) write(*,*) 'WB + ionE: forcing p2eint_method = bisect'
-        end if
-        if (eos%method == 'entropy' .and. mype == 0) then
-          write(*,*) 'WB + ionE + entropy: p2eint_method stays "table"'
-          write(*,*) 'eint_from_p_bisect uses legacy log_p table'
-          write(*,*) 'not built for entropy method'
         end if
         if(mype==0) write(*,*) 'Well-balanced reconstruction enabled'
       end if
