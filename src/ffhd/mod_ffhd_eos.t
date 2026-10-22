@@ -27,7 +27,7 @@ module mod_ffhd_eos
     use mod_eos_pi
     use mod_eos_container
     use mod_ffhd_phys
-    use mod_radiative_cooling, only: build_Y_mod_table
+    use mod_radiative_cooling, only: build_Y_mod_table, rc_T_Ymod_max_K
 
     use mod_comm_lib, only: mpistop
 
@@ -162,19 +162,7 @@ contains
         ffhd_get_Rfactor => eos%get_Rfactor
 
         if (allocated(tc_fl)) then
-            tc_fl%get_temperature_from_conserved => eos%get_temperature_from_etot
-            if (eos%eos_type == 'LTE' .and. eos%ionE) then
-                tc_fl%get_temperature_from_eint => get_temperature_from_eint_fast_LTE
-            else
-                tc_fl%get_temperature_from_eint => eos%get_temperature_from_eint
-            end if
-            tc_fl%get_rho           => eos%get_rho
-            tc_fl%get_ne_nH         => eos%get_ne_nH
-            tc_fl%get_var_Rfactor   => eos%get_Rfactor
-            tc_fl%inv_gamma_minus_1 =  eos%inv_gamma_minus_1
-            tc_fl%nH2rhoFactor      =  eos%nH2rhoFactor
-            tc_fl%log_T_floor       =  eos_get_log_T_floor()
-            tc_fl%eint_from_T       => eint_nH_from_T
+            call eos_bind_tc(tc_fl, .not. associated(eos%get_Rfactor, Rfactor_from_constant_ionization))
         end if
 
         if (allocated(rc_fl)) then
@@ -184,7 +172,7 @@ contains
             rc_fl%get_Te            => eos%get_Te
             rc_fl%get_ne_nH         => eos%get_ne_nH
             rc_fl%ionE              =  eos%ionE
-            rc_fl%method            =  eos%method
+            rc_fl%method_analytic   =  (eos%method_id == EOS_ANALYTIC)
             rc_fl%inv_gamma_minus_1 =  eos%inv_gamma_minus_1
             rc_fl%nH2rhoFactor      =  eos%nH2rhoFactor
             rc_fl%eion_per_nH       =  eos%eion_per_nH
@@ -192,6 +180,8 @@ contains
             rc_fl%p2eint            => p2eint_from_nH_p
             rc_fl%T_from_eint       => T_from_nH_eint
             rc_fl%y_from_eint       => y_from_nH_eint
+            rc_fl%log_T_floor       =  eos_get_log_T_floor()
+            rc_fl%T_Ymod_max        =  rc_T_Ymod_max_K/unit_temperature
             if (eos%ionE .and. eos%eos_type == 'LTE') then
                 call eos_get_eintT_grid(rc_fl%Y_mod_n_nH, &
                      rc_fl%Y_mod_lg_nH_min, rc_fl%Y_mod_lg_nH_max)
@@ -240,8 +230,6 @@ contains
 
     !> Convert pressure to total energy: E = eint(rho, p) + KE.
     !> On entry rho/v/p; on exit w(e_) = total energy (rho, mom unchanged).
-    !> Four ionE paths mirror hd p_to_e: FI bypass, analytic Saha, p-bisect,
-    !> p2eint table. Non-ionE LTE uses the constant inverse-gamma relation.
     subroutine ffhd_p_to_e(ixI^L, ixO^L, w, x)
         use mod_global_parameters
         integer, intent(in)             :: ixI^L, ixO^L
@@ -249,52 +237,17 @@ contains
         double precision, intent(in)    :: x(ixI^S, 1:ndim)
 
         integer :: ix^D
-        double precision :: p_to_eint, p_over_rho
-        double precision :: nH(ixI^S), nH_in(ixI^S), p_in(ixI^S)
-        double precision :: log_eint_mid, eint_total
-        double precision :: T_solve, y_solve, eint_nH_solve
+        double precision :: nH(ixI^S), log_nH(ixI^S)
 
         if (.not. ffhd_energy) return
 
-        if (eos%ionE) then
-            call eos%get_nH(w, x, ixI^L, ixO^L, nH)
-            nH_in(ixO^S) = dlog10(nH(ixO^S))
-            if (eos%p2eint_method /= 'bisect') then
-                p_in(ixO^S) = dlog10(w(ixO^S,p_)) - nH_in(ixO^S)
-            end if
-        endif
+        call eos%get_nH(w, x, ixI^L, ixO^L, nH)
+        log_nH(ixO^S) = 0.0d0
+        if (eos%ionE) log_nH(ixO^S) = dlog10(nH(ixO^S))
 
-        p_to_eint = eos%inv_gamma_minus_1
         {do ix^DB=ixOmin^DB,ixOmax^DB\}
-            if (eos%ionE) then
-                p_over_rho = w(ix^D,p_) / w(ix^D,rho_)
-                if (p_over_rho > eos%p_rho_FI_threshold) then
-                    p_to_eint = eos%inv_gamma_minus_1 &
-                        + eos%eion_per_nH * nH(ix^D) / w(ix^D,p_)
-                    w(ix^D,e_) = w(ix^D,p_)*p_to_eint + &
-                        half*w(ix^D,mom(1))**2*w(ix^D,rho_)
-                else if (eos%method == 'analytic') then
-                    call saha_state_from_nH_p(nH(ix^D), w(ix^D,p_), &
-                        T_solve, y_solve, eint_nH_solve)
-                    w(ix^D,e_) = eint_nH_solve * nH(ix^D) + &
-                        half*w(ix^D,mom(1))**2*w(ix^D,rho_)
-                else if (eos%p2eint_method == 'bisect') then
-                    call eint_from_p_bisect(nH_in(ix^D), &
-                        dlog10(w(ix^D,p_)), log_eint_mid)
-                    eint_total = nH(ix^D) * 10.0d0**log_eint_mid
-                    eint_total = max(eint_total, &
-                        nH(ix^D) * 10.0d0**eos%T%var2_min)
-                    w(ix^D,e_) = eint_total + &
-                        half*w(ix^D,mom(1))**2*w(ix^D,rho_)
-                else
-                    p_to_eint = p2eint_from_nH_p(nH_in(ix^D), p_in(ix^D))
-                    w(ix^D,e_) = w(ix^D,p_)*p_to_eint + &
-                        half*w(ix^D,mom(1))**2*w(ix^D,rho_)
-                end if
-            else
-                w(ix^D,e_) = w(ix^D,p_)*p_to_eint + &
-                    half*w(ix^D,mom(1))**2*w(ix^D,rho_)
-            end if
+            w(ix^D,e_) = lte_eint_from_p(w(ix^D,p_), nH(ix^D), log_nH(ix^D), w(ix^D,rho_)) &
+                + half*w(ix^D,mom(1))**2*w(ix^D,rho_)
         {end do\}
     end subroutine ffhd_p_to_e
 
@@ -309,7 +262,7 @@ contains
 
         double precision                :: inv_rho
         double precision                :: nH(ixI^S), log_nH(ixI^S)
-        double precision                :: eint_val, eint_in
+        double precision                :: eint_val
         integer :: ix^D
 
         if (fix_small_values) then
@@ -324,24 +277,8 @@ contains
             inv_rho = 1.d0/w(ix^D,rho_)
             w(ix^D,mom(1)) = w(ix^D,mom(1))*inv_rho
             if (ffhd_energy) then
-                if (eos%ionE) then
-                    eint_val = w(ix^D,e_) - half*w(ix^D,rho_)*w(ix^D,mom(1))**2
-                    if (eos%method /= 'analytic') then
-                        eint_val = max(eint_val, nH(ix^D)*10.0d0**eos%T%var2_min)
-                    end if
-                    eint_val = max(eint_val, smalldouble)
-                    if (eint_val * inv_rho > eos%eint_rho_FI_threshold) then
-                        w(ix^D,p_) = eos%gamma_minus_1 &
-                            * (eint_val - eos%eion_per_nH * nH(ix^D))
-                    else
-                        eint_in = dlog10(eint_val) - log_nH(ix^D)
-                        w(ix^D,p_) = nH(ix^D) &
-                            * p_nH_from_eint(log_nH(ix^D), eint_in)
-                    end if
-                else
-                    w(ix^D,p_) = eos%gamma_minus_1 &
-                        * (w(ix^D,e_) - half*w(ix^D,rho_)*w(ix^D,mom(1))**2)
-                end if
+                eint_val = w(ix^D,e_) - half*w(ix^D,rho_)*w(ix^D,mom(1))**2
+                w(ix^D,p_) = lte_p_from_eint(eint_val, nH(ix^D), log_nH(ix^D), inv_rho)
             end if
         {end do\}
     end subroutine ffhd_to_primitive_LTE
@@ -412,7 +349,6 @@ contains
         double precision, intent(in)    :: w(ixI^S, nw)
         double precision, intent(in)    :: x(ixI^S, 1:ndim)
         double precision, intent(out)   :: gamma1(ixI^S)
-        double precision :: nH_val, p_over_rho
         integer :: ix^D
 
         if (eos%gamma1_method == 'constant') then
@@ -421,22 +357,7 @@ contains
         end if
 
         {do ix^DB=ixOmin^DB,ixOmax^DB\}
-            p_over_rho = w(ix^D, p_) / w(ix^D, rho_)
-            if (p_over_rho > eos%p_rho_FI_threshold) then
-                gamma1(ix^D) = eos%gamma
-            else
-                nH_val = w(ix^D, rho_) / eos%nH2rhoFactor
-                if (eos%method == 'analytic') then
-                    if (iw_te > 0 .and. w(ix^D,iw_te) > 0.0d0) then
-                        gamma1(ix^D) = saha_gamma1_from_nH_T(nH_val, w(ix^D,iw_te))
-                    else
-                        gamma1(ix^D) = eos%gamma
-                    end if
-                else
-                    gamma1(ix^D) = gamma1_from_nH_p(dlog10(nH_val), &
-                        dlog10(w(ix^D, p_) / nH_val))
-                end if
-            end if
+            gamma1(ix^D) = lte_gamma1_from_p(w(ix^D,p_), w(ix^D,rho_))
         {end do\}
     end subroutine ffhd_get_gamma1_LTE
 
@@ -459,16 +380,13 @@ contains
             w(ix^D,mom(1)) = w(ix^D,mom(1))*inv_rho
 
             eint_val = w(ix^D, e_) - half*w(ix^D, rho_)*w(ix^D,mom(1))**2
-            if (eos%method /= 'analytic') then
-                eint_val = max(eint_val, nH_val * 10.0d0**eos%T%var2_min)
-            end if
-            eint_val = max(eint_val, smalldouble)
+            eint_val = max(eint_val, nH_val*eos%eint_nH_min, smalldouble)
 
             if (eint_val * inv_rho > eos%eint_rho_FI_threshold) then
                 w(ix^D, e_) = eos%gamma_minus_1 &
                     * (eint_val - eos%eion_per_nH * nH_val) &
                     / (nH_val * eos%n_per_nH_FI)
-            else if (eos%method == 'analytic') then
+            else if (eos%method_id == EOS_ANALYTIC) then
                 call saha_T_from_nH_eint(nH_val, eint_val / nH_val, T_loc, y_loc)
                 w(ix^D, e_) = T_loc
             else
@@ -492,7 +410,7 @@ contains
             * eos%nH2rhoFactor - eos%eion_per_nH) &
             * eos%gamma_minus_1 / eos%n_per_nH_FI
 
-        if (eos%method == 'entropy') then
+        if (eos%method_id == EOS_ENTROPY) then
             log_T_min = eos%eintT%var2_min
         else
             log_T_min = eos%eint_from_T%var2_min
@@ -507,7 +425,7 @@ contains
                 eint_val = nH_val &
                     * (eos%n_per_nH_FI * T_val * eos%inv_gamma_minus_1 &
                     + eos%eion_per_nH)
-            else if (eos%method == 'analytic') then
+            else if (eos%method_id == EOS_ANALYTIC) then
                 eint_val = saha_eint_from_nH_T(nH_val, T_val) * nH_val
             else
                 eint_val = eint_nH_from_T(log_nH, &

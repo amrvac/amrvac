@@ -21,7 +21,7 @@ module mod_wb_atmosphere
   implicit none
   private
 
-  !> Variable indices for density and pressure — set during wb_atmos_init
+  !> Variable indices for density and pressure, set during wb_atmos_init
   !> to avoid depending on a specific physics module.
   integer :: wb_iw_rho = -1
   integer :: wb_iw_p   = -1
@@ -156,9 +156,9 @@ contains
 
   !> Set w to the equilibrium state (rho, v=0, p) at each cell position.
   !>
-  !> Point-value sample of the trap-rule-built grid table at cell centres.
-  !> Consistent with the legacy_trap WB transform which expects point-value
-  !> IC matching its own trap-rule recurrence at L_max.
+  !> The grid-aligned table is sampled at the cell centres: the node value on the finest level,
+  !> which matches the trap-rule recurrence of the legacy_trap WB transform, and log-linear
+  !> between the two nodes around the centre of a coarse cell
   !>
   !> On exit: w(rho_) = rho_eq, w(mom(:)) = 0, w(p_) = p_eq.
   !> The caller must call phys_to_conserved afterwards.
@@ -167,48 +167,44 @@ contains
     double precision, intent(inout) :: w(ixI^S, 1:nw)
     double precision, intent(in)    :: x(ixI^S, 1:ndim)
 
-    double precision :: s
-    integer :: ig
     integer :: ix^D
-
-    if (.not. wb_initialised) &
-      call mpistop('wb_atmos_set_w: call wb_atmos_init first')
 
     ! Zero all conserved/primitive variables first
     w(ixO^S, 1:nw) = 0.0d0
 
     ! Set density and pressure from the equilibrium table
     {do ix^DB = ixOmin^DB, ixOmax^DB\}
-      s = x(ix^D, wb_grav_dir)
-      ig = nint((s - wb_x_lo) / wb_dx_grid) + 1
-      ig = max(1, min(ig, wb_n_grid))
-
-      w(ix^D, wb_iw_rho) = wb_ra(ig)
-      w(ix^D, wb_iw_p)   = wb_pa(ig)
+      call wb_atmos_get_eq(x(ix^D, wb_grav_dir), w(ix^D, wb_iw_rho), w(ix^D, wb_iw_p))
     {end do\}
 
   end subroutine wb_atmos_set_w
 
-  !> Look up equilibrium (rho, p) at an arbitrary coordinate along the
-  !> gravity direction. Uses nearest-cell lookup from the grid-aligned table.
+  !> Equilibrium (rho, p) of the grid-aligned table at a coordinate x_grav along the gravity
+  !> direction: the node value at a node, else log-linear between the two nodes around it
   subroutine wb_atmos_get_eq(x_grav, rho_eq, p_eq)
     double precision, intent(in)  :: x_grav
     double precision, intent(out) :: rho_eq, p_eq
 
+    double precision :: r, f
     integer :: ig
 
     if (.not. wb_initialised) &
       call mpistop('wb_atmos_get_eq: call wb_atmos_init first')
 
-    ig = nint((x_grav - wb_x_lo) / wb_dx_grid) + 1
-    ig = max(1, min(ig, wb_n_grid))
-
-    rho_eq = wb_ra(ig)
-    p_eq   = wb_pa(ig)
-
+    r = max(0.0d0, min((x_grav - wb_x_lo) / wb_dx_grid, dble(wb_n_grid - 1)))
+    ig = nint(r)
+    if (abs(r - dble(ig)) < 1.0d-8) then
+      rho_eq = wb_ra(ig + 1)
+      p_eq   = wb_pa(ig + 1)
+    else
+      ig = int(r) + 1
+      f  = r - dble(ig - 1)
+      rho_eq = wb_ra(ig) * (wb_ra(ig + 1) / wb_ra(ig))**f
+      p_eq   = wb_pa(ig) * (wb_pa(ig + 1) / wb_pa(ig))**f
+    end if
   end subroutine wb_atmos_get_eq
 
-  ! ── Private helpers ──────────────────────────────────────────────
+  ! Private helpers
 
   !> Interpolate T = p/rho and g from the fine table at position x_g.
   subroutine interp_fine(x_g, x_min, gzone, ds, jmax, pa, ra, grav, T_out, g_out)

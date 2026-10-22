@@ -206,11 +206,13 @@ contains
         if (mype == 0) write(*,'(A,A)') " EOS validate OK: ", trim(name)
     end subroutine eos_validate_table
 
-    subroutine precompute_FI_bypass_constants()
-        !> Precompute constants for bypassing table lookups when gas is fully ionised.
-        !> Physics: above T ~ 50 kK, H is >99.99% ionised and He is >90% ionised.
-        !> The EoS reduces to ideal gas with constant mu, Gamma_1 = 5/3, ne/nH = 1+2*A_He.
-        !> We check eint/rho > threshold (1 division + 1 comparison) to skip all table lookups.
+    !> Precompute constants for bypassing table lookups when gas is fully ionised.
+    !> Physics: above T ~ 50 kK, H is >99.99% ionised and He is >90% ionised.
+    !> The EoS reduces to ideal gas with constant mu, Gamma_1 = 5/3, ne/nH = 1+2*A_He.
+    !> We check eint/rho > threshold (1 division + 1 comparison) to skip all table lookups.
+    !> With chi_H_only (the analytic route, erg) helium stays neutral and only hydrogen ionises
+    subroutine precompute_FI_bypass_constants(chi_H_only)
+        double precision, intent(in), optional :: chi_H_only
         double precision :: chi_H, chi_HeI, chi_HeII
         double precision :: T_thresh, eint_nH_thresh, p_nH_thresh
 
@@ -219,14 +221,18 @@ contains
         chi_HeI = 24.6d0  * 1.602d-12
         chi_HeII = 54.4d0 * 1.602d-12
 
-        !> Fully-ionised particle counts and electron fraction
-        eos%n_per_nH_FI = 2.0d0 + 3.0d0 * eos%He_abundance
-        eos%neOnH_FI    = 1.0d0 + 2.0d0 * eos%He_abundance
-
-        !> Total ionisation energy per hydrogen atom (CGS), converted to code units
-        !> eion_per_nH [code] = eion_per_nH [erg] / (unit_pressure / unit_numberdensity)
-        eos%eion_per_nH = (chi_H + eos%He_abundance * (chi_HeI + chi_HeII)) &
-                        * unit_numberdensity / unit_pressure
+        !> fully ionised particle count, electron fraction and ionisation energy per hydrogen
+        !> atom, eion_per_nH [code] = eion_per_nH [erg] * unit_numberdensity / unit_pressure
+        if (present(chi_H_only)) then
+            eos%n_per_nH_FI = 2.0d0 + eos%He_abundance
+            eos%neOnH_FI    = 1.0d0
+            eos%eion_per_nH = chi_H_only * unit_numberdensity / unit_pressure
+        else
+            eos%n_per_nH_FI = 2.0d0 + 3.0d0 * eos%He_abundance
+            eos%neOnH_FI    = 1.0d0 + 2.0d0 * eos%He_abundance
+            eos%eion_per_nH = (chi_H + eos%He_abundance * (chi_HeI + chi_HeII)) &
+                            * unit_numberdensity / unit_pressure
+        end if
         !> No-energy mode (.not. ionE): the ionisation energy is NOT folded into
         !> eint, so it must not appear anywhere in the thermodynamics. Zeroing it
         !> here collapses both the FI threshold below and every FI-zone temperature

@@ -34,6 +34,9 @@ module mod_supertimestepping
   public :: add_sts_method,set_conversion_methods_to_head,set_error_handling_to_head
   public :: sts_add_source
   public :: set_dt_sts_ncycles
+  !> Counts STS applications (one per term per call of sts_add_source), so a term can
+  !> tell the first stage of an application from the later ones
+  integer, public :: sts_app_id = 0
   public :: sourcetype_sts, sourcetype_sts_prior, sourcetype_sts_after, sourcetype_sts_split
 
   !> Per-rank TC/STS compute accumulator for lb_diagnose. Sums the wall time
@@ -487,6 +490,7 @@ contains
 
       call init_comm_fix_conserve(1,ndim,temp%nflux)
 
+      sts_app_id = sts_app_id + 1
       if(associated(temp%sts_before_first_cycle)) then
         prolong_flag=prolongprimitive
         coarsen_flag=coarsenprimitive
@@ -634,14 +638,12 @@ contains
 
     bcphys=.true.
 
-    if(eos%eos_type == 'PI') then
-      ! update temperature variable in w
-      !$OMP PARALLEL DO PRIVATE(igrid)
-      do iigrid=1,igridstail; igrid=igrids(iigrid);
-        call eos%update_eos(ixG^LL,ixG^LL,ps(igrid)%w,ps(igrid)%x)
-      end do
-      !$OMP END PARALLEL DO
-    end if
+    ! refresh the cached EoS variables from the conducted energy
+    !$OMP PARALLEL DO PRIVATE(igrid)
+    do iigrid=1,igridstail; igrid=igrids(iigrid);
+      call eos%update_eos(ixG^LL,ixG^LL,ps(igrid)%w,ps(igrid)%x)
+    end do
+    !$OMP END PARALLEL DO
 
   end subroutine sts_add_source2
 
@@ -684,6 +686,7 @@ contains
 
       call init_comm_fix_conserve(1,ndim,temp%nflux)
 
+      sts_app_id = sts_app_id + 1
       if(associated(temp%sts_before_first_cycle)) then
         prolong_flag = prolongprimitive
         coarsen_flag = coarsenprimitive
@@ -816,6 +819,15 @@ contains
           !$OMP PARALLEL DO PRIVATE(igrid)
           do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
             call phys_face_to_center(ixG^LL,ps1(igrid))
+          end do
+          !$OMP END PARALLEL DO
+        else
+          ! later stages reuse the first-stage increment, so it takes the coarse-fine correction
+          !$OMP PARALLEL DO PRIVATE(igrid)
+          do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
+            ps3(igrid)%w(ixM^T,temp%startVar:temp%endVar) = &
+              (ps1(igrid)%w(ixM^T,temp%startVar:temp%endVar) &
+              - ps(igrid)%w(ixM^T,temp%startVar:temp%endVar))/cmut
           end do
           !$OMP END PARALLEL DO
         end if
@@ -993,14 +1005,12 @@ contains
 
     bcphys=.true.
 
-    if(eos%eos_type == 'PI') then
-      ! update temperature variable in w
-      !$OMP PARALLEL DO PRIVATE(igrid)
-      do iigrid=1,igridstail; igrid=igrids(iigrid);
-        call eos%update_eos(ixG^LL,ixG^LL,ps(igrid)%w,ps(igrid)%x)
-      end do
-      !$OMP END PARALLEL DO
-    end if
+    ! refresh the cached EoS variables from the conducted energy
+    !$OMP PARALLEL DO PRIVATE(igrid)
+    do iigrid=1,igridstail; igrid=igrids(iigrid);
+      call eos%update_eos(ixG^LL,ixG^LL,ps(igrid)%w,ps(igrid)%x)
+    end do
+    !$OMP END PARALLEL DO
 
   end subroutine sts_add_source1
 

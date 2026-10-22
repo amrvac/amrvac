@@ -74,7 +74,7 @@ contains
 
     ! after getbc in amr_coarsen_refine, eos variables of ghost cells are zero for new blocks
     ! update the additional w state eos variables including ghost cells
-    call prepare_eos_w_fields()
+    call prepare_eos_w_fields(ps)
 
   end subroutine resettree
 

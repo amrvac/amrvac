@@ -11,12 +11,8 @@ module mod_source
   integer, parameter :: sourcesplit_ssf    = 2
   integer, parameter :: sourcesplit_ssfss  = 3
 
-  double precision, save :: time_sts_total = 0.d0
-  double precision       :: tw_sts0
-
   public :: add_split_source
   public :: addsource2
-  public :: time_sts_total
 
 contains
 
@@ -28,19 +24,20 @@ contains
                                       sourcetype_sts_prior, sourcetype_sts_after, sourcetype_sts_split   
     use mod_eos, only: prepare_eos_w_fields
     use mod_comm_lib, only: mpistop
+    use mod_timing, only: time_sts, timer_open, timer_close
 
     logical, intent(in) :: prior
     ! This variable, later allocated on the thread stack, causes segmentation fault
     ! when openmp is used with intel. That could be solved otherwise, by increasing
     ! the thread stack size, but not using it at all could speed up. 
     double precision :: w1(ixG^T,1:nw)
-    double precision :: qt
+    double precision :: qt, tsts(3)
     integer :: iigrid, igrid
     logical :: src_active
 
     ! add stiff source terms via super time stepping
     if(is_sts_initialized()) then
-        tw_sts0 = MPI_WTIME()
+        call timer_open(tsts)
         select case (sourcetype_sts)
           case (sourcetype_sts_prior)
             if(prior) then
@@ -53,7 +50,7 @@ contains
           case (sourcetype_sts_split)
             call sts_add_source(0.5d0*dt)
           end select
-        time_sts_total = time_sts_total + (MPI_WTIME() - tw_sts0)
+        time_sts = time_sts + timer_close(tsts)
     end if
     src_active = .false.
 
@@ -130,7 +127,7 @@ contains
     if (src_active) then
        call getbc(qt,0.d0,ps,iwstart,nwgc)
        ! update eos variables: Te (nH) including ghost cells
-       call prepare_eos_w_fields()
+       call prepare_eos_w_fields(ps)
     end if
 
   end subroutine add_split_source

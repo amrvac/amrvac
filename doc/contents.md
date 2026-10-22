@@ -21,6 +21,7 @@ financial support.
 * [User files](amrvacusr.md) How to create a new problem, specify initial
   conditions and customize functionalities.
 * [Parameters](par.md) Description of all parameters in "amrvac.par" parameter file.
+* [Equation of state](eos.md) The gas models (fully ionised, LTE, partially ionised) behind the hd, mhd and ffhd modules.
 * [Auxiliary variables](mpiamrvac_nw.md) Description of the intended use
   for _nw, nwflux, nwaux, nwextra, nwauxio_ parameters.
 * [Command line](commandline.md) Help on command-line parameters.
@@ -45,6 +46,7 @@ the data structures for the block-tree AMR.
 
 * [Thermal conduction](thermal_conduction.md) Parabolic STS and hyperbolic heat-flux relaxation, including parallel and perpendicular MHD transport.
 * [Radiative cooling](radiative_cooling.md) Description of adding radiative cooling.
+* [Radiative transfer](radiative_transfer.md) Gray LTE short-characteristics transfer for optically thick layers.
 * [Pressure less fluids (dust)](dust.md) Getting started with the dust module.
 * [Test particles in (M)HD](particle.md) Description of test particle tracing routines.
 * [Reaction-diffusion equations](reaction_diffusion.md) Getting started with the reaction-diffusion module.

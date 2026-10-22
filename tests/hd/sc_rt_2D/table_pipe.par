@@ -1,0 +1,20 @@
+ &filelist
+        base_filename = '_table_pipe'
+ /
+
+ &usr_list
+        rt_case = 'table'
+ /
+
+ &meshlist
+        xprobmax1  = 2.0d8
+        xprobmax2  = 1.0d8
+ /
+
+ &rt_list
+        rt_sc_distributed = .true.
+        rt_sc_pipeline    = .true.
+        rt_sc_quad        = 'Carlson'
+        rt_sc_opacity     = 'Rosseland'
+        rt_sc_kappa_table = 'rosseland_combined.tab'
+ /

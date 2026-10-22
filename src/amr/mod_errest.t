@@ -303,6 +303,7 @@ contains
     use mod_usr_methods, only: usr_refine_grid
     use mod_forest, only: coarsen, refine, buffer
     use mod_global_parameters
+    use mod_rt_sc_slab, only: rt_sc_pin_refine
 
     integer, intent(in) :: igrid
     double precision, intent(in) :: w(ixG^T,nw)
@@ -328,6 +329,9 @@ contains
        call usr_refine_grid(igrid,level,ixG^LL,ixM^LL,qt,w,ps(igrid)%x, &
             my_refine,my_coarsen)
     end if
+
+    ! the SC RT band stays on rt_sc_amr_level whatever the estimator or user ask
+    call rt_sc_pin_refine(igrid, level, my_refine, my_coarsen)
 
     if (my_coarsen==1) then
        if (level>1) then

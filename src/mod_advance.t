@@ -732,6 +732,7 @@ contains
     use mod_global_parameters
     use mod_ghostcells_update
     use mod_physics, only: phys_implicit_update
+    use mod_eos, only: prepare_eos_w_fields
 
     type(state), target :: psa(max_blocks)   !< Compute implicit part from this state and update it
     type(state), target :: psb(max_blocks)   !< Will be unchanged, as on entry
@@ -754,6 +755,7 @@ contains
 
     ! enforce boundary conditions for psa
     call getbc(qtC,0.d0,psa,iwstart,nwgc)
+    call prepare_eos_w_fields(psa)
 
   end subroutine global_implicit_update
 
@@ -775,7 +777,7 @@ contains
     use mod_ghostcells_update
     use mod_fix_conserve
     use mod_physics
-    use mod_eos
+    use mod_eos, only: prepare_eos_w_fields
 
     integer, intent(in) :: idim^LIM
     type(state), target :: psa(max_blocks) !< Compute fluxes based on this state
@@ -832,11 +834,7 @@ contains
     call getbc(qt+qdt,qdt,psb,iwstart,nwgc)
 
     ! update eos variables: Te (nH) including ghost cells
-    !$OMP PARALLEL DO PRIVATE(igrid)
-    do iigrid=1,igridstail_active; igrid=igrids_active(iigrid);
-      call eos%update_eos(ixG^LL,ixG^LL,psb(igrid)%w,psb(igrid)%x)
-    end do
-    !$OMP END PARALLEL DO
+    call prepare_eos_w_fields(psb)
 
   end subroutine advect1
 

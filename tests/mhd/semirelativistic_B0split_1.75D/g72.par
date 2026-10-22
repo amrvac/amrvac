@@ -1,0 +1,11 @@
+! Section 7.2, propagation of Alfven waves
+ &filelist
+        base_filename = 'g72'
+ /
+ &usr_list
+        rho_ini  = 1.0d0
+        p_ini    = 0.1d0
+        u_ini    = 0.5d0, 0.0d0, 0.0d0
+        b_ini    = 1.0d0, 1.0d0, 0.0d0
+        du_jump  = 0.0d0, 0.0d0, 0.01d0
+ /

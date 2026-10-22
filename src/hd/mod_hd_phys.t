@@ -6,6 +6,7 @@ module mod_hd_phys
   use mod_fld, only: fld_fluid
   use mod_physics
   use mod_eos
+  use mod_rt_sc_slab, only: rt_sc_activate, rt_sc_setup, rt_sc_add_source
   use mod_comm_lib, only: mpistop
   implicit none
   private
@@ -26,6 +27,8 @@ module mod_hd_phys
 
   !> Whether radiative cooling is added
   logical, public, protected              :: hd_radiative_cooling = .false.
+  !> Whether the short-characteristics radiative transfer is used, with its settings in &rt_list
+  logical, public, protected              :: hd_radiative_transfer = .false.
   type(rc_fluid), allocatable, public :: rc_fl
 
   !> Whether dust is added
@@ -179,6 +182,8 @@ module mod_hd_phys
   double precision, public, protected     :: hd_trac_zone_splits(10) = -1.d0
   !> Johnston 2021 resolution parameter delta (default 0.5)
   double precision, public, protected     :: hd_trac_delta = 0.5d0
+  !> fixed cutoff temperature in K for hd_trac_type=0 (Lionello et al. 2009, Mikic et al. 2013)
+  double precision, public, protected     :: hd_trac_Tfix = 3.d5
   !> Whether well-balanced reconstruction is used (Kaeppeli & Mishra style)
   logical, public, protected              :: hd_well_balanced = .false.
 
@@ -239,10 +244,10 @@ contains
     hd_htc_kappa_override, hd_htc_hyp_diff, &
     hd_htc_beta, hd_htc_sat_alpha, hd_htc_pos_eta, hd_htc_validity_warn, &
     hd_htc_gradT_floor, &
-    hd_radiative_cooling, hd_viscosity, &
+    hd_radiative_cooling, hd_radiative_transfer, hd_viscosity, &
     hd_gravity, H_ion_fr, He_ion_fr, He_ion_fr2, &
     SI_unit, hd_particles, hd_rotating_frame, hd_trac, &
-    hd_trac_type, hd_trac_nzones, hd_trac_zone_splits, hd_trac_delta, &
+    hd_trac_type, hd_trac_nzones, hd_trac_zone_splits, hd_trac_delta, hd_trac_Tfix, &
     hd_cak_force, hd_well_balanced, &
     hd_radiation_fld, hd_fld_pradtensor,hd_fip
 
@@ -391,6 +396,13 @@ contains
     else
       Ne_ = -1
       Te_ = -1
+    end if
+
+    ! The radiative transfer reads &rt_list and registers its output variables here, and is set up
+    ! in hd_check_params once the units and the domain are known
+    if(hd_radiative_transfer) then
+      if(.not. hd_energy) call mpistop("radiative transfer needs hd_energy=T")
+      call rt_sc_activate()
     end if
 
     if(hd_radiation_fld)then
@@ -567,13 +579,6 @@ contains
       end if
     end if
     allocate(te_fl_hd)
-    ! te_fl_hd%get_rho=> hd_get_rho
-    te_fl_hd%get_rho=> eos%get_rho
-    ! te_fl_hd%get_pthermal=> hd_get_pthermal
-    te_fl_hd%get_pthermal=> eos%get_thermal_pressure
-    te_fl_hd%get_var_Rfactor => eos%get_Rfactor
-    te_fl_hd%get_ne_nH => eos%get_ne_nH
-
 
 {^IFTHREED
     phys_te_images => hd_te_images
@@ -593,15 +598,11 @@ contains
         phys_wb_transform => hd_wb_transform
         phys_wb_inverse   => hd_wb_inverse
         phys_wb_prolong   => hd_wb_prolong
-        if (eos%ionE .and. eos%p2eint_method /= 'bisect' &
-            .and. eos%method /= 'entropy') then
+        ! the WB transform needs p -> e to invert e -> p exactly, which the bisection does for
+        ! the tables and the entropy method alike
+        if (eos%ionE .and. eos%p2eint_method /= 'bisect') then
           eos%p2eint_method = 'bisect'
           if(mype==0) write(*,*) 'WB + ionE: forcing p2eint_method = bisect'
-        end if
-        if (eos%method == 'entropy' .and. mype == 0) then
-          write(*,*) 'WB + ionE + entropy: p2eint_method stays "table"'
-          write(*,*) 'eint_from_p_bisect uses legacy log_p table'
-          write(*,*) 'not built for entropy method'
         end if
         if(mype==0) write(*,*) 'Well-balanced reconstruction enabled'
       end if
@@ -733,10 +734,11 @@ contains
       integer                      :: n
       logical :: tc_saturate=.false.
       logical :: tc_patch_eint=.false.
+      logical :: tc_frozen_ion=.true.
       double precision :: tc_k_para=0d0
-      double precision :: trac_T_floor=1.d4
+      double precision :: trac_T_floor=0.d0
 
-      namelist /tc_list/ tc_saturate, tc_k_para, trac_T_floor, tc_patch_eint
+      namelist /tc_list/ tc_saturate, tc_k_para, trac_T_floor, tc_patch_eint, tc_frozen_ion
 
       do n = 1, size(par_files)
          open(unitpar, file=trim(par_files(n)), status="old")
@@ -745,6 +747,7 @@ contains
       end do
       fl%tc_saturate = tc_saturate
       fl%tc_patch_eint = tc_patch_eint
+      fl%frozen_ion = tc_frozen_ion .and. .not. tc_patch_eint
       fl%tc_k_para = tc_k_para
       fl%trac_T_floor = trac_T_floor / unit_temperature
 
@@ -889,6 +892,8 @@ contains
     if (hd_particles) then
        call particles_init()
     end if
+
+    if (hd_radiative_transfer) call rt_sc_setup()
 
     if (.not. hd_energy) then
        if (eos%gamma <= 0.0d0) call mpistop ("Error: eos%gamma <= 0")
@@ -1451,7 +1456,9 @@ contains
     select case(hd_trac_type)
     {^IFONED
     case(0)
-      block%wextra(ixI^S,Tcoff_)=3.d5/unit_temperature
+      block%wextra(ixI^S,Tcoff_)=hd_trac_Tfix/unit_temperature
+      ! below trac_T_floor conductivity, losses and heating are left unmodified (Tcoff = Te)
+      where(Te(ixI^S) < tc_fl%trac_T_floor) block%wextra(ixI^S,Tcoff_)=Te(ixI^S)
     case(1)
       hxO^L=ixO^L-1;
       jxO^L=ixO^L+1;
@@ -1489,22 +1496,25 @@ contains
       !> Johnston et al. 2021 local TRAC (A&A 654, A2) -- 1D
       !> Per-cell kappa_TRAC from steady-state energy balance
 
+      ! Tcoff also on the first ghost layer, so both blocks at a face see the same conductivity
+      ixP^L=ixO^L^LADD1;
+
       ! Get background heating Q (once per block)
-      call usr_get_heating(Q_heat, ixI^L, ixO^L, w, x)
+      call usr_get_heating(Q_heat, ixI^L, ixP^L, w, x)
 
       ! Get n_e and n_H for cooling rate: Q = n_e * n_H * Lambda(T)
       ! For FI: n_e = n_H * neOnH_FI.  For LTE: n_e from Saha EoS.
-      call eos%get_ne_nH(ixI^L, ixO^L, w, x, ne, nH_arr)
+      call eos%get_ne_nH(ixI^L, ixP^L, w, x, ne, nH_arr)
 
       hxO^L=ixO^L-1;
       jxO^L=ixO^L+1;
       dx_over_delta = dxlevel(1) / hd_trac_delta
 
-      do ix1=ixOmin1,ixOmax1
+      do ix1=ixPmin1,ixPmax1
         ! Temperature gradient: L_T = T / abs(dT/dx)
         dTdx = abs(Te(ix1+1) - Te(ix1-1)) / (2.d0 * dxlevel(1))
-        if(dTdx < smalldouble) then
-          ! Uniform temperature -- no broadening needed
+        ! Uniform temperature, or below trac_T_floor: no broadening (Tcoff = Te)
+        if(dTdx < smalldouble .or. Te(ix1) < tc_fl%trac_T_floor) then
           block%wextra(ix1,Tcoff_) = Te(ix1)
           cycle
         end if
@@ -1552,12 +1562,6 @@ contains
         ! Store max(Te, Tcoff_eff) -- Tcoff must be >= Te
         block%wextra(ix1,Tcoff_) = max(Te(ix1), Tcoff_eff)
       end do
-      ! Fill one ghost cell on each side with nearest interior Tcoff.
-      ! The thermal conduction routine reads Tcoff at ixO +/- 1;
-      ! wextra ghost cells are NOT halo-communicated, so without this
-      ! the conduction sees stale values and breaks symmetry.
-      block%wextra(ixOmin1-1,Tcoff_) = block%wextra(ixOmin1,Tcoff_)
-      block%wextra(ixOmax1+1,Tcoff_) = block%wextra(ixOmax1,Tcoff_)
       }
       {^NOONED
       ! Johnston et al. 2021 local TRAC, A and A 654 A2 -- multi-D, per-cell.
@@ -1572,8 +1576,9 @@ contains
       end do
       {do ix^DB=ixOmin^DB,ixOmax^DB\}
         gnorm = dsqrt(^D&gradTd({ix^D},^D)**2+ )
-        if(gnorm < smalldouble) then
-          block%wextra(ix^D,Tcoff_) = Te(ix^D)            ! locally uniform T: no broadening
+        if(gnorm < smalldouble .or. Te(ix^D) < tc_fl%trac_T_floor) then
+          ! locally uniform T, or below trac_T_floor: no broadening
+          block%wextra(ix^D,Tcoff_) = Te(ix^D)
         else
           ^D&nhat(^D)=gradTd({ix^D},^D)/gnorm\
           ! grid spacing measured along the gradient direction
@@ -1840,36 +1845,41 @@ contains
 
   !> Calculate the square of the thermal sound speed csound2 within ixO^L.
   !> For conserved w: extracts pthermal first, then applies Gamma_1.
-  !> For LTE+IonE: look up Gamma_1 from pressure-indexed table, then cs2 = Gamma_1 * p/rho.
-  !> Uses pressure-indexed table (gamma1_from_nH_p) because pressure is continuous
-  !> at contact discontinuities, avoiding spurious gamma1 spikes from the eint-indexed table.
+  !> Squared sound speed of a conserved face state, Gamma_1 p/rho. Face states carry no Ne/Te, so
+  !> under LTE the pressure comes from the internal energy through lte_p_from_eint, and Gamma_1
+  !> from the pressure-indexed table, since p is continuous at contact discontinuities
   subroutine hd_get_csound2(w,x,ixI^L,ixO^L,csound2)
     use mod_global_parameters
-    use mod_timing
-    use mod_eos_lte, only: gamma1_from_nH_p
+    use mod_timing, only: eos_timer_start, eos_timer_stop, timeeos_csound
+    use mod_eos_container, only: EOS_TYPE_LTE
+    use mod_eos_lte, only: lte_p_from_eint, lte_gamma1_from_p
     integer, intent(in)             :: ixI^L, ixO^L
     double precision, intent(in)    :: w(ixI^S,nw)
     double precision, intent(in)    :: x(ixI^S,1:ndim)
     double precision, intent(out)   :: csound2(ixI^S)
     double precision :: pthermal(ixI^S)
-    double precision :: nH_val, g1
-    double precision :: local_t0
+    double precision :: inv_rho, nH_val, pres, g1
+    logical :: tab_g1
     integer :: ix^D
 
-    !> get_thermal_pressure has its own timing; only time the gamma1 loop here
-    call eos%get_thermal_pressure(w, x, ixI^L, ixO^L, pthermal)
-
-    if (eos%ionE) then
-      local_t0 = MPI_WTIME()
+    ! called directly by the wave speeds, so timed here; the pressure inside counts once
+    call eos_timer_start()
+    if (hd_energy .and. eos%type_id == EOS_TYPE_LTE) then
+      tab_g1 = eos%ionE .and. eos%gamma1_method /= 'constant'
       {do ix^DB=ixOmin^DB,ixOmax^DB\}
-        nH_val = w(ix^D,rho_) / eos%nH2rhoFactor
-        g1 = gamma1_from_nH_p(dlog10(nH_val), dlog10(pthermal(ix^D)/nH_val))
-        csound2(ix^D) = g1 * pthermal(ix^D) / w(ix^D,rho_)
+        inv_rho = 1.0d0/w(ix^D,rho_)
+        nH_val  = w(ix^D,rho_)/eos%nH2rhoFactor
+        pres = lte_p_from_eint(w(ix^D,e_) - half*(^C&w(ix^D,m^C_)**2+)*inv_rho, &
+                               nH_val, dlog10(nH_val), inv_rho)
+        g1 = eos%gamma
+        if (tab_g1) g1 = lte_gamma1_from_p(pres, w(ix^D,rho_))
+        csound2(ix^D) = g1*pres*inv_rho
       {end do\}
-      timeeos_csound=timeeos_csound+(MPI_WTIME()-local_t0)
     else
+      call eos%get_thermal_pressure(w, x, ixI^L, ixO^L, pthermal)
       csound2(ixO^S) = eos%gamma * pthermal(ixO^S) / w(ixO^S,rho_)
     end if
+    call eos_timer_stop(timeeos_csound)
 
   end subroutine hd_get_csound2
 
@@ -2255,6 +2265,12 @@ contains
     if(hd_radiative_cooling) then
       call radiative_cooling_add_source(qdt,ixI^L,ixO^L,wCT,wCTprim,w,x,&
            qsourcesplit,active, rc_fl)
+    end if
+
+    ! The radiative transfer heating, solved once per step, is added unsplit at every stage
+    if(hd_radiative_transfer .and. .not. qsourcesplit) then
+      active = .true.
+      call rt_sc_add_source(qdt,ixI^L,ixO^L,wCT,w,x,hd_radiative_cooling,.false.)
     end if
 
     if(hd_viscosity) then

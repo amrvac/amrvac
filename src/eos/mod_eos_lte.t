@@ -18,7 +18,7 @@ module mod_eos_lte
     use mod_eos_lte_entropy
     use mod_eos_lte_tables
     use mod_eos_lte_state
-    use mod_timing
+    use mod_timing, only: eos_timer_start, eos_timer_stop, timeeos_Tfromei
     use mod_comm_lib, only: mpistop
 
     implicit none
@@ -28,15 +28,16 @@ module mod_eos_lte
     !> Rfactor_from_LTE are PRIVATE: all bound to eos% pointers inside
     !> eos_finalise_LTE, so no external module names them.
     !> get_temperature_from_eint_fast_LTE stays public -- the seam binds it to
-    !> tc_fl%get_temperature_from_eint (fast TC path).
+    !> tc_fl%get_temperature_ciso2_from_eint (fast TC path, optional p/rho)
     public :: get_temperature_from_eint_fast_LTE
     !> Scalar table kernels (re-exported by mod_eos for the hd/mhd/ffhd seams).
     !> T_and_y_from_nH_eint is internal-only (entropy update path).
     public :: y_from_nH_eint, T_from_nH_eint
-    public :: p2eint_from_nH_p, gamma1_from_nH_p, p_nH_from_eint
+    public :: p2eint_from_nH_p, gamma1_from_nH_p, lte_gamma1_from_p, p_nH_from_eint
     public :: eint_nH_from_T, eint_from_p_bisect, eos_get_eintT_grid
     !> LTE arms of the eos_init / eos_finalise dispatchers
     public :: eos_init_LTE, eos_finalise_LTE
+    public :: lte_p_from_eint, lte_eint_from_p
 
 contains
 
@@ -80,21 +81,17 @@ contains
         double precision, intent(inout) :: w(ixI^S,1:nw)
 
         double precision :: wlocal(ixI^S,1:nw)
-        double precision :: deltaEfactor(ixI^S)
-        double precision :: prev_y(ixI^S), new_y(ixI^S)
+        double precision :: new_y(ixI^S)
         double precision :: pth(ixI^S)
         double precision :: nH_in(ixI^S), nH(ixI^S), eint_in(ixI^S)
         double precision :: Rfactor_FI
-        double precision :: yy, eint_nH_floor
-        double precision :: time0
+        double precision :: yy
         integer :: ix^D
 
-        timeeos0 = MPI_WTIME() !> For monitoring cost of eos module
-
         wlocal(ixI^S,1:nw)=w(ixI^S,1:nw)
-        call phys_e_to_ei(ixI^L,ixO^L,wlocal,x) !> wlocal now contains internal energy, NOT total energy
-
-        pth(ixO^S) = eos%gamma_minus_1 * wlocal(ixO^S,iw_e) !> pressure from internal energy only - SHOULD ONLY BE USED WHEN IonE IS UNIMPORTANT
+        ! wlocal holds the internal energy, and pth the ideal-gas pressure, valid only without ionE
+        call phys_e_to_ei(ixI^L,ixO^L,wlocal,x)
+        pth(ixO^S) = eos%gamma_minus_1 * wlocal(ixO^S,iw_e)
 
         call eos%get_nH(w, x, ixI^L, ixO^L, nH)
         ! Enforce internal energy floor for EoS lookup only.
@@ -102,23 +99,10 @@ contains
         ! kinetic energy can numerically exceed total energy.
         ! The conserved energy w(iw_e) is NOT modified: the physical fluxes
         ! based on the small positive pressure will naturally restore the cell.
-        if (eos%method_id == EOS_ANALYTIC) then
-            ! Analytic: floor to ~100 K equivalent (no tables loaded)
-            ! In code units: eint/nH = T_code / (gamma-1) for neutral gas
-            {do ix^DB=ixOmin^DB,ixOmax^DB\}
-                eint_nH_floor = nH(ix^D) * eos%inv_gamma_minus_1 * 100.0d0 / unit_temperature
-                wlocal(ix^D,iw_e) = max(wlocal(ix^D,iw_e), eint_nH_floor)
-            {end do\}
-        else
+        ! eint_nH_min is the forward-table edge, or 100 K of neutral gas under analytic
+        wlocal(ixO^S,iw_e) = max(wlocal(ixO^S,iw_e), nH(ixO^S)*eos%eint_nH_min)
+        if (eos%method_id /= EOS_ANALYTIC) then
             nH_in(ixO^S) = dlog10(nH(ixO^S))
-            {do ix^DB=ixOmin^DB,ixOmax^DB\}
-                !> eos%T%var2_min holds the forward log(eint/nH) lower bound for
-                !> all table methods (entropy sources it from Tfwd in eos_finalise).
-                eint_nH_floor = nH(ix^D) * 10.0d0**eos%T%var2_min
-                if (wlocal(ix^D,iw_e) < eint_nH_floor) then
-                    wlocal(ix^D,iw_e) = eint_nH_floor
-                end if
-            {end do\}
             eint_in(ixO^S) = dlog10(wlocal(ixO^S,iw_e)) - nH_in(ixO^S)
         end if
 
@@ -177,8 +161,6 @@ contains
 
         w(ixO^S,iw_ne) = new_y(ixO^S) * nH(ixO^S)
 
-        timeeos_update=timeeos_update+(MPI_WTIME()-timeeos0)
-
     end subroutine update_eos_LTE
 
     !> Thermodynamic getters shared verbatim by the hd/mhd seams (eos%/phys
@@ -233,10 +215,8 @@ contains
         double precision, intent(out)   :: res(ixI^S)
 
         double precision :: nH(ixI^S),nH_in(ixI^S), eint_in(ixI^S)
-        double precision :: Rfactor(ixI^S), Rfactor_FI, T_loc, y_loc
+        double precision :: Rfactor_FI, T_loc, y_loc
         integer :: ix^D
-
-        timeeos0 = MPI_WTIME()
 
         Rfactor_FI = eos%n_per_nH_FI / (1.0d0 + 4.0d0*eos%He_abundance)
 
@@ -259,10 +239,9 @@ contains
             endif
         {end do\}
 
-        timeeos_Tfromei=timeeos_Tfromei+(MPI_WTIME()-timeeos0)
     end subroutine get_temperature_from_eint_LTE
 
-    subroutine get_temperature_from_eint_fast_LTE(w, x, ixI^L, ixO^L, res)
+    subroutine get_temperature_from_eint_fast_LTE(w, x, ixI^L, ixO^L, res, ciso2)
         !> Fast TC variant: two-pass regime-aware bypass.
         !>
         !> Pass 1 (vectorised): compute FI formula for ALL cells as array ops.
@@ -271,31 +250,40 @@ contains
         !> Pass 2 (scalar): overwrite ionisation-zone cells with
         !>   bilinear table lookup + dexp.  Threshold check uses multiply
         !>   (eint <= threshold * rho) to avoid a 14-cycle scalar division.
+        !> With ciso2 present it also returns p/rho = (1 + He + y) T / nH2rhoFactor at the
+        !> current eint
         use mod_physics
-        use mod_eos_lte_entropy, only: entropy_T_from_nH_eint
         integer, intent(in)             :: ixI^L,ixO^L
         double precision, intent(in)    :: x(ixI^S,1:ndim)
         double precision, intent(in)    :: w(ixI^S,1:nw)
         double precision, intent(out)   :: res(ixI^S)
+        double precision, intent(out), optional :: ciso2(ixI^S)
 
-        double precision :: inv_Rfactor_FI, eion_rho_inv
+        double precision :: inv_Rfactor_FI, Rfactor_FI, eion_rho_inv, inv_nH2rho, onepHe
         double precision :: log_nH_val, log_eint_nH_val
         double precision :: fx, fy, rx, ry, nH_loc, T_loc, y_loc
         integer :: jx, jy, jx1, jy1, ix^D
+        logical :: want_ciso2
         double precision, parameter :: ln10 = 2.302585092994046d0
 
         if (eos%type_id /= EOS_TYPE_LTE) call mpistop("get_temperature_from_eint_fast_LTE called outside its eos_type (LTE)")
-        timeeos0 = MPI_WTIME()
+        call eos_timer_start()
+
+        want_ciso2 = present(ciso2)
 
         !> Precompute scalar constants (avoid per-cell divisions)
         inv_Rfactor_FI = (1.0d0 + 4.0d0*eos%He_abundance) / eos%n_per_nH_FI
+        Rfactor_FI = eos%n_per_nH_FI / (1.0d0 + 4.0d0*eos%He_abundance)
         eion_rho_inv = eos%eion_per_nH / eos%nH2rhoFactor
+        inv_nH2rho = 1.0d0 / eos%nH2rhoFactor
+        onepHe = 1.0d0 + eos%He_abundance
 
         !> Pass 1: FI formula for ALL cells (vectorisable array operations).
         !> T = (gamma-1) * (eint - eion_per_rho * rho) / (Rfactor_FI * rho)
         res(ixO^S) = eos%gamma_minus_1 * inv_Rfactor_FI &
             * (w(ixO^S,iw_e) - eion_rho_inv * w(ixO^S,iw_rho)) &
             / w(ixO^S,iw_rho)
+        if (want_ciso2) ciso2(ixO^S) = Rfactor_FI * res(ixO^S)
 
         !> Pass 2: overwrite ionisation-zone cells.
         {do ix^DB=ixOmin^DB,ixOmax^DB\}
@@ -305,6 +293,7 @@ contains
                     call saha_T_from_nH_eint(nH_loc, &
                         w(ix^D,iw_e) / nH_loc, T_loc, y_loc)
                     res(ix^D) = T_loc
+                    if (want_ciso2) ciso2(ix^D) = (onepHe + y_loc) * inv_nH2rho * T_loc
                 else if (eos%method_id == EOS_ENTROPY) then
                     if (iw_log_nH > 0) then
                         log_nH_val = block%wextra(ix^D, iw_log_nH)
@@ -312,8 +301,14 @@ contains
                         log_nH_val = dlog10(w(ix^D, iw_rho) / eos%nH2rhoFactor)
                     end if
                     log_eint_nH_val = dlog10(w(ix^D, iw_e)) - log_nH_val
-                    res(ix^D) = entropy_T_from_nH_eint(eos%Tfwd, eos%Tfwd_x, &
-                        eos%Tfwd_y, eos%Tfwd_xy, log_nH_val, log_eint_nH_val)
+                    if (want_ciso2) then
+                        call entropy_T_and_y_from_nH_eint(log_nH_val, log_eint_nH_val, &
+                            T_loc, y_loc)
+                        res(ix^D) = T_loc
+                        ciso2(ix^D) = (onepHe + y_loc) * inv_nH2rho * T_loc
+                    else
+                        res(ix^D) = entropy_T_from_nH_eint(log_nH_val, log_eint_nH_val)
+                    end if
                 else
                     if (iw_log_nH > 0) then
                         log_nH_val = block%wextra(ix^D, iw_log_nH)
@@ -344,31 +339,27 @@ contains
                         res(ix^D) = dexp(ln10 * bilinear_lookup( &
                             log_nH_val, log_eint_nH_val, eos%T))
                     end if
+                    if (want_ciso2) ciso2(ix^D) = (onepHe &
+                        + y_from_nH_eint(log_nH_val, log_eint_nH_val)) * inv_nH2rho * res(ix^D)
                 end if
             end if
         {end do\}
 
-        timeeos_Tfromei = timeeos_Tfromei + (MPI_WTIME()-timeeos0)
+        call eos_timer_stop(timeeos_Tfromei)
     end subroutine get_temperature_from_eint_fast_LTE
 
-    !>#######################################################################
-    !> Scalar EoS kernels: pointwise lookups on (log10 nH, log10 eint/nH) or
-    !> (log10 nH, log10 p/nH) in code units, called by the hd/mhd EoS layer.
-    !> Each dispatches analytic / entropy / table. Ionisation fraction and
-    !> temperature first, then pressure / Gamma_1 / eint.
-    !>#######################################################################
+    !> Scalar EoS kernels: one cell on (log10 nH, log10 eint/nH) or (log10 nH, log10 p/nH), in
+    !> code units, each dispatching to the analytic Saha solve, the entropy tables or the tables
 
-    !> Ionization fraction from (log10 nH, log10 eint/nH) in code units.
-    !> Dispatches: analytic -> Saha quadratic, tables -> PCHIP interpolation.
+    !> Ionisation fraction ne/nH from (log10 nH, log10 eint/nH)
     double precision function y_from_nH_eint(nH, eint_nh) result(result_val)
-        use mod_eos_lte_entropy, only: entropy_y_from_nH_eint
         double precision, intent(in) :: nH, eint_nh
         double precision, parameter :: ln10 = 2.302585092994046d0
         double precision :: T_loc, y_loc, eint_rho
 
         if (eos%type_id /= EOS_TYPE_LTE) call mpistop("y_from_nH_eint called outside its eos_type (LTE)")
         if (eos%method_id == EOS_ANALYTIC) then
-            ! FI bypass: skip Saha solve for fully ionized cells
+            ! A fully ionised cell skips the Saha solve
             eint_rho = 10.0d0**eint_nh / eos%nH2rhoFactor
             if (eint_rho > eos%eint_rho_FI_threshold) then
                 result_val = eos%neOnH_FI
@@ -377,47 +368,39 @@ contains
             call saha_T_from_nH_eint(10.0d0**nH, 10.0d0**eint_nh, T_loc, y_loc)
             result_val = y_loc
         else if (eos%method_id == EOS_ENTROPY) then
-            ! neOnH stored linearly (not log10); single bicubic Hermite lookup.
-            result_val = entropy_y_from_nH_eint(eos%neOnH, eos%neOnH_x, &
-                eos%neOnH_y, eos%neOnH_xy, nH, eint_nh)
+            result_val = entropy_y_from_nH_eint(nH, eint_nh)
         else
             result_val = dexp(ln10 * bicubic_lookup(nH, eint_nh, eos%neOnH))
         end if
     end function y_from_nH_eint
 
-    !> Temperature from (log10 nH, log10 eint/nH) in code units.
-    !> Dispatches: analytic -> Saha bisection/Newton, tables -> PCHIP interpolation.
+    !> Temperature from (log10 nH, log10 eint/nH)
     double precision function T_from_nH_eint(nH, eint_nh) result(result_val)
-        use mod_eos_lte_entropy, only: entropy_T_from_nH_eint
         double precision, intent(in) :: nH, eint_nh
         double precision, parameter :: ln10 = 2.302585092994046d0
-        double precision :: T_loc, y_loc, eint_rho, Rfactor_FI
+        double precision :: T_loc, y_loc, eint_rho
 
         if (eos%type_id /= EOS_TYPE_LTE) call mpistop("T_from_nH_eint called outside its eos_type (LTE)")
         if (eos%method_id == EOS_ANALYTIC) then
-            ! FI bypass: skip Saha solve for fully ionized cells
+            ! A fully ionised cell skips the Saha solve
             eint_rho = 10.0d0**eint_nh / eos%nH2rhoFactor
             if (eint_rho > eos%eint_rho_FI_threshold) then
-                Rfactor_FI = eos%n_per_nH_FI / (1.0d0 + 4.0d0*eos%He_abundance)
                 result_val = eos%gamma_minus_1 &
-                    * (10.0d0**eint_nh - eos%eion_per_nH) / Rfactor_FI
+                    * (10.0d0**eint_nh - eos%eion_per_nH) / eos%n_per_nH_FI
                 return
             end if
             call saha_T_from_nH_eint(10.0d0**nH, 10.0d0**eint_nh, T_loc, y_loc)
             result_val = T_loc
         else if (eos%method_id == EOS_ENTROPY) then
-            result_val = entropy_T_from_nH_eint(eos%Tfwd, eos%Tfwd_x, &
-                eos%Tfwd_y, eos%Tfwd_xy, nH, eint_nh)
+            result_val = entropy_T_from_nH_eint(nH, eint_nh)
         else
             result_val = dexp(ln10 * bicubic_lookup(nH, eint_nh, eos%T))
         end if
     end function T_from_nH_eint
 
-    !> Fused T+y lookup from (log10 nH, log10 eint/nH) in code units.
-    !> Computes grid indices once, evaluates both T and y tables.
-    !> Saves one index computation + better cache utilisation vs separate calls.
+    !> Temperature and ionisation fraction from (log10 nH, log10 eint/nH), sharing one table
+    !> locate when the interleaved table exists
     subroutine T_and_y_from_nH_eint(log_nH, log_eint_nH, T_out, y_out)
-        use mod_eos_lte_entropy, only: entropy_T_and_y_from_nH_eint
         double precision, intent(in) :: log_nH, log_eint_nH
         double precision, intent(out) :: T_out, y_out
         double precision, parameter :: ln10 = 2.302585092994046d0
@@ -426,13 +409,9 @@ contains
         if (eos%method_id == EOS_ANALYTIC) then
             call saha_T_from_nH_eint(10.0d0**log_nH, 10.0d0**log_eint_nH, T_out, y_out)
         else if (eos%method_id == EOS_ENTROPY) then
-            call entropy_T_and_y_from_nH_eint(eos%Tfwd, eos%Tfwd_x, &
-                eos%Tfwd_y, eos%Tfwd_xy, &
-                eos%neOnH, eos%neOnH_x, eos%neOnH_y, eos%neOnH_xy, &
-                log_nH, log_eint_nH, T_out, y_out)
+            call entropy_T_and_y_from_nH_eint(log_nH, log_eint_nH, T_out, y_out)
         else if (allocated(eos%table_eint_il)) then
-            ! Interleaved PCHIP fast-path.
-            ! (T, n_e/n_H, p/n_H), so cache behaviour is preserved.
+            ! The interleaved table holds (T, ne/nH, p/nH) per node
             if (eos%T%is_uniform) then
                 call interp_pchip_interleaved(log_nH, log_eint_nH, &
                     eos%table_eint_il, 3, eos%T%dim2, eos%T%dim1, &
@@ -449,16 +428,13 @@ contains
             T_out = dexp(ln10 * results(1))
             y_out = dexp(ln10 * results(2))
         else
-            ! No interleaved table built -- separate dispatcher calls
             T_out = dexp(ln10 * bicubic_lookup(log_nH, log_eint_nH, eos%T))
             y_out = dexp(ln10 * bicubic_lookup(log_nH, log_eint_nH, eos%neOnH))
         end if
     end subroutine T_and_y_from_nH_eint
 
-    !> Pressure-to-eint ratio from (log10 nH, log10 p/nH) in code units.
-    !> Dispatches: analytic -> Saha solve for eint/p, tables -> PCHIP interpolation.
+    !> Ratio eint/p from (log10 nH, log10 p/nH)
     double precision function p2eint_from_nH_p(nH, ponH) result(result_val)
-        use mod_eos_lte_entropy, only: entropy_eint_from_nH_p
         double precision, intent(in) :: nH, ponH
         double precision :: nH_code, p_code, T_loc, y_loc, eint_nH_loc, p_rho
 
@@ -466,7 +442,7 @@ contains
         if (eos%method_id == EOS_ANALYTIC) then
             nH_code = 10.0d0**nH
             p_code = nH_code * 10.0d0**ponH
-            ! FI bypass: skip Saha solve for fully ionized cells
+            ! A fully ionised cell skips the Saha solve
             p_rho = p_code / (nH_code * eos%nH2rhoFactor)
             if (p_rho > eos%p_rho_FI_threshold) then
                 result_val = eos%inv_gamma_minus_1 &
@@ -476,44 +452,44 @@ contains
             call saha_state_from_nH_p(nH_code, p_code, T_loc, y_loc, eint_nH_loc)
             result_val = eint_nH_loc * nH_code / p_code
         else if (eos%method_id == EOS_ENTROPY) then
-            ! One bicubic-Hermite lookup on the eintP table.
-            result_val = entropy_eint_from_nH_p(eos%eintP, eos%eintP_x, &
-                eos%eintP_y, eos%eintP_xy, nH, ponH)
+            result_val = entropy_eint_from_nH_p(nH, ponH)
         else
             result_val = bicubic_lookup(nH, ponH, eos%p2eint)
         end if
     end function p2eint_from_nH_p
 
-    !> Gamma_1 from pressure-indexed table: (log10 nH, log10 p/nH) -> Gamma_1.
-    !> For 'entropy' the conversion p -> eint -> Gamma_1 via formula is intended
-    !> to keep Maxwell consistency with the forward at runtime. The p->eint inverse 
-    !> is one bisection per cell -- non-trivial cost; this function is in the hot path
-    !> via hd_get_csound2_LTE.
+    !> Gamma_1 from (log10 nH, log10 p/nH), one lookup on the pressure-indexed table
     double precision function gamma1_from_nH_p(log_nH, log_p_nH) result(g1)
-        use mod_eos_lte_entropy, only: entropy_gamma1_from_nH_p
         double precision, intent(in) :: log_nH, log_p_nH
         if (eos%type_id /= EOS_TYPE_LTE) call mpistop("gamma1_from_nH_p called outside its eos_type (LTE)")
         if (eos%method_id == EOS_ENTROPY) then
-            ! Single bicubic Hermite lookup on the pre-built Gamma_1(rho, p) table.
-            ! ZERO runtime iterations; no p->eint intermediate inversion.
-            g1 = entropy_gamma1_from_nH_p(eos%g1p, eos%g1p_x, eos%g1p_y, &
-                eos%g1p_xy, log_nH, log_p_nH)
+            g1 = entropy_gamma1_from_nH_p(log_nH, log_p_nH)
         else
             g1 = bicubic_lookup(log_nH, log_p_nH, eos%gamma1_p)
         end if
     end function gamma1_from_nH_p
 
-    !> Merged log10(p/nH) lookup: (log10 nH, log10 eint/nH) -> log10(p/nH)
-    !> Single PCHIP evaluation replacing separate T + neOnH lookups.
+    !> Gamma_1 of one cell from (p, rho): the ideal value where fully ionised, else the pressure-
+    !> indexed table of the method
+    double precision function lte_gamma1_from_p(pres, rho_val) result(g1)
+        double precision, intent(in) :: pres, rho_val
+        double precision :: nH_val
+        if (pres/rho_val > eos%p_rho_FI_threshold) then
+            g1 = eos%gamma
+        else
+            nH_val = rho_val/eos%nH2rhoFactor
+            g1 = gamma1_from_nH_p(dlog10(nH_val), dlog10(pres/nH_val))
+        end if
+    end function lte_gamma1_from_p
+
+    !> log10(p/nH) from (log10 nH, log10 eint/nH)
     double precision function log_p_from_nH_eint(log_nH, log_eint_nH) result(lp)
         double precision, intent(in) :: log_nH, log_eint_nH
         lp = bicubic_lookup(log_nH, log_eint_nH, eos%log_p)
     end function log_p_from_nH_eint
 
-    !> p/nH from (log10 nH, log10 eint/nH) in code units.
-    !> Returns (1+He+y)*T directly -- single lookup replaces T + y lookups.
+    !> p/nH = (1 + He + y) T from (log10 nH, log10 eint/nH)
     double precision function p_nH_from_eint(log_nH, log_eint_nH) result(p_nH)
-        use mod_eos_lte_entropy, only: entropy_p_nH_from_eint
         double precision, intent(in) :: log_nH, log_eint_nH
         double precision, parameter :: ln10 = 2.302585092994046d0
         double precision :: T_loc, y_loc
@@ -523,28 +499,22 @@ contains
             call saha_T_from_nH_eint(10.0d0**log_nH, 10.0d0**log_eint_nH, T_loc, y_loc)
             p_nH = (1.0d0 + eos%He_abundance + y_loc) * T_loc
         else if (eos%method_id == EOS_ENTROPY) then
-            p_nH = entropy_p_nH_from_eint(eos%pfwd, eos%pfwd_x, eos%pfwd_y, &
-                                           eos%pfwd_xy, log_nH, log_eint_nH)
+            p_nH = entropy_p_nH_from_eint(log_nH, log_eint_nH)
         else
             p_nH = dexp(ln10 * bicubic_lookup(log_nH, log_eint_nH, eos%p_over_nH))
         end if
     end function p_nH_from_eint
 
-    !> Internal energy per nH from (log10 nH, log10 T) in code units.
-    !> Uses the bisection-built inverse table (H+He, machine precision).
-    !> Fallback: H-only Saha if table not built.
+    !> eint/nH from (log10 nH, log10 T), from the inverse table when one is built and the Saha
+    !> solve otherwise
     double precision function eint_nH_from_T(log_nH, log_T) result(eint_nH)
-        use mod_eos_lte_entropy, only: entropy_eint_from_nH_T
         double precision, intent(in) :: log_nH, log_T
         double precision, parameter :: ln10 = 2.302585092994046d0
         double precision :: log_e_nh
 
         if (eos%type_id /= EOS_TYPE_LTE) call mpistop("eint_nH_from_T called outside its eos_type (LTE)")
         if (eos%method_id == EOS_ENTROPY) then
-            ! Single bicubic Hermite lookup on the pre-built eint(rho, T)
-            ! inverse table. ZERO runtime iterations.
-            log_e_nh = entropy_eint_from_nH_T(eos%eintT, eos%eintT_x, &
-                eos%eintT_y, eos%eintT_xy, log_nH, log_T)
+            log_e_nh = entropy_eint_from_nH_T(log_nH, log_T)
             eint_nH = 10.0d0**log_e_nh
         else if (allocated(eos%eint_from_T%table)) then
             eint_nH = dexp(ln10 * bicubic_lookup(log_nH, log_T, eos%eint_from_T))
@@ -768,10 +738,8 @@ contains
         if (eos%type_id /= EOS_TYPE_LTE) call mpistop("eint_from_p_bisect called outside its eos_type (LTE)")
         log_p_target = log_p_val - log_nH_val
 
-        !> eint-axis limits. var2_min/var2_max are populated for uniform tables only; with an
-        !> adaptive (non-uniform) log_p table they are meaningless, so the guess/bracket clamps
-        !> below let log_eint run out of range -> out-of-bounds stencil load in bicubic_lookup
-        !> (SIGSEGV at init). log_p_bisect_cached already branches on is_uniform; this wrapper did not.
+        !> eint-axis limits: var2_min/var2_max are set for uniform tables only, so an adaptive
+        !> log_p table takes its end nodes, which keeps the clamps below inside the bicubic stencil
         if (eos%log_p%is_uniform) then
             eint_lim_lo = eos%log_p%var2_min
             eint_lim_hi = eos%log_p%var2_max
@@ -842,5 +810,51 @@ contains
             lg_nH_max = 0.0d0
         end if
     end subroutine eos_get_eintT_grid
+
+    !> LTE pressure from internal energy in one cell: ideal without ionE, else the table floor, the
+    !> FI bypass or p(nH, eint). log_nH_val is read only with ionE
+    double precision function lte_p_from_eint(eint_val,nH_val,log_nH_val,inv_rho) result(pres)
+        double precision, intent(in) :: eint_val, nH_val, log_nH_val, inv_rho
+        double precision :: e_use
+        if (.not. eos%ionE) then
+            pres = eos%gamma_minus_1 * eint_val
+            return
+        end if
+        ! The floor keeps the table logarithms and the Saha solve finite
+        e_use = max(eint_val, nH_val*eos%eint_nH_min, smalldouble)
+        if (e_use*inv_rho > eos%eint_rho_FI_threshold) then
+            pres = eos%gamma_minus_1*(e_use - eos%eion_per_nH*nH_val)
+        else if (eos%method_id == EOS_ENTROPY) then
+            pres = entropy_p_from_eint(log_nH_val, dlog10(e_use) - log_nH_val)
+        else
+            pres = nH_val * p_nH_from_eint(log_nH_val, dlog10(e_use) - log_nH_val)
+        end if
+    end function lte_p_from_eint
+
+    !> LTE internal energy from pressure in one cell: FI bypass, else eint(nH, p)
+    double precision function lte_eint_from_p(pres,nH_val,log_nH_val,rho_val) result(eint)
+        double precision, intent(in) :: pres, nH_val, log_nH_val, rho_val
+        double precision :: T_solve, y_solve, eint_nH_solve, log_eint_mid
+        if (.not. eos%ionE) then
+            eint = pres*eos%inv_gamma_minus_1
+            return
+        end if
+        if (pres/rho_val > eos%p_rho_FI_threshold) then
+            eint = pres*eos%inv_gamma_minus_1 + eos%eion_per_nH*nH_val
+        else if (eos%method_id == EOS_ANALYTIC) then
+            call saha_state_from_nH_p(nH_val, pres, T_solve, y_solve, eint_nH_solve)
+            eint = eint_nH_solve*nH_val
+        else if (eos%p2eint_bisect) then
+            if (eos%method_id == EOS_ENTROPY) then
+                call entropy_eint_from_p_bisect(log_nH_val, dlog10(pres) - log_nH_val, log_eint_mid)
+                eint = nH_val*10.0d0**log_eint_mid
+            else
+                call eint_from_p_bisect(log_nH_val, dlog10(pres), log_eint_mid)
+                eint = nH_val*max(10.0d0**log_eint_mid, eos%eint_nH_min)
+            end if
+        else
+            eint = pres*p2eint_from_nH_p(log_nH_val, dlog10(pres) - log_nH_val)
+        end if
+    end function lte_eint_from_p
 
 end module mod_eos_lte

@@ -1162,7 +1162,7 @@ contains
     use mod_global_parameters
     use mod_limiter
     use mod_comm_lib, only: mpistop
-    use mod_timing, only: time_wb_transform, time_wb_inverse, time_wb_recon
+    use mod_timing, only: time_wb_transform, time_wb_inverse, time_wb_recon, timer_open, timer_close
 
     integer, intent(in) :: ixI^L, ixL^L, ixR^L, idims
     double precision, intent(in) :: dxdim
@@ -1174,30 +1174,26 @@ contains
     double precision, dimension(ixI^S,1:nw) :: wLp, wRp
     double precision, dimension(ixI^S,1:ndim) :: x
 
-    integer            :: jxR^L, ixC^L, jxC^L, hxC^L, ixO^L, iw, idir
+    integer            :: jxR^L, ixC^L, jxC^L, hxC^L, ixO^L, hxO^L, iw, idir
     !> RJV: the PPM reconstruction residual and the alternation switch
     double precision   :: rjve(ixI^S), rjvs(ixI^S)
     double precision   :: ldw(ixI^S), rdw(ixI^S), dwC(ixI^S)
-    !> scratch for a face-value velocity limiter (weno5/wenoz5/mp5): those routines write
-    !> every variable at once, so they are run into a copy and only the momentum rows kept.
-    !> Allocated only when such a limiter is actually requested.
-    double precision, allocatable :: wLt(:^D&,:), wRt(:^D&,:)
     double precision   :: wb_phi(ixI^S), wb_phi_face(ixI^S), wb_T(ixI^S)
-    double precision   :: wb_t0
+    double precision   :: tw(3)
 
+    jxR^L=ixR^L+kr(idims,^D);
     ! Well-balanced transform: subtract local HSE from pressure before limiting
-    wb_t0 = MPI_WTIME()
+    call timer_open(tw)
     if (associated(phys_wb_transform)) then
       call phys_wb_transform(ixI^L, ixI^L, idims, w, x, wb_phi, &
            wb_phi_face, wb_T)
       ! Re-initialise wLp/wRp to transformed cell-centre values.
-      jxR^L=ixR^L+kr(idims,^D);
       wLp(ixL^S, 1:nwflux) = w(ixL^S, 1:nwflux)
       wRp(ixR^S, 1:nwflux) = w(jxR^S, 1:nwflux)
     end if
-    time_wb_transform = time_wb_transform + (MPI_WTIME() - wb_t0)
+    time_wb_transform = time_wb_transform + timer_close(tw)
 
-    wb_t0 = MPI_WTIME()
+    call timer_open(tw)
     select case (type_limiter(block%level))
     case (limiter_mp5)
        call MP5limiter(ixI^L,ixL^L,idims,w,wLp,wRp)
@@ -1235,12 +1231,35 @@ contains
        ixCmin^D=ixLmin^D+kr(idims,^D);
        ixCmax^D=ixLmax^D;
        call PPMlimiter(ixI^L,ixC^L,idims,w,w,wLp,wRp)
+       ! Residual-jump velocity: restore the ripple the PPM face values remove, so that the
+       ! Riemann solver damps it. e lives on ixO = [ixLmin, ixLmax+1] and the switch on ixC
+       if (ppm_rjv > zero) then
+          ixOmin^D=ixLmin^D; ixOmax^D=ixLmax^D+kr(idims,^D);
+          hxO^L=ixO^L-kr(idims,^D); hxC^L=ixC^L-kr(idims,^D); jxC^L=ixC^L+kr(idims,^D);
+          do idir=1,ndir
+             iw = iw_mom(idir)
+             ! e_i = v_i - (P_{i+1/2} + P_{i-1/2})/2 from the cell's own limited edges, wLp(i) on
+             ! the right and wRp(i-1) on the left, which is a6/6 of the PPM parabola
+             rjve(ixO^S)=w(ixO^S,iw)-half*(wLp(ixO^S,iw)+wRp(hxO^S,iw))
+             ! s_i = ppm_rjv where e alternates across three cells, and zero elsewhere
+             rjvs(ixO^S)=zero
+             where (rjve(hxC^S)*rjve(ixC^S) < zero .and. rjve(ixC^S)*rjve(jxC^S) < zero)
+                rjvs(ixC^S)=ppm_rjv
+             end where
+             wLp(ixL^S,iw)=wLp(ixL^S,iw)+rjvs(ixL^S)*rjve(ixL^S)
+             wRp(ixR^S,iw)=wRp(ixR^S,iw)+rjvs(jxR^S)*rjve(jxR^S)
+             ! cap at the piecewise-constant jump, since e grows once the PPM clips fire
+             wLp(ixL^S,iw)=min(max(wLp(ixL^S,iw),min(w(ixL^S,iw),w(jxR^S,iw))), &
+                               max(w(ixL^S,iw),w(jxR^S,iw)))
+             wRp(ixR^S,iw)=min(max(wRp(ixR^S,iw),min(w(ixR^S,iw),w(jxR^S,iw))), &
+                               max(w(ixR^S,iw),w(jxR^S,iw)))
+          end do
+       end if
        if(fix_small_values) then
           call phys_handle_small_values(.true.,wLp,x,ixI^L,ixC^L,'reconstruct left')
           call phys_handle_small_values(.true.,wRp,x,ixI^L,ixC^L,'reconstruct right')
        end if
     case default
-       jxR^L=ixR^L+kr(idims,^D);
        ixCmax^D=jxRmax^D; ixCmin^D=ixLmin^D-kr(idims,^D);
        jxC^L=ixC^L+kr(idims,^D);
        do iw=1,nwflux
@@ -1268,10 +1287,10 @@ contains
           call phys_handle_small_values(.true.,wRp,x,ixI^L,ixR^L,'reconstruct right')
        end if
     end select
-    time_wb_recon = time_wb_recon + (MPI_WTIME() - wb_t0)
+    time_wb_recon = time_wb_recon + timer_close(tw)
 
     ! Well-balanced inverse: add back HSE at interface positions
-    wb_t0 = MPI_WTIME()
+    call timer_open(tw)
     if (associated(phys_wb_inverse)) then
       call phys_wb_inverse(ixI^L, ixL^L, ixR^L, idims, wLp, wRp, w, &
            wb_phi, wb_phi_face, wb_T)
@@ -1281,7 +1300,7 @@ contains
    wRC(ixR^S,1:nwflux)=wRp(ixR^S,1:nwflux)
    call phys_to_conserved(ixI^L,ixL^L,wLC,x)
    call phys_to_conserved(ixI^L,ixR^L,wRC,x)
-   time_wb_inverse = time_wb_inverse + (MPI_WTIME() - wb_t0)
+   time_wb_inverse = time_wb_inverse + timer_close(tw)
    if(nwaux>0)then
       wLp(ixL^S,nwflux+1:nwflux+nwaux)=wLC(ixL^S,nwflux+1:nwflux+nwaux)
       wRp(ixR^S,nwflux+1:nwflux+nwaux)=wRC(ixR^S,nwflux+1:nwflux+nwaux)

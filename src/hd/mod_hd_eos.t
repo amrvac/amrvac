@@ -19,13 +19,11 @@ module mod_hd_eos
     !> Mode-specific kernels come from their sub-modules (the facade no longer
     !> re-exports them); each mpistops if called under the wrong eos_type/method.
     use mod_eos_lte
-    use mod_eos_lte_entropy, only: entropy_eint_from_p_bisect
     use mod_eos_lte_saha
     use mod_eos_pi
     use mod_eos_container
     use mod_hd_phys
-    use mod_timing
-    use mod_radiative_cooling, only: build_Y_mod_table
+    use mod_radiative_cooling, only: build_Y_mod_table, rc_T_Ymod_max_K
 
     use mod_comm_lib, only: mpistop
 
@@ -112,23 +110,10 @@ contains
 
     end subroutine hd_link_eos
 
-    subroutine bind_eos_to_source() !> this is called in eos_finalise through mod_physics procedure linking
+    !> Bind the EoS to the conduction and cooling fluids, called from eos_finalise
+    subroutine bind_eos_to_source()
         if (allocated(tc_fl)) then
-            tc_fl%get_temperature_from_conserved => eos%get_temperature_from_etot
-            !> Use fast bilinear T lookup for TC STS substeps (density fixed,
-            !> TC flux dominated by corona where T(eint) is smooth)
-            if (eos%eos_type == 'LTE' .and. eos%ionE) then
-                tc_fl%get_temperature_from_eint => get_temperature_from_eint_fast_LTE
-            else
-                tc_fl%get_temperature_from_eint => eos%get_temperature_from_eint
-            end if
-            tc_fl%get_rho => eos%get_rho
-            tc_fl%get_ne_nH => eos%get_ne_nH
-            tc_fl%get_var_Rfactor => eos%get_Rfactor
-            tc_fl%inv_gamma_minus_1 =  eos%inv_gamma_minus_1
-            tc_fl%nH2rhoFactor      =  eos%nH2rhoFactor
-            tc_fl%log_T_floor       =  eos_get_log_T_floor()
-            tc_fl%eint_from_T       => eint_nH_from_T
+            call eos_bind_tc(tc_fl, .not. associated(eos%get_Rfactor, Rfactor_from_constant_ionization))
         end if
 
         if (allocated(rc_fl)) then
@@ -138,7 +123,7 @@ contains
             rc_fl%get_Te => eos%get_Te
             rc_fl%get_ne_nH => eos%get_ne_nH
             rc_fl%ionE              =  eos%ionE
-            rc_fl%method            =  eos%method
+            rc_fl%method_analytic   =  (eos%method_id == EOS_ANALYTIC)
             rc_fl%inv_gamma_minus_1 =  eos%inv_gamma_minus_1
             rc_fl%nH2rhoFactor      =  eos%nH2rhoFactor
             rc_fl%eion_per_nH       =  eos%eion_per_nH
@@ -146,6 +131,8 @@ contains
             rc_fl%p2eint            => p2eint_from_nH_p
             rc_fl%T_from_eint       => T_from_nH_eint
             rc_fl%y_from_eint       => y_from_nH_eint
+            rc_fl%log_T_floor       =  eos_get_log_T_floor()
+            rc_fl%T_Ymod_max        =  rc_T_Ymod_max_K/unit_temperature
             !> Build the variable-c_V Townsend Y_mod table now that all
             !> EoS tables (eint_from_T, T, neOnH) are in code units.
             !> build_Y_mod_table checks coolmethod=='exact' and .not.isPPL
@@ -172,6 +159,11 @@ contains
             end if
         end if
 
+        te_fl_hd%get_rho         => eos%get_rho
+        te_fl_hd%get_pthermal    => eos%get_thermal_pressure
+        te_fl_hd%get_var_Rfactor => eos%get_Rfactor
+        te_fl_hd%get_ne_nH       => eos%get_ne_nH
+
         if (allocated(fld_fl)) then
             !> Radiation (FLD) fluid: gas-EoS callbacks. get_temperature_from_pressure
             !> is the FI T=p/(R*rho) routine (the LTE variant is a later pass).
@@ -191,8 +183,6 @@ contains
 
         integer :: ix^D
 
-        timeeos0 = MPI_WTIME() !> For monitoring cost of eos module
-
         {do ix^DB=ixOmin^DB,ixOmax^DB\}
             if (hd_energy) then
                 ! Calculate total energy from pressure and kinetic energy
@@ -207,8 +197,6 @@ contains
             call dust_to_conserved(ixI^L, ixO^L, w, x)
         end if
 
-        timeeos_conv=timeeos_conv+(MPI_WTIME()-timeeos0)
-
     end subroutine hd_to_conserved_origin
 
     !> Transform conservative variables into primitive ones
@@ -221,8 +209,6 @@ contains
 
         double precision                :: inv_rho
         integer :: ix^D
-
-        timeeos0 = MPI_WTIME() !> For monitoring cost of eos module
 
         if (fix_small_values) then
             call hd_handle_small_values(.false., w, x, ixI^L, ixO^L, 'hd_to_primitive')
@@ -245,8 +231,6 @@ contains
             call dust_to_primitive(ixI^L, ixO^L, w, x)
         end if
 
-        timeeos_conv=timeeos_conv+(MPI_WTIME()-timeeos0)
-
     end subroutine hd_to_primitive_origin
 
     !> LTE primitive -> conserved conversion.
@@ -260,8 +244,6 @@ contains
         double precision, intent(inout) :: w(ixI^S, nw)
         double precision, intent(in)    :: x(ixI^S, 1:ndim)
 
-        timeeos0 = MPI_WTIME()
-
         call p_to_e(ixI^L, ixO^L, w, x)
 
         ! Convert velocity to momentum
@@ -271,89 +253,31 @@ contains
             call dust_to_conserved(ixI^L, ixO^L, w, x)
         end if
 
-        timeeos_conv=timeeos_conv+(MPI_WTIME()-timeeos0)
-
     end subroutine hd_to_conserved_LTE
 
     subroutine p_to_e(ixI^L, ixO^L, w, x)
-        !> Convert pressure to total energy: E = eint(rho, p) + KE.
-        !>
-        !> On entry: w(rho_) = density, w(m_) = velocity, w(p_) = pressure.
-        !> On exit:  w(rho_) unchanged, w(m_) unchanged, w(e_) = total energy.
-        !>
-        !> Four paths for ionE (LTE with ionisation):
-        !>   1. FI bypass (p/rho > threshold): analytic eint = p/(gamma-1) + eion*nH
-        !>   2. Analytical Saha (eos_method='analytic'): direct Saha solve for T,y from p
-        !>   3. WB mode (hd_well_balanced): cached bisection on forward tables
-        !>   4. Standard: p2eint inverse table lookup (fast, ~0.01% round-trip error)
+        !> Pressure to total energy, E = eint(rho, p) + KE, through lte_eint_from_p.
+        !> On entry w(p_) holds the pressure and w(m_) the velocity
         use mod_global_parameters
         integer, intent(in)             :: ixI^L, ixO^L
         double precision, intent(inout) :: w(ixI^S, nw)
         double precision, intent(in)    :: x(ixI^S, 1:ndim)
 
         integer :: ix^D
-        double precision :: p_to_eint, p_over_rho
-        double precision :: nH(ixI^S), nH_in(ixI^S), p_in(ixI^S)
-        double precision :: log_eint_mid, eint_total
-        double precision :: T_solve, y_solve, eint_nH_solve
+        double precision :: nH(ixI^S), log_nH(ixI^S)
 
+        if (.not. hd_energy) return
         if (eos%ionE) then
             call eos%get_nH(w, x, ixI^L, ixO^L, nH)
-            nH_in(ixO^S) = dlog10(nH(ixO^S))
-            if (eos%p2eint_method /= 'bisect') then
-                p_in(ixO^S) = dlog10(w(ixO^S,p_)) - nH_in(ixO^S)
-            end if
-        endif
-
-        p_to_eint = eos%inv_gamma_minus_1
+            log_nH(ixO^S) = dlog10(nH(ixO^S))
+        end if
         {do ix^DB=ixOmin^DB,ixOmax^DB\}
-            if (hd_energy) then
-                if (eos%ionE) then
-                    p_over_rho = w(ix^D,p_) / w(ix^D,rho_)
-                    if (p_over_rho > eos%p_rho_FI_threshold) then
-                        !> FI bypass: exact inverse of to_primitive
-                        p_to_eint = eos%inv_gamma_minus_1 &
-                            + eos%eion_per_nH * nH(ix^D) / w(ix^D,p_)
-                        w(ix^D,e_) = w(ix^D,p_)*p_to_eint + &
-                            half*(^C&w(ix^D,m^C_)**2+)*w(ix^D,rho_)
-                    else if (eos%method == 'analytic') then
-                        !> Analytical Saha: bisect for T from p, return eint directly
-                        call saha_state_from_nH_p(nH(ix^D), w(ix^D,p_), &
-                            T_solve, y_solve, eint_nH_solve)
-                        w(ix^D,e_) = eint_nH_solve * nH(ix^D) + &
-                            half*(^C&w(ix^D,m^C_)**2+)*w(ix^D,rho_)
-                    else if (eos%p2eint_method == 'bisect') then
-                        !> Bisection on forward p table: finds eint such that
-                        !> p(nH, eint) = p_target exactly. More accurate than
-                        !> the p2eint table in the ionisation zone.
-                        !> Entropy mode uses the pfwd/eintP pair: eos%log_p (used by
-                        !> eint_from_p_bisect) is not loaded there.
-                        if (eos%method == 'entropy') then
-                            call entropy_eint_from_p_bisect( &
-                                eos%pfwd, eos%pfwd_x, eos%pfwd_y, eos%pfwd_xy, &
-                                eos%eintP, eos%eintP_x, eos%eintP_y, eos%eintP_xy, &
-                                nH_in(ix^D), dlog10(w(ix^D,p_)) - nH_in(ix^D), &
-                                log_eint_mid)
-                            eint_total = nH(ix^D) * 10.0d0**log_eint_mid
-                        else
-                            call eint_from_p_bisect(nH_in(ix^D), &
-                                dlog10(w(ix^D,p_)), log_eint_mid)
-                            eint_total = nH(ix^D) * 10.0d0**log_eint_mid
-                            eint_total = max(eint_total, &
-                                nH(ix^D) * 10.0d0**eos%T%var2_min)
-                        end if
-                        w(ix^D,e_) = eint_total + &
-                            half*(^C&w(ix^D,m^C_)**2+)*w(ix^D,rho_)
-                    else
-                        !> Standard table lookup (fast, default)
-                        p_to_eint = p2eint_from_nH_p(nH_in(ix^D), p_in(ix^D))
-                        w(ix^D,e_) = w(ix^D,p_)*p_to_eint + &
-                            half*(^C&w(ix^D,m^C_)**2+)*w(ix^D,rho_)
-                    end if
-                else
-                    w(ix^D,e_) = w(ix^D,p_)*p_to_eint + &
-                        half*(^C&w(ix^D,m^C_)**2+)*w(ix^D,rho_)
-                end if
+            if (eos%ionE) then
+                w(ix^D,e_) = lte_eint_from_p(w(ix^D,p_), nH(ix^D), log_nH(ix^D), w(ix^D,rho_)) + &
+                    half*(^C&w(ix^D,m^C_)**2+)*w(ix^D,rho_)
+            else
+                w(ix^D,e_) = w(ix^D,p_)*eos%inv_gamma_minus_1 + &
+                    half*(^C&w(ix^D,m^C_)**2+)*w(ix^D,rho_)
             end if
         {end do\}
 
@@ -377,10 +301,8 @@ contains
         double precision                :: inv_rho
         double precision                :: nH(ixI^S)
         double precision                :: log_nH(ixI^S)
-        double precision                :: eint_val, eint_in, T_loc, y_loc
+        double precision                :: eint_val
         integer :: ix^D
-
-        timeeos0 = MPI_WTIME()
 
         if (fix_small_values) then
             call hd_handle_small_values(.false., w, x, ixI^L, ixO^L, 'hd_to_primitive_LTE')
@@ -399,30 +321,10 @@ contains
             ^C&w(ix^D,m^C_)=w(ix^D,m^C_)*inv_rho\
             ! Calculate pressure
             if(hd_energy) then
-                if (eos%ionE) then
-                    ! Energy-consistent pressure from actual eint via EoS tables.
-                    ! Cannot use stored Ne_/Te_ because they may be stale after
-                    ! AMR prolongation/coarsening (nonlinear EoS breaks averaging).
-                    eint_val = w(ix^D,e_) - half*w(ix^D,rho_)*(^C&w(ix^D,m^C_)**2+)
-                    ! Floor eint to prevent unphysical values
-                    if (eos%method /= 'analytic') then
-                        eint_val = max(eint_val, nH(ix^D) * 10.0d0**eos%T%var2_min)
-                    end if
-                    eint_val = max(eint_val, smalldouble)
-                    if (eint_val * inv_rho > eos%eint_rho_FI_threshold) then
-                        ! FI bypass: p = (gamma-1)*(eint - eion*nH)
-                        w(ix^D,p_) = eos%gamma_minus_1 &
-                            * (eint_val - eos%eion_per_nH * nH(ix^D))
-                    else
-                        ! Ionisation zone: single p/nH lookup
-                        eint_in = dlog10(eint_val) - log_nH(ix^D)
-                        w(ix^D,p_) = nH(ix^D) &
-                            * p_nH_from_eint(log_nH(ix^D), eint_in)
-                    end if
-                else
-                    w(ix^D,p_)=(eos%gamma_minus_1)*(w(ix^D,e_)&
-                        -half*w(ix^D,rho_)*(^C&w(ix^D,m^C_)**2+))
-                end if
+                ! Energy-consistent pressure from the actual eint (not the cached Ne_/Te_,
+                ! which can be stale after prolongation)
+                eint_val = w(ix^D,e_) - half*w(ix^D,rho_)*(^C&w(ix^D,m^C_)**2+)
+                w(ix^D,p_) = lte_p_from_eint(eint_val, nH(ix^D), log_nH(ix^D), inv_rho)
             end if
         {end do\}
 
@@ -430,8 +332,6 @@ contains
         if (hd_dust) then
             call dust_to_primitive(ixI^L, ixO^L, w, x)
         end if
-
-        timeeos_conv=timeeos_conv+(MPI_WTIME()-timeeos0)
 
     end subroutine hd_to_primitive_LTE
 
@@ -512,11 +412,7 @@ contains
         double precision, intent(in)    :: x(ixI^S, 1:ndim)
         double precision, intent(out)   :: cs2(ixI^S)
 
-        timeeos0 = MPI_WTIME()
-
         cs2(ixO^S) = eos%gamma * w(ixO^S, p_) / w(ixO^S, rho_)
-
-        timeeos_csound = timeeos_csound + (MPI_WTIME()-timeeos0)
 
     end subroutine hd_get_csound2_FI
 
@@ -530,14 +426,10 @@ contains
         double precision, intent(out)   :: cs2(ixI^S)
         integer :: ix^D
 
-        timeeos0 = MPI_WTIME()
-
         call hd_get_gamma1_LTE(w, x, ixI^L, ixO^L, cs2)
         {do ix^DB=ixOmin^DB,ixOmax^DB\}
             cs2(ix^D) = cs2(ix^D) * w(ix^D, p_) / w(ix^D, rho_)
         {end do\}
-
-        timeeos_csound = timeeos_csound + (MPI_WTIME()-timeeos0)
 
     end subroutine hd_get_csound2_LTE
 
@@ -572,12 +464,10 @@ contains
         double precision, intent(inout) :: w(ixI^S, nw)
         double precision, intent(in)    :: x(ixI^S, 1:ndim)
 
-        timeeos0 = MPI_WTIME()
         call p_to_e_PI(ixI^L, ixO^L, w, x)
         ! Convert velocity to momentum
         ^C&w(ixO^S,m^C_)=w(ixO^S,rho_)*w(ixO^S,m^C_)\
         if (hd_dust) call dust_to_conserved(ixI^L, ixO^L, w, x)
-        timeeos_conv=timeeos_conv+(MPI_WTIME()-timeeos0)
     end subroutine hd_to_conserved_PI
 
     !> Conserved -> primitive (PI energy): KE removed -> eint, backend -> p.
@@ -589,8 +479,6 @@ contains
         double precision, intent(in)    :: x(ixI^S, 1:ndim)
         double precision :: inv_rho, eint_val, T, Rfac
         integer :: ix^D
-
-        timeeos0 = MPI_WTIME()
 
         if (fix_small_values) then
             call hd_handle_small_values(.false., w, x, ixI^L, ixO^L, &
@@ -611,7 +499,6 @@ contains
         {end do\}
 
         if (hd_dust) call dust_to_primitive(ixI^L, ixO^L, w, x)
-        timeeos_conv=timeeos_conv+(MPI_WTIME()-timeeos0)
     end subroutine hd_to_primitive_PI
 
     !> Adiabatic sound speed squared from primitive (rho, p).
@@ -645,7 +532,6 @@ contains
         double precision, intent(in)    :: x(ixI^S, 1:ndim)
         double precision, intent(out)   :: gamma1(ixI^S)
 
-        double precision :: nH_val, p_over_rho
         integer :: ix^D
 
         if (eos%gamma1_method == 'constant') then
@@ -654,22 +540,7 @@ contains
         end if
 
         {do ix^DB=ixOmin^DB,ixOmax^DB\}
-            p_over_rho = w(ix^D, p_) / w(ix^D, rho_)
-            if (p_over_rho > eos%p_rho_FI_threshold) then
-                gamma1(ix^D) = eos%gamma
-            else
-                nH_val = w(ix^D, rho_) / eos%nH2rhoFactor
-                if (eos%method == 'analytic') then
-                    if (iw_te > 0 .and. w(ix^D,iw_te) > 0.0d0) then
-                        gamma1(ix^D) = saha_gamma1_from_nH_T(nH_val, w(ix^D,iw_te))
-                    else
-                        gamma1(ix^D) = eos%gamma
-                    end if
-                else
-                    gamma1(ix^D) = gamma1_from_nH_p(dlog10(nH_val), &
-                        dlog10(w(ix^D, p_) / nH_val))
-                end if
-            end if
+            gamma1(ix^D) = lte_gamma1_from_p(w(ix^D,p_), w(ix^D,rho_))
         {end do\}
 
     end subroutine hd_get_gamma1_LTE
@@ -710,11 +581,7 @@ contains
             ! Compute eint = E - 0.5*rho*v^2
             eint_val = w(ix^D, e_) &
                 - half * w(ix^D, rho_) * (^C&w(ix^D,m^C_)**2+)
-            ! Floor eint to prevent unphysical values
-            if (eos%method /= 'analytic') then
-                eint_val = max(eint_val, nH_val * 10.0d0**eos%T%var2_min)
-            end if
-            eint_val = max(eint_val, smalldouble)
+            eint_val = max(eint_val, nH_val*eos%eint_nH_min, smalldouble)
 
             ! Convert eint to T via EoS
             if (eint_val * inv_rho > eos%eint_rho_FI_threshold) then
@@ -722,7 +589,7 @@ contains
                 w(ix^D, e_) = eos%gamma_minus_1 &
                     * (eint_val - eos%eion_per_nH * nH_val) &
                     / (nH_val * eos%n_per_nH_FI)
-            else if (eos%method == 'analytic') then
+            else if (eos%method_id == EOS_ANALYTIC) then
                 ! Analytical Saha: solve for T from eint
                 call saha_T_from_nH_eint(nH_val, &
                     eint_val / nH_val, T_loc, y_loc)
@@ -743,23 +610,14 @@ contains
         double precision, intent(inout) :: w(ixI^S, nw)
         double precision, intent(in)    :: x(ixI^S, 1:ndim)
 
-        double precision :: T_val, eint_val, T_FI, nH_val, log_nH, log_T_min
+        double precision :: T_val, eint_val, T_FI, nH_val, log_nH, T_min
         integer :: ix^D
 
         T_FI = (eos%eint_rho_FI_threshold &
             * eos%nH2rhoFactor - eos%eion_per_nH) &
             * eos%gamma_minus_1 / eos%n_per_nH_FI
-
-        ! Floor for log_T when calling the (rho, T) inverse table.
-        ! Legacy 'tables' method populates eos%eint_from_T; entropy method
-        ! populates eos%eintT. Picking the wrong container leaves var2_min = 0
-        ! (uninitialised), which floors T at 10^0 = 1 code unit (= 10^6 K) —
-        ! that clobbers any cold cell going through AMR prolongation.
-        if (eos%method == 'entropy') then
-            log_T_min = eos%eintT%var2_min
-        else
-            log_T_min = eos%eint_from_T%var2_min
-        end if
+        ! Lower T bound of the (rho, T) inverse table
+        T_min = 10.0d0**eos_get_log_T_floor()
 
         {do ix^DB=ixOmin^DB,ixOmax^DB\}
             T_val = w(ix^D, e_)  ! T stored in e_ slot
@@ -771,13 +629,13 @@ contains
                 eint_val = nH_val &
                     * (eos%n_per_nH_FI * T_val * eos%inv_gamma_minus_1 &
                     + eos%eion_per_nH)
-            else if (eos%method == 'analytic') then
+            else if (eos%method_id == EOS_ANALYTIC) then
                 ! Analytical Saha: eint from T directly
                 eint_val = saha_eint_from_nH_T(nH_val, T_val) * nH_val
             else
                 ! Ionisation zone: eint/nH from T table
                 eint_val = eint_nH_from_T(log_nH, &
-                    dlog10(max(T_val, 10.0d0**log_T_min))) &
+                    dlog10(max(T_val, T_min))) &
                     * nH_val
             end if
 

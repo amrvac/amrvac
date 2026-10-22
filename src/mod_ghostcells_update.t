@@ -400,13 +400,14 @@ contains
     use mod_coarsen, only: coarsen_grid
     use mod_boundary_conditions, only: getintbc, bc_phys
     use mod_comm_lib, only: mpistop
+    use mod_timing, only: timer_open, timer_close
 
     double precision, intent(in)      :: time, qdt
     type(state), target               :: psb(max_blocks)
     integer, intent(in)               :: nwstart ! Fill from nwstart
     integer, intent(in)               :: nwbc    ! Number of variables to fill
 
-    double precision :: time_bcin
+    double precision :: tbc(3)
     integer :: nwhead, nwtail
     integer :: iigrid, igrid, isizes, i^D
     integer :: isend_buf(npwbuf), ipwbuf, nghostcellsco
@@ -417,7 +418,7 @@ contains
     integer, dimension(1) :: shapes
     type(wbuffer) :: pwbuf(npwbuf)
 
-    time_bcin=MPI_WTIME()
+    call timer_open(tbc)
 
     nwhead=nwstart
     nwtail=nwstart+nwbc-1
@@ -619,7 +620,8 @@ contains
       !$OMP END PARALLEL DO
     end if
 
-    time_bc=time_bc+(MPI_WTIME()-time_bcin)
+    ! EoS work in the boundary conditions and level-jump conversions is counted under the EoS
+    time_bc=time_bc+timer_close(tbc)
 
     contains
 

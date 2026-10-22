@@ -1,0 +1,13 @@
+ &filelist
+        base_filename = '_slab_pipe'
+ /
+
+ &usr_list
+        rt_case = 'slab'
+ /
+
+ &rt_list
+        rt_sc_distributed = .true.
+        rt_sc_pipeline    = .true.
+        rt_sc_quad        = 'Carlson'
+ /

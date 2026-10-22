@@ -11,7 +11,6 @@ module mod_eos_fi
     use mod_global_parameters
     use mod_eos_container
     use mod_eos_shared_functions, only: get_rho
-    use mod_timing
 
     implicit none
     private
@@ -94,8 +93,6 @@ contains
 
         double precision :: Rfactor(ixI^S), rho(ixI^S), pth(ixI^S)
 
-        timeeos0 = MPI_WTIME()
-
         call eos%get_Rfactor(w,x,ixI^L,ixO^L,Rfactor)
         call get_rho(w,x,ixI^L,ixO^L,rho)
         !> Under equilibrium splitting the e slot holds the perturbation internal
@@ -105,7 +102,6 @@ contains
              + block%equi_vars(ixO^S,iw_equi_p,b0i)
         res(ixO^S) = pth(ixO^S) / (Rfactor(ixO^S) * rho(ixO^S))
 
-        timeeos_Tfromei=timeeos_Tfromei+(MPI_WTIME()-timeeos0)
     end subroutine get_temperature_from_eint_FI
 
     !> FI temperature from primitive pressure: T = p / (R * rho).

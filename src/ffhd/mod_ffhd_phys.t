@@ -485,11 +485,11 @@ contains
     type(tc_fluid), intent(inout) :: fl
     integer                      :: n
     ! list parameters
-    logical :: tc_saturate=.false.
+    logical :: tc_saturate=.false., tc_frozen_ion=.true.
     double precision :: tc_k_para=0d0
     character(len=std_len)  :: tc_slope_limiter="MC"
 
-    namelist /tc_list/ tc_saturate, tc_slope_limiter, tc_k_para
+    namelist /tc_list/ tc_saturate, tc_slope_limiter, tc_k_para, tc_frozen_ion
 
     do n = 1, size(par_files)
       open(unitpar, file=trim(par_files(n)), status="old")
@@ -498,6 +498,7 @@ contains
     end do
 
     fl%tc_saturate = tc_saturate
+    fl%frozen_ion = tc_frozen_ion
     fl%tc_k_para = tc_k_para
     select case(tc_slope_limiter)
      case ('no','none')

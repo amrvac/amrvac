@@ -206,7 +206,7 @@ contains
     call getbc(global_time, 0.d0, ps, iwstart, nwgc)
     ! after getbc, eos variables of ghost cells are zero for new blocks
     ! update the additional w state eos variables including ghost cells
-    call prepare_eos_w_fields()
+    call prepare_eos_w_fields(ps)
   end subroutine amr_rebalance
 
   !> For all grids on all processors, do a check on refinement flags. Make

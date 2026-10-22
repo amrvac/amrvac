@@ -30,7 +30,6 @@ module mod_eos_pi
     use mod_eos_fi, only: get_temperature_from_eint_FI, &
          get_temperature_from_pressure_FI
     use mod_eos_pi_tables
-    use mod_timing
     use mod_comm_lib, only: mpistop
     implicit none
     private
@@ -134,11 +133,9 @@ contains
 
         integer :: ix^D
 
-        timeeos0 = MPI_WTIME()
         {do ix^DB=ixOmin^DB,ixOmax^DB\}
             call csound2_prim_PI(w(ix^D,iw_rho), w(ix^D,iw_e), cs2(ix^D))
         {end do\}
-        timeeos_csound = timeeos_csound + (MPI_WTIME()-timeeos0)
     end subroutine get_csound2_PI
 
     !> Effective Gamma1 = cs2 * rho / p for the same primitive state.
@@ -244,12 +241,10 @@ contains
         double precision :: pth, Rfac
         integer :: ix^D
 
-        timeeos0 = MPI_WTIME()
         {do ix^DB=ixOmin^DB,ixOmax^DB\}
             call state_from_eint_PI(w(ix^D,iw_rho), w(ix^D,iw_e), &
                  res(ix^D), pth, Rfac)
         {end do\}
-        timeeos_Tfromei=timeeos_Tfromei+(MPI_WTIME()-timeeos0)
     end subroutine get_temperature_from_eint_PI
 
     !=========================================================================

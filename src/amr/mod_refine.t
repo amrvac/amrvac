@@ -57,6 +57,8 @@ contains
     ! Convert parent to prolongation space:
     !   phys_to_prolong: EoS-aware (rho, v, T) — avoids Jensen's inequality
     !   phys_to_primitive: standard (rho, v, p) — used with prolongprimitive
+    ! the conversions may read block%B0
+    block=>ps(igrid)
     if(associated(phys_to_prolong)) then
       call phys_to_prolong(ixG^LL,ix^L,ps(igrid)%w,ps(igrid)%x)
     else if(prolongprimitive) then
@@ -83,6 +85,7 @@ contains
     {end do\}
   
     ! Convert parent back from prolongation space
+    block=>ps(igrid)
     if(associated(phys_to_prolong)) then
       call phys_from_prolong(ixG^LL,ix^L,ps(igrid)%w,ps(igrid)%x)
     else if (prolongprimitive) then
@@ -177,6 +180,7 @@ contains
     end if
   
     ! Convert child cells from prolongation space to conserved.
+    block=>ps(igridFi)
     if(associated(phys_from_prolong) .and. associated(phys_wb_prolong)) then
       ! EoS-aware interpolation produced (rho, v, T) in the child cells.
       ! WB is also active: re-balance pressure via the HSE recurrence so

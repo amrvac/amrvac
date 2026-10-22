@@ -34,7 +34,9 @@ Further namelist are used to control optional modules. Most of these lists are
 not documented here, but the parameters are described in the corresponding
 modules:
 
+* `eos_list` (equation of state, see [Equation of state](eos.md))
 * `rc_list` (radiative cooling, see `mod_radiative_cooling`)
+* `rt_list` (short-characteristics radiative transfer, see [Radiative transfer](radiative_transfer.md))
 * `tc_list` (thermal conduction, see `mod_thermal_conduction`)
 * `dust_list` (dust, see `mod_dust`)
 * `vc_list` (viscosity, see `mod_viscosity`)
@@ -948,6 +950,7 @@ sharp discontinuities. It is normally inactive with a default value -1.
       hd_hyperbolic_thermal_conduction= F | T (1D only)
       hd_htc_sat= F | T
       hd_radiative_cooling= F | T
+      hd_radiative_transfer= F | T
       hd_gravity= F | T
       hd_viscosity= F | T
       hd_particles= F | T
@@ -990,6 +993,7 @@ sharp discontinuities. It is normally inactive with a default value -1.
      mhd_magnetofriction= F | T
      mhd_thermal_conduction= F | T
      mhd_radiative_cooling= F | T
+     mhd_radiative_transfer= F | T
      mhd_Hall= F | T
      mhd_gravity= F | T
      mhd_viscosity= F | T
@@ -1213,6 +1217,10 @@ is implemented to use HLL or tvdlf scheme, schemes (such as HLLC and HLLD) depen
 are not yet fully compatible with semirelativistic MHD. Note that when using semirelativistic MHD, the 
 definitions of momentum and total energy are different from MHD, so call 'mhd_to_primitive' to get velocity
 and gas pressure from momentum and total energy instead of using the classic relations.
+Semirelativistic MHD can be combined with the PI and LTE equations of state and with B0 splitting, following
+Gombosi et al. 2002 eqs (92)-(97). These combinations, LTE with semirelativistic MHD and B0 splitting in
+particular, have had only limited testing so far, so use them with caution and compare against a classical
+MHD run where possible.
 
 ## Synthetic EUV/SXR/whitelight emission {#par_emissionlist}
 
