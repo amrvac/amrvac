@@ -77,8 +77,7 @@ Setting **typesourcesplit='ssfss'** gives the following evaluation for **w_S =
     w_S = w + dt/2 S(w_1)
 
 both at the beginning and at the end of the time step, otherwise the default
-**w_S = w + dt/2 S(w)** is used. Other choices for **typesourcesplit** are
-**'sf', 'ssf'**.
+**w_S = w + dt/2 S(w)** is used. Other choices for source term splitting are set by selecting **typesourcesplit='sf'/'ssf'**.
 
 # Time Discretization {#disc-time}
 
