@@ -278,11 +278,7 @@ contains
             w(ix^D,mom(1)) = w(ix^D,mom(1))*inv_rho
             if (ffhd_energy) then
                 eint_val = w(ix^D,e_) - half*w(ix^D,rho_)*w(ix^D,mom(1))**2
-                if (eos%ionE) then
-                    w(ix^D,p_) = lte_p_from_eint(eint_val, nH(ix^D), log_nH(ix^D), inv_rho)
-                else
-                    w(ix^D,p_) = eos%gamma_minus_1*eint_val
-                end if
+                w(ix^D,p_) = lte_p_from_eint(eint_val, nH(ix^D), log_nH(ix^D), inv_rho)
             end if
         {end do\}
     end subroutine ffhd_to_primitive_LTE

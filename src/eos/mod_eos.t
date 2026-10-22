@@ -290,8 +290,15 @@ contains
         end select
 
         eos%get_temperature_from_etot => get_temperature_from_etot
-        if (eos%type_id == EOS_TYPE_LTE .and. eos%method_id /= EOS_ANALYTIC) &
-            eos%eint_nH_min = 10.0d0**eos%T%var2_min
+        ! The eint/nH floor of every LTE path: the forward-table edge, or 100 K of neutral gas
+        ! under analytic, which has no tables
+        if (eos%type_id == EOS_TYPE_LTE) then
+            if (eos%method_id == EOS_ANALYTIC) then
+                eos%eint_nH_min = eos%inv_gamma_minus_1 * 100.0d0 / unit_temperature
+            else
+                eos%eint_nH_min = 10.0d0**eos%T%var2_min
+            end if
+        end if
         call eos_time_dispatch()
     end subroutine eos_finalise
 

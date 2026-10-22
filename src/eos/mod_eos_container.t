@@ -135,7 +135,7 @@ module mod_eos_container
         !> Fully-ionised regime bypass constants (precomputed in eos_finalise)
         double precision :: eion_per_nH          !> Total ionisation energy per nH [code units]
         double precision :: eint_rho_FI_threshold !> eint/rho above which gas is fully ionised [code units]
-        double precision :: eint_nH_min = 0.0d0 !> 10**T%var2_min, floor of eint/nH [code units]
+        double precision :: eint_nH_min = 0.0d0 !> floor of eint/nH of the LTE paths [code units]
         double precision :: p_rho_FI_threshold    !> p/rho above which gas is fully ionised [code units]
         double precision :: n_per_nH_FI          !> Total particles per nH when FI = 2 + 3*A_He
         double precision :: neOnH_FI             !> ne/nH when fully ionised = 1 + 2*A_He

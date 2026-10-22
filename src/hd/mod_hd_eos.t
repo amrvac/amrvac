@@ -321,15 +321,10 @@ contains
             ^C&w(ix^D,m^C_)=w(ix^D,m^C_)*inv_rho\
             ! Calculate pressure
             if(hd_energy) then
-                if (eos%ionE) then
-                    ! Energy-consistent pressure from the actual eint (not the
-                    ! cached Ne_/Te_, which can be stale after prolongation)
-                    eint_val = w(ix^D,e_) - half*w(ix^D,rho_)*(^C&w(ix^D,m^C_)**2+)
-                    w(ix^D,p_) = lte_p_from_eint(eint_val, nH(ix^D), log_nH(ix^D), inv_rho)
-                else
-                    w(ix^D,p_)=(eos%gamma_minus_1)*(w(ix^D,e_)&
-                        -half*w(ix^D,rho_)*(^C&w(ix^D,m^C_)**2+))
-                end if
+                ! Energy-consistent pressure from the actual eint (not the cached Ne_/Te_,
+                ! which can be stale after prolongation)
+                eint_val = w(ix^D,e_) - half*w(ix^D,rho_)*(^C&w(ix^D,m^C_)**2+)
+                w(ix^D,p_) = lte_p_from_eint(eint_val, nH(ix^D), log_nH(ix^D), inv_rho)
             end if
         {end do\}
 

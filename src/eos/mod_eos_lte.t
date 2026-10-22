@@ -85,7 +85,7 @@ contains
         double precision :: pth(ixI^S)
         double precision :: nH_in(ixI^S), nH(ixI^S), eint_in(ixI^S)
         double precision :: Rfactor_FI
-        double precision :: yy, eint_nH_floor
+        double precision :: yy
         integer :: ix^D
 
         wlocal(ixI^S,1:nw)=w(ixI^S,1:nw)
@@ -99,22 +99,10 @@ contains
         ! kinetic energy can numerically exceed total energy.
         ! The conserved energy w(iw_e) is NOT modified: the physical fluxes
         ! based on the small positive pressure will naturally restore the cell.
-        if (eos%method_id == EOS_ANALYTIC) then
-            ! Analytic: floor to ~100 K equivalent (no tables loaded)
-            ! In code units: eint/nH = T_code / (gamma-1) for neutral gas
-            {do ix^DB=ixOmin^DB,ixOmax^DB\}
-                eint_nH_floor = nH(ix^D) * eos%inv_gamma_minus_1 * 100.0d0 / unit_temperature
-                wlocal(ix^D,iw_e) = max(wlocal(ix^D,iw_e), eint_nH_floor)
-            {end do\}
-        else
+        ! eint_nH_min is the forward-table edge, or 100 K of neutral gas under analytic
+        wlocal(ixO^S,iw_e) = max(wlocal(ixO^S,iw_e), nH(ixO^S)*eos%eint_nH_min)
+        if (eos%method_id /= EOS_ANALYTIC) then
             nH_in(ixO^S) = dlog10(nH(ixO^S))
-            {do ix^DB=ixOmin^DB,ixOmax^DB\}
-                ! eint_nH_min is the lower eint/nH bound of the forward table
-                eint_nH_floor = nH(ix^D) * eos%eint_nH_min
-                if (wlocal(ix^D,iw_e) < eint_nH_floor) then
-                    wlocal(ix^D,iw_e) = eint_nH_floor
-                end if
-            {end do\}
             eint_in(ixO^S) = dlog10(wlocal(ixO^S,iw_e)) - nH_in(ixO^S)
         end if
 
@@ -823,23 +811,23 @@ contains
         end if
     end subroutine eos_get_eintT_grid
 
-    !> LTE pressure from internal energy in one cell: table floor, FI bypass, else p(nH, eint)
+    !> LTE pressure from internal energy in one cell: ideal without ionE, else the table floor, the
+    !> FI bypass or p(nH, eint). log_nH_val is read only with ionE
     double precision function lte_p_from_eint(eint_val,nH_val,log_nH_val,inv_rho) result(pres)
         double precision, intent(in) :: eint_val, nH_val, log_nH_val, inv_rho
-        double precision :: e_use, eint_in
-        ! eint_nH_min is zero under analytic, so the table floor is inert there
+        double precision :: e_use
+        if (.not. eos%ionE) then
+            pres = eos%gamma_minus_1 * eint_val
+            return
+        end if
+        ! The floor keeps the table logarithms and the Saha solve finite
         e_use = max(eint_val, nH_val*eos%eint_nH_min, smalldouble)
-        if (eos%ionE) then
-            if (e_use*inv_rho > eos%eint_rho_FI_threshold) then
-                pres = eos%gamma_minus_1*(e_use - eos%eion_per_nH*nH_val)
-            else if (eos%method_id == EOS_ENTROPY) then
-                pres = entropy_p_from_eint(log_nH_val, dlog10(e_use) - log_nH_val)
-            else
-                eint_in = dlog10(e_use) - log_nH_val
-                pres = nH_val * p_nH_from_eint(log_nH_val, eint_in)
-            end if
+        if (e_use*inv_rho > eos%eint_rho_FI_threshold) then
+            pres = eos%gamma_minus_1*(e_use - eos%eion_per_nH*nH_val)
+        else if (eos%method_id == EOS_ENTROPY) then
+            pres = entropy_p_from_eint(log_nH_val, dlog10(e_use) - log_nH_val)
         else
-            pres = eos%gamma_minus_1 * e_use
+            pres = nH_val * p_nH_from_eint(log_nH_val, dlog10(e_use) - log_nH_val)
         end if
     end function lte_p_from_eint
 
@@ -852,7 +840,7 @@ contains
             return
         end if
         if (pres/rho_val > eos%p_rho_FI_threshold) then
-            eint = pres*(eos%inv_gamma_minus_1 + eos%eion_per_nH*nH_val/pres)
+            eint = pres*eos%inv_gamma_minus_1 + eos%eion_per_nH*nH_val
         else if (eos%method_id == EOS_ANALYTIC) then
             call saha_state_from_nH_p(nH_val, pres, T_solve, y_solve, eint_nH_solve)
             eint = eint_nH_solve*nH_val
@@ -862,7 +850,7 @@ contains
                 eint = nH_val*10.0d0**log_eint_mid
             else
                 call eint_from_p_bisect(log_nH_val, dlog10(pres), log_eint_mid)
-                eint = max(nH_val*10.0d0**log_eint_mid, nH_val*eos%eint_nH_min)
+                eint = nH_val*max(10.0d0**log_eint_mid, eos%eint_nH_min)
             end if
         else
             eint = pres*p2eint_from_nH_p(log_nH_val, dlog10(pres) - log_nH_val)
