@@ -339,7 +339,9 @@ contains
         end if
     end subroutine eos_time_dispatch
 
+    !> Each wrapper imports nw itself: taken from the host, it makes ifx 2026.2 crash on reading mod_eos.mod
     subroutine timed_to_primitive(ixI^L, ixO^L, w, x)
+        use mod_variables, only: nw
         integer, intent(in)             :: ixI^L, ixO^L
         double precision, intent(inout) :: w(ixI^S, nw)
         double precision, intent(in)    :: x(ixI^S, 1:ndim)
@@ -349,6 +351,7 @@ contains
     end subroutine timed_to_primitive
 
     subroutine timed_to_conserved(ixI^L, ixO^L, w, x)
+        use mod_variables, only: nw
         integer, intent(in)             :: ixI^L, ixO^L
         double precision, intent(inout) :: w(ixI^S, nw)
         double precision, intent(in)    :: x(ixI^S, 1:ndim)
@@ -358,6 +361,7 @@ contains
     end subroutine timed_to_conserved
 
     subroutine timed_update_eos(ixI^L, ixO^L, w, x)
+        use mod_variables, only: nw
         integer, intent(in)             :: ixI^L, ixO^L
         double precision, intent(inout) :: w(ixI^S, nw)
         double precision, intent(in)    :: x(ixI^S, 1:ndim)
@@ -367,6 +371,7 @@ contains
     end subroutine timed_update_eos
 
     subroutine timed_pthermal(w, x, ixI^L, ixO^L, res)
+        use mod_variables, only: nw
         integer, intent(in)           :: ixI^L, ixO^L
         double precision, intent(in)  :: w(ixI^S, nw), x(ixI^S, 1:ndim)
         double precision, intent(out) :: res(ixI^S)
@@ -376,6 +381,7 @@ contains
     end subroutine timed_pthermal
 
     subroutine timed_csound2(w, x, ixI^L, ixO^L, res)
+        use mod_variables, only: nw
         integer, intent(in)           :: ixI^L, ixO^L
         double precision, intent(in)  :: w(ixI^S, nw), x(ixI^S, 1:ndim)
         double precision, intent(out) :: res(ixI^S)
@@ -385,6 +391,7 @@ contains
     end subroutine timed_csound2
 
     subroutine timed_Tfromei(w, x, ixI^L, ixO^L, res)
+        use mod_variables, only: nw
         integer, intent(in)           :: ixI^L, ixO^L
         double precision, intent(in)  :: w(ixI^S, nw), x(ixI^S, 1:ndim)
         double precision, intent(out) :: res(ixI^S)
@@ -394,7 +401,8 @@ contains
     end subroutine timed_Tfromei
 
     subroutine prepare_eos_w_fields(psx)
-        type(state), intent(inout) :: psx(max_blocks)
+        ! The array is assumed shape: the bound max_blocks also crashes ifx 2026.2 on reading mod_eos.mod
+        type(state), intent(inout) :: psx(:)
         integer :: iigrid, igrid
 
         ! fill eos space of all grids, including ghost cells (boundaries)

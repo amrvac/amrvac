@@ -211,6 +211,7 @@ mod_eos.o: mod_global_parameters.mod
 mod_eos.o: mod_physics.mod
 mod_eos.o: mod_thermal_conduction.mod
 mod_eos.o: mod_timing.mod
+mod_eos.o: mod_variables.mod
 mod_eos_container.o: mod_global_parameters.mod
 mod_eos_fi.o: mod_eos_container.mod
 mod_eos_fi.o: mod_eos_shared_functions.mod

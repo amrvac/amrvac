@@ -4,7 +4,11 @@ FFLAGS := -c
 # choice-buffer arguments. Add it only when the active mpif90 wrapper accepts
 # it, since gfortran 9 and non-GNU compilers reject the option.
 FALLOW_ARGUMENT_MISMATCH := $(shell tmp=$$(mktemp /tmp/amrvac_fallow_argument_mismatch.XXXXXX); src=$$tmp.f90; printf 'end\n' > $$src; if $(F90) -fallow-argument-mismatch -c $$src -o $$tmp.o >/dev/null 2>&1; then printf '%s' '-fallow-argument-mismatch'; fi; rm -f $$src $$tmp.o)
-F90FLAGS := -cpp -ffree-form -fimplicit-none -O2 -finit-real=snan -finit-integer=-2147483648	\
+# -ffp-contract=off -fno-tree-vectorize: keep test results independent of the default -march.
+# The amd64v3 gfortran of Ubuntu 26.04 targets x86-64-v3, so a*b+c fuses into an FMA, and
+# gfortran 15 vectorises loops calling exp, log10 or pow into glibc libmvec, which rounds
+# differently from the scalar functions
+F90FLAGS := -cpp -ffree-form -fimplicit-none -O2 -ffp-contract=off -fno-tree-vectorize -finit-real=snan -finit-integer=-2147483648	\
 -g -fbacktrace -fcheck=all -ffpe-trap=invalid,zero \
 -Wall -Wno-unused-dummy-argument -Wno-unused-function -Wno-unused -Wno-zerotrip \
 -Wno-maybe-uninitialized $(FALLOW_ARGUMENT_MISMATCH)
