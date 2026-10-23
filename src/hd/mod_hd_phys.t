@@ -747,7 +747,7 @@ contains
       end do
       fl%tc_saturate = tc_saturate
       fl%tc_patch_eint = tc_patch_eint
-      fl%frozen_ion = tc_frozen_ion .and. .not. tc_patch_eint
+      fl%frozen_ion = tc_frozen_ion
       fl%tc_k_para = tc_k_para
       fl%trac_T_floor = trac_T_floor / unit_temperature
 
