@@ -24,9 +24,10 @@ module mod_eos_lte_saha
     ! Prefactor (2 pi m_e k_B/h^2)^{3/2} in CGS (cm^-3)
     ! SI value is 2.4146830395719654e21 m^-3; divide by 1e6 for CGS
     double precision, parameter :: saha_pf = 2.4146830395719654d15
-    double precision, parameter :: saha_chi_kB = 157763.42386247337d0
     double precision, parameter :: saha_kB_cgs = 1.380649d-16
-    double precision, parameter :: saha_chi_H_cgs = 2.178710282685096d-11
+    ! One ionisation energy for the Saha exponent and the energy stored in ionisation
+    double precision, parameter :: saha_chi_H_cgs = const_chi_H * const_eV
+    double precision, parameter :: saha_chi_kB = saha_chi_H_cgs / saha_kB_cgs
 
     !> One-shot guard: a bisection that exhausts max_iter without meeting the
     !> tolerance warns once (rank 0) rather than silently returning an

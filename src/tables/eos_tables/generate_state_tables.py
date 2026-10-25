@@ -170,9 +170,9 @@ class DampedNewton(_AbstractNewtonChord[Y, Out, Aux]):
         return terminate, result
 
 
-chi_H = (13.595 << u.eV).to("J").value  # H ionization energy
-chi_HeII = (24.48 << u.eV).to("J").value  # He first ionization energy (He0 -> He+)
-chi_HeIII = (54.17 << u.eV).to("J").value  # He second ionization energy (He+ -> He2+)
+chi_H = (13.598434 << u.eV).to("J").value  # H ionization energy (NIST), const_chi_H of mod_constants
+chi_HeII = (24.587389 << u.eV).to("J").value  # He first ionization energy (He0 -> He+), const_chi_HeI
+chi_HeIII = (54.41776 << u.eV).to("J").value  # He second ionization energy (He+ -> He2+), const_chi_HeII
 
 kB = const.k_B.value
 m_e = const.m_e.value

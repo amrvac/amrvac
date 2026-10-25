@@ -17,7 +17,7 @@
 !> helium is a semi-analytic Saha-like fit. The R-factor is
 !>   R = (1 + iz_H + A_He*(1 + iz_He*(1 + iz_He))) / Rfactor_norm,
 !> with Rfactor_norm = 2 + 3*A_He set by the adapter so R -> 1 at full ionisation
-!> under the FI code-unit normalisation. Energy mode folds 13.6 eV per ionised H
+!> under the FI code-unit normalisation. Energy mode folds const_chi_H per ionised H
 !> into eint. The map Y(T) = R(T)*T = p/rho is monotonic, so (rho,p) -> T inverts
 !> by bisection (T-only) or pressure-bisection (prominence); energy mode inverts
 !> eint -> T by Newton.
@@ -210,7 +210,7 @@ module mod_eos_pi_tables
     subroutine ionization_degree_init(He_abundance, Rfactor_norm, table_name, include_energy)
       use mod_global_parameters, only: unit_temperature, unit_numberdensity, &
            unit_pressure, SI_unit
-      use mod_constants, only: const_eV
+      use mod_constants, only: const_eV, const_chi_H, const_chi_HeI, const_chi_HeII
       use mod_comm_lib, only: mpistop
       double precision, intent(in) :: He_abundance, Rfactor_norm
       character(len=*), intent(in), optional :: table_name
@@ -266,9 +266,9 @@ module mod_eos_pi_tables
         else
           energy_unit = const_eV*unit_numberdensity/unit_pressure
         end if
-        ionization_H_energy_unit    = 13.6d0  * energy_unit  ! chi_H
-        ionization_HeI_energy_unit  = 24.59d0 * energy_unit  ! chi_He I
-        ionization_HeII_energy_unit = 54.42d0 * energy_unit  ! chi_He II
+        ionization_H_energy_unit    = const_chi_H * energy_unit
+        ionization_HeI_energy_unit  = const_chi_HeI * energy_unit
+        ionization_HeII_energy_unit = const_chi_HeII * energy_unit
       else
         ionization_H_energy_unit    = 0.d0
         ionization_HeI_energy_unit  = 0.d0
