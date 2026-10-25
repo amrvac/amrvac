@@ -6,20 +6,19 @@
 !>   y(=ne/nH)   = 2X / (X + sqrt(X^2 + 4 nH X))
 !> Public entry points take and return code units; the CGS conversion is internal.
 !> T(nH, eint/nH) is found by bisection and p(nH, T) closes the state.
-!> build_gamma1_analytic_table tabulates Gamma_1(nH, p/nH) once for the 'exact' gamma1 path,
-!> on the axes that gamma1_from_nH_p reads for every method
+!> saha_gamma1_from_nH_p evaluates Gamma_1 in closed form at (nH, p), after a bisection for T, so
+!> that the method uses no table of any kind
 !=============================================================================
 module mod_eos_lte_saha
     use mod_global_parameters
     use mod_eos_container, only: eos, EOS_ANALYTIC
-    use mod_eos_interp,    only: precompute_step_inv
     use mod_comm_lib,      only: mpistop
     use mod_eos_lte_tables, only: precompute_FI_bypass_constants
     implicit none
     private
 
     public :: saha_eint_from_nH_T, saha_state_from_nH_p
-    public :: saha_T_from_nH_eint
+    public :: saha_T_from_nH_eint, saha_gamma1_from_nH_p
     public :: load_analytic_LTE, finalise_analytic_LTE
 
     ! Prefactor (2 pi m_e k_B/h^2)^{3/2} in CGS (cm^-3)
@@ -45,13 +44,8 @@ contains
         end if
     end subroutine load_analytic_LTE
 
-    !> Analytic-method finalise: no table unit conversion needed;
-    !> build the Gamma1 table only for 'exact' mode, then the shared FI-bypass
-    !> constants.
+    !> Analytic-method finalise: there are no tables, only the shared FI-bypass constants
     subroutine finalise_analytic_LTE()
-        if (eos%gamma1_method == 'exact') then
-            call build_gamma1_analytic_table()
-        end if
         call precompute_FI_bypass_constants(saha_chi_H_cgs)
     end subroutine finalise_analytic_LTE
 
@@ -59,14 +53,16 @@ contains
     !> Use this inside bisection loops where nH_cgs is constant.
     double precision function saha_y_cgs(nH_cgs, T_cgs) result(y)
         double precision, intent(in) :: nH_cgs, T_cgs
-        double precision :: X_saha, disc
+        double precision :: sqX
 
-        X_saha = saha_pf * T_cgs * dsqrt(T_cgs) * dexp(-saha_chi_kB / T_cgs)
-        disc = dsqrt(X_saha * X_saha + 4.0d0 * nH_cgs * X_saha)
-        ! Use numerically stable form to avoid catastrophic cancellation:
-        ! When X >> nH (high ionization): standard form loses precision in -X + sqrt(...)
-        ! Stable form: y = 2*X / (X + sqrt(X^2 + 4*nH*X)) -> 1 as X -> inf
-        y = 2.0d0 * X_saha / (X_saha + disc)
+        ! The quadratic root in the form y = 2 sqrt(X)/(sqrt(X) + sqrt(X + 4 nH)), which avoids the
+        ! cancellation of -X + sqrt(X^2 + 4 nH X) as X grows and, unlike 2X/(X + sqrt(X^2 + 4 nH X)),
+        ! does not become 0/0 when X underflows in cold gas. sqrt(X) is evaluated directly, which
+        ! halves the exponent and moves the underflow from about 210 K to about 105 K (about 220 K
+        ! and 110 K where subnormals are flushed to zero), below which y returns 0
+        ! sqrt(X) = sqrt(saha_pf) T**(3/4) exp(-chi_H/(2 kB T))
+        sqX = dsqrt(saha_pf) * T_cgs**0.75d0 * dexp(-0.5d0 * saha_chi_kB / T_cgs)
+        y = 2.0d0 * sqX / (sqX + dsqrt(sqX * sqX + 4.0d0 * nH_cgs))
 
     end function saha_y_cgs
 
@@ -214,65 +210,25 @@ contains
 
     end subroutine saha_T_bisection
 
-    !> Build the analytic Gamma_1 table in eos%gamma1_p on (log10 nH, log10 p/nH), the axes of the
-    !> LTE tables, so that gamma1_from_nH_p serves every method. Each node takes T and y from the
-    !> Saha solve at (nH, p), and Gamma_1 = chi_rho + chi_T^2 (1+He+y)/c_v, with c_v per nH in kB
-    subroutine build_gamma1_analytic_table()
-        integer, parameter :: ng = 256
-        integer :: i, j
-        double precision :: log_nH_min, log_nH_max, log_pn_min, log_pn_max, T_min, T_max
-        double precision :: dx1, dx2, nH_code, p_code, T_code, y, chi, dlny, npart, cv
-        double precision :: chi_T, chi_rho, g1_val, g1_min, g1_max
-
-        ! log10(nH [CGS]) from 5 to 19, and p/nH = (1+He+y) T over T from 10^2.8 K neutral to
-        ! 10^6.3 K ionised, all in code units
-        log_nH_min = 5.0d0  - dlog10(unit_numberdensity)
-        log_nH_max = 19.0d0 - dlog10(unit_numberdensity)
-        T_min = 10.0d0**2.8d0 / unit_temperature
-        T_max = 10.0d0**6.3d0 / unit_temperature
-        log_pn_min = dlog10((1.0d0 + eos%He_abundance) * T_min)
-        log_pn_max = dlog10((2.0d0 + eos%He_abundance) * T_max)
-
-        eos%gamma1_p%dim1 = ng
-        eos%gamma1_p%dim2 = ng
-        eos%gamma1_p%var1_min = log_nH_min
-        eos%gamma1_p%var1_max = log_nH_max
-        eos%gamma1_p%var2_min = log_pn_min
-        eos%gamma1_p%var2_max = log_pn_max
-        eos%gamma1_p%filename = 'computed_gamma1_analytic'
-        allocate(eos%gamma1_p%table(ng, ng))
-
-        dx1 = (log_nH_max - log_nH_min) / dble(ng - 1)
-        dx2 = (log_pn_max - log_pn_min) / dble(ng - 1)
-        g1_min = 1.0d30
-        g1_max = -1.0d30
-        do j = 1, ng
-            do i = 1, ng
-                nH_code = 10.0d0**(log_nH_min + (i - 1) * dx1)
-                p_code  = nH_code * 10.0d0**(log_pn_min + (j - 1) * dx2)
-                call saha_state_from_nH_p(nH_code, p_code, T_code, y)
-                chi = saha_chi_kB / (T_code * unit_temperature)
-                ! dln y/dln T at fixed nH from y^2/(1-y) ~ T^1.5 exp(-chi_H/kT)/nH
-                dlny = (1.0d0 - y) / (2.0d0 - y) * (1.5d0 + chi)
-                npart = 1.0d0 + eos%He_abundance + y
-                cv = 1.5d0 * npart + 1.5d0 * y * dlny
-                if (eos%ionE) cv = cv + y * dlny * chi
-                chi_T = 1.0d0 + y * dlny / npart
-                chi_rho = 1.0d0 - y * (1.0d0 - y) / ((2.0d0 - y) * npart)
-                g1_val = chi_rho + chi_T**2 * npart / cv
-                eos%gamma1_p%table(i, j) = g1_val
-                g1_min = min(g1_min, g1_val)
-                g1_max = max(g1_max, g1_val)
-            end do
-        end do
-        call precompute_step_inv(eos%gamma1_p)
-
-        if (mype == 0) then
-            write(*, '(A,F8.4,A,F8.4)') &
-                ' Gamma1 analytic table built (nH x p/nH): min = ', g1_min, ', max = ', g1_max
-        end if
-
-    end subroutine build_gamma1_analytic_table
+    !> Gamma_1 at (nH, p) in code units, in closed form from the hydrogen Saha balance. T and y come
+    !> from the bisection at that pressure, and with N = 1+He+y and theta = chi_H/kT
+    !>   dln y/dln T = (1-y)/(2-y) (3/2 + theta),  chi_T = 1 + y dln y/dln T / N,
+    !>   chi_rho = 1 - y (1-y)/((2-y) N),  c_v/kB = 3/2 N + (3/2 + theta) y dln y/dln T,
+    !>   Gamma_1 = chi_rho + chi_T**2 N kB/c_v,
+    !> where the theta term of c_v is the heat taken up by ionisation. It is linked only with ionE,
+    !> since without the ionisation energy p = (gamma-1) eint and the sound speed is the ideal one
+    double precision function saha_gamma1_from_nH_p(nH_code, p_code) result(g1)
+        double precision, intent(in) :: nH_code, p_code
+        double precision :: T_code, y, theta, dlny, npart, cv, chi_T, chi_rho
+        call saha_state_from_nH_p(nH_code, p_code, T_code, y)
+        theta = saha_chi_kB / (T_code * unit_temperature)
+        dlny = (1.0d0 - y) / (2.0d0 - y) * (1.5d0 + theta)
+        npart = 1.0d0 + eos%He_abundance + y
+        cv = 1.5d0 * npart + (1.5d0 + theta) * y * dlny
+        chi_T = 1.0d0 + y * dlny / npart
+        chi_rho = 1.0d0 - y * (1.0d0 - y) / ((2.0d0 - y) * npart)
+        g1 = chi_rho + chi_T**2 * npart / cv
+    end function saha_gamma1_from_nH_p
 
 end module mod_eos_lte_saha
 !> Needs a line after to pass the preprocessor

@@ -219,7 +219,7 @@ contains
                 if (mype == 0) write(*,*) &
                     "WARNING: gamma1_method='effective' not applicable with analytic EoS."
                 if (mype == 0) write(*,*) &
-                    "         Falling back to gamma1_method='exact' (analytic 2D table)."
+                    "         Falling back to gamma1_method='exact' (closed form)."
                 eos%gamma1_method = 'exact'
             end if
             if (.not. eos%ionE .and. mype == 0) then

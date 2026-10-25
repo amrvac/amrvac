@@ -458,12 +458,15 @@ contains
         end if
     end function p2eint_from_nH_p
 
-    !> Gamma_1 from (log10 nH, log10 p/nH), one lookup on the pressure-indexed table
+    !> Gamma_1 from (log10 nH, log10 p/nH): one lookup on the pressure-indexed table, or for the
+    !> analytic method the closed form after a Saha solve at that pressure
     double precision function gamma1_from_nH_p(log_nH, log_p_nH) result(g1)
         double precision, intent(in) :: log_nH, log_p_nH
         if (eos%type_id /= EOS_TYPE_LTE) call mpistop("gamma1_from_nH_p called outside its eos_type (LTE)")
         if (eos%method_id == EOS_ENTROPY) then
             g1 = entropy_gamma1_from_nH_p(log_nH, log_p_nH)
+        else if (eos%method_id == EOS_ANALYTIC) then
+            g1 = saha_gamma1_from_nH_p(10.0d0**log_nH, 10.0d0**(log_nH + log_p_nH))
         else
             g1 = bicubic_lookup(log_nH, log_p_nH, eos%gamma1_p)
         end if
