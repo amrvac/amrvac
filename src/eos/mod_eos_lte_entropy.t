@@ -9,7 +9,7 @@
 !> entropy128/generate_entropy_tables.py).
 !>
 !> Forward tables, axes (log10 nH, log10 eint/nH):
-!>     Tfwd -> T    pfwd -> p    neOnH -> ne/nH
+!>     Tfwd -> T    pfwd -> p    neOnH -> ne/nH (interpolated as ln(ne/nH))
 !> Inverse tables:
 !>     eintP (log nH, log p/nH) -> log10(eint/nH)
 !>     eintT (log nH, log T)    -> log10(eint/nH)
@@ -110,7 +110,7 @@ contains
         call precompute_FI_bypass_constants()
         ent_shift_pe = dlog10(unit_pressure / unit_numberdensity)
         ent_inv_up   = 1.0d0 / unit_pressure
-        call interleave(eos%neOnH, eos%neOnH_x, eos%neOnH_y, eos%neOnH_xy, il_neOnH)
+        call interleave_log(eos%neOnH, eos%neOnH_x, eos%neOnH_y, eos%neOnH_xy, il_neOnH)
         call interleave(eos%Tfwd,  eos%Tfwd_x,  eos%Tfwd_y,  eos%Tfwd_xy,  il_Tfwd)
         call interleave(eos%pfwd,  eos%pfwd_x,  eos%pfwd_y,  eos%pfwd_xy,  il_pfwd)
         call interleave(eos%eintP, eos%eintP_x, eos%eintP_y, eos%eintP_xy, il_eintP)
@@ -322,6 +322,21 @@ contains
         c(4,:,:) = fxy_t%table
     end subroutine interleave
 
+    !> Interleave the natural log of a positive quantity, its derivatives transformed at the nodes,
+    !> g_x = f_x/f, g_y = f_y/f, g_xy = f_xy/f - f_x f_y/f^2. ne/nH spans tens of decades across the
+    !> table and rises by two decades within one cell below about 2500 K, where the cubic in f itself
+    !> undershoots below zero; the cubic in ln f is positive by construction once exponentiated
+    subroutine interleave_log(f_t, fx_t, fy_t, fxy_t, c)
+        type(eos_table_container), intent(in) :: f_t, fx_t, fy_t, fxy_t
+        double precision, allocatable, intent(out) :: c(:,:,:)
+        if (any(f_t%table <= 0.0d0)) call mpistop('interleave_log: non-positive node value')
+        allocate(c(4, size(f_t%table,1), size(f_t%table,2)))
+        c(1,:,:) = dlog(f_t%table)
+        c(2,:,:) = fx_t%table/f_t%table
+        c(3,:,:) = fy_t%table/f_t%table
+        c(4,:,:) = fxy_t%table/f_t%table - fx_t%table*fy_t%table/f_t%table**2
+    end subroutine interleave_log
+
     !> Public lookups, code units in and out. Forward tables are on
     !> (log nH, log eint/nH), eintP and g1p on (log nH, log p/nH), eintT on
     !> (log nH, log T)
@@ -344,7 +359,7 @@ contains
 
     double precision function entropy_y_from_nH_eint(log_nH_code, log_e_nh_code) result(y)
         double precision, intent(in) :: log_nH_code, log_e_nh_code
-        y = hermite_eval(eos%neOnH, il_neOnH, log_nH_code, log_e_nh_code)
+        y = dexp(hermite_eval(eos%neOnH, il_neOnH, log_nH_code, log_e_nh_code))
     end function entropy_y_from_nH_eint
 
     !> T and ne/nH at one point: Tfwd and neOnH share the forward grid, so the
@@ -362,7 +377,7 @@ contains
         call cubic_basis(ty, H0y, H1y, H2y, H3y)
         T_code = contract_il(il_Tfwd, ix, iy, dx, dy, H0x, H1x, H2x, H3x, H0y, H1y, H2y, H3y) &
             / unit_temperature
-        y_out  = contract_il(il_neOnH, ix, iy, dx, dy, H0x, H1x, H2x, H3x, H0y, H1y, H2y, H3y)
+        y_out  = dexp(contract_il(il_neOnH, ix, iy, dx, dy, H0x, H1x, H2x, H3x, H0y, H1y, H2y, H3y))
     end subroutine entropy_T_and_y_from_nH_eint
 
     !> eint/p in code units from (log nH, log p/nH). The table holds
