@@ -338,7 +338,7 @@ contains
        cmin(ixO^S,1) = min(cmax(ixO^S,1), zero)
        cmax(ixO^S,1) = max(cmax(ixO^S,1), zero)
     else
-       cmax(ixO^S,1) = maxval(abs(cmax(ixO^S,1)))
+       cmax(ixO^S,1) = abs(cmax(ixO^S,1))
     end if
 
   end subroutine rho_get_cbounds
