@@ -113,7 +113,7 @@ contains
     !> Bind the EoS to the conduction and cooling fluids, called from eos_finalise
     subroutine bind_eos_to_source()
         if (allocated(tc_fl)) then
-            call eos_bind_tc(tc_fl, .not. associated(eos%get_Rfactor, Rfactor_from_constant_ionization))
+            call eos_bind_tc(tc_fl)
         end if
 
         if (allocated(rc_fl)) then

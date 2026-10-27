@@ -162,7 +162,7 @@ contains
         ffhd_get_Rfactor => eos%get_Rfactor
 
         if (allocated(tc_fl)) then
-            call eos_bind_tc(tc_fl, .not. associated(eos%get_Rfactor, Rfactor_from_constant_ionization))
+            call eos_bind_tc(tc_fl)
         end if
 
         if (allocated(rc_fl)) then

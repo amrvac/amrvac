@@ -277,7 +277,7 @@ contains
         end if
 
         if (allocated(tc_fl)) then
-            call eos_bind_tc(tc_fl, .not. associated(eos%get_Rfactor, Rfactor_from_constant_ionization))
+            call eos_bind_tc(tc_fl)
             ! Equilibrium-specific pointers
             if(has_equi_rho_and_p .and. mhd_equi_thermal) then
                 tc_fl%subtract_equi = .true.
