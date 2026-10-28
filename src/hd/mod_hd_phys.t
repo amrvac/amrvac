@@ -387,6 +387,21 @@ contains
       q_=-1
     end if
 
+    ! fip and the tracers are flux variables (index nwflux) and must precede the extra slots Ne/Te
+    ! (index nw): registered after them, the first one shared Ne's index and the EoS overwrote it
+    if (hd_fip) then
+      fip_ = var_set_fluxvar('rho_fip', 'fip', need_bc=.false.)
+    else
+      fip_ = -1
+    end if
+
+    allocate(tracer(hd_n_tracer))
+
+    ! Set starting index of tracers
+    do itr = 1, hd_n_tracer
+       tracer(itr) = var_set_fluxvar("trc", "trp", itr, need_bc=.false.)
+    end do
+
     if (eos%eos_type == 'LTE') then
       Ne_ = var_set_ne()
       Te_ = var_set_te()
@@ -480,18 +495,6 @@ contains
         call dust_init(rho_, mom(:), e_)
     endif
 
-    if (hd_fip) then
-      fip_ = var_set_fluxvar('rho_fip', 'fip', need_bc=.false.)
-    else
-      fip_ = -1
-    end if
-
-    allocate(tracer(hd_n_tracer))
-
-    ! Set starting index of tracers
-    do itr = 1, hd_n_tracer
-       tracer(itr) = var_set_fluxvar("trc", "trp", itr, need_bc=.false.)
-    end do
 
     ! set number of variables which need update ghostcells.
     ! The EoS-derived slots Ne/Te are derived state that must stay consistent with (rho,e)
