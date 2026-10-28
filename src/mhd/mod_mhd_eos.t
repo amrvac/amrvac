@@ -506,17 +506,44 @@ contains
         double precision, intent(inout) :: w(ixI^S, nw)
         double precision, intent(in)    :: x(ixI^S, 1:ndim)
 
-        double precision :: efd(ixO^S,1:ndir), S(ixO^S,1:ndir), eint
+        double precision :: efd(ixO^S,1:ndir), S(ixO^S,1:ndir), eint(ixO^S)
+        double precision :: btot(1:ndir)
         integer :: ix^D
 
-        call semirelati_E_S(w,ixI^L,ixO^L,efd,S)
         {do ix^DB=ixOmin^DB,ixOmax^DB\}
-            eint=mhd_semirelati_eint(w(ix^D,p_),w(ix^D,rho_))
+            ! this loop can not be vectorized
+            eint(ix^D)=mhd_semirelati_eint(w(ix^D,p_),w(ix^D,rho_))
+        {end do\}
+        {do ix^DB=ixOmin^DB,ixOmax^DB\}
+            ! fully vectorized loop, E, S, e_, m^C_ all in one loop for speed
+            ^C&btot(^C)=w(ix^D,b^C_)\
+            if(B0field) then
+                ^C&btot(^C)=btot(^C)+block%B0(ix^D,^C,b0i)\
+            end if
+            {^IFTHREEC
+                efd(ix^D,1)=btot(2)*w(ix^D,m3_)-btot(3)*w(ix^D,m2_)
+                efd(ix^D,2)=btot(3)*w(ix^D,m1_)-btot(1)*w(ix^D,m3_)
+                efd(ix^D,3)=btot(1)*w(ix^D,m2_)-btot(2)*w(ix^D,m1_)
+                S(ix^D,1)=efd(ix^D,2)*btot(3)-efd(ix^D,3)*btot(2)
+                S(ix^D,2)=efd(ix^D,3)*btot(1)-efd(ix^D,1)*btot(3)
+                S(ix^D,3)=efd(ix^D,1)*btot(2)-efd(ix^D,2)*btot(1)
+            }
+            {^IFTWOC
+                efd(ix^D,1)=zero
+                ! switch 3 with 2 to add 3 when ^C from 1 to 2
+                efd(ix^D,2)=btot(1)*w(ix^D,m2_)-btot(2)*w(ix^D,m1_)
+                S(ix^D,1)=-efd(ix^D,2)*btot(2)
+                S(ix^D,2)=efd(ix^D,2)*btot(1)
+            }
+            {^IFONEC
+                efd(ix^D,1)=zero
+                S(ix^D,1)=zero
+            }
             if(mhd_internal_e) then
-                w(ix^D,e_)=eint
+                w(ix^D,e_)=eint(ix^D)
             else
                 ! equation (9), the magnetic energy from the stored slot (eq 92 under splitting)
-                w(ix^D,e_)=eint+half*((^C&w(ix^D,m^C_)**2+)*w(ix^D,rho_)&
+                w(ix^D,e_)=eint(ix^D)+half*((^C&w(ix^D,m^C_)**2+)*w(ix^D,rho_)&
                           +(^C&w(ix^D,b^C_)**2+)&
                           +(^C&efd(ix^D,^C)**2+)*eos%inv_squared_c)
             end if
@@ -533,10 +560,34 @@ contains
         double precision, intent(in)    :: x(ixI^S, 1:ndim)
 
         double precision :: efd(ixO^S,1:ndir), S(ixO^S,1:ndir)
+        double precision :: btot(1:ndir)
         integer :: ix^D
 
-        call semirelati_E_S(w,ixI^L,ixO^L,efd,S)
         {do ix^DB=ixOmin^DB,ixOmax^DB\}
+            ! fully vectorized loop, E, S, e_, m^C_ all in one loop for speed
+            ^C&btot(^C)=w(ix^D,b^C_)\
+            if(B0field) then
+                ^C&btot(^C)=btot(^C)+block%B0(ix^D,^C,b0i)\
+            end if
+            {^IFTHREEC
+                efd(ix^D,1)=btot(2)*w(ix^D,m3_)-btot(3)*w(ix^D,m2_)
+                efd(ix^D,2)=btot(3)*w(ix^D,m1_)-btot(1)*w(ix^D,m3_)
+                efd(ix^D,3)=btot(1)*w(ix^D,m2_)-btot(2)*w(ix^D,m1_)
+                S(ix^D,1)=efd(ix^D,2)*btot(3)-efd(ix^D,3)*btot(2)
+                S(ix^D,2)=efd(ix^D,3)*btot(1)-efd(ix^D,1)*btot(3)
+                S(ix^D,3)=efd(ix^D,1)*btot(2)-efd(ix^D,2)*btot(1)
+            }
+            {^IFTWOC
+                efd(ix^D,1)=zero
+                ! switch 3 with 2 to add 3 when ^C from 1 to 2
+                efd(ix^D,2)=btot(1)*w(ix^D,m2_)-btot(2)*w(ix^D,m1_)
+                S(ix^D,1)=-efd(ix^D,2)*btot(2)
+                S(ix^D,2)=efd(ix^D,2)*btot(1)
+            }
+            {^IFONEC
+                efd(ix^D,1)=zero
+                S(ix^D,1)=zero
+            }
             ! Convert velocity to momentum, equation (9)
             ^C&w(ix^D,m^C_)=w(ix^D,rho_)*w(ix^D,m^C_)+S(ix^D,^C)*eos%inv_squared_c\
         {end do\}
