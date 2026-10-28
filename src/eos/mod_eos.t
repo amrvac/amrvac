@@ -96,15 +96,15 @@ contains
 
         !> defaults
         eos_type          = 'FI'
-        eos_method        = 'state'
+        eos_method        = 'entropy'
         pi_table          = 'chromosphere'
         gamma1_method     = 'exact'
         p2eint_method     = 'table'
         ionE              = .false.
         He_abundance      = 0.1d0
         gamma             = 5.0d0/3.0d0
-        call get_environment_variable("AMRVAC_DIR", AMRVAC_DIR)
-        table_location    = trim(AMRVAC_DIR)//"/src/tables/eos_tables/uniform256/"
+        !> empty until the parfiles are read, and then the shipped tables of the chosen method
+        table_location    = ''
 
         !> read parfile(s): each successive file overrides the previous
         do n = 1, size(files)
@@ -112,6 +112,17 @@ contains
             read(unitpar, eos_list, end=111)
             111     close(unitpar)
         end do
+
+        !> without a table_location the shipped tables of the method are read, the entropy tables
+        !> for 'entropy' and the uniform value tables otherwise
+        if (len_trim(table_location) == 0) then
+            call get_environment_variable("AMRVAC_DIR", AMRVAC_DIR)
+            if (trim(eos_method) == 'entropy') then
+                table_location = trim(AMRVAC_DIR)//"/src/tables/eos_tables/entropy128/"
+            else
+                table_location = trim(AMRVAC_DIR)//"/src/tables/eos_tables/uniform256/"
+            end if
+        end if
 
         !> commit raw inputs to eos% (plain copies, no logic)
         eos%eos_type          = eos_type
