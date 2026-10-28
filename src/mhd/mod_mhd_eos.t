@@ -686,17 +686,54 @@ contains
         double precision, intent(inout) :: w(ixI^S, nw)
         double precision, intent(in)    :: x(ixI^S, 1:ndim)
 
-        double precision :: vel(ixO^S,1:ndir), emech(ixO^S)
+        double precision :: btot(1:ndir), bhat(1:ndir), efd(1:ndir)
+        double precision :: b2, va2c2, tmp, inv_rho, gamma2
         integer :: ix^D
 
         if (fix_small_values) then
             call phys_handle_small_values(.false., w, x, ixI^L, ixO^L, 'mhd_to_primitive_semirelati')
         end if
 
-        call mhd_semirelati_vel_emech(w,ixI^L,ixO^L,vel=vel,emech=emech)
         {do ix^DB=ixOmin^DB,ixOmax^DB\}
-            ^C&w(ix^D,m^C_)=vel(ix^D,^C)\
-            w(ix^D,p_)=mhd_semirelati_p(w(ix^D,e_)-emech(ix^D),w(ix^D,rho_))
+            ^C&btot(^C)=w(ix^D,b^C_)\
+            if(B0field) then
+              ^C&btot(^C)=btot(^C)+block%B0(ix^D,^C,b0i)\
+            end if
+            b2=(^C&btot(^C)**2+)
+            if(b2>smalldouble) then
+              tmp=1.d0/sqrt(b2)
+            else
+              tmp=0.d0
+            end if
+            ^C&bhat(^C)=btot(^C)*tmp\
+            tmp=(^C&bhat(^C)*w(ix^D,m^C_)+)
+            inv_rho=1.d0/w(ix^D,rho_)
+            ! Va^2/c^2; equation (15) scales only the perpendicular momentum
+            va2c2=b2*inv_rho*eos%inv_squared_c
+            gamma2=1.d0/(1.d0+va2c2)
+            ^C&w(ix^D,m^C_)=gamma2*(w(ix^D,m^C_)+va2c2*bhat(^C)*tmp)*inv_rho\
+            if(.not.mhd_internal_e) then
+              ! E=Bxv
+              {^IFTHREEC
+              efd(1)=btot(2)*w(ix^D,m3_)-btot(3)*w(ix^D,m2_)
+              efd(2)=btot(3)*w(ix^D,m1_)-btot(1)*w(ix^D,m3_)
+              efd(3)=btot(1)*w(ix^D,m2_)-btot(2)*w(ix^D,m1_)
+              }
+              {^IFTWOC
+              efd(1)=zero
+              efd(2)=btot(1)*w(ix^D,m2_)-btot(2)*w(ix^D,m1_)
+              }
+              {^IFONEC
+              efd(1)=zero
+              }
+              w(ix^D,e_)=w(ix^D,e_)-half*((^C&w(ix^D,m^C_)**2+)*w(ix^D,rho_)&
+                         +(^C&w(ix^D,b^C_)**2+)&
+                         +(^C&efd(^C)**2+)*eos%inv_squared_c)
+            end if
+        {end do\}
+        {do ix^DB=ixOmin^DB,ixOmax^DB\}
+            ! loop can not be vectorized
+            w(ix^D,p_)=mhd_semirelati_p(w(ix^D,e_),w(ix^D,rho_))
         {end do\}
 
     end subroutine mhd_to_primitive_semirelati
@@ -708,16 +745,32 @@ contains
         double precision, intent(inout) :: w(ixI^S, nw)
         double precision, intent(in)    :: x(ixI^S, 1:ndim)
 
-        double precision :: vel(ixO^S,1:ndir)
+        double precision :: btot(1:ndir), bhat(1:ndir), efd(1:ndir)
+        double precision :: b2, va2c2, tmp, inv_rho, gamma2
         integer :: ix^D
 
         if (fix_small_values) then
-            call phys_handle_small_values(.false., w, x, ixI^L, ixO^L, 'mhd_to_primitive_semirelati_noe')
+            call phys_handle_small_values(.false., w, x, ixI^L, ixO^L, 'mhd_to_primitive_semirelati')
         end if
 
-        call mhd_semirelati_vel_emech(w,ixI^L,ixO^L,vel=vel)
         {do ix^DB=ixOmin^DB,ixOmax^DB\}
-            ^C&w(ix^D,m^C_)=vel(ix^D,^C)\
+            ^C&btot(^C)=w(ix^D,b^C_)\
+            if(B0field) then
+              ^C&btot(^C)=btot(^C)+block%B0(ix^D,^C,b0i)\
+            end if
+            b2=(^C&btot(^C)**2+)
+            if(b2>smalldouble) then
+              tmp=1.d0/sqrt(b2)
+            else
+              tmp=0.d0
+            end if
+            ^C&bhat(^C)=btot(^C)*tmp\
+            tmp=(^C&bhat(^C)*w(ix^D,m^C_)+)
+            inv_rho=1.d0/w(ix^D,rho_)
+            ! Va^2/c^2; equation (15) scales only the perpendicular momentum
+            va2c2=b2*inv_rho*eos%inv_squared_c
+            gamma2=1.d0/(1.d0+va2c2)
+            ^C&w(ix^D,m^C_)=gamma2*(w(ix^D,m^C_)+va2c2*bhat(^C)*tmp)*inv_rho\
         {end do\}
 
     end subroutine mhd_to_primitive_semirelati_noe
@@ -1275,11 +1328,18 @@ contains
         double precision :: emech(ixO^S)
         integer :: iw, ix^D
 
-        call mhd_semirelati_vel_emech(w,ixI^L,ixO^L,emech=emech)
-        {do ix^DB=ixOmin^DB,ixOmax^DB\}
-            pth(ix^D)=mhd_semirelati_p(w(ix^D,e_)-emech(ix^D),w(ix^D,rho_))
-            if(fix_small_values.and.pth(ix^D)<small_pressure) pth(ix^D)=small_pressure
-        {end do\}
+        if(mhd_internal_e) then
+          {do ix^DB=ixOmin^DB,ixOmax^DB\}
+              pth(ix^D)=mhd_semirelati_p(w(ix^D,e_),w(ix^D,rho_))
+              if(fix_small_values.and.pth(ix^D)<small_pressure) pth(ix^D)=small_pressure
+          {end do\}
+        else
+          call mhd_semirelati_vel_emech(w,ixI^L,ixO^L,emech=emech)
+          {do ix^DB=ixOmin^DB,ixOmax^DB\}
+              pth(ix^D)=mhd_semirelati_p(w(ix^D,e_)-emech(ix^D),w(ix^D,rho_))
+              if(fix_small_values.and.pth(ix^D)<small_pressure) pth(ix^D)=small_pressure
+          {end do\}
+        end if
 
         if(check_small_values.and..not.fix_small_values) then
             {do ix^DB=ixOmin^DB,ixOmax^DB\}
