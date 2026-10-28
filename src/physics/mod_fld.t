@@ -112,12 +112,14 @@ module mod_fld
   !> Initialising FLD-module
   !> Read opacities
   !> Initialise Multigrid and adimensionalise kappa
-  subroutine fld_init()
+  subroutine fld_init(gas_eos_type, gas_ion_energy, gas_pi_table)
     use mod_global_parameters
     use mod_variables
     use mod_physics
     use mod_opal_opacity, only: init_opal_table
     use mod_multigrid_coupling
+    character(len=*), intent(in) :: gas_eos_type, gas_pi_table
+    logical, intent(in) :: gas_ion_energy
 
     nth_for_diff_mg=1
     fld_debug=.false.
@@ -125,6 +127,22 @@ module mod_fld
     ! initialize constant opacity with free electron Thomson scattering value
     fld_kappa0=const_kappae
     call fld_params_read(par_files)
+    ! Reject unsupported gas closures before loading opacity tables or using
+    ! EOS callbacks. These are implementation limits, not physical exclusions.
+    if(gas_ion_energy.and.(trim(gas_eos_type)=='PI'.or.trim(gas_eos_type)=='LTE')) then
+      call mpistop('FLD currently does not support PI/LTE with ionE=T: '//&
+           'the radiation exchange solver assumes ideal-gas internal energy')
+    end if
+    if(trim(fld_opacity_law)=='opal') then
+      if(trim(gas_eos_type)=='LTE') then
+        call mpistop('FLD with LTE and OPAL opacity is not implemented: '//&
+             'the temperature-from-pressure callback is unavailable')
+      end if
+      if(trim(gas_eos_type)=='PI'.and.trim(gas_pi_table)=='prominence') then
+        call mpistop('FLD with PI prominence and OPAL opacity is not implemented: '//&
+             'the opacity temperature callback is incompatible with primitive states')
+      end if
+    end if
     ! sanity checks on input
     if(fld_kappa0<smalldouble)then
        if(mype==0) print *,'fld_kappa0=',fld_kappa0

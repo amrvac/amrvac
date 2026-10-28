@@ -68,6 +68,9 @@ contains
 
     follow = .false.
     x      = 0.0d0
+    v      = 0.0d0
+    q      = 0.0d0
+    m      = 1.0d0
 
     if (mype==0) then
       if (.not. associated(usr_create_particles)) then
@@ -87,6 +90,10 @@ contains
 
     call MPI_BCAST(x,3*num_particles,MPI_DOUBLE_PRECISION,0,icomm,ierrmpi)
     call MPI_BCAST(follow,num_particles,MPI_LOGICAL,0,icomm,ierrmpi)
+    ! User callbacks on every owner rank need defined seed metadata.
+    call MPI_BCAST(v,3*num_particles,MPI_DOUBLE_PRECISION,0,icomm,ierrmpi)
+    call MPI_BCAST(q,num_particles,MPI_DOUBLE_PRECISION,0,icomm,ierrmpi)
+    call MPI_BCAST(m,num_particles,MPI_DOUBLE_PRECISION,0,icomm,ierrmpi)
 
     nparticles_local = 0
 
@@ -111,6 +118,8 @@ contains
         allocate(particle(n)%self)
         particle(n)%self%follow = follow(n)
         particle(n)%self%index  = n
+        particle(n)%self%q      = q(n)
+        particle(n)%self%m      = m(n)
         particle(n)%self%time   = global_time
         particle(n)%self%dt     = 0.0d0
         particle(n)%self%x      = 0.d0

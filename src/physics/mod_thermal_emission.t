@@ -3422,6 +3422,8 @@ module mod_thermal_emission
     end subroutine ray_box_intersection_cart
 
     subroutine build_cart_dda_faces(ixI^L,ixO^L,x,dx,xface1,xface2,xface3)
+      ! Slice state%dx to ixI at call sites: CT/odd ghost cells extend its
+      ! allocation beyond state%x; the explicit-shape dummy uses ixI strides.
       integer, intent(in) :: ixI^L, ixO^L
       double precision, intent(in) :: x(ixI^S,1:ndim),dx(ixI^S,1:ndim)
       double precision, allocatable, intent(out) :: xface1(:),xface2(:),xface3(:)
@@ -3839,7 +3841,8 @@ module mod_thermal_emission
         box_max(1)=rnode(rpxmax1_,igrid)
         box_max(2)=rnode(rpxmax2_,igrid)
         box_max(3)=rnode(rpxmax3_,igrid)
-        call build_cart_dda_faces(ixI^L,ixO^L,ps(igrid)%x,ps(igrid)%dx,xface1,xface2,xface3)
+        call build_cart_dda_faces(ixI^L,ixO^L,ps(igrid)%x,ps(igrid)%dx(ixI^S,1:ndim),&
+                                  xface1,xface2,xface3)
         call cart_dda_block_pixel_range(box_min,box_max,nXIF1,nXIF2,xIF1,xIF2,&
                                         ixPmin1,ixPmax1,ixPmin2,ixPmax2,has_pixels)
         if (.not. has_pixels) then
@@ -3985,7 +3988,7 @@ module mod_thermal_emission
         cache(iigrid)%box_max(1)=rnode(rpxmax1_,igrid)
         cache(iigrid)%box_max(2)=rnode(rpxmax2_,igrid)
         cache(iigrid)%box_max(3)=rnode(rpxmax3_,igrid)
-        call build_cart_dda_faces(ixI^L,ixO^L,ps(igrid)%x,ps(igrid)%dx,&
+        call build_cart_dda_faces(ixI^L,ixO^L,ps(igrid)%x,ps(igrid)%dx(ixI^S,1:ndim),&
                                   cache(iigrid)%xface1,cache(iigrid)%xface2,&
                                   cache(iigrid)%xface3)
         call cart_dda_block_pixel_range(cache(iigrid)%box_min,cache(iigrid)%box_max,&
@@ -4430,6 +4433,8 @@ module mod_thermal_emission
   {^IFTHREED
 
     subroutine build_sph_intersection_faces(ixI^L,ixO^L,x,dx,rface,thetaface,phiface)
+      ! Slice state%dx to ixI at call sites: CT/odd ghost cells extend its
+      ! allocation beyond state%x; the explicit-shape dummy uses ixI strides.
       integer, intent(in) :: ixI^L, ixO^L
       double precision, intent(in) :: x(ixI^S,1:ndim),dx(ixI^S,1:ndim)
       double precision, allocatable, intent(out) :: rface(:),thetaface(:),phiface(:)
@@ -5229,7 +5234,8 @@ module mod_thermal_emission
         allocate(source(ixI^S))
         call get_EUV(wavelength,ixI^L,ixO^L,ps(igrid)%w,ps(igrid)%x,fl,source)
         source(ixO^S)=source(ixO^S)/instrument_resolution_factor**2
-        call build_sph_intersection_faces(ixI^L,ixO^L,ps(igrid)%x,ps(igrid)%dx,rface,thetaface,phiface)
+        call build_sph_intersection_faces(ixI^L,ixO^L,ps(igrid)%x,ps(igrid)%dx(ixI^S,1:ndim),&
+                                          rface,thetaface,phiface)
         if (sph_use_dda) then
           allocate(rface2(ixOmin1:ixOmax1+1),theta_cos(ixOmin2:ixOmax2+1),&
                    phi_sin(ixOmin3:ixOmax3+1),phi_cos(ixOmin3:ixOmax3+1))
@@ -5346,7 +5352,7 @@ module mod_thermal_emission
         call get_EUV_HHe_opacity(wavelength,ixI^L,ixO^L,ps(igrid)%w,ps(igrid)%x,fl,cache(iigrid)%opacity)
         phys_max_local(1)=max(phys_max_local(1),maxval(cache(iigrid)%source(ixO^S)))
         phys_max_local(2)=max(phys_max_local(2),maxval(cache(iigrid)%opacity(ixO^S)))
-        call build_sph_intersection_faces(ixI^L,ixO^L,ps(igrid)%x,ps(igrid)%dx,&
+        call build_sph_intersection_faces(ixI^L,ixO^L,ps(igrid)%x,ps(igrid)%dx(ixI^S,1:ndim),&
                                           cache(iigrid)%rface,cache(iigrid)%thetaface,&
                                           cache(iigrid)%phiface)
         allocate(cache(iigrid)%rface2(ixOmin1:ixOmax1+1),&
@@ -5641,7 +5647,7 @@ module mod_thermal_emission
         ^D&ixImin^D=ixglo^D\
         ^D&ixImax^D=ixghi^D\
 
-        call build_sph_intersection_faces(ixI^L,ixO^L,ps(igrid)%x,ps(igrid)%dx,&
+        call build_sph_intersection_faces(ixI^L,ixO^L,ps(igrid)%x,ps(igrid)%dx(ixI^S,1:ndim),&
                                           rface,thetaface,phiface)
         do ir=0,nsample-1
           wr=dble(ir)/dble(nsample-1)

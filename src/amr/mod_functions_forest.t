@@ -72,6 +72,7 @@ contains
     logical, intent(in) :: active
     integer :: ic^D
   
+    particle_mesh_epoch=particle_mesh_epoch+1_8
     allocate(tree%node)
   
     tree%node%ig^D=ig^D;
@@ -108,6 +109,7 @@ contains
     integer :: level, ic^D, child_level, iside, iotherside, vote
     type(tree_node_ptr) :: tree, child, child_neighbor
   
+    particle_mesh_epoch=particle_mesh_epoch+1_8
     tree%node => igrid_to_node(child_igrid(1^D&),child_ipe(1^D&))%node%parent%node
     level=tree%node%level
   
@@ -178,6 +180,7 @@ contains
     logical, dimension(ndim) :: pole
     type(tree_node_ptr) :: tree, child, my_neighbor
   
+    particle_mesh_epoch=particle_mesh_epoch+1_8
     tree%node => igrid_to_node(igrid,ipe)%node
     ig^D=tree%node%ig^D;
     level=tree%node%level
@@ -240,6 +243,7 @@ contains
   
     type(tree_node_ptr) :: tree
   
+    particle_mesh_epoch=particle_mesh_epoch+1_8
     tree%node => igrid_to_node(send_igrid,send_ipe)%node
   
     tree%node%igrid=recv_igrid
@@ -346,6 +350,7 @@ contains
     !integer :: ig^D, level, size_logical, Morton_no, igrid, ipe
     integer :: ig^D, level, Morton_no, igrid, ipe, isfc
   
+    particle_mesh_epoch=particle_mesh_epoch+1_8
     Morton_no=0
     ipe=0
     level=1

@@ -8,10 +8,23 @@ The particle module can work in four different modes, depending on the user's ch
 * **Charged particles: Guiding centre approximation** (compatible with MHD): In this case, the dynamics of charged particles is treated according to the guiding centre approximation (GCA) formalism. The user can again switch between the Newtonian and the relativistic equations of motion.
 * **Sampling** (compatible with HD/MHD): Particles represent fixed points in space where the fluid quantities are interpolated. The location and output cadence at these points can be different from those chosen for the computational grid points. This mode can be used to monitor fluid quantities at specific locations during a run.
 
+Particle communication is optimized by reusing migration buffers and exchanging
+particle data only with nonempty destinations. Grid topology and ownership
+changes invalidate cached locations and rank neighbors; ordinary particle
+motion continues to be checked after each particle step. Migration beyond the
+neighbor list uses a collective count exchange, and global activity and minimum
+particle time are obtained in one reduction. These changes retain the particle
+integrators and snapshot format.
+
 In the next sections, the details of each mode are illustrated.
 
 
 # Advection (HD/MHD)
+Seed metadata defaults to `v=0`, `q=0`, and `m=1` before the user creation
+callback. The resulting metadata is broadcast to every rank before the owner
+runs its checking callback; charge and mass are stored in the particle object.
+The advected velocity is subsequently obtained from the local fluid field.
+
 This mode is used to track fluid parcels moving through the simulation domain with the fluid speed. At each step, a simple equation of motion is solved for each particle,
 \f[ \frac{d\mathbf{x}}{dt} = \mathbf{v}, \f]
 where \f$\mathbf{v}\f$ is the local fluid velocity, linearly interpolated at the particle position \f$\mathbf{x}\f$. The equation of motion above is solved by means of a fourth-order Runge-Kutta integrator with adaptive time-stepping.

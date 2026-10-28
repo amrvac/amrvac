@@ -150,7 +150,7 @@ All parameters belong to `&mhd_list`.
 | `mhd_hyperbolic_tc_sat` | `.false.` | Enable heat-flux saturation. |
 | `mhd_hyperbolic_tc_kappa` | `0` | Zero: Spitzer conductivity. Positive: constant conductivity in code units. |
 | `mhd_hyperbolic_tc_use_perp` | `.false.` | Enable the perpendicular channel in 2D/3D. |
-| `mhd_hyperbolic_tc_perp_mode` | `'off'` | Select one of the three closures above when enabling the perpendicular channel. |
+| `mhd_hyperbolic_tc_perp_mode` | `'fixed_reference'` | Select the closure; the mode alone does not enable the perpendicular channel. |
 | `mhd_hyperbolic_tc_kappa_perp_factor` | `0` | Fixed-reference ratio; zero selects an automatic normalization-based value. |
 | `mhd_hyperbolic_tc_Bmin` | `0` | Weak-field transition scale; positive values are in code magnetic-field units. Zero selects `0.1/unit_magneticfield`. |
 | `mhd_hyperbolic_tc_coulomb_log` | `20` | Positive Coulomb logarithm for `electron_magnetization`. |
@@ -163,8 +163,9 @@ particular physical scale is intended; the default expression above applies
 literally in either unit system.
 
 To turn off perpendicular conduction, set `mhd_hyperbolic_tc_use_perp=.false.`.
-A zero reference factor selects the automatic value, while enabling the channel
-with mode `'off'` is rejected.
+Enabling the channel without specifying a mode selects `fixed_reference`.
+A zero reference factor selects the automatic value. Legacy mode `'off'` is
+accepted while the channel is disabled, but rejected when it is enabled.
 
 ## Other physics modules {#tc-module-support}
 

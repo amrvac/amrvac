@@ -1,6 +1,9 @@
 !> Module with basic grid data structures
 module mod_forest
    implicit none
+   !> Replicated forest generation: topology or ownership changes invalidate
+   !> cached particle locations and the rank-neighbor list.
+   integer(kind=8) :: particle_mesh_epoch=0_8
 
    !> Pointer to a tree_node
    type tree_node_ptr

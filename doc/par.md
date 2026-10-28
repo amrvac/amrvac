@@ -1011,7 +1011,7 @@ sharp discontinuities. It is normally inactive with a default value -1.
      mhd_hyperbolic_tc_sat= F | T
      mhd_hyperbolic_tc_kappa= DOUBLE (default 0: Spitzer; positive: constant in code units)
      mhd_hyperbolic_tc_use_perp= F | T (2D/3D only)
-     mhd_hyperbolic_tc_perp_mode= 'off' | 'fixed_reference' | 'weak_field_isotropization' | 'electron_magnetization'
+     mhd_hyperbolic_tc_perp_mode= 'fixed_reference' | 'weak_field_isotropization' | 'electron_magnetization'
      mhd_hyperbolic_tc_kappa_perp_factor= DOUBLE (default 0: automatic reference ratio)
      mhd_hyperbolic_tc_Bmin= DOUBLE (default 0: automatic; positive: code units)
      mhd_hyperbolic_tc_coulomb_log= DOUBLE (default 20)
@@ -1194,8 +1194,9 @@ The default coefficient selects Spitzer conduction; a positive
 Use `mhd_hyperbolic_tc_sat=T` for saturation.
 
 For perpendicular conduction in 2D/3D, also set
-`mhd_hyperbolic_tc_use_perp=T`, choose `mhd_hyperbolic_tc_perp_mode`, and
-initialize `qperp_`. See [Thermal conduction](thermal_conduction.md) for
+`mhd_hyperbolic_tc_use_perp=T` and initialize `qperp_`. The default
+`mhd_hyperbolic_tc_perp_mode` is `fixed_reference`; select another mode explicitly
+when needed. See [Thermal conduction](thermal_conduction.md) for
 configuration examples, equations, and the [parameter table](@ref tc-mhd-parameters).
 
 FFHD and HD have different switches and dimensional support; see the

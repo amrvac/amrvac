@@ -137,6 +137,23 @@ This equation module can be combined with physical sources for
 (local) optically thin [radiative losses](radiative_cooling.md) by set **mhd_radiative_cooling=.true.**. 
 It can also be combined with the external gravity modules by set **mhd_gravity=.true.**.
 
+### FLD and gas-EOS compatibility
+
+The current HD/MHD FLD implementation stops during initialization for these
+unsupported combinations:
+
+- PI or LTE with `ionE=T`: the radiation exchange solver assumes the ideal-gas
+  relation between internal energy and temperature and does not include
+  ionization energy in that relation.
+- LTE with `fld_opacity_law='opal'`: the required temperature-from-pressure
+  callback is not implemented.
+- PI with `pi_table='prominence'` and `fld_opacity_law='opal'`: the current
+  temperature callback is incompatible with the primitive opacity input.
+
+These restrictions do not prohibit FI, or PI/LTE with `ionE=F` and constant
+opacity. Other configuration checks still apply. Allowing a configuration
+through these checks is not a validation of the frozen-R approximation.
+
 ### UAWSoM wave-energy extension
 
 Setting **mhd_uawsom=.true.** adds four conserved wave-energy densities,
@@ -147,9 +164,21 @@ magnetic field and the `minus` variables propagate along it.  Their pressures
 are
 
     p_A = (wAplus + wAminus)/2
-    p_k = (zeta + 1) (wkplus + wkminus)/4,
+    p_k = (zeta + 1) (wkplus + wkminus)/4.
 
-and the total energy includes the sum of all four wave energies.  Their fluxes
+The CFL and HLL signal estimates include the compressive wave-pressure
+response. With `q = (p_A+p_k)/rho`, let `C` be the MHD fast speed evaluated
+with thermal sound speed squared increased by `q/2`, and let `a` bound the
+absolute Alfvén and kink transport speeds (including the filling factor).
+Both estimates use the comoving bound
+`(C+a+sqrt((C-a)^2+4*q))/2`; CFL adds the absolute bulk velocity.
+The EOS thermal sound speed itself is unchanged. This bound follows from
+the locally frozen-coefficient ideal-MHD/wave principal system; it does not
+establish a bound for Hall dispersion, reflection-gradient closures, or
+state-dependent density-contrast callbacks. The existing Hall speed estimate
+is retained when Hall is enabled.
+
+The total energy includes the sum of all four wave energies.  Their fluxes
 use the bulk velocity plus or minus the local Alfvén or kink speed.  Expansion,
 nonlinear dissipation, and the associated thermalization are applied as source
 terms.  With **mhd_uawsom_reflection=.true.**,

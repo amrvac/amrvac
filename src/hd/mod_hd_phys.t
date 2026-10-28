@@ -428,7 +428,7 @@ contains
           !> Radiation fluid object: its EoS callbacks are wired in hd_link_eos
           allocate(fld_fl)
           !> Initiate radiation-closure module
-          call fld_init()
+          call fld_init(eos%eos_type, eos%ionE, eos%pi_table)
           !> The implicit (MG diffusion) hooks need the fld_fl object, so they
           !> are wired here to physics-module wrappers that inject it.
           if(use_multigrid)then
