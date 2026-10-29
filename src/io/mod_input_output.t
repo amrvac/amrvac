@@ -260,7 +260,7 @@ contains
 
     namelist /methodlist/ time_stepper, time_integrator, &
          source_split_usr, typesourcesplit, local_timestep, &
-         dimsplit, typedimsplit, flux_scheme, &
+         dimsplit, typedimsplit, flux_scheme, limit_on_wold, &
          limiter, gradient_limiter, cada3_radius, &
          loglimit, typeboundspeed, H_correction, &
          typetvd, typeentropy, entropycoef, typeaverage, &
@@ -497,6 +497,7 @@ contains
     source_split_usr= .false.
     time_stepper    = 'twostep'
     time_integrator = 'default'
+    limit_on_wold   = .false.
     ! default PC or explicit midpoint, hence alfa=0.5
     rk2_alfa        = half 
     ! default IMEX-RK22Ln hence lambda = 1 - 1/sqrt(2)

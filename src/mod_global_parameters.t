@@ -832,6 +832,10 @@ module mod_global_parameters
   !> if any normal source term is added in split fasion
   logical :: any_source_split=.false.
   logical :: dimsplit
+
+  !> VAC-type MUSCL-Hancock: limit the corrector slopes on w^n (typelimited='previous'),
+  !> for time_stepper='twostep' with the Predictor_Corrector integrator and a Hancock predictor
+  logical :: limit_on_wold
   !> whether IMEX in use or not
   logical :: use_imex_scheme
 

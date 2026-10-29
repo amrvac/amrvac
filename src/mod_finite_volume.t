@@ -119,6 +119,7 @@ contains
     use mod_variables
     use mod_global_parameters
     use mod_tvd, only:tvdlimit2
+    use mod_limiter, only: limiter_cada3
     use mod_source, only: addsource2
     use mod_usr_methods
     use mod_comm_lib, only: mpistop
@@ -133,6 +134,9 @@ contains
 
     ! primitive w at cell center
     double precision, dimension(ixI^S,1:nw) :: wprim
+    !> primitive w^n, used only for the slopes in the VAC-type MUSCL-Hancock corrector
+    double precision, dimension(ixI^S,1:nw) :: wprim_lim
+    logical :: lim_old
     ! left and right constructed status in conservative form
     double precision, dimension(ixI^S,1:nw) :: wLC, wRC
     ! left and right constructed status in primitive form, needed for better performance
@@ -163,6 +167,16 @@ contains
 
     wprim=wCT
     call phys_to_primitive(ixI^L,ixI^L,wprim,x)
+    ! typelimited='previous' (VAC): in the corrector of the Predictor_Corrector stepper with a
+    ! Hancock predictor, take cell centres from wCT = w^{n+1/2} but the limited slopes from
+    ! w^n, which snew%w still holds here.  Only for the slope limiters (minmod ... cada3).
+    lim_old = limit_on_wold .and. t_stepper==twostep .and. t_integrator==Predictor_Corrector &
+         .and. istep==2 .and. typepred1(block%level)==fs_hancock &
+         .and. type_limiter(block%level)<=limiter_cada3 .and. .not.associated(phys_wb_transform)
+    if (lim_old) then
+       wprim_lim=wnew
+       call phys_to_primitive(ixI^L,ixI^L,wprim_lim,x)
+    end if
     do idims= idims^LIM
        ! use interface value of w0 at idims
        b0i=idims
@@ -198,7 +212,11 @@ contains
        {ixCRmax^D = min(ixCmax^D + phys_wider_stencil,ixGhi^D)\}
 
        ! apply limited reconstruction for left and right status at cell interfaces
-       call reconstruct_LR(ixI^L,ixCR^L,ixCR^L,idims,wprim,wLC,wRC,wLp,wRp,x,dxs(idims))
+       if (lim_old) then
+         call reconstruct_LR(ixI^L,ixCR^L,ixCR^L,idims,wprim_lim,wLC,wRC,wLp,wRp,x,dxs(idims))
+       else
+         call reconstruct_LR(ixI^L,ixCR^L,ixCR^L,idims,wprim,wLC,wRC,wLp,wRp,x,dxs(idims))
+       end if
 
        ! special modification of left and right status before flux evaluation
        call phys_modify_wLR(ixI^L,ixCR^L,qt,wLC,wRC,wLp,wRp,sCT,idims)
