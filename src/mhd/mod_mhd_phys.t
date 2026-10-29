@@ -34,12 +34,16 @@ module mod_mhd_phys
   double precision, public                :: mhd_glm_alpha = 0.5d0
   !> Reduced speed of light for semirelativistic MHD: 2% of light speed
   double precision, public, protected     :: mhd_reduced_c = 0.02d0*const_c
-  !> Keep E x curl(E) in the semirelativistic source: eq (26) of Gombosi et al. 2002 keeps it,
-  !> their eq (28) and wave tests drop it (steady-state limit)
-  logical, public, protected              :: mhd_semirelati_curl_E = .true.
   !> The thermal conductivity kappa in hyperbolic thermal conduction
   double precision, public                :: mhd_hyperbolic_tc_kappa = 0.d0
-  logical, public                         :: mhd_hyperbolic_tc_constant = .false.
+  !> Relative perpendicular hyperbolic-TC coefficient in fixed/strong-field limit:
+  !> kappa_perp0 = mhd_hyperbolic_tc_kappa_perp_factor * kappa_parallel
+  double precision, public, protected     :: mhd_hyperbolic_tc_kappa_perp_factor = 0.d0
+  !> Field-strength transition scale for perpendicular closure
+  double precision, public, protected     :: mhd_hyperbolic_tc_Bmin = 0.d0
+  !> Constant Coulomb logarithm used by the simplified electron-magnetization
+  !> closure. It is a namelist parameter so changing it has no per-cell cost.
+  double precision, public, protected     :: mhd_hyperbolic_tc_coulomb_log = 20.d0
   !> Coefficient of diffusive divB cleaning
   double precision, public                :: divbdiff     = 0.8d0
   !> Ionization fraction of H
@@ -57,6 +61,18 @@ module mod_mhd_phys
   double precision, public, protected  :: RR=1d0
   !> inverse of squared speed of light c0 and reduced speed of light c
   double precision :: inv_squared_c0=0.d0, inv_squared_c=0.d0
+  !> squared reduced speed of light c
+  double precision, public, protected :: mhd_squared_c
+  !> Dimensionless multiplier in the one_dimensional_gradient source only
+  double precision, public, protected :: mhd_uawsom_sigma = 0.d0
+  !> Base transverse density contrast and filling factor
+  double precision, public, protected :: mhd_uawsom_zeta0 = 5.d0
+  double precision, public, protected :: mhd_uawsom_filling_factor = 0.1d0
+  !> Physical input scales (lengths and magnetic field); converted to code units at init
+  double precision, public, protected :: mhd_uawsom_zeta_scale = -1.d0
+  double precision, public, protected :: mhd_uawsom_thread_radius0 = -1.d0
+  double precision, public, protected :: mhd_uawsom_Bref = -1.d0
+  double precision, public, protected :: mhd_uawsom_alfven_corr_length0 = -1.d0
   !> equi vars indices in the state%equi_vars array
   integer, public :: equi_rho0_ = -1
   integer, public :: equi_pe0_ = -1
@@ -88,30 +104,9 @@ module mod_mhd_phys
   integer, public, protected :: Te_
   !> Index of the FIP passive scalar rho*fip in conserved form, fip in primitive form
   integer, public, protected :: fip_ = -1
-  !> Whether FIP passive scalar is enabled
-  logical, public, protected :: mhd_fip = .false.
-  !> Enable the Uniturbulence and Alfven Wave Solar Model extension
-  logical, public, protected :: mhd_uawsom = .false.
-  !> Enable conservative Alfvén reflection (one-dimensional or Cartesian gradient-vorticity)
-  logical, public, protected :: mhd_uawsom_reflection = .false.
-  !> Algebra used by the Alfven-wave reflection source.  one_dimensional_gradient
-  !> retains the original one-dimensional source; cartesian_gradient_vorticity
-  !> is the multidimensional gradient/vorticity closure.
-  character(len=std_len), public, protected :: mhd_uawsom_reflection_mode = 'one_dimensional_gradient'
   !> Enable conservative kink-wave reflection from the kink-speed gradient
-  logical, public, protected :: mhd_uawsom_kink_reflection = .false.
-  !> Dimensionless multiplier in the one_dimensional_gradient source only
-  double precision, public, protected :: mhd_uawsom_sigma = 0.d0
   !> Cartesian direction used for the prescribed density contrast and reflection gradient
   integer, public, protected :: mhd_uawsom_height_dim = -1
-  !> Base transverse density contrast and filling factor
-  double precision, public, protected :: mhd_uawsom_zeta0 = 5.d0
-  double precision, public, protected :: mhd_uawsom_filling_factor = 0.1d0
-  !> Physical input scales (lengths and magnetic field); converted to code units at init
-  double precision, public, protected :: mhd_uawsom_zeta_scale = -1.d0
-  double precision, public, protected :: mhd_uawsom_thread_radius0 = -1.d0
-  double precision, public, protected :: mhd_uawsom_Bref = -1.d0
-  double precision, public, protected :: mhd_uawsom_alfven_corr_length0 = -1.d0
   !> Conserved wave-energy indices.  The plus variables propagate against B.
   integer, public, protected :: wAplus_=-1, wAminus_=-1, wkplus_=-1, wkminus_=-1
   !> Index of the cutoff temperature for the TRAC method
@@ -136,6 +131,12 @@ module mod_mhd_phys
   integer, parameter :: divb_lindepowel    = 6
   integer, parameter :: divb_lindeglm      = 7
   integer, parameter :: divb_ct            = 8
+  !> Whether divB is computed with a fourth order approximation
+  integer, public, protected :: mhd_divb_nth = 1
+  ! Parsed once during initialization; runtime kernels do not inspect strings.
+  integer, parameter :: htc_perp_disabled=0, htc_perp_fixed=1, &
+                        htc_perp_weak_field=2, htc_perp_electron=3
+  integer :: htc_perp_mode_id=htc_perp_disabled
   !> Whether an energy equation is used
   logical, public, protected              :: mhd_energy = .true.
   !> Whether thermal conduction is used
@@ -151,24 +152,7 @@ module mod_mhd_phys
   logical, public, protected              :: mhd_hyperbolic_tc_sat = .false.
   !> Whether the perpendicular hyperbolic-TC channel is enabled
   logical, public, protected              :: mhd_hyperbolic_tc_use_perp = .false.
-  !> Perpendicular hyperbolic-TC closure mode:
-  !> Enable/disable with mhd_hyperbolic_tc_use_perp, not the mode string.
-  !> 'fixed_reference' = fixed classical ratio at the reference normalisation
-  !> 'weak_field_isotropization' = empirical transition using a prescribed Bmin
-  !> 'electron_magnetization' = simplified ratio 1/(1+chi_e^2)
-  character(len=std_len), public, protected :: mhd_hyperbolic_tc_perp_mode = 'fixed_reference'
-  ! Parsed once during initialization; runtime kernels do not inspect strings.
-  integer, parameter :: htc_perp_disabled=0, htc_perp_fixed=1, &
-                        htc_perp_weak_field=2, htc_perp_electron=3
-  integer :: htc_perp_mode_id=htc_perp_disabled
-  !> Relative perpendicular hyperbolic-TC coefficient in fixed/strong-field limit:
-  !> kappa_perp0 = mhd_hyperbolic_tc_kappa_perp_factor * kappa_parallel
-  double precision, public, protected     :: mhd_hyperbolic_tc_kappa_perp_factor = 0.d0
-  !> Field-strength transition scale for perpendicular closure
-  double precision, public, protected     :: mhd_hyperbolic_tc_Bmin = 0.d0
-  !> Constant Coulomb logarithm used by the simplified electron-magnetization
-  !> closure. It is a namelist parameter so changing it has no per-cell cost.
-  double precision, public, protected     :: mhd_hyperbolic_tc_coulomb_log = 20.d0
+  logical, public                         :: mhd_hyperbolic_tc_constant = .false.
   !> Whether viscosity is added
   logical, public, protected              :: mhd_viscosity = .false.
   !> Whether gravity is added
@@ -216,12 +200,17 @@ module mod_mhd_phys
   !> Radiation fluid object (gas-EoS callbacks for FLD), wired in mhd_link_eos
   type(fld_fluid), allocatable, public    :: fld_fl
   !> whether split off equilibrium density and pressure
-  logical, public :: has_equi_rho_and_p = .false.
-  logical, public :: mhd_equi_thermal = .false.
+  logical, public                         :: has_equi_rho_and_p = .false.
+  logical, public                         :: mhd_equi_thermal = .false.
   !> whether dump full variables (when splitting is used) in a separate dat file
   logical, public, protected              :: mhd_dump_full_vars = .false.
-  !> Whether divB is computed with a fourth order approximation
-  integer, public, protected :: mhd_divb_nth = 1
+  !> Whether FIP passive scalar is enabled
+  logical, public, protected              :: mhd_fip = .false.
+  !> Enable the Uniturbulence and Alfven Wave Solar Model extension
+  logical, public, protected              :: mhd_uawsom = .false.
+  !> Enable conservative Alfvén reflection (one-dimensional or Cartesian gradient-vorticity)
+  logical, public, protected              :: mhd_uawsom_reflection = .false.
+  logical, public, protected              :: mhd_uawsom_kink_reflection = .false.
   !> Add divB wave in Roe solver
   logical, public :: divbwave     = .true.
   !> clean initial divB
@@ -236,6 +225,19 @@ module mod_mhd_phys
   logical, public :: numerical_resistive_heating = .false.
   !> Whether gravity work is included in energy equation
   logical :: gravity_energy
+  !> Keep E x curl(E) in the semirelativistic source: eq (26) of Gombosi et al. 2002 keeps it,
+  !> their eq (28) and wave tests drop it (steady-state limit)
+  logical, public, protected              :: mhd_semirelati_curl_E = .true.
+  !> Algebra used by the Alfven-wave reflection source.  one_dimensional_gradient
+  !> retains the original one-dimensional source; cartesian_gradient_vorticity
+  !> is the multidimensional gradient/vorticity closure.
+  character(len=std_len), public, protected :: mhd_uawsom_reflection_mode = 'one_dimensional_gradient'
+  !> Perpendicular hyperbolic-TC closure mode:
+  !> Enable/disable with mhd_hyperbolic_tc_use_perp, not the mode string.
+  !> 'fixed_reference' = fixed classical ratio at the reference normalisation
+  !> 'weak_field_isotropization' = empirical transition using a prescribed Bmin
+  !> 'electron_magnetization' = simplified ratio 1/(1+chi_e^2)
+  character(len=std_len), public, protected :: mhd_hyperbolic_tc_perp_mode = 'fixed_reference'
   !> Method type to clean divergence of B
   character(len=std_len), public, protected :: typedivbfix  = 'linde'
   !> Method type of constrained transport
@@ -1867,6 +1869,7 @@ contains
         inv_squared_c0=(unit_velocity/c_lightspeed)**2
         inv_squared_c=(unit_velocity/mhd_reduced_c)**2
       end if
+      mhd_squared_c=(mhd_reduced_c/unit_velocity)**2
       ! Propagate to the EoS container. Must happen AFTER inv_squared_c{0,}
       ! are set above; the assignment earlier in mhd_phys_init runs before
       ! mhd_physical_units and would store uninitialised values.
@@ -1897,7 +1900,7 @@ contains
     integer, intent(in) :: ixI^L, ixO^L
     double precision, intent(in) :: w(ixI^S,nw)
 
-    double precision :: emech(ixO^S)
+    double precision :: vel(ixO^S,1:ndir),emech(ixO^S)
 
     flag=.false.
     where(w(ixO^S,rho_) < small_density) flag(ixO^S,rho_) = .true.
@@ -1906,7 +1909,7 @@ contains
       if(primitive) then
         where(w(ixO^S,p_) < small_pressure) flag(ixO^S,e_) = .true.
       else
-        call mhd_semirelati_vel_emech(w,ixI^L,ixO^L,emech=emech)
+        call mhd_semirelati_vel_emech(w,ixI^L,ixO^L,vel,emech)
         where(w(ixO^S,e_)-emech(ixO^S) < small_e) flag(ixO^S,e_) = .true.
       end if
     end if
@@ -2188,7 +2191,7 @@ contains
     integer :: idir, idirmin
     logical :: have_reflection, have_alfven_reflection, have_kink_reflection
 
-    call mhd_get_v(wCT,x,ixI^L,ixI^L,v)
+    v(ixI^S,1:ndir)=wCTprim(ixI^S,mom(1:ndir))
     call divvector(v,ixI^L,ixO^L,divv)
     ! Reflection gradients need one-cell ghost values, so obtain the closure
     ! profiles on ixI rather than only on the source update region.
@@ -2398,10 +2401,11 @@ contains
     use mod_global_parameters
     integer, intent(in)           :: ixI^L, ixO^L
     double precision, intent(in)  :: w(ixI^S,nw)
-    double precision, intent(out), optional :: vel(ixO^S,1:ndir), emech(ixO^S)
+    double precision, intent(out) :: vel(ixO^S,1:ndir)
+    double precision, intent(out), optional :: emech(ixO^S)
 
-    double precision :: btot(1:ndir), bhat(1:ndir), efd(1:ndir), v(1:ndir)
-    double precision :: b2, va2c2, tmp, inv_rho, gamma2
+    double precision :: btot(1:ndir), efd(1:ndir)
+    double precision :: b2, rhoc2, tmp, inv_rho
     integer :: ix^D
 
     {do ix^DB=ixOmin^DB,ixOmax^DB\}
@@ -2409,40 +2413,30 @@ contains
       if(B0field) then
         ^C&btot(^C)=btot(^C)+block%B0(ix^D,^C,b0i)\
       end if
+      ! Keppens's formula to convert momentum to velocity
       b2=(^C&btot(^C)**2+)
-      if(b2>smalldouble) then
-        tmp=1.d0/sqrt(b2)
-      else
-        tmp=0.d0
-      end if
-      ^C&bhat(^C)=btot(^C)*tmp\
-      tmp=(^C&bhat(^C)*w(ix^D,m^C_)+)
-      inv_rho=1.d0/w(ix^D,rho_)
-      ! Va^2/c^2; equation (15) scales only the perpendicular momentum
-      va2c2=b2*inv_rho*inv_squared_c
-      gamma2=1.d0/(1.d0+va2c2)
-      ^C&v(^C)=gamma2*(w(ix^D,m^C_)+va2c2*bhat(^C)*tmp)*inv_rho\
-      if(present(vel)) then
-        ^C&vel(ix^D,^C)=v(^C)\
-      end if
+      tmp=(^C&btot(^C)*w(ix^D,m^C_)+)
+      rhoc2=w(ix^D,rho_)*mhd_squared_c
+      inv_rho=1.d0/(w(ix^D,rho_)*(rhoc2+b2))
+      ^C&vel(ix^D,^C)=(rhoc2*w(ix^D,m^C_)+btot(^C)*tmp)*inv_rho\
       if(present(emech)) then
         if(mhd_internal_e) then
           emech(ix^D)=zero
         else
           ! E=Bxv
           {^IFTHREEC
-          efd(1)=btot(2)*v(3)-btot(3)*v(2)
-          efd(2)=btot(3)*v(1)-btot(1)*v(3)
-          efd(3)=btot(1)*v(2)-btot(2)*v(1)
+          efd(1)=btot(2)*vel(ix^D,3)-btot(3)*vel(ix^D,2)
+          efd(2)=btot(3)*vel(ix^D,1)-btot(1)*vel(ix^D,3)
+          efd(3)=btot(1)*vel(ix^D,2)-btot(2)*vel(ix^D,1)
           }
           {^IFTWOC
           efd(1)=zero
-          efd(2)=btot(1)*v(2)-btot(2)*v(1)
+          efd(2)=btot(1)*vel(ix^D,2)-btot(2)*vel(ix^D,1)
           }
           {^IFONEC
           efd(1)=zero
           }
-          emech(ix^D)=half*((^C&v(^C)**2+)*w(ix^D,rho_)&
+          emech(ix^D)=half*((^C&vel(ix^D,^C)**2+)*w(ix^D,rho_)&
                      +(^C&w(ix^D,b^C_)**2+)&
                      +(^C&efd(^C)**2+)*inv_squared_c)
         end if
@@ -2496,9 +2490,9 @@ contains
     double precision, intent(inout) :: w(ixI^S, nw)
     double precision, intent(in)    :: x(ixI^S, 1:ndim)
 
-    double precision :: emech(ixO^S)
+    double precision :: vel(ixO^S,1:ndir), emech(ixO^S)
 
-    call mhd_semirelati_vel_emech(w,ixI^L,ixO^L,emech=emech)
+    call mhd_semirelati_vel_emech(w,ixI^L,ixO^L,vel,emech)
     w(ixO^S,e_)=w(ixO^S,e_)+emech(ixO^S)
 
   end subroutine mhd_ei_to_e_semirelati
@@ -2586,9 +2580,9 @@ contains
     double precision, intent(inout) :: w(ixI^S, nw)
     double precision, intent(in)    :: x(ixI^S, 1:ndim)
 
-    double precision :: emech(ixO^S)
+    double precision :: vel(ixO^S,1:ndir), emech(ixO^S)
 
-    call mhd_semirelati_vel_emech(w,ixI^L,ixO^L,emech=emech)
+    call mhd_semirelati_vel_emech(w,ixI^L,ixO^L,vel,emech)
     w(ixO^S,e_)=w(ixO^S,e_)-emech(ixO^S)
 
     if(fix_small_values) then
@@ -2606,7 +2600,7 @@ contains
     double precision, intent(in)    :: x(ixI^S,1:ndim)
     character(len=*), intent(in)    :: subname
 
-    double precision :: v(ixI^S,1:ndir), emech(ixI^S), pressure(ixI^S)
+    double precision :: v(ixI^S,1:ndir), emech(ixI^S), small_rho(ixI^S)
     double precision, allocatable :: work(:^D&,:)
     integer :: ix^D, ixC^L
     logical :: flag(ixI^S,1:nw)
@@ -2618,39 +2612,21 @@ contains
       ixC^L=ixI^L;
     end if
     flag=.false.
-    where(w(ixC^S,rho_) < small_density) flag(ixC^S,rho_) = .true.
+    where(w(ixC^S,rho_) < small_density)
+      small_rho(ixC^S)=w(ixC^S,rho_)
+      w(ixC^S,rho_)=small_density+smalldouble
+      flag(ixC^S,rho_) = .true.
+    end where
 
     if(.not.primitive) then
-      if(any(w(ixC^S,rho_)<=zero)) then
-        ! Do not divide by invalid density while diagnosing a cell. The
-        ! temporary state is used only for diagnostic velocity/mechanical energy.
-        allocate(work(ixI^S,1:nw))
-        work=w
-        {do ix^DB=ixCmin^DB,ixCmax^DB\}
-          if(w(ix^D,rho_)<=zero) then
-            work(ix^D,rho_)=small_density
-            ^C&work(ix^D,m^C_)=zero\
-          end if
-        {end do\}
-        call mhd_semirelati_vel_emech(work,ixI^L,ixC^L,v(ixC^S,:),emech(ixC^S))
-        deallocate(work)
-      else
-        call mhd_semirelati_vel_emech(w,ixI^L,ixC^L,v(ixC^S,:),emech(ixC^S))
-      end if
+      call mhd_semirelati_vel_emech(w,ixI^L,ixC^L,v(ixC^S,1:ndir),emech(ixC^S))
     end if
     if(mhd_energy) then
       if(primitive) then
         where(w(ixC^S,p_) < small_pressure) flag(ixC^S,e_) = .true.
       else
         {do ix^DB=ixCmin^DB,ixCmax^DB\}
-          if(w(ix^D,rho_)<=zero.or.w(ix^D,e_)<=emech(ix^D)) then
-            ! Invalid states must not enter the PI/LTE energy inversion.
-            pressure(ix^D)=small_pressure
-            flag(ix^D,e_)=.true.
-          else
-            pressure(ix^D)=mhd_semirelati_p(w(ix^D,e_)-emech(ix^D),w(ix^D,rho_))
-            if(pressure(ix^D) < small_pressure) flag(ix^D,e_) = .true.
-          end if
+           if(w(ix^D,e_)-emech(ix^D) < small_e) flag(ix^D,e_) = .true.
         {end do\}
       end if
     end if
@@ -2660,14 +2636,13 @@ contains
       case ("replace")
         {do ix^DB=ixOmin^DB,ixOmax^DB\}
           if(flag(ix^D,rho_)) then
-            w(ix^D,rho_) = small_density
             ^C&w(ix^D,m^C_)=zero\
           end if
           if(mhd_energy .and. flag(ix^D,e_)) then
             if(primitive) then
               w(ix^D,p_) = small_pressure
             else
-              pressure(ix^D)=small_pressure
+              w(ix^D,e_) = small_e + emech(ix^D)
             end if
           end if
         {end do\}
@@ -2677,37 +2652,26 @@ contains
           if(primitive) then
             call small_values_average(ixI^L,ixO^L,w,x,flag,p_)
           else
-            ! Leave conserved energy untouched while averaging pressure, and
-            ! provide pressure-valued donors throughout the entire stencil.
-            allocate(work(ixI^S,1:nw))
-            work=w
-            work(ixI^S,p_)=pressure(ixI^S)
-            call small_values_average(ixI^L,ixO^L,work,x,flag,p_)
-            pressure(ixO^S)=work(ixO^S,p_)
+            ! go to internal energy
+            w(ixC^S,e_)=w(ixC^S,e_)-emech(ixC^S)
+            !  averaging internal energy
+            call small_values_average(ixI^L,ixO^L,work,x,flag,e_)
+            ! back to total energy
+            w(ixC^S,e_)=w(ixC^S,e_)+emech(ixC^S)
             deallocate(work)
           end if
         end if
       case default
         if(.not.primitive) then
+          ! to show velocity and internal energy
           w(ixO^S,mom(1:ndir))=v(ixO^S,1:ndir)
-          if(mhd_energy) w(ixO^S,e_)=pressure(ixO^S)
+          if(mhd_energy) w(ixO^S,e_)=w(ixO^S,e_)-emech(ixO^S)
         end if
+        where(flag(ixC^S,rho_))
+          w(ixC^S,rho_)=small_rho(ixC^S)
+        end where
         call small_values_error(w,x,ixI^L,ixO^L,flag,subname)
       end select
-
-      if(.not.primitive.and.mhd_energy.and.&
-           (small_values_method=="replace".or.small_values_method=="average")) then
-        if(any(w(ixO^S,rho_)<=zero)) &
-          call mpistop('Semirelativistic small-value repair left nonpositive density')
-        ! Recompute after density/momentum repair. Preserve the original valid
-        ! pressure in density-only repairs, and do not round-trip untouched cells.
-        call mhd_semirelati_vel_emech(w,ixI^L,ixO^L,emech=emech(ixO^S))
-        {do ix^DB=ixOmin^DB,ixOmax^DB\}
-          if(flag(ix^D,rho_).or.flag(ix^D,e_)) then
-            w(ix^D,e_)=mhd_semirelati_eint(pressure(ix^D),w(ix^D,rho_))+emech(ix^D)
-          end if
-        {end do\}
-      end if
     end if
     if (mhd_fip) call mhd_bound_fip(primitive, ixI^L, ixO^L, w)
   end subroutine mhd_handle_small_values_semirelati
@@ -3017,7 +2981,7 @@ contains
     integer :: idir
 
     if(mhd_semirelativistic) then
-      call mhd_semirelati_vel_emech(w,ixI^L,ixO^L,vel=v(ixO^S,1:ndir))
+      call mhd_semirelati_vel_emech(w,ixI^L,ixO^L,v(ixO^S,1:ndir))
       return
     end if
 

@@ -686,8 +686,8 @@ contains
         double precision, intent(inout) :: w(ixI^S, nw)
         double precision, intent(in)    :: x(ixI^S, 1:ndim)
 
-        double precision :: btot(1:ndir), bhat(1:ndir), efd(1:ndir)
-        double precision :: b2, va2c2, tmp, inv_rho, gamma2
+        double precision :: btot(1:ndir), efd(1:ndir)
+        double precision :: b2, tmp, inv_rho, rhoc2
         integer :: ix^D
 
         if (fix_small_values) then
@@ -699,19 +699,12 @@ contains
             if(B0field) then
               ^C&btot(^C)=btot(^C)+block%B0(ix^D,^C,b0i)\
             end if
+            ! Keppens's formula to convert momentum to velocity
             b2=(^C&btot(^C)**2+)
-            if(b2>smalldouble) then
-              tmp=1.d0/sqrt(b2)
-            else
-              tmp=0.d0
-            end if
-            ^C&bhat(^C)=btot(^C)*tmp\
-            tmp=(^C&bhat(^C)*w(ix^D,m^C_)+)
-            inv_rho=1.d0/w(ix^D,rho_)
-            ! Va^2/c^2; equation (15) scales only the perpendicular momentum
-            va2c2=b2*inv_rho*eos%inv_squared_c
-            gamma2=1.d0/(1.d0+va2c2)
-            ^C&w(ix^D,m^C_)=gamma2*(w(ix^D,m^C_)+va2c2*bhat(^C)*tmp)*inv_rho\
+            tmp=(^C&btot(^C)*w(ix^D,m^C_)+)
+            rhoc2=w(ix^D,rho_)*mhd_squared_c
+            inv_rho=1.d0/(w(ix^D,rho_)*(rhoc2+b2))
+            ^C&w(ix^D,m^C_)=(rhoc2*w(ix^D,m^C_)+btot(^C)*tmp)*inv_rho\
             if(.not.mhd_internal_e) then
               ! E=Bxv
               {^IFTHREEC
@@ -745,8 +738,8 @@ contains
         double precision, intent(inout) :: w(ixI^S, nw)
         double precision, intent(in)    :: x(ixI^S, 1:ndim)
 
-        double precision :: btot(1:ndir), bhat(1:ndir), efd(1:ndir)
-        double precision :: b2, va2c2, tmp, inv_rho, gamma2
+        double precision :: btot(1:ndir)
+        double precision :: b2, rhoc2, tmp, inv_rho
         integer :: ix^D
 
         if (fix_small_values) then
@@ -758,19 +751,12 @@ contains
             if(B0field) then
               ^C&btot(^C)=btot(^C)+block%B0(ix^D,^C,b0i)\
             end if
+            ! Keppens's formula to convert momentum to velocity
             b2=(^C&btot(^C)**2+)
-            if(b2>smalldouble) then
-              tmp=1.d0/sqrt(b2)
-            else
-              tmp=0.d0
-            end if
-            ^C&bhat(^C)=btot(^C)*tmp\
-            tmp=(^C&bhat(^C)*w(ix^D,m^C_)+)
-            inv_rho=1.d0/w(ix^D,rho_)
-            ! Va^2/c^2; equation (15) scales only the perpendicular momentum
-            va2c2=b2*inv_rho*eos%inv_squared_c
-            gamma2=1.d0/(1.d0+va2c2)
-            ^C&w(ix^D,m^C_)=gamma2*(w(ix^D,m^C_)+va2c2*bhat(^C)*tmp)*inv_rho\
+            tmp=(^C&btot(^C)*w(ix^D,m^C_)+)
+            rhoc2=w(ix^D,rho_)*mhd_squared_c
+            inv_rho=1.d0/(w(ix^D,rho_)*(rhoc2+b2))
+            ^C&w(ix^D,m^C_)=(rhoc2*w(ix^D,m^C_)+btot(^C)*tmp)*inv_rho\
         {end do\}
 
     end subroutine mhd_to_primitive_semirelati_noe
@@ -923,7 +909,7 @@ contains
 
         call eos%get_nH(w, x, ixI^L, ixO^L, nH)
         log_nH(ixO^S) = dlog10(nH(ixO^S))
-        if (mhd_semirelativistic) call mhd_semirelati_vel_emech(w,ixI^L,ixO^L,vel=vel,emech=emech)
+        if (mhd_semirelativistic) call mhd_semirelati_vel_emech(w,ixI^L,ixO^L,vel,emech)
 
         {do ix^DB=ixOmin^DB,ixOmax^DB\}
             inv_rho = 1.d0/w(ix^D,rho_)
@@ -1325,7 +1311,7 @@ contains
         double precision, intent(in) :: x(ixI^S,1:ndim)
         double precision, intent(out):: pth(ixI^S)
 
-        double precision :: emech(ixO^S)
+        double precision :: vel(ixO^S,1:ndir), emech(ixO^S)
         integer :: iw, ix^D
 
         if(mhd_internal_e) then
@@ -1334,7 +1320,7 @@ contains
               if(fix_small_values.and.pth(ix^D)<small_pressure) pth(ix^D)=small_pressure
           {end do\}
         else
-          call mhd_semirelati_vel_emech(w,ixI^L,ixO^L,emech=emech)
+          call mhd_semirelati_vel_emech(w,ixI^L,ixO^L,vel,emech)
           {do ix^DB=ixOmin^DB,ixOmax^DB\}
               pth(ix^D)=mhd_semirelati_p(w(ix^D,e_)-emech(ix^D),w(ix^D,rho_))
               if(fix_small_values.and.pth(ix^D)<small_pressure) pth(ix^D)=small_pressure
@@ -1558,9 +1544,9 @@ contains
         double precision, intent(in) :: w(ixI^S, nw)
         double precision             :: ei(ixO^S)
 
-        double precision :: emech(ixO^S)
+        double precision :: vel(ixO^S,1:ndir), emech(ixO^S)
 
-        call mhd_semirelati_vel_emech(w,ixI^L,ixO^L,emech=emech)
+        call mhd_semirelati_vel_emech(w,ixI^L,ixO^L,vel,emech)
         ei(ixO^S)=w(ixO^S,e_)-emech(ixO^S)
     end function mhd_get_ei_semirelati
 
