@@ -179,6 +179,7 @@ contains
     use mod_geometry, only: coordinate, Cartesian
     use mod_usr_methods, only: usr_rt_sc_chiB
     use mod_comm_lib, only: mpistop
+    use mod_eos, only: eos
     integer :: ib, fac
     integer :: dnx(ndim), bnx(ndim), mlo(ndim), mhi(ndim), glo(ndim), ghi(ndim)
     double precision :: dlo(ndim), dhi(ndim), hi_req
@@ -241,6 +242,12 @@ contains
     ! The switch pressure is held as a code-unit logarithm, so the cells need no conversion. The
     ! opacity callback is bound once here, and the table is read only when it is needed
     rt_sc_lp_TR = dlog10(rt_sc_p_TR/unit_pressure)
+    ! The built-in opacities and the Planck source are evaluated from the temperature and density of
+    ! the equation of state, which only the LTE closure ties to an ionisation balance. Under FI or PI
+    ! they describe no real gas, so only a user opacity is accepted there
+    if(trim(rt_sc_opacity) /= 'usr' .and. trim(eos%eos_type) /= 'LTE') call mpistop( &
+         "rt_sc_setup: the built-in opacities need eos_type='LTE'"// &
+         ", with FI or PI set rt_sc_opacity='usr'")
     select case(trim(rt_sc_opacity))
     case('Rosseland')
       call read_opacity_table()

@@ -181,6 +181,10 @@ contains
 
         !> PI ('partial approximations') table selector
         if (eos%eos_type == 'PI') then
+            !> the PI closures are kept in the code but not yet consistent with every module that
+            !> reads the equation of state, so they cannot be selected for now
+            call mpistop("eos_type='PI' is not yet fully consistently implemented, "// &
+                 "use eos_type='FI' or 'LTE'")
             select case (trim(eos%pi_table))
             case ('chromosphere','flare','prominence')
                 ! valid

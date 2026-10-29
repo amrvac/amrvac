@@ -129,15 +129,13 @@ module mod_fld
     call fld_params_read(par_files)
     ! Reject unsupported gas closures before loading opacity tables or using
     ! EOS callbacks. These are implementation limits, not physical exclusions.
-    if(gas_ion_energy.and.(trim(gas_eos_type)=='PI'.or.trim(gas_eos_type)=='LTE')) then
-      call mpistop('FLD currently does not support PI/LTE with ionE=T: '//&
+    if(trim(gas_eos_type)=='LTE') call mpistop("FLD is not yet available with eos_type='LTE': "//&
+         'the radiation exchange takes the gas temperature as (gamma-1) e/(rho R)')
+    if(gas_ion_energy.and.trim(gas_eos_type)=='PI') then
+      call mpistop('FLD currently does not support PI with ionE=T: '//&
            'the radiation exchange solver assumes ideal-gas internal energy')
     end if
     if(trim(fld_opacity_law)=='opal') then
-      if(trim(gas_eos_type)=='LTE') then
-        call mpistop('FLD with LTE and OPAL opacity is not implemented: '//&
-             'the temperature-from-pressure callback is unavailable')
-      end if
       if(trim(gas_eos_type)=='PI'.and.trim(gas_pi_table)=='prominence') then
         call mpistop('FLD with PI prominence and OPAL opacity is not implemented: '//&
              'the opacity temperature callback is incompatible with primitive states')
