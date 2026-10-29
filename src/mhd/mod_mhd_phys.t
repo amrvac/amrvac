@@ -4446,7 +4446,7 @@ contains
         Te(ixI^S)=w(ixI^S,p_)/(R(ixI^S)*rho_loc(ixI^S))
       end if
       {do ix^DB=ixOmin^DB,ixOmax^DB\}
-        {Bvec(ix^D,^C)=w(ix^D,mag(^C))\}
+        {^C& Bvec(ix^D,^C)=w(ix^D,mag(^C))\}
       {end do\}
       call mhd_get_hyperbolic_tc_geometry(ixI^L,ixO^L,Te,Bvec,bgradT,gradTperp_mag,nperp)
     end if
@@ -4592,7 +4592,7 @@ contains
       call eos%get_Rfactor(w,x,ixI^L,ixI^L,R)
       Te(ixI^S)=w(ixI^S,p_)/(R(ixI^S)*rho_loc(ixI^S))
       {do ix^DB=ixOmin^DB,ixOmax^DB\}
-        {Bvec(ix^D,^C)=w(ix^D,mag(^C))\}
+        {^C& Bvec(ix^D,^C)=w(ix^D,mag(^C))\}
       {end do\}
       call mhd_get_hyperbolic_tc_geometry(ixI^L,ixO^L,Te,Bvec,bgradT,gradTperp_mag,nperp)
     end if
@@ -4754,7 +4754,7 @@ contains
         Te(ixI^S)=w(ixI^S,p_)/(R(ixI^S)*rho_loc(ixI^S))
       end if
       {do ix^DB=ixOmin^DB,ixOmax^DB\}
-        {Bvec(ix^D,^C)=Btotal(ix^D,^C)\}
+        {^C& Bvec(ix^D,^C)=Btotal(ix^D,^C)\}
       {end do\}
       call mhd_get_hyperbolic_tc_geometry(ixI^L,ixO^L,Te,Bvec,bgradT,gradTperp_mag,nperp)
     end if
@@ -5654,23 +5654,23 @@ contains
           gradT(2)=((8.d0*(Te(ix1,ix2+1)-Te(ix1,ix2-1))-Te(ix1,ix2+2)+Te(ix1,ix2-2))/12.d0)/block%ds(ix^D,2)
           if(ndir>2) gradT(3)=zero
         else
-          {gradT(^C)=gradT_cell(ix^D,^C)\}
+          {^C& gradT(^C)=gradT_cell(ix^D,^C)\}
         end if
 
         bgradT(ix^D)=zero
-        {bgradT(ix^D)=bgradT(ix^D)+bunitvec(^C)*gradT(^C)\}
+        {^C& bgradT(ix^D)=bgradT(ix^D)+bunitvec(^C)*gradT(^C)\}
 
-        {gradT_perp(^C)=gradT(^C)-bgradT(ix^D)*bunitvec(^C)\}
+        {^C& gradT_perp(^C)=gradT(^C)-bgradT(ix^D)*bunitvec(^C)\}
 
         gradTperp_mag(ix^D)=zero
-        {gradTperp_mag(ix^D)=gradTperp_mag(ix^D)+gradT_perp(^C)**2\}
+        {^C& gradTperp_mag(ix^D)=gradTperp_mag(ix^D)+gradT_perp(^C)**2\}
         gradTperp_mag(ix^D)=dsqrt(gradTperp_mag(ix^D))
 
         if(gradTperp_mag(ix^D)>smalldouble) then
-          {nperp(ix^D,^C)=gradT_perp(^C)/gradTperp_mag(ix^D)\}
+          {^C& nperp(ix^D,^C)=gradT_perp(^C)/gradTperp_mag(ix^D)\}
         else
           gradTperp_mag(ix^D)=zero
-          {nperp(ix^D,^C)=zero\}
+          {^C& nperp(ix^D,^C)=zero\}
         end if
       end do
     end do
@@ -5686,20 +5686,20 @@ contains
             gradT(2)=((8.d0*(Te(ix1,ix2+1,ix3)-Te(ix1,ix2-1,ix3))-Te(ix1,ix2+2,ix3)+Te(ix1,ix2-2,ix3))/12.d0)/block%ds(ix^D,2)
             gradT(3)=((8.d0*(Te(ix1,ix2,ix3+1)-Te(ix1,ix2,ix3-1))-Te(ix1,ix2,ix3+2)+Te(ix1,ix2,ix3-2))/12.d0)/block%ds(ix^D,3)
           else
-            {gradT(^C)=gradT_cell(ix^D,^C)\}
+            {^C& gradT(^C)=gradT_cell(ix^D,^C)\}
           end if
 
           bgradT(ix^D)=zero
-          {bgradT(ix^D)=bgradT(ix^D)+bunitvec(^C)*gradT(^C)\}
+          {^C& bgradT(ix^D)=bgradT(ix^D)+bunitvec(^C)*gradT(^C)\}
 
-          {gradT_perp(^C)=gradT(^C)-bgradT(ix^D)*bunitvec(^C)\}
+          {^C& gradT_perp(^C)=gradT(^C)-bgradT(ix^D)*bunitvec(^C)\}
 
           gradTperp_mag(ix^D)=dsqrt(gradT_perp(1)**2+gradT_perp(2)**2+gradT_perp(3)**2)
           if(gradTperp_mag(ix^D)>smalldouble) then
-            {nperp(ix^D,^C)=gradT_perp(^C)/gradTperp_mag(ix^D)\}
+            {^C& nperp(ix^D,^C)=gradT_perp(^C)/gradTperp_mag(ix^D)\}
           else
             gradTperp_mag(ix^D)=zero
-            {nperp(ix^D,^C)=zero\}
+            {^C& nperp(ix^D,^C)=zero\}
           end if
         end do
       end do
@@ -5780,11 +5780,11 @@ contains
     use_perp_source = mhd_hyperbolic_tc_use_perp
     if(B0field) then
       {do ix^DB=ixOmin^DB,ixOmax^DB\}
-        {Bvec(ix^D,^C)=wCT(ix^D,mag(^C))+block%B0(ix^D,^C,0)\}
+        {^C& Bvec(ix^D,^C)=wCT(ix^D,mag(^C))+block%B0(ix^D,^C,0)\}
       {end do\}
     else
       {do ix^DB=ixOmin^DB,ixOmax^DB\}
-        {Bvec(ix^D,^C)=wCT(ix^D,mag(^C))\}
+        {^C& Bvec(ix^D,^C)=wCT(ix^D,mag(^C))\}
       {end do\}
     end if
    {^NOONED
@@ -5813,7 +5813,7 @@ contains
         gradT1=gradT_geom(ix1)
       end if
       B2=zero
-      {B2=B2+Bvec(ix1,^C)**2\}
+      {^C& B2=B2+Bvec(ix1,^C)**2\}
       bunit_tc=B_unit_vector(Bvec(ix1,1:ndir))
       bgradT(ix1)=bunit_tc(1)*gradT1
       kappaT5_bgradT=kappa_T5*bgradT(ix1)
@@ -5848,7 +5848,7 @@ contains
         end if
         kappaT5_bgradT=kappa_T5*bgradT(ix^D)
         B2 = zero
-        {B2 = B2 + Bvec(ix^D,^C)**2\}
+        {^C& B2 = B2 + Bvec(ix^D,^C)**2\}
         if(use_perp_source) then
           select case(htc_perp_mode_id)
           case(htc_perp_fixed)
@@ -5876,7 +5876,7 @@ contains
         inv_rho=1.d0/rho_loc(ix^D)
         c2=cs2_loc(ix^D)
         cfast2 = B2*inv_rho + c2
-        {avMinCs2(^D)=cfast2**2-4.0d0*c2*Bvec(ix^D,^D)**2*inv_rho; cmax(^D)=sqrt(half*(cfast2+sqrt(dabs(avMinCs2(^D)))))\}
+        {avMinCs2(^D)=cfast2**2-4.0d0*c2*Bvec(ix^DD,^D)**2*inv_rho; cmax(^D)=sqrt(half*(cfast2+sqrt(dabs(avMinCs2(^D)))))\}
         if(mhd_hyperbolic_tc_sat) then
           qclass_diss=dabs(kappaT5_bgradT)
           if(use_perp_source) &
@@ -5914,7 +5914,7 @@ contains
           end if
           kappaT5_bgradT=kappa_T5*bgradT(ix^D)
           B2 = zero
-          {B2 = B2 + Bvec(ix^D,^C)**2\}
+          {^C& B2 = B2 + Bvec(ix^D,^C)**2\}
           if(use_perp_source) then
             select case(htc_perp_mode_id)
             case(htc_perp_fixed)
@@ -5942,7 +5942,7 @@ contains
           inv_rho=1.d0/rho_loc(ix^D)
           c2=cs2_loc(ix^D)
           cfast2 = B2*inv_rho + c2
-          {avMinCs2(^D)=cfast2**2-4.0d0*c2*Bvec(ix^D,^D)**2*inv_rho; cmax(^D)=sqrt(half*(cfast2+sqrt(dabs(avMinCs2(^D)))))\}
+          {avMinCs2(^D)=cfast2**2-4.0d0*c2*Bvec(ix^DD,^D)**2*inv_rho; cmax(^D)=sqrt(half*(cfast2+sqrt(dabs(avMinCs2(^D)))))\}
           if(mhd_hyperbolic_tc_sat) then
             qclass_diss=dabs(kappaT5_bgradT)
             if(use_perp_source) &
