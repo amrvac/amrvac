@@ -468,7 +468,7 @@ contains
         double precision, intent(inout) :: w(ixI^S, nw)
         double precision, intent(in)    :: x(ixI^S, 1:ndim)
 
-        double precision :: efd(ixO^S,1:ndir), S(ixO^S,1:ndir), eint(ixO^S)
+        double precision :: efd(1:ndir), S(1:ndir), eint(ixO^S)
         double precision :: btot(1:ndir)
         integer :: ix^D
 
@@ -483,23 +483,23 @@ contains
                 ^C&btot(^C)=btot(^C)+block%B0(ix^D,^C,b0i)\
             end if
             {^IFTHREEC
-                efd(ix^D,1)=btot(2)*w(ix^D,m3_)-btot(3)*w(ix^D,m2_)
-                efd(ix^D,2)=btot(3)*w(ix^D,m1_)-btot(1)*w(ix^D,m3_)
-                efd(ix^D,3)=btot(1)*w(ix^D,m2_)-btot(2)*w(ix^D,m1_)
-                S(ix^D,1)=efd(ix^D,2)*btot(3)-efd(ix^D,3)*btot(2)
-                S(ix^D,2)=efd(ix^D,3)*btot(1)-efd(ix^D,1)*btot(3)
-                S(ix^D,3)=efd(ix^D,1)*btot(2)-efd(ix^D,2)*btot(1)
+                efd(1)=btot(2)*w(ix^D,m3_)-btot(3)*w(ix^D,m2_)
+                efd(2)=btot(3)*w(ix^D,m1_)-btot(1)*w(ix^D,m3_)
+                efd(3)=btot(1)*w(ix^D,m2_)-btot(2)*w(ix^D,m1_)
+                S(1)=efd(2)*btot(3)-efd(3)*btot(2)
+                S(2)=efd(3)*btot(1)-efd(1)*btot(3)
+                S(3)=efd(1)*btot(2)-efd(2)*btot(1)
             }
             {^IFTWOC
-                efd(ix^D,1)=zero
+                efd(1)=zero
                 ! switch 3 with 2 to add 3 when ^C from 1 to 2
-                efd(ix^D,2)=btot(1)*w(ix^D,m2_)-btot(2)*w(ix^D,m1_)
-                S(ix^D,1)=-efd(ix^D,2)*btot(2)
-                S(ix^D,2)=efd(ix^D,2)*btot(1)
+                efd(2)=btot(1)*w(ix^D,m2_)-btot(2)*w(ix^D,m1_)
+                S(1)=-efd(2)*btot(2)
+                S(2)=efd(2)*btot(1)
             }
             {^IFONEC
-                efd(ix^D,1)=zero
-                S(ix^D,1)=zero
+                efd(1)=zero
+                S(1)=zero
             }
             if(mhd_internal_e) then
                 w(ix^D,e_)=eint(ix^D)
@@ -507,10 +507,10 @@ contains
                 ! equation (9), the magnetic energy from the stored slot (eq 92 under splitting)
                 w(ix^D,e_)=eint(ix^D)+half*((^C&w(ix^D,m^C_)**2+)*w(ix^D,rho_)&
                           +(^C&w(ix^D,b^C_)**2+)&
-                          +(^C&efd(ix^D,^C)**2+)*eos%inv_squared_c)
+                          +(^C&efd(^C)**2+)*eos%inv_squared_c)
             end if
             ! Convert velocity to momentum, equation (9)
-            ^C&w(ix^D,m^C_)=w(ix^D,rho_)*w(ix^D,m^C_)+S(ix^D,^C)*eos%inv_squared_c\
+            ^C&w(ix^D,m^C_)=w(ix^D,rho_)*w(ix^D,m^C_)+S(^C)*eos%inv_squared_c\
         {end do\}
 
     end subroutine mhd_to_conserved_semirelati
@@ -521,7 +521,7 @@ contains
         double precision, intent(inout) :: w(ixI^S, nw)
         double precision, intent(in)    :: x(ixI^S, 1:ndim)
 
-        double precision :: efd(ixO^S,1:ndir), S(ixO^S,1:ndir)
+        double precision :: efd(1:ndir), S(1:ndir)
         double precision :: btot(1:ndir)
         integer :: ix^D
 
@@ -532,26 +532,26 @@ contains
                 ^C&btot(^C)=btot(^C)+block%B0(ix^D,^C,b0i)\
             end if
             {^IFTHREEC
-                efd(ix^D,1)=btot(2)*w(ix^D,m3_)-btot(3)*w(ix^D,m2_)
-                efd(ix^D,2)=btot(3)*w(ix^D,m1_)-btot(1)*w(ix^D,m3_)
-                efd(ix^D,3)=btot(1)*w(ix^D,m2_)-btot(2)*w(ix^D,m1_)
-                S(ix^D,1)=efd(ix^D,2)*btot(3)-efd(ix^D,3)*btot(2)
-                S(ix^D,2)=efd(ix^D,3)*btot(1)-efd(ix^D,1)*btot(3)
-                S(ix^D,3)=efd(ix^D,1)*btot(2)-efd(ix^D,2)*btot(1)
+                efd(1)=btot(2)*w(ix^D,m3_)-btot(3)*w(ix^D,m2_)
+                efd(2)=btot(3)*w(ix^D,m1_)-btot(1)*w(ix^D,m3_)
+                efd(3)=btot(1)*w(ix^D,m2_)-btot(2)*w(ix^D,m1_)
+                S(1)=efd(2)*btot(3)-efd(3)*btot(2)
+                S(2)=efd(3)*btot(1)-efd(1)*btot(3)
+                S(3)=efd(1)*btot(2)-efd(2)*btot(1)
             }
             {^IFTWOC
-                efd(ix^D,1)=zero
+                efd(1)=zero
                 ! switch 3 with 2 to add 3 when ^C from 1 to 2
-                efd(ix^D,2)=btot(1)*w(ix^D,m2_)-btot(2)*w(ix^D,m1_)
-                S(ix^D,1)=-efd(ix^D,2)*btot(2)
-                S(ix^D,2)=efd(ix^D,2)*btot(1)
+                efd(2)=btot(1)*w(ix^D,m2_)-btot(2)*w(ix^D,m1_)
+                S(1)=-efd(2)*btot(2)
+                S(2)=efd(2)*btot(1)
             }
             {^IFONEC
-                efd(ix^D,1)=zero
-                S(ix^D,1)=zero
+                efd(1)=zero
+                S(1)=zero
             }
             ! Convert velocity to momentum, equation (9)
-            ^C&w(ix^D,m^C_)=w(ix^D,rho_)*w(ix^D,m^C_)+S(ix^D,^C)*eos%inv_squared_c\
+            ^C&w(ix^D,m^C_)=w(ix^D,rho_)*w(ix^D,m^C_)+S(^C)*eos%inv_squared_c\
         {end do\}
 
     end subroutine mhd_to_conserved_semirelati_noe
@@ -961,7 +961,7 @@ contains
 
         double precision :: T_val, eint_val(ixO^S), T_FI, log_T_min
         double precision :: nH(ixI^S), btot(1:ndir)
-        double precision :: efd(ixO^S,1:ndir), S(ixO^S,1:ndir)
+        double precision :: efd(1:ndir), S(1:ndir)
         integer :: ix^D
 
         ! Temperature above which gas is fully ionised
@@ -1008,23 +1008,23 @@ contains
                   ^C&btot(^C)=btot(^C)+block%B0(ix^D,^C,b0i)\
               end if
               {^IFTHREEC
-                  efd(ix^D,1)=btot(2)*w(ix^D,m3_)-btot(3)*w(ix^D,m2_)
-                  efd(ix^D,2)=btot(3)*w(ix^D,m1_)-btot(1)*w(ix^D,m3_)
-                  efd(ix^D,3)=btot(1)*w(ix^D,m2_)-btot(2)*w(ix^D,m1_)
-                  S(ix^D,1)=efd(ix^D,2)*btot(3)-efd(ix^D,3)*btot(2)
-                  S(ix^D,2)=efd(ix^D,3)*btot(1)-efd(ix^D,1)*btot(3)
-                  S(ix^D,3)=efd(ix^D,1)*btot(2)-efd(ix^D,2)*btot(1)
+                  efd(1)=btot(2)*w(ix^D,m3_)-btot(3)*w(ix^D,m2_)
+                  efd(2)=btot(3)*w(ix^D,m1_)-btot(1)*w(ix^D,m3_)
+                  efd(3)=btot(1)*w(ix^D,m2_)-btot(2)*w(ix^D,m1_)
+                  S(1)=efd(2)*btot(3)-efd(3)*btot(2)
+                  S(2)=efd(3)*btot(1)-efd(1)*btot(3)
+                  S(3)=efd(1)*btot(2)-efd(2)*btot(1)
               }
               {^IFTWOC
-                  efd(ix^D,1)=zero
+                  efd(1)=zero
                   ! switch 3 with 2 to add 3 when ^C from 1 to 2
-                  efd(ix^D,2)=btot(1)*w(ix^D,m2_)-btot(2)*w(ix^D,m1_)
-                  S(ix^D,1)=-efd(ix^D,2)*btot(2)
-                  S(ix^D,2)=efd(ix^D,2)*btot(1)
+                  efd(2)=btot(1)*w(ix^D,m2_)-btot(2)*w(ix^D,m1_)
+                  S(1)=-efd(2)*btot(2)
+                  S(2)=efd(2)*btot(1)
               }
               {^IFONEC
-                  efd(ix^D,1)=zero
-                  S(ix^D,1)=zero
+                  efd(1)=zero
+                  S(1)=zero
               }
               if (mhd_internal_e) then
                   w(ix^D,e_) = eint_val(ix^D)
@@ -1033,10 +1033,10 @@ contains
                   w(ix^D,e_) = eint_val(ix^D) &
                       + half*(w(ix^D,rho_)*(^C&w(ix^D,m^C_)**2+) &
                       + (^C&w(ix^D,b^C_)**2+) &
-                      + (^C&efd(ix^D,^C)**2+)*eos%inv_squared_c)
+                      + (^C&efd(^C)**2+)*eos%inv_squared_c)
               end if
               ! Convert velocity to momentum
-              ^C&w(ix^D,m^C_)=w(ix^D,rho_)*w(ix^D,m^C_)+S(ix^D,^C)*eos%inv_squared_c\
+              ^C&w(ix^D,m^C_)=w(ix^D,rho_)*w(ix^D,m^C_)+S(^C)*eos%inv_squared_c\
           {end do\}
         else
           {do ix^DB=ixOmin^DB,ixOmax^DB\}

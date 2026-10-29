@@ -293,10 +293,16 @@ contains
       mf(ixO^S,1:ndim)=block%B0(ixO^S,1:ndim,0)
     end if
 
-    !temperature
-    call fl%get_temperature_from_conserved(w,x,ixI^L,ixI^L,Te)
+    ! Constant conductivity does not use Te; retain ghost temperatures when
+    ! needed by the temperature-dependent conductivity and saturation gradient.
+    if(.not.fl%tc_constant) then
+      call fl%get_temperature_from_conserved(w,x,ixI^L,ixI^L,Te)
+    end if
     call fl%get_rho(w,x,ixI^L,ixO^L,rho)
-    call fl%get_ne_nH(ixI^L, ixO^L, w, x, ne, nH_arr)
+    ! Electron density is used only by the non-constant saturation correction.
+    if(.not.fl%tc_constant .and. fl%tc_saturate) then
+      call fl%get_ne_nH(ixI^L, ixO^L, w, x, ne, nH_arr)
+    end if
     ! the diffusivity is kappa/(rho c_v) with c_v = R/(gamma-1): weight rho by R
     if(associated(fl%get_var_Rfactor)) then
       call fl%get_var_Rfactor(w, x, ixI^L, ixO^L, Rf)
@@ -1437,9 +1443,16 @@ contains
     double precision :: dtdiff_tcond,maxtmp2
     integer          :: idim
 
-    call fl%get_temperature_from_conserved(w,x,ixI^L,ixI^L,Te)
+    ! Constant conductivity does not use Te; retain ghost temperatures when
+    ! needed by the temperature-dependent conductivity and saturation gradient.
+    if(.not.fl%tc_constant) then
+      call fl%get_temperature_from_conserved(w,x,ixI^L,ixI^L,Te)
+    end if
     call fl%get_rho(w,x,ixI^L,ixO^L,rho)
-    call fl%get_ne_nH(ixI^L, ixO^L, w, x, ne, nH_arr)
+    ! Electron density is used only by the non-constant saturation correction.
+    if(.not.fl%tc_constant .and. fl%tc_saturate) then
+      call fl%get_ne_nH(ixI^L, ixO^L, w, x, ne, nH_arr)
+    end if
     ! the diffusivity is kappa/(rho c_v) with c_v = R/(gamma-1): weight rho by R
     if(associated(fl%get_var_Rfactor)) then
       call fl%get_var_Rfactor(w, x, ixI^L, ixO^L, Rf)
@@ -2006,6 +2019,8 @@ contains
   !> so the next STS substep does not re-read negative w and amplify it.
   subroutine tc_patch_negative_eint(w, x, ixI^L, ixO^L, Te, ie, fl, patched)
     use mod_global_parameters
+    use iso_fortran_env, only: int64
+    use mod_small_values, only: repair_warning_state, report_repair_warning
     integer, intent(in)             :: ixI^L, ixO^L, ie
     double precision, intent(inout) :: w(ixI^S, 1:nw)
     double precision, intent(in)    :: x(ixI^S, 1:ndim)
@@ -2020,6 +2035,12 @@ contains
     double precision :: eint_new, small_e_local, log_T_min, T_floor
     double precision :: rho(ixI^S)
 
+    type(repair_warning_state), save :: warning_state
+    integer(int64) :: repair_events, edge_events
+    double precision :: first_x(ndim), first_before, first_after
+
+    repair_events=0_int64
+    edge_events=0_int64
     ipatch(ixI^S) = 0
 
     ! Mark cells with negative e_int
@@ -2049,6 +2070,11 @@ contains
     ! and floor w(:, ie) so subsequent STS substeps see a positive state.
     {do ix^DB=ixOmin^DB+1,ixOmax^DB-1\}
         if (ipatch(ix^D) == 1) then
+            repair_events=repair_events+1_int64
+            if(repair_events==1_int64) then
+              first_x=x(ix^D,1:ndim)
+              first_before=w(ix^D,ie)
+            end if
             T_avg = 0.0d0
             count = 0
             {^IFONED
@@ -2091,9 +2117,7 @@ contains
             ! this TC substep; the next call recomputes it from w).
             Te(ix^D) = T_use
 
-            write(*,*) ' WARNING: tc_patch_eint it=', it, &
-                ' e_int=', w(ix^D, ie), &
-                ' pe=', mype, ' x=', x(ix^D, 1:ndim)
+            if(repair_events==1_int64) first_after=w(ix^D,ie)
             ipatch(ix^D) = 2  ! mark as handled
         end if
     {end do\}
@@ -2103,6 +2127,12 @@ contains
     ! repair w(:, ie) consistently so STS does not re-read negative e.
     {do ix^DB=ixOmin^DB,ixOmax^DB\}
         if (ipatch(ix^D) == 1) then
+            repair_events=repair_events+1_int64
+            edge_events=edge_events+1_int64
+            if(repair_events==1_int64) then
+              first_x=x(ix^D,1:ndim)
+              first_before=w(ix^D,ie)
+            end if
             T_use    = T_floor
             rho_cell = max(rho(ix^D), small_density)
             nH_cell  = rho_cell / fl%nH2rhoFactor
@@ -2111,12 +2141,12 @@ contains
             eint_new = nH_cell * fl%eint_from_T(log_nH, log_T)
             w(ix^D, ie) = max(small_e_local, eint_new)
             Te(ix^D) = T_use
-            write(*,*) ' WARNING: tc_patch_eint it=', it, &
-                ' e_int=', w(ix^D, ie), &
-                ' pe=', mype, ' x=', x(ix^D, 1:ndim), ' (edge)'
+            if(repair_events==1_int64) first_after=w(ix^D,ie)
         end if
     {end do\}
 
+    call report_repair_warning(warning_state,'tc_patch_eint',repair_events, &
+         edge_events,ie,first_x,first_before,first_after)
   end subroutine tc_patch_negative_eint
 
 end module mod_thermal_conduction

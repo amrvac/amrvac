@@ -826,6 +826,7 @@ mod_thermal_conduction.o: mod_comm_lib.mod
 mod_thermal_conduction.o: mod_fix_conserve.mod
 mod_thermal_conduction.o: mod_geometry.mod
 mod_thermal_conduction.o: mod_global_parameters.mod
+mod_thermal_conduction.o: mod_small_values.mod
 mod_thermal_conduction.o: mod_supertimestepping.mod
 mod_thermal_emission.o: mod_comm_lib.mod
 mod_thermal_emission.o: mod_constants.mod

@@ -2,6 +2,8 @@
 !> pressures
 module mod_small_values
 
+  use iso_fortran_env, only: int64
+
   implicit none
   private
 
@@ -20,7 +22,51 @@ module mod_small_values
   public :: small_values_error
   public :: small_values_average
 
+  ! Per-process state; access only through report_repair_warning's critical region.
+  type, public :: repair_warning_state
+    integer(int64) :: events = 0_int64, next_report = 10_int64
+    integer :: details = 0
+  end type repair_warning_state
+  public :: report_repair_warning
+
 contains
+
+  ! Counts repair events, not distinct cells. No communication in this local path.
+  subroutine report_repair_warning(state,label,events,edges,iw,xfirst,before,after)
+    use mod_global_parameters, only: mype, it
+    type(repair_warning_state), intent(inout) :: state
+    character(len=*), intent(in) :: label
+    integer(int64), intent(in) :: events, edges
+    integer, intent(in) :: iw
+    double precision, intent(in) :: xfirst(:), before, after
+    logical :: milestone
+
+    if(events<=0_int64) return
+    !$omp critical(amrvac_repair_warning)
+    ! Saturate rather than wrap on exceptionally long runs.
+    state%events=state%events+min(events,huge(state%events)-state%events)
+    milestone=.false.
+    if(state%next_report>0_int64) then
+      milestone=state%events>=state%next_report
+      do while(state%events>=state%next_report)
+        if(state%next_report>huge(state%next_report)/10_int64) then
+          state%next_report=0_int64
+          exit
+        end if
+        state%next_report=state%next_report*10_int64
+      end do
+    end if
+    if(state%details<3) then
+      state%details=state%details+1
+      write(*,*) 'WARNING ',label,': rank=',mype,' it=',it, &
+           ' events=',events,' edges=',edges,' cumulative_events=',state%events
+      write(*,*) '  first: variable=',iw,' x=',xfirst,' before=',before,' after=',after
+      if(state%details==3) write(*,*) '  Further detailed reports suppressed; cumulative milestones only.'
+    else if(milestone) then
+      write(*,*) 'WARNING ',label,': rank=',mype,' it=',it,' cumulative_events=',state%events
+    end if
+    !$omp end critical(amrvac_repair_warning)
+  end subroutine report_repair_warning
 
   subroutine small_values_error(wprim, x, ixI^L, ixO^L, w_flag, subname)
     use mod_global_parameters
@@ -95,6 +141,12 @@ contains
     integer, optional, intent(in)   :: windex
     integer                         :: iw, kxO^L, ix^D, i, nwstart, nwend
 
+    type(repair_warning_state), save :: warning_state
+    integer(int64) :: fallback_events
+    integer :: first_iw
+    double precision :: first_x(ndim), first_before, first_after
+
+    fallback_events=0_int64
     if(present(windex)) then
       nwstart=windex
       nwend=windex
@@ -127,20 +179,23 @@ contains
                    / count(w_flag(kxO^S,iw) .eqv. .false.)
             end if
           else
-            write(*,*) "no cells without error were found in cube of size", & 
-                 small_values_daverage
-            write(*,*) "at location:", x(ix^D, 1:ndim)
-            write(*,*) "at index:", ix^D
-            write(*,*) "w numer:", iw
-            !write(*,*) "Saving status at the previous time step"
-            !crash=.true.
-            write(*,*) "replace with small values"
+            fallback_events=fallback_events+1_int64
+            if(fallback_events==1_int64) then
+              first_iw=iw
+              first_x=x(ix^D,1:ndim)
+              first_before=w(ix^D,iw)
+            end if
             if(iw==iw_e) w(ix^D, iw)=small_pressure
             if(iw==iw_rho) w(ix^D, iw)=small_density
+            if(fallback_events==1_int64) first_after=w(ix^D,iw)
           end if
         end if
      {enddo^D&\}
     end do
+    ! Other variables can remain unchanged in this existing fallback path.
+    if(fallback_events>0_int64) call report_repair_warning(warning_state, &
+         'small_values_average: no valid neighbours',fallback_events,0_int64, &
+         first_iw,first_x,first_before,first_after)
   end subroutine small_values_average
 
 end module mod_small_values
