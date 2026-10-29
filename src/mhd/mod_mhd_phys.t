@@ -4439,7 +4439,7 @@ contains
 
     if(mhd_hyperbolic_tc) then
      {do ix^DB=ixOmin^DB,ixOmax^DB\}
-        call mhd_hyperbolic_tc_unit_vector(w(ix^D,mag(1:ndir)),bunit_tc)
+        bunit_tc=B_unit_vector(w(ix^D,mag(1:ndir)))
         f(ix^D,e_)=f(ix^D,e_)+w(ix^D,qpar_)*bunit_tc(idim)
         f(ix^D,qpar_)=zero
         if(use_perp_flux) then
@@ -4585,7 +4585,7 @@ contains
     end if
     if(mhd_hyperbolic_tc) then
      {do ix^DB=ixOmin^DB,ixOmax^DB\}
-        call mhd_hyperbolic_tc_unit_vector(w(ix^D,mag(1:ndir)),bunit_tc)
+        bunit_tc=B_unit_vector(w(ix^D,mag(1:ndir)))
         f(ix^D,e_)=f(ix^D,e_)+w(ix^D,qpar_)*bunit_tc(idim)
         f(ix^D,qpar_)=zero
         if(use_perp_flux) then
@@ -4748,7 +4748,7 @@ contains
     end if
     if(mhd_hyperbolic_tc) then
      {do ix^DB=ixOmin^DB,ixOmax^DB\}
-        call mhd_hyperbolic_tc_unit_vector(Btotal(ix^D,1:ndir),bunit_tc)
+        bunit_tc=B_unit_vector(Btotal(ix^D,1:ndir))
         f(ix^D,e_)=f(ix^D,e_)+w(ix^D,qpar_)*bunit_tc(idim)
         f(ix^D,qpar_)=zero
         if(use_perp_flux) then
@@ -4880,7 +4880,7 @@ contains
     if(use_perp_flux) call mhd_get_hyperbolic_tc_geometry(ixI^L,ixO^L,Te,Bvec,bgradT,gradTperp_mag,nperp)
     if(mhd_hyperbolic_tc) then
      {do ix^DB=ixOmin^DB,ixOmax^DB\}
-        call mhd_hyperbolic_tc_unit_vector(Bvec(ix^D,1:ndir),bunit_tc)
+        bunit_tc=B_unit_vector(Bvec(ix^D,1:ndir))
         f(ix^D,e_)=f(ix^D,e_)+w(ix^D,qpar_)*bunit_tc(idim)
         f(ix^D,qpar_)=zero
         if(use_perp_flux) then
@@ -5591,26 +5591,25 @@ contains
   !> B must contain the total field, including B0 when splitting is enabled.
   !> Preserve the weak-field cutoff |B| <= smalldouble, with max-component
   !> scaling to avoid squaring absolute field strengths or large component ratios.
-  pure subroutine mhd_hyperbolic_tc_unit_vector(B,bunit)
+  pure function B_unit_vector(B) result(bunit)
     use mod_global_parameters, only: ndir, zero, smalldouble
-    double precision, intent(in) :: B(ndir)
-    double precision, intent(out) :: bunit(ndir)
-    double precision :: scale, scaled_norm
+    double precision, intent(in) :: B(:)
+    double precision :: bunit(ndir), maxm, scaled_norm
 
-    scale=maxval(abs(B))
-    if(scale==zero) then
+    maxm=maxval(abs(B))
+    if(maxm==zero) then
       bunit=zero
       return
     end if
-    ^C&bunit(^C)=B(^C)/scale\
+    ^C&bunit(^C)=B(^C)/maxm\
     scaled_norm=dsqrt(^C&bunit(^C)**2+)
     ! Compare without forming scale*scaled_norm, which could overflow.
-    if(scale<=smalldouble/scaled_norm) then
+    if(maxm<=smalldouble/scaled_norm) then
       bunit=zero
     else
       ^C&bunit(^C)=bunit(^C)/scaled_norm\
     end if
-  end subroutine mhd_hyperbolic_tc_unit_vector
+  end function B_unit_vector
 
   subroutine mhd_get_hyperbolic_tc_geometry(ixI^L,ixO^L,Te,Bvec,bgradT,gradTperp_mag,nperp)
     use mod_global_parameters
@@ -5635,7 +5634,7 @@ contains
    {^IFTWOD
     do ix2=ixOmin2,ixOmax2
       do ix1=ixOmin1,ixOmax1
-        call mhd_hyperbolic_tc_unit_vector(Bvec(ix^D,1:ndir),bunitvec)
+        bunitvec=B_unit_vector(Bvec(ix^D,1:ndir))
         if(slab_uniform) then
           gradT(1)=((8.d0*(Te(ix1+1,ix2)-Te(ix1-1,ix2))-Te(ix1+2,ix2)+Te(ix1-2,ix2))/12.d0)/block%ds(ix^D,1)
           gradT(2)=((8.d0*(Te(ix1,ix2+1)-Te(ix1,ix2-1))-Te(ix1,ix2+2)+Te(ix1,ix2-2))/12.d0)/block%ds(ix^D,2)
@@ -5678,7 +5677,7 @@ contains
     do ix3=ixOmin3,ixOmax3
       do ix2=ixOmin2,ixOmax2
         do ix1=ixOmin1,ixOmax1
-          call mhd_hyperbolic_tc_unit_vector(Bvec(ix^D,1:ndir),bunitvec)
+          bunitvec=B_unit_vector(Bvec(ix^D,1:ndir))
 
           if(slab_uniform) then
             gradT(1)=((8.d0*(Te(ix1+1,ix2,ix3)-Te(ix1-1,ix2,ix3))-Te(ix1+2,ix2,ix3)+Te(ix1-2,ix2,ix3))/12.d0)/block%ds(ix^D,1)
@@ -5829,7 +5828,7 @@ contains
       do idir=1,ndir
         B2=B2+Bvec(ix1,idir)**2
       end do
-      call mhd_hyperbolic_tc_unit_vector(Bvec(ix1,1:ndir),bunit_tc)
+      bunit_tc=B_unit_vector(Bvec(ix1,1:ndir))
       bgradT(ix1)=bunit_tc(1)*gradT1
       kappaT5_bgradT=kappa_T5*bgradT(ix1)
       inv_rho=1.d0/rho_loc(ix1)
