@@ -308,6 +308,9 @@ contains
     chi_p(1:nxg,1:nyg) = chi_g; b_p(1:nxg,1:nyg) = b_g
     chi_p(1:nxg,0) = chi_g(:,1);     b_p(1:nxg,0) = b_g(:,1)
     chi_p(1:nxg,nyg+1) = chi_g(:,nyg); b_p(1:nxg,nyg+1) = b_g(:,nyg)
+    ! An open end is vacuum, so the first step crosses only the half cell inside the band
+    if(.not.bc_lo_thermal) chi_p(1:nxg,0) = 0.0d0
+    if(.not.bc_hi_thermal) chi_p(1:nxg,nyg+1) = 0.0d0
     ! The edge columns are copied after the rows, so the corners take the corner cells
     chi_p(0,:) = chi_p(1,:);  chi_p(nxg+1,:) = chi_p(nxg,:)
     b_p(0,:) = b_p(1,:);      b_p(nxg+1,:) = b_p(nxg,:)

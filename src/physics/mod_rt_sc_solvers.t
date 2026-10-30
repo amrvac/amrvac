@@ -300,8 +300,8 @@ contains
       call rt_sc_chiB(ixG^LL, ixG^LL, ps(igrid)%w, ps(igrid)%x, rtw_chib(:,:,iblk), rtw_bb(:,:,iblk))
       ! Beyond the band ends chi and B take the edge values, as in the gather, so that the deep
       ! row thermalises. A ghost extrapolation would turn the large deep chi into spurious heating
-      if(wv_bj(iblk)==1)       call copy_edge_row(iGlo_v, iMlo_v-1, iMlo_v)
-      if(wv_bj(iblk)==wv_nbxv) call copy_edge_row(iMhi_v+1, iGhi_v, iMhi_v)
+      if(wv_bj(iblk)==1)       call copy_edge_row(iGlo_v, iMlo_v-1, iMlo_v, bc_lo_thermal)
+      if(wv_bj(iblk)==wv_nbxv) call copy_edge_row(iMhi_v+1, iGhi_v, iMhi_v, bc_hi_thermal)
       cover(wv_bi(iblk), wv_bj(iblk)) = cover(wv_bi(iblk), wv_bj(iblk)) + 1
     end do
     ! The coverage is summed over the ranks before it is checked
@@ -312,16 +312,24 @@ contains
       call mpistop("rt_band_blocks: RT band is not a complete single AMR level")
     end if
   contains
-    !> Rows iv_lo to iv_hi of the chi and B caches of block iblk take row iv_src
-    subroutine copy_edge_row(iv_lo, iv_hi, iv_src)
+    !> Ghost rows iv_lo to iv_hi of the chi and B caches of block iblk beyond the edge row iv_src.
+    !> At an open end chi is zero in the ghosts, so that the first step into the band crosses only
+    !> the half cell between the band edge and the cell centre, chi_edge dy/2 in optical depth.
+    !> Copying the edge chi would add a ghost half cell of emitting gas above the band and lower
+    !> the outgoing flux by about (3/4) q(0) dtau of sigma Teff**4. At a thermal end chi takes the
+    !> edge value and B keeps the value rt_sc_chiB gave the ghost state, which the boundary
+    !> conditions set, so that the inflow of rt_thermal_inflow does not follow the heating of the
+    !> band
+    subroutine copy_edge_row(iv_lo, iv_hi, iv_src, thermal)
       integer, intent(in) :: iv_lo, iv_hi, iv_src
+      logical, intent(in) :: thermal
       integer :: ih, iv, i1, i2, j1, j2
       do iv = iv_lo, iv_hi
         do ih = iGlo_h, iGhi_h
           call hv(ih, iv, i1, i2)
           call hv(ih, iv_src, j1, j2)
-          rtw_chib(i1,i2,iblk) = rtw_chib(j1,j2,iblk)
-          rtw_bb(i1,i2,iblk)   = rtw_bb(j1,j2,iblk)
+          rtw_chib(i1,i2,iblk) = merge(rtw_chib(j1,j2,iblk), 0.0d0, thermal)
+          if(.not.thermal) rtw_bb(i1,i2,iblk) = rtw_bb(j1,j2,iblk)
         end do
       end do
     end subroutine copy_edge_row
@@ -499,6 +507,45 @@ contains
     ! The datatype goes back to the nslot intensity columns for the next band
     call create_bc_mpi_datatype(i_isw, nslot)
   end subroutine rt_wave_band_close
+
+  !> Diffusion inflow of ray k at a thermal band end, written into the ghosts of the block copy iib.
+  !> Beyond the end the radiation is taken as the diffusion limit, I = B + abs(mu_v) dB/dtau with tau
+  !> increasing away from the band, where the isotropic I = B would carry no flux into the band and
+  !> leave it with half the diffusive flux at its edge. B and its gradient come from the two ghost
+  !> rows, the state the boundary conditions set, and not from the band, whose heating would
+  !> otherwise feed back on its own inflow. Only rays entering through the end change
+  subroutine rt_thermal_inflow(iblk, k, iib)
+    use mod_global_parameters
+    integer, intent(in) :: iblk, k
+    double precision, intent(inout) :: iib(ixG^T)
+    if(wv_bj(iblk)==1 .and. bc_lo_thermal .and. mu_v(k) > 0.0d0) &
+         call fill_rows(iGlo_v, iMlo_v-1, iMlo_v-1, iMlo_v-2)
+    if(wv_bj(iblk)==wv_nbxv .and. bc_hi_thermal .and. mu_v(k) < 0.0d0) &
+         call fill_rows(iMhi_v+1, iGhi_v, iMhi_v+1, iMhi_v+2)
+  contains
+    !> Ghost rows iv_lo to iv_hi, with the gradient from the ghost row g1 next to the band to the
+    !> one beyond it, g2. With a single ghost row there is no gradient, and the inflow is B itself
+    subroutine fill_rows(iv_lo, iv_hi, g1, g2)
+      integer, intent(in) :: iv_lo, iv_hi, g1, g2
+      integer :: ih, iv, i1, i2, a1, a2, b1, b2
+      double precision :: dbdtau
+      do ih = iGlo_h, iGhi_h
+        dbdtau = 0.0d0
+        call hv(ih, g1, a1, a2)
+        ! dB/dtau = (B_g2 - B_g1)/(chi dy), the gradient outward from the band, with the edge chi
+        ! that the ghosts carry. A transparent edge, where the switch is off, has no gradient
+        if(iv_hi > iv_lo .and. rtw_chib(a1,a2,iblk) > 0.0d0) then
+          call hv(ih, g2, b1, b2)
+          dbdtau = (rtw_bb(b1,b2,iblk) - rtw_bb(a1,a2,iblk))/(rtw_chib(a1,a2,iblk)*rg_dv)
+        end if
+        do iv = iv_lo, iv_hi
+          call hv(ih, iv, i1, i2)
+          ! I_ghost = B_ghost + abs(mu_v) dB/dtau
+          iib(i1,i2) = rtw_bb(i1,i2,iblk) + dabs(mu_v(k))*dbdtau
+        end do
+      end do
+    end subroutine fill_rows
+  end subroutine rt_thermal_inflow
 
   !> Add the weighted intensity iib of ray k on block iblk to J in i_qrad, Fy in i_frad and Fx in
   !> rtw_fx
@@ -685,6 +732,7 @@ contains
             ! domain edge, and its interior is written back
             iib = ps_rt(igrid)%w(:,:,i_isw)
             if(wv_seam) call rt_seam_read(iib, igrid, wv_bi(iblk), sx, k)
+            call rt_thermal_inflow(iblk, k, iib)
             call rt_sweep_one(iblk, k, iib)
             ps_rt(igrid)%w(ixMlo1:ixMhi1,ixMlo2:ixMhi2,i_isw) = iib(ixMlo1:ixMhi1,ixMlo2:ixMhi2)
             if(wv_seam) call rt_seam_write(iib, igrid, wv_bi(iblk), sx, k)
@@ -771,6 +819,7 @@ contains
               iib = ps_rt(igrid)%w(:,:,islot)
               iib(ixMlo1:ixMhi1,ixMlo2:ixMhi2) = 0.0d0
               if(wv_seam) call rt_seam_read(iib, igrid, wv_bi(iblk), grp_sx(gg), k)
+              call rt_thermal_inflow(iblk, k, iib)
               call rt_sweep_one(iblk, k, iib)
               ! The interior goes back into the slot, the seam edge is kept, and the weighted
               ! intensity adds to J, Fy and Fx straight away
