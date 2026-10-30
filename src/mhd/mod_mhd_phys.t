@@ -3256,8 +3256,9 @@ contains
     if (eos%eos_type == 'LTE' .or. eos%eos_type == 'PI') then
       Te(ixI^S) = w(ixI^S, Te_)
     else
+      call mhd_get_rho(w,x,ixI^L,ixI^L,ne)
       call eos%get_Rfactor(w,x,ixI^L,ixI^L,Te)
-      Te(ixI^S)=w(ixI^S,p_)/(Te(ixI^S)*w(ixI^S,rho_))
+      Te(ixI^S)=w(ixI^S,p_)/(Te(ixI^S)*ne(ixI^S))
     end if
     Tco_local=zero
     Tmax_local=maxval(Te(ixO^S))
@@ -4327,16 +4328,12 @@ contains
 
     double precision             :: vHall(ixI^S,1:ndir)
     double precision             :: ptotal
-    double precision             :: R(ixI^S), Te(ixI^S), rho_loc(ixI^S)
-    double precision             :: Bvec(ixI^S,1:ndir)
-    double precision             :: bgradT(ixI^S), gradTperp_mag(ixI^S)
     double precision             :: nperp(ixI^S,1:ndir)
     double precision             :: uawsom_zeta(ixI^S), uawsom_radius(ixI^S)
     double precision             :: uawsom_lperp(ixI^S), uawsom_denom
     double precision             :: uawsom_pwave, uawsom_Bi
-    double precision             :: bunit_tc(ndir), bcell_tc(ndir)
-    logical                      :: use_perp_flux
-    integer                      :: iw, ix^D, idir
+    double precision             :: bunit_tc(ndir)
+    integer                      :: iw, ix^D
 
     if(mhd_uawsom) call mhd_uawsom_get_coefficients(w,x,ixI^L,ixO^L,.true.,&
          uawsom_zeta,uawsom_radius,uawsom_lperp)
@@ -4435,33 +4432,19 @@ contains
      {end do\}
     end do
 
-    use_perp_flux = mhd_hyperbolic_tc .and. mhd_hyperbolic_tc_use_perp
-    if(use_perp_flux) then
-      call mhd_get_rho(w,x,ixI^L,ixI^L,rho_loc)
-      call eos%get_Rfactor(w,x,ixI^L,ixI^L,R)
-      if(has_equi_rho_and_p) then
-        Te(ixI^S)=(w(ixI^S,p_)+block%equi_vars(ixI^S,equi_pe0_,b0i)) / &
-                  (R(ixI^S)*rho_loc(ixI^S))
-      else
-        Te(ixI^S)=w(ixI^S,p_)/(R(ixI^S)*rho_loc(ixI^S))
-      end if
-      {do ix^DB=ixOmin^DB,ixOmax^DB\}
-        {^C& Bvec(ix^D,^C)=w(ix^D,mag(^C))\}
-      {end do\}
-      call mhd_get_hyperbolic_tc_geometry(ixI^L,ixO^L,Te,Bvec,bgradT,gradTperp_mag,nperp)
-    end if
-
     if(mhd_hyperbolic_tc) then
      {do ix^DB=ixOmin^DB,ixOmax^DB\}
-        ^C&bcell_tc(^C)=w(ix^D,mag(^C))\
-        bunit_tc=B_unit_vector(bcell_tc)
+        bunit_tc=B_unit_vector(w(ix^D,mag(1:ndir)))
         f(ix^D,e_)=f(ix^D,e_)+w(ix^D,qpar_)*bunit_tc(idim)
         f(ix^D,qpar_)=zero
-        if(use_perp_flux) then
+     {end do\}
+      if(mhd_hyperbolic_tc_use_perp) then
+        call mhd_get_hyperbolic_tc_nperp(w,x,ixI^L,ixO^L,w(ixI^S,mag(1:ndir)),nperp)
+       {do ix^DB=ixOmin^DB,ixOmax^DB\}
           f(ix^D,e_)=f(ix^D,e_)+w(ix^D,qperp_)*nperp(ix^D,idim)
           f(ix^D,qperp_)=zero
-        end if
-     {end do\}
+       {end do\}
+      end if
     end if
   end subroutine mhd_get_flux
 
@@ -4543,13 +4526,9 @@ contains
     double precision,intent(out) :: f(ixI^S,nwflux)
 
     double precision             :: vHall(ixI^S,1:ndir)
-    double precision             :: R(ixI^S), Te(ixI^S), rho_loc(ixI^S)
-    double precision             :: Bvec(ixI^S,1:ndir)
-    double precision             :: bgradT(ixI^S), gradTperp_mag(ixI^S)
     double precision             :: nperp(ixI^S,1:ndir)
-    double precision             :: bunit_tc(ndir), bcell_tc(ndir)
-    logical                      :: use_perp_flux
-    integer                      :: iw, ix^D, idir
+    double precision             :: bunit_tc(ndir)
+    integer                      :: iw, ix^D
 
     {do ix^DB=ixOmin^DB,ixOmax^DB\}
       ! Get flux of density
@@ -4586,28 +4565,22 @@ contains
         f(ix^D,tracer(iw))=w(ix^D,mom(idim))*w(ix^D,tracer(iw))
      {end do\}
     end do
-    use_perp_flux = mhd_hyperbolic_tc .and. mhd_hyperbolic_tc_use_perp
-    if(use_perp_flux) then
-      call mhd_get_rho(w,x,ixI^L,ixI^L,rho_loc)
-      call eos%get_Rfactor(w,x,ixI^L,ixI^L,R)
-      Te(ixI^S)=w(ixI^S,p_)/(R(ixI^S)*rho_loc(ixI^S))
-      {do ix^DB=ixOmin^DB,ixOmax^DB\}
-        {^C& Bvec(ix^D,^C)=w(ix^D,mag(^C))\}
-      {end do\}
-      call mhd_get_hyperbolic_tc_geometry(ixI^L,ixO^L,Te,Bvec,bgradT,gradTperp_mag,nperp)
-    end if
+
     if(mhd_hyperbolic_tc) then
      {do ix^DB=ixOmin^DB,ixOmax^DB\}
-        ^C&bcell_tc(^C)=w(ix^D,mag(^C))\
-        bunit_tc=B_unit_vector(bcell_tc)
+        bunit_tc=B_unit_vector(w(ix^D,mag(1:ndir)))
         f(ix^D,e_)=f(ix^D,e_)+w(ix^D,qpar_)*bunit_tc(idim)
         f(ix^D,qpar_)=zero
-        if(use_perp_flux) then
+     {end do\}
+      if(mhd_hyperbolic_tc_use_perp) then
+        call mhd_get_hyperbolic_tc_nperp(w,x,ixI^L,ixO^L,w(ixI^S,mag(1:ndir)),nperp)
+       {do ix^DB=ixOmin^DB,ixOmax^DB\}
           f(ix^D,e_)=f(ix^D,e_)+w(ix^D,qperp_)*nperp(ix^D,idim)
           f(ix^D,qperp_)=zero
-        end if
-     {end do\}
+       {end do\}
+      end if
     end if
+
   end subroutine mhd_get_flux_hde
 
   !> Calculate fluxes within ixO^L with possible splitting
@@ -4628,17 +4601,14 @@ contains
     double precision,intent(out) :: f(ixI^S,nwflux)
 
     double precision             :: vHall(ixI^S,1:ndir)
-    double precision             :: ptotal, Btotal(ixO^S,1:ndir)
-    double precision             :: R(ixI^S), Te(ixI^S), rho_loc(ixI^S)
-    double precision             :: Bvec(ixI^S,1:ndir)
-    double precision             :: bgradT(ixI^S), gradTperp_mag(ixI^S)
+    double precision             :: ptotal, btotal(ixO^S,1:ndir)
     double precision             :: nperp(ixI^S,1:ndir)
     double precision             :: uawsom_zeta(ixI^S), uawsom_radius(ixI^S)
     double precision             :: uawsom_lperp(ixI^S), uawsom_denom
     double precision             :: uawsom_pwave, uawsom_Bi
     double precision             :: bunit_tc(ndir)
     logical                      :: use_perp_flux
-    integer                      :: iw, ix^D, idir
+    integer                      :: iw, ix^D
 
     if(mhd_uawsom) call mhd_uawsom_get_coefficients(w,x,ixI^L,ixO^L,.true.,&
          uawsom_zeta,uawsom_radius,uawsom_lperp)
@@ -4743,32 +4713,22 @@ contains
         f(ix^D,tracer(iw))=w(ix^D,mom(idim))*w(ix^D,tracer(iw))
      {end do\}
     end do
-    use_perp_flux = mhd_hyperbolic_tc .and. mhd_hyperbolic_tc_use_perp
-    if(use_perp_flux) then
-      call mhd_get_rho(w,x,ixI^L,ixI^L,rho_loc)
-      call eos%get_Rfactor(w,x,ixI^L,ixI^L,R)
-      if(has_equi_rho_and_p) then
-        Te(ixI^S)=(w(ixI^S,p_)+block%equi_vars(ixI^S,equi_pe0_,b0i)) / &
-                  (R(ixI^S)*rho_loc(ixI^S))
-      else
-        Te(ixI^S)=w(ixI^S,p_)/(R(ixI^S)*rho_loc(ixI^S))
-      end if
-      {do ix^DB=ixOmin^DB,ixOmax^DB\}
-        {^C& Bvec(ix^D,^C)=Btotal(ix^D,^C)\}
-      {end do\}
-      call mhd_get_hyperbolic_tc_geometry(ixI^L,ixO^L,Te,Bvec,bgradT,gradTperp_mag,nperp)
-    end if
+
     if(mhd_hyperbolic_tc) then
      {do ix^DB=ixOmin^DB,ixOmax^DB\}
-        bunit_tc=B_unit_vector(Btotal(ix^D,1:ndir))
+        bunit_tc=B_unit_vector(btotal(ix^D,1:ndir))
         f(ix^D,e_)=f(ix^D,e_)+w(ix^D,qpar_)*bunit_tc(idim)
         f(ix^D,qpar_)=zero
-        if(use_perp_flux) then
+     {end do\}
+      if(mhd_hyperbolic_tc_use_perp) then
+        call mhd_get_hyperbolic_tc_nperp(w,x,ixI^L,ixO^L,btotal,nperp)
+       {do ix^DB=ixOmin^DB,ixOmax^DB\}
           f(ix^D,e_)=f(ix^D,e_)+w(ix^D,qperp_)*nperp(ix^D,idim)
           f(ix^D,qperp_)=zero
-        end if
-     {end do\}
+       {end do\}
+      end if
     end if
+
   end subroutine mhd_get_flux_split
 
   !> Semirelativistic fluxes within ixO^L, with B0 splitting per Gombosi et al. 2002 eqs (92)-(97)
@@ -4784,34 +4744,30 @@ contains
     double precision, intent(in) :: x(ixI^S,1:ndim)
     double precision,intent(out) :: f(ixI^S,nwflux)
     double precision             :: SA(ixO^S,1:ndir),E(ixO^S,1:ndir),e2
-    double precision             :: btf(1:ndir),b0sq,btsq
-    double precision             :: R(ixI^S), Te(ixI^S), rho_loc(ixI^S)
-    double precision             :: Bvec(ixI^S,1:ndir)
-    double precision             :: bgradT(ixI^S), gradTperp_mag(ixI^S)
+    double precision             :: btf(ixI^S,1:ndir),b0sq,btsq
     double precision             :: nperp(ixI^S,1:ndir)
     double precision             :: bunit_tc(ndir)
-    logical                      :: use_perp_flux
-    integer                      :: iw, ix^D, idir
+    integer                      :: iw, ix^D
 
    {do ix^DB=ixOmin^DB,ixOmax^DB\}
       ! Get flux of density
       f(ix^D,rho_)=w(ix^D,mom(idim))*w(ix^D,rho_)
       ! total field for E, the induction flux and BB; the stored slot (B1 under splitting)
       ! for the magnetic energy and the Poynting vector, Gombosi et al. 2002 eqs (92), (96)
-      ^C&btf(^C)=w(ix^D,b^C_)\
+      ^C&btf(ix^D,^C)=w(ix^D,b^C_)\
       if(B0field) then
-        ^C&btf(^C)=btf(^C)+block%B0(ix^D,^C,idim)\
+        ^C&btf(ix^D,^C)=btf(ix^D,^C)+block%B0(ix^D,^C,idim)\
       end if
       ! E=Bxv
       {^IFTHREEC
-      E(ix^D,1)=btf(2)*w(ix^D,m3_)-btf(3)*w(ix^D,m2_)
-      E(ix^D,2)=btf(3)*w(ix^D,m1_)-btf(1)*w(ix^D,m3_)
-      E(ix^D,3)=btf(1)*w(ix^D,m2_)-btf(2)*w(ix^D,m1_)
+      E(ix^D,1)=btf(ix^D,2)*w(ix^D,m3_)-btf(ix^D,3)*w(ix^D,m2_)
+      E(ix^D,2)=btf(ix^D,3)*w(ix^D,m1_)-btf(ix^D,1)*w(ix^D,m3_)
+      E(ix^D,3)=btf(ix^D,1)*w(ix^D,m2_)-btf(ix^D,2)*w(ix^D,m1_)
       }
       {^IFTWOC
       E(ix^D,1)=zero
       ! switch 2 and 3 to add 3 when ^C is from 1 to 2
-      E(ix^D,2)=btf(1)*w(ix^D,m2_)-btf(2)*w(ix^D,m1_)
+      E(ix^D,2)=btf(ix^D,1)*w(ix^D,m2_)-btf(ix^D,2)*w(ix^D,m1_)
       }
       {^IFONEC
       E(ix^D,1)=zero
@@ -4846,10 +4802,10 @@ contains
       if(B0field) then
         ! eq (97): -(BB-B0B0) and 0.5*(B^2-B0^2); the electric terms are not split
         ^C&f(ix^D,m^C_)=w(ix^D,rho_)*w(ix^D,mom(idim))*w(ix^D,m^C_)&
-         -btf(idim)*btf(^C)+block%B0(ix^D,idim,idim)*block%B0(ix^D,^C,idim)&
+         -btf(ix^D,idim)*btf(ix^D,^C)+block%B0(ix^D,idim,idim)*block%B0(ix^D,^C,idim)&
          -E(ix^D,idim)*E(ix^D,^C)*inv_squared_c\
         b0sq=(^C&block%B0(ix^D,^C,idim)**2+)
-        btsq=(^C&btf(^C)**2+)
+        btsq=(^C&btf(ix^D,^C)**2+)
         f(ix^D,mom(idim))=f(ix^D,mom(idim))+w(ix^D,p_)+half*(btsq-b0sq+e2*inv_squared_c)
       else
         ^C&f(ix^D,m^C_)=w(ix^D,rho_)*w(ix^D,mom(idim))*w(ix^D,m^C_)&
@@ -4859,7 +4815,7 @@ contains
       end if
       ! compute flux of magnetic field
       ! f_i[b_k]=v_i*b_k-v_k*b_i
-      ^C&f(ix^D,b^C_)=w(ix^D,mom(idim))*btf(^C)-btf(idim)*w(ix^D,m^C_)\
+      ^C&f(ix^D,b^C_)=w(ix^D,mom(idim))*btf(ix^D,^C)-btf(ix^D,idim)*w(ix^D,m^C_)\
    {end do\}
 
     if(mhd_glm) then
@@ -4878,28 +4834,20 @@ contains
         f(ix^D,tracer(iw))=w(ix^D,mom(idim))*w(ix^D,tracer(iw))
      {end do\}
     end do
-    use_perp_flux = mhd_hyperbolic_tc .and. mhd_hyperbolic_tc_use_perp
-    if(use_perp_flux) then
-      call mhd_get_rho(w,x,ixI^L,ixI^L,rho_loc)
-      call eos%get_Rfactor(w,x,ixI^L,ixI^L,R)
-      Te(ixI^S)=w(ixI^S,p_)/(R(ixI^S)*rho_loc(ixI^S))
-    end if
-    if(use_perp_flux .or. mhd_hyperbolic_tc) then
-      ! heat flows along the total field, so B0 is added as in the classical split flux
-      Bvec(ixO^S,1:ndir)=w(ixO^S,mag(1:ndir))
-      if(B0field) Bvec(ixO^S,1:ndir)=Bvec(ixO^S,1:ndir)+block%B0(ixO^S,1:ndir,idim)
-    end if
-    if(use_perp_flux) call mhd_get_hyperbolic_tc_geometry(ixI^L,ixO^L,Te,Bvec,bgradT,gradTperp_mag,nperp)
+
     if(mhd_hyperbolic_tc) then
      {do ix^DB=ixOmin^DB,ixOmax^DB\}
-        bunit_tc=B_unit_vector(Bvec(ix^D,1:ndir))
+        bunit_tc=B_unit_vector(btf(ix^D,1:ndir))
         f(ix^D,e_)=f(ix^D,e_)+w(ix^D,qpar_)*bunit_tc(idim)
         f(ix^D,qpar_)=zero
-        if(use_perp_flux) then
+     {end do\}
+      if(mhd_hyperbolic_tc_use_perp) then
+        call mhd_get_hyperbolic_tc_nperp(w,x,ixI^L,ixO^L,btf,nperp)
+       {do ix^DB=ixOmin^DB,ixOmax^DB\}
           f(ix^D,e_)=f(ix^D,e_)+w(ix^D,qperp_)*nperp(ix^D,idim)
           f(ix^D,qperp_)=zero
-        end if
-     {end do\}
+       {end do\}
+      end if
     end if
   end subroutine mhd_get_flux_semirelati
 
@@ -5604,22 +5552,81 @@ contains
   !> Normalize every finite nonzero field with max-component scaling.
   !> Only the zero field has no direction; no weak-field cutoff is applied.
   pure function B_unit_vector(B) result(bunit)
-    use mod_global_parameters, only: ndir, zero
     ! Accept strided cell slices without forcing a contiguous input copy.
     ! Callers supply exactly ndir total-field components.
     double precision, intent(in) :: B(:)
-    double precision :: bunit(ndir), maxm, scaled_norm
+    double precision :: bunit(^NC), maxm, scaled_norm
 
     maxm=maxval(abs(B))
-    if(maxm==zero) then
-      bunit=zero
-      return
+    if(maxm==0.d0) then
+      bunit=0.d0
+    else
+      ^C&bunit(^C)=B(^C)/maxm\
+      scaled_norm=dsqrt(^C&bunit(^C)**2+)
+      ! At least one scaled component has magnitude one, so scaled_norm >= 1.
+      ^C&bunit(^C)=bunit(^C)/scaled_norm\
     end if
-    ^C&bunit(^C)=B(^C)/maxm\
-    scaled_norm=dsqrt(^C&bunit(^C)**2+)
-    ! At least one scaled component has magnitude one, so scaled_norm >= 1.
-    ^C&bunit(^C)=bunit(^C)/scaled_norm\
   end function B_unit_vector
+
+  subroutine mhd_get_hyperbolic_tc_nperp(w,x,ixI^L,ixO^L,Bvec,nperp)
+    use mod_global_parameters
+    use mod_geometry, only: gradient
+    integer, intent(in) :: ixI^L,ixO^L
+    double precision, intent(in) :: w(ixI^S,nw) ! primitive w
+    double precision, intent(in) :: x(ixI^S,1:ndim)
+    double precision, intent(in) :: Bvec(ixI^S,1:ndir)
+    double precision, intent(out) :: nperp(ixI^S,1:ndir)
+
+    double precision :: R(ixI^S), Te(ixI^S), bgradT
+    double precision :: bunitvec(ndir), gradT(ixI^S,ndir), gradT_perp(ndir)
+    integer :: ix^D, idir
+
+    call mhd_get_rho(w,x,ixI^L,ixI^L,Te)
+    call eos%get_Rfactor(w,x,ixI^L,ixI^L,R)
+    Te(ixI^S)=w(ixI^S,p_)/(Te(ixI^S)*R(ixI^S))
+    if(.not. slab_uniform) then
+      do idir=1,ndim
+        call gradient(Te,ixI^L,ixO^L,idir,gradT(ixI^S,idir))
+      end do
+      if(ndir>ndim) gradT(ixI^S,ndir)=0.d0
+    end if
+
+   {^IFTWOD
+    do ix2=ixOmin2,ixOmax2
+      do ix1=ixOmin1,ixOmax1
+        bunitvec=B_unit_vector(Bvec(ix^D,1:ndir))
+        if(slab_uniform) then
+          gradT(ix^D,1)=((8.d0*(Te(ix1+1,ix2)-Te(ix1-1,ix2))-Te(ix1+2,ix2)+Te(ix1-2,ix2))/12.d0)/block%ds(ix^D,1)
+          gradT(ix^D,2)=((8.d0*(Te(ix1,ix2+1)-Te(ix1,ix2-1))-Te(ix1,ix2+2)+Te(ix1,ix2-2))/12.d0)/block%ds(ix^D,2)
+          if(ndir>2) gradT(ix^D,ndir)=zero
+        end if
+
+        bgradT=(^C&bunitvec(^C)*gradT(ix^D,^C)+)
+        {^C& gradT_perp(^C)=gradT(ix^D,^C)-bgradT*bunitvec(^C)\}
+        nperp(ix^D,1:ndir)=B_unit_vector(gradT_perp(1:ndir))
+      end do
+    end do
+   }
+   {^IFTHREED
+    do ix3=ixOmin3,ixOmax3
+      do ix2=ixOmin2,ixOmax2
+        do ix1=ixOmin1,ixOmax1
+          bunitvec=B_unit_vector(Bvec(ix^D,1:ndir))
+
+          if(slab_uniform) then
+            gradT(ix^D,1)=((8.d0*(Te(ix1+1,ix2,ix3)-Te(ix1-1,ix2,ix3))-Te(ix1+2,ix2,ix3)+Te(ix1-2,ix2,ix3))/12.d0)/block%ds(ix^D,1)
+            gradT(ix^D,2)=((8.d0*(Te(ix1,ix2+1,ix3)-Te(ix1,ix2-1,ix3))-Te(ix1,ix2+2,ix3)+Te(ix1,ix2-2,ix3))/12.d0)/block%ds(ix^D,2)
+            gradT(ix^D,3)=((8.d0*(Te(ix1,ix2,ix3+1)-Te(ix1,ix2,ix3-1))-Te(ix1,ix2,ix3+2)+Te(ix1,ix2,ix3-2))/12.d0)/block%ds(ix^D,3)
+          end if
+
+          bgradT=(^C&bunitvec(^C)*gradT(ix^D,^C)+)
+          {^C& gradT_perp(^C)=gradT(ix^D,^C)-bgradT*bunitvec(^C)\}
+          nperp(ix^D,1:ndir)=B_unit_vector(gradT_perp(1:ndir))
+        end do
+      end do
+    end do
+    }
+  end subroutine mhd_get_hyperbolic_tc_nperp
 
   subroutine mhd_get_hyperbolic_tc_geometry(ixI^L,ixO^L,Te,Bvec,bgradT,gradTperp_mag,nperp)
     use mod_global_parameters
@@ -5630,15 +5637,15 @@ contains
     double precision, intent(out) :: bgradT(ixI^S), gradTperp_mag(ixI^S)
     double precision, intent(out) :: nperp(ixI^S,1:ndir)
 
-    double precision :: bunitvec(ndir), gradT(ndir), gradT_perp(ndir)
-    double precision :: gradT_cell(ixI^S,1:ndir)
+    double precision :: bunitvec(ndir), gradT(ixI^S,ndir), gradT_perp(ndir)
+    double precision :: maxm
     integer :: ix^D, idir
 
-    gradT_cell=zero
     if(.not. slab_uniform) then
       do idir=1,ndim
-        call gradient(Te,ixI^L,ixO^L,idir,gradT_cell(ixI^S,idir))
+        call gradient(Te,ixI^L,ixO^L,idir,gradT(ixI^S,idir))
       end do
+      if(ndir>ndim) gradT(ixI^S,ndir)=0.d0
     end if
 
    {^IFTWOD
@@ -5646,27 +5653,22 @@ contains
       do ix1=ixOmin1,ixOmax1
         bunitvec=B_unit_vector(Bvec(ix^D,1:ndir))
         if(slab_uniform) then
-          gradT(1)=((8.d0*(Te(ix1+1,ix2)-Te(ix1-1,ix2))-Te(ix1+2,ix2)+Te(ix1-2,ix2))/12.d0)/block%ds(ix^D,1)
-          gradT(2)=((8.d0*(Te(ix1,ix2+1)-Te(ix1,ix2-1))-Te(ix1,ix2+2)+Te(ix1,ix2-2))/12.d0)/block%ds(ix^D,2)
-          if(ndir>2) gradT(3)=zero
-        else
-          {^C& gradT(^C)=gradT_cell(ix^D,^C)\}
+          gradT(ix^D,1)=((8.d0*(Te(ix1+1,ix2)-Te(ix1-1,ix2))-Te(ix1+2,ix2)+Te(ix1-2,ix2))/12.d0)/block%ds(ix^D,1)
+          gradT(ix^D,2)=((8.d0*(Te(ix1,ix2+1)-Te(ix1,ix2-1))-Te(ix1,ix2+2)+Te(ix1,ix2-2))/12.d0)/block%ds(ix^D,2)
+          if(ndir>2) gradT(ix^D,3)=zero
         end if
 
-        bgradT(ix^D)=zero
-        {^C& bgradT(ix^D)=bgradT(ix^D)+bunitvec(^C)*gradT(^C)\}
-
-        {^C& gradT_perp(^C)=gradT(^C)-bgradT(ix^D)*bunitvec(^C)\}
-
-        gradTperp_mag(ix^D)=zero
-        {^C& gradTperp_mag(ix^D)=gradTperp_mag(ix^D)+gradT_perp(^C)**2\}
-        gradTperp_mag(ix^D)=dsqrt(gradTperp_mag(ix^D))
-
-        if(gradTperp_mag(ix^D)>smalldouble) then
-          {^C& nperp(ix^D,^C)=gradT_perp(^C)/gradTperp_mag(ix^D)\}
-        else
+        bgradT(ix^D)=(^C&bunitvec(^C)*gradT(ix^D,^C)+)
+        {^C& gradT_perp(^C)=gradT(ix^D,^C)-bgradT(ix^D)*bunitvec(^C)\}
+        maxm=maxval(abs(gradT_perp))
+        if(maxm==0.d0) then
           gradTperp_mag(ix^D)=zero
           {^C& nperp(ix^D,^C)=zero\}
+        else
+          ^C&nperp(ix^D,^C)=gradT_perp(^C)/maxm\
+          gradTperp_mag(ix^D)=dsqrt(^C&nperp(ix^D,^C)**2+)
+          ^C&nperp(ix^D,^C)=nperp(ix^D,^C)/gradTperp_mag(ix^D)\
+          gradTperp_mag(ix^D)=gradTperp_mag(ix^D)*maxm
         end if
       end do
     end do
@@ -5678,24 +5680,22 @@ contains
           bunitvec=B_unit_vector(Bvec(ix^D,1:ndir))
 
           if(slab_uniform) then
-            gradT(1)=((8.d0*(Te(ix1+1,ix2,ix3)-Te(ix1-1,ix2,ix3))-Te(ix1+2,ix2,ix3)+Te(ix1-2,ix2,ix3))/12.d0)/block%ds(ix^D,1)
-            gradT(2)=((8.d0*(Te(ix1,ix2+1,ix3)-Te(ix1,ix2-1,ix3))-Te(ix1,ix2+2,ix3)+Te(ix1,ix2-2,ix3))/12.d0)/block%ds(ix^D,2)
-            gradT(3)=((8.d0*(Te(ix1,ix2,ix3+1)-Te(ix1,ix2,ix3-1))-Te(ix1,ix2,ix3+2)+Te(ix1,ix2,ix3-2))/12.d0)/block%ds(ix^D,3)
-          else
-            {^C& gradT(^C)=gradT_cell(ix^D,^C)\}
+            gradT(ix^D,1)=((8.d0*(Te(ix1+1,ix2,ix3)-Te(ix1-1,ix2,ix3))-Te(ix1+2,ix2,ix3)+Te(ix1-2,ix2,ix3))/12.d0)/block%ds(ix^D,1)
+            gradT(ix^D,2)=((8.d0*(Te(ix1,ix2+1,ix3)-Te(ix1,ix2-1,ix3))-Te(ix1,ix2+2,ix3)+Te(ix1,ix2-2,ix3))/12.d0)/block%ds(ix^D,2)
+            gradT(ix^D,3)=((8.d0*(Te(ix1,ix2,ix3+1)-Te(ix1,ix2,ix3-1))-Te(ix1,ix2,ix3+2)+Te(ix1,ix2,ix3-2))/12.d0)/block%ds(ix^D,3)
           end if
 
-          bgradT(ix^D)=zero
-          {^C& bgradT(ix^D)=bgradT(ix^D)+bunitvec(^C)*gradT(^C)\}
-
-          {^C& gradT_perp(^C)=gradT(^C)-bgradT(ix^D)*bunitvec(^C)\}
-
-          gradTperp_mag(ix^D)=dsqrt(gradT_perp(1)**2+gradT_perp(2)**2+gradT_perp(3)**2)
-          if(gradTperp_mag(ix^D)>smalldouble) then
-            {^C& nperp(ix^D,^C)=gradT_perp(^C)/gradTperp_mag(ix^D)\}
-          else
+          bgradT(ix^D)=(^C&bunitvec(^C)*gradT(ix^D,^C)+)
+          {^C& gradT_perp(^C)=gradT(ix^D,^C)-bgradT(ix^D)*bunitvec(^C)\}
+          maxm=maxval(abs(gradT_perp))
+          if(maxm==0.d0) then
             gradTperp_mag(ix^D)=zero
             {^C& nperp(ix^D,^C)=zero\}
+          else
+            ^C&nperp(ix^D,^C)=gradT_perp(^C)/maxm\
+            gradTperp_mag(ix^D)=dsqrt(^C&nperp(ix^D,^C)**2+)
+            ^C&nperp(ix^D,^C)=nperp(ix^D,^C)/gradTperp_mag(ix^D)\
+            gradTperp_mag(ix^D)=gradTperp_mag(ix^D)*maxm
           end if
         end do
       end do
@@ -5742,17 +5742,21 @@ contains
                unit_magneticfield*unit_temperature**1.5d0/unit_numberdensity
       end if
     end if
-    call eos%get_Rfactor(wCT,x,ixI^L,ixI^L,R)
-    {do ix^DB=ixImin^DB,ixImax^DB\}
-      if(has_equi_rho_and_p) then
-        rho_loc(ix^D)=wCTprim(ix^D,rho_)+block%equi_vars(ix^D,equi_rho0_,0)
-        pth_loc(ix^D)=wCTprim(ix^D,p_)+block%equi_vars(ix^D,equi_pe0_,0)
-      else
-        rho_loc(ix^D)=wCTprim(ix^D,rho_)
-        pth_loc(ix^D)=wCTprim(ix^D,p_)
-      end if
-      Te(ix^D)=pth_loc(ix^D)/(R(ix^D)*rho_loc(ix^D))
-    {end do\}
+    if (eos%eos_type == 'LTE' .or. eos%eos_type == 'PI') then
+      Te(ixI^S) = wCT(ixI^S, Te_)
+    else
+      call eos%get_Rfactor(wCT,x,ixI^L,ixI^L,R)
+      {do ix^DB=ixImin^DB,ixImax^DB\}
+        if(has_equi_rho_and_p) then
+          rho_loc(ix^D)=wCTprim(ix^D,rho_)+block%equi_vars(ix^D,equi_rho0_,0)
+          pth_loc(ix^D)=wCTprim(ix^D,p_)+block%equi_vars(ix^D,equi_pe0_,0)
+        else
+          rho_loc(ix^D)=wCTprim(ix^D,rho_)
+          pth_loc(ix^D)=wCTprim(ix^D,p_)
+        end if
+        Te(ix^D)=pth_loc(ix^D)/(R(ix^D)*rho_loc(ix^D))
+      {end do\}
+    end if
     ! sound speed from the EoS (table Gamma_1 under LTE); the equi split keeps gamma p/rho
     if(has_equi_rho_and_p) then
       cs2_loc(ixI^S)=eos%gamma*pth_loc(ixI^S)/rho_loc(ixI^S)
