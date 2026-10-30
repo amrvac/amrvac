@@ -586,20 +586,23 @@ contains
   !> Seam read. At the domain edge where ray k enters, the wrapped upwind ghost column of the block
   !> takes the outflow of the far edge from the last solve. A ray moving in +x enters through the
   !> first block column and reads seamR, and one moving in -x enters through the last and reads
-  !> seamL
-  subroutine rt_seam_read(iib, igrid, ibi, sx, k)
+  !> seamL. The column includes the corner cells above and below the block, which getbc fills from
+  !> a block the ray has not reached yet, except beyond a band end, where the inflow stays
+  subroutine rt_seam_read(iib, igrid, ibi, ibj, sx, k)
     use mod_global_parameters
     double precision, intent(inout) :: iib(ixG^T)
-    integer, intent(in) :: igrid, ibi, sx, k
-    integer :: iv, i1, i2, gy0
+    integer, intent(in) :: igrid, ibi, ibj, sx, k
+    integer :: iv, ivlo, ivhi, i1, i2, gy0
     ! gy0 is the global row offset of the block along updim
     gy0 = nint((rnode(rpxmin0_+updim,igrid)-rg_vlo)/rg_dv)
+    ivlo = merge(iMlo_v, iMlo_v-1, ibj==1)
+    ivhi = merge(iMhi_v, iMhi_v+1, ibj==wv_nbxv)
     if(ibi==1 .and. sx>0) then
-      do iv = iMlo_v, iMhi_v
+      do iv = ivlo, ivhi
         call hv(iMlo_h-1, iv, i1, i2); iib(i1,i2) = rt_sc_seamR_prev(gy0+(iv-iMlo_v)+1,k)
       end do
     else if(ibi==rg_nbh .and. sx<0) then
-      do iv = iMlo_v, iMhi_v
+      do iv = ivlo, ivhi
         call hv(iMhi_h+1, iv, i1, i2); iib(i1,i2) = rt_sc_seamL_prev(gy0+(iv-iMlo_v)+1,k)
       end do
     end if
@@ -731,7 +734,7 @@ contains
             ! The block is swept on a copy that holds its ghosts, with the seam inflow added at the
             ! domain edge, and its interior is written back
             iib = ps_rt(igrid)%w(:,:,i_isw)
-            if(wv_seam) call rt_seam_read(iib, igrid, wv_bi(iblk), sx, k)
+            if(wv_seam) call rt_seam_read(iib, igrid, wv_bi(iblk), wv_bj(iblk), sx, k)
             call rt_thermal_inflow(iblk, k, iib)
             call rt_sweep_one(iblk, k, iib)
             ps_rt(igrid)%w(ixMlo1:ixMhi1,ixMlo2:ixMhi2,i_isw) = iib(ixMlo1:ixMhi1,ixMlo2:ixMhi2)
@@ -748,14 +751,17 @@ contains
     call rt_wave_end()
   end subroutine rt_sc_solve_wave
 
-  !> Pipelined KBA. The direction-sign corners run together in batches of nisw slots, and within
-  !> each corner the rays follow one another through its wavefront. The result agrees with that
-  !> of rt_sc_solve_wave to round-off, since the moments are summed in another order
+  !> Pipelined KBA. The direction-sign corners run together in batches of up to nisw, and within
+  !> each corner the rays follow one another through its wavefront. Each corner has two slots, one
+  !> for its even and one for its odd rays: the diagonal upwind neighbour of a block is one ray
+  !> ahead, so with a single slot its ghost would already hold the next ray, while with two it
+  !> still holds the current one when the getbc delivers it. The result agrees with that of
+  !> rt_sc_solve_wave to round-off, since the moments are summed in another order
   subroutine rt_sc_solve_wave_pipe()
     use mod_global_parameters
     use mod_ghostcells_update, only: create_bc_mpi_datatype
     integer :: ib, k, sx, sy, iblk, igrid, islot, nslot
-    integer :: ng, gidx, g, jj, tt_clk, tmax, gbase, gend, gg
+    integer :: ng, gidx, g, jj, tt_clk, tmax, gbase, gend, gg, npb
     integer :: grp_sx(9), grp_sy(9), grp_n(9)
     integer, allocatable :: grp_ray(:,:)
     double precision :: iib(ixG^T)
@@ -778,19 +784,21 @@ contains
       grp_n(gidx) = grp_n(gidx) + 1
       grp_ray(gidx, grp_n(gidx)) = k
     end do
-    call rt_wave_begin(nisw)
+    ! Corners per batch, two slots each, within the nw columns of ps_rt
+    npb = max(1, min(nisw, nw/2))
+    call rt_wave_begin(2*npb)
     do ib = 1, rt_sc_nband
       call rt_wave_band_open(ib)
       ! In group gg a block sits at stage p+q, and at clock tt_clk it sweeps ray
-      ! jj = tt_clk-(p+q)+2 of the group into slot i_isw+(gg-gbase). One getbc per clock
-      ! advances every front of the batch by one stage. The accumulators were zeroed when the band
-      ! opened, so they sum over the batches
-      do gbase = 1, ng, nisw
-        gend  = min(gbase+nisw-1, ng)
-        nslot = gend-gbase+1
+      ! jj = tt_clk-(p+q)+2 of the group into slot i_isw+2(gg-gbase)+mod(jj,2). One getbc per
+      ! clock advances every front of the batch by one stage. The accumulators were zeroed when the
+      ! band opened, so they sum over the batches
+      do gbase = 1, ng, npb
+        gend  = min(gbase+npb-1, ng)
+        nslot = 2*(gend-gbase+1)
         ! The slots of the batch start from zero intensity
         do iblk = 1, wv_nblk
-          ps_rt(wv_ig(iblk))%w(ixMlo1:ixMhi1,ixMlo2:ixMhi2,i_isw:i_isw+nisw-1) = 0.0d0
+          ps_rt(wv_ig(iblk))%w(ixMlo1:ixMhi1,ixMlo2:ixMhi2,i_isw:i_isw+2*npb-1) = 0.0d0
         end do
         ! The last ray of a group reaches the last diagonal at clock grp_n + wv_dmax - 2, and the
         ! batch runs until its longest group has finished
@@ -803,10 +811,10 @@ contains
           ! each slot
           call rt_exchange(nslot)
           do gg = gbase, gend
-            call rt_inflow_ghosts(i_isw+(gg-gbase))
+            call rt_inflow_ghosts(i_isw+2*(gg-gbase))
+            call rt_inflow_ghosts(i_isw+2*(gg-gbase)+1)
           end do
           do gg = gbase, gend
-            islot = i_isw+(gg-gbase)
             do iblk = 1, wv_nblk
               ! jj = t - (p + q) + 2, the ray of the group that reaches this block at clock t. A
               ! block sweeps at this clock only when that is a ray of the group
@@ -814,11 +822,12 @@ contains
                              + wave_stage(wv_bj(iblk),wv_nbxv,grp_sy(gg))) + 2
               if(jj < 1 .or. jj > grp_n(gg)) cycle
               k = grp_ray(gg, jj)
+              islot = i_isw+2*(gg-gbase)+mod(jj,2)
               igrid = wv_ig(iblk)
               ! The copy keeps the upwind ghosts from getbc, and its interior is cleared for ray k
               iib = ps_rt(igrid)%w(:,:,islot)
               iib(ixMlo1:ixMhi1,ixMlo2:ixMhi2) = 0.0d0
-              if(wv_seam) call rt_seam_read(iib, igrid, wv_bi(iblk), grp_sx(gg), k)
+              if(wv_seam) call rt_seam_read(iib, igrid, wv_bi(iblk), wv_bj(iblk), grp_sx(gg), k)
               call rt_thermal_inflow(iblk, k, iib)
               call rt_sweep_one(iblk, k, iib)
               ! The interior goes back into the slot, the seam edge is kept, and the weighted
@@ -830,7 +839,7 @@ contains
           end do
         end do
       end do
-      call rt_wave_band_close(nisw)
+      call rt_wave_band_close(2*npb)
     end do
     call rt_wave_end()
   end subroutine rt_sc_solve_wave_pipe

@@ -83,7 +83,7 @@ module mod_rt_sc_state
   !> exchanges during a sweep, because chi and B are cached per block while J and Fy accumulate in
   !> i_qrad and i_frad, perhaps confusingly but it works and prevents size creep in ps_rt
   integer :: i_isw = -1
-  !> Number of intensity slots, one for the ray-by-ray wave and up to four when pipelined
+  !> Sweep corners the pipelined wave runs at once, each with an even and an odd slot
   integer :: nisw = 1
   !> The RT intensity state. It is kept out of the hydro w so that it skips the stage copies, the
   !> prolongation and the output, and getbc exchanges it with bcphys off. rt_sc_alloc_state
@@ -298,9 +298,10 @@ contains
     i2 = eh(2)*ih + ev(2)*iv
   end subroutine hv
 
-  !> Reserve the wavefront intensity slots in ps_rt, four in all, one per sweep corner, of which
-  !> the ray-by-ray wave uses only the first. Called from rt_sc_activate, and does nothing
-  !> unless rt_sc_distributed is set
+  !> Reserve the wavefront intensity slots in ps_rt. The pipelined wave runs up to nisw sweep
+  !> corners at once with two slots each, within the nw columns of ps_rt, and the ray-by-ray wave
+  !> uses only the first. Called from rt_sc_activate, and does nothing unless rt_sc_distributed
+  !> is set
   subroutine rt_sc_reserve_slots()
     if(.not. rt_sc_distributed) return
     ! A second call leaves the reservation as it is
