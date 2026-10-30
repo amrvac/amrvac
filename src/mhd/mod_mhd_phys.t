@@ -5601,10 +5601,10 @@ contains
 
   !> Common direction for hyperbolic heat-flux relaxation and energy transport.
   !> B must contain the total field, including B0 when splitting is enabled.
-  !> Preserve the weak-field cutoff |B| <= smalldouble, with max-component
-  !> scaling to avoid squaring absolute field strengths or large component ratios.
+  !> Normalize every finite nonzero field with max-component scaling.
+  !> Only the zero field has no direction; no weak-field cutoff is applied.
   pure function B_unit_vector(B) result(bunit)
-    use mod_global_parameters, only: ndir, zero, smalldouble
+    use mod_global_parameters, only: ndir, zero
     ! Accept strided cell slices without forcing a contiguous input copy.
     ! Callers supply exactly ndir total-field components.
     double precision, intent(in) :: B(:)
@@ -5617,12 +5617,8 @@ contains
     end if
     ^C&bunit(^C)=B(^C)/maxm\
     scaled_norm=dsqrt(^C&bunit(^C)**2+)
-    ! Compare without forming scale*scaled_norm, which could overflow.
-    if(maxm<=smalldouble/scaled_norm) then
-      bunit=zero
-    else
-      ^C&bunit(^C)=bunit(^C)/scaled_norm\
-    end if
+    ! At least one scaled component has magnitude one, so scaled_norm >= 1.
+    ^C&bunit(^C)=bunit(^C)/scaled_norm\
   end function B_unit_vector
 
   subroutine mhd_get_hyperbolic_tc_geometry(ixI^L,ixO^L,Te,Bvec,bgradT,gradTperp_mag,nperp)
