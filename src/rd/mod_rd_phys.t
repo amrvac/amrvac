@@ -90,6 +90,7 @@ module mod_rd_phys
 
   !> Whether to handle the explicitly handled source term in split fashion
   logical :: rd_source_split = .false.
+  double precision, public, protected :: rd_mg_tol = 1.0d-7 !< multigrid: max_residual = rd_mg_tol/qdt
 
   !> Boundary condition information for the multigrid method
   type(mg_bc_t), public :: rd_mg_bc(3, mg_num_neighbors)
@@ -107,7 +108,7 @@ contains
     namelist /rd_list/ D1, D2, D3, sb_alpha, sb_beta, sb_kappa, gs_F, gs_k, &
         br_A, br_B, br_C, br_D, lg_lambda, bzfn_epsilon, bzfn_delta, bzfn_lambda, &
         bzfn_mu, lor_r, lor_sigma, lor_b, &
-        equation_name, rd_particles, rd_source_split, dtreacpar
+        equation_name, rd_particles, rd_source_split, dtreacpar, rd_mg_tol
 
     do n = 1, size(files)
        open(unitpar, file=trim(files(n)), status='old')
@@ -609,7 +610,7 @@ contains
         endif
         return
     endif
-    max_residual = 1d-7/qdt
+    max_residual = rd_mg_tol/qdt
 
     mg%operator_type = mg_helmholtz
     call mg_set_methods(mg)
