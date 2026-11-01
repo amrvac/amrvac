@@ -106,5 +106,5 @@ But note that this upper limit \f$ m-s+1 \f$ could not be met by most RK methods
 
 Various IMEX flavors are available.
 When another IMEX scheme is implemented (in `mod_advance.t`) `use_imex_scheme` flag should  also be set to `.true.` in `amrvacio/mod_input_output.t`.
-This is used by the physics modules which usually use IMEX schemes (and have both explicit and implicit implementations, such is the case of rd and twofl physics modules).
+This is used by the physics modules which usually use IMEX schemes (and have both explicit and implicit implementations, such is the case of ard and twofl physics modules).
 

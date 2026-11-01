@@ -1,5 +1,5 @@
 module mod_usr
-  use mod_rd
+  use mod_ard
 
   implicit none
 
@@ -10,10 +10,10 @@ contains
   subroutine usr_init()
 
     usr_init_one_grid => schnakenberg_init
-    rd_mg_bc(1, 1)%boundary_cond => my_custom_multigrid_bc
+    ard_mg_bc(1, 1)%boundary_cond => my_custom_multigrid_bc
     usr_special_bc => specialbc_usr
 
-    call rd_activate()
+    call ard_activate()
 
   end subroutine usr_init
 

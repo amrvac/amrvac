@@ -1,5 +1,5 @@
 module mod_usr
-  use mod_rd
+  use mod_ard
 
   implicit none
 
@@ -10,7 +10,7 @@ contains
     usr_init_one_grid => gray_scott_init
     usr_create_particles => place_samplingpoints
 
-    call rd_activate()
+    call ard_activate()
 
   end subroutine usr_init
 

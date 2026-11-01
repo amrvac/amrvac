@@ -49,7 +49,6 @@ the data structures for the block-tree AMR.
 * [Radiative transfer](radiative_transfer.md) Gray LTE short-characteristics transfer for optically thick layers.
 * [Pressure less fluids (dust)](dust.md) Getting started with the dust module.
 * [Test particles in (M)HD](particle.md) Description of test particle tracing routines.
-* [Reaction-diffusion equations](reaction_diffusion.md) Getting started with the reaction-diffusion module.
 * [Advection-Reaction-diffusion equations](advection_reaction_diffusion.md) Using the advection-reaction-diffusion module.
 * [Two-fluid equations](twofluid.md) Getting started with the two-fluid module.
 * [CAK radiation force](cakforce.md) Getting started with the CAK force for line-driven wind outflows.

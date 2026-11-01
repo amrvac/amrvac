@@ -1,6 +1,6 @@
 module mod_usr
 
-  use mod_rd
+  use mod_ard
   implicit none
     
   integer, parameter :: dp = kind(0.0d0)
@@ -9,7 +9,7 @@ contains
 
   subroutine usr_init()
      call set_coordinate_system('Cartesian')
-     call rd_activate()
+     call ard_activate()
         
      usr_init_one_grid => lor_init
   end subroutine usr_init

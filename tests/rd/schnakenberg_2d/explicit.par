@@ -50,7 +50,7 @@
        dtpar=3.0d-6
  /
 
- &rd_list
+ &ard_list
        D1 = 0.05d0
        D2 = 1.0d0
        equation_name = "schnakenberg"

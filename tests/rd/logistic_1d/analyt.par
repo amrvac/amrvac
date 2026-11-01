@@ -42,7 +42,7 @@
     dtdiffpar   = 0.8d0
 /
 
-&rd_list
+&ard_list
     equation_name = "logistic"
     D1        = 1.0d0
     lg_lambda = 1.0d0

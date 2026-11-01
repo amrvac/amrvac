@@ -209,6 +209,7 @@ contains
     else if (any(shape(flux_type) /= [ndir, nw])) then
        call mpistop("phys_check error: flux_type has wrong shape")
     end if
+    if (all([A1, A2, A3] == 0.0d0)) fix_conserve_global = .false. ! no advection: no fluxes to fix at AMR boundaries
 
     phys_get_cmax          => ard_get_cmax
     phys_get_cbounds       => ard_get_cbounds
@@ -283,11 +284,11 @@ contains
              case (bc_periodic)
                 ! Nothing to do here
              case (bc_special)
-                if (.not. associated(usr_special_mg_bc)) then
-                  call mpistop("special BC for MG not defined")
-                 else 
+                if (associated(usr_special_mg_bc)) then
                   call usr_special_mg_bc(n)
-                 endif
+                else if (.not. associated(ard_mg_bc(i, n)%boundary_cond)) then
+                  call mpistop("special BC for MG not defined")
+                endif
                 !!if (.not. associated(ard_mg_bc(i, n)%boundary_cond)) then
                 !!   write(*, "(A,I0,A,I0,A)") "typeboundary(", iw, ",", n, &
                 !!        ") is 'special', but the corresponding method " // &

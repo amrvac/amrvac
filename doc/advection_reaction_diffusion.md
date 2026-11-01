@@ -98,7 +98,7 @@ The implicit system is then solved using the AMR-compatible multigrid solver cou
 A number of examples can be found in `tests/ard/`.
 The namelist for the advection-reaction-diffusion module is as follows:
 
-    &rd_list
+    &ard_list
         D1, D2, D3,                  ! Diffusion coefficients
         adv_pow,                     ! Power p of the unknown in the advection term
         A1, A2, A3,                  ! Advection coefficients (d-dimensional)

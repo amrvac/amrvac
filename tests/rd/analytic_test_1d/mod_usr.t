@@ -1,5 +1,5 @@
 module mod_usr
-  use mod_rd
+  use mod_ard
 
   implicit none
 
@@ -17,7 +17,7 @@ contains
     usr_process_grid => set_error
     usr_print_log => print_error
 
-    call rd_activate()
+    call ard_activate()
 
     i_err = var_set_extravar("error", "error")
     i_sol = var_set_extravar("solution", "solution")

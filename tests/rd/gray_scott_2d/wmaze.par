@@ -49,7 +49,7 @@
        courantpar=0.9d0
  /
 
- &rd_list
+ &ard_list
        equation_name = "gray-scott"
        D1 = 2.0d-5
        D2 = 1.0d-5

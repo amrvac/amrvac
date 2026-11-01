@@ -1390,7 +1390,7 @@ contains
       if(any(typeboundary(:,2*idim-1)==12)) then
         if(any(typeboundary(:,2*idim-1)/=12)) typeboundary(:,2*idim-1)=12
         select case(physics_type)
-        case ('rho','ard','rd','nonlinear','ffhd')
+        case ('rho','ard','nonlinear','ffhd')
            ! all symmetric at pole
            typeboundary(:,2*idim-1)=bc_symm
            if(mype==0) print *,'symmetric minimal pole'
@@ -1426,7 +1426,7 @@ contains
       if(any(typeboundary(:,2*idim)==12)) then
         if(any(typeboundary(:,2*idim)/=12)) typeboundary(:,2*idim)=12
         select case(physics_type)
-        case ('rho','ard','rd','nonlinear','ffhd')
+        case ('rho','ard','nonlinear','ffhd')
            ! all symmetric at pole
            typeboundary(:,2*idim)=bc_symm
            if(mype==0) print *,'symmetric maximal pole'

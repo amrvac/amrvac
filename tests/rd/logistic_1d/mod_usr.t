@@ -1,6 +1,6 @@
 module mod_usr
 
-  use mod_rd
+  use mod_ard
   implicit none
     
   integer, parameter :: dp = kind(0.0d0)
@@ -11,14 +11,14 @@ contains
      integer :: i
 
      call set_coordinate_system('Cartesian')
-     call rd_activate()
+     call ard_activate()
 
      usr_init_one_grid => lg_init     
    
      if (iprob == 2) then
         usr_special_bc    => lg_bound
         do i = 1, 2*ndim
-           rd_mg_bc(1, i)%boundary_cond => lg_bound_mg
+           ard_mg_bc(1, i)%boundary_cond => lg_bound_mg
         end do
      end if
   end subroutine usr_init

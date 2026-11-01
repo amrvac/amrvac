@@ -1,5 +1,5 @@
 module mod_usr
-  use mod_rd
+  use mod_ard
 
   implicit none
 
@@ -9,7 +9,7 @@ contains
 
     usr_init_one_grid => schnakenberg_init
 
-    call rd_activate()
+    call ard_activate()
 
   end subroutine usr_init
 

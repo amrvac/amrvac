@@ -48,7 +48,7 @@
     courantpar  = 0.8d0
 /
 
-&rd_list
+&ard_list
     equation_name = "ext_brusselator"
     D1   =  0.5d0
     D2   =  1.0d0
