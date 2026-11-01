@@ -65,7 +65,7 @@ Some systems have a good starting resource linked to them.
 - `bzfn` = `belousov_fieldnoyes`: **Oregonator** (Field-Noyes model of the Belousov-Zhabotinski reaction)
 
     \f{eqnarray*}{
-        \frac{\partial u}{\partial t} + A_1 u^{p-1} \nabla u &=& D_1 \nabla^2 u + \frac{1}{\epsilon} (\lambda u - u w + u - u^2) \\
+        \frac{\partial u}{\partial t} + A_1 u^{p-1} \nabla u &=& D_1 \nabla^2 u + \frac{1}{\epsilon} (\lambda w - u w + u - u^2) \\
         \frac{\partial v}{\partial t} + A_2 v^{p-1} \nabla v &=& D_2 \nabla^2 v + u - v \\
         \frac{\partial w}{\partial t} + A_3 w^{p-1} \nabla w &=& D_3 \nabla^2 w + \frac{1}{\delta} (-\lambda w - u w + \mu v))
     \f}

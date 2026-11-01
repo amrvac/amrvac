@@ -439,7 +439,7 @@ contains
        maxrate = max(maxval(w(ixO^S, v_))**2 + gs_F, &
             maxval(w(ixO^S, v_) * w(ixO^S, u_)) - gs_F - gs_k)
     case (eq_schnakenberg)
-       maxrate = max(maxval(abs(w(ixO^S, v_) * w(ixO^S, u_) - 1)), &
+       maxrate = sb_kappa * max(maxval(abs(w(ixO^S, v_) * w(ixO^S, u_) - 1)), &
             maxval(w(ixO^S, u_))**2)
     case (eq_brusselator)
        maxrate = max( maxval(w(ixO^S, u_)*w(ixO^S, v_) - (br_B+1)), &
@@ -556,21 +556,21 @@ contains
           w(ixO^S, u_) = w(ixO^S, u_) + qdt * (D1 * lpl_u &
                + br_A - (br_B + 1) * wCT(ixO^S, u_) &
                + wCT(ixO^S, u_)**2 * wCT(ixO^S, v_) &
-               - br_C * wCT(ixO^S, u_) + br_D * w(ixO^S, w_))
+               - br_C * wCT(ixO^S, u_) + br_D * wCT(ixO^S, w_))
           w(ixO^S, v_) = w(ixO^S, v_) + qdt * (D2 * lpl_v &
                + br_B * wCT(ixO^S, u_) &
                - wCT(ixO^S, u_)**2 * wCT(ixO^S, v_))
           w(ixO^S, w_) = w(ixO^S, w_) + qdt * (D3 * lpl_w &
-               + br_C * wCT(ixO^S, u_) - br_D * w(ixO^S, w_))
+               + br_C * wCT(ixO^S, u_) - br_D * wCT(ixO^S, w_))
        case (eq_logistic)
           w(ixO^S, u_) = w(ixO^S, u_) + qdt * (D1 * lpl_u &
-               + lg_lambda * w(ixO^S, u_) * (1 - w(ixO^S, u_)))
+               + lg_lambda * wCT(ixO^S, u_) * (1 - wCT(ixO^S, u_)))
        case (eq_analyt_hunds)
           w(ixO^S, u_) = w(ixO^S, u_) + qdt * (D1 * lpl_u &
-               + 1.0d0/D1 * w(ixO^S, u_)**2 * (1 - w(ixO^S, u_)))
+               + 1.0d0/D1 * wCT(ixO^S, u_)**2 * (1 - wCT(ixO^S, u_)))
        case (eq_belousov_fn)
           w(ixO^S, u_) = w(ixO^S, u_) + qdt * (D1 * lpl_u &
-               + 1.0d0/bzfn_epsilon * (bzfn_lambda * wCT(ixO^S, u_) &
+               + 1.0d0/bzfn_epsilon * (bzfn_lambda * wCT(ixO^S, w_) &
                - wCT(ixO^S, u_)*wCT(ixO^S, w_) + wCT(ixO^S, u_) &
                - wCT(ixO^S, u_)**2))
           w(ixO^S, v_) = w(ixO^S, v_) + qdt * (D2 * lpl_v &
@@ -750,6 +750,7 @@ contains
     if (number_of_species >= 3) then
        lambda = 1/(dtfactor * qdt * D3)
        call helmholtz_set_lambda(lambda)
+       mg%bc(:, mg_iphi) = ard_mg_bc(3, :)
 
        call mg_copy_to_tree(w_, mg_irhs, factor=-lambda, state_from=psb)
        call mg_copy_to_tree(w_, mg_iphi, state_from=psb)
