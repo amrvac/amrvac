@@ -1,0 +1,55 @@
+!setup.pl -d=2
+ &filelist
+        base_filename = 'gray_atm'
+        typefilelog   = 'regression_test'
+        autoconvert   = .false.
+ /
+
+ &savelist
+        ditsave_log = 10
+ /
+
+ &stoplist
+        it_max = 40
+ /
+
+ &methodlist
+        time_stepper = 'onestep'
+        flux_scheme  = 20*'tvdlf'
+        limiter      = 20*'minmod'
+ /
+
+ &boundlist
+        typeboundary_min1 = 4*'periodic'
+        typeboundary_max1 = 4*'periodic'
+        typeboundary_min2 = 4*'cont'
+        typeboundary_max2 = 4*'cont'
+ /
+
+ &meshlist
+        refine_max_level = 1
+        block_nx1  = 4
+        block_nx2  = 20
+        domain_nx1 = 8
+        domain_nx2 = 600
+        xprobmin1  = 0.0d0
+        xprobmax1  = 0.4d0
+        xprobmin2  = 0.0d0
+        xprobmax2  = 30.0d0
+ /
+
+ &paramlist
+        courantpar = 0.4d0
+ /
+
+ &hd_list
+        hd_energy = .true.
+        hd_radiative_transfer = .true.
+ /
+
+ &rt_list
+        rt_sc_opacity = 'usr'
+        rt_sc_quad    = 'Carlson'
+        rt_sc_bc_min  = 'thermal'
+        rt_sc_bc_max  = 'open'
+ /
