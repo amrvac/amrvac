@@ -206,6 +206,22 @@ name = "N_TRACER"
 dtype = "int"
 flags = ["fypp", "hash"]
 
+[srmhd_list]
+[srmhd_list.srmhd_source_usr]
+type = "flag"
+name = "SOURCE_USR"
+flags = ["fypp", "hash"]
+default = false
+implies = ["components.source_local"]
+
+[srmhd_list.srmhd_n_tracer]
+type = "value"
+name = "N_TRACER"
+dtype = "int"
+flags = ["fypp", "hash"]
+
+
+
 [meshlist]
 [meshlist.refine_usr]
 type = "flag"
