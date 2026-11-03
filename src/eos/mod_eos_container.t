@@ -137,6 +137,8 @@ module mod_eos_container
         double precision :: eint_rho_FI_threshold !> eint/rho above which gas is fully ionised [code units]
         double precision :: eint_nH_min = 0.0d0 !> floor of eint/nH of the LTE paths [code units]
         double precision :: p_rho_FI_threshold    !> p/rho above which gas is fully ionised [code units]
+        !> The same threshold as log10 T, log10 eint/nH and log10 p/nH, for the scalar kernels
+        double precision :: log_T_FI = huge(1.0d0), log_eint_nH_FI = huge(1.0d0), log_p_nH_FI = huge(1.0d0)
         double precision :: n_per_nH_FI          !> Total particles per nH when FI = 2 + 3*A_He
         double precision :: neOnH_FI             !> ne/nH when fully ionised = 1 + 2*A_He
 

@@ -258,6 +258,10 @@ contains
         eos%p_rho_FI_threshold = eos%n_per_nH_FI &
             / (1.0d0 + 4.0d0*eos%He_abundance) * T_thresh
 
+        eos%log_T_FI       = dlog10(T_thresh)
+        eos%log_eint_nH_FI = dlog10(eint_nH_thresh)
+        eos%log_p_nH_FI    = dlog10(eos%n_per_nH_FI * T_thresh)
+
         if (mype == 0) then
             write(*,'(a,es12.4)') ' FI bypass: eion_per_nH (code) = ', eos%eion_per_nH
             write(*,'(a,es12.4)') ' FI bypass: eint/rho threshold = ', eos%eint_rho_FI_threshold
