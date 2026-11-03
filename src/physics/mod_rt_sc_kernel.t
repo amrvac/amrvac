@@ -308,6 +308,9 @@ contains
     chi_p(1:nxg,1:nyg) = chi_g; b_p(1:nxg,1:nyg) = b_g
     chi_p(1:nxg,0) = chi_g(:,1);     b_p(1:nxg,0) = b_g(:,1)
     chi_p(1:nxg,nyg+1) = chi_g(:,nyg); b_p(1:nxg,nyg+1) = b_g(:,nyg)
+    ! An open end is vacuum, so the first step crosses only the half cell inside the band
+    if(.not.bc_lo_thermal) chi_p(1:nxg,0) = 0.0d0
+    if(.not.bc_hi_thermal) chi_p(1:nxg,nyg+1) = 0.0d0
     ! The edge columns are copied after the rows, so the corners take the corner cells
     chi_p(0,:) = chi_p(1,:);  chi_p(nxg+1,:) = chi_p(nxg,:)
     b_p(0,:) = b_p(1,:);      b_p(nxg+1,:) = b_p(nxg,:)
@@ -437,16 +440,7 @@ contains
       integer, intent(in) :: i, j, ia, ja, iu, ju
       double precision :: in_a, in_b, iu_val, chiu, bu, dtau, ex, psi0, psiu
       in_a = ii(ia,ja)
-      ! The intensity in the diagonal ghost is less reliable. In the pipelined solver it may
-      ! already belong to the next ray, while both face ghosts still hold the current. Naturally
-      ! this is problematic so we avoid it by reconstructing it from the adjacent faces instead.
-      ! Seems to be a reasonable approximation at least
-      if( (iu<ixOmin1 .or. iu>ixOmax1) .and. (ju<ixOmin2 .or. ju>ixOmax2) ) then
-        ! I_B = (I(iu,j) + I(i,ju))/2
-        in_b = 0.5d0*(ii(iu,j) + ii(i,ju))
-      else
-        in_b = ii(iu,ju)
-      end if
+      in_b = ii(iu,ju)
       ! I_u = (1 - frac) I_A + frac I_B, and chi_u and B_u alike
       iu_val = (1.0d0-frac)*in_a + frac*in_b
       chiu   = (1.0d0-frac)*chi(ia,ja) + frac*chi(iu,ju)

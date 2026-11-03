@@ -10,10 +10,10 @@ K_B = 1.380649e-16       # Boltzmann constant (erg/K)
 M_P = 1.6726e-24         # proton mass (g)
 M_E = 9.1094e-28         # electron mass (g)
 H_PLANCK = 6.6261e-27    # Planck constant (erg s)
-EV = 1.602e-12           # electron volt (erg)
-CHI_H = 13.598 * EV      # ionisation energy of H I
-CHI_HEI = 24.587 * EV    # ionisation energy of He I
-CHI_HEII = 54.418 * EV   # ionisation energy of He II
+EV = 1.6021772e-12       # electron volt (erg), const_eV of mod_constants
+CHI_H = 13.598434 * EV   # ionisation energy of H I (NIST), const_chi_H of mod_constants
+CHI_HEI = 24.587389 * EV # ionisation energy of He I (NIST), const_chi_HeI
+CHI_HEII = 54.41776 * EV # ionisation energy of He II (NIST), const_chi_HeII
 A_HE = 0.1               # default helium abundance, He atoms per H atom
 
 # Atomic partition functions, held at their ground-state values. Over 3-25 kK the tabulated ones

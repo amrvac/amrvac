@@ -83,7 +83,7 @@ module mod_rt_sc_state
   !> exchanges during a sweep, because chi and B are cached per block while J and Fy accumulate in
   !> i_qrad and i_frad, perhaps confusingly but it works and prevents size creep in ps_rt
   integer :: i_isw = -1
-  !> Number of intensity slots, one for the ray-by-ray wave and up to four when pipelined
+  !> Sweep corners the pipelined wave runs at once, each with an even and an odd slot
   integer :: nisw = 1
   !> The RT intensity state. It is kept out of the hydro w so that it skips the stage copies, the
   !> prolongation and the output, and getbc exchanges it with bcphys off. rt_sc_alloc_state
@@ -179,6 +179,7 @@ contains
     use mod_geometry, only: coordinate, Cartesian
     use mod_usr_methods, only: usr_rt_sc_chiB
     use mod_comm_lib, only: mpistop
+    use mod_eos, only: eos
     integer :: ib, fac
     integer :: dnx(ndim), bnx(ndim), mlo(ndim), mhi(ndim), glo(ndim), ghi(ndim)
     double precision :: dlo(ndim), dhi(ndim), hi_req
@@ -241,6 +242,12 @@ contains
     ! The switch pressure is held as a code-unit logarithm, so the cells need no conversion. The
     ! opacity callback is bound once here, and the table is read only when it is needed
     rt_sc_lp_TR = dlog10(rt_sc_p_TR/unit_pressure)
+    ! The built-in opacities and the Planck source are evaluated from the temperature and density of
+    ! the equation of state, which only the LTE closure ties to an ionisation balance. Under FI or PI
+    ! they describe no real gas, so only a user opacity is accepted there
+    if(trim(rt_sc_opacity) /= 'usr' .and. trim(eos%eos_type) /= 'LTE') call mpistop( &
+         "rt_sc_setup: the built-in opacities need eos_type='LTE'"// &
+         ", with FI or PI set rt_sc_opacity='usr'")
     select case(trim(rt_sc_opacity))
     case('Rosseland')
       call read_opacity_table()
@@ -291,9 +298,10 @@ contains
     i2 = eh(2)*ih + ev(2)*iv
   end subroutine hv
 
-  !> Reserve the wavefront intensity slots in ps_rt, four in all, one per sweep corner, of which
-  !> the ray-by-ray wave uses only the first. Called from rt_sc_activate, and does nothing
-  !> unless rt_sc_distributed is set
+  !> Reserve the wavefront intensity slots in ps_rt. The pipelined wave runs up to nisw sweep
+  !> corners at once with two slots each, within the nw columns of ps_rt, and the ray-by-ray wave
+  !> uses only the first. Called from rt_sc_activate, and does nothing unless rt_sc_distributed
+  !> is set
   subroutine rt_sc_reserve_slots()
     if(.not. rt_sc_distributed) return
     ! A second call leaves the reservation as it is

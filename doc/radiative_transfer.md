@@ -102,9 +102,9 @@ rt_sc_updim | integer | last axis | The vertical axis, 1 or 2.
 rt_sc_amr_level | integer | 1 | The AMR level that the bands are held on. It cannot exceed `refine_max_level`.
 rt_sc_nband | integer | 1 | Number of bands, at most 8. A bar with a photosphere at each end needs two.
 rt_sc_band_min, rt_sc_band_max | double precision arrays | -1e30, 1e30 | Bottom and top of each band in cm. The default values stand for the domain ends. The top is moved down to the nearest block face, and the run stops if a band is thinner than one block.
-rt_sc_bc_min, rt_sc_bc_max | string arrays | 'thermal', 'open' | Incoming intensity at the bottom and top of each band. 'thermal' sets \f$I=B\f$ of the edge cell and 'open' sets \f$I=0\f$.
+rt_sc_bc_min, rt_sc_bc_max | string arrays | 'thermal', 'open' | Incoming intensity at the bottom and top of each band. 'thermal' takes the inflow in the diffusion limit in the wavefront solvers, and \f$I=B\f$ of the edge cell in the replicated one, \f$I=B+|\mu_v|\,\mathrm{d}B/\mathrm{d}\tau\f$, with \f$B\f$ and its gradient from the ghost cells that the boundary conditions fill. 'open' sets \f$I=0\f$ and gives the cells beyond the band no opacity, so that the first step crosses only the half cell inside the band.
 rt_sc_bc_hmin, rt_sc_bc_hmax | string | 'open' | Incoming intensity at the horizontal edges when the domain is not periodic.
-rt_sc_opacity | string | 'Rosseland' | Opacity model, 'Rosseland', 'Kramers' or 'usr'. With 'usr' the user points `usr_rt_sc_chiB` at a routine that returns \f$\chi\f$ and \f$B\f$.
+rt_sc_opacity | string | 'Rosseland' | Opacity model, 'Rosseland', 'Kramers' or 'usr'. The first two need `eos_type='LTE'`. With 'usr' the user points `usr_rt_sc_chiB` at a routine that returns \f$\chi\f$ and \f$B\f$.
 rt_sc_kappa_table | string | 'rosseland_combined.tab' | File of the Rosseland table.
 rt_sc_Tcap, rt_sc_dTcap | double precision | 2e4, 5e3 | Temperature and width in K of the coronal switch of the built-in opacities.
 rt_sc_p_TR, rt_sc_dp_TR | double precision | 1, 0.5 | Pressure in dyn/cm\f$^2\f$ and width in dex of the same switch.
@@ -156,8 +156,12 @@ corner, so every cell is visited once per direction.
 only its own blocks of a band, one diagonal of blocks at a time, and passes the
 intensity on through the ghost cells, so no rank ever holds the whole band. The
 rays that share an upwind corner follow one another through the wavefront, and
-the corners run together. The ray-by-ray wavefront (`rt_sc_pipeline=.false.`)
-sends one ray at a time and gives the same result bit for bit. The replicated
+the corners run together. The entry point of a block's corner cell can fall in
+the diagonal neighbour, two stages behind, which has already started the next
+ray, so each corner has two intensity slots, one for its even and one for its odd
+rays, and the diagonal ghost still holds the current ray when it is exchanged.
+The ray-by-ray wavefront (`rt_sc_pipeline=.false.`) sends one ray at a time and
+gives the same result to round-off, the moments being summed in another order. The replicated
 solver (`rt_sc_distributed=.false.`) is the original implementation, kept for
 comparison and not for production runs. It assembles the whole band on every
 rank, and its periodic wrap is not exact: a ray swept column by column reaches
@@ -180,9 +184,7 @@ sweep and the heating formula, and `mod_rt_sc_opacity` the opacity models.
 **Limitations.** The module is 2D and gray, with LTE source functions and no
 scattering. It assumes uniform Cartesian cells: other coordinate systems are
 refused, stretched grids are not supported, and each band lies on a single AMR
-level. In the wavefront the corner ghost of a block can hold the next ray, so the
-corner value is rebuilt from the two face neighbours. In the slab test this costs
-up to 8.5% of the peak heating in the corner cells of a block.
+level.
 
 **Tests.** `tests/hd/sc_rt_2D` checks the transport of a beam across the periodic
 seam, the heating blend and taper on an absorbing slab, and the Rosseland

@@ -217,9 +217,9 @@ contains
         double precision :: T_thresh, eint_nH_thresh, p_nH_thresh
 
         !> Ionisation energies in CGS (erg)
-        chi_H   = 13.6d0  * 1.602d-12
-        chi_HeI = 24.6d0  * 1.602d-12
-        chi_HeII = 54.4d0 * 1.602d-12
+        chi_H    = const_chi_H * const_eV
+        chi_HeI  = const_chi_HeI * const_eV
+        chi_HeII = const_chi_HeII * const_eV
 
         !> fully ionised particle count, electron fraction and ionisation energy per hydrogen
         !> atom, eion_per_nH [code] = eion_per_nH [erg] * unit_numberdensity / unit_pressure

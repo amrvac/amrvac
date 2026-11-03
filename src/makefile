@@ -238,7 +238,6 @@ mod_eos_lte_entropy.o: mod_eos_lte_tables.mod
 mod_eos_lte_entropy.o: mod_global_parameters.mod
 mod_eos_lte_saha.o: mod_comm_lib.mod
 mod_eos_lte_saha.o: mod_eos_container.mod
-mod_eos_lte_saha.o: mod_eos_interp.mod
 mod_eos_lte_saha.o: mod_eos_lte_tables.mod
 mod_eos_lte_saha.o: mod_global_parameters.mod
 mod_eos_lte_state.o: mod_comm_lib.mod
@@ -754,6 +753,7 @@ mod_rt_sc_solvers.o: mod_rt_sc_state.mod
 mod_rt_sc_solvers.o: mod_timing.mod
 mod_rt_sc_solvers.o: mod_variables.mod
 mod_rt_sc_state.o: mod_comm_lib.mod
+mod_rt_sc_state.o: mod_eos.mod
 mod_rt_sc_state.o: mod_geometry.mod
 mod_rt_sc_state.o: mod_global_parameters.mod
 mod_rt_sc_state.o: mod_physicaldata.mod

@@ -67,6 +67,11 @@ module mod_constants
   double precision, PARAMETER :: const_pc    = 3.08567758128d18! cm                ; 1 parsec
   double precision, PARAMETER :: const_G     = 6.67191d-8      ! cm^3 g^-1 s^-2    ; Cavendish gravitational constant
 
+  ! Ionisation energies (NIST), shared by the equations of state and their table generators:
+  double precision, PARAMETER :: const_chi_H    = 13.598434d0  ! eV                ; H I
+  double precision, PARAMETER :: const_chi_HeI  = 24.587389d0  ! eV                ; He I
+  double precision, PARAMETER :: const_chi_HeII = 54.41776d0   ! eV                ; He II
+
   ! Conversion factors:
   double precision, PARAMETER :: const_eV    = 1.6021772d-12   ! erg/eV            ; Electron volt
   double precision, PARAMETER :: const_Tera  = 1.d12           ! -                 ; Tera

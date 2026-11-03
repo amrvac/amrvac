@@ -96,15 +96,15 @@ contains
 
         !> defaults
         eos_type          = 'FI'
-        eos_method        = 'state'
+        eos_method        = 'entropy'
         pi_table          = 'chromosphere'
         gamma1_method     = 'exact'
         p2eint_method     = 'table'
         ionE              = .false.
         He_abundance      = 0.1d0
         gamma             = 5.0d0/3.0d0
-        call get_environment_variable("AMRVAC_DIR", AMRVAC_DIR)
-        table_location    = trim(AMRVAC_DIR)//"/src/tables/eos_tables/uniform256/"
+        !> empty until the parfiles are read, and then the shipped tables of the chosen method
+        table_location    = ''
 
         !> read parfile(s): each successive file overrides the previous
         do n = 1, size(files)
@@ -112,6 +112,17 @@ contains
             read(unitpar, eos_list, end=111)
             111     close(unitpar)
         end do
+
+        !> without a table_location the shipped tables of the method are read, the entropy tables
+        !> for 'entropy' and the uniform value tables otherwise
+        if (len_trim(table_location) == 0) then
+            call get_environment_variable("AMRVAC_DIR", AMRVAC_DIR)
+            if (trim(eos_method) == 'entropy') then
+                table_location = trim(AMRVAC_DIR)//"/src/tables/eos_tables/entropy128/"
+            else
+                table_location = trim(AMRVAC_DIR)//"/src/tables/eos_tables/uniform256/"
+            end if
+        end if
 
         !> commit raw inputs to eos% (plain copies, no logic)
         eos%eos_type          = eos_type
@@ -170,6 +181,10 @@ contains
 
         !> PI ('partial approximations') table selector
         if (eos%eos_type == 'PI') then
+            !> the PI closures are kept in the code but not yet consistent with every module that
+            !> reads the equation of state, so they cannot be selected for now
+            call mpistop("eos_type='PI' is not yet fully consistently implemented, "// &
+                 "use eos_type='FI' or 'LTE'")
             select case (trim(eos%pi_table))
             case ('chromosphere','flare','prominence')
                 ! valid
@@ -219,7 +234,7 @@ contains
                 if (mype == 0) write(*,*) &
                     "WARNING: gamma1_method='effective' not applicable with analytic EoS."
                 if (mype == 0) write(*,*) &
-                    "         Falling back to gamma1_method='exact' (analytic 2D table)."
+                    "         Falling back to gamma1_method='exact' (closed form)."
                 eos%gamma1_method = 'exact'
             end if
             if (.not. eos%ionE .and. mype == 0) then
@@ -414,20 +429,20 @@ contains
 
     end subroutine prepare_eos_w_fields
 
-    !> The EoS hooks of the conduction fluid fl. sat_R_variable is false when R is the constant 1,
-    !> in which case saturation takes ciso2 = T
-    subroutine eos_bind_tc(fl, sat_R_variable)
+    !> The EoS hooks of the conduction fluid fl
+    subroutine eos_bind_tc(fl)
         use mod_thermal_conduction, only: tc_fluid
         type(tc_fluid), intent(inout) :: fl
-        logical, intent(in)           :: sat_R_variable
         fl%get_temperature_from_conserved => eos%get_temperature_from_etot
         if (eos%eos_type == 'LTE' .and. eos%ionE) then
-            ! the fast bilinear T lookup of the STS substeps, which also returns ciso2
-            fl%get_temperature_ciso2_from_eint => get_temperature_from_eint_fast_LTE
+            ! the fast bilinear T lookup of the STS substeps
+            fl%get_temperature_from_eint => get_temperature_from_eint_fast_LTE
         else
             fl%get_temperature_from_eint => eos%get_temperature_from_eint
-            fl%sat_R_variable = sat_R_variable
+            fl%frozen_ion = .false.
         end if
+        ! LTE code T has R = p/(rho T) /= 1, the other closures absorb R in the units
+        if (eos%eos_type == 'LTE') fl%sat_fac = (eos%n_per_nH_FI/eos%nH2rhoFactor)**1.5d0
         fl%get_rho           => eos%get_rho
         fl%get_ne_nH         => eos%get_ne_nH
         fl%get_var_Rfactor   => eos%get_Rfactor

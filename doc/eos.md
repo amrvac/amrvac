@@ -44,7 +44,9 @@ its mean mass follows an ionisation table chosen with `pi_table`. The
 chromosphere and flare tables depend on temperature alone, and with `ionE=.true.`
 they also fold the hydrogen and helium ionisation energy into \f$e_{\rm int}\f$. The
 prominence table depends on temperature and pressure, and is only available
-without the ionisation energy.
+without the ionisation energy. The PI closures are not yet consistent with every
+module that reads the equation of state, and selecting `eos_type='PI'` stops the
+run for now. FLD stops under `eos_type='LTE'`.
 
 Hot cells take a shortcut in LTE. Above a threshold in internal energy per unit
 mass the gas is fully ionised to within the table accuracy, and the FI formulas
@@ -59,14 +61,14 @@ uses FI with \f$\gamma=5/3\f$.
 
 name | type | default | description
 ---|---|---|---
-eos_type | string | 'FI' | Gas model, 'FI', 'LTE' or 'PI'.
-eos_method | string | 'state' | How LTE evaluates the equilibrium. <br>'state' interpolates tabulated quantities (T, p, ne/nH, eint/p) on a grid of \f$\log_{10}n_{\rm H}\f$ and \f$\log_{10}(e_{\rm int}/n_{\rm H})\f$. <br>'entropy' reconstructs every quantity from one tabulated entropy potential with bicubic Hermite interpolation, so that they stay thermodynamically consistent. <br>'analytic' solves the hydrogen Saha equation on the fly and keeps helium neutral. <br>'tables' is accepted as the former name of 'state'.
+eos_type | string | 'FI' | Gas model, 'FI' or 'LTE'. 'PI' stops the run for now.
+eos_method | string | 'entropy' | How LTE evaluates the equilibrium. <br>'state' interpolates tabulated quantities (T, p, ne/nH, eint/p) on a grid of \f$\log_{10}n_{\rm H}\f$ and \f$\log_{10}(e_{\rm int}/n_{\rm H})\f$. <br>'entropy' reconstructs every quantity from one tabulated entropy potential with bicubic Hermite interpolation, so that they stay thermodynamically consistent. <br>'analytic' solves the hydrogen Saha equation on the fly and keeps helium neutral. <br>'tables' is accepted as the former name of 'state'.
 ionE | logical | F | Include the ionisation energy in the internal energy. Only meaningful for LTE and PI, and forced to false for FI.
 He_abundance | double precision | 0.1 | Helium abundance by number relative to hydrogen. With zero the hydrogen-only tables are used.
 gamma | double precision | 5/3 | Ratio of specific heats of FI, and of fully ionised cells in LTE and PI.
 gamma1_method | string | 'exact' | How LTE obtains \f$\Gamma_1\f$. <br>'exact' differentiates the pressure table. <br>'effective' uses \f$1+p/e_{\rm int}\f$, which is cheaper but only approximate. <br>'constant' returns `gamma` everywhere.
 p2eint_method | string | 'table' | How LTE converts pressure to internal energy, 'table' (fast) or 'bisect' (accurate, and forced by the well-balanced HD setup).
-table_location | string | `$AMRVAC_DIR/src/tables/eos_tables/uniform256/` | Directory that holds the LTE tables.
+table_location | string | the shipped tables of `eos_method` | Directory that holds the LTE tables. Left empty, it is `$AMRVAC_DIR/src/tables/eos_tables/entropy128/` for 'entropy' and `$AMRVAC_DIR/src/tables/eos_tables/uniform256/` otherwise.
 pi_table | string | 'chromosphere' | PI ionisation table, 'chromosphere', 'flare' or 'prominence'.
 
 An LTE run with ionisation energy and helium, for example, uses
@@ -76,14 +78,6 @@ An LTE run with ionisation energy and helium, for example, uses
        eos_method = 'entropy'
        ionE = .true.
        He_abundance = 0.1d0
-       table_location = '/path/to/amrvac/src/tables/eos_tables/entropy128/'
-    /
-
-and a PI prominence run uses
-
-    &eos_list
-       eos_type = 'PI'
-       pi_table = 'prominence'
     /
 
 ## Tables {#eos-tables}
@@ -94,12 +88,12 @@ There are three sets.
 
 - `uniform256` holds the tables of the 'state' method on a uniform grid, for
   hydrogen only and for hydrogen and helium, with and without the ionisation
-  energy. It is the default `table_location`.
+  energy. It is the default `table_location` of the 'state' method.
 - `hybrid128` holds the same tables on a non-uniform grid, with nodes gathered
   where the ionisation changes quickly. They are read by the 'state' method in
   the same way.
 - `entropy128` holds the tables of the 'entropy' method, which include the
-  ionisation energy.
+  ionisation energy. It is the default `table_location` of the 'entropy' method.
 
 The tables are shifted to code units once, when the run starts, so the unit
 system must be set before the physics module is activated. The scripts

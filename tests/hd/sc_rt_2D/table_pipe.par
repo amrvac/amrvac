@@ -6,9 +6,15 @@
         rt_case = 'table'
  /
 
+ &eos_list
+        eos_type = 'LTE'
+        ionE     = .true.
+        table_location = '../../../src/tables/eos_tables/entropy128/'
+ /
+
  &meshlist
-        xprobmax1  = 2.0d8
-        xprobmax2  = 1.0d8
+        xprobmax1  = 2.0d0
+        xprobmax2  = 1.0d0
  /
 
  &rt_list
