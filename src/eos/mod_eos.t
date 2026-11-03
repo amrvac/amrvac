@@ -442,7 +442,11 @@ contains
             fl%frozen_ion = .false.
         end if
         ! LTE code T has R = p/(rho T) /= 1, the other closures absorb R in the units
-        if (eos%eos_type == 'LTE') fl%sat_fac = (eos%n_per_nH_FI/eos%nH2rhoFactor)**1.5d0
+        if (eos%eos_type == 'LTE') then
+            fl%sat_fac  = (eos%n_per_nH_FI/eos%nH2rhoFactor)**1.5d0
+            fl%sat_ne   = .true.
+            fl%neOnH_FI = eos%neOnH_FI
+        end if
         fl%get_rho           => eos%get_rho
         fl%get_ne_nH         => eos%get_ne_nH
         fl%get_var_Rfactor   => eos%get_Rfactor
