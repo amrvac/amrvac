@@ -117,6 +117,11 @@ module mod_thermal_conduction
     !> R**1.5 of the fully ionised gas, which scales T**1.5 to c**3 in the saturated flux
     double precision :: sat_fac=1.d0
 
+    !> LTE: the saturated flux follows the local electron density, with ne/nH of the fully
+    !> ionised gas as the reference
+    logical :: sat_ne=.false.
+    double precision :: neOnH_FI=1.d0
+
     !> Minimum temperature (code units) below which TRAC does not modify conductivity.
     !> Below this T, the energy balance is dominated by optically thick radiation
     !> and recombination, not optically thin cooling + Spitzer conduction, so TRAC's
@@ -433,6 +438,7 @@ contains
     double precision, intent(in) :: rho(ixI^S),Te(ixI^S)
     double precision, intent(in) :: alpha
     double precision, intent(out) :: qvec(ixI^S,1:ndim)
+    double precision :: rhos(ixI^S)
 
     !! qdd store the heat conduction energy changing rate
     double precision, dimension(ixI^S,1:ndim) :: mf,Bc,Bcf,gradT
@@ -441,6 +447,7 @@ contains
     integer :: idims,idir,ix^D,ix^L,ixC^L,ixA^L,ixB^L
 
     ix^L=ixO^L^LADD1;
+    if(fl%tc_saturate) call tc_sat_rho(ixI^L,w,x,fl,rho,rhos)
 
     ! T gradient at cell faces
     ! b unit vector mf: magnetic field direction vector
@@ -876,9 +883,10 @@ contains
       end do
       if(fl%tc_saturate) then
         ! consider saturation (Cowie and Mckee 1977 ApJ, 211, 135: phi=1.1, Balbus and Mckee 1982 ApJ, 252, 529: phi=0.3)
-        ! unsigned saturated TC flux = 5 phi rho c**3, c**2=p/rho=R T of the fully ionised gas, phi=0.3
+        ! unsigned saturated TC flux = 5 phi rho c**3, c**2=p/rho=R T of the fully ionised gas, phi=0.3,
+        ! with rho scaled by the local over the fully ionised ne/nH under LTE, which is Cowie and McKee eq 7
         ixB^L=ixA^L+kr(idims,^D);
-        qdd(ixA^S)=0.75d0*fl%sat_fac*(rho(ixA^S)+rho(ixB^S))*dsqrt(0.5d0*(Te(ixA^S)+Te(ixB^S)))**3*dabs(Bnorm(ixA^S))
+        qdd(ixA^S)=0.75d0*fl%sat_fac*(rhos(ixA^S)+rhos(ixB^S))*dsqrt(0.5d0*(Te(ixA^S)+Te(ixB^S)))**3*dabs(Bnorm(ixA^S))
        {do ix^DB=ixAmin^DB,ixAmax^DB\}
           if(dabs(qvec(ix^D,idims))>qdd(ix^D)) then
             qvec(ix^D,idims)=sign(1.d0,qvec(ix^D,idims))*qdd(ix^D)
@@ -896,6 +904,7 @@ contains
     double precision, intent(in) :: rho(ixI^S),Te(ixI^S)
     double precision, intent(in) :: alpha
     double precision, intent(out) :: qvec(ixI^S,1:ndim)
+    double precision :: rhos(ixI^S)
 
     !! qdd store the heat conduction energy changing rate
     double precision, dimension(ixI^S,1:ndim) :: mf,Bc,Bcf,gradT
@@ -904,6 +913,7 @@ contains
     integer :: idims,idir,ix^D,ix^L,ixC^L,ixA^L,ixB^L
 
     ix^L=ixO^L^LADD1;
+    if(fl%tc_saturate) call tc_sat_rho(ixI^L,w,x,fl,rho,rhos)
 
     ! T gradient at cell faces
     ! b unit vector mf: magnetic field direction vector
@@ -1364,9 +1374,10 @@ contains
       end do
       if(fl%tc_saturate) then
         ! consider saturation (Cowie and Mckee 1977 ApJ, 211, 135: phi=1.1, Balbus and Mckee 1982 ApJ, 252, 529: phi=0.3)
-        ! unsigned saturated TC flux = 5 phi rho c**3, c**2=p/rho=R T of the fully ionised gas, phi=0.3
+        ! unsigned saturated TC flux = 5 phi rho c**3, c**2=p/rho=R T of the fully ionised gas, phi=0.3,
+        ! with rho scaled by the local over the fully ionised ne/nH under LTE, which is Cowie and McKee eq 7
         ixB^L=ixA^L+kr(idims,^D);
-        qdd(ixA^S)=0.75d0*fl%sat_fac*(rho(ixA^S)+rho(ixB^S))*dsqrt(0.5d0*(Te(ixA^S)+Te(ixB^S)))**3*dabs(Bnorm(ixA^S))
+        qdd(ixA^S)=0.75d0*fl%sat_fac*(rhos(ixA^S)+rhos(ixB^S))*dsqrt(0.5d0*(Te(ixA^S)+Te(ixB^S)))**3*dabs(Bnorm(ixA^S))
        {do ix^DB=ixAmin^DB,ixAmax^DB\}
           if(dabs(qvec(ix^D,idims))>qdd(ix^D)) then
             qvec(ix^D,idims)=sign(1.d0,qvec(ix^D,idims))*qdd(ix^D)
@@ -1485,6 +1496,23 @@ contains
     end do
     dtnew=dtnew/dble(ndim)
   end function get_tc_dt_hd
+
+  !> rho in the saturated flux: under LTE scaled by the local over the fully ionised ne/nH
+  subroutine tc_sat_rho(ixI^L,w,x,fl,rho,rhos)
+    use mod_global_parameters
+    integer, intent(in) :: ixI^L
+    double precision, intent(in) :: w(ixI^S,1:nw),x(ixI^S,1:ndim),rho(ixI^S)
+    type(tc_fluid), intent(in) :: fl
+    double precision, intent(out) :: rhos(ixI^S)
+    double precision :: ne(ixI^S),nH(ixI^S)
+
+    if(fl%sat_ne) then
+      call fl%get_ne_nH(ixI^L,ixI^L,w,x,ne,nH)
+      rhos(ixI^S)=rho(ixI^S)*ne(ixI^S)/(nH(ixI^S)*fl%neOnH_FI)
+    else
+      rhos(ixI^S)=rho(ixI^S)
+    end if
+  end subroutine tc_sat_rho
 
   !> Te over the block (+ghosts): the frozen-ionisation map within a conduction step with
   !> frozen_ion, else the full EoS with the optional negative-eint repair
@@ -1652,10 +1680,12 @@ contains
     type(tc_fluid), intent(in)    :: fl
     double precision, intent(in) :: Te(ixI^S),rho(ixI^S)
     double precision, intent(out) :: qvec(ixI^S,1:ndim)
+    double precision :: rhos(ixI^S)
     double precision :: gradT(ixI^S,1:ndim),ke(ixI^S),qd(ixI^S)
     integer :: idims,ix^D,ix^L,ixC^L,ixA^L,ixB^L
 
     ix^L=ixO^L^LADD1;
+    if(fl%tc_saturate) call tc_sat_rho(ixI^L,w,x,fl,rho,rhos)
     ! ixC is cell-corner index
     ixCmax^D=ixOmax^D; ixCmin^D=ixOmin^D-1;
 
@@ -1781,9 +1811,10 @@ contains
      }
       if(fl%tc_saturate) then
         ! consider saturation (Cowie and Mckee 1977 ApJ, 211, 135: phi=1.1, Balbus and Mckee 1982 ApJ, 252, 529: phi=0.3)
-        ! unsigned saturated TC flux = 5 phi rho c**3, c**2=p/rho=R T of the fully ionised gas, phi=0.3
+        ! unsigned saturated TC flux = 5 phi rho c**3, c**2=p/rho=R T of the fully ionised gas, phi=0.3,
+        ! with rho scaled by the local over the fully ionised ne/nH under LTE, which is Cowie and McKee eq 7
         ixB^L=ixA^L+kr(idims,^D);
-        qd(ixA^S)=0.75d0*fl%sat_fac*(rho(ixA^S)+rho(ixB^S))*dsqrt(0.5d0*(Te(ixA^S)+Te(ixB^S)))**3
+        qd(ixA^S)=0.75d0*fl%sat_fac*(rhos(ixA^S)+rhos(ixB^S))*dsqrt(0.5d0*(Te(ixA^S)+Te(ixB^S)))**3
        {do ix^DB=ixAmin^DB,ixAmax^DB\}
           if(dabs(qvec(ix^D,idims))>qd(ix^D)) then
             qvec(ix^D,idims)=sign(1.d0,qvec(ix^D,idims))*qd(ix^D)
@@ -1800,10 +1831,12 @@ contains
     type(tc_fluid), intent(in)    :: fl
     double precision, intent(in) :: Te(ixI^S),rho(ixI^S)
     double precision, intent(out) :: qvec(ixI^S,1:ndim)
+    double precision :: rhos(ixI^S)
     double precision :: gradT(ixI^S,1:ndim),ke(ixI^S),qd(ixI^S)
     integer :: idims,ix^D,ix^L,ixC^L,ixA^L,ixB^L
 
     ix^L=ixO^L^LADD1;
+    if(fl%tc_saturate) call tc_sat_rho(ixI^L,w,x,fl,rho,rhos)
     ! ixC is cell-corner index
     ixCmax^D=ixOmax^D; ixCmin^D=ixOmin^D-1;
 
@@ -1948,9 +1981,10 @@ contains
      }
       if(fl%tc_saturate) then
         ! consider saturation (Cowie and Mckee 1977 ApJ, 211, 135: phi=1.1, Balbus and Mckee 1982 ApJ, 252, 529: phi=0.3)
-        ! unsigned saturated TC flux = 5 phi rho c**3, c**2=p/rho=R T of the fully ionised gas, phi=0.3
+        ! unsigned saturated TC flux = 5 phi rho c**3, c**2=p/rho=R T of the fully ionised gas, phi=0.3,
+        ! with rho scaled by the local over the fully ionised ne/nH under LTE, which is Cowie and McKee eq 7
         ixB^L=ixA^L+kr(idims,^D);
-        qd(ixA^S)=0.75d0*fl%sat_fac*(rho(ixA^S)+rho(ixB^S))*dsqrt(0.5d0*(Te(ixA^S)+Te(ixB^S)))**3
+        qd(ixA^S)=0.75d0*fl%sat_fac*(rhos(ixA^S)+rhos(ixB^S))*dsqrt(0.5d0*(Te(ixA^S)+Te(ixB^S)))**3
        {do ix^DB=ixAmin^DB,ixAmax^DB\}
           if(dabs(qvec(ix^D,idims))>qd(ix^D)) then
             qvec(ix^D,idims)=sign(1.d0,qvec(ix^D,idims))*qd(ix^D)
