@@ -1,5 +1,5 @@
 #:mute
-#:include "../../../src/mod_gpu_directives.fpp"
+#:include "mod_gpu_directives.fpp"
 #:endmute
 
 module mod_usr
@@ -94,15 +94,15 @@ contains
      w_(:,:,:,iw_mag(2)) = 0.0d0
      w_(:,:,:,iw_mag(3)) = 0.0d0
 
-    !  if(srmhd_n_tracer>0)then
-    !    do itr=1,srmhd_n_tracer
-    !       where(x_(:,:,:,3)<zjet.and.(x_(:,:,:,1)**2+x_(:,:,:,2)**2)<rjet**2)
-    !         w_(:,:,:,tracer(itr)) = w_(:,:,:,iw_rho)*lfacjet
-    !       elsewhere
-    !         w_(:,:,:,tracer(itr)) = 0.0d0
-    !       endwhere
-    !    enddo
-    !  endif
+     if(srmhd_n_tracer>0)then
+       do itr=1,srmhd_n_tracer
+          where(x_(:,:,:,3)<zjet.and.(x_(:,:,:,1)**2+x_(:,:,:,2)**2)<rjet**2)
+            w_(:,:,:,tracer(itr)) = w_(:,:,:,iw_rho)*lfacjet
+          elsewhere
+            w_(:,:,:,tracer(itr)) = 0.0d0
+          endwhere
+       enddo
+     endif
     end associate
 
     call phys_to_conserved(ixGmin1,ixGmin2,ixGmin3,ixGmax1,ixGmax2,ixGmax3,&
@@ -225,6 +225,7 @@ contains
        iB, w, x)
     use mod_global_parameters
     use mod_physics_vars
+    use srmhd_con2prim, only: ideal_eos, synge_eos
     ${GPU_ROUTINE_VECTOR()}$
     implicit none
     integer, intent(in) :: ixImin1, ixImin2, ixImin3, ixImax1, ixImax2, ixImax3
@@ -236,7 +237,7 @@ contains
     double precision, intent(in),&
          dimension(ixImin1:ixImax1, ixImin2:ixImax2, ixImin3:ixImax3, 1:ndim) :: x
     integer              :: ix1, ix2, ix3, iw
-    double precision     :: rhoh, E_th, E
+    double precision     :: rhoh, E_th, E, b_sqr
 
     select case(iB)
     case(5)
@@ -261,12 +262,17 @@ contains
                      rhoh = rhojet + srmhd_gamma/(srmhd_gamma-1)*pjet
                   end if
 
+                  b_sqr = w(ix1,ix2,ix3,iw_mag(1))**2 &
+                        + w(ix1,ix2,ix3,iw_mag(2))**2 &
+                        + w(ix1,ix2,ix3,iw_mag(3))**2
+                  
                   w(ix1,ix2,ix3,iw_rho)    = rhojet*lfacjet
                   w(ix1,ix2,ix3,iw_mom(1)) = 0.0d0
                   w(ix1,ix2,ix3,iw_mom(2)) = 0.0d0
-                  w(ix1,ix2,ix3,iw_mom(3)) = rhoh * lfacjet**2 * vjet
+                  w(ix1,ix2,ix3,iw_mom(3)) = rhoh * lfacjet**2 * vjet + b_sqr*vjet - w(ix1,ix2,ix3,iw_mag(3)) * vjet**2 
                   w(ix1,ix2,ix3,iw_e)      = &
-                       rhoh * lfacjet**2 - pjet - rhojet * lfacjet
+                       rhoh * lfacjet**2 - pjet - rhojet * lfacjet &
+                       + 0.5_dp*(b_sqr*(1 + vjet**2) - (w(ix1,ix2,ix3,iw_mag(3)) * vjet)**2)
                else
 ! Calling primitive here is somehow broken.  To fix!!!!                  
 !                  call to_primitive(u)
@@ -280,24 +286,24 @@ contains
          end do
       end do
 
-!       if(srmhd_n_tracer>0)then
-!          do iw=1,srmhd_n_tracer
-! #ifndef _OPENMP
-!             ${GPU_LOOP_VECTOR("collapse(3)")}$
-! #endif
-!             do ix3 = ixOmin3, ixOmax3
-!                do ix2 = ixOmin2, ixOmax2
-!                   do ix1 = ixOmin1, ixOmax1
-!                      if (x(ix1,ix2,ix3,1)**2+x(ix1,ix2,ix3,2)**2<rjet**2) then
-!                         w(ix1,ix2,ix3,tracer(iw))    = w(ix1,ix2,ix3,iw_rho)
-!                      else
-!                         w(ix1,ix2,ix3,tracer(iw))    = 0.0d0
-!                      endif
-!                   end do
-!                end do
-!             end do
-!          enddo
-!       endif
+      if(srmhd_n_tracer>0)then
+         do iw=1,srmhd_n_tracer
+#ifndef _OPENMP
+            ${GPU_LOOP_VECTOR("collapse(3)")}$
+#endif
+            do ix3 = ixOmin3, ixOmax3
+               do ix2 = ixOmin2, ixOmax2
+                  do ix1 = ixOmin1, ixOmax1
+                     if (x(ix1,ix2,ix3,1)**2+x(ix1,ix2,ix3,2)**2<rjet**2) then
+                        w(ix1,ix2,ix3,tracer(iw))    = w(ix1,ix2,ix3,iw_rho)
+                     else
+                        w(ix1,ix2,ix3,tracer(iw))    = 0.0d0
+                     endif
+                  end do
+               end do
+            end do
+         enddo
+      endif
 
       ! Curently broken, cannot call anything here.      
       ! ! switch to conserved in ghost cells
@@ -367,7 +373,7 @@ contains
     integer, intent(in)             :: level
     double precision, intent(in)    :: qt
     double precision, intent(in)    :: x(1:3)
-    double precision, intent(in)    :: w(1:nw)
+    double precision, intent(in)    :: w(1:nw_phys)
     logical, intent(inout) :: refineflag, coarsenflag, norefineflag, nocoarsenflag
 
     if (x(3) < 1.1d0*zjet .and. (x(1)**2 + x(2)**2) < rjet**2) then

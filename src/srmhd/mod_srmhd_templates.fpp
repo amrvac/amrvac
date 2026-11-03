@@ -21,6 +21,11 @@
   logical, public                         :: srmhd_eos = .false.
   ${GPU_DECLARE_COPYIN('srmhd_eos')}$
 
+  !> Number of leading variables the MUSCL reconstruction limits (1:nw_recon).
+  !> Slots nw_recon+1:nw_phys are left to fix_prim_state, which must rebuild
+  !> them before the Riemann solver reads the face state.
+  integer, parameter, public              :: nw_recon=nw_flux
+
   !> Index of the density (in the w array) as primitive or conserved
   integer, public                         :: rho_
   integer, public                         :: d_
@@ -241,7 +246,14 @@
     mu_  = var_set_auxvar('mu','mu')
     lfac_= var_set_auxvar('lfac','lfac')
 
+    if (nwflux > nw_recon .or. mu_ <= nw_recon .or. lfac_ <= nw_recon) &
+      call mpistop("srhd phys_init: flux variables must occupy 1:nw_recon "//&
+      "and the auxiliaries mu, lfac come after them")
+
     ${GPU_UPDATE_DEVICE('mu_,lfac_')}$
+
+
+
 
     ! set number of variables which need update ghostcells
     nwgc=nwflux+nwaux
@@ -377,7 +389,7 @@
 
 #:def to_primitive()
   subroutine to_primitive(u)
-    use srmhd_con2prim, only: ideal_eos
+    use srmhd_con2prim, only: ideal_eos, synge_eos
 
     ${GPU_ROUTINE_SEQ()}$
     real(dp), intent(inout) :: u(nw_phys)
@@ -412,7 +424,11 @@
 
     u(iw_rho) = d/lfac  
 
-    u(iw_e) = ideal_eos(u(iw_rho), eps)
+    if (srmhd_eos) then
+      u(iw_e) = synge_eos(u(iw_rho), eps)
+    else
+      u(iw_e) = ideal_eos(u(iw_rho), eps)
+    end if 
 
     u(iw_mom(1)) = vel(1)*lfac
 
@@ -433,22 +449,29 @@
     ${GPU_ROUTINE_SEQ()}$
     real(dp), intent(inout) :: u(nw_phys)
 
-    ! real(dp)    ::  tau, d
     real(dp)    ::  v_sqr, b_sqr, v_dot_b
 
-    ! d=u(iw_rho)*u(lfac_)
+    real(dp)    :: E_th, E, h
+
+
 
 
     
 
     u(lfac_) = sqrt(1+u(iw_mom(1))**2 + u(iw_mom(2))**2 + u(iw_mom(3))**2)
 
-    u(mu_) = 1/u(lfac_)/(1 + srmhd_gamma / (srmhd_gamma-1) / u(iw_rho) * u(iw_e))
+    if (srmhd_eos) then 
+      E_th = u(iw_e) * 1/(srmhd_gamma-1)
+      E    = E_th + dsqrt(E_th**2+u(iw_rho)**2)
+      ! writing rho/E on purpose, for numerics 
+      h = 0.5_dp * ((srmhd_gamma+1.0_dp) * E &
+          - (srmhd_gamma-1) * (u(iw_rho)/E))
 
-    ! if (u(lfac_) <= 0.0_dp .or. any(u /= u)) then
-    !   print *, 'tocon bad input, u =', u
-    !   error stop
-    ! end if
+      u(mu_) = 1/u(lfac_)/h
+    else
+      u(mu_) = 1/u(lfac_)/(1 + srmhd_gamma / (srmhd_gamma-1) / u(iw_rho) * u(iw_e))
+    end if
+
 
     u(iw_rho)= u(iw_rho)*u(lfac_)
 

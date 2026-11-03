@@ -23,7 +23,7 @@
  /
 
  &stoplist
-   time_max           = 200.0d0
+   time_max           = 2.0d0
  /
 
  &methodlist
@@ -46,7 +46,7 @@
  &meshlist
    refine_usr=.true.
    refine_criterion=3
-   max_blocks         = 4096
+   max_blocks         = 1024
    refine_max_level   = 2
    block_nx1          = 20
    block_nx2          = 20
@@ -70,8 +70,8 @@
  
 &srmhd_list
    srmhd_gamma=1.666667d0
-   srmhd_eos=.false.
-   He_abundance=0.1d0
+   srmhd_eos=.true.
+   He_abundance=0.0d0
    srmhd_source_usr=.false.
    srmhd_small_density=1.0d-7
    srmhd_small_pressure=1.0d-9
