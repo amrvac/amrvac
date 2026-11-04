@@ -61,11 +61,6 @@
 
 
 
-  ! may add this for con2prim speedups
-  ! !> Index of the upper limit on mu field
-  ! integer, allocatable, public            :: mu_plus_
-  ! ${GPU_DECLARE_CREATE('mu_plus_')}$
-
 
   !> Index of the Lorentz factor
   integer, public     :: lfac_
@@ -88,10 +83,6 @@
   !> The adiabatic index
   double precision, public                :: srmhd_gamma = 5.d0/3.0d0
   ${GPU_DECLARE_COPYIN('srmhd_gamma')}$
-
-  ! !> derived values from adiabatic index 
-  ! double precision, public                :: gamma_1,inv_gamma_1,gamma_to_gamma_1
-  ! ${GPU_DECLARE_COPYIN('gamma_1,inv_gamma_1,gamma_to_gamma_1')}$
 
   !> Helium abundance over Hydrogen
   double precision, public  :: He_abundance=0.1d0
@@ -190,10 +181,6 @@
     phys_total_energy  = .true.
     phys_gamma = srmhd_gamma
 
-    ! gamma_1=srmhd_gamma-1.0d0
-    ! inv_gamma_1=1.0d0/gamma_1
-    ! gamma_to_gamma_1=srmhd_gamma/gamma_1
-    ! ${GPU_UPDATE_DEVICE('gamma_1,inv_gamma_1,gamma_to_gamma_1')}$
 
     phys_internal_e=.false.
     phys_partial_ionization=.false.
@@ -771,8 +758,6 @@ subroutine estimate_speeds_minmax(uL, uR, xC, flux_dim, wL, wR)
   wL = min(max(wL, -1.0_dp), 1.0_dp)
   wR = min(max(wR, -1.0_dp), 1.0_dp)
 
-  ! wL = -1.0_dp
-  ! wR =  1.0_dp
 end subroutine estimate_speeds_minmax
 #:enddef
 
