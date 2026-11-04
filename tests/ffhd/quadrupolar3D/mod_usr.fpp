@@ -259,40 +259,6 @@ module mod_usr
             end do
             end do
         enddo
-
-        ! case(6)
-
-        ! ! to include ix3 into loop, perhaps precompute?
-        ! ${GPU_LOOP_VECTOR("collapse(2)")}$
-        !   do ix2=ixOmin2,ixOmax2
-        !     do ix1=ixOmin1,ixOmax1
-
-        !     ! inline get pthermal to improve performance
-        !     pth = (phys_gamma-1.0_dp)*(w(ix1,ix2,ixOmin3-1, e_)- &
-        !       0.5_dp*w(ix1,ix2,ixOmin3-1, mom(1))**2/w(ix1,ix2,ixOmin3-1, rho_))
-        !     invT     = w(ix1,ix2,ixOmin3-1,rho_)/pth
-
-        !     tmp = 0.d0
-        !     do ix3=ixOmin3,ixOmax3
-        !       gravity = 0.5d0*(gravity_field(w(ix1,ix2,ix3,:), x(ix1,ix2,ix3,:), 3) + &
-        !                 gravity_field(w(ix1,ix2,ix3-1,:), x(ix1,ix2,ix3-1,:), 3))
-        !       tmp = tmp + gravity*invT
-        !       ! repeated dxlevel(3) calculation to be optimized
-        !       w(ix1,ix2,ix3,p_)=pth*dexp(tmp*(x(ix1,ix2,ix3,3)-x(ix1,ix2,ix3-1,3)))
-        !       w(ix1,ix2,ix3,rho_) = w(ix1,ix2,ix3,p_)*invT
-        !       #:if defined('HYPERTC')
-        !       w(ix1,ix2,ix3,q_)=zero
-        !       #:endif
-        !       w(ix1,ix2,ix3,iw_mom(1)) = -w(ix1,ix2,2*ixOmin3-1-ix3,iw_mom(1)) / &
-        !                                   w(ix1,ix2,2*ixOmin3-1-ix3,rho_)  
-
-        !       ! inline to_conservative() for performance:
-        !       w(ix1,ix2,ix3, e_)=w(ix1,ix2,ix3, e_)*inv_gamma_m1 +0.5_dp*w(ix1,ix2,ix3, rho_)*&
-        !           w(ix1,ix2,ix3, iw_mom(1))**2
-        !       w(ix1,ix2,ix3, iw_mom(1)) = w(ix1,ix2,ix3, iw_rho)*w(ix1,ix2,ix3, iw_mom(1))
-        !       end do
-        !       end do
-        !   end do
       end select
 
    end subroutine specialbound_usr

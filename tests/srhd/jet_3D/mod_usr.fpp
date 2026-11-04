@@ -294,23 +294,6 @@ contains
          enddo
       endif
 
-! Curently broken, cannot call anything here.      
-      ! ! switch to conserved in ghost cells
-      ! ${GPU_LOOP_VECTOR("collapse(3)")}$
-      ! do ix3 = ixOmin3, ixOmax3
-      !    do ix2 = ixOmin2, ixOmax2
-      !       do ix1 = ixOmin1, ixOmax1
-      !          do iw = 1, nw_phys
-      !             u(iw) = w(ix1,ix2,ix3,iw)
-      !          end do
-      !          call to_conservative(u)
-      !          do iw = 1, nw_phys
-      !             w(ix1,ix2,ix3,iw) = u(iw)
-      !          end do
-      !       end do
-      !    end do
-      ! end do
-
    end select
 
   end subroutine specialbound_usr
