@@ -231,6 +231,8 @@ module mod_mhd_phys
   !> Keep E x curl(E) in the semirelativistic source: eq (26) of Gombosi et al. 2002 keeps it,
   !> their eq (28) and wave tests drop it (steady-state limit)
   logical, public, protected              :: mhd_semirelati_curl_E = .true.
+  !> exclude Maxwell stress flux from momentum flux (use hydrodynamic momentum flux) for conservation fix at coarse-fine block boundaries to avoid abnormal large velocity there in strong magnetic field
+  logical, public, protected              :: mhd_hd_mom_conserve_fix = .false.
   !> Algebra used by the Alfven-wave reflection source.  one_dimensional_gradient
   !> retains the original one-dimensional source; cartesian_gradient_vorticity
   !> is the multidimensional gradient/vorticity closure.
@@ -340,7 +342,7 @@ contains
       mhd_uawsom_sigma, mhd_uawsom_height_dim, mhd_uawsom_zeta0, &
       mhd_uawsom_filling_factor, mhd_uawsom_zeta_scale, &
       mhd_uawsom_thread_radius0, mhd_uawsom_Bref, &
-      mhd_uawsom_alfven_corr_length0
+      mhd_uawsom_alfven_corr_length0, mhd_hd_mom_conserve_fix
 
     do n = 1, size(files)
        open(unitpar, file=trim(files(n)), status="old")
@@ -492,6 +494,7 @@ contains
     phys_internal_e=mhd_internal_e
     phys_trac=mhd_trac
     phys_trac_type=mhd_trac_type
+    phys_hd_mom_conserve_fix=mhd_hd_mom_conserve_fix
 
     phys_gamma = eos%gamma
     phys_trac_finegrid=mhd_trac_finegrid
@@ -1147,6 +1150,15 @@ contains
        endif
        call cak_init(eos%gamma)
     endif
+
+    ! get hydrodynamic momentum flux for conservation fix in strong magnetic field
+    if (mhd_hd_mom_conserve_fix) then
+      if(mhd_energy) then
+        phys_get_hd_mom_flux => get_hd_mom_flux
+      else
+        phys_get_hd_mom_flux => get_hd_mom_flux_noe
+      end if
+    end if
 
   end subroutine mhd_phys_init
 
@@ -8926,5 +8938,62 @@ contains
     call b_from_vector_potentialA(ixIs^L, ixI^L, ixO^L, ws, x, Adummy)
 
   end subroutine b_from_vector_potential
+
+  subroutine get_hd_mom_flux(wC,w,x,ixI^L,ixO^L,idim,f)
+    use mod_global_parameters
+
+    integer, intent(in)          :: ixI^L, ixO^L, idim
+    ! conservative w
+    double precision, intent(in) :: wC(ixI^S,nw)
+    ! primitive w
+    double precision, intent(in) :: w(ixI^S,nw)
+    double precision, intent(in) :: x(ixI^S,1:ndim)
+    double precision,intent(out) :: f(ixI^S,1:ndir)
+
+    integer                      :: ix^D
+
+   {do ix^DB=ixOmin^DB,ixOmax^DB\}
+      ! Get flux of momentum
+      ! f_i[m_k]=v_i*m_k
+      ^C&f(ix^D,^C)=wC(ix^D,mom(idim))*w(ix^D,mom(^C))\
+      f(ix^D,idim)=f(ix^D,idim)+w(ix^D,p_)
+   {end do\}
+
+  end subroutine get_hd_mom_flux
+
+  subroutine get_hd_mom_flux_noe(wC,w,x,ixI^L,ixO^L,idim,f)
+    use mod_global_parameters
+    use mod_usr_methods, only: usr_set_adiab, usr_set_gamma
+
+    integer, intent(in)          :: ixI^L, ixO^L, idim
+    ! conservative w
+    double precision, intent(in) :: wC(ixI^S,nw)
+    ! primitive w
+    double precision, intent(in) :: w(ixI^S,nw)
+    double precision, intent(in) :: x(ixI^S,1:ndim)
+    double precision,intent(out) :: f(ixI^S,1:ndir)
+
+    double precision             :: adiabs(ixI^S), gammas(ixI^S)
+    integer                      :: ix^D
+
+    if(associated(usr_set_adiab)) then
+       call usr_set_adiab(w,x,ixI^L,ixO^L,adiabs)
+    else
+       adiabs=mhd_adiab
+    end if
+    if(associated(usr_set_gamma)) then
+       call usr_set_gamma(w,x,ixI^L,ixO^L,gammas)
+    else
+       gammas=eos%gamma
+    end if
+
+   {do ix^DB=ixOmin^DB,ixOmax^DB\}
+      ! Get flux of momentum
+      ! f_i[m_k]=v_i*m_k
+      ^C&f(ix^D,^C)=wC(ix^D,mom(idim))*w(ix^D,mom(^C))\
+      f(ix^D,idim)=f(ix^D,idim)+adiabs(ix^D)*w(ix^D,rho_)**gammas(ix^D)
+   {end do\}
+
+  end subroutine get_hd_mom_flux_noe
 
 end module mod_mhd_phys

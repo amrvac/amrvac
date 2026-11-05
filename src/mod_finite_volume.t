@@ -142,6 +142,8 @@ contains
     ! left and right constructed status in primitive form, needed for better performance
     double precision, dimension(ixI^S,1:nw) :: wLp, wRp
     double precision, dimension(ixI^S,1:nwflux) :: fLC, fRC
+    double precision, dimension(ixI^S,1:ndir,1:ndim)    :: fC_mom
+    double precision, dimension(ixI^S,1:ndir) :: fLC_mom, fRC_mom
     double precision, dimension(ixI^S,1:number_species) :: cmaxC
     double precision, dimension(ixI^S,1:number_species) :: cminC
     double precision, dimension(ixI^S) :: Hspeed
@@ -151,7 +153,7 @@ contains
     integer :: jdims, jxC^L, hpC^L, hmC^L
     !> undivided divergence of v at the interface, for the B19 diffusive flux
     double precision, dimension(ixI^S) :: divvC
-    logical :: active=.false.
+    logical :: active=.false., need_hd_mom_flux=.false.
     type(ct_velocity) :: vcts
 
     associate(wCT=>sCT%w, wnew=>snew%w)
@@ -164,6 +166,8 @@ contains
     end do
     if (ixI^L^LTix^L|.or.|.or.) &
          call mpistop("Error in fv : Nonconforming input limits")
+
+    if(phys_hd_mom_conserve_fix) need_hd_mom_flux = levmax>levmin
 
     wprim=wCT
     call phys_to_primitive(ixI^L,ixI^L,wprim,x)
@@ -224,6 +228,10 @@ contains
        ! evaluate physical fluxes according to reconstructed status
        call phys_get_flux(wLC,wLp,x,ixI^L,ixC^L,idims,fLC)
        call phys_get_flux(wRC,wRp,x,ixI^L,ixC^L,idims,fRC)
+       if(need_hd_mom_flux) then
+         call phys_get_hd_mom_flux(wLC,wLp,x,ixI^L,ixC^L,idims,fLC_mom)
+         call phys_get_hd_mom_flux(wRC,wRp,x,ixI^L,ixC^L,idims,fRC_mom)
+       end if
        if(H_correction) then
          call phys_get_H_speed(wprim,x,ixI^L,ixO^L,idims,Hspeed)
        end if
@@ -241,24 +249,38 @@ contains
        select case(method)
        case(fs_hll)
          do ii=1,number_species
-           call get_Riemann_flux_hll(start_indices(ii),stop_indices(ii))
+           call get_Riemann_flux_hll(start_indices(ii),stop_indices(ii),fLC(ixI^S,start_indices(ii):stop_indices(ii)),fRC(ixI^S,start_indices(ii):stop_indices(ii)),fC(ixI^S,start_indices(ii):stop_indices(ii),idims))
          end do
+         if(need_hd_mom_flux) then
+           ii=1
+           call get_Riemann_flux_hll(iw_mom(1),iw_mom(ndir),fLC_mom,fRC_mom,fC_mom(ixI^S,1:ndir,idims))
+         end if
        case(fs_hllc,fs_hllcd)
          do ii=1,number_species
            call get_Riemann_flux_hllc(start_indices(ii),stop_indices(ii))
          end do
+         if(need_hd_mom_flux) then
+           fC_mom(ixI^S,1:ndir,idims)=0.d0
+         end if
        case(fs_hlld)
          do ii=1,number_species
            if(ii==index_v_mag) then
              call get_Riemann_flux_hlld(start_indices(ii),stop_indices(ii))
            else
-             call get_Riemann_flux_hll(start_indices(ii),stop_indices(ii))
-           endif   
+             call get_Riemann_flux_hll(start_indices(ii),stop_indices(ii),fLC(ixI^S,start_indices(ii):stop_indices(ii)),fRC(ixI^S,start_indices(ii):stop_indices(ii)),fC(ixI^S,start_indices(ii):stop_indices(ii),idims))
+           end if
+           if(need_hd_mom_flux) then
+             fC_mom(ixI^S,1:ndir,idims)=0.d0
+           end if
          end do
        case(fs_tvdlf)
          do ii=1,number_species
-           call get_Riemann_flux_tvdlf(start_indices(ii),stop_indices(ii))
+           call get_Riemann_flux_tvdlf(start_indices(ii),stop_indices(ii),fLC(ixI^S,start_indices(ii):stop_indices(ii)),fRC(ixI^S,start_indices(ii):stop_indices(ii)),fC(ixI^S,start_indices(ii):stop_indices(ii),idims))
          end do
+         if(need_hd_mom_flux) then
+           ii=1
+           call get_Riemann_flux_tvdlf(iw_mom(1),iw_mom(ndir),fLC_mom,fRC_mom,fC_mom(ixI^S,1:ndir,idims))
+         end if
        case(fs_tvdmu)
          call get_Riemann_flux_tvdmu()
        case default
@@ -337,6 +359,11 @@ contains
           ! For the MUSCL scheme apply the characteristic based limiter
           if(method==fs_tvdmu) &
              call tvdlimit2(method,qdt,ixI^L,ixC^L,ixO^L,idims,wLC,wRC,wnew,x,fC,dxs)
+          if(need_hd_mom_flux) then 
+           {do ix^DB=hxOmin^DB,ixOmax^DB\}
+             ^C&fC(ix^D,iw_mom(^C),idims)=dxinv(idims)*fC_mom(ix^D,^C,idims)\
+           {end do\}
+          end if
         end do
       end if
     else
@@ -369,6 +396,11 @@ contains
               wnew(ix^D,iw)=wnew(ix^D,iw)+(fC(ix^D,iw,idims)-fC(ix^D-hx^D,iw,idims))*inv_volume(ix^D)
            {end do\}
           end do
+          if(need_hd_mom_flux) then 
+           {do ix^DB=hxOmin^DB,ixOmax^DB\}
+             ^C&fC(ix^D,iw_mom(^C),idims)=-qdt*fC_mom(ix^D,^C,idims)*block%surfaceC(ix^D,idims)\
+           {end do\}
+          end if
         end do
       end if
     end if
@@ -401,76 +433,76 @@ contains
       end do
     end subroutine get_Riemann_flux_tvdmu
 
-    subroutine get_Riemann_flux_tvdlf(iws,iwe)
+    subroutine get_Riemann_flux_tvdlf(iws,iwe,fL,fR,f)
       integer, intent(in) :: iws,iwe
+      double precision, intent(in) :: fL(ixI^S,iws:iwe),fR(ixI^S,iws:iwe)
+      double precision, intent(out) :: f(ixI^S,iws:iwe)
 
-      integer :: ix^D,jx^D
       double precision :: fac(ixC^S),phi
+      integer :: ix^D,jx^D
 
       fac(ixC^S) = -0.5d0*tvdlfeps*cmaxC(ixC^S,ii)
       do iw=iws,iwe
-         if(flux_energy_only .and. iw /= iw_e) then
-           fC(ixC^S,iw,idims)=zero
-         else
-           fC(ixC^S,iw,idims)=0.5d0*(fLC(ixC^S, iw)+fRC(ixC^S, iw))
-           ! Add TVDLF dissipation to the flux
-           if(flux_type(idims, iw) /= flux_no_dissipation) then
-             if(flux_adaptive_diffusion) then
-              {do ix^DB=ixCmin^DB,ixCmax^DB\}
-                 jx^D=ix^D+kr(idims,^D)\
-                 !> adaptive diffusion from Rempel et al. 2009, see also Rempel et al. 2014
-                 !> the previous version is adopt
-                 !if(((wRC(ix^D,iw)-wLC(ix^D,iw))*(sCT%w(jx^D,iw)-sCT%w(ix^D,iw))) .gt. 1.e-18) then
-                 !  phi=min((wRC(ix^D,iw)-wLC(ix^D,iw))**2/((sCT%w(jx^D,iw)-sCT%w(ix^D,iw))**2+1.e-18),one)
-                 !else
-                 !  phi=1.d0
-                 !end if
-                 phi = flux_adaptive_diffusion_min
-                 if(((wRC(ix^D,iw)-wLC(ix^D,iw))*(sCT%w(jx^D,iw)-sCT%w(ix^D,iw))) .gt. 1.d-18) then
-                   phi = max(flux_adaptive_diffusion_min, &
-                        min(flux_adaptive_diffusion_scale * &
-                            (wRC(ix^D,iw)-wLC(ix^D,iw))**2 / &
-                            ((sCT%w(jx^D,iw)-sCT%w(ix^D,iw))**2 + 1.d-18), one))
-                 else
-                   phi = one
-                 end if
-                 fC(ix^D,iw,idims)=fC(ix^D,iw,idims)+fac(ix^D)*(wRC(ix^D,iw)-wLC(ix^D,iw))*phi
-              {end do\}
-             else
-              {do ix^DB=ixCmin^DB,ixCmax^DB\}
-                 fC(ix^D,iw,idims)=fC(ix^D,iw,idims)+fac(ix^D)*(wRC(ix^D,iw)-wLC(ix^D,iw))
-              {end do\}
-             end if
+         ! Add TVDLF dissipation to the flux
+         if(flux_type(idims, iw) /= flux_no_dissipation) then
+           if(flux_adaptive_diffusion) then
+            {do ix^DB=ixCmin^DB,ixCmax^DB\}
+               jx^D=ix^D+kr(idims,^D)\
+               !> adaptive diffusion from Rempel et al. 2009, see also Rempel et al. 2014
+               !> the previous version is adopt
+               !if(((wRC(ix^D,iw)-wLC(ix^D,iw))*(sCT%w(jx^D,iw)-sCT%w(ix^D,iw))) .gt. 1.e-18) then
+               !  phi=min((wRC(ix^D,iw)-wLC(ix^D,iw))**2/((sCT%w(jx^D,iw)-sCT%w(ix^D,iw))**2+1.e-18),one)
+               !else
+               !  phi=1.d0
+               !end if
+               phi = flux_adaptive_diffusion_min
+               if(((wRC(ix^D,iw)-wLC(ix^D,iw))*(sCT%w(jx^D,iw)-sCT%w(ix^D,iw))) .gt. 1.d-18) then
+                 phi = max(flux_adaptive_diffusion_min, &
+                      min(flux_adaptive_diffusion_scale * &
+                          (wRC(ix^D,iw)-wLC(ix^D,iw))**2 / &
+                          ((sCT%w(jx^D,iw)-sCT%w(ix^D,iw))**2 + 1.d-18), one))
+               else
+                 phi = one
+               end if
+               f(ix^D,iw)=half*(fL(ix^D, iw)+fR(ix^D, iw))+fac(ix^D)*(wRC(ix^D,iw)-wLC(ix^D,iw))*phi
+            {end do\}
+           else
+            {do ix^DB=ixCmin^DB,ixCmax^DB\}
+               f(ix^D,iw)=half*(fL(ix^D, iw)+fR(ix^D, iw))+fac(ix^D)*(wRC(ix^D,iw)-wLC(ix^D,iw))
+            {end do\}
            end if
          end if
       end do
     end subroutine get_Riemann_flux_tvdlf
 
-    subroutine get_Riemann_flux_hll(iws,iwe)
+    subroutine get_Riemann_flux_hll(iws,iwe,fL,fR,f)
       integer, intent(in) :: iws,iwe
-      integer :: ix^D
+      double precision, intent(in) :: fL(ixI^S,iws:iwe),fR(ixI^S,iws:iwe)
+      double precision, intent(out) :: f(ixI^S,iws:iwe)
+
       double precision :: phi
+      integer :: ix^D
 
       if(flux_adaptive_diffusion) then
         do iw=iws,iwe
           if(flux_type(idims, iw) == flux_tvdlf) then
             if(stagger_grid) then
               ! CT MHD set zero normal B flux
-              fC(ixC^S,iw,idims)=0.d0
+              f(ixC^S,iw)=0.d0
             else
-              fC(ixC^S,iw,idims)=-tvdlfeps*half*max(cmaxC(ixC^S,ii),dabs(cminC(ixC^S,ii)))*&
+              f(ixC^S,iw)=-tvdlfeps*half*max(cmaxC(ixC^S,ii),dabs(cminC(ixC^S,ii)))*&
                    (wRC(ixC^S,iw)-wLC(ixC^S,iw))
             end if
           else
            {do ix^DB=ixCmin^DB,ixCmax^DB\}
               if(cminC(ix^D,ii) >= zero) then
-                fC(ix^D,iw,idims)=fLC(ix^D,iw)
+                f(ix^D,iw)=fL(ix^D,iw)
               else if(cmaxC(ix^D,ii) <= zero) then
-                fC(ix^D,iw,idims)=fRC(ix^D,iw)
+                f(ix^D,iw)=fR(ix^D,iw)
               else
                 !> reduced diffusion is from Wang et al. 2024
                 phi=max(abs(cmaxC(ix^D,ii)),abs(cminC(ix^D,ii)))/(cmaxC(ix^D,ii)-cminC(ix^D,ii))
-                fC(ix^D,iw,idims)=(cmaxC(ix^D,ii)*fLC(ix^D, iw)-cminC(ix^D,ii)*fRC(ix^D,iw)&
+                f(ix^D,iw)=(cmaxC(ix^D,ii)*fL(ix^D, iw)-cminC(ix^D,ii)*fR(ix^D,iw)&
                       +phi*cminC(ix^D,ii)*cmaxC(ix^D,ii)*(wRC(ix^D,iw)-wLC(ix^D,iw)))&
                       /(cmaxC(ix^D,ii)-cminC(ix^D,ii))
               end if
@@ -482,19 +514,19 @@ contains
           if(flux_type(idims, iw) == flux_tvdlf) then
             if(stagger_grid) then
               ! CT MHD set zero normal B flux
-              fC(ixC^S,iw,idims)=0.d0
+              f(ixC^S,iw)=0.d0
             else
-              fC(ixC^S,iw,idims)=-tvdlfeps*half*max(cmaxC(ixC^S,ii),dabs(cminC(ixC^S,ii)))*&
+              f(ixC^S,iw)=-tvdlfeps*half*max(cmaxC(ixC^S,ii),dabs(cminC(ixC^S,ii)))*&
                    (wRC(ixC^S,iw)-wLC(ixC^S,iw))
             end if
           else
            {do ix^DB=ixCmin^DB,ixCmax^DB\}
               if(cminC(ix^D,ii) >= zero) then
-                fC(ix^D,iw,idims)=fLC(ix^D,iw)
+                f(ix^D,iw)=fL(ix^D,iw)
               else if(cmaxC(ix^D,ii) <= zero) then
-                fC(ix^D,iw,idims)=fRC(ix^D,iw)
+                f(ix^D,iw)=fR(ix^D,iw)
               else
-                fC(ix^D,iw,idims)=(cmaxC(ix^D,ii)*fLC(ix^D, iw)-cminC(ix^D,ii)*fRC(ix^D,iw)&
+                f(ix^D,iw)=(cmaxC(ix^D,ii)*fL(ix^D, iw)-cminC(ix^D,ii)*fR(ix^D,iw)&
                       +cminC(ix^D,ii)*cmaxC(ix^D,ii)*(wRC(ix^D,iw)-wLC(ix^D,iw)))&
                       /(cmaxC(ix^D,ii)-cminC(ix^D,ii))
               end if

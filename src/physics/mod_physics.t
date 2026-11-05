@@ -42,6 +42,8 @@ module mod_physics
   !> Solve internal energy instead of total energy
   logical :: phys_internal_e=.false.
 
+  !> exclude Maxwell stress flux from momentum flux (use hydrodynamic momentum flux) for conservation fix at coarse-fine block boundaries to avoid abnormal large velocity there in strong magnetic field
+  logical :: phys_hd_mom_conserve_fix = .false.
 
   !> String describing the physics type of the simulation
   character(len=name_len) :: physics_type = ""
@@ -94,6 +96,7 @@ module mod_physics
   procedure(sub_check_params), pointer    :: phys_te_images              => null()
   procedure(sub_get_auxiliary), pointer         :: phys_get_auxiliary         => null()
   procedure(sub_get_auxiliary_prim), pointer    :: phys_get_auxiliary_prim    => null()
+  procedure(sub_get_hd_mom_flux), pointer    :: phys_get_hd_mom_flux    => null()
 
   abstract interface
 
@@ -396,6 +399,17 @@ module mod_physics
        double precision, intent(in) :: dtfactor
      end subroutine sub_implicit_update
 
+     subroutine sub_get_hd_mom_flux(wC,w,x,ixI^L,ixO^L,idims,f)
+       use mod_global_parameters
+       integer, intent(in)          :: ixI^L, ixO^L, idims
+       ! conservative w
+       double precision, intent(in) :: wC(ixI^S,nw)
+       ! primitive w
+       double precision, intent(in) :: w(ixI^S,nw)
+       double precision, intent(in) :: x(ixI^S,1:ndim)
+       double precision,intent(out) :: f(ixI^S,1:ndir)
+     end subroutine sub_get_hd_mom_flux
+
    end interface
 
 contains
@@ -479,6 +493,9 @@ contains
 
     if (.not. associated(phys_implicit_update)) &
          phys_implicit_update => dummy_implicit_update
+
+    if (.not. associated(phys_get_hd_mom_flux)) &
+         phys_get_hd_mom_flux => dummy_get_hd_mom_flux
 
   end subroutine phys_check
 
@@ -656,5 +673,16 @@ contains
     !$OMP END PARALLEL DO
 
   end subroutine dummy_implicit_update
+
+  subroutine dummy_get_hd_mom_flux(wC,w,x,ixI^L,ixO^L,idims,f)
+    use mod_global_parameters
+    integer, intent(in)          :: ixI^L, ixO^L, idims
+    ! conservative w
+    double precision, intent(in) :: wC(ixI^S,nw)
+    ! primitive w
+    double precision, intent(in) :: w(ixI^S,nw)
+    double precision, intent(in) :: x(ixI^S,1:ndim)
+    double precision,intent(out) :: f(ixI^S,1:ndir)
+  end subroutine dummy_get_hd_mom_flux
 
 end module mod_physics
