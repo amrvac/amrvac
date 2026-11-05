@@ -15,6 +15,7 @@ module mod_dt
 contains
 
 ! instantiate here for inlining in kernels
+@:get_aux()
 @:to_primitive()
 @:get_cmax()
 @:phys_get_dt()

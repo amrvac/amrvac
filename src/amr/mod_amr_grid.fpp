@@ -47,12 +47,24 @@ contains
     use mod_coarsen_refine
     use mod_errest, only: errest 
     use mod_particles
-    
+    use mod_ghostcells_update, only: getbc
+    use mod_physics, only: phys_req_diagonal
+
     ! deallocate old grids for particles
     if(use_particles) then
       call finish_gridvars()
     end if
-    
+
+    ! The cross terms of lohner_grid read the edge-diagonal ghost cells, which
+    ! the last getbc of the advance skipped when phys_req_diagonal is false.
+    ! Left stale, they hold whatever the block's history put there (load
+    ! balancing included), so the refinement decision would depend on the
+    ! number of MPI ranks. resettree runs after advance and before global_time
+    ! is incremented, so the state is at global_time+dt.
+    if (refine_criterion == 3 .and. .not. phys_req_diagonal) then
+       call getbc(global_time+dt,0.d0,ps,iwstart,nwgc)
+    end if
+
     call errest
 
     call amr_coarsen_refine

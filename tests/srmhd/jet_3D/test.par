@@ -1,0 +1,74 @@
+
+ &filelist
+   base_filename    = 'test'
+   typefilelog      = 'regression_test'
+ /
+
+ &savelist
+   dtsave_log       = 1.0d10
+   dtsave_dat       = 1.0d10
+ /
+
+ &stoplist
+   time_max           = 1.0d0
+ /
+
+ &methodlist
+   time_stepper    = 'threestep'
+   flux_scheme     = 20*'tvdlf'
+   limiter         = 20*'vanleer'
+   phys            = 'srmhd'
+ /
+
+ &boundlist
+   specialboundary   = T
+   typeboundary_min1 = 8*'cont'
+   typeboundary_max1 = 8*'cont'
+   typeboundary_min2 = 8*'cont'
+   typeboundary_max2 = 8*'cont'
+   typeboundary_min3 = 8*'special'
+   typeboundary_max3 = 8*'cont'
+ /
+
+ &meshlist
+   refine_usr         = .true.
+   refine_criterion   = 3
+   max_blocks         = 128
+   refine_max_level   = 2
+   block_nx1          = 12
+   block_nx2          = 12
+   block_nx3          = 12
+   domain_nx1         = 24
+   domain_nx2         = 24
+   domain_nx3         = 48
+   xprobmin1       = -2.0d0
+   xprobmax1       = 2.0d0
+   xprobmin2       = -2.0d0
+   xprobmax2       = 2.0d0
+   xprobmin3       = 0.0d0
+   xprobmax3       = 8.0d0
+ /
+
+ &paramlist
+   slowsteps        = 1000
+   courantpar       = 0.4d0
+   typecourant      = 'maxsum'
+ /
+ 
+&srmhd_list
+   srmhd_gamma=1.666667d0
+   srmhd_eos=.true.
+   He_abundance=0.1d0
+   srmhd_source_usr=.false.
+   srmhd_n_tracer=1
+/
+
+&usr_list
+    rjet= 1.0d0
+    zjet=0.25d0
+    rhob=1.0d0
+    etarho=1.0d-5
+    pb=7.64d-6
+    zetap=1.0d0
+    lfacjet=7.0d0
+/

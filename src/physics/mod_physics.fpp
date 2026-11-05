@@ -113,6 +113,7 @@ contains
   @:read_params()
   @:phys_init()
   @:phys_units()
+  @:get_aux()
   @:to_primitive()
   @:to_conservative()
   @:phys_activate()

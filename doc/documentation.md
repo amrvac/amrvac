@@ -14,19 +14,19 @@ doc/ford/build_docs.sh
 ```
 
 This first expands `src/*.fpp` with `fypp` (FORD cannot parse fypp directives
-directly), once per physics module (`doc/ford/docgen_{mhd,hd,ffhd,srhd}.par`),
+directly), once per physics module (`doc/ford/docgen_{mhd,hd,ffhd,srhd,srmhd}.par`),
 then runs FORD on the result. Open the output e.g. with
 
 ```bash
 firefox doc/ford/html/index.html
 ```
 
-Because AGILE's physics modules (`hd`, `mhd`, `ffhd`, `srhd`) are
+Because AGILE's physics modules (`hd`, `mhd`, `ffhd`, `srhd`, `srmhd`) are
 mutually-exclusive fypp branches, a single fypp pass with one `PHYS` value
 only shows that physics module's variant of any file whose content depends
 on it. `merge_physics_variants.py` auto-discovers (by comparison) which
 files actually differ by physics module and keeps those as
-`_hd`/`_mhd`/`_ffhd`/`_srhd`-suffixed variants; everything else is kept
+`_hd`/`_mhd`/`_ffhd`/`_srhd`/`_srmhd`-suffixed variants; everything else is kept
 once. See `doc/ford/project.md` and `doc/ford/build_docs.sh` for details.
 
 # How to write documentation {: #doc-howto }

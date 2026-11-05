@@ -32,6 +32,7 @@ contains
 @:addsource_local()
 @:addsource_nonlocal()
 @:addsource_compact()
+@:get_aux()
 @:to_primitive()
 
 

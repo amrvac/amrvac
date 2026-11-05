@@ -18,10 +18,10 @@ the code's parameter file in the methodlist
 /
 ```
 
-where `phys` is one of the implemented physics modules (`hd`, `mhd`, `ffhd`, `srhd`),
+where `phys` is one of the implemented physics modules (`hd`, `mhd`, `ffhd`, `srhd`, `srmhd`),
 see below. The equations below are written in flat (Cartesian) space; running
 on a spherical or cylindrical mesh instead adds extra geometric source terms
-to the momentum (and, for `mhd`, magnetic field) equations, described
+to the momentum (and, for `mhd` and `srmhd`, magnetic field) equations, described
 separately in [Coordinate systems](coordinate_systems.html#geom_sources).
 The equations and notation below follow
 [Porth et al., "Astrophysics on GPUs: introducing AGILE 1.0"
@@ -34,6 +34,7 @@ Section 2.3, which is also the citable reference for AGILE 1.0.
 | `ffhd` | `LF` |
 | `mhd`  | `LF`, `HLL`, `HLLC` |
 | `srhd` | `LF`, `HLL` |
+| `srmhd` | `LF`, `HLL` |
 
 The scheme is chosen with `flux_scheme` in `&methodlist` (`'tvdlf'` for
 `LF`, `'hll'`, `'hllc'`; `'tvdlf'` is the default). `flux_scheme` is an
@@ -556,6 +557,108 @@ passive tracers and supports [user source terms](#eq_usr_source) with
 floors, **srhd_small_density** and **srhd_small_pressure**, are described
 under [Density and pressure floors](#eq_floors), like those of the other
 modules.
+
+
+## Special relativistic magnetohydrodynamics: srmhd {: #eq_srmhd }
+
+```fortran
+&methodlist
+   phys            = 'srmhd'
+/
+```
+
+The special relativistic MHD module extends [srhd](#eq_srhd) with a
+magnetic field **B**, measured in the lab frame. It solves
+
+\begin{eqnarray}
+    \partial_t D + \nabla\cdot (D \mathbf{v}) &=& 0 \,,\\
+    \partial_t \mathbf{m} + \nabla \cdot \left(\mathbf{m}\mathbf{v} - \frac{\mathbf{B}\mathbf{B}}{\Gamma^2} - (\mathbf{v}\cdot\mathbf{B})\,\mathbf{v}\mathbf{B} + p_{\mathrm{tot}}\mathbf{I}\right) &=& 0 \,,\\
+    \partial_t \tau + \nabla \cdot\left(\mathbf{m} - D \mathbf{v}\right) &=& 0 \,,\\
+    \partial_t\mathbf{B}+\nabla\cdot\left[\mathbf{v}\mathbf{B}-\mathbf{B}\mathbf{v} +\psi\mathbf{I}\right] &=& 0 \,,
+\end{eqnarray}
+
+with the conserved variables
+
+\begin{equation}
+    \mathbf{U} = \left(\begin{array}{c}
+        D  \\
+        \mathbf{m} \\
+        \tau \\
+        \mathbf{B}
+    \end{array}
+    \right)
+    = \left(\begin{array}{c}
+        \Gamma \rho \\
+        (\Gamma^2 \rho h + B^2)\,\mathbf{v} - (\mathbf{v}\cdot\mathbf{B})\,\mathbf{B} \\
+        \Gamma^2 \rho h - p - D + \frac{1}{2}B^2(1+v^2) - \frac{1}{2}(\mathbf{v}\cdot\mathbf{B})^2 \\
+        \mathbf{B}
+    \end{array}
+    \right) \,.
+\end{equation}
+
+The total pressure adds the magnetic pressure of the *comoving* field,
+
+\begin{equation}
+    p_{\mathrm{tot}} = p + \frac{1}{2}b^2 \,, \qquad
+    b^2 = \frac{B^2}{\Gamma^2} + (\mathbf{v}\cdot\mathbf{B})^2 \,.
+\end{equation}
+
+The momentum flux is the spatial part of the covariant stress
+\( (\rho h + b^2)\,u^i u^j - b^i b^j + p_{\mathrm{tot}}\delta^{ij} \), with
+\( b^i = B^i/\Gamma + \Gamma(\mathbf{v}\cdot\mathbf{B})\,v^i \), written in lab-frame
+quantities. When it is expanded, the \( \Gamma^2(\mathbf{v}\cdot\mathbf{B})^2 v^iv^j \)
+pieces cancel. The coefficient of \( v^iv^j \) is therefore
+\( \Gamma^2\rho h + B^2 \), with the lab-frame \( B^2 \). The comoving
+\( b^2 \) appears only in \( p_{\mathrm{tot}} \).
+
+The primitive variables are
+
+\begin{equation}
+    \mathbf{P} = \left(\begin{array}{c}
+        \rho  \\
+        \Gamma \mathbf{v} \\
+        p \\
+        \mathbf{B}
+    \end{array}
+    \right) \,,
+\end{equation}
+
+As in `srhd`, the momentum slot holds the spatial four-velocity Γ**v**. The
+inversion **P**(**U**) follows Kastaun, Kalinani & Ciolfi (2021), which
+reduces it to a 1D root-finding problem in μ = 1/(Γh). A Brent solver finds
+the root, bracketed by a second, auxiliary root-find. The
+module stores the auxiliary variables
+
+\begin{equation}
+    \mathbf{A} = \left(\begin{array}{c}
+        \mu  \\
+        \Gamma
+    \end{array}
+    \right) \,,
+\end{equation}
+
+The stored μ is the initial guess for the next inversion. The auxiliaries
+are refreshed wherever the conserved state is written: after every step,
+after the initial condition, and in the kernels that create a block during a
+regrid.
+
+The divergence of **B** is controlled with the same GLM field ψ as in
+`mhd`, including its exactly integrated damping term; see [Divergence B
+source treatments](#eq_divB_fix). ψ is the additional conserved variable.
+
+Parameters are read from the **srmhd_list** of the parameter file:
+
+* **srmhd_gamma** sets γ̂ of the ideal-gas EOS h = 1 + γ̂/(γ̂−1)·p/ρ. That
+  EOS is the only one available: **srmhd_eos=.true.** (the Synge gas)
+  stops the run.
+* **srmhd_glm_alpha** is α_GLM. It defaults to 0.5.
+* **srmhd_small_pressure** and **srmhd_small_density** are the floors that
+  `fix_prim_state` applies to a reconstructed face state. They default to
+  zero and 10⁻¹⁴ respectively. Unlike in `srhd`, the inversion itself does
+  not read them.
+
+On a spherical or cylindrical mesh, `srmhd` adds the geometric source terms
+given in [Coordinate systems](coordinate_systems.html#geom_spherical_srmhd).
 
 
 # Positivity fixes {: #eq_positivity_fixes }

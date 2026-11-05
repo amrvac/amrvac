@@ -417,10 +417,13 @@ module mod_functions_connectivity
          ixR_srl_min2, ixR_srl_max2, &
          ixR_srl_min3, ixR_srl_max3 &
          )
+    ! the prolongation buffers are laid out for the full ranges, whichever set
+    ! the last getbc left current: a narrow getbc only uses the front of each
+    ! chunk's slot, so one layout serves both (see select_prolong_ranges)
     call nbprocs_info%alloc_buffers_f(nwgc, &
-         ixS_p_min1, ixS_p_max1, &
-         ixS_p_min2, ixS_p_max2, &
-         ixS_p_min3, ixS_p_max3, &
+         prolong_full%S_min1, prolong_full%S_max1, &
+         prolong_full%S_min2, prolong_full%S_max2, &
+         prolong_full%S_min3, prolong_full%S_max3, &
          ixR_r_min1, ixR_r_max1, &
          ixR_r_min2, ixR_r_max2, &
          ixR_r_min3, ixR_r_max3 &
@@ -429,9 +432,9 @@ module mod_functions_connectivity
          ixS_r_min1, ixS_r_max1, &
          ixS_r_min2, ixS_r_max2, &
          ixS_r_min3, ixS_r_max3, &
-         ixR_p_min1, ixR_p_max1, &
-         ixR_p_min2, ixR_p_max2, &
-         ixR_p_min3, ixR_p_max3 &
+         prolong_full%R_min1, prolong_full%R_max1, &
+         prolong_full%R_min2, prolong_full%R_max2, &
+         prolong_full%R_min3, prolong_full%R_max3 &
          )
 
     ! allocate nbstructure srl requests and status

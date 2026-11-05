@@ -1471,12 +1471,15 @@ contains
         if(any(typeboundary(:,iB)/=12)) call mpistop("typeboundary='pole' has &
            &to be given for every variable on a face")
         select case(physics_type)
-        case('hd','mhd','srhd')
-          ! the vector components handled below are all there is to say. srhd's
-          ! mom(:) is the spatial four-velocity u^i = lfac*v^i (see con2prim);
-          ! lfac is a scalar that a coordinate rotation leaves invariant, so
-          ! u^i transforms exactly like an ordinary vector under the pole's
-          ! pi-rotation and takes the same asymm pattern as hd's momentum.
+        case('hd','mhd','srhd','srmhd')
+          ! the vector components handled below are all there is to say. The
+          ! relativistic modules' mom(:) is the spatial four-velocity
+          ! u^i = lfac*v^i (see con2prim); lfac is a scalar that a coordinate
+          ! rotation leaves invariant, so u^i transforms exactly like an
+          ! ordinary vector under the pole's pi-rotation and takes the same
+          ! asymm pattern as hd's momentum. srmhd's auxiliaries mu and lfac,
+          ! which it exchanges through getbc, and its GLM psi are scalars and
+          ! stay symm.
         case('ffhd')
           ! ffhd's only conserved quantities are scalars - rho, the
           ! field-aligned momentum mom(1)=m_par, the energy - and a scalar is
@@ -1488,7 +1491,7 @@ contains
           ! ghosts included, so it needs no entry here either.
         case default
           call mpistop('pole treatment is only implemented for phys=hd, &
-             &phys=mhd, phys=srhd and phys=ffhd')
+             &phys=mhd, phys=srhd, phys=srmhd and phys=ffhd')
         end select
         select case(coordinate)
         case(cylindrical)
@@ -1507,7 +1510,7 @@ contains
           typeboundary(iw_mom(idim),iB)=bc_asymm
           typeboundary(iw_mom(phi_),iB)=bc_asymm
         end if
-        if(physics_type=='mhd') then
+        if(physics_type=='mhd' .or. physics_type=='srmhd') then
           typeboundary(iw_mag(idim),iB)=bc_asymm
           typeboundary(iw_mag(phi_),iB)=bc_asymm
           if(allocated(iw_qvec)) then

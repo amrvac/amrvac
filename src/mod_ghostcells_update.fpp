@@ -78,6 +78,17 @@ module mod_ghostcells_update
   ${GPU_DECLARE_CREATE('ixS_p_min1,ixS_p_min2,ixS_p_min3,ixS_p_max1,ixS_p_max2,ixS_p_max3')}$
   ${GPU_DECLARE_CREATE('ixR_p_min1,ixR_p_min2,ixR_p_min3,ixR_p_max1,ixR_p_max2,ixR_p_max3')}$
 
+  !> One set of the prolongation ranges above, kept on the host. init_bc fills
+  !> a full and a narrow set; select_prolong_ranges copies one of them into
+  !> ixS_p_*/ixR_p_*, which are what the getbc kernels read.
+  type prolong_ranges_t
+     integer, dimension(-1:1, 0:3) :: S_min1, S_min2, S_min3, S_max1, S_max2, &
+          S_max3, R_min1, R_min2, R_min3, R_max1, R_max2, R_max3
+  end type prolong_ranges_t
+  type(prolong_ranges_t) :: prolong_full, prolong_narrow
+  ! which set ixS_p_*/ixR_p_* currently hold
+  logical :: prolong_ranges_full = .true.
+
   ! send prolongated (p) staggered ghost cells to finer blocks, receive prolongated from coarser blocks
   integer, dimension(3,0:3)  :: ixS_p_stg_min1,ixS_p_stg_min2,ixS_p_stg_min3,&
        ixS_p_stg_max1,ixS_p_stg_max2,ixS_p_stg_max3, ixR_p_stg_min1,&
@@ -257,14 +268,6 @@ contains
     ixS_p_max1(:, 2)=ixMmax1+(interpolation_order-1)
     ixS_p_max1(:, 3)=ixMmax1+(interpolation_order-1)
 
-    if(.not.phys_req_diagonal) then
-       ! exclude ghost-cell region when diagonal cells are unknown
-       ixS_p_min1(:, 0)=ixMmin1
-       ixS_p_max1(:, 3)=ixMmax1
-       ixS_p_max1(:, 1)=ixMmin1-1+nxCo1+(interpolation_order-1)
-       ixS_p_min1(:, 2)=ixMmin1+nxCo1-(interpolation_order-1)
-    end if
-
     ixR_p_min1(:, 0)=ixCoMmin1-nghostcellsCo-(interpolation_order-1)
     ixR_p_min1(:, 1)=ixCoMmin1-(interpolation_order-1)
     ixR_p_min1(:, 2)=ixCoMmin1-nghostcellsCo-(interpolation_order-1)
@@ -273,13 +276,6 @@ contains
     ixR_p_max1(:, 1)=ixCoMmax1+nghostcellsCo+(interpolation_order-1)
     ixR_p_max1(:, 2)=ixCoMmax1+(interpolation_order-1)
     ixR_p_max1(:, 3)=ixCoMmax1+nghostcellsCo+(interpolation_order-1)
-
-    if(.not.phys_req_diagonal) then
-       ixR_p_max1(:, 0)=nghostcells
-       ixR_p_min1(:, 3)=ixCoMmax1+1
-       ixR_p_max1(:, 1)=ixCoMmax1+(interpolation_order-1)
-       ixR_p_min1(:, 2)=ixCoMmin1-(interpolation_order-1)
-    end if
 
 
 
@@ -322,14 +318,6 @@ contains
     ixS_p_max2(:, 2)=ixMmax2+(interpolation_order-1)
     ixS_p_max2(:, 3)=ixMmax2+(interpolation_order-1)
 
-    if(.not.phys_req_diagonal) then
-       ! exclude ghost-cell region when diagonal cells are unknown
-       ixS_p_min2(:, 0)=ixMmin2
-       ixS_p_max2(:, 3)=ixMmax2
-       ixS_p_max2(:, 1)=ixMmin2-1+nxCo2+(interpolation_order-1)
-       ixS_p_min2(:, 2)=ixMmin2+nxCo2-(interpolation_order-1)
-    end if
-
     ixR_p_min2(:, 0)=ixCoMmin2-nghostcellsCo-(interpolation_order-1)
     ixR_p_min2(:, 1)=ixCoMmin2-(interpolation_order-1)
     ixR_p_min2(:, 2)=ixCoMmin2-nghostcellsCo-(interpolation_order-1)
@@ -338,13 +326,6 @@ contains
     ixR_p_max2(:, 1)=ixCoMmax2+nghostcellsCo+(interpolation_order-1)
     ixR_p_max2(:, 2)=ixCoMmax2+(interpolation_order-1)
     ixR_p_max2(:, 3)=ixCoMmax2+nghostcellsCo+(interpolation_order-1)
-
-    if(.not.phys_req_diagonal) then
-       ixR_p_max2(:, 0)=nghostcells
-       ixR_p_min2(:, 3)=ixCoMmax2+1
-       ixR_p_max2(:, 1)=ixCoMmax2+(interpolation_order-1)
-       ixR_p_min2(:, 2)=ixCoMmin2-(interpolation_order-1)
-    end if
 
 
 
@@ -387,14 +368,6 @@ contains
     ixS_p_max3(:, 2)=ixMmax3+(interpolation_order-1)
     ixS_p_max3(:, 3)=ixMmax3+(interpolation_order-1)
 
-    if(.not.phys_req_diagonal) then
-       ! exclude ghost-cell region when diagonal cells are unknown
-       ixS_p_min3(:, 0)=ixMmin3
-       ixS_p_max3(:, 3)=ixMmax3
-       ixS_p_max3(:, 1)=ixMmin3-1+nxCo3+(interpolation_order-1)
-       ixS_p_min3(:, 2)=ixMmin3+nxCo3-(interpolation_order-1)
-    end if
-
     ixR_p_min3(:, 0)=ixCoMmin3-nghostcellsCo-(interpolation_order-1)
     ixR_p_min3(:, 1)=ixCoMmin3-(interpolation_order-1)
     ixR_p_min3(:, 2)=ixCoMmin3-nghostcellsCo-(interpolation_order-1)
@@ -403,13 +376,6 @@ contains
     ixR_p_max3(:, 1)=ixCoMmax3+nghostcellsCo+(interpolation_order-1)
     ixR_p_max3(:, 2)=ixCoMmax3+(interpolation_order-1)
     ixR_p_max3(:, 3)=ixCoMmax3+nghostcellsCo+(interpolation_order-1)
-
-    if(.not.phys_req_diagonal) then
-       ixR_p_max3(:, 0)=nghostcells
-       ixR_p_min3(:, 3)=ixCoMmax3+1
-       ixR_p_max3(:, 1)=ixCoMmax3+(interpolation_order-1)
-       ixR_p_min3(:, 2)=ixCoMmin3-(interpolation_order-1)
-    end if
 
     if (stagger_grid) then
        ! Staggered (face-allocated) variables
@@ -1089,6 +1055,46 @@ contains
 
     end if
 
+    ! The prolongation ranges come in two sets, and getbc picks one per call
+    ! (select_prolong_ranges). The full set reaches into the ghost cells that
+    ! the limited slopes of an edge or corner region read; the narrow set,
+    ! used when diagonal ghost cells are skipped, keeps the sender's ghost
+    ! cells out of the coarse buffer, because such a getbc leaves the
+    ! sender's diagonal ghost cells stale. The physical-boundary adjustments
+    ! above touch none of the entries the narrowing changes, so they hold
+    ! for both sets. The MPI buffers in nbprocs_info are laid out for the
+    ! full set, and a narrow call packs each chunk into the front of its slot.
+    call store_prolong_ranges(prolong_full)
+    if(.not.phys_req_diagonal) then
+       ixS_p_min1(:, 0)=ixMmin1
+       ixS_p_max1(:, 3)=ixMmax1
+       ixS_p_max1(:, 1)=ixMmin1-1+nxCo1+(interpolation_order-1)
+       ixS_p_min1(:, 2)=ixMmin1+nxCo1-(interpolation_order-1)
+       ixR_p_max1(:, 0)=nghostcells
+       ixR_p_min1(:, 3)=ixCoMmax1+1
+       ixR_p_max1(:, 1)=ixCoMmax1+(interpolation_order-1)
+       ixR_p_min1(:, 2)=ixCoMmin1-(interpolation_order-1)
+       ixS_p_min2(:, 0)=ixMmin2
+       ixS_p_max2(:, 3)=ixMmax2
+       ixS_p_max2(:, 1)=ixMmin2-1+nxCo2+(interpolation_order-1)
+       ixS_p_min2(:, 2)=ixMmin2+nxCo2-(interpolation_order-1)
+       ixR_p_max2(:, 0)=nghostcells
+       ixR_p_min2(:, 3)=ixCoMmax2+1
+       ixR_p_max2(:, 1)=ixCoMmax2+(interpolation_order-1)
+       ixR_p_min2(:, 2)=ixCoMmin2-(interpolation_order-1)
+       ixS_p_min3(:, 0)=ixMmin3
+       ixS_p_max3(:, 3)=ixMmax3
+       ixS_p_max3(:, 1)=ixMmin3-1+nxCo3+(interpolation_order-1)
+       ixS_p_min3(:, 2)=ixMmin3+nxCo3-(interpolation_order-1)
+       ixR_p_max3(:, 0)=nghostcells
+       ixR_p_min3(:, 3)=ixCoMmax3+1
+       ixR_p_max3(:, 1)=ixCoMmax3+(interpolation_order-1)
+       ixR_p_min3(:, 2)=ixCoMmin3-(interpolation_order-1)
+    end if
+    call store_prolong_ranges(prolong_narrow)
+    call load_prolong_ranges(prolong_full)
+    prolong_ranges_full = .true.
+
     ${GPU_UPDATE_DEVICE('ixS_srl_min1,ixS_srl_min2,ixS_srl_min3')}$
     ${GPU_UPDATE_DEVICE('ixS_srl_max1,ixS_srl_max2,ixS_srl_max3, ixR_srl_min1,ixR_srl_min2')}$
     ${GPU_UPDATE_DEVICE('ixR_srl_min3,ixR_srl_max1,ixR_srl_max2,ixR_srl_max3')}$
@@ -1102,6 +1108,47 @@ contains
     ${GPU_UPDATE_DEVICE('ixR_p_min1,ixR_p_min2,ixR_p_min3,ixR_p_max1,ixR_p_max2,ixR_p_max3')}$
 
   end subroutine init_bc
+
+  !> copy the current prolongation ranges into a set
+  subroutine store_prolong_ranges(r)
+    type(prolong_ranges_t), intent(out) :: r
+
+    r%S_min1 = ixS_p_min1; r%S_min2 = ixS_p_min2; r%S_min3 = ixS_p_min3
+    r%S_max1 = ixS_p_max1; r%S_max2 = ixS_p_max2; r%S_max3 = ixS_p_max3
+    r%R_min1 = ixR_p_min1; r%R_min2 = ixR_p_min2; r%R_min3 = ixR_p_min3
+    r%R_max1 = ixR_p_max1; r%R_max2 = ixR_p_max2; r%R_max3 = ixR_p_max3
+
+  end subroutine store_prolong_ranges
+
+  !> make a set the current prolongation ranges (host only)
+  subroutine load_prolong_ranges(r)
+    type(prolong_ranges_t), intent(in) :: r
+
+    ixS_p_min1 = r%S_min1; ixS_p_min2 = r%S_min2; ixS_p_min3 = r%S_min3
+    ixS_p_max1 = r%S_max1; ixS_p_max2 = r%S_max2; ixS_p_max3 = r%S_max3
+    ixR_p_min1 = r%R_min1; ixR_p_min2 = r%R_min2; ixR_p_min3 = r%R_min3
+    ixR_p_max1 = r%R_max1; ixR_p_max2 = r%R_max2; ixR_p_max3 = r%R_max3
+
+  end subroutine load_prolong_ranges
+
+  !> Give getbc the prolongation ranges for a fill with (full) or without
+  !> diagonal ghost cells, on the host and the device. A no-op when that set
+  !> is already current, which it is for every getbc of an advance in a row.
+  subroutine select_prolong_ranges(full)
+    logical, intent(in) :: full
+
+    if (full .eqv. prolong_ranges_full) return
+
+    if (full) then
+       call load_prolong_ranges(prolong_full)
+    else
+       call load_prolong_ranges(prolong_narrow)
+    end if
+    prolong_ranges_full = full
+    ${GPU_UPDATE_DEVICE('ixS_p_min1,ixS_p_min2,ixS_p_min3,ixS_p_max1,ixS_p_max2,ixS_p_max3')}$
+    ${GPU_UPDATE_DEVICE('ixR_p_min1,ixR_p_min2,ixR_p_min3,ixR_p_max1,ixR_p_max2,ixR_p_max3')}$
+
+  end subroutine select_prolong_ranges
 
 
   !> do update ghost cells of all blocks including physical boundaries
@@ -1163,6 +1210,8 @@ contains
     req_diagonal = .true.
     if (present(req_diag)) req_diagonal = req_diag
     ${GPU_UPDATE_DEVICE('req_diagonal')}$
+    ! the slopes of a diagonal prolongation need the full coarse buffer
+    call select_prolong_ranges(req_diagonal)
 
     ! fill internal physical boundary
     if (internalboundary) then

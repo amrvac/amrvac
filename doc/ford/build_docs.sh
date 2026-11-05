@@ -6,18 +6,18 @@
 # tool and flags the build system uses (see make/30-fypp.mk) -- into
 # `.f90`, then points FORD at the result.
 #
-# AGILE's physics modules (hd/mhd/ffhd/srhd) are mutually-exclusive fypp
+# AGILE's physics modules (hd/mhd/ffhd/srhd/srmhd) are mutually-exclusive fypp
 # (`#:if PHYS == '...'`) branches, so a single fypp pass with one PHYS
 # value only shows that physics module's variant of any file whose content
-# depends on it. To document all four physics modules in one site:
+# depends on it. To document all five physics modules in one site:
 #  1. every `.fpp` file is preprocessed once per physics module (using
-#     docgen_{mhd,hd,ffhd,srhd}.par), into four staging directories.
-#  2. merge_physics_variants.py compares each file's four variants: files
-#     byte-identical across all four (the vast majority -- anything with
+#     docgen_{mhd,hd,ffhd,srhd,srmhd}.par), into five staging directories.
+#  2. merge_physics_variants.py compares each file's five variants: files
+#     byte-identical across all five (the vast majority -- anything with
 #     no PHYS-dependent content) are kept once under their real name;
 #     files that differ are kept once per physics module, suffixed
 #     `_<phys>` (filename and any `module`/`end module` statement), so all
-#     four variants can coexist in one FORD site without name collisions.
+#     five variants can coexist in one FORD site without name collisions.
 #     This auto-discovers which files are physics-sensitive -- no
 #     hand-maintained file list.
 #
@@ -51,7 +51,7 @@ fypp_flags_for() {
 
 rm -rf "$stage_dir" "$src_out" "$html_out"
 
-for phys in mhd hd ffhd srhd; do
+for phys in mhd hd ffhd srhd srmhd; do
     echo "=== Preprocessing pass (PHYS=$phys) ==="
     out_dir="$stage_dir/$phys"
     mkdir -p "$out_dir"

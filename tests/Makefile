@@ -34,13 +34,18 @@ FFHD_EXTENDED := ffhd/spherical ffhd/cylindrical ffhd/cylindrical_pole \
 SRHD_BASIC := srhd/shockTube srhd/cylindrical
 SRHD_EXTENDED := srhd/jet_3D srhd/spherical srhd/spherical_pole \
                  srhd/cylindrical_pole srhd/log_spherical srhd/log_cylindrical
+SRMHD_BASIC := srmhd/shock_tube srmhd/spherical_pole
+SRMHD_EXTENDED := srmhd/spherical srmhd/cylindrical \
+                  srmhd/cylindrical_pole srmhd/log_spherical srmhd/log_cylindrical
 
 HD_DIRS := $(HD_BASIC) $(HD_EXTENDED)
 MHD_DIRS := $(MHD_BASIC) $(MHD_EXTENDED)
 FFHD_DIRS := $(FFHD_BASIC) $(FFHD_EXTENDED)
 SRHD_DIRS := $(SRHD_BASIC) $(SRHD_EXTENDED)
+SRMHD_DIRS := $(SRMHD_BASIC) $(SRMHD_EXTENDED)
 
-TEST_DIRS := $(HD_DIRS) $(MHD_DIRS) $(FFHD_DIRS) $(SRHD_DIRS)
+
+TEST_DIRS := $(HD_DIRS) $(MHD_DIRS) $(FFHD_DIRS) $(SRHD_DIRS) $(SRMHD_DIRS)
 
 # $(call suite,BASIC,EXTENDED) gives the directories selected by SUITE
 ifeq ($(SUITE),basic)
@@ -57,21 +62,23 @@ HD_SEL := $(call suite,$(HD_BASIC),$(HD_EXTENDED))
 MHD_SEL := $(call suite,$(MHD_BASIC),$(MHD_EXTENDED))
 FFHD_SEL := $(call suite,$(FFHD_BASIC),$(FFHD_EXTENDED))
 SRHD_SEL := $(call suite,$(SRHD_BASIC),$(SRHD_EXTENDED))
+SRMHD_SEL := $(call suite,$(SRMHD_BASIC),$(SRMHD_EXTENDED))
 
 # Directories with altered names (useful for cleaning)
 CLEAN_TEST := $(TEST_DIRS:%=clean-%)
 
-.PHONY: all hd mhd ffhd srhd list clean $(TEST_DIRS) $(CLEAN_TEST)
+.PHONY: all hd mhd ffhd srhd srmhd list clean $(TEST_DIRS) $(CLEAN_TEST)
 
-all: hd mhd ffhd srhd
+all: hd mhd ffhd srhd srmhd
 hd: $(HD_SEL)
 mhd: $(MHD_SEL)
 ffhd: $(FFHD_SEL)
 srhd: $(SRHD_SEL)
+srmhd: $(SRMHD_SEL)
 
 list:
 	@echo "SUITE=$(SUITE)"
-	@for d in $(HD_SEL) $(MHD_SEL) $(FFHD_SEL) $(SRHD_SEL); do echo "  $$d"; done
+	@for d in $(HD_SEL) $(MHD_SEL) $(FFHD_SEL) $(SRHD_SEL) $(SRMHD_SEL); do echo "  $$d"; done
 
 $(TEST_DIRS):
 	@$(MAKE) -C $@ -f test.make

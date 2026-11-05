@@ -4,6 +4,7 @@
 module mod_coarsen
   use mod_global_parameters
   use mod_physics
+  use mod_set_aux, only: set_aux
 
   implicit none
   private
@@ -37,6 +38,7 @@ contains
 
     integer :: ixCo1,ixCo2,ixCo3, ixFi1,ixFi2,ixFi3, iw
     double precision :: CoFiratio
+    double precision :: u(nw_phys)
     double precision :: B_energy_change(ixCoGmin1:ixCoGmax1,&
        ixCoGmin2:ixCoGmax2,ixCoGmin3:ixCoGmax3)
 
@@ -77,6 +79,24 @@ contains
                    wCo(ixCo1,ixCo2,ixCo3,iw)= sum(geoFi%dvolume(ixFi1:ixFi1+1,&
                         ixFi2:ixFi2+1,ixFi3:ixFi3+1,igridFi)*wFi(ixFi1:ixFi1+1,ixFi2:ixFi2+1,&
                         ixFi3:ixFi3+1,iw)) /geoCo%dvolume(ixCo1,ixCo2,ixCo3,igridCo)
+                end do
+             end do
+          end do
+       end do
+    end if
+
+    ! refresh the auxiliaries from the coarsened conserved state, once per
+    ! cell and only after every flux variable has been coarsened
+    if (nwaux > 0) then
+       ${GPU_PARALLEL_LOOP("collapse(3) private(u, iw)")}$
+       do ixCo3 = ixComin3,ixComax3
+          do ixCo2 = ixComin2,ixComax2
+             do ixCo1 = ixComin1,ixComax1
+                u = wCo(ixCo1,ixCo2,ixCo3,1:nw_phys)
+                call set_aux(u)
+                ${GPU_LOOP_SEQ()}$
+                do iw = nwflux+1, nwflux+nwaux
+                   wCo(ixCo1,ixCo2,ixCo3,iw) = u(iw)
                 end do
              end do
           end do

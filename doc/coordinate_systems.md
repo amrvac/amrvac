@@ -119,7 +119,7 @@ advected as genuine scalars and Gauss's theorem then guarantees the finite
 volume update alone reproduces \( \nabla \cdot \mathbf{F} \) correctly in
 any coordinate system.
 
-Momentum (and, for `mhd`, the magnetic field) is different: it is a
+Momentum (and, for `mhd` and `srmhd`, the magnetic field) is different: it is a
 *vector* quantity, and its flux is a tensor built from a position-dependent
 (r, θ, φ) or (r, z, φ) basis. Writing the vector Laplacian/divergence out in
 curvilinear coordinates leaves over extra terms beyond the flux-divergence
@@ -127,7 +127,7 @@ that the finite-volume update captures -- physically, these account for how
 the basis vectors themselves change from one face of a cell to the other.
 AGILE adds these leftover terms explicitly as a per-cell geometric source,
 in the `addsource_geometry` routine of each physics module
-(`src/{hd,mhd,srhd,ffhd}/mod_*_templates.fpp`); a physics module that does
+(`src/{hd,mhd,srhd,srmhd,ffhd}/mod_*_templates.fpp`); a physics module that does
 not implement one aborts at startup rather than silently omitting these
 terms. The explicit expressions below are exactly what these routines
 evaluate (rewritten into physical notation matching
@@ -196,9 +196,40 @@ so that \( \xi v_iv_j = (\xi/\Gamma^2)\,u_iu_j \):
 with \( \xi=\Gamma^2\rho h \) as in [Physics modules and
 equations](equations.html#eq_srhd).
 
+### Special relativistic magnetohydrodynamics: srmhd {: #geom_spherical_srmhd }
+
+These are the curvature terms of the [srmhd](equations.html#eq_srmhd)
+momentum flux, written with its stress tensor (pressure excluded),
+
+\begin{equation}
+    T_{ij} = W v_iv_j - (\mathbf{v}\cdot\mathbf{B})\left(B_iv_j+v_iB_j\right) - \frac{B_iB_j}{\Gamma^2} \,,
+    \qquad W = \Gamma^2\rho h + B^2 \,,
+\end{equation}
+
+and the total pressure \( p_{\mathrm{tot}} = p + \frac{1}{2}\left(B^2/\Gamma^2+(\mathbf{v}\cdot\mathbf{B})^2\right) \).
+Here \( \mathbf{v}=\mathbf{u}/\Gamma \) comes from the primitive four-velocity,
+as in `srhd`. The terms are
+
+\begin{eqnarray}
+    S_{\mathrm{geom}}[m_r] &=& \frac{2p_{\mathrm{tot}}+T_{\theta\theta}+T_{\varphi\varphi}}{r} \,,\\
+    S_{\mathrm{geom}}[m_\theta] &=& \frac{\left(p_{\mathrm{tot}}+T_{\varphi\varphi}\right)\cot\theta-T_{r\theta}}{r} \,,\\
+    S_{\mathrm{geom}}[m_\varphi] &=& -\frac{T_{r\varphi}+T_{\theta\varphi}\cot\theta}{r} \,,
+\end{eqnarray}
+
+The pressure gradient is part of the flux divergence, as for the other
+modules. For **B** = 0 they reduce to the `srhd` terms above. For
+Γ = 1, dropping the (**v**·**B**) terms, they reduce to the `mhd` terms. The induction and
+ψ terms are the `mhd` ones evaluated with **v** = **u**/Γ:
+
+\begin{eqnarray}
+    S_{\mathrm{geom}}[B_r] &=& \frac{2\psi}{r} \,,\\
+    S_{\mathrm{geom}}[B_\theta] &=& \frac{v_r B_\theta-v_\theta B_r+\psi\cot\theta}{r} \,,\\
+    S_{\mathrm{geom}}[B_\varphi] &=& \frac{v_r B_\varphi-v_\varphi B_r+\cot\theta\left(v_\theta B_\varphi-v_\varphi B_\theta\right)}{r} \,.
+\end{eqnarray}
+
 ## Cylindrical (r, z, φ) {: #geom_cylindrical_sources }
 
-Only the \(m_r\)/\(m_\varphi\) (and, for `mhd`, \(B_r\)/\(B_\varphi\))
+Only the \(m_r\)/\(m_\varphi\) (and, for `mhd` and `srmhd`, \(B_r\)/\(B_\varphi\))
 components pick up a geometric source; \(m_z\)/\(B_z\) do not, since a
 cylindrical volume element's z-extent does not depend on r.
 
@@ -228,6 +259,17 @@ As for spherical, with \( \mathbf{u}\equiv\Gamma\mathbf{v} \) and
 \begin{eqnarray}
     S_{\mathrm{geom}}[m_r] &=& \frac{p+(\xi/\Gamma^2)\,u_\varphi^2}{r} \,,\\
     S_{\mathrm{geom}}[m_\varphi] &=& -\frac{(\xi/\Gamma^2)\,u_\varphi u_r}{r} \,.
+\end{eqnarray}
+
+### Special relativistic magnetohydrodynamics: srmhd {: #geom_cylindrical_srmhd }
+
+With the same \( T_{ij} \) and \( p_{\mathrm{tot}} \) as for spherical:
+
+\begin{eqnarray}
+    S_{\mathrm{geom}}[m_r] &=& \frac{p_{\mathrm{tot}}+T_{\varphi\varphi}}{r} \,,\\
+    S_{\mathrm{geom}}[m_\varphi] &=& -\frac{T_{r\varphi}}{r} \,,\\
+    S_{\mathrm{geom}}[B_r] &=& \frac{\psi}{r} \,,\\
+    S_{\mathrm{geom}}[B_\varphi] &=& \frac{B_\varphi v_r-B_r v_\varphi}{r} \,.
 \end{eqnarray}
 
 # Logarithmically stretched radius {: #geom_log_radius }
@@ -342,7 +384,7 @@ that this makes the **radial** component odd at the cylindrical axis
 (m_r, B_r as well as m_φ, B_φ) -- upstream MPI-AMRVAC marks only the φ
 component antisymmetric there, which is wrong.
 
-The polar axis is supported for `hd`, `mhd`, `srhd` and `ffhd`. Two things to
+The polar axis is supported for `hd`, `mhd`, `srhd`, `srmhd` and `ffhd`. Two things to
 know:
 
 * **The timestep collapses near the axis.** ds(φ) = r·sin(θ)·dφ → 0 there, so

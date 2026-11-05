@@ -125,6 +125,8 @@ contains
     use mod_global_parameters
     use mod_geometry, only: sync_positions_host
     use mod_amr_fct, only: already_fine, prolong_2nd_stg
+    use mod_set_aux, only: set_aux
+    use mod_physics_vars, only: nw_phys
 
     integer, intent(in) :: ixComin1,ixComin2,ixComin3,ixComax1,ixComax2,&
        ixComax3, igridFi, igridCo
@@ -139,12 +141,19 @@ contains
     double precision :: slopeL, slopeR, slopeC, signC, signR
     double precision :: slope(nw,ndim)
     double precision :: eta1,eta2,eta3
+    double precision :: u(nw_phys)
     logical :: fine_min1,fine_min2,fine_min3,fine_max1,fine_max2,fine_max3
+    logical :: refresh_aux
 
     ixCgmin1=ixComin1;ixCgmin2=ixComin2;ixCgmin3=ixComin3;ixCgmax1=ixComax1
     ixCgmax2=ixComax2;ixCgmax3=ixComax3;
 
-    ${GPU_PARALLEL_LOOP("collapse(3) private(slope, ixFi1,ixFi2,ixFi3, idim, hxCo1,hxCo2,hxCo3, jxCo1,jxCo2,jxCo3, iw, slopeL,slopeR,slopeC,signC,signR, ix1,ix2,ix3, eta1,eta2,eta3)")}$
+    ! The auxiliaries are interpolated along with the rest of w, so each fine
+    ! cell's are recomputed from its conserved state as soon as it is written.
+    ! Not under prolongprimitive, where w holds primitive variables here.
+    refresh_aux = nwaux > 0 .and. .not. prolongprimitive
+
+    ${GPU_PARALLEL_LOOP("collapse(3) private(slope, ixFi1,ixFi2,ixFi3, idim, hxCo1,hxCo2,hxCo3, jxCo1,jxCo2,jxCo3, iw, slopeL,slopeR,slopeC,signC,signR, ix1,ix2,ix3, eta1,eta2,eta3, u)")}$
     do ixCo3 = ixCgmin3,ixCgmax3
        do ixCo2 = ixCgmin2,ixCgmax2
           do ixCo1 = ixCgmin1,ixCgmax1
@@ -219,6 +228,12 @@ contains
                       end if
                       bg(1)%w(ix1,ix2,ix3,1:nwgc, igridFi) = bg(1)%w(ixCo1,ixCo2,ixCo3,1:nwgc, igridCo) + (slope(1:nwgc,&
                            1)*eta1)+(slope(1:nwgc,2)*eta2)+(slope(1:nwgc,3)*eta3)
+                      if (refresh_aux) then
+                         u = bg(1)%w(ix1,ix2,ix3,1:nw_phys, igridFi)
+                         call set_aux(u)
+                         bg(1)%w(ix1,ix2,ix3,nwflux+1:nwflux+nwaux, igridFi) = &
+                              u(nwflux+1:nwflux+nwaux)
+                      end if
                    end do
                 end do
              end do

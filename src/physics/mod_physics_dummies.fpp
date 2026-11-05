@@ -132,3 +132,22 @@ pure subroutine fix_prim_state(u)
 
 end subroutine fix_prim_state
 #:enddef
+
+! Physics modules with auxiliary variables (nwaux > 0) that are derived from
+! the conserved state override these. get_aux has a physics-specific signature
+! and is only called by that physics' own to_primitive and set_aux, so
+! everyone else needs no default for it.
+#:def get_aux()
+#:enddef
+
+#:def set_aux()
+!> Overwrite the auxiliary slots of a conserved state with the values
+!> consistent with its other components. Genuinely empty by default: it is
+!> called by set_aux_all, prolong_2nd and coarsen_grid for every physics, and
+!> a physics module without auxiliaries has nothing to refresh.
+pure subroutine set_aux(u)
+  ${GPU_ROUTINE_SEQ()}$
+  real(dp), intent(inout) :: u(nw_phys)
+
+end subroutine set_aux
+#:enddef

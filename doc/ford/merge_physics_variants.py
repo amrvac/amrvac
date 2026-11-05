@@ -1,16 +1,16 @@
 #!/usr/bin/env python3
 """
-Auto-discovers which preprocessed source files differ across AGILE's four
-physics modules (mhd/hd/ffhd/srhd) and merges four per-physics staging
+Auto-discovers which preprocessed source files differ across AGILE's five
+physics modules (mhd/hd/ffhd/srhd/srmhd) and merges five per-physics staging
 directories (produced by preprocessing every `.fpp` file once per physics
 module) into one FORD source directory:
 
-- Files that are byte-identical across all four passes -- the vast
+- Files that are byte-identical across all five passes -- the vast
   majority, anything with no `#:if PHYS == '...'`-guarded content -- are
   kept once, under their real name.
 - Files that differ are kept once per physics module, suffixed `_<phys>`
   (both the filename and any `module <name>` / `end module <name>`
-  statement inside it), so all four variants can coexist in one FORD site
+  statement inside it), so all five variants can coexist in one FORD site
   without name collisions.
 
 This needs no hand-maintained list of "physics-sensitive" files: whatever
@@ -21,7 +21,7 @@ import sys
 from pathlib import Path
 
 PRIMARY = "mhd"
-PHYS_LIST = ["mhd", "hd", "ffhd", "srhd"]
+PHYS_LIST = ["mhd", "hd", "ffhd", "srhd", "srmhd"]
 
 def rename_module(text, base, phys):
     escaped = re.escape(base)
@@ -62,9 +62,9 @@ def main():
                     rename_module(contents[p], base, p))
             n_variant += 1
 
-    print(f"{n_shared} files identical across all 4 physics modules (kept once)")
+    print(f"{n_shared} files identical across all {len(PHYS_LIST)} physics modules (kept once)")
     print(f"{n_variant} files differ by physics module "
-          f"(kept as {n_variant * 4} suffixed variants)")
+          f"(kept as {n_variant * len(PHYS_LIST)} suffixed variants)")
 
 
 if __name__ == "__main__":

@@ -1,0 +1,12 @@
+&methodlist
+  phys = 'srmhd'
+  flux_adaptive_diffusion = T
+/
+
+&boundlist
+  specialboundary = T
+/
+
+&meshlist
+  refine_usr = T
+/

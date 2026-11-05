@@ -11,7 +11,7 @@ f90_flags += -Wno-unused-dummy-argument	\
 ifdef DEBUG
 $(info Enable debugging symbols)
 enabled += DEBUG
-f90_flags += -g -O0 -fbacktrace -fcheck=all
+f90_flags += -g -O0 -fbacktrace -fcheck=all -ffpe-trap=invalid,zero,overflow -finit-real=snan
 else
 f90_flags += -O3
 endif

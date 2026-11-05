@@ -158,20 +158,22 @@ contains
 #:if GEOM == 'spherical'
     if (coordinate /= spherical) call mpistop("meshlist geometry is spherical, &
        &but mod_usr set a non-spherical coordinate system")
-  #:if PHYS != 'hd' and PHYS != 'mhd' and PHYS != 'srhd' and PHYS != 'ffhd'
+  #:if PHYS not in ('hd', 'mhd', 'srhd', 'srmhd', 'ffhd')
     ! Only physics modules that define the addsource_geometry macro can be run
     ! curvilinear; without it the momentum equations would silently miss their
     ! curvature terms.
-    call mpistop("geometry='spherical' is only implemented for phys='hd', phys='mhd', phys='srhd' and phys='ffhd'")
+    call mpistop("geometry='spherical' is only implemented for phys='hd', &
+       &phys='mhd', phys='srhd', phys='srmhd' and phys='ffhd'")
   #:endif
 #:elif GEOM == 'cylindrical'
     if (coordinate /= cylindrical) call mpistop("meshlist geometry is &
        &cylindrical, but mod_usr set a non-cylindrical coordinate system")
-  #:if PHYS != 'hd' and PHYS != 'mhd' and PHYS != 'srhd' and PHYS != 'ffhd'
+  #:if PHYS not in ('hd', 'mhd', 'srhd', 'srmhd', 'ffhd')
     ! Only physics modules that define the addsource_geometry macro can be run
     ! curvilinear; without it the momentum equations would silently miss their
     ! curvature terms.
-    call mpistop("geometry='cylindrical' is only implemented for phys='hd', phys='mhd', phys='srhd' and phys='ffhd'")
+    call mpistop("geometry='cylindrical' is only implemented for phys='hd', &
+       &phys='mhd', phys='srhd', phys='srmhd' and phys='ffhd'")
   #:endif
 #:else
     if (coordinate /= Cartesian) call mpistop("meshlist geometry is Cartesian, &
@@ -381,18 +383,18 @@ contains
 
     if (.not.any(poleB)) return
 
-#:if PHYS != 'hd' and PHYS != 'mhd' and PHYS != 'srhd' and PHYS != 'ffhd'
+#:if PHYS not in ('hd', 'mhd', 'srhd', 'srmhd', 'ffhd')
     ! The sign table the pole copy reads is built from iw_mom/iw_mag in
-    ! read_par_files, which describes hd, mhd and srhd (srhd's mom(:) is the
-    ! spatial four-velocity u^i=lfac*v^i, a genuine vector under the pole's
-    ! pi-rotation since lfac is rotation-invariant - see the case select in
-    ! read_par_files).  ffhd is covered too: its only conserved quantities are
+    ! read_par_files, which describes hd, mhd, srhd and srmhd (the
+    ! relativistic modules' mom(:) is the spatial four-velocity u^i=lfac*v^i,
+    ! a genuine vector under the pole's pi-rotation since lfac is
+    ! rotation-invariant - see the case select in read_par_files).  ffhd is covered too: its only conserved quantities are
     ! scalars (rho, the field-aligned momentum m_par, the energy), all
     ! symmetric across the axis, and its frozen field is not exchanged through
     ! getbc at all - fill_nwextra_device re-derives it analytically in
     ! every ghost cell - so it needs no entry in the sign table.
     call mpistop("polar-axis treatment is only implemented for phys='hd', &
-       &phys='mhd', phys='srhd' and phys='ffhd'")
+       &phys='mhd', phys='srhd', phys='srmhd' and phys='ffhd'")
 #:endif
 
     if (stagger_grid) call mpistop("polar-axis treatment does not support &

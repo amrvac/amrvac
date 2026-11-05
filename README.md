@@ -26,7 +26,7 @@ module load OpenMPI/4.1.5-NVHPC-24.5-CUDA-12.1.1
 
 ## Currently supported features on master
 - Cartesian, spherical `(r, theta, phi)`, and cylindrical `(r, z, phi)` grids, each curvilinear one also in a logarithmically stretched radial variant (`logSpherical`, `logCylindrical`), and all including the polar/cylindrical axis
-- Physics modules: hd, mhd [glm], ffhd, srhd
+- Physics modules: hd, mhd [glm], ffhd, srhd, srmhd [glm]
 - Source terms (gravity, radiative cooling, hyperbolic thermal conduction, user defined) and boundary conditions (`symm, asymm, cont` etc. but also `special`)
 - Multi-GPU (MPI)
 - Uniform grid, static mesh refinement (SMR) and adaptive mesh refinement (AMR)

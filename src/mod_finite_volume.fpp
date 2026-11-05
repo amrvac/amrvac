@@ -29,6 +29,7 @@ contains
 #:if GEOM != 'Cartesian'
 @:addsource_geometry()
 #:endif
+@:get_aux()
 @:to_primitive()
 @:to_conservative()
 @:fix_prim_state()

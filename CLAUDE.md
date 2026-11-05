@@ -85,7 +85,7 @@ make clean                 # remove this case's build products
 
 ## Running tests
 
-Tests live under `tests/{hd,mhd,ffhd,srhd}/<case>/` and each case has a
+Tests live under `tests/{hd,mhd,ffhd,srhd,srmhd}/<case>/` and each case has a
 `test.make` including `tests/test_rules.make`, which builds the case fresh
 and runs it (via `mpirun`/`srun`), then numerically diffs the log output
 against `tests/<physics>/<case>/correct_output/` using
@@ -98,6 +98,7 @@ make hd            # run the basic hd/* test cases
 make mhd           # run the basic mhd/* test cases
 make ffhd          # run the basic ffhd/* test cases
 make srhd          # run the basic srhd/* test cases
+make srmhd         # run the basic srmhd/* test cases
 make SUITE=all hd  # basic and extended hd/* cases
 make SUITE=all list # print the directories a SUITE selects
 make -j4 hd         # run in parallel
@@ -400,7 +401,7 @@ Two implementation points follow from that framing:
   physical radius therefore has to map them back** — with `r_of_s` from
   `mod_geometry`, not by hand, since the map is only an exponential when
   `log_r0` is zero. This is the one thing about these geometries that reliably
-  catches people out. The eight `log_spherical`/`log_cylindrical` directories
+  catches people out. The ten `log_spherical`/`log_cylindrical` directories
   predate `log_r0` and still write `exp(xprobmin1)` inline; that is correct
   only because they run at `log_r0 = 0`, and copying one of them as the
   starting point for an offset grid is exactly how the trap gets sprung.
@@ -574,8 +575,8 @@ will need the same treatment when they are brought back into use.
 
 Current limits of the curvilinear (spherical and cylindrical) support:
 
-- `phys = 'hd'`, `phys = 'mhd'`, `phys = 'srhd'` and `phys = 'ffhd'` all
-  implement `addsource_geometry` for both `geometry = 'spherical'` and
+- `phys = 'hd'`, `phys = 'mhd'`, `phys = 'srhd'`, `phys = 'srmhd'` and
+  `phys = 'ffhd'` all implement `addsource_geometry` for both `geometry = 'spherical'` and
   `geometry = 'cylindrical'`, each guarded by its own `#:if GEOM == '...'`
   branch in the physics module's `mod_*_templates.fpp` (a build only compiles
   the branch matching its `GEOM` define). MHD's and SRHD's curvature terms
@@ -608,8 +609,24 @@ Current limits of the curvilinear (spherical and cylindrical) support:
   `to_primitive`/`to_conservative` and `src/srhd/mod_con2prim.fpp`'s
   `xi = tau + D + p`, `v^2 = S^2/xi^2`), so the curvature terms use the
   primitive `xi_`/`lfac_` auxiliaries directly rather than reconstructing the
-  conserved momentum density. Cylindrical's curvature terms only touch the
-  `m_r`/`m_phi` (and, for MHD, `B_r`/`B_phi`) components — `m_z`/`B_z` pick up
+  conserved momentum density. SRMHD's (`src/srmhd/mod_srmhd_templates.fpp`)
+  combine the two: the momentum terms are the connection terms of the
+  non-pressure stress `T^ij = W v^i v^j - (v.B)(B^i v^j + v^i B^j) -
+  B^i B^j/lfac^2`, `W = rho h lfac^2 + B^2` — the tensor `get_flux` builds —
+  plus `ptot = p + (B^2/lfac^2 + (v.B)^2)/2` in the same slots srhd puts `p`,
+  and the induction and GLM `psi` terms are mhd's with `v = u/lfac`. **`W`
+  takes the lab-frame `B^2`, not the comoving `b^2`**, which looks like a
+  slip but is not: expanding the covariant `(rho h + b^2) u^i u^j - b^i b^j`
+  with `b^i = B^i/lfac + lfac (v.B) v^i` cancels the `lfac^2 (v.B)^2 v^i v^j`
+  pieces, so only `ptot` carries `b^2`. The primitive `rho` is the proper
+  density, so `rho h lfac^2` is formed as `rho*lfac/mu` from the `mu_ =
+  1/(lfac h)` auxiliary, exactly as in `get_flux`. Two checks pinned these
+  terms: with `B = 0` the srmhd uniform-flow log reproduces srhd's to every
+  printed digit, and a uniform field in gas at rest (an exact equilibrium)
+  leaves a residual momentum that converges at second order, whereas
+  flipping the sign of one magnetic stress term leaves an `O(1e-4)` residual
+  that does not converge. Cylindrical's curvature terms only touch the
+  `m_r`/`m_phi` (and, for MHD and SRMHD, `B_r`/`B_phi`) components — `m_z`/`B_z` pick up
   none, since a cylindrical volume element's `z`-extent does not depend on
   `r`. FFHD's `addsource_geometry` (`src/ffhd/mod_ffhd_templates.fpp`) is
   empty for both spherical and cylindrical — matching upstream's
@@ -629,7 +646,7 @@ Current limits of the curvilinear (spherical and cylindrical) support:
   `dx(idir)` it differences over is then a ratio in `ln(r)` rather than a
   length.
 - The polar axis is supported for `phys = 'hd'`, `phys = 'mhd'`,
-  `phys = 'srhd'` and `phys = 'ffhd'`; see "The polar axis" below. `ffhd`
+  `phys = 'srhd'`, `phys = 'srmhd'` and `phys = 'ffhd'`; see "The polar axis" below. `ffhd`
   reaches the axis by a different route than the others: its conserved
   quantities are all scalars, so they take no sign flip and the ordinary pole
   copy in `getbc` carries them unchanged, while its frozen field is not
@@ -693,7 +710,7 @@ Current limits of the curvilinear (spherical and cylindrical) support:
     That measures the configuration, not the general case — a level jump lying
     *across* an axis face would keep its mismatch.
 
-Validated by eight test directories, one per (physics, geometry) pair, which
+Validated by ten test directories, one per (physics, geometry) pair, which
 is as few as the compile-time parameters allow: `phys` and `geometry` are both
 fypp defines, so hd cannot share a build with mhd nor spherical with
 cylindrical. Within a pair the cases differ only at run time, so they share one
@@ -710,7 +727,11 @@ mechanism `tests/hd/cloud_crushing` uses):
   equation and the GLM `psi` too; a constant field-aligned speed along a
   uniform frozen field for ffhd; and a sub-luminal Cartesian velocity for
   srhd, whose Lorentz factor stays a single global constant because it depends
-  only on `|v|`, which a rotation leaves invariant.
+  only on `|v|`, which a rotation leaves invariant; and both of the last two
+  for srmhd, whose scalars (`D`, `tau`, `mu`, `lfac`) depend only on `|v|`,
+  `|B|` and `v.B` and so are global constants too, while `S = W v - (v.B) B`
+  and `B` are rotated cell by cell. srmhd's `blast.par` keeps the uniform
+  field, so its blast is magnetised.
 - `blast.par`, `setup = 'blast'` — an over-pressured sphere in gas at rest,
   deliberately off-centre in all three coordinates so every momentum component
   is exercised. It is the same setup with the velocity zeroed and a hot spot
@@ -745,7 +766,7 @@ a runtime logical as well as a fypp define, so `blast.par` leaves it out while
 `specialbound_usr` stays compiled in. **Adding a par file to such a directory
 is free; adding a directory costs a full rebuild in CI.**
 
-A further **eight** directories, `tests/{hd,mhd,ffhd,srhd}/log_spherical` and
+A further **ten** directories, `tests/{hd,mhd,ffhd,srhd,srmhd}/log_spherical` and
 `.../log_cylindrical`, repeat the same setups on a logarithmically stretched
 radius. They are copies of the directories above, differing in three things:
 `geometry` is `'logSpherical'`/`'logCylindrical'`, the radial domain is widened
@@ -769,7 +790,7 @@ cancellation-free rewrite, and `cos(theta_L) - cos(theta_R)` rather than
 measured agreement is 2 ULP. **A new log-geometry test needs that check, not
 just a reference log.**
 
-All eight run at `log_r0 = 0`, the plain `ln(r)`. Their domains stay away from
+All ten run at `log_r0 = 0`, the plain `ln(r)`. Their domains stay away from
 the polar axis and from `r = 0`; the axis itself is covered by the separate
 `*_pole` directories below, of which `tests/hd/log_cylindrical_pole` is the one
 that exercises `log_r0 > 0`. Pole and non-pole
@@ -873,12 +894,17 @@ Two consequences worth knowing:
   analytic and the copy of it therefore has to be exact to round-off. **A new
   pole test needs that check, not just a reference log.**
 
-Enabled for `phys = 'hd'`, `phys = 'mhd'`, `phys = 'srhd'` and
-`phys = 'ffhd'`. srhd needs no change to the copy itself: its primitive
+Enabled for `phys = 'hd'`, `phys = 'mhd'`, `phys = 'srhd'`, `phys = 'srmhd'`
+and `phys = 'ffhd'`. srhd needs no change to the copy itself: its primitive
 `mom(:)` slot holds the spatial four-velocity `u^i = lfac*v^i` rather than
 `v^i`, but `lfac` is a scalar and therefore invariant under the pole's
 pi-rotation, so `u^i` transforms exactly like an ordinary vector and takes
-the same `iw_mom`-driven sign table hd's momentum does. ffhd needs no sign
+the same `iw_mom`-driven sign table hd's momentum does. srmhd's `u^i` is the
+same argument, and its `B` takes mhd's `iw_mag` flips (`read_par_files`
+applies them for `physics_type` `'mhd'` or `'srmhd'`); `psi` and the
+auxiliaries `mu`/`lfac`, which srmhd does exchange through `getbc`, are
+scalars and stay `symm`. Dropping srmhd from the `iw_mag` flip makes
+`check_pole_ghosts` fail by ~1 in both of its pole cases. ffhd needs no sign
 table at all: `rho`, the field-aligned momentum `m_par` and the energy are
 scalars — `m_par = rho*(v·b-hat)` is a contraction of two vectors, invariant
 under the proper (det +1) rotation the pole map is — so `read_par_files`
@@ -886,7 +912,7 @@ skips the `iw_mom` lines for `physics_type == 'ffhd'` and every
 getbc-exchanged variable stays `symm`. The frozen field, the one genuine
 vector, is handled entirely outside `getbc`; see "The frozen field" below.
 
-Validated by eight test directories, laid out exactly like the off-axis ones
+Validated by ten test directories, laid out exactly like the off-axis ones
 above and for the same reason — the suite's cost is dominated by compilation,
 so cases that agree on the fypp defines share one build and differ only in
 their par file. They are kept separate from the off-axis directories even
@@ -940,6 +966,9 @@ worth.
   sub-luminal Cartesian flow, single level, one `uflow.par` each. `mean(rho)`
   in the log is `rho0*lfac0`, not `rho0`, since srhd's conserved density is
   `D = rho*lfac`.
+- `tests/srmhd/spherical_pole` and `tests/srmhd/cylindrical_pole` — the srhd
+  flow plus a uniform Cartesian magnetic field, whose ghost-cell check covers
+  `B`, `psi` and the `mu`/`lfac` auxiliaries as well as the fluid.
 - `tests/ffhd/spherical_pole` and `tests/ffhd/cylindrical_pole` — a uniform
   field-aligned flow along a uniform Cartesian frozen field, single level, one
   `uflow.par` each. `check_pole_ghosts` here checks two things at a same-level
@@ -1157,7 +1186,7 @@ systems" above); `usr_init()` does not need to call `set_coordinate_system`
 itself. Older cases may still call it explicitly — the call is idempotent as
 long as the name agrees with `geometry` — but new cases shouldn't.
 
-The physics module itself (hd/mhd/ffhd/srhd) is selected via `phys` in
+The physics module itself (hd/mhd/ffhd/srhd/srmhd) is selected via `phys` in
 `agile.par`'s `&methodlist`, which the config system turns into a `PHYS`
 fypp define consumed by `src/physics/mod_physics.fpp` and the per-physics
 `mod_*_templates.fpp` files.
@@ -1191,7 +1220,7 @@ fypp define consumed by `src/physics/mod_physics.fpp` and the per-physics
   etc.) that each physics module fills in via `phys_activate()`; also
   radiative cooling, thermal emission, B0-splitting helpers shared across
   physics modules.
-- `src/hd/`, `src/mhd/`, `src/ffhd/`, `src/srhd/` — one `mod_*_templates.fpp`
+- `src/hd/`, `src/mhd/`, `src/ffhd/`, `src/srhd/`, `src/srmhd/` — one `mod_*_templates.fpp`
   each, guarded by a top-level `#:if PHYS == '...'` fypp block. These are
   **not** standalone Fortran modules: they define fypp macros (physics-specific
   flux functions, primitive/conservative conversions) that get textually

@@ -382,23 +382,61 @@ end subroutine addsource_geometry
 #:enddef
 #:endif
 
+#:def get_aux()
+  !> The auxiliary variables lfac and xi of a conserved state.
+  !>
+  !> This is the single definition of lfac and xi: to_primitive and set_aux
+  !> both call it, so the two cannot drift apart. The stored values in u are
+  !> the initial guess of the root solve.
+  pure subroutine get_aux(u, lfac, xi)
+    use mod_con2prim
+    ${GPU_ROUTINE_SEQ()}$
+    real(dp), intent(in)  :: u(nw_phys)
+    real(dp), intent(out) :: lfac, xi
+
+    real(dp) :: rho, tau, ssqr
+
+    ssqr=(u(iw_mom(1))**2+u(iw_mom(2))**2+u(iw_mom(3))**2)
+    lfac = u(lfac_)
+    xi   = u(xi_)
+    rho  = u(iw_rho)
+    tau  = u(iw_e)
+    if(srhd_eos)then
+       call con2prim_eos(lfac,xi,rho,ssqr,tau)
+    else
+       call con2prim(lfac,xi,rho,ssqr,tau)
+    endif
+
+  end subroutine get_aux
+#:enddef
+
+#:def set_aux()
+  !> Overwrite the auxiliary slots (lfac, xi) of a conserved state with the
+  !> values consistent with its other components. Nothing else in u changes.
+  pure subroutine set_aux(u)
+    ${GPU_ROUTINE_SEQ()}$
+    real(dp), intent(inout) :: u(nw_phys)
+    real(dp) :: lfac, xi
+
+    call get_aux(u, lfac, xi)
+
+    u(lfac_) = lfac
+    u(xi_)   = xi
+
+  end subroutine set_aux
+#:enddef
+
 #:def to_primitive()
   pure subroutine to_primitive(u)
-    use mod_con2prim
     ${GPU_ROUTINE_SEQ()}$
     real(dp), intent(inout) :: u(nw_phys)
 
     real(dp) :: rho,rhoh,pth,E
-    real(dp) :: ssqr
+    real(dp) :: lfac, xi
 
-    !! begin: call srhd_get_auxiliary(u)
-    ssqr=(u(iw_mom(1))**2+u(iw_mom(2))**2+u(iw_mom(3))**2)
-    if(srhd_eos)then
-       call con2prim_eos(u(lfac_),u(xi_),u(iw_rho),ssqr,u(iw_e))
-    else
-       call con2prim(u(lfac_),u(xi_),u(iw_rho),ssqr,u(iw_e))
-    endif
-    !! end: call srhd_get_auxiliary(u)
+    call get_aux(u, lfac, xi)
+    u(lfac_) = lfac
+    u(xi_)   = xi
 
     rho=u(iw_rho)/u(lfac_)
     rhoh=u(xi_)/u(lfac_)**2

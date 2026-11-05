@@ -1,6 +1,6 @@
 title: Example simulations
 
-`$AGILE_DIR/tests/{hd,mhd,ffhd,srhd}/` holds AGILE's test suite: a mix of
+`$AGILE_DIR/tests/{hd,mhd,ffhd,srhd,srmhd}/` holds AGILE's test suite: a mix of
 short regression cases (built and run automatically by `make hd`/`make
 mhd`/`make ffhd`, see [Getting Started](getting_started.html)) and larger,
 physically motivated setups used as science demonstrations. This page
@@ -19,7 +19,7 @@ as in [Getting Started](getting_started.html#first-run), e.g.
 Beyond the examples below, `tests/` contains further regression and
 verification setups (e.g. `hd/RT3D`, `hd/KH3D-SMR`, `hd/KH3D_tracer`,
 `hd/sphere_advection`, `mhd/blast_wave_Cartesian_3D`, `mhd/Orszag-Tang_3D`,
-`mhd/doubleGEM3D`, `srhd/shockTube`) that aren't individually described in
+`mhd/doubleGEM3D`, `srhd/shockTube`, `srmhd/shock_tube`) that aren't individually described in
 the paper and so aren't covered here.
 
 # Hydrodynamics (`tests/hd/`) {: #hd-tests }
