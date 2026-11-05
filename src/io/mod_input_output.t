@@ -1416,8 +1416,22 @@ contains
            case default
             call mpistop('Pole is in cylindrical, polar, spherical coordinates!')
            end select
-        case ('twofl','mf')
-           call mpistop('Pole treatment for twofl or mf not implemented yet')
+        case ('twofl')
+           call mpistop('Pole treatment for twofl not implemented yet')
+        case ('mf')
+           if (ndim /= 3 .or. coordinate /= spherical .or. idim /= 2) &
+             call mpistop("MF pole requires a 3D spherical theta boundary")
+           {^IFTHREED
+           ! Spherical angles are still in turns at this point in the parser.
+           if (.not. periodB(3) .or. abs(xprobmax3-xprobmin3-one) >= smalldouble) &
+             call mpistop("MF pole requires full periodic longitude")
+           if (abs(xprobmin2) >= smalldouble) &
+             call mpistop("MF pole requires a true theta pole")
+           ! Radial components and scalars (including GLM psi) are even.
+           typeboundary(:,2*idim-1)=bc_symm
+           typeboundary(iw_mom(2:3),2*idim-1)=bc_asymm
+           typeboundary(iw_mag(2:3),2*idim-1)=bc_asymm
+           }
         case default
            call mpistop('unknown physics type for setting minimal pole boundary treatment')
         end select
@@ -1452,8 +1466,22 @@ contains
            case default
             call mpistop('Pole is in cylindrical, polar, spherical coordinates!')
            end select
-        case ('twofl','mf')
-           call mpistop('Pole treatment for twofl or mf not implemented yet')
+        case ('twofl')
+           call mpistop('Pole treatment for twofl not implemented yet')
+        case ('mf')
+           if (ndim /= 3 .or. coordinate /= spherical .or. idim /= 2) &
+             call mpistop("MF pole requires a 3D spherical theta boundary")
+           {^IFTHREED
+           ! Spherical angles are still in turns at this point in the parser.
+           if (.not. periodB(3) .or. abs(xprobmax3-xprobmin3-one) >= smalldouble) &
+             call mpistop("MF pole requires full periodic longitude")
+           if (abs(xprobmax2-half) >= smalldouble) &
+             call mpistop("MF pole requires a true theta pole")
+           ! Radial components and scalars (including GLM psi) are even.
+           typeboundary(:,2*idim)=bc_symm
+           typeboundary(iw_mom(2:3),2*idim)=bc_asymm
+           typeboundary(iw_mag(2:3),2*idim)=bc_asymm
+           }
         case default
            call mpistop('unknown physics type for setting maximal pole boundary treatment')
         end select

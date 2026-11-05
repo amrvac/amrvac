@@ -251,10 +251,19 @@ contains
     else if (any(shape(flux_type) /= [ndir, nw])) then
        call mpistop("phys_check error: flux_type has wrong shape")
     end if
-    do idir=1,ndir
-      if(ndim>1) flux_type(idir,mag(idir))=flux_tvdlf
-    end do
-    if(mf_glm .and. ndim>1) flux_type(:,psi_)=flux_tvdlf
+
+    if(ndim>1) then
+      if(mf_glm) then
+        flux_type(:,psi_)=flux_special
+        do idir=1,ndir
+          flux_type(idir,mag(idir))=flux_special
+        end do
+      else
+        do idir=1,ndir
+          flux_type(idir,mag(idir))=flux_tvdlf
+        end do
+      end if
+    end if
 
     phys_get_dt              => mf_get_dt
     phys_get_cmax            => mf_get_cmax
@@ -1368,24 +1377,26 @@ contains
     double precision, intent(inout) :: wLC(ixI^S,1:nw), wRC(ixI^S,1:nw)
     double precision, intent(inout) :: wLp(ixI^S,1:nw), wRp(ixI^S,1:nw)
     type(state)                     :: s
-    double precision                :: dB(ixI^S), dPsi(ixI^S)
 
+    integer :: ix^D
     ! Solve the Riemann problem for the linear 2x2 system for normal
     ! B-field and GLM_Psi according to Dedner 2002:
     ! This implements eq. (42) in Dedner et al. 2002 JcP 175
     ! Gives the Riemann solution on the interface
     ! for the normal B component and Psi in the GLM-MHD system.
     ! 23/04/2013 Oliver Porth
-    dB(ixO^S)   = wRp(ixO^S,mag(idir)) - wLp(ixO^S,mag(idir))
-    dPsi(ixO^S) = wRp(ixO^S,psi_) - wLp(ixO^S,psi_)
-
-    wLp(ixO^S,mag(idir))   = 0.5d0 * (wRp(ixO^S,mag(idir)) + wLp(ixO^S,mag(idir))) &
-         - 0.5d0/cmax_global * dPsi(ixO^S)
-    wLp(ixO^S,psi_)       = 0.5d0 * (wRp(ixO^S,psi_) + wLp(ixO^S,psi_)) &
-         - 0.5d0*cmax_global * dB(ixO^S)
-
-    wRp(ixO^S,mag(idir)) = wLp(ixO^S,mag(idir))
-    wRp(ixO^S,psi_) = wLp(ixO^S,psi_)
+    {do ix^DB=ixOmin^DB,ixOmax^DB\}
+       wLp(ix^D,mag(idir))=half*(wRp(ix^D,mag(idir))+wLp(ix^D,mag(idir))-&
+           (wRp(ix^D,psi_)-wLp(ix^D,psi_))/cmax_global)
+       wLp(ix^D,psi_)=half*(wRp(ix^D,psi_)+wLp(ix^D,psi_)-&
+           (wRp(ix^D,mag(idir))-wLp(ix^D,mag(idir)))*cmax_global)
+       wRp(ix^D,mag(idir))=wLp(ix^D,mag(idir))
+       wRp(ix^D,psi_)=wLp(ix^D,psi_)
+       wRC(ix^D,mag(idir))=wLp(ix^D,mag(idir))
+       wRC(ix^D,psi_)=wLp(ix^D,psi_)
+       wLC(ix^D,mag(idir))=wLp(ix^D,mag(idir))
+       wLC(ix^D,psi_)=wLp(ix^D,psi_)
+    {end do\}
 
   end subroutine mf_modify_wLR
 
