@@ -176,7 +176,7 @@ contains
   !> Read in the user-supplied parameter-file
   subroutine read_par_files()
     use mod_global_parameters
-    use mod_physics, only: phys_energy, physics_type, phys_wider_stencil
+    use mod_physics, only: phys_energy, phys_total_energy, physics_type, phys_wider_stencil
     use mod_small_values
     use mod_limiter
     use mod_slice
@@ -819,6 +819,9 @@ contains
        endif
        if(flux_scheme(level)=='hlld'.and.physics_type/='mhd' .and. physics_type/='twofl') &
           call mpistop("Cannot use hlld flux if not using MHD or 2FL only charges physics!")
+
+       if(flux_scheme(level)=='hlld'.and. .not.phys_total_energy) &
+          call mpistop("Cannot use hlld flux if not solving total energy equation!")
 
        if(flux_scheme(level)=='hllc'.and.physics_type=='mf') &
           call mpistop("Cannot use hllc flux if using magnetofriction physics!")

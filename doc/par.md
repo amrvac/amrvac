@@ -1027,6 +1027,7 @@ sharp discontinuities. It is normally inactive with a default value -1.
      mhd_uawsom_thread_radius0= positive DOUBLE (physical length; default -1 selects automatic value)
      mhd_uawsom_Bref= positive DOUBLE (physical magnetic field; default -1 selects automatic value)
      mhd_uawsom_alfven_corr_length0= positive DOUBLE (physical length; default -1 selects automatic value)
+     mhd_hd_mom_conserve_fix= F | T
      typedivbfix= 'linde'|'ct'|'glm'|'powel'|'lindejanhunen'|'lindepowel'|'lindeglm'|'multigrid'|'none'
      type_ct='uct_contact'|'uct_hll'|'average'
      source_split_divb= F | T
@@ -1079,6 +1080,14 @@ semirelativistic MHD, equilibrium density/pressure splitting, FLD, no-energy,
 internal-energy, and hydrodynamic-energy formulations at startup.
 It does not implement cylindrical, polar, or spherical coordinates, nonuniform
 grids, `source_geom`/`source_geom_split`, or `angmomfix` combinations.
+
+In strong magnetic field at coarse-fine block boundaries of AMR mesh, the momentum flux 
+conservation fix induces high speed flows from the boundaries to the coarse blocks 
+leading to low density and pressure there. Setting **mhd_hd_mom_conserve_fix=T** cures
+this problem by using the hydrodynamic momentum flux (rho v v + p I) excluding the
+Maxwell stress part for momentum flux conservation fix. In the HLL, HLLC, and HLLD flux
+scheme, the hydrodynamic momentum flux is calculated using HLL scheme. In the tvdlf
+flux scheme, the hydrodynamic momentum flux is calculated using tvdlf scheme.
 
 ### Magnetic field divergence fixes {#par_divbfix}
 

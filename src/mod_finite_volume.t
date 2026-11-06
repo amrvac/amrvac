@@ -260,7 +260,8 @@ contains
            call get_Riemann_flux_hllc(start_indices(ii),stop_indices(ii))
          end do
          if(need_hd_mom_flux) then
-           fC_mom(ixI^S,1:ndir,idims)=0.d0
+           ii=1
+           call get_Riemann_flux_hll(iw_mom(1),iw_mom(ndir),fLC_mom,fRC_mom,fC_mom(ixI^S,1:ndir,idims))
          end if
        case(fs_hlld)
          do ii=1,number_species
@@ -269,10 +270,11 @@ contains
            else
              call get_Riemann_flux_hll(start_indices(ii),stop_indices(ii),fLC(ixI^S,start_indices(ii):stop_indices(ii)),fRC(ixI^S,start_indices(ii):stop_indices(ii)),fC(ixI^S,start_indices(ii):stop_indices(ii),idims))
            end if
-           if(need_hd_mom_flux) then
-             fC_mom(ixI^S,1:ndir,idims)=0.d0
-           end if
          end do
+         if(need_hd_mom_flux) then
+           ii=1
+           call get_Riemann_flux_hll(iw_mom(1),iw_mom(ndir),fLC_mom,fRC_mom,fC_mom(ixI^S,1:ndir,idims))
+         end if
        case(fs_tvdlf)
          do ii=1,number_species
            call get_Riemann_flux_tvdlf(start_indices(ii),stop_indices(ii),fLC(ixI^S,start_indices(ii):stop_indices(ii)),fRC(ixI^S,start_indices(ii):stop_indices(ii)),fC(ixI^S,start_indices(ii):stop_indices(ii),idims))
