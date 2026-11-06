@@ -141,7 +141,6 @@ module mod_ffhd_phys
   public :: ffhd_get_temperature_from_etot
   public :: ffhd_get_temperature_from_eint
   public :: ffhd_get_temperature_from_Te
-  public :: Rfactor_from_constant_ionization
 
 contains
 
@@ -1404,17 +1403,6 @@ contains
       ke(ixO^S)=0.5d0*w(ixO^S,mom(1))**2/w(ixO^S,rho_)
     end if
   end function ffhd_kin_en_origin
-
-
-  subroutine Rfactor_from_constant_ionization(w,x,ixI^L,ixO^L,Rfactor)
-    use mod_global_parameters
-    integer, intent(in) :: ixI^L, ixO^L
-    double precision, intent(in) :: w(ixI^S,1:nw)
-    double precision, intent(in) :: x(ixI^S,1:ndim)
-    double precision, intent(out):: Rfactor(ixI^S)
-
-    Rfactor(ixO^S)=RR
-  end subroutine Rfactor_from_constant_ionization
 
   subroutine add_hyperbolic_tc_source(qdt,ixI^L,ixO^L,wCT,w,x,wCTprim)
     use mod_global_parameters

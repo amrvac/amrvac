@@ -120,6 +120,8 @@ contains
         ! to FI only, consistent with mhd/hd.
         if (associated(usr_Rfactor)) then
             eos%get_Rfactor => usr_Rfactor
+        else
+            eos%get_Rfactor => Rfactor_from_constant_ionization
         end if
         ! ffhd_get_Rfactor (runtime alias) captured in ffhd_bind_eos_to_source,
         ! AFTER eos_finalise has set eos%get_Rfactor for LTE/PI.
@@ -511,6 +513,20 @@ contains
             call state_from_eint_PI(w(ix^D,rho_), ei(ix^D), Tpi, pth(ix^D), Rpi)
         {end do\}
     end subroutine ffhd_get_pthermal_PI
+
+    !> Rfactor = p/(rho*T) for constant ionisation degree (FI/PI no-energy).
+    !> Stays in the seam: RR is the physics module's gas-constant factor, not
+    !> visible to mod_eos. Rfactor_from_LTE lives in mod_eos (no RR).
+    subroutine Rfactor_from_constant_ionization(w,x,ixI^L,ixO^L,Rfactor)
+        use mod_global_parameters
+        integer, intent(in) :: ixI^L, ixO^L
+        double precision, intent(in) :: w(ixI^S,1:nw)
+        double precision, intent(in) :: x(ixI^S,1:ndim)
+        double precision, intent(out):: Rfactor(ixI^S)
+
+        Rfactor(ixO^S)=RR
+
+    end subroutine Rfactor_from_constant_ionization
 
     !> Adiabatic sound speed^2 from primitive (rho, p) via the backend.
 

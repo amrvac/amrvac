@@ -1378,6 +1378,7 @@ contains
     double precision, intent(inout) :: wLp(ixI^S,1:nw), wRp(ixI^S,1:nw)
     type(state)                     :: s
 
+    double precision :: dB
     integer :: ix^D
     ! Solve the Riemann problem for the linear 2x2 system for normal
     ! B-field and GLM_Psi according to Dedner 2002:
@@ -1386,10 +1387,10 @@ contains
     ! for the normal B component and Psi in the GLM-MHD system.
     ! 23/04/2013 Oliver Porth
     {do ix^DB=ixOmin^DB,ixOmax^DB\}
+       dB=wRp(ix^D,mag(idir))-wLp(ix^D,mag(idir))
        wLp(ix^D,mag(idir))=half*(wRp(ix^D,mag(idir))+wLp(ix^D,mag(idir))-&
            (wRp(ix^D,psi_)-wLp(ix^D,psi_))/cmax_global)
-       wLp(ix^D,psi_)=half*(wRp(ix^D,psi_)+wLp(ix^D,psi_)-&
-           (wRp(ix^D,mag(idir))-wLp(ix^D,mag(idir)))*cmax_global)
+       wLp(ix^D,psi_)=half*(wRp(ix^D,psi_)+wLp(ix^D,psi_)-dB*cmax_global)
        wRp(ix^D,mag(idir))=wLp(ix^D,mag(idir))
        wRp(ix^D,psi_)=wLp(ix^D,psi_)
        wRC(ix^D,mag(idir))=wLp(ix^D,mag(idir))
