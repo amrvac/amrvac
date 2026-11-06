@@ -120,8 +120,6 @@ contains
         ! to FI only, consistent with mhd/hd.
         if (associated(usr_Rfactor)) then
             eos%get_Rfactor => usr_Rfactor
-        else
-            eos%get_Rfactor => Rfactor_from_constant_ionization
         end if
         ! ffhd_get_Rfactor (runtime alias) captured in ffhd_bind_eos_to_source,
         ! AFTER eos_finalise has set eos%get_Rfactor for LTE/PI.
