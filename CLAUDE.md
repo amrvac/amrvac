@@ -1211,6 +1211,14 @@ fypp define consumed by `src/physics/mod_physics.fpp` and the per-physics
   update step; these contain the performance-critical GPU-offloaded loops,
   written via the `GPU_*` directive macros (`GPU_PARALLEL_LOOP`,
   `GPU_ROUTINE_SEQ`, etc.) rather than raw `!$acc`/`!$omp` directives.
+  `FV_KERNEL` is instantiated per flux scheme *and* per layout, `per_cell`
+  (the default) and `shared`, picked at run time by `fv_face_flux` in
+  `&methodlist` (see `doc/par.md`). The two differ only in where a face
+  flux is computed; both build every face through the `FACE_FLUX` macro and
+  update every cell through `FV_CELL_UPDATE`, so a change to the
+  reconstruction, the face position or the update/flux-fixing stores goes
+  in those macros once and the layouts stay bit-identical. Check that they
+  do: the logs of the two must match exactly, not just within tolerance.
 - `src/amr/` — the block-based octree AMR machinery: forest/tree bookkeeping
   (`mod_forest.fpp`), refinement/coarsening, load balancing, space-filling
   curve ordering, flux correction at refinement boundaries

@@ -222,6 +222,9 @@ contains
     character(len=std_len) :: typesourcesplit
     !> Which flux scheme of spatial discretization to use (per grid level)
     character(len=std_len), allocatable :: flux_scheme(:)
+    !> Finite-volume layout: 'per_cell' (each cell computes both of its
+    !> faces, the default) or 'shared' (each face flux computed once)
+    character(len=std_len) :: fv_face_flux
     !> Which time stepper to use
     character(len=std_len) :: time_stepper
     !> Which time integrator to use
@@ -269,7 +272,7 @@ contains
 
     namelist /methodlist/ time_stepper,time_integrator, source_split_usr,&
        typesourcesplit,local_timestep,dimsplit,typedimsplit,flux_scheme,&
-       limiter,gradient_limiter,cada3_radius,loglimit,&
+       fv_face_flux,limiter,gradient_limiter,cada3_radius,loglimit,&
        H_correction, typegrad,&
        typediv,typecurl,flatcd,flatsh,&
        rk2_alfa,imex222_lambda,ssprk_order,rk3_switch,imex_switch,&
@@ -525,6 +528,7 @@ contains
        limiter(level)     = 'minmod'
        gradient_limiter(level) = 'minmod'
     end do
+    fv_face_flux = 'per_cell'
 
     flatcd          = .false.
     flatsh          = .false.
@@ -783,6 +787,16 @@ contains
           call mpistop("unknown or bad flux scheme: "//trim(flux_scheme(level)))
        end select
     end do
+
+    select case (fv_face_flux)
+    case ('shared')
+       fv_layout = fv_shared
+    case ('per_cell')
+       fv_layout = fv_per_cell
+    case default
+       call mpistop("unknown fv_face_flux: "//trim(fv_face_flux)//&
+            " (use 'shared' or 'per_cell')")
+    end select
 
     ! =========================================================================
     ! Limiter and spatial operator parsing

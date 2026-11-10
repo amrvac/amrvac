@@ -165,6 +165,110 @@ contains
     $:brent_template("brent","master_function", 5)
     $:brent_template("aux_brent", "aux_f", 4)
 
+
+!=============================================================================
+!
+! Brent's zeroin (Brent 1973, Netlib zeroin.f), entered with a bracket and the
+! function values at its ends. Unlike brent_template above, which stops only
+! once the bracket |a-b| has shrunk, zeroin steps at least tol1 towards the
+! root, so one-sided convergence of the interpolation collapses the bracket
+! instead of forcing runs of bisection: about half the evaluations cold, and
+! a short tail across a warp.
+!
+!=============================================================================
+    #:def zeroin_template(name, func, npar)
+    pure function ${name}$(ax, bx, fax, fbx, params) result(b)
+        implicit none
+        ${GPU_ROUTINE_SEQ()}$
+        real(dp), intent(in) :: ax, bx, fax, fbx
+        real(dp), intent(in) :: params(${npar}$)
+        real(dp) :: a, b, c, d, e, fa, fb, fc, tol1, xm, p, q, r, s
+        real(dp), parameter :: tol=1e-15_dp
+        integer :: it
+
+        a=ax; b=bx; fa=fax; fb=fbx
+        c=a; fc=fa; d=b-a; e=d
+
+        do it=1, 100
+            ! b is the best estimate, [b, c] brackets the root
+            if (abs(fc) < abs(fb)) then
+                a=b; b=c; c=a
+                fa=fb; fb=fc; fc=fa
+            end if
+
+            tol1 = 2.0_dp*epsilon(1.0_dp)*abs(b) + 0.5_dp*tol
+            xm = 0.5_dp*(c - b)
+            if (abs(xm) <= tol1 .or. fb == 0) exit
+
+            if (abs(e) >= tol1 .and. abs(fa) > abs(fb)) then
+                s = fb/fa
+                if (a == c) then
+                    ! secant
+                    p = 2.0_dp*xm*s
+                    q = 1.0_dp - s
+                else
+                    ! inverse quadratic interpolation
+                    q = fa/fc
+                    r = fb/fc
+                    p = s*(2.0_dp*xm*q*(q - r) - (b - a)*(r - 1.0_dp))
+                    q = (q - 1.0_dp)*(r - 1.0_dp)*(s - 1.0_dp)
+                end if
+                if (p > 0) q = -q
+                p = abs(p)
+                if (2.0_dp*p < 3.0_dp*xm*q - abs(tol1*q) .and. &
+                    p < abs(0.5_dp*e*q)) then
+                    e = d
+                    d = p/q
+                else
+                    d = xm
+                    e = d
+                end if
+            else
+                d = xm
+                e = d
+            end if
+
+            a = b
+            fa = fb
+            if (abs(d) > tol1) then
+                b = b + d
+            else
+                b = b + sign(tol1, xm)
+            end if
+            call ${func}$(b, params, fb)
+            if ((fb > 0 .and. fc > 0) .or. (fb <= 0 .and. fc <= 0)) then
+                c = a; fc = fa; d = b - a; e = d
+            end if
+        end do
+
+    end function ${name}$
+
+    !> The root on [0, upper] from cold. Without a sign change it returns the
+    !> end with the smaller |f|, as brent_template does.
+    pure function ${name}$_cold(upper, params) result(x)
+        implicit none
+        ${GPU_ROUTINE_SEQ()}$
+        real(dp), intent(in) :: upper
+        real(dp), intent(in) :: params(${npar}$)
+        real(dp) :: x, fa, fb
+
+        call ${func}$(0.0_dp, params, fa)
+        call ${func}$(upper, params, fb)
+        if (fa*fb > 0) then
+            if (abs(fb) > abs(fa)) then
+                x = 0
+            else
+                x = upper
+            end if
+        else
+            x = ${name}$(0.0_dp, upper, fa, fb, params)
+        end if
+    end function ${name}$_cold
+    #:enddef
+
+    $:zeroin_template("zeroin", "master_function", 5)
+    $:zeroin_template("aux_zeroin", "aux_f", 4)
+
 !===========================================================================================
 !
 !           Implements Root solver TOMS748 https://doi.org/10.1145/210089.210111
@@ -746,7 +850,82 @@ contains
 
 
 
-    $:con2prim_template("con2prim", "brent", "aux_brent")
+    ! the original solver, kept for reference and comparison
+    $:con2prim_template("con2prim_brent", "brent", "aux_brent")
+
+    !> Kastaun et al. con2prim with a warm start: mu comes in as a guess (the
+    !> stored mu_ slot) and goes out as the root of the master function.
+    !>
+    !> The master function f is negative below its root and positive above it,
+    !> so f at the guess says on which side the root lies. Stepping from the
+    !> guess towards it, 1e-4 of mu first and 16x farther each time, finds a
+    !> sign change within two evaluations for any guess within 1e-4 of the
+    !> root, after which zeroin needs a few more on that tight bracket.
+    !>
+    !> The root is sought in [0, mu_plus], where it is unique; mu_plus is the
+    !> root of aux_f, which is negative below it and positive above. So
+    !> aux_f <= 0 at the upper end of the bracket proves the bracket inside
+    !> [0, mu_plus], at the cost of one aux_f evaluation, without solving for
+    !> mu_plus. A guess outside (0, 1/h0], no sign change within four steps,
+    !> or a bracket reaching past mu_plus fall back to the cold solve:
+    !> mu_plus first, then the root on [0, mu_plus].
+    pure subroutine con2prim(mu, d, tau, s_sqr, b_sqr, s_dot_b)
+        implicit none
+        ${GPU_ROUTINE_SEQ()}$
+        real(dp), intent(inout) :: mu
+        real(dp), intent(in)  :: d, tau
+        real(dp), intent(in)  :: s_sqr, b_sqr, s_dot_b
+        real(dp), parameter   :: warm_rel = 1.0e-4_dp, warm_grow = 16.0_dp
+        integer,  parameter   :: warm_steps = 4
+        real(dp) :: params(5), aux_params(4)
+        real(dp) :: a, b, fa, fb, fx, dlt, mu_plus
+        integer  :: k
+        logical  :: bracketed
+
+        params = [d, tau, s_sqr, b_sqr, s_dot_b]
+        aux_params = [d, s_sqr, b_sqr, s_dot_b]
+        bracketed = .false.
+
+        ! the negated test also rejects a NaN guess
+        if (mu > 0 .and. mu <= 1/h0) then
+            a = mu
+            call master_function(a, params, fa)
+            if (fa == 0) return
+            dlt = warm_rel*a
+            do k = 1, warm_steps
+                if (fa > 0) then
+                    b = max(a - dlt, 0.0_dp)
+                else
+                    b = min(a + dlt, 1/h0)
+                end if
+                call master_function(b, params, fb)
+                if (fa*fb <= 0) then
+                    bracketed = .true.
+                    exit
+                end if
+                a = b
+                fa = fb
+                dlt = dlt*warm_grow
+            end do
+            ! mu_plus = 1/h0 when s^2/d^2 < h0^2, and the bracket is in [0, 1/h0]
+            if (bracketed .and. s_sqr/d**2 >= h0**2) then
+                call aux_f(max(a, b), aux_params, fx)
+                if (fx > 0) bracketed = .false.
+            end if
+        end if
+
+        if (bracketed) then
+            mu = zeroin(a, b, fa, fb, params)
+        else
+            if (s_sqr/d**2 < h0**2) then
+                mu_plus = 1/h0
+            else
+                mu_plus = aux_zeroin_cold(1/h0, aux_params)
+            end if
+            mu = zeroin_cold(mu_plus, params)
+        end if
+
+    end subroutine con2prim
 
     !$:con2prim_template("con2prim", "toms", "aux_toms")
 

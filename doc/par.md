@@ -336,6 +336,7 @@ the step counter.
  rk2_alfa= 0.5d0 | DOUBLE in (0,1]
  rk3_switch= 3 | 1 | 2 | 4
  flux_scheme= nlevelshi*'tvdlf' | 'hll' | 'hllc'            ! only the first entry is used
+ fv_face_flux= 'per_cell' | 'shared'
  limiter= nlevelshi*'minmod' | 'vanleer' | 'mcbeta' | 'koren' ! per level
  flux_adaptive_diffusion= F | T                             ! compile time, tvdlf only
  flux_ad_min= 0 | DOUBLE in [0,1]
@@ -404,6 +405,25 @@ but **only the first entry is used, on every level**. Upstream's `'tvd'`,
 exist, nor do their options (`typetvd`, `typeentropy`, `entropycoef`,
 `typeboundspeed`, `typeaverage`, `tvdlfeps`, `flathllc`, `nxdiffusehllc`);
 setting one of those keys now fails the namelist read.
+
+### fv_face_flux {: #par_fv_face_flux }
+How the finite-volume kernel organises the face fluxes. Both give the same
+result to the last bit; they differ only in speed and device memory.
+
+- `'per_cell'` (the default): each cell computes both of its faces itself,
+  so every interior face is computed twice, but no face buffer is needed.
+- `'shared'`: each face's reconstruction and numerical flux is computed
+  once, into a per-block face buffer, and read by the two cells on either
+  side of it.
+
+The face buffer holds `(block_nx+1)**3 * nwflux` doubles per block for every
+block of a kernel launch (up to 4096), so `'shared'` needs that much more
+device memory: about 5.9 GB for 32^3 blocks of `hd`, enough to make a run
+that fits with `'per_cell'` fail with `CUDA_ERROR_OUT_OF_MEMORY`. That is why
+`'per_cell'` is the default. When memory allows, `'shared'` is faster in
+most cases, by far more when the flux is expensive: measured on one A100,
++58% for the `srmhd` CPA case and +2% to +11% for `hd` KH3D, but 3% slower
+for KH3D at 256^3 in 64^3 blocks (64 blocks). Any other value stops the run.
 
 ### limiter {: #par_typelimiter }
 The slope limiter of the MUSCL reconstruction, per level (this one is

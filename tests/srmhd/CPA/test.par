@@ -1,0 +1,69 @@
+! Circularly polarized Alfven wave (CPA-3D), special relativistic MHD
+! Del Zanna et al. 2024, Fluids 9, 16, Sect. 4:
+!   rho = p = B0 = eta = 1, gamma = 4/3, periodic cube L = 1,
+!   k_x = k_y = k_z = 2 pi/L (propagation along the main diagonal)
+!   v_A = (3 - sqrt(5))/2 = 0.381966..., |k| = 2 pi sqrt(3)
+!   period T = 2 pi/(|k| v_A) = (3 + sqrt(5))/(2 sqrt(3)) = 1.5115226281523417
+! After one period the solution must equal the initial condition.
+
+ &filelist
+   base_filename    = 'test'
+   typefilelog      = 'regression_test'
+ /
+
+ &savelist
+   dtsave_log       = 1.0d10
+   dtsave_slice     = 1.0d10
+ /
+
+ &stoplist
+   time_max         = 0.37788065703808543d0   ! T/4 (short regression run)
+ /
+
+ &methodlist
+   time_stepper    = 'threestep'
+   flux_scheme     = 20*'tvdlf'
+   limiter         = 20*'vanleer'
+   phys            = 'srmhd'
+ /
+
+ &boundlist
+   typeboundary_min1 = 8*'periodic'
+   typeboundary_max1 = 8*'periodic'
+   typeboundary_min2 = 8*'periodic'
+   typeboundary_max2 = 8*'periodic'
+   typeboundary_min3 = 8*'periodic'
+   typeboundary_max3 = 8*'periodic'
+ /
+
+ &meshlist
+   max_blocks         = 128
+   refine_max_level   = 1
+   block_nx1          = 10
+   block_nx2          = 10
+   block_nx3          = 10
+   domain_nx1         = 20
+   domain_nx2         = 20
+   domain_nx3         = 20
+   xprobmin1       = 0.0d0
+   xprobmax1       = 1.0d0
+   xprobmin2       = 0.0d0
+   xprobmax2       = 1.0d0
+   xprobmin3       = 0.0d0
+   xprobmax3       = 1.0d0
+   iprob=1
+ /
+
+ &paramlist
+   slowsteps        = 10
+   courantpar       = 0.7d0
+   typecourant      = 'maxsum'
+ /
+ 
+&srmhd_list
+   srmhd_gamma=1.33333333333333333333d0
+   srmhd_eos=.false.
+   He_abundance=0.0d0
+   srmhd_small_pressure=0.0d0
+   srmhd_small_density=0.0d0
+/

@@ -625,6 +625,15 @@ module mod_global_parameters
   integer, parameter :: fs_hllc=2
   integer, parameter :: fs_tvdlf=5
 
+  !> Finite-volume layout (fv_face_flux in &methodlist): fv_per_cell, the
+  !> default, has every cell compute both of its faces, so each face twice,
+  !> with no face buffer; fv_shared computes each face flux once and shares
+  !> it between the two cells, at the cost of a per-block face buffer on the
+  !> device that can exhaust its memory
+  integer, parameter :: fv_shared=1
+  integer, parameter :: fv_per_cell=2
+  integer :: fv_layout = fv_per_cell
+
   !> Adaptive LLF diffusion (Rempel et al. 2009): phi in [flux_ad_min, 1] per face per variable
   logical  :: flux_adaptive_diffusion = .false.
   ${GPU_DECLARE_CREATE('flux_adaptive_diffusion')}$
