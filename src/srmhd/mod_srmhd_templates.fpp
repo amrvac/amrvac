@@ -59,9 +59,6 @@
   integer, public            :: mu_
   ${GPU_DECLARE_CREATE('mu_')}$
 
-
-
-
   !> Index of the Lorentz factor
   integer, public     :: lfac_
   ${GPU_DECLARE_CREATE('lfac_')}$
@@ -234,7 +231,7 @@
     lfac_= var_set_auxvar('lfac','lfac')
 
     if (nwflux > nw_recon .or. mu_ <= nw_recon .or. lfac_ <= nw_recon) &
-      call mpistop("srhd phys_init: flux variables must occupy 1:nw_recon "//&
+      call mpistop("srmhd phys_init: flux variables must occupy 1:nw_recon "//&
       "and the auxiliaries mu, lfac come after them")
 
     ${GPU_UPDATE_DEVICE('mu_,lfac_')}$
