@@ -453,8 +453,8 @@
       E    = E_th + dsqrt(E_th**2+u(iw_rho)**2)
       ! writing rho/E on purpose, for numerics 
       h = 0.5_dp * ((srmhd_gamma+1.0_dp) * E &
-          - (srmhd_gamma-1) * (u(iw_rho)/E))
-      if (h<1) h = 1
+          - (srmhd_gamma-1) *u(iw_rho)* (u(iw_rho)/E))
+
 
       u(mu_) = 1/u(lfac_)/h
     else
