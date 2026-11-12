@@ -83,14 +83,13 @@ contains
        w_(:,:,:,iw_mom(2)) = 0.0d0
        w_(:,:,:,iw_mom(3)) = vjet*lfacjet
        w_(:,:,:,lfac_)     = lfacjet
-
      elsewhere
        w_(:,:,:,iw_rho)    = rhob
        w_(:,:,:,iw_e)      = pb
        w_(:,:,:,iw_mom(1)) = 0.0d0
        w_(:,:,:,iw_mom(2)) = 0.0d0
        w_(:,:,:,iw_mom(3)) = 0.0d0
-       w_(:,:,:,lfac_)     = 0.0d0
+       w_(:,:,:,lfac_)     = 1.0d0
      endwhere
 
      w_(:,:,:,iw_mag(1)) = 0.0d0
@@ -285,6 +284,8 @@ contains
                        rhoh * lfacjet**2 - pjet - rhojet * lfacjet &
                        + 0.5_dp*(b_sqr*(1 + vjet**2) - (w(ix1,ix2,ix3,iw_mag(3)) * vjet)**2)
                   ! call set_aux(w)
+                  w(ix1,ix2,ix3,lfac_) = lfacjet
+                  w(ix1,ix2,ix3,mu_) = rhojet/lfacjet/rhoh
 
 
 
@@ -299,6 +300,8 @@ contains
                   w(ix1,ix2,ix3,iw_mag(1)) =   w(ix1,ix2,2*ixOmax3-ix3+1,iw_mag(1))
                   w(ix1,ix2,ix3,iw_mag(2)) =   w(ix1,ix2,2*ixOmax3-ix3+1,iw_mag(2))
                   w(ix1,ix2,ix3,iw_mag(3)) = - w(ix1,ix2,2*ixOmax3-ix3+1,iw_mag(3))
+                  w(ix1,ix2,ix3,lfac_)      =   w(ix1,ix2,2*ixOmax3-ix3+1,lfac_)
+                  w(ix1,ix2,ix3,mu_)      =   w(ix1,ix2,2*ixOmax3-ix3+1,mu_)
                   ! call set_aux(w)
 
                endif
@@ -370,12 +373,17 @@ contains
     double precision, intent(in),&
       dimension(ixImin1:ixImax1, ixImin2:ixImax2, ixImin3:ixImax3, 1:ndim) :: x
     double precision                   :: normconv(0:nw+nwauxio)
+    
+    ! print *, pack( w(ixOmin1:ixOmax1,ixOmin2:ixOmax2,ixOmin3:ixOmax3,d_),w(ixOmin1:ixOmax1,ixOmin2:ixOmax2,ixOmin3:ixOmax3,d_)<=0)
 
-   !  w(ixOmin1:ixOmax1,ixOmin2:ixOmax2,ixOmin3:ixOmax3,nw+1)= &
-   !     dlog10(w(ixOmin1:ixOmax1,ixOmin2:ixOmax2,ixOmin3:ixOmax3,d_) &
-   !           /w(ixOmin1:ixOmax1,ixOmin2:ixOmax2,ixOmin3:ixOmax3,lfac_))
 
-    w(ixOmin1:ixOmax1,ixOmin2:ixOmax2,ixOmin3:ixOmax3,nw+1)= 1
+    ! print *, pack( w(ixOmin1:ixOmax1,ixOmin2:ixOmax2,ixOmin3:ixOmax3,lfac_),w(ixOmin1:ixOmax1,ixOmin2:ixOmax2,ixOmin3:ixOmax3,lfac_)<=0)
+
+     w(ixOmin1:ixOmax1,ixOmin2:ixOmax2,ixOmin3:ixOmax3,nw+1)= &
+        dlog10(w(ixOmin1:ixOmax1,ixOmin2:ixOmax2,ixOmin3:ixOmax3,d_) &
+              /w(ixOmin1:ixOmax1,ixOmin2:ixOmax2,ixOmin3:ixOmax3,lfac_))
+
+    ! w(ixOmin1:ixOmax1,ixOmin2:ixOmax2,ixOmin3:ixOmax3,nw+1)= 1
 
    end subroutine specialvar_output
 
