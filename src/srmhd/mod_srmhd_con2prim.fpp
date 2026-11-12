@@ -740,8 +740,14 @@ contains
         eps_hat=w_hat*(q_bar - mu*r_bar_sqr) + v_hat_sqr*w_hat**2/(1 + w_hat) !(42)
 
         !add a limiter for valid eps and rho
-        if (eps_hat<0) then
-            eps_hat=0
+        if (srmhd_eos) then
+            if (eps<-1) then
+                eps=-1
+            end if
+        else
+            if (eps<0) then
+                eps=0
+            end if
         end if
 
         if (rho_hat<srmhd_small_density) rho_hat=srmhd_small_density
@@ -933,10 +939,6 @@ contains
 
     !$:con2prim_template("con2prim", "toms", "aux_toms")
 
-
-   
-
-    
 
 end module srmhd_con2prim
 

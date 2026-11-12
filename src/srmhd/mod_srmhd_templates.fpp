@@ -402,8 +402,14 @@
 
     eps = lfac*(q_bar - mu*r_bar_sqr) + v_sqr*lfac**2/(1 + lfac) !(42)
 
-    if (eps<0) then
-      eps=0
+    if (srmhd_eos) then
+      if (eps<-1) then
+        eps=-1
+      end if
+    else
+      if (eps<0) then
+        eps=0
+      end if
     end if
 
     u(iw_rho) = d/lfac  
@@ -439,7 +445,7 @@
 
     real(dp)    ::  v_sqr, b_sqr, v_dot_b
 
-    real(dp)    :: E_th, E, h
+    real(dp)    :: E_th, E, h, p, rho
 
 
 
