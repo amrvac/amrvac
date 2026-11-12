@@ -744,12 +744,16 @@ contains
             eps_hat=0
         end if
 
+        if (rho_hat<srmhd_small_density) rho_hat=srmhd_small_density
+        
 
         if (.not. srmhd_eos) then 
             p_hat = ideal_eos(rho_hat, eps_hat) !(43)
         else
             p_hat = synge_eos(rho_hat, eps_hat) !(43)
         end if
+
+        if (p_hat<srmhd_small_pressure) p_hat=srmhd_small_pressure
 
 
         a_hat=p_hat/rho_hat/(1 + eps_hat) !(43)
@@ -762,7 +766,7 @@ contains
 
         mu_hat = 1.0_dp/(nu_hat + mu*r_bar_sqr) !(45)
 
-        f=mu - mu_hat!(44)
+        f = mu - mu_hat !(44)
 
     end subroutine master_function
 
