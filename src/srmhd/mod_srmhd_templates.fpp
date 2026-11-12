@@ -402,19 +402,14 @@
 
     eps = lfac*(q_bar - mu*r_bar_sqr) + v_sqr*lfac**2/(1 + lfac) !(42)
 
-    if (srmhd_eos) then
-      if (eps<-1) then
-        eps=-1
-      end if
-    else
-      if (eps<0) then
-        eps=0
-      end if
+    if (eps<0) then
+      eps=0
     end if
+
 
     u(iw_rho) = d/lfac  
     
-    if (u(iw_rho)<srmhd_small_density) u(iw_rho) = srmhd_small_density
+    !if (u(iw_rho)<srmhd_small_density) u(iw_rho) = srmhd_small_density
 
     if (srmhd_eos) then
       u(iw_e) = synge_eos(u(iw_rho), eps)
@@ -422,7 +417,7 @@
       u(iw_e) = ideal_eos(u(iw_rho), eps)
     end if 
 
-    if (u(iw_e)<srmhd_small_pressure) u(iw_e) = srmhd_small_pressure
+    !if (u(iw_e)<srmhd_small_pressure) u(iw_e) = srmhd_small_pressure
 
     u(iw_mom(1)) = vel(1)*lfac
 
@@ -447,10 +442,6 @@
 
     real(dp)    :: E_th, E, h, p, rho
 
-
-
-
-    
 
     u(lfac_) = sqrt(1+u(iw_mom(1))**2 + u(iw_mom(2))**2 + u(iw_mom(3))**2)
 
@@ -674,13 +665,21 @@ end subroutine addsource_local
   pure subroutine fix_prim_state(u)
     ${GPU_ROUTINE_SEQ()}$
     real(dp), intent(inout) :: u(nw_phys)
+    real(dp) :: p, rho
 
     u(iw_rho) = max(u(iw_rho), srmhd_small_density)
     u(iw_e)   = max(u(iw_e),   srmhd_small_pressure)
 
     u(lfac_) = sqrt(1+u(iw_mom(1))**2 + u(iw_mom(2))**2 + u(iw_mom(3))**2)
-
-    u(mu_) = 1/u(lfac_)/(1 + srmhd_gamma / (srmhd_gamma-1) / u(iw_rho) * u(iw_e))
+    if (srmhd_eos) then 
+        p = u(iw_e)
+        rho = u(iw_rho)
+        E = p/rho/(srmhd_gamma-1)+sqrt((p/rho/(srmhd_gamma-1))**2+1)
+        h = 0.5_dp*((srmhd_gamma+1)*E - (srmhd_gamma-1)/E) 
+        u(mu_) = 1/u(lfac_)/h
+    else
+        u(mu_) = 1/u(lfac_)/(1 + srmhd_gamma / (srmhd_gamma-1) / u(iw_rho) * u(iw_e))
+    end if
 
   end subroutine fix_prim_state
 #:enddef
