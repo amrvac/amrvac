@@ -741,12 +741,12 @@ contains
 
         !add a limiter for valid eps and rho
         if (srmhd_eos) then
-            if (eps<-1) then
-                eps=-1
+            if (eps_hat<-1) then
+                eps_hat=-1
             end if
         else
-            if (eps<0) then
-                eps=0
+            if (eps_hat<0) then
+                eps_hat=0
             end if
         end if
 
