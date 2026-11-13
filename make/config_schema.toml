@@ -55,7 +55,7 @@ default = false
 [methodlist.phys]
 type = "option"
 name = "PHYS"
-options = ["hd", "mhd", "ffhd", "srhd", "srmhd"]
+options = ["rho", "hd", "ffhd", "srhd", "mhd", "srmhd"]
 flags = ["fypp", "hash"]
 default = "hd"
 implies.ffhd = ["components.fill_nwextra_analytic"]

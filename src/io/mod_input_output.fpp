@@ -774,7 +774,7 @@ contains
           end if
        case ('hllc')
           flux_method(level)=fs_hllc
-          if (physics_type=='ffhd' .or. physics_type=='srhd') then
+          if (physics_type=='rho' .or. physics_type=='ffhd' .or. physics_type=='srhd') then
              call mpistop(trim(flux_scheme(level))//" flux scheme is not compatible with "//trim(physics_type))
           end if
 #:if defined('MHD_ENERGY_ONLY')
@@ -1222,6 +1222,20 @@ contains
        type_gradient_limiter(level) = limiter_type(gradient_limiter(level))
     end do
 
+    ! The finite-volume kernel (muscl_reconstruct_prim in mod_finite_volume)
+    ! implements only these four slope limiters. Any other name that
+    ! limiter_type accepts would silently fall back to piecewise-constant,
+    ! first-order reconstruction there, so refuse it here instead.
+    do level=1,nlevelshi
+       select case (limiter(level))
+       case ('minmod', 'vanleer', 'mcbeta', 'koren')
+       case default
+          call mpistop("limiter='"//trim(limiter(level))//"' is not &
+             &implemented in the finite-volume kernel: use minmod, &
+             &vanleer, mcbeta or koren")
+       end select
+    end do
+
     if (any(limiter(1:nlevelshi)== 'ppm').and.(flatsh.and.physics_type==&
        'rho')) then
        call mpistop&
@@ -1485,7 +1499,7 @@ contains
         if(any(typeboundary(:,iB)/=12)) call mpistop("typeboundary='pole' has &
            &to be given for every variable on a face")
         select case(physics_type)
-        case('hd','mhd','srhd','srmhd')
+        case('hd','srhd','mhd','srmhd')
           ! the vector components handled below are all there is to say. The
           ! relativistic modules' mom(:) is the spatial four-velocity
           ! u^i = lfac*v^i (see con2prim); lfac is a scalar that a coordinate
@@ -1494,6 +1508,9 @@ contains
           ! asymm pattern as hd's momentum. srmhd's auxiliaries mu and lfac,
           ! which it exchanges through getbc, and its GLM psi are scalars and
           ! stay symm.
+        case('rho')
+          ! rho is a single scalar: even under the pole's pi-rotation, so it
+          ! stays symm and the momentum lines below are skipped.
         case('ffhd')
           ! ffhd's only conserved quantities are scalars - rho, the
           ! field-aligned momentum mom(1)=m_par, the energy - and a scalar is
@@ -1504,8 +1521,8 @@ contains
           ! fill_nwextra_device re-derives it in every ghost cell, pole
           ! ghosts included, so it needs no entry here either.
         case default
-          call mpistop('pole treatment is only implemented for phys=hd, &
-             &phys=mhd, phys=srhd, phys=srmhd and phys=ffhd')
+          call mpistop('pole treatment is only implemented for phys=rho, &
+             &phys=hd, phys=ffhd, phys=srhd, phys=mhd and phys=srmhd')
         end select
         select case(coordinate)
         case(cylindrical)
@@ -1518,8 +1535,8 @@ contains
           call mpistop('Pole is in cylindrical, polar, spherical coordinates!')
         end select
         typeboundary(:,iB)=bc_symm
-        if(physics_type/='ffhd') then
-          ! ffhd's mom has a single element (the scalar m_par); hd/mhd/srhd
+        if(physics_type/='rho' .and. physics_type/='ffhd') then
+          ! ffhd's mom has a single element (the scalar m_par); hd/srhd/mhd
           ! carry a genuine ndir-vector whose mirrored and phi components flip
           typeboundary(iw_mom(idim),iB)=bc_asymm
           typeboundary(iw_mom(phi_),iB)=bc_asymm

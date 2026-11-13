@@ -474,7 +474,7 @@ end subroutine addsource_nonlocal
 !> Gauss's theorem the divergence of a scalar's flux needs no extra terms in
 !> any coordinate system (unlike a vector quantity's components, which pick
 !> up curvature terms from the position-dependent (r, theta, phi) or
-!> (r, z, phi) basis - see HD's/MHD's/SRHD's addsource_geometry). Matches
+!> (r, z, phi) basis - see HD's/SRHD's/MHD's addsource_geometry). Matches
 !> upstream MPI-AMRVAC's ffhd_add_source_geom, which is likewise empty for
 !> every coordinate system.
 !>

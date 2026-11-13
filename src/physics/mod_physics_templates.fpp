@@ -5,4 +5,5 @@
 #:include "../ffhd/mod_ffhd_templates.fpp"
 #:include "../srhd/mod_srhd_templates.fpp"
 #:include "../srmhd/mod_srmhd_templates.fpp"
+#:include "../rho/mod_rho_templates.fpp"
 #:endmute
