@@ -1,0 +1,60 @@
+ &filelist
+   typefilelog      = 'special'
+   base_filename    = '@BASE@'
+ /
+
+ &savelist
+   itsave(1,1)      = 0
+   dtsave_log       = 1.0d10
+   dtsave_dat       = 1.0d10
+ /
+
+ &stoplist
+   time_max         = @TEND@
+ /
+
+ &methodlist
+   time_stepper    = '@STEPPER@'
+   flux_scheme     = 20*'@FLUX@'
+   limiter         = 20*'@LIM@'
+   phys            = 'rho'
+ /
+
+ &boundlist
+   typeboundary_min1 = 'periodic'
+   typeboundary_max1 = 'periodic'
+   typeboundary_min2 = 'periodic'
+   typeboundary_max2 = 'periodic'
+   typeboundary_min3 = 'periodic'
+   typeboundary_max3 = 'periodic'
+ /
+
+ &meshlist
+   max_blocks         = @MAXB@
+   refine_max_level   = 1
+   block_nx1          = @B1@
+   block_nx2          = @B2@
+   block_nx3          = @B3@
+   domain_nx1         = @N1@
+   domain_nx2         = @N2@
+   domain_nx3         = @N3@
+   xprobmin1          = 0.0d0
+   xprobmax1          = 1.0d0
+   xprobmin2          = 0.0d0
+   xprobmax2          = 1.0d0
+   xprobmin3          = 0.0d0
+   xprobmax3          = 1.0d0
+ /
+
+ &paramlist
+   courantpar       = @CFL@
+   typecourant      = 'maxsum'
+ /
+
+ &rho_list
+   rho_v = @V@
+ /
+
+ &usr_list
+   setup = '@SETUP@'
+ /

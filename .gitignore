@@ -21,6 +21,8 @@ config.mk
 *.out
 *.log
 *.log.shfp.*
+# the rho convergence study's runs (tests/rho/convergence/run_convergence.sh)
+tests/rho/output/
 !**/correct_output/**
 
 # Editors, Python, misc

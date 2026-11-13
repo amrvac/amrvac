@@ -1,0 +1,60 @@
+ &filelist
+   typefilelog      = 'special'
+   base_filename    = '../output/convergence/agile'
+ /
+
+ &savelist
+   itsave(1,1)      = 0
+   dtsave_log       = 1.0d10
+   dtsave_dat       = 1.0d10
+ /
+
+ &stoplist
+   time_max         = 0.333333333333333333d0
+ /
+
+ &methodlist
+   time_stepper    = 'threestep'
+   flux_scheme     = 20*'tvdlf'
+   limiter         = 20*'vanleer'
+   phys            = 'rho'
+ /
+
+ &boundlist
+   typeboundary_min1 = 'periodic'
+   typeboundary_max1 = 'periodic'
+   typeboundary_min2 = 'periodic'
+   typeboundary_max2 = 'periodic'
+   typeboundary_min3 = 'periodic'
+   typeboundary_max3 = 'periodic'
+ /
+
+ &meshlist
+   max_blocks         = 128
+   refine_max_level   = 1
+   block_nx1          = 10
+   block_nx2          = 10
+   block_nx3          = 10
+   domain_nx1         = 50
+   domain_nx2         = 50
+   domain_nx3         = 50
+   xprobmin1          = 0.0d0
+   xprobmax1          = 1.0d0
+   xprobmin2          = 0.0d0
+   xprobmax2          = 1.0d0
+   xprobmin3          = 0.0d0
+   xprobmax3          = 1.0d0
+ /
+
+ &paramlist
+   courantpar       = 0.7d0
+   typecourant      = 'maxsum'
+ /
+
+ &rho_list
+   rho_v = 1.0d0, 1.0d0, 1.0d0
+ /
+
+ &usr_list
+   setup = 'diag'
+ /
