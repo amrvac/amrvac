@@ -34,9 +34,9 @@ FFHD_EXTENDED := ffhd/spherical ffhd/cylindrical ffhd/cylindrical_pole \
 SRHD_BASIC := srhd/shockTube srhd/cylindrical
 SRHD_EXTENDED := srhd/jet_3D srhd/spherical srhd/spherical_pole \
                  srhd/cylindrical_pole srhd/log_spherical srhd/log_cylindrical
-SRMHD_BASIC := srmhd/shock_tube srmhd/spherical_pole
+SRMHD_BASIC := srmhd/shock_tube srmhd/spherical_pole 
 SRMHD_EXTENDED := srmhd/CPA srmhd/spherical srmhd/cylindrical \
-                  srmhd/cylindrical_pole srmhd/log_spherical srmhd/log_cylindrical
+                  srmhd/cylindrical_pole srmhd/log_spherical srmhd/log_cylindrical srmhd/jet_0B
 
 HD_DIRS := $(HD_BASIC) $(HD_EXTENDED)
 MHD_DIRS := $(MHD_BASIC) $(MHD_EXTENDED)

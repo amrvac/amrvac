@@ -665,7 +665,7 @@ end subroutine addsource_local
   pure subroutine fix_prim_state(u)
     ${GPU_ROUTINE_SEQ()}$
     real(dp), intent(inout) :: u(nw_phys)
-    real(dp) :: p, rho
+    real(dp) :: p, rho, E, h
 
     u(iw_rho) = max(u(iw_rho), srmhd_small_density)
     u(iw_e)   = max(u(iw_e),   srmhd_small_pressure)

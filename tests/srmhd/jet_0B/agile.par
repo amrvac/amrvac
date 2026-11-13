@@ -1,0 +1,89 @@
+
+ &filelist
+   base_filename    = 'output/jet_lfac20'
+   autoconvert      = F
+   nwauxio=1
+   saveprim=T
+ /
+
+ &savelist
+   itsave(1,1)      = 0
+   itsave(1,2)      = 0
+   itsave(1,3)      = 0
+   dtsave_log       = 0.01d0
+   dtsave_dat       = 2.0d0
+   dtsave_slice     = 1.0d0
+   nslices          = 3
+   slicedir(1)      = 1
+   slicecoord(1)    = 0.0d0
+   slicedir(2)      = 2
+   slicecoord(2)    = 0.0d0
+   slicedir(3)      = 3
+   slicecoord(3)    = 40.0d0
+ /
+
+ &stoplist
+   time_max           = 0.1d0
+ /
+
+ &methodlist
+   time_stepper    = 'threestep'
+   flux_scheme     = 20*'tvdlf'
+   limiter         = 20*'vanleer'
+   phys            = 'srmhd'
+ /
+
+ &boundlist
+   specialboundary   = T
+   typeboundary_min1 = 8*'cont'
+   typeboundary_max1 = 8*'cont'
+   typeboundary_min2 = 8*'cont'
+   typeboundary_max2 = 8*'cont'
+   typeboundary_min3 = 8*'special'
+   typeboundary_max3 = 8*'cont'
+ /
+
+ &meshlist
+   refine_usr=.true.
+   refine_criterion=3
+   max_blocks         = 512
+   refine_max_level   = 2
+   block_nx1          = 20
+   block_nx2          = 20
+   block_nx3          = 20
+   domain_nx1         = 120
+   domain_nx2         = 120
+   domain_nx3         = 240
+   xprobmin1       = -20.0d0
+   xprobmax1       = 20.0d0
+   xprobmin2       = -20.0d0
+   xprobmax2       = 20.0d0
+   xprobmin3       = 0.0d0
+   xprobmax3       = 80.0d0
+ /
+
+ &paramlist
+   slowsteps        = 1000
+   courantpar       = 0.4d0
+   typecourant      = 'maxsum'
+ /
+ 
+&srmhd_list
+   srmhd_gamma=1.666667d0
+   srmhd_eos=.true.
+   He_abundance=0.0d0
+   srmhd_source_usr=.false.
+   srmhd_small_density=1.0d-7
+   srmhd_small_pressure=1.0d-9
+   srmhd_n_tracer=1
+/
+
+&usr_list
+    rjet= 1.0d0
+    zjet=0.25d0
+    rhob=1.0d0
+    etarho=1.0d-5
+    pb=7.64d-6
+    zetap=1.0d0
+    lfacjet=20.0d0
+/
