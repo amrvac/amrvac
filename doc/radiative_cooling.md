@@ -25,7 +25,7 @@ In order to use radiative cooling in a simulation, the user has to adjust the .p
 
 ## Activating the module
 
-Radiative cooling is available for `hd`, `mhd` and `ffhd`, and is activated
+Radiative cooling is available for `hd`, `ffhd` and `mhd`, and is activated
 in the physics-dependent namelist, for mhd simulations with
 
     &mhd_list

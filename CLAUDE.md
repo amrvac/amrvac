@@ -5,7 +5,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Project overview
 
 AGILE is a GPU-enabled fork of MPI-AMRVAC, a Fortran finite-volume code for
-solving hyperbolic PDEs (HD, MHD, FFHD, SRHD) with adaptive mesh refinement.
+solving hyperbolic PDEs (scalar advection RHO, HD, FFHD, SRHD, MHD, SRMHD) with
+adaptive mesh refinement.
 Master supports 3D Cartesian, 3D spherical `(r, theta, phi)` and 3D
 cylindrical `(r, z, phi)` grids, each of the latter two also in a
 logarithmically stretched radial variant (`logSpherical`, `logCylindrical`);
@@ -85,7 +86,7 @@ make clean                 # remove this case's build products
 
 ## Running tests
 
-Tests live under `tests/{hd,mhd,ffhd,srhd,srmhd}/<case>/` and each case has a
+Tests live under `tests/{rho,hd,ffhd,srhd,mhd,srmhd}/<case>/` and each case has a
 `test.make` including `tests/test_rules.make`, which builds the case fresh
 and runs it (via `mpirun`/`srun`), then numerically diffs the log output
 against `tests/<physics>/<case>/correct_output/` using
@@ -94,10 +95,11 @@ absolute).
 
 ```bash
 cd tests
+make rho           # run the basic rho/* test cases
 make hd            # run the basic hd/* test cases
-make mhd           # run the basic mhd/* test cases
 make ffhd          # run the basic ffhd/* test cases
 make srhd          # run the basic srhd/* test cases
+make mhd           # run the basic mhd/* test cases
 make srmhd         # run the basic srmhd/* test cases
 make SUITE=all hd  # basic and extended hd/* cases
 make SUITE=all list # print the directories a SUITE selects
@@ -575,8 +577,8 @@ will need the same treatment when they are brought back into use.
 
 Current limits of the curvilinear (spherical and cylindrical) support:
 
-- `phys = 'hd'`, `phys = 'mhd'`, `phys = 'srhd'`, `phys = 'srmhd'` and
-  `phys = 'ffhd'` all implement `addsource_geometry` for both `geometry = 'spherical'` and
+- `phys = 'rho'`, `phys = 'hd'`, `phys = 'ffhd'`, `phys = 'srhd'`, `phys = 'mhd'`
+  and `phys = 'srmhd'` all implement `addsource_geometry` for both `geometry = 'spherical'` and
   `geometry = 'cylindrical'`, each guarded by its own `#:if GEOM == '...'`
   branch in the physics module's `mod_*_templates.fpp` (a build only compiles
   the branch matching its `GEOM` define). MHD's and SRHD's curvature terms
@@ -645,8 +647,16 @@ Current limits of the curvilinear (spherical and cylindrical) support:
   not fixed that. Under `LOG_RADIUS` it is further out still, since the radial
   `dx(idir)` it differences over is then a ratio in `ln(r)` rather than a
   length.
-- The polar axis is supported for `phys = 'hd'`, `phys = 'mhd'`,
-  `phys = 'srhd'`, `phys = 'srmhd'` and `phys = 'ffhd'`; see "The polar axis" below. `ffhd`
+  `rho`'s `addsource_geometry` (`src/rho/mod_rho_templates.fpp`) is empty
+  for the same reason: rho is a scalar. Its flux takes the local component of
+  the constant Cartesian `rho_v` normal to the face, evaluated where the
+  kernel hands `get_flux` its position (the face in the normal direction, the
+  barycentre in the others). That is second order but not exactly divergence
+  free, so a uniform rho in a uniform flow stays uniform to O(h^2), not to
+  round-off; upstream uses exact face averages instead, which would need the
+  face extents passed to `get_flux`.
+- The polar axis is supported for `phys = 'rho'`, `phys = 'hd'`, `phys = 'ffhd'`,
+  `phys = 'srhd'`, `phys = 'mhd'` and `phys = 'srmhd'`; see "The polar axis" below. `ffhd`
   reaches the axis by a different route than the others: its conserved
   quantities are all scalars, so they take no sign flip and the ordinary pole
   copy in `getbc` carries them unchanged, while its frozen field is not
@@ -766,7 +776,7 @@ a runtime logical as well as a fypp define, so `blast.par` leaves it out while
 `specialbound_usr` stays compiled in. **Adding a par file to such a directory
 is free; adding a directory costs a full rebuild in CI.**
 
-A further **ten** directories, `tests/{hd,mhd,ffhd,srhd,srmhd}/log_spherical` and
+A further **ten** directories, `tests/{hd,ffhd,srhd,mhd,srmhd}/log_spherical` and
 `.../log_cylindrical`, repeat the same setups on a logarithmically stretched
 radius. They are copies of the directories above, differing in three things:
 `geometry` is `'logSpherical'`/`'logCylindrical'`, the radial domain is widened
@@ -894,8 +904,10 @@ Two consequences worth knowing:
   analytic and the copy of it therefore has to be exact to round-off. **A new
   pole test needs that check, not just a reference log.**
 
-Enabled for `phys = 'hd'`, `phys = 'mhd'`, `phys = 'srhd'`, `phys = 'srmhd'`
-and `phys = 'ffhd'`. srhd needs no change to the copy itself: its primitive
+Enabled for `phys = 'rho'`, `phys = 'hd'`, `phys = 'ffhd'`, `phys = 'srhd'`,
+`phys = 'mhd'` and `phys = 'srmhd'`. rho is a single scalar: it stays `symm`
+and `read_par_files` skips the `iw_mom` lines for it, exactly as for ffhd.
+srhd needs no change to the copy itself: its primitive
 `mom(:)` slot holds the spatial four-velocity `u^i = lfac*v^i` rather than
 `v^i`, but `lfac` is a scalar and therefore invariant under the pole's
 pi-rotation, so `u^i` transforms exactly like an ordinary vector and takes
@@ -1050,7 +1062,7 @@ Consequences:
   needs no rows for it. Prolongation, coarsening, the coarsen MPI buffers and
   the initial host-to-device push of the mesh are likewise bounded by `nwgc`
   rather than `nw`, so they leave the extra slots for `fill_nwextra_device` to
-  own (a no-op rewrite for hd/mhd/srhd, where `nwgc == nw`). RK substeps keep
+  own (a no-op rewrite for rho/hd/srhd/mhd, where `nwgc == nw`). RK substeps keep
   the extras because they copy `1:nw` wholesale and the flux update never
   writes past `nwflux`.
 - **The polar axis needs no special handling for the frozen field.** `bgeo%x`
@@ -1155,6 +1167,46 @@ level (`fix_conserve_at_step`).
   b = 2 + 3 He_abundance, and `He_abundance = 0, H_ion_fr = 0` gives
   Legolas' p = n k T.
 
+## Scalar advection (`phys = 'rho'`)
+
+`src/rho/mod_rho_templates.fpp` solves d(rho)/dt + div(rho v) = 0 for a
+constant Cartesian velocity `rho_v(1:3)` (`&rho_list`; `rho_v = 0` is
+refused, since the CFL step would be infinite). It is a port of upstream
+MPI-AMRVAC's `src/rho`, minus `rho_particles`: one variable
+(`nw_phys = nw_flux = 1`, no auxiliaries), primitive equal to conservative.
+`tvdlf` and `hll` both reduce to exact upwinding, because `get_cmax` and
+`estimate_speeds_minmax` use the exact speed |v_n|; `hllc` is refused in
+`read_par_files`. Curvilinear meshes and the polar axis are supported, see
+the `addsource_geometry` bullet under "Coordinate systems".
+
+Tests: `tests/rho/ball_3D` (basic) advects upstream's discontinuous ball on a
+periodic cube with Lohner AMR (`test.par`), the same with a frozen mesh so the
+ball crosses level jumps (`test-fixgrid.par`, the refluxing test) and on a
+uniform grid with HLL/koren/twostep (`hll.par`). Each logs at t = 0 too
+(`itsave(1,1) = 0`; `dtsave_log` alone first fires one interval in), so a
+mass drift above the `compare_logs` tolerance fails the test.
+`tests/rho/cylindrical_pole` (basic), `rho/spherical` and
+`rho/spherical_pole` (extended) each run `uflow.par` (uniform rho) and
+`blob.par` (a Gaussian carried across the domain, through the axis in the pole
+cases, where `check_pole_ghosts` asserts the ghost cells at it = 0). Note that
+uflow's O(h^2) free-stream deviation (<= 5e-5) is near or below the
+`compare_logs` tolerance of about 1e-5 for values near one, so the blob runs
+and the pole checks carry the sensitivity there.
+
+`tests/rho/convergence/` is a convergence study, not part of any suite:
+`run_convergence.sh` builds once and sweeps limiter x time stepper x flux x
+resolution for a smooth wave whose initial condition and reference are exact
+cell averages, with all output in `tests/rho/output/convergence/`;
+`convergence.py` prints the tables and orders and draws `convergence.png`
+(matplotlib: `uv sync --extra analysis`). Measured L1 orders at N = 200-400
+with ssprk3: koren 2.4 (third order away from the extrema, clipped at them),
+mcbeta and vanleer 2.0, minmod 1.9; L-infinity orders are 1.3-1.6, set by the
+extrema. `onestep` caps every limiter at order 1, and `twostep` caps koren
+near 2, so only ssprk3 lets koren's accuracy through. hll equals tvdlf to
+round-off except under onestep, which amplifies round-off. A single plane
+wave, `setup = 'diag'` included, is blind to the O(h^2) face-quadrature error
+of the 3D update: its errors match the quasi-1D wave's to 0.1%.
+
 ## Writing a new simulation case (`mod_usr.fpp`)
 
 Every case directory has a `mod_usr.fpp` defining `module mod_usr` with a
@@ -1186,7 +1238,7 @@ systems" above); `usr_init()` does not need to call `set_coordinate_system`
 itself. Older cases may still call it explicitly — the call is idempotent as
 long as the name agrees with `geometry` — but new cases shouldn't.
 
-The physics module itself (hd/mhd/ffhd/srhd/srmhd) is selected via `phys` in
+The physics module itself (rho/hd/ffhd/srhd/mhd/srmhd) is selected via `phys` in
 `agile.par`'s `&methodlist`, which the config system turns into a `PHYS`
 fypp define consumed by `src/physics/mod_physics.fpp` and the per-physics
 `mod_*_templates.fpp` files.
@@ -1228,7 +1280,7 @@ fypp define consumed by `src/physics/mod_physics.fpp` and the per-physics
   etc.) that each physics module fills in via `phys_activate()`; also
   radiative cooling, thermal emission, B0-splitting helpers shared across
   physics modules.
-- `src/hd/`, `src/mhd/`, `src/ffhd/`, `src/srhd/`, `src/srmhd/` — one `mod_*_templates.fpp`
+- `src/rho/`, `src/hd/`, `src/ffhd/`, `src/srhd/`, `src/mhd/`, `src/srmhd/` — one `mod_*_templates.fpp`
   each, guarded by a top-level `#:if PHYS == '...'` fypp block. These are
   **not** standalone Fortran modules: they define fypp macros (physics-specific
   flux functions, primitive/conservative conversions) that get textually
@@ -1335,6 +1387,13 @@ fypp define consumed by `src/physics/mod_physics.fpp` and the per-physics
   with no `loop`-specific optimisation. MFC's `omp_macros.fpp` likewise uses
   `loop` for NVHPC only.
 
+- **Only four slope limiters exist in the kernel.** `muscl_reconstruct_prim`
+  in `src/mod_finite_volume.fpp` implements minmod, vanleer, mcbeta and koren;
+  anything else used to fall through to piecewise-constant (first-order)
+  states without a word, although `limiter_type` still accepts upstream's
+  names (`cada3`, `mp5`, `weno5`, `ppm`, ...). It showed up as order 1 in the
+  rho convergence study. `read_par_files` now stops on any other limiter.
+
 ## API documentation (FORD)
 
 Source-level API docs are generated with [FORD](https://forddocs.readthedocs.io/)
@@ -1349,7 +1408,7 @@ firefox doc/ford/html/index.html
 ```
 
 `build_docs.sh` preprocesses every file once per physics module
-(`doc/ford/docgen_{mhd,hd,ffhd,srhd}.par`), since the `#:if PHYS == '...'`
+(`doc/ford/docgen_{rho,hd,ffhd,srhd,mhd,srmhd}.par`), since the `#:if PHYS == '...'`
 splicing described above means one pass only shows one physics module's
 variant of the shared files; `merge_physics_variants.py` keeps files that
 come out identical once and suffixes the rest (`mod_physics_hd`, ...).

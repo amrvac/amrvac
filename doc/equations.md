@@ -18,10 +18,11 @@ the code's parameter file in the methodlist
 /
 ```
 
-where `phys` is one of the implemented physics modules (`hd`, `mhd`, `ffhd`, `srhd`, `srmhd`),
+where `phys` is one of the implemented physics modules (`rho`, `hd`, `ffhd`, `srhd`, `mhd`, `srmhd`),
 see below. The equations below are written in flat (Cartesian) space; running
 on a spherical or cylindrical mesh instead adds extra geometric source terms
-to the momentum (and, for `mhd` and `srmhd`, magnetic field) equations, described
+to the momentum (and, for `mhd` and `srmhd`, magnetic field) equations (none for
+the scalars of `rho` and `ffhd`), described
 separately in [Coordinate systems](coordinate_systems.html#geom_sources).
 The equations and notation below follow
 [Porth et al., "Astrophysics on GPUs: introducing AGILE 1.0"
@@ -30,10 +31,11 @@ Section 2.3, which is also the citable reference for AGILE 1.0.
 
 | Module | Available solvers |
 | --- | --- |
+| `rho`  | `LF`, `HLL` |
 | `hd`   | `LF`, `HLL`, `HLLC` |
 | `ffhd` | `LF` |
-| `mhd`  | `LF`, `HLL`, `HLLC` |
 | `srhd` | `LF`, `HLL` |
+| `mhd`  | `LF`, `HLL`, `HLLC` |
 | `srmhd` | `LF`, `HLL` |
 
 The scheme is chosen with `flux_scheme` in `&methodlist` (`'tvdlf'` for
@@ -69,6 +71,35 @@ parameter file of a run, without rebuilding, has no effect. These are:
 Everything else in the `_list`s, for example `hd_gamma`, `mhd_eta`,
 `srhd_eos` or the [density and pressure floors](#eq_floors)
 `*_small_density`/`*_small_pressure`, is an ordinary run-time parameter.
+
+## Scalar advection: rho {: #eq_rho }
+```fortran
+&methodlist
+   phys            = 'rho'
+/
+```
+
+The simplest module, a port of MPI-AMRVAC's `src/rho`: a single scalar ρ
+transported by a constant velocity **v**,
+
+$$ \frac{\partial \rho}{\partial t} + \nabla \cdot (\rho \mathbf{v}) = 0 . $$
+
+Primitive and conservative variables coincide, and there are no source
+terms. **v** is given in Cartesian components by **rho_v** in the
+**rho_list** of the parameter file (default `1, 1, 1`); `rho_v = 0` stops
+the run, since the time step would be infinite. The signal speed is
+|v<sub>n</sub>|, exactly, so `LF` (`'tvdlf'`) and `HLL` both reduce to the
+upwind flux; `HLLC` is refused.
+
+On a spherical or cylindrical mesh the flux uses the local component of **v**
+normal to the face, evaluated at the position the finite-volume kernel
+passes to the flux routine: the face in the normal direction, the cell's
+volume barycentre in the others. That is second-order accurate, but the
+discrete divergence of **v** is not exactly zero, so a uniform ρ in a uniform
+flow is preserved to O(h²) rather than to round-off. (Upstream uses exact
+face-averaged velocities.) ρ is a scalar, so there are no geometric source
+terms, and the polar axis needs no sign changes. Upstream's `rho_particles`
+is not available.
 
 ## Hydrodynamics: hd {: #eq_hd }
 
@@ -135,7 +166,7 @@ kernels always evolve the energy equation, and `hd_adiab` is not used.
 Leave `hd_energy` at its default, `.true.`.
 
 ### Radiative losses {: #eq_radloss }
-When **hd_radiative_cooling**/**mhd_radiative_cooling**/**ffhd_radiative_cooling**
+When **hd_radiative_cooling**/**ffhd_radiative_cooling**/**mhd_radiative_cooling**
 is enabled, the energy equation of the corresponding module is augmented
 with the optically thin radiative loss term
 
@@ -158,8 +189,8 @@ abundance He_a ≡ n_He/n_H, so that charge neutrality sets
 
 ### Gravity {: #eq_gravity }
 The external gravitational acceleration **g** enters the momentum and
-energy sources (ρ**g** and ρ**v**·**g** respectively) of the `hd`, `mhd`
-and `ffhd` modules alike, activated by setting **hd_gravity**/**mhd_gravity**/**ffhd_gravity**
+energy sources (ρ**g** and ρ**v**·**g** respectively) of the `hd`, `ffhd`
+and `mhd` modules alike, activated by setting **hd_gravity**/**ffhd_gravity**/**mhd_gravity**
 `= .true.` in the corresponding `_list` of `agile.par` (a compile-time
 switch, see [Compile-time switches](#eq_compile_time)). AGILE does
 not ship a built-in gravity profile (e.g. no separate "uniform" vs "point
@@ -207,7 +238,7 @@ the case stays at that depth inside the repository, so do not copy it.
 ### User source terms {: #eq_usr_source }
 
 Every physics module can add a user-defined, local source term to every
-cell. It is enabled with **hd_source_usr**/**mhd_source_usr**/**ffhd_source_usr**/**srhd_source_usr**
+cell. It is enabled with **hd_source_usr**/**ffhd_source_usr**/**srhd_source_usr**/**mhd_source_usr**
 `= .true.` in `agile.par` (a compile-time switch), and the physics module
 then calls a subroutine named `addsource_usr` that the case's `mod_usr.fpp`
 must provide:
@@ -235,129 +266,6 @@ is the state being updated. It is always added unsplit (`qsourcesplit` is
 small enough `courantpar` or `dtpar`. `tests/ffhd/TI3D` is a working example.
 The `usr_source` procedure pointer in
 `mod_usr_methods` is a leftover of MPI-AMRVAC and is never called.
-
-## Magnetohydrodynamics: mhd {: #eq_mhd }
-
-```fortran
-&methodlist
-   phys            = 'mhd'
-/
-```
-
-The MHD module combines mass conservation and the tracer equation above
-with the following generalizations of momentum and energy, and adds the
-induction equation for the magnetic field **B**:
-
-\begin{equation}
-\partial_t \mathbf{m} + \nabla \cdot \left(\mathbf{v}\mathbf{m}+(p+{\textstyle{\frac{1}{2}}}B^2)\mathbf{I}-\mathbf{B}\mathbf{B}\right)  = \rho\mathbf{g}
-\end{equation}
-
-\begin{equation}
-  \partial_t e_{\mathrm{mhd}}+\nabla\cdot\left[\mathbf{v}(e_{\mathrm{mhd}}+p+{\textstyle{\frac{1}{2}}}B^2)-\mathbf{B}(\mathbf{v}\cdot\mathbf{B})+\mathbf{q}\right]
-  = \rho\mathbf{v}\cdot\mathbf{g} -n_e  n_H\Lambda(T) + \nabla \cdot \left[ \mathbf{B} \times \eta \mathbf{J}\right]\,,
-\end{equation}
-
-\begin{equation}
-\partial_t\mathbf{B}+\nabla\cdot\left[\mathbf{v}\mathbf{B}-\mathbf{B}\mathbf{v} +\psi\mathbf{I}\right] = -\nabla\times\eta \mathbf{J} \,,
-\end{equation}
-
-where the total energy density closure is
-
-\begin{equation}
-    e_{\mathrm{mhd}}=\frac{p}{\hat{\gamma}-1}+\frac{1}{2}\rho v^2+\frac{1}{2}B^2 \,,
-\end{equation}
-
-**q** is the conductive heat flux, which is zero unless [hyperbolic thermal
-conduction](#eq_mhd_htc) is switched on. **J** = ∇×**B** is the current density, and the magnetic field is
-measured in units for which the magnetic permeability is 1. The resistive
-terms, those with η, are compiled in only with **mhd_resistivity=.true.** in
-`agile.par`; they are then added with the compact stencil detailed in Porth
-& Xia et al. (2014), and also limit the time step. The GLM field ψ used to
-control the divergence of **B** numerically is described in [Divergence B
-source treatments](#eq_divB_fix) below.
-
-Parameters of magnetohydrodynamics are read in the **mhd_list** of the
-parameter file. The equation parameters are the ratio of specific heats
-**mhd_gamma** and the resistivity **mhd_eta**, which only has an effect when
-`mhd_resistivity` is on.
-
-The gas law p = n k_B T counts the particles per hydrogen nucleus as
-b = 1 + `H_ion_fr` + `He_abundance` (`He_ion_fr` (`He_ion_fr2` + 1) + 1),
-with the ionisation fractions `H_ion_fr` = H⁺/(H⁺+H),
-`He_ion_fr` = (He²⁺+He⁺)/(He²⁺+He⁺+He) and `He_ion_fr2` = He²⁺/(He²⁺+He⁺),
-all 1 (fully ionised) by default; this gives b = 2 + 3 He_a as for `hd`.
-`He_abundance = 0` with `H_ion_fr = 0` gives a neutral hydrogen gas,
-p = n k_B T. The magnetic field unit is set to √(4π p_unit).
-
-This equation module can be combined with physical sources for (local)
-optically thin [radiative losses](radiative_cooling.html) by setting
-**mhd_radiative_cooling=.true.**, with the external gravity module by
-setting **mhd_gravity=.true.**, and with [user source
-terms](#eq_usr_source) by setting **mhd_source_usr=.true.**; all three are
-compile-time switches. **mhd_energy_only=.true.** freezes ρ, **v** and
-**B** and evolves only the energy equation, for example to follow
-conduction or cooling on a fixed background.
-
-### Hyperbolic thermal conduction {: #eq_mhd_htc }
-
-With **mhd_hyperbolic_thermal_conduction=.true.** (compile time), `mhd`
-evolves the field-aligned heat flux q as an extra variable, relaxing it
-towards the Spitzer value instead of solving a parabolic equation. It enters
-the energy equation above as the heat flux **q** = q **b̂**, and obeys
-
-\begin{equation}
-    \partial_t q = -\frac{q + f_{\mathrm{sat}}\,\kappa_\parallel\,\mathbf{\hat{b}}\cdot\nabla T}{\tau} \,,
-\end{equation}
-
-so that it tends to −f_sat κ_∥ **b̂**·∇T, the conductive flux. The
-conductivity is κ_∥ = κ_∥,0 T^(5/2) with the Spitzer coefficient
-κ_∥,0 = 8×10⁻⁷ (cgs, converted to code units in `phys_units`), or the
-constant **tc_kappa_par** when that is set positive. The flux saturates as
-f_sat = 1/(1 + |κ_∥ **b̂**·∇T|/q_sat), with q_sat = 1.5 ρ (p/ρ)^(3/2). The
-relaxation time is τ = max(4Δt, f_sat κ_∥ T C² (γ̂−1)/(p c²)), where C is
-`courantpar` and c the largest fast speed of the cell.
-
-**mhd_hyperbolic_thermal_conduction_anisotropic=.true.** (which implies the
-switch above) evolves the full heat-flux vector **q** instead, which then
-enters the energy flux directly, and relaxes
-its parallel and perpendicular parts separately, each with its own
-saturation and τ. The perpendicular conductivity is
-κ_⊥ = κ_∥/(1 + χ²), with the magnetisation χ = C_χ B T^(3/2)/ρ (code
-units; C_χ is set in `phys_units`), or the constant **tc_kappa_perp** when
-that is set positive. Both conductivity coefficients κ_∥,0 and C_χ are
-derived from the units and are not parameters.
-
-### Divergence B source treatments {: #eq_divB_fix }
-
-To control magnetic monopole buildup numerically, AGILE uses the
-generalized Lagrangian multiplier (GLM) approach of Dedner et al. (2002),
-where ψ is an added evolved variable obeying
-
-\begin{equation}
-    \partial_t \psi+c_{h}^{2} \nabla \cdot \mathbf{B} = -\frac{c_h^2}{c_p^2}\psi \,.
-\end{equation}
-
-This equation has a hyperbolic advection speed c_h and a parabolic
-factor c_p. In practice, the left-hand side is dealt with using the flux
-prescription c²_max**B**, while the right-hand side (the damping term) is
-solved exactly over the time step Δt_n through
-
-\begin{equation}
-    \psi^{n+1}=\psi^n\exp\left(-\Delta t_n c_{\mathrm{max}}\alpha_{\mathrm{GLM}}/\min_{i=1,3}(\Delta x_i)\right)
-\end{equation}
-
-using second-order operator splitting. This implies availability of the
-maximal, global physical propagation speed c_max that also sets the time
-step, while
-
-\begin{equation}
-    \alpha_{\mathrm{GLM}}=\min_{i=1,3}(\Delta x_i)\,c_h/c_p^2
-\end{equation}
-
-becomes a fixed parameter, **mhd_glm_alpha** in `&mhd_list`, set to 0.5 by
-default but generally taken within [0,1] (Mignone, Tzeferacos & Bodo 2010).
-Δx_i is the physical extent of the cell, which on a curvilinear grid varies
-from cell to cell.
 
 ## Frozen-field hydrodynamics: ffhd {: #eq_ffhd }
 
@@ -558,6 +466,129 @@ floors, **srhd_small_density** and **srhd_small_pressure**, are described
 under [Density and pressure floors](#eq_floors), like those of the other
 modules.
 
+
+## Magnetohydrodynamics: mhd {: #eq_mhd }
+
+```fortran
+&methodlist
+   phys            = 'mhd'
+/
+```
+
+The MHD module combines mass conservation and the tracer equation above
+with the following generalizations of momentum and energy, and adds the
+induction equation for the magnetic field **B**:
+
+\begin{equation}
+\partial_t \mathbf{m} + \nabla \cdot \left(\mathbf{v}\mathbf{m}+(p+{\textstyle{\frac{1}{2}}}B^2)\mathbf{I}-\mathbf{B}\mathbf{B}\right)  = \rho\mathbf{g}
+\end{equation}
+
+\begin{equation}
+  \partial_t e_{\mathrm{mhd}}+\nabla\cdot\left[\mathbf{v}(e_{\mathrm{mhd}}+p+{\textstyle{\frac{1}{2}}}B^2)-\mathbf{B}(\mathbf{v}\cdot\mathbf{B})+\mathbf{q}\right]
+  = \rho\mathbf{v}\cdot\mathbf{g} -n_e  n_H\Lambda(T) + \nabla \cdot \left[ \mathbf{B} \times \eta \mathbf{J}\right]\,,
+\end{equation}
+
+\begin{equation}
+\partial_t\mathbf{B}+\nabla\cdot\left[\mathbf{v}\mathbf{B}-\mathbf{B}\mathbf{v} +\psi\mathbf{I}\right] = -\nabla\times\eta \mathbf{J} \,,
+\end{equation}
+
+where the total energy density closure is
+
+\begin{equation}
+    e_{\mathrm{mhd}}=\frac{p}{\hat{\gamma}-1}+\frac{1}{2}\rho v^2+\frac{1}{2}B^2 \,,
+\end{equation}
+
+**q** is the conductive heat flux, which is zero unless [hyperbolic thermal
+conduction](#eq_mhd_htc) is switched on. **J** = ∇×**B** is the current density, and the magnetic field is
+measured in units for which the magnetic permeability is 1. The resistive
+terms, those with η, are compiled in only with **mhd_resistivity=.true.** in
+`agile.par`; they are then added with the compact stencil detailed in Porth
+& Xia et al. (2014), and also limit the time step. The GLM field ψ used to
+control the divergence of **B** numerically is described in [Divergence B
+source treatments](#eq_divB_fix) below.
+
+Parameters of magnetohydrodynamics are read in the **mhd_list** of the
+parameter file. The equation parameters are the ratio of specific heats
+**mhd_gamma** and the resistivity **mhd_eta**, which only has an effect when
+`mhd_resistivity` is on.
+
+The gas law p = n k_B T counts the particles per hydrogen nucleus as
+b = 1 + `H_ion_fr` + `He_abundance` (`He_ion_fr` (`He_ion_fr2` + 1) + 1),
+with the ionisation fractions `H_ion_fr` = H⁺/(H⁺+H),
+`He_ion_fr` = (He²⁺+He⁺)/(He²⁺+He⁺+He) and `He_ion_fr2` = He²⁺/(He²⁺+He⁺),
+all 1 (fully ionised) by default; this gives b = 2 + 3 He_a as for `hd`.
+`He_abundance = 0` with `H_ion_fr = 0` gives a neutral hydrogen gas,
+p = n k_B T. The magnetic field unit is set to √(4π p_unit).
+
+This equation module can be combined with physical sources for (local)
+optically thin [radiative losses](radiative_cooling.html) by setting
+**mhd_radiative_cooling=.true.**, with the external gravity module by
+setting **mhd_gravity=.true.**, and with [user source
+terms](#eq_usr_source) by setting **mhd_source_usr=.true.**; all three are
+compile-time switches. **mhd_energy_only=.true.** freezes ρ, **v** and
+**B** and evolves only the energy equation, for example to follow
+conduction or cooling on a fixed background.
+
+### Hyperbolic thermal conduction {: #eq_mhd_htc }
+
+With **mhd_hyperbolic_thermal_conduction=.true.** (compile time), `mhd`
+evolves the field-aligned heat flux q as an extra variable, relaxing it
+towards the Spitzer value instead of solving a parabolic equation. It enters
+the energy equation above as the heat flux **q** = q **b̂**, and obeys
+
+\begin{equation}
+    \partial_t q = -\frac{q + f_{\mathrm{sat}}\,\kappa_\parallel\,\mathbf{\hat{b}}\cdot\nabla T}{\tau} \,,
+\end{equation}
+
+so that it tends to −f_sat κ_∥ **b̂**·∇T, the conductive flux. The
+conductivity is κ_∥ = κ_∥,0 T^(5/2) with the Spitzer coefficient
+κ_∥,0 = 8×10⁻⁷ (cgs, converted to code units in `phys_units`), or the
+constant **tc_kappa_par** when that is set positive. The flux saturates as
+f_sat = 1/(1 + |κ_∥ **b̂**·∇T|/q_sat), with q_sat = 1.5 ρ (p/ρ)^(3/2). The
+relaxation time is τ = max(4Δt, f_sat κ_∥ T C² (γ̂−1)/(p c²)), where C is
+`courantpar` and c the largest fast speed of the cell.
+
+**mhd_hyperbolic_thermal_conduction_anisotropic=.true.** (which implies the
+switch above) evolves the full heat-flux vector **q** instead, which then
+enters the energy flux directly, and relaxes
+its parallel and perpendicular parts separately, each with its own
+saturation and τ. The perpendicular conductivity is
+κ_⊥ = κ_∥/(1 + χ²), with the magnetisation χ = C_χ B T^(3/2)/ρ (code
+units; C_χ is set in `phys_units`), or the constant **tc_kappa_perp** when
+that is set positive. Both conductivity coefficients κ_∥,0 and C_χ are
+derived from the units and are not parameters.
+
+### Divergence B source treatments {: #eq_divB_fix }
+
+To control magnetic monopole buildup numerically, AGILE uses the
+generalized Lagrangian multiplier (GLM) approach of Dedner et al. (2002),
+where ψ is an added evolved variable obeying
+
+\begin{equation}
+    \partial_t \psi+c_{h}^{2} \nabla \cdot \mathbf{B} = -\frac{c_h^2}{c_p^2}\psi \,.
+\end{equation}
+
+This equation has a hyperbolic advection speed c_h and a parabolic
+factor c_p. In practice, the left-hand side is dealt with using the flux
+prescription c²_max**B**, while the right-hand side (the damping term) is
+solved exactly over the time step Δt_n through
+
+\begin{equation}
+    \psi^{n+1}=\psi^n\exp\left(-\Delta t_n c_{\mathrm{max}}\alpha_{\mathrm{GLM}}/\min_{i=1,3}(\Delta x_i)\right)
+\end{equation}
+
+using second-order operator splitting. This implies availability of the
+maximal, global physical propagation speed c_max that also sets the time
+step, while
+
+\begin{equation}
+    \alpha_{\mathrm{GLM}}=\min_{i=1,3}(\Delta x_i)\,c_h/c_p^2
+\end{equation}
+
+becomes a fixed parameter, **mhd_glm_alpha** in `&mhd_list`, set to 0.5 by
+default but generally taken within [0,1] (Mignone, Tzeferacos & Bodo 2010).
+Δx_i is the physical extent of the cell, which on a curvilinear grid varies
+from cell to cell.
 
 ## Special relativistic magnetohydrodynamics: srmhd {: #eq_srmhd }
 

@@ -127,7 +127,7 @@ that the finite-volume update captures -- physically, these account for how
 the basis vectors themselves change from one face of a cell to the other.
 AGILE adds these leftover terms explicitly as a per-cell geometric source,
 in the `addsource_geometry` routine of each physics module
-(`src/{hd,mhd,srhd,srmhd,ffhd}/mod_*_templates.fpp`); a physics module that does
+(`src/{hd,srhd,mhd,srmhd}/mod_*_templates.fpp`, empty for `rho` and `ffhd`); a physics module that does
 not implement one aborts at startup rather than silently omitting these
 terms. The explicit expressions below are exactly what these routines
 evaluate (rewritten into physical notation matching
@@ -163,22 +163,6 @@ it is omitted below beyond noting \( \mathbf{S}_{\mathrm{geom}} = 0 \).
     S_{\mathrm{geom}}[m_\varphi] &=& -\frac{\rho v_\varphi\left(v_r+v_\theta\cot\theta\right)}{r} \,.
 \end{eqnarray}
 
-### Magnetohydrodynamics: mhd {: #geom_spherical_mhd }
-
-With the total (thermal + magnetic) pressure \( p_{\mathrm{tot}} = p + \frac{1}{2}B^2 \):
-
-\begin{eqnarray}
-    S_{\mathrm{geom}}[m_r] &=& \frac{2p_{\mathrm{tot}}+\rho\left(v_\theta^2+v_\varphi^2\right)-\left(B_\theta^2+B_\varphi^2\right)}{r} \,,\\
-    S_{\mathrm{geom}}[m_\theta] &=& \frac{p_{\mathrm{tot}}\cot\theta+\cot\theta\left(\rho v_\varphi^2-B_\varphi^2\right)-\rho v_r v_\theta+B_r B_\theta}{r} \,,\\
-    S_{\mathrm{geom}}[m_\varphi] &=& \frac{-\rho v_\varphi\left(v_r+v_\theta\cot\theta\right)+B_\varphi\left(B_r+B_\theta\cot\theta\right)}{r} \,,\\
-    S_{\mathrm{geom}}[B_r] &=& \frac{2\psi}{r} \,,\\
-    S_{\mathrm{geom}}[B_\theta] &=& \frac{v_r B_\theta-v_\theta B_r+\psi\cot\theta}{r} \,,\\
-    S_{\mathrm{geom}}[B_\varphi] &=& \frac{v_r B_\varphi-v_\varphi B_r+\cot\theta\left(v_\theta B_\varphi-v_\varphi B_\theta\right)}{r} \,,
-\end{eqnarray}
-
-where ψ is the GLM field (see [Divergence B source
-treatments](equations.html#eq_divB_fix)); ψ itself has no geometric source.
-
 ### Special relativistic hydrodynamics: srhd {: #geom_spherical_srhd }
 
 Structurally identical to the `hd` case, with the momentum density
@@ -195,6 +179,22 @@ so that \( \xi v_iv_j = (\xi/\Gamma^2)\,u_iu_j \):
 
 with \( \xi=\Gamma^2\rho h \) as in [Physics modules and
 equations](equations.html#eq_srhd).
+
+### Magnetohydrodynamics: mhd {: #geom_spherical_mhd }
+
+With the total (thermal + magnetic) pressure \( p_{\mathrm{tot}} = p + \frac{1}{2}B^2 \):
+
+\begin{eqnarray}
+    S_{\mathrm{geom}}[m_r] &=& \frac{2p_{\mathrm{tot}}+\rho\left(v_\theta^2+v_\varphi^2\right)-\left(B_\theta^2+B_\varphi^2\right)}{r} \,,\\
+    S_{\mathrm{geom}}[m_\theta] &=& \frac{p_{\mathrm{tot}}\cot\theta+\cot\theta\left(\rho v_\varphi^2-B_\varphi^2\right)-\rho v_r v_\theta+B_r B_\theta}{r} \,,\\
+    S_{\mathrm{geom}}[m_\varphi] &=& \frac{-\rho v_\varphi\left(v_r+v_\theta\cot\theta\right)+B_\varphi\left(B_r+B_\theta\cot\theta\right)}{r} \,,\\
+    S_{\mathrm{geom}}[B_r] &=& \frac{2\psi}{r} \,,\\
+    S_{\mathrm{geom}}[B_\theta] &=& \frac{v_r B_\theta-v_\theta B_r+\psi\cot\theta}{r} \,,\\
+    S_{\mathrm{geom}}[B_\varphi] &=& \frac{v_r B_\varphi-v_\varphi B_r+\cot\theta\left(v_\theta B_\varphi-v_\varphi B_\theta\right)}{r} \,,
+\end{eqnarray}
+
+where ψ is the GLM field (see [Divergence B source
+treatments](equations.html#eq_divB_fix)); ψ itself has no geometric source.
 
 ### Special relativistic magnetohydrodynamics: srmhd {: #geom_spherical_srmhd }
 
@@ -240,6 +240,16 @@ cylindrical volume element's z-extent does not depend on r.
     S_{\mathrm{geom}}[m_\varphi] &=& -\frac{\rho v_\varphi v_r}{r} \,.
 \end{eqnarray}
 
+### Special relativistic hydrodynamics: srhd {: #geom_cylindrical_srhd }
+
+As for spherical, with \( \mathbf{u}\equiv\Gamma\mathbf{v} \) and
+\( \xi=\Gamma^2\rho h \):
+
+\begin{eqnarray}
+    S_{\mathrm{geom}}[m_r] &=& \frac{p+(\xi/\Gamma^2)\,u_\varphi^2}{r} \,,\\
+    S_{\mathrm{geom}}[m_\varphi] &=& -\frac{(\xi/\Gamma^2)\,u_\varphi u_r}{r} \,.
+\end{eqnarray}
+
 ### Magnetohydrodynamics: mhd {: #geom_cylindrical_mhd }
 
 With \( p_{\mathrm{tot}} = p + \frac{1}{2}B^2 \):
@@ -249,16 +259,6 @@ With \( p_{\mathrm{tot}} = p + \frac{1}{2}B^2 \):
     S_{\mathrm{geom}}[m_\varphi] &=& \frac{-\rho v_\varphi v_r+B_\varphi B_r}{r} \,,\\
     S_{\mathrm{geom}}[B_r] &=& \frac{\psi}{r} \,,\\
     S_{\mathrm{geom}}[B_\varphi] &=& \frac{B_\varphi v_r-B_r v_\varphi}{r} \,.
-\end{eqnarray}
-
-### Special relativistic hydrodynamics: srhd {: #geom_cylindrical_srhd }
-
-As for spherical, with \( \mathbf{u}\equiv\Gamma\mathbf{v} \) and
-\( \xi=\Gamma^2\rho h \):
-
-\begin{eqnarray}
-    S_{\mathrm{geom}}[m_r] &=& \frac{p+(\xi/\Gamma^2)\,u_\varphi^2}{r} \,,\\
-    S_{\mathrm{geom}}[m_\varphi] &=& -\frac{(\xi/\Gamma^2)\,u_\varphi u_r}{r} \,.
 \end{eqnarray}
 
 ### Special relativistic magnetohydrodynamics: srmhd {: #geom_cylindrical_srmhd }
@@ -384,7 +384,7 @@ that this makes the **radial** component odd at the cylindrical axis
 (m_r, B_r as well as m_φ, B_φ) -- upstream MPI-AMRVAC marks only the φ
 component antisymmetric there, which is wrong.
 
-The polar axis is supported for `hd`, `mhd`, `srhd`, `srmhd` and `ffhd`. Two things to
+The polar axis is supported for `rho`, `hd`, `ffhd`, `srhd`, `mhd` and `srmhd`. Two things to
 know:
 
 * **The timestep collapses near the axis.** ds(φ) = r·sin(θ)·dφ → 0 there, so

@@ -1,16 +1,16 @@
 #!/usr/bin/env python3
 """
-Auto-discovers which preprocessed source files differ across AGILE's five
-physics modules (mhd/hd/ffhd/srhd/srmhd) and merges five per-physics staging
+Auto-discovers which preprocessed source files differ across AGILE's six
+physics modules (rho/hd/ffhd/srhd/mhd/srmhd) and merges six per-physics staging
 directories (produced by preprocessing every `.fpp` file once per physics
 module) into one FORD source directory:
 
-- Files that are byte-identical across all five passes -- the vast
+- Files that are byte-identical across all six passes -- the vast
   majority, anything with no `#:if PHYS == '...'`-guarded content -- are
   kept once, under their real name.
 - Files that differ are kept once per physics module, suffixed `_<phys>`
   (both the filename and any `module <name>` / `end module <name>`
-  statement inside it), so all five variants can coexist in one FORD site
+  statement inside it), so all six variants can coexist in one FORD site
   without name collisions.
 
 This needs no hand-maintained list of "physics-sensitive" files: whatever
@@ -21,7 +21,7 @@ import sys
 from pathlib import Path
 
 PRIMARY = "mhd"
-PHYS_LIST = ["mhd", "hd", "ffhd", "srhd", "srmhd"]
+PHYS_LIST = ["rho", "hd", "ffhd", "srhd", "mhd", "srmhd"]
 
 def rename_module(text, base, phys):
     escaped = re.escape(base)
