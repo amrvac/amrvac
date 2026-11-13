@@ -241,21 +241,18 @@ contains
        end if \}
     end select
 
-    ! do user defined special boundary conditions
-    if (any(typeboundary(1:nwflux+nwaux,iB)==bc_special)) then
-       if (.not. associated(usr_special_bc)) &
-            call mpistop("usr_special_bc not defined")
-       call usr_special_bc(qdt,time,ixG^L,ixO^L,iB,w,x)
-    end if
-
-    ! fill boundary conditions from external data vtk files
-    if (any(typeboundary(1:nwflux+nwaux,iB)==bc_data)) then
+    ! fill boundary conditions from external data vtk files (bc_data and bc_icarus);
+    ! done first so user special boundaries can use these values (e.g. B from
+    ! data to compute total energy)
+    if (any(typeboundary(1:nwflux+nwaux,iB)==bc_data) .or. &
+        any(typeboundary(1:nwflux+nwaux,iB)==bc_icarus)) then
        call bc_data_set(time,ixG^L,ixO^L,iB,w,x)
     end if
 
-    ! fill boundary conditions from external data vtk files and do user defined special boundary conditions
-    if (any(typeboundary(1:nwflux+nwaux,iB)==bc_icarus)) then
-       call bc_data_set(time,ixG^L,ixO^L,iB,w,x)
+    ! do user defined special boundary conditions (bc_special and bc_icarus),
+    ! called once, after any data-file boundaries have been filled
+    if (any(typeboundary(1:nwflux+nwaux,iB)==bc_special) .or. &
+        any(typeboundary(1:nwflux+nwaux,iB)==bc_icarus)) then
        if (.not. associated(usr_special_bc)) &
             call mpistop("usr_special_bc not defined")
        call usr_special_bc(qdt,time,ixG^L,ixO^L,iB,w,x)
