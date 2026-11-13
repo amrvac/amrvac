@@ -1,0 +1,62 @@
+ &filelist
+   base_filename    = 'output/ball_3D'
+   autoconvert      = T
+   convert_type     = 'vtuBCCmpi'
+ /
+
+ &savelist
+   dtsave_log       = 1.0d-2
+   dtsave_dat       = 0.1d0
+ /
+
+ &stoplist
+   time_max         = 1.0d0
+ /
+
+ &methodlist
+   time_stepper    = 'threestep'
+   flux_scheme     = 20*'tvdlf'
+   limiter         = 20*'vanleer'
+   phys            = 'rho'
+ /
+
+ &boundlist
+   typeboundary_min1 = 'periodic'
+   typeboundary_max1 = 'periodic'
+   typeboundary_min2 = 'periodic'
+   typeboundary_max2 = 'periodic'
+   typeboundary_min3 = 'periodic'
+   typeboundary_max3 = 'periodic'
+ /
+
+ &meshlist
+   max_blocks         = 4096
+   refine_max_level   = 3
+   refine_criterion   = 3 ! Lohner criterion
+   refine_usr         = .false.
+   block_nx1          = 8
+   block_nx2          = 8
+   block_nx3          = 8
+   domain_nx1         = 32
+   domain_nx2         = 32
+   domain_nx3         = 32
+   xprobmin1          = -0.5d0
+   xprobmax1          =  0.5d0
+   xprobmin2          = -0.5d0
+   xprobmax2          =  0.5d0
+   xprobmin3          = -0.5d0
+   xprobmax3          =  0.5d0
+ /
+
+ &paramlist
+   courantpar       = 0.7d0
+   typecourant      = 'maxsum'
+ /
+
+ &rho_list
+   rho_v = 1.0d0, 1.0d0, 1.0d0
+ /
+
+ &usr_list
+   setup = 'ball'
+ /

@@ -1,0 +1,65 @@
+ &filelist
+   base_filename    = 'blob'
+   typefilelog      = 'regression_test'
+   autoconvert      = F
+ /
+
+ &savelist
+   itsave(1,1)      = 0
+   dtsave_log       = 0.05d0
+   dtsave_dat       = 1.0d10
+ /
+
+ &stoplist
+   time_max         = 0.1d0
+ /
+
+ &methodlist
+   time_stepper    = 'threestep'
+   flux_scheme     = 20*'tvdlf'
+   limiter         = 20*'vanleer'
+   phys            = 'rho'
+ /
+
+ &boundlist
+   typeboundary_min1 = 'special'
+   typeboundary_max1 = 'special'
+   typeboundary_min2 = 'pole'
+   typeboundary_max2 = 'pole'
+   typeboundary_min3 = 'periodic'
+   typeboundary_max3 = 'periodic'
+   specialboundary   = .true.
+ /
+
+ &meshlist
+   geometry           = 'spherical'
+   max_blocks         = 4096
+   refine_max_level   = 1
+   block_nx1          = 8
+   block_nx2          = 8
+   block_nx3          = 8
+   domain_nx1         = 16
+   domain_nx2         = 16
+   domain_nx3         = 16
+   ! angles in units of 2*pi; domain_nx3/block_nx3 must be even for the pole
+   xprobmin1          = 1.0d0
+   xprobmax1          = 2.0d0
+   xprobmin2          = 0.0d0
+   xprobmax2          = 0.5d0
+   xprobmin3          = 0.0d0
+   xprobmax3          = 1.0d0
+ /
+
+ &paramlist
+   courantpar       = 0.4d0
+ /
+
+ &rho_list
+   rho_v = -0.6d0, 0.2d0, 0.1d0
+ /
+
+ &usr_list
+   amp   = 1.0d0
+   sigma = 0.25d0
+   x0    = 0.2d0, 0.0d0, 1.4d0
+ /
