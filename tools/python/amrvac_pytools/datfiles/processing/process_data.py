@@ -83,12 +83,12 @@ def _get_ekin(data_dict, header):
     :param header: .dat file header
     :return: Numpy array containing the kinetic energy
     """
-    ndim = header['ndim']
+    ndir = header['ndir']
 
     ekin = 0.5 * data_dict['m1']**2 / data_dict['rho']
-    if ndim > 1:
+    if ndir > 1:
         ekin = ekin + 0.5 * data_dict['m2']**2 / data_dict['rho']
-    if ndim > 2:
+    if ndir > 2:
         ekin = ekin + 0.5 * data_dict['m3']**2 / data_dict['rho']
     return ekin
 
@@ -100,12 +100,12 @@ def _get_emag(data_dict, header):
     :param header: .dat file header
     :return: Numpy array containing the magnetic energy
     """
-    ndim = header['ndim']
+    ndir = header['ndir']
 
     emag = 0.5 * data_dict['b1']**2
-    if ndim > 1:
+    if ndir > 1:
         emag = emag + 0.5 * data_dict['b2']**2
-    if ndim > 2:
+    if ndir > 2:
         emag = emag + 0.5 * data_dict['b3']**2
     return emag
 
