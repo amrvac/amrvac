@@ -6467,7 +6467,7 @@ contains
     ! For ndir=2 only 3rd component of J can exist, ndir=1 is impossible for MHD
     double precision :: current(ixI^S,7-2*ndir:3),eta(ixI^S),curlj(ixI^S,1:3)
     double precision :: tmpvec(ixI^S,1:3),tmp(ixO^S)
-    integer :: ixA^L,idir,idirmin,idirmin1
+    integer :: ixA^L,idir,idirmin,idirmin1,ix^D
 
     ixA^L=ixO^L^LADD2;
 
@@ -6493,31 +6493,38 @@ contains
 
     ! dB/dt= -curl(J*eta), thus B_i=B_i-eps_ijk d_j Jeta_k
     call curlvector(tmpvec,ixI^L,ixO^L,curlj,idirmin1,1,3)
-    if(stagger_grid) then
-      if(ndim==2.and.ndir==3) then
-        ! if 2.5D
-        w(ixO^S,mag(ndir)) = w(ixO^S,mag(ndir))-qdt*curlj(ixO^S,ndir)
-      end if
-    else
-      w(ixO^S,mag(1:ndir)) = w(ixO^S,mag(1:ndir))-qdt*curlj(ixO^S,1:ndir)
-    end if
-
-    if(mhd_energy) then
-      if(mhd_eta>zero)then
-        tmp(ixO^S)=qdt*mhd_eta*sum(current(ixO^S,:)**2,dim=ndim+1)
+   {do ix^DB=ixOmin^DB,ixOmax^DB\}
+      if(stagger_grid) then
+        ! resistive electric field is already included in CT-MHD
+        if(ndim<ndir) then
+          ! if 2.5D update the third component of B
+          w(ix^D,mag(ndir))=w(ix^D,mag(ndir))-qdt*curlj(ix^D,ndir)
+        end if
       else
-        tmp(ixO^S)=qdt*eta(ixO^S)*sum(current(ixO^S,:)**2,dim=ndim+1)
+        ^C&w(ix^D,b^C_)=w(ix^D,b^C_)-qdt*curlj(ix^D,^C)\
       end if
-      if(total_energy) then
-        ! de/dt= +div(B x Jeta) = eta J^2 - B dot curl(eta J)
-        ! de1/dt= eta J^2 - B1 dot curl(eta J)
-        w(ixO^S,e_)=w(ixO^S,e_)+tmp(ixO^S)-&
-        qdt*sum(wCT(ixO^S,mag(1:ndir))*curlj(ixO^S,1:ndir),dim=ndim+1)
-      else
-        ! add eta*J**2 source term in the internal energy equation
-        w(ixO^S,e_)=w(ixO^S,e_)+tmp(ixO^S)
+      if(mhd_energy) then
+       {^IFTHREED
+        if(mhd_eta>zero)then
+          w(ix^D,e_)=w(ix^D,e_)+qdt*mhd_eta*(^C&current(ix^D,^C)**2+)
+        else
+          w(ix^D,e_)=w(ix^D,e_)+qdt*eta(ix^D)*(^C&current(ix^D,^C)**2+)
+        end if
+       }
+       {^IFTWOD
+        if(mhd_eta>zero)then
+          w(ix^D,e_)=w(ix^D,e_)+qdt*mhd_eta*current(ix^D,3)**2
+        else
+          w(ix^D,e_)=w(ix^D,e_)+qdt*eta(ix^D)*current(ix^D,3)**2
+        end if
+       }
+        if(total_energy) then
+          ! de/dt= +div(B x Jeta) = eta J^2 - B dot curl(eta J)
+          ! de1/dt= eta J^2 - B1 dot curl(eta J)
+          w(ix^D,e_)=w(ix^D,e_)-qdt*(^C&wCT(ix^D,b^C_)*curlj(ix^D,^C)+)
+        end if
       end if
-    end if
+   {end do\}
 
     if (fix_small_values) call mhd_handle_small_values(.false.,w,x,ixI^L,ixO^L,'add_source_res_exp')
   end subroutine add_source_res_exp
