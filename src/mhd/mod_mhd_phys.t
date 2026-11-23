@@ -5347,17 +5347,17 @@ contains
       if(mhd_internal_e) then
         ! Source for solving internal energy
         active = .true.
-        call add_source_internal_e(qdt,ixI^L,ixO^L,wCT,w,x,wCTprim)
+        call add_source_internal_e(qdt,ixI^L,ixO^L,wCT,wCTprim,w,x)
       else
         if(has_equi_rho_and_p) then
           active = .true.
-          call add_equi_terms(qdt,dtfactor,ixI^L,ixO^L,wCT,w,x,wCTprim)
+          call add_equi_terms(qdt,dtfactor,ixI^L,ixO^L,wCT,wCTprim,w,x)
         end if
       end if
 
       if(mhd_hyperbolic_tc) then
         active = .true.
-        call add_source_hyperbolic_tc(qdt,ixI^L,ixO^L,wCT,w,x,wCTprim)
+        call add_source_hyperbolic_tc(qdt,ixI^L,ixO^L,wCT,wCTprim,w,x)
       end if
 
       ! Source for B0 splitting
@@ -5366,13 +5366,13 @@ contains
         ! this adds source to momentum of type J0 x B0 and to energy equation
         ! latter always + J0 * E (electric field being E_ideal, E_hall, E_ambi)
         ! used for total energy variants
-        call add_source_B0split(qdt,dtfactor,ixI^L,ixO^L,wCT,w,x,wCTprim)
+        call add_source_B0split(qdt,dtfactor,ixI^L,ixO^L,wCT,wCTprim,w,x)
       end if
 
       ! Sources for resistivity in eqs. for e, B1, B2 and B3
       if (abs(mhd_eta)>smalldouble)then
         active = .true.
-        call add_source_res_exp(qdt,ixI^L,ixO^L,wCT,w,x)
+        call add_source_res_exp(qdt,ixI^L,ixO^L,wCT,wCTprim,w,x)
       end if
 
       if (mhd_ambipolar_exp)then
@@ -5388,11 +5388,11 @@ contains
       if(mhd_hydrodynamic_e) then
         ! Source for solving hydrodynamic energy
         active = .true.
-        call add_source_hydrodynamic_e(qdt,ixI^L,ixO^L,wCT,w,x,wCTprim)
+        call add_source_hydrodynamic_e(qdt,ixI^L,ixO^L,wCT,wCTprim,w,x)
       else if (mhd_semirelativistic) then
         ! add sources for semirelativistic MHD
         active = .true.
-        call add_source_semirelativistic(qdt,ixI^L,ixO^L,wCT,w,x,wCTprim)
+        call add_source_semirelativistic(qdt,ixI^L,ixO^L,wCT,wCTprim,w,x)
       end if
     end if
 
@@ -5488,7 +5488,7 @@ contains
   end subroutine mhd_add_radiation_source
 
   !> add some source terms to total energy related to has_equi_rho_and_p=T
-  subroutine add_equi_terms(qdt,dtfactor,ixI^L,ixO^L,wCT,w,x,wCTprim)
+  subroutine add_equi_terms(qdt,dtfactor,ixI^L,ixO^L,wCT,wCTprim,w,x)
     use mod_global_parameters
     use mod_geometry
     use mod_usr_methods
@@ -5715,7 +5715,7 @@ contains
     }
   end subroutine mhd_get_hyperbolic_tc_geometry
 
-  subroutine add_source_hyperbolic_tc(qdt,ixI^L,ixO^L,wCT,w,x,wCTprim)
+  subroutine add_source_hyperbolic_tc(qdt,ixI^L,ixO^L,wCT,wCTprim,w,x)
     use mod_global_parameters
     use mod_geometry, only: gradient
     integer, intent(in) :: ixI^L,ixO^L
@@ -5737,8 +5737,8 @@ contains
     double precision :: qclass_diss
     double precision :: Bmag_loc,Tloc,Tcond,nloc_code,Cchi,chi
     double precision :: cmax(ndim),c2,cfast2,avMinCs2(ndim),inv_rho
-    logical :: use_perp_source
     integer :: ix^D,idir
+    logical :: use_perp_source
 
     ! xe_prefac_cgs expects B [G], T [K], and ne [cm^-3]. Convert the
     ! normalisation units explicitly in SI mode, while retaining code-unit
@@ -6072,7 +6072,7 @@ contains
 
 
   !> Source terms after split off time-independent magnetic field
-  subroutine add_source_B0split(qdt,dtfactor,ixI^L,ixO^L,wCT,w,x,wCTprim)
+  subroutine add_source_B0split(qdt,dtfactor,ixI^L,ixO^L,wCT,wCTprim,w,x)
     use mod_global_parameters
 
     integer, intent(in) :: ixI^L, ixO^L
@@ -6166,14 +6166,14 @@ contains
   end subroutine add_source_B0split
 
   !> Source terms for semirelativistic MHD Gombosi 2002 JCP 177, 176
-  subroutine add_source_semirelativistic(qdt,ixI^L,ixO^L,wCT,w,x,wCTprim)
+  subroutine add_source_semirelativistic(qdt,ixI^L,ixO^L,wCT,wCTprim,w,x)
     use mod_global_parameters
     use mod_geometry
 
     integer, intent(in) :: ixI^L, ixO^L
     double precision, intent(in) :: qdt, wCT(ixI^S,1:nw), x(ixI^S,1:ndim)
+    double precision, intent(in) :: wCTprim(ixI^S,1:nw)
     double precision, intent(inout) :: w(ixI^S,1:nw)
-    double precision, intent(in), optional :: wCTprim(ixI^S,1:nw)
 
     double precision :: E(ixI^S,1:3),curlE(ixI^S,1:3),divE(ixI^S),btot(1:3)
     integer :: idir, idirmin, ix^D
@@ -6212,15 +6212,15 @@ contains
   end subroutine add_source_semirelativistic
 
   !> Source terms for internal energy version of MHD
-  subroutine add_source_internal_e(qdt,ixI^L,ixO^L,wCT,w,x,wCTprim)
+  subroutine add_source_internal_e(qdt,ixI^L,ixO^L,wCT,wCTprim,w,x)
     use mod_global_parameters
     use mod_geometry
 
     integer, intent(in)             :: ixI^L, ixO^L
     double precision, intent(in)    :: qdt
     double precision, intent(in)    :: wCT(ixI^S,1:nw), x(ixI^S,1:ndim)
-    double precision, intent(inout) :: w(ixI^S,1:nw)
     double precision, intent(in)    :: wCTprim(ixI^S,1:nw)
+    double precision, intent(inout) :: w(ixI^S,1:nw)
 
     double precision                :: divv(ixI^S), tmp
     integer :: ix^D
@@ -6251,15 +6251,15 @@ contains
   end subroutine add_source_internal_e
 
   !> Source terms for hydrodynamic energy version of MHD
-  subroutine add_source_hydrodynamic_e(qdt,ixI^L,ixO^L,wCT,w,x,wCTprim)
+  subroutine add_source_hydrodynamic_e(qdt,ixI^L,ixO^L,wCT,wCTprim,w,x)
     use mod_global_parameters
     use mod_geometry
     use mod_usr_methods, only: usr_gravity
 
     integer, intent(in) :: ixI^L, ixO^L
     double precision, intent(in) :: qdt, wCT(ixI^S,1:nw), x(ixI^S,1:ndim)
+    double precision, intent(in) :: wCTprim(ixI^S,1:nw)
     double precision, intent(inout) :: w(ixI^S,1:nw)
-    double precision, intent(in), optional :: wCTprim(ixI^S,1:nw)
 
     double precision :: B(ixI^S,3), J(ixI^S,3), JxB(ixI^S,3)
     double precision :: current(ixI^S,7-2*ndir:3)
@@ -6454,7 +6454,7 @@ contains
 
   !> Add resistive source to w within ixO in an explicit fashion
   !> Uses 5 point stencil (2 neighbours) in each direction, conservative
-  subroutine add_source_res_exp(qdt,ixI^L,ixO^L,wCT,w,x)
+  subroutine add_source_res_exp(qdt,ixI^L,ixO^L,wCT,wCTprim,w,x)
     use mod_global_parameters
     use mod_usr_methods
     use mod_geometry
@@ -6462,6 +6462,7 @@ contains
     integer, intent(in)             :: ixI^L, ixO^L
     double precision, intent(in)    :: qdt
     double precision, intent(in)    :: wCT(ixI^S,1:nw), x(ixI^S,1:ndim)
+    double precision, intent(in)    :: wCTprim(ixI^S,1:nw)
     double precision, intent(inout) :: w(ixI^S,1:nw)
 
     ! For ndir=2 only 3rd component of J can exist, ndir=1 is impossible for MHD
@@ -6485,7 +6486,7 @@ contains
         tmpvec(ixA^S,idir)=current(ixA^S,idir)*mhd_eta
       end do
     else
-      call usr_special_resistivity(wCT,ixI^L,ixA^L,idirmin,x,current,eta)
+      call usr_special_resistivity(wCTprim,ixI^L,ixA^L,idirmin,x,current,eta)
       do idir=idirmin,3
         tmpvec(ixA^S,idir)=current(ixA^S,idir)*eta(ixA^S)
       end do

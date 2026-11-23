@@ -332,12 +332,12 @@ module mod_usr_methods
       double precision, intent(out)   :: adiab(ixI^S)
     end subroutine set_adiab
 
-    !> Set the "eta" array for resistive MHD based on w or the
+    !> Set the "eta" array for resistive MHD based on wprim or the
     !> "current" variable which has components between idirmin and 3.
-    subroutine special_resistivity(w,ixI^L,ixO^L,idirmin,x,current,eta)
+    subroutine special_resistivity(wprim,ixI^L,ixO^L,idirmin,x,current,eta)
       use mod_global_parameters
       integer, intent(in)          :: ixI^L, ixO^L, idirmin
-      double precision, intent(in) :: w(ixI^S,nw), x(ixI^S,1:ndim)
+      double precision, intent(in) :: wprim(ixI^S,nw), x(ixI^S,1:ndim)
       double precision, intent(in) :: current(ixI^S,7-2*ndir:3)
       double precision, intent(out) :: eta(ixI^S)
     end subroutine special_resistivity
