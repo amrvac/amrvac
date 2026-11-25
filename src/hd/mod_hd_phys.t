@@ -542,12 +542,6 @@ contains
         call set_conversion_methods_to_head(hd_e_to_ei, hd_ei_to_e)
       end if
       call set_error_handling_to_head(hd_tc_handle_small_e)
-      ! tc_fl%get_temperature_from_conserved => hd_get_temperature_from_etot
-      ! tc_fl%get_temperature_from_eint => hd_get_temperature_from_eint
-      ! tc_fl%get_temperature_from_conserved => eos%get_temperature_from_etot
-      ! tc_fl%get_temperature_from_eint => eos%get_temperature_from_eint
-      ! ! tc_fl%get_rho => hd_get_rho
-      ! tc_fl%get_rho => eos%get_rho
       tc_fl%e_ = e_
       tc_fl%Tcoff_ = Tcoff_
     else if (hd_hyperbolic_thermal_conduction .and. hd_trac) then
@@ -558,7 +552,6 @@ contains
       call tc_init_params(eos%gamma)
       allocate(tc_fl)
       tc_fl%tc_k_para = hypertc_kappa
-      tc_fl%tc_saturate = hd_htc_sat
       tc_fl%e_ = e_
       tc_fl%Tcoff_ = Tcoff_
     end if
@@ -740,8 +733,9 @@ contains
       logical :: tc_frozen_ion=.true.
       double precision :: tc_k_para=0d0
       double precision :: trac_T_floor=0.d0
+      double precision :: tc_sat_coef=-1.d0
 
-      namelist /tc_list/ tc_saturate, tc_k_para, trac_T_floor, tc_patch_eint, tc_frozen_ion
+      namelist /tc_list/ tc_saturate, tc_k_para, trac_T_floor, tc_patch_eint, tc_frozen_ion, tc_sat_coef
 
       do n = 1, size(par_files)
          open(unitpar, file=trim(par_files(n)), status="old")
@@ -749,6 +743,7 @@ contains
 111      close(unitpar)
       end do
       fl%tc_saturate = tc_saturate
+      fl%tc_sat_coef = tc_sat_coef
       fl%tc_patch_eint = tc_patch_eint
       fl%frozen_ion = tc_frozen_ion
       fl%tc_k_para = tc_k_para

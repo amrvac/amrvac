@@ -63,8 +63,6 @@ module mod_eos
     !> Ideal-gas Gamma_1 (returns eos%gamma); bound to phys_get_gamma1 for FI and
     !> no-energy PI, valid in any ideal-gas context, so kept on the facade.
     public :: get_gamma1_FI
-    !> The EoS hooks of a conduction fluid, shared by the hd, mhd and ffhd bindings
-    public :: eos_bind_tc
 
     !> Untimed targets of the timed eos% wrappers
     procedure(convert_condition), pointer    :: to_primitive_impl => null(), &
@@ -428,33 +426,6 @@ contains
         !$OMP END PARALLEL DO
 
     end subroutine prepare_eos_w_fields
-
-    !> The EoS hooks of the conduction fluid fl
-    subroutine eos_bind_tc(fl)
-        use mod_thermal_conduction, only: tc_fluid
-        type(tc_fluid), intent(inout) :: fl
-        fl%get_temperature_from_conserved => eos%get_temperature_from_etot
-        if (eos%eos_type == 'LTE' .and. eos%ionE) then
-            ! the fast bilinear T lookup of the STS substeps
-            fl%get_temperature_from_eint => get_temperature_from_eint_fast_LTE
-        else
-            fl%get_temperature_from_eint => eos%get_temperature_from_eint
-            fl%frozen_ion = .false.
-        end if
-        ! LTE code T has R = p/(rho T) /= 1, the other closures absorb R in the units
-        if (eos%eos_type == 'LTE') then
-            fl%sat_fac  = (eos%n_per_nH_FI/eos%nH2rhoFactor)**1.5d0
-            fl%sat_ne   = .true.
-            fl%neOnH_FI = eos%neOnH_FI
-        end if
-        fl%get_rho           => eos%get_rho
-        fl%get_ne_nH         => eos%get_ne_nH
-        fl%get_var_Rfactor   => eos%get_Rfactor
-        fl%inv_gamma_minus_1 =  eos%inv_gamma_minus_1
-        fl%nH2rhoFactor      =  eos%nH2rhoFactor
-        fl%log_T_floor       =  eos_get_log_T_floor()
-        fl%eint_from_T       => eint_nH_from_T
-    end subroutine eos_bind_tc
 
 end module mod_eos
 !> Needs a line after to pass the preprocesor

@@ -223,6 +223,7 @@ contains
 
         !> fully ionised particle count, electron fraction and ionisation energy per hydrogen
         !> atom, eion_per_nH [code] = eion_per_nH [erg] * unit_numberdensity / unit_pressure
+        eos%mass_per_nH = 1.0d0 + 4.0d0 * eos%He_abundance
         if (present(chi_H_only)) then
             eos%n_per_nH_FI = 2.0d0 + eos%He_abundance
             eos%neOnH_FI    = 1.0d0

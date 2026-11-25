@@ -26,6 +26,7 @@ module mod_mhd_eos
     use mod_eos_container
     use mod_mhd_phys
     use mod_radiative_cooling, only: build_Y_mod_table, rc_T_Ymod_max_K
+    use mod_thermal_conduction, only: tc_set_saturation
 
     use mod_comm_lib, only: mpistop
 
@@ -277,7 +278,26 @@ contains
         end if
 
         if (allocated(tc_fl)) then
-            call eos_bind_tc(tc_fl)
+            tc_fl%get_temperature_from_conserved => eos%get_temperature_from_etot
+            if (eos%eos_type == 'LTE' .and. eos%ionE) then
+                ! the fast bilinear T lookup of the STS substeps
+                tc_fl%get_temperature_from_eint => get_temperature_from_eint_fast_LTE
+            else
+                tc_fl%get_temperature_from_eint => eos%get_temperature_from_eint
+                tc_fl%frozen_ion = .false.
+            end if
+            tc_fl%get_rho           => eos%get_rho
+            tc_fl%get_ne_nH         => eos%get_ne_nH
+            tc_fl%get_var_Rfactor   => eos%get_Rfactor
+            tc_fl%inv_gamma_minus_1 =  eos%inv_gamma_minus_1
+            tc_fl%nH2rhoFactor      =  eos%nH2rhoFactor
+            tc_fl%log_T_floor       =  eos_get_log_T_floor()
+            tc_fl%eint_from_T       => eint_nH_from_T
+            tc_fl%neOnH_FI          =  eos%neOnH_FI
+            tc_fl%n_per_nH_FI       =  eos%n_per_nH_FI
+            tc_fl%mass_per_nH       =  eos%mass_per_nH
+            tc_fl%eos_lte           =  (eos%eos_type == 'LTE')
+            call tc_set_saturation(tc_fl,.true.)
             ! Equilibrium-specific pointers
             if(has_equi_rho_and_p .and. mhd_equi_thermal) then
                 tc_fl%subtract_equi = .true.

@@ -39,6 +39,8 @@
 !> 3. in the tc_list of amrvac.par :
 !>    tc_perpendicular=.true.  ! (default .false.) turn on thermal conduction perpendicular to magnetic field
 !>    tc_saturate=.true.  ! (default .false. ) turn on thermal conduction saturate effect
+!>    tc_sat_coef=1.1     ! phi in the saturated flux 5 phi rho c**3, Cowie & McKee (1977). Unset: 0.3 for
+!>                        ! FI/PI; for LTE their eq 7 with the local ne (0.97 pure H, 1.11 He/H 0.1)
 !>    tc_slope_limiter='MC' ! choose limiter for slope-limited anisotropic thermal conduction in MHD
 !> note: twofl_list incorporates instances for charges and neutrals
 
@@ -110,17 +112,16 @@ module mod_thermal_conduction
     !> LTE with ionisation energy: hold the ionisation state fixed through each conduction
     !> step. T comes from the full EoS and R = p/(rho T) from the cached ionisation at the
     !> first STS stage; the later stages map the internal energy to T with the frozen-composition
-    !> heat capacity. The physics modules set it from tc_frozen_ion, default true, and eos_bind_tc
-    !> clears it for every other closure
+    !> heat capacity. The physics modules set it from tc_frozen_ion, default true, and their EoS
+    !> binding clears it for every other closure
     logical :: frozen_ion=.false.
 
-    !> R**1.5 of the fully ionised gas, which scales T**1.5 to c**3 in the saturated flux
-    double precision :: sat_fac=1.d0
+    !> phi in the saturated flux 5 phi rho c**3 (Cowie & McKee 1977 eq 8), tc_sat_coef in tc_list.
+    !> Negative means unset: phi = 0.3 for FI/PI, Cowie & McKee eq 7 with the local ne for LTE
+    double precision :: tc_sat_coef=-1.d0
 
-    !> LTE: the saturated flux follows the local electron density, with ne/nH of the fully
-    !> ionised gas as the reference
-    logical :: sat_ne=.false.
-    double precision :: neOnH_FI=1.d0
+    !> Saturated flux per face, sat_fac (rhos_A+rhos_B) T**1.5, set only by tc_set_saturation
+    double precision :: sat_fac
 
     !> Minimum temperature (code units) below which TRAC does not modify conductivity.
     !> Below this T, the energy balance is dominated by optically thick radiation
@@ -144,10 +145,16 @@ module mod_thermal_conduction
     double precision :: nH2rhoFactor
     double precision :: log_T_floor
     procedure(eos_scalar2_func), pointer, nopass :: eint_from_T => null()
+    !> Fully ionised electrons and particles per H nucleus, and the mass per H nucleus in m_p.
+    !> The defaults are pure hydrogen, for fluids not bound to an EoS (twofl)
+    double precision :: neOnH_FI=1.d0, n_per_nH_FI=2.d0, mass_per_nH=1.d0
+    !> LTE closure: code T is kT/m_p (R not absorbed in the units) and ne/nH is the local value
+    logical :: eos_lte=.false.
   end type tc_fluid
 
   public :: tc_get_mhd_params
   public :: tc_get_hd_params
+  public :: tc_set_saturation
   public :: get_tc_dt_mhd
   public :: get_tc_dt_hd
   public :: sts_set_source_tc_mhd
@@ -193,15 +200,11 @@ contains
     call read_mhd_params(fl)
 
     if(fl%tc_k_para==0.d0 .and. fl%tc_k_perp==0.d0) then
+      fl%tc_k_para=tc_spitzer_k_para()
+      ! thermal conductivity perpendicular to magnetic field
       if(SI_unit) then
-        ! Spitzer thermal conductivity with SI units
-        fl%tc_k_para=8.d-12*unit_temperature**3.5d0/unit_length/unit_density/unit_velocity**3
-        ! thermal conductivity perpendicular to magnetic field
         fl%tc_k_perp=4.d-30*unit_numberdensity**2/unit_magneticfield**2/unit_temperature**3*fl%tc_k_para
       else
-        ! Spitzer thermal conductivity with cgs units
-        fl%tc_k_para=8.d-7*unit_temperature**3.5d0/unit_length/unit_density/unit_velocity**3
-        ! thermal conductivity perpendicular to magnetic field
         fl%tc_k_perp=4.d-10*unit_numberdensity**2/unit_magneticfield**2/unit_temperature**3*fl%tc_k_para
       end if
       if(mype .eq. 0) print*, "Spitzer MHD: par: ",fl%tc_k_para, &
@@ -210,6 +213,7 @@ contains
       fl%tc_constant=.true.
       if(mype .eq. 0) print*, "Constant thermal conduction coefficients with values: ",fl%tc_k_para,fl%tc_k_perp
     end if
+    call tc_set_saturation(fl,.false.)
   end subroutine tc_get_mhd_params
 
   !> Init  TC coefficients: HD case
@@ -232,20 +236,56 @@ contains
     call read_hd_params(fl)
 
     if(fl%tc_k_para==0.d0) then
-      if(SI_unit) then
-        ! Spitzer thermal conductivity with SI units
-        fl%tc_k_para=8.d-12*unit_temperature**3.5d0/unit_length/unit_density/unit_velocity**3
-      else
-        ! Spitzer thermal conductivity with cgs units
-        fl%tc_k_para=8.d-7*unit_temperature**3.5d0/unit_length/unit_density/unit_velocity**3
-      end if
+      fl%tc_k_para=tc_spitzer_k_para()
       if(mype .eq. 0) print*, "Spitzer HD par: ",fl%tc_k_para
     else
       fl%tc_constant=.true.
       if(mype .eq. 0) print*, "Constant thermal conduction coefficient at value: ",fl%tc_k_para
     end if
+    call tc_set_saturation(fl,.false.)
 
   end subroutine tc_get_hd_params
+
+  !> Spitzer conductivity coefficient parallel to the field, in code units
+  double precision function tc_spitzer_k_para()
+    use mod_global_parameters
+    if(SI_unit) then
+      tc_spitzer_k_para=8.d-12*unit_temperature**3.5d0/unit_length/unit_density/unit_velocity**3
+    else
+      tc_spitzer_k_para=8.d-7*unit_temperature**3.5d0/unit_length/unit_density/unit_velocity**3
+    end if
+  end function tc_spitzer_k_para
+
+  !> Saturated flux factor. q_sat = 5 phi rho c**3 (Cowie & McKee 1977 eq 8), c**2 = xt kT/m_p with
+  !> xt the fully ionised particles per proton mass. Per face rho = (rho_A+rho_B)/2, so the factor
+  !> is 2.5 phi. FI/PI code T is xt kT/m_p, so T**1.5 is c**3. LTE code T is kT/m_p, so
+  !> c**3 = xt**1.5 T**1.5, and tc_sat_rho scales rho by the local over the fully ionised ne/nH.
+  !> Their eq 7, 0.4 (2kT/pi m_e)^(1/2) ne kT, is phi = 0.4 sqrt(2/pi) sqrt(m_p/m_e) xe/(5 xt**1.5),
+  !> xe the fully ionised electrons per proton mass. Unset tc_sat_coef gives phi = 0.3 for FI/PI and
+  !> eq 7 for LTE, which with the local ne is self-consistent; a set tc_sat_coef is phi for all
+  subroutine tc_set_saturation(fl,report)
+    use mod_constants, only: const_mp, const_me, dpi
+    use mod_global_parameters, only: mype
+    type(tc_fluid), intent(inout) :: fl
+    !> print phi once the EoS has set the composition
+    logical, intent(in) :: report
+    double precision :: xe, xt, phi, phi_cm77
+
+    xe = fl%neOnH_FI/fl%mass_per_nH
+    xt = fl%n_per_nH_FI/fl%mass_per_nH
+    phi_cm77 = 0.4d0*dsqrt(2.d0/dpi)*dsqrt(const_mp/const_me)*xe/(5.d0*xt**1.5d0)
+    if(fl%tc_sat_coef >= 0.d0) then
+      phi = fl%tc_sat_coef
+    else if(fl%eos_lte) then
+      phi = phi_cm77
+    else
+      phi = 0.3d0
+    end if
+    fl%sat_fac = 2.5d0*phi
+    if(fl%eos_lte) fl%sat_fac = fl%sat_fac*xt**1.5d0
+    if(report .and. mype == 0 .and. fl%tc_saturate) print '(a,f8.4,a,f8.4)', &
+         ' TC saturation: phi = ', phi, ', Cowie & McKee eq 7 gives phi = ', phi_cm77
+  end subroutine tc_set_saturation
 
   !> Get the explicit timestep for the TC (mhd implementation)
   !> Note: for multi-D MHD (1D MHD will use HD fall-back)
@@ -882,11 +922,10 @@ contains
         qvec(ixA^S,idims)=qvec(ixA^S,idims)+kaf(ixA^S)*Bnorm(ixA^S)*Bcf(ixA^S,idir)*qdd(ixA^S)
       end do
       if(fl%tc_saturate) then
-        ! consider saturation (Cowie and Mckee 1977 ApJ, 211, 135: phi=1.1, Balbus and Mckee 1982 ApJ, 252, 529: phi=0.3)
-        ! unsigned saturated TC flux = 5 phi rho c**3, c**2=p/rho=R T of the fully ionised gas, phi=0.3,
-        ! with rho scaled by the local over the fully ionised ne/nH under LTE, which is Cowie and McKee eq 7
+        ! saturated flux 5 phi rho c**3 (Cowie and McKee 1977 eq 8), phi and the LTE c**3 factor in sat_fac
+        ! (tc_set_saturation); under LTE rho is scaled by the local over the fully ionised ne/nH
         ixB^L=ixA^L+kr(idims,^D);
-        qdd(ixA^S)=0.75d0*fl%sat_fac*(rhos(ixA^S)+rhos(ixB^S))*dsqrt(0.5d0*(Te(ixA^S)+Te(ixB^S)))**3*dabs(Bnorm(ixA^S))
+        qdd(ixA^S)=fl%sat_fac*(rhos(ixA^S)+rhos(ixB^S))*dsqrt(0.5d0*(Te(ixA^S)+Te(ixB^S)))**3*dabs(Bnorm(ixA^S))
        {do ix^DB=ixAmin^DB,ixAmax^DB\}
           if(dabs(qvec(ix^D,idims))>qdd(ix^D)) then
             qvec(ix^D,idims)=sign(1.d0,qvec(ix^D,idims))*qdd(ix^D)
@@ -1373,11 +1412,10 @@ contains
         qvec(ixA^S,idims)=qvec(ixA^S,idims)+kaf(ixA^S)*Bnorm(ixA^S)*Bcf(ixA^S,idir)*qdd(ixA^S)
       end do
       if(fl%tc_saturate) then
-        ! consider saturation (Cowie and Mckee 1977 ApJ, 211, 135: phi=1.1, Balbus and Mckee 1982 ApJ, 252, 529: phi=0.3)
-        ! unsigned saturated TC flux = 5 phi rho c**3, c**2=p/rho=R T of the fully ionised gas, phi=0.3,
-        ! with rho scaled by the local over the fully ionised ne/nH under LTE, which is Cowie and McKee eq 7
+        ! saturated flux 5 phi rho c**3 (Cowie and McKee 1977 eq 8), phi and the LTE c**3 factor in sat_fac
+        ! (tc_set_saturation); under LTE rho is scaled by the local over the fully ionised ne/nH
         ixB^L=ixA^L+kr(idims,^D);
-        qdd(ixA^S)=0.75d0*fl%sat_fac*(rhos(ixA^S)+rhos(ixB^S))*dsqrt(0.5d0*(Te(ixA^S)+Te(ixB^S)))**3*dabs(Bnorm(ixA^S))
+        qdd(ixA^S)=fl%sat_fac*(rhos(ixA^S)+rhos(ixB^S))*dsqrt(0.5d0*(Te(ixA^S)+Te(ixB^S)))**3*dabs(Bnorm(ixA^S))
        {do ix^DB=ixAmin^DB,ixAmax^DB\}
           if(dabs(qvec(ix^D,idims))>qdd(ix^D)) then
             qvec(ix^D,idims)=sign(1.d0,qvec(ix^D,idims))*qdd(ix^D)
@@ -1506,7 +1544,7 @@ contains
     double precision, intent(out) :: rhos(ixI^S)
     double precision :: ne(ixI^S),nH(ixI^S)
 
-    if(fl%sat_ne) then
+    if(fl%eos_lte) then
       call fl%get_ne_nH(ixI^L,ixI^L,w,x,ne,nH)
       rhos(ixI^S)=rho(ixI^S)*ne(ixI^S)/(nH(ixI^S)*fl%neOnH_FI)
     else
@@ -1810,11 +1848,10 @@ contains
       end do
      }
       if(fl%tc_saturate) then
-        ! consider saturation (Cowie and Mckee 1977 ApJ, 211, 135: phi=1.1, Balbus and Mckee 1982 ApJ, 252, 529: phi=0.3)
-        ! unsigned saturated TC flux = 5 phi rho c**3, c**2=p/rho=R T of the fully ionised gas, phi=0.3,
-        ! with rho scaled by the local over the fully ionised ne/nH under LTE, which is Cowie and McKee eq 7
+        ! saturated flux 5 phi rho c**3 (Cowie and McKee 1977 eq 8), phi and the LTE c**3 factor in sat_fac
+        ! (tc_set_saturation); under LTE rho is scaled by the local over the fully ionised ne/nH
         ixB^L=ixA^L+kr(idims,^D);
-        qd(ixA^S)=0.75d0*fl%sat_fac*(rhos(ixA^S)+rhos(ixB^S))*dsqrt(0.5d0*(Te(ixA^S)+Te(ixB^S)))**3
+        qd(ixA^S)=fl%sat_fac*(rhos(ixA^S)+rhos(ixB^S))*dsqrt(0.5d0*(Te(ixA^S)+Te(ixB^S)))**3
        {do ix^DB=ixAmin^DB,ixAmax^DB\}
           if(dabs(qvec(ix^D,idims))>qd(ix^D)) then
             qvec(ix^D,idims)=sign(1.d0,qvec(ix^D,idims))*qd(ix^D)
@@ -1980,11 +2017,10 @@ contains
       end do
      }
       if(fl%tc_saturate) then
-        ! consider saturation (Cowie and Mckee 1977 ApJ, 211, 135: phi=1.1, Balbus and Mckee 1982 ApJ, 252, 529: phi=0.3)
-        ! unsigned saturated TC flux = 5 phi rho c**3, c**2=p/rho=R T of the fully ionised gas, phi=0.3,
-        ! with rho scaled by the local over the fully ionised ne/nH under LTE, which is Cowie and McKee eq 7
+        ! saturated flux 5 phi rho c**3 (Cowie and McKee 1977 eq 8), phi and the LTE c**3 factor in sat_fac
+        ! (tc_set_saturation); under LTE rho is scaled by the local over the fully ionised ne/nH
         ixB^L=ixA^L+kr(idims,^D);
-        qd(ixA^S)=0.75d0*fl%sat_fac*(rhos(ixA^S)+rhos(ixB^S))*dsqrt(0.5d0*(Te(ixA^S)+Te(ixB^S)))**3
+        qd(ixA^S)=fl%sat_fac*(rhos(ixA^S)+rhos(ixB^S))*dsqrt(0.5d0*(Te(ixA^S)+Te(ixB^S)))**3
        {do ix^DB=ixAmin^DB,ixAmax^DB\}
           if(dabs(qvec(ix^D,idims))>qd(ix^D)) then
             qvec(ix^D,idims)=sign(1.d0,qvec(ix^D,idims))*qd(ix^D)

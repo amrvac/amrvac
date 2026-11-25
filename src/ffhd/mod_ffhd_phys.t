@@ -485,10 +485,10 @@ contains
     integer                      :: n
     ! list parameters
     logical :: tc_saturate=.false., tc_frozen_ion=.true.
-    double precision :: tc_k_para=0d0
+    double precision :: tc_k_para=0d0, tc_sat_coef=-1.d0
     character(len=std_len)  :: tc_slope_limiter="MC"
 
-    namelist /tc_list/ tc_saturate, tc_slope_limiter, tc_k_para, tc_frozen_ion
+    namelist /tc_list/ tc_saturate, tc_slope_limiter, tc_k_para, tc_frozen_ion, tc_sat_coef
 
     do n = 1, size(par_files)
       open(unitpar, file=trim(par_files(n)), status="old")
@@ -497,6 +497,7 @@ contains
     end do
 
     fl%tc_saturate = tc_saturate
+    fl%tc_sat_coef = tc_sat_coef
     fl%frozen_ion = tc_frozen_ion
     fl%tc_k_para = tc_k_para
     select case(tc_slope_limiter)
