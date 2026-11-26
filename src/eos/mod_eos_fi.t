@@ -43,6 +43,7 @@ contains
         eos%get_Te => get_Te_FI
         eos%n_per_nH_FI = 2.0d0 + 3.0d0 * eos%He_abundance
         eos%neOnH_FI    = 1.0d0 + 2.0d0 * eos%He_abundance
+        eos%mass_per_nH = 1.0d0 + 4.0d0 * eos%He_abundance
     end subroutine eos_finalise_FI
 
     !> FI update_eos: nothing to cache for an ideal gas. Called each RK substep.

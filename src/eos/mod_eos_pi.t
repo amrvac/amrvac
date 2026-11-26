@@ -96,6 +96,7 @@ contains
         !> Fully-ionised particle counts (2 + 3*A_He per H; ne/nH = 1 + 2*A_He)
         eos%n_per_nH_FI = 2.0d0 + 3.0d0 * eos%He_abundance
         eos%neOnH_FI    = 1.0d0 + 2.0d0 * eos%He_abundance
+        eos%mass_per_nH = 1.0d0 + 4.0d0 * eos%He_abundance
 
         !> Initialise the ionisation backend. Under the FI normalisation the
         !> (a,b) factors are absorbed into unit_*, RR=1, and b=(2+3 A_He) is the

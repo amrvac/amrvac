@@ -141,6 +141,7 @@ module mod_eos_container
         double precision :: log_T_FI = huge(1.0d0), log_eint_nH_FI = huge(1.0d0), log_p_nH_FI = huge(1.0d0)
         double precision :: n_per_nH_FI          !> Total particles per nH when FI = 2 + 3*A_He
         double precision :: neOnH_FI             !> ne/nH when fully ionised = 1 + 2*A_He
+        double precision :: mass_per_nH          !> mass per H nucleus in m_p = 1 + 4*A_He, all closures
 
         !>Leaving a comment here to remind me that it's a bad idea to have anything outside
         !> of the w() array if one wants to /ensure/ the fields are consistent

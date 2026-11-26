@@ -209,7 +209,6 @@ mod_eos.o: mod_eos_pi.mod
 mod_eos.o: mod_eos_shared_functions.mod
 mod_eos.o: mod_global_parameters.mod
 mod_eos.o: mod_physics.mod
-mod_eos.o: mod_thermal_conduction.mod
 mod_eos.o: mod_timing.mod
 mod_eos.o: mod_variables.mod
 mod_eos_container.o: mod_global_parameters.mod
@@ -285,6 +284,7 @@ mod_ffhd_eos.o: mod_global_parameters.mod
 mod_ffhd_eos.o: mod_physics.mod
 mod_ffhd_eos.o: mod_radiative_cooling.mod
 mod_ffhd_eos.o: mod_small_values.mod
+mod_ffhd_eos.o: mod_thermal_conduction.mod
 mod_ffhd_eos.o: mod_usr_methods.mod
 mod_ffhd_phys.o: mod_comm_lib.mod
 mod_ffhd_phys.o: mod_constants.mod
@@ -394,6 +394,7 @@ mod_hd_eos.o: mod_hd_phys.mod
 mod_hd_eos.o: mod_physics.mod
 mod_hd_eos.o: mod_radiative_cooling.mod
 mod_hd_eos.o: mod_small_values.mod
+mod_hd_eos.o: mod_thermal_conduction.mod
 mod_hd_eos.o: mod_usr_methods.mod
 mod_hd_hllc.o: mod_dust.mod
 mod_hd_hllc.o: mod_global_parameters.mod
@@ -565,6 +566,7 @@ mod_mhd_eos.o: mod_mhd_phys.mod
 mod_mhd_eos.o: mod_physics.mod
 mod_mhd_eos.o: mod_radiative_cooling.mod
 mod_mhd_eos.o: mod_small_values.mod
+mod_mhd_eos.o: mod_thermal_conduction.mod
 mod_mhd_eos.o: mod_usr_methods.mod
 mod_mhd_hllc.o: mod_functions_bfield.mod
 mod_mhd_hllc.o: mod_global_parameters.mod
@@ -813,6 +815,7 @@ mod_supertimestepping.o: mod_physics.mod
 mod_supertimestepping.o: mod_small_values.mod
 mod_tdfluxrope.o: mod_global_parameters.mod
 mod_thermal_conduction.o: mod_comm_lib.mod
+mod_thermal_conduction.o: mod_constants.mod
 mod_thermal_conduction.o: mod_fix_conserve.mod
 mod_thermal_conduction.o: mod_geometry.mod
 mod_thermal_conduction.o: mod_global_parameters.mod
