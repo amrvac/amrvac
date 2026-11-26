@@ -1,5 +1,5 @@
  &filelist
-   base_filename='uawsom_1d'
+   base_filename='whiski_1d'
    typefilelog='special'
  /
 
@@ -40,13 +40,13 @@
 
  &mhd_list
    typedivbfix='none'
-   mhd_uawsom=.true.
-   mhd_uawsom_height_dim=1
-   mhd_uawsom_zeta0=5.d0
-   mhd_uawsom_zeta_scale=1.d99
-   mhd_uawsom_thread_radius0=1.d99
-   mhd_uawsom_Bref=1.d0
-   mhd_uawsom_alfven_corr_length0=1.d99
+   mhd_whiski=.true.
+   mhd_whiski_height_dim=1
+   mhd_whiski_zeta0=5.d0
+   mhd_whiski_zeta_scale=1.d99
+   mhd_whiski_thread_radius0=1.d99
+   mhd_whiski_Bref=1.d0
+   mhd_whiski_alfven_corr_length0=1.d99
  /
 
  &eos_list
