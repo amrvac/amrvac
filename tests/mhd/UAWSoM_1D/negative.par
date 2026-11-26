@@ -1,5 +1,5 @@
  &filelist
-   base_filename='uawsom_negative'
+   base_filename='whiski_negative'
  /
  &stoplist
    time_max=1.d-6
