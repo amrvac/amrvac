@@ -115,20 +115,20 @@ module mod_usr_methods
   procedure(set_adiab), pointer :: usr_set_adiab => null()
   procedure(set_adiab), pointer :: usr_set_gamma => null()
 
-  !> Optionally provide local UAWSoM closure coefficients.  The returned
+  !> Optionally provide local whiski closure coefficients.  The returned
   !> thread radius and Alfven correlation length are in code length units.
-  procedure(uawsom_coefficients), pointer :: usr_uawsom_coefficients => null()
+  procedure(whiski_coefficients), pointer :: usr_whiski_coefficients => null()
 
   abstract interface
 
-    subroutine uawsom_coefficients(w,x,ixI^L,ixO^L,primitive,zeta,thread_radius,lperp_alfven)
+    subroutine whiski_coefficients(w,x,ixI^L,ixO^L,primitive,zeta,thread_radius,lperp_alfven)
       use mod_global_parameters
       integer, intent(in)          :: ixI^L, ixO^L
       double precision, intent(in) :: w(ixI^S,1:nw), x(ixI^S,1:ndim)
       logical, intent(in)          :: primitive
       double precision, intent(out):: zeta(ixI^S), thread_radius(ixI^S)
       double precision, intent(out):: lperp_alfven(ixI^S)
-    end subroutine uawsom_coefficients
+    end subroutine whiski_coefficients
 
     subroutine p_no_args()
     end subroutine p_no_args
