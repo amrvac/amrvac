@@ -1,9 +1,10 @@
-# UAWSoM solar atmosphere (2.5D)
+# WHiSKi model solar atmosphere (2.5D)
 
-This is the full tutorial case migrated from UAWSoM fork commit `932ee5d`.
-It uses the optional UAWSoM equations inside `mod_mhd`, B0 splitting, solar
+This is the full tutorial case migrated from WHiSKi model (formally known as
+UAWSoM) fork commit `932ee5d`.
+It uses the optional WHiSKi model equations inside `mod_mhd`, B0 splitting, solar
 gravity, anisotropic thermal conduction, radiative cooling, TRAC, and kink-wave
-heating.  The case-specific `usr_uawsom_coefficients` callback follows McMurdo
+heating.  The case-specific `usr_whiski_coefficients` callback follows McMurdo
 et al. (2026): `zeta0=5`, `B0=20 G`, `R0=1 Mm`,
 `zeta=1+(zeta0-1) exp[-z/(5 R_sun)]`, and
 `Lperp_AW=1e8 sqrt(T_MK/B_G) m`.  The inconsistent legacy-fork values are not
