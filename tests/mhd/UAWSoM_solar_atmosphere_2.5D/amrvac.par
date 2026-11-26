@@ -3,7 +3,7 @@
 !========================================================================================
 
  &filelist
-        base_filename = 'uawsom_solar_'
+        base_filename = 'whiski_solar_'
         typefilelog = 'special'
         saveprim      = .true.
         convert   = .false. !we just need .dat files for Jupyter notebook
@@ -65,10 +65,10 @@
          mhd_energy=.true.
 	     mhd_internal_e=.false.
 	     mhd_hydrodynamic_e=.false.
-         mhd_uawsom=.true.
-         mhd_uawsom_height_dim=2
-         mhd_uawsom_zeta0=5.d0
-         mhd_uawsom_filling_factor=0.1d0
+         mhd_whiski=.true.
+         mhd_whiski_height_dim=2
+         mhd_whiski_zeta0=5.d0
+         mhd_whiski_filling_factor=0.1d0
          B0field=.true.
   /
 
