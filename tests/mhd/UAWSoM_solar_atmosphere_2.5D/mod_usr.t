@@ -32,8 +32,8 @@ contains
     usr_refine_grid     => special_refine_grid
     usr_set_B0          => specialset_B0
     usr_modify_output   => set_output_vars
-    usr_uawsom_coefficients => solar_uawsom_coefficients
-    usr_print_log       => solar_uawsom_log
+    usr_whiski_coefficients => solar_whiski_coefficients
+    usr_print_log       => solar_whiski_log
 
     unit_length        = 1.d9                                         ! cm
     unit_temperature   = 1.d6                                         ! K
@@ -350,20 +350,20 @@ contains
 
   end subroutine special_source
 
-  !> Paper Eq. 30: the density contrast equals mhd_uawsom_zeta0 at the base.
+  !> Paper Eq. 30: the density contrast equals mhd_whiski_zeta0 at the base.
   subroutine get_zeta(w,x,ixI^L,ixO^L,zeta)
     use mod_global_parameters
     integer, intent(in)           :: ixI^L, ixO^L
     double precision, intent(in)  :: w(ixI^S,1:nw),x(ixI^S,1:ndim)
     double precision, intent(out) :: zeta(ixI^S)
-    zeta(ixO^S) = 1.d0+(mhd_uawsom_zeta0-1.d0)*&
+    zeta(ixO^S) = 1.d0+(mhd_whiski_zeta0-1.d0)*&
          exp(-max(x(ixO^S,2)-xprobmin2,0.d0)/(5.d0*SRadius))
 
   end subroutine get_zeta
 
   !> McMurdo et al. (2026) closure profiles, Eqs. 29--30 and the paragraph
   !> following Eq. 9.  Lengths are returned in code units.
-  subroutine solar_uawsom_coefficients(w,x,ixI^L,ixO^L,primitive,zeta,radius,lperp_A)
+  subroutine solar_whiski_coefficients(w,x,ixI^L,ixO^L,primitive,zeta,radius,lperp_A)
     use mod_global_parameters
     integer, intent(in) :: ixI^L,ixO^L
     double precision, intent(in) :: w(ixI^S,1:nw),x(ixI^S,1:ndim)
@@ -394,7 +394,7 @@ contains
     lperp_A(ixO^S)=1.d10/unit_length*dsqrt(&
          max(Te(ixO^S)*unit_temperature/1.d6,smalldouble)/&
          max(Bmag(ixO^S)*unit_magneticfield,smalldouble))
-  end subroutine solar_uawsom_coefficients
+  end subroutine solar_whiski_coefficients
 
   subroutine getbQ(bQgrid,ixI^L,ixO^L,qt,w,x)
     use mod_global_parameters
@@ -513,7 +513,7 @@ contains
     !w(ixO^S,Alfv_)=dsqrt(B2(ixO^S)/w(ixO^S,rho_))
 
     !    output the sound speed sqrt(gamm p/rho)
-    !w(ixO^S,vsound_)= sqrt(uawsom_gamma * w(ixO^S,p_)/w(ixO^S,rho_))
+    !w(ixO^S,vsound_)= sqrt(whiski_gamma * w(ixO^S,p_)/w(ixO^S,rho_))
 
     !   output divB1
     !call get_divb(wlocal,ixI^L,ixO^L,divb)
@@ -528,7 +528,7 @@ contains
 
     ! output thermal conduction TC (disabled in this tutorial output set)
     !tc_fl%e_=1
-    !call uawsom_sts_set_source_tc_mhd(ixI^L,ixO^L,wlocal,x,tc,.false.,1.d0,1,1,tc_fl)
+    !call whiski_sts_set_source_tc_mhd(ixI^L,ixO^L,wlocal,x,tc,.false.,1.d0,1,1,tc_fl)
     !w(ixO^S,thcond_)=tc(ixO^S)
     !tc_fl%e_=e_
 
@@ -542,13 +542,13 @@ contains
 
     !> Wave heating rates are calculated here
     !   output kink wave heating rate
-    call solar_uawsom_coefficients(wlocal,x,ixI^L,ixO^L,.false.,&
+    call solar_whiski_coefficients(wlocal,x,ixI^L,ixO^L,.false.,&
          zeta,radius,Lperp_AW)
-    Lperp(ixO^S) = (zeta(ixO^S) + 1.d0 - mhd_uawsom_filling_factor)**(3.d0/2.d0)/(1.d0 - mhd_uawsom_filling_factor**(5.d0/2.d0))/&
-                   (zeta(ixO^S) - 1.d0)*3.1622776*(mhd_uawsom_filling_factor*dpi)**0.5d0*radius(ixO^S)
+    Lperp(ixO^S) = (zeta(ixO^S) + 1.d0 - mhd_whiski_filling_factor)**(3.d0/2.d0)/(1.d0 - mhd_whiski_filling_factor**(5.d0/2.d0))/&
+                   (zeta(ixO^S) - 1.d0)*3.1622776*(mhd_whiski_filling_factor*dpi)**0.5d0*radius(ixO^S)
 
-    w(ixO^S,Qk_)=w(ixO^S,wkplus_)**(3.d0/2.d0)/(w(ixO^S,rho_)*(1+mhd_uawsom_filling_factor*zeta(ixO^S)-mhd_uawsom_filling_factor)**(-1.d0))**0.5d0/Lperp(ixO^S) +&
-                  w(ixO^S,wkminus_)**(3.d0/2.d0)/(w(ixO^S,rho_)*(1+mhd_uawsom_filling_factor*zeta(ixO^S)-mhd_uawsom_filling_factor)**(-1.d0))**0.5d0/Lperp(ixO^S)
+    w(ixO^S,Qk_)=w(ixO^S,wkplus_)**(3.d0/2.d0)/(w(ixO^S,rho_)*(1+mhd_whiski_filling_factor*zeta(ixO^S)-mhd_whiski_filling_factor)**(-1.d0))**0.5d0/Lperp(ixO^S) +&
+                  w(ixO^S,wkminus_)**(3.d0/2.d0)/(w(ixO^S,rho_)*(1+mhd_whiski_filling_factor*zeta(ixO^S)-mhd_whiski_filling_factor)**(-1.d0))**0.5d0/Lperp(ixO^S)
 
 
     !   output Alfven wave heating rate /
@@ -562,7 +562,7 @@ contains
 
   end subroutine set_output_vars
 
-  subroutine solar_uawsom_log()
+  subroutine solar_whiski_log()
     use mod_global_parameters
     integer, parameter :: log_unit=732
     integer :: iigrid,igrid
@@ -603,6 +603,6 @@ contains
       close(log_unit)
     end if
     first=.false.
-  end subroutine solar_uawsom_log
+  end subroutine solar_whiski_log
 
 end module mod_usr
