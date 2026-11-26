@@ -315,7 +315,7 @@ contains
             rc_fl%get_Te           => eos%get_Te
             rc_fl%get_ne_nH        => eos%get_ne_nH
             nullify(rc_fl%get_rho2_factor)
-            if(mhd_uawsom) rc_fl%get_rho2_factor => mhd_uawsom_rho2_factor
+            if(mhd_whiski) rc_fl%get_rho2_factor => mhd_whiski_rho2_factor
             rc_fl%ionE              =  eos%ionE
             rc_fl%method_analytic   =  (eos%method_id == EOS_ANALYTIC)
             rc_fl%inv_gamma_minus_1 =  eos%inv_gamma_minus_1
@@ -398,7 +398,7 @@ contains
             w(ix^D,e_)=w(ix^D,p_)*eos%inv_gamma_minus_1&
                       +half*((^C&w(ix^D,m^C_)**2+)*w(ix^D,rho_)&
                       +(^C&w(ix^D,b^C_)**2+))
-            if(mhd_uawsom) w(ix^D,e_)=w(ix^D,e_)+&
+            if(mhd_whiski) w(ix^D,e_)=w(ix^D,e_)+&
                  w(ix^D,wAplus_)+w(ix^D,wAminus_)+w(ix^D,wkplus_)+w(ix^D,wkminus_)
             ! Convert velocity to momentum
             ^C&w(ix^D,m^C_)=w(ix^D,rho_)*w(ix^D,m^C_)\
@@ -598,7 +598,7 @@ contains
             w(ix^D,p_)=eos%gamma_minus_1*(w(ix^D,e_)&
                       -half*(w(ix^D,rho_)*(^C&w(ix^D,m^C_)**2+)&
                         +(^C&w(ix^D,b^C_)**2+))&
-                      -mhd_uawsom_wave_energy_cell(w(ix^D,:)))
+                      -mhd_whiski_wave_energy_cell(w(ix^D,:)))
         {end do\}
 
     end subroutine mhd_to_primitive_origin
@@ -825,7 +825,7 @@ contains
         call mhd_p_to_eint(ixI^L,ixO^L,w,x)
         {do ix^DB=ixOmin^DB,ixOmax^DB\}
             w(ix^D,e_) = w(ix^D,e_) + half*((^C&w(ix^D,m^C_)**2+)*w(ix^D,rho_) + (^C&w(ix^D,b^C_)**2+))
-            if(mhd_uawsom) w(ix^D,e_)=w(ix^D,e_)+&
+            if(mhd_whiski) w(ix^D,e_)=w(ix^D,e_)+&
                  w(ix^D,wAplus_)+w(ix^D,wAminus_)+w(ix^D,wkplus_)+w(ix^D,wkminus_)
         {end do\}
 
@@ -1254,7 +1254,7 @@ contains
                      +(^C&w(ix^D,b^C_)**2+)))+block%equi_vars(ix^D,equi_pe0_,0)
             else
                 pth(ix^D)=eos%gamma_minus_1*(w(ix^D,e_)-half*((^C&w(ix^D,m^C_)**2+)/w(ix^D,rho_)&
-                     +(^C&w(ix^D,b^C_)**2+))-mhd_uawsom_wave_energy_cell(w(ix^D,:)))
+                     +(^C&w(ix^D,b^C_)**2+))-mhd_whiski_wave_energy_cell(w(ix^D,:)))
             end if
             if(fix_small_values.and.pth(ix^D)<small_pressure) pth(ix^D)=small_pressure
         {end do\}
