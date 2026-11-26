@@ -7,7 +7,7 @@ contains
 
   subroutine usr_init()
     usr_init_one_grid => initonegrid_usr
-    usr_print_log => uawsom_log
+    usr_print_log => whiski_log
     call set_coordinate_system('Cartesian_1D')
     call mhd_activate()
   end subroutine usr_init
@@ -50,13 +50,13 @@ contains
       w(ixO^S,wAplus_)=-1.d-6
       w(ixO^S,wAminus_)=1.d-3
     case default
-      call mpistop('UAWSoM_1D: iprob must be 1, 2, 3, or 4')
+      call mpistop('whiski_1D: iprob must be 1, 2, 3, or 4')
     end select
 
     call eos%to_conserved(ixI^L,ixO^L,w,x)
   end subroutine initonegrid_usr
 
-  subroutine uawsom_log()
+  subroutine whiski_log()
     use mod_global_parameters
     use mod_input_output, only: get_global_minima
     integer, parameter :: log_unit=731
@@ -79,9 +79,9 @@ contains
         sums(7)=sums(7)+volume*ps(igrid)%x(ix1,1)*ps(igrid)%w(ix1,wAminus_)
         sums(8)=sums(8)+volume*(ps(igrid)%w(ix1,wAplus_)+&
              ps(igrid)%w(ix1,wAminus_))
-        sums(9)=sums(9)+volume*mhd_uawsom_wave_pressure_cell(&
+        sums(9)=sums(9)+volume*mhd_whiski_wave_pressure_cell(&
              ps(igrid)%w(ix1,:),5.d0)
-        sums(10)=sums(10)+volume*mhd_uawsom_rho2_factor_cell(5.d0)
+        sums(10)=sums(10)+volume*mhd_whiski_rho2_factor_cell(5.d0)
       end do
     end do
     call MPI_ALLREDUCE(sums,global_sums,10,MPI_DOUBLE_PRECISION,&
@@ -89,7 +89,7 @@ contains
     call get_global_minima(wmin,ps)
 
     if(mype==0) then
-      filename=trim(base_filename)//'_uawsom.log'
+      filename=trim(base_filename)//'_whiski.log'
       if(first .and. restart_from_file==undefined) then
         open(log_unit,file=trim(filename),status='replace')
         write(log_unit,'(a)') '# time WA+ WA- Wk+ Wk- Etot xWA+ xWA- WA_sum Pwave rho2_factor minW'
@@ -101,6 +101,6 @@ contains
       close(log_unit)
     end if
     first=.false.
-  end subroutine uawsom_log
+  end subroutine whiski_log
 
 end module mod_usr
