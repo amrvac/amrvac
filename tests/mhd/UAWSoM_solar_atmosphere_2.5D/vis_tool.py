@@ -17,10 +17,10 @@ import matplotlib.colors as mcolors
 from matplotlib.ticker import FuncFormatter
 import argparse
 
-parser = argparse.ArgumentParser(description="Plot UAWSoM solar-atmosphere output")
+parser = argparse.ArgumentParser(description="Plot whiski solar-atmosphere output")
 parser.add_argument("data_dir", nargs="?", default=".",
-                    help="directory containing UAWSoM .dat files")
-parser.add_argument("--prefix", default="uawsom_solar_",
+                    help="directory containing whiski .dat files")
+parser.add_argument("--prefix", default="whiski_solar_",
                     help="snapshot filename prefix")
 parser.add_argument("--snapshots", nargs="+", type=int,
                     default=[0, 5, 10, 15, 20])
