@@ -1,6 +1,7 @@
-# UAWSoM equation and implementation map
+# WHiSKi equation and implementation map
 
-This note records the scientific and code provenance of the UAWSoM extension
+This note records the scientific and code provenance of the WHiSKi model 
+formally known as UAWSoM extension
 before it is integrated into the MHD module.  The scientific authority is
 McMurdo et al. (2026), A&A 705, A15,
 [doi:10.1051/0004-6361/202555912](https://doi.org/10.1051/0004-6361/202555912).
@@ -9,13 +10,13 @@ The compatibility reference is commit `932ee5d` of
 
 | Paper | Fork implementation | MPI-AMRVAC 4.0 target |
 | --- | --- | --- |
-| Eq. 3, wave pressure in momentum | `uawsom_get_flux*`, `ptotal` | `mhd_get_flux*`, `mhd_uawsom_get_coefficients` |
-| Eq. 4, total energy | `uawsom_get_flux*`, `w_add_source` | MHD total-energy flux and `mhd_add_source_uawsom` |
+| Eq. 3, wave pressure in momentum | `uawsom_get_flux*`, `ptotal` | `mhd_get_flux*`, `mhd_whiski_get_coefficients` |
+| Eq. 4, total energy | `uawsom_get_flux*`, `w_add_source` | MHD total-energy flux and `mhd_add_source_whiski` |
 | Eq. 5, Alfven wave energy | `wAplus_`, `wAminus_` flux/source branches | optional MHD flux variables `wAplus`, `wAminus` |
 | Eq. 6, kink wave energy | `wkplus_`, `wkminus_` flux/source branches | optional MHD flux variables `wkplus`, `wkminus` |
-| Eq. 7, wave pressures | inline expressions in `uawsom_get_flux*` | `mhd_uawsom_wave_pressure_cell` |
+| Eq. 7, wave pressures | inline expressions in `uawsom_get_flux*` | `mhd_whiski_wave_pressure_cell` |
 | Eq. 8, averaged density | inline `zeta` and filling-factor expressions | coefficient callback and namelist defaults |
-| Eq. 9, Alfven dissipation | `Gamma_plus`, `Gamma_minus` in `w_add_source` | `mhd_add_source_uawsom` |
+| Eq. 9, Alfven dissipation | `Gamma_plus`, `Gamma_minus` in `w_add_source` | `mhd_add_source_whiski` |
 | Eq. 10, kink correlation length | `Lperp` in `w_add_source` | coefficient callback/default coefficient evaluator |
 | Eq. 34, Alfven reflection | commented tutorial source | `one_dimensional_gradient` compatibility branch or Cartesian `cartesian_gradient_vorticity` branch |
 | Cartesian gradient/vorticity closure | commented tutorial source around `Rimb`/`Rlim` | total-field `b dot grad(ln v_A)` plus `b dot curl(v)` |
@@ -69,7 +70,7 @@ damping rate, `R_imb,A = sqrt(S_A^2 + Omega_A^2)` and
 `R_lim,A = min(R_imb,A, max(Gamma_plus, Gamma_minus))`.  Kink reflection uses
 `R_lim,k = min(abs(S_k), max(Gamma_kplus, Gamma_kminus))`; it deliberately
 omits `Omega_A`.  Neither multidimensional limiter contains
-`mhd_uawsom_sigma`.
+`mhd_whiski_sigma`.
 The 4:1 population-imbalance factor is zero between the two 4:1 thresholds,
 and approaches a bounded signed value for stronger imbalance.  For
 `W_plus >= 4 W_minus`, `F = 1 - 2 sqrt(W_minus/W_plus) >= 0`; therefore a
@@ -83,13 +84,13 @@ post-damping donor state; the equal-and-opposite updates conserve the exchanged
 wave energy without silently repairing a negative state produced by the
 ordinary sources.
 
-`mhd_uawsom_reflection_mode='one_dimensional_gradient'` retains the original
+`mhd_whiski_reflection_mode='one_dimensional_gradient'` retains the original
 one-dimensional gradient source and its sign convention; only this path uses
-the positive `mhd_uawsom_sigma` multiplier.  The default remains
+the positive `mhd_whiski_sigma` multiplier.  The default remains
 `one_dimensional_gradient` for backward compatibility.
 `cartesian_gradient_vorticity` is the multidimensional Cartesian
 gradient/vorticity closure and runs whenever Alfvén reflection is enabled,
-including with `mhd_uawsom_sigma=0`.  `mhd_uawsom_kink_reflection=.true.`
+including with `mhd_whiski_sigma=0`.  `mhd_whiski_kink_reflection=.true.`
 enables the kink-speed-gradient exchange independently of both the Alfvén
 switch and sigma.
 
