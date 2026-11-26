@@ -1,11 +1,11 @@
 SETUP_FLAGS := -d=1 -v=1
 
-TESTS := uawsom_1d_uawsom.log uawsom_1duawsom_reflection_uawsom.log \
-	uawsom_1duawsom_damping_uawsom.log uawsom_1duawsom_negative_uawsom.log
+TESTS := whiski_1d_whiski.log whiski_1dwhiski_reflection_whiski.log \
+	whiski_1dwhiski_damping_whiski.log whiski_1dwhiski_negative_whiski.log
 
 include ../../test_rules.make
 
-uawsom_1d_uawsom.log: amrvac.par
-uawsom_1duawsom_reflection_uawsom.log: amrvac.par reflection.par
-uawsom_1duawsom_damping_uawsom.log: amrvac.par damping.par
-uawsom_1duawsom_negative_uawsom.log: amrvac.par negative.par
+whiski_1d_whiski.log: amrvac.par
+whiski_1dwhiski_reflection_whiski.log: amrvac.par reflection.par
+whiski_1dwhiski_damping_whiski.log: amrvac.par damping.par
+whiski_1dwhiski_negative_whiski.log: amrvac.par negative.par
