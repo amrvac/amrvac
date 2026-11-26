@@ -1015,18 +1015,18 @@ sharp discontinuities. It is normally inactive with a default value -1.
      mhd_hyperbolic_tc_kappa_perp_factor= DOUBLE (default 0: automatic reference ratio)
      mhd_hyperbolic_tc_Bmin= DOUBLE (default 0: automatic; positive: code units)
      mhd_hyperbolic_tc_coulomb_log= DOUBLE (default 20)
-     mhd_uawsom= F | T (default F)
-     mhd_uawsom_reflection= F | T (default F)
-     mhd_uawsom_reflection_mode= 'one_dimensional_gradient' | 'cartesian_gradient_vorticity' (default 'one_dimensional_gradient')
-     mhd_uawsom_kink_reflection= F | T (default F)
-     mhd_uawsom_sigma= non-negative DOUBLE (default 0; one_dimensional_gradient only)
-     mhd_uawsom_height_dim= INTEGER from 1 to ndim (default ndim)
-     mhd_uawsom_zeta0= DOUBLE greater than 1 (default 5)
-     mhd_uawsom_filling_factor= DOUBLE between 0 and 1 (default 0.1)
-     mhd_uawsom_zeta_scale= positive DOUBLE (physical length; default -1 selects automatic value)
-     mhd_uawsom_thread_radius0= positive DOUBLE (physical length; default -1 selects automatic value)
-     mhd_uawsom_Bref= positive DOUBLE (physical magnetic field; default -1 selects automatic value)
-     mhd_uawsom_alfven_corr_length0= positive DOUBLE (physical length; default -1 selects automatic value)
+     mhd_whiski= F | T (default F)
+     mhd_whiski_reflection= F | T (default F)
+     mhd_whiski_reflection_mode= 'one_dimensional_gradient' | 'cartesian_gradient_vorticity' (default 'one_dimensional_gradient')
+     mhd_whiski_kink_reflection= F | T (default F)
+     mhd_whiski_sigma= non-negative DOUBLE (default 0; one_dimensional_gradient only)
+     mhd_whiski_height_dim= INTEGER from 1 to ndim (default ndim)
+     mhd_whiski_zeta0= DOUBLE greater than 1 (default 5)
+     mhd_whiski_filling_factor= DOUBLE between 0 and 1 (default 0.1)
+     mhd_whiski_zeta_scale= positive DOUBLE (physical length; default -1 selects automatic value)
+     mhd_whiski_thread_radius0= positive DOUBLE (physical length; default -1 selects automatic value)
+     mhd_whiski_Bref= positive DOUBLE (physical magnetic field; default -1 selects automatic value)
+     mhd_whiski_alfven_corr_length0= positive DOUBLE (physical length; default -1 selects automatic value)
      mhd_hd_mom_conserve_fix= F | T
      typedivbfix= 'linde'|'ct'|'glm'|'powel'|'lindejanhunen'|'lindepowel'|'lindeglm'|'multigrid'|'none'
      type_ct='uct_contact'|'uct_hll'|'average'
@@ -1046,12 +1046,12 @@ sharp discontinuities. It is normally inactive with a default value -1.
      SI_unit= F | T
     /
 
-The optional UAWSoM equations are disabled by default.  Length and magnetic
+The optional whiski equations are disabled by default.  Length and magnetic
 field inputs use physical units (cm and G in cgs mode; m and T in SI mode) and
 are converted once during initialization.  The default closure profile uses
 the selected Cartesian direction and measures height from that direction's
 lower problem boundary.  A problem can instead assign
-`usr_uawsom_coefficients` to return local `zeta`, thread radius, and Alfvén
+`usr_whiski_coefficients` to return local `zeta`, thread radius, and Alfvén
 correlation length in code units.  The callback also receives a `primitive`
 flag so that state-dependent closures can recover thermodynamic quantities
 from the correct representation.
@@ -1063,8 +1063,8 @@ the equivalent inputs are `3.4805e9 m`, `1e5 m`, `1e-3 T`, and `1.5e7 m`.
 The initial, boundary, and output state can access the public indices
 `wAplus_`, `wAminus_`, `wkplus_`, and `wkminus_`.  The `plus` variables
 propagate against the magnetic field and the `minus` variables along it.
-`mhd_uawsom_reflection_mode='one_dimensional_gradient'` preserves the original one-dimensional
-gradient source and is the only path controlled by `mhd_uawsom_sigma`.
+`mhd_whiski_reflection_mode='one_dimensional_gradient'` preserves the original one-dimensional
+gradient source and is the only path controlled by `mhd_whiski_sigma`.
 `cartesian_gradient_vorticity` computes the Alfvén directional speed gradient and
 field-aligned velocity vorticity from the total field; its limiter is
 `min(R_imb,A,max(Gamma_plus,Gamma_minus))` and is independent of sigma.  Kink
