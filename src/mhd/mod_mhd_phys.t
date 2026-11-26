@@ -64,15 +64,15 @@ module mod_mhd_phys
   !> squared reduced speed of light c
   double precision, public, protected :: mhd_squared_c
   !> Dimensionless multiplier in the one_dimensional_gradient source only
-  double precision, public, protected :: mhd_uawsom_sigma = 0.d0
+  double precision, public, protected :: mhd_whiski_sigma = 0.d0
   !> Base transverse density contrast and filling factor
-  double precision, public, protected :: mhd_uawsom_zeta0 = 5.d0
-  double precision, public, protected :: mhd_uawsom_filling_factor = 0.1d0
+  double precision, public, protected :: mhd_whiski_zeta0 = 5.d0
+  double precision, public, protected :: mhd_whiski_filling_factor = 0.1d0
   !> Physical input scales (lengths and magnetic field); converted to code units at init
-  double precision, public, protected :: mhd_uawsom_zeta_scale = -1.d0
-  double precision, public, protected :: mhd_uawsom_thread_radius0 = -1.d0
-  double precision, public, protected :: mhd_uawsom_Bref = -1.d0
-  double precision, public, protected :: mhd_uawsom_alfven_corr_length0 = -1.d0
+  double precision, public, protected :: mhd_whiski_zeta_scale = -1.d0
+  double precision, public, protected :: mhd_whiski_thread_radius0 = -1.d0
+  double precision, public, protected :: mhd_whiski_Bref = -1.d0
+  double precision, public, protected :: mhd_whiski_alfven_corr_length0 = -1.d0
   !> equi vars indices in the state%equi_vars array
   integer, public :: equi_rho0_ = -1
   integer, public :: equi_pe0_ = -1
@@ -105,11 +105,11 @@ module mod_mhd_phys
   !> Index of the FIP passive scalar rho*fip in conserved form, fip in primitive form
   integer, public, protected :: fip_ = -1
   ! Parse the input mode once; source kernels use the private integer ID.
-  integer, parameter :: uawsom_reflection_1d=1, uawsom_reflection_cartesian=2
-  integer :: uawsom_reflection_id=uawsom_reflection_1d
+  integer, parameter :: whiski_reflection_1d=1, whiski_reflection_cartesian=2
+  integer :: whiski_reflection_id=whiski_reflection_1d
   !> Enable conservative kink-wave reflection from the kink-speed gradient
   !> Cartesian direction used for the prescribed density contrast and reflection gradient
-  integer, public, protected :: mhd_uawsom_height_dim = -1
+  integer, public, protected :: mhd_whiski_height_dim = -1
   !> Conserved wave-energy indices.  The plus variables propagate against B.
   integer, public, protected :: wAplus_=-1, wAminus_=-1, wkplus_=-1, wkminus_=-1
   !> Index of the cutoff temperature for the TRAC method
@@ -210,10 +210,10 @@ module mod_mhd_phys
   !> Whether FIP passive scalar is enabled
   logical, public, protected              :: mhd_fip = .false.
   !> Enable the Uniturbulence and Alfven Wave Solar Model extension
-  logical, public, protected              :: mhd_uawsom = .false.
+  logical, public, protected              :: mhd_whiski = .false.
   !> Enable conservative Alfvén reflection (one-dimensional or Cartesian gradient-vorticity)
-  logical, public, protected              :: mhd_uawsom_reflection = .false.
-  logical, public, protected              :: mhd_uawsom_kink_reflection = .false.
+  logical, public, protected              :: mhd_whiski_reflection = .false.
+  logical, public, protected              :: mhd_whiski_kink_reflection = .false.
   !> Add divB wave in Roe solver
   logical, public :: divbwave     = .true.
   !> clean initial divB
@@ -236,7 +236,7 @@ module mod_mhd_phys
   !> Algebra used by the Alfven-wave reflection source.  one_dimensional_gradient
   !> retains the original one-dimensional source; cartesian_gradient_vorticity
   !> is the multidimensional gradient/vorticity closure.
-  character(len=std_len), public, protected :: mhd_uawsom_reflection_mode = 'one_dimensional_gradient'
+  character(len=std_len), public, protected :: mhd_whiski_reflection_mode = 'one_dimensional_gradient'
   !> Perpendicular hyperbolic-TC closure mode:
   !> Enable/disable with mhd_hyperbolic_tc_use_perp, not the mode string.
   !> 'fixed_reference' = fixed classical ratio at the reference normalisation
@@ -289,10 +289,10 @@ module mod_mhd_phys
   public :: get_normalized_divb
   public :: b_from_vector_potential
   public :: mhd_mag_en_all
-  public :: mhd_uawsom_wave_energy_cell
-  public :: mhd_uawsom_rho2_factor
-  public :: mhd_uawsom_wave_pressure_cell
-  public :: mhd_uawsom_rho2_factor_cell
+  public :: mhd_whiski_wave_energy_cell
+  public :: mhd_whiski_rho2_factor
+  public :: mhd_whiski_wave_pressure_cell
+  public :: mhd_whiski_rho2_factor_cell
   {^NOONED
   public :: mhd_clean_divb_multigrid
   }
@@ -337,12 +337,12 @@ contains
       mhd_hyperbolic_tc_use_perp, mhd_hyperbolic_tc_perp_mode, &
       mhd_hyperbolic_tc_kappa_perp_factor, mhd_hyperbolic_tc_Bmin, &
       mhd_hyperbolic_tc_coulomb_log, &
-      mhd_radiation_fld,mhd_fld_pradtensor,mhd_fip, mhd_uawsom, mhd_uawsom_reflection, &
-      mhd_uawsom_reflection_mode, mhd_uawsom_kink_reflection, &
-      mhd_uawsom_sigma, mhd_uawsom_height_dim, mhd_uawsom_zeta0, &
-      mhd_uawsom_filling_factor, mhd_uawsom_zeta_scale, &
-      mhd_uawsom_thread_radius0, mhd_uawsom_Bref, &
-      mhd_uawsom_alfven_corr_length0, mhd_hd_mom_conserve_fix
+      mhd_radiation_fld,mhd_fld_pradtensor,mhd_fip, mhd_whiski, mhd_whiski_reflection, &
+      mhd_whiski_reflection_mode, mhd_whiski_kink_reflection, &
+      mhd_whiski_sigma, mhd_whiski_height_dim, mhd_whiski_zeta0, &
+      mhd_whiski_filling_factor, mhd_whiski_zeta_scale, &
+      mhd_whiski_thread_radius0, mhd_whiski_Bref, &
+      mhd_whiski_alfven_corr_length0, mhd_hd_mom_conserve_fix
 
     do n = 1, size(files)
        open(unitpar, file=trim(files(n)), status="old")
@@ -395,7 +395,7 @@ contains
     integer :: itr, idir
 
     call mhd_read_params(par_files)
-    if(mhd_uawsom_height_dim < 0) mhd_uawsom_height_dim=ndim
+    if(mhd_whiski_height_dim < 0) mhd_whiski_height_dim=ndim
 
     if(mhd_internal_e) then
       if(mhd_hydrodynamic_e) then
@@ -626,7 +626,7 @@ contains
       fip_ = -1
     end if
 
-    if (mhd_uawsom) then
+    if (mhd_whiski) then
       wAplus_  = var_set_fluxvar('wAplus',  'wAplus')
       wAminus_ = var_set_fluxvar('wAminus', 'wAminus')
       wkplus_  = var_set_fluxvar('wkplus',  'wkplus')
@@ -912,22 +912,22 @@ contains
     ! derive units from basic units
     call mhd_physical_units()
 
-    if(mhd_uawsom) then
+    if(mhd_whiski) then
       ! Namelist inputs are physical quantities, following the normal AMRVAC
       ! convention for this module (cm/G in cgs, m/T in SI).
-      if(mhd_uawsom_zeta_scale == -one) &
-        mhd_uawsom_zeta_scale=merge(3.4805d9,3.4805d11,SI_unit)
-      if(mhd_uawsom_thread_radius0 == -one) &
-        mhd_uawsom_thread_radius0=merge(1.d5,1.d7,SI_unit)
-      if(mhd_uawsom_Bref == -one) &
-        mhd_uawsom_Bref=merge(1.d-3,10.d0,SI_unit)
-      if(mhd_uawsom_alfven_corr_length0 == -one) &
-        mhd_uawsom_alfven_corr_length0=merge(1.5d7,1.5d9,SI_unit)
-      mhd_uawsom_zeta_scale = mhd_uawsom_zeta_scale/unit_length
-      mhd_uawsom_thread_radius0 = mhd_uawsom_thread_radius0/unit_length
-      mhd_uawsom_Bref = mhd_uawsom_Bref/unit_magneticfield
-      mhd_uawsom_alfven_corr_length0 = &
-           mhd_uawsom_alfven_corr_length0/unit_length
+      if(mhd_whiski_zeta_scale == -one) &
+        mhd_whiski_zeta_scale=merge(3.4805d9,3.4805d11,SI_unit)
+      if(mhd_whiski_thread_radius0 == -one) &
+        mhd_whiski_thread_radius0=merge(1.d5,1.d7,SI_unit)
+      if(mhd_whiski_Bref == -one) &
+        mhd_whiski_Bref=merge(1.d-3,10.d0,SI_unit)
+      if(mhd_whiski_alfven_corr_length0 == -one) &
+        mhd_whiski_alfven_corr_length0=merge(1.5d7,1.5d9,SI_unit)
+      mhd_whiski_zeta_scale = mhd_whiski_zeta_scale/unit_length
+      mhd_whiski_thread_radius0 = mhd_whiski_thread_radius0/unit_length
+      mhd_whiski_Bref = mhd_whiski_Bref/unit_magneticfield
+      mhd_whiski_alfven_corr_length0 = &
+           mhd_whiski_alfven_corr_length0/unit_length
     end if
 
     htc_perp_mode_id=htc_perp_disabled
@@ -1490,34 +1490,34 @@ contains
       'WARNING: typeboundspeed and H_correction are ignored', ' when mhd_semirelativistic=T'
     if(boundspeed==4) call mpistop("typeboundspeed='pvrs' is not implemented for mhd")
 
-    if(mhd_uawsom) then
+    if(mhd_whiski) then
       if(coordinate /= Cartesian .or. .not.slab_uniform) &
-        call mpistop('mhd_uawsom currently requires a uniform Cartesian grid')
+        call mpistop('mhd_whiski currently requires a uniform Cartesian grid')
       if(.not.mhd_energy .or. .not.total_energy) &
-        call mpistop('mhd_uawsom requires the standard total-energy MHD formulation')
+        call mpistop('mhd_whiski requires the standard total-energy MHD formulation')
       if(mhd_internal_e .or. mhd_hydrodynamic_e .or. mhd_semirelativistic .or. &
          has_equi_rho_and_p .or. mhd_radiation_fld) &
-        call mpistop('mhd_uawsom: unsupported MHD option')
+        call mpistop('mhd_whiski: unsupported MHD option')
       if(trim(eos%eos_type) /= 'FI') &
-        call mpistop("mhd_uawsom currently supports eos_type='FI' only")
-      if(mhd_uawsom_height_dim < 1 .or. mhd_uawsom_height_dim > ndim) &
-        call mpistop('mhd_uawsom_height_dim must be between 1 and ndim')
-      if(mhd_uawsom_zeta0 <= one .or. mhd_uawsom_filling_factor <= zero .or. &
-         mhd_uawsom_filling_factor >= one) &
-        call mpistop('mhd_uawsom requires zeta0>1 and 0<filling_factor<1')
-      if(mhd_uawsom_zeta_scale <= zero .or. &
-         mhd_uawsom_thread_radius0 <= zero .or. &
-         mhd_uawsom_alfven_corr_length0 <= zero .or. mhd_uawsom_Bref <= zero) &
-        call mpistop('mhd_uawsom: scales must be positive')
-      if(mhd_uawsom_sigma < zero) &
-        call mpistop('mhd_uawsom_sigma must be non-negative')
-      select case(trim(mhd_uawsom_reflection_mode))
+        call mpistop("mhd_whiski currently supports eos_type='FI' only")
+      if(mhd_whiski_height_dim < 1 .or. mhd_whiski_height_dim > ndim) &
+        call mpistop('mhd_whiski_height_dim must be between 1 and ndim')
+      if(mhd_whiski_zeta0 <= one .or. mhd_whiski_filling_factor <= zero .or. &
+         mhd_whiski_filling_factor >= one) &
+        call mpistop('mhd_whiski requires zeta0>1 and 0<filling_factor<1')
+      if(mhd_whiski_zeta_scale <= zero .or. &
+         mhd_whiski_thread_radius0 <= zero .or. &
+         mhd_whiski_alfven_corr_length0 <= zero .or. mhd_whiski_Bref <= zero) &
+        call mpistop('mhd_whiski: scales must be positive')
+      if(mhd_whiski_sigma < zero) &
+        call mpistop('mhd_whiski_sigma must be non-negative')
+      select case(trim(mhd_whiski_reflection_mode))
       case('one_dimensional_gradient')
-        uawsom_reflection_id=uawsom_reflection_1d
+        whiski_reflection_id=whiski_reflection_1d
       case('cartesian_gradient_vorticity')
-        uawsom_reflection_id=uawsom_reflection_cartesian
+        whiski_reflection_id=whiski_reflection_cartesian
       case default
-        call mpistop('invalid mhd_uawsom_reflection_mode')
+        call mpistop('invalid mhd_whiski_reflection_mode')
       end select
     end if
 
@@ -1952,9 +1952,9 @@ contains
         if(w(ix^D,p_)<small_pressure) flag(ix^D,e_) = .true.
       else
         if(w(ix^D,e_)-half*((^C&w(ix^D,m^C_)**2+)/w(ix^D,rho_)+&
-          (^C&w(ix^D,b^C_)**2+))-mhd_uawsom_wave_energy_cell(w(ix^D,:))&
+          (^C&w(ix^D,b^C_)**2+))-mhd_whiski_wave_energy_cell(w(ix^D,:))&
           <small_e) flag(ix^D,e_) = .true.
-        if(mhd_uawsom) then
+        if(mhd_whiski) then
           if(w(ix^D,wAplus_)<zero) flag(ix^D,wAplus_)=.true.
           if(w(ix^D,wAminus_)<zero) flag(ix^D,wAminus_)=.true.
           if(w(ix^D,wkplus_)<zero) flag(ix^D,wkplus_)=.true.
@@ -2078,11 +2078,11 @@ contains
     end if
   end subroutine mhd_bound_fip
 
-  !> Return local UAWSoM closure coefficients in code units.  User cases may
-  !> replace all three profiles through usr_uawsom_coefficients.
-  subroutine mhd_uawsom_get_coefficients(w,x,ixI^L,ixO^L,primitive,zeta,radius,lperp_A)
+  !> Return local whiski closure coefficients in code units.  User cases may
+  !> replace all three profiles through usr_whiski_coefficients.
+  subroutine mhd_whiski_get_coefficients(w,x,ixI^L,ixO^L,primitive,zeta,radius,lperp_A)
     use mod_global_parameters
-    use mod_usr_methods, only: usr_uawsom_coefficients
+    use mod_usr_methods, only: usr_whiski_coefficients
     integer, intent(in) :: ixI^L, ixO^L
     double precision, intent(in) :: w(ixI^S,1:nw), x(ixI^S,1:ndim)
     logical, intent(in) :: primitive
@@ -2090,8 +2090,8 @@ contains
     double precision :: Bmag(ixI^S), Btotal(ixI^S,1:ndir), height_base
     integer :: idir
 
-    if(associated(usr_uawsom_coefficients)) then
-      call usr_uawsom_coefficients(w,x,ixI^L,ixO^L,primitive,zeta,radius,lperp_A)
+    if(associated(usr_whiski_coefficients)) then
+      call usr_whiski_coefficients(w,x,ixI^L,ixO^L,primitive,zeta,radius,lperp_A)
     else
       do idir=1,ndir
         if(B0field) then
@@ -2101,7 +2101,7 @@ contains
         end if
       end do
       Bmag(ixO^S)=dsqrt(sum(Btotal(ixO^S,1:ndir)**2,dim=ndim+1))
-      select case(mhd_uawsom_height_dim)
+      select case(mhd_whiski_height_dim)
       case(1)
         height_base=xprobmin1
       {^NOONED
@@ -2113,77 +2113,77 @@ contains
         height_base=xprobmin3
       }
       end select
-      zeta(ixO^S)=one+(mhd_uawsom_zeta0-one)*dexp(&
-           -max(x(ixO^S,mhd_uawsom_height_dim)-height_base,zero)/&
-           mhd_uawsom_zeta_scale)
-      radius(ixO^S)=mhd_uawsom_thread_radius0*dsqrt(&
-           mhd_uawsom_Bref/max(Bmag(ixO^S),smalldouble))
-      lperp_A(ixO^S)=mhd_uawsom_alfven_corr_length0*dsqrt(&
-           mhd_uawsom_Bref/max(Bmag(ixO^S),smalldouble))
+      zeta(ixO^S)=one+(mhd_whiski_zeta0-one)*dexp(&
+           -max(x(ixO^S,mhd_whiski_height_dim)-height_base,zero)/&
+           mhd_whiski_zeta_scale)
+      radius(ixO^S)=mhd_whiski_thread_radius0*dsqrt(&
+           mhd_whiski_Bref/max(Bmag(ixO^S),smalldouble))
+      lperp_A(ixO^S)=mhd_whiski_alfven_corr_length0*dsqrt(&
+           mhd_whiski_Bref/max(Bmag(ixO^S),smalldouble))
     end if
     if(any(zeta(ixO^S)<=one) .or. any(radius(ixO^S)<=zero) .or. &
        any(lperp_A(ixO^S)<=zero)) &
-      call mpistop('mhd_uawsom coefficients require zeta>1 and positive lengths')
-  end subroutine mhd_uawsom_get_coefficients
+      call mpistop('mhd_whiski coefficients require zeta>1 and positive lengths')
+  end subroutine mhd_whiski_get_coefficients
 
-  subroutine mhd_uawsom_rho2_factor(ixI^L,ixO^L,w,x,factor)
+  subroutine mhd_whiski_rho2_factor(ixI^L,ixO^L,w,x,factor)
     use mod_global_parameters
     integer, intent(in) :: ixI^L, ixO^L
     double precision, intent(in) :: w(ixI^S,1:nw), x(ixI^S,1:ndim)
     double precision, intent(out) :: factor(ixI^S)
     double precision :: zeta(ixI^S), radius(ixI^S), lperp_A(ixI^S)
-    call mhd_uawsom_get_coefficients(w,x,ixI^L,ixO^L,.false.,zeta,radius,lperp_A)
-    factor(ixO^S)=mhd_uawsom_rho2_factor_cell(zeta(ixO^S))
-  end subroutine mhd_uawsom_rho2_factor
+    call mhd_whiski_get_coefficients(w,x,ixI^L,ixO^L,.false.,zeta,radius,lperp_A)
+    factor(ixO^S)=mhd_whiski_rho2_factor_cell(zeta(ixO^S))
+  end subroutine mhd_whiski_rho2_factor
 
-  elemental pure double precision function mhd_uawsom_rho2_factor_cell(zeta)
+  elemental pure double precision function mhd_whiski_rho2_factor_cell(zeta)
     double precision, intent(in) :: zeta
     double precision :: f
-    f=mhd_uawsom_filling_factor
-    mhd_uawsom_rho2_factor_cell=1.d0+f*(1.d0-f)*(zeta-1.d0)**2/&
+    f=mhd_whiski_filling_factor
+    mhd_whiski_rho2_factor_cell=1.d0+f*(1.d0-f)*(zeta-1.d0)**2/&
          (1.d0+f*zeta-f)**2
-  end function mhd_uawsom_rho2_factor_cell
+  end function mhd_whiski_rho2_factor_cell
 
-  pure double precision function mhd_uawsom_wave_pressure_cell(wcell,zeta)
+  pure double precision function mhd_whiski_wave_pressure_cell(wcell,zeta)
     double precision, intent(in) :: wcell(:),zeta
-    mhd_uawsom_wave_pressure_cell=0.5d0*(wcell(wAplus_)+wcell(wAminus_))+&
+    mhd_whiski_wave_pressure_cell=0.5d0*(wcell(wAplus_)+wcell(wAminus_))+&
          0.25d0*(zeta+1.d0)*(wcell(wkplus_)+wcell(wkminus_))
-  end function mhd_uawsom_wave_pressure_cell
+  end function mhd_whiski_wave_pressure_cell
 
-  pure double precision function mhd_uawsom_wave_energy_cell(wcell)
+  pure double precision function mhd_whiski_wave_energy_cell(wcell)
     use mod_constants, only: zero
     double precision, intent(in) :: wcell(:)
-    if(mhd_uawsom) then
-      mhd_uawsom_wave_energy_cell=wcell(wAplus_)+wcell(wAminus_)+&
+    if(mhd_whiski) then
+      mhd_whiski_wave_energy_cell=wcell(wAplus_)+wcell(wAminus_)+&
            wcell(wkplus_)+wcell(wkminus_)
     else
-      mhd_uawsom_wave_energy_cell=zero
+      mhd_whiski_wave_energy_cell=zero
     end if
-  end function mhd_uawsom_wave_energy_cell
+  end function mhd_whiski_wave_energy_cell
 
   !> Signed population imbalance used by the Cartesian gradient-vorticity reflection model.
   !> A positive value transfers W_A^+ (or W_k^+) to the minus population;
   !> a negative value transfers the minus population to the plus population.
   !> The factor is zero for a balanced state and remains bounded in [-1,1]
   !> for an arbitrarily imbalanced state.
-  elemental pure double precision function mhd_uawsom_imbalance_factor(wplus,wminus)
+  elemental pure double precision function mhd_whiski_imbalance_factor(wplus,wminus)
     double precision, intent(in) :: wplus,wminus
 
     if(wplus<=0.d0 .or. wminus<=0.d0) then
-      mhd_uawsom_imbalance_factor=0.d0
+      mhd_whiski_imbalance_factor=0.d0
     else if(4.d0*wminus<=wplus) then
-      mhd_uawsom_imbalance_factor=1.d0-2.d0*dsqrt(wminus/wplus)
+      mhd_whiski_imbalance_factor=1.d0-2.d0*dsqrt(wminus/wplus)
     else if(4.d0*wplus<=wminus) then
-      mhd_uawsom_imbalance_factor=-(1.d0-2.d0*dsqrt(wplus/wminus))
+      mhd_whiski_imbalance_factor=-(1.d0-2.d0*dsqrt(wplus/wminus))
     else
-      mhd_uawsom_imbalance_factor=0.d0
+      mhd_whiski_imbalance_factor=0.d0
     end if
-  end function mhd_uawsom_imbalance_factor
+  end function mhd_whiski_imbalance_factor
 
-  !> UAWSoM compression, nonlinear damping, and optional Alfven reflection.
+  !> whiski compression, nonlinear damping, and optional Alfven reflection.
   !> Total energy is intentionally unchanged by damping: because it contains
   !> the four W variables, their loss is recovered as gas internal energy.
-  subroutine mhd_add_source_uawsom(qdt,ixI^L,ixO^L,wCT,wCTprim,w,x)
+  subroutine mhd_add_source_whiski(qdt,ixI^L,ixO^L,wCT,wCTprim,w,x)
     use mod_global_parameters
     use mod_geometry, only: divvector, gradient, curlvector
     integer, intent(in) :: ixI^L, ixO^L
@@ -2214,8 +2214,8 @@ contains
     call divvector(v,ixI^L,ixO^L,divv)
     ! Reflection gradients need one-cell ghost values, so obtain the closure
     ! profiles on ixI rather than only on the source update region.
-    call mhd_uawsom_get_coefficients(wCT,x,ixI^L,ixI^L,.false.,zeta,radius,lperp_A)
-    f=mhd_uawsom_filling_factor
+    call mhd_whiski_get_coefficients(wCT,x,ixI^L,ixI^L,.false.,zeta,radius,lperp_A)
+    f=mhd_whiski_filling_factor
     rho_e(ixI^S)=max(wCT(ixI^S,rho_),small_density)/&
          max(one+f*zeta(ixI^S)-f,smalldouble)
     lperp_k(ixI^S)=dsqrt(10.d0)*dsqrt(f*dpi)*radius(ixI^S)*&
@@ -2232,7 +2232,7 @@ contains
     dampkm(ixO^S)=max(wCT(ixO^S,wkminus_),zero)**1.5d0/&
          (dsqrt(rho_e(ixO^S))*lperp_k(ixO^S))
     ! These rates limit kink reflection; ordinary kink damping uses dampkp/km.
-    if(mhd_uawsom_kink_reflection) then
+    if(mhd_whiski_kink_reflection) then
       gamma_kplus(ixO^S)=dsqrt(max(wCT(ixO^S,wkplus_),zero)/&
            max(rho_e(ixO^S),small_density))/max(lperp_k(ixO^S),smalldouble)
       gamma_kminus(ixO^S)=dsqrt(max(wCT(ixO^S,wkminus_),zero)/&
@@ -2254,15 +2254,15 @@ contains
          (zeta(ixO^S)+one)*kink_pressure(ixO^S)*divv(ixO^S)
 
     have_alfven_reflection=.false.
-    if(mhd_uawsom_reflection) then
-      select case(uawsom_reflection_id)
-      case(uawsom_reflection_1d)
-        have_alfven_reflection=(mhd_uawsom_sigma>zero)
-      case(uawsom_reflection_cartesian)
+    if(mhd_whiski_reflection) then
+      select case(whiski_reflection_id)
+      case(whiski_reflection_1d)
+        have_alfven_reflection=(mhd_whiski_sigma>zero)
+      case(whiski_reflection_cartesian)
         have_alfven_reflection=.true.
       end select
     end if
-    have_kink_reflection=mhd_uawsom_kink_reflection
+    have_kink_reflection=mhd_whiski_kink_reflection
     have_reflection=have_alfven_reflection .or. have_kink_reflection
     if(have_reflection) then
       do idir=1,ndir
@@ -2274,14 +2274,14 @@ contains
       end do
       Bmag(ixI^S)=dsqrt(sum(Btotal(ixI^S,1:ndir)**2,dim=ndim+1))
       if(have_kink_reflection .or. &
-           (have_alfven_reflection .and. uawsom_reflection_id==uawsom_reflection_cartesian)) then
+           (have_alfven_reflection .and. whiski_reflection_id==whiski_reflection_cartesian)) then
         do idir=1,ndir
           Bunit(ixI^S,idir)=Btotal(ixI^S,idir)/max(Bmag(ixI^S),smalldouble)
         end do
       end if
       if(have_alfven_reflection) then
         va(ixI^S)=Bmag(ixI^S)/dsqrt(max(wCT(ixI^S,rho_),small_density))
-        if(uawsom_reflection_id==uawsom_reflection_cartesian) &
+        if(whiski_reflection_id==whiski_reflection_cartesian) &
           lnva(ixI^S)=dlog(max(va(ixI^S),smalldouble))
       end if
       if(have_kink_reflection) then
@@ -2298,18 +2298,18 @@ contains
         wave_plus(ixO^S)=max(wCT(ixO^S,wAplus_),zero)
         wave_minus(ixO^S)=max(wCT(ixO^S,wAminus_),zero)
 
-        select case(uawsom_reflection_id)
-        case(uawsom_reflection_1d)
+        select case(whiski_reflection_id)
+        case(whiski_reflection_1d)
           ! Retain the original one-dimensional source and sign convention:
           ! a positive transfer removes W_A^+ and adds W_A^-.
-          call gradient(va,ixI^L,ixO^L,mhd_uawsom_height_dim,grad_component)
-          refl_rate(ixO^S)=mhd_uawsom_sigma*&
-               (wCTprim(ixO^S,mom(mhd_uawsom_height_dim))+va(ixO^S))/&
+          call gradient(va,ixI^L,ixO^L,mhd_whiski_height_dim,grad_component)
+          refl_rate(ixO^S)=mhd_whiski_sigma*&
+               (wCTprim(ixO^S,mom(mhd_whiski_height_dim))+va(ixO^S))/&
                max(va(ixO^S),smalldouble)*grad_component(ixO^S)
           donor_reflection(ixO^S)=merge(max(wCT(ixO^S,wAplus_),zero),&
                max(wCT(ixO^S,wAminus_),zero),refl_rate(ixO^S)>=zero)
           transfer_A(ixO^S)=refl_rate(ixO^S)*donor_reflection(ixO^S)
-        case(uawsom_reflection_cartesian)
+        case(whiski_reflection_cartesian)
           grad_A(ixO^S)=zero
           do idir=1,ndim
             call gradient(lnva,ixI^L,ixO^L,idir,grad_component)
@@ -2327,7 +2327,7 @@ contains
           rimb_A(ixO^S)=dsqrt(grad_A(ixO^S)**2+vorticity(ixO^S)**2)
           rlim_A(ixO^S)=min(rimb_A(ixO^S),&
                max(gamma_plus(ixO^S),gamma_minus(ixO^S)))
-          imbalance_A(ixO^S)=mhd_uawsom_imbalance_factor(&
+          imbalance_A(ixO^S)=mhd_whiski_imbalance_factor(&
                wave_plus(ixO^S),wave_minus(ixO^S))
           transfer_A(ixO^S)=rlim_A(ixO^S)*imbalance_A(ixO^S)*&
                dsqrt(wave_plus(ixO^S)*wave_minus(ixO^S))
@@ -2359,7 +2359,7 @@ contains
         ! and sigma is not part of this limiter.
         rlim_k(ixO^S)=min(abs(grad_k(ixO^S)),&
              max(gamma_kplus(ixO^S),gamma_kminus(ixO^S)))
-        imbalance_k(ixO^S)=mhd_uawsom_imbalance_factor(&
+        imbalance_k(ixO^S)=mhd_whiski_imbalance_factor(&
              wave_kplus(ixO^S),wave_kminus(ixO^S))
         transfer_k(ixO^S)=rlim_k(ixO^S)*imbalance_k(ixO^S)*&
              dsqrt(wave_kplus(ixO^S)*wave_kminus(ixO^S))
@@ -2375,7 +2375,7 @@ contains
         w(ixO^S,wkminus_)=w(ixO^S,wkminus_)+qdt*transfer_k(ixO^S)
       end if
     end if
-  end subroutine mhd_add_source_uawsom
+  end subroutine mhd_add_source_whiski
 
   !> Transform internal energy to total energy
   subroutine mhd_ei_to_e(ixI^L,ixO^L,w,x)
@@ -2401,7 +2401,7 @@ contains
         w(ix^D,e_)=w(ix^D,e_)&
                   +half*((^C&w(ix^D,m^C_)**2+)/w(ix^D,rho_)&
                         +(^C&w(ix^D,b^C_)**2+))&
-                  +mhd_uawsom_wave_energy_cell(w(ix^D,:))
+                  +mhd_whiski_wave_energy_cell(w(ix^D,:))
      {end do\}
     end if
   end subroutine mhd_ei_to_e
@@ -2551,7 +2551,7 @@ contains
         w(ix^D,e_)=w(ix^D,e_)&
                   -half*((^C&w(ix^D,m^C_)**2+)/w(ix^D,rho_)&
                         +(^C&w(ix^D,b^C_)**2+))&
-                  -mhd_uawsom_wave_energy_cell(w(ix^D,:))
+                  -mhd_whiski_wave_energy_cell(w(ix^D,:))
      {end do\}
     end if
 
@@ -2733,7 +2733,7 @@ contains
           if(primitive) then
             if(flag(ix^D,e_)) w(ix^D,p_)=small_pressure
           else
-            if(mhd_uawsom) then
+            if(mhd_whiski) then
               if(flag(ix^D,wAplus_)) w(ix^D,wAplus_)=zero
               if(flag(ix^D,wAminus_)) w(ix^D,wAminus_)=zero
               if(flag(ix^D,wkplus_)) w(ix^D,wkplus_)=zero
@@ -2741,7 +2741,7 @@ contains
             end if
             if(flag(ix^D,e_)) &
               w(ix^D,e_)=small_e+half*((^C&w(ix^D,m^C_)**2+)/w(ix^D,rho_)+(^C&w(ix^D,b^C_)**2+))&
-                   +mhd_uawsom_wave_energy_cell(w(ix^D,:))
+                   +mhd_whiski_wave_energy_cell(w(ix^D,:))
           end if
           if(mhd_radiation_fld)then
             if(small_values_fix_iw(r_e)) then
@@ -2755,7 +2755,7 @@ contains
         if(primitive)then
           call small_values_average(ixI^L, ixO^L, w, x, flag, p_)
         else
-          if(mhd_uawsom) then
+          if(mhd_whiski) then
             call small_values_average(ixI^L,ixO^L,w,x,flag,wAplus_)
             call small_values_average(ixI^L,ixO^L,w,x,flag,wAminus_)
             call small_values_average(ixI^L,ixO^L,w,x,flag,wkplus_)
@@ -2765,14 +2765,14 @@ contains
          {do ix^DB=ixImin^DB,ixImax^DB\}
             w(ix^D,e_)=w(ix^D,e_)&
                 -half*((^C&w(ix^D,m^C_)**2+)/w(ix^D,rho_)+(^C&w(ix^D,b^C_)**2+))&
-                -mhd_uawsom_wave_energy_cell(w(ix^D,:))
+                -mhd_whiski_wave_energy_cell(w(ix^D,:))
          {end do\}
           call small_values_average(ixI^L, ixO^L, w, x, flag, e_)
           ! convert back
          {do ix^DB=ixImin^DB,ixImax^DB\}
             w(ix^D,e_)=w(ix^D,e_)&
                 +half*((^C&w(ix^D,m^C_)**2+)/w(ix^D,rho_)+(^C&w(ix^D,b^C_)**2+))&
-                +mhd_uawsom_wave_energy_cell(w(ix^D,:))
+                +mhd_whiski_wave_energy_cell(w(ix^D,:))
          {end do\}
         end if
         if(mhd_radiation_fld) then
@@ -2785,7 +2785,7 @@ contains
             ^C&w(ix^D,m^C_)=w(ix^D,m^C_)/w(ix^D,rho_)\
             w(ix^D,p_)=eos%gamma_minus_1*(w(ix^D,e_)&
                 -half*((^C&w(ix^D,m^C_)**2+)*w(ix^D,rho_)+(^C&w(ix^D,b^C_)**2+))&
-                -mhd_uawsom_wave_energy_cell(w(ix^D,:)))
+                -mhd_whiski_wave_energy_cell(w(ix^D,:)))
          {end do\}
         end if
         call small_values_error(w, x, ixI^L, ixO^L, flag, subname)
@@ -3025,12 +3025,12 @@ contains
 
   end subroutine mhd_get_v
 
-  !> Comoving UAWSoM signal-speed bound shared by CFL and HLL (primitive input).
+  !> Comoving whiski signal-speed bound shared by CFL and HLL (primitive input).
   !> For locally fixed closure coefficients the ideal-MHD/wave principal matrix
   !> is symmetric after rescaling. Its blocks have bounds cfast and awave,
   !> and coupling norm sqrt(Pwave/rho). The final expression bounds both signs.
   !> This does not bound reflection-gradient closures or state-dependent zeta.
-  subroutine mhd_uawsom_get_signal_speed(w,x,ixI^L,ixO^L,idim,csignal)
+  subroutine mhd_whiski_get_signal_speed(w,x,ixI^L,ixO^L,idim,csignal)
     use mod_global_parameters
     integer, intent(in) :: ixI^L, ixO^L, idim
     double precision, intent(in) :: w(ixI^S,nw), x(ixI^S,1:ndim)
@@ -3041,9 +3041,9 @@ contains
     integer :: ix^D
 
     call eos%get_csound2(w,x,ixI^L,ixO^L,cs2)
-    call mhd_uawsom_get_coefficients(w,x,ixI^L,ixO^L,.true.,zeta,radius,lperp)
+    call mhd_whiski_get_coefficients(w,x,ixI^L,ixO^L,.true.,zeta,radius,lperp)
     if(mhd_hall) kmax=dpi/min({dxlevel(^D)},bigdouble)*half
-    ! UAWSoM parameter checks exclude equilibrium density/pressure splitting.
+    ! whiski parameter checks exclude equilibrium density/pressure splitting.
    {do ix^DB=ixOmin^DB,ixOmax^DB\}
       inv_rho=one/w(ix^D,rho_)
       ^C&btotal(^C)=w(ix^D,b^C_)\
@@ -3051,7 +3051,7 @@ contains
         ^C&btotal(^C)=btotal(^C)+block%B0(ix^D,^C,b0i)\
       end if
       b2=(^C&btotal(^C)**2+)
-      qwave=mhd_uawsom_wave_pressure_cell(w(ix^D,:),zeta(ix^D))*inv_rho
+      qwave=mhd_whiski_wave_pressure_cell(w(ix^D,:),zeta(ix^D))*inv_rho
       ! Only the signal estimate changes; the thermal EOS sound speed is intact.
       sound2=cs2(ix^D)+half*qwave
       cfast2=b2*inv_rho+sound2
@@ -3061,11 +3061,11 @@ contains
       if(mhd_hall) cfast=max(cfast,mhd_etah*sqrt(b2)*inv_rho*kmax)
       ! Use the same filling-factor dependence as the kink energy flux.
       awave=abs(btotal(idim))*sqrt(inv_rho)*max(one,&
-           sqrt(two*(one+mhd_uawsom_filling_factor*zeta(ix^D)-&
-           mhd_uawsom_filling_factor)/(zeta(ix^D)+one)))
+           sqrt(two*(one+mhd_whiski_filling_factor*zeta(ix^D)-&
+           mhd_whiski_filling_factor)/(zeta(ix^D)+one)))
       csignal(ix^D)=half*(cfast+awave+sqrt((cfast-awave)**2+4.d0*qwave))
    {end do\}
-  end subroutine mhd_uawsom_get_signal_speed
+  end subroutine mhd_whiski_get_signal_speed
 
   !> Calculate cmax_idim=csound+abs(v_idim) within ixO^L
   subroutine mhd_get_cmax_origin(w,x,ixI^L,ixO^L,idim,cmax)
@@ -3079,8 +3079,8 @@ contains
     double precision :: cs2(ixI^S)
     integer :: ix^D
 
-    if(mhd_uawsom) then
-      call mhd_uawsom_get_signal_speed(w,x,ixI^L,ixO^L,idim,cmax(ixO^S))
+    if(mhd_whiski) then
+      call mhd_whiski_get_signal_speed(w,x,ixI^L,ixO^L,idim,cmax(ixO^S))
       cmax(ixO^S)=abs(w(ixO^S,mom(idim)))+cmax(ixO^S)
       return
     end if
@@ -4078,8 +4078,8 @@ contains
     double precision :: cs2(ixI^S)
     integer :: ix^D
 
-    if(mhd_uawsom) then
-      call mhd_uawsom_get_signal_speed(w,x,ixI^L,ixO^L,idim,csound)
+    if(mhd_whiski) then
+      call mhd_whiski_get_signal_speed(w,x,ixI^L,ixO^L,idim,csound)
       return
     end if
 
@@ -4343,14 +4343,14 @@ contains
     double precision             :: vHall(ixI^S,1:ndir)
     double precision             :: ptotal
     double precision             :: nperp(ixI^S,1:ndir)
-    double precision             :: uawsom_zeta(ixI^S), uawsom_radius(ixI^S)
-    double precision             :: uawsom_lperp(ixI^S), uawsom_denom
-    double precision             :: uawsom_pwave, uawsom_Bi
+    double precision             :: whiski_zeta(ixI^S), whiski_radius(ixI^S)
+    double precision             :: whiski_lperp(ixI^S), whiski_denom
+    double precision             :: whiski_pwave, whiski_Bi
     double precision             :: bunit_tc(ndir)
     integer                      :: iw, ix^D
 
-    if(mhd_uawsom) call mhd_uawsom_get_coefficients(w,x,ixI^L,ixO^L,.true.,&
-         uawsom_zeta,uawsom_radius,uawsom_lperp)
+    if(mhd_whiski) call mhd_whiski_get_coefficients(w,x,ixI^L,ixO^L,.true.,&
+         whiski_zeta,whiski_radius,whiski_lperp)
 
     if(mhd_internal_e) then
      {do ix^DB=ixOmin^DB,ixOmax^DB\}
@@ -4372,9 +4372,9 @@ contains
         ! f_i[m_k]=v_i*m_k-b_k*b_i
         ^C&f(ix^D,m^C_)=wC(ix^D,mom(idim))*w(ix^D,m^C_)-w(ix^D,mag(idim))*w(ix^D,b^C_)\
         ptotal=w(ix^D,p_)+half*(^C&w(ix^D,b^C_)**2+)
-        if(mhd_uawsom) then
-          uawsom_pwave=mhd_uawsom_wave_pressure_cell(w(ix^D,:),uawsom_zeta(ix^D))
-          ptotal=ptotal+uawsom_pwave
+        if(mhd_whiski) then
+          whiski_pwave=mhd_whiski_wave_pressure_cell(w(ix^D,:),whiski_zeta(ix^D))
+          ptotal=ptotal+whiski_pwave
         end if
         ! normal one includes total pressure
         f(ix^D,mom(idim))=f(ix^D,mom(idim))+ptotal
@@ -4382,14 +4382,14 @@ contains
         ! f_i[e]=v_i*e+v_i*ptotal-b_i*(b_k*v_k)
         f(ix^D,e_)=w(ix^D,mom(idim))*(wC(ix^D,e_)+ptotal)&
            -w(ix^D,mag(idim))*(^C&w(ix^D,b^C_)*w(ix^D,m^C_)+)
-        if(mhd_uawsom) then
-          uawsom_denom=dsqrt(w(ix^D,rho_)*(uawsom_zeta(ix^D)+one)/&
-               (two*(one+mhd_uawsom_filling_factor*uawsom_zeta(ix^D)-&
-               mhd_uawsom_filling_factor)))
-          uawsom_Bi=w(ix^D,mag(idim))
-          f(ix^D,e_)=f(ix^D,e_)+uawsom_Bi*(&
+        if(mhd_whiski) then
+          whiski_denom=dsqrt(w(ix^D,rho_)*(whiski_zeta(ix^D)+one)/&
+               (two*(one+mhd_whiski_filling_factor*whiski_zeta(ix^D)-&
+               mhd_whiski_filling_factor)))
+          whiski_Bi=w(ix^D,mag(idim))
+          f(ix^D,e_)=f(ix^D,e_)+whiski_Bi*(&
                (w(ix^D,wAminus_)-w(ix^D,wAplus_))/dsqrt(w(ix^D,rho_))+&
-               (w(ix^D,wkminus_)-w(ix^D,wkplus_))/uawsom_denom)
+               (w(ix^D,wkminus_)-w(ix^D,wkplus_))/whiski_denom)
         end if
         ! f_i[b_k]=v_i*b_k-v_k*b_i
         ^C&f(ix^D,b^C_)=w(ix^D,mom(idim))*w(ix^D,b^C_)-w(ix^D,mag(idim))*w(ix^D,m^C_)\
@@ -4425,18 +4425,18 @@ contains
     if (mhd_fip) then
       f(ixO^S,fip_) = w(ixO^S,mom(idim)) * wC(ixO^S,fip_)
     end if
-    if(mhd_uawsom) then
+    if(mhd_whiski) then
      {do ix^DB=ixOmin^DB,ixOmax^DB\}
-      uawsom_denom=dsqrt(w(ix^D,rho_)*(uawsom_zeta(ix^D)+one)/&
-           (two*(one+mhd_uawsom_filling_factor*uawsom_zeta(ix^D)-&
-           mhd_uawsom_filling_factor)))
-      uawsom_Bi=w(ix^D,mag(idim))
+      whiski_denom=dsqrt(w(ix^D,rho_)*(whiski_zeta(ix^D)+one)/&
+           (two*(one+mhd_whiski_filling_factor*whiski_zeta(ix^D)-&
+           mhd_whiski_filling_factor)))
+      whiski_Bi=w(ix^D,mag(idim))
       f(ix^D,wAplus_)=w(ix^D,wAplus_)*(w(ix^D,mom(idim))-&
-           uawsom_Bi/dsqrt(w(ix^D,rho_)))
+           whiski_Bi/dsqrt(w(ix^D,rho_)))
       f(ix^D,wAminus_)=w(ix^D,wAminus_)*(w(ix^D,mom(idim))+&
-           uawsom_Bi/dsqrt(w(ix^D,rho_)))
-      f(ix^D,wkplus_)=w(ix^D,wkplus_)*(w(ix^D,mom(idim))-uawsom_Bi/uawsom_denom)
-      f(ix^D,wkminus_)=w(ix^D,wkminus_)*(w(ix^D,mom(idim))+uawsom_Bi/uawsom_denom)
+           whiski_Bi/dsqrt(w(ix^D,rho_)))
+      f(ix^D,wkplus_)=w(ix^D,wkplus_)*(w(ix^D,mom(idim))-whiski_Bi/whiski_denom)
+      f(ix^D,wkminus_)=w(ix^D,wkminus_)*(w(ix^D,mom(idim))+whiski_Bi/whiski_denom)
      {end do\}
     end if
     ! Get flux of tracer
@@ -4617,15 +4617,15 @@ contains
     double precision             :: vHall(ixI^S,1:ndir)
     double precision             :: ptotal, btotal(ixO^S,1:ndir)
     double precision             :: nperp(ixI^S,1:ndir)
-    double precision             :: uawsom_zeta(ixI^S), uawsom_radius(ixI^S)
-    double precision             :: uawsom_lperp(ixI^S), uawsom_denom
-    double precision             :: uawsom_pwave, uawsom_Bi
+    double precision             :: whiski_zeta(ixI^S), whiski_radius(ixI^S)
+    double precision             :: whiski_lperp(ixI^S), whiski_denom
+    double precision             :: whiski_pwave, whiski_Bi
     double precision             :: bunit_tc(ndir)
     logical                      :: use_perp_flux
     integer                      :: iw, ix^D
 
-    if(mhd_uawsom) call mhd_uawsom_get_coefficients(w,x,ixI^L,ixO^L,.true.,&
-         uawsom_zeta,uawsom_radius,uawsom_lperp)
+    if(mhd_whiski) call mhd_whiski_get_coefficients(w,x,ixI^L,ixO^L,.true.,&
+         whiski_zeta,whiski_radius,whiski_lperp)
 
    {do ix^DB=ixOmin^DB,ixOmax^DB\}
       ! Get flux of density
@@ -4652,9 +4652,9 @@ contains
         ^C&f(ix^D,m^C_)=wC(ix^D,mom(idim))*w(ix^D,m^C_)-w(ix^D,mag(idim))*w(ix^D,b^C_)\
         f(ix^D,mom(idim))=f(ix^D,mom(idim))+ptotal
       end if
-      if(mhd_uawsom) then
-        uawsom_pwave=mhd_uawsom_wave_pressure_cell(w(ix^D,:),uawsom_zeta(ix^D))
-        f(ix^D,mom(idim))=f(ix^D,mom(idim))+uawsom_pwave
+      if(mhd_whiski) then
+        whiski_pwave=mhd_whiski_wave_pressure_cell(w(ix^D,:),whiski_zeta(ix^D))
+        f(ix^D,mom(idim))=f(ix^D,mom(idim))+whiski_pwave
       end if
       ! f_i[b_k]=v_i*b_k-v_k*b_i
       ^C&f(ix^D,b^C_)=w(ix^D,mom(idim))*btotal(ix^D,^C)-btotal(ix^D,idim)*w(ix^D,m^C_)\
@@ -4666,14 +4666,14 @@ contains
       else
         f(ix^D,e_)=w(ix^D,mom(idim))*(wC(ix^D,e_)+ptotal)&
            -btotal(ix^D,idim)*(^C&w(ix^D,b^C_)*w(ix^D,m^C_)+)
-        if(mhd_uawsom) then
-          uawsom_denom=dsqrt(w(ix^D,rho_)*(uawsom_zeta(ix^D)+one)/&
-               (two*(one+mhd_uawsom_filling_factor*uawsom_zeta(ix^D)-&
-               mhd_uawsom_filling_factor)))
-          uawsom_Bi=btotal(ix^D,idim)
-          f(ix^D,e_)=f(ix^D,e_)+w(ix^D,mom(idim))*uawsom_pwave+uawsom_Bi*(&
+        if(mhd_whiski) then
+          whiski_denom=dsqrt(w(ix^D,rho_)*(whiski_zeta(ix^D)+one)/&
+               (two*(one+mhd_whiski_filling_factor*whiski_zeta(ix^D)-&
+               mhd_whiski_filling_factor)))
+          whiski_Bi=btotal(ix^D,idim)
+          f(ix^D,e_)=f(ix^D,e_)+w(ix^D,mom(idim))*whiski_pwave+whiski_Bi*(&
                (w(ix^D,wAminus_)-w(ix^D,wAplus_))/dsqrt(w(ix^D,rho_))+&
-               (w(ix^D,wkminus_)-w(ix^D,wkplus_))/uawsom_denom)
+               (w(ix^D,wkminus_)-w(ix^D,wkplus_))/whiski_denom)
         end if
       end if
    {end do\}
@@ -4707,18 +4707,18 @@ contains
     if (mhd_fip) then
       f(ixO^S,fip_) = w(ixO^S,mom(idim)) * wC(ixO^S,fip_)
     end if
-    if(mhd_uawsom) then
+    if(mhd_whiski) then
      {do ix^DB=ixOmin^DB,ixOmax^DB\}
-      uawsom_denom=dsqrt(w(ix^D,rho_)*(uawsom_zeta(ix^D)+one)/&
-           (two*(one+mhd_uawsom_filling_factor*uawsom_zeta(ix^D)-&
-           mhd_uawsom_filling_factor)))
-      uawsom_Bi=btotal(ix^D,idim)
+      whiski_denom=dsqrt(w(ix^D,rho_)*(whiski_zeta(ix^D)+one)/&
+           (two*(one+mhd_whiski_filling_factor*whiski_zeta(ix^D)-&
+           mhd_whiski_filling_factor)))
+      whiski_Bi=btotal(ix^D,idim)
       f(ix^D,wAplus_)=w(ix^D,wAplus_)*(w(ix^D,mom(idim))-&
-           uawsom_Bi/dsqrt(w(ix^D,rho_)))
+           whiski_Bi/dsqrt(w(ix^D,rho_)))
       f(ix^D,wAminus_)=w(ix^D,wAminus_)*(w(ix^D,mom(idim))+&
-           uawsom_Bi/dsqrt(w(ix^D,rho_)))
-      f(ix^D,wkplus_)=w(ix^D,wkplus_)*(w(ix^D,mom(idim))-uawsom_Bi/uawsom_denom)
-      f(ix^D,wkminus_)=w(ix^D,wkminus_)*(w(ix^D,mom(idim))+uawsom_Bi/uawsom_denom)
+           whiski_Bi/dsqrt(w(ix^D,rho_)))
+      f(ix^D,wkplus_)=w(ix^D,wkplus_)*(w(ix^D,mom(idim))-whiski_Bi/whiski_denom)
+      f(ix^D,wkminus_)=w(ix^D,wkminus_)*(w(ix^D,mom(idim))+whiski_Bi/whiski_denom)
      {end do\}
     end if
     ! Get flux of tracer
@@ -5342,9 +5342,9 @@ contains
     ! modification as it does not use dt in the update
 
     if (.not. qsourcesplit) then
-      if(mhd_uawsom) then
+      if(mhd_whiski) then
         active = .true.
-        call mhd_add_source_uawsom(qdt,ixI^L,ixO^L,wCT,wCTprim,w,x)
+        call mhd_add_source_whiski(qdt,ixI^L,ixO^L,wCT,wCTprim,w,x)
       end if
       if(mhd_internal_e) then
         ! Source for solving internal energy
