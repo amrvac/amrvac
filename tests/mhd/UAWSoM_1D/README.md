@@ -1,6 +1,6 @@
-# UAWSoM one-dimensional regression tests
+# WHiSKi model one-dimensional regression tests
 
-This directory exercises the optional four-equation UAWSoM extension in the
+This directory exercises the optional four-equation WHiSKi model extension in the
 ordinary MHD module.  The four parameter combinations test:
 
 1. propagation direction and periodic conservation without effective sources;
