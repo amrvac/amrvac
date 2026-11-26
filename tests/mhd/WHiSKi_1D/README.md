@@ -1,7 +1,9 @@
 # WHiSKi model one-dimensional regression tests
 
-This directory exercises the optional four-equation WHiSKi model extension in the
-ordinary MHD module.  The four parameter combinations test:
+This directory exercises the optional four-equation Wave Heating in Stellar
+Coronae by Kink Waves (WHiSKi) model, formally know as the Uniturbulence 
+and Alfven Wave Solar Model (UAWSoM) extension in the ordinary MHD module.  
+The four parameter combinations test:
 
 1. propagation direction and periodic conservation without effective sources;
 2. conservative `wAplus`/`wAminus` exchange from the Eq. 34 reflection term;
