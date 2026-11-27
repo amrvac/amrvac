@@ -1086,6 +1086,7 @@ module mod_radiative_cooling
       double precision              :: eint_current
       double precision              :: y_l, T_l
       integer                       :: ix^D
+      logical :: used_map
 
       call fl%get_pthermal(wCT, x, ixI^L, ixO^L, pth)
       call fl%get_rho(wCT, x, ixI^L, ixO^L, rho)
@@ -1146,9 +1147,11 @@ module mod_radiative_cooling
            end if
            call findT(tlocal2, y2, fl)
 
+           used_map = .false.
            if (fl%Y_mod_built .and. rc_variable_cv(fl, Te(ix^D), tlocal2)) then
              y1 = findY_mod(Te(ix^D), nH_arr(ix^D), fl)
              if (y1 == y1 .and. abs(y1) < huge(1.0d0)) then
+               used_map = .true.
                y2 = y1 + rho2_factor(ix^D)*qdt
                tlocal2 = findT_mod(y2, nH_arr(ix^D), fl)
              end if
@@ -1156,8 +1159,8 @@ module mod_radiative_cooling
 
            if( tlocal2 <= fl%tcoolmin ) then
              l1 = lmax
-           else if (rc_variable_cv(fl, Te(ix^D), tlocal2)) then
-             !> Recombination zone: table-based de for variable c_V.
+           else if (used_map) then
+             !> The map set T2, so remove the LTE energy down to it, even when its dT is below the threshold.
              l1 = ((fl%eint_from_T(log_nH, dlog10(Te(ix^D))) &
                   - fl%eint_from_T(log_nH, dlog10(tlocal2))) * nH_val) / qdt
              l1 = max(l1, zero)
@@ -1369,6 +1372,7 @@ module mod_radiative_cooling
       double precision :: eint_current
       double precision :: y_l, T_l
       integer :: ix^D
+      logical :: used_map
 
       call fl%get_pthermal_equi(wCT,x,ixI^L,ixO^L,pth)
       call fl%get_rho_equi(wCT,x,ixI^L,ixO^L,rho)
@@ -1435,9 +1439,11 @@ module mod_radiative_cooling
              end if
              call findT(Tlocal2,Y2,fl)
 
+             used_map = .false.
              if (fl%Y_mod_built .and. rc_variable_cv(fl, Te(ix^D), Tlocal2)) then
                Y1 = findY_mod(Te(ix^D), nH_arr(ix^D), fl)
                if (Y1 == Y1 .and. abs(Y1) < huge(1.0d0)) then
+                 used_map = .true.
                  Y2 = Y1 + rho2_factor(ix^D)*qdt
                  Tlocal2 = findT_mod(Y2, nH_arr(ix^D), fl)
                end if
@@ -1445,7 +1451,7 @@ module mod_radiative_cooling
 
              if(Tlocal2<=fl%tcoolmin) then
                de = emax
-             else if (rc_variable_cv(fl, Te(ix^D), Tlocal2)) then
+             else if (used_map) then
                de = (fl%eint_from_T(log_nH, dlog10(Te(ix^D))) &
                     - fl%eint_from_T(log_nH, dlog10(Tlocal2))) * nH_val
                de = max(de, zero)
@@ -1485,6 +1491,7 @@ module mod_radiative_cooling
       double precision :: xi_arr(ixI^S), emax_rem_arr(ixI^S)
       double precision :: cool_fac, fip_prim, frac_lowFIP, fip_factor
       integer :: ix^D
+      logical :: used_map
 
       call fl%get_rho(wCT,x,ixI^L,ixO^L,rho)
       call fl%get_var_Rfactor(wCT,x,ixI^L,ixO^L,Rfactor)
@@ -1582,9 +1589,11 @@ module mod_radiative_cooling
            !> Upgrade to Y_mod only in the recombination zone (large dT).
            !> Guard: if findY_mod overflows (cooling curve near-zero at this T),
            !> keep the classical result -- variable c_V is irrelevant where Lambda ~ 0.
+           used_map = .false.
            if (fl%Y_mod_built .and. rc_variable_cv(fl, Te(ix^D), Tlocal2)) then
              Y1 = findY_mod(Te(ix^D), nH_arr(ix^D), fl)
              if (Y1 == Y1 .and. abs(Y1) < huge(1.0d0)) then
+               used_map = .true.
                Y2 = Y1 + cool_fac * qdt
                Tlocal2 = findT_mod(Y2, nH_arr(ix^D), fl)
              end if
@@ -1592,7 +1601,7 @@ module mod_radiative_cooling
 
            if(Tlocal2<=fl%tcoolmin) then
              de = emax
-           else if (rc_variable_cv(fl, Te(ix^D), Tlocal2)) then
+           else if (used_map) then
              !> Recombination zone: use table-based de for variable c_V.
              de = (fl%eint_from_T(log_nH, dlog10(Te(ix^D))) &
                    - fl%eint_from_T(log_nH, dlog10(Tlocal2))) * nH_val
