@@ -53,7 +53,7 @@ vpath %.t $(SRC_DIR)
 .INTERMEDIATE: amrvac.o mod_usr.o mod_usr.mod
 
 # Always try to build/update the amrvac library
-$(LIB_AMRVAC): force
+$(LIB_AMRVAC): force | hdr
 	@mkdir -p $(LIB_DIR)
 	$(MAKE) -C $(LIB_DIR) -f $(LIB_MAKE)
 
